@@ -38,7 +38,6 @@ import io.nop.stream.core.source.SplitEnumeratorContext;
  *   <li>{@code discoveredFiles} — every file path discovered at start</li>
  *   <li>{@code assignedFiles} — set of files already assigned to a reader</li>
  *   <li>{@code finishedFiles} — set of files reported finished by readers</li>
- *   <li>{@code nextSubtaskIndex} — round-robin cursor for the next assignment</li>
  * </ul>
  *
  * <p>Stage 49 D4: deploy-time discovery only (bounded source). Continuous polling for
@@ -57,7 +56,6 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
     private transient Set<String> assignedFiles = ConcurrentHashMap.newKeySet();
     private transient Set<String> finishedFiles = ConcurrentHashMap.newKeySet();
     private transient Map<String, FileSplit> splitById = new ConcurrentHashMap<>();
-    private transient int nextSubtaskIndex;
     private transient SplitEnumeratorContext<FileSplit> context;
 
     public FileSplitEnumerator(String directoryPath) {
@@ -144,13 +142,18 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
     @Override
     public FileSplitEnumeratorState snapshotState(long checkpointId) {
         // Defensive copies of the current bookkeeping
+        // The constant 0 keeps the VERSION-1 wire format of
+        // FileSplitEnumeratorStateSerializer byte-compatible: its second line was
+        // reserved for the retired round-robin cursor, which never participated in
+        // assignment (stable i % parallelism). The deserializer still parses and
+        // ignores that line so old checkpoints keep restoring unchanged.
         return new FileSplitEnumeratorState(
                 directoryPath,
                 new LinkedHashSet<>(discoveredFiles),
                 new LinkedHashSet<>(assignedFiles),
                 new LinkedHashSet<>(finishedFiles),
                 new LinkedHashMap<>(splitById),
-                nextSubtaskIndex);
+                0);
     }
 
     @Override
@@ -165,7 +168,8 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
         this.finishedFiles = ConcurrentHashMap.newKeySet();
         this.finishedFiles.addAll(state.getFinishedFiles());
         this.splitById = new ConcurrentHashMap<>(state.getSplitById());
-        this.nextSubtaskIndex = state.getNextSubtaskIndex();
+        // state.getNextSubtaskIndex() is deliberately not restored: the legacy cursor
+        // is dead state (see snapshotState) and old checkpoints remain readable.
     }
 
     @Override

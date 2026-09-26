@@ -39,6 +39,7 @@ import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TOKEN;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -168,27 +169,18 @@ public class TaskManager implements IStreamTaskRpcService {
         this.clusterRegistry = clusterRegistry;
         this.controlTopic = controlTopic;
         this.capacitySemaphore = new Semaphore(Math.max(1, capacity));
-        this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity), r -> {
-            Thread t = new Thread(r, "tm-task-" + nodeId);
-            t.setDaemon(true);
-            return t;
-        });
-        this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "tm-heartbeat-" + nodeId);
-            t.setDaemon(true);
-            return t;
-        });
+        this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity),
+                NopStreamThreadFactory.named("tm-task-" + nodeId));
+        this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(
+                NopStreamThreadFactory.named("tm-heartbeat-" + nodeId));
         // Plan 358 Fix-3: dedicated single-thread executor for 2PC checkpoint
         // commits. finishCommit performs blocking JDBC/file commits which must
         // never occupy the message-service dispatch thread (a slow commit there
         // stalls heartbeat, assignment and ACK dispatch for the whole node).
         // Single thread keeps commit ordering per task (subsuming semantics make
         // order benign, but serial execution preserves it anyway).
-        this.commitExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "tm-commit-" + nodeId);
-            t.setDaemon(true);
-            return t;
-        });
+        this.commitExecutor = Executors.newSingleThreadExecutor(
+                NopStreamThreadFactory.named("tm-commit-" + nodeId));
         this.runningTasks = new ConcurrentHashMap<>();
         this.completedTasks = new ConcurrentHashMap<>();
         this.currentFencingEpoch = new AtomicLong(0L);

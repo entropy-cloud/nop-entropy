@@ -12,7 +12,6 @@ import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.storage.ISegmentStore;
 import io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,12 +38,6 @@ class TestCheckpointCoordinatorIncrementalGuard {
         return new CheckpointCoordinator(
                 "job-inc", "pipe-inc", new CheckpointIDCounter(),
                 new LocalFileCheckpointStorage(tmp.resolve("cp").toString()), config);
-    }
-
-    @BeforeEach
-    void disableSchedulerSideEffect() {
-        // The guard is invoked by startCheckpointScheduler(); tests below call
-        // validateIncrementalConfig() directly to avoid spawning scheduler threads.
     }
 
     @Test

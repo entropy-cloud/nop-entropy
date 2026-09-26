@@ -96,14 +96,14 @@ public final class KeyGroupRange implements Serializable {
         if (other == null) {
             return EMPTY;
         }
-        int s = Math.max(this.startKeyGroup, other.startKeyGroup);
-        int e = Math.min(this.endKeyGroup, other.endKeyGroup);
-        if (e <= s) {
+        int start = Math.max(this.startKeyGroup, other.startKeyGroup);
+        int end = Math.min(this.endKeyGroup, other.endKeyGroup);
+        if (end <= start) {
             // Disjoint or merely adjacent ranges share no key group; return the
             // canonical empty range so all empty intersections compare equal.
             return EMPTY;
         }
-        return new KeyGroupRange(s, e);
+        return new KeyGroupRange(start, end);
     }
 
     /**

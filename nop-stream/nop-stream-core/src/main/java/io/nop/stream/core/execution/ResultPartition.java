@@ -160,7 +160,7 @@ public class ResultPartition implements IWriteStatus {
      * rejects the element; the producer does not silently continue with a
      * divergent main-queue/materialization-store pair (No-Silent-No-Op).
      *
-     * <p>Stage 44 successor 4 Phase 2 (overflow-bypass, 解除死锁 1): when a
+     * <p>Overflow-bypass (deadlock release): when a
      * materialization point is attached, the main-queue write is
      * <strong>non-blocking</strong> ({@code queue.offer}). If the queue is full,
      * the element is not enqueued — but it has already been dual-written to the
@@ -210,43 +210,60 @@ public class ResultPartition implements IWriteStatus {
         // Stage 44 successor 1: dual-write bypass. Snapshot the point locally so a
         // concurrent detach does not split the dual-write into a partial state.
         IMaterializationPoint point = this.materializationPoint;
-        if (point != null && element.isRecord()) {
-            // Stage 44 successor 4 (barrier/control-event filtering): only data
-            // records are dual-written to the materialization store. Control
-            // events (CheckpointBarrier, Watermark, WatermarkStatus, LatencyMarker)
-            // are filtered — they are not data and would pollute the store,
-            // causing spurious barriers/watermarks to be injected on replay.
-            // The epoch bump above still happens for barriers (epoch alignment),
-            // but the barrier element itself is not persisted.
-            // HG-01 Phase 1 decision D6 (2026-08-14): SideOutputElement is likewise
-            // NOT dual-written — isRecord() is false for it, so the gate excludes it
-            // naturally; materialization dual-write for side outputs is excluded
-            // (best-effort delivery semantics, no consumer-side contract).
-            // Tag with the producer's current epoch. Bypass failures abort the
-            // write (fail-fast) rather than silently diverging the two stores.
-            try {
-                point.write(element, currentMaterializationEpoch);
-            } catch (InterruptedException ie) {
-                throw ie;
-            } catch (RuntimeException rex) {
-                throw new StreamException(ERR_STREAM_MATERIALIZE_WRITE_FAILED, rex)
-                        .param(NopStreamErrors.ARG_POINT_ID, point.getPointId())
-                        .param(ARG_DETAIL, rex.getMessage());
-            }
+        dualWriteToMaterialization(point, element);
+        enqueueWithBackpressure(point, element);
+    }
+
+    /**
+     * Stage 44 successor 1/4: dual-writes a data record into the attached
+     * materialization bypass point, tagged with the current producer epoch.
+     * Control events (CheckpointBarrier, Watermark, WatermarkStatus,
+     * LatencyMarker) are NOT dual-written — only data records are. Persisting
+     * control events would pollute the store and inject spurious barriers/
+     * watermarks on replay; the epoch bump for barriers still happens in
+     * {@link #write(StreamElement)}. SideOutputElement is likewise NOT
+     * dual-written (isRecord() is false, so the gate excludes it naturally;
+     * HG-01 Phase 1 decision D6 — best-effort delivery semantics). The bypass
+     * write fails fast (throws) if the materialization store rejects the
+     * element; the producer does not silently continue with a divergent
+     * main-queue/materialization-store pair (No-Silent-No-Op).
+     */
+    private void dualWriteToMaterialization(IMaterializationPoint point,
+                                            StreamElement element) throws InterruptedException {
+        if (point == null || !element.isRecord()) {
+            return;
         }
+        try {
+            point.write(element, currentMaterializationEpoch);
+        } catch (InterruptedException ie) {
+            throw ie;
+        } catch (RuntimeException rex) {
+            throw new StreamException(ERR_STREAM_MATERIALIZE_WRITE_FAILED, rex)
+                    .param(NopStreamErrors.ARG_POINT_ID, point.getPointId())
+                    .param(ARG_DETAIL, rex.getMessage());
+        }
+    }
+
+    /**
+     * Enqueues the element on the main queue with the quadrant-specific
+     * backpressure policy (materialization attached or not × pool attached or
+     * not), preserving the ordering and guards of the pre-extraction write path:
+     * <ul>
+     *   <li>pool + materialization: non-blocking offer under an optimistically
+     *       acquired permit; on queue-full the permit is released and the record
+     *       overflows to the materialization store only (Stage 44 successor 4
+     *       Phase 2 overflow-bypass — the producer never blocks indefinitely on
+     *       a dead/slow consumer — failover-design.md §9.4 deadlock case)</li>
+     *   <li>pool, no materialization: blocking put; the permit is returned when
+     *       the put is interrupted so it cannot leak</li>
+     *   <li>no pool + materialization: non-blocking offer, no permit accounting</li>
+     *   <li>no pool, no materialization: legacy blocking put (zero regression)</li>
+     * </ul>
+     */
+    private void enqueueWithBackpressure(IMaterializationPoint point,
+                                         StreamElement element) throws InterruptedException {
         if (bufferPool != null) {
             if (point != null) {
-                // Stage 44 successor 4 Phase 2 (overflow-bypass, 解除死锁 1):
-                // When materialization is enabled, the main-queue write is
-                // non-blocking (queue.offer). The data has already been
-                // dual-written to the materialization store above, so an offer
-                // failure (queue full) does NOT lose data — the complete record
-                // is in the materialization store and will be replayed on
-                // recovery. The producer therefore never blocks indefinitely on
-                // a dead/slow consumer (死锁 1, failover-design.md §9.4).
-                // The pool permit is acquired optimistically and released
-                // immediately on offer failure so global accounting stays
-                // consistent.
                 bufferPool.acquire();
                 if (!queue.offer(element)) {
                     // Queue full — overflow to the materialization store only

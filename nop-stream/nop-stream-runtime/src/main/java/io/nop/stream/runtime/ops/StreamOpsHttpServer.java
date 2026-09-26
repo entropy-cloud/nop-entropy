@@ -28,6 +28,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 
 import io.nop.stream.core.metrics.StreamMetricsRegistries;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 
 /**
  * Item 16 (P-REQ-3/6): the ops HTTP server hosted in the coordinator process
@@ -106,11 +107,8 @@ public class StreamOpsHttpServer {
         }
 
         httpServer = HttpServer.create(new InetSocketAddress(config.getBindAddress(), config.getPort()), 0);
-        httpServer.setExecutor(Executors.newFixedThreadPool(4, r -> {
-            Thread t = new Thread(r, "stream-ops-http");
-            t.setDaemon(true);
-            return t;
-        }));
+        httpServer.setExecutor(Executors.newFixedThreadPool(4,
+                NopStreamThreadFactory.named("stream-ops-http")));
         // F-09b: the auth guard is enforced at EVERY entry point — /metrics, /jobs and
         // the catch-all below (a guard on only some endpoints would be a bypass).
         httpServer.createContext("/metrics", ex -> {

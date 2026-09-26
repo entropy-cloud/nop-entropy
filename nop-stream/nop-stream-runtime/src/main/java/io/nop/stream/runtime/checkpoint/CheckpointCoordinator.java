@@ -53,6 +53,7 @@ import io.nop.stream.core.checkpoint.storage.ISegmentStore;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetrics;
 
 @Internal
@@ -62,10 +63,12 @@ public class CheckpointCoordinator {
 
     /**
      * Reason a {@link #tryTriggerPendingCheckpoint(CheckpointType)} call did not produce a
-     * new {@link PendingCheckpoint}. Exposed via {@link TriggerOutcome} so that the scheduler
-     * loop can distinguish back-pressure (throttle / concurrent-limit rejection) from real
+     * new {@link PendingCheckpoint}. Exposed via {@link TriggerOutcome} so that the external
+     * periodic driver (e.g. {@code JobCoordinator#startPeriodicCheckpoints}) can distinguish
+     * back-pressure (throttle / concurrent-limit rejection) from real
      * failures, ensuring {@link #consecutiveTriggerFailures} only inflates on genuine
-     * trigger errors (Plan 2026-07-25-2300-1 Phase 1: 「失败计数器不被节流/拒绝污染」).
+     * trigger errors (the failure counter must not be polluted by throttling or
+     * concurrent-limit rejection).
      */
     public enum TriggerRejectionReason {
         /** A new PendingCheckpoint was created. Only valid when paired with a non-null pending. */
@@ -131,27 +134,27 @@ public class CheckpointCoordinator {
     private final CheckpointConfig config;
 
     /**
-     * Stage 31: content-addressed side-channel store for shared SST segments. May be
+     * Content-addressed side-channel store for shared SST segments. May be
      * {@code null} for non-incremental jobs. When {@link #incrementalCheckpointEnabled}
      * is {@code true}, this MUST be non-null (enforced by {@link #validateIncrementalConfig()}).
      */
     private ISegmentStore segmentStore;
 
     /**
-     * Stage 31: enables incremental (segment-based) checkpoint processing on the
+     * Enables incremental (segment-based) checkpoint processing on the
      * coordinator side. Requires {@link #segmentStore} to be set and
      * {@code asyncSnapshotEnabled=true} (see {@link #validateIncrementalConfig()}).
      */
     private boolean incrementalCheckpointEnabled;
 
     /**
-     * Stage 31: reference-counting registry for shared SST segments. Job-scoped lifetime.
+     * Reference-counting registry for shared SST segments. Job-scoped lifetime.
      * Lazily initialized on first use; null when incremental is disabled.
      */
     private SharedStateRegistry sharedStateRegistry;
 
     /**
-     * Stage 31: in-memory GC map (checkpointId → segments materialized for that checkpoint).
+     * In-memory GC map (checkpointId → segments materialized for that checkpoint).
      * Used by {@link #cleanupOldCheckpoints()} to drive {@code sharedStateRegistry.unregister}
      * + {@code segmentStore.discardSegment} on subsumption. Guarded by the coordinator monitor.
      */
@@ -168,9 +171,10 @@ public class CheckpointCoordinator {
      * {@code minPause} gating in {@link #tryTriggerPendingCheckpoint}: the next trigger is
      * allowed only after {@code now - lastCompletedTimestamp >= config.getMinPause()}.
      *
-     * <p>Semantics rationale (Plan 2026-07-25-2300-1 Phase 1): the anchor is the
+     * <p>Semantics rationale: the anchor is the
      * <em>completion</em> instant, not the trigger instant, matching
-     * {@code checkpoint-design.md} §配置表「两次 checkpoint 之间的最小间隔」and Flink's
+     * {@code checkpoint-design.md} config table ("minimum interval between two
+     * checkpoints") and Flink's
      * {@code minPauseBetweenCheckpoints}. The first trigger after coordinator construction
      * (no prior completion) is never throttled; if a prior checkpoint is still in-flight,
      * {@code maxConcurrentCheckpoints} gating decides — minPause does not duplicate that
@@ -183,28 +187,26 @@ public class CheckpointCoordinator {
      */
     private volatile long lastCompletedTimestamp = 0L;
 
-    private ScheduledExecutorService scheduler;
     private final ScheduledExecutorService timeoutScheduler;
-    private volatile boolean isSchedulerStarted = false;
 
     /**
      * Dedicated executor for checkpoint persistence (storeCheckPoint + storeEpochManifest).
      * Lazily created on first use (see {@link #getOrCreatePersistExecutor()}) so that
      * coordinator instances which never complete a checkpoint do not spawn extra threads.
-     * Lifecycle is decoupled from {@link #startCheckpointScheduler()}/{@link #stopCheckpointScheduler()}
-     * (which are restartable) per N2: only the terminal {@link #shutdown()} tears it down,
+     * Lifecycle is tied to the terminal {@link #shutdown()} only (per N2: the coordinator
+     * does not own a restartable trigger loop — periodic triggering is driven externally,
+     * e.g. by {@code JobCoordinator#startPeriodicCheckpoints}),
      * and {@link RejectedExecutionException} submitted after shutdown is handled inline.
      */
     private ExecutorService persistExecutor;
-    private final AtomicInteger persistExecutorThreadIndex = new AtomicInteger(0);
     private volatile boolean isShutdown = false;
 
     /**
-     * Plan 2026-09-03-1951-1 Phase 2 (F-A): dedicated single-thread executor for
+     * Dedicated single-thread executor for
      * retention storage I/O ({@code getAllCheckpoints} + {@code deleteCheckpoint}).
      * Deliberately NOT the persist executor: with the default
      * {@code asyncSnapshotThreadPoolSize=1}, sharing the pool would turn a slow
-     * retention run into head-of-line blocking of subsequent 段2 persists — defeating
+     * retention run into head-of-line blocking of subsequent storage-I/O persists — defeating
      * the Goal that checkpoint completion must not be blocked by retention I/O.
      * Lazily created on first retention schedule (always under the coordinator
      * monitor, see {@link #scheduleRetentionCleanup()}); torn down by the terminal
@@ -213,7 +215,7 @@ public class CheckpointCoordinator {
     private ExecutorService retentionExecutor;
 
     /**
-     * Phase 2 serialization guard (D1(f)): true while a retention task is running
+     * Serialization guard: true while a retention task is running
      * (or queued). Ensures at most one retention run executes / is queued at a time
      * — concurrent runs would race on duplicate {@code deleteCheckpoint} calls for
      * the same rows when the persist pool has multiple threads.
@@ -222,7 +224,7 @@ public class CheckpointCoordinator {
             new java.util.concurrent.atomic.AtomicBoolean(false);
 
     /**
-     * Phase 2 trailing re-run flag (D1(f)): set when a completion triggers retention
+     * Trailing re-run flag: set when a completion triggers retention
      * while a run is already in flight. The running task's finally consumes the flag
      * and schedules one more run, guaranteeing every completion is followed by a
      * retention run that starts later (eventual consistency of the ≤ maxRetained
@@ -236,7 +238,7 @@ public class CheckpointCoordinator {
     private final CheckpointMetrics metrics = new CheckpointMetrics();
 
     /**
-     * Item 16 (P-REQ-2): job event bus fired at the real checkpoint
+     * Job event bus fired at the real checkpoint
      * completion/failure/abort paths. Defaults to an internal bus (no
      * listeners); {@code JobCoordinator} injects the job-level bus so its
      * listeners observe checkpoint progress events too.
@@ -245,14 +247,14 @@ public class CheckpointCoordinator {
             new io.nop.stream.runtime.event.StreamJobEventBus();
 
     /**
-     * Item 16 (P-REQ-1 engine layer): micrometer bindings for the real
+     * Micrometer bindings for the real
      * completion/failure/abort paths. Lazily resolved per jobId against the
      * process composite registry.
      */
     private volatile io.nop.stream.runtime.metrics.EngineMetrics engineMetrics;
 
     /**
-     * Item 16 (P-REQ-6): bounded checkpoint observation history, recorded at
+     * Bounded checkpoint observation history, recorded at
      * the same real completion/failure/abort paths that fire job events.
      * Newest first; capacity governed by the governance config (default 100).
      */
@@ -269,13 +271,12 @@ public class CheckpointCoordinator {
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
     /**
-     * Item 14 (composite-scenario distributed): abort callback carrying the abort
+     * Abort callback carrying the abort
      * REASON so handlers can distinguish routine timeouts from snapshot failures.
      * A checkpoint TIMEOUT is a normal back-pressure event (discard the epoch,
      * keep the tasks running — the next trigger retries); an operator SNAPSHOT
      * FAILURE abort indicates possibly-inconsistent task state (the recovery
-     * design's cancel-and-recover path). Handlers that cancelled tasks on every
-     * timeout turned a slow recovery window into a cancel/recover cascade.
+     * design's cancel-and-recover path).
      */
     private volatile java.util.function.BiConsumer<Long, String> abortHandler;
 
@@ -293,10 +294,10 @@ public class CheckpointCoordinator {
         this.pendingCheckpoints = new ConcurrentHashMap<>();
         this.numPendingCheckpoints = new AtomicInteger(0);
         this.tasksToAcknowledge = ConcurrentHashMap.newKeySet();
-        // G31 (Plan 2026-07-25-2300-1): the Coordinator layer honors the configured
-        // maxConcurrentCheckpoints value directly (see tryTriggerPendingCheckpoint gating).
-        // Stage 45 lifted the task-side single-in-flight restriction: the
-        // Coordinator, CheckpointBarrierTracker, and InputGate now each honor
+        // The Coordinator layer honors the configured
+        // maxConcurrentCheckpoints value directly (see tryTriggerPendingCheckpoint gating):
+        // the
+        // Coordinator, CheckpointBarrierTracker, and InputGate each honor
         // maxConcurrentCheckpoints consistently (see checkpoint-design.md §2.8.1).
         // This log line confirms the configured concurrency is honored end-to-end.
         if (config.getMaxConcurrentCheckpoints() > 1) {
@@ -305,11 +306,8 @@ public class CheckpointCoordinator {
                             + "see checkpoint-design.md §2.8.1).",
                     config.getMaxConcurrentCheckpoints(), jobId);
         }
-        this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "checkpoint-timeout-" + jobId);
-            t.setDaemon(true);
-            return t;
-        });
+        this.timeoutScheduler = Executors.newSingleThreadScheduledExecutor(
+                NopStreamThreadFactory.named("checkpoint-timeout-" + jobId));
     }
 
     public void addListener(CheckpointListener listener) {
@@ -338,98 +336,11 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 14: abort callback with the abort reason — lets handlers differentiate
+     * Abort callback with the abort reason — lets handlers differentiate
      * routine timeout aborts from snapshot-failure aborts.
      */
     public void setAbortHandler(java.util.function.BiConsumer<Long, String> handler) {
         this.abortHandler = handler;
-    }
-
-    public synchronized void startCheckpointScheduler() {
-        if (isSchedulerStarted) {
-            return;
-        }
-
-        if (!config.isCheckpointEnabled()) {
-            LOG.info("Checkpoint is disabled for job {}", jobId);
-            return;
-        }
-
-        // Stage 31: fail fast on inconsistent incremental-checkpoint config before the
-        // scheduler loop ever tries to complete a checkpoint (No-Silent-No-Op rule).
-        validateIncrementalConfig();
-
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "checkpoint-coordinator-" + jobId);
-            t.setDaemon(true);
-            return t;
-        });
-
-        long interval = config.getCheckpointInterval();
-        scheduler.scheduleAtFixedRate(
-                () -> {
-                    try {
-                        TriggerOutcome outcome = tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
-                        switch (outcome.reason()) {
-                            case TRIGGERED:
-                                consecutiveTriggerFailures.set(0);
-                                break;
-                            case THROTTLED_MIN_PAUSE:
-                            case REJECTED_MAX_CONCURRENT:
-                                // Expected back-pressure: do NOT inflate the failure counter
-                                // (Plan 2026-07-25-2300-1 Phase 1: 「失败计数器不被节流/拒绝污染」).
-                                // Logging already happened inside tryTriggerCheckpointWithReason
-                                // at DEBUG level with the back-pressure reason.
-                                break;
-                            case NO_TASKS_TO_ACK:
-                            default:
-                                // Real trigger failure: no tasks to ack means the coordinator
-                                // is misconfigured or every task has unregistered.
-                                int failures = consecutiveTriggerFailures.incrementAndGet();
-                                if (failures == CONSECUTIVE_FAILURE_THRESHOLD) {
-                                    LOG.error("Checkpoint trigger failed {} consecutive times for job {} (reason={})",
-                                            failures, jobId, outcome.reason());
-                                } else {
-                                    LOG.warn("Checkpoint trigger rejected for job {} (reason={}, consecutive failures={})",
-                                            jobId, outcome.reason(), failures);
-                                }
-                                break;
-                        }
-                    } catch (Exception e) {
-                        int failures = consecutiveTriggerFailures.incrementAndGet();
-                        if (failures >= CONSECUTIVE_FAILURE_THRESHOLD) {
-                            LOG.error("Checkpoint trigger failed {} consecutive times for job {}",
-                                    failures, jobId, e);
-                        } else {
-                            LOG.warn("Failed to trigger checkpoint for job {} (attempt {})", jobId, failures, e);
-                        }
-                    }
-                },
-                interval,
-                interval,
-                TimeUnit.MILLISECONDS);
-
-        isSchedulerStarted = true;
-        LOG.info("Checkpoint scheduler started for job {} with interval {}ms", jobId, interval);
-    }
-
-    public synchronized void stopCheckpointScheduler() {
-        if (!isSchedulerStarted || scheduler == null) {
-            return;
-        }
-
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
-                scheduler.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-        isSchedulerStarted = false;
-        LOG.info("Checkpoint scheduler stopped for job {}", jobId);
     }
 
     public synchronized PendingCheckpoint tryTriggerPendingCheckpoint(CheckpointType checkpointType) {
@@ -437,16 +348,17 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Trigger a new pending checkpoint and report the precise outcome. The scheduler loop
+     * Trigger a new pending checkpoint and report the precise outcome. The external periodic
+     * driver (e.g. {@code JobCoordinator#startPeriodicCheckpoints})
      * uses this method so that {@code THROTTLED_MIN_PAUSE} and {@code REJECTED_MAX_CONCURRENT}
-     * back-pressure does NOT inflate {@link #consecutiveTriggerFailures} (Plan 2026-07-25-2300-1
-     * Phase 1). Callers that only need the PendingCheckpoint reference can use
+     * back-pressure does NOT inflate {@link #consecutiveTriggerFailures}.
+     * Callers that only need the PendingCheckpoint reference can use
      * {@link #tryTriggerPendingCheckpoint(CheckpointType)} instead.
      *
      * <p>Gating order: (1) maxConcurrent → (2) minPause (last-completed) → (3) tasks-to-ack.
      * Each rejection is observable (DEBUG/WARN log + distinct {@link TriggerRejectionReason})
      * so callers can distinguish back-pressure from genuine failures — there is no silent
-     * {@code continue} / null-as-default (Plan rule #24).
+     * {@code continue} / null-as-default.
      */
     public synchronized TriggerOutcome tryTriggerCheckpointWithReason(CheckpointType checkpointType) {
         int effectiveMaxConcurrent = config.getMaxConcurrentCheckpoints();
@@ -456,11 +368,11 @@ public class CheckpointCoordinator {
             return TriggerOutcome.rejected(TriggerRejectionReason.REJECTED_MAX_CONCURRENT);
         }
 
-        // G31 / minPause(last-completed): once at least one checkpoint has completed, the
+        // minPause(last-completed): once at least one checkpoint has completed, the
         // next trigger is allowed only after `now - lastCompletedTimestamp >= minPause`.
         // First-ever trigger (no prior completion) is never throttled. minPause == 0 disables
         // the gate. The anchor is completion (not trigger) to match checkpoint-design.md
-        // §配置表 and Flink minPauseBetweenCheckpoints.
+        // config table and Flink minPauseBetweenCheckpoints.
         //
         // Scope: only the regular periodic CHECKPOINT type is throttled. Savepoints and
         // terminal checkpoints (COMPLETED_POINT_TYPE / TERMINAL_SAVEPOINT / EXPORTED_SAVEPOINT)
@@ -510,7 +422,8 @@ public class CheckpointCoordinator {
         }
 
         // N1: status guard. In async-snapshot mode there is a window between
-        // CAS(RUNNING->COMPLETED) (段1) and pendingCheckpoints.remove (段3a/3b) during
+        // CAS(RUNNING->COMPLETED) (the manifest-snapshot step) and pendingCheckpoints.remove
+        // (the side-effect steps) during
         // which the pending entry is still registered with status COMPLETED. A duplicate
         // or stale ACK arriving in that window must return false (matching the sync-mode
         // semantics where a duplicate ACK finds the entry already removed) instead of
@@ -545,16 +458,16 @@ public class CheckpointCoordinator {
             return;
         }
 
-        // 段1: build immutable manifest snapshot while holding monitor. buildEpochManifest
+        // Manifest-snapshot step: build immutable manifest snapshot while holding monitor. buildEpochManifest
         // captures currentFingerprint; building it here (under monitor) preserves the same
         // fingerprint-observation ordering as the pre-async implementation. The manifest and
         // the completed checkpoint are immutable, so they can be safely handed to the persist
         // executor without holding the monitor during I/O.
         //
-        // Stage 31 incremental: segments computation involves RocksDB file I/O + registry
+        // Incremental mode: segments computation involves RocksDB file I/O + registry
         // register + segment store copy and MUST NOT run under the monitor. For incremental
-        // mode we capture the fingerprint here (段1, under monitor) and defer manifest
-        // construction (with segments) to the persist executor (段2). See checkpoint-design.md
+        // mode we capture the fingerprint here (under monitor) and defer manifest
+        // construction (with segments) to the persist executor. See checkpoint-design.md
         // §2.2 async persist timing.
         if (incrementalCheckpointEnabled && sharedStateRegistry != null && segmentStore != null) {
             final StreamModelFingerprint capturedFingerprint = currentFingerprint;
@@ -571,13 +484,13 @@ public class CheckpointCoordinator {
         final EpochManifest manifest = buildEpochManifest(completed);
 
         if (!config.isAsyncSnapshotEnabled()) {
-            // sync fallback: 段2 (storage I/O) + 段3 (completion side effects) execute inline
+            // sync fallback: storage I/O + completion side effects execute inline
             // on the ACK caller thread under the monitor — pre-async behavior preserved.
             completePersistSynchronously(completed, pending, manifest);
             return;
         }
 
-        // async path: hand 段2 + 段3 to the dedicated persist executor. The ACK caller thread
+        // async path: hand storage I/O + completion side effects to the dedicated persist executor. The ACK caller thread
         // returns as soon as the task is queued, so storage I/O no longer blocks the
         // coordinator's responsiveness (abort registration, timeout scheduling, trigger
         // bookkeeping).
@@ -586,7 +499,7 @@ public class CheckpointCoordinator {
             executor.submit(() -> executePersistAsync(completed, pending, manifest));
         } catch (RejectedExecutionException ree) {
             // Executor was shut down (terminal shutdown racing with a final ACK). Execute
-            // 段3b inline — we still hold the monitor from this synchronized method.
+            // failure side effects inline — we still hold the monitor from this synchronized method.
             LOG.warn("Persist executor rejected checkpoint {}, failing inline", checkpointId, ree);
             onCompletePersistFailure(completed, pending, "submit persist task", ree);
         }
@@ -621,8 +534,8 @@ public class CheckpointCoordinator {
 
     /**
      * Async path body, executed on a {@code checkpoint-persist-<jobId>-<n>} thread.
-     * 段2 performs storage I/O WITHOUT holding the monitor (operating on immutable snapshot
-     * data). 段3a/3b re-acquire the monitor so that decrementPendingCheckpointCount stays
+     * The storage-I/O step performs storage I/O WITHOUT holding the monitor (operating on immutable snapshot
+     * data). The side-effect steps re-acquire the monitor so that decrementPendingCheckpointCount stays
      * atomic with tryTriggerPendingCheckpoint's concurrent-check (§13.2).
      */
     private void executePersistAsync(
@@ -655,9 +568,9 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 incremental async persist path (段2 for incremental). Builds the content-
+     * Incremental async persist path (the storage-I/O step for incremental). Builds the content-
      * addressed segments (registry register + segment store materialization — I/O, no
-     * monitor), constructs the EpochManifest with those segments, persists, then 段3a
+     * monitor), constructs the EpochManifest with those segments, persists, then the success callback
      * records the GC-map entry under monitor and runs success side effects.
      */
     private void executeIncrementalPersistAsync(
@@ -707,24 +620,24 @@ public class CheckpointCoordinator {
         }
 
         synchronized (this) {
-            // GC map update happens under monitor after 段2 persist success (§ design).
+            // GC map update happens under monitor after storage persist success (§ design).
             checkpointSegments.put(checkpointId, segments);
             onCompletePersistSuccess(completed, pending, true);
         }
     }
 
     /**
-     * Stage 31: walk all task snapshots in the completed checkpoint, extract every
+     * Walk all task snapshots in the completed checkpoint, extract every
      * {@link IncrementalSnapshotResult} marker, register each shared SST handle against
      * {@link #sharedStateRegistry} (de-duplication), materialize new handles into
      * {@link #segmentStore} (content-addressed copy), and build the
      * {@link StateSegmentDescriptor} list for the EpochManifest. Per the design decision
-     * "Coordinator 从不直接操作 RocksDB 实例" — the coordinator only consumes the raw
+     * "the coordinator never operates the RocksDB instance directly" — the coordinator only consumes the raw
      * handles carried in the ACK; the task produced them.
      *
      * <p>Single-JVM model: the handle's {@code filePath} points at the task-local native
      * checkpoint dir, which the coordinator (same JVM) reads and copies into the shared
-     * store. Cross-JVM transfer is Stage 40 (out of scope).
+     * store. Cross-JVM transfer is out of scope.
      */
     private List<StateSegmentDescriptor> buildAndMaterializeSegments(CompletedCheckpoint completed) throws java.io.IOException {
         List<StateSegmentDescriptor> segments = new java.util.ArrayList<>();
@@ -843,7 +756,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * 段3a: success callback. Caller MUST hold the coordinator monitor.
+     * Success callback. Caller MUST hold the coordinator monitor.
      *
      * <p>Preserves the exact side-effect ordering of the pre-async implementation:
      * pendingCheckpoints.remove → forceComplete (DURABLE) → latestCompletedCheckpoint →
@@ -851,7 +764,7 @@ public class CheckpointCoordinator {
      * notifyParticipantsFinishCommit(true) (commit, after forceComplete per §12 invariant 5)
      * → notifyCheckpointCompleted → checkpointSuccessMap.remove → consecutiveTriggerFailures.reset.
      *
-     * <p>Phase 2 (Plan 2026-09-03-1951-1, D1(d)): retention handling is selected by
+     * <p>Retention handling is selected by
      * {@code asyncRetention}. The async completion paths (executePersistAsync /
      * executeIncrementalPersistAsync) pass {@code true} — retention storage I/O is
      * scheduled onto the dedicated retention executor (non-blocking CAS + submit,
@@ -859,7 +772,7 @@ public class CheckpointCoordinator {
      * ({@code completePersistSynchronously}, {@code asyncSnapshotEnabled=false})
      * passes {@code false} — {@code cleanupOldCheckpoints()} runs inline under the
      * monitor, preserving that mode's pinned pre-async semantics (all I/O on the
-     * ACK caller thread). Ordering w.r.t. the subsequent 段3a steps is dependency-free
+     * ACK caller thread). Ordering w.r.t. the subsequent success-callback steps is dependency-free
      * either way: retention only deletes the OLDEST rows (never the just-completed
      * epoch, whose id is strictly the newest) and touches disjoint state (old storage
      * rows + old segments), while retryFailedCommits / notifyParticipantsFinishCommit /
@@ -875,12 +788,12 @@ public class CheckpointCoordinator {
             return;
         }
 
-        // AR-19: Complete the future only after successful storage, so storage failure
+        // Complete the future only after successful storage, so storage failure
         // does not leave a ghost checkpoint that callers already acted on.
         pending.forceComplete();
 
         latestCompletedCheckpoint = completed;
-        // G31 / minPause(last-completed): anchor the next-trigger throttle clock at the
+        // minPause(last-completed): anchor the next-trigger throttle clock at the
         // instant this checkpoint became durable. Set before decrement so a racing trigger
         // (also under monitor) sees the new anchor when numPending drops to 0.
         lastCompletedTimestamp = CoreMetrics.currentTimeMillis();
@@ -889,7 +802,7 @@ public class CheckpointCoordinator {
         metrics.incrementCompletedCheckpoints();
         metrics.updateLatestCheckpoint(completed.estimateSize(), completed.getDuration());
 
-        // Item 16: engine-layer meters + job progress event at the real
+        // Engine-layer meters + job progress event at the real
         // completion path (fires on every durable checkpoint, LOCAL and
         // DISTRIBUTED).
         engineMetrics().checkpointCompleted(completed.estimateSize(), completed.getDuration());
@@ -903,7 +816,7 @@ public class CheckpointCoordinator {
                 null, CoreMetrics.currentTimeMillis()));
 
         if (asyncRetention) {
-            // Phase 2 (F-A): retention I/O off the monitor — non-blocking schedule
+            // Retention I/O off the monitor — non-blocking schedule
             // (CAS guard + submit); the storage reads/deletes run on the dedicated
             // retention executor thread without holding this monitor.
             scheduleRetentionCleanup();
@@ -930,14 +843,14 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * 段3b: failure callback. Caller MUST hold the coordinator monitor.
+     * Failure callback. Caller MUST hold the coordinator monitor.
      *
      * <p>The pending checkpoint is force-failed (NOT aborted via
-     * {@link #abortPendingCheckpoint}, whose RUNNING→ABORTED CAS would fail because 段1
+     * {@link #abortPendingCheckpoint}, whose RUNNING→ABORTED CAS would fail because the manifest-snapshot step
      * already transitioned to COMPLETED). finishCommit(false) keeps prepared sink
      * transactions for subsuming, matching the pre-async failure semantics.
      *
-     * <p>F-01 (Plan 2026-09-04-1326-1 Phase 2): the pending's future is completed
+     * <p>The pending's future is completed
      * exceptionally via {@link PendingCheckpoint#forceFail(String, Throwable)} —
      * bookkeeping first (remove / decrement / notify), future completion LAST, so
      * waiters released by the future wake into a consistent coordinator state and the
@@ -951,7 +864,7 @@ public class CheckpointCoordinator {
         long checkpointId = completed.getCheckpointId();
         LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
         metrics.recordFailure(failMessage);
-        // Item 16: engine-layer meter + job event (failureCause carried).
+        // Engine-layer meter + job event (failureCause carried).
         engineMetrics().checkpointFailed();
         jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
                 jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_FAILED,
@@ -975,11 +888,8 @@ public class CheckpointCoordinator {
 
     private ExecutorService createPersistExecutor() {
         int poolSize = Math.max(1, config.getAsyncSnapshotThreadPoolSize());
-        return Executors.newFixedThreadPool(poolSize, r -> {
-            Thread t = new Thread(r, "checkpoint-persist-" + jobId + "-" + persistExecutorThreadIndex.incrementAndGet());
-            t.setDaemon(true);
-            return t;
-        });
+        return Executors.newFixedThreadPool(poolSize,
+                NopStreamThreadFactory.named("checkpoint-persist-" + jobId));
     }
 
     public synchronized void abortPendingCheckpoint(PendingCheckpoint pending, String reason) {
@@ -1001,7 +911,7 @@ public class CheckpointCoordinator {
 
         metrics.recordAborted("Aborted: " + reason);
 
-        // Item 16: engine-layer meter + job event (abort reason carried).
+        // Engine-layer meter + job event (abort reason carried).
         engineMetrics().checkpointAborted();
         jobEventBus.fire(new io.nop.stream.runtime.event.StreamJobEvent(
                 jobId, io.nop.stream.runtime.event.StreamJobEvent.EventType.CHECKPOINT_ABORTED,
@@ -1032,10 +942,10 @@ public class CheckpointCoordinator {
         if (checkpoint != null) {
             checkpoint.setRestored(true);
             latestCompletedCheckpoint = checkpoint;
-            // G32 (Stage 46): advance the ID counter past the restored durable
+            // Advance the ID counter past the restored durable
             // epoch so the next triggered checkpoint produces a strictly greater
             // epoch id. The monotonic-only advance logic is shared with the
-            // EpochManifest-recovery path (P0-03) — delegate to avoid drift.
+            // EpochManifest-recovery path — delegate to avoid drift.
             advanceCheckpointIdCounterAfterRestore(checkpoint.getCheckpointId());
             LOG.info("Restored checkpoint {} for job {}", checkpoint.getCheckpointId(), jobId);
         }
@@ -1044,7 +954,7 @@ public class CheckpointCoordinator {
 
     /**
      * Monotonic advance of the checkpoint ID counter past a restored epoch id
-     * (EpochManifest-recovery path, P0-03). Mirrors the counter-advance logic in
+     * (EpochManifest-recovery path). Mirrors the counter-advance logic in
      * {@link #restoreFromCheckpoint()}: a counter already beyond {@code restoredId}
      * (e.g. an in-process coordinator that already triggered newer checkpoints) is
      * left untouched; otherwise the next triggered checkpoint produces a strictly
@@ -1054,7 +964,7 @@ public class CheckpointCoordinator {
      * restart the counter at 0, and every new checkpoint id would fall below the
      * restored epoch — {@code loadLatestEpochManifest} / {@code getLatestCheckpoint}
      * select by max id, so a crash in that window would roll the job back to the
-     * stale epoch and silently lose the "completed" checkpoints (P0-03).
+     * stale epoch and silently lose the "completed" checkpoints.
      *
      * @param restoredId the epoch id recovered from the latest EpochManifest
      */
@@ -1081,10 +991,10 @@ public class CheckpointCoordinator {
      * the matching {@link PendingCheckpoint} is aborted (rather than being silently
      * marked complete by a later successful ACK).
      *
-     * <p>P1-11 closure: prior to this entry the {@link io.nop.stream.core.execution.CheckpointBarrierTracker}
-     * had only a success channel and silently treated failed snapshots as successful
-     * ACKs, which corrupted checkpoint state. {@code GraphModelCheckpointExecutor}
-     * wires the tracker's abort callback to this method.
+     * <p>{@code GraphModelCheckpointExecutor}
+     * wires the tracker's abort callback to this method so a failed operator
+     * snapshot aborts the matching checkpoint instead of being mistaken for a
+     * successful ACK.
      *
      * @param taskLocation the task that reported the snapshot failure (for diagnostics)
      * @param checkpointId the checkpoint whose operator snapshot failed
@@ -1105,7 +1015,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 14 (composite-scenario distributed): aborts every currently-pending
+     * Aborts every currently-pending
      * checkpoint. Invoked by the coordinator's global-recovery path: a pending
      * checkpoint triggered under the dead generation can never complete — its
      * barrier/in-flight registrations are spread across task attempts that
@@ -1157,7 +1067,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 16 (P-REQ-2): injects the job-level event bus. Checkpoint
+     * Injects the job-level event bus. Checkpoint
      * progress events (COMPLETED/FAILED/ABORTED) are then dispatched to the
      * job's listeners in addition to the internal CheckpointListener
      * notifications.
@@ -1192,7 +1102,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 16 (P-REQ-6): snapshot of the bounded checkpoint observation
+     * Snapshot of the bounded checkpoint observation
      * history (newest first). Each entry carries status/duration/size and,
      * for FAILED/ABORTED entries, the failure cause.
      */
@@ -1209,7 +1119,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 16 (P-REQ-11): drops the {@code count} OLDEST entries from the
+     * Drops the {@code count} OLDEST entries from the
      * observation history (governance sweep). Returns the number of entries
      * actually removed.
      */
@@ -1265,11 +1175,11 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Phase 2 (Plan 2026-09-03-1951-1, F-A / D1): schedule the retention storage I/O
+     * Schedule the retention storage I/O
      * ({@link #cleanupOldCheckpoints()}) onto the dedicated retention executor so it
      * no longer executes synchronously inside a coordinator-monitor-holding stack.
      * MUST be called while holding the coordinator monitor (all call sites are inside
-     * 段3a) — the method itself performs no I/O and never blocks: an atomic CAS guard
+     * success callback) — the method itself performs no I/O and never blocks: an atomic CAS guard
      * plus an {@code ExecutorService.submit}.
      *
      * <p>Serialization + trailing re-run (D1(f)): while a retention run is in flight
@@ -1316,7 +1226,7 @@ public class CheckpointCoordinator {
     }
 
     private ExecutorService getOrCreateRetentionExecutor() {
-        // Lazy init is monitor-safe: only called (transitively) from 段3a call sites
+        // Lazy init is monitor-safe: only called (transitively) from success-callback call sites
         // which all hold the coordinator monitor.
         if (retentionExecutor == null) {
             retentionExecutor = createRetentionExecutor();
@@ -1325,11 +1235,8 @@ public class CheckpointCoordinator {
     }
 
     private ExecutorService createRetentionExecutor() {
-        return Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "checkpoint-retention-" + jobId);
-            t.setDaemon(true);
-            return t;
-        });
+        return Executors.newSingleThreadExecutor(
+                NopStreamThreadFactory.named("checkpoint-retention-" + jobId));
     }
 
     /**
@@ -1337,12 +1244,12 @@ public class CheckpointCoordinator {
      * durable checkpoint rows (storage returns rows sorted by checkpointId DESCENDING;
      * indices >= maxRetained are the oldest) and releasing their incremental segments.
      *
-     * <p>Item 33 (dual-plane retention): the SAME round also prunes the epoch-manifest
-     * plane ({@code pruneEpochManifests}, keep-newest-N per (jobId, pipelineId), D4
-     * ordering = after the checkpoint-plane deletion) so long-running jobs do not
+     * <p>Dual-plane retention: the SAME round also prunes the epoch-manifest
+     * plane ({@code pruneEpochManifests}, keep-newest-N per (jobId, pipelineId),
+     * after the checkpoint-plane deletion) so long-running jobs do not
      * accumulate manifest files/rows without bound.
      *
-     * <p>Execution context (Phase 2 / D1): on the async completion paths this runs on
+     * <p>Execution context: on the async completion paths this runs on
      * the dedicated {@code checkpoint-retention-<jobId>} thread WITHOUT the coordinator
      * monitor; on the sync-fallback path ({@code asyncSnapshotEnabled=false}) it runs
      * inline on the ACK caller thread under the monitor (pinned pre-async semantics,
@@ -1365,12 +1272,12 @@ public class CheckpointCoordinator {
                     CompletedCheckpoint old = allCheckpoints.get(i);
                     checkpointStorage.deleteCheckpoint(jobId, old.getPipelineId(), old.getCheckpointId());
                     LOG.debug("Deleted old checkpoint {}", old.getCheckpointId());
-                    // Stage 31: subsumption GC — release this checkpoint's segments from the
+                    // Subsumption GC — release this checkpoint's segments from the
                     // shared-state registry and physically discard any that drop to zero refs.
                     gcSegmentsForCheckpoint(old.getCheckpointId());
                 }
             }
-            // Item 33 (manifest retention, D4): prune the manifest plane in the SAME
+            // Manifest retention: prune the manifest plane in the SAME
             // retention round, AFTER the checkpoint-plane deletion — unconditionally:
             // the manifest plane may exceed the bound independently (e.g. pre-fix
             // leftover manifests while the checkpoint plane already converged).
@@ -1381,7 +1288,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Item 33 (manifest retention, checkpoint-design §9.2 D2b/D4): prune the
+     * Manifest retention (checkpoint-design §9.2 D2b/D4): prune the
      * epoch-manifest plane for every pipeline observed in the SAME
      * {@code getAllCheckpoints} read (unioned with this coordinator's own
      * pipelineId), keeping the newest {@code maxRetained} manifests per
@@ -1394,7 +1301,7 @@ public class CheckpointCoordinator {
      * retention round) and self-heal on the next completion — the same D1(c)
      * semantics as the checkpoint-plane deletion. Runs on the retention executor
      * thread (async paths, no monitor) or inline on the ACK caller thread
-     * (sync-fallback, D1(d)) — never inside 段3a's monitor-holding stack.
+     * (sync-fallback, D1(d)) — never inside the success callback's monitor-holding stack.
      */
     private void pruneEpochManifestsForObservedPipelines(List<CompletedCheckpoint> allCheckpoints, int maxRetained) {
         Set<String> pipelineIds = new HashSet<>();
@@ -1418,20 +1325,20 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 subsumption GC for one checkpoint: unregister each of its segments from
+     * Subsumption GC for one checkpoint: unregister each of its segments from
      * {@link #sharedStateRegistry} (in-memory, fast) and off-load the discard of any
      * zero-reference handles to the persist executor so monitor throughput is not impacted
      * by segment-store file deletion. Per Design Decision: registry owns ref-count,
      * {@code ISegmentStore} owns file deletion.
      *
-     * <p>Phase 2 (D1(f)): on the async paths this is invoked from the retention-executor
+     * <p>On the async paths this is invoked from the retention-executor
      * thread WITHOUT the coordinator monitor — thread safety rests on
      * {@code checkpointSegments} (ConcurrentHashMap), the per-key atomic
      * {@code SharedStateRegistryImpl}, and the same lock-free registry usage the
      * incremental persist path already performs. The lazy {@link #getOrCreatePersistExecutor()}
-     * below is safe on that thread: retention tasks are only scheduled from 段3a of the
+     * below is safe on that thread: retention tasks are only scheduled from the success callback of the
      * async/incremental paths, which always created the persist executor (under monitor,
-     * in {@code completePendingCheckpoint}) before 段2, and {@code submit} of the retention
+     * in {@code completePendingCheckpoint}) before the storage-I/O step, and {@code submit} of the retention
      * task establishes the happens-before edge that publishes the non-null field.
      */
     private void gcSegmentsForCheckpoint(long checkpointId) {
@@ -1541,7 +1448,6 @@ public class CheckpointCoordinator {
 
     public void shutdown() {
         isShutdown = true;
-        stopCheckpointScheduler();
 
         // Final synchronous retention cleanup: the async chain (scheduleRetentionCleanup
         // coalescing) may not have fully converged before shutdown, especially when the
@@ -1554,10 +1460,10 @@ public class CheckpointCoordinator {
             LOG.warn("Failed to run final retention cleanup during shutdown for job {}", jobId, e);
         }
 
-        // N2/N3: persist executor lifecycle is tied to terminal shutdown() only, not to the
-        // restartable stopCheckpointScheduler(). awaitTermination mirrors trigger scheduler
-        // discipline so in-flight persist tasks (段2 storage writes) get a brief grace window
-        // to finish before shutdownNow interrupts them.
+        // N2/N3: persist executor lifecycle is tied to terminal shutdown() only. The
+        // awaitTermination grace window mirrors the standard executor shutdown
+        // discipline so in-flight persist tasks (storage writes) get a brief
+        // grace window to finish before shutdownNow interrupts them.
         ExecutorService pe = persistExecutor;
         if (pe != null) {
             pe.shutdown();
@@ -1571,7 +1477,7 @@ public class CheckpointCoordinator {
             }
         }
 
-        // Phase 2 (F-A): retention executor gets the same terminal-shutdown discipline
+        // Retention executor gets the same terminal-shutdown discipline
         // as the persist executor (grace window for the in-flight retention run, then
         // interrupt). A run interrupted here is logged inside cleanupOldCheckpoints;
         // rows beyond maxRetained converge on the next coordinator's first completion.
@@ -1622,13 +1528,13 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Build an EpochManifest, optionally carrying Stage 31 incremental segments and an
-     * explicitly-captured fingerprint (段1→段2 handoff for incremental mode).
+     * Build an EpochManifest, optionally carrying incremental segments and an
+     * explicitly-captured fingerprint (manifest-snapshot → storage-I/O handoff for incremental mode).
      */
     private EpochManifest buildEpochManifest(CompletedCheckpoint completed,
                                              StreamModelFingerprint fingerprint,
                                              List<StateSegmentDescriptor> segments) {
-        // Stage 49 D2: snapshot all registered source enumerator states into the manifest's
+        // Snapshot all registered source enumerator states into the manifest's
         // sourceEnumeratorSnapshots section. Empty map if no source-api coordinators
         // registered (non-source-api jobs / legacy checkpoints remain unaffected).
         Map<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> enumeratorSnapshots =
@@ -1649,7 +1555,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 49 D2: snapshots every registered {@code LocalSourceCoordinator} into a manifest
+     * Snapshots every registered {@code LocalSourceCoordinator} into a manifest
      * entry keyed by source vertex id. Returns an empty map when no source-api coordinators
      * are registered (the common case for non-split-source jobs).
      *
@@ -1684,7 +1590,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 49 D2: registers a source vertex id whose coordinator's enumerator state should
+     * Registers a source vertex id whose coordinator's enumerator state should
      * be snapshotted into the manifest on each checkpoint. Called by the execution layer
      * when a source-api vertex is deployed.
      */
@@ -1714,7 +1620,7 @@ public class CheckpointCoordinator {
         return currentFingerprint;
     }
 
-    // --- Stage 31: incremental checkpoint (segment store) wiring ---
+    // --- Incremental checkpoint (segment store) wiring ---
 
     public ISegmentStore getSegmentStore() {
         return segmentStore;
@@ -1736,7 +1642,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 diagnostic accessor (exposed for tests / anti-hollow verification). Returns
+     * Diagnostic accessor. Returns
      * the job-scoped shared-state registry, or {@code null} when incremental is disabled.
      */
     public SharedStateRegistry getSharedStateRegistry() {
@@ -1744,7 +1650,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 diagnostic accessor: the segments recorded for a checkpoint (for GC), or
+     * Diagnostic accessor: the segments recorded for a checkpoint (for GC), or
      * empty if none.
      */
     public List<StateSegmentDescriptor> getCheckpointSegments(long checkpointId) {
@@ -1752,12 +1658,12 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Validate the incremental-checkpoint configuration. Called at scheduler start so a
-     * misconfigured job fails fast instead of silently degrading. Per the No-Silent-No-Op
-     * rule (Plan #24): {@code incrementalCheckpointEnabled=true} with no {@code segmentStore}
+     * Validate the incremental-checkpoint configuration so a misconfigured job fails fast
+     * instead of silently degrading. Per the No-Silent-No-Op
+     * rule: {@code incrementalCheckpointEnabled=true} with no {@code segmentStore}
      * throws {@link UnsupportedOperationException} rather than silently falling back to the
      * non-incremental path. The sync/incremental mutex (incremental requires async snapshot)
-     * is also enforced here (Design Decision: sync/incremental 互斥).
+     * is also enforced here (Design Decision: sync and incremental modes are mutually exclusive).
      */
     public void validateIncrementalConfig() {
         if (incrementalCheckpointEnabled) {
@@ -1774,7 +1680,7 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 restart recovery: rebuild the {@link SharedStateRegistry} reference counts
+     * Restart recovery: rebuild the {@link SharedStateRegistry} reference counts
      * and the {@link #checkpointSegments} GC map from the retained EpochManifests, then
      * run a one-time orphan-segment cleanup so files left dangling by a crash are removed.
      * Idempotent: safe to call on every coordinator (re)start. No-op when incremental is
@@ -1815,14 +1721,14 @@ public class CheckpointCoordinator {
     }
 
     /**
-     * Stage 31 one-time orphan cleanup: scan the {@link ISegmentStore}'s shared-state area
+     * One-time orphan cleanup: scan the {@link ISegmentStore}'s shared-state area
      * and discard any segment file not currently referenced by the registry. Called after
      * {@link #restoreSharedStateRegistry()} rebuilds the reference set.
      */
     private void cleanupOrphanSegments(Set<String> referencedHashes) {
         if (!(segmentStore instanceof io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore)) {
             // Only the local-file store exposes a scanable base directory; remote/JDBC stores
-            // would need their own enumeration. LocalFile is the Stage 31 supported store.
+            // would need their own enumeration. LocalFile is the supported store.
             return;
         }
         io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore localStore =

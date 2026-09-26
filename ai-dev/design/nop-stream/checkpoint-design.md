@@ -1458,7 +1458,7 @@ Retention 必须以解析后的 `checkpointNamespace` 为范围，不能跨 name
 
 **Restart 恢复**：coordinator 启动/恢复时 `restoreSharedStateRegistry` 从 `ICheckpointStorage.loadRetainedEpochManifests` 加载 retained manifests → 逐 segment `registry.register` 重建 ref-count + GC map → 一次性 orphan 扫描（`LocalFileSegmentStore` 的 `shared-state/` 目录，删除 registry 中不存在的文件）。**双存储对等（items 28+31 / W-8）**：`LocalFileCheckpointStorage` 与 `JdbcCheckpointStorage` 均提供多 epoch retained 集读取（最新优先、count 截断）；JDBC 侧由 `stream_epoch_manifest` per-epoch 行承载（契约与接线验证见 `dataplane-transport-design.md` §六——接口 default 的 latest-only 仅为无 per-epoch 持久化能力存储的降级底座）。
 
-**配置互斥（fail-fast）**：`incrementalCheckpointEnabled=true` 要求 `segmentStore != null`（否则抛 `UnsupportedOperationException`）且 `asyncSnapshotEnabled=true`（否则抛 `IllegalStateException`）——segments 计算涉及 RocksDB I/O + SHA-256，不能在 sync 路径的 monitor 下执行。校验在 `startCheckpointScheduler` 时执行。
+**配置互斥（fail-fast）**：`incrementalCheckpointEnabled=true` 要求 `segmentStore != null`（否则抛 `UnsupportedOperationException`）且 `asyncSnapshotEnabled=true`（否则抛 `IllegalStateException`）——segments 计算涉及 RocksDB I/O + SHA-256，不能在 sync 路径的 monitor 下执行。该校验由 `validateIncrementalConfig()` 承载（当前由配置装配/测试路径调用；周期触发循环已收敛到 `JobCoordinator.startPeriodicCheckpoints` 单点）。
 
 **性能（基准）**：增量 checkpoint 在大状态/小 delta 下显著快于全量扫描。全量路径（Stage 30）逐 key 解码 + 逐值 JSON 反序列化；增量路径为 createCheckpoint 硬链接 + 单次顺序 SHA-256 + 小量非 SST 复制。基准测试（20000 keys × ~250B）实测增量/全量 ≈ 0.35（≈2.9× 加速），满足 ≥2× 目标。
 

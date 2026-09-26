@@ -29,6 +29,7 @@ import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
@@ -326,11 +327,8 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         if (governanceSweeper != null) {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "governance sweeper already started");
         }
-        governanceSweeper = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "stream-ops-governance");
-            t.setDaemon(true);
-            return t;
-        });
+        governanceSweeper = Executors.newSingleThreadScheduledExecutor(
+                NopStreamThreadFactory.named("stream-ops-governance"));
         governanceSweeper.scheduleAtFixedRate(this::governanceSweep,
                 governanceConfig.getCleanupIntervalMs(), governanceConfig.getCleanupIntervalMs(),
                 TimeUnit.MILLISECONDS);

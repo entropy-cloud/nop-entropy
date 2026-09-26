@@ -575,8 +575,8 @@ class MemoryStateSerDe {
     }
 
     /**
-     * P1-01 (Decision: 方案 1 = live function reuse): resolves the aggregate
-     * function used to rebuild aggregating state on restore.
+     * Resolves the aggregate function used to rebuild aggregating state on
+     * restore. Decision: prefer live-function reuse over reflection.
      *
      * <p>Priority order:
      * <ol>
@@ -592,7 +592,7 @@ class MemoryStateSerDe {
      * <p>When reflection fails because the recorded class has no no-arg
      * constructor (e.g. {@code WindowOperatorBuilder.reduceFunctionAsAggregate}
      * wrapper), fail fast with a clear error instead of silently producing a
-     * broken function (No-Silent-No-Op rule #24).
+     * broken function (No-Silent-No-Op rule).
      */
     @SuppressWarnings("unchecked")
     private AggregateFunction<Object, Object, Object> resolveAggregateFunction(

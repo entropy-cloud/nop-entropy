@@ -193,8 +193,6 @@
           "setSegmentStore",
           "setTasksToAcknowledge",
           "shutdown",
-          "startCheckpointScheduler",
-          "stopCheckpointScheduler",
           "tryTriggerCheckpointWithReason",
           "tryTriggerPendingCheckpoint",
           "unregisterTask",

@@ -808,6 +808,28 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public void onEventTime(InternalTimer<K, W> timer) throws Exception {
+        onTimer(timer, true);
+    }
+
+    @Override
+    public void onProcessingTime(InternalTimer<K, W> timer) throws Exception {
+        onTimer(timer, false);
+    }
+
+    /**
+     * Shared template for {@link #onEventTime} and {@link #onProcessingTime}, which were
+     * near-verbatim copies except for three points, parameterized here:
+     * <ol>
+     *   <li>Trigger callback: {@code isEventTime} selects {@link Context#onEventTime(long)}
+     *       vs {@link Context#onProcessingTime(long)}.</li>
+     *   <li>Cleanup branch polarity: {@code windowAssigner.isEventTime() == isEventTime}
+     *       reproduces {@code windowAssigner.isEventTime()} on the event-time path and
+     *       {@code !windowAssigner.isEventTime()} on the processing-time path.</li>
+     *   <li>Comments: unified into the fuller event-time wording (semantically identical
+     *       on both paths).</li>
+     * </ol>
+     */
+    private void onTimer(InternalTimer<K, W> timer, boolean isEventTime) throws Exception {
         triggerContext.key = timer.getKey();
         triggerContext.window = timer.getNamespace();
 
@@ -836,7 +858,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             mergingWindows = null;
         }
 
-        TriggerResult triggerResult = triggerContext.onEventTime(timer.getTimestamp());
+        TriggerResult triggerResult = isEventTime
+                ? triggerContext.onEventTime(timer.getTimestamp())
+                : triggerContext.onProcessingTime(timer.getTimestamp());
 
         if (triggerResult.isFire()) {
             W stateWindow = mergingWindows != null
@@ -860,7 +884,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             removeTriggerAccumulators(triggerContext.key, triggerContext.window);
         }
 
-        if (windowAssigner.isEventTime()
+        if (windowAssigner.isEventTime() == isEventTime
                 && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
             W stateWindow = mergingWindows != null
                     ? mergingWindows.getStateWindow(triggerContext.window)
@@ -876,79 +900,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // state (unbounded growth) and later overlapping elements merge into a
                 // stale range. Retiring the state-window VALUE instead would throw
                 // StreamException (key not found, MergingWindowSet.java:134-139).
-                if (mergingWindows != null) {
-                    mergingWindows.retireWindow(triggerContext.window);
-                }
-            }
-        }
-
-        if (mergingWindows != null) {
-            // need to make sure to update the merging state in state
-            mergingWindows.persist();
-        }
-    }
-
-    @Override
-    public void onProcessingTime(InternalTimer<K, W> timer) throws Exception {
-        triggerContext.key = timer.getKey();
-        triggerContext.window = timer.getNamespace();
-
-        // Restore the key context before reading any key-scoped state (see onEventTime).
-        if (keyedStateBackend != null) {
-            this.<K>getKeyedStateBackend().setCurrentKey(triggerContext.key);
-        }
-
-        MergingWindowSet<W> mergingWindows;
-
-        if (windowAssigner instanceof MergingWindowAssigner) {
-            mergingWindows = getMergingWindowSet();
-            W stateWindow = mergingWindows.getStateWindow(triggerContext.window);
-            if (stateWindow == null) {
-                // Timer firing for non-existent window, this can only happen if a
-                // trigger did not clean up timers. We have already cleared the merging
-                // window and therefore the Trigger state, however, so nothing to do.
-                return;
-            }
-        } else {
-            mergingWindows = null;
-        }
-
-        TriggerResult triggerResult = triggerContext.onProcessingTime(timer.getTimestamp());
-
-        if (triggerResult.isFire()) {
-            W stateWindow = mergingWindows != null
-                    ? mergingWindows.getStateWindow(triggerContext.window)
-                    : triggerContext.window;
-            ACC contents = getWindowContents(triggerContext.key, stateWindow);
-            if (contents != null) {
-                emitWindowContents(triggerContext.key, triggerContext.window, stateWindow, contents);
-            }
-        }
-
-        if (triggerResult.isPurge()) {
-            W stateWindow = mergingWindows != null
-                    ? mergingWindows.getStateWindow(triggerContext.window)
-                    : triggerContext.window;
-            clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
-            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
-            // cleared window contents without clearing the trigger state (leaking
-            // both the accumulator entry AND the trigger's registered timers).
-            triggerContext.clear();
-            removeTriggerAccumulators(triggerContext.key, triggerContext.window);
-        }
-
-        if (!windowAssigner.isEventTime()
-                && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-            W stateWindow = mergingWindows != null
-                    ? mergingWindows.getStateWindow(triggerContext.window)
-                    : triggerContext.window;
-            if (stateWindow != null) {
-                clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
-                triggerContext.clear();
-                // P1-INV-1: delete after the last clear (the clear may rebuild).
-                removeTriggerAccumulators(triggerContext.key, triggerContext.window);
-                // RL-6 (R15-AR-8): same convergence fix as the onEventTime cleanup branch —
-                // retire the in-flight window (mapping key = cleanup timer namespace).
                 if (mergingWindows != null) {
                     mergingWindows.retireWindow(triggerContext.window);
                 }

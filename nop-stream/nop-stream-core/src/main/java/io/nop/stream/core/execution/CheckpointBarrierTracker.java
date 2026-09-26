@@ -157,29 +157,14 @@ public class CheckpointBarrierTracker {
         Exception abortError = null;
 
         synchronized (this) {
-            long cpId = (snapshot != null) ? snapshot.getCheckpointId() : -1L;
-            EpochAckState state;
-            if (cpId >= 0) {
-                // Stage 45: route by the checkpoint id carried on the result (design
-                // §2.8.1 D2). Valid ids are >= 0 (the coordinator's counter starts at 0);
-                // -1 means unset (legacy caller that did not tag the result).
-                state = inFlight.get(cpId);
-            } else {
-                // Legacy/back-compat: result carries no checkpointId. Route to the
-                // most-recently-triggered in-flight epoch. This branch is only
-                // correct for the single-in-flight legacy contract; production
-                // snapshotState always tags the result (design §2.8.1 D2).
-                state = mostRecentInFlight();
-                if (state != null && inFlight.size() > 1) {
-                    LOG.warn("ACK from operator {} carries no checkpointId while {} epochs are in-flight; "
-                            + "routing to most-recent epoch {} (ambiguous — production path should tag the result)",
-                            operatorIndex, inFlight.size(), state.checkpointId);
-                }
-            }
+            // Route the ACK to its epoch (by carried id, most-recent fallback).
+            EpochAckState state = routeAckToEpoch(operatorIndex, snapshot);
 
+            // Validate: stale/duplicate epoch, over-acknowledged epoch, and
+            // per-operator duplicate ACKs are all ignored (logged, no state change).
             if (state == null) {
                 LOG.debug("Ignoring stale/duplicate ACK from operator {} (cpId={}; no matching in-flight epoch)",
-                        operatorIndex, cpId);
+                        operatorIndex, (snapshot != null) ? snapshot.getCheckpointId() : -1L);
                 return;
             }
 
@@ -209,40 +194,100 @@ public class CheckpointBarrierTracker {
                         abortError == null ? "n/a" : abortError.getMessage(), abortError);
                 // Remove ONLY this epoch (mirrors notifyCheckpointAborted semantics).
                 inFlight.remove(state.checkpointId);
-            } else if (snapshot != null) {
-                TaskStateSnapshot snap = state.snapshot;
-                String opStateKey = getOperatorStateKey(operatorIndex);
-                if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
-                    for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
-                        snap.putOperatorState(opStateKey + "-" + entry.getKey(), entry.getValue());
-                    }
-                }
-                String keyedKey = getKeyedStateStorageKey(operatorIndex);
-                if (keyedKey != null && snapshot.getKeyedStates() != null) {
-                    for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
-                        snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
-                    }
-                } else if (snapshot.getKeyedStates() != null) {
-                    for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
-                        snap.putKeyedState(entry.getKey(), entry.getValue());
-                    }
-                }
-
-                if (state.operatorsToAck.decrementAndGet() == 0) {
-                    snapshotToDeliver = state.snapshot;
-                    callbackToFire = completionCallback;
-                    inFlight.remove(state.checkpointId);
-                }
             } else {
-                // snapshot == null with no error: treat as empty success ACK.
-                if (state.operatorsToAck.decrementAndGet() == 0) {
+                // Successful ACK — a real snapshot, or null (= empty success ACK).
+                if (snapshot != null) {
+                    migrateOperatorStates(state, operatorIndex, snapshot);
+                }
+                callbackToFire = completeEpochIfLastAck(state);
+                if (callbackToFire != null) {
                     snapshotToDeliver = state.snapshot;
-                    callbackToFire = completionCallback;
-                    inFlight.remove(state.checkpointId);
                 }
             }
         }
 
+        fireAckCallbacks(operatorIndex, abortCheckpointId, abortError, callbackToFire, snapshotToDeliver);
+    }
+
+    /**
+     * Routes an operator ACK to its in-flight epoch.
+     *
+     * <p>Stage 45: route by the checkpoint id carried on the result (design
+     * §2.8.1 D2). Valid ids are &gt;= 0 (the coordinator's counter starts at 0);
+     * -1 means unset (legacy caller that did not tag the result) — those route to
+     * the most-recently-triggered in-flight epoch. The fallback is only correct
+     * for the single-in-flight legacy contract; production snapshotState always
+     * tags the result (design §2.8.1 D2).
+     *
+     * @return the owning epoch, or {@code null} when no epoch matches
+     */
+    private EpochAckState routeAckToEpoch(int operatorIndex, OperatorSnapshotResult snapshot) {
+        long cpId = (snapshot != null) ? snapshot.getCheckpointId() : -1L;
+        if (cpId >= 0) {
+            return inFlight.get(cpId);
+        }
+        EpochAckState state = mostRecentInFlight();
+        if (state != null && inFlight.size() > 1) {
+            LOG.warn("ACK from operator {} carries no checkpointId while {} epochs are in-flight; "
+                    + "routing to most-recent epoch {} (ambiguous — production path should tag the result)",
+                    operatorIndex, inFlight.size(), state.checkpointId);
+        }
+        return state;
+    }
+
+    /**
+     * Migrates an operator snapshot's states into the owning epoch's
+     * {@link TaskStateSnapshot}. Operator states are namespaced under the
+     * operator's state key; keyed states under the operator's keyed-state storage
+     * key when one is mapped, under their raw keys otherwise.
+     */
+    private void migrateOperatorStates(EpochAckState state, int operatorIndex,
+                                       OperatorSnapshotResult snapshot) {
+        TaskStateSnapshot snap = state.snapshot;
+        String opStateKey = getOperatorStateKey(operatorIndex);
+        if (snapshot.getOperatorStates() != null && !snapshot.getOperatorStates().isEmpty()) {
+            for (Map.Entry<String, Object> entry : snapshot.getOperatorStates().entrySet()) {
+                snap.putOperatorState(opStateKey + "-" + entry.getKey(), entry.getValue());
+            }
+        }
+        String keyedKey = getKeyedStateStorageKey(operatorIndex);
+        if (keyedKey != null && snapshot.getKeyedStates() != null) {
+            for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
+            }
+        } else if (snapshot.getKeyedStates() != null) {
+            for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
+                snap.putKeyedState(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * Decrements the epoch's distinct-operator ACK counter and, when the last
+     * operator has acknowledged, removes the epoch from the in-flight map.
+     * Merged tail of the previously duplicated completion blocks (real snapshot
+     * and empty-success ACK paths completed the epoch identically).
+     *
+     * @return the completion callback to fire, or {@code null} while the epoch
+     *         stays in-flight (or when no completion callback is configured)
+     */
+    private Consumer<TaskStateSnapshot> completeEpochIfLastAck(EpochAckState state) {
+        if (state.operatorsToAck.decrementAndGet() != 0) {
+            return null;
+        }
+        inFlight.remove(state.checkpointId);
+        return completionCallback;
+    }
+
+    /**
+     * Fires the post-ACK callbacks OUTSIDE the tracker lock: the abort channel
+     * for a failed snapshot first (P1-11; a failing abort callback is logged and
+     * must not prevent the completion callback), then the epoch completion
+     * callback.
+     */
+    private void fireAckCallbacks(int operatorIndex, long abortCheckpointId, Exception abortError,
+                                  Consumer<TaskStateSnapshot> callbackToFire,
+                                  TaskStateSnapshot snapshotToDeliver) {
         if (abortError != null && abortCallback != null) {
             try {
                 abortCallback.reportFailure(abortCheckpointId, abortError);

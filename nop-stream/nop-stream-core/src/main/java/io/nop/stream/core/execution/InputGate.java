@@ -68,7 +68,7 @@ public class InputGate {
     static final long DEFAULT_ALIGNMENT_TIMEOUT_MS = 30000L;
 
     /**
-     * AR-02 (P1): the idle-return threshold. When all channels are momentarily
+     * The idle-return threshold. When all channels are momentarily
      * idle (no data, no EOS), {@link #readSingleChannel} / {@link #readMultiChannel}
      * return {@code Optional.empty()} after this much cumulative idle time so the
      * caller's loop top (mailbox drain in {@code StreamTaskInvokable#processInputGate})
@@ -80,19 +80,37 @@ public class InputGate {
      * stay above the producer-death channel timeout (150 ms in the liveness
      * tests; production disables the channel timeout entirely), otherwise an
      * idle return would preempt {@code RemoteInputChannel.checkChannelTimeout()}
-     * and silently defeat the fast-fail-on-producer-death safety feature
-     * (plan AR-02 Phase 2 item 2). 250 ms keeps the mailbox drain cadence
+     * and silently defeat the fast-fail-on-producer-death safety feature.
+     * 250 ms keeps the mailbox drain cadence
      * bounded (~4 drains/sec) while staying strictly above 150 ms.
      */
     static final long IDLE_RETURN_THRESHOLD_MS = 250L;
 
     /**
-     * Stage 43 default for aligned→unaligned mode-switch threshold. Must be <
-     * {@link #DEFAULT_ALIGNMENT_TIMEOUT_MS}. Used only by the legacy constructors
+     * Default for the aligned→unaligned mode-switch threshold. Must be <
+     * {@link #DEFAULT_ALIGNMENT_TIMEOUT_MS}. Used only by the constructors
      * that do not opt into unaligned mode — the production path threads the value
      * from {@link io.nop.stream.core.checkpoint.CheckpointConfig}.
      */
     static final long DEFAULT_UNALIGNED_THRESHOLD_MS = 1000L;
+
+    /**
+     * Bounded poll timeout shared by {@link #readSingleChannel} and
+     * {@link #readMultiChannel}. Each bounded
+     * {@link InputChannel#read(long, TimeUnit)} re-enters the channel's timeout
+     * check at its top (RemoteInputChannel.checkChannelTimeout), so a consumer
+     * effectively parked between records re-fires the producer-death heartbeat
+     * check at roughly this cadence instead of blocking forever in queue.take().
+     */
+    static final long CHANNEL_POLL_TIMEOUT_MS = 50L;
+
+    /**
+     * Park between full channel sweeps in {@link #readMultiChannel} once every
+     * channel has been polled within a round and none had data. Keeps the idle
+     * loop from busy-spinning while staying far below
+     * {@link #IDLE_RETURN_THRESHOLD_MS} so the idle-return signal still wins.
+     */
+    static final long IDLE_PARK_NANOS = 10_000_000L;
 
     private final List<InputChannel> channels;
     private final java.util.concurrent.atomic.AtomicBoolean closed =
@@ -102,16 +120,14 @@ public class InputGate {
     private final boolean barrierAlignment;
 
     /**
-     * Stage 45 (multi-epoch): per-barrier alignment state, keyed by checkpoint id.
+     * Multi-epoch: per-barrier alignment state, keyed by checkpoint id.
      * Insertion order is barrier-arrival order (barriers on a single channel are
      * strictly ordered, so the oldest in-flight barrier is the one currently
-     * aligning). Replaces the legacy single {@code pendingBarrier} /
-     * {@code barrierReceived[]} / {@code barriersRemaining} fields so that
-     * overlapping barrier ids no longer throw and an aborted epoch's straggling
-     * barrier is discarded instead of corrupting the next epoch's alignment
-     * (design §2.8.1 D1).
+     * aligning). Overlapping barrier ids are supported and an aborted epoch's
+     * straggling barrier is discarded instead of corrupting the next epoch's
+     * alignment (design §2.8.1 D1).
      *
-     * <p>P1 hardening: this map is a {@link ConcurrentHashMap} so the checkpoint
+     * <p>This map is a {@link ConcurrentHashMap} so the checkpoint
      * abort handler thread (which calls {@link #abortBarrierAlignment(long)} from
      * the checkpoint timeout / ACK path) can remove an entry while the owning task
      * thread iterates the in-flight alignments (e.g. {@link #markFinishedChannel})
@@ -124,7 +140,7 @@ public class InputGate {
     private final ConcurrentHashMap<Long, BarrierAlignment> inFlightAlignments = new ConcurrentHashMap<>();
 
     /**
-     * P1-05: alignments that became fully received in a single
+     * Alignments that became fully received in a single
      * {@link #markFinishedChannel} call (a finished channel counts as having
      * delivered every in-flight barrier, so several alignments can complete in
      * the same round) but have not been emitted yet. Aligned barriers must be
@@ -138,13 +154,13 @@ public class InputGate {
     private final ArrayDeque<BarrierAlignment> pendingBarrierEmissions = new ArrayDeque<>();
 
     /**
-     * Stage 45: checkpoint ids whose alignment has been aborted. A barrier element
+     * Checkpoint ids whose alignment has been aborted. A barrier element
      * carrying one of these ids is silently discarded (the abort was already
      * signaled via the control channel; a late in-data-flow barrier must not
      * corrupt subsequent epochs). Bounded growth: cleared opportunistically when
      * an alignment completes at or above the aborted id.
      *
-     * <p>P1 hardening: concurrent set so the abort handler thread ({@code add}) and
+     * <p>Concurrent set so the abort handler thread ({@code add}) and
      * the task thread ({@code contains} / {@code removeIf}) do not throw CME.
      */
     private final Set<Long> abortedBarriers = ConcurrentHashMap.newKeySet();
@@ -155,7 +171,7 @@ public class InputGate {
      * {@link BarrierAlignment#blockedChannels} so {@link #resumeConsumptionAll()}
      * and {@link #blockConsumption(int)} keep working for external callers.
      *
-     * <p>P1 hardening: concurrent set so the abort handler thread
+     * <p>Concurrent set so the abort handler thread
      * ({@link #abortBarrierAlignment} / {@link #resumeConsumptionAll()} from the
      * cancel branch) and the task thread ({@code add}/{@code remove}/{@code contains})
      * do not throw CME.
@@ -165,7 +181,7 @@ public class InputGate {
     private final long barrierAlignmentTimeout;
 
     /**
-     * AR-5 (plan 1326-2 Phase 2): highest barrier id accepted per channel. Barrier
+     * Highest barrier id accepted per channel. Barrier
      * ids are strictly increasing per channel, so a barrier with {@code id <=}
      * the channel's last accepted id is a duplicate or a dead-epoch straggler —
      * it is discarded instead of starting a fresh (never-completing) alignment.
@@ -175,7 +191,7 @@ public class InputGate {
     private final long[] lastAcceptedBarrierIds;
 
     /**
-     * AR-9 (plan 1326-2 Phase 4): per-channel idleness (Flink
+     * Per-channel idleness (Flink
      * {@code StatusWatermarkValve} semantics). An idle channel is excluded from
      * the min watermark merge so a silent upstream subtask no longer pins the
      * downstream event time at its last watermark. When ALL channels are idle the
@@ -185,22 +201,22 @@ public class InputGate {
     private final boolean[] channelIdle;
 
     /**
-     * Stage 43 (unaligned checkpoint): whether aligned→unaligned fallback is
-     * active for this gate. The legacy constructors default this to {@code false}
-     * so existing behavior (alignment timeout → throw) is preserved; the
-     * production constructor threads it from {@link
+     * Unaligned checkpoint: whether aligned→unaligned fallback is
+     * active for this gate. The non-unaligned constructors default this to
+     * {@code false} (alignment timeout → throw); the production constructor
+     * threads it from {@link
      * io.nop.stream.core.checkpoint.CheckpointConfig}.
      */
     private final boolean unalignedCheckpointEnabled;
 
     /**
-     * Stage 43: aligned→unaligned mode-switch threshold in ms. Only consulted when
+     * The aligned→unaligned mode-switch threshold in ms. Only consulted when
      * {@link #unalignedCheckpointEnabled} is {@code true}.
      */
     private final long unalignedThreshold;
 
     /**
-     * Stage 43: channel state captured at the moment of an aligned→unaligned
+     * Channel state captured at the moment of an aligned→unaligned
      * mode switch. Stored here so the task thread can retrieve it (via
      * {@link #consumePendingChannelState()}) after {@link #read()} returns the
      * unaligned barrier, and forward it to {@link CheckpointBarrierTracker}.
@@ -210,7 +226,6 @@ public class InputGate {
     private ChannelState pendingChannelState;
 
     private int currentChannelIndex;
-    private int emptyRounds;
 
     public InputGate(List<InputChannel> channels) {
         this(channels, null, true);
@@ -257,7 +272,7 @@ public class InputGate {
     }
 
     /**
-     * Stage 43 (unaligned checkpoint): full constructor with aligned→unaligned
+     * Unaligned checkpoint: full constructor with aligned→unaligned
      * fallback configuration. Threaded from {@link
      * io.nop.stream.core.checkpoint.CheckpointConfig} via
      * {@code GraphExecutionPlan.build(...)}.
@@ -378,7 +393,7 @@ public class InputGate {
     }
 
     /**
-     * Stage 44 successor 3 (supervision loop): returns an unmodifiable view of
+     * Supervision loop support: returns an unmodifiable view of
      * the input channels. Used by the region-restart path to extract the
      * underlying {@link ResultPartition} references (and their attached
      * materialization points) so that restarted consumer tasks can be wired to
@@ -454,7 +469,7 @@ public class InputGate {
     /**
      * Returns the current minimum watermark across all channels.
      *
-     * <p>AR-9 (plan 1326-2 Phase 4): idle channels are EXCLUDED from the min —
+     * <p>Idle channels are EXCLUDED from the min —
      * an idle upstream subtask's last watermark must not pin the merged event
      * time. When every channel is idle there is no active constraint; the min
      * over all channels is returned (no rewinding of previously emitted
@@ -484,7 +499,7 @@ public class InputGate {
     }
 
     /**
-     * AR-9 (plan 1326-2 Phase 4): returns whether every channel is currently idle.
+     * Returns whether every channel is currently idle.
      */
     public boolean isAllChannelsIdle() {
         for (boolean idle : channelIdle) {
@@ -496,20 +511,15 @@ public class InputGate {
     }
 
     private Optional<StreamElement> readSingleChannel() {
-        // AR-1 (audit nop-stream-independent-audit, P1): the legacy path called the
-        // unbounded read() overload, which parks in queue.take() forever. A remote
-        // single-input consumer parked in take() could never re-evaluate the channel
-        // heartbeat-timeout, so a producer that died after the consumer entered
-        // take() left the consumer blocked indefinitely — the documented
-        // fast-fail-on-producer-death safety feature silently did not protect the
-        // single-input topology in the cross-JVM lane.
-        //
-        // Fix: mirror the already-correct readMultiChannel pattern — loop on the
-        // bounded read(50, MILLISECONDS) overload. Each iteration re-enters
+        // Bounded-read loop: poll with CHANNEL_POLL_TIMEOUT_MS instead of parking
+        // in the unbounded read() overload (which blocks in queue.take() forever).
+        // Each iteration re-enters
         // RemoteInputChannel.read(long, TimeUnit), which re-runs
         // checkChannelTimeout() at its top, so the channel heartbeat-timeout
         // re-fires every ~50 ms even while the consumer is effectively parked
-        // waiting for data. channelTimeoutMs lives on RemoteInputChannel (not the
+        // waiting for data — a dead producer cannot leave the single-input
+        // consumer blocked indefinitely. channelTimeoutMs lives on
+        // RemoteInputChannel (not the
         // base InputChannel type) so it is not readable here; the fixed 50 ms poll
         // is the same ceiling readMultiChannel uses, and is what re-fires the
         // timeout check inside the bounded overload.
@@ -517,28 +527,18 @@ public class InputGate {
         long idleSince = -1L;
         try {
             while (true) {
-                StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
+                StreamElement element = channel.read(CHANNEL_POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                 if (element == null) {
-                    // The bounded overload returns null for BOTH poll-timeout AND
-                    // end-of-stream (review B1). Disambiguate via isFinished():
-                    //   finished  -> producer is done -> return empty (EOS)
-                    //   !finished -> momentary idle    -> loop and poll again
-                    // Treating all null as "continue" would busy-spin on EOS;
-                    // treating all null as "empty" would silently terminate on
-                    // every idle poll. This matches the disambiguation
-                    // readMultiChannel performs at the null branch.
-                    if (channel.isFinished()) {
+                    if (isChannelEndOfStream(channel)) {
                         return Optional.empty();
                     }
-                    // AR-02: idle drain signal. After the idle-return threshold of
+                    // Idle drain signal. After the idle-return threshold of
                     // consecutive idle polls, return empty (NOT EOS) so the caller
                     // (processInputGate) can drain control mails at its loop top
                     // and then re-read. The channel heartbeat timeout (where
                     // enabled) fires first because the threshold is larger.
-                    if (idleSince < 0L) {
-                        idleSince = CoreMetrics.currentTimeMillis();
-                    }
-                    if (CoreMetrics.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+                    idleSince = stampIdleStart(idleSince);
+                    if (idleThresholdReached(idleSince)) {
                         return Optional.empty();
                     }
                     continue;
@@ -549,7 +549,7 @@ public class InputGate {
                     Watermark wm = element.asWatermark();
                     currentWatermarks[0] = wm.getTimestamp();
                 }
-                // AR-9 (plan 1326-2 Phase 4): track idleness on the single-channel path
+                // Track idleness on the single-channel path
                 // too — the sole channel going idle means ALL channels idle, so the
                 // status passes through to the operator chain (which forwards it across
                 // the next task boundary); getCurrentWatermark's idle exclusion also
@@ -563,8 +563,8 @@ public class InputGate {
                     }
                     return Optional.of(element);
                 }
-                // AR-5 (plan 1326-2 Phase 2): a single-channel gate must apply the SAME
-                // barrier integrity contract as the multi-channel path (Stage 45): a
+                // A single-channel gate must apply the SAME
+                // barrier integrity contract as the multi-channel path: a
                 // straggler barrier for an aborted epoch is discarded (the abort was
                 // already signaled via the control channel; returning it would trigger a
                 // spurious snapshot and downstream forwarding), and a same-channel
@@ -583,7 +583,7 @@ public class InputGate {
                 return Optional.of(element);
             }
         } catch (InterruptedException e) {
-            // P1-8: Align with multi-input interrupt handling — set interrupt flag
+            // Align with multi-input interrupt handling — set interrupt flag
             // and return empty. The caller (processInputGate) breaks on empty, and
             // SubtaskTask's state machine (state==CANCELING after cancel() set the
             // flag and interrupted this thread) transitions to CANCELED — not FAILED,
@@ -593,34 +593,56 @@ public class InputGate {
         }
     }
 
+    /**
+     * Disambiguates a {@code null} return from the bounded channel read overload:
+     * null means EITHER poll-timeout OR end-of-stream.
+     *   finished  -> producer is done -> end-of-stream
+     *   !finished -> momentary idle   -> keep polling
+     * Treating all null as "continue" would busy-spin on EOS; treating all null
+     * as "empty" would silently terminate on every idle poll. Shared verbatim by
+     * {@link #readSingleChannel} and {@link #readMultiChannel} so both read paths
+     * apply the same null-branch contract.
+     */
+    private static boolean isChannelEndOfStream(InputChannel channel) {
+        return channel.isFinished();
+    }
+
+    /**
+     * Stamps the idle-drain clock on the first consecutive idle poll.
+     *
+     * @return the (possibly freshly stamped) idle-since timestamp to thread
+     *         through the read loop
+     */
+    private static long stampIdleStart(long idleSince) {
+        return idleSince < 0L ? CoreMetrics.currentTimeMillis() : idleSince;
+    }
+
+    /**
+     * Whether the cumulative idle stretch has reached
+     * {@link #IDLE_RETURN_THRESHOLD_MS} — the signal to return empty (NOT EOS) so
+     * the caller's loop top can drain control mails and then re-read.
+     */
+    private static boolean idleThresholdReached(long idleSince) {
+        return CoreMetrics.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS;
+    }
+
     private Optional<StreamElement> readMultiChannel() {
         long idleSince = -1L;
         retry:
         while (true) {
-            // P1-05: emit (one per read(), in checkpoint-id order) any barrier
-            // completed by an earlier markFinishedChannel call — a single
-            // channel-finish can complete several in-flight alignments at once.
-            // A pending barrier whose checkpoint was aborted in the meantime is
-            // dropped (never emitted) and must not block later emissions.
-            if (barrierAlignment && !pendingBarrierEmissions.isEmpty()) {
-                BarrierAlignment pending = pendingBarrierEmissions.pollFirst();
-                if (abortedBarriers.contains(pending.checkpointId)) {
-                    for (int c : pending.blockedChannels) {
-                        blockedChannels.remove(c);
-                    }
-                    continue retry;
-                }
-                return emitCompletedAlignment(pending);
+            Optional<StreamElement> pendingResult = emitPendingBarriers();
+            if (pendingResult.isPresent()) {
+                return pendingResult;
             }
 
-            // P1-INV-2 (AR-02 Phase 3): evaluate the oldest in-flight alignment's
+            // Evaluate the oldest in-flight alignment's
             // elapsed time at the ENTRY of every read(), decoupled from whether a
-            // channel returned data. The legacy sweep-level check only ran after a
-            // whole round with zero returns, so a continuously-active channel
-            // (sustained traffic during alignment) starved the unaligned escape
-            // (1s) and the fail-fast alignment timeout (30s) — degradation down to
-            // the coordinator-side checkpointTimeout. Stage 43/45 semantics are
-            // unchanged: oldest in-flight alignment is the baseline, escape emits
+            // channel returned data — a continuously-active channel
+            // (sustained traffic during alignment) must not starve the unaligned
+            // escape (1s) or the fail-fast alignment timeout (30s); either
+            // starvation would degrade signaling down to
+            // the coordinator-side checkpointTimeout. Oldest in-flight alignment is
+            // the baseline: escape emits
             // the barrier with captured ChannelState, timeout throws
             // ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT.
             Optional<StreamElement> elapsedResult = checkAlignmentElapsed();
@@ -642,13 +664,13 @@ public class InputGate {
 
                 InputChannel channel = channels.get(channelIndex);
                 try {
-                    StreamElement element = channel.read(50, TimeUnit.MILLISECONDS);
+                    StreamElement element = channel.read(CHANNEL_POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                     if (element == null) {
-                        if (channel.isFinished()) {
-                            // Stage 45: a finished channel will never deliver more
+                        if (isChannelEndOfStream(channel)) {
+                            // A finished channel will never deliver more
                             // barriers, so mark it as received for every in-flight
                             // alignment and complete any alignment that becomes
-                            // satisfied (replaces the legacy single-pending check).
+                            // satisfied.
                             Optional<StreamElement> result = markFinishedChannel(channelIndex);
                             if (result.isPresent()) return result;
                         }
@@ -659,29 +681,13 @@ public class InputGate {
                     // the idle-return signal only fires after real idle stretches.
                     idleSince = -1L;
 
-                    if (element.isCheckpointBarrier()) {
-                        Optional<StreamElement> result = handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
-                        if (result.isPresent()) return result;
-                        continue retry;
+                    Optional<StreamElement> dispatched = dispatchChannelElement(channelIndex, element);
+                    if (dispatched.isPresent()) {
+                        return dispatched;
                     }
-
-                    if (element.isWatermark()) {
-                        Optional<StreamElement> result = handleWatermarkNonRecursive(channelIndex, element.asWatermark());
-                        if (result.isPresent()) return result;
-                        continue retry;
-                    }
-
-                    if (element.isWatermarkStatus()) {
-                        // AR-9 (plan 1326-2 Phase 4): idle/active status participates
-                        // in the merge (idle channels excluded from min; IDLE/ACTIVE
-                        // transitions forwarded to the operator chain).
-                        Optional<StreamElement> result = handleWatermarkStatusNonRecursive(
-                                channelIndex, element.asWatermarkStatus());
-                        if (result.isPresent()) return result;
-                        continue retry;
-                    }
-
-                    return Optional.of(element);
+                    // Filtered control element (aborted/stale barrier, non-advancing
+                    // watermark or watermark status): restart from the loop top.
+                    continue retry;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return Optional.empty();
@@ -692,24 +698,73 @@ public class InputGate {
                 return Optional.empty();
             }
 
-            // AR-02: idle drain signal — a full sweep with zero returns and no
+            // Idle drain signal — a full sweep with zero returns and no
             // EOS yet. Return empty (NOT EOS) once the idle-return threshold has
             // been idle, so the caller's loop top can drain control mails
             // (processing-time timer fires) and then re-read. The caller must
             // distinguish this from EOS via isAllFinished().
-            if (idleSince < 0L) {
-                idleSince = CoreMetrics.currentTimeMillis();
-            }
-            if (CoreMetrics.currentTimeMillis() - idleSince >= IDLE_RETURN_THRESHOLD_MS) {
+            idleSince = stampIdleStart(idleSince);
+            if (idleThresholdReached(idleSince)) {
                 return Optional.empty();
             }
 
-            LockSupport.parkNanos(10_000_000L);
+            LockSupport.parkNanos(IDLE_PARK_NANOS);
         }
     }
 
     /**
-     * P1-INV-2 (AR-02 Phase 3): evaluates the oldest in-flight alignment's
+     * Emits (one per read(), in checkpoint-id order) any barrier completed
+     * by an earlier {@link #markFinishedChannel} call — a single channel-finish
+     * can complete several in-flight alignments at once. A pending barrier whose
+     * checkpoint was aborted in the meantime is dropped (never emitted) and must
+     * not block later emissions: the drain keeps restarting from the queue head
+     * until it either emits the oldest live pending barrier or empties the queue.
+     *
+     * @return the barrier to emit downstream, or empty when no live pending
+     *         emission remains (the caller proceeds to the channel sweep)
+     */
+    private Optional<StreamElement> emitPendingBarriers() {
+        while (barrierAlignment && !pendingBarrierEmissions.isEmpty()) {
+            BarrierAlignment pending = pendingBarrierEmissions.pollFirst();
+            if (abortedBarriers.contains(pending.checkpointId)) {
+                for (int c : pending.blockedChannels) {
+                    blockedChannels.remove(c);
+                }
+                continue;
+            }
+            return emitCompletedAlignment(pending);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Dispatches one non-null element polled from a channel, in dispatch order:
+     * checkpoint barrier, watermark, watermark
+     * status, then plain data.
+     *
+     * @return the element to emit downstream — the control handler's result when
+     *         present, otherwise the data element itself; empty only when a
+     *         control element was filtered by its handler (the caller restarts
+     *         the read loop from the top)
+     */
+    private Optional<StreamElement> dispatchChannelElement(int channelIndex, StreamElement element) {
+        if (element.isCheckpointBarrier()) {
+            return handleBarrierNonRecursive(channelIndex, element.asCheckpointBarrier());
+        }
+        if (element.isWatermark()) {
+            return handleWatermarkNonRecursive(channelIndex, element.asWatermark());
+        }
+        if (element.isWatermarkStatus()) {
+            // Idle/active status participates
+            // in the merge (idle channels excluded from min; IDLE/ACTIVE
+            // transitions forwarded to the operator chain).
+            return handleWatermarkStatusNonRecursive(channelIndex, element.asWatermarkStatus());
+        }
+        return Optional.of(element);
+    }
+
+    /**
+     * Evaluates the oldest in-flight alignment's
      * elapsed time at every {@link #readMultiChannel()} entry. Returns the
      * unaligned-mode barrier when the escape threshold fired, throws
      * {@code ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT} when the fail-fast timeout
@@ -717,7 +772,7 @@ public class InputGate {
      * (pending-emission) alignments never trip the gates.
      */
     private Optional<StreamElement> checkAlignmentElapsed() {
-        // Stage 43/45: timeout / aligned→unaligned fallback applies to the
+        // Timeout / aligned→unaligned fallback applies to the
         // oldest in-flight alignment (the one currently aligning). Aligned
         // barriers serialize via channel blocking, so there is at most one
         // actively-aligning barrier at a time.
@@ -740,14 +795,14 @@ public class InputGate {
     }
 
     /**
-     * Stage 43/45 (unaligned checkpoint): switches the oldest in-flight checkpoint
+     * Unaligned checkpoint: switches the oldest in-flight checkpoint
      * from aligned to unaligned mode. Captures in-flight data from every channel
      * (per §2.11.2 semantics: aligned channels → post-barrier records; non-aligned
      * channels → all buffered records), resumes the channels this barrier blocked,
      * removes the alignment state, and stashes the {@link ChannelState} for the task
      * thread to retrieve via {@link #consumePendingChannelState()}.
      *
-     * <p>Stage 45 (design §2.8.1 D4): unaligned stays single-in-flight. Aligned
+     * <p>Unaligned stays single-in-flight (design §2.8.1 D4). Aligned
      * barriers serialize via channel blocking so there is at most one
      * actively-aligning barrier; if more than one is somehow in-flight at the
      * switch instant (unsupported unaligned+multi config), fail-fast rather than
@@ -758,7 +813,7 @@ public class InputGate {
      */
     private CheckpointBarrier switchToUnalignedAndEmit(BarrierAlignment align) {
         if (unalignedCheckpointEnabled && inFlightAlignments.size() > 1) {
-            // D4: unaligned multi-in-flight is a Stage 47 successor; fail-fast here
+            // Unaligned multi-in-flight is unsupported; fail-fast here
             // so an unsupported config never silently captures state for the wrong epoch.
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_REASON,
                     "Unaligned checkpoint is enabled and multiple barriers are in-flight (ids="
@@ -796,7 +851,7 @@ public class InputGate {
     }
 
     /**
-     * Stage 43: returns and clears the channel state captured during the most
+     * Returns and clears the channel state captured during the most
      * recent aligned→unaligned mode switch. Intended to be called by the task
      * thread immediately after {@link #read()} returns the unaligned barrier, so
      * the state can be forwarded to {@link CheckpointBarrierTracker#setChannelState}.
@@ -811,21 +866,21 @@ public class InputGate {
     }
 
     /**
-     * Stage 43: whether aligned→unaligned fallback is enabled for this gate.
+     * Whether aligned→unaligned fallback is enabled for this gate.
      */
     public boolean isUnalignedCheckpointEnabled() {
         return unalignedCheckpointEnabled;
     }
 
     /**
-     * Stage 43: the aligned→unaligned mode-switch threshold in ms.
+     * The aligned→unaligned mode-switch threshold in ms.
      */
     public long getUnalignedThreshold() {
         return unalignedThreshold;
     }
 
     /**
-     * Stage 43 (unaligned checkpoint recovery): injects previously captured
+     * Unaligned checkpoint recovery: injects previously captured
      * in-flight records back into the corresponding channel buffers, so they are
      * processed BEFORE any new upstream records when the recovered task resumes
      * reading. Called by the recovery path after operator state restore and before
@@ -858,7 +913,7 @@ public class InputGate {
         long id = barrier.getId();
 
         if (abortedBarriers.contains(id)) {
-            // Stage 45: late arrival of an aborted checkpoint's barrier. The abort
+            // Late arrival of an aborted checkpoint's barrier. The abort
             // was already signaled via the control channel; discard the straggler
             // so it does not start a spurious alignment or corrupt the next epoch.
             if (LOG.isDebugEnabled()) {
@@ -867,11 +922,10 @@ public class InputGate {
             return Optional.empty();
         }
 
-        // AR-5 (plan 1326-2 Phase 2): barrier ids are strictly increasing per
+        // Barrier ids are strictly increasing per
         // channel, so id <= the channel's last accepted id is a duplicate or a
         // dead-epoch straggler (e.g. a duplicate arriving AFTER its alignment
-        // completed and was removed — previously that created a fresh alignment
-        // that leaked on multi-channel and re-emitted on single-channel).
+        // completed and was removed).
         if (id <= lastAcceptedBarrierIds[channelIndex]) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Discarding stale/duplicate barrier {} on channel {} (last accepted: {})",
@@ -887,8 +941,8 @@ public class InputGate {
         }
 
         if (align.receivedChannels.contains(channelIndex)) {
-            // Duplicate barrier for the same id on the same channel: ignore (AR-5 /
-            // plan 1326-2 Phase 2 — explicit debug semantics, not a traceless drop).
+            // Duplicate barrier for the same id on the same channel: ignore
+            // (explicit debug semantics, not a traceless drop).
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Discarding duplicate barrier {} on channel {} (already received)", id, channelIndex);
             }
@@ -933,19 +987,18 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: marks a finished channel as having delivered every in-flight
+     * Marks a finished channel as having delivered every in-flight
      * barrier (it will never send more data), then completes any alignment that
-     * becomes satisfied. Replaces the legacy single-pending finished-channel check.
+     * becomes satisfied.
      *
-     * <p>P1-05: a finished channel delivers EVERY in-flight barrier, so several
+     * <p>A finished channel delivers EVERY in-flight barrier, so several
      * alignments can become fully received in the same call. ALL of them are
      * collected and emitted in checkpoint-id order, one per read() call (the
      * lowest completes now; the rest wait in {@link #pendingBarrierEmissions});
-     * each is removed from {@link #inFlightAlignments} only at emission. This
-     * replaces the legacy bucket-order scan that emitted the first completed
-     * alignment it happened to visit and leaked every other fully-received one —
-     * a leaked alignment never emits its barrier (downstream never snapshots
-     * that checkpoint) and, being fully received, permanently masks the
+     * each is removed from {@link #inFlightAlignments} only at emission —
+     * a fully-received alignment that is never emitted would never deliver its
+     * barrier (downstream never snapshots
+     * that checkpoint) and, being fully received, would permanently mask the
      * alignment-timeout / unaligned-fallback gates as the min-id in-flight item.
      */
     private Optional<StreamElement> markFinishedChannel(int channelIndex) {
@@ -977,7 +1030,7 @@ public class InputGate {
     }
 
     /**
-     * P1-05: removes the alignment from the in-flight map, resumes the channels
+     * Removes the alignment from the in-flight map, resumes the channels
      * it had blocked, opportunistically clears aborted markers, and returns the
      * barrier for emission. Shared by {@link #markFinishedChannel} and the
      * pending-emission drain in {@link #readMultiChannel}.
@@ -992,11 +1045,11 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: returns the oldest in-flight alignment (lowest checkpoint id), or
+     * Returns the oldest in-flight alignment (lowest checkpoint id), or
      * null. This is the barrier currently aligning (aligned serialization via
      * channel blocking guarantees at most one is actively aligning at a time).
      *
-     * <p>P1 hardening: {@link #inFlightAlignments} is a {@link ConcurrentHashMap}
+     * <p>{@link #inFlightAlignments} is a {@link ConcurrentHashMap}
      * (no insertion order), so the oldest is selected by minimum checkpoint id.
      * Barrier ids are monotonically increasing from the coordinator, so min id ==
      * oldest in-flight barrier.
@@ -1012,7 +1065,7 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: drops aborted-barrier markers that can no longer be observed
+     * Drops aborted-barrier markers that can no longer be observed
      * (any aborted id &le; the just-completed id is unreachable because barriers
      * are strictly ordered per channel). Keeps {@link #abortedBarriers} bounded.
      */
@@ -1024,12 +1077,12 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: aborts alignment for a specific checkpoint id (epoch-precise).
+     * Aborts alignment for a specific checkpoint id (epoch-precise).
      * Resumes channels this barrier had blocked and records the id so a straggling
      * in-data-flow barrier for the same epoch is discarded instead of starting a
      * new alignment. Other in-flight epochs are undisturbed.
      *
-     * <p>P1 hardening (ordering): the aborted id is recorded in {@link #abortedBarriers}
+     * <p>Ordering: the aborted id is recorded in {@link #abortedBarriers}
      * BEFORE the in-flight alignment is removed. This closes a re-creation window:
      * with remove-first, a racing {@code handleBarrierNonRecursive} (task thread)
      * could observe the removed alignment, miss the not-yet-added aborted id, and
@@ -1053,7 +1106,7 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: snapshot of in-flight barrier ids (for tests / observability).
+     * Snapshot of in-flight barrier ids (for tests / observability).
      */
     public List<Long> getInFlightBarrierIds() {
         return new ArrayList<>(inFlightAlignments.keySet());
@@ -1066,7 +1119,7 @@ public class InputGate {
         }
         currentWatermarks[channelIndex] = watermark.getTimestamp();
 
-        // AR-9: a watermark from a currently-idle channel is recorded but does not
+        // A watermark from a currently-idle channel is recorded but does not
         // drive the combined output (the channel must first signal ACTIVE — Flink
         // StatusWatermarkValve semantics).
         if (channelIdle[channelIndex]) {
@@ -1084,7 +1137,7 @@ public class InputGate {
     }
 
     /**
-     * AR-9 (plan 1326-2 Phase 4): handles a {@code WatermarkStatus} element from
+     * Handles a {@code WatermarkStatus} element from
      * one channel, mirroring Flink's {@code StatusWatermarkValve}:
      * <ul>
      *   <li>IDLE transition: the channel is excluded from the min merge; if ALL
@@ -1124,9 +1177,9 @@ public class InputGate {
     }
 
     /**
-     * The merged watermark this gate would report with NO idle exclusion (the
-     * pre-AR-9 baseline), used to detect whether excluding the just-ided channel
-     * actually advanced the combined output.
+     * The merged watermark this gate would report with NO idle exclusion, used
+     * to detect whether excluding the just-ided channel actually advanced the
+     * combined output.
      */
     private long minWatermarkAllIgnoringIdleStatus() {
         long min = Long.MAX_VALUE;
@@ -1142,7 +1195,7 @@ public class InputGate {
         long min = Long.MAX_VALUE;
         for (int i = 0; i < currentWatermarks.length; i++) {
             if (channelIdle[i] && i != excludeIndex) {
-                // AR-9: idle channels do not constrain the merge
+                // Idle channels do not constrain the merge
                 continue;
             }
             long val = (i == excludeIndex) ? oldValue : currentWatermarks[i];
@@ -1154,11 +1207,11 @@ public class InputGate {
     }
 
     /**
-     * Stage 45: per-barrier alignment state. Each in-flight checkpoint owns an
+     * Per-barrier alignment state. Each in-flight checkpoint owns an
      * independent record of which channels have delivered its barrier, which
      * channels it has blocked, and when alignment started (for timeout/unaligned).
      *
-     * <p>P1 hardening: {@code receivedChannels} / {@code blockedChannels} are
+     * <p>{@code receivedChannels} / {@code blockedChannels} are
      * concurrent sets. The checkpoint abort handler thread may remove the owning
      * alignment from {@link #inFlightAlignments} and then read
      * {@code blockedChannels} (to resume those channels) while the task thread is

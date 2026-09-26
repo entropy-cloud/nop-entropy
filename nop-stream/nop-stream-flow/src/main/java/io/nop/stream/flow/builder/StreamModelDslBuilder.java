@@ -281,6 +281,27 @@ public final class StreamModelDslBuilder {
 
     private void buildTransforms(StreamExecutionEnvironment env) {
         Map<String, StreamTransformModel> byId = new LinkedHashMap<>();
+        Map<String, Set<String>> upstreams = new HashMap<>();
+        List<StreamEdgeModel> edges = validateDag(byId, upstreams);
+
+        List<StreamTransformModel> ordered = topologicalOrderTransforms(byId, upstreams, edges);
+
+        for (StreamTransformModel t : ordered) {
+            Object built = buildTransform(env, t, upstreams.get(t.getId()));
+            streamRegistry.put(t.getId(), built);
+        }
+    }
+
+    /**
+     * Validates the declared transform/edge graph: every transform carries a non-null
+     * unique id, every edge carries a unique id and references known transforms, and
+     * every declared edge attribute is consumed or rejected (via
+     * {@link #validateEdgeDeclarations}). Fills {@code byId} with the id → transform
+     * mapping and {@code upstreams} with the per-transform upstream id sets; returns the
+     * validated edge list (never {@code null}).
+     */
+    private List<StreamEdgeModel> validateDag(Map<String, StreamTransformModel> byId,
+                                              Map<String, Set<String>> upstreams) {
         for (StreamTransformModel t : model.getTransforms()) {
             if (t.getId() == null) {
                 throw new StreamException(ERR_STREAM_REQUIRED_ATTR)
@@ -294,7 +315,6 @@ public final class StreamModelDslBuilder {
             }
         }
 
-        Map<String, Set<String>> upstreams = new HashMap<>();
         for (StreamTransformModel t : model.getTransforms()) {
             upstreams.put(t.getId(), new HashSet<>());
         }
@@ -322,7 +342,19 @@ public final class StreamModelDslBuilder {
             upstreams.get(e.getTo()).add(e.getFrom());
         }
         validateEdgeDeclarations(edges, byId);
+        return edges;
+    }
 
+    /**
+     * Orders the validated transforms topologically (Kahn's algorithm) so that every
+     * transform is built only after all transforms it consumes have been ordered. Throws
+     * {@code ERR_STREAM_CYCLIC_JOB_GRAPH} when the declared graph contains a cycle or an
+     * unreachable node.
+     */
+    private List<StreamTransformModel> topologicalOrderTransforms(
+            Map<String, StreamTransformModel> byId,
+            Map<String, Set<String>> upstreams,
+            List<StreamEdgeModel> edges) {
         Deque<String> ready = new ArrayDeque<>();
         Map<String, Integer> remaining = new HashMap<>();
         for (StreamTransformModel t : model.getTransforms()) {
@@ -364,11 +396,7 @@ public final class StreamModelDslBuilder {
                             + " unprocessed=" + stuck)
                     .loc(model.getLocation());
         }
-
-        for (StreamTransformModel t : ordered) {
-            Object built = buildTransform(env, t, upstreams.get(t.getId()));
-            streamRegistry.put(t.getId(), built);
-        }
+        return ordered;
     }
 
     /**
@@ -544,48 +572,43 @@ public final class StreamModelDslBuilder {
         }
     }
 
+    /**
+     * Shared body-resolution template for the function-carrying base transforms:
+     * {@code bean="..."} attribute first, then the inline xpl {@code <source>} body
+     * wrapped by the matching adapter, otherwise fail fast with
+     * {@code ERR_STREAM_REQUIRED_BODY} anchored on the declaring transform.
+     */
+    private <F> F resolveFunctionOrXpl(StreamTransformModel t, String beanAttr, IEvalFunction xplBody,
+                                       Class<F> targetType, Function<IEvalFunction, F> xplWrapper) {
+        if (beanAttr != null) {
+            return resolveBean(t, beanAttr, targetType);
+        }
+        if (xplBody != null) {
+            return xplWrapper.apply(xplBody);
+        }
+        throw new StreamException(ERR_STREAM_REQUIRED_BODY)
+                .param(ARG_ELEMENT, elementDesc(t))
+                .loc(t.getLocation());
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T, R> SingleOutputStreamOperator<R> buildMap(DataStream<?> in, StreamMapModel t) {
-        MapFunction<T, R> fn;
-        if (t.getBean() != null) {
-            fn = resolveBean(t, t.getBean(), MapFunction.class);
-        } else if (t.getSource() != null) {
-            fn = new XplMapFunction<>(t.getSource());
-        } else {
-            throw new StreamException(ERR_STREAM_REQUIRED_BODY)
-                    .param(ARG_ELEMENT, elementDesc(t))
-                    .loc(t.getLocation());
-        }
+        MapFunction<T, R> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
+                MapFunction.class, XplMapFunction::new);
         return applyDeclaredParallelism(((DataStream<T>) in).map((MapFunction) fn), t);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> SingleOutputStreamOperator<T> buildFilter(DataStream<?> in, StreamFilterModel t) {
-        FilterFunction<T> fn;
-        if (t.getBean() != null) {
-            fn = resolveBean(t, t.getBean(), FilterFunction.class);
-        } else if (t.getSource() != null) {
-            fn = new XplFilterFunction<>(t.getSource());
-        } else {
-            throw new StreamException(ERR_STREAM_REQUIRED_BODY)
-                    .param(ARG_ELEMENT, elementDesc(t))
-                    .loc(t.getLocation());
-        }
+        FilterFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
+                FilterFunction.class, XplFilterFunction::new);
         return applyDeclaredParallelism(((DataStream<T>) in).filter((FilterFunction) fn), t);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T, R> SingleOutputStreamOperator<R> buildFlatMap(DataStream<?> in, StreamFlatMapModel t) {
-        FlatMapFunction<T, R> fn;
-        if (t.getBean() != null) {
-            fn = resolveBean(t, t.getBean(), FlatMapFunction.class);
-        } else if (t.getSource() != null) {
-            fn = new XplFlatMapFunction<>(t.getSource());
-        } else {
-            throw new StreamException(ERR_STREAM_REQUIRED_BODY)
-                    .param(ARG_ELEMENT, elementDesc(t))
-                    .loc(t.getLocation());
-        }
+        FlatMapFunction<T, R> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
+                FlatMapFunction.class, XplFlatMapFunction::new);
         return applyDeclaredParallelism(((DataStream<T>) in).flatMap((FlatMapFunction) fn), t);
     }
 

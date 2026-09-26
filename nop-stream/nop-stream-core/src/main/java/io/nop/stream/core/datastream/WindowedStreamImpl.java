@@ -34,6 +34,9 @@ import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
+
 public class WindowedStreamImpl<T, K, W extends Window>
         extends DataStreamImpl<T> implements WindowedStream<T, K, W>, Serializable {
 
@@ -212,7 +215,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
-            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
+                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
         OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
                 assigner, trigger, evictor, allowedLateness, function,
@@ -227,7 +231,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
-            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
+                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
         // F-05: pass the inferred IN element class — the aggregate+evictor branch
         // buffers raw IN elements in a ListState and needs the element type.
@@ -245,7 +250,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
-            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
+                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
         OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
                 assigner, trigger, evictor, allowedLateness, function,
@@ -260,7 +266,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         WindowAssigner<? super T, W> assigner = getEffectiveWindowAssigner();
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
-            throw new StreamException("WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
+                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
         }
         OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
                 assigner, trigger, evictor, allowedLateness, function,

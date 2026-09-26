@@ -272,9 +272,40 @@ public class NFA<T> {
 
         final List<Map<String, List<T>>> result = new ArrayList<>();
         final Collection<Tuple2<Map<String, List<T>>, Long>> timeoutResult = new ArrayList<>();
-        final PriorityQueue<ComputationState> newPartialMatches =
-                new PriorityQueue<>(NFAState.COMPUTATION_STATE_COMPARATOR);
         final PriorityQueue<ComputationState> potentialMatches =
+                new PriorityQueue<>(NFAState.COMPUTATION_STATE_COMPARATOR);
+
+        final PriorityQueue<ComputationState> newPartialMatches =
+                timeoutPartialMatches(sharedBufferAccessor, nfaState, timestamp, timeoutResult, potentialMatches);
+
+        advanceComputationStates(
+                sharedBufferAccessor,
+                nfaState,
+                timestamp,
+                afterMatchSkipStrategy,
+                potentialMatches,
+                newPartialMatches,
+                result);
+
+        return Tuple2.of(result, timeoutResult);
+    }
+
+    /**
+     * Scans the current partial matches and splits them into timed-out and still active
+     * states. Timed-out states have their shared buffer entries released (pending states
+     * indirectly, via the pruning performed by
+     * {@link #processMatchesAccordingToSkipStrategy}; all others directly here) and,
+     * when timeout handling is enabled, their materialized patterns are appended to
+     * {@code timeoutResult}. Still active states are collected into the returned queue.
+     */
+    private PriorityQueue<ComputationState> timeoutPartialMatches(
+            final SharedBufferAccessor<T> sharedBufferAccessor,
+            final NFAState nfaState,
+            final long timestamp,
+            final Collection<Tuple2<Map<String, List<T>>, Long>> timeoutResult,
+            final PriorityQueue<ComputationState> potentialMatches) {
+
+        final PriorityQueue<ComputationState> newPartialMatches =
                 new PriorityQueue<>(NFAState.COMPUTATION_STATE_COMPARATOR);
 
         for (ComputationState computationState : nfaState.getPartialMatches()) {
@@ -329,6 +360,24 @@ public class NFA<T> {
             }
         }
 
+        return newPartialMatches;
+    }
+
+    /**
+     * Advances the states that survived the timeout scan: emits and prunes completed
+     * matches according to the skip strategy, commits the surviving partial matches as
+     * the NFA state's new partial matches, and advances the shared buffer's notion of
+     * time.
+     */
+    private void advanceComputationStates(
+            final SharedBufferAccessor<T> sharedBufferAccessor,
+            final NFAState nfaState,
+            final long timestamp,
+            final AfterMatchSkipStrategy afterMatchSkipStrategy,
+            final PriorityQueue<ComputationState> potentialMatches,
+            final PriorityQueue<ComputationState> newPartialMatches,
+            final List<Map<String, List<T>>> result) {
+
         // If a timeout partial match "frees" some completed matches
         // Or if completed not-followed-by matches need pruning
         processMatchesAccordingToSkipStrategy(
@@ -342,8 +391,6 @@ public class NFA<T> {
         nfaState.setNewPartialMatches(newPartialMatches);
 
         sharedBufferAccessor.advanceTime(timestamp);
-
-        return Tuple2.of(result, timeoutResult);
     }
 
     private boolean isStateTimedOut(
@@ -621,6 +668,40 @@ public class NFA<T> {
      *   <li>Release the corresponding entries in {@link SharedBuffer}.
      * </ol>
      *
+     * <p><b>DeweyNumber versioning invariant (current behavior):</b> the computation
+     * states forked from one source state must receive distinct Dewey versions,
+     * decreasing in visit order, so that {@link SharedBuffer} can discriminate between
+     * parallel branches. Three counters, initialized from the {@link OutgoingEdges}
+     * branch counts, track the remaining version budget and are decremented as edges
+     * are visited:
+     * <ul>
+     *   <li>{@code takeBranchesToVisit} starts at {@code max(0, totalTakeBranches - 1)}.
+     *       When a TAKE edge is visited, the counter still equals the number of TAKE
+     *       siblings that follow it, so {@code version.increase(takeBranchesToVisit)}
+     *       reserves exactly one version slot per remaining sibling; the counter is
+     *       decremented afterwards. Because {@code K} sibling branches occupy {@code K}
+     *       contiguous slots, the largest single increase is {@code K - 1} — hence the
+     *       {@code totalTakeBranches - 1} start. The computation state created by a TAKE
+     *       does not run on {@code currentVersion} itself but on
+     *       {@code new DeweyNumber(currentVersion).addStage()}: TAKE moves the match to
+     *       the target state, which opens a new stage.</li>
+     *   <li>{@code ignoreBranchesToVisit} starts at {@code totalIgnoreBranches} and is
+     *       decremented once per visited non-self IGNORE edge (an IGNORE reached through
+     *       PROCEED). Its version is
+     *       {@code version.increase(totalTakeToSkip + ignoreBranchesToVisit).addStage()}:
+     *       the constant {@code totalTakeToSkip} (= {@code max(0, totalTakeBranches - 1)})
+     *       reserves the version space consumed by the TAKE branches at the same level,
+     *       the decreasing {@code ignoreBranchesToVisit} orders the IGNORE siblings among
+     *       themselves, and {@code addStage()} marks the state change caused by
+     *       PROCEED.</li>
+     *   <li>IGNORE edges that stay in the same state (self-loop or singleton) and the
+     *       re-added start state never add a stage: they widen the current one by
+     *       {@code calculateIncreasingSelfState(totalIgnoreBranches, totalTakeBranches)}
+     *       (= {@code ignoreBranches + max(1, takeBranches)}, or 0 when both counts are
+     *       0), which reserves room for every branching edge forked below without
+     *       opening a new stage.</li>
+     * </ul>
+     *
      * @param sharedBufferAccessor The accessor to shared buffer that we need to change
      * @param computationState     Current computation state
      * @param event                Current event which is processed
@@ -652,93 +733,25 @@ public class NFA<T> {
         final List<ComputationState> resultingComputationStates = new ArrayList<>();
         for (StateTransition<T> edge : edges) {
             switch (edge.getAction()) {
-                case IGNORE: {
-                    if (!isStartState(computationState)) {
-                        final DeweyNumber version;
-                        if (isEquivalentState(
-                                edge.getTargetState(), getState(computationState))) {
-                            // Stay in the same state (it can be either looping one or
-                            // singleton)
-                            final int toIncrease =
-                                    calculateIncreasingSelfState(
-                                            outgoingEdges.getTotalIgnoreBranches(),
-                                            outgoingEdges.getTotalTakeBranches());
-                            version = computationState.getVersion().increase(toIncrease);
-                        } else {
-                            // IGNORE after PROCEED
-                            version =
-                                    computationState
-                                            .getVersion()
-                                            .increase(totalTakeToSkip + ignoreBranchesToVisit)
-                                            .addStage();
-                            ignoreBranchesToVisit--;
-                        }
-
-                        addComputationState(
-                                sharedBufferAccessor,
-                                resultingComputationStates,
-                                edge.getTargetState(),
-                                computationState.getPreviousBufferEntry(),
-                                version,
-                                computationState.getStartTimestamp(),
-                                computationState.getPreviousTimestamp(),
-                                computationState.getStartEventID());
-                    }
-                }
-                break;
-                case TAKE:
-                    final State<T> nextState = edge.getTargetState();
-                    final State<T> currentState = edge.getSourceState();
-
-                    final NodeId previousEntry = computationState.getPreviousBufferEntry();
-
-                    final DeweyNumber currentVersion =
-                            computationState.getVersion().increase(takeBranchesToVisit);
-                    final DeweyNumber nextVersion = new DeweyNumber(currentVersion).addStage();
-                    takeBranchesToVisit--;
-
-                    final NodeId newEntry =
-                            sharedBufferAccessor.put(
-                                    currentState.getName(),
-                                    event.getEventId(),
-                                    previousEntry,
-                                    currentVersion);
-
-                    final long startTimestamp;
-                    final EventId startEventId;
-                    if (isStartState(computationState)) {
-                        startTimestamp = event.getTimestamp();
-                        startEventId = event.getEventId();
-                    } else {
-                        startTimestamp = computationState.getStartTimestamp();
-                        startEventId = computationState.getStartEventID();
-                    }
-                    final long previousTimestamp = event.getTimestamp();
-
-                    addComputationState(
+                case IGNORE:
+                    ignoreBranchesToVisit = handleIgnoreEdge(
                             sharedBufferAccessor,
-                            resultingComputationStates,
-                            nextState,
-                            newEntry,
-                            nextVersion,
-                            startTimestamp,
-                            previousTimestamp,
-                            startEventId);
-
-                    // check if newly created state is optional (have a PROCEED path to Final state)
-                    final State<T> finalState =
-                            findFinalStateAfterProceed(context, nextState, event.getEvent());
-                    if (finalState != null) {
-                        addComputationState(
-                                sharedBufferAccessor,
-                                resultingComputationStates,
-                                finalState,
-                                newEntry,
-                                nextVersion,
-                                startTimestamp,
-                                previousTimestamp,
-                                startEventId);
-                    }
+                            computationState,
+                            edge,
+                            outgoingEdges,
+                            totalTakeToSkip,
+                            ignoreBranchesToVisit,
+                            resultingComputationStates);
+                    break;
+                case TAKE:
+                    takeBranchesToVisit = handleTakeEdge(
+                            sharedBufferAccessor,
+                            computationState,
+                            edge,
+                            event,
+                            context,
+                            takeBranchesToVisit,
+                            resultingComputationStates);
                     break;
             }
         }
@@ -763,6 +776,129 @@ public class NFA<T> {
         }
 
         return resultingComputationStates;
+    }
+
+    /**
+     * Handles a single IGNORE edge: for a non-start state the branch stays on the
+     * previous buffer entry (the shared buffer link keeps pointing to the previous
+     * event) and is versioned according to the branch budget documented in
+     * {@link #computeNextStates}. Returns the updated {@code ignoreBranchesToVisit}
+     * counter so the caller can carry it across edges.
+     */
+    private int handleIgnoreEdge(
+            final SharedBufferAccessor<T> sharedBufferAccessor,
+            final ComputationState computationState,
+            final StateTransition<T> edge,
+            final OutgoingEdges<T> outgoingEdges,
+            final int totalTakeToSkip,
+            final int ignoreBranchesToVisit,
+            final List<ComputationState> resultingComputationStates) {
+
+        int remainingIgnoreBranchesToVisit = ignoreBranchesToVisit;
+        if (!isStartState(computationState)) {
+            final DeweyNumber version;
+            if (isEquivalentState(
+                    edge.getTargetState(), getState(computationState))) {
+                // Stay in the same state (it can be either looping one or
+                // singleton)
+                final int toIncrease =
+                        calculateIncreasingSelfState(
+                                outgoingEdges.getTotalIgnoreBranches(),
+                                outgoingEdges.getTotalTakeBranches());
+                version = computationState.getVersion().increase(toIncrease);
+            } else {
+                // IGNORE after PROCEED
+                version =
+                        computationState
+                                .getVersion()
+                                .increase(totalTakeToSkip + remainingIgnoreBranchesToVisit)
+                                .addStage();
+                remainingIgnoreBranchesToVisit--;
+            }
+
+            addComputationState(
+                    sharedBufferAccessor,
+                    resultingComputationStates,
+                    edge.getTargetState(),
+                    computationState.getPreviousBufferEntry(),
+                    version,
+                    computationState.getStartTimestamp(),
+                    computationState.getPreviousTimestamp(),
+                    computationState.getStartEventID());
+        }
+        return remainingIgnoreBranchesToVisit;
+    }
+
+    /**
+     * Handles a single TAKE edge: puts the current event into the shared buffer as the
+     * new entry for this branch, versions it according to the branch budget documented
+     * in {@link #computeNextStates}, and creates the computation state for the target
+     * state (plus one for a final state when the target has a PROCEED path to one).
+     * Returns the updated {@code takeBranchesToVisit} counter so the caller can carry it
+     * across edges.
+     */
+    private int handleTakeEdge(
+            final SharedBufferAccessor<T> sharedBufferAccessor,
+            final ComputationState computationState,
+            final StateTransition<T> edge,
+            final EventWrapper event,
+            final ConditionContext context,
+            final int takeBranchesToVisit,
+            final List<ComputationState> resultingComputationStates) {
+
+        final State<T> nextState = edge.getTargetState();
+        final State<T> currentState = edge.getSourceState();
+
+        final NodeId previousEntry = computationState.getPreviousBufferEntry();
+
+        final DeweyNumber currentVersion =
+                computationState.getVersion().increase(takeBranchesToVisit);
+        final DeweyNumber nextVersion = new DeweyNumber(currentVersion).addStage();
+        final int remainingTakeBranchesToVisit = takeBranchesToVisit - 1;
+
+        final NodeId newEntry =
+                sharedBufferAccessor.put(
+                        currentState.getName(),
+                        event.getEventId(),
+                        previousEntry,
+                        currentVersion);
+
+        final long startTimestamp;
+        final EventId startEventId;
+        if (isStartState(computationState)) {
+            startTimestamp = event.getTimestamp();
+            startEventId = event.getEventId();
+        } else {
+            startTimestamp = computationState.getStartTimestamp();
+            startEventId = computationState.getStartEventID();
+        }
+        final long previousTimestamp = event.getTimestamp();
+
+        addComputationState(
+                sharedBufferAccessor,
+                resultingComputationStates,
+                nextState,
+                newEntry,
+                nextVersion,
+                startTimestamp,
+                previousTimestamp,
+                startEventId);
+
+        // check if newly created state is optional (have a PROCEED path to Final state)
+        final State<T> finalState =
+                findFinalStateAfterProceed(context, nextState, event.getEvent());
+        if (finalState != null) {
+            addComputationState(
+                    sharedBufferAccessor,
+                    resultingComputationStates,
+                    finalState,
+                    newEntry,
+                    nextVersion,
+                    startTimestamp,
+                    previousTimestamp,
+                    startEventId);
+        }
+        return remainingTakeBranchesToVisit;
     }
 
     private void addComputationState(

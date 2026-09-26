@@ -29,7 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -258,27 +262,60 @@ class TestCheckpointCoordinator {
         }
     }
 
+    /**
+     * Migrated from testSchedulerStartStop (plan 359 Phase 2): the coordinator's own
+     * periodic trigger loop (startCheckpointScheduler) was production-unreachable dead
+     * code and was removed. The production periodic mechanism is an external driver —
+     * JobCoordinator's jc-periodic loop or GraphModelCheckpointExecutor's barrier
+     * injector — which repeatedly calls tryTriggerCheckpointWithReason. This test mirrors
+     * that driver at the coordinator level: repeated trigger calls at the configured
+     * interval produce pending checkpoints, and stopping the driver stops the triggering.
+     */
     @Test
-    void testSchedulerStartStop() throws Exception {
+    void testPeriodicTriggerViaExternalDriverLoop() throws Exception {
         CheckpointConfig shortIntervalConfig = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(50L)
                 .checkpointTimeout(5000L)
-                .maxConcurrentCheckpoints(1)
+                .minPause(0L)
+                .maxConcurrentCheckpoints(100)
                 .maxRetainedCheckpoints(3)
                 .build();
         CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", idCounter, storage, shortIntervalConfig);
         coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
+        AtomicInteger triggeredCount = new AtomicInteger(0);
+        ScheduledExecutorService driver = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "test-periodic-checkpoint-driver-1");
+            t.setDaemon(true);
+            return t;
+        });
         try {
-            coord.startCheckpointScheduler();
+            // Same tick shape as JobCoordinator.startPeriodicCheckpoints: fixed-rate
+            // tryTriggerCheckpointWithReason calls at the configured interval.
+            driver.scheduleAtFixedRate(() -> {
+                CheckpointCoordinator.TriggerOutcome outcome =
+                        coord.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
+                if (outcome.reason() == CheckpointCoordinator.TriggerRejectionReason.TRIGGERED) {
+                    triggeredCount.incrementAndGet();
+                }
+            }, 50L, 50L, TimeUnit.MILLISECONDS);
+
             long deadline = System.currentTimeMillis() + 60_000;
-            while (coord.getNumberOfPendingCheckpoints() < 1 && System.currentTimeMillis() < deadline) {
+            while (triggeredCount.get() < 3 && System.currentTimeMillis() < deadline) {
                 Thread.sleep(10);
             }
-            assertTrue(coord.getNumberOfPendingCheckpoints() >= 1,
-                    "Scheduler should have triggered at least one checkpoint within 1 minute");
-            coord.stopCheckpointScheduler();
+            assertTrue(triggeredCount.get() >= 3,
+                    "Driver loop should have triggered at least 3 checkpoints within 1 minute");
+
+            // Stop the driver: triggering must stop with it.
+            driver.shutdownNow();
+            assertTrue(driver.awaitTermination(5, TimeUnit.SECONDS));
+            int frozen = triggeredCount.get();
+            Thread.sleep(200); // 4 intervals — no further TRIGGERED outcomes may arrive
+            assertEquals(frozen, triggeredCount.get(),
+                    "No further checkpoints may be triggered after the driver loop stops");
         } finally {
+            driver.shutdownNow();
             coord.shutdown();
         }
     }

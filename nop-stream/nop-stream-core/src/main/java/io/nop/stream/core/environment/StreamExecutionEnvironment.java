@@ -342,11 +342,7 @@ public class StreamExecutionEnvironment {
         long startTime = CoreMetrics.currentTimeMillis();
 
         try {
-            List<SinkTransformation<?>> sinks = findSinkTransformations();
-            if (sinks.isEmpty()) {
-                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
-            }
-
+            List<SinkTransformation<?>> sinks = requireSinkTransformations();
             StreamModel streamModel = buildStreamModel(sinks);
             StreamRequirementValidator.validate(streamModel, StreamBackendCapability.localRuntime());
             StreamRequirementValidator.validateConnectorConsistency(
@@ -355,47 +351,17 @@ public class StreamExecutionEnvironment {
                     streamModel.getSinkCapabilities()
             );
 
-            StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
-            @SuppressWarnings("unchecked")
-            List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
-            StreamGraph streamGraph = graphGenerator.generate(sinkList);
-
-            JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
-            // AR-1: thread the real job name into the JobGraph — it becomes the
-            // checkpoint storage jobId (via PartitionedPlanGenerator) so distinct
-            // jobs get distinct storage namespaces.
-            JobGraph jobGraph = jobGraphGenerator.generate(streamGraph, jobName, null);
-
-            // Generate PartitionedPlan and DeploymentPlan for execution planning
-            PartitionedPlanGenerator partitionedPlanGenerator = new PartitionedPlanGenerator();
-            StreamModel populatedModel = jobGraph.getStreamModel();
-            StreamModelFingerprint fp = populatedModel != null
-                    ? populatedModel.computeFingerprint() : streamModel.computeFingerprint();
-            PartitionedPlan partitionedPlan = partitionedPlanGenerator.generate(
-                    jobGraph, fp);
+            JobGraph jobGraph = compilePlans(jobName, sinks);
+            PartitionedPlan partitionedPlan = buildPartitionedPlan(jobGraph, streamModel);
             DeploymentPlan deploymentPlan = generateDeploymentPlan(partitionedPlan);
 
             if (checkpointConfig.isCheckpointEnabled()
                     && (checkpointingDeclared || checkpointExecutorFactory != null)) {
-                // F-06: a DECLARED checkpointing job (or one with an explicitly wired
-                // factory, matching the pre-fix behavior) MUST run checkpointed —
-                // factory resolution is explicit setter > ServiceLoader > typed
-                // fail-fast. There is no path from a declared enableCheckpointing()
-                // into a silently non-checkpointed LOCAL execution. An UNDECLARED plain
-                // job with no wired factory keeps the pre-fix LOCAL fallback (nothing
-                // was declared, so nothing is silently skipped).
-                ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
-                StreamExecutionResult result = factory.executeWithCheckpoint(
-                    streamModel, partitionedPlan, deploymentPlan, checkpointConfig);
-                executed = true;
-                return result;
+                return executeWithCheckpointEngine(streamModel, partitionedPlan, deploymentPlan);
             }
 
             if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher != null) {
-                StreamExecutionResult result = executionDispatcher.execute(
-                    jobGraph, partitionedPlan, deploymentPlan);
-                executed = true;
-                return result;
+                return executeDistributed(jobGraph, partitionedPlan, deploymentPlan);
             }
 
             if (deploymentMode == DeploymentMode.DISTRIBUTED && executionDispatcher == null) {
@@ -404,66 +370,153 @@ public class StreamExecutionEnvironment {
                   + "Ensure the runtime module is on the classpath and the dispatcher has been configured.");
             }
 
-            boolean barrierAlignment = checkpointConfig.getProcessingGuarantee().isBarrierAlignment();
-            GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
-
-            TaskExecutor executor = new TaskExecutor();
-            try {
-                List<SubtaskTask> subtaskTasks = new ArrayList<>();
-                java.util.Set<Integer> sourceApiVertexIds = new java.util.LinkedHashSet<>();
-                for (Transformation<?> t : transformations) {
-                    if (t instanceof SourceApiTransformation) {
-                        sourceApiVertexIds.add(t.getId());
-                    }
-                }
-
-                for (String vertexId : plan.getSortedVertexIds()) {
-                    List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
-                    int totalParallelism = vertexSubtasks.size();
-                    int parsedVertexId = parseVertexId(vertexId);
-                    boolean isSourceApiVertex = sourceApiVertexIds.contains(parsedVertexId);
-
-                    for (Subtask subtask : vertexSubtasks) {
-                        SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
-                        subtaskTasks.add(subtaskTask);
-
-                        // Stage 49 D3: wire per-subtask identity on SourceReaderOperator
-                        // before submission so its open() can locate the right coordinator
-                        // channel and know its position among parallel source subtasks.
-                        if (isSourceApiVertex) {
-                            wireSourceReaderSubtaskIdentity(subtask, subtask.getTaskIndex(), totalParallelism);
-                        }
-
-                        executor.submitTask(subtaskTask);
-                    }
-                }
-
-                executor.awaitCompletion();
-
-                for (SubtaskTask task : subtaskTasks) {
-                    if (task.getState() == SubtaskTask.State.FAILED) {
-                        throw new StreamException(ERR_STREAM_TASK_FAILED, task.getError());
-                    }
-                }
-
-                executed = true;
-                long executionTime = CoreMetrics.currentTimeMillis() - startTime;
-                return new StreamExecutionResult(jobName, executionTime);
-            } finally {
-                executor.shutdown();
-                // Release the per-job buffer pool so any producer blocked on global
-                // exhaustion is woken, and permits do not leak across executions.
-                plan.closeBufferPool();
-                // Stage 49 D3: unregister any source-api coordinators we registered for this
-                // job so subsequent executions of the same vertex id start fresh.
-                for (Transformation<?> t : transformations) {
-                    if (t instanceof SourceApiTransformation) {
-                        io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry.unregister(t.getId());
-                    }
-                }
-            }
+            return runLocal(jobName, jobGraph, deploymentPlan, startTime);
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED, e).param(ARG_JOB_NAME, jobName);
+        }
+    }
+
+    /**
+     * Returns the sink transformations of this environment, failing fast when the
+     * job declares none.
+     */
+    private List<SinkTransformation<?>> requireSinkTransformations() {
+        List<SinkTransformation<?>> sinks = findSinkTransformations();
+        if (sinks.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");
+        }
+        return sinks;
+    }
+
+    /**
+     * Compiles the sink-reachable transformation DAG into the executable JobGraph.
+     *
+     * <p>AR-1: threads the real job name into the JobGraph — it becomes the
+     * checkpoint storage jobId (via PartitionedPlanGenerator) so distinct
+     * jobs get distinct storage namespaces.
+     */
+    private JobGraph compilePlans(String jobName, List<SinkTransformation<?>> sinks) {
+        StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
+        @SuppressWarnings("unchecked")
+        List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
+        StreamGraph streamGraph = graphGenerator.generate(sinkList);
+
+        JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        return jobGraphGenerator.generate(streamGraph, jobName, null);
+    }
+
+    /**
+     * Generates the PartitionedPlan for a compiled JobGraph. The model fingerprint
+     * comes from the StreamModel populated onto the JobGraph when present, falling
+     * back to the environment-built model.
+     */
+    private PartitionedPlan buildPartitionedPlan(JobGraph jobGraph, StreamModel streamModel) {
+        PartitionedPlanGenerator partitionedPlanGenerator = new PartitionedPlanGenerator();
+        StreamModel populatedModel = jobGraph.getStreamModel();
+        StreamModelFingerprint fp = populatedModel != null
+                ? populatedModel.computeFingerprint() : streamModel.computeFingerprint();
+        return partitionedPlanGenerator.generate(jobGraph, fp);
+    }
+
+    /**
+     * F-06: a DECLARED checkpointing job (or one with an explicitly wired
+     * factory, matching the pre-fix behavior) MUST run checkpointed —
+     * factory resolution is explicit setter &gt; ServiceLoader &gt; typed
+     * fail-fast. There is no path from a declared enableCheckpointing()
+     * into a silently non-checkpointed LOCAL execution. An UNDECLARED plain
+     * job with no wired factory keeps the pre-fix LOCAL fallback (nothing
+     * was declared, so nothing is silently skipped).
+     */
+    private StreamExecutionResult executeWithCheckpointEngine(StreamModel streamModel,
+                                                              PartitionedPlan partitionedPlan,
+                                                              DeploymentPlan deploymentPlan) throws Exception {
+        ICheckpointExecutorFactory factory = requireCheckpointExecutorFactory();
+        StreamExecutionResult result = factory.executeWithCheckpoint(
+            streamModel, partitionedPlan, deploymentPlan, checkpointConfig);
+        executed = true;
+        return result;
+    }
+
+    private StreamExecutionResult executeDistributed(JobGraph jobGraph,
+                                                     PartitionedPlan partitionedPlan,
+                                                     DeploymentPlan deploymentPlan) throws Exception {
+        StreamExecutionResult result = executionDispatcher.execute(
+            jobGraph, partitionedPlan, deploymentPlan);
+        executed = true;
+        return result;
+    }
+
+    /**
+     * Runs the compiled plan on the in-process {@link TaskExecutor} (LOCAL
+     * deployment mode), then fails fast if any subtask ended in the FAILED state.
+     */
+    private StreamExecutionResult runLocal(String jobName, JobGraph jobGraph,
+                                           DeploymentPlan deploymentPlan,
+                                           long startTime) throws Exception {
+        boolean barrierAlignment = checkpointConfig.getProcessingGuarantee().isBarrierAlignment();
+        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+
+        TaskExecutor executor = new TaskExecutor();
+        try {
+            List<SubtaskTask> subtaskTasks = new ArrayList<>();
+            java.util.Set<Integer> sourceApiVertexIds = new java.util.LinkedHashSet<>();
+            for (Transformation<?> t : transformations) {
+                if (t instanceof SourceApiTransformation) {
+                    sourceApiVertexIds.add(t.getId());
+                }
+            }
+
+            for (String vertexId : plan.getSortedVertexIds()) {
+                List<Subtask> vertexSubtasks = plan.getSubtasks(vertexId);
+                int totalParallelism = vertexSubtasks.size();
+                int parsedVertexId = parseVertexId(vertexId);
+                boolean isSourceApiVertex = sourceApiVertexIds.contains(parsedVertexId);
+
+                for (Subtask subtask : vertexSubtasks) {
+                    SubtaskTask subtaskTask = new SubtaskTask(subtask, plan.getExecutionVertices().get(vertexId));
+                    subtaskTasks.add(subtaskTask);
+
+                    // Stage 49 D3: wire per-subtask identity on SourceReaderOperator
+                    // before submission so its open() can locate the right coordinator
+                    // channel and know its position among parallel source subtasks.
+                    if (isSourceApiVertex) {
+                        wireSourceReaderSubtaskIdentity(subtask, subtask.getTaskIndex(), totalParallelism);
+                    }
+
+                    executor.submitTask(subtaskTask);
+                }
+            }
+
+            executor.awaitCompletion();
+
+            for (SubtaskTask task : subtaskTasks) {
+                if (task.getState() == SubtaskTask.State.FAILED) {
+                    throw new StreamException(ERR_STREAM_TASK_FAILED, task.getError());
+                }
+            }
+
+            executed = true;
+            long executionTime = CoreMetrics.currentTimeMillis() - startTime;
+            return new StreamExecutionResult(jobName, executionTime);
+        } finally {
+            shutdownLocalExecution(executor, plan);
+        }
+    }
+
+    /**
+     * Tears down one local execution: shuts the executor down, releases the per-job
+     * buffer pool so any producer blocked on global exhaustion is woken and permits
+     * do not leak across executions, and unregisters the source-api coordinators
+     * registered for this job (Stage 49 D3) so subsequent executions of the same
+     * vertex id start fresh.
+     */
+    private void shutdownLocalExecution(TaskExecutor executor, GraphExecutionPlan plan) {
+        executor.shutdown();
+        plan.closeBufferPool();
+        for (Transformation<?> t : transformations) {
+            if (t instanceof SourceApiTransformation) {
+                io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry.unregister(t.getId());
+            }
         }
     }
 

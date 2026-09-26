@@ -11,6 +11,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -106,11 +107,8 @@ public class WebhookAlertChannel implements IAlertChannel {
                 .connectTimeout(Duration.ofMillis(timeoutMs))
                 .build();
         this.pending = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
-        this.deliveryExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "stream-alert-webhook");
-            t.setDaemon(true);
-            return t;
-        });
+        this.deliveryExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(
+                NopStreamThreadFactory.named("stream-alert-webhook"));
         this.deliveryExecutor.execute(this::drainLoop);
     }
 

@@ -8,6 +8,8 @@
 
 package io.nop.stream.core.common.functions.sink;
 
+import java.io.PrintStream;
+
 import io.nop.stream.core.common.functions.SinkFunction;
 
 /**
@@ -29,6 +31,13 @@ import io.nop.stream.core.common.functions.SinkFunction;
 public class PrintSinkFunction<T> implements SinkFunction<T> {
     
     private final String prefix;
+
+    /**
+     * Optional target stream override (tests / output redirect). When null, the
+     * sink writes to the live {@code System.out} at call time — identical to the
+     * pre-injection behavior.
+     */
+    private transient PrintStream out;
     
     /**
      * Creates a PrintSinkFunction with no prefix.
@@ -45,6 +54,27 @@ public class PrintSinkFunction<T> implements SinkFunction<T> {
     public PrintSinkFunction(String prefix) {
         this.prefix = prefix;
     }
+
+    /**
+     * Creates a PrintSinkFunction with the specified prefix writing to the given
+     * stream instead of standard output.
+     *
+     * @param prefix Optional prefix to identify the sink output
+     * @param out    The target stream for the printed elements
+     */
+    public PrintSinkFunction(String prefix, PrintStream out) {
+        this(prefix);
+        this.out = out;
+    }
+
+    /**
+     * Redirects subsequent output to the given stream instead of standard output.
+     *
+     * @param out The target stream for the printed elements
+     */
+    public void setOut(PrintStream out) {
+        this.out = out;
+    }
     
     /**
      * Consumes and prints the given element to standard output.
@@ -54,9 +84,13 @@ public class PrintSinkFunction<T> implements SinkFunction<T> {
      */
     public void consume(T value) throws Exception {
         if (prefix != null) {
-            System.out.println(prefix + ": " + value);
+            resolveOut().println(prefix + ": " + value);
         } else {
-            System.out.println(value);
+            resolveOut().println(value);
         }
+    }
+
+    private PrintStream resolveOut() {
+        return out != null ? out : System.out;
     }
 }

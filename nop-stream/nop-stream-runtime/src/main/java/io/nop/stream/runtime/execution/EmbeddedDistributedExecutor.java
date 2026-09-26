@@ -26,6 +26,7 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_FAILED;
 import io.nop.stream.core.execution.DeploymentMode;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.IStreamExecutionDispatcher;
@@ -415,8 +416,8 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
             }
         }
         if (!failures.isEmpty()) {
-            StreamException ex = new StreamException(
-                    failures.size() + " task(s) failed during distributed execution");
+            StreamException ex = new StreamException(ERR_STREAM_TASK_FAILED);
+            ex.param(ARG_DETAIL, failures.size() + " task(s) failed during distributed execution");
             for (Throwable t : failures) {
                 ex.addSuppressed(t);
             }

@@ -58,18 +58,30 @@ class TestCheckpointConcurrencySafety {
         coordinator.shutdown();
     }
 
+    /**
+     * Migrated from testConcurrentStartCheckpointScheduler_noDuplicateScheduler (plan 359
+     * Phase 2): the coordinator-level start/stop scheduler API was production-unreachable
+     * dead code and was removed; the idempotent-start guard now lives in
+     * JobCoordinator.startPeriodicCheckpoints (the production periodic driver). The
+     * surviving coordinator-level concurrency contract — concurrent trigger calls are
+     * serialized and produce distinct, correctly-counted pending checkpoints — is
+     * verified here via the production trigger API.
+     */
     @Test
-    void testConcurrentStartCheckpointScheduler_noDuplicateScheduler() throws Exception {
+    void testConcurrentTriggerPendingCheckpoint_noCorruption() throws Exception {
         int numThreads = 10;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(numThreads);
+        AtomicInteger nullResults = new AtomicInteger(0);
 
         for (int i = 0; i < numThreads; i++) {
             executor.submit(() -> {
                 try {
                     startLatch.await();
-                    coordinator.startCheckpointScheduler();
+                    if (coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT) == null) {
+                        nullResults.incrementAndGet();
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } finally {
@@ -82,12 +94,11 @@ class TestCheckpointConcurrencySafety {
         assertTrue(doneLatch.await(5, TimeUnit.SECONDS));
         executor.shutdown();
 
-        // 等待信号：调度器（interval=100ms）触发首个 checkpoint，出现 pending checkpoint
-        long schedulerDeadline = System.currentTimeMillis() + 30_000;
-        while (coordinator.getNumberOfPendingCheckpoints() < 1 && System.currentTimeMillis() < schedulerDeadline)
-            Thread.sleep(20);
-        assertTrue(coordinator.getNumberOfPendingCheckpoints() >= 1,
-                "At least one checkpoint should have been triggered by the scheduler");
+        assertEquals(0, nullResults.get(),
+                "Every concurrent trigger must produce a pending checkpoint");
+        assertEquals(numThreads, coordinator.getNumberOfPendingCheckpoints(),
+                "Concurrent triggers must yield exactly one distinct pending checkpoint each "
+                        + "(no duplicates, no loss)");
     }
 
     @Test

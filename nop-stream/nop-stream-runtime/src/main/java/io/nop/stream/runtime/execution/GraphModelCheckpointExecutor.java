@@ -85,6 +85,7 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.model.StreamModel;
 import io.nop.stream.core.model.StreamModelFingerprint;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroup;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
@@ -109,10 +110,10 @@ public class GraphModelCheckpointExecutor {
             JobGraph jobGraph,
             String jobName,
             CheckpointConfig checkpointConfig) throws Exception {
-        // ① JobGraph-entry id resolution: config values used verbatim (no
-        // partitioned-plan defaults — asymmetric with the StreamModel entries, pinned).
-        // ② no fingerprint source, ④ restore without a StreamModel,
-        // ③ 4-arg plan build without unaligned passthrough (pinned asymmetry — see
+        // JobGraph entry: config id values used verbatim (no
+        // partitioned-plan defaults — asymmetric with the StreamModel entries,
+        // pinned). No fingerprint source; restore without a StreamModel;
+        // 4-arg plan build without unaligned passthrough (pinned asymmetry — see
         // buildExecutionPlan selection in the skeleton).
         return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
                 resolveJobId(checkpointConfig), resolvePipelineId(checkpointConfig),
@@ -152,7 +153,7 @@ public class GraphModelCheckpointExecutor {
         String jobId = partitionedPlan.getJobId() != null ? partitionedPlan.getJobId() : "job-0";
         String pipelineId = partitionedPlan.getPipelineId() != null ? partitionedPlan.getPipelineId() : "pipeline-0";
 
-        // ① user-config merge: user values win, missing ids fall back to the
+        // User-config merge: user values win, missing ids fall back to the
         // partitioned-plan defaults above.
         CheckpointConfig checkpointConfig;
         if (userConfig != null) {
@@ -176,27 +177,23 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Phase 3 (Plan 2026-09-03-1951-1, F-B): converged skeleton for the three public
-     * {@code executeWithCheckpoint} overloads (~85-90% literal clone: build plan →
-     * coordinator → register → scheduler → restore → submit → finally(shutdown +
-     * closeBufferPool)). The public signatures are unchanged (callers untouched); the
-     * entries only perform their ① id/config resolution and delegate here. The complete
-     * difference set is the explicit parameter list (behavior pinned before/after by
-     * {@code TestGraphModelCheckpointExecutorEntryPinning}):
+     * Converged skeleton for the three public
+     * {@code executeWithCheckpoint} overloads (build plan →
+     * coordinator → register → scheduler → restore → submit →
+     * finally(shutdown + closeBufferPool)). The
+     * entries only perform their id/config resolution and delegate here. The complete
+     * difference set is the explicit parameter list:
      * <ul>
-     *   <li>① id resolution — done by the entries (verbatim config values for the
+     *   <li>id resolution — done by the entries (verbatim config values for the
      *       JobGraph entry; partitioned-plan defaults for the StreamModel entries);</li>
-     *   <li>② fingerprint + ④ restore model — keyed on {@code streamModel != null}
+     *   <li>fingerprint + restore model — keyed on {@code streamModel != null}
      *       (StreamModel entries set {@code computeFingerprint()} and restore with the
      *       model; the JobGraph entry does neither — pinned asymmetry, preserved);</li>
-     *   <li>③ plan build form — {@code threadUnalignedConfig=false} uses the 4-arg
+     *   <li>plan build form — {@code threadUnalignedConfig=false} uses the 4-arg
      *       build which does NOT thread unaligned-checkpoint config (pinned asymmetry
      *       preserved); {@code true} uses the 6-arg build threading
      *       {@code isUnalignedCheckpointEnabled()}/{@code getUnalignedThreshold()};</li>
-     *   <li>⑤ validate/resolve order — unified to validate-then-resolve (the former
-     *       per-overload order difference was a pure, unobservable reordering of a
-     *       throwing validation and a pure getter — the plan's only exempted
-     *       "unification").</li>
+     *   <li>validate/resolve order — validate-then-resolve for every entry.</li>
      * </ul>
      */
     private static StreamExecutionResult executeWithCheckpointSkeleton(
@@ -222,7 +219,7 @@ public class GraphModelCheckpointExecutor {
 
         CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
 
-        // ② StreamModel entries: compute and set fingerprint for EpochManifest persistence.
+        // StreamModel entries: compute and set fingerprint for EpochManifest persistence.
         if (streamModel != null) {
             StreamModelFingerprint fingerprint = streamModel.computeFingerprint();
             coordinator.setCurrentFingerprint(fingerprint);
@@ -232,8 +229,8 @@ public class GraphModelCheckpointExecutor {
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
-        // ④ restore parameter: the JobGraph entry restores without a StreamModel.
-        // D1 (AR-1): only an explicitly-configured storage path participates in
+        // Restore parameter: the JobGraph entry restores without a StreamModel.
+        // Only an explicitly-configured storage path participates in
         // auto-restore; the default machine-level directory always starts fresh.
         if (hasExplicitStoragePath(checkpointConfig)) {
             restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel);
@@ -330,7 +327,7 @@ public class GraphModelCheckpointExecutor {
                 CompletedCheckpoint completed = (CompletedCheckpoint) savepointPending.getCompletableFuture()
                         .get(checkpointConfig.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
                 if (completed != null) {
-                    // Stage 35: materialize per-subtask KeyGroupRange ownership so the
+                    // Materialize per-subtask KeyGroupRange ownership so the
                     // savepoint records which subtask owned which range (the restore path
                     // can then route keyed state on a parallelism change).
                     materializeKeyGroupOwnership(completed, execPlan);
@@ -426,10 +423,9 @@ public class GraphModelCheckpointExecutor {
                 break;
             case SUSPEND:
                 LOG.info("Job termination mode: SUSPEND - triggering terminal savepoint then stopping sources");
-                // Stage 28: CheckpointType aligned to checkpoint-design.md §7.3
-                // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND). The previous SAVEPOINT
-                // was inconsistent with JobCoordinator.terminateSuspend() and
-                // with the authoritative §7.3 table.
+                // CheckpointType per checkpoint-design.md §7.3
+                // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND), consistent with
+                // JobCoordinator.terminateSuspend().
                 triggerTerminalSavepoint(allInvokables, coordinator, config, CheckpointType.TERMINAL_SAVEPOINT);
                 stopSources(allInvokables);
                 break;
@@ -503,7 +499,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 43 (unaligned checkpoint): build with aligned→unaligned fallback
+     * Unaligned checkpoint: build with aligned→unaligned fallback
      * config threaded from {@link CheckpointConfig}. The caller MUST have invoked
      * {@code CheckpointConfig.validateUnalignedConfig()} first.
      */
@@ -526,7 +522,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     private static String resolveJobId(CheckpointConfig config) {
-        // D1b: the config-supplied jobId gets the same sanitization as job names so a
+        // The config-supplied jobId gets the same sanitization as job names so a
         // user-set id with unsafe characters cannot fail LocalFileCheckpointStorage's
         // validateId at store time. Null passes through (callers fall back to defaults).
         return StorageJobIds.sanitizeJobId(config.getJobId());
@@ -544,7 +540,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 49 D2: creates the coordinator AND, when {@code jobGraph} is supplied, scans
+     * Creates the coordinator AND, when {@code jobGraph} is supplied, scans
      * its vertices for {@code SourceReaderOperator} heads and registers each source-api
      * vertex id via {@link CheckpointCoordinator#registerSourceEnumeratorVertex(int)} so
      * that {@code buildEpochManifest} snapshots enumerator state into the
@@ -552,7 +548,7 @@ public class GraphModelCheckpointExecutor {
      *
      * <p>Without this registration, the manifest section is always empty — enumerator state
      * (discovered/assigned/finished splits) is lost on restore, and the source would
-     * re-read already-finished splits. Anti-Hollow fix.
+     * re-read already-finished splits.
      */
     private static CheckpointCoordinator createCoordinator(
             String jobId, String pipelineId,
@@ -566,7 +562,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 49 D2: walks the JobGraph's operator chains and registers any vertex whose
+     * Walks the JobGraph's operator chains and registers any vertex whose
      * head operator is a {@code SourceReaderOperator} (FLIP-27 source-api path). The
      * vertex id is parsed from the {@code "vertex-<id>"} format used by
      * {@code JobGraphGenerator}.
@@ -614,7 +610,7 @@ public class GraphModelCheckpointExecutor {
      * provisioning) and returns the thread-safe list of all invokables used by
      * the barrier scheduler.
      *
-     * <p>P0-02: the returned list is a {@link CopyOnWriteArrayList} — the barrier
+     * <p>The returned list is a {@link CopyOnWriteArrayList} — the barrier
      * scheduler thread iterates it while the supervision thread replaces an
      * invokable during a region restart (remove old + add new). A plain
      * ArrayList would throw CME inside the scheduler's for-each, and the
@@ -629,7 +625,7 @@ public class GraphModelCheckpointExecutor {
 
         List<StreamTaskInvokable> allInvokables = new CopyOnWriteArrayList<>();
 
-        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // Inject per-task data-plane
         // metrics on the LOCAL execution path (the REMOTE path injects in
         // TaskManager install/deploy).
         String jobId = coordinator.getJobId();
@@ -660,8 +656,8 @@ public class GraphModelCheckpointExecutor {
      * is non-null), CheckpointListener/CheckpointParticipant registration for the
      * chain's operators (and their UDFs), and state-backend provisioning.
      *
-     * <p>Extracted from {@link #registerTasksAndTrackers} so the region-restart
-     * path ({@code SupervisionLoop.rebuildTask}, P0-02) reuses the exact same
+     * <p>The region-restart
+     * path ({@code SupervisionLoop.rebuildTask}) reuses the exact same
      * wiring for rebuilt invokables — a rebuilt task must be indistinguishable
      * from an initially-registered task w.r.t. the checkpoint pipeline.
      *
@@ -736,7 +732,7 @@ public class GraphModelCheckpointExecutor {
     /**
      * Removes a task's operator chain from the coordinator's
      * CheckpointListener / CheckpointParticipant registries. Called by the
-     * region-restart path (P0-02) for the OLD (superseded) task's operators
+     * region-restart path for the OLD (superseded) task's operators
      * before the rebuilt task's operators are registered, so repeated region
      * restarts do not accumulate stale listeners/participants on dead operator
      * instances (mirror of the registration logic in
@@ -799,11 +795,8 @@ public class GraphModelCheckpointExecutor {
             return null;
         }
 
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "barrier-injector-" + jobId);
-            t.setDaemon(true);
-            return t;
-        });
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+                NopStreamThreadFactory.named("barrier-injector-" + jobId));
 
         scheduler.scheduleAtFixedRate(() -> {
             try {
@@ -890,16 +883,14 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 44 successor 3: submits all tasks and runs the supervision loop
-     * (mid-execution failure detection + region-scoped restart). Replaces the
-     * legacy {@code awaitCompletion} block-wait.
+     * Submits all tasks and runs the supervision loop
+     * (mid-execution failure detection + region-scoped restart).
      *
      * <p>The supervision loop submits all tasks, polls for FAILED tasks at a
      * fixed interval, and on detecting a failure attempts a region-scoped
      * restart (consumer-only regions with materialization replay). For
      * single-region jobs (no materialization), the loop surfaces the first
-     * failure immediately — equivalent to the legacy
-     * {@code awaitCompletion} + {@code checkTaskFailures} path (zero regression).
+     * failure immediately.
      *
      * <p>The retained {@link #checkTaskFailures} call-sites (5 in total) serve
      * as <strong>post-completion terminal verification</strong>: after the
@@ -908,7 +899,7 @@ public class GraphModelCheckpointExecutor {
      * mechanisms coexist — supervision loop owns mid-execution detection;
      * checkTaskFailures owns terminal-state consistency.
      *
-     * <p>Stage 44 successor 5: {@code maxRestartsPerRegion} is threaded from
+     * <p>{@code maxRestartsPerRegion} is threaded from
      * {@link CheckpointConfig#getMaxRestartsPerRegion()} at each call-site so
      * the per-region restart budget is production-configurable (default
      * {@code CheckpointConfig.DEFAULT_MAX_RESTARTS_PER_REGION = 3}). Wiring:
@@ -919,7 +910,7 @@ public class GraphModelCheckpointExecutor {
      * Submits all tasks and runs the supervision loop (mid-execution failure
      * detection + region-scoped restart).
      *
-     * <p>P0-02: {@code allInvokables} (the barrier-scheduler injection list) and
+     * <p>{@code allInvokables} (the barrier-scheduler injection list) and
      * {@code checkpointConfig} are threaded into the supervision loop so a
      * region-restarted task can be re-wired into the checkpoint pipeline: the
      * old invokable is replaced in the injection list, a fresh tracker +
@@ -947,7 +938,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Plan 1326-2 Phase 2: package-private (was private) so the single-input abort
+     * Package-private so the single-input abort
      * wiring e2e can register the REAL production handler — the test must exercise
      * the production abort chain, not a hand-copied handler body.
      */
@@ -960,28 +951,28 @@ public class GraphModelCheckpointExecutor {
             boolean anyTaskStillHasInFlight = false;
             for (SubtaskTask task : tasks.values()) {
                 // Notify barrier tracker to release ACK wait for THIS epoch only
-                // (Stage 45 per-epoch tracking: other in-flight epochs are undisturbed).
+                // (other in-flight epochs are undisturbed).
                 StreamTaskInvokable invokable = task.getSubtask().getInvokable();
                 CheckpointBarrierTracker tracker = invokable.getBarrierTracker();
                 if (tracker != null) {
                     tracker.notifyCheckpointAborted(abortedCheckpointId);
                 }
-                // Stage 45 / P1 hardening: release THIS epoch's InputGate alignment only (not
+                // Release THIS epoch's InputGate alignment only (not
                 // resumeConsumptionAll), so channels blocked by the aborted barrier are freed
                 // while other epochs' alignment state is preserved. The InputGate's alignment
                 // collections (inFlightAlignments / abortedBarriers / blockedChannels, plus the
                 // per-BarrierAlignment channel sets) are concurrent-safe structures, so this
                 // cross-thread call does NOT throw ConcurrentModificationException and does not
-                // corrupt the task thread's in-progress barrier iteration. (Approach (a) —
-                // mailbox delivery of the abort — was evaluated and rejected: InputGate.read()
+                // corrupt the task thread's in-progress barrier iteration. A mailbox-delivered
+                // abort would not work here: InputGate.read()
                 // blocks inside barrier alignment and only drains the mailbox at the caller's
                 // (processInputGate) loop top, so a mailbox-delivered abort could not unblock
-                // the read and would deadlock the epoch-precise abort until alignment timeout.)
+                // the read and would deadlock the epoch-precise abort until alignment timeout.
                 InputGate inputGate = invokable.getInputGate();
                 if (inputGate != null) {
                     inputGate.abortBarrierAlignment(abortedCheckpointId);
                 }
-                // Stage 45 (design §2.8.1 D3): only cancel the task thread when no
+                // Design §2.8.1 D3: only cancel the task thread when no
                 // other epoch is in-flight for it. If other epochs remain, the task
                 // keeps running so they can still ACK/complete (epoch-precise abort).
                 if (tracker != null && tracker.hasInFlightCheckpoints()) {
@@ -990,15 +981,14 @@ public class GraphModelCheckpointExecutor {
                             task, abortedCheckpointId);
                     continue;
                 }
-                // No other epochs in-flight → cooperative cancel + interrupt (legacy
-                // sweep behavior for the single-in-flight case).
+                // No other epochs in-flight → cooperative cancel + interrupt.
                 invokable.getMailboxExecutor().signalCancel();
                 if (inputGate != null) {
                     inputGate.resumeConsumptionAll();
                 }
                 task.cancel();
             }
-            // Stage 45: only mark the job-wide abort flag when no task has remaining
+            // Only mark the job-wide abort flag when no task has remaining
             // in-flight epochs (i.e. this abort actually empties the pipeline). When
             // other epochs survive, the job is still healthy and the final-checkpoint
             // skip must not fire.
@@ -1076,12 +1066,12 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * D1 (AR-1): whether the user explicitly configured the checkpoint storage path.
+     * Whether the user explicitly configured the checkpoint storage path.
      * An explicit path is an explicit recovery intent — manifest-first auto-restore
      * (with the fingerprint guard) runs. The default machine-level directory gets NO
      * auto-restore: leftovers from failed/killed jobs there can never be identity-proven
      * (CompletedCheckpoint rows carry no fingerprint), so restoring from them would be
-     * exactly the AR-1 silent-inheritance vector. Fresh start + WARN instead.
+     * a silent-inheritance vector. Fresh start + WARN instead.
      */
     static boolean hasExplicitStoragePath(CheckpointConfig config) {
         String basePath = config.getStorageProperty("path");
@@ -1099,7 +1089,7 @@ public class GraphModelCheckpointExecutor {
             LOG.info("Recovering from EpochManifest epoch {} (jobId={})",
                     epochManifest.getEpochId(), epochManifest.getJobId());
 
-            // P0-03: advance the checkpoint id counter past the restored epoch so
+            // Advance the checkpoint id counter past the restored epoch so
             // the next triggered checkpoint produces a strictly greater epoch id
             // (monotonic-only advance, identical semantics to restoreFromCheckpoint).
             // Without this, new checkpoints would land in the shadow window [0, R)
@@ -1108,7 +1098,7 @@ public class GraphModelCheckpointExecutor {
 
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
-            // P0-7: pass the checkpoint's TaskLocation set so the shared restore
+            // Pass the checkpoint's TaskLocation set so the shared restore
             // path can perform the reverse-direction vertex differential check.
             Set<TaskLocation> checkpointLocations = epochManifest.getTaskSnapshots().keySet();
             restoreTaskStatesFromSource(execPlan, checkpointPlan, epochManifest.getEpochId(),
@@ -1141,7 +1131,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Item 14 (deploy-restore variant): fingerprint compatibility check for the
+     * Fingerprint compatibility check for the
      * remote-deploy path, which has the fingerprint directly (from the JobGraph's
      * StreamModel) and no coordinator instance. Delegates to the shared
      * comparison logic.
@@ -1190,7 +1180,7 @@ public class GraphModelCheckpointExecutor {
             // entry) has no fingerprint source, so compatibility cannot be proven.
             // Silently skipping here would let a topology-incompatible restore
             // through — violating the fingerprint fast-fail policy (checkpoint-design
-            // §"指纹比对 + 快速失败策略"). Restore via the StreamModel-based
+            // §"fingerprint compare and fail fast"). Restore via the StreamModel-based
             // executeWithCheckpoint entry to keep the check enforced.
             current = null;
         }
@@ -1239,7 +1229,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Item 14 (composite-scenario distributed): restores ONE deployed subtask's
+     * Restores ONE deployed subtask's
      * operator state from a shared {@code LocalFileCheckpointStorage} directory.
      * This is the remote-deploy recovery entry: a TaskManager whose
      * {@code TaskDeploymentDescriptor} carries a {@code checkpointRestorePath}
@@ -1250,7 +1240,7 @@ public class GraphModelCheckpointExecutor {
      *
      * <p>Restore-time parallelism rescale is honored: when the manifest's subtask
      * set for a keyed vertex has a different parallelism than the current plan,
-     * keyed state is routed by KeyGroupRange intersection (Stage 35 machinery).
+     * keyed state is routed by KeyGroupRange intersection.
      *
      * <p>A missing/null restore path or an empty storage is a fresh start (logged,
      * not an error). A present-but-incompatible manifest fails fast (fingerprint
@@ -1339,15 +1329,16 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Item 14 (composite-scenario distributed, defect fix): fresh-start state
+     * Fresh-start state
      * initialization for the remote-deploy path. A fresh subtask never flows
-     * through {@code restoreOperatorsFromState} (no durable state), so operators
+     * through {@code restoreOperatorsFromState} (no durable state); without this
+     * hook, operators
      * implementing {@link io.nop.stream.core.common.functions.ICheckpointedFunction}
-     * never received {@code initializeState} — e.g. the CDC source function's
-     * offset store stayed {@code transient null}, its {@code snapshotState}
-     * persisted an EMPTY {@code cdc-offsets} map at every epoch, and recovery
-     * replayed the whole stream from position 0 against restored downstream
-     * state (duplicate pattern matches, divergent outputs). Calling
+     * would never see {@code initializeState} on the remote path — e.g. the CDC
+     * source function's offset store would stay {@code transient null} and its
+     * {@code snapshotState} would persist an EMPTY {@code cdc-offsets} map,
+     * replaying the whole stream from position 0 against restored downstream
+     * state. Calling
      * {@code restoreState(null)} mirrors the LOCAL empty-restore semantics:
      * {@code AbstractStreamOperator.restoreState(null)} propagates
      * {@code initializeState(null)}, which is the documented fresh-start hook
@@ -1389,7 +1380,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Item 14 (composite-scenario distributed): full restore path with an optional
+     * Full restore path with an optional
      * subtask filter. When {@code targetVertexId} is non-null, ONLY that
      * (vertex, subtaskIndex) is restored — the remote-deploy path uses this so a
      * TaskManager restores exactly the subtask it is about to run (a full-plan
@@ -1407,16 +1398,16 @@ public class GraphModelCheckpointExecutor {
             String targetVertexId,
             int targetSubtaskIndex) throws Exception {
 
-        // P0-7: reverse-direction vertex differential check. The forward
+        // Reverse-direction vertex differential check. The forward
         // direction (current vertex absent from checkpoint) is already rejected
         // below via stateLookup.lookup throwing. The reverse direction — a
         // stateful vertex present in the checkpoint but absent from the current
-        // graph — was previously silently dropped (the loop only walked current
-        // vertices). Per checkpoint-design.md §8.6 the safe default is to
-        // reject such a restore (it indicates a stateful vertex was deleted).
+        // graph — must be rejected as well. Per checkpoint-design.md §8.6 the
+        // safe default is to reject such a restore (it indicates a stateful
+        // vertex was deleted).
         validateReverseVertexDifferential(execPlan, checkpointPlan, checkpointLocations);
 
-        // Stage 35: group the checkpoint's old subtasks by vertex so a rescale
+        // Group the checkpoint's old subtasks by vertex so a rescale
         // (parallelism change) can route keyed state by KeyGroupRange
         // intersection instead of a strict 1:1 TaskLocation lookup.
         Map<String, List<TaskLocation>> oldSubtasksByVertex = groupCheckpointSubtasksByVertex(checkpointLocations);
@@ -1430,7 +1421,7 @@ public class GraphModelCheckpointExecutor {
             boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks);
             boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
 
-            // CONN-01 successor D1 (checkpoint-design.md §8.5.2): a 2PC sink vertex
+            // (checkpoint-design.md §8.5.2): a 2PC sink vertex
             // cannot restore across a parallelism change. Operator state (the 2PC
             // pendingCommits) restores strictly 1:1 by subtask index — a scale-down
             // would silently drop the retired subtasks' durable-uncommitted pending
@@ -1449,7 +1440,7 @@ public class GraphModelCheckpointExecutor {
             }
 
             if (rescale) {
-                // Stage 47: channel state (unaligned checkpoint in-flight data)
+                // Channel state (unaligned checkpoint in-flight data)
                 // cannot be redistributed across a parallelism change in the first
                 // version. Fail-fast here — at the rescale detection point, before
                 // any per-subtask merge — rather than relying on the downstream
@@ -1463,7 +1454,7 @@ public class GraphModelCheckpointExecutor {
             }
 
             for (Subtask subtask : newSubtasks) {
-                // Item 14 subtask filter: skip subtasks the caller is not
+                // Subtask filter: skip subtasks the caller is not
                 // restoring (remote-deploy restores only its own subtask).
                 if (targetVertexId != null
                         && !(targetVertexId.equals(vertexId) && subtask.getTaskIndex() == targetSubtaskIndex)) {
@@ -1489,7 +1480,7 @@ public class GraphModelCheckpointExecutor {
                 List<OperatorStateMapping> mappings = checkpointPlan.getStateMappings(taskLocation);
                 restoreOperatorsFromState(invokable.getOperatorChain(), epochId, taskState, mappings);
 
-                // Stage 43 (unaligned checkpoint recovery): AFTER operator state
+                // Unaligned checkpoint recovery: AFTER operator state
                 // restore and BEFORE the task starts reading, inject the captured
                 // in-flight channel records into the invokable's InputGate so they
                 // are replayed ahead of any new upstream records. Aligned-checkpoint
@@ -1500,7 +1491,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 43: injects unaligned-checkpoint channel state into a recovered
+     * Injects unaligned-checkpoint channel state into a recovered
      * task's {@link InputGate}. No-op when the snapshot has no channel state
      * (aligned checkpoints) or the task has no InputGate (source/self-contained).
      */
@@ -1603,7 +1594,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 47 (unaligned checkpoint + rescale interaction): fails fast when a
+     * Unaligned checkpoint + rescale interaction: fails fast when a
      * rescale restore would have to redistribute channel state (unaligned
      * checkpoint in-flight data) across a new parallelism. Channel state carries
      * per-channel records with no cross-parallelism redistribution metadata
@@ -1643,13 +1634,13 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 35: build the rescaled TaskStateSnapshot for a new subtask by
+     * Build the rescaled TaskStateSnapshot for a new subtask by
      * merging keyed state from <em>all</em> old subtasks of the vertex (the new
      * subtask's KeyGroupRange may intersect several old subtask ranges) and
      * filtering the merged entries to those owned by {@code newRange}. Operator
      * (non-keyed) state is taken 1:1 from the old subtask at the same index
      * when it exists, and left empty for subtasks added by a scale-up (operator
-     * state rescale redistribution is out of scope per the plan Non-Goals).
+     * state rescale redistribution is out of scope).
      */
     @SuppressWarnings("unchecked")
     private static TaskStateSnapshot buildRescaledTaskState(
@@ -1746,7 +1737,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * Stage 35: materialize the key-group ownership of every keyed subtask into
+     * Materialize the key-group ownership of every keyed subtask into
      * a {@link TaskEpochSnapshot} so the production checkpoint path records the
      * KeyGroupRange each subtask owned (the {@code shards} list was never
      * populated in production). The stamped ownership is persisted by
@@ -1780,7 +1771,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * P0-7: enforce reverse-direction savepoint/checkpoint vertex differential.
+     * Enforce reverse-direction savepoint/checkpoint vertex differential.
      * Computes the set of stateful vertices (vertexId) referenced by the
      * checkpoint and rejects restore if any of them are absent from the current
      * execution plan — i.e. a stateful vertex was deleted. Aligns with
@@ -1792,9 +1783,8 @@ public class GraphModelCheckpointExecutor {
      *
      * <p>Vertex-level granularity only — operatorId-level differential and the
      * nuanced state-aware §8.6 classification (distinguish stateful vs
-     * stateless new vertex, initial-state fallback) are deferred to the
-     * roadmap successor (see plan Deferred But Adjudicated §"P0-7 operatorId
-     * 粒度差分").
+     * stateless new vertex, initial-state fallback) are deferred to a
+     * roadmap successor.
      */
     static void validateReverseVertexDifferential(
             GraphExecutionPlan execPlan,
@@ -1822,8 +1812,7 @@ public class GraphModelCheckpointExecutor {
         }
 
         // Forward differential: current vertices absent from checkpoint.
-        // Mirrors the existing throw at the production stateLookup lambda —
-        // hardened here as a pre-check so it fires independent of invokable
+        // Pre-check so the reject fires independent of invokable
         // installation state. Removing this check would lose the contract
         // that a new stateful vertex is rejected on restore.
         Set<String> forwardMissing = new TreeSet<>(currentVertexIds);
@@ -1851,7 +1840,7 @@ public class GraphModelCheckpointExecutor {
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             CompletedCheckpoint checkpoint) throws Exception {
-        // P0-7: pass the checkpoint's TaskLocation set so the shared restore
+        // Pass the checkpoint's TaskLocation set so the shared restore
         // path can perform the reverse-direction vertex differential check.
         Set<TaskLocation> checkpointLocations = checkpoint.getTaskStates().keySet();
         restoreTaskStatesFromSource(execPlan, checkpointPlan, checkpoint.getCheckpointId(),
@@ -1875,15 +1864,14 @@ public class GraphModelCheckpointExecutor {
      * Restores operator state for a single {@link OperatorChain} from a
      * {@link TaskStateSnapshot} captured at the given epoch.
      *
-     * <p>Stage 44 successor 4 (drain/reconnect): exposed package-private so
+     * <p>Exposed package-private so
      * {@link SupervisionLoop#rebuildTask} can reuse the exact same restore path
      * as the initial {@link #restoreFromCheckpoint} on region-scoped restart.
-     * Before this exposure, {@code rebuildTask} deep-copied the JobVertex
-     * template (empty initial state) and replayed from epoch 0 — correct only
-     * for full replay. With consistent-cut epoch alignment (replay from
+     * With consistent-cut epoch alignment (replay from
      * epoch N &gt; 0), operator state must be restored from the checkpoint at
-     * epoch N, otherwise stateful operators (window/CEP/aggregate) lose their
-     * pre-checkpoint accumulated state and silently produce wrong results.
+     * epoch N — replaying from epoch 0 (empty initial state) would lose
+     * stateful operators' (window/CEP/aggregate) pre-checkpoint accumulated
+     * state and silently produce wrong results.
      *
      * @param chain     the operator chain to restore into (must not be null)
      * @param epochId   the checkpoint id (consistent-cut epoch) of the snapshot
@@ -1970,17 +1958,16 @@ public class GraphModelCheckpointExecutor {
                             }
                         }
                     } else {
-                        // P1-01 (restore-chain gap found during execution):
                         // CheckpointPlanBuilder marks keyed state only when the
                         // operator's keyedStateBackend exists AT PLAN-BUILD TIME
                         // (pre-open → always null), so the tracker ACK writes the
                         // operator's keyed snapshot under the RAW key
                         // ("keyed-state", the key AbstractStreamOperator.
                         // snapshotState uses) instead of a per-operator prefix.
-                        // Without this fallback, keyed state was silently dropped
+                        // This fallback reads that raw key; without it keyed
+                        // state would be silently dropped
                         // on restore (opResult empty → restore skipped) and every
-                        // keyed operator resumed from empty state. The fallback
-                        // mirrors the tracker's raw-key ACK path; a chain has at
+                        // keyed operator would resume from empty state. A chain has at
                         // most one keyed-state-bearing operator by construction
                         // (the raw key would otherwise overwrite on the ACK side).
                         Object rawKeyed = taskState.getKeyedState("keyed-state");

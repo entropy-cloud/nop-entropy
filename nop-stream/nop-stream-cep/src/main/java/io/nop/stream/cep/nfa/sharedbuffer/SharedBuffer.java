@@ -174,9 +174,13 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * Construct an accessor to deal with this sharedBuffer.
+     * Constructs an accessor bound to this shared buffer. Accessor reads are served
+     * cache-first (see {@link #getEntry(NodeId)} and {@link #getEvent(EventId)}) and
+     * accessor writes are write-through (see {@link #upsertEntry(NodeId, Lockable)} and
+     * {@link #upsertEvent(EventId, Lockable)}); the cache lifecycle per accessor scope
+     * is managed via {@link #flushCache()}.
      *
-     * @return an accessor to deal with this sharedBuffer.
+     * @return an accessor bound to this shared buffer.
      */
     public SharedBufferAccessor<V> getAccessor() {
         return new SharedBufferAccessor<>(this);
@@ -290,9 +294,9 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * Inserts or updates a shareBufferNode in cache and backing state (write-through).
+     * Inserts or updates a SharedBufferNode in cache and backing state (write-through).
      *
-     * @param nodeId id of the event
+     * @param nodeId id of the node
      * @param entry  SharedBufferNode
      */
     void upsertEntry(NodeId nodeId, Lockable<SharedBufferNode> entry) {
@@ -316,9 +320,9 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * Removes a ShareBufferNode from cache and state.
+     * Removes a SharedBufferNode from cache and state.
      *
-     * @param nodeId id of the event
+     * @param nodeId id of the node
      */
     void removeEntry(NodeId nodeId) {
         this.entryCache.invalidate(nodeId);
@@ -326,48 +330,54 @@ public class SharedBuffer<V> {
     }
 
     /**
-     * It always returns node either from state or cache.
+     * Returns the {@link SharedBufferNode} for the given id, reading cache-first: a
+     * cache hit is returned directly; on a miss the node is loaded from the backing
+     * state and written back into the cache before being returned. Returns {@code null}
+     * when the node exists in neither cache nor state.
      *
      * @param nodeId id of the node
-     * @return SharedBufferNode
+     * @return the lockable node, or {@code null} if absent from both cache and state
      */
     Lockable<SharedBufferNode> getEntry(NodeId nodeId) {
-        try {
-            Lockable<SharedBufferNode> lockableFromCache = entryCache.getIfPresent(nodeId);
-            if (Objects.nonNull(lockableFromCache)) {
-                return lockableFromCache;
-            } else {
-                Lockable<SharedBufferNode> lockableFromState = entries.get(nodeId);
-                if (Objects.nonNull(lockableFromState)) {
-                    entryCache.put(nodeId, lockableFromState);
-                }
-                return lockableFromState;
-            }
-        } catch (Exception ex) {
-            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "getEntry");
-        }
+        return getWithCache(entryCache, entries, nodeId, "getEntry");
     }
 
     /**
-     * It always returns event either from state or cache.
+     * Returns the event for the given id, reading cache-first: a cache hit is returned
+     * directly; on a miss the event is loaded from the backing state and written back
+     * into the cache before being returned. Returns {@code null} when the event exists
+     * in neither cache nor state.
      *
      * @param eventId id of the event
-     * @return event
+     * @return the lockable event, or {@code null} if absent from both cache and state
      */
     Lockable<V> getEvent(EventId eventId) {
+        return getWithCache(eventsBufferCache, eventsBuffer, eventId, "getEvent");
+    }
+
+    /**
+     * Cache-first read shared by {@link #getEntry(NodeId)} and {@link #getEvent(EventId)}:
+     * returns the cached value when present; on a miss loads it from the backing state
+     * and back-fills the cache — the backing state is the source of truth and the cache
+     * mirrors it. State access failures are rethrown as a {@link StreamException} whose
+     * detail carries {@code accessName} (preserving the per-accessor error context of
+     * the original methods).
+     */
+    private <K, W> Lockable<W> getWithCache(
+            Cache<K, Lockable<W>> cache, MapState<K, Lockable<W>> state, K key, String accessName) {
         try {
-            Lockable<V> lockableFromCache = eventsBufferCache.getIfPresent(eventId);
+            Lockable<W> lockableFromCache = cache.getIfPresent(key);
             if (Objects.nonNull(lockableFromCache)) {
                 return lockableFromCache;
             } else {
-                Lockable<V> lockableFromState = eventsBuffer.get(eventId);
+                Lockable<W> lockableFromState = state.get(key);
                 if (Objects.nonNull(lockableFromState)) {
-                    eventsBufferCache.put(eventId, lockableFromState);
+                    cache.put(key, lockableFromState);
                 }
                 return lockableFromState;
             }
         } catch (Exception ex) {
-            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, "getEvent");
+            throw new StreamException(ERR_CEP_NFA_SHARED_BUFFER_ACCESS_FAILED, ex).param(ARG_DETAIL, accessName);
         }
     }
 

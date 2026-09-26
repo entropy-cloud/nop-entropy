@@ -34,7 +34,7 @@
 3. **JC 启动**：`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1[,tm-2] [pipelineFactoryClass=<fqcn>] [fencingEpoch=<n>]`。
    - `pipelineFactoryClass`（item 14 起支持）：场景管线工厂——供给真实管线（XDSL 声明 + 可序列化 bean + checkpoint 调优 + `RemotePipelineSpec`）。**不设置时保持 Stage 42 trivial 空管线基线**（能力测试用途）。工厂构建失败即 fail-fast，**不会回落到 trivial 管线**（防止静默部署错误管线）。
    - 恢复语义：JC 启动时若 checkpoint 目录已有 durable checkpoint，自动恢复最新视图并把 checkpoint id counter 推进到其后（防止重启后发放低位 epoch id——shadow-window 问题 P0-03）。
-   - 周期 checkpoint：工厂给了正 interval 时，launch 路径启动 `JobCoordinator.startPeriodicCheckpoints(interval)`（触发 + barrier 全节点扇出一体；`CheckpointCoordinator.startCheckpointScheduler()` 单独不投递 barrier）。
+   - 周期 checkpoint：工厂给了正 interval 时，launch 路径启动 `JobCoordinator.startPeriodicCheckpoints(interval)`（触发 + barrier 全节点扇出一体；周期触发的唯一生产驱动就是该循环——CheckpointCoordinator 自身不自带周期调度）。
 4. **HA 模式（可选）**：`leaderElectorEnabled=true` 时 JC 以 STANDBY 启动，经共享库租约选主后才 activation + assignment（`spawnJobCoordinator(index)` 可加备用）。
 
 ## 3. Checkpoint 与恢复操作

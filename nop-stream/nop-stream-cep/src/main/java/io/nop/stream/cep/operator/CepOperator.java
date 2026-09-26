@@ -151,7 +151,7 @@ public class CepOperator<IN, KEY, OUT>
 
     private transient KeyedStateStore keyedStateStore;
 
-    private transient InternalTimerService<VoidNamespace> timerService;
+    private transient InternalTimerService<VoidNamespace> internalTimerService;
 
     private transient NFA<IN> nfa;
 
@@ -203,7 +203,7 @@ public class CepOperator<IN, KEY, OUT>
     /**
      * Thin context passed to NFA that gives access to time related characteristics.
      */
-    private transient TimerService cepTimerService;
+    private transient TimerService userTimerService;
 
     // ------------------------------------------------------------------------
     // Metrics
@@ -220,8 +220,8 @@ public class CepOperator<IN, KEY, OUT>
      * {@link ProcessingTimeService#registerTimer(long, ProcessingTimeCallback)}. Held so that
      * {@link #close()} can cancel it via {@link #releaseCacheStatisticsTimer()}.
      *
-     * <p>This timer is intentionally <b>separate</b> from {@link #timerService}
-     * ({@code InternalTimerService<VoidNamespace>}) and {@link #cepTimerService}: those route
+     * <p>This timer is intentionally <b>separate</b> from {@link #internalTimerService}
+     * ({@code InternalTimerService<VoidNamespace>}) and {@link #userTimerService}: those route
      * to {@link #onProcessingTime(long)} which performs CEP event processing
      * (drain elementQueue / advanceTime / processEvent / updateNFA). The cache-statistics
      * timer uses a dedicated {@code ProcessingTimeCallback} ({@link #onCacheStatisticsTimer})
@@ -302,40 +302,81 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     @Override
-   @SuppressWarnings({"unchecked", "rawtypes"})
-   public void open() throws Exception {
-          super.open();
-          if (!watermarkRestored) {
-              currentWatermark = Long.MIN_VALUE;
-          }
-          watermarkRestored = false;
+    public void open() throws Exception {
+        super.open();
+        if (!watermarkRestored) {
+            currentWatermark = Long.MIN_VALUE;
+        }
+        watermarkRestored = false;
 
-         IKeyedStateBackend<?> backend = getKeyedStateBackend();
-         if (backend == null && this.stateBackend != null) {
-             // AR-10 (D4): create the keyed backend with the RESOLVED key class, never
-             // a bare Object.class: an explicit key class (non-keyed path pins
-             // Byte.class) or the class carried by the restored checkpoint makes the
-             // MemoryStateSerDe key re-materialization guard fire for every CEP keyed
-             // state (nfaState / eventQueues / SharedBuffer) — without it, non-String
-             // keys came back from the JSON persist round-trip as drifted classes
-             // (e.g. Long -> Integer) and every runtime lookup missed (silent state
-             // loss). A fresh keyed run with unknown class keeps Object.class (safe
-             // in-memory; the first live key's class is captured and persisted so the
-             // NEXT restore resolves it).
-             Class<?> effectiveKeyClass = resolveEffectiveKeyClass();
-             this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(effectiveKeyClass);
-             // Apply deferred state restore (from checkpoint recovery before open())
-             applyPendingRestoreState();
-             backend = getKeyedStateBackend();
-         }
-         if (backend != null) {
-             keyedStateStore = backend;
-         } else {
-             LOG.warn("CepOperator opened without a configured state backend; falling back to " +
-                     "MemoryKeyedStateBackend. Checkpoint consistency is not guaranteed. " +
-                     "Ensure a state backend is configured when checkpointing is enabled.");
-             keyedStateStore = new MemoryKeyedStateBackend<>(resolveEffectiveKeyClass());
-         }
+        // Ordering invariant: restoreState() runs BEFORE open() — resolveKeyedBackend()
+        // replays the deferred checkpoint restore, and initTimerLedger() keeps every
+        // timer already restored from a checkpoint.
+        resolveKeyedBackend();
+        initStateAccess();
+        initTimerLedger();
+
+        internalTimerService = createTimerService();
+
+        initNfa();
+
+        context = new ContextFunctionImpl();
+        collector = new TimestampedCollector<>(output);
+        userTimerService = new TimerServiceImpl();
+
+        this.numLateRecordsDropped = new LongAdder();
+
+        // Register the periodic cache-statistics timer on a dedicated ProcessingTimeCallback
+        // (NOT via internalTimerService/userTimerService — those route to onProcessingTime
+        // which drives CEP event processing). See SharedBuffer.logCacheStatistics() and
+        // onCacheStatisticsTimer for the consumer side.
+        registerCacheStatisticsTimer();
+    }
+
+    /**
+     * Creates the keyed state backend and binds {@link #keyedStateStore} to it. The
+     * backend is created from the injected {@code stateBackend} with the AR-10 resolved
+     * key class; when no state backend is configured the operator falls back to an
+     * in-memory keyed state store. A successfully created backend also replays the
+     * deferred restore saved by
+     * {@link #restoreState(OperatorSnapshotResult)}, which runs BEFORE {@link #open()}.
+     */
+    private void resolveKeyedBackend() throws Exception {
+        IKeyedStateBackend<?> backend = getKeyedStateBackend();
+        if (backend == null && this.stateBackend != null) {
+            // AR-10 (D4): create the keyed backend with the RESOLVED key class, never
+            // a bare Object.class: an explicit key class (non-keyed path pins
+            // Byte.class) or the class carried by the restored checkpoint makes the
+            // MemoryStateSerDe key re-materialization guard fire for every CEP keyed
+            // state (nfaState / eventQueues / SharedBuffer) — without it, non-String
+            // keys came back from the JSON persist round-trip as drifted classes
+            // (e.g. Long -> Integer) and every runtime lookup missed (silent state
+            // loss). A fresh keyed run with unknown class keeps Object.class (safe
+            // in-memory; the first live key's class is captured and persisted so the
+            // NEXT restore resolves it).
+            Class<?> effectiveKeyClass = resolveEffectiveKeyClass();
+            this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(effectiveKeyClass);
+            // Apply deferred state restore (from checkpoint recovery before open())
+            applyPendingRestoreState();
+            backend = getKeyedStateBackend();
+        }
+        if (backend != null) {
+            keyedStateStore = backend;
+        } else {
+            LOG.warn("CepOperator opened without a configured state backend; falling back to " +
+                    "MemoryKeyedStateBackend. Checkpoint consistency is not guaranteed. " +
+                    "Ensure a state backend is configured when checkpointing is enabled.");
+            keyedStateStore = new MemoryKeyedStateBackend<>(resolveEffectiveKeyClass());
+        }
+    }
+
+    /**
+     * Assembles the keyed state access: the NFA computation states (P2-INV-6: carried
+     * through checkpoints as a Java-stream serialized byte[]), the per-timestamp event
+     * queues and the SharedBuffer holding the partial matches.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void initStateAccess() {
         // P2-INV-6 resolution: the NFA state graph (queues / DeweyNumber / node
         // references) is not JSON-@DataBean-shaped, so its ValueState uses a
         // Java-stream serializer and travels through the JSON snapshot as byte[].
@@ -352,17 +393,30 @@ public class CepOperator<IN, KEY, OUT>
         elementQueueState = keyedStateStore.getMapState(
                 new MapStateDescriptor<>(EVENT_QUEUE_STATE_NAME, Long.class, (Class) List.class));
         partialMatches = new SharedBuffer<>(keyedStateStore, inputSerializer, new SharedBufferCacheConfig());
+    }
 
-        // P1-04: restoreState() may run BEFORE open() (the order pinned by
-        // TestCepCheckpointRestoreE2E), so only initialize the timer registry when
-        // it is still null. The previous unconditional rebuild wiped every timer
-        // restored from a checkpoint — the storage side (AR-9) persisted them, but
-        // the consumption side silently lost them on open().
+    /**
+     * Initializes the per-key event-time timer ledger. P1-04: restoreState() may run
+     * BEFORE open() (the order pinned by TestCepCheckpointRestoreE2E), so only
+     * initialize the timer registry when it is still null. The previous unconditional
+     * rebuild wiped every timer restored from a checkpoint — the storage side (AR-9)
+     * persisted them, but the consumption side silently lost them on open().
+     */
+    private void initTimerLedger() {
         if (registeredEventTimeTimersByKey == null) {
             registeredEventTimeTimersByKey = new LinkedHashMap<>();
         }
+    }
 
-        timerService = new InternalTimerService<VoidNamespace>() {
+    /**
+     * Creates the {@link InternalTimerService} that drives CEP timer callbacks.
+     * Processing-time timer registrations capture the registering key, because the
+     * processing-time service delivers callbacks without any key context; event-time
+     * timers are tracked in the per-key ledger
+     * ({@link #registeredEventTimeTimersByKey}) and iterated from its snapshot.
+     */
+    private InternalTimerService<VoidNamespace> createTimerService() {
+        return new InternalTimerService<VoidNamespace>() {
             @Override
             public long currentProcessingTime() {
                 return getProcessingTimeService().getCurrentProcessingTime();
@@ -418,7 +472,13 @@ public class CepOperator<IN, KEY, OUT>
             public void forEachProcessingTimeTimer(BiConsumer<VoidNamespace, Long> consumer) {
             }
         };
+    }
 
+    /**
+     * Creates the per-subtask {@link NFA} and opens it with a {@link CepRuntimeContext}
+     * bound to the keyed state store.
+     */
+    private void initNfa() {
         nfa = nfaFactory.createNFA();
 
         cepRuntimeContext = new CepRuntimeContext(new io.nop.stream.core.common.functions.RuntimeContext() {
@@ -430,18 +490,6 @@ public class CepOperator<IN, KEY, OUT>
         // so user RichIterativeCondition.open(Configuration) implementations can safely
         // dereference their parameters argument.
         nfa.open(cepRuntimeContext, new io.nop.stream.core.configuration.Configuration() {});
-
-        context = new ContextFunctionImpl();
-        collector = new TimestampedCollector<>(output);
-        cepTimerService = new TimerServiceImpl();
-
-        this.numLateRecordsDropped = new LongAdder();
-
-        // Register the periodic cache-statistics timer on a dedicated ProcessingTimeCallback
-        // (NOT via timerService/cepTimerService — those route to onProcessingTime which drives
-        // CEP event processing). See SharedBuffer.logCacheStatistics() and
-        // onCacheStatisticsTimer for the consumer side.
-        registerCacheStatisticsTimer();
     }
 
     /**
@@ -696,7 +744,7 @@ public class CepOperator<IN, KEY, OUT>
                 processEvent(nfaState, element.getValue(), timestamp);
                 updateNFA(nfaState);
             } else {
-                long currentTime = timerService.currentProcessingTime();
+                long currentTime = internalTimerService.currentProcessingTime();
                 bufferEvent(element.getValue(), currentTime);
             }
 
@@ -705,7 +753,7 @@ public class CepOperator<IN, KEY, OUT>
             long timestamp = element.getTimestamp();
             IN value = element.getValue();
 
-            if (timestamp > timerService.currentWatermark()) {
+            if (timestamp > internalTimerService.currentWatermark()) {
                 bufferEvent(value, timestamp);
             } else if (lateDataOutputTag != null) {
                 output.collect(lateDataOutputTag, element);
@@ -717,9 +765,9 @@ public class CepOperator<IN, KEY, OUT>
 
     private void registerTimer(long timestamp) {
         if (isProcessingTime) {
-            timerService.registerProcessingTimeTimer(VoidNamespace.INSTANCE, timestamp + 1);
+            internalTimerService.registerProcessingTimeTimer(VoidNamespace.INSTANCE, timestamp + 1);
         } else {
-            timerService.registerEventTimeTimer(VoidNamespace.INSTANCE, timestamp);
+            internalTimerService.registerEventTimeTimer(VoidNamespace.INSTANCE, timestamp);
         }
     }
 
@@ -856,7 +904,7 @@ public class CepOperator<IN, KEY, OUT>
 
         // STEP 2
         while (!sortedTimestamps.isEmpty()
-                && sortedTimestamps.peek() <= timerService.currentWatermark()) {
+                && sortedTimestamps.peek() <= internalTimerService.currentWatermark()) {
             long timestamp = sortedTimestamps.poll();
             advanceTime(nfaState, timestamp);
             try (Stream<IN> elements = sort(elementQueueState.get(timestamp))) {
@@ -873,14 +921,14 @@ public class CepOperator<IN, KEY, OUT>
         }
 
         // STEP 3
-        advanceTime(nfaState, timerService.currentWatermark());
+        advanceTime(nfaState, internalTimerService.currentWatermark());
 
         // STEP 4
         updateNFA(nfaState);
 
         // STEP 5: idle-state reset if the only remaining partial match (the start state,
         // which is always re-created on the next event) has fully passed its window.
-        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentWatermark());
+        resetNfaStateIfFullyTimedOut(nfaState, internalTimerService.currentWatermark());
 
         // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
         // event-time timers, not a trigger mechanism — onEventTime is driven by
@@ -926,13 +974,13 @@ public class CepOperator<IN, KEY, OUT>
         }
 
         // STEP 3
-        advanceTime(nfaState, timerService.currentProcessingTime());
+        advanceTime(nfaState, internalTimerService.currentProcessingTime());
 
         // STEP 4
         updateNFA(nfaState);
 
         // STEP 5: idle-state reset (same logic as onEventTime)
-        resetNfaStateIfFullyTimedOut(nfaState, timerService.currentProcessingTime());
+        resetNfaStateIfFullyTimedOut(nfaState, internalTimerService.currentProcessingTime());
     }
 
     /**
@@ -999,7 +1047,7 @@ public class CepOperator<IN, KEY, OUT>
                             event,
                             timestamp,
                             afterMatchSkipStrategy,
-                            cepTimerService);
+                            userTimerService);
             if (nfa.getWindowTime() > 0 && nfaState.isNewStartPartialMatch()) {
                 registerTimer(timestamp + nfa.getWindowTime());
             }
@@ -1083,7 +1131,7 @@ public class CepOperator<IN, KEY, OUT>
 
         @Override
         public long currentProcessingTime() {
-            return timerService.currentProcessingTime();
+            return internalTimerService.currentProcessingTime();
         }
     }
 
@@ -1124,11 +1172,13 @@ public class CepOperator<IN, KEY, OUT>
 
         @Override
         public long currentProcessingTime() {
-            return timerService.currentProcessingTime();
+            return internalTimerService.currentProcessingTime();
         }
     }
 
     //////////////////////			Testing Methods			//////////////////////
+
+    // Test-only observation hooks — not used by production code paths.
 
     boolean hasNonEmptySharedBuffer(KEY key) throws Exception {
         setCurrentKey(key);

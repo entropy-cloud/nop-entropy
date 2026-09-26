@@ -11,6 +11,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import io.nop.stream.core.util.NopStreamThreadFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -73,11 +74,8 @@ public class StreamMetricsReporter {
         if (scheduler != null) {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "StreamMetricsReporter already started");
         }
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "stream-metrics-reporter");
-            t.setDaemon(true);
-            return t;
-        });
+        scheduler = Executors.newSingleThreadScheduledExecutor(
+                NopStreamThreadFactory.named("stream-metrics-reporter"));
         scheduler.scheduleAtFixedRate(this::report, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
         LOG.info("StreamMetricsReporter started (target={}, intervalMs={})", target, intervalMs);
     }

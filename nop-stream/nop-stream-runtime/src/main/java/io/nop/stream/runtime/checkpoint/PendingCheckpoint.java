@@ -19,9 +19,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ABORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -58,7 +60,8 @@ public class PendingCheckpoint {
     private void checkValidTransition(Status target) {
         Status current = status.get();
         if (!isValidTransition(current, target)) {
-            throw new StreamException("Illegal state transition: " + current + " -> " + target);
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Illegal state transition: " + current + " -> " + target);
         }
     }
 
@@ -135,11 +138,13 @@ public class PendingCheckpoint {
 
     public synchronized void acknowledgeTask(TaskLocation taskLocation, TaskStateSnapshot state) {
         if (isDisposed) {
-            throw new StreamException("Cannot acknowledge disposed checkpoint " + checkpointId);
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Cannot acknowledge disposed checkpoint " + checkpointId);
         }
         if (status.get() != Status.RUNNING) {
-            throw new StreamException("Cannot acknowledge checkpoint " + checkpointId
-                    + " in state " + status.get());
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "Cannot acknowledge checkpoint " + checkpointId
+                            + " in state " + status.get());
         }
 
         notYetAcknowledgedTasks.remove(taskLocation);

@@ -299,39 +299,82 @@ public class GraphExecutionPlan {
         }
 
         // --- 0. Decompose the JobGraph into regions (Stage 44 successor 2) ---
-        // Materialization-enabled edges are region cut points; non-materialization
-        // edges connect vertices inside the same region. The resulting vertex→regionId
-        // map is propagated into every Subtask so successor 3 (supervision loop) can
-        // query a failing task's region. A graph with no materialization markers
-        // decomposes into a single region (zero regression). An empty graph (zero
-        // vertices, a valid edge case for GraphExecutionPlan.build) produces a null
-        // decomposition — there is nothing to assign regions to.
-        RegionDecomposition regionDecomposition = jobGraph.getNumberOfVertices() > 0
-                ? jobGraph.decomposeRegions()
-                : null;
+        RegionDecomposition regionDecomposition = decomposeRegions(jobGraph);
 
         // --- 1. Build adjacency maps ---
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
-        for (JobEdge edge : jobGraph.getEdges()) {
-            outgoingEdges.computeIfAbsent(edge.getSourceVertex(), k -> new ArrayList<>()).add(edge);
-            incomingEdges.computeIfAbsent(edge.getTargetVertex(), k -> new ArrayList<>()).add(edge);
-        }
+        buildAdjacencyMaps(jobGraph, outgoingEdges, incomingEdges);
 
         // --- 2. Resolve parallelism for each vertex ---
         Map<String, Integer> parallelismMap = resolveParallelism(jobGraph, deploymentPlan);
 
         // --- 3. Allocate partition matrix per edge ---
-        // Key: edge -> [sourceSubtaskIndex][targetSubtaskIndex] = ResultPartition
-        // Each partition is bound to the per-job pool so the cross-partition global
-        // aggregate in-flight element count is bounded. Per-partition capacity comes
-        // from EdgeConfig.queueCapacity (wired here), defaulting to DEFAULT_CAPACITY.
-        //
-        // Stage 44 successor 1 (materialization point mechanism, option B): when an
-        // edge is explicitly marked materializationEnabled, an independently
-        // addressable IMaterializationPoint is attached to every ResultPartition in
-        // the matrix so the producer dual-writes (main queue + bypass store) and the
-        // consumer can replay. Default-off → zero regression for existing jobs.
+        Map<JobEdge, ResultPartition[][]> edgePartitionMatrix =
+                buildPartitionMatrix(jobGraph, parallelismMap, deploymentPlan, bufferPool);
+
+        // --- 4. Legacy single-task structures (for backward compat) ---
+        Map<String, JobVertex> executionVertices = new LinkedHashMap<>();
+        Map<String, StreamTaskInvokable> invokables = new LinkedHashMap<>();
+
+        // --- 5. New subtask structures ---
+        Map<String, List<Subtask>> subtasksMap = new LinkedHashMap<>();
+
+        // --- 6. Build subtasks for each vertex ---
+        createSubtasks(jobGraph, parallelismMap, outgoingEdges, incomingEdges,
+                edgePartitionMatrix, deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
+                unalignedCheckpointEnabled, unalignedThreshold, regionDecomposition,
+                executionVertices, invokables, subtasksMap);
+
+        List<String> sorted = topologicalSort(jobGraph);
+
+        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap,
+                bufferPool, regionDecomposition);
+    }
+
+    /**
+     * Decomposes the JobGraph into regions (Stage 44 successor 2). Materialization-
+     * enabled edges are region cut points; non-materialization edges connect vertices
+     * inside the same region. The resulting vertex→regionId map is propagated into
+     * every Subtask so the supervision loop can query a failing task's region. A
+     * graph with no materialization markers decomposes into a single region (zero
+     * regression). An empty graph (zero vertices, a valid edge case for
+     * {@code GraphExecutionPlan.build}) produces a {@code null} decomposition —
+     * there is nothing to assign regions to.
+     */
+    private static RegionDecomposition decomposeRegions(JobGraph jobGraph) {
+        return jobGraph.getNumberOfVertices() > 0 ? jobGraph.decomposeRegions() : null;
+    }
+
+    /**
+     * Indexes the job graph's edges by source vertex (outgoing) and target vertex
+     * (incoming). Single pass so both maps observe the edge list in one iteration.
+     */
+    private static void buildAdjacencyMaps(JobGraph jobGraph,
+                                           Map<String, List<JobEdge>> outgoingEdges,
+                                           Map<String, List<JobEdge>> incomingEdges) {
+        for (JobEdge edge : jobGraph.getEdges()) {
+            outgoingEdges.computeIfAbsent(edge.getSourceVertex(), k -> new ArrayList<>()).add(edge);
+            incomingEdges.computeIfAbsent(edge.getTargetVertex(), k -> new ArrayList<>()).add(edge);
+        }
+    }
+
+    /**
+     * Allocates the {@link ResultPartition} matrix per edge.
+     * Key: edge -> [sourceSubtaskIndex][targetSubtaskIndex] = ResultPartition.
+     * Each partition is bound to the per-job pool so the cross-partition global
+     * aggregate in-flight element count is bounded. Per-partition capacity comes
+     * from EdgeConfig.queueCapacity (wired here), defaulting to DEFAULT_CAPACITY.
+     *
+     * <p>Stage 44 successor 1 (materialization point mechanism, option B): when an
+     * edge is explicitly marked materializationEnabled, an independently
+     * addressable IMaterializationPoint is attached to every ResultPartition in
+     * the matrix so the producer dual-writes (main queue + bypass store) and the
+     * consumer can replay. Default-off → zero regression for existing jobs.
+     */
+    private static Map<JobEdge, ResultPartition[][]> buildPartitionMatrix(
+            JobGraph jobGraph, Map<String, Integer> parallelismMap,
+            DeploymentPlan deploymentPlan, IBufferPool bufferPool) {
         Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
@@ -354,15 +397,29 @@ public class GraphExecutionPlan {
             }
             edgePartitionMatrix.put(edge, matrix);
         }
+        return edgePartitionMatrix;
+    }
 
-        // --- 4. Legacy single-task structures (for backward compat) ---
-        Map<String, JobVertex> executionVertices = new LinkedHashMap<>();
-        Map<String, StreamTaskInvokable> invokables = new LinkedHashMap<>();
-
-        // --- 5. New subtask structures ---
-        Map<String, List<Subtask>> subtasksMap = new LinkedHashMap<>();
-
-        // --- 6. Build subtasks for each vertex ---
+    /**
+     * Builds the subtasks for every vertex of the job graph. Populates
+     * {@code subtasksMap} (all subtasks per vertex) and, for backward compat, the
+     * legacy single-task structures {@code invokables} / {@code executionVertices}
+     * with the first subtask of each vertex.
+     */
+    private static void createSubtasks(JobGraph jobGraph,
+                                       Map<String, Integer> parallelismMap,
+                                       Map<String, List<JobEdge>> outgoingEdges,
+                                       Map<String, List<JobEdge>> incomingEdges,
+                                       Map<JobEdge, ResultPartition[][]> edgePartitionMatrix,
+                                       DeploymentPlan deploymentPlan,
+                                       boolean barrierAlignment,
+                                       long barrierAlignmentTimeout,
+                                       boolean unalignedCheckpointEnabled,
+                                       long unalignedThreshold,
+                                       RegionDecomposition regionDecomposition,
+                                       Map<String, JobVertex> executionVertices,
+                                       Map<String, StreamTaskInvokable> invokables,
+                                       Map<String, List<Subtask>> subtasksMap) {
         for (Map.Entry<String, JobVertex> entry : jobGraph.getVertices().entrySet()) {
             String vertexId = entry.getKey();
             JobVertex original = entry.getValue();
@@ -380,51 +437,22 @@ public class GraphExecutionPlan {
                         : original.getOperatorChains().get(0);
 
                 RecordWriter<Object> recordWriter = null;
-                InputGate inputGate = null;
                 List<RecordWriter<Object>> fanOutWriters = null;
 
                 // Build RecordWriter: for each outgoing edge, collect the partitions
                 // that this source subtask writes to (one per target subtask per edge)
                 if (!outEdges.isEmpty()) {
                     if (outEdges.size() == 1) {
-                        List<ResultPartition> writerPartitions = new ArrayList<>();
                         JobEdge edge = outEdges.get(0);
-                        ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                        if (matrix != null) {
-                            for (int t = 0; t < matrix[taskIndex].length; t++) {
-                                writerPartitions.add(matrix[taskIndex][t]);
-                            }
-                        }
-
-                        if (!writerPartitions.isEmpty()) {
-                            PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
-                            IPartitioner<?> partitioner = edge.getPartitioner();
-                            EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
-                            PartitionRouter router = PartitionRouter.create(
-                                    policy, writerPartitions.size(), partitioner, taskIndex);
-                            recordWriter = new RecordWriter<Object>(
-                                    writerPartitions.toArray(new ResultPartition[0]),
-                                    (IPartitioner<Object>) partitioner, writerConfig, router);
-                        }
+                        recordWriter = createWriterForEdge(edge, edgePartitionMatrix.get(edge),
+                                taskIndex, deploymentPlan);
                     } else {
                         fanOutWriters = new ArrayList<>();
                         for (JobEdge edge : outEdges) {
-                            List<ResultPartition> edgePartitions = new ArrayList<>();
-                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                            if (matrix != null) {
-                                for (int t = 0; t < matrix[taskIndex].length; t++) {
-                                    edgePartitions.add(matrix[taskIndex][t]);
-                                }
-                            }
-                            if (!edgePartitions.isEmpty()) {
-                                PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
-                                IPartitioner<?> partitioner = edge.getPartitioner();
-                                EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
-                                PartitionRouter router = PartitionRouter.create(
-                                        policy, edgePartitions.size(), partitioner, taskIndex);
-                                fanOutWriters.add(new RecordWriter<Object>(
-                                        edgePartitions.toArray(new ResultPartition[0]),
-                                        (IPartitioner<Object>) partitioner, writerConfig, router));
+                            RecordWriter<Object> writer = createWriterForEdge(edge,
+                                    edgePartitionMatrix.get(edge), taskIndex, deploymentPlan);
+                            if (writer != null) {
+                                fanOutWriters.add(writer);
                             }
                         }
                     }
@@ -432,38 +460,12 @@ public class GraphExecutionPlan {
 
                 // Build InputGate: for each incoming edge, collect the partitions
                 // from all source subtasks that feed into this target subtask
-                if (!inEdges.isEmpty()) {
-                    List<InputChannel> channels = new ArrayList<>();
-                    for (JobEdge edge : inEdges) {
-                        ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                        if (matrix != null) {
-                            for (int s = 0; s < matrix.length; s++) {
-                                channels.add(new InputChannel(matrix[s][taskIndex]));
-                            }
-                        }
-                    }
+                InputGate inputGate = buildInputGate(inEdges, edgePartitionMatrix, taskIndex,
+                        deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
+                        unalignedCheckpointEnabled, unalignedThreshold);
 
-                    if (!channels.isEmpty()) {
-                        EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
-                        // Stage 43: thread aligned→unaligned fallback config into every
-                        // multi-input InputGate so backpressure triggers unaligned mode.
-                        inputGate = new InputGate(channels, gateConfig, barrierAlignment,
-                                barrierAlignmentTimeout, unalignedCheckpointEnabled, unalignedThreshold);
-                    }
-                }
-
-                StreamTaskInvokable invokable;
-                if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
-                    if (inputGate != null) {
-                        invokable = new StreamTaskInvokable(chain, fanOutWriters, inputGate);
-                    } else {
-                        invokable = new StreamTaskInvokable(chain, fanOutWriters);
-                    }
-                } else if (recordWriter != null || inputGate != null) {
-                    invokable = new StreamTaskInvokable(chain, recordWriter, inputGate);
-                } else {
-                    invokable = new StreamTaskInvokable(chain);
-                }
+                StreamTaskInvokable invokable =
+                        createInvokable(chain, recordWriter, fanOutWriters, inputGate);
 
                 TaskLocation taskLocation = new TaskLocation(
                         jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
@@ -488,11 +490,98 @@ public class GraphExecutionPlan {
 
             subtasksMap.put(vertexId, vertexSubtasks);
         }
+    }
 
-        List<String> sorted = topologicalSort(jobGraph);
+    /**
+     * Creates the RecordWriter one source subtask uses for a single outgoing edge:
+     * collects the matrix partitions this source subtask writes to (one per target
+     * subtask), resolves the edge's partition policy, and builds the router.
+     * Returns {@code null} when the edge has no partition matrix or no partitions
+     * for this source subtask index — the caller then skips the edge exactly as
+     * the pre-dedup single-edge and fan-out branches did.
+     */
+    private static RecordWriter<Object> createWriterForEdge(JobEdge edge,
+                                                            ResultPartition[][] matrix,
+                                                            int taskIndex,
+                                                            DeploymentPlan deploymentPlan) {
+        List<ResultPartition> writerPartitions = new ArrayList<>();
+        if (matrix != null) {
+            for (int t = 0; t < matrix[taskIndex].length; t++) {
+                writerPartitions.add(matrix[taskIndex][t]);
+            }
+        }
 
-        return new GraphExecutionPlan(sorted, executionVertices, invokables, subtasksMap,
-                bufferPool, regionDecomposition);
+        if (writerPartitions.isEmpty()) {
+            return null;
+        }
+
+        PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
+        IPartitioner<?> partitioner = edge.getPartitioner();
+        EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
+        PartitionRouter router = PartitionRouter.create(
+                policy, writerPartitions.size(), partitioner, taskIndex);
+        return new RecordWriter<Object>(
+                writerPartitions.toArray(new ResultPartition[0]),
+                (IPartitioner<Object>) partitioner, writerConfig, router);
+    }
+
+    /**
+     * Builds the InputGate for one target subtask: for each incoming edge, collects
+     * the partitions from all source subtasks that feed into this target subtask.
+     * Returns {@code null} when the vertex has no incoming edges or no channels —
+     * the subtask then runs without a gate.
+     *
+     * <p>Stage 43: threads aligned→unaligned fallback config into every multi-input
+     * InputGate so backpressure triggers unaligned mode.
+     */
+    private static InputGate buildInputGate(List<JobEdge> inEdges,
+                                            Map<JobEdge, ResultPartition[][]> edgePartitionMatrix,
+                                            int taskIndex,
+                                            DeploymentPlan deploymentPlan,
+                                            boolean barrierAlignment,
+                                            long barrierAlignmentTimeout,
+                                            boolean unalignedCheckpointEnabled,
+                                            long unalignedThreshold) {
+        if (inEdges.isEmpty()) {
+            return null;
+        }
+        List<InputChannel> channels = new ArrayList<>();
+        for (JobEdge edge : inEdges) {
+            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
+            if (matrix != null) {
+                for (int s = 0; s < matrix.length; s++) {
+                    channels.add(new InputChannel(matrix[s][taskIndex]));
+                }
+            }
+        }
+
+        if (channels.isEmpty()) {
+            return null;
+        }
+        EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
+        return new InputGate(channels, gateConfig, barrierAlignment,
+                barrierAlignmentTimeout, unalignedCheckpointEnabled, unalignedThreshold);
+    }
+
+    /**
+     * Selects the StreamTaskInvokable constructor matching the subtask's wiring:
+     * fan-out writers take precedence (with or without a gate), then the single
+     * writer/gate pair, then the bare chain (self-contained source/sink).
+     */
+    private static StreamTaskInvokable createInvokable(OperatorChain chain,
+                                                       RecordWriter<Object> recordWriter,
+                                                       List<RecordWriter<Object>> fanOutWriters,
+                                                       InputGate inputGate) {
+        if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+            if (inputGate != null) {
+                return new StreamTaskInvokable(chain, fanOutWriters, inputGate);
+            }
+            return new StreamTaskInvokable(chain, fanOutWriters);
+        }
+        if (recordWriter != null || inputGate != null) {
+            return new StreamTaskInvokable(chain, recordWriter, inputGate);
+        }
+        return new StreamTaskInvokable(chain);
     }
 
     /**

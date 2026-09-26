@@ -299,12 +299,11 @@ public final class JobCoordinatorMain {
             leaderElector.start();
         }
 
-        // Item 14: launch-path periodic checkpoints ("startCheckpointScheduler
-        // 或等价机制"). The JobCoordinator-level driver both triggers the
-        // PendingCheckpoint and fans the barrier RPC out to all assigned nodes —
-        // CheckpointCoordinator.startCheckpointScheduler() alone delivers no
-        // barriers. Enabled when the factory supplied a positive interval
-        // (scenario pipelines); the trivial default keeps the legacy
+        // Item 14: launch-path periodic checkpoints. The JobCoordinator-level
+        // driver both triggers the PendingCheckpoint and fans the barrier RPC out
+        // to all assigned nodes (the CheckpointCoordinator has no RPC view and
+        // owns no trigger loop). Enabled when the factory supplied a positive
+        // interval (scenario pipelines); the trivial default keeps the legacy
         // never-checkpoint behaviour.
         if (artifacts.getCheckpointIntervalMs() != null && artifacts.getCheckpointIntervalMs() > 0) {
             coordinator.startPeriodicCheckpoints(artifacts.getCheckpointIntervalMs());

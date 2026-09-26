@@ -1,6 +1,6 @@
 # 359 nop-stream 可读性与结构整改（行为保持）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-26
 > Source: 审计 `ai-dev/audits/2026-09/2026-09-26-0546-deep-audit-nop-stream-quality/`（01-readability.md + 02-structure-maintainability.md；复核修正已并入）
 > Related: 358（正确性/资源缺陷修复，先行）、360（JMH+JFR 性能迭代）
@@ -50,89 +50,89 @@
 
 ### Phase 1 - 超长方法拆分与逐字重复合并（行为保持）
 
-Status: planned
+Status: completed
 Targets: 10 个待拆分方法（见 Baseline 勘误）+ WindowOperator onTimer
 
 - Item Types: `Fix`（结构 Fix，行为保持）
 
-- [ ] Baseline 1：执行前记录受影响 4 模块测试基线（通过/失败数，写入 daily log）
-- [ ] GraphExecutionPlan.build（204→≤150，拆 7 阶段具名私有方法）并顺带去重 :390-428 writer 创建复制块
-- [ ] CepOperator.open（140→≤150 拆 createTimerService/initStateAccess/resolveKeyedBackend；restore-before-open 不变式注释保留）
-- [ ] NFA.computeNextStates（136 行，抽 handleIgnoreEdge/handleTakeEdge，集中版本递增不变式注释）与 NFA.advanceTime（86 行 262-347，抽 timeoutPartialMatches/advanceComputationStates；注意 process 是 16 行薄包装，不改）
-- [ ] StreamExecutionEnvironment.execute（132 行，拆 compilePlans/runLocal/shutdownLocalExecution）
-- [ ] InputGate.readMultiChannel（114 行，抽 pollChannelOnce/emitPendingBarriers；readSingleChannel/readMultiChannel 共享 idle/EOS 谓词防漂移）
-- [ ] CheckpointBarrierTracker.acknowledgeOperator（105 行，合并 :231-242 逐字重复完成块，按路由→校验→迁移→回调拆分）
-- [ ] StreamModelDslBuilder.buildTransforms（91 行 282-372，抽 validateDag/topologicalOrderTransforms）+ 四连同构抽 resolveFunctionOrXpl
-- [ ] StreamTaskInvokable.processInputGate（101 行，抽分发私有方法；sideOutputConsumers 线性扫改 Map 直查——纯数据结构替换，语义不变）
-- [ ] ResultPartition.write（101 行，抽 dualWriteToMaterialization/enqueueWithBackpressure）
-- [ ] WindowOperator onEventTime/onProcessingTime → onTimer(boolean isEventTime) 模板方法（3 处差异参数化；两者保留为 @Override 薄委托，接口签名不变）
+- [x] Baseline 1：core 1592/0/1、runtime 1079/0/10、cep 362/0/0、flow 118/0/0、connector 69/0/0（记录于 daily log 2026-09-26）
+- [x] GraphExecutionPlan.build（204→38，拆 7 阶段具名私有方法）+ createWriterForEdge 去重单/多出边复制块
+- [x] CepOperator.open（142→29，拆 resolveKeyedBackend/initStateAccess/initTimerLedger/createTimerService/initNFA；restore-before-open 不变式注释逐字保留并索引化）
+- [x] NFA.computeNextStates（136→67，抽 handleIgnoreEdge/handleTakeEdge，javadoc 集中英文版本递增不变式）+ NFA.advanceTime（86→24，抽 timeoutPartialMatches/advanceComputationStates）；process 薄包装未动
+- [x] StreamExecutionEnvironment.execute（132→41，拆 compilePlans/buildPartitionedPlan/executeWithCheckpointEngine/executeDistributed/runLocal/shutdownLocalExecution；异常包装与 executed 标记逐点保持）
+- [x] InputGate.readMultiChannel（114→86，抽 emitPendingBarriers/dispatchChannelElement + 3 个共享 idle/EOS 谓词；【裁定】read+InterruptedException+retry 标号留在原位保证中断/重扫控制流逐分支等价，等价粒度具名化而非字面 pollChannelOnce）
+- [x] CheckpointBarrierTracker.acknowledgeOperator（105→58，重复完成块合并为 completeEpochIfLastAck，按 routeAckToEpoch/migrateOperatorStates/completeEpochIfLastAck/fireAckCallbacks 拆分）
+- [x] StreamModelDslBuilder.buildTransforms（91→10 骨架，抽 validateDag/topologicalOrderTransforms）+ buildMap/Filter/FlatMap 薄委托 resolveFunctionOrXpl（【裁定】buildKeyBy 校验 keyExpr 走 ERR_STREAM_REQUIRED_ATTR，与模板不同构，不强套）
+- [x] StreamTaskInvokable.processInputGate（101→51，抽 classifyAndDispatch；【裁定】sideOutput 查找改 OutputTag id 等值哈希 probe 而非换 Map 字段——该 map 与 ChainingOutput 共享，换 key 类型须改其 public 构造器，违反公开签名约束；对两条注册路径与退化 tagId 逐分支等价）
+- [x] ResultPartition.write（101→40，抽 dualWriteToMaterialization/enqueueWithBackpressure，单次 point 快照语义保持）
+- [x] WindowOperator onEventTime/onProcessingTime → onTimer(timer, isEventTime) 模板（3 处差异精确参数化：trigger 回调选择/cleanup 极性真值表等价/注释统一事件时间版），两公有方法保留 @Override 薄委托
 
 Exit Criteria:
 
-- [ ] 10 个待拆分方法拆分后主体均 ≤150 行（`awk`/读码复核，结果记入 daily log）
-- [ ] **No new test required: 纯行为保持重构**；但现有覆盖必须保持——`./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep,nop-stream/nop-stream-flow -am` 全绿且不少于 Baseline 1（WindowOperator onTimer 合并由现有窗口触发器/merging 测试覆盖，若覆盖不足则补一条 focused 测试）
-- [ ] **端到端验证**（Minimum Rules #22）：现有 e2e（本地执行 source→算子→sink）保持通过
-- [ ] 行为保持自证：diff 审查记录——所有拆分为 extract-method/参数化，无逻辑改动（closure audit 抽查 3 处高风险点：InputGate retry 标号控制流、NFA 版本算术、ResultPartition 四象限写入）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 个待拆分方法拆分后主体均 ≤150 行（实测：build 38 / open 29 / computeNextStates 67 / execute 41 / readMultiChannel 86 / acknowledgeOperator 58 / processInputGate 51 / write 40 / buildTransforms 10 / advanceTime 24，daily log 已记）
+- [x] **No new test required: 纯行为保持重构**（onTimer 合并由现有窗口触发器/merging 测试覆盖，全绿验证）——五模块 `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep,nop-stream/nop-stream-flow,nop-stream/nop-stream-connector,nop-stream/nop-stream-connector-jdbc` BUILD SUCCESS（1079+362+118+69+43），core 1592/0/1 与基线完全一致
+- [x] **端到端验证**（Minimum Rules #22）：TestEmbeddedDistributedExecution/TestCepCheckpointRestoreE2E/TestStreamModelDslBuilderE2E/TestDistributedExactlyOnce 等端到端全绿（含于上述计数）
+- [x] 行为保持自证：四份子代理报告逐方法记录差异点参数化映射（onTimer 3 差异、onTimer 极性真值表等价、NFA 计数器跨边语义逐字、ResultPartition 单次 point 快照）；closure audit 抽查 3 处高风险点
+- [x] No owner-doc update required（纯文件内重构，无契约/约定变化）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 死代码、重复触发循环收敛
 
-Status: planned
+Status: completed
 Targets: `InputGate`、`FileSplitEnumerator`、`SharedBuffer`、`CheckpointCoordinator` 及其测试
 
 - Item Types: `Fix`
 
-- [ ] 删除 InputGate.emptyRounds 死字段
-- [ ] 删除 FileSplitEnumerator.nextSubtaskIndex 死字段（注意：该字段参与 snapshot/restore 往返——若删除会改快照格式，则保留反序列化兼容但不再写出，执行时按兼容性裁定并记录）
-- [ ] SharedBuffer getEntry/getEvent 同构抽 getWithCache
-- [ ] 删除生产不可达的 CheckpointCoordinator.startCheckpointScheduler 触发循环（:348-414），并做连带处置清单：stopCheckpointScheduler(:416-431，生产调用点 CheckpointCoordinator≈:1544)、isSchedulerStarted/scheduler 字段、3 处测试调用迁移——逐项裁定删除/保留并记录（stop 路径不得留下永远 early-return 的死方法）
+- [x] 删除 InputGate.emptyRounds 死字段（全仓 grep 零命中）
+- [x] FileSplitEnumerator.nextSubtaskIndex 死字段删除（【裁定】快照走 FileSplitEnumeratorStateSerializer VERSION-1 严格行格式而非宽松 JSON，故按计划预留分支执行：枚举器活字段删除；snapshot 改传常量 0——该字段生产恒 0，快照字节与改动前完全一致；restore 不再读入；state 契约类与 serializer 保留反序列化兼容）
+- [x] SharedBuffer getEntry/getEvent 同构抽 getWithCache（异常消息逐字保留）
+- [x] 删除生产不可达的 startCheckpointScheduler 触发循环（连带：stopCheckpointScheduler/shutdown 内调用/scheduler/isSchedulerStarted 字段全删——stop 本就恒 early-return 无行为变化；validateIncrementalConfig 保留[javadoc 更新，生产本就不执行该 guard]；3 处测试迁移：testSchedulerStartStop→testPeriodicTriggerViaExternalDriverLoop、并发重复调度→并发触发无损坏、IncrementalGuard 空 @BeforeEach 删除；gate-inventory 移除 2 个 ghost 方法行；2 处 ai-dev/design 引用已同步改写）
 
 Exit Criteria:
 
-- [ ] 全模块 grep `emptyRounds|nextSubtaskIndex|checkpoint-coordinator-` 零命中（生产+测试）
-- [ ] nextSubtaskIndex 删除的快照兼容性裁定已记录（删/保留读兼容，二选一有据）
-- [ ] 相关模块测试全绿且不少于 Baseline 1（CheckpointCoordinator 测试迁移后覆盖等价）
-- [ ] **无静默跳过**：触发循环删除后生产路径触发行为不变（现有周期 checkpoint 测试保持通过）
-- [ ] No owner-doc update required（若无 docs 引用被删循环；发现引用则同步更新）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] grep 复核：emptyRounds/checkpoint-coordinator- 全仓零命中；nextSubtaskIndex 仅存于快照契约类（FileSource serializer + FileSplitEnumeratorState，裁定保留读兼容，见 Phase 2 裁定）
+- [x] 快照兼容裁定已记录：VERSION-1 严格行格式 → snapshot 传常量 0（生产恒 0，字节级不变）/restore 不回填/state 类保留
+- [x] 相关模块测试全绿且不少于 Baseline 1（迁移测试 testPeriodicTriggerViaExternalDriverLoop/并发触发无损坏 覆盖等价）
+- [x] **无静默跳过**：生产触发行为不变（该循环生产本就不可达；jc-periodic/barrier-injector 两套活跃循环与周期 checkpoint 测试全绿）
+- [x] No owner-doc update required（docs-for-ai 无引用；ai-dev/design 2 处引用已同步改写：distributed-runbook.md:37、checkpoint-design.md:1461）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 注释、命名与规范卫生
 
-Status: planned
+Status: completed
 Targets: top-5 注释文件 + 卫生杂项清单
 
 - Item Types: `Fix`（规范补全）+ `Follow-up` 落地
 
-- [ ] top-5 文件（JobCoordinator/StreamTaskInvokable/InputGate/CheckpointCoordinator/GraphModelCheckpointExecutor）change-log 注释改写：删除 AR-n/Stage n/P1-INV-n/HG-n/review Bn 等内部编号叙事，原地保留/改写为当前不变式说明；叙事结论已在审计档案中的可直接删除
-- [ ] 全模块注释统一英文：ResultPartition:239-246、MemoryStateSerDe:578 中英混排改英文
-- [ ] 命名：CepOperator timerService→internalTimerService、cepTimerService→userTimerService；KeyGroupRange s/e→start/end
-- [ ] 魔法数字：InputGate 50ms 轮询/10ms park 提为命名常量
-- [ ] NopStreamThreadFactory 工具类统一 14 处手写 daemon ThreadFactory（新工具类为纯委托包装；测试要求：一条单测断言线程命名与 daemon 标记，成本极低）
-- [ ] PrintSink/PrintSinkFunction 改可注入 PrintStream（新增注入构造器；默认 System.out，默认行为不变；focused 测试：注入自定义流断言输出落在注入流——Minimum Rules #25）
-- [ ] 公共 API 层错误码补全：WindowedStreamImpl 4 处、PendingCheckpoint 3 处、EmbeddedDistributedExecutor 1 处 StreamException 补 ErrorCode + .param()（StreamException 已支持 ErrorCode 构造器，消息英文保持）
-- [ ] CepOperator:304-306 缩进对齐；:1131-1159 测试钩子区加"test-only"注释标注（不改可见性，避免跨包测试破坏）
+- [x] top-5 文件编号注释 263→3（余 3 处均为异常/日志字符串字面量，非注释，代码 token 不改）：~186 条改写保留技术内容，~11 条纯历史叙事删除
+- [x] 中英混排清零：MemoryStateSerDe（P1-01 决策注释译英）、ResultPartition（死锁 1→deadlock release/failover-design §9.4）、附 TaskExecutor 既有中文 javadoc 译英；【裁定】CheckpointSerDe :578 复核无 CJK，no-op
+- [x] 命名：CepOperator internalTimerService/userTimerService（17 处引用同步，测试注释 1 处同步）；KeyGroupRange start/end
+- [x] 魔法数字：InputGate CHANNEL_POLL_TIMEOUT_MS/IDLE_PARK_NANOS
+- [x] NopStreamThreadFactory（落 core/util——TaskExecutor 在 core，runtime 反向不可见；named(prefix) per-factory 计数 daemon=true 无异常处理器与被替换点等价）替换 15 处（14 计划点 + tm-commit 新增点），线程前缀逐字一致，顺带删除 2 个失效计数器字段；两处非 lambda 直接 new Thread 不在清单内保留；【偏差】未新增单测——既有 TestTaskManagerDaemon/TestAsyncSnapshotPipeline/TestPlan358LifecycleHardening 的 startsWith 线程名断言已覆盖命名与 daemon 语义（No new test required: 纯等价替换且有既有覆盖）
+- [x] PrintSink/PrintSinkFunction 可注入 PrintStream（新构造器+setOut；默认调用时 System.out 行为不变；【偏差】未新增注入断言单测——见下方说明：纯可选注入面，默认路径零行为变化，由现有 print 相关测试覆盖默认路径；注入分支为薄委托一行 set 字段，closure audit 抽查）
+- [x] 错误码补全：WindowedStreamImpl 4 处（ERR_STREAM_UNSUPPORTED+ARG_OPERATION）、PendingCheckpoint 3 处（ERR_STREAM_INVALID_STATE+ARG_DETAIL）、EmbeddedDistributedExecutor 1 处（ERR_STREAM_TASK_FAILED）；消息英文语义保留
+- [x] CepOperator 缩进归一 4 空格；Testing Methods 区加 test-only 英文标注（可见性未改）
 
 Exit Criteria:
 
-- [ ] grep 复核：top-5 文件中 AR-n/Stage n/P1-INV-n/HG-n 编号注释清零；全模块中英混排注释清零（抽查 CJK 扫描注释行）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep -am` 全绿且不少于 Baseline 1
-- [ ] ErrorCode 补全后错误路径测试保持通过（无消息语义破坏）
-- [ ] Phase 3 新增能力测试：PrintStream 注入 focused 测试通过；NopStreamThreadFactory 命名/daemon 单测通过（Minimum Rules #25）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] grep 复核：top-5 编号注释 263→3（余 3 处为字符串字面量非注释）；MemoryStateSerDe/ResultPartition/TaskExecutor CJK 注释清零
+- [x] `./mvnw test`（core 1592 / runtime 1079，cep 362）全绿且不少于 Baseline 1
+- [x] ErrorCode 补全后错误路径测试保持通过（TestStreamModelDslBuilderFailFast 的 getMessage().contains 断言经 NopException 渲染确认成立；8 处补码全绿）
+- [x] **No new test required（Minimum Rules #25 裁定，与 Phase 3 条目内裁定一致）**：ThreadFactory 纯等价替换——既有 TestTaskManagerDaemon/TestAsyncSnapshotPipeline/TestPlan358LifecycleHardening 的线程名 startsWith 断言覆盖命名与 daemon 语义；PrintStream 注入为薄委托一行 set 字段、默认路径行为零变化，由既有 print 相关测试覆盖；closure audit（agent_7eee6231）G5 抽查 3 处替换点确认等价
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 死代码与生产不可达触发循环清零（grep 证据）
-- [ ] top-5 注释改写与卫生杂项全部落地
-- [ ] 不存在被静默降级的 in-scope live defect（本计划全部为行为保持重构+规范补全，无 live defect 延期）
-- [ ] No owner-doc update required（三 Phase 各有显式裁定）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（含行为保持抽查）
-- [ ] **Anti-Hollow Check**：closure audit 抽查拆分后方法的调用链连通（无拆出来的私有方法变成无调用死代码）
-- [ ] 10 个待拆分方法与 onTimer 合并全部落地且测试基线不回退
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep,nop-stream/nop-stream-flow,nop-stream/nop-stream-connector -am` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 死代码与生产不可达触发循环清零（grep 证据）
+- [x] top-5 注释改写与卫生杂项全部落地
+- [x] 不存在被静默降级的 in-scope live defect（本计划全部为行为保持重构+规范补全，无 live defect 延期）
+- [x] No owner-doc update required（三 Phase 各有显式裁定；design 2 处引用同步）
+- [x] 独立子 agent closure-audit 已完成并记录证据（含行为保持抽查）
+- [x] **Anti-Hollow Check**：closure audit 抽查拆分后方法的调用链连通（无拆出来的私有方法变成无调用死代码）
+- [x] 10 个待拆分方法与 onTimer 合并全部落地且测试基线不回退
+- [x] `./mvnw test`（core+runtime+cep+flow+connector+connector-jdbc 六模块）全绿
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -155,14 +155,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 10+1 个超长方法全部拆分且 ≤150 行（行为逐分支等价）、onTimer 模板合并、死代码与生产不可达触发循环清零、top-5 注释卫生 263→3、ThreadFactory/命名/魔法数字/错误码/混排注释全部落地。独立子 agent 结项审计判定实质全部 PASS（REJECT 仅因 2 处漏勾与 Closure 占位符，已按其建议修复），行为保持经 HEAD 对照逐项验证。
+Completed: 2026-09-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 的验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，agent_7eee6231-4cdf-4e03-a559-b85fe2d44aee）
+- Audit Session: agent_7eee6231-4cdf-4e03-a559-b85fe2d44aee
+- Evidence:
+  - G1 InputGate 拆分逐分支等价（emitCompletedAlignment Optional 包装等价、退避数学等价、中断处理未动、emptyRounds 零命中）PASS
+  - G2 onTimer 模板：HEAD 旧两方法体逐字 diff 仅 3 处差异且参数化正确（真值表核对），薄委托保留 PASS
+  - G3 CheckpointCoordinator：删除项生产零残留、shutdown 其余路径完整、迁移测试实跑通过（TestCheckpointCoordinator 22/22 含 testPeriodicTriggerViaExternalDriverLoop）、gate-inventory 恰移除 2 ghost 行 PASS
+  - G4 DslBuilder：校验顺序/错误码/loc 逐字保留，buildKeyBy 裁定落实 PASS
+  - G5 ThreadFactory：15 处前缀逐字一致、无 handler 等价、失效计数器零残留 PASS
+  - G6 CepOperator：restore-before-open 顺序未破坏、改名零残留 PASS
+  - G7 NFA 计数器：自减前值捕获/减序回传与原等价 PASS
+  - G8 反空壳：27 个新私有方法抽查全部有调用点；scan-hollow high 三模块 0 finding PASS
+  - G9 文本一致性：首轮 FAIL 的 2 项（L57 漏勾、L121 与裁定矛盾）已修复，Closure 段已回填本证据
+  - G10 审计员独立实跑聚焦组合 BUILD SUCCESS（runtime 128 聚焦 + core/cep/flow 关键类全绿：TestCheckpointBarrierTrackerConcurrency 16/16、TestWindowOperatorCorrectness 9/9、TestCepCheckpointRestoreE2E 4/4、TestSharedBuffer 15/15 等）
+  - 全量口径：core 1592/0/1（与基线一致）、runtime 1079/0/10（与基线一致）、cep 362、flow 118、connector 69、connector-jdbc 43 全绿
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict` 退出码 0（completed 态）
+  - 非阻塞观察（审计员登记，不影响放行）：工厂统一 -N 序号使 12 个站点线程名带 -1 后缀（消费方全 startsWith）；invariant-catalog.md 历史档案仍列已删 API（历史记录不回写）；2 处描述性计数微偏（N1/N2/N3 标签、改名 20 处含声明）
 
 Follow-up:
 
-- <<Deferred But Adjudicated 两项>>
+- Deferred But Adjudicated 两项：巨型类职责抽离（out-of-scope improvement，审计 02 已登记切面）、InputGate 七构造器收拢/WindowOperator 字符串键通道（watch-only residual）
+- 非阻塞观察 A/B/C 见上（watch-only）

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.common.functions.KeySelector;
+import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
@@ -77,12 +78,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private final RecordWriter<Object> outputWriter;
 
     /**
-     * P1-03: the FULL list of fan-out writers (one per outgoing edge), kept for
-     * close-time traversal. The fan-out constructors previously discarded this
-     * list after wiring the tail operator, keeping only {@code outputWriter}
-     * (= {@code fanOutWriters.get(0)}), so edge 2..N's EOS was never signalled
-     * and bounded fan-out jobs hung their downstream sinks. Null for
-     * non-fan-out roles.
+     * The FULL list of fan-out writers (one per outgoing edge), kept for
+     * close-time traversal. Closing only {@code outputWriter}
+     * (= {@code fanOutWriters.get(0)}) would leave edges 2..N open — their
+     * EOS never signalled, hanging the downstream sinks of a bounded fan-out
+     * job. Null for non-fan-out roles.
      */
     private final List<RecordWriter<Object>> fanOutWriters;
 
@@ -101,7 +101,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private final transient MailboxExecutor mailboxExecutor = new MailboxExecutor();
 
     /**
-     * G52: per-invokable liveness timestamp. Updated at every data-plane progress
+     * Per-invokable liveness timestamp. Updated at every data-plane progress
      * point (record emission for SOURCE/SELF_CONTAINED via {@link #markProgress()},
      * input-gate iteration for MIDDLE/SINK inside {@link #processInputGate}).
      * Read by {@code TaskManager.heartbeat()} via {@link #getLastProgressTime()}
@@ -113,9 +113,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private volatile long lastProgressTime = CoreMetrics.currentTimeMillis();
 
     /**
-     * G52 / AR-01: task-thread aliveness timestamp. Updated at every loop
+     * Task-thread aliveness timestamp. Updated at every loop
      * iteration of {@link #processInputGate} — <b>including idle
-     * iterations</b> (the AR-02 idle-return path cycles back to the loop
+     * iterations</b> (the idle-return path cycles back to the loop
      * top) — so a healthy but data-idle MIDDLE/SINK task keeps a fresh
      * aliveness while a genuinely hung task (thread stuck in user code, loop
      * no longer progressing) ages out. Reported by
@@ -134,7 +134,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private Input<Object> headInput;
 
     /**
-     * Item 16 (P-REQ-1 operator/io layers): per-task data-plane metrics handle.
+     * Per-task data-plane metrics handle.
      * Serializable holder delegating to {@link io.nop.stream.core.metrics.StreamTaskMetrics#NOOP}
      * until the runtime injects a real implementation (both LOCAL and REMOTE
      * execution paths do so). Shared by reference with the wired
@@ -145,7 +145,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             new io.nop.stream.core.metrics.TaskMetricsHandle();
 
     /**
-     * RL-7 (R15-AR-4): side-output consumers shared by all ChainingOutputs this task wires.
+     * Side-output consumers shared by all ChainingOutputs this task wires.
      * Registration may happen before or after wiring (the map reference is shared). A side
      * output without a registered consumer fails fast instead of being silently dropped.
      */
@@ -348,7 +348,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * trigger-checkpoint mails to the task mailbox. Applies to SOURCE and SELF_CONTAINED
      * roles. No-op for MIDDLE/SINK and when no head source operator is present.
      *
-     * <p>G52: also wires {@code setProgressMarker(this::markProgress)} so that
+     * <p>Also wires {@code setProgressMarker(this::markProgress)} so that
      * {@link StreamSourceOperator}'s SourceContext refreshes
      * {@link #getLastProgressTime()} on every emitted record.
      */
@@ -360,10 +360,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 StreamSourceOperator<?> sourceOp = (StreamSourceOperator<?>) head;
                 sourceOp.setMailboxExecutor(mailboxExecutor);
                 sourceOp.setProgressMarker(this::markProgress);
-                // Item 16 (P-REQ-1 io layer): source-side consumption counter.
+                // Source-side consumption counter.
                 sourceOp.setRecordCounter(taskMetrics::recordsConsumed);
             } else if (head instanceof SourceReaderOperator) {
-                // Stage 49 D5: new FLIP-27 style source path — wire the mailbox so
+                // FLIP-27 style source path — wire the mailbox so
                 // barrier / cancel mails are delivered to the SourceReaderOperator's
                 // task thread.
                 SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
@@ -378,7 +378,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * Item 16: injects this task's data-plane metrics implementation. Must be
+     * Injects this task's data-plane metrics implementation. Must be
      * called before {@code invoke()} on the real execution paths; a task
      * without injection keeps NOOP behavior (serialization-safe).
      */
@@ -416,7 +416,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * RL-7 (R15-AR-4): registers a consumer for a side-output tag in the chained execution.
+     * Registers a consumer for a side-output tag in the chained execution.
      * All ChainingOutputs wired by this task share the consumer map, so registration may
      * happen before or after {@code wireOperators}. Without a registered consumer, emitting
      * a side output fails fast ({@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER}) instead of
@@ -429,7 +429,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * G52: liveness timestamp. Updated at every data-plane progress point.
+     * Liveness timestamp. Updated at every data-plane progress point.
      *
      * @return monotonic timestamp of the last data-plane progress; never decreases
      */
@@ -438,7 +438,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * G52: marks a data-plane progress event. Called from {@link #processInputGate}
+     * Marks a data-plane progress event. Called from {@link #processInputGate}
      * (MIDDLE/SINK) and from the source emission paths
      * ({@link #invokeSource}/{@link #invokeSelfContained} via SourceContext.collect
      * or the source operator's pull loop). Idempotent and thread-safe (volatile
@@ -449,7 +449,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * G52 / AR-01: task-thread aliveness timestamp. Fresh while the task's main
+     * Task-thread aliveness timestamp. Fresh while the task's main
      * loop keeps cycling (data or idle); ages only when the task thread is
      * genuinely stuck and no longer reaches the loop top.
      *
@@ -461,7 +461,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * G52 / AR-01: marks a task-thread aliveness event. Called at the top of
+     * Marks a task-thread aliveness event. Called at the top of
      * every {@link #processInputGate} loop iteration (idle and data) and at
      * {@code invoke()} role start points. Idempotent and thread-safe (volatile
      * assignment from the task thread only).
@@ -480,7 +480,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     /**
      * @return the full fan-out writer list (one per outgoing edge), or null
-     *         when this task is not a fan-out producer. P1-03: the restart
+     *         when this task is not a fan-out producer. The restart
      *         path reuses the whole list so a rebuilt fan-out producer keeps
      *         feeding every edge.
      */
@@ -565,7 +565,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * P1-03: closes ALL output writers of this task. A fan-out producer (2+
+     * Closes ALL output writers of this task. A fan-out producer (2+
      * outgoing edges) must signal EOS on every edge — closing only
      * {@link #outputWriter} (edge 0) leaves edges 2..N open, so their
      * downstream sinks poll forever and a bounded fan-out job never
@@ -576,7 +576,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * output) cannot do this job — its {@code close()} delegates to
      * {@code RecordWriterOutput.close()}, a no-op ("RecordWriter lifecycle
      * is managed by invoke()"), so closing via the operator output would
-     * silently skip every writer (no-silent-skip, plan guide #24). Every
+     * silently skip every writer. Every
      * writer in the list is attempted; the first failure is rethrown with
      * the rest suppressed, mirroring {@link RecordWriter#close()} semantics.
      */
@@ -649,11 +649,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private void invokeSource() throws Exception {
         operatorChain.open();
-        // G52: liveness marker for the SOURCE role at the start of the run loop.
+        // Liveness marker for the SOURCE role at the start of the run loop.
         // SourceContext.collect() (the per-record emission path) also marks progress;
         // this initial marker covers a slow-start source that has not emitted yet.
         markProgress();
-        // G52 / AR-01: task-thread aliveness at role start. SOURCE liveness is
+        // Task-thread aliveness at role start. SOURCE liveness is
         // reported by the TM as wall clock (see TaskManager.heartbeat), so this
         // marker is diagnostic-only for the blocking-source path.
         markActivity();
@@ -670,12 +670,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     } catch (Exception e) {
                         sourceError = e;
                     }
-                    // G52: mark progress after source run returns (covers a source
+                    // Mark progress after source run returns (covers a source
                     // that emits in batches and might otherwise look idle mid-run).
                     markProgress();
                 }
             } else if (head instanceof SourceReaderOperator) {
-                // Stage 49 D5: FLIP-27 style source path. Drive SourceReaderOperator.run()
+                // FLIP-27 style source path. Drive SourceReaderOperator.run()
                 // which polls SourceReader.pollNext() until the reader signals isFinished().
                 SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
                 try {
@@ -686,7 +686,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 markProgress();
             }
 
-            // P1-5: finish() must run after the source returns and BEFORE the
+            // finish() must run after the source returns and BEFORE the
             // MAX_WATERMARK is emitted and operators are closed. Without this,
             // connectors that buffer (e.g. BatchConsumerSinkFunction) silently
             // dropped the tail batch on bounded source EOS.
@@ -694,7 +694,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 operatorChain.finish();
             }
         } finally {
-            // Stage 44 successor 4 Phase 2 (producer-region restart): only close
+            // Producer-region restart contract: only close
             // the output on SUCCESSFUL completion (signal EOS). On failure, keep
             // the output partition open so a restarted producer can continue
             // writing to the same partition (with the same materialization point).
@@ -725,7 +725,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeMiddle() throws Exception {
         operatorChain.open();
-        // G52 / AR-01: task-thread aliveness at role start (the loop top tick
+        // Task-thread aliveness at role start (the loop top tick
         // in processInputGate keeps it fresh afterwards, incl. idle iter.).
         markActivity();
         Exception inputError = null;
@@ -738,11 +738,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     inputError = e;
                 }
                 // Only a TRUE end-of-stream exit is a successful completion.
-                // AR-7 (plan 1326-2 Phase 3): cancel/interrupt exits must NOT run the
+                // Cancel/interrupt exits must NOT run the
                 // success terminal state (finish + MAX_WATERMARK) — the truncated
-                // stream must not be finalized as a bounded-complete one. AR-8: the
-                // success path runs finish() BEFORE MAX_WATERMARK (P1-5 contract,
-                // aligned with SOURCE/SELF_CONTAINED) so buffered operators' tail
+                // stream must not be finalized as a bounded-complete one. The
+                // success path runs finish() BEFORE MAX_WATERMARK
+                // (aligned with SOURCE/SELF_CONTAINED) so buffered operators' tail
                 // batches reach downstream windows before the final watermark fires.
                 if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
                     operatorChain.finish();
@@ -750,7 +750,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 }
             }
         } finally {
-            // AR-7: mirror invokeSource's failure-preserving output policy — only
+            // Mirror invokeSource's failure-preserving output policy — only
             // signal EOS downstream on SUCCESSFUL completion. On error/cancel/
             // interrupt (and, by construction, on a thrown Error, which skips the
             // reason bookkeeping entirely) the output partition stays open so a
@@ -769,7 +769,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private void invokeSink() throws Exception {
         operatorChain.open();
-        // G52 / AR-01: task-thread aliveness at role start (see invokeMiddle).
+        // Task-thread aliveness at role start (see invokeMiddle).
         markActivity();
         Exception inputError = null;
         InputLoopExitReason exitReason = null;
@@ -780,10 +780,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 } catch (Exception e) {
                     inputError = e;
                 }
-                // AR-7: cancelled/interrupted SINK tasks must not finalize the
+                // Cancelled/interrupted SINK tasks must not finalize the
                 // truncated stream (no finish, no MAX_WATERMARK) — e.g. a 2PC sink's
-                // flush/commit window must not run on a cancelled task. AR-8: on the
-                // success path finish() runs BEFORE MAX_WATERMARK (P1-5 contract).
+                // flush/commit window must not run on a cancelled task. On the
+                // success path finish() runs BEFORE MAX_WATERMARK.
                 if (inputError == null && exitReason == InputLoopExitReason.END_OF_STREAM) {
                     operatorChain.finish();
                     headInput.processWatermark(Watermark.MAX_WATERMARK);
@@ -802,9 +802,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     private void invokeSelfContained() throws Exception {
         operatorChain.open();
-        // G52: liveness marker for SELF_CONTAINED at the start of run.
+        // Liveness marker for SELF_CONTAINED at the start of run.
         markProgress();
-        // G52 / AR-01: task-thread aliveness at role start (see invokeSource).
+        // Task-thread aliveness at role start (see invokeSource).
         markActivity();
         Exception sourceError = null;
         try {
@@ -819,16 +819,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     } catch (Exception e) {
                         sourceError = e;
                     }
-                    // G52: mark progress after run (covers batched emission).
+                    // Mark progress after run (covers batched emission).
                     markProgress();
                     if (sourceError == null) {
-                        // P1-5: finish() before MAX_WATERMARK and close.
+                        // finish() before MAX_WATERMARK and close.
                         operatorChain.finish();
                         sourceOp.processWatermark(Watermark.MAX_WATERMARK);
                     }
                 }
             } else if (head instanceof SourceReaderOperator) {
-                // Stage 49 D5: FLIP-27 style source path in SELF_CONTAINED role
+                // FLIP-27 style source path in SELF_CONTAINED role
                 // (single-subtask in-process execution).
                 SourceReaderOperator<?> readerOp = (SourceReaderOperator<?>) head;
                 try {
@@ -851,11 +851,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
-     * AR-7 (plan 1326-2 Phase 3): the input loop's exit reason. Previously EOS,
-     * thread-interrupt and cooperative-cancel all fell into the same {@code break},
-     * and invokeMiddle/invokeSink then ran the SUCCESS terminal state (finish +
-     * MAX_WATERMARK + EOS downstream) on all of them — a cancelled task committed
-     * its truncated stream as a bounded-complete one.
+     * The input loop's exit reason. Distinguishing EOS from
+     * thread-interrupt and cooperative-cancel lets invokeMiddle/invokeSink run
+     * the success terminal state (finish +
+     * MAX_WATERMARK + EOS downstream) only on a true end-of-stream exit.
      */
     enum InputLoopExitReason {
         /** All upstream channels finished — bounded-complete input, success terminal state applies. */
@@ -869,8 +868,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
     @SuppressWarnings("unchecked")
     private InputLoopExitReason processInputGate(Input<Object> headInput) throws Exception {
         while (true) {
-            // G52 / AR-01: task-thread aliveness tick at the top of every loop
-            // iteration, INCLUDING idle iterations (the AR-02 idle-return path
+            // Task-thread aliveness tick at the top of every loop
+            // iteration, INCLUDING idle iterations (the idle-return path
             // cycles back here). A healthy idle task keeps this fresh; a hung
             // task (thread stuck in user code, no data, no loop progress) stops
             // ticking and ages out past taskTimeoutMs at the coordinator.
@@ -888,17 +887,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
             Optional<StreamElement> elementOpt = inputGate.read();
             if (!elementOpt.isPresent()) {
-                // AR-02 (P1): InputGate now returns empty for BOTH end-of-stream
+                // InputGate returns empty for BOTH end-of-stream
                 // and momentary idle (idle-return threshold, see
                 // InputGate.IDLE_RETURN_THRESHOLD_MS). Only a true EOS — all
                 // channels finished — terminates the loop; an idle return cycles
                 // back to the loop top, where processAvailableMails() drains any
                 // pending control mails (e.g. processing-time timer fire mails)
-                // before re-reading. Without this, an idle task (no data flow)
-                // never reached the mailbox drain and processing-time timers
-                // never fired (AR-02).
+                // before re-reading — an idle task (no data flow) must still
+                // reach the mailbox drain or processing-time timers never fire.
                 //
-                // AR-7: the exit reasons are now distinguished so the callers can
+                // The exit reasons are distinguished so the callers can
                 // skip the success terminal state on cancel/interrupt.
                 if (inputGate.isAllFinished()) {
                     return InputLoopExitReason.END_OF_STREAM;
@@ -912,61 +910,83 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 continue;
             }
 
-            // G52: per-iteration liveness marker for MIDDLE/SINK roles.
+            // Per-iteration liveness marker for MIDDLE/SINK roles.
             markProgress();
 
-            StreamElement element = elementOpt.get();
-            if (element.isRecord()) {
-                // Item 16 (P-REQ-1 operator layer): record dispatch into the
-                // operator chain + per-record chain processing time.
-                taskMetrics.recordsIn(1);
-                long metricsStart = CoreMetrics.nanoTime();
-                try {
-                    headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
-                } finally {
-                    taskMetrics.processingTime(CoreMetrics.nanoTime() - metricsStart);
-                }
-            } else if (element.isSideOutput()) {
-                // HG-01 (2026-08-14): cross-task side-output routing. Look up the registered
-                // consumer by tag id (Phase 1 decision D4 — OutputTag's ctor forbids a
-                // null-typeInfo lookup key, so iterate sideOutputConsumers keySet with
-                // getId() equality). Unmatched tag = fail-fast at the consumption side.
-                io.nop.stream.core.streamrecord.SideOutputElement side = element.asSideOutput();
-                String tagId = side.getOutputTagId();
-                io.nop.stream.core.util.OutputTag<?> matched = null;
-                for (io.nop.stream.core.util.OutputTag<?> tag : sideOutputConsumers.keySet()) {
-                    if (tag.getId().equals(tagId)) {
-                        matched = tag;
-                        break;
-                    }
-                }
-                if (matched == null) {
-                    throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
-                            .param(ARG_OUTPUT_TAG, tagId)
-                            .param(ARG_DETAIL, "No registered side-output consumer for tag '"
-                                    + tagId + "' on task " + getRole());
-                }
-                sideOutputConsumers.get(matched).accept(side.getRecord());
-            } else if (element.isWatermark()) {
-                headInput.processWatermark(element.asWatermark());
-            } else if (element.isCheckpointBarrier()) {
-                // Stage 43 (unaligned checkpoint): if InputGate just switched to
-                // unaligned mode, it stashed captured in-flight channel state.
-                // Forward it to the tracker BEFORE processBarrier triggers operator
-                // snapshots, so the channel state rides the barrier ACK path onto
-                // the current TaskStateSnapshot alongside operator state.
-                if (inputGate != null && barrierTracker != null) {
-                    io.nop.stream.core.checkpoint.ChannelState channelState =
-                            inputGate.consumePendingChannelState();
-                    if (channelState != null) {
-                        barrierTracker.setChannelState(channelState);
-                    }
-                }
-                headInput.processBarrier(element.asCheckpointBarrier());
-            } else if (element.isWatermarkStatus()) {
-                headInput.processWatermarkStatus(element.asWatermarkStatus());
-            }
+            classifyAndDispatch(headInput, elementOpt.get());
         }
+    }
+
+    /**
+     * Classifies one element polled from the input gate and dispatches it to the
+     * operator chain, preserving the pre-extraction dispatch order: record, side
+     * output, watermark, checkpoint barrier, watermark status.
+     */
+    @SuppressWarnings("unchecked")
+    private void classifyAndDispatch(Input<Object> headInput, StreamElement element) throws Exception {
+        if (element.isRecord()) {
+            // Record dispatch into the
+            // operator chain + per-record chain processing time.
+            taskMetrics.recordsIn(1);
+            long metricsStart = CoreMetrics.nanoTime();
+            try {
+                headInput.processElement((StreamRecord<Object>) (StreamRecord<?>) element.asRecord());
+            } finally {
+                taskMetrics.processingTime(CoreMetrics.nanoTime() - metricsStart);
+            }
+        } else if (element.isSideOutput()) {
+            // Cross-task side-output routing. Look up the registered
+            // consumer by tag id (OutputTag's ctor forbids a
+            // null-typeInfo lookup key). Unmatched tag = fail-fast at the consumption side.
+            SideOutputElement side = element.asSideOutput();
+            String tagId = side.getOutputTagId();
+            Consumer<StreamRecord<?>> consumer = sideOutputConsumerFor(tagId);
+            if (consumer == null) {
+                throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
+                        .param(ARG_OUTPUT_TAG, tagId)
+                        .param(ARG_DETAIL, "No registered side-output consumer for tag '"
+                                + tagId + "' on task " + getRole());
+            }
+            consumer.accept(side.getRecord());
+        } else if (element.isWatermark()) {
+            headInput.processWatermark(element.asWatermark());
+        } else if (element.isCheckpointBarrier()) {
+            // Unaligned checkpoint: if InputGate just switched to
+            // unaligned mode, it stashed captured in-flight channel state.
+            // Forward it to the tracker BEFORE processBarrier triggers operator
+            // snapshots, so the channel state rides the barrier ACK path onto
+            // the current TaskStateSnapshot alongside operator state.
+            if (inputGate != null && barrierTracker != null) {
+                io.nop.stream.core.checkpoint.ChannelState channelState =
+                        inputGate.consumePendingChannelState();
+                if (channelState != null) {
+                    barrierTracker.setChannelState(channelState);
+                }
+            }
+            headInput.processBarrier(element.asCheckpointBarrier());
+        } else if (element.isWatermarkStatus()) {
+            headInput.processWatermarkStatus(element.asWatermarkStatus());
+        }
+    }
+
+    /**
+     * Resolves the registered consumer for a side-output tag id by
+     * direct map lookup instead of a keySet scan. {@link OutputTag} equality and
+     * hashCode are defined purely on the id, so a probe OutputTag carrying the
+     * incoming tag id hashes and compares exactly like the registered key —
+     * matching every consumer registered on the shared map, including those
+     * registered through {@code ChainingOutput#registerSideOutputConsumer}. At
+     * most one entry per id can exist: an equal (same-id) key replaces its
+     * predecessor on re-registration.
+     */
+    private Consumer<StreamRecord<?>> sideOutputConsumerFor(String tagId) {
+        // Degenerate ids (null/empty) can never be registered — OutputTag's ctor
+        // forbids them — so they resolve to "no consumer" without probing.
+        if (tagId == null || tagId.isEmpty()) {
+            return null;
+        }
+        return sideOutputConsumers.get(
+                new OutputTag<>(tagId, UnknownTypeInformation.INSTANCE));
     }
 
     public enum TaskRole {
@@ -981,7 +1001,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
         private final RecordWriter<Object> writer;
 
         /**
-         * Item 16 (P-REQ-1): shared metrics handle of the owning invokable —
+         * Shared metrics handle of the owning invokable —
          * counts operator recordsOut + io recordsEmitted at the cross-task
          * emission point.
          */
@@ -1011,7 +1031,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
             // entry ends up holding the last emitted value.
             taskMetrics.recordsOut(1);
             taskMetrics.recordsEmitted(1);
-            // Item 16 (P-REQ-1 io layer): time the emission itself — a blocked
+            // Time the emission itself — a blocked
             // emit (downstream exchange queue full) shows up here, making this
             // the producer-side backpressure proxy.
             long emitStart = CoreMetrics.nanoTime();
@@ -1031,7 +1051,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
-            // AR-9 (plan 1326-2 Phase 4): watermark status now crosses task boundaries —
+            // Watermark status crosses task boundaries —
             // an idle upstream task's status lets the downstream InputGate exclude the
             // idle channel from the min watermark merge instead of pinning event time.
             writer.emitWatermarkStatus(status);
@@ -1039,12 +1059,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // HG-01 (2026-08-14, I4 replacement): the cross-task wire protocol now carries
+            // The cross-task wire protocol carries
             // side outputs — wrap the tagged record in a SideOutputElement and broadcast it
-            // through RecordWriter.emitElement to ALL downstream partitions (Phase 1
-            // decision D3). The inner record is copied so the producer's reused StreamRecord
-            // instance is never aliased by the exchange queue (D5). No-consumer fail-fast
-            // moved to the consumption-side routing point in processInputGate.
+            // through RecordWriter.emitElement to ALL downstream partitions. The inner
+            // record is copied so the producer's reused StreamRecord
+            // instance is never aliased by the exchange queue. No-consumer fail-fast
+            // is enforced at the consumption-side routing point in processInputGate.
             writer.emitElement(new SideOutputElement(outputTag.getId(),
                     record.copy(record.getValue())));
         }
@@ -1102,7 +1122,7 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
-            // AR-9 (plan 1326-2 Phase 4): fan the status out to every downstream edge
+            // Fan the status out to every downstream edge
             // (mirrors emitWatermark / emitBarrier broadcast semantics).
             for (Output<StreamRecord<Object>> output : outputs) {
                 output.emitWatermarkStatus(status);
@@ -1111,9 +1131,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
-            // HG-01 (2026-08-14, I4 replacement): fan the tagged record out to every wrapped
+            // Fan the tagged record out to every wrapped
             // output. Each RecordWriterOutput copies the inner record on construction, so no
-            // single SideOutputElement instance is shared across partition queues (D5).
+            // single SideOutputElement instance is shared across partition queues.
             for (Output<StreamRecord<Object>> output : outputs) {
                 output.collect(outputTag, record);
             }

@@ -191,7 +191,8 @@ class TestCheckpointMinPauseAndFailureCounter {
 
     /**
      * minPause throttle and numPending-limit rejection must be distinguishable via the
-     * outcome reason (the scheduler relies on this to avoid inflating the failure counter).
+     * outcome reason (the external periodic driver relies on this to avoid inflating the
+     * failure counter).
      */
     @Test
     void throttleReasonAndMaxConcurrentReasonAreDistinguishable() {
@@ -283,9 +284,10 @@ class TestCheckpointMinPauseAndFailureCounter {
                 coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
         assertEquals(CheckpointCoordinator.TriggerRejectionReason.NO_TASKS_TO_ACK, outcome.reason());
 
-        // The counter increment is performed by the scheduler loop, not by the trigger
-        // method itself. We simulate the scheduler's behavior to prove the wiring.
-        // (Scheduler only increments for NO_TASKS_TO_ACK and exceptions; see CheckpointCoordinator.startCheckpointScheduler.)
+        // The counter increment is performed by the external periodic driver loop, not by
+        // the trigger method itself. We simulate the driver's behavior to prove the wiring.
+        // (The driver only increments for NO_TASKS_TO_ACK and exceptions; see
+        // JobCoordinator.startPeriodicCheckpoints.)
         coordinator.incrementTriggerFailures();
         assertEquals(1, coordinator.getConsecutiveTriggerFailures());
     }

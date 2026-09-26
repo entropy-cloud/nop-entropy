@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       hit/miss/eviction/size for both caches.</li>
  *   <li>{@link CepOperator} registers the periodic timer via
  *       {@link ProcessingTimeService#registerTimer(long, ProcessingTimeCallback)}
- *       (NOT via {@code InternalTimerService}/{@code cepTimerService} which route to
+ *       (NOT via {@code InternalTimerService}/{@code userTimerService} which route to
  *       {@link CepOperator#onProcessingTime(long)} CEP event processing).</li>
  *   <li>The dedicated {@link CepOperator#onCacheStatisticsTimer(long)} callback re-arms the
  *       timer anchored to fire time (not current time).</li>
