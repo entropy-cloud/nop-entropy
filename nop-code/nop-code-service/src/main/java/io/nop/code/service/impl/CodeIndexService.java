@@ -563,6 +563,13 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public List<io.nop.code.api.dto.SurprisingConnectionDTO> getSurprisingConnections(String indexId, int topN,
+                                                                                      Integer minScore) {
+        ensureSubServices();
+        return graphService.getSurprisingConnections(indexId, topN, minScore);
+    }
+
+    @Override
     public void deleteIndex(String indexId) {
         withIndexLock(indexId, () -> {
             invalidateAnalysisCache(indexId);

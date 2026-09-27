@@ -154,6 +154,16 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     @BizQuery
     @Auth(permissions = "NopCodeIndex:query")
+    public java.util.List<io.nop.code.api.dto.SurprisingConnectionDTO> getSurprisingConnections(
+            @Name("indexId") String indexId,
+            @Name("topN") @Optional Integer topN,
+            @Name("minScore") @Optional Integer minScore) {
+        return codeIndexService.getSurprisingConnections(indexId,
+                topN != null && topN > 0 ? topN : 20, minScore);
+    }
+
+    @BizQuery
+    @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
         CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
         if (result == null) {

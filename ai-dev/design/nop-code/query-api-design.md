@@ -154,7 +154,7 @@ NopCodeIndex__getCriticalNodes(indexId, topN) → CriticalNodeResultDTO
 NopCodeIndex__getKnowledgeGaps(indexId) → KnowledgeGapResultDTO
 NopCodeIndex__exportGraph(indexId, format, communityView) → String
 NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
-NopCodeIndex__getSurprisingConnections(indexId, topN) → [SurprisingConnectionDTO]   [目标]
+NopCodeIndex__getSurprisingConnections(indexId, topN=20, minScore?) → [SurprisingConnectionDTO]   ✅ 已实现(2026-09-27,plan ai-dev/plans/nop-code/07-n2-1-surprising-connections.md)
 NopCodeIndex__getExplorationQuestions(indexId, topN) → [ExplorationQuestionDTO]     [目标]
 NopCodeIndex__exportGraphWiki(indexId, maxCommunities, maxHubNodes) → GraphWikiDTO  [目标]
 ```

@@ -32,8 +32,12 @@ import io.nop.code.dao.entity.NopCodeGraphMetric;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
+import io.nop.code.api.dto.SurprisingConnectionDTO;
 import io.nop.code.api.dto.*;
+import io.nop.code.core.graph.CodeRelationGraph;
+import io.nop.code.service.graph.CodeRelationGraphLoader;
 import io.nop.code.service.graph.GraphMetricStore;
+import io.nop.code.service.graph.SurprisingConnectionAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapResult;
 import io.nop.code.service.util.CodeSymbolConverter;
@@ -291,6 +295,42 @@ class CodeGraphService {
         } catch (Exception e) {
             LOG.warn("Failed to assemble graph analysis from materialized metrics for {}", indexId, e);
             return null;
+        }
+    }
+
+    List<SurprisingConnectionDTO> getSurprisingConnections(String indexId, int topN, Integer minScore) {
+        if (daoProvider == null) return null;
+        ensureMaterializedForGraphMetrics(indexId);
+        // names and filePaths come from the cached symbol table projection (N1.4 read-cache
+        // semantics: structure-adjacent queries keep the lazy view until the N6.2 DB backend)
+        SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
+                CodeSymbolConverter::toCodeSymbol);
+        Function<String, String> nameResolver = symbolId -> {
+            CodeSymbol sym = symbolTable.getById(symbolId);
+            return sym != null && sym.getQualifiedName() != null ? sym.getQualifiedName() : symbolId;
+        };
+        Function<String, String> filePathResolver = symbolId -> {
+            CodeSymbol sym = symbolTable.getById(symbolId);
+            return sym != null && sym.getFilePath() != null ? sym.getFilePath() : null;
+        };
+        CodeRelationGraph graph = CodeRelationGraphLoader.load(indexId, daoProvider, filePathResolver);
+        Map<String, Integer> communities = metricStore.loadCommunities(indexId);
+        return new SurprisingConnectionAnalyzer().analyze(graph, communities, nameResolver, topN, minScore);
+    }
+
+    /**
+     * Communities for surprise scoring, materialization-first with the N1.3 gating: a missing
+     * GRAPH_SUMMARY row means never materialized -> self-heal once; GRAPH_SUMMARY present but
+     * COMMUNITY rows absent means the graph was too small -> degrade to an empty map without
+     * re-materializing.
+     */
+    private void ensureMaterializedForGraphMetrics(String indexId) {
+        if (metricStore.loadSummary(indexId) == null && metricMaterializer != null) {
+            try {
+                metricMaterializer.materialize(indexId);
+            } catch (Exception e) {
+                LOG.warn("Self-heal materialization failed for {}; surprise scoring degrades", indexId, e);
+            }
         }
     }
 

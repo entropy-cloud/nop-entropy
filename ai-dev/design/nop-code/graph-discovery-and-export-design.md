@@ -79,11 +79,11 @@ reasons = [每个命中维度的可读原因]
 - **排除规则**：纯结构边（`imports`/`contains`）不参与；文件级 hub 节点与概念节点排除。
 - **复杂度**：仅在已有边上评分，O(E)；**不含**社区检测本身的开销（社区需前置物化）。
 
-**不适用维度**（前置未满足时跳过）：跨文件类型（无文档/图片节点）、跨目录/仓库（单项目）、置信度（AMBIGUOUS 无生产者；INFERRED 未投影进 `IGraph`）。
+**不适用维度**（前置未满足时跳过）：跨文件类型（无文档/图片节点，恒跳过）。~~跨目录/仓库（单项目）~~ 单项目内跨顶层目录可判；~~置信度未投影~~ 置信度维度已可用（N1.1 投影，AMBIGUOUS 仍无生产者按 0 分处理）。
 
 **GraphQL 契约**：`NopCodeIndex__getSurprisingConnections(indexId, topN=20, minScore=?)` → `List<SurprisingConnectionDTO>`。DTO 字段：`sourceSymbolId`、`targetSymbolId`、`sourceLabel`、`targetLabel`、`sourceFilePath`、`targetFilePath`、`relation`、`confidence`、`score`、`reasons[]`。排序稳定（score 降序，同分按 symbolId 字典序）。鉴权沿用 `NopCodeIndex:query`。
 
-**归属**：`ISurprisingConnectionAnalyzer` 在 `nop-code-service/.../service/graph/`（与 `KnowledgeGapAnalyzer` 同层）。
+**归属**：`ISurprisingConnectionAnalyzer` 在 `nop-code-service/.../service/graph/`（与 `KnowledgeGapAnalyzer` 同层）。**已实现**（2026-09-27，plan `ai-dev/plans/nop-code/07-n2-1-surprising-connections.md`）：消费 CodeRelationGraph typed 边视图（N1.1）+ 物化社区映射（N1.2/N1.3）；值口径——score 全程 int（相似乘法 `(int)(score*1.5)` 截断）、相似判断读 attrs.relationType 大写存储值、confidence attr 缺失 confBonus=0 不默认、逐边社区 miss 跳过维度、tie-break 细化为同分按 source+target symbolId 字典序。
 
 ### 3.2 图谱问题生成（Graph Question Generation）
 

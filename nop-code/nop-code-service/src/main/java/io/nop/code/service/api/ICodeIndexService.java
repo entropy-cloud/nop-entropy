@@ -174,6 +174,13 @@ public interface ICodeIndexService {
      */
     void materializeGraphMetrics(String indexId);
 
+    /**
+     * Scores the typed relation graph for non-obvious connections
+     * (graph-discovery-and-export-design.md §3.1).
+     */
+    List<io.nop.code.api.dto.SurprisingConnectionDTO> getSurprisingConnections(String indexId, int topN,
+                                                                               Integer minScore);
+
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 
     List<CodeSymbol> findByAnnotation(String indexId, String annotationName);
