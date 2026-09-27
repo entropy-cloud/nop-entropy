@@ -201,7 +201,7 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
     }
 
     /**
-     * Plan 358 Fix-13: placeholder key serializer used only when no real
+     * Placeholder key serializer used only when no real
      * {@link TypeSerializer} is registered for the key class. The current
      * production paths never invoke copy/createInstance on it (the audit found
      * zero live call sites), and the contract is now honest so a future caller

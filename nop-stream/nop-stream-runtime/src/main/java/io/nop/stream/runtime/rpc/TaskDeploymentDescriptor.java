@@ -12,6 +12,7 @@ import java.io.Serializable;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.runtime.cluster.TaskIdentity;
 
 /**
  * Stage 42 Phase 0: serializable task deployment descriptor sent from the
@@ -52,27 +53,22 @@ public class TaskDeploymentDescriptor implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String jobId;
-    private String vertexId;
-    private int subtaskIndex;
+    /**
+     * Shared identity tuple. Private and NOT a bean property: the flat
+     * getters/setters below delegate to it so the @DataBean/JSON flat shape and
+     * the RPC property surface are unchanged (plan 2278 Phase 2, see
+     * {@link TaskIdentity}).
+     */
+    private TaskIdentity identity = new TaskIdentity();
 
     /**
      * The node that should run this subtask. Mirrors
-     * {@link io.nop.stream.runtime.cluster.TaskAssignment#getNodeId()} so the
-     * TaskManager can verify it is the intended target.
+     * {@link TaskAssignment#getNodeId()} so the TaskManager can verify it is
+     * the intended target.
      */
     private String nodeId;
 
     private String attemptId;
-    private int attemptNumber;
-
-    /**
-     * Monotonic fencing epoch this deployment is valid under. The TaskManager
-     * rejects a {@code deployTask} call whose epoch does not match its current
-     * fencing epoch (consistent with {@code receiveAssignment} / {@code triggerCheckpoint}
-     * fencing checks).
-     */
-    private long fencingEpoch;
 
     /**
      * The full {@link JobGraph}. Carried (not a live operator object reference)
@@ -115,40 +111,40 @@ public class TaskDeploymentDescriptor implements Serializable {
                                     String attemptId, int attemptNumber, long fencingEpoch,
                                     JobGraph jobGraph, DeploymentPlan deploymentPlan,
                                     String checkpointRestorePath) {
-        this.jobId = jobId;
-        this.vertexId = vertexId;
-        this.subtaskIndex = subtaskIndex;
         this.nodeId = nodeId;
         this.attemptId = attemptId;
-        this.attemptNumber = attemptNumber;
-        this.fencingEpoch = fencingEpoch;
         this.jobGraph = jobGraph;
         this.deploymentPlan = deploymentPlan;
         this.checkpointRestorePath = checkpointRestorePath;
+        this.identity.setJobId(jobId);
+        this.identity.setVertexId(vertexId);
+        this.identity.setSubtaskIndex(subtaskIndex);
+        this.identity.setAttemptNumber(attemptNumber);
+        this.identity.setFencingEpoch(fencingEpoch);
     }
 
     public String getJobId() {
-        return jobId;
+        return identity.getJobId();
     }
 
     public void setJobId(String jobId) {
-        this.jobId = jobId;
+        identity.setJobId(jobId);
     }
 
     public String getVertexId() {
-        return vertexId;
+        return identity.getVertexId();
     }
 
     public void setVertexId(String vertexId) {
-        this.vertexId = vertexId;
+        identity.setVertexId(vertexId);
     }
 
     public int getSubtaskIndex() {
-        return subtaskIndex;
+        return identity.getSubtaskIndex();
     }
 
     public void setSubtaskIndex(int subtaskIndex) {
-        this.subtaskIndex = subtaskIndex;
+        identity.setSubtaskIndex(subtaskIndex);
     }
 
     public String getNodeId() {
@@ -168,19 +164,25 @@ public class TaskDeploymentDescriptor implements Serializable {
     }
 
     public int getAttemptNumber() {
-        return attemptNumber;
+        return identity.getAttemptNumber();
     }
 
     public void setAttemptNumber(int attemptNumber) {
-        this.attemptNumber = attemptNumber;
+        identity.setAttemptNumber(attemptNumber);
     }
 
+    /**
+     * Monotonic fencing epoch this deployment is valid under. The TaskManager
+     * rejects a {@code deployTask} call whose epoch does not match its current
+     * fencing epoch (consistent with {@code receiveAssignment} / {@code triggerCheckpoint}
+     * fencing checks).
+     */
     public long getFencingEpoch() {
-        return fencingEpoch;
+        return identity.getFencingEpoch();
     }
 
     public void setFencingEpoch(long fencingEpoch) {
-        this.fencingEpoch = fencingEpoch;
+        identity.setFencingEpoch(fencingEpoch);
     }
 
     public JobGraph getJobGraph() {

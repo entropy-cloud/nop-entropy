@@ -43,37 +43,6 @@ public final class JavaStreamSerializer<T extends Serializable> implements IStre
     }
 
     @Override
-    public boolean isImmutableType() {
-        return false;
-    }
-
-    @Override
-    public TypeSerializer<T> duplicate() {
-        return this;
-    }
-
-    @Override
-    public T createInstance() {
-        return null;
-    }
-
-    @Override
-    public T copy(T from) {
-        return from;
-    }
-
-    @Override
-    public T copy(T from, T reuse) {
-        return from;
-    }
-
-    @Override
-    public int getLength() {
-        // variable-length encoding
-        return -1;
-    }
-
-    @Override
     public byte[] serialize(T value) {
         if (value == null) {
             return null;

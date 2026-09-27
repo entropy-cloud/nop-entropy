@@ -179,10 +179,20 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     }
 
     /**
-     * item 21 D-3 convergence: the single lazy create-or-verify step behind all
+     * Whether a restored state should adopt the operator-supplied custom
+     * serializer. Only the Value/Map families carry operator-supplied custom
+     * serializers (their descriptors round-trip through checkpoint snapshots);
+     * the other families always {@link #SKIP}.
+     */
+    private enum SerializerAdoption {
+        ADOPT, SKIP
+    }
+
+    /**
+     * Single lazy create-or-verify step behind all
      * eight {@code getXxxState} overloads. On miss: create via {@code creator},
      * register the state's public interface type and cache. On hit: run the
-     * Stage 29/33 schema-compatibility verification (with migration), and — for
+     * schema-compatibility verification (with migration), and — for
      * the Value/Map families — adopt the operator-supplied custom serializer
      * onto the restored state's descriptor (same rationale as before the
      * convergence).
@@ -190,7 +200,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @SuppressWarnings("unchecked")
     private <S> S getOrCreateState(StateDescriptor<?> descriptor, String schemaStateType,
                                    Class<?> registeredInterface, java.util.function.Supplier<?> creator,
-                                   boolean adoptSerializer) {
+                                   SerializerAdoption serializerAdoption) {
+        boolean adoptSerializer = (serializerAdoption == SerializerAdoption.ADOPT);
         String name = descriptor.getName();
         Object existing = states.get(name);
         if (existing == null) {
@@ -209,7 +220,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @Override
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
         ValueState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_VALUE,
-                ValueState.class, () -> new MemoryValueState<>(this, stateProperties), true);
+                ValueState.class, () -> new MemoryValueState<>(this, stateProperties), SerializerAdoption.ADOPT);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -236,7 +247,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @Override
     public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
         MapState<UK, UV> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_MAP,
-                MapState.class, () -> new MemoryMapState<>(this, stateProperties), true);
+                MapState.class, () -> new MemoryMapState<>(this, stateProperties), SerializerAdoption.ADOPT);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -245,7 +256,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @SuppressWarnings("unchecked")
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
         ListState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_LIST,
-                ListState.class, () -> new MemoryListState<>(this, stateProperties), false);
+                ListState.class, () -> new MemoryListState<>(this, stateProperties), SerializerAdoption.SKIP);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -253,7 +264,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @Override
     public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
         ReducingState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_REDUCING,
-                ReducingState.class, () -> new MemoryReducingState<>(this, stateProperties), false);
+                ReducingState.class, () -> new MemoryReducingState<>(this, stateProperties), SerializerAdoption.SKIP);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -262,7 +273,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
             AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
         AggregatingState<IN, OUT> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                AggregatingState.class, () -> new MemoryAggregatingState<>(this, stateProperties), false);
+                AggregatingState.class, () -> new MemoryAggregatingState<>(this, stateProperties), SerializerAdoption.SKIP);
         applyTtl(state, stateProperties);
         return state;
     }
@@ -274,7 +285,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         InternalAppendingState<K, N, IN, IN, IN> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_APPENDING,
                         InternalAppendingState.class,
-                        () -> new MemoryInternalAppendingState<>(this, descriptor), false);
+                        () -> new MemoryInternalAppendingState<>(this, descriptor), SerializerAdoption.SKIP);
         applyTtl(state, descriptor);
         return state;
     }
@@ -286,7 +297,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         InternalAppendingState<K, N, IN, ACC, OUT> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
                         InternalAppendingState.class,
-                        () -> new MemoryInternalAggregatingState<>(this, descriptor), false);
+                        () -> new MemoryInternalAggregatingState<>(this, descriptor), SerializerAdoption.SKIP);
         applyTtl(state, descriptor);
         return state;
     }
@@ -296,7 +307,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     public <N, T> InternalListState<K, N, T> getInternalListState(ListStateDescriptor<T> descriptor) {
         InternalListState<K, N, T> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                        InternalListState.class, () -> new MemoryInternalListState<>(this, descriptor), false);
+                        InternalListState.class, () -> new MemoryInternalListState<>(this, descriptor), SerializerAdoption.SKIP);
         applyTtl(state, descriptor);
         return state;
     }
@@ -411,7 +422,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         return targetKeyGroupRange;
     }
 
-    // Plan 360 R1: reuse the TypedNamespaceAndKey instance while (currentKey,
+    // Reuse the TypedNamespaceAndKey instance while (currentKey,
     // currentNamespace) is unchanged — the previous code allocated a new key
     // object (plus routeKey wrapper and hashing boxes) on EVERY state access.
     // The instance is immutable (final fields), so handing out the cached one is
@@ -426,7 +437,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     }
 
     /**
-     * Plan 360 R1: (namespace, key)-keyed reuse of the immutable
+     * (namespace, key)-keyed reuse of the immutable
      * {@link TypedNamespaceAndKey}. The previous code allocated a fresh key
      * object (plus the {@link #routeKey} wrapper and hashing boxes) on EVERY
      * state access; with keyBy partitioning consecutive records usually share

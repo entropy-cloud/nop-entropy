@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
-import io.nop.commons.partition.IPartitioner;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.execution.buffer.BufferPool;
@@ -379,7 +378,7 @@ public class GraphExecutionPlan {
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
             int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
-            EdgeConfig edgeConfig = resolveEdgeConfig(edge, deploymentPlan);
+            EdgeConfig edgeConfig = EdgeAssembly.resolveEdgeConfig(edge, deploymentPlan);
             int partitionCapacity = resolvePartitionCapacity(edgeConfig);
             boolean materialize = edge.isMaterializationEnabled();
             ResultPartition[][] matrix = new ResultPartition[srcP][tgtP];
@@ -444,13 +443,15 @@ public class GraphExecutionPlan {
                 if (!outEdges.isEmpty()) {
                     if (outEdges.size() == 1) {
                         JobEdge edge = outEdges.get(0);
-                        recordWriter = createWriterForEdge(edge, edgePartitionMatrix.get(edge),
-                                taskIndex, deploymentPlan);
+                        recordWriter = EdgeAssembly.createWriterForEdge(edge,
+                                edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
+                                GraphExecutionPlan::resolvePartitionPolicy);
                     } else {
                         fanOutWriters = new ArrayList<>();
                         for (JobEdge edge : outEdges) {
-                            RecordWriter<Object> writer = createWriterForEdge(edge,
-                                    edgePartitionMatrix.get(edge), taskIndex, deploymentPlan);
+                            RecordWriter<Object> writer = EdgeAssembly.createWriterForEdge(edge,
+                                    edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
+                                    GraphExecutionPlan::resolvePartitionPolicy);
                             if (writer != null) {
                                 fanOutWriters.add(writer);
                             }
@@ -493,39 +494,6 @@ public class GraphExecutionPlan {
     }
 
     /**
-     * Creates the RecordWriter one source subtask uses for a single outgoing edge:
-     * collects the matrix partitions this source subtask writes to (one per target
-     * subtask), resolves the edge's partition policy, and builds the router.
-     * Returns {@code null} when the edge has no partition matrix or no partitions
-     * for this source subtask index — the caller then skips the edge exactly as
-     * the pre-dedup single-edge and fan-out branches did.
-     */
-    private static RecordWriter<Object> createWriterForEdge(JobEdge edge,
-                                                            ResultPartition[][] matrix,
-                                                            int taskIndex,
-                                                            DeploymentPlan deploymentPlan) {
-        List<ResultPartition> writerPartitions = new ArrayList<>();
-        if (matrix != null) {
-            for (int t = 0; t < matrix[taskIndex].length; t++) {
-                writerPartitions.add(matrix[taskIndex][t]);
-            }
-        }
-
-        if (writerPartitions.isEmpty()) {
-            return null;
-        }
-
-        PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
-        IPartitioner<?> partitioner = edge.getPartitioner();
-        EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
-        PartitionRouter router = PartitionRouter.create(
-                policy, writerPartitions.size(), partitioner, taskIndex);
-        return new RecordWriter<Object>(
-                writerPartitions.toArray(new ResultPartition[0]),
-                (IPartitioner<Object>) partitioner, writerConfig, router);
-    }
-
-    /**
      * Builds the InputGate for one target subtask: for each incoming edge, collects
      * the partitions from all source subtasks that feed into this target subtask.
      * Returns {@code null} when the vertex has no incoming edges or no channels —
@@ -558,8 +526,8 @@ public class GraphExecutionPlan {
         if (channels.isEmpty()) {
             return null;
         }
-        EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
-        return new InputGate(channels, gateConfig, barrierAlignment,
+        EdgeConfig gateConfig = EdgeAssembly.resolveEdgeConfig(inEdges.get(0), deploymentPlan);
+        return new InputGate(channels, gateConfig, InputGate.alignmentModeFor(barrierAlignment),
                 barrierAlignmentTimeout, unalignedCheckpointEnabled, unalignedThreshold);
     }
 
@@ -587,6 +555,13 @@ public class GraphExecutionPlan {
     /**
      * Resolves parallelism for each vertex. Checks the DeploymentPlan's PartitionedPlan first,
      * then falls back to the JobVertex's parallelism.
+     *
+     * <p>DELIBERATE DIVERGENCE from the remote builder (RemoteGraphExecutionPlanBuilder,
+     * nop-stream-runtime): this local path additionally honors {@code isParallelismLocked()}
+     * (forced back to 1), while the remote path ignores the lock. Unifying the two is a
+     * behavior change on the remote plan-assembly semantics and is adjudicated separately
+     * (plan 2278 Deferred: "GraphExecutionPlan/RemoteBuilder 语义分歧统一") — do NOT
+     * "fix" this asymmetry as drive-by cleanup.
      */
     private static Map<String, Integer> resolveParallelism(JobGraph jobGraph,
                                                             DeploymentPlan deploymentPlan) {
@@ -628,6 +603,13 @@ public class GraphExecutionPlan {
      * partitioner that does not implement {@link PartitionPolicyAware} fails
      * fast — class-name substring matching was removed (silent mis-routing
      * bug AR-3).
+     *
+     * <p>DELIBERATE DIVERGENCE from the remote builder (RemoteGraphExecutionPlanBuilder,
+     * nop-stream-runtime): the remote path falls back to HASH for ANY non-null
+     * partitioner and never fails fast. Unifying the two is a behavior change on the
+     * remote plan-assembly semantics and is adjudicated separately (plan 2278
+     * Deferred: "GraphExecutionPlan/RemoteBuilder 语义分歧统一") — do NOT "fix"
+     * this asymmetry as drive-by cleanup.
      */
     private static PartitionPolicy resolvePartitionPolicy(JobEdge edge, DeploymentPlan deploymentPlan) {
         if (deploymentPlan != null && deploymentPlan.getPartitionedPlan() != null) {
@@ -660,30 +642,6 @@ public class GraphExecutionPlan {
     }
 
     /**
-     * Resolves the EdgeConfig for a given JobEdge.
-     *
-     * <p>First checks if the JobEdge already has an EdgeConfig set (e.g., from JobGraphGenerator).
-     * If not, looks up the edge key in the DeploymentPlan's edgeConfigs map.
-     * The edge key is formatted as "sourceVertex->targetVertex".
-     *
-     * @param edge           the JobEdge to resolve config for
-     * @param deploymentPlan optional deployment plan containing edge configurations
-     * @return the resolved EdgeConfig, or null if none available
-     */
-    private static EdgeConfig resolveEdgeConfig(JobEdge edge, DeploymentPlan deploymentPlan) {
-        // Priority 1: EdgeConfig already set on the JobEdge itself
-        if (edge.getEdgeConfig() != null) {
-            return edge.getEdgeConfig();
-        }
-        // Priority 2: Look up in DeploymentPlan's edgeConfigs map
-        if (deploymentPlan != null) {
-            String edgeKey = edge.getSourceVertex() + "->" + edge.getTargetVertex();
-            return deploymentPlan.getEdgeConfigs().get(edgeKey);
-        }
-        return null;
-    }
-
-    /**
      * Resolves the per-partition queue capacity (in element count) from the
      * {@link EdgeConfig}. Falls back to {@link ResultPartition#DEFAULT_CAPACITY} when
      * no {@code EdgeConfig} is available or {@code queueCapacity} is not positive.
@@ -701,6 +659,14 @@ public class GraphExecutionPlan {
     /**
      * Topological sort using Kahn's algorithm. Sources (no incoming edges)
      * come first, sinks (no outgoing edges) come last.
+     *
+     * <p>DELIBERATE DIVERGENCE from the remote builder (RemoteGraphExecutionPlanBuilder,
+     * nop-stream-runtime): this local path fails fast on a cyclic graph
+     * (ERR_STREAM_CYCLIC_JOB_GRAPH), while the remote path silently returns a
+     * partial ordering for the same input. Unifying the two is a behavior change
+     * on the remote plan-assembly semantics and is adjudicated separately
+     * (plan 2278 Deferred: "GraphExecutionPlan/RemoteBuilder 语义分歧统一") —
+     * do NOT "fix" this asymmetry as drive-by cleanup.
      */
     private static List<String> topologicalSort(JobGraph jobGraph) {
         Map<String, List<String>> adjacency = new HashMap<>();

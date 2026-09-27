@@ -101,7 +101,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     private final Class<K> keyType;
     /**
-     * Stage 34: job-global key-group upper bound. Replaces the legacy
+     * Job-global key-group upper bound. Replaces the legacy
      * {@code shardCount} field; semantics are identical (key&#8594;group modulus).
      */
     private final int maxParallelism;
@@ -109,10 +109,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private final RocksDBOptionConfig optionConfig;
 
     /**
-     * Stage 31: when {@code true}, {@link #snapshotState()} takes the incremental
+     * When {@code true}, {@link #snapshotState()} takes the incremental
      * path — a native RocksDB checkpoint is created and SST files are content-addressed
      * (see {@link RocksDBIncrementalSnapshotStrategy}). Defaults to {@code false} so
-     * the Stage 30 full-scan path remains the default (backward compatible).
+     * the full-scan path remains the default (backward compatible).
      */
     private boolean incrementalCheckpointEnabled = false;
 
@@ -137,7 +137,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private final Map<String, Object> states = new LinkedHashMap<>();
 
     /**
-     * P1-01: live {@code AggregateFunction} providers keyed by state name,
+     * Live {@code AggregateFunction} providers keyed by state name,
      * consulted by {@code RocksDBSnapshotSerDe} restore (preferred over
      * class-name reflection, which fails for capturing anonymous classes /
      * lambdas). Operators register their descriptor's function before restore
@@ -158,7 +158,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
     /**
-     * Stage 35: target key-group range for partial (per-subtask) restore on the
+     * Target key-group range for partial (per-subtask) restore on the
      * full-JSON snapshot path. When non-null, {@link RocksDBSnapshotSerDe#restoreState}
      * only writes entries whose key-group id falls inside this range — the
      * in-memory entry-filter counterpart of the incremental SST range scan.
@@ -167,10 +167,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private KeyGroupRange targetKeyGroupRange;
 
     /**
-     * Stage 33: migration registry (typically {@code StreamComponents}) consulted
+     * Migration registry (typically {@code StreamComponents}) consulted
      * by {@link #verifySchemaCompatibility} when a restored state's checksum differs
      * from the current descriptor's checksum. When {@code null}, checksum mismatch
-     * always fails fast (Stage 29 behaviour).
+     * always fails fast.
      */
     private transient StateMigrationRegistry migrationRegistry;
 
@@ -204,8 +204,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
         List<byte[]> existingCFs;
         // The Options JNI object owns native memory and must be closed on every path
-        // (P2 backlog item "Options native handle leaked in openDB", closed by item 11
-        // audit — mirrors the try-with-resources discipline of RocksDBIncrementalRestore).
+        // (mirrors the try-with-resources discipline of RocksDBIncrementalRestore).
         try (Options options = new Options(dbOptions, cfOptions)) {
             existingCFs = RocksDB.listColumnFamilies(options, dbPath);
         } catch (RocksDBException e) {
@@ -232,7 +231,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             cfHandles.put(name, handles.get(i));
         }
 
-        // Item 16 (P-REQ-8): register RocksDB internal-statistics gauges at the
+        // Register RocksDB internal-statistics gauges at the
         // real state-backend open path. Registration into the process composite
         // registry is side-effect-free; exposure is governed by the ops server
         // (same contract as all nop.stream.* meters). The recorder is held as a
@@ -242,7 +241,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         metricsRecorder.register(io.nop.stream.core.metrics.StreamMetricsRegistries.registry());
     }
 
-    /** Item 16 (P-REQ-8): retained strongly for gauge lifetime (weak-gauge semantics). */
+    /** Retained strongly for gauge lifetime (weak-gauge semantics). */
     private io.nop.stream.rocksdb.metrics.RocksDBMetricsRecorder metricsRecorder;
 
     ColumnFamilyHandle getOrCreateColumnFamily(String stateName) {
@@ -276,9 +275,9 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 35: copy entries whose key-group prefix falls inside {@code range}
+     * Copy entries whose key-group prefix falls inside {@code range}
      * from a read-only source RocksDB column family into this backend's
-     * corresponding column family. Consumes the Stage 34 sortable binary prefix
+     * corresponding column family. Consumes the sortable binary prefix
      * (key-group id is the big-endian first 4 bytes of every key). Used by
      * {@link RocksDBIncrementalRestore#restoreRangeInto} to perform the real
      * SST range scan during incremental checkpoint restore.
@@ -377,7 +376,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 34: job-global key-group upper bound for this backend.
+     * Job-global key-group upper bound for this backend.
      */
     @Override
     public int getMaxParallelism() {
@@ -385,7 +384,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 35: target key-group range used by the next {@link #restoreState}
+     * Target key-group range used by the next {@link #restoreState}
      * call to perform partial (per-subtask) restore on the full-JSON path.
      */
     public void setTargetKeyGroupRange(KeyGroupRange targetKeyGroupRange) {
@@ -397,7 +396,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 34: compute the key-group id for {@code key} under this backend's
+     * Compute the key-group id for {@code key} under this backend's
      * job-global {@code maxParallelism}. The result drives the sortable binary
      * prefix written by {@link RocksDBKeyEncoder#encode}.
      */
@@ -415,7 +414,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         return RocksDBKeyEncoder.encode(namespace, rawKey, computeKeyGroupId(rawKey));
     }
 
-    // Plan 360 R1: (currentKey, currentNamespace) -> storage-key cache. The
+    // (currentKey, currentNamespace) -> storage-key cache. The
     // composite key was re-encoded (2x JSON + UTF-8) on EVERY state access; with
     // keyBy partitioning, consecutive records usually share the current key, so
     // caching the last encoded pair removes the dominant per-access CPU/alloc
@@ -478,7 +477,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 33: inject the migration registry so that {@link #verifySchemaCompatibility}
+     * Inject the migration registry so that {@link #verifySchemaCompatibility}
      * can resolve registered {@link StateMigrationFunction}s on checksum mismatch.
      */
     public void setMigrationRegistry(StateMigrationRegistry migrationRegistry) {
@@ -490,10 +489,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     // ------------------------------------------------------------------------
 
     /**
-     * item 30 convergence: the single lazy create-or-verify step behind all
+     * Single lazy create-or-verify step behind all
      * eight {@code getXxxState} overloads. On miss: resolve the column family,
      * create via {@code creator}, register the state's public interface type
-     * and cache. On hit: run the Stage 29/33 schema-compatibility verification
+     * and cache. On hit: run the schema-compatibility verification
      * (with migration).
      */
     @SuppressWarnings("unchecked")
@@ -629,7 +628,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         if (existing != null && existing.getConfig().equals(cfg)) {
             // Repeated getState(...) with an unchanged TTL config must keep the
             // accumulated sidecar timestamps: rebinding a fresh context here would
-            // silently reset every entry's TTL window (item 11 audit RK-4).
+            // silently reset every entry's TTL window.
             return;
         }
         aware.bindTtl(new TtlContext<>(cfg, ttlClock));
@@ -728,11 +727,11 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 31 incremental snapshot: create a native RocksDB checkpoint, content-address
+     * Incremental snapshot: create a native RocksDB checkpoint, content-address
      * the SST files, and embed the {@link IncrementalSnapshotResult} into a
      * {@link StateSnapshot} under {@link IncrementalSnapshotResult#MARKER_KEY}. The
-     * registry registration and EpochManifest segments building happen at the
-     * coordinator (Phase 4); the task side only produces raw handles.
+     * registry registration and EpochManifest segments building happen
+     * coordinator-side; the task side only produces raw handles.
      */
     private StateSnapshot snapshotIncremental() throws Exception {
         if (db == null) {
@@ -746,7 +745,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put(IncrementalSnapshotResult.MARKER_KEY, result);
-        // Stage 34: stamp the binary key-layout version so the incremental
+        // Stamp the binary key-layout version so the incremental
         // restore path can fail-fast on SST files produced by the legacy
         // encoder (whose shard-id was not a sortable key-group prefix).
         data.put(RocksDBKeyEncoder.KEY_LAYOUT_VERSION_FIELD, RocksDBKeyEncoder.KEY_LAYOUT_VERSION);
@@ -800,7 +799,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             if (marker != null) {
                 // A present-but-unusable incremental marker must fail fast: falling
                 // through to the full-JSON path would silently restore nothing (the
-                // snapshot carries no "states" map) — silent state loss (item 11 RK-8).
+                // snapshot carries no "states" map) — silent state loss.
                 throw new StreamException(ERR_STREAM_STATE_ERROR)
                         .param(ARG_DETAIL, "Snapshot carries an incremental checkpoint marker of type "
                                 + marker.getClass().getName()
@@ -825,8 +824,8 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 35: real key-group range restore from an incremental checkpoint (Stage 31
-     * deferred item). Reconstructs the content-addressed SST set into a temp RocksDB
+     * Real key-group range restore from an incremental checkpoint.
+     * Reconstructs the content-addressed SST set into a temp RocksDB
      * directory and copies only the entries whose key-group prefix falls inside the
      * backend's {@link #targetKeyGroupRange} (or the whole DB when the range is null).
      *
@@ -849,7 +848,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Stage 35: content-addressed segment store used by {@link #restoreState} to resolve
+     * Content-addressed segment store used by {@link #restoreState} to resolve
      * shared SST files when restoring an incremental checkpoint. Optional: when unset,
      * an incremental checkpoint restore fails fast (no silent full-JSON fallback).
      */
@@ -869,11 +868,11 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @Override
     public void close() {
-        // Robust close (P2 backlog item "close() 非健壮", closed by item 11 audit):
-        // every native handle is closed even when an earlier close fails; the first
+        // Robust close: every native handle is closed even when an earlier
+        // close fails; the first
         // failure is rethrown with the rest attached as suppressed exceptions.
         List<RuntimeException> errors = new ArrayList<>();
-        // Item 16 (P-REQ-8): detach the metrics gauges from the native handle
+        // Detach the metrics gauges from the native handle
         // BEFORE closing it — a later scrape reading getAggregatedLongProperty
         // on a closed handle SIGSEGVs in native code. close() is ordered ahead
         // of every native close below.

@@ -10,9 +10,10 @@ package io.nop.stream.runtime.coordinator;
 import java.io.Serializable;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.stream.runtime.cluster.TaskIdentity;
 
 /**
- * G52: per-task terminal-state report sent from a {@code TaskManager.RunningTask}
+ * G52: per-task terminal-state report sent from a {@code RunningTask}
  * to the {@code JobCoordinator} via {@code IStreamCoordinatorRpcService.reportTaskStatus}.
  *
  * <p>Carries enough context for the coordinator to update per-subtask liveness and
@@ -30,16 +31,16 @@ public class TaskStatusReport implements Serializable {
         FAILED
     }
 
-    private String jobId;
-    private String vertexId;
-    private int subtaskIndex;
-    private int attemptNumber;
+    /**
+     * Shared identity tuple. Private and NOT a bean property: the flat
+     * getters/setters below delegate to it so the @DataBean/JSON flat shape is
+     * unchanged (plan 2278 Phase 2, see {@link TaskIdentity}).
+     */
+    private TaskIdentity identity = new TaskIdentity();
     private TerminalState terminalState;
     private String errorCause;
     private long lastProgressTime;
     private long reportedAt;
-    /** Monotonic fencing epoch of the reporting task; coordinator rejects stale-epoch reports. */
-    private long fencingEpoch;
 
     public TaskStatusReport() {
     }
@@ -48,47 +49,47 @@ public class TaskStatusReport implements Serializable {
                             int attemptNumber, TerminalState terminalState,
                             String errorCause, long lastProgressTime,
                             long fencingEpoch, long reportedAt) {
-        this.jobId = jobId;
-        this.vertexId = vertexId;
-        this.subtaskIndex = subtaskIndex;
-        this.attemptNumber = attemptNumber;
         this.terminalState = terminalState;
         this.errorCause = errorCause;
         this.lastProgressTime = lastProgressTime;
-        this.fencingEpoch = fencingEpoch;
         this.reportedAt = reportedAt;
+        this.identity.setJobId(jobId);
+        this.identity.setVertexId(vertexId);
+        this.identity.setSubtaskIndex(subtaskIndex);
+        this.identity.setAttemptNumber(attemptNumber);
+        this.identity.setFencingEpoch(fencingEpoch);
     }
 
     public String getJobId() {
-        return jobId;
+        return identity.getJobId();
     }
 
     public void setJobId(String jobId) {
-        this.jobId = jobId;
+        identity.setJobId(jobId);
     }
 
     public String getVertexId() {
-        return vertexId;
+        return identity.getVertexId();
     }
 
     public void setVertexId(String vertexId) {
-        this.vertexId = vertexId;
+        identity.setVertexId(vertexId);
     }
 
     public int getSubtaskIndex() {
-        return subtaskIndex;
+        return identity.getSubtaskIndex();
     }
 
     public void setSubtaskIndex(int subtaskIndex) {
-        this.subtaskIndex = subtaskIndex;
+        identity.setSubtaskIndex(subtaskIndex);
     }
 
     public int getAttemptNumber() {
-        return attemptNumber;
+        return identity.getAttemptNumber();
     }
 
     public void setAttemptNumber(int attemptNumber) {
-        this.attemptNumber = attemptNumber;
+        identity.setAttemptNumber(attemptNumber);
     }
 
     public TerminalState getTerminalState() {
@@ -115,12 +116,13 @@ public class TaskStatusReport implements Serializable {
         this.lastProgressTime = lastProgressTime;
     }
 
+    /** Monotonic fencing epoch of the reporting task; coordinator rejects stale-epoch reports. */
     public long getFencingEpoch() {
-        return fencingEpoch;
+        return identity.getFencingEpoch();
     }
 
     public void setFencingEpoch(long fencingEpoch) {
-        this.fencingEpoch = fencingEpoch;
+        identity.setFencingEpoch(fencingEpoch);
     }
 
     public long getReportedAt() {

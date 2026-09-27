@@ -51,12 +51,12 @@ public class CheckpointSerDe {
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointSerDe.class);
 
     /**
-     * Stage 29 (G59): format version envelope. {@code 1} = legacy (no marker in JSON, treated as
+     * Format version envelope. {@code 1} = legacy (no marker in JSON, treated as
      * v1 on read). {@code 2} = current (explicit {@code formatVersion} field present). Future
      * format changes bump this number; {@link #deserializeCheckpoint} and
      * {@link #deserializeEpochManifest} log a debug message and accept legacy v1 JSON.
      *
-     * <p>Stage 51 (roadmap item 25): the canonical constants live in core
+     * <p>The canonical constants live in core
      * {@link CheckpointFormatVersions} (single version truth — runtime aliases them so a
      * second independent number is structurally impossible).
      */
@@ -64,14 +64,14 @@ public class CheckpointSerDe {
     public static final int LEGACY_FORMAT_VERSION = CheckpointFormatVersions.LEGACY_FORMAT_VERSION;
     private static final String FORMAT_VERSION_KEY = "formatVersion";
 
-    /** Stage 51: manifest-level self-describing state format version field key. */
+    /** Manifest-level self-describing state format version field key. */
     static final String STATE_FORMAT_VERSION_KEY = "stateFormatVersion";
 
-    /** Stage 51: manifest integrity checksum field key. Always the LAST key in the document. */
+    /** Manifest integrity checksum field key. Always the LAST key in the document. */
     static final String CHECKSUM_KEY = "checksum";
 
     /**
-     * Stage 51: canonical field order for the epoch manifest top-level map. The store-side
+     * Canonical field order for the epoch manifest top-level map. The store-side
      * assembly follows this order; the load-side checksum recomputation re-orders the parsed
      * map through the same list, so both sides hash an identical canonical form. Unknown
      * (forward-compat) keys are appended after the known ones in document order.
@@ -83,10 +83,10 @@ public class CheckpointSerDe {
             "segments", "sourceEnumeratorSnapshots");
 
     /**
-     * F-10b (plan 2026-09-04-1326-3): canonical field order for the {@code .checkpoint}
-     * body top-level map — the same canonical-checksum mechanism Stage 51 established
-     * for the epoch manifest, extended to the checkpoint body (which previously carried
-     * NO integrity protection on the main restore path).
+     * Canonical field order for the {@code .checkpoint}
+     * body top-level map — the same canonical-checksum mechanism as the epoch
+     * manifest, extended to the checkpoint body (which otherwise carries no
+     * integrity protection on the main restore path).
      */
     static final java.util.List<String> CHECKPOINT_FIELD_ORDER = java.util.List.of(
             FORMAT_VERSION_KEY, "jobId", "pipelineId", "checkpointId",
@@ -111,7 +111,7 @@ public class CheckpointSerDe {
         }
         serializable.put("taskStates", taskStatesMap);
 
-        // F-10b: body checksum stamped at this choke point (same canonical mechanism as
+        // Body checksum stamped at this choke point (same canonical mechanism as
         // the epoch manifest — re-serialization always recomputes from content).
         serializable.put(CHECKSUM_KEY, computeCanonicalChecksumHex(serializable, CHECKPOINT_FIELD_ORDER));
         return JsonTool.serialize(serializable, false).getBytes(StandardCharsets.UTF_8);
@@ -132,17 +132,17 @@ public class CheckpointSerDe {
             LOG.debug("Deserializing legacy checkpoint (formatVersion={}, current={}) — backward-compatible",
                     formatVersion, CURRENT_FORMAT_VERSION);
         }
-        // Stage 51: an envelope version above the current one is a future format whose
-        // semantics this runtime cannot interpret — fail fast instead of silently accepting
-        // (previously the value passed through unchecked).
+        // An envelope version above the current one is a future format whose
+        // semantics this runtime cannot interpret — fail fast instead of silently
+        // accepting a format that cannot be interpreted.
         if (formatVersion > CURRENT_FORMAT_VERSION) {
             throw unsupportedFormatVersion(map, formatVersion, CheckpointFormatVersions.UNSET_FORMAT_VERSION);
         }
 
-        // F-10b: body checksum verification BEFORE any value is consumed — present means
-        // verify (typed fail-fast on mismatch, same semantics as the Stage 51 manifest
-        // checksum), absent means a legacy body written before the checksum was stamped
-        // (adjudicated legacy tolerance, debug-logged like the version tolerance above).
+        // Body checksum verification BEFORE any value is consumed — present means
+        // verify (typed fail-fast on mismatch, same semantics as the manifest
+        // checksum), absent means a legacy body written before the checksum was
+        // stamped (tolerated legacy bytes, debug-logged like the version tolerance above).
         // This closes the integrity gap on the MAIN restore path: a tampered/truncated
         // `.checkpoint` body is rejected before any embedded payload reaches the native
         // deserialization path.
@@ -217,7 +217,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: serializes the manifest with the self-describing state format version and the
+     * Serializes the manifest with the self-describing state format version and the
      * integrity checksum stamped at this choke point (both storages go through here). The
      * canonical map follows {@link #MANIFEST_FIELD_ORDER}; the checksum covers that map minus
      * the {@code checksum} key itself and is appended as the LAST key. Re-serialization always
@@ -232,7 +232,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: single canonical assembly path for the manifest top-level map (fixed field
+     * Single canonical assembly path for the manifest top-level map (fixed field
      * order, no checksum key). The state format version is stamped with the single version
      * truth {@link #CURRENT_FORMAT_VERSION} — the output of THIS writer is by definition in
      * the current state format.
@@ -284,7 +284,7 @@ public class CheckpointSerDe {
             serializable.put("segments", segmentsList);
         }
 
-        // Stage 49 D2: serialize per-source-vertex enumerator snapshots when present.
+        // Serialize per-source-vertex enumerator snapshots when present.
         // Backward compatible: absent on jobs without split-based sources / legacy checkpoints.
         if (manifest.getSourceEnumeratorSnapshots() != null && !manifest.getSourceEnumeratorSnapshots().isEmpty()) {
             Map<String, Object> enumeratorMap = new LinkedHashMap<>();
@@ -301,7 +301,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: canonical integrity checksum of a manifest map (must NOT contain the
+     * Canonical integrity checksum of a manifest map (must NOT contain the
      * {@code checksum} key). Defined so that store-side hashing and load-side recomputation
      * converge on identical bytes by construction:
      *
@@ -326,7 +326,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51 / F-10b: canonical integrity checksum shared by the epoch manifest and
+     * Canonical integrity checksum shared by the epoch manifest and
      * the {@code .checkpoint} body (must NOT contain the {@code checksum} key). Defined
      * so that store-side hashing and load-side recomputation converge on identical
      * bytes by construction:
@@ -428,7 +428,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51 / F-10b: re-orders a map into the given canonical field order; keys not
+     * Re-orders a map into the given canonical field order; keys not
      * in the list (forward-compat extras) keep their document order after the known
      * fields. Used by both the store-side and the load-side checksum paths — one
      * canonicalization function, no second assembly implementation to drift.
@@ -470,8 +470,8 @@ public class CheckpointSerDe {
         String pipelineId = (String) map.get("pipelineId");
         long timestamp = map.get("timestamp") instanceof Number ? ((Number) map.get("timestamp")).longValue() : 0;
 
-        // Stage 51: read-side version semantics. Envelope above current = future format we
-        // cannot interpret — fail fast (previously silently accepted). The manifest-level
+        // Read-side version semantics. Envelope above current = future format we
+        // cannot interpret — fail fast. The manifest-level
         // stateFormatVersion field, when PRESENT, must equal the envelope version: the new
         // writer always writes both from the same single version truth, so an inconsistent
         // pair (e.g. envelope=2, field=3) is anomalous/tampered. Field absent (legacy) is
@@ -481,9 +481,9 @@ public class CheckpointSerDe {
         }
         int stateFormatVersion = readStateFormatVersion(map, formatVersion);
 
-        // Stage 51: checksum verification — present means verify (typed fail-fast on
-        // mismatch), absent means a legacy manifest written before Stage 51 (explicit
-        // adjudicated skip, debug-logged like the legacy format-version tolerance above).
+        // Checksum verification — present means verify (typed fail-fast on
+        // mismatch), absent means a legacy manifest without a checksum field
+        // (tolerated skip, debug-logged like the legacy format-version tolerance above).
         String storedChecksum = verifyManifestChecksum(map);
 
         String checkpointTypeName = (String) map.get("checkpointType");
@@ -499,7 +499,7 @@ public class CheckpointSerDe {
 
         java.util.List<StateSegmentDescriptor> segments = deserializeSegments(map);
 
-        // Stage 49 D2: deserialize per-source-vertex enumerator snapshots when present.
+        // Deserialize per-source-vertex enumerator snapshots when present.
         // Backward compatible: absent on legacy checkpoints → empty map.
         Map<String, SourceEnumeratorSnapshot> enumeratorSnapshots =
                 deserializeSourceEnumeratorSnapshots(map);
@@ -509,7 +509,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: reads the manifest-level {@code stateFormatVersion} field. When PRESENT it
+     * Reads the manifest-level {@code stateFormatVersion} field. When PRESENT it
      * must be a number equal to the envelope version and not above the current version:
      * the new writer always writes both from the same single version truth, so an
      * inconsistent pair (e.g. envelope=2, field=3) is anomalous/tampered. Field absent
@@ -537,9 +537,9 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: verifies the manifest integrity checksum. Present means verify (typed
-     * fail-fast on mismatch), absent means a legacy manifest written before Stage 51
-     * (explicit adjudicated skip, debug-logged like the legacy format-version tolerance).
+     * Verifies the manifest integrity checksum. Present means verify (typed
+     * fail-fast on mismatch), absent means a legacy manifest without a checksum
+     * field (tolerated skip, debug-logged like the legacy format-version tolerance).
      *
      * @return the stored checksum string when present, {@code null} for legacy manifests.
      */
@@ -640,7 +640,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 49 D2: deserializes the per-source-vertex {@code sourceEnumeratorSnapshots}
+     * Deserializes the per-source-vertex {@code sourceEnumeratorSnapshots}
      * field (Base64 {@code stateBytes} + version). Absent field → empty map
      * (backward compatible with legacy checkpoints).
      */
@@ -667,7 +667,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51: typed fail-fast for an unreadable version face. Localization params carry
+     * Typed fail-fast for an unreadable version face. Localization params carry
      * jobId/epochId (best-effort — garbage bytes may lack them) plus both version faces and
      * the current supported version.
      */
@@ -684,7 +684,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 51 / F-10b: typed fail-fast for checksum verification failure ({@code stored}
+     * Typed fail-fast for checksum verification failure ({@code stored}
      * value is what the document claimed, {@code recomputed} is what the restore path
      * calculated) — shared by the epoch manifest and the {@code .checkpoint} body paths.
      */
@@ -721,7 +721,7 @@ public class CheckpointSerDe {
         if (snapshot.getKeyedStates() != null && !snapshot.getKeyedStates().isEmpty()) {
             map.put("keyedStates", snapshot.getKeyedStates());
         }
-        // Stage 35: persist key-group ownership metadata so a rescale restore
+        // Persist key-group ownership metadata so a rescale restore
         // can read the recorded range instead of re-deriving it. Backward
         // compatible: absent on legacy checkpoints.
         if (snapshot instanceof TaskEpochSnapshot) {
@@ -732,7 +732,7 @@ public class CheckpointSerDe {
                 map.put("keyGroupRangeStart", epoch.getKeyGroupRangeStart());
                 map.put("keyGroupRangeEnd", epoch.getKeyGroupRangeEnd());
             }
-            // Stage 43: persist unaligned-checkpoint channel state when present.
+            // Persist unaligned-checkpoint channel state when present.
             // Absent on aligned checkpoints / legacy snapshots (backward compatible).
             ChannelState channelState = epoch.getChannelState();
             if (channelState != null) {
@@ -768,7 +768,7 @@ public class CheckpointSerDe {
             }
         }
 
-        // Stage 35: reload key-group ownership metadata when present.
+        // Reload key-group ownership metadata when present.
         Object kgrs = map.get("keyGroupRangeStart");
         Object csObj = map.get("channelState");
         if (kgrs instanceof Number || csObj instanceof Map) {
@@ -783,7 +783,7 @@ public class CheckpointSerDe {
                     epoch.setKeyGroupRangeEnd(((Number) kgre).intValue());
                 }
             }
-            // Stage 43: reload unaligned-checkpoint channel state when present.
+            // Reload unaligned-checkpoint channel state when present.
             if (csObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> csMap = (Map<String, Object>) csObj;
@@ -931,7 +931,7 @@ public class CheckpointSerDe {
     }
 
     /**
-     * Stage 29 (G59): detect the format version from a deserialized JSON map. Absent
+     * Detect the format version from a deserialized JSON map. Absent
      * {@code formatVersion} field means legacy version {@code 1}; otherwise the explicit
      * integer value is used. Never throws — unknown / non-numeric values are treated as legacy.
      */

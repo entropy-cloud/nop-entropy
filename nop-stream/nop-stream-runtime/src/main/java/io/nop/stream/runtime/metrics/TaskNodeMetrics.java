@@ -24,7 +24,7 @@ import io.nop.stream.core.metrics.StreamMetricsRegistries;
  * <p>Meter names follow the {@code nop.stream.task.*} convention; the
  * authoritative name table lives in docs-for-ai/03-modules/nop-stream.md.
  *
- * <p>Lifecycle (plan 358 Fix-9): per-node meters and the running-task gauge are
+ * <p>Lifecycle: per-node meters and the running-task gauge are
  * bound to the node lifecycle. {@link #releaseNode(String)} removes the cached
  * instance, its registry meters, and the retained gauge state. Without it, a
  * restarted TaskManager with the same nodeId would silently keep reporting the
@@ -96,7 +96,7 @@ public final class TaskNodeMetrics {
         failures.increment();
     }
 
-    /** Plan 358 Fix-6: counts checkpoint ACKs whose bounded send budget was exhausted. */
+    /** Counts checkpoint ACKs whose bounded send budget was exhausted. */
     public void ackSendFailed() {
         ackSendFailures.increment();
     }
@@ -113,7 +113,7 @@ public final class TaskNodeMetrics {
     }
 
     /**
-     * Plan 358 Fix-9: releases every meter bound to a node's lifecycle — the
+     * Releases every meter bound to a node's lifecycle — the
      * cached {@link TaskNodeMetrics} instance, its registry meters, and the
      * retained running-gauge state. Invoked from {@code TaskManager.stop()} so a
      * restarted node re-registers a fresh gauge and a dead node pins nothing.

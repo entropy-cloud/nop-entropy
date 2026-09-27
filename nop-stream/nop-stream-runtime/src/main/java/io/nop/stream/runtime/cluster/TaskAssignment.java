@@ -16,25 +16,15 @@ public class TaskAssignment implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String jobId;
-    private String vertexId;
-    private int subtaskIndex;
+    /**
+     * Shared identity tuple. Private and NOT a bean property: the flat
+     * getters/setters below delegate to it so the @DataBean/JSON flat shape is
+     * unchanged (plan 2278 Phase 2, see {@link TaskIdentity}).
+     */
+    private TaskIdentity identity = new TaskIdentity();
     private String nodeId;
     private String attemptId;
-    /**
-     * 单调 fencing epoch（Stage 39：取代原复合 String fencingToken，统一为 long）。
-     * 同时编码 leadership 切换与同 leader 内 recovery，由 {@code JobCoordinator} 派生。
-     */
-    private long fencingEpoch;
     private long assignedAt;
-
-    /**
-     * Monotonically increasing attempt number per (jobId, vertexId, subtaskIndex).
-     * Driven by {@code JobCoordinator} on every (re)assignment so that the
-     * {@link ClusterRegistry} can preserve full attempt history (G56).
-     * First attempt = 1; increments on each global recovery.
-     */
-    private int attemptNumber;
 
     public TaskAssignment() {
     }
@@ -47,38 +37,38 @@ public class TaskAssignment implements Serializable {
     public TaskAssignment(String jobId, String vertexId, int subtaskIndex, String nodeId,
                           String attemptId, long fencingEpoch, long assignedAt,
                           int attemptNumber) {
-        this.jobId = jobId;
-        this.vertexId = vertexId;
-        this.subtaskIndex = subtaskIndex;
         this.nodeId = nodeId;
         this.attemptId = attemptId;
-        this.fencingEpoch = fencingEpoch;
         this.assignedAt = assignedAt;
-        this.attemptNumber = attemptNumber;
+        this.identity.setJobId(jobId);
+        this.identity.setVertexId(vertexId);
+        this.identity.setSubtaskIndex(subtaskIndex);
+        this.identity.setFencingEpoch(fencingEpoch);
+        this.identity.setAttemptNumber(attemptNumber);
     }
 
     public String getJobId() {
-        return jobId;
+        return identity.getJobId();
     }
 
     public void setJobId(String jobId) {
-        this.jobId = jobId;
+        identity.setJobId(jobId);
     }
 
     public String getVertexId() {
-        return vertexId;
+        return identity.getVertexId();
     }
 
     public void setVertexId(String vertexId) {
-        this.vertexId = vertexId;
+        identity.setVertexId(vertexId);
     }
 
     public int getSubtaskIndex() {
-        return subtaskIndex;
+        return identity.getSubtaskIndex();
     }
 
     public void setSubtaskIndex(int subtaskIndex) {
-        this.subtaskIndex = subtaskIndex;
+        identity.setSubtaskIndex(subtaskIndex);
     }
 
     public String getNodeId() {
@@ -97,12 +87,16 @@ public class TaskAssignment implements Serializable {
         this.attemptId = attemptId;
     }
 
+    /**
+     * 单调 fencing epoch（Stage 39：取代原复合 String fencingToken，统一为 long）。
+     * 同时编码 leadership 切换与同 leader 内 recovery，由 {@code JobCoordinator} 派生。
+     */
     public long getFencingEpoch() {
-        return fencingEpoch;
+        return identity.getFencingEpoch();
     }
 
     public void setFencingEpoch(long fencingEpoch) {
-        this.fencingEpoch = fencingEpoch;
+        identity.setFencingEpoch(fencingEpoch);
     }
 
     public long getAssignedAt() {
@@ -113,11 +107,17 @@ public class TaskAssignment implements Serializable {
         this.assignedAt = assignedAt;
     }
 
+    /**
+     * Monotonically increasing attempt number per (jobId, vertexId, subtaskIndex).
+     * Driven by {@code JobCoordinator} on every (re)assignment so that the
+     * {@link ClusterRegistry} can preserve full attempt history (G56).
+     * First attempt = 1; increments on each global recovery.
+     */
     public int getAttemptNumber() {
-        return attemptNumber;
+        return identity.getAttemptNumber();
     }
 
     public void setAttemptNumber(int attemptNumber) {
-        this.attemptNumber = attemptNumber;
+        identity.setAttemptNumber(attemptNumber);
     }
 }

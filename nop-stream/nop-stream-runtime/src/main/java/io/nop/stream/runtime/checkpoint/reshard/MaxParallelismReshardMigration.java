@@ -103,7 +103,6 @@ public final class MaxParallelismReshardMigration {
      * {@code newParallelism < 0} each vertex keeps its old parallelism (pure
      * reshard: subtask count unchanged, only key&rarr;group&rarr;subtask moves).
      */
-    @SuppressWarnings("unchecked")
     public static Resharded reshardCheckpoint(CompletedCheckpoint oldCheckpoint,
                                               int oldMaxParallelism, int newMaxParallelism,
                                               int newParallelismOverride) {
@@ -117,138 +116,13 @@ public final class MaxParallelismReshardMigration {
         result.setOldMaxParallelism(oldMaxParallelism);
         result.setNewMaxParallelism(newMaxParallelism);
 
-        // Group old subtasks by vertexId, preserving a stable subtask order.
-        Map<String, List<TaskLocation>> vertices = new TreeMap<>();
-        for (TaskLocation loc : oldCheckpoint.getTaskStates().keySet()) {
-            vertices.computeIfAbsent(loc.getVertexId(), k -> new ArrayList<>()).add(loc);
-        }
-        for (List<TaskLocation> subs : vertices.values()) {
-            subs.sort((a, b) -> Integer.compare(a.getTaskIndex(), b.getTaskIndex()));
-        }
+        Map<String, List<TaskLocation>> vertices = groupSubtasksByVertex(oldCheckpoint);
 
         Map<TaskLocation, TaskStateSnapshot> newTaskStates = new LinkedHashMap<>();
 
         for (Map.Entry<String, List<TaskLocation>> vertexEntry : vertices.entrySet()) {
-            String vertexId = vertexEntry.getKey();
-            List<TaskLocation> oldSubtasks = vertexEntry.getValue();
-            int oldParallelism = oldSubtasks.size();
-            int newParallelism = newParallelismOverride > 0 ? newParallelismOverride : oldParallelism;
-            if (newParallelism > newMaxParallelism) {
-                throw new StreamException(ERR_STREAM_INVALID_ARG)
-                        .param(ARG_DETAIL, "newParallelism (" + newParallelism + ") for vertex " + vertexId
-                                + " exceeds newMaxParallelism (" + newMaxParallelism + ")");
-            }
-            result.setNewParallelism(newParallelism);
-
-            // Build the per-state global keyed pool across all old subtasks,
-            // tracking each state's outer stateData envelope (keyType etc.).
-            // keyedStorageKey -> {envelope (stateData map), globalStates}
-            Map<String, GlobalKeyedPool> pools = new LinkedHashMap<>();
-            for (TaskLocation oldLoc : oldSubtasks) {
-                TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldLoc);
-                if (oldState == null) {
-                    continue;
-                }
-                for (Map.Entry<String, Object> ke : oldState.getKeyedStates().entrySet()) {
-                    Map<String, Object> stateData = toStateDataMap(ke.getValue());
-                    if (stateData == null) {
-                        throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
-                                "Keyed state '" + ke.getKey() + "' at " + oldLoc
-                                        + " is neither a StateSnapshot nor a state-data map (fail-fast)");
-                    }
-                    Object statesObj = stateData.get("states");
-                    if (!(statesObj instanceof Map)) {
-                        throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
-                                "Keyed state '" + ke.getKey() + "' at " + oldLoc
-                                        + " has no 'states' map (fail-fast, no silent drop)");
-                    }
-                    Map<String, Object> statesMap = (Map<String, Object>) statesObj;
-                    GlobalKeyedPool pool = pools.computeIfAbsent(ke.getKey(),
-                            k -> new GlobalKeyedPool(new LinkedHashMap<>(stateData), new LinkedHashMap<>()));
-                    mergeStates((Map<String, Object>) statesObj, pool.globalStates);
-                }
-            }
-
-            // Record per-stateName key counts (conservation invariant: this is both
-            // the before and after count — redistribution only moves entries). A
-            // keyed storage key (backend) may hold multiple named states, so the
-            // report is keyed by the inner state name, not the storage key.
-            for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
-                for (String stateName : poolEntry.getValue().globalStates.keySet()) {
-                    int cnt = countEntriesOfState(poolEntry.getValue().globalStates, stateName);
-                    result.getKeyCountByState().merge(stateName, cnt, Integer::sum);
-                }
-            }
-
-            if (pools.isEmpty()) {
-                if (result.getKeyCountByState().isEmpty()) {
-                    result.addWarning("vertex " + vertexId + " has no keyed state (operator-state-only); "
-                            + "reshard is a structural no-op for this vertex and recorded explicitly");
-                }
-            }
-
-            // Redistribute each keyed pool under the new maxParallelism and
-            // assemble each new subtask's keyed snapshot.
-            // newSubtaskIndex -> keyedStorageKey -> rebuilt stateData
-            Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask = new TreeMap<>();
-            for (int s = 0; s < newParallelism; s++) {
-                newKeyedBySubtask.put(s, new LinkedHashMap<>());
-            }
-            for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
-                String keyedStorageKey = poolEntry.getKey();
-                GlobalKeyedPool pool = poolEntry.getValue();
-                Map<Integer, Map<String, Object>> redistributed = KeyGroupReshard.redistributeStates(
-                        pool.globalStates, newMaxParallelism, newParallelism);
-                for (Map.Entry<Integer, Map<String, Object>> re : redistributed.entrySet()) {
-                    Map<String, Object> newStates = re.getValue();
-                    Map<String, Object> newStateData = new LinkedHashMap<>(pool.envelope);
-                    newStateData.put("states", newStates);
-                    newKeyedBySubtask.get(re.getKey()).put(keyedStorageKey, newStateData);
-                }
-            }
-
-            // Build each new subtask snapshot.
-            for (int s = 0; s < newParallelism; s++) {
-                TaskLocation newLoc = new TaskLocation(oldCheckpoint.getJobId(),
-                        oldCheckpoint.getPipelineId(), vertexId, s);
-                TaskEpochSnapshot epoch = new TaskEpochSnapshot(newLoc, oldCheckpoint.getCheckpointId());
-
-                // Operator (non-keyed) state: copy 1:1 by index where an old
-                // subtask exists; scale-up subtasks start empty (operator-state
-                // rescale redistribution is out of scope, orthogonal to reshard).
-                if (s < oldParallelism) {
-                    TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldSubtasks.get(s));
-                    if (oldState != null && oldState.getOperatorStates() != null) {
-                        for (Map.Entry<String, Object> op : oldState.getOperatorStates().entrySet()) {
-                            epoch.putOperatorState(op.getKey(), op.getValue());
-                        }
-                    }
-                }
-
-                // Keyed state: attach each rebuilt stateData map.
-                Map<String, Map<String, Object>> keyedForSubtask = newKeyedBySubtask.get(s);
-                for (Map.Entry<String, Map<String, Object>> ke : keyedForSubtask.entrySet()) {
-                    epoch.putKeyedState(ke.getKey(), ke.getValue());
-                }
-
-                // Materialize new ownership under the new maxParallelism.
-                KeyGroupRange newRange = KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(
-                        newMaxParallelism, newParallelism, s);
-                epoch.setKeyGroupOwnership(newParallelism, newMaxParallelism, newRange);
-
-                newTaskStates.put(newLoc, epoch);
-
-                // Record per-subtask key distribution.
-                int subKeys = 0;
-                for (Map<String, Object> sd : keyedForSubtask.values()) {
-                    Object st = sd.get("states");
-                    if (st instanceof Map) {
-                        subKeys += KeyGroupReshard.countKeyedEntries((Map<String, Object>) st);
-                    }
-                }
-                result.getKeyCountBySubtask()
-                        .computeIfAbsent(vertexId, k -> new TreeMap<>()).put(s, subKeys);
-            }
+            reshardVertexStates(oldCheckpoint, vertexEntry.getKey(), vertexEntry.getValue(),
+                    newMaxParallelism, newParallelismOverride, result, newTaskStates);
         }
 
         // Sanity check: per-state conservation is structural (we only move
@@ -260,6 +134,174 @@ public final class MaxParallelismReshardMigration {
             }
         }
 
+        CompletedCheckpoint newCheckpoint = buildReshardedCheckpoint(oldCheckpoint, newTaskStates);
+
+        result.setKeyedStateCount(result.getKeyCountByState().size());
+        result.setOperatorStateCount(countOperatorStates(newTaskStates));
+        result.setSubtaskCount(newTaskStates.size());
+
+        return new Resharded(newCheckpoint, result);
+    }
+
+    // ---- helpers ----
+
+    /**
+     * Groups old subtasks by vertexId, preserving a stable subtask order
+     * (ascending task index).
+     */
+    private static Map<String, List<TaskLocation>> groupSubtasksByVertex(CompletedCheckpoint oldCheckpoint) {
+        Map<String, List<TaskLocation>> vertices = new TreeMap<>();
+        for (TaskLocation loc : oldCheckpoint.getTaskStates().keySet()) {
+            vertices.computeIfAbsent(loc.getVertexId(), k -> new ArrayList<>()).add(loc);
+        }
+        for (List<TaskLocation> subs : vertices.values()) {
+            subs.sort((a, b) -> Integer.compare(a.getTaskIndex(), b.getTaskIndex()));
+        }
+        return vertices;
+    }
+
+    /**
+     * Reshard one vertex's states under the new maxParallelism: merge all old
+     * subtasks' keyed pools, redistribute entries to the new owners, and build
+     * each new subtask's snapshot (operator state copied 1:1 by index, keyed
+     * state rebuilt). Updates {@code result}'s statistics and adds the new
+     * subtask snapshots to {@code newTaskStates}.
+     */
+    @SuppressWarnings("unchecked")
+    private static void reshardVertexStates(CompletedCheckpoint oldCheckpoint,
+                                            String vertexId,
+                                            List<TaskLocation> oldSubtasks,
+                                            int newMaxParallelism,
+                                            int newParallelismOverride,
+                                            ReshardMigrationResult result,
+                                            Map<TaskLocation, TaskStateSnapshot> newTaskStates) {
+        int oldParallelism = oldSubtasks.size();
+        int newParallelism = newParallelismOverride > 0 ? newParallelismOverride : oldParallelism;
+        if (newParallelism > newMaxParallelism) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "newParallelism (" + newParallelism + ") for vertex " + vertexId
+                            + " exceeds newMaxParallelism (" + newMaxParallelism + ")");
+        }
+        result.setNewParallelism(newParallelism);
+
+        // Build the per-state global keyed pool across all old subtasks,
+        // tracking each state's outer stateData envelope (keyType etc.).
+        // keyedStorageKey -> {envelope (stateData map), globalStates}
+        Map<String, GlobalKeyedPool> pools = new LinkedHashMap<>();
+        for (TaskLocation oldLoc : oldSubtasks) {
+            TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldLoc);
+            if (oldState == null) {
+                continue;
+            }
+            for (Map.Entry<String, Object> ke : oldState.getKeyedStates().entrySet()) {
+                Map<String, Object> stateData = toStateDataMap(ke.getValue());
+                if (stateData == null) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                            "Keyed state '" + ke.getKey() + "' at " + oldLoc
+                                    + " is neither a StateSnapshot nor a state-data map (fail-fast)");
+                }
+                Object statesObj = stateData.get("states");
+                if (!(statesObj instanceof Map)) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                            "Keyed state '" + ke.getKey() + "' at " + oldLoc
+                                    + " has no 'states' map (fail-fast, no silent drop)");
+                }
+                Map<String, Object> statesMap = (Map<String, Object>) statesObj;
+                GlobalKeyedPool pool = pools.computeIfAbsent(ke.getKey(),
+                        k -> new GlobalKeyedPool(new LinkedHashMap<>(stateData), new LinkedHashMap<>()));
+                mergeStates((Map<String, Object>) statesObj, pool.globalStates);
+            }
+        }
+
+        // Record per-stateName key counts (conservation invariant: this is both
+        // the before and after count — redistribution only moves entries). A
+        // keyed storage key (backend) may hold multiple named states, so the
+        // report is keyed by the inner state name, not the storage key.
+        for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
+            for (String stateName : poolEntry.getValue().globalStates.keySet()) {
+                int cnt = countEntriesOfState(poolEntry.getValue().globalStates, stateName);
+                result.getKeyCountByState().merge(stateName, cnt, Integer::sum);
+            }
+        }
+
+        if (pools.isEmpty()) {
+            if (result.getKeyCountByState().isEmpty()) {
+                result.addWarning("vertex " + vertexId + " has no keyed state (operator-state-only); "
+                        + "reshard is a structural no-op for this vertex and recorded explicitly");
+            }
+        }
+
+        // Redistribute each keyed pool under the new maxParallelism and
+        // assemble each new subtask's keyed snapshot.
+        // newSubtaskIndex -> keyedStorageKey -> rebuilt stateData
+        Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask = new TreeMap<>();
+        for (int s = 0; s < newParallelism; s++) {
+            newKeyedBySubtask.put(s, new LinkedHashMap<>());
+        }
+        for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
+            String keyedStorageKey = poolEntry.getKey();
+            GlobalKeyedPool pool = poolEntry.getValue();
+            Map<Integer, Map<String, Object>> redistributed = KeyGroupReshard.redistributeStates(
+                    pool.globalStates, newMaxParallelism, newParallelism);
+            for (Map.Entry<Integer, Map<String, Object>> re : redistributed.entrySet()) {
+                Map<String, Object> newStates = re.getValue();
+                Map<String, Object> newStateData = new LinkedHashMap<>(pool.envelope);
+                newStateData.put("states", newStates);
+                newKeyedBySubtask.get(re.getKey()).put(keyedStorageKey, newStateData);
+            }
+        }
+
+        // Build each new subtask snapshot.
+        for (int s = 0; s < newParallelism; s++) {
+            TaskLocation newLoc = new TaskLocation(oldCheckpoint.getJobId(),
+                    oldCheckpoint.getPipelineId(), vertexId, s);
+            TaskEpochSnapshot epoch = new TaskEpochSnapshot(newLoc, oldCheckpoint.getCheckpointId());
+
+            // Operator (non-keyed) state: copy 1:1 by index where an old
+            // subtask exists; scale-up subtasks start empty (operator-state
+            // rescale redistribution is out of scope, orthogonal to reshard).
+            if (s < oldParallelism) {
+                TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldSubtasks.get(s));
+                if (oldState != null && oldState.getOperatorStates() != null) {
+                    for (Map.Entry<String, Object> op : oldState.getOperatorStates().entrySet()) {
+                        epoch.putOperatorState(op.getKey(), op.getValue());
+                    }
+                }
+            }
+
+            // Keyed state: attach each rebuilt stateData map.
+            Map<String, Map<String, Object>> keyedForSubtask = newKeyedBySubtask.get(s);
+            for (Map.Entry<String, Map<String, Object>> ke : keyedForSubtask.entrySet()) {
+                epoch.putKeyedState(ke.getKey(), ke.getValue());
+            }
+
+            // Materialize new ownership under the new maxParallelism.
+            KeyGroupRange newRange = KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(
+                    newMaxParallelism, newParallelism, s);
+            epoch.setKeyGroupOwnership(newParallelism, newMaxParallelism, newRange);
+
+            newTaskStates.put(newLoc, epoch);
+
+            // Record per-subtask key distribution.
+            int subKeys = 0;
+            for (Map<String, Object> sd : keyedForSubtask.values()) {
+                Object st = sd.get("states");
+                if (st instanceof Map) {
+                    subKeys += KeyGroupReshard.countKeyedEntries((Map<String, Object>) st);
+                }
+            }
+            result.getKeyCountBySubtask()
+                    .computeIfAbsent(vertexId, k -> new TreeMap<>()).put(s, subKeys);
+        }
+    }
+
+    /**
+     * Builds the resharded checkpoint manifest from the new task states,
+     * carrying over the job/pipeline/checkpoint identity of the old checkpoint
+     * and marking the result as restored.
+     */
+    private static CompletedCheckpoint buildReshardedCheckpoint(CompletedCheckpoint oldCheckpoint,
+                                                                Map<TaskLocation, TaskStateSnapshot> newTaskStates) {
         CompletedCheckpoint newCheckpoint = CompletedCheckpoint.builder()
                 .jobId(oldCheckpoint.getJobId())
                 .pipelineId(oldCheckpoint.getPipelineId())
@@ -270,15 +312,8 @@ public final class MaxParallelismReshardMigration {
                 .taskStates(newTaskStates)
                 .build();
         newCheckpoint.setRestored(true);
-
-        result.setKeyedStateCount(result.getKeyCountByState().size());
-        result.setOperatorStateCount(countOperatorStates(newTaskStates));
-        result.setSubtaskCount(newTaskStates.size());
-
-        return new Resharded(newCheckpoint, result);
+        return newCheckpoint;
     }
-
-    // ---- helpers ----
 
     private static void validateArgs(int oldMaxParallelism, int newMaxParallelism, int newParallelismOverride) {
         if (oldMaxParallelism < 1) {

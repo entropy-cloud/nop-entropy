@@ -193,7 +193,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     /**
      * Per-(key,window) pane tracking: pane index + onTimeEmitted flag. Used by
      * {@link #computePaneInfo} to classify firings as EARLY/ON_TIME/LATE and assign
-     * pane indices. Participates in checkpoint/restore (G48, TimeWindow-scoped only).
+     * pane indices. Participates in checkpoint/restore (TimeWindow-scoped only).
      */
     private transient Map<String, PaneTrackingInfo> paneTracking;
 
@@ -420,7 +420,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
 
-        // P1-01 (Decision: 方案 1 = live function reuse): register the live
+        // Register the live
         // descriptor's aggregate function BEFORE the deferred keyed-state
         // restore (applyPendingRestoreState) runs, so the serde restore path
         // reuses the live function instance instead of failing to reflectively
@@ -456,11 +456,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             windowContentsState = this.keyedStateBackend.getMapState(windowContentsDescriptor);
         }
 
-        // AR-3 (plan 1326-2 Phase 1, D0 option b): the element-timestamps side store is
+        // The element-timestamps side store is
         // created on BOTH state layouts when an evictor is present — internal-descriptor
-        // path (Memory/RocksDB via builder) and the fallback MapState path. Previously it
-        // existed only on the fallback path, so every TimestampedValue seen by an evictor
-        // on the descriptor path was stamped with the current watermark (fake timestamp →
+        // path (Memory/RocksDB via builder) and the fallback MapState path. The side store
+        // must exist on both paths: without it, every TimestampedValue seen by an evictor
+        // on the descriptor path is stamped with the current watermark (fake timestamp →
         // TimeEvictor never evicts). Created only when evictor != null so non-evictor jobs
         // keep a byte-identical checkpoint payload (no extra registered state).
         if (evictor != null) {
@@ -473,7 +473,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         internalTimerService = new HeapInternalTimerService<>(this,
                 () -> getKeyedStateBackend() != null ? (K) getKeyedStateBackend().getCurrentKey() : null);
-        // AR-22 (P0): declare the operator's key class so restored timer keys are
+        // Declare the operator's key class so restored timer keys are
         // re-materialized to it — the JSON checkpoint persist path (storageType=local)
         // round-trips Long keys < 2^31 as Integer and @DataBean POJO keys as
         // LinkedHashMap, and the class-sensitive TypedNamespaceAndKey lookups in
@@ -487,7 +487,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             timeServiceManager.registerTimerService(internalTimerService);
         }
 
-        // Explicit warning instead of silent zero output (plan `2026-08-13-0132-1` Phase 2):
+        // Explicit warning instead of silent zero output:
         // a processing-time window without a wired ProcessingTimeService/TimerServiceManager
         // has no driver to fire its timers — without this WARN the job would silently never
         // emit. The production task wiring always injects both before open(); this fires only
@@ -501,7 +501,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         // Apply any timer snapshot captured by restoreState() (called before open()).
         // This deferred-application pattern is required because restoreState() runs
-        // before open() creates the timer service (see TestCheckpointRecovery.java:478).
+        // before open() creates the timer service (see TestCheckpointRecovery).
         if (restoredTimerSnapshot != null) {
             internalTimerService.restoreTimers(restoredTimerSnapshot);
             restoredTimerSnapshot = null;
@@ -565,7 +565,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             }
             result.putOperatorState("trigger-accumulators", snapshot);
         }
-        // G2: include in-flight timers in the checkpoint so that event-time and
+        // Include in-flight timers in the checkpoint so that event-time and
         // processing-time timers registered before the checkpoint fire correctly
         // after restore. checkpoint-design.md §2.1 lists "timer state" as part of
         // the epoch binding. Only already-registered (not-yet-fired) timers are
@@ -574,7 +574,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (internalTimerService != null) {
             result.putOperatorState("internal-timers", internalTimerService.snapshotTimers());
         }
-        // G48: persist pane-tracking (pane index + onTimeEmitted) so that post-recovery
+        // Persist pane-tracking (pane index + onTimeEmitted) so that post-recovery
         // window firings are not mistaken for ON_TIME / isFirst. Only TimeWindow-scoped
         // panes participate (see isTimeWindowPaneKey); non-TimeWindow panes are skipped
         // because their windowNamespace is irreversible.
@@ -602,7 +602,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 }
                 this.triggerAccumulators = (Map<String, SimpleAccumulator<?>>) restored;
             }
-            // G2: capture timer snapshot for deferred application in open(). At this
+            // Capture timer snapshot for deferred application in open(). At this
             // point internalTimerService is still null (restoreState runs before
             // open()), so we cannot apply the snapshot immediately — we store it
             // and apply it in open() after the timer service is constructed.
@@ -611,7 +611,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 this.restoredTimerSnapshot =
                         (HeapInternalTimerService.TimerSnapshot<K, W>) timerSnapshot;
             }
-            // G48: capture pane-tracking snapshot for deferred application in open().
+            // Capture pane-tracking snapshot for deferred application in open().
             Object paneSnapshot = snapshotResult.getOperatorState("pane-tracking");
             if (paneSnapshot instanceof PaneTrackingSnapshot) {
                 this.restoredPaneTrackingSnapshot = (PaneTrackingSnapshot) paneSnapshot;
@@ -620,7 +620,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * P1-01: registers the live {@code windowStateDescriptor}'s aggregate
+     * Registers the live {@code windowStateDescriptor}'s aggregate
      * function into the keyed state backend's restore-function provider (when
      * both exist), so the serde restore path prefers the live instance over
      * class-name reflection. No-op when the window contents state is not an
@@ -710,14 +710,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                     for (W m : mergedWindows) {
                                         triggerContext.window = m;
                                         triggerContext.clear();
-                                        // P1-INV-1: delete with the MERGED window m as the
+                                        // Delete with the MERGED window m as the
                                         // baseline — the trigger accumulator stateKey embeds
                                         // triggerContext.window (the actual/merged window),
                                         // which differs from the stateWindow in merge
                                         // scenarios. Must run after triggerContext.clear()
                                         // (which may rebuild the entry via getSimpleAccumulator).
                                         removeTriggerAccumulators(key, m);
-                                        // AR-4 (plan 1326-2 Phase 1): pane entries are
+                                        // Pane entries are
                                         // registered by the actual window a firing saw; a
                                         // merged-away window's pane entry dies with the merge.
                                         if (paneTracking != null) {
@@ -741,34 +741,47 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                         "Window " + window + " is not in in-flight window set.");
             }
-            addWindowElement(key, stateWindow, element.getValue(), elementTimestamp);
-
-            triggerContext.key = key;
-            triggerContext.window = actualWindow;
-
-            TriggerResult triggerResult = triggerContext.onElement(element);
-
-            if (triggerResult.isFire()) {
-                ACC contents = getWindowContents(key, stateWindow);
-                if (contents != null) {
-                    emitWindowContents(key, actualWindow, stateWindow, contents);
-                }
-            }
-
-            if (triggerResult.isPurge()) {
-                clearWindowContents(key, actualWindow, stateWindow);
-                // P1-INV-1: symmetric with the regular element path — the merging
-                // path cleared window contents without clearing the trigger state.
-                // Entries are keyed with triggerContext.window (the ACTUAL window),
-                // so the delete baseline is actualWindow, not stateWindow.
-                triggerContext.clear();
-                removeTriggerAccumulators(key, actualWindow);
-            }
-            registerCleanupTimer(actualWindow);
+            processWindowElement(key, actualWindow, stateWindow, element, elementTimestamp);
         }
 
         mergingWindows.persist();
         return isSkippedElement;
+    }
+
+    /**
+     * Shared element-processing skeleton for one accepted window — used by BOTH
+     * the merging and the regular element paths (the two paths differ only in how the pane's stateWindow is resolved:
+     * merging windows keep the pane state under the possibly-different state
+     * window returned by {@link MergingWindowSet#getStateWindow}, regular
+     * windows pass the actual window itself as the state window).
+     */
+    private void processWindowElement(K key, W actualWindow, W stateWindow,
+                                      StreamRecord<IN> element, long elementTimestamp) throws Exception {
+        addWindowElement(key, stateWindow, element.getValue(), elementTimestamp);
+
+        triggerContext.key = key;
+        triggerContext.window = actualWindow;
+
+        TriggerResult triggerResult = triggerContext.onElement(element);
+
+        if (triggerResult.isFire()) {
+            ACC contents = getWindowContents(key, stateWindow);
+            if (contents != null) {
+                emitWindowContents(key, actualWindow, stateWindow, contents);
+            }
+        }
+
+        if (triggerResult.isPurge()) {
+            clearWindowContents(key, actualWindow, stateWindow);
+            // The purge path must ALSO clear the trigger state — the
+            // accumulator entries are keyed with triggerContext.window (the
+            // ACTUAL window, not the stateWindow), so the delete baseline is
+            // actualWindow; and the delete must run AFTER triggerContext.clear()
+            // (the clear may rebuild the entry via getSimpleAccumulator).
+            triggerContext.clear();
+            removeTriggerAccumulators(key, actualWindow);
+        }
+        registerCleanupTimer(actualWindow);
     }
 
     private boolean processElementForRegularWindow(
@@ -780,27 +793,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 continue;
             }
             isSkippedElement = false;
-            addWindowElement(key, window, element.getValue(), elementTimestamp);
-
-            triggerContext.key = key;
-            triggerContext.window = window;
-
-            TriggerResult triggerResult = triggerContext.onElement(element);
-
-            if (triggerResult.isFire()) {
-                ACC contents = getWindowContents(key, window);
-                if (contents != null) {
-                    emitWindowContents(key, window, window, contents);
-                }
-            }
-
-            if (triggerResult.isPurge()) {
-                clearWindowContents(key, window, window);
-                triggerContext.clear();
-                // P1-INV-1: delete after the last clear (the clear may rebuild).
-                removeTriggerAccumulators(key, window);
-            }
-            registerCleanupTimer(window);
+            processWindowElement(key, window, window, element, elementTimestamp);
         }
 
         return isSkippedElement;
@@ -877,7 +870,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
-            // P1-INV-1: symmetric with the element paths — the timer PURGE branch
+            // Symmetric with the element paths — the timer PURGE branch
             // cleared window contents without clearing the trigger state (leaking
             // both the accumulator entry AND the trigger's registered timers).
             triggerContext.clear();
@@ -892,14 +885,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (stateWindow != null) {
                 clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
                 triggerContext.clear();
-                // P1-INV-1: delete after the last clear (the clear may rebuild).
+                // Delete after the last clear (the clear may rebuild).
                 removeTriggerAccumulators(triggerContext.key, triggerContext.window);
-                // RL-6 (R15-AR-8): retire the in-flight window (= cleanup timer namespace =
+                // Retire the in-flight window (= cleanup timer namespace =
                 // MergingWindowSet mapping KEY) so the mapping converges after cleanup —
                 // otherwise the cleaned window leaks into the checkpointed merging-sets
                 // state (unbounded growth) and later overlapping elements merge into a
                 // stale range. Retiring the state-window VALUE instead would throw
-                // StreamException (key not found, MergingWindowSet.java:134-139).
+                // StreamException (key not found, MergingWindowSet).
                 if (mergingWindows != null) {
                     mergingWindows.retireWindow(triggerContext.window);
                 }
@@ -913,7 +906,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * P1-INV-1 (AR-02 Phase 4): removes every {@link #triggerAccumulators} entry
+     * Removes every {@link #triggerAccumulators} entry
      * whose stateKey was built for {@code (key, window)} — the exact prefix
      * constructed by {@code Context#getSimpleAccumulator}
      * ({@code "trigger_" + key + STATE_KEY_SEPARATOR + window + STATE_KEY_SEPARATOR}).
@@ -940,13 +933,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * AR-3/AR-4 (plan 1326-2 Phase 1): {@code window} is the ACTUAL window (used for
+     * {@code window} is the ACTUAL window (used for
      * pane tracking, user-function context and output timestamp); {@code stateWindow} is
      * the STATE window (namespace under which contents and element timestamps live —
-     * differs from the actual window after a merging-assigner merge). Previously the
-     * timestamps were read via the actual window while written via the state window,
-     * which read null on every merging fire; the DISCARDING clear also hit the wrong
-     * namespace.
+     * differs from the actual window after a merging-assigner merge). The timestamps
+     * must be written and read through the same (state) window, otherwise every
+     * merging fire reads null and the DISCARDING clear hits the wrong namespace.
      */
     @SuppressWarnings("unchecked")
     private void emitWindowContents(K key, W window, W stateWindow, ACC contents) throws Exception {
@@ -992,9 +984,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     return internalTimerService.currentWatermark();
                 }
             };
-            // AR-2: Flink semantics pass the PRE-eviction element count to both
+            // Flink semantics pass the PRE-eviction element count to both
             // evictBefore and evictAfter (Flink WindowOperator captures the count once
-            // before evictBefore). Passing a shrunk count to evictAfter skewed every
+            // before evictBefore). Passing a shrunk count to evictAfter would skew every
             // size-aware evictor's decision.
             int preEvictionSize = wrapped.size();
             evictor.evictBefore(wrapped, preEvictionSize, window, evictorContext);
@@ -1005,10 +997,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             userFunction.process(
                     key, window, processContext, (ACC) (Iterable<IN>) evictedElements, timestampedCollector);
             evictor.evictAfter(wrapped, preEvictionSize, window, evictorContext);
-            // AR-2: eviction must physically shrink the window state (Flink's
-            // iterator.remove() on the pane list). Previously only the local `wrapped`
-            // copy was trimmed — evicted elements returned on every subsequent fire and
-            // GlobalWindows+evictor (countWindow(size, slide)) grew without bound.
+            // Eviction must physically shrink the window state (Flink's
+            // iterator.remove() on the pane list). Trimming only the local `wrapped`
+            // copy would let evicted elements return on every subsequent fire and
+            // GlobalWindows+evictor (countWindow(size, slide)) grow without bound.
             writeBackEvictedWindow(key, stateWindow, wrapped);
         } else {
             userFunction.process(
@@ -1016,15 +1008,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
 
         if (accumulationMode == AccumulationMode.DISCARDING) {
-            // AR-19 (顺手修复, recorded in plan 1326-2): DISCARDING under a merging
+            // DISCARDING under a merging
             // assigner must clear the STATE window namespace (where contents live),
-            // not the actual window (previously a silent no-op clear).
+            // not the actual window (a clear on the actual window would be a silent no-op).
             clearWindowContents(key, window, stateWindow);
         }
     }
 
     /**
-     * AR-2: writes the surviving elements (post-evictAfter) back to the window-contents
+     * Writes the surviving elements (post-evictAfter) back to the window-contents
      * state and trims the element-timestamps side store in lockstep so index alignment
      * between the two survives eviction.
      */
@@ -1125,7 +1117,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * Serializable snapshot DTO of the pane-tracking map (G48). Only TimeWindow-scoped
+     * Serializable snapshot DTO of the pane-tracking map. Only TimeWindow-scoped
      * entries are stored (see {@link #isTimeWindowPaneKey}).
      *
      * <p>The JSON checkpoint persist path ({@code CheckpointSerDe}) converts this DTO
@@ -1356,10 +1348,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                         .param(ARG_DETAIL, "Failed to add element to list window state");
             }
-            // AR-3 (plan 1326-2 Phase 1): the descriptor (internal-backend) path
-            // previously never stored element timestamps, so the evictor branch saw
-            // null storedTimestamps and stamped every element with the current
-            // watermark. Store in lockstep with the list append (index-aligned).
+            // The descriptor (internal-backend) path
+            // must store element timestamps in lockstep with the list append
+            // (index-aligned), otherwise the evictor branch sees
+            // null storedTimestamps and stamps every element with the current
+            // watermark.
             storeElementTimestamp(key, window, elementTimestamp);
             return;
         }
@@ -1498,13 +1491,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * AR-4 (plan 1326-2 Phase 1): pane-tracking entries are registered by the ACTUAL
+     * Pane-tracking entries are registered by the ACTUAL
      * window ({@link #computePaneInfo} is called with the window the user function sees),
      * while window contents/timestamps live under the STATE window namespace (differs
-     * after a merging-assigner merge). Both keys are now removed explicitly: previously
-     * this method keyed everything by a single window, so under a merging assigner the
-     * pane entry (registered by actualWindow, deleted by stateWindow) never died and
-     * leaked into every checkpoint.
+     * after a merging-assigner merge). Both keys are therefore removed explicitly:
+     * keying everything by a single window would leave the pane entry (registered by
+     * actualWindow, deleted by stateWindow) alive under a merging assigner, leaking
+     * into every checkpoint.
      */
     private void clearWindowContents(K key, W actualWindow, W stateWindow) {
         String paneKey = paneKey(key, actualWindow);
@@ -1724,304 +1717,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return window.getClass().getName() + "#" + window.toString();
     }
 
-    public class PerWindowKeyedStateStore implements KeyedStateStore {
-        private final IKeyedStateBackend<K> backend;
-        private final String namespace;
-
-        PerWindowKeyedStateStore(IKeyedStateBackend<K> backend, String namespace) {
-            this.backend = backend;
-            this.namespace = namespace;
-        }
-
-        private void setNamespace() {
-            backend.setCurrentNamespace(namespace);
-        }
-
-        @Override
-        public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareValueState<>(namespace, backend.getState(stateProperties), backend);
-        }
-
-        @Override
-        public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareListState<>(namespace, backend.getListState(stateProperties), backend);
-        }
-
-        @Override
-        public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareReducingState<>(namespace, backend.getReducingState(stateProperties), backend);
-        }
-
-        @Override
-        public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-                AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareAggregatingState<>(namespace, backend.getAggregatingState(stateProperties), backend);
-        }
-
-        @Override
-        public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareMapState<>(namespace, backend.getMapState(stateProperties), backend);
-        }
-    }
-
-    public class GlobalKeyedStateStore implements KeyedStateStore {
-        private final IKeyedStateBackend<K> backend;
-
-        GlobalKeyedStateStore(IKeyedStateBackend<K> backend) {
-            this.backend = backend;
-        }
-
-        private void setNamespace() {
-            backend.setCurrentNamespace(IKeyedStateBackend.DEFAULT_NAMESPACE);
-        }
-
-        @Override
-        public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareValueState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getState(stateProperties), backend);
-        }
-
-        @Override
-        public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareListState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getListState(stateProperties), backend);
-        }
-
-        @Override
-        public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareReducingState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getReducingState(stateProperties), backend);
-        }
-
-        @Override
-        public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-                AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareAggregatingState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getAggregatingState(stateProperties), backend);
-        }
-
-        @Override
-        public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
-            setNamespace();
-            return new NamespaceAwareMapState<>(IKeyedStateBackend.DEFAULT_NAMESPACE, backend.getMapState(stateProperties), backend);
-        }
-    }
-
-    private static class NamespaceAwareValueState<T> implements ValueState<T> {
-        private final String namespace;
-        private final ValueState<T> delegate;
-        private final IKeyedStateBackend<?> backend;
-
-        NamespaceAwareValueState(String namespace, ValueState<T> delegate, IKeyedStateBackend<?> backend) {
-            this.namespace = namespace;
-            this.delegate = delegate;
-            this.backend = backend;
-        }
-
-        @Override
-        public T value() throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            return delegate.value();
-        }
-
-        @Override
-        public void update(T value) throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            delegate.update(value);
-        }
-
-        @Override
-        public void clear() {
-            backend.setCurrentNamespace(namespace);
-            delegate.clear();
-        }
-    }
-
-    private static class NamespaceAwareListState<T> implements ListState<T> {
-        private final String namespace;
-        private final ListState<T> delegate;
-        private final IKeyedStateBackend<?> backend;
-
-        NamespaceAwareListState(String namespace, ListState<T> delegate, IKeyedStateBackend<?> backend) {
-            this.namespace = namespace;
-            this.delegate = delegate;
-            this.backend = backend;
-        }
-
-        @Override
-        public Iterable<T> get() throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            return delegate.get();
-        }
-
-        @Override
-        public void add(T value) throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            delegate.add(value);
-        }
-
-        @Override
-        public void update(Iterable<T> values) throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            delegate.update(values);
-        }
-
-        @Override
-        public void addAll(Iterable<T> values) throws java.io.IOException {
-            backend.setCurrentNamespace(namespace);
-            delegate.addAll(values);
-        }
-
-        @Override
-        public void clear() {
-            backend.setCurrentNamespace(namespace);
-            delegate.clear();
-        }
-    }
-
-    private static class NamespaceAwareReducingState<T> implements ReducingState<T> {
-        private final String namespace;
-        private final ReducingState<T> delegate;
-        private final IKeyedStateBackend<?> backend;
-
-        NamespaceAwareReducingState(String namespace, ReducingState<T> delegate, IKeyedStateBackend<?> backend) {
-            this.namespace = namespace;
-            this.delegate = delegate;
-            this.backend = backend;
-        }
-
-        @Override
-        public T get() throws Exception {
-            backend.setCurrentNamespace(namespace);
-            return delegate.get();
-        }
-
-        @Override
-        public void add(T value) throws Exception {
-            backend.setCurrentNamespace(namespace);
-            delegate.add(value);
-        }
-
-        @Override
-        public void clear() {
-            backend.setCurrentNamespace(namespace);
-            delegate.clear();
-        }
-    }
-
-    private static class NamespaceAwareAggregatingState<IN, OUT> implements AggregatingState<IN, OUT> {
-        private final String namespace;
-        private final AggregatingState<IN, OUT> delegate;
-        private final IKeyedStateBackend<?> backend;
-
-        NamespaceAwareAggregatingState(String namespace, AggregatingState<IN, OUT> delegate, IKeyedStateBackend<?> backend) {
-            this.namespace = namespace;
-            this.delegate = delegate;
-            this.backend = backend;
-        }
-
-        @Override
-        public OUT get() throws Exception {
-            backend.setCurrentNamespace(namespace);
-            return delegate.get();
-        }
-
-        @Override
-        public void add(IN value) throws Exception {
-            backend.setCurrentNamespace(namespace);
-            delegate.add(value);
-        }
-
-        @Override
-        public void clear() {
-            backend.setCurrentNamespace(namespace);
-            delegate.clear();
-        }
-    }
-
-    private static class NamespaceAwareMapState<UK, UV> implements MapState<UK, UV> {
-        private final String namespace;
-        private final MapState<UK, UV> delegate;
-        private final IKeyedStateBackend<?> backend;
-
-        NamespaceAwareMapState(String namespace, MapState<UK, UV> delegate, IKeyedStateBackend<?> backend) {
-            this.namespace = namespace;
-            this.delegate = delegate;
-            this.backend = backend;
-        }
-
-        @Override
-        public UV get(UK key) {
-            backend.setCurrentNamespace(namespace);
-            return delegate.get(key);
-        }
-
-        @Override
-        public void put(UK key, UV value) {
-            backend.setCurrentNamespace(namespace);
-            delegate.put(key, value);
-        }
-
-        @Override
-        public void putAll(Map<UK, UV> map) {
-            backend.setCurrentNamespace(namespace);
-            delegate.putAll(map);
-        }
-
-        @Override
-        public void remove(UK key) {
-            backend.setCurrentNamespace(namespace);
-            delegate.remove(key);
-        }
-
-        @Override
-        public boolean contains(UK key) {
-            backend.setCurrentNamespace(namespace);
-            return delegate.contains(key);
-        }
-
-        @Override
-        public Iterable<Map.Entry<UK, UV>> entries() {
-            backend.setCurrentNamespace(namespace);
-            return delegate.entries();
-        }
-
-        @Override
-        public Iterable<UK> keys() {
-            backend.setCurrentNamespace(namespace);
-            return delegate.keys();
-        }
-
-        @Override
-        public Iterable<UV> values() {
-            backend.setCurrentNamespace(namespace);
-            return delegate.values();
-        }
-
-        @Override
-        public java.util.Iterator<Map.Entry<UK, UV>> iterator() {
-            backend.setCurrentNamespace(namespace);
-            return delegate.iterator();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            backend.setCurrentNamespace(namespace);
-            return delegate.isEmpty();
-        }
-
-        @Override
-        public void clear() {
-            backend.setCurrentNamespace(namespace);
-            delegate.clear();
-        }
-    }
-
     /**
      * A utility class for handling {@code ProcessWindowFunction} invocations. This can be reused by
      * setting the {@code key} and {@code window} fields. No internal state must be kept in the
@@ -2060,7 +1755,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (backend == null) {
                 return null;
             }
-            return new PerWindowKeyedStateStore(backend, windowNamespace(window));
+            return new PerWindowKeyedStateStore<>(backend, windowNamespace(window));
         }
 
         @Override
@@ -2069,7 +1764,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (backend == null) {
                 return null;
             }
-            return new GlobalKeyedStateStore(backend);
+            return new GlobalKeyedStateStore<>(backend);
         }
 
         @Override
@@ -2259,7 +1954,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * AR-4 (plan 1326-2 Phase 1): test accessor for the pane-tracking map. The returned
+     * Test accessor for the pane-tracking map. The returned
      * map is the live instance — assertions should only read it.
      */
     Map<String, PaneTrackingInfo> paneTrackingForTest() {
@@ -2267,7 +1962,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * AR-2/AR-3 (plan 1326-2 Phase 1): test accessor for the descriptor-path list
+     * Test accessor for the descriptor-path list
      * window state (boundedness / eviction write-back assertions).
      */
     InternalListState<K, W, IN> newListWindowStateForTest() {
@@ -2275,7 +1970,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
-     * AR-3 (plan 1326-2 Phase 1): test accessor for the element-timestamps side store.
+     * Test accessor for the element-timestamps side store.
      */
     MapState<String, List<Long>> elementTimestampsStateForTest() {
         return elementTimestampsState;

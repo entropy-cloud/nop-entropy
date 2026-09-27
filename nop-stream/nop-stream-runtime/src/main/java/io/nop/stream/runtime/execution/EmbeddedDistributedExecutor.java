@@ -45,6 +45,7 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.taskmanager.TaskManager;
+import io.nop.stream.runtime.taskmanager.TaskResult;
 import io.nop.stream.runtime.transport.DataPlaneMessageServiceAdapter;
 import io.nop.stream.runtime.transport.IDataPlaneWireCodec;
 import io.nop.stream.runtime.transport.IdentityWireCodec;
@@ -57,7 +58,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
     private final IMessageService messageService;
     private final int defaultNodeCount;
     private final long completionTimeoutSeconds;
-    // Plan 358 Fix-2 test observation hook (package-private; same-package tests only).
+    // Test observation hook (package-private; same-package tests only).
     List<TaskManager> lastCreatedTaskManagers;
     private final INamingService namingService;
 
@@ -140,7 +141,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         Map<String, IStreamTaskRpcService> taskRpcServices = new LinkedHashMap<>();
         List<TaskManager> taskManagers = createTaskManagers(jobId, fencingEpoch, nodeCount,
                 clusterRegistry, taskRpcServices);
-        // Plan 358 Fix-2 test observation hook (package-private): lets tests in
+        // Test observation hook (package-private): lets tests in
         // this package assert that a startup failure tears down started nodes.
         this.lastCreatedTaskManagers = taskManagers;
         List<StreamNodeAutoRegistration> discoveryRegistrations = new ArrayList<>(nodeCount);
@@ -409,7 +410,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
     private void checkTaskResults(List<TaskManager> taskManagers) {
         List<Throwable> failures = new ArrayList<>();
         for (TaskManager tm : taskManagers) {
-            for (TaskManager.TaskResult result : tm.getCompletedTaskResults().values()) {
+            for (TaskResult result : tm.getCompletedTaskResults().values()) {
                 if (!result.isSuccess() && !result.isCanceled() && result.getError() != null) {
                     failures.add(result.getError());
                 }

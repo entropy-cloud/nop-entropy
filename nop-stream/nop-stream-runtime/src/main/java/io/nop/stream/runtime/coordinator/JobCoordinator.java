@@ -1327,7 +1327,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         if (cause == RecoveryCause.TASK_STALL) {
             lastStallRecoveryAt = CoreMetrics.currentTimeMillis();
         }
-        globalRecovery(cause == RecoveryCause.TASK_STALL);
+        globalRecovery(cause);
     }
 
     /**
@@ -1339,6 +1339,27 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public enum RecoveryCause {
         NODE_FAILURE, TASK_STALL, OTHER
+    }
+
+    /**
+     * Why the fencing epoch is being rotated. Selects whether the
+     * latest-completed-checkpoint view is rebuilt from durable storage:
+     * a leadership grant on a fresh coordinator JVM must reload it, while a
+     * same-leader recovery keeps the already-alive in-memory view.
+     */
+    private enum FencingRotationCause {
+        SAME_LEADER_RECOVERY, LEADERSHIP_GRANT
+    }
+
+    /**
+     * What happens to the job after a terminal-savepoint form completes.
+     * {@link #TERMINATES_JOB} fires the JOB_FINISHED event, transitions health
+     * to finished and stops the job (DRAIN / SUSPEND); {@link #KEEPS_JOB_RUNNING}
+     * only exports the savepoint and leaves the job running
+     * (EXPORT_SAVEPOINT).
+     */
+    private enum SavepointScope {
+        TERMINATES_JOB, KEEPS_JOB_RUNNING
     }
 
     /**
@@ -1365,18 +1386,28 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * (e.g. {@code TestJobCoordinatorRestartStrategy}, {@code TestFencingEpochUnification}).
      */
     public void globalRecovery() {
-        globalRecovery(false);
+        globalRecovery(RecoveryCause.OTHER);
+    }
+
+    /**
+     * Legacy boolean form of {@link #globalRecovery(RecoveryCause)}.
+     * {@code stallTriggered=true} maps to {@link RecoveryCause#TASK_STALL};
+     * {@code false} maps to {@link RecoveryCause#OTHER} (real-failure budget).
+     * Production callers should prefer the cause-typed overload.
+     */
+    public void globalRecovery(boolean stallTriggered) {
+        globalRecovery(stallTriggered ? RecoveryCause.TASK_STALL : RecoveryCause.OTHER);
     }
 
     /**
      * Budget-split form of {@link #globalRecovery()}. A
-     * stall-triggered recovery ({@code stallTriggered=true}) draws from the
+     * stall-triggered recovery ({@link RecoveryCause#TASK_STALL}) draws from the
      * separate stall budget instead of the real-failure budget; everything
      * else (epoch rotation, pending-checkpoint abort, reassignment, fencing)
      * is IDENTICAL for both causes — the fencing invariant holds regardless
      * of why the recovery fires.
      */
-    public void globalRecovery(boolean stallTriggered) {
+    public void globalRecovery(RecoveryCause cause) {
         // Recovery meter + health transition + event at
         // the real recovery path. The sequence number is the TOTAL recovery
         // count (real + stall) so events/health stay monotonic across pools.
@@ -1394,6 +1425,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // WHICH counter depends on the trigger cause —
             // stall-triggered recoveries draw from the stall budget and can
             // never consume the real-failure budget (and vice versa).
+            boolean stallTriggered = (cause == RecoveryCause.TASK_STALL);
             int newCount;
             if (stallTriggered) {
                 newCount = stallRestartCount.incrementAndGet();
@@ -1435,7 +1467,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // Same-leader recovery does NOT rebuild from storage — the in-memory
             // latestCompletedCheckpoint survives within the same JVM. Only the
             // leadership-grant path (activateAsLeader) rebuilds from storage.
-            rotateFencingEpochCoreLocked(newEpoch, false);
+            rotateFencingEpochCoreLocked(newEpoch, FencingRotationCause.SAME_LEADER_RECOVERY);
 
             // Abort every checkpoint that
             // is still pending under the dead generation. Its barrier/in-flight
@@ -1522,8 +1554,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * performs the RPC fan-out via {@link AssignmentPlanner#executeAssignmentFanOut} after releasing
      * the lock, so blocking IO never occurs inside the recovery critical section.
      *
-     * <p><strong>Failover-safe rebuild</strong>: when {@code restoreFromStorage}
-     * is {@code true} (the {@link #activateAsLeader} path) AND the in-memory
+     * <p><strong>Failover-safe rebuild</strong>: when {@code cause} is
+     * {@link FencingRotationCause#LEADERSHIP_GRANT} AND the in-memory
      * {@code latestCompletedCheckpoint} is {@code null} (the fresh-coordinator-JVM case),
      * this method calls {@link CheckpointCoordinator#restoreFromCheckpoint()} to reload
      * the latest durable epoch from {@link ICheckpointStorage}. A storage failure during
@@ -1531,17 +1563,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * <strong>fails loud</strong> (throws {@link StreamException}) rather than silently
      * continuing (no silent no-op).
      *
-     * <p>When {@code restoreFromStorage} is {@code false} (the {@link #globalRecovery()}
-     * same-leader path), the rebuild is skipped: the in-memory view is already alive and
+     * <p>When {@code cause} is {@link FencingRotationCause#SAME_LEADER_RECOVERY},
+     * the rebuild is skipped: the in-memory view is already alive and
      * an extra DB round-trip per recovery is unnecessary (the field survives same-leader
      * restarts within one JVM).
      *
-     * @param newEpoch           the rotated fencing epoch
-     * @param restoreFromStorage {@code true} on leadership grant (rebuild from storage
-     *                           when in-memory view is empty); {@code false} on
-     *                           same-leader recovery
+     * @param newEpoch the rotated fencing epoch
+     * @param cause    {@link FencingRotationCause#LEADERSHIP_GRANT} on leadership grant
+     *                 (rebuild from storage when in-memory view is empty);
+     *                 {@link FencingRotationCause#SAME_LEADER_RECOVERY} on
+     *                 same-leader recovery
      */
-    private void rotateFencingEpochCoreLocked(long newEpoch, boolean restoreFromStorage) {
+    private void rotateFencingEpochCoreLocked(long newEpoch, FencingRotationCause cause) {
         fencingEpoch.set(newEpoch);
 
         clusterRegistry.registerCoordinator(jobId, coordinatorId, newEpoch);
@@ -1558,7 +1591,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             rpc.updateFencingToken(newEpoch);
         }
 
-        if (restoreFromStorage) {
+        if (cause == FencingRotationCause.LEADERSHIP_GRANT) {
             // Failover-safe rebuild. On a fresh coordinator JVM (leadership
             // grant), the in-memory latestCompletedCheckpoint is null. Reload it
             // from durable storage so the coordinator can resume from the latest
@@ -1600,8 +1633,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             }
         }
 
-        LOG.info("Fencing epoch rotated for job {} (epoch={}, restoreFromStorage={})",
-                jobId, newEpoch, restoreFromStorage);
+        LOG.info("Fencing epoch rotated for job {} (epoch={}, cause={})",
+                jobId, newEpoch, cause);
     }
 
     /**
@@ -1686,7 +1719,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // On leadership grant, rebuild the latestCompletedCheckpoint view
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
-            rotateFencingEpochCoreLocked(token, true);
+            rotateFencingEpochCoreLocked(token, FencingRotationCause.LEADERSHIP_GRANT);
             // Seed the per-subtask attempt counters
             // from the registry's persisted attempt history BEFORE materializing the
             // assignments, so the fresh coordinator's re-issued attempt numbers
@@ -1878,17 +1911,17 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // CheckpointType per checkpoint-design.md §7.3
         // (TERMINAL_SAVEPOINT for DRAIN/SUSPEND).
         terminateWithTerminalSavepoint("DRAIN", CheckpointType.TERMINAL_SAVEPOINT,
-                "final checkpoint", "drain", true);
+                "final checkpoint", "drain", SavepointScope.TERMINATES_JOB);
     }
 
     private void terminateSuspend() {
         terminateWithTerminalSavepoint("SUSPEND", CheckpointType.TERMINAL_SAVEPOINT,
-                "savepoint", "suspend", true);
+                "savepoint", "suspend", SavepointScope.TERMINATES_JOB);
     }
 
     private void terminateExportSavepoint() {
         terminateWithTerminalSavepoint("EXPORT_SAVEPOINT", CheckpointType.EXPORTED_SAVEPOINT,
-                "export savepoint", null, false);
+                "export savepoint", null, SavepointScope.KEEPS_JOB_RUNNING);
     }
 
     /**
@@ -1904,12 +1937,14 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * @param checkpointType  the terminal checkpoint type to trigger
      * @param snapshotNoun    log noun ("final checkpoint" / "savepoint" / "export savepoint")
      * @param finishedPayload JOB_FINISHED event payload; {@code null} = no event (export)
-     * @param terminal        true = health.onFinished + JOB_FINISHED + stop();
-     *                        false = job keeps running after the export
+     * @param scope           {@link SavepointScope#TERMINATES_JOB} = health.onFinished +
+     *                        JOB_FINISHED + stop(); {@link SavepointScope#KEEPS_JOB_RUNNING}
+     *                        = job keeps running after the export
      */
     private void terminateWithTerminalSavepoint(String mode, CheckpointType checkpointType,
                                                 String snapshotNoun, String finishedPayload,
-                                                boolean terminal) {
+                                                SavepointScope scope) {
+        boolean terminal = (scope == SavepointScope.TERMINATES_JOB);
         LOG.info("{}: triggering {} for job {}", mode, snapshotNoun, jobId);
         try {
             PendingCheckpoint pending = checkpointCoordinator.tryTriggerPendingCheckpoint(checkpointType);

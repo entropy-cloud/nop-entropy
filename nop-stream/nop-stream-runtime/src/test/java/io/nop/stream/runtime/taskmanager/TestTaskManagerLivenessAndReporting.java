@@ -273,7 +273,7 @@ class TestTaskManagerLivenessAndReporting {
         // invokable, then call cancel() and inspect the mailbox flag — sidestepping the
         // full TaskManager.receiveAssignment lifecycle (which would have the task
         // thread finish too quickly for a blocking-source-based test).
-        TaskManager.RunningTask rt = taskManager.new RunningTask(
+        RunningTask rt = new RunningTask(taskManager,
                 "job-1", "v-mbx", 0, 1L, "att-1", 1);
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
 
@@ -296,7 +296,7 @@ class TestTaskManagerLivenessAndReporting {
     void cancelWithoutInvokableDoesNotThrow() {
         // G58 null-check defense: cancel arrives before invokable is installed.
         // RunningTask.cancel() must not throw NPE.
-        TaskManager.RunningTask rt = taskManager.new RunningTask(
+        RunningTask rt = new RunningTask(taskManager,
                 "job-1", "v-noop", 0, 1L, "att-1", 1);
         // invokable field is still null
         assertDoesNotThrow(() -> rt.cancel());

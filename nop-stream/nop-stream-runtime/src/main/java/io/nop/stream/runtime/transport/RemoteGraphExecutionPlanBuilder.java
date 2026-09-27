@@ -20,12 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.message.IMessageService;
-import io.nop.commons.partition.IPartitioner;
 import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.execution.EdgeAssembly;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.InputGate;
-import io.nop.stream.core.execution.PartitionRouter;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
@@ -128,19 +127,52 @@ public class RemoteGraphExecutionPlanBuilder {
                                               boolean barrierAlignment,
                                               java.util.Set<String> subscribedTargetKeys) {
         // --- 1. Build adjacency maps ---
+        EdgeAdjacency adjacency = buildEdgeAdjacency(jobGraph);
+
+        // --- 2. Resolve parallelism ---
+        Map<String, Integer> parallelismMap = resolveParallelism(jobGraph, deploymentPlan);
+
+        // --- 3. Allocate partition matrix per edge ---
+        EdgeTransport transport = allocateEdgePartitions(jobGraph, parallelismMap, subscribedTargetKeys);
+
+        // --- 4. Build subtasks ---
+        SubtaskAssembly assembly = assembleSubtasks(jobGraph, parallelismMap, adjacency,
+                transport, deploymentPlan, barrierAlignment);
+
+        List<String> sorted = topologicalSort(jobGraph);
+
+        return GraphExecutionPlan.create(sorted, assembly.executionVertices(),
+                assembly.invokables(), assembly.subtasksMap());
+    }
+
+    /** Adjacency maps of the job graph: per-vertex outgoing and incoming edges. */
+    private record EdgeAdjacency(Map<String, List<JobEdge>> outgoingEdges,
+                                 Map<String, List<JobEdge>> incomingEdges) {
+    }
+
+    private static EdgeAdjacency buildEdgeAdjacency(JobGraph jobGraph) {
         Map<String, List<JobEdge>> outgoingEdges = new HashMap<>();
         Map<String, List<JobEdge>> incomingEdges = new HashMap<>();
         for (JobEdge edge : jobGraph.getEdges()) {
             outgoingEdges.computeIfAbsent(edge.getSourceVertex(), k -> new ArrayList<>()).add(edge);
             incomingEdges.computeIfAbsent(edge.getTargetVertex(), k -> new ArrayList<>()).add(edge);
         }
+        return new EdgeAdjacency(outgoingEdges, incomingEdges);
+    }
 
-        // --- 2. Resolve parallelism ---
-        Map<String, Integer> parallelismMap = resolveParallelism(jobGraph, deploymentPlan);
+    /** Per-edge transport: producer partition matrix + consumer channel list. */
+    private record EdgeTransport(Map<JobEdge, ResultPartition[][]> partitionMatrix,
+                                 Map<JobEdge, List<RemoteInputChannel>> inputChannels) {
+    }
 
-        // --- 3. Allocate partition matrix per edge ---
-        // We use RemoteResultPartition for all producer-side partitions
-        // and RemoteInputChannel for all consumer-side channels
+    /**
+     * Allocates the partition matrix per edge. We use
+     * {@link RemoteResultPartition} for all producer-side partitions
+     * and {@link RemoteInputChannel} for all consumer-side channels.
+     */
+    private EdgeTransport allocateEdgePartitions(JobGraph jobGraph,
+                                                 Map<String, Integer> parallelismMap,
+                                                 java.util.Set<String> subscribedTargetKeys) {
         String jobId = jobGraph.getJobName();
 
         Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
@@ -165,7 +197,7 @@ public class RemoteGraphExecutionPlanBuilder {
                             epochId);
 
                     // Consumer side: RemoteInputChannel (created per target subtask per source).
-                    // Items 28+31 (D1): subscription scope — the channel is always
+                    // Subscription scope — the channel is always
                     // CONSTRUCTED (full plan structure preserved for checkpoint /
                     // rescale consumers), but only subscribes when its target
                     // subtask is in the subscribed set (null set = subscribe all).
@@ -176,7 +208,7 @@ public class RemoteGraphExecutionPlanBuilder {
                             DEFAULT_CHANNEL_QUEUE_CAPACITY, 0L,
                             RemoteInputChannel.DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS, subscribe);
                     if (subscribe) {
-                        // Item 32 (D2b): queue-depth gauge ONLY for channels that
+                        // Queue-depth gauge ONLY for channels that
                         // activate their subscription — the coordinator form
                         // (zero-subscription) and construct-only mirror channels
                         // must not produce permanently-zero gauges.
@@ -190,7 +222,21 @@ public class RemoteGraphExecutionPlanBuilder {
             edgeInputChannels.put(edge, channels);
         }
 
-        // --- 4. Build subtasks ---
+        return new EdgeTransport(edgePartitionMatrix, edgeInputChannels);
+    }
+
+    /** The three per-vertex maps a {@link GraphExecutionPlan} is created from. */
+    private record SubtaskAssembly(Map<String, JobVertex> executionVertices,
+                                   Map<String, StreamTaskInvokable> invokables,
+                                   Map<String, List<Subtask>> subtasksMap) {
+    }
+
+    private static SubtaskAssembly assembleSubtasks(JobGraph jobGraph,
+                                                    Map<String, Integer> parallelismMap,
+                                                    EdgeAdjacency adjacency,
+                                                    EdgeTransport transport,
+                                                    DeploymentPlan deploymentPlan,
+                                                    boolean barrierAlignment) {
         Map<String, JobVertex> executionVertices = new LinkedHashMap<>();
         Map<String, StreamTaskInvokable> invokables = new LinkedHashMap<>();
         Map<String, List<Subtask>> subtasksMap = new LinkedHashMap<>();
@@ -200,8 +246,8 @@ public class RemoteGraphExecutionPlanBuilder {
             JobVertex original = entry.getValue();
             int parallelism = parallelismMap.getOrDefault(vertexId, 1);
 
-            List<JobEdge> outEdges = outgoingEdges.getOrDefault(vertexId, Collections.emptyList());
-            List<JobEdge> inEdges = incomingEdges.getOrDefault(vertexId, Collections.emptyList());
+            List<JobEdge> outEdges = adjacency.outgoingEdges().getOrDefault(vertexId, Collections.emptyList());
+            List<JobEdge> inEdges = adjacency.incomingEdges().getOrDefault(vertexId, Collections.emptyList());
 
             List<Subtask> vertexSubtasks = new ArrayList<>(parallelism);
 
@@ -210,101 +256,21 @@ public class RemoteGraphExecutionPlanBuilder {
                         ? original.getOperatorChains().get(0)
                         : original.getOperatorChains().get(0).deepCopy(taskIndex);
 
-                RecordWriter<Object> recordWriter = null;
-                List<RecordWriter<Object>> fanOutWriters = null;
-                InputGate inputGate = null;
-
-                // Item 14 (composite-scenario distributed defect fix): multi-edge
-                // fan-out MUST use one RecordWriter PER out-edge (mirroring
-                // GraphExecutionPlan.build). The previous implementation lumped
-                // every edge's partitions into ONE writer, so emit() routed each
-                // record to a single partition (FORWARD: always partition 0; with a
-                // key partitioner: hash-picked edge) — downstream edges of a fan-out
-                // vertex silently starved (only watermarks broadcast to all
-                // partitions), which the S1 scenario exposed as missing CEP chains.
-                if (!outEdges.isEmpty()) {
-                    if (outEdges.size() == 1) {
-                        List<ResultPartition> writerPartitions = new ArrayList<>();
-                        for (JobEdge edge : outEdges) {
-                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                            if (matrix != null) {
-                                for (int t = 0; t < matrix[taskIndex].length; t++) {
-                                    writerPartitions.add(matrix[taskIndex][t]);
-                                }
-                            }
-                        }
-                        if (!writerPartitions.isEmpty()) {
-                            JobEdge edge = outEdges.get(0);
-                            PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
-                            IPartitioner<?> partitioner = edge.getPartitioner();
-                            EdgeConfig writerConfig = resolveEdgeConfig(edge, deploymentPlan);
-
-                            PartitionRouter router = PartitionRouter.create(
-                                    policy, writerPartitions.size(), partitioner, taskIndex);
-
-                            recordWriter = new RecordWriter<>(
-                                    writerPartitions.toArray(new ResultPartition[0]),
-                                    (IPartitioner<Object>) partitioner, writerConfig, router);
-                        }
-                    } else {
-                        fanOutWriters = new ArrayList<>();
-                        for (JobEdge edge : outEdges) {
-                            List<ResultPartition> edgePartitions = new ArrayList<>();
-                            ResultPartition[][] matrix = edgePartitionMatrix.get(edge);
-                            if (matrix != null) {
-                                for (int t = 0; t < matrix[taskIndex].length; t++) {
-                                    edgePartitions.add(matrix[taskIndex][t]);
-                                }
-                            }
-                            if (!edgePartitions.isEmpty()) {
-                                PartitionPolicy policy = resolvePartitionPolicy(edge, deploymentPlan);
-                                IPartitioner<?> partitioner = edge.getPartitioner();
-                                EdgeConfig edgeConfig = resolveEdgeConfig(edge, deploymentPlan);
-                                PartitionRouter router = PartitionRouter.create(
-                                        policy, edgePartitions.size(), partitioner, taskIndex);
-                                fanOutWriters.add(new RecordWriter<>(
-                                        edgePartitions.toArray(new ResultPartition[0]),
-                                        (IPartitioner<Object>) partitioner, edgeConfig, router));
-                            }
-                        }
-                    }
-                }
-
-                // Build InputGate using RemoteInputChannels
-                if (!inEdges.isEmpty()) {
-                    List<InputChannel> channels = new ArrayList<>();
-                    for (JobEdge edge : inEdges) {
-                        int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
-                        List<RemoteInputChannel> edgeChannels = edgeInputChannels.get(edge);
-                        if (edgeChannels != null) {
-                            // This target subtask (taskIndex) receives from all source subtasks
-                            // Channels are stored as [src0tgt0, src0tgt1, ..., src1tgt0, ...]
-                            // We need channels where targetIndex == taskIndex
-                            int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
-                            for (int s = 0; s < srcP; s++) {
-                                int idx = s * tgtP + taskIndex;
-                                if (idx < edgeChannels.size()) {
-                                    channels.add(edgeChannels.get(idx));
-                                }
-                            }
-                        }
-                    }
-
-                    if (!channels.isEmpty()) {
-                        EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
-                        inputGate = new InputGate(channels, gateConfig, barrierAlignment);
-                    }
-                }
+                RemoteWriters writers = buildRemoteOutputWriters(
+                        outEdges, taskIndex, transport.partitionMatrix(), deploymentPlan);
+                InputGate inputGate = buildRemoteInputGate(
+                        inEdges, taskIndex, parallelismMap, transport.inputChannels(),
+                        deploymentPlan, barrierAlignment);
 
                 StreamTaskInvokable invokable;
-                if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+                if (writers.fanOutWriters() != null && !writers.fanOutWriters().isEmpty()) {
                     if (inputGate != null) {
-                        invokable = new StreamTaskInvokable(chain, fanOutWriters, inputGate);
+                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters(), inputGate);
                     } else {
-                        invokable = new StreamTaskInvokable(chain, fanOutWriters);
+                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters());
                     }
-                } else if (recordWriter != null || inputGate != null) {
-                    invokable = new StreamTaskInvokable(chain, recordWriter, inputGate);
+                } else if (writers.singleWriter() != null || inputGate != null) {
+                    invokable = new StreamTaskInvokable(chain, writers.singleWriter(), inputGate);
                 } else {
                     invokable = new StreamTaskInvokable(chain);
                 }
@@ -328,13 +294,105 @@ public class RemoteGraphExecutionPlanBuilder {
             subtasksMap.put(vertexId, vertexSubtasks);
         }
 
-        List<String> sorted = topologicalSort(jobGraph);
+        return new SubtaskAssembly(executionVertices, invokables, subtasksMap);
+    }
 
-        return GraphExecutionPlan.create(sorted, executionVertices, invokables, subtasksMap);
+    /** Per-subtask output writers: either a single writer or a per-edge fan-out list. */
+    private record RemoteWriters(RecordWriter<Object> singleWriter,
+                                 List<RecordWriter<Object>> fanOutWriters) {
+    }
+
+    /**
+     * Builds the output writers for one subtask from its outgoing edges.
+     * Multi-edge fan-out MUST use one RecordWriter PER out-edge (mirroring
+     * GraphExecutionPlan.build): lumping every edge's partitions into ONE
+     * writer routes each record to a single partition (FORWARD: always
+     * partition 0; with a key partitioner: hash-picked edge) — downstream
+     * edges of a fan-out vertex silently starve (only watermarks broadcast to
+     * all partitions).
+     *
+     * <p>Delegates the per-edge writer assembly to the shared
+     * {@link EdgeAssembly#createWriterForEdge}, passing THIS builder's
+     * {@code resolvePartitionPolicy} as the injected policy resolver — the
+     * DELIBERATE DIVERGENCE between local and remote policy resolution is
+     * preserved bit-for-bit (see the divergence note on resolvePartitionPolicy).
+     */
+    private static RemoteWriters buildRemoteOutputWriters(List<JobEdge> outEdges,
+                                                          int taskIndex,
+                                                          Map<JobEdge, ResultPartition[][]> edgePartitionMatrix,
+                                                          DeploymentPlan deploymentPlan) {
+        RecordWriter<Object> recordWriter = null;
+        List<RecordWriter<Object>> fanOutWriters = null;
+
+        if (!outEdges.isEmpty()) {
+            if (outEdges.size() == 1) {
+                JobEdge edge = outEdges.get(0);
+                recordWriter = EdgeAssembly.createWriterForEdge(edge,
+                        edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
+                        RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
+            } else {
+                fanOutWriters = new ArrayList<>();
+                for (JobEdge edge : outEdges) {
+                    RecordWriter<Object> writer = EdgeAssembly.createWriterForEdge(edge,
+                            edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
+                            RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
+                    if (writer != null) {
+                        fanOutWriters.add(writer);
+                    }
+                }
+            }
+        }
+
+        return new RemoteWriters(recordWriter, fanOutWriters);
+    }
+
+    private static InputGate buildRemoteInputGate(List<JobEdge> inEdges,
+                                                  int taskIndex,
+                                                  Map<String, Integer> parallelismMap,
+                                                  Map<JobEdge, List<RemoteInputChannel>> edgeInputChannels,
+                                                  DeploymentPlan deploymentPlan,
+                                                  boolean barrierAlignment) {
+        InputGate inputGate = null;
+        // Build InputGate using RemoteInputChannels
+        if (!inEdges.isEmpty()) {
+            List<InputChannel> channels = new ArrayList<>();
+            for (JobEdge edge : inEdges) {
+                int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
+                List<RemoteInputChannel> edgeChannels = edgeInputChannels.get(edge);
+                if (edgeChannels != null) {
+                    // This target subtask (taskIndex) receives from all source subtasks
+                    // Channels are stored as [src0tgt0, src0tgt1, ..., src1tgt0, ...]
+                    // We need channels where targetIndex == taskIndex
+                    int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
+                    for (int s = 0; s < srcP; s++) {
+                        int idx = s * tgtP + taskIndex;
+                        if (idx < edgeChannels.size()) {
+                            channels.add(edgeChannels.get(idx));
+                        }
+                    }
+                }
+            }
+
+            if (!channels.isEmpty()) {
+                EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
+                inputGate = new InputGate(channels, gateConfig,
+                        InputGate.alignmentModeFor(barrierAlignment));
+            }
+        }
+        return inputGate;
     }
 
     // --- Helper methods (same logic as GraphExecutionPlan) ---
 
+    /**
+     * DELIBERATE DIVERGENCE from the local builder ({@link GraphExecutionPlan#resolveParallelism},
+     * nop-stream-core): the local path honors {@code JobVertex#isParallelismLocked()}
+     * (forced back to parallelism 1); THIS path ignores the lock and always uses the
+     * DeploymentPlan/vertex parallelism. Unifying the two is a behavior change on the
+     * remote plan-assembly semantics and is adjudicated separately (plan 2278 Deferred:
+     * "GraphExecutionPlan/RemoteBuilder 语义分歧统一") — do NOT "fix" this asymmetry
+     * as drive-by cleanup.
+     */
     private static Map<String, Integer> resolveParallelism(JobGraph jobGraph,
                                                            DeploymentPlan deploymentPlan) {
         Map<String, Integer> result = new LinkedHashMap<>();
@@ -359,6 +417,16 @@ public class RemoteGraphExecutionPlanBuilder {
         return result;
     }
 
+    /**
+     * DELIBERATE DIVERGENCE from the local builder
+     * ({@code GraphExecutionPlan#resolvePartitionPolicy}, nop-stream-core): the local
+     * path resolves the policy declaratively via {@code PartitionPolicyAware} and FAILS
+     * FAST for a non-null partitioner that does not implement it; THIS path falls back
+     * to {@link PartitionPolicy#HASH} for any non-null partitioner and never fails.
+     * Unifying the two is a behavior change on the remote plan-assembly semantics and
+     * is adjudicated separately (plan 2278 Deferred: "GraphExecutionPlan/RemoteBuilder
+     * 语义分歧统一") — do NOT "fix" this asymmetry as drive-by cleanup.
+     */
     private static PartitionPolicy resolvePartitionPolicy(JobEdge edge, DeploymentPlan deploymentPlan) {
         if (deploymentPlan != null && deploymentPlan.getPartitionedPlan() != null) {
             for (PartitionedPlan.EdgePlan edgePlan :
@@ -377,17 +445,23 @@ public class RemoteGraphExecutionPlanBuilder {
 
     // Package-private for the AR-12 topic-sanitization regression test: the edge-config
     // map key keeps its RAW "A->B" form — only the topic produced from it is sanitized.
+    // Thin delegate: the single converged implementation lives in
+    // {@link EdgeAssembly#resolveEdgeConfig} (nop-stream-core); this keeps the
+    // TestRemotePlanTopicLegality direct call site working unchanged.
     static EdgeConfig resolveEdgeConfig(JobEdge edge, DeploymentPlan deploymentPlan) {
-        if (edge.getEdgeConfig() != null) {
-            return edge.getEdgeConfig();
-        }
-        if (deploymentPlan != null) {
-            String edgeKey = edge.getSourceVertex() + "->" + edge.getTargetVertex();
-            return deploymentPlan.getEdgeConfigs().get(edgeKey);
-        }
-        return null;
+        return EdgeAssembly.resolveEdgeConfig(edge, deploymentPlan);
     }
 
+    /**
+     * DELIBERATE DIVERGENCE from the local builder
+     * ({@code GraphExecutionPlan#topologicalSort}, nop-stream-core): the local path
+     * fails fast on a cyclic graph (ERR_STREAM_CYCLIC_JOB_GRAPH); THIS path silently
+     * returns a PARTIAL ordering for the same input (vertices inside a cycle are
+     * omitted). Unifying the two is a behavior change on the remote plan-assembly
+     * semantics and is adjudicated separately (plan 2278 Deferred:
+     * "GraphExecutionPlan/RemoteBuilder 语义分歧统一") — do NOT "fix" this asymmetry
+     * as drive-by cleanup.
+     */
     private static List<String> topologicalSort(JobGraph jobGraph) {
         Map<String, List<String>> adjacency = new HashMap<>();
         Map<String, Integer> inDegree = new HashMap<>();

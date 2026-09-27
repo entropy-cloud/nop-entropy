@@ -57,6 +57,22 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
  * <p>The implementation is strongly based on the paper "Efficient Pattern Matching over Event
  * Streams".
  *
+ * <p><strong>Two access regimes (key scope of {@link #getAccessor(Object)}):</strong>
+ * <pre>
+ * scope            cache keys                    close() behavior
+ * ---------------  ----------------------------  --------------------------------
+ * {@code null}        raw {@link EventId}/{@link NodeId}   flushes the shared caches
+ *                  shared across ALL stream keys        ({@link #flushCache()}) — the
+ *                  (legacy unshared regime)             cache keyspace is common, so
+ *                                                       a per-key close is unsound
+ * non-null         {@code ScopedId(scope, id)}          no-op — entries are isolated
+ *                  (the stream key); ids of             by key and every mutation is
+ *                  different keys never collide         write-through, so nothing
+ *                                                       needs clearing
+ * </pre>
+ * Backing state and values are identical in both regimes; only the cache key
+ * shape and the close contract differ.
+ *
  * @param <V> Type of the values
  * @see <a href="https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf">
  * https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf</a>
@@ -70,7 +86,7 @@ public class SharedBuffer<V> {
     private static final String EVENTS_COUNT_STATE_NAME = "sharedBuffer-events-count";
 
     /**
-     * Plan 360 R3: cache-key scope. {@code scope == null} selects the legacy
+     * Cache-key scope. {@code scope == null} selects the legacy
      * behavior (raw {@link EventId}/{@link NodeId} cache keys shared across
      * stream keys, cleared on accessor close — see {@link #flushCache()}). A
      * non-null scope (the stream key) makes cache entries key-scoped so
@@ -90,7 +106,7 @@ public class SharedBuffer<V> {
         ScopedId(Object scope, Object id) {
             this.scope = scope;
             this.id = id;
-            // Plan 360 R3-audit: precomputed — this object is a Guava cache key on
+            // Hash precomputed: this object is a Guava cache key on
             // the CEP hot path (hash computed on every getIfPresent/put).
             this.hash = 31 * scope.hashCode() + id.hashCode();
         }
@@ -135,7 +151,7 @@ public class SharedBuffer<V> {
      * maintained a {@code ConcurrentHashMap} and an access-ordered {@code LinkedHashMap} as two
      * independent structures with a non-atomic put/evict window.
      */
-    // Plan 360 R3: cache keys are Object — either the raw EventId/NodeId (legacy
+    // Cache keys are Object — either the raw EventId/NodeId (legacy
     // unscoped accessors, flush-on-close) or a ScopedId(scope, id) composite
     // (key-scoped accessors, no flush needed). Values unchanged.
     private final Cache<Object, Lockable<V>> eventsBufferCache;
@@ -214,7 +230,7 @@ public class SharedBuffer<V> {
         // and must remain silent.
         boolean evicted = cause != RemovalCause.EXPLICIT && cause != RemovalCause.REPLACED;
         if (evicted) {
-            // Plan 360 R3: per-eviction logging is TRACE-level diagnostic detail —
+            // Per-eviction logging is TRACE-level diagnostic detail —
             // on the CEP hot path a sustained eviction rate (cache at maximumSize)
             // made DEBUG-level logging a measurable share of the cost.
             if (LOG.isTraceEnabled()) {
@@ -242,7 +258,7 @@ public class SharedBuffer<V> {
 
     /**
      * Constructs an accessor bound to this shared buffer AND to the given
-     * key scope (plan 360 R3). Cache entries are keyed by
+     * key scope. Cache entries are keyed by
      * {@code (scope, id)} so accessors of different keys never share cache
      * entries and closing a scoped accessor does NOT clear the caches
      * (write-through keeps state authoritative; see {@link #flushCache()} for

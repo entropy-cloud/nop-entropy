@@ -127,7 +127,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
         return descriptor.getAggregateFunction().getResult(accumulator);
     }
 
-    // Plan 360 R2: front cache of the last decoded accumulator for the current
+    // Front cache of the last decoded accumulator for the current
     // (key, namespace) storage key. The previous code did a RocksDB GET + full
     // JSON deserialization of the accumulator on EVERY add() — the read-modify-
     // write hot path of aggregating windows. With keyBy partitioning consecutive
@@ -185,7 +185,7 @@ class RocksDBAggregatingState<IN, ACC, OUT> extends AbstractRocksDBState
             if (ttl != null) {
                 ttl.removeTimestamp(ByteBuffer.wrap(key));
             }
-            // Plan 360 R3-audit fix: the accumulator cache is only WRITTEN when
+            // The accumulator cache is only WRITTEN when
             // ttl == null, but clear() must invalidate it UNCONDITIONALLY — clear
             // is a state mutation for every configuration, and a surviving cached
             // accumulator would be merged into on the next add() after the DB

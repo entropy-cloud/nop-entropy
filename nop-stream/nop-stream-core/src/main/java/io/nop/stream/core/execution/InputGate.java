@@ -45,13 +45,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * Manages multiple {@link InputChannel} instances and provides merged reading
  * with optional barrier alignment and watermark merging.
  *
- * <p><strong>Barrier Alignment (barrierAlignment=true, STRICT_EXACTLY_ONCE):</strong>
+ * <p><strong>Barrier Alignment (STRICT_EXACTLY_ONCE):</strong>
  * When a barrier is received on one channel, that channel is blocked until barriers
  * arrive on all other channels. Once all barriers are collected, they are released
  * together as a single aligned barrier. This ensures exactly-once semantics but
  * may introduce latency as channels wait for each other.
  *
- * <p><strong>No Barrier Alignment (barrierAlignment=false, AT_LEAST_ONCE):</strong>
+ * <p><strong>No Barrier Alignment (AT_LEAST_ONCE):</strong>
  * When a barrier is received, it is tracked but the channel is NOT blocked. Records
  * from other channels continue to flow through. Each barrier is emitted immediately
  * upon receipt (first barrier triggers emission, subsequent barriers for the same
@@ -232,8 +232,32 @@ public class InputGate {
     }
 
     /**
+     * Barrier alignment mode of the gate.
+     * <ul>
+     *   <li>{@link #STRICT_EXACTLY_ONCE} — channels that already delivered a barrier are
+     *       blocked until every channel delivered one (legacy {@code barrierAlignment=true});</li>
+     *   <li>{@link #AT_LEAST_ONCE} — channels are never blocked after barrier delivery
+     *       (legacy {@code barrierAlignment=false}).</li>
+     * </ul>
+     */
+    public enum AlignmentMode {
+        STRICT_EXACTLY_ONCE, AT_LEAST_ONCE
+    }
+
+    /**
+     * Legacy-boolean mapping: {@code barrierAlignment=true} ↔
+     * {@link AlignmentMode#STRICT_EXACTLY_ONCE}; {@code false} ↔
+     * {@link AlignmentMode#AT_LEAST_ONCE}. Callers that receive the mode as a
+     * boolean from upstream configuration resolution use this to pass a
+     * readable enum value to the enum-based constructors.
+     */
+    public static AlignmentMode alignmentModeFor(boolean barrierAlignment) {
+        return barrierAlignment ? AlignmentMode.STRICT_EXACTLY_ONCE : AlignmentMode.AT_LEAST_ONCE;
+    }
+
+    /**
      * Creates an InputGate with multiple channels and optional edge configuration.
-     * Uses default barrier alignment (true = STRICT_EXACTLY_ONCE behavior).
+     * Uses default barrier alignment (STRICT_EXACTLY_ONCE behavior).
      *
      * @param channels   the input channels (must not be null or empty)
      * @param edgeConfig optional edge configuration for flow control (nullable)
@@ -243,32 +267,50 @@ public class InputGate {
     }
 
     /**
+     * Legacy boolean form of {@link #InputGate(List, EdgeConfig, AlignmentMode)}.
+     * {@code barrierAlignment=true} maps to {@link AlignmentMode#STRICT_EXACTLY_ONCE};
+     * {@code false} maps to {@link AlignmentMode#AT_LEAST_ONCE}.
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
+        this(channels, edgeConfig, alignmentModeFor(barrierAlignment));
+    }
+
+    /**
      * Creates an InputGate with multiple channels, edge configuration, and
      * barrier alignment mode.
      *
-     * @param channels         the input channels (must not be null or empty)
-     * @param edgeConfig       optional edge configuration for flow control (nullable)
-     * @param barrierAlignment if true, block channels after receiving barrier
-     *                         (STRICT_EXACTLY_ONCE); if false, don't block (AT_LEAST_ONCE)
+     * @param channels      the input channels (must not be null or empty)
+     * @param edgeConfig    optional edge configuration for flow control (nullable)
+     * @param alignmentMode STRICT_EXACTLY_ONCE blocks channels after receiving a barrier;
+     *                      AT_LEAST_ONCE does not block
      */
-    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, boolean barrierAlignment) {
-        this(channels, edgeConfig, barrierAlignment, DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig, AlignmentMode alignmentMode) {
+        this(channels, edgeConfig, alignmentMode, DEFAULT_ALIGNMENT_TIMEOUT_MS);
+    }
+
+    /**
+     * Legacy boolean form of
+     * {@link #InputGate(List, EdgeConfig, AlignmentMode, long)}.
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
+                     boolean barrierAlignment, long barrierAlignmentTimeout) {
+        this(channels, edgeConfig, alignmentModeFor(barrierAlignment), barrierAlignmentTimeout);
     }
 
     /**
      * Creates an InputGate with multiple channels, edge configuration,
      * barrier alignment mode, and barrier alignment timeout.
      *
-     * @param channels               the input channels (must not be null or empty)
-     * @param edgeConfig             optional edge configuration for flow control (nullable)
-     * @param barrierAlignment       if true, block channels after receiving barrier
-     *                               (STRICT_EXACTLY_ONCE); if false, don't block (AT_LEAST_ONCE)
+     * @param channels                the input channels (must not be null or empty)
+     * @param edgeConfig              optional edge configuration for flow control (nullable)
+     * @param alignmentMode           STRICT_EXACTLY_ONCE blocks channels after receiving a
+     *                                barrier; AT_LEAST_ONCE does not block
      * @param barrierAlignmentTimeout maximum time in milliseconds to wait for all barrier
      *                                alignments to complete before throwing a timeout exception
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
-                     boolean barrierAlignment, long barrierAlignmentTimeout) {
-        this(channels, edgeConfig, barrierAlignment, barrierAlignmentTimeout, false, DEFAULT_UNALIGNED_THRESHOLD_MS);
+                     AlignmentMode alignmentMode, long barrierAlignmentTimeout) {
+        this(channels, edgeConfig, alignmentMode, barrierAlignmentTimeout, false, DEFAULT_UNALIGNED_THRESHOLD_MS);
     }
 
     /**
@@ -290,7 +332,8 @@ public class InputGate {
      *
      * @param channels                 the input channels (must not be null or empty)
      * @param edgeConfig               optional edge configuration for flow control (nullable)
-     * @param barrierAlignment         if true, block channels after receiving barrier
+     * @param alignmentMode            STRICT_EXACTLY_ONCE blocks channels after receiving a
+     *                                 barrier; AT_LEAST_ONCE does not block
      * @param barrierAlignmentTimeout  maximum ms to wait for full alignment before
      *                                 throwing (absolute fail bound; only reached when
      *                                 unaligned is disabled)
@@ -298,14 +341,14 @@ public class InputGate {
      * @param unalignedThreshold       aligned→unaligned mode-switch threshold in ms
      */
     public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
-                     boolean barrierAlignment, long barrierAlignmentTimeout,
+                     AlignmentMode alignmentMode, long barrierAlignmentTimeout,
                      boolean unalignedCheckpointEnabled, long unalignedThreshold) {
         if (channels == null || channels.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "channels");
         }
         this.channels = new ArrayList<>(channels);
         this.edgeConfig = edgeConfig;
-        this.barrierAlignment = barrierAlignment;
+        this.barrierAlignment = (alignmentMode == AlignmentMode.STRICT_EXACTLY_ONCE);
         this.barrierAlignmentTimeout = barrierAlignmentTimeout;
         this.unalignedCheckpointEnabled = unalignedCheckpointEnabled;
         this.unalignedThreshold = unalignedThreshold;
@@ -318,6 +361,17 @@ public class InputGate {
         this.channelIdle = new boolean[channels.size()];
         this.currentChannelIndex = 0;
         this.pendingChannelState = null;
+    }
+
+    /**
+     * Legacy boolean form of
+     * {@link #InputGate(List, EdgeConfig, AlignmentMode, long, boolean, long)}.
+     */
+    public InputGate(List<InputChannel> channels, EdgeConfig edgeConfig,
+                     boolean barrierAlignment, long barrierAlignmentTimeout,
+                     boolean unalignedCheckpointEnabled, long unalignedThreshold) {
+        this(channels, edgeConfig, alignmentModeFor(barrierAlignment), barrierAlignmentTimeout,
+                unalignedCheckpointEnabled, unalignedThreshold);
     }
 
     /**

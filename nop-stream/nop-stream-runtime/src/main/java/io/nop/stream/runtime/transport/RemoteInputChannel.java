@@ -46,26 +46,24 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * <p><strong>Fencing:</strong> Only envelopes whose monotonic fencing epoch
  * ({@code epochId}) matches the expected value are accepted. Stale messages are
  * discarded with a debug log (explicit, observable — not silently swallowed).
- * Stage 39 collapsed the legacy dual-key filter (String fencingToken equality +
- * long epochId equality) into a single long epoch comparison; the single key
+ * The single long epoch key
  * encodes both leadership switch and same-leader recovery (see
  * {@code JobCoordinator.deriveHaFencingEpoch}), so both fencing invariants hold.
  *
- * <p><strong>Buffer pool exclusion (intentional, G53)</strong>: this class constructs
+ * <p><strong>Buffer pool exclusion (intentional)</strong>: this class constructs
  * a dummy {@code super(new ResultPartition(1))} and uses its own local
  * {@link LinkedBlockingQueue}. It does not consume the per-job {@code IBufferPool}.
  * Cross-JVM producer-side bound is the responsibility of the {@code IMessageService}
- * backend (Stage 40). This exclusion is by design and documented in
+ * backend. This exclusion is by design and documented in
  * {@code 01-architecture-baseline.md} §六, not an accidental omission.
  *
  * <p><strong>Lifecycle:</strong>
  * <ol>
- *   <li>Constructor subscribes to the topic (or, under items 28+31 D1
- *       subscription-scope convergence, constructs without subscribing —
- *       reading such a channel fails fast as a wiring error)</li>
+ *   <li>Constructor subscribes to the topic (or constructs without subscribing —
+ *       subscription-scope convergence: reading such a channel fails fast as a wiring error)</li>
  *   <li>{@link #read()} / {@link #read(long, TimeUnit)} consume from the local queue</li>
  *   <li>When an END_OF_STREAM control message is received, the channel is marked as finished</li>
- *   <li>Items 28+31 (D2): a full queue with zero consumer progress for the
+ *   <li>A full queue with zero consumer progress for the
  *       bounded enqueue window fails the channel typed
  *       (ERR_STREAM_CHANNEL_OVERFLOW) — the dispatch thread is never blocked
  *       indefinitely and the failure is observable/recoverable</li>
@@ -79,7 +77,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private static final int DEFAULT_QUEUE_CAPACITY = 1024;
 
     /**
-     * Items 28+31 (D2): default bounded enqueue wait. A full queue with ZERO
+     * Default bounded enqueue wait. A full queue with ZERO
      * consumer progress for this whole window is a stalled downstream — the
      * channel fails typed (ERR_STREAM_CHANNEL_OVERFLOW) instead of blocking the
      * message-backend dispatch thread forever. Healthy slow consumers never hit
@@ -102,7 +100,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private volatile Throwable decodeError;
 
     /**
-     * Items 28+31 (D2): bounded enqueue wait in ms (see
+     * Bounded enqueue wait in ms (see
      * {@link #DEFAULT_ENQUEUE_OFFER_TIMEOUT_MS}). A full queue with zero
      * consumer progress for this whole window trips the typed overflow
      * failure instead of blocking the dispatch thread indefinitely.
@@ -110,7 +108,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private final long enqueueOfferTimeoutMs;
 
     /**
-     * Items 28+31 (D2): typed overflow failure set when a bounded enqueue wait
+     * Typed overflow failure set when a bounded enqueue wait
      * expired with zero consumer progress. Same observability pattern as
      * {@link #decodeError}: the reader thread surfaces it as a typed
      * StreamException (it must NEVER be surfaced as a normal end-of-stream —
@@ -119,16 +117,16 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private volatile Throwable overflowError;
 
     /**
-     * Items 28+31 (D1): whether this channel's subscription was activated at
-     * construction. Subscription-scope convergence (per-subtask / zero-scope
-     * builds) constructs channels WITHOUT subscribing; they exist only to
+     * Whether this channel's subscription was activated at
+     * construction. Scope-converged (per-subtask / zero-scope)
+     * builds construct channels WITHOUT subscribing; they exist only to
      * mirror the full plan structure. Reading such a channel is a wiring error
      * and fails fast with a typed error instead of blocking forever.
      */
     private final boolean subscriptionActive;
 
     /**
-     * Stage 43: channel heartbeat timeout in ms. When {@code > 0}, {@link #read()}
+     * Channel heartbeat timeout in ms. When {@code > 0}, {@link #read()}
      * / {@link #read(long, TimeUnit)} check that <em>some</em> message (data,
      * barrier, watermark, or heartbeat) has arrived within this window; otherwise
      * the producer is presumed dead / partitioned and the channel fails fast with
@@ -139,7 +137,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private final long channelTimeoutMs;
 
     /**
-     * Stage 43: monotonic timestamp of the last <em>accepted</em> message of any
+     * Monotonic timestamp of the last <em>accepted</em> message of any
      * kind. Updated by {@link EnvelopeConsumer} only AFTER the fencing-epoch
      * filter passes, so a wrong-epoch message never refreshes liveness. Volatile:
      * writer is the message-service dispatch thread, reader is the task thread.
@@ -147,7 +145,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private volatile long lastReceivedTime;
 
     /**
-     * Item 32 (D2c): the queue-depth gauge holder this channel is bound to
+     * The queue-depth gauge holder this channel is bound to
      * (nullable — construct-only channels never bind). Package-private: owned by
      * {@link ChannelQueueGauges}; {@link #close()} releases the binding so the
      * gauge reads 0 instead of freezing on a closed channel's residual queue.
@@ -160,7 +158,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
      * @param messageService  the message service to subscribe to
      * @param topic           the topic to subscribe to
      * @param expectedEpochId expected monotonic fencing epoch for message filtering
-     *                        (Stage 39: the single long fencing key)
+     *                        (the single long fencing key)
      */
     public RemoteInputChannel(IMessageService messageService,
                               String topic,
@@ -184,7 +182,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43: creates a RemoteInputChannel with heartbeat timeout detection.
+     * Creates a RemoteInputChannel with heartbeat timeout detection.
      *
      * <p>When {@code channelTimeoutMs > 0}, {@link #read()} / {@link #read(long,
      * TimeUnit)} fail fast with {@link ERR_STREAM_CHANNEL_TIMEOUT} if no message
@@ -208,7 +206,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31 (D1/D2): full-form constructor with subscription activation
+     * Full-form constructor with subscription activation
      * control and bounded enqueue wait.
      *
      * @param messageService         the message service to subscribe to (when
@@ -219,10 +217,10 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
      * @param channelTimeoutMs       channel heartbeat timeout in ms; {@code <= 0} disables
      * @param enqueueOfferTimeoutMs  bounded enqueue wait in ms; a full queue with zero
      *                               consumer progress for this window trips the typed
-     *                               overflow failure (D2)
+     *                               overflow failure
      * @param subscribe              {@code true} = subscribe at construction (existing
      *                               full-subscription semantics); {@code false} = construct
-     *                               WITHOUT subscribing (D1 subscription-scope convergence:
+     *                               WITHOUT subscribing (subscription-scope convergence:
      *                               the channel only mirrors the plan structure; reading it
      *                               fails fast as a wiring error)
      */
@@ -247,7 +245,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
         if (subscribe) {
             this.subscription = messageService.subscribe(topic, new EnvelopeConsumer());
         } else {
-            // D1: constructed-but-not-subscribed channel. Producers keep their
+            // Constructed-but-not-subscribed channel. Producers keep their
             // fan-out capability (the send side never subscribes); this channel
             // simply never joins the delivery surface.
             this.subscription = null;
@@ -260,7 +258,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31 (D1): whether this channel is an active subscriber. Test and
+     * Whether this channel is an active subscriber. Test and
      * diagnostic hook for subscription-scope assertions.
      */
     public boolean isSubscriptionActive() {
@@ -277,11 +275,11 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     public StreamElement read() throws InterruptedException {
         checkReadable();
         checkChannelError();
-        // Stage 43: heartbeat-based timeout detection (piggybacks on the read
+        // Heartbeat-based timeout detection (piggybacks on the read
         // path — no dedicated timer thread per channel).
         checkChannelTimeout();
         StreamElement element = queue.take();
-        // Items 28+31 (D2): an overflow/decode failure may have been flagged
+        // An overflow/decode failure may have been flagged
         // while this reader was blocked in take(); the EOS sentinel placed by
         // the failure path wakes us up — surface the typed error, never a
         // clean end-of-stream.
@@ -304,10 +302,10 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     public StreamElement read(long timeout, TimeUnit unit) throws InterruptedException {
         checkReadable();
         checkChannelError();
-        // Stage 43: heartbeat-based timeout detection (piggybacks on the read path).
+        // Heartbeat-based timeout detection (piggybacks on the read path).
         checkChannelTimeout();
         StreamElement element = queue.poll(timeout, unit);
-        // Items 28+31 (D2): see read() — a flagged failure must surface as the
+        // See read() — a flagged failure must surface as the
         // typed error even when the wake-up element is the EOS sentinel.
         checkChannelError();
         if (element == null) {
@@ -328,7 +326,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43: has the channel exceeded its heartbeat timeout? {@code true} when
+     * Has the channel exceeded its heartbeat timeout? {@code true} when
      * detection is enabled ({@code channelTimeoutMs > 0}), the channel is not
      * finished, no decode error has occurred, and no accepted message has arrived
      * within {@code channelTimeoutMs}. An explicit {@link
@@ -343,7 +341,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43: throws {@link ERR_STREAM_CHANNEL_TIMEOUT} if {@link
+     * Throws {@link ERR_STREAM_CHANNEL_TIMEOUT} if {@link
      * #isChannelTimedOut()} holds. Invoked at the top of every {@link #read()}
      * / {@link #read(long, TimeUnit)} so the task thread fails fast instead of
      * blocking on an empty queue forever.
@@ -363,7 +361,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31: surfaces the first flagged channel failure (decode or D2
+     * Surfaces the first flagged channel failure (decode or
      * overflow) as a typed StreamException. Overflow carries its own error
      * code so recovery/ops can distinguish "downstream stalled" from "decode
      * corruption".
@@ -378,7 +376,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31 (D1): reading a channel that was constructed without a
+     * Reading a channel that was constructed without a
      * subscription is a wiring error (scope-converged channels exist only to
      * mirror the plan structure). Fail fast with a typed error instead of
      * blocking on an empty queue forever (guide #24 — no silent no-op).
@@ -392,7 +390,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43: returns the configured channel heartbeat timeout in ms
+     * Returns the configured channel heartbeat timeout in ms
      * ({@code <= 0} means disabled).
      */
     public long getChannelTimeoutMs() {
@@ -400,7 +398,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43: returns the monotonic timestamp of the last accepted message.
+     * Returns the monotonic timestamp of the last accepted message.
      * Test/diagnostic hook.
      */
     public long getLastReceivedTime() {
@@ -408,7 +406,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43 (unaligned checkpoint): drains this channel's local
+     * Drains this channel's local
      * {@link LinkedBlockingQueue} (excluding the end-of-stream sentinel) and
      * returns the in-flight records. Override of {@link InputChannel#captureInFlightData}
      * because {@code RemoteInputChannel} does not consume its dummy
@@ -438,7 +436,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Stage 43 (unaligned checkpoint recovery): injects previously captured
+     * Injects previously captured
      * in-flight records at the front of the local queue so they are processed
      * before any newly delivered upstream records. Override of
      * {@link InputChannel#injectElements} for the remote channel's local queue.
@@ -500,7 +498,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
         if (subscription != null && !subscription.isCancelled()) {
             subscription.cancel();
         }
-        // Item 32 (D2c): release the queue-gauge binding FIRST so the gauge stops
+        // Release the queue-gauge binding FIRST so the gauge stops
         // reporting this channel's residual queue (holder → null ⇒ 0), never a
         // frozen post-close value.
         ChannelQueueGauges.release(this);
@@ -544,7 +542,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Item 32 (D2c): binds this channel to its queue-depth gauge holder (see
+     * Binds this channel to its queue-depth gauge holder (see
      * {@link ChannelQueueGauges}). Package-private — invoked only by the gauge
      * registry helper at subscription time.
      */
@@ -553,7 +551,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31 (D2): whether the bounded enqueue wait expired with zero
+     * Whether the bounded enqueue wait expired with zero
      * consumer progress (typed overflow failure flagged). Observable
      * diagnostic hook — the failure is never silent.
      */
@@ -562,7 +560,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Items 28+31 (D2): the configured bounded enqueue wait in ms.
+     * The configured bounded enqueue wait in ms.
      */
     public long getEnqueueOfferTimeoutMs() {
         return enqueueOfferTimeoutMs;
@@ -617,17 +615,16 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
 
             StreamMessageEnvelope envelope = (StreamMessageEnvelope) message;
 
-            // Stage 39: single monotonic long epoch fencing comparison. The legacy
-            // dual-key filter (String fencingToken equality + long epochId equality)
-            // is collapsed into one long key. The single epoch encodes both
-            // leadership switch and same-leader recovery, so both invariants hold.
+            // Single monotonic long epoch fencing comparison: the one long key
+            // encodes both leadership switch and same-leader recovery, so both
+            // fencing invariants hold.
             if (envelope.getEpochId() != expectedEpochId) {
                 LOG.debug("Discarding stale message: expected epochId={}, got={}",
                         expectedEpochId, envelope.getEpochId());
                 return null;
             }
 
-            // Stage 43: any message that passed the fencing filter counts as
+            // Any message that passed the fencing filter counts as
             // producer liveness. Refresh BEFORE branching on type so heartbeat,
             // data, barrier, watermark all reset the timeout window. A wrong-epoch
             // message (handled above) never reaches here, so stale heartbeats do
@@ -659,8 +656,8 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
                 StreamElement element = StreamElementCodec.decode(envelope);
                 // re-check finished flag after decode to avoid race with close()
                 if (!finished) {
-                    // Items 28+31 (D2): bounded enqueue wait. The legacy
-                    // queue.put(element) blocked FOREVER once the queue was
+                    // Bounded enqueue wait: a plain
+                    // queue.put(element) blocks FOREVER once the queue is
                     // full — under a shared dispatch loop (e.g. the polling
                     // JDBC backend's 2-thread pool serving data AND control
                     // topics) two dead channels stalled every delivery on the

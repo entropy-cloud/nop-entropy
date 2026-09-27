@@ -558,7 +558,7 @@ class TestTaskManager {
             }
 
             String key = "job-1/vertex-1/0";
-            TaskManager.TaskResult result = taskManager.getCompletedTaskResults().get(key);
+            TaskResult result = taskManager.getCompletedTaskResults().get(key);
             assertNotNull(result, "task must terminate after the invokable-install timeout");
             assertFalse(result.isSuccess(),
                     "invokable-install timeout must NOT be reported as success");

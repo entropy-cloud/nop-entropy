@@ -10,19 +10,16 @@ package io.nop.stream.runtime.taskmanager;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -80,7 +77,9 @@ import io.nop.stream.runtime.transport.SubtaskPlanBuilder;
 @Internal
 public class TaskManager implements IStreamTaskRpcService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(TaskManager.class);
+    // Logger is package-private: the top-level RunningTask / CheckpointAckSender
+    // collaborators log under the same TaskManager logger name.
+    static final Logger LOG = LoggerFactory.getLogger(TaskManager.class);
 
     private static final long DEFAULT_HEARTBEAT_INTERVAL_MS = 5000L;
     private static final long DEFAULT_LEASE_TIMEOUT_MS = 15000L;
@@ -97,41 +96,39 @@ public class TaskManager implements IStreamTaskRpcService {
     private final int capacity;
     private final IMessageService messageService;
     private final ClusterRegistry clusterRegistry;
-    /** Plan 358 Fix-6: bounded retry budget for checkpoint ACK sends. */
-    static final int ACK_SEND_ATTEMPTS = 3;
-
-    /** Plan 358 Fix-6: linear backoff base (ms) between ACK send attempts. */
-    static final long ACK_RETRY_BACKOFF_MS = 200L;
+    private final CheckpointAckSender ackSender;
 
     private final long heartbeatIntervalMs;
     private final long leaseTimeoutMs;
 
-    private final Semaphore capacitySemaphore;
+    // Package-private below: shared state of the top-level RunningTask /
+    // CheckpointAckSender collaborators (same package, no accessor indirection).
+    final Semaphore capacitySemaphore;
 
     private final ExecutorService taskExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
     private final ExecutorService commitExecutor;
 
     /** taskKey (jobId/vertexId/subtaskIndex) → RunningTask */
-    private final ConcurrentHashMap<String, RunningTask> runningTasks;
+    final ConcurrentHashMap<String, RunningTask> runningTasks;
 
     /** taskKey → TaskResult for completed tasks (bounded to MAX_COMPLETED_TASKS) */
-    private static final int MAX_COMPLETED_TASKS = 1000;
-    private final ConcurrentHashMap<String, TaskResult> completedTasks;
+    static final int MAX_COMPLETED_TASKS = 1000;
+    final ConcurrentHashMap<String, TaskResult> completedTasks;
 
     /** The currently active fencing epoch for this node (updated on global recovery). */
-    private final AtomicLong currentFencingEpoch;
+    final AtomicLong currentFencingEpoch;
 
     /** Control topic for sending ACKs via message service (fallback when no RPC service) */
     private final String controlTopic;
 
     /** RPC service for sending ACKs directly to coordinator */
-    private volatile IStreamCoordinatorRpcService coordinatorRpcService;
+    volatile IStreamCoordinatorRpcService coordinatorRpcService;
 
     private volatile boolean running;
 
-    /** Item 16 (P-REQ-1 task layer): per-node task meters. */
-    private final io.nop.stream.runtime.metrics.TaskNodeMetrics nodeMetrics;
+    /** Per-node task meters. */
+    final io.nop.stream.runtime.metrics.TaskNodeMetrics nodeMetrics;
 
     public TaskManager(String nodeId,
                        String endpoint,
@@ -145,8 +142,8 @@ public class TaskManager implements IStreamTaskRpcService {
 
     /**
      * Full constructor with ops-tunable heartbeat cadence and lease timeout
-     * (06-30 audit: intervals were hardcoded with no injection point — failover
-     * detection window tuning requires both to be configurable). Non-positive
+     * (both must be configurable so the failover
+     * detection window can be tuned). Non-positive
      * values fail fast.
      */
     public TaskManager(String nodeId,
@@ -168,12 +165,13 @@ public class TaskManager implements IStreamTaskRpcService {
         this.messageService = messageService;
         this.clusterRegistry = clusterRegistry;
         this.controlTopic = controlTopic;
+        this.ackSender = new CheckpointAckSender(this);
         this.capacitySemaphore = new Semaphore(Math.max(1, capacity));
         this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity),
                 NopStreamThreadFactory.named("tm-task-" + nodeId));
         this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(
                 NopStreamThreadFactory.named("tm-heartbeat-" + nodeId));
-        // Plan 358 Fix-3: dedicated single-thread executor for 2PC checkpoint
+        // Dedicated single-thread executor for 2PC checkpoint
         // commits. finishCommit performs blocking JDBC/file commits which must
         // never occupy the message-service dispatch thread (a slow commit there
         // stalls heartbeat, assignment and ACK dispatch for the whole node).
@@ -187,7 +185,7 @@ public class TaskManager implements IStreamTaskRpcService {
         this.heartbeatIntervalMs = heartbeatIntervalMs;
         this.leaseTimeoutMs = leaseTimeoutMs;
         this.running = false;
-        // Item 16 (P-REQ-1 task layer): per-node meters on the real
+        // Per-node meters on the real
         // deploy/cancel/failure paths.
         this.nodeMetrics = io.nop.stream.runtime.metrics.TaskNodeMetrics.forNode(nodeId);
     }
@@ -206,7 +204,7 @@ public class TaskManager implements IStreamTaskRpcService {
         clusterRegistry.registerNode(nodeId, endpoint, capacity);
         running = true;
 
-        // Item 16 (P-REQ-1 task layer): running-task gauge (same counting
+        // Running-task gauge (same counting
         // semantics as getRunningTaskCount — excludes finished tasks).
         io.nop.stream.runtime.metrics.TaskNodeMetrics.registerRunningGauge(
                 io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
@@ -253,7 +251,7 @@ public class TaskManager implements IStreamTaskRpcService {
         runningTasks.clear();
         completedTasks.clear();
 
-        // Plan 358 Fix-9: release this node's meters and running-gauge so a
+        // Release this node's meters and running-gauge so a
         // restarted node re-registers a fresh gauge and a dead node pins nothing.
         io.nop.stream.runtime.metrics.TaskNodeMetrics.releaseNode(nodeId);
 
@@ -263,7 +261,7 @@ public class TaskManager implements IStreamTaskRpcService {
     // ==================== Heartbeat ====================
 
     /**
-     * Renews the lease for this node in the ClusterRegistry and (G52) piggybacks
+     * Renews the lease for this node in the ClusterRegistry and piggybacks
      * per-task liveness to the coordinator on the existing heartbeat cadence.
      *
      * <p>No new task-level heartbeat thread is introduced: this method reads each
@@ -272,7 +270,7 @@ public class TaskManager implements IStreamTaskRpcService {
      * {@code waitForInvokable} window) and reports a {@link TaskProgress} batch to
      * the coordinator via {@link IStreamCoordinatorRpcService#reportNodeTaskLiveness}.
      *
-     * <p>G52 / AR-01 liveness semantics: the reported value is the <b>task
+     * <p>Liveness semantics: the reported value is the <b>task
      * aliveness</b> signal, decoupled from data progress. MIDDLE/SINK roles
      * report the task thread's loop-activity timestamp
      * ({@link StreamTaskInvokable#getLastActivityTime()}) — fresh while the
@@ -302,7 +300,7 @@ public class TaskManager implements IStreamTaskRpcService {
                 LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
             }
 
-            // G52: piggyback per-task liveness on the node heartbeat
+            // Piggyback per-task liveness on the node heartbeat
             IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
             if (rpc == null || runningTasks.isEmpty()) {
                 return;
@@ -312,7 +310,8 @@ public class TaskManager implements IStreamTaskRpcService {
                 StreamTaskInvokable inv = task.invokable;
                 // null-check defense: invokable is volatile, lazily set by setInvokable()
                 // (30s waitForInvokable window). Skip liveness for tasks whose invokable
-                // is not yet installed — consistent with Phase 3 cancel null-check.
+                // is not yet installed — the same null-check the cancel
+                // path applies.
                 if (inv == null) {
                     continue;
                 }
@@ -339,7 +338,7 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     /**
-     * G52 / AR-01: computes the per-task liveness value reported to the
+     * Computes the per-task liveness value reported to the
      * coordinator (see {@link #heartbeat()} javadoc for the semantics split).
      */
     private long livenessValue(StreamTaskInvokable inv) {
@@ -370,12 +369,11 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
 
-        // Fencing epoch check
-        // P0-6: harden stale-epoch handling to throw StreamException. The prior
-        // implementation only LOG.warn'd and returned, silently swallowing the
-        // operation despite the documented contract (TaskManager Javadoc: "rejects
-        // any operation carrying an old fencing token"). Cross-JVM fencing is
-        // owned by Stage 39 — this hardens the in-process check.
+        // Fencing epoch check: a stale epoch must fail fast with a typed
+        // StreamException instead of a LOG-and-return — silently swallowing
+        // the operation would violate the documented contract ("rejects
+        // any operation carrying an old fencing token"). Cross-JVM fencing
+        // is enforced by the coordinator; this guards the in-process check.
         long activeEpoch = currentFencingEpoch.get();
         if (activeEpoch != assignment.getFencingEpoch()) {
             NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
@@ -385,7 +383,8 @@ public class TaskManager implements IStreamTaskRpcService {
             throw ex;
         }
 
-        // AR-9: Use semaphore for capacity control instead of race-prone size check
+        // Capacity control via semaphore — a size check would race with
+        // concurrent deploys/cancels
         if (!capacitySemaphore.tryAcquire()) {
             LOG.warn("Node {} at capacity ({}/{}), rejecting assignment for {}/{}",
                     nodeId, capacity - capacitySemaphore.availablePermits(), capacity,
@@ -409,7 +408,7 @@ public class TaskManager implements IStreamTaskRpcService {
         // invokable via a separate installInvokable() call (see EmbeddedDistributedExecutor
         // / RpcDistributedExecutor). RunningTask.run() blocks on invokableLatch until
         // the invokable arrives (or times out).
-        RunningTask runningTask = new RunningTask(
+        RunningTask runningTask = new RunningTask(this,
                 assignment.getJobId(),
                 assignment.getVertexId(),
                 assignment.getSubtaskIndex(),
@@ -446,7 +445,7 @@ public class TaskManager implements IStreamTaskRpcService {
             LOG.warn("No running task slot for {}/{}/{}", jobId, vertexId, subtaskIndex);
             return;
         }
-        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // Inject per-task data-plane
         // metrics on the real in-process install path.
         invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
                 io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
@@ -454,10 +453,10 @@ public class TaskManager implements IStreamTaskRpcService {
         runningTask.setInvokable(invokable);
     }
 
-    // ==================== Remote Deploy (Stage 42 Phase 0) ====================
+    // ==================== Remote Deploy ====================
 
     /**
-     * Stage 42 Phase 0: deploys task logic to this TaskManager as a serializable
+     * Deploys task logic to this TaskManager as a serializable
      * {@link TaskDeploymentDescriptor}. The TaskManager reconstructs its own
      * {@link StreamTaskInvokable} locally from the descriptor's
      * {@link io.nop.stream.core.jobgraph.JobGraph} + edge config (via
@@ -494,7 +493,7 @@ public class TaskManager implements IStreamTaskRpcService {
             throw ex;
         }
         if (descriptor.getJobGraph() == null && descriptor.getPipelineSpec() == null) {
-            // Item 14: the pipeline may arrive as a serializable DECLARATION spec
+            // The pipeline may arrive as a serializable DECLARATION spec
             // (XDSL) instead of a pre-built graph — see RemotePipelineSpec.
             NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                     "TaskDeploymentDescriptor carries neither a JobGraph nor a pipeline spec; cannot "
@@ -545,7 +544,7 @@ public class TaskManager implements IStreamTaskRpcService {
         // Recovery may redeploy to the same slot before the old task is GC'd.
         // Fence the old slot out and reclaim its permit into this deployment.
         //
-        // P1 hardening (permit conservation): the new deployment's permit was
+        // Permit-conservation hardening: the new deployment's permit was
         // acquired above (tryAcquire at the method entry). Releasing the old
         // slot's permit below balances the old task — net permit change for a
         // redeploy is therefore 0 (one task leaves, one task enters). The
@@ -554,14 +553,14 @@ public class TaskManager implements IStreamTaskRpcService {
         // recoveries. That extra acquire is removed; the entry acquire + this
         // release are the only permit touches for the redeploy path.
         //
-        // W-5 (roadmap item 27): slot replacement is a SINGLE atomic map
+        // Slot replacement is a SINGLE atomic map
         // operation — {@code put} returns the displaced entry, so there is no
         // get→remove→put window in which a concurrent same-key deploy/cancel
         // can observe the slot transiently empty (the legacy 3-step sequence
         // could leak a displaced task that kept running but became invisible
         // to the map). Every displaced task is handed to exactly one displacer
         // for cancel + permit release.
-        RunningTask runningTask = new RunningTask(
+        RunningTask runningTask = new RunningTask(this,
                 descriptor.getJobId(),
                 descriptor.getVertexId(),
                 descriptor.getSubtaskIndex(),
@@ -589,7 +588,7 @@ public class TaskManager implements IStreamTaskRpcService {
         try {
             SubtaskPlanBuilder builder = new SubtaskPlanBuilder(messageService, null);
             SubtaskPlanBuilder.DeployedSubtaskPlan deployed = builder.buildSubtaskPlan(descriptor);
-            // Item 14: wire the TM-side checkpoint pipeline (state backends +
+            // Wire the TM-side checkpoint pipeline (state backends +
             // barrier tracker with RPC ACK + restore-on-deploy) BEFORE the
             // invokable is handed to the running task thread.
             io.nop.stream.runtime.deploy.RemoteTaskDeploySupport.wireDeployedSubtask(
@@ -597,10 +596,10 @@ public class TaskManager implements IStreamTaskRpcService {
             invokable = deployed.getInvokable();
         } catch (Throwable t) {
             LOG.error("Failed to build invokable from deployTask descriptor for {} on {}", taskKey, nodeId, t);
-            // W-5: conditional remove — an interleaved replacement deploy may
+            // Conditional remove — an interleaved replacement deploy may
             // already have displaced this entry; an unconditional remove would
-            // delete the successor's mapping (same hazard class as the Item 14
-            // RunningTask-exit fix).
+            // delete the successor's mapping (same hazard class as an
+            // unconditional remove from a finished task's exit path).
             runningTasks.remove(taskKey, runningTask);
             runningTask.cancel();
             if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
@@ -614,7 +613,7 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         runningTask.setInvokable(invokable);
-        // Item 16 (P-REQ-1 operator/io layers): inject per-task data-plane
+        // Inject per-task data-plane
         // metrics on the real remote-deploy path.
         invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
                 io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
@@ -624,7 +623,7 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     /**
-     * Stage 42 Phase 0: reports a deployTask failure to the coordinator as a
+     * Reports a deployTask failure to the coordinator as a
      * FAILED {@link TaskStatusReport} so the failure is observable and triggers
      * recovery. Best-effort — failure to report is logged (not swallowed).
      */
@@ -696,9 +695,9 @@ public class TaskManager implements IStreamTaskRpcService {
      */
     @Override
     public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-        // P0-6: harden stale-epoch handling to throw StreamException. The prior
-        // implementation only LOG.warn'd and returned, silently dropping the
-        // barrier — which let a stale coordinator's checkpoint succeed against
+        // Stale-epoch handling must fail fast with a typed
+        // StreamException instead of a LOG-and-return: a silently dropped
+        // barrier would let a stale coordinator's checkpoint succeed against
         // the active epoch's state, breaking fencing semantics.
         long activeEpoch = currentFencingEpoch.get();
         if (activeEpoch != fencingEpoch) {
@@ -716,11 +715,11 @@ public class TaskManager implements IStreamTaskRpcService {
 
     @Override
     public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        // F-C (roadmap item 27): cancelTask was the last mutating control-plane
-        // entry without a fencing epoch — a stale coordinator could cancel an
-        // active generation's task at any time. Same fail-fast contract as
+        // cancelTask is fenced like every other mutating control-plane entry:
+        // a stale coordinator must not be able to cancel an active
+        // generation's task. Same fail-fast contract as
         // deployTask/triggerCheckpoint/notifyCheckpointComplete: typed mismatch
-        // rejection (D2 adjudication: WARN + typed throw; no FAILED
+        // rejection (WARN + typed throw; no FAILED
         // TaskStatusReport — the task is healthy under the active epoch and the
         // stale coordinator is the anomaly, so triggering coordinator-side
         // recovery would punish the healthy generation).
@@ -748,7 +747,7 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     /**
-     * Item 14 (composite-scenario distributed): checkpoint-completion notification
+     * Checkpoint-completion notification
      * from the coordinator's distributed commit forwarder. Drives the local 2PC
      * sink participants' {@code CheckpointParticipant.finishCommit(checkpointId, true)}
      * — the TM-side analog of the LOCAL path registering the sink UDFs directly on
@@ -774,7 +773,7 @@ public class TaskManager implements IStreamTaskRpcService {
             if (task.getFencingEpoch() != fencingEpoch) {
                 continue;
             }
-            // Plan 358 Fix-3: run the commit off the caller's dispatch thread.
+            // Run the commit off the caller's dispatch thread.
             // The RPC entry (message-service dispatch) / coordinator forwarder
             // thread must stay responsive; finishCommit blocks on JDBC/file I/O.
             commitExecutor.execute(() -> task.notifyCheckpointComplete(checkpointId));
@@ -783,7 +782,7 @@ public class TaskManager implements IStreamTaskRpcService {
 
     /**
      * Sends a checkpoint ACK to the coordinator via the control topic, with a
-     * bounded retry for transient failures (plan 358 Fix-6). The ACK is the
+     * bounded retry for transient failures. The ACK is the
      * completion-critical message of the checkpoint protocol: losing it to a
      * transient backend hiccup previously forced the coordinator to wait for
      * the full checkpoint timeout and abort the epoch. Retries are attempted
@@ -791,58 +790,15 @@ public class TaskManager implements IStreamTaskRpcService {
      * logged and counted (observable) and the coordinator-side checkpoint
      * timeout remains the subsuming safety net.
      *
+     * <p>Delegates to {@link CheckpointAckSender}; kept on the host because it
+     * is the public RPC-surface entry point called by
+     * {@link io.nop.stream.runtime.deploy.RemoteTaskDeploySupport} and tests.
+     *
      * @param checkpointId the checkpoint ID
      * @param snapshot     the task state snapshot
      */
     public void sendCheckpointAck(long checkpointId, TaskStateSnapshot snapshot) {
-        CheckpointAckMessage ack = new CheckpointAckMessage(
-                snapshot.getTaskLocation(),
-                checkpointId,
-                snapshot,
-                currentFencingEpoch.get());
-
-        if (coordinatorRpcService == null) {
-            LOG.error("Failed to send checkpoint ACK for checkpoint {}: no coordinator RPC service available",
-                    checkpointId);
-            if (nodeMetrics != null) {
-                nodeMetrics.ackSendFailed();
-            }
-            return;
-        }
-
-        Exception lastFailure = null;
-        for (int attempt = 1; attempt <= ACK_SEND_ATTEMPTS; attempt++) {
-            try {
-                coordinatorRpcService.receiveCheckpointAck(ack);
-                if (attempt > 1) {
-                    LOG.info("Checkpoint ACK for checkpoint {} delivered on attempt {}/{}",
-                            checkpointId, attempt, ACK_SEND_ATTEMPTS);
-                }
-                LOG.debug("Sent checkpoint ACK for checkpoint {} from {}",
-                        checkpointId, snapshot.getTaskLocation());
-                return;
-            } catch (Exception e) {
-                lastFailure = e;
-                LOG.warn("Failed to send checkpoint ACK for checkpoint {} (attempt {}/{})",
-                        checkpointId, attempt, ACK_SEND_ATTEMPTS, e);
-                if (attempt < ACK_SEND_ATTEMPTS) {
-                    try {
-                        Thread.sleep(ACK_RETRY_BACKOFF_MS * attempt);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            }
-        }
-        // #24 — no silent skip: budget exhausted, failure logged and counted.
-        // The coordinator-side checkpoint timeout aborts the epoch as the
-        // subsuming safety net.
-        LOG.error("Failed to send checkpoint ACK for checkpoint {} after {} attempts",
-                checkpointId, ACK_SEND_ATTEMPTS, lastFailure);
-        if (nodeMetrics != null) {
-            nodeMetrics.ackSendFailed();
-        }
+        ackSender.send(checkpointId, snapshot);
     }
 
     // ==================== Fencing ====================
@@ -894,8 +850,8 @@ public class TaskManager implements IStreamTaskRpcService {
 
     /**
      * Counts tasks whose execution thread has NOT yet reached a terminal state.
-     * A successfully completed task retains its registry entry (Item 14
-     * bounded-run tail commits: the finished 2PC sink must stay reachable for
+     * A successfully completed task retains its registry entry
+     * (bounded-run tail commits: the finished 2PC sink must stay reachable for
      * {@code notifyCheckpointComplete}), but it is NOT running — completion
      * detectors ({@code EmbeddedDistributedExecutor} et al.) rely on this count
      * reaching zero when every task finished.
@@ -928,341 +884,7 @@ public class TaskManager implements IStreamTaskRpcService {
         return taskKey(assignment.getJobId(), assignment.getVertexId(), assignment.getSubtaskIndex());
     }
 
-    private String taskKey(String jobId, String vertexId, int subtaskIndex) {
+    static String taskKey(String jobId, String vertexId, int subtaskIndex) {
         return jobId + "/" + vertexId + "/" + subtaskIndex;
-    }
-
-    // ==================== Inner Classes ====================
-
-    /**
-     * A running task tracked by the TaskManager.
-     */
-    public class RunningTask implements Runnable {
-        private final String jobId;
-        private final String vertexId;
-        private final int subtaskIndex;
-        private final long fencingEpoch;
-        private final String attemptId;
-        /**
-         * G56: per-subtask attempt number (mirrors {@link TaskAssignment#getAttemptNumber()}).
-         * Carried in {@link TaskStatusReport} so the coordinator can correlate reports
-         * with the right attempt.
-         */
-        private final int attemptNumber;
-        private final TaskLocation taskLocation;
-        private final CountDownLatch invokableLatch;
-
-        private volatile StreamTaskInvokable invokable;
-        private volatile Future<?> future;
-        private volatile boolean canceled;
-        private volatile Throwable error;
-        /**
-         * Item 14: set when the task thread reached its terminal state. A
-         * SUCCESSFULLY completed task RETAINS its registry entry (bounded-run tail
-         * commits — see the finally block), so {@link #getRunningTaskCount()} must
-         * exclude finished entries or completion detectors
-         * ({@code EmbeddedDistributedExecutor}/{@code RpcDistributedExecutor})
-         * would wait forever on retained entries.
-         */
-        private volatile boolean finished;
-        private final AtomicBoolean semaphoreReleased = new AtomicBoolean(false);
-
-        public RunningTask(String jobId, String vertexId, int subtaskIndex,
-                           long fencingEpoch, String attemptId) {
-            this(jobId, vertexId, subtaskIndex, fencingEpoch, attemptId, 1);
-        }
-
-        public RunningTask(String jobId, String vertexId, int subtaskIndex,
-                           long fencingEpoch, String attemptId, int attemptNumber) {
-            this.jobId = jobId;
-            this.vertexId = vertexId;
-            this.subtaskIndex = subtaskIndex;
-            this.fencingEpoch = fencingEpoch;
-            this.attemptId = attemptId;
-            this.attemptNumber = attemptNumber;
-            this.taskLocation = new TaskLocation(jobId, "pipeline-0", vertexId, subtaskIndex);
-            this.invokableLatch = new CountDownLatch(1);
-        }
-
-        @Override
-        public void run() {
-            if (canceled) {
-                LOG.info("Task {}/{}/{} was canceled before execution", jobId, vertexId, subtaskIndex);
-                return;
-            }
-
-            LOG.info("Running task {}/{}/{} (attempt={})", jobId, vertexId, subtaskIndex, attemptId);
-
-            try {
-                // Wait for invokable to be installed if not yet available
-                StreamTaskInvokable inv = waitForInvokable();
-                if (canceled) {
-                    LOG.info("Task {}/{}/{} canceled while waiting for invokable", jobId, vertexId, subtaskIndex);
-                    return;
-                }
-                if (inv == null) {
-                    // Invokable-install timeout: NOT a success and NOT a cancel. A
-                    // timeout means the coordinator died (or stalled) between the
-                    // assignment and the install — the finally block must report
-                    // FAILED so failover kicks in; reporting COMPLETED here would
-                    // silently mark a never-run subtask as successful.
-                    this.error = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                            "Timed out after " + invokableWaitTimeoutMs
-                                    + "ms waiting for invokable installation for "
-                                    + jobId + "/" + vertexId + "/" + subtaskIndex);
-                    LOG.error("Task {}/{}/{} failed: invokable installation timed out",
-                            jobId, vertexId, subtaskIndex);
-                    return;
-                }
-
-                inv.invoke();
-
-                if (!canceled) {
-                    LOG.info("Task {}/{}/{} completed successfully", jobId, vertexId, subtaskIndex);
-                }
-            } catch (Throwable t) {
-                if (!canceled) {
-                    this.error = t;
-                    LOG.error("Task {}/{}/{} failed", jobId, vertexId, subtaskIndex, t);
-                }
-            } finally {
-                String key = taskKey(jobId, vertexId, subtaskIndex);
-                boolean success = error == null && !canceled;
-                finished = true;
-                completedTasks.put(key, new TaskResult(jobId, vertexId, subtaskIndex,
-                        success, canceled, error));
-                if (completedTasks.size() > MAX_COMPLETED_TASKS) {
-                    Iterator<String> it = completedTasks.keySet().iterator();
-                    if (it.hasNext()) {
-                        it.next();
-                        it.remove();
-                    }
-                }
-                // Item 14 (composite-scenario distributed defect fix): remove the
-                // registry entry ONLY if this task still owns it. A stale attempt's
-                // thread can outlive its replacement's deployment (recovery cancels
-                // the old attempt, but the thread winds down asynchronously; the
-                // fresh deployTask puts the new RunningTask under the same key
-                // immediately). The old finally's unconditional remove(key) then
-                // deleted the REPLACEMENT's entry — the new task kept running but
-                // became invisible to triggerCheckpoint (barrier never registered
-                // on its tracker, checkpoint ACKs dropped with "no matching
-                // in-flight epoch") and to cancelTask ("No running task to
-                // cancel"). Conditional remove closes the window.
-                //
-                // Item 14 (bounded-run tail commits): a NATURALLY COMPLETED task
-                // (success, not canceled) RETAINS its registry entry. The last
-                // data of a bounded run reaches the 2PC sinks exactly at
-                // EOS-MAX_WATERMARK — after the task finished but BEFORE the
-                // coordinator's checkpoint for it completes. If the finished task
-                // deregistered, the commit notification
-                // (notifyCheckpointComplete → sink finishCommit) found no task and
-                // the epoch's buffered output was lost forever (no later recovery
-                // exists to re-commit durable-but-uncommitted transactions).
-                // Retaining the entry lets the finished sink commit its last
-                // epochs; the entry is replaced by any redeployment and cleared
-                // on stop(). Canceled/failed tasks still remove themselves.
-                if (success) {
-                    LOG.debug("Task {}/{}/{} finished; retaining registry entry for post-finish commit notifications",
-                            jobId, vertexId, subtaskIndex);
-                } else {
-                    boolean stillOwner = runningTasks.remove(key, this);
-                    if (!stillOwner) {
-                        LOG.debug("Task {}/{} attempt {} exit: registry entry already owned by a newer attempt",
-                                jobId, vertexId, attemptId);
-                    }
-                }
-                if (semaphoreReleased.compareAndSet(false, true)) {
-                    capacitySemaphore.release();
-                }
-
-                // G52: per-task terminal-state report to the coordinator. Only
-                // COMPLETED / FAILED are reported (CANCELED is initiated by the
-                // coordinator itself, no need to echo back). #24 — failure to
-                // report is logged (no silent swallow).
-                if (!canceled) {
-                    reportTerminalStatus(success);
-                }
-            }
-        }
-
-        /**
-         * G52: reports this task's terminal state to the coordinator. Failures
-         * are logged but do not tear down the run loop (#24 — explicit handling,
-         * not silent).
-         */
-        private void reportTerminalStatus(boolean success) {
-            IStreamCoordinatorRpcService rpc = TaskManager.this.coordinatorRpcService;
-            if (rpc == null) {
-                // No coordinator wired (e.g. unit-test fixture); skip silently.
-                return;
-            }
-            long lastProgress = -1L;
-            StreamTaskInvokable inv = this.invokable;
-            if (inv != null) {
-                lastProgress = inv.getLastProgressTime();
-            }
-            TaskStatusReport.TerminalState state = success
-                    ? TaskStatusReport.TerminalState.COMPLETED
-                    : TaskStatusReport.TerminalState.FAILED;
-            if (!success) {
-                // Item 16 (P-REQ-1 task layer): count real task failures.
-                nodeMetrics.taskFailed();
-            }
-            String cause = error != null ? error.toString() : null;
-            TaskStatusReport report = new TaskStatusReport(
-                    jobId, vertexId, subtaskIndex, attemptNumber,
-                    state, cause, lastProgress, fencingEpoch,
-                    CoreMetrics.currentTimeMillis());
-            try {
-                rpc.reportTaskStatus(report);
-            } catch (Exception e) {
-                LOG.warn("Failed to report terminal status for {}/{}/{} (state={})",
-                        jobId, vertexId, subtaskIndex, state, e);
-            }
-        }
-
-        private StreamTaskInvokable waitForInvokable() throws InterruptedException {
-            if (!invokableLatch.await(invokableWaitTimeoutMs, TimeUnit.MILLISECONDS)) {
-                LOG.warn("Timed out waiting for invokable for {}/{}/{}", jobId, vertexId, subtaskIndex);
-                return null;
-            }
-            return invokable;
-        }
-
-        public void setInvokable(StreamTaskInvokable invokable) {
-            this.invokable = invokable;
-            invokableLatch.countDown();
-        }
-
-        public void setFuture(Future<?> future) {
-            this.future = future;
-        }
-
-        public void cancel() {
-            canceled = true;
-            invokableLatch.countDown();
-            // G58: cooperative mailbox cancel first, then interrupt. Mirrors the
-            // LOCAL path (GraphModelCheckpointExecutor.java:683) — the mailbox
-            // signalCancel() raises the cancel flag and queues a cancel marker so
-            // the task thread observes cancellation at its next mailbox drain even
-            // if it is not in a blocking-interruptible section.
-            //
-            // null-check defense: invokable is volatile, lazily set by
-            // setInvokable() (30s waitForInvokable window). If cancel arrives
-            // before the invokable is installed, skip the mailbox call (no NPE);
-            // the state-transition + future.cancel(true) + latch countdown still
-            // apply so the task exits cleanly once the invokable arrives (or
-            // waitForInvokable times out).
-            StreamTaskInvokable inv = this.invokable;
-            if (inv != null) {
-                try {
-                    inv.getMailboxExecutor().signalCancel();
-                } catch (Exception e) {
-                    LOG.warn("signalCancel failed for {}/{}/{} (falling back to interrupt-only)",
-                            jobId, vertexId, subtaskIndex, e);
-                }
-            }
-            if (future != null) {
-                future.cancel(true);
-            }
-        }
-
-        public void triggerCheckpoint(CheckpointBarrier barrier) {
-            StreamTaskInvokable inv = this.invokable;
-            if (inv == null) {
-                LOG.debug("Cannot trigger checkpoint: invokable not yet installed for {}/{}/{}",
-                        jobId, vertexId, subtaskIndex);
-                return;
-            }
-            CheckpointBarrierTracker tracker = inv.getBarrierTracker();
-            if (tracker == null) {
-                LOG.debug("No barrier tracker for {}/{}/{}", jobId, vertexId, subtaskIndex);
-                return;
-            }
-            try {
-                tracker.triggerCheckpoint(barrier.getId(), barrier.getTimestamp(), barrier.getCheckpointType());
-            } catch (Exception e) {
-                LOG.error("Failed to trigger checkpoint on {}/{}/{}", jobId, vertexId, subtaskIndex, e);
-            }
-        }
-
-        /**
-         * Item 14: forwards a durable-checkpoint notification to this task's
-         * operator chain's {@link io.nop.stream.core.checkpoint.participant.CheckpointParticipant}s
-         * (the 2PC sink UDFs). Mirrors the LOCAL coordinator-side participant
-         * notification — the commit only happens after the coordinator persisted
-         * the epoch manifest (2PC invariant: commit after durable).
-         */
-        public void notifyCheckpointComplete(long checkpointId) {
-            StreamTaskInvokable inv = this.invokable;
-            if (inv == null || inv.getOperatorChain() == null) {
-                LOG.debug("Cannot notify checkpoint completion: invokable not installed for {}/{}/{}",
-                        jobId, vertexId, subtaskIndex);
-                return;
-            }
-            for (io.nop.stream.core.operators.StreamOperator<?> op : inv.getOperatorChain().getOperators()) {
-                try {
-                    if (op instanceof io.nop.stream.core.checkpoint.participant.CheckpointParticipant) {
-                        ((io.nop.stream.core.checkpoint.participant.CheckpointParticipant) op)
-                                .finishCommit(checkpointId, true);
-                    } else if (op instanceof io.nop.stream.core.operators.AbstractUdfStreamOperator) {
-                        Object udf = ((io.nop.stream.core.operators.AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
-                        if (udf instanceof io.nop.stream.core.checkpoint.participant.CheckpointParticipant && udf != op) {
-                            ((io.nop.stream.core.checkpoint.participant.CheckpointParticipant) udf)
-                                    .finishCommit(checkpointId, true);
-                        }
-                    }
-                } catch (Exception e) {
-                    // Observable failure, not a silent swallow: the coordinator-side
-                    // forwarder retries failed commits and the subsuming commit of
-                    // the next epoch re-covers this one (ledger/manifest idempotency
-                    // guards make the retry safe).
-                    LOG.error("finishCommit({}) failed for an operator of {}/{}/{} — "
-                            + "subsuming commit / retry will re-cover this epoch",
-                            checkpointId, jobId, vertexId, subtaskIndex, e);
-                }
-            }
-        }
-
-        public long getFencingEpoch() {
-            return fencingEpoch;
-        }
-
-        /** Item 14: whether the task thread reached its terminal state. */
-        public boolean isFinished() {
-            return finished;
-        }
-
-        public String getJobId() { return jobId; }
-        public String getVertexId() { return vertexId; }
-        public int getSubtaskIndex() { return subtaskIndex; }
-        public TaskLocation getTaskLocation() { return taskLocation; }
-    }
-
-    public static class TaskResult {
-        private final String jobId;
-        private final String vertexId;
-        private final int subtaskIndex;
-        private final boolean success;
-        private final boolean canceled;
-        private final Throwable error;
-
-        public TaskResult(String jobId, String vertexId, int subtaskIndex,
-                          boolean success, boolean canceled, Throwable error) {
-            this.jobId = jobId;
-            this.vertexId = vertexId;
-            this.subtaskIndex = subtaskIndex;
-            this.success = success;
-            this.canceled = canceled;
-            this.error = error;
-        }
-
-        public String getJobId() { return jobId; }
-        public String getVertexId() { return vertexId; }
-        public int getSubtaskIndex() { return subtaskIndex; }
-        public boolean isSuccess() { return success; }
-        public boolean isCanceled() { return canceled; }
-        public Throwable getError() { return error; }
     }
 }

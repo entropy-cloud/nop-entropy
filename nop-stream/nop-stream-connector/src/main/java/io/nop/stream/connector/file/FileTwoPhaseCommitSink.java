@@ -301,7 +301,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             return;
         }
 
-        // Plan 358 Fix-12: flush the temp data file to stable storage BEFORE the
+        // Flush the temp data file to stable storage BEFORE the
         // rename. Without it the exactly-once promise stopped at the rename:
         // after an OS crash the manifest could record a committed epoch whose
         // data blocks never reached the disk. Cost is one fsync per commit
@@ -493,7 +493,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             }
             out.write(sb.toString().getBytes(charset()));
         }
-        // Plan 358 Fix-12: the manifest is the commit record — flush it to
+        // The manifest is the commit record — flush it to
         // stable storage before publishing the rename, otherwise an OS crash
         // could leave a "committed" manifest whose content was never durable.
         forcePath(tempManifest);
@@ -506,7 +506,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
-     * Plan 358 Fix-12: flushes a regular file's content to stable storage
+     * Flushes a regular file's content to stable storage
      * (fsync). Closes the channel immediately; metadata-only flush
      * ({@code force(false)}) is sufficient because the payload was written
      * through the same channel-visible file state.
@@ -518,7 +518,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
-     * Plan 358 Fix-12: best-effort fsync of a directory (makes renames durable
+     * Best-effort fsync of a directory (makes renames durable
      * on POSIX). Platforms that cannot open a directory as a channel (e.g.
      * Windows) skip quietly — process-crash safety is unaffected there, and the
      * OS-crash window reverts to the pre-fix behavior instead of failing.

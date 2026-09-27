@@ -31,7 +31,10 @@ import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
+import io.nop.stream.core.common.state.backend.AccumulatorTypeInference;
 import io.nop.stream.core.common.state.backend.ContainerValueCodec;
+import io.nop.stream.core.common.state.backend.MapValuePairValidator;
+import io.nop.stream.core.common.state.backend.RestoredStateFlavor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
@@ -42,9 +45,7 @@ import org.rocksdb.RocksIterator;
 
 import io.nop.stream.core.exceptions.StreamException;
 
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
-import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
@@ -56,8 +57,6 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * restore re-routes via the backend's shard logic.
  */
 final class RocksDBSnapshotSerDe {
-
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RocksDBSnapshotSerDe.class);
 
     private RocksDBSnapshotSerDe() {
     }
@@ -380,10 +379,10 @@ final class RocksDBSnapshotSerDe {
                     restoreReducingState(backend, stateName, stateInfo);
                     break;
                 case "AggregatingState":
-                    restoreAggregatingState(backend, stateName, stateInfo, false);
+                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.PUBLIC);
                     break;
                 case "InternalAggregatingState":
-                    restoreAggregatingState(backend, stateName, stateInfo, true);
+                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.INTERNAL);
                     break;
                 default:
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -481,47 +480,24 @@ final class RocksDBSnapshotSerDe {
                 Object rawKey = e.get("key");
                 int keyGroupId = backend.computeKeyGroupId(rawKey);
                 byte[] baseKey = RocksDBKeyEncoder.encode(namespace, rawKey, keyGroupId);
-                Object raw = e.get("mapValue");
-                // item 24 parity guard (Phase 1 adjudication): a corrupt pair
-                // previously surfaced as a bare ClassCastException with no state
-                // context; fail fast with a typed, locatable error instead.
-                if (raw != null && !(raw instanceof List)) {
-                    throw new StreamException(ERR_STREAM_STATE_ERROR)
-                            .param(ARG_STATE_NAME, stateName)
-                            .param(ARG_ACTUAL_TYPE, raw.getClass().getName())
-                            .param(ARG_DETAIL, "mapValue of state '" + stateName
-                                    + "' is not a list of key/value pairs; snapshot is corrupt or foreign");
-                }
-                List<List<Object>> mapEntries = (List<List<Object>>) raw;
-                if (mapEntries != null) {
-                    for (int i = 0; i < mapEntries.size(); i++) {
-                        Object pairObj = mapEntries.get(i);
-                        if (!(pairObj instanceof List) || ((List<?>) pairObj).size() < 2) {
-                            throw new StreamException(ERR_STREAM_STATE_ERROR)
-                                    .param(ARG_STATE_NAME, stateName)
-                                    .param(ARG_DETAIL, "mapValue pair #" + i + " of state '" + stateName
-                                            + "' is not a [key, value] pair (got: "
-                                            + (pairObj == null ? "null" : pairObj.toString())
-                                            + "); snapshot is corrupt or foreign");
-                        }
-                        List<Object> me = (List<Object>) pairObj;
-                        Object mk = me.get(0);
-                        // P1-21-01: container values arrive as the element-type wrapper
-                        // (or as a raw JSON form for legacy snapshots); decode re-materializes
-                        // inner elements (warn on legacy degradation), then re-encode so the
-                        // stored bytes carry the wrapper for the runtime read path.
-                        Object mv;
-                        if (ContainerValueCodec.isContainerType(valueClass)) {
-                            mv = ContainerValueCodec.decode(me.get(1), valueClass,
-                                    "RocksDB MapState '" + stateName + "'");
-                        } else {
-                            mv = RocksDBValueSerDe.deserializeObject(me.get(1), valueClass);
-                        }
-                        byte[] fullKey = appendMapKey(baseKey, mk);
-                        backend.getDb().put(cf, fullKey,
-                                RocksDBValueSerDe.serialize(ContainerValueCodec.encode(mv)));
+                // Per-pair mapValue validation is the shared MapValuePairValidator
+                // (item 24 parity guards converged across Memory/RocksDB serdes).
+                MapValuePairValidator.forEachValidPair(e, stateName, (mapKeyObj, mapValueObj) -> {
+                    // P1-21-01: container values arrive as the element-type wrapper
+                    // (or as a raw JSON form for legacy snapshots); decode re-materializes
+                    // inner elements (warn on legacy degradation), then re-encode so the
+                    // stored bytes carry the wrapper for the runtime read path.
+                    Object mv;
+                    if (ContainerValueCodec.isContainerType(valueClass)) {
+                        mv = ContainerValueCodec.decode(mapValueObj, valueClass,
+                                "RocksDB MapState '" + stateName + "'");
+                    } else {
+                        mv = RocksDBValueSerDe.deserializeObject(mapValueObj, valueClass);
                     }
-                }
+                    byte[] fullKey = appendMapKey(baseKey, mapKeyObj);
+                    backend.getDb().put(cf, fullKey,
+                            RocksDBValueSerDe.serialize(ContainerValueCodec.encode(mv)));
+                });
             }
         }
     }
@@ -584,13 +560,14 @@ final class RocksDBSnapshotSerDe {
     /** AggregatingState / InternalAggregatingState share one restore (only the state class differs). */
     @SuppressWarnings("unchecked")
     private static void restoreAggregatingState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                                Map<String, Object> stateInfo, boolean internal) throws Exception {
+                                                Map<String, Object> stateInfo, RestoredStateFlavor flavor) throws Exception {
+        boolean internal = (flavor == RestoredStateFlavor.INTERNAL);
         // Legacy *TypeName fallback (item 11 RK-3, mirrors restoreReducingState).
         Class<Object> recordedClass = loadValueClass(stateInfo);
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         AggregateFunction<Object, Object, Object> aggregateFunction =
                 resolveAggregateFunction(backend, stateName, aggregateFunctionTypeName);
-        Class<Object> valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, recordedClass);
+        Class<Object> valueClass = (Class<Object>) AccumulatorTypeInference.inferAccumulatorType(aggregateFunction, recordedClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -656,37 +633,6 @@ final class RocksDBSnapshotSerDe {
     private static Class<? extends SimpleAccumulator<Object>> loadAccumulatorClass(String typeName) throws Exception {
         ClassNameValidator.validateAccumulatorClass(typeName);
         return (Class<? extends SimpleAccumulator<Object>>) Class.forName(typeName);
-    }
-
-    /**
-     * The window descriptor path (WindowedStreamImpl.aggregate/reduce) records the
-     * accumulator type as {@code java.lang.Object} (generic erasure), so the snapshot's
-     * recorded valueType cannot drive value re-materialization: a JSON array round-trip
-     * of a {@code long[]} accumulator would be restored as an ArrayList and the user
-     * function's {@code add} would ClassCastException. When the recorded type is the
-     * generic {@code Object}, infer the real accumulator type from the LIVE aggregate
-     * function's {@code createAccumulator()} (registered by the operator before restore).
-     * Functions whose {@code createAccumulator()} returns {@code null} (e.g. the
-     * reduce-function wrapper) keep the recorded type — JSON-native accumulators
-     * (String/numbers) restore correctly without the inference.
-     */
-    private static Class<?> inferAccumulatorType(AggregateFunction<?, ?, ?> aggregateFunction, Class<?> recordedType) {
-        if (recordedType != Object.class || aggregateFunction == null) {
-            return recordedType;
-        }
-        try {
-            Object accumulator = aggregateFunction.createAccumulator();
-            if (accumulator != null) {
-                return accumulator.getClass();
-            }
-        } catch (Exception e) {
-            // Keep the recorded (generic) type; JSON-native accumulators restore
-            // correctly either way. Observable degradation (item 11 RK-5, mirrors
-            // core S-3): the fallback is logged, never silent.
-            LOG.warn("Failed to infer accumulator type from aggregate function {}; keeping recorded type {}",
-                    aggregateFunction.getClass().getName(), recordedType.getName(), e);
-        }
-        return recordedType;
     }
 
     /**

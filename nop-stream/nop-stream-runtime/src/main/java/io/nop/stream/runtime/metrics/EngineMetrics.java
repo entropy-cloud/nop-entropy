@@ -89,7 +89,7 @@ public final class EngineMetrics {
     }
 
     /**
-     * Plan 358 Fix-9: releases the cached per-job metrics bound to the process
+     * Releases the cached per-job metrics bound to the process
      * composite registry. Invoked from {@code JobCoordinator.stop()}. Without it,
      * a coordination process running many short-lived jobs accumulates one
      * meter set (and one retained gauge state) per jobId for the lifetime of

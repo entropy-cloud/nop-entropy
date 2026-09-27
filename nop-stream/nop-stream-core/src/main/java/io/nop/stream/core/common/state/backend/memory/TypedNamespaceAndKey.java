@@ -38,7 +38,7 @@ class TypedNamespaceAndKey implements Serializable {
                 Objects.equals(key, that.key);
     }
 
-    // Plan 360 R1: hash memoized — this object is a HashMap key on the state
+    // Hash memoized — this object is a HashMap key on the state
     // hot path and was previously re-boxed through Objects.hash (2 varargs
     // arrays per hashCode call). Fields are final, so the hash is stable.
     private transient int hash;

@@ -21,6 +21,7 @@ import io.nop.stream.core.common.state.StateTtlUpdateType;
 import io.nop.stream.core.common.state.TtlTimeProvider;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import io.nop.stream.core.common.state.backend.AccumulatorTypeInference;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult;
 import io.nop.stream.core.exceptions.StreamException;
@@ -164,8 +165,12 @@ class TestRocksDBAuditFixes {
         };
         backend.registerRestoreAggregateFunction("a", throwing);
 
+        // Plan 2278 Phase 2: the inference (and its WARN) moved to the shared core
+        // AccumulatorTypeInference — the observable-degradation invariant is
+        // unchanged, only the emitting logger/message text follows the core wording
+        // (registered in the plan as a non-behavioral text change).
         ch.qos.logback.classic.Logger serdeLogger =
-                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(RocksDBSnapshotSerDe.class);
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(AccumulatorTypeInference.class);
         ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
                 new ch.qos.logback.core.read.ListAppender<>();
         appender.start();
@@ -194,7 +199,7 @@ class TestRocksDBAuditFixes {
 
             boolean warned = appender.list.stream().anyMatch(e ->
                     e.getLevel() == ch.qos.logback.classic.Level.WARN
-                            && e.getFormattedMessage().contains("infer accumulator type"));
+                            && e.getFormattedMessage().contains("createAccumulator()"));
             assertTrue(warned, "inference fallback must log a WARN (observable degradation, not silent)");
         } finally {
             serdeLogger.detachAppender(appender);

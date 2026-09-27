@@ -41,7 +41,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 public class StreamElementCodec {
 
     /**
-     * Decoded value-type cache (plan 360 R1): decode previously ran
+     * Decoded value-type cache: decode previously ran
      * {@code ClassNameValidator.validateClassName} + {@code Class.forName} for
      * EVERY record on a remote edge. The validator is a pure function of the
      * class-name string, so a name that passed validation once passes always —

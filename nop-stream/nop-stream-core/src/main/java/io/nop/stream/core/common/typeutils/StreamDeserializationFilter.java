@@ -62,7 +62,7 @@ public final class StreamDeserializationFilter {
     }
 
     /**
-     * Cached filter configuration (plan 360 R1): {@link #create()} runs for EVERY
+     * Cached filter configuration: {@link #create()} runs for EVERY
      * Java-deserialization on the CEP state hot path. The filter was previously
      * rebuilt (lambda allocation + prefix-list merge) per call. The property is
      * still re-read on each call so tests and embedding processes can adjust the

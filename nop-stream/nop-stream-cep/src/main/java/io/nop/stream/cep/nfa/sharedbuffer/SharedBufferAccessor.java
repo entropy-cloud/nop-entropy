@@ -53,7 +53,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
     private SharedBuffer<V> sharedBuffer;
 
     /**
-     * Plan 360 R3: key scope of this accessor. {@code null} = legacy unscoped
+     * Key scope of this accessor. {@code null} = legacy unscoped
      * access (shared cache keyspace, flush-on-close); non-null = the stream key
      * (key-scoped cache keys, close is a no-op because nothing needs clearing).
      */
@@ -380,7 +380,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @throws Exception Thrown if the system cannot access the state.
      */
     public void close() {
-        // Plan 360 R3: only the legacy unscoped accessor must clear the shared
+        // Only the legacy unscoped accessor must clear the shared
         // cache keyspace on close (cross-key correctness — see
         // {@code SharedBuffer.flushCache()}). A key-scoped accessor's entries
         // are isolated by its key and write-through keeps the backing state

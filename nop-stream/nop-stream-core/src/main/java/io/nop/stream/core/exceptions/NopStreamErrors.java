@@ -104,7 +104,7 @@ public interface NopStreamErrors {
             define("nop.err.stream.chaining-output-exception", "Error in chaining output: {detail}", ARG_DETAIL);
 
     /**
-     * RL-7 (R15-AR-4): side output has no registered consumer in the chained execution — fail
+     * Side output has no registered consumer in the chained execution — fail
      * fast instead of silently dropping (plan guide #24).
      */
     ErrorCode ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER =
@@ -190,7 +190,7 @@ public interface NopStreamErrors {
                     ARG_TIMEOUT_MS);
 
     /**
-     * Stage 43: a {@code RemoteInputChannel} detected producer failure via the
+     * A {@code RemoteInputChannel} detected producer failure via the
      * channel heartbeat protocol — neither data, nor heartbeat, nor EOS arrived
      * within {@code channelTimeout}. This is faster than waiting for the coarse
      * lease timeout (~15-20s) and indicates producer death or network partition.
@@ -203,7 +203,7 @@ public interface NopStreamErrors {
     String ARG_TOPIC = "topic";
 
     /**
-     * Items 28+31 (D2 queue-full semantics): a {@code RemoteInputChannel}'s local
+     * Queue-full semantics: a {@code RemoteInputChannel}'s local
      * element queue stayed full with ZERO consumer progress for a whole bounded
      * enqueue window — the downstream task is stalled (or has no reader). The
      * channel fails typed instead of blocking the message-backend dispatch
@@ -226,7 +226,7 @@ public interface NopStreamErrors {
     String ARG_ACTUAL_CHECKSUM = "actualChecksum";
 
     /**
-     * Stage 51 (roadmap item 25 / D-DRIFT-2): the epoch manifest carries a checksum
+     * The epoch manifest carries a checksum
      * (SHA-256 over the canonical serialization with the checksum key removed) and the
      * restore path recomputed a different value. The persisted bytes do not match their
      * recorded integrity checksum — corruption or tampering. Fails fast rather than
@@ -242,7 +242,7 @@ public interface NopStreamErrors {
     String ARG_FILE_NAME = "fileName";
 
     /**
-     * F-03 (Plan 2026-09-04-1326-1 Phase 3): a shared SST segment in the
+     * A shared SST segment in the
      * content-addressed store failed restore-time integrity re-verification — the
      * recomputed SHA-256 differs from the content hash the segment is addressed by
      * (truncated write, bit rot, or tampering). Fails fast instead of feeding corrupt
@@ -259,7 +259,7 @@ public interface NopStreamErrors {
     String ARG_CURRENT_FORMAT_VERSION = "currentFormatVersion";
 
     /**
-     * Stage 51: the manifest's self-describing version face is unreadable by this
+     * The manifest's self-describing version face is unreadable by this
      * runtime — either the envelope {@code formatVersion} or the {@code stateFormatVersion}
      * field is greater than the current supported version (a future format whose
      * semantics are unknown), or the two version faces are mutually inconsistent
@@ -275,10 +275,11 @@ public interface NopStreamErrors {
                     ARG_CURRENT_FORMAT_VERSION);
 
     /**
-     * Stage 29: state schema fingerprint mismatch detected at {@code getState()} time.
+     * State schema fingerprint mismatch detected at {@code getState()} time.
      * The current descriptor's schema checksum differs from the restored state's
-     * descriptor checksum. Stage 29 fails fast (no migration). Stage 33 will extend
-     * this path to check for registered {@code StateMigrationFunction}s before failing.
+     * descriptor checksum. Fails fast when no {@code StateMigrationFunction} is
+     * registered; with a registered migration the restore path consults the
+     * migration registry before failing.
      */
     ErrorCode ERR_STREAM_STATE_SCHEMA_MISMATCH =
             define("nop.err.stream.state-schema-mismatch",
@@ -328,11 +329,10 @@ public interface NopStreamErrors {
     String ARG_ACTUAL_TOKEN = "actualToken";
 
     /**
-     * P0-6: a stale fencing token was presented to a TaskManager RPC entry
+     * A stale fencing token was presented to a TaskManager RPC entry
      * point. The contract documented on {@code TaskManager} is that any
-     * operation carrying an old fencing token is rejected; the prior
-     * implementation only warned and returned, silently swallowing the
-     * operation (No-Silent-No-Op violation).
+     * operation carrying an old fencing token is rejected with this typed
+     * error rather than warned-and-ignored.
      */
     ErrorCode ERR_STREAM_FENCING_TOKEN_MISMATCH =
             define("nop.err.stream.fencing-token-mismatch",
@@ -344,7 +344,7 @@ public interface NopStreamErrors {
     String ARG_MISSING_VERTEX_IDS = "missingVertexIds";
 
     /**
-     * P0-7: reverse-direction savepoint vertex differential. The checkpoint
+     * Reverse-direction savepoint vertex differential. The checkpoint
      * contains vertices that are not present in the current graph — i.e. a
      * stateful vertex was removed. Per {@code checkpoint-design.md} §8.6 the
      * safe default is to reject such a restore rather than silently dropping
@@ -363,7 +363,7 @@ public interface NopStreamErrors {
     String ARG_NEW_PARALLELISM = "newParallelism";
 
     /**
-     * Stage 47 (unaligned checkpoint + rescale interaction): a rescale restore
+     * Unaligned checkpoint + rescale interaction: a rescale restore
      * (parallelism change) detected that the source checkpoint carries non-empty
      * channel state (in-flight data captured during an unaligned checkpoint).
      * Channel state cannot be redistributed across a new parallelism in the first
@@ -381,7 +381,7 @@ public interface NopStreamErrors {
                     ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
     /**
-     * Stage 41 D7 (Option B coexistence): the optional discovery-read cross-check
+     * The optional discovery-read cross-check
      * detected divergence between the platform discovery view and the
      * {@code ClusterRegistry} runtime source of truth. The two views are
      * eventually consistent (same DB, different tables, non-transactional), but
@@ -395,7 +395,7 @@ public interface NopStreamErrors {
                     ARG_DISCOVERY_ONLY, ARG_REGISTRY_ONLY);
 
     /**
-     * Stage 44 successor 1 (materialization point mechanism, option B): a write
+     * A write
      * was attempted on a sealed {@code IMaterializationPoint}. Sealed points are
      * immutable; the producer must not continue dual-writing after seal. Fails
      * fast rather than silently dropping the element (No-Silent-No-Op).
@@ -405,7 +405,7 @@ public interface NopStreamErrors {
                     "Materialization point {pointId} is sealed: {detail}", ARG_POINT_ID, ARG_DETAIL);
 
     /**
-     * Stage 44 successor 1 (materialization point mechanism, option B): the
+     * The
      * consumer-side replay path was invoked on a channel whose underlying
      * {@code ResultPartition} has no materialization point attached (i.e. the
      * {@code JobEdge} materialization marker is off). Fails fast rather than
@@ -418,7 +418,7 @@ public interface NopStreamErrors {
                     ARG_DETAIL);
 
     /**
-     * Stage 44 successor 1: dual-write bypass was enabled (a materialization
+     * Dual-write bypass was enabled (a materialization
      * point is attached) but the bypass write to the materialization store
      * failed. The producer fails fast rather than continuing with a divergent
      * main-queue/materialization-store pair (which would break recovery).
@@ -432,7 +432,7 @@ public interface NopStreamErrors {
     String ARG_MAX_RESTARTS = "maxRestarts";
 
     /**
-     * Stage 44 successor 3 (supervision loop): a task failed mid-execution and
+     * A task failed mid-execution and
      * the supervision loop detected it. This error surfaces the failure for the
      * single-region case (where scoped restart is not applicable — there is no
      * materialization boundary to contain the blast radius) and for the
@@ -444,7 +444,7 @@ public interface NopStreamErrors {
                     ARG_VERTEX_ID, ARG_TASK_INDEX, ARG_REGION_ID, ARG_DETAIL);
 
     /**
-     * Stage 44 successor 3 (supervision loop): the per-region restart budget
+     * The per-region restart budget
      * was exhausted. The supervision loop attempted to restart the failing
      * region {regionId} but it exceeded the configured maxRestarts={maxRestarts}.
      * Falls back to global recovery (whole-job) — the caller (typically
@@ -459,18 +459,16 @@ public interface NopStreamErrors {
     String ARG_TASK_KEY = "taskKey";
 
     /**
-     * P1 hardening (Phase 4): a task did not reach a terminal state within the
-     * cooperative-cancel budget during a region-scoped restart. The previous
-     * behavior silently fell through after a WARN and rebuilt/resubmitted a
-     * second task instance, producing a zombie (two producers writing the same
+     * A task did not reach a terminal state within the
+     * cooperative-cancel budget during a region-scoped restart. Rebuilding a
+     * second task instance would create a zombie (two producers writing the same
      * {@code ResultPartition}, racing on {@code currentMaterializationEpoch},
-     * breaking exactly-once). This error fails loud so the caller surfaces the
-     * failure for recovery (local/embedded path via {@code env.execute()};
-     * distributed path via FAILED report + {@code autoRecoverOnFailedReport})
-     * instead of silently creating a zombie.
+     * breaking exactly-once), so this error fails loud and the caller surfaces
+     * the failure for recovery (local/embedded path via {@code env.execute()};
+     * distributed path via FAILED report + {@code autoRecoverOnFailedReport}).
      *
-     * <p>Distinct from {@link #ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED} (which is
-     * the region-restart budget exhaustion at {@code SupervisionLoop:255}) so the
+     * <p>Distinct from {@link #ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED} (the
+     * region-restart budget exhaustion surfaced by {@code SupervisionLoop}) so the
      * two conditions remain distinguishable on an ops dashboard.
      */
     ErrorCode ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT =
@@ -481,9 +479,9 @@ public interface NopStreamErrors {
                     ARG_TASK_KEY, ARG_VERTEX_ID, ARG_TASK_INDEX, ARG_REGION_ID);
 
     /**
-     * Stage 44 successor 3 (supervision loop): a region-scoped restart was
+     * A region-scoped restart was
      * attempted but the region contains producer vertices that cannot be safely
-     * restarted without the drain/reconnect protocol (successor plan 4). The
+     * restarted without the drain/reconnect protocol. The
      * supervision loop falls back to global recovery rather than silently
      * producing an inconsistent state (No-Silent-No-Op).
      */
@@ -493,7 +491,7 @@ public interface NopStreamErrors {
                     ARG_REGION_ID);
 
     /**
-     * CONN-01 successor D1 (checkpoint-design.md §8.5.2): a checkpoint restore detected a
+     * Per {@code checkpoint-design.md} §8.5.2: a checkpoint restore detected a
      * two-phase-commit sink vertex whose checkpoint parallelism differs from the current
      * execution parallelism. Cross-parallelism redistribution of 2PC pending commits has no
      * supported path — operator state restores strictly 1:1 by subtask index, so a scale-down
@@ -514,7 +512,7 @@ public interface NopStreamErrors {
                     ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
     // ------------------------------------------------------------------
-    // nop-stream-flow DSL contract error codes (P1-XDSL-5 / P1-XDSL-6 / P1-09-02)
+    // nop-stream-flow DSL contract error codes
     // ------------------------------------------------------------------
 
     String ARG_ID = "id";
@@ -610,7 +608,7 @@ public interface NopStreamErrors {
                     ARG_BEAN_NAME, ARG_EXPECTED_TYPE, ARG_ACTUAL_TYPE);
 
     // ------------------------------------------------------------------
-    // Connector SPI registry error codes (item 19 / P-REQ-28)
+    // Connector SPI registry error codes
     // ------------------------------------------------------------------
 
     String ARG_TYPE_NAME = "typeName";
@@ -660,7 +658,7 @@ public interface NopStreamErrors {
                     ARG_TYPE_NAME, ARG_DECLARED_VALUE, ARG_ACTUAL_VALUE);
 
     // ------------------------------------------------------------------
-    // Pre-submit validation error codes (item 20 / P-REQ-13/14)
+    // Pre-submit validation error codes
     // ------------------------------------------------------------------
 
     String ARG_DECLARED_PARAMS = "declaredParams";

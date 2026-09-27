@@ -78,7 +78,7 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
     }
 
     /**
-     * Plan 358 Fix-11: upper bound for one JDBC batch execution (default
+     * Upper bound for one JDBC batch execution (default
      * {@link JdbcTwoPhaseCommitSink#DEFAULT_MAX_BATCH_SIZE}). Large epochs are
      * committed in segments inside the same transaction.
      */

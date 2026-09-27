@@ -26,8 +26,11 @@ import io.nop.stream.core.common.state.StateSchemaResolver;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.checkpoint.SerializerFingerprint;
+import io.nop.stream.core.common.state.backend.AccumulatorTypeInference;
 import io.nop.stream.core.common.state.backend.ContainerValueCodec;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
+import io.nop.stream.core.common.state.backend.MapValuePairValidator;
+import io.nop.stream.core.common.state.backend.RestoredStateFlavor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
@@ -315,7 +318,9 @@ class MemoryStateSerDe {
                     break;
                 case "AggregatingState":
                 case "InternalAggregatingState":
-                    restoreAggregatingState(states, stateName, stateInfo, "InternalAggregatingState".equals(stateType));
+                    restoreAggregatingState(states, stateName, stateInfo,
+                            "InternalAggregatingState".equals(stateType)
+                                    ? RestoredStateFlavor.INTERNAL : RestoredStateFlavor.PUBLIC);
                     break;
                 default:
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -399,35 +404,13 @@ class MemoryStateSerDe {
         MemoryMapState<Object, Object> state = new MemoryMapState<>(backend, descriptor);
         restoreKeyedEntries(states, stateName, stateInfo, state, rawStorage(state.storage), e -> {
             Map<Object, Object> mapValue = new LinkedHashMap<>();
-            // item 24: per-pair mapValue validation — a corrupt pair previously
-            // surfaced as a bare ClassCastException/IndexOutOfBoundsException with
-            // no state context; fail fast with a typed, locatable error instead.
-            Object raw = e.get("mapValue");
-            if (raw != null && !(raw instanceof List)) {
-                throw new StreamException(ERR_STREAM_STATE_ERROR)
-                        .param(ARG_STATE_NAME, stateName)
-                        .param(ARG_ACTUAL_TYPE, raw.getClass().getName())
-                        .param(ARG_DETAIL, "mapValue of state '" + stateName
-                                + "' is not a list of key/value pairs; snapshot is corrupt or foreign");
-            }
-            List<List<Object>> mapEntries = (List<List<Object>>) raw;
-            if (mapEntries != null) {
-                for (int i = 0; i < mapEntries.size(); i++) {
-                    Object pairObj = mapEntries.get(i);
-                    if (!(pairObj instanceof List) || ((List<?>) pairObj).size() < 2) {
-                        throw new StreamException(ERR_STREAM_STATE_ERROR)
-                                .param(ARG_STATE_NAME, stateName)
-                                .param(ARG_DETAIL, "mapValue pair #" + i + " of state '" + stateName
-                                        + "' is not a [key, value] pair (got: "
-                                        + (pairObj == null ? "null" : pairObj.toString())
-                                        + "); snapshot is corrupt or foreign");
-                    }
-                    List<Object> me = (List<Object>) pairObj;
-                    Object mk = mapKeyClass != null ? deserializeValue(me.get(0), mapKeyClass) : me.get(0);
-                    Object mv = deserializeValue(me.get(1), valueClass);
-                    mapValue.put(mk, mv);
-                }
-            }
+            // Per-pair mapValue validation is the shared MapValuePairValidator
+            // (item 24 parity guards converged across Memory/RocksDB serdes).
+            MapValuePairValidator.forEachValidPair(e, stateName, (mapKeyObj, mapValueObj) -> {
+                Object mk = mapKeyClass != null ? deserializeValue(mapKeyObj, mapKeyClass) : mapKeyObj;
+                Object mv = deserializeValue(mapValueObj, valueClass);
+                mapValue.put(mk, mv);
+            });
             return mapValue;
         });
     }
@@ -495,12 +478,14 @@ class MemoryStateSerDe {
     /** AggregatingState / InternalAggregatingState share one restore (only the state class differs). */
     @SuppressWarnings("unchecked")
     private void restoreAggregatingState(Map<String, Object> states, String stateName, Map<String, Object> stateInfo,
-                                         boolean internal) throws Exception {
+                                         RestoredStateFlavor flavor) throws Exception {
+        boolean internal = (flavor == RestoredStateFlavor.INTERNAL);
         Class<Object> recordedClass = loadClass(resolveTypeName(stateInfo, "valueTypeName", "valueType"));
         String aggregateFunctionTypeName = (String) stateInfo.get("aggregateFunctionType");
         AggregateFunction<Object, Object, Object> aggregateFunction =
                 resolveAggregateFunction(stateName, aggregateFunctionTypeName);
-        final Class<Object> valueClass = (Class<Object>) inferAccumulatorType(aggregateFunction, recordedClass);
+        final Class<Object> valueClass =
+                (Class<Object>) AccumulatorTypeInference.inferAccumulatorType(aggregateFunction, recordedClass);
 
         AggregatingStateDescriptor<Object, Object, Object> descriptor =
                 new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
@@ -541,37 +526,6 @@ class MemoryStateSerDe {
             throw new StreamException(ERR_STREAM_STATE_ERROR, e)
                     .param(ARG_DETAIL, "Failed to create accumulator: " + accumulatorClass.getName());
         }
-    }
-
-    /**
-     * The window descriptor path (WindowedStreamImpl.aggregate/reduce) records the
-     * accumulator type as {@code java.lang.Object} (generic erasure), so the snapshot's
-     * recorded valueType cannot drive value re-materialization: a JSON array round-trip
-     * of a {@code long[]} accumulator would be restored as an ArrayList and the user
-     * function's {@code add} would ClassCastException. When the recorded type is the
-     * generic {@code Object}, infer the real accumulator type from the LIVE aggregate
-     * function's {@code createAccumulator()} (registered by the operator before restore).
-     * Functions whose {@code createAccumulator()} returns {@code null} (e.g. the
-     * reduce-function wrapper) keep the recorded type — JSON-native accumulators
-     * (String/numbers) restore correctly without the inference.
-     */
-    private static Class<?> inferAccumulatorType(AggregateFunction<?, ?, ?> aggregateFunction, Class<?> recordedType) {
-        if (recordedType != Object.class || aggregateFunction == null) {
-            return recordedType;
-        }
-        try {
-            Object accumulator = aggregateFunction.createAccumulator();
-            if (accumulator != null) {
-                return accumulator.getClass();
-            }
-        } catch (Exception e) {
-            // Keep the recorded (generic) type; JSON-native accumulators restore
-            // correctly either way — but the live-function failure must be visible
-            // (it surfaces later as a ClassCastException in user add() otherwise).
-            LOG.warn("createAccumulator() on aggregate function {} threw; keeping recorded type {}",
-                    aggregateFunction.getClass().getName(), recordedType.getName(), e);
-        }
-        return recordedType;
     }
 
     /**
