@@ -14,5 +14,7 @@ public enum CodeUsageKind {
     IMPORTS,
     OVERRIDES,
     TYPE_OF,
-    INSTANTIATES
+    INSTANTIATES,
+    TESTED_BY,
+    REFERENCES
 }

@@ -179,6 +179,16 @@ public interface _NopCodeDaoConstants {
     String REFERENCE_KIND_INSTANTIATES = "110";
                     
     /**
+     * 引用类型: 被测试 
+     */
+    String REFERENCE_KIND_TESTED_BY = "120";
+                    
+    /**
+     * 引用类型: 引用 
+     */
+    String REFERENCE_KIND_REFERENCES = "130";
+                    
+    /**
      * 索引状态: 已创建 
      */
     String INDEX_STATUS_CREATED = "10";

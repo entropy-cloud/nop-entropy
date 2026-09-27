@@ -271,8 +271,8 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 边类型 | 存储方式 | 用途 |
 |--------|---------|------|
 | **CONTAINS** | `CodeSymbol.parentId`（已有字段） | 父子关系（类→方法/字段） |
-| **TESTED_BY** | `nop_code_usage`（`kind=TESTED_BY`） | 测试关联，覆盖率分析 |
-| **REFERENCES** | `nop_code_usage`（`kind=REFERENCES`） | 通用引用，增强影响分析 |
+| **TESTED_BY** | `nop_code_usage`（`kind=TESTED_BY`） | 测试关联，覆盖率分析。✅ 枚举/dict 已扩展（2026-09-27，N3.2） |
+| **REFERENCES** | `nop_code_usage`（`kind=REFERENCES`） | 通用引用，增强影响分析。✅ 枚举/dict 已扩展（2026-09-27，N3.2） |
 
 **决策**：不新增独立边表。TESTED_BY 和 REFERENCES 复用 `nop_code_usage.kind` 枚举扩展。
 

@@ -58,6 +58,8 @@
             <option code="OVERRIDES" label="重写" value="90"/>
             <option code="TYPE_OF" label="类型引用" value="100"/>
             <option code="INSTANTIATES" label="实例化" value="110"/>
+            <option code="TESTED_BY" label="被测试" value="120"/>
+            <option code="REFERENCES" label="引用" value="130"/>
         </dict>
         <dict label="索引状态" name="code/index_status" valueType="string">
             <description>索引状态</description>
