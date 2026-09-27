@@ -122,6 +122,7 @@ nop-code-app           ← 依赖 web
 | 通用辅助 | LOCAL_VARIABLE | 96 | 所有 |
 | 通用辅助 | TYPE_PARAMETER | 97 | Java/TS |
 | 通用辅助 | IMPORT | 98 | 所有 |
+| 框架路由 | ROUTE | 100 | Java（Spring 路由提取，`CodeRouteInfo` 经 `CodeIndexService` 合成，name 形如 `GET /path`） |
 
 ### 3.2 CodeAccessModifier（访问修饰符）
 
@@ -241,20 +242,27 @@ io.nop.graph.api.IGraph          ← 存储抽象接口（已有）
 
 ```
 // 执行流追踪（nop-code-flow）
-IFlowDetector.detect(SymbolTable, CallGraph) → List<ExecutionFlow>
-IEntryPointPatternProvider.getPatterns() → List<EntryPointPattern>  // 框架模式注册（可插拔）
+IFlowDetector.detectFlows(String indexId, SymbolTable, CallGraph) → List<ExecutionFlow>
+IFlowDetector.getFlow(String indexId, String flowId) → ExecutionFlow
+
+// 框架模式注册（可插拔 SPI，nop-code-flow）
+IEntryPointPatternProvider.priority() → int
+IEntryPointPatternProvider.isEntryPoint(CodeSymbol) → boolean
+IEntryPointPatternProvider.getAnnotationPatterns() → List<String>
+IEntryPointPatternProvider.getNamePatterns() → List<String>
 
 // 风险评分变更分析（nop-code-flow）
-IChangeAnalyzer.analyze(indexId, baseCommitish, targetCommitish) → ChangeAnalysisResult
+IChangeAnalyzer.analyzeChanges(String indexId, String baselineCommitish, String targetCommitish,
+                               SymbolTable, CallGraph, String workingDirectory) → ChangeAnalysisResult
 
 // 死代码检测（nop-code-flow）
-IDeadCodeDetector.detect(CallGraph, SymbolTable, config) → DeadCodeReport
+IDeadCodeDetector.detectDeadCode(String indexId, SymbolTable, CallGraph) → DeadCodeReport
 
 // 图导出 / 图快照对比（nop-graph-core，静态工具）
 GraphExporter.export(...) / GraphDiffer.diff(...)
 ```
 
-> `IEntryPointPatternProvider` 是可插拔框架模式的**现有 SPI**（非 DSL）；当前内置 Spring provider。核心不硬编码框架的目标应通过把内置 provider 移出 `nop-code-core` 实现（见 `00-vision.md` 约束 9）。
+> `IEntryPointPatternProvider` 是可插拔框架模式的**现有 SPI**（非 DSL）；当前内置 Spring provider 为 `FlowDetector` 的私有内部类 `DefaultSpringEntryPointPatternProvider`（经 `List.of(...)` 硬编码装配，位于 `nop-code-flow` 而非 `nop-code-core`）。核心不硬编码框架的目标应通过把该内置 provider 外置为 IoC 注册 bean 实现（见 `00-vision.md` 约束 9）。
 
 ## 五、边类型
 

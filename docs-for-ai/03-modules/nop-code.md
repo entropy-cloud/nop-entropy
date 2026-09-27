@@ -45,7 +45,7 @@ Located in `nop-code-service`. Key methods:
 
 ### Key BizModels
 
-- **NopCodeIndexBizModel** (`@BizModel("NopCodeIndex")`) — exposes `ICodeIndexService` as GraphQL/REST via `@BizQuery`/`@BizMutation`. Admin-only mutations, `code-query` permission for reads.
+- **NopCodeIndexBizModel** (`@BizModel("NopCodeIndex")`) — exposes `ICodeIndexService` as GraphQL/REST via `@BizQuery`/`@BizMutation`. Mutations require the `admin` role (`@Auth(roles = "admin")`); reads are authorized through action-auth resource permissions (`NopCodeIndex:query` etc., see `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/auth/nop-code.action-auth.xml`).
 - **NopCodeSymbolBizModel** — symbol-specific CRUD and queries.
 
 ## API 暴露策略
@@ -95,14 +95,14 @@ NopCodeIndex
  ├──< NopCodeCall (indexId)          [cascade delete]
  ├──< NopCodeInheritance (indexId)   [cascade delete]
  ├──< NopCodeAnnotationUsage (indexId) [cascade delete]
- └──< NopCodeSemanticEdge (indexId)  [cascade delete, logical delete]
+ └──< NopCodeSemanticEdge (indexId)  [cascade delete]
 ```
 
 Key relationship entities:
 - **NopCodeCall** — method call edges (caller → callee)
 - **NopCodeDependency** — file-level import dependencies (source → target file path)
 - **NopCodeInheritance** — type hierarchy (extends/implements)
-- **NopCodeSemanticEdge** — semantic relationships (similar, related, pattern-based); supports logical delete
+- **NopCodeSemanticEdge** — semantic relationships (similar, related, pattern-based)
 - **NopCodeFlow / NopCodeFlowMembership** — execution flow tracking with criticality scores
 - **NopCodeUsage** — unified reference tracking (CALL, ANNOTATES, EXTENDS, IMPLEMENTS, IMPORTS, READ, WRITE, TYPE_REFERENCE, TYPE_OF, INSTANTIATES, OVERRIDES). Note: `TESTED_BY`/`REFERENCES` are planned extensions, not yet in `CodeUsageKind`.
 - **NopCodeAnnotationUsage** — annotation usage on symbols
@@ -120,9 +120,11 @@ Key relationship entities:
 
 ## Dict Definitions
 
-All dicts defined in `nop-code/model/nop-code.orm.xml` and materialized in `nop-code-meta/src/main/resources/_vfs/dict/code/`:
+Dictionaries come from two sources (11 total under `nop-code-meta/src/main/resources/_vfs/dict/code/`):
 
-- `code/symbol_kind` — CLASS, INTERFACE, ENUM, ANNOTATION_TYPE, METHOD, FUNCTION, FIELD, etc.
+**8 dicts defined in `nop-code/model/nop-code.orm.xml`** (materialized to `_vfs/dict/code/*.dict.yaml` by codegen):
+
+- `code/symbol_kind` — CLASS, INTERFACE, ENUM, ANNOTATION_TYPE, METHOD, FUNCTION, FIELD, ROUTE, etc.
 - `code/access_modifier` — PUBLIC, PROTECTED, PRIVATE, PACKAGE_PRIVATE, INTERNAL
 - `code/reference_kind` — READ, WRITE, CALL, TYPE_REFERENCE, EXTENDS, IMPLEMENTS, ANNOTATES, IMPORTS, OVERRIDES, TYPE_OF, INSTANTIATES
 - `code/index_status` — CREATED, INDEXING, READY, ERROR, COMPLETED, DETECTED
@@ -130,6 +132,11 @@ All dicts defined in `nop-code/model/nop-code.orm.xml` and materialized in `nop-
 - `code/call_type` — CONSTRUCTOR (+ free-text return types)
 - `code/relation_type` — EXTENDS, IMPLEMENTS
 - `code/semantic_relation_type` — SEMANTICALLY_SIMILAR_TO, CONCEPTUALLY_RELATED_TO, SOLVES_SAME_PROBLEM, etc.
+
+**3 dicts defined only as standalone yaml** in `_vfs/dict/code/` (no `<dict>` definition in orm.xml and no `dict=` column reference; present as dictionary resources only):
+
+- `code/call_direction`
+- `code/hierarchy_direction`
 - `code/provenance` — AST_EXTRACTION, SYMBOL_SOLVER, HEURISTIC, FRAMEWORK_INFERENCE, MANUAL
 
 ## Field Name Mapping (CodeIndexService)

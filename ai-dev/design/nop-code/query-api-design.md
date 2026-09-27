@@ -26,19 +26,12 @@
 
 ---
 
-## 二、CodeIndexApi（nop-code-api）
+## 二、外部集成面（校正）
 
-`nop-code-api` 模块提供 `CodeIndexApi` 接口，定义 5 个通用 API 方法，供外部系统集成使用：
-
-```
-fullIndex(request)     → ApiResponse<String>
-searchCode(request)    → ApiResponse<List<Map>>
-getOutline(request)    → ApiResponse<Map>
-getTypeHierarchy(request) → ApiResponse<Map>
-getCallHierarchy(request)  → ApiResponse<Map>
-```
-
-该接口使用通用 `ApiRequest<Map>` / `ApiResponse` 签名，适合 RPC 或 HTTP 网关集成。
+> **校正**：本设计初版描述的 `CodeIndexApi` 接口（5 个 `ApiRequest<Map>` / `ApiResponse` 泛型方法，称位于 `nop-code-api`）**不存在**，其描述已删除。真实的外部集成面是：
+>
+> - **GraphQL**：BizModel 暴露（`NopCodeIndexBizModel` / `NopCodeSymbolBizModel` / 各实体 BizModel），见 §三、§四。
+> - **Java 接口**：`ICodeIndexService`（`nop-code/nop-code-service/src/main/java/io/nop/code/service/api/ICodeIndexService.java`），具体类型签名（非泛型 Map/ApiResponse），供服务端编排调用。
 
 ---
 

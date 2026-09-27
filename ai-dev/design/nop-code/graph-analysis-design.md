@@ -148,4 +148,4 @@ NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
 
 **状态**：目标架构，详见 `graph-discovery-and-export-design.md` §3.1（已从"远期占位"细化为具体评分契约）。
 
-核心数据已具备（CallGraph + CommunityDetector），评分维度（置信度 / 跨文件类型 / 跨目录 / 跨社区 / 边缘→枢纽 / 语义相似度加权）与输出契约在该文档定义。
+核心数据已具备（CallGraph + `LeidenDetector`，结果类型 `CommunityResult`），评分维度（置信度 / 跨文件类型 / 跨目录 / 跨社区 / 边缘→枢纽 / 语义相似度加权）与输出契约在该文档定义。

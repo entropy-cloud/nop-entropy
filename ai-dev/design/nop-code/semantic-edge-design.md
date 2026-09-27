@@ -132,7 +132,7 @@ nop-code 已实现的分析能力全部基于**确定性 AST 提取**：
 
 ## 六、数据库持久化
 
-新增 `nop_code_semantic_edge` 表，核心字段：SID / INDEX_ID / SOURCE_SYMBOL_ID / TARGET_SYMBOL_ID / DIRECTED / RELATION_TYPE / CONFIDENCE / CONFIDENCE_SCORE / RATIONALE / EXTRACTOR_ID / EXT_DATA + 通用字段（CREATED_BY, CREATE_TIME, DEL_FLAG）。
+新增 `nop_code_semantic_edge` 表，核心字段：ID / INDEX_ID / SOURCE_SYMBOL_ID / TARGET_SYMBOL_ID / DIRECTED / RELATION_TYPE / CONFIDENCE / CONFIDENCE_SCORE / RATIONALE / EXTRACTOR_ID / EXT_DATA / PROVENANCE + 通用字段（CREATED_BY, CREATED_TIME, UPDATED_BY, UPDATE_TIME）。
 
 dict 定义：`code/semantic_relation_type`（预定义关系类型）。置信度是普通 INT 列（`EdgeConfidence` 枚举：EXTRACTED=10, INFERRED=20, AMBIGUOUS=30），当前没有独立 dict。
 
