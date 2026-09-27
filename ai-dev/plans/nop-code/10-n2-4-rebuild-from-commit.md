@@ -1,6 +1,6 @@
 # 10 N2.4 自动重建触发(triggerRebuildFromCommit)
 
-> Plan Status: active
+> Plan Status: completed
 > R2(agent_aacc8bf0):PASS——A1 规范路径归一/A2 指纹 no-op statusMessage/A3 reset 可见性(setDebounceMillis public setter)/A4 子目录用例 已纳入执行
 > Last Reviewed: 2026-09-27
 > Source: `ai-dev/backlog/nop-code-feature-completion-roadmap.md` N2.4;`graph-discovery-and-export-design.md` §3.4(契约+未决项);R1 对抗审查(agent_aacc8bf0,1 Blocker + 4 Major + 1 Medium + 8 Low)——manifest 机制证伪后按审查建议方案重写
@@ -55,17 +55,17 @@
 
 ### Phase 1 - mutation、去抖与 git 校验
 
-Status: planned
+Status: completed
 Targets: `nop-code-api/dto/RebuildFromCommitResult`、`ICodeIndexService`、`CodeIndexService`、`NopCodeErrors`、`NopCodeIndexBizModel`、invariant 测试
 
 - Item Types: `Fix`
 
 - [x] DTO(4 字段)
 - [x] ErrorCode 登记(NopCodeErrors:git 校验失败/HEAD 不一致/非仓库根)
-- [x] `triggerRebuildFromCommit`:去抖(拒绝式,`@InjectValue("@cfg:nop.code.rebuild.debounce-millis|30000")` setter 注入,public setDebounceMillis(0) 测试归零(R2 A3:跨包可见性))→ validateGitRef ×2 → projectPath 归一+仓库根校验 → HEAD==target 校验 → git diff --name-only(30s 超时)→ 短路或 triggerIncrementalIndex(指纹 no-op 时 statusMessage 注明"工作树与索引已同步"——R2 A2)→ IncrementalStatus(mode="rebuild")
+- [x] `triggerRebuildFromCommit`:去抖(拒绝式,`@InjectValue("@cfg:nop.code.rebuild.debounce-millis|30000")` setter 注入,public setDebounceMillis(0) 测试归零+public resetRebuildDebounce(R2 A3))→ validateGitRef ×2(独立错误码 ERR_CODE_REBUILD_INVALID_GIT_REF——closure audit Minor-5 修正) → projectPath 归一+仓库根校验 → HEAD==target 校验 → git diff --name-only(30s 超时)→ 短路或 triggerIncrementalIndex(指纹 no-op 时 statusMessage 注明"工作树与索引已同步"——R2 A2)→ IncrementalStatus(mode="rebuild")
 - [x] BizModel mutation(admin)
-- [x] invariant:IDEMPOTENCE_TABLE + verify 分支(setDebounceMillis(0) 后重放断言 0 变更)
-- [x] 集成测试 `TestRebuildFromCommit`:git 夹具(assumeTrue git 可用;commit 用 -c user.name/-c user.email;变更后 sleep 50)——①commit2 后触发 changedCount>0 且物化行失效;②重放同参数 resetDebounce 后 0 变更;③连发第二次 debounced=true;④无变更仓库 skippedNoChanges;⑤HEAD!=target 抛错;⑥子目录 projectPath(非仓库根)抛错
+- [x] invariant:IDEMPOTENCE_TABLE + verify 分支(git 可用 guard;重放断言 changedCount==0——closure audit 发现初稿误入 QUERY_METHODS,已纠正)
+- [x] 集成测试 `TestRebuildFromCommit`:git 夹具(commit 用 -c user.name/-c user.email;变更后 sleep 50)——①commit2 后触发 changedCount>0 且物化行失效;②重放 resetDebounce+setDebounceMillis(0) 后 0 变更;③连发第二次 debounced=true;④非索引文件提交→fingerprint no-op changedCount=0(statusMessage 注明已同步);⑤不存在的 target→rev-parse 失败抛错;⑥子目录 projectPath 抛错;⑦(closure audit 增补)baseline==target→skippedNoChanges 短路;⑧(closure audit 增补)HEAD 落后于 target→HEAD_MISMATCH 抛错
 
 Exit Criteria:
 
@@ -84,8 +84,8 @@ Exit Criteria:
 - [x] 必要 focused verification 完成
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**:closure audit 验证(a)GraphQL→mutation→增量管线端到端,(b)去抖真实生效,(c)git 失败/HEAD 不一致快速抛错
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**:closure audit 验证(a)GraphQL→mutation→增量管线端到端,(b)去抖真实生效,(c)git 失败/HEAD 不一致快速抛错
 - [x] `./mvnw test -pl nop-code/nop-code-service -am` 全绿
 - [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-code --severity high` 退出码 0
@@ -100,14 +100,27 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- GraphQL 层冒烟测试:triggerRebuildFromCommit 与兄弟 mutation 同构直传,接线经代码审查确认(closure audit 裁定可接受)——后续 e2e 可补 GraphQL 冒烟。
 - 去抖为 per-node 内存状态(重启清零/多节点不共享)——§四否决 watch daemon 的同一无状态张力,集群语义归 N6.3/N6.4。
 
 ## Closure
 
-Status Note: (待 closure audit 后填写)
-Completed: (待填)
+Status Note: N2.4 交付物(DTO/mutation/去抖/HEAD 校验/幂等)全部落地;closure audit 初裁 REJECT 三项 Major(invariant 分类错误、§3.4 旧条目残留、两分支无测试)全部修复后 delta 复审通过。roadmap 在补充提交内翻转并勘误前次提交说明偏差(前次提交误称 roadmap 已翻转)。
+Completed: 2026-09-27
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (待独立子 agent closure audit 后填写)
-- Evidence: (待填)
+- Reviewer / Agent: agent_37980e27(独立 fresh-session closure auditor,2026-09-27;含 delta 复审)
+- Audit Session: agent_37980e27-d080-40dc-8972-5aa63813f63d
+- Evidence:
+  - 代码真实性 PASS:去抖/@InjectValue/validateGitRef/仓库根 canonical/HEAD==target/30s 超时/file: URI/manifestPath 废弃——逐行核实
+  - 测试真实性 PASS:TestRebuildFromCommit 8/8(含 closure audit 增补的 baseline==target 短路与 HEAD 落后两变体)+ invariant 9/9(verify 分支 git guard 下真实执行)
+  - 一致性 PASS:七处口径一致(roadmap 于补充提交内翻转)
+  - 工具门禁:doc-links 0 errors / scan-hollow 0 findings / check-plan-checklist exit 0(auditor 复跑)
+  - 审计修复项:①invariant 移入 IDEMPOTENCE_TABLE+断言改 0 ②§3.4 repoUrl 签名与源码来源条目清理 ③两测试变体补齐 ④Phase Status/错误码文案/DEBUG 清理
+  - 审计裁定:初裁 REJECT → 修复后 delta APPROVE(2026-09-27)
+
+Follow-up:
+
+- GraphQL 层冒烟测试(与兄弟 mutation 同构直传,接线经代码审查确认)——后续 e2e 可补
+- validateGitRef 错误码家族文档统一登记

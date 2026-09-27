@@ -36,4 +36,7 @@ public interface NopCodeErrors {
     ErrorCode ERR_CODE_REBUILD_HEAD_MISMATCH =
             define("nop.err.code.rebuild-head-mismatch",
                     "Worktree HEAD does not match targetCommitish: head={head}, target={target}");
+
+    ErrorCode ERR_CODE_REBUILD_INVALID_GIT_REF =
+            define("nop.err.code.rebuild-invalid-git-ref", "Invalid git ref: {gitRef}", "gitRef");
 }

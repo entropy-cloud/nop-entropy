@@ -198,8 +198,6 @@ public class TestRebuildFromCommit extends JunitAutoTestCase {
         advanceToTarget();
         var result = codeIndexService.triggerRebuildFromCommit(indexId,
                 repo.toAbsolutePath().toString(), base, target);
-        System.err.println("DEBUG-N24 " + result.getStatusMessage() + " changed=" + result.getChangedCount()
-                + " skipped=" + result.isSkippedNoChanges());
         assertFalse(result.isDebounced());
         assertFalse(result.isSkippedNoChanges());
         assertTrue(result.getChangedCount() > 0,
@@ -268,6 +266,37 @@ public class TestRebuildFromCommit extends JunitAutoTestCase {
         // git diff reports README.md, but fingerprint pipeline no-ops on non-indexed files
         assertTrue(result.getChangedCount() == 0);
         assertFalse(result.isDebounced());
+
+        codeIndexService.deleteIndex(indexId);
+    }
+
+    @Test
+    void testBaselineEqualsTargetSkipsViaGitDiff() throws Exception {
+        assumeGit();
+        setupRepo();
+        setDebounce(0);
+        // baseline == target: git diff empty -> short-circuit before the pipeline
+        var result = codeIndexService.triggerRebuildFromCommit(indexId,
+                repo.toAbsolutePath().toString(), base, base);
+        assertTrue(result.isSkippedNoChanges(), "empty git diff must short-circuit");
+        assertEquals(0, result.getChangedCount());
+        assertFalse(result.isDebounced());
+
+        codeIndexService.deleteIndex(indexId);
+    }
+
+    @Test
+    void testHeadBehindTargetThrowsHeadMismatch() throws Exception {
+        assumeGit();
+        setupRepo();
+        setDebounce(0);
+        advanceToTarget();
+        // worktree advances past target (c3): HEAD != target
+        // -> ERR_CODE_REBUILD_HEAD_MISMATCH (rev-parse comparison branch)
+        writeJava("src/demo/Extra.java", "package demo;\npublic class Extra { }");
+        commit("c3");
+        assertThrows(Exception.class, () -> codeIndexService.triggerRebuildFromCommit(indexId,
+                repo.toAbsolutePath().toString(), base, target));
 
         codeIndexService.deleteIndex(indexId);
     }

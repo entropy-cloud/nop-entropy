@@ -170,8 +170,8 @@ index.md                ← 目录索引（节点/边/社区统计 + 社区列�
 | 定时任务 | nop-job 周期比对 commit 并调用 mutation | 平台任务 |
 
 **nop-code 侧契约**：
-- 新增 GraphQL mutation `NopCodeIndex__triggerRebuildFromCommit(indexId, repoUrl, commitish)`（或复用 `triggerIncrementalIndex` 语义，按其现有签名以 manifest 为准）。
-- **源码来源**：索引服务从受信远端 clone/fetch 到服务端工作区；不接受"开发者本机路径"。
+- GraphQL mutation `NopCodeIndex__triggerRebuildFromCommit(indexId, projectPath, baselineCommitish, targetCommitish)`（2026-09-27 裁定：调用方提供 indexId 与服务端本地工作区路径；原 repoUrl/commitish 签名废弃）。
+- **源码来源**：由外部适配器（webhook receiver/nop-job）负责将受信远端同步到服务端工作区；nop-code 只对已有工作区执行重建（远端 clone/fetch 不在本服务职责内——裁定登记于 plan 10 Deferred）。
 - **repo→indexId 映射**：由调用方提供 `indexId`（或服务端注册表解析）。
 - **去抖/合并**：同一 indexId 在配置窗口内的连续 commit 合并为一次重建。
 - **循环防护**：索引/导出产物一律写数据库或 artifact store，**绝不写入被索引仓库路径**，因此不存在"产物触发重建"。

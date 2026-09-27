@@ -87,7 +87,8 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "batchSaveFileRecords",
             "indexDirectory",
             "indexFile",
-            "materializeGraphMetrics"
+            "materializeGraphMetrics",
+            "triggerRebuildFromCommit"
     ));
 
     /**
@@ -130,8 +131,7 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "findByAnnotation", "findImplementations", "findDependentFiles",
             "getSurprisingConnections",
             "getExplorationQuestions",
-            "exportGraphWiki",
-            "triggerRebuildFromCommit"));
+            "exportGraphWiki"));
 
     static Stream<Arguments> incrementalUpdateMethods() {
         return IDEMPOTENCE_TABLE.stream().map(Arguments::of);
@@ -277,10 +277,10 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 projectDir.toAbsolutePath().toString(), base.trim(), target.trim());
         assertTrue(first.getChangedCount() > 0, "first rebuild should index the new file");
 
+        // replay: fingerprint detection skips already-indexed files -> changedCount 0
         var second = assertDoesNotThrow(() -> codeIndexService.triggerRebuildFromCommit(indexId,
                 projectDir.toAbsolutePath().toString(), base.trim(), target.trim()));
-        assertEquals(first.getChangedCount(), second.getChangedCount(),
-                "replay must not change results");
+        assertEquals(0, second.getChangedCount(), "replay must skip already-indexed changes");
         resetDebounce();
     }
 

@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 9 · todo 29
+**汇总**：done 10 · todo 28
 
 ### M0 — 基线与文档-代码对齐
 
@@ -73,7 +73,7 @@ audit-rounds: 2
 | N2.1 意外连接分析（`ISurprisingConnectionAnalyzer` + `NopCodeIndex__getSurprisingConnections`；复合惊奇评分，含降级模式与可配权重）<br>（Deliverable: 代码 + e2e + 测试；deps: N1.1, N1.2；Item Type: Fix） | done | N1.1, N1.2 |
 | N2.2 图谱问题生成（`IGraphQuestionGenerator` + `NopCodeIndex__getExplorationQuestions`；机器可执行 `suggestedQuery` + `no_signal` 例外；调研建议的 suggestedNextQueries 语义由本项承载）<br>（Deliverable: 代码 + e2e + 测试；deps: N1.1, N1.2；Item Type: Fix） | done | N1.1, N1.2 |
 | N2.3 图谱 Wiki 导出（`GraphWikiDTO` + `NopCodeIndex__exportGraphWiki`；标准 Markdown 互链，非 Obsidian）<br>（Deliverable: 代码 + e2e + 测试；deps: N1.2；Item Type: Fix） | done | N1.2 |
-| N2.4 自动重建触发（GraphQL mutation `triggerRebuildFromCommit` + repo→indexId 注册表 + 幂等/去抖；不做本地 watch / 内建 webhook）<br>（Deliverable: 代码 + e2e + 测试；deps: N1.3；Item Type: Fix） | todo | N1.3 |
+| N2.4 自动重建触发（GraphQL mutation `triggerRebuildFromCommit` + repo→indexId 注册表 + 幂等/去抖；不做本地 watch / 内建 webhook）<br>（Deliverable: 代码 + e2e + 测试；deps: N1.3；Item Type: Fix） | done | N1.3 |
 
 ### M3 — 索引与增量
 

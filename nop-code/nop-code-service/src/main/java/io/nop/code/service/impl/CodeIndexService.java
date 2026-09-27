@@ -161,6 +161,11 @@ public class CodeIndexService implements ICodeIndexService {
         this.debounceMillis = debounceMillis;
     }
 
+    /** Test-visible reset so idempotency verification can bypass the debounce window. */
+    public void resetRebuildDebounce() {
+        rebuildDebounceMap.clear();
+    }
+
     private synchronized void ensureSubServices() {
         if (searchService == null && daoProvider != null) {
             searchService = new CodeSearchService(daoProvider, searchEngine, cacheManager);
@@ -638,7 +643,8 @@ public class CodeIndexService implements ICodeIndexService {
 
     private static void validateGitRef(String ref) {
         if (ref == null || !GIT_REF_PATTERN.matcher(ref).matches()) {
-            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, String.valueOf(ref));
+            throw new NopException(ERR_CODE_REBUILD_INVALID_GIT_REF)
+                    .param("gitRef", String.valueOf(ref));
         }
     }
 
