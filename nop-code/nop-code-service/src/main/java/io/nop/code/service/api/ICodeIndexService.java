@@ -194,6 +194,15 @@ public interface ICodeIndexService {
     io.nop.code.api.dto.GraphWikiDTO exportGraphWiki(String indexId, Integer maxCommunities,
                                                      Integer maxHubNodes);
 
+    /**
+     * Triggers an incremental rebuild from a commit range: validates HEAD consistency and
+     * runs git diff as an early-exit check, then reuses the fingerprint incremental pipeline
+     * against the worktree (graph-discovery-and-export-design.md §3.4).
+     */
+    io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(String indexId, String projectPath,
+                                                                         String baselineCommitish,
+                                                                         String targetCommitish);
+
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 
     List<CodeSymbol> findByAnnotation(String indexId, String annotationName);

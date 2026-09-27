@@ -30,7 +30,7 @@
 | N2.1 | 意外连接分析 | Fix | graph-discovery §3.1(`ISurprisingConnectionAnalyzer`/`SurprisingConnectionDTO`);query-api §4.2[目标];graph-analysis §六 | —(graphify 对标) | done(2026-09-27,plan `ai-dev/plans/nop-code/07-n2-1-surprising-connections.md`) |
 | N2.2 | 图谱问题生成 | Fix | graph-discovery §3.2(`IGraphQuestionGenerator`/`ExplorationQuestionDTO`/`no_signal`);query-api §4.2[目标] | P0#3(suggestedNextQueries 语义,原 Token 效率项的可执行子集) | done(2026-09-27,plan `ai-dev/plans/nop-code/08-n2-2-exploration-questions.md`) |
 | N2.3 | 图谱 Wiki 导出 | Fix | graph-discovery §3.3(`IGraphWikiExporter`/`GraphWikiDTO`);query-api §4.2[目标] | P2#19(Wiki 生成) | done(2026-09-27,plan `ai-dev/plans/nop-code/09-n2-3-graph-wiki-export.md`) |
-| N2.4 | 自动重建触发 | Fix | graph-discovery §3.4(`triggerRebuildFromCommit` mutation;manifestPath vs commitish 未决项在 plan 期裁定) | P1#12(watcher 的触发面替代:不做本地 watch,做外部触发) | todo |
+| N2.4 | 自动重建触发 | Fix | graph-discovery §3.4(`triggerRebuildFromCommit` mutation;manifestPath vs commitish 未决项在 plan 期裁定) | P1#12(watcher 的触发面替代:不做本地 watch,做外部触发) | done(2026-09-27,plan `ai-dev/plans/nop-code/10-n2-4-rebuild-from-commit.md`) |
 | N3.1 | 增量依赖传播(2-hop) | Fix | 01-baseline §6.2(增量更新依赖传播);`IncrementalDetector` 现状无 hop 传播 | — | todo |
 | N3.2 | 边类型扩展(TESTED_BY/REFERENCES) | Fix | 01-baseline §五(TESTED_BY/REFERENCES 复用 `nop_code_usage.kind`);graph-analysis §三(未测试热点依赖 TESTED_BY);00-vision 约束5 | — | todo |
 | N4.1 | 搜索引擎默认装配 + 端到端验证 | Fix | search-integration(头部状态:双路径已实现,缺默认装配) | P0#2(nop-search 集成收口) | todo |

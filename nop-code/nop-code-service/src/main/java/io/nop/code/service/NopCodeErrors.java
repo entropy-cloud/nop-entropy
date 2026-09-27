@@ -29,4 +29,11 @@ public interface NopCodeErrors {
 
     ErrorCode ERR_CODE_SOURCE_CODE_TOO_LARGE =
             define("nop.err.code.source-code-too-large", "Source code exceeds maximum allowed size: {filePath}", ARG_FILE_PATH);
+
+    ErrorCode ERR_CODE_REBUILD_NOT_GIT_REPO =
+            define("nop.err.code.rebuild-not-git-repo", "projectPath is not a git repository root: {path}", ARG_PATH);
+
+    ErrorCode ERR_CODE_REBUILD_HEAD_MISMATCH =
+            define("nop.err.code.rebuild-head-mismatch",
+                    "Worktree HEAD does not match targetCommitish: head={head}, target={target}");
 }

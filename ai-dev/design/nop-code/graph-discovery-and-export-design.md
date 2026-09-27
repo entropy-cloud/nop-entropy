@@ -178,7 +178,7 @@ index.md                ← 目录索引（节点/边/社区统计 + 社区列�
 - **幂等**：同一 commitish 重复触发无副作用（fingerprint 检测后跳过无变更文件）。
 - **权限**：mutation 需 `admin` 角色（与既有写操作一致）。
 
-> **未决**：`triggerIncrementalIndex` 现有签名接收 `manifestPath` 而非 `commitish`，需在实施时确定由服务端从 commitish 计算变更集（`git diff`）并生成 manifest，还是新增独立入口。此决策在本设计范围外，登记为实施前置项。
+> **已裁定并实现**（2026-09-27，plan `ai-dev/plans/nop-code/10-n2-4-rebuild-from-commit.md`）：原「变更集写 manifest 复用 triggerIncrementalIndex」路线证伪——manifestPath 实为死参数，增量真实输入=DB 指纹+工作树全量扫描。新口径：`triggerRebuildFromCommit(indexId, projectPath, baselineCommitish, targetCommitish)` 以 git diff 承担 HEAD 一致性校验/空短路/报告三职，实际增量由 fingerprint 管线对工作树现状执行（前置：调用方保证 HEAD==target 且 projectPath 为仓库根，mutation 内 rev-parse 校验）。去抖为拒绝式（默认 30s 窗口，@cfg 可配）；幂等由 fingerprint 保证。
 
 ### 3.5 已覆盖能力的边界确认
 

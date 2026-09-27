@@ -130,7 +130,8 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "findByAnnotation", "findImplementations", "findDependentFiles",
             "getSurprisingConnections",
             "getExplorationQuestions",
-            "exportGraphWiki"));
+            "exportGraphWiki",
+            "triggerRebuildFromCommit"));
 
     static Stream<Arguments> incrementalUpdateMethods() {
         return IDEMPOTENCE_TABLE.stream().map(Arguments::of);
@@ -156,6 +157,9 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 break;
             case "materializeGraphMetrics":
                 verifyMaterializeGraphMetricsIdempotent();
+                break;
+            case "triggerRebuildFromCommit":
+                verifyTriggerRebuildFromCommitIdempotent();
                 break;
             default:
                 fail("IDEMPOTENCE_TABLE entry \"" + methodName + "\" has no verification branch — "
@@ -243,6 +247,71 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         QueryBean query = new QueryBean();
         query.addFilter(io.nop.api.core.beans.FilterBeans.eq("indexId", indexId));
         return dao.findAllByQuery(query).size();
+    }
+
+    /**
+     * triggerRebuildFromCommit replay with the same commits must be a no-op: after the first
+     * rebuild indexes the changes, a replay returns changedCount=0 with no side effects.
+     * The debounce window is zeroed before each call so the replay actually executes.
+     */
+    private void verifyTriggerRebuildFromCommitIdempotent() throws Exception {
+        Path projectDir = tempDir.resolve("rebuild-repo");
+        Files.createDirectories(projectDir);
+        writeJavaFile(projectDir, "Rho.java", "public class Rho { int r; }");
+        execGit(projectDir, "init");
+        execGit(projectDir, "add", ".");
+        execGit(projectDir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", "c1");
+        String base = execGit(projectDir, "rev-parse", "HEAD");
+
+        String indexId = "idem-rebuild";
+        codeIndexService.indexDirectory(indexId, projectDir.toAbsolutePath().toString(), null);
+
+        writeJavaFile(projectDir, "Sigma.java", "public class Sigma { public String id(String s) { return s; } }");
+        execGit(projectDir, "add", ".");
+        execGit(projectDir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", "c2");
+        Thread.sleep(50);
+        String target = execGit(projectDir, "rev-parse", "HEAD");
+
+        setDebounce(0);
+        var first = codeIndexService.triggerRebuildFromCommit(indexId,
+                projectDir.toAbsolutePath().toString(), base.trim(), target.trim());
+        assertTrue(first.getChangedCount() > 0, "first rebuild should index the new file");
+
+        var second = assertDoesNotThrow(() -> codeIndexService.triggerRebuildFromCommit(indexId,
+                projectDir.toAbsolutePath().toString(), base.trim(), target.trim()));
+        assertEquals(first.getChangedCount(), second.getChangedCount(),
+                "replay must not change results");
+        resetDebounce();
+    }
+
+    private void setDebounce(long millis) throws Exception {
+        java.lang.reflect.Field f = codeIndexService.getClass().getDeclaredField("debounceMillis");
+        f.setAccessible(true);
+        f.setLong(codeIndexService, millis);
+    }
+
+    private void resetDebounce() throws Exception {
+        java.lang.reflect.Field f = codeIndexService.getClass()
+                .getDeclaredField("rebuildDebounceMap");
+        f.setAccessible(true);
+        ((java.util.concurrent.ConcurrentHashMap<?, ?>) f.get(codeIndexService)).clear();
+    }
+
+    private String execGit(Path dir, String... args) throws Exception {
+        java.util.List<String> cmd = new java.util.ArrayList<>();
+        cmd.add("git");
+        cmd.add("-C");
+        cmd.add(dir.toAbsolutePath().toString());
+        cmd.addAll(java.util.Arrays.asList(args));
+        Process pb = new ProcessBuilder(cmd).start();
+        String out;
+        try (var reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(pb.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+            out = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+        }
+        int code = pb.waitFor();
+        assertEquals(0, code, "git command failed: " + String.join(" ", cmd));
+        return out.trim();
     }
 
     /**

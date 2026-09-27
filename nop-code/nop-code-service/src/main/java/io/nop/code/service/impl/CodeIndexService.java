@@ -27,6 +27,7 @@ import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
@@ -149,6 +150,16 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Inject
     protected ITransactionTemplate transactionTemplate;
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> rebuildDebounceMap =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private long debounceMillis = 30_000L;
+
+    @InjectValue("@cfg:nop.code.rebuild.debounce-millis|30000")
+    public void setDebounceMillis(long debounceMillis) {
+        this.debounceMillis = debounceMillis;
+    }
 
     private synchronized void ensureSubServices() {
         if (searchService == null && daoProvider != null) {
@@ -573,6 +584,128 @@ public class CodeIndexService implements ICodeIndexService {
     public List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN) {
         ensureSubServices();
         return graphService.getExplorationQuestions(indexId, topN);
+    }
+
+    @Override
+    public io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(String indexId, String projectPath,
+                                                                                String baselineCommitish,
+                                                                                String targetCommitish) {
+        io.nop.code.api.dto.RebuildFromCommitResult result = new io.nop.code.api.dto.RebuildFromCommitResult();
+        long now = System.currentTimeMillis();
+        Long last = rebuildDebounceMap.get(indexId);
+        if (last != null && now - last < debounceMillis) {
+            result.setDebounced(true);
+            result.setStatusMessage("debounced: rebuild for this index was triggered within "
+                    + debounceMillis + "ms window");
+            return result;
+        }
+
+        String workdir = normalizeWorkdir(projectPath);
+        validateGitRef(baselineCommitish);
+        validateGitRef(targetCommitish);
+        requireRepoRoot(workdir);
+        requireHeadAt(workdir, targetCommitish);
+
+        List<String> changed = gitDiffNames(workdir, baselineCommitish, targetCommitish);
+        if (changed.isEmpty()) {
+            result.setSkippedNoChanges(true);
+            result.setChangedCount(0);
+            result.setStatusMessage("git diff reports no changed files between commits");
+            rebuildDebounceMap.put(indexId, now);
+            return result;
+        }
+
+        // triggerIncrementalIndex's VFS resource scan requires the file: URI form; the raw
+        // absolute path yields zero resources (fingerprint no-op). manifestPath is deprecated.
+        int changedCount = triggerIncrementalIndex(indexId, "file:" + workdir, null);
+        result.setChangedCount(changedCount);
+        if (changedCount == 0) {
+            result.setStatusMessage("worktree already in sync with the index (fingerprint no-op)");
+        }
+        rebuildDebounceMap.put(indexId, now);
+        return result;
+    }
+
+    private static String normalizeWorkdir(String projectPath) {
+        String path = projectPath != null && projectPath.startsWith("file:")
+                ? projectPath.substring("file:".length()) : projectPath;
+        try {
+            return new java.io.File(path).getCanonicalPath();
+        } catch (java.io.IOException e) {
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, path);
+        }
+    }
+
+    private static void validateGitRef(String ref) {
+        if (ref == null || !GIT_REF_PATTERN.matcher(ref).matches()) {
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, String.valueOf(ref));
+        }
+    }
+
+    private static final java.util.regex.Pattern GIT_REF_PATTERN =
+            java.util.regex.Pattern.compile("^[a-zA-Z0-9._/\\-~]{1,256}$");
+    private static final int GIT_TIMEOUT_MILLIS = 30_000;
+
+    private static void requireRepoRoot(String workdir) {
+        String toplevel = gitOutput(workdir, "rev-parse", "--show-toplevel");
+        try {
+            if (!new java.io.File(toplevel).getCanonicalFile()
+                    .equals(new java.io.File(workdir).getCanonicalFile())) {
+                throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir);
+            }
+        } catch (java.io.IOException e) {
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir).cause(e);
+        }
+    }
+
+    private static void requireHeadAt(String workdir, String targetCommitish) {
+        String head = gitOutput(workdir, "rev-parse", "HEAD");
+        String target = gitOutput(workdir, "rev-parse", targetCommitish);
+        if (!head.equals(target)) {
+            throw new NopException(ERR_CODE_REBUILD_HEAD_MISMATCH)
+                    .param("head", head).param("target", target);
+        }
+    }
+
+    private static List<String> gitDiffNames(String workdir, String baseline, String target) {
+        String output = gitOutput(workdir, "diff", baseline + ".." + target, "--name-only");
+        List<String> files = new ArrayList<>();
+        for (String line : output.split("\n")) {
+            if (!line.isEmpty()) {
+                files.add(line);
+            }
+        }
+        return files;
+    }
+
+    private static String gitOutput(String workdir, String... gitArgs) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("git", "-C", workdir);
+            for (String arg : gitArgs) {
+                pb.command().add(arg);
+            }
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            String output;
+            try (var reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                output = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+            }
+            if (!process.waitFor(GIT_TIMEOUT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir);
+            }
+            if (process.exitValue() != 0) {
+                throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO)
+                        .param(ARG_PATH, workdir + ": " + output);
+            }
+            return output;
+        } catch (java.io.IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir).cause(e);
+        }
     }
 
     @Override

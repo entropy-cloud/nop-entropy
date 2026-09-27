@@ -157,6 +157,7 @@ NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
 NopCodeIndex__getSurprisingConnections(indexId, topN=20, minScore?) → [SurprisingConnectionDTO]   ✅ 已实现(2026-09-27,plan ai-dev/plans/nop-code/07-n2-1-surprising-connections.md)
 NopCodeIndex__getExplorationQuestions(indexId, topN) → [ExplorationQuestionDTO]     ✅ 已实现(2026-09-27)
 NopCodeIndex__exportGraphWiki(indexId, maxCommunities, maxHubNodes) → GraphWikiDTO  ✅ 已实现(2026-09-27)
+NopCodeIndex__triggerRebuildFromCommit(indexId, projectPath, baselineCommitish, targetCommitish) → RebuildFromCommitResult  ✅ 已实现(2026-09-27,admin mutation;git diff 前置校验+HEAD 一致性+去抖;增量由 fingerprint 管线对工作树执行)
 ```
 
 注意：`diffGraph` 使用两个 `indexId` 参数（`baselineIndexId`, `targetIndexId`），而非 git commitish，用于比较两次不同索引的图状态。

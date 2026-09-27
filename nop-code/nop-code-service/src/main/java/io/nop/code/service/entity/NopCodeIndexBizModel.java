@@ -180,6 +180,25 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         return codeIndexService.exportGraphWiki(indexId, maxCommunities, maxHubNodes);
     }
 
+    @BizMutation
+    @Auth(roles = "admin")
+    public io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(
+            @Name("indexId") String indexId,
+            @Name("projectPath") String projectPath,
+            @Name("baselineCommitish") String baselineCommitish,
+            @Name("targetCommitish") String targetCommitish) {
+        io.nop.code.api.dto.RebuildFromCommitResult result =
+                codeIndexService.triggerRebuildFromCommit(indexId, projectPath, baselineCommitish, targetCommitish);
+
+        IncrementalStatus status = new IncrementalStatus();
+        status.setIndexId(indexId);
+        status.setMode("rebuild");
+        status.setFileCount(result.getChangedCount());
+        status.setCompleted(true);
+        incrementalStatusMap.put(indexId, status);
+        return result;
+    }
+
     @BizQuery
     @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
