@@ -152,13 +152,13 @@
                 <body j:list="true">
                     <c:choose>
                         <when test="${formModel.layoutControl=='tabs'}">
-                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" id="${formModel.id}-tabs"/>
+                            <thisLib:GenLayoutTabs layoutGroups="${formModel?.layout?.groups}" id="${formModel.id}-tabs"/>
                         </when>
-                        <when test="${formModel.layout.simpleTable}">
-                            <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
+                        <when test="${formModel?.layout?.simpleTable}">
+                            <thisLib:GenFormTable formTable="${formModel?.layout?.firstTable}"/>
                         </when>
                         <otherwise>
-                            <thisLib:GenLayoutGroups layoutGroups="${formModel.layout.groups}"/>
+                            <thisLib:GenLayoutGroups layoutGroups="${formModel?.layout?.groups}"/>
                         </otherwise>
                     </c:choose>
                 </body>
@@ -174,7 +174,7 @@
             <attr name="fixedProps" implicit="true" optional="true"/>
             <source>
                 <collapse accordion="@:true" activeKey="${['1']}" id="${formModel.id}">
-                    <thisLib:GenAccordionBody layoutGroups="${formModel.layout.groups}"/>
+                    <thisLib:GenAccordionBody layoutGroups="${formModel?.layout?.groups}"/>
                 </collapse>
             </source>
         </GenAccordion>

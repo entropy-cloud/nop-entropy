@@ -48,13 +48,13 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：todo 38 · ready 0 · done 0
+**汇总**：done 1 · todo 37
 
 ### M0 — 基线与文档-代码对齐
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N0.1 缺口跟踪矩阵与绿色基线（盘点全部缺失功能 + 文档 drift，在 `ai-dev/audits/` 下建立 nop-code-feature-gap-matrix 矩阵；跑 `./mvnw test -pl nop-code -am -T 1C` 确认基线）<br>（Deliverable: 缺口矩阵 + 基线记录；deps: 无；Item Type: Proof） | todo | — |
+| N0.1 缺口跟踪矩阵与绿色基线（盘点全部缺失功能 + 文档 drift，在 `ai-dev/audits/` 下建立 nop-code-feature-gap-matrix 矩阵；跑 `./mvnw test -pl nop-code -am -T 1C` 确认基线）<br>（Deliverable: 缺口矩阵 + 基线记录；deps: 无；Item Type: Proof） | done | — |
 | N0.2 文档-代码 drift 修正（7 处，逐项已定位：① `docs-for-ai/03-modules/nop-code.md` 废弃 `code-query` 权限；② `query-api-design.md` 删除幻影 `CodeIndexApi` 段；③ `01-architecture-baseline.md` 幻影接口签名 `getPatterns()`/`EntryPointPattern`/`detect(...)` 等改为真实签名；④ `graph-analysis-design.md` `CommunityDetector`→`LeidenDetector`+`CommunityResult`；⑤ `semantic-edge-design.md` 去除 `DEL_FLAG` 声明；⑥ `docs-for-ai` dict 归属措辞——`call_direction`/`hierarchy_direction`/`provenance` 3 个 dict 独立存在于 `_vfs/dict/code/` 而非 orm.xml 内定义，"All dicts defined in orm.xml" 类表述改为如实列举；⑦ `01-architecture-baseline.md` §3.1 CodeSymbolKind 表补 `ROUTE` 行——live 枚举/orm dict/materialized yaml 均已含 ROUTE(100)，drift 仅在 baseline 表）<br>（Deliverable: 7 处 owner-doc 修订；deps: N0.1；Item Type: Fix） | todo | N0.1 |
 
 ### M1 — 无状态查询基座（所有查询类能力的硬前置）
