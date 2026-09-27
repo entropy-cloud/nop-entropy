@@ -129,7 +129,7 @@ reasons = [每个命中维度的可读原因]
 
 **GraphQL 契约**：`NopCodeIndex__getExplorationQuestions(indexId, topN=10)` → `List<ExplorationQuestionDTO>`。鉴权同 §3.1。
 
-**归属**：`IGraphQuestionGenerator`，`nop-code-service/.../service/graph/`。
+**归属**：`IGraphQuestionGenerator`，`nop-code-service/.../service/graph/`。**已实现**（2026-09-27，plan `ai-dev/plans/nop-code/08-n2-2-exploration-questions.md`）：`NopCodeIndex__getExplorationQuestions(indexId, topN=10)`；no_signal 例外生效；isolated_nodes 信号口径裁定为仅 METHOD/FUNCTION kind（字段/类/构造器不是死代码信号）；verify_inferred 枢纽前置=typed 图度数 ≥5 且 INFERRED 边 ≥2；ambiguous_edge 检测真实实现（生产无生产者恒空，后端就绪自动激活）。
 
 ### 3.3 图谱 Wiki 导出（Graph-to-Wiki）
 

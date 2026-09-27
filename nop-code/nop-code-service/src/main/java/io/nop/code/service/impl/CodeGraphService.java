@@ -32,11 +32,13 @@ import io.nop.code.dao.entity.NopCodeGraphMetric;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
+import io.nop.code.api.dto.ExplorationQuestionDTO;
 import io.nop.code.api.dto.SurprisingConnectionDTO;
 import io.nop.code.api.dto.*;
 import io.nop.code.core.graph.CodeRelationGraph;
 import io.nop.code.service.graph.CodeRelationGraphLoader;
 import io.nop.code.service.graph.GraphMetricStore;
+import io.nop.code.service.graph.GraphQuestionGenerator;
 import io.nop.code.service.graph.SurprisingConnectionAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapResult;
@@ -332,6 +334,34 @@ class CodeGraphService {
                 LOG.warn("Self-heal materialization failed for {}; surprise scoring degrades", indexId, e);
             }
         }
+    }
+
+    List<ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN) {
+        if (daoProvider == null) return null;
+        ensureMaterializedForGraphMetrics(indexId);
+        SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
+                CodeSymbolConverter::toCodeSymbol);
+        Function<String, String> nameResolver = symbolId -> {
+            CodeSymbol sym = symbolTable.getById(symbolId);
+            return sym != null && sym.getQualifiedName() != null ? sym.getQualifiedName() : symbolId;
+        };
+        CodeRelationGraph graph = CodeRelationGraphLoader.load(indexId, daoProvider, null);
+        Map<String, Integer> communities = metricStore.loadCommunities(indexId);
+
+        // community sizes: count COMMUNITY rows per communityId; cohesion: COMMUNITY_INFO rows
+        Map<Integer, Integer> communitySizes = new HashMap<>();
+        Map<Integer, Double> communityCohesion = metricStore.loadCommunityInfo(indexId);
+        for (Map.Entry<String, Integer> entry : communities.entrySet()) {
+            communitySizes.merge(entry.getValue(), 1, Integer::sum);
+        }
+        List<Map.Entry<String, Double>> betweenness = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : metricStore.loadScores(indexId,
+                GraphMetricStore.METRIC_BETWEENNESS).entrySet()) {
+            betweenness.add(new HashMap.SimpleEntry<>(entry.getKey(), entry.getValue()));
+        }
+
+        return new GraphQuestionGenerator().generate(graph, symbolTable.getAll(), communities,
+                communitySizes, communityCohesion, betweenness, indexId, topN);
     }
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth) {

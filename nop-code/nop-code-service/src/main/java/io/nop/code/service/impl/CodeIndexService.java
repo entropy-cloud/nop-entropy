@@ -570,6 +570,12 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN) {
+        ensureSubServices();
+        return graphService.getExplorationQuestions(indexId, topN);
+    }
+
+    @Override
     public void deleteIndex(String indexId) {
         withIndexLock(indexId, () -> {
             invalidateAnalysisCache(indexId);

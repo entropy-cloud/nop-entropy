@@ -181,6 +181,12 @@ public interface ICodeIndexService {
     List<io.nop.code.api.dto.SurprisingConnectionDTO> getSurprisingConnections(String indexId, int topN,
                                                                                Integer minScore);
 
+    /**
+     * Derives machine-executable exploration questions from graph signals
+     * (graph-discovery-and-export-design.md §3.2); returns a single no_signal item when empty.
+     */
+    List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN);
+
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 
     List<CodeSymbol> findByAnnotation(String indexId, String annotationName);

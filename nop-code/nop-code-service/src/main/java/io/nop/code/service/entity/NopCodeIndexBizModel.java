@@ -164,6 +164,15 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     @BizQuery
     @Auth(permissions = "NopCodeIndex:query")
+    public java.util.List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(
+            @Name("indexId") String indexId,
+            @Name("topN") @Optional Integer topN) {
+        return codeIndexService.getExplorationQuestions(indexId,
+                topN != null && topN > 0 ? topN : 10);
+    }
+
+    @BizQuery
+    @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
         CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
         if (result == null) {

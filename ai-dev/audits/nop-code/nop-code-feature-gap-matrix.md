@@ -28,7 +28,7 @@
 | N1.3 | 查询路径去全量 rebuild | Fix | 00-vision 约束8/不变量9(目标);01-baseline §6.2;query-api §七#3 | P1#6 | done(2026-09-27,plan `ai-dev/plans/nop-code/05-n1-3-query-path-materialized.md`;按映射声明口径:全局算法查询物化优先,重建降级为自愈回退;结构查询移交 N6.2/N1.4) |
 | N1.4 | 分析缓存语义对齐 | Fix | 01-baseline §6.1(AnalysisCache 读缓存语义);query-api §七 | P0#2(缓存面收尾) | done(2026-09-27,plan `ai-dev/plans/nop-code/06-n1-4-cache-semantics-alignment.md`;术语映射:AnalysisCache=DB 派生视图读缓存,度量行经 GraphMetricStore 直查 DB) |
 | N2.1 | 意外连接分析 | Fix | graph-discovery §3.1(`ISurprisingConnectionAnalyzer`/`SurprisingConnectionDTO`);query-api §4.2[目标];graph-analysis §六 | —(graphify 对标) | done(2026-09-27,plan `ai-dev/plans/nop-code/07-n2-1-surprising-connections.md`) |
-| N2.2 | 图谱问题生成 | Fix | graph-discovery §3.2(`IGraphQuestionGenerator`/`ExplorationQuestionDTO`/`no_signal`);query-api §4.2[目标] | P0#3(suggestedNextQueries 语义,原 Token 效率项的可执行子集) | todo |
+| N2.2 | 图谱问题生成 | Fix | graph-discovery §3.2(`IGraphQuestionGenerator`/`ExplorationQuestionDTO`/`no_signal`);query-api §4.2[目标] | P0#3(suggestedNextQueries 语义,原 Token 效率项的可执行子集) | done(2026-09-27,plan `ai-dev/plans/nop-code/08-n2-2-exploration-questions.md`) |
 | N2.3 | 图谱 Wiki 导出 | Fix | graph-discovery §3.3(`IGraphWikiExporter`/`GraphWikiDTO`);query-api §4.2[目标] | P2#19(Wiki 生成) | todo |
 | N2.4 | 自动重建触发 | Fix | graph-discovery §3.4(`triggerRebuildFromCommit` mutation;manifestPath vs commitish 未决项在 plan 期裁定) | P1#12(watcher 的触发面替代:不做本地 watch,做外部触发) | todo |
 | N3.1 | 增量依赖传播(2-hop) | Fix | 01-baseline §6.2(增量更新依赖传播);`IncrementalDetector` 现状无 hop 传播 | — | todo |
