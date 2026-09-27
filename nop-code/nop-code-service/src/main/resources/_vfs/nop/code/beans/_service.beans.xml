@@ -12,6 +12,14 @@
         <property name="bizObjName" value="NopCodeIndex"/>
     </bean>
 
+    <bean id="io.nop.code.service.entity.NopCodeGraphMetricBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeGraphMetric" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeGraphMetricBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeGraphMetric"/>
+    </bean>
+
     <bean id="io.nop.code.service.entity.NopCodeFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopCodeFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeFileBiz"

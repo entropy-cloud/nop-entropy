@@ -96,72 +96,86 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeIndex-main" displayName="代码索引" orderNo="10019" i18n-en:displayName="Code Index"
+                <resource id="NopCodeGraphMetric-main" displayName="图度量" orderNo="10019"
+                          i18n-en:displayName="Graph Metric" icon="chart-line" component="AMIS" resourceType="SUBM"
+                          url="/nop/code/pages/NopCodeGraphMetric/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopCodeGraphMetric:query" displayName="查询图度量"
+                                  i18n-en:displayName="Query Graph Metric" orderNo="10020" resourceType="FNPT">
+                            <permissions>NopCodeGraphMetric:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopCodeGraphMetric:mutation" displayName="修改图度量"
+                                  i18n-en:displayName="Modify Graph Metric" orderNo="10021" resourceType="FNPT">
+                            <permissions>NopCodeGraphMetric:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopCodeIndex-main" displayName="代码索引" orderNo="10022" i18n-en:displayName="Code Index"
                           icon="search" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeIndex/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopCodeIndex:query" displayName="查询代码索引"
-                                  i18n-en:displayName="Query Code Index" orderNo="10020" resourceType="FNPT">
+                                  i18n-en:displayName="Query Code Index" orderNo="10023" resourceType="FNPT">
                             <permissions>NopCodeIndex:query</permissions>
                         </resource>
                         <resource id="FNPT:NopCodeIndex:mutation" displayName="修改代码索引"
-                                  i18n-en:displayName="Modify Code Index" orderNo="10021" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Code Index" orderNo="10024" resourceType="FNPT">
                             <permissions>NopCodeIndex:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeInheritance-main" displayName="继承关系" orderNo="10022"
+                <resource id="NopCodeInheritance-main" displayName="继承关系" orderNo="10025"
                           i18n-en:displayName="Inheritance" icon="git-branch" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeInheritance/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopCodeInheritance:query" displayName="查询继承关系"
-                                  i18n-en:displayName="Query Inheritance" orderNo="10023" resourceType="FNPT">
+                                  i18n-en:displayName="Query Inheritance" orderNo="10026" resourceType="FNPT">
                             <permissions>NopCodeInheritance:query</permissions>
                         </resource>
                         <resource id="FNPT:NopCodeInheritance:mutation" displayName="修改继承关系"
-                                  i18n-en:displayName="Modify Inheritance" orderNo="10024" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Inheritance" orderNo="10027" resourceType="FNPT">
                             <permissions>NopCodeInheritance:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSemanticEdge-main" displayName="语义边" orderNo="10025"
+                <resource id="NopCodeSemanticEdge-main" displayName="语义边" orderNo="10028"
                           i18n-en:displayName="Semantic Edge" icon="link" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeSemanticEdge/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopCodeSemanticEdge:query" displayName="查询语义边"
-                                  i18n-en:displayName="Query Semantic Edge" orderNo="10026" resourceType="FNPT">
+                                  i18n-en:displayName="Query Semantic Edge" orderNo="10029" resourceType="FNPT">
                             <permissions>NopCodeSemanticEdge:query</permissions>
                         </resource>
                         <resource id="FNPT:NopCodeSemanticEdge:mutation" displayName="修改语义边"
-                                  i18n-en:displayName="Modify Semantic Edge" orderNo="10027" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Semantic Edge" orderNo="10030" resourceType="FNPT">
                             <permissions>NopCodeSemanticEdge:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10028" i18n-en:displayName="Symbol"
+                <resource id="NopCodeSymbol-main" displayName="符号" orderNo="10031" i18n-en:displayName="Symbol"
                           icon="code" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeSymbol/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopCodeSymbol:query" displayName="查询符号" i18n-en:displayName="Query Symbol"
-                                  orderNo="10029" resourceType="FNPT">
+                                  orderNo="10032" resourceType="FNPT">
                             <permissions>NopCodeSymbol:query</permissions>
                         </resource>
                         <resource id="FNPT:NopCodeSymbol:mutation" displayName="修改符号"
-                                  i18n-en:displayName="Modify Symbol" orderNo="10030" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Symbol" orderNo="10033" resourceType="FNPT">
                             <permissions>NopCodeSymbol:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10031" i18n-en:displayName="Symbol Usage"
+                <resource id="NopCodeUsage-main" displayName="符号引用" orderNo="10034" i18n-en:displayName="Symbol Usage"
                           icon="link-2" component="AMIS" resourceType="SUBM"
                           url="/nop/code/pages/NopCodeUsage/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopCodeUsage:query" displayName="查询符号引用"
-                                  i18n-en:displayName="Query Symbol Usage" orderNo="10032" resourceType="FNPT">
+                                  i18n-en:displayName="Query Symbol Usage" orderNo="10035" resourceType="FNPT">
                             <permissions>NopCodeUsage:query</permissions>
                         </resource>
                         <resource id="FNPT:NopCodeUsage:mutation" displayName="修改符号引用"
-                                  i18n-en:displayName="Modify Symbol Usage" orderNo="10033" resourceType="FNPT">
+                                  i18n-en:displayName="Modify Symbol Usage" orderNo="10036" resourceType="FNPT">
                             <permissions>NopCodeUsage:mutation</permissions>
                         </resource>
                     </children>

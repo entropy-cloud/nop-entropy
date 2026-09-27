@@ -283,4 +283,24 @@ public interface _NopCodeDaoConstants {
      */
     String SEMANTIC_RELATION_TYPE_CROSS_LANGUAGE_PEER = "80";
                     
+    /**
+     * 图度量类型: 社区归属 
+     */
+    String METRIC_TYPE_COMMUNITY = "10";
+                    
+    /**
+     * 图度量类型: 介数中心性 
+     */
+    String METRIC_TYPE_BETWEENNESS = "20";
+                    
+    /**
+     * 图度量类型: PageRank 
+     */
+    String METRIC_TYPE_PAGE_RANK = "30";
+                    
+    /**
+     * 图度量类型: 入口点评分 
+     */
+    String METRIC_TYPE_ENTRY_POINT = "40";
+                    
 }

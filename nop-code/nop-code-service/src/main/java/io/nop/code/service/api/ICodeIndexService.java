@@ -167,6 +167,13 @@ public interface ICodeIndexService {
 
     void deleteIndex(String indexId);
 
+    /**
+     * Materializes global graph algorithm results (community / betweenness / PageRank /
+     * entry point scores) into nop_code_graph_metric. Invoked at the end of a full index
+     * build; failures are logged and do not affect the index itself.
+     */
+    void materializeGraphMetrics(String indexId);
+
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 
     List<CodeSymbol> findByAnnotation(String indexId, String annotationName);

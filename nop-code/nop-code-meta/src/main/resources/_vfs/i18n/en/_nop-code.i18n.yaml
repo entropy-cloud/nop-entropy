@@ -6,6 +6,7 @@ entity:
     NopCodeFile: Code File
     NopCodeFlow: Execution Flow
     NopCodeFlowMembership: Execution Flow Membership
+    NopCodeGraphMetric: Graph Metric
     NopCodeIndex: Code Index
     NopCodeInheritance: Inheritance
     NopCodeSemanticEdge: Semantic Edge
@@ -114,6 +115,21 @@ prop:
       flow.name: null
       symbol: null
       symbol.name: null
+    NopCodeGraphMetric:
+      id: null
+      indexId: null
+      metricType: null
+      metricType_label: null
+      symbolId: null
+      communityId: null
+      score: null
+      rankNo: null
+      entryPointType: null
+      computedAt: null
+      extData: null
+      createTime: null
+      updateTime: null
+      extDataComponent: null
     NopCodeIndex:
       id: null
       name: null

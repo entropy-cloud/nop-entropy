@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopCodeGraphMetric" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/code/model/NopCodeGraphMetric/NopCodeGraphMetric.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--索引ID-->
+                <col id="indexId" mandatory="true" sortable="true"/>
+
+                <!--度量类型-->
+                <col id="metricType" mandatory="true" sortable="true"/>
+
+                <!--符号ID-->
+                <col id="symbolId" mandatory="true" sortable="true"/>
+
+                <!--社区ID-->
+                <col id="communityId" ui:number="true" sortable="true"/>
+
+                <!--评分-->
+                <col id="score" ui:number="true" sortable="true"/>
+
+                <!--排名-->
+                <col id="rankNo" ui:number="true" sortable="true"/>
+
+                <!--入口点类型-->
+                <col id="entryPointType" sortable="true"/>
+
+                <!--计算时间-->
+                <col id="computedAt" sortable="true"/>
+
+                <!--扩展数据-->
+                <col id="extData" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" sortable="true"/>
+
+                <!--更新时间-->
+                <col id="updateTime" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-图度量" i18n-en:title="View Graph Metric">
+            <layout>
+ indexId[索引ID] metricType[度量类型]
+ symbolId[符号ID] communityId[社区ID]
+ score[评分] rankNo[排名]
+ entryPointType[入口点类型] computedAt[计算时间]
+ extData[扩展数据] createTime[创建时间]
+ updateTime[更新时间] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-图度量" i18n-en:title="Add Graph Metric" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-图度量" i18n-en:title="Edit Graph Metric">
+            <layout>
+ indexId[索引ID] metricType[度量类型]
+ symbolId[符号ID] communityId[社区ID]
+ score[评分] rankNo[排名]
+ entryPointType[入口点类型] computedAt[计算时间]
+ extData[扩展数据] createTime[创建时间]
+ updateTime[更新时间] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-图度量" i18n-en:title="Update Graph Metric"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeGraphMetric__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopCodeGraphMetric__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopCodeGraphMetric__batchDelete?ids=${ids}"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopCodeGraphMetric__delete?id=${id}"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopCodeGraphMetric__delete?id=${id}"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopCodeGraphMetric__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopCodeGraphMetric__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopCodeGraphMetric__get?id=${id}" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopCodeGraphMetric__get?id=${id}" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopCodeGraphMetric__update/id?id=${id}" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

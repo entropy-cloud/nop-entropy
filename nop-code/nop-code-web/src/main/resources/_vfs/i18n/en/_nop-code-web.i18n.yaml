@@ -24,6 +24,10 @@ site:
       displayName: Modify Execution Flow Membership
     FNPT:NopCodeFlowMembership:query:
       displayName: Query Execution Flow Membership
+    FNPT:NopCodeGraphMetric:mutation:
+      displayName: Modify Graph Metric
+    FNPT:NopCodeGraphMetric:query:
+      displayName: Query Graph Metric
     FNPT:NopCodeIndex:mutation:
       displayName: Modify Code Index
     FNPT:NopCodeIndex:query:
@@ -64,6 +68,8 @@ site:
       displayName: Execution Flow
     NopCodeFlowMembership-main:
       displayName: Execution Flow Membership
+    NopCodeGraphMetric-main:
+      displayName: Graph Metric
     NopCodeIndex-main:
       displayName: Index Management
     NopCodeInheritance-main:

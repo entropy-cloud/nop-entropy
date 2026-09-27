@@ -60,6 +60,13 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             @Name("projectPath") String projectPath) {
         int fileCount = codeIndexService.indexDirectory(indexId, projectPath, null);
 
+        // materialized global metrics are derived data: a failure here must not fail the index
+        try {
+            codeIndexService.materializeGraphMetrics(indexId);
+        } catch (Exception e) {
+            LOG.error("Graph metric materialization failed for index {}", indexId, e);
+        }
+
         IncrementalStatus status = new IncrementalStatus();
         status.setIndexId(indexId);
         status.setMode("full");

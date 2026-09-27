@@ -305,7 +305,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
-| 全局算法结果持久化 | ⏳ 近期 | 社区/中心性/入口点评分当前每次查询重算；应索引期物化、查询期只读（无状态化前提） |
+| 全局算法结果持久化 | ✅ 已实现（2026-09-27） | `nop_code_graph_metric` 表（N1.2）：社区/介数中心性/PageRank/入口点评分在 full index 后物化（`NopCodeIndex__triggerFullIndex` 触发），查询经 `GraphMetricStore` 只读取数；实际变更的增量索引使物化失效（no-op 不失效），deleteIndex 清除；COMMUNITY/BETWEENNESS/PAGE_RANK 行覆盖 call-graph 节点集，ENTRY_POINT 行覆盖 METHOD/CONSTRUCTOR；查询 API 迁移到物化读数归 N1.3 |
 | 查询路径无状态化 | ⏳ 中期 | 消除 `CodeCacheManager` 全量 rebuild；本地遍历下推 `IGraph` 后端 |
 | 数据库图后端 | ⏳ 待决策 | `IGraph` 的第二实现；需先定生产 DB 与可移植性边界 |
 | 框架适配迁出核心 | ⏳ 中期 | 把 `JavaFileAnalyzer` 硬编码 Spring 路由改为 `IEntryPointPatternProvider`/适配器；DSL 为远期选项 |

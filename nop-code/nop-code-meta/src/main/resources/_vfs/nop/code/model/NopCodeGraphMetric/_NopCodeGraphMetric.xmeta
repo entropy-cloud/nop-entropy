@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" ext:icon="chart-line" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
+      xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="图度量" i18n-en:displayName="Graph Metric" xmlns:ui="ui"
+      xmlns:orm="orm">
+
+    <entityName>io.nop.code.dao.entity.NopCodeGraphMetric</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="uk_graph_metric_unique" props="indexId,metricType,symbolId"/>
+    </keys>
+
+    <props>
+        <prop name="id" displayName="行ID" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="indexId" displayName="索引ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="metricType" displayName="度量类型" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20" dict="code/metric_type"/>
+        </prop>
+        <prop name="symbolId" displayName="符号ID" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="codeId" type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="communityId" displayName="社区ID" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="score" displayName="评分" propId="6" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Double"/>
+        </prop>
+        <prop name="rankNo" displayName="排名" propId="7" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="entryPointType" displayName="入口点类型" propId="8" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="computedAt" displayName="计算时间" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="extData" displayName="扩展数据" propId="10" queryable="true" sortable="true" insertable="true"
+              updatable="true" graphql:jsonComponentProp="extDataComponent">
+            <schema stdDomain="json" domain="jsonContent" type="java.lang.String" precision="4096"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="11" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updateTime" displayName="更新时间" propId="12" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="extDataComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
+        </prop>
+    </props>
+</meta>

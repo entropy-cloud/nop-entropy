@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 图度量类型
+locale: zh-CN
+valueType: string
+description: 全局图算法物化结果的度量类型
+options:
+
+  - label: 社区归属
+    value: 10
+    description: 
+  
+  - label: 介数中心性
+    value: 20
+    description: 
+  
+  - label: PageRank
+    value: 30
+    description: 
+  
+  - label: 入口点评分
+    value: 40
+    description: 
+  

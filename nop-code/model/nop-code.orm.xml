@@ -100,6 +100,13 @@
             <option code="RATIONALE_FOR" label="原因说明" value="70"/>
             <option code="CROSS_LANGUAGE_PEER" label="跨语言对等" value="80"/>
         </dict>
+        <dict label="图度量类型" name="code/metric_type" valueType="string">
+            <description>全局图算法物化结果的度量类型</description>
+            <option code="COMMUNITY" label="社区归属" value="10"/>
+            <option code="BETWEENNESS" label="介数中心性" value="20"/>
+            <option code="PAGE_RANK" label="PageRank" value="30"/>
+            <option code="ENTRY_POINT" label="入口点评分" value="40"/>
+        </dict>
     </dicts>
 
     <entities>
@@ -996,6 +1003,43 @@
             </relations>
             <unique-keys>
                 <unique-key columns="indexId,sourceSymbolId,targetSymbolId,relationType" name="uk_semantic_edge_unique"/>
+            </unique-keys>
+        </entity>
+
+        <!-- 图度量物化(N1.2 全局算法结果持久化,索引期写入/查询期只读) -->
+        <entity className="io.nop.code.dao.entity.NopCodeGraphMetric" displayName="图度量"
+                i18n-en:displayName="Graph Metric"
+                name="io.nop.code.dao.entity.NopCodeGraphMetric" registerShortName="true"
+                tableName="nop_code_graph_metric" ext:icon="chart-line">
+            <columns>
+                <column code="ID" displayName="行ID" domain="codeId" mandatory="true" name="id"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        precision="36" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="METRIC_TYPE" displayName="度量类型" mandatory="true" name="metricType" precision="20"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ext:dict="code/metric_type"/>
+                <column code="SYMBOL_ID" displayName="符号ID" domain="codeId" mandatory="true" name="symbolId"
+                        precision="36" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="COMMUNITY_ID" displayName="社区ID" name="communityId"
+                        propId="5" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="SCORE" displayName="评分" name="score"
+                        propId="6" stdDataType="double" stdSqlType="DOUBLE"/>
+                <column code="RANK_NO" displayName="排名" name="rankNo"
+                        propId="7" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="ENTRY_POINT_TYPE" displayName="入口点类型" name="entryPointType" precision="20"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="COMPUTED_AT" displayName="计算时间" name="computedAt"
+                        propId="9" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="EXT_DATA" displayName="扩展数据" domain="jsonContent" name="extData"
+                        propId="10" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="CREATE_TIME" displayName="创建时间" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="DATETIME"/>
+                <column code="UPDATE_TIME" displayName="更新时间" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="DATETIME"/>
+            </columns>
+            <comment>全局图算法物化结果(社区/介数中心性/PageRank/入口点评分),索引期写入、查询期只读</comment>
+            <unique-keys>
+                <unique-key columns="indexId,metricType,symbolId" name="uk_graph_metric_unique"/>
             </unique-keys>
         </entity>
     </entities>

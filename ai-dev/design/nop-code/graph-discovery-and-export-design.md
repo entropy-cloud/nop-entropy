@@ -41,8 +41,8 @@ nop-code 已具备确定性图分析（社区检测、关键节点、知识缺�
 
 | 前置项 | 现状 | 影响 |
 |--------|------|------|
-| 社区结果持久化 | ❌ 每次查询重算 Leiden（未持久化） | 惊奇评分的"跨社区"、问题生成全部依赖社区映射 |
-| 介数中心性持久化 | ❌ 每次查询重算，且 >10000 节点时跳过 | 问题生成 `bridge_node` 类型在大图失效 |
+| 社区结果持久化 | ✅ 已实现（2026-09-27）：`nop_code_graph_metric` 索引期物化（`GraphMetricStore` 只读取数；实际变更的增量使物化失效待 full index 重建；覆盖 call-graph 节点集，lookup miss 按降级原则处理） | 惊奇评分的"跨社区"、问题生成全部依赖社区映射 |
+| 介数中心性持久化 | ✅ 已实现（2026-09-27）：随物化管线持久化；>10000 节点跳过语义保留（大图无 BETWEENNESS 行，hasMaterialized=false，消费方降级） | 问题生成 `bridge_node` 类型在大图失效（降级原则处理） |
 | 带属性的边投影 | ✅ 已实现（2026-09-27）：`CodeRelationGraph` typed 边视图覆盖四族并填 `Edge.attrs`（relationType/confidence/provenance/directed/filePath）；`CodeCallGraph` 保留为 CALLS-only 拓扑投影，需属性的下游消费 `CodeRelationGraph` | 惊奇评分需 relation/confidence/filePath |
 | INFERRED/AMBIGUOUS 边投影 | ✅ INFERRED 已投影（2026-09-27）：合成器调用边持久化 provenance=HEURISTIC/FRAMEWORK_INFERENCE，`CodeRelationGraph` 映射为 attrs.confidence=INFERRED；semantic 族按 confidence 列显式映射 10/20/30。⚠️ AMBIGUOUS 仍无生产者（维持原状） | 惊奇评分的"置信度"维度可用；`ambiguous_edge` 问题类型仍依赖 AMBIGUOUS 生产者（缺失时按降级原则跳过） |
 | 多仓/文档节点模型 | ❌ 每 indexId 单项目、仅代码符号 | 惊奇评分的"跨文件类型"、"跨目录/仓库"维度不适用 |

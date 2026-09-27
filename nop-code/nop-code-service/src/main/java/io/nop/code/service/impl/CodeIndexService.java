@@ -61,6 +61,7 @@ import io.nop.code.dao.entity.NopCodeFlow;
 import io.nop.code.dao.entity.NopCodeFlowMembership;
 import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
+import io.nop.code.dao.entity.NopCodeGraphMetric;
 import io.nop.code.dao.entity.NopCodeSemanticEdge;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
@@ -111,6 +112,7 @@ public class CodeIndexService implements ICodeIndexService {
     private CodeSearchService searchService;
     private CodeGraphService graphService;
     private CodeQueryService queryService;
+    private GraphMetricMaterializer graphMetricMaterializer;
 
     private final ConcurrentHashMap<String, ReentrantLock> indexLocks = new ConcurrentHashMap<>();
 
@@ -153,6 +155,8 @@ public class CodeIndexService implements ICodeIndexService {
             searchService = new CodeSearchService(daoProvider, searchEngine, cacheManager);
             graphService = new CodeGraphService(daoProvider, cacheManager);
             queryService = new CodeQueryService(daoProvider, cacheManager, ormTemplate);
+            graphMetricMaterializer = new GraphMetricMaterializer(daoProvider, cacheManager,
+                    transactionTemplate, ormTemplate);
         }
     }
 
@@ -545,6 +549,12 @@ public class CodeIndexService implements ICodeIndexService {
     private static final int DELETE_BATCH_SIZE = 500;
 
     @Override
+    public void materializeGraphMetrics(String indexId) {
+        ensureSubServices();
+        graphMetricMaterializer.materialize(indexId);
+    }
+
+    @Override
     public void deleteIndex(String indexId) {
         withIndexLock(indexId, () -> {
             invalidateAnalysisCache(indexId);
@@ -569,6 +579,7 @@ public class CodeIndexService implements ICodeIndexService {
                         deleteEntitiesPaged(session, NopCodeFile.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
+                        deleteEntitiesPaged(session, NopCodeGraphMetric.class, "indexId", indexId);
 
                         daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
                         return null;
@@ -739,6 +750,10 @@ public class CodeIndexService implements ICodeIndexService {
                 if (changedFiles.isEmpty() && deletedFiles.isEmpty()) {
                     return 0;
                 }
+
+                // actual changes invalidate the materialized global metrics (stale until next full index)
+                ensureSubServices();
+                graphMetricMaterializer.deleteByIndex(session, indexId);
 
                 deleteFileRecords(indexId, deletedFiles);
                 deleteFileRecords(indexId, changedFiles);

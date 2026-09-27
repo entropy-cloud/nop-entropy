@@ -86,7 +86,8 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "triggerIncrementalIndex",
             "batchSaveFileRecords",
             "indexDirectory",
-            "indexFile"
+            "indexFile",
+            "materializeGraphMetrics"
     ));
 
     /**
@@ -151,6 +152,9 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             case "indexFile":
                 verifyIndexFileIdempotent();
                 break;
+            case "materializeGraphMetrics":
+                verifyMaterializeGraphMetricsIdempotent();
+                break;
             default:
                 fail("IDEMPOTENCE_TABLE entry \"" + methodName + "\" has no verification branch — "
                         + "add a verifyXxx method and wire it here (table-completeness without coverage "
@@ -197,6 +201,46 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         assertEquals(filesAfterFull, files2, "retry incremental must not change file count");
         assertEquals(symbolsAfterFull, symbols1, "first incremental must not change symbol count");
         assertEquals(symbolsAfterFull, symbols2, "retry incremental must not change symbol count");
+    }
+
+    /**
+     * materializeGraphMetrics replaces the metric snapshot per run (delete-then-insert in one
+     * transaction): retrying must not duplicate rows and must keep a complete snapshot.
+     */
+    private void verifyMaterializeGraphMetricsIdempotent() throws Exception {
+        Path projectDir = tempDir.resolve("metric-dir");
+        Files.createDirectories(projectDir.resolve("a"));
+        writeJavaFile(projectDir.resolve("a"), "Alpha.java",
+                "public class Alpha { public int run(String s) { return s.length(); } }");
+        writeJavaFile(projectDir.resolve("a"), "Beta.java",
+                "public class Beta { public String echo(String s) { return new Alpha().run(s) + s; } }");
+        Thread.sleep(50);
+
+        String indexId = "idem-metric";
+        codeIndexService.indexDirectory(indexId, projectDir.toAbsolutePath().toString(), "**/*.java");
+
+        codeIndexService.materializeGraphMetrics(indexId);
+        long rowsFirst = countRows(indexId);
+
+        // retry materialize — replace-by-index must not duplicate
+        assertDoesNotThrow(() -> codeIndexService.materializeGraphMetrics(indexId),
+                "retry materializeGraphMetrics must not throw");
+        long rowsSecond = countRows(indexId);
+
+        assertTrue(rowsFirst > 0, "materialize should persist metric rows");
+        assertEquals(rowsFirst, rowsSecond, "retry materialize must replace, not duplicate, rows");
+    }
+
+    private long countRows(String indexId) {
+        return codeIndexServiceInvokedRowCount(indexId);
+    }
+
+    private long codeIndexServiceInvokedRowCount(String indexId) {
+        IEntityDao<io.nop.code.dao.entity.NopCodeGraphMetric> dao =
+                daoProvider.daoFor(io.nop.code.dao.entity.NopCodeGraphMetric.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(io.nop.api.core.beans.FilterBeans.eq("indexId", indexId));
+        return dao.findAllByQuery(query).size();
     }
 
     /**

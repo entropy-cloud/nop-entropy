@@ -6,6 +6,7 @@ entity:
     NopCodeFile: 代码文件
     NopCodeFlow: 执行流
     NopCodeFlowMembership: 执行流成员
+    NopCodeGraphMetric: 图度量
     NopCodeIndex: 代码索引
     NopCodeInheritance: 继承关系
     NopCodeSemanticEdge: 语义边
@@ -114,6 +115,21 @@ prop:
       symbolId: 符号ID
       updateTime: 更新时间
       updatedBy: 更新人
+    NopCodeGraphMetric:
+      communityId: 社区ID
+      computedAt: 计算时间
+      createTime: 创建时间
+      entryPointType: 入口点类型
+      extData: 扩展数据
+      extDataComponent: null
+      id: 行ID
+      indexId: 索引ID
+      metricType: 度量类型
+      metricType_label: 度量类型
+      rankNo: 排名
+      score: 评分
+      symbolId: 符号ID
+      updateTime: 更新时间
     NopCodeIndex:
       annotationUsages: 注解使用
       calls: 调用
