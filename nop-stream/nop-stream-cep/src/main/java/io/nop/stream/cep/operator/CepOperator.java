@@ -23,10 +23,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
@@ -113,7 +114,7 @@ public class CepOperator<IN, KEY, OUT>
     private final TypeSerializer<IN> inputSerializer;
 
     /**
-     * AR-10 (Plan 2026-09-04-1326-1 Phase 4, adjudication D4): the explicit key class
+     * The explicit key class
      * channel. Non-null pins the keyed state backend's key type at {@link #open()} —
      * the non-keyed global path always passes {@code Byte.class} (its
      * {@code NullByteKeySelector} is deterministic); keyed jobs may leave it null, in
@@ -126,14 +127,14 @@ public class CepOperator<IN, KEY, OUT>
     private final Class<KEY> keyClass;
 
     /**
-     * AR-10: key class observed from the first live key (or an explicit restore).
+     * Key class observed from the first live key (or an explicit restore).
      * Transient — it travels through checkpoints as the {@code cep-key-class} operator
      * state entry, never through Java serialization of the operator.
      */
     private transient Class<?> capturedKeyClass;
 
     /**
-     * AR-10: key class read from a checkpoint in {@link #restoreState} (which runs
+     * Key class read from a checkpoint in {@link #restoreState} (which runs
      * BEFORE {@link #open()}). Consumed once by {@link #resolveEffectiveKeyClass()}.
      */
     private transient Class<?> restoredKeyClass;
@@ -168,6 +169,15 @@ public class CepOperator<IN, KEY, OUT>
      * bounded by the number of keys with genuinely pending work.
      */
     private transient Map<Object, TreeSet<Long>> registeredEventTimeTimersByKey;
+
+    /**
+     * Keys whose restored ledger has been reconciled against their queue buckets
+     * (plan 2279 Q1). Legacy checkpoints may carry queue buckets without matching
+     * ledger entries; the first drain of a key backfills its ledger from the
+     * observed buckets, after which the ledger-superset invariant (every bucket has
+     * a ledger entry, maintained by {@code registerTimer}) holds for that key.
+     */
+    private transient Set<Object> reconciledTimerKeys;
 
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
@@ -250,7 +260,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * AR-10 (D4): full constructor with the explicit key class channel. See
+     * Full constructor with the explicit key class channel. See
      * {@link #keyClass}.
      */
     public CepOperator(
@@ -335,7 +345,7 @@ public class CepOperator<IN, KEY, OUT>
 
     /**
      * Creates the keyed state backend and binds {@link #keyedStateStore} to it. The
-     * backend is created from the injected {@code stateBackend} with the AR-10 resolved
+     * backend is created from the injected {@code stateBackend} with the resolved
      * key class; when no state backend is configured the operator falls back to an
      * in-memory keyed state store. A successfully created backend also replays the
      * deferred restore saved by
@@ -344,7 +354,7 @@ public class CepOperator<IN, KEY, OUT>
     private void resolveKeyedBackend() throws Exception {
         IKeyedStateBackend<?> backend = getKeyedStateBackend();
         if (backend == null && this.stateBackend != null) {
-            // AR-10 (D4): create the keyed backend with the RESOLVED key class, never
+            // Create the keyed backend with the RESOLVED key class, never
             // a bare Object.class: an explicit key class (non-keyed path pins
             // Byte.class) or the class carried by the restored checkpoint makes the
             // MemoryStateSerDe key re-materialization guard fire for every CEP keyed
@@ -371,13 +381,13 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * Assembles the keyed state access: the NFA computation states (P2-INV-6: carried
+     * Assembles the keyed state access: the NFA computation states (carried
      * through checkpoints as a Java-stream serialized byte[]), the per-timestamp event
      * queues and the SharedBuffer holding the partial matches.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void initStateAccess() {
-        // P2-INV-6 resolution: the NFA state graph (queues / DeweyNumber / node
+        // The NFA state graph (queues / DeweyNumber / node
         // references) is not JSON-@DataBean-shaped, so its ValueState uses a
         // Java-stream serializer and travels through the JSON snapshot as byte[].
         // Without this, every checkpoint persist of a CEP operator failed with
@@ -396,11 +406,11 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * Initializes the per-key event-time timer ledger. P1-04: restoreState() may run
+     * Initializes the per-key event-time timer ledger. restoreState() may run
      * BEFORE open() (the order pinned by TestCepCheckpointRestoreE2E), so only
-     * initialize the timer registry when it is still null. The previous unconditional
-     * rebuild wiped every timer restored from a checkpoint — the storage side (AR-9)
-     * persisted them, but the consumption side silently lost them on open().
+     * initialize the timer registry when it is still null. An unconditional
+     * rebuild would wipe every timer restored from a checkpoint — the storage side
+     * persists them, but the consumption side would silently lose them on open().
      */
     private void initTimerLedger() {
         if (registeredEventTimeTimersByKey == null) {
@@ -572,7 +582,7 @@ public class CepOperator<IN, KEY, OUT>
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         result.putOperatorState(WATERMARK_STATE_NAME, currentWatermark);
-        // AR-10 (D4): persist the effective key class so the NEXT restore creates the
+        // Persist the effective key class so the NEXT restore creates the
         // keyed backend typed (MemoryStateSerDe re-materialization guard fires). Only
         // meaningful when the class is actually known (explicit channel or captured
         // from the first live key); Object.class is the "unknown" sentinel and is not
@@ -582,7 +592,7 @@ public class CepOperator<IN, KEY, OUT>
             result.putOperatorState(KEY_CLASS_STATE_NAME, effectiveKeyClass.getName());
         }
         if (registeredEventTimeTimersByKey != null) {
-            // AR-11: per-key JSON-safe form with TYPED keys — {"keyClass": name,
+            // Per-key JSON-safe form with TYPED keys — {"keyClass": name,
             // "key": k, "timers": [t1, t2, ...]}. The key class + canonical value let
             // the restore re-materialize the exact original key (a bare JSON key
             // drifts: Long(123) came back as Integer(123), so the drained "key" was
@@ -611,7 +621,7 @@ public class CepOperator<IN, KEY, OUT>
                 currentWatermark = ((Number) wmObj).longValue();
                 watermarkRestored = true;
             }
-            // AR-10 (D4): resolve the checkpoint-carried key class BEFORE open()
+            // Resolve the checkpoint-carried key class BEFORE open()
             // creates the keyed backend — that is the whole point of carrying it.
             Object keyClassObj = snapshotResult.getOperatorState(KEY_CLASS_STATE_NAME);
             if (keyClassObj instanceof String className && !className.isBlank()) {
@@ -633,8 +643,8 @@ public class CepOperator<IN, KEY, OUT>
                 }
                 if (isPerKeyTimersForm(timersList)) {
                     // Current format: list of {"keyClass": cn, "key": k, "timers":
-                    // [t...]} maps (AR-11 typed form; entries written before AR-11 lack
-                    // the keyClass member and fall back to the raw key with a WARN).
+                    // [t...]} maps (typed form; legacy entries without the keyClass
+                    // member fall back to the raw key with a WARN).
                     // Timer values may arrive as Integer or Long after the JSON persist
                     // path.
                     for (Object element : timersList) {
@@ -659,12 +669,12 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * AR-11: re-materialize a ledger key from its typed snapshot form. The canonical
+     * Re-materialize a ledger key from its typed snapshot form. The canonical
      * mechanism mirrors {@code MemoryStateSerDe.deserializeKey}: JSON-serialize the
      * (possibly drifted — Integer after a JSON round-trip) raw value and parse it back
      * as the recorded class, so {@code Long(123)} restored as {@code Integer(123)}
      * comes back as {@code Long(123)} and the drain loop addresses the REAL backend
-     * key. Entries without a recorded class (pre-AR-11 checkpoints) keep the raw key
+     * key. Entries without a recorded class (legacy checkpoints) keep the raw key
      * and log a WARN — no silent drop, and the class is present on every checkpoint
      * this build writes.
      */
@@ -708,13 +718,37 @@ public class CepOperator<IN, KEY, OUT>
                 // only ever drain the last processed element's key: other keys' buffered
                 // events would linger in elementQueueState, their partial matches would
                 // never time out and their SharedBuffer entries would leak.
-                for (Map.Entry<Object, TreeSet<Long>> entry : snapshotTimersByKey().entrySet()) {
-                    TreeSet<Long> pending = registeredEventTimeTimersByKey.get(entry.getKey());
-                    if (pending == null || pending.isEmpty() || pending.first() > currentWatermark) {
-                        continue;
+                //
+                // plan 2279 Q1: the due keys are collected by iterating the LIVE
+                // ledger (no snapshot map copy — that copy measured as the top
+                // remaining cost). Collecting never mutates the map; mutations
+                // happen in the drain phase afterwards. Keyed state isolation makes
+                // the collected decisions stable: draining key A cannot add/remove
+                // timers of key B, so a key collected as due stays due.
+                List<Object> dueKeys = null;
+                if (registeredEventTimeTimersByKey != null) {
+                    for (Map.Entry<Object, TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
+                        TreeSet<Long> pending = entry.getValue();
+                        if (pending.isEmpty() || pending.first() > currentWatermark) {
+                            continue;
+                        }
+                        if (dueKeys == null) {
+                            dueKeys = new ArrayList<>();
+                        }
+                        dueKeys.add(entry.getKey());
                     }
-                    setCurrentKey(entry.getKey());
-                    onEventTime(currentWatermark);
+                }
+                if (dueKeys != null) {
+                    for (Object key : dueKeys) {
+                        // Re-check: an earlier drain's ledger cleanup may have emptied
+                        // this key's timer set (no longer anything due).
+                        TreeSet<Long> pending = registeredEventTimeTimersByKey.get(key);
+                        if (pending == null || pending.isEmpty() || pending.first() > currentWatermark) {
+                            continue;
+                        }
+                        setCurrentKey(key);
+                        onEventTime(currentWatermark);
+                    }
                 }
             }
         }
@@ -723,7 +757,7 @@ public class CepOperator<IN, KEY, OUT>
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
-        // AR-10 (D4 first-key capture): the upstream KeyExtractingOutput has already
+        // First-key capture: the upstream KeyExtractingOutput has already
         // set the backend's current key — observe its class once so checkpoints carry
         // the key type for the next restore.
         captureKeyClass(getCurrentKey());
@@ -786,7 +820,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * AR-10 (D4 first-key capture): remember the class of the first live key observed.
+     * Remember the class of the first live key observed.
      * The class is persisted with every checkpoint that carries keyed state, so a
      * restore resolves the key type BEFORE the backend is created. Capture is
      * write-once (the first non-null key of a run defines the stream's key class).
@@ -798,7 +832,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * AR-10: the key class the keyed backend is created with. Explicit constructor
+     * The key class the keyed backend is created with. Explicit constructor
      * channel wins (non-keyed path pins {@code Byte.class}); then the class carried by
      * the restored checkpoint; then {@code Object.class} (fresh keyed run — safe
      * in-memory, and the captured class makes the next restore typed).
@@ -840,19 +874,17 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * Copy-on-iterate view of the per-key timer ledger: iteration happens inside the
-     * watermark drain, and the drain itself may register new timers (bucket / window
-     * timers) for the key being processed.
+     * Key-stable snapshot of the per-key timer ledger. The watermark-drain path no
+     * longer goes through here (plan 2279 Q1b: {@link #processWatermark} collects
+     * due keys by live iteration); this shallow map copy now only serves
+     * {@link #forEachEventTimeTimer}, which makes its own per-key defensive copies
+     * before consuming entries. All timer bookkeeping is task-thread confined.
      */
     private Map<Object, TreeSet<Long>> snapshotTimersByKey() {
         if (registeredEventTimeTimersByKey == null) {
             return Collections.emptyMap();
         }
-        Map<Object, TreeSet<Long>> snapshot = new LinkedHashMap<>();
-        for (Map.Entry<Object, TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
-            snapshot.put(entry.getKey(), new TreeSet<>(entry.getValue()));
-        }
-        return snapshot;
+        return new LinkedHashMap<>(registeredEventTimeTimersByKey);
     }
 
     /**
@@ -899,26 +931,11 @@ public class CepOperator<IN, KEY, OUT>
     public void onEventTime(long time) throws Exception {
 
         // STEP 1
-        PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
         NFAState nfaState = getNFAState();
 
         // STEP 2
-        while (!sortedTimestamps.isEmpty()
-                && sortedTimestamps.peek() <= internalTimerService.currentWatermark()) {
-            long timestamp = sortedTimestamps.poll();
-            advanceTime(nfaState, timestamp);
-            try (Stream<IN> elements = sort(elementQueueState.get(timestamp))) {
-                elements.forEachOrdered(
-                        event -> {
-                            try {
-                                processEvent(nfaState, event, timestamp);
-                            } catch (Exception e) {
-                                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onEventTime processEvent");
-                            }
-                        });
-            }
-            elementQueueState.remove(timestamp);
-        }
+        drainDueBuckets(nfaState, internalTimerService.currentWatermark(), true,
+                "onEventTime processEvent");
 
         // STEP 3
         advanceTime(nfaState, internalTimerService.currentWatermark());
@@ -930,7 +947,7 @@ public class CepOperator<IN, KEY, OUT>
         // which is always re-created on the next event) has fully passed its window.
         resetNfaStateIfFullyTimedOut(nfaState, internalTimerService.currentWatermark());
 
-        // P1-04 (bookkeeping semantics): the registry is a LEDGER of pending
+        // Bookkeeping semantics: the registry is a LEDGER of pending
         // event-time timers, not a trigger mechanism — onEventTime is driven by
         // watermark advancement (STEP 2 drains every queue bucket <= watermark
         // directly). A registry entry's work is done once the watermark reaches
@@ -953,25 +970,11 @@ public class CepOperator<IN, KEY, OUT>
 
     public void onProcessingTime(long time) throws Exception {
         // STEP 1
-        PriorityQueue<Long> sortedTimestamps = getSortedTimestamps();
         NFAState nfaState = getNFAState();
 
         // STEP 2
-        while (!sortedTimestamps.isEmpty()) {
-            long timestamp = sortedTimestamps.poll();
-            advanceTime(nfaState, timestamp);
-            try (Stream<IN> elements = sort(elementQueueState.get(timestamp))) {
-                elements.forEachOrdered(
-                        event -> {
-                            try {
-                                processEvent(nfaState, event, timestamp);
-                            } catch (Exception e) {
-                                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, "onProcessingTime processEvent");
-                            }
-                        });
-            }
-            elementQueueState.remove(timestamp);
-        }
+        drainDueBuckets(nfaState, Long.MAX_VALUE, false,
+                "onProcessingTime processEvent");
 
         // STEP 3
         advanceTime(nfaState, internalTimerService.currentProcessingTime());
@@ -1030,12 +1033,93 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
-    private PriorityQueue<Long> getSortedTimestamps() throws Exception {
-        PriorityQueue<Long> sortedTimestamps = new PriorityQueue<>();
-        for (Long timestamp : elementQueueState.keys()) {
-            sortedTimestamps.offer(timestamp);
+    /**
+     * Drains the current key's queue buckets whose timestamp passes the filter
+     * (event-time mode: {@code timestamp <= limitTimestamp}; processing-time mode:
+     * every bucket), feeding each drained event to {@link #processEvent}.
+     *
+     * <p>The per-key timer ledger is a superset of the queue buckets — every bucket
+     * registers its timestamp on the first buffered event — so the due set is read
+     * from the ledger instead of scanning every bucket via
+     * {@code elementQueueState.keys()}. A due ledger timestamp without a bucket is a
+     * window timer (registered by {@code processEvent}; its timeout semantics run
+     * through {@code advanceTime} in STEP 3, exactly as before) — it has no queued
+     * events and is skipped, preserving the bucket-driven behavior where such
+     * timestamps were never visited. Iteration goes over a snapshot of the due
+     * subset because draining may register new timers for the same key.
+     *
+     * <p>Buckets restored from legacy checkpoints may lack ledger entries; the
+     * per-key reconciliation below backfills the ledger from the observed buckets
+     * on the key's first drain, after which the superset invariant holds.
+     */
+    private void drainDueBuckets(NFAState nfaState, long limitTimestamp, boolean dueOnly,
+                                 String processEventDetail) throws Exception {
+        Object key = currentRegistrationKey();
+        reconcileTimerLedgerIfNeeded(key);
+        TreeSet<Long> ledger = registeredEventTimeTimersByKey == null
+                ? null
+                : registeredEventTimeTimersByKey.get(key);
+        if (ledger == null || ledger.isEmpty()) {
+            // Reconciled invariant: no ledger entries means no queued buckets.
+            return;
         }
-        return sortedTimestamps;
+        Collection<Long> dueTimestamps = dueOnly ? ledger.headSet(limitTimestamp, true) : ledger;
+        if (dueTimestamps.isEmpty()) {
+            return;
+        }
+        for (Long timestamp : new ArrayList<>(dueTimestamps)) {
+            List<IN> elements = elementQueueState.get(timestamp);
+            if (elements == null) {
+                LOG.trace("Timer timestamp {} has no queued bucket for the current key; "
+                        + "nothing to drain", timestamp);
+                continue;
+            }
+            advanceTime(nfaState, timestamp);
+            try (Stream<IN> stream = sort(elements)) {
+                stream.forEachOrdered(
+                        event -> {
+                            try {
+                                processEvent(nfaState, event, timestamp);
+                            } catch (Exception e) {
+                                throw new StreamException(ERR_STREAM_STATE_ERROR, e).param(ARG_DETAIL, processEventDetail);
+                            }
+                        });
+            }
+            elementQueueState.remove(timestamp);
+        }
+    }
+
+    /**
+     * Backfills the current key's timer ledger with any queue-bucket timestamps the
+     * ledger does not know about. Only needed for state restored from checkpoints
+     * whose ledger was partial or absent; on a fresh (or fully restored) operator the
+     * scan observes an empty delta and the call is cheap (one bucket-keys iteration
+     * per key, once).
+     */
+    private void reconcileTimerLedgerIfNeeded(Object key) throws Exception {
+        if (reconciledTimerKeys != null && reconciledTimerKeys.contains(key)) {
+            return;
+        }
+        if (reconciledTimerKeys == null) {
+            reconciledTimerKeys = new HashSet<>();
+        }
+        reconciledTimerKeys.add(key);
+        TreeSet<Long> observed = null;
+        for (Long timestamp : elementQueueState.keys()) {
+            if (observed == null) {
+                observed = new TreeSet<>();
+            }
+            observed.add(timestamp);
+        }
+        if (observed == null) {
+            return;
+        }
+        if (registeredEventTimeTimersByKey == null) {
+            registeredEventTimeTimersByKey = new LinkedHashMap<>();
+        }
+        TreeSet<Long> ledger = registeredEventTimeTimersByKey.computeIfAbsent(
+                key, k -> new TreeSet<>());
+        ledger.addAll(observed);
     }
 
     private void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
@@ -1224,7 +1308,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * P1-04: testing accessor for the event-time timer bookkeeping registry.
+     * Testing accessor for the event-time timer bookkeeping registry.
      *
      * @return the union of currently registered (pending) event-time timers across all
      *         keys; empty when the registry has not been initialized yet
@@ -1241,7 +1325,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     /**
-     * AR-10/AR-11 (Plan 2026-09-04-1326-1 Phase 4): testing accessor for the raw
+     * Testing accessor for the raw
      * per-key timer ledger — assertions can inspect the exact ledger KEY OBJECTS
      * (class identity after restore) and their pending timestamps.
      */
@@ -1251,7 +1335,7 @@ public class CepOperator<IN, KEY, OUT>
                 : Collections.unmodifiableMap(registeredEventTimeTimersByKey);
     }
 
-    /** AR-10: testing accessor for the resolved effective key class. */
+    /** Testing accessor for the resolved effective key class. */
     Class<?> resolveEffectiveKeyClassForTesting() {
         return resolveEffectiveKeyClass();
     }

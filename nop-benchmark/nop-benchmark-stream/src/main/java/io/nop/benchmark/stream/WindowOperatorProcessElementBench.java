@@ -74,8 +74,17 @@ public class WindowOperatorProcessElementBench {
     @Param({"TUMBLING", "SLIDING", "SESSION", "EVICTOR"})
     String windowType;
 
+    /** Plan 2279: 状态后端（MEMORY 默认 / ROCKSDB 经 setStateBackend——F2 evictor O(n²) 只在 RocksDB 可测）。 */
+    @Param({"MEMORY", "ROCKSDB"})
+    String backend;
+
+    /** Plan 2279: EVICTOR 档的 CountEvictor 容量（其他 windowType 档不使用该参数）。 */
+    @Param({"100", "1000"})
+    int evictorSize;
+
     private WindowOperator<String, Long, Long, Long, TimeWindow> operator;
     private BenchWindowOutput output;
+    private java.nio.file.Path dbDir;
 
     private long tsCursor;
     private long valueCursor;
@@ -102,13 +111,17 @@ public class WindowOperatorProcessElementBench {
                 break;
             case "EVICTOR":
                 builder.windowAssigner(TumblingEventTimeWindows.of(60_000L))
-                        .evictor(CountEvictor.of(100));
+                        .evictor(CountEvictor.of(evictorSize));
                 break;
             default:
                 throw new IllegalArgumentException("Unknown windowType: " + windowType);
         }
 
         operator = builder.aggregate(new LongSumAggregate(), Long.class, Long.class);
+        if ("ROCKSDB".equals(backend)) {
+            dbDir = java.nio.file.Files.createTempDirectory("nop-bench-window-rocksdb");
+            operator.setStateBackend(new io.nop.stream.rocksdb.RocksDBStateBackend(dbDir.toString()));
+        }
         output = new BenchWindowOutput();
         operator.setOutput(output);
         operator.open();

@@ -7,6 +7,7 @@
  */
 package io.nop.benchmark.stream;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.EpochState;
@@ -27,6 +28,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -64,6 +66,8 @@ public class CheckpointSerDeBench {
 
     private EpochManifest manifest;
     private byte[] serialized;
+    /** 剥离 checksum 键的变体：读侧走 legacy 容忍路径（跳过校验）——checksum 读侧份额口径。 */
+    private byte[] serializedNoChecksum;
 
     @Setup(Level.Trial)
     public void setup() {
@@ -101,6 +105,18 @@ public class CheckpointSerDeBench {
         if (!(restoredKeyed instanceof Map) || ((Map<?, ?>) restoredKeyed).size() != KEYED_ENTRY_COUNT) {
             throw new IllegalStateException("checkpoint keyed-state sanity failed");
         }
+
+        // Read-side checksum on/off fixture: strip the trailing checksum key so
+        // deserialize takes the legacy tolerate path (no verification). The write
+        // side cannot switch checksum off (stamped inside serializeEpochManifest),
+        // so its share is attributed via JFR frames instead (plan 2279).
+        Map<String, Object> noChecksum = JsonTool.parseMap(new String(serialized, StandardCharsets.UTF_8));
+        noChecksum.remove("checksum");
+        serializedNoChecksum = JsonTool.serialize(noChecksum, false).getBytes(StandardCharsets.UTF_8);
+        EpochManifest legacy = CheckpointSerDe.deserializeEpochManifest(serializedNoChecksum);
+        if (legacy == null || legacy.getEpochId() != 42L) {
+            throw new IllegalStateException("no-checksum variant sanity failed");
+        }
     }
 
     @TearDown(Level.Trial)
@@ -120,6 +136,16 @@ public class CheckpointSerDeBench {
     @Benchmark
     public void deserialize(Blackhole bh) {
         EpochManifest restored = CheckpointSerDe.deserializeEpochManifest(serialized);
+        bh.consume(restored.getEpochId());
+    }
+
+    /**
+     * 读侧 checksum off 档：剥离 checksum 键的文档（legacy 容忍路径，跳过校验重算）。
+     * deserialize 与本方法之差 = 读侧 checksum 份额（含 canonical 重序列化 + SHA-256）。
+     */
+    @Benchmark
+    public void deserializeNoChecksum(Blackhole bh) {
+        EpochManifest restored = CheckpointSerDe.deserializeEpochManifest(serializedNoChecksum);
         bh.consume(restored.getEpochId());
     }
 }

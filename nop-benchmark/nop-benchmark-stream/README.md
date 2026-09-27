@@ -1,8 +1,8 @@
 # nop-benchmark-stream
 
-nop-stream 热路径 JMH 基准（plan 360）。JMH 1.33，与父 pom 配置一致。
+nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路径）。JMH 1.33，与父 pom 配置一致。
 
-## 基准集（8 类 / 14 方法）
+## 基准集（13 类 / 20+ 方法）
 
 | 基准类 | 被测生产路径 |
 |---|---|
@@ -13,7 +13,12 @@ nop-stream 热路径 JMH 基准（plan 360）。JMH 1.33，与父 pom 配置一�
 | TimerServiceBench | HeapInternalTimerService registerEventTimeTimer / advanceWatermark |
 | NfaProcessBench | NFA.process / advanceTime（`patternDepth`=1/5/20） |
 | SharedBufferRegisterBench | SharedBufferAccessor registerEvent + put（key-scoped 缓存路径） |
-| CheckpointSerDeBench | CheckpointSerDe serializeEpochManifest / deserialize（10k keyed + 1MB bytes） |
+| CheckpointSerDeBench | CheckpointSerDe serializeEpochManifest / deserialize（10k keyed + 1MB bytes）；`deserializeNoChecksum`=读侧 checksum off 档（fixture 剥离，legacy 容忍路径） |
+| RemoteTransportWriteBench | RemoteResultPartition.write 锁内 encode+同步 send（`sendDelayNanos`=0/100µs/5ms 后端延迟桩，`fanout`=1/4/16；`writerHeartbeatSamePartition` 组=写/心跳同 monitor 互卡形状） |
+| CepOperatorBench | CepOperator.processElement 缓冲 RMW + processWatermark timer 批 drain（`backend`=MEMORY/ROCKSDB × `keys`=1/64 × `bucketsPerKey`=8/64） |
+| InputGateReadLoopBench | InputGate 读取循环（`gapNanos`=0/100µs/10ms 生产间隔；饱和档量吞吐，大 gap 档若 @Group 栅栏失真按计划退化为独立 harness） |
+| BufferPoolPermitBench | BufferPool acquire/release（`poolCapacity`=1 强制乒乓/64 近畅通；真实 ResultPartition/InputChannel 路径） |
+| ProcessingTimeDriverLatencyBench | ProcessingTimeServiceDriver 处理时间定时器触发延迟（`tickMs`=100/20；SampleTime，fire 延迟 = op − 50ms 提前量） |
 
 ## 运行
 
@@ -30,4 +35,4 @@ java -cp ... org.openjdk.jmh.Main "NfaProcessBench.processEvent" -p patternDepth
 jfr print --events jdk.ExecutionSample rec.jfr   # CPU 归因
 ```
 
-历史测量证据：`ai-dev/audits/evidence/nop-stream-perf-360/`（baseline / r1 / r2 / final 各轮对比与收敛裁定）。
+历史测量证据：`ai-dev/audits/evidence/nop-stream-perf-360/`（baseline / r1 / r2 / final 各轮对比与收敛裁定）、`ai-dev/audits/evidence/nop-stream-perf-2279/`（plan 2279 传输/算子路径基线与各轮对比）。

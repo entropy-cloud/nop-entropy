@@ -7,6 +7,7 @@
  */
 package io.nop.benchmark.stream;
 
+import io.nop.stream.bench.BenchCepEvent;
 import io.nop.commons.tuple.Tuple2;
 import io.nop.stream.cep.configuration.SharedBufferCacheConfig;
 import io.nop.stream.cep.nfa.NFA;

@@ -1706,10 +1706,30 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
+    /**
+     * Single-slot memo for {@link #windowNamespace(W)} (plan 2279 Q3/F4): consecutive
+     * state operations target the same window, so the namespace string is rebuilt
+     * once per window switch instead of once per state operation. Task-thread
+     * confined; {@code W} is compared by value ({@code TimeWindow} equals on
+     * start/end), so a stale entry can never yield a wrong namespace.
+     */
+    private W lastNamespacedWindow;
+    private String lastNamespacedValue;
+
     private String windowNamespace(W window) {
         if (window == null) {
             return "_null_window_";
         }
+        if (lastNamespacedValue != null && window.equals(lastNamespacedWindow)) {
+            return lastNamespacedValue;
+        }
+        String namespace = computeWindowNamespace(window);
+        lastNamespacedWindow = window;
+        lastNamespacedValue = namespace;
+        return namespace;
+    }
+
+    private String computeWindowNamespace(W window) {
         if (window instanceof TimeWindow) {
             TimeWindow tw = (TimeWindow) window;
             return "TW:" + tw.getStart() + "," + tw.getEnd();

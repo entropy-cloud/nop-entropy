@@ -62,6 +62,17 @@ public class RemoteResultPartition extends ResultPartition {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteResultPartition.class);
 
+    /**
+     * Serializes all message-service sends (data, heartbeat, EOS). plan 2279 Q2:
+     * encoding happens OUTSIDE this lock and only the backend send is inside, so a
+     * slow backend (synchronous JDBC write, ms-scale) no longer pins the monitor
+     * and interleave the heartbeat driver with data writes. Per-partition FIFO is
+     * preserved: each producer thread performs its sends under this lock in arrival
+     * order. The close() ordering contract (no heartbeat past EOS) is enforced by
+     * re-checking {@code isFinished()} inside the lock — see {@link #close()}.
+     */
+    private final Object sendLock = new Object();
+
     private final IMessageService messageService;
     private final String topic;
     private final TypeRegistry typeRegistry;
@@ -153,14 +164,17 @@ public class RemoteResultPartition extends ResultPartition {
     }
 
     /**
-     * Encodes the element and sends it via IMessageService.
+     * Encodes the element and sends it via IMessageService. The encode runs outside
+     * the send lock; only the backend send is serialized (plan 2279 Q2), so encode
+     * work overlaps with an in-flight send and a slow backend never blocks the
+     * writer between records longer than the send itself.
      *
      * @param element the element to write (must not be null)
      * @throws InterruptedException if the thread is interrupted
      * @throws IllegalStateException if the partition is already finished
      */
     @Override
-    public synchronized void write(StreamElement element) throws InterruptedException {
+    public void write(StreamElement element) throws InterruptedException {
         if (element == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "element");
         }
@@ -172,22 +186,40 @@ public class RemoteResultPartition extends ResultPartition {
         String valueType = typeRegistry != null ? typeRegistry.getOutputTypeClassName(edgeId) : null;
         StreamMessageEnvelope envelope = StreamElementCodec.encode(
                 element, valueType, epochId);
-        messageService.send(topic, envelope);
-        // Stage 43: a data record was sent — refresh the idle-heartbeat clock.
+        sendUnderLock(envelope);
+        // A data record was sent — refresh the idle-heartbeat clock.
         // Barriers/watermarks are written via write() too and also count as
         // producer liveness (they prove the producer is driving the stream).
         lastDataSendTime.set(CoreMetrics.currentTimeMillis());
     }
 
+    /**
+     * Sends under {@link #sendLock} with an in-lock finished re-check. The re-check
+     * is the data-side counterpart of the EOS ordering contract enforced in
+     * {@link #close()}: a write that started before close() but reaches the lock
+     * after EOS was sent is rejected instead of landing after the terminal message.
+     */
+    private void sendUnderLock(StreamMessageEnvelope envelope) throws InterruptedException {
+        synchronized (sendLock) {
+            if (isFinished()) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "Cannot write to a finished RemoteResultPartition");
+            }
+            messageService.send(topic, envelope);
+        }
+    }
+
     @Override
-    public synchronized void close() {
+    public void close() {
         if (isFinished()) {
             return;
         }
         markFinished();
 
-        // Stage 43: stop the heartbeat task before sending EOS so no heartbeat
-        // races past the terminal control message.
+        // Stop the heartbeat task before sending EOS so no NEW heartbeat is
+        // scheduled past the terminal control message. A heartbeat already in
+        // flight completes first: close() sends EOS under sendLock, waiting for
+        // the in-flight send — so the backend sees [heartbeat, EOS] in order.
         stopHeartbeat();
 
         // Send end-of-stream control message. A lost EOS leaves the downstream
@@ -200,7 +232,9 @@ public class RemoteResultPartition extends ResultPartition {
                 StreamMessageEnvelope.TYPE_CONTROL, null,
                 StreamMessageEnvelope.CONTROL_END_OF_STREAM);
         try {
-            messageService.send(topic, eos);
+            synchronized (sendLock) {
+                messageService.send(topic, eos);
+            }
         } catch (Exception e) {
             eosSendError = e;
             LOG.error("Failed to send END_OF_STREAM on topic={} - failing partition typed so the "
@@ -281,17 +315,26 @@ public class RemoteResultPartition extends ResultPartition {
                 epochId,
                 StreamMessageEnvelope.TYPE_CONTROL, null,
                 StreamMessageEnvelope.CONTROL_HEARTBEAT);
-        try {
-            messageService.send(topic, heartbeat);
-            LOG.debug("Sent idle heartbeat on topic={}, idleForMs={}", topic, idleFor);
-            return true;
-        } catch (Exception e) {
-            // A heartbeat send failure is not fatal — the consumer-side timeout
-            // will detect sustained failure. Log at debug so transient backend
-            // hiccups do not spam.
-            LOG.debug("Failed to send heartbeat on topic={}", topic, e);
-            return false;
+        synchronized (sendLock) {
+            // In-lock finished re-check: once close() has sent EOS, no heartbeat
+            // may land after the terminal message. A heartbeat that passed the
+            // volatile check just before markFinished() serializes here BEFORE
+            // close()'s EOS (close waits for the in-flight send).
+            if (isFinished()) {
+                return false;
+            }
+            try {
+                messageService.send(topic, heartbeat);
+            } catch (Exception e) {
+                // A heartbeat send failure is not fatal — the consumer-side timeout
+                // will detect sustained failure. Log at debug so transient backend
+                // hiccups do not spam.
+                LOG.debug("Failed to send heartbeat on topic={}", topic, e);
+                return false;
+            }
         }
+        LOG.debug("Sent idle heartbeat on topic={}, idleForMs={}", topic, idleFor);
+        return true;
     }
 
     public long getHeartbeatIntervalMs() {
