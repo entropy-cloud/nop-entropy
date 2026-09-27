@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 10 · todo 28
+**汇总**：done 10 · todo 28 + 1 新增(N3.1-s)
 
 ### M0 — 基线与文档-代码对齐
 
@@ -79,7 +79,8 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N3.1 增量依赖传播（变更文件 → 2-hop 受影响符号/文件；增强 `IncrementalDetector`）<br>（Deliverable: 代码 + 测试；deps: N1.3；Item Type: Fix） | todo | N1.3 |
+| N3.1 增量依赖传播（变更文件 → 2-hop 受影响符号/文件；增强 `IncrementalDetector`）<br>（Deliverable: 代码 + 测试；deps: N1.3；Item Type: Fix） | done | N1.3 |
+| N3.1-s 增量 callee 解析与依赖方边恢复（confirmed live defect：跨文件 calleeId 仅全量流填充，增量路径缺失导致 call 边静默退化）<br>（Deliverable: 代码 + 测试；deps: N3.1；Item Type: Fix） | todo | N3.1 |
 | N3.2 边类型扩展（`CodeUsageKind` 增 `TESTED_BY`/`REFERENCES` + 提取器 + dict）<br>（Deliverable: 代码 + dict + 测试；deps: 无；Item Type: Fix；**ORM/dict 变更 plan-first**） | todo | — |
 
 ### M4 — 搜索与检索（复用 nop-search）

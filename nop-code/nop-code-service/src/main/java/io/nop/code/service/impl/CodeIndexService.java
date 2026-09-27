@@ -38,6 +38,7 @@ import io.nop.code.core.analyzer.ProjectAnalyzer;
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.incremental.ChangeSet;
+import io.nop.code.core.incremental.DependencyPropagator;
 import io.nop.code.core.incremental.FileFingerprint;
 import io.nop.code.core.incremental.IFingerprintStore;
 import io.nop.code.core.incremental.IncrementalDetector;
@@ -152,6 +153,10 @@ public class CodeIndexService implements ICodeIndexService {
     protected ITransactionTemplate transactionTemplate;
 
     private final java.util.concurrent.ConcurrentHashMap<String, Long> rebuildDebounceMap =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    // bounded snapshot of per-index affected-file lists (N3.1 propagation readback)
+    private final java.util.concurrent.ConcurrentHashMap<String, List<String>> incrementalAffectedFilesMap =
             new java.util.concurrent.ConcurrentHashMap<>();
 
     private long debounceMillis = 30_000L;
@@ -592,6 +597,12 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public List<String> getLastIncrementalAffectedFiles(String indexId) {
+        List<String> snapshot = incrementalAffectedFilesMap.get(indexId);
+        return snapshot != null ? new ArrayList<>(snapshot) : new ArrayList<>();
+    }
+
+    @Override
     public io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(String indexId, String projectPath,
                                                                                 String baselineCommitish,
                                                                                 String targetCommitish) {
@@ -747,6 +758,7 @@ public class CodeIndexService implements ICodeIndexService {
                         deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeGraphMetric.class, "indexId", indexId);
+                        incrementalAffectedFilesMap.remove(indexId);
 
                         daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
                         return null;
@@ -921,6 +933,11 @@ public class CodeIndexService implements ICodeIndexService {
                 // actual changes invalidate the materialized global metrics (stale until next full index)
                 ensureSubServices();
                 graphMetricMaterializer.deleteByIndex(session, indexId);
+
+                // N3.1: snapshot seed symbols and 2-hop affected surface BEFORE edges are deleted
+                List<String> affectedFiles = computeAffectedFiles(indexId, session,
+                        changedFiles, deletedFiles);
+                incrementalAffectedFilesMap.put(indexId, affectedFiles);
 
                 deleteFileRecords(indexId, deletedFiles);
                 deleteFileRecords(indexId, changedFiles);
@@ -1733,6 +1750,83 @@ public class CodeIndexService implements ICodeIndexService {
             }
         }
         return result;
+    }
+
+    static final int PROPAGATION_HOPS = 2;
+    private static final int PROPAGATION_QUERY_LIMIT = 10000;
+
+    /**
+     * N3.1: snapshots seed symbols of the changed/deleted files and propagates 2 hops along
+     * call edges (bidirectional) BEFORE any edge deletion. Returns deduplicated file paths of
+     * affected symbols, excluding the changed/deleted files themselves. Over-limit hop results
+     * throw (no silent truncation).
+     */
+    List<String> computeAffectedFiles(String indexId, IOrmSession session,
+                                      List<String> changedFiles, List<String> deletedFiles) {
+        Set<String> seedFiles = new HashSet<>();
+        seedFiles.addAll(changedFiles);
+        seedFiles.addAll(deletedFiles);
+
+        Set<String> seeds = new HashSet<>();
+        for (String filePath : seedFiles) {
+            seeds.addAll(findSymbolIdsByFileId(generateFileId(indexId, filePath)));
+        }
+        if (seeds.isEmpty()) {
+                return new ArrayList<>();
+        }
+
+        // File-level propagation over nop_code_dependency (import graph): a changed file
+        // affects files that import it (reverse deps), 2 hops out. Symbol-level call edges
+        // are unsuitable here because cross-file calleeId is only resolved by the full-index
+        // flow (Deferred successor: incremental callee resolution).
+        Set<String> affectedFiles = DependencyPropagator.propagate(seedFiles,
+                ids -> {
+                    Set<String> neighbours = new java.util.LinkedHashSet<>();
+                    for (String id : ids) {
+                        for (NopCodeDependency dep : queryDependencies(indexId, "targetFilePath", id)) {
+                            if (dep.getSourceFilePath() != null) neighbours.add(dep.getSourceFilePath());
+                        }
+                        for (NopCodeDependency dep : queryDependencies(indexId, "sourceFilePath", id)) {
+                            if (dep.getTargetFilePath() != null) neighbours.add(dep.getTargetFilePath());
+                        }
+                    }
+                    return neighbours;
+                }, PROPAGATION_HOPS);
+
+        affectedFiles.removeAll(seedFiles);
+        return new ArrayList<>(affectedFiles);
+    }
+
+    private List<NopCodeDependency> queryDependencies(String indexId, String filterField, String filePath) {
+        IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.and(
+                FilterBeans.eq("indexId", indexId),
+                FilterBeans.eq(filterField, filePath)));
+        query.setLimit(PROPAGATION_QUERY_LIMIT + 1);
+        List<NopCodeDependency> rows = dao.findPageByQuery(query);
+        if (rows.size() > PROPAGATION_QUERY_LIMIT) {
+            throw new NopException(ERR_INCREMENTAL_FAILED)
+                    .param(ARG_INDEX_ID, indexId)
+                    .param("depField", filterField + "=" + filePath);
+        }
+        return rows;
+    }
+
+    private List<NopCodeCall> queryCalls(String indexId, String filterField, String symbolId) {
+        IEntityDao<NopCodeCall> dao = daoProvider.daoFor(NopCodeCall.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.and(
+                FilterBeans.eq("indexId", indexId),
+                FilterBeans.eq(filterField, symbolId)));
+        query.setLimit(PROPAGATION_QUERY_LIMIT + 1);
+        List<NopCodeCall> rows = dao.findPageByQuery(query);
+        if (rows.size() > PROPAGATION_QUERY_LIMIT) {
+            throw new NopException(ERR_INCREMENTAL_FAILED)
+                    .param(ARG_INDEX_ID, indexId)
+                    .param("hop", filterField + "=" + symbolId);
+        }
+        return rows;
     }
 
     private void deleteFileRecords(String indexId, List<String> filePaths) {

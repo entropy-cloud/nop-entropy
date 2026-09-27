@@ -131,6 +131,7 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "findByAnnotation", "findImplementations", "findDependentFiles",
             "getSurprisingConnections",
             "getExplorationQuestions",
+            "getLastIncrementalAffectedFiles",
             "exportGraphWiki"));
 
     static Stream<Arguments> incrementalUpdateMethods() {

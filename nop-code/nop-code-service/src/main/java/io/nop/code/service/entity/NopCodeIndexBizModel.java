@@ -93,6 +93,10 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
             status.setMode("incremental");
             status.setFileCount(fileCount);
             status.setCompleted(true);
+            List<String> affected = codeIndexService.getLastIncrementalAffectedFiles(indexId);
+            if (!affected.isEmpty()) {
+                status.setAffectedFiles(affected);
+            }
             incrementalStatusMap.put(indexId, status);
 
             LOG.info("Incremental index completed: indexId={}, files={}", indexId, fileCount);
@@ -361,6 +365,7 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
         private int symbolCount;
         private boolean completed;
         private String errorMessage;
+        private List<String> affectedFiles;
 
         public String getIndexId() {
             return indexId;
@@ -400,6 +405,14 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
         public void setCompleted(boolean completed) {
             this.completed = completed;
+        }
+
+        public List<String> getAffectedFiles() {
+            return affectedFiles;
+        }
+
+        public void setAffectedFiles(List<String> affectedFiles) {
+            this.affectedFiles = affectedFiles;
         }
 
         public String getErrorMessage() {

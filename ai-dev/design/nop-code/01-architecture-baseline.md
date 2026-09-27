@@ -312,7 +312,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 语义边 LLM 集成 | ⏳ 远期 | 依赖 nop-ai；当前确定性提取器只产出 EXTRACTED 边 |
 | nop-search 向量/混合 | ⏳ 远期 | 双路径已实现，向量嵌入与 RRF 混合搜索待部署时注入 |
 | 集群索引构建 | ⏳ 远期 | 需先定义源码分发、分片、原子发布；当前参考应用是单节点 |
-| 增量更新依赖传播 | ⏳ 远期 | 2-hop 传播的额外收益需实际场景验证 |
+| 增量更新依赖传播 | ✅ 已实现（2026-09-27，N3.1） | 增量索引时沿文件级依赖边（nop_code_dependency import 关系）传播 2-hop 受影响文件，经 `IncrementalStatus.affectedFiles` 可观测（`getLastIncrementalAffectedFiles` 读回）；符号级 call 边传播归 successor（增量 callee 解析，confirmed live defect）；超 10000 邻居 fail-fast |
 
 ## 七、与已有设计的关系
 

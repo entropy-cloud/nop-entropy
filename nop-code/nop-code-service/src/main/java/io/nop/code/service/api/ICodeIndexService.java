@@ -199,6 +199,12 @@ public interface ICodeIndexService {
      * runs git diff as an early-exit check, then reuses the fingerprint incremental pipeline
      * against the worktree (graph-discovery-and-export-design.md §3.4).
      */
+    /**
+     * Returns the affected dependency files recorded by the last incremental index run
+     * (N3.1 2-hop propagation), or an empty list.
+     */
+    List<String> getLastIncrementalAffectedFiles(String indexId);
+
     io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(String indexId, String projectPath,
                                                                          String baselineCommitish,
                                                                          String targetCommitish);
