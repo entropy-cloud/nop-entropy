@@ -2,7 +2,7 @@
 
 **日期**：2026-05-09（更新于 2026-09-23）
 **范围**：`nop-code-service` BizModel 暴露的 GraphQL 查询 API
-**状态**：**已实现**（§4.2 中标注 `[目标]` 的探索/导出 API 尚未实现，见 `graph-discovery-and-export-design.md`）
+**状态**：**已实现**（§4.2 的探索/导出 API 已全部落地（2026-09-27，见 `graph-discovery-and-export-design.md`））
 **灵感来源**：ast-grep、ast-outline、code-review-graph
 
 ---
@@ -156,7 +156,7 @@ NopCodeIndex__exportGraph(indexId, format, communityView) → String
 NopCodeIndex__diffGraph(baselineIndexId, targetIndexId) → GraphDiffDTO
 NopCodeIndex__getSurprisingConnections(indexId, topN=20, minScore?) → [SurprisingConnectionDTO]   ✅ 已实现(2026-09-27,plan ai-dev/plans/nop-code/07-n2-1-surprising-connections.md)
 NopCodeIndex__getExplorationQuestions(indexId, topN) → [ExplorationQuestionDTO]     ✅ 已实现(2026-09-27)
-NopCodeIndex__exportGraphWiki(indexId, maxCommunities, maxHubNodes) → GraphWikiDTO  [目标]
+NopCodeIndex__exportGraphWiki(indexId, maxCommunities, maxHubNodes) → GraphWikiDTO  ✅ 已实现(2026-09-27)
 ```
 
 注意：`diffGraph` 使用两个 `indexId` 参数（`baselineIndexId`, `targetIndexId`），而非 git commitish，用于比较两次不同索引的图状态。

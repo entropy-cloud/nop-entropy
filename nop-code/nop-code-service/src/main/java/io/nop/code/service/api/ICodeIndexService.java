@@ -187,6 +187,13 @@ public interface ICodeIndexService {
      */
     List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN);
 
+    /**
+     * Renders the typed relation graph as an interlinked Markdown wiki
+     * (graph-discovery-and-export-design.md §3.3).
+     */
+    io.nop.code.api.dto.GraphWikiDTO exportGraphWiki(String indexId, Integer maxCommunities,
+                                                     Integer maxHubNodes);
+
     PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit);
 
     List<CodeSymbol> findByAnnotation(String indexId, String annotationName);

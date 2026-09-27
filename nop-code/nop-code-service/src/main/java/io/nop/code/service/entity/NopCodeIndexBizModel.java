@@ -173,6 +173,15 @@ public class NopCodeIndexBizModel extends CrudBizModel<NopCodeIndex> implements 
 
     @BizQuery
     @Auth(permissions = "NopCodeIndex:query")
+    public io.nop.code.api.dto.GraphWikiDTO exportGraphWiki(
+            @Name("indexId") String indexId,
+            @Name("maxCommunities") @Optional Integer maxCommunities,
+            @Name("maxHubNodes") @Optional Integer maxHubNodes) {
+        return codeIndexService.exportGraphWiki(indexId, maxCommunities, maxHubNodes);
+    }
+
+    @BizQuery
+    @Auth(permissions = "NopCodeIndex:query")
     public CommunityDetectionResultDTO detectCommunities(@Name("indexId") String indexId) {
         CommunityDetectionResultDTO result = codeIndexService.detectCommunities(indexId);
         if (result == null) {

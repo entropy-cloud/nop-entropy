@@ -576,6 +576,13 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     @Override
+    public io.nop.code.api.dto.GraphWikiDTO exportGraphWiki(String indexId, Integer maxCommunities,
+                                                            Integer maxHubNodes) {
+        ensureSubServices();
+        return graphService.exportGraphWiki(indexId, maxCommunities, maxHubNodes);
+    }
+
+    @Override
     public void deleteIndex(String indexId) {
         withIndexLock(indexId, () -> {
             invalidateAnalysisCache(indexId);

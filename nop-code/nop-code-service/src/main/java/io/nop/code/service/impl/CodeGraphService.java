@@ -38,7 +38,9 @@ import io.nop.code.api.dto.*;
 import io.nop.code.core.graph.CodeRelationGraph;
 import io.nop.code.service.graph.CodeRelationGraphLoader;
 import io.nop.code.service.graph.GraphMetricStore;
+import io.nop.code.api.dto.GraphWikiDTO;
 import io.nop.code.service.graph.GraphQuestionGenerator;
+import io.nop.code.service.graph.GraphWikiExporter;
 import io.nop.code.service.graph.SurprisingConnectionAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapResult;
@@ -362,6 +364,27 @@ class CodeGraphService {
 
         return new GraphQuestionGenerator().generate(graph, symbolTable.getAll(), communities,
                 communitySizes, communityCohesion, betweenness, indexId, topN);
+    }
+
+    GraphWikiDTO exportGraphWiki(String indexId, Integer maxCommunities, Integer maxHubNodes) {
+        if (daoProvider == null) return null;
+        ensureMaterializedForGraphMetrics(indexId);
+        SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
+                CodeSymbolConverter::toCodeSymbol);
+        Function<String, String> nameResolver = symbolId -> {
+            CodeSymbol sym = symbolTable.getById(symbolId);
+            return sym != null && sym.getQualifiedName() != null ? sym.getQualifiedName() : symbolId;
+        };
+        Function<String, String> filePathResolver = symbolId -> {
+            CodeSymbol sym = symbolTable.getById(symbolId);
+            return sym != null && sym.getFilePath() != null ? sym.getFilePath() : null;
+        };
+        CodeRelationGraph graph = CodeRelationGraphLoader.load(indexId, daoProvider, filePathResolver);
+        Map<String, Integer> communities = metricStore.loadCommunities(indexId);
+        Map<Integer, Double> cohesion = metricStore.loadCommunityInfo(indexId);
+        return new GraphWikiExporter().exportWiki(graph, communities, cohesion, nameResolver,
+                filePathResolver, maxCommunities != null && maxCommunities > 0 ? maxCommunities : 20,
+                maxHubNodes != null && maxHubNodes > 0 ? maxHubNodes : 20);
     }
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth) {

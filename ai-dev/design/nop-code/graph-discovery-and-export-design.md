@@ -155,7 +155,7 @@ index.md                ← 目录索引（节点/边/社区统计 + 社区列�
 
 **为什么需要独立入口**：现有 `GraphExporter.export(...) → String` 与 `exportGraph(indexId, format, communityView) → String` 无法承载文件集。新增 `NopCodeIndex__exportGraphWiki(indexId, maxCommunities?, maxHubNodes?)` → `GraphWikiDTO`，或在导出格式枚举中新增 `MARKDOWN_WIKI` 但返回值类型改为结构化 DTO。**推荐前者**（独立查询，语义清晰）。
 
-**归属**：`IGraphWikiExporter`，`nop-code-service/.../service/graph/`（代码领域；复用 `nop-graph` 社区/导出工具）。
+**归属**：`IGraphWikiExporter`，`nop-code-service/.../service/graph/`（代码领域；复用 `nop-graph` 社区/导出工具）。**已实现**（2026-09-27，plan `ai-dev/plans/nop-code/09-n2-3-graph-wiki-export.md`）：`NopCodeIndex__exportGraphWiki(indexId, maxCommunities?=20, maxHubNodes?=20)`；值口径——DTO.index=index.md 正文、articles 只含社区/枢纽文章；slug=恒加 community-/hub- 前缀+小写+非法段替换为 -+截断 64+碰撞 -2 序号；枢纽阈值=typed 图度数 ≥5（自有常量，节点级）；跨社区边归 source 端文章；社区标签=成员 qualifiedName 多数派包名回退 community_<id>。
 
 ### 3.4 自动重建触发（Auto-rebuild）
 

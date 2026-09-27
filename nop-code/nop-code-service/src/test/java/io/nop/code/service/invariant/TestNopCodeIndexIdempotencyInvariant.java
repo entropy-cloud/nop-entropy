@@ -129,7 +129,8 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "getIndexStats", "getIndexIds", "findFilesPage",
             "findByAnnotation", "findImplementations", "findDependentFiles",
             "getSurprisingConnections",
-            "getExplorationQuestions"));
+            "getExplorationQuestions",
+            "exportGraphWiki"));
 
     static Stream<Arguments> incrementalUpdateMethods() {
         return IDEMPOTENCE_TABLE.stream().map(Arguments::of);
