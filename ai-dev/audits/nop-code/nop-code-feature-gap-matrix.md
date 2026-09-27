@@ -23,7 +23,7 @@
 |----|------|-----------|-------------|-------------|------|
 | N0.1 | 缺口跟踪矩阵与绿色基线 | Proof | README(实现状态待迁移项汇总);01-baseline §6 | —(治理前提) | done(2026-09-27,plan `ai-dev/plans/nop-code/01-n0-1-feature-gap-matrix-and-green-baseline.md`) |
 | N0.2 | 文档-代码 drift 修正(7 处) | Fix | 全部 9 份逐一 drift 定位(roadmap N0.2 条目内列明 7 处文件+位置) | — | todo |
-| N1.1 | `IGraph` 边属性投影增强(typed edges + attrs) | Fix | 01-baseline §4.4.1(当前只投影 CALLS 不填 attrs);graph-discovery §3.0 前置3/前置4 | P0#1 | todo |
+| N1.1 | `IGraph` 边属性投影增强(typed edges + attrs) | Fix | 01-baseline §4.4.1(当前只投影 CALLS 不填 attrs);graph-discovery §3.0 前置3/前置4 | P0#1 | done(2026-09-27,plan `ai-dev/plans/nop-code/03-n1-1-typed-edge-projection.md`) |
 | N1.2 | 全局算法结果持久化 | Fix | 01-baseline §4.4.1/§6.2(社区/中心性/入口点评分索引期物化);graph-discovery §3.0 前置1/前置2;query-api §七#3 | P1#6(状态化前置) | todo |
 | N1.3 | 查询路径去全量 rebuild | Fix | 00-vision 约束8/不变量9(目标);01-baseline §6.2;query-api §七#3 | P1#6 | todo |
 | N1.4 | 分析缓存语义对齐 | Fix | 01-baseline §6.1(AnalysisCache 读缓存语义);query-api §七 | P0#2(缓存面收尾) | todo |

@@ -43,8 +43,8 @@ nop-code 已具备确定性图分析（社区检测、关键节点、知识缺�
 |--------|------|------|
 | 社区结果持久化 | ❌ 每次查询重算 Leiden（未持久化） | 惊奇评分的"跨社区"、问题生成全部依赖社区映射 |
 | 介数中心性持久化 | ❌ 每次查询重算，且 >10000 节点时跳过 | 问题生成 `bridge_node` 类型在大图失效 |
-| 带属性的边投影 | ⚠️ `CodeCallGraph` 只投影 CALLS 边且不填 `Edge.attrs` | 惊奇评分需 relation/confidence/filePath |
-| INFERRED/AMBIGUOUS 边投影 | ⚠️ AMBIGUOUS 无生产者；INFERRED 仅存在于 call/heuristic 层（`InterfaceImplSynthesizer`/`SpringEventSynthesizer`/未解析调用），未投影进 `IGraph` 边属性 | 惊奇评分的"置信度"维度、问题生成的 `ambiguous_edge` 空转（`verify_inferred` 需先投影 INFERRED 调用边） |
+| 带属性的边投影 | ✅ 已实现（2026-09-27）：`CodeRelationGraph` typed 边视图覆盖四族并填 `Edge.attrs`（relationType/confidence/provenance/directed/filePath）；`CodeCallGraph` 保留为 CALLS-only 拓扑投影，需属性的下游消费 `CodeRelationGraph` | 惊奇评分需 relation/confidence/filePath |
+| INFERRED/AMBIGUOUS 边投影 | ✅ INFERRED 已投影（2026-09-27）：合成器调用边持久化 provenance=HEURISTIC/FRAMEWORK_INFERENCE，`CodeRelationGraph` 映射为 attrs.confidence=INFERRED；semantic 族按 confidence 列显式映射 10/20/30。⚠️ AMBIGUOUS 仍无生产者（维持原状） | 惊奇评分的"置信度"维度可用；`ambiguous_edge` 问题类型仍依赖 AMBIGUOUS 生产者（缺失时按降级原则跳过） |
 | 多仓/文档节点模型 | ❌ 每 indexId 单项目、仅代码符号 | 惊奇评分的"跨文件类型"、"跨目录/仓库"维度不适用 |
 
 **处理原则**：本设计的评分维度与问题类型在**前置未满足时显式降级**（跳过该维度或返回 `no_signal`），不静默产生错误结论。
@@ -183,7 +183,7 @@ index.md                ← 目录索引（节点/边/社区统计 + 社区列�
 | graphify v2 能力 | nop-code 覆盖位置 | 状态 |
 |------------------|-------------------|------|
 | 语义相似度边（`semantically_similar_to`） | `semantic-edge-design.md` §4.2（`name-sim` 提取器）+ 已实现代码 | 已实现（确定性部分，仅 EXTRACTED） |
-| 边置信度分级（EXTRACTED/INFERRED/AMBIGUOUS） | `EdgeConfidence` 枚举（已实现） | 枚举已实现；AMBIGUOUS 无生产者，INFERRED 未投影进 `IGraph` |
+| 边置信度分级（EXTRACTED/INFERRED/AMBIGUOUS） | `EdgeConfidence` 枚举（已实现）；INFERRED 经 `CodeRelationGraph` 投影进 `IGraph` 边属性（2026-09-27） | AMBIGUOUS 无生产者（维持原状，消费方按降级原则处理） |
 | 图快照对比 | `graph-analysis-design.md` §五（`GraphDiffer`） | 已实现 |
 
 §3.1 的语义相似度加权依赖已存在的确定性语义边；`×1.5` 因子可直接生效（不依赖 LLM）。

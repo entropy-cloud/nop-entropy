@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 2 · todo 36
+**汇总**：done 3 · todo 35
 
 ### M0 — 基线与文档-代码对齐
 
@@ -61,7 +61,7 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N1.1 `IGraph` 边属性投影增强（`CodeCallGraph` 当前只投影 CALLS 且不填 `Edge.attrs`；扩展为 typed edges：relationType/confidence/sourceFilePath/targetFilePath，覆盖 calls/inheritance/annotation/semantic）<br>（Deliverable: 代码 + 测试；deps: 无；Item Type: Fix） | todo | — |
+| N1.1 `IGraph` 边属性投影增强（`CodeCallGraph` 当前只投影 CALLS 且不填 `Edge.attrs`；扩展为 typed edges：relationType/confidence/sourceFilePath/targetFilePath，覆盖 calls/inheritance/annotation/semantic）<br>（Deliverable: 代码 + 测试；deps: 无；Item Type: Fix） | done | — |
 | N1.2 全局算法结果持久化（社区/介数中心性/PageRank/入口点评分 → 新 ORM 表，索引期写入、查询期只读）<br>（Deliverable: ORM 模型 + 索引期写入 + 查询期只读面 + 测试；deps: N0.1；Item Type: Fix；**ORM 变更 plan-first**） | todo | N0.1 |
 | N1.3 查询路径去全量 rebuild（图分析方法改用 N1.2 物化结果 + N1.1 边视图；移除 `CodeCacheManager` 内全量 rebuild 主路径）<br>（Deliverable: 代码 + 行为迁移证明；deps: N1.1, N1.2；Item Type: Fix） | todo | N1.1, N1.2 |
 | N1.4 分析缓存语义对齐（`CodeCacheManager.AnalysisCache` 明确为物化结果的读缓存，失效策略对齐增量索引）<br>（Deliverable: 代码 + 测试；deps: N1.3；Item Type: Fix） | todo | N1.3 |

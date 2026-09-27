@@ -232,7 +232,7 @@ io.nop.graph.api.IGraph          ← 存储抽象接口（已有）
 
 **设计决策**：
 - **复用 `IGraph`，不新造接口**。用户目标"内存 CallGraph 作为简易方案、对外接口屏蔽存储形式"已经落地：`CallGraph` 是内存实现，`IGraph` 是抽象边界，切换后端只需换 `IGraph` 实现。
-- **领域属性通过 `Edge.attrs` 承载**（`IGraph` javadoc 约定）：`type`（CALLS/INHERITANCE/ANNOTATION/SEMANTIC）、confidence、filePath 等放 `attrs`，算法层不解析。当前 `CodeCallGraph` 只投影 CALLS 边且未填 attrs，是**待增强点**（见 `graph-discovery-and-export-design.md` 前置条件）。
+- **领域属性通过 `Edge.attrs` 承载**（`IGraph` javadoc 约定）：relationType/confidence/provenance/directed/sourceFilePath/targetFilePath 放 `attrs`，算法层不解析。**typed 边视图已实现**（2026-09-27）：`CodeRelationGraph`（nop-code-core，由 `CodeRelationGraphLoader` 从 calls/inheritance/annotation/semantic 四表加载）覆盖四族边并填 attrs——`Edge.type`=边族，`attrs.relationType`=细分（EXTENDS/IMPLEMENTS/SEMANTICALLY_SIMILAR_TO 等 DB 大写枚举名）缺省回退族名，`attrs.confidence`=EdgeConfidence 枚举名（semantic 列显式映射 10/20/30，其余族由 provenance 推导：AST_EXTRACTION/SYMBOL_SOLVER→EXTRACTED、HEURISTIC/FRAMEWORK_INFERENCE→INFERRED）。`CodeCallGraph` 保持 CALLS-only 拓扑投影服务既有算法，**需要 typed 边属性的下游（N1.3/N2.1/N2.2）必须消费 `CodeRelationGraph`**。
 - **`IGraph` 只保证局部遍历**：`getOutEdges`/`getInEdges` 适合深度受限的局部查询下推到数据库。**全局算法（Leiden、介数中心性、PageRank、TarjanSCC）必须整体物化**，无法由递归 CTE 逐点求得——生产后端下这些全局结果应在**索引构建期计算并持久化**（见 §6.2 待做），查询期只读。
 - **数据库后端选型未定**：`ltree` / 递归 CTE / Apache AGE 仍是开放决策；参考应用当前是 MySQL/H2，硬绑定 Postgres 扩展会造成可移植性回退。此点登记为待决策项，不在本基线预设结论。
 
