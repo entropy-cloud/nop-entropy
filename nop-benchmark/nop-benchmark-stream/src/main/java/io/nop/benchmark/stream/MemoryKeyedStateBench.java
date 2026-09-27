@@ -9,6 +9,8 @@ package io.nop.benchmark.stream;
 
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;
 import io.nop.stream.core.common.state.InternalAppendingState;
+import io.nop.stream.core.common.state.InternalListState;
+import io.nop.stream.core.common.state.ListStateDescriptor;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
@@ -61,6 +63,7 @@ public class MemoryKeyedStateBench {
     private MemoryKeyedStateBackend<Long> backend;
     private ValueState<Long> valueState;
     private InternalAppendingState<Long, TimeWindow, Long, Long, Long> aggregatingState;
+    private InternalListState<Long, TimeWindow, Long> internalListState;
 
     private long keyCursor;
 
@@ -74,6 +77,12 @@ public class MemoryKeyedStateBench {
                 new AggregatingStateDescriptor<>("bench-agg", new LongSumAggregate(), Long.class));
         aggregatingState.setCurrentNamespace(NAMESPACE);
 
+        // Plan 01 Phase 1（quality-perf）: internal list flavor — WindowOperator 内部
+        // 窗口内容路径同款入口（getInternalListState），F2 候选的测量口径。
+        internalListState = backend.getInternalListState(
+                new ListStateDescriptor<>("bench-internal-list", Long.class));
+        internalListState.setCurrentNamespace(NAMESPACE);
+
         // Sanity check both access paths.
         backend.setCurrentKey(0L);
         valueState.update(1L);
@@ -83,6 +92,10 @@ public class MemoryKeyedStateBench {
         aggregatingState.add(2L);
         if (!Long.valueOf(2L).equals(aggregatingState.get())) {
             throw new IllegalStateException("memory aggregating state sanity failed");
+        }
+        internalListState.add(3L);
+        if (!Long.valueOf(3L).equals(internalListState.get().iterator().next())) {
+            throw new IllegalStateException("memory internal list state sanity failed");
         }
     }
 
@@ -107,6 +120,21 @@ public class MemoryKeyedStateBench {
     public void aggregatingAdd(Blackhole bh) throws IOException {
         backend.setCurrentKey(nextKey());
         aggregatingState.add(1L);
+        bh.consume(NAMESPACE);
+    }
+
+    /**
+     * InternalListState add 一个 Long（WindowOperator 内部窗口内容路径同款入口）。
+     * key 轮转回绕时 clear 一次，防列表无界增长引入 GC 噪声。
+     */
+    @Benchmark
+    public void internalListAdd(Blackhole bh) throws IOException {
+        long key = nextKey();
+        if (key == 0L) {
+            internalListState.clear();
+        }
+        backend.setCurrentKey(key);
+        internalListState.add(1L);
         bh.consume(NAMESPACE);
     }
 

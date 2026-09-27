@@ -8,10 +8,10 @@ nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路�
 |---|---|
 | StreamElementCodecRoundTripBench | StreamElementCodec encode/decode + KafkaStringWireCodec toWire/fromWire（远程边逐记录编解码） |
 | RocksDbKeyedStateBench | RocksDBKeyedStateBackend value/aggregating/list 状态读写（`accessPattern`=local 同键连续 / rotate 轮转；`listPreload`=列表基线长度） |
-| MemoryKeyedStateBench | MemoryKeyedStateBackend value/aggregating（accessPattern 同上） |
+| MemoryKeyedStateBench | MemoryKeyedStateBackend value/aggregating/internalList（accessPattern 同上；internalListAdd=WindowOperator 内部窗口内容路径，plan 01 quality-perf F2 口径） |
 | WindowOperatorProcessElementBench | WindowOperator.processElement + processWatermark（TUMBLING/SLIDING/SESSION/EVICTOR） |
 | TimerServiceBench | HeapInternalTimerService registerEventTimeTimer / advanceWatermark |
-| NfaProcessBench | NFA.process / advanceTime（`patternDepth`=1/5/20） |
+| NfaProcessBench | NFA.process / advanceTime（`patternDepth`=1/5/20；`conditionCost`=cheap/billable——billable 档为 PROCEED 双重评估候选的测量口径，plan 01 quality-perf E3） |
 | SharedBufferRegisterBench | SharedBufferAccessor registerEvent + put（key-scoped 缓存路径） |
 | CheckpointSerDeBench | CheckpointSerDe serializeEpochManifest / deserialize（10k keyed + 1MB bytes）；`deserializeNoChecksum`=读侧 checksum off 档（fixture 剥离，legacy 容忍路径） |
 | RemoteTransportWriteBench | RemoteResultPartition.write 锁内 encode+同步 send（`sendDelayNanos`=0/100µs/5ms 后端延迟桩，`fanout`=1/4/16；`writerHeartbeatSamePartition` 组=写/心跳同 monitor 互卡形状） |

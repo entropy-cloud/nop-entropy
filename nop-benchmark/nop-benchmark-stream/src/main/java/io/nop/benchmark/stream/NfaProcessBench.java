@@ -76,6 +76,15 @@ public class NfaProcessBench {
     @Param({"1", "5", "20"})
     int patternDepth;
 
+    /**
+     * Plan 01 Phase 1（quality-perf）：条件成本档位。
+     * cheap=零工作 lambda（既有口径）；billable=含真实工作量（~64 次 xor 循环）
+     * 的条件——E3 候选（PROCEED 边条件双重评估）只有在此档位才可观测：
+     * 廉价条件双评估的增量淹没在噪声里。
+     */
+    @Param({"cheap", "billable"})
+    String conditionCost;
+
     private NFA<BenchCepEvent> nfa;
     private SharedBuffer<BenchCepEvent> buffer;
     private NFAState state;
@@ -121,12 +130,28 @@ public class NfaProcessBench {
 
     private Pattern<BenchCepEvent, ?> buildPattern(int depth) {
         Pattern<BenchCepEvent, ?> pattern = Pattern.<BenchCepEvent>begin("a")
-                .where(SimpleCondition.of(BenchCepEvent::isMatching));
+                .where(condition());
         for (int i = 2; i <= depth; i++) {
             pattern = pattern.followedBy("s" + i)
-                    .where(SimpleCondition.of(BenchCepEvent::isMatching));
+                    .where(condition());
         }
         return pattern.within(Duration.ofMillis(WITHIN_WINDOW_MS));
+    }
+
+    /** 按档位选择条件：cheap=零工作方法引用；billable=含确定性 xor 循环的可观测工作量。 */
+    private io.nop.stream.cep.pattern.conditions.SimpleCondition<BenchCepEvent> condition() {
+        if ("billable".equals(conditionCost)) {
+            return SimpleCondition.of(event -> {
+                long x = event.getId();
+                for (int i = 0; i < 64; i++) {
+                    x ^= x << 13;
+                    x ^= x >>> 7;
+                    x ^= x << 17;
+                }
+                return event.isMatching() && (x != Long.MIN_VALUE);
+            });
+        }
+        return SimpleCondition.of(BenchCepEvent::isMatching);
     }
 
     /** 照抄 cep 测试 MockRuntimeContext 的最小实现。 */
