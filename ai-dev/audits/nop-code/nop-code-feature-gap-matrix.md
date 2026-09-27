@@ -26,7 +26,7 @@
 | N1.1 | `IGraph` 边属性投影增强(typed edges + attrs) | Fix | 01-baseline §4.4.1(当前只投影 CALLS 不填 attrs);graph-discovery §3.0 前置3/前置4 | P0#1 | done(2026-09-27,plan `ai-dev/plans/nop-code/03-n1-1-typed-edge-projection.md`) |
 | N1.2 | 全局算法结果持久化 | Fix | 01-baseline §4.4.1/§6.2(社区/中心性/入口点评分索引期物化);graph-discovery §3.0 前置1/前置2;query-api §七#3 | P1#6(状态化前置) | done(2026-09-27,plan `ai-dev/plans/nop-code/04-n1-2-graph-metric-materialization.md`) |
 | N1.3 | 查询路径去全量 rebuild | Fix | 00-vision 约束8/不变量9(目标);01-baseline §6.2;query-api §七#3 | P1#6 | done(2026-09-27,plan `ai-dev/plans/nop-code/05-n1-3-query-path-materialized.md`;按映射声明口径:全局算法查询物化优先,重建降级为自愈回退;结构查询移交 N6.2/N1.4) |
-| N1.4 | 分析缓存语义对齐 | Fix | 01-baseline §6.1(AnalysisCache 读缓存语义);query-api §七 | P0#2(缓存面收尾) | todo |
+| N1.4 | 分析缓存语义对齐 | Fix | 01-baseline §6.1(AnalysisCache 读缓存语义);query-api §七 | P0#2(缓存面收尾) | done(2026-09-27,plan `ai-dev/plans/nop-code/06-n1-4-cache-semantics-alignment.md`;术语映射:AnalysisCache=DB 派生视图读缓存,度量行经 GraphMetricStore 直查 DB) |
 | N2.1 | 意外连接分析 | Fix | graph-discovery §3.1(`ISurprisingConnectionAnalyzer`/`SurprisingConnectionDTO`);query-api §4.2[目标];graph-analysis §六 | —(graphify 对标) | todo |
 | N2.2 | 图谱问题生成 | Fix | graph-discovery §3.2(`IGraphQuestionGenerator`/`ExplorationQuestionDTO`/`no_signal`);query-api §4.2[目标] | P0#3(suggestedNextQueries 语义,原 Token 效率项的可执行子集) | todo |
 | N2.3 | 图谱 Wiki 导出 | Fix | graph-discovery §3.3(`IGraphWikiExporter`/`GraphWikiDTO`);query-api §4.2[目标] | P2#19(Wiki 生成) | todo |

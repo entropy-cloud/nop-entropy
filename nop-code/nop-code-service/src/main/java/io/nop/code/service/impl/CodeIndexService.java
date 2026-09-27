@@ -342,6 +342,10 @@ public class CodeIndexService implements ICodeIndexService {
                         // other relational rows carry non-deterministic IDs, so they must be cleared
                         // before re-saving (mirrors triggerIncrementalIndex's delete-before-reindex).
                         deleteFileRecords(indexId, Collections.singletonList(filePath));
+                        // Content change invalidates materialized global metrics; deleteByIndex
+                        // contains session.clear() so it must run before the persist below.
+                        ensureSubServices();
+                        graphMetricMaterializer.deleteByIndex(session, indexId);
                         persistSingleFileInSession(indexId, result, session);
                         return null;
                     }));
@@ -722,8 +726,8 @@ public class CodeIndexService implements ICodeIndexService {
         if (rootResource.isDirectory()) {
             validateLocalPath(vfsPath);
         }
-        invalidateAnalysisCache(indexId);
-
+        // NOTE: no invalidation here — a no-op incremental (0 changes) must keep the analysis
+        // cache and materialized metric rows; the actual-change branch invalidates at its end.
         Function<String, String> pathMapper = buildPathMapper(vfsPath);
 
         return withIndexLock(indexId, () -> transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
@@ -800,6 +804,12 @@ public class CodeIndexService implements ICodeIndexService {
                 updateIndexStats(indexId);
 
                 store.saveFingerprints(indexId, newFingerprints);
+
+                // Actual changes invalidate at the branch end: earlier invalidation would be
+                // undone by persistSingleFileInSession re-creating cache entries mid-flight.
+                // Memory-only op: if the transaction rolls back this is over-invalidation
+                // (harmless rebuild); missing invalidation after commit would be the harmful case.
+                invalidateAnalysisCache(indexId);
 
                 return changedFiles.size();
             } catch (IOException e) {
@@ -2013,6 +2023,9 @@ public class CodeIndexService implements ICodeIndexService {
             invalidateAnalysisCache(indexId);
             transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                     ormTemplate.runInSession(session -> {
+                        // Deleted files change content: materialized global metrics are stale
+                        ensureSubServices();
+                        graphMetricMaterializer.deleteByIndex(session, indexId);
                         deleteFileRecords(indexId, filePaths);
                         return null;
                     }));

@@ -298,7 +298,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 语义边（确定性） | ✅ 已实现（`CodeSemanticEdge` + `ISemanticEdgeExtractor` + 3 提取器 + ORM 表 + BizModel） |
 | 启发式调用边合成 | ✅ 已实现（`InterfaceImplSynthesizer` / `SpringEventSynthesizer`，产出 INFERRED `CodeMethodCall`，非语义边） |
 | 图存储抽象（`IGraph`） | ✅ 已实现（`IGraph` 接口 + `CodeCallGraph` 适配器） |
-| 查询路径无状态 | 🔶 部分（2026-09-27）：全局算法查询物化优先（N1.3）；结构查询仍 lazy rebuild |
+| 查询路径无状态 | 🔶 部分（2026-09-27）：全局算法查询物化优先（N1.3）；结构查询仍 lazy rebuild。`AnalysisCache` 为 DB 派生视图的读缓存（N1.4：实际内容变更才失效——实际变更的增量/indexFile/batchDelete/indexDirectory/deleteIndex 同时失效缓存与物化行，no-op 增量两者都保留） |
 | 数据库图后端（`IGraph` 的第二实现） | ⏳ 未定（`ltree`/CTE/AGE 选型开放；参考应用为 MySQL/H2） |
 
 ### 6.2 待做

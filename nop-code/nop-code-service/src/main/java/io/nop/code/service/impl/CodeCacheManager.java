@@ -26,6 +26,15 @@ import io.nop.code.flow.IFlowDetector;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 
+/**
+ * Read-through cache of DB-derived views ({@link AnalysisCache}: SymbolTable / CallGraph /
+ * dependencies). The database is the source of truth; entries are projections rebuilt from
+ * nop_code_* tables and invalidated exclusively by index write paths (indexDirectory /
+ * indexFile / triggerIncrementalIndex on actual changes / batchDeleteFileRecords /
+ * deleteIndex). LRU (MAX_CACHE_ENTRIES) and TTL (CACHE_TTL_MS) are memory guards only, not
+ * freshness mechanisms. Materialized metric rows (nop_code_graph_metric) are NOT cached here —
+ * they are read through GraphMetricStore directly from the DB.
+ */
 class CodeCacheManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeCacheManager.class);
