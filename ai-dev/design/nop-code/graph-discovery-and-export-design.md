@@ -49,6 +49,8 @@ nop-code 已具备确定性图分析（社区检测、关键节点、知识缺�
 
 **处理原则**：本设计的评分维度与问题类型在**前置未满足时显式降级**（跳过该维度或返回 `no_signal`），不静默产生错误结论。
 
+**查询读取口径（2026-09-27，N1.3）**：全局分析查询（`detectCommunities`/`getCriticalNodes`/`getGraphAnalysis`）按方法必需族集合读取 `nop_code_graph_metric` 物化行（必需族齐备 ⇒ 装配返回；BETWEENNESS 缺席为既定大图降级，不触发回退）；缺失 ⇒ 计算一次并物化，经同一装配路径返回（返回值=落库值，规避 Leiden 非确定性）；物化读取的 `processingTimeMs` 恒为 0。
+
 ### 3.1 意外连接发现（Surprising Connections）
 
 **职责**：在已有边集上找出"非显而易见"的连接，按惊奇度排序并给出可解释原因。

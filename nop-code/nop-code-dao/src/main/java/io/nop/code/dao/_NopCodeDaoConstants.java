@@ -303,4 +303,19 @@ public interface _NopCodeDaoConstants {
      */
     String METRIC_TYPE_ENTRY_POINT = "40";
                     
+    /**
+     * 图度量类型: 枢纽度数 
+     */
+    String METRIC_TYPE_HUB = "50";
+                    
+    /**
+     * 图度量类型: 社区信息 
+     */
+    String METRIC_TYPE_COMMUNITY_INFO = "60";
+                    
+    /**
+     * 图度量类型: 图汇总 
+     */
+    String METRIC_TYPE_GRAPH_SUMMARY = "70";
+                    
 }

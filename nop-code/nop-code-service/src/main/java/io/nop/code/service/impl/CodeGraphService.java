@@ -28,10 +28,12 @@ import io.nop.code.core.model.*;
 import io.nop.code.core.util.BfsNode;
 import io.nop.code.core.util.ExtDataHelper;
 import io.nop.code.dao.entity.NopCodeCall;
+import io.nop.code.dao.entity.NopCodeGraphMetric;
 import io.nop.code.dao.entity.NopCodeDependency;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.api.dto.*;
+import io.nop.code.service.graph.GraphMetricStore;
 import io.nop.code.service.graph.KnowledgeGapAnalyzer;
 import io.nop.code.service.graph.KnowledgeGapResult;
 import io.nop.code.service.util.CodeSymbolConverter;
@@ -57,12 +59,19 @@ class CodeGraphService {
     private static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
     private static final int BATCH_QUERY_LIMIT = 10000;
 
+    private static final int SYMBOL_LOOKUP_CHUNK = 500;
+
     private final IDaoProvider daoProvider;
     private final CodeCacheManager cacheManager;
+    private final GraphMetricStore metricStore;
+    private final GraphMetricMaterializer metricMaterializer;
 
-    CodeGraphService(IDaoProvider daoProvider, CodeCacheManager cacheManager) {
+    CodeGraphService(IDaoProvider daoProvider, CodeCacheManager cacheManager,
+                     GraphMetricMaterializer metricMaterializer) {
         this.daoProvider = daoProvider;
         this.cacheManager = cacheManager;
+        this.metricStore = daoProvider != null ? new GraphMetricStore(daoProvider) : null;
+        this.metricMaterializer = metricMaterializer;
     }
 
     // WP-6 AR-76/61: when the cached symbol/call-graph was built from partial data (exceeded
@@ -79,23 +88,112 @@ class CodeGraphService {
 
     CommunityDetectionResultDTO detectCommunities(String indexId) {
         if (daoProvider == null) return null;
+        if (metricStore.hasRequiredFamilies(indexId, GraphMetricStore.METRIC_COMMUNITY,
+                GraphMetricStore.METRIC_COMMUNITY_INFO, GraphMetricStore.METRIC_GRAPH_SUMMARY)) {
+            CommunityDetectionResultDTO assembled = assembleCommunitiesFromMetrics(indexId);
+            if (assembled != null) return assembled;
+        }
+        // self-healing fallback: one computation, persisted, returned through the same read path
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
         if (symbolTable.size() == 0) return null;
         warnIfCacheTruncated(symbolTable, callGraph, indexId);
+        if (metricMaterializer != null) {
+            try {
+                metricMaterializer.materialize(indexId);
+                CommunityDetectionResultDTO assembled = assembleCommunitiesFromMetrics(indexId);
+                if (assembled != null) return assembled;
+            } catch (Exception e) {
+                LOG.warn("Materialized community detection failed for {}; using in-memory computation", indexId, e);
+            }
+        }
         CommunityResult result = runCommunityDetection(callGraph);
         return convertCommunityResult(result, symbolTable);
     }
 
+    /**
+     * Assembles the communities DTO from materialized COMMUNITY / COMMUNITY_INFO /
+     * GRAPH_SUMMARY rows. Returns null when required rows are missing or inconsistent —
+     * callers fall back to computation. totalSymbols uses callGraphNodeCount (the lazy
+     * path's totalSymbols equals the call-graph node set); processingTimeMs is 0 for
+     * materialized reads by contract.
+     */
+    private CommunityDetectionResultDTO assembleCommunitiesFromMetrics(String indexId) {
+        try {
+            Map<String, Object> summary = metricStore.loadSummary(indexId);
+            Map<String, Integer> membership = metricStore.loadCommunities(indexId);
+            Map<Integer, Double> cohesionByCommunity = metricStore.loadCommunityInfo(indexId);
+            if (summary == null || membership.isEmpty()) {
+                return null;
+            }
+            int callGraphNodeCount = asInt(summary.get("callGraphNodeCount"));
+            if (membership.size() != callGraphNodeCount) {
+                return null;
+            }
+            Map<String, NopCodeSymbol> symbolsById = loadSymbolsByIds(membership.keySet());
+
+            Map<Integer, List<String>> byCommunity = new LinkedHashMap<>();
+            for (Map.Entry<String, Integer> entry : membership.entrySet()) {
+                byCommunity.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey());
+            }
+
+            List<CommunityDTO> communities = new ArrayList<>();
+            for (Map.Entry<Integer, List<String>> entry : byCommunity.entrySet()) {
+                List<String> nodeIds = entry.getValue();
+                CommunityDTO c = new CommunityDTO();
+                c.setId(String.valueOf(entry.getKey()));
+                c.setSymbolIds(nodeIds);
+                c.setSymbolCount(nodeIds.size());
+                Double cohesion = cohesionByCommunity.get(entry.getKey());
+                c.setCohesion(cohesion != null ? cohesion : 0.0);
+                String dominantPackage = findDominantPackageByNames(nodeIds, symbolsById);
+                c.setDominantPackage(dominantPackage);
+                c.setLabel(generateCommunityLabel(dominantPackage, nodeIds.size()));
+                communities.add(c);
+            }
+
+            CommunityDetectionResultDTO dto = new CommunityDetectionResultDTO();
+            dto.setCommunities(communities);
+            dto.setTotalSymbols(callGraphNodeCount);
+            dto.setTotalCommunities(communities.size());
+            Object avg = summary.get("averageCohesion");
+            dto.setAverageCohesion(avg instanceof Number ? ((Number) avg).doubleValue() : 0.0);
+            Object modularity = summary.get("modularity");
+            dto.setModularity(modularity instanceof Number ? ((Number) modularity).doubleValue() : 0.0);
+            Object algo = summary.get("algorithmUsed");
+            dto.setAlgorithmUsed(algo != null ? algo.toString() : null);
+            dto.setProcessingTimeMs(0);
+            return dto;
+        } catch (Exception e) {
+            LOG.warn("Failed to assemble communities from materialized metrics for {}", indexId, e);
+            return null;
+        }
+    }
+
     GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN) {
         if (daoProvider == null) return null;
+        if (metricStore.hasRequiredFamilies(indexId, GraphMetricStore.METRIC_ENTRY_POINT,
+                GraphMetricStore.METRIC_HUB, GraphMetricStore.METRIC_GRAPH_SUMMARY)) {
+            GraphAnalysisResultDTO assembled = assembleGraphAnalysisFromMetrics(indexId, topN);
+            if (assembled != null) return assembled;
+        }
+        // self-healing fallback: one computation, persisted, returned through the same read path
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
         warnIfCacheTruncated(symbolTable, callGraph, indexId);
+        if (metricMaterializer != null) {
+            try {
+                metricMaterializer.materialize(indexId);
+                GraphAnalysisResultDTO assembled = assembleGraphAnalysisFromMetrics(indexId, topN);
+                if (assembled != null) return assembled;
+            } catch (Exception e) {
+                LOG.warn("Materialized graph analysis failed for {}; using in-memory computation", indexId, e);
+            }
+        }
         int limit = topN > 0 ? topN : 20;
         List<EntryPointScorer.EntryPointScore> scores =
                 new EntryPointScorer().scoreEntryPoints(callGraph, symbolTable);
@@ -129,6 +227,71 @@ class CodeGraphService {
         dto.setCohesionBreakdown(breakdown);
         dto.setIsolatedSymbols(isolatedSymbols);
         return dto;
+    }
+
+    /**
+     * Assembles the graph-analysis DTO from materialized ENTRY_POINT / HUB / GRAPH_SUMMARY
+     * rows. Read ordering follows rankNo (materialized generation order). extractedCount =
+     * HUB row count (symbols with call edges); inferredCount = symbolCount - extracted.
+     */
+    private GraphAnalysisResultDTO assembleGraphAnalysisFromMetrics(String indexId, int topN) {
+        try {
+            Map<String, Object> summary = metricStore.loadSummary(indexId);
+            if (summary == null) {
+                return null;
+            }
+            int symbolCount = asInt(summary.get("symbolCount"));
+            List<NopCodeGraphMetric> entryPoints = metricStore.loadEntryPoints(indexId);
+            if (entryPoints.isEmpty()) {
+                return null;
+            }
+            Map<String, int[]> hubs = metricStore.loadHubs(indexId);
+            int limit = topN > 0 ? topN : 20;
+            Map<String, NopCodeSymbol> symbolsById = loadSymbolsByIds(
+                    entryPoints.stream().map(NopCodeGraphMetric::getSymbolId).collect(Collectors.toSet()));
+
+            List<GodNodeDTO> godNodes = new ArrayList<>();
+            List<String> isolatedSymbols = new ArrayList<>();
+            for (NopCodeGraphMetric row : entryPoints) {
+                int[] degree = hubs.get(row.getSymbolId());
+                int inDeg = degree != null ? degree[1] : 0;
+                int outDeg = degree != null ? degree[2] : 0;
+                if (godNodes.size() < limit) {
+                    GodNodeDTO node = new GodNodeDTO();
+                    node.setSymbolId(row.getSymbolId());
+                    node.setQualifiedName(qualifiedNameOf(symbolsById, row.getSymbolId()));
+                    NopCodeSymbol symbolEntity = symbolsById.get(row.getSymbolId());
+                    node.setKind(symbolEntity != null && symbolEntity.getKind() != null
+                            ? symbolEntity.getKind() : null);
+                    node.setDegree(inDeg + outDeg);
+                    node.setCallerCount(inDeg);
+                    node.setCalleeCount(outDeg);
+                    godNodes.add(node);
+                }
+                if (EntryPointScorer.EntryPointType.ISOLATED.name().equals(row.getEntryPointType())
+                        && isolatedSymbols.size() < limit) {
+                    isolatedSymbols.add(qualifiedNameOf(symbolsById, row.getSymbolId()));
+                }
+            }
+
+            int extractedCount = hubs.size();
+            int inferredCount = Math.max(0, symbolCount - extractedCount);
+            int total = extractedCount + inferredCount;
+            CohesionBreakdownDTO breakdown = new CohesionBreakdownDTO();
+            breakdown.setExtractedCount(extractedCount);
+            breakdown.setInferredCount(inferredCount);
+            breakdown.setExtractedPercent(total > 0 ? (double) extractedCount / total * 100 : 0);
+            breakdown.setInferredPercent(total > 0 ? (double) inferredCount / total * 100 : 0);
+
+            GraphAnalysisResultDTO dto = new GraphAnalysisResultDTO();
+            dto.setGodNodes(godNodes);
+            dto.setCohesionBreakdown(breakdown);
+            dto.setIsolatedSymbols(isolatedSymbols);
+            return dto;
+        } catch (Exception e) {
+            LOG.warn("Failed to assemble graph analysis from materialized metrics for {}", indexId, e);
+            return null;
+        }
     }
 
     ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth) {
@@ -167,10 +330,25 @@ class CodeGraphService {
 
     CriticalNodeResultDTO getCriticalNodes(String indexId, int topN) {
         if (daoProvider == null) return null;
+        if (metricStore.hasRequiredFamilies(indexId, GraphMetricStore.METRIC_HUB,
+                GraphMetricStore.METRIC_GRAPH_SUMMARY)) {
+            CriticalNodeResultDTO assembled = assembleCriticalNodesFromMetrics(indexId, topN);
+            if (assembled != null) return assembled;
+        }
+        // self-healing fallback: one computation, persisted, returned through the same read path
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        if (metricMaterializer != null) {
+            try {
+                metricMaterializer.materialize(indexId);
+                CriticalNodeResultDTO assembled = assembleCriticalNodesFromMetrics(indexId, topN);
+                if (assembled != null) return assembled;
+            } catch (Exception e) {
+                LOG.warn("Materialized critical node analysis failed for {}; using in-memory computation", indexId, e);
+            }
+        }
         if (symbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
             LOG.warn("Graph too large for critical node analysis ({} > {}), skipping betweenness centrality",
                     symbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
@@ -533,6 +711,121 @@ class CodeGraphService {
             dto.setQualifiedName(node.getNodeId());
         }
         return dto;
+    }
+
+    /**
+     * Assembles the critical-nodes DTO from materialized HUB / GRAPH_SUMMARY rows (+
+     * BETWEENNESS rows when present). Reproduces the legacy >10000-symbol guard: hub and
+     * bridge lists are both empty. bridgeNodes degrade to empty when BETWEENNESS rows are
+     * absent (large-graph skip), which matches the legacy skip-and-continue semantics.
+     */
+    private CriticalNodeResultDTO assembleCriticalNodesFromMetrics(String indexId, int topN) {
+        try {
+            Map<String, Object> summary = metricStore.loadSummary(indexId);
+            if (summary == null) {
+                return null;
+            }
+            int symbolCount = asInt(summary.get("symbolCount"));
+            Map<String, int[]> hubs = metricStore.loadHubs(indexId);
+            Map<String, NopCodeSymbol> symbolsById = loadSymbolsByIds(hubs.keySet());
+
+            CriticalNodeResultDTO dto = new CriticalNodeResultDTO();
+            dto.setTotalNodes(symbolCount);
+            dto.setTopN(topN);
+            if (symbolCount > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+                LOG.warn("Graph too large for critical node analysis ({} > {}), hub/bridge lists empty",
+                        symbolCount, MAX_NODES_FOR_COMMUNITY_DETECTION);
+                dto.setHubNodes(Collections.emptyList());
+                dto.setBridgeNodes(Collections.emptyList());
+                return dto;
+            }
+
+            int limit = topN > 0 ? topN : 20;
+            List<CriticalNodeScoreDTO> hubNodes = hubs.entrySet().stream()
+                    .map(entry -> {
+                        String symbolId = entry.getKey();
+                        int[] deg = entry.getValue();
+                        CriticalNodeScoreDTO node = new CriticalNodeScoreDTO();
+                        node.setSymbolId(symbolId);
+                        node.setInDegree(deg[1]);
+                        node.setOutDegree(deg[2]);
+                        node.setTotalDegree(deg[0]);
+                        node.setScore(deg[0]);
+                        node.setQualifiedName(qualifiedNameOf(symbolsById, symbolId));
+                        return node;
+                    })
+                    .sorted(java.util.Comparator.comparingDouble(CriticalNodeScoreDTO::getScore).reversed())
+                    .limit(limit)
+                    .collect(Collectors.toList());
+            dto.setHubNodes(hubNodes);
+
+            List<NopCodeGraphMetric> bridges = metricStore.loadBetweenness(indexId);
+            List<CriticalNodeScoreDTO> bridgeNodes = new ArrayList<>();
+            for (NopCodeGraphMetric row : bridges) {
+                if (bridgeNodes.size() >= limit) break;
+                CriticalNodeScoreDTO node = new CriticalNodeScoreDTO();
+                node.setSymbolId(row.getSymbolId());
+                node.setScore(row.getScore() != null ? row.getScore() : 0.0);
+                int[] deg = hubs.get(row.getSymbolId());
+                node.setInDegree(deg != null ? deg[1] : 0);
+                node.setOutDegree(deg != null ? deg[2] : 0);
+                node.setTotalDegree(deg != null ? deg[0] : 0);
+                node.setQualifiedName(qualifiedNameOf(symbolsById, row.getSymbolId()));
+                bridgeNodes.add(node);
+            }
+            dto.setBridgeNodes(bridgeNodes);
+            return dto;
+        } catch (Exception e) {
+            LOG.warn("Failed to assemble critical nodes from materialized metrics for {}", indexId, e);
+            return null;
+        }
+    }
+
+    /**
+     * Chunked id->entity lookup on NopCodeSymbol (qualifiedName + kind) — never a full
+     * symbol-table load. Preserves the GraphQL contract: GodNodeDTO.kind is populated.
+     */
+    private Map<String, NopCodeSymbol> loadSymbolsByIds(java.util.Collection<String> symbolIds) {
+        Map<String, NopCodeSymbol> result = new HashMap<>();
+        if (symbolIds.isEmpty()) {
+            return result;
+        }
+        List<String> ids = new ArrayList<>(symbolIds);
+        IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
+        for (int from = 0; from < ids.size(); from += SYMBOL_LOOKUP_CHUNK) {
+            List<String> chunk = ids.subList(from, Math.min(from + SYMBOL_LOOKUP_CHUNK, ids.size()));
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.in("id", chunk));
+            query.setLimit(SYMBOL_LOOKUP_CHUNK);
+            for (NopCodeSymbol entity : dao.findAllByQuery(query)) {
+                result.put(entity.getId(), entity);
+            }
+        }
+        return result;
+    }
+
+    private static String qualifiedNameOf(Map<String, NopCodeSymbol> symbols, String symbolId) {
+        NopCodeSymbol entity = symbols.get(symbolId);
+        return entity != null ? entity.getQualifiedName() : symbolId;
+    }
+
+    /** Mirrors findDominantPackage but over preloaded symbol entities. */
+    private String findDominantPackageByNames(List<String> nodeIds, Map<String, NopCodeSymbol> symbolsById) {
+        Map<String, Integer> packageCounts = new HashMap<>();
+        for (String nodeId : nodeIds) {
+            NopCodeSymbol entity = symbolsById.get(nodeId);
+            if (entity == null || entity.getQualifiedName() == null) continue;
+            String pkg = extractPackage(entity.getQualifiedName());
+            packageCounts.merge(pkg, 1, Integer::sum);
+        }
+        return packageCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    private static int asInt(Object value) {
+        return value instanceof Number ? ((Number) value).intValue() : 0;
     }
 
     private List<CriticalNodeScoreDTO> computeHubNodeScores(CallGraph callGraph, SymbolTable symbolTable, int topN) {

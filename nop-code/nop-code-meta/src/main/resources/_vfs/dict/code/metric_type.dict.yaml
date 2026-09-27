@@ -21,3 +21,15 @@ options:
     value: 40
     description: 
   
+  - label: 枢纽度数
+    value: 50
+    description: 
+  
+  - label: 社区信息
+    value: 60
+    description: 
+  
+  - label: 图汇总
+    value: 70
+    description: 
+  

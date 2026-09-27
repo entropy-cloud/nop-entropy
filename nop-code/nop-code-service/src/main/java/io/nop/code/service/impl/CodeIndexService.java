@@ -153,10 +153,10 @@ public class CodeIndexService implements ICodeIndexService {
     private synchronized void ensureSubServices() {
         if (searchService == null && daoProvider != null) {
             searchService = new CodeSearchService(daoProvider, searchEngine, cacheManager);
-            graphService = new CodeGraphService(daoProvider, cacheManager);
-            queryService = new CodeQueryService(daoProvider, cacheManager, ormTemplate);
             graphMetricMaterializer = new GraphMetricMaterializer(daoProvider, cacheManager,
                     transactionTemplate, ormTemplate);
+            graphService = new CodeGraphService(daoProvider, cacheManager, graphMetricMaterializer);
+            queryService = new CodeQueryService(daoProvider, cacheManager, ormTemplate);
         }
     }
 
@@ -316,6 +316,10 @@ public class CodeIndexService implements ICodeIndexService {
                         for (CodeFileAnalysisResult fr : finalResult.getFileResults()) {
                             deleteFileRecords(indexId, Collections.singletonList(fr.getFilePath()));
                         }
+                        // re-index changes content: materialized global metrics become stale and
+                        // are invalidated here (next query self-heals by re-materializing)
+                        ensureSubServices();
+                        graphMetricMaterializer.deleteByIndex(session, indexId);
                         persistInSession(indexId, resolvedPath, finalResult, session);
                         return finalResult.getFileResults().size();
                     }));

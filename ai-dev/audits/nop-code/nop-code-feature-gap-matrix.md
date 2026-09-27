@@ -25,7 +25,7 @@
 | N0.2 | 文档-代码 drift 修正(7 处) | Fix | 全部 9 份逐一 drift 定位(roadmap N0.2 条目内列明 7 处文件+位置) | — | todo |
 | N1.1 | `IGraph` 边属性投影增强(typed edges + attrs) | Fix | 01-baseline §4.4.1(当前只投影 CALLS 不填 attrs);graph-discovery §3.0 前置3/前置4 | P0#1 | done(2026-09-27,plan `ai-dev/plans/nop-code/03-n1-1-typed-edge-projection.md`) |
 | N1.2 | 全局算法结果持久化 | Fix | 01-baseline §4.4.1/§6.2(社区/中心性/入口点评分索引期物化);graph-discovery §3.0 前置1/前置2;query-api §七#3 | P1#6(状态化前置) | done(2026-09-27,plan `ai-dev/plans/nop-code/04-n1-2-graph-metric-materialization.md`) |
-| N1.3 | 查询路径去全量 rebuild | Fix | 00-vision 约束8/不变量9(目标);01-baseline §6.2;query-api §七#3 | P1#6 | todo |
+| N1.3 | 查询路径去全量 rebuild | Fix | 00-vision 约束8/不变量9(目标);01-baseline §6.2;query-api §七#3 | P1#6 | done(2026-09-27,plan `ai-dev/plans/nop-code/05-n1-3-query-path-materialized.md`;按映射声明口径:全局算法查询物化优先,重建降级为自愈回退;结构查询移交 N6.2/N1.4) |
 | N1.4 | 分析缓存语义对齐 | Fix | 01-baseline §6.1(AnalysisCache 读缓存语义);query-api §七 | P0#2(缓存面收尾) | todo |
 | N2.1 | 意外连接分析 | Fix | graph-discovery §3.1(`ISurprisingConnectionAnalyzer`/`SurprisingConnectionDTO`);query-api §4.2[目标];graph-analysis §六 | —(graphify 对标) | todo |
 | N2.2 | 图谱问题生成 | Fix | graph-discovery §3.2(`IGraphQuestionGenerator`/`ExplorationQuestionDTO`/`no_signal`);query-api §4.2[目标] | P0#3(suggestedNextQueries 语义,原 Token 效率项的可执行子集) | todo |

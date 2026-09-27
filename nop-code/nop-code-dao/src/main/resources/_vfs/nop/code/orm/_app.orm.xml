@@ -101,6 +101,9 @@
             <option code="BETWEENNESS" label="介数中心性" value="20"/>
             <option code="PAGE_RANK" label="PageRank" value="30"/>
             <option code="ENTRY_POINT" label="入口点评分" value="40"/>
+            <option code="HUB" label="枢纽度数" value="50"/>
+            <option code="COMMUNITY_INFO" label="社区信息" value="60"/>
+            <option code="GRAPH_SUMMARY" label="图汇总" value="70"/>
         </dict>
     </dicts>
 

@@ -232,7 +232,7 @@ io.nop.graph.api.IGraph          ← 存储抽象接口（已有）
 
 **设计决策**：
 - **复用 `IGraph`，不新造接口**。用户目标"内存 CallGraph 作为简易方案、对外接口屏蔽存储形式"已经落地：`CallGraph` 是内存实现，`IGraph` 是抽象边界，切换后端只需换 `IGraph` 实现。
-- **领域属性通过 `Edge.attrs` 承载**（`IGraph` javadoc 约定）：relationType/confidence/provenance/directed/sourceFilePath/targetFilePath 放 `attrs`，算法层不解析。**typed 边视图已实现**（2026-09-27）：`CodeRelationGraph`（nop-code-core，由 `CodeRelationGraphLoader` 从 calls/inheritance/annotation/semantic 四表加载）覆盖四族边并填 attrs——`Edge.type`=边族，`attrs.relationType`=细分（EXTENDS/IMPLEMENTS/SEMANTICALLY_SIMILAR_TO 等 DB 大写枚举名）缺省回退族名，`attrs.confidence`=EdgeConfidence 枚举名（semantic 列显式映射 10/20/30，其余族由 provenance 推导：AST_EXTRACTION/SYMBOL_SOLVER→EXTRACTED、HEURISTIC/FRAMEWORK_INFERENCE→INFERRED）。`CodeCallGraph` 保持 CALLS-only 拓扑投影服务既有算法，**需要 typed 边属性的下游（N1.3/N2.1/N2.2）必须消费 `CodeRelationGraph`**。
+- **领域属性通过 `Edge.attrs` 承载**（`IGraph` javadoc 约定）：relationType/confidence/provenance/directed/sourceFilePath/targetFilePath 放 `attrs`，算法层不解析。**typed 边视图已实现**（2026-09-27）：`CodeRelationGraph`（nop-code-core，由 `CodeRelationGraphLoader` 从 calls/inheritance/annotation/semantic 四表加载）覆盖四族边并填 attrs——`Edge.type`=边族，`attrs.relationType`=细分（EXTENDS/IMPLEMENTS/SEMANTICALLY_SIMILAR_TO 等 DB 大写枚举名）缺省回退族名，`attrs.confidence`=EdgeConfidence 枚举名（semantic 列显式映射 10/20/30，其余族由 provenance 推导：AST_EXTRACTION/SYMBOL_SOLVER→EXTRACTED、HEURISTIC/FRAMEWORK_INFERENCE→INFERRED）。`CodeCallGraph` 保持 CALLS-only 拓扑投影服务既有算法，**需要 typed 边属性的下游（N2.1/N2.2，及 N6.2 后端落地后的结构查询）必须消费 `CodeRelationGraph`**（N1.3 的全局算法查询消费的是物化度量行,不消费边视图）。
 - **`IGraph` 只保证局部遍历**：`getOutEdges`/`getInEdges` 适合深度受限的局部查询下推到数据库。**全局算法（Leiden、介数中心性、PageRank、TarjanSCC）必须整体物化**，无法由递归 CTE 逐点求得——生产后端下这些全局结果应在**索引构建期计算并持久化**（见 §6.2 待做），查询期只读。
 - **数据库后端选型未定**：`ltree` / 递归 CTE / Apache AGE 仍是开放决策；参考应用当前是 MySQL/H2，硬绑定 Postgres 扩展会造成可移植性回退。此点登记为待决策项，不在本基线预设结论。
 
@@ -298,7 +298,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 语义边（确定性） | ✅ 已实现（`CodeSemanticEdge` + `ISemanticEdgeExtractor` + 3 提取器 + ORM 表 + BizModel） |
 | 启发式调用边合成 | ✅ 已实现（`InterfaceImplSynthesizer` / `SpringEventSynthesizer`，产出 INFERRED `CodeMethodCall`，非语义边） |
 | 图存储抽象（`IGraph`） | ✅ 已实现（`IGraph` 接口 + `CodeCallGraph` 适配器） |
-| 查询路径无状态 | ❌ 未实现（当前用 `CodeCacheManager` 堆内缓存 + 全量 rebuild） |
+| 查询路径无状态 | 🔶 部分（2026-09-27）：全局算法查询物化优先（N1.3）；结构查询仍 lazy rebuild |
 | 数据库图后端（`IGraph` 的第二实现） | ⏳ 未定（`ltree`/CTE/AGE 选型开放；参考应用为 MySQL/H2） |
 
 ### 6.2 待做
@@ -306,7 +306,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 功能 | 状态 | 说明 |
 |------|------|------|
 | 全局算法结果持久化 | ✅ 已实现（2026-09-27） | `nop_code_graph_metric` 表（N1.2）：社区/介数中心性/PageRank/入口点评分在 full index 后物化（`NopCodeIndex__triggerFullIndex` 触发），查询经 `GraphMetricStore` 只读取数；实际变更的增量索引使物化失效（no-op 不失效），deleteIndex 清除；COMMUNITY/BETWEENNESS/PAGE_RANK 行覆盖 call-graph 节点集，ENTRY_POINT 行覆盖 METHOD/CONSTRUCTOR；查询 API 迁移到物化读数归 N1.3 |
-| 查询路径无状态化 | ⏳ 中期 | 消除 `CodeCacheManager` 全量 rebuild；本地遍历下推 `IGraph` 后端 |
+| 查询路径无状态化 | 🔶 全局算法部分已实现（2026-09-27，N1.3） | `detectCommunities`/`getCriticalNodes`/`getGraphAnalysis` 已改为物化优先读取 `nop_code_graph_metric`（自愈回退：缺行时计算一次并落库，返回值=落库值）；结构查询（impact/export/diff/hierarchy/deps/flow）仍走 lazy 边集视图，收敛归 N6.2 数据库 `IGraph` 后端 |
 | 数据库图后端 | ⏳ 待决策 | `IGraph` 的第二实现；需先定生产 DB 与可移植性边界 |
 | 框架适配迁出核心 | ⏳ 中期 | 把 `JavaFileAnalyzer` 硬编码 Spring 路由改为 `IEntryPointPatternProvider`/适配器；DSL 为远期选项 |
 | 语义边 LLM 集成 | ⏳ 远期 | 依赖 nop-ai；当前确定性提取器只产出 EXTRACTED 边 |

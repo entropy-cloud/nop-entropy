@@ -140,6 +140,22 @@ public class TestGraphMetricMaterialization extends JunitAutoTestCase {
                 .stream().anyMatch(r -> r.getEntryPointType() != null);
         assertTrue(hasEntryPointType, "entry point rows should carry an entry point type");
 
+        // HUB / COMMUNITY_INFO / GRAPH_SUMMARY families (N1.3 extension)
+        assertTrue(countRows(indexId, GraphMetricStore.METRIC_HUB) >= 2);
+        Map<String, int[]> hubs = store.loadHubs(indexId);
+        assertFalse(hubs.isEmpty());
+        for (int[] deg : hubs.values()) {
+            assertEquals(deg[0], deg[1] + deg[2], "totalDegree must equal in+out");
+        }
+        assertTrue(countRows(indexId, GraphMetricStore.METRIC_COMMUNITY_INFO) >= 1);
+        Map<Integer, Double> cohesionByCommunity = store.loadCommunityInfo(indexId);
+        cohesionByCommunity.values().forEach(c -> assertTrue(c >= 0 && c <= 1, "cohesion in [0,1]"));
+
+        Map<String, Object> summary = store.loadSummary(indexId);
+        assertNotNull(summary, "summary row must exist after materialize");
+        assertNotNull(summary.get("callGraphNodeCount"));
+        assertNotNull(summary.get("symbolCount"));
+
         // read-only surface agrees with DB
         assertTrue(store.hasMaterialized(indexId, GraphMetricStore.METRIC_COMMUNITY));
         assertTrue(store.hasMaterialized(indexId, GraphMetricStore.METRIC_ENTRY_POINT));

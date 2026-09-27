@@ -2,6 +2,8 @@ package io.nop.code.service.impl;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +18,7 @@ import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.CodeCallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.dao.entity.NopCodeGraphMetric;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graph.algorithm.BetweennessCentrality;
@@ -51,6 +54,9 @@ class GraphMetricMaterializer {
     static final String METRIC_BETWEENNESS = "BETWEENNESS";
     static final String METRIC_PAGE_RANK = "PAGE_RANK";
     static final String METRIC_ENTRY_POINT = "ENTRY_POINT";
+    static final String METRIC_HUB = "HUB";
+    static final String METRIC_COMMUNITY_INFO = "COMMUNITY_INFO";
+    static final String METRIC_GRAPH_SUMMARY = "GRAPH_SUMMARY";
 
     private static final int PAGE_RANK_ITERATIONS = 20;
     private static final int BETWEENNESS_MAX_NODES = 10000;
@@ -70,8 +76,11 @@ class GraphMetricMaterializer {
     }
 
     /**
-     * Recomputes all four metric families and replaces the persisted rows for the index.
+     * Recomputes all metric families and replaces the persisted rows for the index.
      * Delete + insert runs in one transaction, so a failure leaves the previous snapshot intact.
+     * Leiden runs exactly once per materialization and its result feeds the COMMUNITY,
+     * COMMUNITY_INFO and GRAPH_SUMMARY families (compute-once: values returned to callers
+     * must equal the persisted values).
      */
     public void materialize(String indexId) {
         CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
@@ -82,28 +91,41 @@ class GraphMetricMaterializer {
         CodeCallGraph graph = new CodeCallGraph(callGraph);
         Set<String> nodes = callGraph.getAllNodeIds();
 
+        CommunityResult communityResult = detectCommunities(graph, nodes);
         long computedAt = System.currentTimeMillis();
         List<NopCodeGraphMetric> rows = new ArrayList<>();
-        rows.addAll(communityRows(indexId, graph, nodes, computedAt));
+        rows.addAll(communityRows(indexId, communityResult, computedAt));
+        rows.addAll(communityInfoRows(indexId, communityResult, computedAt));
+        rows.addAll(summaryRows(indexId, communityResult, nodes, symbolTable, computedAt));
         rows.addAll(betweennessRows(indexId, graph, nodes, computedAt));
         rows.addAll(pageRankRows(indexId, graph, nodes, computedAt));
         rows.addAll(entryPointRows(indexId, callGraph, symbolTable, computedAt));
+        rows.addAll(hubRows(indexId, callGraph, nodes, computedAt));
 
         replaceRows(indexId, rows);
         LOG.info("nop.code.graph-metrics-materialized:indexId={},rows={}", indexId, rows.size());
     }
 
-    List<NopCodeGraphMetric> communityRows(String indexId, CodeCallGraph graph, Set<String> nodes,
-                                           long computedAt) {
+    /**
+     * Single Leiden invocation shared by COMMUNITY / COMMUNITY_INFO / GRAPH_SUMMARY builders.
+     * Returns null for node sets too small for community detection.
+     */
+    private CommunityResult detectCommunities(CodeCallGraph graph, Set<String> nodes) {
         if (nodes.size() < 2) {
-            LOG.info("nop.code.graph-metrics-skip:indexId={},metric=COMMUNITY,reason=node-set-too-small", indexId);
-            return List.of();
+            LOG.info("nop.code.graph-metrics-skip:indexId-internal,metric=COMMUNITY,reason=node-set-too-small");
+            return null;
         }
         LeidenConfig config = LeidenConfig.create()
                 .setResolution(0.1)
                 .setMaxIterations(10)
                 .setTimeoutMs(60000);
-        CommunityResult result = LeidenDetector.detect(graph, nodes, config);
+        return LeidenDetector.detect(graph, nodes, config);
+    }
+
+    List<NopCodeGraphMetric> communityRows(String indexId, CommunityResult result, long computedAt) {
+        if (result == null) {
+            return List.of();
+        }
         List<NopCodeGraphMetric> rows = new ArrayList<>();
         for (CommunityInfo community : result.getCommunities()) {
             for (String nodeId : community.getNodeIds()) {
@@ -113,6 +135,45 @@ class GraphMetricMaterializer {
             }
         }
         return rows;
+    }
+
+    /**
+     * One row per community carrying its cohesion (symbolId placeholder "community:<id>"
+     * satisfies the mandatory symbolId column and the (indexId,metricType,symbolId) unique key).
+     */
+    List<NopCodeGraphMetric> communityInfoRows(String indexId, CommunityResult result, long computedAt) {
+        if (result == null) {
+            return List.of();
+        }
+        List<NopCodeGraphMetric> rows = new ArrayList<>();
+        for (CommunityInfo community : result.getCommunities()) {
+            NopCodeGraphMetric row = newRow(indexId, METRIC_COMMUNITY_INFO,
+                    "community:" + community.getId(), computedAt);
+            row.setCommunityId(community.getId());
+            row.setScore(community.getCohesion());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    /**
+     * Single index-level summary row (symbolId placeholder "__summary__") carrying the scalar
+     * aggregates of the community run. symbolCount is the full symbol count (including
+     * isolated symbols); callGraphNodeCount is the call-graph node set size.
+     */
+    List<NopCodeGraphMetric> summaryRows(String indexId, CommunityResult result, Set<String> nodes,
+                                         SymbolTable symbolTable, long computedAt) {
+        NopCodeGraphMetric row = newRow(indexId, METRIC_GRAPH_SUMMARY, "__summary__", computedAt);
+        Map<String, Object> ext = new LinkedHashMap<>();
+        if (result != null) {
+            ext.put("modularity", result.getModularity());
+            ext.put("averageCohesion", result.getAverageCohesion());
+            ext.put("algorithmUsed", result.getAlgorithmUsed());
+        }
+        ext.put("callGraphNodeCount", nodes.size());
+        ext.put("symbolCount", symbolTable.size());
+        row.setExtData(JsonTool.stringify(ext));
+        return List.of(row);
     }
 
     List<NopCodeGraphMetric> betweennessRows(String indexId, CodeCallGraph graph, Set<String> nodes,
@@ -139,6 +200,27 @@ class GraphMetricMaterializer {
         // iterations=20 follows the small-graph default used by nop-graph-core tests
         Map<String, Double> scores = PageRank.compute(graph, nodes, PAGE_RANK_ITERATIONS);
         return scoreRows(indexId, METRIC_PAGE_RANK, scores, computedAt);
+    }
+
+    /**
+     * One row per call-graph node: score=totalDegree, extData carries inDegree/outDegree.
+     * Isolated symbols have no call edges and therefore no HUB row.
+     */
+    List<NopCodeGraphMetric> hubRows(String indexId, CallGraph callGraph, Set<String> nodes,
+                                     long computedAt) {
+        List<NopCodeGraphMetric> rows = new ArrayList<>();
+        for (String nodeId : nodes) {
+            int outDegree = callGraph.getCallees(nodeId).size();
+            int inDegree = callGraph.getCallers(nodeId).size();
+            NopCodeGraphMetric row = newRow(indexId, METRIC_HUB, nodeId, computedAt);
+            row.setScore((double) (inDegree + outDegree));
+            Map<String, Object> ext = new LinkedHashMap<>();
+            ext.put("inDegree", inDegree);
+            ext.put("outDegree", outDegree);
+            row.setExtData(JsonTool.stringify(ext));
+            rows.add(row);
+        }
+        return rows;
     }
 
     List<NopCodeGraphMetric> entryPointRows(String indexId, CallGraph callGraph, SymbolTable symbolTable,

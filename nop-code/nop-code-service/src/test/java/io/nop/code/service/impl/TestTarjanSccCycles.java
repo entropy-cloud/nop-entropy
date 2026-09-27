@@ -26,7 +26,7 @@ class TestTarjanSccCycles {
 
     @SuppressWarnings("unchecked")
     private List<List<String>> tarjanSCC(Map<String, List<String>> adj) throws Exception {
-        CodeGraphService service = new CodeGraphService(null, new CodeCacheManager());
+        CodeGraphService service = new CodeGraphService(null, new CodeCacheManager(), null);
         Method m = CodeGraphService.class.getDeclaredMethod("tarjanSCC", Map.class);
         m.setAccessible(true);
         return (List<List<String>>) m.invoke(service, adj);
