@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 16 · todo 23
+**汇总**：done 17 · todo 22
 
 ### M0 — 基线与文档-代码对齐
 
@@ -97,7 +97,7 @@ audit-rounds: 2
 |-----------|--------|---------|
 | N5.1 TypeScript 调用图补全（当前 `nop-code-lang-typescript` 无调用图）<br>（Deliverable: 代码 + 测试；deps: 无；Item Type: Fix；plan `ai-dev/plans/nop-code/15-n5-1-typescript-call-graph.md`） | done | — |
 | N5.2 框架适配迁出核心（`IEntryPointPatternProvider` SPI 已存在于 `nop-code-flow`，缺口是装配：`FlowDetector` 私有内部类 `DefaultSpringEntryPointPatternProvider` 经 `List.of(...)` 硬编码——迁出为 IoC 注册 bean；`JavaFileAnalyzer`/`DeadCodeDetector` 硬编码 Spring 模式按同一 SPI 外置）<br>（Deliverable: 代码 + 测试 + 行为等价证明；deps: 无；Item Type: Fix；plan `ai-dev/plans/nop-code/16-n5-2-framework-adapter-externalization.md`） | done | — |
-| N5.3 DSL 驱动框架适配器（描述式路由/DI 模式 DSL，作为 N5.2 的远期演进）<br>（Deliverable: DSL 模型 + 解析 + 测试；deps: N5.2；Item Type: Fix） | todo | N5.2 |
+| N5.3 DSL 驱动框架适配器（描述式路由/DI 模式 DSL，作为 N5.2 的远期演进）<br>（Deliverable: DSL 模型 + 解析 + 测试；deps: N5.2；Item Type: Fix；plan `ai-dev/plans/nop-code/17-n5-3-dsl-driven-framework-adapter.md`） | done | N5.2 |
 | N5.4 Go 语言扩展（tree-sitter go 绑定 + `ILanguageAdapter` 适配 + 提取器 + dict + 测试）<br>（Deliverable: 语言模块增量 + 测试；deps: 无（前置：`nop-treesitter-roadmap.md` go blob 可得）；Item Type: Fix） | todo | — |
 | N5.5 Rust 语言扩展（同 N5.4 形态）<br>（Deliverable: 同上；deps: 无；Item Type: Fix） | todo | — |
 | N5.6 C# 语言扩展（同 N5.4 形态）<br>（Deliverable: 同上；deps: 无；Item Type: Fix） | todo | — |

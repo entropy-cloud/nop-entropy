@@ -41,7 +41,7 @@ nop-code-flow 包含三种流级分析能力，它们共享一个特征：**基�
 
 ### 框架模式注册
 
-**目标**：通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现，按 `priority()` 降序匹配。**已落地**（2026-09-28，N5.2）：内置实现迁出为顶层 `SpringEntryPointPatternProvider`（nop-code-flow，`app-flow.beans.xml` 注册 default bean）；`FlowDetector`/`DeadCodeDetector` 经 `app-service.beans.xml` 的 `<ioc:collect-beans by-type>` 注入 provider（DeadCodeDetector 侧 FQN→短名归一化后并入框架注解集，默认混合集保留）；`JavaFileAnalyzer` 的 Spring 路由注解/前缀/HTTP 方法映射外置为 `IFrameworkRouteConvention`（默认 `SpringFrameworkRouteConvention`，分析器 setter 可插拔；分析器实例非 IoC 管理，其装配归语言适配器架构演进）。行为等价由 `TestFrameworkAdapterEquivalence` 钉住。
+**目标**：通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现，按 `priority()` 降序匹配。**已落地**（2026-09-28，N5.2）：内置实现迁出为顶层 `SpringEntryPointPatternProvider`（nop-code-flow，`app-flow.beans.xml` 注册 default bean）；`FlowDetector`/`DeadCodeDetector` 经 `app-service.beans.xml` 的 `<ioc:collect-beans by-type>` 注入 provider（DeadCodeDetector 侧 FQN→短名归一化后并入框架注解集，默认混合集保留）；`JavaFileAnalyzer` 的 Spring 路由注解/前缀/HTTP 方法映射外置为 `IFrameworkRouteConvention`（默认 `SpringFrameworkRouteConvention`，分析器 setter 可插拔；分析器实例非 IoC 管理，其装配归语言适配器架构演进）。行为等价由 `TestFrameworkAdapterEquivalence` 钉住。N5.3（2026-09-28）进一步提供描述式 DSL：`FrameworkPatternDsl.parse`（nop-code-core `io.nop.code.core.framework`）解析框架模式 XML，驱动 `ConfigDrivenEntryPointPatternProvider`（nop-code-flow）/`ConfigDrivenRouteConvention`（nop-code-lang-java）通用实现——新增框架适配可仅写 DSL 文件；Spring 等价由 `spring.framework-patterns.xml` + `TestFrameworkPatternDslEquivalence` 钉住（namePatterns 为声明性元数据，不参与入口点判定）。
 
 **拒绝了什么**：核心硬编码模式字典（CRG 的做法）→ 目标是把内置实现移出核心，通过 `IEntryPointPatternProvider` SPI 可插拔加载。
 

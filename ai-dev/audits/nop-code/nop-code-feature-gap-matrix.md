@@ -39,7 +39,7 @@
 | N4.3 | 混合搜索 RRF(`SearchType.HYBRID`) | Fix | search-integration(TEXT→HYBRID 切换,k=60) | P0#2(混合面) | todo |
 | N5.1 | TypeScript 调用图补全 | Fix | 01-baseline §6.1(TS 暂无调用图);README(实现状态) | P2#10(语言能力面) | tdone(2026-09-28,plan `ai-dev/plans/nop-code/15-n5-1-typescript-call-graph.md`) |
 | N5.2 | 框架适配迁出核心(SPI 装配) | Fix | 00-vision 约束9/不变量10;flow-analysis §一(框架模式注册:目标 IoC 注册 vs 现状硬编码);01-baseline §4.5/§6.2 | P1(框架路由感知的架构化) | tdone(2026-09-28,plan `ai-dev/plans/nop-code/16-n5-2-framework-adapter-externalization.md`) |
-| N5.3 | DSL 驱动框架适配器 | Fix | 00-vision 约束9(DSL 为远期选项);01-baseline §6.2 | P2#15 | todo |
+| N5.3 | DSL 驱动框架适配器 | Fix | 00-vision 约束9(DSL 为远期选项);01-baseline §6.2 | P2#15 | tdone(2026-09-28,plan `ai-dev/plans/nop-code/17-n5-3-dsl-driven-framework-adapter.md`) |
 | N5.4 | Go 语言扩展 | Fix | 00-vision §六决策点1(新增语言需人工评估,roadmap 已裁决吸收) | P1#9(10+ 语言的 +3 子集);P1#10 | todo |
 | N5.5 | Rust 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
 | N5.6 | C# 语言扩展 | Fix | 同 N5.4 | 同上 | todo |

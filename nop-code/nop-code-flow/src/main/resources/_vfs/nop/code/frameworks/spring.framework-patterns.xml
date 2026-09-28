@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  N5.3: Spring 框架模式 DSL——内容与 SpringEntryPointPatternProvider /
+  SpringFrameworkRouteConvention 硬编码实现逐项一致（等价测试钉住）。
+  namePatterns 为声明性元数据，不参与入口点判定。
+-->
+<framework-patterns>
+  <framework name="spring">
+    <entry-point>
+      <annotation-fqn>org.springframework.web.bind.annotation.RequestMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.web.bind.annotation.GetMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.web.bind.annotation.PostMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.web.bind.annotation.PutMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.web.bind.annotation.DeleteMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.web.bind.annotation.PatchMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.scheduling.annotation.Scheduled</annotation-fqn>
+      <annotation-fqn>org.springframework.jms.annotation.JmsListener</annotation-fqn>
+      <annotation-fqn>org.springframework.kafka.annotation.KafkaListener</annotation-fqn>
+      <annotation-fqn>org.springframework.amqp.rabbit.annotation.RabbitListener</annotation-fqn>
+      <annotation-fqn>org.springframework.messaging.handler.annotation.MessageMapping</annotation-fqn>
+      <annotation-fqn>org.springframework.context.event.EventListener</annotation-fqn>
+      <annotation-fqn>org.springframework.boot.context.event.ApplicationReadyEvent</annotation-fqn>
+      <class-suffix>Controller</class-suffix>
+      <class-suffix>RestController</class-suffix>
+      <class-suffix>Endpoint</class-suffix>
+      <class-suffix>Listener</class-suffix>
+      <class-suffix>Handler</class-suffix>
+      <class-suffix>Scheduler</class-suffix>
+      <class-suffix>Consumer</class-suffix>
+      <class-suffix>Subscriber</class-suffix>
+      <name-pattern>main</name-pattern>
+      <name-pattern>handle*</name-pattern>
+      <name-pattern>process*</name-pattern>
+      <name-pattern>onEvent*</name-pattern>
+    </entry-point>
+    <route-convention>
+      <mapping annotation="RequestMapping" method=""/>
+      <mapping annotation="GetMapping" method="GET"/>
+      <mapping annotation="PostMapping" method="POST"/>
+      <mapping annotation="PutMapping" method="PUT"/>
+      <mapping annotation="DeleteMapping" method="DELETE"/>
+      <mapping annotation="PatchMapping" method="PATCH"/>
+      <class-prefix-annotation>RequestMapping</class-prefix-annotation>
+    </route-convention>
+  </framework>
+</framework-patterns>
