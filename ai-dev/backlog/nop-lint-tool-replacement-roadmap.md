@@ -70,9 +70,9 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 3 — SpotBugs（源码可检核心面的承接；字节码面原则外）
 
-- 9. 盘点与三轴归类：实跑全仓（qa profile + nop-kernel 口径）收集实际触发面；bug pattern 目录整体过一遍三轴（源码可检核心 / 字节码专属 out-of-principle / 次要 out-of-purpose）——SpotBugs 目录同时是"隐蔽 bug 分类学"的免费输入，反哺 item 6 矩阵; `spotbugs-exclude.xml` 逐 pattern 归因: `todo` — deps: 1, 6
-- 10. 源码可检核心面规则落地：按盘点优先级落规则（全带 fixtures + 同语料对照，准入判据把关）: `todo` — deps: 9
-- 11. 工具级终裁：核心面承接结论 + **字节码残余按纯源码原则正式记录不追**；qa profile / nop-kernel 的 spotbugs 接线去留按对照数据裁定: `todo` — deps: 10
+- 9. 盘点与三轴归类：实跑全仓（qa profile + nop-kernel 口径）收集实际触发面；bug pattern 目录整体过一遍三轴（源码可检核心 / 字节码专属 out-of-principle / 次要 out-of-purpose）——SpotBugs 目录同时是"隐蔽 bug 分类学"的免费输入，反哺 item 6 矩阵; `spotbugs-exclude.xml` 逐 pattern 归因: `planned`（plan: ai-dev/plans/nop-lint/24-spotbugs-triax-adjudication.md，items 9/10/11 合并裁定——实跑仅 1 处命中 RCN_REDUNDANT_NULLCHECK，核心面不立项）: `done` — deps: 1, 6
+- 10. 源码可检核心面规则落地：按盘点优先级落规则（全带 fixtures + 同语料对照，准入判据把关）: `planned`（合并至 plan 24——核心面 1 处不立项） — deps: 9
+- 11. 工具级终裁：核心面承接结论 + **字节码残余按纯源码原则正式记录不追**；qa profile / nop-kernel 的 spotbugs 接线去留按对照数据裁定: `planned`（合并至 plan 24——keep-tool，配置段保留） — deps: 10
 - ★ **Milestone MT3a: 字节码系工具分面裁定完成**
 
 ### Wave 4 — SonarQube（产品级工具拆解裁定）
