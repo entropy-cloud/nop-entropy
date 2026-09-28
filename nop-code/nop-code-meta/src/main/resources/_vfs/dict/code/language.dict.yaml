@@ -21,3 +21,7 @@ options:
     value: 40
     description: 
   
+  - label: Go
+    value: 50
+    description: 
+  

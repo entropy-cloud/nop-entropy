@@ -76,6 +76,7 @@
             <option code="PYTHON" label="Python" value="20"/>
             <option code="TYPESCRIPT" label="TypeScript" value="30"/>
             <option code="JAVASCRIPT" label="JavaScript" value="40"/>
+            <option code="GO" label="Go" value="50"/>
         </dict>
         <dict label="调用类型" name="code/call_type" valueType="string">
             <description>方法调用类型。CONSTRUCTOR 为构造函数调用，其余值为被调用方法的返回类型描述（如 void、String 等），属自由文本</description>

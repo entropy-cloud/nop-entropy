@@ -8,6 +8,7 @@
 | `nop-code-lang-java` | Java source analyzer using JavaParser + Symbol Solver. Contains hardcoded Spring route extraction (`[legacy]` — to be migrated out of core; the target is pluggable SPI-loaded framework patterns). |
 | `nop-code-lang-python` | Python source analyzer. Import resolution via `PythonImportResolver`. |
 | `nop-code-lang-typescript` | TypeScript/JavaScript source analyzer. Import resolution via `TypeScriptImportResolver`. |
+| `nop-code-lang-go` | Go 语言解析（tree-sitter go blob + GoLanguageAdapter/GoCodeFileAnalyzer：函数/方法/struct/interface/别名/常量符号、嵌入继承、calls、imports） |
 | `nop-code-flow` | Flow detection: execution flows, dead-code detection, change analysis. Interfaces: `IFlowDetector`, `IChangeAnalyzer`, `IDeadCodeDetector`. Contains hardcoded Spring entry-point patterns (`[legacy]` — to be migrated out of core). |
 | `nop-code-codegen` | 代码生成层。 |
 | `nop-code-dao` | Generated ORM entities and DAO layer (from `nop-code.orm.xml`). |
@@ -130,7 +131,7 @@ Dictionaries come from two sources (11 total under `nop-code-meta/src/main/resou
 - `code/access_modifier` — PUBLIC, PROTECTED, PRIVATE, PACKAGE_PRIVATE, INTERNAL
 - `code/reference_kind` — READ, WRITE, CALL, TYPE_REFERENCE, EXTENDS, IMPLEMENTS, ANNOTATES, IMPORTS, OVERRIDES, TYPE_OF, INSTANTIATES
 - `code/index_status` — CREATED, INDEXING, READY, ERROR, COMPLETED, DETECTED
-- `code/language` — JAVA, PYTHON, TYPESCRIPT, JAVASCRIPT
+- `code/language` — JAVA, PYTHON, TYPESCRIPT, JAVASCRIPT, GO
 - `code/call_type` — CONSTRUCTOR (+ free-text return types)
 - `code/relation_type` — EXTENDS, IMPLEMENTS
 - `code/semantic_relation_type` — SEMANTICALLY_SIMILAR_TO, CONCEPTUALLY_RELATED_TO, SOLVES_SAME_PROBLEM, etc.

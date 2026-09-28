@@ -7,7 +7,8 @@ public enum CodeLanguage {
     JAVA("java", ".java"),
     PYTHON("python", ".py"),
     TYPESCRIPT("typescript", ".ts", ".tsx"),
-    JAVASCRIPT("javascript", ".js", ".jsx");
+    JAVASCRIPT("javascript", ".js", ".jsx"),
+    GO("go", ".go");
 
     private final String code;
     private final String[] extensions;
