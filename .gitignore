@@ -112,6 +112,10 @@ graphify-out/
 # Test results
 test-results/
 
+# Audit evidence: generated raw benchmark/test output (raw goes to _tmp/, evidence keeps distilled tables only)
+ai-dev/audits/evidence/**/*-raw.txt
+ai-dev/audits/evidence/**/*.jfr
+
 # AI temp files (scratch output, logs, analysis dumps)
 _tmp/
 

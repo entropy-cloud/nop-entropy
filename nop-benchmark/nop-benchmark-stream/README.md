@@ -27,12 +27,14 @@ nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路�
 ./mvnw -q install -pl nop-stream/nop-stream-core,nop-stream/nop-stream-runtime,nop-stream/nop-stream-cep,nop-stream/nop-stream-rocksdb -DskipTests
 ./mvnw -q compile -pl nop-benchmark/nop-benchmark-stream
 CP=nop-benchmark/nop-benchmark-stream/_tmp/cp-stream.txt   # 由依赖构建生成，或 mvn dependency:build-classpath 自行生成
-java -cp nop-benchmark/nop-benchmark-stream/target/classes:$(cat $CP) org.openjdk.jmh.Main ".*" -f 1 -wi 3 -w 2s -i 5 -r 2s -prof gc
+java -cp nop-benchmark/nop-benchmark-stream/target/classes:$(cat $CP) org.openjdk.jmh.Main ".*" -f 1 -wi 3 -w 2s -i 5 -r 2s -prof gc | tee _tmp/nop-stream-perf/raw.txt
 
 # 单项 + JFR 录制
 java -cp ... org.openjdk.jmh.Main "NfaProcessBench.processEvent" -p patternDepth=20 \
-  -jvmArgsAppend "-XX:StartFlightRecording=filename=rec.jfr,settings=profile,dumponexit=true"
-jfr print --events jdk.ExecutionSample rec.jfr   # CPU 归因
+  -jvmArgsAppend "-XX:StartFlightRecording=filename=_tmp/nop-stream-perf/rec.jfr,settings=profile,dumponexit=true"
+jfr print --events jdk.ExecutionSample _tmp/nop-stream-perf/rec.jfr   # CPU 归因
 ```
+
+原始输出（`*-raw.txt`、`*.jfr`）一律写入 `_tmp/nop-stream-perf/`（已被 `.gitignore` 忽略，不入库）；`ai-dev/audits/evidence/` 只落提炼后的对比表与裁定文档。
 
 历史测量证据：`ai-dev/audits/evidence/nop-stream-perf-360/`（baseline / r1 / r2 / final 各轮对比与收敛裁定）、`ai-dev/audits/evidence/nop-stream-perf-2279/`（plan 2279 传输/算子路径基线与各轮对比）。
