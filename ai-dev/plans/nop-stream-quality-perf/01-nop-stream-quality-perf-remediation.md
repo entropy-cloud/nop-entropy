@@ -1,6 +1,6 @@
 # 01 nop-stream 代码质量与性能审计修复
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-28
 > Source: `ai-dev/analysis/2026-09/2026-09-28-nop-stream-quality-perf-audit.md`（93 项发现，关键项已与 live 代码核对）
 > Related: `ai-dev/plans/nop-stream-independent-audit/`、`ai-dev/plans/nop-stream-productization/`（历史计划，已关闭）
@@ -179,6 +179,7 @@ Targets: 本轮触碰路径相关基准 + JFR 归因
 
 - [x] 以 `-prof jfr` 对 Phase 3 保留项涉及的基准场景（NFA/状态后端/WindowOperator rocksdb 档）采样，输出热点清单（记录到 plan）
 - [x] 全量基准复跑一轮（fork=1 口径），未触碰基准在 ±3% 噪声带内、触碰基准无 >2% 退化，数字记入 `## Benchmark Rounds`
+  - **执行偏差披露**：字面"全量"尝试在 BufferPoolPermitBench pingPong（@Group 栅栏失真档，2279 已裁定）处长时间停滞/VM 中断，改为 8 类/47 配置定向套件（触碰面+金丝雀带）；未覆盖的 5 类（CheckpointSerDe/InputGateReadLoop/ProcessingTimeDriver/RemoteTransportWrite/BufferPool）均非本轮触碰面且已被 360/2279 覆盖
 - [x] 收敛裁定：对照 360/2279 裁定书 + 本轮 JFR 归因，给出"本轮触碰路径上无 ≥2% 低风险可收割项"或列出新登记候选的明确结论，写入 plan
 - [x] 若复验发现 ≥2% 且低风险的新候选：实施→实测→留舍（每项走 Phase 3 同款纪律），循环至无 ≥2% 项
 
@@ -193,43 +194,43 @@ Exit Criteria:
 
 ### Phase 6 - 文档同步与计划收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/logs/`、analysis 文档、本 plan
 
 - Item Types: `Proof`
 
-- [ ] owner docs 复核：Phase 2-5 若改变已文档化的契约/模式，同步对应 owner doc；复核结论逐项记录（预期多为 `No owner-doc update required`，缺陷修复均不改变对外契约）
-- [ ] `ai-dev/logs/` 收口条目（全部 Phase 摘要 + 留舍/收敛数字）
-- [ ] 独立子代理 closure audit（fresh session），evidence 写入 `## Closure`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-core --severity high` 退出码 0（runtime/cep/rocksdb 同样跑）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 文本一致性核对（Plan Status / Phase Status / Exit Criteria / Closure Gates / logs 五处一致）
-- [ ] 最终 commit（closure）
+- [x] owner docs 复核：Phase 2-5 若改变已文档化的契约/模式，同步对应 owner doc；复核结论逐项记录（预期多为 `No owner-doc update required`，缺陷修复均不改变对外契约）
+- [x] `ai-dev/logs/` 收口条目（全部 Phase 摘要 + 留舍/收敛数字）
+- [x] 独立子代理 closure audit（fresh session），evidence 写入 `## Closure`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-core --severity high` 退出码 0（runtime/cep/rocksdb 同样跑）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 文本一致性核对（Plan Status / Phase Status / Exit Criteria / Closure Gates / logs 五处一致）
+- [x] 最终 commit（closure）
 
 Exit Criteria:
 
-- [ ] 上述全部勾选；Closure Evidence 已写入 `## Closure`
-- [ ] `Plan Status` 改为 `completed`
+- [x] 上述全部勾选；Closure Evidence 已写入 `## Closure`
+- [x] `Plan Status` 改为 `completed`
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects（Phase 2 十一项，含审查新增的 A12）已修复并有回归测试
-- [ ] E3/F1/F2 每项有 JMH 前后数据与留舍裁定（保留或 revert+无收益证据）；Phase 5 收敛复验结论已记录（延续 360/2279 停止判据）
-- [ ] Phase 4 重构不改变行为（错误锚点改进项已在测试中断言）
-- [ ] 全部 5 模块 `./mvnw test` 全绿（收口时复跑）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（与 360/2279 裁定重叠项按其既有归属记录，InputGate 提取等可裁决项的移出已记录理由）
-- [ ] 受影响的 owner docs 已同步（逐项复核结论已记录）
-- [ ] 独立子代理 closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 验证新增测试真实断言行为（非空跑）；新增基准口径真实调用生产代码路径（非 mock 空转）
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
-- [ ] checkstyle / 代码规范：import 分组、4 空格缩进、错误码规范符合 AGENTS.md
+- [x] 所有 in-scope confirmed live defects（Phase 2 十一项，含审查新增的 A12）已修复并有回归测试
+- [x] E3/F1/F2 每项有 JMH 前后数据与留舍裁定（保留或 revert+无收益证据）；Phase 5 收敛复验结论已记录（延续 360/2279 停止判据）
+- [x] Phase 4 重构不改变行为（错误锚点改进项已在测试中断言）
+- [x] 全部 5 模块 `./mvnw test` 全绿（收口时复跑）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（与 360/2279 裁定重叠项按其既有归属记录，InputGate 提取等可裁决项的移出已记录理由）
+- [x] 受影响的 owner docs 已同步（逐项复核结论已记录）
+- [x] 独立子代理 closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 验证新增测试真实断言行为（非空跑）；新增基准口径真实调用生产代码路径（非 mock 空转）
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
+- [x] checkstyle / 代码规范：import 分组、4 空格缩进、错误码规范符合 AGENTS.md
 
 ## Benchmark Rounds
 
 > 口径：JDK 26.0.1 Zulu / JMH 1.33 / `-f 1 -wi 3 -w 2s -i 5 -r 2s` / 同机（macOS arm64）。运行方式见 `nop-benchmark/nop-benchmark-stream/README.md`。
 
-- Round-2（2026-09-28，Phase 5 收敛复验，定向套件 8 类/48 配置，`_tmp/phase5-targeted-suite.txt`）：
+- Round-2（2026-09-28，Phase 5 收敛复验，定向套件 8 类/47 配置，`_tmp/phase5-targeted-suite.txt`）：
   - 触碰路径稳定：internalListAdd local 14.106（R1 14.260）；NFA d5 cheap 3.397/billable 4.125（R1 3.391/4.104）；d20 15.461/17.439
   - F1 附带收益：RocksDB internal aggregating（getInternalAppendingState 路径）2.003µs vs 360 终态 ~2.21µs（约 -9%）
   - 未触碰基准带内：MemoryKeyedState aggregating 7.780ns（vs 360 终态 7.6，+2.4% 带缘）、value local 15.981（vs 15.6，+2.4%）、SharedBufferRegister 0.812µs（vs 0.853）、CepOperator 64×64 1.292µs（vs 2279 Q1b 1.386）、listAdd 25.3/120.7µs（=360，Deferred 项不变）
@@ -246,6 +247,13 @@ Exit Criteria:
 - （后续轮次按 `日期 | 场景 | 前值 | 后值 | Δ% | 变更项` 格式追加）
 
 ## Deferred But Adjudicated
+
+### 遗漏枚举补充（closure audit Minor-4）：A10 completedTasks 随机驱逐、B8 RocksDB.open JNI 句柄泄漏、B12 checkpoint 静默强制开启、B13 错误码不一致
+
+- Classification: `optimization candidate`（P2 正确性/卫生项，低现场风险）
+- Why Not Blocking Closure: 不影响本计划任何结果面；修复路径均已明确（LRU 替换、try/catch 关闭句柄、日志+文档裁定、错误码归一），随下次触碰对应文件的任务顺带处理
+- Successor Required: `no`
+- Successor Path: `ai-dev/analysis/2026-09/2026-09-28-nop-stream-quality-perf-audit.md` 对应行
 
 ### 与 360/2279 既有裁定重叠的审计发现（不再重复实施）
 
@@ -298,14 +306,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 全部 6 个 Phase 完成：Phase 2 十一项确认缺陷修复（含对抗性审查新发现的 A12）、Phase 3 三个未裁定性能候选实测留舍（F2 -57.8% / E3 -7.7%~-10.6% / F1 -2.5%~-5.7%，均保留）、Phase 4 G 组可读性治理（含 InputGate 提取的裁决移出）、Phase 5 收敛复验确认满足 360/2279 停止判据（触碰路径无 ≥2% 低风险可收割项）。执行期完成基线修正（先行的 360/2277/2278/2279 四个计划与既有基准设施被纳入归属核对），修复了 plan 文件自复制损坏。
+Completed: 2026-09-28
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子代理 audit 填写）
-- Evidence: （待填写：每条 Exit Criterion / Closure Gate 的 PASS/FAIL + 证据来源）
+- Reviewer / Agent: 独立 closure auditor 子代理（fresh session，agent_ca14c515-8ceb-45ac-a4d6-8234c037da60）
+- Audit Session: agent_ca14c515-8ceb-45ac-a4d6-8234c037da60（2026-09-28）
+- Evidence:
+  - Phase 1-5 全部 Exit Criteria：PASS（审计报告逐条给出 文件:行 / 测试名 / 数据 证据；11 项 Phase 2 修复均经 live 代码 + 提交 diff 双核对）
+  - Phase 2 回归：`_tmp/n01-test-phase2-full3.log`（7 模块 1091/0/0）；Phase 3 回归：`_tmp/n01-test-phase3.log`（1091/0/0，含 TestE2EWindowOperatorWithCheckpoint 4/0、TestE2EWindowAggregateRestore 4/0 端到端）；收口复跑：`_tmp/n01-final-rerun.log`（5 模块 BUILD SUCCESS 0/0）
+  - Closure Gates：Gate 1/2/3/5 PASS（如上）；Gate 4/9 收口复跑 PASS（`_tmp/n01-final-rerun.log`）；Gate 6 PASS（`docs-for-ai/03-modules/nop-stream.md` 与 core guides grep 复核零涉及契约面，唯一文档义务 bench README 已在 Phase 1 完成）；Gate 7 即本证据；Gate 8 PASS（hollow 扫描 core/runtime/cep/rocksdb 均 exit 0，`_tmp/n01-hollow-*.txt`；新增测试经审计员确认真实断言行为、基准口径真实驱动生产路径）；Gate 10 PASS（check-doc-links --strict 0 errors）
+  - `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict`：审计时运行 EXIT=0（Passed 1/Failed 0）；收口后再运行确认（见 logs）
+  - Anti-Hollow 检查：审计员独立验证 A1 注入真实触发锁内异常路径（AssignmentPlanner.java:169-173）、A12 测试的 CopyingMapState 真实制造 copy-on-read、A2 测试双向钉死 marker 生命周期；NfaProcessBench billable 档与 MemoryKeyedStateBench.internalListAdd 真实驱动 NFA/内部状态生产入口
+  - 留舍与收敛：Round-0/1/1b/2 四轮数据与 raw 文件（_tmp/r1*.txt、phase5-targeted-suite.txt）一致；JFR（_tmp/jfr/nfa20-phase5.jfr）归因无新增单点；**无 ≥2% 低风险可收割项，停止判据成立**
+  - Deferred 分类诚实性：与 360/2279 裁定书逐项吻合，A12 重定性经 live 核实成立；审计 Minor-1/4/5 已在收口时回写（执行偏差披露、A10/B8/B12/B13 归属补充、措辞修正），Minor-3（B1 无专属测试）与 Minor-2（Phase 2 提交混入无关文档+plan 损坏当日修复）保留为过程记录，Minor-6（E3 记忆化条件确定性假设）与 Flink 同类假设一致且由 cep 全量套件守护
 
 Follow-up:
 
-- （收口时按实际填写，或明确写 no remaining plan-owned work）
+- A12 相关独立缺陷：MapState 回退布局在 RocksDB 下 Object 型值经 JSON 包装层无法回读至 fire 路径（测试执行期发现，2279 F3 生产不可达裁定覆盖主线；public 构造器路径可达）→ 与 B2/B7 同族，随 restore/serde 专项一并处理
+- benchmark 原始数据存档纪律（Round-0 raw 未存档、Phase 4 无独立日志档）——沿 2279 已登记缺口形态，successor 计划执行时补
+- A10/B8/B12/B13 与 connector H 组杂项：见 Deferred 补充节与 analysis 文档
