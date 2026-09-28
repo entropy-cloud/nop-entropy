@@ -8,6 +8,12 @@
     <bean id="nopChatService" class="io.nop.ai.core.service.ChatServiceImpl" ioc:default="true"
           ioc:type="io.nop.ai.api.chat.IChatService"/>
 
+    <!-- K1（plan knowledge-rag/01）：IEmbeddingModel 首个平台生产实现。未配置
+         nop.ai.embedding.default-llm 时 bean 可创建、首次调用 fail-loud
+         （ERR_AI_EMBEDDING_NO_PROVIDER），消费方 wiring 期 fail-fast 语义可观察。 -->
+    <bean id="nopAiEmbeddingModel" class="io.nop.ai.core.service.EmbeddingServiceImpl" ioc:default="true"
+          ioc:type="io.nop.ai.core.api.embedding.IEmbeddingModel"/>
+
     <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultChatLogger" ioc:default="true"/>
 
     <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">

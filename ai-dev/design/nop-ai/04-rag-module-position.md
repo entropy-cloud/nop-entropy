@@ -85,3 +85,16 @@
 - **拒绝删除的理由**：删除 = 丢失 SPI 契约族的公共面（未来 RAG 实现/分类器接线的结构声明），且 `nop-ai-rag` 占位模块（本 §）已声明为该族实现落点；与 P1-MA5-003 "SPI 无生产实现属设计意图"一致。
 - **登记证据**：全仓 `rg` import 扫描——上述 22 类均无 main/test 消费点（CosineSimilarity/RelevanceScore/VectorData 的引用全部落在 reserved 族内或测试）。
 - **后续动作**：出现第一个真实 RAG/分类/向量检索消费方时，在 `nop-ai-rag` 落实现并解除对应类的 reserved 登记。
+
+## 七、K1 触发登记（2026-09-28，plan knowledge-rag/01）
+
+**§四"迁移触发条件"（出现第一个真实 RAG 消费方）已由 knowledge-rag roadmap K1 触发**：`IEmbeddingModel`
+的首个平台生产实现 `EmbeddingServiceImpl` 已按 roadmap K1 落点裁定落于 **nop-ai-core**（与
+`ChatServiceImpl` 同构；裁定与协议契约见 `ai-dev/design/nop-ai/embedding.md`，`IEmbeddingModel`
+javadoc 已同步修订）。
+
+- 本裁定（§一/§四）对 `IVectorStore`（K2）与 RAG 摄取-检索管线（K3）的落点约定**不变**：
+  `nop-ai-rag` 仍是其实现落点。
+- §六表中 `api.embedding.IEmbeddingModel`/`api.embedding.EmbeddingOptions`/`api.document.AiDocument`/
+  `api.support.VectorData` 四类的 "main/test 零 import / reserved" 状态自本日起失效（生产实现 +
+  `EmbeddingServiceImpl` 已真实消费）；其余类不受影响。

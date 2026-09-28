@@ -20,13 +20,13 @@
 
 > 状态在工作项上；Milestone 仅为分组。此块是 AI 工作队列唯一入口：按里程碑顺序取第一个 `todo`。
 
-**汇总**：todo 18 · ready 0 · done 0
+**汇总**：todo 17 · ready 0 · done 1
 
 ### M1 — RAG 生产基座
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| K1 Embedding API 客户端 | todo | — |
+| K1 Embedding API 客户端 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/01-k1-embedding-api-client.md`，用户 2026-09-28 指示纳入 nop-code feature-completion 执行队列先行落地——N4.2 模型后端前置） | — |
 | K2 向量库后端驱动 | todo | K1 |
 | K3 RAG 摄取-检索管线 | todo | K1, K2 |
 | K4 Chunk 存储+编辑+版本回滚 | todo | K3 |

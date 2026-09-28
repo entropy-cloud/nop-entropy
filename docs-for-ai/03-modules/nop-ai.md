@@ -51,7 +51,7 @@
 | `nop-ai-api` | 公开 API 契约（`IChatService`/`ChatOptions` 等，新 AI API）+ 实体 CRUD 强类型生成面（`io.nop.ai.api.crud/` 22 个 `NopAiXxxApi` 接口 + `io.nop.ai.api.beans/` 44 个 Input/Output Bean，全部 `//__XGEN_FORCE_OVERRIDE__` codegen 产物）。**生成面语义（P2 round-4 裁定，2026-09-15）**：CRUD 生成面 = 平台 `crud-api` 模板的标准客户端契约产物（见 `api-model-and-codegen.md` §CRUD API 代码生成），wire 名与 nop-ai-service 22 个 `NopAiXxxBizModel`（`CrudBizModel<T>`）逐一对齐（`@BizModel` 同名）；全仓 main/test 零直接 import 属预期——消费者经 GraphQL/BizModel 或 nop-biz 运行面访问，生成面仅作为强类型客户端契约存在，不构成"已接线 CRUD API"承诺；codegen 模板为标准平台模板，无 nop-ai 定制缺口 |
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
-| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` / `IEmbeddingModel` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），无生产实现属设计意图；未来实现放本模块。nop-ai-core `api/` 下 embedding/vectorstore/classifier/document 一族 22 个公共类全仓零消费者，2026-09-15 已逐类裁定 reserved（javadoc `RESERVED` 或既有 `@Deprecated`/SPI 声明：`IEmbeddingModel`/`IVectorStore`/`ITokenCountEstimator` 既有 P1-MA5-003 SPI 声明，`IAiChatProgressListener`/`AiSystemMessage`/`AiToolMessage` 既有 `@Deprecated`，其余 `ITextClassifier`/`IDocumentClassifier`/`ClassificationResult`/`ScoredLabel`/`EmbeddingExampleConfig`/`EmbeddingModelBasedClassifier`/`EmbeddingOptions`/`CosineSimilarity`/`RelevanceScore`/`VectorStoreOptions`/`VectorQueryBean`/`VectorStoreResult`/`AiDocument`/`VectorData`/`IAiTextAggregator`/`IAiChatResponseChecker` 新增 `RESERVED`）——公共面为 RAG/分类器接线预留，不构成"可用 API"承诺 |
+| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），生产实现落点在本模块；`IEmbeddingModel` 的生产实现 `EmbeddingServiceImpl` 已于 2026-09-28（K1）落 nop-ai-core（见上方「Embedding 客户端」节）。nop-ai-core `api/` 下 embedding/vectorstore/classifier/document 一族公共类 2026-09-15 曾逐类裁定 reserved，其中 `IEmbeddingModel`/`EmbeddingOptions`/`AiDocument`/`VectorData` 4 类自 K1 起为活跃消费（reserved 状态失效，`04-rag-module-position` 设计文档 §七 有登记），其余保留 reserved——公共面为 RAG/分类器/向量检索接线预留，不构成"可用 API"承诺 |
 | `nop-ai-gateway` | AI 网关（三块能力）：LLM failover（路由格式转换 + 透明账号切换——两种形态 + 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标）+ channel 消息网关（渠道 ↔ agent 桥接 + 业务消息层 + 会话映射）+ 扫码登录编排。**使用文档见 `nop-ai-gateway.md`** |
 | `nop-ai-skills` | AI 技能 |
 | `nop-ai-tools` | AI 工具 |
@@ -127,6 +127,10 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | `nop.ai.service.rate-limit-acquire-timeout` | `1000` | LLM 调用本地限流（llm.xml 配 `rateLimit` 时）的许可获取超时（毫秒）。超时未获许可抛 `ERR_AI_RATE_LIMITED`（携带 `httpStatus=429`，`LlmErrorClassifier` 判为 RATE_LIMITED 可重试）——替代旧的无限阻塞 `acquire()`，消除挂起风险（MA6.3-AR-6）。`0`=立即失败（fail-fast） |
 
 **限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。`DefaultAiChatService`（废弃类）同款限时 tryAcquire 处理已对齐。
+
+## Embedding 客户端（nop-ai-core，K1）
+
+`EmbeddingServiceImpl`（bean `nopAiEmbeddingModel`，`io.nop.ai.core.service`）是 `IEmbeddingModel` 的平台生产实现（K1，2026-09-28）：OpenAI 兼容 `/embeddings` 协议，经 `/nop/ai/llm/{provider}.llm.xml` 配置驱动——llm 配置需声明 `<embedUrl>`（如 `/embeddings`）且 `apiStyle="openai"`（其他 apiStyle fail-loud `ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE`）。provider 路由：`EmbeddingOptions.provider` > 配置 `nop.ai.embedding.default-llm` > fail-loud（`ERR_AI_EMBEDDING_NO_PROVIDER`）。可靠性面与 chat 同构：`rateLimit` 限流、`StandardRetryPolicy` 有界重试、`<accounts>` 账号链 failover（QUOTA/AUTH 分类经 `<errorMappings>` 配置面到达）、`IAiModelCredentialResolver` 可选凭证注入。
 
 ## 工具配置（nop-ai-tools）
 

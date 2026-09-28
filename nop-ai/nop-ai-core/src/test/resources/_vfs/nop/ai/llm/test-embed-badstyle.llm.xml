@@ -1,0 +1,14 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="ollama" supportToolCalls="false" defaultModel="text-embed-ollama">
+
+    <!--
+    K1（plan knowledge-rag/01）apiStyle 校验测试 provider：
+    embedding 客户端 v1 仅支持 openai 兼容方言，非 openai apiStyle 必须 fail-loud
+    （ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE），不得按错误形状发请求。
+    -->
+
+    <embedUrl>/api/embed</embedUrl>
+
+    <response contentPath="embeddings.0" errorPath="error"/>
+
+</llm>

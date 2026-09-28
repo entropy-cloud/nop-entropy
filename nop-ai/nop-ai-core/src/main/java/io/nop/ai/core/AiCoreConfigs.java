@@ -47,4 +47,10 @@ public interface AiCoreConfigs {
             + "0 = 立即失败（fail-fast），不等待")
     IConfigReference<Long> CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT =
             varRef(s_loc, "nop.ai.service.rate-limit-acquire-timeout", Long.class, 1000L);
+
+    @Description("Embedding 调用（IEmbeddingModel/EmbeddingServiceImpl，K1）的默认 provider"
+            + "（/nop/ai/llm/{provider}.llm.xml 配置名）。EmbeddingOptions.provider 非空时优先；"
+            + "两者皆空时 embedding 调用 fail-loud（无隐式 provider）")
+    IConfigReference<String> CFG_AI_EMBEDDING_DEFAULT_LLM =
+            varRef(s_loc, "nop.ai.embedding.default-llm", String.class, null);
 }

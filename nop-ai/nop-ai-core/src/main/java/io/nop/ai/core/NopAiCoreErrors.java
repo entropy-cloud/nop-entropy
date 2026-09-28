@@ -268,4 +268,49 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_MODEL_CLASS_SATURATED =
             define("nop.err.ai.model-class.saturated",
                     "No candidate is currently available for model class: {modelClass}", ARG_MODEL_CLASS);
+
+    String ARG_API_STYLE = "apiStyle";
+
+    /**
+     * K1 embedding client (plan knowledge-rag/01): the resolved provider's
+     * llm.xml declares no {@code <embedUrl>}, so embedding calls cannot be
+     * routed. Fail-loud (no silent skip).
+     */
+    ErrorCode ERR_AI_EMBEDDING_NO_EMBED_URL =
+            define("nop.err.ai.embedding.no-embed-url",
+                    "LLM {llmName} has no embedUrl configured for embedding calls", ARG_LLM_NAME);
+
+    /**
+     * K1: neither {@code EmbeddingOptions.provider} nor the
+     * {@code nop.ai.embedding.default-llm} config variable resolved a provider.
+     */
+    ErrorCode ERR_AI_EMBEDDING_NO_PROVIDER =
+            define("nop.err.ai.embedding.no-provider",
+                    "No embedding provider specified and no default configured via nop.ai.embedding.default-llm");
+
+    /**
+     * K1: the provider responded 200 but the OpenAI-compatible payload carried
+     * no {@code data} entries (or fewer than requested).
+     */
+    ErrorCode ERR_AI_EMBEDDING_EMPTY_RESPONSE =
+            define("nop.err.ai.embedding.empty-response",
+                    "Embedding response from LLM {llmName} contains no data entries", ARG_LLM_NAME);
+
+    /**
+     * K1: QUOTA_EXCEEDED/AUTH_INVALID falled through the whole
+     * {@code <accounts>} backup chain without a successful attempt.
+     */
+    ErrorCode ERR_AI_EMBEDDING_ACCOUNT_CHAIN_EXHAUSTED =
+            define("nop.err.ai.embedding.account-chain-exhausted",
+                    "LLM {llmName} backup account chain exhausted for embedding call", ARG_LLM_NAME);
+
+    /**
+     * K1: v1 embedding client implements the OpenAI-compatible protocol only;
+     * other apiStyle values fail loud instead of silently sending a
+     * wrong-shaped request.
+     */
+    ErrorCode ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE =
+            define("nop.err.ai.embedding.unsupported-api-style",
+                    "Embedding client supports apiStyle=openai only, LLM {llmName} has apiStyle={apiStyle}",
+                    ARG_LLM_NAME, ARG_API_STYLE);
 }

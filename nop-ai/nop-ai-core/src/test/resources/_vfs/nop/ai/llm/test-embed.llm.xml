@@ -1,0 +1,30 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" supportToolCalls="false" defaultModel="text-embed-test">
+
+    <!--
+    K1（plan knowledge-rag/01）embedding 客户端测试 provider：
+    - embedUrl + defaultModel 声明 OpenAI 兼容 /embeddings 端点；
+    - <errorMappings> 401→AUTH_INVALID 使账号链 failover 分类可达（响应级双通道）；
+    - <accounts> 声明 1 个备用账号（apiKey + baseUrl 覆盖）。
+    主账号 = config 变量 nop.ai.llm.test-embed.api-key / nop.ai.llm.test-embed.base-url。
+    -->
+
+    <baseUrl>https://primary-embed.example.com/v1</baseUrl>
+
+    <embedUrl>/embeddings</embedUrl>
+
+    <response contentPath="data.0.embedding" errorPath="error"/>
+
+    <errorResponse errorTypePath="error.type" errorCodePath="error.code" errorMessagePath="error.message"/>
+
+    <errorMappings>
+        <!--key 无效：不可重试，切账号。embedding 测试主映射-->
+        <errorMapping id="embed-auth-invalid" classification="AUTH_INVALID" httpStatus="401,403"/>
+    </errorMappings>
+
+    <accounts>
+        <account id="embed-backup-1" apiKey="sk-embed-backup-1"
+                 baseUrl="https://backup-embed.example.com/v1"/>
+    </accounts>
+
+</llm>
