@@ -1126,7 +1126,7 @@ case "abs" -> {
                     outputs.add(env.nextInput());
                 }
             }
-            case "halt" -> throw new JqRuntimeException("halt", JqValue.NULL);
+            case "halt" -> throw new JqHaltException("halt", 0);
             case "halt_error" -> {
                 JqValue errorValue = input;
                 int exitCode = 5;
@@ -1135,7 +1135,7 @@ case "abs" -> {
                     if (!codes.isEmpty() && codes.get(0) instanceof JqNumber num)
                         exitCode = num.intValue();
                 }
-                throw new JqHaltException(JqPrinter.tostring(errorValue), exitCode);
+                throw new JqHaltErrorException(errorValue, exitCode);
             }
             case "input_line_number" -> outputs.add(JqNumber.of(0));
             case "trim" -> {

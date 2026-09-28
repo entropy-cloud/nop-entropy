@@ -58,6 +58,9 @@ public class JqToolExecutor implements IToolExecutor {
             }
 
             return AiToolCallResult.successResult(call.getId(), output.toString());
+        } catch (io.nop.jq.runtime.JqHaltException e) {
+            // halt terminates the jq program uncatchably; report termination to the agent
+            return AiToolCallResult.errorResult(call.getId(), e.errorMessage());
         } catch (io.nop.jq.runtime.JqRuntimeException e) {
             // the jq error value is the message the AI agent should see
             return AiToolCallResult.errorResult(call.getId(), e.errorMessage());

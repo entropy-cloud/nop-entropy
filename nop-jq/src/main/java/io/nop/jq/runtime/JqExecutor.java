@@ -1013,7 +1013,7 @@ public class JqExecutor {
                 return JqNumber.of(bi == -1 ? 0L : ai % bi);
             }
             default:
-                throw new IllegalStateException();
+                throw new IllegalStateException("not an arithmetic op: " + op);
         }
     }
 
