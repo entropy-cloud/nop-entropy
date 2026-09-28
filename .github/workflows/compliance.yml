@@ -41,6 +41,7 @@ jobs:
           FILES=$(find . -name "*.beans.xml" \
             -not -path "*/target/*" -not -path "*/_gen/*" \
             -not -path "*/src/test/*" -not -path "*nop-demo*" \
-            -not -path "*/node_modules/*" -not -path "*/docs/*")
+            -not -path "*/node_modules/*" \
+            -not -path "*/docs/*" -not -path "*/docs-en/*")
           java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
             $FILES --rules nop-bean-naming --max-warnings 0
