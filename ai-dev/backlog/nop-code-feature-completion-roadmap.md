@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 27 · todo 12
+**汇总**：done 28 · todo 11
 
 ### M0 — 基线与文档-代码对齐
 
@@ -116,7 +116,7 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N7.1 语义边 LLM 增强（LLM 语义关系抽取器，经 nop-ai；异步 + 成本预算 + 缓存；类名以 plan 期与 `semantic-edge-design.md` 对齐为准）<br>（Deliverable: 代码 + 测试；deps: N4.2；Item Type: Fix） | todo | N4.2 |
+| N7.1 语义边 LLM 增强（LLM 语义关系抽取器，经 nop-ai；异步 + 成本预算 + 缓存；类名以 plan 期与 `semantic-edge-design.md` 对齐为准）<br>（Deliverable: 代码 + 测试；deps: N4.2；Item Type: Fix；plan `ai-dev/plans/nop-code/28-n7-1-llm-semantic-edge.md`；LlmSemanticEdgeExtractor + LlmEdgeBudget + LlmEdgeCache 落 nop-code-service/semantic/） | done | N4.2 |
 | N7.2 GraphRAG 集成契约裁定（nop-code 图数据（社区/子图/导出面）暴露给 RAG 管线的集成形态裁定 + 最小接线证明；**外部依赖**：`knowledge-rag-roadmap.md` 未就绪则保持 todo）<br>（Deliverable: 裁定记录 + design 增注 +（rag 就绪时）接线测试；deps: N1.2；Item Type: Decision） | todo | N1.2 |
 
 ### M8 — 评测

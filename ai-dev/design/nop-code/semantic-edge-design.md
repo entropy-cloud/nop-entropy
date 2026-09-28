@@ -103,7 +103,7 @@ nop-code 已实现的分析能力全部基于**确定性 AST 提取**：
 
 确定性边 confidence=EXTRACTED，confidenceScore=算法相似度分数。
 
-### 4.3 LLM 增强提取器（远期，依赖 nop-ai）
+### 4.3 LLM 增强提取器（已实现，N7.1）
 
 `LlmSemanticExtractor`（extractorId = "llm-claude" 或 "llm-gpt"）：
 - 从符号表选择候选对（同一社区内、跨社区边界、高入口点分数）
