@@ -61,6 +61,7 @@
 |---|---|---|---|---|---|
 | quality/biginteger-instantiation | info | 1.1 | false | 用 BigInteger.ZERO/ONE/TEN 或 valueOf (use the cached constant or valueOf) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #11 (PMD:BigIntegerInstantiation) |
 | quality/clone-return-type-mismatch | warning | 1.0 | false | clone() 返回类型应为类本身（协变拷贝契约）(clone() should return the enclosing class type) | pmd-ruleset.xml CloneMethodReturnTypeMustMatchClassName (tool-replacement roadmap item 4a) |
+| quality/closeable-not-closed | warning | 1.0 | false | 资源类型局部变量未关闭也无所有权转移 (resource-type local variable never closed and no ownership transfer) | tool-replacement roadmap item 7 (plan nop-lint/23) — PMD CloseResource / SpotBugs ODR semantic anchor |
 | quality/collection-size-nonnegative | warning | 1.0 | false | size() >= 0 恒为 true (collection size is never negative) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #6 (EP:SizeGreaterThanOrEqualsZero) |
 | quality/control-statement-braces | info | 1.1 | false | if 语句体必须使用大括号 (if statement body must be wrapped in braces) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #30 (design 06 §4.1 ControlStatementBraces) |
 | quality/covariant-equals | warning | 1.0 | false | 协变 equals 破坏等价契约，请覆写 equals(Object) (covariant equals breaks the equality contract; override equals(Object)) | checkstyle.xml CovariantEquals (tool-replacement roadmap item 3a) |

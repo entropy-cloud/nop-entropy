@@ -47,9 +47,9 @@
 | NullAway / 空类型系统族 | 待裁 | — | — | 待裁 |
 | ArchUnit | 待裁 | — | — | 待裁 |
 
-### 规则级分面表（62 条复审 + item 3a +4 + item 4a +5 + item 5 +2 = live 69 行 + remove 4 行，roadmap item 2/3a/4a/5，plan nop-lint/16、17、19、21）
+### 规则级分面表（62 条复审 + item 3a +4 + item 4a +5 + item 5 +2 = live 70 行 + remove 4 行，roadmap item 2/3a/4a/5，plan nop-lint/16、17、19、21）
 
-> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep；item 4a 新增 5 行全 core/keep（no-branching-in-loop-body、no-clone-without-cloneable、clone-return-type-mismatch、proper-clone-implementation、no-hardcoded-iv）；item 5 新增 2 行全 core/keep（nop-bean-naming、nop-orm-icons，XNode）；implicit-switch-fall-through 因形状近似对照不可逐条裁定（PMD 6 vs 形状 219 extras）按 Deferred 裁定不入库（机制缺口：dataflow 判定 + falls-through 注释豁免），行 status = deferred。
+> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep；item 4a 新增 5 行全 core/keep（no-branching-in-loop-body、no-clone-without-cloneable、clone-return-type-mismatch、proper-clone-implementation、no-hardcoded-iv）；item 5 新增 2 行全 core/keep（nop-bean-naming、nop-orm-icons，XNode）；item 7 新增 1 行 core/keep（closeable-not-closed）；implicit-switch-fall-through 因形状近似对照不可逐条裁定（PMD 6 vs 形状 219 extras）按 Deferred 裁定不入库（机制缺口：dataflow 判定 + falls-through 注释豁免），行 status = deferred。
 
 | 规则 | 分面 | 处置 | 裁定理由 | 重估触发 |
 |---|---|---|---|---|
@@ -122,6 +122,7 @@
 | security/no-hardcoded-iv | core | keep | 硬编码 IV（安全面，窄面 landed；污点面=机制缺口，item 4a 新增） | 污点面机制落地时（item 7 联动） |
 | nop-bean-naming | core | keep | IoC bean 命名强约定（平台不变式，item 5 新增；REF 跨文件面维持 mjs） | — |
 | nop-orm-icons | core | keep | 源模型图标完整性（平台不变式，item 5 新增） | — |
+| quality/closeable-not-closed | core | keep | 资源泄漏（v1 保守面，item 7 新增） | L3 路径敏感 acquire/release 配对分析器 |
 | quality/string-literal-equality | core | keep | 字符串 ==/!= 引用比较 bug（正确性面，item 3a 新增） | — |
 | quality/no-native-method | core | keep | native 禁令=纯 Java 平台不变式（item 3a 新增） | — |
 | exception/no-raw-throws | core | keep | Nop 异常契约声明面（item 3a 新增） | — |
@@ -133,7 +134,7 @@
 
 | 缺陷类 | 现有规则 | manifest 机制 tier | 机制缺口 | 优先级 |
 |---|---|---|---|---|
-| 资源泄漏 | quality/no-finalize；exception/empty-finally-block；antipattern/double-brace-init | 无 acquire/release 对应行 | **acquire/release 路径配对零规则**：close() 调用面、try-with-resources 豁免判定、跨分支释放路径——需 L3 方法内路径敏感配对分析（design 11 L3 之上的路径敏感面），item 7 裁定 v1 机制 | P1 |
+| 资源泄漏 | quality/no-finalize；exception/empty-finally-block；antipattern/double-brace-init；quality/closeable-not-closed | 无 acquire/release 对应行 | **acquire/release 路径配对零规则**：close() 调用面、try-with-resources 豁免判定、跨分支释放路径——v1 = pattern+scope 保守面已落地（closeable-not-closed，三豁免面）；L3 路径敏感 acquire/release 配对分析器 = Deferred（触发 = v1 误报数据不支持） | P1 |
 | 空指针 | exception/equals-null；exception/no-throw-npe；exception/throw-null；antipattern/catch-npe；quality/no-return-null | null 相关 manifest 行均为 tier1 pattern 面（已落地）；null-flow 无任何 manifest 行（机制前瞻空缺） | **解引用流零规则**：判空后复用链、参数判空契约、嵌套字段访问链——需 L3 null-flow（判空路径传播），item 8 裁定深度/成本/误报 | P1 |
 | 吞异常 | nop/no-empty-catch；nop/silent-swallow；exception/no-catch-throwable；exception/empty-finally-block；antipattern/throw-in-finally | tier1（silent-swallow/empty-catch 面 landed） | 面已覆盖（CI 硬门禁）；例外：catch 内条件性吞（半吞）无规则 | P3 |
 | 错误处理契约 | nop/no-raw-exception；nop/no-log-getmessage；antipattern/catch-npe；exception/no-raw-throws | tier1/2 | NopException ErrorCode 参数面由 mjs 门禁维持（design 12 裁定维持 mjs）；引擎面无缺口 | P3 |

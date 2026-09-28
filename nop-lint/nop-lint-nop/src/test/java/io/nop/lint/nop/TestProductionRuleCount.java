@@ -105,7 +105,9 @@ public class TestProductionRuleCount {
             "security/no-hardcoded-iv",
             // item 5 (plan nop-lint/21): mjs switchover successors (XNode)
             "nop-bean-naming",
-            "nop-orm-icons");
+            "nop-orm-icons",
+            // item 7 (plan nop-lint/23): resource-leak v1 pilots
+            "quality/closeable-not-closed");
 
     @BeforeAll
     static void init() {
@@ -125,9 +127,12 @@ public class TestProductionRuleCount {
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
         // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
-        // +4 -> 62; item 4a (plan 19): +6 -1 deferral -> 67; item 5 (plan 21):
-        // two mjs switchover successors (XNode) added, 67 -> 69
-        assertEquals(69, ids.size(), "production rule census size");
+        // +4 -> 62; item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 -> 69;
+        // item 7 (plan 23): one resource-leak v1 pilot added, 69 -> 70
+        // (finally-missing-close dropped: xscript DSL lacks multi-descendant
+        // enumeration and regex-literal exec — the face is covered by
+        // closeable-not-closed which flags any resource without a close call)
+        assertEquals(70, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }
