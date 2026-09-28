@@ -1,6 +1,5 @@
 package io.nop.ai.rag.vector;
 
-import io.nop.ai.core.api.embedding.CosineSimilarity;
 import io.nop.ai.core.api.support.VectorData;
 import io.nop.ai.core.api.vectorstore.IVectorStore;
 import io.nop.ai.core.api.vectorstore.VectorQueryBean;

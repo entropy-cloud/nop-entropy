@@ -136,6 +136,9 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 
 **向量库后端（K2，nop-ai-rag）**：`io.nop.ai.rag.vector.PgVectorStore`（pgvector JDBC 驱动，集成方注入 `javax.sql.DataSource`）与 `InMemoryVectorStore`（内存参考实现）实现 `IVectorStore` SPI。租户隔离 = UNIQUE(tenant_id,id) + 全语句谓词；search 要求 `query.vector` 必填（A1 裁定）。两实现均不注册 IoC default bean——装配归消费方（K3 管线/集成方）。owner doc 为 nop-ai 设计文档集的 vector-store.md（A1-A4 契约裁定）。
 
+**RAG 管线（K3，nop-ai-rag）**：`RagIngestService`（splitter→embed→store）、`RagSearchService`（embed query→search→重算 cosine score）、`RagSynthesizeService`（search→context→IChatService）三服务编排为完整摄取-检索-合成管线。经 `NopAiRagBizModel`（`@BizModel("/NopAiRag")`）暴露 `ingestDocument`/`search`/`synthesize` 三 action。v1 纯向量检索（hybrid 归 K8）；InMemoryVectorStore 缺省装配，生产 Delta 替换 PgVectorStore。
+
+
 
 ## 工具配置（nop-ai-tools）
 
