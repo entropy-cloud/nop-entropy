@@ -219,10 +219,14 @@ public final class Language {
             throw new IllegalStateException("scanner_program_length " + scannerProgramLength
                     + " out of range for blob size " + blob.length);
         }
-        if (externalTokenCount == 0 && (externalLexStateCount != 0 || reservedWordSetCount != 0
-                || maxReservedWordSetSize != 0)) {
-            throw new IllegalStateException("external_token_count 0 but external lex state / reserved word "
-                    + "counts are non-zero");
+        // Go (tree-sitter v0.25.8) is the first vendored grammar with reserved words but
+        // EXTERNAL_TOKEN_COUNT 0 — reserved-word sets ride on the external-lex-state arrays
+        // without any external scanner. Only the external-lex-state count stays coupled to
+        // the external token count; reserved words are consumed independently
+        // (isReservedWord / Lexer reserved-word filtering).
+        if (externalTokenCount == 0 && externalLexStateCount != 0) {
+            throw new IllegalStateException("external_token_count 0 but external lex state count is "
+                    + externalLexStateCount);
         }
 
         int totalSymbolCount = symbolCount + aliasCount;

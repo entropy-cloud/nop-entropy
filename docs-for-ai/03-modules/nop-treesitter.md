@@ -11,7 +11,7 @@ nop-treesitter 把上游 [tree-sitter](https://github.com/tree-sitter/tree-sitte
 - **外部 scanner**：scanner.c 翻译为字节码 DSL，由 `ScannerVM` 解释执行
 - **Nop 集成**：NopIoC 语法提供者 bean + GraphQL `parseTreeSitter` action
 
-内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111（唯一裁定节为 GLR tie-break 差异）、Python **115/117**（2 个多轮恢复形状裁定节）。
+内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`、`go`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111（唯一裁定节为 GLR tie-break 差异）、Python **115/117**（2 个多轮恢复形状裁定节）、Go **65/67**（2 个多轮恢复形状裁定节；en route 修复 `Language.decode` 对"无 external scanner 但带 reserved words"grammar 的校验）。
 
 ## 快速开始
 
@@ -65,7 +65,7 @@ query {
 | lexer | `io.nop.treesitter.lexer` | blob 内 DFA + keyword capture + 错误模式字符跳过 |
 | scanner VM | `io.nop.treesitter.scanner` | scanner.c 的字节码 ISA + 解释器 |
 | query | `io.nop.treesitter.query` | S-expression 模式编译 + 匹配 |
-| compat 迁移层 | `io.nop.treesitter.compat` | 镜像 `org.treesitter`（bonede JNI）API 形状的桥接：`TSParser`/`TSTree`/`TSNode`/`TSPoint` + `TreeSitter{Python,Typescript}` 适配器。python 的缩进 scanner 由 `TreeSitterPython` 静态接线 `PythonScanner` 工厂（blob 内不含该 scanner），消费方无感 |
+| compat 迁移层 | `io.nop.treesitter.compat` | 镜像 `org.treesitter`（bonede JNI）API 形状的桥接：`TSParser`/`TSTree`/`TSNode`/`TSPoint` + `TreeSitter{Python,Typescript,Go}` 适配器。python 的缩进 scanner 由 `TreeSitterPython` 静态接线 `PythonScanner` 工厂（blob 内不含该 scanner），消费方无感 |
 | provider/biz | `io.nop.treesitter.provider` / `.biz` | NopIoC bean + GraphQL 门面 |
 
 **JNI 迁移状态**：`nop-code-lang-python` / `nop-code-lang-typescript` 已从

@@ -1,0 +1,61 @@
+=================================================
+Error detected at globally reserved keyword
+=================================================
+
+func a() {
+    a.    // Should error here, and not use 'if' as a field
+
+    if b > c {
+        d()
+    }
+}
+
+
+func b() {
+    b.     // Should error here, and not use 'switch' as a field
+
+    switch v {
+    case 1:
+        doSomething()
+    }
+}
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (ERROR
+        (identifier))
+      (comment)
+      (statement_list
+        (if_statement
+          (binary_expression
+            (identifier)
+            (identifier))
+          (block
+            (statement_list
+              (expression_statement
+                (call_expression
+                  (identifier)
+                  (argument_list)))))))))
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (ERROR
+        (identifier))
+      (comment)
+      (statement_list
+        (expression_switch_statement
+          (identifier)
+          (expression_case
+            (expression_list
+              (int_literal))
+            (statement_list
+              (expression_statement
+                (call_expression
+                  (identifier)
+                  (argument_list))))))))))
