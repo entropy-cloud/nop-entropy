@@ -106,7 +106,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 解析器、执行器、jq 支持。
 
-**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq`）
+**Module / area:** `nop-jq`（主代码包 `io.nop.jq`）
 
 ### 2. JsonPath 解析器 + 执行器
 
@@ -123,7 +123,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** fastjson API 兼容（stage 3）、extract() 流式路径。
 
-**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq.jsonpath`）
+**Module / area:** `nop-jq`（主代码包 `io.nop.jq.jsonpath`）
 
 ### 3. JsonPath API 兼容层
 
@@ -144,7 +144,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** extract() 流式路径（Non-Goal）。
 
-**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq.jsonpath`）
+**Module / area:** `nop-jq`（主代码包 `io.nop.jq.jsonpath`）
 
 ### 4. 移植 fastjson JsonPath 单元测试
 
@@ -159,7 +159,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** extract() 相关测试（7 个文件，Non-Goal）、ASM 相关测试。
 
-**Module / area:** `nop-kernel/nop-jq`（测试包 `io.nop.jq.jsonpath`）
+**Module / area:** `nop-jq`（测试包 `io.nop.jq.jsonpath`）
 
 ### 5. jq→XLang 翻译器
 
@@ -176,7 +176,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** fork/backtrack VM、label/break、用户自定义函数、模块系统。
 
-**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq.jq`）
+**Module / area:** `nop-jq`（主代码包 `io.nop.jq.jq`）
 
 ### 6. 移植 jq 核心测试
 
@@ -191,7 +191,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** Tier 3 测试（regex 依赖 Oniguruma, formatting, module system）。
 
-**Module / area:** `nop-kernel/nop-jq`（测试包 `io.nop.jq.jq`）
+**Module / area:** `nop-jq`（测试包 `io.nop.jq.jq`）
 
 ### 7. JMH 基准测试框架
 
@@ -207,7 +207,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 优化（stage 8）。
 
-**Module / area:** `nop-kernel/nop-jq`（测试包 `io.nop.jq.benchmark`）
+**Module / area:** `nop-jq`（测试包 `io.nop.jq.benchmark`）
 
 ### 8. 性能热点优化
 
@@ -224,7 +224,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** JFR 分析（stage 9）、extract() 流式优化。
 
-**Module / area:** `nop-kernel/nop-jq`（主代码包 `io.nop.jq`）
+**Module / area:** `nop-jq`（主代码包 `io.nop.jq`）
 
 ### 9. JFR 分析 + 高级优化
 
@@ -240,7 +240,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** native 层面优化。
 
-**Module / area:** `nop-kernel/nop-jq/`
+**Module / area:** `nop-jq/`
 
 ### 10. nop-core JPath 迁移
 
@@ -257,7 +257,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** 上层业务模块迁移（nop-biz, nop-auth 等）。
 
-**Module / area:** `nop-kernel/nop-core/`, `nop-kernel/nop-jq/`
+**Module / area:** `nop-kernel/nop-core/`, `nop-jq/`
 
 ### 11. 全局函数注册
 
@@ -273,7 +273,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Out of scope:** ORM 层面的自动集成（由 nop-core 迁移覆盖）。
 
-**Module / area:** `nop-kernel/nop-jq/`, `nop-kernel/nop-xlang/`
+**Module / area:** `nop-jq/`, `nop-kernel/nop-xlang/`
 
 ### 12. 性能对比报告
 

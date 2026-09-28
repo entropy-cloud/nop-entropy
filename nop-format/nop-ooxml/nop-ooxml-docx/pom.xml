@@ -21,7 +21,7 @@
              ServiceLoader) so template tests using JPath evaluation work -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-jq</artifactId>
+            <artifactId>nop-jpath</artifactId>
             <scope>test</scope>
         </dependency>
 
