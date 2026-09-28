@@ -10,6 +10,7 @@ entity:
     NopCodeIndex: Code Index
     NopCodeInheritance: Inheritance
     NopCodeSemanticEdge: Semantic Edge
+    NopCodeShardLedger: Shard Ledger
     NopCodeSymbol: Symbol
     NopCodeUsage: Symbol Usage
 prop:
@@ -189,6 +190,12 @@ prop:
       targetSymbol: null
       targetSymbol.name: null
       extDataComponent: null
+    NopCodeShardLedger:
+      id: null
+      indexId: null
+      shardId: null
+      status: null
+      completedAt: null
     NopCodeSymbol:
       id: null
       indexId: null

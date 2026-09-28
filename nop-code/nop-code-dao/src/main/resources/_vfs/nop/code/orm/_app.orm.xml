@@ -1021,5 +1021,25 @@
                 <unique-key columns="indexId,metricType,symbolId" name="uk_graph_metric_unique"/>
             </unique-keys>
         </entity>
+        <entity className="io.nop.code.dao.entity.NopCodeShardLedger" displayName="分片构建登记"
+                name="io.nop.code.dao.entity.NopCodeShardLedger" registerShortName="true"
+                tableName="nop_code_shard_ledger" i18n-en:displayName="Shard Ledger" ext:icon="layers">
+            <columns>
+                <column code="ID" displayName="主键" domain="codeId" mandatory="true" name="id" precision="36"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="INDEX_ID" displayName="索引ID" domain="codeId" mandatory="true" name="indexId"
+                        precision="100" propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SHARD_ID" displayName="分片ID" mandatory="true" name="shardId" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" precision="20" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="COMPLETED_AT" displayName="完成时间" name="completedAt" propId="5" stdDataType="timestamp"
+                        stdSqlType="DATETIME"/>
+            </columns>
+            <comment>集群分片构建完成登记(N6.4 原子发布的共享 ledger)</comment>
+            <unique-keys>
+                <unique-key columns="indexId,shardId" name="uk_shard_ledger_unique"/>
+            </unique-keys>
+        </entity>
     </entities>
 </orm>

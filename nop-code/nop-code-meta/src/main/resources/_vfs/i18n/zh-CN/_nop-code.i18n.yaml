@@ -10,6 +10,7 @@ entity:
     NopCodeIndex: 代码索引
     NopCodeInheritance: 继承关系
     NopCodeSemanticEdge: 语义边
+    NopCodeShardLedger: 分片构建登记
     NopCodeSymbol: 符号
     NopCodeUsage: 符号引用
 prop:
@@ -189,6 +190,12 @@ prop:
       targetSymbolId: 目标符号ID
       updateTime: 更新时间
       updatedBy: 更新人
+    NopCodeShardLedger:
+      completedAt: 完成时间
+      id: 主键
+      indexId: 索引ID
+      shardId: 分片ID
+      status: 状态
     NopCodeSymbol:
       accessModifier: 访问修饰符
       accessModifier_label: 访问修饰符

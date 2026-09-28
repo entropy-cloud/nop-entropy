@@ -20,6 +20,14 @@
         <property name="bizObjName" value="NopCodeGraphMetric"/>
     </bean>
 
+    <bean id="io.nop.code.service.entity.NopCodeShardLedgerBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopCodeShardLedger" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.code.biz.INopCodeShardLedgerBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopCodeShardLedger"/>
+    </bean>
+
     <bean id="io.nop.code.service.entity.NopCodeFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopCodeFile" class="io.nop.biz.proxy.BizProxyFactoryBean" ioc:type="io.nop.code.biz.INopCodeFileBiz"
