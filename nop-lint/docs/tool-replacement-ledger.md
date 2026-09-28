@@ -135,7 +135,7 @@
 | 缺陷类 | 现有规则 | manifest 机制 tier | 机制缺口 | 优先级 |
 |---|---|---|---|---|
 | 资源泄漏 | quality/no-finalize；exception/empty-finally-block；antipattern/double-brace-init；quality/closeable-not-closed | 无 acquire/release 对应行 | **acquire/release 路径配对零规则**：close() 调用面、try-with-resources 豁免判定、跨分支释放路径——v1 = pattern+scope 保守面已落地（closeable-not-closed，三豁免面）；L3 路径敏感 acquire/release 配对分析器 = Deferred（触发 = v1 误报数据不支持） | P1 |
-| 空指针 | exception/equals-null；exception/no-throw-npe；exception/throw-null；antipattern/catch-npe；quality/no-return-null | null 相关 manifest 行均为 tier1 pattern 面（已落地）；null-flow 无任何 manifest 行（机制前瞻空缺） | **解引用流零规则**：判空后复用链、参数判空契约、嵌套字段访问链——需 L3 null-flow（判空路径传播），item 8 裁定深度/成本/误报 | P1 |
+| 空指针 | exception/equals-null；exception/no-throw-npe；exception/throw-null；antipattern/catch-npe；quality/no-return-null | null 相关 manifest 行均为 tier1 pattern 面（已落地）；null-flow 无任何 manifest 行（机制前瞻空缺） | **正式裁定（item 8，plan 24）**：①pattern 面 5 条已覆盖 NPE 语法子面（显式 throw null、equals(null) 判空笔误、catch NPE、return null）；②L3 null-flow（解引用前判空路径传播）= Deferred——DataFlowAnalyzer v1 flow-insensitive，path-sensitive 为 successor surface，与 item 7 Option A 同族共享触发；③NullAway 式全程序注解推导 = not-replaceable（超出 per-file 引擎问题域，Hard constraint 1 纯源码原则；重估 = 纯源码原则被推翻） | P1 |
 | 吞异常 | nop/no-empty-catch；nop/silent-swallow；exception/no-catch-throwable；exception/empty-finally-block；antipattern/throw-in-finally | tier1（silent-swallow/empty-catch 面 landed） | 面已覆盖（CI 硬门禁）；例外：catch 内条件性吞（半吞）无规则 | P3 |
 | 错误处理契约 | nop/no-raw-exception；nop/no-log-getmessage；antipattern/catch-npe；exception/no-raw-throws | tier1/2 | NopException ErrorCode 参数面由 mjs 门禁维持（design 12 裁定维持 mjs）；引擎面无缺口 | P3 |
 | 并发 | antipattern/empty-sync-block | 无对应行 | 锁获取/释放配对、double-checked locking、wait/notify 面零规则——需类型面（Lock/Monitor）+ 路径分析，机制成本高 | P3 |

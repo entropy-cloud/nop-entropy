@@ -65,7 +65,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 - 6. **核心缺陷类清单与覆盖矩阵**：资源泄漏（流/连接未关闭）、空指针（解引用/传 null）、吞异常（silent-swallow 已有）、错误处理契约（NopException 面）、并发（锁/线程面）、安全面（加密/命令执行/敏感信息，已有 7 条 security）、注入面、数据流 bug（unused/self-assign/constant-condition 已有）——逐类盘点：现有规则 / manifest 机制 tier / 机制缺口 / 优先级，矩阵落统一账本: `done`（plan: ai-dev/plans/nop-lint/22-defect-coverage-matrix.md——矩阵 10 行落账本〔8 类 + 平台不变式/正确性两个 Purpose 遗漏类，item 6 状态翻转同步说明〕，门禁扩展钉名+live 交叉校验+负控通过；待独立 closure audit 后正式收口） — deps: 2
 - 7. **资源泄漏面落地**：v1 机制裁定（L3 acquire/release 路径配对分析 vs pattern+scope 保守面——以误报控制数据定）+ 试点规则（Closeable 未关闭 / finally 缺 close / 泄漏形态豁免面）+ 对照: `done`（plan: ai-dev/plans/nop-lint/23-resource-leak-v1.md，audit agent_9bb4e662 APPROVE——v1 Option B 保守面 closeable-not-closed 落地；Option A Deferred；finally-missing-close 执行期移除） — deps: 6
-- 8. **空指针面深度裁定**：pattern 面（现有 throw-null/equals-null/no-throw-npe）→ L3 null-flow（解引用前判空路径分析）的深度/成本/误报裁定；NullAway 式全程序注解推导超出当前引擎深度的结论落正式记录 + 重估触发: `todo` — deps: 6
+- 8. **空指针面深度裁定**：pattern 面（现有 throw-null/equals-null/no-throw-npe）→ L3 null-flow（解引用前判空路径分析）的深度/成本/误报裁定；NullAway 式全程序注解推导超出当前引擎深度的结论落正式记录 + 重估触发: `done`（plan: ai-dev/plans/nop-lint/24-null-flow-adjudication.md——三段归因落账本空指针行；null-flow Deferred 与 item 7 Option A 共享触发；NullAway not-replaceable） — deps: 6
 - ★ **Milestone MT2: 核心缺陷面矩阵成立，资源泄漏/空指针两大类有机制裁定**（unlocks when 6–8 done）
 
 ### Wave 3 — SpotBugs（源码可检核心面的承接；字节码面原则外）
