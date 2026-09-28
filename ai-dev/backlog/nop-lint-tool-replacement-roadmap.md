@@ -84,9 +84,9 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 5 — ErrorProne 与类型系工具（未接线，adopt-or-skip）
 
-- 15. ErrorProne 实跑盘点：EP 使命（抓真 bug）与本定位最对齐——一次性实跑收集其在本语料的**核心缺陷发现面**，coverage manifest 的 EP 行证据化 → adopt-or-skip 终裁: `todo` — deps: 6
-- 16. javac 归因精度差异实测：抽依赖 javac type attribution 的代表面（overload resolution、常量折叠）做 L2 对照样本，精度 delta 落 manifest 增注（兑现 design 08 §4 承诺）: `todo` — deps: 15
-- 17. NullAway 终裁：NPE 属核心 mandate（item 8 已裁定引擎侧深度）；NullAway 的全程序注解推导作为"另一极"落对照结论 + 重估触发: `todo` — deps: 8, 16
+- 15. ErrorProne 实跑盘点：EP 使命（抓真 bug）与本定位最对齐——一次性实跑收集其在本语料的**核心缺陷发现面**，coverage manifest 的 EP 行证据化 → adopt-or-skip 终裁: `planned`（plan: ai-dev/plans/nop-lint/26-errorprone-nullaway-adjudication.md，items 15/16/17 合并裁定） — deps: 6
+- 16. javac 归因精度差异实测：抽依赖 javac type attribution 的代表面（overload resolution、常量折叠）做 L2 对照样本，精度 delta 落 manifest 增注（兑现 design 08 §4 承诺）: `planned`（合并至 plan 26） — deps: 15
+- 17. NullAway 终裁：NPE 属核心 mandate（item 8 已裁定引擎侧深度）；NullAway 的全程序注解推导作为"另一极"落对照结论 + 重估触发: `planned`（合并至 plan 26——not-replaceable 已在 item 8 落档） — deps: 8, 16
 - ★ **Milestone MT3c: 类型系工具分面裁定完成**
 
 ### Wave 6 — 架构断言与 out-of-scope 归档
