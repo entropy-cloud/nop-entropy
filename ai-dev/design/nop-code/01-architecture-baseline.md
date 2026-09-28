@@ -299,7 +299,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 启发式调用边合成 | ✅ 已实现（`InterfaceImplSynthesizer` / `SpringEventSynthesizer`，产出 INFERRED `CodeMethodCall`，非语义边） |
 | 图存储抽象（`IGraph`） | ✅ 已实现（`IGraph` 接口 + `CodeCallGraph` 适配器） |
 | 查询路径无状态 | 🔶 部分（2026-09-27）：全局算法查询物化优先（N1.3）；结构查询仍 lazy rebuild。`AnalysisCache` 为 DB 派生视图的读缓存（N1.4：实际内容变更才失效——实际变更的增量/indexFile/batchDelete/indexDirectory/deleteIndex 同时失效缓存与物化行，no-op 增量两者都保留） |
-| 数据库图后端（`IGraph` 的第二实现） | ⏳ 未定（`ltree`/CTE/AGE 选型开放；参考应用为 MySQL/H2） |
+| 数据库图后端（`IGraph` 的第二实现） | ✅ 已裁定（2026-09-28，N6.1）：可移植 SQL（复用四张关系表 + 递归 CTE 下推局部遍历），不引入 PG 专属扩展/独立图存储；下推边界=点查+有界深度 CTE，全局算法维持索引期物化。裁定记录见 `graph-db-backend-decision.md`（实现归 N6.2） |
 
 ### 6.2 待做
 
@@ -307,7 +307,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 |------|------|------|
 | 全局算法结果持久化 | ✅ 已实现（2026-09-27） | `nop_code_graph_metric` 表（N1.2）：社区/介数中心性/PageRank/入口点评分在 full index 后物化（`NopCodeIndex__triggerFullIndex` 触发），查询经 `GraphMetricStore` 只读取数；实际变更的增量索引使物化失效（no-op 不失效），deleteIndex 清除；COMMUNITY/BETWEENNESS/PAGE_RANK 行覆盖 call-graph 节点集，ENTRY_POINT 行覆盖 METHOD/CONSTRUCTOR；查询 API 迁移到物化读数归 N1.3 |
 | 查询路径无状态化 | 🔶 全局算法部分已实现（2026-09-27，N1.3） | `detectCommunities`/`getCriticalNodes`/`getGraphAnalysis` 已改为物化优先读取 `nop_code_graph_metric`（自愈回退：缺行时计算一次并落库，返回值=落库值）；结构查询（impact/export/diff/hierarchy/deps/flow）仍走 lazy 边集视图，收敛归 N6.2 数据库 `IGraph` 后端 |
-| 数据库图后端 | ⏳ 待决策 | `IGraph` 的第二实现；需先定生产 DB 与可移植性边界 |
+| 数据库图后端 | ✅ 已裁定（2026-09-28，N6.1） | 可移植 SQL（复用四表 + 递归 CTE 下推局部遍历），拒绝 ltree/AGE/外部图库；下推边界=点查+有界深度 CTE，全局算法维持索引期物化。裁定记录见 `graph-db-backend-decision.md`（实现归 N6.2） |
 | 框架适配迁出核心 | ⏳ 中期 | 把 `JavaFileAnalyzer` 硬编码 Spring 路由改为 `IEntryPointPatternProvider`/适配器；DSL 为远期选项 |
 | 语义边 LLM 集成 | ⏳ 远期 | 依赖 nop-ai；当前确定性提取器只产出 EXTRACTED 边 |
 | nop-search 向量/混合 | ⏳ 远期 | 双路径已实现，向量嵌入与 RRF 混合搜索待部署时注入 |

@@ -43,7 +43,7 @@
 | N5.4 | Go 语言扩展 | Fix | 00-vision §六决策点1(新增语言需人工评估,roadmap 已裁决吸收) | P1#9(10+ 语言的 +3 子集);P1#10 | todo |
 | N5.5 | Rust 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
 | N5.6 | C# 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
-| N6.1 | 数据库图后端选型决策 | Decision | 01-baseline §4.4.1(ltree/CTE/AGE 开放决策);00-vision §一(待决策) | P1#7 | todo |
+| N6.1 | 数据库图后端选型决策 | Decision | 01-baseline §4.4.1(ltree/CTE/AGE 开放决策);00-vision §一(待决策) | P1#7 | tdone(2026-09-28,plan `ai-dev/plans/nop-code/18-n6-1-graph-db-backend-decision.md`;裁定=可移植 SQL CTE,拒绝 ltree/AGE/外部图库) |
 | N6.2 | `IGraph` 数据库实现 | Fix | 01-baseline §4.4.1(未来数据库实现行)/§6.2 | P1#7 | todo |
 | N6.3 | 集群索引构建——分发与工作区 | Fix | 00-vision §一(集群索引目标);01-baseline §6.2(源码分发/分片/原子发布) | P1#6 | todo |
 | N6.4 | 集群索引构建——原子发布与一致性模型 | Fix | 同 N6.3 | P1#6 | todo |
