@@ -9,7 +9,8 @@ public enum CodeLanguage {
     TYPESCRIPT("typescript", ".ts", ".tsx"),
     JAVASCRIPT("javascript", ".js", ".jsx"),
     GO("go", ".go"),
-    RUST("rust", ".rs");
+    RUST("rust", ".rs"),
+    CSHARP("csharp", ".cs");
 
     private final String code;
     private final String[] extensions;

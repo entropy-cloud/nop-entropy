@@ -49,6 +49,7 @@ import io.nop.code.core.model.IHeuristicEdgeSynthesizer;
 import io.nop.code.core.model.EdgeProvenance;
 import io.nop.code.core.model.CodeRouteInfo;
 import io.nop.code.core.resolver.IImportResolver;
+import io.nop.code.lang.csharp.CSharpImportResolver;
 import io.nop.code.lang.go.GoImportResolver;
 import io.nop.code.lang.java.JavaImportResolver;
 import io.nop.code.lang.rust.RustImportResolver;
@@ -295,7 +296,8 @@ public class CodeIndexService implements ICodeIndexService {
                 new PythonImportResolver(),
                 new TypeScriptImportResolver(),
                 new GoImportResolver(),
-                new RustImportResolver()
+                new RustImportResolver(),
+                new CSharpImportResolver()
         };
         for (IImportResolver resolver : resolvers) {
             importResolvers.put(resolver.getLanguage(), resolver);

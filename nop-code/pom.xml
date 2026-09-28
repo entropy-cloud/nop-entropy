@@ -26,6 +26,7 @@
         <module>nop-code-lang-typescript</module>
         <module>nop-code-lang-go</module>
         <module>nop-code-lang-rust</module>
+        <module>nop-code-lang-csharp</module>
         <module>nop-code-codegen</module>
         <module>nop-code-dao</module>
         <module>nop-code-meta</module>

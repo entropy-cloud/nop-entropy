@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 26 · todo 13
+**汇总**：done 27 · todo 12
 
 ### M0 — 基线与文档-代码对齐
 
@@ -100,7 +100,7 @@ audit-rounds: 2
 | N5.3 DSL 驱动框架适配器（描述式路由/DI 模式 DSL，作为 N5.2 的远期演进）<br>（Deliverable: DSL 模型 + 解析 + 测试；deps: N5.2；Item Type: Fix；plan `ai-dev/plans/nop-code/17-n5-3-dsl-driven-framework-adapter.md`） | done | N5.2 |
 | N5.4 Go 语言扩展（tree-sitter go 绑定 + `ILanguageAdapter` 适配 + 提取器 + dict + 测试）<br>（Deliverable: 语言模块增量 + 测试；deps: 无（前置：`nop-treesitter-roadmap.md` go blob 可得，条目 18 已完成）；Item Type: Fix；plan `ai-dev/plans/nop-code/25-n5-4-go-language-extension.md`；nop-code-lang-go 模块 + service resolver 接线） | done | — |
 | N5.5 Rust 语言扩展（同 N5.4 形态）<br>（Deliverable: 同上；deps: 无（前置 rust blob 条目 19 已完成）；Item Type: Fix；plan `ai-dev/plans/nop-code/26-n5-5-rust-language-extension.md`；nop-code-lang-rust 模块 + service resolver 接线） | done | — |
-| N5.6 C# 语言扩展（同 N5.4 形态）<br>（Deliverable: 同上；deps: 无；Item Type: Fix） | todo | — |
+| N5.6 C# 语言扩展（同 N5.4 形态）<br>（Deliverable: 同上；deps: 无（前置 c-sharp blob 条目 20 已完成）；Item Type: Fix；plan `ai-dev/plans/nop-code/27-n5-6-csharp-language-extension.md`；nop-code-lang-csharp 模块 + service resolver 接线） | done | — |
 
 ### M6 — 存储与集群
 
@@ -167,7 +167,7 @@ audit-rounds: 2
 
 ## 4. 当前基线
 
-- **已实现**：5 语言解析（Java/Python/TS/Go/Rust；Go 于 2026-09-28 N5.4 落地、Rust 于 2026-09-28 N5.5 落地；TS 调用图已于 2026-09-28 N5.1 补全——同文件/导入调用 qn 候选 + import 收集）、通用图算法（经 `nop-graph`）、社区检测/关键节点/知识缺口/图导出/图快照对比、执行流/变更风险/死代码检测、确定性语义边（3 提取器）、启发式调用边（2 合成器）、GraphQL API（42 方法，实测 3+15+24）、完整 xmeta、`IGraph` 存储抽象。
+- **已实现**：6 语言解析（Java/Python/TS/Go/Rust/C#；Go 于 2026-09-28 N5.4 落地、Rust 于 2026-09-28 N5.5 落地、C# 于 2026-09-28 N5.6 落地；TS 调用图已于 2026-09-28 N5.1 补全——同文件/导入调用 qn 候选 + import 收集）、通用图算法（经 `nop-graph`）、社区检测/关键节点/知识缺口/图导出/图快照对比、执行流/变更风险/死代码检测、确定性语义边（3 提取器）、启发式调用边（2 合成器）、GraphQL API（42 方法，实测 3+15+24）、完整 xmeta、`IGraph` 存储抽象。
 - **搜索双路径已实现**（`search-integration-design.md` 头部状态）：`CodeSearchService` 持有可空 `ISearchEngine`，注入时 engine-first（TEXT），未注入降级 DB LIKE；`CodeIndexService` 已在索引写入/删除时 `addDoc`/`removeDocs` 同步；`TestIncrementalSearchSync` 在档。**剩余缺口仅"生产默认装配 + 端到端验证"（N4.1）与向量/混合（N4.2/N4.3）**。
 - **已知缺陷已修复**：`sourceCode` 返回 null、BizLoader `indexId` 硬编码 `"test"`（见 `query-api-design.md` §七，2026-09-23 校正）。
 - **质量闭环**：由 `nop-code-invariant-loop-roadmap.md` 独立负责（OOM/去同步/删除契约/幂等四族门禁），本路线图不重复。

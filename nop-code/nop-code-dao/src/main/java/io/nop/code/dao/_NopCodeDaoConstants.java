@@ -249,6 +249,11 @@ public interface _NopCodeDaoConstants {
     String LANGUAGE_RUST = "60";
                     
     /**
+     * 编程语言: C# 
+     */
+    String LANGUAGE_CSHARP = "70";
+                    
+    /**
      * 调用类型: 构造函数调用 
      */
     String CALL_TYPE_CONSTRUCTOR = "10";
