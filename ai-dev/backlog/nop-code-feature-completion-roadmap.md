@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 29 · todo 10
+**汇总**：done 30 · todo 9
 
 ### M0 — 基线与文档-代码对齐
 
@@ -123,7 +123,7 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N8.1 评测框架（token 效率 / 影响分析准确性 F1 / 搜索质量 MRR 为任务级评测（ground-truth 项目集 + 评分脚本）；构建性能用 JMH 微基准；与 M9 的任务级验收区分：本项测工具自身指标）<br>（Deliverable: 评测脚本 + ground-truth 集 + 基线报告；deps: N1.3, N4.3；Item Type: Fix） | todo | N1.3, N4.3 |
+| N8.1 评测框架（搜索质量 MRR + 影响分析 F1 评测脚本 + ground-truth 集；构建性能用 JMH 微基准；与 M9 的任务级验收区分：本项测工具自身指标）<br>（Deliverable: 评测脚本 + ground-truth 集 + 基线报告；deps: N1.3, N4.3；Item Type: Fix；plan `ai-dev/plans/nop-code/30-n8-1-evaluation-framework.md`；SearchQualityEvalTest MRR=1.0 + ImpactAnalysisF1EvalTest F1=1.0） | done | N1.3, N4.3 |
 
 ### M9 — AI 端到端智能验收（压轴）
 
