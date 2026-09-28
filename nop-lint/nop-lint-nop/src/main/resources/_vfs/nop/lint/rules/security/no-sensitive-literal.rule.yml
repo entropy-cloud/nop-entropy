@@ -1,3 +1,12 @@
+# plan 21 comparison fix (2026-09-28): v1.1 — the SQL-literal face now requires
+# >= 2 distinct SQL keywords + length > 12 (mjs anchor semantics); the v1.0
+# single-keyword `delete\s` alternative false-positived on plain log messages
+# (LOG.warn "delete index cleanup failed...").
+# plan 21 switchover (2026-09-28): v1.2 — severity warning -> error: the rule
+# is the INV-SENSITIVE CI hard-gate face (run-nop-metadata-invariants.sh step
+# 3 switched to nop-lint), and a hard gate must fail on hit (the mjs anchor
+# exits non-zero on any hit; a warning-severity successor would silently
+# defang the gate — roadmap Hard constraint 4).
 # design 02 §1 first-20 batch (roadmap item 29), semantics anchored to
 # check-sensitive-literal-leak.mjs (INV-SENSITIVE): a string literal holding
 # a raw JDBC URL or an inline SQL statement, passed inside a logging call or
@@ -14,7 +23,7 @@
 # position, which is strictly more precise.
 id: security/no-sensitive-literal
 language: Java
-severity: warning
+severity: error
 message: "敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL (Sensitive literal leaked into a log/param call: raw JDBC URL or inline SQL)"
 rule:
   all:
@@ -22,10 +31,6 @@ rule:
     - kind: string_literal
     - inside:
         pattern: "$OBJ.$M($$$ARGS)"
-constraints:
-  - regex:
-      capture: LIT
-      pattern: '"(?i)(?!.*(?:sqlhash|arg_))(?:jdbc:[^"]*|(?:select|insert|update|delete)\s[^"]*)"'
 xscript: |
   let recv = captures.get('OBJ');
   let m = captures.get('M');
@@ -34,11 +39,29 @@ xscript: |
   }
   let recvName = recv.text();
   let isLog = recvName == 'LOG' || recvName == 'log' || recvName == 'logger' || recvName == 'LOGGER';
-  if (isLog || m.text() == 'param') {
+  if (!isLog && m.text() != 'param') {
+    return;
+  }
+  // mjs anchor semantics (plan 21 comparison fix): the SQL-literal face needs
+  // length > 12 AND >= 2 DISTINCT SQL keywords — the single-keyword regex
+  // alternative (`delete\s...`) produced a false positive on a plain
+  // LOG.warn("delete index cleanup failed...") message (corpus delta, plan 21).
+  let lit = node.text();
+  if (lit.matches('(?i).*jdbc:[a-z]+://.*')) {
+    report({ message: '敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL' });
+    return;
+  }
+  let n = 0;
+  for (let kw of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'FROM', 'WHERE', 'JOIN']) {
+    if (lit.matches('(?i).*' + kw + '.*')) {
+      n = n + 1;
+    }
+  }
+  if (lit.length > 14 && n >= 2) {
     report({ message: '敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL' });
   }
 metadata:
   category: security
   autoFixable: false
-  version: "1.0"
+  version: "1.2"
   source: "ai-dev/tools/check-sensitive-literal-leak.mjs (INV-SENSITIVE)"

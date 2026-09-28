@@ -38,6 +38,7 @@ const STATUS_VOCAB = new Set([
   'migrated-pending-switchover', // the nop-lint equivalent rule landed; switchover pending
   'candidate',                 // migration scheduled, dependency item done
   'deferred',                  // deferred, dependency item not done or unscheduled
+  'switched-over',             // switched to nop-lint: rule compared, wiring moved, script retired
 ]);
 
 const LEDGER_HEADER = '## 逐脚本账本';
@@ -167,14 +168,21 @@ export function checkRows(rows, columnCount) {
 export function checkEnumSet(rows, liveScripts) {
   const errors = [];
   const manifestScripts = new Set(rows.map((row) => cellText(row.cells[1])));
+  // switched-over rows have their script retired — absence is the expected
+  // post-switch state (plan nop-lint/21); any OTHER status requires the
+  // script live (no silent deregistration of an unswitched row)
+  const retiredOk = new Set(rows
+    .filter((row) => cellText(row.cells[8]) === 'switched-over')
+    .map((row) => cellText(row.cells[1])));
   for (const script of liveScripts) {
     if (!manifestScripts.has(script)) {
       fail(errors, `live script '${script}' has no manifest ledger row (added or renamed without bookkeeping?)`);
     }
   }
   for (const script of manifestScripts) {
-    if (!liveScripts.includes(script)) {
-      fail(errors, `manifest row '${script}' does not exist under ai-dev/tools (deleted or renamed without bookkeeping?)`);
+    if (!liveScripts.includes(script) && !retiredOk.has(script)) {
+      fail(errors, `manifest row '${script}' does not exist under ai-dev/tools`
+        + ` and is not switched-over (deleted or renamed without bookkeeping?)`);
     }
   }
   return errors;
@@ -239,6 +247,16 @@ export function selfTest() {
   // enum-set checker must reject missing and extra scripts
   if (checkEnumSet([goodRow], ['check-demo.mjs', 'check-other.mjs']).length === 0) {
     fail(errors, 'self-test: enum-set checker accepted an unmanifested live script');
+  }
+
+  // switched-over absence: a retired script may be absent; an unswitched one may not
+  const switchedRow = { ...goodRow, cells: [...goodRow.cells.slice(0, 8), 'switched-over'] };
+  if (checkEnumSet([switchedRow], []).length !== 0) {
+    fail(errors, 'self-test: absence checker rejected a legitimately retired switched-over script');
+  }
+  const unswitchedAbsent = { ...goodRow, cells: [...goodRow.cells.slice(0, 8), 'maintain-mjs'] };
+  if (checkEnumSet([unswitchedAbsent], []).length === 0) {
+    fail(errors, 'self-test: absence checker accepted a missing script on an unswitched row');
   }
   if (checkEnumSet([goodRow, { ...goodRow, cells: ['2', '`check-gone.mjs`', ...goodRow.cells.slice(2)] }],
     ['check-demo.mjs']).length === 0) {

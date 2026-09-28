@@ -19,7 +19,7 @@ switchover 门禁 → decommission 动作 → 状态。
 
 **状态词表**（防腐门禁校验）：`maintain-mjs`（维持 mjs 门禁）/ `exclude`（排除，非代码检查或非 lint 关注面）/
 `migrated-pending-switchover`（nop-lint 等价规则已落地，待行为对照与切换）/ `candidate`（已排期迁移，依赖 item 已
-done）/ `deferred`（候选挂起，依赖 item 未 done 或无排期）。
+done）/ `deferred`（候选挂起，依赖 item 未 done 或无排期）/ `switched-over`（已切换：等价规则对照通过、调用点改接 nop-lint、原脚本下线——2026-09-28 词表扩展，tool-replacement roadmap item 5，plan nop-lint/21；防腐门禁缺席判据同步：switched-over 行的脚本允许缺席，其余行缺席 = hard error）。
 
 **Switchover 门禁通用前置**（任何 `migrated-pending-switchover`/`candidate` 行的 decommission 动作生效前必须
 全部满足，Minimum Rules #13——已进 CI fail-fast 的规则不得无门禁下线）：
@@ -39,26 +39,28 @@ done）/ `deferred`（候选挂起，依赖 item 未 done 或无排期）。
 | 4 | check-error-param-consistency.mjs | 4（throw-site 占位符/UNRESOLVED 强制裁定/define-face 对称差/dead-define） | Java 源码跨文件 ErrorCode 注册表语义 | **维持 mjs（本 plan Decision，见下节）** | — | 不适用 | 保留（zero-hit hard gate） | maintain-mjs |
 | 5 | check-fix-commit-diff.mjs | 2（fix(nop-ai) 候选收集/实质 diff 判定） | git 提交历史 | 排除（提交历史检查，非文件内容 lint——nop-lint 检查源码不检查 git 历史） | — | 不适用 | 保留（pnpm 接线不变） | exclude |
 | 6 | check-i18n-en-xml.mjs | 7 issue code（SUSPICIOUS_TEXT 内含 10 条拼写正则） | XML 模型(i18n/orm/api/xmeta) | 候选 XNode + regex constraint（item 22 已交付）；无接线、默认恒 exit 0，无门禁压力 | item 21/22（done） | 规则 + fixtures + 属性面行为对照 | 脚本下线 | deferred |
-| 7 | check-ibiz-interfaces.mjs | 2（ibiz-missing-annotation/ibiz-missing-context） | Java 源码（tree-sitter AST） | **已迁移**：同名规则 item 11 落地 nop-lint-nop | item 11（done） | 对照通过（item 11 cross-check 已记录）+ 切换执行 plan | pnpm `check:ibiz` 移除、脚本下线 | migrated-pending-switchover |
+| 7 | check-ibiz-interfaces.mjs | 2（ibiz-missing-annotation/ibiz-missing-context） | Java 源码（tree-sitter AST） | **已迁移**：同名规则 item 11 落地 nop-lint-nop | item 11（done） | 对照通过（item 11 cross-check 已记录）+ 切换执行 plan | pnpm `check:ibiz` 移除、脚本下线 | switched-over |
 | 8 | check-import-order.mjs | 1（类别单调性） | Java 源码 | 维持 mjs（import 序列单调性是序列属性非模式匹配；脚本自述 advisory） | — | 不适用 | 保留（`check-import-order.sh` 同步标注已废弃参考件） | maintain-mjs |
 | 9 | check-oversized-files.mjs | 2（warn/error 双阈值行数） | Java 源码 | 维持 mjs（文件行数度量非模式检查；MetricsEvaluator 是 AST 复杂度度量，语义不同） | — | 不适用 | 保留 | maintain-mjs |
 | 10 | check-plan-checklist.mjs | 4 组 + completed 结构 12 条 | 流程工具（plan markdown） | 排除（ai-dev 计划流程工具，非代码检查） | — | 不适用 | 保留 | exclude |
 | 11 | check-plan-status.mjs | 0（纯报告） | 流程工具（plan markdown） | 排除（同上，且无违规判定） | — | 不适用 | 保留 | exclude |
-| 12 | check-vfs-violations.mjs | 28 pattern / 21 tag + 误报排除 + 白名单 | Java 源码 | **部分已迁移**：no-vfs-violation 规则 item 11 落地（核心面）；21 tag 与规则覆盖面的逐 tag 对照归切换 plan | item 11（done） | 逐 tag 行为对照（规则覆盖面 vs 28 正则）+ 白名单 4 文件的规则侧豁免对应 | 对照后切换：脚本下线或收敛为残余 tag 的 mjs 补门禁 | migrated-pending-switchover |
+| 12 | check-vfs-violations.mjs | 28 pattern / 21 tag + 误报排除 + 白名单 | Java 源码 | **部分已迁移**：no-vfs-violation 规则 item 11 落地（核心面）；21 tag 与规则覆盖面的逐 tag 对照归切换 plan | item 11（done） | 逐 tag 行为对照（规则覆盖面 vs 28 正则）+ 白名单 4 文件的规则侧豁免对应 | 对照后切换：脚本下线或收敛为残余 tag 的 mjs 补门禁 | switched-over |
 | 13 | check-doc-index.mjs | 6 步骤 / 8 rule ID | 文档 md 索引 | 排除（文档一致性，design 02 §3 既有裁定） | — | 不适用 | 保留 | exclude |
 | 14 | check-doc-links.mjs | 4（BROKEN_LINK/OUT_OF_PROJECT/两条 BOUNDARY） | 文档 md 链接 | 排除（同上；AGENTS.md 硬门禁继续由本脚本承担） | — | 不适用 | 保留 | exclude |
 | 15 | check-docs-garbled.mjs | 1 主规则 / 12 字符分类 | 文档 md 乱码 | 排除（同上） | — | 不适用 | 保留 | exclude |
 | 16 | check-nop-code-invariants.mjs | 3 family（query-limit/entity-field-min/delete-contract） | Java 源码（nop-code 专项） | query-limit 子规则 → **pattern + xscript 规则**（即 item 35 的 query-limit-required，对照归 item 35 plan）；entity-field-min/delete-contract 需方法作用域分析 → 维持 mjs（item 33 落地后重估） | item 35（todo） | 随 item 35 plan 对照裁定 | 届时收敛为残余 family 的 mjs 补门禁 | deferred |
 | 17 | check-nop-stream-audit-manifest.mjs | 7 子命令 checker | 审计 manifest（@@MARKER 块） | 排除（审计证据 schema 校验，流程工具非代码检查） | — | 不适用 | 保留 | exclude |
 | 18 | check-nop-stream-invariants.mjs | 14（inventory+sync/iterations/output-contract 5/wiring 5/wildcard） | Java 源码（nop-stream 专项）+ registry/pins ratchet | 维持 mjs（子系统级语义门禁：自研 extends 闭包/receiver 推断 + ratchet 机制，**CI maven.yml 直连**，不可泛化为规则） | — | 不适用 | 保留 | maintain-mjs |
-| 19 | check-orm-icons.mjs | 3（orm 根图标/entity 图标/action-auth 菜单图标） | XML 模型(orm)+action-auth | **XNode 规则**（attribute 必填 = XNode 强项，nop-orm-mandatory-default 先例同形） | item 21（done） | 规则 + fixtures + 全仓 orm/action-auth 对照零 diff（或 delta 逐条裁定） | 脚本下线 | candidate |
-| 20 | check-orm-unique-key-constraint.mjs | 1 规则 / 2 条件（constraint=/columns= 非空） | XML 模型(orm)，**CI invariant-gate 接线** | **已落地 xscript 通道规则**（item 29：pattern open-world + attrValue 判空——round-2 审查 N1：XML pattern/any 面无 attribute 缺失 spec，xscript 通道为 faithful 形态） | item 21/29（done） | 同语料行为对照（含空值 case）+ run-nop-metadata-invariants.sh 步骤切换 | 脚本下线、sh 步骤改接 nop-lint | migrated-pending-switchover |
-| 21 | check-sensitive-literal-leak.mjs | 1 规则 / 2 模式（JDBC URL/内联 SQL） | Java 源码，**CI invariant-gate 接线** | **已落地关系式规则**（item 29：string_literal+inside+full-match regex 约束（capture 含引号、sanitized lookahead）+ xscript 通道门控日志接收方/param；已裁定 delta=AST 包含替代行级同现，覆盖全参数位） | item 22/29（done） | 同语料命中集对照 + sh 步骤切换 | 脚本下线 | migrated-pending-switchover |
-| 22 | check-silent-swallow.mjs | 1（7 GOOD_SIGNALS 信号缺失） | Java 源码，**CI invariant-gate 接线** | **已迁移**：nop/silent-swallow 规则 item 23 faithful 落地（catch 七信号 all+not 形态） | item 23（done） | item 23 行为对照已记录 + 切换执行 plan（含 sh 步骤改接） | 脚本下线、sh 步骤改接 nop-lint | migrated-pending-switchover |
+| 19 | check-orm-icons.mjs | 3（orm 根图标/entity 图标/action-auth 菜单图标） | XML 模型(orm)+action-auth | **XNode 规则**（attribute 必填 = XNode 强项，nop-orm-mandatory-default 先例同形） | item 21（done） | 规则 + fixtures + 全仓 orm/action-auth 对照零 diff（或 delta 逐条裁定） | 脚本下线 | switched-over |
+| 20 | check-orm-unique-key-constraint.mjs | 1 规则 / 2 条件（constraint=/columns= 非空） | XML 模型(orm)，**CI invariant-gate 接线** | **已落地 xscript 通道规则**（item 29：pattern open-world + attrValue 判空——round-2 审查 N1：XML pattern/any 面无 attribute 缺失 spec，xscript 通道为 faithful 形态） | item 21/29（done） | 同语料行为对照（含空值 case）+ run-nop-metadata-invariants.sh 步骤切换 | 脚本下线、sh 步骤改接 nop-lint | switched-over |
+| 21 | check-sensitive-literal-leak.mjs | 1 规则 / 2 模式（JDBC URL/内联 SQL） | Java 源码，**CI invariant-gate 接线** | **已落地关系式规则**（item 29：string_literal+inside+full-match regex 约束（capture 含引号、sanitized lookahead）+ xscript 通道门控日志接收方/param；已裁定 delta=AST 包含替代行级同现，覆盖全参数位） | item 22/29（done） | 同语料命中集对照 + sh 步骤切换 | 脚本下线 | switched-over |
+| 22 | check-silent-swallow.mjs | 1（7 GOOD_SIGNALS 信号缺失） | Java 源码，**CI invariant-gate 接线** | **已迁移**：nop/silent-swallow 规则 item 23 faithful 落地（catch 七信号 all+not 形态） | item 23（done） | item 23 行为对照已记录 + 切换执行 plan（含 sh 步骤改接） | 脚本下线、sh 步骤改接 nop-lint | switched-over |
 | 23 | check-silent-wrong-result.mjs | **5**（locale/narrowing-cast/contains-classify/delim-key/bigdec-precision） | Java 源码，**CI invariant-gate 接线**（baseline ratchet mode b） | 逐条裁定、暂全部维持 mjs：locale → pattern 可表达（豁免机制需对齐）；narrowing-cast/contains-classify → 需 L1 类型（item 12/26）；delim-key → 括号 span 分析，xscript 近似待评估；bigdec-precision → 方法作用域（item 33）。**ratchet baseline 机制无引擎对应，切换前须裁定基线对账方案** | item 26/33（todo） | 每子规则独立对照 + baseline 迁移方案裁定后逐条切换 | 逐条下线，残余子规则保留 mjs | maintain-mjs |
 | 24 | check-xpl-escaping.mjs | 1（8 种上下文判定） | VFS 前端资源(view/page.yaml/xpl/json) | **deferred（item 29 round-1 spike 裁定）**：XNode text 匹配=trimmed 全等（无 contains）+ XML 路径拒 constraints ⇒ faithful 不可落地；successor = design 06 §3.3 的 xscript/AST 查询机制面（原行所引 "design 02 §7" 为悬空引用，design 02 无 §7——本行修正）；当前恒 exit 0 无接线 | Wave 5 语义面（item 33+） | 规则 + fixtures + 上下文判定面对照 | 脚本下线 | deferred |
 
-**分类汇总**（防腐门禁核对口径）：`maintain-mjs` 7 + `exclude` 7 + `migrated-pending-switchover` 5 + `candidate` 2 + `deferred` 3 = **24**。
+**switched-over 切换记录（2026-09-28，tool-replacement roadmap item 5，plan nop-lint/21）**：#7/#12/#19/#20/#21/#22 六行完成对照（记录见 `ai-dev/plans/nop-lint/21-mjs-switchover.md`）并切换——等价规则对照零 diff（sensitive-literal 的规则 regex 移植缺陷已修复 v1.2 并升 error 级），调用点改接 nop-lint（run-nop-metadata-invariants.sh 步骤 1–3、package.json check:ibiz 移除），原脚本下线。#3 bean-naming 为**面级 switched-over**：BEAN-ID/COLLECT-PREFIX 面规则 nop-bean-naming 已落地（对照 9/9 零 diff），REF 跨文件面 mjs 保留 live（脚本修剪）；CI 接线（compliance.yml node-only job 需 JDK）deferred 归后续 plan，行状态维持 maintain-mjs + 本注记。
+
+**分类汇总**（防腐门禁核对口径）：`maintain-mjs` 7 + `exclude` 7 + `switched-over` 6 + `candidate` 1 + `deferred` 3 = **24**（item 5 切换后，2026-09-28）。
 
 ## errorcode-param-consistency 专项裁定（plan 2137-3 deferred 消解）
 

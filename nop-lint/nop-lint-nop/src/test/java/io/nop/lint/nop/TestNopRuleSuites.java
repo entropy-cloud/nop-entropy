@@ -126,7 +126,10 @@ public class TestNopRuleSuites {
             "quality/replace-hashtable",
             "quality/replace-vector",
             "quality/string-instantiation",
-            "quality/use-collection-isempty");
+            "quality/use-collection-isempty",
+            // plan 21 comparison fix: SQL-literal face aligned to mjs anchor
+            // (v1.1); v1.2 = switchover severity bump warning -> error
+            "security/no-sensitive-literal");
 
     /**
      * The suppression suite (roadmap item 17) is fixture-local: its demo rule
@@ -244,10 +247,13 @@ public class TestNopRuleSuites {
             assertNotNull(rule.getMessage());
             assertNotNull(rule.getMatcher());
             assertNotNull(rule.getMetadata(), "rules must carry a metadata block (version stamp)");
-            assertEquals(VERSION_1_1_RULE_IDS.contains(ruleId) ? "1.1" : "1.0",
+            String expectedVersion = ruleId.equals("security/no-sensitive-literal") ? "1.2"
+                    : VERSION_1_1_RULE_IDS.contains(ruleId) ? "1.1" : "1.0";
+            assertEquals(expectedVersion,
                     rule.getMetadata().getVersion(),
                     "unexpected version stamp for " + ruleId
-                            + " (facet-review demote-info rules carry 1.1, design 02 §4/§5)");
+                            + " (facet-review demote-info rules carry 1.1, design 02 §4/§5;"
+                            + " no-sensitive-literal 1.2 = plan 21 comparison fix + switchover bump)");
         }
         // The XNode rules (item 21) load through the same registered pipeline.
         for (String ruleId : XNODE_RULE_IDS) {

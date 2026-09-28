@@ -55,14 +55,32 @@ if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
   exit 1
 fi
 
-echo "==> [1/6] INV-SILENT-SWALLOW: check-silent-swallow.mjs"
-node "$SCRIPT_DIR/check-silent-swallow.mjs" --module nop-metadata
+echo "==> [1-3/6] nop-lint invariants: silent-swallow / orm-unique-key / sensitive-literal"
+# Switched over from the three mjs scanners (tool-replacement roadmap item 5,
+# plan nop-lint/21): the nop-lint rules nop/silent-swallow (error),
+# nop-orm-unique-key (error) and security/no-sensitive-literal (error, v1.2)
+# carry the same faces — comparison zero-diff records in
+# nop-lint/docs/checkstyle-pmd-migration.md §4.3 / plan 21 comparison table.
+# The retired scanners were removed together with this switch (single revert
+# point = the plan 21 commit).
+NOP_LINT_CP_FILE="$(mktemp)"
+"$MVN" -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile="$NOP_LINT_CP_FILE"
+# non-recursive: the three nop-lint modules only depend on each other and on
+# installed/compiled upstream artifacts; a recursive -am compile would enter
+# unrelated modules (e.g. nop-metadata) without their codegen lifecycle state
+# and break the INV-LIMIT test step that follows (plan 21 execution finding).
+"$MVN" -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-nop -DskipTests compile
+NOP_LINT_CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-java/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat "$NOP_LINT_CP_FILE")"
 
-echo "==> [2/6] INV-UK: check-orm-unique-key-constraint.mjs"
-node "$SCRIPT_DIR/check-orm-unique-key-constraint.mjs" --module nop-metadata
+echo "  -> INV-SILENT-SWALLOW + INV-SENSITIVE (java source face)"
+java -cp "$NOP_LINT_CP" io.nop.lint.core.cli.NopLintCli check \
+  $(find nop-metadata -path "*/src/main/*" -name "*.java") \
+  --rules nop/silent-swallow,security/no-sensitive-literal
 
-echo "==> [3/6] INV-SENSITIVE: check-sensitive-literal-leak.mjs"
-node "$SCRIPT_DIR/check-sensitive-literal-leak.mjs" --module nop-metadata
+echo "  -> INV-UK (model XML face)"
+java -cp "$NOP_LINT_CP" io.nop.lint.core.cli.NopLintCli check \
+  $(find nop-metadata -path "*/model/*" -name "*.orm.xml") \
+  --rules nop-orm-unique-key
 
 echo "==> [4/6] INV-LIMIT: TestLimitNegativeValueInvariant"
 # INV-LIMIT also runs in the default surefire (build job). Re-invoking it here is an
