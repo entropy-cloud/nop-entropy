@@ -334,21 +334,10 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             for (CodeMethodCall call : file.getCalls()) {
                 String calleeQn = call.getCalleeQualifiedName();
                 if (calleeQn != null && !calleeQn.isEmpty()) {
-                    CodeSymbol callee = globalSymbolTable.getByQualifiedName(calleeQn);
-                    if (callee != null) {
-                        call.setCalleeId(callee.getId());
-                        call.setConfidence(EdgeConfidence.EXTRACTED);
+                    if (CallReferenceResolver.resolveCall(call, globalSymbolTable::getByQualifiedName)) {
                         resolvedCalls++;
                     } else {
-                        callee = fuzzyMatchSymbol(calleeQn, globalSymbolTable);
-                        if (callee != null) {
-                            call.setCalleeId(callee.getId());
-                            call.setConfidence(EdgeConfidence.EXTRACTED);
-                            resolvedCalls++;
-                        } else {
-                            call.setConfidence(EdgeConfidence.INFERRED);
-                            unresolvedCalls++;
-                        }
+                        unresolvedCalls++;
                     }
                 }
             }
@@ -749,21 +738,6 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             }
         }
         return false;
-    }
-
-    /**
-     * 模糊匹配符号
-     * 用于处理方法重载等情况，例如：
-     * "com.example.UserService.save(User)" -> "com.example.UserService.save"
-     */
-    private CodeSymbol fuzzyMatchSymbol(String calleeQualifiedName, SymbolTable symbolTable) {
-        // 尝试移除方法签名中的参数部分
-        int parenIndex = calleeQualifiedName.indexOf('(');
-        if (parenIndex > 0) {
-            String withoutParams = calleeQualifiedName.substring(0, parenIndex);
-            return symbolTable.getByQualifiedName(withoutParams);
-        }
-        return null;
     }
 
     /**

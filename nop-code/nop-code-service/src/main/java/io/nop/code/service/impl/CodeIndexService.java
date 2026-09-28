@@ -31,6 +31,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.code.core.NopCodeCoreErrors;
 import io.nop.code.core.adapter.LanguageAdapterRegistry;
+import io.nop.code.core.analyzer.CallReferenceResolver;
 import io.nop.code.core.analyzer.ICodeFileAnalyzer;
 import io.nop.code.core.analyzer.ILanguageAdapter;
 import io.nop.code.core.analyzer.ProjectAnalysisResult;
@@ -359,6 +360,13 @@ public class CodeIndexService implements ICodeIndexService {
             transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                     ormTemplate.runInSession(session -> {
                         ensureIndexEntity(indexId, null, session);
+                        // N3.1-s: snapshot the dependent call edges BEFORE deleteFileRecords
+                        // destroys them (single-file form of the incremental snapshot).
+                        Map<String, String> oldQnBySymbolId = snapshotSymbolQualifiedNames(indexId,
+                                Collections.singletonList(filePath));
+                        List<CallSnapshot> dependentCalls = snapshotDependentCalls(indexId,
+                                oldQnBySymbolId.keySet(),
+                                Collections.singleton(generateFileId(indexId, filePath)));
                         // Delete existing records for this file so a retry is idempotent: symbols and
                         // other relational rows carry non-deterministic IDs, so they must be cleared
                         // before re-saving (mirrors triggerIncrementalIndex's delete-before-reindex).
@@ -367,7 +375,22 @@ public class CodeIndexService implements ICodeIndexService {
                         // contains session.clear() so it must run before the persist below.
                         ensureSubServices();
                         graphMetricMaterializer.deleteByIndex(session, indexId);
+                        // N3.1-s: resolve this file's call references before persist (single-file
+                        // form of the incremental two-stage flow; the file's own pre-delete rows
+                        // are excluded from the DB lookup).
+                        SymbolTable ownSymbols = new SymbolTable();
+                        if (result.getSymbols() != null) {
+                            for (CodeSymbol symbol : result.getSymbols()) {
+                                String qn = symbol.getQualifiedName();
+                                if (qn != null && !qn.isEmpty()) {
+                                    ownSymbols.add(symbol);
+                                }
+                            }
+                        }
+                        resolveReanalyzedCalls(indexId, Collections.singletonList(result), ownSymbols,
+                                Collections.singleton(filePath));
                         persistSingleFileInSession(indexId, result, session);
+                        restoreDependentCalls(indexId, session, dependentCalls, oldQnBySymbolId, ownSymbols);
                         return null;
                     }));
             updateIndexStats(indexId);
@@ -939,6 +962,19 @@ public class CodeIndexService implements ICodeIndexService {
                         changedFiles, deletedFiles);
                 incrementalAffectedFilesMap.put(indexId, affectedFiles);
 
+                // N3.1-s: snapshot the dependent call edges BEFORE deleteFileRecords destroys
+                // them, so they can be re-targeted onto the re-analyzed symbols afterwards.
+                Map<String, String> oldQnBySymbolId = snapshotSymbolQualifiedNames(indexId, changedFiles);
+                Set<String> excludeFileIds = new HashSet<>();
+                for (String path : changedFiles) {
+                    excludeFileIds.add(generateFileId(indexId, path));
+                }
+                for (String path : deletedFiles) {
+                    excludeFileIds.add(generateFileId(indexId, path));
+                }
+                List<CallSnapshot> dependentCalls = snapshotDependentCalls(indexId,
+                        oldQnBySymbolId.keySet(), excludeFileIds);
+
                 deleteFileRecords(indexId, deletedFiles);
                 deleteFileRecords(indexId, changedFiles);
 
@@ -947,13 +983,12 @@ public class CodeIndexService implements ICodeIndexService {
                     resourceByPath.put(pathMapper.apply(res.getPath()), res);
                 }
 
-                BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(BATCH_SIZE, batch -> {
-                    for (CodeFileAnalysisResult result : batch) {
-                        persistSingleFileInSession(indexId, result, session);
-                    }
-                    LOG.debug("Flushed batch of {} analysis results for index {}", batch.size(), indexId);
-                });
-
+                // N3.1-s: two-stage structure — analyze ALL changed files first, resolve their
+                // call references, and only then persist. Per-file analyze+persist interleaving
+                // would lose changed→changed edges: at a file's persist time its callees' new
+                // symbols are neither in memory nor in the DB (old rows already deleted).
+                List<CodeFileAnalysisResult> changedResults = new ArrayList<>(changedFiles.size());
+                SymbolTable reanalyzedSymbols = new SymbolTable();
                 for (String changedFile : changedFiles) {
                     try {
                         String relativePath = pathMapper.apply(changedFile);
@@ -968,13 +1003,37 @@ public class CodeIndexService implements ICodeIndexService {
                         String sourceCode = resource.readText();
                         CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
                         if (fileResult != null) {
-                            batchQueue.add(fileResult);
+                            changedResults.add(fileResult);
+                            for (CodeSymbol symbol : fileResult.getSymbols()) {
+                                String qn = symbol.getQualifiedName();
+                                if (qn != null && !qn.isEmpty()) {
+                                    reanalyzedSymbols.add(symbol);
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         LOG.warn("Failed to re-analyze file: {}", changedFile, e);
                     }
                 }
+
+                Set<String> excludeFilePaths = new HashSet<>(changedFiles);
+                excludeFilePaths.addAll(deletedFiles);
+                resolveReanalyzedCalls(indexId, changedResults, reanalyzedSymbols, excludeFilePaths);
+
+                BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(BATCH_SIZE, batch -> {
+                    for (CodeFileAnalysisResult result : batch) {
+                        persistSingleFileInSession(indexId, result, session);
+                    }
+                    LOG.debug("Flushed batch of {} analysis results for index {}", batch.size(), indexId);
+                });
+
+                for (CodeFileAnalysisResult fileResult : changedResults) {
+                    batchQueue.add(fileResult);
+                }
                 batchQueue.flush();
+
+                // N3.1-s: dependent edges re-targeted onto the new symbols once they are persisted
+                restoreDependentCalls(indexId, session, dependentCalls, oldQnBySymbolId, reanalyzedSymbols);
 
                 List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(mappedResources);
                 updateIndexStats(indexId);
@@ -1799,6 +1858,224 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     // ====== Incremental Indexing Helpers ======
+
+    static final int RESOLVE_QUERY_CHUNK = 500;
+
+    /**
+     * N3.1-s: pure-data snapshot of one dependent call row, taken BEFORE deleteFileRecords
+     * destroys it. Held as plain values so later session state changes (clears, flushes)
+     * cannot touch it.
+     */
+    private record CallSnapshot(String id, String callerId, String calleeId, String fileId,
+                                Integer line, Integer column, String callType, String context,
+                                String provenance, String metadata) {
+    }
+
+    /**
+     * N3.1-s: id → qualifiedName snapshot of the given files' symbols, taken BEFORE deletion,
+     * so dependent call rows can be re-targeted onto the re-analyzed symbols.
+     */
+    private Map<String, String> snapshotSymbolQualifiedNames(String indexId, List<String> filePaths) {
+        IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
+        Map<String, String> qnBySymbolId = new HashMap<>();
+        for (String filePath : filePaths) {
+            String fileId = generateFileId(indexId, filePath);
+            long offset = 0;
+            while (true) {
+                QueryBean query = new QueryBean();
+                query.addFilter(FilterBeans.eq("fileId", fileId));
+                query.setOffset(offset);
+                query.setLimit(DELETE_BATCH_SIZE);
+                List<NopCodeSymbol> rows = dao.findAllByQuery(query);
+                for (NopCodeSymbol row : rows) {
+                    if (row.getId() != null && row.getQualifiedName() != null) {
+                        qnBySymbolId.put(row.getId(), row.getQualifiedName());
+                    }
+                }
+                if (rows.size() < DELETE_BATCH_SIZE) break;
+                offset += DELETE_BATCH_SIZE;
+            }
+        }
+        return qnBySymbolId;
+    }
+
+    /**
+     * N3.1-s: full read of the call rows whose callee belongs to the changed files' symbols,
+     * excluding rows of the changed/deleted files themselves (those are re-analyzed and
+     * re-persisted anyway). Paginated to exhaustion — no limit truncation.
+     */
+    private List<CallSnapshot> snapshotDependentCalls(String indexId, Set<String> targetSymbolIds,
+                                                      Set<String> excludeFileIds) {
+        if (targetSymbolIds.isEmpty()) return List.of();
+        IEntityDao<NopCodeCall> dao = daoProvider.daoFor(NopCodeCall.class);
+        List<CallSnapshot> snapshots = new ArrayList<>();
+        List<String> targets = new ArrayList<>(targetSymbolIds);
+        for (int start = 0; start < targets.size(); start += RESOLVE_QUERY_CHUNK) {
+            List<String> chunk = targets.subList(start, Math.min(start + RESOLVE_QUERY_CHUNK, targets.size()));
+            QueryBean query = new QueryBean();
+            if (excludeFileIds.isEmpty()) {
+                query.addFilter(FilterBeans.in("calleeId", chunk));
+            } else {
+                query.addFilter(FilterBeans.and(
+                        FilterBeans.in("calleeId", chunk),
+                        FilterBeans.notIn("fileId", excludeFileIds)));
+            }
+            long offset = 0;
+            while (true) {
+                query.setOffset(offset);
+                query.setLimit(DELETE_BATCH_SIZE);
+                List<NopCodeCall> rows = dao.findAllByQuery(query);
+                for (NopCodeCall row : rows) {
+                    snapshots.add(new CallSnapshot(row.getId(), row.getCallerId(), row.getCalleeId(),
+                            row.getFileId(), row.getLine(), row.getColumn(), row.getCallType(),
+                            row.getContext(), row.getProvenance(), row.getMetadata()));
+                }
+                if (rows.size() < DELETE_BATCH_SIZE) break;
+                offset += DELETE_BATCH_SIZE;
+            }
+        }
+        return snapshots;
+    }
+
+    /**
+     * N3.1-s: re-inserts the dependent call rows whose callee symbols were deleted along with
+     * the changed files. Rows whose old qualified name still exists among the re-analyzed
+     * symbols are re-targeted to the new symbol id; the rest are dropped — the callee is
+     * genuinely gone and the full-index flow would not rebuild that edge either.
+     */
+    private int restoreDependentCalls(String indexId, IOrmSession session, List<CallSnapshot> snapshots,
+                                      Map<String, String> oldQnBySymbolId, SymbolTable reanalyzedSymbols) {
+        if (snapshots.isEmpty()) return 0;
+        int restored = 0;
+        int dropped = 0;
+        for (CallSnapshot snapshot : snapshots) {
+            String oldQn = oldQnBySymbolId.get(snapshot.calleeId());
+            CodeSymbol newCallee = oldQn != null ? reanalyzedSymbols.getByQualifiedName(oldQn) : null;
+            if (newCallee == null) {
+                dropped++;
+                continue;
+            }
+            NopCodeCall fresh = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
+            fresh.setId(snapshot.id());
+            fresh.setIndexId(indexId);
+            fresh.setCallerId(snapshot.callerId());
+            fresh.setCalleeId(newCallee.getId());
+            fresh.setFileId(snapshot.fileId());
+            fresh.setLine(snapshot.line());
+            fresh.setColumn(snapshot.column());
+            fresh.setCallType(fitColumn(NopCodeCall.class.getName(), "callType", snapshot.callType()));
+            fresh.setContext(fitColumn(NopCodeCall.class.getName(), "context", snapshot.context()));
+            fresh.setProvenance(fitColumn(NopCodeCall.class.getName(), "provenance", snapshot.provenance()));
+            fresh.setMetadata(fitColumn(NopCodeCall.class.getName(), "metadata", snapshot.metadata()));
+            saveReplacingExisting(session, fresh);
+            restored++;
+        }
+        LOG.info("N3.1-s restored {} dependent call edges for index {} ({} dropped: callee removed)",
+                restored, indexId, dropped);
+        return restored;
+    }
+
+    /**
+     * N3.1-s: resolves the re-analyzed files' method-call edges before persistence, with the
+     * same exact-then-fuzzy semantics as the full-index flow (shared CallReferenceResolver).
+     * Lookup order: in-memory symbols of the re-analyzed files first (the new truth), then DB
+     * symbols of untouched files via targeted batch queries. Rows of the changed/deleted files
+     * are excluded in the query itself, so neither stale pre-delete rows nor in-transaction
+     * flush visibility can resolve a reference. Unresolved calls stay INFERRED and are skipped
+     * by the persist filter — the same degradation contract as the full-index flow.
+     */
+    private void resolveReanalyzedCalls(String indexId, List<CodeFileAnalysisResult> results,
+                                        SymbolTable reanalyzedSymbols, Set<String> excludeFilePaths) {
+        Set<String> unresolvedQns = new HashSet<>();
+        for (CodeFileAnalysisResult result : results) {
+            if (result.getCalls() == null) continue;
+            for (CodeMethodCall call : result.getCalls()) {
+                if (call.getCalleeId() != null) continue;
+                String qn = call.getCalleeQualifiedName();
+                if (qn != null && !qn.isEmpty()) {
+                    unresolvedQns.add(qn);
+                }
+            }
+        }
+
+        Map<String, CodeSymbol> dbSymbols = unresolvedQns.isEmpty() ? Collections.emptyMap()
+                : querySymbolsByQualifiedNames(indexId, unresolvedQns, excludeFilePaths);
+
+        int resolved = 0;
+        for (CodeFileAnalysisResult result : results) {
+            if (result.getCalls() == null) continue;
+            for (CodeMethodCall call : result.getCalls()) {
+                boolean ok = CallReferenceResolver.resolveCall(call, qn -> {
+                    CodeSymbol symbol = reanalyzedSymbols.getByQualifiedName(qn);
+                    return symbol != null ? symbol : dbSymbols.get(qn);
+                });
+                if (ok) {
+                    resolved++;
+                }
+            }
+        }
+        LOG.info("N3.1-s resolved {} call references for index {} ({} db lookup names)",
+                resolved, indexId, dbSymbols.size());
+    }
+
+    /**
+     * Batched qualifiedName → symbol lookup over nop_code_symbol, restricted to untouched
+     * files. Overload-sharing qualified names resolve deterministically to the smallest
+     * (kind, id) row — the full-index flow's HashMap last-write-wins is arbitrary for
+     * overloads; edge count is identical either way.
+     */
+    private Map<String, CodeSymbol> querySymbolsByQualifiedNames(String indexId, Set<String> qualifiedNames,
+                                                                 Set<String> excludeFilePaths) {
+        IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
+        Map<String, CodeSymbol> result = new HashMap<>();
+        List<String> qnList = new ArrayList<>(qualifiedNames);
+        for (int start = 0; start < qnList.size(); start += RESOLVE_QUERY_CHUNK) {
+            List<String> chunk = qnList.subList(start, Math.min(start + RESOLVE_QUERY_CHUNK, qnList.size()));
+            QueryBean query = new QueryBean();
+            if (excludeFilePaths.isEmpty()) {
+                query.addFilter(FilterBeans.and(
+                        FilterBeans.eq("indexId", indexId),
+                        FilterBeans.in("qualifiedName", chunk)));
+            } else {
+                query.addFilter(FilterBeans.and(
+                        FilterBeans.eq("indexId", indexId),
+                        FilterBeans.in("qualifiedName", chunk),
+                        FilterBeans.notIn("filePath", excludeFilePaths)));
+            }
+            long offset = 0;
+            while (true) {
+                query.setOffset(offset);
+                query.setLimit(DELETE_BATCH_SIZE);
+                List<NopCodeSymbol> rows = dao.findAllByQuery(query);
+                for (NopCodeSymbol row : rows) {
+                    mergeSymbolDeterministic(result, row);
+                }
+                if (rows.size() < DELETE_BATCH_SIZE) break;
+                offset += DELETE_BATCH_SIZE;
+            }
+        }
+        return result;
+    }
+
+    private static void mergeSymbolDeterministic(Map<String, CodeSymbol> map, NopCodeSymbol row) {
+        String qn = row.getQualifiedName();
+        if (qn == null) return;
+        CodeSymbol candidate = CodeSymbolConverter.toCodeSymbol(row);
+        CodeSymbol existing = map.get(qn);
+        if (existing == null || compareSymbolsForTieBreak(candidate, existing) < 0) {
+            map.put(qn, candidate);
+        }
+    }
+
+    private static int compareSymbolsForTieBreak(CodeSymbol a, CodeSymbol b) {
+        String kindA = a.getKind() != null ? a.getKind().name() : "";
+        String kindB = b.getKind() != null ? b.getKind().name() : "";
+        int byKind = kindA.compareTo(kindB);
+        if (byKind != 0) return byKind;
+        String idA = a.getId() != null ? a.getId() : "";
+        String idB = b.getId() != null ? b.getId() : "";
+        return idA.compareTo(idB);
+    }
 
     private Set<String> getProjectFilePaths(String indexId) {
         if (daoProvider == null) return Collections.emptySet();

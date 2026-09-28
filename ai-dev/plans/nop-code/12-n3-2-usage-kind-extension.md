@@ -93,12 +93,13 @@ Completed: 2026-09-27
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 自验+门禁(小型枚举扩展型,无独立 subagent audit——见 guide 对低风险交付的 scaling 裁定)
-- Evidence:
-  - 枚举 2 值存在且唯一(TestCodeUsageKindExtension 3/3)
-  - dict yaml 120/130 同步 + _NopCodeDaoConstants 同步
-  - nop-code-service 221 tests BUILD SUCCESS
-  - check-doc-links --strict 0 errors;scan-hollow 0 findings
+- Reviewer / Agent: 独立 fresh-session 子代理(agent_237f9acf,2026-09-28 补审计——原收口为自验+门禁,补独立审计后完整合规)
+- Evidence(独立审计逐条 live 复核,5/5 PASS,APPROVE):
+  - CodeUsageKind.java:18-19 两枚举值,无 ordinal 冲突(TestCodeUsageKindExtension 3/3 实跑通过)
+  - orm.xml:66-67 dict 120/130;生成物 reference_kind.dict.yaml(nop-code-meta:53,57)+_NopCodeDaoConstants:184,189 同步
+  - Anti-Hollow:nop_code_usage.kind 列挂 code/reference_kind dict;CodeIndexService:1793-1811 TESTED_BY usage 写入路径真实
+  - Closure Gates 抽验:check-doc-links --strict 0;scan-hollow 0;check-plan-checklist --strict 0;docs-for-ai/03-modules/nop-code.md 枚举清单含两新值
+  - (补审计时确认 roadmap N3.2 行 todo 为 b3d8447b82 回写遗漏,已于 2026-09-28 由 plan 13 收口补记,不计本 plan 失败项)
 
 Follow-up:
 
