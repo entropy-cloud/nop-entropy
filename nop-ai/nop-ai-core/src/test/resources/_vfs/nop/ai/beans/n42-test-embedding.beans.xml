@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <!-- N4.2（plan nop-code/23）测试装配：stub 模型 + 桥接 bean 同文件定义，
+         不加载 ai-defaults（避免与生产 EmbeddingServiceImpl 的 bean 定义冲突），
+         与 search-defaults 一起构成最小容器。 -->
+    <bean id="nopAiEmbeddingModel" class="io.nop.ai.core.search.StubEmbeddingModel" ioc:default="true"
+          ioc:type="io.nop.ai.core.api.embedding.IEmbeddingModel"/>
+
+    <bean id="nopAiTextEmbedding" class="io.nop.ai.core.search.AiModelTextEmbedding" ioc:default="true"
+          ioc:type="io.nop.search.api.ITextEmbedding">
+        <constructor-arg index="0" ref="nopAiEmbeddingModel"/>
+    </bean>
+</beans>

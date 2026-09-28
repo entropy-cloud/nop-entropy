@@ -132,6 +132,8 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 
 `EmbeddingServiceImpl`（bean `nopAiEmbeddingModel`，`io.nop.ai.core.service`）是 `IEmbeddingModel` 的平台生产实现（K1，2026-09-28）：OpenAI 兼容 `/embeddings` 协议，经 `/nop/ai/llm/{provider}.llm.xml` 配置驱动——llm 配置需声明 `<embedUrl>`（如 `/embeddings`）且 `apiStyle="openai"`（其他 apiStyle fail-loud `ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE`）。provider 路由：`EmbeddingOptions.provider` > 配置 `nop.ai.embedding.default-llm` > fail-loud（`ERR_AI_EMBEDDING_NO_PROVIDER`）。可靠性面与 chat 同构：`rateLimit` 限流、`StandardRetryPolicy` 有界重试、`<accounts>` 账号链 failover（QUOTA/AUTH 分类经 `<errorMappings>` 配置面到达）、`IAiModelCredentialResolver` 可选凭证注入。
 
+**ITextEmbedding 桥接（N4.2）**：`AiModelTextEmbedding`（bean `nopAiTextEmbedding`，`io.nop.ai.core.search`）实现 nop-search 的 `ITextEmbedding` SPI、委托 `nopAiEmbeddingModel`。classpath 含 nop-ai-core 时经 `LuceneSearchEngine.setTextEmbedding`（`@Inject`+`@Nullable`）自动注入，Lucene 向量字段索引与 VECTOR/HYBRID 查询即用真实嵌入；失败语义为异常上抛（不静默降级），无 nop-ai-core 的部署保持既有 hash 模拟路径。
+
 ## 工具配置（nop-ai-tools）
 
 | 配置键 | 默认值 | 语义 |

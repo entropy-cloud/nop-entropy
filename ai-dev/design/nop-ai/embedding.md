@@ -62,3 +62,20 @@ nop.ai.llm.my-embed-provider.api-key: sk-...
 - **N4.2（nop-code）**：`ITextEmbedding` 生产实现将委托本客户端（另立 plan，见 `ai-dev/plans/nop-code/23-*`）。
 - **K2/K3**：向量库驱动与 RAG 管线的 embedding 来源即本实现；`IVectorStore` 实现落 `nop-ai-rag`。
 - **`EmbeddingModelBasedClassifier`**：既有构造注入消费路径不变（编译 + 既有测试绿）。
+
+## 六、ITextEmbedding 桥接（N4.2，2026-09-28）
+
+`AiModelTextEmbedding`（`io.nop.ai.core.search`，bean `nopAiTextEmbedding`，nop-ai-core）实现 nop-search
+的 `ITextEmbedding` SPI，构造注入 `IEmbeddingModel`（ref `nopAiEmbeddingModel`）。方向裁定：nop-search
+保持与 nop-ai 无关（SPI javadoc 契约），桥接落 nop-ai-core（新增轻量 `nop-search-api` 依赖，其自身仅依赖
+`nop-api-core`）。
+
+- **失败语义 = 异常上抛（fail-loud）**：模型失败/null 向量不使用 SPI 允许的 null 返回——静默 null 会让
+  LuceneSearchEngine 索引侧悄然退化为文本-only、查询侧落入 hash 模拟兜底。
+- **注入接线**：`LuceneSearchEngine.setTextEmbedding` 已加 `@Inject` + `@Nullable`（N4.2）——classpath 上
+  有 `nopAiTextEmbedding` bean 即 by-type 自动注入；无 nop-ai-core 的部署注入 null，引擎回退 hash 模拟
+  （仅测试语义，零回归）。
+- **批量路径**：`embedAll` 委托模型侧 `embedAllAsync` 单次批量；异步方法覆盖为真委托。
+- **维度契约**：`getDimension()` 首次成功嵌入后返回真实维度，此前 -1；同一 Lucene 索引内向量维度必须一致
+  （Lucene 原生约束），维度漂移 = 重建索引。
+- 下游：nop-code N4.3（HYBRID 查询面）、K3 RAG 管线的向量检索均经此桥接获得嵌入能力。

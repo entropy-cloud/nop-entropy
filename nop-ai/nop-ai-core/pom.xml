@@ -52,6 +52,24 @@
             <artifactId>nop-markdown</artifactId>
         </dependency>
 
+        <!-- K1/N4.2 (plans knowledge-rag/01, nop-code/23): bridge the platform
+             ITextEmbedding SPI to IEmbeddingModel. nop-search-api is a light
+             api-only jar (depends on nop-api-core only); the SPI javadoc keeps
+             nop-search itself independent of nop-ai — the bridge lives here. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-api</artifactId>
+        </dependency>
+
+        <!-- Test-scope only: wiring/e2e tests exercise the bridge inside the
+             real LuceneSearchEngine. Acyclic: nop-search-lucene does not
+             depend on nop-ai-core. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-lucene</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

@@ -2,7 +2,7 @@
 
 **日期**：2026-05-25（更新于 2026-09-23）
 **范围**：`nop-code-service` 与 `nop-search` 的集成
-**状态**：**双路径已实现且生产默认装配已落地**（2026-09-28，N4.1）：`nop-code-app` 依赖 `nop-search-lucene`，autoconfig 注册 `nopSearchEngine`，`@Inject` 按类型注入 `CodeIndexService.setSearchEngine`——注入时走 `SearchType.TEXT`，未部署引擎时降级 DB LIKE（双路径均由测试钉住：`TestCodeSearchEngineAssembly` 引擎 e2e、`TestCodeSearchFallbackLike` 降级三分支）。执行 N4.1 时发现并修复 `LuceneSearchEngine` topic 守卫缺陷（连字符 topic 被拒导致引擎同步静默全灭，见 plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`）。向量/混合搜索为待增强项（N4.2/N4.3）
+**状态**：**双路径已实现且生产默认装配已落地**（2026-09-28，N4.1）：`nop-code-app` 依赖 `nop-search-lucene`，autoconfig 注册 `nopSearchEngine`，`@Inject` 按类型注入 `CodeIndexService.setSearchEngine`——注入时走 `SearchType.TEXT`，未部署引擎时降级 DB LIKE（双路径均由测试钉住：`TestCodeSearchEngineAssembly` 引擎 e2e、`TestCodeSearchFallbackLike` 降级三分支）。执行 N4.1 时发现并修复 `LuceneSearchEngine` topic 守卫缺陷（连字符 topic 被拒导致引擎同步静默全灭，见 plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`）。向量嵌入生产实现已落地（N4.2，2026-09-28，见「向量嵌入」节）；混合搜索查询面暴露为待增强项（N4.3）
 
 ## 决策
 
@@ -69,5 +69,7 @@ SearchableDoc.autoGenerateEmbedding = true   // 依赖 ITextEmbedding 实现
 ## 向量嵌入
 
 `ITextEmbedding` 实现由 `nop-ai` 模块或外部 API 提供，nop-code 不关心具体实现。`autoGenerateEmbedding=true` 时，索引过程自动调用嵌入生成向量。
+
+**生产实现已落地（N4.2，2026-09-28）**：nop-ai-core 的 `AiModelTextEmbedding`（bean `nopAiTextEmbedding`）桥接 K1 的 `IEmbeddingModel`（`EmbeddingServiceImpl`）。`LuceneSearchEngine.setTextEmbedding` 已加 `@Inject`+`@Nullable`——classpath 含 nop-ai-core 时 by-type 自动注入（索引侧 `autoGenerateEmbedding` 与查询侧 `parseQueryVector` 即用真实嵌入）；无 nop-ai-core 的部署注入 null，引擎回退 hash 模拟（仅测试语义）。失败语义 = 异常上抛（fail-loud），不静默降级。nop-code 侧消费（`CodeSearchService` 暴露 VECTOR/HYBRID 查询面）归 N4.3。
 
 nop-search 还支持离线模式（无向量时仅文本搜索），无需嵌入也能工作。

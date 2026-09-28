@@ -20,6 +20,7 @@ import io.nop.search.api.SearchResponse;
 import io.nop.search.api.SearchableDoc;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -147,10 +148,16 @@ public class LuceneSearchEngine implements ISearchEngine {
     }
 
     /**
-     * Optional injection of text embedding provider.
-     * If not injected, hash-based mock embeddings will be used.
+     * Optional injection of text embedding provider (N4.2, plan nop-code/23:
+     * {@code @Inject} + {@code @Nullable} enables by-type wiring of a production
+     * {@code ITextEmbedding} bean — e.g. nop-ai-core's {@code AiModelTextEmbedding}
+     * bridging to {@code IEmbeddingModel} — when present on the classpath).
+     * If not injected (no implementation bean), hash-based mock embeddings will
+     * be used (test-only semantics; production deployments should wire an
+     * embedding implementation).
      */
-    public void setTextEmbedding(ITextEmbedding textEmbedding) {
+    @Inject
+    public void setTextEmbedding(@Nullable ITextEmbedding textEmbedding) {
         this.textEmbedding = textEmbedding;
     }
 

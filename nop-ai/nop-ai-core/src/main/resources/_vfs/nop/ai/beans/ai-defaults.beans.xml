@@ -14,6 +14,14 @@
     <bean id="nopAiEmbeddingModel" class="io.nop.ai.core.service.EmbeddingServiceImpl" ioc:default="true"
           ioc:type="io.nop.ai.core.api.embedding.IEmbeddingModel"/>
 
+    <!-- N4.2（plan nop-code/23）：ITextEmbedding 桥接（nop-search SPI → IEmbeddingModel）。
+         经 @Inject+@Nullable by-type 注入 LuceneSearchEngine（nop-search-lucene）；
+         无本 bean 的部署引擎回退 hash 模拟（仅测试语义）。 -->
+    <bean id="nopAiTextEmbedding" class="io.nop.ai.core.search.AiModelTextEmbedding" ioc:default="true"
+          ioc:type="io.nop.search.api.ITextEmbedding">
+        <constructor-arg index="0" ref="nopAiEmbeddingModel"/>
+    </bean>
+
     <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultChatLogger" ioc:default="true"/>
 
     <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">
