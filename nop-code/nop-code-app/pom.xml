@@ -48,6 +48,12 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-search-api</artifactId>
         </dependency>
+        <!-- N4.1: production default search engine; autoconfig registers nopSearchEngine,
+             by-type injection wires CodeIndexService.setSearchEngine -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-lucene</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.quarkus</groupId>

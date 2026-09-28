@@ -83,6 +83,12 @@
             <artifactId>nop-search-api</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- N4.1: real-engine e2e only; production wiring stays deployment-side (nop-code-app) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-lucene</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

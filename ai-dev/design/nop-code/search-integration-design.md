@@ -2,7 +2,7 @@
 
 **日期**：2026-05-25（更新于 2026-09-23）
 **范围**：`nop-code-service` 与 `nop-search` 的集成
-**状态**：**双路径已实现**（`CodeSearchService` 持有可空 `ISearchEngine`：注入时走 `SearchType.TEXT`，未注入时降级 DB LIKE；默认未注入引擎。向量/混合搜索为待增强项）
+**状态**：**双路径已实现且生产默认装配已落地**（2026-09-28，N4.1）：`nop-code-app` 依赖 `nop-search-lucene`，autoconfig 注册 `nopSearchEngine`，`@Inject` 按类型注入 `CodeIndexService.setSearchEngine`——注入时走 `SearchType.TEXT`，未部署引擎时降级 DB LIKE（双路径均由测试钉住：`TestCodeSearchEngineAssembly` 引擎 e2e、`TestCodeSearchFallbackLike` 降级三分支）。执行 N4.1 时发现并修复 `LuceneSearchEngine` topic 守卫缺陷（连字符 topic 被拒导致引擎同步静默全灭，见 plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`）。向量/混合搜索为待增强项（N4.2/N4.3）
 
 ## 决策
 

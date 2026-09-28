@@ -225,12 +225,32 @@ public class LuceneSearchEngine implements ISearchEngine {
                 .build();
     }
 
+    /**
+     * Topic 名用作索引根下的目录名：字母/数字/下划线/连字符组成，且禁止以点开头或包含
+     * ".."（路径穿越防护）。连字符是平台惯例 topic 形态（如 "nop-code-<indexId>"）。
+     */
+    static boolean isValidTopicName(String topic) {
+        if (StringHelper.isEmpty(topic) || topic.startsWith(".") || topic.contains("..")) {
+            return false;
+        }
+        for (int i = 0; i < topic.length(); i++) {
+            char c = topic.charAt(i);
+            if (!(Character.isLetterOrDigit(c) || c == '-' || c == '_')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected Directory getDirectory(String topic) {
         if (StringHelper.isEmpty(topic)) {
             topic = DEFAULT_TOPIC;
         }
 
-        Guard.checkArgument(StringHelper.isValidSimpleVarName(topic), "invalid topic");
+        // topic becomes a directory name below the index root, so path-safe names with
+        // hyphens are valid (e.g. "nop-code-<indexId>"); the stricter simple-var-name
+        // guard rejected every hyphenated topic and silently broke all engine sync.
+        Guard.checkArgument(isValidTopicName(topic), "invalid topic");
 
         String finalTopic = topic;
         return indexDirs.computeIfAbsent(topic, key -> {

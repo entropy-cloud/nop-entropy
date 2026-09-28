@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 13 · todo 26
+**汇总**：done 14 · todo 25
 
 ### M0 — 基线与文档-代码对齐
 
@@ -87,7 +87,7 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N4.1 搜索引擎默认装配 + 端到端验证（search 双路径已实现：`CodeSearchService` 持有可空 `ISearchEngine` engine-first、未注入降级 DB LIKE，`CodeIndexService` 已在索引写/删时 `addDoc`/`removeDocs` 同步——本项收口剩余缺口：生产默认装配 `LuceneSearchEngine` + 双路径端到端验证 + 降级路径测试钉住）<br>（Deliverable: 装配配置 + e2e 测试；deps: 无；Item Type: Fix） | todo | — |
+| N4.1 搜索引擎默认装配 + 端到端验证（search 双路径已实现：`CodeSearchService` 持有可空 `ISearchEngine` engine-first、未注入降级 DB LIKE，`CodeIndexService` 已在索引写/删时 `addDoc`/`removeDocs` 同步——本项收口剩余缺口：生产默认装配 `LuceneSearchEngine` + 双路径端到端验证 + 降级路径测试钉住）<br>（Deliverable: 装配配置 + e2e 测试；deps: 无；Item Type: Fix；plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`；执行中发现并修复 Lucene topic 守卫缺陷） | done | — |
 | N4.2 向量嵌入生产实现（实现 nop-search 的 `ITextEmbedding` SPI——当前全仓零实现——后端接 nop-ai `IEmbeddingModel` 或外部 API；**外部依赖**：`knowledge-rag-roadmap.md` 向量后端未就绪则保持 todo）<br>（Deliverable: 实现 + 测试；deps: N4.1；Item Type: Fix） | todo | N4.1 |
 | N4.3 混合搜索 RRF（`SearchType.HYBRID`：文本 + 向量 RRF 融合）<br>（Deliverable: 代码 + 测试；deps: N4.2；Item Type: Fix） | todo | N4.2 |
 

@@ -8,6 +8,7 @@
 package io.nop.search;
 
 import io.nop.api.core.annotations.autotest.NopTestProperty;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.batch.BatchQueue;
@@ -34,6 +35,39 @@ public class TestLuceneSearchEngine extends JunitBaseTestCase {
 
     @Inject
     ISearchEngine searchEngine;
+
+    /**
+     * N4.1 回归：topic 实际用作索引目录名，连字符形态（"nop-code-<indexId>"）必须合法；
+     * 旧 isValidSimpleVarName 守卫拒绝一切连字符 topic，导致引擎同步静默全灭。
+     */
+    @Test
+    public void testHyphenatedTopicSyncWorks() {
+        String topic = "nop-code-index_1";
+        searchEngine.removeTopic(topic);
+
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId("t1");
+        doc.setTitle("hyphen topic doc");
+        doc.setContent("hyphen body");
+        searchEngine.addDoc(topic, doc);
+
+        SearchRequest request = new SearchRequest();
+        request.setTopic(topic);
+        request.setQuery("hyphen");
+        request.setLimit(10);
+        SearchResponse ret = searchEngine.search(request);
+        assertEquals(1, ret.getTotal(), "hyphenated topic docs must be searchable");
+
+        searchEngine.removeTopic(topic);
+    }
+
+    @Test
+    public void testInvalidTopicRejected() {
+        SearchableDoc doc = new SearchableDoc();
+        doc.setId("t2");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> searchEngine.addDoc("../escape", doc), "path traversal topic must be rejected");
+    }
 
     @Test
     public void testSearch() {
@@ -95,7 +129,8 @@ public class TestLuceneSearchEngine extends JunitBaseTestCase {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
         }
 
         SearchRequest request = new SearchRequest();

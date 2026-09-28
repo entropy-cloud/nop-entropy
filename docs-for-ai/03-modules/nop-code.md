@@ -41,7 +41,7 @@ Located in `nop-code-service`. Key methods:
 | `getDeps`, `getReverseDeps`, `findCycles` | Query | Dependency analysis |
 | `detectFlows`, `listFlows`, `getFlow` | Query/Mutation | Execution flow |
 | `analyzeChanges`, `detectDeadCode` | Query | Change & dead code |
-| `searchCode` | Query | Full-text search (via `ISearchEngine`) |
+| `searchCode` | Query | Full-text search (via `ISearchEngine`; engine path with Lucene when deployed — default in `nop-code-app`, DB-LIKE fallback otherwise) |
 
 ### Key BizModels
 

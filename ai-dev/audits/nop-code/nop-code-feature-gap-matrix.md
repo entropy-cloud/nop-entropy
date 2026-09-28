@@ -34,7 +34,7 @@
 | N3.1 | 增量依赖传播(2-hop) | Fix | 01-baseline §6.2(增量更新依赖传播);`IncrementalDetector` 现状无 hop 传播 | — | done(2026-09-27,plan `ai-dev/plans/nop-code/11-n3-1-incremental-dependency-propagation.md`;文件级依赖边传播) |
 | N3.1-s | 增量 callee 解析与依赖方边恢复(confirmed live defect;增量路径无 resolveCalls,跨文件 calleeId 仅全量流填充) | Fix | semantic-edge §4.2;resolveCalls;JavaFileAnalyzer calleeQualifiedName | ai-dev/plans/nop-code/13-n3-1-s-incremental-callee-resolution.md | done(2026-09-28,增量+indexFile 双路径解析/恢复,8 测试钉住) |
 | N3.2 | 边类型扩展(TESTED_BY/REFERENCES) | Fix | 01-baseline §五(TESTED_BY/REFERENCES 复用 `nop_code_usage.kind`);graph-analysis §三(未测试热点依赖 TESTED_BY);00-vision 约束5 | — | done(2026-09-27,plan `ai-dev/plans/nop-code/12-n3-2-usage-kind-extension.md`) |
-| N4.1 | 搜索引擎默认装配 + 端到端验证 | Fix | search-integration(头部状态:双路径已实现,缺默认装配) | P0#2(nop-search 集成收口) | todo |
+| N4.1 | 搜索引擎默认装配 + 端到端验证(执行中发现并修复 Lucene topic 守卫缺陷——连字符 topic 致引擎同步静默全灭) | Fix | search-integration(头部状态) | P0#2(nop-search 集成收口) | done(2026-09-28,plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`) |
 | N4.2 | 向量嵌入生产实现(`ITextEmbedding`) | Fix | search-integration(向量嵌入节);01-baseline §6.2(nop-search 向量/混合) | P1#13 | todo |
 | N4.3 | 混合搜索 RRF(`SearchType.HYBRID`) | Fix | search-integration(TEXT→HYBRID 切换,k=60) | P0#2(混合面) | todo |
 | N5.1 | TypeScript 调用图补全 | Fix | 01-baseline §6.1(TS 暂无调用图);README(实现状态) | P2#10(语言能力面) | todo |
