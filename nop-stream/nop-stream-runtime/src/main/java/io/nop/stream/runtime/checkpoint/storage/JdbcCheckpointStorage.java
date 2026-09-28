@@ -397,12 +397,22 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         }
     }
 
+    /**
+     * Returns whether the checkpoint table exists. A {@code false} return means
+     * the catalog query SUCCEEDED and the table is absent — a legitimate
+     * first-run signal (write path creates it; read path treats it as "no
+     * checkpoint yet"). A failed catalog query throws: collapsing an
+     * infrastructure failure (connection loss, permissions) into {@code false}
+     * made the restore path silently cold-start a stateful job with empty
+     * state, indistinguishable from a genuine no-checkpoint start.
+     */
     private boolean tableExists() {
         try {
             return jdbcTemplate.existsTable(querySpace, TABLE_NAME);
         } catch (Exception e) {
-            LOG.debug("Failed to check table existence", e);
-            return false;
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to check checkpoint table existence (querySpace=" + querySpace
+                            + ", table=" + TABLE_NAME + ")");
         }
     }
 
@@ -568,8 +578,9 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         try {
             return jdbcTemplate.existsTable(querySpace, EPOCH_TABLE_NAME);
         } catch (Exception e) {
-            LOG.debug("Failed to check epoch table existence", e);
-            return false;
+            throw new CheckpointStorageException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to check epoch ledger table existence (querySpace=" + querySpace
+                            + ", table=" + EPOCH_TABLE_NAME + ")");
         }
     }
 

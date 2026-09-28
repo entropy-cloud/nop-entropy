@@ -55,6 +55,69 @@ public class ResultPartition implements IWriteStatus {
     private volatile boolean finished;
 
     /**
+     * Replay elements to deliver BEFORE any queue content. Attached by recovery
+     * paths (materialization region restart via
+     * {@link InputChannel#activateMaterializationReplay(long)}, unaligned channel
+     * state restore via {@link InputChannel#injectElements(List)}) and consumed
+     * by the read paths. Attaching is O(1) and never blocks — the recovery
+     * thread (supervision loop) must not depend on a consumer draining the
+     * bounded queue, and the replay set can exceed the queue capacity.
+     *
+     * <p>Ordering contract: pending replay → queue residual → EOS. The queue
+     * sentinel is never placed in the deque; a finished partition yields EOS
+     * only after the deque is drained, so the gate cannot mistake a timeout-null
+     * for end-of-stream while replay data remains.
+     *
+     * <p>Permit accounting: replay elements hold NO buffer-pool permit (they
+     * bypass the queue), so delivering them releases nothing and capturing them
+     * (via {@link #drainBufferedElements()}) re-attaches them without acquire.
+     * Queue elements keep the existing acquire-on-write / release-on-read flow.
+     *
+     * <p>Concurrency: attach happens-before the first consumer read (the
+     * partition is handed to the consumer only after attachment); the queue is
+     * lock-free and safe for the concurrent capture
+     * ({@code drainBufferedElements} runs on the checkpoint thread while the
+     * consumer reads). Not counted by {@link #size()}/{@link #isBackpressured()}
+     * (observability-only gap, bounded by capture size).
+     */
+    private volatile java.util.concurrent.ConcurrentLinkedQueue<StreamElement> pendingReplay;
+
+    /**
+     * Attaches replay elements to be delivered ahead of all queue content.
+     * O(1), never blocks, takes ownership of the collection. May be called
+     * before the consumer starts (region restart rebuild) or concurrently with
+     * reads (channel-state restore).
+     */
+    public void attachPendingReplay(List<StreamElement> elements) {
+        if (elements == null || elements.isEmpty()) {
+            return;
+        }
+        this.pendingReplay = new java.util.concurrent.ConcurrentLinkedQueue<>(elements);
+    }
+
+    /**
+     * Polls one pending replay element, or {@code null} when none remain.
+     * Deliberately does NOT null out the field when drained: a concurrent
+     * attach (channel-state restore while the consumer reads) could swap in a
+     * fresh queue between our poll and the null-out, and clearing the field
+     * would orphan its elements. An empty {@code ConcurrentLinkedQueue#poll}
+     * costs a single volatile read, so the steady-state overhead is negligible.
+     */
+    private StreamElement pollPendingReplay() {
+        java.util.concurrent.ConcurrentLinkedQueue<StreamElement> pending = this.pendingReplay;
+        if (pending == null) {
+            return null;
+        }
+        StreamElement element = pending.poll();
+        if (element == null || element == END_OF_STREAM) {
+            // The sentinel never enters the replay path (drain stops at it);
+            // treat it defensively as end-of-stream rather than data.
+            return null;
+        }
+        return element;
+    }
+
+    /**
      * Stage 44 successor 1 (materialization point mechanism, option B): optional
      * materialization bypass point. When non-null, {@link #write(StreamElement)}
      * dual-writes every element into the main queue <em>and</em> into this point
@@ -295,12 +358,18 @@ public class ResultPartition implements IWriteStatus {
     /**
      * Reads the next stream element from the partition, blocking until one is available.
      *
-     * <p>Returns {@code null} if the partition is finished and no more elements remain.
+     * <p>Pending replay elements (attached by recovery paths) are delivered
+     * ahead of all queue content. Returns {@code null} if the partition is
+     * finished and neither replay nor queue elements remain.
      *
      * @return the next element, or null if end-of-stream
      * @throws InterruptedException if the thread is interrupted while waiting
      */
     public StreamElement read() throws InterruptedException {
+        StreamElement pending = pollPendingReplay();
+        if (pending != null) {
+            return pending;
+        }
         StreamElement element = queue.take();
         if (element == END_OF_STREAM) {
             return null;
@@ -314,12 +383,22 @@ public class ResultPartition implements IWriteStatus {
     /**
      * Reads the next stream element with a timeout.
      *
+     * <p>Pending replay elements (attached by recovery paths) are delivered
+     * ahead of all queue content and without waiting; the timeout applies only
+     * to the queue wait. The gate loop relies on this overload — a finished
+     * partition with undelivered replay elements must keep returning data here
+     * instead of a null that the gate would misread as end-of-stream.
+     *
      * @param timeout the maximum time to wait
      * @param unit    the time unit of the timeout
      * @return the next element, or null if timeout elapsed or end-of-stream reached
      * @throws InterruptedException if the thread is interrupted while waiting
      */
     public StreamElement read(long timeout, TimeUnit unit) throws InterruptedException {
+        StreamElement pending = pollPendingReplay();
+        if (pending != null) {
+            return pending;
+        }
         StreamElement element = queue.poll(timeout, unit);
         if (element == null) {
             // Timeout - return null but don't mark as finished
@@ -434,6 +513,13 @@ public class ResultPartition implements IWriteStatus {
      */
     public List<StreamElement> drainBufferedElements() {
         List<StreamElement> drained = new ArrayList<>();
+        // Pending replay first (preserves the pending → queue delivery order in
+        // the captured list). Replay elements hold no permit, so draining them
+        // releases nothing.
+        StreamElement pendingElement;
+        while ((pendingElement = pollPendingReplay()) != null) {
+            drained.add(pendingElement);
+        }
         StreamElement e;
         while ((e = queue.poll()) != null) {
             if (e == END_OF_STREAM) {
@@ -447,60 +533,6 @@ public class ResultPartition implements IWriteStatus {
             drained.add(e);
         }
         return drained;
-    }
-
-    /**
-     * Stage 43 (unaligned checkpoint recovery): inserts the given elements at the
-     * <em>front</em> of the buffer so they are consumed before any currently
-     * buffered content — i.e. replayed in-flight records are processed first. Used
-     * by {@link InputChannel#injectElements(List)} on the recovery path.
-     *
-     * <p>Implementation: drain the current queue into a temp list, enqueue the
-     * replayed elements, then re-enqueue the previously drained content. When a
-     * buffer pool is attached, each injected/re-added element acquires a permit
-     * (mirroring {@link #write(StreamElement)}); if the pool is exhausted this
-     * blocks until permits are available, preserving the global bound.
-     *
-     * @param elements the elements to prepend (may be null/empty = no-op)
-     */
-    public void injectFront(List<StreamElement> elements) {
-        if (elements == null || elements.isEmpty()) {
-            return;
-        }
-        // Snapshot current buffered content (preserve the EOS sentinel if present).
-        List<StreamElement> existing = new ArrayList<>();
-        boolean sawEos = false;
-        StreamElement e;
-        while ((e = queue.poll()) != null) {
-            if (e == END_OF_STREAM) {
-                sawEos = true;
-                if (bufferPool != null) {
-                    bufferPool.release();
-                }
-                break;
-            }
-            existing.add(e);
-        }
-        try {
-            // Replayed elements first.
-            for (StreamElement injected : elements) {
-                if (bufferPool != null) {
-                    bufferPool.acquire();
-                }
-                queue.put(injected);
-            }
-            // Then the previously buffered content.
-            for (StreamElement old : existing) {
-                queue.put(old);
-            }
-            if (sawEos) {
-                queue.put(END_OF_STREAM);
-            }
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new StreamException(NopStreamErrors.ERR_STREAM_INTERRUPTED_WRITE, ie)
-                    .param(NopStreamErrors.ARG_DETAIL, "injectFront interrupted");
-        }
     }
 
     // ----------------------------------------------------------------------

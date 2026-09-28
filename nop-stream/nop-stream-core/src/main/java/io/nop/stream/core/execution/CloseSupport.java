@@ -78,6 +78,17 @@ public final class CloseSupport {
      * Chains {@code error} behind {@code firstError}: null-aware, later errors
      * are attached as suppressed.
      *
+     * <p>Shape contract: the result tree is FLAT —
+     * {@code firstError.suppressed = [error, error.suppressed...]} in close
+     * order — matching the pre-CloseSupport inline teardown form that
+     * monitoring/log tooling sees. When {@code error} itself carries suppressed
+     * errors (e.g. it is the first-error returned by {@link #closeAll}, with
+     * later close errors attached), that chain is hoisted onto
+     * {@code firstError}; the original nested attachment on {@code error}
+     * cannot be removed, so the hoisted throwables remain reachable through
+     * both paths (same instances, zero loss, printed twice by deep tree
+     * walkers).
+     *
      * @return the error to keep propagating
      */
     public static Exception accumulate(Exception firstError, Exception error) {
@@ -86,6 +97,9 @@ public final class CloseSupport {
         }
         if (error != null && error != firstError) {
             firstError.addSuppressed(error);
+            for (Throwable nested : error.getSuppressed()) {
+                firstError.addSuppressed(nested);
+            }
         }
         return firstError;
     }

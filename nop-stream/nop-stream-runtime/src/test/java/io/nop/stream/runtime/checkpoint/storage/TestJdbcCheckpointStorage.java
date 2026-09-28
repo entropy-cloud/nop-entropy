@@ -660,4 +660,40 @@ class TestJdbcCheckpointStorage {
                 "unexpected runtime failures must be wrapped, not escape raw");
         assertEquals("loadSavepointMetadata failed", ex.getParam("detail"));
     }
+
+    /**
+     * N4 regression (plan 366 Phase 2): a FAILED catalog query must NOT be
+     * collapsed into "table does not exist". Pre-fix any existsTable exception
+     * (connection loss, permissions) returned false on the restore path →
+     * {@code getLatestCheckpoint} returned null → a stateful job silently
+     * cold-started with empty state, indistinguishable from a genuine
+     * no-checkpoint start.
+     */
+    @Test
+    void testRestorePathFailsLoudWhenCatalogQueryFails() {
+        IJdbcTemplate failingCatalog = (IJdbcTemplate) java.lang.reflect.Proxy.newProxyInstance(
+                IJdbcTemplate.class.getClassLoader(),
+                new Class<?>[]{IJdbcTemplate.class},
+                (proxy, method, args) -> {
+                    if ("existsTable".equals(method.getName())) {
+                        throw new IllegalStateException("simulated catalog outage (N4)");
+                    }
+                    return method.invoke(jdbcTemplate, args);
+                });
+        JdbcCheckpointStorage brokenStorage = new JdbcCheckpointStorage(failingCatalog);
+
+        io.nop.stream.core.checkpoint.storage.CheckpointStorageException ex =
+                assertThrows(io.nop.stream.core.checkpoint.storage.CheckpointStorageException.class,
+                        () -> brokenStorage.getLatestCheckpoint("1", "1"),
+                "a failed catalog query must fail loud, never silently cold-start restore");
+        assertTrue(String.valueOf(ex.getParam("detail")).contains("checkpoint table existence"),
+                "unexpected message: " + ex.getParam("detail"));
+
+        io.nop.stream.core.checkpoint.storage.CheckpointStorageException epochEx =
+                assertThrows(io.nop.stream.core.checkpoint.storage.CheckpointStorageException.class,
+                        () -> brokenStorage.loadLatestEpochManifest("1", "1"),
+                "epoch-ledger restore path must fail loud on catalog failure too");
+        assertTrue(String.valueOf(epochEx.getParam("detail")).contains("epoch ledger table existence"),
+                "unexpected message: " + epochEx.getParam("detail"));
+    }
 }

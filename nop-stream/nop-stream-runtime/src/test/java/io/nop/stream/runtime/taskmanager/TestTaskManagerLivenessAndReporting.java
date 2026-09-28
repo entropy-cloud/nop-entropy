@@ -146,6 +146,51 @@ class TestTaskManagerLivenessAndReporting {
         assertEquals(TaskStatusReport.TerminalState.COMPLETED, report.getTerminalState());
     }
 
+    /**
+     * N3 regression (plan 366 Phase 2): a success-finished task RETAINS its
+     * registry entry (bounded-run tail commits), but its frozen activity clock
+     * must NOT be re-reported on the heartbeat — the coordinator removed the
+     * liveness key on the COMPLETED report, and a re-inserted frozen value ages
+     * past taskTimeoutMs into a false TASK_STALL global recovery that cancels
+     * the very tail-commit window the retained entry protects.
+     */
+    @Test
+    void heartbeatSkipsFinishedTaskWhoseRegistryEntryIsRetained() throws Exception {
+        long token = 1L;
+        taskManager.updateFencingToken(token);
+        TaskAssignment a = new TaskAssignment(
+                "job-1", "v-done", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
+        taskManager.receiveAssignment(a);
+
+        StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
+        taskManager.installInvokable("job-1", "v-done", 0, inv);
+
+        // Wait for the natural COMPLETED report (RunningTask.run finally).
+        TestAwait.until("task reports COMPLETED",
+                () -> coordinatorRpc.statusReports.stream()
+                        .anyMatch(r -> "v-done".equals(r.getVertexId())
+                                && r.getTerminalState() == TaskStatusReport.TerminalState.COMPLETED),
+                2000);
+
+        // The success-finished task RETAINS its registry entry (tail commits):
+        // it is still visible in the registry, unlike failed/canceled tasks.
+        assertTrue(taskManager.hasRegistryEntry("job-1", "v-done", 0),
+                "precondition: success-finished task keeps its registry entry");
+
+        taskManager.heartbeat();
+
+        // Pre-fix: the retained entry was reported with its frozen activity
+        // clock → coordinator merge() re-inserted the stale timestamp → false
+        // TASK_STALL after taskTimeoutMs. Post-fix: no liveness entry at all.
+        for (List<TaskProgress> batch : coordinatorRpc.livenessBatches) {
+            assertTrue(batch.stream().noneMatch(p -> "v-done".equals(p.getVertexId())),
+                    "finished task must not be re-reported on the heartbeat (frozen clock "
+                            + "would age into a false TASK_STALL): " + batch);
+        }
+
+        taskManager.cancelTask("job-1", "v-done", 0, token);
+    }
+
     private static io.nop.stream.core.jobgraph.OperatorChain buildEmptyOperatorChain() {
         // StreamMap with identity function — minimal valid operator chain
         return new io.nop.stream.core.jobgraph.OperatorChain(java.util.Collections.singletonList(

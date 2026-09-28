@@ -923,9 +923,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // A completed task must be excluded from stall
             // detection. Remove its liveness entry so detectFailures'
             // benefit-of-the-doubt branch (no record) never flags it as
-            // stalled. The task has already left the TaskManager's
-            // runningTasks set (RunningTask.run() finally), so no further
-            // heartbeats will re-add it.
+            // stalled. The entry stays removed because heartbeats skip
+            // finished tasks (a success-finished task RETAINS its
+            // TaskManager registry entry for tail commits, but the heartbeat
+            // loop filters on isFinished() and never re-reports its frozen
+            // activity clock).
             subtaskLiveness.remove(livenessKey);
         } else {
             // Any other terminal report (FAILED) is an
@@ -1276,18 +1278,20 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      *       report with {@code autoRecoverOnFailedReport=true}.</li>
      * </ul>
      *
-     * <p>Dedup is implemented as a single CAS on {@link #recoveryPending}: exactly
-     * one caller transitions {@code false → true} and proceeds into
-     * {@link #globalRecovery()}; all redundant callers (whether truly overlapping
-     * or arriving while the in-flight recovery is still running) observe the CAS
-     * fail and short-circuit with an observable WARN (No-Silent-No-Op). The flag
-     * is cleared at the END of {@code globalRecovery()}'s locked section (in
-     * {@code finally}), so the CAS window stays closed for the recovery's entire
-     * duration — a mid-recovery redundant trigger cannot squeeze through. A
-     * trigger firing AFTER the in-flight recovery completes re-arms the flag and
-     * runs a fresh recovery; globalRecovery is global/idempotent so a redundant
-     * post-completion trigger is wasteful but not corrupting.
-     */
+ * <p>Dedup is implemented as a single CAS on {@link #recoveryPending}: exactly
+ * one caller transitions {@code false → true} and proceeds into
+ * {@link #globalRecovery()}; all redundant callers (whether truly overlapping
+ * or arriving while the in-flight recovery is still running) observe the CAS
+ * fail and short-circuit with an observable WARN (No-Silent-No-Op). The flag is
+ * cleared by {@code globalRecovery()}'s OUTER finally — after the locked
+ * section, the assignment fan-out, and the health/event callbacks — so the CAS
+ * window stays closed for the recovery's entire suppression window (including
+ * the fan-out; see {@code globalRecovery}). A trigger firing AFTER the clear
+ * re-arms the flag and runs a fresh recovery; globalRecovery is
+ * global/idempotent so a redundant post-completion trigger is wasteful but not
+ * corrupting. Because the clear sits in a finally, a lock-internal exception
+ * (fencing DB write, assignment planning) also un-sticks the flag.
+ */
     public void requestRecovery() {
         requestRecovery(RecoveryCause.OTHER);
     }
@@ -1494,21 +1498,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 dispatches = assignmentPlanner.prepareAssignmentsLocked(
                         remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
             } finally {
-                // Clear the dedup flag at the END (still under the lock)
-                // so the CAS window in requestRecovery stays closed for the ENTIRE
-                // duration of this recovery. Any redundant requestRecovery that arrives
-                // while this recovery is in flight observes recoveryPending=true and its
-                // CAS(false→true) fails, so it short-circuits. We only re-arm the flag
-                // once this recovery is fully done — see the extension note below.
-                //
-                // Clearing in finally (not at the start) closes the race where a second
-                // caller's CAS would succeed between "globalRecovery clears pending" and
-                // "globalRecovery finishes", queuing a redundant second recovery. With
-                // end-clear, the only way a second requestRecovery proceeds is if it
-                // fires AFTER this method returns — which is a legitimate, distinct
-                // trigger (globalRecovery is global/idempotent, so a redundant trigger
-                // after completion is wasteful but not corrupting, and the failure-
-                // detector's periodicity bounds how long a true gap can go unhandled).
+                // This finally only releases the lock. The dedup flag is NOT
+                // cleared here — it stays armed through the assignment fan-out,
+                // the health callback and the RECOVERY_COMPLETED event, and is
+                // cleared by the OUTER finally (recoveryPending.set(false))
+                // after all of those complete. See the notes at the fan-out and
+                // at the outer finally for why the suppression window extends
+                // past the locked section.
                 recoveryLock.unlock();
             }
 
@@ -1536,6 +1532,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
                     "restarts=" + totalAfter));
         } finally {
+            // THE dedup-flag clear point: outer finally, after the locked
+            // section, the assignment fan-out, the health callback and the
+            // RECOVERY_COMPLETED event. The flag stays armed for the whole
+            // suppression window so (a) a redundant requestRecovery CAS fails
+            // for the entire in-flight recovery, and (b) a periodic
+            // triggerCheckpoint cannot interleave its RPC row before the
+            // deployment rows (see the fan-out note above). Any
+            // requestRecovery firing after this clear is a legitimate, distinct
+            // trigger (globalRecovery is global/idempotent — a redundant
+            // post-completion trigger is wasteful, not corrupting). Lock-internal
+            // exceptions (fencing DB write, assignment planning) also reach this
+            // finally, so a failed recovery can never leave the flag stuck.
             recoveryPending.set(false);
         }
     }

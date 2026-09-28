@@ -868,6 +868,16 @@ public class CheckpointCoordinator {
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
         notifyParticipantsFinishCommit(checkpointId, false);
+        // A2' (plan 366): a persist-failed epoch is terminal, same as an aborted
+        // one — nothing will ever complete it, so the terminal marker
+        // notifyParticipantsFinishCommit just recorded must not linger in
+        // checkpointSuccessMap. Keep it only while failed-commit retries still
+        // need it (they replay finishCommit for this epoch using the recorded
+        // flag; removing it early would default the replay to success=true and
+        // subsume a failed epoch as committed). Mirrors the abort-path cleanup.
+        if (!failedCommitParticipants.containsKey(checkpointId)) {
+            checkpointSuccessMap.remove(checkpointId);
+        }
         notifyCheckpointAborted(checkpointId);
         pending.forceFail(failMessage, cause);
     }

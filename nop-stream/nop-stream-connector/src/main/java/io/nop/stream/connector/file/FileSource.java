@@ -160,7 +160,15 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
         @Override
         public byte[] serialize(FileSplitEnumeratorState obj) throws IOException {
             StringBuilder sb = new StringBuilder();
-            sb.append(obj.getDirectoryPath() == null ? "" : obj.getDirectoryPath()).append('\n');
+            // B6' (plan 366): the directory path is the newline-delimited first
+            // section, so only line terminators can corrupt it — unlike split
+            // paths, '|' and ',' are legal here and must NOT be rejected.
+            String directoryPath = obj.getDirectoryPath();
+            if (directoryPath != null && (directoryPath.indexOf('\n') >= 0 || directoryPath.indexOf('\r') >= 0)) {
+                throw new IOException("Enumerator state directory path contains reserved line-separator "
+                        + "characters (newline): " + directoryPath);
+            }
+            sb.append(directoryPath == null ? "" : directoryPath).append('\n');
             sb.append(obj.getNextSubtaskIndex()).append('\n');
             appendCsvSection(sb, obj.getDiscoveredFiles());
             appendCsvSection(sb, obj.getAssignedFiles());

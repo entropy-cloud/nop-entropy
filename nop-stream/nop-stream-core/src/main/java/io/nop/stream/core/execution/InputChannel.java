@@ -128,7 +128,12 @@ public class InputChannel {
         if (elements == null || elements.isEmpty()) {
             return;
         }
-        partition.injectFront(elements);
+        // Attach as pending replay instead of queue injection: the restore path
+        // must never block on the bounded queue (no consumer is running during
+        // restore), and captured in-flight sets can exceed the queue capacity.
+        // Delivery order (replay ahead of queue content) is preserved by the
+        // partition's read paths.
+        partition.attachPendingReplay(elements);
     }
 
     // ----------------------------------------------------------------------
@@ -220,13 +225,17 @@ public class InputChannel {
         if (materialized.isEmpty()) {
             return 0;
         }
-        // Unwrap epoch-tagged elements back into plain StreamElements and inject
-        // them ahead of any in-flight content, preserving write order.
+        // Unwrap epoch-tagged elements back into plain StreamElements and attach
+        // them as pending replay (delivered ahead of queue content, preserving
+        // write order). The replay set is unbounded (the materialization store
+        // grows at producer speed while the consumer is down), so it must never
+        // be pushed through the bounded queue — attach is O(1) and non-blocking;
+        // the consumer drains it lazily via the partition read paths.
         List<StreamElement> elements = new ArrayList<>(materialized.size());
         for (MaterializedElement me : materialized) {
             elements.add(me.getElement());
         }
-        partition.injectFront(elements);
+        partition.attachPendingReplay(elements);
         return elements.size();
     }
 }

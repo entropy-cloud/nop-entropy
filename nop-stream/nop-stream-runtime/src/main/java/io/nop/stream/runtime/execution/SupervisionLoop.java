@@ -39,6 +39,7 @@ import io.nop.stream.core.execution.task.SubtaskTask;
 import io.nop.stream.core.execution.task.TaskExecutor;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -111,15 +112,22 @@ import io.nop.stream.core.jobgraph.region.RegionId;
  * <h3>Exactly-once safety argument</h3>
  * Region-scoped restart triggers consistent-cut replay: the restarted
  * consumer has its operator state restored from the latest completed
- * checkpoint (at epoch {@code N}), then reads from a <em>fresh</em>
- * {@link ResultPartition} that shares the materialization point with the
- * (surviving) producer partition. {@code activateMaterializationReplay(N)}
- * injects precisely the post-checkpoint records (epoch {@code >= N}) at the
- * front. Because the partition is fresh, there is no duplicate data from the
- * old queue. No data is lost (all post-checkpoint records are replayed) and
- * no data is duplicated (fresh partition + checkpoint-aligned epoch cut).
- * When no checkpoint exists (startup edge case), the replay falls back to
- * epoch 0 + full replay with empty operator state — correct because
+ * checkpoint (at epoch {@code N}), then keeps READING THE SAME producer
+ * partition. {@code activateMaterializationReplay(N)} attaches precisely the
+ * post-checkpoint records (epoch {@code >= N}) as pending replay, delivered
+ * ahead of all queue content; materialization edges additionally drain the
+ * residual queue first (its content is fully contained in the store, so
+ * draining removes exactly the records the replay re-delivers). Because the
+ * replay cut is checkpoint-aligned and the residual duplicates are drained,
+ * no data is lost (all post-checkpoint records are replayed) and no data is
+ * double-delivered on materialization edges. Non-materialization channels are
+ * internal same-region edges whose producer is rebuilt with the SAME old
+ * writer against the SAME old partition — the edge stays connected, and
+ * at-least-once duplicates are acceptable for its delivery guarantee.
+ * Successfully COMPLETED tasks are not resubmitted: their finished partition
+ * (residual data + EOS sentinel) is consumed by the rebuilt downstream
+ * readers. When no checkpoint exists (startup edge case), the replay falls
+ * back to epoch 0 + full replay with empty operator state — correct because
  * operators start from empty state and full replay rebuilds state from
  * scratch. Exactly-once holds within the replay scope.
  *
@@ -487,6 +495,19 @@ public class SupervisionLoop {
                         + "(map/plan inconsistency)", regionId, taskKey);
                 continue;
             }
+            if (oldTask.getState() == SubtaskTask.State.COMPLETED) {
+                // A successfully COMPLETED task must not be resubmitted: its
+                // output partition is finished (EOS sentinel queued), and the
+                // rebuilt producer path reuses the OLD writer — the first write
+                // to a finished partition would throw ERR_STREAM_INVALID_STATE
+                // and turn the restart into a failure loop. The finished
+                // partition keeps its residual data + sentinel, so rebuilt
+                // consumers (which reuse the old partition) drain it and observe
+                // end-of-stream naturally.
+                LOG.info("Region restart for region {}: task {} already COMPLETED; keeping its finished "
+                        + "partition and skipping resubmit", regionId, taskKey);
+                continue;
+            }
             SubtaskTask newTask = rebuildTask(execPlan, oldTask, regionId, coordinator, checkpointPlan,
                     allInvokables, checkpointConfig);
             tasks.put(taskKey, newTask);
@@ -644,7 +665,7 @@ public class SupervisionLoop {
         if (oldInputGate != null) {
             // Consumer role (SINK or MIDDLE): fresh InputGate with materialization
             // replay activated at the checkpoint-aligned epoch.
-            newInvokable = buildConsumerInvokableWithReplay(oldInputGate, newChain,
+            newInvokable = buildConsumerInvokableWithReplay(oldInvokable, oldInputGate, newChain,
                     consistentCutEpoch, regionId, vertexId, taskIndex);
         } else if (oldOutputWriter != null) {
             // Producer role (SOURCE or MIDDLE with no InputGate): reuse the old
@@ -740,30 +761,37 @@ public class SupervisionLoop {
 
     /**
      * Builds the invokable for a consumer-role task (SINK or MIDDLE): a fresh
-     * InputGate whose channels point at partitions with materialization replay
-     * activated at the checkpoint-aligned epoch.
+     * InputGate whose channels point at the OLD partitions, with materialization
+     * replay attached at the checkpoint-aligned epoch.
      *
-     * <p>Reconnect-to-live-queue: when the producer partition is NOT finished
-     * (infinite source / producer still running), the consumer must reconnect
-     * to the LIVE partition after replay. This is implemented by REUSING the
-     * old partition:
+     * <p>Reconnect-to-live-queue (ALL channels reuse the old partition):
      * <ol>
-     *   <li>Drain stale queue data (already captured in the materialization
-     *       store → no loss; removes duplicates that would otherwise overlap
-     *       with the replay injection).</li>
-     *   <li>injectFront the post-checkpoint replay data.</li>
-     *   <li>The consumer reads replay data first, then live data from the
-     *       surviving producer (which continues writing to the same queue).</li>
+     *   <li>Materialization edge: drain residual queue data (already captured
+     *       in the materialization store → no loss; removes duplicates that
+     *       would otherwise overlap with the replay set), then ATTACH the
+     *       post-checkpoint replay data as pending replay (O(1), never blocks —
+     *       the replay set can exceed the bounded queue capacity and no consumer
+     *       is running yet).</li>
+     *   <li>The consumer reads pending replay first, then live data from the
+     *       surviving producer (which continues writing to the same queue);
+     *       a finished producer's queued EOS sentinel delivers end-of-stream
+     *       after the replay.</li>
+     *   <li>Non-materialization channel (a same-region INTERNAL edge — the
+     *       region decomposer only cuts at materialization edges): reuse the
+     *       partition as-is so the rebuilt producer, which reuses the old
+     *       writer, stays connected to the rebuilt consumer.</li>
      * </ol>
      * InputChannel.partition is final, so reconnect creates a NEW InputChannel
      * wrapping the reused (old) partition and feeds it into the fresh
      * InputGate.
      *
-     * <p>When the producer partition IS finished (finite source), a fresh
-     * partition is used (no live producer to reconnect to) and sealed after
-     * replay so the consumer sees EOS.
+     * <p>Writer carry-over: a pure SINK has no output writer; a MIDDLE task
+     * (input gate AND output writer) keeps its OLD writer(s) so its healthy
+     * downstream consumer — which reads the SAME output partition — continues
+     * receiving records after the restart.
      */
     private static StreamTaskInvokable buildConsumerInvokableWithReplay(
+            StreamTaskInvokable oldInvokable,
             InputGate oldInputGate,
             OperatorChain newChain,
             long consistentCutEpoch,
@@ -776,51 +804,55 @@ public class SupervisionLoop {
             ResultPartition oldPartition = oldChannel.getPartition();
             IMaterializationPoint matPoint = oldPartition.getMaterializationPoint();
 
-            ResultPartition consumerPartition;
-            if (matPoint != null && !oldPartition.isFinished()) {
-                // Reconnect-to-live-queue: reuse the live partition.
-                // Drain stale data (it's in the materialization store), then
-                // injectFront the post-checkpoint replay data.
-                java.util.List<io.nop.stream.core.streamrecord.StreamElement> drained =
-                        oldPartition.drainBufferedElements();
-                consumerPartition = oldPartition;
+            // Always reuse the old partition. The rebuilt producer-side task
+            // reuses the OLD output writer (writes to the OLD partition), so a
+            // freshly created consumer partition would sever a same-region
+            // internal edge forever (producer writes the old partition nobody
+            // reads, consumer blocks on an empty partition nobody writes —
+            // silent permanent hang). RegionDecomposer only cuts regions at
+            // materialization edges, so every matPoint == null channel here is
+            // an INTERNAL edge whose producer is rebuilt in this same loop.
+            ResultPartition consumerPartition = oldPartition;
+            if (matPoint != null) {
                 consumerPartition.setMaterializationPoint(matPoint);
+                // Drain residual queue content before attaching replay: for a
+                // still-running producer the residual is stale pre-replay data
+                // (fully contained in the materialization store); for a finished
+                // producer it exactly duplicates the replay set. Keeping it
+                // would double-deliver replayed records. The EOS sentinel (if
+                // the producer finished) stays in the queue, so the consumer
+                // observes replay first, then end-of-stream.
+                List<StreamElement> drained = oldPartition.drainBufferedElements();
                 InputChannel tempChannel = new InputChannel(consumerPartition);
                 int injected = tempChannel.activateMaterializationReplay(consistentCutEpoch);
-                LOG.info("Reconnect-to-live-queue: drained {} stale element(s), replayed {} post-checkpoint"
-                        + " element(s) (epoch >= {}) into live partition for vertex={} taskIndex={}"
+                LOG.info("Reconnect-to-live-queue: drained {} stale element(s), attached {} post-checkpoint"
+                        + " replay element(s) (epoch >= {}) as pending replay for vertex={} taskIndex={}"
                         + " (producer still running — consumer will continue reading live data after replay)",
                         drained.size(), injected, consistentCutEpoch, vertexId, taskIndex);
-            } else {
-                // Finite source (producer finished) OR no materialization:
-                // fresh partition + replay + seal (EOS).
-                consumerPartition = new ResultPartition();
-                if (matPoint != null) {
-                    consumerPartition.setMaterializationPoint(matPoint);
-                    InputChannel tempChannel = new InputChannel(consumerPartition);
-                    int injected = tempChannel.activateMaterializationReplay(consistentCutEpoch);
-                    LOG.info("Replayed {} materialized elements (epoch >= {}) into fresh partition"
-                            + " for vertex={} taskIndex={} (producer finished — fresh partition sealed)",
-                            injected, consistentCutEpoch, vertexId, taskIndex);
-                    if (oldPartition.isFinished()) {
-                        try {
-                            consumerPartition.close();
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new StreamException(ERR_STREAM_REGION_RESTART_UNSUPPORTED, ie)
-                                    .param(ARG_REGION_ID, regionId.getId())
-                                    .param(ARG_DETAIL, "Interrupted while sealing fresh partition during region restart");
-                        }
-                    }
-                }
             }
+            // matPoint == null (internal same-region edge, or a legacy
+            // non-materialization channel): reuse the partition as-is. Residual
+            // in-flight data and a queued EOS sentinel (finished producer) are
+            // delivered as-is — at-least-once duplicates are acceptable.
             newChannels.add(new InputChannel(consumerPartition));
         }
 
         InputGate newInputGate = new InputGate(newChannels, (EdgeConfig) null,
                 InputGate.AlignmentMode.AT_LEAST_ONCE);
-        // Consumer role: chain + null writer + inputGate → SINK invokable.
-        newInvokable = new StreamTaskInvokable(newChain, (RecordWriter<?>) null, newInputGate);
+        // Consumer role: chain + inputGate. A pure SINK has no output writer; a
+        // MIDDLE task (input gate AND output writer) must carry over the OLD
+        // writer(s) — they are wired to the SAME output partitions its healthy
+        // downstream consumer keeps reading, and a null writer here would
+        // silently starve the downstream after the restart.
+        List<RecordWriter<Object>> oldFanOutWriters = oldInvokable.getFanOutWriters();
+        if (oldFanOutWriters != null && !oldFanOutWriters.isEmpty()) {
+            newInvokable = new StreamTaskInvokable(newChain, oldFanOutWriters, newInputGate);
+            LOG.info("Rebuilt consumer-role task vertex={} taskIndex={} carrying over {} fan-out output "
+                    + "writer(s)", vertexId, taskIndex, oldFanOutWriters.size());
+        } else {
+            RecordWriter<Object> oldOutputWriter = oldInvokable.getOutputWriter();
+            newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, newInputGate);
+        }
         return newInvokable;
     }
 

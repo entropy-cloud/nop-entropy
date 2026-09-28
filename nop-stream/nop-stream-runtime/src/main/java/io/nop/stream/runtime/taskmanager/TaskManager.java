@@ -315,6 +315,17 @@ public class TaskManager implements IStreamTaskRpcService {
                 if (inv == null) {
                     continue;
                 }
+                // Skip naturally COMPLETED tasks: a success-finished task RETAINS its
+                // registry entry (bounded-run tail commits need the entry to receive
+                // commit notifications), but its activity clock is frozen. Reporting
+                // the frozen value would re-insert the stale timestamp into the
+                // coordinator's liveness map after reportTaskStatus(COMPLETED) removed
+                // it, and the coordinator would flag the healthy task TASK_STALL after
+                // taskTimeoutMs — triggering a global recovery that cancels the very
+                // tail-commit window the retained entry exists to protect.
+                if (task.isFinished()) {
+                    continue;
+                }
                 progress.add(new TaskProgress(
                         task.vertexId,
                         task.subtaskIndex,
@@ -864,6 +875,15 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         }
         return count;
+    }
+
+    /**
+     * Package-private test accessor: whether the registry still holds an entry
+     * for the task key (a success-finished task retains its entry even though
+     * {@link #getRunningTaskCount()} excludes it).
+     */
+    boolean hasRegistryEntry(String jobId, String vertexId, int subtaskIndex) {
+        return runningTasks.containsKey(taskKey(jobId, vertexId, subtaskIndex));
     }
 
     int availablePermits() {

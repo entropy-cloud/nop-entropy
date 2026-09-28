@@ -134,6 +134,69 @@ class TestCheckpointAbortMarkerCleanup {
         }
     }
 
+    /**
+     * A2' regression (plan 366 Phase 2): a persist-FAILED epoch is terminal,
+     * same as an aborted one — the marker recorded by
+     * {@code notifyParticipantsFinishCommit(id, false)} must not linger in
+     * {@code checkpointSuccessMap} when no commit retry is pending. Pre-fix
+     * only the abort path cleaned up; a storage failure on the completion path
+     * left the entry forever (unbounded growth on jobs with failing storage).
+     */
+    @Test
+    void persistFailureDropsTerminalMarkerWhenNoCommitFailed(@org.junit.jupiter.api.io.TempDir java.nio.file.Path failDir) {
+        // Storage whose storeCheckPoint always fails → the sync completion path
+        // funnels into onCompletePersistFailure inline.
+        io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage failingStorage =
+                new io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage(
+                        failDir.resolve("no-such-parent").resolve("blocked").toString()) {
+                    @Override
+                    public String storeCheckPoint(io.nop.stream.core.checkpoint.CompletedCheckpoint checkpoint)
+                            throws io.nop.stream.core.checkpoint.storage.CheckpointStorageException {
+                        throw new io.nop.stream.core.checkpoint.storage.CheckpointStorageException(
+                                io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR,
+                                new java.io.IOException("simulated persist failure (A2')"))
+                                .param("detail", "storeCheckPoint failed");
+                    }
+                };
+        CheckpointConfig syncConfig = CheckpointConfig.builder()
+                .checkpointEnabled(true).checkpointInterval(1000L)
+                .checkpointTimeout(10000L).maxConcurrentCheckpoints(1)
+                .maxRetainedCheckpoints(3)
+                .asyncSnapshotEnabled(false)
+                .build();
+        CheckpointCoordinator failingCoordinator = new CheckpointCoordinator(
+                JOB_ID + "-a2", "pipeline-0", new CheckpointIDCounter(), failingStorage, syncConfig);
+        failingCoordinator.setTasksToAcknowledge(java.util.Collections.singletonList(
+                new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID + "-a2", "pipeline-0", "v0", 0)));
+        try {
+            RecordingParticipant participant = new RecordingParticipant();
+            failingCoordinator.addParticipant(participant);
+
+            PendingCheckpoint checkpoint = failingCoordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            org.junit.jupiter.api.Assertions.assertNotNull(checkpoint,
+                    "trigger must register a pending checkpoint for the persist-failure path");
+            long checkpointId = checkpoint.getCheckpointId();
+
+            // Fully acknowledge the single task through the COORDINATOR (the
+            // last ACK triggers completePendingCheckpoint → persist fails
+            // inline in sync mode → A2' cleanup). Acknowledging the pending
+            // directly would bypass the coordinator's completion path.
+            failingCoordinator.acknowledgeTask(
+                    new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID + "-a2", "pipeline-0", "v0", 0),
+                    checkpointId,
+                    TaskStateSnapshot.empty(
+                            new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID + "-a2", "pipeline-0", "v0", 0)));
+
+            assertTrue(participant.finishCommits.containsKey(checkpointId),
+                    "persist failure notifies participants with finishCommit(false)");
+            assertFalse(failingCoordinator.checkpointSuccessMap.containsKey(checkpointId),
+                    "persist-failed epoch must not linger in checkpointSuccessMap (A2': fail path "
+                            + "missed the abort-path cleanup)");
+        } finally {
+            failingCoordinator.shutdown();
+        }
+    }
+
     /** finishCommit that can be toggled to fail once for the retry path. */
     static class FailingParticipant implements CheckpointParticipant {
         volatile boolean failNextCommit = true;

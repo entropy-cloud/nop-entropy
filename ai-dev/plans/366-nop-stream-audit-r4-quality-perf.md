@@ -75,6 +75,11 @@ Targets: `nop-benchmark/nop-benchmark-stream`
 >
 > 执行披露：首轮运行暴露两处基准缺陷并当场修复（`Files.createTempDirectory` 父目录未创建致 4/5 口径 setup 失败；sink 缓冲无界增长——加每 4096 次 invoke 周期 `rollback()` 清空，摊销可忽略）。
 
+> Phase 2 执行披露（2026-09-29）：
+> (1) N2 执行期发现同族缺口——MIDDLE 任务（有 gate 有 writer）走 consumer 重建路径时 writer 被置 null（原实现注释明示只考虑 SINK），重建后下游被静默饿死；已折入修复（buildConsumerInvokableWithReplay 保留旧 fan-out writer），e2e ie-map 场景覆盖。
+> (2) 回放窗口竞态实测确认（drain↔replay 快照之间写入双投递，1500 条规模 0-2 条重复）——先存缝隙非本轮引入，已登记 Non-Blocking Follow-ups 并写入 failover-design.md。
+> (3) 大回放 e2e 首轮超时根因为 stale jar（`-pl` 未带 `-am` 时 runtime 用本地仓库旧 core jar 测出旧 injectFront 路径）——重装后 0.2s 通过；该教训记录：改 core 后跑下游模块测试须 `-am` 或先 install。
+
 Exit Criteria:
 
 - [x] `./mvnw -q compile -pl nop-benchmark/nop-benchmark-stream` 通过，ConnectorInvokeBench 三口径冒烟成功
@@ -86,12 +91,12 @@ Exit Criteria:
 
 ### Phase 2 - 已核实缺陷修复
 
-Status: planned
+Status: completed
 Targets: `SupervisionLoop.java`、`ResultPartition.java`、`InputChannel.java`、`TaskManager.java`、`JobCoordinator.java`、`CheckpointCoordinator.java`、`JdbcCheckpointStorage.java`、`FileSource.java`、`CloseSupport.java`
 
 - Item Types: `Fix`
 
-- [ ] N1：回放注入去阻塞化——replay 数据不再经 `injectFront` 的阻塞 `queue.put` 全量灌入；改为分区侧惰性回放（pendingReplay）。设计约束（R1 对抗性审查钉死）：
+- [x] N1：回放注入去阻塞化——replay 数据不再经 `injectFront` 的阻塞 `queue.put` 全量灌入；改为分区侧惰性回放（pendingReplay）。设计约束（R1 对抗性审查钉死）：
   - **全部 read 路径**挂 pending 检查：InputGate 消费实际走 `ResultPartition.read(long, TimeUnit)` timeout 重载（`readSingleChannel`/`readMultiChannel`），阻塞版 `read()` 亦须覆盖——漏掉 timeout 重载会在复用已 finished 分区时假完成 + 静默丢回放数据
   - 消费顺序不变式：pendingReplay → 队列残留 → EOS；permit 记账：pending 段不 acquire 不 release，入队段沿用 write 语义
   - **复用分区四案例矩阵**（N1×N2 交叉，残留数据处理逐案例钉死）：
@@ -102,25 +107,25 @@ Targets: `SupervisionLoop.java`、`ResultPartition.java`、`InputChannel.java`�
   - **unaligned 捕获交互**：`drainBufferedElements` 一并排空 pending 段（captureInFlightData 经它捕获，保证 unaligned checkpoint 在回放未排空期不丢 pending）；restore 路径 `injectElements` 维持既有 `injectFront`（有界 capture ≤ 容量，安全），不迁移到 pendingReplay——显式排除
   - **RemoteInputChannel 排除**：pendingReplay 仅挂本地 `ResultPartition`；remote 重建路径不路由经此（mat 点只挂本地分区）
   - 聚焦测试：回放量 > 队列容量（如 2000 条/容量 128）时 consumer 完整消费全部回放 + 新数据、监督线程不阻塞；pending 未排空期 drainBufferedElements 返回含 pending 段
-- [ ] N2：`buildConsumerInvokableWithReplay` 对 `matPoint == null` 的通道复用旧分区（与 producer 旧 writer 对账），删除"全新空分区"分支，按上述四案例矩阵处理残留。**配套修复（R2 复审 F1）**：`restartRegion` Phase 3 对 SUCCESS-terminal 任务跳过 rebuild/resubmit（其分区保留余量数据 + EOS，consumer 侧复用旧分区自然承接；否则复用旧 writer 的 finished producer 首次 write 即抛 ERR_STREAM_INVALID_STATE → 再失败循环；FAILED/CANCELED/非终态任务照常重建），聚焦测试钉死该跳过行为。端到端回归测试：多 region 作业（内部边 + materialization 边），fail 内部顶点任务 → 作业完成、sink 收全量记录、无悬挂；**记录数 > 分区容量**（天然叠加 N1 路径，防 2277 式修复叠加回归）；**断言覆盖四案例矩阵**（mat+finished 与 no-mat+finished 两个 finished 案例必须有专项断言；no-mat+finished 依赖本项跳过修复才可构造）；补显式断言"finished 分区 + pending 非空时 gate 不产 EOS"（timeout-null 与 EOS-null 同形是假完成根源）
-- [ ] N3：`TaskManager.heartbeat` 对 `task.isFinished()`（`RunningTask.finished` 为 volatile，:329 已有访问器）的任务跳过 liveness 上报（恢复 JobCoordinator COMPLETED 注释钉死的契约）；顺带把 `JobCoordinator:924-928` 注释改为修复后仍真的表述。可观测行为变化登记：修复后若 COMPLETED 报告丢失，冻结 liveness 将在 60s 后进入 stall→恢复（向 FAILED 分支既有契约对齐，detectFailures 的 benefit-of-the-doubt + node-lease 检查无新死角，R1 审查核实）；聚焦测试：success 完成后心跳不再产生该任务的 TaskProgress，coordinator liveness 不回插、60s 后无 TASK_STALL
-- [ ] N4：`JdbcCheckpointStorage.tableExists/epochTableExists` 区分"表不存在"（查询成功 false）与"查询失败"（抛 typed `CheckpointStorageException`，WARN 起步），消除 restore 静默冷启动。聚焦测试：existsTable 抛异常 → loadLatestEpochManifest 响亮失败而非返回空
-- [ ] N5：`injectFront` drain 侧见哨兵不 release（对齐 `drainBufferedElements`）。聚焦测试：带 pool 的 finished 分区经 injectFront 前后 availablePermits 不变
-- [ ] A2'：`onCompletePersistFailure` fail 路径补 `checkpointSuccessMap` 清理（对齐 abort 路径）。聚焦测试：fail 且无失败参与者时条目被移除
-- [ ] B6'：`directoryPath` 写出前保留字符校验——directoryPath 是换行分隔字段，仅拒 `\n`/`\r`（含 `|` 的合法目录不拒绝；与 splitById 的 `|`+换行集合刻意不同，注释说明原因）。聚焦测试：含 `\n` 的目录路径序列化快速失败、含 `|` 的合法目录通过
-- [ ] S1：`CloseSupport.accumulate` 展平挂接（把 error 及其 suppressed 全部挂到 firstError，恢复扁平形状、first-error-wins）；javadoc 钉死形状契约。聚焦测试：三重失败断言 `firstError.suppressed=[X,Y]` 顺序
-- [ ] S2：重写 `JobCoordinator:1497-1511` 内层 finally 注释（unlock 语义）与 `requestRecovery` javadoc：清除点=外层 finally、锁外、health/事件之后，及其与 triggerCheckpoint 抑制窗口的关系
+- [x] N2：`buildConsumerInvokableWithReplay` 对 `matPoint == null` 的通道复用旧分区（与 producer 旧 writer 对账），删除"全新空分区"分支，按上述四案例矩阵处理残留。**配套修复（R2 复审 F1）**：`restartRegion` Phase 3 对 SUCCESS-terminal 任务跳过 rebuild/resubmit（其分区保留余量数据 + EOS，consumer 侧复用旧分区自然承接；否则复用旧 writer 的 finished producer 首次 write 即抛 ERR_STREAM_INVALID_STATE → 再失败循环；FAILED/CANCELED/非终态任务照常重建），聚焦测试钉死该跳过行为。端到端回归测试：多 region 作业（内部边 + materialization 边），fail 内部顶点任务 → 作业完成、sink 收全量记录、无悬挂；**记录数 > 分区容量**（天然叠加 N1 路径，防 2277 式修复叠加回归）；**断言覆盖四案例矩阵**（mat+finished 与 no-mat+finished 两个 finished 案例必须有专项断言；no-mat+finished 依赖本项跳过修复才可构造）；补显式断言"finished 分区 + pending 非空时 gate 不产 EOS"（timeout-null 与 EOS-null 同形是假完成根源）
+- [x] N3：`TaskManager.heartbeat` 对 `task.isFinished()`（`RunningTask.finished` 为 volatile，:329 已有访问器）的任务跳过 liveness 上报（恢复 JobCoordinator COMPLETED 注释钉死的契约）；顺带把 `JobCoordinator:924-928` 注释改为修复后仍真的表述。可观测行为变化登记：修复后若 COMPLETED 报告丢失，冻结 liveness 将在 60s 后进入 stall→恢复（向 FAILED 分支既有契约对齐，detectFailures 的 benefit-of-the-doubt + node-lease 检查无新死角，R1 审查核实）；聚焦测试：success 完成后心跳不再产生该任务的 TaskProgress，coordinator liveness 不回插、60s 后无 TASK_STALL
+- [x] N4：`JdbcCheckpointStorage.tableExists/epochTableExists` 区分"表不存在"（查询成功 false）与"查询失败"（抛 typed `CheckpointStorageException`，WARN 起步），消除 restore 静默冷启动。聚焦测试：existsTable 抛异常 → loadLatestEpochManifest 响亮失败而非返回空
+- [x] N5：`injectFront` 已整体删除（阻塞注入 API 由 attachPendingReplay 取代，哨兵许可泄漏不复存在）；测试：TestResultPartitionPendingReplay#replayPathHoldsNoPoolPermits 断言 pending 段零 acquire/release、permits 守恒（对齐 `drainBufferedElements`）。聚焦测试：带 pool 的 finished 分区经 injectFront 前后 availablePermits 不变
+- [x] A2'：`onCompletePersistFailure` fail 路径补 `checkpointSuccessMap` 清理（对齐 abort 路径）。聚焦测试：fail 且无失败参与者时条目被移除
+- [x] B6'：`directoryPath` 写出前保留字符校验——directoryPath 是换行分隔字段，仅拒 `\n`/`\r`（含 `|` 的合法目录不拒绝；与 splitById 的 `|`+换行集合刻意不同，注释说明原因）。聚焦测试：含 `\n` 的目录路径序列化快速失败、含 `|` 的合法目录通过
+- [x] S1：`CloseSupport.accumulate` 展平挂接（把 error 及其 suppressed 全部挂到 firstError，恢复扁平形状、first-error-wins）；javadoc 钉死形状契约。聚焦测试：三重失败断言 `firstError.suppressed=[X,Y]` 顺序
+- [x] S2：重写 `JobCoordinator:1497-1511` 内层 finally 注释（unlock 语义）与 `requestRecovery` javadoc：清除点=外层 finally、锁外、health/事件之后，及其与 triggerCheckpoint 抑制窗口的关系
 
 Exit Criteria:
 
-- [ ] 上述每项有对应聚焦测试（测试名与修复项一一对应），验证正确行为而非仅无异常
-- [ ] **端到端验证（Rule #22）**：N2 的多 region failover 测试从任务失败 → region 重启 → sink 输出完整走通；N1 的超容量回放测试从注入到消费完整走通
-- [ ] **接线验证（Rule #23）**：N1 惰性回放路径在 SupervisionLoop 重建流程中被真实调用（测试断言回放数据到达 consumer，而非仅单元直调）
-- [ ] **无静默跳过（Rule #24）**：N4 修复后失败路径响亮失败；无新增空方法体/吞异常
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-runtime,nop-stream-connector,nop-stream-connector-jdbc -am` 全绿（实际范围按触碰模块扩展至 5 模块 + connectors）
-- [ ] owner-doc 裁定：N4 失败语义变化核对 `docs-for-ai/03-modules/nop-stream.md`（及 cdc cookbook 若涉及）并同步；其余项逐项记录 `No owner-doc update required` 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] git commit 完成（Phase 2 独立提交）
+- [x] 上述每项有对应聚焦测试（测试名与修复项一一对应），验证正确行为而非仅无异常
+- [x] **端到端验证（Rule #22）**：N2 的多 region failover 测试从任务失败 → region 重启 → sink 输出完整走通；N1 的超容量回放测试从注入到消费完整走通
+- [x] **接线验证（Rule #23）**：N1 惰性回放路径在 SupervisionLoop 重建流程中被真实调用（测试断言回放数据到达 consumer，而非仅单元直调）
+- [x] **无静默跳过（Rule #24）**：N4 修复后失败路径响亮失败；无新增空方法体/吞异常
+- [x] `./mvnw test -pl` 7 模块全绿（core 1611 / flow 118 / runtime 1097 / cep 372 / rocksdb 123 / connector 72 / connector-jdbc 43 = 3436 tests，0 failures 0 errors，`_tmp/r4-test-phase2-full.log` EXIT=0）
+- [x] owner-doc 裁定：N4 失败语义已写入 `docs-for-ai/03-modules/nop-stream.md`（存储读路径失败语义节）；N2/回放机制修订已改写 `ai-dev/design/nop-stream/failover-design.md`（reconnect-to-live-queue 节 + writer 保留节，design doc 按最终状态改写）；其余项 `No owner-doc update required`（S1 异常树形状未文档化、S2/A2'/N3 纯注释或内部契约归真） `docs-for-ai/03-modules/nop-stream.md`（及 cdc cookbook 若涉及）并同步；其余项逐项记录 `No owner-doc update required` 理由
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] git commit 完成（Phase 2 独立提交）
 
 ### Phase 3 - 可读性与结构整改（行为保持）
 
@@ -150,7 +155,7 @@ Exit Criteria:
 - [ ] 行为保持抽查：改动类 focused tests 全绿，无对外语义/序列化/checkpoint 兼容变化（TTL 标志移除属死配置面，记录证明无生产调用方依赖）
 - [ ] Phase 3 触碰的 Phase 4 相关基准场景无 >2% 退化（并入 Phase 5 统一复验）
 - [ ] owner-doc：`state-management-design.md` TTL 声明修正；其余逐项 `No owner-doc update required`
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 - [ ] git commit 完成（Phase 3 独立提交）
 
 ### Phase 4 - 性能候选实测留舍（迭代至无 ≥2% 收益）
@@ -176,7 +181,7 @@ Exit Criteria:
 - [ ] **端到端验证**：文件源改动后现有 e2e（file source/checkpoint 恢复类）测试全绿
 - [ ] `./mvnw test -pl <触碰模块>` 全绿
 - [ ] No owner-doc update required（R4-P1/P3 若落 Deferred：`03-performance.md` 裁定回写）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 - [ ] git commit 完成（Phase 4 独立提交）
 
 ### Phase 5 - 收敛复验（延续 360/2279/plan-01 停止判据）
@@ -197,7 +202,7 @@ Exit Criteria:
 - [ ] JFR 热点清单与候选取舍理由已记录
 - [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
 - [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 - [ ] git commit 完成（Phase 5 独立提交）
 
 ### Phase 6 - 文档同步与计划收口
@@ -293,6 +298,7 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- **回放窗口竞态（Phase 2 执行期确认的先存语义缝隙）**：materialization 边重启时，residual drain 与 replay 快照之间的写入会"队列副本 + replay 副本"各投递一次（at-least-once 下允许重复；e2e 实测 1500 条规模下 0-2 条重复）。原 drain+injectFront 设计存在同一窗口。消除需原子 drain+快照或 replay 后二次对账，属 replay 语义专项
 - numLateRecordsDropped 观测缺口（若 Phase 3 裁定为删常量）：迟到元素指标接线需语义设计
 - `@Disabled` Debezium 测试的契约修复（connector backlog）
 - 迟到元素丢弃语义与 watermark 语义专项（若 Phase 3 核查发现）

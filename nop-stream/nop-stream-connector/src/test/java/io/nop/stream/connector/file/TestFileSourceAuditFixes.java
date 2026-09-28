@@ -233,6 +233,40 @@ class TestFileSourceAuditFixes {
 
     // ====================== CN-4: constructor taxonomy ======================
 
+    /**
+     * B6' regression (plan 366 Phase 2): the enumerator state's directoryPath
+     * is the newline-delimited first section — a path containing a line
+     * separator must fail at SERIALIZE time (pre-fix it serialized fine and
+     * corrupted the whole payload). '|' and ',' are legal in a directory path
+     * and must NOT be rejected (deliberately narrower than the split-path rule).
+     */
+    @Test
+    void enumeratorStateSerializerRejectsNewlineInDirectoryPathButAllowsPipe() {
+        FileSource.FileSplitEnumeratorStateSerializer ser =
+                new FileSource.FileSplitEnumeratorStateSerializer();
+
+        FileSplitEnumeratorState newline = new FileSplitEnumeratorState(
+                "/tmp/dir\nwith/newline", new LinkedHashSet<>(), new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new LinkedHashMap<>(), 0);
+        IOException broken = assertThrows(IOException.class, () -> ser.serialize(newline),
+                "directory path with a newline must fail at serialize time, not corrupt the payload");
+        assertTrue(broken.getMessage().contains("line-separator"),
+                "unexpected message: " + broken.getMessage());
+
+        FileSplitEnumeratorState carriageReturn = new FileSplitEnumeratorState(
+                "/tmp/dir\r\nx", new LinkedHashSet<>(), new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new LinkedHashMap<>(), 0);
+        assertThrows(IOException.class, () -> ser.serialize(carriageReturn),
+                "directory path with a carriage return must fail at serialize time");
+
+        // '|' is legal in the directory section (sections are newline-delimited).
+        FileSplitEnumeratorState withPipe = new FileSplitEnumeratorState(
+                "/tmp/dir|with|pipe", new LinkedHashSet<>(), new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new LinkedHashMap<>(), 0);
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> ser.serialize(withPipe),
+                "'|' is legal in a directory path and must not be rejected");
+    }
+
     @Test
     void fileSourceConstructorRejectsNullAndEmptyWithTypedException() {
         assertThrows(StreamException.class, () -> new FileSource(null));
