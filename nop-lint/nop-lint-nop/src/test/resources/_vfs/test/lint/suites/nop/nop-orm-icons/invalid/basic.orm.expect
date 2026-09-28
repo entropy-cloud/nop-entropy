@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 2
+    ruleId: nop-orm-icons
+    messageContains: "ext:icon"
+  - line: 3
+    ruleId: nop-orm-icons
+    messageContains: "ext:icon"

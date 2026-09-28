@@ -68,7 +68,19 @@ Targets: 各脚本 + 等价规则
   - #3 bean-naming：mjs（BEAN-ID/COLLECT-PREFIX/REF 三面拆分）vs 新 XNode 规则（BEAN-ID/COLLECT-PREFIX 面）——REF 面不对照（维持 mjs）
   - #12 vfs-violations：mjs（nop-code+nop-stream、4 文件白名单豁免）vs `nop/no-vfs-violation` + 规则侧豁免对应（design 09 exemptions）——两处结构性 delta 逐条裁定
   - #19 orm-icons：mjs vs 新规则
-- [ ] 对照结论登记：7 行 switch-ready / delta / deferred 资格判定
+- [x] 对照结论登记：7 行 switch-ready / delta / deferred 资格判定
+
+**Phase 1 对照结果（2026-09-28 实跑，全零 diff 或已裁定）**：
+
+| 行 | mjs 命中 | nop-lint 命中 | 结论 |
+|---|---|---|---|
+| #22 silent-swallow（nop-metadata src/main） | 0 | 0 | switch-ready |
+| #20 orm-unique-key（nop-metadata/model，1 个 orm.xml） | 0 | 0 | switch-ready |
+| #21 sensitive-literal（同语料） | 0 | 1（NopMetaTableBizModel:158 LOG.warn "delete index cleanup failed..." 被规则 regex `delete\s` 宽匹配误报） | **blocked——已落地规则 security/no-sensitive-literal 的正则移植缺陷（mjs 无 delete\s 宽匹配），按 Non-Goals 归独立缺陷修复；#21 切换待修后重对照** |
+| #7 ibiz（全仓 src/main，212 接口） | 0 | 0 | switch-ready |
+| #3 bean-naming（BEAN-ID/COLLECT-PREFIX 面，语料对齐排除 docs/ 后） | 9 | 9（同文件同 id 零 diff；docs/ref 46 hits 为语料混入——mjs 扫模块目录不扫 docs/，已剔除） | BEAN-ID/COLLECT-PREFIX 面 switch-ready（CI 接线待 spike B） |
+| #12 vfs-violations（nop-code+nop-stream） | 112（16 文件） | 待规则侧豁免对齐后对照 | 待 Phase 2 细化 |
+| #19 orm-icons（test 排除后 79 个模型/菜单文件） | 0 | 0 | switch-ready |
 
 Exit Criteria:
 

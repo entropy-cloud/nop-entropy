@@ -1,0 +1,10 @@
+diagnostics:
+  - line: 3
+    ruleId: nop-bean-naming
+    messageContains: "myService"
+  - line: 4
+    ruleId: nop-bean-naming
+    messageContains: "worker"
+  - line: 5
+    ruleId: nop-bean-naming
+    messageContains: "taskStore"

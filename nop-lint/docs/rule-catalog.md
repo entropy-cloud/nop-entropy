@@ -46,6 +46,8 @@
 
 | id | severity | version | autoFixable | message | source |
 |---|---|---|---|---|---|
+| nop-bean-naming | error | 1.0 | false | bean 短名/收集前缀不符合平台命名强约定（nop 前缀）(bean short name / collect prefix violates the platform naming convention) | ai-dev/tools/check-bean-naming.mjs BEAN-ID+COLLECT-PREFIX face (tool-replacement roadmap item 5) |
+| nop-orm-icons | warning | 1.0 | false | 源模型缺少图标属性：orm 根/entity 须 ext:icon，TOPM/SUBM 菜单须 icon (missing icon attributes on orm root/entity or menu resource) | ai-dev/tools/check-orm-icons.mjs (tool-replacement roadmap item 5) |
 | nop-orm-mandatory-default | warning | 1.0 | false | ORM mandatory column should declare a defaultValue (mandatory 列应有 defaultValue) | ai-dev/design/nop-lint/01-pattern-dsl.md §3.5 |
 | nop-orm-unique-key | error | 1.0 | false | ORM unique-key 缺少 constraint 或 columns 属性（DDL 将静默跳过唯一约束）(ORM unique-key is missing a non-empty constraint or columns attribute; the DDL silently skips the unique constraint) | ai-dev/tools/check-orm-unique-key-constraint.mjs (INV-UK) |
 | nop-xbiz-auth-not-sole-guard | warning | 1.0 | false | xbiz action auth declaration is not assertable under test and must not be the sole guard | ai-dev/design/nop-lint/01-pattern-dsl.md §3.5 |

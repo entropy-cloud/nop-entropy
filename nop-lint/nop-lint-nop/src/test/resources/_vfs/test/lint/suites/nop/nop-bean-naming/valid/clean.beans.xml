@@ -1,0 +1,12 @@
+<beans x:schema="/nop/schema/registry.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="nopAuthDemo" class="io.nop.auth.Demo"/>
+    <bean id="biz_taskService" class="io.nop.task.Service"/>
+    <bean id="io.nop.auth.RealClass" class="io.nop.auth.RealClass"/>
+    <bean id="testHelper" class="io.nop.test.Helper"/>
+    <bean id="ai-tools:demo-tool" class="io.nop.tools.Demo"/>
+    <bean id="NopAuthUserBizModel_tenant" class="io.nop.auth.NopAuthUserBizModel"/>
+    <bean id="nopTemplate" abstract="true" class="io.nop.tpl.Template"/>
+
+    <ioc:collect-beans name-prefix="nopMfaStore" as-map="true"/>
+</beans>

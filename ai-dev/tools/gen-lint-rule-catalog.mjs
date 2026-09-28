@@ -127,8 +127,8 @@ function selfTest() {
   const rules = scanRules(RULES_ROOT);
   const generated = generateCatalog(rules);
   // facet review (roadmap item 2): 62 -> 58; item 3a (plan 17): +4 -> 62;
-  // item 4a (plan 19): +6 pmd successors, -1 mechanism-gap deferral, 62 -> 67
-  if (rules.length !== 67) {
+  // item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 XNode -> 69
+  if (rules.length !== 69) {
     console.error('self-test expected the 62-rule library, found ' + rules.length);
     process.exit(2);
   }

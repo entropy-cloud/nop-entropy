@@ -102,7 +102,10 @@ public class TestProductionRuleCount {
             "quality/no-clone-without-cloneable",
             "quality/clone-return-type-mismatch",
             "quality/proper-clone-implementation",
-            "security/no-hardcoded-iv");
+            "security/no-hardcoded-iv",
+            // item 5 (plan nop-lint/21): mjs switchover successors (XNode)
+            "nop-bean-naming",
+            "nop-orm-icons");
 
     @BeforeAll
     static void init() {
@@ -122,10 +125,9 @@ public class TestProductionRuleCount {
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
         // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
-        // four checkstyle successors added, 58 -> 62; item 4a (plan 19):
-        // six pmd successors landed minus the implicit-switch-fall-through
-        // mechanism-gap deferral (shape face unfaithful: 213 extras), 62 -> 67
-        assertEquals(67, ids.size(), "production rule census size");
+        // +4 -> 62; item 4a (plan 19): +6 -1 deferral -> 67; item 5 (plan 21):
+        // two mjs switchover successors (XNode) added, 67 -> 69
+        assertEquals(69, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

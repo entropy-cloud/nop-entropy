@@ -152,7 +152,9 @@ public class TestNopRuleSuites {
     private static final Set<String> XNODE_RULE_IDS = Set.of(
             "nop-orm-mandatory-default",
             "nop-xbiz-auth-not-sole-guard",
-            "nop-orm-unique-key");
+            "nop-orm-unique-key",
+            "nop-bean-naming",
+            "nop-orm-icons");
 
     @BeforeAll
     static void init() {
