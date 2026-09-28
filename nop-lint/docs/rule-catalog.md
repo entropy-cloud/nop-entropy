@@ -100,4 +100,4 @@
 | security/no-hardcoded-iv | warning | 1.0 | false | IvParameterSpec 使用硬编码 IV，应使用随机/派生 IV (IvParameterSpec built from a hardcoded IV; use a random or derived IV) | pmd-ruleset.xml InsecureCryptoIv (tool-replacement roadmap item 4a) |
 | security/no-md5-digest | warning | 1.0 | false | 禁止 MD5 摘要算法 (MD5 is broken for security purposes; use SHA-256 or stronger) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #20 (manifest 12 迁移吸收) |
 | security/no-runtime-exec | warning | 1.0 | false | 禁止 Runtime.exec 直接执行系统命令 (Do not spawn OS processes with Runtime.exec; route through an audited execution seam) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #18 (manifest 12 迁移吸收) |
-| security/no-sensitive-literal | warning | 1.0 | false | 敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL (Sensitive literal leaked into a log/param call: raw JDBC URL or inline SQL) | ai-dev/tools/check-sensitive-literal-leak.mjs (INV-SENSITIVE) |
+| security/no-sensitive-literal | error | 1.2 | false | 敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL (Sensitive literal leaked into a log/param call: raw JDBC URL or inline SQL) | ai-dev/tools/check-sensitive-literal-leak.mjs (INV-SENSITIVE) |

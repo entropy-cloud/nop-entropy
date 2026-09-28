@@ -76,12 +76,33 @@ const RULE_FACET_CENSUS = 73; // 69 live (67+2 item5 XNode) + 4 removed = 73 row
 const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 
+// defect-coverage matrix (roadmap item 6): pinned 10 defect classes, the
+// priority vocabulary, and the plan-period census constant (same bump
+// discipline as RULE_FACET_CENSUS — item 7/8/10 landing rules must keep
+// their matrix row's rule-id list in sync with the live set)
+const MATRIX_HEADING = '## 核心缺陷类覆盖矩阵';
+const PINNED_DEFECT_CLASSES = [
+  '资源泄漏', '空指针', '吞异常', '错误处理契约', '并发',
+  '安全面', '注入面', '数据流 bug', '平台不变式', '正确性/逻辑契约',
+];
+const MATRIX_PRIORITY_VOCAB = new Set(['P1', 'P2', 'P3']);
+
 function fail(errors, message) {
   errors.push(message);
 }
 
 // ---------------------------------------------------------------------------
 // table parsing (anchor: the second header cell, unique per table)
+
+export function parseLedgerSection(ledgerText, heading) {
+  const lines = ledgerText.split('\n');
+  const start = lines.findIndex((l) => l.trim() === heading);
+  if (start < 0) {
+    return { error: `ledger has no section '${heading}'` };
+  }
+  const rest = lines.slice(start + 1).join('\n');
+  return { text: rest };
+}
 
 export function parseLedgerTable(ledgerText, secondHeaderCell, firstHeaderCell = '工具') {
   const lines = ledgerText.split('\n');
@@ -194,6 +215,56 @@ export function checkFacetRows(rows) {
         fail(errors, `facet table line ${row.line} ('${tool}'): illegal facet token '${token}'`
           + ` (legal: ${[...FACET_VOCAB].join(', ')}, or placeholder ${FACET_PLACEHOLDER})`);
       }
+    }
+  }
+  return errors;
+}
+
+/**
+ * The defect-coverage matrix (roadmap item 6): 10 pinned defect classes,
+ * each row's 现有规则 column cross-validated against the live rule set
+ * (multi-tagging allowed; a rule id that no longer exists is a ghost),
+ * priority vocabulary enforced, mechanism-gap column mandatory.
+ */
+export function checkMatrixRows(rows, liveRuleIds) {
+  const errors = [];
+  const seen = new Set();
+  for (const row of rows) {
+    if (row.cells.length !== 5) continue;
+    const cls = row.cells[0];
+    seen.add(cls);
+    const at = `coverage matrix line ${row.line} ('${cls}')`;
+    const priority = row.cells[4];
+    if (!MATRIX_PRIORITY_VOCAB.has(priority)) {
+      fail(errors, `${at}: illegal priority '${priority}' (legal: ${[...MATRIX_PRIORITY_VOCAB].join(', ')})`);
+    }
+    const gap = row.cells[3];
+    if (!gap || gap === '—') {
+      fail(errors, `${at}: empty 机制缺口 cell (each class must state its mechanism face precisely)`);
+    }
+    for (let m of row.cells[1].split('；')) {
+      m = m.trim();
+      if (!m) continue;
+      for (const rid of m.split(/[、;]\s*/)) {
+        const id = rid.trim();
+        if (!id || id === '—') continue;
+        if (!liveRuleIds.has(id)) {
+          fail(errors, `${at}: rule id '${id}' does not exist in the live rules tree (ghost id — sync the matrix row with the library)`);
+        }
+      }
+    }
+  }
+  if (rows.length !== PINNED_DEFECT_CLASSES.length) {
+    fail(errors, `coverage matrix: expected exactly ${PINNED_DEFECT_CLASSES.length} rows, found ${rows.length}`);
+  }
+  for (const cls of PINNED_DEFECT_CLASSES) {
+    if (!seen.has(cls)) {
+      fail(errors, `coverage matrix: pinned defect class '${cls}' is missing`);
+    }
+  }
+  for (const cls of seen) {
+    if (!PINNED_DEFECT_CLASSES.includes(cls)) {
+      fail(errors, `coverage matrix: unknown defect class row '${cls}' (pinned set has exactly ${PINNED_DEFECT_CLASSES.length} classes)`);
     }
   }
   return errors;
@@ -425,6 +496,32 @@ export function selfTest() {
     fail(errors, 'self-test: rule facet checker accepted a census drift');
   }
 
+  // matrix checker: positive baseline over a synthetic live set
+  const matrixLiveIds = new Set(['quality/no-finalize', 'exception/empty-finally-block']);
+  const matrixRows = PINNED_DEFECT_CLASSES.map((cls, i) => ({
+    line: i + 2,
+    cells: [cls, i === 0 ? 'quality/no-finalize；exception/empty-finally-block' : '—',
+      '—', i === 0 ? 'acquire/release 配对面零规则' : 'gap', i % 2 === 0 ? 'P1' : 'P3'],
+    columnCount: 5,
+  }));
+  if (checkMatrixRows(matrixRows, matrixLiveIds).length !== 0) {
+    fail(errors, 'self-test: matrix checker rejected the legal scaffold');
+  }
+  const badMatrix = matrixRows.map((r) => ({ ...r, cells: [...r.cells] }));
+  badMatrix[0].cells[4] = 'P9';
+  if (checkMatrixRows(badMatrix, matrixLiveIds).length === 0) {
+    fail(errors, "self-test: matrix checker accepted the illegal priority 'P9'");
+  }
+  const ghostMatrix = matrixRows.map((r) => ({ ...r, cells: [...r.cells] }));
+  ghostMatrix[0].cells[1] = 'quality/ghost-rule';
+  if (checkMatrixRows(ghostMatrix, matrixLiveIds).length === 0) {
+    fail(errors, 'self-test: matrix checker accepted a ghost rule id');
+  }
+  const missingClass = matrixRows.slice(1);
+  if (checkMatrixRows(missingClass, matrixLiveIds).length === 0) {
+    fail(errors, 'self-test: matrix checker accepted a dropped defect class');
+  }
+
   // table parser must reject a missing table
   if (!parseLedgerTable('# ledger\n\nno tables here\n', '终裁').rows
     && !parseLedgerTable('# ledger\n\nno tables here\n', '终裁').error) {
@@ -472,6 +569,16 @@ function main() {
     process.exit(1);
   }
 
+  const matrixSection = parseLedgerSection(ledgerText, MATRIX_HEADING);
+  if (matrixSection.error) {
+    console.error(`tool replacement ledger gate FAILED: ${matrixSection.error}`);
+    process.exit(1);
+  }
+  const matrixTable = parseLedgerTable(matrixSection.text, '现有规则', '缺陷类');
+  if (matrixTable.error) {
+    console.error(`tool replacement ledger gate FAILED: ${matrixTable.error}`);
+    process.exit(1);
+  }
   const ruleFacet = parseLedgerTable(ledgerText, '分面', '规则');
   if (ruleFacet.error) {
     console.error(`tool replacement ledger gate FAILED: ${ruleFacet.error}`);
@@ -482,6 +589,7 @@ function main() {
   errors.push(...checkVerdictRows(verdict.rows));
   errors.push(...checkFacetRows(facet.rows));
   errors.push(...checkRuleFacetRows(ruleFacet.rows, liveRuleIds));
+  errors.push(...checkMatrixRows(matrixTable.rows, liveRuleIds));
 
   if (errors.length > 0) {
     console.error(`tool replacement ledger gate FAILED (${errors.length} violation(s)):`);
@@ -492,7 +600,8 @@ function main() {
   }
   console.log(`tool replacement ledger gate ok: ${verdict.rows.length} verdict rows`
     + ` + ${facet.rows.length} facet rows == ${PINNED_TOOLS.length} pinned tools;`
-    + ` ${ruleFacet.rows.length} rule facet rows vs ${liveRuleIds.size} live rules, all values legal`);
+    + ` ${ruleFacet.rows.length} rule facet rows vs ${liveRuleIds.size} live rules;`
+    + ` ${matrixTable.rows.length} matrix rows, all values legal`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

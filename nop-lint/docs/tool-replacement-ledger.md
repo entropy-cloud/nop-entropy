@@ -127,6 +127,23 @@
 | exception/no-raw-throws | core | keep | Nop 异常契约声明面（item 3a 新增） | — |
 | quality/covariant-equals | core | keep | 协变 equals 破坏等价契约（正确性面，item 3a 新增） | — |
 
+## 核心缺陷类覆盖矩阵
+
+> 核心缺陷类 × 现有规则的覆盖盘点（tool-replacement roadmap item 6，plan nop-lint/22）。规则↔缺陷类**多对多合法**；规则 id 为口径（与目录前缀存在已知差异）。优先级词表：P1 = roadmap 已排期机制裁定/落地（item 7/8）、P2 = SpotBugs/后续 wave 候选、P3 = watch。**刷新归属**：item 7/8/10 落新规则时，对应行由该 plan 同步更新（与 RULE_FACET_CENSUS 同责，防腐门禁看守钉名与 live 规则集一致性）。
+
+| 缺陷类 | 现有规则 | manifest 机制 tier | 机制缺口 | 优先级 |
+|---|---|---|---|---|
+| 资源泄漏 | quality/no-finalize；exception/empty-finally-block；antipattern/double-brace-init | 无 acquire/release 对应行 | **acquire/release 路径配对零规则**：close() 调用面、try-with-resources 豁免判定、跨分支释放路径——需 L3 方法内路径敏感配对分析（design 11 L3 之上的路径敏感面），item 7 裁定 v1 机制 | P1 |
+| 空指针 | exception/equals-null；exception/no-throw-npe；exception/throw-null；antipattern/catch-npe；quality/no-return-null | null 相关 manifest 行均为 tier1 pattern 面（已落地）；null-flow 无任何 manifest 行（机制前瞻空缺） | **解引用流零规则**：判空后复用链、参数判空契约、嵌套字段访问链——需 L3 null-flow（判空路径传播），item 8 裁定深度/成本/误报 | P1 |
+| 吞异常 | nop/no-empty-catch；nop/silent-swallow；exception/no-catch-throwable；exception/empty-finally-block；antipattern/throw-in-finally | tier1（silent-swallow/empty-catch 面 landed） | 面已覆盖（CI 硬门禁）；例外：catch 内条件性吞（半吞）无规则 | P3 |
+| 错误处理契约 | nop/no-raw-exception；nop/no-log-getmessage；antipattern/catch-npe；exception/no-raw-throws | tier1/2 | NopException ErrorCode 参数面由 mjs 门禁维持（design 12 裁定维持 mjs）；引擎面无缺口 | P3 |
+| 并发 | antipattern/empty-sync-block | 无对应行 | 锁获取/释放配对、double-checked locking、wait/notify 面零规则——需类型面（Lock/Monitor）+ 路径分析，机制成本高 | P3 |
+| 安全面 | security/no-class-forname；security/no-des-encryption；security/no-hardcoded-crypto；security/no-md5-digest；security/no-runtime-exec；security/no-sensitive-literal；security/no-hardcoded-iv；nop-xbiz-auth-not-sole-guard | tier1（HardCodedCryptoKey/InsecureCryptoIv 面 landed） | 加密算法强度判定（AES 模式/密钥长度）需类型+常量分析——tier2 机制前瞻 | P2 |
+| 注入面 | security/no-runtime-exec；security/no-class-forname | tier2 | SQL/命令**动态拼接**注入需跨过程 taint 分析——roadmap item 14 裁定为 not-replaceable 候选（out-of-principle 待正式记录） | P2 |
+| 数据流 bug | quality/self-assigned-local；quality/unused-local-variable；quality/no-constant-condition；quality/random-mod；quality/string-literal-equality；quality/collection-size-nonnegative；quality/no-self-compare；quality/self-comparison；quality/self-equals；exception/equals-null | tier1（dataflow 面 landed） | 方法内 def-use 已覆盖常见形态；跨方法数据流超出 per-file 引擎问题域（out-of-principle 候选） | P3 |
+| 平台不变式 | antipattern/system-exit；antipattern/print-stack-trace；api/no-nonslf4j-logger-call；api/no-proxy-hostile-method；nop/no-raw-exception；quality/no-system-out；quality/no-transactional-annotation；quality/no-native-method；nop/no-direct-datasource-inject；nop/no-vfs-violation；nop/query-limit-required；nop-bean-naming；nop-orm-icons；nop-orm-mandatory-default；nop-orm-unique-key；nop-xbiz-auth-not-sole-guard；nop/bizmodel-dao-access；nop/bizmodel-safe-api；nop/ibiz-missing-annotation；nop/ibiz-missing-context | tier1（平台契约面 landed） | 面=平台契约演进驱动（新契约=新规则），无通用机制缺口 | P3 |
+| 正确性/逻辑契约 | quality/no-clone-without-cloneable；quality/clone-return-type-mismatch；quality/proper-clone-implementation；quality/covariant-equals；quality/empty-while-body；quality/no-branching-in-loop-body；quality/no-finalize；antipattern/double-brace-init | 部分 tier1（item 3a/4a 面） | equals/hashCode 契约对、compareTo 一致性等相邻面无规则（SpotBugs 面候选，item 9 盘点） | P2 |
+
 ## 行级账本索引（三本既有账，状态计数以各自门禁为准）
 
 | 账本 | 行数 | 状态分布 | 防腐门禁 |
