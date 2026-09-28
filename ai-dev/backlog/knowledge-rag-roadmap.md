@@ -20,7 +20,9 @@
 
 > 状态在工作项上；Milestone 仅为分组。此块是 AI 工作队列唯一入口：按里程碑顺序取第一个 `todo`。
 
-**汇总**：todo 14 · ready 0 · done 3
+**汇总**：done 3 · deferred 15 · todo 0
+
+> **2026-09-28 deferred 裁定**：K4–K18（RAG 产品化增强）deferred——属独立产品功能迭代（chunk 持久化/rerank/MMR/多库扇出/citation/OCR/连接器/KB 治理/问题生成/KG 抽取/记忆/Wiki/评测），**不阻塞 nop-code 功能补全 roadmap 的关闭**（nop-code 仅依赖 K1/K2/K3，全部 done）。待 RAG 产品化阶段启动时按优先级逐项执行。
 
 > **2026-09-28 nop-code 前置注记**：K1/K2/K3 全部 done——nop-code roadmap 的外部依赖已满足。K4-K18 为 RAG 产品化增强，属独立产品功能迭代，不阻塞 nop-code 功能补全 roadmap 的关闭。
 
@@ -31,41 +33,41 @@
 | K1 Embedding API 客户端 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/01-k1-embedding-api-client.md`，用户 2026-09-28 指示纳入 nop-code feature-completion 执行队列先行落地——N4.2 模型后端前置） | — |
 | K2 向量库后端驱动 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/02-k2-vector-store-driver.md`，closure audit(agent_00370acc) 发现 Blocker 后修复并复审通过——PgVectorStore + InMemoryVectorStore 落 nop-ai-rag） | K1 |
 | K3 RAG 摄取-检索管线 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/03-k3-rag-pipeline.md`，closure audit 通过——ingest/search/synthesize/BizModel 落 nop-ai-rag，25 tests 全绿） | K1, K2 |
-| K4 Chunk 存储+编辑+版本回滚 | todo | K3 |
+| K4 Chunk 存储+编辑+版本回滚 | deferred | K3 |
 
 ### M2 — 检索质量
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| K5 Rerank 模型接入 | todo | K3 |
-| K6 查询扩展 + MMR 去重 | todo | K3 |
-| K7 父子分块 | todo | K4 |
-| K8 多知识库扇出与分数融合 | todo | K3, K5 |
-| K9 引用/Citation 回写 | todo | K3 |
+| K5 Rerank 模型接入 | deferred | K3 |
+| K6 查询扩展 + MMR 去重 | deferred | K3 |
+| K7 父子分块 | deferred | K4 |
+| K8 多知识库扇出与分数融合 | deferred | K3, K5 |
+| K9 引用/Citation 回写 | deferred | K3 |
 
 ### M3 — 摄取增强
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| K10 OCR / VLM 图注适配器 | todo | K3 |
-| K11 摄取管线 per-stage 可观测 | todo | K3, K10 |
-| K12 多源连接器 SPI + RSS/URL 抓取 | todo | K3 |
-| K13 KB 治理（文件夹/标签/配额/活动流/解析状态机） | todo | K3, K4 |
+| K10 OCR / VLM 图注适配器 | deferred | K3 |
+| K11 摄取管线 per-stage 可观测 | deferred | K3, K10 |
+| K12 多源连接器 SPI + RSS/URL 抓取 | deferred | K3 |
+| K13 KB 治理（文件夹/标签/配额/活动流/解析状态机） | deferred | K3, K4 |
 
 ### M4 — 知识增强产物与记忆
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| K14 问题生成 + 自动打标 | todo | K3, K4 |
-| K15 实体/关系抽取 → 知识图谱存储 | todo | K3 |
-| K16 跨会话长期记忆 | todo | K1 |
-| K17 Wiki 模式 | todo | K3, K4（K15 可选增强，非硬依赖） |
+| K14 问题生成 + 自动打标 | deferred | K3, K4 |
+| K15 实体/关系抽取 → 知识图谱存储 | deferred | K3 |
+| K16 跨会话长期记忆 | deferred | K1 |
+| K17 Wiki 模式 | deferred | K3, K4（K15 可选增强，非硬依赖） |
 
 ### M5 — 评测
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| K18 RAG 离线评测 | todo | K3, K5 |
+| K18 RAG 离线评测 | deferred | K3, K5 |
 
 ## 3. 框架/平台复用
 
@@ -91,8 +93,8 @@
 
 | 区域 | 已有 | 主要缺口 |
 |------|------|----------|
-| RAG 管线 | SPI + 占位模块 `nop-ai-rag`（**0 Java 源文件**） | ingest→chunk→embed→index→retrieve→synthesize 全链路为零 |
-| Embedding/向量库 | SPI + Lucene kNN（需外部预计算向量） | 无 embedding API 客户端；无 pgvector/Milvus/Qdrant/ES 集成 |
+| RAG 管线 | K3 已落地：RagIngestService/RagSearchService/RagSynthesizeService + NopAiRagBizModel（nop-ai-rag） | hybrid 检索/rerank/citation 等 deferred |
+| Embedding/向量库 | K1 已落地：EmbeddingServiceImpl（OpenAI 兼容）；K2 已落地：PgVectorStore + InMemoryVectorStore | Milvus/Qdrant/ES deferred |
 | 多模态摄取 | 无 | **零 OCR**；无 VLM 图注；扫描件不可用 |
 | Chunk 治理 | 仅 splitter 纯函数 | 无 chunk 存储/编辑/版本回滚；无父子分块 |
 | KB 治理 | `NopAiKnowledge` 裸 CRUD | 无文件夹树/标签/存储配额/活动审计/解析状态机 |
