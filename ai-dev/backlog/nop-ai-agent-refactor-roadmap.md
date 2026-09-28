@@ -4,8 +4,8 @@ audit-rounds: 0
 
 # nop-ai-agent 重构 Roadmap — dsh × unreal 比对综合
 
-> Last updated: 2026-09-25
-> Sources: `ai-dev/analysis/compare-agent-design/99-overall-comparison.md`（dsh/pi 三方总报告 ⑤ A–H 归组）；`ai-dev/analysis/2026-09/2026-09-25-unreal-agent-vs-nop-ai-agent-comparison.md`（unreal 比对新报告）；`ai-dev/backlog/nop-ai-agent-autonomous-execution-improvement-roadmap.md`（在途划界对象）
+> Last updated: 2026-09-28
+> Sources: `ai-dev/analysis/compare-agent-design/99-overall-comparison.md`（dsh/pi 三方总报告 ⑤ A–H 归组）；`ai-dev/analysis/2026-09/2026-09-25-unreal-agent-vs-nop-ai-agent-comparison.md`（unreal 比对新报告）；`ai-dev/analysis/2026-09/2026-09-28-long-tool-wait-design-review.md`（2026-09-28 M1 执行前评审：M1 设计取向钉定与事件化裁定，WI2–WI5 已按其修订）；`ai-dev/backlog/nop-ai-agent-autonomous-execution-improvement-roadmap.md`（在途划界对象）
 > 位置：本文件按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的 owner / 参考文档路径用反引号，持续受 check-doc-links 保护。
 
 ## Purpose
@@ -14,7 +14,7 @@ audit-rounds: 0
 
 **本 roadmap 承接**（autonomous roadmap 未覆盖的空间）：
 
-- unreal 核心增量：异步工具执行模型（占位 tool result 协议、心跳即输入、steering 打断-重建、长时工具相位检查点与保守恢复）、外部输入 redelivery 幂等、per-provider 缓存键放置、缓存观测全 dialect 接线、工具输出预算 schema 内建、Retry-After 双源解析
+- unreal 核心增量：异步工具执行模型（占位 tool result 协议、心跳即输入、steering 双相位唤醒、长时工具相位检查点与保守恢复）、外部输入 redelivery 幂等、per-provider 缓存键放置、缓存观测全 dialect 接线、工具输出预算 schema 内建、Retry-After 双源解析
 - dsh/pi 未承接归组：⑤-C 事件类型化与订阅者失败通道、⑤-D 注入语义三分与持久化、⑤-F 扩展面治理（veto 收敛/修复差异审计/hook 白名单类型化）、⑤-G 会话存储增量、⑤-H 工具与多代理裁定项
 
 **定位说明**：steering/注入在本 roadmap 中的定位不是 UI 交互，而是 channel 驱动自主 agent 的输入通道重构（飞书连接器等外部注入已是生产场景）；流式完整管线仍只评估不实施（与 autonomous roadmap 定位约束一致）。
@@ -34,10 +34,10 @@ audit-rounds: 0
 > 来源：`ai-dev/analysis/2026-09/2026-09-25-unreal-agent-vs-nop-ai-agent-comparison.md` §1/§2/§4/§5
 > 理由：长时工具阻塞整个 round、模型在等待期间无推理能力，是 nop 执行模型与三方对手的最大结构性差距；unreal 的占位协议是该问题的参考实现
 
-- [ ] WI2 异步占位模式改造面评估与设计裁定：同步 round 内工具执行 → 异步占位模型的兼容性评估——与 maxIterations/ISustainer 预算、AgentToolDispatcher 并行调度、7-checkpoint 安全链（占位结果是否过 POST_CALL guardrail）、W3 双层中间件、溢出恢复环（autonomous WI5）的交互逐项裁定；含占位模式过渡策略裁定（全量切换 vs 按工具类型可选）；比对报告 Open Question ①（占位结果与 POST_CALL guardrail 兼容形态）在此收口，Open Question ②（steering 过渡策略）由 WI5 收口（Deliverable: ai-dev/design/nop-ai-agent/nop-ai-agent-async-tool-execution.md 新 owner doc + 裁定记录；deps: 无；Item Type: Decision）
-- [ ] WI3 占位 tool result 协议：工具未完成时以"运行中"占位结果回流、真实结果到达后原位替换（同 callId 不堆积）、引导模型并行/等待语义文案；依赖 WI2 裁定形态（Deliverable: 代码变更 + 测试；deps: WI2；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §1）
-- [ ] WI4 心跳即输入：长时工具等待超阈值时构造含运行中工具清单的心跳消息入上下文，模型可决定继续等待/放弃/并行（Deliverable: 代码变更 + 测试；deps: WI3；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §5）
-- [ ] WI5 steering 打断-重建：mailbox 注入升级——在飞 LLM 请求可取消、新输入与未完成工具占位状态合流、迟到响应按 turn 边界丢弃；即 react-engine.md 已登记的 mid-round successor（现状为 round 边界 drain，2026-09-15 修复定档）；steering 过渡策略（全量切换 vs 按工具类型可选，比对报告 Open Question ②）在此收口（Deliverable: 代码变更 + 测试；deps: WI3；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §2 + `dsh-D1-agent-loop.md` ⑥-建议2）
+- [ ] WI2 异步占位模式改造面评估与设计裁定：**设计取向已由 2026-09-28 执行前评审钉定**（`ai-dev/analysis/2026-09/2026-09-28-long-tool-wait-design-review.md`）——等待优先（round 同步等待为默认路径）、唤醒源仅 steering/心跳（不采用 unreal 全量事件循环与完成即唤醒）、占位为派生态。本项裁定范围收窄为四项必裁：① provider 契约实测——tool_result 紧跟 tool_use 约束下 steering 插队请求的合法构造形态、同 callId 双份 tool_result 的容忍度（unreal 风险形态见评审 §3）；② toolTimeoutMs（默认 300s，`DefaultAgentEngineConfig.java:152`）按工具类型分层与心跳模型判断的兜底关系；③ 唤醒轮的 maxIterations/ISustainer/治理闸门计数归属；④ 等待实现形态（等待可中断化 vs CompletableFuture 组合）、占位模式采用范围（全量 vs 按工具类型可选）与 7-checkpoint 安全链（占位是否过 POST_CALL guardrail）、W3 双层中间件、溢出恢复环（autonomous WI5）的交互；比对报告 Open Question ①（占位结果与 POST_CALL guardrail 兼容形态）在此收口，Open Question ②（steering 过渡策略）由 WI5 Phase A 收口（Deliverable: ai-dev/design/nop-ai-agent/nop-ai-agent-async-tool-execution.md 新 owner doc + 裁定记录；deps: 无；Item Type: Decision）
+- [ ] WI3 占位 tool result 协议（派生态渲染）：三条不变量——①占位结果仅存在于请求构造期、不入 session 历史（派生态：消息列表"有 tool_call 无 tool_result"即 running）；②真实结果到达后按 callId 原位插入 tool_call 之后（非尾部追加）；③崩溃恢复的开放 tool_call 集合 = 快照消息 × TOOL_EXECUTION checkpoint（callId 幂等键）差集可判定；占位文案引导模型并行/等待语义；与 unreal 差异显式记录——unreal 占位 commit 入史后真实结果再追加，同 callId 双份 tool_result 共存于后续请求（`submission_test.go:273,290`），不照搬（Deliverable: 代码变更 + 测试；deps: WI2；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §1 + 2026-09-28 评审）
+- [ ] WI4 心跳即输入（带进度证据）：长时工具等待超阈值时构造心跳消息入上下文，payload 含运行中工具清单 + 已等待时长 + **沙箱增量输出缓冲尾部**（`NoOpSandboxBackend.java:101-113`/`DockerSandboxBackend.java:255` capturedRef 已在位）——进度证据是模型判定死锁/死循环的必要输入，仅 elapsed 不足以判定（unreal 心跳仅含清单与 elapsed，nop 需超越而非照搬）；心跳模型判断为主路径，机械超时降级为兜底（分层参数裁定归 WI2 必裁②）；模型可决定继续等待/放弃/并行（Deliverable: 代码变更 + 测试；deps: WI3；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §5 + 2026-09-28 评审）
+- [ ] WI5 steering 双相位唤醒：**Phase A（先行，本项交付）**工具等待期唤醒——等待期间 mailbox 保持可见，steering 到达时模型空闲（无在飞请求可打断），构造含运行中工具占位的瞬时请求处理新输入，处理后回到等待、迟到结果照常按 WI3 不变量原位插入；dsh 对位结论——steer 边界 claim 与 nop 现状同范式、无解可借，Phase A 即最小改造面。**Phase B（后置 successor，本项只裁定不实施）**在飞 LLM 请求打断-重建——在飞请求可取消、新输入与未完成工具占位状态合流、迟到响应按 turn 边界丢弃，仅在 Phase A 落地验证后按需立项；steering 过渡策略（比对报告 Open Question ②）随 Phase A 收口（Deliverable: Phase A 代码变更 + 测试 + Phase B 立项裁定记录；deps: WI3；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §2 + `dsh-D1-agent-loop.md` ⑥-建议2 + 2026-09-28 评审）
 - [ ] WI6 长时工具相位检查点 + 保守恢复纪律：bash/文件写类高副作用工具引入相位检查点（启动前/执行中/完成三相位以上），崩溃恢复按相位续跑或显式失败，"结果不可判定即失败"不盲目重跑；与 autonomous WI10（崩溃孤儿合成收尾）协同——该项合成收尾文本，本项相位级恢复（Deliverable: 代码变更 + 测试；deps: WI2；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-reliability.md` + `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: unreal 比对 §4）
 
 ### M2 — 输入通道与幂等
@@ -101,7 +101,7 @@ graph TD
     WI1["WI1 划界复核裁定"] --> M1["M1 异步执行模型 WI2-WI6"]
     WI2["WI2 设计裁定"] --> WI3["WI3 占位协议"]
     WI3 --> WI4["WI4 心跳即输入"]
-    WI3 --> WI5["WI5 steering 打断-重建"]
+    WI3 --> WI5["WI5 steering 双相位唤醒"]
     WI2 --> WI6["WI6 相位检查点恢复"]
     WI7["WI7 输入幂等"] --> WI8["WI8 注入持久化+语义三分"]
     WI5 --> WI8
@@ -138,6 +138,12 @@ graph TD
   - steering 现状为 round 边界 drain（plan 2026-09-15-0116-1 Phase 4 定档文档语义，mid-round 为已登记 successor）；mailbox 体系在位（`io.nop.ai.agent.message` 包 IMailbox/DeferredAckMailbox/MailboxMessageHandler）。
   - `executeParallel` 已有 Semaphore 并发上限（plan 2026-09-15-0818-3）；无并发安全标记与路径亲和串行。
   - 工具输出截断散落各执行器，无 schema 级预算参数；spill store 与 read-ref 已落地（plan 2026-08-02-0900-1）。
+- **2026-09-28 M1 执行前评审补充**（详见 `ai-dev/analysis/2026-09/2026-09-28-long-tool-wait-design-review.md`；dsh 侧实测 HEAD `477b4f4205`）：
+  - 负载前提经用户确认：mvn install 类数十分钟工具为真实场景；现状两条路径均不可用——默认 toolTimeoutMs=300s（`DefaultAgentEngineConfig.java:152`）下长任务 5 分钟被 orTimeout 杀为错误结果（`AgentToolDispatcher.java:271-283`），调大则 `allOf().get()` 阻塞整轮（`:304-319`，plan 280 已可中断）且 steering 最长等至 round 边界。
+  - 进度证据钩子在位：沙箱执行已增量 drain 输出到 capturedRef（`NoOpSandboxBackend.java:101-113`、`DockerSandboxBackend.java:255`），心跳可直接携带输出尾。
+  - dsh 机制结论：step 内 await 全部工具 + steer 边界 claim + 机械 timeout-policy——与 nop 现状同范式，对本问题无解可借。
+  - unreal 占位入史风险：占位 commit 入 prefix 后真实结果再追加，同 callId 双份 tool_result 共存于后续请求（`submission_test.go:273,290`；responsesapi 转换无去重）——WI3 以派生态占位 + 原位插入规避。
+  - 事件化裁定：session 不事件化——占位为派生态不入史；开放 tool_call 集合由快照 × TOOL_EXECUTION checkpoint（callId 幂等键，`CheckpointType.java:26`）差集判定；WI14（写放大）与 WI23（重放保真）与本特性正交不捆绑。
 - **审计收敛状态**：设计比对 roadmap 的 M5–M8 全部 P0/P1 与 Follow-up P2/P3 已收口（2026-09-15）；本 roadmap 不重复已修复面。
 
 ## Cross-Cutting
