@@ -1,7 +1,7 @@
 # 12. check-\*.mjs 迁移 manifest（roadmap item 28）
 
 > Status: active（账本随迁移执行滚动更新）
-> Last Reviewed: 2026-09-24
+> Last Reviewed: 2026-09-28
 > 防腐门禁: `node ai-dev/tools/check-lint-migration-manifest.mjs`（exit 0 = 账本与 live 一致）
 > 盘点基线: 2026-09-24 逐脚本源码盘点（两批独立子代理 + 接线点 grep 取证），`ai-dev/logs/2026/09-24.md`
 
@@ -11,6 +11,11 @@
 **24 个**（替代 design 02 §3/roadmap 中笼统的"25+"口径；另有 `check-import-order.sh` 为 mjs 的已迁移孪生，
 仅参考保留，无接线，不占行项）。每行含：子规则数 → 检查对象类别 → 目标能力映射 → 依赖 roadmap item →
 switchover 门禁 → decommission 动作 → 状态。
+
+**枚举排除口径**（2026-09-28，随 tool-replacement roadmap item 1 增注）：`check-lint-*.mjs` 门禁族
+（`check-lint-migration-manifest` / `check-lint-tool-migration-mapping` / `check-lint-coverage-manifest` /
+`check-lint-tool-replacement-ledger`）是 lint 迁移工程自建的防腐工具，不是 legacy 迁移目标，
+**不入本账本 24 行枚举**——防腐门禁的 enum-set 检查对门禁族整体豁免，新增门禁脚本无需在本账本登记。
 
 **状态词表**（防腐门禁校验）：`maintain-mjs`（维持 mjs 门禁）/ `exclude`（排除，非代码检查或非 lint 关注面）/
 `migrated-pending-switchover`（nop-lint 等价规则已落地，待行为对照与切换）/ `candidate`（已排期迁移，依赖 item 已
@@ -53,7 +58,7 @@ done）/ `deferred`（候选挂起，依赖 item 未 done 或无排期）。
 | 23 | check-silent-wrong-result.mjs | **5**（locale/narrowing-cast/contains-classify/delim-key/bigdec-precision） | Java 源码，**CI invariant-gate 接线**（baseline ratchet mode b） | 逐条裁定、暂全部维持 mjs：locale → pattern 可表达（豁免机制需对齐）；narrowing-cast/contains-classify → 需 L1 类型（item 12/26）；delim-key → 括号 span 分析，xscript 近似待评估；bigdec-precision → 方法作用域（item 33）。**ratchet baseline 机制无引擎对应，切换前须裁定基线对账方案** | item 26/33（todo） | 每子规则独立对照 + baseline 迁移方案裁定后逐条切换 | 逐条下线，残余子规则保留 mjs | maintain-mjs |
 | 24 | check-xpl-escaping.mjs | 1（8 种上下文判定） | VFS 前端资源(view/page.yaml/xpl/json) | **deferred（item 29 round-1 spike 裁定）**：XNode text 匹配=trimmed 全等（无 contains）+ XML 路径拒 constraints ⇒ faithful 不可落地；successor = design 06 §3.3 的 xscript/AST 查询机制面（原行所引 "design 02 §7" 为悬空引用，design 02 无 §7——本行修正）；当前恒 exit 0 无接线 | Wave 5 语义面（item 33+） | 规则 + fixtures + 上下文判定面对照 | 脚本下线 | deferred |
 
-**分类汇总**（防腐门禁核对口径）：`maintain-mjs` 7 + `exclude` 7 + `migrated-pending-switchover` 3 + `candidate` 5 + `deferred` 2 = **24**。
+**分类汇总**（防腐门禁核对口径）：`maintain-mjs` 7 + `exclude` 7 + `migrated-pending-switchover` 5 + `candidate` 2 + `deferred` 3 = **24**。
 
 ## errorcode-param-consistency 专项裁定（plan 2137-3 deferred 消解）
 

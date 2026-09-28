@@ -42,6 +42,20 @@ const STATUS_VOCAB = new Set([
 
 const LEDGER_HEADER = '## 逐脚本账本';
 
+// The lint-gate family (check-lint-*.mjs) is anti-corruption tooling built by
+// the lint migration effort itself, not a legacy migration target — excluded
+// from the ledger's enum-set as a family, so a new gate script needs no
+// manifest row (2026-09-28, tool-replacement roadmap item 1).
+export function isLintGateScript(name) {
+  return /^check-lint-[a-z0-9-]+\.mjs$/.test(name);
+}
+
+// the ledger's enum-set authority: live check-*.mjs scripts minus the
+// lint-gate family (the same selection main() feeds to checkEnumSet)
+export function selectMigrationTargetScripts(names) {
+  return names.filter((name) => /^check-[a-z0-9-]+\.mjs$/.test(name) && !isLintGateScript(name));
+}
+
 function fail(errors, message) {
   errors.push(message);
 }
@@ -239,6 +253,23 @@ export function selfTest() {
     fail(errors, 'self-test: summary checker accepted a wrong status count');
   }
 
+  // lint-gate family exclusion: gate scripts must classify as excluded, and
+  // the live-script selection used by main must drop them from the enum-set
+  if (!isLintGateScript('check-lint-tool-replacement-ledger.mjs')
+    || !isLintGateScript('check-lint-migration-manifest.mjs')) {
+    fail(errors, 'self-test: isLintGateScript rejected a member of the check-lint-*.mjs gate family');
+  }
+  if (isLintGateScript('check-bean-naming.mjs') || isLintGateScript('check-lint.mjs')) {
+    fail(errors, 'self-test: isLintGateScript accepted a non-gate-family script name');
+  }
+  const selected = selectMigrationTargetScripts([
+    'check-bean-naming.mjs', 'check-lint-coverage-manifest.mjs', 'readme.md',
+  ]);
+  if (selected.length !== 1 || selected[0] !== 'check-bean-naming.mjs') {
+    fail(errors, 'self-test: selectMigrationTargetScripts kept a gate-family script'
+      + ' or dropped a legacy target: ' + JSON.stringify(selected));
+  }
+
   if (errors.length > 0) {
     console.error('self-test FAILED (the gate is not guarding):');
     for (const error of errors) {
@@ -274,12 +305,9 @@ function main() {
     process.exit(1);
   }
 
-  // the gate itself matches check-*.mjs but is a new tool, not one of the
-  // 24 legacy migration targets the ledger enumerates
-  const GATE_SCRIPT = 'check-lint-migration-manifest.mjs';
-  const liveScripts = readdirSync(TOOLS_DIR)
-    .filter((name) => /^check-[a-z0-9-]+\.mjs$/.test(name) && name !== GATE_SCRIPT)
-    .sort();
+  // the lint-gate family matches check-*.mjs but consists of anti-corruption
+  // tools, not the 24 legacy migration targets the ledger enumerates
+  const liveScripts = selectMigrationTargetScripts(readdirSync(TOOLS_DIR)).sort();
 
   errors.push(...checkRows(parsed.rows, parsed.columnCount));
   errors.push(...checkEnumSet(parsed.rows, liveScripts));

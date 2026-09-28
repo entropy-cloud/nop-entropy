@@ -34,7 +34,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 | SpotBugs 4.9.8.3 | root pom qa profile（`pom.xml:521` 起）+ **nop-kernel 自带 plugin**（`nop-kernel/pom.xml:451`）+ `spotbugs-annotations`（`nop-kernel/nop-commons/pom.xml:75`） | failOnError=false、threshold=low；`spotbugs-exclude.xml` 全局排除生成物/Errors/Configs/Constants + 与 Nop 架构冲突 pattern |
 | SonarQube | `sonar-maven-plugin`（`pom.xml:415`）+ `sonar.*` 属性组（`pom.xml:35–51`，含 jacoco 聚合覆盖率报告路径） | "主动触发，不参与日常构建"（pom 注释原文） |
 | ArchUnit | `archunit-junit5` 测试依赖：`nop-ai/nop-ai-shell/pom.xml:27`、`nop-ai/nop-ai-agent/pom.xml:55` | 架构断言以 JUnit 测试形态存在 |
-| check-\*.mjs ×24 | CI workflow / package.json / run-\*.sh（design 12 逐行登记） | 逐行实况：7 maintain-mjs / 7 exclude / 5 migrated-pending-switchover / 2 candidate / 3 deferred（**design 12 汇总行 3/5/2 与此不一致，待 item 1 修正**） |
+| check-\*.mjs ×24 | CI workflow / package.json / run-\*.sh（design 12 逐行登记） | 逐行实况：7 maintain-mjs / 7 exclude / 5 migrated-pending-switchover / 2 candidate / 3 deferred（design 12 汇总行已与逐行一致，2026-09-28 item 1 修正） |
 | ErrorProne / NullAway | **未接线** | 无；design 06 §2/§7 已有 EP 能力对齐分析与 manifest 行 |
 
 ## 工具级终裁词表（针对各工具的核心缺陷发现面裁定）
@@ -54,7 +54,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 1 — 定位基线与存量收口
 
-- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `todo`
+- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
 - 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `todo`
 - 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `todo` — deps: 1, 2
 - 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `todo` — deps: 1, 2
@@ -117,7 +117,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ## Current baseline
 
-- 既有替代资产：checkstyle-pmd 迁移映射 26 行（landed 7 / keep 19，两份旧配置现均不可移除，门禁在档）；mjs 账本 24 行（汇总行不一致待 item 1 修正）；PMD/EP coverage manifest v2（186 行，tier 1 = 33 已落地带 fixture）。
+- 既有替代资产：checkstyle-pmd 迁移映射 26 行（landed 7 / keep 19，两份旧配置现均不可移除，门禁在档）；mjs 账本 24 行（汇总行已与逐行一致，2026-09-28 item 1 修正，门禁族排除口径在档）；PMD/EP coverage manifest v2（186 行，tier 1 = 33 已落地带 fixture）。
 - 已验证能力锚点：nop-lint roadmap M1–M6 全 done（引擎 + 62 条规则 + L1–L4 语义面 + maven/GraphQL/LSP/CLI 生态面）；JMH 基线在档（fast 档 <50ms 预算实测余量 ~50×）。
 - 已知能力缺口（item 6 矩阵的输入）：资源泄漏类（acquire/release 路径配对）与空指针解引用流（null-flow）在当前 L3 数据流（方法内 def-use + 常量传播）之上属未覆盖面——这正是"隐蔽 bug"定位下最需要补的两类。
 - 风险提示：定位收窄（out-of-purpose 剔除风格面）会显著缩小"替代债"的表面积——items 3/4 的收口判据从"全行 landed"改为"核心行 landed + 风格行显式归档"，判据文本须随 item 1/2 落地同步修订（design 06 §8.1 增注）。
