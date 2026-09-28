@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <!-- N4.3（plan nop-code/24）测试嵌入 bean：确定性 StubTestTextEmbedding。
+         经 aaa- 前缀 autoconfig 文件（见同目录 aaa-test-text-embedding.beans）注册，
+         前缀仅为可读性约定——bean 定义全量合并后由 buildAll 统一构建，
+         by-type 注入解析与 autoconfig 文件收集顺序无关。 -->
+    <bean id="nopTestTextEmbedding" class="io.nop.code.service.StubTestTextEmbedding" ioc:default="true"
+          ioc:type="io.nop.search.api.ITextEmbedding"/>
+</beans>

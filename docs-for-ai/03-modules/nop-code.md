@@ -41,7 +41,7 @@ Located in `nop-code-service`. Key methods:
 | `getDeps`, `getReverseDeps`, `findCycles` | Query | Dependency analysis |
 | `detectFlows`, `listFlows`, `getFlow` | Query/Mutation | Execution flow |
 | `analyzeChanges`, `detectDeadCode` | Query | Change & dead code |
-| `searchCode` | Query | Full-text search (via `ISearchEngine`; engine path with Lucene when deployed — default in `nop-code-app`, DB-LIKE fallback otherwise) |
+| `searchCode` | Query | Full-text/vector/hybrid search (`searchType`: `TEXT`/`VECTOR`/`HYBRID` via `ISearchEngine` — engine path with Lucene when deployed, default in `nop-code-app`; DB-LIKE fallback otherwise; legacy values normalize to engine TEXT; `VECTOR`/`HYBRID` need an `ITextEmbedding` implementation on the classpath for the vector leg) |
 
 > **访问控制（N6.5）**：`ICodeIndexService` 全部公共入口经 `IndexAccessPolicy` SPI 检查（读/写两类检查点，默认 Permissive 零行为变化）；per-index 本地路径白名单（`getAllowedLocalRoot`）与私有仓库凭据解析（`GitCredentialResolver`，env 通道零泄漏）由部署方注入策略对接租户系统。action-auth 资源树不受影响。
 

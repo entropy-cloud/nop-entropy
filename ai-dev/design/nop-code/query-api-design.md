@@ -113,6 +113,8 @@ NopCodeSymbol__findByAnnotation(indexId, annotationName) → [SymbolDTO]
 NopCodeSymbol__searchCode(indexId, query, searchType, language, filePattern, limit) → [CodeSearchResultDTO]
 ```
 
+`searchType` 引擎路径值域（N4.3，2026-09-28）：`TEXT`/`VECTOR`/`HYBRID`（大小写不敏感）→ nop-search 引擎对应 SearchType（HYBRID = 文本 + 向量 RRF 融合，k=60）；legacy 值（`SYMBOL_NAME`/`FULL_TEXT`/`COMBINED`，DB 降级路径专用语义）与 null/未知值在引擎路径归一为 `TEXT`。**向量腿成立条件**：classpath 存在 `ITextEmbedding` 实现（生产 = nop-ai-core `nopAiTextEmbedding` 桥接，N4.2）——缺席时 `VECTOR` 返回空结果、`HYBRID` 仅文本腿生效。引擎异常时走既有降级路径返回 DB COMBINED 结果（与请求的 searchType 无关）。
+
 ### 3.11 公共 API Surface
 
 ```

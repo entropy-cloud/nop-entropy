@@ -49,7 +49,7 @@ class CodeSearchService {
                                           String language, String filePattern, int limit) {
         if (query == null || query.isEmpty()) return Collections.emptyList();
         if (searchEngine != null) {
-            return searchViaEngine(indexId, query, language, filePattern, limit);
+            return searchViaEngine(indexId, query, searchType, language, filePattern, limit);
         }
         if (daoProvider == null) return Collections.emptyList();
         String type = searchType != null ? searchType : "COMBINED";
@@ -65,14 +65,35 @@ class CodeSearchService {
         }
     }
 
-    private List<CodeSearchResultDTO> searchViaEngine(String indexId, String query,
+    /**
+     * N4.3：引擎路径的 searchType 映射。TEXT/VECTOR/HYBRID（大小写不敏感）原样映射到
+     * nop-search 引擎；DB 降级路径专用的 legacy 值（SYMBOL_NAME/FULL_TEXT/COMBINED）
+     * 与 null/未知值在引擎路径归一为 TEXT（与 N4.3 之前的既有行为一致，零回归）。
+     */
+    static SearchType mapSearchType(String searchType) {
+        if (searchType == null) {
+            return SearchType.TEXT;
+        }
+        switch (searchType.toUpperCase()) {
+            case "VECTOR":
+                return SearchType.VECTOR;
+            case "HYBRID":
+                return SearchType.HYBRID;
+            case "TEXT":
+                return SearchType.TEXT;
+            default:
+                return SearchType.TEXT;
+        }
+    }
+
+    private List<CodeSearchResultDTO> searchViaEngine(String indexId, String query, String searchType,
                                                        String language, String filePattern, int limit) {
         int lim = limit > 0 ? limit : 50;
         String topic = "nop-code-" + indexId;
         SearchRequest req = new SearchRequest();
         req.setTopic(topic);
         req.setQuery(query);
-        req.setSearchType(SearchType.TEXT);
+        req.setSearchType(mapSearchType(searchType));
         req.setLimit(lim);
         Set<String> tags = new HashSet<>();
         if (language != null && !language.isEmpty()) {
