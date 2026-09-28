@@ -2,7 +2,7 @@
 
 nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路径）。JMH 1.33，与父 pom 配置一致。
 
-## 基准集（13 类 / 20+ 方法）
+## 基准集（14 类 / 20+ 方法）
 
 | 基准类 | 被测生产路径 |
 |---|---|
@@ -19,6 +19,7 @@ nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路�
 | InputGateReadLoopBench | InputGate 读取循环（`gapNanos`=0/100µs/10ms 生产间隔；饱和档量吞吐，大 gap 档若 @Group 栅栏失真按计划退化为独立 harness） |
 | BufferPoolPermitBench | BufferPool acquire/release（`poolCapacity`=1 强制乒乓/64 近畅通；真实 ResultPartition/InputChannel 路径） |
 | ProcessingTimeDriverLatencyBench | ProcessingTimeServiceDriver 处理时间定时器触发延迟（`tickMs`=100/20；SampleTime，fire 延迟 = op − 50ms 提前量） |
+| ConnectorInvokeBench | connector 数据面逐记录路径（plan 366 Phase 1）：file source 逐行读取（`lineChars`=64/512）、file 2PC sink invoke Map.toString 物化（`mapEntries`=4/16）、jdbc 2PC sink invoke Map 拷贝（10 列；IJdbcTemplate 反射桩，invoke 仅内存缓冲不触 JDBC） |
 
 ## 运行
 
