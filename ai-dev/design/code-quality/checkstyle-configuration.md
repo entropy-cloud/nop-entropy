@@ -1,6 +1,7 @@
 # Checkstyle / SonarQube 代码质量配置
 
 > Status: resolved
+> **Archived（2026-09-28，tool-replacement item 3b，plan 18）**：checkstyle 接线已随切换移除（root/nop-kernel pom 与 checkstyle.xml，见 git 历史）；本文为历史设计记录，其中 `-Dcheckstyle.config.location` 等运行指引不再有效。
 > Last Reviewed: 2026-05-05
 > Scope: 全项目 Java 源码（`src/main/java`，排除自动生成文件）
 > Related: `checkstyle.xml`、`pmd-ruleset.xml`、`spotbugs-exclude.xml`、`pom.xml`（qa profile）

@@ -5,7 +5,8 @@
 
 ## 1. 现状与并行期运行口径
 
-- 旧工具经根 pom `qa` profile 运行（checkstyle 10.21.1 / pmd 7.26.0，`failOnViolation=false` 报告态，非阻塞门禁）：`./mvnw checkstyle:check -Pqa` / `./mvnw pmd:check -Pqa`。
+- 旧工具经根 pom `qa` profile 运行（pmd 7.26.0 报告态，非阻塞门禁）：`./mvnw pmd:check -Pqa`。
+- **checkstyle 侧已切换移除（2026-09-28，item 3b，plan 18）**：root pom 与 nop-kernel pom 的 maven-checkstyle-plugin 接线及死属性清零、checkstyle.xml 删除；切换判据达成（17 行 = landed 9 + out-of-purpose 8）；回退 = `git revert` plan 18 commit。
 - nop-lint 全量运行口径：`java -cp <core+java+nop+treesitter> io.nop.lint.core.cli.NopLintCli check <module> --profile standard`（CLI）或 `nop-lint:check`（Maven goal）。
 - **并行期即现状**：两套工具互不干扰；本 item 的双跑对照记录见 §4。
 
@@ -49,7 +50,8 @@
 - 切换后门禁面 = `nop-lint check --profile standard`（CLI/Maven goal 默认档）。
 - **deep-only 的 landed 行（CyclomaticComplexity）在默认 standard 面等效 keep**——切换判据不得把它计为已覆盖；除非切换决策同时把门禁面升为 `--profile deep`（需 metrics provider 装配）。
 - 判据（item 3a 增注，2026-09-28）：某旧工具配置段的全部行，status 均为 landed（含附注 delta 被接受）或 out-of-purpose（风格/可选面归档，非迁移债）→ 该段可移除。
-- 按本表：**checkstyle.xml 与 pmd-ruleset.xml 现均不可移除**（keep 行占多数）。
+- **checkstyle 侧判据达成宣告（item 3b，2026-09-28）**：17 行全部 landed/out-of-purpose，配置段已移除。deep-only 条款显式裁定：CyclomaticComplexity 行 landed（deep 面），standard 档不设防为已接受 delta——复杂度度量在新定位下属 out-of-purpose 可选面（plan 16 裁定在档），不阻碍切换。pmd 侧判据未达成（keep-pmd 7 行占多数），不可移除。
+- 按本表（item 3b 后）：**checkstyle 配置段已移除**（全部行 landed/out-of-purpose）；**pmd-ruleset.xml 不可移除**（keep-pmd 7 行占多数）。
 
 ## 4. 并行期实跑对照（2026-09-24，dogfood）
 
@@ -88,6 +90,6 @@
 
 ## 5. 回退预案
 
-- 旧配置完全保留于 git 历史（`checkstyle.xml`/`pmd-ruleset.xml`/根 pom qa profile 在切换前零改动）。
+- 旧配置完全保留于 git 历史（`checkstyle.xml` 已删除、checkstyle 插件块已移除——`git revert` plan 18 commit 即恢复；`pmd-ruleset.xml`/pmd 插件块在切换前零改动）。
 - 切换动作 = 删除旧配置段 + 门禁面声明（单独 commit，单文件可 `git revert`）。
 - 回退演练口径：任一时刻 `git revert <切换 commit>` 即恢复双工具并行态；nop-lint 侧无状态（规则库在 classpath VFS，无构建期绑定）。

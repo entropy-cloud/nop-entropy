@@ -16,7 +16,7 @@
 
 | 工具 | 终裁 | 残余范围 | 证据 | roadmap items |
 |---|---|---|---|---|
-| Checkstyle 10.21.1 | 待裁 | — | — | 3 |
+| Checkstyle 10.21.1 | core-face-replaced | 风格/可选面 8 行 out-of-purpose（显式不迁移） | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md) | 3 |
 | PMD 7.26.0 | 待裁 | — | — | 4 |
 | check-\*.mjs ×24 | 待裁 | — | — | 5 |
 | SpotBugs 4.9.8.3 | 待裁 | — | — | 9–11 |
@@ -38,7 +38,7 @@
 
 | 工具 | 分面标注 | 依据 / 证据 | 重估触发 | 状态 |
 |---|---|---|---|---|
-| Checkstyle 10.21.1 | 待裁 | — | — | 待裁 |
+| Checkstyle 10.21.1 | core / out-of-purpose | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md)（core 9 行承接 + 风格 8 行归档，对照零 diff） | 风格面入 mandate 或对照被推翻 | core-face-replaced |
 | PMD 7.26.0 | 待裁 | — | — | 待裁 |
 | check-\*.mjs ×24 | 待裁 | — | — | 待裁 |
 | SpotBugs 4.9.8.3 | 待裁 | — | — | 待裁 |
@@ -124,7 +124,7 @@
 
 | 账本 | 行数 | 状态分布 | 防腐门禁 |
 |---|---|---|---|
-| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3a 后：landed 11 / out-of-purpose 8 / keep-pmd 7——checkstyle 侧可移除待 plan 18 切换；pmd 侧 keep 为主 | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
+| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3b 后：checkstyle 侧已切换移除（landed 9 + out-of-purpose 8）；pmd 侧 landed 2 + keep-pmd 7 不可移除（全表 landed 11） | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
 | [check-\*.mjs 迁移 manifest](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 24 | maintain-mjs 7 / exclude 7 / migrated-pending-switchover 5 / candidate 2 / deferred 3（与文档分类汇总行一致，2026-09-28 修正） | `ai-dev/tools/check-lint-migration-manifest.mjs` |
 | [PMD/EP coverage manifest](../../nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 30 已落地带 live fixture（item 2 分面复审翻转 out-of-purpose 3 行后）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
 

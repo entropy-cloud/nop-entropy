@@ -861,10 +861,12 @@ public record TypeInfo(
 
 ## 8. Checkstyle / PMD 现有配置迁移
 
-> 本仓库当前 QA gate：`checkstyle.xml`（17 条激活规则：RegexpSingleline + 16 条 TreeWalker 规则）+ `pmd-ruleset.xml`（9 条规则：7 errorprone + 2 security）。切换到 Nop Lint 时需要逐条映射，避免双重报告或覆盖缺口。
+> 本仓库当前 QA gate：`pmd-ruleset.xml`（9 条规则：7 errorprone + 2 security，判据未达成不可移除）。**checkstyle 侧已切换移除（2026-09-28，tool-replacement item 3b，plan 18）**：17 行 = landed 9 + out-of-purpose 8（判据达成，同语料对照零 diff 在档 `nop-lint/docs/checkstyle-pmd-migration.md` §4.2）；本节其余文本中涉及 checkstyle 现行接线处均为历史记录。
 
 ### 8.1 迁移步骤（Phase 4）
 
+> **item 3b 切换收口（2026-09-28，plan 18）**：切换判据达成并执行——root pom 与 nop-kernel pom 的 maven-checkstyle-plugin 接线及死属性清零、checkstyle.xml 删除；mapping 门禁缺席判据在档（缺席 + 未迁移行 = hard error，无静默注销）；Checkstyle 工具级终裁 = `core-face-replaced`（残余 = 风格/可选面 8 行 out-of-purpose，显式不迁移）已回填统一账本。回退 = `git revert` plan 18 commit。"现两份旧配置均不可移除"自本增注起只对 pmd 侧成立；下方 item 40 增注为切换前历史记录。
+>
 > **item 40 落地增注（2026-09-24，plan 2026-09-24-2350-1，live 以源码为准）**：迁移映射已落盘 `nop-lint/docs/checkstyle-pmd-migration.md`——26 行（checkstyle 17 + pmd 9）逐行恰一状态（landed 7 / keep-checkstyle 12 / keep-pmd 7），landed 行强制附注 profile 面（deep-only 行在 CLI 默认 standard 面等效 keep——enforcement surface 口径）与语义 delta（no-star-import static-star 新告警面、complexity 阈值 10≠15 且不含构造器、no-empty-catch 无 expected 豁免）；防腐门禁 `ai-dev/tools/check-lint-tool-migration-mapping.mjs`（XML enum-set 双向对账 + landed 按规则文件 `id:` 字段校验 + 四态词表强制 + self-test 三正控）。并行期实跑对照（nop-lint-core：nop-lint 140 诊断 vs checkstyle 48 vs pmd 7）在档；切换判据 = 某旧配置段全部行在 enforcement surface 上均为 landed，**现两份配置均不可移除**（keep 占多数）；回退 = git revert 单 commit。映射发现并修复 dogfood 缺陷：抑制解析器对自身包 javadoc 中的指令字面量 fail-closed 中止（两处 javadoc 已最小改写；上下文感知识别留 follow-up）。本节下方步骤 1–4 为原设计文本（步骤 3"切换"未执行，判据达成后独立运维动作）。
 >
 > **分面复审联动增注（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）**：62 条存量规则分面复审后，landed 目标规则**禁 remove**（id 须保留——映射门禁按 `id:` 字段校验）；风格面 landed 目标（no-star-import，已 info 档）处置为 keep/demote 不影响 landed 状态（landed 判定不含 severity）。items 3/4 收口时"核心行升规则 / 风格行 out-of-purpose 归档"的判据文本修订以统一账本规则级分面表为输入。
