@@ -19,8 +19,6 @@ alter table nop_meta_business_domain add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' N
 
 alter table nop_meta_orm_model add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_table add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_pipeline add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_quality_checkpoint add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -39,24 +37,6 @@ alter table nop_meta_domain add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_dict add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_table_dimension add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_table_measure add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_table_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_catalog add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_reconciliation_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
-alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_meta_quality_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_tag_label add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -69,7 +49,25 @@ alter table nop_meta_entity_unique_key add NOP_TENANT_ID VARCHAR(32) DEFAULT '0'
 
 alter table nop_meta_entity_index add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_meta_table_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+alter table nop_meta_entity_dimension add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_entity_measure add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_entity_filter add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_entity_join add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_lineage_edge add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_catalog add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_profiling_rule add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_data_contract add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_reconciliation_config add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
@@ -107,9 +105,6 @@ alter table nop_meta_business_domain add constraint PK_nop_meta_business_domain 
 alter table nop_meta_orm_model drop constraint PK_nop_meta_orm_model;
 alter table nop_meta_orm_model add constraint PK_nop_meta_orm_model primary key (NOP_TENANT_ID, orm_model_id);
 
-alter table nop_meta_table drop constraint PK_nop_meta_table;
-alter table nop_meta_table add constraint PK_nop_meta_table primary key (NOP_TENANT_ID, meta_table_id);
-
 alter table nop_meta_pipeline drop constraint PK_nop_meta_pipeline;
 alter table nop_meta_pipeline add constraint PK_nop_meta_pipeline primary key (NOP_TENANT_ID, pipeline_id);
 
@@ -137,33 +132,6 @@ alter table nop_meta_domain add constraint PK_nop_meta_domain primary key (NOP_T
 alter table nop_meta_dict drop constraint PK_nop_meta_dict;
 alter table nop_meta_dict add constraint PK_nop_meta_dict primary key (NOP_TENANT_ID, meta_dict_id);
 
-alter table nop_meta_table_dimension drop constraint PK_nop_meta_table_dimension;
-alter table nop_meta_table_dimension add constraint PK_nop_meta_table_dimension primary key (NOP_TENANT_ID, dimension_id);
-
-alter table nop_meta_table_measure drop constraint PK_nop_meta_table_measure;
-alter table nop_meta_table_measure add constraint PK_nop_meta_table_measure primary key (NOP_TENANT_ID, measure_id);
-
-alter table nop_meta_table_filter drop constraint PK_nop_meta_table_filter;
-alter table nop_meta_table_filter add constraint PK_nop_meta_table_filter primary key (NOP_TENANT_ID, filter_id);
-
-alter table nop_meta_catalog drop constraint PK_nop_meta_catalog;
-alter table nop_meta_catalog add constraint PK_nop_meta_catalog primary key (NOP_TENANT_ID, meta_catalog_id);
-
-alter table nop_meta_profiling_rule drop constraint PK_nop_meta_profiling_rule;
-alter table nop_meta_profiling_rule add constraint PK_nop_meta_profiling_rule primary key (NOP_TENANT_ID, profiling_rule_id);
-
-alter table nop_meta_data_contract drop constraint PK_nop_meta_data_contract;
-alter table nop_meta_data_contract add constraint PK_nop_meta_data_contract primary key (NOP_TENANT_ID, contract_id);
-
-alter table nop_meta_reconciliation_config drop constraint PK_nop_meta_reconciliation_config;
-alter table nop_meta_reconciliation_config add constraint PK_nop_meta_reconciliation_config primary key (NOP_TENANT_ID, config_id);
-
-alter table nop_meta_quality_score drop constraint PK_nop_meta_quality_score;
-alter table nop_meta_quality_score add constraint PK_nop_meta_quality_score primary key (NOP_TENANT_ID, quality_score_id);
-
-alter table nop_meta_lineage_edge drop constraint PK_nop_meta_lineage_edge;
-alter table nop_meta_lineage_edge add constraint PK_nop_meta_lineage_edge primary key (NOP_TENANT_ID, lineage_edge_id);
-
 alter table nop_meta_quality_result drop constraint PK_nop_meta_quality_result;
 alter table nop_meta_quality_result add constraint PK_nop_meta_quality_result primary key (NOP_TENANT_ID, quality_result_id);
 
@@ -182,8 +150,35 @@ alter table nop_meta_entity_unique_key add constraint PK_nop_meta_entity_unique_
 alter table nop_meta_entity_index drop constraint PK_nop_meta_entity_index;
 alter table nop_meta_entity_index add constraint PK_nop_meta_entity_index primary key (NOP_TENANT_ID, index_id);
 
-alter table nop_meta_table_join drop constraint PK_nop_meta_table_join;
-alter table nop_meta_table_join add constraint PK_nop_meta_table_join primary key (NOP_TENANT_ID, join_id);
+alter table nop_meta_entity_dimension drop constraint PK_nop_meta_entity_dimension;
+alter table nop_meta_entity_dimension add constraint PK_nop_meta_entity_dimension primary key (NOP_TENANT_ID, dimension_id);
+
+alter table nop_meta_entity_measure drop constraint PK_nop_meta_entity_measure;
+alter table nop_meta_entity_measure add constraint PK_nop_meta_entity_measure primary key (NOP_TENANT_ID, measure_id);
+
+alter table nop_meta_entity_filter drop constraint PK_nop_meta_entity_filter;
+alter table nop_meta_entity_filter add constraint PK_nop_meta_entity_filter primary key (NOP_TENANT_ID, filter_id);
+
+alter table nop_meta_entity_join drop constraint PK_nop_meta_entity_join;
+alter table nop_meta_entity_join add constraint PK_nop_meta_entity_join primary key (NOP_TENANT_ID, join_id);
+
+alter table nop_meta_lineage_edge drop constraint PK_nop_meta_lineage_edge;
+alter table nop_meta_lineage_edge add constraint PK_nop_meta_lineage_edge primary key (NOP_TENANT_ID, lineage_edge_id);
+
+alter table nop_meta_catalog drop constraint PK_nop_meta_catalog;
+alter table nop_meta_catalog add constraint PK_nop_meta_catalog primary key (NOP_TENANT_ID, meta_catalog_id);
+
+alter table nop_meta_profiling_rule drop constraint PK_nop_meta_profiling_rule;
+alter table nop_meta_profiling_rule add constraint PK_nop_meta_profiling_rule primary key (NOP_TENANT_ID, profiling_rule_id);
+
+alter table nop_meta_data_contract drop constraint PK_nop_meta_data_contract;
+alter table nop_meta_data_contract add constraint PK_nop_meta_data_contract primary key (NOP_TENANT_ID, contract_id);
+
+alter table nop_meta_reconciliation_config drop constraint PK_nop_meta_reconciliation_config;
+alter table nop_meta_reconciliation_config add constraint PK_nop_meta_reconciliation_config primary key (NOP_TENANT_ID, config_id);
+
+alter table nop_meta_quality_score drop constraint PK_nop_meta_quality_score;
+alter table nop_meta_quality_score add constraint PK_nop_meta_quality_score primary key (NOP_TENANT_ID, quality_score_id);
 
 alter table nop_meta_dict_item drop constraint PK_nop_meta_dict_item;
 alter table nop_meta_dict_item add constraint PK_nop_meta_dict_item primary key (NOP_TENANT_ID, dict_item_id);
@@ -224,9 +219,6 @@ alter table nop_meta_business_domain add constraint UK_NOP_META_BUSINESS_DOMAIN_
                 alter table nop_meta_orm_model drop constraint UK_NOP_META_ORM_MODEL_MODULE_NAME;
 alter table nop_meta_orm_model add constraint UK_NOP_META_ORM_MODEL_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,model_name,is_delta);
 
-                alter table nop_meta_table drop constraint UK_NOP_META_TABLE_MODULE_NAME;
-alter table nop_meta_table add constraint UK_NOP_META_TABLE_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,table_name,is_delta,meta_schema);
-
                 alter table nop_meta_pipeline drop constraint UK_NOP_META_PIPELINE_MODULE_NAME;
 alter table nop_meta_pipeline add constraint UK_NOP_META_PIPELINE_MODULE_NAME unique (NOP_TENANT_ID,meta_module_id,pipeline_name);
 
@@ -254,27 +246,6 @@ alter table nop_meta_domain add constraint UK_NOP_META_DOMAIN_MODEL_NAME unique 
                 alter table nop_meta_dict drop constraint UK_NOP_META_DICT_MODEL_NAME;
 alter table nop_meta_dict add constraint UK_NOP_META_DICT_MODEL_NAME unique (NOP_TENANT_ID,orm_model_id,dict_name);
 
-                alter table nop_meta_table_dimension drop constraint UK_NOP_META_DIM_TABLE_NAME;
-alter table nop_meta_table_dimension add constraint UK_NOP_META_DIM_TABLE_NAME unique (NOP_TENANT_ID,meta_table_id,dimension_name);
-
-                alter table nop_meta_table_measure drop constraint UK_NOP_META_MEASURE_TABLE_NAME;
-alter table nop_meta_table_measure add constraint UK_NOP_META_MEASURE_TABLE_NAME unique (NOP_TENANT_ID,meta_table_id,measure_name);
-
-                alter table nop_meta_table_filter drop constraint UK_NOP_META_FILTER_TABLE_NAME;
-alter table nop_meta_table_filter add constraint UK_NOP_META_FILTER_TABLE_NAME unique (NOP_TENANT_ID,meta_table_id,filter_name);
-
-                alter table nop_meta_profiling_rule drop constraint UK_NOP_META_PROFRULE_TABLE_NAME;
-alter table nop_meta_profiling_rule add constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (NOP_TENANT_ID,meta_table_id,rule_name);
-
-                alter table nop_meta_data_contract drop constraint UK_NOP_META_CONTRACT_NAME;
-alter table nop_meta_data_contract add constraint UK_NOP_META_CONTRACT_NAME unique (NOP_TENANT_ID,contract_name);
-
-                alter table nop_meta_reconciliation_config drop constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME;
-alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (NOP_TENANT_ID,config_name);
-
-                alter table nop_meta_lineage_edge drop constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE;
-alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,source_table_id,source_column,target_table_id,target_column);
-
                 alter table nop_meta_quality_result drop constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE;
 alter table nop_meta_quality_result add constraint UK_NOP_META_QUALITY_RESULT_CP_RUN_RULE unique (NOP_TENANT_ID,checkpoint_id,run_id,quality_rule_id);
 
@@ -293,8 +264,29 @@ alter table nop_meta_entity_unique_key add constraint UK_NOP_META_UK_ENTITY_NAME
                 alter table nop_meta_entity_index drop constraint UK_NOP_META_IDX_ENTITY_NAME;
 alter table nop_meta_entity_index add constraint UK_NOP_META_IDX_ENTITY_NAME unique (NOP_TENANT_ID,meta_entity_id,index_name);
 
-                alter table nop_meta_table_join drop constraint UK_NOP_META_JOIN_TABLE_ALIAS;
-alter table nop_meta_table_join add constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (NOP_TENANT_ID,meta_table_id,alias);
+                alter table nop_meta_entity_dimension drop constraint UK_NOP_META_DIM_TABLE_NAME;
+alter table nop_meta_entity_dimension add constraint UK_NOP_META_DIM_TABLE_NAME unique (NOP_TENANT_ID,meta_entity_id,dimension_name);
+
+                alter table nop_meta_entity_measure drop constraint UK_NOP_META_MEASURE_TABLE_NAME;
+alter table nop_meta_entity_measure add constraint UK_NOP_META_MEASURE_TABLE_NAME unique (NOP_TENANT_ID,meta_entity_id,measure_name);
+
+                alter table nop_meta_entity_filter drop constraint UK_NOP_META_FILTER_TABLE_NAME;
+alter table nop_meta_entity_filter add constraint UK_NOP_META_FILTER_TABLE_NAME unique (NOP_TENANT_ID,meta_entity_id,filter_name);
+
+                alter table nop_meta_entity_join drop constraint UK_NOP_META_JOIN_TABLE_ALIAS;
+alter table nop_meta_entity_join add constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (NOP_TENANT_ID,meta_entity_id,alias);
+
+                alter table nop_meta_lineage_edge drop constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE;
+alter table nop_meta_lineage_edge add constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (NOP_TENANT_ID,source_table_id,source_column,target_table_id,target_column);
+
+                alter table nop_meta_profiling_rule drop constraint UK_NOP_META_PROFRULE_TABLE_NAME;
+alter table nop_meta_profiling_rule add constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (NOP_TENANT_ID,meta_entity_id,rule_name);
+
+                alter table nop_meta_data_contract drop constraint UK_NOP_META_CONTRACT_NAME;
+alter table nop_meta_data_contract add constraint UK_NOP_META_CONTRACT_NAME unique (NOP_TENANT_ID,contract_name);
+
+                alter table nop_meta_reconciliation_config drop constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME;
+alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (NOP_TENANT_ID,config_name);
 
                 alter table nop_meta_dict_item drop constraint UK_NOP_META_DICT_ITEM_VALUE;
 alter table nop_meta_dict_item add constraint UK_NOP_META_DICT_ITEM_VALUE unique (NOP_TENANT_ID,meta_dict_id,item_value);

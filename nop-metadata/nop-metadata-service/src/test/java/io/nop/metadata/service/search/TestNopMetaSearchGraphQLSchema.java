@@ -91,7 +91,7 @@ public class TestNopMetaSearchGraphQLSchema extends JunitBaseTestCase {
                         + "assertion (a) with the reason recorded in the plan/log.");
 
         GraphQLResponseBean response = execute(
-                "query { NopMetaSearch__searchMetadata(query: \"nonexistent-keyword\", entityType: \"MetaTable\", limit: 10) "
+                "query { NopMetaSearch__searchMetadata(query: \"nonexistent-keyword\", entityType: \"MetaEntity\", limit: 10) "
                         + "{ total limit items { id name } } }");
         assertFalse(response.hasError(), "searchMetadata query must not error: " + response);
 

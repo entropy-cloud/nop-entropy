@@ -145,8 +145,24 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 31;
     
+    /* 实体类型: ENTITY_KIND VARCHAR */
+    public static final String PROP_NAME_entityKind = "entityKind";
+    public static final int PROP_ID_entityKind = 32;
+    
+    /* 来源SQL: SOURCE_SQL VARCHAR */
+    public static final String PROP_NAME_sourceSql = "sourceSql";
+    public static final int PROP_ID_sourceSql = 33;
+    
+    /* 外部列结构: EXTERNAL_COLUMNS VARCHAR */
+    public static final String PROP_NAME_externalColumns = "externalColumns";
+    public static final int PROP_ID_externalColumns = 34;
+    
+    /* 模块ID: META_MODULE_ID VARCHAR */
+    public static final String PROP_NAME_metaModuleId = "metaModuleId";
+    public static final int PROP_ID_metaModuleId = 35;
+    
 
-    private static int _PROP_ID_BOUND = 32;
+    private static int _PROP_ID_BOUND = 36;
 
     
     /* relation: ORM模型 */
@@ -170,6 +186,48 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     /* relation: 作为右实体的关联集 */
     public static final String PROP_NAME_joinAsRight = "joinAsRight";
     
+    /* relation: 元数据模块 */
+    public static final String PROP_NAME_metaModule = "metaModule";
+    
+    /* relation: 实体维度集 */
+    public static final String PROP_NAME_dimensions = "dimensions";
+    
+    /* relation: 实体指标集 */
+    public static final String PROP_NAME_measures = "measures";
+    
+    /* relation: 实体过滤器集 */
+    public static final String PROP_NAME_filters = "filters";
+    
+    /* relation: 实体关联集 */
+    public static final String PROP_NAME_joins = "joins";
+    
+    /* relation: 作为血缘源实体的边集 */
+    public static final String PROP_NAME_lineageAsSource = "lineageAsSource";
+    
+    /* relation: 作为血缘目标实体的边集 */
+    public static final String PROP_NAME_lineageAsTarget = "lineageAsTarget";
+    
+    /* relation: 运行时统计快照集 */
+    public static final String PROP_NAME_catalogs = "catalogs";
+    
+    /* relation: 数据剖析规则集 */
+    public static final String PROP_NAME_profilingRules = "profilingRules";
+    
+    /* relation: 数据剖析结果集 */
+    public static final String PROP_NAME_profilingResults = "profilingResults";
+    
+    /* relation: 质量评分集 */
+    public static final String PROP_NAME_qualityScores = "qualityScores";
+    
+    /* relation: 数据契约集 */
+    public static final String PROP_NAME_dataContracts = "dataContracts";
+    
+    /* relation: 对账配置集 */
+    public static final String PROP_NAME_reconciliationConfigs = "reconciliationConfigs";
+    
+    /* relation: 对账结果集 */
+    public static final String PROP_NAME_reconciliationResults = "reconciliationResults";
+    
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
@@ -177,7 +235,7 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_metaEntityId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_metaEntityId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[32];
+    private static final String[] PROP_ID_TO_NAME = new String[36];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -274,6 +332,18 @@ public class _NopMetaEntity extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_entityKind] = PROP_NAME_entityKind;
+          PROP_NAME_TO_ID.put(PROP_NAME_entityKind, PROP_ID_entityKind);
+      
+          PROP_ID_TO_NAME[PROP_ID_sourceSql] = PROP_NAME_sourceSql;
+          PROP_NAME_TO_ID.put(PROP_NAME_sourceSql, PROP_ID_sourceSql);
+      
+          PROP_ID_TO_NAME[PROP_ID_externalColumns] = PROP_NAME_externalColumns;
+          PROP_NAME_TO_ID.put(PROP_NAME_externalColumns, PROP_ID_externalColumns);
+      
+          PROP_ID_TO_NAME[PROP_ID_metaModuleId] = PROP_NAME_metaModuleId;
+          PROP_NAME_TO_ID.put(PROP_NAME_metaModuleId, PROP_ID_metaModuleId);
+      
     }
 
     
@@ -369,6 +439,18 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 实体类型: ENTITY_KIND */
+    private java.lang.String _entityKind;
+    
+    /* 来源SQL: SOURCE_SQL */
+    private java.lang.String _sourceSql;
+    
+    /* 外部列结构: EXTERNAL_COLUMNS */
+    private java.lang.String _externalColumns;
+    
+    /* 模块ID: META_MODULE_ID */
+    private java.lang.String _metaModuleId;
     
 
     public _NopMetaEntity(){
@@ -536,6 +618,18 @@ public class _NopMetaEntity extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_entityKind:
+               return getEntityKind();
+        
+            case PROP_ID_sourceSql:
+               return getSourceSql();
+        
+            case PROP_ID_externalColumns:
+               return getExternalColumns();
+        
+            case PROP_ID_metaModuleId:
+               return getMetaModuleId();
         
            default:
               return super.orm_propValue(propId);
@@ -858,6 +952,46 @@ public class _NopMetaEntity extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_entityKind:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_entityKind));
+               }
+               setEntityKind(typedValue);
+               break;
+            }
+        
+            case PROP_ID_sourceSql:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_sourceSql));
+               }
+               setSourceSql(typedValue);
+               break;
+            }
+        
+            case PROP_ID_externalColumns:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_externalColumns));
+               }
+               setExternalColumns(typedValue);
+               break;
+            }
+        
+            case PROP_ID_metaModuleId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_metaModuleId));
+               }
+               setMetaModuleId(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1080,6 +1214,34 @@ public class _NopMetaEntity extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_entityKind:{
+               onInitProp(propId);
+               this._entityKind = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_sourceSql:{
+               onInitProp(propId);
+               this._sourceSql = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_externalColumns:{
+               onInitProp(propId);
+               this._externalColumns = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_metaModuleId:{
+               onInitProp(propId);
+               this._metaModuleId = (java.lang.String)value;
                
                break;
             }
@@ -1680,6 +1842,82 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     }
     
     /**
+     * 实体类型: ENTITY_KIND
+     */
+    public final java.lang.String getEntityKind(){
+         onPropGet(PROP_ID_entityKind);
+         return _entityKind;
+    }
+
+    /**
+     * 实体类型: ENTITY_KIND
+     */
+    public final void setEntityKind(java.lang.String value){
+        if(onPropSet(PROP_ID_entityKind,value)){
+            this._entityKind = value;
+            internalClearRefs(PROP_ID_entityKind);
+            
+        }
+    }
+    
+    /**
+     * 来源SQL: SOURCE_SQL
+     */
+    public final java.lang.String getSourceSql(){
+         onPropGet(PROP_ID_sourceSql);
+         return _sourceSql;
+    }
+
+    /**
+     * 来源SQL: SOURCE_SQL
+     */
+    public final void setSourceSql(java.lang.String value){
+        if(onPropSet(PROP_ID_sourceSql,value)){
+            this._sourceSql = value;
+            internalClearRefs(PROP_ID_sourceSql);
+            
+        }
+    }
+    
+    /**
+     * 外部列结构: EXTERNAL_COLUMNS
+     */
+    public final java.lang.String getExternalColumns(){
+         onPropGet(PROP_ID_externalColumns);
+         return _externalColumns;
+    }
+
+    /**
+     * 外部列结构: EXTERNAL_COLUMNS
+     */
+    public final void setExternalColumns(java.lang.String value){
+        if(onPropSet(PROP_ID_externalColumns,value)){
+            this._externalColumns = value;
+            internalClearRefs(PROP_ID_externalColumns);
+            
+        }
+    }
+    
+    /**
+     * 模块ID: META_MODULE_ID
+     */
+    public final java.lang.String getMetaModuleId(){
+         onPropGet(PROP_ID_metaModuleId);
+         return _metaModuleId;
+    }
+
+    /**
+     * 模块ID: META_MODULE_ID
+     */
+    public final void setMetaModuleId(java.lang.String value){
+        if(onPropSet(PROP_ID_metaModuleId,value)){
+            this._metaModuleId = value;
+            internalClearRefs(PROP_ID_metaModuleId);
+            
+        }
+    }
+    
+    /**
      * ORM模型
      */
     public final io.nop.metadata.dao.entity.NopMetaOrmModel getOrmModel(){
@@ -1742,24 +1980,177 @@ public class _NopMetaEntity extends DynamicOrmEntity{
        return _entityIndexes;
     }
        
-    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsLeft = new OrmEntitySet<>(this, PROP_NAME_joinAsLeft,
-        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_leftEntity, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> _joinAsLeft = new OrmEntitySet<>(this, PROP_NAME_joinAsLeft,
+        io.nop.metadata.dao.entity.NopMetaEntityJoin.PROP_NAME_leftEntity, null,io.nop.metadata.dao.entity.NopMetaEntityJoin.class);
 
     /**
      * 作为左实体的关联集。 refPropName: leftEntity, keyProp: {rel.keyProp}
      */
-    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsLeft(){
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> getJoinAsLeft(){
        return _joinAsLeft;
     }
        
-    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> _joinAsRight = new OrmEntitySet<>(this, PROP_NAME_joinAsRight,
-        io.nop.metadata.dao.entity.NopMetaTableJoin.PROP_NAME_rightEntity, null,io.nop.metadata.dao.entity.NopMetaTableJoin.class);
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> _joinAsRight = new OrmEntitySet<>(this, PROP_NAME_joinAsRight,
+        io.nop.metadata.dao.entity.NopMetaEntityJoin.PROP_NAME_rightEntity, null,io.nop.metadata.dao.entity.NopMetaEntityJoin.class);
 
     /**
      * 作为右实体的关联集。 refPropName: rightEntity, keyProp: {rel.keyProp}
      */
-    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTableJoin> getJoinAsRight(){
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> getJoinAsRight(){
        return _joinAsRight;
+    }
+       
+    /**
+     * 元数据模块
+     */
+    public final io.nop.metadata.dao.entity.NopMetaModule getMetaModule(){
+       return (io.nop.metadata.dao.entity.NopMetaModule)internalGetRefEntity(PROP_NAME_metaModule);
+    }
+
+    public final void setMetaModule(io.nop.metadata.dao.entity.NopMetaModule refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setMetaModuleId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_metaModule, refEntity,()->{
+           
+                           this.setMetaModuleId(refEntity.getMetaModuleId());
+                       
+           });
+           }
+       
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityDimension> _dimensions = new OrmEntitySet<>(this, PROP_NAME_dimensions,
+        io.nop.metadata.dao.entity.NopMetaEntityDimension.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityDimension.class);
+
+    /**
+     * 实体维度集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityDimension> getDimensions(){
+       return _dimensions;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityMeasure> _measures = new OrmEntitySet<>(this, PROP_NAME_measures,
+        io.nop.metadata.dao.entity.NopMetaEntityMeasure.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityMeasure.class);
+
+    /**
+     * 实体指标集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityMeasure> getMeasures(){
+       return _measures;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityFilter> _filters = new OrmEntitySet<>(this, PROP_NAME_filters,
+        io.nop.metadata.dao.entity.NopMetaEntityFilter.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityFilter.class);
+
+    /**
+     * 实体过滤器集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityFilter> getFilters(){
+       return _filters;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> _joins = new OrmEntitySet<>(this, PROP_NAME_joins,
+        io.nop.metadata.dao.entity.NopMetaEntityJoin.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityJoin.class);
+
+    /**
+     * 实体关联集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityJoin> getJoins(){
+       return _joins;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> _lineageAsSource = new OrmEntitySet<>(this, PROP_NAME_lineageAsSource,
+        io.nop.metadata.dao.entity.NopMetaLineageEdge.PROP_NAME_sourceEntity, null,io.nop.metadata.dao.entity.NopMetaLineageEdge.class);
+
+    /**
+     * 作为血缘源实体的边集。 refPropName: sourceEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> getLineageAsSource(){
+       return _lineageAsSource;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> _lineageAsTarget = new OrmEntitySet<>(this, PROP_NAME_lineageAsTarget,
+        io.nop.metadata.dao.entity.NopMetaLineageEdge.PROP_NAME_targetEntity, null,io.nop.metadata.dao.entity.NopMetaLineageEdge.class);
+
+    /**
+     * 作为血缘目标实体的边集。 refPropName: targetEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaLineageEdge> getLineageAsTarget(){
+       return _lineageAsTarget;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaCatalog> _catalogs = new OrmEntitySet<>(this, PROP_NAME_catalogs,
+        io.nop.metadata.dao.entity.NopMetaCatalog.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaCatalog.class);
+
+    /**
+     * 运行时统计快照集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaCatalog> getCatalogs(){
+       return _catalogs;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingRule> _profilingRules = new OrmEntitySet<>(this, PROP_NAME_profilingRules,
+        io.nop.metadata.dao.entity.NopMetaProfilingRule.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaProfilingRule.class);
+
+    /**
+     * 数据剖析规则集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingRule> getProfilingRules(){
+       return _profilingRules;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> _profilingResults = new OrmEntitySet<>(this, PROP_NAME_profilingResults,
+        io.nop.metadata.dao.entity.NopMetaProfilingResult.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaProfilingResult.class);
+
+    /**
+     * 数据剖析结果集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaProfilingResult> getProfilingResults(){
+       return _profilingResults;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityScore> _qualityScores = new OrmEntitySet<>(this, PROP_NAME_qualityScores,
+        io.nop.metadata.dao.entity.NopMetaQualityScore.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaQualityScore.class);
+
+    /**
+     * 质量评分集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaQualityScore> getQualityScores(){
+       return _qualityScores;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaDataContract> _dataContracts = new OrmEntitySet<>(this, PROP_NAME_dataContracts,
+        io.nop.metadata.dao.entity.NopMetaDataContract.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaDataContract.class);
+
+    /**
+     * 数据契约集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaDataContract> getDataContracts(){
+       return _dataContracts;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> _reconciliationConfigs = new OrmEntitySet<>(this, PROP_NAME_reconciliationConfigs,
+        io.nop.metadata.dao.entity.NopMetaReconciliationConfig.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaReconciliationConfig.class);
+
+    /**
+     * 对账配置集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationConfig> getReconciliationConfigs(){
+       return _reconciliationConfigs;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> _reconciliationResults = new OrmEntitySet<>(this, PROP_NAME_reconciliationResults,
+        io.nop.metadata.dao.entity.NopMetaReconciliationResult.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaReconciliationResult.class);
+
+    /**
+     * 对账结果集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> getReconciliationResults(){
+       return _reconciliationResults;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

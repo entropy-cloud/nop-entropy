@@ -28,7 +28,7 @@ public class TestMeasureLineage extends LineageTestBase {
         saveMeasure(tableId, "M2", "C + D", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertFalse(resp.hasError(), "extractMeasureLineage should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=4"),
@@ -42,8 +42,8 @@ public class TestMeasureLineage extends LineageTestBase {
         assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE, aToM1.getLineageSource());
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, aToM1.getTransformType(),
                 "aggFunc non-null -> transformType=aggregated (D4)");
-        assertEquals(tableId, aToM1.getSourceTableId(), "self-loop: sourceTableId == targetTableId");
-        assertEquals(tableId, aToM1.getTargetTableId());
+        assertEquals(tableId, aToM1.getSourceEntityId(), "self-loop: sourceEntityId == targetEntityId");
+        assertEquals(tableId, aToM1.getTargetEntityId());
 
         NopMetaLineageEdge dToM2 = findColumnEdge(tableId, tableId, "D", "M2");
         assertNotNull(dToM2, "D->M2 self-loop edge must exist");
@@ -57,11 +57,11 @@ public class TestMeasureLineage extends LineageTestBase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_RECALL", entityId);
         saveMeasure(tableId, "M_RECALL", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
 
         IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceEntityId, tableId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, "A"));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
@@ -71,7 +71,7 @@ public class TestMeasureLineage extends LineageTestBase {
                 "targetColumn == measureName (D2 recall integrity)");
 
         QueryBean q2 = new QueryBean();
-        q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, tableId));
+        q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceEntityId, tableId));
         q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceColumn, "B"));
         q2.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_lineageSource,
                 _NopMetadataCoreConstants.LINEAGE_SOURCE_MEASURE_PARSE));
@@ -90,7 +90,7 @@ public class TestMeasureLineage extends LineageTestBase {
         saveMeasure(tableId, "M_BAD", "DROP", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertFalse(resp.hasError(), "per-measure failure must not break the whole action: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=2"),
@@ -111,7 +111,7 @@ public class TestMeasureLineage extends LineageTestBase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_BFS", entityId);
         saveMeasure(tableId, "M_BFS", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
 
         assertEquals(2L, countMeasureParseEdges(tableId), "self-loop edges persisted");
 
@@ -134,7 +134,7 @@ public class TestMeasureLineage extends LineageTestBase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_DICT", entityId);
         saveMeasure(tableId, "M_DICT", "X + Y", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
 
         NopMetaLineageEdge e = findColumnEdge(tableId, tableId, "X", "M_DICT");
         assertNotNull(e, "X->M_DICT edge must exist");
@@ -152,7 +152,7 @@ public class TestMeasureLineage extends LineageTestBase {
         saveMeasure(tableId, "M_REP1", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
         saveMeasure(tableId, "M_REP2", "C + D", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertEquals(4L, countMeasureParseEdges(tableId), "initial total: 4 edges");
         assertNotNull(findColumnEdge(tableId, tableId, "A", "M_REP1"),
                 "A->M_REP1 edge exists initially");
@@ -160,7 +160,7 @@ public class TestMeasureLineage extends LineageTestBase {
         updateMeasureExpression(tableId, "M_REP1", "B + C");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertFalse(resp.hasError(), "re-extract should not error: " + resp);
 
         assertNull(findColumnEdge(tableId, tableId, "A", "M_REP1"),
@@ -171,7 +171,7 @@ public class TestMeasureLineage extends LineageTestBase {
                 "new C->M_REP1 edge inserted after replace");
         assertEquals(4L, countMeasureParseEdges(tableId),
                 "D6 replace: total edges == sum of all measure deps after re-extract: 4");
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertEquals(4L, countMeasureParseEdges(tableId),
                 "D6 replace idempotent: second re-extract keeps total at 4, no duplicates");
     }
@@ -183,7 +183,7 @@ public class TestMeasureLineage extends LineageTestBase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_DERIVED", entityId);
         saveMeasure(tableId, "M_DERIVED", "P + Q", null);
 
-        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+        execute("mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
 
         NopMetaLineageEdge e = findColumnEdge(tableId, tableId, "P", "M_DERIVED");
         assertNotNull(e, "P->M_DERIVED edge must exist");
@@ -191,21 +191,26 @@ public class TestMeasureLineage extends LineageTestBase {
                 "D4 boundary: aggFunc null -> transformType=derived");
     }
 
+    /**
+     * plan 2261 语义变更登记：baseEntityId 概念删除——原"表行无宿主实体"的表级前置失败
+     * 等价转写为"实体行无可解析字段集"（field-resolve-no-fields），fast-fail 语义不变。
+     */
     @Test
     public void testExtractMeasureLineageResolverTableLevelFailure() {
         String moduleId = ensureModule("mod-measure-resolver-fail");
+        // 无宿主实体 → 独立 PHYSICAL 实体行，无可解析字段集
         String tableId = saveEntityTable(moduleId, "T_MEASURE_NO_ENTITY", null);
         saveMeasure(tableId, "M_RESOLVER_FAIL", "A + B", _NopMetadataCoreConstants.AGG_FUNC_SUM);
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaTableId: \"" + tableId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractMeasureLineage(metaEntityId: \"" + tableId + "\") { edgeCount errors } }");
         assertTrue(resp.hasError(),
-                "table-level pre-condition failure (baseEntityId null) must fast-fail "
+                "table-level pre-condition failure (no resolvable field set) must fast-fail "
                         + "(not silent empty, not per-measure isolation): " + resp);
         String errorCode = resp.getErrorCode();
         assertNotNull(errorCode, "GraphQL response must carry errorCode extension: " + resp);
-        assertTrue(errorCode.contains("field-resolve-base-entity-null"),
-                "error must be ERR_FIELD_RESOLVE_BASE_ENTITY_NULL (table-level pre-condition failure), "
+        assertTrue(errorCode.contains("field-resolve-no-fields"),
+                "error must be ERR_FIELD_RESOLVE_NO_FIELDS (table-level pre-condition failure), "
                         + "got: " + errorCode);
         assertEquals(0L, countMeasureParseEdges(tableId),
                 "table-level pre-condition failure must not produce any edges");

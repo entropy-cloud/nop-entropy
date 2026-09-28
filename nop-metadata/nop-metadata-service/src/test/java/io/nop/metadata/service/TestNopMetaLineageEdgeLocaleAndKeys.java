@@ -50,7 +50,7 @@ public class TestNopMetaLineageEdgeLocaleAndKeys extends LineageTestBase {
                     "SELECT t.* FROM big_item t");
 
             GraphQLResponseBean resp = execute(
-                    "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId
+                    "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId
                             + "\") { edgeCount unresolved errors } }");
             assertFalse(resp.hasError(), "extractLineageFromSql should not error under tr-TR: " + resp);
             String data = String.valueOf(resp.getData());
@@ -83,7 +83,7 @@ public class TestNopMetaLineageEdgeLocaleAndKeys extends LineageTestBase {
                     "SELECT t.a AS x FROM item_source t");
 
             GraphQLResponseBean resp = execute(
-                    "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId
+                    "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId
                             + "\") { edgeCount unresolved errors } }");
             assertFalse(resp.hasError(), "column extract should not error under tr-TR: " + resp);
             String data = String.valueOf(resp.getData());
@@ -115,7 +115,7 @@ public class TestNopMetaLineageEdgeLocaleAndKeys extends LineageTestBase {
                 "SELECT t.\"a|b\" AS c, t.\"a\" AS \"b|c\" FROM DELIM_SRC t");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId
                         + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "delim-key extract should not error: " + resp);
         String data = String.valueOf(resp.getData());
@@ -141,13 +141,13 @@ public class TestNopMetaLineageEdgeLocaleAndKeys extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_DELIM2",
                 "SELECT t.\"a|b\" AS c, t.\"a\" AS \"b|c\" FROM DELIM_SRC2 t");
 
-        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId
                 + "\") { edgeCount unresolved errors } }");
         assertEquals(2L, countColumnSqlParseEdges(srcId, sqlViewId), "2 edges after first extract");
 
         // 第二次抽取：两条含 | 的边都必须被 existing-edge map 正确识别（幂等，不追加、不丢）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId
                         + "\") { edgeCount unresolved errors } }");
         assertFalse(r2.hasError(), "second extract should not error: " + r2);
         assertEquals(2L, countColumnSqlParseEdges(srcId, sqlViewId),

@@ -55,7 +55,7 @@ orm.xml
   ├── 解析（filtered，不展开 x:extends）→ OrmModel(delta) → NopMetaOrmModel(isDelta=true)
   ├── 解析（展开 x:extends）            → OrmModel(full)  → NopMetaOrmModel(isDelta=false)
   └── 两者共用同一 metaModuleId，各自派生子实体（Entity/Field/Relation/UK/Index/Domain/Dict）
-      同时为每个 NopMetaEntity 自动创建 NopMetaTable(tableType=entity)
+      同时为每个 NopMetaEntity 自动创建统一实体行(entityKind=PHYSICAL)
 ```
 
 导入解析与双重存储（delta + full）的完整规格见 `01-architecture-baseline.md` §4.1。
@@ -173,7 +173,7 @@ Catalog 从数据库收集运行时统计（行数/大小/索引/分区），参
 ```
 NopMetaCatalog                    — 物理运行时统计快照（每表每收集一次一条，时序追加）
   ├── metaCatalogId               — PK（seq）
-  ├── metaTableId                 → NopMetaTable（mandatory，被统计的逻辑表）
+  ├── metaEntityId                 → NopMetaEntity（mandatory，被统计的逻辑表）
   ├── rowCount                    — long，表行数（SELECT COUNT(*) 结果）
   ├── sizeBytes                   — long, nullable，表物理大小（方言特定，不可用时 null）
   ├── indexCount                  — int, nullable，索引数量（JDBC getIndexInfo 统计）
@@ -185,13 +185,13 @@ NopMetaCatalog                    — 物理运行时统计快照（每表每收
   └── 审计列（version / createdBy / createTime / updatedBy / updateTime / remark）
 ```
 
-**时序语义**：重复收集同一表追加为新的快照行（`collectedAt` 区分），不覆盖旧行——支持"最近一次"与"趋势"查询。索引 `IX_NOP_META_CATALOG_TABLE` on `metaTableId` 支持按表查询；时序查询用 `(metaTableId, collectedAt)` 组合。
+**时序语义**：重复收集同一表追加为新的快照行（`collectedAt` 区分），不覆盖旧行——支持"最近一次"与"趋势"查询。索引 `IX_NOP_META_CATALOG_TABLE` on `metaEntityId` 支持按表查询；时序查询用 `(metaEntityId, collectedAt)` 组合。
 
 ### 4.3 收集范围（D1）
 
-**决策**：首版仅 `tableType=external` 类型表。外部表有明确注册数据源（P2-1/P2-2），`collectCatalog(dataSourceId)` 连接该数据源 → 找到该 querySpace 下的 external NopMetaTable → 按其 `tableName` 收集统计。
+**决策**：首版仅 `entityKind=external` 类型表。外部表有明确注册数据源（P2-1/P2-2），`collectCatalog(dataSourceId)` 连接该数据源 → 找到该 querySpace 下的 external NopMetaEntity → 按其 `tableName` 收集统计。
 
-entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 querySpace 由引用实体决定）**已落地**：任意 tableType 经 `collectCatalogForTable(metaTableId, ...)` 支持（`NopMetaDataSourceBizModel`），非 follow-up。
+entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 querySpace 由引用实体决定）**已落地**：任意 entityKind 经 `collectCatalogForTable(metaEntityId, ...)` 支持（`NopMetaDataSourceBizModel`），非 follow-up。
 
 ### 4.4 统计获取与降级策略（D1）
 
@@ -209,11 +209,11 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 
 ### 4.5 schema 限定策略（D1）
 
-**建模现状（plan 2026-07-17-0852-3 已补）**：`NopMetaTable.metaSchema` 列（propId 17，可空）已新增并贯通——`ExternalTableStructureReader.read` 读取 JDBC `TABLE_SCHEM` 持久化到该列；同步去重键收敛为 `(metaModuleId, metaSchema, tableName)`（见架构基线 §2.5.1）。
+**建模现状（plan 2026-07-17-0852-3 已补）**：`NopMetaEntity.dbSchema` 列（propId 17，可空）已新增并贯通——`ExternalTableStructureReader.read` 读取 JDBC `TABLE_SCHEM` 持久化到该列；同步去重键收敛为 `(metaModuleId, dbSchema, tableName)`（见架构基线 §2.5.1）。
 
 **默认 schema 解析（plan 0852-3 Phase 3）**：`collectCatalog(schemaPattern)` / `collectCatalogForTable(schemaPattern)` 在 BizModel 层解析默认 schema——
 - 传入 `schemaPattern` 时用 `<schemaPattern>.<tableName>`（显式覆盖持久化 schema）；
-- 不传时默认取 `NopMetaTable.metaSchema`（持久化值），仍 null 则依赖连接默认 schema。
+- 不传时默认取 `NopMetaEntity.dbSchema`（持久化值），仍 null 则依赖连接默认 schema。
 - 批量 `collectCatalog` 改为**逐表默认 schema 解析**（每表 schema 可能不同，替代旧「单一 schemaPattern 透传循环内所有表」）。
 
 **与 §四 Catalog 的关系**：Catalog 收集的 schema 限定语义已与 sync 持久化的 schema 列贯通。同名不同 schema 表的去重在 sync 层完成（dedup key 含 schema）；Catalog 执行只需默认按持久化 schema 命中正确表。
@@ -221,9 +221,9 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 ### 4.6 collectCatalog action 契约（D2）
 
 - **落点**：action 放在 `NopMetaDataSourceBizModel`（与现有 `testConnection`/`syncExternalTables` 一致——三者均以 `dataSourceId` 为入口键）。GraphQL mutation 名为 `NopMetaDataSource__collectCatalog`。
-- **签名**：`@BizMutation collectCatalog(@Name("dataSourceId") String id, @Optional @Name("schemaPattern") String schemaPattern, IServiceContext context)` → 返回 `CollectCatalogResultDTO{tableCount: int, tables: CollectCatalogTableDTO[], errors: [...]}`（api/dto；`schemaPattern` 为 `@Optional`，不传则按持久化 metaSchema 解析）。
-- **`schemaPattern` 语义**：限定 COUNT/索引查询的物理 schema（见 §4.5），**不过滤 NopMetaTable 行**（schema 不存于该表）；null 时依赖连接默认 schema。
-- **行为**：加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status==DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 `withConnection` callback 建连**（callback 内遍历该 querySpace 的 external NopMetaTable + 收集统计）→ 写入 NopMetaCatalog（每次追加新行，`collectedAt=now`）→ 单表失败收集 errors 不中断 → callback 结束自动释放连接。
+- **签名**：`@BizMutation collectCatalog(@Name("dataSourceId") String id, @Optional @Name("schemaPattern") String schemaPattern, IServiceContext context)` → 返回 `CollectCatalogResultDTO{tableCount: int, tables: CollectCatalogTableDTO[], errors: [...]}`（api/dto；`schemaPattern` 为 `@Optional`，不传则按持久化 dbSchema 解析）。
+- **`schemaPattern` 语义**：限定 COUNT/索引查询的物理 schema（见 §4.5），**不过滤 NopMetaEntity 行**（schema 不存于该表）；null 时依赖连接默认 schema。
+- **行为**：加载 NopMetaDataSource → 不存在抛 `metadata.datasource-not-found`（不 NPE）→ `status==DISABLED` 抛 `metadata.datasource-disabled`（不静默通过）→ **复用 P2-1 `withConnection` callback 建连**（callback 内遍历该 querySpace 的 external NopMetaEntity + 收集统计）→ 写入 NopMetaCatalog（每次追加新行，`collectedAt=now`）→ 单表失败收集 errors 不中断 → callback 结束自动释放连接。
 - **非 jdbc 类型**：连接服务显式抛 `UnsupportedOperationException`（继承 P2-1/P2-2 行为，不静默成功）。
 
 ---
@@ -237,7 +237,7 @@ entity/sql 类型表收集（需 `querySpace → 数据源` 解析，entity 的 
 | **表/实体级依赖** | 实体 A 引用实体 B | MetaEntityRelation | **纳入**（D3） |
 | 列级依赖 | 列 A 依赖列 B | SQL 解析 | 不纳入（随 P3 SQL 视图解析） |
 | 血缘依赖 | 数据从 A 流向 B | MetaLineageEdge | 不纳入（随 P2-5 血缘采集） |
-| 指标依赖 | 指标 A 使用指标 B | MetaTableMeasure | 不纳入（随 P3 指标管理） |
+| 指标依赖 | 指标 A 使用指标 B | MetaEntityMeasure | 不纳入（随 P3 指标管理） |
 
 ### 5.2 边连接的节点类型
 

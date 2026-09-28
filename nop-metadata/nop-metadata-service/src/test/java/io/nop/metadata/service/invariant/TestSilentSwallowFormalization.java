@@ -102,7 +102,7 @@ public class TestSilentSwallowFormalization {
 
         setField(builder, "daoProvider", daoProvider);
 
-        List<IndexResult> results = builder.buildFullIndex(List.of("MetaTable"));
+        List<IndexResult> results = builder.buildFullIndex(List.of("MetaEntity"));
         assertNotNull(results);
         assertEquals(1, results.size());
         IndexResult result = results.get(0);
@@ -212,7 +212,7 @@ public class TestSilentSwallowFormalization {
                 // Reconciliation (LocalReconciliationProcessor 1 catch)
                 Arguments.of("ERR_RECON_PROCESS_ISOLATED", NopMetadataErrors.ERR_RECON_PROCESS_ISOLATED),
 
-                // Profiling (MetaTableProfiler 6 catches, MetaContractChecker 1)
+                // Profiling (MetaEntityProfiler 6 catches, MetaContractChecker 1)
                 Arguments.of("ERR_PROFILING_COLUMN_PROFILE_ISOLATED", NopMetadataErrors.ERR_PROFILING_COLUMN_PROFILE_ISOLATED),
                 Arguments.of("ERR_PROFILING_TYPE_PROBE_FAILED", NopMetadataErrors.ERR_PROFILING_TYPE_PROBE_FAILED),
                 Arguments.of("ERR_CONTRACT_TYPE_PROBE_FAILED", NopMetadataErrors.ERR_CONTRACT_TYPE_PROBE_FAILED),
@@ -234,7 +234,7 @@ public class TestSilentSwallowFormalization {
      * <ul>
      *   <li>{@code MetaDataSourceConnectionProcessor:156} — uses ERR_DATASOURCE_TEST_CONNECT_FAILED</li>
      *   <li>{@code NopMetaDataSourceBizModel:456} — uses ERR_EXTERNAL_TABLE_SCAN_FAILED</li>
-     *   <li>{@code NopMetaTableQueryAction:240} — uses ERR_QUERY_SQL_EXEC_FAILED</li>
+     *   <li>{@code NopMetaEntityQueryAction:240} — uses ERR_QUERY_SQL_EXEC_FAILED</li>
      *   <li>{@code NopMetaQualityRuleBizModel:397} — uses ERR_QUALITY_RULE_TYPE_PROBE_FAILED</li>
      *   <li>{@code CrossDbFieldResolver:225} — uses ERR_AGGR_EXEC_FAILED</li>
      *   <li>{@code SqlViewFieldTypeInferrer:199} — uses ERR_SQL_TYPE_INFERENCE_FAILED</li>

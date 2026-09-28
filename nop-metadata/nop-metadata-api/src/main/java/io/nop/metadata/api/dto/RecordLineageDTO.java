@@ -8,9 +8,9 @@ import java.io.Serializable;
 public class RecordLineageDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String sourceTableId;
+    private String sourceEntityId;
 
-    private String targetTableId;
+    private String targetEntityId;
 
     private String sourceColumn;
 
@@ -26,20 +26,20 @@ public class RecordLineageDTO implements Serializable {
 
     private String lineageSource;
 
-    public String getSourceTableId() {
-        return sourceTableId;
+    public String getSourceEntityId() {
+        return sourceEntityId;
     }
 
-    public void setSourceTableId(String sourceTableId) {
-        this.sourceTableId = sourceTableId;
+    public void setSourceEntityId(String sourceEntityId) {
+        this.sourceEntityId = sourceEntityId;
     }
 
-    public String getTargetTableId() {
-        return targetTableId;
+    public String getTargetEntityId() {
+        return targetEntityId;
     }
 
-    public void setTargetTableId(String targetTableId) {
-        this.targetTableId = targetTableId;
+    public void setTargetEntityId(String targetEntityId) {
+        this.targetEntityId = targetEntityId;
     }
 
     public String getSourceColumn() {

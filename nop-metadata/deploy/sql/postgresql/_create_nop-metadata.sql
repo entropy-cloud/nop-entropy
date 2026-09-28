@@ -201,30 +201,6 @@ CREATE TABLE nop_meta_orm_model(
   constraint PK_nop_meta_orm_model primary key (orm_model_id)
 );
 
-CREATE TABLE nop_meta_table(
-  meta_table_id VARCHAR(32) NOT NULL ,
-  meta_module_id VARCHAR(32) NOT NULL ,
-  is_delta INT4 default 0  NOT NULL ,
-  table_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  table_type VARCHAR(20) NOT NULL ,
-  query_space VARCHAR(100)  ,
-  source_sql TEXT  ,
-  base_entity_id VARCHAR(32)  ,
-  description VARCHAR(1000)  ,
-  build_sql TEXT  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  meta_schema VARCHAR(100)  ,
-  business_domain_id VARCHAR(32)  ,
-  constraint UK_NOP_META_TABLE_MODULE_NAME unique (meta_module_id,table_name,is_delta,meta_schema),
-  constraint PK_nop_meta_table primary key (meta_table_id)
-);
-
 CREATE TABLE nop_meta_pipeline(
   pipeline_id VARCHAR(32) NOT NULL ,
   meta_module_id VARCHAR(32) NOT NULL ,
@@ -387,6 +363,10 @@ CREATE TABLE nop_meta_entity(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  entity_kind VARCHAR(20) NOT NULL ,
+  source_sql TEXT  ,
+  external_columns TEXT  ,
+  meta_module_id VARCHAR(32) NOT NULL ,
   constraint UK_NOP_META_ENTITY_MODEL_NAME unique (orm_model_id,entity_name),
   constraint PK_nop_meta_entity primary key (meta_entity_id)
 );
@@ -440,200 +420,6 @@ CREATE TABLE nop_meta_dict(
   remark VARCHAR(200)  ,
   constraint UK_NOP_META_DICT_MODEL_NAME unique (orm_model_id,dict_name),
   constraint PK_nop_meta_dict primary key (meta_dict_id)
-);
-
-CREATE TABLE nop_meta_table_dimension(
-  dimension_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  dimension_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  entity_field_id VARCHAR(32)  ,
-  dimension_type VARCHAR(30)  ,
-  granularity VARCHAR(20)  ,
-  format VARCHAR(100)  ,
-  sort_order INT4  ,
-  business_domain_id VARCHAR(32)  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  side VARCHAR(20)  ,
-  constraint UK_NOP_META_DIM_TABLE_NAME unique (meta_table_id,dimension_name),
-  constraint PK_nop_meta_table_dimension primary key (dimension_id)
-);
-
-CREATE TABLE nop_meta_table_measure(
-  measure_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  measure_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  entity_field_id VARCHAR(32)  ,
-  agg_func VARCHAR(30)  ,
-  expression VARCHAR(1000)  ,
-  format VARCHAR(100)  ,
-  currency_unit VARCHAR(20)  ,
-  description VARCHAR(1000)  ,
-  business_domain_id VARCHAR(32)  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  side VARCHAR(20)  ,
-  constraint UK_NOP_META_MEASURE_TABLE_NAME unique (meta_table_id,measure_name),
-  constraint PK_nop_meta_table_measure primary key (measure_id)
-);
-
-CREATE TABLE nop_meta_table_filter(
-  filter_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  filter_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  definition VARCHAR(4000) NOT NULL ,
-  description VARCHAR(1000)  ,
-  is_default INT4 default 0   ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint UK_NOP_META_FILTER_TABLE_NAME unique (meta_table_id,filter_name),
-  constraint PK_nop_meta_table_filter primary key (filter_id)
-);
-
-CREATE TABLE nop_meta_catalog(
-  meta_catalog_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  row_count INT8 NOT NULL ,
-  size_bytes INT8  ,
-  index_count INT4  ,
-  partition_count INT4  ,
-  last_modified TIMESTAMP  ,
-  details TEXT  ,
-  collected_at TIMESTAMP NOT NULL ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint PK_nop_meta_catalog primary key (meta_catalog_id)
-);
-
-CREATE TABLE nop_meta_profiling_rule(
-  profiling_rule_id VARCHAR(32) NOT NULL ,
-  rule_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  columns VARCHAR(4000)  ,
-  stats VARCHAR(4000)  ,
-  sample_size INT4  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (meta_table_id,rule_name),
-  constraint PK_nop_meta_profiling_rule primary key (profiling_rule_id)
-);
-
-CREATE TABLE nop_meta_data_contract(
-  contract_id VARCHAR(32) NOT NULL ,
-  contract_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  meta_table_id VARCHAR(32)  ,
-  status TEXT NOT NULL ,
-  owner_user_id VARCHAR(50)  ,
-  schema TEXT  ,
-  sla VARCHAR(4000)  ,
-  quality_expectations VARCHAR(4000)  ,
-  security VARCHAR(4000)  ,
-  latest_result TEXT  ,
-  tag_set VARCHAR(500)  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  approve_status VARCHAR(20)  ,
-  approved_by VARCHAR(50)  ,
-  approved_at TIMESTAMP  ,
-  constraint UK_NOP_META_CONTRACT_NAME unique (contract_name),
-  constraint PK_nop_meta_data_contract primary key (contract_id)
-);
-
-CREATE TABLE nop_meta_reconciliation_config(
-  config_id VARCHAR(32) NOT NULL ,
-  config_name VARCHAR(100) NOT NULL ,
-  display_name VARCHAR(200)  ,
-  meta_module_id VARCHAR(32)  ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  column_name VARCHAR(100) NOT NULL ,
-  identifier_space VARCHAR(200)  ,
-  target_entity_type VARCHAR(100)  ,
-  match_strategy VARCHAR(30) NOT NULL ,
-  auto_match INT4 default 0  NOT NULL ,
-  auto_match_threshold FLOAT8 NOT NULL ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (config_name),
-  constraint PK_nop_meta_reconciliation_config primary key (config_id)
-);
-
-CREATE TABLE nop_meta_quality_score(
-  quality_score_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
-  score_time TIMESTAMP NOT NULL ,
-  overall_score FLOAT8 NOT NULL ,
-  dimension_scores TEXT  ,
-  rule_summary VARCHAR(4000)  ,
-  trend VARCHAR(4000)  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint PK_nop_meta_quality_score primary key (quality_score_id)
-);
-
-CREATE TABLE nop_meta_lineage_edge(
-  lineage_edge_id VARCHAR(32) NOT NULL ,
-  source_table_id VARCHAR(32) NOT NULL ,
-  target_table_id VARCHAR(32) NOT NULL ,
-  source_column VARCHAR(100)  ,
-  target_column VARCHAR(100)  ,
-  transform_type VARCHAR(20)  ,
-  transform_expr VARCHAR(1000)  ,
-  lineage_source VARCHAR(30)  ,
-  pipeline_id VARCHAR(32)  ,
-  confidence FLOAT8  ,
-  ext_config VARCHAR(4000)  ,
-  version INT8 NOT NULL ,
-  created_by VARCHAR(50) NOT NULL ,
-  create_time TIMESTAMP NOT NULL ,
-  updated_by VARCHAR(50) NOT NULL ,
-  update_time TIMESTAMP NOT NULL ,
-  remark VARCHAR(200)  ,
-  constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (source_table_id,source_column,target_table_id,target_column),
-  constraint PK_nop_meta_lineage_edge primary key (lineage_edge_id)
 );
 
 CREATE TABLE nop_meta_quality_result(
@@ -785,9 +571,75 @@ CREATE TABLE nop_meta_entity_index(
   constraint PK_nop_meta_entity_index primary key (index_id)
 );
 
-CREATE TABLE nop_meta_table_join(
+CREATE TABLE nop_meta_entity_dimension(
+  dimension_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  dimension_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  entity_field_id VARCHAR(32)  ,
+  dimension_type VARCHAR(30)  ,
+  granularity VARCHAR(20)  ,
+  format VARCHAR(100)  ,
+  sort_order INT4  ,
+  business_domain_id VARCHAR(32)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  side VARCHAR(20)  ,
+  constraint UK_NOP_META_DIM_TABLE_NAME unique (meta_entity_id,dimension_name),
+  constraint PK_nop_meta_entity_dimension primary key (dimension_id)
+);
+
+CREATE TABLE nop_meta_entity_measure(
+  measure_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  measure_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  entity_field_id VARCHAR(32)  ,
+  agg_func VARCHAR(30)  ,
+  expression VARCHAR(1000)  ,
+  format VARCHAR(100)  ,
+  currency_unit VARCHAR(20)  ,
+  description VARCHAR(1000)  ,
+  business_domain_id VARCHAR(32)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  side VARCHAR(20)  ,
+  constraint UK_NOP_META_MEASURE_TABLE_NAME unique (meta_entity_id,measure_name),
+  constraint PK_nop_meta_entity_measure primary key (measure_id)
+);
+
+CREATE TABLE nop_meta_entity_filter(
+  filter_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  filter_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  definition VARCHAR(4000) NOT NULL ,
+  description VARCHAR(1000)  ,
+  is_default INT4 default 0   ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_META_FILTER_TABLE_NAME unique (meta_entity_id,filter_name),
+  constraint PK_nop_meta_entity_filter primary key (filter_id)
+);
+
+CREATE TABLE nop_meta_entity_join(
   join_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
   join_type VARCHAR(20) NOT NULL ,
   left_entity_id VARCHAR(32)  ,
   right_entity_id VARCHAR(32)  ,
@@ -800,10 +652,136 @@ CREATE TABLE nop_meta_table_join(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
-  left_table_id VARCHAR(32)  ,
-  right_table_id VARCHAR(32)  ,
-  constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (meta_table_id,alias),
-  constraint PK_nop_meta_table_join primary key (join_id)
+  constraint UK_NOP_META_JOIN_TABLE_ALIAS unique (meta_entity_id,alias),
+  constraint PK_nop_meta_entity_join primary key (join_id)
+);
+
+CREATE TABLE nop_meta_lineage_edge(
+  lineage_edge_id VARCHAR(32) NOT NULL ,
+  source_table_id VARCHAR(32) NOT NULL ,
+  target_table_id VARCHAR(32) NOT NULL ,
+  source_column VARCHAR(100)  ,
+  target_column VARCHAR(100)  ,
+  transform_type VARCHAR(20)  ,
+  transform_expr VARCHAR(1000)  ,
+  lineage_source VARCHAR(30)  ,
+  pipeline_id VARCHAR(32)  ,
+  confidence FLOAT8  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE unique (source_table_id,source_column,target_table_id,target_column),
+  constraint PK_nop_meta_lineage_edge primary key (lineage_edge_id)
+);
+
+CREATE TABLE nop_meta_catalog(
+  meta_catalog_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  row_count INT8 NOT NULL ,
+  size_bytes INT8  ,
+  index_count INT4  ,
+  partition_count INT4  ,
+  last_modified TIMESTAMP  ,
+  details TEXT  ,
+  collected_at TIMESTAMP NOT NULL ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_catalog primary key (meta_catalog_id)
+);
+
+CREATE TABLE nop_meta_profiling_rule(
+  profiling_rule_id VARCHAR(32) NOT NULL ,
+  rule_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  columns VARCHAR(4000)  ,
+  stats VARCHAR(4000)  ,
+  sample_size INT4  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_META_PROFRULE_TABLE_NAME unique (meta_entity_id,rule_name),
+  constraint PK_nop_meta_profiling_rule primary key (profiling_rule_id)
+);
+
+CREATE TABLE nop_meta_data_contract(
+  contract_id VARCHAR(32) NOT NULL ,
+  contract_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  meta_entity_id VARCHAR(32)  ,
+  status TEXT NOT NULL ,
+  owner_user_id VARCHAR(50)  ,
+  schema TEXT  ,
+  sla VARCHAR(4000)  ,
+  quality_expectations VARCHAR(4000)  ,
+  security VARCHAR(4000)  ,
+  latest_result TEXT  ,
+  tag_set VARCHAR(500)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  approve_status VARCHAR(20)  ,
+  approved_by VARCHAR(50)  ,
+  approved_at TIMESTAMP  ,
+  constraint UK_NOP_META_CONTRACT_NAME unique (contract_name),
+  constraint PK_nop_meta_data_contract primary key (contract_id)
+);
+
+CREATE TABLE nop_meta_reconciliation_config(
+  config_id VARCHAR(32) NOT NULL ,
+  config_name VARCHAR(100) NOT NULL ,
+  display_name VARCHAR(200)  ,
+  meta_module_id VARCHAR(32)  ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  column_name VARCHAR(100) NOT NULL ,
+  identifier_space VARCHAR(200)  ,
+  target_entity_type VARCHAR(100)  ,
+  match_strategy VARCHAR(30) NOT NULL ,
+  auto_match INT4 default 0  NOT NULL ,
+  auto_match_threshold FLOAT8 NOT NULL ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (config_name),
+  constraint PK_nop_meta_reconciliation_config primary key (config_id)
+);
+
+CREATE TABLE nop_meta_quality_score(
+  quality_score_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  score_time TIMESTAMP NOT NULL ,
+  overall_score FLOAT8 NOT NULL ,
+  dimension_scores TEXT  ,
+  rule_summary VARCHAR(4000)  ,
+  trend VARCHAR(4000)  ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint PK_nop_meta_quality_score primary key (quality_score_id)
 );
 
 CREATE TABLE nop_meta_dict_item(
@@ -831,7 +809,7 @@ CREATE TABLE nop_meta_dict_item(
 CREATE TABLE nop_meta_profiling_result(
   profiling_result_id VARCHAR(32) NOT NULL ,
   profiling_rule_id VARCHAR(32)  ,
-  meta_table_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
   snapshot_time TIMESTAMP NOT NULL ,
   table_stats TEXT  ,
   column_stats TEXT  ,
@@ -847,7 +825,7 @@ CREATE TABLE nop_meta_profiling_result(
 CREATE TABLE nop_meta_reconciliation_result(
   result_id VARCHAR(32) NOT NULL ,
   config_id VARCHAR(32) NOT NULL ,
-  meta_table_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
   execute_time TIMESTAMP NOT NULL ,
   statistics VARCHAR(4000)  ,
   details TEXT  ,
@@ -1186,46 +1164,6 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_orm_model.remark IS '备注';
                     
-      COMMENT ON TABLE nop_meta_table IS '逻辑表';
-                
-      COMMENT ON COLUMN nop_meta_table.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_table.meta_module_id IS '模块版本ID';
-                    
-      COMMENT ON COLUMN nop_meta_table.is_delta IS '是否Delta';
-                    
-      COMMENT ON COLUMN nop_meta_table.table_name IS '表名';
-                    
-      COMMENT ON COLUMN nop_meta_table.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_table.table_type IS '表类型';
-                    
-      COMMENT ON COLUMN nop_meta_table.query_space IS '查询空间';
-                    
-      COMMENT ON COLUMN nop_meta_table.source_sql IS '来源SQL';
-                    
-      COMMENT ON COLUMN nop_meta_table.base_entity_id IS '主要实体ID';
-                    
-      COMMENT ON COLUMN nop_meta_table.description IS '描述';
-                    
-      COMMENT ON COLUMN nop_meta_table.build_sql IS '合成SQL';
-                    
-      COMMENT ON COLUMN nop_meta_table.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_table.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_table.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_table.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_table.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_table.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_table.meta_schema IS '源schema';
-                    
-      COMMENT ON COLUMN nop_meta_table.business_domain_id IS '业务域ID';
-                    
       COMMENT ON TABLE nop_meta_pipeline IS '数据管道';
                 
       COMMENT ON COLUMN nop_meta_pipeline.pipeline_id IS '管道ID';
@@ -1502,6 +1440,14 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_entity.remark IS '备注';
                     
+      COMMENT ON COLUMN nop_meta_entity.entity_kind IS '实体类型';
+                    
+      COMMENT ON COLUMN nop_meta_entity.source_sql IS '来源SQL';
+                    
+      COMMENT ON COLUMN nop_meta_entity.external_columns IS '外部列结构';
+                    
+      COMMENT ON COLUMN nop_meta_entity.meta_module_id IS '模块ID';
+                    
       COMMENT ON TABLE nop_meta_domain IS '域定义';
                 
       COMMENT ON COLUMN nop_meta_domain.meta_domain_id IS '域ID';
@@ -1587,326 +1533,6 @@ CREATE TABLE nop_meta_reconciliation_result(
       COMMENT ON COLUMN nop_meta_dict.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_dict.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_table_dimension IS '表维度';
-                
-      COMMENT ON COLUMN nop_meta_table_dimension.dimension_id IS '维度ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.dimension_name IS '维度名';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.entity_field_id IS '实体字段ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.dimension_type IS '维度类型';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.granularity IS '时间粒度';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.format IS '显示格式';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.sort_order IS '排序';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.business_domain_id IS '业务域ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_table_dimension.side IS '侧别';
-                    
-      COMMENT ON TABLE nop_meta_table_measure IS '表指标';
-                
-      COMMENT ON COLUMN nop_meta_table_measure.measure_id IS '指标ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.measure_name IS '指标名';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.entity_field_id IS '实体字段ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.agg_func IS '聚合函数';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.expression IS '表达式';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.format IS '显示格式';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.currency_unit IS '货币单位';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.description IS '描述';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.business_domain_id IS '业务域ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_table_measure.side IS '侧别';
-                    
-      COMMENT ON TABLE nop_meta_table_filter IS '表过滤器';
-                
-      COMMENT ON COLUMN nop_meta_table_filter.filter_id IS '过滤器ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.filter_name IS '过滤器名';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.definition IS '筛选条件';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.description IS '描述';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.is_default IS '默认过滤器';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_table_filter.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_catalog IS '运行时统计快照';
-                
-      COMMENT ON COLUMN nop_meta_catalog.meta_catalog_id IS '统计快照ID';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.row_count IS '行数';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.size_bytes IS '表物理大小';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.index_count IS '索引数量';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.partition_count IS '分区数';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.last_modified IS '最后修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.details IS '扩展详情';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.collected_at IS '收集时间';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_catalog.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_profiling_rule IS '数据剖析规则';
-                
-      COMMENT ON COLUMN nop_meta_profiling_rule.profiling_rule_id IS '剖析规则ID';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.rule_name IS '规则名';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.meta_table_id IS '剖析表ID';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.columns IS '剖析列';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.stats IS '统计指标';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.sample_size IS '采样大小';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_profiling_rule.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_data_contract IS '数据契约';
-                
-      COMMENT ON COLUMN nop_meta_data_contract.contract_id IS '契约ID';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.contract_name IS '契约名';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.meta_table_id IS '关联数据表ID';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.status IS '契约状态';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.owner_user_id IS '契约所有者';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.schema IS 'JSON Schema 定义';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.sla IS 'SLA 定义';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.quality_expectations IS '质量期望';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.security IS '安全策略';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.latest_result IS '最新执行结果';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.tag_set IS '标签集合';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.remark IS '备注';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.approve_status IS '审批状态';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.approved_by IS '审批人';
-                    
-      COMMENT ON COLUMN nop_meta_data_contract.approved_at IS '审批时间';
-                    
-      COMMENT ON TABLE nop_meta_reconciliation_config IS '对账配置';
-                
-      COMMENT ON COLUMN nop_meta_reconciliation_config.config_id IS '配置ID';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.config_name IS '配置名';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.display_name IS '显示名';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.meta_module_id IS '模块版本ID';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.column_name IS '待对账列名';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.identifier_space IS '标识符空间';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.target_entity_type IS '目标实体类型';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.match_strategy IS '匹配策略';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.auto_match IS '是否自动匹配';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.auto_match_threshold IS '自动匹配阈值';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_reconciliation_config.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_quality_score IS '质量评分';
-                
-      COMMENT ON COLUMN nop_meta_quality_score.quality_score_id IS '评分ID';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.meta_table_id IS '逻辑表ID';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.score_time IS '评分时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.overall_score IS '总分';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.dimension_scores IS '维度评分';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.rule_summary IS '规则汇总';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.trend IS '趋势';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_quality_score.remark IS '备注';
-                    
-      COMMENT ON TABLE nop_meta_lineage_edge IS '血缘边';
-                
-      COMMENT ON COLUMN nop_meta_lineage_edge.lineage_edge_id IS '血缘边ID';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.source_table_id IS '源表ID';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.target_table_id IS '目标表ID';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.source_column IS '源列名';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.target_column IS '目标列名';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.transform_type IS '转换类型';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.transform_expr IS '转换表达式';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.lineage_source IS '血缘来源';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.pipeline_id IS '管道ID';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.confidence IS '置信度';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.ext_config IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.version IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.created_by IS '创建人';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.create_time IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.updated_by IS '修改人';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.update_time IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_meta_lineage_edge.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_quality_result IS '质量结果';
                 
@@ -2158,39 +1784,355 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_entity_index.remark IS '备注';
                     
-      COMMENT ON TABLE nop_meta_table_join IS '表关联';
+      COMMENT ON TABLE nop_meta_entity_dimension IS '实体维度';
                 
-      COMMENT ON COLUMN nop_meta_table_join.join_id IS '关联ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.dimension_id IS '维度ID';
                     
-      COMMENT ON COLUMN nop_meta_table_join.meta_table_id IS '逻辑表ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.meta_entity_id IS '逻辑表ID';
                     
-      COMMENT ON COLUMN nop_meta_table_join.join_type IS '关联类型';
+      COMMENT ON COLUMN nop_meta_entity_dimension.dimension_name IS '维度名';
                     
-      COMMENT ON COLUMN nop_meta_table_join.left_entity_id IS '左实体ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.display_name IS '显示名';
                     
-      COMMENT ON COLUMN nop_meta_table_join.right_entity_id IS '右实体ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.entity_field_id IS '实体字段ID';
                     
-      COMMENT ON COLUMN nop_meta_table_join.left_field IS '左关联字段';
+      COMMENT ON COLUMN nop_meta_entity_dimension.dimension_type IS '维度类型';
                     
-      COMMENT ON COLUMN nop_meta_table_join.right_field IS '右关联字段';
+      COMMENT ON COLUMN nop_meta_entity_dimension.granularity IS '时间粒度';
                     
-      COMMENT ON COLUMN nop_meta_table_join.alias IS '右表别名';
+      COMMENT ON COLUMN nop_meta_entity_dimension.format IS '显示格式';
                     
-      COMMENT ON COLUMN nop_meta_table_join.version IS '数据版本';
+      COMMENT ON COLUMN nop_meta_entity_dimension.sort_order IS '排序';
                     
-      COMMENT ON COLUMN nop_meta_table_join.created_by IS '创建人';
+      COMMENT ON COLUMN nop_meta_entity_dimension.business_domain_id IS '业务域ID';
                     
-      COMMENT ON COLUMN nop_meta_table_join.create_time IS '创建时间';
+      COMMENT ON COLUMN nop_meta_entity_dimension.ext_config IS '扩展配置';
                     
-      COMMENT ON COLUMN nop_meta_table_join.updated_by IS '修改人';
+      COMMENT ON COLUMN nop_meta_entity_dimension.version IS '数据版本';
                     
-      COMMENT ON COLUMN nop_meta_table_join.update_time IS '修改时间';
+      COMMENT ON COLUMN nop_meta_entity_dimension.created_by IS '创建人';
                     
-      COMMENT ON COLUMN nop_meta_table_join.remark IS '备注';
+      COMMENT ON COLUMN nop_meta_entity_dimension.create_time IS '创建时间';
                     
-      COMMENT ON COLUMN nop_meta_table_join.left_table_id IS '左表ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.updated_by IS '修改人';
                     
-      COMMENT ON COLUMN nop_meta_table_join.right_table_id IS '右表ID';
+      COMMENT ON COLUMN nop_meta_entity_dimension.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_dimension.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_entity_dimension.side IS '侧别';
+                    
+      COMMENT ON TABLE nop_meta_entity_measure IS '实体指标';
+                
+      COMMENT ON COLUMN nop_meta_entity_measure.measure_id IS '指标ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.measure_name IS '指标名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.entity_field_id IS '实体字段ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.agg_func IS '聚合函数';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.expression IS '表达式';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.format IS '显示格式';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.currency_unit IS '货币单位';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.description IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.business_domain_id IS '业务域ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_entity_measure.side IS '侧别';
+                    
+      COMMENT ON TABLE nop_meta_entity_filter IS '实体过滤器';
+                
+      COMMENT ON COLUMN nop_meta_entity_filter.filter_id IS '过滤器ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.filter_name IS '过滤器名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.definition IS '筛选条件';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.description IS '描述';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.is_default IS '默认过滤器';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_filter.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_entity_join IS '实体关联';
+                
+      COMMENT ON COLUMN nop_meta_entity_join.join_id IS '关联ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.join_type IS '关联类型';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.left_entity_id IS '左实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.right_entity_id IS '右实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.left_field IS '左关联字段';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.right_field IS '右关联字段';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.alias IS '右表别名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_join.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_lineage_edge IS '血缘边';
+                
+      COMMENT ON COLUMN nop_meta_lineage_edge.lineage_edge_id IS '血缘边ID';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.source_table_id IS '源表ID';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.target_table_id IS '目标表ID';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.source_column IS '源列名';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.target_column IS '目标列名';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.transform_type IS '转换类型';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.transform_expr IS '转换表达式';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.lineage_source IS '血缘来源';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.pipeline_id IS '管道ID';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.confidence IS '置信度';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_lineage_edge.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_catalog IS '运行时统计快照';
+                
+      COMMENT ON COLUMN nop_meta_catalog.meta_catalog_id IS '统计快照ID';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.row_count IS '行数';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.size_bytes IS '表物理大小';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.index_count IS '索引数量';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.partition_count IS '分区数';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.last_modified IS '最后修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.details IS '扩展详情';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.collected_at IS '收集时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_catalog.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_profiling_rule IS '数据剖析规则';
+                
+      COMMENT ON COLUMN nop_meta_profiling_rule.profiling_rule_id IS '剖析规则ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.rule_name IS '规则名';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.meta_entity_id IS '剖析表ID';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.columns IS '剖析列';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.stats IS '统计指标';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.sample_size IS '采样大小';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_profiling_rule.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_data_contract IS '数据契约';
+                
+      COMMENT ON COLUMN nop_meta_data_contract.contract_id IS '契约ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.contract_name IS '契约名';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.meta_entity_id IS '关联数据表ID';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.status IS '契约状态';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.owner_user_id IS '契约所有者';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.schema IS 'JSON Schema 定义';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.sla IS 'SLA 定义';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.quality_expectations IS '质量期望';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.security IS '安全策略';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.latest_result IS '最新执行结果';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.tag_set IS '标签集合';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approve_status IS '审批状态';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approved_by IS '审批人';
+                    
+      COMMENT ON COLUMN nop_meta_data_contract.approved_at IS '审批时间';
+                    
+      COMMENT ON TABLE nop_meta_reconciliation_config IS '对账配置';
+                
+      COMMENT ON COLUMN nop_meta_reconciliation_config.config_id IS '配置ID';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.config_name IS '配置名';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.meta_module_id IS '模块版本ID';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.column_name IS '待对账列名';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.identifier_space IS '标识符空间';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.target_entity_type IS '目标实体类型';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.match_strategy IS '匹配策略';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.auto_match IS '是否自动匹配';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.auto_match_threshold IS '自动匹配阈值';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_reconciliation_config.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_quality_score IS '质量评分';
+                
+      COMMENT ON COLUMN nop_meta_quality_score.quality_score_id IS '评分ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.meta_entity_id IS '逻辑表ID';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.score_time IS '评分时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.overall_score IS '总分';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.dimension_scores IS '维度评分';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.rule_summary IS '规则汇总';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.trend IS '趋势';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_quality_score.remark IS '备注';
                     
       COMMENT ON TABLE nop_meta_dict_item IS '字典项';
                 
@@ -2234,7 +2176,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_profiling_result.profiling_rule_id IS '剖析规则ID';
                     
-      COMMENT ON COLUMN nop_meta_profiling_result.meta_table_id IS '逻辑表ID';
+      COMMENT ON COLUMN nop_meta_profiling_result.meta_entity_id IS '逻辑表ID';
                     
       COMMENT ON COLUMN nop_meta_profiling_result.snapshot_time IS '快照时间';
                     
@@ -2260,7 +2202,7 @@ CREATE TABLE nop_meta_reconciliation_result(
                     
       COMMENT ON COLUMN nop_meta_reconciliation_result.config_id IS '配置ID';
                     
-      COMMENT ON COLUMN nop_meta_reconciliation_result.meta_table_id IS '逻辑表ID';
+      COMMENT ON COLUMN nop_meta_reconciliation_result.meta_entity_id IS '逻辑表ID';
                     
       COMMENT ON COLUMN nop_meta_reconciliation_result.execute_time IS '执行时间';
                     

@@ -16,7 +16,7 @@
 6. `MixedSameDbJoinAggregationProcessor` — 同库混合端点 JOIN 聚合（entity ↔ external/sql，同库原生 GROUP BY over JOIN）
 7. `CrossDbInMemoryAggregationProcessor` — 跨库应用层聚合（复用 `MetaJoinExecutor.executeJoin` + 内存 GROUP BY）
 
-`MetaAggregationExecutor` 保留为公共入口类，`executeAggregation` 改为路径分派器（≤ 500 行）：校验输入 → 构造 `AggregationContext` → 按 tableType/joinType 分派到对应 Processor → 返回结果。
+`MetaAggregationExecutor` 保留为公共入口类，`executeAggregation` 改为路径分派器（≤ 500 行）：校验输入 → 构造 `AggregationContext` → 按 entityKind/joinType 分派到对应 Processor → 返回结果。
 
 ## Processor Boundaries
 
@@ -26,7 +26,7 @@
 |-----------|--------------------------------------|----------|-------------------|
 | EntityAggregationProcessor | `executeEntityAggregation` → `executeEntityAggregationViaEql` / `executeEntityAggregationBypassEql` | entity 表校验 → propToCol → loadMeasures/Dimensions → needsBypass 判定 → 构造 SQL → executeQuery/JDBC | `resolveEntityColumns`, `rewriteFilterToColumns`, `loadEntityMeasures`, `loadEntityDimensions`, `collectRows` |
 | ExternalAggregationProcessor | `executeExternalAggregation` → `buildExternalAggregationSql` + `collectBindParams` + `executeJdbcQuery` | 解析数据源 → loadExternalMeasures/Dimensions → withConnection → 构造 SQL → JDBC 查询 | `buildFromClause` (external 分支), `loadExternalMeasures`, `loadExternalDimensions`, `executeJdbcQuery` |
-| SqlAggregationProcessor | (同上 `executeExternalAggregation`，tableType=sql 分支) | 与 external 相同，仅 `buildFromClause` 返回 `(<sourceSql>) _t` 不同 | `buildFromClause` (sql 分支), `loadExternalMeasures`, `loadExternalDimensions`, `executeJdbcQuery` |
+| SqlAggregationProcessor | (同上 `executeExternalAggregation`，entityKind=sql 分支) | 与 external 相同，仅 `buildFromClause` 返回 `(<sourceSql>) _t` 不同 | `buildFromClause` (sql 分支), `loadExternalMeasures`, `loadExternalDimensions`, `executeJdbcQuery` |
 | EntityEntityJoinAggregationProcessor | `executeEntityEntityJoinAggregation` | join 加载 → 端点解析 → entity 校验 → self-join 守卫 → 加载 JoinMeasure/JoinDimension → 构造 JOIN SQL → orm().executeQuery | `loadJoinMeasures`, `loadJoinDimensions`, `rewriteFilterToColumns`, `joinExecutor` |
 | ExternalExternalJoinAggregationProcessor | `executeExternalExternalJoinAggregation` → `buildExternalExternalJoinSql` | 数据源解析 → 列集合解析 → side 解析 → 构造 JOIN SQL → withConnection → JDBC | `resolveTableColumnNames`, `loadExternalJoinMeasures`, `loadExternalJoinDimensions`, `buildExternalExternalJoinSql`, `executeJdbcQuery` |
 | MixedSameDbJoinAggregationProcessor | `executeMixedSameDbJoinAggregation` → `buildMixedSameDbJoinSql` → `checkEntityTableVisible` | 端点位置识别 → 同库判定(连接可达性实测) → 构造 JOIN SQL → withConnection → JDBC | `resolveEntityColumns`, `resolveTableColumnNames`, `loadExternalJoinMeasures` (mixed), `loadExternalJoinDimensions` (mixed), `buildMixedSameDbJoinSql`, `checkEntityTableVisible`, `executeJdbcQuery` |
@@ -46,7 +46,7 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `table` | `NopMetaTable` | 目标逻辑表 |
+| `table` | `NopMetaEntity` | 目标逻辑表 |
 | `measureNames` | `List<String>` | 选定指标名 |
 | `dimensionNames` | `List<String>` | 选定维度名 |
 | `filter` | `TreeBean` | 用户过滤器（已默认合并） |
@@ -63,7 +63,7 @@
 | `safeAlias(name)` | private static | 安全化别名 |
 | `buildResult(items)` | private static | `Map{"items": items}` |
 | `aggSqlOf(aggFunc, column, measureName)` | private | aggFunc→SQL 函数包装 |
-| `executeJdbcQuery(conn, sql, params, limit, offset, metaTableId)` | private | JDBC 查询 |
+| `executeJdbcQuery(conn, sql, params, limit, offset, metaEntityId)` | private | JDBC 查询 |
 | `collectRows(ds)` | private | IDataSet→List<Map> |
 | `requireName(value, what)` | private static | 非空守卫 |
 | `resolveTableColumnNames(table, fieldDao, ctx)` | private | 解析表列名集合 |
@@ -76,8 +76,8 @@
 | `buildJoinNameToExprTable(...)` | private static | JOIN name→aggSql/qualifiedCol |
 | `nameResolverFor(...)` | private static | having name→aggSql 回调工厂 |
 | `buildOrderByClause(...)` | private static | ORDER BY 子句构造 |
-| `loadMeasures(table, names, ctx)` | private | 加载 NopMetaTableMeasure |
-| `loadDimensions(table, names, ctx)` | private | 加载 NopMetaTableDimension |
+| `loadMeasures(table, names, ctx)` | private | 加载 NopMetaEntityMeasure |
+| `loadDimensions(table, names, ctx)` | private | 加载 NopMetaEntityDimension |
 | `entityEndpointTypeOf(ep)` | private static | 端点类型字符串 |
 | `newArrayHolder()` | private static | 数组持有者（闭包 bypass） |
 | `containsIgnoreCase(Set, String)` | private static | 大小写不敏感包含 |
@@ -118,8 +118,8 @@
 
 ### Public Static Methods（留在 MetaAggregationExecutor，包内可见）
 
-- `preprocessHavingArithmetic(TreeBean, Map, NopMetaTable, List, List)` — 外部测试和 MemoryFilterEvaluator 引用（包内 static）
-- `substituteAndValidateHavingExpr(String, Map, NopMetaTable, List, List)` — 外部测试引用（包内 static）
+- `preprocessHavingArithmetic(TreeBean, Map, NopMetaEntity, List, List)` — 外部测试和 MemoryFilterEvaluator 引用（包内 static）
+- `substituteAndValidateHavingExpr(String, Map, NopMetaEntity, List, List)` — 外部测试引用（包内 static）
 - `containsHavingArithmeticLeaf(TreeBean)` — 外部测试引用（包内 static）
 - `HAVING_EXPR_ATTR` — 外部测试和 MemoryFilterEvaluator 引用（public static final）
 
@@ -145,7 +145,7 @@ BizModel.queryAggregation()
         │   │       ├─ 同库（连接可达性实测通过）→ 原生 GROUP BY over JOIN
         │   │       └─ 不可同库 → CrossDbInMemoryAggregationProcessor.execute(ctx)
         │   │
-        │   └─ NO → tableType dispatch:
+        │   └─ NO → entityKind dispatch:
         │       ├─ entity → EntityAggregationProcessor.execute(ctx)
         │       │   ├─ needsBypass? (granularity || expression)
         │       │   │   ├─ YES → BypassEQL path (JDBC)
@@ -179,22 +179,22 @@ BizModel.queryAggregation()
 - **Error Codes**: Same as ExternalAggregationProcessor + "sourceSql is empty"
 
 ### EntityEntityJoinAggregationProcessor
-- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`
+- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaEntityJoin`
 - **Output**: `List<Map<String, Object>>` — items rows
 - **Error Codes**: ERR_AGGR_JOIN_SELF_JOIN, ERR_AGGR_JOIN_COMPILE_FAILED, ERR_AGGR_JOIN_FIELD_SIDE_UNRESOLVED, ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH
 
 ### ExternalExternalJoinAggregationProcessor
-- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`
+- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaEntityJoin`
 - **Output**: `List<Map<String, Object>>` — items rows
 - **Error Codes**: ERR_AGGR_JOIN_SELF_JOIN, ERR_AGGR_JOIN_SIDE_REQUIRED, ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE, ERR_AGGR_UNSUPPORTED_DIALECT, ERR_AGGR_EXPRESSION_DIALECT_UNSUPPORTED
 
 ### MixedSameDbJoinAggregationProcessor
-- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`
+- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaEntityJoin`
 - **Output**: `List<Map<String, Object>>` — items rows (may delegate to CrossDbInMemoryAggregationProcessor if entity table not visible in external connection)
 - **Error Codes**: ERR_AGGR_JOIN_MIXED_ENTITY_TABLE_EMPTY, ERR_AGGR_JOIN_SIDE_REQUIRED, ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE, ERR_AGGR_UNSUPPORTED_DIALECT (R6-6: removed stale ERR_AGGR_JOIN_MIXED_CROSS_DB_DEFERRED — the not-visible case now delegates to the in-memory cross-DB processor)
 
 ### CrossDbInMemoryAggregationProcessor
-- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaTableJoin`
+- **Input**: `AggregationContext` + resolved `Endpoint` left/right + `NopMetaEntityJoin`
 - **Output**: `List<Map<String, Object>>` — items rows (memory-grouped)
 - **Error Codes**: ERR_AGGR_JOIN_SELF_JOIN, ERR_AGGR_CROSS_DB_FIELD_KEY_MISSING, ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE, ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE
 
@@ -209,6 +209,6 @@ BizModel.queryAggregation()
 ## Rejected Alternatives
 
 - **保留单类 + 内部 method 分组**：仍无法降低单类 token 消耗，单测覆盖率仍受限
-- **按 tableType 拆（3 类）**：JOIN 路径下端点组合复杂，3 类内部仍需大量分派，效果有限
+- **按 entityKind 拆（3 类）**：JOIN 路径下端点组合复杂，3 类内部仍需大量分派，效果有限
 - **按 measure/dimension/having/orderBy 拆**：与执行路径正交，不解决核心 7 路径分派问题
 - **ErrorCode 常量全部迁移到 AggregationContext**：破坏 `MemoryFilterEvaluator`、`MemoryOrderByComparator`、`ExpressionMeasureValidator` 及所有测试类的 `MetaAggregationExecutor.ERR_AGGR_*` 引用，不必要的大规模 import 变更

@@ -107,6 +107,18 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--实体类型-->
+                <col id="entityKind" mandatory="true" sortable="true"/>
+
+                <!--来源SQL-->
+                <col id="sourceSql" sortable="true"/>
+
+                <!--外部列结构-->
+                <col id="externalColumns" sortable="true"/>
+
+                <!--模块ID-->
+                <col id="metaModuleId" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -130,6 +142,8 @@
  extConfig[扩展配置] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
+ entityKind[实体类型] sourceSql[来源SQL]
+ externalColumns[外部列结构] metaModuleId[模块ID]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-元数据实体" i18n-en:title="Add Meta Entity" x:prototype="edit"/>
@@ -148,6 +162,8 @@
  delVersionProp[删除版本属性] dbCatalog[数据库目录]
  dbSchema[数据库Schema] businessDomainId[业务域ID]
  extConfig[扩展配置] remark[备注]
+ entityKind[实体类型] sourceSql[来源SQL]
+ externalColumns[外部列结构] metaModuleId[模块ID]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

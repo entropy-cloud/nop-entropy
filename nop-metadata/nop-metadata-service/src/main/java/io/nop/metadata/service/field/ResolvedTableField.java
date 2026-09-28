@@ -2,7 +2,7 @@
 package io.nop.metadata.service.field;
 
 /**
- * 解析后的逻辑表字段（架构基线 §2.5.2 D2）：{@link MetaTableFieldResolver} 按 tableType 分派解析得到。
+ * 解析后的逻辑表字段（架构基线 §2.5.2 D2）：{@link MetaEntityFieldResolver} 按 entityKind 分派解析得到。
  *
  * <p>{@code name} 为字段输出名——entity 表取 {@code NopMetaEntityField.fieldName}；
  * external 表取 {@code buildSql} JSON 的 {@code columnName}；sql 表取 SELECT 解析出的字段名/别名。

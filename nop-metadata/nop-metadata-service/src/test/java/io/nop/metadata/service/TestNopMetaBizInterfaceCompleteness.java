@@ -12,7 +12,7 @@ import io.nop.metadata.biz.INopMetaQualityRuleBiz;
 import io.nop.metadata.biz.INopMetaQualityScoreBiz;
 import io.nop.metadata.biz.INopMetaReconciliationConfigBiz;
 import io.nop.metadata.biz.INopMetaReconciliationResultBiz;
-import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.biz.INopMetaTagLabelBiz;
 import org.junit.jupiter.api.Test;
 
@@ -47,8 +47,8 @@ public class TestNopMetaBizInterfaceCompleteness {
      * 新增接口 / 新增自定义方法未登记此表 → {@link #testCoverageListMatchesFilesystemScanOfAllBizInterfaces} 红。
      */
     private static final Map<String, Set<String>> COVERAGE = Map.ofEntries(
-            Map.entry("INopMetaTableBiz", Set.of("profileTable", "createSqlTable", "previewSqlFields",
-                    "resolveTableFields", "queryTableData", "queryJoinData", "queryAggregation")),
+            Map.entry("INopMetaEntityBiz", Set.of("profileEntity", "createSqlView", "previewSqlFields",
+                    "resolveEntityFields", "queryData", "queryJoinData", "queryAggregation")),
             Map.entry("INopMetaDataSourceBiz", Set.of("bindCredential", "unbindCredential", "migrateDataSourcesCredential", "testConnection", "syncExternalTables",
                     "collectCatalog", "collectCatalogForTable")),
             Map.entry("INopMetaModuleBiz", Set.of("importOrmModel", "importOrmModels",
@@ -79,13 +79,13 @@ public class TestNopMetaBizInterfaceCompleteness {
      */
     @Test
     public void testRequiredInterfacesContainCustomMethods() {
-        assertDeclaresMethod(INopMetaTableBiz.class, "profileTable", 4);
-        assertDeclaresMethod(INopMetaTableBiz.class, "createSqlTable", 6);
-        assertDeclaresMethod(INopMetaTableBiz.class, "previewSqlFields", 2);
-        assertDeclaresMethod(INopMetaTableBiz.class, "resolveTableFields", 2);
-        assertDeclaresMethod(INopMetaTableBiz.class, "queryTableData", 6);
-        assertDeclaresMethod(INopMetaTableBiz.class, "queryJoinData", 7);
-        assertDeclaresMethod(INopMetaTableBiz.class, "queryAggregation", 11);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "profileEntity", 4);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "createSqlView", 6);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "previewSqlFields", 2);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "resolveEntityFields", 2);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "queryData", 6);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "queryJoinData", 7);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "queryAggregation", 11);
 
         assertDeclaresMethod(INopMetaDataSourceBiz.class, "testConnection", 2);
         assertDeclaresMethod(INopMetaDataSourceBiz.class, "syncExternalTables", 3);
@@ -215,15 +215,15 @@ public class TestNopMetaBizInterfaceCompleteness {
     }
 
     /**
-     * 验证 {@link INopMetaTableBiz} 在 IoC 容器中可被注入到 {@code NopMetaReconciliationConfigBizModel}，
-     * 因为它通过 {@code @Inject INopMetaTableBiz tableBizModel} 跨模块调用 {@code queryTableData}。
+     * 验证 {@link INopMetaEntityBiz} 在 IoC 容器中可被注入到 {@code NopMetaReconciliationConfigBizModel}，
+     * 因为它通过 {@code @Inject INopMetaEntityBiz tableBizModel} 跨模块调用 {@code queryData}。
      *
      * <p>接线验证：plan Phase 1 维度07-02 要求 3 处直接 @Inject BizModel 改为接口注入。本测试覆盖
      * NopMetaReconciliationConfigBizModel case（其它 2 处因 cron 触发事务语义保留 raw impl 注入，
      * 已在源码 javadoc 中显式裁定）。
      */
     @Test
-    public void testINopMetaTableBizInjectableIntoReconciliationConfigBizModel() throws Exception {
+    public void testINopMetaEntityBizInjectableIntoReconciliationConfigBizModel() throws Exception {
         // 通过反射验证字段类型为接口
         Class<?> reconConfigBizModelClass = Class.forName(
                 "io.nop.metadata.service.entity.NopMetaReconciliationConfigBizModel");
@@ -231,8 +231,8 @@ public class TestNopMetaBizInterfaceCompleteness {
         for (java.lang.reflect.Field f : reconConfigBizModelClass.getDeclaredFields()) {
             if (f.getName().equals("tableBizModel")) {
                 foundInterfaceInjection = true;
-                assertTrue(f.getType().equals(INopMetaTableBiz.class),
-                        "tableBizModel field must be typed as INopMetaTableBiz (interface), but was: " + f.getType());
+                assertTrue(f.getType().equals(INopMetaEntityBiz.class),
+                        "tableBizModel field must be typed as INopMetaEntityBiz (interface), but was: " + f.getType());
             }
         }
         assertTrue(foundInterfaceInjection, "tableBizModel field must exist on NopMetaReconciliationConfigBizModel");

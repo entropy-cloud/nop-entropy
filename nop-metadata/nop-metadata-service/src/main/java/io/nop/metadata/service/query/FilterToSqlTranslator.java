@@ -78,7 +78,7 @@ public class FilterToSqlTranslator {
     /**
      * 翻译 filter 树为 WHERE 片段 + 参数。
      *
-     * @param filter TreeBean filter 树（与 §2.5.2 D1 MetaTableFilter.definition 同结构）；null/无子节点返回空翻译
+     * @param filter TreeBean filter 树（与 §2.5.2 D1 MetaEntityFilter.definition 同结构）；null/无子节点返回空翻译
      * @return 翻译结果（{@code sql} 为 null 表示无 WHERE）
      */
     public TranslatedFilter translate(TreeBean filter) {

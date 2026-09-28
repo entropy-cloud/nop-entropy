@@ -75,7 +75,7 @@ public class TestNopMetaDataProductLinkAssetAggregateRoot extends JunitBaseTestC
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaDataProduct__linkAsset("
                         + "dataProductId: \"__no_such_product__\""
-                        + ", entityType: \"NopMetaTable\""
+                        + ", entityType: \"NopMetaEntity\""
                         + ", entityId: \"tbl-x\") { tagLabelId } }");
         assertTrue(resp.hasError(),
                 "linkAsset on non-existent dataProductId must fail (was silently creating linkage row): " + resp);
@@ -100,7 +100,7 @@ public class TestNopMetaDataProductLinkAssetAggregateRoot extends JunitBaseTestC
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaDataProduct__unlinkAsset("
                         + "dataProductId: \"__no_such_product__\""
-                        + ", entityType: \"NopMetaTable\""
+                        + ", entityType: \"NopMetaEntity\""
                         + ", entityId: \"tbl-x\") }");
         assertTrue(resp.hasError(),
                 "unlinkAsset on non-existent dataProductId must fail with aggregate-root error: " + resp);
@@ -120,7 +120,7 @@ public class TestNopMetaDataProductLinkAssetAggregateRoot extends JunitBaseTestC
             GraphQLResponseBean resp = execute(
                     "mutation { NopMetaDataProduct__unlinkAsset("
                             + "dataProductId: \"" + dataProductId + "\""
-                            + ", entityType: \"NopMetaTable\""
+                            + ", entityType: \"NopMetaEntity\""
                             + ", entityId: \"nonexistent\") }");
             assertTrue(resp.hasError(), "unlink of non-existent link must error: " + resp);
             String errorCode = resp.getErrorCode();
@@ -146,7 +146,7 @@ public class TestNopMetaDataProductLinkAssetAggregateRoot extends JunitBaseTestC
             GraphQLResponseBean resp = execute(
                     "mutation { NopMetaDataProduct__linkAsset("
                             + "dataProductId: \"" + dataProductId + "\""
-                            + ", entityType: \"NopMetaTable\""
+                            + ", entityType: \"NopMetaEntity\""
                             + ", entityId: \"tbl-pipeline-001\")"
                             + " { tagLabelId source labelType state approveStatus entityType entityId } }",
                     svcCtx);
@@ -158,7 +158,7 @@ public class TestNopMetaDataProductLinkAssetAggregateRoot extends JunitBaseTestC
             // + approveStatus=SUBMITTED（submitForApproval 真实调用——接线验证：
             // SUBMITTED 只可能经属主管线的 triggerApprovalIfNeeded 产生）
             IEntityDao<NopMetaTagLabel> labelDao = daoProvider.daoFor(NopMetaTagLabel.class);
-            NopMetaTagLabel label = findAutomatedLabel(labelDao, dataProductId, "NopMetaTable", "tbl-pipeline-001");
+            NopMetaTagLabel label = findAutomatedLabel(labelDao, dataProductId, "NopMetaEntity", "tbl-pipeline-001");
             assertNotNull(label, "linked label must be persisted");
             assertEquals("Suggested", label.getState(),
                     "owner pipeline must set state=Suggested for Automated label: " + label.getState());

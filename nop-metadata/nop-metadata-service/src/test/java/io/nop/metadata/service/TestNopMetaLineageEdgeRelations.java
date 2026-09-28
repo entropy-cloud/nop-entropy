@@ -12,7 +12,7 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaPipeline;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 验证 NopMetaLineageEdge 的 to-one 关系（sourceTable / targetTable / pipeline）
- * 与 NopMetaTable 的反向 to-many（lineageAsSource / lineageAsTarget）。
+ * 验证 NopMetaLineageEdge 的 to-one 关系（sourceEntity / targetEntity / pipeline）
+ * 与 NopMetaEntity 的反向 to-many（lineageAsSource / lineageAsTarget）。
  *
  * <p>plan 1250-2 Phase 1 Proof：维度04-02 修复——LineageEdge 此前完全缺失 relations 块，
  * 三个 FK 列在 ORM 层无关系导航。本测试通过 GraphQL selection 触达真实导航路径，证明运行时可被加载
@@ -52,8 +52,8 @@ public class TestNopMetaLineageEdgeRelations extends JunitBaseTestCase {
 
         IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
         NopMetaLineageEdge edge = dao.newEntity();
-        edge.setSourceTableId(srcTableId);
-        edge.setTargetTableId(tgtTableId);
+        edge.setSourceEntityId(srcTableId);
+        edge.setTargetEntityId(tgtTableId);
         edge.setPipelineId(pipelineId);
         edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MANUAL);
         edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
@@ -61,19 +61,19 @@ public class TestNopMetaLineageEdgeRelations extends JunitBaseTestCase {
         dao.flushSession();
         String edgeId = edge.getLineageEdgeId();
 
-        // GraphQL selection-set 包含 sourceTable / targetTable / pipeline
+        // GraphQL selection-set 包含 sourceEntity / targetEntity / pipeline
         // 证明 ORM 反向导航在运行时确实被 GraphQL 引擎触达（Anti-Hollow）
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "query { NopMetaLineageEdge__get(id: \"" + edgeId + "\") { lineageEdgeId "
-                        + "sourceTable { metaTableId tableName } "
-                        + "targetTable { metaTableId tableName } "
+                        + "sourceEntity { metaEntityId tableName } "
+                        + "targetEntity { metaEntityId tableName } "
                         + "pipeline { pipelineId pipelineName } } }")));
         assertFalse(resp.hasError(), "GraphQL get with relations should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("REL_SRC"),
-                "sourceTable.tableName must resolve (audit typo: tableName not targetName): " + data);
+                "sourceEntity.tableName must resolve (audit typo: tableName not targetName): " + data);
         assertTrue(data.contains("REL_TGT"),
-                "targetTable.tableName must resolve: " + data);
+                "targetEntity.tableName must resolve: " + data);
         assertTrue(data.contains("REL_PIPE"),
                 "pipeline.pipelineName must resolve: " + data);
     }
@@ -87,17 +87,17 @@ public class TestNopMetaLineageEdgeRelations extends JunitBaseTestCase {
         IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
         for (int i = 0; i < 3; i++) {
             NopMetaLineageEdge edge = dao.newEntity();
-            edge.setSourceTableId(srcTableId);
-            edge.setTargetTableId(tgtTableId);
+            edge.setSourceEntityId(srcTableId);
+            edge.setTargetEntityId(tgtTableId);
             edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MANUAL);
             edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
             dao.saveEntity(edge);
         }
         dao.flushSession();
 
-        // 反向 to-many: sourceTable.lineageAsSource 包含 3 条边
+        // 反向 to-many: sourceEntity.lineageAsSource 包含 3 条边
         GraphQLResponseBean srcResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__get(id: \"" + srcTableId + "\") { tableName "
+                "query { NopMetaEntity__get(id: \"" + srcTableId + "\") { tableName "
                         + "lineageAsSource { lineageEdgeId } } }")));
         assertFalse(srcResp.hasError(), "source table get should not error: " + srcResp);
         String srcData = String.valueOf(srcResp.getData());
@@ -105,7 +105,7 @@ public class TestNopMetaLineageEdgeRelations extends JunitBaseTestCase {
                 "lineageAsSource reverse to-many must be reachable via GraphQL: " + srcData);
 
         GraphQLResponseBean tgtResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaTable__get(id: \"" + tgtTableId + "\") { tableName "
+                "query { NopMetaEntity__get(id: \"" + tgtTableId + "\") { tableName "
                         + "lineageAsTarget { lineageEdgeId } } }")));
         assertFalse(tgtResp.hasError(), "target table get should not error: " + tgtResp);
         String tgtData = String.valueOf(tgtResp.getData());
@@ -129,15 +129,18 @@ public class TestNopMetaLineageEdgeRelations extends JunitBaseTestCase {
     }
 
     private String saveTable(String moduleId, String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String savePipeline(String moduleId, String pipelineName) {

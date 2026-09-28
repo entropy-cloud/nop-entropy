@@ -137,7 +137,7 @@ MetaDictItem                      — 字典项
 MetaDataContract                  — 数据契约
   ├── contractName                — "用户数据契约"
   ├── displayName                 — "User Data Contract"
-  ├── metaTableId                → MetaTable.metaTableId（关联的数据资产，plain string 列 + to-one relation）
+  ├── metaEntityId                → MetaEntity.metaEntityId（关联的数据资产，plain string 列 + to-one relation）
   ├── status                      — "DRAFT" | "ACTIVE" | "DEPRECATED" | "RETIRED"（dict meta/contract-status，大写）
   ├── ownerUserId                 — 契约所有者（precision=50，无 domain 声明）
   ├── schema                      — JSON Schema 文档（mediumtext + stdDomain json，首版仅存储不执行逐行校验）
@@ -161,7 +161,7 @@ DRAFT → ACTIVE → DEPRECATED → RETIRED
 
 ```
 MetaLineageEdge
-  ├── sourceTableId / targetTableId → MetaTable
+  ├── sourceEntityId / targetEntityId → MetaEntity
   ├── sourceColumn / targetColumn   — 列级血缘（可选）
   ├── transformType                 — "direct" | "derived" | "aggregated"
   ├── transformExpr               — 转换表达式
@@ -294,7 +294,7 @@ query GlobalDomains {
 - **action 名统一 `checkContract`**（同步更新本节 GraphQL 示例，废弃旧名 `executeDataContractCheck`）。
 - **`qualityExpectations` 的 JSON 形状（钉死）**：`{"qualityRuleIds": ["<ruleId1>", "<ruleId2>", ...]}`（裸字符串数组，key 固定 `qualityRuleIds`）。空数组或缺 key 视为"无质量检查项"。
 - **质量路径**：对 `qualityRuleIds` 中每个 ruleId 取 `NopMetaQualityResult` 按 `executeTime desc` 最新一条（取不到记为 `no-result`）；汇总 `qualitySummary = {totalRules, passedRules, failedRules, noResultRules, details:[{ruleId, latestStatus, message}]}`（`latestStatus` 取 QualityResult.status 原值，无结果记 `no-result`）。
-- **SLA 路径（算法钉死）**：以 `entityTableId` 之值作为 `metaTableId` 取 `NopMetaCatalog` 按 `collectedAt desc` 最新一条（无 Catalog 记 `catalogAvailable=false`）：
+- **SLA 路径（算法钉死）**：以 `entityTableId` 之值作为 `metaEntityId` 取 `NopMetaCatalog` 按 `collectedAt desc` 最新一条（无 Catalog 记 `catalogAvailable=false`）：
   - `refreshFrequency`（若存在）：判定 `now - catalog.collectedAt > refreshFrequency` → `collectionStale=true`（采集过期）；
   - `maxLatency`（若存在）：判定 `now - catalog.lastModified > maxLatency` → `dataStale=true`（数据过期，lastModified 为空则该项记 `unknown` 不判定——v1 恒走此分支）；
   - `slaFresh = !collectionStale && !dataStale`；`slaSummary = {catalogAvailable, collectedAt, lastModified, collectionStale, dataStale, slaFresh}`。时间单位归一为毫秒比较。

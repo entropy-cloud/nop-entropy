@@ -16,7 +16,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -265,9 +265,9 @@ public class TestNopMetaQualityScoreBizModel extends JunitBaseTestCase {
     // helpers
     // ============================================================
 
-    private GraphQLResponseBean exec(String metaTableId) {
+    private GraphQLResponseBean exec(String metaEntityId) {
         IGraphQLExecutionContext ctx = graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") "
+                "mutation { NopMetaQualityScore__computeQualityScore(metaEntityId: \"" + metaEntityId + "\") "
                         + "{ scoreId overallScore dimensionScores ruleSummary trend } }"));
         return graphQLEngine.executeGraphQL(ctx);
     }
@@ -308,12 +308,15 @@ public class TestNopMetaQualityScoreBizModel extends JunitBaseTestCase {
     }
 
     private String saveTable(String tableName) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = tableDao.newEntity();
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = tableDao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType("entity");
+        t.setEntityKind("PHYSICAL");
         t.setVersion(1L);
         Timestamp now = new Timestamp(System.currentTimeMillis());
         t.setCreatedBy("autotest");
@@ -321,7 +324,7 @@ public class TestNopMetaQualityScoreBizModel extends JunitBaseTestCase {
         t.setUpdatedBy("autotest");
         t.setUpdateTime(now);
         tableDao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String ensureExternalSystemModuleId() {
@@ -387,10 +390,10 @@ public class TestNopMetaQualityScoreBizModel extends JunitBaseTestCase {
         dao.saveEntity(r);
     }
 
-    private NopMetaQualityScore findLatestScore(String metaTableId) {
+    private NopMetaQualityScore findLatestScore(String metaEntityId) {
         IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaEntityId, metaEntityId));
         q.addOrderField(NopMetaQualityScore.PROP_NAME_scoreTime, true);
         return dao.findFirstByQuery(q);
     }

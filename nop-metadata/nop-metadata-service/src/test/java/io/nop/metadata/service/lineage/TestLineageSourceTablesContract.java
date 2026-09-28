@@ -14,23 +14,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P1-3 回归测试（plan 2026-08-15-1913-2 Phase 2）：lineage sourceTables 公开契约语义。
+ * P1-3 回归测试（plan 2026-08-15-1913-2 Phase 2）：lineage sourceEntitys 公开契约语义。
  *
  * <p>契约（owner doc `docs-for-ai/03-modules/nop-metadata.md`）：
  * <ul>
- *   <li>{@code sourceTables} = **已解析**源表 metaTable ID 集（表级/列级）；指标级 = 宿主表自身
- *       {@code [metaTableId]}（自环边语义，仅当产出 ≥1 条边，否则空列表）。</li>
+ *   <li>{@code sourceEntitys} = **已解析**源表 metaTable ID 集（表级/列级）；指标级 = 宿主表自身
+ *       {@code [metaEntityId]}（自环边语义，仅当产出 ≥1 条边，否则空列表）。</li>
  *   <li>修复前缺陷：表级误植 {@code r.unresolved}（解析失败名单混入源表集）；列级/指标级从不填充（恒空）——
- *       按官方示例调用 {@code extractColumnLineageFromSql { sourceTables }} 永远得到空列表。</li>
- *   <li>{@code unresolved} 保持原语义（表级=完整表名；列级/指标级=诊断串），与 sourceTables 异质并存、互不串入。</li>
+ *       按官方示例调用 {@code extractColumnLineageFromSql { sourceEntitys }} 永远得到空列表。</li>
+ *   <li>{@code unresolved} 保持原语义（表级=完整表名；列级/指标级=诊断串），与 sourceEntitys 异质并存、互不串入。</li>
  * </ul>
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestLineageSourceTablesContract extends LineageTestBase {
 
     /**
-     * 表级：2 个已解析源表 + 1 个 ghost 引用 → sourceTables 精确等于已解析 ID 集；
-     * ghost 完整名只出现在 unresolved，不串入 sourceTables（修复前 sourceTables === unresolved 误植）。
+     * 表级：2 个已解析源表 + 1 个 ghost 引用 → sourceEntitys 精确等于已解析 ID 集；
+     * ghost 完整名只出现在 unresolved，不串入 sourceEntitys（修复前 sourceEntitys === unresolved 误植）。
      */
     @Test
     public void testTableLevelSourceTablesEqualsResolvedSet() {
@@ -46,16 +46,16 @@ public class TestLineageSourceTablesContract extends LineageTestBase {
         String ordersId = findTableId("P13_ORDERS");
         String customersId = findTableId("P13_CUSTOMERS");
         Set<String> expected = Set.of(ordersId, customersId);
-        assertEquals(expected, new HashSet<>(dto.getSourceTables()),
-                "sourceTables must equal the resolved source table ID set (was unresolved mis-plant before P1-3): "
-                        + dto.getSourceTables());
-        assertEquals(2, dto.getSourceTables().size(), "exactly 2 resolved sources");
+        assertEquals(expected, new HashSet<>(dto.getSourceEntitys()),
+                "sourceEntitys must equal the resolved source table ID set (was unresolved mis-plant before P1-3): "
+                        + dto.getSourceEntitys());
+        assertEquals(2, dto.getSourceEntitys().size(), "exactly 2 resolved sources");
         assertEquals(1, dto.getUnresolved().size(), "ghost ref must go to unresolved only");
         assertTrue(dto.getUnresolved().get(0).contains("P13_GHOST"),
                 "unresolved keeps full-name semantics: " + dto.getUnresolved());
-        // 互不串入：sourceTables 无完整名项，unresolved 无 ID 项
-        for (String s : dto.getSourceTables()) {
-            assertFalse(s.contains("P13_GHOST"), "unresolved name must not leak into sourceTables: " + s);
+        // 互不串入：sourceEntitys 无完整名项，unresolved 无 ID 项
+        for (String s : dto.getSourceEntitys()) {
+            assertFalse(s.contains("P13_GHOST"), "unresolved name must not leak into sourceEntitys: " + s);
         }
         for (String u : dto.getUnresolved()) {
             assertFalse(u.equals(ordersId) || u.equals(customersId),
@@ -65,7 +65,7 @@ public class TestLineageSourceTablesContract extends LineageTestBase {
 
     /**
      * 列级（CTE + 未解析引用混合，区分两列表）：CTE 穿透源表 A + 直接引用源表 B + ghost 表引用
-     * → sourceTables = {A, B}；ghost 诊断串只在 unresolved。修复前该路径 sourceTables 恒空。
+     * → sourceEntitys = {A, B}；ghost 诊断串只在 unresolved。修复前该路径 sourceEntitys 恒空。
      */
     @Test
     public void testColumnLevelSourceTablesEqualsResolvedSetWithMixedSql() {
@@ -83,21 +83,21 @@ public class TestLineageSourceTablesContract extends LineageTestBase {
         String srcA = findTableId("P13_COL_SRC_A");
         String srcB = findTableId("P13_COL_SRC_B");
         Set<String> expected = Set.of(srcA, srcB);
-        assertEquals(expected, new HashSet<>(dto.getSourceTables()),
-                "column-level sourceTables must be the resolved source ID set (was always empty before P1-3): "
-                        + dto.getSourceTables());
+        assertEquals(expected, new HashSet<>(dto.getSourceEntitys()),
+                "column-level sourceEntitys must be the resolved source ID set (was always empty before P1-3): "
+                        + dto.getSourceEntitys());
         assertFalse(dto.getUnresolved().isEmpty(),
                 "ghost ref must be collected in unresolved: " + dto.getUnresolved());
         assertTrue(dto.getUnresolved().stream().anyMatch(u -> u.contains("P13_COL_GHOST")),
                 "unresolved diagnostic must name the ghost table: " + dto.getUnresolved());
-        for (String s : dto.getSourceTables()) {
-            assertFalse(s.contains("GHOST"), "unresolved must not leak into sourceTables: " + s);
+        for (String s : dto.getSourceEntitys()) {
+            assertFalse(s.contains("GHOST"), "unresolved must not leak into sourceEntitys: " + s);
         }
         assertTrue(dto.getEdgeCount() >= 2, "at least x<-A.x and y<-B.y edges: " + dto.getEdgeCount());
     }
 
     /**
-     * 指标级（裁定语义）：measure 边全部为自环（sourceTableId=targetId）→ sourceTables = [宿主表自身]。
+     * 指标级（裁定语义）：measure 边全部为自环（sourceEntityId=targetId）→ sourceEntitys = [宿主表自身]。
      */
     @Test
     public void testMeasureLevelSourceTablesIsHostTable() {
@@ -109,12 +109,12 @@ public class TestLineageSourceTablesContract extends LineageTestBase {
         LineageExtractResultDTO dto = lineageBiz.extractMeasureLineage(tableId, svcCtx);
 
         assertEquals(2, dto.getEdgeCount(), "A->M, B->M self-loop edges");
-        assertEquals(java.util.List.of(tableId), dto.getSourceTables(),
-                "measure-level sourceTables = host table itself (self-loop edge semantics, "
-                        + "adjudicated in P1-3): " + dto.getSourceTables());
+        assertEquals(java.util.List.of(tableId), dto.getSourceEntitys(),
+                "measure-level sourceEntitys = host table itself (self-loop edge semantics, "
+                        + "adjudicated in P1-3): " + dto.getSourceEntitys());
     }
 
-    /** 指标级边界：0 条边（表达式引用不存在字段）→ sourceTables 为空列表（不伪造宿主为源）。 */
+    /** 指标级边界：0 条边（表达式引用不存在字段）→ sourceEntitys 为空列表（不伪造宿主为源）。 */
     @Test
     public void testMeasureLevelZeroEdgesYieldsEmptySourceTables() {
         String moduleId = ensureModule("mod-p13-measure-empty");
@@ -125,8 +125,8 @@ public class TestLineageSourceTablesContract extends LineageTestBase {
         LineageExtractResultDTO dto = lineageBiz.extractMeasureLineage(tableId, svcCtx);
 
         assertEquals(0, dto.getEdgeCount(), "unknown field produces no edge");
-        assertTrue(dto.getSourceTables().isEmpty(),
-                "0 edges -> no source table may be fabricated: " + dto.getSourceTables());
+        assertTrue(dto.getSourceEntitys().isEmpty(),
+                "0 edges -> no source table may be fabricated: " + dto.getSourceEntitys());
         assertFalse(dto.getUnresolved().isEmpty(),
                 "unknown field must be explicitly unresolved (not silent): " + dto.getUnresolved());
     }

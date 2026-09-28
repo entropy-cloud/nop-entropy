@@ -42,7 +42,7 @@ public interface INopMetaDataSourceBiz extends ICrudBiz<NopMetaDataSource> {
                                             IServiceContext context);
 
     @BizMutation
-    CollectCatalogResultDTO collectCatalogForTable(@Name("metaTableId") String metaTableId,
+    CollectCatalogResultDTO collectCatalogForTable(@Name("metaEntityId") String metaEntityId,
                                                     @Optional @Name("schemaPattern") String schemaPattern,
                                                     IServiceContext context);
 

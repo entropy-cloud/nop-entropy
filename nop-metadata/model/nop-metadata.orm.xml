@@ -24,10 +24,10 @@
             <option code="REST" label="REST接口" value="rest" i18n-en:label="REST"/>
             <option code="FILE" label="文件" value="file" i18n-en:label="File"/>
         </dict>
-        <dict label="逻辑表类型" name="meta/table-type" valueType="string" i18n-en:label="Table Type">
-            <option code="ENTITY" label="实体表" value="entity" i18n-en:label="Entity"/>
-            <option code="SQL" label="SQL视图" value="sql" i18n-en:label="SQL"/>
-            <option code="EXTERNAL" label="外部表" value="external" i18n-en:label="External"/>
+        <dict label="实体类型" name="meta/entity-kind" valueType="string" i18n-en:label="Entity Kind">
+            <option code="PHYSICAL" label="物理表" value="PHYSICAL" i18n-en:label="Physical"/>
+            <option code="SQL_VIEW" label="SQL视图" value="SQL_VIEW" i18n-en:label="SQL View"/>
+            <option code="EXTERNAL" label="外部表" value="EXTERNAL" i18n-en:label="External"/>
         </dict>
         <dict label="关系类型" name="meta/relation-type" valueType="string" i18n-en:label="Relation Type">
             <option code="TO_ONE" label="一对一/多对一" value="to-one" i18n-en:label="To-One"/>
@@ -84,7 +84,7 @@
         </dict>
         <dict label="质量对象类型" name="meta/quality-entity-type" valueType="string" i18n-en:label="Quality Entity Type">
             <option code="FIELD" label="字段" value="field" i18n-en:label="Field"/>
-            <option code="TABLE" label="表" value="table" i18n-en:label="Table"/>
+            <option code="ENTITY" label="实体" value="entity" i18n-en:label="Entity"/>
             <option code="DATABASE" label="数据库" value="database" i18n-en:label="Database"/>
         </dict>
         <dict label="质量严重级别" name="meta/quality-severity" valueType="string" i18n-en:label="Quality Severity">
@@ -327,8 +327,8 @@
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
                     </join>
                 </to-many>
-                <to-many displayName="逻辑表集" name="tables"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="metaModule"
+                <to-many displayName="实体集" name="entities"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="metaModule"
                          tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Tables">
                     <join>
                         <on leftProp="metaModuleId" rightProp="metaModuleId"/>
@@ -640,6 +640,17 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="31"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                <column code="ENTITY_KIND" displayName="实体类型" mandatory="true" name="entityKind" precision="20"
+                        propId="32" stdDataType="string" stdSqlType="VARCHAR" ext:dict="meta/entity-kind"
+                        i18n-en:displayName="Entity Kind"/>
+                <column code="SOURCE_SQL" displayName="来源SQL" domain="mediumtext" name="sourceSql"
+                        precision="16777215" propId="33" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="sensitive" i18n-en:displayName="Source Sql"/>
+                <column code="EXTERNAL_COLUMNS" displayName="外部列结构" domain="mediumtext" name="externalColumns"
+                        precision="16777215" propId="34" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="sensitive" i18n-en:displayName="External Columns"/>
+                <column code="META_MODULE_ID" displayName="模块ID" mandatory="true" name="metaModuleId" precision="32"
+                        propId="35" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Module Id"/>
             </columns>
             <relations>
                 <to-one displayName="ORM模型" name="ormModel"
@@ -678,17 +689,115 @@
                     </join>
                 </to-many>
                 <to-many displayName="作为左实体的关联集" name="joinAsLeft"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="leftEntity"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityJoin" refPropName="leftEntity"
                          tagSet="pub,ref-pub" i18n-en:displayName="Joins As Left">
                     <join>
                         <on leftProp="metaEntityId" rightProp="leftEntityId"/>
                     </join>
                 </to-many>
                 <to-many displayName="作为右实体的关联集" name="joinAsRight"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="rightEntity"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityJoin" refPropName="rightEntity"
                          tagSet="pub,ref-pub" i18n-en:displayName="Joins As Right">
                     <join>
                         <on leftProp="metaEntityId" rightProp="rightEntityId"/>
+                    </join>
+                </to-many>
+                <to-one displayName="元数据模块" name="metaModule"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaModule" refPropName="entities"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
+                    <join>
+                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
+                    </join>
+                </to-one>
+                <to-many displayName="实体维度集" name="dimensions"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityDimension" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Dimensions">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体指标集" name="measures"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityMeasure" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Measures">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体过滤器集" name="filters"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityFilter" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Filters">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="实体关联集" name="joins"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityJoin" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Joins">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为血缘源实体的边集" name="lineageAsSource"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="sourceEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage Edges As Source">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="sourceEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="作为血缘目标实体的边集" name="lineageAsTarget"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="targetEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Lineage Edges As Target">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="targetEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="运行时统计快照集" name="catalogs"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaCatalog" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Catalogs">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据剖析规则集" name="profilingRules"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Rules">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据剖析结果集" name="profilingResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Profiling Results">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="质量评分集" name="qualityScores"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityScore" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Quality Scores">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="数据契约集" name="dataContracts"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaDataContract" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Data Contracts">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="对账配置集" name="reconciliationConfigs"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Configs">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="对账结果集" name="reconciliationResults"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" i18n-en:displayName="Reconciliation Results">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-many>
             </relations>
@@ -704,6 +813,9 @@
                 </index>
                 <index name="IX_NOP_META_ENTITY_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
+                </index>
+                <index name="IX_NOP_META_ENTITY_MODULE" unique="false">
+                    <column name="metaModuleId"/>
                 </index>
             </indexes>
             <unique-keys>
@@ -1260,213 +1372,23 @@
         </entity>
 
         <!-- =====================================================
-             NopMetaTable: 逻辑表（BI 语义层核心）
+             NopMetaEntity: 逻辑表（BI 语义层核心）
              包装 ORM 实体或 SQL 定义，叠加维度/指标/过滤器/关联
              ===================================================== -->
-        <entity className="io.nop.metadata.dao.entity.NopMetaTable" createTimeProp="createTime"
-                createrProp="createdBy" displayName="逻辑表" name="io.nop.metadata.dao.entity.NopMetaTable"
-                registerShortName="true" tableName="nop_meta_table" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" ext:icon="layout-grid"
-                i18n-en:displayName="Meta Table">
-            <columns>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Meta Table Id"/>
-                <column code="META_MODULE_ID" displayName="模块版本ID" mandatory="true" name="metaModuleId"
-                        precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Meta Module Id"/>
-                <column code="IS_DELTA" displayName="是否Delta" domain="boolFlag" mandatory="true" name="isDelta"
-                        propId="3" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
-                <column code="TABLE_NAME" displayName="表名" mandatory="true" name="tableName" precision="100"
-                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Name"/>
-                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="TABLE_TYPE" displayName="表类型" mandatory="true" name="tableType" precision="20"
-                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Table Type"
-                        ext:dict="meta/table-type"/>
-                <column code="QUERY_SPACE" displayName="查询空间" name="querySpace" precision="100" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Query Space"/>
-                <column code="SOURCE_SQL" displayName="来源SQL" domain="mediumtext" name="sourceSql"
-                        precision="16777215" propId="8" stdDataType="string" stdSqlType="VARCHAR"
-                        tagSet="sensitive" i18n-en:displayName="Source Sql"/>
-                <column code="BASE_ENTITY_ID" displayName="主要实体ID" name="baseEntityId" precision="32" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Entity Id"/>
-                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="10"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
-                <column code="BUILD_SQL" displayName="合成SQL" domain="mediumtext" name="buildSql"
-                        precision="16777215" propId="11" stdDataType="string" stdSqlType="VARCHAR"
-                        tagSet="sensitive" i18n-en:displayName="Build Sql"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
-                        propId="12" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
-                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
-                        name="createTime" propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP"
-                        i18n-en:displayName="Create Time"/>
-                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Updated By"/>
-                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
-                        name="updateTime" propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP"
-                        i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="META_SCHEMA" displayName="源schema" name="metaSchema" precision="100" propId="18"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Schema"/>
-                <column code="BUSINESS_DOMAIN_ID" displayName="业务域ID" name="businessDomainId" precision="32"
-                        propId="19" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Business Domain Id"/>
-            </columns>
-            <unique-keys>
-                <unique-key name="UK_NOP_META_TABLE_MODULE_NAME" columns="metaModuleId,tableName,isDelta,metaSchema" constraint="UK_NOP_META_TABLE_MODULE_NAME"
-                            i18n-en:displayName="Unique Table Name Per Module"/>
-            </unique-keys>
-            <relations>
-                <to-one displayName="元数据模块" name="metaModule"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaModule" refPropName="tables"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Module">
-                    <join>
-                        <on leftProp="metaModuleId" rightProp="metaModuleId"/>
-                    </join>
-                </to-one>
-                <to-many displayName="表维度集" name="dimensions"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableDimension" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Dimensions">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="表指标集" name="measures"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableMeasure" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Measures">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="表过滤器集" name="filters"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableFilter" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Filters">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="表关联集" name="joins"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="作为左表的关联集" name="joinAsLeftTable"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="leftTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins As Left Table">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="leftTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="作为右表的关联集" name="joinAsRightTable"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaTableJoin" refPropName="rightTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Joins As Right Table">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="rightTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="作为血缘源表的边集" name="lineageAsSource"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="sourceTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Lineage As Source">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="sourceTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="作为血缘目标表的边集" name="lineageAsTarget"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaLineageEdge" refPropName="targetTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Lineage As Target">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="targetTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="运行时统计快照集" name="catalogs"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaCatalog" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Catalogs">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="数据剖析规则集" name="profilingRules"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingRule" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Profiling Rules">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="数据剖析结果集" name="profilingResults"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaProfilingResult" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Profiling Results">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="质量评分集" name="qualityScores"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaQualityScore" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Quality Scores">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="数据契约集" name="dataContracts"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaDataContract" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Data Contracts">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="对账配置集" name="reconciliationConfigs"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationConfig" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Configs">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="对账结果集" name="reconciliationResults"
-                         refEntityName="io.nop.metadata.dao.entity.NopMetaReconciliationResult" refPropName="metaTable"
-                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Reconciliation Results">
-                    <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-many>
-            </relations>
-            <indexes>
-                <index name="IX_NOP_META_TABLE_MODULE" unique="false">
-                    <column name="metaModuleId"/>
-                </index>
-                <index name="IX_NOP_META_TABLE_BUSINESS_DOMAIN" unique="false">
-                    <column name="businessDomainId"/>
-                </index>
-                <index name="IX_NOP_META_TABLE_MODULE_SCHEMA_NAME" unique="false">
-                    <column name="metaModuleId"/>
-                    <column name="metaSchema"/>
-                    <column name="tableName"/>
-                </index>
-                <index name="IX_NOP_META_TABLE_BASE_ENTITY" unique="false">
-                    <column name="baseEntityId"/>
-                </index>
-            </indexes>
-        </entity>
-
+        
         <!-- =====================================================
-             NopMetaTableDimension: 表维度（BI 语义层）
+             NopMetaEntityDimension: 表维度（BI 语义层）
              ===================================================== -->
-        <entity className="io.nop.metadata.dao.entity.NopMetaTableDimension" createTimeProp="createTime"
-                createrProp="createdBy" displayName="表维度" name="io.nop.metadata.dao.entity.NopMetaTableDimension"
-                registerShortName="true" tableName="nop_meta_table_dimension" updateTimeProp="updateTime"
+        <entity className="io.nop.metadata.dao.entity.NopMetaEntityDimension" createTimeProp="createTime"
+                createrProp="createdBy" displayName="实体维度" name="io.nop.metadata.dao.entity.NopMetaEntityDimension"
+                registerShortName="true" tableName="nop_meta_entity_dimension" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="milestone"
-                i18n-en:displayName="Meta Table Dimension">
+                i18n-en:displayName="Meta Entity Dimension">
             <columns>
                 <column code="DIMENSION_ID" displayName="维度ID" mandatory="true" name="dimensionId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="Dimension Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="DIMENSION_NAME" displayName="维度名" mandatory="true" name="dimensionName" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dimension Name"/>
@@ -1510,17 +1432,17 @@
                         ext:dict="meta/join-side"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="dimensions"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="dimensions"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_DIM_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
                 <index name="IX_NOP_META_DIM_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
@@ -1530,24 +1452,24 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key name="UK_NOP_META_DIM_TABLE_NAME" columns="metaTableId,dimensionName" constraint="UK_NOP_META_DIM_TABLE_NAME"
+                <unique-key name="UK_NOP_META_DIM_TABLE_NAME" columns="metaEntityId,dimensionName" constraint="UK_NOP_META_DIM_TABLE_NAME"
                             i18n-en:displayName="Unique Dimension Name Per Table"/>
             </unique-keys>
         </entity>
 
         <!-- =====================================================
-             NopMetaTableMeasure: 表指标（BI 语义层）
+             NopMetaEntityMeasure: 表指标（BI 语义层）
              ===================================================== -->
-        <entity className="io.nop.metadata.dao.entity.NopMetaTableMeasure" createTimeProp="createTime"
-                createrProp="createdBy" displayName="表指标" name="io.nop.metadata.dao.entity.NopMetaTableMeasure"
-                registerShortName="true" tableName="nop_meta_table_measure" updateTimeProp="updateTime"
+        <entity className="io.nop.metadata.dao.entity.NopMetaEntityMeasure" createTimeProp="createTime"
+                createrProp="createdBy" displayName="实体指标" name="io.nop.metadata.dao.entity.NopMetaEntityMeasure"
+                registerShortName="true" tableName="nop_meta_entity_measure" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="calculator"
-                i18n-en:displayName="Meta Table Measure">
+                i18n-en:displayName="Meta Entity Measure">
             <columns>
                 <column code="MEASURE_ID" displayName="指标ID" mandatory="true" name="measureId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="Measure Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="MEASURE_NAME" displayName="指标名" mandatory="true" name="measureName" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Measure Name"/>
@@ -1593,17 +1515,17 @@
                         ext:dict="meta/join-side"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="measures"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="measures"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_MEASURE_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
                 <index name="IX_NOP_META_MEASURE_BUSINESS_DOMAIN" unique="false">
                     <column name="businessDomainId"/>
@@ -1613,24 +1535,24 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key name="UK_NOP_META_MEASURE_TABLE_NAME" columns="metaTableId,measureName" constraint="UK_NOP_META_MEASURE_TABLE_NAME"
+                <unique-key name="UK_NOP_META_MEASURE_TABLE_NAME" columns="metaEntityId,measureName" constraint="UK_NOP_META_MEASURE_TABLE_NAME"
                             i18n-en:displayName="Unique Measure Name Per Table"/>
             </unique-keys>
         </entity>
 
         <!-- =====================================================
-             NopMetaTableFilter: 表过滤器（数据分片）
+             NopMetaEntityFilter: 表过滤器（数据分片）
              ===================================================== -->
-        <entity className="io.nop.metadata.dao.entity.NopMetaTableFilter" createTimeProp="createTime"
-                createrProp="createdBy" displayName="表过滤器" name="io.nop.metadata.dao.entity.NopMetaTableFilter"
-                registerShortName="true" tableName="nop_meta_table_filter" updateTimeProp="updateTime"
+        <entity className="io.nop.metadata.dao.entity.NopMetaEntityFilter" createTimeProp="createTime"
+                createrProp="createdBy" displayName="实体过滤器" name="io.nop.metadata.dao.entity.NopMetaEntityFilter"
+                registerShortName="true" tableName="nop_meta_entity_filter" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="filter"
-                i18n-en:displayName="Meta Table Filter">
+                i18n-en:displayName="Meta Entity Filter">
             <columns>
                 <column code="FILTER_ID" displayName="过滤器ID" mandatory="true" name="filterId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="Filter Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="FILTER_NAME" displayName="过滤器名" mandatory="true" name="filterName" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Filter Name"/>
@@ -1664,51 +1586,42 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="filters"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="filters"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_FILTER_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key name="UK_NOP_META_FILTER_TABLE_NAME" columns="metaTableId,filterName" constraint="UK_NOP_META_FILTER_TABLE_NAME"
+                <unique-key name="UK_NOP_META_FILTER_TABLE_NAME" columns="metaEntityId,filterName" constraint="UK_NOP_META_FILTER_TABLE_NAME"
                             i18n-en:displayName="Unique Filter Name Per Table"/>
             </unique-keys>
         </entity>
 
         <!-- =====================================================
-             NopMetaTableJoin: 表关联（跨表关联）
+             NopMetaEntityJoin: 表关联（跨表关联）
 
-             [integrity] DUAL FK SYSTEM — NopMetaTableJoin has two independent FK sets:
-               1. Entity-level: leftEntityId / rightEntityId → NopMetaEntity
-               2. Table-level:  leftTableId  / rightTableId  → NopMetaTable
-             Endpoint-level exclusivity (architecture baseline §2.5.2 D4 / plan
-             0700-1 Phase 1 D1): each endpoint (left/right) independently references
-             exactly one endpoint form — {entityId, tableId} both set is rejected,
-             both empty is rejected. There is NO cross-side (row-level) constraint:
-             mixed rows (e.g. left = entity endpoint, right = table endpoint) are
-             legal; each side is validated independently. Table endpoints must have
-             tableType external/sql (entity-type logical tables belong to the entity
-             path). Enforced at write time by NopMetaTableJoinBizModel.validateJoinSide;
-             the ORM model does not enforce it declaratively.
+             [integrity] Entity-only endpoints (2026-09-14 concept reduction):
+               leftEntityId / rightEntityId → NopMetaEntity. The former dual FK
+               system: former table-endpoint FKs were removed.
              ===================================================== -->
-        <entity className="io.nop.metadata.dao.entity.NopMetaTableJoin" createTimeProp="createTime"
-                createrProp="createdBy" displayName="表关联" name="io.nop.metadata.dao.entity.NopMetaTableJoin"
-                registerShortName="true" tableName="nop_meta_table_join" updateTimeProp="updateTime"
+        <entity className="io.nop.metadata.dao.entity.NopMetaEntityJoin" createTimeProp="createTime"
+                createrProp="createdBy" displayName="实体关联" name="io.nop.metadata.dao.entity.NopMetaEntityJoin"
+                registerShortName="true" tableName="nop_meta_entity_join" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" ext:icon="merge"
-                i18n-en:displayName="Meta Table Join">
+                i18n-en:displayName="Meta Entity Join">
             <columns>
                 <column code="JOIN_ID" displayName="关联ID" mandatory="true" name="joinId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
                         i18n-en:displayName="Join Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="JOIN_TYPE" displayName="关联类型" mandatory="true" name="joinType" precision="20"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Type"
@@ -1739,17 +1652,13 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
-                <column code="LEFT_TABLE_ID" displayName="左表ID" name="leftTableId" precision="32" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Left Table Id"/>
-                <column code="RIGHT_TABLE_ID" displayName="右表ID" name="rightTableId" precision="32" propId="16"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Right Table Id"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="joins"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="joins"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-one displayName="左实体" name="leftEntity"
@@ -1766,30 +1675,10 @@
                         <on leftProp="rightEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
-                <to-one displayName="左表" name="leftTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="joinAsLeftTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Left Table">
-                    <join>
-                        <on leftProp="leftTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-one>
-                <to-one displayName="右表" name="rightTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="joinAsRightTable"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Right Table">
-                    <join>
-                        <on leftProp="rightTableId" rightProp="metaTableId"/>
-                    </join>
-                </to-one>
-            </relations>
+                            </relations>
             <indexes>
                 <index name="IX_NOP_META_JOIN_TABLE" unique="false">
-                    <column name="metaTableId"/>
-                </index>
-                <index name="IX_NOP_META_JOIN_LEFT_TABLE" unique="false">
-                    <column name="leftTableId"/>
-                </index>
-                <index name="IX_NOP_META_JOIN_RIGHT_TABLE" unique="false">
-                    <column name="rightTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
                 <index name="IX_NOP_META_JOIN_LEFT_ENTITY" unique="false">
                     <column name="leftEntityId"/>
@@ -1799,7 +1688,7 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key name="UK_NOP_META_JOIN_TABLE_ALIAS" columns="metaTableId,alias" constraint="UK_NOP_META_JOIN_TABLE_ALIAS"
+                <unique-key name="UK_NOP_META_JOIN_TABLE_ALIAS" columns="metaEntityId,alias" constraint="UK_NOP_META_JOIN_TABLE_ALIAS"
                             i18n-en:displayName="Unique Join Alias Per Table"/>
             </unique-keys>
         </entity>
@@ -1891,10 +1780,10 @@
                 <column code="LINEAGE_EDGE_ID" displayName="血缘边ID" mandatory="true" name="lineageEdgeId"
                         precision="32" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         tagSet="seq" i18n-en:displayName="Lineage Edge Id"/>
-                <column code="SOURCE_TABLE_ID" displayName="源表ID" mandatory="true" name="sourceTableId"
+                <column code="SOURCE_TABLE_ID" displayName="源表ID" mandatory="true" name="sourceEntityId"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Source Table Id"/>
-                <column code="TARGET_TABLE_ID" displayName="目标表ID" mandatory="true" name="targetTableId"
+                <column code="TARGET_TABLE_ID" displayName="目标表ID" mandatory="true" name="targetEntityId"
                         precision="32" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Target Table Id"/>
                 <column code="SOURCE_COLUMN" displayName="源列名" name="sourceColumn" precision="100" propId="4"
@@ -1936,24 +1825,24 @@
             <unique-keys>
                 <!-- 列级血缘的自然键 = 源表+源列+目标表+目标列（代码 dedup key sourceId|sourceColumn|targetColumn）；
                      表级边（sourceColumn/targetColumn 为 NULL）在 H2/MySQL/PostgreSQL 唯一索引中 NULL 视为互异，
-                     不互相冲突。原先声明为 (sourceTableId,targetTableId,transformType) 会把同一表对的多条列级边
+                     不互相冲突。原先声明为 (sourceEntityId,targetEntityId,transformType) 会把同一表对的多条列级边
                      （如 x<-a 与 y<-b）误判为重复（MR3 R3.19 发射 UK 后暴露），故按代码语义修正。 -->
-                <unique-key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" columns="sourceTableId,sourceColumn,targetTableId,targetColumn" constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
+                <unique-key name="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE" columns="sourceEntityId,sourceColumn,targetEntityId,targetColumn" constraint="UK_NOP_META_LINEAGE_EDGE_SRC_TGT_TYPE"
                             i18n-en:displayName="Unique Lineage Edge Per Source-Column-Target-Column"/>
             </unique-keys>
             <relations>
-                <to-one displayName="源表" name="sourceTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="lineageAsSource"
+                <to-one displayName="源表" name="sourceEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="lineageAsSource"
                         tagSet="pub,ref-pub" i18n-en:displayName="Source Table">
                     <join>
-                        <on leftProp="sourceTableId" rightProp="metaTableId"/>
+                        <on leftProp="sourceEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
-                <to-one displayName="目标表" name="targetTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="lineageAsTarget"
+                <to-one displayName="目标表" name="targetEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="lineageAsTarget"
                         tagSet="pub,ref-pub" i18n-en:displayName="Target Table">
                     <join>
-                        <on leftProp="targetTableId" rightProp="metaTableId"/>
+                        <on leftProp="targetEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-one displayName="数据管道" name="pipeline"
@@ -1966,10 +1855,10 @@
             </relations>
             <indexes>
                 <index name="IX_NOP_META_LINEAGE_SOURCE" unique="false">
-                    <column name="sourceTableId"/>
+                    <column name="sourceEntityId"/>
                 </index>
                 <index name="IX_NOP_META_LINEAGE_TARGET" unique="false">
-                    <column name="targetTableId"/>
+                    <column name="targetEntityId"/>
                 </index>
                 <index name="IX_NOP_META_LINEAGE_PIPELINE" unique="false">
                     <column name="pipelineId"/>
@@ -2307,7 +2196,7 @@
                 <column code="META_CATALOG_ID" displayName="统计快照ID" mandatory="true" name="metaCatalogId"
                         precision="32" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         tagSet="seq" i18n-en:displayName="Meta Catalog Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Meta Table Id"/>
                 <column code="ROW_COUNT" displayName="行数" mandatory="true" name="rowCount" propId="3"
@@ -2343,17 +2232,17 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="catalogs"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="catalogs"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_CATALOG_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                     <column name="collectedAt"/>
                 </index>
             </indexes>
@@ -2376,7 +2265,7 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="META_TABLE_ID" displayName="剖析表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="剖析表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="COLUMNS" displayName="剖析列" domain="json-4000" name="columns"
                         propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
@@ -2407,11 +2296,11 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="profilingRules"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="profilingRules"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-many displayName="剖析结果集" name="results"
@@ -2424,11 +2313,11 @@
             </relations>
             <indexes>
                 <index name="IX_NOP_META_PROFRULE_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key name="UK_NOP_META_PROFRULE_TABLE_NAME" columns="metaTableId,ruleName" constraint="UK_NOP_META_PROFRULE_TABLE_NAME"
+                <unique-key name="UK_NOP_META_PROFRULE_TABLE_NAME" columns="metaEntityId,ruleName" constraint="UK_NOP_META_PROFRULE_TABLE_NAME"
                             i18n-en:displayName="Unique Profiling Rule Name Per Table"/>
             </unique-keys>
         </entity>
@@ -2449,7 +2338,7 @@
                 <column code="PROFILING_RULE_ID" displayName="剖析规则ID" name="profilingRuleId"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Profiling Rule Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId"
                         precision="32" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Meta Table Id"/>
                 <column code="SNAPSHOT_TIME" displayName="快照时间" mandatory="true" name="snapshotTime" propId="4"
@@ -2485,11 +2374,11 @@
                         <on leftProp="profilingRuleId" rightProp="profilingRuleId"/>
                     </join>
                 </to-one>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="profilingResults"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="profilingResults"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
@@ -2499,7 +2388,7 @@
                     <column name="snapshotTime"/>
                 </index>
                 <index name="IX_NOP_META_PROF_RESULT_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
             </indexes>
         </entity>
@@ -2523,7 +2412,7 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Contract Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
-                <column code="META_TABLE_ID" displayName="关联数据表ID" name="metaTableId" precision="32" propId="4"
+                <column code="META_ENTITY_ID" displayName="关联数据表ID" name="metaEntityId" precision="32" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="STATUS" displayName="契约状态" mandatory="true" name="status" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
@@ -2575,17 +2464,17 @@
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Approved At"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="dataContracts"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="dataContracts"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_CONTRACT_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
             </indexes>
             <unique-keys>
@@ -2613,7 +2502,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="META_MODULE_ID" displayName="模块版本ID" name="metaModuleId" precision="32" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Module Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="COLUMN_NAME" displayName="待对账列名" mandatory="true" name="columnName" precision="100"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Column Name"/>
@@ -2651,11 +2540,11 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="reconciliationConfigs"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="reconciliationConfigs"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
                 <to-one displayName="元数据模块" name="metaModule"
@@ -2675,7 +2564,7 @@
             </relations>
             <indexes>
                 <index name="IX_NOP_META_RECONCILIATION_CONFIG_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
                 <index name="IX_NOP_META_RECONCILIATION_CONFIG_MODULE" unique="false">
                     <column name="metaModuleId"/>
@@ -2702,7 +2591,7 @@
                         i18n-en:displayName="Result Id"/>
                 <column code="CONFIG_ID" displayName="配置ID" mandatory="true" name="configId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Config Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId"
                         precision="32" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Meta Table Id"/>
                 <column code="EXECUTE_TIME" displayName="执行时间" mandatory="true" name="executeTime" propId="4"
@@ -2741,11 +2630,11 @@
                         <on leftProp="configId" rightProp="configId"/>
                     </join>
                 </to-one>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="reconciliationResults"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="reconciliationResults"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
@@ -2755,7 +2644,7 @@
                     <column name="executeTime"/>
                 </index>
                 <index name="IX_NOP_META_RECONCILIATION_RESULT_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                 </index>
             </indexes>
         </entity>
@@ -2770,7 +2659,7 @@
                 versionProp="version" ext:icon="list-checks"
                 i18n-en:displayName="Meta Reconciliation Entity">
             <!-- 无 relations：NopMetaReconciliationEntity 是候选实体缓存，用于对账匹配候选集来源（P4-5 组件），
-                 不直接 FK 到 NopMetaTable 或其他实体。其 entityId/entityType 字段仅用于标识匹配目标，
+                 不直接 FK 到 NopMetaEntity 或其他实体。其 entityId/entityType 字段仅用于标识匹配目标，
                  不通过 ORM 关联加载。这是有意的设计决策，参见 04-data-governance.md §4。 -->
             <columns>
                 <column code="RECON_ENTITY_ID" displayName="对账实体ID" mandatory="true" name="reconEntityId"
@@ -2824,7 +2713,7 @@
         <!-- =====================================================
              NopMetaQualityScore: 质量评分（per-table 时序评分行）
              基于 NopMetaQualityResult 的 PASS/FAIL/ERROR 计算维度分 + 总分 + 趋势
-             v1 仅 table 级（metaTableId 直接 FK，entity 级评分见 deferred）
+             v1 仅 table 级（metaEntityId 直接 FK，entity 级评分见 deferred）
              ===================================================== -->
         <entity className="io.nop.metadata.dao.entity.NopMetaQualityScore" createTimeProp="createTime"
                 createrProp="createdBy" displayName="质量评分" name="io.nop.metadata.dao.entity.NopMetaQualityScore"
@@ -2835,7 +2724,7 @@
                 <column code="QUALITY_SCORE_ID" displayName="评分ID" mandatory="true" name="qualityScoreId"
                         precision="32" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         tagSet="seq" i18n-en:displayName="Quality Score Id"/>
-                <column code="META_TABLE_ID" displayName="逻辑表ID" mandatory="true" name="metaTableId" precision="32"
+                <column code="META_ENTITY_ID" displayName="逻辑表ID" mandatory="true" name="metaEntityId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
                 <column code="SCORE_TIME" displayName="评分时间" mandatory="true" name="scoreTime" propId="3"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Score Time"/>
@@ -2871,17 +2760,17 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
-                <to-one displayName="逻辑表" name="metaTable"
-                        refEntityName="io.nop.metadata.dao.entity.NopMetaTable" refPropName="qualityScores"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Table">
+                <to-one displayName="实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="qualityScores"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
                     <join>
-                        <on leftProp="metaTableId" rightProp="metaTableId"/>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-one>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_QSCORE_TABLE" unique="false">
-                    <column name="metaTableId"/>
+                    <column name="metaEntityId"/>
                     <column name="scoreTime"/>
                 </index>
             </indexes>

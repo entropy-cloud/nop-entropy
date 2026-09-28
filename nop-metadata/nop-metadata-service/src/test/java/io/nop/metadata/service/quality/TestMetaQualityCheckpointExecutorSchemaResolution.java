@@ -6,8 +6,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * AR-07（plan 2026-08-06-0553-3 Phase 2）：检查点路径 schema 解析与单规则路径语义一致——
- * schemaPattern 为 null/空时回退目标表 NopMetaTable.metaSchema（此前原样透传恒 null，
+ * schemaPattern 为 null/空时回退目标表 NopMetaEntity.metaSchema（此前原样透传恒 null，
  * 同一条规则两个入口评估不同的物理表）。
  *
  * <p>接线验证（Exit Criteria）：MetaQualityCheckpointExecutor → tableRefExecutor.execute →
@@ -48,21 +48,22 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
         rule.setQualityRuleId(RULE_ID);
         rule.setRuleName("schema-rule");
         rule.setRuleType("volume");
-        rule.setEntityType(_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_TABLE);
+        // plan 2261：QUALITY_ENTITY_TYPE_TABLE 随表概念删除，实体路径用 QUALITY_ENTITY_TYPE_ENTITY
+        rule.setEntityType(_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_ENTITY);
         rule.setEntityId(TABLE_ID);
         when(ruleDao.getEntityById(RULE_ID)).thenReturn(rule);
         when(daoProvider.daoFor(NopMetaQualityRule.class)).thenReturn(ruleDao);
 
-        IEntityDao<NopMetaTable> tableDao = (IEntityDao<NopMetaTable>) mock(IEntityDao.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId(TABLE_ID);
+        IEntityDao<NopMetaEntity> tableDao = (IEntityDao<NopMetaEntity>) mock(IEntityDao.class);
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId(TABLE_ID);
         table.setTableName("EXT_SCHEMA_TABLE");
-        table.setMetaSchema("META_SCHEMA_X");
+        table.setDbSchema("META_SCHEMA_X");
         table.setQuerySpace("qs-schema-test");
         when(tableDao.getEntityById(TABLE_ID)).thenReturn(table);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tableDao);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tableDao);
 
-        MetaTableReferenceResolver tableRefResolver = mock(MetaTableReferenceResolver.class);
+        MetaEntityReferenceResolver tableRefResolver = mock(MetaEntityReferenceResolver.class);
         TableReferenceExecutor tableRefExecutor = mock(TableReferenceExecutor.class);
         // 真实调用 action（模拟 TableReferenceExecutor 的分派），使 judge 实参可捕获
         when(tableRefExecutor.execute(any(), any())).thenAnswer(invocation -> {
@@ -93,7 +94,7 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
 
     /** AR-07 判别性主用例：schemaPattern=null → judge 收到 table.metaSchema 回退值（修复前收到 null → red）。 */
     @Test
-    public void testSchemaPatternNullFallsBackToTableMetaSchema() {
+    public void testSchemaPatternNullFallsBackToTableDbSchema() {
         MetaQualityRuleExecutor ruleExecutor = mock(MetaQualityRuleExecutor.class);
         when(ruleExecutor.judge(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(passJudgment());
@@ -112,7 +113,7 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
 
     /** 显式 schemaPattern 优先于 metaSchema（与单规则路径 resolveDefaultSchema 语义一致）。 */
     @Test
-    public void testExplicitSchemaPatternWinsOverMetaSchema() {
+    public void testExplicitSchemaPatternWinsOverDbSchema() {
         MetaQualityRuleExecutor ruleExecutor = mock(MetaQualityRuleExecutor.class);
         when(ruleExecutor.judge(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(passJudgment());
@@ -129,7 +130,7 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
 
     /** 空串 schemaPattern 也走 metaSchema 回退（resolveDefaultSchema 的 trim 语义）。 */
     @Test
-    public void testBlankSchemaPatternFallsBackToTableMetaSchema() {
+    public void testBlankSchemaPatternFallsBackToTableDbSchema() {
         MetaQualityRuleExecutor ruleExecutor = mock(MetaQualityRuleExecutor.class);
         when(ruleExecutor.judge(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(passJudgment());

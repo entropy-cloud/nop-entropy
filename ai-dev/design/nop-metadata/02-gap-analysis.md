@@ -16,7 +16,7 @@
 |------|----------|------|
 | 模块 ORM 模型导入 | ✅ MetaOrmModel + Delta 版本 | 已设计 |
 | 结构化实体拆解 | ✅ MetaEntity/Field/Relation/Domain/Dict | 已设计 |
-| 逻辑表 (BI 语义层) | ✅ MetaTable + Measure + Join | 已设计 |
+| 逻辑表 (BI 语义层) | ✅ MetaEntity + Measure + Join | 已设计 |
 | **Delta 版本管理** | ✅ MetaModule 版本 + isDelta + baseModuleId | 已设计（模块级） |
 | 模块发现 | ✅ 配置式/自动扫描 | 已设计 |
 | **数据血缘** | ✅ MetaLineageEdge + MetaPipeline | 已设计 |
@@ -52,7 +52,7 @@ MetaSearchConfig                 — 搜索索引配置（存储在 extConfig �
 ```
 
 实现路径:
-1. MetaEntity/MetaTable 导入时，构建 `SearchableDoc` 写入 ISearchEngine
+1. MetaEntity/MetaEntity 导入时，构建 `SearchableDoc` 写入 ISearchEngine
 2. 搜索配置存放在实体的 `extConfig` JSON 中，无需新表
 3. 利用 ISearchEngine 的 topic 机制按实体类型分组索引
 
@@ -71,7 +71,7 @@ MetaSearchConfig                 — 搜索索引配置（存储在 extConfig �
 ```java
 // 元数据变更事件
 public class MetaModelChangedEvent {
-    String entityType;        // "MetaEntity" | "MetaTable" | "MetaOrmModel"
+    String entityType;        // "MetaEntity" | "MetaOrmModel"（plan 2261 后 Table 系并入 MetaEntity）
     String entityId;
     ChangeType changeType;    // CREATE | UPDATE | DELETE | RESTORE
     String changeSource;      // IMPORT | UI | API | SYNC
@@ -173,7 +173,7 @@ public class MetaModelChangedEvent {
 - `SearchRequest` 支持 `similarityThreshold` 参数
 
 **实现路径:**
-- MetaEntity/MetaTable 导入时自动生成 embedding（调用 LLM 生成摘要 → 向量化）
+- MetaEntity/MetaEntity 导入时自动生成 embedding（调用 LLM 生成摘要 → 向量化）
 - 利用 ISearchEngine 的 HYBRID 模式实现语义搜索
 - 无需额外开发，直接复用 nop-search 模块
 

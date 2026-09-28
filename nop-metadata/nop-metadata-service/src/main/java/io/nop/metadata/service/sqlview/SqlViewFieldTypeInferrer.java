@@ -28,13 +28,13 @@ import java.util.function.BiConsumer;
 
 /**
  * SQL 视图字段类型推断器（架构基线 §4.2.1 方案 B，plan 0900-1）：经 {@code LIMIT 0} + {@link ResultSetMetaData#getColumnTypeName}
- * 推断 tableType=sql 逻辑表的 sourceSql 输出列字段类型，补全 {@link SqlViewField#getType()}（方案 A 下恒为 null）。
+ * 推断 entityKind=sql 逻辑表的 sourceSql 输出列字段类型，补全 {@link SqlViewField#getType()}（方案 A 下恒为 null）。
  *
  * <p><b>独立组件，不破坏既有契约（plan 0900-1 R1 M3 修复）</b>：
  * <ul>
  *   <li>不修改 {@link SqlSelectFieldExtractor}（保持其"无状态、无 DB 连接"契约）。</li>
- *   <li>不修改 {@code MetaTableFieldResolver}（plan 0900-1 R2 N1 修复——10+ 调用方仅消费 name，不应触发 DB 连接）。
- *       类型推断在 BizModel 层（{@code NopMetaTableBizModel.resolveTableFields} / {@code createSqlTable}）
+ *   <li>不修改 {@code MetaEntityFieldResolver}（plan 0900-1 R2 N1 修复——10+ 调用方仅消费 name，不应触发 DB 连接）。
+ *       类型推断在 BizModel 层（{@code NopMetaEntityBizModel.resolveEntityFields} / {@code createSqlView}）
  *       作为 resolve 之后的独立补全步骤。</li>
  * </ul>
  *
@@ -97,7 +97,7 @@ public class SqlViewFieldTypeInferrer {
      * + ResultSetMetaData 取列类型，按 D3 列序对齐补全到新 SqlViewField 列表返回。
      *
      * @param fields      方案 A 已解析的字段列表（name/alias 已就绪，type 恒 null）
-     * @param sourceSql   视图定义 SQL（tableType=sql 的 NopMetaTable.sourceSql）
+     * @param sourceSql   视图定义 SQL（entityKind=sql 的 NopMetaEntity.sourceSql）
      * @param querySpace  查询空间；null/空 → 不推断（原样返回 fields）
      * @param dsDao       数据源 DAO（由调用方通过 {@code daoFor(NopMetaDataSource.class)} 获取）
      * @return type 已补全的 SqlViewField 列表（querySpace 空 → 原样 fields）；永不 null
@@ -116,7 +116,7 @@ public class SqlViewFieldTypeInferrer {
         // 列数前置校验（用于失败时的清晰错误）
         final int expectedCount = fields.size();
 
-        // R2 N3：withConnection 返回 void，用 holder-array 侧效收集结果（参考 NopMetaTableBizModel:615/638）
+        // R2 N3：withConnection 返回 void，用 holder-array 侧效收集结果（参考 NopMetaEntityBizModel:615/638）
         @SuppressWarnings("unchecked")
         final List<SqlViewField>[] holder = (List<SqlViewField>[]) new List<?>[1];
         connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),

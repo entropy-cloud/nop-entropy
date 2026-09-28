@@ -5,12 +5,11 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
@@ -46,7 +45,7 @@ import static org.mockito.Mockito.when;
  *       {@code ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED}（含原始 cause），不再返回 false 伪装"表不存在"；</li>
  *   <li>空结果（表确实不存在）→ 仍返回 false（业务语义保持）；</li>
  *   <li>有行 → 返回 true；</li>
- *   <li>{@code isEntityTableVisible} 首个探测抛错即 fail-fast（不重试大小写变体——探测本身异常意味着
+ *   <li>{@code isPhysicalVisible} 首个探测抛错即 fail-fast（不重试大小写变体——探测本身异常意味着
  *       元数据面不可用）；</li>
  *   <li>接线验证：{@code MixedSameDbJoinAggregationProcessor.execute} → withConnection lambda →
  *       checkTableExists 抛出的异常向调用方完整传播（不吞异常、不落到 ERR_FIELD_RESOLVE_NO_FIELDS）。</li>
@@ -127,7 +126,7 @@ public class TestAggregationHelperTableVisibility {
         when(metaData.getTables(isNull(), isNull(), eq("EMP"), isNull())).thenThrow(cause);
 
         NopException ex = assertThrows(NopMetadataException.class,
-                () -> AggregationHelper.isEntityTableVisible(metaData, null, "EMP"));
+                () -> AggregationHelper.isPhysicalVisible(metaData, null, "EMP"));
         assertEquals(NopMetadataErrors.ERR_AGGR_TABLE_VISIBILITY_CHECK_FAILED.getErrorCode(), ex.getErrorCode());
         // fail-fast：首个探测抛错即上抛，不再尝试大小写变体（重试无意义）
         verify(metaData, times(1)).getTables(any(), any(), any(), any());
@@ -160,13 +159,13 @@ public class TestAggregationHelperTableVisibility {
 
         MetaQueryContext ctx = new MetaQueryContext(daoProvider, mock(IOrmTemplate.class), connSvc,
                 new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
-                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+                new MetaDataSourceResolver(), new MetaEntityFieldResolver(), new FilterToSqlTranslator());
 
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t-visibility");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t-visibility");
         table.setQuerySpace("qs-visibility");
-        table.setTableType("external");
+        table.setEntityKind("EXTERNAL");
         NopMetaEntity entity = new NopMetaEntity();
         entity.setTableName("EMP");
         when(context.getTable()).thenReturn(table);

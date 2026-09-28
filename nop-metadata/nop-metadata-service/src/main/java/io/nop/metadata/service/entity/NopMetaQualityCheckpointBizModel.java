@@ -32,7 +32,7 @@ import io.nop.metadata.service.quality.MetaQualityCheckpointExecutor;
 import io.nop.metadata.service.quality.MetaQualityCheckpointScheduler;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.quality.QualityResultWriter;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -74,7 +74,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
 
     /**
      * 注入 {@link NopMetaQualityScoreBizModel}（NopIoC bean）调 {@code computeQualityScore} 实现自动评分触发
-     * （B2 方案 b，对齐 {@code NopMetaReconciliationConfigBizModel} 注入 {@code NopMetaTableBizModel} 模式）。
+     * （B2 方案 b，对齐 {@code NopMetaReconciliationConfigBizModel} 注入 {@code NopMetaEntityBizModel} 模式）。
      *
      * <p>维度07-02 裁定（plan 2026-07-19-1250-3 Phase 1）：保留 raw impl 注入而非 {@code INopMetaQualityScoreBiz}
      * 接口注入。理由同 {@code MetaQualityCheckpointScheduler.setCheckpointBizModel}：cron 触发的 autoScore
@@ -141,8 +141,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     protected boolean httpClientFollowRedirects = false;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
-    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
-            new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
+    private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver(
+            new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaEntityFieldResolver());
 
     /** 质量规则执行器（无状态，复用 §2.7.1 judge 算法）。 */
     private final MetaQualityRuleExecutor ruleExecutor = new MetaQualityRuleExecutor();
@@ -185,11 +185,11 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * 评分结果（scoreId/overallScore）与评分 errors 记入摘要。
      *
      * @param checkpointId  检查点 ID
-     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaTable.metaSchema 回退，
+     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaEntity.metaSchema 回退，
      *                      与单规则路径 resolveDefaultSchema 语义一致，AR-07）
      * @param context       服务上下文
      * @return {@code {checkpointId, executedCount, passCount, failCount, errorCount, affectedTableIds:[...],
-     *         autoScore, scoreResults:[{metaTableId, scoreId, overallScore}], results:[...], errors:[...]}}
+     *         autoScore, scoreResults:[{metaEntityId, scoreId, overallScore}], results:[...], errors:[...]}}
      */
     @SuppressWarnings("unchecked")
     @BizMutation
@@ -241,7 +241,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             Object errors = summary.get("errors");
             if (errors instanceof List) {
                 // P2-20（变体 a）：填充类型化 errors（此前类型化字段从不填充，错误只进已移除的 List<Map> 冗余字段）。
-                // 三族条目键全承接：source→source、error→message、qualityRuleId/metaTableId→code（标识符惯例）、
+                // 三族条目键全承接：source→source、error→message、qualityRuleId/metaEntityId→code（标识符惯例）、
                 // ruleName→detail、refType/refValue→同名增补字段（对照表见 owner doc P2-20 裁决记录）。
                 dto.setErrors(mapErrorEntries((List<Map<String, Object>>) errors));
             }
@@ -369,23 +369,23 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             return;
         }
 
-        for (String metaTableId : affectedTableIds) {
+        for (String metaEntityId : affectedTableIds) {
             try {
-                QualityScoreResultDTO scoreSummary = scoreBizModel.computeQualityScore(metaTableId, context);
+                QualityScoreResultDTO scoreSummary = scoreBizModel.computeQualityScore(metaEntityId, context);
                 // flush 以隔离：已落盘的评分行在后续表评分失败时（clearSession）不丢失
                 orm().flushSession();
 
                 Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("metaTableId", metaTableId);
+                entry.put("metaEntityId", metaEntityId);
                 entry.put("scoreId", scoreSummary.getScoreId());
                 entry.put("overallScore", scoreSummary.getOverallScore());
                 scoreResults.add(entry);
             } catch (Exception e) {
                 LOG.error("auto-score failed for affected table: {}, errorCode={}",
-                        metaTableId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
+                        metaEntityId, NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(), e);
                 Map<String, Object> errEntry = new LinkedHashMap<>();
                 errEntry.put("source", "autoScore");
-                errEntry.put("metaTableId", metaTableId);
+                errEntry.put("metaEntityId", metaEntityId);
                 errEntry.put("error", NopMetadataHelper.toErrorMessage(e));
                 errors.add(errEntry);
                 // 失败隔离：清理未刷出的脏实体，不影响已 flush 的评分行与其他表评分
@@ -457,7 +457,7 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      * <ul>
      *   <li>execution（executor 规则执行异常）：source/qualityRuleId→code/ruleName→detail/error→message</li>
      *   <li>resolution（executor 引用解析失败）：source/refType/refValue/error→message</li>
-     *   <li>autoScore（本类 triggerAutoScoring 评分失败）：source/metaTableId→code/error→message</li>
+     *   <li>autoScore（本类 triggerAutoScoring 评分失败）：source/metaEntityId→code/error→message</li>
      *   <li>scheduler（{@link MetaQualityCheckpointScheduler#buildErrorResult} 直接构造 ErrorDTO，不经本方法）</li>
      * </ul>
      * code 的"错误所涉标识符"语义沿 {@code NopMetaQualityRuleBizModel}（code=qualityRuleId, detail=ruleName）既有惯例。
@@ -471,8 +471,8 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
             Object error = e.get("error");
             dto.setMessage(error != null ? String.valueOf(error) : null);
             Object qualityRuleId = e.get("qualityRuleId");
-            Object metaTableId = e.get("metaTableId");
-            Object identifier = qualityRuleId != null ? qualityRuleId : metaTableId;
+            Object metaEntityId = e.get("metaEntityId");
+            Object identifier = qualityRuleId != null ? qualityRuleId : metaEntityId;
             dto.setCode(identifier != null ? String.valueOf(identifier) : null);
             Object ruleName = e.get("ruleName");
             dto.setDetail(ruleName != null ? String.valueOf(ruleName) : null);

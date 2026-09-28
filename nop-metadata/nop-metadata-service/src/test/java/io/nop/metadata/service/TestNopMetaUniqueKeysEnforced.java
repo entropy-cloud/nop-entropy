@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 验证 ORM 模型新增的 unique-key 约束（plan 1250-2 Phase 2 Proof，维度04-06）。
  *
  * <p>修复前：29 个实体无自然键 UK 声明，重复数据可静默插入且无文档化的约束意图。
- * 修复后：高优先级实体（NopMetaEntity / NopMetaDictItem / NopMetaOrmModel / NopMetaDomain / NopMetaTable）等
+ * 修复后：高优先级实体（NopMetaEntity / NopMetaDictItem / NopMetaOrmModel / NopMetaDomain / NopMetaEntity）等
  * 均在 ORM 模型中声明 UK，DB schema 与运行时均按此声明生成约束。
  *
  * <p>本测试通过 {@link IEntityModel#getUniqueKeys()} 验证 ORM 模型层 UK 声明存在
@@ -73,15 +73,9 @@ public class TestNopMetaUniqueKeysEnforced extends JunitBaseTestCase {
                 "NopMetaDomain must declare UK on (ormModelId, domainName): " + ukNames(model));
     }
 
-    @Test
-    public void testNopMetaTableHasNaturalUniqueKey() {
-        OrmEntityModel model = (OrmEntityModel) orm.getOrmModel().getEntityModel("io.nop.metadata.dao.entity.NopMetaTable");
-        assertNotNull(model);
-        // MA7.3-01：双重存储（delta+full 同模块各存一份表记录）要求 UK 带 isDelta 维度
-        // R4.2（plan-2026-08-05-1625-1）：UK 扩展 metaSchema 维度（路径 A 保持可空，多 schema 同名表共存）
-        assertTrue(hasUniqueKeyWithColumns(model, "metaModuleId", "tableName", "isDelta", "metaSchema"),
-                "NopMetaTable must declare UK on (metaModuleId, tableName, isDelta, metaSchema): " + ukNames(model));
-    }
+    // plan 2261 合并登记：原 testNopMetaTableHasNaturalUniqueKey（UK=metaModuleId,tableName,isDelta,metaSchema）
+    // 经 sed 改名后与本测试撞名；该 UK 已随表/实体归并删除（现 UK=ormModelId,entityName，
+    // 见上方 testNopMetaEntityHasNaturalUniqueKey 断言与 UK_NOP_META_ENTITY_MODEL_NAME），故合并入本方法。
 
     @Test
     public void testNopMetaDictHasNaturalUniqueKey() {

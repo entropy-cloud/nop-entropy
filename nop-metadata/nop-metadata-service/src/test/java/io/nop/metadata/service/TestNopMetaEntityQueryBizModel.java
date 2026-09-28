@@ -1,0 +1,841 @@
+package io.nop.metadata.service;
+
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
+import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
+import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.metadata.dao.entity.NopMetaDataSource;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
+import io.nop.metadata.biz.INopMetaEntityBiz;
+import io.nop.metadata.api.dto.AggregationResultDTO;
+import io.nop.metadata.api.dto.QueryEntityDataResultDTO;
+import io.nop.metadata.service.entity.NopMetaEntityBizModel;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * 验证统一单表查询 queryData（架构基线 §4.4 D1/D2）：entity/external/sql 三类 entityKind 端到端
+ * 真实返回行数据（非空壳）+ 失败路径显式失败 + filter→WHERE 注入防护 + 方言范围。
+ *
+ * <p>Map 返回的 @BizQuery action 不支持 GraphQL 字段选择，统一按整 Map 返回后从 result 取字段
+ * （与 previewSqlFields/profileEntity 一致）。
+ *
+ * <p>Anti-Hollow：entity 路径真实 importOrmModel 后查 NopMetaModule 实体表；external/sql 路径真实 H2 建连 +
+ * 物理表造数，断言返回行数据与实测数据一致，证明运行时确实通过 ORM（entity）/ withConnection（external/sql）建连并执行了 SQL。
+ */
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+public class TestNopMetaEntityQueryBizModel extends JunitBaseTestCase {
+
+    public TestNopMetaEntityQueryBizModel() {
+        setTestConfig("nop.orm.init-database-schema", true);
+    }
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @Inject
+    IDaoProvider daoProvider;
+
+    @Inject
+    INopMetaEntityBiz nopMetaEntityBizModel;
+
+    IServiceContext svcCtx = new ServiceContextImpl();
+
+    // ===== entity 分派：经 IOrmTemplate（架构基线 §4.4 D1）=====
+
+    /** entity 表：importOrmModel 后查 NopMetaModule 实体表 → 返回真实导入的 module 行。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryEntityTableReturnsRows() {
+        execute("mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                " { metaModuleId } }");
+        String tableId = findEntityTableId("nop_meta_module");
+
+        // 直接调 BizModel（GraphQL Map 返回不支持字段选择；此处验证 entity→ORM 真实分派）
+        QueryEntityDataResultDTO result = nopMetaEntityBizModel.queryData(tableId, null, null, null, null, svcCtx);
+        assertEquals("PHYSICAL", result.getEntityKind());
+        List<Map<String, Object>> items = result.getItems();
+        assertNotNull(items, "items must not be null");
+        // 接线验证：entity 路径确实通过 ORM 返回了真实导入的 module 行（非空壳）
+        assertFalse(items.isEmpty(), "entity query must return real imported rows (not empty stub): " + items);
+    }
+
+    /** entity 表 + filter（经 ORM QueryBean.setFilter）：过滤不匹配 → 0 行（验证 filter 接线到 ORM）。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryEntityTableWithFilter() {
+        execute("mutation { NopMetaModule__importOrmModel(path: \"/nop/metadata/orm/app.orm.xml\")" +
+                " { metaModuleId } }");
+        String tableId = findEntityTableId("nop_meta_module");
+
+        // 直接调 BizModel 传 filter（TreeBean 非 GraphQL 命名类型）
+        TreeBean filter = FilterBeans.eq("moduleId", "__never_matches_anything__");
+        QueryEntityDataResultDTO result = nopMetaEntityBizModel.queryData(tableId, filter, null, null, null, svcCtx);
+        List<Map<String, Object>> items = result.getItems();
+        assertTrue(items.isEmpty(), "entity filter moduleId=__nope__ must return 0 rows (filter wired to ORM)");
+    }
+
+    // ===== external 分派：withConnection 跑限定表名原生 SQL（架构基线 §4.4 D1）=====
+
+    /** external 表：H2 造数 → syncExternalTables → queryData 返回真实行数据。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryExternalTableReturnsRows() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_ext;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_q (id INT NOT NULL, amount INT, name VARCHAR(20))",
+                "INSERT INTO ext_q VALUES (1, 10, 'aaa')",
+                "INSERT INTO ext_q VALUES (2, 20, 'bb')",
+                "INSERT INTO ext_q VALUES (3, 30, 'ccc')");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_ext", "EXT_Q");
+
+        Map<String, Object> result = queryData(tableId, null, null, null);
+        assertEquals("EXTERNAL", result.get("entityKind"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(3, items.size(), "external query must return all 3 real rows");
+
+        // 真实数据断言（stub 立即失败这些断言）
+        Map<String, Object> row0 = findRowById(items, 1);
+        assertNotNull(row0, "row with id=1 must exist");
+        assertEquals(10, toInt(row0.get("AMOUNT")), "amount must match seeded data");
+        assertEquals("aaa", String.valueOf(row0.get("NAME")), "name must match seeded data");
+    }
+
+    // ===== F4（plan 2026-08-14-0707-2）：selection 参数契约——显式 no-op（不再静默接受又丢弃）=====
+
+    /**
+     * F4：GraphQL 引擎会把<b>响应字段选择集</b>（DTO 级）自动注入 selection 参数。
+     * 由于结果为不透明 {@code List<Map<String,Object>>}（Map 无字段级 GraphQL 选择语义），
+     * selection 是<b>显式 no-op</b>——所有列原样返回，不做基于 selection 的行级 key 过滤。
+     *
+     * <p>本测试验证：传非 null selection（模拟 GraphQL 自动注入的 DTO 级选择集
+     * {@code { entityKind items }}）时，行内所有列原样返回（未被静默清空/过滤）。
+     * 这钉死 no-op 契约：selection 参数不再"接受即丢弃"——其 no-op 地位已被显式声明与测试。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataSelectionIsExplicitNoOp() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_sel (id INT NOT NULL, amount INT, name VARCHAR(20))",
+                "INSERT INTO ext_sel VALUES (1, 10, 'aaa')");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel", "EXT_SEL");
+
+        // 模拟 GraphQL 引擎自动注入的 DTO 级响应选择集（含 entityKind/items 等 DTO 字段名）
+        FieldSelectionBean selection = FieldSelectionBean.fromProp("entityKind", "items");
+        QueryEntityDataResultDTO result = nopMetaEntityBizModel.queryData(tableId, null, null, null, selection, svcCtx);
+        assertEquals("EXTERNAL", result.getEntityKind());
+        List<Map<String, Object>> items = result.getItems();
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "must return the seeded row");
+        Map<String, Object> row = items.get(0);
+        // no-op 契约：DTO 级 selection 不裁剪行内列——所有列原样返回（非空行 {}）
+        assertTrue(containsKeyIgnoreCase(row, "ID"), "id must be retained (selection is no-op for Map rows)");
+        assertTrue(containsKeyIgnoreCase(row, "AMOUNT"), "amount must be retained (selection is no-op for Map rows)");
+        assertTrue(containsKeyIgnoreCase(row, "NAME"), "name must be retained (selection is no-op for Map rows)");
+    }
+
+    /**
+     * F4 回归：queryData 传 null selection → 所有列原样返回。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataNullSelectionKeepsAllColumns() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel_null;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_sel_n (id INT NOT NULL, amount INT)",
+                "INSERT INTO ext_sel_n VALUES (1, 10)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel_null", "EXT_SEL_N");
+
+        QueryEntityDataResultDTO result = nopMetaEntityBizModel.queryData(tableId, null, null, null, null, svcCtx);
+        List<Map<String, Object>> items = result.getItems();
+        Map<String, Object> row = items.get(0);
+        assertTrue(containsKeyIgnoreCase(row, "ID"), "id must be present with null selection");
+        assertTrue(containsKeyIgnoreCase(row, "AMOUNT"), "amount must be present with null selection");
+    }
+
+    /**
+     * F4：queryAggregation 传非 null selection → 结果行所有字段原样返回（同 queryData 的 no-op 契约，
+     * 验证三方法处理一致）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryAggregationSelectionIsExplicitNoOp() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sel_agg;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE EXT_SEL_AGG (CATEGORY VARCHAR(10), AMOUNT INT)",
+                "INSERT INTO EXT_SEL_AGG VALUES ('A', 10)",
+                "INSERT INTO EXT_SEL_AGG VALUES ('A', 20)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_sel_agg", "EXT_SEL_AGG");
+
+        createMeasureForTable(tableId, "total", "AMOUNT", "sum");
+        createDimensionForTable(tableId, "cat", "CATEGORY", "categorical");
+
+        // selection 非 null（模拟 GraphQL 自动注入），no-op：dimension 与 measure 字段均原样返回
+        FieldSelectionBean selection = FieldSelectionBean.fromProp("items");
+        AggregationResultDTO result = nopMetaEntityBizModel.queryAggregation(
+                tableId,
+                java.util.Arrays.asList("total"), java.util.Arrays.asList("cat"),
+                null, null, null, null, null, null, selection, svcCtx);
+        List<Map<String, Object>> items = result.getItems();
+        assertNotNull(items, "items must not be null");
+        assertFalse(items.isEmpty(), "aggregation must return the group");
+        Map<String, Object> row = items.get(0);
+        assertTrue(containsKeyIgnoreCase(row, "CAT"),
+                "dimension cat must be retained (selection is no-op): " + row.keySet());
+        assertTrue(containsKeyIgnoreCase(row, "TOTAL"),
+                "measure total must be retained (selection is no-op): " + row.keySet());
+    }
+
+    /** external 表 + filter(amount > 15)：直接调 BizModel 传 TreeBean filter，验证 WHERE 翻译正确。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryExternalTableWithFilter() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_ext_f;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_qf (id INT NOT NULL, amount INT)",
+                "INSERT INTO ext_qf VALUES (1, 10)",
+                "INSERT INTO ext_qf VALUES (2, 20)",
+                "INSERT INTO ext_qf VALUES (3, 30)",
+                "INSERT INTO ext_qf VALUES (4, 40)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_ext_f", "EXT_QF");
+
+        // 直接调 BizModel action（TreeBean 非 GraphQL 命名类型，经 GraphQL 变量传不进来；
+        // filter→WHERE 翻译由 TestFilterToSqlTranslator 单测覆盖，此处验证整条 external+filter+withConnection 链路）
+        TreeBean filter = FilterBeans.gt("AMOUNT", 15);
+        QueryEntityDataResultDTO result = nopMetaEntityBizModel.queryData(tableId, filter, null, null, null, svcCtx);
+        assertEquals("EXTERNAL", result.getEntityKind());
+        List<Map<String, Object>> items = result.getItems();
+        assertEquals(3, items.size(), "filter amount>15 must return 3 rows (20,30,40)");
+    }
+
+    /** external 表 + limit/offset 分页（无 filter）。R2.13（P2-MA4-303）：断言首行内容验证 offset 生效。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryExternalTablePagination() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_ext_p;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ext_qp (id INT NOT NULL)",
+                "INSERT INTO ext_qp VALUES (1)", "INSERT INTO ext_qp VALUES (2)",
+                "INSERT INTO ext_qp VALUES (3)", "INSERT INTO ext_qp VALUES (4)");
+        String tableId = prepareExternalTable(dbUrl, "qs_q_ext_p", "EXT_QP");
+
+        Map<String, Object> result = queryData(tableId, null, 2L, 1L);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(2, items.size(), "limit=2 offset=1 must return 2 rows");
+        // 行为断言：offset=1 必须跳过首行——首行必须是 id=2（实现忽略 offset 返回 {1,2} 时此断言失败）
+        Map<String, Object> first = items.get(0);
+        assertNotNull(first, "first row must exist");
+        assertEquals(2, toInt(first.get("ID")), "offset=1 must start from id=2, got: " + items);
+        assertEquals(3, toInt(items.get(1).get("ID")), "second row must be id=3, got: " + items);
+    }
+
+    // ===== sql 分派：withConnection 执行 sourceSql 子查询（架构基线 §4.4 D1 + D2）=====
+
+    /** sql 表：H2 造数 → createSqlView(sourceSql, querySpace) → queryData 返回真实行数据。 */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQuerySqlTableReturnsRows() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_sql_query;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE sql_src (id INT NOT NULL, val INT)",
+                "INSERT INTO sql_src VALUES (1, 100)",
+                "INSERT INTO sql_src VALUES (2, 200)");
+        // 注册数据源（D2：sql 表 querySpace 必须匹配 NopMetaDataSource）
+        saveDataSource("ds-q-sql", "qs_q_sql", "jdbc", "ACTIVE", dbUrl);
+
+        String tableId = createSqlView("SELECT id, val FROM sql_src", "sql_q_tab", "qs_q_sql");
+
+        Map<String, Object> result = queryData(tableId, null, null, null);
+        assertEquals("SQL_VIEW", result.get("entityKind"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(2, items.size(), "sql query must return 2 real rows");
+        // 真实数据断言（sourceSql 子查询返回真实列）
+        Map<String, Object> row0 = findRowById(items, 1);
+        assertNotNull(row0, "row with id=1 must exist");
+        assertEquals(100, toInt(row0.get("VAL")), "val must match seeded data");
+    }
+
+    /**
+     * MA7.4-03 回归：queryData 省略 limit 时不得把全表拉入内存——缺省 1000 行封顶。
+     * 用真实 H2 表造 1500 行大结果集（sql 表路径，走 withConnection 全量 JDBC 读取；
+     * 不用 SYSTEM_RANGE：EQL AST 解析器不支持 H2 函数调用，createSqlView 的
+     * SqlSelectFieldExtractor 会抛 sql-view-parse-failed），
+     * 断言省略 limit 的查询只返回 DEFAULT_QUERY_LIMIT 行。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testQueryTableDataDefaultLimitCapsUnboundedResult() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_q_limit;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE limit_src (id INT NOT NULL, val INT)",
+                "INSERT INTO limit_src SELECT X, X FROM SYSTEM_RANGE(1, 1500)");
+        saveDataSource("ds-q-limit", "qs_q_limit", "jdbc", "ACTIVE", dbUrl);
+
+        String tableId = createSqlView("SELECT ID AS ID, VAL AS VAL FROM LIMIT_SRC",
+                "sql_limit_tab", "qs_q_limit");
+
+        Map<String, Object> result = queryData(tableId, null, null, null);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(NopMetaEntityBizModel.DEFAULT_QUERY_LIMIT, items.size(),
+                "queryData without limit must be capped at DEFAULT_QUERY_LIMIT, not return all 1500 rows");
+    }
+
+    // ===== 方案 B 字段类型推断（plan 0900-1，架构基线 §4.2.1）=====
+
+    /**
+     * 端到端：createSqlView(querySpace) 经方案 B（LIMIT 0 + ResultSetMetaData）推断字段类型，
+     * 返回的 fields 中 type 非 null 且与底层物理列类型一致（H2 INT → "INTEGER"）。
+     * 接线验证（#23）：querySpace 提供时 SqlViewFieldTypeInferrer 在 createSqlView 路径被真实调用——
+     * 若未调，type 恒 null（方案 A 基线）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableInfersRealFieldTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_type_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE typed_src (id INT NOT NULL, val BIGINT, name VARCHAR(40))");
+        saveDataSource("ds-type-infer", "qs_type_infer", "jdbc", "ACTIVE", dbUrl);
+
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT id, val, name FROM typed_src"))
+                .append("\", entityName: \"typed_sql_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_type_infer\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView with querySpace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertNotNull(fields, "fields must be returned");
+        assertEquals(3, fields.size(), "must have 3 fields (id, val, name)");
+
+        // 类型断言（H2 方言原生类型名，getColumnTypeName 返回 SQL 标准名）：
+        // id INT → "INTEGER"，val BIGINT → "BIGINT"，name VARCHAR(40) → "CHARACTER VARYING"
+        // 注：D2 明确 type 为 driver 原生返回名（不归一化），H2 对 VARCHAR 返回 SQL 标准名 "CHARACTER VARYING"。
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER");
+        assertEquals("BIGINT", fields.get(1).get("type"), "val (BIGINT) → BIGINT");
+        assertEquals("CHARACTER VARYING", fields.get(2).get("type"), "name (VARCHAR(40)) → CHARACTER VARYING");
+    }
+
+    /**
+     * 向后兼容：createSqlView 不提供 querySpace 时，type 恒为 null（方案 A 行为不变）。
+     * 无 querySpace = 调用方未请求类型推断（非降级、非失败路径）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableWithoutQuerySpaceTypeNull() {
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one, 'a' AS two"))
+                .append("\", entityName: \"no_qs_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView without querySpace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        for (int i = 0; i < fields.size(); i++) {
+            assertNull(fields.get(i).get("type"), "field[" + i + "] type must be null (方案 A, no querySpace)");
+        }
+    }
+
+    /**
+     * resolveEntityFields 端到端：对 querySpace 非空的 sql 表调 resolveEntityFields，
+     * 返回的 ResolvedTableField.dataType 非 null（证明 BizModel 层 → SqlViewFieldTypeInferrer 链路连通，
+     * R2 N1 Anti-Hollow 验证——MetaEntityFieldResolver 不改，推断在 BizModel 层补全）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testResolveTableFieldsInfersSqlTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_resolve_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE resolve_src (id INT NOT NULL, score DOUBLE)");
+        saveDataSource("ds-resolve-infer", "qs_resolve_infer", "jdbc", "ACTIVE", dbUrl);
+
+        // 经 saveManualSqlTable 绕过 createSqlView（避免双路径混淆），专测 resolveEntityFields 路径
+        NopMetaEntity table = saveManualSqlTable("RESOLVE_TYPED_TAB", "qs_resolve_infer",
+                "SELECT id, score FROM resolve_src");
+
+        StringBuilder q = new StringBuilder("query { NopMetaEntity__resolveEntityFields(metaEntityId: \"")
+                .append(table.getMetaEntityId()).append("\") { entityKind fields { name sourceType type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "resolveEntityFields should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__resolveEntityFields");
+        assertEquals("SQL_VIEW", data.get("entityKind"));
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        // 接线验证：BizModel 层 inferResolvedSqlFieldTypes 真实调通了 inferrer（type 非 null）
+        assertNotNull(fields.get(0).get("type"), "id type must be inferred (non-null)");
+        assertNotNull(fields.get(1).get("type"), "score type must be inferred (non-null)");
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER");
+        // H2 对 DOUBLE 返回 SQL 标准名 "DOUBLE PRECISION"（D2：driver 原生返回，不归一化）
+        assertEquals("DOUBLE PRECISION", fields.get(1).get("type"), "score (DOUBLE) → DOUBLE PRECISION");
+    }
+
+    /**
+     * 列对齐测试（D3）：sourceSql 含别名（col AS alias）+ 表达式列（&lt;expr_N&gt;），断言 type 与列序对齐
+     * （非按名匹配）。表达式列 val * 2 的 type 应为 driver 推导出的 INTEGER（H2 INT * INT = INTEGER）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableColumnAlignmentByOrder() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_align_infer;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE align_src (id INT NOT NULL, qty INT)");
+        saveDataSource("ds-align-infer", "qs_align_infer", "jdbc", "ACTIVE", dbUrl);
+
+        // SELECT id AS user_id, qty * 2 → 字段列表 [user_id, <expr_1>]
+        String sql = "SELECT id AS user_id, qty * 2 FROM align_src";
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL(sql))
+                .append("\", entityName: \"align_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_align_infer\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView with aliased/expr columns should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size(), "must have 2 fields");
+        assertEquals("user_id", fields.get(0).get("name"), "first projection is aliased to user_id");
+        assertEquals("INTEGER", fields.get(0).get("type"), "user_id (INT AS user_id) → INTEGER");
+        // <expr_1> 对应 qty * 2，H2 推导 INT * INT → INTEGER
+        assertEquals("<expr_1>", fields.get(1).get("name"), "second projection is expression → <expr_1>");
+        assertEquals("INTEGER", fields.get(1).get("type"),
+                "<expr_1> (qty*2) type must align by column order, not name match");
+    }
+
+    /**
+     * 失败路径：querySpace 提供但数据源不可达（指向不存在的 querySpace）→ createSqlView 显式抛 NopException
+     * （不静默 fallback type=null、不吞异常）。验证 D1 R1 B5 修复：querySpace 提供 = 显式推断请求。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenDataSourceUnreachable() {
+        // querySpace 指向未注册的 querySpace（无匹配 NopMetaDataSource）→ 显式失败
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one"))
+                .append("\", entityName: \"unreachable_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_unreachable_for_inference\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlView with querySpace pointing to non-existent datasource must explicitly fail "
+                        + "(not silently fallback type=null): " + resp);
+    }
+
+    /**
+     * 方言守卫测试（D1）：querySpace 提供但方言不支持 → 显式失败。
+     *
+     * <p>H2 是已支持方言，无法在测试环境模拟 unsupported 方言（需 mock Connection.getMetaData 返回非
+     * H2/MySQL/PostgreSQL）。本测试以 H2 端到端验证支持路径已通过（{@link #testCreateSqlTableInfersRealFieldTypes}
+     * + {@link #testResolveTableFieldsInfersSqlTypes}），方言守卫的 ErrorCode 文本与失败语义已通过
+     * SqlViewFieldTypeInferrer 单测覆盖（不属于本端到端测试范围）。
+     */
+    // 注：方言守卫失败的端到端模拟需 mock DatabaseMetaData，超出本测试类范围；H2 已支持路径已端到端验证。
+
+    /**
+     * 失败路径：querySpace 指向 DISABLED 数据源 → createSqlView 显式失败（沿用 resolveActiveOrThrow ErrorCode）。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenDataSourceDisabled() {
+        saveDataSource("ds-disabled-infer", "qs_disabled_infer", "jdbc", "DISABLED",
+                "jdbc:h2:mem:meta_disabled_infer;DB_CLOSE_DELAY=-1");
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT 1 AS one"))
+                .append("\", entityName: \"disabled_ds_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_disabled_infer\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlView with DISABLED datasource must explicitly fail (not silently fallback): " + resp);
+    }
+
+    /**
+     * 失败路径：sourceSql 执行失败（语法错误）→ createSqlView 显式失败
+     * （抛 metadata.sql-type-inference-failed，不吞、不静默 fallback）。
+     */
+    @Test
+    public void testCreateSqlTableFailsWhenSourceSqlInvalid() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_invalid_sql;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE invalid_dummy (id INT)");
+        saveDataSource("ds-invalid-sql", "qs_invalid_sql", "jdbc", "ACTIVE", dbUrl);
+
+        // 故意构造语法错误 SQL（FROM 缺表名）—— SqlSelectFieldExtractor 解析可能通过（取决于 EqlASTParser 容错），
+        // 但 LIMIT 0 执行必失败。若解析阶段就失败，也属于显式失败路径（同样验证不静默 fallback）。
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT id FROM WHERE broken_syntax"))
+                .append("\", entityName: \"invalid_sql_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_invalid_sql\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertTrue(resp.hasError(),
+                "createSqlView with invalid sourceSql must explicitly fail (parse or LIMIT 0 exec): " + resp);
+    }
+
+    // ===== AR-11：尾分号 strip（plan 1133-3）=====
+
+    /**
+     * AR-11：sourceSql 带单个尾分号时类型推断仍成功（H2 实跑验证）。
+     * 修复前：wrapped SQL "SELECT * FROM (SELECT id FROM src;) _t LIMIT 0" 被多数 JDBC 驱动拒绝。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableTrailingSemicolonInfersTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_semicolon;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE semicolon_src (id INT NOT NULL, name VARCHAR(30))");
+        saveDataSource("ds-semicolon", "qs_semicolon", "jdbc", "ACTIVE", dbUrl);
+
+        // sourceSql 带单个尾分号
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("SELECT id, name FROM semicolon_src;"))
+                .append("\", entityName: \"semicolon_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_semicolon\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView with trailing semicolon should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals(2, fields.size());
+        assertEquals("INTEGER", fields.get(0).get("type"), "id (INT) → INTEGER with trailing semicolon stripped");
+    }
+
+    /**
+     * AR-11：sourceSql 带尾分号 + 前后空白时类型推断仍成功（覆盖 trim + strip 组合）。
+     *
+     * <p>注：双分号 {@code ;;} 在 EQL 解析器层被判为多语句（{@code SqlSelectFieldExtractor} 的
+     * multi-statement guard，pre-existing 正确行为），在类型推断之前被拒绝——不影响本 AR-11 修复的正确性。
+     * 类型推断器的 {@code while} 循环对 {@code ;;} 仍做防御性剥离（若 sourceSql 经其他路径到达推断器）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateSqlTableSemicolonWithWhitespaceInfersTypes() throws Exception {
+        String dbUrl = "jdbc:h2:mem:meta_ws_semi;DB_CLOSE_DELAY=-1";
+        seedTable(dbUrl, "CREATE TABLE ws_semi_src (id INT NOT NULL)");
+        saveDataSource("ds-ws-semi", "qs_ws_semi", "jdbc", "ACTIVE", dbUrl);
+
+        // sourceSql 带前导空白 + 尾分号 + 尾空白（"  SELECT id FROM ws_semi_src ;  "）
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL("  SELECT id FROM ws_semi_src ;  "))
+                .append("\", entityName: \"ws_semi_tab\", metaModuleId: \"")
+                .append(ensureExternalSystemModuleId())
+                .append("\", querySpace: \"qs_ws_semi\") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView with semicolon+whitespace should succeed: " + resp);
+        Map<String, Object> data = (Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView");
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) data.get("fields");
+        assertEquals("INTEGER", fields.get(0).get("type"),
+                "id (INT) → INTEGER with trailing semicolon+whitespace stripped");
+    }
+
+    // ===== 失败路径显式失败（不静默空集，Minimum Rules #24）=====
+
+    /** 表不存在 → 显式失败（不 NPE）。 */
+    @Test
+    public void testQueryTableNotFound() {
+        GraphQLResponseBean resp = execute(
+                "query { NopMetaEntity__queryData(metaEntityId: \"__nope__\") { entityKind items } }");
+        assertTrue(resp.hasError(), "non-existent table must explicitly fail (no NPE): " + resp);
+    }
+
+    /** external 表无注册数据源 → 显式失败。 */
+    @Test
+    public void testQueryExternalTableNoDataSource() {
+        NopMetaEntity ext = saveManualTable("EXT_Q_NDS", "EXTERNAL", "qs_no_ds_q");
+        assertTrue(queryDataHasError(ext.getMetaEntityId()),
+                "external table with no datasource must explicitly fail");
+    }
+
+    /** DISABLED 数据源 → 显式失败。 */
+    @Test
+    public void testQueryTableDataSourceDisabled() {
+        saveDataSource("ds-q-disabled", "qs_q_disabled", "jdbc", "DISABLED",
+                "jdbc:h2:mem:meta_q_d;DB_CLOSE_DELAY=-1");
+        NopMetaEntity ext = saveManualTable("EXT_QD", "EXTERNAL", "qs_q_disabled");
+        assertTrue(queryDataHasError(ext.getMetaEntityId()),
+                "DISABLED datasource must explicitly fail");
+    }
+
+    /** sql 表 querySpace 为 null → 显式失败（D2：null/无匹配显式失败，不静默空集、不伪造路由）。 */
+    @Test
+    public void testQuerySqlTableNullQuerySpace() {
+        String tableId = createSqlView("SELECT 1 AS one", "sql_null_qs", null);
+        assertTrue(queryDataHasError(tableId),
+                "sql table with null querySpace must explicitly fail (D2)");
+    }
+
+    /** sql 表 querySpace 无匹配数据源 → 显式失败（queryData 路径）。
+     *  注：plan 0900-1 后 createSqlView 在 querySpace 提供时本身会失败（类型推断路径），
+     *  故此处用 saveManualTable 绕过 createSqlView 的类型推断路径，专测 queryData 失败。 */
+    @Test
+    public void testQuerySqlTableNoMatchingDataSource() {
+        NopMetaEntity sql = saveManualSqlTable("SQL_NO_DS", "qs_missing_q", "SELECT 1 AS one");
+        assertTrue(queryDataHasError(sql.getMetaEntityId()),
+                "sql table with no matching datasource must explicitly fail at queryData");
+    }
+
+    /** PHYSICAL 实体行 entityName 未注册到运行时 ORM → 显式失败（不静默空集）。 */
+    @Test
+    public void testQueryEntityTableNotRegistered() {
+        // plan 2261 概念缩减：实体行自身即查询目标，entityName 直接参与注册校验
+        IEntityDao<NopMetaEntity> entityDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity fakeEntity = entityDao.newEntity();
+        fakeEntity.setMetaModuleId(ensureExternalSystemModuleId());
+        fakeEntity.setOrmModelId("fake-orm-model");
+        fakeEntity.setIsDelta((byte) 0);
+        fakeEntity.setEntityKind(io.nop.metadata.core._NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
+        fakeEntity.setEntityName("__not_a_registered_entity__");
+        fakeEntity.setTableName("__fake_table__");
+        fakeEntity.setClassName("x");
+        fakeEntity.setVersion(1L);
+        entityDao.saveEntity(fakeEntity);
+
+        assertTrue(queryDataHasError(fakeEntity.getMetaEntityId()),
+                "entity not registered in runtime ORM must explicitly fail");
+    }
+
+    // ===== helpers =====
+
+    /** 调 queryData（无 filter 变量），返回完整 result Map。 */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> queryData(String tableId, Object filter, Long limit, Long offset) {
+        StringBuilder q = new StringBuilder("query { NopMetaEntity__queryData(metaEntityId: \"").append(tableId).append("\"");
+        if (limit != null) {
+            q.append(", limit: ").append(limit);
+        }
+        if (offset != null) {
+            q.append(", offset: ").append(offset);
+        }
+        q.append(") { entityKind items } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "queryData should succeed: " + resp.getErrorCode()
+                + " :: " + (resp.getErrors() == null ? "" : resp.getErrors()));
+        return (Map<String, Object>) ((Map<String, Object>) resp.getData()).get("NopMetaEntity__queryData");
+    }
+
+    private boolean queryDataHasError(String tableId) {
+        GraphQLResponseBean resp = execute(
+                "query { NopMetaEntity__queryData(metaEntityId: \"" + tableId + "\") { entityKind items } }");
+        return resp.hasError();
+    }
+
+    private GraphQLResponseBean execute(String query) {
+        GraphQLRequestBean request = new GraphQLRequestBean();
+        request.setQuery(query);
+        return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
+    }
+
+    /** 创建 sql 表（createSqlView，Map 整体返回），返回 metaEntityId。 */
+    @SuppressWarnings("unchecked")
+    private String createSqlView(String sql, String tableName, String querySpace) {
+        StringBuilder q = new StringBuilder("mutation { NopMetaEntity__createSqlView(sql: \"")
+                .append(escapeGraphQL(sql)).append("\", entityName: \"").append(tableName)
+                .append("\", metaModuleId: \"").append(ensureExternalSystemModuleId()).append("\"");
+        if (querySpace != null) {
+            q.append(", querySpace: \"").append(querySpace).append("\"");
+        }
+        q.append(") { metaEntityId tableName entityKind fields { name alias type } } }");
+        GraphQLResponseBean resp = execute(q.toString());
+        assertFalse(resp.hasError(), "createSqlView should succeed: " + resp);
+        return String.valueOf(((Map<String, Object>) ((Map<String, Object>) resp.getData())
+                .get("NopMetaEntity__createSqlView")).get("metaEntityId"));
+    }
+
+    /** 端到端：建数据源 + 同步 external 表结构，返回 metaEntityId。 */
+    private String prepareExternalTable(String dbUrl, String querySpace, String expectedTable) {
+        saveDataSource("ds-" + querySpace, querySpace, "jdbc", "ACTIVE", dbUrl);
+        GraphQLResponseBean syncResp = execute(
+                "mutation { NopMetaDataSource__syncExternalTables(dataSourceId: \"ds-" + querySpace
+                        + "\", schemaPattern: \"PUBLIC\") { syncedTableCount errors { code message detail } } }");
+        assertFalse(syncResp.hasError(), "sync should not error: " + syncResp);
+        return tableId(expectedTable);
+    }
+
+    private void saveDataSource(String id, String querySpace, String datasourceType, String status, String dbUrl) {
+        IEntityDao<NopMetaDataSource> dao = daoProvider.daoFor(NopMetaDataSource.class);
+        NopMetaDataSource ds = dao.newEntity();
+        ds.setDataSourceId(id);
+        ds.setQuerySpace(querySpace);
+        ds.setName(id);
+        ds.setDatasourceType(datasourceType);
+        ds.setConnectionConfig("{\"jdbcUrl\":\"" + dbUrl + "\",\"username\":\"sa\",\"password\":\"\","
+                + "\"driverClassName\":\"org.h2.Driver\"}");
+        ds.setStatus(status);
+        ds.setVersion(1L);
+        ds.setCreatedBy("autotest");
+        ds.setUpdatedBy("autotest");
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        ds.setCreateTime(now);
+        ds.setUpdateTime(now);
+        dao.saveEntity(ds);
+    }
+
+    private String tableId(String tableName) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
+        assertNotNull(t, "external table " + tableName + " must be synced before query");
+        return t.getMetaEntityId();
+    }
+
+    /** 查找 importOrmModel 创建的 entity 表（按 tableName + entityKind=entity）。 */
+    private String findEntityTableId(String tableName) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "PHYSICAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
+        assertNotNull(t, "entity table " + tableName + " must be created by importOrmModel");
+        return t.getMetaEntityId();
+    }
+
+    private NopMetaEntity saveManualTable(String tableName, String entityKind, String querySpace) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = tableDao.newEntity();
+        t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
+        t.setTableName(tableName);
+        t.setDisplayName(tableName);
+        t.setEntityKind(entityKind);
+        if (querySpace != null) {
+            t.setQuerySpace(querySpace);
+        }
+        t.setVersion(1L);
+        tableDao.saveEntity(t);
+        return t;
+    }
+
+    /** 手动持久化 sql 表（绕过 createSqlView 的类型推断路径，用于专测 queryData 失败/向后场景）。 */
+    private NopMetaEntity saveManualSqlTable(String tableName, String querySpace, String sourceSql) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = tableDao.newEntity();
+        t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
+        t.setTableName(tableName);
+        t.setDisplayName(tableName);
+        t.setEntityKind("SQL_VIEW");
+        if (querySpace != null) {
+            t.setQuerySpace(querySpace);
+        }
+        t.setSourceSql(sourceSql);
+        t.setVersion(1L);
+        tableDao.saveEntity(t);
+        return t;
+    }
+
+    private String ensureExternalSystemModuleId() {
+        IEntityDao<NopMetaModule> moduleDao = daoProvider.daoFor(NopMetaModule.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaModule.PROP_NAME_moduleId, "nop/meta-external"));
+        NopMetaModule module = moduleDao.findFirstByQuery(q);
+        if (module != null) {
+            return module.getMetaModuleId();
+        }
+        module = moduleDao.newEntity();
+        module.setModuleId("nop/meta-external");
+        module.setModuleName("meta-external");
+        module.setDisplayName("外部表系统模块");
+        module.setModuleVersion(1L);
+        module.setStatus("RELEASED");
+        module.setImportedAt(new Timestamp(System.currentTimeMillis()));
+        moduleDao.saveEntity(module);
+        return module.getMetaModuleId();
+    }
+
+    private void seedTable(String dbUrl, String createDdl, String... inserts) throws Exception {
+        try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
+             Statement st = c.createStatement()) {
+            st.execute(createDdl);
+            for (String ins : inserts) {
+                st.execute(ins);
+            }
+        }
+    }
+
+    private static String escapeGraphQL(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> findRowById(List<Map<String, Object>> items, int id) {
+        for (Map<String, Object> row : items) {
+            for (Object v : row.values()) {
+                if (v != null && (v instanceof Number) && ((Number) v).intValue() == id) {
+                    return row;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static int toInt(Object v) {
+        if (v == null) {
+            return 0;
+        }
+        return ((Number) v).intValue();
+    }
+
+    private static boolean containsKeyIgnoreCase(Map<String, Object> row, String key) {
+        if (row == null || key == null) {
+            return false;
+        }
+        for (String k : row.keySet()) {
+            if (k != null && k.equalsIgnoreCase(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void createMeasureForTable(String tableId, String name, String entityFieldId, String aggFunc) {
+        IEntityDao<NopMetaEntityMeasure> dao = daoProvider.daoFor(NopMetaEntityMeasure.class);
+        NopMetaEntityMeasure m = dao.newEntity();
+        m.setMetaEntityId(tableId);
+        m.setMeasureName(name);
+        m.setEntityFieldId(entityFieldId);
+        m.setAggFunc(aggFunc);
+        m.setVersion(1L);
+        dao.saveEntity(m);
+    }
+
+    private void createDimensionForTable(String tableId, String name, String entityFieldId, String dimensionType) {
+        IEntityDao<NopMetaEntityDimension> dao = daoProvider.daoFor(NopMetaEntityDimension.class);
+        NopMetaEntityDimension d = dao.newEntity();
+        d.setMetaEntityId(tableId);
+        d.setDimensionName(name);
+        d.setEntityFieldId(entityFieldId);
+        d.setDimensionType(dimensionType);
+        d.setVersion(1L);
+        dao.saveEntity(d);
+    }
+}

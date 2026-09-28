@@ -8,7 +8,7 @@ import io.nop.metadata.service.field.ResolvedTableField;
 import java.util.List;
 
 /**
- * 解析后的表执行引用（架构基线 §4.4 D3）：由 {@link MetaTableReferenceResolver} 按 {@code tableType} 分派解析得到，
+ * 解析后的表执行引用（架构基线 §4.4 D3）：由 {@link MetaEntityReferenceResolver} 按 {@code entityKind} 分派解析得到，
  * 供 Catalog/Quality/Profiling 三大执行器统一消费。executor 内部不再硬编码 external-only，而是按 reference 形态执行。
  *
  * <p>三态（D3）：
@@ -30,7 +30,7 @@ public final class TableReference {
     public enum Kind { EXTERNAL, ENTITY, SQL }
 
     private final Kind kind;
-    private final String metaTableId;
+    private final String metaEntityId;
 
     /** external/entity: 物理表名（简单标识符）。sql: null（用 sourceSql 构造子查询）。 */
     private final String physicalTableName;
@@ -50,12 +50,12 @@ public final class TableReference {
     /** sql: AST 解析的字段集合（DatabaseMetaData.getColumns 对子查询不适用）。external/entity: null。 */
     private final List<ResolvedTableField> fields;
 
-    public TableReference(Kind kind, String metaTableId,
+    public TableReference(Kind kind, String metaEntityId,
                           String physicalTableName, String sourceSql,
                           NopMetaDataSource dataSource, NopMetaEntity entity,
                           String platformQuerySpace, List<ResolvedTableField> fields) {
         this.kind = kind;
-        this.metaTableId = metaTableId;
+        this.metaEntityId = metaEntityId;
         this.physicalTableName = physicalTableName;
         this.sourceSql = sourceSql;
         this.dataSource = dataSource;
@@ -68,8 +68,8 @@ public final class TableReference {
         return kind;
     }
 
-    public String getMetaTableId() {
-        return metaTableId;
+    public String getMetaEntityId() {
+        return metaEntityId;
     }
 
     public String getPhysicalTableName() {

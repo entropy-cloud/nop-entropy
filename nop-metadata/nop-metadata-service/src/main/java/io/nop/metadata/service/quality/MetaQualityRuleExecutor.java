@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  * 由 {@code NopMetaQualityRuleBizModel} 据此写入 NopMetaQualityResult 时序行。
  *
  * <p>本类不自建连接，由调用方在 P2-1 {@code withConnection} callback 内传入已打开的 {@link Connection}。
- * 物理解析（entityId → NopMetaTable → querySpace → NopMetaDataSource）在 BizModel 层完成，本类仅消费解析结果。
+ * 物理解析（entityId → NopMetaEntity → querySpace → NopMetaDataSource）在 BizModel 层完成，本类仅消费解析结果。
  *
  * <p>标识符注入防护（§2.7.1 D3）：列名 / 表名 / schema 名为 SQL 标识符，拼接前必须通过
  * {@link #IDENTIFIER_PATTERN} 白名单校验；比较值（range min/max、regex pattern）使用 PreparedStatement 参数绑定。
@@ -163,7 +163,7 @@ public class MetaQualityRuleExecutor {
         j.getDetails().put("ruleType", ruleType);
         j.getDetails().put("entityType", entityType);
         j.getDetails().put("tableName", displayTable);
-        j.getDetails().put("tableType", ref.getKind().name().toLowerCase(Locale.ROOT));
+        j.getDetails().put("entityKind", ref.getKind().name().toLowerCase(Locale.ROOT));
         if (threshold != null) {
             j.getDetails().put("threshold", threshold);
         }

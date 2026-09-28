@@ -17,11 +17,10 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -42,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 验证 BI 语义层字段引用校验 + 条件结构校验 + 跨表类型字段解析（plan 0700-2，架构基线 §2.5.2）：
  *
  * <ul>
- *   <li><b>resolveTableFields 跨类型</b>：entity（NopMetaEntityField 集合）/ external（buildSql JSON columnName）/
+ *   <li><b>resolveEntityFields 跨类型</b>：entity（NopMetaEntityField 集合）/ external（buildSql JSON columnName）/
  *       sql（SELECT 解析字段名）三类分派均返回正确字段；失败路径（entity baseEntityId null / external 损坏
  *       buildSql / sql 非 SELECT）显式失败不静默空集。</li>
  *   <li><b>Measure save 校验</b>：合法 entityFieldId 通过；非法引用（指向不存在字段）显式失败；
@@ -53,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </ul>
  *
  * <p>Anti-Hollow：Measure/Dimension/Join 的非法引用被显式拒绝证明 save 校验运行时确实调用了
- * {@code MetaTableFieldResolver}（接线验证）；resolveTableFields 三类返回真实字段集（端到端验证）。
+ * {@code MetaEntityFieldResolver}（接线验证）；resolveEntityFields 三类返回真实字段集（端到端验证）。
  *
  * <p>跨表校验（plan 0228-3，架构基线 §2.5.2 D3）：entity 表 Measure/Dimension 引用 join 右实体字段（直连可达）
  * 合法通过；悬空跨表引用（metaEntityId 不在 baseEntity ∪ join.rightEntity 集合）显式失败。
@@ -71,7 +70,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
 
-    // resolveTableFields tests moved to TestBiSemanticResolveTableFields
+    // resolveEntityFields tests moved to TestBiSemanticResolveTableFields
 
     // ============================================================
     // Measure save 校验（item 1.3）
@@ -86,8 +85,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_OK", entityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m1\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m1\", "
                         + "aggFunc: \"sum\", entityFieldId: \"" + fieldId + "\"}) { measureId } }");
         assertFalse(resp.hasError(), "valid measure save must succeed: " + resp);
     }
@@ -102,8 +101,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_BAD", entityIdA); // 表关联实体 A
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_bad\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_bad\", "
                         + "aggFunc: \"sum\", entityFieldId: \"" + fieldIdB + "\"}) { measureId } }");
         assertTrue(resp.hasError(),
                 "measure with field ref not belonging to table's entity must be rejected: " + resp);
@@ -117,8 +116,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_MEASURE_EXPR", entityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_expr\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_expr\", "
                         + "aggFunc: \"count\", expression: \"amount * 2\"}) { measureId } }");
         assertFalse(resp.hasError(), "expression measure (null entityFieldId) must skip field check: " + resp);
     }
@@ -130,8 +129,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                 "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_ext\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_ext\", "
                         + "aggFunc: \"sum\", entityFieldId: \"amount\"}) { measureId } }");
         assertFalse(resp.hasError(), "valid external field-name measure must succeed: " + resp);
     }
@@ -143,8 +142,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                 "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_ext_bad\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_ext_bad\", "
                         + "aggFunc: \"sum\", entityFieldId: \"nonexistent_col\"}) { measureId } }");
         assertTrue(resp.hasError(), "unknown external column must be rejected: " + resp);
     }
@@ -162,8 +161,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_DIM_OK", entityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableDimension__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_time\", "
+                "mutation { NopMetaEntityDimension__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", dimensionName: \"d_time\", "
                         + "dimensionType: \"temporal\", granularity: \"month\", "
                         + "entityFieldId: \"" + fieldId + "\"}) { dimensionId } }");
         assertFalse(resp.hasError(), "valid temporal dimension must succeed: " + resp);
@@ -179,8 +178,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_DIM_BAD", entityIdA);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableDimension__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_bad\", "
+                "mutation { NopMetaEntityDimension__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", dimensionName: \"d_bad\", "
                         + "dimensionType: \"categorical\", entityFieldId: \"" + fieldIdB + "\"}) { dimensionId } }");
         assertTrue(resp.hasError(), "dimension with invalid field ref must be rejected: " + resp);
     }
@@ -206,8 +205,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_xtab\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_xtab\", "
                         + "aggFunc: \"sum\", entityFieldId: \"" + rightFieldId + "\"}) { measureId } }");
         assertFalse(resp.hasError(),
                 "cross-table measure referencing join rightEntity field must succeed: " + resp);
@@ -231,8 +230,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_dangle\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_dangle\", "
                         + "aggFunc: \"sum\", entityFieldId: \"" + orphanFieldId + "\"}) { measureId } }");
         assertTrue(resp.hasError(),
                 "dangling cross-table measure (field entity not in baseEntity ∪ join.rightEntity) must be rejected: "
@@ -253,8 +252,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         // 无 join
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_nojoin\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_nojoin\", "
                         + "aggFunc: \"sum\", entityFieldId: \"" + otherFieldId + "\"}) { measureId } }");
         assertTrue(resp.hasError(),
                 "entity-only table (no join) with non-base field ref must still be rejected: " + resp);
@@ -274,8 +273,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveJoin(tableId, "left", leftEntityId, rightEntityId, "order_id", "order_id");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableDimension__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_xtab\", "
+                "mutation { NopMetaEntityDimension__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", dimensionName: \"d_xtab\", "
                         + "dimensionType: \"categorical\", entityFieldId: \"" + rightFieldId + "\"}) { dimensionId } }");
         assertFalse(resp.hasError(),
                 "cross-table dimension referencing join rightEntity field must succeed: " + resp);
@@ -295,8 +294,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveJoin(tableId, "inner", leftEntityId, rightEntityId, "order_id", "order_id");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableDimension__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", dimensionName: \"d_dangle\", "
+                "mutation { NopMetaEntityDimension__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", dimensionName: \"d_dangle\", "
                         + "dimensionType: \"categorical\", entityFieldId: \"" + orphanFieldId + "\"}) { dimensionId } }");
         assertTrue(resp.hasError(),
                 "dangling cross-table dimension must be rejected: " + resp);
@@ -312,8 +311,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                 "[{\"columnName\":\"amount\",\"dataType\":\"DOUBLE\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_ext_xtab\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_ext_xtab\", "
                         + "aggFunc: \"sum\", entityFieldId: \"amount\"}) { measureId } }");
         assertFalse(resp.hasError(),
                 "external table measure must still succeed (unaffected by cross-table entity logic): " + resp);
@@ -325,10 +324,10 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
      */
     @Test
     public void testResolverResolveAllowedEntityIds() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
-        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        IEntityDao<NopMetaEntityJoin> joinDao = daoProvider.daoFor(NopMetaEntityJoin.class);
 
         String moduleId = ensureModule("mod-resolver-allowed");
         String leftEntityId = saveEntity(moduleId, "AllowedLeft", "k");
@@ -336,7 +335,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_ALLOWED", leftEntityId);
         saveJoin(tableId, "inner", leftEntityId, rightEntityId, "k", "k");
 
-        NopMetaTable table = getTable(tableId);
+        NopMetaEntity table = getTable(tableId);
         java.util.Set<String> allowed = resolver.resolveAllowedEntityIds(table, joinDao);
         assertTrue(allowed.contains(leftEntityId),
                 "allowedEntityIds must contain baseEntityId: " + allowed);
@@ -350,35 +349,38 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
      */
     @Test
     public void testResolverResolveAllowedEntityIdsNoJoin() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
-        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
+        IEntityDao<NopMetaEntityJoin> joinDao = daoProvider.daoFor(NopMetaEntityJoin.class);
 
         String moduleId = ensureModule("mod-resolver-nojoin");
         String baseEntityId = saveEntity(moduleId, "AllowedNoJoin", "k");
         String tableId = saveEntityTable(moduleId, "T_ALLOWED_NOJOIN", baseEntityId);
 
-        NopMetaTable table = getTable(tableId);
+        NopMetaEntity table = getTable(tableId);
         java.util.Set<String> allowed = resolver.resolveAllowedEntityIds(table, joinDao);
         assertEquals(1, allowed.size(), "entity-only table allowed set must be just baseEntity: " + allowed);
         assertTrue(allowed.contains(baseEntityId));
     }
 
     /**
-     * resolver.resolveAllowedEntityIds 对 baseEntityId null → 显式抛异常（不静默空集，对齐降级铁律）。
+     * plan 2261 语义变更登记：baseEntityId 概念随表/实体归并删除——实体行自身即可达锚点
+     * （见 MetaEntityFieldResolver.resolveAllowedEntityIds）。原"baseEntityId null 必须抛"的不变量
+     * 转写为：独立实体行（无宿主、无 join）→ allowed 集 = 自身 id，非空、不抛（永不静默空集）。
      */
     @Test
     public void testResolverResolveAllowedEntityIdsBaseNullThrows() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
-        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
+        IEntityDao<NopMetaEntityJoin> joinDao = daoProvider.daoFor(NopMetaEntityJoin.class);
         String moduleId = ensureModule("mod-resolver-allnull");
         String tableId = saveEntityTable(moduleId, "T_ALLOWED_NULL", null);
 
-        NopMetaTable table = getTable(tableId);
-        Executable call = () -> resolver.resolveAllowedEntityIds(table, joinDao);
-        assertThrows(io.nop.api.core.exceptions.NopException.class, call,
-                "entity table with null baseEntityId must throw (not silent empty)");
+        NopMetaEntity table = getTable(tableId);
+        java.util.Set<String> allowed = resolver.resolveAllowedEntityIds(table, joinDao);
+        assertFalse(allowed.isEmpty(), "allowed set must never be silently empty");
+        assertTrue(allowed.contains(table.getMetaEntityId()),
+                "standalone entity's allowed set must contain its own id: " + allowed);
     }
 
     // ============================================================
@@ -394,8 +396,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_JOIN_OK", leftEntityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", joinType: \"inner\", "
                         + "leftEntityId: \"" + leftEntityId + "\", rightEntityId: \"" + rightEntityId + "\", "
                         + "leftField: \"order_id\", rightField: \"order_id\"}) { joinId } }");
         assertFalse(resp.hasError(), "valid join must succeed: " + resp);
@@ -409,8 +411,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_JOIN_NENT", leftEntityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", joinType: \"left\", "
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", joinType: \"left\", "
                         + "leftEntityId: \"" + leftEntityId + "\", rightEntityId: \"__nope_entity__\", "
                         + "leftField: \"order_id\", rightField: \"order_id\"}) { joinId } }");
         assertTrue(resp.hasError(), "join with non-existent entity must be rejected: " + resp);
@@ -425,8 +427,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_JOIN_NFLD", leftEntityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", joinType: \"inner\", "
                         + "leftEntityId: \"" + leftEntityId + "\", rightEntityId: \"" + rightEntityId + "\", "
                         + "leftField: \"order_id\", rightField: \"nonexistent_field\"}) { joinId } }");
         assertTrue(resp.hasError(), "join with field not in entity must be rejected: " + resp);
@@ -435,27 +437,27 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     // Filter save tests moved to TestBiSemanticFilterSave
 
     // ============================================================
-    // MetaTableFieldResolver 直接调用（接线验证：解析器非空壳）
+    // MetaEntityFieldResolver 直接调用（接线验证：解析器非空壳）
     // ============================================================
 
     /** 直接调用 resolver 验证 entity/external/sql 分派与返回字段集（不经过 GraphQL，证明解析器自身可用）。 */
     @Test
     public void testResolverDirectDispatch() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
 
         String moduleId = ensureModule("mod-resolver-direct");
         // entity
         String entityId = saveEntity(moduleId, "ResolverEnt", "f1");
-        NopMetaTable entityTable = getTable(saveEntityTable(moduleId, "T_RES_ENT", entityId));
+        NopMetaEntity entityTable = getTable(saveEntityTable(moduleId, "T_RES_ENT", entityId));
         List<io.nop.metadata.service.field.ResolvedTableField> entityFields =
                 resolver.resolve(entityTable, fieldDao);
         assertEquals(1, entityFields.size());
         assertEquals("f1", entityFields.get(0).getName());
 
         // external
-        NopMetaTable extTable = getTable(saveExternalTable("T_RES_EXT", "qs_res_ext",
+        NopMetaEntity extTable = getTable(saveExternalTable("T_RES_EXT", "qs_res_ext",
                 "[{\"columnName\":\"c1\"}]"));
         List<io.nop.metadata.service.field.ResolvedTableField> extFields =
                 resolver.resolve(extTable, fieldDao);
@@ -463,7 +465,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         assertEquals("c1", extFields.get(0).getName());
 
         // sql
-        NopMetaTable sqlTable = getTable(saveSqlTable(moduleId, "T_RES_SQL", "SELECT x, y FROM t"));
+        NopMetaEntity sqlTable = getTable(saveSqlTable(moduleId, "T_RES_SQL", "SELECT x, y FROM t"));
         List<io.nop.metadata.service.field.ResolvedTableField> sqlFields =
                 resolver.resolve(sqlTable, fieldDao);
         assertEquals(2, sqlFields.size());
@@ -472,11 +474,11 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     /** resolver 对 entity 表 baseEntityId null 显式抛异常（不静默空集）。 */
     @Test
     public void testResolverEntityBaseEntityIdNullThrows() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
         String moduleId = ensureModule("mod-resolver-null");
-        NopMetaTable table = getTable(saveEntityTable(moduleId, "T_RES_NULL", null));
+        NopMetaEntity table = getTable(saveEntityTable(moduleId, "T_RES_NULL", null));
 
         Executable call = () -> resolver.resolve(table, fieldDao);
         assertThrows(io.nop.api.core.exceptions.NopException.class, call,
@@ -488,9 +490,9 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     // ============================================================
 
     /**
-     * sql 表作为 join 端点：rightTableId 指向 sql 表，合法 rightField 属于该 sql 表 SELECT 解析列集合 → save 通过。
-     *
-     * <p>接线验证（Anti-Hollow）：通过需要 save override 运行时确实调用 table 端点字段校验（resolveFieldNames 解析 sql SELECT）。
+     * plan 2261 语义变更登记（含深检 N1 修复）：table 端点随表概念删除——端点统一为 NopMetaEntity；
+     * 字段归属解析按 entityKind 分派（SQL_VIEW 走 sourceSql 解析），与执行路径同源——
+     * sql 视图实体作 join 端点合法保存（恢复基线"sql 表端点合法通过"语义）。
      */
     @Test
     public void testJoinSaveSqlTableEndpointValid() {
@@ -499,14 +501,19 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String rightTableId = saveSqlTable(moduleId, "T_JOIN_SQL_RIGHT", "SELECT order_id, region FROM regions");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertFalse(resp.hasError(), "valid sql-table-endpoint join must succeed: " + resp);
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightEntityId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertFalse(resp.hasError(),
+                "SQL_VIEW endpoint field resolution via sourceSql must succeed (plan 2261 N1 fix): " + resp);
     }
 
-    /** external 表作为 join 端点：rightTableId 指向 external 表，合法 rightField 属于其 buildSql JSON 列集合 → save 通过。 */
+    /**
+     * plan 2261 语义变更登记（含深检 N1 修复）：external 实体列结构在 externalColumns，
+     * join save 字段归属解析按 entityKind 分派（externalColumns JSON），与执行路径同源——
+     * external 实体作 join 端点合法保存（恢复基线"external 表端点合法通过"语义）。
+     */
     @Test
     public void testJoinSaveExternalTableEndpointValid() {
         String moduleId = ensureModule("mod-join-ext-endpoint");
@@ -515,65 +522,42 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
                 "[{\"columnName\":\"order_id\",\"dataType\":\"VARCHAR\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + leftTableId + "\", joinType: \"left\", "
-                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertFalse(resp.hasError(), "valid external-table-endpoint join must succeed: " + resp);
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + leftTableId + "\", joinType: \"left\", "
+                        + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightEntityId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertFalse(resp.hasError(),
+                "EXTERNAL endpoint field resolution via externalColumns must succeed (plan 2261 N1 fix): " + resp);
     }
 
-    /** sql 表端点的 rightField 不属于该表 SELECT 解析列集合 → 显式失败（不静默存入悬空字段引用）。 */
+    /** sql 视图端点的 rightField 不属于该实体可解析字段集合 → 显式失败（不静默存入悬空字段引用）。 */
     @Test
-    public void testJoinSaveTableEndpointFieldNotInTableFails() {
+    public void testJoinSaveEntityEndpointFieldNotResolvableFails() {
+        // plan 2261 处置登记：原"table 端点 + 列集合校验"随双端点删除收敛为纯实体端点——
+        // EXTERNAL 端点的字段解析走 externalColumns，未包含的字段显式失败。
         String moduleId = ensureModule("mod-join-sql-bad");
         String leftTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_L", "SELECT order_id FROM orders");
-        String rightTableId = saveSqlTable(moduleId, "T_JOIN_SQL_BAD_R", "SELECT order_id FROM regions");
+        String rightTableId = saveExternalTable("T_JOIN_SQL_BAD_R", "qs_join_sql_bad",
+                "[{\"columnName\":\"region\",\"dataType\":\"VARCHAR\"}]");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + rightTableId + "\", rightField: \"nonexistent_col\"}) { joinId } }");
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        + "leftEntityId: \"" + leftTableId + "\", leftField: \"order_id\", "
+                        + "rightEntityId: \"" + rightTableId + "\", rightField: \"nonexistent_col\"}) { joinId } }");
         assertTrue(resp.hasError(),
-                "join table-endpoint with field not in table column set must be rejected: " + resp);
+                "join endpoint with field not resolvable on the entity must be rejected: " + resp);
     }
 
-    /** entity/table 互斥违反：同一端点同时设置 leftEntityId 和 leftTableId → 显式失败。 */
-    @Test
-    public void testJoinSaveBothEndpointsSetFails() {
-        String moduleId = ensureModule("mod-join-mutex");
-        String entityId = saveEntity(moduleId, "MutexEnt", "order_id");
-        String tableId = saveSqlTable(moduleId, "T_JOIN_MUTEX", "SELECT order_id FROM orders");
+    // plan 2261 处置登记：原 testJoinSaveBothEndpointsSetFails（entity/table 端点互斥）随
+    // 双端点概念删除而移除——现行模型端点纯实体化，互斥语义不复存在（13-entity-unification.md §2.2）。
 
-        GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
-                        + "leftEntityId: \"" + entityId + "\", leftTableId: \"" + tableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + tableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "join side with both entityId and tableId set (mutex violation) must be rejected: " + resp);
-    }
-
-    /** table 端点指向 entity-type NopMetaTable → 显式失败（entity-type 表应走 entityId 路径）。 */
-    @Test
-    public void testJoinSaveTableEndpointEntityTypeFails() {
-        String moduleId = ensureModule("mod-join-enttype");
-        String entityId = saveEntity(moduleId, "EntTypeEnt", "order_id");
-        String entityTableId = saveEntityTable(moduleId, "T_JOIN_ENTTYPE", entityId); // entity-type 逻辑表
-        String sqlTableId = saveSqlTable(moduleId, "T_JOIN_ENTTYPE_SQL", "SELECT order_id FROM orders");
-
-        GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + sqlTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + sqlTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + entityTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(),
-                "join table-endpoint referencing entity-type NopMetaTable must be rejected: " + resp);
-    }
+    // plan 2261 处置登记：原 testJoinSaveTableEndpointEntityTypeFails（PHYSICAL 实体作 table 端点
+    // 须被拒）随双端点概念删除而移除——EXTERNAL/SQL_VIEW 实体端点与 PHYSICAL 端点同构，无类型排斥。
 
     /**
-     * ERR_JOIN_ENTITY_ID_NULL 放宽：table 端点合法时（tableId 非空、entityId 为 null）→ 不再因 entityId==null 报错，save 通过。
-     * 回归保护：既有 entity 路径不受影响（testJoinSaveValid 覆盖 entity 端点）。
+     * plan 2261 语义变更登记：ERR_JOIN_ENTITY_ID_NULL 的"table 端点放宽"随表端点删除而失效——
+     * 端点为 entity-only mandatory。leftTableId/rightTableId 键不再被识别，等价于端点缺失 → 显式失败。
      */
     @Test
     public void testJoinSaveTableEndpointRelaxesEntityIdNull() {
@@ -582,13 +566,15 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String rightTableId = saveSqlTable(moduleId, "T_JOIN_RELAX_R", "SELECT order_id FROM regions");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + leftTableId + "\", joinType: \"inner\", "
-                        // left/right 仅设 tableId，entityId 均为 null——放宽后合法
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + leftTableId + "\", joinType: \"inner\", "
+                        // left/right 仅设已废弃的 tableId 键——等价于端点缺失，必须显式失败
                         + "leftTableId: \"" + leftTableId + "\", leftField: \"order_id\", "
                         + "rightTableId: \"" + rightTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertFalse(resp.hasError(),
-                "table-endpoint join with null entityId must succeed (ERR_JOIN_ENTITY_ID_NULL relaxed): " + resp);
+        assertTrue(resp.hasError(),
+                "table-endpoint keys are no longer recognized, save must fail explicitly: " + resp);
+        assertTrue(String.valueOf(resp.getErrorCode()).contains("join-entity-id-null"),
+                "error must be the join-entity-id-null code: " + resp);
     }
 
     /** 端点 mandatory：left/right 两端都既无 entityId 也无 tableId → 显式失败（不静默存入无端点关联）。 */
@@ -598,8 +584,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String tableId = saveSqlTable(moduleId, "T_JOIN_NOENDPOINT", "SELECT order_id FROM orders");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", joinType: \"inner\", "
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", joinType: \"inner\", "
                         + "leftField: \"order_id\", rightField: \"order_id\"}) { joinId } }");
         assertTrue(resp.hasError(),
                 "join with neither entityId nor tableId on a side must be rejected: " + resp);
@@ -610,7 +596,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     // ============================================================
 
     /**
-     * sql 表 Measure 跨表（table 端点）合法：sql 表 T 定义 NopMetaTableJoin 指向另一 external 表端点，
+     * sql 表 Measure 跨表（table 端点）合法：sql 表 T 定义 NopMetaEntityJoin 指向另一 external 表端点，
      * 其 Measure 引用该 external 表的字段名（直连可达）→ save 通过（name-based 可达集包含端点表列名）。
      *
      * <p>端到端验证 + 接线验证：从「建 sql 表 → 建 table 端点 join → save Measure 引用 join 可达字段」完整跑通，
@@ -626,8 +612,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveTableJoin(sqlTableId, "inner", sqlTableId, extTableId, "base_col", "amount");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_xtab\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + sqlTableId + "\", measureName: \"m_xtab\", "
                         + "aggFunc: \"sum\", entityFieldId: \"amount\"}) { measureId } }");
         assertFalse(resp.hasError(),
                 "sql-table measure referencing join-reachable external field must succeed (name-based): " + resp);
@@ -647,8 +633,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         saveTableEntityJoin(extTableId, "left", extTableId, entityId, "base_col", "region");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + extTableId + "\", measureName: \"m_ext_xtab\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + extTableId + "\", measureName: \"m_ext_xtab\", "
                         + "aggFunc: \"count\", entityFieldId: \"region\"}) { measureId } }");
         assertFalse(resp.hasError(),
                 "external-table measure referencing join-reachable entity field must succeed (name-based): " + resp);
@@ -665,8 +651,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
 
         // 引用既不在 sql 表自身列、也不在 external 端点表列集合的悬空字段
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_dangle\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + sqlTableId + "\", measureName: \"m_dangle\", "
                         + "aggFunc: \"sum\", entityFieldId: \"ghost_field\"}) { measureId } }");
         assertTrue(resp.hasError(),
                 "sql-table measure with dangling field (not self nor join-reachable) must be rejected: " + resp);
@@ -679,8 +665,8 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         String sqlTableId = saveSqlTable(moduleId, "T_SQLMEASURE_SELF", "SELECT base_col FROM base");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + sqlTableId + "\", measureName: \"m_self\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + sqlTableId + "\", measureName: \"m_self\", "
                         + "aggFunc: \"sum\", entityFieldId: \"base_col\"}) { measureId } }");
         assertFalse(resp.hasError(), "sql-table measure referencing its own column must succeed: " + resp);
     }
@@ -691,11 +677,11 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
      */
     @Test
     public void testResolverResolveAllowedFieldNames() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
-        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntityJoin> joinDao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
 
         String moduleId = ensureModule("mod-resolver-allowed-fn");
         String entityId = saveEntity(moduleId, "AllowedFnEnt", "region");
@@ -705,7 +691,7 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         // 一个 join：left table 端点（external），right entity 端点
         saveTableEntityJoin(sqlTableId, "inner", extTableId, entityId, "amount", "region");
 
-        NopMetaTable table = getTable(sqlTableId);
+        NopMetaEntity table = getTable(sqlTableId);
         java.util.Set<String> allowed = resolver.resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
         assertTrue(allowed.contains("self_col"), "reachable set must contain sql table's own column: " + allowed);
         assertTrue(allowed.contains("amount"), "reachable set must contain external table-endpoint column: " + allowed);
@@ -715,16 +701,16 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     /** resolver.resolveAllowedFieldNames 对无 join 的表 → 仅含自身列名（退化）。 */
     @Test
     public void testResolverResolveAllowedFieldNamesNoJoin() {
-        io.nop.metadata.service.field.MetaTableFieldResolver resolver =
-                new io.nop.metadata.service.field.MetaTableFieldResolver();
+        io.nop.metadata.service.field.MetaEntityFieldResolver resolver =
+                new io.nop.metadata.service.field.MetaEntityFieldResolver();
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
-        IEntityDao<NopMetaTableJoin> joinDao = daoProvider.daoFor(NopMetaTableJoin.class);
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntityJoin> joinDao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
 
         String moduleId = ensureModule("mod-resolver-allowed-fn-nojoin");
         String sqlTableId = saveSqlTable(moduleId, "T_ALLOWED_FN_NOJOIN", "SELECT only_col FROM t");
 
-        NopMetaTable table = getTable(sqlTableId);
+        NopMetaEntity table = getTable(sqlTableId);
         java.util.Set<String> allowed = resolver.resolveAllowedFieldNames(table, fieldDao, joinDao, tableDao);
         assertEquals(1, allowed.size(), "no-join sql table reachable set must be just own column: " + allowed);
         assertTrue(allowed.contains("only_col"));
@@ -742,12 +728,12 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> resolveTableFields(String tableId) {
+    private Map<String, Object> resolveEntityFields(String tableId) {
         GraphQLResponseBean resp = runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + tableId + "\") { tableType fields { name sourceType type } } }");
-        assertFalse(resp.hasError(), "resolveTableFields should succeed: " + resp);
+                "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + tableId + "\") { entityKind fields { name sourceType type } } }");
+        assertFalse(resp.hasError(), "resolveEntityFields should succeed: " + resp);
         return (Map<String, Object>) ((Map<String, Object>) resp.getData())
-                .get("NopMetaTable__resolveTableFields");
+                .get("NopMetaEntity__resolveEntityFields");
     }
 
     private String ensureModule(String moduleName) {
@@ -785,7 +771,10 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
 
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity entity = dao.newEntity();
+        entity.setMetaModuleId(moduleId);
         entity.setOrmModelId(ormModelId);
+        entity.setIsDelta((byte) 0);
+        entity.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         entity.setEntityName(entityName);
         entity.setTableName("tbl_" + entityName);
         entity.setDisplayName(entityName);
@@ -818,27 +807,32 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     }
 
     private String saveEntityTable(String moduleId, String tableName, String baseEntityId) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        // plan 2261 概念缩减：实体行自身即宿主（原“表行→baseEntityId”间接配对已删除），
+        // 字段/Measure 均挂在实体行上，因此有宿主实体时直接复用该实体行。
+        if (baseEntityId != null) {
+            return baseEntityId;
+        }
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
-        if (baseEntityId != null) {
-            t.setBaseEntityId(baseEntityId);
-        }
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    /** 保存一条 NopMetaTableJoin（entity-entity 直连关联），用于跨表 Measure/Dimension 校验测试。 */
+    /** 保存一条 NopMetaEntityJoin（entity-entity 直连关联），用于跨表 Measure/Dimension 校验测试。 */
     @SuppressWarnings("UnusedReturnValue")
-    private String saveJoin(String metaTableId, String joinType, String leftEntityId, String rightEntityId,
+    private String saveJoin(String metaEntityId, String joinType, String leftEntityId, String rightEntityId,
                             String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
         j.setLeftEntityId(leftEntityId);
         j.setRightEntityId(rightEntityId);
@@ -849,16 +843,16 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         return j.getJoinId();
     }
 
-    /** 保存一条 table-table 端点的 NopMetaTableJoin（leftTableId/rightTableId 均为 external/sql 表端点）。 */
+    /** 保存一条 table-table 端点的 NopMetaEntityJoin（leftTableId/rightTableId 均为 external/sql 表端点）。 */
     @SuppressWarnings("UnusedReturnValue")
-    private String saveTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+    private String saveTableJoin(String metaEntityId, String joinType, String leftTableId, String rightTableId,
                                  String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
-        j.setLeftTableId(leftTableId);
-        j.setRightTableId(rightTableId);
+        j.setLeftEntityId(leftTableId);
+        j.setRightEntityId(rightTableId);
         j.setLeftField(leftField);
         j.setRightField(rightField);
         dao.saveEntity(j);
@@ -866,15 +860,15 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
         return j.getJoinId();
     }
 
-    /** 保存一条 table-entity 混合端点的 NopMetaTableJoin（leftTableId 表端点 + rightEntityId entity 端点）。 */
+    /** 保存一条 table-entity 混合端点的 NopMetaEntityJoin（leftTableId 表端点 + rightEntityId entity 端点）。 */
     @SuppressWarnings("UnusedReturnValue")
-    private String saveTableEntityJoin(String metaTableId, String joinType, String leftTableId, String rightEntityId,
+    private String saveTableEntityJoin(String metaEntityId, String joinType, String leftTableId, String rightEntityId,
                                        String leftField, String rightField) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
-        j.setLeftTableId(leftTableId);
+        j.setLeftEntityId(leftTableId);
         j.setRightEntityId(rightEntityId);
         j.setLeftField(leftField);
         j.setRightField(rightField);
@@ -884,34 +878,40 @@ public class TestNopMetaBiSemanticBizModel extends JunitBaseTestCase {
     }
 
     private String saveExternalTable(String tableName, String querySpace, String buildSqlJson) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL);
         t.setQuerySpace(querySpace);
-        t.setBuildSql(buildSqlJson);
+        t.setExternalColumns(buildSqlJson);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String saveSqlTable(String moduleId, String tableName, String sourceSql) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_SQL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW);
         t.setSourceSql(sourceSql);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    private NopMetaTable getTable(String tableId) {
-        return daoProvider.daoFor(NopMetaTable.class).getEntityById(tableId);
+    private NopMetaEntity getTable(String tableId) {
+        return daoProvider.daoFor(NopMetaEntity.class).getEntityById(tableId);
     }
 
     private String ensureExternalSystemModuleId() {

@@ -5,7 +5,7 @@ package io.nop.metadata.service;
  */
 public interface NopMetadataArgs {
 
-    String ARG_META_TABLE_ID = "metaTableId";
+    String ARG_META_ENTITY_ID = "metaEntityId";
     String ARG_DATA_SOURCE_ID = "dataSourceId";
     String ARG_DATASOURCE_TYPE = "datasourceType";
     String ARG_JOIN_ID = "joinId";
@@ -16,10 +16,9 @@ public interface NopMetadataArgs {
     String ARG_QUALITY_RESULT_STATUS = "status";
     String ARG_ENTITY_NAME = "entityName";
     String ARG_ENTITY_ID = "entityId";
-    String ARG_BASE_ENTITY_ID = "baseEntityId";
     String ARG_META_MODULE_ID = "metaModuleId";
     String ARG_QUERY_SPACE = "querySpace";
-    String ARG_TABLE_TYPE = "tableType";
+    String ARG_TABLE_TYPE = "entityKind";
     String ARG_TABLE_NAME = "tableName";
     String ARG_SCHEMA = "schema";
     String ARG_COLUMN_NAME = "columnName";
@@ -101,7 +100,7 @@ public interface NopMetadataArgs {
     String ARG_ROW_KEYS = "rowKeys";
     String ARG_SELECTED_MEASURES = "selectedMeasures";
     String ARG_SELECTED_DIMENSIONS = "selectedDimensions";
-    String ARG_ENDPOINT_TABLE_TYPE = "endpointTableType";
+    String ARG_ENDPOINT_TABLE_TYPE = "endpointEntityKind";
     String ARG_TABLES = "tables";
     String ARG_UNSUPPORTED_TOKEN = "unsupportedToken";
     String ARG_ENTITY_TYPE = "entityType";

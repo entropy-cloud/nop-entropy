@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </ul>
  *
  * <p>接线验证：直接调用 {@code SqlPagination.appendLimitOffset} 而非字符串常量比对，确保 helper 真实被使用
- * （helper 被 NopMetaTableBizModel/MetaAggregationExecutor/MetaJoinExecutor 共 10 处调用点引用）。
+ * （helper 被 NopMetaEntityBizModel/MetaAggregationExecutor/MetaJoinExecutor 共 10 处调用点引用）。
  */
 public class TestSqlPaginationOffsetOnly {
 
@@ -111,7 +111,7 @@ public class TestSqlPaginationOffsetOnly {
     /** 接线验证：10 处调用点引用的常量与方法存在（防止重构后调用点失效）。 */
     @Test
     public void testWiringToCallSitesConstantsExist() {
-        // 调用点（NopMetaTableBizModel/MetaAggregationExecutor/MetaJoinExecutor 共 10 处）依赖的公共 API
+        // 调用点（NopMetaEntityBizModel/MetaAggregationExecutor/MetaJoinExecutor 共 10 处）依赖的公共 API
         assertTrue(SqlPagination.MYSQL_MAX_LIMIT.equals("18446744073709551615"),
                 "constant value matches MySQL约定");
         // 公开方法可调用且产出与单测一致（证明 helper 是真实运行的，不是 stub）

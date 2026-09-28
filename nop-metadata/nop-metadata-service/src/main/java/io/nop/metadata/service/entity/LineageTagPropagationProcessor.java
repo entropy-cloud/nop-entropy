@@ -40,7 +40,7 @@ public class LineageTagPropagationProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(LineageTagPropagationProcessor.class);
 
     private static final int MAX_DEPTH = 3;
-    private static final String ENTITY_TYPE_NOP_META_TABLE = "NopMetaTable";
+    private static final String ENTITY_TYPE_NOP_META_ENTITY = "NopMetaEntity";
     private static final String SOURCE_LINEAGE_PROPAGATION = "lineage-propagation";
     private static final String LABEL_TYPE_PROPAGATED = "Propagated";
     private static final String STATE_SUGGESTED = "Suggested";
@@ -60,7 +60,7 @@ public class LineageTagPropagationProcessor {
 
     public List<NopMetaTagLabel> propagateTags(String entityType, String entityId, String tagId,
                                                   IServiceContext context) {
-        if (!ENTITY_TYPE_NOP_META_TABLE.equals(entityType)) {
+        if (!ENTITY_TYPE_NOP_META_ENTITY.equals(entityType)) {
             throw new NopMetadataException(ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE)
                     .param(ARG_ENTITY_TYPE, entityType);
         }
@@ -114,9 +114,9 @@ public class LineageTagPropagationProcessor {
         return dao.findAllByQuery(q);
     }
 
-    private List<NopMetaLineageEdge> findDirectEdges(IEntityDao<NopMetaLineageEdge> dao, String sourceTableId) {
+    private List<NopMetaLineageEdge> findDirectEdges(IEntityDao<NopMetaLineageEdge> dao, String sourceEntityId) {
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceTableId, sourceTableId));
+        q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_sourceEntityId, sourceEntityId));
         q.addFilter(FilterBeans.eq(NopMetaLineageEdge.PROP_NAME_transformType, "DIRECT"));
         return dao.findAllByQuery(q);
     }
@@ -129,13 +129,13 @@ public class LineageTagPropagationProcessor {
                                 List<NopMetaTagLabel> results,
                                 IServiceContext context) {
         if (depth >= MAX_DEPTH) {
-            LOG.warn("Lineage propagation depth exceeded max ({}) at edgeId={} sourceTableId={} targetTableId={}",
-                    MAX_DEPTH, edge.getLineageEdgeId(), edge.getSourceTableId(), edge.getTargetTableId());
+            LOG.warn("Lineage propagation depth exceeded max ({}) at edgeId={} sourceEntityId={} targetEntityId={}",
+                    MAX_DEPTH, edge.getLineageEdgeId(), edge.getSourceEntityId(), edge.getTargetEntityId());
             return;
         }
 
-        String targetId = edge.getTargetTableId();
-        String visitKey = ENTITY_TYPE_NOP_META_TABLE + "#" + targetId;
+        String targetId = edge.getTargetEntityId();
+        String visitKey = ENTITY_TYPE_NOP_META_ENTITY + "#" + targetId;
         if (!visited.add(visitKey)) {
             return;
         }
@@ -151,7 +151,7 @@ public class LineageTagPropagationProcessor {
                 IEntityDao<NopMetaLineageEdge> edgeDao = daoProvider.daoFor(NopMetaLineageEdge.class);
                 List<NopMetaLineageEdge> nextEdges = findDirectEdges(edgeDao, targetId);
                 for (NopMetaLineageEdge nextEdge : nextEdges) {
-                    if (visited.contains(ENTITY_TYPE_NOP_META_TABLE + "#" + nextEdge.getTargetTableId())) {
+                    if (visited.contains(ENTITY_TYPE_NOP_META_ENTITY + "#" + nextEdge.getTargetEntityId())) {
                         continue;
                     }
                     propagateEdge(tagLabelDao, nextEdge,
@@ -162,8 +162,8 @@ public class LineageTagPropagationProcessor {
                 // AR-21（plan 2026-08-06-1228-1 Phase 3）：后台传播路径保留 per-edge 隔离（单边失败不中断
                 // 整条血缘传播），但内层不再静默返回 null（内层抛错）——此处 LOG.error 含完整上下文留证，
                 // 失败可观测（显式裁定语义：传播失败可观测但不中断批处理）。
-                LOG.error("propagation failed for edge edgeId={} sourceTableId={} targetTableId={} tagId={}, errorCode={}",
-                        edge.getLineageEdgeId(), edge.getSourceTableId(), edge.getTargetTableId(),
+                LOG.error("propagation failed for edge edgeId={} sourceEntityId={} targetEntityId={} tagId={}, errorCode={}",
+                        edge.getLineageEdgeId(), edge.getSourceEntityId(), edge.getTargetEntityId(),
                         sourceLabel.getTagId(), NopMetadataErrors.ERR_AUTOMATION_PROCESS_ISOLATED.getErrorCode(), e);
             }
         }
@@ -173,7 +173,7 @@ public class LineageTagPropagationProcessor {
                                                       String targetEntityId,
                                                       String tagId,
                                                       IServiceContext context) {
-        if (hasExistingPropagatedLabel(tagLabelDao, ENTITY_TYPE_NOP_META_TABLE, targetEntityId, tagId)) {
+        if (hasExistingPropagatedLabel(tagLabelDao, ENTITY_TYPE_NOP_META_ENTITY, targetEntityId, tagId)) {
             return null;
         }
 
@@ -183,7 +183,7 @@ public class LineageTagPropagationProcessor {
         data.put("tagId", tagId);
         data.put("labelType", LABEL_TYPE_PROPAGATED);
         data.put("state", STATE_SUGGESTED);
-        data.put("entityType", ENTITY_TYPE_NOP_META_TABLE);
+        data.put("entityType", ENTITY_TYPE_NOP_META_ENTITY);
         data.put("entityId", targetEntityId);
 
         try {
@@ -204,7 +204,7 @@ public class LineageTagPropagationProcessor {
             LOG.warn("Propagated TagLabel save failed for entityId={} tagId={}, fail-loud (no silent drop)",
                     targetEntityId, tagId, e);
             throw new NopMetadataException(ERR_TAG_LABEL_SAVE_FAILED, e)
-                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_TABLE)
+                    .param(ARG_ENTITY_TYPE, ENTITY_TYPE_NOP_META_ENTITY)
                     .param(ARG_ENTITY_ID, targetEntityId)
                     .param(ARG_TAG_ID, tagId)
                     .param(ARG_ERROR, NopMetadataHelper.toErrorMessage(e));

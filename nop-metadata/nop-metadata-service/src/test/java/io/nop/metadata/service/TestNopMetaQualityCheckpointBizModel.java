@@ -20,7 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.entity.NopMetaQualityCheckpointBizModel;
 import io.nop.metadata.service.mock.MockHttpClient;
 import io.nop.metadata.service.mock.MockMessageService;
@@ -236,7 +236,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
      * 兜底显式失败），但必须留 WARN 根因日志（修复前配置损坏被报为"空规则集"且无日志）。
      *
      * <p>精确错误码断言经 raw impl 直接调用（:559-562 先例）；日志断言用 Logback ListAppender
-     * （TestMetaTableProfilerSecurity 先例）。
+     * （TestMetaEntityProfilerSecurity 先例）。
      */
     @Test
     public void testCorruptValidationsFailsWithNoRulesAndLogsWarn() {
@@ -508,7 +508,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
 
         // FAIL 表评分错误记入摘要 errors（source=autoScore），不静默吞掉
         assertTrue(data.contains("autoScore"), "autoScore error must be recorded in summary: " + data);
-        assertTrue(data.contains(failTableId), "failed table's error must reference its metaTableId: " + data);
+        assertTrue(data.contains(failTableId), "failed table's error must reference its metaEntityId: " + data);
 
         // OK 表仍评分成功（其他表不受影响）
         assertEquals(1, countScores(okTableId), "OK table must still get +1 score (isolation)");
@@ -993,7 +993,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         assertEquals(1, countScores(tableId), "run 1 must auto-score once");
         assertEquals(100.0, findLatestScore(tableId).getOverallScore(), 0.001, "run 1 score = 100");
 
-        // 破坏物理表（规则仍挂载于 NopMetaTable）→ run 2 规则执行抛 SQLException
+        // 破坏物理表（规则仍挂载于 NopMetaEntity）→ run 2 规则执行抛 SQLException
         Thread.sleep(10); // executeTime 毫秒精度，保证 run 2 行严格晚于 run 1 行（findLatestResult 确定性）
         dropExternalTable(dbUrl, "EXT_ER");
 
@@ -1235,9 +1235,9 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     }
 
     /** 手动调 computeQualityScore（用于与自动评分比对，证明复用同一 scorer）。 */
-    private GraphQLResponseBean scoreGraphql(String metaTableId) {
+    private GraphQLResponseBean scoreGraphql(String metaEntityId) {
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaQualityScore__computeQualityScore(metaTableId: \"" + metaTableId + "\") "
+                "mutation { NopMetaQualityScore__computeQualityScore(metaEntityId: \"" + metaEntityId + "\") "
                         + "{ scoreId overallScore dimensionScores ruleSummary trend } }")));
     }
 
@@ -1367,17 +1367,17 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         throw new AssertionError("timeout waiting for: " + message);
     }
 
-    private long countScores(String metaTableId) {
+    private long countScores(String metaEntityId) {
         IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaEntityId, metaEntityId));
         return dao.countByQuery(q);
     }
 
-    private NopMetaQualityScore findLatestScore(String metaTableId) {
+    private NopMetaQualityScore findLatestScore(String metaEntityId) {
         IEntityDao<NopMetaQualityScore> dao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaEntityId, metaEntityId));
         q.addOrderField(NopMetaQualityScore.PROP_NAME_scoreTime, true);
         return dao.findFirstByQuery(q);
     }
@@ -1398,7 +1398,7 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         return dao.findFirstByQuery(q);
     }
 
-    /** 直接对外部 H2 库执行 DDL（模拟外部源物理表变化，规则挂载的 NopMetaTable 行保留）。 */
+    /** 直接对外部 H2 库执行 DDL（模拟外部源物理表变化，规则挂载的 NopMetaEntity 行保留）。 */
     private void dropExternalTable(String dbUrl, String tableName) throws Exception {
         try (Connection c = DriverManager.getConnection(dbUrl, "sa", "");
              Statement st = c.createStatement()) {
@@ -1454,13 +1454,16 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
     }
 
     @SuppressWarnings("unused")
-    private NopMetaTable saveManualTable(String tableName, String tableType, String querySpace) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = tableDao.newEntity();
+    private NopMetaEntity saveManualTable(String tableName, String entityKind, String querySpace) {
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = tableDao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(tableType);
+        t.setEntityKind(entityKind);
         t.setQuerySpace(querySpace);
         t.setVersion(1L);
         tableDao.saveEntity(t);
@@ -1486,13 +1489,13 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         }
 
         String tableId(String tableName) {
-            IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+            IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
             QueryBean q = new QueryBean();
-            q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-            q.addFilter(FilterBeans.eq("tableType", "external"));
-            NopMetaTable t = tableDao.findFirstByQuery(q);
+            q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+            q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+            NopMetaEntity t = tableDao.findFirstByQuery(q);
             assertNotNull(t, "external table " + tableName + " must be synced before checkpoint execution");
-            return t.getMetaTableId();
+            return t.getMetaEntityId();
         }
     }
 }

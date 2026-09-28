@@ -14,7 +14,7 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.biz.INopMetaLineageEdgeBiz;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -62,8 +62,8 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
         IEntityDao<NopMetaLineageEdge> dao = daoProvider.daoFor(NopMetaLineageEdge.class);
         for (int i = 0; i < 6; i++) {
             NopMetaLineageEdge edge = dao.newEntity();
-            edge.setSourceTableId("ghost_src_" + i);
-            edge.setTargetTableId(t1);
+            edge.setSourceEntityId("ghost_src_" + i);
+            edge.setTargetEntityId(t1);
             edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MANUAL);
             edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
             dao.saveEntity(edge);
@@ -94,8 +94,8 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
         // 插入 5 条边（== max-edges=5，不越限）
         for (int i = 0; i < 5; i++) {
             NopMetaLineageEdge edge = dao.newEntity();
-            edge.setSourceTableId(t1);
-            edge.setTargetTableId(t2);
+            edge.setSourceEntityId(t1);
+            edge.setTargetEntityId(t2);
             edge.setLineageSource(_NopMetadataCoreConstants.LINEAGE_SOURCE_MANUAL);
             edge.setTransformType(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT);
             dao.saveEntity(edge);
@@ -122,14 +122,17 @@ public class TestNopMetaLineageEdgeSizeLimit extends JunitBaseTestCase {
     }
 
     private String saveTable(String moduleId, String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 }

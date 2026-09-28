@@ -7,10 +7,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.field.ExpressionMeasureValidator;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -31,7 +30,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
 
     @Override
     public List<Map<String, Object>> execute(AggregationContext context) {
-        NopMetaTable table = context.getTable();
+        NopMetaEntity table = context.getTable();
         List<String> measureNames = context.getMeasureNames();
         List<String> dimensionNames = context.getDimensionNames();
         TreeBean filter = context.getFilter();
@@ -41,7 +40,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         TreeBean having = context.getHaving();
         List<OrderFieldBean> orderBy = context.getOrderBy();
         MetaQueryContext ctx = context.ctx();
-        NopMetaTableJoin join = context.getJoin();
+        NopMetaEntityJoin join = context.getJoin();
         MetaJoinExecutor.Endpoint leftEp = context.getLeftEndpoint();
         MetaJoinExecutor.Endpoint rightEp = context.getRightEndpoint();
 
@@ -58,9 +57,9 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         }
 
         String leftPhysical = requireName(leftEntity.getTableName(), "leftTableName",
-                table.getMetaTableId());
+                table.getMetaEntityId());
         String rightPhysical = requireName(rightEntity.getTableName(), "rightTableName",
-                table.getMetaTableId());
+                table.getMetaEntityId());
         FilterToSqlTranslator.validateIdentifier(leftPhysical);
         FilterToSqlTranslator.validateIdentifier(rightPhysical);
         Map<String, String> leftPropToCol = resolveEntityColumns(leftEntity, ctx);
@@ -153,18 +152,18 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         }
     }
 
-    private static List<JoinMeasureSpec> loadJoinMeasures(NopMetaTable table, List<String> names, MetaQueryContext ctx,
+    private static List<JoinMeasureSpec> loadJoinMeasures(NopMetaEntity table, List<String> names, MetaQueryContext ctx,
                                                            JoinFieldResolver resolver) {
-        List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        List<NopMetaEntityMeasure> all = loadMeasures(table, names, ctx);
         Set<String> leftCols = resolver.resolveEntityColumns(resolver.leftEntityId());
         Set<String> rightCols = resolver.resolveEntityColumns(resolver.rightEntityId());
         List<JoinMeasureSpec> specs = new ArrayList<>();
-        for (NopMetaTableMeasure m : all) {
+        for (NopMetaEntityMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
                 ExpressionMeasureValidator.ValidatedExpression ve =
                         ExpressionMeasureValidator.validateStatic(m.getExpression(),
                                 ExpressionMeasureValidator.ValidationOptions.joinStrict(leftCols, rightCols),
-                                table.getMetaTableId(), m.getMeasureName());
+                                table.getMetaEntityId(), m.getMeasureName());
                 specs.add(new JoinMeasureSpec(safeAlias(m.getMeasureName()),
                         aggSqlOf(m.getAggFunc(), ve.sqlFragment, m.getMeasureName()),
                         "<expression>", ve.params, ve));
@@ -178,11 +177,11 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         return specs;
     }
 
-    private static List<JoinDimensionSpec> loadJoinDimensions(NopMetaTable table, List<String> names, MetaQueryContext ctx,
+    private static List<JoinDimensionSpec> loadJoinDimensions(NopMetaEntity table, List<String> names, MetaQueryContext ctx,
                                                                JoinFieldResolver resolver) {
-        List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
+        List<NopMetaEntityDimension> all = loadDimensions(table, names, ctx);
         List<JoinDimensionSpec> specs = new ArrayList<>();
-        for (NopMetaTableDimension d : all) {
+        for (NopMetaEntityDimension d : all) {
             JoinField f = resolver.resolve(d.getEntityFieldId(), d.getDimensionName(), d.getSide(), "dimension");
             FilterToSqlTranslator.validateIdentifier(f.column);
             specs.add(new JoinDimensionSpec(safeAlias(d.getDimensionName()), f.qualifiedColumn, f.column,

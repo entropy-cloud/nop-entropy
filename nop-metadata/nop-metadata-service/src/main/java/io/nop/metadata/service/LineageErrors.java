@@ -29,21 +29,21 @@ interface LineageErrors extends NopMetadataArgs {
                     "No lineage edges provided to record: size={size}", ARG_SIZE);
     ErrorCode ERR_LINEAGE_TABLE_ID_MISSING =
             ErrorCode.define("nop.err.metadata.lineage-table-id-missing",
-                    "Lineage edge is missing required table id (sourceTableId or targetTableId): "
+                    "Lineage edge is missing required table id (sourceEntityId or targetEntityId): "
                             + "index={index} edge={edge}", ARG_INDEX, ARG_EDGE);
     ErrorCode ERR_LINEAGE_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.lineage-table-not-found",
                     "Referenced table does not exist in catalog: {tableId}", ARG_TABLE_ID);
     ErrorCode ERR_LINEAGE_SQL_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.lineage-sql-table-not-found",
-                    "Lineage sql table not found: {metaTableId}", ARG_META_TABLE_ID);
+                    "Lineage sql table not found: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_LINEAGE_NOT_SQL_VIEW_TABLE =
             ErrorCode.define("nop.err.metadata.lineage-not-sql-view-table",
-                    "Table is not a sql-view table, cannot extract lineage: {metaTableId} (tableType={tableType})",
-                    ARG_META_TABLE_ID, ARG_TABLE_TYPE);
+                    "Table is not a sql-view table, cannot extract lineage: {metaEntityId} (entityKind={entityKind})",
+                    ARG_META_ENTITY_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_LINEAGE_SQL_SOURCE_EMPTY =
             ErrorCode.define("nop.err.metadata.lineage-sql-source-empty",
-                    "Sql table sourceSql is empty, cannot extract lineage: {metaTableId}", ARG_META_TABLE_ID);
+                    "Sql table sourceSql is empty, cannot extract lineage: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_LINEAGE_GRAPH_TOO_LARGE =
             ErrorCode.define("nop.err.metadata.lineage-graph-too-large",
                     "Lineage graph edge count exceeds size limit (abort to avoid OOM): "

@@ -20,12 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SELECT 字段解析器（架构基线 §4.2.1）：对 tableType=sql 的视图 sourceSql 做纯语法解析，
+ * SELECT 字段解析器（架构基线 §4.2.1）：对 entityKind=sql 的视图 sourceSql 做纯语法解析，
  * 从 SELECT 输出列抽取字段名/别名，返回 {@link SqlViewField} 列表。
  *
  * <p>解析器选型（D1）：复用平台 {@code nop-orm-eql} 的 {@link EqlASTParser}，
  * 调用 {@code parseFromText(text)} 做纯语法 AST 解析（不绑定 ORM session），与 §2.6.1 血缘
- * {@code SqlSourceTableExtractor} 同一解析器、同一无 session 绑定模式。{@code nop-orm-eql}
+ * {@code SqlSourceEntityExtractor} 同一解析器、同一无 session 绑定模式。{@code nop-orm-eql}
  * 经 {@code nop-orm}（{@code nop-metadata-dao} 依赖它）已传递可用，无需新增 pom 依赖。
  *
  * <p>字段名解析策略（alias 优先）：{@code SqlExprProjection} 优先取别名
@@ -57,7 +57,7 @@ public class SqlSelectFieldExtractor {
     /**
      * 解析 SQL 文本，抽取 SELECT 输出列字段列表。
      *
-     * @param sql SQL 文本（tableType=sql 的视图定义 sourceSql）
+     * @param sql SQL 文本（entityKind=sql 的视图定义 sourceSql）
      * @return 字段列表（顺序与 SELECT 输出列一致）；首版每个字段的 {@code type} 为 null（方案 A，不伪造）
      * @throws NopException 当 SQL 为空、不可解析、多语句、非 SELECT、或含通配符时（不静默返回空列表）
      */

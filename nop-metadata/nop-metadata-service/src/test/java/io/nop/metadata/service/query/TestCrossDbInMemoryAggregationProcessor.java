@@ -2,7 +2,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
@@ -258,19 +258,19 @@ public class TestCrossDbInMemoryAggregationProcessor {
     @Test
     public void testCrossDbAliasOf() {
         // 显式 alias：原样返回
-        NopMetaTableJoin join = new NopMetaTableJoin();
+        NopMetaEntityJoin join = new NopMetaEntityJoin();
         join.setAlias("r1");
         assertEquals("r1", AggregationHelper.crossDbAliasOf(join),
                 "explicit alias must be returned as-is");
 
         // null alias：回退 "right"
-        NopMetaTableJoin nullAlias = new NopMetaTableJoin();
+        NopMetaEntityJoin nullAlias = new NopMetaEntityJoin();
         nullAlias.setAlias(null);
         assertEquals("right", AggregationHelper.crossDbAliasOf(nullAlias),
                 "null alias must fall back to 'right'");
 
         // 空白 alias：回退 "right"（trim 后为空即视为未设置）
-        NopMetaTableJoin blankAlias = new NopMetaTableJoin();
+        NopMetaEntityJoin blankAlias = new NopMetaEntityJoin();
         blankAlias.setAlias("   ");
         assertEquals("right", AggregationHelper.crossDbAliasOf(blankAlias),
                 "blank/whitespace alias must fall back to 'right'");

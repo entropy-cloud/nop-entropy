@@ -23,8 +23,8 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="metaTableId" displayName="逻辑表ID" propId="2" i18n-en:displayName="Meta Table Id" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaTable">
+        <prop name="metaEntityId" displayName="逻辑表ID" propId="2" i18n-en:displayName="Meta Table Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="metaEntity">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="rowCount" displayName="行数" propId="3" i18n-en:displayName="Row Count" mandatory="true"
@@ -79,12 +79,13 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="metaTable" displayName="逻辑表" i18n-en:displayName="Meta Table" tagSet="pub,ref-pub" ext:kind="to-one"
-              internal="true" queryable="true" ext:joinLeftProp="metaTableId" ext:joinRightProp="metaTableId"
-              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
-            <schema bizObjName="NopMetaTable"/>
+        <prop name="metaEntity" displayName="实体" i18n-en:displayName="Meta Entity" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="metaEntityId"
+              ext:joinRightProp="metaEntityId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopMetaEntity"/>
         </prop>
-        <prop name="metaTable.displayName" displayName="逻辑表" i18n-en:displayName="Meta Table" internal="true"
+        <prop name="metaEntity.displayName" displayName="实体" i18n-en:displayName="Meta Entity" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

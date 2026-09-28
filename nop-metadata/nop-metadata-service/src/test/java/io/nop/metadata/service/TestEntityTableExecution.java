@@ -17,7 +17,6 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Phase 3 端到端验证：entity 类型表 × Catalog/Quality/Profiling 三大执行器（架构基线 §4.4.3 D1/D4）。
  *
  * <p>Anti-Hollow：所有成功路径用本模块已注册实体（{@code io.nop.metadata.dao.entity.NopMetaModule}）作 fixture，
- * 经 BizModel action 入口（collectCatalogForTable / executeQualityRule / profileTable）→ table-reference 解析 →
+ * 经 BizModel action 入口（collectCatalogForTable / executeQualityRule / profileEntity）→ table-reference 解析 →
  * 平台 IJdbcTransaction 取 Connection → executor 原样执行（不经 EQL）→ 产出真实统计值。
  *
  * <p>关键断言：entity 路径 profiling 产出真实 STDDEV_SAMP / median / percentile / distribution（非 null、非伪造），
@@ -66,7 +65,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         String tableId = prepareEntityTable();
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaDataSource__collectCatalogForTable(metaTableId: \"" + tableId + "\") { tableCount tables { tableName metaSchema tableType rowCount sizeBytes } errors { code message detail } } }")));
+                "mutation { NopMetaDataSource__collectCatalogForTable(metaEntityId: \"" + tableId + "\") { tableCount tables { tableName dbSchema entityKind rowCount sizeBytes } errors { code message detail } } }")));
         assertFalse(resp.hasError(), "entity catalog should not error: " + resp);
 
         NopMetaCatalog row = findCatalogRow(tableId);
@@ -111,7 +110,7 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         String tableId = prepareEntityTable();
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\", "
+                "mutation { NopMetaEntity__profileEntity(metaEntityId: \"" + tableId + "\", "
                         + "columns: \"MODULE_VERSION\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertFalse(resp.hasError(), "entity profiling should not error: " + resp);
 
@@ -143,10 +142,10 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
     public void testEntityProfilingUnregisteredEntityFails() {
         // 实体未注册 → 显式失败（不静默空集）
         NopMetaEntity entity = saveMetaEntity("not.a.registered.entity", "NOP_FAKE_TBL");
-        String tableId = saveEntityTable(entity.getMetaEntityId());
+        String tableId = entity.getMetaEntityId();
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "mutation { NopMetaTable__profileTable(metaTableId: \"" + tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
+                "mutation { NopMetaEntity__profileEntity(metaEntityId: \"" + tableId + "\") { profilingResultId columnCount columns { columnName rowCount nullCount nullRatio minValue maxValue } unavailable errors { code message detail } } }")));
         assertTrue(resp.hasError(), "unregistered entity must explicitly fail (no silent empty set): " + resp);
     }
 
@@ -184,29 +183,21 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         dao.flushSession();
     }
 
-    /** 创建 entity 类型 NopMetaTable，baseEntityId 指向已注册的 NopMetaModule 实体。返回 metaTableId。 */
+    /**
+     * 创建指向已注册平台实体（NopMetaModule）的 NopMetaEntity 行并返回 metaEntityId。
+     * plan 2261 概念缩减：实体行自身即执行目标（原"表行→baseEntityId"配对已删除）。
+     */
     private String prepareEntityTable() {
-        NopMetaEntity entity = saveMetaEntity(REGISTERED_ENTITY_NAME, REGISTERED_TABLE_NAME);
-        return saveEntityTable(entity.getMetaEntityId());
-    }
-
-    private String saveEntityTable(String baseEntityId) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
-        t.setMetaModuleId(ensureModuleId());
-        t.setTableName("ENT_T_" + System.nanoTime());
-        t.setDisplayName("entity-table");
-        t.setTableType("entity");
-        t.setBaseEntityId(baseEntityId);
-        t.setVersion(1L);
-        dao.saveEntity(t);
-        return t.getMetaTableId();
+        return saveMetaEntity(REGISTERED_ENTITY_NAME, REGISTERED_TABLE_NAME).getMetaEntityId();
     }
 
     private NopMetaEntity saveMetaEntity(String entityName, String tableName) {
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity e = dao.newEntity();
+        e.setMetaModuleId(ensureModuleId());
         e.setOrmModelId(ensureOrmModelId());
+        e.setIsDelta((byte) 0);
+        e.setEntityKind(io.nop.metadata.core._NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         e.setEntityName(entityName);
         e.setDisplayName(entityName);
         e.setTableName(tableName);
@@ -275,17 +266,17 @@ public class TestEntityTableExecution extends JunitBaseTestCase {
         assertEquals(expected, result.get("status"), "status mismatch: " + resp);
     }
 
-    private NopMetaCatalog findCatalogRow(String metaTableId) {
+    private NopMetaCatalog findCatalogRow(String metaEntityId) {
         IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaCatalog.PROP_NAME_metaEntityId, metaEntityId));
         return dao.findFirstByQuery(q);
     }
 
-    private NopMetaProfilingResult findProfilingResult(String metaTableId) {
+    private NopMetaProfilingResult findProfilingResult(String metaEntityId) {
         IEntityDao<NopMetaProfilingResult> dao = daoProvider.daoFor(NopMetaProfilingResult.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaProfilingResult.PROP_NAME_metaEntityId, metaEntityId));
         return dao.findFirstByQuery(q);
     }
 

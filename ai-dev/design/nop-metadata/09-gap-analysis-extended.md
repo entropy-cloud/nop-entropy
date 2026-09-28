@@ -73,7 +73,7 @@
 ```
 NopMetaModelChangedEvent         — 元数据变更事件（已落地为实体）
   ├── eventType                  — "ENTITY_CREATED" | "ENTITY_UPDATED" | "ENTITY_DELETED"
-  ├── entityType                 — "MetaEntity" | "MetaTable" | "MetaOrmModel"
+  ├── entityType                 — "MetaEntity" | "MetaOrmModel"（plan 2261 后 Table 系并入 MetaEntity）
   ├── entityId                   — 变更实体 ID
   ├── changeSource               — "IMPORT" | "UI" | "API" | "SYNC"
   ├── beforeSnapshot             — 变更前快照（JSON）
@@ -113,7 +113,7 @@ MetaManifest                     — 元数据快照
   ├── metaModuleId               → MetaModule
   ├── manifestVersion            — 快照版本号
   ├── generatedAt                — 生成时间
-  ├── nodes[]                    — 所有节点（MetaEntity, MetaTable, MetaMeasure 等）
+  ├── nodes[]                    — 所有节点（MetaEntity, MetaEntity, MetaMeasure 等）
   ├── parentMap                  — 父节点映射（依赖关系）
   ├── childMap                   — 子节点映射
   └── content                    — 单 JSON CLOB 快照（实体自带列，非 statistics 字段）

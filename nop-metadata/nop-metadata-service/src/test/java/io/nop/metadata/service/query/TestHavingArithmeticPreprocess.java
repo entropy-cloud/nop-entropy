@@ -4,7 +4,7 @@ import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -34,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestHavingArithmeticPreprocess {
 
-    private static NopMetaTable table() {
-        NopMetaTable t = new NopMetaTable();
-        t.setMetaTableId("meta-table-arithmetic-test");
+    private static NopMetaEntity table() {
+        NopMetaEntity t = new NopMetaEntity();
+        t.setMetaEntityId("meta-table-arithmetic-test");
         return t;
     }
 

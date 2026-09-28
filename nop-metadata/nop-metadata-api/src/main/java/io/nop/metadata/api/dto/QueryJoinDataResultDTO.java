@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 跨表 JOIN 查询结果 DTO（来源：{@code NopMetaTableBizModel.queryJoinData}）。
+ * 跨表 JOIN 查询结果 DTO（来源：{@code NopMetaEntityBizModel.queryJoinData}）。
  */
 @DataBean
 public class QueryJoinDataResultDTO implements Serializable {

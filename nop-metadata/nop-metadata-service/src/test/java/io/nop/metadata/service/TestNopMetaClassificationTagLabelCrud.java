@@ -269,7 +269,7 @@ public class TestNopMetaClassificationTagLabelCrud extends JunitBaseTestCase {
             l.setTagId("tag-multi-" + i);
             l.setLabelType("Manual");
             l.setState("Confirmed");
-            l.setEntityType("MetaTable");
+            l.setEntityType("MetaEntity");
             l.setEntityId("multi-table-001");
             l.setVersion(1L);
             l.setCreatedBy("autotest");
@@ -279,14 +279,14 @@ public class TestNopMetaClassificationTagLabelCrud extends JunitBaseTestCase {
             labelDao.saveEntity(l);
         }
 
-        // Query all TagLabels for entityType=MetaTable + entityId=multi-table-001
+        // Query all TagLabels for entityType=MetaEntity + entityId=multi-table-001
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, "MetaTable"));
+        q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityType, "MetaEntity"));
         q.addFilter(FilterBeans.eq(NopMetaTagLabel.PROP_NAME_entityId, "multi-table-001"));
         List<NopMetaTagLabel> labels = labelDao.findAllByQuery(q);
         assertEquals(3, labels.size(), "should find 3 TagLabels by entityType+entityId");
         for (NopMetaTagLabel l : labels) {
-            assertEquals("MetaTable", l.getEntityType());
+            assertEquals("MetaEntity", l.getEntityType());
             assertEquals("multi-table-001", l.getEntityId());
         }
     }

@@ -4,7 +4,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -22,16 +21,16 @@ public class JoinMixedSideResolver {
 
     private final NopMetaEntity entityEndpoint;
     private final Map<String, String> entityPropToCol;
-    private final NopMetaTable tableEndpoint;
+    private final NopMetaEntity tableEndpoint;
     private final Set<String> tableCols;
     private final boolean entityOnLeft;
     private final String joinId;
-    private final NopMetaTable ownerTable;
+    private final NopMetaEntity ownerTable;
     private final MetaQueryContext ctx;
 
     public JoinMixedSideResolver(NopMetaEntity entityEndpoint, Map<String, String> entityPropToCol,
-                                 NopMetaTable tableEndpoint, Set<String> tableCols,
-                                 boolean entityOnLeft, String joinId, NopMetaTable ownerTable,
+                                 NopMetaEntity tableEndpoint, Set<String> tableCols,
+                                 boolean entityOnLeft, String joinId, NopMetaEntity ownerTable,
                                  MetaQueryContext ctx) {
         this.entityEndpoint = entityEndpoint;
         this.entityPropToCol = entityPropToCol;
@@ -62,7 +61,7 @@ public class JoinMixedSideResolver {
     public AggregationContext.JoinField resolve(String entityFieldId, String name, String declaredSide) {
         if (entityFieldId == null || entityFieldId.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                    .param("metaTableId", ownerTable.getMetaTableId())
+                    .param("metaEntityId", ownerTable.getMetaEntityId())
                     .param("name", name).param("entityFieldId", String.valueOf(entityFieldId));
         }
         NopMetaEntityField field = tryLoadEntityField(entityFieldId);
@@ -70,7 +69,7 @@ public class JoinMixedSideResolver {
             String column = field.getColumnCode();
             if (column == null || column.isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_FIELD_NOT_RESOLVED)
-                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("metaEntityId", ownerTable.getMetaEntityId())
                         .param("name", name).param("entityFieldId", entityFieldId);
             }
             String resolvedSide = entityOnLeft ? "left" : "right";
@@ -78,7 +77,7 @@ public class JoinMixedSideResolver {
             if (declaredSide != null && !declaredSide.isEmpty()
                     && !declaredSide.equalsIgnoreCase(resolvedSide)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_ENTITY_SIDE_MISMATCH)
-                        .param("metaTableId", ownerTable.getMetaTableId())
+                        .param("metaEntityId", ownerTable.getMetaEntityId())
                         .param("name", name)
                         .param("declaredSide", declaredSide)
                         .param("resolvedSide", resolvedSide)
@@ -89,7 +88,7 @@ public class JoinMixedSideResolver {
         }
         if (declaredSide == null || declaredSide.isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SIDE_REQUIRED)
-                    .param("metaTableId", ownerTable.getMetaTableId())
+                    .param("metaEntityId", ownerTable.getMetaEntityId())
                     .param("name", name).param("joinId", joinId);
         }
         String expectedSide = entityOnLeft ? "right" : "left";
@@ -98,16 +97,16 @@ public class JoinMixedSideResolver {
             alias = entityOnLeft ? "r" : "l";
         } else {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
-                    .param("metaTableId", ownerTable.getMetaTableId())
+                    .param("metaEntityId", ownerTable.getMetaEntityId())
                     .param("name", name).param("side", declaredSide)
-                    .param("endpointTableType", "entity")
+                    .param("endpointEntityKind", "entity")
                     .param("column", entityFieldId).param("joinId", joinId);
         }
         if (!containsIgnoreCase(tableCols, entityFieldId)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_FIELD_NOT_ON_SIDE)
-                    .param("metaTableId", ownerTable.getMetaTableId())
+                    .param("metaEntityId", ownerTable.getMetaEntityId())
                     .param("name", name).param("side", declaredSide)
-                    .param("endpointTableType", String.valueOf(tableEndpoint.getTableType()))
+                    .param("endpointEntityKind", String.valueOf(tableEndpoint.getEntityKind()))
                     .param("column", entityFieldId).param("joinId", joinId);
         }
         return new AggregationContext.JoinField(entityFieldId, alias + "." + entityFieldId);

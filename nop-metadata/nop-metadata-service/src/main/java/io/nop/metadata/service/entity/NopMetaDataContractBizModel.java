@@ -39,7 +39,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
-                contract.getMetaTableId(),
+                contract.getMetaEntityId(),
                 contract.getQualityExpectations(),
                 contract.getSla());
 
@@ -68,7 +68,7 @@ public class NopMetaDataContractBizModel extends CrudBizModel<NopMetaDataContrac
 
         Map<String, Object> result = contractChecker.check(
                 contractId,
-                contract.getMetaTableId(),
+                contract.getMetaEntityId(),
                 contract.getQualityExpectations(),
                 contract.getSla());
 

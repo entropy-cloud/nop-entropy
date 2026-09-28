@@ -15,11 +15,10 @@ import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Assertions;
 
@@ -120,13 +119,13 @@ public class AggregationTestHelper {
     }
 
     public String findEntityTableId(String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "entity"));
-        NopMetaTable t = dao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "PHYSICAL"));
+        NopMetaEntity t = dao.findFirstByQuery(q);
         Assertions.assertNotNull(t, "entity table " + tableName + " must exist after import");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     public String findEntityFieldId(String tableName, String fieldName,
@@ -161,23 +160,23 @@ public class AggregationTestHelper {
     }
 
     public String tableId(String tableName) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "external"));
-        NopMetaTable t = tableDao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
         Assertions.assertNotNull(t, "external table " + tableName + " must be synced");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     public String externalTableId(String tableName) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "external"));
-        NopMetaTable t = tableDao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
         Assertions.assertNotNull(t, "external table " + tableName + " must be synced");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     // ===== data source helpers =====
@@ -228,9 +227,9 @@ public class AggregationTestHelper {
     // ===== measure/dimension/filter helpers =====
 
     public void createMeasure(String tableId, String name, String entityFieldId, String aggFunc, String expression) {
-        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
-        NopMetaTableMeasure m = dao.newEntity();
-        m.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityMeasure> dao = daoProvider.daoFor(NopMetaEntityMeasure.class);
+        NopMetaEntityMeasure m = dao.newEntity();
+        m.setMetaEntityId(tableId);
         m.setMeasureName(name);
         m.setEntityFieldId(entityFieldId);
         m.setAggFunc(aggFunc);
@@ -243,9 +242,9 @@ public class AggregationTestHelper {
 
     public void createDimension(String tableId, String name, String entityFieldId, String dimensionType,
                                  String granularity) {
-        IEntityDao<NopMetaTableDimension> dao = daoProvider.daoFor(NopMetaTableDimension.class);
-        NopMetaTableDimension d = dao.newEntity();
-        d.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityDimension> dao = daoProvider.daoFor(NopMetaEntityDimension.class);
+        NopMetaEntityDimension d = dao.newEntity();
+        d.setMetaEntityId(tableId);
         d.setDimensionName(name);
         d.setEntityFieldId(entityFieldId);
         d.setDimensionType(dimensionType);
@@ -257,9 +256,9 @@ public class AggregationTestHelper {
     }
 
     public void createDefaultFilter(String tableId, String name, TreeBean definition) {
-        IEntityDao<NopMetaTableFilter> dao = daoProvider.daoFor(NopMetaTableFilter.class);
-        NopMetaTableFilter f = dao.newEntity();
-        f.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityFilter> dao = daoProvider.daoFor(NopMetaEntityFilter.class);
+        NopMetaEntityFilter f = dao.newEntity();
+        f.setMetaEntityId(tableId);
         f.setFilterName(name);
         f.setDefinition(JsonTool.stringify(definition));
         f.setIsDefault((byte) 1);
@@ -268,9 +267,9 @@ public class AggregationTestHelper {
     }
 
     public void createMeasureWithSide(String tableId, String name, String entityFieldId, String aggFunc, String side) {
-        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
-        NopMetaTableMeasure m = dao.newEntity();
-        m.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityMeasure> dao = daoProvider.daoFor(NopMetaEntityMeasure.class);
+        NopMetaEntityMeasure m = dao.newEntity();
+        m.setMetaEntityId(tableId);
         m.setMeasureName(name);
         m.setEntityFieldId(entityFieldId);
         m.setAggFunc(aggFunc);
@@ -283,9 +282,9 @@ public class AggregationTestHelper {
 
     public void createDimensionWithSide(String tableId, String name, String entityFieldId, String dimensionType,
                                          String granularity, String side) {
-        IEntityDao<NopMetaTableDimension> dao = daoProvider.daoFor(NopMetaTableDimension.class);
-        NopMetaTableDimension d = dao.newEntity();
-        d.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityDimension> dao = daoProvider.daoFor(NopMetaEntityDimension.class);
+        NopMetaEntityDimension d = dao.newEntity();
+        d.setMetaEntityId(tableId);
         d.setDimensionName(name);
         d.setEntityFieldId(entityFieldId);
         d.setDimensionType(dimensionType);
@@ -301,9 +300,9 @@ public class AggregationTestHelper {
 
     public void createMeasureWithSideAndExpression(String tableId, String name, String entityFieldId,
                                                      String aggFunc, String side, String expression) {
-        IEntityDao<NopMetaTableMeasure> dao = daoProvider.daoFor(NopMetaTableMeasure.class);
-        NopMetaTableMeasure m = dao.newEntity();
-        m.setMetaTableId(tableId);
+        IEntityDao<NopMetaEntityMeasure> dao = daoProvider.daoFor(NopMetaEntityMeasure.class);
+        NopMetaEntityMeasure m = dao.newEntity();
+        m.setMetaEntityId(tableId);
         m.setMeasureName(name);
         m.setEntityFieldId(entityFieldId);
         m.setAggFunc(aggFunc);
@@ -328,11 +327,11 @@ public class AggregationTestHelper {
         return e;
     }
 
-    public String createJoin(String metaTableId, String joinType, String leftEntityId, String rightEntityId,
+    public String createJoin(String metaEntityId, String joinType, String leftEntityId, String rightEntityId,
                               String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
         join.setLeftEntityId(leftEntityId);
         join.setRightEntityId(rightEntityId);
@@ -347,14 +346,14 @@ public class AggregationTestHelper {
         return join.getJoinId();
     }
 
-    public String createMixedJoin(String metaTableId, String joinType, String leftEntityId, String rightTableId,
+    public String createMixedJoin(String metaEntityId, String joinType, String leftEntityId, String rightTableId,
                                    String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
         join.setLeftEntityId(leftEntityId);
-        join.setRightTableId(rightTableId);
+        join.setRightEntityId(rightTableId);
         join.setLeftField(leftField);
         join.setRightField(rightField);
         join.setAlias(alias);
@@ -366,14 +365,14 @@ public class AggregationTestHelper {
         return join.getJoinId();
     }
 
-    public String createTableTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+    public String createTableTableJoin(String metaEntityId, String joinType, String leftTableId, String rightTableId,
                                         String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
-        join.setLeftTableId(leftTableId);
-        join.setRightTableId(rightTableId);
+        join.setLeftEntityId(leftTableId);
+        join.setRightEntityId(rightTableId);
         join.setLeftField(leftField);
         join.setRightField(rightField);
         join.setAlias(alias);
@@ -397,7 +396,7 @@ public class AggregationTestHelper {
                                                   TreeBean filter, String joinId, Long limit, Long offset,
                                                   TreeBean having, List<io.nop.api.core.beans.query.OrderFieldBean> orderBy) {
         java.util.LinkedHashMap<String, Object> params = new java.util.LinkedHashMap<>();
-        params.put("metaTableId", tableId);
+        params.put("metaEntityId", tableId);
         if (measures != null) params.put("measures", measures);
         if (dims != null) params.put("dimensions", dims);
         if (filter != null) params.put("filter", filter);
@@ -413,7 +412,7 @@ public class AggregationTestHelper {
 
     public boolean queryAggregationHasError(String tableId, List<String> measures, List<String> dims) {
         try {
-            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                     queryAggregationRequest(tableId, measures, dims, null, null, null, null, null, null));
             if (!resp.isOk()) return true;
             return false;
@@ -428,7 +427,7 @@ public class AggregationTestHelper {
 
     public boolean queryAggregationJoinHasError(String tableId, String measureName, String dimName, String joinId) {
         try {
-            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+            ApiResponse<?> resp = executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                     queryAggregationRequest(tableId, java.util.Arrays.asList(measureName), java.util.Arrays.asList(dimName),
                             null, joinId, null, null, null, null));
             if (!resp.isOk()) return true;
@@ -525,17 +524,21 @@ public class AggregationTestHelper {
     }
 
     public String saveSqlTableManual(String sourceSql, String querySpace) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureTestModuleId());
-        t.setTableName("SQL_AGG_" + System.nanoTime());
+        String tableName = "SQL_AGG_" + System.nanoTime();
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
+        t.setTableName(tableName);
         t.setDisplayName("sql-agg-endpoint");
-        t.setTableType("sql");
+        t.setEntityKind("SQL_VIEW");
         t.setQuerySpace(querySpace);
         t.setSourceSql(sourceSql);
         t.setVersion(1L);
         dao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     public String ensureTestModuleId() {
@@ -555,10 +558,10 @@ public class AggregationTestHelper {
                                                                                 String measureName,
                                                                                 String expression) {
         String exprJson = JsonTool.stringify(expression);
-        String dataJson = "{metaTableId:\"" + tableId + "\",measureName:\"" + measureName
+        String dataJson = "{metaEntityId:\"" + tableId + "\",measureName:\"" + measureName
                 + "\",aggFunc:\"sum\",entityFieldId:null,expression:" + exprJson + ",version:1}";
         io.nop.api.core.beans.graphql.GraphQLRequestBean request = new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-        request.setQuery("mutation { NopMetaTableMeasure__save(data: " + dataJson + ") { measureName expression } }");
+        request.setQuery("mutation { NopMetaEntityMeasure__save(data: " + dataJson + ") { measureName expression } }");
         return graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
     }
 

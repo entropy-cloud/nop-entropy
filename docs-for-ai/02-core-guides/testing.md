@@ -523,7 +523,7 @@ nop-metadata 模块现在包含以下测试基础设施：
 - **AutoTest 快照测试**（`TestAutoNopMetaClassificationCrud`）：继承 `JunitAutoTestCase`，录制并校验 `NopMetaClassification__save` RPC 调用。测试数据在 `_cases/io/nop/metadata/service/TestAutoNopMetaClassificationCrud/`。首次录制需临时设 `@NopTestConfig(snapshotTest = SnapshotTest.RECORDING)`，日常 CI 使用默认 CHECKING 模式。
 - **并发测试**（`TestCheckpointActionDispatcherConcurrency`）：4 线程 × 4 轮并发调用 `CheckpointActionDispatcher.dispatch`，验证 per-action 隔离在并发下正确。
 - **MockHttpClient 实例级状态**：mock 客户端使用实例字段而非 static 字段，支持并行执行（`-DforkCount=2`）无串扰。
-- **所有 BizModel 测试使用 `I*Biz` 接口注入**：通过 `@Inject INopMetaTableBiz` / `INopMetaLineageEdgeBiz` 等接口，搭配 `ServiceContextImpl` 传入上下文。
+- **所有 BizModel 测试使用 `I*Biz` 接口注入**：通过 `@Inject INopMetaEntityBiz` / `INopMetaLineageEdgeBiz` 等接口，搭配 `ServiceContextImpl` 传入上下文。
 
 ## 相关文档
 

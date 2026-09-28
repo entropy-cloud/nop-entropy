@@ -25,8 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@link DdlSqlCreator} 断言三方言 DDL 实际包含 UK 约束文本（Anti-Hollow：断言
  * 生成产物而非仅源模型声明）。
  *
- * <p>UK_NOP_META_ORM_MODEL_MODULE_NAME / UK_NOP_META_TABLE_MODULE_NAME 同时补
- * isDelta 列维度（MA7.3-01 双重存储相容性裁决），断言其列清单含 IS_DELTA。
+ * <p>UK_NOP_META_ORM_MODEL_MODULE_NAME 补 isDelta 列维度（MA7.3-01 双重存储相容性裁决），
+ * 断言其列清单含 IS_DELTA。plan 2261 概念缩减后：NopMetaEntity 的 UK 为
+ * UK_NOP_META_ENTITY_MODEL_NAME (ormModelId, entityName)，dbSchema 不进 UK
+ * （多 schema 共存由实体名生成规则承载，见 13-entity-unification.md §3.1）。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
 public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
@@ -36,16 +38,16 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
 
     @Test
     public void testCreateTableEmitsUniqueKeyForAllThreeDialects() {
-        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaTable");
-        assertNotNull(table, "NopMetaTable model must be loaded");
-        assertNotNull(table.getUniqueKeys(), "NopMetaTable must declare unique keys");
-        assertTrue(table.getUniqueKeys().stream().anyMatch(uk -> "UK_NOP_META_TABLE_MODULE_NAME".equals(uk.getName())),
-                "NopMetaTable must keep UK_NOP_META_TABLE_MODULE_NAME");
+        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaEntity");
+        assertNotNull(table, "NopMetaEntity model must be loaded");
+        assertNotNull(table.getUniqueKeys(), "NopMetaEntity must declare unique keys");
+        assertTrue(table.getUniqueKeys().stream().anyMatch(uk -> "UK_NOP_META_ENTITY_MODEL_NAME".equals(uk.getName())),
+                "NopMetaEntity must keep UK_NOP_META_ENTITY_MODEL_NAME");
 
         for (String dialect : new String[]{"mysql", "oracle", "postgresql"}) {
             String sql = DdlSqlCreator.forDialect(dialect).createTable(table, false);
-            assertTrue(sql.contains("UK_NOP_META_TABLE_MODULE_NAME"),
-                    dialect + " DDL must emit constraint UK_NOP_META_TABLE_MODULE_NAME, actual: " + sql);
+            assertTrue(sql.contains("UK_NOP_META_ENTITY_MODEL_NAME"),
+                    dialect + " DDL must emit constraint UK_NOP_META_ENTITY_MODEL_NAME, actual: " + sql);
             assertTrue(sql.contains("unique"),
                     dialect + " DDL must emit a UNIQUE constraint, actual: " + sql);
         }
@@ -67,9 +69,12 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
         assertTrue(hasUniqueKeyColumn(ormModel, "UK_NOP_META_ORM_MODEL_MODULE_NAME", "IS_DELTA"),
                 "UK_NOP_META_ORM_MODEL_MODULE_NAME must include isDelta dimension (dual storage)");
 
-        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaTable");
-        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_TABLE_MODULE_NAME", "IS_DELTA"),
-                "UK_NOP_META_TABLE_MODULE_NAME must include isDelta dimension (dual storage)");
+        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaEntity");
+        // plan 2261：实体 UK=(ormModelId, entityName)——列构成断言（替代原逻辑表 UK 的 isDelta 维度断言）
+        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_ENTITY_MODEL_NAME", "ORM_MODEL_ID"),
+                "UK_NOP_META_ENTITY_MODEL_NAME must include ormModelId dimension");
+        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_ENTITY_MODEL_NAME", "ENTITY_NAME"),
+                "UK_NOP_META_ENTITY_MODEL_NAME must include entityName dimension");
 
         OrmEntityModel module = entityModel("io.nop.metadata.dao.entity.NopMetaModule");
         assertTrue(hasUniqueKeyColumn(module, "UK_NOP_META_MODULE_ID_VER", "MODULE_ID"),
@@ -77,28 +82,21 @@ public class TestNopMetaDdlUniqueKeyEmission extends JunitBaseTestCase {
     }
 
     /**
-     * R4.2（plan-2026-08-05-1625-1）：UK_NOP_META_TABLE_MODULE_NAME 扩展 metaSchema 维度
-     * （多 schema 同名表可共存，metaSchema null 语义裁定 = 路径 A 保持可空）。
+     * R4.2 演化（plan 2261 概念缩减）：多 schema 共存机制从「metaSchema 进 UK」改为
+     * 「实体名同步生成规则（{schema}_{tableName}）+ dbSchema 描述列」。裁定断言：
+     * NopMetaEntity 的 UK 为 UK_NOP_META_ENTITY_MODEL_NAME 且**不含** DB_SCHEMA 维度
+     * （防止旧 multi-schema UK 机制回归），列构成为 (ORM_MODEL_ID, ENTITY_NAME)。
      */
     @Test
-    public void testTableUniqueKeyIncludesMetaSchemaDimension() {
-        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaTable");
-        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_TABLE_MODULE_NAME", "META_SCHEMA"),
-                "UK_NOP_META_TABLE_MODULE_NAME must include metaSchema dimension (multi-schema support)");
-
-        for (String dialect : new String[]{"mysql", "oracle", "postgresql"}) {
-            String sql = DdlSqlCreator.forDialect(dialect).createTable(table, false);
-            String schemaCol = "postgresql".equals(dialect) ? "meta_schema" : "META_SCHEMA";
-            String ukLine = null;
-            for (String line : sql.split("\\n")) {
-                if (line.contains("UK_NOP_META_TABLE_MODULE_NAME") && line.contains("unique")) {
-                    ukLine = line;
-                    break;
-                }
-            }
-            assertTrue(ukLine != null && ukLine.contains(schemaCol),
-                    dialect + " DDL unique constraint must include metaSchema column, actual: " + sql);
-        }
+    public void testEntityUniqueKeyExcludesDbSchemaDimension() {
+        OrmEntityModel table = entityModel("io.nop.metadata.dao.entity.NopMetaEntity");
+        assertTrue(hasUniqueKey(table, "UK_NOP_META_ENTITY_MODEL_NAME"),
+                "NopMetaEntity must keep UK_NOP_META_ENTITY_MODEL_NAME");
+        assertFalse(hasUniqueKeyColumn(table, "UK_NOP_META_ENTITY_MODEL_NAME", "DB_SCHEMA"),
+                "Entity UK must NOT include dbSchema dimension (multi-schema via entityName rule, plan 2261)");
+        assertTrue(hasUniqueKeyColumn(table, "UK_NOP_META_ENTITY_MODEL_NAME", "ORM_MODEL_ID")
+                        && hasUniqueKeyColumn(table, "UK_NOP_META_ENTITY_MODEL_NAME", "ENTITY_NAME"),
+                "Entity UK columns must be (ormModelId, entityName)");
     }
 
     /**

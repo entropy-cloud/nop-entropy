@@ -11,7 +11,7 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ import java.util.Set;
  * <p>本类**不自建连接**、**不写实体**（纯读 + 计算），返回结构化 {@link QualityScoreResult} 供
  * {@code NopMetaQualityScoreBizModel} 落盘。失败/不可评路径均显式（D6，不静默 0 分、不伪造、不产生 NaN）：
  * <ul>
- *   <li>metaTableId 不存在 → 抛 {@link #NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND}</li>
+ *   <li>metaEntityId 不存在 → 抛 {@link #NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND}</li>
  *   <li>表无任何挂载规则 → 抛 {@link #NopMetadataErrors.ERR_SCORE_NO_RULES}</li>
  *   <li>所有规则最新结果全 SKIP / 无可评结果（全维度 null）→ 抛 {@link #NopMetadataErrors.ERR_SCORE_ALL_SKIP}</li>
  * </ul>
@@ -88,27 +88,27 @@ public class MetaQualityScorer {
      * <p>本方法读 QualityResult + 上一条 QualityScore 计算，**不写**新行。BizModel 拿到
      * {@link QualityScoreResult} 后落盘。
      *
-     * @param metaTableId 目标逻辑表 ID（NopMetaTable.metaTableId）
+     * @param metaEntityId 目标逻辑表 ID（NopMetaEntity.metaEntityId）
      * @return 结构化评分结果（overallScore + dimensionScores + ruleSummary + trend）
      * @throws NopException 不可评路径（D6）：表不存在 / 无规则 / 全 SKIP
      */
-    public QualityScoreResult score(String metaTableId) {
-        // D6：metaTableId 不存在 → 显式失败
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(metaTableId);
+    public QualityScoreResult score(String metaEntityId) {
+        // D6：metaEntityId 不存在 → 显式失败
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity table = tableDao.getEntityById(metaEntityId);
         if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_TABLE_NOT_FOUND).param("metaEntityId", metaEntityId);
         }
 
-        // 加载挂载规则（entityId = metaTableId，即 §2.7.1 D1 规则仅挂载于 NopMetaTable）
+        // 加载挂载规则（entityId = metaEntityId，即 §2.7.1 D1 规则仅挂载于 NopMetaEntity）
         IEntityDao<NopMetaQualityRule> ruleDao = daoProvider.daoFor(NopMetaQualityRule.class);
         QueryBean ruleQuery = new QueryBean();
-        ruleQuery.addFilter(FilterBeans.eq(NopMetaQualityRule.PROP_NAME_entityId, metaTableId));
+        ruleQuery.addFilter(FilterBeans.eq(NopMetaQualityRule.PROP_NAME_entityId, metaEntityId));
         List<NopMetaQualityRule> rules = ruleDao.findAllByQuery(ruleQuery);
 
         // D6：表无任何挂载规则 → 显式失败（不静默 0 分）
         if (rules.isEmpty()) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_NO_RULES).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_NO_RULES).param("metaEntityId", metaEntityId);
         }
 
         IEntityDao<NopMetaQualityResult> resultDao = daoProvider.daoFor(NopMetaQualityResult.class);
@@ -187,7 +187,7 @@ public class MetaQualityScorer {
 
         // D6：全维度 null（无任何可评规则或全 SKIP）→ 显式失败（不静默 0 分、不伪造）
         if (weightSum == 0.0d) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_ALL_SKIP).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_SCORE_ALL_SKIP).param("metaEntityId", metaEntityId);
         }
         double overallScore = weightedSum / weightSum;
 
@@ -205,7 +205,7 @@ public class MetaQualityScorer {
         }
 
         // D5：趋势（先查后写——读上一条 QualityScore，此时新行尚未写入）
-        Map<String, Object> trend = computeTrend(metaTableId, overallScore);
+        Map<String, Object> trend = computeTrend(metaEntityId, overallScore);
 
         return new QualityScoreResult(overallScore, dimensionScores, ruleSummary, trend);
     }
@@ -275,11 +275,11 @@ public class MetaQualityScorer {
     // D5：趋势计算（先查后写）
     // ============================================================
 
-    /** 读同 (metaTableId) 上一条 QualityScore（scoreTime DESC 取首），算 changeRate + trendDirection。 */
-    private Map<String, Object> computeTrend(String metaTableId, double overallScore) {
+    /** 读同 (metaEntityId) 上一条 QualityScore（scoreTime DESC 取首），算 changeRate + trendDirection。 */
+    private Map<String, Object> computeTrend(String metaEntityId, double overallScore) {
         IEntityDao<NopMetaQualityScore> scoreDao = daoProvider.daoFor(NopMetaQualityScore.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaTableId, metaTableId));
+        q.addFilter(FilterBeans.eq(NopMetaQualityScore.PROP_NAME_metaEntityId, metaEntityId));
         q.addOrderField(NopMetaQualityScore.PROP_NAME_scoreTime, true);
         NopMetaQualityScore previous = scoreDao.findFirstByQuery(q);
 

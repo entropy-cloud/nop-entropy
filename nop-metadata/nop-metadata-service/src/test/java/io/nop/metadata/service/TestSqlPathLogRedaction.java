@@ -1,10 +1,10 @@
 package io.nop.metadata.service;
 
 import io.nop.metadata.service.field.ResolvedTableField;
-import io.nop.metadata.service.profiling.MetaTableProfiler;
+import io.nop.metadata.service.profiling.MetaEntityProfiler;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.quality.MetaQualityRuleExecutor;
-import io.nop.metadata.service.query.MetaTableQueryExecutor;
+import io.nop.metadata.service.query.MetaEntityQueryExecutor;
 import io.nop.metadata.service.tableref.TableReference;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +33,10 @@ import static org.mockito.Mockito.when;
  *
  * <p>覆盖两条入口：
  * <ul>
- *   <li><b>queryTableData sql 视图路径</b>：{@link MetaTableQueryExecutor#buildSqlSelectSql} +
- *       {@link MetaTableQueryExecutor#executeQuery}（queryTableData 对 sql 表的执行路径）+ mock JDBC；</li>
- *   <li><b>profileTable sql 路径</b>：{@link MetaTableProfiler#profile}（SQL 形态 {@link TableReference}）
- *       + 真实 H2 内存库（沿 {@code TestMetaTableProfilerSecurity} 既有 H2 先例）。</li>
+ *   <li><b>queryData sql 视图路径</b>：{@link MetaEntityQueryExecutor#buildSqlSelectSql} +
+ *       {@link MetaEntityQueryExecutor#executeQuery}（queryData 对 sql 表的执行路径）+ mock JDBC；</li>
+ *   <li><b>profileEntity sql 路径</b>：{@link MetaEntityProfiler#profile}（SQL 形态 {@link TableReference}）
+ *       + 真实 H2 内存库（沿 {@code TestMetaEntityProfilerSecurity} 既有 H2 先例）。</li>
  * </ul>
  *
  * <p>断言形态沿 {@code TestMetaQualityRuleExecutorLogRedaction} 既有 ListAppender 先例。
@@ -45,7 +45,7 @@ public class TestSqlPathLogRedaction {
 
     private static final String SENSITIVE_NAME = "张小明";
 
-    // ===== queryTableData sql 视图路径（MetaTableQueryExecutor.executeQuery）=====
+    // ===== queryData sql 视图路径（MetaEntityQueryExecutor.executeQuery）=====
 
     /**
      * sql 视图查询：INFO 日志不含 sourceSql 全文/敏感字面量，含 sqlHash；DEBUG 保留全文（降级非删除）。
@@ -53,12 +53,12 @@ public class TestSqlPathLogRedaction {
     @Test
     public void testQueryTableDataSqlViewInfoLogContainsHashNotLiteral() throws Exception {
         String sourceSql = "SELECT name FROM users WHERE name = '" + SENSITIVE_NAME + "'";
-        String sql = MetaTableQueryExecutor.buildSqlSelectSql(sourceSql, null, null, null, "H2");
+        String sql = MetaEntityQueryExecutor.buildSqlSelectSql(sourceSql, null, null, null, "H2");
         Connection conn = mockQueryConnection();
 
-        LogCapture capture = new LogCapture(MetaTableQueryExecutor.class);
+        LogCapture capture = new LogCapture(MetaEntityQueryExecutor.class);
         try {
-            List<Map<String, Object>> rows = MetaTableQueryExecutor.executeQuery(conn, sql, null, null, null, "meta-table-log-redaction");
+            List<Map<String, Object>> rows = MetaEntityQueryExecutor.executeQuery(conn, sql, null, null, null, "meta-table-log-redaction");
             assertTrue(rows.isEmpty(), "mock JDBC with 0 columns must return empty rows");
         } finally {
             capture.restore();
@@ -69,7 +69,7 @@ public class TestSqlPathLogRedaction {
         assertDebugKeepsFullSql(capture, sql);
     }
 
-    // ===== profileTable sql 路径（MetaTableProfiler.profile，SQL 形态 TableReference）=====
+    // ===== profileEntity sql 路径（MetaEntityProfiler.profile，SQL 形态 TableReference）=====
 
     /**
      * sql 表剖析：所有 profiling 聚合查询（queryLong / queryNullableDouble / queryNullableLong /
@@ -79,14 +79,14 @@ public class TestSqlPathLogRedaction {
     public void testProfileTableSqlPathInfoLogContainsHashNotLiteral() throws Exception {
         String sourceSql = "SELECT name AS NAME FROM T_LOG_REDACT WHERE name = '" + SENSITIVE_NAME + "'";
 
-        LogCapture capture = new LogCapture(MetaTableProfiler.class);
+        LogCapture capture = new LogCapture(MetaEntityProfiler.class);
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:h2:mem:prof_log_redact;DB_CLOSE_DELAY=-1", "sa", "");
              Statement st = conn.createStatement()) {
             st.execute("CREATE TABLE T_LOG_REDACT (id INT NOT NULL, name VARCHAR(50))");
             st.execute("INSERT INTO T_LOG_REDACT VALUES (1, '" + SENSITIVE_NAME + "')");
 
-            MetaTableProfiler profiler = new MetaTableProfiler();
+            MetaEntityProfiler profiler = new MetaEntityProfiler();
             TableReference ref = new TableReference(
                     TableReference.Kind.SQL, "mt-log-redact", null, sourceSql,
                     null, null, null,

@@ -7,8 +7,8 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 默认过滤器运行时自动应用 helper（架构基线 §4.4.1/§4.4.2，收口 0700-2 Non-Blocking Follow-up）。
  *
- * <p>查询执行（单表/JOIN/聚合）前，自动注入该表 {@code isDefault=true} 的 {@link NopMetaTableFilter#getDefinition()}
+ * <p>查询执行（单表/JOIN/聚合）前，自动注入该表 {@code isDefault=true} 的 {@link NopMetaEntityFilter#getDefinition()}
  * （JSON TreeBean，与 §2.5.2 D1 同结构）到 filter 树——与用户 filter AND 合并。单表（0800-1）/JOIN/聚合（0800-2）共用本 helper。
  *
  * <p>无状态，方法为静态。
@@ -40,15 +40,15 @@ public final class DefaultFilterApplicator {
      *
      * @param table        目标逻辑表
      * @param userFilter   用户传入 filter（可为 null）
-     * @param filterDao    NopMetaTableFilter DAO
+     * @param filterDao    NopMetaEntityFilter DAO
      * @return 合并后的 filter（无 isDefault 时原样返回 userFilter）
      */
-    public static TreeBean applyDefaults(NopMetaTable table, TreeBean userFilter, IEntityDao<NopMetaTableFilter> filterDao) {
+    public static TreeBean applyDefaults(NopMetaEntity table, TreeBean userFilter, IEntityDao<NopMetaEntityFilter> filterDao) {
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTableFilter.PROP_NAME_metaTableId, table.getMetaTableId()));
+        q.addFilter(FilterBeans.eq(NopMetaEntityFilter.PROP_NAME_metaEntityId, table.getMetaEntityId()));
         // NOP 约定：byte 1 = yes/true，0 = no/false（isDefault 无独立常量，0700-2 同约定）
-        q.addFilter(FilterBeans.eq(NopMetaTableFilter.PROP_NAME_isDefault, (byte) 1));
-        List<NopMetaTableFilter> defaults = filterDao.findAllByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntityFilter.PROP_NAME_isDefault, (byte) 1));
+        List<NopMetaEntityFilter> defaults = filterDao.findAllByQuery(q);
         if (defaults == null || defaults.isEmpty()) {
             return userFilter;
         }
@@ -56,7 +56,7 @@ public final class DefaultFilterApplicator {
         if (userFilter != null) {
             parts.add(userFilter);
         }
-        for (NopMetaTableFilter f : defaults) {
+        for (NopMetaEntityFilter f : defaults) {
             String def = f.getDefinition();
             if (def == null || def.trim().isEmpty()) {
                 continue;

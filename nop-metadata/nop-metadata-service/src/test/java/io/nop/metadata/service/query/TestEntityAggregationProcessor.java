@@ -8,11 +8,10 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntity;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
@@ -39,9 +38,9 @@ public class TestEntityAggregationProcessor {
     @Test
     public void testExecuteWithUnregisteredEntityThrows() {
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("entity");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("PHYSICAL");
         when(context.getTable()).thenReturn(table);
 
         IDaoProvider daoProvider = mock(IDaoProvider.class);
@@ -60,7 +59,7 @@ public class TestEntityAggregationProcessor {
         return new MetaQueryContext(daoProvider, mock(IOrmTemplate.class),
                 mock(IMetaDataSourceConnectionProcessor.class),
                 new TableReferenceExecutor(mock(IMetaDataSourceConnectionProcessor.class), mock(IOrmTemplate.class)),
-                new MetaDataSourceResolver(), new MetaTableFieldResolver(), new FilterToSqlTranslator());
+                new MetaDataSourceResolver(), new MetaEntityFieldResolver(), new FilterToSqlTranslator());
     }
 
     // ===== safeAlias 边缘用例 =====
@@ -143,7 +142,7 @@ public class TestEntityAggregationProcessor {
     public void testBuildNameToExprTableEmpty() {
         Map<String, String> result = buildNameToExprTable(
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), new NopMetaTable());
+                Collections.emptyList(), Collections.emptyList(), new NopMetaEntity());
         assertTrue(result.isEmpty());
     }
 
@@ -152,7 +151,7 @@ public class TestEntityAggregationProcessor {
         List<MeasureSpec> measures = Arrays.asList(new MeasureSpec("ALIAS", "SUM(x)"));
         NopException ex = assertThrows(NopException.class,
                 () -> buildNameToExprTable(measures, Collections.emptyList(),
-                        Collections.emptyList(), Collections.emptyList(), new NopMetaTable()));
+                        Collections.emptyList(), Collections.emptyList(), new NopMetaEntity()));
         assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 
@@ -161,7 +160,7 @@ public class TestEntityAggregationProcessor {
         List<DimensionSpec> dims = Arrays.asList(new DimensionSpec("D_ALIAS", "col", "categorical", null));
         NopException ex = assertThrows(NopException.class,
                 () -> buildNameToExprTable(Collections.emptyList(), dims,
-                        Collections.emptyList(), Collections.emptyList(), new NopMetaTable()));
+                        Collections.emptyList(), Collections.emptyList(), new NopMetaEntity()));
         assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 
@@ -170,13 +169,13 @@ public class TestEntityAggregationProcessor {
     @Test
     public void testBuildOrderByClauseNullReturnsEmpty() {
         assertEquals("", buildOrderByClause(null, new LinkedHashMap<>(),
-                new NopMetaTable(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
+                new NopMetaEntity(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
     }
 
     @Test
     public void testBuildOrderByClauseEmptyReturnsEmpty() {
         assertEquals("", buildOrderByClause(Collections.emptyList(), new LinkedHashMap<>(),
-                new NopMetaTable(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
+                new NopMetaEntity(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
     }
 
     @Test
@@ -186,7 +185,7 @@ public class TestEntityAggregationProcessor {
         List<OrderFieldBean> orderBy = Arrays.asList(
                 OrderFieldBean.desc("m1"));
         String clause = buildOrderByClause(orderBy, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
         assertTrue(clause.contains("DESC"), "should contain DESC: " + clause);
     }
 
@@ -196,7 +195,7 @@ public class TestEntityAggregationProcessor {
                 () -> buildOrderByClause(
                         Arrays.asList(OrderFieldBean.asc("unknown")),
                         new LinkedHashMap<>(),
-                        new NopMetaTable(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
+                        new NopMetaEntity(), Collections.emptyList(), Collections.emptyList(), "ORDER_BY", null));
         assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 
@@ -213,7 +212,7 @@ public class TestEntityAggregationProcessor {
         f1.setNullsFirst(true);
         ascNullsFirst.add(f1);
         String clause = buildOrderByClause(ascNullsFirst, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
         assertTrue(clause.contains("NULLS FIRST"),
                 "dialect=null (ORM path) must keep NULLS FIRST clause: " + clause);
 
@@ -222,7 +221,7 @@ public class TestEntityAggregationProcessor {
         f2.setNullsFirst(false);
         descNullsLast.add(f2);
         String clause2 = buildOrderByClause(descNullsLast, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
         assertTrue(clause2.contains("NULLS LAST"),
                 "dialect=null (ORM path) must keep NULLS LAST clause: " + clause2);
     }
@@ -238,7 +237,7 @@ public class TestEntityAggregationProcessor {
         f1.setNullsFirst(true);
         ascNullsFirst.add(f1);
         String clause = buildOrderByClause(ascNullsFirst, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL");
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL");
         assertFalse(clause.contains("NULLS"),
                 "MySQL + nullsFirst=true+ASC equals MySQL default (NULLs first in ASC) -> omit clause: " + clause);
 
@@ -247,7 +246,7 @@ public class TestEntityAggregationProcessor {
         f2.setNullsFirst(false);
         descNullsLast.add(f2);
         String clause2 = buildOrderByClause(descNullsLast, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL");
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL");
         assertFalse(clause2.contains("NULLS"),
                 "MySQL + nullsFirst=false+DESC equals MySQL default (NULLs last in DESC) -> omit clause: " + clause2);
     }
@@ -264,7 +263,7 @@ public class TestEntityAggregationProcessor {
         ascNullsLast.add(f1);
         NopException ex1 = assertThrows(NopException.class,
                 () -> buildOrderByClause(ascNullsLast, nameToExpr,
-                        new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL"),
+                        new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL"),
                 "MySQL cannot express NULLS LAST in ASC -> must fail loudly");
         assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(), ex1.getErrorCode());
 
@@ -274,7 +273,7 @@ public class TestEntityAggregationProcessor {
         descNullsFirst.add(f2);
         NopException ex2 = assertThrows(NopException.class,
                 () -> buildOrderByClause(descNullsFirst, nameToExpr,
-                        new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL"),
+                        new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "MySQL"),
                 "MySQL cannot express NULLS FIRST in DESC -> must fail loudly");
         assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(), ex2.getErrorCode());
         assertEquals(true, ex2.getParam("desc"), "param desc must be true: " + ex2.getParams());
@@ -291,11 +290,11 @@ public class TestEntityAggregationProcessor {
         orderBy.add(f);
 
         String h2 = buildOrderByClause(orderBy, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "H2");
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "H2");
         assertTrue(h2.contains("NULLS FIRST"), "H2 must keep NULLS FIRST: " + h2);
 
         String pg = buildOrderByClause(orderBy, nameToExpr,
-                new NopMetaTable(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "PostgreSQL");
+                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", "PostgreSQL");
         assertTrue(pg.contains("NULLS FIRST"), "PostgreSQL must keep NULLS FIRST: " + pg);
     }
 
@@ -327,25 +326,25 @@ public class TestEntityAggregationProcessor {
 
     @Test
     public void testBuildFromClauseSqlTypeEmptySourceSqlThrows() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t1");
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t1");
+        table.setEntityKind("SQL_VIEW");
         NopException ex = assertThrows(NopException.class, () -> buildFromClause(table));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
     public void testBuildFromClauseSqlTypeWithSource() {
-        NopMetaTable table = new NopMetaTable();
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setEntityKind("SQL_VIEW");
         table.setSourceSql("SELECT * FROM t");
         assertEquals("(SELECT * FROM t) _t", buildFromClause(table));
     }
 
     @Test
     public void testBuildFromClauseExternalType() {
-        NopMetaTable table = new NopMetaTable();
-        table.setTableType("external");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setEntityKind("EXTERNAL");
         table.setTableName("MY_TABLE");
         assertEquals("MY_TABLE", buildFromClause(table));
     }

@@ -14,9 +14,8 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableFilter;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityFilter;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
@@ -85,26 +84,26 @@ public class MetaJoinExecutor {
      * 执行跨表 JOIN。
      *
      * @param leftTable  join 所属逻辑表（左表）
-     * @param joinId     NopMetaTableJoin 主键
+     * @param joinId     NopMetaEntityJoin 主键
      * @param userFilter 用户 filter（TreeBean，左表属性名字段；可为 null）
      * @param limit      分页/截断上限（跨库为合并后截断提示；可为 null）
      * @param offset     分页偏移（可为 null）
      * @param ctx        共享依赖上下文
      * @return {@code Map{items:[{行数据}]}}
      */
-    public Map<String, Object> executeJoin(NopMetaTable leftTable, String joinId, TreeBean userFilter,
+    public Map<String, Object> executeJoin(NopMetaEntity leftTable, String joinId, TreeBean userFilter,
                                            Long limit, Long offset, MetaQueryContext ctx) {
         // 1. 加载 join 并校验归属 + joinType（抽取为共享方法 loadValidatedJoin，供聚合执行器复用，
         //    显式选定「抽取共享」而非「复刻」，避免去重 debt，见 plan 0852-1 Phase 1 Decision）
-        NopMetaTableJoin join = loadValidatedJoin(leftTable, joinId, ctx);
+        NopMetaEntityJoin join = loadValidatedJoin(leftTable, joinId, ctx);
 
         // 3. 默认过滤器自动应用（§4.4.1，收口 0700-2 follow-up）
-        IEntityDao<NopMetaTableFilter> filterDao = ctx.daoProvider().daoFor(NopMetaTableFilter.class);
+        IEntityDao<NopMetaEntityFilter> filterDao = ctx.daoProvider().daoFor(NopMetaEntityFilter.class);
         TreeBean mergedFilter = DefaultFilterApplicator.applyDefaults(leftTable, userFilter, filterDao);
 
         // 4. 解析左右端点（plan 0700-2 D1：entity 端点或 external/sql table 端点）
-        Endpoint leftEp = resolveEndpoint(join, "left", join.getLeftEntityId(), join.getLeftTableId(), ctx);
-        Endpoint rightEp = resolveEndpoint(join, "right", join.getRightEntityId(), join.getRightTableId(), ctx);
+        Endpoint leftEp = resolveEndpoint(join, "left", join.getLeftEntityId(), ctx);
+        Endpoint rightEp = resolveEndpoint(join, "right", join.getRightEntityId(), ctx);
 
         // 5. 按端点组合路由（D1.2）
         if (leftEp.isEntity() && rightEp.isEntity()) {
@@ -141,7 +140,7 @@ public class MetaJoinExecutor {
     // ============================ 共享 join 加载/校验（plan 0852-1 抽取，供聚合执行器复用）============================
 
     /**
-     * 加载 {@link NopMetaTableJoin} 并校验归属 + joinType（共享方法，JOIN 执行与 JOIN 聚合共用）。
+     * 加载 {@link NopMetaEntityJoin} 并校验归属 + joinType（共享方法，JOIN 执行与 JOIN 聚合共用）。
      *
      * <p>校验语义：
      * <ul>
@@ -151,16 +150,16 @@ public class MetaJoinExecutor {
      * </ul>
      *
      * @param leftTable join 所属逻辑表（左表）
-     * @param joinId    NopMetaTableJoin 主键
+     * @param joinId    NopMetaEntityJoin 主键
      * @param ctx       共享依赖上下文
      * @return 已校验的 join
      */
-    public NopMetaTableJoin loadValidatedJoin(NopMetaTable leftTable, String joinId, MetaQueryContext ctx) {
-        IEntityDao<NopMetaTableJoin> joinDao = ctx.daoProvider().daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = joinDao.getEntityById(joinId);
-        if (join == null || !equalsStr(leftTable.getMetaTableId(), join.getMetaTableId())) {
+    public NopMetaEntityJoin loadValidatedJoin(NopMetaEntity leftTable, String joinId, MetaQueryContext ctx) {
+        IEntityDao<NopMetaEntityJoin> joinDao = ctx.daoProvider().daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = joinDao.getEntityById(joinId);
+        if (join == null || !equalsStr(leftTable.getMetaEntityId(), join.getMetaEntityId())) {
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NOT_FOUND)
-                    .param("metaTableId", leftTable.getMetaTableId())
+                    .param("metaEntityId", leftTable.getMetaEntityId())
                     .param("joinId", String.valueOf(joinId));
         }
         String joinType = join.getJoinType();
@@ -178,49 +177,27 @@ public class MetaJoinExecutor {
     // ============================ 端点解析（D1）============================
 
     /** 解析单个端点：entity 端点（entityId 非空）或 table 端点（tableId 非空，须 external/sql）。 */
-    Endpoint resolveEndpoint(NopMetaTableJoin join, String side, String entityId, String tableId,
+    Endpoint resolveEndpoint(NopMetaEntityJoin join, String side, String entityId,
                                      MetaQueryContext ctx) {
-        boolean hasEntity = entityId != null && !entityId.isEmpty();
-        boolean hasTable = tableId != null && !tableId.isEmpty();
-        String joinId = join.getJoinId();
-        if (hasEntity && hasTable) {
-            // 互斥校验在 save 路径已做（0700-1）；executor 防御性显式失败
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+        if (entityId == null || entityId.isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", join.getJoinId()).param("side", side);
         }
-        if (!hasEntity && !hasTable) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_NO_ENDPOINT).param("joinId", joinId).param("side", side);
+        NopMetaEntity entity = resolveEntityOrThrow(entityId, side, join.getJoinId(), ctx);
+        // 概念缩减（plan 2261）：端点形态由 entityKind 决定——PHYSICAL 走 ORM dao 路径（原 entity 端点），
+        // EXTERNAL/SQL_VIEW 保持裸 JDBC 路径（原 table 端点），下游处理器分派语义不变。
+        if (entity.isPhysical()) {
+            return Endpoint.entity(entity);
         }
-        if (hasEntity) {
-            return Endpoint.entity(resolveEntityOrThrow(entityId, side, joinId, ctx));
-        }
-        return Endpoint.table(resolveTableEndpointOrThrow(tableId, side, joinId, ctx));
-    }
-
-    /** 解析 table 端点：表存在 + tableType ∈ {external, sql}（entity-type 逻辑表应走 entityId 路径）。 */
-    private NopMetaTable resolveTableEndpointOrThrow(String tableId, String side, String joinId, MetaQueryContext ctx) {
-        IEntityDao<NopMetaTable> tableDao = ctx.daoProvider().daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(tableId);
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_DANGLING)
-                    .param("joinId", joinId).param("side", side).param("tableId", tableId);
-        }
-        String tableType = table.getTableType();
-        if (!_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL.equals(tableType)
-                && !_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(tableType)) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED)
-                    .param("joinId", joinId).param("side", side)
-                    .param("tableId", tableId).param("tableType", String.valueOf(tableType));
-        }
-        return table;
+        return Endpoint.table(entity);
     }
 
     /** JOIN 端点：entity 端点或 external/sql table 端点（二选一）。package-private 以便聚合执行器复用端点解析。 */
     static final class Endpoint {
         final boolean isEntity;
         final NopMetaEntity entity;
-        final NopMetaTable table;
+        final NopMetaEntity table;
 
-        private Endpoint(boolean isEntity, NopMetaEntity entity, NopMetaTable table) {
+        private Endpoint(boolean isEntity, NopMetaEntity entity, NopMetaEntity table) {
             this.isEntity = isEntity;
             this.entity = entity;
             this.table = table;
@@ -230,7 +207,7 @@ public class MetaJoinExecutor {
             return new Endpoint(true, e, null);
         }
 
-        static Endpoint table(NopMetaTable t) {
+        static Endpoint table(NopMetaEntity t) {
             return new Endpoint(false, null, t);
         }
 
@@ -241,7 +218,7 @@ public class MetaJoinExecutor {
 
     // ============================ 同库 entity-entity JOIN（D4，保持不变）============================
 
-    private List<Map<String, Object>> executeSameDbJoin(NopMetaTable leftTable, NopMetaTableJoin join,
+    private List<Map<String, Object>> executeSameDbJoin(NopMetaEntity leftTable, NopMetaEntityJoin join,
                                                         NopMetaEntity leftEntity, NopMetaEntity rightEntity,
                                                         TreeBean filter, Long limit, Long offset,
                                                         MetaQueryContext ctx) {
@@ -311,7 +288,7 @@ public class MetaJoinExecutor {
     // ============================ 同库 external/sql ↔ external/sql JOIN（D4，plan 0700-2 新增）============================
 
     /** 同库 table 端点 JOIN：两端点同 querySpace → 单次 withConnection 跑原生 JOIN SQL（共享数据源）。 */
-    private List<Map<String, Object>> executeSameDbTableJoin(NopMetaTable leftTable, NopMetaTableJoin join,
+    private List<Map<String, Object>> executeSameDbTableJoin(NopMetaEntity leftTable, NopMetaEntityJoin join,
                                                               Endpoint leftEp, Endpoint rightEp,
                                                               TreeBean filter, Long limit, Long offset,
                                                               MetaQueryContext ctx) {
@@ -327,7 +304,7 @@ public class MetaJoinExecutor {
         FilterToSqlTranslator.validateIdentifier(leftJoinCol);
         FilterToSqlTranslator.validateIdentifier(rightJoinCol);
 
-        // FROM 子句按 tableType 构造（external→tableName alias；sql→(<sourceSql>) alias）
+        // FROM 子句按 entityKind 构造（external→tableName alias；sql→(<sourceSql>) alias）
         String leftFrom = tableFromForJoin(leftEp.table, "t1");
         String rightFrom = tableFromForJoin(rightEp.table, "t2");
 
@@ -381,7 +358,7 @@ public class MetaJoinExecutor {
 
     // ============================ 跨库拼接（D5，委派 CrossDbJoinMerger）============================
 
-    private List<Map<String, Object>> doCrossDbMergeEntityEntity(NopMetaTableJoin join, NopMetaEntity leftEntity,
+    private List<Map<String, Object>> doCrossDbMergeEntityEntity(NopMetaEntityJoin join, NopMetaEntity leftEntity,
                                                                   NopMetaEntity rightEntity, TreeBean filter,
                                                                   Long limit, Long offset, MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchEntityRows(leftEntity, filter, ctx, "left", join.getJoinId());
@@ -389,7 +366,7 @@ public class MetaJoinExecutor {
         return crossDbMerger.crossDbMerge(join, leftRows, rightRows, limit, offset);
     }
 
-    private List<Map<String, Object>> doCrossDbMergeTableEndpoint(NopMetaTableJoin join, Endpoint leftEp,
+    private List<Map<String, Object>> doCrossDbMergeTableEndpoint(NopMetaEntityJoin join, Endpoint leftEp,
                                                                    Endpoint rightEp, TreeBean filter,
                                                                    Long limit, Long offset, MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchTableRows(leftEp.table, filter, ctx, "left", join.getJoinId());
@@ -397,7 +374,7 @@ public class MetaJoinExecutor {
         return crossDbMerger.crossDbMerge(join, leftRows, rightRows, limit, offset);
     }
 
-    private List<Map<String, Object>> doCrossDbMergeMixed(NopMetaTableJoin join, Endpoint leftEp, Endpoint rightEp,
+    private List<Map<String, Object>> doCrossDbMergeMixed(NopMetaEntityJoin join, Endpoint leftEp, Endpoint rightEp,
                                                           TreeBean filter, Long limit, Long offset,
                                                           MetaQueryContext ctx) {
         List<Map<String, Object>> leftRows = fetchEndpointRows(leftEp, filter, ctx, "left", join.getJoinId());
@@ -442,7 +419,7 @@ public class MetaJoinExecutor {
         return rows;
     }
 
-    private List<Map<String, Object>> fetchTableRows(NopMetaTable table, TreeBean filter, MetaQueryContext ctx,
+    private List<Map<String, Object>> fetchTableRows(NopMetaEntity table, TreeBean filter, MetaQueryContext ctx,
                                                      String side, String joinId) {
         NopMetaDataSource dataSource = resolveTableDataSourceOrThrow(table, ctx, joinId, side);
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
@@ -534,7 +511,7 @@ public class MetaJoinExecutor {
     }
 
     /** 解析 table 端点的列名集合（external→buildSql columnName；sql→SELECT 解析列）。 */
-    private Set<String> resolveTableColumnNames(NopMetaTable table, MetaQueryContext ctx) {
+    private Set<String> resolveTableColumnNames(NopMetaEntity table, MetaQueryContext ctx) {
         IEntityDao<NopMetaEntityField> fieldDao = ctx.daoProvider().daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = ctx.fieldResolver().resolve(table, fieldDao);
         Set<String> names = newLinkedHashSet(fields.size());
@@ -545,38 +522,38 @@ public class MetaJoinExecutor {
     }
 
     /** table 端点 join 字段解析：field 须属于该表可解析列集合（防御性校验，save 路径 0700-1 已校验）。 */
-    private String resolveTableFieldOrThrow(Set<String> columns, String field, NopMetaTable table,
+    private String resolveTableFieldOrThrow(Set<String> columns, String field, NopMetaEntity table,
                                             String side, String joinId) {
         if (field == null || !columns.contains(field)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_FIELD_NOT_RESOLVED)
                     .param("joinId", joinId).param("side", side)
-                    .param("tableId", table.getMetaTableId()).param("field", String.valueOf(field));
+                    .param("tableId", table.getMetaEntityId()).param("field", String.valueOf(field));
         }
         return field;
     }
 
     /** querySpace→数据源解析（external/sql 端点共用），失败时附加 joinId/side 上下文。 */
-    private NopMetaDataSource resolveTableDataSourceOrThrow(NopMetaTable table, MetaQueryContext ctx,
+    private NopMetaDataSource resolveTableDataSourceOrThrow(NopMetaEntity table, MetaQueryContext ctx,
                                                             String joinId, String side) {
         IEntityDao<NopMetaDataSource> dsDao = ctx.daoProvider().daoFor(NopMetaDataSource.class);
         try {
             return ctx.dataSourceResolver().resolveActiveOrThrow(dsDao, table.getQuerySpace());
         } catch (NopException e) {
             if (e.getParam("joinId") == null) {
-                e.param("joinId", joinId).param("side", side).param("tableId", table.getMetaTableId());
+                e.param("joinId", joinId).param("side", side).param("tableId", table.getMetaEntityId());
             }
             throw e;
         }
     }
 
     /** table 端点 FROM 子句（单表 SELECT 用）：external→{@code <tableName>}；sql→{@code (<sourceSql>) _t}。标识符/表名白名单校验。 */
-    private String buildTableFromClause(NopMetaTable table) {
-        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
+    private String buildTableFromClause(NopMetaEntity table) {
+        if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(table.getEntityKind())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
-                        .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
+                        .param("error", "sql table sourceSql is empty: " + table.getMetaEntityId());
             }
             // sourceSql 为用户显式提供（与 custom_sql 同已知显式风险），不解析不改写
             return "(" + sourceSql + ") _t";
@@ -590,14 +567,14 @@ public class MetaJoinExecutor {
      * table 端点 JOIN FROM 子句（带显式别名）：external→{@code <tableName> <alias>}；
      * sql→{@code (<sourceSql>) <alias>}。JOIN 场景必须显式别名（t1/t2），用于 table-qualified 列引用。
      */
-    private String tableFromForJoin(NopMetaTable table, String alias) {
+    private String tableFromForJoin(NopMetaEntity table, String alias) {
         FilterToSqlTranslator.validateIdentifier(alias);
-        if (_NopMetadataCoreConstants.TABLE_TYPE_SQL.equals(table.getTableType())) {
+        if (_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW.equals(table.getEntityKind())) {
             String sourceSql = table.getSourceSql();
             if (sourceSql == null || sourceSql.trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_JOIN_TABLE_EXEC_FAILED)
                         .param("joinId", "").param("side", "from")
-                        .param("error", "sql table sourceSql is empty: " + table.getMetaTableId());
+                        .param("error", "sql table sourceSql is empty: " + table.getMetaEntityId());
             }
             return "(" + sourceSql + ") " + alias;
         }
@@ -607,7 +584,7 @@ public class MetaJoinExecutor {
     }
 
     /** 构建 table 端点 SELECT SQL：{@code SELECT col1,col2 FROM <fromClause> [WHERE <filter>] [LIMIT ?]}。 */
-    private String buildTableSelectSql(NopMetaTable table, List<String> columns, String filterSql,
+    private String buildTableSelectSql(NopMetaEntity table, List<String> columns, String filterSql,
                                        Long limit, Long offset) {
         StringBuilder sb = new StringBuilder("SELECT ");
         if (columns.isEmpty()) {
@@ -710,7 +687,7 @@ public class MetaJoinExecutor {
         }
     }
 
-    private static String aliasOf(NopMetaTableJoin join) {
+    private static String aliasOf(NopMetaEntityJoin join) {
         String a = join.getAlias();
         return (a != null && !a.trim().isEmpty()) ? a : "right";
     }

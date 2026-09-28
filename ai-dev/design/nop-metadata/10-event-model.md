@@ -52,8 +52,8 @@
     - `NopMetaModuleBizModel.importOrmModel`（IMPORT，主实体级）
     - `NopMetaModuleBizModel.releaseModule`（版本发布）
     - `NopMetaDataSourceBizModel.syncExternalTables`（SYNC，主实体级）
-    - `NopMetaTableBizModel.createSqlTable`（UI/API）
-  - 核心实体（`NopMetaModule` / `NopMetaTable`）通用 CRUD 走 **save override + delete override**：
+    - `NopMetaEntityBizModel.createSqlView`（UI/API）
+  - 核心实体（`NopMetaModule` / `NopMetaEntity`）通用 CRUD 走 **save override + delete override**：
     - `save` override 覆盖 CREATE+UPDATE；`delete` override 覆盖 DELETE（二者独立，save 不覆盖 delete）。
     - 其余实体作为 follow-up。
 - **批量粒度**：批量写操作按**主实体级**记录（不逐子实体、不合并丢失）：
@@ -85,7 +85,7 @@
 NopMetaModelChangedEvent            — 元数据变更事件（时序追加行）
   ├── modelChangedEventId           — PK（seq）
   ├── eventType                     — 事件类型（dict meta/change-event-type：ENTITY_CREATED|ENTITY_UPDATED|ENTITY_DELETED）
-  ├── entityType                    — 实体类型（NopMetaModule|NopMetaTable|NopMetaDataSource|...）
+  ├── entityType                    — 实体类型（NopMetaModule|NopMetaEntity|NopMetaDataSource|...）
   ├── entityId                      — 变更实体 ID
   ├── entityName                    — 变更实体名称（便于日志）
   ├── changeSource                  — 变更来源（IMPORT|UI|API|SYNC，plain string + 文档约定，对齐 dimension-type/granularity 模式）
@@ -131,7 +131,7 @@ NopMetaModelChangedEvent            — 元数据变更事件（时序追加行�
 ```
 publishEvent(
     eventType,            // ENTITY_CREATED|ENTITY_UPDATED|ENTITY_DELETED
-    entityType,           // NopMetaModule / NopMetaTable / ...
+    entityType,           // NopMetaModule / NopMetaEntity / ...
     entityId,
     entityName,
     changeSource,         // IMPORT|UI|API|SYNC
@@ -154,14 +154,14 @@ publishEvent(
 | `importOrmModel` | ENTITY_CREATED | NopMetaModule | IMPORT | 主实体级（1 行 Module CREATED） |
 | `releaseModule` | ENTITY_UPDATED | NopMetaModule | UI/API | 主实体级（1 行 Module UPDATED） |
 | `syncExternalTables` | ENTITY_UPDATED | NopMetaDataSource | SYNC | 主实体级（1 行 DataSource UPDATED，「外部表已同步」） |
-| `createSqlTable` | ENTITY_CREATED | NopMetaTable | UI/API | 1 行 Table CREATED |
+| `createSqlView` | ENTITY_CREATED | NopMetaEntity | UI/API | 1 行 Table CREATED |
 
-**(b) 核心实体 save override（NopMetaModule / NopMetaTable）**：
+**(b) 核心实体 save override（NopMetaModule / NopMetaEntity）**：
 
 - save override 在调 `super.save()` **前**按 PK 加载 before（区分 CREATE/UPDATE），`super.save()` **成功后**调 helper 发布 ENTITY_CREATED/UPDATED。
 - 注：save override 覆盖通用 CRUD 路径（UI/GraphQL/xbiz），与关键 mutation action 路径并存；mutation action 自行调 helper（不经 save override），二者独立。
 
-**(c) 核心实体 delete override（NopMetaModule / NopMetaTable）**：
+**(c) 核心实体 delete override（NopMetaModule / NopMetaEntity）**：
 
 - delete override 在调 `super.delete()` **前**按 PK 加载 before，`super.delete()` **成功后**调 helper 发布 ENTITY_DELETED（save 不覆盖 delete，DELETE 走独立 override）。
 - 若实体不存在（DELETE 已删）则不发事件（beforeSnapshot=null + 已删除无快照可记）。
@@ -227,7 +227,7 @@ nop-metadata.{entityType}.changed
 
 示例：
 - `nop-metadata.NopMetaModule.changed`
-- `nop-metadata.NopMetaTable.changed`
+- `nop-metadata.NopMetaEntity.changed`
 - `nop-metadata.NopMetaDataSource.changed`
 
 首版以 DB 行为权威，topic 为可选 overlay。

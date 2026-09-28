@@ -6,7 +6,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.io.Serializable;
 
 /**
- * SQL 视图字段 DTO（来源：{@code NopMetaTableBizModel.createSqlTable} / {@code previewSqlFields}）。
+ * SQL 视图字段 DTO（来源：{@code NopMetaEntityBizModel.createSqlView} / {@code previewSqlFields}）。
  */
 @DataBean
 public class SqlViewFieldDTO implements Serializable {

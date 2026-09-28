@@ -16,7 +16,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.biz.INopMetaProfilingResultBiz;
 import io.nop.metadata.biz.INopMetaProfilingRuleBiz;
-import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.ProfileResultDTO;
@@ -25,13 +25,12 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
 import io.nop.metadata.dao.entity.NopMetaProfilingRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
-import io.nop.metadata.service.profiling.MetaTableProfiler;
+import io.nop.metadata.service.profiling.MetaEntityProfiler;
 import io.nop.metadata.service.profiling.ProfilingColumnStats;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
@@ -46,9 +45,9 @@ import java.util.Map;
 /**
  * 数据剖析规则 BizModel：基线 CRUD（{@link CrudBizModel}）+ 按规则执行剖析（架构基线 §2.7.2 / 设计 06 §三 D3）。
  *
- * <p>剖析主入口是 {@code NopMetaTableBizModel.profileTable}（metaTableId 为键）。本类提供辅助入口
+ * <p>剖析主入口是 {@code NopMetaEntityBizModel.profileEntity}（metaEntityId 为键）。本类提供辅助入口
  * {@link #executeProfilingRule}：按 {@link NopMetaProfilingRule} 定义的 columns/stats 执行剖析，
- * 委托同一无状态剖析路径（{@link MetaTableProfiler}），使 ProfilingRule 实体可运行、非空壳。
+ * 委托同一无状态剖析路径（{@link MetaEntityProfiler}），使 ProfilingRule 实体可运行、非空壳。
  *
  * <p>物理解析 + 失败/不可执行路径显式化自包含（与 {@code NopMetaQualityRuleBizModel} 同模式）：
  * 表不存在/非 external/无数据源/DISABLED/非 jdbc 显式失败，不静默通过。
@@ -59,19 +58,19 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
 
-    /** 跨聚合访问（plan 353 MD-1）：MetaTable 读取 / ProfilingResult 写入经 Biz 接口而非 dao 直连。 */
+    /** 跨聚合访问（plan 353 MD-1）：MetaEntity 读取 / ProfilingResult 写入经 Biz 接口而非 dao 直连。 */
     @Inject
-    protected INopMetaTableBiz tableBiz;
+    protected INopMetaEntityBiz tableBiz;
 
     @Inject
     protected INopMetaProfilingResultBiz profilingResultBiz;
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
-    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
-            new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaTableFieldResolver());
+    private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver(
+            new MetaDataSourceResolver(), new io.nop.metadata.service.field.MetaEntityFieldResolver());
 
-    /** 数据剖析器（无状态，与 profileTable 共用同一剖析路径）。 */
-    private final MetaTableProfiler profiler = new MetaTableProfiler();
+    /** 数据剖析器（无状态，与 profileEntity 共用同一剖析路径）。 */
+    private final MetaEntityProfiler profiler = new MetaEntityProfiler();
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
     private TableReferenceExecutor tableRefExecutor;
@@ -81,7 +80,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     }
 
     /**
-     * 按剖析规则定义执行（架构基线 §2.7.2 D3 + §4.4.3 D1-D5）：加载规则 → 解析目标表（任意 tableType）→
+     * 按剖析规则定义执行（架构基线 §2.7.2 D3 + §4.4.3 D1-D5）：加载规则 → 解析目标表（任意 entityKind）→
      * table-reference 分派 Connection → 剖析器按规则 columns/stats 统计 → 追加一行 NopMetaProfilingResult。
      *
      * @param profilingRuleId 规则 ID
@@ -95,8 +94,8 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                                                   IServiceContext context) {
         NopMetaProfilingRule rule = requireEntity(profilingRuleId, "executeProfilingRule", context);
 
-        NopMetaTable table = resolveTargetTableOrThrow(rule, context);
-        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
+        NopMetaEntity table = resolveTargetEntityOrThrow(rule, context);
+        // resolver 边界：MetaEntityReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -104,7 +103,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
         // 规则定义的 columns 作为列过滤（stats 指标首版全量收集，规则仅记录意图，不裁剪以保证剖析完整性）
         String columns = rule.getColumns();
 
-        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaTable）
+        // plan 0852-3 Phase 3: 默认 schema 解析在 BizModel 层（持有 NopMetaEntity）
         String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
 
         ProfilingSnapshot snapshot = ensureTableRefExecutor().execute(ref,
@@ -112,7 +111,7 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
                         columns, productName));
 
         NopMetaProfilingResult row = appendProfilingResult(
-                rule.getProfilingRuleId(), table.getMetaTableId(), snapshot, context);
+                rule.getProfilingRuleId(), table.getMetaEntityId(), snapshot, context);
         return buildProfileResultDTO(row, snapshot);
     }
 
@@ -120,12 +119,12 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     // helpers（自包含，与 NopMetaQualityRuleBizModel 同模式）
     // ============================================================
 
-    /** 解析规则目标表：rule.tableId → NopMetaTable；不存在显式失败（任意 tableType，§4.4.3 D4）。 */
-    private NopMetaTable resolveTargetTableOrThrow(NopMetaProfilingRule rule, IServiceContext context) {
-        NopMetaTable table = tableBiz.get(rule.getMetaTableId(), false, context);
+    /** 解析规则目标表：rule.tableId → NopMetaEntity；不存在显式失败（任意 entityKind，§4.4.3 D4）。 */
+    private NopMetaEntity resolveTargetEntityOrThrow(NopMetaProfilingRule rule, IServiceContext context) {
+        NopMetaEntity table = tableBiz.get(rule.getMetaEntityId(), false, context);
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_PROFILING_TABLE_NOT_FOUND)
-                    .param("metaTableId", rule.getMetaTableId());
+                    .param("metaEntityId", rule.getMetaEntityId());
         }
         return table;
     }
@@ -143,19 +142,19 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
      * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
      * 与 {@code NopMetaDataSourceBizModel.resolveDefaultSchema} 同语义。
      */
-    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaEntity table) {
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getMetaSchema();
+        return table.getDbSchema();
     }
 
     /** 追加一行 NopMetaProfilingResult（时序语义：snapshotTime=now，不覆盖）。 */
-    private NopMetaProfilingResult appendProfilingResult(String profilingRuleId, String metaTableId,
+    private NopMetaProfilingResult appendProfilingResult(String profilingRuleId, String metaEntityId,
                                                          ProfilingSnapshot snapshot, IServiceContext context) {
         NopMetaProfilingResult row = profilingResultBiz.newEntity();
         row.setProfilingRuleId(profilingRuleId);
-        row.setMetaTableId(metaTableId);
+        row.setMetaEntityId(metaEntityId);
         row.setSnapshotTime(CoreMetrics.currentTimestamp());
         row.setTableStats(JsonTool.stringify(snapshot.toTableStatsMap()));
         row.setColumnStats(JsonTool.stringify(snapshot.toColumnStatsList()));

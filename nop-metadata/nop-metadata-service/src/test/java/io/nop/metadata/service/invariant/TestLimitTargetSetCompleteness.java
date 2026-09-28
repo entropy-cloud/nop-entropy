@@ -1,7 +1,7 @@
 package io.nop.metadata.service.invariant;
 
 import io.nop.api.core.annotations.core.Name;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityBizModel;
 import io.nop.metadata.service.search.NopMetaSearchBizModel;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Two-pronged verification:
  * <ol>
  *   <li><b>Reflection reverse-lookup</b>: scans known BizModel classes
- *       ({@link NopMetaTableBizModel}, {@link NopMetaSearchBizModel}) for methods
+ *       ({@link NopMetaEntityBizModel}, {@link NopMetaSearchBizModel}) for methods
  *       with {@code @Name("limit")} parameters, compares with the hardcoded table.</li>
  *   <li><b>Source-file count cross-check</b>: counts {@code @Name("limit")} occurrences
  *       in source files to guard against a new BizModel class (outside the reflection
@@ -43,9 +43,9 @@ public class TestLimitTargetSetCompleteness {
      * Format: "ClassName#methodName"
      */
     private static final Set<String> METHOD_TABLE = Set.of(
-            "NopMetaTableBizModel#queryTableData",
-            "NopMetaTableBizModel#queryJoinData",
-            "NopMetaTableBizModel#queryAggregation",
+            "NopMetaEntityBizModel#queryData",
+            "NopMetaEntityBizModel#queryJoinData",
+            "NopMetaEntityBizModel#queryAggregation",
             "NopMetaSearchBizModel#searchMetadata"
     );
 
@@ -55,7 +55,7 @@ public class TestLimitTargetSetCompleteness {
      * will catch the discrepancy.
      */
     private static final Class<?>[] BIZ_MODEL_CLASSES = {
-            NopMetaTableBizModel.class,
+            NopMetaEntityBizModel.class,
             NopMetaSearchBizModel.class,
     };
 

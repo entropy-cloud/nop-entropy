@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 数据剖析主入口结果 DTO（来源：{@code NopMetaTableBizModel.profileTable} /
+ * 数据剖析主入口结果 DTO（来源：{@code NopMetaEntityBizModel.profileEntity} /
  * {@code NopMetaProfilingRuleBizModel.executeProfilingRule}）。
  *
  * <p>对应原 {@code Map<String,Object>}：

@@ -18,8 +18,8 @@ import java.util.List;
  * 查询，**runtime 多匹配显式失败**（AR-03 兜底：ORM 层已有 {@code UK_NOP_META_DS_QUERY_SPACE}
  * 唯一约束，但历史数据可能违反；本 resolver 在 runtime 多匹配时拒绝取首条以避免路由劫持）。
  *
- * <p>本组件独立实现。{@code resolveDataSourceOrThrow} 的规范实现位于 {@code MetaTableReferenceResolver}
- * （querySpace→数据源解析），供 {@code NopMetaTableBizModel}（profiling）与 {@code NopMetaProfilingRuleBizModel}
+ * <p>本组件独立实现。{@code resolveDataSourceOrThrow} 的规范实现位于 {@code MetaEntityReferenceResolver}
+ * （querySpace→数据源解析），供 {@code NopMetaEntityBizModel}（profiling）与 {@code NopMetaProfilingRuleBizModel}
  * 经 {@code tableRefResolver.resolve(...)} 复用；{@code NopMetaQualityRuleBizModel} 中原有的重复死码副本已删除。
  *
  * <p>失败路径显式化（不静默返回 null、不静默返回 DISABLED 当作可用，对齐 Minimum Rules #24）：

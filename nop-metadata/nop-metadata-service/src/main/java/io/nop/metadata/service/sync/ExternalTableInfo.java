@@ -11,11 +11,11 @@ import java.util.List;
 public class ExternalTableInfo {
 
     private String tableName;
-    /** JDBC TABLE_SCHEM，外部表同步持久化到 NopMetaTable.schema（plan 2026-07-17-0852-3）。
+    /** JDBC TABLE_SCHEM，外部表同步持久化到 NopMetaEntity.schema（plan 2026-07-17-0852-3）。
      *  null 表示该方言/该行无 schema（如部分方言 TABLE_SCHEM 列返回 null），不伪造、沿用 null=不过滤语义。 */
     private String schema;
     /** JDBC TABLE_TYPE（"TABLE" / "VIEW" 等），仅用于诊断/日志 */
-    private String tableType;
+    private String entityKind;
     private String remark;
     private final List<ExternalColumnInfo> columns = new ArrayList<>();
 
@@ -35,12 +35,12 @@ public class ExternalTableInfo {
         this.schema = schema;
     }
 
-    public String getTableType() {
-        return tableType;
+    public String getEntityKind() {
+        return entityKind;
     }
 
-    public void setTableType(String tableType) {
-        this.tableType = tableType;
+    public void setEntityKind(String entityKind) {
+        this.entityKind = entityKind;
     }
 
     public String getRemark() {

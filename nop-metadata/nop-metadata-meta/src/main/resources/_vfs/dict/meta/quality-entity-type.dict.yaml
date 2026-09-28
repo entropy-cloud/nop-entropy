@@ -9,8 +9,8 @@ options:
     value: field
     description: 
   
-  - label: 表
-    value: table
+  - label: 实体
+    value: entity
     description: 
   
   - label: 数据库

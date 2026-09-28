@@ -5,10 +5,10 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.dao.entity.NopMetaTableDimension;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaEntityDimension;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
@@ -27,7 +27,7 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
 
     @Override
     public List<Map<String, Object>> execute(AggregationContext context) {
-        NopMetaTable table = context.getTable();
+        NopMetaEntity table = context.getTable();
         List<String> measureNames = context.getMeasureNames();
         List<String> dimensionNames = context.getDimensionNames();
         TreeBean filter = context.getFilter();
@@ -37,7 +37,7 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         TreeBean having = context.getHaving();
         List<OrderFieldBean> orderBy = context.getOrderBy();
         MetaQueryContext ctx = context.ctx();
-        NopMetaTableJoin join = context.getJoin();
+        NopMetaEntityJoin join = context.getJoin();
         MetaJoinExecutor.Endpoint leftEp = context.getLeftEndpoint();
         MetaJoinExecutor.Endpoint rightEp = context.getRightEndpoint();
 
@@ -48,9 +48,9 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
                         .param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_ENTITY_ID, leftEp.entity.getMetaEntityId());
             }
         } else if (!leftEp.isEntity() && !rightEp.isEntity()) {
-            if (equalsStr(leftEp.table.getMetaTableId(), rightEp.table.getMetaTableId())) {
+            if (equalsStr(leftEp.table.getMetaEntityId(), rightEp.table.getMetaEntityId())) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_JOIN_SELF_JOIN)
-                        .param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_ENTITY_ID, leftEp.table.getMetaTableId());
+                        .param(NopMetadataErrors.ARG_JOIN_ID, joinId).param(NopMetadataErrors.ARG_ENTITY_ID, leftEp.table.getMetaEntityId());
             }
         }
 
@@ -77,7 +77,7 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         if (having != null) {
             if (MetaAggregationExecutor.containsHavingArithmeticLeaf(having)) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_EXPR, "<having arithmetic in cross-DB memory path>");
             }
             Map<String, String> nameToAlias = buildCrossDbNameToAliasTable(measures, dims, measureNames,
@@ -96,14 +96,14 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         return truncateCrossDb(items, limit, offset);
     }
 
-    private static List<CrossDbMeasureSpec> loadCrossDbMeasures(NopMetaTable table, List<String> names,
+    private static List<CrossDbMeasureSpec> loadCrossDbMeasures(NopMetaEntity table, List<String> names,
                                                                   MetaQueryContext ctx, CrossDbFieldResolver resolver) {
-        List<NopMetaTableMeasure> all = loadMeasures(table, names, ctx);
+        List<NopMetaEntityMeasure> all = loadMeasures(table, names, ctx);
         List<CrossDbMeasureSpec> specs = new ArrayList<>(all.size());
-        for (NopMetaTableMeasure m : all) {
+        for (NopMetaEntityMeasure m : all) {
             if (m.getExpression() != null && !m.getExpression().trim().isEmpty()) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXPRESSION_MEMORY_NOT_COMPUTABLE)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_MEASURE_NAME, m.getMeasureName())
                         .param(NopMetadataErrors.ARG_JOIN_ID, resolver.joinId());
             }
@@ -113,11 +113,11 @@ public class CrossDbInMemoryAggregationProcessor implements AggregationProcessor
         return specs;
     }
 
-    private static List<CrossDbDimensionSpec> loadCrossDbDimensions(NopMetaTable table, List<String> names,
+    private static List<CrossDbDimensionSpec> loadCrossDbDimensions(NopMetaEntity table, List<String> names,
                                                                      MetaQueryContext ctx, CrossDbFieldResolver resolver) {
-        List<NopMetaTableDimension> all = loadDimensions(table, names, ctx);
+        List<NopMetaEntityDimension> all = loadDimensions(table, names, ctx);
         List<CrossDbDimensionSpec> specs = new ArrayList<>(all.size());
-        for (NopMetaTableDimension d : all) {
+        for (NopMetaEntityDimension d : all) {
             CrossDbField f = resolver.resolve(d.getEntityFieldId(), d.getDimensionName(), d.getSide(), "dimension");
             specs.add(new CrossDbDimensionSpec(safeAlias(d.getDimensionName()), f.rawKey, f.side));
         }

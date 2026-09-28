@@ -25,7 +25,7 @@
                 <col id="configId" mandatory="true" sortable="true"/>
 
                 <!--逻辑表ID-->
-                <col id="metaTableId" mandatory="true" sortable="true"/>
+                <col id="metaEntityId" mandatory="true" sortable="true"/>
 
                 <!--执行时间-->
                 <col id="executeTime" mandatory="true" sortable="true"/>
@@ -62,7 +62,7 @@
         <form id="view" editMode="view" title="查看-对账结果" i18n-en:title="View Meta Reconciliation Result">
             <layout>
  resultId[结果ID] configId[配置ID]
- metaTableId[逻辑表ID] executeTime[执行时间]
+ metaEntityId[逻辑表ID] executeTime[执行时间]
  statistics[统计信息] details[明细]
  extConfig[扩展配置] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
@@ -74,7 +74,7 @@
             <layout>
  resultId[结果ID]
  configId[配置ID]
- metaTableId[逻辑表ID]
+ metaEntityId[逻辑表ID]
  executeTime[执行时间]
  statistics[统计信息]
  details[明细]

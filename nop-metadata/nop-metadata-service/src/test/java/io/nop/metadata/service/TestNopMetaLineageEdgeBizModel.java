@@ -14,7 +14,7 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.lineage.LineageTestBase;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -52,8 +52,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                        "{sourceTableId: \"" + t1 + "\", targetTableId: \"" + t2 + "\"}, " +
-                        "{sourceTableId: \"" + t1 + "\", targetTableId: \"" + t2 + "\", " +
+                        "{sourceEntityId: \"" + t1 + "\", targetEntityId: \"" + t2 + "\"}, " +
+                        "{sourceEntityId: \"" + t1 + "\", targetEntityId: \"" + t2 + "\", " +
                         "sourceColumn: \"c1\", targetColumn: \"c2\", transformType: \"derived\", confidence: 0.9}" +
                         "]) { edgeCount } }");
         assertFalse(resp.hasError(), "recordLineage should not error: " + resp);
@@ -73,7 +73,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertEquals(0.9d, colEdge.getConfidence(), 0.0001, "confidence must be 0.9");
     }
 
-    /** sourceTableId 不存在必须显式失败（不静默建悬空边）。 */
+    /** sourceEntityId 不存在必须显式失败（不静默建悬空边）。 */
     @Test
     public void testRecordLineageSourceNotFound() {
         String moduleId = ensureModule("mod-rec-nf");
@@ -81,9 +81,9 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         GraphQLResponseBean resp = execute(
                 "mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                        "{sourceTableId: \"__not_exist__\", targetTableId: \"" + t2 + "\"}]) { edgeCount } }");
+                        "{sourceEntityId: \"__not_exist__\", targetEntityId: \"" + t2 + "\"}]) { edgeCount } }");
         assertTrue(resp.hasError(),
-                "non-existent sourceTableId must fast-fail (no dangling edge): " + resp);
+                "non-existent sourceEntityId must fast-fail (no dangling edge): " + resp);
         assertEquals(0L, countEdges("__not_exist__", t2), "no edge must be persisted on failure");
     }
 
@@ -98,7 +98,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     // ===== extractLineageFromSql =====
 
     /**
-     * 端到端：tableType=sql 的视图 sourceSql（FROM/JOIN）→ 抽取器解析 → 匹配目录表 → 写入表级边
+     * 端到端：entityKind=sql 的视图 sourceSql（FROM/JOIN）→ 抽取器解析 → 匹配目录表 → 写入表级边
      * （target=该 sql 表，sourceColumn/targetColumn 空，lineageSource=sql_parse）。
      *
      * <p>Anti-Hollow：真实解析含 FROM + LEFT JOIN 的 SQL，断言 edgeCount=2 且两条表级边可查，
@@ -115,7 +115,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT o.id, c.name FROM ORDERS o LEFT JOIN CUSTOMERS c ON o.cust_id = c.id");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "extractLineageFromSql should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=2"),
@@ -134,7 +134,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     }
 
     /**
-     * 幂等：按 (sourceTableId, targetTableId, lineageSource='sql_parse') 去重，重复抽取不追加。
+     * 幂等：按 (sourceEntityId, targetEntityId, lineageSource='sql_parse') 去重，重复抽取不追加。
      */
     @Test
     public void testExtractLineageFromSqlIdempotent() {
@@ -142,13 +142,13 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         saveTable(moduleId, "SRC_A");
         String sqlViewId = saveSqlTable(moduleId, "V_IDEM", "SELECT a.id FROM SRC_A a");
 
-        execute("mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        execute("mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         long countAfterFirst = countSqlParseEdges(findTableId("SRC_A"), sqlViewId);
         assertEquals(1L, countAfterFirst, "exactly 1 sql_parse edge after first extract");
 
         // 第二次抽取（幂等，不追加）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(r2.hasError(), "second extract should not error: " + r2);
         long countAfterSecond = countSqlParseEdges(findTableId("SRC_A"), sqlViewId);
         assertEquals(1L, countAfterSecond,
@@ -167,7 +167,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT k.id, g.x FROM KNOWN_TBL k JOIN GHOST_TBL g ON k.id = g.id");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "extract should not error (unresolved collected): " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=1"),
@@ -184,21 +184,21 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     @Test
     public void testExtractLineageFromSqlNotSqlTable() {
         String moduleId = ensureModule("mod-ext-nosql");
-        String entityId = saveTable(moduleId, "ENT_TABLE"); // tableType=entity（默认）
+        String entityId = saveTable(moduleId, "ENT_TABLE"); // entityKind=entity（默认）
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + entityId + "\") { edgeCount } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + entityId + "\") { edgeCount } }");
         assertTrue(resp.hasError(),
                 "non-sql table type must fast-fail (not silently return 0): " + resp);
     }
 
-    /** 不存在的 metaTableId 抽取必须显式失败（不 NPE、不静默）。 */
+    /** 不存在的 metaEntityId 抽取必须显式失败（不 NPE、不静默）。 */
     @Test
     public void testExtractLineageFromSqlNotFound() {
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"__not_exist__\") { edgeCount } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"__not_exist__\") { edgeCount } }");
         assertTrue(resp.hasError(),
-                "non-existent metaTableId must fast-fail (no NPE): " + resp);
+                "non-existent metaEntityId must fast-fail (no NPE): " + resp);
     }
 
     // ===== 图遍历查询（Phase 2） =====
@@ -220,8 +220,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // 建链 A→B→C
         execute("mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                "{sourceTableId: \"" + a + "\", targetTableId: \"" + b + "\"}, " +
-                "{sourceTableId: \"" + b + "\", targetTableId: \"" + c + "\"}]) { edgeCount } }");
+                "{sourceEntityId: \"" + a + "\", targetEntityId: \"" + b + "\"}, " +
+                "{sourceEntityId: \"" + b + "\", targetEntityId: \"" + c + "\"}]) { edgeCount } }");
 
         // getDownstream(A) 含 B, C
         List<String> downstream = lineageBiz.getDownstream(a, svcCtx);
@@ -234,7 +234,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(upstream.contains(a) && upstream.contains(b), "upstream must contain A and B");
 
         // GraphQL 暴露验证（query 可调用且无错）
-        GraphQLResponseBean resp = execute("query { NopMetaLineageEdge__getDownstream(metaTableId: \"" + a + "\") }");
+        GraphQLResponseBean resp = execute("query { NopMetaLineageEdge__getDownstream(metaEntityId: \"" + a + "\") }");
         assertFalse(resp.hasError(), "getDownstream must be exposed via GraphQL: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains(b) && data.contains(c), "GraphQL getDownstream(A) must contain B, C: " + data);
@@ -252,8 +252,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String z = saveTable(moduleId, "P_Z"); // 孤立表
 
         execute("mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                "{sourceTableId: \"" + a + "\", targetTableId: \"" + b + "\"}, " +
-                "{sourceTableId: \"" + b + "\", targetTableId: \"" + c + "\"}]) { edgeCount } }");
+                "{sourceEntityId: \"" + a + "\", targetEntityId: \"" + b + "\"}, " +
+                "{sourceEntityId: \"" + b + "\", targetEntityId: \"" + c + "\"}]) { edgeCount } }");
 
         // 路径 A→C = [A, B, C]
         List<String> path = lineageBiz.getLineagePath(a, c, svcCtx);
@@ -269,7 +269,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // GraphQL 暴露验证：无路径也返回空、不报错
         GraphQLResponseBean resp = execute(
-                "query { NopMetaLineageEdge__getLineagePath(sourceTableId: \"" + a + "\", targetTableId: \"" + z + "\") }");
+                "query { NopMetaLineageEdge__getLineagePath(sourceEntityId: \"" + a + "\", targetEntityId: \"" + z + "\") }");
         assertFalse(resp.hasError(), "getLineagePath with no path must not error: " + resp);
     }
 
@@ -283,8 +283,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String b = saveTable(moduleId, "CY_B");
 
         execute("mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                "{sourceTableId: \"" + a + "\", targetTableId: \"" + b + "\"}, " +
-                "{sourceTableId: \"" + b + "\", targetTableId: \"" + a + "\"}]) { edgeCount } }");
+                "{sourceEntityId: \"" + a + "\", targetEntityId: \"" + b + "\"}, " +
+                "{sourceEntityId: \"" + b + "\", targetEntityId: \"" + a + "\"}]) { edgeCount } }");
 
         // visited 环检测：A 的下游为 B（B 的下游 A 已 visited，不重复、不死循环）
         List<String> downstream = lineageBiz.getDownstream(a, svcCtx);
@@ -319,8 +319,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // T1→T2 列级（col=x），T1→T3 表级
         execute("mutation { NopMetaLineageEdge__recordLineage(edges: [" +
-                "{sourceTableId: \"" + t1 + "\", targetTableId: \"" + t2 + "\", sourceColumn: \"x\", targetColumn: \"y\"}, " +
-                "{sourceTableId: \"" + t1 + "\", targetTableId: \"" + t3 + "\"}]) { edgeCount } }");
+                "{sourceEntityId: \"" + t1 + "\", targetEntityId: \"" + t2 + "\", sourceColumn: \"x\", targetColumn: \"y\"}, " +
+                "{sourceEntityId: \"" + t1 + "\", targetEntityId: \"" + t3 + "\"}]) { edgeCount } }");
 
         // 按列过滤：col=x → [T2]
         List<String> byCol = lineageBiz.getImpactAnalysis(t1, "x", svcCtx);
@@ -340,7 +340,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // GraphQL 暴露验证
         GraphQLResponseBean resp = execute(
-                "query { NopMetaLineageEdge__getImpactAnalysis(metaTableId: \"" + t1 + "\", columnName: \"x\") }");
+                "query { NopMetaLineageEdge__getImpactAnalysis(metaEntityId: \"" + t1 + "\", columnName: \"x\") }");
         assertFalse(resp.hasError(), "getImpactAnalysis must be exposed via GraphQL: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains(t2),
                 "GraphQL getImpactAnalysis(T1, x) must contain T2: " + resp.getData());
@@ -364,7 +364,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT t1.a AS x, t2.b FROM COL_SRC1 t1 JOIN COL_SRC2 t2 ON t1.k = t2.k");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "extractColumnLineageFromSql should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=2"),
@@ -382,8 +382,8 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, e2.getTransformType());
 
         // 表别名归属：a 归属 src1，b 归属 src2（不混淆）
-        assertEquals(src1, e1.getSourceTableId(), "t1.a must be attributed to src1");
-        assertEquals(src2, e2.getSourceTableId(), "t2.b must be attributed to src2");
+        assertEquals(src1, e1.getSourceEntityId(), "t1.a must be attributed to src1");
+        assertEquals(src2, e2.getSourceEntityId(), "t2.b must be attributed to src2");
     }
 
     /**
@@ -399,7 +399,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT t1.a + t2.b AS total FROM EXPR_SRC1 t1 JOIN EXPR_SRC2 t2 ON t1.k = t2.k");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=2"),
@@ -428,7 +428,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT t1.a + t1.a AS total FROM DUP_SRC t1");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "should not error: " + resp);
 
         long count = countColumnSqlParseEdges(src1, sqlViewId);
@@ -451,7 +451,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT SUM(t1.a) AS s FROM AGG_SRC t1");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("edgeCount=1"),
                 "SUM(a) should produce 1 aggregated edge");
@@ -472,12 +472,12 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_CIDEM",
                 "SELECT t1.a AS x, t1.b AS y FROM CIDEM_SRC t1");
 
-        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         long countAfterFirst = countColumnSqlParseEdges(src1, sqlViewId);
         assertEquals(2L, countAfterFirst, "2 column edges after first extract (x<-a, y<-b)");
 
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(r2.hasError(), "second extract should not error: " + r2);
         long countAfterSecond = countColumnSqlParseEdges(src1, sqlViewId);
         assertEquals(2L, countAfterSecond,
@@ -496,13 +496,13 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT t1.a AS x FROM ISO_SRC t1");
 
         // 先抽取列级血缘（写入列级边）
-        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertEquals(1L, countColumnSqlParseEdges(src1, sqlViewId),
                 "1 column-level edge after column extract");
 
         // 再抽取表级血缘（写入表级边）
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(r2.hasError(), "table-level extract should not error: " + r2);
         assertTrue(String.valueOf(r2.getData()).contains("edgeCount=1"),
                 "table-level extract must create 1 table-level edge: " + r2.getData());
@@ -514,7 +514,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "1 column-level edge (sourceColumn non-null) must still exist after table extract");
 
         // 重跑表级不追加（幂等且隔离）
-        execute("mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        execute("mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertEquals(1L, countTableLevelSqlParseEdges(src1, sqlViewId),
                 "table-level edge count stays 1 after re-extract (isolation + idempotent)");
     }
@@ -530,7 +530,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewSingle = saveSqlTable(moduleId, "V_UNQ_SINGLE",
                 "SELECT col FROM UNQ_SINGLE");
         GraphQLResponseBean r1 = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewSingle + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewSingle + "\") { edgeCount unresolved errors } }");
         assertFalse(r1.hasError(), "single-table unqualified should not error: " + r1);
         NopMetaLineageEdge e1 = findColumnEdge(singleSrc, sqlViewSingle, "col", "col");
         assertNotNull(e1, "unqualified col on single table must be attributed to the single source");
@@ -541,7 +541,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewMulti = saveSqlTable(moduleId, "V_UNQ_MULTI",
                 "SELECT col FROM UNQ_A, UNQ_B");
         GraphQLResponseBean r2 = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewMulti + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewMulti + "\") { edgeCount unresolved errors } }");
         assertFalse(r2.hasError(), "multi-table unqualified should not error (collected as unresolved): " + r2);
         String data2 = String.valueOf(r2.getData());
         assertTrue(data2.contains("ambiguous-column-multi-table"),
@@ -551,7 +551,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     }
 
     /**
-     * dangling 一致：源列所属表未匹配目录 → 进 unresolved，不建悬空边（sourceTableId mandatory）。
+     * dangling 一致：源列所属表未匹配目录 → 进 unresolved，不建悬空边（sourceEntityId mandatory）。
      */
     @Test
     public void testExtractColumnLineageDangling() {
@@ -560,7 +560,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT t1.a AS x FROM GHOST_TBL_DANGLE t1");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "dangling should not error (collected as unresolved): " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=0"),
@@ -570,7 +570,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(data.contains("source-table-not-in-catalog"),
                 "dangling reason must be explicit: " + data);
         assertEquals(0L, countEdgesByTarget(sqlViewId),
-                "no dangling edge created (sourceTableId mandatory)");
+                "no dangling edge created (sourceEntityId mandatory)");
     }
 
     /**
@@ -585,7 +585,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewWildcard = saveSqlTable(moduleId, "V_WILD",
                 "SELECT t.* FROM WILD_SRC t");
         GraphQLResponseBean rWild = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewWildcard + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewWildcard + "\") { edgeCount unresolved errors } }");
         assertFalse(rWild.hasError(), "wildcard should not hard-error (collected as unresolved): " + rWild);
         assertTrue(String.valueOf(rWild.getData()).contains("wildcard-projection"),
                 "wildcard projection must be explicitly unresolved (not silent skip)");
@@ -593,13 +593,13 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         // 非 sql 类型 → 显式失败
         String entityId = saveTable(moduleId, "ENT_FAIL");
         GraphQLResponseBean rNotSql = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + entityId + "\") { edgeCount } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + entityId + "\") { edgeCount } }");
         assertTrue(rNotSql.hasError(), "non-sql table must fast-fail: " + rNotSql);
 
         // 不存在 → 显式失败
         GraphQLResponseBean rNotFound = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"__not_exist__\") { edgeCount } }");
-        assertTrue(rNotFound.hasError(), "non-existent metaTableId must fast-fail: " + rNotFound);
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"__not_exist__\") { edgeCount } }");
+        assertTrue(rNotFound.hasError(), "non-existent metaEntityId must fast-fail: " + rNotFound);
     }
 
     /**
@@ -613,7 +613,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_IMP_COL",
                 "SELECT t1.a AS x, t1.b AS y FROM IMP_COL_SRC t1");
 
-        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+        execute("mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
 
         // 变更 src 的列 a → 影响下游 view（列级过滤生效）
         List<String> impactA = lineageBiz.getImpactAnalysis(src1, "a", svcCtx);
@@ -631,7 +631,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // GraphQL 暴露验证
         GraphQLResponseBean resp = execute(
-                "query { NopMetaLineageEdge__getImpactAnalysis(metaTableId: \"" + src1 + "\", columnName: \"a\") }");
+                "query { NopMetaLineageEdge__getImpactAnalysis(metaEntityId: \"" + src1 + "\", columnName: \"a\") }");
         assertFalse(resp.hasError(), "getImpactAnalysis column filter must be exposed via GraphQL: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains(sqlViewId),
                 "GraphQL getImpactAnalysis(src, a) must contain view: " + resp.getData());
@@ -642,10 +642,10 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
     /**
      * CTE 列穿透端到端（架构基线 §2.6.1 列级 sql_parse + §4.2.1 CTE 支持，P2-5++ Phase 1）：
      * 建 sql 视图表（WITH cte AS (SELECT t.x, t.y FROM SRC t) SELECT c.x FROM cte c）→ 抽取列级血缘
-     * → 列级边穿透到底层 SRC.x → 边 sourceTableId 指向 SRC（非 CTE 名，目录可匹配）。
+     * → 列级边穿透到底层 SRC.x → 边 sourceEntityId 指向 SRC（非 CTE 名，目录可匹配）。
      *
      * <p>Anti-Hollow：经 BizModel action 入口 extractColumnLineageFromSql → extractor 真实解析 CTE
-     * → upsert 写边，断言边 sourceTableId 指向底层物理 SRC（非悬空到 CTE 名因目录 miss 而丢失）。
+     * → upsert 写边，断言边 sourceEntityId 指向底层物理 SRC（非悬空到 CTE 名因目录 miss 而丢失）。
      */
     @Test
     public void testExtractColumnLineageCtePassthrough() {
@@ -655,13 +655,13 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "WITH cte AS (SELECT t.x, t.y FROM CTE_SRC t) SELECT c.x FROM cte c");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "extractColumnLineageFromSql with CTE should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=1"),
                 "CTE passthrough must produce 1 column-level edge to underlying SRC: " + data);
 
-        // 关键断言：边 sourceTableId 指向底层 SRC（非 CTE 名）—— Anti-Hollow：穿透真实生效
+        // 关键断言：边 sourceEntityId 指向底层 SRC（非 CTE 名）—— Anti-Hollow：穿透真实生效
         NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "x", "x");
         assertNotNull(e, "CTE passthrough: edge SRC.x -> view.x must exist (penetrated to underlying source)");
         assertEquals(_NopMetadataCoreConstants.LINEAGE_SOURCE_SQL_PARSE, e.getLineageSource());
@@ -678,7 +678,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "WITH cte AS (SELECT SUM(t.a) AS s FROM CTEAGG_SRC t) SELECT c.s FROM cte c");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("edgeCount=1"),
                 "CTE aggregate passthrough must produce 1 edge: " + resp.getData());
@@ -701,7 +701,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "WITH cte AS (SELECT t.x AS out_x FROM CTEALIAS_SRC t) SELECT c.out_x FROM cte c");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("edgeCount=1"),
                 "aliased CTE column passthrough must produce 1 edge: " + resp.getData());
@@ -723,7 +723,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT d.x FROM (SELECT t.x FROM DERIVED_SRC t) d");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "extractColumnLineageFromSql with derived table should not error: " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=1"),
@@ -746,7 +746,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                         + "SELECT d.x FROM (SELECT c.x FROM cte c) d");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "nested CTE + derived table should not error: " + resp);
         assertTrue(String.valueOf(resp.getData()).contains("edgeCount=1"),
                 "nested CTE+derived passthrough must produce 1 edge to underlying source: " + resp.getData());
@@ -769,7 +769,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "SELECT a FROM MIXED_SRC, (SELECT b AS a FROM MIXED_SRC2 t) d");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "mixed real+derived table should not error: " + resp);
         // 无 owner 列 a：tableCount=1（只 MIXED_SRC 计数）→ 归属 MIXED_SRC（不歧义）
         NopMetaLineageEdge e = findColumnEdge(src1, sqlViewId, "a", "a");
@@ -788,7 +788,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 "WITH cte AS (SELECT * FROM CTEW_SRC t) SELECT c.x FROM cte c");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount unresolved errors } }");
         assertFalse(resp.hasError(), "wildcard CTE output should not hard-error (collected as unresolved): " + resp);
         String data = String.valueOf(resp.getData());
         assertTrue(data.contains("edgeCount=0"),
@@ -803,9 +803,9 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
     /**
      * 表级非法 SQL → 显式抛错：SQL 解析失败不再降级为"HTTP 200 + edgeCount=0"成功响应，
-     * GraphQL 返回错误 + 精确错误码 + metaTableId param。
+     * GraphQL 返回错误 + 精确错误码 + metaEntityId param。
      *
-     * <p>Anti-Hollow/接线：BizModel 直接调用路径断言异常携带 metaTableId + error 细节 param，
+     * <p>Anti-Hollow/接线：BizModel 直接调用路径断言异常携带 metaEntityId + error 细节 param，
      * 证明 QueryAction 收集的 errors 确实在 API 边界被拦截（非仅存在代码）。
      */
     @Test
@@ -817,7 +817,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
 
         // GraphQL 入口：错误响应（非成功响应 + 零边）
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount errors } }");
         assertTrue(resp.hasError(),
                 "parse failure must surface as GraphQL error (not success + edgeCount=0): " + resp);
         assertNull(resp.getData(),
@@ -827,14 +827,14 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-parse-failed"),
                 "table-level parse failure must map to ERR_LINEAGE_SQL_PARSE_FAILED, got: " + errorCode);
 
-        // BizModel 直接调用（接线验证）：异常携带 metaTableId + error 细节 param
+        // BizModel 直接调用（接线验证）：异常携带 metaEntityId + error 细节 param
         NopException ex = assertThrows(NopException.class,
                 () -> lineageBiz.extractLineageFromSql(sqlViewId, svcCtx),
                 "BizModel must throw (not return DTO) when QueryAction collected parse errors");
         assertEquals("nop.err.metadata.lineage-sql-parse-failed", ex.getErrorCode(),
                 "exception errorCode must be ERR_LINEAGE_SQL_PARSE_FAILED");
-        assertEquals(sqlViewId, ex.getParam("metaTableId"),
-                "exception must carry metaTableId param");
+        assertEquals(sqlViewId, ex.getParam("metaEntityId"),
+                "exception must carry metaEntityId param");
         assertNotNull(ex.getParam("error"),
                 "exception must carry original parse error message detail");
     }
@@ -846,7 +846,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_COL_BAD_SQL", "DELETE FROM t WHERE x=1");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount errors } }");
         assertTrue(resp.hasError(),
                 "column-level parse failure must surface as GraphQL error (not success + edgeCount=0): " + resp);
         assertNull(resp.getData(), "no success data payload may be returned on parse failure: " + resp);
@@ -859,7 +859,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
                 () -> lineageBiz.extractColumnLineageFromSql(sqlViewId, svcCtx),
                 "BizModel must throw when QueryAction collected column parse errors");
         assertEquals("nop.err.metadata.col-lineage-sql-parse-failed", ex.getErrorCode());
-        assertEquals(sqlViewId, ex.getParam("metaTableId"));
+        assertEquals(sqlViewId, ex.getParam("metaEntityId"));
     }
 
     /**
@@ -872,7 +872,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_EMPTY_SQL", "");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount errors } }");
         assertTrue(resp.hasError(), "table-level empty sourceSql must fast-fail (not success + 0 edges): " + resp);
         assertNull(resp.getData(), "no success data payload on empty sourceSql: " + resp);
         String errorCode = resp.getErrorCode();
@@ -880,7 +880,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-source-empty"),
                 "table-level empty sourceSql must map to ERR_LINEAGE_SQL_SOURCE_EMPTY, got: " + errorCode);
         assertTrue(resp.getErrors().get(0).getMessage().contains(sqlViewId),
-                "error must carry metaTableId in message: " + resp);
+                "error must carry metaEntityId in message: " + resp);
     }
 
     /** 列级空 sourceSql → 同一错误码（两级行为一致断言）。 */
@@ -890,7 +890,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String sqlViewId = saveSqlTable(moduleId, "V_COL_EMPTY_SQL", "");
 
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + sqlViewId + "\") { edgeCount errors } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + sqlViewId + "\") { edgeCount errors } }");
         assertTrue(resp.hasError(), "column-level empty sourceSql must fast-fail: " + resp);
         assertNull(resp.getData(), "no success data payload on empty sourceSql: " + resp);
         String errorCode = resp.getErrorCode();
@@ -898,7 +898,7 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         assertTrue(errorCode.contains("nop.err.metadata.lineage-sql-source-empty"),
                 "column-level empty sourceSql must map to ERR_LINEAGE_SQL_SOURCE_EMPTY, got: " + errorCode);
         assertTrue(resp.getErrors().get(0).getMessage().contains(sqlViewId),
-                "error must carry metaTableId in message: " + resp);
+                "error must carry metaEntityId in message: " + resp);
     }
 
     /** 两级空 SQL 行为一致性（同为 ERR_LINEAGE_SQL_SOURCE_EMPTY，无降级差异）。 */
@@ -909,9 +909,9 @@ public class TestNopMetaLineageEdgeBizModel extends LineageTestBase {
         String columnLevel = saveSqlTable(moduleId, "V_EMP_CONS_C", "");
 
         GraphQLResponseBean rTable = execute(
-                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaTableId: \"" + tableLevel + "\") { edgeCount } }");
+                "mutation { NopMetaLineageEdge__extractLineageFromSql(metaEntityId: \"" + tableLevel + "\") { edgeCount } }");
         GraphQLResponseBean rColumn = execute(
-                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaTableId: \"" + columnLevel + "\") { edgeCount } }");
+                "mutation { NopMetaLineageEdge__extractColumnLineageFromSql(metaEntityId: \"" + columnLevel + "\") { edgeCount } }");
         assertEquals(rColumn.getErrorCode(), rTable.getErrorCode(),
                 "table-level and column-level empty sourceSql must surface the SAME error code: "
                         + rTable.getErrorCode() + " vs " + rColumn.getErrorCode());

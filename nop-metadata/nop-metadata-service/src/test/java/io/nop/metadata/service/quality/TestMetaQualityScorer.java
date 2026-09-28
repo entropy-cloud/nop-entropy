@@ -8,7 +8,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
 import io.nop.metadata.dao.entity.NopMetaQualityScore;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -36,17 +36,17 @@ public class TestMetaQualityScorer {
     @SuppressWarnings("unchecked")
     public void testCorruptExtConfigFallsBackToRuleTypeMappingAndLogsWarn() {
         IDaoProvider daoProvider = mock(IDaoProvider.class);
-        IEntityDao<NopMetaTable> tableDao = (IEntityDao<NopMetaTable>) mock(IEntityDao.class);
+        IEntityDao<NopMetaEntity> tableDao = (IEntityDao<NopMetaEntity>) mock(IEntityDao.class);
         IEntityDao<NopMetaQualityRule> ruleDao = (IEntityDao<NopMetaQualityRule>) mock(IEntityDao.class);
         IEntityDao<NopMetaQualityResult> resultDao = (IEntityDao<NopMetaQualityResult>) mock(IEntityDao.class);
         IEntityDao<NopMetaQualityScore> scoreDao = (IEntityDao<NopMetaQualityScore>) mock(IEntityDao.class);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tableDao);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tableDao);
         when(daoProvider.daoFor(NopMetaQualityRule.class)).thenReturn(ruleDao);
         when(daoProvider.daoFor(NopMetaQualityResult.class)).thenReturn(resultDao);
         when(daoProvider.daoFor(NopMetaQualityScore.class)).thenReturn(scoreDao);
 
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t-1");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t-1");
         when(tableDao.getEntityById("t-1")).thenReturn(table);
 
         // CUSTOM_SQL：静态 ruleType 映射 → DIM_CONSISTENCY（readExtConfigDimension 返回 null 时的回退面）

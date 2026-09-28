@@ -42,8 +42,8 @@ public class TestBiSemanticFilterSave extends JunitBaseTestCase {
                 FilterBeans.eq("status", "active")));
 
         GraphQLResponseBean resp = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_active\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_active\", "
                         + "definition: \"" + def + "\"}) { filterId } }");
         assertFalse(resp.hasError(), "valid TreeBean filter must succeed: " + resp);
     }
@@ -56,8 +56,8 @@ public class TestBiSemanticFilterSave extends JunitBaseTestCase {
                 FilterBeans.and(FilterBeans.eq("status", "active"), FilterBeans.gt("amount", 100))));
 
         GraphQLResponseBean resp = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_comp\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_comp\", "
                         + "definition: \"" + def + "\"}) { filterId } }");
         assertFalse(resp.hasError(), "valid composite filter must succeed: " + resp);
     }
@@ -68,8 +68,8 @@ public class TestBiSemanticFilterSave extends JunitBaseTestCase {
         String tableId = helper.saveEntityTable(moduleId, "T_FILTER_BAD", null);
 
         GraphQLResponseBean resp = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_bad\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_bad\", "
                         + "definition: \"this is not json {{{\"}) { filterId } }");
         assertTrue(resp.hasError(), "invalid JSON filter must be rejected: " + resp);
     }
@@ -80,8 +80,8 @@ public class TestBiSemanticFilterSave extends JunitBaseTestCase {
         String tableId = helper.saveEntityTable(moduleId, "T_FILTER_EMPTY", null);
 
         GraphQLResponseBean resp = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_empty\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_empty\", "
                         + "definition: \"   \"}) { filterId } }");
         assertTrue(resp.hasError(), "empty definition must be rejected: " + resp);
     }
@@ -93,14 +93,14 @@ public class TestBiSemanticFilterSave extends JunitBaseTestCase {
         String def = BiSemanticTestHelper.escapeGraphQL(JsonTool.stringify(FilterBeans.eq("a", "b")));
 
         GraphQLResponseBean first = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_default1\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_default1\", "
                         + "definition: \"" + def + "\", isDefault: true}) { filterId } }");
         assertFalse(first.hasError(), "first default filter must succeed: " + first);
 
         GraphQLResponseBean second = helper.runGraphQL(
-                "mutation { NopMetaTableFilter__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", filterName: \"f_default2\", "
+                "mutation { NopMetaEntityFilter__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", filterName: \"f_default2\", "
                         + "definition: \"" + def + "\", isDefault: true}) { filterId } }");
         assertTrue(second.hasError(),
                 "second default filter (isDefault=true) for same table must be rejected: " + second);

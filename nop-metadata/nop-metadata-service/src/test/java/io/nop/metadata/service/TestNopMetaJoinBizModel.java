@@ -14,9 +14,8 @@ import io.nop.metadata.api.dto.QueryJoinDataResultDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.biz.INopMetaTableBiz;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.biz.INopMetaEntityBiz;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +51,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
     @Inject
     IDaoProvider daoProvider;
     @Inject
-    INopMetaTableBiz nopMetaTableBizModel;
+    INopMetaEntityBiz nopMetaEntityBizModel;
     @Inject
     io.nop.orm.IOrmTemplate ormTemplate;
     IServiceContext svcCtx = new ServiceContextImpl();
@@ -68,7 +67,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                 rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
+        QueryJoinDataResultDTO result = nopMetaEntityBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // inner join：每个 field 行匹配其所属 entity 行，结果非空（导入后存在大量字段）
@@ -97,7 +96,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
             String joinId = createJoin(leftTableId, "inner", leftEntity.getMetaEntityId(),
                     rightEntity.getMetaEntityId(), "metaEntityId", "metaEntityId", "fld");
 
-            QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
+            QueryJoinDataResultDTO result = nopMetaEntityBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
             List<Map<String, Object>> items = result.getItems();
             assertNotNull(items, "items must not be null");
             assertFalse(items.isEmpty(), "cross-DB app-layer merge must return real merged rows: " + items);
@@ -180,7 +179,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
         // AR-01/AR-09（plan 2026-08-06-0553-3 Phase 1）：带分页参数（limit=2, offset=1）经真实入口调用——
         // 双绑 bug 修复前此处必抛 SQLException（占位符数 < 绑定数）；修复后 2 行跳过 1 行剩 1 行。
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, 2L, 1L, null, svcCtx);
+        QueryJoinDataResultDTO result = nopMetaEntityBizModel.queryJoinData(leftTableId, joinId, null, 2L, 1L, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // inner join：order_id=1→CN, order_id=2→US；limit=2 offset=1 后剩 1 行真实关联（stub 立即失败此断言）
@@ -240,7 +239,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createMixedJoin(leftTableId, "inner", moduleEntity.getMetaEntityId(),
                 sqlTableId, "moduleId", "MODULE_ID", "dim");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
+        QueryJoinDataResultDTO result = nopMetaEntityBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         // Anti-Hollow 核心：命名空间错配不静默空集——实际命中至少 1 行（stub 或 namespace bug 立即失败此断言）
@@ -285,7 +284,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         String joinId = createTableJoin(leftTableId, "inner", leftTableId, rightTableId,
                 "k", "k", "rt");
 
-        QueryJoinDataResultDTO result = nopMetaTableBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
+        QueryJoinDataResultDTO result = nopMetaEntityBizModel.queryJoinData(leftTableId, joinId, null, null, null, null, svcCtx);
         List<Map<String, Object>> items = result.getItems();
         assertNotNull(items, "items must not be null");
         assertEquals(1, items.size(), "cross-DB sql-sql join must merge 1 matching row: " + items);
@@ -347,13 +346,13 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
         io.nop.api.core.beans.graphql.GraphQLRequestBean request =
                 new io.nop.api.core.beans.graphql.GraphQLRequestBean();
-        request.setQuery("query { NopMetaTable__queryJoinData(metaTableId: \"" + leftTableId
+        request.setQuery("query { NopMetaEntity__queryJoinData(metaEntityId: \"" + leftTableId
                 + "\", joinId: \"" + joinId + "\", limit: 2, offset: 1) { items } }");
         io.nop.api.core.beans.graphql.GraphQLResponseBean resp =
                 graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(request));
         assertFalse(resp.hasError(), "GraphQL queryJoinData(limit=2, offset=1) must succeed: " + resp);
         Map<String, Object> data = (Map<String, Object>) resp.getData();
-        Map<String, Object> qj = (Map<String, Object>) data.get("NopMetaTable__queryJoinData");
+        Map<String, Object> qj = (Map<String, Object>) data.get("NopMetaEntity__queryJoinData");
         assertNotNull(qj, "queryJoinData must return non-null Map result");
         List<Map<String, Object>> items = (List<Map<String, Object>>) qj.get("items");
         assertNotNull(items, "items must not be null");
@@ -399,20 +398,20 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
     }
 
     private String findEntityTableId(String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "entity"));
-        NopMetaTable t = dao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "PHYSICAL"));
+        NopMetaEntity t = dao.findFirstByQuery(q);
         assertNotNull(t, "entity table " + tableName + " must be created by importOrmModel");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    private String createJoin(String metaTableId, String joinType, String leftEntityId, String rightEntityId,
+    private String createJoin(String metaEntityId, String joinType, String leftEntityId, String rightEntityId,
                               String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
         join.setLeftEntityId(leftEntityId);
         join.setRightEntityId(rightEntityId);
@@ -427,15 +426,15 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         return join.getJoinId();
     }
 
-    /** table-table 端点的 NopMetaTableJoin（leftTableId/rightTableId 均为 external/sql 表端点）。 */
-    private String createTableJoin(String metaTableId, String joinType, String leftTableId, String rightTableId,
+    /** table-table 端点的 NopMetaEntityJoin（leftTableId/rightTableId 均为 external/sql 表端点）。 */
+    private String createTableJoin(String metaEntityId, String joinType, String leftTableId, String rightTableId,
                                    String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
-        join.setLeftTableId(leftTableId);
-        join.setRightTableId(rightTableId);
+        join.setLeftEntityId(leftTableId);
+        join.setRightEntityId(rightTableId);
         join.setLeftField(leftField);
         join.setRightField(rightField);
         join.setAlias(alias);
@@ -447,15 +446,15 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         return join.getJoinId();
     }
 
-    /** 混合端点 NopMetaTableJoin（leftEntityId entity 端点 + rightTableId table 端点）。 */
-    private String createMixedJoin(String metaTableId, String joinType, String leftEntityId, String rightTableId,
+    /** 混合端点 NopMetaEntityJoin（leftEntityId entity 端点 + rightTableId table 端点）。 */
+    private String createMixedJoin(String metaEntityId, String joinType, String leftEntityId, String rightTableId,
                                    String leftField, String rightField, String alias) {
-        IEntityDao<NopMetaTableJoin> dao = daoProvider.daoFor(NopMetaTableJoin.class);
-        NopMetaTableJoin join = dao.newEntity();
-        join.setMetaTableId(metaTableId);
+        IEntityDao<NopMetaEntityJoin> dao = daoProvider.daoFor(NopMetaEntityJoin.class);
+        NopMetaEntityJoin join = dao.newEntity();
+        join.setMetaEntityId(metaEntityId);
         join.setJoinType(joinType);
         join.setLeftEntityId(leftEntityId);
-        join.setRightTableId(rightTableId);
+        join.setRightEntityId(rightTableId);
         join.setLeftField(leftField);
         join.setRightField(rightField);
         join.setAlias(alias);
@@ -467,19 +466,22 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
         return join.getJoinId();
     }
 
-    /** 直接保存 sql 类型 NopMetaTable（不经 createSqlTable GraphQL action），用于 JOIN 端点测试。 */
+    /** 直接保存 sql 类型 NopMetaEntity（不经 createSqlView GraphQL action），用于 JOIN 端点测试。 */
     private String saveSqlTableManual(String sourceSql, String querySpace) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureTestModuleId());
+        t.setOrmModelId("orm_" + System.nanoTime());
+        t.setIsDelta((byte) 0);
+        t.setEntityName("SQL_T_" + System.nanoTime());
         t.setTableName("SQL_T_" + System.nanoTime());
         t.setDisplayName("sql-join-endpoint");
-        t.setTableType("sql");
+        t.setEntityKind("SQL_VIEW");
         t.setQuerySpace(querySpace);
         t.setSourceSql(sourceSql);
         t.setVersion(1L);
         dao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     /** 注册一个 NopMetaDataSource（H2 in-memory）。 */
@@ -537,7 +539,7 @@ public class TestNopMetaJoinBizModel extends JunitBaseTestCase {
 
     private boolean queryJoinDataHasError(String tableId, String joinId) {
         try {
-            nopMetaTableBizModel.queryJoinData(tableId, joinId, null, null, null, null, svcCtx);
+            nopMetaEntityBizModel.queryJoinData(tableId, joinId, null, null, null, null, svcCtx);
             return false;
         } catch (Exception e) {
             return true;

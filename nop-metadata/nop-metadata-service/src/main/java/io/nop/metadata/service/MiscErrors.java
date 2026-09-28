@@ -34,17 +34,17 @@ interface MiscErrors extends NopMetadataArgs {
 
     ErrorCode ERR_FILTER_DEFINITION_INVALID =
             ErrorCode.define("nop.err.metadata.filter-definition-invalid",
-                    "Filter definition JSON is not a valid TreeBean filter tree: {metaTableId} filterName={filterName}",
-                    ARG_META_TABLE_ID, ARG_FILTER_NAME);
+                    "Filter definition JSON is not a valid TreeBean filter tree: {metaEntityId} filterName={filterName}",
+                    ARG_META_ENTITY_ID, ARG_FILTER_NAME);
     ErrorCode ERR_FILTER_DEFINITION_EMPTY =
             ErrorCode.define("nop.err.metadata.filter-definition-empty",
-                    "Filter definition is empty: {metaTableId} filterName={filterName}",
-                    ARG_META_TABLE_ID, ARG_FILTER_NAME);
+                    "Filter definition is empty: {metaEntityId} filterName={filterName}",
+                    ARG_META_ENTITY_ID, ARG_FILTER_NAME);
     ErrorCode ERR_FILTER_DEFAULT_ALREADY_EXISTS =
             ErrorCode.define("nop.err.metadata.filter-default-already-exists",
                     "Only one default filter (isDefault=true) is allowed per table: "
-                            + "{metaTableId} existingDefault={existingFilterId}",
-                    ARG_META_TABLE_ID, ARG_EXISTING_FILTER_ID);
+                            + "{metaEntityId} existingDefault={existingFilterId}",
+                    ARG_META_ENTITY_ID, ARG_EXISTING_FILTER_ID);
     ErrorCode ERR_DEFAULT_FILTER_PARSE =
             ErrorCode.define("nop.err.metadata.default-filter-parse",
                     "Failed to parse isDefault filter definition JSON: {filterId} -- {error}",
@@ -54,7 +54,7 @@ interface MiscErrors extends NopMetadataArgs {
 
     ErrorCode ERR_PROFILING_TABLE_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.profiling-table-not-found",
-                    "Profiling target table not found: {metaTableId}", ARG_META_TABLE_ID);
+                    "Profiling target table not found: {metaEntityId}", ARG_META_ENTITY_ID);
     ErrorCode ERR_PROFILING_INVALID_IDENTIFIER =
             ErrorCode.define("nop.err.metadata.profiling-invalid-identifier",
                     "Identifier (column/table/schema) does not match whitelist ^[A-Za-z_][A-Za-z0-9_]*$: {identifier}",
@@ -120,18 +120,18 @@ interface MiscErrors extends NopMetadataArgs {
 
     ErrorCode ERR_PROPAGATE_UNSUPPORTED_ENTITY_TYPE =
             ErrorCode.define("nop.err.metadata.propagate-unsupported-entity-type",
-                    "Tag propagation only supports entityType=NopMetaTable, got: {entityType}",
+                    "Tag propagation only supports entityType=NopMetaEntity, got: {entityType}",
                     ARG_ENTITY_TYPE);
 
     // ===== AutoClassification =====
 
     ErrorCode ERR_AUTOCLASSIFY_UNSUPPORTED_ENTITY_TYPE =
             ErrorCode.define("nop.err.metadata.autoclassify-unsupported-entity-type",
-                    "Auto-classification only supports entityType=NopMetaTable, got: {entityType}",
+                    "Auto-classification only supports entityType=NopMetaEntity, got: {entityType}",
                     ARG_ENTITY_TYPE);
     ErrorCode ERR_AUTOCLASSIFY_UNSUPPORTED_TABLE_TYPE =
             ErrorCode.define("nop.err.metadata.autoclassify-unsupported-table-type",
-                    "Auto-classification only supports tableType=entity, got: {tableType}",
+                    "Auto-classification only supports entityKind=entity, got: {entityKind}",
                     ARG_TABLE_TYPE);
 
     // ===== DataProduct link-asset =====

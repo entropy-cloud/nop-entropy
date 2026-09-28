@@ -42,9 +42,6 @@ public class TestNopMetadataErrorsCentralized {
         assertEquals("nop.err.metadata.datasource-not-found",
                 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND.getErrorCode());
 
-        assertNotNull(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED);
-        assertTrue(NopMetadataErrors.ERR_JOIN_TABLE_TYPE_NOT_ALLOWED.getErrorCode()
-                .startsWith("nop.err.metadata."));
 
         // 模块异常辅助 ErrorCode：独立字面量真值核对（不止 assertNotNull）
         assertEquals("nop.err.metadata.datasource-type-not-supported",
@@ -58,7 +55,7 @@ public class TestNopMetadataErrorsCentralized {
     /** 验证 ARG_* 参数常量已引入，避免魔法字符串。 */
     @Test
     public void testArgConstantsIntroduced() {
-        assertEquals("metaTableId", NopMetadataErrors.ARG_META_TABLE_ID);
+        assertEquals("metaEntityId", NopMetadataErrors.ARG_META_ENTITY_ID);
         assertEquals("dataSourceId", NopMetadataErrors.ARG_DATA_SOURCE_ID);
         assertEquals("joinId", NopMetadataErrors.ARG_JOIN_ID);
         assertEquals("configId", NopMetadataErrors.ARG_CONFIG_ID);

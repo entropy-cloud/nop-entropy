@@ -32,7 +32,7 @@ import java.util.Locale;
  * {@link NopMetadataErrors#ERR_DATASOURCE_TYPE_NOT_SUPPORTED}；快速失败，非静默跳过）。
  *
  * <p>每张扫描到的表读取其 {@code TABLE_SCHEM} 并填入 {@link ExternalTableInfo#getSchema()}，
- * 供 BizModel 持久化到 {@code NopMetaTable.metaSchema}（架构基线 §2.3.2 / §2.5.1）。
+ * 供 BizModel 持久化到 {@code NopMetaEntity.metaSchema}（架构基线 §2.3.2 / §2.5.1）。
  */
 public class ExternalTableStructureReader {
 
@@ -71,7 +71,7 @@ public class ExternalTableStructureReader {
                 ExternalTableInfo info = new ExternalTableInfo();
                 info.setTableName(tableName);
                 info.setSchema(tableSchema);
-                info.setTableType(rs.getString("TABLE_TYPE"));
+                info.setEntityKind(rs.getString("TABLE_TYPE"));
                 info.setRemark(rs.getString("REMARKS"));
                 // 列结构读取：优先用该行实际的 TABLE_SCHEM（精确，比 schemaPattern 更具体），
                 // TABLE_SCHEM 缺失时回退到 schemaPattern 入参（防御性，保持原行为）

@@ -3,7 +3,7 @@ package io.nop.metadata.service.query;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.core._NopMetadataCoreConstants;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
@@ -25,11 +25,11 @@ public class TestSqlAggregationProcessor {
     // ===== execute() 分派行为（P1-MA4-601：空洞测试 → 行为断言） =====
 
     @Test
-    public void testExecuteWithUnsupportedTableTypeThrowsNopException() {
+    public void testExecuteWithUnsupportedEntityKindThrowsNopException() {
         AggregationContext context = mock(AggregationContext.class);
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("unsupported");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("unsupported");
         when(context.getTable()).thenReturn(table);
 
         SqlAggregationProcessor processor = new SqlAggregationProcessor();
@@ -42,17 +42,17 @@ public class TestSqlAggregationProcessor {
 
     @Test
     public void testBuildFromClauseSqlTypeWithNullSourceSql() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("SQL_VIEW");
         assertThrows(RuntimeException.class, () -> buildFromClause(table));
     }
 
     @Test
     public void testBuildFromClauseSqlTypeWithSourceSql() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("SQL_VIEW");
         table.setSourceSql("SELECT * FROM dual");
         String fromClause = buildFromClause(table);
         assertEquals("(SELECT * FROM dual) _t", fromClause);
@@ -60,9 +60,9 @@ public class TestSqlAggregationProcessor {
 
     @Test
     public void testBuildFromClauseExternalType() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("test-table");
-        table.setTableType("external");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("test-table");
+        table.setEntityKind("EXTERNAL");
         table.setTableName("MY_TABLE");
         String fromClause = buildFromClause(table);
         assertEquals("MY_TABLE", fromClause);
@@ -70,9 +70,9 @@ public class TestSqlAggregationProcessor {
 
     @Test
     public void testBuildFromClauseSqlTypeEmptySourceSqlThrows() {
-        NopMetaTable table = new NopMetaTable();
-        table.setMetaTableId("t1");
-        table.setTableType("sql");
+        NopMetaEntity table = new NopMetaEntity();
+        table.setMetaEntityId("t1");
+        table.setEntityKind("SQL_VIEW");
         table.setSourceSql("");
         NopException ex = assertThrows(NopException.class, () -> buildFromClause(table));
         assertEquals(NopMetadataErrors.ERR_AGGR_EXEC_FAILED.getErrorCode(), ex.getErrorCode());
@@ -131,7 +131,7 @@ public class TestSqlAggregationProcessor {
     public void testBuildNameToExprTableEmpty() {
         Map<String, String> result = buildNameToExprTable(
                 Collections.emptyList(), Collections.emptyList(),
-                Collections.emptyList(), Collections.emptyList(), new NopMetaTable());
+                Collections.emptyList(), Collections.emptyList(), new NopMetaEntity());
         assertTrue(result.isEmpty());
     }
 
@@ -140,7 +140,7 @@ public class TestSqlAggregationProcessor {
         List<MeasureSpec> measures = Arrays.asList(new MeasureSpec("ALIAS", "SUM(x)"));
         NopException ex = assertThrows(NopException.class,
                 () -> buildNameToExprTable(measures, Collections.emptyList(),
-                        Collections.emptyList(), Collections.emptyList(), new NopMetaTable()));
+                        Collections.emptyList(), Collections.emptyList(), new NopMetaEntity()));
         assertEquals(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME.getErrorCode(), ex.getErrorCode());
     }
 

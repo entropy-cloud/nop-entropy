@@ -24,22 +24,22 @@ Extract resolvers to separate top-level classes (same package):
 
 Rationale: resolvers are service classes with database access, not data types. Extracting them significantly reduces AggregationContext line count while keeping the true data types co-located.
 
-## Decision 2: NopMetaTableBizModel → NopMetaTableQueryAction (Helper)
+## Decision 2: NopMetaEntityBizModel → NopMetaEntityQueryAction (Helper)
 
-**NopMetaTableBizModel.java (902 lines → 当前 357 lines)**
+**NopMetaEntityBizModel.java (902 lines → 当前 357 lines)**
 
-Keep in `NopMetaTableBizModel`:
+Keep in `NopMetaEntityBizModel`:
 - CRUD overrides (save/delete)
 - Dispatch methods with `@BizMutation`/`@BizQuery` annotations
 - Helper methods used by dispatch methods
-- Delegates data access execution to `NopMetaTableQueryAction` helper
+- Delegates data access execution to `NopMetaEntityQueryAction` helper
 
-Extract to `NopMetaTableQueryAction.java` (same package, plain helper class, no `@BizModel`):
+Extract to `NopMetaEntityQueryAction.java` (same package, plain helper class, no `@BizModel`):
 - Private query execution methods: `queryEntityData`, `queryExternalData`, `querySqlData`
-- Supporting components: `SqlSelectFieldExtractor`, `MetaTableFieldResolver`, `MetaDataSourceResolver`, `MetaTableReferenceResolver`, `FilterToSqlTranslator`
+- Supporting components: `SqlSelectFieldExtractor`, `MetaEntityFieldResolver`, `MetaDataSourceResolver`, `MetaEntityReferenceResolver`, `FilterToSqlTranslator`
 - DTO conversion helpers: `buildProfileResultDTO`
 
-Note: Two `@BizModel` approach was attempted but Nop framework does not support duplicate `@BizModel` names on separate classes. The final design uses a single `@BizModel("NopMetaTable")` class (NopMetaTableBizModel) that delegates to the helper class NopMetaTableQueryAction via constructor-injected composition.
+Note: Two `@BizModel` approach was attempted but Nop framework does not support duplicate `@BizModel` names on separate classes. The final design uses a single `@BizModel("NopMetaEntity")` class (NopMetaEntityBizModel) that delegates to the helper class NopMetaEntityQueryAction via constructor-injected composition.
 
 ## Decision 3: NopMetaLineageEdgeBizModel → NopMetaLineageEdgeQueryAction (Helper)
 

@@ -6,9 +6,9 @@
 
 ## Problem
 
-> **执行更新（2026-07-21 落地）**：下述问题已解决——I*Biz 接口已全量 DTO 化（如 `INopMetaTableBiz` 返回 `api.dto` 类型而非 `Map<String, Object>`），DTO 统一落在 `io.nop.metadata.api.dto` 包。本节保留为执行前的历史问题陈述。
+> **执行更新（2026-07-21 落地）**：下述问题已解决——I*Biz 接口已全量 DTO 化（如 `INopMetaEntityBiz` 返回 `api.dto` 类型而非 `Map<String, Object>`），DTO 统一落在 `io.nop.metadata.api.dto` 包。本节保留为执行前的历史问题陈述。
 
-执行前，`nop-metadata-dao` 包含 `I*Biz` 接口（如 `INopMetaTableBiz`），其方法返回 `Map<String, Object>`，DTO 定义在 `nop-metadata-service/.../dto/`。由于 `nop-metadata-dao` 不能依赖 `nop-metadata-service`（Maven 禁止循环依赖），接口无法引用 DTO 类型，导致无法实现强类型 GraphQL schema 推导。
+执行前，`nop-metadata-dao` 包含 `I*Biz` 接口（如 `INopMetaEntityBiz`），其方法返回 `Map<String, Object>`，DTO 定义在 `nop-metadata-service/.../dto/`。由于 `nop-metadata-dao` 不能依赖 `nop-metadata-service`（Maven 禁止循环依赖），接口无法引用 DTO 类型，导致无法实现强类型 GraphQL schema 推导。
 
 ## 候选方案评估
 

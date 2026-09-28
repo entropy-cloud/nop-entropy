@@ -3,7 +3,7 @@ package io.nop.metadata.service.query;
 
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
@@ -37,7 +37,7 @@ final class MemoryOrderByComparator {
      * 按 {@code orderBy} 排序（返回新列表，不修改原列表）。
      */
     static List<Map<String, Object>> sort(List<Map<String, Object>> rows, List<OrderFieldBean> orderBy,
-                                            Map<String, String> nameToAlias, NopMetaTable table,
+                                            Map<String, String> nameToAlias, NopMetaEntity table,
                                             List<String> measureNames, List<String> dimensionNames) {
         // 预解析 orderBy：name → alias，构造 (alias, desc, nullsFirst) 元组列表
         List<SortKey> keys = new ArrayList<>(orderBy.size());
@@ -46,7 +46,7 @@ final class MemoryOrderByComparator {
             String alias = nameToAlias.get(name);
             if (alias == null) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_UNKNOWN_NAME)
-                        .param(NopMetadataErrors.ARG_META_TABLE_ID, table.getMetaTableId())
+                        .param(NopMetadataErrors.ARG_META_ENTITY_ID, table.getMetaEntityId())
                         .param(NopMetadataErrors.ARG_NAME, String.valueOf(name))
                         .param(NopMetadataErrors.ARG_SELECTED_MEASURES, String.valueOf(measureNames))
                         .param(NopMetadataErrors.ARG_SELECTED_DIMENSIONS, String.valueOf(dimensionNames));
@@ -146,7 +146,7 @@ final class MemoryOrderByComparator {
 
     /** 测试可访问的排序入口（仅用于单元测试）。 */
     static List<Map<String, Object>> sortForTest(List<Map<String, Object>> rows, List<OrderFieldBean> orderBy,
-                                                   Map<String, String> nameToAlias, NopMetaTable table,
+                                                   Map<String, String> nameToAlias, NopMetaEntity table,
                                                    List<String> measureNames, List<String> dimensionNames) {
         return sort(rows, orderBy, nameToAlias, table, measureNames, dimensionNames);
     }

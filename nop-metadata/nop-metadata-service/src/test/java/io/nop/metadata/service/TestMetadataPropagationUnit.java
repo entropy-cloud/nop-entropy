@@ -9,10 +9,11 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaClassification;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaLineageEdge;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaTag;
 import io.nop.metadata.dao.entity.NopMetaTagLabel;
 import io.nop.metadata.service.entity.AutoClassificationProcessor;
@@ -44,7 +45,7 @@ public class TestMetadataPropagationUnit {
     private IDaoProvider daoProvider;
     private IEntityDao<NopMetaTagLabel> tagLabelDao;
     private IEntityDao<NopMetaLineageEdge> edgeDao;
-    private IEntityDao<NopMetaTable> tableDao;
+    private IEntityDao<NopMetaEntity> tableDao;
     private IEntityDao<NopMetaClassification> clsDao;
     private IEntityDao<NopMetaTag> tagDao;
     private IEntityDao<NopMetaEntityField> fieldDao;
@@ -57,7 +58,7 @@ public class TestMetadataPropagationUnit {
         daoProvider = mock(IDaoProvider.class);
         tagLabelDao = (IEntityDao<NopMetaTagLabel>) mock(IEntityDao.class);
         edgeDao = (IEntityDao<NopMetaLineageEdge>) mock(IEntityDao.class);
-        tableDao = (IEntityDao<NopMetaTable>) mock(IEntityDao.class);
+        tableDao = (IEntityDao<NopMetaEntity>) mock(IEntityDao.class);
         clsDao = (IEntityDao<NopMetaClassification>) mock(IEntityDao.class);
         tagDao = (IEntityDao<NopMetaTag>) mock(IEntityDao.class);
         fieldDao = (IEntityDao<NopMetaEntityField>) mock(IEntityDao.class);
@@ -66,7 +67,7 @@ public class TestMetadataPropagationUnit {
 
         when(daoProvider.daoFor(NopMetaTagLabel.class)).thenReturn(tagLabelDao);
         when(daoProvider.daoFor(NopMetaLineageEdge.class)).thenReturn(edgeDao);
-        when(daoProvider.daoFor(NopMetaTable.class)).thenReturn(tableDao);
+        when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tableDao);
         when(daoProvider.daoFor(NopMetaClassification.class)).thenReturn(clsDao);
         when(daoProvider.daoFor(NopMetaTag.class)).thenReturn(tagDao);
         when(daoProvider.daoFor(NopMetaEntityField.class)).thenReturn(fieldDao);
@@ -83,7 +84,7 @@ public class TestMetadataPropagationUnit {
     // ===== LineageTagPropagationProcessor Tests =====
 
     @Test
-    public void testPropagationRejectsNonNopMetaTableEntityType() {
+    public void testPropagationRejectsNonNopMetaEntityEntityType() {
         NopException ex = assertThrows(NopException.class, () ->
                 propagationService.propagateTags("OtherEntity", "id-1", null, context));
         assertTrue(ex.getErrorCode().contains("propagate-unsupported-entity-type"));
@@ -94,13 +95,13 @@ public class TestMetadataPropagationUnit {
         when(tagLabelDao.findAllByQuery(any(QueryBean.class)))
                 .thenReturn(Collections.emptyList());
 
-        List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaTable", "table-1", null, context);
+        List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaEntity", "table-1", null, context);
         assertTrue(result.isEmpty());
     }
 
     @Test
     public void testPropagationIdempotentDuplicateCall() {
-        NopMetaTagLabel sourceLabel = createTagLabel("tlabel-1", "NopMetaTable", "table-1", "tag-1", "Manual");
+        NopMetaTagLabel sourceLabel = createTagLabel("tlabel-1", "NopMetaEntity", "table-1", "tag-1", "Manual");
         when(tagLabelDao.findAllByQuery(any(QueryBean.class)))
                 .thenReturn(Collections.singletonList(sourceLabel))
                 .thenReturn(Collections.singletonList(sourceLabel));
@@ -112,14 +113,14 @@ public class TestMetadataPropagationUnit {
 
         when(tagLabelDao.findFirstByQuery(any(QueryBean.class)))
                 .thenReturn(null)
-                .thenReturn(createTagLabel("tlabel-p-1", "NopMetaTable", "table-2", "tag-1", "Propagated"));
+                .thenReturn(createTagLabel("tlabel-p-1", "NopMetaEntity", "table-2", "tag-1", "Propagated"));
 
         when(bizObjectManager.getBizObject("NopMetaTagLabel")).thenReturn(null);
 
-        List<NopMetaTagLabel> firstResult = propagationService.propagateTags("NopMetaTable", "table-1", "tag-1", context);
+        List<NopMetaTagLabel> firstResult = propagationService.propagateTags("NopMetaEntity", "table-1", "tag-1", context);
         assertNotNull(firstResult);
 
-        List<NopMetaTagLabel> secondResult = propagationService.propagateTags("NopMetaTable", "table-1", "tag-1", context);
+        List<NopMetaTagLabel> secondResult = propagationService.propagateTags("NopMetaEntity", "table-1", "tag-1", context);
         assertNotNull(secondResult);
     }
 
@@ -130,7 +131,7 @@ public class TestMetadataPropagationUnit {
      */
     @Test
     public void testPropagationPerEdgeIsolation() {
-        NopMetaTagLabel sourceLabel = createTagLabel("tlabel-1", "NopMetaTable", "table-1", "tag-1", "Manual");
+        NopMetaTagLabel sourceLabel = createTagLabel("tlabel-1", "NopMetaEntity", "table-1", "tag-1", "Manual");
         when(tagLabelDao.findAllByQuery(any(QueryBean.class)))
                 .thenReturn(Collections.singletonList(sourceLabel));
 
@@ -149,7 +150,7 @@ public class TestMetadataPropagationUnit {
         when(bizObjectManager.getBizObject("NopMetaTagLabel"))
                 .thenThrow(new RuntimeException("edge-1 fail")) // first edge fails (inner catch-all no longer swallows)
                 .thenReturn(bizObject); // second edge succeeds
-        NopMetaTagLabel created = createTagLabel("tl-edge2", "NopMetaTable", "table-3", "tag-1", "Propagated");
+        NopMetaTagLabel created = createTagLabel("tl-edge2", "NopMetaEntity", "table-3", "tag-1", "Propagated");
         when(bizObject.invoke(eq("save"), any(), any(), any())).thenReturn(created);
 
         ch.qos.logback.classic.Logger logger =
@@ -159,7 +160,7 @@ public class TestMetadataPropagationUnit {
         appender.start();
         logger.addAppender(appender);
         try {
-            List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaTable", "table-1", "tag-1", context);
+            List<NopMetaTagLabel> result = propagationService.propagateTags("NopMetaEntity", "table-1", "tag-1", context);
 
             // 隔离保持：edge-1 失败不中断 edge-2 的传播
             assertEquals(1, result.size(),
@@ -184,42 +185,44 @@ public class TestMetadataPropagationUnit {
     // ===== AutoClassificationProcessor Tests =====
 
     @Test
-    public void testAutoClassifyRejectsNonNopMetaTable() {
+    public void testAutoClassifyRejectsNonNopMetaEntity() {
         NopException ex = assertThrows(NopException.class, () ->
                 classificationService.suggestTags("OtherEntity", "id-1", context));
         assertTrue(ex.getErrorCode().contains("autoclassify-unsupported-entity-type"));
     }
 
     @Test
-    public void testAutoClassifyRejectsNonEntityTableType() {
-        NopMetaTable sqlTable = new NopMetaTable();
-        sqlTable.setMetaTableId("sql-table-1");
-        sqlTable.setTableType("sql");
+    public void testAutoClassifyRejectsNonEntityEntityKind() {
+        NopMetaEntity sqlTable = new NopMetaEntity();
+        sqlTable.setMetaEntityId("sql-table-1");
+        sqlTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW);
         when(tableDao.getEntityById("sql-table-1")).thenReturn(sqlTable);
 
         NopException ex = assertThrows(NopException.class, () ->
-                classificationService.suggestTags("NopMetaTable", "sql-table-1", context));
+                classificationService.suggestTags("NopMetaEntity", "sql-table-1", context));
         assertTrue(ex.getErrorCode().contains("autoclassify-unsupported-table-type"));
     }
 
+    /**
+     * plan 2261 概念缩减：原 baseEntityId=null 场景随"表行→实体行"归并消失，
+     * 等价新语义 = PHYSICAL 实体无可解析字段 → 返回空结果（不伪造、不报错）。
+     */
     @Test
-    public void testAutoClassifyBaseEntityIdNull() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId(null);
+    public void testAutoClassifyPhysicalEntityNoFieldsYieldsEmpty() {
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
-        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
         assertTrue(result.isEmpty());
     }
 
     @Test
     public void testAutoClassifyEmptyConfig() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
         NopMetaClassification cls = new NopMetaClassification();
@@ -227,17 +230,16 @@ public class TestMetadataPropagationUnit {
         cls.setAutoClassificationConfig(null);
         when(clsDao.getEntityById("cls-1")).thenReturn(cls);
 
-        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
         assertTrue(result.isEmpty());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void testAutoClassifyEmptyRules() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
         IEntityDao<NopMetaTagLabel> localTagLabelDao = (IEntityDao<NopMetaTagLabel>) mock(IEntityDao.class);
@@ -248,7 +250,7 @@ public class TestMetadataPropagationUnit {
         cls.setAutoClassificationConfig("[]");
         when(clsDao.getEntityById("cls-1")).thenReturn(cls);
 
-        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaTable", "entity-table-1", "tag-1", "Manual");
+        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaEntity", "entity-table-1", "tag-1", "Manual");
         NopMetaTag tag = new NopMetaTag();
         tag.setTagId("tag-1");
         tag.setClassificationId("cls-1");
@@ -256,22 +258,21 @@ public class TestMetadataPropagationUnit {
                 .thenReturn(Collections.singletonList(manualLabel));
         when(tagDao.getEntityById("tag-1")).thenReturn(tag);
 
-        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
         assertTrue(result.isEmpty());
     }
 
     @Test
     public void testAutoClassifyNoFieldsNoResult() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
         when(fieldDao.findAllByQuery(any(QueryBean.class)))
                 .thenReturn(Collections.emptyList());
 
-        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
         assertTrue(result.isEmpty());
     }
 
@@ -283,18 +284,17 @@ public class TestMetadataPropagationUnit {
      * <p>正路径断言（非法规则跳过 + 合法规则命中 → 标签生成）当前仓库不存在，本测试从零
      * 搭建：沿 :213-219 discoverClassification 装配雏形（Manual 标签 → tag → classification
      * → config），bizObjectManager 嵌套 mock（getBizObject().invoke("save",...) 返回标签）。
-     * 日志断言复用 Logback ListAppender 模式（TestMetaTableProfilerSecurity 先例）。
+     * 日志断言复用 Logback ListAppender 模式（TestMetaEntityProfilerSecurity 先例）。
      */
     @Test
     @SuppressWarnings("unchecked")
     public void testAutoClassifyInvalidPatternSkippedValidRuleStillWorks() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
-        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaTable", "entity-table-1", "tag-1", "Manual");
+        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaEntity", "entity-table-1", "tag-1", "Manual");
         NopMetaTag manualTag = new NopMetaTag();
         manualTag.setTagId("tag-1");
         manualTag.setClassificationId("cls-1");
@@ -323,7 +323,7 @@ public class TestMetadataPropagationUnit {
 
         when(tagLabelDao.findFirstByQuery(any(QueryBean.class))).thenReturn(null);
 
-        NopMetaTagLabel created = createTagLabel("tl-new", "NopMetaTable", "entity-table-1", "tag-b", "Automated");
+        NopMetaTagLabel created = createTagLabel("tl-new", "NopMetaEntity", "entity-table-1", "tag-b", "Automated");
         IBizObject bizObject = mock(IBizObject.class);
         when(bizObjectManager.getBizObject("NopMetaTagLabel")).thenReturn(bizObject);
         when(bizObject.invoke(eq("save"), any(), any(), any())).thenReturn(created);
@@ -335,7 +335,7 @@ public class TestMetadataPropagationUnit {
         appender.start();
         logger.addAppender(appender);
         try {
-            List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+            List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
 
             // 正路径：非法规则被跳过，合法规则命中并生成标签
             assertNotNull(result);
@@ -374,13 +374,12 @@ public class TestMetadataPropagationUnit {
     @Test
     @SuppressWarnings("unchecked")
     public void testSuggestTagsSaveFailureFailsLoud() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
-        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaTable", "entity-table-1", "tag-1", "Manual");
+        NopMetaTagLabel manualLabel = createTagLabel("ml-1", "NopMetaEntity", "entity-table-1", "tag-1", "Manual");
         NopMetaTag manualTag = new NopMetaTag();
         manualTag.setTagId("tag-1");
         manualTag.setClassificationId("cls-1");
@@ -411,7 +410,7 @@ public class TestMetadataPropagationUnit {
         when(bizObject.invoke(eq("save"), any(), any(), any())).thenThrow(boom);
 
         NopException ex = assertThrows(NopException.class,
-                () -> classificationService.suggestTags("NopMetaTable", "entity-table-1", context),
+                () -> classificationService.suggestTags("NopMetaEntity", "entity-table-1", context),
                 "user-triggered suggestTags must fail loudly to the request boundary (AR-21)");
         assertEquals(NopMetadataErrors.ERR_TAG_LABEL_SAVE_FAILED.getErrorCode(), ex.getErrorCode());
         assertSame(boom, ex.getCause(), "original exception must be preserved as cause");
@@ -427,10 +426,9 @@ public class TestMetadataPropagationUnit {
     @Test
     @SuppressWarnings("unchecked")
     public void testAutoClassifyNoBoundClassificationNoArbitraryFallback() {
-        NopMetaTable entityTable = new NopMetaTable();
-        entityTable.setMetaTableId("entity-table-1");
-        entityTable.setTableType("entity");
-        entityTable.setBaseEntityId("entity-1");
+        NopMetaEntity entityTable = new NopMetaEntity();
+        entityTable.setMetaEntityId("entity-table-1");
+        entityTable.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         when(tableDao.getEntityById("entity-table-1")).thenReturn(entityTable);
 
         // 无 Manual 标签（tagLabelDao.findAllByQuery 默认返回空列表）
@@ -446,7 +444,7 @@ public class TestMetadataPropagationUnit {
         field.setFieldName("user_name");
         when(fieldDao.findAllByQuery(any(QueryBean.class))).thenReturn(List.of(field));
 
-        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaTable", "entity-table-1", context);
+        List<NopMetaTagLabel> result = classificationService.suggestTags("NopMetaEntity", "entity-table-1", context);
 
         assertTrue(result.isEmpty(),
                 "no bound classification must not fall back to lexicographically-first classification (AR-21): "
@@ -470,8 +468,8 @@ public class TestMetadataPropagationUnit {
     private static NopMetaLineageEdge createLineageEdge(String edgeId, String sourceId, String targetId) {
         NopMetaLineageEdge edge = new NopMetaLineageEdge();
         edge.setLineageEdgeId(edgeId);
-        edge.setSourceTableId(sourceId);
-        edge.setTargetTableId(targetId);
+        edge.setSourceEntityId(sourceId);
+        edge.setTargetEntityId(targetId);
         edge.setTransformType("DIRECT");
         return edge;
     }

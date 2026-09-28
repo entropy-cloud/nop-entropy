@@ -39,7 +39,7 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract("SELECT t.a AS x FROM SRC t");
         ColumnLineageCandidate r = firstResolved(cs);
         assertEquals("x", r.getTargetColumn());
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("a", r.getSourceColumn());
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, r.getTransformType());
     }
@@ -51,10 +51,10 @@ public class TestSqlColumnLineageExtractor {
         assertEquals(2, cs.stream().filter(c -> !c.isUnresolvable()).count());
         ColumnLineageCandidate e1 = cs.stream().filter(c -> "x".equals(c.getTargetColumn()))
                 .findFirst().orElseThrow(AssertionError::new);
-        assertEquals("SRC1", e1.getSourceTableName());
+        assertEquals("SRC1", e1.getSourceEntityName());
         ColumnLineageCandidate e2 = cs.stream().filter(c -> "b".equals(c.getTargetColumn()))
                 .findFirst().orElseThrow(AssertionError::new);
-        assertEquals("SRC2", e2.getSourceTableName());
+        assertEquals("SRC2", e2.getSourceEntityName());
     }
 
     @Test
@@ -64,8 +64,8 @@ public class TestSqlColumnLineageExtractor {
         assertEquals(2, cs.size());
         assertTrue(cs.stream().allMatch(c ->
                 _NopMetadataCoreConstants.LINEAGE_TRANSFORM_DERIVED.equals(c.getTransformType())));
-        assertTrue(cs.stream().anyMatch(c -> c.getSourceTableName().equals("SRC1") && c.getSourceColumn().equals("a")));
-        assertTrue(cs.stream().anyMatch(c -> c.getSourceTableName().equals("SRC2") && c.getSourceColumn().equals("b")));
+        assertTrue(cs.stream().anyMatch(c -> c.getSourceEntityName().equals("SRC1") && c.getSourceColumn().equals("a")));
+        assertTrue(cs.stream().anyMatch(c -> c.getSourceEntityName().equals("SRC2") && c.getSourceColumn().equals("b")));
     }
 
     @Test
@@ -79,7 +79,7 @@ public class TestSqlColumnLineageExtractor {
     public void unqualifiedSingleVsMultiTable() {
         // 单表 → 归属唯一源表
         List<ColumnLineageCandidate> single = extractor.extract("SELECT col FROM UNQ_SINGLE");
-        assertEquals("UNQ_SINGLE", firstResolved(single).getSourceTableName());
+        assertEquals("UNQ_SINGLE", firstResolved(single).getSourceEntityName());
 
         // 多表 → 歧义 unresolved
         List<ColumnLineageCandidate> multi = extractor.extract("SELECT col FROM UNQ_A, UNQ_B");
@@ -129,7 +129,7 @@ public class TestSqlColumnLineageExtractor {
         ColumnLineageCandidate r = firstResolved(cs);
         // 穿透到底层 SRC.x，transformType direct（纯透传）
         assertEquals("x", r.getTargetColumn());
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, r.getTransformType(),
                 "pure passthrough column must inherit direct");
@@ -142,7 +142,7 @@ public class TestSqlColumnLineageExtractor {
                 "WITH cte AS (SELECT SUM(t.a) AS s FROM SRC t) SELECT c.s FROM cte c");
         ColumnLineageCandidate r = firstResolved(cs);
         assertEquals("s", r.getTargetColumn());
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("a", r.getSourceColumn());
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, r.getTransformType(),
                 "CTE aggregate column passthrough must be aggregated");
@@ -154,7 +154,7 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract(
                 "WITH cte AS (SELECT t.x AS out_x FROM SRC t) SELECT c.out_x FROM cte c");
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
         assertEquals("out_x", r.getTargetColumn());
     }
@@ -166,8 +166,8 @@ public class TestSqlColumnLineageExtractor {
                 "WITH cte AS (SELECT t1.a AS a, t2.b AS b FROM SRC1 t1 JOIN SRC2 t2 ON t1.k=t2.k) "
                         + "SELECT c.a, c.b FROM cte c");
         assertEquals(2, cs.stream().filter(c -> !c.isUnresolvable()).count());
-        assertTrue(cs.stream().anyMatch(c -> "SRC1".equals(c.getSourceTableName()) && "a".equals(c.getSourceColumn())));
-        assertTrue(cs.stream().anyMatch(c -> "SRC2".equals(c.getSourceTableName()) && "b".equals(c.getSourceColumn())));
+        assertTrue(cs.stream().anyMatch(c -> "SRC1".equals(c.getSourceEntityName()) && "a".equals(c.getSourceColumn())));
+        assertTrue(cs.stream().anyMatch(c -> "SRC2".equals(c.getSourceEntityName()) && "b".equals(c.getSourceColumn())));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class TestSqlColumnLineageExtractor {
                 "WITH cte1 AS (SELECT t.x FROM SRC t), cte2 AS (SELECT c1.x FROM cte1 c1) "
                         + "SELECT c2.x FROM cte2 c2");
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
     }
 
@@ -212,7 +212,7 @@ public class TestSqlColumnLineageExtractor {
         ColumnLineageCandidate u = firstUnresolved(cs);
         // 体里 SELECT * 在 AST 层不一定被解析为 projection（可能为空列表），但无论如何引用列必须 unresolved
         assertFalse(cs.stream().anyMatch(c -> !c.isUnresolvable()
-                && "SRC".equals(c.getSourceTableName()) && "x".equals(c.getSourceColumn())),
+                && "SRC".equals(c.getSourceEntityName()) && "x".equals(c.getSourceColumn())),
                 "wildcard CTE output must not fabricate resolved passthrough");
     }
 
@@ -223,7 +223,7 @@ public class TestSqlColumnLineageExtractor {
                 "WITH cte1 AS (SELECT t.x, c1.x AS y FROM SRC t, cte1 c1) SELECT c.x FROM cte1 c");
         // x 是 SRC 透传列（resolved），y 是自引用 cte1（unresolved）
         assertTrue(cs.stream().anyMatch(c -> !c.isUnresolvable()
-                && "SRC".equals(c.getSourceTableName()) && "x".equals(c.getSourceColumn())),
+                && "SRC".equals(c.getSourceEntityName()) && "x".equals(c.getSourceColumn())),
                 "non-recursive self-reference: passthrough columns that resolve to physical tables must still resolve");
         // 但执行未抛栈溢出/未挂起
     }
@@ -237,7 +237,7 @@ public class TestSqlColumnLineageExtractor {
                 "SELECT d.x FROM (SELECT t.x FROM SRC t) d");
         ColumnLineageCandidate r = firstResolved(cs);
         assertEquals("x", r.getTargetColumn());
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_DIRECT, r.getTransformType());
     }
@@ -248,7 +248,7 @@ public class TestSqlColumnLineageExtractor {
                 "SELECT d.s FROM (SELECT SUM(t.a) AS s FROM SRC t) d");
         ColumnLineageCandidate r = firstResolved(cs);
         assertEquals(_NopMetadataCoreConstants.LINEAGE_TRANSFORM_AGGREGATED, r.getTransformType());
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("a", r.getSourceColumn());
     }
 
@@ -257,7 +257,7 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract(
                 "SELECT d.out_x FROM (SELECT t.x AS out_x FROM SRC t) d");
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
         assertEquals("out_x", r.getTargetColumn());
     }
@@ -267,8 +267,8 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract(
                 "SELECT d.a, d.b FROM (SELECT t1.a AS a, t2.b AS b FROM SRC1 t1 JOIN SRC2 t2 ON t1.k=t2.k) d");
         assertEquals(2, cs.stream().filter(c -> !c.isUnresolvable()).count());
-        assertTrue(cs.stream().anyMatch(c -> "SRC1".equals(c.getSourceTableName()) && "a".equals(c.getSourceColumn())));
-        assertTrue(cs.stream().anyMatch(c -> "SRC2".equals(c.getSourceTableName()) && "b".equals(c.getSourceColumn())));
+        assertTrue(cs.stream().anyMatch(c -> "SRC1".equals(c.getSourceEntityName()) && "a".equals(c.getSourceColumn())));
+        assertTrue(cs.stream().anyMatch(c -> "SRC2".equals(c.getSourceEntityName()) && "b".equals(c.getSourceColumn())));
     }
 
     @Test
@@ -278,7 +278,7 @@ public class TestSqlColumnLineageExtractor {
                 "WITH cte AS (SELECT t.x FROM SRC t) "
                         + "SELECT d.x FROM (SELECT c.x FROM cte c) d");
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
     }
 
@@ -288,7 +288,7 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract(
                 "SELECT d.x FROM (SELECT inner_d.x FROM (SELECT t.x FROM SRC t) inner_d) d");
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("x", r.getSourceColumn());
     }
 
@@ -302,7 +302,7 @@ public class TestSqlColumnLineageExtractor {
         // 无 owner 列 a：tableCount=1（只 SRC 计数），归属 SRC（不会进入派生表 alias）
         // 注意派生表 alias 不计入 tableCount（D1 单表归属判定）
         ColumnLineageCandidate r = firstResolved(cs);
-        assertEquals("SRC", r.getSourceTableName());
+        assertEquals("SRC", r.getSourceEntityName());
         assertEquals("a", r.getSourceColumn());
     }
 
@@ -312,7 +312,7 @@ public class TestSqlColumnLineageExtractor {
         List<ColumnLineageCandidate> cs = extractor.extract(
                 "SELECT d.x FROM (SELECT * FROM SRC t) d");
         assertFalse(cs.stream().anyMatch(c -> !c.isUnresolvable()
-                && "SRC".equals(c.getSourceTableName()) && "x".equals(c.getSourceColumn())),
+                && "SRC".equals(c.getSourceEntityName()) && "x".equals(c.getSourceColumn())),
                 "wildcard derived-table output must not fabricate resolved passthrough");
     }
 

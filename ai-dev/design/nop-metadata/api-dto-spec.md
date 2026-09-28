@@ -29,7 +29,7 @@
 - `String name`
 - `String value`
 
-### 2. Aggregation（来源：`NopMetaTableBizModel.queryAggregation`）
+### 2. Aggregation（来源：`NopMetaEntityBizModel.queryAggregation`）
 
 #### `AggregationResultDTO`
 - `List<Map<String, Object>> items` — 行结构为扁平 alias-key Map（measure/dimension 别名 → 值）
@@ -37,7 +37,7 @@
 > 注：早期曾设计 `AggregationRowDTO`（嵌套 dimensions/measures），与执行器实际产出的扁平行结构不匹配，
 > 全仓零引用，已于 MR3（P2-MA6.1-001）移除死 DTO。
 
-### 3. Profiling（来源：`NopMetaTableBizModel.profileTable` / `NopMetaProfilingRuleBizModel.executeProfilingRule`）
+### 3. Profiling（来源：`NopMetaEntityBizModel.profileEntity` / `NopMetaProfilingRuleBizModel.executeProfilingRule`）
 
 #### `ProfileResultDTO`
 - `String profilingResultId`
@@ -78,42 +78,42 @@
 #### `CollectCatalogTableDTO`
 - `String tableName`
 - `String schema`
-- `String tableType`
+- `String entityKind`
 - `Long rowCount`
 - `Long sizeBytes`
 
-### 7. SQL View（来源：`NopMetaTableBizModel.createSqlTable` / `previewSqlFields` / `resolveTableFields`）
+### 7. SQL View（来源：`NopMetaEntityBizModel.createSqlView` / `previewSqlFields` / `resolveEntityFields`）
 
-#### `CreateSqlTableResultDTO`
-- `String metaTableId`
+#### `CreateSqlViewResultDTO`
+- `String metaEntityId`
 - `String tableName`
-- `String tableType`
+- `String entityKind`
 - `List<SqlViewFieldDTO> fields`
 
 #### `PreviewSqlFieldsResultDTO`
 - `List<SqlViewFieldDTO> fields`
 
-#### `ResolveTableFieldsResultDTO`
-- `String tableType`
-- `List<ResolvedTableFieldDTO> fields`
+#### `ResolveEntityFieldsResultDTO`
+- `String entityKind`
+- `List<ResolvedEntityFieldDTO> fields`
 
 #### `SqlViewFieldDTO`
 - `String name`
 - `String alias`
 - `String type`
 
-#### `ResolvedTableFieldDTO`
+#### `ResolvedEntityFieldDTO`
 - `String name`
 - `String sourceType`
 - `String type`
 
-### 8. Query Table Data（来源：`NopMetaTableBizModel.queryTableData`）
+### 8. Query Table Data（来源：`NopMetaEntityBizModel.queryData`）
 
-#### `QueryTableDataResultDTO`
-- `String tableType`
+#### `QueryEntityDataResultDTO`
+- `String entityKind`
 - `List<Map<String, Object>> items`（行数据；row schema 跟随表结构动态变化，保留 Map）
 
-### 9. Join Data（来源：`NopMetaTableBizModel.queryJoinData`）
+### 9. Join Data（来源：`NopMetaEntityBizModel.queryJoinData`）
 
 #### `QueryJoinDataResultDTO`
 - `List<Map<String, Object>> items`
@@ -124,9 +124,9 @@
 - `int edgeCount`
 
 #### `LineageExtractResultDTO`
-- `String metaTableId`
+- `String metaEntityId`
 - `int edgeCount`
-- `List<String> sourceTables`
+- `List<String> sourceEntitys`
 
 ### 11. Quality Rule Execution（来源：`NopMetaQualityRuleBizModel.executeQualityRule` / `executeQualityRulesForDataSource`）
 
@@ -193,13 +193,13 @@
 
 | BizModel | Method | DTO |
 |----------|--------|-----|
-| NopMetaTableBizModel | profileTable | ProfileResultDTO |
-| NopMetaTableBizModel | createSqlTable | CreateSqlTableResultDTO |
-| NopMetaTableBizModel | previewSqlFields | PreviewSqlFieldsResultDTO |
-| NopMetaTableBizModel | resolveTableFields | ResolveTableFieldsResultDTO |
-| NopMetaTableBizModel | queryTableData | QueryTableDataResultDTO |
-| NopMetaTableBizModel | queryJoinData | QueryJoinDataResultDTO |
-| NopMetaTableBizModel | queryAggregation | AggregationResultDTO |
+| NopMetaEntityBizModel | profileEntity | ProfileResultDTO |
+| NopMetaEntityBizModel | createSqlView | CreateSqlViewResultDTO |
+| NopMetaEntityBizModel | previewSqlFields | PreviewSqlFieldsResultDTO |
+| NopMetaEntityBizModel | resolveEntityFields | ResolveEntityFieldsResultDTO |
+| NopMetaEntityBizModel | queryData | QueryEntityDataResultDTO |
+| NopMetaEntityBizModel | queryJoinData | QueryJoinDataResultDTO |
+| NopMetaEntityBizModel | queryAggregation | AggregationResultDTO |
 | NopMetaDataSourceBizModel | testConnection | TestConnectionResultDTO |
 | NopMetaDataSourceBizModel | syncExternalTables | SyncExternalTablesResultDTO |
 | NopMetaDataSourceBizModel | collectCatalog | CollectCatalogResultDTO |

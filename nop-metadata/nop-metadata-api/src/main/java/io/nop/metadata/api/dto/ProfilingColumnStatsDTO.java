@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 数据剖析列统计 DTO（来源：{@code NopMetaTableBizModel.profileTable}）。
+ * 数据剖析列统计 DTO（来源：{@code NopMetaEntityBizModel.profileEntity}）。
  */
 @DataBean
 public class ProfilingColumnStatsDTO implements Serializable {

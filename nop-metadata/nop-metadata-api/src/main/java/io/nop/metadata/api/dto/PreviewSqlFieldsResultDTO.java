@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SQL 字段预览结果 DTO（来源：{@code NopMetaTableBizModel.previewSqlFields}）。
+ * SQL 字段预览结果 DTO（来源：{@code NopMetaEntityBizModel.previewSqlFields}）。
  */
 @DataBean
 public class PreviewSqlFieldsResultDTO implements Serializable {

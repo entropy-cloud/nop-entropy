@@ -13,8 +13,8 @@ public class CollectCatalogTableDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String tableName;
-    private String metaSchema;
-    private String tableType;
+    private String dbSchema;
+    private String entityKind;
     private Long rowCount;
     private Long sizeBytes;
 
@@ -26,20 +26,20 @@ public class CollectCatalogTableDTO implements Serializable {
         this.tableName = tableName;
     }
 
-    public String getMetaSchema() {
-        return metaSchema;
+    public String getDbSchema() {
+        return dbSchema;
     }
 
-    public void setMetaSchema(String metaSchema) {
-        this.metaSchema = metaSchema;
+    public void setDbSchema(String dbSchema) {
+        this.dbSchema = dbSchema;
     }
 
-    public String getTableType() {
-        return tableType;
+    public String getEntityKind() {
+        return entityKind;
     }
 
-    public void setTableType(String tableType) {
-        this.tableType = tableType;
+    public void setEntityKind(String entityKind) {
+        this.entityKind = entityKind;
     }
 
     public Long getRowCount() {

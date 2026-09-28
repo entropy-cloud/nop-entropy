@@ -16,8 +16,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -34,7 +33,7 @@ import java.util.Set;
 
 /**
  * 质量检查点执行器（架构基线 §2.7.3 D3）。无状态编排器：按 checkpoint 配置解析规则集（D2），逐条**复用既有
- * §2.7.1 单规则执行路径**（resolve 目标表 → {@link MetaTableReferenceResolver} → {@link TableReferenceExecutor}
+ * §2.7.1 单规则执行路径**（resolve 目标表 → {@link MetaEntityReferenceResolver} → {@link TableReferenceExecutor}
  * → {@link MetaQualityRuleExecutor#judge} → {@link QualityResultWriter} 写 NopMetaQualityResult），per-rule
  * try/catch + flushSession/clearSession 失败隔离（对齐 {@code executeQualityRulesForDataSource} 模式）。
  *
@@ -62,14 +61,14 @@ public class MetaQualityCheckpointExecutor {
 
 
     private final MetaQualityRuleExecutor ruleExecutor;
-    private final MetaTableReferenceResolver tableRefResolver;
+    private final MetaEntityReferenceResolver tableRefResolver;
     private final TableReferenceExecutor tableRefExecutor;
     private final QualityResultWriter resultWriter;
     private final IDaoProvider daoProvider;
     private final IOrmTemplate orm;
 
     public MetaQualityCheckpointExecutor(MetaQualityRuleExecutor ruleExecutor,
-                                         MetaTableReferenceResolver tableRefResolver,
+                                         MetaEntityReferenceResolver tableRefResolver,
                                          TableReferenceExecutor tableRefExecutor,
                                          QualityResultWriter resultWriter,
                                          IDaoProvider daoProvider,
@@ -86,12 +85,12 @@ public class MetaQualityCheckpointExecutor {
      * 执行检查点（架构基线 §2.7.3 D2-D5）。
      *
      * <p>执行循环中收集 {@code affectedTableIds}（仅实际被判定 judge 的非 database 规则的去重
-     * {@code rule.getEntityId()}，即真正命中某 NopMetaTable 的规则），加入返回摘要，供 BizModel
+     * {@code rule.getEntityId()}，即真正命中某 NopMetaEntity 的规则），加入返回摘要，供 BizModel
      * 层按表触发自动评分（§2.7.3 D6，executor 不感知 scorer）。
      *
      * @param cp            检查点（非 null，已由 BizModel 加载）
      * @param runId         执行批次 ID（UUID，由入口一次生成；本次执行的幂等键载体之一）
-     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaTable.metaSchema 回退，
+     * @param schemaPattern 可选 schema 限定（null/空串时按各规则目标表 NopMetaEntity.metaSchema 回退，
      *                      与单规则路径 resolveDefaultSchema 语义一致，AR-07）
      * @return 执行摘要 {@code {checkpointId, runId, executedCount, passCount, failCount, errorCount,
      *         affectedTableIds:[...], results:[...], errors:[...]}}
@@ -124,7 +123,7 @@ public class MetaQualityCheckpointExecutor {
         List<Map<String, Object>> results = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>(resolution.errors);
         // D6：受影响表集合（仅实际被判定 judge 的非 database 规则的去重 entityId），
-        // 供 BizModel 层按表触发自动评分。database SKIP 规则不纳入（其 entityId 不指向待评 metaTable）。
+        // 供 BizModel 层按表触发自动评分。database SKIP 规则不纳入（其 entityId 不指向待评实体）。
         Set<String> affectedTableIds = new LinkedHashSet<>();
 
         for (NopMetaQualityRule rule : resolution.rules) {
@@ -133,7 +132,7 @@ public class MetaQualityCheckpointExecutor {
                 resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, judgment);
                 orm.flushSession();
 
-                // 收集受影响表：仅非 database 规则（database 规则 SKIP 不命中 NopMetaTable），
+                // 收集受影响表：仅非 database 规则（database 规则 SKIP 不命中 NopMetaEntity），
                 // 且 executeSingleRule + resultWriter.append 成功（真正被判定并落盘结果）。
                 if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
                     if (rule.getEntityId() != null) {
@@ -226,7 +225,7 @@ public class MetaQualityCheckpointExecutor {
      */
     private ResolutionResult resolveRules(NopMetaQualityCheckpoint cp) {
         IEntityDao<NopMetaQualityRule> ruleDao = daoProvider.daoFor(NopMetaQualityRule.class);
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
 
         List<Map<String, Object>> errors = new ArrayList<>();
         Set<String> explicitRuleIds = new LinkedHashSet<>();
@@ -257,7 +256,7 @@ public class MetaQualityCheckpointExecutor {
         if (!tableIds.isEmpty()) {
             Set<String> existingTableIds = new LinkedHashSet<>();
             for (String tid : tableIds) {
-                NopMetaTable table = tableDao.getEntityById(tid);
+                NopMetaEntity table = tableDao.getEntityById(tid);
                 if (table == null) {
                     errors.add(buildResolutionErrorEntry("tableId", tid, "meta table not found"));
                 } else {
@@ -297,9 +296,9 @@ public class MetaQualityCheckpointExecutor {
             return skip;
         }
 
-        // 解析目标表（任意 tableType）+ table-reference
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable table = tableDao.getEntityById(rule.getEntityId());
+        // 解析目标表（任意 entityKind）+ table-reference
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity table = tableDao.getEntityById(rule.getEntityId());
         if (table == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
                     .param("checkpointId", cp.getCheckpointId())
@@ -329,11 +328,11 @@ public class MetaQualityCheckpointExecutor {
      * 非空 → 默认取 {@code table.metaSchema}；否则维持入参。与
      * {@code NopMetaQualityRuleBizModel.resolveDefaultSchema} 同语义（单规则路径）。
      */
-    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaEntity table) {
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getMetaSchema();
+        return table.getDbSchema();
     }
 
     // ============================================================

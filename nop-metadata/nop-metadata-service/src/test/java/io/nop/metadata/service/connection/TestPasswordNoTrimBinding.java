@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * <p>修复：password 走不 trim 的存在性检查（cfg.containsKey + 原样 toString）。
  *
- * <p>反射调用 private buildDataSource（沿 TestMetaTableProfilerProbeNumeric 先例），断言
+ * <p>反射调用 private buildDataSource（沿 TestMetaEntityProfilerProbeNumeric 先例），断言
  * SimpleDataSource 承载的 password 保留首尾空白、username 仍 trim。
  * mutate-fail：回退为 trim 路径时 getPassword() == "pad"（空白丢失）→ 断言失败。
  */

@@ -12,7 +12,6 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.mock.ThrowingSearchProcessor;
 import io.nop.metadata.service.search.NopMetaSearchProcessor;
 import jakarta.inject.Inject;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * check2 P2-06（2026-08-23 审计）回归：NopMetaTable/NopMetaEntity delete 主实体 removeFromIndex
+ * check2 P2-06（2026-08-23 审计）回归：NopMetaEntity/NopMetaEntity delete 主实体 removeFromIndex
  * 无异常保护。
  *
  * <p>缺陷机制：delete 在 BizMutation 事务内直接调 {@code searchService.removeFromIndex}
@@ -64,15 +63,15 @@ public class TestDeleteIndexFailureIsolation extends JunitBaseTestCase {
         ((ThrowingSearchProcessor) searchService).reset();
     }
 
-    /** NopMetaTable delete：索引清理失败（fail-closed 抛异常）不得回滚 DB 删除。 */
+    /** NopMetaEntity delete：索引清理失败（fail-closed 抛异常）不得回滚 DB 删除。 */
     @Test
     public void testTableDeleteSurvivesIndexRemovalFailure() {
         String tableId = seedTable("del_idx_tbl");
         GraphQLResponseBean resp = execute(
-                "mutation { NopMetaTable__delete(id: \"" + tableId + "\") }");
+                "mutation { NopMetaEntity__delete(id: \"" + tableId + "\") }");
         assertFalse(resp.hasError(),
                 "delete must succeed despite index removal failure (best-effort cleanup): " + resp);
-        assertNull(daoProvider.daoFor(NopMetaTable.class).getEntityById(tableId),
+        assertNull(daoProvider.daoFor(NopMetaEntity.class).getEntityById(tableId),
                 "DB row must be deleted (transaction must not roll back)");
         assertTrue(((ThrowingSearchProcessor) searchService).removeAttempts >= 1,
                 "index removal must have been attempted");
@@ -103,15 +102,18 @@ public class TestDeleteIndexFailureIsolation extends JunitBaseTestCase {
 
     private String seedTable(String tableName) {
         String moduleId = ensureModule("del_idx_mod");
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType("entity");
+        t.setEntityKind("PHYSICAL");
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String seedEntity(String entityName) {
@@ -125,7 +127,10 @@ public class TestDeleteIndexFailureIsolation extends JunitBaseTestCase {
 
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity e = dao.newEntity();
+        e.setMetaModuleId(moduleId);
         e.setOrmModelId(orm.getOrmModelId());
+        e.setIsDelta((byte) 0);
+        e.setEntityKind("PHYSICAL");
         e.setEntityName(entityName);
         e.setTableName("tbl_" + entityName);
         e.setDisplayName(entityName);

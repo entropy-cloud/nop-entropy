@@ -40,14 +40,30 @@ site:
       displayName: Modify Meta Entity
     FNPT:NopMetaEntity:query:
       displayName: Query Meta Entity
+    FNPT:NopMetaEntityDimension:mutation:
+      displayName: Modify Meta Entity Dimension
+    FNPT:NopMetaEntityDimension:query:
+      displayName: Query Meta Entity Dimension
     FNPT:NopMetaEntityField:mutation:
       displayName: Modify Meta Entity Field
     FNPT:NopMetaEntityField:query:
       displayName: Query Meta Entity Field
+    FNPT:NopMetaEntityFilter:mutation:
+      displayName: Modify Meta Entity Filter
+    FNPT:NopMetaEntityFilter:query:
+      displayName: Query Meta Entity Filter
     FNPT:NopMetaEntityIndex:mutation:
       displayName: Modify Meta Entity Index
     FNPT:NopMetaEntityIndex:query:
       displayName: Query Meta Entity Index
+    FNPT:NopMetaEntityJoin:mutation:
+      displayName: Modify Meta Entity Join
+    FNPT:NopMetaEntityJoin:query:
+      displayName: Query Meta Entity Join
+    FNPT:NopMetaEntityMeasure:mutation:
+      displayName: Modify Meta Entity Measure
+    FNPT:NopMetaEntityMeasure:query:
+      displayName: Query Meta Entity Measure
     FNPT:NopMetaEntityRelation:mutation:
       displayName: Modify Meta Entity Relation
     FNPT:NopMetaEntityRelation:query:
@@ -128,26 +144,6 @@ site:
       displayName: Modify Meta Semantic Type
     FNPT:NopMetaSemanticType:query:
       displayName: Query Meta Semantic Type
-    FNPT:NopMetaTable:mutation:
-      displayName: Modify Meta Table
-    FNPT:NopMetaTable:query:
-      displayName: Query Meta Table
-    FNPT:NopMetaTableDimension:mutation:
-      displayName: Modify Meta Table Dimension
-    FNPT:NopMetaTableDimension:query:
-      displayName: Query Meta Table Dimension
-    FNPT:NopMetaTableFilter:mutation:
-      displayName: Modify Meta Table Filter
-    FNPT:NopMetaTableFilter:query:
-      displayName: Query Meta Table Filter
-    FNPT:NopMetaTableJoin:mutation:
-      displayName: Modify Meta Table Join
-    FNPT:NopMetaTableJoin:query:
-      displayName: Query Meta Table Join
-    FNPT:NopMetaTableMeasure:mutation:
-      displayName: Modify Meta Table Measure
-    FNPT:NopMetaTableMeasure:query:
-      displayName: Query Meta Table Measure
     FNPT:NopMetaTag:mutation:
       displayName: Modify Meta Tag
     FNPT:NopMetaTag:query:
@@ -176,10 +172,18 @@ site:
       displayName: Meta Domain
     NopMetaEntity-main:
       displayName: Meta Entity
+    NopMetaEntityDimension-main:
+      displayName: Meta Entity Dimension
     NopMetaEntityField-main:
       displayName: Meta Entity Field
+    NopMetaEntityFilter-main:
+      displayName: Meta Entity Filter
     NopMetaEntityIndex-main:
       displayName: Meta Entity Index
+    NopMetaEntityJoin-main:
+      displayName: Meta Entity Join
+    NopMetaEntityMeasure-main:
+      displayName: Meta Entity Measure
     NopMetaEntityRelation-main:
       displayName: Meta Entity Relation
     NopMetaEntityUniqueKey-main:
@@ -220,16 +224,6 @@ site:
       displayName: Meta Reconciliation Result
     NopMetaSemanticType-main:
       displayName: Meta Semantic Type
-    NopMetaTable-main:
-      displayName: Meta Table
-    NopMetaTableDimension-main:
-      displayName: Meta Table Dimension
-    NopMetaTableFilter-main:
-      displayName: Meta Table Filter
-    NopMetaTableJoin-main:
-      displayName: Meta Table Join
-    NopMetaTableMeasure-main:
-      displayName: Meta Table Measure
     NopMetaTag-main:
       displayName: Meta Tag
     NopMetaTagLabel-main:

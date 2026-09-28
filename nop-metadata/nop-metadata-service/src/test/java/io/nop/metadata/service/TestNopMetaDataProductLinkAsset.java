@@ -94,13 +94,13 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaDataProduct__linkAsset("
                         + "dataProductId: \"" + dataProductId + "\""
-                        + ", entityType: \"NopMetaTable\""
+                        + ", entityType: \"NopMetaEntity\""
                         + ", entityId: \"table-001\") { tagLabelId source labelType state entityType entityId } }");
         assertFalse(response.hasError(), "linkAsset should not error: " + response);
 
         String result = response.getData().toString();
         assertTrue(result.contains("Automated"), "should contain labelType Automated: " + result);
-        assertTrue(result.contains("NopMetaTable"), "should contain entityType: " + result);
+        assertTrue(result.contains("NopMetaEntity"), "should contain entityType: " + result);
         assertTrue(result.contains("table-001"), "should contain entityId: " + result);
 
         // Clean up
@@ -153,11 +153,11 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
         // Link two assets
         execute("mutation { NopMetaDataProduct__linkAsset("
                 + "dataProductId: \"" + dataProductId + "\""
-                + ", entityType: \"NopMetaTable\""
+                + ", entityType: \"NopMetaEntity\""
                 + ", entityId: \"table-001\") { tagLabelId } }");
         execute("mutation { NopMetaDataProduct__linkAsset("
                 + "dataProductId: \"" + dataProductId + "\""
-                + ", entityType: \"NopMetaTableMeasure\""
+                + ", entityType: \"NopMetaEntityMeasure\""
                 + ", entityId: \"measure-001\") { tagLabelId } }");
 
         // Get linked assets
@@ -181,7 +181,7 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
         // Link first
         execute("mutation { NopMetaDataProduct__linkAsset("
                 + "dataProductId: \"" + dataProductId + "\""
-                + ", entityType: \"NopMetaTable\""
+                + ", entityType: \"NopMetaEntity\""
                 + ", entityId: \"table-001\") { tagLabelId } }");
 
         // Verify linked
@@ -194,7 +194,7 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
         GraphQLResponseBean unlinkResponse = execute(
                 "mutation { NopMetaDataProduct__unlinkAsset("
                         + "dataProductId: \"" + dataProductId + "\""
-                        + ", entityType: \"NopMetaTable\""
+                        + ", entityType: \"NopMetaEntity\""
                         + ", entityId: \"table-001\") }");
         assertFalse(unlinkResponse.hasError(), "unlinkAsset should not error: " + unlinkResponse);
         assertTrue(unlinkResponse.getData().toString().contains("true"), "unlinkAsset should return true");
@@ -218,7 +218,7 @@ public class TestNopMetaDataProductLinkAsset extends JunitBaseTestCase {
         GraphQLResponseBean response = execute(
                 "mutation { NopMetaDataProduct__unlinkAsset("
                         + "dataProductId: \"" + dataProductId + "\""
-                        + ", entityType: \"NopMetaTable\""
+                        + ", entityType: \"NopMetaEntity\""
                         + ", entityId: \"nonexistent\") }");
         assertTrue(response.hasError(), "unlinkAsset on non-existent link should error: " + response);
 

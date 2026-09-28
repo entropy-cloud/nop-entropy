@@ -15,7 +15,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.reconciliation.IReconciliationProcessor;
 import io.nop.metadata.service.reconciliation.LocalReconciliationProcessor;
 import jakarta.inject.Inject;
@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 验证对账执行 + 匹配服务 + 人工确认（设计 08-reconciliation.md §3.2/§3.3/§3.4，plan 0900-2 Phase 2）。
  *
- * <p>Anti-Hollow：executeReconciliation 端到端用真实 external 表行数据（H2 造数 → queryTableData 取 items）
+ * <p>Anti-Hollow：executeReconciliation 端到端用真实 external 表行数据（H2 造数 → queryData 取 items）
  * + 真实候选实体（NopMetaReconciliationEntity 播种）→ LocalReconciliationProcessor 匹配 → D5 阈值判定 →
  * Result 写入，断言 statistics/details 反映真实匹配（MATCHED/UNMATCHED/MULTIPLE 计数与种子一致，非空壳）。
  *
@@ -364,7 +364,7 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
         IEntityDao<NopMetaReconciliationResult> dao = daoProvider.daoFor(NopMetaReconciliationResult.class);
         NopMetaReconciliationResult r = dao.newEntity();
         r.setConfigId("rc-test-result");
-        r.setMetaTableId("dummy-table-id");
+        r.setMetaEntityId("dummy-table-id");
         r.setExecuteTime(new Timestamp(System.currentTimeMillis()));
         r.setStatistics("{\"totalRows\":2,\"matchedRows\":0,\"unmatchedRows\":1,\"multipleMatches\":1,\"matchRate\":0.0}");
         r.setDetails(details);
@@ -378,14 +378,14 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
         return r;
     }
 
-    private String saveConfig(String configId, String metaTableId, String columnName,
+    private String saveConfig(String configId, String metaEntityId, String columnName,
                               String matchStrategy, boolean autoMatch, double threshold) {
         IEntityDao<NopMetaReconciliationConfig> dao = daoProvider.daoFor(NopMetaReconciliationConfig.class);
         NopMetaReconciliationConfig c = dao.newEntity();
         c.setConfigId(configId);
         c.setConfigName(configId + "-name");
         c.setDisplayName(configId + "-name");
-        c.setMetaTableId(metaTableId);
+        c.setMetaEntityId(metaEntityId);
         c.setColumnName(columnName);
         c.setIdentifierSpace("wikidata");
         c.setTargetEntityType("company");
@@ -462,12 +462,12 @@ public class TestNopMetaReconciliationBizModel extends JunitBaseTestCase {
     }
 
     private String findExternalTableId(String tableName) {
-        IEntityDao<NopMetaTable> tableDao = daoProvider.daoFor(NopMetaTable.class);
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
         QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, tableName));
-        q.addFilter(FilterBeans.eq("tableType", "external"));
-        NopMetaTable t = tableDao.findFirstByQuery(q);
+        q.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_tableName, tableName));
+        q.addFilter(FilterBeans.eq("entityKind", "EXTERNAL"));
+        NopMetaEntity t = tableDao.findFirstByQuery(q);
         Assertions.assertNotNull(t, "external table " + tableName + " must be synced");
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 }

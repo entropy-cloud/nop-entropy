@@ -16,7 +16,6 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -33,14 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>代表点覆盖：
  * <ul>
- *   <li>{@code NopMetaTableJoinBizModel} save 校验 table 端点 tableType 不允许（原 :164）——
+ *   <li>{@code NopMetaEntityJoinBizModel} save 校验 table 端点 entityKind 不允许（原 :164）——
  *       create 路径（joinId 尚不存在 → 换码 ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE，
- *       metaTableId 提供身份）与 update 路径（joinId 自 data map 下沉 → 原码 joinId 渲染）。</li>
+ *       metaEntityId 提供身份）与 update 路径（joinId 自 data map 下沉 → 原码 joinId 渲染）。</li>
  *   <li>Measure save 字段引用不存在（变量形态 errOnInvalid 修复后 allowedEntityIds 渲染）。</li>
  * </ul>
  *
  * <p>elementIndex 族（resolver 直接调用）与 P1-7（requireSupportedProductName）代表点分别见
- * {@code TestMetaTableFieldResolverBuildSql#testMissingColumnNameRendersRealElementIndex} 与
+ * {@code TestMetaEntityFieldResolverBuildSql#testMissingColumnNameRendersRealElementIndex} 与
  * {@code TestExternalTableStructureReader#testUnsupportedDialectStillDialectGateError}。
  */
 @NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
@@ -57,59 +56,60 @@ public class TestErrorParamRendering extends JunitBaseTestCase {
     IDaoProvider daoProvider;
 
     /**
-     * create 路径（原 :164）：rightTableId 指向 entity-type 逻辑表且无 joinId →
-     * ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE，消息渲染真实 metaTableId/tableId/tableType，
-     * 不含字面占位符。
+     * create 路径（plan 2261 概念缩减后等价场景：原"entity-type 表端点拒绝"
+     * ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE 随表端点删除而失效）：leftEntityId 指向不存在的实体 →
+     * ERR_JOIN_ENTITY_NOT_FOUND，消息渲染真实 metaEntityId/entityId，不含字面占位符。
      */
     @Test
     public void testJoinSaveEntityTypeEndpointCreatePathRendersIdentity() {
         String moduleId = ensureModule("mod-errparam-create");
         String entityId = ensureEntity(moduleId, "ErrParamEnt", "order_id");
-        String entityTableId = saveEntityTable(moduleId, "T_ERRPARAM_ENT", entityId);
         String sqlTableId = saveSqlTable(moduleId, "T_ERRPARAM_SQL", "SELECT order_id FROM orders");
+        String missingEntityId = "__no_such_entity__";
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
-                        + "metaTableId: \"" + sqlTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + sqlTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + entityTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(), "entity-type table endpoint must be rejected: " + resp);
+                "mutation { NopMetaEntityJoin__save(data: {"
+                        + "metaEntityId: \"" + sqlTableId + "\", joinType: \"inner\", "
+                        + "leftEntityId: \"" + entityId + "\", leftField: \"order_id\", "
+                        + "rightEntityId: \"" + missingEntityId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertTrue(resp.hasError(), "non-existent entity endpoint must be rejected: " + resp);
+        // 端点实体不存在时由框架 get(entity) 的记录不存在错误先行短路（先于自定义校验码渲染），
+        // 但身份渲染不变量保持：真实缺失 entityId 必须出现，且无字面占位符残留。
         String msg = resp.getErrors().get(0).getMessage();
-        assertTrue(msg.contains(sqlTableId),
-                "rendered message must contain real metaTableId identity (P1-6), got: " + msg);
-        assertTrue(msg.contains(entityTableId),
-                "rendered message must contain real tableId identity (P1-6), got: " + msg);
-        assertTrue(msg.contains("entity"),
-                "rendered message must contain real tableType (P1-6), got: " + msg);
-        assertFalse(msg.contains("{metaTableId}") || msg.contains("{tableId}")
-                        || msg.contains("{tableType}") || msg.contains("{joinId}") || msg.contains("{side}"),
+        assertTrue(msg.contains(missingEntityId),
+                "rendered message must contain the missing entityId identity (P1-6), got: " + msg);
+        assertFalse(msg.contains("{metaEntityId}") || msg.contains("{entityId}")
+                        || msg.contains("{side}") || msg.contains("{joinId}"),
                 "no literal {placeholder} may remain, got: " + msg);
     }
 
     /**
-     * update 路径（原 :164）：data map 携带既有 joinId → 原码 ERR_JOIN_TABLE_TYPE_NOT_ALLOWED，
-     * joinId 真实渲染（轨 1 下沉穿参）。
+     * update 路径（plan 2261 概念缩减后等价场景：原 joinId 渲染断言随
+     * ERR_JOIN_TABLE_TYPE_NOT_ALLOWED 删除而失效）：data map 携带既有 joinId、字段不属于端点实体字段集 →
+     * ERR_JOIN_FIELD_NOT_IN_ENTITY，消息渲染真实 entityId/field/availableFields（轨 1 下沉穿参路径仍走 update 校验）。
      */
     @Test
-    public void testJoinSaveEntityTypeEndpointUpdatePathRendersJoinId() {
+    public void testJoinSaveUpdatePathRendersFieldIdentity() {
         String moduleId = ensureModule("mod-errparam-update");
         String entityId = ensureEntity(moduleId, "ErrParamEnt2", "order_id");
-        String entityTableId = saveEntityTable(moduleId, "T_ERRPARAM_ENT2", entityId);
         String sqlTableId = saveSqlTable(moduleId, "T_ERRPARAM_SQL2", "SELECT order_id FROM orders");
-        String joinId = saveTableJoinRow(sqlTableId, "inner", sqlTableId, "order_id", "order_id");
+        String joinId = saveTableJoinRow(sqlTableId, "inner", entityId, "order_id", "order_id");
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableJoin__save(data: {"
+                "mutation { NopMetaEntityJoin__save(data: {"
                         + "joinId: \"" + joinId + "\", "
-                        + "metaTableId: \"" + sqlTableId + "\", joinType: \"inner\", "
-                        + "leftTableId: \"" + sqlTableId + "\", leftField: \"order_id\", "
-                        + "rightTableId: \"" + entityTableId + "\", rightField: \"order_id\"}) { joinId } }");
-        assertTrue(resp.hasError(), "entity-type table endpoint must be rejected: " + resp);
+                        + "metaEntityId: \"" + sqlTableId + "\", joinType: \"inner\", "
+                        + "leftEntityId: \"" + entityId + "\", leftField: \"__nope_field__\", "
+                        + "rightEntityId: \"" + entityId + "\", rightField: \"order_id\"}) { joinId } }");
+        assertTrue(resp.hasError(), "field not in entity must be rejected: " + resp);
         String msg = resp.getErrors().get(0).getMessage();
-        assertTrue(msg.contains(joinId),
-                "update-path message must render the real joinId sunk from data map (P1-6 track 1), got: " + msg);
-        assertFalse(msg.contains("{joinId}"),
-                "no literal {joinId} placeholder may remain, got: " + msg);
+        assertTrue(msg.contains(entityId),
+                "update-path message must render the real endpoint entityId (P1-6 track 1), got: " + msg);
+        assertTrue(msg.contains("__nope_field__"),
+                "update-path message must render the offending field, got: " + msg);
+        assertFalse(msg.contains("{entityId}") || msg.contains("{field}")
+                        || msg.contains("{availableFields}") || msg.contains("{joinId}"),
+                "no literal {placeholder} may remain, got: " + msg);
     }
 
     /**
@@ -123,8 +123,8 @@ public class TestErrorParamRendering extends JunitBaseTestCase {
         String tableId = saveEntityTable(moduleId, "T_ERRPARAM_MEASURE", entityId);
 
         GraphQLResponseBean resp = runGraphQL(
-                "mutation { NopMetaTableMeasure__save(data: {"
-                        + "metaTableId: \"" + tableId + "\", measureName: \"m_errparam\", "
+                "mutation { NopMetaEntityMeasure__save(data: {"
+                        + "metaEntityId: \"" + tableId + "\", measureName: \"m_errparam\", "
                         + "aggFunc: \"sum\", entityFieldId: \"__nope_field_pk__\"}) { measureId } }");
         assertTrue(resp.hasError(), "measure referencing non-existent field PK must be rejected: " + resp);
         String msg = resp.getErrors().get(0).getMessage();
@@ -176,7 +176,10 @@ public class TestErrorParamRendering extends JunitBaseTestCase {
 
         IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
         NopMetaEntity entity = dao.newEntity();
+        entity.setMetaModuleId(moduleId);
         entity.setOrmModelId(ormModelId);
+        entity.setIsDelta((byte) 0);
+        entity.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         entity.setEntityName(entityName);
         entity.setTableName("tbl_" + entityName);
         entity.setDisplayName(entityName);
@@ -198,43 +201,50 @@ public class TestErrorParamRendering extends JunitBaseTestCase {
         return entityId;
     }
 
+    /** plan 2261 概念缩减：实体行自身即宿主——有实体时直接复用实体行（字段挂在实体行上）。 */
     private String saveEntityTable(String moduleId, String tableName, String baseEntityId) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        if (baseEntityId != null) {
+            return baseEntityId;
+        }
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_ENTITY);
-        if (baseEntityId != null) {
-            t.setBaseEntityId(baseEntityId);
-        }
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_PHYSICAL);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String saveSqlTable(String moduleId, String tableName, String sourceSql) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(moduleId);
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_SQL);
+        t.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_SQL_VIEW);
         t.setSourceSql(sourceSql);
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     /** 直接经 DAO 保存一条既有 Join 行（绕过 save 校验，用于构造 update 场景的真实 joinId）。 */
-    private String saveTableJoinRow(String metaTableId, String joinType, String leftTableId,
+    private String saveTableJoinRow(String metaEntityId, String joinType, String leftTableId,
                                     String leftField, String rightField) {
-        IEntityDao<io.nop.metadata.dao.entity.NopMetaTableJoin> dao =
-                daoProvider.daoFor(io.nop.metadata.dao.entity.NopMetaTableJoin.class);
-        io.nop.metadata.dao.entity.NopMetaTableJoin j = dao.newEntity();
-        j.setMetaTableId(metaTableId);
+        IEntityDao<io.nop.metadata.dao.entity.NopMetaEntityJoin> dao =
+                daoProvider.daoFor(io.nop.metadata.dao.entity.NopMetaEntityJoin.class);
+        io.nop.metadata.dao.entity.NopMetaEntityJoin j = dao.newEntity();
+        j.setMetaEntityId(metaEntityId);
         j.setJoinType(joinType);
-        j.setLeftTableId(leftTableId);
+        j.setLeftEntityId(leftTableId);
         j.setLeftField(leftField);
         j.setRightField(rightField);
         dao.saveEntity(j);

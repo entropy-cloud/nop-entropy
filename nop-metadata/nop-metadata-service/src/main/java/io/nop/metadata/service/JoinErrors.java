@@ -6,8 +6,8 @@ interface JoinErrors extends NopMetadataArgs {
 
     ErrorCode ERR_JOIN_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.join-not-found",
-                    "NopMetaTableJoin not found or not owned by table: {metaTableId} joinId={joinId}",
-                    ARG_META_TABLE_ID, ARG_JOIN_ID);
+                    "NopMetaEntityJoin not found or not owned by table: {metaEntityId} joinId={joinId}",
+                    ARG_META_ENTITY_ID, ARG_JOIN_ID);
     ErrorCode ERR_JOIN_TYPE_RIGHT_UNSUPPORTED =
             ErrorCode.define("nop.err.metadata.join-type-right-unsupported",
                     "joinType=right is explicitly unsupported in first version (same-DB and cross-DB): {joinId}",
@@ -24,28 +24,11 @@ interface JoinErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.join-entity-not-registered",
                     "Join entity not registered in runtime IOrmSessionFactory: {joinId} side={side} "
                             + "entityName={entityName}", ARG_JOIN_ID, ARG_SIDE, ARG_ENTITY_NAME);
-    ErrorCode ERR_JOIN_TABLE_DANGLING =
-            ErrorCode.define("nop.err.metadata.join-table-dangling",
-                    "Join references a dangling table endpoint (leftTableId/rightTableId not found): "
-                            + "{joinId} side={side} tableId={tableId}", ARG_JOIN_ID, ARG_SIDE, ARG_TABLE_ID);
-    ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED =
-            ErrorCode.define("nop.err.metadata.join-table-type-not-allowed",
-                    "Join table endpoint must be external/sql tableType (entity-type table should use entityId path): "
-                            + "{joinId} side={side} tableId={tableId} tableType={tableType}",
-                    ARG_JOIN_ID, ARG_SIDE, ARG_TABLE_ID, ARG_TABLE_TYPE);
     /**
      * P1-6（plan 2026-08-15-1913-3）：save 校验 create 路径 joinId 尚不存在（禁止传 null——
-     * 渲染空串=空壳修复），换用无 joinId 必需占位符的孪生码（metaTableId 提供身份）；
+     * 渲染空串=空壳修复），换用无 joinId 必需占位符的孪生码（metaEntityId 提供身份）；
      * update 路径 joinId 自 data map 下沉，仍用上码。
      */
-    ErrorCode ERR_JOIN_TABLE_TYPE_NOT_ALLOWED_ON_CREATE =
-            ErrorCode.define(
-                    "nop.err.metadata.join-table-type-not-allowed-on-create",
-                    "Join table endpoint must be external/sql tableType on save "
-                            + "(entity-type table should use entityId path): "
-                            + "metaTableId={metaTableId} side={side} "
-                            + "tableId={tableId} tableType={tableType}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_TABLE_ID, ARG_TABLE_TYPE);
     ErrorCode ERR_JOIN_FIELD_NOT_RESOLVED =
             ErrorCode.define("nop.err.metadata.join-field-not-resolved",
                     "Join field could not be resolved to a physical column: {joinId} side={side} "
@@ -79,32 +62,17 @@ interface JoinErrors extends NopMetadataArgs {
                     ARG_JOIN_ID, ARG_LEFT_TYPE, ARG_RIGHT_TYPE);
     ErrorCode ERR_JOIN_ENTITY_NOT_FOUND =
             ErrorCode.define("nop.err.metadata.join-entity-not-found",
-                    "Join references non-existent MetaEntity: {metaTableId} side={side} entityId={entityId}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_ENTITY_ID);
+                    "Join references non-existent MetaEntity: {metaEntityId} side={side} entityId={entityId}",
+                    ARG_META_ENTITY_ID, ARG_SIDE, ARG_ENTITY_ID);
     ErrorCode ERR_JOIN_FIELD_NOT_IN_ENTITY =
             ErrorCode.define("nop.err.metadata.join-field-not-in-entity",
                     "Join field does not belong to the referenced entity's field set: "
-                            + "{metaTableId} side={side} entityId={entityId} field={field}; available={availableFields}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_ENTITY_ID, ARG_FIELD, ARG_AVAILABLE_FIELDS);
+                            + "{metaEntityId} side={side} entityId={entityId} field={field}; available={availableFields}",
+                    ARG_META_ENTITY_ID, ARG_SIDE, ARG_ENTITY_ID, ARG_FIELD, ARG_AVAILABLE_FIELDS);
     ErrorCode ERR_JOIN_ENTITY_ID_NULL =
             ErrorCode.define("nop.err.metadata.join-entity-id-null",
                     "Join side has neither entityId nor tableId (require entity/table endpoint): "
-                            + "{metaTableId} side={side}", ARG_META_TABLE_ID, ARG_SIDE);
-    ErrorCode ERR_JOIN_ENDPOINT_BOTH_SET =
-            ErrorCode.define("nop.err.metadata.join-endpoint-both-set",
-                    "Join side has both entityId and tableId set (require entity/table mutually exclusive): "
-                            + "{metaTableId} side={side} entityId={entityId} tableId={tableId}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_ENTITY_ID, ARG_TABLE_ID);
-    ErrorCode ERR_JOIN_TABLE_NOT_FOUND =
-            ErrorCode.define("nop.err.metadata.join-table-not-found",
-                    "Join references non-existent MetaTable as table endpoint: "
-                            + "{metaTableId} side={side} tableId={tableId}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_TABLE_ID);
-    ErrorCode ERR_JOIN_FIELD_NOT_IN_TABLE =
-            ErrorCode.define("nop.err.metadata.join-field-not-in-table",
-                    "Join field does not belong to the referenced table's parsed column set: "
-                            + "{metaTableId} side={side} tableId={tableId} field={field}; available={availableFields}",
-                    ARG_META_TABLE_ID, ARG_SIDE, ARG_TABLE_ID, ARG_FIELD, ARG_AVAILABLE_FIELDS);
+                            + "{metaEntityId} side={side}", ARG_META_ENTITY_ID, ARG_SIDE);
     ErrorCode ERR_PAGINATION_OFFSET_TOO_LARGE =
             ErrorCode.define("nop.err.metadata.pagination-offset-too-large",
                     "Pagination offset exceeds Integer.MAX_VALUE: {offset}", ARG_OFFSET);

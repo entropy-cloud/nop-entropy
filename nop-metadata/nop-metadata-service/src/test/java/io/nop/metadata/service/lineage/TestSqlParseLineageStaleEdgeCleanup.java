@@ -10,12 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * check2 P2-04（2026-08-23 审计）回归：sql_parse 血缘重复抽取不清理陈旧边。
  *
  * <p>缺陷机制：{@code extractColumnLineageFromSql}/{@code extractLineageFromSql} 只按存量做
- * 增量插入/更新（存在性跳过），不删除本次解析已不存在的旧边——同一 metaTableId 修改 sourceSql
+ * 增量插入/更新（存在性跳过），不删除本次解析已不存在的旧边——同一 metaEntityId 修改 sourceSql
  * 后重抽取，旧 SQL 产生的 sql_parse 边（列不再被引用/源表已移出）永久残留，血缘图（getUpstream/
  * getImpactAnalysis 全量加载）累积过期边、影响分析失真。对照 measure 路径的先清后建
  * （deleteMeasureParseEdges）。
  *
- * <p>修复：对齐 measure 路径——重抽取前按 targetTableId 删除本通道（lineageSource=sql_parse）
+ * <p>修复：对齐 measure 路径——重抽取前按 targetEntityId 删除本通道（lineageSource=sql_parse）
  * 旧边再插入；表级通道（sourceColumn IS NULL）与列级通道（sourceColumn 非空）独立清理，
  * 两通道互不误删。
  *
@@ -102,10 +102,10 @@ public class TestSqlParseLineageStaleEdgeCleanup extends LineageTestBase {
     /** 更新 sql 视图表的 sourceSql（直更 + evict，沿 updateMeasureExpression 先例）。 */
     private String reSaveSourceSql(String tableId, String newSourceSql) {
         io.nop.core.lang.sql.SQL upd = io.nop.core.lang.sql.SQL.begin().allowUnderscoreName(true)
-                .sql("update NOP_META_TABLE set SOURCE_SQL=? where META_TABLE_ID=?", newSourceSql, tableId)
+                .sql("update NOP_META_ENTITY set SOURCE_SQL=? where META_ENTITY_ID=?", newSourceSql, tableId)
                 .end();
         ormTemplate.executeUpdate(upd);
-        ormTemplate.evictAll(io.nop.metadata.dao.entity.NopMetaTable.class.getName());
+        ormTemplate.evictAll(io.nop.metadata.dao.entity.NopMetaEntity.class.getName());
         return tableId;
     }
 }

@@ -24,7 +24,7 @@
   "baseModule": null,
   "baseModule.displayName": "",
   "ormModels": null,
-  "tables": null,
+  "entities": null,
   "pipelines": null,
   "qualityCheckpoints": null,
   "manifests": null,

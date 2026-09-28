@@ -15,7 +15,7 @@ import io.nop.metadata.dao.entity.NopMetaDataContract;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -465,7 +465,7 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
         c.setContractName(contractId + "-name");
         c.setDisplayName(contractId + "-name");
         c.setStatus(status);
-        c.setMetaTableId(entityTableId);
+        c.setMetaEntityId(entityTableId);
         c.setQualityExpectations(qualityExpectations);
         c.setSla(sla);
         c.setOwnerUserId("autotest");
@@ -517,22 +517,25 @@ public class TestNopMetaDataContractBizModel extends JunitBaseTestCase {
     }
 
     private String saveExternalTable(String tableName) {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_" + tableName);
+        t.setIsDelta((byte) 0);
+        t.setEntityName(tableName);
         t.setTableName(tableName);
         t.setDisplayName(tableName);
-        t.setTableType("external");
+        t.setEntityKind("EXTERNAL");
         t.setQuerySpace("qs-contract-test");
         t.setVersion(1L);
         dao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
-    private void saveCatalog(String metaTableId, long collectedAtMs, Long lastModifiedMs) {
+    private void saveCatalog(String metaEntityId, long collectedAtMs, Long lastModifiedMs) {
         IEntityDao<NopMetaCatalog> dao = daoProvider.daoFor(NopMetaCatalog.class);
         NopMetaCatalog c = dao.newEntity();
-        c.setMetaTableId(metaTableId);
+        c.setMetaEntityId(metaEntityId);
         c.setRowCount(100L);
         c.setCollectedAt(new Timestamp(collectedAtMs));
         if (lastModifiedMs != null) {

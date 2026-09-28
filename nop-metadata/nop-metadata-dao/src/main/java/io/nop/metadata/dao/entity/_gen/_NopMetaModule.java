@@ -115,8 +115,8 @@ public class _NopMetaModule extends DynamicOrmEntity{
     /* relation: ORM模型集 */
     public static final String PROP_NAME_ormModels = "ormModels";
     
-    /* relation: 逻辑表集 */
-    public static final String PROP_NAME_tables = "tables";
+    /* relation: 实体集 */
+    public static final String PROP_NAME_entities = "entities";
     
     /* relation: 数据管道集 */
     public static final String PROP_NAME_pipelines = "pipelines";
@@ -1225,14 +1225,14 @@ public class _NopMetaModule extends DynamicOrmEntity{
        return _ormModels;
     }
        
-    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaTable> _tables = new OrmEntitySet<>(this, PROP_NAME_tables,
-        io.nop.metadata.dao.entity.NopMetaTable.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaTable.class);
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntity> _entities = new OrmEntitySet<>(this, PROP_NAME_entities,
+        io.nop.metadata.dao.entity.NopMetaEntity.PROP_NAME_metaModule, null,io.nop.metadata.dao.entity.NopMetaEntity.class);
 
     /**
-     * 逻辑表集。 refPropName: metaModule, keyProp: {rel.keyProp}
+     * 实体集。 refPropName: metaModule, keyProp: {rel.keyProp}
      */
-    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaTable> getTables(){
-       return _tables;
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntity> getEntities(){
+       return _entities;
     }
        
     private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaPipeline> _pipelines = new OrmEntitySet<>(this, PROP_NAME_pipelines,

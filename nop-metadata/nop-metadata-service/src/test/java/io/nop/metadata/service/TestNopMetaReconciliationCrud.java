@@ -14,7 +14,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -111,7 +111,7 @@ public class TestNopMetaReconciliationCrud extends JunitBaseTestCase {
                 "[{\"rowIndex\":0,\"originalValue\":\"A\",\"status\":\"MATCHED\"}]");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaReconciliationResult__get(id: \"" + resultId + "\") { resultId configId metaTableId "
+                "query { NopMetaReconciliationResult__get(id: \"" + resultId + "\") { resultId configId metaEntityId "
                         + "executeTime statistics details } }")));
         assertFalse(resp.hasError(), "get should not error: " + resp);
         String data = String.valueOf(resp.getData());
@@ -180,32 +180,35 @@ public class TestNopMetaReconciliationCrud extends JunitBaseTestCase {
         assertNull(dao.getEntityById(id1), "recon entity must be deleted");
     }
 
-    /** to-one relation metaTable 可查（验证 Config→NopMetaTable 关系建模）。 */
+    /** to-one relation metaEntity 可查（验证 Config→NopMetaEntity 关系建模；plan 2261 后关系名 metaTable→metaEntity）。 */
     @Test
-    public void testConfigMetaTableRelation() {
+    public void testConfigMetaEntityRelation() {
         String tableId = ensureTable();
         saveConfigDirect("rc-rel-1", tableId, "exact");
 
         GraphQLResponseBean resp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
-                "query { NopMetaReconciliationConfig__get(id: \"rc-rel-1\") { configName metaTable { tableName } } }")));
+                "query { NopMetaReconciliationConfig__get(id: \"rc-rel-1\") { configName metaEntity { tableName } } }")));
         assertFalse(resp.hasError(), "get with relation should not error: " + resp);
         String data = String.valueOf(resp.getData());
-        assertTrue(data.contains("RECON_TEST_TABLE"), "metaTable relation must resolve: " + data);
+        assertTrue(data.contains("RECON_TEST_TABLE"), "metaEntity relation must resolve: " + data);
     }
 
     // ===== helpers =====
 
     private String ensureTable() {
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(ensureExternalSystemModuleId());
+        t.setOrmModelId("orm_RECON_TEST_TABLE");
+        t.setIsDelta((byte) 0);
+        t.setEntityName("RECON_TEST_TABLE");
         t.setTableName("RECON_TEST_TABLE");
         t.setDisplayName("RECON_TEST_TABLE");
-        t.setTableType("external");
+        t.setEntityKind("EXTERNAL");
         t.setQuerySpace("qs-recon-test");
         t.setVersion(1L);
         dao.saveEntity(t);
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private String ensureExternalSystemModuleId() {
@@ -227,13 +230,13 @@ public class TestNopMetaReconciliationCrud extends JunitBaseTestCase {
         return module.getMetaModuleId();
     }
 
-    private String saveConfigDirect(String configId, String metaTableId, String matchStrategy) {
+    private String saveConfigDirect(String configId, String metaEntityId, String matchStrategy) {
         IEntityDao<NopMetaReconciliationConfig> dao = daoProvider.daoFor(NopMetaReconciliationConfig.class);
         NopMetaReconciliationConfig c = dao.newEntity();
         c.setConfigId(configId);
         c.setConfigName(configId + "-name");
         c.setDisplayName(configId + "-name");
-        c.setMetaTableId(metaTableId);
+        c.setMetaEntityId(metaEntityId);
         c.setColumnName("company_name");
         c.setIdentifierSpace("wikidata");
         c.setTargetEntityType("company");
@@ -250,13 +253,13 @@ public class TestNopMetaReconciliationCrud extends JunitBaseTestCase {
         return configId;
     }
 
-    private String saveResultDirect(String resultId, String configId, String metaTableId,
+    private String saveResultDirect(String resultId, String configId, String metaEntityId,
                                     String statistics, String details) {
         IEntityDao<NopMetaReconciliationResult> dao = daoProvider.daoFor(NopMetaReconciliationResult.class);
         NopMetaReconciliationResult r = dao.newEntity();
         r.setResultId(resultId);
         r.setConfigId(configId);
-        r.setMetaTableId(metaTableId);
+        r.setMetaEntityId(metaEntityId);
         r.setExecuteTime(new Timestamp(System.currentTimeMillis()));
         r.setStatistics(statistics);
         r.setDetails(details);

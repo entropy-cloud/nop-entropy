@@ -20,6 +20,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataHelper;
+import io.nop.metadata.service.NopMetadataArgs;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.StringHelper;
@@ -32,7 +33,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.metadata.biz.INopMetaCatalogBiz;
 import io.nop.metadata.biz.INopMetaDataSourceBiz;
 import io.nop.metadata.biz.INopMetaModuleBiz;
-import io.nop.metadata.biz.INopMetaTableBiz;
+import io.nop.metadata.biz.INopMetaEntityBiz;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.api.dto.CollectCatalogResultDTO;
 import io.nop.metadata.api.dto.CollectCatalogTableDTO;
@@ -40,21 +41,22 @@ import io.nop.metadata.api.dto.ErrorDTO;
 import io.nop.metadata.api.dto.SyncExternalTablesResultDTO;
 import io.nop.metadata.api.dto.TestConnectionResultDTO;
 import io.nop.metadata.dao.entity.NopMetaCatalog;
+import io.nop.dao.api.IEntityDao;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
+import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaModule;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.metadata.service.catalog.CatalogTableStats;
 import io.nop.metadata.service.catalog.MetaCatalogCollector;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.datasource.MetaDataSourceResolver;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
-import io.nop.metadata.service.field.MetaTableFieldResolver;
+import io.nop.metadata.service.field.MetaEntityFieldResolver;
 import io.nop.metadata.service.sync.ExternalColumnInfo;
 import io.nop.metadata.service.sync.ExternalTableInfo;
 import io.nop.metadata.service.sync.ExternalTableStructureReader;
-import io.nop.metadata.service.tableref.MetaTableReferenceResolver;
+import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
 import io.nop.metadata.service.NopMetadataException;
@@ -86,14 +88,14 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     static final String EXTERNAL_MODULE_ID = "nop/meta-external";
     static final String EXTERNAL_MODULE_NAME = "meta-external";
 
-    /** AR-14 / 维度09-11：collectCatalogForTable 找不到 metaTableId 时用专属 ErrorCode（原误用 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND）。 */
+    /** AR-14 / 维度09-11：collectCatalogForTable 找不到 metaEntityId 时用专属 ErrorCode（原误用 NopMetadataErrors.ERR_DATASOURCE_NOT_FOUND）。 */
 
     @Inject
     protected IMetaDataSourceConnectionProcessor connectionService;
 
-    /** 跨聚合访问（plan 353 MD-1）：MetaTable upsert / MetaCatalog 快照写入 / 系统模块 ensure 经 Biz 接口而非 dao 直连。 */
+    /** 跨聚合访问（plan 353 MD-1）：MetaEntity upsert / MetaCatalog 快照写入 / 系统模块 ensure 经 Biz 接口而非 dao 直连。 */
     @Inject
-    protected INopMetaTableBiz tableBiz;
+    protected INopMetaEntityBiz tableBiz;
 
     @Inject
     protected INopMetaCatalogBiz catalogBiz;
@@ -146,8 +148,8 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
     private final MetaCatalogCollector catalogCollector = new MetaCatalogCollector();
 
     /** 共享 table-reference 解析器（架构基线 §4.4.3 D3）。 */
-    private final MetaTableReferenceResolver tableRefResolver = new MetaTableReferenceResolver(
-            new MetaDataSourceResolver(), new MetaTableFieldResolver());
+    private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver(
+            new MetaDataSourceResolver(), new MetaEntityFieldResolver());
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
     private TableReferenceExecutor tableRefExecutor;
@@ -603,7 +605,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      *   <li>不支持的方言由读取器抛 {@link NopException}（不静默跳过）</li>
      *   <li>复用 P2-1 callback 式连接服务 {@code withConnection}：callback 内运行时取方言 + 扫描，
      *       callback 结束自动释放外部连接（本方法不自建连接）</li>
-     *   <li>按 D1 方案 A 写入：tableType=external，metaModuleId 指向系统模块 nop/meta-external，
+     *   <li>按 D1 方案 A 写入：entityKind=external，metaModuleId 指向系统模块 nop/meta-external，
      *       列结构序列化为 JSON 存入 buildSql（子方案 A2）</li>
      *   <li>幂等 upsert：按 (metaModuleId, schema, tableName) 复合键去重（plan 0852-3 收敛自
      *       {@code (metaModuleId, tableName)}），同名不同 schema 不再互相覆盖；重复同步更新而非追加</li>
@@ -732,7 +734,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      *
      * @param dataSourceId  目标数据源 ID
      * @param schemaPattern 可选，限定 COUNT/索引查询的物理 schema（null/空串表示**逐表默认解析**：
-     *                      各表取自身 {@code NopMetaTable.schema}，plan 0852-3 Phase 3）。
+     *                      各表取自身 {@code NopMetaEntity.schema}，plan 0852-3 Phase 3）。
      *                      显式入参对该批次所有表覆盖默认；null=各表用持久化 schema（仍 null 则不过滤）。
      * @return {@code {collectedCount: int, errors: [{tableName, error}, ...]}}
      */
@@ -747,7 +749,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
             throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_DISABLED).param("dataSourceId", dataSourceId);
         }
 
-        List<NopMetaTable> externalTables = findExternalTables(dataSource.getQuerySpace(), context);
+        List<NopMetaEntity> externalTables = findExternalTables(dataSource.getQuerySpace(), context);
 
         AtomicInteger collectedCount = new AtomicInteger(0);
         List<CollectCatalogTableDTO> tables = new ArrayList<>();
@@ -756,19 +758,19 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                 (Connection conn, DatabaseMetaData metaData) -> {
                     String productName = safeProductName(metaData);
-                    for (NopMetaTable table : externalTables) {
+                    for (NopMetaEntity table : externalTables) {
                         try {
                             TableReference ref = new TableReference(TableReference.Kind.EXTERNAL,
-                                    table.getMetaTableId(), table.getTableName(), null,
+                                    table.getMetaEntityId(), table.getTableName(), null,
                                     dataSource, null, null, null);
                             String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
                             CatalogTableStats stats = catalogCollector.collectForTable(
                                     conn, metaData, ref, effectiveSchema, productName);
-                            appendCatalogRow(table.getMetaTableId(), stats, context);
+                            appendCatalogRow(table.getMetaEntityId(), stats, context);
                             CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
                             tableDTO.setTableName(table.getTableName());
-                            tableDTO.setMetaSchema(table.getMetaSchema());
-                            tableDTO.setTableType(table.getTableType());
+                            tableDTO.setDbSchema(table.getDbSchema());
+                            tableDTO.setEntityKind(table.getEntityKind());
                             tableDTO.setRowCount(stats.getRowCount());
                             tableDTO.setSizeBytes(stats.getSizeBytes());
                             tables.add(tableDTO);
@@ -793,36 +795,36 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         return result;
     }
 
-    /** 查找该 querySpace 下所有 external 类型逻辑表（按 tableType=external 限定；经 Biz 接口，plan 353 MD-1）。 */
-    private List<NopMetaTable> findExternalTables(String querySpace, IServiceContext context) {
+    /** 查找该 querySpace 下所有 external 类型逻辑表（按 entityKind=external 限定；经 Biz 接口，plan 353 MD-1）。 */
+    private List<NopMetaEntity> findExternalTables(String querySpace, IServiceContext context) {
         QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_querySpace, querySpace));
-        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableType,
-                _NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL));
+        query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_querySpace, querySpace));
+        query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_entityKind,
+                _NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL));
         return tableBiz.findList(query, null, context);
     }
 
     /**
-     * 单表 Catalog 收集入口（架构基线 §4.4.3 D1-D5）：对任意 tableType（external/entity/sql）的逻辑表
+     * 单表 Catalog 收集入口（架构基线 §4.4.3 D1-D5）：对任意 entityKind（external/entity/sql）的逻辑表
      * 收集运行时统计（行数/索引），追加为新的时序快照行写入 NopMetaCatalog。
      *
-     * <p>解析路径（D3）：metaTableId → NopMetaTable → {@link MetaTableReferenceResolver} → {@link TableReference}
+     * <p>解析路径（D3）：metaEntityId → NopMetaEntity → {@link MetaEntityReferenceResolver} → {@link TableReference}
      * → {@link TableReferenceExecutor} 按 ref 形态分派 Connection → 收集器收集 → 追加 NopMetaCatalog 行。
      *
-     * @param metaTableId   目标逻辑表 ID（任意 tableType）
+     * @param metaEntityId   目标逻辑表 ID（任意 entityKind）
      * @param schemaPattern 可选 schema 限定（null/空串表示依赖连接默认 schema；sql 子查询忽略）
      * @param context       服务上下文
-     * @return {@code {metaTableId, rowCount, indexCount, unavailable:[...]}}
+     * @return {@code {metaEntityId, rowCount, indexCount, unavailable:[...]}}
      */
     @BizMutation
-    public CollectCatalogResultDTO collectCatalogForTable(@Name("metaTableId") String metaTableId,
+    public CollectCatalogResultDTO collectCatalogForTable(@Name("metaEntityId") String metaEntityId,
                                                            @Optional @Name("schemaPattern") String schemaPattern,
                                                            IServiceContext context) {
-        NopMetaTable table = tableBiz.get(metaTableId, false, context);
+        NopMetaEntity table = tableBiz.get(metaEntityId, false, context);
         if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaTableId", metaTableId);
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLE_NOT_FOUND).param("metaEntityId", metaEntityId);
         }
-        // resolver 边界：MetaTableReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围；含本实体 DataSource dao 亦作 resolver 入参），保留 dao 直连（plan 353 MD-1 裁定）
+        // resolver 边界：MetaEntityReferenceResolver API 消费 IEntityDao（tableref/resolver 包不在 MD-1 转换范围；含本实体 DataSource dao 亦作 resolver 入参），保留 dao 直连（plan 353 MD-1 裁定）
         TableReference ref = tableRefResolver.resolve(table,
                 daoFor(NopMetaDataSource.class), daoFor(NopMetaEntity.class),
                 daoFor(NopMetaEntityField.class), orm());
@@ -833,14 +835,14 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                 (conn, metaData, productName) -> catalogCollector.collectForTable(
                         conn, metaData, ref, effectiveSchema, productName));
 
-        appendCatalogRow(table.getMetaTableId(), stats, context);
+        appendCatalogRow(table.getMetaEntityId(), stats, context);
 
         CollectCatalogResultDTO result = new CollectCatalogResultDTO();
         result.setTableCount(1);
         CollectCatalogTableDTO tableDTO = new CollectCatalogTableDTO();
         tableDTO.setTableName(table.getTableName());
-        tableDTO.setMetaSchema(table.getMetaSchema());
-        tableDTO.setTableType(table.getTableType());
+        tableDTO.setDbSchema(table.getDbSchema());
+        tableDTO.setEntityKind(table.getEntityKind());
         tableDTO.setRowCount(stats.getRowCount());
         tableDTO.setSizeBytes(stats.getSizeBytes());
         List<CollectCatalogTableDTO> tables = new ArrayList<>();
@@ -853,15 +855,15 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * 默认 schema 解析（plan 0852-3 Phase 3）：未显式传 schemaPattern（null/空/纯空白）且
      * {@code table.schema} 非空 → 默认取 {@code table.schema}；否则维持入参（可能为 null=不过滤）。
      *
-     * <p>解析点在 BizModel 层（持有 NopMetaTable），执行器仅收最终 schemaPattern——
+     * <p>解析点在 BizModel 层（持有 NopMetaEntity），执行器仅收最终 schemaPattern——
      * 使「sync 持久化一次 schema → 后续 Catalog/Quality/Profiling 执行无需重传」成立。
      * 显式入参优先覆盖持久化 schema。
      */
-    private static String resolveDefaultSchema(String schemaPattern, NopMetaTable table) {
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaEntity table) {
         if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
             return schemaPattern;
         }
-        return table.getMetaSchema();
+        return table.getDbSchema();
     }
 
     /** 延迟初始化 TableReferenceExecutor（需 orm()，构造时 orm 不可用）。 */
@@ -876,9 +878,9 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      * 将单表收集结果追加为一行新的 NopMetaCatalog 快照（时序语义：collectedAt=now，不覆盖旧行）。
      * details JSON 承载 unavailable 标记 + 方言特定字段。
      */
-    private void appendCatalogRow(String metaTableId, CatalogTableStats stats, IServiceContext context) {
+    private void appendCatalogRow(String metaEntityId, CatalogTableStats stats, IServiceContext context) {
         NopMetaCatalog row = catalogBiz.newEntity();
-        row.setMetaTableId(metaTableId);
+        row.setMetaEntityId(metaEntityId);
         row.setRowCount(stats.getRowCount());
         row.setSizeBytes(stats.getSizeBytes());
         row.setIndexCount(stats.getIndexCount());
@@ -922,43 +924,109 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
      */
     private void upsertExternalTable(String metaModuleId, NopMetaDataSource dataSource, ExternalTableInfo info,
                                      IServiceContext context) {
-        // EQL-safe 查询：仅按 (metaModuleId, tableName) 拉候选集（schema 维度在 Java 层过滤）
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_metaModuleId, metaModuleId));
-        query.addFilter(FilterBeans.eq(NopMetaTable.PROP_NAME_tableName, info.getTableName()));
-        List<NopMetaTable> candidates = tableBiz.findList(query, null, context);
-
-        // Java 层 schema 精确匹配（normalizeSchemaForMatch 将 null/空串归一为 null，使 null==null 成立）
+        // 概念缩减（plan 2261）：外部表同步直接产出 NopMetaEntity（EXTERNAL），挂系统模块的
+        // OrmModel 容器行下；匹配键 = (ormModelId, entityName)，entityName 按 schema 前缀规则生成
+        //（同表名异 schema → 不同实体名共存，dbSchema 作描述列，保持原 R4.2 多 schema 能力）。
+        NopMetaOrmModel ormModel = ensureExternalOrmModel(metaModuleId);
         String infoSchema = normalizeSchemaForMatch(info.getSchema());
-        NopMetaTable table = null;
-        for (NopMetaTable candidate : candidates) {
-            if (java.util.Objects.equals(normalizeSchemaForMatch(candidate.getMetaSchema()), infoSchema)) {
-                table = candidate;
+        String columnsJson = serializeColumns(info.getColumns());
+
+        // 实体名解析（plan 2261 §3.1 + 深检 C1/N8 修正）：基础名 {schemaToken}_{tableName}；
+        // 同名碰撞（不同 schema/table 组合映射到同一基础名，如 S1+X_Y 与 S1_X+Y）按设计裁定
+        // 追加序号 _2.._N 消解，直至找到「同 schema 同表名」的既有行（重同步收敛为 update）
+        // 或空闲名（新建）；序号耗尽显式失败（per-table 隔离，不静默覆盖他人元数据）。
+        NopMetaEntity table = null;
+        String entityName = externalEntityName(info.getTableName(), schemaTokenOf(infoSchema));
+        boolean exhausted = false;
+        final int maxProbe = 32;
+        for (int probe = 1; probe <= maxProbe; probe++) {
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_ormModelId, ormModel.getOrmModelId()));
+            query.addFilter(FilterBeans.eq(NopMetaEntity.PROP_NAME_entityName, entityName));
+            List<NopMetaEntity> candidates = tableBiz.findList(query, null, context);
+            if (candidates.isEmpty()) {
+                break; // 空闲名：新建
+            }
+            NopMetaEntity candidate = candidates.get(0);
+            boolean sameTable = info.getTableName().equals(candidate.getTableName())
+                    && java.util.Objects.equals(normalizeSchemaForMatch(candidate.getDbSchema()), infoSchema);
+            if (sameTable) {
+                table = candidate; // 同一物理表重同步：收敛为 update
                 break;
             }
+            // 碰撞：他人占名——追加序号继续探测（并发窗口内可能以 DB UK fail-fast，per-table 隔离重试自愈）
+            if (probe == maxProbe) {
+                exhausted = true;
+                break;
+            }
+            entityName = baseEntityName(info.getTableName(), schemaTokenOf(infoSchema), probe + 1);
         }
-
-        String columnsJson = serializeColumns(info.getColumns());
+        if (table == null && exhausted) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_SYNC_ENTITY_NAME_EXHAUSTED)
+                    .param(NopMetadataArgs.ARG_META_MODULE_ID, metaModuleId)
+                    .param(NopMetadataArgs.ARG_TABLE_NAME, info.getTableName());
+        }
 
         if (table == null) {
             table = tableBiz.newEntity();
             table.setMetaModuleId(metaModuleId);
+            table.setOrmModelId(ormModel.getOrmModelId());
             table.setIsDelta((byte) 0);
+            table.setEntityName(entityName);
             table.setTableName(info.getTableName());
-            table.setMetaSchema(infoSchema);
             table.setDisplayName(info.getTableName());
-            table.setTableType(_NopMetadataCoreConstants.TABLE_TYPE_EXTERNAL);
+            table.setEntityKind(_NopMetadataCoreConstants.ENTITY_KIND_EXTERNAL);
+            table.setDbSchema(infoSchema);
             table.setQuerySpace(dataSource.getQuerySpace());
-            table.setDescription(info.getRemark());
-            table.setBuildSql(columnsJson);
+            table.setRemark(info.getRemark());
+            table.setExternalColumns(columnsJson);
             tableBiz.saveEntity(table, null, context);
         } else {
-            table.setMetaSchema(infoSchema);
+            table.setDbSchema(infoSchema);
             table.setQuerySpace(dataSource.getQuerySpace());
-            table.setDescription(info.getRemark());
-            table.setBuildSql(columnsJson);
+            table.setRemark(info.getRemark());
+            table.setExternalColumns(columnsJson);
             tableBiz.updateEntity(table, null, context);
         }
+    }
+
+    /** 外部实体名生成规则：schema 为空/默认 → tableName；否则 {schemaToken}_{tableName}（plan 2261 §3.1）。 */
+    private static String externalEntityName(String tableName, String schemaToken) {
+        if (schemaToken == null) {
+            return tableName;
+        }
+        return schemaToken + '_' + tableName;
+    }
+
+    /** 碰撞消解序号名：{base}_{seq}（seq ≥ 2）。 */
+    private static String baseEntityName(String tableName, String schemaToken, int seq) {
+        return externalEntityName(tableName, schemaToken) + '_' + seq;
+    }
+
+    /** schema → 实体名 token：null 保持 null（默认 schema 语义）；非空时非法标识符字符替换为 _（plan 2261 §3.1/N8）。 */
+    private static String schemaTokenOf(String normalizedSchema) {
+        if (normalizedSchema == null) {
+            return null;
+        }
+        return normalizedSchema.replaceAll("[^A-Za-z0-9_]", "_");
+    }
+
+    /** 系统模块下的外部实体 OrmModel 容器行（惰性创建，isDelta=0，modelName 固定 "external"）。 */
+    private NopMetaOrmModel ensureExternalOrmModel(String metaModuleId) {
+        IEntityDao<NopMetaOrmModel> ormModelDao = daoFor(NopMetaOrmModel.class);
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_metaModuleId, metaModuleId));
+        q.addFilter(FilterBeans.eq(NopMetaOrmModel.PROP_NAME_isDelta, (byte) 0));
+        NopMetaOrmModel ormModel = ormModelDao.findFirstByQuery(q);
+        if (ormModel != null) {
+            return ormModel;
+        }
+        NopMetaOrmModel created = ormModelDao.newEntity();
+        created.setMetaModuleId(metaModuleId);
+        created.setIsDelta((byte) 0);
+        created.setModelName("external");
+        ormModelDao.saveEntity(created);
+        return created;
     }
 
     /** schema 归一化用于匹配：null/空串/纯空白 → null（使「无 schema」行互相匹配）。 */

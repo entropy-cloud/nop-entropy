@@ -16,7 +16,7 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
-import io.nop.metadata.dao.entity.NopMetaTableMeasure;
+import io.nop.metadata.dao.entity.NopMetaEntityMeasure;
 import io.nop.orm.IOrmTemplate;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.inject.Inject;
@@ -58,7 +58,7 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
     private List<Map<String, Object>> queryAggregationItems(String tableId, List<String> measures, List<String> dims,
                                                    TreeBean filter, String joinId, Long limit, Long offset,
                                                    TreeBean having, List<OrderFieldBean> orderBy) {
-        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        ApiResponse<?> resp = _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
         if (!resp.isOk()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_EXEC_FAILED).param("response", String.valueOf(resp));
@@ -71,7 +71,7 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
     private ApiResponse<?> queryAggregationRaw(String tableId, List<String> measures, List<String> dims,
                                                 TreeBean filter, String joinId, Long limit, Long offset,
                                                 TreeBean having, List<OrderFieldBean> orderBy) {
-        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaTable__queryAggregation",
+        return _helper.executeRpc(GraphQLOperationType.query, "NopMetaEntity__queryAggregation",
                 _helper.queryAggregationRequest(tableId, measures, dims, filter, joinId, limit, offset, having, orderBy));
     }
 
@@ -355,11 +355,11 @@ public class TestAggregationCategoricalAndTemporal extends JunitBaseTestCase {
         assertTrue(tlResp.hasError(),
                 "save with too-long expression must fail (not silently stored): " + tlResp);
 
-        IEntityDao<NopMetaTableMeasure> measureDao = daoProvider.daoFor(NopMetaTableMeasure.class);
+        IEntityDao<NopMetaEntityMeasure> measureDao = daoProvider.daoFor(NopMetaEntityMeasure.class);
         io.nop.api.core.beans.query.QueryBean q = new io.nop.api.core.beans.query.QueryBean();
-        q.addFilter(io.nop.api.core.beans.FilterBeans.eq(NopMetaTableMeasure.PROP_NAME_metaTableId, tableId));
-        List<NopMetaTableMeasure> saved = measureDao.findAllByQuery(q);
-        for (NopMetaTableMeasure m : saved) {
+        q.addFilter(io.nop.api.core.beans.FilterBeans.eq(NopMetaEntityMeasure.PROP_NAME_metaEntityId, tableId));
+        List<NopMetaEntityMeasure> saved = measureDao.findAllByQuery(q);
+        for (NopMetaEntityMeasure m : saved) {
             assertFalse("badDrop".equals(m.getMeasureName())
                             || "badUnp".equals(m.getMeasureName())
                             || "badTooLong".equals(m.getMeasureName()),

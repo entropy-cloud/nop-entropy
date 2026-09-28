@@ -5,11 +5,11 @@ import io.nop.biz.BizErrors;
 import io.nop.metadata.service.entity.NopMetaBusinessDomainBizModel;
 import io.nop.metadata.service.entity.NopMetaEntityFieldBizModel;
 import io.nop.metadata.service.entity.NopMetaModuleBizModel;
-import io.nop.metadata.service.entity.NopMetaTableBizModel;
-import io.nop.metadata.service.entity.NopMetaTableDimensionBizModel;
-import io.nop.metadata.service.entity.NopMetaTableFilterBizModel;
-import io.nop.metadata.service.entity.NopMetaTableJoinBizModel;
-import io.nop.metadata.service.entity.NopMetaTableMeasureBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityDimensionBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityFilterBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityJoinBizModel;
+import io.nop.metadata.service.entity.NopMetaEntityMeasureBizModel;
 import io.nop.metadata.service.entity.NopMetaTagBizModel;
 import io.nop.metadata.service.entity.NopMetaTagLabelBizModel;
 import org.junit.jupiter.api.Test;
@@ -45,16 +45,16 @@ public class TestSaveOverrideNullDataGuard {
     /** 6 个修复目标 + 3 个既有防护点（Module/Table/Tag），null data 统一基类错误。 */
     @Test
     public void testNullDataFallsToBaseError() {
-        assertEmptyDataForSave(d -> new NopMetaTableDimensionBizModel().save(d, null), null,
-                "NopMetaTableDimension.save(null)");
+        assertEmptyDataForSave(d -> new NopMetaEntityDimensionBizModel().save(d, null), null,
+                "NopMetaEntityDimension.save(null)");
         assertEmptyDataForSave(d -> new NopMetaEntityFieldBizModel().save(d, null), null,
                 "NopMetaEntityField.save(null)");
-        assertEmptyDataForSave(d -> new NopMetaTableJoinBizModel().save(d, null), null,
-                "NopMetaTableJoin.save(null)");
-        assertEmptyDataForSave(d -> new NopMetaTableMeasureBizModel().save(d, null), null,
-                "NopMetaTableMeasure.save(null)");
-        assertEmptyDataForSave(d -> new NopMetaTableFilterBizModel().save(d, null), null,
-                "NopMetaTableFilter.save(null)");
+        assertEmptyDataForSave(d -> new NopMetaEntityJoinBizModel().save(d, null), null,
+                "NopMetaEntityJoin.save(null)");
+        assertEmptyDataForSave(d -> new NopMetaEntityMeasureBizModel().save(d, null), null,
+                "NopMetaEntityMeasure.save(null)");
+        assertEmptyDataForSave(d -> new NopMetaEntityFilterBizModel().save(d, null), null,
+                "NopMetaEntityFilter.save(null)");
         assertEmptyDataForSave(d -> new NopMetaTagLabelBizModel().save(d, null), null,
                 "NopMetaTagLabel.save(null)");
         // P2-28 新增 override（plan 2026-08-16-0920-1）：守卫在 super.save 之后运行，
@@ -64,8 +64,8 @@ public class TestSaveOverrideNullDataGuard {
         // 既有防护 override 对照断言：行为不变（null 同样落基类错误，且不 NPE）
         assertEmptyDataForSave(d -> new NopMetaModuleBizModel().save(d, null), null,
                 "NopMetaModule.save(null)");
-        assertEmptyDataForSave(d -> new NopMetaTableBizModel().save(d, null), null,
-                "NopMetaTable.save(null)");
+        assertEmptyDataForSave(d -> new NopMetaEntityBizModel().save(d, null), null,
+                "NopMetaEntity.save(null)");
         assertEmptyDataForSave(d -> new NopMetaTagBizModel().save(d, null), null,
                 "NopMetaTag.save(null)");
     }
@@ -73,24 +73,24 @@ public class TestSaveOverrideNullDataGuard {
     /** empty map 同样统一基类错误（三元/!=null 旧形态只防 null 不防 empty，本批统一）。 */
     @Test
     public void testEmptyMapFallsToBaseError() {
-        assertEmptyDataForSave(d -> new NopMetaTableDimensionBizModel().save(d, null), new HashMap<>(),
-                "NopMetaTableDimension.save({})");
+        assertEmptyDataForSave(d -> new NopMetaEntityDimensionBizModel().save(d, null), new HashMap<>(),
+                "NopMetaEntityDimension.save({})");
         assertEmptyDataForSave(d -> new NopMetaEntityFieldBizModel().save(d, null), new HashMap<>(),
                 "NopMetaEntityField.save({})");
-        assertEmptyDataForSave(d -> new NopMetaTableJoinBizModel().save(d, null), new HashMap<>(),
-                "NopMetaTableJoin.save({})");
-        assertEmptyDataForSave(d -> new NopMetaTableMeasureBizModel().save(d, null), new HashMap<>(),
-                "NopMetaTableMeasure.save({})");
-        assertEmptyDataForSave(d -> new NopMetaTableFilterBizModel().save(d, null), new HashMap<>(),
-                "NopMetaTableFilter.save({})");
+        assertEmptyDataForSave(d -> new NopMetaEntityJoinBizModel().save(d, null), new HashMap<>(),
+                "NopMetaEntityJoin.save({})");
+        assertEmptyDataForSave(d -> new NopMetaEntityMeasureBizModel().save(d, null), new HashMap<>(),
+                "NopMetaEntityMeasure.save({})");
+        assertEmptyDataForSave(d -> new NopMetaEntityFilterBizModel().save(d, null), new HashMap<>(),
+                "NopMetaEntityFilter.save({})");
         assertEmptyDataForSave(d -> new NopMetaTagLabelBizModel().save(d, null), new HashMap<>(),
                 "NopMetaTagLabel.save({})");
         assertEmptyDataForSave(d -> new NopMetaBusinessDomainBizModel().save(d, null), new HashMap<>(),
                 "NopMetaBusinessDomain.save({})");
         assertEmptyDataForSave(d -> new NopMetaModuleBizModel().save(d, null), new HashMap<>(),
                 "NopMetaModule.save({})");
-        assertEmptyDataForSave(d -> new NopMetaTableBizModel().save(d, null), new HashMap<>(),
-                "NopMetaTable.save({})");
+        assertEmptyDataForSave(d -> new NopMetaEntityBizModel().save(d, null), new HashMap<>(),
+                "NopMetaEntity.save({})");
         assertEmptyDataForSave(d -> new NopMetaTagBizModel().save(d, null), new HashMap<>(),
                 "NopMetaTag.save({})");
     }

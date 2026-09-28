@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * 对账执行器（纯组件，设计 08-reconciliation.md §3.3 行为契约）。
  *
- * <p>入参 {@code rows} 由 BizModel action 调 {@code queryTableData} 取得的 {@code items} 传入。
+ * <p>入参 {@code rows} 由 BizModel action 调 {@code queryData} 取得的 {@code items} 传入。
  * 本执行器不持有 BizModel、不伪造 context、不复制取数逻辑。
  *
  * <p>逐行按 {@code config.columnName} 取值 → 调 {@link IReconciliationProcessor} 取候选 →
@@ -61,8 +61,8 @@ public class ReconciliationExecutor {
      * 执行对账，返回未持久化的 {@link NopMetaReconciliationResult}（含 statistics + details，由 BizModel 落库）。
      *
      * @param config 对账配置（提供 columnName/matchStrategy/targetEntityType/identifierSpace/autoMatch/threshold）
-     * @param rows   表行列表（由 BizModel 调 queryTableData 取得的 items，每行为列名→值 Map）
-     * @return 未持久化的 Result 实体（configId/metaTableId/executeTime/statistics/details 已填充）
+     * @param rows   表行列表（由 BizModel 调 queryData 取得的 items，每行为列名→值 Map）
+     * @return 未持久化的 Result 实体（configId/metaEntityId/executeTime/statistics/details 已填充）
      */
     public NopMetaReconciliationResult execute(NopMetaReconciliationConfig config,
                                                List<Map<String, Object>> rows) {
@@ -114,7 +114,7 @@ public class ReconciliationExecutor {
 
         NopMetaReconciliationResult result = new NopMetaReconciliationResult();
         result.setConfigId(config.getConfigId());
-        result.setMetaTableId(config.getMetaTableId());
+        result.setMetaEntityId(config.getMetaEntityId());
         result.setStatistics(JsonTool.stringify(statistics));
         result.setDetails(JsonTool.stringify(details));
         return result;

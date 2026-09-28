@@ -4,7 +4,7 @@ package io.nop.metadata.service.query;
 import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 
@@ -43,11 +43,11 @@ import java.util.Map;
 final class MemoryFilterEvaluator {
     private final TreeBean having;
     private final Map<String, String> nameToAlias;
-    private final NopMetaTable table;
+    private final NopMetaEntity table;
     private final List<String> measureNames;
     private final List<String> dimensionNames;
 
-    MemoryFilterEvaluator(TreeBean having, Map<String, String> nameToAlias, NopMetaTable table,
+    MemoryFilterEvaluator(TreeBean having, Map<String, String> nameToAlias, NopMetaEntity table,
                           List<String> measureNames, List<String> dimensionNames) {
         this.having = having;
         this.nameToAlias = nameToAlias;
@@ -78,7 +78,7 @@ final class MemoryFilterEvaluator {
         Object exprAttr = node.getAttr(MetaAggregationExecutor.HAVING_EXPR_ATTR);
         if (exprAttr != null && !exprAttr.toString().isEmpty()) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_EXPR_MEMORY_NOT_COMPUTABLE)
-                    .param("metaTableId", table.getMetaTableId())
+                    .param("metaEntityId", table.getMetaEntityId())
                     .param("expr", exprAttr.toString());
         }
         String op = node.getTagName();
@@ -281,7 +281,7 @@ final class MemoryFilterEvaluator {
         String alias = nameToAlias.get(name);
         if (alias == null) {
             throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_HAVING_UNKNOWN_NAME)
-                    .param("metaTableId", table.getMetaTableId())
+                    .param("metaEntityId", table.getMetaEntityId())
                     .param("name", name)
                     .param("selectedMeasures", String.valueOf(measureNames))
                     .param("selectedDimensions", String.valueOf(dimensionNames));
@@ -360,13 +360,13 @@ final class MemoryFilterEvaluator {
     }
 
     /** 测试可访问的求值入口（仅用于单元测试，避免直接构造内部类）。返回三值结果（null = UNKNOWN）。 */
-    static Boolean evaluateForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaTable table,
+    static Boolean evaluateForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaEntity table,
                                      List<String> measureNames, List<String> dimensionNames, Map<String, Object> row) {
         return new MemoryFilterEvaluator(having, nameToAlias, table, measureNames, dimensionNames).evaluate(having, row);
     }
 
     /** 测试可访问的过滤入口。 */
-    static List<Map<String, Object>> filterForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaTable table,
+    static List<Map<String, Object>> filterForTest(TreeBean having, Map<String, String> nameToAlias, NopMetaEntity table,
                                                     List<String> measureNames, List<String> dimensionNames,
                                                     List<Map<String, Object>> rows) {
         return new MemoryFilterEvaluator(having, nameToAlias, table, measureNames, dimensionNames).filter(rows);

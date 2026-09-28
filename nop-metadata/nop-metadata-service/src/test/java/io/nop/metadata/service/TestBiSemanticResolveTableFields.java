@@ -41,8 +41,8 @@ public class TestBiSemanticResolveTableFields extends JunitBaseTestCase {
         String entityId = helper.saveEntity(moduleId, "EntityTypeA", "col1", "col2", "col3");
         String tableId = helper.saveEntityTable(moduleId, "entity_table", entityId);
 
-        Map<String, Object> result = helper.resolveTableFields(tableId);
-        assertEquals("entity", result.get("tableType"));
+        Map<String, Object> result = helper.resolveEntityFields(tableId);
+        assertEquals("PHYSICAL", result.get("entityKind"));
         List<Map<String, Object>> fields = (List<Map<String, Object>>) result.get("fields");
         assertTrue(fields.size() >= 3, "should contain at least col1/col2/col3");
     }
@@ -54,8 +54,8 @@ public class TestBiSemanticResolveTableFields extends JunitBaseTestCase {
                 + "{\"columnName\":\"name\",\"dataType\":\"VARCHAR\",\"nullable\":false}]";
         String tableId = helper.saveExternalTable("T_RESOLVE_EXT", "qs_resolve_ext", buildSql);
 
-        Map<String, Object> result = helper.resolveTableFields(tableId);
-        assertEquals("external", result.get("tableType"));
+        Map<String, Object> result = helper.resolveEntityFields(tableId);
+        assertEquals("EXTERNAL", result.get("entityKind"));
         List<Map<String, Object>> fields = (List<Map<String, Object>>) result.get("fields");
         assertEquals(2, fields.size());
         assertEquals("amount", fields.get(0).get("name"));
@@ -70,20 +70,20 @@ public class TestBiSemanticResolveTableFields extends JunitBaseTestCase {
         String sql = "SELECT id, name, status FROM my_table";
         String tableId = helper.saveSqlTable(moduleId, "sql_table", sql);
 
-        Map<String, Object> result = helper.resolveTableFields(tableId);
-        assertEquals("sql", result.get("tableType"));
+        Map<String, Object> result = helper.resolveEntityFields(tableId);
+        assertEquals("SQL_VIEW", result.get("entityKind"));
         List<Map<String, Object>> fields = (List<Map<String, Object>>) result.get("fields");
         assertTrue(fields.size() >= 3, "should contain id/name/status from SELECT");
     }
 
     @Test
-    public void testResolveTableFieldsEntityBaseEntityIdNullFails() {
+    public void testResolveTableFieldsUnregisteredEntityNameFails() {
         String moduleId = helper.ensureModule("resolveFailEntity");
         String tableId = helper.saveEntityTable(moduleId, "entity_no_base", null);
 
         var resp = helper.runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + helper.escapeGraphQL(tableId) + "\") { tableType fields { name } } }");
-        assertTrue(resp.hasError(), "resolveTableFields should fail when baseEntityId is null");
+                "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + helper.escapeGraphQL(tableId) + "\") { entityKind fields { name } } }");
+        assertTrue(resp.hasError(), "resolveEntityFields should fail when entityName is not registered");
     }
 
     @Test
@@ -92,7 +92,7 @@ public class TestBiSemanticResolveTableFields extends JunitBaseTestCase {
         String tableId = helper.saveExternalTable("external_bad", "test-query-space", buildSql);
 
         var resp = helper.runGraphQL(
-                "query { NopMetaTable__resolveTableFields(metaTableId: \"" + helper.escapeGraphQL(tableId) + "\") { tableType fields { name } } }");
-        assertTrue(resp.hasError(), "resolveTableFields should fail on bad buildSql JSON");
+                "query { NopMetaEntity__resolveEntityFields(metaEntityId: \"" + helper.escapeGraphQL(tableId) + "\") { entityKind fields { name } } }");
+        assertTrue(resp.hasError(), "resolveEntityFields should fail on bad buildSql JSON");
     }
 }

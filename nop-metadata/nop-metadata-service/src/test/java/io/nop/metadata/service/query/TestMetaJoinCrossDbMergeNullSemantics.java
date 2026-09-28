@@ -1,7 +1,7 @@
 package io.nop.metadata.service.query;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.metadata.dao.entity.NopMetaTableJoin;
+import io.nop.metadata.dao.entity.NopMetaEntityJoin;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +39,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     @Test
     public void testNullKeyDoesNotMatchNullKeyInnerJoin() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", null, "name", "L1"));
         List<Map<String, Object>> right = rows(row("id", null, "extra", "R1"));
 
@@ -51,7 +51,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     @Test
     public void testNullKeyLeftJoinRetainsLeftRowWithNullRight() {
-        NopMetaTableJoin join = newJoin("id", "id", "left");
+        NopMetaEntityJoin join = newJoin("id", "id", "left");
         List<Map<String, Object>> left = rows(row("id", null, "name", "L1"));
         List<Map<String, Object>> right = rows(row("id", null, "extra", "R1"));
 
@@ -66,7 +66,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     @Test
     public void testRightNullNotMatchedByAnyLeft() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(
                 row("id", "K1", "name", "L1"),
                 row("id", "K2", "name", "L2"));
@@ -89,7 +89,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
      */
     @Test
     public void testIntegerVsLongKeysMatchNumerically() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
         List<Map<String, Object>> right = rows(row("id", 1L, "extra", "R_long"));
 
@@ -102,14 +102,14 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     /** 整型族内其它跨类型组合（Byte vs Integer / Short vs Long）同样数值等值匹配（AR-20b）。 */
     @Test
     public void testOtherIntegerFamilyCrossTypeMatches() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", (byte) 1, "name", "L_byte"));
         List<Map<String, Object>> right = rows(row("id", 1, "extra", "R_int"));
 
         List<Map<String, Object>> merged = invokeCrossDbMerge(join, left, right);
         assertEquals(1, merged.size(), "Byte 1 vs Integer 1 must match: " + merged);
 
-        NopMetaTableJoin join2 = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join2 = newJoin("id", "id", "inner");
         List<Map<String, Object>> left2 = rows(row("id", (short) 2, "name", "L_short"));
         List<Map<String, Object>> right2 = rows(row("id", 2L, "extra", "R_long"));
         List<Map<String, Object>> merged2 = invokeCrossDbMerge(join2, left2, right2);
@@ -119,7 +119,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     /** 单列内整型族混型（Integer + Long）→ 兼容不抛（AR-20b）。 */
     @Test
     public void testMixedIntegerFamilyWithinColumnMatches() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(
                 row("id", 1, "name", "L1"),
                 row("id", 2L, "name", "L2"));
@@ -135,7 +135,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     /** 非整型不匹配（Integer vs BigDecimal）维持拒绝——BigDecimal("1.0")="1.0" vs Integer 1="1" 数值等但不同串，放宽会静默失配。 */
     @Test
     public void testTypeMismatchIntegerVsBigDecimalStillThrows() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
         List<Map<String, Object>> right = rows(row("id", new java.math.BigDecimal("1.0"), "extra", "R_dec"));
 
@@ -147,7 +147,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     @Test
     public void testTypeMismatchIntegerVsStringThrowsExplicitly() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L_int"));
         List<Map<String, Object>> right = rows(row("id", "1", "extra", "R_str"));
 
@@ -160,7 +160,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     @Test
     public void testSameIntegerFamilyMatches() {
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
         List<Map<String, Object>> left = rows(row("id", 1, "name", "L"));
         List<Map<String, Object>> right = rows(row("id", 1, "extra", "R"));
 
@@ -177,7 +177,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     @Test
     public void testMergedProductOverflowThrowsExplicitly() {
         CrossDbJoinMerger capped = new CrossDbJoinMerger(3);
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
 
         List<Map<String, Object>> left = rows(
                 row("id", "K", "name", "L1"),
@@ -198,7 +198,7 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
     @Test
     public void testMergedProductWithinLimitStillWorks() {
         CrossDbJoinMerger capped = new CrossDbJoinMerger(10);
-        NopMetaTableJoin join = newJoin("id", "id", "inner");
+        NopMetaEntityJoin join = newJoin("id", "id", "inner");
 
         List<Map<String, Object>> left = rows(
                 row("id", "K", "name", "L1"),
@@ -213,14 +213,14 @@ public class TestMetaJoinCrossDbMergeNullSemantics {
 
     // ============================ helpers ============================
 
-    private List<Map<String, Object>> invokeCrossDbMerge(NopMetaTableJoin join,
+    private List<Map<String, Object>> invokeCrossDbMerge(NopMetaEntityJoin join,
                                                           List<Map<String, Object>> left,
                                                           List<Map<String, Object>> right) {
         return merger.crossDbMerge(join, left, right, null, null);
     }
 
-    private static NopMetaTableJoin newJoin(String leftField, String rightField, String joinType) {
-        NopMetaTableJoin join = new NopMetaTableJoin();
+    private static NopMetaEntityJoin newJoin(String leftField, String rightField, String joinType) {
+        NopMetaEntityJoin join = new NopMetaEntityJoin();
         join.setJoinId("test-join");
         join.setLeftField(leftField);
         join.setRightField(rightField);

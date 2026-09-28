@@ -12,7 +12,7 @@ import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationEntity;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
-import io.nop.metadata.dao.entity.NopMetaTable;
+import io.nop.metadata.dao.entity.NopMetaEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +52,7 @@ public class TestNopMetaReconciliationTableRename extends JunitBaseTestCase {
         NopMetaReconciliationConfig c = dao.newEntity();
         c.setConfigName("rn-test-1");
         c.setDisplayName("rn-test-1");
-        c.setMetaTableId(tableId);
+        c.setMetaEntityId(tableId);
         c.setColumnName("user_id");
         c.setMatchStrategy("exact");
         c.setAutoMatch((byte) 0);
@@ -82,7 +82,7 @@ public class TestNopMetaReconciliationTableRename extends JunitBaseTestCase {
         IEntityDao<NopMetaReconciliationConfig> cfgDao = daoProvider.daoFor(NopMetaReconciliationConfig.class);
         NopMetaReconciliationConfig c = cfgDao.newEntity();
         c.setConfigName("rn-result-test");
-        c.setMetaTableId(tableId);
+        c.setMetaEntityId(tableId);
         c.setColumnName("user_id");
         c.setMatchStrategy("exact");
         c.setAutoMatch((byte) 0);
@@ -93,7 +93,7 @@ public class TestNopMetaReconciliationTableRename extends JunitBaseTestCase {
         IEntityDao<NopMetaReconciliationResult> dao = daoProvider.daoFor(NopMetaReconciliationResult.class);
         NopMetaReconciliationResult r = dao.newEntity();
         r.setConfigId(c.getConfigId());
-        r.setMetaTableId(tableId);
+        r.setMetaEntityId(tableId);
         r.setExecuteTime(new Timestamp(System.currentTimeMillis()));
         dao.saveEntity(r);
         dao.flushSession();
@@ -139,7 +139,7 @@ public class TestNopMetaReconciliationTableRename extends JunitBaseTestCase {
         String tableId = ensureTable();
         GraphQLResponseBean saveResp = graphQLEngine.executeGraphQL(graphQLEngine.newGraphQLContext(req(
                 "mutation { NopMetaReconciliationConfig__save(data: { configName: \"e2e-test\", "
-                        + "metaTableId: \"" + tableId + "\", columnName: \"id\", matchStrategy: \"exact\", "
+                        + "metaEntityId: \"" + tableId + "\", columnName: \"id\", matchStrategy: \"exact\", "
                         + "autoMatch: 0, autoMatchThreshold: 0.5 }) { configId configName } }")));
         assertFalse(saveResp.hasError(), "save must succeed: " + saveResp);
         String saveData = String.valueOf(saveResp.getData());
@@ -173,15 +173,18 @@ public class TestNopMetaReconciliationTableRename extends JunitBaseTestCase {
         moduleDao.saveEntity(m);
         moduleDao.flushSession();
 
-        IEntityDao<NopMetaTable> dao = daoProvider.daoFor(NopMetaTable.class);
-        NopMetaTable t = dao.newEntity();
+        IEntityDao<NopMetaEntity> dao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity t = dao.newEntity();
         t.setMetaModuleId(m.getMetaModuleId());
+        t.setOrmModelId("orm_RN_" + System.nanoTime());
+        t.setIsDelta((byte) 0);
+        t.setEntityName("RN_EXT_" + System.nanoTime());
         t.setTableName("RN_TEST_TABLE_" + System.nanoTime());
         t.setDisplayName("rn-test");
-        t.setTableType("external");
+        t.setEntityKind("EXTERNAL");
         dao.saveEntity(t);
         dao.flushSession();
-        return t.getMetaTableId();
+        return t.getMetaEntityId();
     }
 
     private GraphQLRequestBean req(String query) {

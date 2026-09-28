@@ -16,8 +16,8 @@ import io.nop.metadata.dao.entity.NopMetaEntityIndex;
 import io.nop.metadata.dao.entity.NopMetaEntityRelation;
 import io.nop.metadata.dao.entity.NopMetaEntityUniqueKey;
 import io.nop.metadata.dao.entity.NopMetaModule;
+import io.nop.metadata.dao.NopMetadataDaoConstants;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
-import io.nop.metadata.dao.entity.NopMetaTable;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -69,6 +69,9 @@ public class OrmModelImporter {
     public NopMetaEntity buildEntity(IEntityModel em, boolean isDelta) {
         NopMetaEntity entity = new NopMetaEntity();
         entity.setIsDelta(b(isDelta));
+        // plan 2261：entityKind mandatory——从 ORM 模型导入的实体即物理实体（PHYSICAL，
+        // dao 模块不可依赖 nop-metadata-core 常量，沿 NopMetadataDaoConstants 镜像）
+        entity.setEntityKind(NopMetadataDaoConstants.ENTITY_KIND_PHYSICAL);
         entity.setEntityName(em.getName());
         entity.setTableName(em.getTableName());
         entity.setDisplayName(em.getDisplayName() != null ? em.getDisplayName() : StringHelper.simpleClassName(em.getName()));
@@ -174,17 +177,6 @@ public class OrmModelImporter {
         item.setItemCode(option.getCode());
         item.setDescription(option.getDescription());
         return item;
-    }
-
-    public NopMetaTable buildEntityTable(IEntityModel em, boolean isDelta) {
-        NopMetaTable table = new NopMetaTable();
-        table.setIsDelta(b(isDelta));
-        table.setTableName(em.getTableName());
-        table.setDisplayName(em.getDisplayName() != null ? em.getDisplayName() : StringHelper.simpleClassName(em.getName()));
-        table.setTableType("entity");
-        table.setQuerySpace(em.getQuerySpace());
-        table.setDescription(em.getComment());
-        return table;
     }
 
     public List<NopMetaEntityRelation> buildRelations(IEntityModel em, boolean isDelta) {

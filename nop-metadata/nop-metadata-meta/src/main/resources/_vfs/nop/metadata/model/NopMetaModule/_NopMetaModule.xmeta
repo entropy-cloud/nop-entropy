@@ -124,11 +124,11 @@
                 <item bizObjName="NopMetaOrmModel"/>
             </schema>
         </prop>
-        <prop name="tables" displayName="逻辑表集" i18n-en:displayName="Tables" tagSet="pub,ref-pub" ext:kind="to-many"
+        <prop name="entities" displayName="实体集" i18n-en:displayName="Tables" tagSet="pub,ref-pub" ext:kind="to-many"
               internal="true" ext:joinLeftProp="metaModuleId" ext:joinRightProp="metaModuleId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
-                <item bizObjName="NopMetaTable"/>
+                <item bizObjName="NopMetaEntity"/>
             </schema>
         </prop>
         <prop name="pipelines" displayName="数据管道集" i18n-en:displayName="Pipelines" tagSet="pub,ref-pub"

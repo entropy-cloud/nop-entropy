@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestSqlExtractorsLocale {
 
-    private final SqlSourceTableExtractor sourceExtractor = new SqlSourceTableExtractor();
+    private final SqlSourceEntityExtractor sourceExtractor = new SqlSourceEntityExtractor();
     private final SqlColumnLineageExtractor columnExtractor = new SqlColumnLineageExtractor();
 
     /**
@@ -57,7 +57,7 @@ public class TestSqlExtractorsLocale {
             ColumnLineageCandidate r = cs.get(0);
             assertFalse(r.isUnresolvable(), "candidate must resolve under tr-TR: " + r);
             assertEquals("x", r.getTargetColumn());
-            assertEquals("ITEM_SRC", r.getSourceTableName());
+            assertEquals("ITEM_SRC", r.getSourceEntityName());
             assertEquals("a", r.getSourceColumn());
         } finally {
             Locale.setDefault(original);
