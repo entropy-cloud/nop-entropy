@@ -37,14 +37,14 @@
 | N4.1 | 搜索引擎默认装配 + 端到端验证(执行中发现并修复 Lucene topic 守卫缺陷——连字符 topic 致引擎同步静默全灭) | Fix | search-integration(头部状态) | P0#2(nop-search 集成收口) | done(2026-09-28,plan `ai-dev/plans/nop-code/14-n4-1-search-engine-default-assembly.md`) |
 | N4.2 | 向量嵌入生产实现(`ITextEmbedding`) | Fix | search-integration(向量嵌入节);01-baseline §6.2(nop-search 向量/混合) | P1#13 | todo |
 | N4.3 | 混合搜索 RRF(`SearchType.HYBRID`) | Fix | search-integration(TEXT→HYBRID 切换,k=60) | P0#2(混合面) | todo |
-| N5.1 | TypeScript 调用图补全 | Fix | 01-baseline §6.1(TS 暂无调用图);README(实现状态) | P2#10(语言能力面) | tdone(2026-09-28,plan `ai-dev/plans/nop-code/15-n5-1-typescript-call-graph.md`) |
-| N5.2 | 框架适配迁出核心(SPI 装配) | Fix | 00-vision 约束9/不变量10;flow-analysis §一(框架模式注册:目标 IoC 注册 vs 现状硬编码);01-baseline §4.5/§6.2 | P1(框架路由感知的架构化) | tdone(2026-09-28,plan `ai-dev/plans/nop-code/16-n5-2-framework-adapter-externalization.md`) |
-| N5.3 | DSL 驱动框架适配器 | Fix | 00-vision 约束9(DSL 为远期选项);01-baseline §6.2 | P2#15 | tdone(2026-09-28,plan `ai-dev/plans/nop-code/17-n5-3-dsl-driven-framework-adapter.md`) |
+| N5.1 | TypeScript 调用图补全 | Fix | 01-baseline §6.1(TS 暂无调用图);README(实现状态) | P2#10(语言能力面) | done(2026-09-28,plan `ai-dev/plans/nop-code/15-n5-1-typescript-call-graph.md`) |
+| N5.2 | 框架适配迁出核心(SPI 装配) | Fix | 00-vision 约束9/不变量10;flow-analysis §一(框架模式注册:目标 IoC 注册 vs 现状硬编码);01-baseline §4.5/§6.2 | P1(框架路由感知的架构化) | done(2026-09-28,plan `ai-dev/plans/nop-code/16-n5-2-framework-adapter-externalization.md`) |
+| N5.3 | DSL 驱动框架适配器 | Fix | 00-vision 约束9(DSL 为远期选项);01-baseline §6.2 | P2#15 | done(2026-09-28,plan `ai-dev/plans/nop-code/17-n5-3-dsl-driven-framework-adapter.md`) |
 | N5.4 | Go 语言扩展 | Fix | 00-vision §六决策点1(新增语言需人工评估,roadmap 已裁决吸收) | P1#9(10+ 语言的 +3 子集);P1#10 | todo |
 | N5.5 | Rust 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
 | N5.6 | C# 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
-| N6.1 | 数据库图后端选型决策 | Decision | 01-baseline §4.4.1(ltree/CTE/AGE 开放决策);00-vision §一(待决策) | P1#7 | tdone(2026-09-28,plan `ai-dev/plans/nop-code/18-n6-1-graph-db-backend-decision.md`;裁定=可移植 SQL CTE,拒绝 ltree/AGE/外部图库) |
-| N6.2 | `IGraph` 数据库实现 | Fix | 01-baseline §4.4.1(未来数据库实现行)/§6.2 | P1#7 | todo |
+| N6.1 | 数据库图后端选型决策 | Decision | 01-baseline §4.4.1(ltree/CTE/AGE 开放决策);00-vision §一(待决策) | P1#7 | done(2026-09-28,plan `ai-dev/plans/nop-code/18-n6-1-graph-db-backend-decision.md`;裁定=可移植 SQL CTE,拒绝 ltree/AGE/外部图库) |
+| N6.2 | `IGraph` 数据库实现 | Fix | 01-baseline §4.4.1(未来数据库实现行)/§6.2 | P1#7 | done(2026-09-28,plan `ai-dev/plans/nop-code/19-n6-2-db-igraph-backend.md`;点查四表+有界遍历,与内存后端逐项等价) |
 | N6.3 | 集群索引构建——分发与工作区 | Fix | 00-vision §一(集群索引目标);01-baseline §6.2(源码分发/分片/原子发布) | P1#6 | todo |
 | N6.4 | 集群索引构建——原子发布与一致性模型 | Fix | 同 N6.3 | P1#6 | todo |
 | N6.5 | 多租户隔离与访问控制(ask-first) | Fix | —(集群化衍生安全面,`allowedLocalRoot` 细化) | — | todo |
