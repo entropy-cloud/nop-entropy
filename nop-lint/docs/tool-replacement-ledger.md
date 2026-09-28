@@ -20,7 +20,7 @@
 | PMD 7.26.0 | replaced-partial | ImplicitSwitchFallThrough deferred 面（机制缺口）+ report-only 接线保留 | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md) | 4 |
 | check-\*.mjs ×24 | 待裁 | — | — | 5 |
 | SpotBugs 4.9.8.3 | keep-tool | 字节码专属面 out-of-principle（全 pattern 目录 HC1）；风格/边缘面 out-of-purpose（排除后实际触发极低）；1 处 RCN 命中不立项 | [实跑记录](./checkstyle-pmd-migration.md) §4.3 | 9–11 |
-| SonarQube | 待裁 | — | — | 12–14 |
+| SonarQube | replaced-partial | 跨过程 taint/hotspot not-replaceable（HC1 跨过程源码分析）+ 覆盖率面 out-of-scope（JaCoCo）+ 工作流面 out-of-scope（主动触发） | [root pom 属性组](../../pom.xml) | 12–14 |
 | ErrorProne（未接线） | 待裁 | — | — | 15–16 |
 | NullAway / 空类型系统族 | 待裁 | — | — | 17 |
 | ArchUnit | 待裁 | — | — | 18 |
@@ -42,7 +42,7 @@
 | PMD 7.26.0 | core / out-of-purpose | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md)（core 7 行承接对照零 diff + 风格 1 行归档 + deferred 1 行机制缺口未入库） | ImplicitSwitchFallThrough 表达力具备时（机制缺口）；风格面入 mandate 或对照被推翻 | replaced-partial |
 | check-\*.mjs ×24 | 待裁 | — | — | 待裁 |
 | SpotBugs 4.9.8.3 | out-of-principle / out-of-purpose | 字节码级分析器（HC1 纯源码原则——核心面判定依赖 class-file 信息，超出 per-file 引擎问题域）；排除后实际触发极低 | 实跑记录 plan 24 | keep-tool |
-| SonarQube | 待裁 | — | — | 待裁 |
+| SonarQube | core / out-of-scope | [root pom 属性组](../../pom.xml)（Sonar 默认规则集与 nop-lint 高度重叠→部分承接；taint/hotspot = 跨过程原则外；覆盖率/工作流 = out-of-scope） | 纯源码原则被推翻时 | replaced-partial |
 | ErrorProne（未接线） | 待裁 | — | — | 待裁 |
 | NullAway / 空类型系统族 | 待裁 | — | — | 待裁 |
 | ArchUnit | 待裁 | — | — | 待裁 |

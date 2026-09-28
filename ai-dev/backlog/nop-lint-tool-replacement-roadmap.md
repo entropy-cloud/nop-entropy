@@ -77,9 +77,9 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 4 — SonarQube（产品级工具拆解裁定）
 
-- 12. 使用面拆解：盘点 `sonar.*` 属性与实际触发方式，回答"本仓库从 Sonar 实际消费什么"——拆成 [核心缺陷发现面 / 覆盖率面 / 平台工作流面] 三份清单: `todo` — deps: 1
-- 13. 核心缺陷发现面对照：以本仓库实跑 Sonar 的发现集为语料（**限实际消费面，不做全量 sonar-java 规则映射**），抽样对照 nop-lint 覆盖 manifest + 缺口归因（可表达未落地 / 机制缺口 / out-of-purpose / out-of-principle）: `todo` — deps: 12
-- 14. 终裁：taint/hotspot 面（跨过程源码分析，当前引擎范围外）落正式 not-replaceable 记录 + 重估触发；覆盖率/工作流面 out-of-scope；规则发现面按 13 的对照数据裁 keep-tool 或 replaced-partial: `todo` — deps: 13
+- 12. 使用面拆解：盘点 `sonar.*` 属性与实际触发方式，回答"本仓库从 Sonar 实际消费什么"——拆成 [核心缺陷发现面 / 覆盖率面 / 平台工作流面] 三份清单: `planned`（plan: ai-dev/plans/nop-lint/25-sonar-triax-adjudication.md） — deps: 1
+- 13. 核心缺陷发现面对照：以本仓库实跑 Sonar 的发现集为语料（**限实际消费面，不做全量 sonar-java 规则映射**），抽样对照 nop-lint 覆盖 manifest + 缺口归因（可表达未落地 / 机制缺口 / out-of-purpose / out-of-principle）: `planned`（合并至 plan 25） — deps: 12
+- 14. 终裁：taint/hotspot 面（跨过程源码分析，当前引擎范围外）落正式 not-replaceable 记录 + 重估触发；覆盖率/工作流面 out-of-scope；规则发现面按 13 的对照数据裁 keep-tool 或 replaced-partial: `planned`（合并至 plan 25） — deps: 13
 - ★ **Milestone MT3b: 平台系工具分面裁定完成**
 
 ### Wave 5 — ErrorProne 与类型系工具（未接线，adopt-or-skip）
