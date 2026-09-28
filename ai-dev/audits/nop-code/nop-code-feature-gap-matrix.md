@@ -47,7 +47,7 @@
 | N6.2 | `IGraph` 数据库实现 | Fix | 01-baseline §4.4.1(未来数据库实现行)/§6.2 | P1#7 | done(2026-09-28,plan `ai-dev/plans/nop-code/19-n6-2-db-igraph-backend.md`;点查四表+有界遍历,与内存后端逐项等价) |
 | N6.3 | 集群索引构建——分发与工作区 | Fix | 00-vision §一(集群索引目标);01-baseline §6.2(源码分发/分片/原子发布) | P1#6 | done(2026-09-28,plan `ai-dev/plans/nop-code/20-n6-3-cluster-sharding-workspace.md`;分片/工作区/分片执行三基座+并集等价) |
 | N6.4 | 集群索引构建——原子发布与一致性模型 | Fix | 同 N6.3 | P1#6 | done(2026-09-28,plan `ai-dev/plans/nop-code/21-n6-4-atomic-publish-consistency.md`;ledger+发布点同事务,一致性文档) |
-| N6.5 | 多租户隔离与访问控制(ask-first) | Fix | —(集群化衍生安全面,`allowedLocalRoot` 细化) | — | todo |
+| N6.5 | 多租户隔离与访问控制(ask-first) | Fix | —(集群化衍生安全面,`allowedLocalRoot` 细化) | — | done(2026-09-28,plan `ai-dev/plans/nop-code/22-n6-5-multi-tenant-access-control.md`;ask-first 已确认,action-auth 零改动) |
 | N7.1 | 语义边 LLM 增强 | Fix | semantic-edge §4.3(`LlmSemanticExtractor`/异步/成本预算/SHA256 缓存/`requiresLlm()`);01-baseline §6.2;00-vision §二#4 | P2#18 | todo |
 | N7.2 | GraphRAG 集成契约裁定 | Decision | —(对外集成面;`knowledge-rag-roadmap.md` 未就绪则保持 todo) | P2#17 | todo |
 | N8.1 | 评测框架(任务级指标 + JMH 构建性能) | Fix | —(工具自身质量度量) | P2#20 | todo |

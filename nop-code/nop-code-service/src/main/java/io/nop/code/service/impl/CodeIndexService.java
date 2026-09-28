@@ -218,6 +218,26 @@ public class CodeIndexService implements ICodeIndexService {
 
     protected IFingerprintStore fingerprintStore;
 
+    // N6.5: per-index access policy — enforced at every ICodeIndexService public entry;
+    // default permissive (backward compatible), deployment injects the tenant policy.
+    private io.nop.code.service.cluster.IndexAccessPolicy accessPolicy =
+            io.nop.code.service.cluster.PermissiveIndexAccessPolicy.INSTANCE;
+
+    @Inject
+    public void setAccessPolicy(@Nullable io.nop.code.service.cluster.IndexAccessPolicy accessPolicy) {
+        this.accessPolicy = accessPolicy != null
+                ? accessPolicy
+                : io.nop.code.service.cluster.PermissiveIndexAccessPolicy.INSTANCE;
+    }
+
+    private void checkReadAccess(String indexId) {
+        accessPolicy.checkReadAccess(indexId);
+    }
+
+    private void checkWriteAccess(String indexId) {
+        accessPolicy.checkWriteAccess(indexId);
+    }
+
     public void setFingerprintStore(IFingerprintStore fingerprintStore) {
         this.fingerprintStore = fingerprintStore;
     }
@@ -319,11 +339,12 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
+        checkWriteAccess(indexId);
         validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
         return withIndexLock(indexId, () -> {
             String resolvedPath = resolveVfsPath(vfsPath);
-            validateLocalPath(resolvedPath);
+            validateLocalPath(indexId, resolvedPath);
             ProjectAnalysisResult result = analyzer.analyzeProject(
                     VirtualFileSystem.instance(), resolvedPath, filePattern,
                     batch -> {});
@@ -350,6 +371,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public CodeFileAnalysisResult indexFile(String indexId, String filePath, String sourceCode) {
+        checkWriteAccess(indexId);
         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(filePath);
         if (fileAnalyzer == null) {
             throw new NopException(ERR_NO_ANALYZER_FOR_FILE).param(ARG_INDEX_ID, indexId).param(ARG_FILE_PATH, filePath);
@@ -404,6 +426,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public io.nop.code.api.dto.IndexFileSetResult indexFileSet(String indexId, String vfsPath,
                                                                List<String> relativePaths) {
+        checkWriteAccess(indexId);
         validatePath(vfsPath);
         invalidateAnalysisCache(indexId);
         io.nop.code.api.dto.IndexFileSetResult result = new io.nop.code.api.dto.IndexFileSetResult();
@@ -470,54 +493,63 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<CodeFileAnalysisResult> getFiles(String indexId) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFiles(indexId);
     }
 
     @Override
     public CodeFileAnalysisResult getFile(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFile(indexId, filePath);
     }
 
     @Override
     public String getFileSourceCode(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFileSourceCode(indexId, filePath);
     }
 
     @Override
     public List<CodeSymbol> getFileSymbols(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFileSymbols(indexId, filePath);
     }
 
     @Override
     public List<CodeSymbol> getFileTypes(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFileTypes(indexId, filePath);
     }
 
     @Override
     public FileOutlineDTO getFileOutline(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFileOutline(indexId, filePath);
     }
 
     @Override
     public List<FileTreeNode> getFileTree(String indexId) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getFileTree(indexId);
     }
 
     @Override
     public List<ModuleDigestDTO> getModuleDigest(String indexId, String dirPath, boolean includePrivate) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getModuleDigest(indexId, dirPath, includePrivate);
     }
 
     @Override
     public List<PublicAPIDTO> getPublicSurface(String indexId, String dirPath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getPublicSurface(indexId, dirPath);
     }
@@ -526,12 +558,14 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public CodeSymbol getSymbolById(String indexId, String symbolId) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getSymbolById(indexId, symbolId);
     }
 
     @Override
     public CodeSymbol findSymbolByQualifiedName(String indexId, String qualifiedName) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findSymbolByQualifiedName(indexId, qualifiedName);
     }
@@ -539,6 +573,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public List<CodeSymbol> findSymbols(String indexId, String query, List<CodeSymbolKind> kinds,
                                         String packageName, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findSymbols(indexId, query, kinds, packageName, limit);
     }
@@ -546,30 +581,35 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public PageBean<CodeSymbol> findSymbolsPage(String indexId, String query, List<CodeSymbolKind> kinds,
                                                  String packageName, long offset, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findSymbolsPage(indexId, query, kinds, packageName, offset, limit);
     }
 
     @Override
     public List<CodeAnnotationUsage> getSymbolUsages(String indexId, String symbolId, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getSymbolUsages(indexId, symbolId, limit);
     }
 
     @Override
     public List<ReferenceDTO> findReferencedBy(String indexId, String qualifiedName, String kind, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findReferencedBy(indexId, qualifiedName, kind, limit);
     }
 
     @Override
     public String getSymbolSourceCode(String indexId, String symbolId, int linesBefore, int linesAfter) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getSymbolSourceCode(indexId, symbolId, linesBefore, linesAfter);
     }
 
     @Override
     public SymbolSourceDTO showSymbolSource(String indexId, String qualifiedName, boolean includeBody) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.showSymbolSource(indexId, qualifiedName, includeBody);
     }
@@ -578,12 +618,14 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public TypeOutlineDTO getTypeOutline(String indexId, String qualifiedName) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.getTypeOutline(indexId, qualifiedName);
     }
 
     @Override
     public List<TypeOutlineDTO> batchGetTypeOutlines(String indexId, List<String> qualifiedNames) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.batchGetTypeOutlines(indexId, qualifiedNames);
     }
@@ -591,6 +633,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public List<CodeSearchResultDTO> searchCode(String indexId, String query, String searchType,
                                                  String language, String filePattern, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return searchService.searchCode(indexId, query, searchType, language, filePattern, limit);
     }
@@ -600,6 +643,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public TypeHierarchyDTO getTypeHierarchy(String indexId, String qualifiedName,
                                              String direction, int maxDepth) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getTypeHierarchy(indexId, qualifiedName, direction, maxDepth);
     }
@@ -607,6 +651,7 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public CallHierarchyDTO getCallHierarchy(String indexId, String qualifiedName,
                                              String direction, int maxDepth) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getCallHierarchy(indexId, qualifiedName, direction, maxDepth);
     }
@@ -615,6 +660,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public IndexStatsDTO getIndexStats(String indexId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) {
             IndexStatsDTO stats = new IndexStatsDTO();
             stats.setIndexId(indexId);
@@ -669,6 +715,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void materializeGraphMetrics(String indexId) {
+        checkWriteAccess(indexId);
         ensureSubServices();
         graphMetricMaterializer.materialize(indexId);
     }
@@ -676,18 +723,21 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public List<io.nop.code.api.dto.SurprisingConnectionDTO> getSurprisingConnections(String indexId, int topN,
                                                                                       Integer minScore) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getSurprisingConnections(indexId, topN, minScore);
     }
 
     @Override
     public List<io.nop.code.api.dto.ExplorationQuestionDTO> getExplorationQuestions(String indexId, int topN) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getExplorationQuestions(indexId, topN);
     }
 
     @Override
     public List<String> getLastIncrementalAffectedFiles(String indexId) {
+        checkReadAccess(indexId);
         List<String> snapshot = incrementalAffectedFilesMap.get(indexId);
         return snapshot != null ? new ArrayList<>(snapshot) : new ArrayList<>();
     }
@@ -696,6 +746,7 @@ public class CodeIndexService implements ICodeIndexService {
     public io.nop.code.api.dto.RebuildFromCommitResult triggerRebuildFromCommit(String indexId, String projectPath,
                                                                                 String baselineCommitish,
                                                                                 String targetCommitish) {
+        checkWriteAccess(indexId);
         io.nop.code.api.dto.RebuildFromCommitResult result = new io.nop.code.api.dto.RebuildFromCommitResult();
         long now = System.currentTimeMillis();
         Long last = rebuildDebounceMap.get(indexId);
@@ -818,12 +869,14 @@ public class CodeIndexService implements ICodeIndexService {
     @Override
     public io.nop.code.api.dto.GraphWikiDTO exportGraphWiki(String indexId, Integer maxCommunities,
                                                             Integer maxHubNodes) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.exportGraphWiki(indexId, maxCommunities, maxHubNodes);
     }
 
     @Override
     public void deleteIndex(String indexId) {
+        checkWriteAccess(indexId);
         withIndexLock(indexId, () -> {
             invalidateAnalysisCache(indexId);
 
@@ -914,66 +967,78 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public CommunityDetectionResultDTO detectCommunities(String indexId) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.detectCommunities(indexId);
     }
 
     @Override
     public GraphAnalysisResultDTO getGraphAnalysis(String indexId, int topN) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getGraphAnalysis(indexId, topN);
     }
 
     @Override
     public ImpactResultDTO getImpactAnalysis(String indexId, String symbolId, int depth) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getImpactAnalysis(indexId, symbolId, depth);
     }
 
     @Override
     public CriticalNodeResultDTO getCriticalNodes(String indexId, int topN) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getCriticalNodes(indexId, topN);
     }
 
     @Override
     public KnowledgeGapResultDTO getKnowledgeGaps(String indexId) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getKnowledgeGaps(indexId);
     }
 
     @Override
     public String exportGraph(String indexId, String format, boolean communityView) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.exportGraph(indexId, format, communityView);
     }
 
     @Override
     public GraphDiffDTO diffGraph(String baselineIndexId, String targetIndexId) {
+        checkReadAccess(baselineIndexId);
+        checkReadAccess(targetIndexId);
         ensureSubServices();
         return graphService.diffGraph(baselineIndexId, targetIndexId);
     }
 
     @Override
     public DepGraphDTO getDeps(String indexId, String filePath, int depth) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getDeps(indexId, filePath, depth);
     }
 
     @Override
     public DepGraphDTO getReverseDeps(String indexId, String filePath, int depth, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getReverseDeps(indexId, filePath, depth, limit);
     }
 
     @Override
     public List<List<String>> findCycles(String indexId, int minSize) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.findCycles(indexId, minSize);
     }
 
     @Override
     public DepGraphDTO getDepGraph(String indexId, boolean includeExternal) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.getDepGraph(indexId, includeExternal);
     }
@@ -982,10 +1047,11 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public int triggerIncrementalIndex(String indexId, String vfsPath, String manifestPath) {
+        checkWriteAccess(indexId);
         validatePath(vfsPath);
         IResource rootResource = VirtualFileSystem.instance().getResource(vfsPath);
         if (rootResource.isDirectory()) {
-            validateLocalPath(vfsPath);
+            validateLocalPath(indexId, vfsPath);
         }
         // NOTE: no invalidation here — a no-op incremental (0 changes) must keep the analysis
         // cache and materialized metric rows; the actual-change branch invalidates at its end.
@@ -1124,6 +1190,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public PageBean<CodeFileAnalysisResult> findFilesPage(String indexId, String packageName, long offset, int limit) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findFilesPage(indexId, packageName, offset, limit);
     }
@@ -2441,6 +2508,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<ExecutionFlow> detectFlows(String indexId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return Collections.emptyList();
 
         SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
@@ -2460,6 +2528,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<ExecutionFlow> listFlows(String indexId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return Collections.emptyList();
 
         IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
@@ -2475,6 +2544,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public ExecutionFlow getFlow(String indexId, String flowId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return null;
 
         IEntityDao<NopCodeFlow> flowDao = daoProvider.daoFor(NopCodeFlow.class);
@@ -2502,6 +2572,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<ExecutionFlow> getAffectedFlows(String indexId, List<String> changedFilePaths) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return Collections.emptyList();
 
         IFlowDetector detector = flowDetector;
@@ -2514,6 +2585,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public ChangeAnalysisResult analyzeChanges(String indexId, String baselineCommitish, String targetCommitish) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return null;
 
         SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
@@ -2536,6 +2608,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public DeadCodeReport detectDeadCode(String indexId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return null;
 
         SymbolTable symbolTable = getOrRebuildSymbolTable(indexId);
@@ -2615,18 +2688,21 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<CodeSymbol> findByAnnotation(String indexId, String annotationName) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findByAnnotation(indexId, annotationName);
     }
 
     @Override
     public List<CodeSymbol> findImplementations(String indexId, String qualifiedName, boolean directOnly, int maxDepth) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return queryService.findImplementations(indexId, qualifiedName, directOnly, maxDepth);
     }
 
     @Override
     public List<String> findDependentFiles(String indexId, String filePath) {
+        checkReadAccess(indexId);
         ensureSubServices();
         return graphService.findDependentFiles(indexId, filePath);
     }
@@ -2635,6 +2711,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void batchSaveFileRecords(String indexId, List<FileFingerprint> fingerprints) {
+        checkWriteAccess(indexId);
         if (daoProvider == null || fingerprints == null || fingerprints.isEmpty()) return;
 
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
@@ -2671,6 +2748,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public List<FileFingerprint> batchLoadFileRecords(String indexId) {
+        checkReadAccess(indexId);
         if (daoProvider == null) return new ArrayList<>();
 
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
@@ -2709,6 +2787,7 @@ public class CodeIndexService implements ICodeIndexService {
 
     @Override
     public void batchDeleteFileRecords(String indexId, List<String> filePaths) {
+        checkWriteAccess(indexId);
         // Wrap in a transaction+session (under the per-index lock) so the paged load/delete inside
         // deleteFileRecords shares one ORM session — entities loaded by findAllByQuery must belong
         // to the session that later deletes them. The other deleteFileRecords callers already wrap
@@ -2821,27 +2900,35 @@ public class CodeIndexService implements ICodeIndexService {
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
     }
 
-    private void validateLocalPath(String path) {
+    private void validateLocalPath(String indexId, String path) {
+        String perIndexRoot = accessPolicy.getAllowedLocalRoot(indexId);
+        validateLocalPathAgainstRoot(perIndexRoot != null && !perIndexRoot.isEmpty() ? perIndexRoot : allowedLocalRoot,
+                path);
+    }
+
+    private void validateLocalPathAgainstRoot(String localRoot, String path) {
         if (path == null || path.isEmpty())
             return;
-        if (path.contains(".."))
+        // N2.4 quirk: VFS paths arrive in file: URI form — normalize before the root check,
+        // otherwise the whole check is silently bypassed for incremental-style callers
+        String normalized = path.startsWith("file:") ? path.substring("file:".length()) : path;
+        if (normalized.contains(".."))
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
-        if (path.startsWith("/") || (path.length() >= 2 && path.charAt(1) == ':')) {
-            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
-        }
-        java.io.File localFile = new java.io.File(path);
-        if (localFile.isDirectory()) {
-            if (allowedLocalRoot != null && !allowedLocalRoot.isEmpty()) {
-                try {
-                    String canonical = localFile.toPath().toRealPath().toString();
-                    String allowedCanonical = new java.io.File(allowedLocalRoot).toPath().toRealPath().toString();
-                    if (!canonical.startsWith(allowedCanonical)) {
-                        throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
-                    }
-                } catch (IOException e) {
-                    throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
-                }
+        boolean absoluteLike = normalized.startsWith("/")
+                || (normalized.length() >= 2 && normalized.charAt(1) == ':');
+        java.io.File localFile = new java.io.File(normalized);
+        if (!absoluteLike || !localFile.isDirectory())
+            return; // relative and non-directory paths are out of the root-check scope
+        if (localRoot == null || localRoot.isEmpty())
+            return; // no root configured: allow (global default semantics)
+        try {
+            String canonical = localFile.toPath().toRealPath().toString();
+            String allowedCanonical = new java.io.File(localRoot).toPath().toRealPath().toString();
+            if (!canonical.startsWith(allowedCanonical)) {
+                throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path);
             }
+        } catch (IOException e) {
+            throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
         }
     }
 

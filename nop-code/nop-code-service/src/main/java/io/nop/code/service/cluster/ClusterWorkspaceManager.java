@@ -26,6 +26,11 @@ public class ClusterWorkspaceManager {
 
     private final String workspaceRoot;
     private final ConcurrentHashMap<String, ReentrantLock> repoLocks = new ConcurrentHashMap<>();
+    private GitCredentialResolver credentialResolver;
+
+    public void setCredentialResolver(GitCredentialResolver credentialResolver) {
+        this.credentialResolver = credentialResolver;
+    }
 
     public ClusterWorkspaceManager(String workspaceRoot) {
         if (workspaceRoot == null || workspaceRoot.isEmpty()) {
@@ -76,7 +81,10 @@ public class ClusterWorkspaceManager {
             } catch (IOException e) {
                 throw new IllegalStateException("cannot create workspace parent: " + workspace.getParent(), e);
             }
-            git(Path.of(workspaceRoot), "clone", repoDir.getAbsolutePath(), workspace.toString());
+            GitCredentialResolver.GitCredential credential =
+                    credentialResolver != null ? credentialResolver.resolve(repoDir.getAbsolutePath()) : null;
+            gitWithCredential(Path.of(workspaceRoot), credential, "clone",
+                    repoDir.getAbsolutePath(), workspace.toString());
             git(workspace, "checkout", revision);
             String head = gitOutput(workspace, "rev-parse", "HEAD");
             LOG.info("nop.code.cluster.workspace-created:repo={},revision={},head={}", repoName, revision, head);
@@ -111,8 +119,58 @@ public class ClusterWorkspaceManager {
         }
     }
 
-    private static void git(Path workdir, String... args) {
-        gitOutput(workdir, args);
+    private void git(Path workdir, String... args) {
+        gitWithCredential(workdir, null, args);
+    }
+
+    /**
+     * N6.5: credentials travel through the process environment (GIT_ASKPASS contract via
+     * GIT_HTTP_LOWAUTH_X placeholders is avoided — we use the env-only channel so the
+     * credential never appears in command-line arguments or logs).
+     */
+    private void gitWithCredential(Path workdir, GitCredentialResolver.GitCredential credential, String... args) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder();
+            java.util.List<String> command = new java.util.ArrayList<>();
+            command.add("git");
+            for (String arg : args) {
+                command.add(arg);
+            }
+            pb.command(command);
+            pb.directory(workdir.toFile());
+            if (credential != null) {
+                applyCredential(pb, credential);
+            }
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            boolean finished = process.waitFor(GIT_TIMEOUT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                throw new IllegalStateException("git command timed out");
+            }
+            if (process.exitValue() != 0) {
+                // note: output may contain git diagnostics — never the credential (env channel)
+                throw new IllegalStateException("git command failed (" + process.exitValue() + ")");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("git command io failure", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("git command interrupted", e);
+        }
+    }
+
+    /**
+     * N6.5: 凭据仅经进程环境变量传递（NOP_GIT_USERNAME/PASSWORD——部署方以 askpass helper
+     * 消费该约定），命令行参数与日志零泄漏。注意：环境变量通道本身对 git 是惰性的
+     * （git 原生不读取 NOP_GIT_*），认证由部署方的 credential helper 消费。
+     */
+    static void applyCredential(ProcessBuilder pb, GitCredentialResolver.GitCredential credential) {
+        pb.environment().put("NOP_GIT_USERNAME",
+                credential.getUsername() == null ? "" : credential.getUsername());
+        pb.environment().put("NOP_GIT_PASSWORD",
+                credential.getPassword() == null ? "" : credential.getPassword());
     }
 
     private static String gitOutput(Path workdir, String... args) {

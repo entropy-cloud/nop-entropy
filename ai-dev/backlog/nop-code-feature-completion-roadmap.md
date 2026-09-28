@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 21 · todo 18
+**汇总**：done 22 · todo 17
 
 ### M0 — 基线与文档-代码对齐
 
@@ -110,7 +110,7 @@ audit-rounds: 2
 | N6.2 `IGraph` 数据库实现（按 N6.1 决策实现第二 `IGraph` 后端，局部遍历下推）<br>（Deliverable: 代码 + 测试；deps: N6.1, N1.1；Item Type: Fix；plan `ai-dev/plans/nop-code/19-n6-2-db-igraph-backend.md`；有界遍历以逐跳点查形态落地） | done | N6.1, N1.1 |
 | N6.3 集群索引构建——分发与工作区（源码分发 / repo checkout 工作区 + 分片）<br>（Deliverable: 代码 + 测试；deps: N6.1；Item Type: Fix；plan `ai-dev/plans/nop-code/20-n6-3-cluster-sharding-workspace.md`） | done | N6.1 |
 | N6.4 集群索引构建——原子发布与一致性模型<br>（Deliverable: 代码 + 测试 + 一致性语义文档；deps: N6.3；Item Type: Fix；plan `ai-dev/plans/nop-code/21-n6-4-atomic-publish-consistency.md`） | done | N6.3 |
-| N6.5 多租户隔离与访问控制（per-index 源码访问控制、私有仓库凭据、`allowedLocalRoot` 细化为 per-index；**触碰 `nop-code-web` action-auth 资源面，权限模型边界 ask-first，plan 期显式裁定 + 人工确认**）<br>（Deliverable: 代码 + 测试；deps: N6.3；Item Type: Fix） | todo | N6.3 |
+| N6.5 多租户隔离与访问控制（per-index 源码访问控制、私有仓库凭据、`allowedLocalRoot` 细化为 per-index；**触碰 `nop-code-web` action-auth 资源面，权限模型边界 ask-first，plan 期显式裁定 + 人工确认**）<br>（Deliverable: 代码 + 测试；deps: N6.3；Item Type: Fix；plan `ai-dev/plans/nop-code/22-n6-5-multi-tenant-access-control.md`；用户 2026-09-28 已确认授权；裁定=action-auth 资源树零改动,策略 SPI 承载） | done | N6.3 |
 
 ### M7 — AI 效率与高级分析
 

@@ -43,6 +43,8 @@ Located in `nop-code-service`. Key methods:
 | `analyzeChanges`, `detectDeadCode` | Query | Change & dead code |
 | `searchCode` | Query | Full-text search (via `ISearchEngine`; engine path with Lucene when deployed — default in `nop-code-app`, DB-LIKE fallback otherwise) |
 
+> **访问控制（N6.5）**：`ICodeIndexService` 全部公共入口经 `IndexAccessPolicy` SPI 检查（读/写两类检查点，默认 Permissive 零行为变化）；per-index 本地路径白名单（`getAllowedLocalRoot`）与私有仓库凭据解析（`GitCredentialResolver`，env 通道零泄漏）由部署方注入策略对接租户系统。action-auth 资源树不受影响。
+
 ### Key BizModels
 
 - **NopCodeIndexBizModel** (`@BizModel("NopCodeIndex")`) — exposes `ICodeIndexService` as GraphQL/REST via `@BizQuery`/`@BizMutation`. Mutations require the `admin` role (`@Auth(roles = "admin")`); reads are authorized through action-auth resource permissions (`NopCodeIndex:query` etc., see `nop-code/nop-code-web/src/main/resources/_vfs/nop/code/auth/nop-code.action-auth.xml`).
