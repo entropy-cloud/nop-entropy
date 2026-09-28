@@ -126,7 +126,10 @@ function run() {
 function selfTest() {
   const rules = scanRules(RULES_ROOT);
   const generated = generateCatalog(rules);
-  if (rules.length !== 62) {
+  // facet review (roadmap item 2): 62 -> 58; item 3a (plan 17): +4 -> 62;
+  // item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 -> 69;
+  // item 7 (plan 23): +1 resource-leak v1 pilot -> 70
+  if (rules.length !== 70) {
     console.error('self-test expected the 62-rule library, found ' + rules.length);
     process.exit(2);
   }

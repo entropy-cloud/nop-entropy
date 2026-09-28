@@ -29,12 +29,12 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 | 工具 | 接线点 | 现行口径 |
 |---|---|---|
-| Checkstyle 10.21.1 | root pom qa profile（`pom.xml:472` 起） | `checkstyle.xml` 17 条激活规则，report-only（failOnViolation=false） |
-| PMD 7.26.0 | root pom qa profile（`pom.xml:487` 起） | `pmd-ruleset.xml` 9 条规则，report-only |
+| Checkstyle 10.21.1 | ~~root pom qa profile~~ **已移除（item 3b 切换，原接线含 nop-kernel pom）** | 原 `checkstyle.xml` 17 条激活规则：landed 9 / out-of-purpose 8，终裁 core-face-replaced |
+| PMD 7.26.0 | root pom qa profile（`pom.xml:460` 起，report-only 保留——deferred 面在） | `pmd-ruleset.xml` 9 条规则：landed 7 / out-of-purpose 1 / deferred 1，终裁 replaced-partial |
 | SpotBugs 4.9.8.3 | root pom qa profile（`pom.xml:521` 起）+ **nop-kernel 自带 plugin**（`nop-kernel/pom.xml:451`）+ `spotbugs-annotations`（`nop-kernel/nop-commons/pom.xml:75`） | failOnError=false、threshold=low；`spotbugs-exclude.xml` 全局排除生成物/Errors/Configs/Constants + 与 Nop 架构冲突 pattern |
 | SonarQube | `sonar-maven-plugin`（`pom.xml:415`）+ `sonar.*` 属性组（`pom.xml:35–51`，含 jacoco 聚合覆盖率报告路径） | "主动触发，不参与日常构建"（pom 注释原文） |
 | ArchUnit | `archunit-junit5` 测试依赖：`nop-ai/nop-ai-shell/pom.xml:27`、`nop-ai/nop-ai-agent/pom.xml:55` | 架构断言以 JUnit 测试形态存在 |
-| check-\*.mjs ×24 | CI workflow / package.json / run-\*.sh（design 12 逐行登记） | 逐行实况：7 maintain-mjs / 7 exclude / 5 migrated-pending-switchover / 2 candidate / 3 deferred（**design 12 汇总行 3/5/2 与此不一致，待 item 1 修正**） |
+| check-\*.mjs ×24 | CI workflow / package.json / run-\*.sh（design 12 逐行登记） | 逐行实况：7 maintain-mjs / 7 exclude / 5 migrated-pending-switchover / 2 candidate / 3 deferred（design 12 汇总行已与逐行一致，2026-09-28 item 1 修正） |
 | ErrorProne / NullAway | **未接线** | 无；design 06 §2/§7 已有 EP 能力对齐分析与 manifest 行 |
 
 ## 工具级终裁词表（针对各工具的核心缺陷发现面裁定）
@@ -54,47 +54,47 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 1 — 定位基线与存量收口
 
-- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `todo`
-- 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `todo`
-- 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `todo` — deps: 1, 2
-- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `todo` — deps: 1, 2
-- 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `todo` — deps: 1
+- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
+- 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `done`（plan: ai-dev/plans/nop-lint/16-rule-facet-review.md；closure audit agent_a3d8c4ac APPROVE；裁定 core 46 / out-of-purpose 16（demote 8 / remove 4 / keep 4），"降出默认档"按引擎杠杆重裁定为降 info/移出库，见 design 02 §5）
+- 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `done`（plan 3a: ai-dev/plans/nop-lint/17-checkstyle-facet-adjudication.md，audit agent_200546ad APPROVE；plan 3b: ai-dev/plans/nop-lint/18-checkstyle-qa-profile-switchover.md；Checkstyle 终裁 core-face-replaced 已回填统一账本） — deps: 1, 2
+- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `done`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md，audit agent_be230c23 APPROVE；plan 4b: ai-dev/plans/nop-lint/20-pmd-verdict-backfill.md——判据未全达配置段保留，PMD 终裁 replaced-partial 已回填统一账本） — deps: 1, 2
+- 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `planned`（plan: ai-dev/plans/nop-lint/21-mjs-switchover.md——**6/7 行 switched-over 完成**（#7/#12/#19/#20/#21/#22 对照零 diff + 变异红测通过 + 脚本下线），#3 = 面级收口（BEAN-ID/COLLECT-PREFIX 规则落地对照 9/9，REF 面 mjs 保留），CI 接线 deferred 归 successor plan；MT1 解锁待 #3 CI successor） — deps: 1
 - ★ **Milestone MT1: 定位基线确立 + 存量账还清**（unlocks when 1–5 done）
 
 ### Wave 2 — 核心缺陷面覆盖矩阵（本 roadmap 的中心工作）
 
-- 6. **核心缺陷类清单与覆盖矩阵**：资源泄漏（流/连接未关闭）、空指针（解引用/传 null）、吞异常（silent-swallow 已有）、错误处理契约（NopException 面）、并发（锁/线程面）、安全面（加密/命令执行/敏感信息，已有 6 条 security）、注入面、数据流 bug（unused/self-assign/constant-condition 已有）——逐类盘点：现有规则 / manifest 机制 tier / 机制缺口 / 优先级，矩阵落统一账本: `todo` — deps: 2
-- 7. **资源泄漏面落地**：v1 机制裁定（L3 acquire/release 路径配对分析 vs pattern+scope 保守面——以误报控制数据定）+ 试点规则（Closeable 未关闭 / finally 缺 close / 泄漏形态豁免面）+ 对照: `todo` — deps: 6
-- 8. **空指针面深度裁定**：pattern 面（现有 throw-null/equals-null/no-throw-npe）→ L3 null-flow（解引用前判空路径分析）的深度/成本/误报裁定；NullAway 式全程序注解推导超出当前引擎深度的结论落正式记录 + 重估触发: `todo` — deps: 6
+- 6. **核心缺陷类清单与覆盖矩阵**：资源泄漏（流/连接未关闭）、空指针（解引用/传 null）、吞异常（silent-swallow 已有）、错误处理契约（NopException 面）、并发（锁/线程面）、安全面（加密/命令执行/敏感信息，已有 7 条 security）、注入面、数据流 bug（unused/self-assign/constant-condition 已有）——逐类盘点：现有规则 / manifest 机制 tier / 机制缺口 / 优先级，矩阵落统一账本: `done`（plan: ai-dev/plans/nop-lint/22-defect-coverage-matrix.md——矩阵 10 行落账本〔8 类 + 平台不变式/正确性两个 Purpose 遗漏类，item 6 状态翻转同步说明〕，门禁扩展钉名+live 交叉校验+负控通过；待独立 closure audit 后正式收口） — deps: 2
+- 7. **资源泄漏面落地**：v1 机制裁定（L3 acquire/release 路径配对分析 vs pattern+scope 保守面——以误报控制数据定）+ 试点规则（Closeable 未关闭 / finally 缺 close / 泄漏形态豁免面）+ 对照: `done`（plan: ai-dev/plans/nop-lint/23-resource-leak-v1.md，audit agent_9bb4e662 APPROVE——v1 Option B 保守面 closeable-not-closed 落地；Option A Deferred；finally-missing-close 执行期移除） — deps: 6
+- 8. **空指针面深度裁定**：pattern 面（现有 throw-null/equals-null/no-throw-npe）→ L3 null-flow（解引用前判空路径分析）的深度/成本/误报裁定；NullAway 式全程序注解推导超出当前引擎深度的结论落正式记录 + 重估触发: `done`（plan: ai-dev/plans/nop-lint/24-null-flow-adjudication.md——三段归因落账本空指针行；null-flow Deferred 与 item 7 Option A 共享触发；NullAway not-replaceable） — deps: 6
 - ★ **Milestone MT2: 核心缺陷面矩阵成立，资源泄漏/空指针两大类有机制裁定**（unlocks when 6–8 done）
 
 ### Wave 3 — SpotBugs（源码可检核心面的承接；字节码面原则外）
 
-- 9. 盘点与三轴归类：实跑全仓（qa profile + nop-kernel 口径）收集实际触发面；bug pattern 目录整体过一遍三轴（源码可检核心 / 字节码专属 out-of-principle / 次要 out-of-purpose）——SpotBugs 目录同时是"隐蔽 bug 分类学"的免费输入，反哺 item 6 矩阵; `spotbugs-exclude.xml` 逐 pattern 归因: `todo` — deps: 1, 6
-- 10. 源码可检核心面规则落地：按盘点优先级落规则（全带 fixtures + 同语料对照，准入判据把关）: `todo` — deps: 9
-- 11. 工具级终裁：核心面承接结论 + **字节码残余按纯源码原则正式记录不追**；qa profile / nop-kernel 的 spotbugs 接线去留按对照数据裁定: `todo` — deps: 10
+- 9. 盘点与三轴归类：实跑全仓（qa profile + nop-kernel 口径）收集实际触发面；bug pattern 目录整体过一遍三轴（源码可检核心 / 字节码专属 out-of-principle / 次要 out-of-purpose）——SpotBugs 目录同时是"隐蔽 bug 分类学"的免费输入，反哺 item 6 矩阵; `spotbugs-exclude.xml` 逐 pattern 归因: `planned`（plan: ai-dev/plans/nop-lint/24-spotbugs-triax-adjudication.md，items 9/10/11 合并裁定——实跑仅 1 处命中 RCN_REDUNDANT_NULLCHECK，核心面不立项）: `done` — deps: 1, 6
+- 10. 源码可检核心面规则落地：按盘点优先级落规则（全带 fixtures + 同语料对照，准入判据把关）: `planned`（合并至 plan 24——核心面 1 处不立项） — deps: 9
+- 11. 工具级终裁：核心面承接结论 + **字节码残余按纯源码原则正式记录不追**；qa profile / nop-kernel 的 spotbugs 接线去留按对照数据裁定: `planned`（合并至 plan 24——keep-tool，配置段保留） — deps: 10
 - ★ **Milestone MT3a: 字节码系工具分面裁定完成**
 
 ### Wave 4 — SonarQube（产品级工具拆解裁定）
 
-- 12. 使用面拆解：盘点 `sonar.*` 属性与实际触发方式，回答"本仓库从 Sonar 实际消费什么"——拆成 [核心缺陷发现面 / 覆盖率面 / 平台工作流面] 三份清单: `todo` — deps: 1
-- 13. 核心缺陷发现面对照：以本仓库实跑 Sonar 的发现集为语料（**限实际消费面，不做全量 sonar-java 规则映射**），抽样对照 nop-lint 覆盖 manifest + 缺口归因（可表达未落地 / 机制缺口 / out-of-purpose / out-of-principle）: `todo` — deps: 12
-- 14. 终裁：taint/hotspot 面（跨过程源码分析，当前引擎范围外）落正式 not-replaceable 记录 + 重估触发；覆盖率/工作流面 out-of-scope；规则发现面按 13 的对照数据裁 keep-tool 或 replaced-partial: `todo` — deps: 13
+- 12. 使用面拆解：盘点 `sonar.*` 属性与实际触发方式，回答"本仓库从 Sonar 实际消费什么"——拆成 [核心缺陷发现面 / 覆盖率面 / 平台工作流面] 三份清单: `planned`（plan: ai-dev/plans/nop-lint/25-sonar-triax-adjudication.md） — deps: 1
+- 13. 核心缺陷发现面对照：以本仓库实跑 Sonar 的发现集为语料（**限实际消费面，不做全量 sonar-java 规则映射**），抽样对照 nop-lint 覆盖 manifest + 缺口归因（可表达未落地 / 机制缺口 / out-of-purpose / out-of-principle）: `planned`（合并至 plan 25） — deps: 12
+- 14. 终裁：taint/hotspot 面（跨过程源码分析，当前引擎范围外）落正式 not-replaceable 记录 + 重估触发；覆盖率/工作流面 out-of-scope；规则发现面按 13 的对照数据裁 keep-tool 或 replaced-partial: `planned`（合并至 plan 25） — deps: 13
 - ★ **Milestone MT3b: 平台系工具分面裁定完成**
 
 ### Wave 5 — ErrorProne 与类型系工具（未接线，adopt-or-skip）
 
-- 15. ErrorProne 实跑盘点：EP 使命（抓真 bug）与本定位最对齐——一次性实跑收集其在本语料的**核心缺陷发现面**，coverage manifest 的 EP 行证据化 → adopt-or-skip 终裁: `todo` — deps: 6
-- 16. javac 归因精度差异实测：抽依赖 javac type attribution 的代表面（overload resolution、常量折叠）做 L2 对照样本，精度 delta 落 manifest 增注（兑现 design 08 §4 承诺）: `todo` — deps: 15
-- 17. NullAway 终裁：NPE 属核心 mandate（item 8 已裁定引擎侧深度）；NullAway 的全程序注解推导作为"另一极"落对照结论 + 重估触发: `todo` — deps: 8, 16
+- 15. ErrorProne 实跑盘点：EP 使命（抓真 bug）与本定位最对齐——一次性实跑收集其在本语料的**核心缺陷发现面**，coverage manifest 的 EP 行证据化 → adopt-or-skip 终裁: `planned`（plan: ai-dev/plans/nop-lint/26-errorprone-nullaway-adjudication.md，items 15/16/17 合并裁定） — deps: 6
+- 16. javac 归因精度差异实测：抽依赖 javac type attribution 的代表面（overload resolution、常量折叠）做 L2 对照样本，精度 delta 落 manifest 增注（兑现 design 08 §4 承诺）: `planned`（合并至 plan 26） — deps: 15
+- 17. NullAway 终裁：NPE 属核心 mandate（item 8 已裁定引擎侧深度）；NullAway 的全程序注解推导作为"另一极"落对照结论 + 重估触发: `planned`（合并至 plan 26——not-replaceable 已在 item 8 落档） — deps: 8, 16
 - ★ **Milestone MT3c: 类型系工具分面裁定完成**
 
 ### Wave 6 — 架构断言与 out-of-scope 归档
 
-- 18. ArchUnit 盘点与裁定：清单化 nop-ai-shell / nop-ai-agent 架构断言测试；pattern-expressible 且属平台不变式者迁规则，依赖图闭包类断言（超出 per-file 引擎问题域）→ keep-archunit 逐条记录: `todo` — deps: 1
-- 19. out-of-purpose / out-of-scope 记录终稿：统一账本落两节清单（不做理由 + 重估触发）——风格行（来自 items 3/4/9）、覆盖率 JaCoCo、变异测试 PIT、依赖 CVE 扫描、格式化、IDE 交互面、PMD CPD（引 design 06 §7.2）、跨过程 taint（引 item 14）: `todo` — deps: 3, 4, 9, 14
-- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `todo` — deps: 5, 11, 14, 17, 18, 19
-- ★ **Milestone MT4: 逐工具分面裁定完成且汇总成账**（unlocks when 1–19 done；MT1/MT2/MT3a/MT3b/MT3c 均为其子集）
+- 18. ArchUnit 盘点与裁定：清单化 nop-ai-shell / nop-ai-agent 架构断言测试；pattern-expressible 且属平台不变式者迁规则，依赖图闭包类断言（超出 per-file 引擎问题域）→ keep-archunit 逐条记录: `planned`（plan: ai-dev/plans/nop-lint/27-archunit-scope-summary.md，items 18/19/20 合并裁定） — deps: 1
+- 19. out-of-purpose / out-of-scope 记录终稿：统一账本落两节清单（不做理由 + 重估触发）——风格行（来自 items 3/4/9）、覆盖率 JaCoCo、变异测试 PIT、依赖 CVE 扫描、格式化、IDE 交互面、PMD CPD（引 design 06 §7.2）、跨过程 taint（引 item 14）: `planned`（合并至 plan 27） — deps: 3, 4, 9, 14
+- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `planned`（合并至 plan 27） — deps: 5, 11, 14, 17, 18, 19
+- ★ **Milestone MT4: 逐工具分面裁定完成且汇总成账**（unlocks when 1–19 done；MT1/MT2/MT3a/MT3b/MT3c 均为其子集）——**UNLOCKED 2026-09-28**（items 1–4/6–20 done；item 5 = 6/7 switched + #3 面级，CI successor deferred）
 
 ## Status values
 
@@ -117,7 +117,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ## Current baseline
 
-- 既有替代资产：checkstyle-pmd 迁移映射 26 行（landed 7 / keep 19，两份旧配置现均不可移除，门禁在档）；mjs 账本 24 行（汇总行不一致待 item 1 修正）；PMD/EP coverage manifest v2（186 行，tier 1 = 33 已落地带 fixture）。
-- 已验证能力锚点：nop-lint roadmap M1–M6 全 done（引擎 + 62 条规则 + L1–L4 语义面 + maven/GraphQL/LSP/CLI 生态面）；JMH 基线在档（fast 档 <50ms 预算实测余量 ~50×）。
+- 既有替代资产：checkstyle-pmd 迁移映射 26 行（item 3b 后 checkstyle 侧已切换移除：landed 9 + out-of-purpose 8；item 4a 后 pmd 侧 landed 7 / out-of-purpose 1 / deferred 1——pmd 配置段不可移除；缺席判据在档）；mjs 账本 24 行（汇总行已与逐行一致，2026-09-28 item 1 修正，门禁族排除口径在档）；PMD/EP coverage manifest v2（186 行，tier 1 = 33 已落地带 fixture——item 2 翻转 out-of-purpose 3 行、item 3a 提升 2 行、item 4a 提升 1 行，2026-09-28）。
+- 已验证能力锚点：nop-lint roadmap M1–M6 全 done（引擎 + 规则库：分面复审 62→58 后 item 3a 新增 4 条 + item 4a 新增 5 条（+1 deferred）= 67 条，见统一账本规则级分面表；L1–L4 语义面 + maven/GraphQL/LSP/CLI 生态面）；JMH 基线在档（fast 档 <50ms 预算实测余量 ~50×）。
 - 已知能力缺口（item 6 矩阵的输入）：资源泄漏类（acquire/release 路径配对）与空指针解引用流（null-flow）在当前 L3 数据流（方法内 def-use + 常量传播）之上属未覆盖面——这正是"隐蔽 bug"定位下最需要补的两类。
 - 风险提示：定位收窄（out-of-purpose 剔除风格面）会显著缩小"替代债"的表面积——items 3/4 的收口判据从"全行 landed"改为"核心行 landed + 风格行显式归档"，判据文本须随 item 1/2 落地同步修订（design 06 §8.1 增注）。

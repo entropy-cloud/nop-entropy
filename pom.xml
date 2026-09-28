@@ -70,12 +70,7 @@
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <artifactory-maven-plugin.version>2.2.1</artifactory-maven-plugin.version>
         <license-maven-plugin.version>1.16</license-maven-plugin.version>
-        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
         <disable.checks>false</disable.checks>
-        <maven-checkstyle-plugin.failsOnError>true</maven-checkstyle-plugin.failsOnError>
-        <maven-checkstyle-plugin.failOnViolation>true</maven-checkstyle-plugin.failOnViolation>
-        <maven-checkstyle-plugin.includeTestSourceDirectory>true</maven-checkstyle-plugin.includeTestSourceDirectory>
-        <spring-cloud-build-checkstyle.branch>master</spring-cloud-build-checkstyle.branch>
 
         <antelopetasks.version>3.2.10</antelopetasks.version>
         <ant-nodeps.version>1.8.1</ant-nodeps.version>
@@ -134,15 +129,11 @@
                 </executions>
             </plugin>
 
-            <!-- Checkstyle 代码质量检查 -->
 <!--            <plugin>-->
 <!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-checkstyle-plugin</artifactId>-->
-<!--                <version>${maven-checkstyle-plugin.version}</version>-->
 <!--                <dependencies>-->
 <!--                    <dependency>-->
 <!--                        <groupId>com.puppycrawl.tools</groupId>-->
-<!--                        <artifactId>checkstyle</artifactId>-->
 <!--                        <version>8.45.1</version>-->
 <!--                    </dependency>-->
 <!--                </dependencies>-->
@@ -156,12 +147,8 @@
 <!--                    </execution>-->
 <!--                </executions>-->
 <!--                <configuration>-->
-<!--                    <configLocation>${main.basedir}/checkstyle.xml</configLocation>-->
 <!--                    <encoding>UTF-8</encoding>-->
 <!--                    <consoleOutput>true</consoleOutput>-->
-<!--                    <failsOnError>${maven-checkstyle-plugin.failsOnError}</failsOnError>-->
-<!--                    <failOnViolation>${maven-checkstyle-plugin.failOnViolation}</failOnViolation>-->
-<!--                    <includeTestSourceDirectory>${maven-checkstyle-plugin.includeTestSourceDirectory}</includeTestSourceDirectory>-->
 <!--                    <excludes>**/_gen/**,**/*Errors.java,**/*Configs.java,**/*Constants.java,**/target/**</excludes>-->
 <!--                </configuration>-->
 <!--            </plugin>-->
@@ -466,30 +453,10 @@
                 </plugins>
             </build>
         </profile>
-        <!-- QA Profile: spotbugs + checkstyle + PMD 本地代码质量审计，仅主动调用 -->
-        <!-- 使用方式: ./mvnw checkstyle:check -Pqa  或  ./mvnw pmd:check -Pqa -->
         <profile>
             <id>qa</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-checkstyle-plugin</artifactId>
-                        <version>3.6.0</version>
-                        <dependencies>
-                            <dependency>
-                                <groupId>com.puppycrawl.tools</groupId>
-                                <artifactId>checkstyle</artifactId>
-                                <version>10.21.1</version>
-                            </dependency>
-                        </dependencies>
-                        <configuration>
-                            <failOnViolation>false</failOnViolation>
-                            <configLocation>${maven.multiModuleProjectDirectory}/checkstyle.xml</configLocation>
-                            <consoleOutput>true</consoleOutput>
-                            <excludes>**/_gen/**,**/_*.java</excludes>
-                        </configuration>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-pmd-plugin</artifactId>

@@ -3,7 +3,10 @@
 # 3 cross-subsection duplicates deduplicated = 186 entries).
 # Tier rubric: 1 = landed with live RuleTester fixture; 2 = L1/L2 mechanism face;
 # 3 = L3/L4 (dataflow/semantic); excluded = §7.2 capability exclusions (none in the tables;
-# the gate reserves the vocabulary). Tier 2/3 fixtures are prospective paths (N2 adjudication);
+# the gate reserves the vocabulary); out-of-purpose = rubric v3 (tool-replacement roadmap
+# item 2): the implementing rule was removed from the library as a style/optional face —
+# the row stays as the design-06 enum anchor with a mandatory reason, and must NOT be
+# retargeted to tier 3. Tier 2/3 fixtures are prospective paths (N2 adjudication);
 # their mechanism field MUST name the L-layer (gate-checked). Regenerate via the gate diff against
 # the design tables (enum-set check).
 version: 1
@@ -33,16 +36,16 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:ForLoopCanBeForeach'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `for (int $I = 0; $I < $$$; $$$)`'
-    fixture: '/test/lint/suites/quality/for-loop-can-be-foreach/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/for-loop-can-be-foreach removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:GuardLogStatement'
     tier: 2
     mechanism: 'L1/L2: Pattern: `LOG.xxx($$$)`'
   - source_rule: 'PMD:LooseCoupling'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `new HashSet()`, `new ArrayList()`（approximation: HashSet 声明形态子集）'
-    fixture: '/test/lint/suites/quality/loose-coupling-hashset/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/loose-coupling-hashset removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:ReplaceHashtableWithMap'
     tier: 1
     mechanism: 'L1/L2: Pattern: `new Hashtable()`'
@@ -69,8 +72,9 @@ entries:
     mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
     fixture: '/test/lint/suites/exception/equals-null/'
   - source_rule: 'PMD:LiteralsFirstInComparisons'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `$X.equals("literal")`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: `$X == "literal"` / `$X != "literal"`（string-literal-equality，item 3a 提升：== / != 双面，literal 任一侧）'
+    fixture: '/test/lint/suites/quality/string-literal-equality/'
   - source_rule: 'PMD:OneDeclarationPerLine'
     tier: 2
     mechanism: 'L1/L2: Pattern: `int $A, $B`'
@@ -193,9 +197,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: 深度 > N 的嵌套'
   - source_rule: 'PMD:SimplifyBooleanExpressions'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `$X == true`'
-    fixture: '/test/lint/suites/quality/simplify-boolean-expression/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/simplify-boolean-expression removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:SimplifyBooleanReturns'
     tier: 2
     mechanism: 'L1/L2: Pattern: `if ($X) return true; else return false;`'
@@ -229,8 +233,9 @@ entries:
     mechanism: 'L1 pattern: Pattern: `throw new RuntimeException()`'
     fixture: '/test/lint/suites/exception/no-raw-exception/'
   - source_rule: 'PMD:SignatureDeclareThrowsException'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `throws Exception`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern + xscript: throws 类型 ∈ {Throwable, Error, RuntimeException}（no-raw-throws，item 3a 提升：@Override 豁免 + 多类型子句；Exception 合法面 = checkstyle IllegalThrows 口径）'
+    fixture: '/test/lint/suites/exception/no-raw-throws/'
   - source_rule: 'PMD:ExceptionAsFlowControl'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
@@ -362,8 +367,9 @@ entries:
     mechanism: 'L1 pattern: Pattern: `"key"` in crypto context'
     fixture: '/test/lint/suites/security/no-hardcoded-crypto/'
   - source_rule: 'PMD:InsecureCryptoIv'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: 硬编码 IV'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: IvParameterSpec(数组初始化/字符串字面量)（no-hardcoded-iv，item 4a 提升；分层 approximation：一跳变量剩余 + 污点面 = L3 机制缺口在档）'
+    fixture: '/test/lint/suites/security/no-hardcoded-iv/'
   - source_rule: 'PMD:ArrayIsStoredDirectly'
     tier: 2
     mechanism: 'L1/L2: Pattern: `this.$ARR = $ARR`'

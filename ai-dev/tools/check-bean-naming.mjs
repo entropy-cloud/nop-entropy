@@ -21,6 +21,12 @@
  * 实现要点：扫描前先剔除 XML 注释 `<!-- ... -->`，避免把注释中的示例 `<bean id="...">` 误判为违规
  * （如 nop-stream beans.xml 中 Stage 42 部署脚手架注释里的 `streamTaskRpcServer_node0` 示例）。
  *
+ * ------------------------------------------------------------------
+ * 面级 switched-over（2026-09-28，tool-replacement roadmap item 5，plan
+ * nop-lint/21）：BEAN-ID 与 COLLECT-PREFIX 两个面的等价规则 nop-bean-naming
+ * 已落地（对照 9/9 零 diff），本脚本保留的 REF 跨文件引用提示面继续由
+ * compliance.yml 执法（node-only job）。
+ * ------------------------------------------------------------------
  * 用法:
  *   node ai-dev/tools/check-bean-naming.mjs                  # 全仓库检查
  *   node ai-dev/tools/check-bean-naming.mjs nop-auth          # 指定模块

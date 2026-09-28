@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<orm>
+    <entity name="io.nop.demo.RawUser">
+        <id name="id" code="ID"/>
+    </entity>
+</orm>

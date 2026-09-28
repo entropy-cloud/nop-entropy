@@ -1,0 +1,52 @@
+# tool-replacement roadmap item 5 (plan nop-lint/21): check-bean-naming.mjs
+# BEAN-ID + COLLECT-PREFIX face successor (the REF cross-file face stays
+# with the mjs). A short bean id (no '.') must carry a legal prefix
+# (nop / biz_ / test / testMock) or an exempt namespace/shape (ai-tools: /
+# ai-agent-tools: tool registries, BizModel tenant variants); full class
+# names are legal ids and abstract="true" templates are user-facing
+# contracts (exempt). collect-beans name-prefix follows the same convention.
+# Comment false-positives are structurally impossible in the AST face.
+id: nop-bean-naming
+language: XML
+severity: error
+message: "bean 短名/收集前缀不符合平台命名强约定（nop 前缀）(bean short name / collect prefix violates the platform naming convention)"
+rule:
+  any:
+    - pattern: "<bean/>"
+    - pattern: "<ioc:collect-beans/>"
+xscript: |
+  let k = node.kind();
+  if (k == 'bean') {
+    let id = node.attrValue('id');
+    if (id == null || id == '') {
+      return;
+    }
+    if (id.indexOf('.') >= 0) {
+      return;
+    }
+    if (id.startsWith('nop') || id.startsWith('biz_') || id.startsWith('test')
+      || id.startsWith('testMock') || id.startsWith('ai-tools:') || id.startsWith('ai-agent-tools:')) {
+      return;
+    }
+    if (id.matches('^[A-Z][A-Za-z0-9]*BizModel_[A-Za-z0-9_]+$')) {
+      return;
+    }
+    if (node.attrValue('abstract') == 'true') {
+      return;
+    }
+    report({ message: 'bean 短名 "' + id + '": " + "不符合命名强约定（nop 前缀或豁免形态）(bean short name violates the naming convention)' });
+  } else {
+    let p = node.attrValue('name-prefix');
+    if (p == null || p == '') {
+      return;
+    }
+    if (p.startsWith('nop') || p.startsWith('biz_')) {
+      return;
+    }
+    report({ message: 'collect-beans name-prefix "' + p + '" 未以 nop/biz_ 为前缀 (collect prefix violates the naming convention)' });
+  }
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-bean-naming.mjs BEAN-ID+COLLECT-PREFIX face (tool-replacement roadmap item 5)"

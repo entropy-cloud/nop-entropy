@@ -7,10 +7,10 @@
 -->
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
 
-    <bean id="streamConnectorFileSourceFactory"
+    <bean id="nopStreamConnectorFileSourceFactory"
           class="io.nop.stream.connector.file.FileSourceConnectorFactory"/>
 
-    <bean id="streamConnectorFileSinkFactory"
+    <bean id="nopStreamConnectorFileSinkFactory"
           class="io.nop.stream.connector.file.FileTwoPhaseCommitSinkConnectorFactory"/>
 
 </beans>

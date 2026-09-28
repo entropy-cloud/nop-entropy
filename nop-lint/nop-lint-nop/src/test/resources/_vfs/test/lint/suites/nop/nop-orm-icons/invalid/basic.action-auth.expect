@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 4
+    ruleId: nop-orm-icons
+    messageContains: "icon"

@@ -1,0 +1,42 @@
+# tool-replacement roadmap item 3a (plan nop-lint/17): checkstyle
+# StringLiteralEquality successor — comparing strings with == / != compares
+# references, so equal-content literals may compare unequal. Landed form
+# (spike-adjudicated): the relational entry rejected a bare `kind` inside
+# `inside:` (allowedNames = field/pattern/context/...), so the anchor is the
+# binary_expression itself — the xscript gates the operator to == / !=
+# (checkstyle covers both faces), finds the literal operand by node kind,
+# and reports on it. Concatenated operands ("a" + "b") are nested binary
+# expressions, not literal operands, and stay out of the face, same as
+# checkstyle.
+id: quality/string-literal-equality
+language: Java
+severity: warning
+message: "字符串比较使用 ==/!=，应使用 equals (String compared with ==/!=; use equals for content comparison)"
+rule:
+  kind: binary_expression
+xscript: |
+  let op = node.child('operator');
+  if (op == null) {
+    return;
+  }
+  let opText = op.text();
+  if (opText != '==' && opText != '!=') {
+    return;
+  }
+  let lit = null;
+  let l = node.child('left');
+  let r = node.child('right');
+  if (l != null && l.kind() == 'string_literal') {
+    lit = l;
+  } else if (r != null && r.kind() == 'string_literal') {
+    lit = r;
+  }
+  if (lit == null) {
+    return;
+  }
+  report({ node: lit, message: '字符串 ==/!= 比较引用而非内容，请使用 equals (string ==/!= compares references, use equals)' });
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "checkstyle.xml StringLiteralEquality (tool-replacement roadmap item 3a)"

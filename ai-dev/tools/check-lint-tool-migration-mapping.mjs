@@ -39,7 +39,10 @@ const PMD_FILE = join(PROJECT_ROOT, 'pmd-ruleset.xml');
 const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 
-const STATUS_VOCAB = new Set(['landed', 'keep-checkstyle', 'keep-pmd', 'deferred']);
+const STATUS_VOCAB = new Set(['landed', 'keep-checkstyle', 'keep-pmd', 'deferred',
+  // facet-review disposition (tool-replacement roadmap item 3a): a style/optional
+  // face row is archived as out-of-purpose — not a migration debt; reason required
+  'out-of-purpose']);
 
 function fail(errors, message) {
   errors.push(message);
@@ -128,18 +131,51 @@ export function buildRuleIdIndex(rulesRoot) {
 
 function checkAll({ doc, checkstyleXml, pmdXml, ruleIndex }) {
   const errors = [];
-  const configRules = new Set([...parseCheckstyleRules(checkstyleXml),
-    ...parsePmdRules(pmdXml)]);
   const rows = parseMappingRows(doc);
 
-  for (const rule of configRules) {
+  // checkstyle side: after the item-3b switchover the config file is ABSENT.
+  // A null sentinel (distinct from an empty parse) admits the absence ONLY
+  // when every checkstyle mapping row is landed or out-of-purpose — a
+  // keep-checkstyle/deferred row would mean the config was removed with
+  // unmigrated rows (no silent deregistration). The pmd side keeps its
+  // full bidirectional authority while pmd-ruleset.xml exists.
+  const checkstyleAbsent = checkstyleXml == null;
+  const pmdRules = parsePmdRules(pmdXml);
+
+  if (checkstyleAbsent) {
+    const unmigrated = [];
+    for (const [source, row] of rows) {
+      if (!source.startsWith('checkstyle:')) continue;
+      const status = row.status.replace(/\s+/g, '');
+      if (status !== 'landed' && status !== 'out-of-purpose') unmigrated.push(source);
+    }
+    if (unmigrated.length > 0) {
+      fail(errors, `checkstyle.xml is absent but ${unmigrated.length} checkstyle mapping row(s)`
+        + ` are still unmigrated (${unmigrated.slice(0, 3).join(', ')}...) — restore the config`
+        + ` or migrate/archive the rows first (no silent deregistration)`);
+    }
+  } else {
+    const checkstyleRules = parseCheckstyleRules(checkstyleXml);
+    for (const rule of checkstyleRules) {
+      if (!rows.has(rule)) {
+        fail(errors, `config rule '${rule}' has no mapping row (drift: add it to the §2 table)`);
+      }
+    }
+    for (const [source] of rows) {
+      if (source.startsWith('checkstyle:') && !checkstyleRules.includes(source)) {
+        fail(errors, `mapping row '${source}' matches no active rule in checkstyle.xml (ghost row)`);
+      }
+    }
+  }
+
+  for (const rule of pmdRules) {
     if (!rows.has(rule)) {
       fail(errors, `config rule '${rule}' has no mapping row (drift: add it to the §2 table)`);
     }
   }
   for (const [source] of rows) {
-    if (!configRules.has(source)) {
-      fail(errors, `mapping row '${source}' matches no active rule in checkstyle.xml / pmd-ruleset.xml (ghost row)`);
+    if (source.startsWith('pmd:') && !pmdRules.includes(source)) {
+      fail(errors, `mapping row '${source}' matches no active rule in pmd-ruleset.xml (ghost row)`);
     }
   }
 
@@ -149,6 +185,13 @@ function checkAll({ doc, checkstyleXml, pmdXml, ruleIndex }) {
       fail(errors, `mapping row '${source}' has illegal status '${row.status}'`
         + ` (vocabulary: ${[...STATUS_VOCAB].join(', ')})`);
       continue;
+    }
+    if (status === 'out-of-purpose') {
+      const note = (row.note ?? '').trim();
+      if (note.length === 0) {
+        fail(errors, `mapping row '${source}' has status out-of-purpose without a facet reason`
+          + ' (an archived row must state why it is not a migration debt)');
+      }
     }
     if (status === 'landed') {
       for (const target of row.target.split('+').map(s => s.trim()).filter(s => s && s !== '—')) {
@@ -171,7 +214,9 @@ function buildLiveContext() {
   }
   return {
     doc: readFileSync(DOC_FILE, 'utf8'),
-    checkstyleXml: readFileSync(CHECKSTYLE_FILE, 'utf8'),
+    // null sentinel = the config was switched over (item 3b); the absence
+    // is admitted only when every checkstyle row is landed/out-of-purpose
+    checkstyleXml: existsSync(CHECKSTYLE_FILE) ? readFileSync(CHECKSTYLE_FILE, 'utf8') : null,
     pmdXml: readFileSync(PMD_FILE, 'utf8'),
     ruleIndex: buildRuleIdIndex(RULES_ROOT),
   };
@@ -202,12 +247,37 @@ function selfTest() {
     process.exit(2);
   }
 
-  // control 1: a dropped row must be rejected (drift face)
+  // control 1: a dropped row must be rejected (drift face) — anchored on a
+  // pmd row because post-switchover the checkstyle side is absent-admitted
+  // and its ghost check is intentionally vacuous
+  let pmdSource = [...rows.keys()].find(k => k.startsWith('pmd:'));
+  if (!pmdSource) pmdSource = sampleSources[0];
   const dropped = ctx.doc.split('\n')
-    .filter(l => l.trim().startsWith('|') && l.includes(sampleSources[0])).join('\n');
+    .filter(l => l.trim().startsWith('|') && l.includes(pmdSource)).join('\n');
   const withoutRow = ctx.doc.replace(dropped, '');
   if (checkAll({ ...ctx, doc: withoutRow }).length === 0) {
     console.error('self-test control 1 FAILED: dropped row was not detected');
+    process.exit(1);
+  }
+
+  // control 5: the absent-checkstyle admission — a synthetic call with a
+  // null config (post-switchover live state) must produce no absence error
+  if (checkAll({ ...ctx, checkstyleXml: null }).length !== 0) {
+    console.error('self-test control 5 FAILED: the absent-config admission path errored');
+    process.exit(1);
+  }
+
+  // control 6: absence with an unmigrated row must be rejected — mutate one
+  // checkstyle landed row back to keep-checkstyle, no real file involved
+  let csSource = [...rows.keys()].find(k => k.startsWith('checkstyle:') && rows.get(k).status === 'landed');
+  if (!csSource) {
+    console.error('self-test control 6 FAILED: no landed checkstyle row to mutate');
+    process.exit(1);
+  }
+  const unmigrated = ctx.doc.replace(`| ${csSource} | landed`, `| ${csSource} | keep-checkstyle`);
+  const absentErrors = checkAll({ ...ctx, doc: unmigrated, checkstyleXml: null });
+  if (!absentErrors.some(e => e.includes('no silent deregistration'))) {
+    console.error('self-test control 6 FAILED: absent config with unmigrated rows was not rejected');
     process.exit(1);
   }
 
@@ -216,7 +286,8 @@ function selfTest() {
     `| ${sampleSources[1]} | maybe-landed`)
     .replace(`| ${sampleSources[1]} | keep-checkstyle`, `| ${sampleSources[1]} | maybe-landed`)
     .replace(`| ${sampleSources[1]} | keep-pmd`, `| ${sampleSources[1]} | maybe-landed`)
-    .replace(`| ${sampleSources[1]} | deferred`, `| ${sampleSources[1]} | maybe-landed`);
+    .replace(`| ${sampleSources[1]} | deferred`, `| ${sampleSources[1]} | maybe-landed`)
+    .replace(`| ${sampleSources[1]} | out-of-purpose`, `| ${sampleSources[1]} | maybe-landed`);
   if (checkAll({ ...ctx, doc: badVocab }).length === 0) {
     console.error('self-test control 2 FAILED: bad status word was not detected');
     process.exit(1);
@@ -238,7 +309,25 @@ function selfTest() {
     process.exit(1);
   }
 
-  console.log('self-test ok: dropped-row / bad-vocab / bad-landed-target all REJECTED');
+  // control 4: an out-of-purpose row without its facet reason must be rejected
+  const opRow = [...rows.entries()].find(([, row]) => row.status === 'out-of-purpose');
+  if (!opRow) {
+    console.error('self-test control 4 SKIPPED-FAIL: no out-of-purpose row in the live doc');
+    process.exit(1);
+  }
+  const [opSource, opData] = opRow;
+  const badReason = ctx.doc.replace(`| ${opSource} | out-of-purpose | ${opData.target} | ${opData.note} |`,
+    `| ${opSource} | out-of-purpose | ${opData.target} |  |`);
+  if (badReason === ctx.doc) {
+    console.error('self-test control 4 FAILED: reason-blank mutation did not apply');
+    process.exit(1);
+  }
+  if (checkAll({ ...ctx, doc: badReason }).length === 0) {
+    console.error('self-test control 4 FAILED: reason-less out-of-purpose row was not detected');
+    process.exit(1);
+  }
+
+  console.log('self-test ok: dropped-row / bad-vocab / bad-landed-target / reason-less-out-of-purpose / absent-admission / absent-unmigrated all REJECTED or verified');
 }
 
 main();

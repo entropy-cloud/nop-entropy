@@ -1,5 +1,7 @@
-# Lightweight compliance gates that do not require a Maven build.
-# These run fast (node-only) and fail early on convention violations.
+# Lightweight compliance gates that do not require a full Maven build.
+# The bean-naming job uses a trimmed node-only REF-face scanner plus a
+# nop-lint CLI step (JDK required, compile-only — no test execution).
+# These run fast and fail early on convention violations.
 
 name: Compliance
 
@@ -13,10 +15,33 @@ jobs:
   bean-naming:
     name: Bean naming convention (nop prefix)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check bean id naming
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      # REF cross-file reference face (node-only, trimmed scanner)
+      - name: Check bean REF cross-file references
         run: node ai-dev/tools/check-bean-naming.mjs
+      # BEAN-ID / COLLECT-PREFIX face (nop-lint rule nop-bean-naming, error)
+      # tool-replacement roadmap item 5, plan nop-lint/21 + 28
+      - name: Compile nop-lint modules
+        run: mvn -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-nop -DskipTests compile
+      - name: Build nop-lint classpath
+        run: mvn -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
+      - name: Check bean id naming (nop-lint nop-bean-naming)
+        run: |-
+          CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-java/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
+          FILES=$(find . -name "*.beans.xml" \
+            -not -path "*/target/*" -not -path "*/_gen/*" \
+            -not -path "*/src/test/*" -not -path "*nop-demo*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/docs/*" -not -path "*/docs-en/*")
+          java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
+            $FILES --rules nop-bean-naming --max-warnings 0

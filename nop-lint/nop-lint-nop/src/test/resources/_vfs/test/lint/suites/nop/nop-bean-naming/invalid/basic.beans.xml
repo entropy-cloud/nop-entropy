@@ -1,0 +1,6 @@
+<beans x:schema="/nop/schema/registry.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="myService" class="io.nop.demo.MyService"/>
+    <bean id="worker" class="io.nop.demo.Worker"/>
+    <ioc:collect-beans name-prefix="taskStore" as-map="true"/>
+</beans>

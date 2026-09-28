@@ -59,7 +59,6 @@ public class TestProductionRuleCount {
             "antipattern/empty-sync-block",
             "antipattern/catch-npe",
             "antipattern/throw-in-finally",
-            "antipattern/negated-equals",
             // item 35: enum #11-#17 (deep metrics/L3/L4)
             "quality/method-cyclomatic-complexity",
             "quality/method-cognitive-complexity",
@@ -75,11 +74,9 @@ public class TestProductionRuleCount {
             "security/no-des-encryption",
             "exception/no-catch-throwable",
             "quality/no-finalize",
-            "quality/loose-coupling-hashset",
             "quality/replace-hashtable",
             "quality/replace-vector",
             "quality/empty-while-body",
-            "quality/for-loop-can-be-foreach",
             "quality/control-statement-braces",
             // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
             "quality/no-constant-condition",
@@ -95,7 +92,22 @@ public class TestProductionRuleCount {
             "quality/biginteger-instantiation",
             "exception/no-throw-npe",
             "exception/empty-finally-block",
-            "quality/simplify-boolean-expression");
+            // item 3a (plan nop-lint/17): checkstyle core-face successors
+            "quality/string-literal-equality",
+            "quality/no-native-method",
+            "exception/no-raw-throws",
+            "quality/covariant-equals",
+            // item 4a (plan nop-lint/19): pmd core-face successors
+            "quality/no-branching-in-loop-body",
+            "quality/no-clone-without-cloneable",
+            "quality/clone-return-type-mismatch",
+            "quality/proper-clone-implementation",
+            "security/no-hardcoded-iv",
+            // item 5 (plan nop-lint/21): mjs switchover successors (XNode)
+            "nop-bean-naming",
+            "nop-orm-icons",
+            // item 7 (plan nop-lint/23): resource-leak v1 pilots
+            "quality/closeable-not-closed");
 
     @BeforeAll
     static void init() {
@@ -114,7 +126,13 @@ public class TestProductionRuleCount {
         Set<String> ids = new TreeSet<>();
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
-        assertEquals(62, ids.size(), "production rule census size (item 36 target)");
+        // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
+        // +4 -> 62; item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 -> 69;
+        // item 7 (plan 23): one resource-leak v1 pilot added, 69 -> 70
+        // (finally-missing-close dropped: xscript DSL lacks multi-descendant
+        // enumeration and regex-literal exec — the face is covered by
+        // closeable-not-closed which flags any resource without a close call)
+        assertEquals(70, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

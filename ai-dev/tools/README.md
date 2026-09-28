@@ -25,7 +25,6 @@ pnpm check         # run all checks
 | `check-plan-checklist.mjs` | Verify all plan checklist items are checked before closure | `pnpm check:plan` |
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
 | `run-java-lint.sh` | Run ast-grep Java lint rules (empty catches, getMessage-only, bare RuntimeException, etc.) | `pnpm lint:java` |
-| `check-ibiz-interfaces.mjs` | Check `I*Biz` interfaces: every method must have `@BizQuery`/`@BizMutation`/`@BizAction` and an `IServiceContext` last param | `pnpm check:ibiz` |
 | `check-nop-stream-invariants.mjs` | nop-stream invariant gate scanner (inventory / sync / scan-iterations / scan-output-contract / scan-wiring / self-test / init / all) | `node ai-dev/tools/check-nop-stream-invariants.mjs all` |
 
 ## Per-Tool Details
@@ -193,7 +192,6 @@ Use `--error` mode so lint findings block the commit; bypass with `git commit --
 
 **Design**: Each rule is a standalone YAML file. Rules can be composed (`any`/`all`/`not`) for complex patterns. No JS coding needed.
 
-### check-ibiz-interfaces.mjs
 
 Checks `I*Biz` service interfaces (in `*-dao` modules' `biz` package, `extends ICrudBiz`) against the platform contract in `docs-for-ai/02-core-guides/service-layer.md`:
 
@@ -203,9 +201,6 @@ Checks `I*Biz` service interfaces (in `*-dao` modules' `biz` package, `extends I
 This rule is **not** expressible in ast-grep (its `has`/`inside` predicates can't reliably match annotations in the modifiers subtree or `extends ICrudBiz<generic>`), so it uses **tree-sitter-java (WASM via web-tree-sitter)** for accurate AST parsing. Scope is limited to `I*Biz` interfaces (not `BizModel` classes) since interfaces are the contract source, contain no `@BizLoader`/constructors/private helpers, and `BizModel` methods sync to the interface per the service-layer guide.
 
 ```bash
-node check-ibiz-interfaces.mjs                     # scan nop-entropy + sibling nop-app-erp
-node check-ibiz-interfaces.mjs module-purchase      # scan a specific module dir
-node check-ibiz-interfaces.mjs --json path/to/IXxxBiz.java
 ```
 
 Exit code 1 if any violation; 0 otherwise.

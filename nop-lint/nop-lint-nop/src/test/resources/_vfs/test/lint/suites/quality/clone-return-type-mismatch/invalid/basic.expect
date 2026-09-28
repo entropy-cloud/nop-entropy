@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 2
+    ruleId: quality/clone-return-type-mismatch
+    messageContains: "clone()"

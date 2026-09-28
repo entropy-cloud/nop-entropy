@@ -1,0 +1,16 @@
+diagnostics:
+  - line: 2
+    ruleId: exception/no-raw-throws
+    messageContains: "RuntimeException"
+  - line: 5
+    ruleId: exception/no-raw-throws
+    messageContains: "Error"
+  - line: 8
+    ruleId: exception/no-raw-throws
+    messageContains: "Throwable"
+  - line: 11
+    ruleId: exception/no-raw-throws
+    messageContains: "RuntimeException"
+  - line: 11
+    ruleId: exception/no-raw-throws
+    messageContains: "Error"
