@@ -19,6 +19,8 @@
 | 多语言 | Semgrep (30语言) | **Java 为主 + TypeScript/TSX，XML 走 XNode**（Python 在 backlog） |
 | 可扩展 | ESLint plugin | **Nop IoC 注册 + YAML 扩展** |
 
+> **定位增注（2026-09-28，工具替代 roadmap 拟制期）**：nop-lint 的首要消费场景是 **AI 辅助开发的编码期防线**——在开发阶段自动拦截**核心缺陷**（资源泄漏、空指针、吞异常等隐蔽 bug）与平台不变式违反，而非通用质量检查台：纯风格/可选惯例类问题不在目标面（不追求对风格工具的全量替代）。分析原则：**全部基于源码**（tree-sitter CST + XNode + JavaParser/tsc 源级类型推导），**不进入字节码层**——凡需 class-file 信息的检测面均按 out-of-principle 记录，不立项字节码分析器。逐工具替代验证按 [核心缺陷面 / out-of-purpose / out-of-principle / out-of-scope] 三轴四类分面裁定，见 `ai-dev/backlog/nop-lint-tool-replacement-roadmap.md`。上表的"能力对标"维度自本增注起以核心缺陷面为口径。
+
 ## 2. 设计原则
 
 ### 2.1 匹配查找是独立的 DSL
