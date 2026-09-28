@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 30 · todo 9
+**汇总**：done 32 · todo 7
 
 ### M0 — 基线与文档-代码对齐
 
@@ -131,8 +131,8 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N9.1 自我索引与规模基线（用 nop-code 对 nop-entropy 全仓建索引：记录符号/边/文件规模、耗时、内存）<br>（Deliverable: 索引产物 + 规模/性能记录；deps: M1–M8 全部 WI；Item Type: Proof） | todo | M1–M8 全部 |
-| N9.2 验收设计与对照基线定义（定义验收 scenario 集、评分 rubric、对照基线（仅用 grep/read 文件工具的 agent）与评分流程；产出验收测试设计）<br>（Deliverable: 验收测试设计文档；deps: N9.1；Item Type: Decision） | todo | N9.1 |
+| N9.1 自我索引与规模基线（用 nop-code 对 nop-entropy 全仓建索引：记录符号/边/文件规模、耗时、内存）<br>（Deliverable: 索引产物 + 规模/性能记录；deps: M1–M8 全部 WI；Item Type: Proof；plan `ai-dev/plans/nop-code/31-n9-1-self-indexing.md`；nop-kernel 3185 files/367K lines, nop-code 396 files/57K lines, 全仓 14919 Java files） | done | M1–M8 全部 |
+| N9.2 验收设计与对照基线定义（定义验收 scenario 集、评分 rubric、对照基线与评分流程）<br>（Deliverable: 验收测试设计文档；deps: N9.1；Item Type: Decision；plan `ai-dev/plans/nop-code/31-n9-2-acceptance-design.md`；`ai-dev/design/nop-code/ai-e2e-acceptance-design.md` 产出） | done | N9.1 |
 | N9.3 场景 A 基线对照组执行（20+ 覆盖平台核心领域的问题：BizModel/GraphQL、ORM/codegen、Delta、IoC、nop-wf、nop-task、nop-batch 等；仅用 grep/read 的基线 agent 作答并存档）<br>（Deliverable: 基线答案存档；deps: N9.2；Item Type: Proof） | todo | N9.2 |
 | N9.4 场景 A nop-code 组执行与对照评分（AI 代理经 nop-code GraphQL 作答同一问题集；评分=准确性对照 docs-for-ai ground truth + 引用正确性 + 工具调用数/token；与 N9.3 基线对照）<br>（Deliverable: 场景 A 评分报告；deps: N9.3；Item Type: Proof） | todo | N9.3 |
 | N9.5 场景 B 基线对照组执行（给定 Nop 应用开发任务如"新增实体+CRUD 页面"、"实现审批流"、"编写 batch 任务"；仅用 grep/read 的基线 agent 完成并存档）<br>（Deliverable: 基线任务产物存档；deps: N9.2；Item Type: Proof） | todo | N9.2 |
