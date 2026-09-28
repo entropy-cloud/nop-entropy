@@ -2,7 +2,10 @@ package io.nop.code.lang.typescript.analyzer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -22,6 +25,7 @@ import io.nop.code.core.model.CodeLanguage;
 import io.nop.code.core.model.CodeMethodCall;
 import io.nop.code.core.model.CodeRelationType;
 import io.nop.code.core.model.CodeSymbol;
+import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.model.CodeSymbolKind;
 import io.nop.code.core.model.EdgeProvenance;
 /**
@@ -77,6 +81,14 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         String qualifiedPrefix = buildQualifiedPrefix(filePath);
 
         walkNode(root, sourceCode, sourceBytes, result, qualifiedPrefix, null);
+
+        // N5.1: collect import statements (whole-statement text, consumed by
+        // TypeScriptImportResolver) and build the local-name → module-prefix map.
+        Map<String, String[]> importBindingsByLocalName = collectImports(root, sourceBytes, filePath, result);
+
+        // N5.1: post-walk second pass — calls were produced during the walk, so the callee
+        // qualified-name candidates can only be resolved once ALL symbols are known.
+        resolveCallCandidates(result, importBindingsByLocalName);
 
         tree = null;
         return result;
@@ -581,12 +593,9 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
     }
 
     /**
-     * Build a qualified-name prefix from the file path.
-     * <p>
-     * <b>Design limitation:</b> This implementation uses the raw file path, so the resulting
-     * qualified names include the {@code src/} prefix (e.g. {@code src.utils.helper} instead of
-     * {@code utils.helper}). A complete fix requires parsing {@code tsconfig.json} to determine
-     * the actual module root, which is not yet available.
+     * Build a qualified-name prefix from the file path: strips the {@code src/} prefix and the
+     * file extension, then joins path segments with dots (e.g. {@code src/app/util.ts} →
+     * {@code app.util}).
      */
     private String buildQualifiedPrefix(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
@@ -608,6 +617,172 @@ public class TypeScriptCodeFileAnalyzer implements ICodeFileAnalyzer {
         if (typeText == null) return null;
         int idx = typeText.indexOf('<');
         return idx >= 0 ? typeText.substring(0, idx) : typeText;
+    }
+
+    // ====== N5.1: import collection + callee qualified-name candidates ======
+
+    /**
+     * Collects import statements: whole-statement text goes into {@code result.getImports()}
+     * (TypeScriptImportResolver parses the specifier out of the quotes), and named imports
+     * build a local-binding-name → module qualified-name prefix map for call resolution.
+     * Alias imports ({@code import { a as c }}) are keyed by the local binding name {@code c}.
+     */
+    private Map<String, String[]> collectImports(TSNode root, byte[] sourceBytes, String filePath,
+                                                 CodeFileAnalysisResult result) {
+        Map<String, String[]> prefixAndNameByLocalName = new LinkedHashMap<>();
+        collectImportStatements(root, sourceBytes, filePath, result, prefixAndNameByLocalName);
+        return prefixAndNameByLocalName;
+    }
+
+    private void collectImportStatements(TSNode node, byte[] sourceBytes, String filePath,
+                                         CodeFileAnalysisResult result,
+                                         Map<String, String[]> prefixAndNameByLocalName) {
+        int count = node.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = node.getChild(i);
+            if (child == null || !child.isNamed()) continue;
+            if ("import_statement".equals(child.getType())) {
+                String statement = getNodeText(child, sourceBytes);
+                result.getImports().add(statement);
+                collectNamedImports(child, sourceBytes, filePath, statement, prefixAndNameByLocalName);
+                continue;
+            }
+            collectImportStatements(child, sourceBytes, filePath, result, prefixAndNameByLocalName);
+        }
+    }
+
+    private void collectNamedImports(TSNode importStatement, byte[] sourceBytes, String filePath,
+                                     String statement, Map<String, String[]> prefixAndNameByLocalName) {
+        String modulePrefix = buildModulePrefix(filePath, statement);
+        if (modulePrefix == null) return;
+
+        TSNode importClause = findChildByType(importStatement, "import_clause");
+        if (importClause == null) return;
+        TSNode namedImports = findChildByType(importClause, "named_imports");
+        if (namedImports == null) return;
+
+        int count = namedImports.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode specifier = namedImports.getChild(i);
+            if (specifier == null || !specifier.isNamed()
+                    || !"import_specifier".equals(specifier.getType())) {
+                continue;
+            }
+            TSNode aliasNode = specifier.getChildByFieldName("alias");
+            TSNode nameNode = specifier.getChildByFieldName("name");
+            if (nameNode == null || nameNode.isNull()) continue;
+            String originalName = getNodeText(nameNode, sourceBytes);
+            String localName = !aliasNode.isNull() ? getNodeText(aliasNode, sourceBytes) : originalName;
+            // local binding name is only the key; the qualified name must use the ORIGINAL
+            // exported name (the target symbol is declared under it)
+            prefixAndNameByLocalName.putIfAbsent(localName, new String[]{modulePrefix, originalName});
+        }
+    }
+
+    private TSNode findChildByType(TSNode node, String type) {
+        int count = node.getChildCount();
+        for (int i = 0; i < count; i++) {
+            TSNode child = node.getChild(i);
+            if (child != null && child.isNamed() && type.equals(child.getType())) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Module qualified-name prefix for an import statement: relative specifiers resolve
+     * against the importing file's directory; the candidate path (extension stripped) goes
+     * through the same {@link #buildQualifiedPrefix} rule as symbol qualified names. If the
+     * target file does not exist the constructed qn simply matches no symbol and the call
+     * stays INFERRED (never a false edge).
+     */
+    private String buildModulePrefix(String filePath, String importStatement) {
+        String specifier = extractModuleSpecifier(importStatement);
+        if (specifier == null || !(specifier.startsWith("./") || specifier.startsWith("../"))) {
+            return null;
+        }
+        String normalizedPath = filePath.replace('\\', '/');
+        int lastSlash = normalizedPath.lastIndexOf('/');
+        String dir = lastSlash >= 0 ? normalizedPath.substring(0, lastSlash) : "";
+        String combined = dir.isEmpty() ? specifier : dir + "/" + specifier;
+        String[] parts = combined.split("/");
+        List<String> stack = new ArrayList<>();
+        for (String part : parts) {
+            if (part.isEmpty() || ".".equals(part)) continue;
+            if ("..".equals(part)) {
+                if (!stack.isEmpty()) stack.remove(stack.size() - 1);
+                continue;
+            }
+            stack.add(part);
+        }
+        if (stack.isEmpty()) return null;
+        String last = stack.get(stack.size() - 1);
+        int dotIdx = last.lastIndexOf('.');
+        if (dotIdx > 0 && ("ts".equals(last.substring(dotIdx + 1)) || "tsx".equals(last.substring(dotIdx + 1)))) {
+            stack.set(stack.size() - 1, last.substring(0, dotIdx));
+        }
+        return buildQualifiedPrefix(String.join("/", stack));
+    }
+
+    private String extractModuleSpecifier(String importStatement) {
+        int singleQuote = importStatement.indexOf('\'');
+        int doubleQuote = importStatement.indexOf('"');
+        int firstQuote = singleQuote >= 0 && doubleQuote >= 0
+                ? Math.min(singleQuote, doubleQuote)
+                : Math.max(singleQuote, doubleQuote);
+        if (firstQuote < 0) return null;
+        char quoteChar = importStatement.charAt(firstQuote);
+        int endQuote = importStatement.indexOf(quoteChar, firstQuote + 1);
+        if (endQuote < 0) return null;
+        return importStatement.substring(firstQuote + 1, endQuote);
+    }
+
+    /**
+     * Post-walk resolution of callee qualified-name candidates. Local symbols win over
+     * imports; only FUNCTION and METHOD kinds enter the local map so a same-named field or
+     * interface method signature cannot produce a false edge.
+     */
+    private void resolveCallCandidates(CodeFileAnalysisResult result, Map<String, String[]> importBindingByLocalName) {
+        Map<String, String> localQnByName = new LinkedHashMap<>();
+        for (CodeSymbol symbol : result.getSymbols()) {
+            if (symbol.getKind() != CodeSymbolKind.FUNCTION && symbol.getKind() != CodeSymbolKind.METHOD) {
+                continue;
+            }
+            String name = symbol.getName();
+            if (name == null || name.isEmpty() || symbol.getQualifiedName() == null) continue;
+            localQnByName.putIfAbsent(name, symbol.getQualifiedName());
+        }
+        if (localQnByName.isEmpty() && importBindingByLocalName.isEmpty()) return;
+
+        for (CodeMethodCall call : result.getCalls()) {
+            if (call.getCalleeQualifiedName() != null || call.getMethodName() == null) continue;
+
+            String context = call.getContext();
+            if (context == null || context.isEmpty()) {
+                String qn = localQnByName.get(call.getMethodName());
+                if (qn == null) {
+                    String[] binding = importBindingByLocalName.get(call.getMethodName());
+                    if (binding != null) qn = binding[0] + "." + binding[1];
+                }
+                call.setCalleeQualifiedName(qn);
+                continue;
+            }
+
+            String root = context;
+            int dotIdx = root.indexOf('.');
+            if (dotIdx > 0) root = root.substring(0, dotIdx);
+
+            if ("this".equals(context) || "this".equals(root)) {
+                call.setCalleeQualifiedName(localQnByName.get(call.getMethodName()));
+                continue;
+            }
+
+            String[] binding = importBindingByLocalName.get(root);
+            if (binding != null) {
+                call.setCalleeQualifiedName(binding[0] + "." + binding[1] + "." + call.getMethodName());
+            }
+        }
     }
 
 }

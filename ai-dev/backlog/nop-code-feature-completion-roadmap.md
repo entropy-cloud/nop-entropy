@@ -48,7 +48,7 @@ audit-rounds: 2
 
 > **唯一动态状态区。** Milestone 仅为分组（无状态）。AI 取第一个 `todo`（**WI deps 是唯一正确性屏障**；里程碑顺序 M0→…→M9→MG 是默认调度序，并为无 deps 项定序；无 deps 关系的 WI 允许并行），起草 plan → 独立草案审查 → 执行 → 独立 closure audit 通过后标 `done`。WI 编号全文件递增，完成或裁决移出的 WI 不复用编号（见文末审查记录的移出登记）。
 
-**汇总**：done 14 · todo 25
+**汇总**：done 15 · todo 24
 
 ### M0 — 基线与文档-代码对齐
 
@@ -95,7 +95,7 @@ audit-rounds: 2
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| N5.1 TypeScript 调用图补全（当前 `nop-code-lang-typescript` 无调用图）<br>（Deliverable: 代码 + 测试；deps: 无；Item Type: Fix） | todo | — |
+| N5.1 TypeScript 调用图补全（当前 `nop-code-lang-typescript` 无调用图）<br>（Deliverable: 代码 + 测试；deps: 无；Item Type: Fix；plan `ai-dev/plans/nop-code/15-n5-1-typescript-call-graph.md`） | done | — |
 | N5.2 框架适配迁出核心（`IEntryPointPatternProvider` SPI 已存在于 `nop-code-flow`，缺口是装配：`FlowDetector` 私有内部类 `DefaultSpringEntryPointPatternProvider` 经 `List.of(...)` 硬编码——迁出为 IoC 注册 bean；`JavaFileAnalyzer`/`DeadCodeDetector` 硬编码 Spring 模式按同一 SPI 外置）<br>（Deliverable: 代码 + 测试 + 行为等价证明；deps: 无；Item Type: Fix） | todo | — |
 | N5.3 DSL 驱动框架适配器（描述式路由/DI 模式 DSL，作为 N5.2 的远期演进）<br>（Deliverable: DSL 模型 + 解析 + 测试；deps: N5.2；Item Type: Fix） | todo | N5.2 |
 | N5.4 Go 语言扩展（tree-sitter go 绑定 + `ILanguageAdapter` 适配 + 提取器 + dict + 测试）<br>（Deliverable: 语言模块增量 + 测试；deps: 无（前置：`nop-treesitter-roadmap.md` go blob 可得）；Item Type: Fix） | todo | — |
@@ -167,7 +167,7 @@ audit-rounds: 2
 
 ## 4. 当前基线
 
-- **已实现**：3 语言解析（Java/Python/TS，TS 无调用图）、通用图算法（经 `nop-graph`）、社区检测/关键节点/知识缺口/图导出/图快照对比、执行流/变更风险/死代码检测、确定性语义边（3 提取器）、启发式调用边（2 合成器）、GraphQL API（42 方法，实测 3+15+24）、完整 xmeta、`IGraph` 存储抽象。
+- **已实现**：3 语言解析（Java/Python/TS；TS 调用图已于 2026-09-28 N5.1 补全——同文件/导入调用 qn 候选 + import 收集）、通用图算法（经 `nop-graph`）、社区检测/关键节点/知识缺口/图导出/图快照对比、执行流/变更风险/死代码检测、确定性语义边（3 提取器）、启发式调用边（2 合成器）、GraphQL API（42 方法，实测 3+15+24）、完整 xmeta、`IGraph` 存储抽象。
 - **搜索双路径已实现**（`search-integration-design.md` 头部状态）：`CodeSearchService` 持有可空 `ISearchEngine`，注入时 engine-first（TEXT），未注入降级 DB LIKE；`CodeIndexService` 已在索引写入/删除时 `addDoc`/`removeDocs` 同步；`TestIncrementalSearchSync` 在档。**剩余缺口仅"生产默认装配 + 端到端验证"（N4.1）与向量/混合（N4.2/N4.3）**。
 - **已知缺陷已修复**：`sourceCode` 返回 null、BizLoader `indexId` 硬编码 `"test"`（见 `query-api-design.md` §七，2026-09-23 校正）。
 - **质量闭环**：由 `nop-code-invariant-loop-roadmap.md` 独立负责（OOM/去同步/删除契约/幂等四族门禁），本路线图不重复。

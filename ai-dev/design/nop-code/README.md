@@ -115,7 +115,7 @@
 - ✅ `nop-code-core`：已实现（通用模型、`CallGraph`/`SymbolTable` 内存结构、`CodeCallGraph` 适配器、`EntryPointScorer`、增量检测）
 - ✅ `nop-code-lang-java`：已实现（JavaParser + SymbolSolver，覆盖 Java 17；含 Spring 路由提取 `[legacy，待迁出核心]`）
 - ✅ `nop-code-lang-python`：已实现（tree-sitter-python，符号/继承/装饰器/调用提取）
-- ✅ `nop-code-lang-typescript`：已实现（tree-sitter-typescript，符号/继承/装饰器提取，暂无调用图）
+- ✅ `nop-code-lang-typescript`：已实现（tree-sitter-typescript，符号/继承/装饰器/调用提取——调用图 2026-09-28 N5.1 补全：同文件/导入调用 qn 候选 + import 收集）
 - ✅ `nop-code-flow`：已实现（执行流追踪、风险评分变更分析、死代码检测）
 - ✅ `nop-code-meta`：已实现（xmeta 全套 + ORM 模型 + dict + i18n）
 - ✅ `nop-code-codegen`：已实现（代码生成层）

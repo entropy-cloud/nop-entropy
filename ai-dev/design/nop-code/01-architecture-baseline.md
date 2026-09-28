@@ -291,7 +291,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | `nop-code-flow` | ✅ 已实现（执行流追踪、风险评分变更分析、死代码检测） |
 | `nop-code-lang-java` | ✅ 已实现（JavaParser + SymbolSolver，覆盖 Java 17；含 Spring 路由提取`[legacy，待迁出核心]`） |
 | `nop-code-lang-python` | ✅ 已实现（tree-sitter-python，符号/继承/装饰器/调用提取） |
-| `nop-code-lang-typescript` | ✅ 已实现（tree-sitter-typescript，符号/继承/装饰器提取，**暂无调用图**） |
+| `nop-code-lang-typescript` | ✅ 已实现（tree-sitter-typescript，符号/继承/装饰器提取；调用图已落地（2026-09-28，N5.1）：同文件与导入调用的 calleeQualifiedName 候选 + import 语句收集，qn 由文件路径确定性派生，经全量/增量解析机制落库） |
 | `nop-code-api` | ✅ 已实现（生成的 per-entity CRUD API + DTO；服务接口为 `ICodeIndexService`） |
 | `nop-code-meta` | ✅ 已实现（xmeta 全套 + ORM 模型 + dict + i18n） |
 | `nop-code-service` | ✅ 已实现（全部 GraphQL API；`CodeGraphService` 调用 nop-graph；nop-search 双路径：可注入 `ISearchEngine`，默认无引擎时降级 DB LIKE） |
