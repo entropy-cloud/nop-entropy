@@ -23,6 +23,7 @@ import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.api.core.beans.FilterBeans.in;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * WP-4 AR-30/66/149/150: deleting a file must not leave CROSS-FILE orphans — calls in other files
@@ -135,7 +136,9 @@ public class TestDeletePathIntegrity extends JunitAutoTestCase {
 
         assertEquals(1, countByIn(NopCodeCall.class, "calleeId", List.of(symbolA)),
                 "seeded cross-file call must exist before delete");
-        assertEquals(1, countByIn(NopCodeInheritance.class, "superTypeId", List.of(symbolA)),
+        // 写入即解析后，索引自身产生的同包继承行（如 User extends BaseEntity）也会以
+        // BaseEntity 的符号 ID 落到 superTypeId 上，与种子行并存；前置只需保证种子已存在
+        assertTrue(countByIn(NopCodeInheritance.class, "superTypeId", List.of(symbolA)) >= 1,
                 "seeded cross-file inheritance must exist before delete");
         assertEquals(1, countByIn(NopCodeUsage.class, "symbolId", List.of(symbolA)),
                 "seeded cross-file usage must exist before delete");

@@ -1035,8 +1035,9 @@ public class CodeIndexService implements ICodeIndexService {
             LOG.debug("Flushed batch of {} file results for index {}", batch.size(), indexId);
         });
 
+        SymbolTable globalSymbolTable = result.getGlobalSymbolTable();
         for (CodeFileAnalysisResult file : result.getFileResults()) {
-            saveFileResultInSession(indexId, file, session);
+            saveFileResultInSession(indexId, file, session, globalSymbolTable);
             queue.add(file);
         }
         queue.flush();
@@ -1065,7 +1066,9 @@ public class CodeIndexService implements ICodeIndexService {
             LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
         }
 
-        resolveQualifiedNamesToIds(indexId, result.getGlobalSymbolTable(), session);
+        // 占位 qualified name 已在 saveFileResultInSession 构建实体时就地解析（写入即解析），
+        // 不再回读 DB：全量索引在单个巨事务内先写十万级实体行，任何读回（尤其分页扫描）
+        // 都会在 H2 版本链上付出数量级的代价。
         synthesizeAndPersistHeuristicEdges(indexId, result, session);
     }
 
@@ -1075,12 +1078,11 @@ public class CodeIndexService implements ICodeIndexService {
 
         SymbolTable symbolTable = result.getGlobalSymbolTable();
         CallGraph callGraph = result.buildCallGraph();
-        Map<String, Set<String>> inheritanceIndex = buildInheritanceIndex(indexId);
+        Map<String, Set<String>> inheritanceIndex = buildInheritanceIndexFromResult(result, symbolTable);
 
         HeuristicContext context = new HeuristicContext(symbolTable, inheritanceIndex, callGraph, indexId);
 
-        IEntityDao<NopCodeCall> callDao = daoProvider.daoFor(NopCodeCall.class);
-        Set<String> existingEdgeKeys = loadExistingEdgeKeys(callDao, indexId);
+        Set<String> existingEdgeKeys = collectExistingEdgeKeys(result, indexId);
 
         int totalSynthesized = 0;
         for (IHeuristicEdgeSynthesizer synthesizer : heuristicSynthesizers) {
@@ -1091,7 +1093,12 @@ public class CodeIndexService implements ICodeIndexService {
                     if (existingEdgeKeys.contains(edgeKey)) continue;
 
                     CodeSymbol caller = symbolTable.getById(call.getCallerId());
-                    String fileId = caller != null ? findFileIdForSymbol(indexId, caller.getId()) : null;
+                    String fileId = null;
+                    if (caller != null && caller.getFilePath() != null) {
+                        // 与 saveFileResultInSession 的 fileEntityId 生成规则一致（确定性），
+                        // 避免在巨事务内逐个符号做 PK 读
+                        fileId = generateFileId(indexId, caller.getFilePath());
+                    }
 
                     NopCodeCall callEntity = (NopCodeCall) ormTemplate.newEntity(NopCodeCall.class.getName());
                     callEntity.setId(call.getId());
@@ -1119,62 +1126,48 @@ public class CodeIndexService implements ICodeIndexService {
         }
     }
 
-    private Map<String, Set<String>> buildInheritanceIndex(String indexId) {
+    /**
+     * 全量索引路径专用：直接从内存分析结果构建 IMPLEMENTS 继承索引，
+     * 等价于旧的 DB 读回版本（后者在巨事务内逐行 getEntityById，代价不可接受）。
+     * 与旧行为一致：父类型无法在全局符号表中解析的继承边被跳过。
+     */
+    private static Map<String, Set<String>> buildInheritanceIndexFromResult(ProjectAnalysisResult result,
+                                                                            SymbolTable symbolTable) {
         Map<String, Set<String>> index = new HashMap<>();
-        IEntityDao<NopCodeInheritance> inhDao = daoProvider.daoFor(NopCodeInheritance.class);
-        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-
-        long offset = 0;
-        while (true) {
-            QueryBean query = new QueryBean();
-            query.addFilter(FilterBeans.eq("indexId", indexId));
-            query.setOffset(offset);
-            query.setLimit(BATCH_SIZE);
-            List<NopCodeInheritance> inheritances = inhDao.findAllByQuery(query);
-            if (inheritances.isEmpty()) break;
-
-            for (NopCodeInheritance inh : inheritances) {
-                if (inh.getRelationType() != null && inh.getRelationType().equals("IMPLEMENTS")) {
-                    NopCodeSymbol superType = symbolDao.getEntityById(inh.getSuperTypeId());
-                    if (superType != null && superType.getQualifiedName() != null) {
-                        index.computeIfAbsent(superType.getQualifiedName(), k -> new HashSet<>())
-                                .add(inh.getSubTypeId());
-                    }
+        for (CodeFileAnalysisResult file : result.getFileResults()) {
+            if (file.getInheritances() == null) continue;
+            for (CodeInheritance inh : file.getInheritances()) {
+                if (inh.getRelationType() != CodeRelationType.IMPLEMENTS)
+                    continue;
+                String superRef = inh.getSuperTypeQualifiedName();
+                if (superRef == null) continue;
+                CodeSymbol superSymbol = symbolTable.getByQualifiedName(superRef);
+                if (superSymbol == null && isLikelyResolvedId(superRef))
+                    superSymbol = symbolTable.getById(superRef);
+                if (superSymbol != null && superSymbol.getQualifiedName() != null) {
+                    index.computeIfAbsent(superSymbol.getQualifiedName(), k -> new HashSet<>())
+                            .add(inh.getSubTypeId());
                 }
             }
-            if (inheritances.size() < BATCH_SIZE) break;
-            offset += BATCH_SIZE;
         }
         return index;
     }
 
-    private Set<String> loadExistingEdgeKeys(IEntityDao<NopCodeCall> callDao, String indexId) {
+    /**
+     * 全量索引路径专用：从内存分析结果收集已有调用边键，等价于旧的 DB 读回版本
+     * （saveFileResultInSession 对 callerId/calleeId 为 null 的调用不落库，此处同样过滤）。
+     */
+    private static Set<String> collectExistingEdgeKeys(ProjectAnalysisResult result, String indexId) {
         Set<String> keys = new HashSet<>();
-        long offset = 0;
-        while (true) {
-            QueryBean query = new QueryBean();
-            query.addFilter(FilterBeans.eq("indexId", indexId));
-            query.setOffset(offset);
-            query.setLimit(BATCH_SIZE);
-            query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("callerId"));
-            query.addField(io.nop.api.core.beans.query.QueryFieldBean.forField("calleeId"));
-            List<Map<String, Object>> batch = callDao.selectFieldsByQuery(query);
-            if (batch.isEmpty()) break;
-            for (Map<String, Object> row : batch) {
-                Object caller = row.get("callerId");
-                Object callee = row.get("calleeId");
-                keys.add(indexId + ":" + caller + ":" + callee);
+        for (CodeFileAnalysisResult file : result.getFileResults()) {
+            if (file.getCalls() == null) continue;
+            for (CodeMethodCall call : file.getCalls()) {
+                if (call.getCallerId() == null || call.getCalleeId() == null)
+                    continue;
+                keys.add(indexId + ":" + call.getCallerId() + ":" + call.getCalleeId());
             }
-            if (batch.size() < BATCH_SIZE) break;
-            offset += BATCH_SIZE;
         }
         return keys;
-    }
-
-    private String findFileIdForSymbol(String indexId, String symbolId) {
-        IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-        NopCodeSymbol sym = symbolDao.getEntityById(symbolId);
-        return sym != null ? sym.getFileId() : null;
     }
 
     private String generateDummyFileId(String indexId) {
@@ -1229,6 +1222,50 @@ public class CodeIndexService implements ICodeIndexService {
             if (annotBatch.size() < BATCH_SIZE) break;
             annotOffset += BATCH_SIZE;
         }
+    }
+
+    /**
+     * 全量索引路径的写入即解析：用分析期构建的全局符号表把占位类型名映射为符号 ID。
+     * 分析器记录的是源码书写形式（常为简单名），因此依次尝试 全限定名 → 显式 import →
+     * 同包 → 通配 import → java.lang。解析失败时保留原值（与旧读回解析的兜底行为一致）。
+     */
+    private static String resolveSymbolId(SymbolTable resolveTable, CodeFileAnalysisResult file,
+                                          String rawName) {
+        if (resolveTable == null || rawName == null || isLikelyResolvedId(rawName))
+            return rawName;
+        CodeSymbol resolved = resolveTable.getByQualifiedName(rawName);
+        if (resolved != null)
+            return resolved.getId();
+        for (String candidate : qualifiedNameCandidates(file, rawName)) {
+            resolved = resolveTable.getByQualifiedName(candidate);
+            if (resolved != null)
+                return resolved.getId();
+        }
+        return rawName;
+    }
+
+    private static List<String> qualifiedNameCandidates(CodeFileAnalysisResult file, String simpleName) {
+        List<String> candidates = new ArrayList<>(4);
+        if (file.getImports() != null) {
+            String suffix = "." + simpleName;
+            for (String imp : file.getImports()) {
+                if (imp.endsWith(suffix)) {
+                    candidates.add(imp);
+                    break;
+                }
+            }
+        }
+        String packageName = file.getPackageName();
+        if (packageName != null && !packageName.isEmpty())
+            candidates.add(packageName + "." + simpleName);
+        if (file.getImports() != null) {
+            for (String imp : file.getImports()) {
+                if (imp.endsWith(".*"))
+                    candidates.add(imp.substring(0, imp.length() - 1) + simpleName);
+            }
+        }
+        candidates.add("java.lang." + simpleName);
+        return candidates;
     }
 
     private static boolean isLikelyResolvedId(String value) {
@@ -1369,6 +1406,9 @@ public class CodeIndexService implements ICodeIndexService {
                 if (precision != null && value.length() > precision) {
                     LOG.debug("Truncate {}.{}: {} -> {} chars", entityName, columnCode,
                             value.length(), precision);
+                    if (value.charAt(0) == '[' || value.charAt(0) == '{') {
+                        return fitJsonToPrecision(value, precision);
+                    }
                     return value.substring(0, precision);
                 }
                 return value;
@@ -1377,8 +1417,63 @@ public class CodeIndexService implements ICodeIndexService {
         return value;
     }
 
+    /**
+     * JSON 列值超宽时缩减内容直到序列化结果可容纳，保证落库的始终是合法 JSON。
+     * 硬截断会产生无法解析的残串，读路径（如 entityToFileResult 的 imports 解析）
+     * 会直接抛错。缩减策略：先截短超长的字符串值/元素（保留键名与条目数），
+     * 仍超宽再从尾部丢条目。
+     */
+    private static String fitJsonToPrecision(String json, int precision) {
+        Object parsed;
+        try {
+            parsed = JsonTool.parse(json);
+        } catch (Exception e) {
+            return json.substring(0, precision);
+        }
+        int trimTo = Math.max(16, precision / 4);
+        String out;
+        if (parsed instanceof List) {
+            List<Object> items = new ArrayList<>((List<?>) parsed);
+            for (int i = 0; i < items.size(); i++) {
+                Object item = items.get(i);
+                if (item instanceof String s && s.length() > trimTo)
+                    items.set(i, s.substring(0, trimTo));
+            }
+            while (items.size() > 1 && JsonTool.stringify(items).length() > precision) {
+                items.remove(items.size() - 1);
+            }
+            out = JsonTool.stringify(items);
+            if (out.length() > precision)
+                out = "[]";
+        } else if (parsed instanceof Map) {
+            Map<String, Object> map = new LinkedHashMap<>((Map<String, Object>) parsed);
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                if (entry.getValue() instanceof String s && s.length() > trimTo)
+                    entry.setValue(s.substring(0, trimTo));
+            }
+            while (!map.isEmpty() && JsonTool.stringify(map).length() > precision) {
+                map.remove(map.keySet().iterator().next());
+            }
+            out = JsonTool.stringify(map);
+            if (out.length() > precision)
+                out = "{}";
+        } else {
+            out = json.substring(0, precision);
+        }
+        return out;
+    }
+
+    /**
+     * 增量路径入口：不传解析表，占位 qualified name 由 {@link #resolveQualifiedNamesToIds}
+     * 在单文件小事务内读回解析（增量时全局表尚不完整，需依赖库内已索引符号）。
+     */
     private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
                                          IOrmSession session) {
+        saveFileResultInSession(indexId, file, session, null);
+    }
+
+    private void saveFileResultInSession(String indexId, CodeFileAnalysisResult file,
+                                         IOrmSession session, SymbolTable resolveTable) {
         Set<String> cachedProjectFilePaths = null;
         String fileEntityId = generateFileId(indexId, file.getFilePath());
 
@@ -1518,7 +1613,8 @@ public class CodeIndexService implements ICodeIndexService {
                 inhEntity.setId(inh.getId());
                 inhEntity.setIndexId(indexId);
                 inhEntity.setSubTypeId(fitColumn(NopCodeInheritance.class.getName(), "subTypeId", inh.getSubTypeId()));
-                inhEntity.setSuperTypeId(fitColumn(NopCodeInheritance.class.getName(), "superTypeId", inh.getSuperTypeQualifiedName()));
+                inhEntity.setSuperTypeId(fitColumn(NopCodeInheritance.class.getName(), "superTypeId",
+                        resolveSymbolId(resolveTable, file, inh.getSuperTypeQualifiedName())));
                 inhEntity.setRelationType(fitColumn(NopCodeInheritance.class.getName(), "relationType",
                         inh.getRelationType() != null ? inh.getRelationType().name() : null));
                 inhEntity.setProvenance(fitColumn(NopCodeInheritance.class.getName(), "provenance",
@@ -1532,7 +1628,8 @@ public class CodeIndexService implements ICodeIndexService {
                 NopCodeAnnotationUsage annotEntity = (NopCodeAnnotationUsage) ormTemplate.newEntity(NopCodeAnnotationUsage.class.getName());
                 annotEntity.setId(annot.getId());
                 annotEntity.setIndexId(indexId);
-                annotEntity.setAnnotationTypeId(fitColumn(NopCodeAnnotationUsage.class.getName(), "annotationTypeId", annot.getAnnotationTypeQualifiedName()));
+                annotEntity.setAnnotationTypeId(fitColumn(NopCodeAnnotationUsage.class.getName(), "annotationTypeId",
+                        resolveSymbolId(resolveTable, file, annot.getAnnotationTypeQualifiedName())));
                 annotEntity.setAnnotatedSymbolId(fitColumn(NopCodeAnnotationUsage.class.getName(), "annotatedSymbolId", annot.getAnnotatedSymbolId()));
                 annotEntity.setLine(annot.getLine());
                 annotEntity.setColumn(annot.getColumn());

@@ -19,6 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.code.core.entrypoint.EntryPointScorer;
 import io.nop.code.core.graph.CallGraph;
@@ -574,12 +575,24 @@ class CodeGraphService {
                     int to = Math.min(from + batchSize, idList.size());
                     List<String> subList = idList.subList(from, to);
                     List<String> qnSubList = qnList.subList(from, Math.min(to, qnList.size()));
+                    // superTypeId 落库形态可能是全限定名（未解析的遗留/增量行）也可能是符号 ID
+                    // （全量索引写入即解析），sub 方向遍历两种都要匹配
+                    List<String> superIdSubList = new ArrayList<>(qnSubList.size());
+                    for (String qn : qnSubList) {
+                        CodeSymbol superSym = qn != null ? table.getByQualifiedName(qn) : null;
+                        if (superSym != null)
+                            superIdSubList.add(superSym.getId());
+                    }
+                    List<TreeBean> orFilters = new ArrayList<>(3);
+                    orFilters.add(FilterBeans.in("subTypeId", subList));
+                    if (!qnSubList.isEmpty())
+                        orFilters.add(FilterBeans.in("superTypeId", qnSubList));
+                    if (!superIdSubList.isEmpty())
+                        orFilters.add(FilterBeans.in("superTypeId", superIdSubList));
                     QueryBean q = new QueryBean();
                     q.addFilter(FilterBeans.eq("indexId", indexId));
-                    q.addFilter(FilterBeans.or(
-                            FilterBeans.in("subTypeId", subList),
-                            FilterBeans.in("superTypeId", qnSubList)
-                    ));
+                    q.addFilter(orFilters.size() == 1 ? orFilters.get(0)
+                            : FilterBeans.or(orFilters));
                     q.setLimit(BATCH_QUERY_LIMIT);
                     batch.addAll(inhDao.findAllByQuery(q));
                 }

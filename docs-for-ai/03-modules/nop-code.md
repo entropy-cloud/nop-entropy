@@ -104,7 +104,7 @@ Key relationship entities:
 - **NopCodeInheritance** — type hierarchy (extends/implements)
 - **NopCodeSemanticEdge** — semantic relationships (similar, related, pattern-based)
 - **NopCodeFlow / NopCodeFlowMembership** — execution flow tracking with criticality scores
-- **NopCodeUsage** — unified reference tracking (CALL, ANNOTATES, EXTENDS, IMPLEMENTS, IMPORTS, READ, WRITE, TYPE_REFERENCE, TYPE_OF, INSTANTIATES, OVERRIDES). Note: `TESTED_BY`/`REFERENCES` are planned extensions, not yet in `CodeUsageKind`.
+- **NopCodeUsage** — unified reference tracking (CALL, ANNOTATES, EXTENDS, IMPLEMENTS, IMPORTS, READ, WRITE, TYPE_REFERENCE, TYPE_OF, INSTANTIATES, OVERRIDES, TESTED_BY, REFERENCES). Note: `CodeUsageKind` 含全部枚举值，但持久层当前仅派生 CALL / ANNOTATES / EXTENDS / IMPLEMENTS / TESTED_BY（IMPORTS 落在文件级 `NopCodeDependency`）；TYPE_REFERENCE/READ/WRITE/TYPE_OF/INSTANTIATES 尚未由分析器提取。
 - **NopCodeAnnotationUsage** — annotation usage on symbols
 
 ## 配置项说明
