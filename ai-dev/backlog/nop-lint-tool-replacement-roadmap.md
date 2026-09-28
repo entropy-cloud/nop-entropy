@@ -58,7 +58,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 - 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `done`（plan: ai-dev/plans/nop-lint/16-rule-facet-review.md；closure audit agent_a3d8c4ac APPROVE；裁定 core 46 / out-of-purpose 16（demote 8 / remove 4 / keep 4），"降出默认档"按引擎杠杆重裁定为降 info/移出库，见 design 02 §5）
 - 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `done`（plan 3a: ai-dev/plans/nop-lint/17-checkstyle-facet-adjudication.md，audit agent_200546ad APPROVE；plan 3b: ai-dev/plans/nop-lint/18-checkstyle-qa-profile-switchover.md；Checkstyle 终裁 core-face-replaced 已回填统一账本） — deps: 1, 2
 - 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `done`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md，audit agent_be230c23 APPROVE；plan 4b: ai-dev/plans/nop-lint/20-pmd-verdict-backfill.md——判据未全达配置段保留，PMD 终裁 replaced-partial 已回填统一账本） — deps: 1, 2
-- 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `todo` — deps: 1
+- 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `planned`（plan: ai-dev/plans/nop-lint/21-mjs-switchover.md） — deps: 1
 - ★ **Milestone MT1: 定位基线确立 + 存量账还清**（unlocks when 1–5 done）
 
 ### Wave 2 — 核心缺陷面覆盖矩阵（本 roadmap 的中心工作）
