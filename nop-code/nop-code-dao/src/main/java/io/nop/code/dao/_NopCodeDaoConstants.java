@@ -244,6 +244,11 @@ public interface _NopCodeDaoConstants {
     String LANGUAGE_GO = "50";
                     
     /**
+     * 编程语言: Rust 
+     */
+    String LANGUAGE_RUST = "60";
+                    
+    /**
      * 调用类型: 构造函数调用 
      */
     String CALL_TYPE_CONSTRUCTOR = "10";

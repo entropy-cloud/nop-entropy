@@ -8,7 +8,8 @@ public enum CodeLanguage {
     PYTHON("python", ".py"),
     TYPESCRIPT("typescript", ".ts", ".tsx"),
     JAVASCRIPT("javascript", ".js", ".jsx"),
-    GO("go", ".go");
+    GO("go", ".go"),
+    RUST("rust", ".rs");
 
     private final String code;
     private final String[] extensions;

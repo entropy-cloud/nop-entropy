@@ -25,3 +25,7 @@ options:
     value: 50
     description: 
   
+  - label: Rust
+    value: 60
+    description: 
+  

@@ -51,6 +51,7 @@ import io.nop.code.core.model.CodeRouteInfo;
 import io.nop.code.core.resolver.IImportResolver;
 import io.nop.code.lang.go.GoImportResolver;
 import io.nop.code.lang.java.JavaImportResolver;
+import io.nop.code.lang.rust.RustImportResolver;
 import io.nop.code.lang.python.PythonImportResolver;
 import io.nop.code.lang.typescript.TypeScriptImportResolver;
 import io.nop.code.core.semantic.CodeSemanticEdge;
@@ -293,7 +294,8 @@ public class CodeIndexService implements ICodeIndexService {
                 new JavaImportResolver(),
                 new PythonImportResolver(),
                 new TypeScriptImportResolver(),
-                new GoImportResolver()
+                new GoImportResolver(),
+                new RustImportResolver()
         };
         for (IImportResolver resolver : resolvers) {
             importResolvers.put(resolver.getLanguage(), resolver);
