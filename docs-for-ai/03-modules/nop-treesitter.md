@@ -11,7 +11,7 @@ nop-treesitter 把上游 [tree-sitter](https://github.com/tree-sitter/tree-sitte
 - **外部 scanner**：scanner.c 翻译为字节码 DSL，由 `ScannerVM` 解释执行
 - **Nop 集成**：NopIoC 语法提供者 bean + GraphQL `parseTreeSitter` action
 
-内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`、`go`、`rust`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111（唯一裁定节为 GLR tie-break 差异）、Python **115/117**（2 个多轮恢复形状裁定节）、Go **65/67**（2 个多轮恢复形状裁定节；en route 修复 `Language.decode` 对"无 external scanner 但带 reserved words"grammar 的校验）、Rust **145/151**（6 个多轮恢复形状裁定节，逐条 C-oracle 对照；en route 修复两项 runtime 缺陷——`ts_lex_modes` 的 `(TSStateId)(-1)` no-lookahead 状态（此前被误读为主 lexer 模式）与 `mark_end` 缺省语义（C 语义:末次调用定 token 末尾,未调用取 return 位置））。
+内置语法：`json`、`java`、`javascript`、`typescript`、`tsx`、`python`、`go`、`rust`、`c-sharp`（全量上游 corpus：JS **116/116**、TS 110/111、TSX 110/111（唯一裁定节为 GLR tie-break 差异）、Python **115/117**（2 个多轮恢复形状裁定节）、Go **65/67**（2 个多轮恢复形状裁定节；en route 修复 `Language.decode` 对"无 external scanner 但带 reserved words"grammar 的校验）、Rust **145/151**（6 个多轮恢复形状裁定节，逐条 C-oracle 对照；en route 修复两项 runtime 缺陷——`ts_lex_modes` 的 `(TSStateId)(-1)` no-lookahead 状态（此前被误读为主 lexer 模式）与 `mark_end` 缺省语义（C 语义:末次调用定 token 末尾,未调用取 return 位置））、C# **177/179**（2 条裁定:`#line`+方法声明组合的恢复形状差异与错误恢复-插值零宽交互，对照官方 tree-sitter CLI 0.25.8 corpus 实跑；scanner 为插值栈/raw string/lambda 投机扫描的忠实翻译）。
 
 ## 快速开始
 
@@ -65,7 +65,7 @@ query {
 | lexer | `io.nop.treesitter.lexer` | blob 内 DFA + keyword capture + 错误模式字符跳过 |
 | scanner VM | `io.nop.treesitter.scanner` | scanner.c 的字节码 ISA + 解释器 |
 | query | `io.nop.treesitter.query` | S-expression 模式编译 + 匹配 |
-| compat 迁移层 | `io.nop.treesitter.compat` | 镜像 `org.treesitter`（bonede JNI）API 形状的桥接：`TSParser`/`TSTree`/`TSNode`/`TSPoint` + `TreeSitter{Python,Typescript,Go,Rust}` 适配器。python 的缩进 scanner 由 `TreeSitterPython` 静态接线 `PythonScanner` 工厂、rust 的 raw-string/float/comment scanner 由 `TreeSitterRust` 接线 `RustScanner`（blob 内均不含 scanner），消费方无感 |
+| compat 迁移层 | `io.nop.treesitter.compat` | 镜像 `org.treesitter`（bonede JNI）API 形状的桥接：`TSParser`/`TSTree`/`TSNode`/`TSPoint` + `TreeSitter{Python,Typescript,Go,Rust,CSharp}` 适配器。python 的缩进 scanner 由 `TreeSitterPython` 静态接线 `PythonScanner` 工厂、rust 的 raw-string/float/comment scanner 由 `TreeSitterRust` 接线 `RustScanner`、C# 的插值/raw string/lambda scanner 由 `TreeSitterCSharp` 接线 `CSharpScanner`（blob 内均不含 scanner），消费方无感 |
 | provider/biz | `io.nop.treesitter.provider` / `.biz` | NopIoC bean + GraphQL 门面 |
 
 **JNI 迁移状态**：`nop-code-lang-python` / `nop-code-lang-typescript` 已从

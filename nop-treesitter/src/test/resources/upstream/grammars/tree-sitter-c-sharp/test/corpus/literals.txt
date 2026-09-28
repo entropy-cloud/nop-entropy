@@ -1,0 +1,884 @@
+================================================================================
+Literals
+================================================================================
+
+// integer
+
+const int dec = 1_2;
+const long hex = 0xf_1l;
+const long hex2 = 0Xffff;
+const long hex3 = 0x_0_f;
+const UInt64 dec = 1uL;
+const UInt16 bin = 0b0100_100;
+const UInt16 bin2 = 0B01010__10;
+const long bin3 = 0b_0_10;
+
+// boolean
+
+const bool t = true, u = false;
+
+// char
+
+const char c = 'a';
+const char esc = '\n';
+const char hex = '\xf09a';
+const char hex2 = '\x9';
+const char uni16 = '\ua0bf';
+const char uni32 = '\UA0BFf9ca';
+
+// real
+
+const float s = 012.23F;
+const float e = 1e6f;
+const Single en = 0e-1f;
+const Single ep = 1_1e+12f;
+const double d = 0.9_9d;
+const double e = .4_9d;
+const decimal m = 0_1_2.9m;
+const Decimal m2 = 102.349M;
+
+// string
+
+String e = "";
+string s = "a";
+string m = "abc";
+string esc = "ab\"\t";
+string hex = "ab\x22r";
+string hex2 = "\x22r\x00";
+string u16 = "\ub0d0ok";
+string u32 = "\uF1D20ff0test";
+string ve = @"";
+string v = @"abcde\ef";
+string quotes = @"<TestClass xmlns=""http://example.com/omg"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""></TestClass>";
+String e = @"This
+is
+a
+multi-line";
+string s = "//\n//";
+string s = "\u0065/* \u0065 */\u0065";
+string s = @"/* comment */";
+
+// utf-8 string
+
+var a = "lower"u8;
+var b = "upper"U8;
+var c = @"lower"u8;
+var d = @"upper"U8;
+
+string s = $"This contains {
+  abc
+} a newline";
+
+// interpolated string
+
+string s = $"hello";
+string esc = $"ab\"\t";
+string double = $"{{nope}}";
+string s = $"\u0065/* \u0065 */\u0065";
+
+string s = $"hello {name}, how are you?";
+string s = $"hello {name:0.00}, how are you?";
+string s = $"hello {name,25}, how are you?";
+string s = $@"hello {name}, how are you?";
+string s = $@"hello {name:g}, how are you?";
+string s = $@"hello {name,-10}, how are you?";
+
+string s = $@"hello";
+string s = @$"hello";
+
+var s = $@"Another
+multiple
+line";
+
+string s = $@"
+class A
+{{
+    bool Method(int value)
+    {{
+        return value  is  {operatorText}  3  or  {operatorText}  5;
+    }}
+}}
+";
+string s = $@"{a}/* comment */{a}";
+var x = $@"/* {world} */";
+
+// raw string
+
+var x = """Hello""";
+var x = """
+  Hello
+  """;
+var x = """
+  ""Hello"" "there"
+  """u8;
+
+var x = $"""The point "{X}, {Y}" is
+         ""{Math.Sqrt(X * X + Y * Y)}"" from the origin
+         """;
+
+var x = $"{{";
+
+var x = $"""{bar}""";
+
+var x = """"baz"""";
+
+var x = $""""
+    [||]
+    """
+"""";
+
+var x = $@" ""hi"" ";
+var x = @$"""Hello"" {world}!";
+
+var s = $$"""
+{{ $" { 1 } " }}
+""";
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (boolean_literal))
+        (variable_declarator
+          name: (identifier)
+          (boolean_literal)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (character_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (character_literal
+            (escape_sequence))))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (modifier)
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (real_literal)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)
+            (escape_sequence)
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)
+            (escape_sequence)
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (escape_sequence)
+            (string_literal_content)
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (escape_sequence)
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (escape_sequence)
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (identifier)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)
+            (escape_sequence)
+            (string_literal_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (escape_sequence)
+            (string_literal_content)
+            (escape_sequence)
+            (string_literal_content)
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)
+            (string_literal_encoding))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)
+            (string_literal_encoding))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (verbatim_string_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (escape_sequence)
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (escape_sequence)
+            (string_content)
+            (escape_sequence)
+            (string_content)
+            (escape_sequence))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_format_clause)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_alignment_clause
+                (integer_literal))
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_format_clause)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_alignment_clause
+                (prefix_unary_expression
+                  (integer_literal)))
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (string_content)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace)))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (raw_string_literal
+            (raw_string_start)
+            (raw_string_content)
+            (raw_string_end))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (raw_string_literal
+            (raw_string_start)
+            (raw_string_content)
+            (raw_string_end))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (raw_string_literal
+            (raw_string_start)
+            (raw_string_content)
+            (raw_string_end))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (interpolation_quote)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (invocation_expression
+                function: (member_access_expression
+                  expression: (identifier)
+                  name: (identifier))
+                arguments: (argument_list
+                  (argument
+                    (binary_expression
+                      left: (binary_expression
+                        left: (identifier)
+                        right: (identifier))
+                      right: (binary_expression
+                        left: (identifier)
+                        right: (identifier))))))
+              (interpolation_brace))
+            (string_content)
+            (interpolation_quote))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (interpolation_quote)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (interpolation_quote))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (raw_string_literal
+            (raw_string_start)
+            (raw_string_content)
+            (raw_string_end))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (interpolation_quote)
+            (string_content)
+            (interpolation_quote))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (identifier)
+              (interpolation_brace))
+            (string_content))))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (interpolated_string_expression
+            (interpolation_start)
+            (interpolation_quote)
+            (string_content)
+            (interpolation
+              (interpolation_brace)
+              (interpolated_string_expression
+                (interpolation_start)
+                (string_content)
+                (interpolation
+                  (interpolation_brace)
+                  (integer_literal)
+                  (interpolation_brace))
+                (string_content))
+              (interpolation_brace))
+            (string_content)
+            (interpolation_quote)))))))

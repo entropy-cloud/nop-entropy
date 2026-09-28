@@ -1,0 +1,105 @@
+================================================================================
+Identifiers
+================================================================================
+
+int x = y;
+
+// keyword names
+int @var = @const;
+
+// contextual keyword names
+int nint = 0;
+int nuint = 0;
+
+// unicode identifiers
+int under_score = 0;
+int with1number = 0;
+int varæble = 0;
+int Переменная = 0;
+int first‿letter = 0;
+int ග්‍රහලෝකය = 0;
+int _كوكبxxx = 0;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (identifier)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (identifier)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (comment)
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal))))))

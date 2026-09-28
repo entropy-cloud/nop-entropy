@@ -1,0 +1,362 @@
+================================================================================
+Class method with single parameter
+================================================================================
+
+class A {
+  private int GetBack(int b) {
+    return b;
+  }
+
+  void Accept<T>(T accept) {
+  }
+
+  void Accept<T>(T accept) where T: new() {
+  }
+
+  void Accept<T1, T2>(T1 accept, T2 from)
+    where T1: new()
+    where T2: T1, new() {
+  }
+
+  void HasAnOut(out int a) {
+  }
+
+  void HasAnIn(in int a) {
+  }
+
+  void HasARef(ref int a) {
+  }
+
+  void M(this ref int a) { }
+  void M(this scoped ref int a) { }
+
+  void Keywords(int from, string partial) {
+  }
+
+  void Default(int a = 5) {
+  }
+
+  static int Static(int b) {
+    return b;
+  }
+
+  public readonly double Add => x + y;
+
+  DIn dIn = (ref readonly int p) => { };
+
+  public int Zero(params int[]? ints) => 0;
+}
+
+class A : ISomething {
+  int ISomething.GetBack(int b) {
+    return b;
+  }
+}
+
+ref struct S {
+    void M(scoped ref System.Span<int> p) {
+        scoped ref System.Span<int> i = ref p;
+        scoped System.Span<int> j = p;
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        (modifier)
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block
+          (return_statement
+            (identifier))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        type_parameters: (type_parameter_list
+          (type_parameter
+            name: (identifier)))
+        parameters: (parameter_list
+          (parameter
+            type: (identifier)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        type_parameters: (type_parameter_list
+          (type_parameter
+            name: (identifier)))
+        parameters: (parameter_list
+          (parameter
+            type: (identifier)
+            name: (identifier)))
+        (type_parameter_constraints_clause
+          (identifier)
+          (type_parameter_constraint
+            (constructor_constraint)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        type_parameters: (type_parameter_list
+          (type_parameter
+            name: (identifier))
+          (type_parameter
+            name: (identifier)))
+        parameters: (parameter_list
+          (parameter
+            type: (identifier)
+            name: (identifier))
+          (parameter
+            type: (identifier)
+            name: (identifier)))
+        (type_parameter_constraints_clause
+          (identifier)
+          (type_parameter_constraint
+            (constructor_constraint)))
+        (type_parameter_constraints_clause
+          (identifier)
+          (type_parameter_constraint
+            type: (identifier))
+          (type_parameter_constraint
+            (constructor_constraint)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            (modifier)
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier))
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)
+            (integer_literal)))
+        body: (block))
+      (method_declaration
+        (modifier)
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block
+          (return_statement
+            (identifier))))
+      (property_declaration
+        (modifier)
+        (modifier)
+        type: (predefined_type)
+        name: (identifier)
+        value: (arrow_expression_clause
+          (binary_expression
+            left: (identifier)
+            right: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (identifier)
+          (variable_declarator
+            name: (identifier)
+            (lambda_expression
+              parameters: (parameter_list
+                (parameter
+                  (modifier)
+                  (modifier)
+                  type: (predefined_type)
+                  name: (identifier)))
+              body: (block)))))
+      (method_declaration
+        (modifier)
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          type: (nullable_type
+            type: (array_type
+              type: (predefined_type)
+              rank: (array_rank_specifier)))
+          name: (identifier))
+        body: (arrow_expression_clause
+          (integer_literal)))))
+  (class_declaration
+    name: (identifier)
+    (base_list
+      (identifier))
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        (explicit_interface_specifier
+          (identifier))
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block
+          (return_statement
+            (identifier))))))
+  (struct_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            (modifier)
+            type: (qualified_name
+              qualifier: (identifier)
+              name: (generic_name
+                (identifier)
+                (type_argument_list
+                  (predefined_type))))
+            name: (identifier)))
+        body: (block
+          (local_declaration_statement
+            (variable_declaration
+              type: (scoped_type
+                type: (ref_type
+                  type: (qualified_name
+                    qualifier: (identifier)
+                    name: (generic_name
+                      (identifier)
+                      (type_argument_list
+                        (predefined_type))))))
+              (variable_declarator
+                name: (identifier)
+                (ref_expression
+                  (identifier)))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (scoped_type
+                type: (qualified_name
+                  qualifier: (identifier)
+                  name: (generic_name
+                    (identifier)
+                    (type_argument_list
+                      (predefined_type)))))
+              (variable_declarator
+                name: (identifier)
+                (identifier)))))))))
+
+================================================================================
+C# 13 params collections
+================================================================================
+
+class C {
+  void M1(params int[] args) { }
+  void M2(params Span<int> items) { }
+  void M3(params IEnumerable<string> values) { }
+  void M4(params List<double> numbers) { }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          type: (array_type
+            type: (predefined_type)
+            rank: (array_rank_specifier))
+          name: (identifier))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (predefined_type)))
+          name: (identifier))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (predefined_type)))
+          name: (identifier))
+        body: (block))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (predefined_type)))
+          name: (identifier))
+        body: (block)))))

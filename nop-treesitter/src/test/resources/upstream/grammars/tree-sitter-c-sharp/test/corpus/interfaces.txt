@@ -1,0 +1,213 @@
+================================================================================
+Interfaces
+================================================================================
+
+public interface IOne: ITwo, IThree {
+  byte Get { get; }
+  char Set { set; }
+  uint GetSet { get; set; }
+  long SetGet { set; get; }
+
+  void Nothing();
+  int Output();
+  void Input(string a);
+  int InputOutput(string a);
+};
+
+// generic
+private interface IOne<T1> : ITwo { }
+
+// constraint
+private interface IOne<T1> : ITwo where T1:T2 { }
+
+private interface IOne<T1, T3> : ITwo where T1:T2 where T3:new() { }
+
+namespace A {
+  interface IOne : ITwo {
+    event EventHandler<T> SomeEvent;
+
+  bool this[int index] { get; set; }
+  }
+}
+
+
+interface MyDefault {
+  void Log(string message) {
+    Console.WriteLine(message);
+  }
+}
+
+public interface IGetNext<T> where T : IGetNext<T>
+{
+    static abstract T operator ++(T other);
+}
+
+private interface NoBody;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (interface_declaration
+    (modifier)
+    name: (identifier)
+    (base_list
+      (identifier)
+      (identifier))
+    body: (declaration_list
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)))
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)))
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier))))))
+  (comment)
+  (interface_declaration
+    (modifier)
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (base_list
+      (identifier))
+    body: (declaration_list))
+  (comment)
+  (interface_declaration
+    (modifier)
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (base_list
+      (identifier))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier)))
+    body: (declaration_list))
+  (interface_declaration
+    (modifier)
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter
+        name: (identifier))
+      (type_parameter
+        name: (identifier)))
+    (base_list
+      (identifier))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        (constructor_constraint)))
+    body: (declaration_list))
+  (namespace_declaration
+    name: (identifier)
+    body: (declaration_list
+      (interface_declaration
+        name: (identifier)
+        (base_list
+          (identifier))
+        body: (declaration_list
+          (event_field_declaration
+            (variable_declaration
+              type: (generic_name
+                (identifier)
+                (type_argument_list
+                  (identifier)))
+              (variable_declarator
+                name: (identifier))))
+          (indexer_declaration
+            type: (predefined_type)
+            parameters: (bracketed_parameter_list
+              (parameter
+                type: (predefined_type)
+                name: (identifier)))
+            accessors: (accessor_list
+              (accessor_declaration)
+              (accessor_declaration)))))))
+  (interface_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block
+          (expression_statement
+            (invocation_expression
+              function: (member_access_expression
+                expression: (identifier)
+                name: (identifier))
+              arguments: (argument_list
+                (argument
+                  (identifier)))))))))
+  (interface_declaration
+    (modifier)
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (generic_name
+          (identifier)
+          (type_argument_list
+            (identifier)))))
+    body: (declaration_list
+      (operator_declaration
+        (modifier)
+        (modifier)
+        type: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (identifier)
+            name: (identifier))))))
+  (interface_declaration
+    (modifier)
+    name: (identifier)))
+

@@ -1,0 +1,1034 @@
+================================================================================
+Common statements
+================================================================================
+
+(string a, bool b) c = default;
+A<B> a = null;
+int x = 0;
+(x, int y) = point;
+var result = list.Select(c => (c.f1, c.f2)).Where(t => t.f2 == 1);
+
+class A {
+  int Sample() {
+    return 1;
+  }
+
+  void Sample2() {
+    return;
+  }
+
+  void Sample3() {
+    while (true) break;
+    while (false) continue;
+  }
+
+  void Sample4() {
+    throw;
+    throw ex;
+  }
+
+  void Sample5() {
+    do { } while (true);
+  }
+
+  void Sample6() {
+    goto end;
+    end:
+      return;
+  }
+
+  int Sample7() {
+    if (true) return 1;
+    else return 0;
+  }
+
+  int Sample8() {
+    switch (1) {
+      case 1:
+      case 2:
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  M(out (int a, int b) c);
+
+  void M() {
+    (bool a, bool b) M2() {
+      return (true, false);
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (tuple_type
+          (tuple_element
+            type: (predefined_type)
+            name: (identifier))
+          (tuple_element
+            type: (predefined_type)
+            name: (identifier)))
+        (variable_declarator
+          name: (identifier)
+          (default_expression)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (generic_name
+          (identifier)
+          (type_argument_list
+            (identifier)))
+        (variable_declarator
+          name: (identifier)
+          (null_literal)))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (integer_literal)))))
+  (global_statement
+    (expression_statement
+      (assignment_expression
+        left: (tuple_expression
+          (argument
+            (identifier))
+          (argument
+            (declaration_expression
+              type: (predefined_type)
+              name: (identifier))))
+        right: (identifier))))
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (invocation_expression
+            function: (member_access_expression
+              expression: (invocation_expression
+                function: (member_access_expression
+                  expression: (identifier)
+                  name: (identifier))
+                arguments: (argument_list
+                  (argument
+                    (lambda_expression
+                      parameters: (implicit_parameter)
+                      body: (tuple_expression
+                        (argument
+                          (member_access_expression
+                            expression: (identifier)
+                            name: (identifier)))
+                        (argument
+                          (member_access_expression
+                            expression: (identifier)
+                            name: (identifier))))))))
+              name: (identifier))
+            arguments: (argument_list
+              (argument
+                (lambda_expression
+                  parameters: (implicit_parameter)
+                  body: (binary_expression
+                    left: (member_access_expression
+                      expression: (identifier)
+                      name: (identifier))
+                    right: (integer_literal))))))))))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (integer_literal))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement)))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (while_statement
+            condition: (boolean_literal)
+            body: (break_statement))
+          (while_statement
+            condition: (boolean_literal)
+            body: (continue_statement))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (throw_statement)
+          (throw_statement
+            (identifier))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (do_statement
+            body: (block)
+            condition: (boolean_literal))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (goto_statement
+            (identifier))
+          (labeled_statement
+            (identifier)
+            (return_statement))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (if_statement
+            condition: (boolean_literal)
+            consequence: (return_statement
+              (integer_literal))
+            alternative: (return_statement
+              (integer_literal)))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (switch_statement
+            value: (integer_literal)
+            body: (switch_body
+              (switch_section
+                (constant_pattern
+                  (integer_literal)))
+              (switch_section
+                (constant_pattern
+                  (integer_literal))
+                (return_statement
+                  (integer_literal)))
+              (switch_section
+                (return_statement
+                  (integer_literal)))))))
+      (constructor_declaration
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            (modifier)
+            type: (tuple_type
+              (tuple_element
+                type: (predefined_type)
+                name: (identifier))
+              (tuple_element
+                type: (predefined_type)
+                name: (identifier)))
+            name: (identifier))))
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (local_function_statement
+            type: (tuple_type
+              (tuple_element
+                type: (predefined_type)
+                name: (identifier))
+              (tuple_element
+                type: (predefined_type)
+                name: (identifier)))
+            name: (identifier)
+            parameters: (parameter_list)
+            body: (block
+              (return_statement
+                (tuple_expression
+                  (argument
+                    (boolean_literal))
+                  (argument
+                    (boolean_literal)))))))))))
+
+================================================================================
+Switch statements
+================================================================================
+
+int Sample9(int a) {
+  switch (a, a) {
+    case (1, 1):
+      return 1;
+    default:
+      return 0;
+  }
+
+  switch (A, B) {
+      case (_, _) when !c:
+        break;
+  }
+
+  switch (A) {
+      case {Length: 2} when !c:
+        break;
+  }
+
+  int i = 123;
+  switch (i)
+  {
+      case int when i < 5:
+          break;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      (predefined_type)
+      (identifier)
+      (parameter_list
+        (parameter
+          (predefined_type)
+          (identifier)))
+      (block
+        (switch_statement
+          (tuple_expression
+            (argument
+              (identifier))
+            (argument
+              (identifier)))
+          (switch_body
+            (switch_section
+              (constant_pattern
+                (tuple_expression
+                  (argument
+                    (integer_literal))
+                  (argument
+                    (integer_literal))))
+              (return_statement
+                (integer_literal)))
+            (switch_section
+              (return_statement
+                (integer_literal)))))
+        (switch_statement
+          (tuple_expression
+            (argument
+              (identifier))
+            (argument
+              (identifier)))
+          (switch_body
+            (switch_section
+              (recursive_pattern
+                (positional_pattern_clause
+                  (subpattern
+                    (discard))
+                  (subpattern
+                    (discard))))
+              (when_clause
+                (prefix_unary_expression
+                  (identifier)))
+              (break_statement))))
+        (switch_statement
+          (identifier)
+          (switch_body
+            (switch_section
+              (recursive_pattern
+                (property_pattern_clause
+                  (subpattern
+                    (identifier)
+                    (constant_pattern
+                      (integer_literal)))))
+              (when_clause
+                (prefix_unary_expression
+                  (identifier)))
+              (break_statement))))
+        (local_declaration_statement
+          (variable_declaration
+            (predefined_type)
+            (variable_declarator
+              (identifier)
+              (integer_literal))))
+        (switch_statement
+          (identifier)
+          (switch_body
+            (switch_section
+              (type_pattern
+                (predefined_type))
+              (when_clause
+                (binary_expression
+                  (identifier)
+                  (integer_literal)))
+              (break_statement))))))))
+
+================================================================================
+Try catch finally statements
+================================================================================
+
+class A {
+  void Sample() {
+    try {
+    } finally {
+    }
+
+    try {
+    } catch (Exception ex) {
+    }
+
+    try {
+    } catch (Exception ex) {
+    } finally {
+    }
+
+    try {
+    } catch (Exception ex) {
+    } catch (OtherException ex) {
+    }
+
+    try {
+    } catch (Exception ex) when (a == 1) {
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (try_statement
+            body: (block)
+            (finally_clause
+              (block)))
+          (try_statement
+            body: (block)
+            (catch_clause
+              (catch_declaration
+                type: (identifier)
+                name: (identifier))
+              body: (block)))
+          (try_statement
+            body: (block)
+            (catch_clause
+              (catch_declaration
+                type: (identifier)
+                name: (identifier))
+              body: (block))
+            (finally_clause
+              (block)))
+          (try_statement
+            body: (block)
+            (catch_clause
+              (catch_declaration
+                type: (identifier)
+                name: (identifier))
+              body: (block))
+            (catch_clause
+              (catch_declaration
+                type: (identifier)
+                name: (identifier))
+              body: (block)))
+          (try_statement
+            body: (block)
+            (catch_clause
+              (catch_declaration
+                type: (identifier)
+                name: (identifier))
+              (catch_filter_clause
+                (binary_expression
+                  left: (identifier)
+                  right: (integer_literal)))
+              body: (block))))))))
+
+================================================================================
+Checked, unchecked, locked, & yield statements
+================================================================================
+
+class A {
+  void Sample() {
+    checked {
+      return;
+    }
+
+    unchecked {
+      return;
+    }
+
+    lock (this) {
+      return;
+    }
+
+    yield return 1;
+    yield break;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (checked_statement
+            (block
+              (return_statement)))
+          (checked_statement
+            (block
+              (return_statement)))
+          (lock_statement
+            (block
+              (return_statement)))
+          (yield_statement
+            (integer_literal))
+          (yield_statement))))))
+
+================================================================================
+Initializers
+================================================================================
+
+class A {
+  void Sample() {
+    int a;
+    int a = 1, b = 2;
+    const int a = 1;
+    const int a = 1, b = 2;
+    ref var value = ref data[i];
+    var g = args[0].Length;
+
+    numbers ??= new List<int>();
+    b = obj ?? a == 0;
+
+    person = new Person(null!, null!);
+
+    MyClass myVar = MyFunction<MyOtherClass>("MyArg");
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (local_declaration_statement
+            (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier)
+                (integer_literal))
+              (variable_declarator
+                name: (identifier)
+                (integer_literal))))
+          (local_declaration_statement
+            (modifier)
+            (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier)
+                (integer_literal))))
+          (local_declaration_statement
+            (modifier)
+            (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier)
+                (integer_literal))
+              (variable_declarator
+                name: (identifier)
+                (integer_literal))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (ref_type
+                type: (implicit_type))
+              (variable_declarator
+                name: (identifier)
+                (ref_expression
+                  (element_access_expression
+                    expression: (identifier)
+                    subscript: (bracketed_argument_list
+                      (argument
+                        (identifier))))))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                name: (identifier)
+                (member_access_expression
+                  expression: (element_access_expression
+                    expression: (identifier)
+                    subscript: (bracketed_argument_list
+                      (argument
+                        (integer_literal))))
+                  name: (identifier)))))
+          (expression_statement
+            (assignment_expression
+              left: (identifier)
+              right: (object_creation_expression
+                type: (generic_name
+                  (identifier)
+                  (type_argument_list
+                    (predefined_type)))
+                arguments: (argument_list))))
+          (expression_statement
+            (assignment_expression
+              left: (identifier)
+              right: (binary_expression
+                left: (identifier)
+                right: (binary_expression
+                  left: (identifier)
+                  right: (integer_literal)))))
+          (expression_statement
+            (assignment_expression
+              left: (identifier)
+              right: (object_creation_expression
+                type: (identifier)
+                arguments: (argument_list
+                  (argument
+                    (postfix_unary_expression
+                      (null_literal)))
+                  (argument
+                    (postfix_unary_expression
+                      (null_literal)))))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (identifier)
+              (variable_declarator
+                name: (identifier)
+                (invocation_expression
+                  function: (generic_name
+                    (identifier)
+                    (type_argument_list
+                      (identifier)))
+                  arguments: (argument_list
+                    (argument
+                      (string_literal
+                        (string_literal_content)))))))))))))
+
+================================================================================
+Using statements
+================================================================================
+
+class A {
+  void Sample() {
+    using (var a = b) {
+      return;
+    }
+
+    using (Stream a = File.OpenRead("a"), b = new BinaryReader(a)) {
+      return;
+    }
+
+    using var a = new A();
+
+    using (Object a = b) {
+      return;
+    }
+
+    using (this) {
+      return;
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (using_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                name: (identifier)
+                (identifier)))
+            body: (block
+              (return_statement)))
+          (using_statement
+            (variable_declaration
+              type: (identifier)
+              (variable_declarator
+                name: (identifier)
+                (invocation_expression
+                  function: (member_access_expression
+                    expression: (identifier)
+                    name: (identifier))
+                  arguments: (argument_list
+                    (argument
+                      (string_literal
+                        (string_literal_content))))))
+              (variable_declarator
+                name: (identifier)
+                (object_creation_expression
+                  type: (identifier)
+                  arguments: (argument_list
+                    (argument
+                      (identifier))))))
+            body: (block
+              (return_statement)))
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                name: (identifier)
+                (object_creation_expression
+                  type: (identifier)
+                  arguments: (argument_list)))))
+          (using_statement
+            (variable_declaration
+              type: (identifier)
+              (variable_declarator
+                name: (identifier)
+                (identifier)))
+            body: (block
+              (return_statement)))
+          (using_statement
+            body: (block
+              (return_statement))))))))
+
+================================================================================
+Loops
+================================================================================
+
+class A {
+  void Sample() {
+    foreach(int x in y)
+      z += x;
+
+    foreach(x in y)
+      z += x;
+
+    foreach(var (x, y) in z)
+      q += x;
+
+    for(int x = 0; x < 100; x++) {
+      z += x;
+    }
+
+    for(;;) {
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (foreach_statement
+            type: (predefined_type)
+            left: (identifier)
+            right: (identifier)
+            body: (expression_statement
+              (assignment_expression
+                left: (identifier)
+                right: (identifier))))
+          (foreach_statement
+            left: (identifier)
+            right: (identifier)
+            body: (expression_statement
+              (assignment_expression
+                left: (identifier)
+                right: (identifier))))
+          (foreach_statement
+            type: (implicit_type)
+            left: (tuple_pattern
+              name: (identifier)
+              name: (identifier))
+            right: (identifier)
+            body: (expression_statement
+              (assignment_expression
+                left: (identifier)
+                right: (identifier))))
+          (for_statement
+            initializer: (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier)
+                (integer_literal)))
+            condition: (binary_expression
+              left: (identifier)
+              right: (integer_literal))
+            update: (postfix_unary_expression
+              (identifier))
+            body: (block
+              (expression_statement
+                (assignment_expression
+                  left: (identifier)
+                  right: (identifier)))))
+          (for_statement
+            body: (block)))))))
+
+================================================================================
+Unsafe & fixed statements
+================================================================================
+
+class A {
+  void Sample() {
+    unsafe { x = y; }
+    fixed (double p = arr) { }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (unsafe_statement
+            (block
+              (expression_statement
+                (assignment_expression
+                  left: (identifier)
+                  right: (identifier)))))
+          (fixed_statement
+            (variable_declaration
+              type: (predefined_type)
+              (variable_declarator
+                name: (identifier)
+                (identifier)))
+            (block)))))))
+
+================================================================================
+Deconstruction
+================================================================================
+
+class A {
+  void Sample() {
+    (var a, var b) = c;
+    var (a, b) = c;
+    (a, b, _) = c;
+    (_, b) = c;
+    var (a, _) = c;
+    var (a, (b, _)) = c;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (tuple_expression
+                (argument
+                  (declaration_expression
+                    type: (implicit_type)
+                    name: (identifier)))
+                (argument
+                  (declaration_expression
+                    type: (implicit_type)
+                    name: (identifier))))
+              right: (identifier)))
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                (tuple_pattern
+                  name: (identifier)
+                  name: (identifier))
+                (identifier))))
+          (expression_statement
+            (assignment_expression
+              left: (tuple_expression
+                (argument
+                  (identifier))
+                (argument
+                  (identifier))
+                (argument
+                  (identifier)))
+              right: (identifier)))
+          (expression_statement
+            (assignment_expression
+              left: (tuple_expression
+                (argument
+                  (identifier))
+                (argument
+                  (identifier)))
+              right: (identifier)))
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                (tuple_pattern
+                  name: (identifier)
+                  (discard))
+                (identifier))))
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                (tuple_pattern
+                  name: (identifier)
+                  (tuple_pattern
+                    name: (identifier)
+                    (discard)))
+                (identifier)))))))))
+
+================================================================================
+Function with contextually reserved identifiers
+================================================================================
+
+async void Sample() {
+  var var = "";
+  int partial = from;
+  A into = select;
+  R await = get;
+  T set = let + yield + group + add + alias + ascending + notnull + descending + equals;
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      (modifier)
+      type: (predefined_type)
+      name: (identifier)
+      parameters: (parameter_list)
+      body: (block
+        (local_declaration_statement
+          (variable_declaration
+            type: (implicit_type)
+            (variable_declarator
+              name: (identifier)
+              (string_literal))))
+        (local_declaration_statement
+          (variable_declaration
+            type: (predefined_type)
+            (variable_declarator
+              name: (identifier)
+              (identifier))))
+        (local_declaration_statement
+          (variable_declaration
+            type: (identifier)
+            (variable_declarator
+              name: (identifier)
+              (identifier))))
+        (local_declaration_statement
+          (variable_declaration
+            type: (identifier)
+            (variable_declarator
+              name: (identifier)
+              (identifier))))
+        (local_declaration_statement
+          (variable_declaration
+            type: (identifier)
+            (variable_declarator
+              name: (identifier)
+              (binary_expression
+                left: (binary_expression
+                  left: (binary_expression
+                    left: (binary_expression
+                      left: (binary_expression
+                        left: (binary_expression
+                          left: (binary_expression
+                            left: (binary_expression
+                              left: (identifier)
+                              right: (identifier))
+                            right: (identifier))
+                          right: (identifier))
+                        right: (identifier))
+                      right: (identifier))
+                    right: (identifier))
+                  right: (identifier))
+                right: (identifier)))))))))
+
+================================================================================
+Function conditional ref expression
+================================================================================
+
+ref T Choice(bool condition, ref T a, ref T b)
+{
+  ref var r = ref (condition ? ref a: ref b);
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      type: (ref_type
+        type: (identifier))
+      name: (identifier)
+      parameters: (parameter_list
+        (parameter
+          type: (predefined_type)
+          name: (identifier))
+        (parameter
+          (modifier)
+          type: (identifier)
+          name: (identifier))
+        (parameter
+          (modifier)
+          type: (identifier)
+          name: (identifier)))
+      body: (block
+        (local_declaration_statement
+          (variable_declaration
+            type: (ref_type
+              type: (implicit_type))
+            (variable_declarator
+              name: (identifier)
+              (ref_expression
+                (parenthesized_expression
+                  (conditional_expression
+                    condition: (identifier)
+                    consequence: (ref_expression
+                      (identifier))
+                    alternative: (ref_expression
+                      (identifier))))))))))))

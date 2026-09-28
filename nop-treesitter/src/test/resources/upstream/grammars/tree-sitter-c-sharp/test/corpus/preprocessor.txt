@@ -1,0 +1,220 @@
+================================================================================
+If, elif and else directives
+================================================================================
+
+#if WIN32
+  string os = "Win32";
+#elif MACOS
+  string os = "MacOS";
+#else
+  string os = "Unknown";
+#endif
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (preproc_if
+    condition: (identifier)
+    (local_declaration_statement
+      (variable_declaration
+        type: (predefined_type)
+        (variable_declarator
+          name: (identifier)
+          (string_literal
+            (string_literal_content)))))
+    alternative: (preproc_elif
+      condition: (identifier)
+      (local_declaration_statement
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier)
+            (string_literal
+              (string_literal_content)))))
+      alternative: (preproc_else
+        (local_declaration_statement
+          (variable_declaration
+            type: (predefined_type)
+            (variable_declarator
+              name: (identifier)
+              (string_literal
+                (string_literal_content)))))))))
+
+================================================================================
+If conditions
+================================================================================
+
+#if !MACOS
+#endif
+
+#if WIN32==true
+#endif
+
+#if !MACOS!=false
+#endif
+
+#if A && B || C
+#endif
+
+#if (A)
+#endif
+
+#if (A || B)
+#endif
+
+#if (A && B) || C
+#endif
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (preproc_if
+    condition: (unary_expression
+      argument: (identifier)))
+  (preproc_if
+    condition: (binary_expression
+      left: (identifier)
+      right: (boolean_literal)))
+  (preproc_if
+    condition: (binary_expression
+      left: (unary_expression
+        argument: (identifier))
+      right: (boolean_literal)))
+  (preproc_if
+    condition: (binary_expression
+      left: (binary_expression
+        left: (identifier)
+        right: (identifier))
+      right: (identifier)))
+  (preproc_if
+    condition: (parenthesized_expression
+      (identifier)))
+  (preproc_if
+    condition: (parenthesized_expression
+      (binary_expression
+        left: (identifier)
+        right: (identifier))))
+  (preproc_if
+    condition: (binary_expression
+      left: (parenthesized_expression
+        (binary_expression
+          left: (identifier)
+          right: (identifier)))
+      right: (identifier))))
+
+================================================================================
+Define and undefine directives
+================================================================================
+
+#define SOMETHING
+#undef BAD
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (preproc_define
+    (preproc_arg))
+  (preproc_undef
+    (preproc_arg)))
+
+================================================================================
+Line directives
+================================================================================
+
+class Of1879 {
+  void AMethod() {
+#line 2001 "A Space" // Comment
+#line hidden
+#line default
+#line (1, 1) - (1, 3) 1 "a.cs"
+#line (2, 1) - (2, 3) "a.cs"
+# line 2001 "A Space"
+#  line hidden
+#    line default
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (preproc_line
+            (integer_literal)
+            (string_literal
+              (string_literal_content))
+            (comment))
+          (preproc_line)
+          (preproc_line)
+          (preproc_line
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (string_literal
+              (string_literal_content)))
+          (preproc_line
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (integer_literal)
+            (string_literal
+              (string_literal_content)))
+          (preproc_line
+            (integer_literal)
+            (string_literal
+              (string_literal_content)))
+          (preproc_line)
+          (preproc_line))))))
+
+================================================================================
+Directives not in strings or comments
+================================================================================
+
+class Of1879 {
+  void AMethod() {
+    var s = @"Only a string
+    #if NOPE
+";
+    /* Only a comment
+    #if NOPE
+    */
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (local_declaration_statement
+            (variable_declaration
+              type: (implicit_type)
+              (variable_declarator
+                name: (identifier)
+                (verbatim_string_literal))))
+          (comment))))))
+
+================================================================================
+Shebang directive
+================================================================================
+
+#!/usr/bin/env scriptcs
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (shebang_directive))

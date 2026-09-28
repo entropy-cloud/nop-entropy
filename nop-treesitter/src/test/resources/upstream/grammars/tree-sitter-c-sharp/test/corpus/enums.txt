@@ -1,0 +1,26 @@
+================================================================================
+global enum with one option
+================================================================================
+
+enum A: byte { One, Two = 2, Three = 0x03 }
+
+enum NoBody;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (enum_declaration
+    name: (identifier)
+    (base_list
+      (predefined_type))
+    body: (enum_member_declaration_list
+      (enum_member_declaration
+        name: (identifier))
+      (enum_member_declaration
+        name: (identifier)
+        value: (integer_literal))
+      (enum_member_declaration
+        name: (identifier)
+        value: (integer_literal))))
+(enum_declaration
+  name: (identifier)))

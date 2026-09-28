@@ -40,12 +40,12 @@ class RustCorpusTest {
      * Populated from the first full-corpus run.
      */
     private static final List<String> ADJUDICATED = List.of(
-            "declarations.txt: 'Extern function declarations' — multi-round error-recovery composition on invalid extern-block input (upstream expected tree itself contains ERROR nodes); C-oracle compared, recovery grouping differs, valid-source parsing unaffected",
-            "declarations.txt: 'Impls with default functions' — recovery shape after degenerate default-function input differs from upstream in ERROR/error-parenting composition only (C-oracle compared)",
-            "error.txt: 'Unexpected string literal prefixes' — deliberately invalid string prefixes; multi-round recovery ERROR/string grouping differs (C-oracle compared)",
-            "error.txt: 'Longer json macro contents' — degenerate macro input; ERROR grouping inside block differs (C-oracle compared); zero-width-progress guard fires in ours where C loops differently",
-            "macros.txt: 'Macro invocation with comments' — comments inside token_tree interact with structural-extra resume; C-oracle tree contains (line_comment)(block_comment) children, ours differs in recovery composition",
-            "source_files.txt: 'Comments degenerate cases' — deliberately degenerate comment input; multi-round recovery shape differs (C-oracle compared)");
+            "declarations.txt: 'Extern function declarations' — multi-round error-recovery composition on invalid extern-block input (upstream expected tree itself contains ERROR nodes); compared against the upstream expected trees, recovery grouping differs, valid-source parsing unaffected",
+            "declarations.txt: 'Impls with default functions' — recovery shape after degenerate default-function input differs from upstream in ERROR/error-parenting composition only (upstream expected-tree comparison)",
+            "error.txt: 'Unexpected string literal prefixes' — deliberately invalid string prefixes; multi-round recovery ERROR/string grouping differs (upstream expected-tree comparison)",
+            "error.txt: 'Longer json macro contents' — degenerate macro input; ERROR grouping inside block differs (upstream expected-tree comparison); zero-width-progress guard fires in ours where C loops differently",
+            "macros.txt: 'Macro invocation with comments' — comments inside token_tree interact with structural-extra resume; upstream expected tree contains (line_comment)(block_comment) children, ours differs in recovery composition",
+            "source_files.txt: 'Comments degenerate cases' — deliberately degenerate comment input; multi-round recovery shape differs (upstream expected-tree comparison)");
 
     @Test
     void everyRustCorpusSectionParsesToTheExpectedTree() throws Exception {

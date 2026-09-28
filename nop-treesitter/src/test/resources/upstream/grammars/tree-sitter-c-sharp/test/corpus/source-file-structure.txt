@@ -1,0 +1,188 @@
+================================================================================
+Using directives, extern alias, and namespace declarations
+================================================================================
+
+global using A;
+global using static A.B;
+
+using A;
+using B.C;
+using global::E.F;
+using G = H.I;
+using static J.K;
+
+using Point = (int x, int y);
+
+extern alias A;
+
+namespace Foo {
+  using A;
+}
+
+namespace A {
+  namespace B.C.D {
+  }
+
+  namespace E.F {
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (using_directive
+    (identifier))
+  (using_directive
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (using_directive
+    (identifier))
+  (using_directive
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (using_directive
+    (qualified_name
+      (alias_qualified_name
+        (identifier)
+        (identifier))
+      (identifier)))
+  (using_directive
+    (identifier)
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (using_directive
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (using_directive
+    (identifier)
+    (tuple_type
+      (tuple_element
+        (predefined_type)
+        (identifier))
+      (tuple_element
+        (predefined_type)
+        (identifier))))
+  (extern_alias_directive
+    (identifier))
+  (namespace_declaration
+    (identifier)
+    (declaration_list
+      (using_directive
+        (identifier))))
+  (namespace_declaration
+    (identifier)
+    (declaration_list
+      (namespace_declaration
+        (qualified_name
+          (qualified_name
+            (identifier)
+            (identifier))
+          (identifier))
+        (declaration_list))
+      (namespace_declaration
+        (qualified_name
+          (identifier)
+          (identifier))
+        (declaration_list)))))
+
+================================================================================
+File scoped namespaces
+================================================================================
+
+namespace A;
+
+class B {
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (file_scoped_namespace_declaration
+    name: (identifier))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list)))
+
+================================================================================
+Delegates
+================================================================================
+
+public delegate int Global(ref char a = '\n');
+public delegate ref int Global(ref char a = '\n');
+public delegate ref readonly int Global(ref char a = '\n');
+
+delegate void A<T>() where T:class;
+
+delegate void A(params int [] test);
+
+class Z {
+  delegate void Zed();
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (delegate_declaration
+    (modifier)
+    type: (predefined_type)
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter
+        (modifier)
+        type: (predefined_type)
+        name: (identifier)
+        (character_literal
+          (escape_sequence)))))
+  (delegate_declaration
+    (modifier)
+    type: (ref_type
+      type: (predefined_type))
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter
+        (modifier)
+        type: (predefined_type)
+        name: (identifier)
+        (character_literal
+          (escape_sequence)))))
+  (delegate_declaration
+    (modifier)
+    type: (ref_type
+      type: (predefined_type))
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter
+        (modifier)
+        type: (predefined_type)
+        name: (identifier)
+        (character_literal
+          (escape_sequence)))))
+  (delegate_declaration
+    type: (predefined_type)
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    parameters: (parameter_list)
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint)))
+  (delegate_declaration
+    type: (predefined_type)
+    name: (identifier)
+    parameters: (parameter_list
+      type: (array_type
+        type: (predefined_type)
+        rank: (array_rank_specifier))
+      name: (identifier)))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (delegate_declaration
+        type: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)))))
