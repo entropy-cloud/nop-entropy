@@ -182,7 +182,7 @@ nop-jq 的 JsonPath 实现已比 Jayway 快 3-30 倍（取决于场景）。jq �
 ### 6.2 fastjson 测试移植
 
 从 `~/sources/fastjson/src/test/java/com/alibaba/json/bvt/path/` 移植 97 个测试：
-- 替换 `com.alibaba.fastjson.JSONPath` → `io.nop.jq.jsonpath.NopJsonPath`
+- 替换 `com.alibaba.fastjson.JSONPath` → `io.nop.jpath.NopJsonPath`
 - 替换 `JSON.parse()` → `JsonTool.parse()`
 - 处理 `NopCompiledJsonPath` vs `NopJsonPath` 类型问题
 

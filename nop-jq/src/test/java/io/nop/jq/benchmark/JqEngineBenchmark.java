@@ -1,7 +1,7 @@
 package io.nop.jq.benchmark;
 
-import io.nop.jq.jq.IJsonQuery;
-import io.nop.jq.jq.JqEngine;
+import io.nop.jq.IJsonQuery;
+import io.nop.jq.JqEngine;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;

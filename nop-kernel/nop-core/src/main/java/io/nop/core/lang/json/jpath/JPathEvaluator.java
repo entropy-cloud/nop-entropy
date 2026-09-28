@@ -9,7 +9,7 @@ package io.nop.core.lang.json.jpath;
 
 /**
  * Evaluation SPI for {@link JPath}. The nop-jq module registers an implementation
- * (delegating to {@code io.nop.jq.jsonpath.NopJsonPath}) during platform
+ * (delegating to {@code io.nop.jpath.NopJsonPath}) during platform
  * initialization via {@code JqJPathInitializer}.
  *
  * <p>Implementations must never be null-hostile: {@link JPath} fails fast with

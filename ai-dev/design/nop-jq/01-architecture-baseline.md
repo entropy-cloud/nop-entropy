@@ -145,7 +145,7 @@ jq 的 fork/backtrack 语义实现复杂度极高。本引擎以"急切求值 + 
 
 ### 4.4 类名和 API 为什么仿照 fastjson
 
-nop-jq 的 JsonPath 公开 API 类名和方法签名仿照 fastjson `com.alibaba.fastjson.JSONPath`（如 `compile`、`eval`、`read`、`set`、`remove`），便于从 fastjson 迁移。nop-core 的 `JPath` 门面保留为兼容入口（compile 面），求值经 SPI 委托到 `NopJsonPath`，契约见 `03-jpath-bridge-contract.md`；nop-jq 感知的代码直接使用 `io.nop.jq.jsonpath.NopJsonPath`。
+nop-jq 的 JsonPath 公开 API 类名和方法签名仿照 fastjson `com.alibaba.fastjson.JSONPath`（如 `compile`、`eval`、`read`、`set`、`remove`），便于从 fastjson 迁移。nop-core 的 `JPath` 门面保留为兼容入口（compile 面），求值经 SPI 委托到 `NopJsonPath`，契约见 `03-jpath-bridge-contract.md`；nop-jpath 感知的代码直接使用 `io.nop.jpath.NopJsonPath`。
 
 ## 五、拒绝了什么
 
@@ -160,10 +160,10 @@ nop-jq 的 JsonPath 公开 API 类名和方法签名仿照 fastjson `com.alibaba
 
 ## 六、与已有设计的关系
 
-- **nop-core `jpath/`**：`JPath` 门面保留为兼容入口（compile 面在 core，求值面经 SPI 委托），契约见 `03-jpath-bridge-contract.md`；nop-jq 感知的调用方直接使用 `io.nop.jq.jsonpath.NopJsonPath`。
+- **nop-core `jpath/`**：`JPath` 门面保留为兼容入口（compile 面在 core，求值面经 SPI 委托），契约见 `03-jpath-bridge-contract.md`；nop-jpath 感知的调用方直接使用 `io.nop.jpath.NopJsonPath`。
 - **nop-core `JsonVisitState`**：保持不变。它用于 delta/merge 操作的路径追踪，与查询引擎正交。
 - **nop-xlang 表达式引擎**：jq 引擎为独立 AST 执行，不依赖 nop-xlang。
-- **ORM `jsonPath` 列属性**：ORM 层面不感知查询引擎的实现，如需直接求值使用 `io.nop.jq.jsonpath.NopJsonPath`。
+- **ORM `jsonPath` 列属性**：ORM 层面不感知查询引擎的实现，如需直接求值使用 `io.nop.jpath.NopJsonPath`。
 - **nop-ai-toolkit `IToolExecutor`**：JqToolExecutor 实现 `IToolExecutor` 接口，通过 `*.tool.xml` 注册为 AI 工具，复用现有的工具发现和沙箱执行机制。
 - **nop-ai-toolkit `IBashSandbox`**：JqToolExecutor 可选择通过沙箱执行，复用 `HostBashSandbox` 和 `DockerBashSandbox` 的进程隔离能力。
 

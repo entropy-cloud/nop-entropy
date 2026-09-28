@@ -5,8 +5,8 @@ import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.jq.jq.IJsonQuery;
-import io.nop.jq.jq.JqEngine;
+import io.nop.jq.IJsonQuery;
+import io.nop.jq.JqEngine;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -58,7 +58,7 @@ public class JqToolExecutor implements IToolExecutor {
             }
 
             return AiToolCallResult.successResult(call.getId(), output.toString());
-        } catch (io.nop.jq.jq.runtime.JqRuntimeException e) {
+        } catch (io.nop.jq.runtime.JqRuntimeException e) {
             // the jq error value is the message the AI agent should see
             return AiToolCallResult.errorResult(call.getId(), e.errorMessage());
         } catch (Exception e) {
