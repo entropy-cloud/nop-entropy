@@ -9,26 +9,28 @@
 - nop-lint 全量运行口径：`java -cp <core+java+nop+treesitter> io.nop.lint.core.cli.NopLintCli check <module> --profile standard`（CLI）或 `nop-lint:check`（Maven goal）。
 - **并行期即现状**：两套工具互不干扰；本 item 的双跑对照记录见 §4。
 
-## 2. 映射表（26 行，状态词表 = landed / keep-checkstyle / keep-pmd / deferred，由门禁强制）
+## 2. 映射表（26 行，状态词表 = landed / keep-checkstyle / keep-pmd / deferred / out-of-purpose，由门禁强制）
+
+> **out-of-purpose 词表增注（2026-09-28，工具替代 roadmap item 3a，plan 17）**：行判为风格/可选面（out-of-purpose），显式不迁移——这不是替代债，是范围声明（roadmap Purpose）；该类行须附分面理由。
 
 | source | status | target | note |
 |---|---|---|---|
 | checkstyle:RegexpSingleline | landed | quality/no-system-out | AST 面 `$M` 全方法名比正则 `System\.(out\|err)\.print` 宽；注释/字符串不误报；cli/boot/benchmark 豁免经 ruleset exemptions 表达（design 09） |
-| checkstyle:EmptyBlock | keep-checkstyle | — | nop-lint 已落地分面规则（empty-if-block / empty-while-body / empty-finally-block / empty-sync-block / no-empty-catch）但不覆盖 for/do/switch 槽位，通用 EmptyBlock 面不完整；分面规则已被对应 manifest 行记账 |
+| checkstyle:EmptyBlock | out-of-purpose | — | 核心子集已落地（empty-if-block/empty-while-body/empty-finally-block/empty-sync-block/no-empty-catch，plan 16 在档）；残余 for/do/switch 槽位风格面不迁移（roadmap item 3a） | nop-lint 已落地分面规则（empty-if-block / empty-while-body / empty-finally-block / empty-sync-block / no-empty-catch）但不覆盖 for/do/switch 槽位，通用 EmptyBlock 面不完整；分面规则已被对应 manifest 行记账 |
 | checkstyle:EmptyCatchBlock | landed | nop/no-empty-catch | manifest `PMD:EmptyCatchBlock` t1；delta：无 checkstyle `exceptionVariableName=expected` 豁免（`catch (expected) {}` 无注释将新报） |
-| checkstyle:CovariantEquals | keep-checkstyle | — | 需 equals 参数类型分析（L2+）；manifest 无对应行 |
+| checkstyle:CovariantEquals | landed | quality/covariant-equals | item 3a（plan 17）：类/枚举遍历 xscript，Object 子类型参数、每方法一报、无 equals(Object) 才报；全仓对照零 diff（§4.2） |
 | checkstyle:NoFinalizer | landed | quality/no-finalize | manifest `PMD:Finalize` t1 |
-| checkstyle:StringLiteralEquality | keep-checkstyle | — | 需 String 类型面；manifest `LiteralsFirstInComparisons` 仅 t2 |
-| checkstyle:IllegalToken | keep-checkstyle | — | token 黑名单面 v1 无对应 |
-| checkstyle:UnusedImports | keep-checkstyle | — | 跨编译单元引用计数（manifest `PMD:UnnecessaryImport` t3 路由不变） |
-| checkstyle:RedundantImport | keep-checkstyle | — | 同 UnusedImports 面 |
-| checkstyle:MissingDeprecated | keep-checkstyle | — | @Deprecated+@deprecated 注解组合面 |
+| checkstyle:StringLiteralEquality | landed | quality/string-literal-equality | item 3a（plan 17）：== / != 双面（checkstyle 同双面），literal 任一侧；全仓对照零 diff（§4.2） |
+| checkstyle:IllegalToken | landed | quality/no-native-method | item 3a（plan 17）：配置实际面 = LITERAL_NATIVE native 禁令（平台不变式）；全仓对照零 diff（§4.2） |
+| checkstyle:UnusedImports | out-of-purpose | — | import 卫生属风格/可选面，不迁移（roadmap item 3a 分面裁定；manifest `PMD:UnnecessaryImport` t3 路由不变） |
+| checkstyle:RedundantImport | out-of-purpose | — | 同 UnusedImports：import 卫生风格面，不迁移（roadmap item 3a） |
+| checkstyle:MissingDeprecated | out-of-purpose | — | 文档卫生面，不迁移（roadmap item 3a） |
 | checkstyle:CyclomaticComplexity | landed | quality/method-cyclomatic-complexity | manifest `PMD:CyclomaticComplexity` t1；**delta：deep 档 only（requires METRICS，standard 档 skipByProfile——enforcement surface 注记：CLI 默认 standard 面等效 keep）、阈值 10 ≠ checkstyle 15、scope 仅 method_declaration 不含构造器** |
-| checkstyle:MethodLength | keep-checkstyle | — | 长度面 v1 无对应 |
-| checkstyle:ParameterNumber | keep-checkstyle | — | manifest `PMD:ExcessiveParameterList` t2 无规则文件 |
-| checkstyle:AnonInnerLength | keep-checkstyle | — | 长度面 |
-| checkstyle:MagicNumber | keep-checkstyle | — | item 35 候选池已撤销（魔法数噪音面未裁定） |
-| checkstyle:IllegalThrows | keep-checkstyle | — | throws 面相邻规则（SignatureDeclareThrowsException）在 manifest t2 无规则文件 |
+| checkstyle:MethodLength | out-of-purpose | — | 尺寸度量面（countEmpty=false），非缺陷拦截，不迁移（roadmap item 3a） |
+| checkstyle:ParameterNumber | out-of-purpose | — | 尺寸度量面，非缺陷拦截，不迁移（roadmap item 3a） |
+| checkstyle:AnonInnerLength | out-of-purpose | — | 尺寸度量面，非缺陷拦截，不迁移（roadmap item 3a） |
+| checkstyle:MagicNumber | out-of-purpose | — | roadmap 定位明举的风格面（噪音即成本），不迁移（roadmap item 3a） |
+| checkstyle:IllegalThrows | landed | exception/no-raw-throws | item 3a（plan 17）：illegalClassNames（Error/RuntimeException/Throwable，简单名+限定名）+ @Override 豁免逐点对齐；全仓对照零 diff（§4.2） |
 | checkstyle:AvoidStarImport | landed | quality/no-star-import | **delta：static-star 新告警面**——checkstyle 配置 `allowStaticMemberImports=true`（static star import 是项目惯例），nop-lint 双分支均报；切换需先裁 static-star 豁免 |
 | pmd:EmptyCatchBlock | landed | nop/no-empty-catch | 同 checkstyle:EmptyCatchBlock 行 |
 | pmd:JumbledIncrementer | keep-pmd | — | manifest 外规则；增量面 v1 无对应 |
@@ -40,13 +42,13 @@
 | pmd:HardCodedCryptoKey | landed | security/no-hardcoded-crypto | manifest t1 |
 | pmd:InsecureCryptoIv | keep-pmd | — | manifest `PMD:InsecureCryptoIv` t2（机制面无规则文件——tier 语义带入：不能标 landed） |
 
-**landed 计 7 行 / keep-checkstyle 12 / keep-pmd 7（EmptyCatchBlock 两行同目标）。**
+**item 3a 后：landed 计 11 行 / out-of-purpose 8 / keep-pmd 7（EmptyCatchBlock 两行同目标）。**
 
 ## 3. 切换判据（按 enforcement surface 计）
 
 - 切换后门禁面 = `nop-lint check --profile standard`（CLI/Maven goal 默认档）。
 - **deep-only 的 landed 行（CyclomaticComplexity）在默认 standard 面等效 keep**——切换判据不得把它计为已覆盖；除非切换决策同时把门禁面升为 `--profile deep`（需 metrics provider 装配）。
-- 判据：某旧工具配置段的全部行，在 enforcement surface 上均为 landed（含附注 delta 被接受）→ 该段可移除。
+- 判据（item 3a 增注，2026-09-28）：某旧工具配置段的全部行，status 均为 landed（含附注 delta 被接受）或 out-of-purpose（风格/可选面归档，非迁移债）→ 该段可移除。
 - 按本表：**checkstyle.xml 与 pmd-ruleset.xml 现均不可移除**（keep 行占多数）。
 
 ## 4. 并行期实跑对照（2026-09-24，dogfood）
@@ -66,6 +68,23 @@
 | pmd:check -Pqa | 9 条规则 | **7 violations**（AvoidBranchingStatementAsLastInLoop 6 + CloneMethodMustImplementCloneable 1，报告态） |
 
 **对照结论**：三工具各自报告、互不干扰——并行期成立。nop-lint 的覆盖面显著宽于旧工具（140 vs 48+7），且附带深度档规则可选项；发现的 `CommentSuppressionScanner`/`SuppressionSpan` javadoc 字面量触发抑制解析 fail-closed 中止（dogfood 首轮即暴露，已最小改写两处 javadoc 修复；**"prose 提及指令语法即中止"的引擎级语义裁定留 follow-up**——上下文感知的指令识别需设计裁定，非映射范畴）。
+
+### 4.2 item 3a 核心行升规则同语料对照（2026-09-28，plan 17）
+
+- **语料**：checkstyle 侧 = `./mvnw checkstyle:check -Pqa` 全仓实跑（276 份模块 `target/checkstyle-result.xml`，累计 7,830 文件次扫描；主要源码集，`**/_gen/**`、`**/_*.java` 由插件 excludes 排除）；nop-lint 侧 = CLI `--rules` 4 规则白名单对 9,980 个 main 源文件（排除 `_gen/**`/`_*.java`，对齐 checkstyle 语料口径）。
+- **语料证据**（排除"双方零查"空心对照）：qa 配置激活由同报告其他规则命中背书——MagicNumber 8,320 / UnusedImports 775 / CyclomaticComplexity 360 / ParameterNumber 163 等；个别 demo 模块（nop-spring-demo 等）跑默认配置不属对照面。
+- **命中集对照**（比较键 file+line+rule）：
+
+| 规则 | checkstyle 命中 | nop-lint 命中 | 结论 |
+|---|---|---|---|
+| checkstyle:StringLiteralEquality ↔ quality/string-literal-equality | 0 | 0 | 零 diff |
+| checkstyle:CovariantEquals ↔ quality/covariant-equals | 0 | 0 | 零 diff |
+| checkstyle:IllegalToken（native）↔ quality/no-native-method | 0 | 0 | 零 diff |
+| checkstyle:IllegalThrows ↔ exception/no-raw-throws | 3（AopProxyHelper:21、ReflectionHelper:128/148，均 throws Throwable） | 3（同文件同行） | **零 diff** |
+
+- **delta 裁定**：无未裁定 delta。附注（非 diff）：对照运行采用 4 规则白名单时，存量 `nop-lint-disable` 注解因目标规则不在白名单产生 1,406 条 unused-disable-directive 副产品警告——标准全库运行下注解正常匹配，不入对照面。
+- **fixture 面**：4 规则各带 valid/invalid fixtures（TestNopRuleSuites 59/59 绿），覆盖 @Override 豁免、多类型 throws、枚举体 equals、拼接操作数排除等规格点。
+- **record 面裁定**（closure audit Minor-1 消解）：checkstyle CovariantEquals 文档覆盖 class/record/enum；落地规则 v1 面为 class + enum（record 隐式生成 equals(Object)，协变 equals 语义存疑），全仓 276 份报告 CovariantEqualsCheck 0 命中、main 源无 record 含 equals 重载——零 diff 不受影响；record 面记为显式 delta，重估触发 = 出现 record 含 equals 重载的语料。
 
 ## 5. 回退预案
 

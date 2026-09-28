@@ -39,7 +39,10 @@ const PMD_FILE = join(PROJECT_ROOT, 'pmd-ruleset.xml');
 const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 
-const STATUS_VOCAB = new Set(['landed', 'keep-checkstyle', 'keep-pmd', 'deferred']);
+const STATUS_VOCAB = new Set(['landed', 'keep-checkstyle', 'keep-pmd', 'deferred',
+  // facet-review disposition (tool-replacement roadmap item 3a): a style/optional
+  // face row is archived as out-of-purpose — not a migration debt; reason required
+  'out-of-purpose']);
 
 function fail(errors, message) {
   errors.push(message);
@@ -150,6 +153,13 @@ function checkAll({ doc, checkstyleXml, pmdXml, ruleIndex }) {
         + ` (vocabulary: ${[...STATUS_VOCAB].join(', ')})`);
       continue;
     }
+    if (status === 'out-of-purpose') {
+      const note = (row.note ?? '').trim();
+      if (note.length === 0) {
+        fail(errors, `mapping row '${source}' has status out-of-purpose without a facet reason`
+          + ' (an archived row must state why it is not a migration debt)');
+      }
+    }
     if (status === 'landed') {
       for (const target of row.target.split('+').map(s => s.trim()).filter(s => s && s !== '—')) {
         if (!ruleIndex.has(target)) {
@@ -216,7 +226,8 @@ function selfTest() {
     `| ${sampleSources[1]} | maybe-landed`)
     .replace(`| ${sampleSources[1]} | keep-checkstyle`, `| ${sampleSources[1]} | maybe-landed`)
     .replace(`| ${sampleSources[1]} | keep-pmd`, `| ${sampleSources[1]} | maybe-landed`)
-    .replace(`| ${sampleSources[1]} | deferred`, `| ${sampleSources[1]} | maybe-landed`);
+    .replace(`| ${sampleSources[1]} | deferred`, `| ${sampleSources[1]} | maybe-landed`)
+    .replace(`| ${sampleSources[1]} | out-of-purpose`, `| ${sampleSources[1]} | maybe-landed`);
   if (checkAll({ ...ctx, doc: badVocab }).length === 0) {
     console.error('self-test control 2 FAILED: bad status word was not detected');
     process.exit(1);
@@ -238,7 +249,25 @@ function selfTest() {
     process.exit(1);
   }
 
-  console.log('self-test ok: dropped-row / bad-vocab / bad-landed-target all REJECTED');
+  // control 4: an out-of-purpose row without its facet reason must be rejected
+  const opRow = [...rows.entries()].find(([, row]) => row.status === 'out-of-purpose');
+  if (!opRow) {
+    console.error('self-test control 4 SKIPPED-FAIL: no out-of-purpose row in the live doc');
+    process.exit(1);
+  }
+  const [opSource, opData] = opRow;
+  const badReason = ctx.doc.replace(`| ${opSource} | out-of-purpose | ${opData.target} | ${opData.note} |`,
+    `| ${opSource} | out-of-purpose | ${opData.target} |  |`);
+  if (badReason === ctx.doc) {
+    console.error('self-test control 4 FAILED: reason-blank mutation did not apply');
+    process.exit(1);
+  }
+  if (checkAll({ ...ctx, doc: badReason }).length === 0) {
+    console.error('self-test control 4 FAILED: reason-less out-of-purpose row was not detected');
+    process.exit(1);
+  }
+
+  console.log('self-test ok: dropped-row / bad-vocab / bad-landed-target / reason-less-out-of-purpose all REJECTED');
 }
 
 main();

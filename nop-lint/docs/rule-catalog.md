@@ -34,6 +34,7 @@
 | exception/empty-finally-block | warning | 1.0 | false | finally 空语句块：删除或补齐清理逻辑 (empty finally block; remove it or add the cleanup) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #13 (PMD:EmptyFinallyBlock) |
 | exception/equals-null | warning | 1.0 | true | equals(null) 恒为 false，应为 == null 判空 (equals(null) is always false; use == null) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #3 (PMD:EqualsNull + EP:EqualsNull) |
 | exception/no-catch-throwable | warning | 1.0 | false | 禁止捕获 Throwable，会吞掉 Error (Do not catch Throwable; Errors must propagate — catch the specific exception) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #22 [metadata.category=exception-handling] |
+| exception/no-raw-throws | warning | 1.0 | false | 禁止声明 throws Throwable/Error/RuntimeException，请声明具体异常或 NopException (Do not declare Throwable/Error/RuntimeException; declare concrete exceptions) | checkstyle.xml IllegalThrows (tool-replacement roadmap item 3a) [metadata.category=exception-handling] |
 | exception/no-throw-npe | warning | 1.0 | true | 禁止显式抛出 NullPointerException (do not throw NullPointerException deliberately) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #12 (PMD:AvoidThrowingNullPointerException) |
 | exception/throw-null | warning | 1.0 | false | 禁止 throw null，会以 NPE 收场 (throw null immediately fails with a NullPointerException) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #7 (EP:ThrowNull) |
 | nop/no-empty-catch | warning | 1.0 | false | Empty catch block swallows the exception without handling; pass it to a logger, rethrow, or add a comment explaining why it is intentionally ignored | ai-dev/tools/rules/java-lint-empty-catch.yml [metadata.category=exception-handling] |
@@ -59,12 +60,14 @@
 | quality/biginteger-instantiation | info | 1.1 | false | 用 BigInteger.ZERO/ONE/TEN 或 valueOf (use the cached constant or valueOf) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #11 (PMD:BigIntegerInstantiation) |
 | quality/collection-size-nonnegative | warning | 1.0 | false | size() >= 0 恒为 true (collection size is never negative) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #6 (EP:SizeGreaterThanOrEqualsZero) |
 | quality/control-statement-braces | info | 1.1 | false | if 语句体必须使用大括号 (if statement body must be wrapped in braces) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #30 (design 06 §4.1 ControlStatementBraces) |
+| quality/covariant-equals | warning | 1.0 | false | 协变 equals 破坏等价契约，请覆写 equals(Object) (covariant equals breaks the equality contract; override equals(Object)) | checkstyle.xml CovariantEquals (tool-replacement roadmap item 3a) |
 | quality/empty-while-body | warning | 1.0 | false | while 空循环体：忙等或死代码 (Empty while body; busy-wait or dead code) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #28 |
 | quality/method-cognitive-complexity | warning | 1.0 | false | 方法认知复杂度过高 (method cognitive complexity exceeds 15) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #12 (design 06 §4.1 CognitiveComplexity) |
 | quality/method-cyclomatic-complexity | warning | 1.0 | false | 方法圈复杂度过高 (method cyclomatic complexity exceeds 10) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #11 (design 06 §4.1 CyclomaticComplexity) |
 | quality/method-npath-complexity | warning | 1.0 | false | 方法 NPath 路径复杂度过高 (method NPath complexity exceeds 200) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #13 (design 06 §4.1 NPathComplexity) |
 | quality/no-constant-condition | warning | 1.0 | false | 恒定条件：分支不依赖运行时状态 (constant condition; the branch never varies) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #1 (ESLint no-constant-condition) |
 | quality/no-finalize | warning | 1.0 | false | 禁止覆写 finalize (Do not override finalize; deprecated, unreliable and a resurrection hazard) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #24 (design 06 §4.1, JEP 421) |
+| quality/no-native-method | warning | 1.0 | false | 禁止声明 native 方法，平台保持纯 Java (Do not declare native methods; the platform stays pure Java) | checkstyle.xml IllegalToken LITERAL_NATIVE (tool-replacement roadmap item 3a) |
 | quality/no-return-null | warning | 1.0 | false | 禁止裸 return null（Bare `return null` returned; return an Optional/empty value or document the nullability) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-self-compare | warning | 1.0 | false | 自比较：表达式与自身比较恒为常量 (self-compare; the operands are identical) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #2 (ESLint no-self-compare) |
 | quality/no-star-import | info | 1.0 | false | 禁止星号导入 (Wildcard import; import the concrete types) | ai-dev/design/nop-lint/02-rule-library.md §1 |
@@ -77,6 +80,7 @@
 | quality/self-comparison | warning | 1.0 | false | compareTo 自比较恒为 0 (self-comparison; compareTo on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #4 (EP:SelfComparison) |
 | quality/self-equals | warning | 1.0 | false | equals 自比较恒为 true (self-equals; equals on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #5 (EP:SelfEquals) |
 | quality/string-instantiation | info | 1.1 | false | 多余的 String 拷贝 (redundant String instantiation) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #10 (PMD:StringInstantiation) |
+| quality/string-literal-equality | warning | 1.0 | false | 字符串比较使用 ==/!=，应使用 equals (String compared with ==/!=; use equals for content comparison) | checkstyle.xml StringLiteralEquality (tool-replacement roadmap item 3a) |
 | quality/unused-local-variable | warning | 1.0 | false | 未使用的局部变量 (unused local variable) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #14 |
 | quality/use-collection-isempty | info | 1.1 | true | 用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty) |
 

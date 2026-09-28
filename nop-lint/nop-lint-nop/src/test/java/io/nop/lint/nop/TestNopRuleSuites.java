@@ -91,7 +91,12 @@ public class TestNopRuleSuites {
             "quality/string-instantiation",
             "quality/biginteger-instantiation",
             "exception/no-throw-npe",
-            "exception/empty-finally-block");
+            "exception/empty-finally-block",
+            // item 3a (plan nop-lint/17): checkstyle core-face successors
+            "quality/string-literal-equality",
+            "quality/no-native-method",
+            "exception/no-raw-throws",
+            "quality/covariant-equals");
     // facet review (tool-replacement roadmap item 2, plan nop-lint/16): the four
     // out-of-purpose removals (loose-coupling-hashset / for-loop-can-be-foreach /
     // negated-equals / simplify-boolean-expression) left EXPECTED_RULE_IDS at 48.
@@ -165,7 +170,8 @@ public class TestNopRuleSuites {
                  "nop/silent-swallow", "nop/no-log-getmessage",
                  "exception/no-catch-throwable",
                  "exception/equals-null", "exception/throw-null",
-                 "exception/no-throw-npe", "exception/empty-finally-block" -> "exception";
+                 "exception/no-throw-npe", "exception/empty-finally-block",
+                 "exception/no-raw-throws" -> "exception";
             case "nop/no-vfs-violation", "nop/no-direct-datasource-inject",
                  "nop/query-limit-required" -> "nop";
             case "nop/ibiz-missing-annotation", "nop/ibiz-missing-context",

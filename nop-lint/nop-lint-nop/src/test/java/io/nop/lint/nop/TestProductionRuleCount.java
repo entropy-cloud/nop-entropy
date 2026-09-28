@@ -91,7 +91,12 @@ public class TestProductionRuleCount {
             "quality/string-instantiation",
             "quality/biginteger-instantiation",
             "exception/no-throw-npe",
-            "exception/empty-finally-block");
+            "exception/empty-finally-block",
+            // item 3a (plan nop-lint/17): checkstyle core-face successors
+            "quality/string-literal-equality",
+            "quality/no-native-method",
+            "exception/no-raw-throws",
+            "quality/covariant-equals");
 
     @BeforeAll
     static void init() {
@@ -110,8 +115,9 @@ public class TestProductionRuleCount {
         Set<String> ids = new TreeSet<>();
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
-        // facet review (tool-replacement roadmap item 2): four out-of-purpose rules removed, 62 -> 58
-        assertEquals(58, ids.size(), "production rule census size");
+        // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
+        // four checkstyle core-face successors added, 58 -> 62
+        assertEquals(62, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

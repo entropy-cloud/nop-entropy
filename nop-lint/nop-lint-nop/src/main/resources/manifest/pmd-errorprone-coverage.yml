@@ -72,8 +72,9 @@ entries:
     mechanism: 'L1/L2: Pattern: `$X.equals(null)`'
     fixture: '/test/lint/suites/exception/equals-null/'
   - source_rule: 'PMD:LiteralsFirstInComparisons'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `$X.equals("literal")`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: `$X == "literal"` / `$X != "literal"`（string-literal-equality，item 3a 提升：== / != 双面，literal 任一侧）'
+    fixture: '/test/lint/suites/quality/string-literal-equality/'
   - source_rule: 'PMD:OneDeclarationPerLine'
     tier: 2
     mechanism: 'L1/L2: Pattern: `int $A, $B`'
@@ -232,8 +233,9 @@ entries:
     mechanism: 'L1 pattern: Pattern: `throw new RuntimeException()`'
     fixture: '/test/lint/suites/exception/no-raw-exception/'
   - source_rule: 'PMD:SignatureDeclareThrowsException'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: `throws Exception`'
+    tier: 1
+    mechanism: 'L1/L2: Pattern + xscript: throws 类型 ∈ {Throwable, Error, RuntimeException}（no-raw-throws，item 3a 提升：@Override 豁免 + 多类型子句；Exception 合法面 = checkstyle IllegalThrows 口径）'
+    fixture: '/test/lint/suites/exception/no-raw-throws/'
   - source_rule: 'PMD:ExceptionAsFlowControl'
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'

@@ -72,7 +72,7 @@ const ITEMS_GRAMMAR = /^\d+(–\d+)?$/; // bare item number or contiguous range 
 // RULE_FACET_CENSUS alongside TestProductionRuleCount and the catalog generator.
 const RULE_FACET_VOCAB = new Set(['core', 'out-of-purpose']);
 const RULE_DISPOSITION_VOCAB = new Set(['keep', 'demote-info', 'remove']);
-const RULE_FACET_CENSUS = 62;
+const RULE_FACET_CENSUS = 66; // 62 live + 4 removed (item 2) = 66 rows; item 3a added 4 live
 const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 

@@ -47,9 +47,9 @@
 | NullAway / 空类型系统族 | 待裁 | — | — | 待裁 |
 | ArchUnit | 待裁 | — | — | 待裁 |
 
-### 规则级分面表（62 条生产规则复审，roadmap item 2，plan nop-lint/16）
+### 规则级分面表（62 条复审 + item 3a 新增 4 条 = live 62 行 + remove 4 行，roadmap item 2/3a，plan nop-lint/16、17）
 
-> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）。
+> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep（string-literal-equality、no-native-method、no-raw-throws、covariant-equals）。
 
 | 规则 | 分面 | 处置 | 裁定理由 | 重估触发 |
 |---|---|---|---|---|
@@ -115,12 +115,16 @@
 | security/no-md5-digest | core | keep | 弱摘要（安全） | — |
 | security/no-runtime-exec | core | keep | 命令执行注入面（安全） | — |
 | security/no-sensitive-literal | core | keep | 敏感字面量（安全） | — |
+| quality/string-literal-equality | core | keep | 字符串 ==/!= 引用比较 bug（正确性面，item 3a 新增） | — |
+| quality/no-native-method | core | keep | native 禁令=纯 Java 平台不变式（item 3a 新增） | — |
+| exception/no-raw-throws | core | keep | Nop 异常契约声明面（item 3a 新增） | — |
+| quality/covariant-equals | core | keep | 协变 equals 破坏等价契约（正确性面，item 3a 新增） | — |
 
 ## 行级账本索引（三本既有账，状态计数以各自门禁为准）
 
 | 账本 | 行数 | 状态分布 | 防腐门禁 |
 |---|---|---|---|
-| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | landed 7 / keep-checkstyle 12 / keep-pmd 7——两份旧配置现均不可移除 | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
+| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3a 后：landed 11 / out-of-purpose 8 / keep-pmd 7——checkstyle 侧可移除待 plan 18 切换；pmd 侧 keep 为主 | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
 | [check-\*.mjs 迁移 manifest](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 24 | maintain-mjs 7 / exclude 7 / migrated-pending-switchover 5 / candidate 2 / deferred 3（与文档分类汇总行一致，2026-09-28 修正） | `ai-dev/tools/check-lint-migration-manifest.mjs` |
 | [PMD/EP coverage manifest](../../nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 30 已落地带 live fixture（item 2 分面复审翻转 out-of-purpose 3 行后）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
 

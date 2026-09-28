@@ -1,0 +1,40 @@
+# tool-replacement roadmap item 3a (plan nop-lint/17): checkstyle
+# IllegalThrows successor (illegalClassNames = java.lang.Error,
+# java.lang.RuntimeException, java.lang.Throwable — Exception stays legal
+# per the Nop exception discipline). Alignment to checkstyle 10.21.1
+# semantics: simple and qualified type names both hit, multi-type clauses
+# are checked per type, and @Override methods are exempt
+# (ignoreOverriddenMethods defaults to true). Spike result: this grammar
+# version has no throws_clause node — the clause kind is `throws`, a direct
+# child of method_declaration holding the type list.
+id: exception/no-raw-throws
+language: Java
+severity: warning
+message: "禁止声明 throws Throwable/Error/RuntimeException，请声明具体异常或 NopException (Do not declare Throwable/Error/RuntimeException; declare concrete exceptions)"
+rule:
+  kind: method_declaration
+xscript: |
+  let mods = node.children('modifiers');
+  if (mods.size() > 0) {
+    for (let anno of mods.get(0).children('marker_annotation')) {
+      if (anno.text() == '@Override') {
+        return;
+      }
+    }
+  }
+  for (let clause of node.children('throws')) {
+    for (let kind of ['type_identifier', 'scoped_type_identifier']) {
+      for (let t of clause.children(kind)) {
+        let n = t.text();
+        if (n == 'Throwable' || n == 'Error' || n == 'RuntimeException'
+          || n == 'java.lang.Throwable' || n == 'java.lang.Error' || n == 'java.lang.RuntimeException') {
+          report({ node: t, message: 'throws ' + n + ' 破坏异常契约，请声明具体异常类型 (throws ' + n + ' breaks the exception contract; declare concrete types)' });
+        }
+      }
+    }
+  }
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "checkstyle.xml IllegalThrows (tool-replacement roadmap item 3a)"

@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/exception/no-raw-throws.rule.yml
