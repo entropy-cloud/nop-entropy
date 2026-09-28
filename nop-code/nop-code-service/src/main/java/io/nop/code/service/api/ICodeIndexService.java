@@ -1,5 +1,7 @@
 package io.nop.code.service.api;
 
+import io.nop.code.api.dto.IndexFileSetResult;
+
 import java.util.List;
 
 import io.nop.api.core.beans.PageBean;
@@ -25,6 +27,13 @@ public interface ICodeIndexService {
      * 索引指定文件
      */
     CodeFileAnalysisResult indexFile(String indexId, String filePath, String sourceCode);
+
+    /**
+     * N6.3: 索引显式文件子集（集群分片执行原语）——单事务内对每个文件
+     * delete-before-reindex + persist。返回实际索引的文件数（无分析器或读取失败的
+     * 文件计入 skipped，经 SkippedFiles 结果对象区分，不静默）。
+     */
+    IndexFileSetResult indexFileSet(String indexId, String vfsPath, List<String> relativePaths);
 
     // ==================== File Queries ====================
 

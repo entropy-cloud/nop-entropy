@@ -399,6 +399,73 @@ public class CodeIndexService implements ICodeIndexService {
         return result;
     }
 
+    // ====== Cluster Shard Execution (N6.3) ======
+
+    @Override
+    public io.nop.code.api.dto.IndexFileSetResult indexFileSet(String indexId, String vfsPath,
+                                                               List<String> relativePaths) {
+        validatePath(vfsPath);
+        invalidateAnalysisCache(indexId);
+        io.nop.code.api.dto.IndexFileSetResult result = new io.nop.code.api.dto.IndexFileSetResult();
+        if (relativePaths == null || relativePaths.isEmpty()) {
+            return result;
+        }
+        IResourceLoader vfs = VirtualFileSystem.instance();
+        return withIndexLock(indexId, () -> transactionTemplate.runInTransaction(null,
+                TransactionPropagation.REQUIRED, txn ->
+                        ormTemplate.runInSession(session -> {
+                            ensureIndexEntity(indexId, vfsPath, session);
+                            ensureSubServices();
+                            graphMetricMaterializer.deleteByIndex(session, indexId);
+                            List<io.nop.code.api.dto.IndexFileSetResult> holder = new ArrayList<>(1);
+                            holder.add(result);
+                            for (String relativePath : relativePaths) {
+                                // N2.4 quirk: the VFS resolves raw absolute paths to zero
+                                // resources; the file: URI form is required
+                                String absolute = vfsPath.endsWith("/")
+                                        ? vfsPath + relativePath : vfsPath + "/" + relativePath;
+                                String mapped = absolute.startsWith("file:") ? absolute : "file:" + absolute;
+                                ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
+                                if (fileAnalyzer == null) {
+                                    result.getSkippedPaths().add(relativePath);
+                                    continue;
+                                }
+                                try {
+                                    IResource resource = vfs.getResource(mapped);
+                                    if (resource == null || !resource.exists()) {
+                                        result.getSkippedPaths().add(relativePath);
+                                        continue;
+                                    }
+                                    String sourceCode = resource.readText();
+                                    deleteFileRecords(indexId, Collections.singletonList(relativePath));
+                                    CodeFileAnalysisResult fileResult = fileAnalyzer.analyze(relativePath, sourceCode);
+                                    if (fileResult == null) {
+                                        result.getSkippedPaths().add(relativePath);
+                                        continue;
+                                    }
+                                    // N3.1-s semantics: resolve before persist (indexId-scoped DB
+                                    // symbols + this file's own symbols)
+                                    SymbolTable ownSymbols = new SymbolTable();
+                                    for (CodeSymbol symbol : fileResult.getSymbols()) {
+                                        String qn = symbol.getQualifiedName();
+                                        if (qn != null && !qn.isEmpty()) {
+                                            ownSymbols.add(symbol);
+                                        }
+                                    }
+                                    resolveReanalyzedCalls(indexId, Collections.singletonList(fileResult),
+                                            ownSymbols, Collections.singleton(relativePath));
+                                    persistSingleFileInSession(indexId, fileResult, session);
+                                    result.setIndexedCount(result.getIndexedCount() + 1);
+                                } catch (Exception e) {
+                                    LOG.warn("Failed to index shard file {}", relativePath, e);
+                                    result.getSkippedPaths().add(relativePath);
+                                }
+                            }
+                            updateIndexStats(indexId);
+                            return holder.get(0);
+                        })));
+    }
+
     // ====== File Queries ======
 
     @Override

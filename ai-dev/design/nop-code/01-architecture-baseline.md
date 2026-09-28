@@ -311,7 +311,7 @@ GraphExporter.export(...) / GraphDiffer.diff(...)
 | 框架适配迁出核心 | ⏳ 中期 | 把 `JavaFileAnalyzer` 硬编码 Spring 路由改为 `IEntryPointPatternProvider`/适配器；DSL 为远期选项 |
 | 语义边 LLM 集成 | ⏳ 远期 | 依赖 nop-ai；当前确定性提取器只产出 EXTRACTED 边 |
 | nop-search 向量/混合 | ⏳ 远期 | 双路径已实现，向量嵌入与 RRF 混合搜索待部署时注入 |
-| 集群索引构建 | ⏳ 远期 | 需先定义源码分发、分片、原子发布；当前参考应用是单节点 |
+| 集群索引构建 | 🔶 基座已落地（2026-09-28，N6.3）：确定性分片计划（`IndexShardPlanner`，稳定哈希/互斥/完备）、repo checkout 工作区（`ClusterWorkspaceManager`，clone/fetch+checkout/复用，root 显式配置）、分片执行原语（`indexFileSet`，单事务子集索引，已入幂等门禁并集等价钉住）；执行编排与原子发布归 N6.4+ |
 | 增量更新依赖传播 | ✅ 已实现（2026-09-27，N3.1） | 增量索引时沿文件级依赖边（nop_code_dependency import 关系）传播 2-hop 受影响文件，经 `IncrementalStatus.affectedFiles` 可观测（`getLastIncrementalAffectedFiles` 读回）；符号级 call 边传播归 successor（增量 callee 解析，confirmed live defect）；超 10000 邻居 fail-fast |
 | 增量 callee 解析与依赖方边恢复 | ✅ 已实现（2026-09-28，N3.1-s） | `triggerIncrementalIndex`/`indexFile` 两写路径在 persist 前经 `CallReferenceResolver`（nop-code-core，与全量流 `resolveCalls` 共享精确→去参模糊语义）解析重分析文件的方法调用边：内存新符号优先，库内未变更符号按 distinct qn 批量点查（显式排除变更/删除文件旧符号行）；解析失败保持 INFERRED 不落库。`deleteFileRecords` 删除前快照变更文件符号 id→qn 与依赖方 call 行（分页读全），新符号落库后按 qn 重映射重插，目标 qn 已不存在的边显式丢弃（与全量流"该边不再生成"一致）。注：`JavaFileAnalyzer` type solver 为 reflection-only，跨文件 calleeQualifiedName 仅同 CU 与 JRE 类型可产——跨文件解析机制就绪，覆盖面随解析器升级扩展 |
 

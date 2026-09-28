@@ -45,7 +45,7 @@
 | N5.6 | C# 语言扩展 | Fix | 同 N5.4 | 同上 | todo |
 | N6.1 | 数据库图后端选型决策 | Decision | 01-baseline §4.4.1(ltree/CTE/AGE 开放决策);00-vision §一(待决策) | P1#7 | done(2026-09-28,plan `ai-dev/plans/nop-code/18-n6-1-graph-db-backend-decision.md`;裁定=可移植 SQL CTE,拒绝 ltree/AGE/外部图库) |
 | N6.2 | `IGraph` 数据库实现 | Fix | 01-baseline §4.4.1(未来数据库实现行)/§6.2 | P1#7 | done(2026-09-28,plan `ai-dev/plans/nop-code/19-n6-2-db-igraph-backend.md`;点查四表+有界遍历,与内存后端逐项等价) |
-| N6.3 | 集群索引构建——分发与工作区 | Fix | 00-vision §一(集群索引目标);01-baseline §6.2(源码分发/分片/原子发布) | P1#6 | todo |
+| N6.3 | 集群索引构建——分发与工作区 | Fix | 00-vision §一(集群索引目标);01-baseline §6.2(源码分发/分片/原子发布) | P1#6 | tdone(2026-09-28,plan `ai-dev/plans/nop-code/20-n6-3-cluster-sharding-workspace.md`;分片/工作区/分片执行三基座+并集等价) |
 | N6.4 | 集群索引构建——原子发布与一致性模型 | Fix | 同 N6.3 | P1#6 | todo |
 | N6.5 | 多租户隔离与访问控制(ask-first) | Fix | —(集群化衍生安全面,`allowedLocalRoot` 细化) | — | todo |
 | N7.1 | 语义边 LLM 增强 | Fix | semantic-edge §4.3(`LlmSemanticExtractor`/异步/成本预算/SHA256 缓存/`requiresLlm()`);01-baseline §6.2;00-vision §二#4 | P2#18 | todo |

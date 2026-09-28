@@ -87,6 +87,7 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
             "batchSaveFileRecords",
             "indexDirectory",
             "indexFile",
+            "indexFileSet",
             "materializeGraphMetrics",
             "triggerRebuildFromCommit"
     ));
@@ -155,6 +156,9 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 break;
             case "indexFile":
                 verifyIndexFileIdempotent();
+                break;
+            case "indexFileSet":
+                verifyIndexFileSetIdempotent();
                 break;
             case "materializeGraphMetrics":
                 verifyMaterializeGraphMetricsIdempotent();
@@ -369,6 +373,31 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 "indexDirectory retry must keep file count stable (expected " + filesAfterFirst + ", got " + filesAfterRetry + ")");
         assertEquals(symbolsAfterFirst, symbolsAfterRetry,
                 "indexDirectory retry must keep symbol count stable (expected " + symbolsAfterFirst + ", got " + symbolsAfterRetry + ")");
+    }
+
+    /**
+     * N6.3: indexFileSet on the same explicit file subset must be idempotent — retry must
+     * not throw and file/symbol counts stay stable (delete-before-reindex over the same
+     * scope, mirroring indexDirectory's I4 semantics).
+     */
+    private void verifyIndexFileSetIdempotent() throws Exception {
+        Path projectDir = tempDir.resolve("idem-fileset");
+        Files.createDirectories(projectDir);
+        writeJavaFile(projectDir, "Kappa.java", "public class Kappa { int k; }");
+        writeJavaFile(projectDir, "Lambda.java", "public class Lambda { String l; }");
+        Thread.sleep(50);
+
+        String indexId = "idem-fileset";
+        String dirPath = projectDir.toAbsolutePath().toString();
+
+        codeIndexService.indexFileSet(indexId, dirPath, List.of("Kappa.java", "Lambda.java"));
+        int filesAfterFirst = countFiles(indexId, NopCodeFile.class);
+        assertTrue(filesAfterFirst >= 2, "first indexFileSet: >=2 file records");
+
+        assertDoesNotThrow(() -> codeIndexService.indexFileSet(indexId, dirPath,
+                List.of("Kappa.java", "Lambda.java")), "retry indexFileSet must not throw");
+        assertEquals(filesAfterFirst, countFiles(indexId, NopCodeFile.class),
+                "indexFileSet retry must keep file count stable");
     }
 
     /**
