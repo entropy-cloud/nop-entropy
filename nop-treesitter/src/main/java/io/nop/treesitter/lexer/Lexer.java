@@ -82,6 +82,14 @@ public final class Lexer {
     public static LexOutcome nextForParse(Language language, byte[] source, int position,
                                           int parseState, boolean ignoreEmptyExternalTokens,
                                           ExternalScanner externalScanner) {
+        // C "no_lookahead_after_non_terminal_extra" (lex_state == (uint16_t)-1):
+        // the lexer returns a null lookahead and the parser consults the state's
+        // EOF table entry instead — typically the reduce that closes a
+        // non-terminal extra (e.g. rust's line_comment). Modeled as a zero-width
+        // end token so the parse loop reads the state's EOF row.
+        if (language.lexState(parseState) == 0xFFFF) {
+            return LexOutcome.ofToken(new Token(0, position, position, false));
+        }
         boolean errorMode = false;
         int errorStart = -1;
         int errorEnd = -1;
@@ -171,7 +179,12 @@ public final class Lexer {
             JavaScanContext ctx = new JavaScanContext(source, position);
             if (externalScanner.scan(ctx, valid)) {
                 int symbol = language.externalSymbolMap()[ctx.resultSymbol];
-                boolean empty = ctx.markedEnd <= ctx.tokenStart;
+                // C mark_end semantics: the token end is the position of the LAST
+                // mark_end call; when the scanner never called mark_end, the token
+                // ends at the position reached on return (e.g. rust's
+                // LINE_DOC_CONTENT consumes to newline/EOF without mark_end).
+                int tokenEnd = ctx.markEndCalled ? ctx.markedEnd : ctx.pos;
+                boolean empty = tokenEnd <= ctx.tokenStart;
                 boolean tokenIsExtra = language.nextState(parseState, symbol) == parseState;
                 if (empty && (ignoreEmptyExternalTokens || tokenIsExtra)) {
                     return null;
@@ -180,7 +193,7 @@ public final class Lexer {
                 // consumes the scanner's token whenever the scanner accepted it
                 // under the mode's valid-symbol list — required for python's
                 // zero-width NEWLINE/INDENT/DEDENT tokens.
-                return new ScannerVM.Result(symbol, ctx.tokenStart, ctx.markedEnd);
+                return new ScannerVM.Result(symbol, ctx.tokenStart, tokenEnd);
             }
             return null;
         }
@@ -200,6 +213,7 @@ public final class Lexer {
         private int pos;
         private int tokenStart;
         private int markedEnd;
+        private boolean markEndCalled;
         private int lookahead;
         private boolean eof;
         private int resultSymbol = -1;
@@ -209,6 +223,7 @@ public final class Lexer {
             this.pos = position;
             this.tokenStart = position;
             this.markedEnd = position;
+            this.markEndCalled = false;
             reload();
         }
 
@@ -242,6 +257,7 @@ public final class Lexer {
         @Override
         public void markEnd() {
             markedEnd = pos;
+            markEndCalled = true;
         }
 
         @Override

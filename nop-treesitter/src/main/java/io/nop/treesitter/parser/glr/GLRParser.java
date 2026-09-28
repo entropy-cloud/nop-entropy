@@ -177,6 +177,10 @@ public final class GLRParser {
         int position = head.position;
         currentLexStamp = language.externalLexState(state) != 0 ? NO_LEX_STATE : language.lexState(state);
         pendingReusedLeaf = reuseLeafForPosition(state, position);
+        // C "no_lookahead_after_non_terminal_extra": states whose lex mode is
+        // 0xFFFF produce a synthetic null lookahead; the parser consults the
+        // state's EOF table entry instead of a lexed token.
+        boolean nullLookahead = language.lexState(state) == 0xFFFF;
         Lexer.Token token;
         if (pendingReusedLeaf != Subtree.NO_ID) {
             Subtree reused = arena.get(pendingReusedLeaf);
@@ -248,6 +252,14 @@ public final class GLRParser {
             if (lastReductionVersion != NO_VERSION) {
                 renumberVersion(lastReductionVersion, version);
                 state = gss[versions[version].head].state;
+                if (nullLookahead) {
+                    // C: after the EOF-entry reduce of a non-terminal extra the
+                    // lexer must run again at the reduced state; do not keep
+                    // consulting rows with the synthetic end token.
+                    token = getToken(version, state, position);
+                    symbol = token.symbol();
+                    nullLookahead = language.lexState(state) == 0xFFFF;
+                }
                 continue;
             }
             if (didReduce) {

@@ -591,6 +591,14 @@ public final class ParserCExtractor {
                 throw new IllegalStateException("ts_lex_modes index out of range: " + idx);
             }
             String fields = m.group(2);
+            if (fields.contains("(TSStateId)(-1)")) {
+                // v0.25.x "no lookahead after non-terminal extra" states (e.g. rust's
+                // line_comment): the C runtime's lex function returns a null lookahead
+                // for lex_state == (uint16_t)-1 and the parser consults the state's
+                // EOF table entry instead. Encoded as 0xFFFF in the blob.
+                modes[idx] = new ExtractedGrammar.LexMode(0xFFFF, 0, 0);
+                continue;
+            }
             modes[idx] = new ExtractedGrammar.LexMode(
                     intField(fields, "lex_state"),
                     intField(fields, "external_lex_state"),
