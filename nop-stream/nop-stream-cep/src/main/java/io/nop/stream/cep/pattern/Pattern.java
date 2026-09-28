@@ -194,7 +194,6 @@ public class Pattern<T, F extends T> {
     public Pattern<T, F> where(IterativeCondition<F> condition) {
         Guard.notNull(condition, "The condition cannot be null.");
 
-        // ClosureCleaner.clean(condition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
         if (this.condition == null) {
             this.condition = condition;
         } else {
@@ -214,7 +213,6 @@ public class Pattern<T, F extends T> {
     public Pattern<T, F> or(IterativeCondition<F> condition) {
         Guard.notNull(condition, "The condition cannot be null.");
 
-        //ClosureCleaner.clean(condition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
 
         if (this.condition == null) {
             this.condition = condition;
@@ -270,7 +268,6 @@ public class Pattern<T, F extends T> {
                     .param(ARG_PATTERN_DETAIL, "until requires LOOPING or TIMES quantifier for pattern " + name);
         }
 
-        //ClosureCleaner.clean(untilCondition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
         this.untilCondition = untilCondition;
 
         return this;

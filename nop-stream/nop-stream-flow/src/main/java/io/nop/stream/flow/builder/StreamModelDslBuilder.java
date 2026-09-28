@@ -517,16 +517,10 @@ public final class StreamModelDslBuilder {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> DataStream<T> buildSource(StreamExecutionEnvironment env, StreamSourceModel t) {
         failFastOnUnsupportedSourceConfig(t);
-        SourceFunction<T> fn;
-        if (t.getBean() != null) {
-            fn = resolveBean(t, t.getBean(), SourceFunction.class);
-        } else if (t.getSource() != null) {
-            fn = new XplSourceFunction<>(t.getSource());
-        } else {
-            throw new StreamException(ERR_STREAM_REQUIRED_BODY)
-                    .param(ARG_ELEMENT, elementDesc(t))
-                    .loc(t.getLocation());
-        }
+        // G8: shared bean-vs-xpl resolution (same decisions and the same
+        // ERR_STREAM_REQUIRED_BODY anchoring as the previous inline tree).
+        SourceFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
+                SourceFunction.class, XplSourceFunction::new);
         String name = t.getName() == null ? "Source:" + t.getId() : t.getName();
         // Item 29: per-transform parallelism consumes the DataStreamSource entry
         // (covers the source vertex; undeclared inherits the stream-level value).
@@ -628,16 +622,9 @@ public final class StreamModelDslBuilder {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> void buildSink(DataStream<?> in, StreamSinkModel t) {
         failFastOnUnsupportedSinkConfig(t);
-        SinkFunction<T> fn;
-        if (t.getBean() != null) {
-            fn = resolveBean(t, t.getBean(), SinkFunction.class);
-        } else if (t.getSource() != null) {
-            fn = new XplSinkFunction<>(t.getSource());
-        } else {
-            throw new StreamException(ERR_STREAM_REQUIRED_BODY)
-                    .param(ARG_ELEMENT, elementDesc(t))
-                    .loc(t.getLocation());
-        }
+        // G8: shared bean-vs-xpl resolution (mirrors buildSource).
+        SinkFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
+                SinkFunction.class, XplSinkFunction::new);
         Integer declared = declaredSinkParallelism(t);
         if (declared != null) {
             // Item 29: explicit per-operator parallelism on the sink registration
@@ -688,7 +675,7 @@ public final class StreamModelDslBuilder {
     // Helpers used by both base and advanced transform builders.
     // ----------------------------------------------------------------
 
-    public BeanFunctionResolver beanResolver() {
+    BeanFunctionResolver beanResolver() {
         return beanResolver;
     }
 
@@ -697,7 +684,7 @@ public final class StreamModelDslBuilder {
      * carries the declaring transform element's source location (the resolvers
      * themselves have no model object to anchor on). An existing location is kept.
      */
-    public <F> F resolveBean(StreamTransformModel t, String beanName, Class<F> targetType) {
+    <F> F resolveBean(StreamTransformModel t, String beanName, Class<F> targetType) {
         try {
             return beanResolver.resolve(beanName, targetType);
         } catch (NopException e) {
@@ -708,11 +695,11 @@ public final class StreamModelDslBuilder {
         }
     }
 
-    public StreamModel model() {
+    StreamModel model() {
         return model;
     }
 
-    public Object registeredStream(String transformId) {
+    Object registeredStream(String transformId) {
         return streamRegistry.get(transformId);
     }
 
@@ -723,7 +710,7 @@ public final class StreamModelDslBuilder {
      * attribute (P1-XDSL-5); callers must not read {@link StreamEdgeModel#getPartition()}
      * directly.
      */
-    public PartitionPolicy resolveEdgePartition(String from, String to) {
+    PartitionPolicy resolveEdgePartition(String from, String to) {
         StreamEdgeModel e = findEdge(from, to);
         PartitionPolicy p = e == null ? null : e.getPartition();
         return p == null ? PartitionPolicy.FORWARD : p;
@@ -753,7 +740,7 @@ public final class StreamModelDslBuilder {
      * target subtask 0 (a structural false-green for per-transform parallelism).
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public DataStream<?> applyEdgePartition(DataStream<?> in, String fromId, String toId,
+    DataStream<?> applyEdgePartition(DataStream<?> in, String fromId, String toId,
                                             Integer targetParallelism) {
         if (resolveEdgePartition(fromId, toId) != PartitionPolicy.HASH) {
             return in;
@@ -793,22 +780,11 @@ public final class StreamModelDslBuilder {
         return t.getParallelism() != null && t.getParallelism() > 0 ? t.getParallelism() : null;
     }
 
-    public <F> F resolveFunction(StreamTransformModel t, String beanAttr, IEvalFunction xplBody,
-                                 Class<F> targetType, Function<IEvalFunction, F> xplWrapper) {
-        if (beanAttr != null) {
-            return resolveBean(t, beanAttr, targetType);
-        }
-        if (xplBody != null) {
-            return xplWrapper.apply(xplBody);
-        }
-        throw new StreamException(ERR_STREAM_REQUIRED_BODY).param(ARG_ELEMENT, elementDesc(t));
-    }
-
     /**
      * Renders a human-friendly element description for error messages, e.g.
      * {@code window 'w'} for a {@code StreamWindowModel} with id {@code w}.
      */
-    public static String elementDesc(StreamTransformModel t) {
+    static String elementDesc(StreamTransformModel t) {
         String simple = t.getClass().getSimpleName();
         String name = simple;
         if (name.startsWith("Stream")) {
@@ -820,11 +796,11 @@ public final class StreamModelDslBuilder {
         return name.toLowerCase() + " '" + t.getId() + "'";
     }
 
-    public static NopException beanNotFound(String beanName) {
+    static NopException beanNotFound(String beanName) {
         return new StreamException(ERR_STREAM_BEAN_NOT_FOUND).param(ARG_BEAN_NAME, beanName);
     }
 
-    public static NopException beanTypeMismatch(String beanName, Class<?> targetType,
+    static NopException beanTypeMismatch(String beanName, Class<?> targetType,
                                                 Class<?> actualType) {
         return new StreamException(ERR_STREAM_BEAN_TYPE_MISMATCH)
                 .param(ARG_BEAN_NAME, beanName)

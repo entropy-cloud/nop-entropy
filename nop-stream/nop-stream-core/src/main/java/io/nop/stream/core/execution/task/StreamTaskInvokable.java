@@ -29,6 +29,7 @@ import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.MailboxExecutor;
 import io.nop.stream.core.execution.ProcessingTimeServiceDriver;
+import io.nop.stream.core.execution.CloseSupport;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.TaskProcessingTimeService;
 import io.nop.stream.core.jobgraph.Invokable;
@@ -244,78 +245,20 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void wireOperators() {
-        List<StreamOperator<?>> operators = operatorChain.getOperators();
-        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
-        int lastIndex = operators.size() - 1;
-
-        for (int i = 0; i < lastIndex; i++) {
-            StreamOperator<?> current = operators.get(i);
-            StreamOperator<?> next = operators.get(i + 1);
-
-            if (current instanceof AbstractStreamOperator && next instanceof Input) {
-                AbstractStreamOperator currentOp = (AbstractStreamOperator) current;
-                Input nextInput = (Input) next;
-
-                Input wiredInput;
-                if (i + 1 < keySelectors.size() && keySelectors.get(i + 1) != null && next instanceof KeyContext) {
-                    wiredInput = new KeyExtractingOutput<>(nextInput, keySelectors.get(i + 1), (KeyContext) next);
-                } else {
-                    wiredInput = nextInput;
-                }
-
-                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
-            }
-        }
-
-        if (!operators.isEmpty() && operators.get(0) instanceof Input) {
-            Input rawHeadInput = (Input) operators.get(0);
-            if (!keySelectors.isEmpty() && keySelectors.get(0) != null && operators.get(0) instanceof KeyContext) {
-                headInput = new KeyExtractingOutput<>(rawHeadInput, keySelectors.get(0), (KeyContext) operators.get(0));
-            } else {
-                headInput = rawHeadInput;
-            }
-        }
-
+        chainInnerOperators();
+        wireHeadInput();
         if (outputWriter != null) {
-            wireTailToRecordWriter(operators, lastIndex);
+            wireTailToRecordWriter(operatorChain.getOperators(), operatorChain.getOperators().size() - 1);
         }
     }
 
     private void wireOperators(List<RecordWriter<Object>> fanOutWriters) {
         List<StreamOperator<?>> operators = operatorChain.getOperators();
-        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
-        int lastIndex = operators.size() - 1;
+        chainInnerOperators();
+        wireHeadInput();
 
-        for (int i = 0; i < lastIndex; i++) {
-            StreamOperator<?> current = operators.get(i);
-            StreamOperator<?> next = operators.get(i + 1);
-
-            if (current instanceof AbstractStreamOperator && next instanceof Input) {
-                AbstractStreamOperator currentOp = (AbstractStreamOperator) current;
-                Input nextInput = (Input) next;
-
-                Input wiredInput;
-                if (i + 1 < keySelectors.size() && keySelectors.get(i + 1) != null && next instanceof KeyContext) {
-                    wiredInput = new KeyExtractingOutput<>(nextInput, keySelectors.get(i + 1), (KeyContext) next);
-                } else {
-                    wiredInput = nextInput;
-                }
-
-                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
-            }
-        }
-
-        if (!operators.isEmpty() && operators.get(0) instanceof Input) {
-            Input rawHeadInput = (Input) operators.get(0);
-            if (!keySelectors.isEmpty() && keySelectors.get(0) != null && operators.get(0) instanceof KeyContext) {
-                headInput = new KeyExtractingOutput<>(rawHeadInput, keySelectors.get(0), (KeyContext) operators.get(0));
-            } else {
-                headInput = rawHeadInput;
-            }
-        }
-
-        if (!operators.isEmpty() && lastIndex >= 0) {
-            StreamOperator<?> tail = operators.get(lastIndex);
+        if (!operators.isEmpty() && operators.size() - 1 >= 0) {
+            StreamOperator<?> tail = operators.get(operators.size() - 1);
             if (tail instanceof AbstractStreamOperator) {
                 @SuppressWarnings("unchecked")
                 AbstractStreamOperator<Object> op = (AbstractStreamOperator<Object>) tail;
@@ -328,6 +271,55 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     }
                     op.setOutput(new BroadcastingRecordWriterOutput(outputs));
                 }
+            }
+        }
+    }
+
+    /**
+     * G4: the inner-operator chaining loop shared verbatim by both
+     * {@code wireOperators} overloads — wires each intermediate operator's
+     * output to the next operator's input, wrapping it with the key selector
+     * when the next hop declares one.
+     */
+    private void chainInnerOperators() {
+        List<StreamOperator<?>> operators = operatorChain.getOperators();
+        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
+        int lastIndex = operators.size() - 1;
+
+        for (int i = 0; i < lastIndex; i++) {
+            StreamOperator<?> current = operators.get(i);
+            StreamOperator<?> next = operators.get(i + 1);
+
+            if (current instanceof AbstractStreamOperator && next instanceof Input) {
+                AbstractStreamOperator currentOp = (AbstractStreamOperator) current;
+                Input nextInput = (Input) next;
+
+                Input wiredInput;
+                if (i + 1 < keySelectors.size() && keySelectors.get(i + 1) != null && next instanceof KeyContext) {
+                    wiredInput = new KeyExtractingOutput<>(nextInput, keySelectors.get(i + 1), (KeyContext) next);
+                } else {
+                    wiredInput = nextInput;
+                }
+
+                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
+            }
+        }
+    }
+
+    /**
+     * G4: head-input wiring shared verbatim by both {@code wireOperators}
+     * overloads — the head operator's input (key-selector-wrapped when the head
+     * declares a key selector) is what the task's input loop feeds.
+     */
+    private void wireHeadInput() {
+        List<StreamOperator<?>> operators = operatorChain.getOperators();
+        List<KeySelector<?, ?>> keySelectors = operatorChain.getKeySelectors();
+        if (!operators.isEmpty() && operators.get(0) instanceof Input) {
+            Input rawHeadInput = (Input) operators.get(0);
+            if (!keySelectors.isEmpty() && keySelectors.get(0) != null && operators.get(0) instanceof KeyContext) {
+                headInput = new KeyExtractingOutput<>(rawHeadInput, keySelectors.get(0), (KeyContext) operators.get(0));
+            } else {
+                headInput = rawHeadInput;
             }
         }
     }
@@ -565,6 +557,21 @@ public class StreamTaskInvokable implements Invokable<Void> {
     }
 
     /**
+     * Releases the input gate's external resources exactly once at task
+     * teardown. For remote edges this cancels the message-service subscription
+     * of every input channel — without this hook a finished, failed, or
+     * redeployed task would leak one live subscription per input edge and keep
+     * occupying the shared message-backend dispatch surface. Safe for source /
+     * self-contained roles (no input gate): the call is a no-op then.
+     */
+    private void closeInputGate() {
+        if (inputGate == null) {
+            return;
+        }
+        inputGate.close();
+    }
+
+    /**
      * Closes ALL output writers of this task. A fan-out producer (2+
      * outgoing edges) must signal EOS on every edge — closing only
      * {@link #outputWriter} (edge 0) leaves edges 2..N open, so their
@@ -580,45 +587,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * writer in the list is attempted; the first failure is rethrown with
      * the rest suppressed, mirroring {@link RecordWriter#close()} semantics.
      */
-    /**
-     * Releases the input gate's external resources exactly once at task
-     * teardown. For remote edges this cancels the message-service subscription
-     * of every input channel — without this hook a finished, failed, or
-     * redeployed task would leak one live subscription per input edge and keep
-     * occupying the shared message-backend dispatch surface. Safe for source /
-     * self-contained roles (no input gate): the call is a no-op then.
-     */
-    private void closeInputGate() {
-        if (inputGate == null) {
-            return;
-        }
-        inputGate.close();
-    }
-
     private void closeOutputWriters() {
         if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
-            Exception firstError = null;
-            for (RecordWriter<Object> writer : fanOutWriters) {
-                try {
-                    writer.close();
-                } catch (Exception e) {
-                    if (firstError == null) {
-                        firstError = e;
-                    } else {
-                        firstError.addSuppressed(e);
-                    }
-                }
-            }
-            if (firstError != null) {
-                if (firstError instanceof StreamException) {
-                    throw (StreamException) firstError;
-                }
-                if (firstError instanceof RuntimeException) {
-                    throw (RuntimeException) firstError;
-                }
-                throw new StreamException(
-                        ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, firstError);
-            }
+            Exception firstError = CloseSupport.closeAll(fanOutWriters, RecordWriter::close);
+            CloseSupport.throwAsCloseError(firstError, ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED);
         } else if (outputWriter != null) {
             outputWriter.close();
         }
@@ -633,26 +605,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
      * holds, so skipping it leaks one live subscription per input edge.
      */
     private Exception closeChainAndGate(Exception firstError) {
-        Exception error = firstError;
-        try {
-            operatorChain.close();
-        } catch (Exception e) {
-            if (error == null) {
-                error = e;
-            } else {
-                error.addSuppressed(e);
-            }
-        }
-        try {
-            closeInputGate();
-        } catch (Exception e) {
-            if (error == null) {
-                error = e;
-            } else {
-                error.addSuppressed(e);
-            }
-        }
-        return error;
+        Exception closeError = CloseSupport.closeAll(java.util.Arrays.asList(
+                (AutoCloseable) operatorChain::close,
+                this::closeInputGate));
+        return CloseSupport.accumulate(firstError, closeError);
     }
 
     /**
@@ -1189,18 +1145,8 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
         @Override
         public void close() {
-            Exception firstError = null;
-            for (Output<StreamRecord<Object>> output : outputs) {
-                try {
-                    output.close();
-                } catch (Exception e) {
-                    if (firstError == null) {
-                        firstError = e;
-                    } else {
-                        firstError.addSuppressed(e);
-                    }
-                }
-            }
+            // G11: shared accumulate-suppress teardown (CloseSupport).
+            Exception firstError = CloseSupport.closeAll(outputs, Output::close);
             if (firstError != null) {
                 throw new StreamException(ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED, firstError);
             }

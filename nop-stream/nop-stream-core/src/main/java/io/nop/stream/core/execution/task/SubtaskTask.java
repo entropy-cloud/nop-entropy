@@ -9,6 +9,7 @@ package io.nop.stream.core.execution.task;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -117,9 +118,8 @@ public class SubtaskTask implements Runnable {
                 return;
             }
 
-            while (state.get() == State.RUNNING) {
+            if (state.get() == State.RUNNING) {
                 subtask.getInvokable().invoke();
-                break;
             }
 
             if (state.get() == State.RUNNING) {
@@ -217,18 +217,11 @@ public class SubtaskTask implements Runnable {
     }
 
     private void closeOperatorChains() {
-        Exception firstException = null;
-        for (int i = operatorChains.size() - 1; i >= 0; i--) {
-            try {
-                operatorChains.get(i).close();
-            } catch (Exception e) {
-                if (firstException == null) {
-                    firstException = e;
-                } else {
-                    firstException.addSuppressed(e);
-                }
-            }
-        }
+        // G11: shared accumulate-suppress teardown; reversed so the chain closes
+        // tail-first exactly as before.
+        List<OperatorChain> reversed = new ArrayList<>(operatorChains);
+        java.util.Collections.reverse(reversed);
+        Exception firstException = io.nop.stream.core.execution.CloseSupport.closeAll(reversed, OperatorChain::close);
         if (firstException != null) {
             LOG.error("Errors closing operator chains for subtask: {}", getTaskName(), firstException);
             if (this.error != null) {

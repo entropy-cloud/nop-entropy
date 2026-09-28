@@ -97,15 +97,4 @@ public final class FileSplit implements SourceSplit {
                 + "], cursor=" + currentOffset + '}';
     }
 
-    /** Cursor type used by the reader to checkpoint/restore progress within a file. */
-    public static final class Cursor implements Serializable {
-        private static final long serialVersionUID = 1L;
-        public final String filePath;
-        public final long offset;
-
-        public Cursor(String filePath, long offset) {
-            this.filePath = filePath;
-            this.offset = offset;
-        }
-    }
 }

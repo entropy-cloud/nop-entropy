@@ -1911,62 +1911,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
-    /**
-     * Internal class for keeping track of in-flight timers.
-     */
-    protected static class Timer<K, W extends Window> implements Comparable<Timer<K, W>> {
-        protected long timestamp;
-        protected K key;
-        protected W window;
-
-        public Timer(long timestamp, K key, W window) {
-            this.timestamp = timestamp;
-            this.key = key;
-            this.window = window;
-        }
-
-        @Override
-        public int compareTo(Timer<K, W> o) {
-            return Long.compare(this.timestamp, o.timestamp);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            Timer<?, ?> timer = (Timer<?, ?>) o;
-
-            return timestamp == timer.timestamp
-                    && key.equals(timer.key)
-                    && window.equals(timer.window);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = (int) (timestamp ^ (timestamp >>> 32));
-            result = 31 * result + key.hashCode();
-            result = 31 * result + window.hashCode();
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "Timer{"
-                    + "timestamp="
-                    + timestamp
-                    + ", key="
-                    + key
-                    + ", window="
-                    + window
-                    + '}';
-        }
-    }
-
     // ------------------------------------------------------------------------
     // Getters for testing
     // ------------------------------------------------------------------------
