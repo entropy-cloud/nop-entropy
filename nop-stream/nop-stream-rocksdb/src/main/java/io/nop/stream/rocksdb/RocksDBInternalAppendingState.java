@@ -94,7 +94,9 @@ class RocksDBInternalAppendingState<K, N, IN>
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
-        return backend.buildStorageKey(currentNamespace, backend.getCurrentKey());
+        // F1 (plan 01 quality-perf): cached encode — see
+        // RocksDBKeyedStateBackend.cachedStorageKeyFor.
+        return backend.cachedStorageKeyFor(currentNamespace, backend.getCurrentKey());
     }
 
     @Override

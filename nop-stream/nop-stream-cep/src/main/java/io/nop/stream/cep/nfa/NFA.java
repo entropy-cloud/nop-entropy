@@ -719,8 +719,17 @@ public class NFA<T> {
                 new ConditionContext(
                         sharedBufferAccessor, computationState, timerService, event.getTimestamp());
 
+        // E3 (plan 01 quality-perf): memoize condition verdicts for the
+        // (computation state, event) scope of this call. createDecisionGraph
+        // evaluates every transition condition while walking the PROCEED chains;
+        // findFinalStateAfterProceed would then re-evaluate the SAME PROCEED
+        // transitions of the same event. Conditions are deterministic per
+        // (event, context), so a per-call cache is semantics-preserving.
+        final java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts =
+                new java.util.IdentityHashMap<>();
+
         final OutgoingEdges<T> outgoingEdges =
-                createDecisionGraph(context, computationState, event.getEvent());
+                createDecisionGraph(context, computationState, event.getEvent(), conditionVerdicts);
 
         // Create the computing version based on the previously computed edges
         // We need to defer the creation of computation states until we know how many edges start
@@ -750,6 +759,7 @@ public class NFA<T> {
                             edge,
                             event,
                             context,
+                            conditionVerdicts,
                             takeBranchesToVisit,
                             resultingComputationStates);
                     break;
@@ -843,6 +853,7 @@ public class NFA<T> {
             final StateTransition<T> edge,
             final EventWrapper event,
             final ConditionContext context,
+            final java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts,
             final int takeBranchesToVisit,
             final List<ComputationState> resultingComputationStates) {
 
@@ -886,7 +897,7 @@ public class NFA<T> {
 
         // check if newly created state is optional (have a PROCEED path to Final state)
         final State<T> finalState =
-                findFinalStateAfterProceed(context, nextState, event.getEvent());
+                findFinalStateAfterProceed(context, nextState, event.getEvent(), conditionVerdicts);
         if (finalState != null) {
             addComputationState(
                     sharedBufferAccessor,
@@ -923,7 +934,11 @@ public class NFA<T> {
         sharedBufferAccessor.lockNode(previousEntry, computationState.getVersion());
     }
 
-    private State<T> findFinalStateAfterProceed(ConditionContext context, State<T> state, T event) {
+    private State<T> findFinalStateAfterProceed(
+            ConditionContext context,
+            State<T> state,
+            T event,
+            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) {
         final Stack<State<T>> statesToCheck = new Stack<>();
         statesToCheck.push(state);
         final Set<State<T>> visited = new HashSet<>();
@@ -935,7 +950,7 @@ public class NFA<T> {
                 }
                 for (StateTransition<T> transition : currentState.getStateTransitions()) {
                     if (transition.getAction() == StateTransitionAction.PROCEED
-                            && checkFilterCondition(context, transition.getCondition(), event)) {
+                            && checkFilterCondition(context, transition.getCondition(), event, conditionVerdicts)) {
                         if (transition.getTargetState().isFinal()) {
                             return transition.getTargetState();
                         } else {
@@ -958,7 +973,10 @@ public class NFA<T> {
     }
 
     private OutgoingEdges<T> createDecisionGraph(
-            ConditionContext context, ComputationState computationState, T event) {
+            ConditionContext context,
+            ComputationState computationState,
+            T event,
+            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) {
         State<T> state = getState(computationState);
         final OutgoingEdges<T> outgoingEdges = new OutgoingEdges<>(state);
 
@@ -975,7 +993,7 @@ public class NFA<T> {
             // check all state transitions for each state
             for (StateTransition<T> stateTransition : stateTransitions) {
                 try {
-                    if (checkFilterCondition(context, stateTransition.getCondition(), event)) {
+                    if (checkFilterCondition(context, stateTransition.getCondition(), event, conditionVerdicts)) {
                         // filter condition is true
                         switch (stateTransition.getAction()) {
                             case PROCEED:
@@ -998,8 +1016,20 @@ public class NFA<T> {
     }
 
     private boolean checkFilterCondition(
-            ConditionContext context, IterativeCondition<T> condition, T event) throws Exception {
-        return condition == null || condition.filter(event, context);
+            ConditionContext context,
+            IterativeCondition<T> condition,
+            T event,
+            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) throws Exception {
+        if (condition == null) {
+            return true;
+        }
+        Boolean cached = conditionVerdicts.get(condition);
+        if (cached != null) {
+            return cached;
+        }
+        boolean verdict = condition.filter(event, context);
+        conditionVerdicts.put(condition, verdict);
+        return verdict;
     }
 
     /**

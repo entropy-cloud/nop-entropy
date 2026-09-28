@@ -432,14 +432,28 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private transient byte[] cachedStorageKey;
 
     byte[] buildStorageKeyForCurrent() {
+        return cachedStorageKeyFor(currentNamespace, currentKey);
+    }
+
+    /**
+     * F1 (plan 01 quality-perf): cached encode for an EXPLICIT (namespace, key)
+     * pair — used by the internal window states, which carry their own
+     * namespace while reading the backend's current key. Before this variant,
+     * every internal-state access re-encoded the composite key (2x JSON +
+     * UTF-8) even though the public-state path had been cached since 360 R1.
+     * Single-slot cache sharing the same invalidation contract as
+     * {@link #buildStorageKeyForCurrent()}: equals comparison on both
+     * components, single task-thread access, no synchronization.
+     */
+    byte[] cachedStorageKeyFor(Object namespace, Object key) {
         if (cachedStorageKey != null
-                && java.util.Objects.equals(currentKey, cachedKey)
-                && java.util.Objects.equals(currentNamespace, cachedNamespace)) {
+                && java.util.Objects.equals(key, cachedKey)
+                && java.util.Objects.equals(namespace, cachedNamespace)) {
             return cachedStorageKey;
         }
-        byte[] built = buildStorageKey(currentNamespace, currentKey);
-        this.cachedKey = currentKey;
-        this.cachedNamespace = currentNamespace;
+        byte[] built = buildStorageKey(namespace, key);
+        this.cachedKey = key;
+        this.cachedNamespace = namespace;
         this.cachedStorageKey = built;
         return built;
     }

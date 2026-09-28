@@ -47,6 +47,8 @@ class MemoryInternalListState<K, N, T> extends MemoryListState<T>
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
-        return new TypedNamespaceAndKey(currentNamespace, backend.routeKey(backend.getCurrentKey()));
+        // F2 (plan 01 quality-perf): shared cached key builder — see
+        // MemoryInternalAppendingState.storageKey for the rationale.
+        return backend.cachedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
     }
 }
