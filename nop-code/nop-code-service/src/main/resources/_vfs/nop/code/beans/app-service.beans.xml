@@ -19,10 +19,18 @@
           class="io.nop.code.service.impl.CodeIndexService"/>
 
     <bean id="io.nop.code.flow.FlowDetector" ioc:default="true"
-          class="io.nop.code.flow.FlowDetector"/>
+          class="io.nop.code.flow.FlowDetector">
+        <property name="patternProviders">
+            <ioc:collect-beans by-type="io.nop.code.flow.IEntryPointPatternProvider"/>
+        </property>
+    </bean>
 
     <bean id="io.nop.code.flow.DeadCodeDetector" ioc:default="true"
-          class="io.nop.code.flow.DeadCodeDetector"/>
+          class="io.nop.code.flow.DeadCodeDetector">
+        <property name="patternProviders">
+            <ioc:collect-beans by-type="io.nop.code.flow.IEntryPointPatternProvider"/>
+        </property>
+    </bean>
 
     <bean id="io.nop.code.flow.ChangeAnalyzer" ioc:default="true"
           class="io.nop.code.flow.ChangeAnalyzer"/>

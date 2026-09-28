@@ -41,7 +41,7 @@ nop-code-flow 包含三种流级分析能力，它们共享一个特征：**基�
 
 ### 框架模式注册
 
-**目标**：通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现，按 `priority()` 降序匹配。**当前**：`FlowDetector` 直接组合内置的 `DefaultSpringEntryPointPatternProvider`（覆盖 Spring MVC / Messaging / Scheduling / JMX 注解），尚无 IoC 注册——这是 `00-vision.md` 约束 9（框架适配不入核心）的待迁出项。
+**目标**：通过 Nop IoC 注册 `IEntryPointPatternProvider`，每种框架/语言提供一个实现，按 `priority()` 降序匹配。**已落地**（2026-09-28，N5.2）：内置实现迁出为顶层 `SpringEntryPointPatternProvider`（nop-code-flow，`app-flow.beans.xml` 注册 default bean）；`FlowDetector`/`DeadCodeDetector` 经 `app-service.beans.xml` 的 `<ioc:collect-beans by-type>` 注入 provider（DeadCodeDetector 侧 FQN→短名归一化后并入框架注解集，默认混合集保留）；`JavaFileAnalyzer` 的 Spring 路由注解/前缀/HTTP 方法映射外置为 `IFrameworkRouteConvention`（默认 `SpringFrameworkRouteConvention`，分析器 setter 可插拔；分析器实例非 IoC 管理，其装配归语言适配器架构演进）。行为等价由 `TestFrameworkAdapterEquivalence` 钉住。
 
 **拒绝了什么**：核心硬编码模式字典（CRG 的做法）→ 目标是把内置实现移出核心，通过 `IEntryPointPatternProvider` SPI 可插拔加载。
 

@@ -73,6 +73,15 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
 
     private MethodCallFilter methodCallFilter = MethodCallFilter.createDefault();
 
+    // N5.2: framework route knowledge is externalized; the Spring convention is the
+    // behavior-preserving default and can be replaced via setRouteConvention.
+    private io.nop.code.lang.java.convention.IFrameworkRouteConvention routeConvention =
+            new io.nop.code.lang.java.convention.SpringFrameworkRouteConvention();
+
+    public void setRouteConvention(io.nop.code.lang.java.convention.IFrameworkRouteConvention routeConvention) {
+        this.routeConvention = routeConvention;
+    }
+
     private boolean enableSymbolResolution = true;
 
     public JavaFileAnalyzer() {
@@ -832,10 +841,6 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             return null;
         }
 
-        private final java.util.Set<String> SPRING_MAPPING_ANNOTATIONS = java.util.Set.of(
-                "RequestMapping", "GetMapping", "PostMapping", "PutMapping",
-                "DeleteMapping", "PatchMapping");
-
         private String extractRoutePath(AnnotationExpr annotation) {
             if (annotation instanceof NormalAnnotationExpr) {
                 NormalAnnotationExpr nae = (NormalAnnotationExpr) annotation;
@@ -853,22 +858,12 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             return "";
         }
 
-        private String extractSpringHttpMethod(String annotationName) {
-            switch (annotationName) {
-                case "GetMapping": return "GET";
-                case "PostMapping": return "POST";
-                case "PutMapping": return "PUT";
-                case "DeleteMapping": return "DELETE";
-                case "PatchMapping": return "PATCH";
-                case "RequestMapping": return "";
-                default: return "";
-            }
-        }
+
 
         private void extractSpringRoutes(ClassOrInterfaceDeclaration classDecl) {
             String classPrefix = "";
             for (AnnotationExpr annot : classDecl.getAnnotations()) {
-                if (annot.getNameAsString().equals("RequestMapping")) {
+                if (routeConvention.classPrefixAnnotations().contains(annot.getNameAsString())) {
                     classPrefix = extractRoutePath(annot);
                     break;
                 }
@@ -877,14 +872,14 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             for (MethodDeclaration methodDecl : classDecl.getMethods()) {
                 for (AnnotationExpr annot : methodDecl.getAnnotations()) {
                     String annotName = annot.getNameAsString();
-                    if (SPRING_MAPPING_ANNOTATIONS.contains(annotName)) {
+                    if (routeConvention.mappingAnnotations().contains(annotName)) {
                         String methodPath = extractRoutePath(annot);
                         String fullPath = (classPrefix + "/" + methodPath)
                                 .replaceAll("/+", "/")
                                 .replaceAll("/$", "");
                         if (fullPath.isEmpty()) fullPath = "/";
 
-                        String httpMethod = extractSpringHttpMethod(annotName);
+                        String httpMethod = routeConvention.httpMethodFor(annotName);
 
                         CodeSymbol methodSymbol = symbolMap.get(
                                 classDecl.getFullyQualifiedName().orElse("") + "." + methodDecl.getNameAsString());

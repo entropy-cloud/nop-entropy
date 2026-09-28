@@ -101,7 +101,7 @@ public class DeadCodeDetector implements IDeadCodeDetector {
             "main"
     );
 
-    private final Set<String> frameworkAnnotations;
+    private Set<String> frameworkAnnotations;
     private final Set<String> dunderMethods;
     private final Set<String> pythonDecorators;
     private final Set<String> ormBaseClassPatterns;
@@ -111,6 +111,26 @@ public class DeadCodeDetector implements IDeadCodeDetector {
 
     public DeadCodeDetector() {
         this(Collections.emptyList());
+    }
+
+    /**
+     * N5.2: IoC 装配入口（替换语义）。将各 provider 的 getAnnotationPatterns()（FQN 形态）
+     * 归一化为短名后并入默认框架注解集——isFrameworkEntryPoint 按 extData 短名精确匹配，
+     * 不做归一化的 FQN 永不命中（注入空转）。多次调用以最近一次为准（DEFAULT ∪ normalize(providers)）。
+     */
+    public void setPatternProviders(List<IEntryPointPatternProvider> patternProviders) {
+        if (patternProviders == null) {
+            return;
+        }
+        Set<String> merged = new HashSet<>(DEFAULT_FRAMEWORK_ANNOTATIONS);
+        for (IEntryPointPatternProvider provider : patternProviders) {
+            if (provider == null) continue;
+            for (String pattern : provider.getAnnotationPatterns()) {
+                if (pattern == null || pattern.isEmpty()) continue;
+                merged.add(pattern.contains(".") ? pattern.substring(pattern.lastIndexOf('.') + 1) : pattern);
+            }
+        }
+        this.frameworkAnnotations = merged;
     }
 
     public DeadCodeDetector(List<String> excludePatterns) {
