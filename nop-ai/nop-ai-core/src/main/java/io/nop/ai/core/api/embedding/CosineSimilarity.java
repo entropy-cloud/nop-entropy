@@ -10,6 +10,8 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
 /**
  * Utility class for calculating cosine similarity between two vectors.
  *
+ * <p>K2 活跃消费（2026-09-28）：nop-ai-rag InMemoryVectorStore 已真实消费本 utility（reserved 解除，04-rag-module-position §八）。
+ *
  * <p><b>Reserved（P2 round-4 可靠性面裁定，2026-09-15）</b>：当前无生产消费者（全仓 main/test 仅
  * 测试 {@code TestCosineSimilarityAndRelevanceScore} 与 reserved 族内
  * {@code EmbeddingModelBasedClassifier} 引用），embedding SPI 契约族 utility。保留为公共 API

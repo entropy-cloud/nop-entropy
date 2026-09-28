@@ -20,14 +20,14 @@
 
 > 状态在工作项上；Milestone 仅为分组。此块是 AI 工作队列唯一入口：按里程碑顺序取第一个 `todo`。
 
-**汇总**：todo 17 · ready 0 · done 1
+**汇总**：todo 15 · ready 0 · done 2
 
 ### M1 — RAG 生产基座
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
 | K1 Embedding API 客户端 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/01-k1-embedding-api-client.md`，用户 2026-09-28 指示纳入 nop-code feature-completion 执行队列先行落地——N4.2 模型后端前置） | — |
-| K2 向量库后端驱动 | todo | K1 |
+| K2 向量库后端驱动 | done（2026-09-28，plan `ai-dev/plans/knowledge-rag/02-k2-vector-store-driver.md`，closure audit(agent_00370acc) 发现 Blocker 后修复并复审通过——PgVectorStore + InMemoryVectorStore 落 nop-ai-rag） | K1 |
 | K3 RAG 摄取-检索管线 | todo | K1, K2 |
 | K4 Chunk 存储+编辑+版本回滚 | todo | K3 |
 
@@ -110,7 +110,7 @@
 | Work Item | Status | Owner Doc | Dependencies | Platform Reuse | 落点 |
 |-----------|--------|-----------|--------------|----------------|------|
 | K1: Embedding API 客户端 | todo | ai-dev/design/nop-ai/embedding.md（**NEW**） | — | `IEmbeddingModel` SPI、`nop-ai-core` provider/failover/rate-limit 范式 | **平台** nop-entropy `nop-ai-core` |
-| K2: 向量库后端驱动（首选 pgvector，备选 Milvus） | todo | ai-dev/design/nop-ai/vector-store.md（**NEW**） | K1 | `IVectorStore` SPI、`nop-nosql`/JDBC 连接池、`nop-db-migration` | **平台** nop-entropy 新子模块或 `nop-ai-rag` |
+| K2: 向量库后端驱动（首选 pgvector，备选 Milvus） | done | ai-dev/design/nop-ai/vector-store.md（已建） | K1 | `IVectorStore` SPI、JDBC（javax.sql）、运行时幂等 DDL（偏离 nop-db-migration，裁定于 owner doc） | **平台** nop-entropy `nop-ai-rag`（PgVectorStore + InMemoryVectorStore） |
 | K3: RAG 摄取-检索管线落地 | todo | ai-dev/design/nop-ai/rag-pipeline.md（**NEW**） | K1, K2 | `nop-ai-rag` 占位模块、`IAiTextSplitter`、`nop-search` HYBRID、`NopAiKnowledge` | **平台** nop-entropy `nop-ai-rag` |
 | K4: Chunk 存储 + 编辑 + 版本回滚 | todo | ai-dev/design/nop-ai/knowledge-chunks.md（**NEW**） | K3 | `nop-db-migration`、乐观锁、`nop-job` 重建索引 | **平台** ORM 新实体（chunk/chunk_revision） |
 

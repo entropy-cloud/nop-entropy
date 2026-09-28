@@ -24,11 +24,12 @@ import java.util.List;
 /**
  * Vector Store SPI extension contract (adjudicated per MA5.1 P1-01 / arm-index P1-MA5-003).
  * <p>
- * This is an SPI extension point: the platform ships no production implementation by
- * design — integrators provide concrete subclasses (e.g. FAISS / pgvector / Milvus
- * adapters). The abstract methods cannot be instantiated without an implementation, so
- * there is no silent no-op path: any consumer must inject a concrete subclass and fails
- * fast at wiring/compile time if none is provided.
+ * Since K2 (knowledge-rag roadmap, plan {@code knowledge-rag/02}, 2026-09-28) the
+ * platform ships production implementations in nop-ai-rag: {@code PgVectorStore}
+ * (pgvector JDBC driver) and {@code InMemoryVectorStore} (reference impl). Integrators
+ * may still provide their own subclasses (e.g. FAISS / Milvus adapters). Neither is
+ * registered as an IoC default bean — consumers (K3 RAG pipeline / integrators)
+ * wire them explicitly.
  * <p>
  * Naming note (MA4.5-002 adjudication): this type is an {@code abstract class} with an
  * {@code I} prefix because it originated from the Agents-Flex SPI contract. Renaming it

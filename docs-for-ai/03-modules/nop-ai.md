@@ -51,7 +51,7 @@
 | `nop-ai-api` | 公开 API 契约（`IChatService`/`ChatOptions` 等，新 AI API）+ 实体 CRUD 强类型生成面（`io.nop.ai.api.crud/` 22 个 `NopAiXxxApi` 接口 + `io.nop.ai.api.beans/` 44 个 Input/Output Bean，全部 `//__XGEN_FORCE_OVERRIDE__` codegen 产物）。**生成面语义（P2 round-4 裁定，2026-09-15）**：CRUD 生成面 = 平台 `crud-api` 模板的标准客户端契约产物（见 `api-model-and-codegen.md` §CRUD API 代码生成），wire 名与 nop-ai-service 22 个 `NopAiXxxBizModel`（`CrudBizModel<T>`）逐一对齐（`@BizModel` 同名）；全仓 main/test 零直接 import 属预期——消费者经 GraphQL/BizModel 或 nop-biz 运行面访问，生成面仅作为强类型客户端契约存在，不构成"已接线 CRUD API"承诺；codegen 模板为标准平台模板，无 nop-ai 定制缺口 |
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
-| `nop-ai-rag` | RAG 实现落点模块——空占位（P3-MA3-003 裁定保留）：`IVectorStore` 为 nop-ai-core 的 SPI 扩展点契约（P1-MA5-003），生产实现落点在本模块；`IEmbeddingModel` 的生产实现 `EmbeddingServiceImpl` 已于 2026-09-28（K1）落 nop-ai-core（见上方「Embedding 客户端」节）。nop-ai-core `api/` 下 embedding/vectorstore/classifier/document 一族公共类 2026-09-15 曾逐类裁定 reserved，其中 `IEmbeddingModel`/`EmbeddingOptions`/`AiDocument`/`VectorData` 4 类自 K1 起为活跃消费（reserved 状态失效，`04-rag-module-position` 设计文档 §七 有登记），其余保留 reserved——公共面为 RAG/分类器/向量检索接线预留，不构成"可用 API"承诺 |
+| `nop-ai-rag` | RAG 实现落点模块（K2 起非空）：`IVectorStore` 双实现（`PgVectorStore` pgvector JDBC 驱动 + `InMemoryVectorStore` 内存参考实现，均不注册 default bean）；`IVectorStore` 为 nop-ai-core SPI 契约（P1-MA5-003），生产实现落点在本模块（04-rag-module-position §四/§八） |
 | `nop-ai-gateway` | AI 网关（三块能力）：LLM failover（路由格式转换 + 透明账号切换——两种形态 + 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标）+ channel 消息网关（渠道 ↔ agent 桥接 + 业务消息层 + 会话映射）+ 扫码登录编排。**使用文档见 `nop-ai-gateway.md`** |
 | `nop-ai-skills` | AI 技能 |
 | `nop-ai-tools` | AI 工具 |
@@ -133,6 +133,9 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 `EmbeddingServiceImpl`（bean `nopAiEmbeddingModel`，`io.nop.ai.core.service`）是 `IEmbeddingModel` 的平台生产实现（K1，2026-09-28）：OpenAI 兼容 `/embeddings` 协议，经 `/nop/ai/llm/{provider}.llm.xml` 配置驱动——llm 配置需声明 `<embedUrl>`（如 `/embeddings`）且 `apiStyle="openai"`（其他 apiStyle fail-loud `ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE`）。provider 路由：`EmbeddingOptions.provider` > 配置 `nop.ai.embedding.default-llm` > fail-loud（`ERR_AI_EMBEDDING_NO_PROVIDER`）。可靠性面与 chat 同构：`rateLimit` 限流、`StandardRetryPolicy` 有界重试、`<accounts>` 账号链 failover（QUOTA/AUTH 分类经 `<errorMappings>` 配置面到达）、`IAiModelCredentialResolver` 可选凭证注入。
 
 **ITextEmbedding 桥接（N4.2）**：`AiModelTextEmbedding`（bean `nopAiTextEmbedding`，`io.nop.ai.core.search`）实现 nop-search 的 `ITextEmbedding` SPI、委托 `nopAiEmbeddingModel`。classpath 含 nop-ai-core 时经 `LuceneSearchEngine.setTextEmbedding`（`@Inject`+`@Nullable`）自动注入，Lucene 向量字段索引与 VECTOR/HYBRID 查询即用真实嵌入；失败语义为异常上抛（不静默降级），无 nop-ai-core 的部署保持既有 hash 模拟路径。
+
+**向量库后端（K2，nop-ai-rag）**：`io.nop.ai.rag.vector.PgVectorStore`（pgvector JDBC 驱动，集成方注入 `javax.sql.DataSource`）与 `InMemoryVectorStore`（内存参考实现）实现 `IVectorStore` SPI。租户隔离 = UNIQUE(tenant_id,id) + 全语句谓词；search 要求 `query.vector` 必填（A1 裁定）。两实现均不注册 IoC default bean——装配归消费方（K3 管线/集成方）。owner doc 为 nop-ai 设计文档集的 vector-store.md（A1-A4 契约裁定）。
+
 
 ## 工具配置（nop-ai-tools）
 

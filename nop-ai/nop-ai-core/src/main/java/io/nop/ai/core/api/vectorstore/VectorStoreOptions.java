@@ -31,6 +31,10 @@ import java.util.List;
  * import），vector store SPI 契约族的 value 类型（与 {@code IVectorStore} 的 P1-MA5-003 SPI 裁定
  * 一致）。保留为公共 API 预留；删除需单独 plan + 迁移评估。
  */
+
+/**
+ * <p>K2 活跃消费（2026-09-28，plan knowledge-rag/02）：nop-ai-rag PgVectorStore/InMemoryVectorStore 已真实消费本类型，reserved 状态解除（04-rag-module-position §八）。
+ */
 @DataBean
 public class VectorStoreOptions extends Metadata {
 

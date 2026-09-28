@@ -98,3 +98,10 @@ javadoc 已同步修订）。
 - §六表中 `api.embedding.IEmbeddingModel`/`api.embedding.EmbeddingOptions`/`api.document.AiDocument`/
   `api.support.VectorData` 四类的 "main/test 零 import / reserved" 状态自本日起失效（生产实现 +
   `EmbeddingServiceImpl` 已真实消费）；其余类不受影响。
+
+## 八、K2 触发登记（2026-09-28，plan knowledge-rag/02）
+
+**§四"迁移触发条件"再次触发**：K3（RAG 管线，nop-code N7.2 前置）为队列内第一个真实 RAG 消费方，K2 已在本模块落地 `IVectorStore` 双实现（`PgVectorStore` + `InMemoryVectorStore`，裁定见 `ai-dev/design/nop-ai/vector-store.md`）。
+
+- §六表中 `api.vectorstore.IVectorStore`/`VectorStoreOptions`/`VectorQueryBean`/`VectorStoreResult`/`api.embedding.CosineSimilarity` 的 reserved 状态自本日起失效（生产实现 + 消费点已落地）；其余类不受影响。
+- 原"拒绝 InMemory 最小实现"裁定的两个前提分别解除：①K3 触发（零消费方前提失效）；②两实现均不注册 IoC default bean（SPI 边界语义保持）。

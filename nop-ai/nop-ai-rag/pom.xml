@@ -17,4 +17,29 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <dependencies>
+        <!-- K2（plan knowledge-rag/02）：IVectorStore SPI 的 pgvector / InMemory
+             实现落点（04-rag-module-position §四 触发条件已达成）。仅依赖
+             nop-ai-core 的 SPI 契约（README 使用约束），不引入 nop-dao 耦合。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- test+optional: gated pgvector integration test driver; test scope
+             keeps it out of transitive dependencies -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.9</version>
+            <scope>test</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>

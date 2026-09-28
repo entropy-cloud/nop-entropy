@@ -13,6 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
 package io.nop.ai.core.api.vectorstore;
 
 import io.nop.ai.core.api.support.VectorData;
@@ -24,6 +25,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * <p>K2 活跃消费（2026-09-28，plan knowledge-rag/02）：nop-ai-rag PgVectorStore/InMemoryVectorStore 已真实消费本类型，reserved 状态解除（04-rag-module-position §八）。
+ */
 @DataBean
 /**
  * <b>Reserved（P2 round-4 可靠性面裁定，2026-09-15）</b>：当前无生产消费者（全仓 main/test 零
