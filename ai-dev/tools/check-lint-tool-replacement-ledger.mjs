@@ -28,7 +28,7 @@
 //
 // Exit codes: 0 = green, 1 = violations, 2 = usage error.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,6 +66,16 @@ const FACET_VOCAB = new Set([
 const FACET_PLACEHOLDER = '待裁';
 const ITEMS_GRAMMAR = /^\d+(–\d+)?$/; // bare item number or contiguous range (en-dash)
 
+// rule-level facet table (roadmap item 2): RULE_FACET_VOCAB constrains the 分面 column,
+// RULE_DISPOSITION_VOCAB the 处置 column. The census constant is a plan-period value
+// (plan nop-lint/16): when a future plan adds/removes production rules it MUST bump
+// RULE_FACET_CENSUS alongside TestProductionRuleCount and the catalog generator.
+const RULE_FACET_VOCAB = new Set(['core', 'out-of-purpose']);
+const RULE_DISPOSITION_VOCAB = new Set(['keep', 'demote-info', 'remove']);
+const RULE_FACET_CENSUS = 62;
+const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
+  'resources', '_vfs', 'nop', 'lint', 'rules');
+
 function fail(errors, message) {
   errors.push(message);
 }
@@ -73,7 +83,7 @@ function fail(errors, message) {
 // ---------------------------------------------------------------------------
 // table parsing (anchor: the second header cell, unique per table)
 
-export function parseLedgerTable(ledgerText, secondHeaderCell) {
+export function parseLedgerTable(ledgerText, secondHeaderCell, firstHeaderCell = '工具') {
   const lines = ledgerText.split('\n');
   let headerIndex = -1;
   let columnCount = 0;
@@ -81,7 +91,7 @@ export function parseLedgerTable(ledgerText, secondHeaderCell) {
     const line = lines[i].trim();
     if (!line.startsWith('|')) continue;
     const cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
-    if (cells[0] === '工具' && cells[1] === secondHeaderCell) {
+    if (cells[0] === firstHeaderCell && cells[1] === secondHeaderCell) {
       headerIndex = i;
       columnCount = cells.length;
       break;
@@ -189,6 +199,90 @@ export function checkFacetRows(rows) {
   return errors;
 }
 
+// live production rule ids (the id: field of every *.rule.yml under the rules tree)
+export function scanLiveRuleIds(rulesRoot) {
+  const ids = new Set();
+  const walk = (dir) => {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith('.rule.yml')) {
+        const m = readFileSync(full, 'utf8').match(/^id:\s*(\S+)\s*$/m);
+        if (m) ids.add(m[1]);
+      }
+    }
+  };
+  walk(rulesRoot);
+  return ids;
+}
+
+/**
+ * The rule-level facet table (roadmap item 2) is a post-disposition invariant:
+ * it is only consistent once the remove dispositions have actually landed
+ * (delete the rules first, then let this checker gate the ledger).
+ * Bidirectional consistency with the live rule set:
+ *   - every live rule id has EXACTLY one row (no missing rows)
+ *   - a non-remove row's id must exist live (no ghost rows)
+ *   - a remove row's id must NOT exist live (no stale remove marks)
+ *   - row count = live count + remove rows = the plan-period census constant
+ */
+export function checkRuleFacetRows(rows, liveRuleIds, census = RULE_FACET_CENSUS) {
+  const errors = [];
+  const seen = new Map();
+  const removeIds = new Set();
+  for (const row of rows) {
+    const at = `rule facet table line ${row.line}`;
+    if (row.cells.length !== 5) {
+      fail(errors, `${at}: expected 5 cells, found ${row.cells.length}`
+        + ` (bare '|' inside a cell breaks the column layout — writing discipline violation)`);
+      continue;
+    }
+    const id = row.cells[0];
+    if (seen.has(id)) {
+      fail(errors, `${at}: duplicate row for rule '${id}' (first at line ${seen.get(id)})`);
+    }
+    seen.set(id, row.line);
+    const facet = row.cells[1];
+    if (!RULE_FACET_VOCAB.has(facet)) {
+      fail(errors, `${at}: illegal facet '${facet}' (legal: ${[...RULE_FACET_VOCAB].join(', ')})`);
+    }
+    const disposition = row.cells[2];
+    if (!RULE_DISPOSITION_VOCAB.has(disposition)) {
+      fail(errors, `${at}: illegal disposition '${disposition}'`
+        + ` (legal: ${[...RULE_DISPOSITION_VOCAB].join(', ')})`);
+    }
+    const live = liveRuleIds.has(id);
+    if (disposition === 'remove') {
+      removeIds.add(id);
+      if (live) {
+        fail(errors, `${at}: remove row for '${id}' but the rule still exists in the rules tree`
+          + ` (stale remove mark — finish or revert the removal)`);
+      }
+      if (!row.cells[4] || row.cells[4] === '—') {
+        fail(errors, `${at}: remove row for '${id}' without a re-evaluation trigger`
+          + ' (Hard constraint 3: the removal record keeps its evidence chain)');
+      }
+    } else if (!live) {
+      fail(errors, `${at}: row for '${id}' (disposition '${disposition}') but no such rule`
+        + ' exists in the rules tree (ghost row — removed without bookkeeping?)');
+    }
+  }
+  for (const id of liveRuleIds) {
+    if (!seen.has(id)) {
+      fail(errors, `rule facet table: live rule '${id}' has no facet row (missing bookkeeping)`);
+    }
+  }
+  const expectedRows = liveRuleIds.size + removeIds.size;
+  if (expectedRows !== census) {
+    fail(errors, `rule facet table census drift: live (${liveRuleIds.size}) + remove rows`
+      + ` (${removeIds.size}) = ${expectedRows}, expected ${census}`
+      + ' (bump RULE_FACET_CENSUS when a plan changes the production library)');
+  }
+  return errors;
+}
+
 // ---------------------------------------------------------------------------
 // self-test: every checker must REJECT its known-bad fixture (Rule #24)
 
@@ -198,6 +292,14 @@ function goodVerdictRows() {
     cells: [tool, '待裁', '—', '—', '3'],
     columnCount: 5,
   }));
+}
+
+function goodRuleFacetRows() {
+  return [
+    { line: 2, cells: ['antipattern/catch-npe', 'core', 'keep', 'r', '—'], columnCount: 5 },
+    { line: 3, cells: ['quality/no-self-compare', 'core', 'keep', 'r', '—'], columnCount: 5 },
+    { line: 4, cells: ['quality/gone-rule', 'out-of-purpose', 'remove', 'r', '风格面入 mandate'], columnCount: 5 },
+  ];
 }
 
 function goodFacetRows() {
@@ -292,6 +394,37 @@ export function selfTest() {
     fail(errors, 'self-test: column guard accepted a row with missing cells');
   }
 
+  // rule facet checker: positive baseline over a synthetic live set
+  const liveIds = new Set(goodRuleFacetRows().filter(r => r.cells[2] !== 'remove').map(r => r.cells[0]));
+  if (checkRuleFacetRows(goodRuleFacetRows(), liveIds, 3).length !== 0) {
+    fail(errors, 'self-test: rule facet checker rejected the legal scaffold');
+  }
+  const mutateRule = (rowIndex, cellIndex, value) => {
+    const rows = goodRuleFacetRows();
+    rows[rowIndex].cells[cellIndex] = value;
+    return rows;
+  };
+  const badRules = [
+    ['illegal facet', mutateRule(0, 1, 'optional')],
+    ['illegal disposition', mutateRule(0, 2, 'demote-warning')],
+    ['ghost id on a non-remove row', mutateRule(1, 0, 'antipattern/ghost-rule')],
+    ['remove row whose rule is still live', mutateRule(0, 2, 'remove')],
+  ];
+  for (const [name, rows] of badRules) {
+    if (checkRuleFacetRows(rows, liveIds, 3).length === 0) {
+      fail(errors, `self-test: rule facet checker accepted '${name}' fixture — it is not guarding`);
+    }
+  }
+  // a live rule with no row must be rejected (missing bookkeeping)
+  const droppedRow = goodRuleFacetRows().slice(1);
+  if (checkRuleFacetRows(droppedRow, liveIds, 3).length === 0) {
+    fail(errors, 'self-test: rule facet checker accepted a missing live-rule row');
+  }
+  // census drift must be rejected
+  if (checkRuleFacetRows(goodRuleFacetRows(), new Set([...liveIds, 'quality/extra-rule']), 3).length === 0) {
+    fail(errors, 'self-test: rule facet checker accepted a census drift');
+  }
+
   // table parser must reject a missing table
   if (!parseLedgerTable('# ledger\n\nno tables here\n', '终裁').rows
     && !parseLedgerTable('# ledger\n\nno tables here\n', '终裁').error) {
@@ -339,8 +472,16 @@ function main() {
     process.exit(1);
   }
 
+  const ruleFacet = parseLedgerTable(ledgerText, '分面', '规则');
+  if (ruleFacet.error) {
+    console.error(`tool replacement ledger gate FAILED: ${ruleFacet.error}`);
+    process.exit(1);
+  }
+  const liveRuleIds = scanLiveRuleIds(RULES_ROOT);
+
   errors.push(...checkVerdictRows(verdict.rows));
   errors.push(...checkFacetRows(facet.rows));
+  errors.push(...checkRuleFacetRows(ruleFacet.rows, liveRuleIds));
 
   if (errors.length > 0) {
     console.error(`tool replacement ledger gate FAILED (${errors.length} violation(s)):`);
@@ -350,7 +491,8 @@ function main() {
     process.exit(1);
   }
   console.log(`tool replacement ledger gate ok: ${verdict.rows.length} verdict rows`
-    + ` + ${facet.rows.length} facet rows == ${PINNED_TOOLS.length} pinned tools, all values legal`);
+    + ` + ${facet.rows.length} facet rows == ${PINNED_TOOLS.length} pinned tools;`
+    + ` ${ruleFacet.rows.length} rule facet rows vs ${liveRuleIds.size} live rules, all values legal`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -122,5 +122,14 @@ rules:
   | `quality/random-mod` | `$R.nextInt($N)` |
   | `exception/equals-null` | `$X == null` |
 - **模板尾分号语义**：语句级 pattern（throw_statement / local_variable_declaration）的匹配节点含尾分号，模板必须携带分号；表达式级 pattern（#1/#5/#6）匹配不含分号，模板不带。执行验证锚：`TestProductionRuleFixes`（引擎渲染 replacement + FixApplier dry-run 逐字节 after）。
-- **version 例外裁定**：本批变更 version 保持 "1.0" 不递增——fix 增补与 autoFixable 翻转是**新增能力面**，诊断语义（匹配器/message/severity/约束）零变化；§2 版本政策针对的"语义/severity/id 变更"未发生。全库 version 断言（`TestNopRuleSuites`）保持 62 条全 "1.0"；版本定档统一归 nop-refactor WI13 预算审计收口。
+- **version 例外裁定**：本批变更 version 保持 "1.0" 不递增——fix 增补与 autoFixable 翻转是**新增能力面**，诊断语义（匹配器/message/severity/约束）零变化；§2 版本政策针对的"语义/severity/id 变更"未发生。全库 version 断言（`TestNopRuleSuites`）保持 62 条全 "1.0"；版本定档统一归 nop-refactor WI13 预算审计收口。**WI13 契约修订增注（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）**：分面复审的 demote-info 处置（severity warning→info）属 §2 版本政策明文的 severity 变更，命中规则 version 1.0→1.1 并在头注记录处置；`TestNopRuleSuites` 的 version 断言改为按规则 id 期望版本映射（默认 1.0、demote 规则 1.1）；其余未处置规则仍守 1.0。
 - **次批候补**（已裁）："exception/throw-null"、"quality/biginteger-instantiation" 达模板门槛但使用频率分低；结构性落选："antipattern/new-primitive-boxing"（多分支类型名字面，单模板不可分支映射）、"quality/simplify-boolean-expression"（== true / == false 需两模板）。
+
+## 5. 分面复审与规则准入（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）
+
+> nop-lint 定位收窄为 AI 编码期核心缺陷防线（roadmap Purpose + design 00 §1 定位增注）后，规则库按分面复审管理：62 条存量规则逐条标注分面并落处置，此后新规则按准入判据执行。**逐条裁定结果与证据链的权威位置 = [统一账本规则级分面表](../../../nop-lint/docs/tool-replacement-ledger.md) §分面裁定登记**（防腐门禁 `ai-dev/tools/check-lint-tool-replacement-ledger.mjs` 看守），本节只记词表与纪律，不双写逐条状态。
+
+- **分面词表**（与 roadmap Purpose 分面表一致）：`core`（正确性 / 资源 / 并发 / 安全 / 数据流 / 平台不变式）/ `out-of-purpose`（风格 / 可选面）。
+- **处置词表**（引擎杠杆重裁定：`LintProfile` 为 one-shared-rule-set 设计，无 per-profile 成员机制，"降出默认档"不是引擎概念）：`keep`（保持现 severity）/ `demote-info`（severity→info + version 1.1 + 头注记录）/ `remove`（移出库——须按 plan 16 的 10 点消费面联动清单逐点同步）。
+- **裁定约束**：core 行处置必为 keep；migration-mapping landed 行（7 行 / 6 目标）禁 remove；out-of-purpose + keep 仅当 severity 已为 info；severity 零变化禁止虚假升版。
+- **新规则准入判据**（引用 [roadmap 定位三轴准入判据](../../backlog/nop-lint-tool-replacement-roadmap.md)）：高信号优先（新规则必须声明误报控制面）、编码期延迟预算（fast 档 <50ms/文件）、可修复加分、每规则 RuleTester fixtures。纯风格 / 可选惯例问题不入库（out-of-purpose 面只做存量归档，不做新债）。

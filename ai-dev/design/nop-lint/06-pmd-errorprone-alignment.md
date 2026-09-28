@@ -835,6 +835,8 @@ public record TypeInfo(
 > **manifest v1 落地增注（2026-09-24，item 29 plan 2026-09-24-0330-1，live 以源码为准）**：manifest 已落盘 `nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml`——§1–§2 采样全量枚举（实测 115+74=189 行，3 处跨小节重名去重后 186 条），tier 归入 rubric（1=已落地带 live fixture／2=L1L2 机制面／3=L3L4 数据流语义面／excluded=§7.2／excluded-with-approximation）；v1 差异裁定：**tier 2/3 行 fixture 为前瞻路径，存在性校验仅对 tier 1 强制**（约 180 条 tier 2/3 无 suite，§7.1 原口径首日即 fail），tier 2/3 mechanism 必须引用具体 L 层（门禁弱对账，tier 归入语义抽检归 closure audit）。防腐门禁 `ai-dev/tools/check-lint-coverage-manifest.mjs`：enum-set 对账 design 06 表/tier-1 fixture 存在性/mechanism L 层/excluded reason/词表+汇总，self-test 正控。
 >
 > **manifest v2 对账增注（2026-09-24，item 36 plan 2026-09-24-2300-1，live 以源码为准）**：manifest 对账到 live——**tier 1: 4 → 33**（29 行提升 = items 29/35 已落地回溯 16 行 + item 36 本批新落 13 行；DoubleBraceInitialization 两行属回溯、EqualsNull 两行属本批；EP/ErrorProne 前缀条目按 manifest 全名 `ErrorProne:` 对账）。提升行 fixture 全部实存（gate 强制），机制行与 landed 形态对齐（UnusedLocalVariable/SelfAssignment 更新为 L3 dataflow 面；Cyclomatic/Cognitive/NPath 去 "Phase 3" 字样；StringInstantiation 收窄形态；LooseCoupling/TryFailThrowable/ControlStatementBraces 附 approximation 注记）。**不提升裁定**：EmptyControlStatement（v1 规则覆盖 if/while 槽位，子集不足以标 tier 1）、ErrorProne:DefaultCharset（与 StringInstantiation 共享机制面但语义面=缺 charset 不覆盖）。门禁脚本零改动（enum-set/tier-1 fixture/LAYER_re 词检三面在提升后依然完备，Phase 3 复核裁定）。
+>
+> **rubric v3 增注（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）**：tier 词表新增 **`out-of-purpose`**（reason 强制，同 excluded 口径）——承载分面复审 remove 处置的 tier-1 行翻转：规则因风格/可选面（out-of-purpose）移出库，映射条目保留（design §1–§2 enum-set 不破）但不再主张机制承接；fixture 存在性检查与 mechanism L 层检查对该值均不适用。**禁止以 tier 3 承接此类翻转**（tier 3 = L3/L4 机制面前瞻，对被移出的 L1 规则为事实为假，会毒化覆盖矩阵）。
 
 ### 7.2 明确排除的 PMD/ErrorProne 能力
 
@@ -864,6 +866,8 @@ public record TypeInfo(
 ### 8.1 迁移步骤（Phase 4）
 
 > **item 40 落地增注（2026-09-24，plan 2026-09-24-2350-1，live 以源码为准）**：迁移映射已落盘 `nop-lint/docs/checkstyle-pmd-migration.md`——26 行（checkstyle 17 + pmd 9）逐行恰一状态（landed 7 / keep-checkstyle 12 / keep-pmd 7），landed 行强制附注 profile 面（deep-only 行在 CLI 默认 standard 面等效 keep——enforcement surface 口径）与语义 delta（no-star-import static-star 新告警面、complexity 阈值 10≠15 且不含构造器、no-empty-catch 无 expected 豁免）；防腐门禁 `ai-dev/tools/check-lint-tool-migration-mapping.mjs`（XML enum-set 双向对账 + landed 按规则文件 `id:` 字段校验 + 四态词表强制 + self-test 三正控）。并行期实跑对照（nop-lint-core：nop-lint 140 诊断 vs checkstyle 48 vs pmd 7）在档；切换判据 = 某旧配置段全部行在 enforcement surface 上均为 landed，**现两份配置均不可移除**（keep 占多数）；回退 = git revert 单 commit。映射发现并修复 dogfood 缺陷：抑制解析器对自身包 javadoc 中的指令字面量 fail-closed 中止（两处 javadoc 已最小改写；上下文感知识别留 follow-up）。本节下方步骤 1–4 为原设计文本（步骤 3"切换"未执行，判据达成后独立运维动作）。
+>
+> **分面复审联动增注（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）**：62 条存量规则分面复审后，landed 目标规则**禁 remove**（id 须保留——映射门禁按 `id:` 字段校验）；风格面 landed 目标（no-star-import，已 info 档）处置为 keep/demote 不影响 landed 状态（landed 判定不含 severity）。items 3/4 收口时"核心行升规则 / 风格行 out-of-purpose 归档"的判据文本修订以统一账本规则级分面表为输入。
 
 1. **映射表**：为 17+9 条激活规则逐条写 Nop Lint 规则或映射到内置规则（manifest 中 `source: checkstyle.xml#RuleName`）
 2. **并行期**：Nop Lint 以 `warning` 运行（不阻断 CI），与 checkstyle/PMD 双跑一个迭代

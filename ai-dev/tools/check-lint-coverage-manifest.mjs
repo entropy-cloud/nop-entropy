@@ -39,7 +39,10 @@ const DESIGN_FILE = join(PROJECT_ROOT, 'ai-dev', 'design', 'nop-lint',
 const TEST_VFS_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'test', 'resources',
   '_vfs');
 
-const TIER_VOCAB = new Set([1, 2, 3, 'excluded', 'excluded-with-approximation']);
+// 'out-of-purpose' (rubric v3, tool-replacement roadmap item 2): the mapped rule was
+// removed from the library as a style/optional face — the manifest row stays as the
+// design-06 enum anchor but no longer claims mechanism coverage; reason enforced.
+const TIER_VOCAB = new Set([1, 2, 3, 'excluded', 'excluded-with-approximation', 'out-of-purpose']);
 const LAYER_RE = /^L[1-4]\b|^L[1-4]\/L[1-4]:/;
 
 function fail(errors, message) {
@@ -138,6 +141,14 @@ export function checkMechanism(entries) {
 export function checkExcluded(entries) {
   const errors = [];
   for (const entry of entries) {
+    if (entry.tier === 'out-of-purpose') {
+      const reason = entry.reason ?? '';
+      if (typeof reason !== 'string' || reason.trim().length === 0) {
+        fail(errors, `out-of-purpose entry '${entry.source_rule}' is missing its reason`
+          + ' (rubric v3: a removed-rule anchor must cite the facet-review disposition)');
+      }
+      continue;
+    }
     if (entry.tier === 'excluded' || entry.tier === 'excluded-with-approximation') {
       const reason = entry.reason ?? '';
       if (typeof reason !== 'string' || reason.trim().length === 0) {
@@ -190,6 +201,12 @@ export function selfTest() {
   }
   if (checkExcluded([{ ...good, tier: 'excluded' }]).length === 0) {
     fail(errors, 'self-test: excluded checker accepted a reason-less exclusion');
+  }
+  if (checkExcluded([{ ...good, tier: 'out-of-purpose' }]).length === 0) {
+    fail(errors, 'self-test: out-of-purpose checker accepted a reason-less removed-rule anchor');
+  }
+  if (checkVocab([{ ...good, tier: 'out-of-purpose' }]).length !== 0) {
+    fail(errors, 'self-test: vocab checker rejected the legal out-of-purpose tier');
   }
   if (checkVocab([{ ...good, tier: 9 }]).length === 0) {
     fail(errors, 'self-test: vocab checker accepted an illegal tier');

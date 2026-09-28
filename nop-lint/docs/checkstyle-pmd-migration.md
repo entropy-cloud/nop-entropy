@@ -53,7 +53,7 @@
 
 | 工具 | 目标模块 | 口径 | 结果 |
 |---|---|---|---|
-| nop-lint check --profile standard | nop-lint-core | 62 条规则库，standard 档 | 见 §4.1 实测记录 |
+| nop-lint check --profile standard | nop-lint-core | 62 条规则库（2026-09-24 实测快照——分面复审后以 rule-catalog 与统一账本为准，2026-09-28 item 2 移除 4 条 + demote 8 条） | 见 §4.1 实测记录 |
 | checkstyle:check -Pqa | nop-lint-core | 报告态 | 见 §4.1 |
 | pmd:check -Pqa | nop-lint-core | 报告态 | 见 §4.1 |
 

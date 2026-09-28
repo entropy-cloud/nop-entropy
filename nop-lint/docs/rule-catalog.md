@@ -9,10 +9,9 @@
 |---|---|---|---|---|---|
 | antipattern/catch-npe | warning | 1.0 | false | 禁止捕获 NullPointerException，请做空值防御 (Do not catch NullPointerException; guard against the null instead) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #9 |
 | antipattern/double-brace-init | warning | 1.0 | false | 禁止双括号初始化，匿名子类持有外部实例引用 (Double-brace initialization creates a leak-prone anonymous subclass; build the collection plainly) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #3 (design 06 §4.1 DoubleBraceInitialization) |
-| antipattern/empty-if-block | warning | 1.0 | false | if 空语句块：删除或补齐条件处理 (Empty if block; remove it or handle the condition) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #6 |
+| antipattern/empty-if-block | info | 1.1 | false | if 空语句块：删除或补齐条件处理 (Empty if block; remove it or handle the condition) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #6 |
 | antipattern/empty-sync-block | warning | 1.0 | false | synchronized 空语句块：持锁却什么都不做 (Empty synchronized block; it acquires the monitor and protects nothing) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #8 |
-| antipattern/negated-equals | warning | 1.0 | false | 使用 !(a == b) 取反等价判断，请直接写 a != b (Negated equality; write a != b instead) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #23 |
-| antipattern/new-primitive-boxing | warning | 1.0 | false | 禁止显式装箱构造 new Integer/Long/...，请使用 valueOf 或自动装箱 (Do not box primitives with deprecated constructors; use valueOf or autoboxing) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #7 |
+| antipattern/new-primitive-boxing | info | 1.1 | false | 禁止显式装箱构造 new Integer/Long/...，请使用 valueOf 或自动装箱 (Do not box primitives with deprecated constructors; use valueOf or autoboxing) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #7 |
 | antipattern/print-stack-trace | warning | 1.0 | false | 禁止 printStackTrace，请将异常交给日志门面 (Do not call printStackTrace; pass the throwable to the logging facade) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #5 (design 06 §4.1 AvoidPrintStackTrace) |
 | antipattern/system-exit | warning | 1.0 | false | 禁止 System.exit 直接退出 JVM (Do not call System.exit; return/throw and let the entry point manage the process lifecycle) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #4 |
 | antipattern/throw-in-finally | warning | 1.0 | false | 禁止在 finally 块中抛出异常，会吞掉原始异常 (Do not throw inside finally; it swallows the in-flight exception) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #10 |
@@ -57,12 +56,10 @@
 
 | id | severity | version | autoFixable | message | source |
 |---|---|---|---|---|---|
-| quality/biginteger-instantiation | warning | 1.0 | false | 用 BigInteger.ZERO/ONE/TEN 或 valueOf (use the cached constant or valueOf) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #11 (PMD:BigIntegerInstantiation) |
+| quality/biginteger-instantiation | info | 1.1 | false | 用 BigInteger.ZERO/ONE/TEN 或 valueOf (use the cached constant or valueOf) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #11 (PMD:BigIntegerInstantiation) |
 | quality/collection-size-nonnegative | warning | 1.0 | false | size() >= 0 恒为 true (collection size is never negative) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #6 (EP:SizeGreaterThanOrEqualsZero) |
-| quality/control-statement-braces | warning | 1.0 | false | if 语句体必须使用大括号 (if statement body must be wrapped in braces) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #30 (design 06 §4.1 ControlStatementBraces) |
+| quality/control-statement-braces | info | 1.1 | false | if 语句体必须使用大括号 (if statement body must be wrapped in braces) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #30 (design 06 §4.1 ControlStatementBraces) |
 | quality/empty-while-body | warning | 1.0 | false | while 空循环体：忙等或死代码 (Empty while body; busy-wait or dead code) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #28 |
-| quality/for-loop-can-be-foreach | warning | 1.0 | false | 此 for 循环可改写为 foreach (indexed loop over .size() can be a for-each) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #29 替换 (design 06 §4.1 ForLoopCanBeForeach) |
-| quality/loose-coupling-hashset | warning | 1.0 | false | 声明类型应使用 Set 接口而非具体实现 HashSet (Loose coupling: declare the Set interface, not the HashSet implementation) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #25 (design 06 §4.1 LooseCoupling) |
 | quality/method-cognitive-complexity | warning | 1.0 | false | 方法认知复杂度过高 (method cognitive complexity exceeds 15) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #12 (design 06 §4.1 CognitiveComplexity) |
 | quality/method-cyclomatic-complexity | warning | 1.0 | false | 方法圈复杂度过高 (method cyclomatic complexity exceeds 10) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #11 (design 06 §4.1 CyclomaticComplexity) |
 | quality/method-npath-complexity | warning | 1.0 | false | 方法 NPath 路径复杂度过高 (method NPath complexity exceeds 200) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #13 (design 06 §4.1 NPathComplexity) |
@@ -74,15 +71,14 @@
 | quality/no-system-out | warning | 1.0 | false | 禁止直接使用 System.out/System.err 输出，请使用日志门面 (Do not write to System.out/System.err; use the logging facade) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-transactional-annotation | error | 1.0 | false | 业务代码禁止使用 Spring @Transactional（Nop 使用平台事务面）(Spring @Transactional is banned in Nop business code; use the platform transaction surface) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/random-mod | warning | 1.0 | true | nextInt() % n 分布有偏，请用 nextInt(n) (modulo of nextInt() is biased; use nextInt(n)) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #8 (EP:RandomModInteger) |
-| quality/replace-hashtable | warning | 1.0 | true | 用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap) |
-| quality/replace-vector | warning | 1.0 | true | 用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList) |
+| quality/replace-hashtable | info | 1.1 | true | 用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap) |
+| quality/replace-vector | info | 1.1 | true | 用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList) |
 | quality/self-assigned-local | warning | 1.0 | false | 变量自赋值无效 (self-assignment has no effect) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #15 |
 | quality/self-comparison | warning | 1.0 | false | compareTo 自比较恒为 0 (self-comparison; compareTo on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #4 (EP:SelfComparison) |
 | quality/self-equals | warning | 1.0 | false | equals 自比较恒为 true (self-equals; equals on the same expression) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #5 (EP:SelfEquals) |
-| quality/simplify-boolean-expression | warning | 1.0 | false | 布尔比较冗余：直接写 flag / !flag (redundant boolean comparison) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #14 (PMD:SimplifyBooleanExpressions) |
-| quality/string-instantiation | warning | 1.0 | false | 多余的 String 拷贝 (redundant String instantiation) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #10 (PMD:StringInstantiation) |
+| quality/string-instantiation | info | 1.1 | false | 多余的 String 拷贝 (redundant String instantiation) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #10 (PMD:StringInstantiation) |
 | quality/unused-local-variable | warning | 1.0 | false | 未使用的局部变量 (unused local variable) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #14 |
-| quality/use-collection-isempty | warning | 1.0 | true | 用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty) |
+| quality/use-collection-isempty | info | 1.1 | true | 用 isEmpty() 判空集合 (use isEmpty() instead of size() == 0) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #9 (PMD:UseCollectionIsEmpty) |
 
 ## security
 

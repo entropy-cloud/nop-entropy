@@ -59,7 +59,6 @@ public class TestProductionRuleCount {
             "antipattern/empty-sync-block",
             "antipattern/catch-npe",
             "antipattern/throw-in-finally",
-            "antipattern/negated-equals",
             // item 35: enum #11-#17 (deep metrics/L3/L4)
             "quality/method-cyclomatic-complexity",
             "quality/method-cognitive-complexity",
@@ -75,11 +74,9 @@ public class TestProductionRuleCount {
             "security/no-des-encryption",
             "exception/no-catch-throwable",
             "quality/no-finalize",
-            "quality/loose-coupling-hashset",
             "quality/replace-hashtable",
             "quality/replace-vector",
             "quality/empty-while-body",
-            "quality/for-loop-can-be-foreach",
             "quality/control-statement-braces",
             // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
             "quality/no-constant-condition",
@@ -94,8 +91,7 @@ public class TestProductionRuleCount {
             "quality/string-instantiation",
             "quality/biginteger-instantiation",
             "exception/no-throw-npe",
-            "exception/empty-finally-block",
-            "quality/simplify-boolean-expression");
+            "exception/empty-finally-block");
 
     @BeforeAll
     static void init() {
@@ -114,7 +110,8 @@ public class TestProductionRuleCount {
         Set<String> ids = new TreeSet<>();
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
-        assertEquals(62, ids.size(), "production rule census size (item 36 target)");
+        // facet review (tool-replacement roadmap item 2): four out-of-purpose rules removed, 62 -> 58
+        assertEquals(58, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

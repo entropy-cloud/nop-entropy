@@ -126,8 +126,10 @@ function run() {
 function selfTest() {
   const rules = scanRules(RULES_ROOT);
   const generated = generateCatalog(rules);
-  if (rules.length !== 62) {
-    console.error('self-test expected the 62-rule library, found ' + rules.length);
+  // facet review (tool-replacement roadmap item 2): four out-of-purpose rules
+  // removed, the library census moved 62 -> 58
+  if (rules.length !== 58) {
+    console.error('self-test expected the 58-rule library, found ' + rules.length);
     process.exit(2);
   }
 

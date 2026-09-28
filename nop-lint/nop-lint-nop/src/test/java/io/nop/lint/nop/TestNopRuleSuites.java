@@ -59,11 +59,9 @@ public class TestNopRuleSuites {
             "quality/no-transactional-annotation",
             "quality/no-star-import",
             "quality/no-finalize",
-            "quality/loose-coupling-hashset",
             "quality/replace-hashtable",
             "quality/replace-vector",
             "quality/empty-while-body",
-            "quality/for-loop-can-be-foreach",
             "quality/control-statement-braces",
             "security/no-sensitive-literal",
             "security/no-hardcoded-crypto",
@@ -80,7 +78,6 @@ public class TestNopRuleSuites {
             "antipattern/empty-sync-block",
             "antipattern/catch-npe",
             "antipattern/throw-in-finally",
-            "antipattern/negated-equals",
             // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
             "quality/no-constant-condition",
             "quality/no-self-compare",
@@ -94,8 +91,31 @@ public class TestNopRuleSuites {
             "quality/string-instantiation",
             "quality/biginteger-instantiation",
             "exception/no-throw-npe",
-            "exception/empty-finally-block",
+            "exception/empty-finally-block");
+    // facet review (tool-replacement roadmap item 2, plan nop-lint/16): the four
+    // out-of-purpose removals (loose-coupling-hashset / for-loop-can-be-foreach /
+    // negated-equals / simplify-boolean-expression) left EXPECTED_RULE_IDS at 48.
+    private static final Set<String> REMOVED_RULE_IDS = Set.of(
+            "quality/loose-coupling-hashset",
+            "quality/for-loop-can-be-foreach",
+            "antipattern/negated-equals",
             "quality/simplify-boolean-expression");
+
+    /**
+     * The facet-review demote-info rules (roadmap item 2): severity bumped
+     * warning -> info, which per the design 01 §2 version policy is a real
+     * severity change, so their version is 1.1 while the untouched library
+     * stays at 1.0 (design 02 §4 WI13 contract revision note).
+     */
+    private static final Set<String> VERSION_1_1_RULE_IDS = Set.of(
+            "antipattern/empty-if-block",
+            "antipattern/new-primitive-boxing",
+            "quality/biginteger-instantiation",
+            "quality/control-statement-braces",
+            "quality/replace-hashtable",
+            "quality/replace-vector",
+            "quality/string-instantiation",
+            "quality/use-collection-isempty");
 
     /**
      * The suppression suite (roadmap item 17) is fixture-local: its demo rule
@@ -179,6 +199,13 @@ public class TestNopRuleSuites {
         expected.add(SUPPRESSION_SUITE_RULE_ID);
         expected.add(AUTOFIX_SUITE_RULE_ID);
         assertEquals(expected, discovered);
+        // the facet-review removals (roadmap item 2) must stay out of the
+        // discovered set — a re-added suite directory without re-adding the
+        // expected id is exactly the silent-revival drift this pins shut
+        for (String removedId : REMOVED_RULE_IDS) {
+            assertFalse(discovered.contains(removedId),
+                    removedId + " was removed by the facet review but its suite was discovered");
+        }
 
         return results.stream().map(result -> DynamicTest.dynamicTest(result.suitePath(),
                 () -> assertTrue(result.isGreen(), result::renderFailures)));
@@ -203,7 +230,10 @@ public class TestNopRuleSuites {
             assertNotNull(rule.getMessage());
             assertNotNull(rule.getMatcher());
             assertNotNull(rule.getMetadata(), "rules must carry a metadata block (version stamp)");
-            assertEquals("1.0", rule.getMetadata().getVersion());
+            assertEquals(VERSION_1_1_RULE_IDS.contains(ruleId) ? "1.1" : "1.0",
+                    rule.getMetadata().getVersion(),
+                    "unexpected version stamp for " + ruleId
+                            + " (facet-review demote-info rules carry 1.1, design 02 §4/§5)");
         }
         // The XNode rules (item 21) load through the same registered pipeline.
         for (String ruleId : XNODE_RULE_IDS) {

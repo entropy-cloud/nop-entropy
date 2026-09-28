@@ -3,7 +3,10 @@
 # 3 cross-subsection duplicates deduplicated = 186 entries).
 # Tier rubric: 1 = landed with live RuleTester fixture; 2 = L1/L2 mechanism face;
 # 3 = L3/L4 (dataflow/semantic); excluded = §7.2 capability exclusions (none in the tables;
-# the gate reserves the vocabulary). Tier 2/3 fixtures are prospective paths (N2 adjudication);
+# the gate reserves the vocabulary); out-of-purpose = rubric v3 (tool-replacement roadmap
+# item 2): the implementing rule was removed from the library as a style/optional face —
+# the row stays as the design-06 enum anchor with a mandatory reason, and must NOT be
+# retargeted to tier 3. Tier 2/3 fixtures are prospective paths (N2 adjudication);
 # their mechanism field MUST name the L-layer (gate-checked). Regenerate via the gate diff against
 # the design tables (enum-set check).
 version: 1
@@ -33,16 +36,16 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern + xscript'
   - source_rule: 'PMD:ForLoopCanBeForeach'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `for (int $I = 0; $I < $$$; $$$)`'
-    fixture: '/test/lint/suites/quality/for-loop-can-be-foreach/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/for-loop-can-be-foreach removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:GuardLogStatement'
     tier: 2
     mechanism: 'L1/L2: Pattern: `LOG.xxx($$$)`'
   - source_rule: 'PMD:LooseCoupling'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `new HashSet()`, `new ArrayList()`（approximation: HashSet 声明形态子集）'
-    fixture: '/test/lint/suites/quality/loose-coupling-hashset/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/loose-coupling-hashset removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:ReplaceHashtableWithMap'
     tier: 1
     mechanism: 'L1/L2: Pattern: `new Hashtable()`'
@@ -193,9 +196,9 @@ entries:
     tier: 2
     mechanism: 'L1/L2: Pattern: 深度 > N 的嵌套'
   - source_rule: 'PMD:SimplifyBooleanExpressions'
-    tier: 1
+    tier: out-of-purpose
     mechanism: 'L1/L2: Pattern: `$X == true`'
-    fixture: '/test/lint/suites/quality/simplify-boolean-expression/'
+    reason: 'out-of-purpose per tool-replacement roadmap item 2: implementing rule quality/simplify-boolean-expression removed from the library (style/optional face); anchor kept for design 06 enum-set — see nop-lint/docs/tool-replacement-ledger.md rule facet table'
   - source_rule: 'PMD:SimplifyBooleanReturns'
     tier: 2
     mechanism: 'L1/L2: Pattern: `if ($X) return true; else return false;`'

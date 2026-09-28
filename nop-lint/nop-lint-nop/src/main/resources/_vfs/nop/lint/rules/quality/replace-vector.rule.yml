@@ -1,3 +1,5 @@
+# facet review (tool-replacement roadmap item 2, plan nop-lint/16, 2026-09-28): out-of-purpose
+# demote-info — severity warning->info, version 1.0->1.1 (design 02 §5 disposition vocab).
 # roadmap item 35 (plan 2026-09-24-1400-1 enum #27, design 06 §4.1
 # ReplaceVectorWithList): Vector is a synchronized legacy relic — use List
 # with ArrayList/CopyOnWriteArrayList. v1 scope: the raw-type declaration
@@ -6,7 +8,7 @@
 # the trailing semicolon, so the template carries one.
 id: quality/replace-vector
 language: Java
-severity: warning
+severity: info
 message: "用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList)"
 rule:
   pattern: "Vector $X = new Vector($$$ARGS)"
@@ -16,5 +18,5 @@ fix:
 metadata:
   category: quality
   autoFixable: true
-  version: "1.0"
+  version: "1.1"
   source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList)"
