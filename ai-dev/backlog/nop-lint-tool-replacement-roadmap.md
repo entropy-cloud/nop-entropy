@@ -91,10 +91,10 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 6 — 架构断言与 out-of-scope 归档
 
-- 18. ArchUnit 盘点与裁定：清单化 nop-ai-shell / nop-ai-agent 架构断言测试；pattern-expressible 且属平台不变式者迁规则，依赖图闭包类断言（超出 per-file 引擎问题域）→ keep-archunit 逐条记录: `todo` — deps: 1
-- 19. out-of-purpose / out-of-scope 记录终稿：统一账本落两节清单（不做理由 + 重估触发）——风格行（来自 items 3/4/9）、覆盖率 JaCoCo、变异测试 PIT、依赖 CVE 扫描、格式化、IDE 交互面、PMD CPD（引 design 06 §7.2）、跨过程 taint（引 item 14）: `todo` — deps: 3, 4, 9, 14
-- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `todo` — deps: 5, 11, 14, 17, 18, 19
-- ★ **Milestone MT4: 逐工具分面裁定完成且汇总成账**（unlocks when 1–19 done；MT1/MT2/MT3a/MT3b/MT3c 均为其子集）
+- 18. ArchUnit 盘点与裁定：清单化 nop-ai-shell / nop-ai-agent 架构断言测试；pattern-expressible 且属平台不变式者迁规则，依赖图闭包类断言（超出 per-file 引擎问题域）→ keep-archunit 逐条记录: `planned`（plan: ai-dev/plans/nop-lint/27-archunit-scope-summary.md，items 18/19/20 合并裁定） — deps: 1
+- 19. out-of-purpose / out-of-scope 记录终稿：统一账本落两节清单（不做理由 + 重估触发）——风格行（来自 items 3/4/9）、覆盖率 JaCoCo、变异测试 PIT、依赖 CVE 扫描、格式化、IDE 交互面、PMD CPD（引 design 06 §7.2）、跨过程 taint（引 item 14）: `planned`（合并至 plan 27） — deps: 3, 4, 9, 14
+- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `planned`（合并至 plan 27） — deps: 5, 11, 14, 17, 18, 19
+- ★ **Milestone MT4: 逐工具分面裁定完成且汇总成账**（unlocks when 1–19 done；MT1/MT2/MT3a/MT3b/MT3c 均为其子集）——**UNLOCKED 2026-09-28**（items 1–4/6–20 done；item 5 = 6/7 switched + #3 面级，CI successor deferred）
 
 ## Status values
 
