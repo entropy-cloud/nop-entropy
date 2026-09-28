@@ -242,6 +242,16 @@ Session 延续应该解决“上下文怎么继续”，而不是隐式改变当
 - 延续会话 != 自动恢复所有运行时细节
 - 第一阶段只需要恢复消息、plan 和必要元数据
 
+### 8.3 开放工具调用的恢复判定（已裁定不变量）
+
+长时工具执行中途崩溃时，"哪些 tool_call 尚未完成"不引入新的持久化结构，由既有数据差集判定：
+
+- 消息列表中"有 tool_call、无对应 tool_result"即开放调用——占位结果仅存在于请求构造期，**永不写入 session 历史**（占位是派生态而非事实）；
+- 开放集合 = 快照消息 × `TOOL_EXECUTION` checkpoint（callId 幂等键唯一约束，`reliability/CheckpointType.java:26`）差集；有 call 无 checkpoint 即崩溃孤儿，孤儿恢复走 `nop-ai-agent-reliability.md` 已落地的 `IOrphanRecoveryHandler` 体系，结果不可判定即失败、不盲目重跑；
+- 真实结果到达后按 callId **原位插入**对应 tool_call 之后（非尾部追加），保证任意时刻从历史重建的请求满足 provider 的 tool_result 相邻契约。
+
+**拒绝了**：为占位/运行中状态引入事件化 session 条目（不可变事件溯源 + 投影去重承载占位/替换）。理由：占位入史后真实结果只能二次追加，在重放流中制造同 callId 双份结果的残留清理问题；快照+journal 范式内上述差集判定零新增存储结构。
+
 ## 9. Session 分叉
 
 ### 9.1 分叉场景

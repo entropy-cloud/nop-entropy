@@ -1,6 +1,6 @@
 # Nop AI Agent 执行模型
 
-**日期**：2026-06-06
+**日期**：2026-06-06（更新于 2026-09-28）
 **范围**：Agent Engine Layer 的执行循环和生命周期
 **状态**：active
 
@@ -11,6 +11,7 @@
 1. 采用双循环模型：外层 followUp 循环 + 内层 ReAct 循环，循环粒度为完整消息
 2. Hook 统一事件模型，11 个生命周期点，优先级排序
 3. Steering 机制填补外部注入消息的空白，是引擎层机制，当前不需要 DSL 支持
+4. 长时工具等待的唤醒设计：等待优先，唤醒源仅 steering（等待期唤醒）与心跳（带进度证据）两个，占位为派生态不入史（见 §四）
 
 ## 二、双循环模型
 
@@ -64,7 +65,13 @@ ReAct 主循环的期望行为：
 
 **已落地（plan 220 / L4-8-steering）**：round 边界检查 + 注入。Steering 消息队列位于 `AgentExecutionContext`（线程安全 `ConcurrentLinkedQueue`），由 Actor mailbox 消费循环在专用单线程上 enqueue（poll mailbox 消息后将 envelope payload 转换为 `ChatMessage`），由 ReAct 循环在 ReAct 线程上 drain。ReAct 循环在每轮工具执行完成（所有工具调用结果已写回消息列表）后、进入下一轮 LLM 调用前 drain steering queue，drain 出的消息 append 到 ctx 消息列表（追加新消息，非修改历史），然后进入下一轮推理。若 drain 结果为空，正常继续。`DefaultAgentEngine` 三个执行入口点（`doExecute` / `resumeSession` / `restoreSession`）在 `createActor` 返回后、`execute(ctx)` 调用前将 ctx steering queue 关联到 Actor（`actor.setSteeringQueue(ctx.getSteeringQueue())`）。shipped 默认（`NoOpActorRuntime`，`isEnabled()==false`）下无 Actor 消费循环运行，steering queue 恒空，ReAct 循环 steering 检查为 no-op（drain 空队列 → continue），既有行为零回归。
 
-**Successor（未落地）**：mid-round steering（工具执行中途打断）——"跳过当前剩余工具"。foundational slice 在 round 边界（所有当前轮工具执行完成后）检查 steering。多个并行工具执行中、steering 到达时跳过剩余工具是独立增强（optimization candidate）。
+**已裁定演进方向（双相位唤醒，目标形态）**：数十分钟级长时工具（构建命令等）使纯 round 边界交互不可接受——steering 消息最长等到全部工具完成才被消费，且等待期间模型对工具进展零感知，无法判定工具是慢还是死锁。
+
+- **Phase A（先行）工具等待期唤醒**：工具等待期间 mailbox/steering 队列保持可见；steering 到达时模型空闲（阻塞在工具上，无在飞 LLM 请求，无需打断机制），以瞬时占位请求处理新输入后回到等待，迟到结果照常按原位插入回填。round 同步等待保持为默认路径，此为最小改造面。
+- **Phase B（后置 successor）在飞 LLM 请求打断-重建**：在飞请求可取消、迟到响应按 turn 边界丢弃。仅在 Phase A 落地验证后按需立项。
+- **心跳唤醒（与 steering 并列的第二唤醒源）**：工具等待超过阈值时由引擎构造心跳消息入上下文，payload 含运行中工具清单、已等待时长与沙箱增量输出缓冲尾部（进度证据）——卡死/死循环的判定交由模型基于进度证据判断，机械超时降级为兜底防线。
+
+**拒绝了**：全量事件循环形态（工具完成即唤醒 + 输入记账不变量驱动循环推进）。理由：等待期唤醒场景下模型空闲，请求取消机制无用武之地；内层 round 语义解体的改造面与收益不成比例，且丢失 maxIterations 预算护栏的表达结构。
 
 **决策理由**：现有 Hook 机制是自动化的（按生命周期点触发），缺少人工/外部注入消息的能力。Steering 填补这个空白。
 

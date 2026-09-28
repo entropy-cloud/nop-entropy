@@ -184,8 +184,8 @@ ReAct 引擎采用双循环结构（参见 `02-execution-model.md`）：
 **内层循环（steering + ReAct 循环）**：
 
 - 标准 ReAct 循环（见 §5.2）
-- steering 检查点在 **round 边界**——每轮工具执行全部完成、工具结果写回消息列表之后、进入下一轮 LLM 调用之前，drain steering 队列并把消息 append 到消息列表（追加新消息，非修改历史），随后进入下一轮推理（实现锚点：`ReActAgentExecutor` 的 round 边界 drain，见 §5.2）
-- **mid-round steering（工具执行中途打断、跳过当前轮剩余工具）未落地**，为显式 successor（与 `02-execution-model.md` §4 一致）
+- steering 检查点在 **round 边界**（现状）——每轮工具执行全部完成、工具结果写回消息列表之后、进入下一轮 LLM 调用之前，drain steering 队列并把消息 append 到消息列表（追加新消息，非修改历史），随后进入下一轮推理（实现锚点：`ReActAgentExecutor` 的 round 边界 drain，见 §5.2）
+- steering 与长时工具等待的演进方向为**双相位唤醒 + 心跳**（已裁定目标形态，见 §5.5；与 `02-execution-model.md` §四一致）
 
 ### 5.2 ReAct 内层循环
 
@@ -274,6 +274,38 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 - `before_tool_result_processed` / `after_tool_result_processed` 作为新的 Hook 事件类型加入引擎生命周期
 - 与 before_reasoning / after_reasoning 等现有 Hook 地位相同
 - 区别仅在于它们可以返回 `ReenterResult`，触发 ReAct 重入
+
+### 5.5 长时工具等待与唤醒（已裁定目标形态）
+
+数十分钟级工具（如构建命令）使纯 round 边界交互不可接受：等待期间模型零感知、steering 消息最长等到全部工具完成才被消费。裁定方向为**等待优先 + 双唤醒源**，round 同步等待保持为默认路径：
+
+```
+工具 fan-out 执行（现状不变）
+ -> 等待期间 mailbox/steering 队列保持可见，心跳 timer 同步运行
+ -> steering 到达（模型此刻空闲，无在飞 LLM 请求，无需打断机制）:
+      构造瞬时请求 = 消息列表 + 运行中工具占位 + steering 消息
+      → LLM 推理 → 响应入史 → 回到等待
+ -> 心跳超阈值:
+      构造心跳请求（运行中工具清单 + 已等待时长 + 沙箱增量输出缓冲尾部）
+      → 模型判定继续等待 / 放弃 / 并行独立工作
+ -> 工具自然完成:
+      走既有 round 边界回填，进入下一轮（默认路径）
+```
+
+**占位三条不变量**（区别于入史式占位）：
+
+1. 占位仅在请求构造期存在，不入 session 历史——"有 tool_call 无 tool_result"即 running，是可推导的派生态而非事实；
+2. 真实结果到达后按 callId **原位插入**对应 tool_call 之后（非尾部追加），保证任意时刻重建的请求满足 provider 的 tool_result 相邻契约；
+3. 崩溃恢复的开放 tool_call 集合由快照消息 × `TOOL_EXECUTION` checkpoint 差集判定（见 `nop-ai-agent-session-and-storage.md` §8.3）。
+
+**超时分层**：机械超时（`toolTimeoutMs`，默认 300s）降级为兜底防线并按工具类型分层配置；卡死/死循环的主判定交由模型基于心跳进度证据（沙箱 capturedRef 增量输出缓冲已在位）判断。工具执行面的参数与证据来源见 `04-tool-invocation.md` §4.4。
+
+**拒绝了**：
+- 全量事件循环形态（工具完成即唤醒 + 输入记账不变量驱动循环推进）——等待期唤醒场景下模型空闲，请求取消机制无用武之地，round 语义解体的改造面与收益不成比例；
+- session 事件化（不可变事件溯源 + 投影去重承载占位/替换）——占位入史后真实结果只能二次追加，在重放流中制造同 callId 双份结果的残留清理问题；快照+journal 范式内三条不变量即可承载，存储结构零新增；
+- 纯机械超时路线——对数十分钟真实负载直接不可用，且无法区分慢任务与死锁。
+
+实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5）。
 
 ## 6. 结束条件
 

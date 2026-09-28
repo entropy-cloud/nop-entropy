@@ -1,6 +1,6 @@
 # Nop AI Agent 工具调用架构
 
-**日期**：2026-06-06
+**日期**：2026-06-06（更新于 2026-09-28）
 **范围**：Agent Engine Layer 的工具发现、执行和并行策略
 **状态**：active
 
@@ -104,6 +104,12 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 2. **解析时权威校验**：执行器在发请求前用 `SsrfGuardDnsResolver`（默认 `IDnsResolver`，可经 `setDnsResolver` 注入替换）解析目标主机名——解析到内网/元数据地址（含 DNS rebinding 多答案集）即 fail-closed，连接不建立。
 
 **未接线面（显式登记）**：JDK HttpClient 与 OkHttp 不消费 `HttpClientConfig.dnsResolver`，因此 redirect-hop 级的 client 内解析拦截只对 Apache HttpClient 成立——生产部署如需完整 redirect-hop 防护，须把 `SsrfGuardDnsResolver` 装配进 `HttpClientConfig.dnsResolver` 并使用 Apache client；执行器级解析校验对全部 client 生效。
+
+### 4.4 长时工具：超时分层与进度证据（已裁定目标形态）
+
+- **现状**：`toolTimeoutMs` 默认 300s（`DefaultAgentEngineConfig.java:152`），fanout 期 `orTimeout` 超时转错误 tool result（`AgentToolDispatcher.java:271-283`）；调大超时则 round 阻塞至全部工具完成。数十分钟级工具（构建命令等）在两条路径下均不可用。
+- **目标形态**：机械超时降级为兜底防线，按工具类型分层配置（build/命令类显著高于快调用）；卡死/死循环的**主判定交由模型**——心跳消息携带沙箱增量输出缓冲尾部作为进度证据（`NoOpSandboxBackend.java:101-113`、`DockerSandboxBackend.java:255` 的 capturedRef 增量 drain 已在位，无需新增采集机制）。
+- **配套约束**：等待期 steering/心跳唤醒的循环侧语义见 `nop-ai-agent-react-engine.md` §5.5；本篇边界是工具执行面的超时参数分层与进度证据来源。
 
 ## 五、JSON Schema 兼容
 
