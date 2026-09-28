@@ -96,7 +96,13 @@ public class TestNopRuleSuites {
             "quality/string-literal-equality",
             "quality/no-native-method",
             "exception/no-raw-throws",
-            "quality/covariant-equals");
+            "quality/covariant-equals",
+            // item 4a (plan nop-lint/19): pmd core-face successors
+            "quality/no-branching-in-loop-body",
+            "quality/no-clone-without-cloneable",
+            "quality/clone-return-type-mismatch",
+            "quality/proper-clone-implementation",
+            "security/no-hardcoded-iv");
     // facet review (tool-replacement roadmap item 2, plan nop-lint/16): the four
     // out-of-purpose removals (loose-coupling-hashset / for-loop-can-be-foreach /
     // negated-equals / simplify-boolean-expression) left EXPECTED_RULE_IDS at 48.

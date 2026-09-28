@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 4
+    endLine: 4
+    ruleId: quality/proper-clone-implementation
+    messageContains: "super.clone()"
+  - line: 12
+    endLine: 12
+    ruleId: quality/proper-clone-implementation
+    messageContains: "super.clone()"

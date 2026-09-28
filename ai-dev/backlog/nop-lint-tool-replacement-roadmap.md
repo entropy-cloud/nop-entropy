@@ -57,7 +57,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 - 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
 - 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `done`（plan: ai-dev/plans/nop-lint/16-rule-facet-review.md；closure audit agent_a3d8c4ac APPROVE；裁定 core 46 / out-of-purpose 16（demote 8 / remove 4 / keep 4），"降出默认档"按引擎杠杆重裁定为降 info/移出库，见 design 02 §5）
 - 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `done`（plan 3a: ai-dev/plans/nop-lint/17-checkstyle-facet-adjudication.md，audit agent_200546ad APPROVE；plan 3b: ai-dev/plans/nop-lint/18-checkstyle-qa-profile-switchover.md；Checkstyle 终裁 core-face-replaced 已回填统一账本） — deps: 1, 2
-- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `todo` — deps: 1, 2
+- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `planned`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md；plan 4b 切换/终裁: 20 待立项） — deps: 1, 2
 - 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `todo` — deps: 1
 - ★ **Milestone MT1: 定位基线确立 + 存量账还清**（unlocks when 1–5 done）
 
@@ -117,7 +117,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ## Current baseline
 
-- 既有替代资产：checkstyle-pmd 迁移映射 26 行（item 3b 后 checkstyle 侧已切换移除：landed 9 + out-of-purpose 8；pmd 侧 landed 2 + keep-pmd 7 不可移除；缺席判据在档）；mjs 账本 24 行（汇总行已与逐行一致，2026-09-28 item 1 修正，门禁族排除口径在档）；PMD/EP coverage manifest v2（186 行，tier 1 = 32 已落地带 fixture——item 2 翻转 out-of-purpose 3 行后 item 3a 提升 2 行，2026-09-28）。
-- 已验证能力锚点：nop-lint roadmap M1–M6 全 done（引擎 + 规则库：分面复审 62→58 后 item 3a 新增 4 条 checkstyle 核心承接规则 = 62 条，见统一账本规则级分面表；L1–L4 语义面 + maven/GraphQL/LSP/CLI 生态面）；JMH 基线在档（fast 档 <50ms 预算实测余量 ~50×）。
+- 既有替代资产：checkstyle-pmd 迁移映射 26 行（item 3b 后 checkstyle 侧已切换移除：landed 9 + out-of-purpose 8；item 4a 后 pmd 侧 landed 7 / out-of-purpose 1 / deferred 1——pmd 配置段不可移除；缺席判据在档）；mjs 账本 24 行（汇总行已与逐行一致，2026-09-28 item 1 修正，门禁族排除口径在档）；PMD/EP coverage manifest v2（186 行，tier 1 = 33 已落地带 fixture——item 2 翻转 out-of-purpose 3 行、item 3a 提升 2 行、item 4a 提升 1 行，2026-09-28）。
+- 已验证能力锚点：nop-lint roadmap M1–M6 全 done（引擎 + 规则库：分面复审 62→58 后 item 3a 新增 4 条 + item 4a 新增 5 条（+1 deferred）= 67 条，见统一账本规则级分面表；L1–L4 语义面 + maven/GraphQL/LSP/CLI 生态面）；JMH 基线在档（fast 档 <50ms 预算实测余量 ~50×）。
 - 已知能力缺口（item 6 矩阵的输入）：资源泄漏类（acquire/release 路径配对）与空指针解引用流（null-flow）在当前 L3 数据流（方法内 def-use + 常量传播）之上属未覆盖面——这正是"隐蔽 bug"定位下最需要补的两类。
 - 风险提示：定位收窄（out-of-purpose 剔除风格面）会显著缩小"替代债"的表面积——items 3/4 的收口判据从"全行 landed"改为"核心行 landed + 风格行显式归档"，判据文本须随 item 1/2 落地同步修订（design 06 §8.1 增注）。

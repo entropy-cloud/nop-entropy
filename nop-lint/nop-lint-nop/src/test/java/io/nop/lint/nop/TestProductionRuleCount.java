@@ -96,7 +96,13 @@ public class TestProductionRuleCount {
             "quality/string-literal-equality",
             "quality/no-native-method",
             "exception/no-raw-throws",
-            "quality/covariant-equals");
+            "quality/covariant-equals",
+            // item 4a (plan nop-lint/19): pmd core-face successors
+            "quality/no-branching-in-loop-body",
+            "quality/no-clone-without-cloneable",
+            "quality/clone-return-type-mismatch",
+            "quality/proper-clone-implementation",
+            "security/no-hardcoded-iv");
 
     @BeforeAll
     static void init() {
@@ -116,8 +122,10 @@ public class TestProductionRuleCount {
         grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
 
         // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
-        // four checkstyle core-face successors added, 58 -> 62
-        assertEquals(62, ids.size(), "production rule census size");
+        // four checkstyle successors added, 58 -> 62; item 4a (plan 19):
+        // six pmd successors landed minus the implicit-switch-fall-through
+        // mechanism-gap deferral (shape face unfaithful: 213 extras), 62 -> 67
+        assertEquals(67, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

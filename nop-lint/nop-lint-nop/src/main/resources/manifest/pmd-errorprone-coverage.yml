@@ -367,8 +367,9 @@ entries:
     mechanism: 'L1 pattern: Pattern: `"key"` in crypto context'
     fixture: '/test/lint/suites/security/no-hardcoded-crypto/'
   - source_rule: 'PMD:InsecureCryptoIv'
-    tier: 2
-    mechanism: 'L1/L2: Pattern: 硬编码 IV'
+    tier: 1
+    mechanism: 'L1/L2: Pattern: IvParameterSpec(数组初始化/字符串字面量)（no-hardcoded-iv，item 4a 提升；分层 approximation：一跳变量剩余 + 污点面 = L3 机制缺口在档）'
+    fixture: '/test/lint/suites/security/no-hardcoded-iv/'
   - source_rule: 'PMD:ArrayIsStoredDirectly'
     tier: 2
     mechanism: 'L1/L2: Pattern: `this.$ARR = $ARR`'

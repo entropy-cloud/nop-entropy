@@ -34,23 +34,24 @@
 | checkstyle:IllegalThrows | landed | exception/no-raw-throws | item 3a（plan 17）：illegalClassNames（Error/RuntimeException/Throwable，简单名+限定名）+ @Override 豁免逐点对齐；全仓对照零 diff（§4.2） |
 | checkstyle:AvoidStarImport | landed | quality/no-star-import | **delta：static-star 新告警面**——checkstyle 配置 `allowStaticMemberImports=true`（static star import 是项目惯例），nop-lint 双分支均报；切换需先裁 static-star 豁免 |
 | pmd:EmptyCatchBlock | landed | nop/no-empty-catch | 同 checkstyle:EmptyCatchBlock 行 |
-| pmd:JumbledIncrementer | keep-pmd | — | manifest 外规则；增量面 v1 无对应 |
-| pmd:AvoidBranchingStatementAsLastInLoop | keep-pmd | — | manifest 外；控制流面 |
-| pmd:ImplicitSwitchFallThrough | keep-pmd | — | manifest 外；fall-through 在候选池（关系+xscript 成本裁定） |
-| pmd:CloneMethodMustImplementCloneable | keep-pmd | — | manifest 外；类型面 |
-| pmd:CloneMethodReturnTypeMustMatchClassName | keep-pmd | — | manifest 外；类型面 |
-| pmd:ProperCloneImplementation | keep-pmd | — | manifest 外；类型面 |
+| pmd:JumbledIncrementer | out-of-purpose | — | item 4a：增量写法困惑性属风格面（PMD 自述 "usually a mistake, confusing even if intentional"），语料 0 命中，零缺陷拦截信号，不迁移 |
+| pmd:AvoidBranchingStatementAsLastInLoop | landed | quality/no-branching-in-loop-body | item 4a（plan 19）：PMD 7.26 面逐点对齐（break/continue/return 直连循环体、foreach 同 FOR 面、无末语句要求）；对照 43/43（§4.3） |
+| pmd:ImplicitSwitchFallThrough | deferred | — | item 4a：机制缺口——PMD dataflow 判定 + falls-through 注释豁免不可语法表达，形状近似对照 6 vs 219 extras 不可逐条裁定，规则不入库（Deferred 裁定在 §4.3）；重估 = 表达力具备时 |
+| pmd:CloneMethodMustImplementCloneable | landed | quality/no-clone-without-cloneable | item 4a（plan 19）：clone 检测/单 throw 豁免/仅 class 对齐；父链闭包 delta 在档；对照 15/15 零 diff（§4.3） |
+| pmd:CloneMethodReturnTypeMustMatchClassName | landed | quality/clone-return-type-mismatch | item 4a（plan 19）；对照 4/4 零 diff（§4.3） |
+| pmd:ProperCloneImplementation | landed | quality/proper-clone-implementation | item 4a（plan 19）：非 final 类豁免/自身构造判定（泛型钻石修正）；type-resolution 语法代理 delta；对照 14/14 零 diff（§4.3） |
 | pmd:HardCodedCryptoKey | landed | security/no-hardcoded-crypto | manifest t1 |
-| pmd:InsecureCryptoIv | keep-pmd | — | manifest `PMD:InsecureCryptoIv` t2（机制面无规则文件——tier 语义带入：不能标 landed） |
+| pmd:InsecureCryptoIv | landed | security/no-hardcoded-iv | item 4a（plan 19）：窄面（数组/字符串字面量 IV）landed，manifest 行 t1 + 分层 approximation；一跳剩余/污点面 = 机制缺口；对照 0/0（§4.3） |
 
-**item 3a 后：landed 计 11 行 / out-of-purpose 8 / keep-pmd 7（EmptyCatchBlock 两行同目标）。**
+**item 4a 后：landed 计 16 行（checkstyle 9 + pmd 7——EmptyCatchBlock 两行同目标）/ out-of-purpose 9 / deferred 1。**
 
 ## 3. 切换判据（按 enforcement surface 计）
 
 - 切换后门禁面 = `nop-lint check --profile standard`（CLI/Maven goal 默认档）。
 - **deep-only 的 landed 行（CyclomaticComplexity）在默认 standard 面等效 keep**——切换判据不得把它计为已覆盖；除非切换决策同时把门禁面升为 `--profile deep`（需 metrics provider 装配）。
 - 判据（item 3a 增注，2026-09-28）：某旧工具配置段的全部行，status 均为 landed（含附注 delta 被接受）或 out-of-purpose（风格/可选面归档，非迁移债）→ 该段可移除。
-- **checkstyle 侧判据达成宣告（item 3b，2026-09-28）**：17 行全部 landed/out-of-purpose，配置段已移除。deep-only 条款显式裁定：CyclomaticComplexity 行 landed（deep 面），standard 档不设防为已接受 delta——复杂度度量在新定位下属 out-of-purpose 可选面（plan 16 裁定在档），不阻碍切换。pmd 侧判据未达成（keep-pmd 7 行占多数），不可移除。
+- **checkstyle 侧判据达成宣告（item 3b，2026-09-28）**：17 行全部 landed/out-of-purpose，配置段已移除。deep-only 条款显式裁定：CyclomaticComplexity 行 landed（deep 面），standard 档不设防为已接受 delta——复杂度度量在新定位下属 out-of-purpose 可选面（plan 16 裁定在档），不阻碍切换。
+- **pmd 侧状态（item 4a，2026-09-28）**：9 行 = landed 7 / out-of-purpose 1 / deferred 1（ImplicitSwitchFallThrough 机制缺口）。**判据未全达（deferred 行在）→ pmd-ruleset.xml 现仍不可移除**；plan 20 的判据输入 = 本表 + §4.3 对照（若 deferred 行重估落地或被 out-of-scope 裁定吸收，则判据可达成）。
 - 按本表（item 3b 后）：**checkstyle 配置段已移除**（全部行 landed/out-of-purpose）；**pmd-ruleset.xml 不可移除**（keep-pmd 7 行占多数）。
 
 ## 4. 并行期实跑对照（2026-09-24，dogfood）
@@ -87,6 +88,23 @@
 - **delta 裁定**：无未裁定 delta。附注（非 diff）：对照运行采用 4 规则白名单时，存量 `nop-lint-disable` 注解因目标规则不在白名单产生 1,406 条 unused-disable-directive 副产品警告——标准全库运行下注解正常匹配，不入对照面。
 - **fixture 面**：4 规则各带 valid/invalid fixtures（TestNopRuleSuites 59/59 绿），覆盖 @Override 豁免、多类型 throws、枚举体 equals、拼接操作数排除等规格点。
 - **record 面裁定**（closure audit Minor-1 消解）：checkstyle CovariantEquals 文档覆盖 class/record/enum；落地规则 v1 面为 class + enum（record 隐式生成 equals(Object)，协变 equals 语义存疑），全仓 276 份报告 CovariantEqualsCheck 0 命中、main 源无 record 含 equals 重载——零 diff 不受影响；record 面记为显式 delta，重估触发 = 出现 record 含 equals 重载的语料。
+
+### 4.3 item 4a 核心行升规则同语料对照（2026-09-28，plan 19）
+
+- **语料**：`./mvnw pmd:check -Pqa -fn` 全仓实跑（fail-never；部分 demo 网关模块依赖解析失败无报告，对照集 = 完成模块的含命中文件 86 个）vs nop-lint CLI 5 规则白名单同语料批扫（`unused-disable-directive` 抑制副产品剔除）。
+- **命中集对照**（比较键 file+line+rule；clone 族规则报告锚 = 方法名节点，与 PMD beginline 对齐）：
+
+| 规则 | PMD 命中 | nop-lint 命中 | 结论 |
+|---|---|---|---|
+| pmd:AvoidBranchingStatementAsLastInLoop ↔ quality/no-branching-in-loop-body | 43 | 43（批扫 35 + 直接 CLI 复核 8——批扫器批次缺口为 harness 注记，非规则 delta） | 零 diff；ours-only 1 = QuarkusFileService:84 `// NOPMD` 注释（PMD 专用抑制符不被 nop-lint 抑制器识别）——delta accepted |
+| pmd:CloneMethodMustImplementCloneable ↔ quality/no-clone-without-cloneable | 15 | 15 | **零 diff**（父链闭包 delta 未在语料出现） |
+| pmd:CloneMethodReturnTypeMustMatchClassName ↔ quality/clone-return-type-mismatch | 4 | 4 | **零 diff** |
+| pmd:ProperCloneImplementation ↔ quality/proper-clone-implementation | 14 | 14 | **零 diff**（泛型钻石 `new LastValue<>()` 形态修正后；type-resolution 语法代理 delta 未在语料出现） |
+| pmd:InsecureCryptoIv ↔ security/no-hardcoded-iv | 0 | 0 | 零 diff（窄面；污点面 = 机制缺口在档） |
+| pmd:ImplicitSwitchFallThrough | 6 | （未落地） | **deferred 裁定**：形状近似 219 命中 vs PMD 6，213 extras（dataflow 判定 + falls-through 注释豁免语义）不可逐条裁定 → 规则不入库，行 = deferred |
+| pmd:JumbledIncrementer | 0 | （out-of-purpose） | 0/0 记录 |
+
+- **fixture 面**：5 规则各带 valid/invalid fixtures（TestNopRuleSuites 全绿），覆盖 return 面/foreach 同面、单 throw 豁免、final 豁免、泛型钻石、数组/字符串字面量等规格点。
 
 ## 5. 回退预案
 

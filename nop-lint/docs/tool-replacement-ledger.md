@@ -47,9 +47,9 @@
 | NullAway / 空类型系统族 | 待裁 | — | — | 待裁 |
 | ArchUnit | 待裁 | — | — | 待裁 |
 
-### 规则级分面表（62 条复审 + item 3a 新增 4 条 = live 62 行 + remove 4 行，roadmap item 2/3a，plan nop-lint/16、17）
+### 规则级分面表（62 条复审 + item 3a +4 + item 4a +5（+1 机制缺口 deferred 未入库）= live 67 行 + remove 4 行，roadmap item 2/3a/4a，plan nop-lint/16、17、19）
 
-> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep（string-literal-equality、no-native-method、no-raw-throws、covariant-equals）。
+> 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep；item 4a 新增 5 行全 core/keep（no-branching-in-loop-body、no-clone-without-cloneable、clone-return-type-mismatch、proper-clone-implementation、no-hardcoded-iv）；implicit-switch-fall-through 因形状近似对照不可逐条裁定（PMD 6 vs 形状 219 extras）按 Deferred 裁定不入库（机制缺口：dataflow 判定 + falls-through 注释豁免），行 status = deferred。
 
 | 规则 | 分面 | 处置 | 裁定理由 | 重估触发 |
 |---|---|---|---|---|
@@ -115,6 +115,11 @@
 | security/no-md5-digest | core | keep | 弱摘要（安全） | — |
 | security/no-runtime-exec | core | keep | 命令执行注入面（安全） | — |
 | security/no-sensitive-literal | core | keep | 敏感字面量（安全） | — |
+| quality/no-branching-in-loop-body | core | keep | 循环体直达分支=残余逻辑缺失信号（控制流面，item 4a 新增） | — |
+| quality/no-clone-without-cloneable | core | keep | clone 契约破坏（正确性面，item 4a 新增；父链闭包 delta 在档） | 父链形态误报出现时重裁 |
+| quality/clone-return-type-mismatch | core | keep | 协变拷贝契约破坏（正确性面，item 4a 新增） | — |
+| quality/proper-clone-implementation | core | keep | clone 构造自身破坏拷贝语义（正确性面，item 4a 新增；type-resolution 语法代理 delta 在档） | — |
+| security/no-hardcoded-iv | core | keep | 硬编码 IV（安全面，窄面 landed；污点面=机制缺口，item 4a 新增） | 污点面机制落地时（item 7 联动） |
 | quality/string-literal-equality | core | keep | 字符串 ==/!= 引用比较 bug（正确性面，item 3a 新增） | — |
 | quality/no-native-method | core | keep | native 禁令=纯 Java 平台不变式（item 3a 新增） | — |
 | exception/no-raw-throws | core | keep | Nop 异常契约声明面（item 3a 新增） | — |
@@ -124,8 +129,8 @@
 
 | 账本 | 行数 | 状态分布 | 防腐门禁 |
 |---|---|---|---|
-| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3b 后：checkstyle 侧已切换移除（landed 9 + out-of-purpose 8）；pmd 侧 landed 2 + keep-pmd 7 不可移除（全表 landed 11） | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
+| [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3b/4a 后：checkstyle 侧已切换移除（landed 9 + out-of-purpose 8）；pmd 侧 landed 7 / out-of-purpose 1 / deferred 1（全表 landed 16）——pmd 配置段不可移除 | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
 | [check-\*.mjs 迁移 manifest](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 24 | maintain-mjs 7 / exclude 7 / migrated-pending-switchover 5 / candidate 2 / deferred 3（与文档分类汇总行一致，2026-09-28 修正） | `ai-dev/tools/check-lint-migration-manifest.mjs` |
-| [PMD/EP coverage manifest](../../nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 30 已落地带 live fixture（item 2 分面复审翻转 out-of-purpose 3 行后）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
+| [PMD/EP coverage manifest](../../nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 33 已落地带 live fixture（item 2 翻转 out-of-purpose 3 行、item 3a 提升 2 行、item 4a 提升 1 行）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
 
 ## out-of-scope 记录（由 roadmap item 19 落稿；先例已裁：PMD CPD → design 06 §7.2，backlog token-shingling 分析器）

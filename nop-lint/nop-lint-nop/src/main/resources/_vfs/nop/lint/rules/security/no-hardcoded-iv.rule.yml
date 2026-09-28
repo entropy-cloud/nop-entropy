@@ -1,0 +1,38 @@
+# tool-replacement roadmap item 4a (plan nop-lint/19): PMD
+# InsecureCryptoIv successor, v1 syntactic face: IvParameterSpec constructed
+# from an array initializer or a string literal is a hardcoded IV. Layered
+# delta vs PMD 7.26: one-hop variable resolution (iv = "x".getBytes()) and
+# the taint face (non-random IV flowing through variables) are out of this
+# face — the mechanism gap is recorded in the coverage manifest row.
+id: security/no-hardcoded-iv
+language: Java
+severity: warning
+message: "IvParameterSpec 使用硬编码 IV，应使用随机/派生 IV (IvParameterSpec built from a hardcoded IV; use a random or derived IV)"
+rule:
+  kind: object_creation_expression
+xscript: |
+  let t = node.child('type');
+  if (t == null || t.text() != 'IvParameterSpec') {
+    return;
+  }
+  let args = node.child('arguments');
+  if (args == null) {
+    return;
+  }
+  // `new byte[]{...}` parses as array_creation_expression holding the
+  // array_initializer; a bare initializer form is also accepted
+  for (let kind of ['array_creation_expression', 'array_initializer']) {
+    for (let a of args.children(kind)) {
+      report({ message: 'IvParameterSpec 硬编码字节数组 IV (hardcoded byte-array IV)' });
+      return;
+    }
+  }
+  for (let a of args.children('string_literal')) {
+    report({ message: 'IvParameterSpec 硬编码字符串 IV (hardcoded string IV)' });
+    return;
+  }
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "pmd-ruleset.xml InsecureCryptoIv (tool-replacement roadmap item 4a)"

@@ -58,6 +58,7 @@
 | id | severity | version | autoFixable | message | source |
 |---|---|---|---|---|---|
 | quality/biginteger-instantiation | info | 1.1 | false | 用 BigInteger.ZERO/ONE/TEN 或 valueOf (use the cached constant or valueOf) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #11 (PMD:BigIntegerInstantiation) |
+| quality/clone-return-type-mismatch | warning | 1.0 | false | clone() 返回类型应为类本身（协变拷贝契约）(clone() should return the enclosing class type) | pmd-ruleset.xml CloneMethodReturnTypeMustMatchClassName (tool-replacement roadmap item 4a) |
 | quality/collection-size-nonnegative | warning | 1.0 | false | size() >= 0 恒为 true (collection size is never negative) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #6 (EP:SizeGreaterThanOrEqualsZero) |
 | quality/control-statement-braces | info | 1.1 | false | if 语句体必须使用大括号 (if statement body must be wrapped in braces) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #30 (design 06 §4.1 ControlStatementBraces) |
 | quality/covariant-equals | warning | 1.0 | false | 协变 equals 破坏等价契约，请覆写 equals(Object) (covariant equals breaks the equality contract; override equals(Object)) | checkstyle.xml CovariantEquals (tool-replacement roadmap item 3a) |
@@ -65,6 +66,8 @@
 | quality/method-cognitive-complexity | warning | 1.0 | false | 方法认知复杂度过高 (method cognitive complexity exceeds 15) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #12 (design 06 §4.1 CognitiveComplexity) |
 | quality/method-cyclomatic-complexity | warning | 1.0 | false | 方法圈复杂度过高 (method cyclomatic complexity exceeds 10) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #11 (design 06 §4.1 CyclomaticComplexity) |
 | quality/method-npath-complexity | warning | 1.0 | false | 方法 NPath 路径复杂度过高 (method NPath complexity exceeds 200) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #13 (design 06 §4.1 NPathComplexity) |
+| quality/no-branching-in-loop-body | warning | 1.0 | false | 循环体内直达的 break/continue/return 常是残余逻辑缺失信号 (a break/continue/return held directly by a loop body usually marks missing logic) | pmd-ruleset.xml AvoidBranchingStatementAsLastInLoop (tool-replacement roadmap item 4a) |
+| quality/no-clone-without-cloneable | warning | 1.0 | false | 覆写 clone() 须实现 Cloneable，否则拷贝语义不成立 (clone() without Cloneable breaks the copy contract) | pmd-ruleset.xml CloneMethodMustImplementCloneable (tool-replacement roadmap item 4a) |
 | quality/no-constant-condition | warning | 1.0 | false | 恒定条件：分支不依赖运行时状态 (constant condition; the branch never varies) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #1 (ESLint no-constant-condition) |
 | quality/no-finalize | warning | 1.0 | false | 禁止覆写 finalize (Do not override finalize; deprecated, unreliable and a resurrection hazard) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #24 (design 06 §4.1, JEP 421) |
 | quality/no-native-method | warning | 1.0 | false | 禁止声明 native 方法，平台保持纯 Java (Do not declare native methods; the platform stays pure Java) | checkstyle.xml IllegalToken LITERAL_NATIVE (tool-replacement roadmap item 3a) |
@@ -73,6 +76,7 @@
 | quality/no-star-import | info | 1.0 | false | 禁止星号导入 (Wildcard import; import the concrete types) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-system-out | warning | 1.0 | false | 禁止直接使用 System.out/System.err 输出，请使用日志门面 (Do not write to System.out/System.err; use the logging facade) | ai-dev/design/nop-lint/02-rule-library.md §1 |
 | quality/no-transactional-annotation | error | 1.0 | false | 业务代码禁止使用 Spring @Transactional（Nop 使用平台事务面）(Spring @Transactional is banned in Nop business code; use the platform transaction surface) | ai-dev/design/nop-lint/02-rule-library.md §1 |
+| quality/proper-clone-implementation | warning | 1.0 | false | clone() 应调用 super.clone() 而非构造自身实例 (clone() should call super.clone() instead of constructing the class) | pmd-ruleset.xml ProperCloneImplementation (tool-replacement roadmap item 4a) |
 | quality/random-mod | warning | 1.0 | true | nextInt() % n 分布有偏，请用 nextInt(n) (modulo of nextInt() is biased; use nextInt(n)) | ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #8 (EP:RandomModInteger) |
 | quality/replace-hashtable | info | 1.1 | true | 用 Map/ConcurrentHashMap 替代遗留 Hashtable (Replace legacy Hashtable with Map/ConcurrentHashMap) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #26 (design 06 §4.1 ReplaceHashtableWithMap) |
 | quality/replace-vector | info | 1.1 | true | 用 List/ArrayList 替代遗留 Vector (Replace legacy Vector with List/ArrayList) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #27 (design 06 §4.1 ReplaceVectorWithList) |
@@ -91,6 +95,7 @@
 | security/no-class-forname | warning | 1.0 | false | 禁止 Class.forName 反射加载 (Do not load classes reflectively with Class.forName) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #19 (manifest 12 迁移吸收) |
 | security/no-des-encryption | warning | 1.0 | false | 禁止 DES/DESede 加密算法 (DES is broken; use AES with modern key sizes) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #21 (manifest 12 迁移吸收) |
 | security/no-hardcoded-crypto | warning | 1.0 | false | 硬编码密钥：加密密钥不得使用字符串字面量 (Hardcoded crypto key; load the key from configuration or a keystore) | ai-dev/design/nop-lint/02-rule-library.md §1 (PMD HardCodedCryptoKey) |
+| security/no-hardcoded-iv | warning | 1.0 | false | IvParameterSpec 使用硬编码 IV，应使用随机/派生 IV (IvParameterSpec built from a hardcoded IV; use a random or derived IV) | pmd-ruleset.xml InsecureCryptoIv (tool-replacement roadmap item 4a) |
 | security/no-md5-digest | warning | 1.0 | false | 禁止 MD5 摘要算法 (MD5 is broken for security purposes; use SHA-256 or stronger) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #20 (manifest 12 迁移吸收) |
 | security/no-runtime-exec | warning | 1.0 | false | 禁止 Runtime.exec 直接执行系统命令 (Do not spawn OS processes with Runtime.exec; route through an audited execution seam) | ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #18 (manifest 12 迁移吸收) |
 | security/no-sensitive-literal | warning | 1.0 | false | 敏感字面量泄漏：日志/参数中携带 JDBC URL 或内联 SQL (Sensitive literal leaked into a log/param call: raw JDBC URL or inline SQL) | ai-dev/tools/check-sensitive-literal-leak.mjs (INV-SENSITIVE) |
