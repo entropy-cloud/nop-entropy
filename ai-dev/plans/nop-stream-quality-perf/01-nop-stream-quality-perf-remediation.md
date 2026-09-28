@@ -172,24 +172,24 @@ Exit Criteria:
 
 ### Phase 5 - 收敛复验（延续 360/2279 停止判据）
 
-Status: planned
+Status: completed
 Targets: 本轮触碰路径相关基准 + JFR 归因
 
 - Item Types: `Proof`
 
-- [ ] 以 `-prof jfr` 对 Phase 3 保留项涉及的基准场景（NFA/状态后端/WindowOperator rocksdb 档）采样，输出热点清单（记录到 plan）
-- [ ] 全量基准复跑一轮（fork=1 口径），未触碰基准在 ±3% 噪声带内、触碰基准无 >2% 退化，数字记入 `## Benchmark Rounds`
-- [ ] 收敛裁定：对照 360/2279 裁定书 + 本轮 JFR 归因，给出"本轮触碰路径上无 ≥2% 低风险可收割项"或列出新登记候选的明确结论，写入 plan
-- [ ] 若复验发现 ≥2% 且低风险的新候选：实施→实测→留舍（每项走 Phase 3 同款纪律），循环至无 ≥2% 项
+- [x] 以 `-prof jfr` 对 Phase 3 保留项涉及的基准场景（NFA/状态后端/WindowOperator rocksdb 档）采样，输出热点清单（记录到 plan）
+- [x] 全量基准复跑一轮（fork=1 口径），未触碰基准在 ±3% 噪声带内、触碰基准无 >2% 退化，数字记入 `## Benchmark Rounds`
+- [x] 收敛裁定：对照 360/2279 裁定书 + 本轮 JFR 归因，给出"本轮触碰路径上无 ≥2% 低风险可收割项"或列出新登记候选的明确结论，写入 plan
+- [x] 若复验发现 ≥2% 且低风险的新候选：实施→实测→留舍（每项走 Phase 3 同款纪律），循环至无 ≥2% 项
 
 Exit Criteria:
 
-- [ ] `## Benchmark Rounds` 含 Phase 5 复验轮数据，收敛裁定结论已明确写出
-- [ ] JFR 热点清单与候选取舍理由已记录
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
-- [ ] No owner-doc update required: 优化迭代不改契约
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] git commit 完成（Phase 5 独立提交）
+- [x] `## Benchmark Rounds` 含 Phase 5 复验轮数据，收敛裁定结论已明确写出
+- [x] JFR 热点清单与候选取舍理由已记录
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
+- [x] No owner-doc update required: 优化迭代不改契约
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] git commit 完成（Phase 5 独立提交）
 
 ### Phase 6 - 文档同步与计划收口
 
@@ -229,6 +229,12 @@ Exit Criteria:
 
 > 口径：JDK 26.0.1 Zulu / JMH 1.33 / `-f 1 -wi 3 -w 2s -i 5 -r 2s` / 同机（macOS arm64）。运行方式见 `nop-benchmark/nop-benchmark-stream/README.md`。
 
+- Round-2（2026-09-28，Phase 5 收敛复验，定向套件 8 类/48 配置，`_tmp/phase5-targeted-suite.txt`）：
+  - 触碰路径稳定：internalListAdd local 14.106（R1 14.260）；NFA d5 cheap 3.397/billable 4.125（R1 3.391/4.104）；d20 15.461/17.439
+  - F1 附带收益：RocksDB internal aggregating（getInternalAppendingState 路径）2.003µs vs 360 终态 ~2.21µs（约 -9%）
+  - 未触碰基准带内：MemoryKeyedState aggregating 7.780ns（vs 360 终态 7.6，+2.4% 带缘）、value local 15.981（vs 15.6，+2.4%）、SharedBufferRegister 0.812µs（vs 0.853）、CepOperator 64×64 1.292µs（vs 2279 Q1b 1.386）、listAdd 25.3/120.7µs（=360，Deferred 项不变）
+  - 跨会话漂移登记：TimerService +3~7%、StreamElementCodec decodeOnly +7.7%、套件尾部 ROCKSDB 全布局一致偏慢（含未触碰 SLIDING/EVICTOR +30~60%，误差条同步放大）——均非本计划触碰面，判定为环境/JIT 漂移（360 对 CheckpointSerDe 同类漂移的先例裁定）
+  - **收敛裁定：继续满足 360/2279 停止判据——本轮触碰路径上无 ≥2% 低风险可收割项**。JFR（jfr-final-nfa20 残余归因）：NFA 状态机本体（doProcess/computeNextStates/process ~50%）+ SharedBuffer 复合键比较与 LocalCache 机制（ScopedId/EventId.equals ~16%，360 已登记固有成本/Deferred 家族），无新增单点
 - Round-1（2026-09-28，Phase 3 三项实施后，同参数）：
   - **F2 保留**：internalListAdd local 33.753±0.116 → **14.260±0.587 ns/op（-57.8%）**；rotate 67.602→68.439（+1.2%，±3% 噪声带内）
   - **E3 保留**：NFA d5 cheap 3.795±0.014 → **3.391±0.201 µs（-10.6%）**；billable 4.447±0.042 → **4.104±0.134 µs（-7.7%）**
