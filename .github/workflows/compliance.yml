@@ -39,7 +39,7 @@ jobs:
         run: |-
           CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-java/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
           FILES=$(find . -name "*.beans.xml" \
-            -not -path "*/target/*" -not -path "*/_gen/*" \
+            -not -path "*/target/*" -not -path "*/_gen/*" -not -path "*/_tmp/*" \
             -not -path "*/src/test/*" -not -path "*nop-demo*" \
             -not -path "*/node_modules/*" \
             -not -path "*/docs/*" -not -path "*/docs-en/*")

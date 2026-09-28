@@ -56,9 +56,10 @@ const TOOL_NAMESPACE_PREFIXES = ['ai-tools:', 'ai-agent-tools:'];
 // 豁免：BizModel 变体注册（id 形如 "NopAuthUserBizModel_tenant"——bizObjName 变体如 NopAuthUser_tenant，
 // 平台多租户/多应用约定）
 const BIZMODEL_VARIANT_RE = /^[A-Z][A-Za-z0-9]*BizModel_[A-Za-z0-9_]+$/;
-// 排除路径段：构建产物 + 生成物 + 演示模块
+// 排除路径段：构建产物 + 生成物 + 演示模块 + 项目临时目录（AGENTS.md：_tmp/ 为临时文件区，
+// 可能含有历史审计的 rw-clone 等陈旧副本，不纳入检查范围）
 //   - nop-demo：示例/演示代码，非产品基线（用户裁决豁免，不纳入命名检查范围）
-const EXCLUDED_SEGMENTS = ['target', '_dump', '_gen', 'node_modules', '.git', 'nop-demo'];
+const EXCLUDED_SEGMENTS = ['target', '_dump', '_gen', 'node_modules', '.git', 'nop-demo', '_tmp'];
 
 // 剔除 XML 注释 <!-- ... -->（含跨行），避免把注释中的示例 <bean id="..."> 误判为违规。
 function stripXmlComments(content) {
