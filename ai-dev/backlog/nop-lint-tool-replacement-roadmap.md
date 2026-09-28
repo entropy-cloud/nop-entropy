@@ -30,7 +30,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 | 工具 | 接线点 | 现行口径 |
 |---|---|---|
 | Checkstyle 10.21.1 | ~~root pom qa profile~~ **已移除（item 3b 切换，原接线含 nop-kernel pom）** | 原 `checkstyle.xml` 17 条激活规则：landed 9 / out-of-purpose 8，终裁 core-face-replaced |
-| PMD 7.26.0 | root pom qa profile（`pom.xml:487` 起） | `pmd-ruleset.xml` 9 条规则，report-only |
+| PMD 7.26.0 | root pom qa profile（`pom.xml:460` 起，report-only 保留——deferred 面在） | `pmd-ruleset.xml` 9 条规则：landed 7 / out-of-purpose 1 / deferred 1，终裁 replaced-partial |
 | SpotBugs 4.9.8.3 | root pom qa profile（`pom.xml:521` 起）+ **nop-kernel 自带 plugin**（`nop-kernel/pom.xml:451`）+ `spotbugs-annotations`（`nop-kernel/nop-commons/pom.xml:75`） | failOnError=false、threshold=low；`spotbugs-exclude.xml` 全局排除生成物/Errors/Configs/Constants + 与 Nop 架构冲突 pattern |
 | SonarQube | `sonar-maven-plugin`（`pom.xml:415`）+ `sonar.*` 属性组（`pom.xml:35–51`，含 jacoco 聚合覆盖率报告路径） | "主动触发，不参与日常构建"（pom 注释原文） |
 | ArchUnit | `archunit-junit5` 测试依赖：`nop-ai/nop-ai-shell/pom.xml:27`、`nop-ai/nop-ai-agent/pom.xml:55` | 架构断言以 JUnit 测试形态存在 |
@@ -57,7 +57,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 - 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
 - 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `done`（plan: ai-dev/plans/nop-lint/16-rule-facet-review.md；closure audit agent_a3d8c4ac APPROVE；裁定 core 46 / out-of-purpose 16（demote 8 / remove 4 / keep 4），"降出默认档"按引擎杠杆重裁定为降 info/移出库，见 design 02 §5）
 - 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `done`（plan 3a: ai-dev/plans/nop-lint/17-checkstyle-facet-adjudication.md，audit agent_200546ad APPROVE；plan 3b: ai-dev/plans/nop-lint/18-checkstyle-qa-profile-switchover.md；Checkstyle 终裁 core-face-replaced 已回填统一账本） — deps: 1, 2
-- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `planned`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md；plan 4b 切换/终裁: 20 待立项） — deps: 1, 2
+- 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `done`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md，audit agent_be230c23 APPROVE；plan 4b: ai-dev/plans/nop-lint/20-pmd-verdict-backfill.md——判据未全达配置段保留，PMD 终裁 replaced-partial 已回填统一账本） — deps: 1, 2
 - 5. mjs 账本切换收口：migrated-pending-switchover 5 行（#7/#12/#20/#21/#22；#20/#21 在 CI invariant-gate 硬门禁中优先）+ candidate 2 行（#3/#19）逐脚本对照切换: `todo` — deps: 1
 - ★ **Milestone MT1: 定位基线确立 + 存量账还清**（unlocks when 1–5 done）
 

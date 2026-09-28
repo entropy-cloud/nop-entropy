@@ -10,14 +10,14 @@
 
 回答"nop-lint 能否替代 Java 社区静态检查工具 X"的唯一汇总出口。**裁定口径 = 各工具的核心缺陷发现面**（正确性/资源/并发/安全/数据流/平台不变式）；风格/可选面按 out-of-purpose 归档，字节码级检测按 out-of-principle（纯源码原则）归档——两轴定义见 roadmap Purpose。判定纪律见 roadmap Hard constraints（裁定必须证据化：对照记录 / 机制面证据 / 重估触发条件，禁止无对照的替代宣称）。
 
-## 工具级终裁表（由 roadmap item 20 回填收敛，现全部待裁）
+## 工具级终裁表（由 roadmap item 20 回填收敛；Checkstyle/PMD 已裁，其余待裁）
 
 > 回填机制（门禁强制）：终裁 ≠ `待裁` 时，证据列必须含至少一个仓内文档锚链接（对照记录 / 机制面证据所在），残余范围必须非 `—`（`out-of-scope` 行写划出面清单或 `全工具`）——无证据终裁不可入库。
 
 | 工具 | 终裁 | 残余范围 | 证据 | roadmap items |
 |---|---|---|---|---|
 | Checkstyle 10.21.1 | core-face-replaced | 风格/可选面 8 行 out-of-purpose（显式不迁移） | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md) | 3 |
-| PMD 7.26.0 | 待裁 | — | — | 4 |
+| PMD 7.26.0 | replaced-partial | ImplicitSwitchFallThrough deferred 面（机制缺口）+ report-only 接线保留 | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md) | 4 |
 | check-\*.mjs ×24 | 待裁 | — | — | 5 |
 | SpotBugs 4.9.8.3 | 待裁 | — | — | 9–11 |
 | SonarQube | 待裁 | — | — | 12–14 |
@@ -39,7 +39,7 @@
 | 工具 | 分面标注 | 依据 / 证据 | 重估触发 | 状态 |
 |---|---|---|---|---|
 | Checkstyle 10.21.1 | core / out-of-purpose | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md)（core 9 行承接 + 风格 8 行归档，对照零 diff） | 风格面入 mandate 或对照被推翻 | core-face-replaced |
-| PMD 7.26.0 | 待裁 | — | — | 待裁 |
+| PMD 7.26.0 | core / out-of-purpose | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md)（core 7 行承接对照零 diff + 风格 1 行归档 + deferred 1 行机制缺口未入库） | ImplicitSwitchFallThrough 表达力具备时（机制缺口）；风格面入 mandate 或对照被推翻 | replaced-partial |
 | check-\*.mjs ×24 | 待裁 | — | — | 待裁 |
 | SpotBugs 4.9.8.3 | 待裁 | — | — | 待裁 |
 | SonarQube | 待裁 | — | — | 待裁 |
