@@ -73,7 +73,9 @@ class TestWatermarkIdlenessCrossTaskE2E {
 
         private static final long serialVersionUID = 1L;
 
-        final List<Object> observed = new ArrayList<>();
+        // CopyOnWriteArrayList: appended from task threads while the main thread
+        // iterates in awaitObserved — a plain ArrayList raced into CME.
+        final List<Object> observed = new java.util.concurrent.CopyOnWriteArrayList<>();
         final AtomicBoolean done = new AtomicBoolean(false);
 
         @Override

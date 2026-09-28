@@ -1398,6 +1398,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             @SuppressWarnings("unchecked")
             List<IN> list = (List<IN>) current;
             list.add(value);
+            // A12 (plan 01 quality-perf): the mutated list MUST be written back.
+            // With copy-semantics backends (e.g. RocksDBMapState.get returns a
+            // deserialized copy) the in-place add above is otherwise lost — every
+            // record after the first in the pane silently vanished. The memory
+            // backend returns a live reference, which is why it never showed.
+            setWindowContents(key, window, (ACC) list);
             storeElementTimestamp(key, window, elementTimestamp);
             return;
         }

@@ -452,6 +452,39 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
     // ---- Manifest management ----
 
+    /**
+     * Escapes a manifest VALUE for the Properties.load read path: backslash,
+     * newline, CR, tab and a leading space. Keys are internal constants and are
+     * not escaped.
+     */
+    private static String escapeManifestValue(String value) {
+        StringBuilder sb = new StringBuilder(value.length() + 8);
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (i == 0 && c == ' ') {
+                sb.append("\\ ");
+                continue;
+            }
+            switch (c) {
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
     private Properties loadManifest() throws IOException {
         Properties props = new Properties();
         Path manifestPath = outputDirPath.resolve(MANIFEST_FILE);
@@ -486,10 +519,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         // Files.newOutputStream).
         try (OutputStream out = new FileResource(tempManifest.toString(), tempManifest.toFile()).getOutputStream()) {
             // Properties.store is non-deterministic; use sorted manual write instead.
+            // B5 (plan 01 quality-perf): values are escaped because the manifest is
+            // read back via Properties.load, which treats '\' as an escape — a
+            // Windows path (C:\out\epoch-1.txt) silently corrupted on round-trip.
             StringBuilder sb = new StringBuilder();
             sb.append("# file-sink manifest").append(LINE_SEPARATOR);
             for (TreeMap.Entry<String, String> entry : sorted.entrySet()) {
-                sb.append(entry.getKey()).append('=').append(entry.getValue()).append(LINE_SEPARATOR);
+                sb.append(entry.getKey()).append('=')
+                        .append(escapeManifestValue(entry.getValue())).append(LINE_SEPARATOR);
             }
             out.write(sb.toString().getBytes(charset()));
         }

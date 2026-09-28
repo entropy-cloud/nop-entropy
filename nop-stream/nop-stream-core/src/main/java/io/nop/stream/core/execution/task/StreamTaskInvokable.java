@@ -866,8 +866,18 @@ public class StreamTaskInvokable implements Invokable<Void> {
         } finally {
             // SINK has no downstream writer (no closeOutputWriters call — unchanged);
             // the cancellation distinction lives in the success-terminal guard above.
-            operatorChain.close();
-            closeInputGate();
+            // A8: route through closeChainAndGate like invokeMiddle — a failing
+            // operatorChain.close() must never skip closeInputGate() (that leaks
+            // one live remote input-channel subscription per input edge), and the
+            // close error must not mask the input error.
+            Exception closeError = closeChainAndGate(null);
+            if (closeError != null) {
+                if (inputError != null) {
+                    inputError.addSuppressed(closeError);
+                } else {
+                    throwCloseError(closeError);
+                }
+            }
         }
         if (inputError != null) {
             throw inputError;
@@ -916,8 +926,17 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 }
             }
         } finally {
-            operatorChain.close();
-            closeInputGate();
+            // A8: closeChainAndGate instead of a sequential close — a failing
+            // operatorChain.close() must never skip closeInputGate(), and the
+            // close error must not mask the source error.
+            Exception closeError = closeChainAndGate(null);
+            if (closeError != null) {
+                if (sourceError != null) {
+                    sourceError.addSuppressed(closeError);
+                } else {
+                    throwCloseError(closeError);
+                }
+            }
         }
         if (sourceError != null) {
             throw sourceError;

@@ -203,6 +203,34 @@ class TestFileSourceAuditFixes {
                 "a path containing ',' cannot round-trip the CSV section and must fail at serialize time");
     }
 
+    /**
+     * B6 regression (plan 01 quality-perf Phase 2): a split path containing '|'
+     * (or a newline) must fail at SERIALIZE time — pre-fix only the CSV sections
+     * validated, so the checkpoint write succeeded and the job then failed at
+     * restore with "Malformed split line", unable to ever recover.
+     */
+    @Test
+    void enumeratorStateSerializerRejectsReservedCharsInSplitById() {
+        FileSource.FileSplitEnumeratorStateSerializer ser =
+                new FileSource.FileSplitEnumeratorStateSerializer();
+        Map<String, FileSplit> byId = new LinkedHashMap<>();
+        byId.put("/tmp/a|b.txt", new FileSplit("/tmp/a|b.txt", 0L, 100L, 0L));
+        FileSplitEnumeratorState state = new FileSplitEnumeratorState(
+                "/tmp/dir", new LinkedHashSet<>(), new LinkedHashSet<>(), new LinkedHashSet<>(), byId, 0);
+
+        IOException pipe = assertThrows(IOException.class, () -> ser.serialize(state),
+                "split path with '|' must fail at serialize time, not at restore time");
+        assertTrue(pipe.getMessage().contains("reserved separator"),
+                "unexpected message: " + pipe.getMessage());
+
+        Map<String, FileSplit> byIdNewline = new LinkedHashMap<>();
+        byIdNewline.put("/tmp/a\nb.txt", new FileSplit("/tmp/a\nb.txt", 0L, 100L, 0L));
+        FileSplitEnumeratorState stateNewline = new FileSplitEnumeratorState(
+                "/tmp/dir", new LinkedHashSet<>(), new LinkedHashSet<>(), new LinkedHashSet<>(), byIdNewline, 0);
+        assertThrows(IOException.class, () -> ser.serialize(stateNewline),
+                "split path with a newline must fail at serialize time");
+    }
+
     // ====================== CN-4: constructor taxonomy ======================
 
     @Test

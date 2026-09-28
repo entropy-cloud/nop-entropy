@@ -256,4 +256,57 @@ class TestCheckpointBarrierTrackerConcurrency {
         r.setCheckpointId(checkpointId);
         return r;
     }
+
+    /**
+     * A7 regression (plan 01 quality-perf Phase 2): {@code getCurrentCheckpointId}
+     * iterates the in-flight map, so concurrent mutators (trigger/ack) racing an
+     * unsynchronized reader risked CME or an inconsistent max. The fix synchronized
+     * the reader like its siblings; this test hammers the getter while triggers and
+     * ACKs mutate in parallel — a fixed implementation never throws; the pre-fix
+     * one could CME under load.
+     */
+    @Test
+    void testGetCurrentCheckpointIdSafeUnderConcurrentMutation() throws Exception {
+        List<AbstractStreamOperator<?>> operators = createMockOperators(2);
+        CheckpointBarrierTracker tracker = new CheckpointBarrierTracker(LOC, new ArrayList<>(operators),
+                snapshot -> { });
+        setSnapshotCallbacks(operators, tracker);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            final int triggers = 400;
+            CountDownLatch start = new CountDownLatch(1);
+            Future<?> mutator = executor.submit(() -> {
+                try {
+                    start.await();
+                    for (long i = 1; i <= triggers; i++) {
+                        tracker.triggerCheckpoint(i, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+                        for (int op = 0; op < operators.size(); op++) {
+                            tracker.acknowledgeOperator(op, taggedResult(i));
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new io.nop.stream.core.exceptions.StreamRuntimeException("worker failed", e);
+                }
+            });
+            Future<?> reader = executor.submit(() -> {
+                try {
+                    start.await();
+                    for (int i = 0; i < triggers * 4; i++) {
+                        long id = tracker.getCurrentCheckpointId();
+                        assertTrue(id >= -1L && id <= triggers,
+                                "reader must observe a consistent in-flight id, got " + id);
+                    }
+                } catch (Exception e) {
+                    throw new io.nop.stream.core.exceptions.StreamRuntimeException("worker failed", e);
+                }
+            });
+
+            start.countDown();
+            mutator.get(30, TimeUnit.SECONDS);
+            reader.get(30, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
 }

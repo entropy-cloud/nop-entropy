@@ -20,29 +20,29 @@
 
 | # | 位置 | 问题 | 级别 | 验证 |
 |---|------|------|------|------|
-| A1 | `JobCoordinator.java:1410-1528` | `recoveryPending` 仅在 fan-out 段的 finally 清除；`rotateFencingEpochCoreLocked`（DB 写）或 `prepareAssignmentsLocked` 抛异常时提前退出，标志永久置位 → 后续所有 requestRecovery CAS 失败、所有 checkpoint 触发被抑制，作业永久卡死 | P0 | ✅ |
-| A2 | `CheckpointCoordinator.java:256,1190` | abort 的 epoch 在 `failedCommitParticipants` 为空时不在 `checkpointSuccessMap` 中移除 → 长期运行作业 map 无界增长 | P0 | 子代理核实 |
+| A1 ✅已修复(09-28) | `JobCoordinator.java:1410-1528` | `recoveryPending` 仅在 fan-out 段的 finally 清除；`rotateFencingEpochCoreLocked`（DB 写）或 `prepareAssignmentsLocked` 抛异常时提前退出，标志永久置位 → 后续所有 requestRecovery CAS 失败、所有 checkpoint 触发被抑制，作业永久卡死 | P0 | ✅ |
+| A2 ✅已修复(09-28) | `CheckpointCoordinator.java:256,1190` | abort 的 epoch 在 `failedCommitParticipants` 为空时不在 `checkpointSuccessMap` 中移除 → 长期运行作业 map 无界增长 | P0 | 子代理核实 |
 | A3 | `JobCoordinator.java:1968-1979` | 终态 savepoint 失败/超时后仍上报 JOB_FINISHED + `health.onFinished`（静默数据丢失语义） | P0 | 子代理核实 |
 | A4 | `JobCoordinator.java:602-634` | `stop()` 仅 gate 在 `running`；standby 实例可 shutdown 共享 CheckpointCoordinator，杀掉 active 的 persist/timeout executor | P0 | 子代理核实 |
 | A5 | `ResultPartition.java:263-293` + `InMemoryMaterializationPoint.java:41,61-72` | 背压+materialization 边队列满时记录静默移出 live 路径（仅存 bypass store），无日志/计数；bypass store 为无界 synchronized ArrayList 且不计 BufferPool 限额 → 无全局内存上界 | P0 | 子代理核实 |
 | A6 | `SupervisionLoop.java:486-488` | region 重启时 live map 缺 key 仅 WARN 跳过；被取消任务计为终态，可"成功"退出且 region 有洞 | P0 | 子代理核实 |
-| A7 | `CheckpointBarrierTracker.java:339-347` | `getCurrentCheckpointId()` 无锁迭代 `LinkedHashMap inFlight`，与 synchronized 写并发可 CME/不一致 | P1 | ✅ |
-| A8 | `StreamTaskInvokable.java:866-871,918-921` | `invokeSink`/`invokeSelfContained` 的 finally 顺序 close，无 suppress；`operatorChain.close()` 抛出时跳过 `closeInputGate()`（泄漏 remote channel 订阅）并吞掉 inputError；`invokeMiddle` 已有 `closeChainAndGate` 未复用 | P1 | 子代理核实 |
-| A9 | `JobCoordinator.java:940-944` | 日志 bug：`state={} cause={}` 传入两个 `getTerminalState()`，cause 被丢弃 | P2 | 子代理核实 |
+| A7 ✅已修复(09-28) | `CheckpointBarrierTracker.java:339-347` | `getCurrentCheckpointId()` 无锁迭代 `LinkedHashMap inFlight`，与 synchronized 写并发可 CME/不一致 | P1 | ✅ |
+| A8 ✅已修复(09-28) | `StreamTaskInvokable.java:866-871,918-921` | `invokeSink`/`invokeSelfContained` 的 finally 顺序 close，无 suppress；`operatorChain.close()` 抛出时跳过 `closeInputGate()`（泄漏 remote channel 订阅）并吞掉 inputError；`invokeMiddle` 已有 `closeChainAndGate` 未复用 | P1 | 子代理核实 |
+| A9 ✅已修复(09-28) | `JobCoordinator.java:940-944` | 日志 bug：`state={} cause={}` 传入两个 `getTerminalState()`，cause 被丢弃 | P2 | 子代理核实 |
 | A10 | `RunningTask.java:130-136` | `completedTasks` 超限随机驱逐一条（非 LRU），刚完成任务结果可能被逐出 | P2 | 子代理核实 |
 | A11 | 锁序 | recoveryLock→CC monitor→RPC→commitExecutor→用户 JDBC 链式嵌套；ACK 线程可被慢 sink commit 饿死；无文档化锁序 | P2 | 子代理核实 |
-| A12 | `WindowOperator.java:1397-1403` | `addWindowElement` 的 `current instanceof List` 分支只 `list.add(value)` 无 `setWindowContents` 写回：MapState 回退 + evictor + RocksDB 等拷贝语义后端时第 2 条起记录被静默丢弃（内存后端 `MemoryMapState.get` 返回活引用侥幸正确）；plan 对抗性审查（2026-09-28）发现并经人工核实 | P0 | ✅ |
+| A12 ✅已修复(09-28) | `WindowOperator.java:1397-1403` | `addWindowElement` 的 `current instanceof List` 分支只 `list.add(value)` 无 `setWindowContents` 写回：MapState 回退 + evictor + RocksDB 等拷贝语义后端时第 2 条起记录被静默丢弃（内存后端 `MemoryMapState.get` 返回活引用侥幸正确）；plan 对抗性审查（2026-09-28）发现并经人工核实 | P0 | ✅ |
 
 ### B. 正确性缺陷（state / serde / connectors）
 
 | # | 位置 | 问题 | 级别 | 验证 |
 |---|------|------|------|------|
-| B1 | `RocksDBKeyedStateBackend.java:208-212` | `listColumnFamilies` 失败被静默吞掉（无日志）→ 既有 CF 被当作不存在重建，旧状态静默不可见 | P0 | 子代理核实 |
+| B1 ✅已修复(09-28) | `RocksDBKeyedStateBackend.java:208-212` | `listColumnFamilies` 失败被静默吞掉（无日志）→ 既有 CF 被当作不存在重建，旧状态静默不可见 | P0 | 子代理核实 |
 | B2 | `RocksDBSnapshotSerDe.java:343-344` + `MemoryStateSerDe.java:281` | restore 先 `clearAllStates` 再校验快照内容 → 损坏快照把后端清空且无回滚 | P1 | 子代理核实 |
-| B3 | `RocksDBInternalAggregatingState.java:80` | `getAccumulator()` 用 `descriptor.getValueType()` 反序列化，而 `get()` 用 `storageValueType` → Object 型 descriptor 下同一状态两个访问器返回不同运行时类型 | P1 | 子代理核实 |
-| B4 | `JdbcTwoPhaseCommitSink.java:301-307` | 幂等 re-commit 路径提前 return，未清 `pendingCommits` 条目 → stale 条目永久滞留（file sink 两个分支都清了） | P1 | 子代理核实 |
-| B5 | `FileTwoPhaseCommitSink.java:488-494,455-465` | manifest 以裸 `key=value` 写出、以 `Properties.load` 读回（`\` 是转义符）→ Windows 路径静默损坏 | P1 | 子代理核实 |
-| B6 | `FileSplitEnumeratorStateSerializer`（FileSource.java:170-176） | 写出 splitById 路径不校验保留字符（`\|`、`\n`），restore 时才抛 Malformed → checkpoint 成功但永远无法恢复 | P1 | 子代理核实 |
+| B3 ✅已修复(09-28) | `RocksDBInternalAggregatingState.java:80` | `getAccumulator()` 用 `descriptor.getValueType()` 反序列化，而 `get()` 用 `storageValueType` → Object 型 descriptor 下同一状态两个访问器返回不同运行时类型 | P1 | 子代理核实 |
+| B4 ✅已修复(09-28) | `JdbcTwoPhaseCommitSink.java:301-307` | 幂等 re-commit 路径提前 return，未清 `pendingCommits` 条目 → stale 条目永久滞留（file sink 两个分支都清了） | P1 | 子代理核实 |
+| B5 ✅已修复(09-28) | `FileTwoPhaseCommitSink.java:488-494,455-465` | manifest 以裸 `key=value` 写出、以 `Properties.load` 读回（`\` 是转义符）→ Windows 路径静默损坏 | P1 | 子代理核实 |
+| B6 ✅已修复(09-28) | `FileSplitEnumeratorStateSerializer`（FileSource.java:170-176） | 写出 splitById 路径不校验保留字符（`\|`、`\n`），restore 时才抛 Malformed → checkpoint 成功但永远无法恢复 | P1 | 子代理核实 |
 | B7 | `MemoryStateSerDe/RocksDBSnapshotSerDe` 类加载 | `Class.forName` 无 TCCL fallback；`ClassNameValidator` 白名单仅 `io.nop.*`+JDK，无 escape hatch（对比 `StreamDeserializationFilter` 有系统属性）→ 用户域值类快照无法在任何地方恢复 | P1 | 子代理核实 |
 | B8 | `RocksDBKeyedStateBackend.java:194-225` | `RocksDB.open` 抛出时 dbOptions/cfOptions JNI 句柄不关闭 | P2 | 子代理核实 |
 | B9 | `CepOperator.java:459-460,482-483` | `deleteProcessingTimeTimer`/`forEachProcessingTimeTimer` 为空实现（静默 no-op），processing-time 定时器无法取消 | P2 | 子代理核实 |

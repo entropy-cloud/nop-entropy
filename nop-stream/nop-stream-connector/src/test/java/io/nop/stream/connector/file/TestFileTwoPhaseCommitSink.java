@@ -161,6 +161,45 @@ public class TestFileTwoPhaseCommitSink {
 
     // ---- idempotent commit ----
 
+    /**
+     * B5 regression (plan 01 quality-perf Phase 2): manifest values must be
+     * escaped for the Properties.load read path. A directory whose absolute path
+     * contains a literal backslash (legal on Unix, the norm on Windows) used to
+     * round-trip corrupted: '\' written raw, swallowed as an escape on load, so
+     * recovery misreported committed epochs.
+     */
+    @Test
+    void manifestRoundTripsBackslashInOutputPath() throws Exception {
+        Path base = Files.createTempDirectory("file-sink-test-b5");
+        try {
+            // A literal backslash inside the directory name → finalPath.toString()
+            // carries '\' exactly like a Windows path (C:\out\epoch-1.txt) would.
+            Path outputWithBackslash = base.resolve("win\\path");
+            Files.createDirectories(outputWithBackslash);
+
+            FileTwoPhaseCommitSink<String> writer =
+                    new FileTwoPhaseCommitSink<>(outputWithBackslash.toString(), StandardCharsets.UTF_8);
+            writer.beginTransaction();
+            writer.consume("x");
+            writer.saveState(1L);
+            writer.commit(1L);
+
+            List<String> manifestLines = readLines(outputWithBackslash.resolve("manifest.properties"));
+            assertTrue(manifestLines.stream().anyMatch(line -> line.contains("win\\\\path")),
+                    "the backslash must be escaped on write, manifest was: " + manifestLines);
+            assertTrue(writer.isEpochCommitted(1L));
+
+            // Fresh instance (recovery path) reads the same manifest back.
+            FileTwoPhaseCommitSink<String> reader =
+                    new FileTwoPhaseCommitSink<>(outputWithBackslash.toString(), StandardCharsets.UTF_8);
+            assertTrue(reader.isEpochCommitted(1L),
+                    "escaped manifest must round-trip through Properties.load "
+                            + "(pre-fix: raw '\\' was swallowed and the epoch read as uncommitted)");
+        } finally {
+            deleteRecursively(base);
+        }
+    }
+
     @Test
     void testIdempotentCommitNoDuplicateRename() throws Exception {
         sink.consume("only");

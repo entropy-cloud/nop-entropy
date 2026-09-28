@@ -169,7 +169,17 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
             // "filePath|startOffset|endOffset|currentOffset"
             for (java.util.Map.Entry<String, FileSplit> entry : obj.getSplitById().entrySet()) {
                 FileSplit s = entry.getValue();
-                sb.append(s.getFilePath()).append('|')
+                // B6 (plan 01 quality-perf): validate here, symmetric with
+                // FileSplitSerializer and the CSV sections — pre-fix a path with
+                // '|' or a newline serialized fine and then failed at RESTORE time
+                // ("Malformed split line"), so the checkpoint succeeded but the
+                // job could never recover.
+                String path = s.getFilePath();
+                if (path.indexOf('|') >= 0 || path.indexOf('\n') >= 0 || path.indexOf('\r') >= 0) {
+                    throw new IOException("Enumerator state split path contains reserved separator "
+                            + "characters ('|' / newline): " + path);
+                }
+                sb.append(path).append('|')
                         .append(s.getStartOffset()).append('|')
                         .append(s.getEndOffset()).append('|')
                         .append(s.getCurrentOffset()).append('\n');

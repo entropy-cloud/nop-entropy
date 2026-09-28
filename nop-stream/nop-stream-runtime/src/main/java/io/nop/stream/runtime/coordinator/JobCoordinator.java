@@ -939,7 +939,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
         LOG.info("Task status report: {}/{}/{} attempt={} state={} cause={}",
                 report.getVertexId(), report.getSubtaskIndex(), report.getAttemptNumber(),
-                report.getTerminalState(),
+                report.getAttemptNumber(),
                 report.getTerminalState(),
                 report.getErrorCause());
 
@@ -1408,123 +1408,136 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * of why the recovery fires.
      */
     public void globalRecovery(RecoveryCause cause) {
-        // Recovery meter + health transition + event at
-        // the real recovery path. The sequence number is the TOTAL recovery
-        // count (real + stall) so events/health stay monotonic across pools.
-        int totalBefore = restartCount.get() + stallRestartCount.get();
-        io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
-        health.onRecoveryStarted(totalBefore + 1);
-        jobEventBus.fire(StreamJobEvent.simple(jobId,
-                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
-                "restart-" + (totalBefore + 1)));
-        List<AssignmentPlanner.AssignmentDispatch> dispatches = Collections.emptyList();
-        recoveryLock.lock();
+        // The whole body runs under a try/finally that ALWAYS clears the
+        // recoveryPending dedup flag — including the budget-cap early returns
+        // and any exception from the locked section (fencing rotation DB write,
+        // "No RPC service" assignment failures) or the fan-out. Without this,
+        // a failed recovery would leave the flag armed forever: every future
+        // requestRecovery CAS would fail and every checkpoint trigger would be
+        // suppressed — the job would be wedged with no retries and no
+        // checkpoints. The finally runs AFTER the fan-out completes, so the
+        // ordering contract below (flag stays armed until every deployTask RPC
+        // row is issued) is preserved.
         try {
-            // Global restart strategy. The counter is incremented only here.
-            //
-            // WHICH counter depends on the trigger cause —
-            // stall-triggered recoveries draw from the stall budget and can
-            // never consume the real-failure budget (and vice versa).
-            boolean stallTriggered = (cause == RecoveryCause.TASK_STALL);
-            int newCount;
-            if (stallTriggered) {
-                newCount = stallRestartCount.incrementAndGet();
-                if (newCount > maxStallRestarts) {
-                    LOG.error("Stall recovery cap exceeded for job {}: stallCount={} maxStallRestarts={} "
-                            + "(real-failure count={} unaffected)", jobId, newCount, maxStallRestarts,
-                            restartCount.get());
-                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                            "Stall recovery cap exceeded: stallCount=" + newCount
-                                    + " maxStallRestarts=" + maxStallRestarts));
-                    return;
+            // Recovery meter + health transition + event at
+            // the real recovery path. The sequence number is the TOTAL recovery
+            // count (real + stall) so events/health stay monotonic across pools.
+            int totalBefore = restartCount.get() + stallRestartCount.get();
+            io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
+            health.onRecoveryStarted(totalBefore + 1);
+            jobEventBus.fire(StreamJobEvent.simple(jobId,
+                    io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
+                    "restart-" + (totalBefore + 1)));
+            List<AssignmentPlanner.AssignmentDispatch> dispatches = Collections.emptyList();
+            recoveryLock.lock();
+            try {
+                // Global restart strategy. The counter is incremented only here.
+                //
+                // WHICH counter depends on the trigger cause —
+                // stall-triggered recoveries draw from the stall budget and can
+                // never consume the real-failure budget (and vice versa).
+                boolean stallTriggered = (cause == RecoveryCause.TASK_STALL);
+                int newCount;
+                if (stallTriggered) {
+                    newCount = stallRestartCount.incrementAndGet();
+                    if (newCount > maxStallRestarts) {
+                        LOG.error("Stall recovery cap exceeded for job {}: stallCount={} maxStallRestarts={} "
+                                + "(real-failure count={} unaffected)", jobId, newCount, maxStallRestarts,
+                                restartCount.get());
+                        failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                                "Stall recovery cap exceeded: stallCount=" + newCount
+                                        + " maxStallRestarts=" + maxStallRestarts));
+                        return;
+                    }
+                } else {
+                    newCount = restartCount.incrementAndGet();
+                    if (newCount > maxRestarts) {
+                        LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
+                                jobId, newCount, maxRestarts);
+                        failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                                "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
+                        return;
+                    }
                 }
-            } else {
-                newCount = restartCount.incrementAndGet();
-                if (newCount > maxRestarts) {
-                    LOG.error("Global restart cap exceeded for job {}: count={} maxRestarts={}",
-                            jobId, newCount, maxRestarts);
-                    failJob(new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                            "Global restart cap exceeded: count=" + newCount + " maxRestarts=" + maxRestarts));
-                    return;
-                }
+                LOG.info("Starting global recovery #{} for job {} (cause={}, realCap={}, stallCount={}, stallCap={})",
+                        totalBefore + 1, jobId, stallTriggered ? "TASK_STALL" : "REAL_FAILURE",
+                        maxRestarts, stallRestartCount.get(), maxStallRestarts);
+
+                // Fencing: a single monotonic long epoch
+                // encodes both leadership switch and same-leader recovery.
+                //  - HA mode: rotate the recoveryGen low-order component, keep the leaderEpoch
+                //    component unchanged (same leader). The full long epoch still rotates and
+                //    is pushed to all TaskManagers so stale same-leader tasks are fenced. The
+                //    leaderEpoch component only rotates on leadership switch.
+                //  - Non-HA mode: leaderEpoch component is 0, so fencing epoch == recoveryGen.
+                LeaderEpoch leadership = this.currentLeadership;
+                long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
+                long newGen = recoveryGen.incrementAndGet();
+                long newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
+
+                // Same-leader recovery does NOT rebuild from storage — the in-memory
+                // latestCompletedCheckpoint survives within the same JVM. Only the
+                // leadership-grant path (activateAsLeader) rebuilds from storage.
+                rotateFencingEpochCoreLocked(newEpoch, FencingRotationCause.SAME_LEADER_RECOVERY);
+
+                // Abort every checkpoint that
+                // is still pending under the dead generation. Its barrier/in-flight
+                // registrations live on task attempts this recovery is about to replace,
+                // so at least some ACKs will never arrive and the pending would stall the
+                // checkpoint loop (maxConcurrent=1) for a full timeout after recovery —
+                // starving post-recovery commits in bounded runs. Aborted epochs keep
+                // their TM-side prepared transactions for subsuming (2PC semantics).
+                checkpointCoordinator.abortAllPendingCheckpoints(
+                        "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")");
+
+                // Materialize the assignment under the lock; fan-out after release.
+                dispatches = assignmentPlanner.prepareAssignmentsLocked(
+                        remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
+            } finally {
+                // Clear the dedup flag at the END (still under the lock)
+                // so the CAS window in requestRecovery stays closed for the ENTIRE
+                // duration of this recovery. Any redundant requestRecovery that arrives
+                // while this recovery is in flight observes recoveryPending=true and its
+                // CAS(false→true) fails, so it short-circuits. We only re-arm the flag
+                // once this recovery is fully done — see the extension note below.
+                //
+                // Clearing in finally (not at the start) closes the race where a second
+                // caller's CAS would succeed between "globalRecovery clears pending" and
+                // "globalRecovery finishes", queuing a redundant second recovery. With
+                // end-clear, the only way a second requestRecovery proceeds is if it
+                // fires AFTER this method returns — which is a legitimate, distinct
+                // trigger (globalRecovery is global/idempotent, so a redundant trigger
+                // after completion is wasteful but not corrupting, and the failure-
+                // detector's periodicity bounds how long a true gap can go unhandled).
+                recoveryLock.unlock();
             }
-            LOG.info("Starting global recovery #{} for job {} (cause={}, realCap={}, stallCount={}, stallCap={})",
-                    totalBefore + 1, jobId, stallTriggered ? "TASK_STALL" : "REAL_FAILURE",
-                    maxRestarts, stallRestartCount.get(), maxStallRestarts);
 
-            // Fencing: a single monotonic long epoch
-            // encodes both leadership switch and same-leader recovery.
-            //  - HA mode: rotate the recoveryGen low-order component, keep the leaderEpoch
-            //    component unchanged (same leader). The full long epoch still rotates and
-            //    is pushed to all TaskManagers so stale same-leader tasks are fenced. The
-            //    leaderEpoch component only rotates on leadership switch.
-            //  - Non-HA mode: leaderEpoch component is 0, so fencing epoch == recoveryGen.
-            LeaderEpoch leadership = this.currentLeadership;
-            long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
-            long newGen = recoveryGen.incrementAndGet();
-            long newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
-
-            // Same-leader recovery does NOT rebuild from storage — the in-memory
-            // latestCompletedCheckpoint survives within the same JVM. Only the
-            // leadership-grant path (activateAsLeader) rebuilds from storage.
-            rotateFencingEpochCoreLocked(newEpoch, FencingRotationCause.SAME_LEADER_RECOVERY);
-
-            // Abort every checkpoint that
-            // is still pending under the dead generation. Its barrier/in-flight
-            // registrations live on task attempts this recovery is about to replace,
-            // so at least some ACKs will never arrive and the pending would stall the
-            // checkpoint loop (maxConcurrent=1) for a full timeout after recovery —
-            // starving post-recovery commits in bounded runs. Aborted epochs keep
-            // their TM-side prepared transactions for subsuming (2PC semantics).
-            checkpointCoordinator.abortAllPendingCheckpoints(
-                    "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")");
-
-            // Materialize the assignment under the lock; fan-out after release.
-            dispatches = assignmentPlanner.prepareAssignmentsLocked(
-                    remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
-        } finally {
-            // Clear the dedup flag at the END (still under the lock)
-            // so the CAS window in requestRecovery stays closed for the ENTIRE
-            // duration of this recovery. Any redundant requestRecovery that arrives
-            // while this recovery is in flight observes recoveryPending=true and its
-            // CAS(false→true) fails, so it short-circuits. We only re-arm the flag
-            // once this recovery is fully done — see the extension note below.
-            //
-            // Clearing in finally (not at the start) closes the race where a second
-            // caller's CAS would succeed between "globalRecovery clears pending" and
-            // "globalRecovery finishes", queuing a redundant second recovery. With
-            // end-clear, the only way a second requestRecovery proceeds is if it
-            // fires AFTER this method returns — which is a legitimate, distinct
-            // trigger (globalRecovery is global/idempotent, so a redundant trigger
-            // after completion is wasteful but not corrupting, and the failure-
-            // detector's periodicity bounds how long a true gap can go unhandled).
-            recoveryLock.unlock();
-        }
-
-        // The dedup/suppression flag stays armed THROUGH the assignment
-        // fan-out. A periodic checkpoint trigger that lands between the locked
-        // section and the fan-out would insert its triggerCheckpoint RPC row
-        // BEFORE the new deployment rows on the task topics — the TaskManager
-        // would then register the in-flight epoch on pre-replacement attempts
-        // (or none at all), and the new attempts' operator barrier ACKs would be
-        // dropped by their trackers ("no matching in-flight epoch"), dooming that
-        // checkpoint. Keeping recoveryPending=true until every deployTask RPC row
-        // is issued (triggerCheckpoint rejects while it is armed) makes the next
-        // fresh trigger land strictly AFTER the deployment rows in topic order.
-        try {
+            // The dedup/suppression flag stays armed THROUGH the assignment
+            // fan-out. A periodic checkpoint trigger that lands between the locked
+            // section and the fan-out would insert its triggerCheckpoint RPC row
+            // BEFORE the new deployment rows on the task topics — the TaskManager
+            // would then register the in-flight epoch on pre-replacement attempts
+            // (or none at all), and the new attempts' operator barrier ACKs would be
+            // dropped by their trackers ("no matching in-flight epoch"), dooming that
+            // checkpoint. Keeping recoveryPending=true until every deployTask RPC row
+            // is issued (triggerCheckpoint rejects while it is armed) makes the next
+            // fresh trigger land strictly AFTER the deployment rows in topic order.
+            // (The flag itself is cleared by the outer finally, which runs after
+            // this fan-out completes.)
             assignmentPlanner.executeAssignmentFanOut(dispatches);
+
+            // A completed recovery always carries its failure
+            // trace (restart count > 0) — post-recovery health is DEGRADED until
+            // the next durable checkpoint heals it. The trace
+            // carries the TOTAL recovery count across both budget pools.
+            int totalAfter = restartCount.get() + stallRestartCount.get();
+            health.onRecoveryCompleted(totalAfter);
+            jobEventBus.fire(StreamJobEvent.simple(jobId,
+                    io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
+                    "restarts=" + totalAfter));
         } finally {
             recoveryPending.set(false);
         }
-        // A completed recovery always carries its failure
-        // trace (restart count > 0) — post-recovery health is DEGRADED until
-        // the next durable checkpoint heals it. The trace
-        // carries the TOTAL recovery count across both budget pools.
-        int totalAfter = restartCount.get() + stallRestartCount.get();
-        health.onRecoveryCompleted(totalAfter);
-        jobEventBus.fire(StreamJobEvent.simple(jobId,
-                io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
-                "restarts=" + totalAfter));
     }
 
     /**

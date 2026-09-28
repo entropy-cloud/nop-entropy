@@ -335,8 +335,12 @@ public class CheckpointBarrierTracker {
      * Returns the highest in-flight checkpoint id, or {@code -1} when no
      * checkpoint is in-flight. Preserves the legacy single-in-flight contract used
      * by existing tests (id of the active epoch, -1 after completion/abort/error).
+     *
+     * <p>Synchronized like its sibling readers: {@code inFlight} is a plain
+     * LinkedHashMap mutated under the monitor, so an unsynchronized iteration
+     * racing trigger/ack/abort would risk CME or an inconsistent max.
      */
-    public long getCurrentCheckpointId() {
+    public synchronized long getCurrentCheckpointId() {
         long max = -1L;
         for (Long id : inFlight.keySet()) {
             if (id > max) {

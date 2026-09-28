@@ -252,8 +252,12 @@ public class CheckpointCoordinator {
 
     private static final int DEFAULT_COMMIT_RETRIES = 3;
     private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
-    private final ConcurrentSkipListMap<Long, Set<CheckpointParticipant>> failedCommitParticipants = new ConcurrentSkipListMap<>();
-    private final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
+    // Package-private for tests: the A2 regression pins the bounded lifecycle of
+    // the failed-commit retry bookkeeping.
+    final ConcurrentSkipListMap<Long, Set<CheckpointParticipant>> failedCommitParticipants = new ConcurrentSkipListMap<>();
+    // Package-private for tests: the A2 regression pins the bounded-lifecycle of
+    // this map (abort must drop the terminal marker).
+    final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
 
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
@@ -912,6 +916,16 @@ public class CheckpointCoordinator {
 
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);
+
+        // A2 (plan 01 quality-perf): an aborted epoch is terminal — nothing will
+        // ever complete it, so the terminal marker notifyParticipantsFinishCommit
+        // just recorded must not linger. Drop it unless failed-commit retries
+        // still need it (they replay finishCommit for this epoch using the
+        // recorded flag; removing it early would make getOrDefault default the
+        // replay to success=true, subsuming an aborted epoch as committed).
+        if (!failedCommitParticipants.containsKey(checkpointId)) {
+            checkpointSuccessMap.remove(checkpointId);
+        }
 
         notifyCheckpointAborted(checkpointId);
 

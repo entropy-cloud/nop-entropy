@@ -77,7 +77,11 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
                 ttlContext().recordRead(keyBuf);
             }
         }
-        return (ACC) RocksDBValueSerDe.deserialize(bytes, descriptor.getValueType());
+        // B3 (plan 01 quality-perf): deserialize with the constructor-resolved
+        // storageValueType, matching RocksDBAggregatingState.get() — with an
+        // Object-typed descriptor the two accessors of the SAME state otherwise
+        // return different runtime types (e.g. ArrayList vs long[]).
+        return (ACC) RocksDBValueSerDe.deserialize(bytes, storageValueType);
     }
 
     @Override

@@ -208,6 +208,13 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         try (Options options = new Options(dbOptions, cfOptions)) {
             existingCFs = RocksDB.listColumnFamilies(options, dbPath);
         } catch (RocksDBException e) {
+            // B1 (plan 01 quality-perf): a listing failure used to be swallowed in
+            // silence — every non-default column family would then be recreated
+            // EMPTY, making prior state invisibly unreachable. Keep the recovery
+            // behavior (treat as a fresh DB) but surface it loudly.
+            LOG.warn("RocksDB.listColumnFamilies failed for path {}; treating the database "
+                    + "as empty (existing column families will be recreated and prior state "
+                    + "will be invisible)", dbPath, e);
             existingCFs = Collections.emptyList();
         }
         for (byte[] cfName : existingCFs) {
