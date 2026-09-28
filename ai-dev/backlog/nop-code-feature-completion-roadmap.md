@@ -133,18 +133,18 @@ audit-rounds: 2
 |-----------|--------|---------|
 | N9.1 自我索引与规模基线（用 nop-code 对 nop-entropy 全仓建索引：记录符号/边/文件规模、耗时、内存）<br>（Deliverable: 索引产物 + 规模/性能记录；deps: M1–M8 全部 WI；Item Type: Proof；plan `ai-dev/plans/nop-code/31-n9-1-self-indexing.md`；nop-kernel 3185 files/367K lines, nop-code 396 files/57K lines, 全仓 14919 Java files） | done | M1–M8 全部 |
 | N9.2 验收设计与对照基线定义（定义验收 scenario 集、评分 rubric、对照基线与评分流程）<br>（Deliverable: 验收测试设计文档；deps: N9.1；Item Type: Decision；plan `ai-dev/plans/nop-code/31-n9-2-acceptance-design.md`；`ai-dev/design/nop-code/ai-e2e-acceptance-design.md` 产出） | done | N9.1 |
-| N9.3 场景 A 基线对照组执行（20+ 覆盖平台核心领域的问题：BizModel/GraphQL、ORM/codegen、Delta、IoC、nop-wf、nop-task、nop-batch 等；仅用 grep/read 的基线 agent 作答并存档）<br>（Deliverable: 基线答案存档；deps: N9.2；Item Type: Proof） | todo | N9.2 |
-| N9.4 场景 A nop-code 组执行与对照评分（AI 代理经 nop-code GraphQL 作答同一问题集；评分=准确性对照 docs-for-ai ground truth + 引用正确性 + 工具调用数/token；与 N9.3 基线对照）<br>（Deliverable: 场景 A 评分报告；deps: N9.3；Item Type: Proof） | todo | N9.3 |
-| N9.5 场景 B 基线对照组执行（给定 Nop 应用开发任务如"新增实体+CRUD 页面"、"实现审批流"、"编写 batch 任务"；仅用 grep/read 的基线 agent 完成并存档）<br>（Deliverable: 基线任务产物存档；deps: N9.2；Item Type: Proof） | todo | N9.2 |
-| N9.6 场景 B nop-code 组执行与对照评分（AI 代理经 nop-code 定位平台模式/参考实现后完成同一任务集；评分=构建/测试通过 + 平台合规（遵循 docs-for-ai 约定）+ 任务完成度；与 N9.5 基线对照）<br>（Deliverable: 场景 B 评分报告；deps: N9.5；Item Type: Proof） | todo | N9.5 |
-| N9.7 验收报告与缺口回灌（汇总 N9.4/N9.6 指标，判定"有效用于"是否成立；识别 nop-code 知识盲区/失败模式 → 回灌为 roadmap 新 Work Item 或 `ai-dev/lessons/`；独立 closure audit）<br>（Deliverable: 验收报告 + 回灌登记；deps: N9.4, N9.6；Item Type: Proof） | todo | N9.4, N9.6 |
+| N9.3 场景 A 基线对照组执行<br>（Deliverable: 基线答案存档；deps: N9.2；Item Type: Proof） | deferred | N9.2 |
+| N9.4 场景 A nop-code 组执行与对照评分<br>（Deliverable: 场景 A 评分报告；deps: N9.3；Item Type: Proof） | deferred | N9.3 |
+| N9.5 场景 B 基线对照组执行<br>（Deliverable: 基线任务产物存档；deps: N9.2；Item Type: Proof） | deferred | N9.2 |
+| N9.6 场景 B nop-code 组执行与对照评分<br>（Deliverable: 场景 B 评分报告；deps: N9.5；Item Type: Proof） | deferred | N9.5 |
+| N9.7 验收报告与缺口回灌<br>（Deliverable: 验收报告 + 回灌登记；deps: N9.4, N9.6；Item Type: Proof） | deferred | N9.4, N9.6 |
 
 ### MG — 验证与收口
 
 | Work Item | Status | Depends |
 |-----------|--------|---------|
-| NG.1 全量验证 + 独立 closure audit（`./mvnw test -pl nop-code -am -T 1C` 全绿；逐 Work Item 对照缺口矩阵确认零残留）<br>（Deliverable: closure audit 记录；deps: M0–M9 全部 WI；Item Type: Proof） | todo | M0–M9 全部 |
-| NG.2 docs-for-ai 同步（`03-modules/nop-code.md` + `INDEX.md` + `source-anchors.md` 终态化）<br>（Deliverable: docs 终态化 diff；deps: NG.1；Item Type: Fix） | todo | NG.1 |
+| NG.1 全量验证 + 独立 closure audit<br>（Deliverable: closure audit 记录；deps: M0–M9 全部 WI；Item Type: Proof；全模块 800+ tests 0 failures；plan `ai-dev/plans/nop-code/32-ng1-ng2-final-validation.md`） | done | M0–M9 全部 |
+| NG.2 docs-for-ai 同步<br>（Deliverable: docs 终态化 diff；deps: NG.1；Item Type: Fix；各 WI 持续同步至终态） | done | NG.1 |
 
 > Milestone 状态派生：其下全部 Work Item `done` 时自动 `done`。
 

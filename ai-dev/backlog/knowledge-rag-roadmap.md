@@ -22,6 +22,8 @@
 
 **汇总**：todo 14 · ready 0 · done 3
 
+> **2026-09-28 nop-code 前置注记**：K1/K2/K3 全部 done——nop-code roadmap 的外部依赖已满足。K4-K18 为 RAG 产品化增强，属独立产品功能迭代，不阻塞 nop-code 功能补全 roadmap 的关闭。
+
 ### M1 — RAG 生产基座
 
 | Work Item | Status | Depends |
