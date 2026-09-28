@@ -111,6 +111,13 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 - **目标形态**：机械超时降级为兜底防线，按工具类型分层配置（build/命令类显著高于快调用）；卡死/死循环的**主判定交由模型**——心跳消息携带沙箱增量输出缓冲尾部作为进度证据（`NoOpSandboxBackend.java:101-113`、`DockerSandboxBackend.java:255` 的 capturedRef 增量 drain 已在位，无需新增采集机制）。
 - **配套约束**：等待期 steering/心跳唤醒的循环侧语义见 `nop-ai-agent-react-engine.md` §5.5；本篇边界是工具执行面的超时参数分层与进度证据来源。
 
+### 4.5 工具级后台模式（已裁定第二形态）
+
+- **决策**：长任务的第二种承载形态——工具调用参数增加模型可调的 `runInBackground` 属性（camelCase，对齐既有 `timeoutMs`/`workingDir` 命名格式；语义对齐 zcode 的 `run_in_background`）。置真时调用**立即返回启动确认**（taskId + 输出文件路径），真实结果不占用本轮 tool result，而是经**完成通知桥**入 mailbox 作为新输入驱动下一轮。
+- **配套构件**：跨调用可寻址的后台任务 registry（状态/pid/输出文件/进度快照——stdout/stderr tail+bytes，证据源复用沙箱 capturedRef 增量缓冲）；任务管理工具面（任务输出读取 + 停止）；读取与完成通知共享"恰好一次"claim 令牌，杜绝双份结果通道（zcode 的 TaskOutput 工具已废弃即此教训：双通道导致上下文重复）。
+- **形态边界**（由重构 roadmap WI2 必裁⑤收口）：后台化要求模型预判长任务并主动选择，解决"模型主动并行"；占位+唤醒（§4.4 / `nop-ai-agent-react-engine.md` §5.5）解决"未预判长任务 + steering 响应"。两者正交互补，共享 registry/进度快照/通知桥/超时分层构件。后台任务超时独立分层，subagent 类强制 max runtime。
+- **既有 `&` 语义处置（已登记缺陷）**：`nop-ai-shell` 的 `cmd &` 启动即失联（`ShellCommandExecutor.java:346-361`——jobId 为实例内计数器，无查询/等待/取消/输出回收，结果随流丢弃）。后台模式落地时 `&` 必须接入任务 registry 获得闭环，或显式禁用并报错，不得维持现状。
+
 ## 五、JSON Schema 兼容
 
 **决策**：保持 XML Tool DSL 作为主要格式，增加 JSON Schema 格式作为工具参数的中间转换格式。

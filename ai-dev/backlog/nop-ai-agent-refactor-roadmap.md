@@ -23,7 +23,7 @@ audit-rounds: 0
 
 ## Work Item Status
 
-> 唯一动态状态块。勾选 = 独立 closure audit 通过（见 Cross-Cutting 完成判定）。WI 编号全文件递增；顺序即执行顺序，AI 不重排。WI1 为全文件前置：M1–M7 全部 WI 隐式依赖 WI1 的划界裁定，各 WI 正文 deps 不再重复标注。
+> 唯一动态状态块。勾选 = 独立 closure audit 通过（见 Cross-Cutting 完成判定）。WI 编号全文件递增；顺序即执行顺序，AI 不重排。WI1 为全文件前置：M1–M7 全部 WI 隐式依赖 WI1 的划界裁定，各 WI 正文 deps 不再重复标注。**WI25 为 2026-09-28 用户确认插入 M5**（工具级后台模式，zcode 比对后裁定采纳），编号延续全文件最大值，文档位置即执行位置。
 
 ### M0 — 划界复核与吸收裁定
 
@@ -34,7 +34,7 @@ audit-rounds: 0
 > 来源：`ai-dev/analysis/2026-09/2026-09-25-unreal-agent-vs-nop-ai-agent-comparison.md` §1/§2/§4/§5
 > 理由：长时工具阻塞整个 round、模型在等待期间无推理能力，是 nop 执行模型与三方对手的最大结构性差距；unreal 的占位协议是该问题的参考实现
 
-- [ ] WI2 异步占位模式改造面评估与设计裁定：**设计取向已由 2026-09-28 执行前评审钉定**（`ai-dev/analysis/2026-09/2026-09-28-long-tool-wait-design-review.md`）——等待优先（round 同步等待为默认路径）、唤醒源仅 steering/心跳（不采用 unreal 全量事件循环与完成即唤醒）、占位为派生态。本项裁定范围收窄为四项必裁：① provider 契约实测——tool_result 紧跟 tool_use 约束下 steering 插队请求的合法构造形态、同 callId 双份 tool_result 的容忍度（unreal 风险形态见评审 §3）；② toolTimeoutMs（默认 300s，`DefaultAgentEngineConfig.java:152`）按工具类型分层与心跳模型判断的兜底关系；③ 唤醒轮的 maxIterations/ISustainer/治理闸门计数归属；④ 等待实现形态（等待可中断化 vs CompletableFuture 组合）、占位模式采用范围（全量 vs 按工具类型可选）与 7-checkpoint 安全链（占位是否过 POST_CALL guardrail）、W3 双层中间件、溢出恢复环（autonomous WI5）的交互；比对报告 Open Question ①（占位结果与 POST_CALL guardrail 兼容形态）在此收口，Open Question ②（steering 过渡策略）由 WI5 Phase A 收口（Deliverable: ai-dev/design/nop-ai-agent/nop-ai-agent-async-tool-execution.md 新 owner doc + 裁定记录；deps: 无；Item Type: Decision）
+- [ ] WI2 异步占位模式改造面评估与设计裁定：**设计取向已由 2026-09-28 执行前评审钉定**（`ai-dev/analysis/2026-09/2026-09-28-long-tool-wait-design-review.md`）——等待优先（round 同步等待为默认路径）、唤醒源仅 steering/心跳（不采用 unreal 全量事件循环与完成即唤醒）、占位为派生态。本项裁定范围收窄为五项必裁：① provider 契约实测——tool_result 紧跟 tool_use 约束下 steering 插队请求的合法构造形态、同 callId 双份 tool_result 的容忍度（unreal 风险形态见评审 §3）；② toolTimeoutMs（默认 300s，`DefaultAgentEngineConfig.java:152`）按工具类型分层与心跳模型判断的兜底关系（含 zcode 形态参照：模型 per-call 自选 timeout + 策略封顶，`bash-timeout-policy.ts` 默认 120s/max 600s）；③ 唤醒轮的 maxIterations/ISustainer/治理闸门计数归属；④ 等待实现形态（等待可中断化 vs CompletableFuture 组合）、占位模式采用范围（全量 vs 按工具类型可选）与 7-checkpoint 安全链（占位是否过 POST_CALL guardrail）、W3 双层中间件、溢出恢复环（autonomous WI5）的交互；⑤ 工具级后台模式（runInBackground）作为与占位唤醒并列的第二形态同期裁定——形态边界（哪些工具类型开放后台化）、后台任务超时独立分层与 subagent 类强制 max runtime、既有 shell 语法级 `&` 的处置（接入任务 registry 闭环或显式禁用报错，不得维持启动即失联现状）；比对报告 Open Question ①（占位结果与 POST_CALL guardrail 兼容形态）在此收口，Open Question ②（steering 过渡策略）由 WI5 Phase A 收口（Deliverable: ai-dev/design/nop-ai-agent/nop-ai-agent-async-tool-execution.md 新 owner doc + 裁定记录；deps: 无；Item Type: Decision）
 - [ ] WI3 占位 tool result 协议（派生态渲染）：三条不变量——①占位结果仅存在于请求构造期、不入 session 历史（派生态：消息列表"有 tool_call 无 tool_result"即 running）；②真实结果到达后按 callId 原位插入 tool_call 之后（非尾部追加）；③崩溃恢复的开放 tool_call 集合 = 快照消息 × TOOL_EXECUTION checkpoint（callId 幂等键）差集可判定；占位文案引导模型并行/等待语义；与 unreal 差异显式记录——unreal 占位 commit 入史后真实结果再追加，同 callId 双份 tool_result 共存于后续请求（`submission_test.go:273,290`），不照搬（Deliverable: 代码变更 + 测试；deps: WI2；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §1 + 2026-09-28 评审）
 - [ ] WI4 心跳即输入（带进度证据）：长时工具等待超阈值时构造心跳消息入上下文，payload 含运行中工具清单 + 已等待时长 + **沙箱增量输出缓冲尾部**（`NoOpSandboxBackend.java:101-113`/`DockerSandboxBackend.java:255` capturedRef 已在位）——进度证据是模型判定死锁/死循环的必要输入，仅 elapsed 不足以判定（unreal 心跳仅含清单与 elapsed，nop 需超越而非照搬）；心跳模型判断为主路径，机械超时降级为兜底（分层参数裁定归 WI2 必裁②）；模型可决定继续等待/放弃/并行（Deliverable: 代码变更 + 测试；deps: WI3；Owner: 新 owner doc + `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §5 + 2026-09-28 评审）
 - [ ] WI5 steering 双相位唤醒：**Phase A（先行，本项交付）**工具等待期唤醒——等待期间 mailbox 保持可见，steering 到达时模型空闲（无在飞请求可打断），构造含运行中工具占位的瞬时请求处理新输入，处理后回到等待、迟到结果照常按 WI3 不变量原位插入；dsh 对位结论——steer 边界 claim 与 nop 现状同范式、无解可借，Phase A 即最小改造面。**Phase B（后置 successor，本项只裁定不实施）**在飞 LLM 请求打断-重建——在飞请求可取消、新输入与未完成工具占位状态合流、迟到响应按 turn 边界丢弃，仅在 Phase A 落地验证后按需立项；steering 过渡策略（比对报告 Open Question ②）随 Phase A 收口（Deliverable: Phase A 代码变更 + 测试 + Phase B 立项裁定记录；deps: WI3；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md`；来源: unreal 比对 §2 + `dsh-D1-agent-loop.md` ⑥-建议2 + 2026-09-28 评审）
@@ -69,13 +69,14 @@ audit-rounds: 0
 
 ### M5 — 工具系统增量
 
-> 来源：`99-overall-comparison.md` ⑤-H（工具部分）+ unreal 比对 §7
-> 理由：输出预算模型不可控是上下文膨胀的源头之一；并发标记与串行队列缺失使并行工具对同路径文件有竞态风险
+> 来源：`99-overall-comparison.md` ⑤-H（工具部分）+ unreal 比对 §7 + zcode 比对（2026-09-28，工具级后台模式）
+> 理由：输出预算模型不可控是上下文膨胀的源头之一；并发标记与串行队列缺失使并行工具对同路径文件有竞态风险；长任务缺后台承载形态（zcode 已验证的第三条路线）
 
 - [ ] WI16 工具输出预算 schema 内建：tool.xdef 增加模型可调输出预算参数 + 统一截断协议（头尾保留 + 精确字节数 + 全文 spill 路径指针回填），与既有 spill store 打通；**波及面提示**：schema 参数改变全部工具暴露给 LLM 的定义面，与前缀缓存稳定目标（WI20 / autonomous WI1 工具排序）交互，plan 中必须评估前缀影响；tool.xdef 位于 nop-kernel/nop-xdefs，遵守 Cross-Cutting 平台级契约演进规则（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: unreal 比对 §7）
 - [ ] WI17 并发安全标记 + 按路径串行队列：工具声明并发安全标记，不安全工具按路径亲和串行（同路径排队、异路径并行）；与既有 executeParallel Semaphore 上限（2026-09-15 落地）正交叠加（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: `dsh-D7-tool-system.md` ⑥-建议1 + `pi-D7-tool-system.md` ⑥-建议2）
 - [ ] WI18 deferred 工具引入机制裁定：transcript 中途引入工具定义与前缀缓存稳定的冲突裁定——若冲突不可调和则裁定移出并记录（Deliverable: 裁定记录落 `ai-dev/design/nop-ai-agent/04-tool-invocation.md` 新增裁定小节（移出则含理由）；deps: 无；Item Type: Decision；Owner: 同左；来源: `pi-D7-tool-system.md` ⑥-建议1）
 - [ ] WI19 continuable 子代理 + 传输抽象裁定：D10 是 nop 领先域（team.flow 编排全栈），dsh 的 continuable 子代理与传输抽象是否补强 nop 短板——裁定吸收/移出并记录（Deliverable: 裁定记录落 `ai-dev/design/nop-ai-agent/nop-ai-agent-multi-agent.md` 新增裁定小节（吸收则含实施项拆分）；deps: 无；Item Type: Decision；Owner: 同左；来源: `dsh-D10-multi-agent.md` ⑥-建议1/2 + `pi-D10-multi-agent.md` ⑥-建议1）
+- [ ] WI25 工具级后台模式（runInBackground，2026-09-28 用户确认插入）：tool 参数 schema 增加模型可调的 runInBackground 属性（camelCase 对齐既有 timeoutMs/workingDir 命名格式；语义对齐 zcode 的 run_in_background）——置真时调用立即返回启动确认（taskId + 输出文件路径），真实结果经完成通知桥入 mailbox 作为新输入驱动下一轮；配套交付：跨调用可寻址的后台任务 registry（状态/pid/输出文件/进度快照 stdout+stderr tail+bytes，证据源复用沙箱 capturedRef 增量缓冲）、任务管理工具面（任务输出读取 + 停止；读取与完成通知共享"恰好一次"claim 令牌防双发，规避 zcode TaskOutput 已废弃的双结果通道教训）、后台任务超时独立分层（subagent 类强制 max runtime）；**修复既有 `&` 语义陷阱**——nop-ai-shell `cmd &` 启动即失联（`ShellCommandExecutor.java:346-361`，jobId 实例内计数、无查询/等待/取消/输出回收，结果随流丢弃），后台模式落地时 `&` 接入 registry 获得闭环或显式禁用报错；形态边界由 WI2 必裁⑤收口（Deliverable: 代码变更 + 测试；deps: WI2；软依赖: WI5；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md` + 新 owner doc；来源: zcode 比对 2026-09-28 + 用户裁定）
 
 ### M6 — LLM 适配层增量
 
@@ -109,7 +110,8 @@ graph TD
     M1 -.->|执行顺序| M2["M2 输入通道 WI7-WI8"]
     M2 -.->|执行顺序| M3["M3 事件与扩展面 WI9-WI13"]
     M3 -.->|执行顺序| M4["M4 存储增量 WI14-WI15"]
-    M4 -.->|执行顺序| M5["M5 工具增量 WI16-WI19"]
+    M4 -.->|执行顺序| M5["M5 工具增量 WI16-WI19, WI25"]
+    WI2 -.->|裁定| WI25["WI25 工具级后台模式"]
     M5 -.->|执行顺序| M6["M6 LLM 适配层 WI20-WI22"]
     M6 -.->|执行顺序| WI23["WI23 流式评估"]
     WI23 --> WI24["WI24 收口校对"]
@@ -121,6 +123,7 @@ graph TD
 | --- | --- | --- |
 | dsh/pi 比对结论 | `ai-dev/analysis/compare-agent-design/99-overall-comparison.md` + 20 份维度报告 | ⑤ A–H 归组建议；⑤ 中 D6/D8/D4/D1 自主执行部分已由 autonomous roadmap 承接 |
 | unreal 比对结论 | `ai-dev/analysis/2026-09/2026-09-25-unreal-agent-vs-nop-ai-agent-comparison.md` | 本 roadmap M1/M2/M6 的主要来源；外部仓库锚点 |
+| zcode 后台任务机制 | `~/ai/zcode` @ `29628c9`（`apps/zcode-cli/packages/core/src/tool/executor/background-*.ts`、`bash-timeout-policy.ts`） | WI25 参考实现：registry/进度快照/完成通知 claim 令牌/per-call timeout 封顶/subagent 强制 max runtime；`runInBackground` 命名语义对齐其 `run_in_background` |
 | 在途划界对象 | `ai-dev/backlog/nop-ai-agent-autonomous-execution-improvement-roadmap.md` | 20 项在途（D1/D4/D6/D8）；重叠裁定见 WI1/WI20 |
 | nop 侧设计基线 | `ai-dev/design/nop-ai-agent/`（54 篇） | Owner docs；react-engine/reliability/session-and-storage/04-tool-invocation/03-extension-matrix/context-compaction-economics 为主要 owner |
 | Plan 工作流 | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` | 每个 WI 拟 plan 执行（含对抗性审查） |
@@ -144,6 +147,11 @@ graph TD
   - dsh 机制结论：step 内 await 全部工具 + steer 边界 claim + 机械 timeout-policy——与 nop 现状同范式，对本问题无解可借。
   - unreal 占位入史风险：占位 commit 入 prefix 后真实结果再追加，同 callId 双份 tool_result 共存于后续请求（`submission_test.go:273,290`；responsesapi 转换无去重）——WI3 以派生态占位 + 原位插入规避。
   - 事件化裁定：session 不事件化——占位为派生态不入史；开放 tool_call 集合由快照 × TOOL_EXECUTION checkpoint（callId 幂等键，`CheckpointType.java:26`）差集判定；WI14（写放大）与 WI23（重放保真）与本特性正交不捆绑。
+- **2026-09-28 zcode 比对补充**（`~/ai/zcode` @ `29628c9`，v3.14.3 实读；经用户裁定采纳工具级后台模式为第二形态，WI25）：
+  - zcode 长任务路线 = 后台任务对象化：工具后台启动立即返回 taskId（`background-tasks.ts:818-824`），1s 轮询快照带 stdout/stderr tail+bytes（`:440-448`），完成通知入队为新输入且 notified claim 令牌保证恰好一次（`background-task-registry.ts:168-181`）；TaskOutput 工具已废弃（`contracts/src/tools/task-output.ts:12`）收敛为单一结果通道（输出文件 + 通知带路径，模型用 Read 读）
+  - zcode 前台 bash 为模型自选 per-call timeout + 策略封顶（`bash-timeout-policy.ts` 默认 120s/max 600s）；subagent 后台 bash 强制 max runtime 到点取消（`background-tasks.ts:177-204`）
+  - nop 现状残件：shell 语法级 `&` 启动即失联（`ShellCommandExecutor.java:346-361`，无查询/等待/取消/输出回收，jobId 实例内计数）；`bash.tool.xml` 已有模型可调 timeoutMs（`BashExecutor.java:101` 默认 30s，无封顶策略）；session 级异步构件（WAIT_FOR/wakeSession/mailbox/steering）在位
+  - 属性命名裁定：后台参数命名 runInBackground（camelCase 对齐既有 timeoutMs/workingDir）
 - **审计收敛状态**：设计比对 roadmap 的 M5–M8 全部 P0/P1 与 Follow-up P2/P3 已收口（2026-09-15）；本 roadmap 不重复已修复面。
 
 ## Cross-Cutting
