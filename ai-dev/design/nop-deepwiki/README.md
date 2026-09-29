@@ -24,3 +24,4 @@
 - 2026-09-26：v3 内容质量升级（概念章规划/密度模板）+ v4 形态自适应（六分法/legacy 预处理）。
 - 2026-09-29：链接基准升级（git origin → blob 永久链接）+ nop-orm 10 页落地 + Sources 纯文本死链门禁修复；同日对标复验确立密度差距（代码块/mermaid）。
 - 2026-09-30：外部工具链机制盘点（8 项目源码级 + 269 仓扫描）收束为本目录 01 吸收设计；P0 实施载体为 `ai-dev/plans/367-nop-deepwiki-survey-absorption-and-density-upgrade.md`（active）。
+- 2026-09-30：工具依赖收敛裁定——mermaid/jsdom 并入 `ai-dev/tools/` 既有 pnpm 根（该目录为仓库唯一 pnpm 根）；禁止引用项目外工具脚本路径，唯一例外为 mission driver 使用 AGE 模板。
