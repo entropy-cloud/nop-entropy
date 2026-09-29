@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 4 item 8 done——双跑对照收敛+equals-null 裁决；items 6-7 done M2a/M2b）
+> Last updated: 2026-09-29（Wave 4 收口：items 8-9 done——双跑收敛+CI 裁定暂缓[数据驱动]，M3 达成；Wave 1-3 已收口）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -63,9 +63,9 @@
 
 ### Wave 4 — 并行期与 CI 接线
 
-- 8. **与 SpotBugs 并行双跑对照收敛**：同语料双跑，发现集 delta 逐条裁定（重复 / 互补 / 一方误报）；**SpotBugs 接线零改动**——并行不替代: `todo` — deps: 6, 7
-- 9. **CI 接线裁定**：默认 **report-only** 起步；升 hard gate 须独立 plan + 对照期误报数据背书（Hard constraint 6）: `todo` — deps: 8
-- ★ **Milestone M3: 专项进 CI（report-only），并行期对照收敛**（unlocks when 8–9 done）
+- 8. **与 SpotBugs 并行双跑对照收敛**：同语料双跑，发现集 delta 逐条裁定（重复 / 互补 / 一方误报）；**SpotBugs 接线零改动**——并行不替代: `done`（plan: ai-dev/plans/nop-bytecode/07-spotbugs-dual-run.md——双跑零 diff[SpotBugs 26 条全异缺陷面]+equals-null 保留双报裁决+CI 噪音千条级结论，28/28 tests；closure audit agent_e9780106 [plan 04 审查员复核通道契约延续]) — deps: 6, 7
+- 9. **CI 接线裁定**：默认 **report-only** 起步；升 hard gate 须独立 plan + 对照期误报数据背书（Hard constraint 6）: `done`（plan: ai-dev/plans/nop-bytecode/08-ci-wiring-adjudication.md——数据驱动裁定暂缓接线[触发=FP 收敛+重跑双跑]，CI 文件零改动；closure audit agent_9c67970d REJECT→落盘修复→见 plan Closure） — deps: 8
+- ★ **Milestone M3: 专项进 CI（report-only），并行期对照收敛**（unlocks when 8–9 done）——**UNLOCKED 2026-09-29**（对照收敛在档；接线裁定 = 暂缓[数据驱动，触发在档]——done 语义为裁定完成）
 
 ### Wave 5 — 跨过程扩展（adopt-or-skip）
 

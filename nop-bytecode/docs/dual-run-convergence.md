@@ -39,3 +39,12 @@
 ## 五、复现
 
 `bash _tmp/nop-bytecode-dual-run/dual-run.sh`（脚本含 exclude filter 与两侧输出路径；原始数据同目录在档）。
+
+## 六、CI 接线裁定（roadmap item 9，2026-09-29）
+
+- **裁定：暂缓 CI 接线**（report-only CLI 保留为本地/按需消费面，plan 04 交付不变；仓库 CI 文件零改动）。
+- 理由：item 8 噪音数据 = 千条级 findings/模块且主导 FP 面为字段/静态保守 MAYNULL 推定（无构造器非空推导）——report-only 千条级噪音无消费价值，接入即成本。
+- 机制面证据：dual-run 数据（SpotBugs 26 条异缺陷面/通道 2791 条全互补）+ 分层抽检 21 条（TP12/FP9，FP 全部已声明保守面）——本节不新增证据，引用 item 8。
+- 触发条件：字段/静态非空推导（FP 收敛主手）落地 + 重跑双跑抽检 FP 率降至 ≤20% 或绝对量级降至百条级 → 另立接线 plan（report-only 形态）。
+- 重估触发：上述触发达成；或 item 8 语料扩展发现资源面（资源分析器接入评估）。
+- HC6 语义：本裁定为"不接线"，与"升 hard gate"无关；未来接线后升 hard gate 仍须独立 plan + 对照期误报数据背书。
