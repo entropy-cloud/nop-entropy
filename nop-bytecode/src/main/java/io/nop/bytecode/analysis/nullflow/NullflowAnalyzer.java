@@ -20,8 +20,8 @@ import java.util.Set;
  * Null-flow analysis entry point: parses one class file and runs the nullness dataflow over
  * every concrete method, producing a deduplicated dereference-finding list.
  *
- * <p>Dialect note (substrate ADR §5): branch-sensitive for IFNULL/IFNONNULL only — the Wave 2
- * formal analyzer (roadmap item 6) refines all conditional branches.
+ * <p>Dialect (roadmap item 6 formal): branch-sensitive for IFNULL/IFNONNULL plus ACMP-with-null
+ * (the conditions that can carry a null fact); exemption faces locked by ExemptionFaceTest.
  */
 public final class NullflowAnalyzer {
 

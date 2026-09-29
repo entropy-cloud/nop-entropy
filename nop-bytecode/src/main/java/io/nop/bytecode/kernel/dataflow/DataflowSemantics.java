@@ -27,11 +27,13 @@ public interface DataflowSemantics {
     void transfer(Frame frame, int insnIndex);
 
     /**
-     * Per-successor out-frame after {@link #transfer}. {@code targetIsHandlerHead} is true when
-     * the successor is an exception-handler entry: implementations must produce the handler-entry
-     * shape (stack cleared to base, exception reference pushed).
+     * Per-successor out-frame after {@link #transfer}: implementations mutate {@code edgeFrame}
+     * in place (branch refinement; handler-entry shape when {@code targetIsHandlerHead}).
+     * Returns whether the edge is reachable — {@code false} drops the edge (used by the
+     * nullness analysis to model "assertions always enabled": the $assertionsDisabled bypass
+     * branch is dropped so assert guards hold regardless of runtime instrumentation).
      */
-    void edgeFrame(Frame postTransfer, int insnIndex, int target, boolean targetIsHandlerHead);
+    boolean edgeFrame(Frame edgeFrame, int insnIndex, int target, boolean targetIsHandlerHead);
 
     /** Lattice merge; null means "no information yet" (first touch). */
     Object merge(Object a, Object b);

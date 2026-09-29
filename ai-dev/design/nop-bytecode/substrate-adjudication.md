@@ -65,7 +65,7 @@ roadmap item 4 预留"`tree.analysis` 复用 vs 自建随 item 2 数据裁"。PO
 - `Analyzer` 的 join-only 合并不提供分支敏感边传播，IFNULL/IFNONNULL 精化需边状态注入——自建 worklist 引擎已实现该形态；
 - 自建引擎的正确性纪律：以 `Analyzer+BasicVerifier` 逐 opcode 栈形状 oracle 复核纳入内核测试基建（POC 已验证该方法可定位全部形状缺陷）。
 
-**POC 探针降配口径注明**（与 Wave 2 正式口径差异）：POC 分支敏感面限定 IFNULL/IFNONNULL（A 侧经 ALOAD 槽位来源追踪精化局部变量；C 侧 Jimple local 直接精化），其余分支 join-insensitive MAYNULL 合并。Wave 2 v1 的正式口径为全条件分支敏感——POC 数据不构成对正式口径的能力宣称。
+**POC 探针降配口径注明**（与 Wave 2 正式口径差异）：POC 分支敏感面限定 IFNULL/IFNONNULL（A 侧经 ALOAD 槽位来源追踪精化局部变量；C 侧 Jimple local 直接精化），其余分支 join-insensitive MAYNULL 合并。Wave 2 item 6 正式口径（2026-09-29 落地）= IFNULL/IFNONNULL + ACMP-with-NULL 常量精化（仅能携带 null 事实的条件分支；数值分支无 null 事实，保持 join-insensitive）+ $assertionsDisabled 断言恒启用建模——归因经 javac 实验修正。POC 数据不构成对正式口径的能力宣称。
 
 
 ## 五点五、复现命令（POC 原始数据同 `_tmp/nop-bytecode-poc/results/` 留档）

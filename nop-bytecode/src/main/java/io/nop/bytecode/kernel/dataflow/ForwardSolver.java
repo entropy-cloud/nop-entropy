@@ -55,8 +55,9 @@ public final class ForwardSolver {
 
             for (int t : cfg.successors(i)) {
                 Frame edge = cur.copy();
-                // semantics mutates the per-edge copy: branch refinement / handler-entry shape
-                sem.edgeFrame(edge, i, t, cfg.isHandlerHead(t));
+                // semantics mutates the per-edge copy (branch refinement / handler-entry shape)
+                // and decides reachability (e.g. $assertionsDisabled bypass modeled unreachable)
+                if (!sem.edgeFrame(edge, i, t, cfg.isHandlerHead(t))) continue;
                 merge(inFrames, work, t, edge);
             }
         }

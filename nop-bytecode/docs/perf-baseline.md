@@ -2,7 +2,7 @@
 
 > 日期: 2026-09-29 · 依据: ai-dev/plans/nop-bytecode/03-kernel-cfg-dataflow-nullflow.md（roadmap item 4）
 > 性质: 单机单次测量锚点，非统计严格结论；一切后续性能声称以本文数字为对照基线
-> 口径声明: 本基线为 **v1 内核降配口径**（分支敏感仅 IFNULL/IFNONNULL，substrate ADR §5）；Wave 2 正式口径（全条件分支敏感）落地后须重测并更新本文
+> 口径声明: 数字为 **item 6 正式口径**（IFNULL/IFNONNULL + ACMP-null 精化 + 断言恒启用建模，2026-09-29 重测；降配口径历史值 runNullflow=0.732ms 已被本次替换——两口径在合成语料上无可测差异）
 
 ## 环境
 
@@ -20,7 +20,7 @@
 | `parseCorpus` | 0.091 ± 0.012 ms/op | ClassReader accept 全语料（解析层） |
 | `buildCfg` | 0.091 ± 0.027 ms/op | 全语料方法内 CFG 构建 |
 | `solveDataflowOnly` | 0.394 ± 0.090 ms/op | CFG + nullness 抽象解释（语料已预解析——隔离 solver 成本） |
-| `runNullflow` | 0.732 ± 0.189 ms/op | 端到端：解析 + CFG + 抽象解释 + 命中收集 |
+| `runNullflow` | 0.715 ± 0.115 ms/op | 端到端：解析 + CFG + 抽象解释 + 命中收集（正式口径重测值；降配口径历史值 0.732 ± 0.189） |
 
 **CI 分钟级预算换算**：端到端 ≈ 0.73 ms / 20 类 ≈ 37 µs/类——千类级模块 ≈ 40 ms，万类级 ≈ 0.4 s；本通道定位 CI/构建期档位（分钟级预算）余量充足（≥3 个数量级）。注意语料为固定 20 类合成形状，真实模块的方法体更大，数字应按量级锚点而非线性外推消费。
 

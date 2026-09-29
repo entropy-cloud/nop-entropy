@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 1 收口：items 3-5 done，M1 达成——内核+通道可跑、基线在档）
+> Last updated: 2026-09-29（Wave 2 item 6 done，null-flow v1 正式口径 + 对照在档，M2a 达成；Wave 1 M1 已收口）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -53,8 +53,8 @@
 
 ### Wave 2 — null-flow v1（缺口一）
 
-- 6. **方法内路径敏感空指针解引用分析 v1**：解引用前判空路径分析；豁免面 = assert / `Objects.requireNonNull` 系语义门控 / 平台 `NopException` 前置检查形态；已知命中集对照 = SpotBugs 同语料实跑 + 源码 lane item 8 裁定中的案例集: `todo` — deps: 4, 5
-- ★ **Milestone M2a: 空指针缺口有 v1 且对照在档**
+- 6. **方法内路径敏感空指针解引用分析 v1**：解引用前判空路径分析；豁免面 = assert / `Objects.requireNonNull` 系语义门控 / 平台 `NopException` 前置检查形态；已知命中集对照 = SpotBugs 同语料实跑 + 源码 lane item 8 裁定中的案例集: `done`（plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md——正式口径 + 豁免面锁定 + 对照记录 nullflow-comparison.md，25/25 tests；closure audit agent_16d0ce33 两轮：REJECT（2 Blocker 反例实证）→修复→第二轮代码面 APPROVE（文档收尾后标 completed）） — deps: 4, 5
+- ★ **Milestone M2a: 空指针缺口有 v1 且对照在档**——**UNLOCKED 2026-09-29**
 
 ### Wave 3 — 资源泄漏配对 v1（缺口二）
 

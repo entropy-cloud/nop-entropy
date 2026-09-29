@@ -65,6 +65,11 @@ public final class Frame {
         return srcs[sp - 1];
     }
 
+    /** Provenance of the slot just below the top (second operand of binary comparisons). */
+    public int srcOfSecondFromTop() {
+        return srcs[sp - 2];
+    }
+
     public void push(DataflowSemantics sem, Object value) {
         if (sp < base) throw new IllegalStateException("push below stack base");
         slots[sp] = value;

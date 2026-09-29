@@ -22,10 +22,10 @@
 ### G1 空指针解引用路径（null-flow，方法内路径敏感）
 
 - 归属裁定: **承接**（Wave 2）
-- 执行状态: `open`
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md；对照记录: [nullflow-comparison.md](../../nop-bytecode/docs/nullflow-comparison.md)——SpotBugs 同语料空集基线 + plan 24 案例集 5 条裁定 + 分层抽检）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 24（null-flow Deferred）
 - 理由/机制面证据: 源码 lane L3 数据流为方法内 def-use + 常量传播，无路径敏感 nullness 传播能力（plan 24 归因原文）；其 pattern 面 5 条规则（throw-null / equals-null / no-throw-npe / catch-npe / no-return-null）只覆盖**模式可表达子面**，解引用前判空的路径敏感面显式 Deferred。字节码层方法内 CFG 显式化 + 抽象解释（SpotBugs NullDerefAnalysis 同形态）是该面的成熟工程形态——本通道 Wave 1 内核（CFG + nullness lattice）直接承接。
-- 误报控制面（声明，Wave 2 v1 落地时细化）: 豁免 = assert 语句 / `Objects.requireNonNull` 系调用语义门控 / 平台 `NopException` 前置检查形态；已知命中集对照 = SpotBugs 同语料实跑 + plan 24 裁定中的案例集。
+- 误报控制面（已细化，2026-09-29 item 6 落地）: 豁免面 = assert（$assertionsDisabled 习语按断言恒启用建模）/ `Objects.requireNonNull` 系语义门控 / 平台 `NopException` 前置检查形态（IFNULL+ATHROW 同构）/ ACMP-null 侧精化；已知 FP 方向 = 字段与静态字段载荷保守 MAYNULL（无构造器非空推导）、varargs 参数、catch-NPE 控制流未建模豁免、参数保守 MAYNULL——逐条 source-line 定性见对照记录 §三。
 - 重估触发: Wave 2 v1 已知命中集对照数据不支持时（与 plan 24 Deferred 触发共享语义：任一侧重估均重开双方归属对照）。
 
 ### G2 资源泄漏 acquire/release 跨路径配对
@@ -85,7 +85,7 @@
 
 | # | 缺口面 | 归属裁定 | 执行状态 | 波次 |
 |---|---|---|---|---|
-| G1 | null-flow 解引用路径 | 承接 | `open` | Wave 2 |
+| G1 | null-flow 解引用路径 | 承接 | `closed`（2026-09-29） | Wave 2 |
 | G2 | 资源泄漏 acquire/release 配对 | 承接 | `open` | Wave 3 |
 | G3 | 跨过程 taint | 待裁 | `open`（blocked on item 10） | Wave 5 |
 | G4 | 参数 nullness 注解契约读取 | 承接候选 | `open`（blocked on item 10） | Wave 5 |

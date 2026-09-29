@@ -17,10 +17,13 @@ import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import java.util.function.Consumer;
 
 /**
- * Nullness lattice semantics: 3-valued nullness (NONNULL/MAYNULL/NULL; TOP = cat2 slot marker)
- * with branch sensitivity for IFNULL/IFNONNULL only (POC down-scoped dialect — the Wave 2
- * formal dialect refines ALL conditional branches; this v1 kernel intentionally keeps the
- * reduced dialect per substrate ADR §5 and the plan 03 non-goals).
+ * Nullness lattice semantics: 3-valued nullness (NONNULL/MAYNULL/NULL; TOP = cat2 slot marker),
+ * formal dialect (roadmap item 6): branch-sensitive for every condition that can carry a null
+ * fact — IFNULL/IFNONNULL and ACMP-with-NULL-constant (serving {@code null == x}, cast-compare
+ * and ternary-null forms; numeric branches have no null fact to refine). Exemption faces:
+ * guard-branch refinement (assert / if-null-throw-NopException shapes), Objects.requireNonNull
+ * semantic gate, and the $assertionsDisabled idiom modeled as assertions-always-enabled (the
+ * bypass branch is dropped, so assert guards hold regardless of runtime instrumentation).
  *
  * <p>Branch refinement works on LOCALS: when the tested operand was produced by an ALOAD
  * (per-frame srcs provenance), the null/nonnull fact is written into the source local on the
@@ -40,12 +43,23 @@ public final class NullnessSemantics implements DataflowSemantics {
     private final String methodName;
     private final Consumer<DerefFinding> findings;
 
+    // $assertionsDisabled idiom marker (pushed by GETSTATIC, consumed by the following IFNE):
+    // modeling "assertions always enabled" — the bypass branch is dropped so assert guards hold
+    private static final Object ASSERTIONS_DISABLED = new Object();
+
+    private boolean suppressPendingJumpEdge;
+
     // per-instruction refinement stash (single-threaded per solve). Solver calls edgeFrame per
     // successor in CFG order — for a conditional jump that is [jump target, fallthrough] — so the
     // edge ordinal (0/1) identifies the branch even when target == fallthrough (empty then-body).
     private int pendingRefineInsn = -1;
     private int pendingRefineVar = -1;
     private int pendingEdgeOrdinal = 0;
+
+    // exemption/refinement statistics (plan 05 formal-dialect FP-control data)
+    private long guardRefinements;
+    private long requireNonNullGates;
+    private long acmpRefinements;
 
     public NullnessSemantics(MethodNode mn, String className, String methodName,
                              Consumer<DerefFinding> findings) {
@@ -202,15 +216,45 @@ public final class NullnessSemantics implements DataflowSemantics {
             }
             case Opcodes.IF_ICMPEQ, Opcodes.IF_ICMPNE, Opcodes.IF_ICMPLT, Opcodes.IF_ICMPGE,
                  Opcodes.IF_ICMPGT, Opcodes.IF_ICMPLE -> f.pop(2);
-            case Opcodes.IFEQ, Opcodes.IFNE, Opcodes.IFLT, Opcodes.IFGE, Opcodes.IFGT, Opcodes.IFLE -> f.pop();
+            case Opcodes.IFEQ, Opcodes.IFNE, Opcodes.IFLT, Opcodes.IFGE, Opcodes.IFGT, Opcodes.IFLE -> {
+                Object popped = f.pop();
+                if (popped == ASSERTIONS_DISABLED) {
+                    suppressPendingJumpEdge = true;
+                    pendingRefineInsn = -1;
+                }
+            }
             case Opcodes.IFNULL, Opcodes.IFNONNULL -> {
                 int src = f.srcOfTop();
                 f.pop();
                 pendingRefineInsn = insnIndex;
                 pendingRefineVar = src; // -1 = no provenance, join-insensitive on both edges
                 pendingEdgeOrdinal = 0;
+                if (src >= 0) guardRefinements++;
             }
-            case Opcodes.IF_ACMPEQ, Opcodes.IF_ACMPNE -> f.pop(2);
+            // ACMP with a NULL constant on one side: refine the other side's local (formal
+            // dialect addition — serves `null == x`, `x == (Object) null`, ternary-null forms;
+            // assert / if-null-throw are IFNULL/IFNONNULL forms and were covered by v1)
+            case Opcodes.IF_ACMPEQ, Opcodes.IF_ACMPNE -> {
+                // provenance MUST be captured before the pop: after pop(2) the srcs slots point
+                // below the operands (audit Blocker 2 — refining local 0 there was a latent bug)
+                Object op1 = f.slot(f.sp() - 2);
+                Object op2 = f.slot(f.sp() - 1);
+                int src1 = f.srcOfSecondFromTop();
+                int src2 = f.srcOfTop();
+                f.pop(2);
+                int otherSrc = -1;
+                if (op1 == Nullness.NULL && op2 != Nullness.NULL && src2 >= 0) {
+                    otherSrc = src2;
+                } else if (op2 == Nullness.NULL && op1 != Nullness.NULL && src1 >= 0) {
+                    otherSrc = src1;
+                }
+                if (otherSrc >= 0) {
+                    pendingRefineInsn = insnIndex;
+                    pendingRefineVar = otherSrc;
+                    pendingEdgeOrdinal = 0;
+                    acmpRefinements++;
+                }
+            }
             case Opcodes.GOTO -> { }
             case Opcodes.JSR, Opcodes.RET -> throw new NopBytecodeException(
                     "JSR/RET not supported by the nullness kernel (v61+ corpus never contains them): "
@@ -221,6 +265,10 @@ public final class NullnessSemantics implements DataflowSemantics {
             case Opcodes.RETURN -> { }
             case Opcodes.GETSTATIC -> {
                 FieldInsnNode fin = (FieldInsnNode) in;
+                if ("$assertionsDisabled".equals(fin.name)) {
+                    f.push(this, ASSERTIONS_DISABLED);
+                    return;
+                }
                 if (org.objectweb.asm.Type.getType(fin.desc).getSize() == 2) f.push2(this, Nullness.MAYNULL);
                 else f.push(this, Nullness.MAYNULL);
             }
@@ -301,22 +349,40 @@ public final class NullnessSemantics implements DataflowSemantics {
     }
 
     @Override
-    public void edgeFrame(Frame edge, int insnIndex, int target, boolean targetIsHandlerHead) {
+    public boolean edgeFrame(Frame edge, int insnIndex, int target, boolean targetIsHandlerHead) {
         if (targetIsHandlerHead) {
             // exception clears the stack; catch parameter is never null per JLS
             while (edge.sp() > edge.base()) edge.pop();
             edge.push(this, Nullness.NONNULL);
-            return;
+            return true;
+        }
+        if (suppressPendingJumpEdge) {
+            suppressPendingJumpEdge = false;
+            // drop the jump edge of the $assertionsDisabled branch (assertions-modeled-enabled);
+            // the fallthrough edge carries the actual nullness check
+            if (insnIndex != pendingRefineInsn) return false;
+            // degenerate case: the suppressed branch IS the pending refine insn's jump edge —
+            // never happens for the idiom (ifne and ifnonnull are distinct instructions), but
+            // fall through defensively
         }
         if (insnIndex == pendingRefineInsn && pendingRefineVar >= 0) {
             AbstractInsnNode in = mn.instructions.get(insnIndex);
             boolean isJumpEdge = (pendingEdgeOrdinal == 0);
             pendingEdgeOrdinal++;
-            boolean eqNull = in.getOpcode() == Opcodes.IFNULL;
+            int op = in.getOpcode();
+            // "eqNull" = condition true means the refined side IS null.
+            // IFNULL: true -> null; IFNONNULL: true -> nonnull;
+            // IF_ACMPEQ: true -> equal -> the non-null-constant side IS null;
+            // IF_ACMPNE: true -> not equal -> the non-null-constant side is NONNULL.
+            boolean eqNull = switch (op) {
+                case Opcodes.IFNULL, Opcodes.IF_ACMPEQ -> true;
+                default -> false; // IFNONNULL, IF_ACMPNE
+            };
             Nullness jumpVal = eqNull ? Nullness.NULL : Nullness.NONNULL;
             Nullness fallVal = eqNull ? Nullness.NONNULL : Nullness.NULL;
             edge.setLocal(pendingRefineVar, isJumpEdge ? jumpVal : fallVal);
         }
+        return true;
     }
 
     private int varOf(AbstractInsnNode in) {
@@ -331,12 +397,25 @@ public final class NullnessSemantics implements DataflowSemantics {
     private void pushRet(Frame f, org.objectweb.asm.Type ret, String owner, String name) {
         if (ret.getSort() == org.objectweb.asm.Type.VOID) return;
         if (REQ_NONNULL_OWNER.equals(owner) && REQ_NONNULL_NAME.equals(name)) {
+            requireNonNullGates++;
             if (ret.getSize() == 2) f.push2(this, Nullness.NONNULL);
             else f.push(this, Nullness.NONNULL);
             return;
         }
         if (ret.getSize() == 2) f.push2(this, Nullness.MAYNULL);
         else f.push(this, Nullness.MAYNULL);
+    }
+
+    public long guardRefinements() {
+        return guardRefinements;
+    }
+
+    public long requireNonNullGates() {
+        return requireNonNullGates;
+    }
+
+    public long acmpRefinements() {
+        return acmpRefinements;
     }
 
     @Override
