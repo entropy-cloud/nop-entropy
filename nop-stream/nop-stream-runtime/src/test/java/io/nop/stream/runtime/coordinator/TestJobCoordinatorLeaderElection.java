@@ -8,10 +8,8 @@
 package io.nop.stream.runtime.coordinator;
 
 import io.nop.cluster.elector.LeaderEpoch;
-import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
@@ -26,12 +24,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,7 +52,7 @@ class TestJobCoordinatorLeaderElection {
     private TestLeaderElector elector;
     private MockClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
-    private MockTaskRpcService mockRpcService;
+    private CoordinatorTestSupport.RecordingTaskRpcService mockRpcService;
     private Map<String, IStreamTaskRpcService> taskRpcServices;
     private DeploymentPlan deploymentPlan;
     private JobCoordinator coordinator;
@@ -68,33 +63,16 @@ class TestJobCoordinatorLeaderElection {
         clusterRegistry = new MockClusterRegistry();
 
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        CheckpointConfig config = CheckpointConfig.builder()
-                .checkpointEnabled(true)
-                .checkpointInterval(1000L)
-                .checkpointTimeout(10000L)
-                .maxConcurrentCheckpoints(1)
-                .maxRetainedCheckpoints(3)
-                .build();
-        checkpointCoordinator = new CheckpointCoordinator(JOB_ID, "pipeline-0", idCounter, storage, config);
+        checkpointCoordinator = new CheckpointCoordinator(JOB_ID, "pipeline-0", new CheckpointIDCounter(),
+                storage, CoordinatorTestSupport.defaultCheckpointConfig());
 
-        mockRpcService = new MockTaskRpcService();
+        mockRpcService = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices = new java.util.HashMap<>();
         taskRpcServices.put("node-1", mockRpcService);
 
         clusterRegistry.registerNode("node-1", "localhost:8080", 4);
 
-        Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
-        vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
-        vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
-        List<PartitionedPlan.EdgePlan> edgePlans = new ArrayList<>();
-        edgePlans.add(new PartitionedPlan.EdgePlan("source", "sink",
-                io.nop.stream.core.execution.plan.PartitionPolicy.FORWARD));
-        PartitionedPlan partitionedPlan = new PartitionedPlan(
-                JOB_ID, "pipeline-0", vertexPlans, edgePlans, null, null);
-        deploymentPlan = new DeploymentPlan(
-                JOB_ID, "pipeline-0", partitionedPlan,
-                "local", "memory", "local", null, null);
+        deploymentPlan = CoordinatorTestSupport.twoVertexForwardPlan(JOB_ID);
 
         coordinator = new JobCoordinator(
                 JOB_ID, COORDINATOR_ID, deploymentPlan,
@@ -388,29 +366,4 @@ class TestJobCoordinatorLeaderElection {
         }
     }
 
-    static class MockTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-        final AtomicReference<io.nop.stream.core.checkpoint.CheckpointBarrier> lastBarrier = new AtomicReference<>();
-        final java.util.concurrent.atomic.AtomicLong lastFencingEpoch = new java.util.concurrent.atomic.AtomicLong();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-            lastBarrier.set(barrier);
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-    }
 }

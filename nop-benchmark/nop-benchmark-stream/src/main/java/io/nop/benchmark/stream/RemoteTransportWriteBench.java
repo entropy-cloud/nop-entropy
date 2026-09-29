@@ -18,8 +18,6 @@ import io.nop.stream.runtime.transport.RemoteResultPartition;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Group;
-import org.openjdk.jmh.annotations.GroupThreads;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
@@ -41,7 +39,7 @@ import java.util.concurrent.locks.LockSupport;
  * RemoteResultPartition.write 基准（Plan 2279 Phase 1）——远程边数据面的
  * 编码 + 同步发送路径。生产实现中 {@code write} 在 sendLock 外编码、锁内做
  * {@code IMessageService.send}（默认实现阻塞等待 sendAsync 完成，plan 2279 Q2
- * 锁收窄后的形态）；心跳 {@code sendHeartbeatIfIdle} 与写共用同一 sendLock。
+ * 锁收窄后的形态）。
  *
  * <p>后端桩：{@code DelayedMessageService.sendAsync} 以 {@code LockSupport.parkNanos}
  * 模拟可参数化的后端发送延迟——{@code sendDelay=0} 为缓冲 append 型后端（Kafka 形态），
@@ -51,10 +49,6 @@ import java.util.concurrent.locks.LockSupport;
  * <p>{@code @Param sendDelayNanos}：0 / 100_000 (100µs) / 5_000_000 (5ms)。
  * {@code @Param fanout}：1 / 4 / 16 —— writeBroadcast 复现 RecordWriter broadcast
  * 分支对 T 个分区逐个 write 的形状（同一条记录重复编码 T 次）。
- *
- * <p>{@code writerHeartbeatSamePartition} 组（各 1 线程）复现生产互卡形状：writer
- * 线程持续 write、heartbeat 线程持续调用 {@code sendHeartbeatIfIdle()}，两者竞争
- * 同一 partition 的 monitor（心跳 interval=1ms 使空闲判定大多数时候通过）。
  */
 @Fork(1)
 @Warmup(iterations = 3, time = 2)
@@ -71,8 +65,6 @@ public class RemoteTransportWriteBench {
     int fanout;
 
     RemoteResultPartition[] dataPartitions;
-    /** 心跳互卡组专用：心跳 interval=1ms，使 sendHeartbeatIfIdle 的空闲判定常态通过。 */
-    RemoteResultPartition heartbeatPartition;
     TypeRegistry typeRegistry;
 
     long cursor;
@@ -86,15 +78,12 @@ public class RemoteTransportWriteBench {
         dataPartitions = new RemoteResultPartition[fanout];
         for (int i = 0; i < fanout; i++) {
             dataPartitions[i] = new RemoteResultPartition(
-                    service, "bench-data-" + i, typeRegistry, "edge-1", 1L, 0L);
+                    service, "bench-data-" + i, typeRegistry, "edge-1", 1L);
         }
-        heartbeatPartition = new RemoteResultPartition(
-                service, "bench-hb", typeRegistry, "edge-1", 1L, 1L);
 
         // Sanity: one record must flow through the real encode+send path.
         try {
             dataPartitions[0].write(new StreamRecord<>(-1L, 0L));
-            heartbeatPartition.write(new StreamRecord<>(-1L, 0L));
         } catch (InterruptedException e) {
             throw new IllegalStateException("sanity write interrupted", e);
         }
@@ -125,26 +114,6 @@ public class RemoteTransportWriteBench {
             dataPartitions[i].write(record);
         }
         bh.consume(v);
-    }
-
-    /**
-     * 写与心跳同分区的 monitor 竞争组：writer 与 heartbeat 各 1 线程。
-     * 组整体 ops/s 反映互卡下的有效数据面吞吐。
-     */
-    @Group("writerHeartbeatSamePartition")
-    @GroupThreads(1)
-    @Benchmark
-    public void writerThread(Blackhole bh) throws InterruptedException {
-        long v = ++cursor;
-        heartbeatPartition.write(new StreamRecord<>(v, v));
-        bh.consume(v);
-    }
-
-    @Group("writerHeartbeatSamePartition")
-    @GroupThreads(1)
-    @Benchmark
-    public void heartbeatThread(Blackhole bh) {
-        bh.consume(heartbeatPartition.sendHeartbeatIfIdle());
     }
 
     /**

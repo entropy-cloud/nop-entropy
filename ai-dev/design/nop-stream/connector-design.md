@@ -134,16 +134,14 @@ class BatchConsumerSinkFunction<R> implements SinkFunction<R>, AutoCloseable {
 
 | Beam-SDF 元素 | 裁定 | 理由 |
 |---------------|------|------|
-| `RestrictionTracker<R>` + `tryClaim(restriction, position)` | **reject** | FLIP-27 无 fraction-splitting，whole-split assignment 不需要 restriction 内的位置声明；reader 直接消费整个 split 的 cursor |
-| `DynamicSplitRequest{fraction}` + `DynamicSplitResponse{primary,residual}` | **reject** | fraction-splitting 引入跨 reader 的 split stealing 复杂度，与 v1 Non-Goal「跨运行 reader 的弹性 split 再分配」冲突；whole-split assignment 已满足 v1 scope |
+| fraction-splitting（Beam-SDF `RestrictionTracker` / `DynamicSplitRequest`/`DynamicSplitResponse` 一族） | **reject** | FLIP-27 无 fraction-splitting，whole-split assignment 不需要 restriction 内的位置声明；reader 直接消费整个 split 的 cursor。fraction-splitting 引入跨 reader 的 split stealing 复杂度，与 v1 Non-Goal「跨运行 reader 的弹性 split 再分配」冲突（对应占位类已删除，见 366 plan Phase 3 裁定：零引用即从未被构造、从未进入序列化状态） |
 | `WatermarkEstimator` | **defer（v1 Non-Goal successor）** | source 侧 watermark estimation 是独立的 watermark 推进模型，与现有 `TimestampsAndWatermarksOperator` 路径不重叠；v1 不引入以避免两套 watermark 路径并存 |
 | `SourceEvent` 自定义 coordinator↔reader 事件 | **defer（v1 Non-Goal successor）** | FLIP-27 自定义事件通道用于高级协调（如动态 partition 发现通知）；v1 走 pull 模型（`handleSplitRequests`）已满足动态 split 发现的最小语义 |
 | `DrainableSource` marker | **保留** | 与 §5.3 既有 drain 语义对齐；unbounded source 实现 `DrainableSource` 可在 `JobTerminationMode.DRAIN` 时截断为有限，未实现则拒绝 DRAIN（要求 CANCEL） |
-| `SourceWorkUnit` 占位类（`io.nop.stream.core.connector.SourceWorkUnit`） | **superseded** | 标 `@Deprecated`。新 `Source` 契约（§4.1）取代其语义；保留类是为了向后兼容已序列化的旧 savepoint（如有），新代码一律用新接口 |
 
 **为什么选 FLIP-27 而非 Beam-SDF**：
 - roadmap Stage 49 明确要求「FLIP-27 风格」
-- Flink FLIP-27 的 whole-split assignment 与 nop-stream 现有 `SourceEnumerator`（concrete，6-state）+ `SourceEnumeratorState` 数据结构同构（`SourceEnumeratorState.java:22` 的 discovered/unassigned/assigned/finished/pending-ack/discovery-cursor 6 字段即 §5.3 6-state 分解），改造为接口体系代价最小
+- Flink FLIP-27 的 whole-split assignment 与 nop-stream 现有 `SourceEnumerator`（concrete，6-state：discovered/unassigned/assigned/finished/pending-ack/discovery-cursor，即 §5.3 6-state 分解）同构，改造为接口体系代价最小
 - Beam-SDF 的 restriction tracker 在没有 split stealing/fraction 需求时引入无收益的复杂度（违反 plan guide #24「不引入无第二消费者的空壳抽象」）
 
 ### 4.1 核心契约（接口定义见源码）
@@ -435,12 +433,11 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 4. **BatchLoaderSourceFunction 不支持 split 拆分** — 批数据源是有限的，whole-split assignment 已足够；fraction-splitting 经 §4.0 D1 裁定 reject
 5. **OperatorCoordinator 通用抽象 v1 bypass** — enumerator 硬接到 `JobCoordinator`/`CheckpointCoordinator`，未引入通用 `OperatorCoordinator` 抽象（§4.7 D7）；successor 由 sink global committer 等用例驱动
 6. **持续后台轮询发现 unbounded split（push 模型）deferred** — v1 仅支持 deploy/restore-time discovery + reader-driven pull（§4.4 D4）；successor 由 unbounded source 连接器 plan 驱动
-7. **`SourceWorkUnit` superseded** — 旧占位类标 `@Deprecated`，新代码用 `Source`/`SourceSplit` 接口（§4.0 D1）
-8. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
-9. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
-10. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
-11. **消息 Source/Sink 无 offset checkpoint** — `MessageSourceFunction`/`MessageSinkFunction` 不参与 checkpoint（无 offset 持久化），一致性依赖消息系统 broker 侧重投递（AT_LEAST_ONCE）；exactly-once 消息路径需后续 2PC 消息连接器（见 §5.2 注）
-12. **`DrainableSource` 契约未接线** — `DebeziumCdcSourceFunction` 实现了 `truncateForDrain()`，但 runtime DRAIN 收敛路径当前不调用该契约（生产调用点为零）；接线属 runtime 侧决策，见审计报告 2026-09-01 connectors §2.3 W-4
+7. **Debezium 2.4.0 无 `DebeziumEngine.using(OffsetBackingStore)`** — CDC offset store 经 `offset.storage` FQCN 反射实例化 + connector-name registry 桥接实例（§5.4.2 D1）。successor：当 Debezium 版本升级暴露直接注入 API 时简化桥接
+8. **`ChangeEventMetadata` 不携带 raw Debezium source partition/offset map** — v1 offset 持久化完全由 `NopStreamOffsetBackingStore` 承担。successor：迁移 `DebeziumEngineWrapper` 到 `ChangeEventWithMetadata` + `ChangeConsumer` API 以支持 per-event offset 可观测性
+9. **文件 sink v1 为 per-checkpoint-epoch 单文件 + text-line** — 滚动策略（按大小/时间切分）与 format SPI（CSV/JSON/Parquet）为 successor
+10. **消息 Source/Sink 无 offset checkpoint** — `MessageSourceFunction`/`MessageSinkFunction` 不参与 checkpoint（无 offset 持久化），一致性依赖消息系统 broker 侧重投递（AT_LEAST_ONCE）；exactly-once 消息路径需后续 2PC 消息连接器（见 §5.2 注）
+11. **`DrainableSource` 契约未接线** — `DebeziumCdcSourceFunction` 实现了 `truncateForDrain()`，但 runtime DRAIN 收敛路径当前不调用该契约（生产调用点为零）；接线属 runtime 侧决策，见审计报告 2026-09-01 connectors §2.3 W-4
 
 ## 8. 连接器 SPI 注册与能力矩阵（item 19 / P-REQ-28，2026-09-03 裁定）
 

@@ -12,18 +12,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
-import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -38,7 +35,6 @@ import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory;
 import io.nop.stream.runtime.rpc.StreamControlRpcServer;
 import io.nop.stream.runtime.rpc.StreamControlRpcTopics;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,7 +61,7 @@ class TestDistributedAbortPath {
     Path tempDir;
 
     private LocalMessageService messageService;
-    private RecordingTaskRpc serverImpl;
+    private CoordinatorTestSupport.RecordingTaskRpcService serverImpl;
     private StreamControlRpcServer taskServer;
     private StreamControlRpcProxyFactory taskProxy;
 
@@ -86,7 +82,7 @@ class TestDistributedAbortPath {
     @Test
     void checkpointAbortFiresCancelTaskRpcAtAllRemoteTasks() {
         // RPC topology: a recording IStreamTaskRpcService exposed over RPC on node-1.
-        serverImpl = new RecordingTaskRpc();
+        serverImpl = new CoordinatorTestSupport.RecordingTaskRpcService();
         String topic = StreamControlRpcTopics.taskTopic("node-1");
         taskServer = new StreamControlRpcServer("streamTaskRpc@node-1",
                 IStreamTaskRpcService.class, serverImpl, messageService, topic);
@@ -173,40 +169,6 @@ class TestDistributedAbortPath {
             c.stop();
         } catch (Exception ignored) {
             // best-effort
-        }
-    }
-
-    /**
-     * Recording server-side IStreamTaskRpcService. Records every call so the test can
-     * assert control calls (and the distributed-abort cancelTask) genuinely crossed
-     * the RPC transport.
-     */
-    static final class RecordingTaskRpc implements IStreamTaskRpcService {
-        final AtomicLong receiveAssignmentCount = new AtomicLong();
-        final AtomicLong triggerCount = new AtomicLong();
-        final AtomicLong cancelTaskCount = new AtomicLong();
-        final List<String> cancelTaskKeys = new java.util.concurrent.CopyOnWriteArrayList<>();
-        final List<Long> cancelTaskEpochs = new java.util.concurrent.CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            receiveAssignmentCount.incrementAndGet();
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-            triggerCount.incrementAndGet();
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-            cancelTaskCount.incrementAndGet();
-            cancelTaskKeys.add(vertexId + "/" + subtaskIndex);
-            cancelTaskEpochs.add(fencingEpoch);
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
         }
     }
 

@@ -14,7 +14,6 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 
 import org.junit.jupiter.api.AfterEach;
@@ -28,8 +27,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -94,7 +91,7 @@ class TestJobCoordinatorPerTaskFailure {
         coordinator = new JobCoordinator(
                 JOB_ID, "coord-1", deploymentPlan,
                 clusterRegistry, checkpointCoordinator,
-                Collections.singletonMap("node-1", new NoopTaskRpc()));
+                Collections.singletonMap("node-1", new CoordinatorTestSupport.RecordingTaskRpcService()));
         coordinator.setTerminationCheckpointTimeoutMs(500L);
     }
 
@@ -263,34 +260,6 @@ class TestJobCoordinatorPerTaskFailure {
         coordinator.reportNodeTaskLiveness("node-1", Collections.emptyList());
 
         assertEquals(tokenBefore, coordinator.getFencingEpoch());
-    }
-
-    /**
-     * Bare-bones NoopTaskRpc so assignTasks has a target and does not throw.
-     * Phase 2 only asserts coordinator-level behavior; the task side is exercised
-     * in TestTaskManager.
-     */
-    static class NoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        final java.util.concurrent.atomic.AtomicLong lastEpoch = new java.util.concurrent.atomic.AtomicLong();
-        final CopyOnWriteArrayList<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastEpoch.set(fencingEpoch);
-        }
     }
 
     // Unused import placeholder to keep CheckpointAckMessage import resolution stable

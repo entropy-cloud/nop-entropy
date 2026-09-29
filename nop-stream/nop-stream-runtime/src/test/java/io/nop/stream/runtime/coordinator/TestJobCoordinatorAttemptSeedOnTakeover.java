@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -144,7 +143,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
         assertEquals(PRESET_ATTEMPTS, before.size(), "preset rows must be persisted before takeover");
 
         TestLeaderElector elector = new TestLeaderElector("host-takeover");
-        RecordingTaskRpcService rpc = new RecordingTaskRpcService();
+        CoordinatorTestSupport.RecordingTaskRpcService rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         JobCoordinator coordinator = buildFreshCoordinator(registry, elector, rpc);
         coordinator.start();
         assertFalse(coordinator.isActive(), "fresh HA coordinator must start in STANDBY");
@@ -201,7 +200,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
         registry.registerNode(NODE_1, "localhost:9001", 4);
 
         TestLeaderElector elector = new TestLeaderElector("host-fresh");
-        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new RecordingTaskRpcService());
+        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new CoordinatorTestSupport.RecordingTaskRpcService());
         coordinator.start();
         elector.grantLeadership(1L);
         assertTrue(coordinator.isActive());
@@ -230,7 +229,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
         registry.registerNode(NODE_1, "localhost:9001", 4);
 
         TestLeaderElector elector = new TestLeaderElector("host-samejvm");
-        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new RecordingTaskRpcService());
+        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new CoordinatorTestSupport.RecordingTaskRpcService());
         coordinator.start();
 
         elector.grantLeadership(1L);
@@ -276,7 +275,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
         presetOldLeaderRows(registry, oldEpoch, PRESET_ATTEMPTS);
 
         TestLeaderElector elector = new TestLeaderElector("host-inmemory");
-        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new RecordingTaskRpcService());
+        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new CoordinatorTestSupport.RecordingTaskRpcService());
         coordinator.start();
         elector.grantLeadership(2L);
         assertTrue(coordinator.isActive(), "InMemory takeover must also complete activation");
@@ -313,7 +312,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
         registry.registerNode(NODE_1, "localhost:9001", 4);
 
         TestLeaderElector elector = new TestLeaderElector("host-seedfail");
-        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new RecordingTaskRpcService());
+        JobCoordinator coordinator = buildFreshCoordinator(registry, elector, new CoordinatorTestSupport.RecordingTaskRpcService());
         coordinator.start();
         assertFalse(coordinator.isActive());
 
@@ -353,7 +352,7 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
 
     private JobCoordinator buildFreshCoordinator(ClusterRegistry registry,
                                                  TestLeaderElector elector,
-                                                 RecordingTaskRpcService rpc) throws Exception {
+                                                 CoordinatorTestSupport.RecordingTaskRpcService rpc) throws Exception {
         // Fresh in-memory checkpoint state over an empty storage dir: the activation
         // restore path finds no durable checkpoint and starts fresh (G32 logging path).
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
@@ -393,32 +392,6 @@ class TestJobCoordinatorAttemptSeedOnTakeover {
     }
 
     // ==================== Mocks ====================
-
-    /** Records received assignments (wiring proof for the fan-out). */
-    static class RecordingTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-        }
-
-        @Override
-        public void deployTask(io.nop.stream.runtime.rpc.TaskDeploymentDescriptor descriptor, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 
     /**
      * Delegating registry whose {@code getAttemptHistory} always fails — pins the

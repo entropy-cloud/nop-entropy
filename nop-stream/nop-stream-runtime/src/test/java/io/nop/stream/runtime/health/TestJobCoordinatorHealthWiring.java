@@ -20,6 +20,7 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
+import io.nop.stream.runtime.coordinator.CoordinatorTestSupport;
 import io.nop.stream.runtime.event.StreamJobEvent;
 import io.nop.stream.runtime.event.StreamJobEventListener;
 
@@ -76,7 +77,7 @@ class TestJobCoordinatorHealthWiring {
 
         coordinator = new JobCoordinator(JOB_ID, "coordinator-" + JOB_ID, deploymentPlan,
                 registry, checkpointCoordinator,
-                java.util.Map.of("node-1", new NoOpTaskRpcService()));
+                java.util.Map.of("node-1", new CoordinatorTestSupport.RecordingTaskRpcService()));
 
         coordinator.addHealthListener((jobId, from, to, cause) ->
                 healthTransitions.add(from + "->" + to));
@@ -86,27 +87,6 @@ class TestJobCoordinatorHealthWiring {
                 eventTypes.add(event.getType());
             }
         });
-    }
-
-    /** Minimal no-op task RPC double: assignment/recovery paths only need a target to exist. */
-    private static final class NoOpTaskRpcService
-            implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        @Override
-        public void receiveAssignment(io.nop.stream.runtime.cluster.TaskAssignment assignment) {
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier,
-                                      long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
     }
 
     @AfterEach

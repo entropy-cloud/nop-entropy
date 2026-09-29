@@ -18,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.nop.api.core.message.IMessageService;
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
@@ -171,7 +170,7 @@ class TestFencingEpochUnification {
     @Test
     void sameLeaderRecoveryAdvancesEpochPriorRecoveryRejected() throws Exception {
         // Reuse a full HA coordinator to drive the recovery rotation end-to-end.
-        CapturingTaskRpc capture = new CapturingTaskRpc();
+        CoordinatorTestSupport.RecordingTaskRpcService capture = new CoordinatorTestSupport.RecordingTaskRpcService();
         Map<String, io.nop.stream.runtime.rpc.IStreamTaskRpcService> taskRpcServices = new LinkedHashMap<>();
         taskRpcServices.put("node-1", capture);
 
@@ -203,7 +202,7 @@ class TestFencingEpochUnification {
             long epochAfterGrant = coordinator.getFencingEpoch();
             assertEquals(JobCoordinator.deriveHaFencingEpoch(5L, 0L), epochAfterGrant,
                     "activation epoch = leaderEpoch * EPOCH_SCALE");
-            assertEquals(epochAfterGrant, capture.lastPushedEpoch,
+            assertEquals(epochAfterGrant, capture.lastFencingEpoch.get(),
                     "activation must push the epoch to the task side");
 
             // Same-leader global recovery → recoveryGen 1 → epoch advances by 1.
@@ -213,7 +212,7 @@ class TestFencingEpochUnification {
                     "same-leader recovery must advance epoch by 1 (recoveryGen)");
             assertTrue(epochAfterRecovery > epochAfterGrant,
                     "recovery must produce a strictly larger epoch than the prior round");
-            assertEquals(epochAfterRecovery, capture.lastPushedEpoch,
+            assertEquals(epochAfterRecovery, capture.lastFencingEpoch.get(),
                     "recovery must push the rotated epoch to the task side");
 
             // The task side, fenced to the prior-recovery epoch, must reject a
@@ -261,7 +260,7 @@ class TestFencingEpochUnification {
         DeploymentPlan deploymentPlan = new DeploymentPlan(JOB_ID, "pipeline-0", partitionedPlan,
                 "local", "memory", "local", null, null);
 
-        CapturingTaskRpc capture = new CapturingTaskRpc();
+        CoordinatorTestSupport.RecordingTaskRpcService capture = new CoordinatorTestSupport.RecordingTaskRpcService();
         Map<String, io.nop.stream.runtime.rpc.IStreamTaskRpcService> taskRpcServices = new LinkedHashMap<>();
         taskRpcServices.put("node-1", capture);
         registry.registerNode("node-1", "localhost:8080", 4);
@@ -283,7 +282,7 @@ class TestFencingEpochUnification {
             long epochAfterRecovery = coordinator.getFencingEpoch();
             assertEquals(2L, epochAfterRecovery, "non-HA recovery increments recoveryGen → epoch 2");
             assertTrue(epochAfterRecovery > epochAtStart, "non-HA epoch must be monotonic across recovery");
-            assertEquals(epochAfterRecovery, capture.lastPushedEpoch,
+            assertEquals(epochAfterRecovery, capture.lastFencingEpoch.get(),
                     "non-HA recovery must push the rotated epoch to the task side");
 
             // A task fenced to the pre-recovery epoch (1) must reject the
@@ -331,27 +330,4 @@ class TestFencingEpochUnification {
                 .build();
     }
 
-    /** Minimal IStreamTaskRpcService that records the last pushed fencing epoch. */
-    static final class CapturingTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        volatile long lastPushedEpoch;
-        volatile long lastTriggerEpoch;
-
-        @Override
-        public void receiveAssignment(io.nop.stream.runtime.cluster.TaskAssignment assignment) {
-        }
-
-        @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-            lastTriggerEpoch = fencingEpoch;
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastPushedEpoch = fencingEpoch;
-        }
-    }
 }

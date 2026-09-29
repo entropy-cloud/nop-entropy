@@ -32,8 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,9 +58,9 @@ class TestJobCoordinatorAuditFixes {
     private OrderedMockClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
     private Map<String, IStreamTaskRpcService> taskRpcServices;
-    private RecordingTaskRpcService rpcA;
-    private RecordingTaskRpcService rpcB;
-    private RecordingTaskRpcService rpcC;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpcA;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpcB;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpcC;
     private DeploymentPlan deploymentPlan;
     private final List<JobCoordinator> coordinators = new ArrayList<>();
 
@@ -80,9 +78,9 @@ class TestJobCoordinatorAuditFixes {
                 .build();
         checkpointCoordinator = new CheckpointCoordinator(JOB_ID, "pipeline-0", idCounter, storage, config);
 
-        rpcA = new RecordingTaskRpcService();
-        rpcB = new RecordingTaskRpcService();
-        rpcC = new RecordingTaskRpcService();
+        rpcA = new CoordinatorTestSupport.RecordingTaskRpcService();
+        rpcB = new CoordinatorTestSupport.RecordingTaskRpcService();
+        rpcC = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices = new LinkedHashMap<>();
         taskRpcServices.put("node-1", rpcA);
         taskRpcServices.put("node-2", rpcB);
@@ -165,7 +163,7 @@ class TestJobCoordinatorAuditFixes {
         // pending checkpoint may be created by a standby.
         standby.terminate(JobTerminationMode.DRAIN);
         assertTrue(standby.isRunning(), "standby terminate(DRAIN) must also be a no-op");
-        assertEquals(0, rpcA.cancelCount.get() + rpcB.cancelCount.get() + rpcC.cancelCount.get(),
+        assertEquals(0, rpcA.cancelTaskCount.get() + rpcB.cancelTaskCount.get() + rpcC.cancelTaskCount.get(),
                 "standby terminate must not fire any task RPCs");
     }
 
@@ -224,7 +222,7 @@ class TestJobCoordinatorAuditFixes {
 
         assertEquals(PendingCheckpoint.Status.ABORTED, pending.getStatus().get(),
                 "the abort itself proceeds (driven by the shared coordinator)");
-        assertEquals(0, rpcA.cancelCount.get() + rpcB.cancelCount.get() + rpcC.cancelCount.get(),
+        assertEquals(0, rpcA.cancelTaskCount.get() + rpcB.cancelTaskCount.get() + rpcC.cancelTaskCount.get(),
                 "a STANDBY coordinator's abort handler must never fire cancelTask RPCs");
     }
 
@@ -409,34 +407,4 @@ class TestJobCoordinatorAuditFixes {
         }
     }
 
-    static class RecordingTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new java.util.concurrent.CopyOnWriteArrayList<>();
-        final AtomicInteger cancelCount = new AtomicInteger();
-        final AtomicLong lastFencingEpoch = new AtomicLong();
-        volatile boolean failReceiveAssignment;
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            if (failReceiveAssignment) {
-                throw new IllegalStateException("simulated unreachable node (audit-fix R-6)");
-            }
-            assignments.add(assignment);
-            lastFencingEpoch.set(assignment.getFencingEpoch());
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-            cancelCount.incrementAndGet();
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-    }
 }

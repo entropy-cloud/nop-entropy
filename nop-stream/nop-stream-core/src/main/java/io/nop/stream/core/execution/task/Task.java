@@ -348,28 +348,6 @@ public class Task implements Runnable, Serializable {
     }
 
     /**
-     * Forcibly marks the task as FAILED (used by external recovery paths). Validates
-     * the transition; no-op if the task is already in a terminal state.
-     */
-    public void markFailed(Throwable cause) {
-        if (cause != null && this.error == null) {
-            this.error = cause;
-        }
-        while (true) {
-            State current = state.get();
-            if (current == State.COMPLETED || current == State.FAILED || current == State.CANCELED) {
-                return;
-            }
-            if (!TaskStateTransition.isLegalTransition(current, State.FAILED)) {
-                return;
-            }
-            if (state.compareAndSet(current, State.FAILED)) {
-                return;
-            }
-        }
-    }
-
-    /**
      * Transitions to the SCHEDULED state from CREATED (initial schedule step).
      * Returns false if another thread already advanced the state.
      */
@@ -403,31 +381,6 @@ public class Task implements Runnable, Serializable {
      */
     public State getState() {
         return state.get();
-    }
-
-    /**
-     * Marks the task as scheduled (CREATED → SCHEDULED). Returns false if the
-     * transition is illegal or lost a CAS race. Used by external orchestrators
-     * (e.g. JobCoordinator) that drive the lifecycle explicitly.
-     */
-    public boolean markScheduled() {
-        return casTransition(State.CREATED, State.SCHEDULED);
-    }
-
-    /**
-     * Marks the task as recovering (RECOVERING entry from a non-terminal state).
-     */
-    public boolean markRecovering() {
-        State current = state.get();
-        if (!TaskStateTransition.isLegalTransition(current, State.RECOVERING)) {
-            return false;
-        }
-        return state.compareAndSet(current, State.RECOVERING);
-    }
-
-    private boolean casTransition(State expected, State target) {
-        TaskStateTransition.validateTransition(expected, target);
-        return state.compareAndSet(expected, target);
     }
 
     /**

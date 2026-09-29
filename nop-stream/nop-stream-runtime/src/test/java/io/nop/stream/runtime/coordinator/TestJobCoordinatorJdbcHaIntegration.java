@@ -31,8 +31,6 @@ import io.nop.stream.runtime.checkpoint.storage.JdbcCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
 import io.nop.stream.runtime.cluster.JdbcLeaderElector;
-import io.nop.stream.runtime.cluster.NodeInfo;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -45,8 +43,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -81,7 +77,7 @@ class TestJobCoordinatorJdbcHaIntegration {
     private IJdbcTemplate jdbcTemplate;
     private JdbcCheckpointStorage checkpointStorage;
     private DefaultScheduledExecutor electorExec;
-    private CapturingTaskRpc rpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpc;
 
     @BeforeAll
     static void initAll() {
@@ -115,7 +111,7 @@ class TestJobCoordinatorJdbcHaIntegration {
         }
         checkpointStorage = new JdbcCheckpointStorage(jdbcTemplate);
         electorExec = DefaultScheduledExecutor.newSingleThreadTimer("ha-integration");
-        rpc = new CapturingTaskRpc();
+        rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
     }
 
     @AfterEach
@@ -235,24 +231,4 @@ class TestJobCoordinatorJdbcHaIntegration {
         return new DeploymentPlan(JOB_ID, PIPELINE_ID, pp, "local", "memory", "local", null, null);
     }
 
-    static class CapturingTaskRpc implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

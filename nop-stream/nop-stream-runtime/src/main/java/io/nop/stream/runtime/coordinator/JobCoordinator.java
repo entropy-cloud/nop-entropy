@@ -77,7 +77,10 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  *
  * <p><strong>Checkpoint Flow:</strong>
  * <ol>
- *   <li>{@link #triggerCheckpoint()} → sends {@link CheckpointBarrierSignal} to all source tasks</li>
+ *   <li>{@link #triggerCheckpoint()} → opens a PendingCheckpoint via
+ *       {@code CheckpointCoordinator.tryTriggerPendingCheckpoint}, then fans the
+ *       {@link CheckpointBarrier} RPC out to every node hosting an assigned
+ *       subtask; source tasks inject the barrier into the data plane</li>
  *   <li>TaskManagers process barriers, snapshot state, send {@link CheckpointAckMessage} back</li>
  *   <li>{@link #collectAck(CheckpointAckMessage)} → verifies fencing token, forwards to CheckpointCoordinator</li>
  *   <li>When all ACKs collected → CheckpointCoordinator builds {@link EpochManifest}, persists, notifies commit</li>
@@ -89,7 +92,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private static final Logger LOG = LoggerFactory.getLogger(JobCoordinator.class);
 
     private static final long DEFAULT_LEASE_CHECK_INTERVAL_MS = 5000L;
-    private static final long DEFAULT_LEASE_EXPIRE_THRESHOLD_MS = 30000L;
     private static final long DEFAULT_TERMINATION_CHECKPOINT_TIMEOUT_MS = 60_000L;
     /**
      * Default per-task aliveness timeout (a task whose recorded liveness signal
@@ -2138,10 +2140,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.leaderElector = leaderElector;
     }
 
-    public ILeaderElector getLeaderElector() {
-        return leaderElector;
-    }
-
     /**
      * Whether the control plane is currently active on this coordinator.
      * In non-HA mode always true once started. In HA mode true only while this
@@ -2218,10 +2216,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.taskTimeoutMs = taskTimeoutMs;
     }
 
-    public long getTaskTimeoutMs() {
-        return taskTimeoutMs;
-    }
-
     /**
      * Configures whether a per-task FAILED report triggers automatic
      * {@link #globalRecovery()}. Default {@code true} (production behavior).
@@ -2230,10 +2224,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public void setAutoRecoverOnFailedReport(boolean enabled) {
         this.autoRecoverOnFailedReport = enabled;
-    }
-
-    public boolean isAutoRecoverOnFailedReport() {
-        return autoRecoverOnFailedReport;
     }
 
     /**
@@ -2261,16 +2251,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.maxStallRestarts = Math.max(0, maxStallRestarts);
     }
 
-    public int getMaxStallRestarts() {
-        return maxStallRestarts;
-    }
-
     public void setStallRecoveryCooldownMs(long stallRecoveryCooldownMs) {
         this.stallRecoveryCooldownMs = Math.max(0L, stallRecoveryCooldownMs);
-    }
-
-    public long getStallRecoveryCooldownMs() {
-        return stallRecoveryCooldownMs;
     }
 
     /** Stall-triggered recovery count (separate budget). */
@@ -2340,10 +2322,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public void setCheckpointStoragePath(String checkpointStoragePath) {
         this.checkpointStoragePath = checkpointStoragePath;
-    }
-
-    public String getCheckpointStoragePath() {
-        return checkpointStoragePath;
     }
 
     /**

@@ -79,10 +79,8 @@ class TestInputGateSingleChannelRemoteLiveness {
     private RemoteResultPartition producer(String topic) {
         TypeRegistry types = new TypeRegistry();
         types.register("edge-1", String.class.getName());
-        // heartbeatIntervalMs=0: the producer does not auto-emit heartbeats; the
-        // liveness case relies on the producer going fully silent to simulate
-        // death.
-        return new RemoteResultPartition(messageService, topic, types, "edge-1", EPOCH, 0L);
+        // The producer stays fully silent to simulate death (no liveness traffic).
+        return new RemoteResultPartition(messageService, topic, types, "edge-1", EPOCH);
     }
 
     /**

@@ -19,7 +19,7 @@
 nop-stream/
 ├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
 ├── nop-stream-runtime      [实现] task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
-├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink、SourceWorkUnit
+├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink
 ├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
 ├── nop-stream-flow         [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
 └── nop-stream-fraud-example[实现] 端到端欺诈检测示例
@@ -31,7 +31,7 @@ nop-stream/
 |------|------|----------|
 | **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
 | **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | → core |
-| **nop-stream-connector** | Replayable source（SourceWorkUnit + RestrictionTracker）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
+| **nop-stream-connector** | Replayable source（`Source`/`SourceSplit` 契约）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core, cep, xdefs |
 

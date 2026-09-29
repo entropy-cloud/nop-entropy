@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -69,9 +68,12 @@ import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.TimestampedCollector;
+import io.nop.stream.core.metrics.StreamMetricsRegistries;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.util.OutputTag;
+
+import io.micrometer.core.instrument.Counter;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
@@ -219,7 +221,12 @@ public class CepOperator<IN, KEY, OUT>
     // Metrics
     // ------------------------------------------------------------------------
 
-    private transient LongAdder numLateRecordsDropped;
+    /**
+     * Counter for events dropped because they arrived late (event timestamp at or
+     * before the current watermark and no late-data side output configured).
+     * Registered against the process metrics registry in {@link #open()}.
+     */
+    private transient Counter numLateRecordsDropped;
 
     private transient long currentWatermark = Long.MIN_VALUE;
 
@@ -334,7 +341,8 @@ public class CepOperator<IN, KEY, OUT>
         collector = new TimestampedCollector<>(output);
         userTimerService = new TimerServiceImpl();
 
-        this.numLateRecordsDropped = new LongAdder();
+        this.numLateRecordsDropped = StreamMetricsRegistries.registry()
+                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
 
         // Register the periodic cache-statistics timer on a dedicated ProcessingTimeCallback
         // (NOT via internalTimerService/userTimerService — those route to onProcessingTime

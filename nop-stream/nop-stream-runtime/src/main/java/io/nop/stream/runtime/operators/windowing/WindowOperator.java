@@ -191,6 +191,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
     /**
+     * Counter for records dropped because they arrived late (skipped window and
+     * past the allowed-lateness bound) with no late-data side output configured.
+     * Registered against the process metrics registry in {@link #open()}.
+     */
+    private transient io.micrometer.core.instrument.Counter numLateRecordsDropped;
+
+    /**
      * Per-(key,window) pane tracking: pane index + onTimeEmitted flag. Used by
      * {@link #computePaneInfo} to classify firings as EARLY/ON_TIME/LATE and assign
      * pane indices. Participates in checkpoint/restore (TimeWindow-scoped only).
@@ -401,6 +408,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (this.paneTracking == null) {
             this.paneTracking = new HashMap<>();
         }
+
+        this.numLateRecordsDropped = io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
+                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
 
         // Apply any pane-tracking snapshot captured by restoreState() (called before open()).
         // Restores pane index / onTimeEmitted so that post-recovery firings are not mistaken
@@ -662,6 +672,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (isSkippedElement && isElementLate(element)) {
             if (lateDataOutputTag != null) {
                 sideOutput(element);
+            } else {
+                // Late record with no side output channel: dropped. Count it so
+                // the data-loss observability gap is visible at operator level.
+                numLateRecordsDropped.increment();
             }
         }
     }
@@ -1398,11 +1412,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             @SuppressWarnings("unchecked")
             List<IN> list = (List<IN>) current;
             list.add(value);
-            // A12 (plan 01 quality-perf): the mutated list MUST be written back.
-            // With copy-semantics backends (e.g. RocksDBMapState.get returns a
-            // deserialized copy) the in-place add above is otherwise lost — every
-            // record after the first in the pane silently vanished. The memory
-            // backend returns a live reference, which is why it never showed.
+            // The mutated list MUST be written back: with copy-semantics
+            // backends (e.g. RocksDBMapState.get returns a deserialized copy)
+            // the in-place add above is otherwise lost and only the pane's
+            // first record would survive. The memory backend returns a live
+            // reference, where the write-back is redundant but harmless.
             setWindowContents(key, window, (ACC) list);
             storeElementTimestamp(key, window, elementTimestamp);
             return;

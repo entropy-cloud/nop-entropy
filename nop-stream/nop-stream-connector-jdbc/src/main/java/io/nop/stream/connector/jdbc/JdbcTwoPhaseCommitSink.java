@@ -303,13 +303,11 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                         checkpointId);
                 connection.commit();
                 committed = true;
-                // B4 (plan 01 quality-perf): the epoch IS committed — drop the
-                // in-memory staging entry here too, exactly like the normal-path
-                // remove below (and like both file-sink branches). Pre-fix the
-                // stale entry lingered forever: a redundant ledger probe plus an
-                // empty transaction on every later finishCommit for the same
-                // epoch, and unbounded pendingCommits growth across recovery-heavy
-                // runs.
+                // The epoch IS committed — drop the in-memory staging entry
+                // here too, exactly like the normal-path remove below (and like
+                // both file-sink branches), so every later finishCommit for the
+                // same epoch stays a cheap ledger probe and pendingCommits does
+                // not accumulate stale entries across recovery-heavy runs.
                 getPendingCommits().remove(checkpointId);
                 return;
             }

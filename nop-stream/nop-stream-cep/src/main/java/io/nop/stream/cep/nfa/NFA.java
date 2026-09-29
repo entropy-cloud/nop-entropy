@@ -719,12 +719,11 @@ public class NFA<T> {
                 new ConditionContext(
                         sharedBufferAccessor, computationState, timerService, event.getTimestamp());
 
-        // E3 (plan 01 quality-perf): memoize condition verdicts for the
-        // (computation state, event) scope of this call. createDecisionGraph
-        // evaluates every transition condition while walking the PROCEED chains;
-        // findFinalStateAfterProceed would then re-evaluate the SAME PROCEED
-        // transitions of the same event. Conditions are deterministic per
-        // (event, context), so a per-call cache is semantics-preserving.
+        // Conditions are deterministic per (event, context), so the per-call
+        // verdict cache is semantics-preserving: createDecisionGraph evaluates
+        // every transition condition while walking the PROCEED chains, and
+        // findFinalStateAfterProceed reuses those verdicts instead of
+        // re-evaluating the SAME PROCEED transitions of the same event.
         final java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts =
                 new java.util.IdentityHashMap<>();
 

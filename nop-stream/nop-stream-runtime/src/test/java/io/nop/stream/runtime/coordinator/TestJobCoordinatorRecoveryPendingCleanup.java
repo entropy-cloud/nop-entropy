@@ -7,11 +7,8 @@
  */
 package io.nop.stream.runtime.coordinator;
 
-import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
@@ -22,11 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,34 +53,17 @@ class TestJobCoordinatorRecoveryPendingCleanup {
         // "No RPC service for node node-2" inside the recovery lock.
         InMemoryClusterRegistry clusterRegistry = new InMemoryClusterRegistry();
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        CheckpointConfig config = CheckpointConfig.builder()
-                .checkpointEnabled(true).checkpointInterval(1000L)
-                .checkpointTimeout(10000L).maxConcurrentCheckpoints(1)
-                .maxRetainedCheckpoints(3).build();
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
-                JOB_ID, "pipeline-0", idCounter, storage, config);
+                JOB_ID, "pipeline-0", new CheckpointIDCounter(), storage,
+                CoordinatorTestSupport.defaultCheckpointConfig());
 
         clusterRegistry.registerNode("node-1", "localhost:9080", 1);
         clusterRegistry.registerNode("node-2", "localhost:9081", 4);
 
-        Map<String, PartitionedPlan.VertexPlan> vertexPlans = new LinkedHashMap<>();
-        vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
-        vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
-        List<PartitionedPlan.EdgePlan> edges = new ArrayList<>();
-        edges.add(new PartitionedPlan.EdgePlan("source", "sink",
-                io.nop.stream.core.execution.plan.PartitionPolicy.FORWARD));
-
-        PartitionedPlan partitionedPlan = new PartitionedPlan(
-                JOB_ID, "pipeline-0", vertexPlans, edges, null, null);
-        DeploymentPlan deploymentPlan = new DeploymentPlan(
-                JOB_ID, "pipeline-0", partitionedPlan,
-                "local", "memory", "local", null, null);
-
         coordinator = new JobCoordinator(
-                JOB_ID, "coord-1", deploymentPlan,
+                JOB_ID, "coord-1", CoordinatorTestSupport.twoVertexForwardPlan(JOB_ID),
                 clusterRegistry, checkpointCoordinator,
-                Collections.singletonMap("node-1", new LocalNoopTaskRpc()));
+                Collections.singletonMap("node-1", new CoordinatorTestSupport.RecordingTaskRpcService()));
         coordinator.setMaxRestarts(5);
     }
 
@@ -130,22 +106,4 @@ class TestJobCoordinatorRecoveryPendingCleanup {
                         + "short-circuit on a wedged CAS");
     }
 
-    /** Minimal no-op task RPC stub (same shape as the sibling coordinator tests). */
-    static class LocalNoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        @Override
-        public void receiveAssignment(io.nop.stream.runtime.cluster.TaskAssignment a) {
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

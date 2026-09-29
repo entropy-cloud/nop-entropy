@@ -13,15 +13,12 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -32,7 +29,6 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
 
@@ -68,8 +64,8 @@ class TestJobCoordinatorRemoteDeploy {
 
     private JobCoordinator coordinator;
     private ClusterRegistry clusterRegistry;
-    private RecordingTaskRpcService nodeRpc;
-    private RecordingTaskRpcService node2Rpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService nodeRpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService node2Rpc;
     private Map<String, IStreamTaskRpcService> taskRpcServices;
     private DeploymentPlan deploymentPlan;
     private JobGraph jobGraph;
@@ -92,8 +88,8 @@ class TestJobCoordinatorRemoteDeploy {
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
                 JOB_ID, "pipeline-0", idCounter, storage, config);
 
-        nodeRpc = new RecordingTaskRpcService();
-        node2Rpc = new RecordingTaskRpcService();
+        nodeRpc = new CoordinatorTestSupport.RecordingTaskRpcService();
+        node2Rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices = new LinkedHashMap<>();
         taskRpcServices.put("node-1", nodeRpc);
         taskRpcServices.put("node-2", node2Rpc);
@@ -212,7 +208,7 @@ class TestJobCoordinatorRemoteDeploy {
     @Test
     void deployTaskUsesRoundRobinWhenNoMaterializedAssignment() {
         // Two nodes available; one vertex with parallelism 2 should land on both.
-        RecordingTaskRpcService node2Rpc = new RecordingTaskRpcService();
+        CoordinatorTestSupport.RecordingTaskRpcService node2Rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices.put("node-2", node2Rpc);
 
         // Re-build plan with parallelism 2 on a single vertex (source only).
@@ -247,39 +243,4 @@ class TestJobCoordinatorRemoteDeploy {
                 "checkpoint restore path always carried in descriptor");
     }
 
-    /**
-     * Recording test double that captures both legacy {@code receiveAssignment}
-     * and Stage 42 {@code deployTask} calls so a test can assert which path the
-     * coordinator took.
-     */
-    static final class RecordingTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-        final List<TaskDeploymentDescriptor> deployDescriptors = new CopyOnWriteArrayList<>();
-        final AtomicLong lastFencingEpoch = new AtomicLong();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        @Override
-        public void deployTask(TaskDeploymentDescriptor descriptor, long fencingEpoch) {
-            deployDescriptors.add(descriptor);
-            lastFencingEpoch.set(fencingEpoch);
-        }
-    }
 }

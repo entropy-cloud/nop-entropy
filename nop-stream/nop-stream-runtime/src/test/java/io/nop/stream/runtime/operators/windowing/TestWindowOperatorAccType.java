@@ -39,9 +39,9 @@ public class TestWindowOperatorAccType {
 
         operator = new StringAccOperator(
                 TumblingEventTimeWindows.of(100L),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<String, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
                 new StringWindowFunction(),
                 EventTimeTrigger.create(),
@@ -70,9 +70,9 @@ public class TestWindowOperatorAccType {
     void testDefaultConstructorUsesObjectClass() throws Exception {
         DefaultAccOperator defaultOp = new DefaultAccOperator(
                 TumblingEventTimeWindows.of(100L),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<String, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
                 new ObjectWindowFunction(),
                 EventTimeTrigger.create(),
@@ -95,9 +95,9 @@ public class TestWindowOperatorAccType {
 
         StringAccOperator reconstructed = new StringAccOperator(
                 TumblingEventTimeWindows.of(100L),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<String, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
                 new StringWindowFunction(),
                 EventTimeTrigger.create(),
@@ -200,74 +200,6 @@ public class TestWindowOperatorAccType {
 
         @Override
         public void clear(TimeWindow window, InternalWindowContext context) {
-        }
-    }
-
-    static class SimpleTimeWindowSerializer implements TypeSerializer<TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<TimeWindow> duplicate() {
-            return this;
-        }
-
-        @Override
-        public TimeWindow createInstance() {
-            return new TimeWindow(0, 0);
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from, TimeWindow reuse) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
-    }
-
-    static class SimpleStringSerializer implements TypeSerializer<String> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<String> duplicate() {
-            return this;
-        }
-
-        @Override
-        public String createInstance() {
-            return "";
-        }
-
-        @Override
-        public String copy(String from) {
-            return from;
-        }
-
-        @Override
-        public String copy(String from, String reuse) {
-            return from;
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
         }
     }
 }

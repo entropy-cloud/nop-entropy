@@ -8,12 +8,9 @@
 package io.nop.stream.runtime.coordinator;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
-import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
-import io.nop.stream.core.execution.plan.DeploymentPlan;
-import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -22,7 +19,6 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.event.StreamJobEvent;
 import io.nop.stream.runtime.event.StreamJobEventListener;
 import io.nop.stream.runtime.health.StreamJobHealth;
-import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -69,7 +64,7 @@ class TestJobCoordinatorTerminationMatrix {
     Path tempDir;
 
     private MockClusterRegistry clusterRegistry;
-    private MockTaskRpcService mockRpcService;
+    private CoordinatorTestSupport.RecordingTaskRpcService mockRpcService;
     private JobCoordinator coordinator;
     private final List<String> healthTransitions = new ArrayList<>();
     private final List<StreamJobEvent> jobEvents = new ArrayList<>();
@@ -78,31 +73,15 @@ class TestJobCoordinatorTerminationMatrix {
     void setUp() {
         clusterRegistry = new MockClusterRegistry();
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        CheckpointConfig config = CheckpointConfig.builder()
-                .checkpointEnabled(true)
-                .checkpointInterval(1000L)
-                .checkpointTimeout(10_000L)
-                .maxConcurrentCheckpoints(1)
-                .maxRetainedCheckpoints(3)
-                .build();
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
-                JOB_ID, "pipeline-0", new CheckpointIDCounter(), storage, config);
+                JOB_ID, "pipeline-0", new CheckpointIDCounter(), storage,
+                CoordinatorTestSupport.defaultCheckpointConfig());
 
-        mockRpcService = new MockTaskRpcService();
+        mockRpcService = new CoordinatorTestSupport.RecordingTaskRpcService();
         clusterRegistry.registerNode("node-1", "localhost:8080", 4);
 
-        Map<String, PartitionedPlan.VertexPlan> vertexPlans = new java.util.LinkedHashMap<>();
-        vertexPlans.put("source", new PartitionedPlan.VertexPlan("source", 1, null));
-        vertexPlans.put("sink", new PartitionedPlan.VertexPlan("sink", 1, null));
-        List<PartitionedPlan.EdgePlan> edges = new ArrayList<>();
-        edges.add(new PartitionedPlan.EdgePlan("source", "sink",
-                io.nop.stream.core.execution.plan.PartitionPolicy.FORWARD));
-        PartitionedPlan partitionedPlan = new PartitionedPlan(
-                JOB_ID, "pipeline-0", vertexPlans, edges, null, null);
-        DeploymentPlan deploymentPlan = new DeploymentPlan(
-                JOB_ID, "pipeline-0", partitionedPlan, "local", "memory", "local", null, null);
-
-        coordinator = new JobCoordinator(JOB_ID, COORDINATOR_ID, deploymentPlan,
+        coordinator = new JobCoordinator(JOB_ID, COORDINATOR_ID,
+                CoordinatorTestSupport.twoVertexForwardPlan(JOB_ID),
                 clusterRegistry, checkpointCoordinator,
                 Map.of("node-1", mockRpcService));
         // Short timeout: the mock TM never ACKs, so the terminal checkpoint future times
@@ -233,24 +212,4 @@ class TestJobCoordinatorTerminationMatrix {
         }
     }
 
-    static class MockTaskRpcService implements IStreamTaskRpcService {
-        final AtomicReference<CheckpointBarrier> lastBarrier = new AtomicReference<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-        }
-
-        @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-            lastBarrier.set(barrier);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

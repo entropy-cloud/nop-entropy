@@ -56,8 +56,7 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
-        // F1 (plan 01 quality-perf): cached encode — see
-        // RocksDBKeyedStateBackend.cachedStorageKeyFor.
+        // Cached encode — see RocksDBKeyedStateBackend.cachedStorageKeyFor.
         return backend.cachedStorageKeyFor(currentNamespace, backend.getCurrentKey());
     }
 
@@ -79,10 +78,10 @@ class RocksDBInternalAggregatingState<K, N, IN, ACC, OUT>
                 ttlContext().recordRead(keyBuf);
             }
         }
-        // B3 (plan 01 quality-perf): deserialize with the constructor-resolved
-        // storageValueType, matching RocksDBAggregatingState.get() — with an
-        // Object-typed descriptor the two accessors of the SAME state otherwise
-        // return different runtime types (e.g. ArrayList vs long[]).
+        // Deserialize with the constructor-resolved storageValueType, matching
+        // RocksDBAggregatingState.get(): with an Object-typed descriptor the
+        // two accessors of the SAME state must still return the same runtime
+        // type (e.g. ArrayList vs long[]) to each caller.
         return (ACC) RocksDBValueSerDe.deserialize(bytes, storageValueType);
     }
 

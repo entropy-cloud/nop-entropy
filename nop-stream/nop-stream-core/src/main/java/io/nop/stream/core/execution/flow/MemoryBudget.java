@@ -41,9 +41,6 @@ public class MemoryBudget implements Serializable {
         return new MemoryBudget(totalBytes, allocations);
     }
 
-    public long getTotalBytes() { return totalBytes; }
-    public Map<String, Long> getComponentAllocations() { return componentAllocations; }
-
     public long getAllocation(String component) {
         return componentAllocations.getOrDefault(component, 0L);
     }

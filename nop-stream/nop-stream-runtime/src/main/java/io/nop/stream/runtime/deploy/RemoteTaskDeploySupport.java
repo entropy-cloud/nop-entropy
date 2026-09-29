@@ -156,9 +156,17 @@ public final class RemoteTaskDeploySupport {
     }
 
     /**
-     * Provisioning mirror of {@code GraphModelCheckpointExecutor.wireTaskCheckpointPipeline}:
-     * operators with a null state backend get the default {@link MemoryStateBackend}
-     * (the LOCAL default when the checkpoint config carries none).
+     * Provisioning counterpart of
+     * {@code GraphModelCheckpointExecutor.wireTaskCheckpointPipeline} — but NOT
+     * an exact mirror. Known divergence: the LOCAL wiring first honors
+     * {@code checkpointConfig.getStateBackend()} and only falls back to
+     * {@link MemoryStateBackend} when unset, while this remote path ALWAYS
+     * provisions a {@link MemoryStateBackend} — the TaskManager-side deploy
+     * path has no access to the job's CheckpointConfig. Consequence: a job
+     * explicitly configured with a non-memory backend (e.g. RocksDB) that runs
+     * through remote deploy gets a memory backend on its operators. Unifying
+     * this is a semantic change (backend threading through the deployment
+     * descriptor) — pending owner adjudication, not silently "fixed" here.
      */
     private static void provisionStateBackends(StreamTaskInvokable invokable) {
         for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {

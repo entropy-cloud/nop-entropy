@@ -519,9 +519,9 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         // Files.newOutputStream).
         try (OutputStream out = new FileResource(tempManifest.toString(), tempManifest.toFile()).getOutputStream()) {
             // Properties.store is non-deterministic; use sorted manual write instead.
-            // B5 (plan 01 quality-perf): values are escaped because the manifest is
-            // read back via Properties.load, which treats '\' as an escape — a
-            // Windows path (C:\out\epoch-1.txt) silently corrupted on round-trip.
+            // Values are escaped because the manifest is read back via
+            // Properties.load, which treats '\' as an escape — unescaped Windows
+            // paths (C:\out\epoch-1.txt) would silently corrupt on round-trip.
             StringBuilder sb = new StringBuilder();
             sb.append("# file-sink manifest").append(LINE_SEPARATOR);
             for (TreeMap.Entry<String, String> entry : sorted.entrySet()) {

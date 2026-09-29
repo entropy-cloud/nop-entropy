@@ -3,7 +3,6 @@ package io.nop.stream.core.common.eventtime;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
-import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.test.TestOutput;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -27,8 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       one input is at MIN_VALUE).</li>
  *   <li>Once both inputs advance, the operator emits the combined watermark to
  *       its output (wiring verified, not just unit math).</li>
- *   <li>Idleness correctly excludes an input from the combine (valve status
- *       propagation wired).</li>
  *   <li>Barrier-style monotonicity: combined watermark never regresses.</li>
  * </ul>
  *
@@ -66,27 +62,6 @@ public class TestWatermarkMultiInputCombineWire {
         assertEquals(1, op.emittedWatermarks.size(),
                 "Advancing the min input must advance and emit the new combined watermark");
         assertEquals(180L, op.emittedWatermarks.get(0));
-    }
-
-    @Test
-    void idleInputExcludedFromCombine() throws Exception {
-        RecordingOperator<String> op = new RecordingOperator<>();
-        TestOutput<String> output = new TestOutput<>();
-        op.setOutput(output);
-        op.open();
-
-        op.processWatermark1(new Watermark(100));
-        op.processWatermark2(new Watermark(50));
-        // Combined = 50 (input2 is min).
-        assertEquals(1, op.emittedWatermarks.size());
-        assertEquals(50L, op.emittedWatermarks.get(0));
-
-        op.emittedWatermarks.clear();
-        // Mark input 2 idle — input 2 is excluded from min, combined jumps to 100.
-        op.processWatermarkStatus2(WatermarkStatus.IDLE);
-        assertEquals(1, op.emittedWatermarks.size(),
-                "Marking the min input idle must advance the combined watermark");
-        assertEquals(100L, op.emittedWatermarks.get(0));
     }
 
     @Test

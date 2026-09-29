@@ -45,14 +45,28 @@ class TestMetricsLifecycle {
     void releaseJobRemovesCachedEngineMeters() {
         EngineMetrics metrics = EngineMetrics.forJob(JOB);
         metrics.checkpointCompleted(100L, 10L);
-        assertEquals(1.0, metrics.getCompletedCount());
+        assertEquals(1.0, completedCount(),
+                "precondition: the checkpoint-completed counter registered for the job");
 
         assertTrue(EngineMetrics.releaseJob(JOB), "the first release must find and remove the cached instance");
         assertFalse(EngineMetrics.releaseJob(JOB), "release must be idempotent (nothing cached anymore)");
 
-        EngineMetrics fresh = EngineMetrics.forJob(JOB);
-        assertEquals(0.0, fresh.getCompletedCount(),
+        // Re-register after release: must yield a FRESH instance (count 0),
+        // not the stale meter set.
+        EngineMetrics.forJob(JOB);
+        assertEquals(0.0, completedCount(),
                 "after release, re-registration must yield a fresh instance, not the stale meter set");
+    }
+
+    /**
+     * Reads the job-tagged checkpoints-completed counter straight from the
+     * registry (observation without depending on EngineMetrics accessors).
+     */
+    private double completedCount() {
+        io.micrometer.core.instrument.Counter counter = StreamMetricsRegistries.registry()
+                .find(EngineMetrics.METRIC_CHECKPOINTS_COMPLETED)
+                .tag(EngineMetrics.TAG_JOB_ID, JOB).counter();
+        return counter == null ? Double.NaN : counter.count();
     }
 
     @Test

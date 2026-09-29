@@ -14,7 +14,6 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +26,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -88,7 +85,7 @@ class TestJobCoordinatorRestartStrategy {
         coordinator = new JobCoordinator(
                 JOB_ID, "coord-1", deploymentPlan,
                 clusterRegistry, checkpointCoordinator,
-                Collections.singletonMap("node-1", new NoopTaskRpc()));
+                Collections.singletonMap("node-1", new CoordinatorTestSupport.RecordingTaskRpcService()));
         coordinator.setTerminationCheckpointTimeoutMs(500L);
     }
 
@@ -225,13 +222,4 @@ class TestJobCoordinatorRestartStrategy {
                 "after 3 FAILED reports with cap=2, job must be FAILED");
     }
 
-    static class NoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        final java.util.concurrent.atomic.AtomicLong lastEpoch = new java.util.concurrent.atomic.AtomicLong();
-        final CopyOnWriteArrayList<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override public void receiveAssignment(TaskAssignment a) { assignments.add(a); }
-        @Override public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, long fencingEpoch) {}
-        @Override public void cancelTask(String j, String v, int s, long fencingEpoch) {}
-        @Override public void updateFencingToken(long fencingEpoch) { lastEpoch.set(fencingEpoch); }
-    }
 }

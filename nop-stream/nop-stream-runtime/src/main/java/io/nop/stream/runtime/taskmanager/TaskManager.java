@@ -336,13 +336,13 @@ public class TaskManager implements IStreamTaskRpcService {
                 try {
                     rpc.reportNodeTaskLiveness(nodeId, progress);
                 } catch (Exception e) {
-                    // #24 — no silent skip: log and continue. A transient RPC failure
+                    // No silent skip: log and continue. A transient RPC failure
                     // does not tear down the heartbeat loop; the next beat retries.
                     LOG.warn("reportNodeTaskLiveness failed for node {} ({} tasks)", nodeId, progress.size(), e);
                 }
             }
         } catch (Exception e) {
-            // #24 — no silent skip: the failure is logged; the scheduled loop
+            // No silent skip: the failure is logged; the scheduled loop
             // stays alive so the next beat retries.
             LOG.error("Heartbeat iteration failed unexpectedly for node {} - keeping the heartbeat loop alive", nodeId, e);
         }
@@ -478,7 +478,7 @@ public class TaskManager implements IStreamTaskRpcService {
      * this instead of {@link #receiveAssignment} + a separate direct install — the
      * descriptor is self-contained (carries {@link TaskAssignment} metadata).
      *
-     * <p><strong>No silent skip</strong> (#24): if deployment fails (build error,
+     * <p><strong>No silent skip</strong>: if deployment fails (build error,
      * fencing mismatch, target-node mismatch, capacity exhausted), this method
      * throws a {@link StreamException} AND reports a FAILED
      * {@link io.nop.stream.runtime.coordinator.TaskStatusReport} to the coordinator
@@ -493,61 +493,52 @@ public class TaskManager implements IStreamTaskRpcService {
     @Override
     public void deployTask(TaskDeploymentDescriptor descriptor, long fencingEpoch) {
         if (!running) {
-            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "TaskManager " + nodeId + " not running, rejecting deployTask");
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "TaskManager " + nodeId + " not running, rejecting deployTask"));
         }
         if (descriptor == null) {
-            NopException ex = new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "descriptor");
-            reportDeployFailure(null, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(null, fencingEpoch,
+                    new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "descriptor"));
         }
         if (descriptor.getJobGraph() == null && descriptor.getPipelineSpec() == null) {
             // The pipeline may arrive as a serializable DECLARATION spec
             // (XDSL) instead of a pre-built graph — see RemotePipelineSpec.
-            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "TaskDeploymentDescriptor carries neither a JobGraph nor a pipeline spec; cannot "
-                            + "deployTask for " + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL,
+                            "TaskDeploymentDescriptor carries neither a JobGraph nor a pipeline spec; cannot "
+                                    + "deployTask for " + descriptor.getVertexId() + "/"
+                                    + descriptor.getSubtaskIndex()));
         }
 
         long activeEpoch = currentFencingEpoch.get();
         if (activeEpoch != fencingEpoch) {
-            NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
                     .param(ARG_EXPECTED_TOKEN, activeEpoch)
-                    .param(ARG_ACTUAL_TOKEN, fencingEpoch);
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch));
         }
 
         if (descriptor.getNodeId() != null && !descriptor.getNodeId().equals(nodeId)) {
-            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "deployTask target mismatch: descriptor nodeId=" + descriptor.getNodeId()
-                            + " but this TaskManager is " + nodeId);
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL,
+                            "deployTask target mismatch: descriptor nodeId=" + descriptor.getNodeId()
+                                    + " but this TaskManager is " + nodeId));
         }
 
         // The RPC parameter and the descriptor's embedded epoch must agree: the
         // RunningTask is keyed by the descriptor's field, so a divergent value
         // would run the task under an epoch that was never validated above.
         if (descriptor.getFencingEpoch() != fencingEpoch) {
-            NopException ex = new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
                     .param(ARG_EXPECTED_TOKEN, fencingEpoch)
-                    .param(ARG_ACTUAL_TOKEN, descriptor.getFencingEpoch());
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+                    .param(ARG_ACTUAL_TOKEN, descriptor.getFencingEpoch()));
         }
 
         if (!capacitySemaphore.tryAcquire()) {
-            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "Node " + nodeId + " at capacity (" + (capacity - capacitySemaphore.availablePermits())
-                            + "/" + capacity + "), rejecting deployTask for "
-                            + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex());
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL,
+                            "Node " + nodeId + " at capacity (" + (capacity - capacitySemaphore.availablePermits())
+                                    + "/" + capacity + "), rejecting deployTask for "
+                                    + descriptor.getVertexId() + "/" + descriptor.getSubtaskIndex()));
         }
 
         String taskKey = taskKey(descriptor.getJobId(), descriptor.getVertexId(), descriptor.getSubtaskIndex());
@@ -555,22 +546,18 @@ public class TaskManager implements IStreamTaskRpcService {
         // Recovery may redeploy to the same slot before the old task is GC'd.
         // Fence the old slot out and reclaim its permit into this deployment.
         //
-        // Permit-conservation hardening: the new deployment's permit was
-        // acquired above (tryAcquire at the method entry). Releasing the old
-        // slot's permit below balances the old task — net permit change for a
-        // redeploy is therefore 0 (one task leaves, one task enters). The
-        // legacy code re-acquired a permit here (acquireUninterruptibly), which
-        // produced a net -1 per redeploy and wedged the node after `capacity`
-        // recoveries. That extra acquire is removed; the entry acquire + this
-        // release are the only permit touches for the redeploy path.
+        // Permit conservation: this deployment acquired exactly one permit at
+        // the method entry, and the displaced slot's permit release below
+        // balances the displaced task — a redeploy's net permit change is 0
+        // (one task leaves, one task enters). The entry acquire plus this
+        // release are the only permit touches on the redeploy path, so
+        // repeated recoveries cannot drain the node's capacity.
         //
-        // Slot replacement is a SINGLE atomic map
-        // operation — {@code put} returns the displaced entry, so there is no
-        // get→remove→put window in which a concurrent same-key deploy/cancel
-        // can observe the slot transiently empty (the legacy 3-step sequence
-        // could leak a displaced task that kept running but became invisible
-        // to the map). Every displaced task is handed to exactly one displacer
-        // for cancel + permit release.
+        // Slot replacement is a SINGLE atomic map operation: {@code put}
+        // returns the displaced entry, so there is no get→remove→put window
+        // in which a concurrent same-key deploy/cancel can observe the slot
+        // transiently empty or lose a displaced task. Every displaced task is
+        // handed to exactly one displacer for cancel + permit release.
         RunningTask runningTask = new RunningTask(this,
                 descriptor.getJobId(),
                 descriptor.getVertexId(),
@@ -616,11 +603,10 @@ public class TaskManager implements IStreamTaskRpcService {
             if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
                 capacitySemaphore.release();
             }
-            NopException ex = new StreamException(ERR_STREAM_INVALID_STATE, t).param(ARG_DETAIL,
-                    "Failed to build invokable from deployTask descriptor for " + taskKey
-                            + " on TaskManager " + nodeId + ": " + t);
-            reportDeployFailure(descriptor, fencingEpoch, ex);
-            throw ex;
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_INVALID_STATE, t)
+                    .param(ARG_DETAIL,
+                            "Failed to build invokable from deployTask descriptor for " + taskKey
+                                    + " on TaskManager " + nodeId + ": " + t));
         }
 
         runningTask.setInvokable(invokable);
@@ -634,62 +620,76 @@ public class TaskManager implements IStreamTaskRpcService {
     }
 
     /**
+     * Guard helper for {@link #deployTask}: reports the rejection to the
+     * coordinator as a best-effort FAILED {@link TaskStatusReport}, then
+     * rethrows the typed exception. Always throws — the return type exists so
+     * call sites can write {@code throw rejectDeploy(...)} and keep the
+     * compiler's flow analysis aware the path does not continue.
+     */
+    private NopException rejectDeploy(TaskDeploymentDescriptor descriptor, long fencingEpoch,
+                                      NopException cause) {
+        reportDeployFailure(descriptor, fencingEpoch, cause);
+        throw cause;
+    }
+
+    /**
      * Reports a deployTask failure to the coordinator as a
      * FAILED {@link TaskStatusReport} so the failure is observable and triggers
      * recovery. Best-effort — failure to report is logged (not swallowed).
      */
     private void reportDeployFailure(TaskDeploymentDescriptor descriptor, long fencingEpoch, Throwable cause) {
-        nodeMetrics.taskFailed();
-        IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
-        if (rpc == null) {
-            return;
-        }
-        String dJobId = descriptor != null ? descriptor.getJobId() : null;
-        String dVertexId = descriptor != null ? descriptor.getVertexId() : null;
-        int dSubtaskIndex = descriptor != null ? descriptor.getSubtaskIndex() : -1;
-        int dAttemptNumber = descriptor != null ? descriptor.getAttemptNumber() : 0;
-        TaskStatusReport report = new TaskStatusReport(
-                dJobId, dVertexId, dSubtaskIndex, dAttemptNumber,
-                TaskStatusReport.TerminalState.FAILED,
-                cause == null ? "deployTask failure" : cause.toString(),
-                -1L, fencingEpoch, CoreMetrics.currentTimeMillis());
-        try {
-            rpc.reportTaskStatus(report);
-        } catch (Exception e) {
-            LOG.warn("Failed to report deployTask failure to coordinator for {}/{}/{}",
-                    dJobId, dVertexId, dSubtaskIndex, e);
-        }
+        reportTaskFailure("deployTask failure",
+                descriptor != null ? descriptor.getJobId() : null,
+                descriptor != null ? descriptor.getVertexId() : null,
+                descriptor != null ? descriptor.getSubtaskIndex() : -1,
+                descriptor != null ? descriptor.getAttemptNumber() : 0,
+                fencingEpoch, cause);
     }
 
     /**
      * Reports a receiveAssignment rejection to the coordinator as a FAILED
      * {@link TaskStatusReport}. The receiveAssignment RPC is one-way, so a
      * warn-and-return (or even a thrown exception) never reaches the
-     * coordinator — mirroring {@link #reportDeployFailure}, the FAILED report
-     * makes the rejection observable and lets recovery act on it instead of
-     * waiting for supervision to detect the stalled slot. Best-effort — failure
-     * to report is logged (not swallowed).
+     * coordinator — the FAILED report makes the rejection observable and lets
+     * recovery act on it instead of waiting for supervision to detect the
+     * stalled slot. Best-effort — failure to report is logged (not swallowed).
      */
     private void reportAssignmentFailure(TaskAssignment assignment, long fencingEpoch, Throwable cause) {
+        reportTaskFailure("receiveAssignment rejection",
+                assignment != null ? assignment.getJobId() : null,
+                assignment != null ? assignment.getVertexId() : null,
+                assignment != null ? assignment.getSubtaskIndex() : -1,
+                assignment != null ? assignment.getAttemptNumber() : 0,
+                fencingEpoch, cause);
+    }
+
+    /**
+     * Shared body of the deploy/assignment failure reporters: counts the node
+     * failure meter, then best-effort sends a FAILED {@link TaskStatusReport}
+     * to the coordinator so a one-way RPC rejection is observable and recovery
+     * can act on it. Failure to report is logged, not swallowed.
+     *
+     * @param failureKind verbatim fallback detail (when {@code cause} is null)
+     *                    and log label — "deployTask failure" or
+     *                    "receiveAssignment rejection"
+     */
+    private void reportTaskFailure(String failureKind, String jobId, String vertexId,
+                                   int subtaskIndex, int attemptNumber, long fencingEpoch, Throwable cause) {
         nodeMetrics.taskFailed();
         IStreamCoordinatorRpcService rpc = this.coordinatorRpcService;
         if (rpc == null) {
             return;
         }
-        String aJobId = assignment != null ? assignment.getJobId() : null;
-        String aVertexId = assignment != null ? assignment.getVertexId() : null;
-        int aSubtaskIndex = assignment != null ? assignment.getSubtaskIndex() : -1;
-        int aAttemptNumber = assignment != null ? assignment.getAttemptNumber() : 0;
         TaskStatusReport report = new TaskStatusReport(
-                aJobId, aVertexId, aSubtaskIndex, aAttemptNumber,
+                jobId, vertexId, subtaskIndex, attemptNumber,
                 TaskStatusReport.TerminalState.FAILED,
-                cause == null ? "receiveAssignment rejection" : cause.toString(),
+                cause == null ? failureKind : cause.toString(),
                 -1L, fencingEpoch, CoreMetrics.currentTimeMillis());
         try {
             rpc.reportTaskStatus(report);
         } catch (Exception e) {
-            LOG.warn("Failed to report receiveAssignment rejection to coordinator for {}/{}/{}",
-                    aJobId, aVertexId, aSubtaskIndex, e);
+            LOG.warn("Failed to report {} to coordinator for {}/{}/{}",
+                    failureKind, jobId, vertexId, subtaskIndex, e);
         }
     }
 

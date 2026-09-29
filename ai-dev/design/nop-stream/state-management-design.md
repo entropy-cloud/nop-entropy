@@ -434,7 +434,7 @@ interface IOperatorStateStore {
 
 ### 12.1 配置
 
-- `StateTtlConfig`：`ttl`（`Duration`）、`updateType`（`StateTtlUpdateType`：`Disabled`/`OnCreateAndWrite`/`OnReadAndWrite`）、`cleanupStrategy`（`TtlCleanupStrategy`：lazy eviction 默认启用；background cleanup 默认启用）。`StateTtlConfig.DISABLED` 是哨兵默认值。
+- `StateTtlConfig`：`ttl`（`Duration`）、`updateType`（`StateTtlUpdateType`：`Disabled`/`OnCreateAndWrite`/`OnReadAndWrite`）、`cleanupStrategy`（`TtlCleanupStrategy`：lazy eviction 默认启用；cleanup 为 lazy-only，无 `backgroundCleanup` 标志——plan 366 Phase 3 删除，实现从未提供自动后台清理）。`StateTtlConfig.DISABLED` 是哨兵默认值。
 - `StateDescriptor.setTtlConfig(StateTtlConfig)` 可选附加配置。TTL 是 **运行时行为，非 schema 契约**：`StateSchemaResolver` 不读取 TTL，故 `schemaChecksum` 不受 TTL 配置影响——在已有 state 上增删 TTL 不破坏 checkpoint 兼容性。`StateTtlConfig` 不进入 checkpoint 持久化；restore 后由 live descriptor（用户代码）在 `getState()` 时重新提供并重新绑定 TTL 上下文。
 
 ### 12.2 时间戳追踪：per-state sidecar（存储/值分离）
@@ -456,11 +456,9 @@ per-key+namespace（一个复合键一个时间戳）。`MapState` 的整 map �
 
 ### 12.5 清理策略
 
-- **Lazy eviction**（所有后端，默认启用）：访问时检查过期并删除。
+- **Lazy eviction**（所有后端，默认启用）：访问时检查过期并删除。这是唯一的自动清理机制——不存在后台清理线程（`TtlCleanupStrategy.backgroundCleanup` 标志为死配置面，plan 366 Phase 3 删除）。
 - **Snapshot 过期排除**：snapshot 遍历 entries 时跳过已过期项（非可选）。restore 后被排除的项不恢复。
-- **Background cleanup**：
-  - Memory 后端：`TtlContext.sweepExpired` 主动遍历删除。
-  - RocksDB 后端：`RocksDBKeyedStateBackend.cleanupExpiredEntries()` 扫描 sidecar、按 base key 删除过期 entry（scalar/list/accumulator 单键删除；MapState 前缀删除）。该 sweep 在 `snapshotState()` 起始处执行，使每次 checkpoint 同时回收空间。
+- **Caller-driven sweep（仅 RocksDB）**：`RocksDBKeyedStateBackend.cleanupExpiredEntries()` 扫描 sidecar、按 base key 删除过期 entry（scalar/list/accumulator 单键删除；MapState 前缀删除）。该 sweep 在 `snapshotState()` 起始处同步执行，使每次 checkpoint 同时回收空间；也可手动调用。Memory 后端无对应 sweep（lazy eviction + snapshot 排除已覆盖）。
 
 ### 12.6 Restore 后 TTL 存活
 

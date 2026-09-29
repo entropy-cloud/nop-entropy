@@ -99,6 +99,24 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
     // ====================== Serializers ======================
 
     /**
+     * Fail-fast guard for path fields embedded in serialized payloads: the
+     * payload format cannot escape its reserved separator characters, so a
+     * path carrying one would serialize fine and then corrupt parsing at
+     * restore time. {@code charsetDesc} is the human-readable reserved set
+     * used verbatim in the error message; {@code context} names the validated
+     * field.
+     */
+    private static void validateReservedChars(String path, String reserved, String charsetDesc,
+                                              String context) throws IOException {
+        for (int i = 0; i < reserved.length(); i++) {
+            if (path.indexOf(reserved.charAt(i)) >= 0) {
+                throw new IOException(context + " contains reserved separator characters ("
+                        + charsetDesc + "): " + path);
+            }
+        }
+    }
+
+    /**
      * Serializes {@link FileSplit} as a flat UTF-8 string with {@code |} separators:
      * {@code filePath|startOffset|endOffset|currentOffset}. Versioned at 1.
      */
@@ -110,10 +128,7 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
         @Override
         public byte[] serialize(FileSplit obj) throws IOException {
             String filePath = obj.getFilePath();
-            if (filePath.indexOf('|') >= 0 || filePath.indexOf('\n') >= 0 || filePath.indexOf('\r') >= 0) {
-                throw new IOException("FileSplit filePath contains reserved separator characters "
-                        + "('|' / newline): " + filePath);
-            }
+            validateReservedChars(filePath, "|\n\r", "'|' / newline", "FileSplit filePath");
             String s = obj.getFilePath() + "|" + obj.getStartOffset() + "|"
                     + obj.getEndOffset() + "|" + obj.getCurrentOffset();
             return s.getBytes(StandardCharsets.UTF_8);
@@ -177,16 +192,13 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
             // "filePath|startOffset|endOffset|currentOffset"
             for (java.util.Map.Entry<String, FileSplit> entry : obj.getSplitById().entrySet()) {
                 FileSplit s = entry.getValue();
-                // B6 (plan 01 quality-perf): validate here, symmetric with
-                // FileSplitSerializer and the CSV sections — pre-fix a path with
-                // '|' or a newline serialized fine and then failed at RESTORE time
-                // ("Malformed split line"), so the checkpoint succeeded but the
-                // job could never recover.
+                // Split paths carry the same reserved set enforced by
+                // FileSplitSerializer: the same path text is embedded in both
+                // payload formats, so a reserved character must be rejected at
+                // serialize time rather than surface as payload corruption at
+                // restore time.
                 String path = s.getFilePath();
-                if (path.indexOf('|') >= 0 || path.indexOf('\n') >= 0 || path.indexOf('\r') >= 0) {
-                    throw new IOException("Enumerator state split path contains reserved separator "
-                            + "characters ('|' / newline): " + path);
-                }
+                validateReservedChars(path, "|\n\r", "'|' / newline", "Enumerator state split path");
                 sb.append(path).append('|')
                         .append(s.getStartOffset()).append('|')
                         .append(s.getEndOffset()).append('|')
@@ -204,10 +216,7 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
                 throws IOException {
             boolean first = true;
             for (String path : paths) {
-                if (path.indexOf(',') >= 0 || path.indexOf('\n') >= 0 || path.indexOf('\r') >= 0) {
-                    throw new IOException("Enumerator state file path contains reserved separator "
-                            + "characters (',' / newline): " + path);
-                }
+                validateReservedChars(path, ",\n\r", "',' / newline", "Enumerator state file path");
                 if (!first) {
                     sb.append(',');
                 }

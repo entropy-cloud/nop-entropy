@@ -161,13 +161,14 @@ public final class MaxParallelismReshardMigration {
     }
 
     /**
-     * Reshard one vertex's states under the new maxParallelism: merge all old
-     * subtasks' keyed pools, redistribute entries to the new owners, and build
-     * each new subtask's snapshot (operator state copied 1:1 by index, keyed
-     * state rebuilt). Updates {@code result}'s statistics and adds the new
-     * subtask snapshots to {@code newTaskStates}.
+     * Reshard one vertex's states under the new maxParallelism. Orchestration
+     * of the four phases: merge all old subtasks' keyed pools into per-state
+     * global pools, record the per-state key counts (conservation baseline),
+     * redistribute the pools to the new owners, and assemble each new
+     * subtask's snapshot (operator state copied 1:1 by index, keyed state
+     * rebuilt). Updates {@code result}'s statistics and adds the new subtask
+     * snapshots to {@code newTaskStates}.
      */
-    @SuppressWarnings("unchecked")
     private static void reshardVertexStates(CompletedCheckpoint oldCheckpoint,
                                             String vertexId,
                                             List<TaskLocation> oldSubtasks,
@@ -184,9 +185,32 @@ public final class MaxParallelismReshardMigration {
         }
         result.setNewParallelism(newParallelism);
 
-        // Build the per-state global keyed pool across all old subtasks,
-        // tracking each state's outer stateData envelope (keyType etc.).
-        // keyedStorageKey -> {envelope (stateData map), globalStates}
+        // Phase 1: build the per-state global keyed pool across all old
+        // subtasks, tracking each state's outer stateData envelope (keyType).
+        Map<String, GlobalKeyedPool> pools = buildGlobalKeyedPools(oldCheckpoint, oldSubtasks);
+
+        // Phase 2: record per-stateName key counts (conservation invariant:
+        // this is both the before and after count — redistribution only moves
+        // entries).
+        recordKeyCounts(vertexId, pools, result);
+
+        // Phase 3: redistribute each keyed pool under the new maxParallelism.
+        // newSubtaskIndex -> keyedStorageKey -> rebuilt stateData
+        Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask =
+                redistributePools(pools, newMaxParallelism, newParallelism);
+
+        // Phase 4: assemble each new subtask snapshot.
+        assembleNewSubtaskSnapshots(oldCheckpoint, vertexId, oldSubtasks, newMaxParallelism,
+                newParallelism, newKeyedBySubtask, result, newTaskStates);
+    }
+
+    /**
+     * Phase 1: builds the per-state global keyed pool across all old subtasks.
+     * keyedStorageKey -&gt; {envelope (stateData map), globalStates}.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, GlobalKeyedPool> buildGlobalKeyedPools(CompletedCheckpoint oldCheckpoint,
+                                                                     List<TaskLocation> oldSubtasks) {
         Map<String, GlobalKeyedPool> pools = new LinkedHashMap<>();
         for (TaskLocation oldLoc : oldSubtasks) {
             TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldLoc);
@@ -206,17 +230,21 @@ public final class MaxParallelismReshardMigration {
                             "Keyed state '" + ke.getKey() + "' at " + oldLoc
                                     + " has no 'states' map (fail-fast, no silent drop)");
                 }
-                Map<String, Object> statesMap = (Map<String, Object>) statesObj;
                 GlobalKeyedPool pool = pools.computeIfAbsent(ke.getKey(),
                         k -> new GlobalKeyedPool(new LinkedHashMap<>(stateData), new LinkedHashMap<>()));
                 mergeStates((Map<String, Object>) statesObj, pool.globalStates);
             }
         }
+        return pools;
+    }
 
-        // Record per-stateName key counts (conservation invariant: this is both
-        // the before and after count — redistribution only moves entries). A
-        // keyed storage key (backend) may hold multiple named states, so the
-        // report is keyed by the inner state name, not the storage key.
+    /**
+     * Phase 2: records per-stateName key counts. A keyed storage key (backend)
+     * may hold multiple named states, so the report is keyed by the inner state
+     * name, not the storage key.
+     */
+    private static void recordKeyCounts(String vertexId, Map<String, GlobalKeyedPool> pools,
+                                        ReshardMigrationResult result) {
         for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
             for (String stateName : poolEntry.getValue().globalStates.keySet()) {
                 int cnt = countEntriesOfState(poolEntry.getValue().globalStates, stateName);
@@ -224,16 +252,18 @@ public final class MaxParallelismReshardMigration {
             }
         }
 
-        if (pools.isEmpty()) {
-            if (result.getKeyCountByState().isEmpty()) {
-                result.addWarning("vertex " + vertexId + " has no keyed state (operator-state-only); "
-                        + "reshard is a structural no-op for this vertex and recorded explicitly");
-            }
+        if (pools.isEmpty() && result.getKeyCountByState().isEmpty()) {
+            result.addWarning("vertex " + vertexId + " has no keyed state (operator-state-only); "
+                    + "reshard is a structural no-op for this vertex and recorded explicitly");
         }
+    }
 
-        // Redistribute each keyed pool under the new maxParallelism and
-        // assemble each new subtask's keyed snapshot.
-        // newSubtaskIndex -> keyedStorageKey -> rebuilt stateData
+    /**
+     * Phase 3: redistributes each keyed pool under the new maxParallelism and
+     * groups the rebuilt stateData maps by target subtask.
+     */
+    private static Map<Integer, Map<String, Map<String, Object>>> redistributePools(
+            Map<String, GlobalKeyedPool> pools, int newMaxParallelism, int newParallelism) {
         Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask = new TreeMap<>();
         for (int s = 0; s < newParallelism; s++) {
             newKeyedBySubtask.put(s, new LinkedHashMap<>());
@@ -250,8 +280,26 @@ public final class MaxParallelismReshardMigration {
                 newKeyedBySubtask.get(re.getKey()).put(keyedStorageKey, newStateData);
             }
         }
+        return newKeyedBySubtask;
+    }
 
-        // Build each new subtask snapshot.
+    /**
+     * Phase 4: assembles each new subtask's snapshot (operator state copied 1:1
+     * by index — scale-up subtasks start empty, operator-state rescale
+     * redistribution is out of scope and orthogonal to reshard; keyed state
+     * attached from the phase-3 redistribution) and records the per-subtask key
+     * distribution.
+     */
+    @SuppressWarnings("unchecked")
+    private static void assembleNewSubtaskSnapshots(CompletedCheckpoint oldCheckpoint,
+                                                    String vertexId,
+                                                    List<TaskLocation> oldSubtasks,
+                                                    int newMaxParallelism,
+                                                    int newParallelism,
+                                                    Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask,
+                                                    ReshardMigrationResult result,
+                                                    Map<TaskLocation, TaskStateSnapshot> newTaskStates) {
+        int oldParallelism = oldSubtasks.size();
         for (int s = 0; s < newParallelism; s++) {
             TaskLocation newLoc = new TaskLocation(oldCheckpoint.getJobId(),
                     oldCheckpoint.getPipelineId(), vertexId, s);

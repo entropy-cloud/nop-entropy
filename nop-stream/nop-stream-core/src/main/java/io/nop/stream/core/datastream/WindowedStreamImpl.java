@@ -125,10 +125,6 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return this;
     }
 
-    public Evictor<? super T, W> getEvictor() {
-        return evictor;
-    }
-
     @Override
     public WindowedStreamImpl<T, K, W> evictor(Evictor<? super T, ? super W> evictor) {
         this.evictor = (Evictor<? super T, W>) evictor;

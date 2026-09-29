@@ -1,6 +1,5 @@
 package io.nop.stream.runtime.execution;
 
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.execution.plan.DeploymentAssignment;
@@ -11,11 +10,10 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
+import io.nop.stream.runtime.coordinator.CoordinatorTestSupport;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +26,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -50,8 +46,8 @@ class TestJobCoordinatorAssignmentFromPlan {
 
     private InMemoryClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
-    private RecordingTaskRpc node0Rpc;
-    private RecordingTaskRpc node1Rpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService node0Rpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService node1Rpc;
     private Map<String, IStreamTaskRpcService> taskRpcServices;
 
     @BeforeEach
@@ -74,8 +70,8 @@ class TestJobCoordinatorAssignmentFromPlan {
         clusterRegistry.registerNode("node-0", "localhost:9000", 4);
         clusterRegistry.registerNode("node-1", "localhost:9001", 4);
 
-        node0Rpc = new RecordingTaskRpc();
-        node1Rpc = new RecordingTaskRpc();
+        node0Rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
+        node1Rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices = new LinkedHashMap<>();
         taskRpcServices.put("node-0", node0Rpc);
         taskRpcServices.put("node-1", node1Rpc);
@@ -237,26 +233,4 @@ class TestJobCoordinatorAssignmentFromPlan {
 
     // ==================== Mocks ====================
 
-    static class RecordingTaskRpc implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-        final AtomicReference<CheckpointBarrier> lastBarrier = new AtomicReference<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-            lastBarrier.set(barrier);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

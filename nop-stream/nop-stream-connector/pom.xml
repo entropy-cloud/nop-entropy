@@ -14,11 +14,11 @@
     <!--
         AR-2: base connector must be loadable WITHOUT nop-batch-core or
         nop-message-debezium on the classpath. Those optional dependencies
-        caused NoClassDefFoundError when loading StreamConnectors (which
-        referenced IBatchLoaderProvider/IBatchConsumerProvider in its
+        caused NoClassDefFoundError when loading batch bridge types (which
+        referenced IBatchLoaderProvider/IBatchConsumerProvider in their
         method signatures) even when the batch connectors were not used.
 
-        Batch-dependent types (StreamConnectors, BatchConsumerSinkFunction,
+        Batch-dependent types (BatchConsumerSinkFunction,
         BatchLoaderSourceFunction) have been moved to nop-stream-connector-batch.
         Debezium-dependent types (DebeziumCdcSourceFunction) have been moved
         to nop-stream-connector-debezium.

@@ -9,7 +9,6 @@ package io.nop.stream.runtime.coordinator;
 
 import com.zaxxer.hikari.HikariDataSource;
 
-import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
@@ -48,8 +47,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -387,7 +384,7 @@ class TestJobCoordinatorFailoverRestore {
                                               ICheckpointStorage storage) {
         MockClusterRegistry registry = new MockClusterRegistry();
         registry.registerNode("node-1", "localhost:9001", 4);
-        MockTaskRpcService rpc = new MockTaskRpcService();
+        CoordinatorTestSupport.RecordingTaskRpcService rpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         Map<String, IStreamTaskRpcService> rpcs = new java.util.HashMap<>();
         rpcs.put("node-1", rpc);
         JobCoordinator c = new JobCoordinator(
@@ -450,33 +447,6 @@ class TestJobCoordinatorFailoverRestore {
 
         @Override
         public void removeTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
-        }
-    }
-
-    static class MockTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-        final AtomicReference<io.nop.stream.core.checkpoint.CheckpointBarrier> lastBarrier = new AtomicReference<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-            lastBarrier.set(barrier);
-        }
-
-        @Override
-        public void deployTask(io.nop.stream.runtime.rpc.TaskDeploymentDescriptor descriptor, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
         }
     }
 

@@ -11,9 +11,9 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.stream.core.exceptions.StreamException;
 
 /**
- * G11 (plan 01 quality-perf): shared teardown helpers. Several task-teardown
- * sites repeated the same "first failure wins, later ones attach as
- * suppressed" skeleton; this utility gives it one implementation.
+ * Shared teardown helpers giving the task-teardown sites' common
+ * "first failure wins, later ones attach as suppressed" skeleton one
+ * implementation.
  *
  * <p>Note: this is NOT a universal close policy. Sites with a different error
  * policy keep their own loops — e.g. {@code RecordWriter.close()} converts

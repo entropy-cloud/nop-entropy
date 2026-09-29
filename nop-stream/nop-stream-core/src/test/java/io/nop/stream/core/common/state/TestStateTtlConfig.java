@@ -40,7 +40,7 @@ class TestStateTtlConfig {
     void javaSerializationRoundTrip() throws Exception {
         StateTtlConfig cfg = StateTtlConfig.newBuilder(Duration.ofMillis(500))
                 .setUpdateType(StateTtlUpdateType.OnCreateAndWrite)
-                .setCleanupStrategy(new TtlCleanupStrategy(true, false))
+                .setCleanupStrategy(new TtlCleanupStrategy(false))
                 .build();
 
         java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
@@ -54,7 +54,8 @@ class TestStateTtlConfig {
         }
         assertEquals(cfg, restored);
         assertTrue(restored.isEnabled());
-        assertFalse(restored.getCleanupStrategy().isBackgroundCleanup());
+        assertFalse(restored.getCleanupStrategy().isLazyEviction(),
+                "non-default cleanup strategy must survive the round trip");
     }
 
     @Test

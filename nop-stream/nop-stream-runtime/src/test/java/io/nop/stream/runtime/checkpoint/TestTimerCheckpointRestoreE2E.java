@@ -25,6 +25,7 @@ import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.checkpoint.storage.CheckpointSerDe;
 import io.nop.stream.runtime.operators.windowing.WindowOperator;
+import io.nop.stream.runtime.operators.windowing.WindowingTestSupport;
 import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.Test;
@@ -64,7 +65,7 @@ class TestTimerCheckpointRestoreE2E {
     @Test
     void testTimerSurvivesCheckpointAndFiresAfterRestore() throws Exception {
         TestOutput<String> output1 = new TestOutput<>();
-        TestableWindowOperator op1 = newOperator();
+        WindowingTestSupport.TestableWindowOperator op1 = newOperator();
         op1.setOutput((Output) output1);
         op1.open();
 
@@ -97,7 +98,7 @@ class TestTimerCheckpointRestoreE2E {
 
             // Simulate kill + restore: create a brand-new operator.
             TestOutput<String> output2 = new TestOutput<>();
-            TestableWindowOperator op2 = newOperator();
+            WindowingTestSupport.TestableWindowOperator op2 = newOperator();
             op2.setOutput((Output) output2);
 
             // restoreState runs BEFORE open() — internalTimerService is still null.
@@ -134,7 +135,7 @@ class TestTimerCheckpointRestoreE2E {
     @Test
     void testNoDoubleFireOfAlreadyFiredTimers() throws Exception {
         TestOutput<String> output1 = new TestOutput<>();
-        TestableWindowOperator op1 = newOperator();
+        WindowingTestSupport.TestableWindowOperator op1 = newOperator();
         op1.setOutput((Output) output1);
         op1.open();
 
@@ -163,7 +164,7 @@ class TestTimerCheckpointRestoreE2E {
 
             // Restore into a new operator.
             TestOutput<String> output2 = new TestOutput<>();
-            TestableWindowOperator op2 = newOperator();
+            WindowingTestSupport.TestableWindowOperator op2 = newOperator();
             op2.setOutput((Output) output2);
             op2.restoreState(snapshot);
             op2.open();
@@ -190,7 +191,7 @@ class TestTimerCheckpointRestoreE2E {
     @Test
     void testEmptyTimerSnapshotRestoreIsNoError() throws Exception {
         TestOutput<String> output1 = new TestOutput<>();
-        TestableWindowOperator op1 = newOperator();
+        WindowingTestSupport.TestableWindowOperator op1 = newOperator();
         op1.setOutput((Output) output1);
         op1.open();
 
@@ -206,7 +207,7 @@ class TestTimerCheckpointRestoreE2E {
 
             // Restore empty snapshot — should complete without error.
             TestOutput<String> output2 = new TestOutput<>();
-            TestableWindowOperator op2 = newOperator();
+            WindowingTestSupport.TestableWindowOperator op2 = newOperator();
             op2.setOutput((Output) output2);
             op2.restoreState(snapshot);
             op2.open();
@@ -301,14 +302,14 @@ class TestTimerCheckpointRestoreE2E {
 
     // ------------------------------------------------------------------------
 
-    private TestableWindowOperator newOperator() {
-        return new TestableWindowOperator(
+    private WindowingTestSupport.TestableWindowOperator newOperator() {
+        return new WindowingTestSupport.TestableWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
-                new ToStringWindowFunction<String>(),
+                new WindowingTestSupport.ToStringWindowFunction<>(),
                 EventTimeTrigger.create(),
                 0L,
                 null
@@ -318,47 +319,22 @@ class TestTimerCheckpointRestoreE2E {
     private TestableLongKeyWindowOperator newLongKeyOperator() {
         return new TestableLongKeyWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, Long>) v -> 123L,
-                new SimpleLongSerializer(),
+                new WindowingTestSupport.SimpleLongSerializer(),
                 Long.class,
-                new ToStringWindowFunction<Long>(),
+                new WindowingTestSupport.ToStringWindowFunction<>(),
                 EventTimeTrigger.create(),
                 0L,
                 null
         );
     }
 
-    static class TestableWindowOperator extends WindowOperator<String, Integer, Object, String, TimeWindow> {
-
-        TestableWindowOperator(
-                TumblingEventTimeWindows windowAssigner,
-                TypeSerializer<TimeWindow> windowSerializer,
-                KeySelector<Integer, String> keySelector,
-                TypeSerializer<String> keySerializer,
-                Class<String> keyClass,
-                InternalWindowFunction<Object, String, String, TimeWindow> windowFunction,
-                EventTimeTrigger trigger,
-                long allowedLateness,
-                OutputTag<Integer> lateDataOutputTag) {
-            super(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
-                    windowFunction, trigger, allowedLateness, lateDataOutputTag);
-        }
-
-        void advanceInternalWatermark(long timestamp) throws Exception {
-            internalTimerService.advanceWatermark(timestamp);
-        }
-
-        InternalTimerService<TimeWindow> getInternalTimerService() {
-            return internalTimerService;
-        }
-    }
-
     /**
-     * Long-keyed variant of {@link TestableWindowOperator} (AR-22): the operator's
-     * {@code keyClass} is {@code Long.class}, which the fix wires into the timer
-     * service so restored timer keys are re-materialized to Long after the JSON
-     * checkpoint round trip.
+     * Long-keyed variant of {@link WindowingTestSupport.TestableWindowOperator}
+     * (AR-22): the operator's {@code keyClass} is {@code Long.class}, which the
+     * fix wires into the timer service so restored timer keys are
+     * re-materialized to Long after the JSON checkpoint round trip.
      */
     static class TestableLongKeyWindowOperator extends WindowOperator<Long, Integer, Object, String, TimeWindow> {
 
@@ -378,88 +354,6 @@ class TestTimerCheckpointRestoreE2E {
 
         void advanceInternalWatermark(long timestamp) throws Exception {
             internalTimerService.advanceWatermark(timestamp);
-        }
-    }
-
-    static class ToStringWindowFunction<K> implements InternalWindowFunction<Object, String, K, TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public void process(K key, TimeWindow window, InternalWindowContext context,
-                            Object input, io.nop.stream.core.util.Collector<String> out) {
-            out.collect(String.valueOf(input));
-        }
-
-        @Override
-        public void clear(TimeWindow window, InternalWindowContext context) {
-        }
-    }
-
-    static class SimpleTimeWindowSerializer implements TypeSerializer<TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<TimeWindow> duplicate() {
-            return this;
-        }
-
-        @Override
-        public TimeWindow createInstance() {
-            return new TimeWindow(0, 0);
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from, TimeWindow reuse) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
-    }
-
-    static class SimpleStringSerializer implements TypeSerializer<String> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<String> duplicate() {
-            return this;
-        }
-
-        @Override
-        public String createInstance() {
-            return "";
-        }
-
-        @Override
-        public String copy(String from) {
-            return from;
-        }
-
-        @Override
-        public String copy(String from, String reuse) {
-            return from;
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
         }
     }
 

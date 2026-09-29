@@ -23,9 +23,11 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled("Genuinely broken: DebeziumCdcSourceFunction.run() loops until cancel() or " +
-        "truncateForDrain() is called — it has no natural completion path. " +
-        "The test expects natural end without cancel, which is impossible by design.")
+@Disabled("Contract mismatch: DebeziumCdcSourceFunction.run() is an unbounded source — it "
+        + "only returns on cancel() or truncateForDrain(), never on natural end. The test's "
+        + "expectation (natural completion without cancel) contradicts that contract; the "
+        + "test needs a redesign toward the cancel-driven contract. Tracked in the connector "
+        + "backlog; see plan 366 follow-up.")
 public class TestDebeziumCdcSourceCompletion {
 
     @Test

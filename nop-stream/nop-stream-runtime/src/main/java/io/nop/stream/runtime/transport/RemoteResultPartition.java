@@ -7,18 +7,12 @@
  */
 package io.nop.stream.runtime.transport;
 
-import io.nop.api.core.time.CoreMetrics;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.ResultPartition;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -63,13 +57,13 @@ public class RemoteResultPartition extends ResultPartition {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteResultPartition.class);
 
     /**
-     * Serializes all message-service sends (data, heartbeat, EOS). plan 2279 Q2:
-     * encoding happens OUTSIDE this lock and only the backend send is inside, so a
-     * slow backend (synchronous JDBC write, ms-scale) no longer pins the monitor
-     * and interleave the heartbeat driver with data writes. Per-partition FIFO is
-     * preserved: each producer thread performs its sends under this lock in arrival
-     * order. The close() ordering contract (no heartbeat past EOS) is enforced by
-     * re-checking {@code isFinished()} inside the lock — see {@link #close()}.
+     * Serializes all message-service sends (data, EOS). plan 2279 Q2: encoding
+     * happens OUTSIDE this lock and only the backend send is inside, so a slow
+     * backend (synchronous JDBC write, ms-scale) no longer pins the monitor.
+     * Per-partition FIFO is preserved: each producer thread performs its sends
+     * under this lock in arrival order. The close() ordering contract (no
+     * message past EOS) is enforced by re-checking {@code isFinished()} inside
+     * the lock — see {@link #close()}.
      */
     private final Object sendLock = new Object();
 
@@ -78,31 +72,6 @@ public class RemoteResultPartition extends ResultPartition {
     private final TypeRegistry typeRegistry;
     private final String edgeId;
     private final long epochId;
-
-    /**
-     * Stage 43: idle-heartbeat interval in milliseconds. When {@code > 0} the
-     * producer emits a {@link StreamMessageEnvelope#CONTROL_HEARTBEAT} envelope
-     * whenever no data record has been sent for this interval (see
-     * {@link #sendHeartbeatIfIdle()}). {@code <= 0} disables heartbeat emission
-     * (back-compat default for callers that do not opt in).
-     */
-    private final long heartbeatIntervalMs;
-
-    /**
-     * Stage 43: monotonic timestamp of the last <em>data</em> record send. Read
-     * by {@link #sendHeartbeatIfIdle()} to decide whether the channel is idle.
-     * Heartbeats themselves do NOT refresh this timestamp (a heartbeat is not
-     * data progress). {@code AtomicLong} so the heartbeat scheduler thread and
-     * the producer thread agree on visibility without locking {@code write()}.
-     */
-    private final AtomicLong lastDataSendTime = new AtomicLong(CoreMetrics.currentTimeMillis());
-
-    /**
-     * Stage 43: handle of the scheduled heartbeat task, if {@link
-     * #startHeartbeat(ScheduledExecutorService)} was called. Stored so callers /
-     * tests can cancel it on close.
-     */
-    private volatile ScheduledFuture<?> heartbeatTask;
 
     /**
      * Captured when the end-of-stream control message could not be delivered in
@@ -126,33 +95,6 @@ public class RemoteResultPartition extends ResultPartition {
                                  TypeRegistry typeRegistry,
                                  String edgeId,
                                  long epochId) {
-        this(messageService, topic, typeRegistry, edgeId, epochId, 0L);
-    }
-
-    /**
-     * Stage 43: full constructor with idle-heartbeat emission enabled.
-     *
-     * <p>When {@code heartbeatIntervalMs > 0}, the producer should be wired to a
-     * shared scheduler via {@link #startHeartbeat(ScheduledExecutorService)} so
-     * that {@link #sendHeartbeatIfIdle()} is invoked periodically. The scheduler
-     * is intentionally not owned per-partition (the plan forbids a dedicated
-     * timer thread per channel); the caller (e.g. task runtime) supplies one
-     * shared executor.
-     *
-     * @param messageService      the message service for sending data
-     * @param topic               the topic to send to
-     * @param typeRegistry        registry for looking up output types per edge
-     * @param edgeId              the edge identifier for type lookup
-     * @param epochId             monotonic fencing epoch for the current job execution
-     *                            (Stage 39: the single long fencing key)
-     * @param heartbeatIntervalMs idle-heartbeat interval in ms; {@code <= 0} disables
-     */
-    public RemoteResultPartition(IMessageService messageService,
-                                 String topic,
-                                 TypeRegistry typeRegistry,
-                                 String edgeId,
-                                 long epochId,
-                                 long heartbeatIntervalMs) {
         // Pass capacity 1 to parent; the queue is never actually used
         super(1);
         this.messageService = messageService;
@@ -160,7 +102,6 @@ public class RemoteResultPartition extends ResultPartition {
         this.typeRegistry = typeRegistry;
         this.edgeId = edgeId;
         this.epochId = epochId;
-        this.heartbeatIntervalMs = heartbeatIntervalMs;
     }
 
     /**
@@ -187,10 +128,6 @@ public class RemoteResultPartition extends ResultPartition {
         StreamMessageEnvelope envelope = StreamElementCodec.encode(
                 element, valueType, epochId);
         sendUnderLock(envelope);
-        // A data record was sent — refresh the idle-heartbeat clock.
-        // Barriers/watermarks are written via write() too and also count as
-        // producer liveness (they prove the producer is driving the stream).
-        lastDataSendTime.set(CoreMetrics.currentTimeMillis());
     }
 
     /**
@@ -216,17 +153,12 @@ public class RemoteResultPartition extends ResultPartition {
         }
         markFinished();
 
-        // Stop the heartbeat task before sending EOS so no NEW heartbeat is
-        // scheduled past the terminal control message. A heartbeat already in
-        // flight completes first: close() sends EOS under sendLock, waiting for
-        // the in-flight send — so the backend sees [heartbeat, EOS] in order.
-        stopHeartbeat();
-
-        // Send end-of-stream control message. A lost EOS leaves the downstream
-        // reader waiting forever (the producer-side liveness signal is already
-        // gone once the heartbeat task above is stopped): fail the partition
-        // typed so the owning task fails and job-level cancellation unblocks
-        // the consumer — never a silent, unbounded downstream wait.
+        // Send the end-of-stream control message as the partition's terminal
+        // message. EOS is the only notification the consumer ever gets that the
+        // producer is done: a lost EOS leaves the downstream reader waiting
+        // forever — fail the partition typed so the owning task fails and
+        // job-level cancellation unblocks the consumer — never a silent,
+        // unbounded downstream wait.
         StreamMessageEnvelope eos = new StreamMessageEnvelope(
                 epochId,
                 StreamMessageEnvelope.TYPE_CONTROL, null,
@@ -252,93 +184,6 @@ public class RemoteResultPartition extends ResultPartition {
      */
     public Throwable getEosSendError() {
         return eosSendError;
-    }
-
-    /**
-     * Stage 43: schedules periodic {@link #sendHeartbeatIfIdle()} on the given
-     * shared scheduler. No-op (returns {@code null}) when heartbeat emission is
-     * disabled ({@code heartbeatIntervalMs <= 0}). The caller owns the scheduler
-     * lifetime; this method only stores the {@link ScheduledFuture} so {@link
-     * #close()} can cancel it.
-     *
-     * <p>This never spawns a per-channel thread — the supplied executor is shared
-     * across all partitions of the task/job (plan Phase 1 threading model).
-     *
-     * @param scheduler a shared scheduled executor (typically owned by the task runtime)
-     * @return the scheduled future for cancellation, or {@code null} if disabled
-     */
-    public ScheduledFuture<?> startHeartbeat(ScheduledExecutorService scheduler) {
-        if (heartbeatIntervalMs <= 0 || scheduler == null) {
-            return null;
-        }
-        this.heartbeatTask = scheduler.scheduleAtFixedRate(
-                this::sendHeartbeatIfIdle,
-                heartbeatIntervalMs, heartbeatIntervalMs, TimeUnit.MILLISECONDS);
-        return this.heartbeatTask;
-    }
-
-    /**
-     * Stage 43: cancels the scheduled heartbeat task if one was started. Safe
-     * no-op when not scheduled. Called from {@link #close()}.
-     */
-    public void stopHeartbeat() {
-        ScheduledFuture<?> task = this.heartbeatTask;
-        if (task != null) {
-            task.cancel(false);
-            this.heartbeatTask = null;
-        }
-    }
-
-    /**
-     * Stage 43: emits a lightweight idle-heartbeat envelope if (a) heartbeat is
-     * enabled, (b) the partition is not finished, and (c) no data record has
-     * been sent for at least {@link #heartbeatIntervalMs}. Public so tests can
-     * drive the heartbeat deterministically without a real timer.
-     *
-     * <p>The heartbeat is a {@link StreamMessageEnvelope#TYPE_CONTROL} envelope
-     * with payload {@link StreamMessageEnvelope#CONTROL_HEARTBEAT}, carrying the
-     * current fencing {@code epochId}. It is distinguishable from data and from
-     * {@link StreamMessageEnvelope#CONTROL_END_OF_STREAM}.
-     *
-     * @return {@code true} if a heartbeat was sent on this invocation
-     */
-    public synchronized boolean sendHeartbeatIfIdle() {
-        if (heartbeatIntervalMs <= 0 || isFinished()) {
-            return false;
-        }
-        long now = CoreMetrics.currentTimeMillis();
-        long idleFor = now - lastDataSendTime.get();
-        if (idleFor < heartbeatIntervalMs) {
-            return false;
-        }
-        StreamMessageEnvelope heartbeat = new StreamMessageEnvelope(
-                epochId,
-                StreamMessageEnvelope.TYPE_CONTROL, null,
-                StreamMessageEnvelope.CONTROL_HEARTBEAT);
-        synchronized (sendLock) {
-            // In-lock finished re-check: once close() has sent EOS, no heartbeat
-            // may land after the terminal message. A heartbeat that passed the
-            // volatile check just before markFinished() serializes here BEFORE
-            // close()'s EOS (close waits for the in-flight send).
-            if (isFinished()) {
-                return false;
-            }
-            try {
-                messageService.send(topic, heartbeat);
-            } catch (Exception e) {
-                // A heartbeat send failure is not fatal — the consumer-side timeout
-                // will detect sustained failure. Log at debug so transient backend
-                // hiccups do not spam.
-                LOG.debug("Failed to send heartbeat on topic={}", topic, e);
-                return false;
-            }
-        }
-        LOG.debug("Sent idle heartbeat on topic={}, idleForMs={}", topic, idleFor);
-        return true;
-    }
-
-    public long getHeartbeatIntervalMs() {
-        return heartbeatIntervalMs;
     }
 
     /**

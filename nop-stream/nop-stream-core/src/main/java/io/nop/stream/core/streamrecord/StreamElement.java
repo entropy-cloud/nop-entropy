@@ -123,16 +123,6 @@ public abstract class StreamElement {
         return (WatermarkStatus) this;
     }
 
-    /**
-     * Casts this element into a LatencyMarker.
-     *
-     * @return This element as a LatencyMarker.
-     * @throws ClassCastException Thrown, if this element is actually not a LatencyMarker.
-     */
-    public final LatencyMarker asLatencyMarker() {
-        return (LatencyMarker) this;
-    }
-
     public final CheckpointBarrier asCheckpointBarrier() {
         return (CheckpointBarrier) this;
     }

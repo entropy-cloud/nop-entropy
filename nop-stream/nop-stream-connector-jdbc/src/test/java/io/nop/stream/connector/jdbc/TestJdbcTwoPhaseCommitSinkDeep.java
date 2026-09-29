@@ -210,10 +210,9 @@ class TestJdbcTwoPhaseCommitSinkDeep {
                 "Idempotent re-commit must NOT produce duplicate data rows");
         assertEquals(1, countRows("stream_epoch_ledger"),
                 "Idempotent re-commit must NOT produce duplicate ledger rows (PK guard)");
-        // B4 (plan 01 quality-perf): the idempotent path is a successful commit —
-        // it must drop the staging entry like the normal path does (pre-fix the
-        // early return left the entry forever: redundant ledger probe + empty
-        // transaction on every later commit of the same epoch, unbounded growth).
+        // The idempotent path is a successful commit — it must drop the
+        // staging entry like the normal path does, leaving no stale
+        // pendingCommits entry behind.
         assertFalse(sink.getPendingCommits().containsKey(1L),
                 "Idempotent re-commit must clear pendingCommits for the epoch");
     }

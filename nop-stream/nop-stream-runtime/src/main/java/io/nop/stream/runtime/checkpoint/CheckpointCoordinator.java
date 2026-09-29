@@ -250,8 +250,6 @@ public class CheckpointCoordinator {
      */
     private final CheckpointHistory checkpointHistory = new CheckpointHistory();
 
-    private static final int DEFAULT_COMMIT_RETRIES = 3;
-    private static final int CONSECUTIVE_FAILURE_THRESHOLD = 3;
     // Package-private for tests: the A2 regression pins the bounded lifecycle of
     // the failed-commit retry bookkeeping.
     final ConcurrentSkipListMap<Long, Set<CheckpointParticipant>> failedCommitParticipants = new ConcurrentSkipListMap<>();
@@ -927,7 +925,7 @@ public class CheckpointCoordinator {
         // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
         notifyParticipantsFinishCommit(checkpointId, false);
 
-        // A2 (plan 01 quality-perf): an aborted epoch is terminal — nothing will
+        // An aborted epoch is terminal — nothing will
         // ever complete it, so the terminal marker notifyParticipantsFinishCommit
         // just recorded must not linger. Drop it unless failed-commit retries
         // still need it (they replay finishCommit for this epoch using the

@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Regression proofs for the send-lock narrowing (plan 2279 Q2): only the backend
  * send serializes on {@code sendLock}; encode runs outside it; and the EOS
- * ordering contract (no heartbeat or data message past the terminal message) is
- * enforced by in-lock {@code isFinished()} re-checks.
+ * ordering contract (no message past the terminal message) is enforced by
+ * in-lock {@code isFinished()} re-checks.
  */
 class TestRemotePartitionSendLock {
 
@@ -94,61 +94,45 @@ class TestRemotePartitionSendLock {
     }
 
     @Test
-    void inFlightHeartbeatLandsBeforeEos() throws Exception {
+    void inFlightWriteLandsBeforeEos() throws Exception {
         RecordingBackend backend = new RecordingBackend();
         TypeRegistry registry = new TypeRegistry();
         RemoteResultPartition partition = new RemoteResultPartition(
-                backend, "topic", registry, "edge", 1L, 1L);
+                backend, "topic", registry, "edge", 1L);
 
-        // Make the partition idle so a heartbeat passes the idle check.
-        Thread.sleep(50);
+        CountDownLatch writeSendStarted = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        backend.blockSend = releaseWrite;
 
-        CountDownLatch heartbeatSendStarted = new CountDownLatch(1);
-        CountDownLatch releaseHeartbeat = new CountDownLatch(1);
-        backend.blockSend = releaseHeartbeat;
-
-        Thread heartbeatThread = new Thread(() -> {
-            heartbeatSendStarted.countDown();
-            partition.sendHeartbeatIfIdle();
+        Thread writeThread = new Thread(() -> {
+            writeSendStarted.countDown();
+            try {
+                partition.write(new StreamRecord<>(1L, 1L));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         });
-        heartbeatThread.start();
-        assertTrue(heartbeatSendStarted.await(5, TimeUnit.SECONDS));
-        // Wait until the heartbeat is parked inside the backend (message recorded,
+        writeThread.start();
+        assertTrue(writeSendStarted.await(5, TimeUnit.SECONDS));
+        // Wait until the write is parked inside the backend (message recorded,
         // send not completed): close() must wait for it under sendLock.
         long deadline = System.currentTimeMillis() + 5000;
         while (backend.sentMessages.size() < 1 && System.currentTimeMillis() < deadline) {
             Thread.sleep(10);
         }
 
-        partition.close(); // blocks in sendLock until the in-flight heartbeat send returns
+        partition.close(); // blocks in sendLock until the in-flight data send returns
 
-        releaseHeartbeat.countDown();
-        heartbeatThread.join(5000);
-        assertFalse(heartbeatThread.isAlive());
+        releaseWrite.countDown();
+        writeThread.join(5000);
+        assertFalse(writeThread.isAlive());
 
-        assertEquals(2, backend.sentMessages.size(), "heartbeat then EOS, no other sends");
-        assertTrue(backend.sentMessages.get(0).contains("HEARTBEAT"),
-                "in-flight heartbeat must land BEFORE the terminal message, got: "
+        assertEquals(2, backend.sentMessages.size(), "data then EOS, no other sends");
+        assertTrue(backend.sentMessages.get(0).contains("STREAM_RECORD"),
+                "in-flight data message must land BEFORE the terminal message, got: "
                         + backend.sentMessages);
         assertTrue(backend.sentMessages.get(1).contains("END_OF_STREAM"),
                 "EOS must be the last message, got: " + backend.sentMessages);
-    }
-
-    @Test
-    void heartbeatAfterCloseIsRejectedByTheInLockRecheck() throws Exception {
-        RecordingBackend backend = new RecordingBackend();
-        TypeRegistry registry = new TypeRegistry();
-        RemoteResultPartition partition = new RemoteResultPartition(
-                backend, "topic", registry, "edge", 1L, 1L);
-
-        partition.close();
-        int sendsAtClose = backend.sentMessages.size();
-        assertEquals(1, sendsAtClose, "close sends exactly the EOS message");
-
-        assertFalse(partition.sendHeartbeatIfIdle(),
-                "a heartbeat after close must be rejected (volatile + in-lock recheck)");
-        assertEquals(sendsAtClose, backend.sentMessages.size(),
-                "no heartbeat may land after EOS");
     }
 
     @Test
@@ -156,7 +140,7 @@ class TestRemotePartitionSendLock {
         RecordingBackend backend = new RecordingBackend();
         TypeRegistry registry = new TypeRegistry();
         RemoteResultPartition partition = new RemoteResultPartition(
-                backend, "topic", registry, "edge", 1L, 0L);
+                backend, "topic", registry, "edge", 1L);
         partition.close();
 
         assertThrows(Exception.class, () -> partition.write(new StreamRecord<>(1L, 1L)),

@@ -23,10 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
-import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -104,7 +102,7 @@ class TestJobCoordinatorRecoveryConcurrency {
                 JOB_ID, "pipeline-0", idCounter, storage, config);
 
         Map<String, IStreamTaskRpcService> taskRpcServices = new LinkedHashMap<>();
-        taskRpcServices.put("node-1", new NoopTaskRpcService());
+        taskRpcServices.put("node-1", new CoordinatorTestSupport.RecordingTaskRpcService());
 
         clusterRegistry.registerNode("node-1", "localhost:8080", 4);
 
@@ -408,21 +406,4 @@ class TestJobCoordinatorRecoveryConcurrency {
         }
     }
 
-    static final class NoopTaskRpcService implements IStreamTaskRpcService {
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-        }
-
-        @Override
-        public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

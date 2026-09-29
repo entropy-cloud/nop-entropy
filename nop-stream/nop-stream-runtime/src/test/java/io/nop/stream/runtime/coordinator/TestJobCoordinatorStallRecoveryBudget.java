@@ -15,7 +15,6 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.cluster.TaskAssignment;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +27,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,7 +63,7 @@ class TestJobCoordinatorStallRecoveryBudget {
 
     private InMemoryClusterRegistry clusterRegistry;
     private JobCoordinator coordinator;
-    private NoopTaskRpc taskRpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService taskRpc;
 
     @BeforeEach
     void setUp() {
@@ -90,7 +88,7 @@ class TestJobCoordinatorStallRecoveryBudget {
         DeploymentPlan deploymentPlan = new DeploymentPlan(
                 JOB_ID, "pipeline-0", partitionedPlan, "local", "memory", "local", null, null);
 
-        taskRpc = new NoopTaskRpc();
+        taskRpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         coordinator = new JobCoordinator(
                 JOB_ID, "coord-1", deploymentPlan,
                 clusterRegistry, checkpointCoordinator,
@@ -212,7 +210,7 @@ class TestJobCoordinatorStallRecoveryBudget {
                 JOB_ID + "-b", "coord-b",
                 new DeploymentPlan(JOB_ID + "-b", "pipeline-0", partitionedPlan,
                         "local", "memory", "local", null, null),
-                shortLeaseRegistry, cc, Collections.singletonMap("node-1", new NoopTaskRpc()));
+                shortLeaseRegistry, cc, Collections.singletonMap("node-1", new CoordinatorTestSupport.RecordingTaskRpcService()));
         coordinatorB.setTerminationCheckpointTimeoutMs(500L);
         coordinatorB.setStallRecoveryCooldownMs(0L);
         try {
@@ -239,26 +237,4 @@ class TestJobCoordinatorStallRecoveryBudget {
         }
     }
 
-    static class NoopTaskRpc implements io.nop.stream.runtime.rpc.IStreamTaskRpcService {
-        final java.util.concurrent.atomic.AtomicLong lastEpoch = new java.util.concurrent.atomic.AtomicLong();
-        final CopyOnWriteArrayList<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment a) {
-            assignments.add(a);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier b, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String j, String v, int s, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastEpoch.set(fencingEpoch);
-        }
-    }
 }

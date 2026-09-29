@@ -140,18 +140,6 @@ public final class TaskNodeMetrics {
         registry.remove(new Meter.Id(METRIC_TASKS_RUNNING, tags, null, null, Meter.Type.GAUGE));
     }
 
-    public double getDeployedCount() {
-        return deployed.count();
-    }
-
-    public double getCancelledCount() {
-        return cancelled.count();
-    }
-
-    public double getFailureCount() {
-        return failures.count();
-    }
-
     public double getAckSendFailureCount() {
         return ackSendFailures.count();
     }

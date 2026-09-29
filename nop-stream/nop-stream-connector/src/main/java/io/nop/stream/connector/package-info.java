@@ -19,7 +19,7 @@
  *
  * <ul>
  *   <li>{@code nop-stream-connector-batch} — {@code BatchLoaderSourceFunction},
- *       {@code BatchConsumerSinkFunction}, {@code StreamConnectors}
+ *       {@code BatchConsumerSinkFunction}
  *       (depends on {@code nop-batch-core}).</li>
  *   <li>{@code nop-stream-connector-debezium} —
  *       {@code DebeziumCdcSourceFunction} (depends on

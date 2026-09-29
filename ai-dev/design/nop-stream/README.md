@@ -423,7 +423,7 @@ JobCoordinator / CheckpointCoordinator
 
 - `connector-design.md`
   - nop-batch 桥接（BatchLoaderSourceFunction / BatchConsumerSinkFunction）
-  - SourceWorkUnit 协议（RestrictionTracker、DynamicSplit、DrainTruncate、WatermarkEstimator）
+  - Split-based Source 协议（FLIP-27 风格：Source/SplitEnumerator/SourceReader/SourceSplit，含 Beam-SDF 范式裁定与 DrainTruncate）
   - Split Assignment Recovery 协议
   - 消息队列与 CDC 适配
   - SPI 注册与能力矩阵（§8：工厂形态/类型名命名空间/注册载体/单一事实源/catalog 工具入口/OLAP 最小集三态/tis OQ-2，item 19 / P-REQ-28）

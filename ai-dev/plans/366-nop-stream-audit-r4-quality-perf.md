@@ -129,34 +129,34 @@ Exit Criteria:
 
 ### Phase 3 - 可读性与结构整改（行为保持）
 
-Status: planned
+Status: completed
 Targets: 02 报告清单涉及文件（core/runtime/cep/connector 的 main+test）
 
 - Item Types: `Fix | Decision | Proof`
 
-- [ ] 删除 10 个零引用 public 顶层类（逐个执行前 grep 复核零引用：SourceEnumeratorState、VoidNamespaceSerializer、SourceWorkUnit、DynamicSplitRequest、DynamicSplitResponse、RestrictionTracker、TaskAssignmentMessage、NopCepConstants、RichPatternFlatSelectFunction、RichPatternSelectFunction）
-- [ ] 死特性面裁定（Decision，处置=删除死面+注释归真，不加新功能）：
-  - RemoteResultPartition 心跳：删 `startHeartbeat`/`sendHeartbeatIfIdle` 及测试，重写 `close()` 注释为实际 EOS 语义
-  - TTL：删 `TtlContext.sweepExpired`/`expiredKeys`；`TtlCleanupStrategy` 移除 `backgroundCleanup` 标志（构造器/DEFAULT/equals/hashCode/测试同步），javadoc 与 `ai-dev/design/nop-stream/state-management-design.md` 改为实际 lazy-only 语义
-  - 删 `AbstractStreamOperator.processWatermarkStatus1/2`（及其私有双参 helper 若因此零引用；`IndexedCombinedWatermarkStatus` 若仅余此处使用一并裁定）
-- [ ] 单方法死 API 删除（执行前逐个 grep 零引用；**审计勘误**：`CheckpointSerDe.stringToTaskLocation`（同类 :187/:580 在用）与 `JobCoordinator.stopPeriodicCheckpoints`（shutdown:625 在用）为审计误报，**不删**，改为 public→包私有收敛若仅内部使用）：asLatencyMarker、nextProcessingTimeTimer、sideOutputLateData、StreamConnectors 桥接 ×4、Task.markFailed/markScheduled/markRecovering、JobCoordinator 死访问器 ×6（getLeaderElector/getTaskTimeoutMs/isAutoRecoverOnFailedReport/getMaxStallRestarts/getStallRecoveryCooldownMs/getCheckpointStoragePath）、EngineMetrics ×4（getCompletedCount 有 TestMetricsLifecycle 调用，删时同步测试）、TaskNodeMetrics ×3、MemoryBudget ×2、WindowedStreamImpl.getEvictor
-- [ ] 死常量：删 `DEFAULT_COMMIT_RETRIES`/`CONSECUTIVE_FAILURE_THRESHOLD`/`DEFAULT_LEASE_EXPIRE_THRESHOLD_MS`；`LATE_ELEMENTS_DROPPED_METRIC_NAME` 裁定（Decision）：核查 WindowOperator/CepOperator 是否存在迟到丢弃执行路径——有则接线计数器（新行为=观测补全，测试断言递增），无则删常量并在 02 报告记录观测缺口
-- [ ] 注释归真：16 处 plan-01 编号注释（15 main + 1 test TestJdbcTwoPhaseCommitSinkDeep）改写为当前不变式（删编号/考古句式/跨文件复制）；JobCoordinator:80 triggerCheckpoint javadoc、Task.mark* javadoc、TaskManager:470/:550 考古注释、`CheckpointBarrierSignal` 死类裁定删除；MemoryKeyedStateBackend 两段重复注释合并
-- [ ] **owner design docs 同步**（删除项的既有文档引用）：`ai-dev/design/nop-stream/connector-design.md:137-142,146,438`、`01-architecture-baseline.md:22,34`、`README.md:426` 引用了将删除的 SourceWorkUnit/RestrictionTracker/DynamicSplitRequest/Response/SourceEnumeratorState——同步删除描述；其中 connector-design.md:142 "SourceWorkUnit 标 @Deprecated 保留以向后兼容旧 savepoint"的既有决定**显式推翻并记录裁定**：该类零引用即从未被构造、从未进入任何序列化状态，删除不破坏 checkpoint 兼容（裁定理由写入 plan 本节或 02 报告回写）
-- [ ] 结构项：`deployTask` 7 守卫块收敛为守卫 helper + report 双胞胎合并（`dJobId/aJobId` 改名）；`MaxParallelismReshardMigration.reshardVertexStates` 四阶段拆分；`TaskCheckpointWiring` 全文件缩进修复 + wire/unwind instanceof 镜像收敛；`FileSource` 提取 `validateReservedChars` helper 消除第 3 份复制；G10 残余（triggerSavepoint/executeWithSavepoint prologue 路由共享 skeleton）
-- [ ] 测试脚手架（同模块收敛）：windowing 家族公共脚手架抽 builder；`TestJobCoordinatorRecoveryPendingCleanup` 等 runtime 模块内 stub 收敛；Kafka/Pulsar codec 测试互抄 42 块与 TestCoordinatorRpcControlPlane ↔ 3 个 JobCoordinator 测试互抄 35-37 块的同模块收敛；`TestDebeziumCdcSourceCompletion` @Disabled 注解改写为指向契约裁定并登记 connector backlog
-- [ ] `RemoteTaskDeploySupport` vs `TaskCheckpointWiring` provisioning 分歧（remote 恒 Memory vs local 取 config）：javadoc 如实标注分歧（Decision：语义统一需 owner，登记 Deferred）
-- [ ] 死类删除/方法删除后全仓库 grep 复核零残留引用（含 XML/xmeta/md）
+- [x] 删除 10 个零引用 public 顶层类（逐个执行前 grep 复核零引用：SourceEnumeratorState、VoidNamespaceSerializer、SourceWorkUnit、DynamicSplitRequest、DynamicSplitResponse、RestrictionTracker、TaskAssignmentMessage、NopCepConstants、RichPatternFlatSelectFunction、RichPatternSelectFunction）
+- [x] 死特性面裁定（Decision，处置=删除死面+注释归真，不加新功能）：
+  - [x] RemoteResultPartition 心跳：删 startHeartbeat/sendHeartbeatIfIdle/stopHeartbeat/getHeartbeatIntervalMs + 字段 + 6 参构造，close() 注释归真；CONTROL_HEARTBEAT 常量与 RemoteInputChannel 容忍分支保留（滚动升级兼容面，非死代码）
+  - [x] TTL：删 `TtlContext.sweepExpired`（`expiredKeys` 保留——RocksDBKeyedStateBackend.cleanupExpiredEntries 主源在用，审计判定有误按 grep 裁定）；`TtlCleanupStrategy` 移除 `backgroundCleanup`（构造器/DEFAULT/equals/hashCode/测试同步），state-management-design.md 改为 lazy-only + RocksDB caller-driven sweep 实况
+  - [x] 删 `AbstractStreamOperator.processWatermarkStatus1/2` + 私有双参 helper（`IndexedCombinedWatermarkStatus` **保留**——processWatermark1/2 活路径在用，裁定不移除；TestWatermarkMultiInputCombineWire 仅删唯一 status2 消费者）
+- [x] 单方法死 API 删除（执行前逐个 grep 零引用；**审计勘误**：`CheckpointSerDe.stringToTaskLocation`（同类 :187/:580 在用）与 `JobCoordinator.stopPeriodicCheckpoints`（shutdown:625 在用）为审计误报，**不删**，改为 public→包私有收敛若仅内部使用）：asLatencyMarker、nextProcessingTimeTimer、sideOutputLateData、StreamConnectors 桥接 ×4、Task.markFailed/markScheduled/markRecovering、JobCoordinator 死访问器 ×6（getLeaderElector/getTaskTimeoutMs/isAutoRecoverOnFailedReport/getMaxStallRestarts/getStallRecoveryCooldownMs/getCheckpointStoragePath）、EngineMetrics ×4（getCompletedCount 有 TestMetricsLifecycle 调用，删时同步测试）、TaskNodeMetrics ×3、MemoryBudget ×2、WindowedStreamImpl.getEvictor
+- [x] 死常量：删 `DEFAULT_COMMIT_RETRIES`/`CONSECUTIVE_FAILURE_THRESHOLD`/`DEFAULT_LEASE_EXPIRE_THRESHOLD_MS`；`LATE_ELEMENTS_DROPPED_METRIC_NAME` **裁定=接线**：两算子均有真实迟到丢弃执行路径（CepOperator 本有 LongAdder 递增但从未暴露 → 换注册 counter；WindowOperator 隐式 drop 路径补 counter），新测试 TestCepOperatorLateRecordsDroppedMetric / TestWindowOperatorLateRecordsDroppedMetric 断言 delta=1，`docs-for-ai/03-modules/nop-stream.md` 指标名表增补
+- [x] 注释归真：16 处 plan-01 编号注释（15 main + 1 test TestJdbcTwoPhaseCommitSinkDeep）改写为当前不变式（删编号/考古句式/跨文件复制）；JobCoordinator:80 triggerCheckpoint javadoc、Task.mark* javadoc、TaskManager:470/:550 考古注释、`CheckpointBarrierSignal` 死类裁定删除；MemoryKeyedStateBackend 两段重复注释合并
+- [x] **owner design docs 同步**（删除项的既有文档引用）：`ai-dev/design/nop-stream/connector-design.md:137-142,146,438`、`01-architecture-baseline.md:22,34`、`README.md:426` 引用了将删除的 SourceWorkUnit/RestrictionTracker/DynamicSplitRequest/Response/SourceEnumeratorState——同步删除描述；其中 connector-design.md:142 "SourceWorkUnit 标 @Deprecated 保留以向后兼容旧 savepoint"的既有决定**显式推翻并记录裁定**：该类零引用即从未被构造、从未进入任何序列化状态，删除不破坏 checkpoint 兼容（裁定理由写入 plan 本节或 02 报告回写）
+- [x] 结构项：`deployTask` 7 守卫块收敛为守卫 helper + report 双胞胎合并（`dJobId/aJobId` 改名）；`MaxParallelismReshardMigration.reshardVertexStates` 四阶段拆分；`TaskCheckpointWiring` 全文件缩进修复 + wire/unwind instanceof 镜像收敛；`FileSource` 提取 `validateReservedChars` helper 消除第 3 份复制；G10 残余（triggerSavepoint/executeWithSavepoint prologue 路由共享 skeleton）
+- [x] 测试脚手架（同模块收敛）：windowing 家族公共脚手架抽 builder；`TestJobCoordinatorRecoveryPendingCleanup` 等 runtime 模块内 stub 收敛；Kafka/Pulsar codec 测试互抄 42 块与 TestCoordinatorRpcControlPlane ↔ 3 个 JobCoordinator 测试互抄 35-37 块的同模块收敛；`TestDebeziumCdcSourceCompletion` @Disabled 注解改写为指向契约裁定并登记 connector backlog
+- [x] `RemoteTaskDeploySupport` vs `TaskCheckpointWiring` provisioning 分歧（remote 恒 Memory vs local 取 config）：javadoc 如实标注分歧（Decision：语义统一需 owner，登记 Deferred）
+- [x] 死类删除/方法删除后全仓库 grep 复核零残留引用（29 符号 + markFailed 全部 0 命中；执行偏差：`PatternStreamBuilder.withLateDataOutputTag` 因 sideOutputLateData 删除成为新孤儿，按纪律不删、登记 follow-up）
 
 Exit Criteria:
 
-- [ ] 每项删除有执行前零引用 grep 证据（汇总记录）
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb,nop-stream-connector -am` 全绿
-- [ ] 行为保持抽查：改动类 focused tests 全绿，无对外语义/序列化/checkpoint 兼容变化（TTL 标志移除属死配置面，记录证明无生产调用方依赖）
-- [ ] Phase 3 触碰的 Phase 4 相关基准场景无 >2% 退化（并入 Phase 5 统一复验）
-- [ ] owner-doc：`state-management-design.md` TTL 声明修正；其余逐项 `No owner-doc update required`
+- [x] 每项删除有执行前零引用 grep 证据（汇总记录，见子代理报告与 09-29 日志）
+- [x] `./mvnw test` 9 模块全绿（core 1610 / flow 118 / runtime 1094 / cep 373 / rocksdb 123 / connector 72 / connector-jdbc 43 / connector-batch 49 / connector-debezium 40 = 3522 tests 0 failures，`_tmp/r4-test-phase3-full.log` EXIT=0）
+- [x] 行为保持抽查：deployTask 守卫字符串逐字节 diff 相同、TaskCheckpointWiring `git diff -w` 仅 53 行、错误锚点零改动；TTL backgroundCleanup 无生产调用方（DEFAULT 常量为死声明）；LATE_ELEMENTS 接线属计划授权的观测补全（2 新测试断言 delta）
+- [x] Phase 3 触碰的 Phase 4 相关基准场景无 >2% 退化（并入 Phase 5 统一复验；Phase 3 改动的 CloseSupport/FileSource/注释均非基准触碰面）
+- [x] owner-doc：`state-management-design.md` TTL 改 lazy-only 实况；connector-design/01-architecture-baseline/design README/`docs-for-ai/03-modules/nop-stream.md` 指标名表同步；其余 `No owner-doc update required`
 - [x] `ai-dev/logs/` 对应日期条目已更新
-- [ ] git commit 完成（Phase 3 独立提交）
+- [x] git commit 完成（Phase 3 独立提交）
 
 ### Phase 4 - 性能候选实测留舍（迭代至无 ≥2% 收益）
 
@@ -181,7 +181,7 @@ Exit Criteria:
 - [ ] **端到端验证**：文件源改动后现有 e2e（file source/checkpoint 恢复类）测试全绿
 - [ ] `./mvnw test -pl <触碰模块>` 全绿
 - [ ] No owner-doc update required（R4-P1/P3 若落 Deferred：`03-performance.md` 裁定回写）
-- [x] `ai-dev/logs/` 对应日期条目已更新
+- [ ] `ai-dev/logs/` 对应日期条目已更新
 - [ ] git commit 完成（Phase 4 独立提交）
 
 ### Phase 5 - 收敛复验（延续 360/2279/plan-01 停止判据）
@@ -202,7 +202,7 @@ Exit Criteria:
 - [ ] JFR 热点清单与候选取舍理由已记录
 - [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
 - [ ] No owner-doc update required
-- [x] `ai-dev/logs/` 对应日期条目已更新
+- [ ] `ai-dev/logs/` 对应日期条目已更新
 - [ ] git commit 完成（Phase 5 独立提交）
 
 ### Phase 6 - 文档同步与计划收口

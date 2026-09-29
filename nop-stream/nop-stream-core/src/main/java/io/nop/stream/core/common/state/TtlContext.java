@@ -45,9 +45,8 @@ import java.util.Set;
  *       {@link #grantFreshWindow}, {@link #removeTimestamp}, {@link #recordWrite},
  *       {@link #recordRead}, {@link #expiredKeys}) — used by the RocksDB backend, whose
  *       storage is a column family, not an in-memory map.</li>
- *   <li><b>Memory convenience</b> ({@link #readEviction}, {@link #writeEviction},
- *       {@link #sweepExpired}) — combine the decision with {@code Map} mutation for the
- *       memory backend.</li>
+ *   <li><b>Memory convenience</b> ({@link #readEviction}, {@link #writeEviction})
+ *       — combine the decision with {@code Map} mutation for the memory backend.</li>
  * </ul>
  *
  * <p>This class is single-threaded (mailbox model), mirroring the state backends.
@@ -225,22 +224,5 @@ public final class TtlContext<K> implements Serializable {
             storage.remove(key);
             timestamps.remove(key);
         }
-    }
-
-    /**
-     * Background sweep for the memory backend: iterate all known timestamps and remove
-     * expired entries from {@code storage} and the sidecar. Returns the count removed.
-     */
-    public <V> int sweepExpired(Map<K, V> storage) {
-        if (!isEnabled()) {
-            return 0;
-        }
-        int removed = 0;
-        for (K key : expiredKeys()) {
-            storage.remove(key);
-            timestamps.remove(key);
-            removed++;
-        }
-        return removed;
     }
 }

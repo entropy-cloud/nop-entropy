@@ -2,30 +2,22 @@
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
  * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
+ * Gitee:   https://gitee.com/entropy-cloud/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.stream.runtime.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
-import io.nop.stream.core.common.typeutils.TypeSerializer;
-import io.nop.stream.core.operators.HeapInternalTimerService;
-import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
-import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,19 +29,19 @@ public class TestWindowOperatorIntegration {
     private static final long ALLOWED_LATENESS = 0L;
 
     private TestOutput<String> output;
-    private TestableWindowOperator operator;
+    private WindowingTestSupport.TestableWindowOperator operator;
 
     @BeforeEach
     void setUp() throws Exception {
         output = new TestOutput<>();
 
-        operator = new TestableWindowOperator(
+        operator = new WindowingTestSupport.TestableWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
-                new ToStringWindowFunction(),
+                new WindowingTestSupport.ToStringWindowFunction<>(),
                 EventTimeTrigger.create(),
                 ALLOWED_LATENESS,
                 null
@@ -136,13 +128,13 @@ public class TestWindowOperatorIntegration {
     void testAllowedLateness() throws Exception {
         operator.close();
 
-        operator = new TestableWindowOperator(
+        operator = new WindowingTestSupport.TestableWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
-                new ToStringWindowFunction(),
+                new WindowingTestSupport.ToStringWindowFunction<>(),
                 EventTimeTrigger.create(),
                 50L,
                 null
@@ -208,115 +200,6 @@ public class TestWindowOperatorIntegration {
         assertFalse(output.isEmpty());
     }
 
-    static class TestableWindowOperator extends WindowOperator<String, Integer, Object, String, TimeWindow> {
-
-        public TestableWindowOperator(
-                TumblingEventTimeWindows windowAssigner,
-                TypeSerializer<TimeWindow> windowSerializer,
-                KeySelector<Integer, String> keySelector,
-                TypeSerializer<String> keySerializer,
-                Class<String> keyClass,
-                InternalWindowFunction<Object, String, String, TimeWindow> windowFunction,
-                EventTimeTrigger trigger,
-                long allowedLateness,
-                OutputTag<Integer> lateDataOutputTag) {
-            super(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
-                    windowFunction, trigger, allowedLateness, lateDataOutputTag);
-        }
-
-        public void advanceInternalWatermark(long timestamp) throws Exception {
-            if (internalTimerService instanceof HeapInternalTimerService) {
-                ((HeapInternalTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);
-            }
-        }
-
-        public InternalTimerService<TimeWindow> getInternalTimerService() {
-            return internalTimerService;
-        }
-    }
-
-    static class ToStringWindowFunction implements InternalWindowFunction<Object, String, String, TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public void process(String key, TimeWindow window, InternalWindowContext context,
-                            Object input, io.nop.stream.core.util.Collector<String> out) {
-            out.collect(String.valueOf(input));
-        }
-
-        @Override
-        public void clear(TimeWindow window, InternalWindowContext context) {
-        }
-    }
-
-    static class SimpleTimeWindowSerializer implements TypeSerializer<TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<TimeWindow> duplicate() {
-            return this;
-        }
-
-        @Override
-        public TimeWindow createInstance() {
-            return new TimeWindow(0, 0);
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from, TimeWindow reuse) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
-    }
-
-    static class SimpleStringSerializer implements TypeSerializer<String> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<String> duplicate() {
-            return this;
-        }
-
-        @Override
-        public String createInstance() {
-            return "";
-        }
-
-        @Override
-        public String copy(String from) {
-            return from;
-        }
-
-        @Override
-        public String copy(String from, String reuse) {
-            return from;
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
-    }
-
     @Test
     void testLateDataOutputTag() throws Exception {
         operator.close();
@@ -324,13 +207,13 @@ public class TestWindowOperatorIntegration {
         OutputTag<Integer> lateTag = new OutputTag<>("late-data",
                 io.nop.stream.core.common.typeinfo.BasicTypeInfo.INT);
 
-        operator = new TestableWindowOperator(
+        operator = new WindowingTestSupport.TestableWindowOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, String>) v -> "key1",
-                new SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
-                new ToStringWindowFunction(),
+                new WindowingTestSupport.ToStringWindowFunction<>(),
                 EventTimeTrigger.create(),
                 0L,
                 lateTag

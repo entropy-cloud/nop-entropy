@@ -14,7 +14,6 @@ import io.nop.stream.core.common.state.MapStateDescriptor;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryKeyedStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
-import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
@@ -153,9 +152,9 @@ class TestWindowOperatorMapStateFallbackWriteBack {
         WindowOperator<String, Integer, Object, String, TimeWindow> op =
                 new WindowOperator<String, Integer, Object, String, TimeWindow>(
                         TumblingEventTimeWindows.of(200L),
-                        new SimpleTimeWindowSerializer(),
+                        new WindowingTestSupport.SimpleTimeWindowSerializer(),
                         (KeySelector<Integer, String>) v -> "key1",
-                        new SimpleStringSerializer(),
+                        new WindowingTestSupport.SimpleStringSerializer(),
                         String.class,
                         (io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction) windowFunction(),
                         EventTimeTrigger.create(),
@@ -226,73 +225,5 @@ class TestWindowOperatorMapStateFallbackWriteBack {
                         out.collect(sb.toString());
                     }
                 });
-    }
-
-    static class SimpleTimeWindowSerializer implements TypeSerializer<TimeWindow> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<TimeWindow> duplicate() {
-            return this;
-        }
-
-        @Override
-        public TimeWindow createInstance() {
-            return new TimeWindow(0, 0);
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public TimeWindow copy(TimeWindow from, TimeWindow reuse) {
-            return new TimeWindow(from.getStart(), from.getEnd());
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
-    }
-
-    static class SimpleStringSerializer implements TypeSerializer<String> {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        public boolean isImmutableType() {
-            return true;
-        }
-
-        @Override
-        public TypeSerializer<String> duplicate() {
-            return this;
-        }
-
-        @Override
-        public String createInstance() {
-            return "";
-        }
-
-        @Override
-        public String copy(String from) {
-            return from;
-        }
-
-        @Override
-        public String copy(String from, String reuse) {
-            return from;
-        }
-
-        @Override
-        public int getLength() {
-            return -1;
-        }
     }
 }

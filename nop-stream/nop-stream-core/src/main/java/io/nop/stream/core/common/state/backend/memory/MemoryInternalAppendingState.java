@@ -67,12 +67,10 @@ class MemoryInternalAppendingState<K, N, IN, ACC> extends AbstractMemoryState
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "currentNamespace is null. Call setCurrentNamespace() before accessing state.");
         }
-        // F2 (plan 01 quality-perf): route through the backend's cached key
-        // builder so the appending state shares the same reused
-        // TypedNamespaceAndKey as the value/aggregating flavors (360 R1) —
-        // every access used to allocate a fresh key object plus the routeKey
-        // wrapper. The namespace stays local to this state; only the key comes
-        // from the backend's current key.
+        // Route through the backend's cached key builder so all memory state
+        // flavors share the same reused TypedNamespaceAndKey per
+        // (currentKey, namespace) pair. The namespace stays local to this
+        // state; only the key comes from the backend's current key.
         return backend.cachedNamespaceAndKey(currentNamespace, backend.getCurrentKey());
     }
 

@@ -267,12 +267,7 @@ public class GraphModelCheckpointExecutor {
             long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
+            shutdownAndReleasePool(barrierScheduler, coordinator, executor, execPlan);
         }
     }
 
@@ -293,11 +288,60 @@ public class GraphModelCheckpointExecutor {
         return jobGraphGenerator.generate(streamGraph);
     }
 
-    public static String triggerSavepoint(
-            JobGraph jobGraph,
-            CheckpointConfig checkpointConfig,
-             String targetPath) throws Exception {
+    /**
+     * Shared runtime state of the two savepoint entries
+     * ({@link #triggerSavepoint}/{@link #executeWithSavepoint}), built by
+     * {@link #prepareSavepointRuntime}.
+     */
+    private static final class SavepointRuntime {
+        final GraphExecutionPlan execPlan;
+        final ICheckpointStorage storage;
+        final CheckpointPlan checkpointPlan;
+        final CheckpointCoordinator coordinator;
+        final List<StreamTaskInvokable> allInvokables;
+        final ScheduledExecutorService barrierScheduler;
+        final Map<String, SubtaskTask> tasks;
+        final TaskExecutor executor;
+        final AtomicBoolean abortMarked;
 
+        SavepointRuntime(GraphExecutionPlan execPlan, ICheckpointStorage storage,
+                         CheckpointPlan checkpointPlan, CheckpointCoordinator coordinator,
+                         List<StreamTaskInvokable> allInvokables,
+                         ScheduledExecutorService barrierScheduler,
+                         Map<String, SubtaskTask> tasks, TaskExecutor executor,
+                         AtomicBoolean abortMarked) {
+            this.execPlan = execPlan;
+            this.storage = storage;
+            this.checkpointPlan = checkpointPlan;
+            this.coordinator = coordinator;
+            this.allInvokables = allInvokables;
+            this.barrierScheduler = barrierScheduler;
+            this.tasks = tasks;
+            this.executor = executor;
+            this.abortMarked = abortMarked;
+        }
+    }
+
+    /**
+     * Shared prologue of the two savepoint entries (validate config →
+     * legacy-form plan build → id resolution → storage/plan/coordinator → task
+     * registration → barrier scheduler → optional savepoint restore → local
+     * tasks + abort handler). Deliberately NOT routed through
+     * {@link #executeWithCheckpointSkeleton}: the savepoint entries diverge
+     * from it at three pinned points (storage override, savepoint-path restore
+     * instead of manifest auto-restore, no fingerprint handling), so folding
+     * them in would turn those into behavioral hooks.
+     *
+     * @param overrideStoragePath replaces the configured storage BEFORE the
+     *                            checkpoint plan is built ({@code triggerSavepoint}'s
+     *                            targetPath); null/blank = keep configured storage
+     * @param restoreSavepointPath restores operator state AFTER the barrier
+     *                            scheduler is started ({@code executeWithSavepoint}'s
+     *                            savepointPath); null/blank = no restore
+     */
+    private static SavepointRuntime prepareSavepointRuntime(
+            JobGraph jobGraph, CheckpointConfig checkpointConfig,
+            String overrideStoragePath, String restoreSavepointPath) throws Exception {
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
@@ -306,8 +350,8 @@ public class GraphModelCheckpointExecutor {
 
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
-        if (targetPath != null && !targetPath.isEmpty()) {
-            storage = new LocalFileCheckpointStorage(targetPath);
+        if (overrideStoragePath != null && !overrideStoragePath.isEmpty()) {
+            storage = new LocalFileCheckpointStorage(overrideStoragePath);
         }
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
@@ -316,20 +360,50 @@ public class GraphModelCheckpointExecutor {
 
         ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
 
+        if (restoreSavepointPath != null && !restoreSavepointPath.isEmpty()) {
+            restoreFromSavepointPath(execPlan, storage, checkpointPlan, restoreSavepointPath);
+        }
+
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
         AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
 
-        try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
-                    checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
+        return new SavepointRuntime(execPlan, storage, checkpointPlan, coordinator,
+                allInvokables, barrierScheduler, tasks, executor, abortMarked);
+    }
 
-            PendingCheckpoint savepointPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
+    /**
+     * Joint finally-body of the checkpoint/savepoint entries: executor +
+     * barrier-scheduler + coordinator shutdown, then release the per-job
+     * buffer pool so any producer blocked on global exhaustion is woken. On a
+     * recovery attempt a fresh plan (and fresh pool) is built; closing the
+     * prior pool avoids leaked permits from the failed attempt starving the
+     * new one.
+     */
+    private static void shutdownAndReleasePool(ScheduledExecutorService barrierScheduler,
+                                               CheckpointCoordinator coordinator,
+                                               TaskExecutor executor,
+                                               GraphExecutionPlan execPlan) {
+        shutdown(barrierScheduler, coordinator, executor);
+        execPlan.closeBufferPool();
+    }
+
+    public static String triggerSavepoint(
+            JobGraph jobGraph,
+            CheckpointConfig checkpointConfig,
+             String targetPath) throws Exception {
+
+        SavepointRuntime rt = prepareSavepointRuntime(jobGraph, checkpointConfig, targetPath, null);
+        try {
+            submitAndRun(rt.execPlan, rt.tasks, rt.executor, jobGraph, rt.coordinator, rt.checkpointPlan,
+                    rt.allInvokables, checkpointConfig,
+                    checkpointConfig.getMaxRestartsPerRegion());
+            checkAbortMarker(rt.abortMarked);
+
+            PendingCheckpoint savepointPending = rt.coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
             String savepointPath = null;
             if (savepointPending != null) {
-                triggerBarrierOnAllInvokables(allInvokables, savepointPending);
+                triggerBarrierOnAllInvokables(rt.allInvokables, savepointPending);
 
                 CompletedCheckpoint completed = (CompletedCheckpoint) savepointPending.getCompletableFuture()
                         .get(checkpointConfig.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
@@ -337,20 +411,15 @@ public class GraphModelCheckpointExecutor {
                     // Materialize per-subtask KeyGroupRange ownership so the
                     // savepoint records which subtask owned which range (the restore path
                     // can then route keyed state on a parallelism change).
-                    materializeKeyGroupOwnership(completed, execPlan);
-                    savepointPath = storage.storeCheckPoint(completed);
+                    materializeKeyGroupOwnership(completed, rt.execPlan);
+                    savepointPath = rt.storage.storeCheckPoint(completed);
                 }
             }
 
-            checkTaskFailures(tasks);
+            checkTaskFailures(rt.tasks);
             return savepointPath;
         } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
+            shutdownAndReleasePool(rt.barrierScheduler, rt.coordinator, rt.executor, rt.execPlan);
         }
     }
 
@@ -362,46 +431,19 @@ public class GraphModelCheckpointExecutor {
 
         long startTime = CoreMetrics.currentTimeMillis();
 
-        checkpointConfig.validateUnalignedConfig();
-        boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
-        GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
-        String jobId = resolveJobId(checkpointConfig);
-        String pipelineId = resolvePipelineId(checkpointConfig);
-
-        CheckpointIDCounter idCounter = new CheckpointIDCounter();
-        ICheckpointStorage storage = createStorage(checkpointConfig);
-        CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
-
-        CheckpointCoordinator coordinator = createCoordinator(jobId, pipelineId, idCounter, storage, checkpointConfig, jobGraph);
-        List<StreamTaskInvokable> allInvokables = registerTasksAndTrackers(execPlan, checkpointPlan, coordinator, checkpointConfig);
-
-        ScheduledExecutorService barrierScheduler = startBarrierScheduler(allInvokables, coordinator, checkpointConfig, jobId);
-
-        if (savepointPath != null && !savepointPath.isEmpty()) {
-            restoreFromSavepointPath(execPlan, storage, checkpointPlan, savepointPath);
-        }
-
-        Map<String, SubtaskTask> tasks = buildTasks(execPlan);
-        TaskExecutor executor = new TaskExecutor();
-        AtomicBoolean abortMarked = registerLocalAbortHandler(coordinator, tasks);
-
+        SavepointRuntime rt = prepareSavepointRuntime(jobGraph, checkpointConfig, null, savepointPath);
         try {
-            submitAndRun(execPlan, tasks, executor, jobGraph, coordinator, checkpointPlan,
-                    allInvokables, checkpointConfig,
+            submitAndRun(rt.execPlan, rt.tasks, rt.executor, jobGraph, rt.coordinator, rt.checkpointPlan,
+                    rt.allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
-            checkAbortMarker(abortMarked);
-            triggerFinalCheckpoint(allInvokables, coordinator);
-            checkTaskFailures(tasks);
+            checkAbortMarker(rt.abortMarked);
+            triggerFinalCheckpoint(rt.allInvokables, rt.coordinator);
+            checkTaskFailures(rt.tasks);
 
             long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdown(barrierScheduler, coordinator, executor);
-            // Release the per-job buffer pool so any producer blocked on global
-            // exhaustion is woken. On a recovery attempt a fresh plan (and fresh
-            // pool) is built; closing the prior pool avoids leaked permits from
-            // the failed attempt starving the new one.
-            execPlan.closeBufferPool();
+            shutdownAndReleasePool(rt.barrierScheduler, rt.coordinator, rt.executor, rt.execPlan);
         }
     }
 

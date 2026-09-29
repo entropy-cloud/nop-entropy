@@ -215,15 +215,6 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
     }
 
     /**
-     * @return the earliest registered processing-time timer timestamp, or
-     *         {@link Long#MAX_VALUE} when no processing-time timer is registered.
-     *         Safe to call from the scheduler thread (single volatile read).
-     */
-    public long nextProcessingTimeTimer() {
-        return nextProcessingTimeTimer;
-    }
-
-    /**
      * @return {@code true} if at least one processing-time timer is due at or before
      *         {@code now}. Safe to call from the scheduler thread.
      */

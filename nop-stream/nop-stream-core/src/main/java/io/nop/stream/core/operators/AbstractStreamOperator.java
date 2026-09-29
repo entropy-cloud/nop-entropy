@@ -446,26 +446,4 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     public void processWatermarkStatus(WatermarkStatus watermarkStatus) throws Exception {
         output.emitWatermarkStatus(watermarkStatus);
     }
-
-    private void processWatermarkStatus(WatermarkStatus watermarkStatus, int index)
-            throws Exception {
-        if (combinedWatermark == null) {
-            combinedWatermark = IndexedCombinedWatermarkStatus.forInputsCount(2);
-        }
-        boolean wasIdle = combinedWatermark.isIdle();
-        if (combinedWatermark.updateStatus(index, watermarkStatus.isIdle())) {
-            processWatermark(new Watermark(combinedWatermark.getCombinedWatermark()));
-        }
-        if (wasIdle != combinedWatermark.isIdle()) {
-            output.emitWatermarkStatus(watermarkStatus);
-        }
-    }
-
-    public final void processWatermarkStatus1(WatermarkStatus watermarkStatus) throws Exception {
-        processWatermarkStatus(watermarkStatus, 0);
-    }
-
-    public final void processWatermarkStatus2(WatermarkStatus watermarkStatus) throws Exception {
-        processWatermarkStatus(watermarkStatus, 1);
-    }
 }

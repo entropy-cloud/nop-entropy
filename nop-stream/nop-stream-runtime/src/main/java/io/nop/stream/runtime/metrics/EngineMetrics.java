@@ -149,28 +149,8 @@ public final class EngineMetrics {
         registry.gauge(METRIC_NODES_ACTIVE, supplier, s -> s.get().doubleValue());
     }
 
-    public double getCompletedCount() {
-        return completed.count();
-    }
-
-    public double getFailedCount() {
-        return failed.count();
-    }
-
-    public double getAbortedCount() {
-        return aborted.count();
-    }
-
-    public double getRecoveryCount() {
-        return recoveries.count();
-    }
-
     public long getLatestSizeBytes() {
         return latestSizeBytes.get();
-    }
-
-    public long getDurationCount() {
-        return duration.count();
     }
 
     public MeterRegistry getRegistry() {

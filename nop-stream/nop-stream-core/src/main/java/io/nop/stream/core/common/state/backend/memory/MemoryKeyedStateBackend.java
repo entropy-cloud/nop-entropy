@@ -422,12 +422,8 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         return targetKeyGroupRange;
     }
 
-    // Reuse the TypedNamespaceAndKey instance while (currentKey,
-    // currentNamespace) is unchanged — the previous code allocated a new key
-    // object (plus routeKey wrapper and hashing boxes) on EVERY state access.
-    // The instance is immutable (final fields), so handing out the cached one is
-    // safe even when a storage map retains an older instance. Single task-thread
-    // access; no synchronization needed.
+    // (currentKey, currentNamespace) -> shared cached key instance; the
+    // reuse rationale lives on cachedNamespaceAndKey below.
     private transient Object cachedKey;
     private transient Object cachedNamespace;
     private transient TypedNamespaceAndKey cachedNamespaceAndKey;
@@ -438,12 +434,13 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
 
     /**
      * (namespace, key)-keyed reuse of the immutable
-     * {@link TypedNamespaceAndKey}. The previous code allocated a fresh key
-     * object (plus the {@link #routeKey} wrapper and hashing boxes) on EVERY
-     * state access; with keyBy partitioning consecutive records usually share
-     * the current key. The instance is immutable (final fields), so handing out
-     * the cached one is safe even when a storage map retains an older instance.
-     * Single task-thread access; no synchronization needed.
+     * {@link TypedNamespaceAndKey}: with keyBy partitioning consecutive
+     * records usually share the current key, so the single-slot cache removes
+     * a fresh key allocation (plus {@link #routeKey} wrapper and hashing
+     * boxes) from almost every state access. The instance is immutable (final
+     * fields), so handing out the cached one is safe even when a storage map
+     * retains an older instance. Single task-thread access; no synchronization
+     * needed.
      */
     TypedNamespaceAndKey cachedNamespaceAndKey(Object namespace, Object key) {
         if (cachedNamespaceAndKey != null

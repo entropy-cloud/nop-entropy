@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,7 +50,7 @@ class TestJobCoordinatorAttemptTracking {
 
     private InMemoryClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
-    private CapturingTaskRpc taskRpc;
+    private CoordinatorTestSupport.RecordingTaskRpcService taskRpc;
     private DeploymentPlan deploymentPlan;
     private JobCoordinator coordinator;
 
@@ -72,7 +71,7 @@ class TestJobCoordinatorAttemptTracking {
 
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
 
-        taskRpc = new CapturingTaskRpc();
+        taskRpc = new CoordinatorTestSupport.RecordingTaskRpcService();
         Map<String, IStreamTaskRpcService> taskRpcServices = new HashMap<>();
         taskRpcServices.put("node-1", taskRpc);
 
@@ -175,24 +174,4 @@ class TestJobCoordinatorAttemptTracking {
         }
     }
 
-    static class CapturingTaskRpc implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-        }
-    }
 }

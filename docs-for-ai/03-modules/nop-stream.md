@@ -51,6 +51,7 @@
 | `nop.stream.operator.records.in.total` | counter | jobId/vertexId/subtask | 从输入通道分发进算子链的记录数（MIDDLE/SINK 角色） |
 | `nop.stream.operator.records.out.total` | counter | jobId/vertexId/subtask | 经本任务 RecordWriter 发射的记录数 |
 | `nop.stream.operator.processing.time` | timer | jobId/vertexId/subtask | 单记录算子链处理时长（输入分发计时） |
+| `numLateRecordsDropped` | counter | —（进程级聚合） | 迟到丢弃记录数：WindowOperator（跳过窗口且超 allowedLateness、无迟到侧输出）与 CepOperator（事件时间戳 ≤ 当前 watermark、无迟到侧输出）的丢弃路径递增（plan 366 Phase 3 接线）。命名例外：保留 Flink 兼容的算子级指标名，未套 `nop.stream.*` 前缀 |
 
 **io 层（输入输出）** — 更新点：source 发射点 + 跨任务 writer 发射点
 

@@ -40,11 +40,11 @@ class TestWindowOperatorEvictorTimestamps {
 
         operator = new EvictorTestableOperator(
                 TumblingEventTimeWindows.of(WINDOW_SIZE),
-                new TestWindowOperatorBehavior.SimpleTimeWindowSerializer(),
+                new WindowingTestSupport.SimpleTimeWindowSerializer(),
                 (KeySelector<Integer, String>) v -> "key1",
-                new TestWindowOperatorBehavior.SimpleStringSerializer(),
+                new WindowingTestSupport.SimpleStringSerializer(),
                 String.class,
-                new TestWindowOperatorBehavior.ToStringWindowFunction(),
+                new WindowingTestSupport.ToStringWindowFunction(),
                 EventTimeTrigger.create(),
                 0L,
                 null,

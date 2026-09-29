@@ -31,8 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,8 +60,8 @@ class TestJobCoordinatorStandbyStateMachine {
     private TestLeaderElector electorB;
     private MockClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
-    private MockTaskRpcService rpcA;
-    private MockTaskRpcService rpcB;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpcA;
+    private CoordinatorTestSupport.RecordingTaskRpcService rpcB;
     private Map<String, IStreamTaskRpcService> taskRpcServices;
     private DeploymentPlan deploymentPlan;
 
@@ -84,8 +82,8 @@ class TestJobCoordinatorStandbyStateMachine {
                 .build();
         checkpointCoordinator = new CheckpointCoordinator(JOB_ID, "pipeline-0", idCounter, storage, config);
 
-        rpcA = new MockTaskRpcService();
-        rpcB = new MockTaskRpcService();
+        rpcA = new CoordinatorTestSupport.RecordingTaskRpcService();
+        rpcB = new CoordinatorTestSupport.RecordingTaskRpcService();
         taskRpcServices = new java.util.HashMap<>();
         taskRpcServices.put("node-1", rpcA);
         taskRpcServices.put("node-2", rpcB);
@@ -464,38 +462,4 @@ class TestJobCoordinatorStandbyStateMachine {
         }
     }
 
-    static class MockTaskRpcService implements IStreamTaskRpcService {
-        final List<TaskAssignment> assignments = new CopyOnWriteArrayList<>();
-        final AtomicReference<io.nop.stream.core.checkpoint.CheckpointBarrier> lastBarrier = new AtomicReference<>();
-        final java.util.concurrent.atomic.AtomicLong lastFencingEpoch = new java.util.concurrent.atomic.AtomicLong();
-
-        @Override
-        public void receiveAssignment(TaskAssignment assignment) {
-            assignments.add(assignment);
-            lastFencingEpoch.set(assignment.getFencingEpoch());
-        }
-
-        @Override
-        public void triggerCheckpoint(io.nop.stream.core.checkpoint.CheckpointBarrier barrier, long fencingEpoch) {
-            lastBarrier.set(barrier);
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        @Override
-        public void cancelTask(String jobId, String vertexId, int subtaskIndex, long fencingEpoch) {
-        }
-
-        @Override
-        public void updateFencingToken(long fencingEpoch) {
-            lastFencingEpoch.set(fencingEpoch);
-        }
-
-        long getLastFencingEpoch() {
-            return lastFencingEpoch.get();
-        }
-
-        io.nop.stream.core.checkpoint.CheckpointBarrier getLastBarrier() {
-            return lastBarrier.get();
-        }
-    }
 }

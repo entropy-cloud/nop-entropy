@@ -208,10 +208,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         try (Options options = new Options(dbOptions, cfOptions)) {
             existingCFs = RocksDB.listColumnFamilies(options, dbPath);
         } catch (RocksDBException e) {
-            // B1 (plan 01 quality-perf): a listing failure used to be swallowed in
-            // silence — every non-default column family would then be recreated
-            // EMPTY, making prior state invisibly unreachable. Keep the recovery
-            // behavior (treat as a fresh DB) but surface it loudly.
+            // A listing failure must never be swallowed in silence: every
+            // non-default column family would then be recreated EMPTY, making
+            // prior state invisibly unreachable. Keep the recovery behavior
+            // (treat as a fresh DB) but surface it loudly.
             LOG.warn("RocksDB.listColumnFamilies failed for path {}; treating the database "
                     + "as empty (existing column families will be recreated and prior state "
                     + "will be invisible)", dbPath, e);
@@ -436,14 +436,12 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * F1 (plan 01 quality-perf): cached encode for an EXPLICIT (namespace, key)
-     * pair — used by the internal window states, which carry their own
-     * namespace while reading the backend's current key. Before this variant,
-     * every internal-state access re-encoded the composite key (2x JSON +
-     * UTF-8) even though the public-state path had been cached since 360 R1.
-     * Single-slot cache sharing the same invalidation contract as
-     * {@link #buildStorageKeyForCurrent()}: equals comparison on both
-     * components, single task-thread access, no synchronization.
+     * Cached encode for an EXPLICIT (namespace, key) pair — used by the
+     * internal window states, which carry their own namespace while reading
+     * the backend's current key. Single-slot cache sharing the same
+     * invalidation contract as {@link #buildStorageKeyForCurrent()}: equals
+     * comparison on both components, single task-thread access, no
+     * synchronization.
      */
     byte[] cachedStorageKeyFor(Object namespace, Object key) {
         if (cachedStorageKey != null
