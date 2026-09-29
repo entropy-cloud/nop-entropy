@@ -18,7 +18,7 @@
 - 查询期重算现状:`CodeGraphService.detectCommunities`(L80-91,每次 `cacheManager.getOrRebuildCallGraph` + `runCommunityDetection`)、`getCriticalNodes`(L168+,BetweennessCentrality.compute)、`getGraphAnalysis`(L94+,`new EntryPointScorer().scoreEntryPoints`);PageRank(nop-graph-core `PageRank.compute(IGraph,Set,int)`)当前 nop-code 无消费方。
 - ORM 生成链(2026-09-27 live 核实):唯一手写源 `nop-code/model/nop-code.orm.xml`;`./mvnw install` 经 exec-maven-plugin+CodeGenTask 四站生成——站 A `nop-code-codegen/postcompile/gen-orm.xgen`(_app.orm.xml、实体类、BizModel、xbiz、dict yaml)、站 B `nop-code-meta/precompile/gen-meta.xgen`(xmeta)、站 C(gen-crud-api/gen-i18n + `_templates/*.json`)、站 D(web view/page)。`_` 前缀与 `_gen/` 每次覆盖,无前缀保留层仅缺失时生成。先例 commit `1508965cf2`(新增 nop_code_semantic_edge,23 文件)。
 - dict 两先例:orm.xml `<dicts>` 定义(物化,如 `code/index_status`)或独立手写 yaml(`call_direction`);本 plan 的 `code/metric_type` 被 ORM 字段引用,走 orm.xml 先例 A。
-- 集成测试范本:`nop-code-service/src/test/java/io/nop/code/service/TestIncrementalIndexWithDb.java`(`@NopTestConfig(localDb=true, initDatabaseSchema=TRUE)` + `JunitAutoTestCase`,H2 自动建表,GraphQL 驱动索引 + daoProvider 断言)。
+- 集成测试范本:nop-code-service 测试 TestIncrementalIndexWithDb(`@NopTestConfig(localDb=true, initDatabaseSchema=TRUE)` + `JunitAutoTestCase`,H2 自动建表,GraphQL 驱动索引 + daoProvider 断言)。
 - 入口点评分:`EntryPointScorer.scoreEntryPoints(CallGraph,SymbolTable) → List<EntryPointScore>`(含 entryPointType 枚举);介数:`BetweennessCentrality.compute(IGraph,Set<String>)`(现 >10000 节点跳过,`CodeGraphService` 内有该保护);社区:`LeidenDetector.detect(IGraph,Set,LeidenConfig) → CommunityResult`(CommunityInfo 含节点归属)。
 
 ## Goals
@@ -69,7 +69,7 @@ Exit Criteria:
 > 每个 Phase 完成后,必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [x] `nop_code_graph_metric` 在 `_app.orm.xml` 中且 H2 initDatabaseSchema 建表成功(集成测试可建行)
-- [x] dict `code/metric_type` 物化为 `_vfs/dict/code/metric_type.dict.yaml`(force-override 头)
+- [x] dict `code/metric_type` 物化为 _vfs 下的 dict/code/metric_type.dict.yaml 字典(force-override 头)
 - [x] `./mvnw clean install -DskipTests -T 1C -pl nop-code -am` 通过(Maven 4 reactor 已含 nop-code-codegen,generate-test-resources 绑定在 install 生命周期内,生成链必跑——R1 审查实测核实)
 - [x] Owner-doc:生成链无文档更新需求(既有 runbook `create-new-entity.md` 已覆盖);实体变更本身在 Phase 3 记入 baseline
 - [x] `ai-dev/logs/` 对应日期条目已更新

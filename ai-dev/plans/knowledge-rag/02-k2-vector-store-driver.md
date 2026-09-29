@@ -84,7 +84,7 @@ Targets: `ai-dev/design/nop-ai/vector-store.md`（NEW）、`nop-ai/nop-ai-rag/RE
 - Item Types: `Fix`
 
 - [ ] owner doc `vector-store.md`：SPI 契约→两实现映射表、A1-A4 裁定全文、id 约定、租户隔离契约（A2）、pgvector DDL/操作符、InMemory 定位（K3 触发达成 + P3-MA3-003 两理由的解除论证——投机代码前提解除 + **不注册 default bean 保 SPI 边界**，M6 裁定）、condition 忽略裁定（A4）、`nop-db-migration` 偏离裁定（运行时幂等 DDL 替代，m8）、方言扩展点（Milvus）
-- [ ] `nop-ai-rag/README.md` 重写（空占位描述失效 + 修正 `io.nop.ai.core.api.embedding.IVectorStore` 笔误为 `api.vectorstore`）
+- [ ] `nop-ai/nop-ai-rag/README.md` 重写（空占位描述失效 + 修正 `io.nop.ai.core.api.embedding.IVectorStore` 笔误为 `api.vectorstore`）
 - [ ] `04-rag-module-position.md` 新增 §八 K2 触发登记（reserved 解除：VectorData/VectorStoreOptions/VectorQueryBean/VectorStoreResult/CosineSimilarity）
 - [ ] vectorstore 族类头部 RESERVED javadoc 修订（K1 对 IEmbeddingModel 同款）
 - [ ] `docs-for-ai/03-modules/nop-ai.md` 向量库节 + nop-ai-rag 模块表行同步

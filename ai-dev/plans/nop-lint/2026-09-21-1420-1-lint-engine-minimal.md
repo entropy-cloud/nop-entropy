@@ -12,7 +12,7 @@ verify: [test]
 
 以下事实均已对照 live repo（2026-09-21）核实：
 
-- 规则加载层已就绪（plan 06，item 8 done）：`RuleDslParser.loadRuleModel(resourcePath)` 把 `.rule.yml` 加载为强类型 `RuleDslModel`（字段：id/language/severity/message/matcher/xscript/xscriptTimeoutMs/requires/options/settings/metadata/files；matcher 为 pattern/kind/regex 单一形态或 `any` 分支列表，分支内 pattern+kind 可合取）。xdef 位于 `nop-lint/nop-lint-core/src/main/resources/_vfs/nop/lint/schema/lint-rule.xdef`，注册文件为 `_vfs/nop/core/registry/lint.register-model.xml`。
+- 规则加载层已就绪（plan 06，item 8 done）：`RuleDslParser.loadRuleModel(resourcePath)` 把 `.rule.yml` 加载为强类型 `RuleDslModel`（字段：id/language/severity/message/matcher/xscript/xscriptTimeoutMs/requires/options/settings/metadata/files；matcher 为 pattern/kind/regex 单一形态或 `any` 分支列表，分支内 pattern+kind 可合取）。xdef 位于 `nop-lint/nop-lint-core/src/main/resources/_vfs/nop/lint/schema/lint-rule.xdef`，注册文件为 _vfs 注册文件 lint.register-model.xml。
 - 匹配内核已就绪（plans 02–04，items 1–7 done，M1）：`SourcePatternCompiler.compile` → `SourcePattern`（`matchIn(LintNode)`、`mayMatchKind(int)`、`possibleKindIds()`）→ `Match`；`LintNode` 门面提供 `kind()/kindId()/text()/childByField()/range()` 等。
 - 语言绑定：`LintLanguage` SPI 与 `TreeSitterLanguageAdapter` 在 nop-lint-core；`JavaLanguage`（nop-lint-java，`JavaLanguage.get()` 单例，`id()` 返回小写 `"java"`）已存在，但**没有** `META-INF/services` ServiceLoader 注册文件——语言发现机制是 plan 02 收口时显式移交本 plan（item 8/9 规则引擎 plan）承接的 deferred 项。
 - **尚不存在**的类：`LintEngine`、`Diagnostic`、`LintStats`、CompiledRule（规则编译产物）、语言注册表。`io.nop.lint.core` 下现有包为 node/lang/pattern/rule。

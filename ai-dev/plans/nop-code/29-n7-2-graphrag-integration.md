@@ -30,7 +30,7 @@
 ### Phase 1 - 裁定 + 接线测试
 
 Status: planned
-Targets: `ai-dev/design/nop-code/graphrag-integration.md`（NEW）、`nop-code/nop-code-service/src/test/java/io/nop/code/service/graph/TestGraphRagIntegration.java`
+Targets: `ai-dev/design/nop-code/graphrag-integration.md`（NEW）、nop-code-service 测试 TestGraphRagIntegration
 
 - Item Types: `Decision`、`Proof`
 

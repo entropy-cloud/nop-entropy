@@ -54,7 +54,7 @@
 ### Phase 1 - 死代码与构造器面收敛（Fix）
 
 Status: planned
-Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/`、`rule/RuleDslModel.java`
+Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/`、rule 包 RuleDslModel
 
 - Item Types: `Fix`
 

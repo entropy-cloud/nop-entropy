@@ -43,7 +43,7 @@ Targets: `nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/beans/ai-tools-defa
 
 - [x] `Decision` 消重方向裁定：(A) 重命名 nop-ai-toolkit 的 beans 文件为 `/nop/ai/beans/ai-toolkit-defaults.beans.xml` 且 `nop-ai-toolkit.beans` autoconfig 指向同步；或 (B) 重命名 nop-ai-tools 侧；或 (C) 合并两文件到一个路径。记录理由与备选方案；推荐 (A)——两份文件 bean 集完全不相交（tools 以 BizModel/GraphQL 工具集为核心、toolkit 以执行器为核心），合并 (C) 会造成两 jar 运行时互相依赖对方 bean 类，改名比合并耦合小；tools 侧文件名 `ai-tools-defaults` 是既有文档/注释引用面，toolkit 侧改名影响最小。
 - [x] `Fix` 按裁定落地：重命名 toolkit 侧 beans 文件并同步 `nop-ai-toolkit.beans` autoconfig 内容；grep 全仓确认 `/nop/ai/beans/ai-tools-defaults.beans.xml` 不再被两模块同时声明；引用 toolkit 旧路径的文档/注释（`docs-for-ai/02-core-guides/ioc-and-config.md:218`、`ai-dev/design/nop-datav/ai-design.md:163`、`nop-datav-service app-service.beans.xml:75` 注释）同步或确认为泛称无需改动。
-- [x] `Proof` 静态证明消重：`find` 两模块 `src/main/resources/_vfs/nop/ai/beans/` 无同名文件；两 jar 构建产物 `target/classes/_vfs/nop/ai/beans/` 无同名路径；两 autoconfig 指向不同文件。
+- [x] `Proof` 静态证明消重：`find` 两模块 `src/main/resources/_vfs/nop/ai/beans/` 无同名文件；两 jar 构建产物 target/classes 下 _vfs/nop/ai/beans 目录 无同名路径；两 autoconfig 指向不同文件。
 - [x] `Fix` 回归验证：`./mvnw test -pl nop-ai/nop-ai-tools,nop-ai/nop-ai-toolkit -am` 通过（含各自既有工具测试）；若测试基建可组合两模块 classpath 验证无 duplicate VFS 异常，则补一条组合装配断言；否则以 Proof 静态证明 + 两模块单测通过为完成判定。
 
 Exit Criteria:

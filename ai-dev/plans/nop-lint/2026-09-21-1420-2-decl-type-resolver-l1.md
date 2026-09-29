@@ -12,7 +12,7 @@ verify: [test]
 
 以下事实均已对照 live repo（2026-09-21）核实：
 
-- `LintNode` 门面已就绪（plan 02，item 2 done）：`kind()/kindId()/text()/childByField(String)/range()` 等访问器可用；java 语法绑定（`JavaLanguage`，nop-lint-java）与 core 内可直接构造的 `TreeSitterLanguageAdapter`（见测试 `bench/BenchLanguage.java` 的构造方式）均可用。
+- `LintNode` 门面已就绪（plan 02，item 2 done）：`kind()/kindId()/text()/childByField(String)/range()` 等访问器可用；java 语法绑定（`JavaLanguage`，nop-lint-java）与 core 内可直接构造的 `TreeSitterLanguageAdapter`（见测试 bench 包 BenchLanguage 的构造方式）均可用。
 - 匹配内核（M1）与规则加载（item 8）均已 done；item 12 只依赖 item 2（已 done），与本批次其他 item 无依赖关系。
 - roadmap item 12 原文："L1 `DeclTypeResolver`（declaration-type extraction, design 06 §5.2）"。design 06 §5.2 的 L1 契约：**仅声明类型提取，纯 AST，无外部依赖**——对声明节点取 `child("type")` 的文本（`variable_declaration.type` → `"String"`、`method_declaration.return_type` → `"int"`、`formal_parameter.type` → `"List<String>"`），泛型写法按书写文本保留；明确"不自建 resolver、不引入 JavaParser"，类型解析/继承链属 L2（item 26）。
 - design 11 §3 成本表：L1 DeclTypeResolver 初始化成本 0、查询成本 ~0，全部档位可用（"pattern/xscript 内联查询"）——即 `requires: L1` 的规则在 fast/standard 都可运行。

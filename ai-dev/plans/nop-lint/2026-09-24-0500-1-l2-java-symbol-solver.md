@@ -78,7 +78,7 @@ Exit Criteria:
 ## Phase 3 — e2e 收口与文档（Proof）
 
 Status: completed
-Targets: `ai-dev/design/nop-lint/06`、roadmap
+Targets: ai-dev/design/nop-lint/06 文档、roadmap
 
 - Item Types: `Proof`
 
