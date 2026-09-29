@@ -47,3 +47,11 @@
 - `01-correctness-findings.md`（正确性：N1-N6、A2'、B6'、含自我否决候选）
 - `02-readability-structure.md`（可读性/结构）
 - `03-performance.md`（性能候选与基准缺口）
+
+## 修复裁定回写（2026-09-29，plan 366 收口）
+
+- **已修复**（plan 366 Phase 2，各带聚焦回归测试）：R4-N1（attachPendingReplay 惰性回放）、R4-N2（内部边复用旧分区 + MIDDLE writer 保留——执行期新发现同族缺口一并修复）、R4-N3（心跳过滤 finished）、R4-N4（目录查询失败响亮失败）、R4-N5（injectFront 整体删除，泄漏不复存在）、R4-A2'、R4-B6'、R4-S1（扁平 suppressed 树恢复）、R4-S2（注释归真）
+- **已治理**（plan 366 Phase 3，行为保持）：P1-1 三个未接线面（心跳删除/TTL backgroundCleanup 移除/processWatermarkStatus1/2 删除）、P1-2 十个死类、P1-3 测试脚手架同模块收敛（跨模块合并 Deferred）、P2 结构项与注释归真全部落地（Kafka/Pulsar codec 裁定不收敛——实为实质不同内容；G10 残余以共享 prologue helper 形态落地）；LATE_ELEMENTS_DROPPED 裁定**接线**（两算子真实丢弃路径，观测补全）
+- **性能留舍**（plan 366 Phase 4+5）：R4-P2 文件源缓冲化保留（-33%）；R4-P4 惰性分配保留（方向正、噪声内）；R4-P5 双槽缓存实测无收益 revert；R4-P1/P3 实测 + Deferred（aliasing 契约）；**收敛裁定：触碰路径无 ≥2% 低风险可收割项**
+- **维持 Deferred/successor**：N6（并入 A3）、A3-A6/B2/B7（owner 语义确认）、G1/G2/G3、D4/A11、跨模块测试脚手架、RemoteTaskDeploySupport 语义分歧（新登记）
+- **新登记 follow-up**：回放窗口竞态（先存缝隙）、file source 行累积重构（中风险）、withLateDataOutputTag 孤儿、processWatermark1/2 测试驱动候选

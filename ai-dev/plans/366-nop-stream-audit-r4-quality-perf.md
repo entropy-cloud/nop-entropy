@@ -1,6 +1,6 @@
 # 366 nop-stream 深审计 R4：region 重启缺陷修复 + 可读性收口 + JMH/JFR 性能迭代
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-29
 > Source: 审计 `ai-dev/audits/2026-09/2026-09-29-0546-deep-audit-nop-stream-quality-r3/`（summary + 01 正确性 + 02 可读性 + 03 性能；P0/P1 均经主审逐行核实）
 > Related: 358/359/360（R1）、2277/2278/2279（R2）、`nop-stream-quality-perf/01`（R3，均 completed）；收敛裁定书 `ai-dev/audits/evidence/nop-stream-perf-{360,2279}/convergence*.md`
@@ -110,7 +110,7 @@ Targets: `SupervisionLoop.java`、`ResultPartition.java`、`InputChannel.java`�
 - [x] N2：`buildConsumerInvokableWithReplay` 对 `matPoint == null` 的通道复用旧分区（与 producer 旧 writer 对账），删除"全新空分区"分支，按上述四案例矩阵处理残留。**配套修复（R2 复审 F1）**：`restartRegion` Phase 3 对 SUCCESS-terminal 任务跳过 rebuild/resubmit（其分区保留余量数据 + EOS，consumer 侧复用旧分区自然承接；否则复用旧 writer 的 finished producer 首次 write 即抛 ERR_STREAM_INVALID_STATE → 再失败循环；FAILED/CANCELED/非终态任务照常重建），聚焦测试钉死该跳过行为。端到端回归测试：多 region 作业（内部边 + materialization 边），fail 内部顶点任务 → 作业完成、sink 收全量记录、无悬挂；**记录数 > 分区容量**（天然叠加 N1 路径，防 2277 式修复叠加回归）；**断言覆盖四案例矩阵**（mat+finished 与 no-mat+finished 两个 finished 案例必须有专项断言；no-mat+finished 依赖本项跳过修复才可构造）；补显式断言"finished 分区 + pending 非空时 gate 不产 EOS"（timeout-null 与 EOS-null 同形是假完成根源）
 - [x] N3：`TaskManager.heartbeat` 对 `task.isFinished()`（`RunningTask.finished` 为 volatile，:329 已有访问器）的任务跳过 liveness 上报（恢复 JobCoordinator COMPLETED 注释钉死的契约）；顺带把 `JobCoordinator:924-928` 注释改为修复后仍真的表述。可观测行为变化登记：修复后若 COMPLETED 报告丢失，冻结 liveness 将在 60s 后进入 stall→恢复（向 FAILED 分支既有契约对齐，detectFailures 的 benefit-of-the-doubt + node-lease 检查无新死角，R1 审查核实）；聚焦测试：success 完成后心跳不再产生该任务的 TaskProgress，coordinator liveness 不回插、60s 后无 TASK_STALL
 - [x] N4：`JdbcCheckpointStorage.tableExists/epochTableExists` 区分"表不存在"（查询成功 false）与"查询失败"（抛 typed `CheckpointStorageException`，WARN 起步），消除 restore 静默冷启动。聚焦测试：existsTable 抛异常 → loadLatestEpochManifest 响亮失败而非返回空
-- [x] N5：`injectFront` 已整体删除（阻塞注入 API 由 attachPendingReplay 取代，哨兵许可泄漏不复存在）；测试：TestResultPartitionPendingReplay#replayPathHoldsNoPoolPermits 断言 pending 段零 acquire/release、permits 守恒（对齐 `drainBufferedElements`）。聚焦测试：带 pool 的 finished 分区经 injectFront 前后 availablePermits 不变
+- [x] N5：`injectFront` 已整体删除（阻塞注入 API 由 attachPendingReplay 取代，哨兵许可泄漏不复存在）；测试：TestResultPartitionPendingReplay#replayPathHoldsNoPoolPermits 断言 pending 段零 acquire/release、permits 守恒（对齐 `drainBufferedElements`）。聚焦测试原案（带 pool 的 finished 分区经 injectFront 前后 availablePermits 不变）随 API 删除演化为 TestResultPartitionPendingReplay#replayPathHoldsNoPoolPermits 的 pending 路径 permit 守恒断言
 - [x] A2'：`onCompletePersistFailure` fail 路径补 `checkpointSuccessMap` 清理（对齐 abort 路径）。聚焦测试：fail 且无失败参与者时条目被移除
 - [x] B6'：`directoryPath` 写出前保留字符校验——directoryPath 是换行分隔字段，仅拒 `\n`/`\r`（含 `|` 的合法目录不拒绝；与 splitById 的 `|`+换行集合刻意不同，注释说明原因）。聚焦测试：含 `\n` 的目录路径序列化快速失败、含 `|` 的合法目录通过
 - [x] S1：`CloseSupport.accumulate` 展平挂接（把 error 及其 suppressed 全部挂到 firstError，恢复扁平形状、first-error-wins）；javadoc 钉死形状契约。聚焦测试：三重失败断言 `firstError.suppressed=[X,Y]` 顺序
@@ -123,7 +123,7 @@ Exit Criteria:
 - [x] **接线验证（Rule #23）**：N1 惰性回放路径在 SupervisionLoop 重建流程中被真实调用（测试断言回放数据到达 consumer，而非仅单元直调）
 - [x] **无静默跳过（Rule #24）**：N4 修复后失败路径响亮失败；无新增空方法体/吞异常
 - [x] `./mvnw test -pl` 7 模块全绿（core 1611 / flow 118 / runtime 1097 / cep 372 / rocksdb 123 / connector 72 / connector-jdbc 43 = 3436 tests，0 failures 0 errors，`_tmp/r4-test-phase2-full.log` EXIT=0）
-- [x] owner-doc 裁定：N4 失败语义已写入 `docs-for-ai/03-modules/nop-stream.md`（存储读路径失败语义节）；N2/回放机制修订已改写 `ai-dev/design/nop-stream/failover-design.md`（reconnect-to-live-queue 节 + writer 保留节，design doc 按最终状态改写）；其余项 `No owner-doc update required`（S1 异常树形状未文档化、S2/A2'/N3 纯注释或内部契约归真） `docs-for-ai/03-modules/nop-stream.md`（及 cdc cookbook 若涉及）并同步；其余项逐项记录 `No owner-doc update required` 理由
+- [x] owner-doc 裁定：N4 失败语义已写入 `docs-for-ai/03-modules/nop-stream.md`（存储读路径失败语义节）；N2/回放机制修订已改写 `ai-dev/design/nop-stream/failover-design.md`（reconnect-to-live-queue 节 + writer 保留节，design doc 按最终状态改写）；其余项 `No owner-doc update required`（S1 异常树形状未文档化、S2/A2'/N3 纯注释或内部契约归真；cdc cookbook 经核对不涉及本轮改动面）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 - [x] git commit 完成（Phase 2 独立提交）
 
@@ -207,38 +207,38 @@ Exit Criteria:
 
 ### Phase 6 - 文档同步与计划收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/logs/`、审计报告、本 plan
 
 - Item Types: `Proof`
 
-- [ ] owner docs 复核：Phase 2-5 改变已文档化契约/模式处同步对应 owner doc（重点：N4 JDBC restore 失败语义、N2 region 重启内部边语义、TTL design doc）；复核结论逐项记录
-- [ ] 02 报告逐项裁定回写（landed / Deferred 归属）
-- [ ] `ai-dev/logs/` 收口条目（全部 Phase 摘要 + 留舍/收敛数字）
-- [ ] 独立子代理 closure audit（fresh session），evidence 写入 `## Closure`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream-core --severity high` 退出码 0（runtime/cep/rocksdb 同样跑）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 文本一致性核对（Plan Status / Phase Status / Exit Criteria / Closure Gates / logs 五处一致）
-- [ ] 最终 commit（closure）
+- [x] owner docs 复核：`docs-for-ai/03-modules/nop-stream.md`（N4 存储读路径失败语义 + numLateRecordsDropped 指标名表）、`ai-dev/design/nop-stream/failover-design.md`（N1/N2/F1 回放机制最终状态改写 + writer 保留节）、`state-management-design.md`（TTL lazy-only）、`connector-design.md`/`01-architecture-baseline.md`/design `README.md`（死类删除同步 + SourceWorkUnit 推翻裁定）、`checkpoint-design.md`/`component-roadmap.md`（心跳裁定）——全部同步完成
+- [x] 02 报告逐项裁定回写（summary.md 增"修复裁定回写"节：已修复/已治理/性能留舍/维持 Deferred/新登记 follow-up 五节）
+- [x] `ai-dev/logs/` 收口条目（Phase 1/2/3×2/4+5/收口共六条目）
+- [x] 独立子代理 closure audit（fresh session，agent_74cd8f19-5336-49df-a413-ef8f5850e4a4），evidence 写入 `## Closure`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0（closure 后终跑）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --severity high` 退出码 0（core/runtime/cep/rocksdb 四模块，`_tmp/r4-hollow-*.txt`）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 文本一致性核对（closure audit 逐项核实 + 本终核，见 Closure evidence）
+- [x] 最终 commit（closure）
 
 Exit Criteria:
 
-- [ ] 上述全部勾选；Closure Evidence 已写入 `## Closure`
-- [ ] `Plan Status` 改为 `completed`
+- [x] 上述全部勾选；Closure Evidence 已写入 `## Closure`
+- [x] `Plan Status` 改为 `completed`
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects（N1/N2/N3/N4/N5/A2'/B6'，含 S1 形状恢复）已修复并有回归测试
-- [ ] R4-P1..P5 每项有 JMH 前后数据与留舍裁定；收敛循环结论已记录（延续既有停止判据）
-- [ ] Phase 3 全部行为保持（死代码零引用、无对外语义变化；TTL/心跳/WatermarkStatus 处置有裁定记录）
-- [ ] 全部触碰模块 `./mvnw test` 全绿（收口时复跑）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 项均有 Why Not Blocking Closure 与归属）
-- [ ] 受影响的 owner docs 已同步（逐项复核结论已记录）
-- [ ] 独立子代理 closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 验证新增测试真实断言行为（N1 超容量回放真实经过 pending 路径、N2 多 region 测试真实触发内部边重建）；基准口径真实驱动生产路径
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
-- [ ] checkstyle / 代码规范：import 分组、4 空格缩进（含 TaskCheckpointWiring 修复后）、错误码规范符合 AGENTS.md
+- [x] 所有 in-scope confirmed live defects（N1/N2/N3/N4/N5/A2'/B6'，含 S1 形状恢复）已修复并有回归测试
+- [x] R4-P1..P5 每项有 JMH 前后数据与留舍裁定；收敛循环结论已记录（延续既有停止判据）
+- [x] Phase 3 全部行为保持（死代码零引用、无对外语义变化；TTL/心跳/WatermarkStatus 处置有裁定记录）
+- [x] 全部触碰模块 `./mvnw test` 全绿（收口复跑：7 模块 3433 tests 0 failures 0 errors，`_tmp/r4-final-rerun.log` EXIT=0 + surefire 实测）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 项均有 Why Not Blocking Closure 与归属）
+- [x] 受影响的 owner docs 已同步（逐项复核结论已记录）
+- [x] 独立子代理 closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 验证新增测试真实断言行为（N1 超容量回放真实经过 pending 路径、N2 多 region 测试真实触发内部边重建）；基准口径真实驱动生产路径
+- [x] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
+- [x] checkstyle / 代码规范：import 分组、4 空格缩进（含 TaskCheckpointWiring 修复后）、错误码规范符合 AGENTS.md
 
 ## Benchmark Rounds
 
@@ -251,7 +251,7 @@ Exit Criteria:
   - R4-P4 口径 `NfaProcessBench.processEvent -p patternDepth=20`：cheap **19.0 ± 6.6 µs**、billable **21.4 ± 4.0 µs**（对 plan-01 Round-2 的 15.5/17.4 有跨会话漂移，以同会话前后对比为准）
   - R4-P5 口径 `WindowOperatorProcessElementBench.processElement -p windowType=EVICTOR`：MEMORY **0.273/0.284 µs**（evictorSize 100/1000）、ROCKSDB **168.9/167.9 µs**（误差条大，D2 主导）
 - Round-1（2026-09-29，Phase 4 实施后）：
-  - **R4-P2 保留**：`ConnectorInvokeBench.fileSourceReadLine` 64B **268.3 ± 76.6 → 177.0 ± 7.8 ns/op（-34.0%）**、512B **2202.6 ± 537.0 → 1473.3 ± 113.4 ns/op（-33.1%）**（chunked 8KB 缓冲替代逐字节 Pushback+Buffered 双同步读；字节记账/CRLF/孤立 CR/endOffset 截断语义逐字节保持，connector 72 tests 全绿含 TestFileSourceReaderRecovery/TestFileSourceCheckpointRestore）
+  - **R4-P2 保留**（closure audit Minor 披露：R1 轮原始输出未存档，数字以 plan 文字与 R1b/phase5 复测佐证——沿 2279 存档缺口纪律登记）：`ConnectorInvokeBench.fileSourceReadLine` 64B **268.3 ± 76.6 → 177.0 ± 7.8 ns/op（-34.0%）**、512B **2202.6 ± 537.0 → 1473.3 ± 113.4 ns/op（-33.1%）**（chunked 8KB 缓冲替代逐字节 Pushback+Buffered 双同步读；字节记账/CRLF/孤立 CR/endOffset 截断语义逐字节保持，connector 72 tests 全绿含 TestFileSourceReaderRecovery/TestFileSourceCheckpointRestore）
   - **R4-P4 保留（方向正、噪声带内不可确证）**：`NfaProcessBench d20` cheap 19.0 ± 6.6 → 18.6 ± 3.9 / 19.1 ± 8.5（R1/R1b 两轮，-2.2%/-0.8%）、billable 21.4 ± 4.0 → 20.7 ± 2.5 / 21.1 ± 7.0（-3.7%/-1.7%）——误差条 ±20~40% 主导，按协议不作为 ≥2% 确证收割；保留理由：纯分配形态改进（惰性 verdict cache，浅模式零分配），方向两轮一致为正，cep 373 tests 全绿
   - **R4-P5 revert（无收益证据）**：双槽 storage-key 缓存实现后 `EVICTOR MEMORY` 0.273/0.270 µs vs 改前 0.271/0.279 µs（噪声带内，<2% 且无可见方向）——已 revert，thrashing 预估不成立
   - **R4-P1/R4-P3 Deferred（aliasing 契约 + 实测上限）**：fileSinkInvokeMap 103 ns(4 entries)/264 ns(16 entries)、jdbcSinkInvokeMap 49 ns(10 列)——消除需暴露 sink 缓冲活对象 aliasing（用户 mutate 污染 exactly-once 输出），属 owner 契约裁定项；实测数字登记为 successor 上限证据
@@ -309,20 +309,39 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - **回放窗口竞态（Phase 2 执行期确认的先存语义缝隙）**：materialization 边重启时，residual drain 与 replay 快照之间的写入会"队列副本 + replay 副本"各投递一次（at-least-once 下允许重复；e2e 实测 1500 条规模下 0-2 条重复）。原 drain+injectFront 设计存在同一窗口。消除需原子 drain+快照或 replay 后二次对账，属 replay 语义专项
-- numLateRecordsDropped 观测缺口（若 Phase 3 裁定为删常量）：迟到元素指标接线需语义设计
-- `@Disabled` Debezium 测试的契约修复（connector backlog）
-- 迟到元素丢弃语义与 watermark 语义专项（若 Phase 3 核查发现）
+- ~~numLateRecordsDropped 观测缺口~~ **已解决**（Phase 3 裁定接线：两算子真实丢弃路径补 counter + 2 测试 + 指标名表）
+- **file source 行累积重构候选**（Phase 5 JFR 归因登记）：readNextLine 残余 97% 为 BAOS 逐字节累积+UTF-8 解码基本成本；批内扫描+批量拷贝可再降，但行跨 chunk 边界/CR 边界语义重构属中风险，需独立设计
+- `PatternStreamBuilder.withLateDataOutputTag` 因 sideOutputLateData 删除成为零引用孤儿（Phase 3 执行期按纪律不删）——随下次触碰 PatternStream 时裁定删除或接线
+- `AbstractStreamOperator.processWatermark1/2` 本身仅测试驱动（Phase 3 执行期登记候选，不在本批清单）——随双输入算子特性立项时一并裁定
+- `@Disabled` Debezium 测试的契约修复（connector backlog，注解已改写指向契约）
+- TaskDispatchLoop 中间层基准、嵌入态 checkpoint 循环基准、extractPatterns、Memory shard 路由（Deferred 节既有清单）
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 全部 6 个 Phase 完成：Phase 1 基准缺口补建（ConnectorInvokeBench 三口径 + Round-0）；Phase 2 九项缺陷修复（2 P0 region 重启悬挂 + 2 P1 + 同族 P2，含执行期新发现的 MIDDLE writer 同族缺口，全部带聚焦回归测试）；Phase 3 可读性/结构整改（净 -1050 行：死类/未接线面/单方法死 API 删除、LATE_ELEMENTS 裁定接线、结构收敛、注释归真、测试脚手架收敛，行为保持）；Phase 4+5 JMH/JFR 性能迭代至收敛（P2 文件源缓冲化保留 -33%、P4 惰性分配保留、P5 无收益 revert、P1/P3 契约 Deferred；**收敛裁定：触碰路径上无 ≥2% 低风险可收割项**——用户停止判据成立）。
+
+Completed: 2026-09-29
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子代理 closure auditor（fresh session，agent_74cd8f19-5336-49df-a413-ef8f5850e4a4，2026-09-29）
+- Audit Session: agent_74cd8f19-5336-49df-a413-ef8f5850e4a4
+- Evidence:
+  - Phase 2 九项修复逐项 PASS（live 代码 + 测试双核对）：N1 ResultPartition.java:91-118/368-414/514-536 + TestResultPartitionPendingReplay 5 测试；N2 SupervisionLoop.java:793-857 复用旧分区 + :847-855 MIDDLE writer 保留 + TestRegionRestartInternalEdgeE2E 3 测试（assertSame 实例同一性/精确记录集合/COMPLETED 终态）；F1 :498-510 COMPLETED 跳过；N3 TaskManager.java:326 + TestTaskManagerLivenessAndReporting:158；N4 JdbcCheckpointStorage.java:409-417/577-585 + TestJdbcCheckpointStorage:673 双路响亮失败；N5 injectFront 全仓零命中 + permit 守恒断言；S1 CloseSupport.java:94-105 + TestCloseSupport 扁平顺序断言；A2' CheckpointCoordinator.java:869-878；B6' FileSource.java:178-186。四案例矩阵覆盖齐全（mat/no-mat × running/finished）
+  - Anti-Hollow Check：调用链逐跳连通（SupervisionLoop.run:316 → restartRegion:426 → rebuildTask:511 → buildConsumerInvokableWithReplay:668 → activateMaterializationReplay:827 → attachPendingReplay → InputGate.readSingleChannel:584 → read(timeout):397），e2e 测试从任务失败真实驱动至 sink 输出；scan-hollow 四模块 0 findings + 审计现场复跑 exit 0；新增测试均为真断言（无空跑）
+  - Phase 3 抽查 PASS：死类 5 名全仓 grep 零命中；deployTask 7 守卫 rejectDeploy 字符串逐字保持；LATE_ELEMENTS 双算子接线 + delta=1.0 双测试 + docs-for-ai 指标名表在位
+  - Phase 4/5 PASS：FileSourceReader CR cap/unread/截断字节记账正确；NFA LazyVerdictCache put 仅在 filter 成功后（异常不缓存）；基准数字与 r4-round0/r1b/r0b/phase5-suite raw 逐一吻合
+  - 文本一致性：Plan Status / Phase 1-6 completed / Closure Gates 全勾 / 日志条目五处一致；测试数字链条自洽（Phase 2 3436 → Phase 3 3522(9 模块) → 收口 3433(7 模块)，差值与测试增删吻合）
+  - 测试终证：`_tmp/r4-final-rerun.log` EXIT=0 + surefire 实测 core 1610 / flow 118 / runtime 1094 / cep 373 / rocksdb 123 / connector 72 / connector-jdbc 43 = 3433 tests 0 failures 0 errors（报告时间戳与运行窗口吻合）
+  - `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0（closure 后终跑，见收口日志）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`scan-hollow-implementations.mjs --severity high` core/runtime/cep/rocksdb 全部 exit 0
+  - Deferred 分类诚实性：回放窗口竞态为先存缝隙三处在档（plan follow-up、failover-design.md、e2e 测试注释）；A3-A6/B2/B7/N6 维持先行 owner 确认归属；无 in-scope live defect 被降级
+  - 审计 Minor 项处置：6 项均不阻塞；Minor-4 病句与 Minor-5 残留表述已修正、Minor-3 收口日志随本提交补写、Minor-1 R1 原始基准未存档已在 Benchmark Rounds 披露（沿 2279 存档缺口纪律）、Minor-2 预勾项由本终核与最终 commit 兑现、Minor-6 quiet 日志缺 BUILD 标记由 surefire 报告补证
+  - 执行期披露：本 plan 文件曾在收口编辑中因分节锚点误匹配产生瞬时损坏，已从 git HEAD 恢复并按唯一锚点重新应用全部收口改动（内容与审计所见一致）
 
 Follow-up:
 
-- （收口时填写）
+- 回放窗口竞态（先存语义缝隙，at-least-once 容忍）→ replay 语义专项
+- file source 行累积批内扫描重构（JFR 归因的中风险候选）
+- R4-P1/P3 sink 缓冲 aliasing 契约优化（owner 裁定 + 实测上限证据已登记）
+- withLateDataOutputTag 孤儿、processWatermark1/2 测试驱动候选、跨模块测试脚手架（Deferred 节既有清单）

@@ -187,7 +187,7 @@ public class TestMaterializationWiring {
         int injected = channel.activateMaterializationReplay(10L);
         assertEquals(2, injected);
 
-        // Replayed elements come first (injectFront preserves order), then live data.
+        // Replayed elements come first (pending replay is delivered ahead of queue content), then live data.
         assertEquals("a", channel.read().<String>asRecord().getValue());
         assertEquals("b", channel.read().<String>asRecord().getValue());
         assertEquals("live-after", channel.read().<String>asRecord().getValue());
