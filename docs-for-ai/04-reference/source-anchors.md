@@ -296,6 +296,7 @@
 | TS-002 | `nop-treesitter`: `Language.fromClasspath("/grammars/<name>/tree-sitter-<name>-blob.bin")` | 六内置语法 blob（json/java/javascript/typescript/tsx/python）；blob 格式 v4 见模块内 `blob-format.md` |
 | TS-003 | `nop-treesitter`: `ITreeSitterLanguageProvider`（`META-INF/services` 扩展，custom 覆盖内置同名语法） | 语法注册 SPI；默认实现为 IoC bean `treeSitterLanguageProvider` |
 | TS-004 | `nop-treesitter`: `TreeSitterBizModel`（GraphQL `TreeSitter__parseTreeSitter`，错误码 `nop.err.treesitter.unknown-language`） | GraphQL 门面；未知语法抛带码 NopException |
+| BY-001 | `nop-bytecode`: `NopBytecodeMain.run(args, out, err)`（report-only CLI，退出码 0/2） | 发现流通道入口；0=运行完成（含 findings），2=失败（fail-fast 不出部分报告）；诊断 ruleId `nullflow/*` |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

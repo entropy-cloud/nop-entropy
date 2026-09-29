@@ -188,7 +188,7 @@ public final class ClassArtifactCollector {
         return artifact;
     }
 
-    static String sha256Hex(byte[] bytes) {
+    public static String sha256Hex(byte[] bytes) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             StringBuilder sb = new StringBuilder(bytes.length * 2);

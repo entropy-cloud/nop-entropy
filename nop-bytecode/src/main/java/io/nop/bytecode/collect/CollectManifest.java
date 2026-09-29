@@ -1,5 +1,7 @@
 package io.nop.bytecode.collect;
 
+import io.nop.bytecode.NopBytecodeException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,6 +19,10 @@ import java.util.Properties;
  * the file. Granularity assumption: the mtime column has filesystem timestamp granularity; on
  * coarse-grained filesystems (1s), a same-second same-size modification can be missed — a
  * consumer needing a strong guarantee clears the manifest and re-collects from scratch.
+ *
+ * <p>Loading a malformed manifest (wrong column count / unparsable numbers) is a loud
+ * {@link NopBytecodeException} — the CLI persists this file, so silent data loss is worse
+ * than a failed run.
  */
 public final class CollectManifest {
 
@@ -73,12 +79,16 @@ public final class CollectManifest {
             }
             for (String path : props.stringPropertyNames()) {
                 String[] parts = props.getProperty(path).split(";", -1);
-                if (parts.length != 5) continue; // malformed rows are ignored, manifest is advisory
+                // the manifest is a persisted contract carrier (the CLI writes it back): a
+                // malformed row is a loud failure, never a silent skip
+                if (parts.length != 5) {
+                    throw new NopBytecodeException("Malformed manifest row (expected 5 ';'-separated columns): " + path);
+                }
                 try {
                     m.entries.put(path, new Entry(Long.parseLong(parts[0]), Long.parseLong(parts[1]),
                             parts[2], parts[3], Integer.parseInt(parts[4])));
                 } catch (NumberFormatException e) {
-                    // skip malformed row
+                    throw new NopBytecodeException("Malformed manifest row (bad number) for " + path, e);
                 }
             }
         }

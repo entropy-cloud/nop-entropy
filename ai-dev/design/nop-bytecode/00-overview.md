@@ -74,7 +74,7 @@ flowchart LR
 | 解析层 | class file → 类型全解析模型；底座由 Wave 0 ADR 裁定 | 候选 = ASM 自研 / SpotBugs plugin / 外部全程序框架；Java 21 产物（class file v65）必须支持 |
 | 内核层 | 方法内显式 CFG + 抽象解释框架（帧沿 CFG 传播、路径聚合） | nullness lattice 优先；**自建引擎 + `tree.analysis` 仅作测试 oracle**（ADR §五，2026-09-29 内核落地）；JMH 基线在 `nop-bytecode/docs/perf-baseline.md` |
 | 分析器层 | 每分析器 = 检测逻辑 + 误报控制面 + fixtures + 对照记录 | 缺口归属单一；豁免面在缺口账本登记 |
-| 通道层 | 发现流输出；诊断结构与 nop-lint 诊断格式对齐（统一 AI/开发者消费面）；准入判据 3 的去重口径在此落实 | 默认独立 CLI/maven goal 形态（随 ADR/骨架 item 裁定） |
+| 通道层 | 发现流输出；诊断结构与 nop-lint 诊断格式对齐（统一 AI/开发者消费面）；准入判据 3 的去重口径在此落实 | **独立 CLI 已落地（plan 04）**：`io.nop.bytecode.cli.NopBytecodeMain`，report-only 退出码 0/2；ruleId 命名空间 `nullflow/` + 通道级发现键去重 = 去重口径落实；maven goal Deferred |
 | 外部桥接层（Wave 5，待裁） | 外部全程序框架的进程边界调用、结果报告消费、Nop 语义入口点适配 | 外部工具/窄桥接形态（§2.5）；失败语义 = 降级为"跨过程面缺席"并报告，不阻塞字节码通道主体 |
 
 ### 3.2 模块边界
