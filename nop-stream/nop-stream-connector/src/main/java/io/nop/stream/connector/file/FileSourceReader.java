@@ -6,12 +6,10 @@
  */
 package io.nop.stream.connector.file;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -58,8 +56,20 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
 
     /** Currently-open split (lazy-open on first poll). */
     private transient FileSplit activeSplit;
-    private transient PushbackInputStream activeReader;
+    private transient InputStream activeReader;
     private transient long activeBytesConsumed;
+
+    /**
+     * Chunked-read buffer for {@link #readNextLine()}: one bulk
+     * {@link InputStream#read(byte[])} per ~8KB instead of one synchronized
+     * per-byte stream read. Cursor semantics are byte-identical to the previous
+     * per-byte loop — a byte leaves this buffer exactly when it was counted as
+     * consumed from the stream, and {@link #unreadBuffered()} rewinds the lone
+     * lookahead byte (same contract the one-slot PushbackInputStream served).
+     */
+    private transient byte[] readBuf = new byte[8192];
+    private transient int readBufPos;
+    private transient int readBufLimit;
 
     /** Whether the reader has ever received at least one split (avoids premature finish). */
     private transient boolean everAssigned;
@@ -199,7 +209,9 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
             throw new IOException("Failed to seek to cursor " + cursor + " of " + path
                     + " (positioned only " + channel.position() + " bytes — truncated file?)", e);
         }
-        activeReader = new PushbackInputStream(new BufferedInputStream(fis), 1);
+        activeReader = fis;
+        readBufPos = 0;
+        readBufLimit = 0;
         activeSplit = split;
         // Seed the byte counter with the bytes already consumed before this open (the
         // skip above positioned the stream at the split's cursor). pollNext computes the
@@ -224,21 +236,24 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
     private String readNextLine() throws IOException {
         long cap = activeSplit.getEndOffset() - activeSplit.getStartOffset();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int b;
-        while (activeBytesConsumed < cap && (b = activeReader.read()) != -1) {
+        while (activeBytesConsumed < cap) {
+            int b = readBuffered();
+            if (b == -1) {
+                break;
+            }
             activeBytesConsumed++;
             if (b == '\n') {
                 return out.toString(StandardCharsets.UTF_8);
             }
             if (b == '\r') {
                 if (activeBytesConsumed < cap) {
-                    int next = activeReader.read();
+                    int next = readBuffered();
                     if (next != -1) {
                         activeBytesConsumed++;
                         if (next != '\n') {
-                            // Lone CR terminator: push the non-newline char back to
-                            // the start of the following line.
-                            activeReader.unread(next);
+                            // Lone CR terminator: rewind the non-newline byte to
+                            // the start of the following line (it never counted).
+                            unreadBuffered();
                             activeBytesConsumed--;
                         }
                     }
@@ -251,6 +266,23 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
         // collected this is the end of the stream, otherwise the final unterminated
         // line is returned.
         return out.size() == 0 ? null : out.toString(StandardCharsets.UTF_8);
+    }
+
+    /** One byte from the chunk buffer, refilling from the stream when drained. */
+    private int readBuffered() throws IOException {
+        if (readBufPos >= readBufLimit) {
+            readBufLimit = activeReader.read(readBuf);
+            readBufPos = 0;
+            if (readBufLimit <= 0) {
+                return -1;
+            }
+        }
+        return readBuf[readBufPos++] & 0xFF;
+    }
+
+    /** Rewinds the single lookahead byte (only valid immediately after {@link #readBuffered()}). */
+    private void unreadBuffered() {
+        readBufPos--;
     }
 
     private void closeActiveReader() {

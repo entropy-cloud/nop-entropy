@@ -724,8 +724,7 @@ public class NFA<T> {
         // every transition condition while walking the PROCEED chains, and
         // findFinalStateAfterProceed reuses those verdicts instead of
         // re-evaluating the SAME PROCEED transitions of the same event.
-        final java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts =
-                new java.util.IdentityHashMap<>();
+        final LazyVerdictCache<T> conditionVerdicts = new LazyVerdictCache<>();
 
         final OutgoingEdges<T> outgoingEdges =
                 createDecisionGraph(context, computationState, event.getEvent(), conditionVerdicts);
@@ -852,7 +851,7 @@ public class NFA<T> {
             final StateTransition<T> edge,
             final EventWrapper event,
             final ConditionContext context,
-            final java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts,
+            LazyVerdictCache<T> conditionVerdicts,
             final int takeBranchesToVisit,
             final List<ComputationState> resultingComputationStates) {
 
@@ -937,7 +936,7 @@ public class NFA<T> {
             ConditionContext context,
             State<T> state,
             T event,
-            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) {
+            LazyVerdictCache<T> conditionVerdicts) {
         final Stack<State<T>> statesToCheck = new Stack<>();
         statesToCheck.push(state);
         final Set<State<T>> visited = new HashSet<>();
@@ -975,7 +974,7 @@ public class NFA<T> {
             ConditionContext context,
             ComputationState computationState,
             T event,
-            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) {
+            LazyVerdictCache<T> conditionVerdicts) {
         State<T> state = getState(computationState);
         final OutgoingEdges<T> outgoingEdges = new OutgoingEdges<>(state);
 
@@ -1018,7 +1017,7 @@ public class NFA<T> {
             ConditionContext context,
             IterativeCondition<T> condition,
             T event,
-            java.util.Map<IterativeCondition<T>, Boolean> conditionVerdicts) throws Exception {
+            LazyVerdictCache<T> conditionVerdicts) throws Exception {
         if (condition == null) {
             return true;
         }
@@ -1029,6 +1028,27 @@ public class NFA<T> {
         boolean verdict = condition.filter(event, context);
         conditionVerdicts.put(condition, verdict);
         return verdict;
+    }
+
+    /**
+     * Per-event verdict cache for {@link IterativeCondition} evaluation, keyed
+     * by identity. Allocation is deferred to the first cached verdict: shallow
+     * patterns where every condition is evaluated exactly once (the common
+     * case) pay no map allocation per (event × partial-match) computation.
+     */
+    private static final class LazyVerdictCache<T> {
+        private java.util.IdentityHashMap<IterativeCondition<T>, Boolean> delegate;
+
+        Boolean get(IterativeCondition<T> condition) {
+            return delegate == null ? null : delegate.get(condition);
+        }
+
+        void put(IterativeCondition<T> condition, boolean verdict) {
+            if (delegate == null) {
+                delegate = new java.util.IdentityHashMap<>(4);
+            }
+            delegate.put(condition, verdict);
+        }
     }
 
     /**

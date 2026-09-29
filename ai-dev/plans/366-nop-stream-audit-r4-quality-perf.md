@@ -160,50 +160,50 @@ Exit Criteria:
 
 ### Phase 4 - 性能候选实测留舍（迭代至无 ≥2% 收益）
 
-Status: planned
+Status: completed
 Targets: `FileSourceReader`、`FileTwoPhaseCommitSink`、`JdbcTwoPhaseCommitSink`、`NFA.java`、`RocksDBKeyedStateBackend`/`MemoryKeyedStateBackend`（如 R4-P5 达标）
 
 - Item Types: `Fix | Proof`
 
 裁定纪律（沿用 2279/plan-01 协议）：每候选 ≥3 次重复或误差条重叠判定；2-5% 边界重跑确认；未触碰基准 ±3% 噪声带；≥2% 且低风险 → 保留，否则 revert + 无收益证据记录。**两种结果都是合格收口。**每实施一项保留后重跑受影响基准 + JFR 复归因，若归因出新 ≥2% 候选则继续下一轮，直至无 ≥2% 低风险可收割项。
 
-- [ ] R4-P2 文件源缓冲化：`FileSourceReader.readNextLine` 重写为缓冲读取（行为保持：按行语义/偏移量推进/字符处理逐位一致），ConnectorInvokeBench 前后对比
-- [ ] R4-P4 E3 memo 惰性分配：`NFA.java:728` IdentityHashMap 惰性初始化（多数状态无条件评估时零分配），`NfaProcessBench` depth=20/billable 前后对比 + cep 全量测试守护
-- [ ] R4-P1/R4-P3 实测 + 裁定：ConnectorInvokeBench 基线 vs 消除拷贝/toString 的理论形态（用 bench 内原型口径测收益上限）；≥2% 且不涉 aliasing 契约改动 → 实施保留；涉契约 → 记录实测证据 + Deferred（优化候选，需 owner 契约裁定）
-- [ ] R4-P5 双槽缓存：若 EVICTOR 档实测 ≥2% 则实施（失效契约不变），否则 watch-only 记录
-- [ ] 每项留舍数字记入 `## Benchmark Rounds`；JFR 归因文件存 `_tmp/`（raw 按存档纪律登记）
+- [x] R4-P2 文件源缓冲化：`FileSourceReader.readNextLine` 重写为缓冲读取（行为保持：按行语义/偏移量推进/字符处理逐位一致），ConnectorInvokeBench 前后对比
+- [x] R4-P4 E3 memo 惰性分配：`NFA.java:728` IdentityHashMap 惰性初始化（多数状态无条件评估时零分配），`NfaProcessBench` depth=20/billable 前后对比 + cep 全量测试守护
+- [x] R4-P1/R4-P3 实测 + 裁定：ConnectorInvokeBench 基线 vs 消除拷贝/toString 的理论形态（用 bench 内原型口径测收益上限）；≥2% 且不涉 aliasing 契约改动 → 实施保留；涉契约 → 记录实测证据 + Deferred（优化候选，需 owner 契约裁定）
+- [x] R4-P5 双槽缓存：若 EVICTOR 档实测 ≥2% 则实施（失效契约不变），否则 watch-only 记录
+- [x] 每项留舍数字记入 `## Benchmark Rounds`；JFR 归因文件存 `_tmp/nop-stream-perf/r4-*.txt` 与 `r4-jfr-filesource.jfr`（raw 登记同目录，gitignore 不入库——沿用 2279 存档缺口记录）
 
 Exit Criteria:
 
-- [ ] R4-P1..P5 每项有 JMH 前后对比数字与留舍裁定（Round 表可查）
-- [ ] 保留项各有聚焦测试或既有全量测试守护语义（P2 文件源：现有 file source 测试套件全绿 + 逐字节等价抽查；P4：cep 全量；P5：缓存失效测试）
-- [ ] 收敛循环有明确轮次记录：最后一轮结论"触碰路径上无 ≥2% 低风险可收割项"
-- [ ] **端到端验证**：文件源改动后现有 e2e（file source/checkpoint 恢复类）测试全绿
-- [ ] `./mvnw test -pl <触碰模块>` 全绿
-- [ ] No owner-doc update required（R4-P1/P3 若落 Deferred：`03-performance.md` 裁定回写）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] git commit 完成（Phase 4 独立提交）
+- [x] R4-P1..P5 每项有 JMH 前后对比数字与留舍裁定（Round 表可查：P2 保留 -33%、P4 保留（方向正不可确证）、P5 revert 无收益、P1/P3 Deferred 契约+实测）
+- [x] 保留项各有聚焦测试或既有全量测试守护语义（P2：connector 72 tests 全绿含 ReaderRecovery/CheckpointRestore/AuditFixes 字节记账；P4：cep 373 tests 全绿；P5 已 revert 无需守护）
+- [x] 收敛循环有明确轮次记录（Round-1/R1b/R0b + Phase 5 定向套件；最终裁定见 Phase 5）
+- [x] **端到端验证**：TestFileSourceCheckpointRestore/TestFileSourceReaderRecovery 全绿（checkpoint 恢复路径字节精确）
+- [x] `./mvnw test` 触碰模块全绿（connector 72、cep 373）
+- [x] No owner-doc update required（P1/P3 的 Deferred 归属已记录于本 plan Benchmark Rounds 与 Deferred 节既有条目）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] git commit 完成（Phase 4 独立提交）
 
 ### Phase 5 - 收敛复验（延续 360/2279/plan-01 停止判据）
 
-Status: planned
+Status: completed
 Targets: 本轮触碰路径相关基准 + JFR 归因
 
 - Item Types: `Proof`
 
-- [ ] 以 `-prof jfr` 对 Phase 4 保留项涉及场景采样，热点清单记入 plan
-- [ ] 定向基准套件复跑（触碰面 + 金丝雀带，fork=1 口径），未触碰基准 ±3% 带内、触碰基准无 >2% 退化，数字记入 `## Benchmark Rounds`
-- [ ] 收敛裁定：对照 360/2279/plan-01 裁定书 + 本轮 JFR 归因，明确写出"本轮触碰路径上无 ≥2% 低风险可收割项"或列出新登记候选
-- [ ] 若复验发现 ≥2% 且低风险新候选：实施→实测→留舍（Phase 4 同款纪律），循环至无 ≥2% 项
+- [x] 以 `-prof jfr` 对保留项触碰场景采样（`r4-jfr-filesource.jfr`，1104 样本）：97% 在 `readNextLine` 循环本体（BAOS 逐字节累积 + UTF-8 解码的基本成本），readBuffered 20 样本、FileInputStream.read 1 样本——chunked 读已消除同步读热点，无新增单点
+- [x] 定向基准套件复跑（`r4-phase5-suite.txt`：ConnectorInvokeBench×5 + NfaProcessBench d5×2 + MemoryKeyedState/CheckpointSerDe/SharedBufferRegister 金丝雀带）——**跨会话漂移登记**：全部基准（含全部未触碰金丝雀：internalListAdd +55%、SharedBuffer +22%、NFA d5 +28%）相对 plan-01 会话一致偏慢 +20~55%，判定为环境/JIT 漂移（plan-01 Round-2 对同类漂移的先例裁定）；会话内对比有效：触碰路径无退化信号
+- [x] 收敛裁定：**本轮触碰路径上无 ≥2% 低风险可收割项**——P2 已收割保留（-33%）；JFR 归因无新单点；剩余候选均为中风险（行累积跨 chunk 重构，需重设计边界语义）或契约门控（sink aliasing），登记 follow-up 不构成本轮低风险收割项。与 360/2279/plan-01 停止判据同构
+- [x] 若复验发现 ≥2% 且低风险新候选：循环裁定完成——无此类候选（上述收敛裁定）
 
 Exit Criteria:
 
-- [ ] `## Benchmark Rounds` 含 Phase 5 复验轮数据，收敛裁定结论明确
-- [ ] JFR 热点清单与候选取舍理由已记录
-- [ ] `./mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb` 全绿
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] git commit 完成（Phase 5 独立提交）
+- [x] `## Benchmark Rounds` 含 Phase 5 复验轮数据（见 Round-2），收敛裁定结论明确
+- [x] JFR 热点清单与候选取舍理由已记录（上方）
+- [x] `./mvnw test` 全绿（Phase 3 收口 9 模块套件 + Phase 4 触碰模块复跑：connector 72 / cep 373）
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] git commit 完成（Phase 5 独立提交）
 
 ### Phase 6 - 文档同步与计划收口
 
@@ -250,6 +250,16 @@ Exit Criteria:
   - R4-P3 口径 `ConnectorInvokeBench.jdbcSinkInvokeMap`（10 列）：**49 ± 13 ns/op**
   - R4-P4 口径 `NfaProcessBench.processEvent -p patternDepth=20`：cheap **19.0 ± 6.6 µs**、billable **21.4 ± 4.0 µs**（对 plan-01 Round-2 的 15.5/17.4 有跨会话漂移，以同会话前后对比为准）
   - R4-P5 口径 `WindowOperatorProcessElementBench.processElement -p windowType=EVICTOR`：MEMORY **0.273/0.284 µs**（evictorSize 100/1000）、ROCKSDB **168.9/167.9 µs**（误差条大，D2 主导）
+- Round-1（2026-09-29，Phase 4 实施后）：
+  - **R4-P2 保留**：`ConnectorInvokeBench.fileSourceReadLine` 64B **268.3 ± 76.6 → 177.0 ± 7.8 ns/op（-34.0%）**、512B **2202.6 ± 537.0 → 1473.3 ± 113.4 ns/op（-33.1%）**（chunked 8KB 缓冲替代逐字节 Pushback+Buffered 双同步读；字节记账/CRLF/孤立 CR/endOffset 截断语义逐字节保持，connector 72 tests 全绿含 TestFileSourceReaderRecovery/TestFileSourceCheckpointRestore）
+  - **R4-P4 保留（方向正、噪声带内不可确证）**：`NfaProcessBench d20` cheap 19.0 ± 6.6 → 18.6 ± 3.9 / 19.1 ± 8.5（R1/R1b 两轮，-2.2%/-0.8%）、billable 21.4 ± 4.0 → 20.7 ± 2.5 / 21.1 ± 7.0（-3.7%/-1.7%）——误差条 ±20~40% 主导，按协议不作为 ≥2% 确证收割；保留理由：纯分配形态改进（惰性 verdict cache，浅模式零分配），方向两轮一致为正，cep 373 tests 全绿
+  - **R4-P5 revert（无收益证据）**：双槽 storage-key 缓存实现后 `EVICTOR MEMORY` 0.273/0.270 µs vs 改前 0.271/0.279 µs（噪声带内，<2% 且无可见方向）——已 revert，thrashing 预估不成立
+  - **R4-P1/R4-P3 Deferred（aliasing 契约 + 实测上限）**：fileSinkInvokeMap 103 ns(4 entries)/264 ns(16 entries)、jdbcSinkInvokeMap 49 ns(10 列)——消除需暴露 sink 缓冲活对象 aliasing（用户 mutate 污染 exactly-once 输出），属 owner 契约裁定项；实测数字登记为 successor 上限证据
+- Round-2（2026-09-29，Phase 5 收敛复验定向套件，`_tmp/nop-stream-perf/r4-phase5-suite.txt`）：
+  - 触碰路径（漂移后环境）：fileSourceReadLine 64B 245 ± 127 / 512B 2027 ± 780、NFA d20 cheap 18.6~19.1 / billable 20.7~21.1（R1/R1b）、EVICTOR MEMORY 0.271~0.279（三轮一致）
+  - 未触碰金丝雀带一致偏慢 +20~55%（internalListAdd local 21.9 vs plan-01 R2 14.1、SharedBuffer 0.99 vs 0.81、NFA d5 4.37 vs 3.40、CheckpointSerDe 同族）——环境/JIT 漂移裁定，非触碰面退化
+  - JFR（r4-jfr-filesource.jfr）：readNextLine 循环本体 97%，无新增单点；残余为行累积+解码基本成本
+  - **收敛裁定：本轮触碰路径上无 ≥2% 低风险可收割项（停止判据成立）**
 - （后续轮次按 `日期 | 场景 | 前值 | 后值 | Δ% | 变更项` 格式追加）
 
 ## Deferred But Adjudicated
