@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-entropy</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-bytecode</artifactId>
+    <name>36-nop-bytecode</name>
+
+    <description>
+        Bytecode analysis substrate library: the class-file collection / analysis channel that
+        runs on compiled artifacts (Maven reactor target/classes dirs and jars), parallel to the
+        source-only nop-lint engine (zero dependency between the two channels).
+
+        Substrate adjudication (Wave 0 ADR): self-built kernel on ASM (BSD-3, single-purpose
+        utility library within the self-contained design exemption).
+
+        Module layout:
+        - io.nop.bytecode            module root: module-level exception
+        - io.nop.bytecode.collect    collection layer: enumerate class artifacts from
+                                     target/classes dirs and jars, incremental via manifest
+        (analysis kernel and discovery channel packages are added by subsequent plans)
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Pinned per Wave 0 substrate ADR: 9.7.x supports class file v65 (Java 21) and v61 corpus -->
+        <asm.version>9.7.1</asm.version>
+    </properties>
+
+    <dependencies>
+        <!-- Zero nop-* runtime dependencies by adjudication (plan 02): the collection layer
+             and the Wave 1 kernel run on plain JDK + ASM. Revisit only via the plan 04
+             channel-layer adjudication if an ErrorCode surface is ever needed. -->
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>${asm.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>${asm.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

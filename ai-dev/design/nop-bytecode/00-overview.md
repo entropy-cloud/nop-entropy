@@ -79,8 +79,8 @@ flowchart LR
 
 ### 3.2 模块边界
 
-- 新模块组，默认候选名 `nop-bytecode`（与 nop-treesitter 同型定位：底座库）；最终定名与 nop-lint 的依赖关系（默认**零依赖并行**，共享基础设施仅限 nop-core 既有件）随 Wave 0 ADR + Wave 1 骨架 item 裁定；
-- 缺口账本：过渡期落本目录（Wave 0 item 1），模块骨架落地后迁移至模块 docs 目录；
+- 模块组定名裁定（Wave 1 plan 02）：**`nop-bytecode`**（与 nop-treesitter 同型定位：底座库）；与 nop-lint 依赖关系裁定 = **零依赖并行，共享基础设施 = 无**（模块运行时仅 JDK + ASM；超出 JDK+ASM 的共享需求出现时随通道层 plan 重裁）；
+- 缺口账本：已迁至 `nop-bytecode/docs/gap-ledger.md`（2026-09-29 plan 02，模块骨架落地）；
 - 报告/规则产物不进 nop-lint 规则库——两通道的规则资产相互独立。
 
 ## 4. 拒绝了什么

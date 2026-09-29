@@ -3,7 +3,7 @@
 > 日期: 2026-09-29
 > 状态: active
 > 裁定性质: [roadmap Wave 0 item 2](../../backlog/nop-bytecode-analysis-roadmap.md) 的终裁 ADR——以 POC 数据证据化（roadmap Hard constraint 3）
-> 关联: [00-overview.md](./00-overview.md) §2.5 外部能力使用形态、[gap-ledger.md](./gap-ledger.md)（缺口归属）
+> 关联: [00-overview.md](./00-overview.md) §2.5 外部能力使用形态、[gap-ledger.md](../../../nop-bytecode/docs/gap-ledger.md)（缺口归属）
 
 ## 一、终裁
 

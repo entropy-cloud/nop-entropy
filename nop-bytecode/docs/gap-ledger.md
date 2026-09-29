@@ -2,10 +2,11 @@
 
 > 日期: 2026-09-29
 > 状态: active
-> 定位: 字节码通道行级缺口状态的**唯一动态载体**。[roadmap](../../backlog/nop-bytecode-analysis-roadmap.md) 只跟踪 wave 进度与底座终裁（其 Hard constraint 7 的账本分工），本文档滚动更新每个缺口面的归属裁定与执行状态，两处禁止双写。
-> 准入依据: [00-overview.md](./00-overview.md) §1/§2（缺口面定位、高信号准入、范围锚）
-> 执行输入锚点: 姊妹 roadmap [nop-lint-tool-replacement-roadmap.md](../../backlog/nop-lint-tool-replacement-roadmap.md) Current baseline 第 3 条；[plan 23](../../plans/nop-lint/23-resource-leak-v1.md) Deferred But Adjudicated（Option A）；[plan 24](../../plans/nop-lint/24-null-flow-adjudication.md) 空指针行三段归因；统一账本 [tool-replacement-ledger.md](../../../nop-lint/docs/tool-replacement-ledger.md) Sonar 行
-> 模块骨架落地后本账本迁移至模块 docs 目录（roadmap item 1 预告）
+> 定位: 字节码通道行级缺口状态的**唯一动态载体**。[roadmap](ai-dev/backlog/nop-bytecode-analysis-roadmap.md) 只跟踪 wave 进度与底座终裁（其 Hard constraint 7 的账本分工），本文档滚动更新每个缺口面的归属裁定与执行状态，两处禁止双写。
+> 准入依据: [00-overview.md](ai-dev/design/nop-bytecode/00-overview.md) §1/§2（缺口面定位、高信号准入、范围锚）
+> 执行输入锚点: 姊妹 roadmap [nop-lint-tool-replacement-roadmap.md](ai-dev/backlog/nop-lint-tool-replacement-roadmap.md) Current baseline 第 3 条；[plan 23](ai-dev/plans/nop-lint/23-resource-leak-v1.md) Deferred But Adjudicated（Option A）；[plan 24](ai-dev/plans/nop-lint/24-null-flow-adjudication.md) 空指针行三段归因；统一账本 [tool-replacement-ledger.md](nop-lint/docs/tool-replacement-ledger.md) Sonar 行
+> 迁移记录: 2026-09-29 自 ai-dev/design/nop-bytecode/ 迁入本模块 docs 目录（roadmap item 3 / plan 02）；内部链接已统一为仓库根相对形式。
+> 注: 本文件位于模块 docs 目录，`check-doc-links.mjs` 扫描域不含模块 docs——引用完整性由 plan 02 的人工核验项覆盖。
 
 ## 状态词表
 
