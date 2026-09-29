@@ -80,19 +80,19 @@ flowchart TD
 
 ## Sources
 
-- [nop-batch/pom.xml:15-35](/nop-batch/pom.xml#L15-L35)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:48-120,396-402](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L48-L120)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java:18-53,85-113](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java#L18-L53)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java:30-51](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java#L30-L51)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java:13-17](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java#L13-L17)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java:32-35](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java#L32-L35)
-- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
-- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java]()
-- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java:3-5](/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java#L3-L5)
-- [nop-batch/nop-batch-dsl/pom.xml:50](/nop-batch/nop-batch-dsl/pom.xml#L50)
-- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java:1-416](/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java#L1-L416)
-- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:1-392](/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L1-L392)
-- [nop-batch/model/nop-batch.orm.xml:40-226](/nop-batch/model/nop-batch.orm.xml#L40-L226)
+- [nop-batch/pom.xml:15-35](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/pom.xml#L15-L35)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:48-120,396-402](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L48-L120)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java:18-53,85-113](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java#L18-L53)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java:30-51](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java#L30-L51)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java:13-17](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java#L13-L17)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java:32-35](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java#L32-L35)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java:3-5](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java#L3-L5)
+- [nop-batch/nop-batch-dsl/pom.xml:50](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/pom.xml#L50)
+- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java:1-416](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java#L1-L416)
+- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:1-392](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L1-L392)
+- [nop-batch/model/nop-batch.orm.xml:40-226](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/model/nop-batch.orm.xml#L40-L226)
 
 ---
 

@@ -7,10 +7,12 @@
 //
 // 检查项：
 //   ERROR：断链（相对链接目标不存在）/ Mermaid 块类型不明或围栏不配对 / wiki-state 页面与实际文件不一致
-//          / Sources 区残余松格式（空括号条目——应已被 gen-wiki-meta 重写）
+//          / 残余空括号松格式链接（`[x]()`——应已被 gen-wiki-meta 重写，任何位置）
+//          / github 模式下残余 "/repo-rel" 站点根绝对链接（历史重写产物，本地为死链）
 //          / --verify-claims：行号越界（恒 ERROR）或容错窗内零关键词命中（机检防引用幻觉）
 //   WARN ：页面缺 Sources 归属 / 密度不达标（表格/mermaid，quickstart/reading-guide 豁免）
 //          / index.md 与页面清单漂移 / 缺 wiki-state.json / 覆盖率缺失
+//          / blob 永久链接的仓库相对路径在本地仓库不存在
 //   退出码：无 ERROR 为 0；--strict 时有 WARN 也为 1。
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -46,8 +48,36 @@ if (!repoRoot) {
 }
 let topLevel = repoRoot;
 try { topLevel = resolve(execSync('git rev-parse --show-toplevel', { cwd: repoRoot || root }).toString().trim()); } catch {}
-// 断言路径口径探测：模块根 → 页面目录祖先 → git 顶层
+// 断言路径口径探测：模块根 → 页面目录祖先 → git 顶层；裸文件名/包内路径走"作用域后缀扫描"
+//（wiki 根目录名即作用域，如 nop-orm——优先路径段精确命中，防裸 pom.xml 解析到仓库根 pom）
+const SCOPE = root.split('/').pop().split('\\').pop();
+function suffixScan(bareName, segKey) {
+  const hits = [];
+  const scan = (dir) => {
+    if (hits.length > 8) return;
+    let entries;
+    try { entries = readdirSync(dir); } catch { return; }
+    for (const n of entries) {
+      if (hits.length > 8) return;
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.')) scan(p); }
+      else if (n === bareName) {
+        const norm = p.split('\\').join('/');
+        if (!segKey || norm.endsWith('/' + segKey) || norm.endsWith(segKey)) hits.push(norm);
+      }
+    }
+  };
+  if (repoRoot && existsSync(repoRoot)) scan(repoRoot);
+  const scored = hits.map((h) => [h.split('/').some((seg) => seg === SCOPE) ? 0 : 1, h])
+    .sort((a, b) => a[0] - b[0]);
+  for (const [, h] of scored) if (!h.endsWith('.md')) return h;
+  return null;
+}
 function resolveClaim(pageFile, relPath) {
+  if (!relPath.includes('/')) {
+    const hit = suffixScan(relPath, null);
+    if (hit) return hit;
+  }
   const candidates = [resolve(repoRoot || topLevel, relPath)];
   let dir = dirname(pageFile);
   while (true) {
@@ -56,6 +86,7 @@ function resolveClaim(pageFile, relPath) {
     dir = dirname(dir);
   }
   for (const c of candidates) if (existsSync(c) && statSync(c).isFile() && !c.endsWith('.md')) return c;
+  if (relPath.includes('/')) return suffixScan(relPath.split('/').pop(), relPath) ;
   return null;
 }
 
@@ -80,6 +111,21 @@ function walk(dir) {
 }
 
 const files = walk(root);
+
+// 链接基准模式：wiki-state.links.mode === 'github' 时，源码引用应为 blob 永久链接，
+// 历史产物 "/repo-rel" 站点根绝对链接视为 ERROR（本地与 GitHub 均为死链）
+let githubMode = false;
+let blobPrefix = null;
+const stateFilePre = join(root, 'meta', 'wiki-state.json');
+if (existsSync(stateFilePre)) {
+  try {
+    const st = JSON.parse(readFileSync(stateFilePre, 'utf8'));
+    if (st.links && st.links.mode === 'github' && st.links.repoUrl) {
+      githubMode = true;
+      blobPrefix = st.links.repoUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/blob/';
+    }
+  } catch {}
+}
 
 // --- 逐页检查：链接 / Mermaid / Sources / 密度 / 松格式残余 ---
 const MERMAID_HEAD =
@@ -145,25 +191,50 @@ for (const file of files) {
     }
   }
 
+  // 残余空括号链接（任何位置——空 href 即死链；gen-wiki-meta 未处理到的漏网）
+  for (const m of text.matchAll(/\[[^\]]+\]\(\s*\)/g)) {
+    err(file, `空括号死链（未被 gen-wiki-meta 重写）：${m[0]}`);
+  }
+
   // 相对链接
   for (const m of text.matchAll(LINK_RE)) {
     const raw = m[1];
-    if (/^(https?:|mailto:|repo:\/\/|#)/.test(raw)) continue;
+    if (/^(mailto:|repo:\/\/|#)/.test(raw)) continue;
+    // blob 永久链接：仓库相对路径须在本地仓库存在（远端可点击性之外的本地一致性）
+    if (blobPrefix && raw.includes(blobPrefix)) {
+      const bm = raw.match(new RegExp(blobPrefix + '[^/]+/(.+?)(?:#.*)?$'));
+      if (bm) {
+        const local = resolve(topLevel, decodeURIComponent(bm[1]));
+        if (!existsSync(local)) warn(file, `blob 链接路径在本地仓库不存在：${bm[1]}`);
+      }
+      continue;
+    }
+    if (/^https?:/.test(raw)) continue; // 其他外部 URL 不校验
     const hashless = decodeURI(raw).split('#')[0];
     if (!hashless) continue; // 纯锚点
-    let target;
-    if (hashless.startsWith('/') && (repoRoot || topLevel)) {
-      // 重写产物 "/x" 的基准随历史版本可能为模块根或 git 顶层——多基线探测
-      const cands = [];
-      if (repoRoot) cands.push(resolve(repoRoot, '.' + hashless));
-      let d = dirname(file);
-      while (true) { cands.push(resolve(d, '.' + hashless)); if (topLevel && (d === topLevel || dirname(d) === d)) break; d = dirname(d); }
-      if (topLevel) cands.push(resolve(topLevel, '.' + hashless));
-      target = cands.find((c) => existsSync(c));
-      if (!target) target = cands[cands.length - 1];
-    } else {
-      target = resolve(dirname(file), hashless);
+    if (hashless.startsWith('/')) {
+      if (githubMode) {
+        err(file, `残余站点根绝对链接（github 模式下应为 blob 永久链接）：(${raw})`);
+        continue;
+      }
+      let target;
+      {
+        // 重写产物 "/x" 的基准随历史版本可能为模块根或 git 顶层——多基线探测
+        const cands = [];
+        if (repoRoot) cands.push(resolve(repoRoot, '.' + hashless));
+        let d = dirname(file);
+        while (true) { cands.push(resolve(d, '.' + hashless)); if (topLevel && (d === topLevel || dirname(d) === d)) break; d = dirname(d); }
+        if (topLevel) cands.push(resolve(topLevel, '.' + hashless));
+        target = cands.find((c) => existsSync(c));
+        if (!target) target = cands[cands.length - 1];
+      }
+      const targetMd = target.endsWith('.md') ? target : `${target}.md`;
+      if (!existsSync(target) && !existsSync(targetMd)) {
+        err(file, `断链：(${raw})`);
+      }
+      continue;
     }
+    const target = resolve(dirname(file), hashless);
     const targetMd = target.endsWith('.md') ? target : `${target}.md`;
     if (!existsSync(target) && !existsSync(targetMd)) {
       err(file, `断链：(${raw})`);
@@ -229,7 +300,8 @@ if (vcArg) {
     let s = seed >>> 0;
     const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     // 收集抽样池：正文断言 `path:起-止行` + 松格式 Sources 条目
-    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*)/g;
+    //（行区段支持逗号/顿号多区段——子代理常见写法 path:23-30、43-49）
+    const ASSERT_RE = /([A-Za-z0-9_][\w./\\-]*?\.(?:java|ts|js|py|go|rs|xml|md|yml|yaml|json|mjs|c|cpp|h)):(\d+(?:-\d+)?(?:[,、]\s*\d+(?:-\d+)?)*)/g;
     const pool = [];
     for (const file of files) {
       if (relative(root, file) === 'PLAN.md') continue;
@@ -251,8 +323,8 @@ if (vcArg) {
             if (m.index >= acc && m.index < acc + sn.length) { sent = sn; break; }
             acc += sn.length;
           }
-          // 逗号多区段（如 33-38,64-86）：窗口取所有区段的并集
-          const segs = m[2].split(/,\s*/).map((r) => r.split('-').map(Number));
+          // 多区段（如 23-30、43-49）：窗口取所有区段的并集（关键词可能落在任一区段）
+          const segs = m[2].split(/[,、]\s*/).map((r) => r.split('-').map(Number));
           const start = Math.min(...segs.map((x) => x[0]));
           const end = Math.max(...segs.map((x) => x[x.length - 1]));
           pool.push({ file, relPath: m[1].split('\\').join('/'), abs, start, end, line: sent, fileStem: m[1].split('/').pop().replace(/\.[^.]+$/, '') });

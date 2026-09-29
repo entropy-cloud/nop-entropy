@@ -49,9 +49,7 @@ flowchart TD
 
 解析入口在管理器：`getTaskFlowModel` 按 `task/{name}/v{version}` 规则拼路径交给 `ResourceComponentManager` 缓存加载（`nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:143-147`）；模型创建时 `init()` 立即执行 `TaskFlowAnalyzer.analyze` 做静态分析（`nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java:34-36`）。`getTask` 首次调用时经 `TaskFlowBuilder.buildTask` 同步构建并缓存 ITask（`nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java:38-43`）；buildTask 先 resolve 全部 invoke-static 方法引用，再由 TaskStepBuilder 生成 mainStep，最终组装 TaskImpl（`nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java:34-49`）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:143-159](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L143-L159)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java:34-43](/nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java#L34-L43)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java:34-78](/nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java#L34-L78)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:143-159](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L143-L159)、[nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java:34-43](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java#L34-L43)、[nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java:34-78](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java#L34-L78)
 
 ## DSL 面：task.xdef 支持的步骤类型
 
@@ -78,9 +76,7 @@ task.xdef 是 DSL 的唯一 schema（路径常量 `XDEF_PATH_TASK = "/nop/schema
 
 装饰链（retry/throttle 等如何包装步骤）与常量、错误枢纽的分工见 [核心引擎](../modules/task-core.md)。
 
-> Sources: [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:9-15](/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L9-L15)
-> Sources: [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:144-304](/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L144-L304)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:13-31](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L13-L31)
+> Sources: [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:9-15](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L9-L15)、[nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:144-304](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L144-L304)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:13-31](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L13-L31)
 
 ## 运行时装配：ITaskFlowManager 与 TaskRuntime
 
@@ -88,9 +84,7 @@ task.xdef 是 DSL 的唯一 schema（路径常量 `XDEF_PATH_TASK = "/nop/schema
 
 TaskRuntimeImpl 构造时创建并发安全的子 EvalScope，把 `svcCtx` 与 `taskRt` 注入作用域变量，并向 svcCtx 注册取消监听（`nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:60-82`）。它同时是取消传播枢纽：SUSPENDED 状态的任务被 cancel 时直接驱动 KILLED 终态并落盘，不等 resume（97-106 行）。执行期 `newMainStepRuntime` 创建 stepPath 为 `@main` 的主步骤运行时；recoverMode 下优先加载持久化的 mainStep 状态实现断点续跑，未命中则新建（218-238 行）。ITaskRuntime 契约的完整职责（taskVars、attributes、限流器/信号量获取）见接口定义（`nop-task/nop-task-core/src/main/java/io/nop/task/ITaskRuntime.java:36-166`）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:97-134](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L97-L134)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:60-82](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L60-L82)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:218-238](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L218-L238)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:97-134](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L97-L134)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:60-82](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L60-L82)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:218-238](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L218-L238)
 
 ## 两步任务的执行时序
 
@@ -128,8 +122,7 @@ TaskImpl.execute 先做 resume 短路：recoverMode 且任务已终态时，COMP
 
 SequentialTaskStep 用 `bodyStepIndex` 驱动循环：每步调 `executeWithParentRt(stepRt).syncIfDone()`，返回 SUSPEND 直接上抛，返回 END/EXIT 结束序列，否则按 `next` 声明或索引 +1 推进并 `saveState` 持久化位置；序列耗尽时返回 `RETURN_RESULT(stepRt.getResult())`（`nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java:46-98`），未知跳转名抛 ERR_TASK_UNKNOWN_NEXT_STEP（101-110 行）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:91-153](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L91-L153)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java:46-110](/nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java#L46-L110)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:91-153](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L91-L153)、[nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java:46-110](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java#L46-L110)
 
 ## 步骤执行层：TaskStepExecution 与 ITaskStepRuntime
 
@@ -139,9 +132,7 @@ XML 里每个步骤节点不直接变成 ITaskStep，而是被包装为 TaskStep
 
 ITaskStepRuntime 是步骤内可用的全部上下文：EvalScope 读写、`RESULT` 变量、stepPath/runId、`bodyStepIndex`/`stateBean`（供 loop、suspend 存放游标与标记）、`saveState`（`nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java:12-138`）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:206-288](/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L206-L288)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:380-407](/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L380-L407)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java:12-138](/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java#L12-L138)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:206-288](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L206-L288)、[nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:380-407](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L380-L407)、[nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java:12-138](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java#L12-L138)
 
 ## 图执行：GraphTaskStep
 
@@ -149,9 +140,7 @@ graphMode 或 `<graph>` 步骤把执行交给 GraphTaskStep。每个节点由 wa
 
 失败语义是图执行的关键分支：步骤失败时，若该步骤被任何节点的 waitError/waitComplete 依赖（"错误消费者"非空），错误被记录为 StepResultBean 后以异常完成 stepFuture，触发错误分支级联而图不 fail-fast；无消费者则取消全图（275-297 行）。节点声明 `nextOnError` 时，TaskStepExecution 把失败包装为携带跳转名的"成功返回"，图层用 `isErrorHandoff` 还原为本节点失败语义（313-330 行）。任一节点返回 SUSPEND 时，图以挂起返回值终结并取消兄弟分支（301-308 行）；exit 节点完成即终结全图（339-344 行）。收敛判据收敛在 `completeGraphIfDrained`：runningCount 归零且图未结束时终结（363-368 行）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:135-174](/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L135-L174)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:202-246](/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L202-L246)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:275-330](/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L275-L330)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:135-174](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L135-L174)、[nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:202-246](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L202-L246)、[nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java:275-330](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java#L275-L330)
 
 ## 结果汇聚与终态
 
@@ -169,29 +158,27 @@ mainStep 的返回值回到 TaskImpl 后按三分支汇聚（`nop-task/nop-task-
 
 状态码与 ORM 字典对齐，常量单源于生成的 _NopTaskCoreConstants（`nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:81-115`）。SUSPEND 的产生点是 SuspendTaskStep：首次进入返回 SUSPEND，resume 后按 `resume-when` 决定继续挂起或放行（`nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java:26-43`）。挂起后的快照与重入机制（ITaskState 序列化、跨进程恢复）见 [状态与恢复](./state-and-recovery.md)。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:153-275](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L153-L275)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:147-220](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L147-L220)
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java:26-43](/nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java#L26-L43)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:153-275](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L153-L275)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:147-220](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L147-L220)、[nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java:26-43](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java#L26-L43)
 
 ## Sources
 
-> [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/step/AbstractTaskStep.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskRuntime.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java]()
-> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java]()
-> [nop-task/nop-task-core/src/main/resources/_vfs/nop/task/beans/task-defaults.beans.xml]()
+> [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/model/TaskFlowModel.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskFlowBuilder.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/GraphTaskStep.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/step/AbstractTaskStep.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/step/AbstractTaskStep.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskRuntime.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskRuntime.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java)
+> [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepRuntime.java)
+> [nop-task/nop-task-core/src/main/resources/_vfs/nop/task/beans/task-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/resources/_vfs/nop/task/beans/task-defaults.beans.xml)
 
 ---
 

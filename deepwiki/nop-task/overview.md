@@ -28,7 +28,7 @@ flowchart TD
     QUE["queue 预留接口"] -.-> ENG
 ```
 
-> Sources: [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:3-13](/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L3-L13)、[nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java:16-41](/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java#L16-L41)、[nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java:19-50](/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java#L19-L50)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:36-228](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L36-L228)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:55-134](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L55-L134)、[nop-task/pom.xml:19-30](/nop-task/pom.xml#L19-L30)
+> Sources: [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:3-13](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L3-L13)、[nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java:16-41](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java#L16-L41)、[nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java:19-50](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java#L19-L50)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:36-228](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L36-L228)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:55-134](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L55-L134)、[nop-task/pom.xml:19-30](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/pom.xml#L19-L30)
 
 ## 能力边界：支持什么、不提供什么、什么在修
 
@@ -41,7 +41,7 @@ flowchart TD
 
 修复中特性（并行 plan 364，页面断言以生成时工作区为准）：GraphTaskStep/TaskConstants 正确性修复；全局限流器/信号量注册表由 Caffeine 有界缓存改为强引用 `ConcurrentHashMap`，避免驱逐在用实例分裂 permit 池，容量配置转为告警阈值（`nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:59-66`）。
 
-> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:123-181](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L123-L181)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:119-121](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L119-L121)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:59-66](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L59-L66)
+> Sources: [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:123-181](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L123-L181)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:119-121](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L119-L121)、[nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:59-66](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L59-L66)
 
 ## 平台角色与关键数字
 
@@ -56,7 +56,7 @@ flowchart TD
 
 错误模型不设私有异常层级：TaskErrors 以接口常量声明全部错误码，异常统一由平台 `NopException` 承载，唯一子类 `NopTaskCancelledException` 用于区分取消与超时（详见[错误模型](topics/error-model.md)）。
 
-> Sources: [nop-task/pom.xml:13-30](/nop-task/pom.xml#L13-L30)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:17-185](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L17-L185)、[nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java:3-5](/nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java#L3-L5)
+> Sources: [nop-task/pom.xml:13-30](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/pom.xml#L13-L30)、[nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:17-185](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L17-L185)、[nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java:3-5](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java#L3-L5)
 
 ## 阅读路径
 
@@ -65,20 +65,20 @@ flowchart TD
 - 模块与主题深读：[核心引擎与步骤抽象](modules/task-core.md)、[服务面与持久化对接](modules/task-service-dao.md)、[错误模型](topics/error-model.md)。
 - 按读者类型的完整导航见[阅读指南](reading-guide.md)。
 
-> Sources: [deepwiki/nop-task/reading-guide.md]()、[deepwiki/nop-task/quickstart.md]()、[deepwiki/nop-task/glossary.md]()、[deepwiki/nop-task/architecture.md]()
+> Sources: [deepwiki/nop-task/reading-guide.md](reading-guide.md)、[deepwiki/nop-task/quickstart.md](quickstart.md)、[deepwiki/nop-task/glossary.md](glossary.md)、[deepwiki/nop-task/architecture.md](architecture.md)
 
 ## Sources
 
-- [nop-task/pom.xml:13-30](/nop-task/pom.xml#L13-L30)
-- [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:3-13](/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L3-L13)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java:16-41](/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java#L16-L41)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java:19-50](/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java#L19-L50)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:36-228](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L36-L228)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:17-185](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L17-L185)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:123-181](/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L123-L181)
-- [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:55-134](/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L55-L134)
-- [nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java:3-5](/nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java#L3-L5)
-- [deepwiki/nop-task/PLAN.md:7-23](/deepwiki/nop-task/PLAN.md#L7-L23)
+- [nop-task/pom.xml:13-30](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/pom.xml#L13-L30)
+- [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef:3-13](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/task.xdef#L3-L13)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java:16-41](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskFlowManager.java#L16-L41)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java:19-50](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java#L19-L50)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java:36-228](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskStepReturn.java#L36-L228)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java:17-185](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskErrors.java#L17-L185)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java:123-181](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/TaskConstants.java#L123-L181)
+- [nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:55-134](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L55-L134)
+- [nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java:3-5](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-task/nop-task-queue/src/main/java/io/nop/task/queue/ITaskQueue.java#L3-L5)
+- [deepwiki/nop-task/PLAN.md:7-23](PLAN.md)
 
 ---
 

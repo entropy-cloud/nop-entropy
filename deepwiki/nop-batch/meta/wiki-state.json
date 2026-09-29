@@ -1,14 +1,18 @@
 {
-  "version": 1,
+  "version": 2,
   "target": {
     "root": "/Users/abc/app/nop-entropy-wt/nop-entropy-master/deepwiki",
-    "commit": "0b288247aa",
+    "commit": "f2ecee739b",
     "scope": "nop-batch",
-    "generatedAt": "2026-09-26T14:32:02.079Z"
+    "generatedAt": "2026-09-29T14:44:13.461Z"
   },
   "config": {
     "language": "zh",
     "depth": "standard"
+  },
+  "links": {
+    "mode": "github",
+    "repoUrl": "https://gitee.com/canonical-entropy/nop-entropy"
   },
   "analysis": {
     "tool": "grep",
@@ -23,8 +27,42 @@
   "pages": {
     "architecture.md": {
       "title": "架构与数据流",
-      "sourceFiles": [],
-      "fingerprints": {}
+      "sourceFiles": [
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java",
+        "nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java",
+        "nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java",
+        "nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java",
+        "nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen",
+        "nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java",
+        "nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml",
+        "nop-batch/pom.xml"
+      ],
+      "fingerprints": {
+        "nop-batch/pom.xml": "sha1:e6e024a794c7dd29",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java": "sha1:84184324ddfcb160",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java": "sha1:23586f2a5e3357ae",
+        "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java": "sha1:f97081f3bec853a4",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java": "sha1:3772bfce5e7b1b9c",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java": "sha1:ba88245ba2afcb48",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml": "sha1:597585972ddb5039",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java": "sha1:15bc3d862625e73e",
+        "nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml": "sha1:9a27413a10e7babe",
+        "nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java": "sha1:e005f3b4785c086b",
+        "nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml": "sha1:f1ade3c0271df9ba",
+        "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java": "sha1:95e1092db473f445",
+        "nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java": "sha1:ab7e3cfeb1a6db3d",
+        "nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java": "sha1:6a6eeeafe8cff27f",
+        "nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen": "sha1:811db341b0a69e16",
+        "nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen": "sha1:c422c09331bf4db6"
+      }
     },
     "flows/batch-pipeline.md": {
       "title": "chunk 管线：数据如何从 Loader 流向 Consumer",
@@ -130,8 +168,48 @@
     },
     "modules/batch-dsl.md": {
       "title": "DSL 模型与 XLang 集成",
-      "sourceFiles": [],
-      "fingerprints": {}
+      "sourceFiles": [
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/BatchDslConstants.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchLoaderModel.java",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-gen.xlib",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-record.xlib",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch.xlib",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/task/lib/batch-common.task.xml",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-batch.task.xml",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/BatchGenConstants.java",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/BatchGenState.java",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/SequentialBatchRequestGenerator.java",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/loader/BatchGenLoaderProvider.java",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModel.java",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModelParser.java",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef"
+      ],
+      "fingerprints": {
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java": "sha1:c2ac69955377c757",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java": "sha1:19eace1c2567dd17",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchLoaderModel.java": "sha1:153b3645328c89c3",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java": "sha1:de25173a93b2b9d1",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java": "sha1:3772bfce5e7b1b9c",
+        "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/BatchDslConstants.java": "sha1:6bf2ab226678a993",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch.xlib": "sha1:17b97413db26a7f4",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-record.xlib": "sha1:a9cface56369c708",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-gen.xlib": "sha1:27da82fb7c8c964e",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/task/lib/batch-common.task.xml": "sha1:2162d78de40a584d",
+        "nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml": "sha1:597585972ddb5039",
+        "nop-batch/nop-batch-dsl/src/test/resources/_vfs/test/batch/test-batch.task.xml": "sha1:9c27f4bd45c43469",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/loader/BatchGenLoaderProvider.java": "sha1:3f930649d90917ad",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModel.java": "sha1:535c5753065bf0db",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModelParser.java": "sha1:ba7244f60e600741",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/BatchGenState.java": "sha1:49d297ac5147a99a",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/SequentialBatchRequestGenerator.java": "sha1:131463a7607540db",
+        "nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/BatchGenConstants.java": "sha1:ec15247d4bbff354",
+        "nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef": "sha1:b1dfc10e8cde5444"
+      }
     },
     "overview.md": {
       "title": "nop-batch 总览：chunked 批处理框架",
@@ -142,6 +220,7 @@
         "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchChunkContext.java",
         "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java",
         "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java",
         "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java",
         "nop-batch/nop-batch-dsl/pom.xml",
         "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java",
@@ -157,6 +236,7 @@
         "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java": "sha1:dedee75253401aa1",
         "nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/PartitionDispatchQueue.java": "sha1:b73879d1b4a8283d",
         "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java": "sha1:15bc3d862625e73e",
+        "nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java": "sha1:f01639c7bf35dea1",
         "nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java": "sha1:c2ac69955377c757",
         "nop-batch/nop-batch-dsl/pom.xml": "sha1:bff13a73ba10d913",
         "nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ImportDbTool.java": "sha1:d8d600c26cd41323",

@@ -9,9 +9,12 @@
 // 多次运行结果一致。
 //
 //   node gen-wiki-meta.mjs <wiki-root> [--plan PLAN.md] [--scope <子路径>]
-//                          [--repo <目标仓库根>] [--dry]
+//                          [--repo <目标仓库根>] [--repo-url <web URL>] [--dry]
 //
 // --repo 缺省时从 PLAN.md 的 "> Target: <路径> @ <commit>" 行解析。
+// --repo-url 缺省时从 git origin remote 推导（gitee/github 等 web URL）；
+//   推导成功时源码引用重写为 <repo-url>/blob/<commit>/<path>#L.. 永久链接
+//   （deepwiki.com 同款：每条断言可点击跳转源码托管站）；失败时回退页面相对链接。
 // 退出码：0 成功；2 参数/文件错误。
 
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'node:fs';
@@ -48,6 +51,33 @@ repoRoot = repoRoot ? resolve(repoRoot) : null;
 let topLevel = repoRoot;
 try { topLevel = resolve(execSync('git rev-parse --show-toplevel', { cwd: repoRoot || root }).toString().trim()); } catch {}
 
+// ---------- 0b. 源码链接基准（GitHub/Gitee blob 永久链接 vs 页面相对） ----------
+function webUrlFromRemote(remote) {
+  if (!remote) return null;
+  let m = remote.match(/^https?:\/\/[^/]+\/(.+?)(?:\.git)?\/?$/);
+  if (m) return 'https://' + remote.replace(/^https?:\/\//, '').split('/')[0] + '/' + m[1];
+  m = remote.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (m) return `https://${m[1]}/${m[2]}`;
+  m = remote.match(/^ssh:\/\/git@([^/]+)\/(.+?)(?:\.git)?$/);
+  if (m) return `https://${m[1]}/${m[2]}`;
+  return null;
+}
+let repoUrl = argOf('--repo-url') || null;
+let linkMode = 'relative';
+if (!repoUrl) {
+  try {
+    const remote = execSync('git remote get-url origin', { cwd: repoRoot || root }).toString().trim();
+    repoUrl = webUrlFromRemote(remote);
+  } catch {}
+}
+if (repoUrl) {
+  repoUrl = repoUrl.replace(/\.git\/?$/, '').replace(/\/$/, '');
+  linkMode = 'github';
+}
+// 快照 commit（blob 链接锚定生成时版本，保证行号不随后续代码漂移）
+let commit = 'HEAD';
+try { commit = execSync('git rev-parse --short HEAD', { cwd: repoRoot || root }).toString().trim(); } catch {}
+
 // ---------- 1. 解析 PLAN.md 页面契约表 ----------
 // 新模板：| 路径 | 所属章 | 标题 | ...（header 含"所属章"）；旧模板：| 路径 | 标题 | ...
 const planLines = planRaw.split('\n');
@@ -69,14 +99,55 @@ if (!pages.length) {
   process.exit(2);
 }
 
-// ---------- 2. 松格式引用重写（Sources 区内 `[path:10-40]()` → 真链接） ----------
-// 语法钉死：text = <仓库相对路径>:<起行>[-<止行>]；空括号。路径必须落在 --repo 内。
-const LOUSE_COUNT = /\[[^\[\]]+?:\d+(?:-\d+)?\]\(\s*\)/g;
-const LOOSE = /\[([^\[\]]+?):(\d+(?:-\d+)?(?:,\s*\d+(?:-\d+)?)*)\]\(\s*\)/g;
-function resolveLoose(pageFile, relPath) {
-  if (!repoRoot) return null;
-  // 口径探测链：模块根 → 页面目录各级祖先 → git 顶层；第一个存在的文件即命中
-  const candidates = [resolve(repoRoot, relPath)];
+// ---------- 2. 链接重写（空括号松格式 → 真链接；历史 "/repo-rel" 绝对链接 → 当前基准） ----------
+// 语法钉死：label = <仓库相对路径>[:<起行>[-<止行>]]；空括号。目标必须可解析（repo 内或 wiki 内页面）。
+const LOOSE = /\[([^\[\]]+?)\]\(\s*\)/g;
+// 历史重写产物：[label](/repo-rel/path#L20-L29)——旧版站点根绝对链接，本地与 GitHub 上均为死链
+const ROOTABS = /\[([^\]]+)\]\((\/[^)\s]+)\)/g;
+// 行号后缀：支持逗号/中文顿号分隔的多区段（子代理常见写法 path:17-20、38-58）
+const LINE_SUFFIX = /:(\d+(?:-\d+)?(?:[,\s、]\s*\d+(?:-\d+)?)*)$/;
+// 作用域后缀扫描：裸文件名/包内相对路径在目标树内递归查后缀匹配文件；
+// 优先路径段=wiki 作用域名（wiki 根目录名，如 nop-orm）的命中
+const SCOPE = root.split('/').pop().split('\\').pop();
+function scanHits(bareName, segKey) {
+  const hits = [];
+  const scan = (dir) => {
+    if (hits.length > 8) return;
+    let entries;
+    try { entries = readdirSync(dir); } catch { return; }
+    for (const n of entries) {
+      if (hits.length > 8) return;
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.')) scan(p); }
+      else if (n === bareName) {
+        const norm = p.split('\\').join('/');
+        if (!segKey || norm.endsWith('/' + segKey) || norm.endsWith(segKey)) hits.push(p);
+      }
+    }
+  };
+  for (const base of [repoRoot, topLevel]) {
+    if (base && existsSync(base)) scan(base);
+    if (hits.length) break;
+  }
+  hits.sort((a, b) => (a.split(/[/\\]/).some((seg) => seg === SCOPE) ? 0 : 1)
+    - (b.split(/[/\\]/).some((seg) => seg === SCOPE) ? 0 : 1));
+  for (const abs of hits) {
+    const relFromTop = relative(topLevel, abs);
+    if (relFromTop.startsWith('..')) continue;
+    return { abs, relFromTop };
+  }
+  return null;
+}
+function resolveTarget(pageFile, label) {
+  // 返回 {abs, relFromTop} 或 null。裸文件名先走作用域后缀扫描（防 pom.xml 解析到仓库根），
+  // 其余路径走候选链：模块根 → 页面目录各级祖先 → git 顶层；未命中再走多段后缀扫描
+  const relPath = label.replace(LINE_SUFFIX, '').trim();
+  if (!relPath || /^[a-z]+:/i.test(relPath)) return null; // 空/带 URL scheme 的不是路径
+  if (!relPath.includes('/')) {
+    const scoped = scanHits(relPath, null);
+    if (scoped) return scoped;
+  }
+  const candidates = [resolve(repoRoot || topLevel, relPath)];
   let dir = dirname(pageFile);
   while (true) {
     candidates.push(resolve(dir, relPath));
@@ -85,70 +156,85 @@ function resolveLoose(pageFile, relPath) {
   }
   for (const target of candidates) {
     if (!existsSync(target) || !statSync(target).isFile()) continue;
-    // wiki 自身页面（PLAN.md 除外）不允许被 Sources 引用（互链走正文本链接）；
-    // PLAN.md/外部日志等 .md 是合法溯源目标（PLAN 仅此豁免，指纹仍跳过）
-    if (target.endsWith('.md') && target !== resolve(root, 'PLAN.md') && (target.startsWith(root + '\\') || target.startsWith(root + '/'))) continue;
     const relFromTop = relative(topLevel, target);
     if (relFromTop.startsWith('..')) return null;
     return { abs: target, relFromTop };
   }
-  // 裸文件名兜底：无目录分隔的 path 在目标树内递归按文件名查（首个命中，deepwiki-open basename 同款）
-  if (!relPath.includes('/') && !relPath.includes('\\')) {
-    const hits = [];
-    const scan = (dir) => {
-      if (hits.length > 4) return;
-      for (const n of readdirSync(dir)) {
-        if (hits.length > 4) return;
-        const p = join(dir, n);
-        if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.')) scan(p); }
-        else if (n === relPath) hits.push(p);
-      }
-    };
-    for (const base of [repoRoot, topLevel]) {
-      if (base && existsSync(base)) scan(base);
-      if (hits.length) break;
-    }
-    for (const abs of hits) {
-      const relFromTop = relative(topLevel, abs);
-      if (relFromTop.startsWith('..')) continue;
-      if (abs.endsWith('.md') && abs !== resolve(root, 'PLAN.md') && (abs.startsWith(root + '\\') || abs.startsWith(root + '/'))) continue;
-      return { abs, relFromTop };
-    }
+  const fallback = scanHits(relPath.split('/').pop(), relPath.includes('/') ? relPath : null);
+  return fallback;
+}
+function formatLink(pageFile, target, label, linePart) {
+  const insideWiki = target.abs.startsWith(root);
+  if (insideWiki) {
+    // wiki 自身页面/PLAN：页面相对链接（互链不入指纹，见第 4 节）
+    let rel = relative(dirname(pageFile), target.abs).split('\\').join('/');
+    return `[${label}](${rel})`;
   }
-  return null;
+  const anchor = linePart ? '#' + (() => {
+    // GitHub/Gitee 锚只支持单区段：取第一个区段，label 保留完整行号清单
+    const seg = linePart.split(/[,、]\s*/)[0];
+    const [a, b] = seg.split('-');
+    return b ? `L${a}-L${b}` : `L${a}`;
+  })() : '';
+  if (linkMode === 'github') {
+    return `[${label}](${repoUrl}/blob/${commit}/${target.relFromTop.split('\\').join('/')}${anchor})`;
+  }
+  // 无远端：页面相对路径 + 锚
+  let rel = relative(dirname(pageFile), target.abs).split('\\').join('/');
+  return `[${label}](${rel}${anchor})`;
+}
+function normalizeSourcesLines(text) {
+  // 段末引用行归一化：连续多行 "> Sources:" 合并为一行（模板要求一行、多引用用、分隔）
+  return text.replace(/(?:^> Sources: .*\n)+/gm, (m0) => {
+    const items = m0.split('\n')
+      .filter((l) => l.startsWith('> Sources:'))
+      .map((l) => l.replace(/^> Sources: ?/, '').trim())
+      .filter(Boolean);
+    return '> Sources: ' + items.join('、') + '\n';
+  });
 }
 let rewritten = 0;
 let unresolvedLoose = 0;
-if (repoRoot && !dry) {
+let migrated = 0;
+if (!dry) {
+  for (const p of pages) {
+    const f = resolve(root, p.path);
+    if (!existsSync(f)) continue;
+    let text = readFileSync(f, 'utf8');
+    text = normalizeSourcesLines(text);
+    let changed = false;
+    // a) 迁移历史 "[label](/repo-rel#L..)" 绝对链接（含已被旧版重写过的 Sources 条目）
+    text = text.replace(ROOTABS, (whole, label, urlPath) => {
+      const [hashless, anchor] = urlPath.split('#');
+      const target = resolve(topLevel, '.' + hashless);
+      if (!existsSync(target) || !statSync(target).isFile()) return whole;
+      migrated++;
+      changed = true;
+      // 锚 L20-L29 / L20 → 行区段文本 20-29 / 20
+      const linePart = anchor ? anchor.replace(/L(\d+)/g, '$1') : '';
+      return formatLink(f, { abs: target, relFromTop: relative(topLevel, target) }, label, linePart);
+    });
+    // b) 空括号松格式：path / path:lines → 真链接（GitHub blob 或页面相对）
+    text = text.replace(LOOSE, (whole, label) => {
+      const lm = label.match(LINE_SUFFIX);
+      const linePart = lm ? lm[1] : '';
+      const hit = resolveTarget(f, label);
+      if (!hit) { unresolvedLoose++; return whole; } // 留给 check-wiki 报残余
+      rewritten++;
+      changed = true;
+      return formatLink(f, hit, label, linePart);
+    });
+    if (changed) writeFileSync(f, text);
+  }
+} else {
+  // dry：统计存量
   for (const p of pages) {
     const f = resolve(root, p.path);
     if (!existsSync(f)) continue;
     const text = readFileSync(f, 'utf8');
-    let changed = false;
-    const out = text.replace(LOOSE, (whole, relPath, ranges) => {
-      const hit = resolveLoose(f, relPath);
-      if (!hit) {
-        unresolvedLoose++;
-        return whole; // 留给 check-wiki 报残余
-      }
-      rewritten++;
-      changed = true;
-      // GitHub 锚点只支持单区段：取第一个区段做锚，label 保留完整行号清单
-      const first = ranges.split(',')[0];
-      const [a, b] = first.split('-');
-      const anchor = b ? `#L${a}-L${b}` : `#L${a}`;
-      const linkPath = '/' + hit.relFromTop.split('\\').join('/');
-      return `[${relPath}:${ranges}](${linkPath}${anchor})`;
-    });
-    if (changed) writeFileSync(f, out);
-  }
-} else if (!repoRoot) {
-  // 无仓库根时统计松格式存量（不重写）
-  for (const p of pages) {
-    const f = resolve(root, p.path);
-    if (!existsSync(f)) continue;
-    const m = readFileSync(f, 'utf8').match(LOUSE_COUNT);
-    if (m) unresolvedLoose += m.length;
+    for (const m of text.matchAll(LOOSE)) {
+      if (!resolveTarget(f, m[1])) unresolvedLoose++;
+    }
   }
 }
 // ---------- 3. 确定性生成 index.md（分组 + mindmap + 快照行） ----------
@@ -175,15 +261,14 @@ for (const g of GROUP_ORDER) {
 }
 md += '```\n';
 // 页脚快照
-let commit = 'unknown';
-try { commit = execSync('git rev-parse --short HEAD', { cwd: repoRoot || root }).toString().trim(); } catch {}
 md += `\n> 快照：${argOf('--scope') || ''} @ ${commit} · ${new Date().toISOString().slice(0, 10)}\n`;
-// 分组条目
+// 分组条目：链接文本 = 页面标题（deepwiki.com 目录同款；标题为空回退路径 slug）
 let last = '';
 for (const p of pages) {
   const g = GROUP(p.path);
   if (g !== last) { md += `\n## ${g}\n\n`; last = g; }
-  md += `- [${slug(p.path)}](${p.path}) — ${p.title}\n`;
+  const linkText = cleanNode(p.title) || slug(p.path);
+  md += `- [${linkText}](${p.path})\n`;
 }
 if (!dry) writeFileSync(join(root, 'index.md'), md);
 console.log(`index.md：${pages.length} 条目${dry ? '（dry，未写入）' : ' 已写入'}（含 mindmap 与快照行）`);
@@ -220,18 +305,38 @@ for (const f of walk(root)) {
   const sec = text.match(/^##\s*Sources\b[\s\S]*$/m);
   if (!sec) continue;
   const fps = {};
+  // blob 永久链接还原：本脚本产物 <repoUrl>/blob/<commit>/<repoRel>#L.. → 本地文件指纹（增量更新依据）
+  const blobRe = linkMode === 'github'
+    ? new RegExp('^' + repoUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/blob/[^/]+/(.+?)(?:#.*)?$')
+    : null;
   for (const L of sec[0].matchAll(LINK)) {
     const raw = L[1];
-    if (/^(https?:|mailto:|repo:\/\/|#)/.test(raw)) continue;
-    const t = decodeURI(raw).split('#')[0];
-    if (!t) continue;
-    // 真链接：页面相对路径穿越；"/repo-relative" 形式（本脚本重写产物）从仓库根解析
-    const target = t.startsWith('/') && topLevel ? resolve(topLevel, '.' + t) : resolve(dirname(f), t);
+    let target = null;
+    if (blobRe) {
+      const bm = raw.match(blobRe);
+      if (bm) {
+        const local = resolve(topLevel, decodeURIComponent(bm[1]));
+        target = existsSync(local) ? local : null; // 远端删除/本地缺失 → missing 统计
+        if (!target) missing++;
+      } else if (/^https?:/.test(raw)) {
+        continue; // 其他外部 URL（非本仓库 blob 链接）不入指纹
+      }
+    } else if (/^(https?:|mailto:|repo:\/\/|#)/.test(raw)) {
+      continue;
+    }
+    if (!target) {
+      const t = decodeURI(raw).split('#')[0];
+      if (!t || /^[a-z]+:/i.test(t)) continue;
+      // 真链接：页面相对路径穿越；"/repo-relative" 形式（历史重写产物）从仓库根解析
+      target = t.startsWith('/') && topLevel ? resolve(topLevel, '.' + t) : resolve(dirname(f), t);
+    }
     const insideWiki = target.startsWith(root);
     if (existsSync(target) && statSync(target).isFile() && (!target.endsWith('.md') || !insideWiki)) {
       fps[relative(topLevel || root, target)] =
         'sha1:' + createHash('sha1').update(readFileSync(target)).digest('hex').slice(0, 16);
-    } else if (!target.endsWith('.md')) missing++;
+    } else if (!target.endsWith('.md') && !/^[a-z]+:/i.test(raw)) {
+      missing++;
+    }
   }
   pageMap[relative(root, f)] = {
     title: (pages.find((p) => p.path === relative(root, f)) || {}).title || '',
@@ -240,9 +345,10 @@ for (const f of walk(root)) {
   };
 }
 const state = {
-  version: 1,
+  version: 2,
   target: { root: dirname(root), commit, scope: argOf('--scope') || '', generatedAt: new Date().toISOString() },
   config: prev.config || { language: 'zh', depth: 'standard' }, // depth 为语义档位（不含页数）
+  links: linkMode === 'github' ? { mode: 'github', repoUrl } : { mode: 'relative' },
   analysis: {
     tool: 'grep',
     note: '结构提取仅用 Grep/构建文件/目录结构；fan-in 为文件级口径',
@@ -256,5 +362,7 @@ if (!dry) {
 }
 const uniq = new Set(Object.values(pageMap).flatMap((p) => p.sourceFiles));
 console.log(`wiki-state.json：${Object.keys(pageMap).length} 页 / ${uniq.size} 个指纹文件 / ${missing} 个无法解析的 Sources 链接${dry ? '（dry，未写入）' : ''}`);
+console.log(`链接基准：${linkMode === 'github' ? `源码托管 blob 永久链接（${repoUrl} @ ${commit}）` : '页面相对链接（未发现 git origin 远端，可用 --repo-url 显式指定）'}`);
+if (migrated > 0) console.log(`历史绝对链接迁移：${migrated} 条 "/repo-rel" → 当前基准`);
 if (rewritten > 0) console.log(`松格式重写：${rewritten} 条 → 真链接`);
 if (unresolvedLoose > 0) console.warn(`注意：${unresolvedLoose} 条松格式引用无法解析（缺 --repo/PLAN Target 行，或路径不存在）——check-wiki 会报残余 ERROR。`);

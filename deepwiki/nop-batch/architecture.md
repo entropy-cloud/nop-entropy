@@ -59,7 +59,7 @@ flowchart TD
     CGEN -.->|代码生成| DAO
 ```
 
-> Sources: [nop-batch/pom.xml:19-35](/nop-batch/pom.xml#L19-L35)、[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11](/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L4-L11)、[nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:289-296](/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L289-L296)、[nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java:43-46](/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java#L43-L46)
+> Sources: [nop-batch/pom.xml:19-35](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/pom.xml#L19-L35)、[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L4-L11)、[nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:289-296](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L289-L296)、[nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java:43-46](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java#L43-L46)
 
 ## 一次批任务：从定义到终态
 
@@ -93,7 +93,7 @@ sequenceDiagram
     Task-->>Host: future完成
 ```
 
-> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:90-118](/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L90-L118)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java:36-49](/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java#L36-L49)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:106-124](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L106-L124)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:326-330](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L326-L330)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
+> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:90-118](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L90-L118)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java:36-49](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java#L36-L49)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:106-124](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L106-L124)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:326-330](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L326-L330)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
 
 ## 状态与记录存在哪里
 
@@ -109,7 +109,7 @@ sequenceDiagram
 | 运行期计数与回调 | BatchTaskContextImpl 内存 | 每 chunk incCount 汇总 | 任务结束丢弃，落盘靠 saveTaskState |
 | 输出文件 | ResourceRecordConsumerProvider 管理的文件 | 消费时写出 | 续跑时已存在且非空则报错拒启 |
 
-> Sources: [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml:9-11](/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml#L9-L11)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:64-77](/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L64-L77)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:55-67](/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L55-L67)
+> Sources: [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml:9-11](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml#L9-L11)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:64-77](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L64-L77)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:55-67](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L55-L67)
 
 ## 机制索引：深入子页
 
@@ -128,22 +128,22 @@ sequenceDiagram
 
 ## Sources
 
-- [nop-batch/pom.xml]()
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java]()
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java]()
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java]()
-- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java]()
-- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java]()
-- [nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml]()
-- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java]()
-- [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml]()
-- [nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java]()
-- [nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml]()
-- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java]()
-- [nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java]()
-- [nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java]()
-- [nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen]()
-- [nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen]()
+- [nop-batch/pom.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/pom.xml)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java)
+- [nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java)
+- [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml)
+- [nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java)
+- [nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml)
+- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java)
+- [nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java)
+- [nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java)
+- [nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen)
+- [nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen)
 
 ---
 
