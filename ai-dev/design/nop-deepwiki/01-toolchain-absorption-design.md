@@ -70,11 +70,11 @@
 
 ### P0-2 Mermaid 真渲染校验 + 优雅降级
 
-**决策**：`check-wiki.mjs` 在 `npx mermaid.parse` 可用（有 Node 网络/缓存环境）时对全部 mermaid 块做真实解析；解析失败输出 ERROR 并给出解析器原文错误。`gen-wiki-meta.mjs` 提供 `--degrade-mermaid`：把解析失败的块改写为 `text` fence，并在块前插入 HTML 注释保留错误信息，供下次修复。环境不可用时自动降级为现行块首正则检查并在输出中声明降级。
+**决策**：mermaid 解析器经项目根 `tools/` 目录统一管理（`tools/package.json`，pnpm 安装 mermaid + jsdom，node_modules 不入库；克隆后 `cd tools && pnpm install` 一次即启用）。`check-wiki.mjs` 从脚本位置上溯项目根、从 `tools/node_modules` 显式解析 mermaid（完整构建优先，core 回退），并以 jsdom 注入全局 DOM 后做无头 `mermaid.parse`（openwiki dom-shim 同做法）——**不引用项目外的工具脚本，裸 `import('mermaid')` 不可用（脚本目录链上无 node_modules）**。解析失败输出 ERROR（含页面、块序号与解析器原文错误）；`tools/node_modules` 缺失或加载失败时显式输出一行跳过原因并回退块首正则白名单，不产生误报。
 
-**理由**：借鉴 openwiki 的降级协议。SKILL.md 的"语法防坑清单"是静态经验集，防不住新形态语法错误；deepwiki.com 的图之所以"合适"，一是符号级内容，二是渲染从不失败——后者只能靠真解析保证。mermaid 作为开发期可选校验器（npx 拉取），不进入平台产品依赖，符合自完备设计约束（能力源仍是本仓库脚本）。
+**理由**：借鉴 openwiki 的降级协议。SKILL.md 的"语法防坑清单"是静态经验集，防不住新形态语法错误；deepwiki.com 的图之所以"合适"，一是符号级内容，二是渲染从不失败——后者只能靠真解析保证。依赖收敛在仓库内 `tools/` 由 pnpm 管理，符合"工具脚本不引用项目外路径"约束；无 Node 环境依赖时全部门禁仍可运行（自完备设计）。
 
-**验收**：构造一个语法错误的 mermaid 块，check 报 ERROR 且错误含解析器信息；`--degrade-mermaid` 后该块不再阻断门禁且错误注释在档。
+**验收**：`cd tools && pnpm install` 后，check-wiki 对含语法错误 mermaid 块的页面报 ERROR 且错误含解析器信息；四个 wiki（task/batch/orm/xlang）全部存量块真实解析通过；删除 tools/node_modules 后 check 输出显式跳过行、其余门禁行为不变。
 
 ### P0-3 代码块密度硬约束
 
@@ -122,4 +122,4 @@
 - 本文与 [00-overview.md](./00-overview.md) 共同构成 skill 的设计权威：00 管现状基线，01 管下一步行为变更；实施 P0 时同步回改 00 的门禁表（新增代码块密度行、mermaid 真解析行）。
 - **P0 的实施计划已立项为 `ai-dev/plans/367-nop-deepwiki-survey-absorption-and-density-upgrade.md`（active，2026-09-29）**：实施以该计划为载体，但行为决策以本文为准——计划执行中若发现与本文 P0 决策冲突（如 mermaid 可选性的降级路径、密度阈值口径），先修本文再改计划。
 - SKILL.md 是操作协议本体：P0 全部四项落地后，SKILL.md 的派发模板（代码块下限）、Phase 5 序列（fixture eval 必跑）、反模式（新增"不要用合成代码充当摘录"）随之更新，`deepwiki/README.md` 的门禁命令不变。
-- 平台级约束 `ai-dev/design/self-contained-design.md`（自完备设计）对 P0-2 的 npx 可选校验器划定了边界：校验器缺失时脚本必须仍可完成全部其余门禁。
+- 平台级约束 `ai-dev/design/self-contained-design.md`（自完备设计）对 P0-2 划定的边界：工具依赖收敛在仓库内 `tools/`（pnpm 管理），**禁止引用仓库外的工具脚本路径**（既有例外仅 mission driver 使用 AGE 模板）；`tools/node_modules` 缺失时全部门禁仍须可运行（显式跳过 + 轻量回退），校验器缺失不阻断其余检查。

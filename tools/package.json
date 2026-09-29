@@ -1,0 +1,13 @@
+{
+  "name": "nop-entropy-tools",
+  "private": true,
+  "description": "项目内开发/校验工具的 Node 依赖统一管理（AI 工具面与门禁脚本使用）。运行前先执行: pnpm install",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "jsdom": "^26.1.0",
+    "mermaid": "^11.12.2"
+  }
+}

@@ -3,20 +3,22 @@
 // 对应 SKILL.md Phase 5；检查项源自 survey [01][07][10] 的收尾验证共识 + plan 363 扩展。
 //
 //   node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R]
-//                       [--min-tables N] [--min-mermaid-module N]
+//                       [--min-tables N] [--min-mermaid-module N] [--min-code-excerpts N]
 //
 // 检查项：
 //   ERROR：断链（相对链接目标不存在）/ Mermaid 块类型不明或围栏不配对 / wiki-state 页面与实际文件不一致
 //          / 残余空括号松格式链接（`[x]()`——应已被 gen-wiki-meta 重写，任何位置）
 //          / github 模式下残余 "/repo-rel" 站点根绝对链接（历史重写产物，本地为死链）
 //          / --verify-claims：行号越界（恒 ERROR）或容错窗内零关键词命中（机检防引用幻觉）
-//   WARN ：页面缺 Sources 归属 / 密度不达标（表格/mermaid，quickstart/reading-guide 豁免）
+//   WARN ：页面缺 Sources 归属 / 密度不达标（表格/mermaid/源码摘录代码块，quickstart/reading-guide/overview 等豁免）
 //          / index.md 与页面清单漂移 / 缺 wiki-state.json / 覆盖率缺失
 //          / blob 永久链接的仓库相对路径在本地仓库不存在
 //   退出码：无 ERROR 为 0；--strict 时有 WARN 也为 1。
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, dirname, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 
 const rootArg = process.argv[2];
@@ -36,7 +38,10 @@ if (!existsSync(root) || !statSync(root).isDirectory()) {
 }
 const MIN_TABLES = Number(optOf('--min-tables') || 2);
 const MIN_MERMAID_MODULE = Number(optOf('--min-mermaid-module') || 3);
+const MIN_CODE_EXCERPTS = Number(optOf('--min-code-excerpts') || 3);
 const EXEMPT_DENSITY = new Set(['quickstart.md', 'reading-guide.md', 'index.md', 'PLAN.md']); // 命令/步骤与路径导航页
+// 源码摘录代码块下限适用面：机制深度页（与 SKILL.md 派发模板第 5 条口径一致）
+const isExcerptPage = (rel) => rel === 'architecture.md' || rel.startsWith('flows/') || rel.startsWith('modules/') || rel.startsWith('topics/');
 // 目标仓库根（gen-wiki-meta 重写产物链接形如 "/repo/rel/path#L1-L2"，需从仓库根解析）
 let repoRoot = optOf('--repo');
 if (!repoRoot) {
@@ -145,6 +150,8 @@ function countTables(text) {
 }
 
 let sourceCount = 0;
+// mermaid 块收集：正则白名单先行（ERROR 即报），真实解析为可选增强（见文件尾 mermaidValidate）
+const mermaidBlocks = [];
 for (const file of files) {
   const text = readFileSync(file, 'utf8');
   const rel = relative(root, file);
@@ -155,22 +162,30 @@ for (const file of files) {
 
   // Mermaid 块
   const blocks = [...text.matchAll(/```mermaid\r?\n([\s\S]*?)```/g)];
-  for (const b of blocks) {
+  blocks.forEach((b, i) => {
     const first = b[1].split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('%%'));
     if (!first || !MERMAID_HEAD.test(first)) {
       err(file, `Mermaid 块首行无法识别图表类型："${(first || '').slice(0, 40)}"`);
     }
-  }
+    mermaidBlocks.push({ file, index: i, body: b[1] });
+  });
   if (isModulePage(rel) && blocks.length < MIN_MERMAID_MODULE) {
     warn(file, `模块页 mermaid 仅 ${blocks.length} 张（< ${MIN_MERMAID_MODULE}）`);
   }
 
-  // 密度：表格 + 词数（deepwiki.com 四形态页均 2200-3300 词，底线 800）
+  // 密度：表格 + 词数 + 源码摘录代码块（deepwiki.com 四形态页均 2200-3300 词 / 3.5-14.9 代码块，底线 800 / 3）
   if (!EXEMPT_DENSITY.has(rel) && rel !== 'PLAN.md') {
     const tables = countTables(text);
     if (tables < MIN_TABLES) warn(file, `表格仅 ${tables} 个（< ${MIN_TABLES}；实体/常量/阶段对照表任选）`);
     const units = (text.match(/[\u4e00-\u9fff]/g) || []).length + (text.match(/[A-Za-z0-9_]+/g) || []).length;
     if (units < 800) warn(file, `词数不足：约 ${units}（< 800；目标 1500-2500 词中位带）`);
+    if (isExcerptPage(rel)) {
+      const mer = (text.match(/```mermaid/g) || []).length;
+      const merFences = mer * 2;
+      const allFences = (text.match(/^```/gm) || []).length;
+      const codeBlocks = Math.max(0, Math.round((allFences - merFences) / 2));
+      if (codeBlocks < MIN_CODE_EXCERPTS) warn(file, `源码摘录代码块仅 ${codeBlocks} 个（< ${MIN_CODE_EXCERPTS}；5-20 行真实行段摘录）`);
+    }
   }
 
   // Sources 归属（index.md 与 PLAN.md 不要求）
@@ -376,6 +391,62 @@ if (vcArg) {
     console.log(`verify-claims：抽样 ${picked.length}（池 ${pool.length}），PASS ${pass}，SKIP ${skip}，ERROR ${errors.filter((e) => e.includes('断言')).length}`);
   }
 }
+
+// --- mermaid 真实解析校验（openwiki validate.ts 同思路；依赖由 tools/ pnpm 统一管理） ---
+// 三态：语法错误→ERROR；模块缺失/环境不可用→显式跳过一行（不得误报为坏块）；全部通过→计数输出
+async function mermaidValidate() {
+  // 从脚本位置上溯项目根的 tools/node_modules 显式解析：脚本自身目录链上没有 node_modules，
+  // 裸 import('mermaid') 永远解析不到；工具依赖一律经 tools/package.json 安装（见 tools/README.md）
+  const toolsDir = fileURLToPath(new URL('../../../../tools/', import.meta.url));
+  const nmDir = join(toolsDir, 'node_modules', 'mermaid');
+  if (!existsSync(nmDir)) {
+    if (mermaidBlocks.length) console.log('渲染校验跳过：tools/node_modules 未安装（cd tools && pnpm install 后启用真实解析）');
+    return;
+  }
+  let mermaid = null;
+  try {
+    // jsdom 全局注入必须先于 import mermaid——flowchart/state 解析器经 DOMPurify 触达 DOM（openwiki dom-shim 同做法）
+    const req = createRequire(join(toolsDir, 'package.json'));
+    const { JSDOM } = req('jsdom');
+    const dom = new JSDOM('<!DOCTYPE html><body></body>');
+    globalThis.window = dom.window;
+    globalThis.document = dom.window.document;
+    // 完整构建注册全部图型（v11 懒加载图型不在 core 构建中）；逐级回退到包内 ESM 入口
+    let entry = ['dist/mermaid.esm.min.mjs', 'dist/mermaid.core.mjs'].find((c) => existsSync(join(nmDir, c)));
+    if (!entry) {
+      const pkg = JSON.parse(readFileSync(join(nmDir, 'package.json'), 'utf8'));
+      entry = pkg.module || pkg.main;
+    }
+    if (!entry) throw new Error('mermaid 包内未找到 ESM 入口');
+    const mod = await import(pathToFileURL(join(nmDir, entry)).href);
+    mermaid = mod.default || mod;
+  } catch (e) {
+    if (mermaidBlocks.length) console.log(`渲染校验跳过：mermaid 加载失败（${String(e.message || e).slice(0, 80)}）——回退块首正则白名单`);
+    return;
+  }
+  try { mermaid.initialize({ startOnLoad: false }); } catch {}
+  let parseFailed = 0;
+  for (const blk of mermaidBlocks) {
+    let failure = null;
+    try { await mermaid.parse(blk.body); } catch (e) { failure = e; }
+    if (failure) {
+      const msg = String(failure.str || failure.message || failure);
+      // 环境性失败只可能是 DOM 系（jsdom 未注入成功/浏览器 API 缺失）——其余一律按块级解析
+      // 失败处理："No diagram type detected" 是未知图型坏块，不是环境问题
+      const envFailure = /document|window|navigator|DOMPurify|canvas|getComputedStyle|browser/i.test(msg)
+        && !/No diagram type detected/i.test(msg);
+      if (envFailure) {
+        console.warn(`渲染校验中止：mermaid 运行环境不可用（${msg.slice(0, 80)}）——前 ${blk.index} 块已解析，其余由正则白名单覆盖`);
+        return;
+      }
+      parseFailed++;
+      err(blk.file, `Mermaid 解析失败（块 ${blk.index + 1}）：${msg.slice(0, 120)}`);
+    }
+  }
+  if (mermaidBlocks.length && !parseFailed) console.log(`渲染校验：${mermaidBlocks.length} 个 mermaid 块全部解析通过`);
+  else if (parseFailed) console.log(`渲染校验：${mermaidBlocks.length - parseFailed}/${mermaidBlocks.length} 个 mermaid 块解析通过，${parseFailed} 个失败（见 ERROR）`);
+}
+await mermaidValidate();
 
 // --- 报告 ---
 const relRoot = relative(process.cwd(), root) || '.';

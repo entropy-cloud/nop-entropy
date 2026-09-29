@@ -176,6 +176,17 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.m2\repository\io\github\entropy-c
 ./mvnw clean install "-DskipTests"
 ```
 
+### 开发工具（tools/）
+
+`tools/` 目录集中管理项目自带的开发/校验工具。其中 Node 依赖（pnpm 管理）需要安装一次：
+
+```shell
+cd tools
+pnpm install
+```
+
+未安装时相关校验工具（如 deepwiki 的 Mermaid 渲染校验）会显式跳过并降级为轻量检查，不影响主构建。详见 [tools/README.md](tools/README.md)。
+
 ## PowerShell乱码问题解决
 
 可以将PowerShell的编码设置为UTF8
