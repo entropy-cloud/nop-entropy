@@ -21,7 +21,7 @@ mindmap
       错误模型：TaskErrors 体系
 ```
 
-> 快照：nop-task @ f2ecee739b · 2026-09-29
+> 快照：nop-task @ ea3e35e6d0 · 2026-09-29
 
 ## 指南
 

@@ -60,7 +60,7 @@ function suffixScan(bareName, segKey) {
     for (const n of entries) {
       if (hits.length > 8) return;
       const p = join(dir, n);
-      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.')) scan(p); }
+      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.') && n !== '_tmp') scan(p); }
       else if (n === bareName) {
         const norm = p.split('\\').join('/');
         if (!segKey || norm.endsWith('/' + segKey) || norm.endsWith(segKey)) hits.push(norm);
@@ -179,6 +179,12 @@ for (const file of files) {
     if (!/^##\s*Sources\b/m.test(text) && !/\*\*Sources:\*\*/.test(text) && !/> \*\*Sources:\*\*/.test(text)) {
       warn(file, '缺少 Sources 归属（页尾 `## Sources` 或 `> **Sources:**`）');
     } else {
+      // 有归属但无可点击源码链接（纯文本文件名清单——gen 无法重写，等于没有引用）
+      const srcCtx = (text.match(/^> Sources: .*$/gm) || []).join('\n')
+        + (text.match(/^##\s*Sources\b[\s\S]*$/m) || [''])[0];
+      if (srcCtx && !/\]\(/.test(srcCtx)) {
+        warn(file, 'Sources 仅有纯文本文件名、零可点击链接（应写成 [path:line]() 松格式交 gen 重写）');
+      }
       sourceCount++;
     }
   }

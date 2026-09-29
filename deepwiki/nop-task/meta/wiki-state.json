@@ -2,9 +2,9 @@
   "version": 2,
   "target": {
     "root": "/Users/abc/app/nop-entropy-wt/nop-entropy-master/deepwiki",
-    "commit": "f2ecee739b",
+    "commit": "ea3e35e6d0",
     "scope": "nop-task",
-    "generatedAt": "2026-09-29T14:44:13.255Z"
+    "generatedAt": "2026-09-29T14:58:45.524Z"
   },
   "config": {
     "language": "zh",

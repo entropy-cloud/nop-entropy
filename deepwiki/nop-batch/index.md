@@ -21,7 +21,7 @@ mindmap
       错误模型：BatchErrors 与取消链
 ```
 
-> 快照：nop-batch @ f2ecee739b · 2026-09-29
+> 快照：nop-batch @ ea3e35e6d0 · 2026-09-29
 
 ## 指南
 

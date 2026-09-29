@@ -30,7 +30,7 @@ nop-task 引擎把"中断后继续执行"建为一条状态链：步骤返回 `S
 | 结果/异常 | resultValue、exception | resultValue、outputs、savedNextStepName、exception | 缓存结果重放、失败重抛、跳转恢复 |
 | 诊断 | errCode/errMsg/errorBeanData/errorStack（DAO 列） | 同左（step 表列） | 跨进程重启后重构 NopException |
 
-> Sources: 状态字段职责与恢复作用（`ITaskState.java`、`ITaskStepState.java`、`ITaskStateCommon.java`、`TaskStateBean.java`、`TaskStepStateBean.java`、`DaoTaskStateStore.java`）
+> Sources: 状态字段职责与恢复作用（[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskState.java:12](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskState.java#L12)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepState.java:18](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStepState.java#L18)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStateCommon.java:19](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStateCommon.java#L19)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStateBean.java:10](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStateBean.java#L10)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java:17](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java#L17)、[_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java:48](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java#L48)）
 
 ## TaskRuntimeImpl 如何写状态、读状态
 
@@ -40,7 +40,7 @@ nop-task 引擎把"中断后继续执行"建为一条状态链：步骤返回 `S
 
 运行时的创建入口在 `TaskFlowManagerImpl`，两条路径的 store 选择不同：fresh 执行 `newTaskRuntime(task, saveState, ...)` 按 saveState 标志选 store——true 时用注入的持久化 store（缺失则抛 `ERR_TASK_NO_PERSIST_STATE_STORE`），false 时用 `DefaultTaskStateStore.INSTANCE`；resume 路径 `getTaskRuntime(taskInstanceId, ...)` 强制用持久化 store，`loadTaskState` 返回 null 即抛 `ERR_TASK_UNKNOWN_TASK_INSTANCE`，并以 `recoverMode=true` 构造 runtime（`nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:96-134`）。saveState 标志来自 task.xml 模型属性 `defaultSaveState`（缺省 false），codegen 生成的 biz action 直接把它拼进 `newTaskRuntime` 调用（`nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskGenHelper.java:17-18`；`nop-task/nop-task-core/src/main/java/io/nop/task/model/_gen/_TaskFlowModel.java:35-38`）。
 
-> Sources: runtime 状态读写与 store 选择（`TaskRuntimeImpl.java`、`TaskFlowManagerImpl.java`、`TaskGenHelper.java`）
+> Sources: runtime 状态读写与 store 选择（[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:35](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L35)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:50](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L50)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskGenHelper.java:9](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskGenHelper.java#L9)）
 
 ## 挂起 → 快照：三次落盘点
 
@@ -78,7 +78,7 @@ flowchart TD
     M --> N
 ```
 
-> Sources: 挂起与终态落盘点（`SuspendTaskStep.java`、`TaskStepExecution.java`、`TaskImpl.java`、`SequentialTaskStep.java`、`LoopTaskStep.java`）
+> Sources: 挂起与终态落盘点（[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java:15](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/SuspendTaskStep.java#L15)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:40](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L40)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:36](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L36)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java:27](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/SequentialTaskStep.java#L27)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/LoopTaskStep.java:26](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/LoopTaskStep.java#L26)）
 
 ## 重入恢复：resume 的完整时序
 
@@ -112,7 +112,7 @@ sequenceDiagram
     Exec-->>Caller: 返回结果或重抛异常
 ```
 
-> Sources: 恢复重入判定链（`TaskFlowManagerImpl.java`、`TaskImpl.java`、`TaskStepRuntimeImpl.java`、`TaskStepExecution.java`、`CallTaskStep.java`、`DaoTaskStateStore.java`）
+> Sources: 恢复重入判定链（[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:50](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L50)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java:36](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java#L36)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskStepRuntimeImpl.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskStepRuntimeImpl.java#L21)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java:40](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/TaskStepExecution.java#L40)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/CallTaskStep.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/CallTaskStep.java#L21)、[_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java:48](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java#L48)）
 
 ## nop-task-dao 落库实现
 
@@ -122,7 +122,7 @@ step 行按 `(taskInstanceId, stepPath)` 定位 upsert（`findStepEntity`，`Dao
 
 异常的跨进程恢复是独立通路：save 侧把含 FQCN（reserved param `__exceptionClass`）与 cause 链的 ErrorBean 序列化进 errorBeanData；load 侧 `loadException` 优先从 errorBeanData 重构（reserved param `__exceptionClass` 携带 FQCN）、回退 errCode+errMsg（`DaoTaskStateStore.java:419-449`）。精确异常子类经 `TaskExceptionRegistry` 反射构造：nop-task-core 两个子类编译期注册工厂（`TaskExceptionRegistry.java:55-60`），其余 FQCN 反射注册、缺类安全回退 generic NopException（`TaskExceptionRegistry.java:110-119`）。并发方面，plan 364 [05-02] 引入 64 槽条带锁，把 fork 分支共享同一 stepPath 行的并发写按行串行化，消除后写者乐观锁异常冒泡为分支失败的问题（`DaoTaskStateStore.java:327-360`）。task/step 状态 bean 均有 `beforeSave`/`afterLoad` 钩子，在 entity 拷贝前后被 store 调用，供自定义子类做归一化与 transient 重建（`DaoTaskStateStore.java:146,161,283,315,353`）。
 
-> Sources: DAO 落库与异常重构（`DaoTaskStateStore.java`、`TaskExceptionRegistry.java`、`TaskStepStateBean.java`、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskInstance.java`、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskStepInstance.java`）
+> Sources: DAO 落库与异常重构（[_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java:48](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java#L48)、[_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/TaskExceptionRegistry.java:36](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/TaskExceptionRegistry.java#L36)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java:17](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java#L17)、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskInstance.java`、`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/entity/_gen/_NopTaskStepInstance.java`）
 
 ## 存储实现对照：内存降级 vs DAO 落库
 
@@ -140,7 +140,7 @@ step 行按 `(taskInstanceId, stepPath)` 定位 upsert（`findStepEntity`，`Dao
 
 内存降级路径核查结论：`defaultSaveState=false`（模型缺省）或未注入持久化 store 时，引擎仍完整执行"步骤 saveState → task SUSPENDED"的调用序，只是所有 save 是 no-op、状态留在 `TaskStateBean`/`TaskStepStateBean` 堆字段里；此时挂起任务只能靠持有原 runtime 引用在同进程内续跑，进程重启后无法恢复——`getTaskRuntime` 会因 `loadTaskState` 返回 null 而抛 `ERR_TASK_UNKNOWN_TASK_INSTANCE`（`TaskFlowManagerImpl.java:120-134`）。测试侧的 `SnapshotTaskStateStore` 等录制型 store 也印证了这一分层：快照能力由 store 实现决定，引擎代码无感知。
 
-> Sources: 双实现对照（`DefaultTaskStateStore.java`、`DaoTaskStateStore.java`、`ITaskStateStore.java`、`TaskFlowManagerImpl.java`、`CallTaskStep.java`）
+> Sources: 双实现对照（[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/DefaultTaskStateStore.java:15](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/DefaultTaskStateStore.java#L15)、[_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java:48](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/DaoTaskStateStore.java#L48)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStateStore.java:10](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStateStore.java#L10)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java:50](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java#L50)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/CallTaskStep.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/step/CallTaskStep.java#L21)）
 
 ## 修复中痕迹（plan 364，以生成时工作区为准）
 
@@ -150,7 +150,7 @@ step 行按 `(taskInstanceId, stepPath)` 定位 upsert（`findStepEntity`，`Dao
 - **Phase 4（终态与并发正确性）标记 in progress，但多项修复代码已出现在工作区**：SUSPENDED-cancel→KILLED（`TaskRuntimeImpl.java:90-105`，[05-03]）、fail() 对称 first-terminal-wins 守卫（`TaskStepStateBean.java:55-63`，[05-01]）、stepState 加 volatile（`TaskStepRuntimeImpl.java:47`，[05-06]）、sync/async 失败驱动统一 `driveStepFailure`（`TaskStepExecution.java:380-407`，[02-02]）、全局限流器/信号量强引用注册表（`TaskFlowManagerImpl.java:59-66`，[05-04]）——计划文件中对应条目尚未勾选，属于"代码先行、计划回填"的中间态。
 - `TaskConstants.java` 与 `GraphTaskStep.java` 在工作区有未提交改动（状态常量改为引用生成常量 `_NopTaskCoreConstants` 单源化；graph 计数收敛为 `completeGraphIfDrained` 单一判据），本章状态码断言以工作区版本为准。
 
-> Sources: 修复状态依据（`ai-dev/plans/364-nop-task-audit-confirmed-defect-fixes.md`、git 工作区 diff、`TaskRuntimeImpl.java`、`TaskStepStateBean.java`）
+> Sources: 修复状态依据（`ai-dev/plans/364-nop-task-audit-confirmed-defect-fixes.md`、git 工作区 diff、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java:35](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskRuntimeImpl.java#L35)、[_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java:17](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-task/nop-task-core/src/main/java/io/nop/task/state/TaskStepStateBean.java#L17)）
 
 ## Sources
 

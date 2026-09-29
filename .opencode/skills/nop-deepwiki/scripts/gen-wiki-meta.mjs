@@ -104,8 +104,8 @@ if (!pages.length) {
 const LOOSE = /\[([^\[\]]+?)\]\(\s*\)/g;
 // 历史重写产物：[label](/repo-rel/path#L20-L29)——旧版站点根绝对链接，本地与 GitHub 上均为死链
 const ROOTABS = /\[([^\]]+)\]\((\/[^)\s]+)\)/g;
-// 行号后缀：支持逗号/中文顿号分隔的多区段（子代理常见写法 path:17-20、38-58）
-const LINE_SUFFIX = /:(\d+(?:-\d+)?(?:[,\s、]\s*\d+(?:-\d+)?)*)$/;
+// 行号后缀：支持逗号/中文顿号分隔的多区段（子代理常见写法 path:17-20、38-58）；容忍尾部分隔符
+const LINE_SUFFIX = /:(\d+(?:-\d+)?(?:[,\s、]\s*\d+(?:-\d+)?)*[,\s、]?)$/;
 // 作用域后缀扫描：裸文件名/包内相对路径在目标树内递归查后缀匹配文件；
 // 优先路径段=wiki 作用域名（wiki 根目录名，如 nop-orm）的命中
 const SCOPE = root.split('/').pop().split('\\').pop();
@@ -118,7 +118,7 @@ function scanHits(bareName, segKey) {
     for (const n of entries) {
       if (hits.length > 8) return;
       const p = join(dir, n);
-      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.')) scan(p); }
+      if (statSync(p).isDirectory()) { if (n !== '.git' && !n.startsWith('.') && n !== '_tmp') scan(p); }
       else if (n === bareName) {
         const norm = p.split('\\').join('/');
         if (!segKey || norm.endsWith('/' + segKey) || norm.endsWith(segKey)) hits.push(p);

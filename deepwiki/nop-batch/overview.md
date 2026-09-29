@@ -62,7 +62,7 @@ flowchart TD
 - **processor 伪装 consumer**：引擎消费端只有 Consumer 一个接口；设置了 processor 时由 `BatchProcessorConsumer` 包装接入管线（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:396-402`）。
 - **queue 与 nop-task 无关**：`PartitionDispatchQueue` 是 core 内进程内分区分发原语，不涉 nop-task 调度集成；dsl 的 main 代码无 `io.nop.task` 引用，仅 pom 声明 `nop-task-core` 依赖（`nop-batch/nop-batch-dsl/pom.xml:50`）。
 
-> Sources: BatchTaskBuilder.java:54-120,396-402；PartitionDispatchQueue.java:32-35；BatchErrors.java:33-35,46-48；DaoBatchStateStore.java:180-197；nop-batch-dsl/pom.xml:50
+> Sources: BatchTaskBuilder.java:54-120,396-402；PartitionDispatchQueue.java:32-35；BatchErrors.java:33-35,46-48；DaoBatchStateStore.java:180-197；[_tmp/rw-clone/nop-batch/nop-batch-dsl/pom.xml:50](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dsl/pom.xml#L50)
 
 ## 页面地图
 

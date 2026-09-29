@@ -66,7 +66,7 @@ classDiagram
     _BatchTaskModel o-- BatchRetryPolicyModel
 ```
 
-> Sources: nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java:5-9、nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java:11-943、nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:10-72、nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchLoaderModel.java:116-344
+> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java:5-9、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/BatchTaskModel.java#L5-L9)[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java:11-943、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java#L11-L943)[nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:10-72、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef#L10-L72)[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchLoaderModel.java:116-344](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchLoaderModel.java#L116-L344)
 
 ## 模型→工厂→任务：ModelBasedBatchTaskBuilderFactory 的装配链
 
@@ -112,7 +112,7 @@ flowchart TD
     I --> J["buildTask 产出 IBatchTask"]
 ```
 
-> Sources: nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:90-124、nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:130-314、nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:389-480、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:3-11
+> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:90-124、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L90-L124)[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:130-314、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java#L130-L314)[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:389-480、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java#L389-L480)[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:3-11](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L3-L11)
 
 ## xlib 三件套：XLang 编译期的三个挂载点
 
@@ -146,7 +146,7 @@ sequenceDiagram
     T->>B: 运行期 execute 或 executeAsync(ctx)
 ```
 
-> Sources: nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch.xlib:7-97、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-gen.xlib:6-64、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-record.xlib:7-16、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/task/lib/batch-common.task.xml:3-9
+> Sources: nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch.xlib:7-97、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-gen.xlib:6-64、nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/xlib/batch-record.xlib:7-16、[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/task/lib/batch-common.task.xml:3-9](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/task/lib/batch-common.task.xml#L3-L9)
 
 ## 与 nop-batch-gen 的关系：loader 的 generator 分支
 
@@ -156,7 +156,7 @@ nop-batch-gen 与 DSL 线只有一个交汇点：`BatchLoaderModel.generator` �
 
 生成模型本身不是 xdef DSL：`BatchGenModelParser` 按扩展名分流，`.batch-gen.xlsx` 走 Excel 模型加载（imp 路径常量 `/nop/batch/imp/batch-gen.imp.xml`），否则按 JSON delta bean 加载（`nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModelParser.java:20-36`；格式常量 `nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/BatchGenConstants.java:12-24`）。因此页面上名字相近的两个"gen"需要划界：`nop-batch-gen` 是数据生成模型的运行期实现；`batch-gen.xlib` 是任务 DSL 编译期的预处理钩子，与数据生成无关。术语划界见[术语表](../glossary.md)。
 
-> Sources: nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/loader/BatchGenLoaderProvider.java:27-75、nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModel.java:20-155、nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/BatchGenState.java:33-100、nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/SequentialBatchRequestGenerator.java:20-74
+> Sources: [nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/loader/BatchGenLoaderProvider.java:27-75、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/loader/BatchGenLoaderProvider.java#L27-L75)[nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModel.java:20-155、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/model/BatchGenModel.java#L20-L155)[nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/BatchGenState.java:33-100、](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/BatchGenState.java#L33-L100)[nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/SequentialBatchRequestGenerator.java:20-74](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/nop-batch/nop-batch-gen/src/main/java/io/nop/batch/gen/generator/SequentialBatchRequestGenerator.java#L20-L74)
 
 ## Sources
 
