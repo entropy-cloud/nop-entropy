@@ -63,6 +63,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `xlang-truffle/` | XLang Truffle 执行后端（JVM 部署形态提速，多线程） | [README](xlang-truffle/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / 知识参考层)：XLangLanguage/Context、帧/slot 映射、Context 池 + SHARED 多线程、两级内联缓存、依赖钉版；01 为外部框架知识速查（不承载决策） |
 | `nop-network/` | 网络外围模块（HTTP 客户端 / MQTT） | [README](nop-network/README.md) | active — IHttpClient 跨实现行为等价契约；文件传输（上传双模式 / Range 断点续传 / sha 校验优先级）；MQTT 下行推送 + 订阅路由 + IMessageService 双向桥 |
 | `nop-bytecode/` | 字节码分析通道（源码通道外的第二条编码期防线） | active（00-overview + gap-ledger + substrate-adjudication，2026-09-29 ADR 落档） |
+| `nop-deepwiki/` | DeepWiki 生成 skill（`.opencode/skills/nop-deepwiki/`） | [README](nop-deepwiki/README.md) | active — 00-overview（Vision + Architecture Baseline 双职：五阶段管线/质量门禁/增量模型）+ 01-toolchain-absorption-design（外部工具链机制盘点 → P0 采纳 / P1 立项 / P2 登记 / 拒绝清单，2026-09-30） |
 
 ## Precedence Model
 
