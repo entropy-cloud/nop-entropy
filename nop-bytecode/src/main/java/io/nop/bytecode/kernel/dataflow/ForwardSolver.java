@@ -26,6 +26,7 @@ public final class ForwardSolver {
 
     public ForwardSolver(MethodNode mn, MethodCfg cfg, DataflowSemantics sem) {
         this.mn = mn;
+        this.methodNameHint = mn.name;
         this.cfg = cfg;
         this.sem = sem;
         this.inFrames = new Frame[cfg.instructionCount()];
@@ -70,9 +71,16 @@ public final class ForwardSolver {
             return;
         }
         Frame merged = inFrames[target].copy();
-        if (merged.mergeFrom(sem, out)) {
-            inFrames[target] = merged;
-            work.add(target);
+        try {
+            if (merged.mergeFrom(sem, out)) {
+                inFrames[target] = merged;
+                work.add(target);
+            }
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("merge@" + target + " in " + mn.name
+                    + (mn.name.equals(methodNameHint) ? "" : "") + ": " + e.getMessage(), e);
         }
     }
+
+    private String methodNameHint;
 }

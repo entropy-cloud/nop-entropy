@@ -320,23 +320,31 @@ public final class ResourceSemantics implements DataflowSemantics {
     }
 
     private void transferCat1Binary(Frame f, int op) {
-        int pops = (op == Opcodes.LSHL || op == Opcodes.LSHR || op == Opcodes.LUSHR) ? 3 : 2;
-        f.pop(pops);
+        if (op == Opcodes.LSHL || op == Opcodes.LSHR || op == Opcodes.LUSHR) {
+            f.pop(3);          // long(2) + int(1)
+            f.push2(this, ObligationToken.TOP); // long result
+            return;
+        }
+        f.pop(2);
         f.push(this, ObligationToken.PLAIN_NONNULL);
     }
 
     private void pushConstructorResult(Frame f, MethodInsnNode mi, Object recv, int insnIndex) {
         if (recv == ObligationToken.NEW_MARKER) {
-            if (registry.isNewResourceType(mi.owner)) {
-                siteTypes.put(insnIndex, mi.owner);
-                f.push(this, ObligationToken.tracked(ObligationToken.NullState.DEF, insnIndex));
-                return;
+            // NEW+DUP+<init>: <init> is void and the DUP copy of the marker IS the constructed
+            // reference — transform remaining markers in place, push NOTHING (pushing here adds
+            // an extra slot per constructor call — audit-found corpus-wide shape drift)
+            boolean registered = registry.isNewResourceType(mi.owner);
+            if (registered) siteTypes.put(insnIndex, mi.owner);
+            Object constructed = registered
+                    ? ObligationToken.tracked(ObligationToken.NullState.DEF, insnIndex)
+                    : ObligationToken.PLAIN_NONNULL;
+            for (int i = 0; i < f.sp(); i++) {
+                if (f.slot(i) == ObligationToken.NEW_MARKER) f.setLocal(i, constructed);
             }
-            f.push(this, ObligationToken.PLAIN_NONNULL);
             return;
         }
-        // non-NEW receiver <init> (super/this ctor): value passes through
-        f.push(this, recv);
+        // super/this ctor chain: <init> is void — receiver consumed, nothing pushed
     }
 
     private void pushPlainReturn(Frame f, org.objectweb.asm.Type ret) {

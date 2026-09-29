@@ -79,6 +79,7 @@
 - **空指针**：源码 lane pattern 面 5 条已落地规则归源码 lane；本通道只做路径敏感 null-flow 面，不重复模式可表达子面。
 - **资源泄漏**：源码 lane closeable-not-closed（Option B 保守面，warning 档）归源码 lane live 规则；本通道只做路径敏感 acquire/release 配对面。
 - **双报处置**：并行对照期若同缺陷同位置双报，归属裁定在 Wave 4 item 8 对照收敛中逐条裁决（重复/互补/一方误报三分类），裁决记录回填本账本对应行。
+  - **item 8 裁定（2026-09-29，plan: ai-dev/plans/nop-bytecode/07-spotbugs-dual-run.md）**：equals-null 双报面 = 通道 247 条 equals 子集 vs 源码 lane equals-null 规则——**裁决保留双报（命名空间隔离）**，豁免会连带丢失参数 may-null 真阳性且两 ruleId 语义并非全同；重估触发 = 源码 lane equals-null 语义精化或通道 FP 收敛落地。对照数据见 [dual-run-convergence.md](../../nop-bytecode/docs/dual-run-convergence.md) §三。
 - **归属单一**：每个缺口面归属唯一通道；源码 lane 未来若落地 Deferred 面（Option A / null-flow），本通道对应行进入并行对照期，不撤销承接（互补优先，去重裁决在对照数据上做）。
 
 ## 四、执行状态总览

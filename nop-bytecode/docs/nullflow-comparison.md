@@ -54,3 +54,7 @@ fixture: `_tmp/nop-bytecode-nullflow-compare/pattern-cases/`（5 形态源码 + 
 
 - SpotBugs 基线空集 → M2a "已知命中集对照在档" 以【SpotBugs 空集 + 本通道互补面 2791 条 + 分层抽检定性】+【plan 24 案例集 5 条逐条裁定】构成。
 - 已知误报面 4 类显式声明（FP 方向可解释、可收敛）；豁免面生效数据在档。
+
+## 六、item 8 双跑收敛回填（2026-09-29）
+
+equals-null 双报面（247 条 equals 接收者子集）裁决 = **保留双报（命名空间隔离）**，豁免会连带丢失参数 may-null 真阳性；重估触发 = 源码 lane equals-null 语义精化或通道 FP 收敛。收敛报告: [dual-run-convergence.md](dual-run-convergence.md)。

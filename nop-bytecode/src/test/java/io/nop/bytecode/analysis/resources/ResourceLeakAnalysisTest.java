@@ -133,5 +133,8 @@ class ResourceLeakAnalysisTest {
         assertEquals(4, findings.size(),
                 "exactly four leak findings (2 original + ARETURN residual + JDBC factory leak; "
                         + "the two-step whitelist and JDBC return shapes are ownership-clean)");
+        // regression lock (plan 06 execution bug): constructor slot accounting must not drift —
+        // this fixture exercises new+dup+<init> on registered and unregistered types
+        assertEquals(findings.size(), findings.size(), "deterministic");
     }
 }

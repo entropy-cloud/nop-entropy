@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 3 item 7 done，资源义务分析 v1 + 对照在档，M2b 达成；item 6 done M2a）
+> Last updated: 2026-09-29（Wave 4 item 8 done——双跑对照收敛+equals-null 裁决；items 6-7 done M2a/M2b）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
