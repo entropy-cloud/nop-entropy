@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 1 item 3 done，模块 + 采集层 v0 落地；Wave 0 已收口 M0 达成）
+> Last updated: 2026-09-29（Wave 1 item 4 done，内核 v1 + JMH 基线落地；item 3 done）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -47,7 +47,7 @@
 ### Wave 1 — 内核最小闭环
 
 - 3. **模块骨架**：模块组定名（默认候选 `nop-bytecode`，与 nop-treesitter 同型定位——底座库；最终名随 item 2 裁定）+ class 文件采集口径（Maven reactor target/classes / jar；增量采集策略）+ 与 nop-lint 的依赖关系裁定（零依赖并行，还是复用 nop-core 基础设施）: `done`（plan: ai-dev/plans/nop-bytecode/02-module-skeleton.md——模块 + 采集层 v0 落地，5/5 tests，零 nop-* 依赖；closure audit agent_ad5221af APPROVE，M1 已补测试处置） — deps: 2
-- 4. **方法内 CFG + 抽象解释内核 v1**：nullness lattice 优先；`tree.analysis` 复用 vs 自建随 item 2 数据裁；内核 JMH 基线（对标 `nop-lint/docs/perf-baseline.md` 形态）: `todo` — deps: 3
+- 4. **方法内 CFG + 抽象解释内核 v1**：nullness lattice 优先；`tree.analysis` 复用 vs 自建随 item 2 数据裁（ADR §五已裁自建）；内核 JMH 基线（对标 `nop-lint/docs/perf-baseline.md` 形态）: `done`（plan: ai-dev/plans/nop-bytecode/03-kernel-cfg-dataflow-nullflow.md——内核 v1 + nullness 分析 + JMH 基线，13/13 tests；closure audit agent_bc4ff98a REJECT→fix→APPROVE（M1 日志补档+清理项处置）） — deps: 3
 - 5. **发现流通道**：独立 CLI / maven goal 形态裁定；诊断输出格式与 nop-lint 诊断结构对齐（统一 AI/开发者消费面）；准入判据 3 的去重口径在本项落实: `todo` — deps: 3
 - ★ **Milestone M1: 内核 + 通道可跑，基线在档**（unlocks when 3–5 done）
 
