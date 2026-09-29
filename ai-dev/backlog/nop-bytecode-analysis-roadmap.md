@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 2 item 6 done，null-flow v1 正式口径 + 对照在档，M2a 达成；Wave 1 M1 已收口）
+> Last updated: 2026-09-29（Wave 3 item 7 done，资源义务分析 v1 + 对照在档，M2b 达成；item 6 done M2a）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -58,8 +58,8 @@
 
 ### Wave 3 — 资源泄漏配对 v1（缺口二）
 
-- 7. **方法内 acquire/release 路径配对 v1**：Closeable / 连接 / 锁三类资源注册表；try-with-resources 与 finally-close 豁免；已知 wrapper 形态白名单；对照口径同 item 6: `todo` — deps: 4, 5
-- ★ **Milestone M2b: 两大缺口类各有 v1 且对照在档**（unlocks when 6–7 done）
+- 7. **方法内 acquire/release 路径配对 v1**：Closeable / 连接 / 锁三类资源注册表；try-with-resources 与 finally-close 豁免；已知 wrapper 形态白名单；对照口径同 item 6: `done`（plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md——义务分析 v1 + 十二形态 fixture[8 原始+4 audit 回归] + 对照零 diff[九方法语料]；28/28 tests；v1 交付两类注册表[锁归 follow-up]；closure audit agent_d32d9340 REJECT→ARETURN 残留扫描+白名单接线+回归 fixture 修复→28/28） — deps: 4, 5
+- ★ **Milestone M2b: 两大缺口类各有 v1 且对照在档**（unlocks when 6–7 done）——**UNLOCKED 2026-09-29**
 
 ### Wave 4 — 并行期与 CI 接线
 

@@ -12,7 +12,7 @@
 | 缺口面 | 波次 | 说明 |
 |---|---|---|
 | 空指针解引用路径（null-flow） | Wave 2 | 方法内路径敏感：解引用前判空路径分析 |
-| 资源泄漏 acquire/release 跨路径配对 | Wave 3 | Closeable / 连接 / 锁三类资源注册表 |
+| 资源泄漏 acquire/release 跨路径配对 | Wave 3 | Closeable / 连接 / 锁资源注册表（v1 交付两类：Closeable NEW + JDBC 工厂；锁归 follow-up） |
 | 跨过程调用图 / 参数 nullness 契约 / taint | Wave 5（adopt-or-skip） | 全程序指针分析面，外部能力窄桥接（§2.5） |
 
 **成功标准**：(a) 两大缺口各有 v1 分析器，已知命中集对照在档（零 diff 或 delta 逐条裁定）；(b) 发现流进 CI（report-only 起步，升级须独立 plan + 误报数据）；(c) 与 SpotBugs 并行双跑对照收敛记录在案。

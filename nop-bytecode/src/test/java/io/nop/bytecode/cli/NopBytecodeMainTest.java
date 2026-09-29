@@ -236,6 +236,24 @@ class NopBytecodeMainTest {
     }
 
     @Test
+    void resourceLeakFindingsFlowThroughChannel(@TempDir Path tmp) throws IOException {
+        String leak = """
+                public class ResourceLeakToy {
+                    static int unclosed(String p) throws Exception {
+                        java.io.FileInputStream in = new java.io.FileInputStream(p);
+                        return in.read();
+                    }
+                }
+                """;
+        Path classes = tmp.resolve("leak-classes");
+        TestCompiler.compile("17", classes, "ResourceLeakToy.java", leak);
+        RunResult r = run(new String[]{classes.toString(), "--json"});
+        assertEquals(0, r.exitCode(), r.err());
+        assertTrue(r.out().contains("resources/unclosed-resource"), r.out());
+        assertTrue(r.out().contains("\"className\": \"ResourceLeakToy\""), r.out());
+    }
+
+    @Test
     void samePathTwiceFailsLoudly(@TempDir Path tmp) throws IOException {
         Path dir = toyClasses(tmp);
         RunResult r = run(new String[]{dir.toString(), dir.toString()});

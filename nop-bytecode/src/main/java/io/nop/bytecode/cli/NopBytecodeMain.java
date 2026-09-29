@@ -111,6 +111,16 @@ public final class NopBytecodeMain {
                             findings.add(f);
                         }
                     }
+                    for (io.nop.bytecode.analysis.resources.UnclosedResourceFinding d
+                            : new io.nop.bytecode.analysis.resources.ResourceLeakAnalyzer().analyze(bytes)) {
+                        Finding f = new Finding(RuleIds.UNCLOSED_RESOURCE, Finding.SEVERITY_WARNING,
+                                "Resource acquired here is not closed on some method-exit path",
+                                d.className(), d.methodName(), d.insnIndex(), d.ref());
+                        if (findingKeys.add(f.className() + "#" + f.methodName() + "@" + f.insnIndex()
+                                + "|" + f.ref())) {
+                            findings.add(f);
+                        }
+                    }
                 }
             }
             if (manifestFile != null) {

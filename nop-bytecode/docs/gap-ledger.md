@@ -31,10 +31,10 @@
 ### G2 资源泄漏 acquire/release 跨路径配对
 
 - 归属裁定: **承接**（Wave 3）
-- 执行状态: `open`
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md；对照记录: [resource-comparison.md](../../nop-bytecode/docs/resource-comparison.md)——SpotBugs fixture 腿零 diff + 全语料空集 + plan 23 归属）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 23 Deferred But Adjudicated（Option A）
 - 理由/机制面证据: plan 23 归因——路径敏感 acquire/release 配对需"路径敏感资源追踪 + 跨分支 release 状态合并"，超出源码 lane L3 通道；v1 Option B 保守面（closeable-not-closed，判据四条件交集）已落地，其误报数据是本面重估输入。方法内资源配对在字节码层有成熟参考形态（SpotBugs ObligationAnalysis / ResourceValueAnalysis / FindOpenStream 三件，机制本体量级约 1.5k 行——roadmap 底座候选表与 Wave 3 描述在案），属方法内路径敏感分析，本通道内核可承载。
-- 误报控制面（声明，Wave 3 v1 落地时细化）: 豁免 = try-with-resources / finally-close 路径 + 已知 wrapper 形态白名单；资源注册表范围 = Closeable / 连接 / 锁三类。
+- 误报控制面（已细化，2026-09-29 item 7 落地）: 豁免面 = TWR（声明式 + existing-var）/ finally-close（含守卫式——DEF 丢边）/ 所有权转移（ARETURN/字段/白名单包装器）/ 别名 close 全帧扫描；已知 FP 方向 = 普通方法实参逃逸；已知 FN 面 = 隐式异常传播、非名单 acquire、store-over 等——交付两类注册表（Closeable NEW + JDBC 工厂；锁归 follow-up），逐形态对照见 resource-comparison.md §一。
 - 重估触发: Wave 3 v1 对照数据不支持时；或源码 lane Option A（重估触发 = v1 保守面误报数据不支持）先落地——届时进入并行对照期去重裁定（准入判据 3）。
 
 ### G3 跨过程 taint 分析
@@ -86,7 +86,7 @@
 | # | 缺口面 | 归属裁定 | 执行状态 | 波次 |
 |---|---|---|---|---|
 | G1 | null-flow 解引用路径 | 承接 | `closed`（2026-09-29） | Wave 2 |
-| G2 | 资源泄漏 acquire/release 配对 | 承接 | `open` | Wave 3 |
+| G2 | 资源泄漏 acquire/release 配对 | 承接 | `closed`（2026-09-29） | Wave 3 |
 | G3 | 跨过程 taint | 待裁 | `open`（blocked on item 10） | Wave 5 |
 | G4 | 参数 nullness 注解契约读取 | 承接候选 | `open`（blocked on item 10） | Wave 5 |
 | G5 | 全程序注解推导引擎 | 不承接 | `closed` | — |
