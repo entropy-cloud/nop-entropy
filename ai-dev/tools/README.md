@@ -2,6 +2,8 @@
 
 AI-assisted development tools for nop-entropy. A self-contained pnpm project.
 
+**边界约定**：本目录是仓库工具依赖的唯一 pnpm 根——新增工具依赖一律改 `package.json` 后在此 `pnpm install`，禁止在仓库其他位置另建 pnpm 根或引用仓库外的工具脚本路径（既有例外：`ai-dev/tools/mission-driver.sh` 默认指向 `$HOME/app/attractor-guided-engineering-template` 的 AGE 模板，即 mission driver 例外；根 `tools/mission-driver/` 为其仓库内引擎副本）。
+
 ## Quick Start
 
 ```bash
@@ -9,6 +11,8 @@ cd ai-dev/tools
 pnpm install       # first time only
 pnpm check         # run all checks
 ```
+
+未安装依赖时，依赖 Node 包的工具会显式输出跳过原因并降级为轻量检查（不产生误报）。
 
 ## Tool Index
 
@@ -26,6 +30,14 @@ pnpm check         # run all checks
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
 | `run-java-lint.sh` | Run ast-grep Java lint rules (empty catches, getMessage-only, bare RuntimeException, etc.) | `pnpm lint:java` |
 | `check-nop-stream-invariants.mjs` | nop-stream invariant gate scanner (inventory / sync / scan-iterations / scan-output-contract / scan-wiring / self-test / init / all) | `node ai-dev/tools/check-nop-stream-invariants.mjs all` |
+
+## 非脚本使用方（Node 依赖）
+
+| 依赖包 | 使用方 |
+|---|---|
+| mermaid + jsdom | `.opencode/skills/nop-deepwiki/scripts/check-wiki.mjs`——deepwiki 门禁的 Mermaid 块无头解析校验（jsdom 注入全局 DOM 后 `mermaid.parse`） |
+| @ast-grep/cli / tree-sitter-java / web-tree-sitter | `run-java-lint.sh` 等语法级检查 |
+| js-yaml / typescript | 各 check 脚本按需加载 |
 
 ## Per-Tool Details
 

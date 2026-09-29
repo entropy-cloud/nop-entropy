@@ -1,7 +1,7 @@
 # 367 nop-deepwiki 调研吸收落地：引用全量机检、mermaid 可选渲染校验、密度硬约束与存量页重生成
 
 > Plan Status: active
-> Last Reviewed: 2026-09-30（依赖收敛裁定：mermaid/jsdom 入 tools/ pnpm 管理，废弃项目外工具引用）
+> Last Reviewed: 2026-09-30（依赖收敛裁定：mermaid/jsdom 入 ai-dev/tools 既有 pnpm 根管理，废弃项目外工具引用）
 > Draft Review: 一轮独立子 agent 对抗性审查（2026-09-29）：0 Blocker + 2 Major（nop-xlang 第四 wiki 未裁决、fixture git 前提不成立）+ 4 Minor，全部修复后转 active
 > Source: ai-dev/logs/2026/09-29.md（deepwiki.com 对标测量 + 开源项目调研）、ai-dev/plans/363-nop-deepwiki-structure-and-consumption-upgrade.md（completed，前置）
 > Related: deepwiki/analysis/2026-09-26-multitype-gap-analysis.md（密度基线来源）
@@ -15,7 +15,7 @@
 （2026-09-29 live 核实）
 
 - **引用行号机检覆盖不全**：gen-wiki-meta 重写松格式引用时不校验行号边界；check-wiki 的 verify-claims 仅抽样 20——抽样池外的越界行号锚（gitee 上指向不存在行）不被发现。deepwiki-open 的对照机制是写前重接地（`api/services/codemap.py:186` `_ground_citations`）；松格式引用不含 snippet 无法重定位，本计划采边界校验+降级方案。
-- **mermaid 校验只有正则**：check-wiki 仅校验块首行图表类型白名单，无真实解析。openwiki 对照机制为无头 `mermaid.parse` + 解析失败转 text fence（`src/mermaid/validate.ts`）。依赖裁决（2026-09-30 用户裁定，取代本行前版的"可选增强"口径）：工具依赖收敛在仓库内 `tools/` 目录由 pnpm 管理（`tools/package.json`：mermaid + jsdom，node_modules 不入库，克隆后 `cd tools && pnpm install` 一次启用）；**禁止引用项目外工具脚本路径**（既有例外仅 mission driver 的 AGE 模板）；裸 `import('mermaid')` 从脚本目录链解析不到、已废弃，check-wiki 改为从 `tools/node_modules` 显式解析（完整构建优先、core 回退）+ jsdom 全局注入后无头 parse，缺失时显式跳过并回退正则白名单。
+- **mermaid 校验只有正则**：check-wiki 仅校验块首行图表类型白名单，无真实解析。openwiki 对照机制为无头 `mermaid.parse` + 解析失败转 text fence（`src/mermaid/validate.ts`）。依赖裁决（2026-09-30 用户裁定，取代本行前版的"可选增强"口径）：工具依赖收敛在仓库内既有 pnpm 根 `ai-dev/tools/`（`package.json` 增 mermaid + jsdom，node_modules 不入库，克隆后 `cd ai-dev/tools && pnpm install` 一次启用；不得另建第二个 pnpm 根）；**禁止引用项目外工具脚本路径**（既有例外仅 mission driver 的 AGE 模板）；裸 `import('mermaid')` 从脚本目录链解析不到、已废弃，check-wiki 改为从 `ai-dev/tools/node_modules` 显式解析（完整构建优先、core 回退）+ jsdom 全局注入后无头 parse，缺失时显式跳过并回退正则白名单。
 - **密度硬约束缺代码块维度**：SKILL.md 仅有表格 ≥2、模块页 mermaid ≥3；逐页实测（2026-09-29 live，≥3 阈值复核口径以逐页清单为准）：
   - nop-task 不达标 6 页：architecture(0)、flows/task-execution(0)、flows/state-and-recovery(0)、modules/task-core(0)、modules/task-service-dao(1)、topics/error-model(0)
   - nop-batch 不达标 5 页：architecture(0)、flows/batch-pipeline(0)、flows/checkpoint-recovery(0)、modules/batch-dsl(0)、topics/error-model(0)
@@ -83,7 +83,7 @@ Targets: `scripts/check-wiki.mjs`、`scripts/selftest.mjs`（新增）、`script
 
 - Item Types: `Fix` + `Proof`
 
-- [x] check-wiki 增 mermaid 解析校验：动态 import('mermaid') 成功则对每个 mermaid 块在 try/catch 内 parse——**语法解析失败报 ERROR（含页面与块定位）；模块缺失或环境性失败（如缺 DOM）则输出一行"跳过渲染校验（原因）"**——三条路径都有显式输出，环境性失败不得误报为坏块 ERROR，无静默（2026-09-30 依赖路径升级：加载改为 `tools/node_modules` 显式解析 + jsdom 全局注入，真解析实启用，见 Exit Criteria 追加行）
+- [x] check-wiki 增 mermaid 解析校验：动态 import('mermaid') 成功则对每个 mermaid 块在 try/catch 内 parse——**语法解析失败报 ERROR（含页面与块定位）；模块缺失或环境性失败（如缺 DOM）则输出一行"跳过渲染校验（原因）"**——三条路径都有显式输出，环境性失败不得误报为坏块 ERROR，无静默（2026-09-30 依赖路径升级：加载改为 `ai-dev/tools/node_modules` 显式解析 + jsdom 全局注入，真解析实启用，见 Exit Criteria 追加行）
 - [x] 新增 selftest.mjs：对 selftest-fixture 运行 gen（实跑）+ check `--strict`，断言预期检出清单与退出码；fixture 覆盖：越界行号引用、空括号死链、坏 mermaid 块、纯文本 Sources、正常页（五类）
 - [x] fixture 迷你目标仓库**由 selftest 运行时复制到 `_tmp/` 并 `git init`（不配 origin）**——否则 gen 会命中本仓库 gitee origin 走 github 模式、topLevel 错位；断言按相对链接模式书写
 
@@ -91,7 +91,7 @@ Exit Criteria:
 
 - [x] `node .opencode/skills/nop-deepwiki/scripts/selftest.mjs` 退出码 0，五类缺陷全部被断言检出（14/14 断言，含 fixture 自身越界引用被边界机检抓出的实例）
 - [x] 现网三 wiki 跑 check：mermaid 路径输出跳过提示（依赖不可用），其余结果保持 0 ERROR 0 WARN 不变
-- [x] **2026-09-30 追加（tools/ 依赖收敛 + 真解析实启用）**：新建 `tools/package.json`（mermaid 11.17.2 + jsdom 26.1.0，pnpm 管理）与 `tools/README.md`；check-wiki 加载改为 `tools/node_modules` 显式解析（`dist/mermaid.esm.min.mjs` 优先、core 回退）+ jsdom 全局注入（openwiki dom-shim 同做法）；四 wiki（task/batch/orm/xlang）存量 65 个 mermaid 块全部真实解析通过；坏块 fixture 报 `Mermaid 解析失败（块 1）：Parse error...` ERROR；模拟无 tools/node_modules 环境输出显式跳过行、无误报；解析失败时通过计数不再误报"全部通过"（0/1 修正输出）
+- [x] **2026-09-30 追加（ai-dev/tools 依赖收敛 + 真解析实启用）**：mermaid 11.17.2 + jsdom 26.1.0 并入 `ai-dev/tools/package.json` 既有 pnpm 根（初版误在根 tools/ 另建 pnpm 根，同日裁正并入）；check-wiki 加载改为 `ai-dev/tools/node_modules` 显式解析（`dist/mermaid.esm.min.mjs` 优先、core 回退）+ jsdom 全局注入（openwiki dom-shim 同做法）；四 wiki（task/batch/orm/xlang）存量 65 个 mermaid 块全部真实解析通过；坏块 fixture 报 `Mermaid 解析失败（块 1）：Parse error...` ERROR；模拟无 ai-dev/tools/node_modules 环境输出显式跳过行、无误报；解析失败时通过计数不再误报"全部通过"（0/1 修正输出）
 - [x] 两脚本 `node --check` 通过
 - [ ] No owner-doc update required
 - [ ] `ai-dev/logs/` 当日条目已更新

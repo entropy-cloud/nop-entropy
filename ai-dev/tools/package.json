@@ -35,5 +35,9 @@
     "onlyBuiltDependencies": [
       "@ast-grep/cli"
     ]
+  },
+  "dependencies": {
+    "jsdom": "^26.1.0",
+    "mermaid": "^11.12.2"
   }
 }

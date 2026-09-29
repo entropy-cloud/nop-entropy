@@ -395,12 +395,13 @@ if (vcArg) {
 // --- mermaid 真实解析校验（openwiki validate.ts 同思路；依赖由 tools/ pnpm 统一管理） ---
 // 三态：语法错误→ERROR；模块缺失/环境不可用→显式跳过一行（不得误报为坏块）；全部通过→计数输出
 async function mermaidValidate() {
-  // 从脚本位置上溯项目根的 tools/node_modules 显式解析：脚本自身目录链上没有 node_modules，
-  // 裸 import('mermaid') 永远解析不到；工具依赖一律经 tools/package.json 安装（见 tools/README.md）
-  const toolsDir = fileURLToPath(new URL('../../../../tools/', import.meta.url));
+  // 从脚本位置上溯项目根的 ai-dev/tools/node_modules 显式解析：脚本自身目录链上没有
+  // node_modules，裸 import('mermaid') 永远解析不到；工具依赖统一收敛 ai-dev/tools
+  // pnpm 项目（见 ai-dev/tools/README.md），禁止引用仓库外工具脚本路径
+  const toolsDir = fileURLToPath(new URL('../../../../ai-dev/tools/', import.meta.url));
   const nmDir = join(toolsDir, 'node_modules', 'mermaid');
   if (!existsSync(nmDir)) {
-    if (mermaidBlocks.length) console.log('渲染校验跳过：tools/node_modules 未安装（cd tools && pnpm install 后启用真实解析）');
+    if (mermaidBlocks.length) console.log('渲染校验跳过：ai-dev/tools/node_modules 未安装（cd ai-dev/tools && pnpm install 后启用真实解析）');
     return;
   }
   let mermaid = null;
