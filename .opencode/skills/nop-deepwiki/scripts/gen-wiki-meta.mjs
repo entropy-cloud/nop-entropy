@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // DeepWiki Phase 5 元数据生成（零依赖，Node 18+）——SKILL.md Phase 5 的配套工具。
 // 职责（顺序即 SKILL Phase 5：gen 先行、check 后行）：
-//   1. 从 PLAN.md 页面契约表确定性生成 index.md（含全站 mindmap + commit 快照行）
+//   1. 从 PLAN.md 页面契约表确定性生成 index.md（分组编号目录 + 全站 mindmap + commit 快照行）
 //   2. 松格式引用重写：子代理输出的 `Sources: [path:10-40]()` 空括号条目，按
 //      --repo/PLAN Target 解析目标文件，确定性重写为页面相对真链接（deepwiki-open
 //      content.py 模式：正确性从模型责任改为代码责任）
@@ -193,6 +193,26 @@ function normalizeSourcesLines(text) {
     return '> Sources: ' + items.join('、') + '\n';
   });
 }
+// 行号边界机检：全部区段逐一校验（多区段任一越界即整条降级），越界清单退出时汇总——
+// 越界锚在源码托管站上指向不存在的行（deepwiki-open _ground_citations 同类问题；
+// 松格式无 snippet 无法重定位，降级为文件级链接是最诚实的处理）
+const lineCountCache = new Map();
+const degradedAnchors = [];
+function anchorOutOfBounds(absFile, linePart) {
+  if (!linePart) return false;
+  let total = lineCountCache.get(absFile);
+  if (total === undefined) {
+    try { total = readFileSync(absFile, 'utf8').split('\n').length; } catch { return false; }
+    lineCountCache.set(absFile, total);
+  }
+  return linePart.split(/[,、]\s*/).some((seg) => {
+    if (!seg) return false;
+    const [a, b] = seg.split('-').map(Number);
+    if (!a || a < 1 || a > total) return true;
+    if (b !== undefined && (b < a || b > total)) return true;
+    return false;
+  });
+}
 let rewritten = 0;
 let unresolvedLoose = 0;
 let migrated = 0;
@@ -211,17 +231,25 @@ if (!dry) {
       migrated++;
       changed = true;
       // 锚 L20-L29 / L20 → 行区段文本 20-29 / 20
-      const linePart = anchor ? anchor.replace(/L(\d+)/g, '$1') : '';
+      let linePart = anchor ? anchor.replace(/L(\d+)/g, '$1') : '';
+      if (anchorOutOfBounds(target, linePart)) {
+        degradedAnchors.push({ page: p.path, label, linePart });
+        linePart = '';
+      }
       return formatLink(f, { abs: target, relFromTop: relative(topLevel, target) }, label, linePart);
     });
     // b) 空括号松格式：path / path:lines → 真链接（GitHub blob 或页面相对）
     text = text.replace(LOOSE, (whole, label) => {
       const lm = label.match(LINE_SUFFIX);
-      const linePart = lm ? lm[1] : '';
+      let linePart = lm ? lm[1] : '';
       const hit = resolveTarget(f, label);
       if (!hit) { unresolvedLoose++; return whole; } // 留给 check-wiki 报残余
       rewritten++;
       changed = true;
+      if (anchorOutOfBounds(hit.abs, linePart)) {
+        degradedAnchors.push({ page: p.path, label, linePart });
+        linePart = '';
+      }
       return formatLink(f, hit, label, linePart);
     });
     if (changed) writeFileSync(f, text);
@@ -262,16 +290,20 @@ for (const g of GROUP_ORDER) {
 md += '```\n';
 // 页脚快照
 md += `\n> 快照：${argOf('--scope') || ''} @ ${commit} · ${new Date().toISOString().slice(0, 10)}\n`;
-// 分组条目：链接文本 = 页面标题（deepwiki.com 目录同款；标题为空回退路径 slug）
+// 分组编号目录（deepwiki.com 章节编号同款：组号按 GROUP_ORDER 出现序连续编号，页序号为组内序，
+// 跨页叙述可写"见 2.1"）；链接文本 = 页面标题（标题为空回退路径 slug）
 let last = '';
+let gi = 0;
+const inGroup = {};
 for (const p of pages) {
   const g = GROUP(p.path);
-  if (g !== last) { md += `\n## ${g}\n\n`; last = g; }
+  if (g !== last) { gi++; md += `\n## ${gi}. ${g}\n\n`; last = g; }
+  const n = (inGroup[g] = (inGroup[g] || 0) + 1);
   const linkText = cleanNode(p.title) || slug(p.path);
-  md += `- [${linkText}](${p.path})\n`;
+  md += `- ${gi}.${n} [${linkText}](${p.path})\n`;
 }
 if (!dry) writeFileSync(join(root, 'index.md'), md);
-console.log(`index.md：${pages.length} 条目${dry ? '（dry，未写入）' : ' 已写入'}（含 mindmap 与快照行）`);
+console.log(`index.md：${pages.length} 条目${dry ? '（dry，未写入）' : ' 已写入'}（分组编号目录 + mindmap + 快照行）`);
 
 // ---------- 4. 从各页 Sources 构建 wiki-state.json ----------
 const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
@@ -365,4 +397,8 @@ console.log(`wiki-state.json：${Object.keys(pageMap).length} 页 / ${uniq.size}
 console.log(`链接基准：${linkMode === 'github' ? `源码托管 blob 永久链接（${repoUrl} @ ${commit}）` : '页面相对链接（未发现 git origin 远端，可用 --repo-url 显式指定）'}`);
 if (migrated > 0) console.log(`历史绝对链接迁移：${migrated} 条 "/repo-rel" → 当前基准`);
 if (rewritten > 0) console.log(`松格式重写：${rewritten} 条 → 真链接`);
+if (degradedAnchors.length > 0) {
+  console.warn(`行号越界降级：${degradedAnchors.length} 条（锚越界，已降级为文件级链接）`);
+  for (const d of degradedAnchors) console.warn(`  - ${d.page}: [${d.label}] 原行号 ${d.linePart}`);
+}
 if (unresolvedLoose > 0) console.warn(`注意：${unresolvedLoose} 条松格式引用无法解析（缺 --repo/PLAN Target 行，或路径不存在）——check-wiki 会报残余 ERROR。`);

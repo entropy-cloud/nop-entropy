@@ -1,7 +1,7 @@
 # nop-deepwiki 外部工具链吸收设计
 
 > 日期: 2026-09-30
-> 状态: active（P0 待实施；P1 另立 plan；P2 仅登记）
+> 状态: active（P0 由 plan 367 实施中；P1 另立 plan；P2 仅登记；二轮吸收六项已于 2026-09-30 落地 skill）
 > 范围: `.opencode/skills/nop-deepwiki/` 的 SKILL.md 与两脚本的下一步行为变更决策；证据锚点为本地检出的外部仓库源码（`~/sources/deepwiki/`、`~/ai/`）
 > 灵感来源: openwiki（langchain）、deepwiki-open、CodeWiki、OpenDeepWiki、RepoWiki、open-wiki、openwiki-shariqriazz、git-wiki、GitNexus、Understand-Anything、codegraph、mind-expander、PageIndex
 
@@ -13,6 +13,7 @@
 2. **P1（结构性，逐项另立 plan）**：nop-code 符号索引接入 Phase 2、同模块共享上下文批次、存量 nop-task/nop-batch 按新规则重生成。
 3. **P2（登记不动手）**：Claims 断言级增量、commit 触发的后台增量托管、MCP 读侧工具 / llms.txt。
 4. **拒绝**：embedding/RAG、外部大型依赖作为能力源、MCP 文件旁路、个人知识 wiki 的检索与三层模式（§四）。
+5. **二轮吸收（2026-09-30，deepwiki.com 首页与 vite/fastapi 新样本实测）**：模板层六项——图 front-matter 图题、显式推断标注、分组编号目录、对外 API 面表、overview 版本与运行要求行、来源广度指引（§三末节）。
 
 ## 二、背景与动机
 
@@ -107,6 +108,23 @@
 - **Claims 断言级增量**（openwiki）：wiki-state 升级为逐断言证据指纹 + 稀疏对账。触发：增量更新频繁到页面级重生成成本不可接受。
 - **commit 触发后台增量托管**（OpenDeepWiki worker 模式）：需要常驻服务形态，与 skill 定位冲突。触发：wiki 覆盖模块数多到手动 update 遗漏成为实际问题。
 - **MCP 读侧工具 / llms.txt**（open-wiki / RepoWiki）：产品形态 Deferred 项的具体化。触发：对外发布需求。
+
+### 二轮吸收：deepwiki.com 首页与新样本实测（2026-09-30）
+
+**决策**（证据：2026-09-30 实抓 deepwiki.com 首页 + vitejs/vite 目录/总览/机制页 4.1 + fastapi/fastapi 总览页；此前基线仅有 payload 级四 Java 项目，本轮为渲染页一手样本）：
+
+| # | 吸收项 | 依据样本 | 落点 | 性质 |
+|---|---|---|---|---|
+| 1 | 每张 mermaid 图配 front-matter 图题（`---` / `title: <图题>` / `---`） | vite 机制页每图有 Title 行 | SKILL 派发模板第 4 条 + check-wiki `--check-diagram-titles` WARN（index/PLAN 豁免） | 门禁增强（默认关，存量页迁移完成后转默认） |
+| 2 | 显式推断标注取代一刀切禁止 | vite Plugin System 节实测 "(Note: based on architectural intent)"——对无法逐行验证的结论标注认知状态而非删除 | SKILL 派发模板第 7 条：句尾 `[推断：<一句话依据>]`；check-wiki verify-claims 跳过含标记句 | 方法论微调：给"明说缺失"形式化出口 |
+| 3 | 分组编号目录（`## 2. 机制`、`2.1 页面`） | vite 48 页章.节编号树，URL slug 即编号 | gen-wiki-meta index 生成（组号=GROUP_ORDER 序，页序号=组内序） | 展示层，下次 gen 自动生效 |
+| 4 | 对外 API 面表（符号 \| 来源模块 \| 职责，每格带引用） | fastapi 总览页 Primary Symbols 表 | SKILL 派发模板第 6 条建议表格类型（框架/库类 wiki 的 overview/模块页建议必含） | 模板指引 |
+| 5 | overview 必含"当前版本 + 运行环境要求"行（各带构建文件引用） | fastapi "Current stable version: 0.138.0 (see …)"；vite "requires Node.js ^20.19.0" | SKILL Phase 3 规划规则新增 bullet | 模板指引 |
+| 6 | 来源广度指引：机制/模块页建议 10-30 个来源，测试/配置/文档类非代码证据一等公民 | vite 总览页 Relevant source files 57 个（含 lock 文件/CI 模板/playground 夹具）；机制页 4.1 约 60 个 | SKILL 派发模板第 1 条（≥5 硬下限不变） | 模板指引（广度换完整性的部分不吸收——精度路线不变，见 §四） |
+
+**不吸收**：首页项目卡片目录/Add repo 任意索引/Refresh this wiki（邮件触发重建）/Edit Wiki/OG 分享图——托管服务产品形态，维持 Deferred 裁定。
+
+**理由**：图题提升图的可引用性与无头渲染下的可读性；推断标注让"要么不写要么明说缺失"有了形式化出口（信息量与诚实边界同时改善）；编号目录在 wiki 页数增长后是真实导航收益（跨页可写"见 2.1"）；④⑤⑥补齐内容模板的固定槽位。门禁层只加 WARN 且默认关——plan 367 Phase 4 在途重生成按旧模板产出，默认开会误伤其 strict 收口；待存量页按新模板重生成后翻默认。
 
 ## 四、拒绝了什么
 

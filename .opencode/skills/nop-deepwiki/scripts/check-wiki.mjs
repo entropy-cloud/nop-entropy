@@ -4,6 +4,7 @@
 //
 //   node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R]
 //                       [--min-tables N] [--min-mermaid-module N] [--min-code-excerpts N]
+//                       [--check-diagram-titles]
 //
 // 检查项：
 //   ERROR：断链（相对链接目标不存在）/ Mermaid 块类型不明或围栏不配对 / wiki-state 页面与实际文件不一致
@@ -13,6 +14,7 @@
 //   WARN ：页面缺 Sources 归属 / 密度不达标（表格/mermaid/源码摘录代码块，quickstart/reading-guide/overview 等豁免）
 //          / index.md 与页面清单漂移 / 缺 wiki-state.json / 覆盖率缺失
 //          / blob 永久链接的仓库相对路径在本地仓库不存在
+//          / Mermaid 图缺 front-matter 图题（仅 --check-diagram-titles 启用；存量页按旧模板生成，默认关以免误伤）
 //   退出码：无 ERROR 为 0；--strict 时有 WARN 也为 1。
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -28,7 +30,7 @@ function optOf(name) {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 if (!rootArg) {
-  console.error('用法：node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R] [--min-tables N] [--min-mermaid-module N]');
+  console.error('用法：node check-wiki.mjs <wiki-root> [--strict] [--verify-claims N] [--seed S] [--repo R] [--min-tables N] [--min-mermaid-module N] [--check-diagram-titles]');
   process.exit(2);
 }
 const root = resolve(rootArg);
@@ -39,6 +41,9 @@ if (!existsSync(root) || !statSync(root).isDirectory()) {
 const MIN_TABLES = Number(optOf('--min-tables') || 2);
 const MIN_MERMAID_MODULE = Number(optOf('--min-mermaid-module') || 3);
 const MIN_CODE_EXCERPTS = Number(optOf('--min-code-excerpts') || 3);
+// 图题机检开关：SKILL 派发模板第 4 条要求每图带 front-matter title（deepwiki.com 同款），
+// 存量页迁移完成前默认关（plan 367 在途重生成按旧模板产出，默认开会误伤其 strict 收口）
+const CHECK_DIAGRAM_TITLES = process.argv.includes('--check-diagram-titles');
 const EXEMPT_DENSITY = new Set(['quickstart.md', 'reading-guide.md', 'index.md', 'PLAN.md']); // 命令/步骤与路径导航页
 // 源码摘录代码块下限适用面：机制深度页（与 SKILL.md 派发模板第 5 条口径一致）
 const isExcerptPage = (rel) => rel === 'architecture.md' || rel.startsWith('flows/') || rel.startsWith('modules/') || rel.startsWith('topics/');
@@ -163,9 +168,15 @@ for (const file of files) {
   // Mermaid 块
   const blocks = [...text.matchAll(/```mermaid\r?\n([\s\S]*?)```/g)];
   blocks.forEach((b, i) => {
-    const first = b[1].split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('%%'));
+    // front-matter 图题（--- / title: X / ---）是合法前置：类型识别与真实解析前先剥离
+    const fm = b[1].match(/^---\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+    const hasTitle = !!(fm && /(^|\n)\s*title:\s*\S/.test(fm[1]));
+    const rest = fm ? b[1].slice(fm[0].length) : b[1];
+    const first = rest.split('\n').map((l) => l.trim()).find((l) => l && !l.startsWith('%%'));
     if (!first || !MERMAID_HEAD.test(first)) {
       err(file, `Mermaid 块首行无法识别图表类型："${(first || '').slice(0, 40)}"`);
+    } else if (CHECK_DIAGRAM_TITLES && rel !== 'index.md' && rel !== 'PLAN.md' && !hasTitle) {
+      warn(file, 'Mermaid 图缺 front-matter 图题（块首 --- / title: <图题> / ---，deepwiki.com 每图有标题）');
     }
     mermaidBlocks.push({ file, index: i, body: b[1] });
   });
@@ -344,6 +355,8 @@ if (vcArg) {
             if (m.index >= acc && m.index < acc + sn.length) { sent = sn; break; }
             acc += sn.length;
           }
+          // 显式推断标注句（SKILL 模板第 7 条 `[推断：依据]`）不属机检对象——作者已声明非逐行验证结论
+          if (/\[推断[::]/.test(sent)) continue;
           // 多区段（如 23-30、43-49）：窗口取所有区段的并集（关键词可能落在任一区段）
           const segs = m[2].split(/[,、]\s*/).map((r) => r.split('-').map(Number));
           const start = Math.min(...segs.map((x) => x[0]));
