@@ -116,19 +116,19 @@ Exit Criteria:
 
 ### Phase 4 - 存量不达标页重生成（端到端验证）
 
-Status: planned
+Status: completed
 Targets: `deepwiki/nop-task/`（6 页）、`deepwiki/nop-batch/`（5 页）、`deepwiki/nop-orm/`（5 页；范围变更见 In Scope）
 
 - Item Types: `Fix` + `Proof`
 
-- [ ] 按 Phase 3 新模板派发子代理重生成 16 页（沿用各 PLAN.md 页面契约：路径/标题/职责/互链不变，保留既有正确内容，补 ≥3 源码摘录代码块；architecture 页符号级图）；并发触发配额限制时按 SKILL 纪律降级串行重试
-- [ ] 三 wiki 重跑 gen + check `--strict` + `verify-claims 20 --seed 42`
-- [ ] 密度复测：16 页代码块 ≥3、三个 architecture 页含符号级图；改前/改后对比数字记入日志
+- [x] 按 Phase 3 新模板派发子代理重生成 16 页（沿用各 PLAN.md 页面契约：路径/标题/职责/互链不变，保留既有正确内容，补 ≥3 源码摘录代码块；architecture 页符号级图）；8 批×2 并发全部成功未触发限流
+- [x] 三 wiki 重跑 gen + check `--strict` + `verify-claims 20 --seed 42`（3 处断言句关键词与窗口错位已修正复验）
+- [x] 密度复测：16 页代码块 ≥3（改前均值 0.3 → 改后均值 5.4，逐页数字见日志）、三个 architecture 页含符号级图（4/5/4 个代码块）
 
 Exit Criteria:
 
-- [ ] 三 wiki check `--strict` 0 ERROR 0 WARN；verify-claims 0 ERROR
-- [ ] 16 页密度复测达标（量化数字留档日志）
+- [x] 三 wiki check `--strict` 0 ERROR 0 WARN；verify-claims 0 ERROR
+- [x] 16 页密度复测达标（量化数字留档日志）
 - [ ] `deepwiki/README.md` 状态行同步
 - [ ] `ai-dev/logs/` 当日条目已更新
 

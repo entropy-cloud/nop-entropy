@@ -1,21 +1,21 @@
 # 架构与数据流
 
-nop-batch 分成 15 个 Maven 子模块（`nop-batch/pom.xml:19-35`），除 api 契约与两个构建期模块外全部收敛到无兄弟依赖的 nop-batch-core。本页给出分层全景、批任务从定义到 7 态终态的数据流与状态存储位置。入门见 [quickstart](./quickstart.md)、[overview](./overview.md)，阅读顺序见 [reading-guide](./reading-guide.md)。
-
 > 本页源文件基准（相对于 `deepwiki/nop-batch/`，两级回溯到仓库根，已逐条验证可达；与同目录 [glossary.md](./glossary.md) 基准一致）：
 >
 > - [../../nop-batch/pom.xml](../../nop-batch/pom.xml)
 > - [../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java](../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java)
 > - [../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java](../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java)
 > - [../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java](../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java)
-> - [../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java](../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java)
-> - [../../nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml](../../nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml)
-> - [../../nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java](../../nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java)
-> - [../../nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml](../../nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml)
+> - [../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java](../../nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java)
+> - [../../nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef](../../nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef)
+> - [../../nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml](../../nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml)
+> - [../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java](../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java)
+
+nop-batch 分成 15 个 Maven 子模块（`nop-batch/pom.xml:19-35`），除 api 契约与两个构建期模块外全部收敛到无兄弟依赖的 nop-batch-core。本页给出分层全景、批任务从定义到 7 态终态的数据流与状态存储位置。入门见 [quickstart](./quickstart.md)、[overview](./overview.md)，阅读顺序见 [reading-guide](./reading-guide.md)。
 
 ## 分层：15 个子模块与依赖方向
 
-聚合 pom 声明 15 个 module（`nop-batch/pom.xml:19-35`）；目录下的 `model/`（`nop-batch.orm.xml` 源模型）与 `deploy/`（建表 SQL）不参与 Maven 聚合。四个存储适配模块（orm/jdbc/dao/gen）只依赖 core 与平台侧存储设施，互不横向依赖；dsl 是唯一同时触达全部适配模块的装配层。XLang xlib 三件套（batch.xlib / batch-record.xlib / batch-gen.xlib）不是独立模块，而是 nop-batch-dsl 的 `_vfs/nop/batch/xlib/` 资源，经任务流扩展库 `batch-common.task.xml` 挂进 XLang 编译管线（见 [DSL 模型](./modules/batch-dsl.md)）。
+聚合 pom 声明 15 个 module（`nop-batch/pom.xml:19-35`）；目录下的 `model/`（`nop-batch.orm.xml` 源模型）与 `deploy/`（建表 SQL）不参与 Maven 聚合。四个存储适配模块（orm/jdbc/dao/gen）只依赖 core 与平台侧存储设施，互不横向依赖；dsl 是唯一同时触达全部适配模块的装配层。XLang xlib 三件套（batch.xlib / batch-record.xlib / batch-gen.xlib）不是独立模块，而是 nop-batch-dsl 的 `_vfs/nop/batch/xlib/` 资源，经任务流扩展库 `batch-common.task.xml` 挂进 XLang 编译管线（见 [DSL 模型](./modules/batch-dsl.md)）。core 的扩展面集中在 loader/processor/consumer 三个目录的 43 个装饰器类（13/9/21），全部围绕三段 Provider 接口做包装，dsl 经 `ModelBasedBatchTaskBuilderFactory` 按 xdef 模型逐个挑选并串联它们。
 
 | 子模块 | 职责（一句话） | 依赖方向（→ 指向被依赖者） |
 |---|---|---|
@@ -35,37 +35,98 @@ nop-batch 分成 15 个 Maven 子模块（`nop-batch/pom.xml:19-35`），除 api
 | nop-batch-meta | 构建期：`gen-crud-api.xgen` 生成 nop-batch-api 源码（`gen-crud-api.xgen:4-6`）、task-status 字典 | codegen + dao |
 | nop-batch-codegen | 构建期：`gen-orm.xgen` 从 `nop-batch/model/nop-batch.orm.xml` 生成 dao 实体（`gen-orm.xgen:4-5`） | nop-orm |
 
-```mermaid
-flowchart TD
-    APP["app 启动装配"] --> WEB["web AMIS页面"]
-    APP --> SVC["service BizModel"]
-    WEB --> SVC
-    SYS["sys 定时任务接线"] --> DSL
-    BIZ["biz 导入导出"] --> ORM
-    EXP["exp ETL工具"] --> CORE
-    EXP --> JDBC
-    SVC --> DAO["dao 实体与状态存储"]
-    DSL["dsl 模型与装配"] --> CORE["core 执行引擎"]
-    DSL --> DAO
-    DSL --> ORM["orm ORM读写"]
-    DSL --> JDBC["jdbc JDBC读写"]
-    DSL --> GEN["gen 数据生成"]
-    DAO --> CORE
-    ORM --> CORE
-    JDBC --> CORE
-    GEN --> CORE
-    DSL -.->|托管资源| XLIB["xlib 三件套"]
-    META -.->|代码生成| API["api CRUD契约"]
-    CGEN -.->|代码生成| DAO
+dsl 模块在 IoC 层只暴露两个 bean——模型入口与宿主入口，`ioc:optional` 使无 job 模块的纯 batch 部署也能装配（`batch-dsl.beans.xml:4-11`）：
+
+`nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11`
+
+```xml
+    <bean id="nopBatchTaskManager" class="io.nop.batch.dsl.manager.BatchTaskManagerImpl"/>
+
+    <bean id="nopBatchTaskRunner" class="io.nop.batch.dsl.runner.BatchTaskRunner">
+        <!-- 可选注入：无 job 模块的纯 batch 部署中 nopJobPartitionResolver bean 不存在，ioc:optional 使其注入 null -->
+        <property name="partitionResolver">
+            <ref bean="nopJobPartitionResolver" ioc:optional="true"/>
+        </property>
+    </bean>
 ```
 
-> Sources: [nop-batch/pom.xml:19-35](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/pom.xml#L19-L35)、[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L4-L11)、[nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:289-296](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L289-L296)、[nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java:43-46](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java#L43-L46)
+装配链的源头契约是 batch.xdef（214 行）：loader 节点一个元素同时声明 bean 引用、4 种 reader 与分区 dispatcher（`batch.xdef:76-85`）：
+
+`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:76-85`
+
+```xml
+    <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
+            xdef:ref="BatchListenersModel" xdef:mandatory="true">
+
+        <!-- 提供分区自动拆分能力 -->
+        <dispatcher xdef:name="BatchLoaderDispatcherModel"
+                    fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name"
+                    partitionIndexField="prop-path">
+            <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
+            <partitionFn>xpl-fn:(item,batchTaskCtx)=>int</partitionFn>
+        </dispatcher>
+```
+
+运行期装配与调用关系（节点均为真实类名，`（外→内）` 标注装饰方向）：
+
+```mermaid
+flowchart TD
+    RUNNER["BatchTaskRunner"] -->|"loadBatchTaskFromPath"| MGR["BatchTaskManagerImpl"]
+    MGR -->|"newTaskBuilder().buildTask()"| FACTORY["ModelBasedBatchTaskBuilderFactory"]
+    FACTORY -->|"回填 batchSize/concurrency/retryPolicy 等"| BUILDER["BatchTaskBuilder"]
+    BUILDER -->|"buildTask：只传 this::buildLoader / this::buildChunkProcessor"| TASK["BatchTask"]
+    TASK --> CTX["BatchTaskContextImpl"]
+    CTX -.->|"incCount 计数/取消标志/分区区间"| TASK
+    TASK -->|"loaderProvider.setup()"| LCHAIN["ChunkSortBatchLoader → PartitionDispatchLoaderProvider → RetryBatchLoader → OrmQueryBatchLoaderProvider（外→内）"]
+    TASK -->|"chunkProcessorProvider.setup()"| CHUNK["BatchChunkProcessor"]
+    BUILDER -.->|"buildChunkProcessor 组装"| CCHAIN["SkipBatchConsumer → RetryBatchConsumer → RateLimitConsumer → WithHistoryBatchConsumer → BatchProcessorConsumer → OrmBatchConsumer（外→内）"]
+    TASK -->|"stateStore.loadTaskState / saveTaskState"| STORE["DaoBatchStateStore"]
+    STORE --> DB1[("nop_batch_task")]
+    CCHAIN -->|"saveProcessed"| HIST["DaoBatchHistoryStoreBuilder 构建的 IBatchRecordHistoryStore"]
+    HIST --> DB2[("nop_batch_record_result")]
+```
+
+> Sources: [nop-batch/pom.xml:19-35](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/pom.xml#L19-L35)、[nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L4-L11)、[nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:76-85](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef#L76-L85)、[nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java:43-46](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java#L43-L46)
 
 ## 一次批任务：从定义到终态
 
-任务定义有三种等价形态：`/nop/batch-task/{name}.{version}.batch-task.xml` 路径、XNode 节点（宏标签编译期传入）、显式任意路径。三者都汇聚到 `BatchTaskManagerImpl` 的同一条装配语句——构造 `ModelBasedBatchTaskBuilderFactory` 后 `newTaskBuilder(beanProvider).buildTask()`（`BatchTaskManagerImpl.java:90-118`）。宿主侧最常用的入口是 `BatchTaskRunner`：新建 `BatchTaskContextImpl`、注入 params、可选经 job 侧 `PartitionResolver` 写入分区区间，然后 `task.executeAsync(context)`（`BatchTaskRunner.java:36-49`）；nop-batch-sys 的定时任务正是经 job 配置调用 `nopBatchTaskRunner.executeAsync` 并传固定 taskPath（`sys-event-batch-consumer.job.yaml:8-11`）。service 层的 `NopBatchTaskBizModel` 只继承 `CrudBizModel`，不提供 start/cancel 动作（`NopBatchTaskBizModel.java:17`）——任务的生命周期由宿主代码（job、任务流、biz 工具）驱动，取消同样来自持有上下文的外部调用。
+任务定义有三种等价形态：`/nop/batch-task/{name}.{version}.batch-task.xml` 路径、XNode 节点（宏标签编译期传入）、显式任意路径。三者都汇聚到 `BatchTaskManagerImpl` 的同一条装配语句——构造 `ModelBasedBatchTaskBuilderFactory` 后 `newTaskBuilder(beanProvider).buildTask()`（`BatchTaskManagerImpl.java:89-118`）：
 
-执行期分两步走。第一步恢复：`executeAsync` 里有 stateStore 时先 `loadTaskState` 按 `(taskName, taskKey)` 定位上次执行行、回放计数并置 recoverMode（`BatchTask.java:106-108`；恢复闸门见 [断点续跑与记录](./flows/checkpoint-recovery.md)）。第二步装配：`buildTask()` 并不组装管线，只把 `this::buildLoader`/`this::buildChunkProcessor` 两个方法引用交给 BatchTask（`BatchTaskBuilder.java:326-330`），真正 setup 发生在 `executeAsync` 内 `loaderProvider.setup(context)` 与 `chunkProcessorProvider.setup(loader, context)`（`BatchTask.java:123-124`）——此时上下文已就绪，各 Provider 按本次执行生成专用实例。随后启动 `concurrency` 个 chunk 循环线程（`BatchTask.java:206-243`）：每轮检查取消、跑一个 Loader→Processor→Consumer chunk、`incCount` 汇总计数、`stateStore.saveTaskState` 落中间状态。任一线程失败先完成自己的 future 再取消兄弟线程（fail-fast），这个顺序保证任务终态记录的是原始失败而非连带取消；loader 返回空集合是唯一正常终止信号。除 dsl 入口外还有两类宿主绕过 XML 直接编程装配：nop-batch-exp 的 ETL 工具与 nop-batch-biz 的实体导出（见上表），它们复用同一个 core 引擎。
+`nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:89-94`
+
+```java
+    @Override
+    public IBatchTask newBatchTask(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider) {
+        BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, batchTaskVersion);
+        return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
+                ormTemplate, jdbcTemplate, daoProvider, sqlLibManager, historyStoreBuilder).newTaskBuilder(beanProvider).buildTask();
+    }
+```
+
+宿主侧最常用的入口是 `BatchTaskRunner`：新建 `BatchTaskContextImpl`、注入 params、可选经 job 侧 `PartitionResolver` 写入分区区间，然后 `task.executeAsync(context)`（`BatchTaskRunner.java:36-49`）；nop-batch-sys 的定时任务正是经 job 配置调用 `nopBatchTaskRunner.executeAsync` 并传固定 taskPath（`sys-event-batch-consumer.job.yaml:8-11`）。service 层的 `NopBatchTaskBizModel` 只继承 `CrudBizModel`，不提供 start/cancel 动作（`NopBatchTaskBizModel.java:17`）——任务的生命周期由宿主代码（job、任务流、biz 工具）驱动，取消同样来自持有上下文的外部调用。
+
+执行期分两步走。第一步恢复：`executeAsync` 里有 stateStore 时先 `loadTaskState` 按 `(taskName, taskKey)` 定位上次执行行、回放计数并置 recoverMode（`BatchTask.java:106-108`；恢复闸门见 [断点续跑与记录](./flows/checkpoint-recovery.md)）。第二步装配：`buildTask()` 并不组装管线，只把 `this::buildLoader`/`this::buildChunkProcessor` 两个方法引用交给 BatchTask（`BatchTaskBuilder.java:326-330`），真正 setup 发生在 `executeAsync` 内 `loaderProvider.setup(context)` 与 `chunkProcessorProvider.setup(loader, context)`（`BatchTask.java:123-124`）——此时上下文已就绪，各 Provider 按本次执行生成专用实例，例如 OrmQueryBatchLoaderProvider 在此刻捕获分区区间并产出带游标状态的闭包 loader（`OrmQueryBatchLoaderProvider.java:96-103`）。随后启动 `concurrency` 个 chunk 循环线程（`BatchTask.java:206-243`）：每轮检查取消、跑一个 Loader→Processor→Consumer chunk、`incCount` 汇总计数、`stateStore.saveTaskState` 落中间状态。任一线程失败先完成自己的 future 再取消兄弟线程（fail-fast），这个顺序保证任务终态记录的是原始失败而非连带取消；loader 返回空集合是唯一正常终止信号。除 dsl 入口外还有两类宿主绕过 XML 直接编程装配：nop-batch-exp 的 ETL 工具与 nop-batch-biz 的实体导出（见上表），它们复用同一个 core 引擎。
+
+buildChunkProcessor 的装配顺序即洋葱结构——每一步把上一步的 consumer 再包一层，processor 被塞进 BatchProcessorConsumer 伪装成 consumer 的最内环（`BatchTaskBuilder.java:396-407`）：
+
+`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:396-407`
+
+```java
+        if (this.processor != null) {
+            // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
+            IBatchProcessor<S, R> processor = this.processor.setup(context);
+            if (useBatchRequestGenerator) {
+                processor = new BatchSequentialProcessor(processor);
+            }
+            consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
+        }
+
+        // 保存处理历史，避免重复处理
+        if (historyStore != null)
+            consumer = new WithHistoryBatchConsumer<>(historyStore, consumer, historyConsumer == null ? null : historyConsumer.setup(context));
+```
+
+逐层叠加的顺序是：事务 Invoker（consume 或自动提升的 process scope）→ BatchProcessorConsumer → WithHistoryBatchConsumer → AddCompletedBatchConsumer → RateLimitConsumer → SingleModeBatchConsumer → RetryAll/RetryOneByOneBatchConsumer → SkipBatchConsumer（`BatchTaskBuilder.java:375-456`；完整洋葱见 [核心引擎](./modules/batch-core.md)）。
 
 终态判定收敛在 `DaoBatchStateStore.getTaskStatus`：按异常是否 `BatchCancelException` 与 cancelReason 三分取消（suspend→SUSPENDED(20)、skip→CANCELLED(50)、其余→KILLED(60)），非取消异常→FAILED(40)，无异常→COMPLETED(30)（`DaoBatchStateStore.java:180-197`；7 态定义与四道重入闸见 [断点续跑与记录](./flows/checkpoint-recovery.md)，取消链 4 个抛出点与 4 个透传点见 [错误模型](./topics/error-model.md)）。task-status 字典 `nop-batch/nop-batch-meta/src/main/resources/_vfs/dict/batch/task-status.dict.yaml` 与该状态机同源。
 
@@ -93,7 +154,7 @@ sequenceDiagram
     Task-->>Host: future完成
 ```
 
-> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:90-118](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L90-L118)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java:36-49](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java#L36-L49)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:106-124](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L106-L124)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:326-330](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L326-L330)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
+> Sources: [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:89-118](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L89-L118)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java:36-49](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java#L36-L49)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:106-124](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L106-L124)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:396-407](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L396-L407)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
 
 ## 状态与记录存在哪里
 
@@ -109,7 +170,32 @@ sequenceDiagram
 | 运行期计数与回调 | BatchTaskContextImpl 内存 | 每 chunk incCount 汇总 | 任务结束丢弃，落盘靠 saveTaskState |
 | 输出文件 | ResourceRecordConsumerProvider 管理的文件 | 消费时写出 | 续跑时已存在且非空则报错拒启 |
 
-> Sources: [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml:9-11](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml#L9-L11)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:64-77](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L64-L77)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:55-67](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L55-L67)
+终态判定是一个纯函数：取消信封（`BatchCancelException` + cancelReason）决定 7 态中 3 个取消态的去向，其余异常一律 FAILED，无异常一律 COMPLETED（`DaoBatchStateStore.java:180-197`）：
+
+`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197`
+
+```java
+    int getTaskStatus(Throwable err, IBatchTaskContext context) {
+        if (err != null) {
+            if (err instanceof BatchCancelException) {
+                // 暂时挂起执行
+                if (ICancellable.CANCEL_REASON_SUSPEND.equals(context.getCancelReason()))
+                    return NopBatchDaoConstants.TASK_STATUS_SUSPENDED;
+                // 主动取消执行
+                if (ICancellable.CANCEL_REASON_SKIP.equals(context.getCancelReason()))
+                    return NopBatchDaoConstants.TASK_STATUS_CANCELLED;
+                return NopBatchDaoConstants.TASK_STATUS_KILLED;
+            }
+
+            // 执行失败
+            return NopBatchDaoConstants.TASK_STATUS_FAILED;
+        }
+        // 即使成功完成，也可能会跳过部分执行条目，导致skipCount不为0
+        return NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
+```
+
+> Sources: [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml:9-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml#L9-L11)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:64-77](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L64-L77)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:55-67](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L55-L67)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
 
 ## 机制索引：深入子页
 
@@ -126,24 +212,29 @@ sequenceDiagram
 | 状态存储选配 | stateStore/historyStoreBuilder 均 @Nullable 注入，纯引擎部署可零落库 | 本页 + [断点续跑与记录](./flows/checkpoint-recovery.md) |
 | 对外契约 | NopBatchTaskApi 等 CRUD 契约是 meta 模块构建期生成的 | 本页 + [核心引擎](./modules/batch-core.md) |
 
+> Sources: [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:332-456](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L332-L456)、[nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:130-165](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java#L130-L165)、[nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:151-213](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef#L151-L213)
+
 ## Sources
 
-- [nop-batch/pom.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/pom.xml)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java)
-- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java)
-- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java)
-- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java)
-- [nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml)
-- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java)
-- [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml)
-- [nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java)
-- [nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml)
-- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java)
-- [nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java)
-- [nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java)
-- [nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen)
-- [nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen](https://gitee.com/canonical-entropy/nop-entropy/blob/0e67dba845/nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen)
+- [nop-batch/pom.xml:19-35](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/pom.xml#L19-L35)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:326-456](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L326-L456)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:106-243](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L106-L243)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:55-67](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L55-L67)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java:49-124](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/BatchTaskManagerImpl.java#L49-L124)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:130-165](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java#L130-L165)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java:36-49](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/runner/BatchTaskRunner.java#L36-L49)
+- [nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml:4-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/resources/_vfs/nop/batch/beans/batch-dsl.beans.xml#L4-L11)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
+- [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml:9-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/beans/app-batch-dao.beans.xml#L9-L11)
+- [nop-batch/nop-batch-orm/src/main/java/io/nop/batch/orm/loader/OrmQueryBatchLoaderProvider.java:96-103](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-orm/src/main/java/io/nop/batch/orm/loader/OrmQueryBatchLoaderProvider.java#L96-L103)
+- [nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef:76-213](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef#L76-L213)
+- [nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java:1-13](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-api/src/main/java/io/nop/batch/api/crud/NopBatchTaskApi.java#L1-L13)
+- [nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml:8-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/sys-event-batch-consumer.job.yaml#L8-L11)
+- [nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java:289-296](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java#L289-L296)
+- [nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java:43-46](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-biz/src/main/java/io/nop/batch/biz/importexport/BizExportTaskBuilder.java#L43-L46)
+- [nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java:16-21](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskBizModel.java#L16-L21)
+- [nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen:4-6](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-meta/postcompile/gen-crud-api.xgen#L4-L6)
+- [nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen:3-4](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-codegen/postcompile/gen-orm.xgen#L3-L4)
 
 ---
 

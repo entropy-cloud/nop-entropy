@@ -10,8 +10,8 @@ nop-batch 的断点续跑不依赖内存快照，而是把进度拆进 DAO 实�
 > - [../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java](../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java)
 > - [../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java](../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java)
 > - [../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java](../../../nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java)
+> - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java)
 > - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java)
-> - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java)
 > - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java)
 > - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java)
 > - [../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java](../../../nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java)
@@ -27,7 +27,31 @@ nop-batch 的断点续跑不依赖内存快照，而是把进度拆进 DAO 实�
 | `NopBatchTaskVar` | nop_batch_task_var | batchTaskId+fieldName | 任务级 KV 变量，按 fieldType 分列存 string/decimal/long/date/timestamp 值（`nop-batch/model/nop-batch.orm.xml:129-166`，`tagSet="no-web,kvTable"`） | 当前 nop-batch 内无运行时写入方，仅暴露 CRUD BizModel |
 | `NopBatchTaskState` | —（无表） | batchTaskId+fieldName（Java 字段，`_gen/_NopBatchTaskState.java:24-56`） | 与 TaskVar 同构的状态实体，但**未接线**：ORM 模型与建表脚本均无此实体（见下） | 无 |
 
-`NopBatchTask` 的 7 个状态常量定义在 `_NopBatchDaoConstants.java:9-39`：CREATED=0、RUNNING=10、SUSPENDED=20、COMPLETED=30、FAILED=40、CANCELLED=50、KILLED=60。Java 子类只加三个便捷方法：`isHistory()`（status≥COMPLETED 视为历史行）、`isSuspended()`、`incExecCount()`，并实现 `IBatchTaskRecord` 四个取值方法向引擎暴露 sid/taskName/taskKey/taskStatus（`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:17-34`）。
+`NopBatchTask` 的 7 个状态常量定义在 `_NopBatchDaoConstants.java:9-39`：CREATED=0、RUNNING=10、SUSPENDED=20、COMPLETED=30、FAILED=40、CANCELLED=50、KILLED=60。Java 子类只加三个便捷方法：`isHistory()`（status≥COMPLETED 视为历史行）、`isSuspended()`、`incExecCount()`，并实现 `IBatchTaskRecord` 四个取值方法向引擎暴露 sid/taskName/taskKey/taskStatus（`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:17-34`）——实体即状态机载体，无任何额外运行时状态：
+
+`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:16-34`
+
+```java
+@BizObjName("NopBatchTask")
+public class NopBatchTask extends _NopBatchTask implements IBatchTaskRecord {
+    public NopBatchTask() {
+    }
+
+    public boolean isHistory() {
+        return getTaskStatus() >= NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
+
+    public boolean isSuspended() {
+        return getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_SUSPENDED;
+    }
+
+    public void incExecCount() {
+        Integer count = getExecCount();
+        if (count == null)
+            count = 0;
+        setExecCount(count + 1);
+    }
+```
 
 `NopBatchTaskState` 的未接线状态需要如实指出：生成源 `nop-batch/model/nop-batch.orm.xml` 只注册了 NopBatchTask/NopBatchTaskVar/NopBatchRecordResult/NopBatchFile 四个实体，生成的 `_app.orm.xml` 同样只有这四个（`nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml:50,139,187`），三方言建表脚本也只建 file/task/task_var/record_result 四张表（`nop-batch/deploy/sql/mysql/_create_nop-batch.sql:2,21,56,73`）；仓库内除实体类、API Bean 与 CRUD BizModel 外没有任何 Java 代码引用它。因此四实体中真正参与断点续跑的是三个：Task（行级进度）、RecordResult（记录级幂等）、TaskVar（变量，供外部经服务层读写）。
 
@@ -62,7 +86,7 @@ erDiagram
 
 （TaskVar 的 to-many 关系带 `cascadeDelete="true"`，`nop-batch/model/nop-batch.orm.xml:120-126`；RecordResult 的 orm 注释即其职责："记录每条记录的处理结果，可以用于幂等处理，避免重复处理同一条记录"，`nop-batch/model/nop-batch.orm.xml:217`。）
 
-> Sources: 四实体字段与关系（[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:17](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java#L17)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTask.java:22](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTask.java#L22)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java#L21)、`nop-batch.orm.xml`、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml:1](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml#L1)、`_create_nop-batch.sql`、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java:13](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java#L13)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchHistoryStoreBuilder.java:10](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchHistoryStoreBuilder.java#L10)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java:25](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java#L25)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:35](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L35)）
+> Sources: [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:16-34](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java#L16-L34)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java:24-56](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java#L24-L56)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java:9-39](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java#L9-L39)、[nop-batch/model/nop-batch.orm.xml:120-217](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/model/nop-batch.orm.xml#L120-L217)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java:13-17](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java#L13-L17)
 
 ## IBatchRecordHistoryStore 与 IBatchRecordFilter：记录级幂等
 
@@ -73,11 +97,27 @@ DAO 实现 `DaoBatchRecordHistoryStore` 把两个方法落到 `NopBatchRecordRes
 - **filterProcessed**：按 `batchTaskId=taskId AND recordKey IN(本批记录键) AND resultStatus=0` 查询成功历史，命中的记录从待处理集合中剔除（`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java:35-55`）。recordKey 由历史模型的 `recordKeyExpr` 表达式对每条记录求值得到，求值为空时回退常量 `"default"`（`:24,57-75`）。
 - **saveProcessed**：仅当 `exception == null` 且集合非空时写入 `resultStatus=0` 的历史行；失败时**不写**，"重启后这些记录会被重新处理"（`:77-103`，注释在 `:79-82`）。
 
-事务原子性由 `BatchTaskBuilder` 自动保证：检测到配置了 historyStore 时，把事务包装范围从 `consume` 级自动提升为 `process` 级，使 `saveProcessed` 与业务 consume 在同一事务内提交（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:381-389`）；随后把业务 consumer 包进 `WithHistoryBatchConsumer`（`:406-407`）。包装后的消费序列是：先 `filterProcessed` 剔除历史命中项并把它们直接计为 completed/history（不再执行业务消费）→ 对剩余记录执行业务消费 → 成功后 `saveProcessed(filtered, null)` 落历史 → 失败路径调 `saveProcessed(filtered, e)`（因 exception 非空为 no-op）并上抛（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:35-79`）。DSL 侧经 `ModelBasedBatchTaskBuilderFactory` 装配：IoC 容器中的 bean 若实现了 `IBatchRecordHistoryStore` 直接采用，否则按 record 模型经 storeBuilder 构造（`nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:322-342`）。
+事务原子性由 `BatchTaskBuilder` 自动保证：检测到配置了 historyStore 时，把事务包装范围从 `consume` 级自动提升为 `process` 级，使 `saveProcessed` 与业务 consume 在同一事务内提交（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:381-389`）；随后把业务 consumer 包进 `WithHistoryBatchConsumer`（`:406-407`）。提升逻辑就在装配 consumer 链的同一方法里：
+
+`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:381-389`
+
+```java
+        // historyStore的saveProcessed必须与业务consume同事务提交，否则崩溃窗口会导致重启后重复处理。
+        // consume scope的Invoker包装在WithHistory内侧（先包装=内层），无法覆盖saveProcessed，
+        // 因此有historyStore时自动把consumer链的事务包装位置提升到process级（WithHistory外侧）。
+        BatchTransactionScope scope = batchTransactionScope;
+        if (scope == BatchTransactionScope.consume && historyStore != null && transactionalInvoker != null) {
+            LOG.info("nop.batch.history-txn-promoted:taskName={},auto-promote transactionScope from consume to process for history atomicity",
+                    taskName);
+            scope = BatchTransactionScope.process;
+        }
+```
+
+包装后的消费序列是：先 `filterProcessed` 剔除历史命中项并把它们直接计为 completed/history（不再执行业务消费）→ 对剩余记录执行业务消费 → 成功后 `saveProcessed(filtered, null)` 落历史 → 失败路径调 `saveProcessed(filtered, e)`（因 exception 非空为 no-op）并上抛（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:35-79`）。DSL 侧经 `ModelBasedBatchTaskBuilderFactory` 装配：IoC 容器中的 bean 若实现了 `IBatchRecordHistoryStore` 直接采用，否则按 record 模型经 storeBuilder 构造（`nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:322-342`）。
 
 `IBatchRecordFilter<R,C>` 则是**单次运行内**的业务过滤接口：`accept(record, context)` 加一个 default 的流式 `filter`（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java:15-22`）。它与 historyStore 的分工是：filter 回答"这一条本轮要不要处理"（易变、不持久化），historyStore 回答"这一条历史上是否已成功过"（持久、跨重启）。三个装饰器把它插入管线不同位置：`FilteredBatchLoader` 在读侧循环过滤、全被滤掉就继续读下一批（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java:18-29`）；`FilterBatchProcessor` 在处理侧逐条判定后再放行（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java:31-35`）；`EvalBatchRecordFilter` 把 XLang 函数适配为 filter（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java:9-21`），DSL 的 loader/consumer filter 属性都经它接线（`FileBatchSupport.java:57`、`ModelBasedBatchTaskBuilderFactory.java:732`）。历史接口还有第二个实现 `JdbcKeyDuplicateFilter`（名字带 Filter 但实现的是 historyStore 接口）：直接查目标表主键是否已存在来去重，`saveProcessed` 留空，适用于写库场景以目标表自身做幂等账本（`nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java:30,47-81,141-144`；`JdbcBatchConsumerProvider.java:108-112` 用它组装 insert+update 双消费者）。
 
-> Sources: 历史记录读写与过滤分工（[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java:15](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java#L15)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java:23](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java#L23)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java#L21)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:51](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L51)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java:15](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java#L15)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java:9](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java#L9)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java:18](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java#L18)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java:9](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java#L9)、[_tmp/rw-clone/nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java:30](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java#L30)）
+> Sources: [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java:12-24](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java#L12-L24)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java:35-103](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java#L35-L103)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:35-79](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java#L35-L79)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:381-407](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L381-L407)、[nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java:47-81](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java#L47-L81)
 
 ## BatchCancelException：取消如何穿过 chunk 循环
 
@@ -91,6 +131,32 @@ DAO 实现 `DaoBatchRecordHistoryStore` 把两个方法落到 `NopBatchRecordRes
 2. **逐条处理后**：每处理完一条记录检查任务级与 chunk 级取消标志，取消即抛（`BatchProcessorConsumer.java:78-82`）。
 3. **阻塞式 loader 轮询**：`BlockingSourceBatchLoader` 每次 poll 前检查两层上下文；reason 为 stop 时返回空列表让循环优雅收尾，其余 reason 抛 `BatchCancelException`（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java:62-74`）。
 4. **写文件失败**：`cancelTaskWhenWriteError` 开启时把写文件失败包装为取消异常（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java:186-189`）。
+
+抛出点 1 与两处自激取消同在一个循环体内，对照可读：
+
+`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:216-234`
+
+```java
+                try {
+                    do {
+                        if (context.isCancelled())
+                            throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
+
+                        if (processChunk(context, threadIndex, chunkProcessor) != ProcessResult.CONTINUE)
+                            break;
+
+                    } while (true);
+
+                    future.complete(null);
+                } catch (Exception e) {
+                    NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
+                    // 先完成future，确保allOf报告的是原始异常而不是兄弟线程随后抛出的BatchCancelException
+                    future.completeExceptionally(e);
+
+                    // fail-fast: 任一chunk失败后通知其他线程尽快停止，避免失败后继续处理剩余数据
+                    if (!context.isCancelled())
+                        context.cancel(ICancellable.CANCEL_REASON_STOP);
+```
 
 传播不变式是"取消不可被重试/跳过吞掉"：`RetryBatchLoader` 的两段 catch 都把 `BatchCancelException` 原样上抛、不进入重试退避（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java:40-45,63-64`）；`AbstractRetryBatchConsumer` 同样先于重试逻辑透传（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java:39-40`）；`SkipConsumeHelper` 在 skip 策略判定之前透传（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java:31-32`）。
 
@@ -113,7 +179,7 @@ flowchart TD
     G1 --> J1["KILLED"]
 ```
 
-> Sources: 取消链抛出与传播（[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java:16](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java#L16)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java:16](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java#L16)、[_tmp/rw-clone/nop-kernel/nop-commons/src/main/java/io/nop/commons/lang/impl/Cancellable.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-kernel/nop-commons/src/main/java/io/nop/commons/lang/impl/Cancellable.java#L21)、[_tmp/rw-clone/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancellable.java:10](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancellable.java#L10)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:42](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L42)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java:34](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java#L34)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java:27](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java#L27)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java:25](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java#L25)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java:15](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java#L15)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java:14](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java#L14)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:31](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L31)）
+> Sources: [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java:13-24](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java#L13-L24)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:216-234](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L216-L234)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java:78-93](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java#L78-L93)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java:62-74](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java#L62-L74)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:180-197](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L180-L197)
 
 ## 任务重入：DaoBatchStateStore 从哪里恢复
 
@@ -124,7 +190,70 @@ flowchart TD
 - 状态 ≤RUNNING(10) 视为已有运行实例，拒绝重复启动（`:73-79`）——SUSPENDED=20、FAILED=40、CANCELLED=50 均大于 10，允许重入；
 - COMPLETED(30) 且未设 `allowStartIfComplete` 拒绝（`:81-87`）。
 
-过闸后进入恢复分支：状态重置 RUNNING、记 restartTime、清空 result 三元组、`incExecCount`、更新 workerId（`:89-95`）；然后把上次中断时的 `completedIndex/completeItemCount/skipItemCount/processItemCount` 回写到任务上下文，并置 `setRecoverMode(true)`（`:107-117`）。这些计数的落盘时机是每个 chunk 成功处理后：`processChunk` 在 `incCount` 之后立即 `saveTaskState(false, null, context)`（非 complete 模式，只推进计数不改状态，`BatchTask.java:298-303`；落库字段见 `DaoBatchStateStore.java:156-178`）；chunk 失败时也会以异常参数保存一次计数再上抛（`BatchTask.java:308-328`）。
+过闸后进入恢复分支：状态重置 RUNNING、记 restartTime、清空 result 三元组、`incExecCount`、更新 workerId（`:89-95`）；然后把上次中断时的计数回写到任务上下文并置恢复模式。这段回放就是断点续跑的"从哪里来"：
+
+`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:107-117`
+
+```java
+        context.setTaskName(task.getTaskName());
+        context.setTaskKey(task.getTaskKey());
+        context.setTaskId(task.getSid());
+        context.setCompletedIndex(task.getCompletedIndex());
+        context.setCompleteItemCount(task.getCompleteItemCount());
+        context.setSkipItemCount(task.getSkipItemCount());
+        context.setProcessItemCount(task.getProcessItemCount());
+        context.setRecoverMode(true);
+        context.setFlowId(task.getFlowId());
+        context.setFlowStepId(task.getFlowStepId());
+        setTaskRecord(context, task);
+```
+
+这些计数的落盘时机是每个 chunk 成功处理后：`processChunk` 在 `incCount` 之后立即 `saveTaskState(false, null, context)`（非 complete 模式，只推进计数不改状态，`BatchTask.java:298-303`）：
+
+`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:296-306`
+
+```java
+            chunkContext.getTaskContext().fireBeforeChunkEnd(chunkContext);
+
+            incCount(context, chunkContext);
+
+            syncCount = true;
+
+            if (stateStore != null)
+                stateStore.saveTaskState(false, null, context);
+
+            chunkContext.complete();
+            chunkContext.getTaskContext().fireChunkEnd(chunkContext, null);
+```
+
+落库字段由 `DaoBatchStateStore.saveTaskState` 决定——四个计数器从上下文回拷进实体，异常时补 result 三元组，仅 `complete=true` 时才改任务状态与 endTime：
+
+`nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:156-175`
+
+```java
+    @Override
+    public synchronized void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
+        NopBatchTask task = getTaskRecord(context);
+        task.setCompleteItemCount(context.getCompleteItemCount());
+        task.setSkipItemCount(context.getSkipItemCount());
+        task.setCompletedIndex(context.getCompletedIndex());
+        task.setProcessItemCount(context.getProcessItemCount());
+
+        if (err != null) {
+            ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, err);
+            task.setResultCode(errorBean.getErrorCode());
+            task.setResultStatus(errorBean.getStatus());
+            task.setResultMsg(errorBean.getDescription());
+        }
+
+        if (complete) {
+            int taskStatus = getTaskStatus(err, context);
+            task.setTaskStatus(taskStatus);
+            task.setEndTime(CoreMetrics.currentTimestamp());
+        }
+```
+
+chunk 失败时也会以异常参数保存一次计数再上抛（`BatchTask.java:308-328`）。
 
 计数回写之后，真正的"从哪里再来"由读侧决定。文件/资源型 loader（`ResourceRecordLoaderProvider`）消费 `completedIndex`：`getSkipCount` 取 `max(配置的skipCount, completedIndex)` 作为跳过行数，重启后直接从已压实完成的下一行继续读（`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java:232-240`）。`completedIndex` 的推进规则保证了不丢数据：`onChunkEnd` 用 TreeMap 记录各 chunk 行号的完成标记，只有**连续前缀**全部完成时才把最后一行压实进 completedIndex；且本 chunk 带异常时不做任何标记，防止并发下兄弟 chunk 的压实越过失败行（`:259-307`，守卫注释 `:272-275`，推进点 `:300-302`）。写侧有对称守卫：恢复场景（completedIndex>0）下若输出文件已存在且非空则显式报错 `ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY`，把"截断重建会抹掉已写数据、而读侧又跳过它们"的静默丢失转化为可定位失败（`ResourceRecordConsumerProvider.java:155-168`）。
 
@@ -154,53 +283,52 @@ flowchart TD
     R9 --> R10["从失败 chunk 重跑"]
 ```
 
-> Sources: 重入定位与恢复（[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:31](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L31)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:42](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L42)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java:45](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java#L45)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java:38](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java#L38)、[_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:21](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java#L21)、[_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:17](https://gitee.com/canonical-entropy/nop-entropy/blob/ea3e35e6d0/_tmp/rw-clone/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java#L17)）
+> Sources: [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:44-118](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L44-L118)、[nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:156-197](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L156-L197)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:296-306](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L296-L306)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java:232-307](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java#L232-L307)、[nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java:155-168](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java#L155-L168)
 
 ## Sources
 
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchRecordResult.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskVar.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTask.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/NopBatchDaoConstants.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java ()
-- nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchHistoryStoreBuilder.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskRecord.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java ()
-- nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/common/AbstractBatchHandler.java ()
-- nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/FileBatchSupport.java ()
-- nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java ()
-- nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java ()
-- nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcBatchConsumerProvider.java ()
-- nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskVarBizModel.java ()
-- nop-batch/model/nop-batch.orm.xml ()
-- nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml ()
-- nop-batch/deploy/sql/mysql/_create_nop-batch.sql ()
-- nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancellable.java ()
-- nop-kernel/nop-commons/src/main/java/io/nop/commons/lang/impl/Cancellable.java ()
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java:16-34](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTask.java#L16-L34)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchRecordResult.java:17-26](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchRecordResult.java#L17-L26)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskVar.java:10-17](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskVar.java#L10-L17)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java:17-26](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/NopBatchTaskState.java#L17-L26)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTask.java:22](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTask.java#L22)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java:24-56](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/entity/_gen/_NopBatchTaskState.java#L24-L56)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java:9-39](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/_NopBatchDaoConstants.java#L9-L39)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/NopBatchDaoConstants.java:10-12](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/NopBatchDaoConstants.java#L10-L12)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java:31-215](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java#L31-L215)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java:23-110](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchRecordHistoryStore.java#L23-L110)
+- [nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchHistoryStoreBuilder.java:10-17](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/history/DaoBatchHistoryStoreBuilder.java#L10-L17)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java:13-17](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchStateStore.java#L13-L17)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java:76-81](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskContext.java#L76-L81)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java:12-24](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordHistoryStore.java#L12-L24)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java:15-22](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchRecordFilter.java#L15-L22)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskRecord.java:3-11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/IBatchTaskRecord.java#L3-L11)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java:30-48](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchErrors.java#L30-L48)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java:13-24](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/exceptions/BatchCancelException.java#L13-L24)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java:216-328](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java#L216-L328)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java:46,183-188](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTaskContextImpl.java#L46)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java:381-407](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java#L381-L407)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java:21-79](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/WithHistoryBatchConsumer.java#L21-L79)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java:39-40](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/AbstractRetryBatchConsumer.java#L39-L40)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java:31-32](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/SkipConsumeHelper.java#L31-L32)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java:78-93](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/BatchProcessorConsumer.java#L78-L93)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java:155-189](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/consumer/ResourceRecordConsumerProvider.java#L155-L189)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java:40-64](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/RetryBatchLoader.java#L40-L64)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java:62-74](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/BlockingSourceBatchLoader.java#L62-L74)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java:232-307](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/ResourceRecordLoaderProvider.java#L232-L307)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java:18-29](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/loader/FilteredBatchLoader.java#L18-L29)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java:31-35](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/FilterBatchProcessor.java#L31-L35)
+- [nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java:9-21](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/filter/EvalBatchRecordFilter.java#L9-L21)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/FileBatchSupport.java:57](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/FileBatchSupport.java#L57)
+- [nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java:322-342,732](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/ModelBasedBatchTaskBuilderFactory.java#L322-L342)
+- [nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java:30-81,141-144](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcKeyDuplicateFilter.java#L30-L81)
+- [nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcBatchConsumerProvider.java:108-112](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/consumer/JdbcBatchConsumerProvider.java#L108-L112)
+- [nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskVarBizModel.java:11](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-service/src/main/java/io/nop/batch/service/entity/NopBatchTaskVarBizModel.java#L11)
+- [nop-batch/model/nop-batch.orm.xml:120-217](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/model/nop-batch.orm.xml#L120-L217)
+- [nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml:50-187](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/nop-batch-dao/src/main/resources/_vfs/nop/batch/orm/_app.orm.xml#L50-L187)
+- [nop-batch/deploy/sql/mysql/_create_nop-batch.sql:2-73](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-batch/deploy/sql/mysql/_create_nop-batch.sql#L2-L73)
+- [nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancellable.java:12-15](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancellable.java#L12-L15)
+- [nop-kernel/nop-commons/src/main/java/io/nop/commons/lang/impl/Cancellable.java:24-44](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-kernel/nop-commons/src/main/java/io/nop/commons/lang/impl/Cancellable.java#L24-L44)
 
 ---
 

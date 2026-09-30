@@ -21,26 +21,26 @@ mindmap
       错误模型：BatchErrors 与取消链
 ```
 
-> 快照：nop-batch @ ea3e35e6d0 · 2026-09-29
+> 快照：nop-batch @ 555f7a9731 · 2026-09-30
 
-## 指南
+## 1. 指南
 
-- [nop-batch 总览：chunked 批处理框架](overview.md)
-- [快速上手](quickstart.md)
-- [术语表](glossary.md)
-- [阅读指南](reading-guide.md)
-- [架构与数据流](architecture.md)
+- 1.1 [nop-batch 总览：chunked 批处理框架](overview.md)
+- 1.2 [快速上手](quickstart.md)
+- 1.3 [术语表](glossary.md)
+- 1.4 [阅读指南](reading-guide.md)
+- 1.5 [架构与数据流](architecture.md)
 
-## 机制
+## 2. 机制
 
-- [chunk 管线：数据如何从 Loader 流向 Consumer](flows/batch-pipeline.md)
-- [断点续跑与记录：失败后从哪里再来](flows/checkpoint-recovery.md)
+- 2.1 [chunk 管线：数据如何从 Loader 流向 Consumer](flows/batch-pipeline.md)
+- 2.2 [断点续跑与记录：失败后从哪里再来](flows/checkpoint-recovery.md)
 
-## 模块
+## 3. 模块
 
-- [核心执行引擎](modules/batch-core.md)
-- [DSL 模型与 XLang 集成](modules/batch-dsl.md)
+- 3.1 [核心执行引擎](modules/batch-core.md)
+- 3.2 [DSL 模型与 XLang 集成](modules/batch-dsl.md)
 
-## 主题
+## 4. 主题
 
-- [错误模型：BatchErrors 与取消链](topics/error-model.md)
+- 4.1 [错误模型：BatchErrors 与取消链](topics/error-model.md)

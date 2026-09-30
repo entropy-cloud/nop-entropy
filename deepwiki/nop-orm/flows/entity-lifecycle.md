@@ -6,6 +6,7 @@
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java
+> - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java
 > - ../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java
@@ -18,6 +19,26 @@
 ## 状态全景：七个状态与判定谓词
 
 `OrmEntityState` 定义 TRANSIENT、SAVING、PROXY、MANAGED、MISSING、DELETING、DELETED 七个状态（OrmEntityState.java:14-41）。三个判定谓词决定了状态机的外部行为：`isUnsaved()` 覆盖 TRANSIENT 与 SAVING（OrmEntityState.java:43-45），`isAllowLoad()` 允许对 PROXY、MANAGED、DELETING 三种状态发起装载——注意 DELETING 实体仍可加载（OrmEntityState.java:51-53）；`isGone()` 把 MISSING、DELETED、DELETING 统一视为"已消失"（OrmEntityState.java:55-57），`get()` 据此对已删实体返回 null（OrmSessionImpl.java:336-352）。
+
+`nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java:43-57`
+
+```java
+    public boolean isUnsaved() {
+        return this == TRANSIENT || this == SAVING;
+    }
+
+    public boolean isProxy() {
+        return this == PROXY;
+    }
+
+    public boolean isAllowLoad() {
+        return this == PROXY || this == MANAGED || this == DELETING;
+    }
+
+    public boolean isGone() {
+        return this == MISSING || this == DELETED || this == DELETING;
+    }
+```
 
 ```mermaid
 stateDiagram-v2
@@ -38,15 +59,65 @@ stateDiagram-v2
     DELETED --> [*]
 ```
 
-PROXY 的来源是 `load()`/`makeProxy()`：缓存命中直接返回既有实体，否则新建实体、置 PROXY、把 to-many 集合置为代理态并加入一级缓存（OrmSessionImpl.java:781-822）。首次属性访问触发 `internalLoadProperty` → `persister.loadAsync` → driver 查询 → `internalAssemble` 装配（OrmSessionImpl.java:840-873）；数据库无此行时 driver 调 `session.markMissing` 置 MISSING（JdbcEntityPersistDriver.java:219-221），悲观锁 `lock()` 失败同样置 MISSING 并抛 ERR_ORM_LOCK_ENTITY_FAIL（OrmSessionImpl.java:604-618）。
+PROXY 的来源是 `load()`/`makeProxy()`：无主键模型直接新建实体置 PROXY 不入缓存（OrmSessionImpl.java:792-796）；常规路径先经 `OrmEntityHelper.castId` 做主键类型规整（support/OrmEntityHelper.java:154）、查一级缓存命中即返回，否则新建实体、`OrmEntityHelper.setId` 写入主键、置 PROXY、把 to-many 集合置为代理态并加入一级缓存（OrmSessionImpl.java:798-821）。首次属性访问触发 `internalLoadProperty` → `persister.loadAsync` → driver 查询 → `internalAssemble` 装配（OrmSessionImpl.java:840-873）；数据库无此行时 driver 调 `session.markMissing` 置 MISSING（JdbcEntityPersistDriver.java:219-221），悲观锁 `lock()` 失败同样置 MISSING 并抛 ERR_ORM_LOCK_ENTITY_FAIL（OrmSessionImpl.java:604-618）。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java:14-57](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java#L14-L57)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:781-822](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L781-L822)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:364-423](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L364-L423)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:188-224](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L188-L224)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java:14-57](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java#L14-L57)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:781-822](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L781-L822)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:364-423](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L364-L423)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java:154-216](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java#L154-L216)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:188-224](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L188-L224)
 
 ## 状态迁移触发点
 
-写入路径从公开 API 进入：`save()` 校验后调 `internalSave`，stateless 会话立即 `flushImmediately`（OrmSessionImpl.java:481-491）。`internalSave` 是 TRANSIENT→SAVING 的唯一常规触发点：非 TRANSIENT 状态直接抛 ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT（OrmSessionImpl.java:914-915），随后置 SAVING（918）、`initEntityId` 生成主键——一对一从表先递归初始化主表并复制关联属性，否则走 `persister.generateId`（950-968）——再 `cache.add` 入一级缓存（926）。同 id 冲突时：旧实体未消失则抛 ERR_ORM_SAVE_ENTITY_REPLACE_EXISTING_ENTITY（932-934）；旧实体处于 DELETING 则新实体直接置 MANAGED 并继承旧值（"删除后又新建"，936-940），这是唯一一条不经过 SAVING 的 TRANSIENT→MANAGED 迁移。
+写入路径从公开 API 进入：`save()` 校验后调 `internalSave`，stateless 会话立即 `flushImmediately`（OrmSessionImpl.java:481-491）。`internalSave` 是 TRANSIENT→SAVING 的唯一常规触发点：非 TRANSIENT 状态直接抛 ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT（OrmSessionImpl.java:914-915），随后置 SAVING（918）、`initEntityId` 生成主键——一对一从表先递归初始化主表并 `OrmEntityHelper.copyRefProps` 复制关联属性，否则走 `persister.generateId`（OrmSessionImpl.java:950-968）——再 `cache.add` 入一级缓存。同 id 冲突的处理完全落在 `cache.add` 的返回值上：
 
-删除路径上，`session.delete` 要求实体已在缓存中（OrmSessionImpl.java:630-641），`internalDelete`（971-999）按当前状态分流：PROXY 先装载并重读状态（978-982）；TRANSIENT/SAVING 直接置 DELETED，不产生 SQL（984-987）；MISSING 不做任何事（988-989）；其余置 DELETING 并标记 session 与实体缓存为 dirty（990-994）。DELETING→DELETED 不发生在标记时刻，而是发生在批量动作执行成功的回调里（见下文批量落库一节）。`saveOrUpdate` 按 `contains` 分派到 update 或 save（621-627）；`update/internalUpdate` 要求 MANAGED 或 SAVING（568-576）。
+`nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:926-941`
+
+```java
+        IOrmEntity oldEntity = cache.add(entity);
+        if (oldEntity != null && entity != oldEntity) {
+            // need to load??
+            // if (!oldEntity.orm_isProxyLoaded())
+            // this.internalLoad(oldEntity);
+
+            if (!oldEntity.orm_state().isGone()) {
+                throw newError(ERR_ORM_SAVE_ENTITY_REPLACE_EXISTING_ENTITY, entity);
+            }
+
+            // 删除后又新建的情况
+            if (oldEntity.orm_state().isDeleting()) {
+                entity.orm_state(OrmEntityState.MANAGED);
+                entity.orm_useOldValues(oldEntity);
+            }
+        }
+```
+
+旧实体未消失则抛 ERR_ORM_SAVE_ENTITY_REPLACE_EXISTING_ENTITY（932-934）；旧实体处于 DELETING 则新实体直接置 MANAGED 并继承旧值（"删除后又新建"，936-940），这是唯一一条不经过 SAVING 的 TRANSIENT→MANAGED 迁移。
+
+删除路径上，`session.delete` 要求实体已在缓存中（OrmSessionImpl.java:630-641），`internalDelete`（971-999）按当前状态分流：
+
+`nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:975-994`
+
+```java
+        if (state.isDeleting())
+            return;
+
+        if (state.isProxy()) {
+            internalLoad(entity);
+            // internalLoad之后状态可能已变化（记录不存在时被标记为MISSING），需要重新读取状态
+            state = entity.orm_state();
+        }
+
+        if (state.isTransient()) {
+            entity.orm_state(OrmEntityState.DELETED);
+        } else if (state.isSaving()) {
+            entity.orm_state(OrmEntityState.DELETED);
+        } else if (state.isMissing()) {  //NOPMD - suppressed EmptyControlStatement - do nothing
+            // do nothing
+        } else {
+            entity.orm_state(OrmEntityState.DELETING);
+            this.markDirty();
+            cache.markDirty(entity.orm_entityName());
+        }
+```
+
+PROXY 先装载并重读状态（978-982）；TRANSIENT/SAVING 直接置 DELETED，不产生 SQL（984-987）；MISSING 不做任何事（988-989）；其余置 DELETING 并标记 session 与实体缓存为 dirty（990-994）。DELETING→DELETED 不发生在标记时刻，而是发生在批量动作执行成功的回调里（见下文批量落库一节）。`saveOrUpdate` 按 `contains` 分派到 update 或 save（621-627）；`update/internalUpdate` 要求 MANAGED 或 SAVING（568-576）。
 
 | 迁移 | 触发方法 | 条件与错误 | 证据 |
 |---|---|---|---|
@@ -62,13 +133,39 @@ PROXY 的来源是 `load()`/`makeProxy()`：缓存命中直接返回既有实体
 
 游离态相关：`attach` 对绑定在未关闭的其他 session 上的实体抛 ERR_ORM_ENTITY_NOT_DETACHED，TRANSIENT 实体直接转 `save`，其余重新入缓存并可级联 attach 已装载的关联实体（OrmSessionImpl.java:1332-1366）；`detach` 调 `orm_detach` 并递归游离已装载关联（1369-1411）；`reset` 移除 gone/saving 实体、其余 orm_reset（1293-1304）。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:481-519](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L481-L519)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:906-999](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L906-L999)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1159-1175](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1159-L1175)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:455-503](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L455-L503)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1332-1411](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1332-L1411)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:481-519](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L481-L519)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:906-999](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L906-L999)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1159-1175](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1159-L1175)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:455-503](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L455-L503)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1332-1411](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1332-L1411)
 
 ## flush 的完整调用链
 
 本页追踪一次 save 之后到 JDBC 的完整执行路径：入口 `OrmSessionImpl.flush`（OrmSessionImpl.java:176-224）依次通过三道闸门——正在 flush 中则直接返回（183-186）、session 非 dirty 直接返回（189-192）、只读 session 直接返回（195-198）——然后 interceptPreFlush（202），创建 `CascadeFlusher` 并 `execute()`（205-206）。execute 内部第一步对每个 dirty 实体做级联遍历 `cascadeEntity`（CascadeFlusher.java:85），第二步 `flushBatchLoadQueue` 补齐待删除实体（88），第三步 `processWaitDeletes`（90），第四步对 dirty 实体逐个 `internalFlush` 生成动作（93-99），最后 `flushChanged` 重放 flush 过程中产生的修改（101）。回到 flush：置 dirty=false、清缓存 dirty 标记（208-209），随后 `batchActionQueue.flush()`（211）真正执行 SQL，最后 interceptPostFlush（219-221）。关键点：SAVING→MANAGED 的状态迁移发生在第 211 步的回调里，而非 internalFlush 时。
 
-`internalFlush`（CascadeFlusher.java:240-258）是状态到动作的翻译器：只读实体跳过（242-243）；SAVING→`session.flushSave`（247-249）；DELETING→`flushDelete`（250-252）；MANAGED 且 `orm_dirty`→`flushUpdate`（253-255）。三个 flushXxx（OrmSessionImpl.java:1020-1059）先过 `interceptPreSave/Update/Delete`，返回 STOP 即 VETO 该实体（1021-1024、1035-1038、1049-1052），再调 persister 同名方法。拦截器链的组装方式见 [../topics/assembly-interceptors.md](../topics/assembly-interceptors.md)。
+`internalFlush`（CascadeFlusher.java:240-258）是状态到动作的翻译器：
+
+`nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:240-258`
+
+```java
+    boolean internalFlush(IOrmEntity entity) {
+        // 只读实体不需要更新
+        if (entity.orm_readonly())
+            return false;
+
+        OrmEntityState state = entity.orm_state();
+
+        if (state.isSaving()) {
+            session.flushSave(entity);
+            return true;
+        } else if (state.isDeleting()) {
+            session.flushDelete(entity);
+            return true;
+        } else if (state.isManaged() && entity.orm_dirty()) {
+            session.flushUpdate(entity);
+            return true;
+        }
+        return false;
+    }
+```
+
+只读实体跳过；SAVING→`session.flushSave`；DELETING→`flushDelete`；MANAGED 且 `orm_dirty`→`flushUpdate`。三个 flushXxx（OrmSessionImpl.java:1020-1059）先过 `interceptPreSave/Update/Delete`，返回 STOP 即 VETO 该实体（1021-1024、1035-1038、1049-1052），再调 persister 同名方法。拦截器链的组装方式见 [../topics/assembly-interceptors.md](../topics/assembly-interceptors.md)。
 
 ```mermaid
 sequenceDiagram
@@ -101,7 +198,7 @@ sequenceDiagram
 
 stateless 会话没有延迟 flush：`save/update/delete` 立即调 `flushImmediately`（OrmSessionImpl.java:487-488、564-565、639-640），它对单实体执行 `CascadeFlusher.execute(entity)` 并同步 `batchActionQueue.flush()`，且恢复 dirty 时用 `oldDirty || dirty` 防止覆盖 flush 过程中的新标记（1001-1017）。`saveDirectly/updateDirectly/deleteDirectly` 则完全绕过级联，直接 flushSave/flushUpdate/flushDelete 并可选立即执行队列（494-551）。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:176-224](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L176-L224)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:81-133](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L81-L133)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:240-258](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L240-L258)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1001-1059](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1001-L1059)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:494-551](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L494-L551)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:176-224](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L176-L224)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:81-133](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L81-L133)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:240-258](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L240-L258)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1001-1059](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1001-L1059)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:494-551](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L494-L551)
 
 ## 级联遍历与循环终止条件
 
@@ -117,7 +214,7 @@ stateless 会话没有延迟 flush：`save/update/delete` 立即调 `flushImmedi
 
 失败恢复：flush 中途抛异常时第二遍遍历不会执行，`finally` 中 `clearFlushVisiting` 统一复位 visiting 标记，否则同一 session 重试 flush 会静默丢弃级联（CascadeFlusher.java:103-108、185-193）。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:260-403](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L260-L403)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:116-133](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L116-L133)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:319-380](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L319-L380)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:281-293](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L281-L293)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:260-403](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L260-L403)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:116-133](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L116-L133)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:319-380](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L319-L380)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:281-293](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L281-L293)
 
 ## 批量落库：两阶段拓扑执行
 
@@ -131,11 +228,36 @@ stateless 会话没有延迟 flush：`save/update/delete` 立即调 `flushImmedi
 
 驱动层 SQL 生成与 JdbcBatcher 批执行的细节（含 INSERT 语句缓存与方言切换）见 [../modules/persister-sql.md](../modules/persister-sql.md)；全局缓存失效被注册为事务提交后回调（EntityPersisterImpl.java:550-566）。批量只读装载的合并协议见 [query-pipeline.md](query-pipeline.md)。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:145-257](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L145-L257)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java:21-64](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java#L21-L64)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:233-319](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L233-L319)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:455-521](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L455-L521)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:145-257](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L145-L257)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java:21-64](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java#L21-L64)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:233-319](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L233-L319)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:455-521](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L455-L521)
 
 ## 特殊写路径对照：逻辑删除、时间戳、修订
 
-persister 的 save/update/delete 是三条写路径的总分流点（EntityPersisterImpl.java:288-337）。
+persister 的 save/update/delete 是三条写路径的总分流点（EntityPersisterImpl.java:288-337）。delete 的分流逻辑完整如下：
+
+`nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:318-337`
+
+```java
+    public void delete(IOrmEntity entity, final IOrmSessionImplementor session) {
+        // 如果是逻辑删除，则转为调用修改操作
+        if (entityModel.isUseLogicalDelete() && !entity.orm_disableLogicalDelete()) {
+            LogicalDeleteHelper.onDelete(entityModel, entity, env);
+            syncComponentWhenDelete(entity, true);
+            update(entity, session);
+            return;
+        }
+
+        processTenantId(entity);
+
+        if (entityModel.isUseRevision()) {
+            OrmRevisionHelper.onRevDelete(entityModel, entity, this, session);
+            syncComponentWhenDelete(entity, true);
+            return;
+        }
+
+        syncComponentWhenDelete(entity, false);
+        queueDelete(entity, session);
+    }
+```
 
 | 维度 | 逻辑删除 | 物理删除 | 时间戳 | 修订（失效版本） |
 |---|---|---|---|---|
@@ -150,7 +272,7 @@ persister 的 save/update/delete 是三条写路径的总分流点（EntityPersi
 
 修订模型把 DELETE 也变成"写一条新版本"：`onRevSave` 先 `findLatest` 检查最新修订不是 REV_TYPE_DELETE，否则 ERR_ORM_ENTITY_ALREADY_EXISTS（OrmRevisionHelper.java:25-28）；版本号取 `session.getSessionRevVersion()`，同一 session 每次 flush 重新分配（OrmSessionImpl.java:157-161、215）；`newRevEntity` 克隆实体、`orm_clearDirty` 后用 `orm_propValue`（而非 `orm_internalSet`）关闭旧记录的 revEndVer——注释明确说明 internalSet 不记录 oldValues 会导致 UPDATE 不生成（OrmRevisionHelper.java:115-123）。修订类型常量 REV_TYPE_SAVE=1、REV_TYPE_UPDATE=2、REV_TYPE_DELETE=3（OrmConstants.java:87-97），"是否当前版本"以 revEndVer==Long.MAX_VALUE 判定（131-139）。
 
-> Sources: [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:288-337](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L288-L337)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java:28-65](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java#L28-L65)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java:31-123](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java#L31-L123)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java:23-139](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java#L23-L139)、[nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java:87-97](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java#L87-L97)
+> Sources: [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:288-337](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L288-L337)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java:28-65](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java#L28-L65)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java:31-123](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java#L31-L123)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java:23-139](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java#L23-L139)、[../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java:87-97](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java#L87-L97)
 
 ## 延伸阅读
 
@@ -161,34 +283,36 @@ persister 的 save/update/delete 是三条写路径的总分流点（EntityPersi
 
 ## Sources
 
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java:14-57](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java#L14-L57)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:176-224](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L176-L224)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:364-423](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L364-L423)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:481-551](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L481-L551)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:592-641](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L592-L641)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:781-873](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L781-L873)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:906-999](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L906-L999)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1001-1059](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1001-L1059)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1159-1175](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1159-L1175)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1332-1411](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1332-L1411)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:36-133](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L36-L133)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:144-163](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L144-L163)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:240-403](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L240-L403)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:29-56](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L29-L56)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:319-380](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L319-L380)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java:21-64](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java#L21-L64)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:288-521](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L288-L521)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:550-566](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L550-L566)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:634-651](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L634-L651)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:756-760](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L756-L760)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:51-93](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L51-L93)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:145-257](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L145-L257)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java:28-65](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java#L28-L65)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java:31-123](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java#L31-L123)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java:23-139](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java#L23-L139)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:151-224](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L151-L224)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:233-319](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L233-L319)
-- [nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java:87-97](https://gitee.com/canonical-entropy/nop-entropy/blob/f2ecee739b/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java#L87-L97)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java:14-57](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java#L14-L57)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:176-224](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L176-L224)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:364-423](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L364-L423)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:481-551](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L481-L551)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:592-641](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L592-L641)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:781-873](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L781-L873)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:906-999](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L906-L999)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1001-1059](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1001-L1059)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1159-1175](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1159-L1175)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java:1332-1411](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java#L1332-L1411)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:36-133](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L36-L133)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:144-163](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L144-L163)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java:240-403](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java#L240-L403)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:29-56](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L29-L56)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java:319-380](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java#L319-L380)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java:21-64](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java#L21-L64)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:288-521](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L288-L521)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:550-566](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L550-L566)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:634-651](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L634-L651)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java:756-760](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java#L756-L760)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:51-93](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L51-L93)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java:145-257](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java#L145-L257)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java:28-65](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java#L28-L65)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java:31-123](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java#L31-L123)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java:23-139](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java#L23-L139)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java:72-96](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java#L72-L96)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java:154-216](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java#L154-L216)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:151-224](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L151-L224)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java:233-319](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java#L233-L319)
+- [../../../nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java:87-97](https://gitee.com/canonical-entropy/nop-entropy/blob/555f7a9731/nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java#L87-L97)
 
 ---
 

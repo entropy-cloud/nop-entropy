@@ -2,9 +2,9 @@
   "version": 2,
   "target": {
     "root": "/Users/abc/app/nop-entropy-wt/nop-entropy-master/deepwiki",
-    "commit": "ea3e35e6d0",
+    "commit": "555f7a9731",
     "scope": "nop-orm",
-    "generatedAt": "2026-09-29T14:58:45.945Z"
+    "generatedAt": "2026-09-30T00:21:05.453Z"
   },
   "config": {
     "language": "zh",
@@ -63,8 +63,8 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/BatchActionQueueImpl.java": "sha1:9e59abf505252121",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java": "sha1:af1d5a27fff6abfd",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java": "sha1:dae68ff491eaa4ce",
-        "nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/IEntityModel.java": "sha1:439ff0b249b65b28",
         "nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/loader/OrmModelLoader.java": "sha1:8131d9d2ff26f356",
+        "nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/IEntityModel.java": "sha1:439ff0b249b65b28",
         "nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlCompiler.java": "sha1:899f0d77f88b78cc",
         "nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/IJdbcTemplate.java": "sha1:7e9e18e518b051b7",
         "nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/JdbcBatcher.java": "sha1:f7101b7ad9fe52aa"
@@ -84,7 +84,8 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionEntityCache.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java",
-        "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java"
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java"
       ],
       "fingerprints": {
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmEntityState.java": "sha1:21009fa31884abbf",
@@ -97,6 +98,7 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/LogicalDeleteHelper.java": "sha1:614d623ac9071b7e",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java": "sha1:a07e7b55f80fefac",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java": "sha1:45b1bfafbf951198",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntityHelper.java": "sha1:89a287e55f01e9c6",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java": "sha1:af1d5a27fff6abfd",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/OrmConstants.java": "sha1:b7660d0c625353b8"
       }
@@ -254,6 +256,7 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmTimestampHelper.java": "sha1:a07e7b55f80fefac",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmRevisionHelper.java": "sha1:45b1bfafbf951198",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/OrmAssembly.java": "sha1:b2715e4ecc5de4da",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlHelper.java": "sha1:0c4d5eecc5af3fbb",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/SessionBatchActionQueue.java": "sha1:fabb04e40506468c",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/OrmSessionImpl.java": "sha1:3bba75d637dfa9e6",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/session/CascadeFlusher.java": "sha1:4cb6db3f3eeafd97",
@@ -261,7 +264,6 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/IEntityPersistDriver.java": "sha1:e05cd20e8fc85d6f",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcEntityPersistDriver.java": "sha1:af1d5a27fff6abfd",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcCollectionPersistDriver.java": "sha1:9fbd56fe4260df33",
-        "nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlHelper.java": "sha1:0c4d5eecc5af3fbb",
         "nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java": "sha1:836d6d75676c269b",
         "nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/JdbcBatcher.java": "sha1:f7101b7ad9fe52aa"
       }
@@ -273,6 +275,7 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmEntityEnhancer.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmSession.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/DefaultOrmModelProvider.java",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/IOrmModelProvider.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/OrmSessionFactoryBean.java",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/SessionFactoryImpl.java",
@@ -305,9 +308,10 @@
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/SessionFactoryImpl.java": "sha1:6ff50a56831bf479",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/OrmSessionFactoryBean.java": "sha1:3cd30f9d1f673207",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/DefaultOrmModelProvider.java": "sha1:76cd8bb206820dd5",
-        "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java": "sha1:a2979f604b00cb6e",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/TenantAwareOrmModelProvider.java": "sha1:7933151fa6c08920",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java": "sha1:a2979f604b00cb6e",
         "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/TenantCachedQueryPlan.java": "sha1:138c9799f2a43712",
+        "nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/IOrmModelProvider.java": "sha1:254891af9a9bfa4d",
         "nop-persistence/nop-orm/src/main/resources/_vfs/nop/orm/beans/orm-defaults.beans.xml": "sha1:883b68c1d96a872d",
         "nop-persistence/nop-orm/src/test/java/io/nop/orm/session/TestOrmSessionEntityCache.java": "sha1:e8c8619fb8696d77",
         "nop-persistence/nop-orm/src/test/java/io/nop/orm/session/TestFlushChangeRegistration.java": "sha1:450baacd51aa4515",
