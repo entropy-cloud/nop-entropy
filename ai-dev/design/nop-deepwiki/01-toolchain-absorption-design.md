@@ -14,6 +14,7 @@
 3. **P2（登记不动手）**：Claims 断言级增量、commit 触发的后台增量托管、MCP 读侧工具 / llms.txt。
 4. **拒绝**：embedding/RAG、外部大型依赖作为能力源、MCP 文件旁路、个人知识 wiki 的检索与三层模式（§四）。
 5. **二轮吸收（2026-09-30，deepwiki.com 首页与 vite/fastapi 新样本实测）**：模板层六项——图 front-matter 图题、显式推断标注、分组编号目录、对外 API 面表、overview 版本与运行要求行、来源广度指引（§三末节）。
+6. **三轮吸收（2026-09-30，kubernetes/rust/tamagui 采样）**：index 章轴优先取 PLAN"所属章"列（领域命名章，路径分组退化为回退）+ Key Code Entities 列表变体；其余观察全部落入既有设计（§三轮吸收节，含收敛判定）。
 
 ## 二、背景与动机
 
@@ -125,6 +126,23 @@
 **不吸收**：首页项目卡片目录/Add repo 任意索引/Refresh this wiki（邮件触发重建）/Edit Wiki/OG 分享图——托管服务产品形态，维持 Deferred 裁定。
 
 **理由**：图题提升图的可引用性与无头渲染下的可读性；推断标注让"要么不写要么明说缺失"有了形式化出口（信息量与诚实边界同时改善）；编号目录在 wiki 页数增长后是真实导航收益（跨页可写"见 2.1"）；④⑤⑥补齐内容模板的固定槽位。门禁层只加 WARN 且默认关——plan 367 Phase 4 在途重生成按旧模板产出，默认开会误伤其 strict 收口；待存量页按新模板重生成后翻默认。
+
+### 三轮吸收：kubernetes / rust / tamagui 采样（2026-09-30）
+
+**样本**：deepwiki.com 实抓 kubernetes/kubernetes（distributed-runtime 大仓）、rust-lang/rust（compiler-parser，含 2-compilation-pipeline 机制页）、tamagui/tamagui（consumer-library monorepo）总览页。至此五形态（framework-repo/build-tool/distributed-runtime/consumer-library/compiler-parser）全部有渲染页一手覆盖；legacy-business 在 deepwiki.com 无展示样本（既定差异化机会，见 00-overview）。
+
+| # | 发现 | 判定 |
+|---|---|---|
+| 1 | k8s 目录章名是领域解剖学命名（Core API System / Control Plane Components / Testing Infrastructure…），我们的 index 分组是文档类型（指南/机制/模块/主题）；且 **PLAN 契约表"所属章"列被 gen-wiki-meta 忽略**（分组只按路径前缀推断） | **吸收**：gen-wiki-meta index 章轴优先取 PLAN 所属章列（deepwiki.com 领域命名章同款，Phase 3 契约字段终于生效），空值回退路径分组；mindmap 与条目统一按 PLAN 行序首现序编章 |
+| 2 | k8s 组件小节配 "Key Code Entities" 实体映射列表（加粗实体名 + 路径:行） | **吸收（建议层）**：SKILL 第 6 条建议清单补该变体——计入内容丰富度，不替代 ≥2 表格硬约束 |
+| 3 | Feature Gate Alpha→Beta→GA→Deprecated 演进表（锚定 versioned_feature_list.yaml）、Workspace Organization 表、overview 收尾 Navigation Guide、行内加粗术语定义 | 不改动：分别已被 topics 页/模块地图表/reading-guide/glossary 承载 |
+| 4 | rust overview 源文件块 26 个、机制页 19 个（对照 vite 的 50-60） | 印证二轮吸收第 6 项"10-30 建议"区间合理，不改 |
+
+**采样盲区如实记录**：distributed-runtime 形态的机制页（k8s scheduler 类）因抓取服务对深链连续网络错误未获一手样本；机制页骨架已有 build-tool（vite 4.1）与 compiler-parser（rust 管线页）两形态一手验证一致，且 distributed-runtime 的机制深度要求（一致性语义/失败恢复/组件对照）已由 v4 形态表与派发模板"机制深度检查表"（不变式与失败/状态与生命周期项）覆盖——不构成模板改动依据。
+
+**收敛判定**：三轮采样累计 14 个项目（payload 级四 Java + react/vuejs/core 源码级 + vite/fastapi + k8s/rust/tamagui），本轮净新增仅上述 2 项且均为小项；其余观察全部落入已吸收项或既定 Deferred/P1/P2 登记。若第四轮独立采样仍零新增，即认定外部形态采样饱和。
+
+**第四轮独立采样（2026-09-30，pytorch/pytorch）**：超大 C++/Python 混合 monorepo 总览页逐项对比——零新增。Relevant source files 57 个（含 22 个测试文件、CLAUDE.md、pyrefly.toml，印证非代码/测试证据一等公民与"10-30 建议"区间方向正确）；Purpose and Scope 加粗要点 + 段末 Sources、"For more details, see X" 子页导流、Repository Layout 三列表（系统|入口点|代码区）、行内 path+line 引用——全部已被现有模板与二轮吸收项覆盖。**外部形态采样饱和，对标吸收轮次收束**；后续改进转入 P1/P2 登记项（符号索引接入、共享上下文批次、存量重生成）与增量实践反馈，不再以采样为驱动。
 
 ## 四、拒绝了什么
 

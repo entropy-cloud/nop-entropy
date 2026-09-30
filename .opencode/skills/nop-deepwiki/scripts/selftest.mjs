@@ -56,6 +56,8 @@ assert(badText.includes('[bad-anchor-target]()'), '无法解析的空括号引�
 const indexText = readFileSync(join(wikiDir, 'index.md'), 'utf8');
 assert(/## 1\. 指南/.test(indexText), 'index 分组编号目录（## 1. 指南）');
 assert(/- 1\.1 \[正常页\]\(good\.md\)/.test(indexText), 'index 页面条目组内编号（1.1 正常页）');
+assert(/## 2\. 缺陷域/.test(indexText), 'index 章轴取 PLAN 所属章列（## 2. 缺陷域）');
+assert(/- 2\.1 \[缺陷页\]\(bad\.md\)/.test(indexText), '所属章列页面条目编号（2.1 缺陷页）');
 
 // ---------- 2. check ----------
 console.log('[2] check-wiki --strict');

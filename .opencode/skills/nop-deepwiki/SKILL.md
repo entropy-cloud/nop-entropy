@@ -237,7 +237,9 @@ flows/ 机制章叙事句式（codemap 形态）：开头段用本页追踪…�
    glossary/reading-guide/quickstart 豁免。
 6. 表格：每页 ≥2 个表格（实体汇总/常量表/流程阶段对照/**对外符号表**（符号 | 来源模块 |
    职责，每格带引用——fastapi 形态；框架/库类 wiki 的 overview 与模块页建议必含）任选；
-   quickstart/reading-guide 豁免）——表格迫使叙述收敛为精确枚举。
+   quickstart/reading-guide 豁免）——表格迫使叙述收敛为精确枚举。组件小节可再配
+   Key Code Entities 式实体映射列表（k8s 形态：每行 `**实体名**` + `路径:行` + 一句职责），
+   它是表格之外的补充，不计入表格数。
 7. 每个关键事实断言后附 `源路径:起-止行号`（仓库相对路径）。
    断言质量标准：不要因为"某符号存在/某类型被返回/某类继承某基类"就写断言——
    只有当该事实会实质改变读者对系统的理解、使用或安全修改方式时才值得写。
@@ -272,7 +274,9 @@ flows/ 机制章叙事句式（codemap 形态）：开头段用本页追踪…�
 
 ## Phase 5 — Finalize（确定性收尾；顺序固定：gen 先行、check 后行）
 
-1. **gen-wiki-meta（重写 + index + 指纹）**：`node <skill目录>/scripts/gen-wiki-meta.mjs <输出目录> --scope <范围>`（仓库根缺省从 PLAN.md `> Target:` 行解析，也可 `--repo` 显式给）。脚本职责：①把子代理输出的全部空括号松格式引用（`[path]()` / `[path:行]()`）确定性重写为真链接——git origin 可推导时为 `<repo-url>/blob/<commit>/<path>#L..` 永久链接（锚定生成时 commit，行号不随后续代码漂移），否则页面相对链接；②把历史版本的 `/repo-rel` 站点根绝对链接一并迁移到当前基准（幂等，可重复运行）；③从 PLAN.md 页面契约表生成 index.md——分组编号目录（`## 2. 机制`、条目 `2.1 [标题]`，deepwiki.com 章节编号同款），链接文本用页面标题列，含全站 mindmap 与 commit 快照行，勿手写；④从重写后的 Sources 提取全部被引源文件（含 blob 链接还原与非源码文件）计算内容哈希指纹。
+1. **gen-wiki-meta（重写 + index + 指纹）**：`node <skill目录>/scripts/gen-wiki-meta.mjs <输出目录> --scope <范围>`（仓库根缺省从 PLAN.md `> Target:` 行解析，也可 `--repo` 显式给）。脚本职责：①把子代理输出的全部空括号松格式引用（`[path]()` / `[path:行]()`）确定性重写为真链接——git origin 可推导时为 `<repo-url>/blob/<commit>/<path>#L..` 永久链接（锚定生成时 commit，行号不随后续代码漂移），否则页面相对链接；②把历史版本的 `/repo-rel` 站点根绝对链接一并迁移到当前基准（幂等，可重复运行）；③从 PLAN.md 页面契约表生成 index.md——分组编号目录（**章轴优先取"所属章"列**——deepwiki.com
+   领域命名章同款，如"控制面组件"而非"模块"；列空时回退路径分组。章 `## 2. 控制面组件`、
+   条目 `2.1 [标题]`），链接文本用页面标题列，含全站 mindmap 与 commit 快照行，勿手写；④从重写后的 Sources 提取全部被引源文件（含 blob 链接还原与非源码文件）计算内容哈希指纹。
 2. **check-wiki（校验）**：`node <skill目录>/scripts/check-wiki.mjs <输出目录> --strict`，修复全部 ERROR；WARN 逐条判断（真实问题修，误报可放过并说明）。可选 `--verify-claims 20 --seed 42`：抽样验证断言行号真实性（行号越界或区间内零关键词命中即 ERROR，机检防引用幻觉）。
 3. **补录覆盖率**：编辑 wiki-state.json 的 `coverage` 字段（relevantFiles/builtFrom/dropped 来自 Phase 1 记录）。
 4. 向用户汇报：页面清单、覆盖率声明、check-wiki 结果、遗留缺口。

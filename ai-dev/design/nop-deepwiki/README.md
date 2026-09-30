@@ -26,3 +26,5 @@
 - 2026-09-30：外部工具链机制盘点（8 项目源码级 + 269 仓扫描）收束为本目录 01 吸收设计；P0 实施载体为 `ai-dev/plans/367-nop-deepwiki-survey-absorption-and-density-upgrade.md`（active）。
 - 2026-09-30：工具依赖收敛裁定——mermaid/jsdom 并入 `ai-dev/tools/` 既有 pnpm 根（该目录为仓库唯一 pnpm 根）；禁止引用项目外工具脚本路径，唯一例外为 mission driver 使用 AGE 模板。
 - 2026-09-30：二轮对标吸收（deepwiki.com 首页 + vite/fastapi 渲染页一手样本）——六项模板层决策落入 01（图题/推断标注/编号目录/API 面表/版本行/来源广度），同日落地 SKILL 模板与脚本；产品形态项维持 Deferred。
+- 2026-09-30：三轮采样（kubernetes/rust/tamagui）——五形态渲染页一手覆盖补齐；吸收 index 章轴改用 PLAN 所属章列（领域命名章）与 Key Code Entities 列表变体，其余观察均落入既有设计，收敛判定登记于 01。
+- 2026-09-30：第四轮独立采样（pytorch）零新增——外部形态采样饱和判定成立，对标吸收轮次收束；后续改进转入 P1/P2 登记项与增量实践反馈。

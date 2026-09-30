@@ -265,38 +265,41 @@ if (!dry) {
     }
   }
 }
-// ---------- 3. 确定性生成 index.md（分组 + mindmap + 快照行） ----------
-const GROUP = (p) => (p.startsWith('modules/') ? '模块' : p.startsWith('flows/') ? '机制' : p.startsWith('topics/') ? '主题' : '指南');
-const GROUP_ORDER = ['指南', '机制', '模块', '主题'];
+// ---------- 3. 确定性生成 index.md（章节 + mindmap + 快照行） ----------
+// 章轴：PLAN 契约表"所属章"列优先（deepwiki.com 领域命名章同款——"控制面组件"式章名而非
+// 文档类型学），空值回退路径前缀推断；章序 = PLAN 行序首次出现序，mindmap 与条目共用
+const PATH_GROUP = (p) => (p.startsWith('modules/') ? '模块' : p.startsWith('flows/') ? '机制' : p.startsWith('topics/') ? '主题' : '指南');
+const chapterOf = (p) => (p.section && p.section.trim()) || PATH_GROUP(p.path);
 const slug = (p) => relative(root, resolve(root, p)).replace(/\.md$/, '').replace(/[/_-]/g, ' ');
 // mindmap 节点文本确定性清洗：ASCII 括号/引号/反引号会破坏语法，替换为安全字符
 const cleanNode = (t) => String(t).replace(/[\[\]\(\)\{\}"'`]/g, ' ').replace(/\s+/g, ' ').trim() || '-';
 
 let md = `# ${planTitle} DeepWiki\n\n`;
 md += `> 目标：${argOf('--scope') || '全仓库'} · 结构契约：[PLAN.md](./PLAN.md) · 本文件由 gen-wiki-meta.mjs 生成，勿手改\n\n`;
-// 全站 mindmap（PLAN 分组列 → 分组 → 页面）
+// 全站 mindmap（章 → 页面；章序同下方编号目录）
 md += '```mermaid\nmindmap\n';
 md += `  root((${cleanNode(planTitle)}))\n`;
 const byGroup = {};
+const groupSeq = [];
 for (const p of pages) {
-  const g = GROUP(p.path);
-  (byGroup[g] ||= []).push(p);
+  const g = chapterOf(p);
+  if (!byGroup[g]) { byGroup[g] = []; groupSeq.push(g); }
+  byGroup[g].push(p);
 }
-for (const g of GROUP_ORDER) {
-  if (!byGroup[g]) continue;
-  md += `    ${g}\n`;
+for (const g of groupSeq) {
+  md += `    ${cleanNode(g)}\n`;
   for (const p of byGroup[g]) md += `      ${cleanNode(p.title || slug(p.path))}\n`;
 }
 md += '```\n';
 // 页脚快照
 md += `\n> 快照：${argOf('--scope') || ''} @ ${commit} · ${new Date().toISOString().slice(0, 10)}\n`;
-// 分组编号目录（deepwiki.com 章节编号同款：组号按 GROUP_ORDER 出现序连续编号，页序号为组内序，
+// 分组编号目录（deepwiki.com 章节编号同款：组号按 PLAN 行序首现序连续编号，页序号为组内序，
 // 跨页叙述可写"见 2.1"）；链接文本 = 页面标题（标题为空回退路径 slug）
 let last = '';
 let gi = 0;
 const inGroup = {};
 for (const p of pages) {
-  const g = GROUP(p.path);
+  const g = chapterOf(p);
   if (g !== last) { gi++; md += `\n## ${gi}. ${g}\n\n`; last = g; }
   const n = (inGroup[g] = (inGroup[g] || 0) + 1);
   const linkText = cleanNode(p.title) || slug(p.path);
