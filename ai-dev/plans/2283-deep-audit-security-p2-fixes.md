@@ -1,6 +1,6 @@
 # 2283 深度审计 2026-09-30 安全 P2 修复（8 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-30
 > Source: `ai-dev/audits/2026-09/2026-09-30-1726-deep-audit-nop-entropy-full/summary.md`（P2 安全主题清单 + 复核结论）
 > Related: `ai-dev/plans/2282-deep-audit-p1-defect-fixes.md`
@@ -67,9 +67,9 @@ Targets: DevDocBizModel、DevToolBizModel、Sys__cancel 所在 BizModel、Cancel
 Exit Criteria:
 
 - [x] 三类新行为各有测试断言（未登录/非 admin、跨用户取消、撞车），修复前至少鉴权项失败
-- [ ] 既有 dev 工具 admin 路径测试（如有）不回归
+- [x] 既有 dev 工具 admin 路径测试（如有）不回归
 - [x] 无静默跳过：拒绝路径显式失败（错误码/异常），不返回空成功
-- [ ] No owner-doc update required（对齐既有 DevStatBizModel 基线，无新契约）
+- [x] No owner-doc update required（对齐既有 DevStatBizModel 基线，无新契约）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 2 - nop-metadata 沙箱对齐 + nop-ai 工具与 RAG 鉴权 [G8-13-01][G3-13-02][G3-07-01]
@@ -92,7 +92,7 @@ Exit Criteria:
 - [x] BASH_FUNC_ 前缀形态测试通过
 - [x] RAG BizModel 的 bizObjName 为合法标识符（无 `/` 前缀）、写操作鉴权元数据存在，均有测试断言
 - [x] `./mvnw test -pl nop-metadata/nop-metadata-service,nop-ai/nop-ai-toolkit,nop-ai/nop-ai-rag -am` 全绿
-- [ ] No owner-doc update required（黑名单对齐属既有 F9 裁定契约的补全；如 nop-metadata.md 列了沙箱 token 清单则同步）
+- [x] Owner doc 已同步：nop-metadata.md 列有 token 清单，已补 G8-13-01 blocklist 条目
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 3 - 外部协议边界默认值 [G12-13-01][G12-13-02][G12-13-03]
@@ -114,20 +114,20 @@ Exit Criteria:
 - [x] 既有 okhttp/sftp/feishu 模块测试不回归
 - [x] 无静默跳过：不安全配置路径必有告警，验证路径失败必响亮
 - [x] `./mvnw test -pl nop-network/nop-http/nop-http-client-okhttp,nop-integration/nop-integration-sftp,nop-integration/nop-integration-feishu,nop-auth/nop-auth-service,nop-ai/nop-ai-gateway -am` 全绿
-- [ ] No owner-doc update required（默认行为未变；若 sftp 新增配置项，在模块 README 或既有配置文档中补一行）
+- [x] sftp 新增配置项已在模块 README 补配置表与风险声明（closure audit 条件项已闭环）；OkHttp/feishu 默认行为不变，无契约变化
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 全部 8 条 in-scope 安全 P2 已修复且各有回归测试
-- [ ] 无 in-scope defect 被降级到 deferred / follow-up
-- [ ] 每个 Workstream 的 Exit Criteria 全部勾选
-- [ ] 受影响 owner docs 已核对（各 WS 已显式裁定）
-- [ ] 独立子 agent closure audit 完成并写入下方 Closure 段
-- [ ] Anti-Hollow Check：closure audit 已验证防护路径实际连通（如：无权限调用真实被拒、沙箱向量真实被拦截、不一致 open_id 真实被拒），无新增空分支
-- [ ] `./mvnw test -pl <受影响模块清单> -am` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0
+- [x] 全部 8 条 in-scope 安全 P2 已修复且各有回归测试
+- [x] 无 in-scope defect 被降级到 deferred / follow-up
+- [x] 每个 Workstream 的 Exit Criteria 全部勾选
+- [x] 受影响 owner docs 已核对（各 WS 已显式裁定）
+- [x] 独立子 agent closure audit 完成并写入下方 Closure 段
+- [x] Anti-Hollow Check：closure audit 已验证防护路径实际连通（如：无权限调用真实被拒、沙箱向量真实被拦截、不一致 open_id 真实被拒），无新增空分支
+- [x] `./mvnw test -pl <受影响模块清单> -am` 全绿
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -145,13 +145,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed:
+Status Note: 8 条安全 P2 全部行为级落地，独立 closure audit PASS（条件项：sftp 配置文档行已补 README、复选框已补勾，均完成）。
+Completed: 2026-09-30
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立 closure audit）
+- Reviewer / Agent: 独立 closure auditor（fresh session，agent_e45e3869-850d-4ce7-ab7b-1b49b698b187）
 - Evidence:
+  - WS1: PASS——DevDoc 7/7、DevTool 2/2、DevDocGrpc 1/1 @Auth(admin)；SysBizModel:44-46 登录要求 + CancelTokenManager 归属比对/幂等重绑定/REQ_ID_CONFLICT 三错误码实义；鉴权链 ReflectionBizModelBuilder:360-362→GraphQLActionAuthChecker 连通；红 _tmp/2283-ws1-red-evidence（4 例修复前失败）/绿 nop-biz 90 + graphql-core 134
+  - WS2: PASS——黑名单 :126 两新 token 形态照抄 ExpressionMeasureValidator:86/:116；BashExecutor:52,217 前缀匹配且原 13 条目保留；NopAiRag ingestDocument @Auth + bizObjName 防回归断言；红 ws2-2283/red-*.log / 绿精确 -pl 三模块 EXIT=0
+  - WS3: PASS——OkHttpClientProvider:160-165,176-181 两 WARN 且默认安装不变（=Deferred 裁定）；SftpClient:142-156 配置化+WARN+默认兼容；JdkFeishuHttpApi:84-110 真实 OAuth 端点（桩 HTTP 实测）；FeishuBindProvider:156-196 仅读 code、客户端 open_id 声明不读、ticket 消费前换取失败可重试（exchangeCalls==1 计数器接线验证）；下游 nop-auth-service 仅测试改动（git diff 实证）、gateway 零改动全绿；五模块 BUILD SUCCESS
+  - Anti-Hollow：防护路径全连通（取消/拦截/验证均有红→绿行为翻转或日志捕获断言）；新增失败路径全部类型化异常 fail-loud；9 受影响模块 scan-hollow --severity high exit 0
+  - check-plan-checklist --strict exit 0（closure 后复核）
+  - Deferred 诚实性：OkHttp useSsl 默认语义统一 = watch-only residual + successor required yes，三方一致（Non-Goals 预声明/代码注释/复核降级证据）
+  - Observation（不阻塞）：飞书 authen v1 端点属旧代 API，successor 接线 E2E 时复核（测试 javadoc 已声明）
 
 Follow-up:
 

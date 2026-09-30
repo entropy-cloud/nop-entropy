@@ -1,6 +1,6 @@
 # 2282 深度审计 2026-09-30 P1 缺陷修复（7 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-30
 > Source: `ai-dev/audits/2026-09/2026-09-30-1726-deep-audit-nop-entropy-full/summary.md`（P1 清单 + 复核结论）
 > Related: `ai-dev/plans/2283-deep-audit-security-p2-fixes.md`
@@ -65,7 +65,7 @@ Targets: `nop-wf/nop-wf-service/src/test/resources/_vfs/nop/wf/test/approval-for
 
 Exit Criteria:
 
-- [ ] disagree 后业务单据保持未通过状态有测试断言，且修复前该断言失败（先红后绿）
+- [x] disagree 后业务单据保持未通过状态有测试断言，且修复前该断言失败（先红后绿）
 - [x] agree 路径既有 E2E 全绿
 - [x] 无静默跳过：模板层不引入吞异常分支
 - [x] No owner-doc update required → 触发补记分支：workflow-configuration.md 原文档无 listener 规则，已新增「事件监听」节 + `*end` 结束原因判定强制规则
@@ -91,7 +91,7 @@ Exit Criteria:
 - [x] 并发双实例场景测试证明只有一个实例能进入 RUNNING（或第二个得到响亮失败）
 - [x] COMPLETED/SUSPENDED 记录存在时重提交不再抛裸唯一键冲突，行为有测试断言
 - [x] `./mvnw test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-retry/nop-retry-engine -am` 全绿
-- [ ] No owner-doc update required（ORM 结构变更随模型走；`03-modules/nop-batch.md` 若描述了 taskKey 语义需核对一致）
+- [x] Owner doc 核对完成：`nop-batch.md` 既有"同 taskName+taskKey 只允许一个活跃实例"与实现一致；`nop-retry.md` 已补查重契约
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 3 - nop-file FILE_HASH 写入 + nop-graph TarjanSCC 修复 [G9-04-01][G11-15-01]
@@ -131,20 +131,20 @@ Exit Criteria:
 - [x] merged beans 实测含六个语言 adapter bean（测试或 dump 断言）
 - [x] JsPromise 六个新用例全部通过，且至少 executor 抛错与 finally 抛错两例在修复前失败（先红后绿）
 - [x] `./mvnw test -pl nop-code/nop-code-service -am` 与 `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
-- [ ] No owner-doc update required（修复使实现与既有宣称/JS 语义对齐，无契约变化）
+- [x] No owner-doc update required（修复使实现与既有宣称/JS 语义对齐，无契约变化）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 全部 7 条 P1 对应 in-scope live defect 已修复且各有回归测试
-- [ ] 无 in-scope defect 被降级到 deferred / follow-up
-- [ ] 每个 Workstream 的 Exit Criteria 全部勾选
-- [ ] 受影响 owner docs 已核对（WS1/WS2/WS4 声明 No owner-doc update required 的核对动作已完成；WS3 的 reusable-modules-overview.md 已核对）
-- [ ] 独立子 agent closure audit 完成并写入下方 Closure 段
-- [ ] Anti-Hollow Check：closure audit 已验证修复路径从入口到出口连通（如：disagree→*end→不 approve；保存文件→hash 落库；容器装配→adapter 可解析），无空方法体/静默吞异常新增
-- [ ] `./mvnw test -pl <受影响模块清单> -am` 全绿（汇总命令与退出码记入 log）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0（逐模块执行）
+- [x] 全部 7 条 P1 对应 in-scope live defect 已修复且各有回归测试
+- [x] 无 in-scope defect 被降级到 deferred / follow-up
+- [x] 每个 Workstream 的 Exit Criteria 全部勾选
+- [x] 受影响 owner docs 已核对（WS1/WS2/WS4 声明 No owner-doc update required 的核对动作已完成；WS3 的 reusable-modules-overview.md 已核对）
+- [x] 独立子 agent closure audit 完成并写入下方 Closure 段
+- [x] Anti-Hollow Check：closure audit 已验证修复路径从入口到出口连通（如：disagree→*end→不 approve；保存文件→hash 落库；容器装配→adapter 可解析），无空方法体/静默吞异常新增
+- [x] `./mvnw test -pl <受影响模块清单> -am` 全绿（汇总命令与退出码记入 log）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0（逐模块执行）
 
 ## Deferred But Adjudicated
 
@@ -157,13 +157,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed:
+Status Note: 7 条 P1 全部行为级落地，独立 closure audit PASS（唯一条件为补齐本段记账，已完成）。
+Completed: 2026-09-30
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立 closure audit）
+- Reviewer / Agent: 独立 closure auditor（fresh session，agent_46434070-a527-4c95-a1f7-fffe30bf6db7）
 - Evidence:
+  - WS1: PASS——v1.xwf:13-14 appState 判定在位；TestUseApprovalE2E:268-275 双断言；红 _tmp/ws1-red.log（APPROVED 误置复现）/绿 _tmp/ws1-green.log；workflow-configuration.md:371,387 新规则节
+  - WS2: PASS——orm 源模型 :128-140 复合 UK/IX 与 _app.orm.xml:144-145 一致；DaoBatchStateStore:83-104 插入竞态 + :187-195 条件 UPDATE 闸门；RetryEngineImpl:211-266 全生命周期查重/TOCTOU 兜底；红 ws2-red-*.log / 绿 ws2-green-final.log EXIT=0。审计机制修正：真实缺口为无 UK 插入路径（UPDATE 实含 version 条件），已如实记录
+  - WS3: PASS——DaoResourceFileStore:205-224 DigestInputStream 单遍 hash 落库；TarjanSCC:79-88 lowLink 合并移至邻居扫描前；红 ws3-red-tarjan.log（{r,v,a} 拆分复现）/绿 ws3-green-run.log
+  - WS4: PASS——app-service.beans.xml:14-16 三 import；TestLanguageAdapterWiring 经 merged beans 断言六语言（红证容器仅三语言）；JsPromise 构造器 :38-50 / thenJs :93-95 / finallyDo :135-138 三处落地；红 ws4-*-red.log / 绿 EXIT_CODE=0
+  - Anti-Hollow：四条链行为级连通（红→绿翻转证明）；新增 catch 块逐个人工核验无吞异常；7 模块 scan-hollow --severity high 实跑 exit 0
+  - check-plan-checklist --strict exit 0（closure 后复核）
+  - Deferred/follow-up 分类诚实：deploy DDL 无 UK 属实（out-of-scope，与 nop-job 现状一致）
 
 Follow-up:
 
