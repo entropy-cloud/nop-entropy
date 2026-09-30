@@ -40,10 +40,11 @@
 - [ ] WI5 数据正确性对拍矩阵：同一数据集上四方对拍——DuckDB 经 nop-duckdb 执行层 API、DuckDB 经 ORM/EQL 既有方言路径、RDB 下推（经 nop-dao）、tablesaw；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
 - [ ] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
 - [ ] WI7 性能基线与调优档：同一数据集下 DuckDB vs tablesaw vs RDB 下推的可重复基准（记录数据量档位与 threads/memory_limit 配置），对齐 nop-benchmark 既有 JMH 模式或落可重复脚本——只立基线不设竞速指标（Deliverable: 基准基线记录；deps: WI6；Item Type: Proof）
+- [ ] WI8 duckdb 方言函数全量验证：覆盖 IDialect("duckdb").getFunctionNames() 生效集（继承链 default 49 ∪ postgresql 8 ∪ duckdb 覆盖 9 ≈ 50 个净函数，含 rand→random、instr→strpos、current_date/current_timestamp 括号语义、year 覆盖、uuid/uuidv7/cosh/sinh）+ sqls 模板（分页 LIMIT/OFFSET、dateTimeLiteral/timestampLiteral 字面量、forUpdate/lockHint 置空）+ errorCodes 模式匹配 + sqlDataTypes 映射的 DDL 可执行性；机制 = 参数化测试枚举全部函数逐一在真实 DuckDB 构造 SELECT fn(...) 执行（test scope duckdb_jdbc，jdbc:duckdb: 内存/临时库），要求无异常 + 关键语义断言（返回类型、括号、映射正确性）；发现方言定义错误修 duckdb.dialect.xml（nop-dao 既有配置，非生成物）并带回归；模式参照既有 TestDialect / TestSQLFunction / JdbcTestCase（Deliverable: 函数验证测试套件 + dialect.xml 缺陷修复；deps: WI0；Item Type: Proof + Fix）
 
 ### M4 — 收口
 
-- [ ] WI8 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI7 完成或显式延期裁定；Item Type: Proof）
+- [ ] WI9 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI8 完成或显式延期裁定；Item Type: Proof）
 
 ## Current Baseline（2026-09-30 核对）
 
@@ -93,9 +94,11 @@ flowchart TD
     WI4 --> WI6[WI6 深度场景端到端]
     WI5 --> WI6
     WI6 --> WI7[WI7 性能基线]
-    WI1 --> WI8[WI8 文档与路由收口]
-    WI4 --> WI8
-    WI7 --> WI8
+    WI0 --> WI8[WI8 方言函数全量验证]
+    WI1 --> WI9[WI9 文档与路由收口]
+    WI4 --> WI9
+    WI7 --> WI9
+    WI8 --> WI9
 ```
 
 ## Cross-Cutting（每个 WI 的完成判定）
@@ -114,7 +117,8 @@ flowchart TD
 ## Rules
 
 - 状态只在 Work Item Status 的 checkbox 通道维护，不设第二状态面；WI 编号全文件递增不重排。
-- deps 是唯一并行屏障；M1 内 WI2/WI3 可并行，WI8 必须最后。
+- deps 是唯一并行屏障；M1 内 WI2/WI3 可并行，WI8 仅依赖 WI0 可提前并行，WI9 必须最后。
+- WI 编号于 2026-09-30 初稿期调整过一次（函数验证 WI 插入 M3，原 WI8 文档收口顺延为 WI9）——彼时无任何 plan 引用编号，此后编号冻结不重排。
 - 本文件是状态索引与粗粒度分解，不是执行计划：不写实现步骤，deliverable 只述范围。
 - 每个 `planned`/`todo` WI 由独立 plan 承载；mission 启动后不得手工改本文件（先停 mission）。
 - 里程碑为派生状态：★ 可用基线仅在 WI0–WI3 全部完成后勾选。
