@@ -130,15 +130,21 @@ public class TestPatternValidation {
         assertTrue(pattern.getPrevious().getCondition() instanceof RichAndCondition);
     }
 
+    /**
+     * R5-CEP-08 (plan 368 Phase 5): invalid times() arguments are a malformed
+     * pattern shape and must surface as {@link MalformedPatternException} (the
+     * module's error layering for pattern-shape violations), not a bare
+     * {@code IllegalArgumentException} from Guard.
+     */
     @Test
     void testPatternTimesNegativeTimes() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(MalformedPatternException.class, () ->
                 Pattern.begin("start").where(dummyCondition()).times(-1));
     }
 
     @Test
     void testPatternTimesNegativeFrom() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(MalformedPatternException.class, () ->
                 Pattern.begin("start").where(dummyCondition()).times(-1, 2));
     }
 
@@ -329,22 +335,62 @@ public class TestPatternValidation {
 
     @Test
     void testTimesFromGreaterThanToThrows() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(MalformedPatternException.class, () ->
                 Pattern.<Event>begin("start")
                         .where(SimpleCondition.of(e -> true))
                         .times(5, 3));
     }
 
+    /**
+     * R5-CEP-08 (plan 368 Phase 5): times(0,0) can never match (zero occurrences)
+     * and must be rejected as a malformed pattern — previously it threw a bare
+     * IllegalArgumentException from the Times constructor AFTER the quantifier had
+     * already been mutated to OPTIONAL (polluted builder state on the thrown path).
+     */
+    @Test
+    void testTimesZeroToZeroThrows() {
+        assertThrows(MalformedPatternException.class, () ->
+                Pattern.<Event>begin("start")
+                        .where(SimpleCondition.of(e -> true))
+                        .times(0, 0));
+    }
+
+    @Test
+    void testTimesSingleArgZeroThrows() {
+        assertThrows(MalformedPatternException.class, () ->
+                Pattern.<Event>begin("start")
+                        .where(SimpleCondition.of(e -> true))
+                        .times(0));
+    }
+
     @Test
     void testTimesOrMoreZeroOrNegativeThrows() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(MalformedPatternException.class, () ->
                 Pattern.<Event>begin("start")
                         .where(SimpleCondition.of(e -> true))
                         .timesOrMore(0));
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(MalformedPatternException.class, () ->
                 Pattern.<Event>begin("start")
                         .where(SimpleCondition.of(e -> true))
                         .timesOrMore(-1));
+    }
+
+    /**
+     * R5-CEP-08 companion: a REJECTED times() call must leave the pattern's
+     * quantifier untouched (previously times(0,0) set OPTIONAL before Times.of
+     * rejected the range), so a builder chain that catches the error cannot
+     * silently continue with a polluted quantifier.
+     */
+    @Test
+    void testTimesRejectionLeavesQuantifierUnpolluted() {
+        Pattern<Object, ?> pattern = Pattern.begin("start").where(dummyCondition());
+        assertThrows(MalformedPatternException.class, () -> pattern.times(0, 0));
+        assertFalse(pattern.getQuantifier().hasProperty(Quantifier.QuantifierProperty.OPTIONAL),
+                "a rejected times() must not mutate the quantifier");
+        assertFalse(pattern.getQuantifier().hasProperty(Quantifier.QuantifierProperty.TIMES),
+                "a rejected times() must not mutate the quantifier");
+        assertTrue(pattern.getTimes() == null || pattern.getTimes().getFrom() > 0,
+                "a rejected times() must not leave a Times range behind");
     }
 
     private SimpleCondition<Object> dummyCondition() {

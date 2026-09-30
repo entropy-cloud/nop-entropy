@@ -44,6 +44,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MAX_RESTARTS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REGION_ID;
@@ -51,6 +52,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_INDEX;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_KEY;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REGION_RESTART_UNSUPPORTED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_RESTART_UNREPLAYABLE_INTERNAL_EDGE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_RESTART_EXHAUSTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_TASK_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SUPERVISION_ZOMBIE_TASK_TIMEOUT;
@@ -491,6 +493,17 @@ public class SupervisionLoop {
             }
         }
 
+        // REG-01 (R5 audit): fail fast BEFORE rebuilding anything when the restart
+        // would silently truncate output — the combination "internal
+        // non-materialized edge x COMPLETED producer (skipped by the F1 branch
+        // below, no re-emission source) x consumer state rolled back to a
+        // completed checkpoint" is an unrecoverable data-loss window. The check
+        // is hoisted in front of the rebuild loop (instead of inside the F1 skip
+        // branch) so the region is never left half restarted when the failure
+        // fires; the detection condition is exactly the F1-skip combination.
+        failFastOnUnreplayableInternalEdge(jobGraph, decomposition, regionId, tasks,
+                taskKeysToRestart, coordinator);
+
         // Phase 3: rebuild and resubmit each task in the region.
         for (String taskKey : taskKeysToRestart) {
             SubtaskTask oldTask = tasks.get(taskKey);
@@ -523,6 +536,133 @@ public class SupervisionLoop {
         }
 
         return true;
+    }
+
+    /**
+     * REG-01 (R5 audit): throws when this region restart contains the
+     * unrecoverable data-loss combination
+     * <ul>
+     *   <li>a consumer task that must be REBUILT (any non-COMPLETED state — its
+     *       operator state is rolled back to the latest completed checkpoint
+     *       epoch by {@code resolveConsistentCutEpochAndRestoreOperators}),</li>
+     *   <li>reading through a NON-materialized channel (an internal same-region
+     *       edge — the region decomposer only cuts at materialization edges)
+     *       whose partition is FINISHED,</li>
+     *   <li>while a completed checkpoint exists.</li>
+     * </ul>
+     * A finished non-materialized partition means its producer ran to
+     * end-of-stream (a failed/canceled producer never seals its partition), so
+     * that producer is COMPLETED and the F1 branch below skips it — no rebuilt
+     * producer re-emits the post-checkpoint window, and a non-materialized edge
+     * has no store-backed replay. Rebuilding anyway would deliver only the
+     * residual queue content + EOS: the records between the checkpoint epoch
+     * and the failure would be silently lost with the job still completing
+     * normally. Failing loud surfaces the condition for recovery instead.
+     *
+     * <p>Restarts without a completed checkpoint return silently: the residual +
+     * EOS delivery is the documented contract for that case (inherent in-flight
+     * loss of a non-materialized edge without a checkpoint — unchanged
+     * behavior, pinned by {@code TestRegionRestartInternalEdgeE2E}).
+     */
+    private static void failFastOnUnreplayableInternalEdge(JobGraph jobGraph,
+                                                           RegionDecomposition decomposition,
+                                                           RegionId regionId,
+                                                           Map<String, SubtaskTask> tasks,
+                                                           List<String> taskKeysToRestart,
+                                                           CheckpointCoordinator coordinator) {
+        if (coordinator == null || coordinator.getLatestCheckpoint() == null) {
+            // No checkpoint: nothing is rolled back, the residual + EOS delivery is
+            // the documented at-least-once contract for non-materialized edges.
+            return;
+        }
+        long checkpointEpoch = coordinator.getLatestCheckpoint().getCheckpointId();
+        for (String taskKey : taskKeysToRestart) {
+            SubtaskTask task = tasks.get(taskKey);
+            if (task == null || task.getState() == SubtaskTask.State.COMPLETED) {
+                // Skipped by the F1 branch (or absent) — not rebuilt, no state rollback.
+                continue;
+            }
+            StreamTaskInvokable invokable = task.getSubtask().getInvokable();
+            InputGate gate = invokable != null ? invokable.getInputGate() : null;
+            if (gate == null) {
+                continue;
+            }
+            List<InputChannel> channels = gate.getChannels();
+            for (int channelIndex = 0; channelIndex < channels.size(); channelIndex++) {
+                InputChannel channel = channels.get(channelIndex);
+                if (channel.getMaterializationPoint() != null) {
+                    // Materialized edge: the store snapshot >= checkpoint epoch covers
+                    // the window via the replay segment.
+                    continue;
+                }
+                ResultPartition partition = channel.getPartition();
+                if (!partition.isFinished()) {
+                    // Producer not completed: it is rebuilt and re-emits
+                    // [checkpointEpoch+1 .. now] over the reused partition.
+                    continue;
+                }
+                throw new StreamException(ERR_STREAM_RESTART_UNREPLAYABLE_INTERNAL_EDGE)
+                        .param(ARG_REGION_ID, regionId.getId())
+                        .param(ARG_VERTEX_ID, task.getSubtask().getVertexId())
+                        .param(ARG_TASK_INDEX, task.getSubtask().getTaskIndex())
+                        .param(ARG_CHECKPOINT_ID, checkpointEpoch)
+                        .param(ARG_DETAIL, "internal non-materialized edge channelIndex="
+                                + channelIndex + " of " + channels.size()
+                                + "; in-region producer vertex(es)="
+                                + describeInRegionProducerVertices(jobGraph, decomposition,
+                                        regionId, task.getSubtask().getVertexId(), tasks,
+                                        taskKeysToRestart)
+                                + "; partitionFinished=true; materialized=false");
+            }
+        }
+    }
+
+    /**
+     * REG-01 error context: names the in-region producer vertices feeding the
+     * given consumer vertex (edge topology) with their COMPLETED subtask
+     * indices, so the unreplayable edge is directly attributable from the error.
+     */
+    private static String describeInRegionProducerVertices(JobGraph jobGraph,
+                                                           RegionDecomposition decomposition,
+                                                           RegionId regionId,
+                                                           String consumerVertexId,
+                                                           Map<String, SubtaskTask> tasks,
+                                                           List<String> taskKeysToRestart) {
+        StringBuilder buf = new StringBuilder();
+        List<JobEdge> edges = jobGraph.getEdges();
+        if (edges != null) {
+            for (JobEdge edge : edges) {
+                if (!consumerVertexId.equals(edge.getTargetVertex())) {
+                    continue;
+                }
+                String source = edge.getSourceVertex();
+                RegionId sourceRegion = decomposition.getRegionId(source);
+                if (sourceRegion == null || !sourceRegion.equals(regionId)) {
+                    // Cross-region edges are materialized by construction; only
+                    // in-region (internal) edges can be non-materialized.
+                    continue;
+                }
+                if (buf.length() > 0) {
+                    buf.append(", ");
+                }
+                buf.append(source).append(" completedSubtasks=[");
+                boolean first = true;
+                for (String taskKey : taskKeysToRestart) {
+                    SubtaskTask t = tasks.get(taskKey);
+                    if (t == null || !t.getSubtask().getVertexId().equals(source)
+                            || t.getState() != SubtaskTask.State.COMPLETED) {
+                        continue;
+                    }
+                    if (!first) {
+                        buf.append(',');
+                    }
+                    buf.append(t.getSubtask().getTaskIndex());
+                    first = false;
+                }
+                buf.append(']');
+            }
+        }
+        return buf.length() == 0 ? "unknown" : buf.toString();
     }
 
     /**

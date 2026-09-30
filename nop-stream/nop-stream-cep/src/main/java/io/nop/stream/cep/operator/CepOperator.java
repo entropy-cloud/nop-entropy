@@ -159,13 +159,18 @@ public class CepOperator<IN, KEY, OUT>
     private transient NFA<IN> nfa;
 
     /**
-     * Ledger of pending event-time timers, scoped per key: key -> sorted pending
-     * timestamps. Timers are registered under the key that is current at registration
+     * Ledger of pending timers, scoped per key: key -> sorted pending
+     * timestamps. In event-time mode it carries the event-time timers (driven by
+     * watermark advancement via {@code processWatermark}); in processing-time
+     * mode it mirrors every processing-time registration (bucket + window
+     * timers, CEP-01) because the bucket drain reads its candidates from this
+     * ledger. Timers are registered under the key that is current at registration
      * time (set by the upstream {@code KeyExtractingOutput} before
      * {@code processElement}); the watermark drain
      * ({@link #processWatermark}) switches to each key's context before running
      * {@link #onEventTime(long)} so every key's queue and NFA state are advanced, not
-     * just the last processed element's key.
+     * just the last processed element's key — the processing-time callbacks capture
+     * and restore their owning key the same way.
      *
      * <p>A key's entry is removed once all of its timers are consumed, so the map is
      * bounded by the number of keys with genuinely pending work.
@@ -808,6 +813,17 @@ public class CepOperator<IN, KEY, OUT>
     private void registerTimer(long timestamp) {
         if (isProcessingTime) {
             internalTimerService.registerProcessingTimeTimer(VoidNamespace.INSTANCE, timestamp + 1);
+            // CEP-01 (R5 audit): the bucket drain (drainDueBuckets) reads its candidate
+            // timestamps from the per-key timer ledger, but this branch used to register
+            // ONLY the wall-clock timer without writing a ledger entry — and the per-key
+            // reconciliation (reconcileTimerLedgerIfNeeded) runs exactly once per key.
+            // After a key's first timer round, every newly buffered bucket was therefore
+            // permanently invisible to the drain: matches were silently lost and
+            // elementQueueState grew without bound (PT mode has no watermark self-heal).
+            // Mirror every processing-time registration into the ledger (the same
+            // superset invariant the event-time branch already maintains); consumed
+            // entries are removed by onProcessingTime.
+            registerEventTimeTimerForKey(currentRegistrationKey(), timestamp);
         } else {
             internalTimerService.registerEventTimeTimer(VoidNamespace.INSTANCE, timestamp);
         }
@@ -992,6 +1008,24 @@ public class CepOperator<IN, KEY, OUT>
 
         // STEP 5: idle-state reset (same logic as onEventTime)
         resetNfaStateIfFullyTimedOut(nfaState, internalTimerService.currentProcessingTime());
+
+        // STEP 6 (CEP-01): the ledger now mirrors every processing-time bucket and
+        // window-timer registration (see registerTimer). This drain consumed the
+        // buckets and advanced the windows of the CURRENT key, so its entries with
+        // timestamp <= the fire time have done their work — remove them so the
+        // ledger (which is checkpointed in FULL on every snapshot) does not grow
+        // without bound. Same bookkeeping semantics as the event-time cleanup in
+        // onEventTime; future window entries survive until their own fire time.
+        if (registeredEventTimeTimersByKey != null) {
+            Object key = currentRegistrationKey();
+            TreeSet<Long> timers = registeredEventTimeTimersByKey.get(key);
+            if (timers != null) {
+                timers.removeIf(timer -> timer <= time);
+                if (timers.isEmpty()) {
+                    registeredEventTimeTimersByKey.remove(key);
+                }
+            }
+        }
     }
 
     /**

@@ -507,6 +507,31 @@ public interface NopStreamErrors {
                     ARG_REGION_ID);
 
     /**
+     * R5-REG-01 (plan 368 Phase 5): a region
+     * restart combined an internal NON-materialized edge whose producer already
+     * COMPLETED with a consumer that must be rebuilt from a completed checkpoint.
+     * The restart loop skips COMPLETED producer tasks (their finished partition
+     * cannot be written again), so there is no re-emission source, and a
+     * non-materialized edge has no store-backed replay — while the rebuilt
+     * consumer's operator state is rolled back to the checkpoint epoch. The
+     * record window between the checkpoint epoch and the failure would therefore
+     * be silently truncated (undetectable wrong output). The restart fails loud
+     * instead, naming the edge, the producer/consumer subtasks and the
+     * checkpoint epoch. Restarts WITHOUT a completed checkpoint keep the
+     * documented residual + end-of-stream delivery (inherent in-flight loss of a
+     * non-materialized edge without a checkpoint — unchanged contract).
+     */
+    ErrorCode ERR_STREAM_RESTART_UNREPLAYABLE_INTERNAL_EDGE =
+            define("nop.err.stream.restart-unreplayable-internal-edge",
+                    "Region {regionId} restart would silently lose records: rebuilt consumer "
+                            + "vertex={vertexId} taskIndex={taskIndex} reads a FINISHED "
+                            + "non-materialized (internal) edge partition, its operator state was "
+                            + "about to be rolled back to checkpoint epoch {checkpointId}, and the "
+                            + "COMPLETED producer is skipped on restart (no replay source exists for "
+                            + "the post-checkpoint window). Failing loud instead of truncating output: {detail}",
+                    ARG_REGION_ID, ARG_VERTEX_ID, ARG_TASK_INDEX, ARG_CHECKPOINT_ID, ARG_DETAIL);
+
+    /**
      * Per {@code checkpoint-design.md} §8.5.2: a checkpoint restore detected a
      * two-phase-commit sink vertex whose checkpoint parallelism differs from the current
      * execution parallelism. Cross-parallelism redistribution of 2PC pending commits has no

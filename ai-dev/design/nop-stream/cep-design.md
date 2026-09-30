@@ -55,14 +55,25 @@ ps.select(matches -> { ... });
 
 **方式二：直接使用 NFA + SharedBuffer**（当前推荐）
 
-```java
-NFA<Event> nfa = NFACompiler.compile(pattern, timeoutHandling, comparator);
-SharedBuffer<Event> buffer = new SharedBuffer<>(stateStore, serializer, config);
+live API（锚点：`NFACompiler#compileFactory`、`NFA#advanceTime` / `NFA#process`、`SharedBufferAccessor`（AutoCloseable）；真实消费者 `FraudDetectionDemo#consumeEvent`）：
 
-// 逐条处理事件
-NFAState state = nfa.createInitialNFAState();
-Collection<Map<String, List<Event>>> matches = nfa.advanceTimeSharedBuffer(
-    sharedBufferAccessor, event, timestamp, state);
+```java
+NFA<Event> nfa = NFACompiler.compileFactory(pattern, timeoutHandling).createNFA();
+nfa.open(/* cepRuntimeContext */ null, /* conf */ null);
+SharedBuffer<Event> buffer = new SharedBuffer<>(stateStore, valueSerializer, new SharedBufferCacheConfig());
+NFAState nfaState = nfa.createInitialNFAState();
+
+try (SharedBufferAccessor<Event> accessor = buffer.getAccessor()) {
+    // 事件时间推进：排水到期的部分匹配。返回二元组——
+    // f0 = 完成的匹配，f1 = 超时的部分匹配（连同超时时间戳）
+    Tuple2<Collection<Map<String, List<Event>>>,
+           Collection<Tuple2<Map<String, List<Event>>, Long>>> drained =
+        nfa.advanceTime(accessor, nfaState, timestamp, AfterMatchSkipStrategy.noSkip());
+
+    // 喂入事件：返回完成的匹配（模式名 → 匹配事件列表）
+    Collection<Map<String, List<Event>>> matches = nfa.process(
+        accessor, nfaState, event, timestamp, AfterMatchSkipStrategy.noSkip(), /* timerService */ null);
+}
 ```
 
 FraudDetectionDemo 使用方式二，完全绕过 DataStream API。
@@ -259,7 +270,7 @@ SharedBuffer 内部维护：
 ### 5.3 状态依赖
 
 SharedBuffer 需要通过 `KeyedStateStore` 进行状态持久化：
-- `CepOperator.open()`（`CepOperator.java:209`）从 `stateBackend` 创建 `IKeyedStateBackend`（与 `WindowOperator` 同一模式）；若未配置 state backend，fallback 到 `MemoryKeyedStateBackend` 并发 WARN 日志（checkpoint 一致性不保证）。
+- `CepOperator#open()` 从 `stateBackend` 创建 `IKeyedStateBackend`（与 `WindowOperator` 同一模式）；若未配置 state backend，fallback 到 `MemoryKeyedStateBackend` 并发 WARN 日志（checkpoint 一致性不保证）。
 - 所有 CEP 状态（`computationStates` ValueState、`elementQueueState` MapState、SharedBuffer 引用）落到 `IKeyedStateBackend`，参与 checkpoint/restore。
 - 平台 `SimpleKeyedStateStore` 仍存在但**不再被 `CepOperator` 使用**——它是 nop-stream-core 内部的简易实现（`common/state/simple/`），仅作测试或无算子后端场景的占位；生产 CEP 走 `IKeyedStateBackend` 统一路径（G18/G19/G20 已闭环，见 `nop-stream-production-roadmap.md` Current baseline）。
 
@@ -344,3 +355,9 @@ OneInputStreamOperator<IN, OUT>
 **测试**：`TestCepKeyClassRecovery`——`longKeyedStateAddressableAfterJsonRoundTripRestore`（Long 键 JSON 往返：backend `getKeyType()==Long`（接线验证）+ 恢复键 equals 原始键且 `getClass()` 一致 + kill/restore e2e 恰一次匹配）、`pendingTimersFireForRealKeyAfterRestore`（台账键恢复为 Long 非 Integer + 水位推进后 timeout handler 真实发射 + 队列排空 + 台账清空）、`nonKeyedDefaultPathRestoresUnderByteKey`（默认路径 `Byte.class` 同口径）。
 
 **成熟度更新（§8 已知限制的收敛）**：`CepOperator` keyed 后端不再以 `Object.class` 创建（显式 `Byte.class` / checkpoint 携带类 / 捕获类三通道解析）；CEP 恢复的键类漂移与 timer 台账漂移已修复。
+
+## 10. 处理时间模式的 bucket 排水与 timer 台账（R5-CEP-01 — plan 368 Phase 5）
+
+**契约**：`CepOperator` 在 PT+comparator 模式下将事件缓冲进按处理时间戳分桶的 `elementQueueState`，桶排水（`drainDueBuckets`）的候选集合同样来自 per-key timer 台账（`registeredEventTimeTimersByKey`）。因此 **PT 分支的每一次 timer 注册（桶注册与窗口超时注册，`registerTimer`）都必须同步写入台账**——台账的「每桶必有台账项」超集不变式在 PT 与 ET 两种模式下同等成立；`onProcessingTime` 排水/推进完成后对本 key 执行 `timestamp <= fireTime` 的台账清理（与 `onEventTime` 的 ET 清理同构），台账保持有界且全量快照自洽。
+
+**缺陷形态（已修复，勿回退）**：PT 分支曾只注册墙钟 timer 不写台账，而台账对账（`reconcileTimerLedgerIfNeeded`）每 key 仅执行一次——每个 key 第一轮 timer 触发之后，新缓冲的桶对排水永久不可见：匹配静默丢失 + `elementQueueState`/SharedBuffer 无界增长（PT 模式无 watermark，无自愈路径）。修复前复现见 `_tmp/r5-p5-prefix-repro.log`（plan 368 Phase 5），回归钉子为 `TestCepOperatorProcessingTimeBucketDrain`（两轮 + 三轮 timer 排水、窗口超时轮后续轮仍排水、台账清理有界）。

@@ -483,8 +483,18 @@ public class Pattern<T, F extends T> {
     public Pattern<T, F> times(int times, @Nullable Duration windowTime) {
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
-        Guard.checkArgument(times > 0, "You should give a positive number greater than 0.");
         checkInnerWindowTime(windowTime, "times");
+        // CEP-08 (R5 audit): a non-positive count is a malformed pattern shape, not a
+        // programming error — it must surface as MalformedPatternException (the
+        // module's error layering for pattern-shape violations) instead of a bare
+        // IllegalArgumentException from Guard, so callers diagnosing on
+        // MalformedPatternException see it classified.
+        if (times <= 0) {
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL,
+                            "times() requires a positive number of occurrences for pattern "
+                                    + name + ", got: " + times);
+        }
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(times, windowTime);
         return this;
@@ -513,10 +523,21 @@ public class Pattern<T, F extends T> {
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
     public Pattern<T, F> times(int from, int to, @Nullable Duration windowTime) {
-        Guard.checkArgument(from <= to, "from must be <= to");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
         checkInnerWindowTime(windowTime, "times");
+        // CEP-08 (R5 audit): validate the full range BEFORE touching the quantifier
+        // (the previous Guard.checkArgument(from <= to) threw a bare
+        // IllegalArgumentException and times(0,0) mutated the quantifier to OPTIONAL
+        // before Times.of rejected it, leaving a polluted Pattern behind on the
+        // thrown path). times(0,0) (zero occurrences can never match), a negative
+        // bound and from > to are all malformed pattern shapes.
+        if (from < 0 || from > to || to < 1) {
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL,
+                            "times() requires 0 <= from <= to with at least one occurrence"
+                                    + " for pattern " + name + ", got: from=" + from + ", to=" + to);
+        }
         this.quantifier = Quantifier.times(quantifier.getConsumingStrategy());
         if (from == 0) {
             this.quantifier.optional();
@@ -551,10 +572,17 @@ public class Pattern<T, F extends T> {
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
     public Pattern<T, F> timesOrMore(int times, @Nullable Duration windowTime) {
-        Guard.checkArgument(times > 0, "times must be > 0");
         checkIfNoNotPattern();
         checkIfQuantifierApplied();
         checkInnerWindowTime(windowTime, "timesOrMore");
+        // CEP-08 (R5 audit): malformed pattern shape -> MalformedPatternException,
+        // mirroring times() (was a bare Guard IllegalArgumentException).
+        if (times <= 0) {
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL,
+                            "timesOrMore() requires a positive number of occurrences for pattern "
+                                    + name + ", got: " + times);
+        }
         this.quantifier = Quantifier.looping(quantifier.getConsumingStrategy());
         this.times = Quantifier.Times.of(times, windowTime);
         return this;

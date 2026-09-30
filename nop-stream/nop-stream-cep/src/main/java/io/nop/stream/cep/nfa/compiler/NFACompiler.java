@@ -753,8 +753,22 @@ public class NFACompiler {
                     final IterativeCondition<T> untilCondition =
                             (IterativeCondition<T>) currentPattern.getUntilCondition();
                     if (untilCondition != null) {
+                        // CEP-02 (R5 audit): the copy exists in originalStateMap only
+                        // when the greedy condition actually rewired the proceed
+                        // target's transitions — written by createTimesState (which
+                        // requires Times.from != Times.to) or by createLooping under a
+                        // renamed copyWithoutTransitiveNots key. On a lookup miss (e.g.
+                        // times(0,1) normalizing to Times(1,1), or the not-follow
+                        // middle-chain shape) the plain proceedState is UNMUTATED and is
+                        // the correct until-bypass target. The previous unguarded get
+                        // compiled a NULL-target PROCEED edge that NPE'd the runtime
+                        // decision-graph walk the first time the until condition hit.
+                        State<T> untilProceedTarget = originalStateMap.get(proceedState.getName());
+                        if (untilProceedTarget == null) {
+                            untilProceedTarget = proceedState;
+                        }
                         singletonState.addProceed(
-                                originalStateMap.get(proceedState.getName()),
+                                untilProceedTarget,
                                 new RichAndCondition<>(proceedCondition, untilCondition));
                     }
                     singletonState.addProceed(
