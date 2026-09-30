@@ -19,7 +19,9 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.retry.api.IRetryTask;
 import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
@@ -35,8 +37,12 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.retry.dao._NopRetryDaoConstants.*;
 import static io.nop.retry.api.NopRetryApiConstants.*;
@@ -64,6 +70,9 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
 
     @Inject
     IDaoProvider daoProvider;
+
+    @Inject
+    IJdbcTemplate jdbcTemplate;
 
     private IScheduledExecutor testExecutor;
 
@@ -531,6 +540,149 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         assertNotEquals(deadLetters.get(0).getSid(), deadLetters.get(1).getSid());
     }
 
+    // ==================== Idempotent Lifecycle Tests (plan 2282 G7-14-01) ====================
+
+    /**
+     * 测试环境的 init-database-schema 只建表不建唯一索引（DataBaseSchemaInitializer 仅执行 createTable），
+     * 生产环境中 UK_RETRY_IDEMPOTENT_ID(namespaceId,groupId,idempotentId) 由 ORM 模型经 dbtool 物化。
+     * 幂等键生命周期用例这里显式建出与源模型一致的唯一键，使测试与生产同契约。
+     */
+    private void ensureIdempotentUniqueIndex() {
+        jdbcTemplate.executeUpdate(SQL.begin()
+                .name("test:create-unique-idempotent-id")
+                .sql("CREATE UNIQUE INDEX IF NOT EXISTS UK_RETRY_IDEMPOTENT_ID_TEST " +
+                        "ON nop_retry_record(NAMESPACE_ID, GROUP_ID, IDEMPOTENT_ID)")
+                .end());
+    }
+
+    /**
+     * COMPLETED 记录占用幂等键时重提交：幂等重放必须返回成功，
+     * 不再执行业务调用、不再插入新记录、不得以裸唯一键冲突失败。
+     */
+    @Test
+    void testResubmitAfterCompleted_shouldReplaySuccessWithoutRerun() throws Exception {
+        ensureIdempotentUniqueIndex();
+        NopRetryPolicy policy = createTestPolicy("policy-replay-completed");
+        recordStore.savePolicy(policy);
+
+        rpcInvoker.setResponse(ApiResponse.success("first"));
+        IRetryTask task1 = retryEngine.newRetryTask("svc", "method")
+                .withPolicyId("policy-replay-completed")
+                .withIdempotentId("idem-replay-completed");
+        ApiRequest<Object> request = new ApiRequest<>();
+        retryEngine.executeTask(task1, request, null).toCompletableFuture().get();
+        assertEquals(1, rpcInvoker.getInvocationCount());
+
+        NopRetryRecord completed = findRecordByIdempotentId("idem-replay-completed");
+        assertNotNull(completed);
+        assertEquals(RETRY_RECORD_STATUS_COMPLETED, completed.getStatus());
+
+        // 上一次已成功后的重放：幂等返回，不二次执行副作用
+        rpcInvoker.setResponse(ApiResponse.success("second"));
+        IRetryTask task2 = retryEngine.newRetryTask("svc", "method")
+                .withPolicyId("policy-replay-completed")
+                .withIdempotentId("idem-replay-completed");
+        ApiResponse<?> response = retryEngine.executeTask(task2, request, null)
+                .toCompletableFuture().get(20, TimeUnit.SECONDS);
+
+        assertTrue(response.isOk(), "resubmission over a COMPLETED record must be an idempotent success");
+        assertEquals(1, rpcInvoker.getInvocationCount(), "completed work must not be executed again");
+
+        List<NopRetryRecord> records = findRecordsByIdempotentId("idem-replay-completed");
+        assertEquals(1, records.size(), "replay must not insert a new record row");
+        assertEquals(RETRY_RECORD_STATUS_COMPLETED, records.get(0).getStatus());
+    }
+
+    /**
+     * SUSPENDED 记录占用幂等键时重提交：不得撞唯一键；DISCARD 策略下保持暂停、
+     * 不偷偷恢复执行，也不执行业务调用。
+     */
+    @Test
+    void testResubmitAfterSuspended_shouldStaySuspendedWithoutCrash() throws Exception {
+        ensureIdempotentUniqueIndex();
+        NopRetryPolicy policy = createTestPolicy("policy-replay-suspended");
+        recordStore.savePolicy(policy);
+
+        NopRetryRecord record = createTestRecord("suspend-replay", RETRY_RECORD_STATUS_PENDING);
+        record.setIdempotentId("idem-replay-suspended");
+        record.setPolicyId("policy-replay-suspended");
+        recordStore.saveRecord(record);
+        retryEngine.pause("suspend-replay");
+        assertEquals(RETRY_RECORD_STATUS_SUSPENDED, recordStore.loadRecord("suspend-replay").getStatus());
+
+        IRetryTask task = retryEngine.newRetryTask("svc", "method")
+                .withPolicyId("policy-replay-suspended")
+                .withIdempotentId("idem-replay-suspended");
+        ApiResponse<?> response = retryEngine.executeTask(task, new ApiRequest<>(), null)
+                .toCompletableFuture().get(20, TimeUnit.SECONDS);
+
+        assertTrue(response.isOk(), "resubmission must be answered, not fail with a constraint violation");
+        assertEquals(0, rpcInvoker.getInvocationCount(), "suspended work must not be executed");
+
+        // 暂停是运维动作，重复提交不得破坏
+        assertEquals(RETRY_RECORD_STATUS_SUSPENDED, recordStore.loadRecord("suspend-replay").getStatus());
+        assertEquals(1, findRecordsByIdempotentId("idem-replay-suspended").size());
+    }
+
+    /**
+     * 并发首次提交（TOCTOU）：两线程同时以同一幂等键首发。
+     * 只能落一条记录、只执行一次业务调用；输掉唯一键竞争的一方按 blockStrategy 处理，
+     * 不得以裸数据库约束冲突失败。
+     */
+    @Test
+    void testConcurrentFirstSubmission_onlyOneRecordAndOneExecution() throws Exception {
+        ensureIdempotentUniqueIndex();
+        NopRetryPolicy policy = createTestPolicy("policy-race-first");
+        policy.setBlockStrategy(BLOCK_STRATEGY_DISCARD);
+        recordStore.savePolicy(policy);
+
+        rpcInvoker.setResponse(ApiResponse.success("ok"));
+
+        // 确定化TOCTOU窗口：两线程都完成幂等查重（均为空）后才同时放行插入
+        IRetryRecordStore baseStore = recordStore;
+        RaceWindowRecordStore racingStore = new RaceWindowRecordStore(baseStore);
+        racingStore.dedupLatch = new CountDownLatch(2);
+        retryEngine.setRecordStore(racingStore);
+        try {
+            int n = 2;
+            CountDownLatch startLatch = new CountDownLatch(1);
+            Queue<ApiResponse<?>> responses = new ConcurrentLinkedQueue<>();
+            Queue<Throwable> failures = new ConcurrentLinkedQueue<>();
+            CountDownLatch doneLatch = new CountDownLatch(n);
+
+            for (int i = 0; i < n; i++) {
+                new Thread(() -> {
+                    try {
+                        startLatch.await(10, TimeUnit.SECONDS);
+                        IRetryTask task = retryEngine.newRetryTask("svc", "method")
+                                .withPolicyId("policy-race-first")
+                                .withIdempotentId("idem-race-first");
+                        responses.add(retryEngine.executeTask(task, new ApiRequest<>(), null)
+                                .toCompletableFuture().get(20, TimeUnit.SECONDS));
+                    } catch (Throwable e) {
+                        failures.add(e);
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                }, "retry-race-first-" + i).start();
+            }
+            startLatch.countDown();
+            assertTrue(doneLatch.await(60, TimeUnit.SECONDS), "concurrent submissions must finish in time");
+
+            assertTrue(failures.isEmpty(),
+                    "concurrent first submission must not surface a raw constraint violation: " + failures);
+            assertEquals(n, responses.size());
+            for (ApiResponse<?> resp : responses)
+                assertTrue(resp.isOk());
+
+            assertEquals(1, rpcInvoker.getInvocationCount(), "the task must execute exactly once");
+            assertEquals(1, findRecordsByIdempotentId("idem-race-first").size(),
+                    "unique key must keep exactly one record row");
+        } finally {
+            retryEngine.setRecordStore(baseStore);
+        }
+    }
+
     @Test
     void testExecuteTask_shouldHandleDeadlineExceeded() throws Exception {
         NopRetryPolicy policy = createTestPolicy("policy-deadline");
@@ -815,6 +967,125 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
     // ==================== Helper Methods ====================
 
     /**
+     * 幂等查重路径上的会合栅栏：两线程的查重都执行完毕且未命中后，才同时放行进入插入竞争。
+     * dedupLatch 为 null 时完全透传。
+     */
+    static class RaceWindowRecordStore implements IRetryRecordStore {
+        final IRetryRecordStore delegate;
+        volatile CountDownLatch dedupLatch;
+
+        RaceWindowRecordStore(IRetryRecordStore delegate) {
+            this.delegate = delegate;
+        }
+
+        private void awaitRaceWindow() {
+            CountDownLatch latch = this.dedupLatch;
+            if (latch == null)
+                return;
+            latch.countDown();
+            try {
+                if (!latch.await(10, TimeUnit.SECONDS))
+                    throw new IllegalStateException("race window threads did not converge in time");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted while waiting for race window", e);
+            }
+        }
+
+        @Override
+        public NopRetryRecord findPendingRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
+            NopRetryRecord record = delegate.findPendingRecordByIdempotentId(namespaceId, groupId, idempotentId);
+            // 会合点在查重之后：保证两线程的查重都返回null后，才把null交给引擎去触发插入竞争
+            if (record == null)
+                awaitRaceWindow();
+            return record;
+        }
+
+        @Override
+        public NopRetryRecord findRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
+            NopRetryRecord record = delegate.findRecordByIdempotentId(namespaceId, groupId, idempotentId);
+            if (record == null)
+                awaitRaceWindow();
+            return record;
+        }
+
+        @Override
+        public NopRetryRecord newRecord(IRetryTask task, ApiRequest<?> request) {
+            return delegate.newRecord(task, request);
+        }
+
+        @Override
+        public NopRetryAttempt newAttempt(NopRetryRecord record) {
+            return delegate.newAttempt(record);
+        }
+
+        @Override
+        public void saveAttempt(NopRetryAttempt attempt) {
+            delegate.saveAttempt(attempt);
+        }
+
+        @Override
+        public List<NopRetryRecord> fetchPendingRecords(int limit, io.nop.api.core.beans.IntRangeSet partitions) {
+            return delegate.fetchPendingRecords(limit, partitions);
+        }
+
+        @Override
+        public List<NopRetryRecord> tryLockRecordsForProcess(List<NopRetryRecord> records, long retryingTimeoutMs) {
+            return delegate.tryLockRecordsForProcess(records, retryingTimeoutMs);
+        }
+
+        @Override
+        public NopRetryRecord loadRecord(String recordId) {
+            return delegate.loadRecord(recordId);
+        }
+
+        @Override
+        public void deleteRecord(NopRetryRecord record) {
+            delegate.deleteRecord(record);
+        }
+
+        @Override
+        public NopRetryDeadLetter loadDeadLetter(String deadLetterId) {
+            return delegate.loadDeadLetter(deadLetterId);
+        }
+
+        @Override
+        public void saveDeadLetter(NopRetryDeadLetter deadLetter) {
+            delegate.saveDeadLetter(deadLetter);
+        }
+
+        @Override
+        public void saveRecord(NopRetryRecord record) {
+            delegate.saveRecord(record);
+        }
+
+        @Override
+        public void updateRecord(NopRetryRecord record) {
+            delegate.updateRecord(record);
+        }
+
+        @Override
+        public void moveToDeadLetter(NopRetryRecord record, String errorCode, String errorMessage, String errorStack) {
+            delegate.moveToDeadLetter(record, errorCode, errorMessage, errorStack);
+        }
+
+        @Override
+        public long getCurrentTime() {
+            return delegate.getCurrentTime();
+        }
+
+        @Override
+        public void savePolicy(NopRetryPolicy policy) {
+            delegate.savePolicy(policy);
+        }
+
+        @Override
+        public NopRetryPolicy loadPolicy(String policyId) {
+            return delegate.loadPolicy(policyId);
+        }
+    }
+
+    /**
      * future.get() 会把异常包成 ExecutionException，断言 cause 为 NopException 并返回
      */
     private NopException expectFutureFailure(CompletableFuture<?> future) throws Exception {
@@ -877,6 +1148,12 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         query.addFilter(FilterBeans.eq("idempotentId", idempotentId));
         query.setLimit(1);
         return daoProvider.daoFor(NopRetryRecord.class).findFirstByQuery(query);
+    }
+
+    private List<NopRetryRecord> findRecordsByIdempotentId(String idempotentId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("idempotentId", idempotentId));
+        return daoProvider.daoFor(NopRetryRecord.class).findAllByQuery(query);
     }
 
     private List<NopRetryAttempt> findAttempts(String recordId) {

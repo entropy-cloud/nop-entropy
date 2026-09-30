@@ -73,24 +73,24 @@ Exit Criteria:
 
 ### Workstream 2 - nop-batch taskKey 唯一性 + nop-retry 幂等键生命周期 [G7-04-01][G7-14-01]
 
-Status: planned
+Status: completed
 Targets: `nop-batch/model/nop-batch.orm.xml`、`DaoBatchStateStore`、nop-retry 对应 store/record 处理类
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] nop-batch ORM 源模型为 NopBatchTask 增加 **(taskName, taskKey) 复合 unique-key** 与查询索引（不得用 taskKey 单列唯一——不同 taskName 需可复用同一 taskKey；查询语义对照 `loadExistingTask` 与 `docs-for-ai/03-modules/nop-batch.md`）（Fix）
-- [ ] 为 nop-batch-dao 补齐 codegen 触发路径：在 nop-batch-dao/pom.xml 显式声明 exec-maven-plugin(CodeGenTask)（对齐 nop-job-dao 先例），使 ORM 源模型变更经构建同步到生成物；禁止手改 `_gen`/`_app.orm.xml`（Fix）
-- [ ] DaoBatchStateStore 启动防重改为数据库层有保障的语义：冲突可判定（唯一键冲突或条件更新 affected-rows=0），不再依赖 check-then-act；已 RUNNING 冲突按既有错误语义响亮失败（Fix）
-- [ ] nop-retry：幂等键查询覆盖全部生命周期状态——存在活跃记录时按 blockStrategy 处理；存在终态记录时不得再撞唯一键（复用结果或显式清除重建，以审计报告 07 的建议方向为准，二选一并在代码注释声明语义）（Fix）
-- [ ] 两个缺陷各带回归测试：并发/重放场景模拟（单测可用两线程 + 栅栏或直接构造冲突行）。测试基建声明：nop-batch-dao 当前零测试且 pom 无 DB 测试依赖，需按 nop-retry-engine 现成范式（JunitAutoTestCase + @NopTestConfig(localDb=true) + h2）新增 pom test 依赖与测试资源配置（Proof）
-- [ ] DaoBatchStateStore 补最小直接测试（审计确认其当前零测试）（Proof）
+- [x] nop-batch ORM 源模型为 NopBatchTask 增加 **(taskName, taskKey) 复合 unique-key** 与查询索引（不得用 taskKey 单列唯一——不同 taskName 需可复用同一 taskKey；查询语义对照 `loadExistingTask` 与 `docs-for-ai/03-modules/nop-batch.md`）（Fix）
+- [x] 为 nop-batch-dao 补齐 codegen 触发路径：在 nop-batch-dao/pom.xml 显式声明 exec-maven-plugin(CodeGenTask)（对齐 nop-job-dao 先例），使 ORM 源模型变更经构建同步到生成物；禁止手改 `_gen`/`_app.orm.xml`（Fix）
+- [x] DaoBatchStateStore 启动防重改为数据库层有保障的语义：冲突可判定（唯一键冲突或条件更新 affected-rows=0），不再依赖 check-then-act；已 RUNNING 冲突按既有错误语义响亮失败（Fix）
+- [x] nop-retry：幂等键查询覆盖全部生命周期状态——存在活跃记录时按 blockStrategy 处理；存在终态记录时不得再撞唯一键（复用结果或显式清除重建，以审计报告 07 的建议方向为准，二选一并在代码注释声明语义）（Fix）
+- [x] 两个缺陷各带回归测试：并发/重放场景模拟（单测可用两线程 + 栅栏或直接构造冲突行）。测试基建声明：nop-batch-dao 当前零测试且 pom 无 DB 测试依赖，需按 nop-retry-engine 现成范式（JunitAutoTestCase + @NopTestConfig(localDb=true) + h2）新增 pom test 依赖与测试资源配置（Proof）
+- [x] DaoBatchStateStore 补最小直接测试（审计确认其当前零测试）（Proof）
 
 Exit Criteria:
 
-- [ ] ORM 模型含 (taskName, taskKey) 复合 unique-key；nop-batch-dao codegen 插件声明后构建产出与源模型一致（核对生成产物包含该约束；如生成链路走通有困难，以离线 xgen 生成并提交产物，记录所用命令）
-- [ ] 并发双实例场景测试证明只有一个实例能进入 RUNNING（或第二个得到响亮失败）
-- [ ] COMPLETED/SUSPENDED 记录存在时重提交不再抛裸唯一键冲突，行为有测试断言
-- [ ] `./mvnw test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-retry/nop-retry-engine -am` 全绿
+- [x] ORM 模型含 (taskName, taskKey) 复合 unique-key；nop-batch-dao codegen 插件声明后构建产出与源模型一致（核对生成产物包含该约束；如生成链路走通有困难，以离线 xgen 生成并提交产物，记录所用命令）
+- [x] 并发双实例场景测试证明只有一个实例能进入 RUNNING（或第二个得到响亮失败）
+- [x] COMPLETED/SUSPENDED 记录存在时重提交不再抛裸唯一键冲突，行为有测试断言
+- [x] `./mvnw test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-retry/nop-retry-engine -am` 全绿
 - [ ] No owner-doc update required（ORM 结构变更随模型走；`03-modules/nop-batch.md` 若描述了 taskKey 语义需核对一致）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 

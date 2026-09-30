@@ -63,6 +63,13 @@ public interface IRetryRecordStore {
     NopRetryRecord findPendingRecordByIdempotentId(String namespaceId, String groupId, String idempotentId);
 
     /**
+     * 根据幂等ID查找任意生命周期状态的重试记录（PENDING/RETRYING/COMPLETED/SUSPENDED）。
+     * 提交去重必须覆盖全部状态：幂等键在记录行存在期间始终被占用，
+     * 只查活跃状态会让终态记录的重提交绕过blockStrategy、直接撞唯一键（plan 2282 G7-14-01）。
+     */
+    NopRetryRecord findRecordByIdempotentId(String namespaceId, String groupId, String idempotentId);
+
+    /**
      * 删除未完成的重试记录
      */
     void deleteRecord(NopRetryRecord record);

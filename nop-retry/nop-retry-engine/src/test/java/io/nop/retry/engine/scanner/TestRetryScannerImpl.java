@@ -90,6 +90,11 @@ class TestRetryScannerImpl {
         }
 
         @Override
+        public io.nop.retry.dao.entity.NopRetryRecord findRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void deleteRecord(io.nop.retry.dao.entity.NopRetryRecord record) {
             throw new UnsupportedOperationException();
         }
@@ -157,7 +162,7 @@ class TestRetryScannerImpl {
             field.setAccessible(true);
             field.set(scanner, running);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("failed to set running field", e);
         }
     }
 
@@ -257,7 +262,7 @@ class TestRetryScannerImpl {
         setRunning(scanner, true);
 
         assertDoesNotThrow(() -> scanner.doScan(batch -> {
-            throw new RuntimeException("processor failed");
+            throw new IllegalStateException("processor failed");
         }));
         assertEquals(2, store.fetchCount);
         assertEquals(1, store.lockCount);
