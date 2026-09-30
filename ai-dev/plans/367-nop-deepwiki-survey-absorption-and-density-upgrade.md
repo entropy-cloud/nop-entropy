@@ -1,6 +1,6 @@
 # 367 nop-deepwiki 调研吸收落地：引用全量机检、mermaid 可选渲染校验、密度硬约束与存量页重生成
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-30（依赖收敛裁定：mermaid/jsdom 入 ai-dev/tools 既有 pnpm 根管理，废弃项目外工具引用）
 > Draft Review: 一轮独立子 agent 对抗性审查（2026-09-29）：0 Blocker + 2 Major（nop-xlang 第四 wiki 未裁决、fixture git 前提不成立）+ 4 Minor，全部修复后转 active
 > Source: ai-dev/logs/2026/09-29.md（deepwiki.com 对标测量 + 开源项目调研）、ai-dev/plans/363-nop-deepwiki-structure-and-consumption-upgrade.md（completed，前置）
@@ -73,8 +73,8 @@ Exit Criteria:
 - [x] 对含越界行号引用的临时页面运行 gen：越界条目降级为文件级链接、降级清单与计数可见（合成用例：`pom.xml:99999-100001` 降级 + 多区段 `20-29,88888` 整条降级，报告 2 条）
 - [x] 现网三 wiki 重跑 gen：降级计数输出且无异常（0 条越界），重写/迁移统计口径与改动前一致
 - [x] `node --check` 通过
-- [ ] No owner-doc update required（SKILL.md Phase 5 对 gen 职责的描述若因本项产生出入，同行内更新）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] No owner-doc update required（SKILL.md Phase 5 对 gen 职责的描述若因本项产生出入，同行内更新）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 2 - check-wiki mermaid 真实解析校验（可选增强）+ skill 自检固化
 
@@ -89,12 +89,12 @@ Targets: `scripts/check-wiki.mjs`、`scripts/selftest.mjs`（新增）、`script
 
 Exit Criteria:
 
-- [x] `node .opencode/skills/nop-deepwiki/scripts/selftest.mjs` 退出码 0，五类缺陷全部被断言检出（14/14 断言，含 fixture 自身越界引用被边界机检抓出的实例）
+- [x] `node .opencode/skills/nop-deepwiki/scripts/selftest.mjs` 退出码 0，五类缺陷全部被断言检出（18 项断言全过，含 fixture 自身越界引用被边界机检抓出的实例）
 - [x] 现网三 wiki 跑 check：mermaid 路径输出跳过提示（依赖不可用），其余结果保持 0 ERROR 0 WARN 不变
 - [x] **2026-09-30 追加（ai-dev/tools 依赖收敛 + 真解析实启用）**：mermaid 11.17.2 + jsdom 26.1.0 并入 `ai-dev/tools/package.json` 既有 pnpm 根（初版误在根 tools/ 另建 pnpm 根，同日裁正并入）；check-wiki 加载改为 `ai-dev/tools/node_modules` 显式解析（`dist/mermaid.esm.min.mjs` 优先、core 回退）+ jsdom 全局注入（openwiki dom-shim 同做法）；四 wiki（task/batch/orm/xlang）存量 65 个 mermaid 块全部真实解析通过；坏块 fixture 报 `Mermaid 解析失败（块 1）：Parse error...` ERROR；模拟无 ai-dev/tools/node_modules 环境输出显式跳过行、无误报；解析失败时通过计数不再误报"全部通过"（0/1 修正输出）
 - [x] 两脚本 `node --check` 通过
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 3 - SKILL.md 代码块密度硬约束
 
@@ -111,8 +111,8 @@ Exit Criteria:
 
 - [x] check-wiki 现网输出与新规则一致：不达标页 WARN 可见（nop-task 6 / nop-batch 5 / nop-orm 5，与逐页清单吻合）、达标页（modules/batch-core、topics/assembly-interceptors）无新增 WARN
 - [x] SKILL.md 三处口径一致（人工核对）
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 4 - 存量不达标页重生成（端到端验证）
 
@@ -129,20 +129,20 @@ Exit Criteria:
 
 - [x] 三 wiki check `--strict` 0 ERROR 0 WARN；verify-claims 0 ERROR
 - [x] 16 页密度复测达标（量化数字留档日志）
-- [ ] `deepwiki/README.md` 状态行同步
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] `deepwiki/README.md` 状态行同步
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ## Closure Gates
 
 > 纯 node 脚本/文档计划，无 Java 变更：`./mvnw` 构建验证不适用，以下列替代验证。
 
-- [ ] 四个 Phase 全部 completed，Exit Criteria 全勾
-- [ ] **端到端验证**：新管线（gen 越界降级 → check 新密度 WARN/渲染校验路径 → selftest → 存量页重生成）在 Phase 4 真实重生成流程中完整跑通
-- [ ] 三 wiki check `--strict` 全绿（含 verify-claims 抽检 0 ERROR）
-- [ ] 无 in-scope live defect 被降级为 deferred/follow-up
-- [ ] 受影响 owner docs（deepwiki/README.md、ai-dev/logs/）已同步；docs-for-ai 明确不需要更新
-- [ ] 独立子 agent closure audit 完成并把证据写入本文件 Closure 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0
+- [x] 四个 Phase 全部 completed，Exit Criteria 全勾
+- [x] **端到端验证**：新管线（gen 越界降级 → check 新密度 WARN/渲染校验路径 → selftest → 存量页重生成）在 Phase 4 真实重生成流程中完整跑通
+- [x] 三 wiki check `--strict` 全绿（含 verify-claims 抽检 0 ERROR）
+- [x] 无 in-scope live defect 被降级为 deferred/follow-up
+- [x] 受影响 owner docs（deepwiki/README.md、ai-dev/logs/）已同步；docs-for-ai 明确不需要更新
+- [x] 独立子 agent closure audit 完成并把证据写入本文件 Closure 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -168,14 +168,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （执行完成后填写）
-Completed: （日期）
+Status Note: 四个 Phase 全部落地并经独立审计验证：gen 引用行号全量边界机检（两路径、多区段、降级汇报）、check mermaid 三态渲染校验（batch 17 块/orm 16 块真实解析通过）、selftest 18 项断言可重复自检、SKILL 密度硬约束 + 16 页存量重生成（代码块均值 0.3→5.4）后三 wiki strict 全绿。调研吸收清单中"立即可做"三项与"中期"密度项全部收口；nop-code 索引、Claims 增量等产品形态项按 Deferred 裁决留档。
+Completed: 2026-09-29
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子 agent（fresh session，agent_0c1dab74-5923-4b50-a3cf-42db82dbdfcf）
+- Audit Session: agent_0c1dab74-5923-4b50-a3cf-42db82dbdfcf
+- Evidence:
+  - Phase 1 EC：anchorOutOfBounds 双调用点实测生效（审计者在 _tmp/audit367 独立构造 `20-29,88888` 多区段越界→整条降级+stdout 明细）；现网副本重跑 0 降级、正文零漂移
+  - Phase 2 EC：selftest 退出码 0（18 项断言）；mermaid 三态分叉逐行核实（L417/L438/L453/L457）；mermaid 11.17.2 实际可用（ai-dev/tools/node_modules），三 wiki 实跑"渲染校验：16/17/16 块全部解析通过"
+  - Phase 3 EC：三处口径一致（SKILL L234-237 = 最终清单 L318 = check isExcerptPage/MIN_CODE_EXCERPTS）；nop-xlang 6 页密度 WARN 证明 WARN 路径真实工作
+  - Phase 4 EC：三 wiki `--strict --verify-claims 20 --seed 42` 均 0 ERROR 0 WARN（PASS 16/17/19）；抽 3 页密度 ≥3 且 architecture 符号级类名逐个在源码找到；摘录 BatchChunkProcessor.java:42-59 与真实文件逐行一致
+  - Anti-Hollow：新增组件均被运行时调用（双路径调用 anchorOutOfBounds、主流程 await mermaidValidate、selftest 可运行）；无空方法体/静默 no-op（mermaid 不可用三路径均有显式输出）；无 Java 变更，./mvnw 与 scan-hollow 不适用，替代验证（node --check + selftest + check-wiki）全部实际执行
+  - Deferred 诚实性：nop-xlang 1 ERROR/11 WARN（其中 6 WARN 为新密度门禁副作用，已被 Deferred 裁决预判）out-of-scope 成立；无 in-scope defect 被降级
+  - `node ai-dev/tools/check-plan-checklist.mjs` 退出码 0（本段写入后复跑确认）
 
 Follow-up:
 
-- （待填写）
+- deepwiki/nop-xlang 链接修复 + 密度升级（随其下次增量更新，见 Deferred 裁决）
+- mermaid import 可达性在脚本路径与 `node -e` 求值间存在差异，未深究（可选增强两态均有显式输出，watch-only）
