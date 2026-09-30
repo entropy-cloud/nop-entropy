@@ -83,6 +83,14 @@ public final class CoordinatorTestSupport {
         public final AtomicLong cancelTaskCount = new AtomicLong();
         /** When true, the next {@link #receiveAssignment} throws (unreachable node). */
         public volatile boolean failReceiveAssignment;
+        /**
+         * When true, every {@link #updateFencingToken} throws (CC-01 injection:
+         * the node is unreachable while the coordinator rotates the fencing
+         * epoch during recovery).
+         */
+        public volatile boolean failUpdateFencingToken;
+        /** When true, every {@link #cancelTask} throws (CC-03 injection: cancel fan-out RPC failure). */
+        public volatile boolean failCancelTask;
 
         @Override
         public void receiveAssignment(TaskAssignment assignment) {
@@ -112,10 +120,16 @@ public final class CoordinatorTestSupport {
             cancelTaskCount.incrementAndGet();
             cancelTaskKeys.add(vertexId + "/" + subtaskIndex);
             cancelTaskEpochs.add(fencingEpoch);
+            if (failCancelTask) {
+                throw new IllegalStateException("simulated cancelTask RPC failure (CC-03)");
+            }
         }
 
         @Override
         public void updateFencingToken(long fencingEpoch) {
+            if (failUpdateFencingToken) {
+                throw new IllegalStateException("simulated unreachable node during fencing rotation (CC-01)");
+            }
             lastFencingEpoch.set(fencingEpoch);
         }
 

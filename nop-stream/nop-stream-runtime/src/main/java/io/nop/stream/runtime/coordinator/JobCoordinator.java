@@ -218,6 +218,36 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     private final Map<String, Long> subtaskLiveness = new ConcurrentHashMap<>();
 
+    /**
+     * REG-02 (plan366-regression audit): liveness keys of subtasks whose
+     * COMPLETED report has been processed. A finished task is skipped by the
+     * TaskManager heartbeat loop, but an in-flight heartbeat batch (built
+     * before the task finished, delivered after the COMPLETED report removed
+     * the liveness entry) must not resurrect the frozen timestamp via
+     * {@code merge}'s insert-on-absent — after taskTimeoutMs the detector
+     * would flag the healthy finished task TASK_STALL and burn a recovery.
+     * The tombstone is checked inside {@link #livenessLock} by
+     * {@link #reportNodeTaskLiveness}, which closes the window; cleared on
+     * every fencing rotation (each subtask is re-attempted in a new
+     * generation).
+     */
+    private final Set<String> completedSubtaskKeys = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Monitor closing the COMPLETED-remove vs in-flight-heartbeat-merge race
+     * (REG-02). Both critical sections are O(1) on the 5s heartbeat cadence.
+     */
+    private final Object livenessLock = new Object();
+
+    /**
+     * CC-01 (R5 audit): whether this coordinator has EVER materialized a
+     * non-empty assignment working set. Arms the empty-working-set sentinel in
+     * {@link #detectFailures()}: a fresh coordinator that has not assigned yet
+     * is legitimately empty and must not self-recover, while an empty working
+     * set AFTER a first assignment means a recovery aborted mid-flight.
+     */
+    private volatile boolean everAssigned;
+
     /** Per-task liveness timeout (configurable). */
     private volatile long taskTimeoutMs = DEFAULT_TASK_TIMEOUT_MS;
 
@@ -608,6 +638,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         running = false;
         active = false;
 
+        // CC-03 (R5 audit): a stopping coordinator must tell every TaskManager
+        // hosting an assigned subtask to cancel that task. Pre-fix only the
+        // coordination side was torn down: remote tasks kept running forever
+        // (orphaned source fetches, sink commits, permanently occupied slot
+        // permits, heartbeats rejected against the dead coordinator) until a
+        // later epoch rotation happened to reclaim them. Best-effort: per-task
+        // try/catch, failures logged, never blocking or failing the
+        // coordinator-side shutdown.
+        cancelAllAssignedTasks("coordinator stop");
+
         // Stop listening to the elector so callbacks cannot fire into a
         // stopped coordinator. The elector bean itself is IoC-managed and is not
         // shut down here.
@@ -633,6 +673,39 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         io.nop.stream.runtime.metrics.EngineMetrics.releaseJob(jobId);
 
         LOG.info("JobCoordinator {} stopped for job {}", coordinatorId, jobId);
+    }
+
+    /**
+     * CC-03: fans a {@code cancelTask} RPC out to the node of every currently
+     * assigned subtask (best-effort, per-task containment). The RPC carries the
+     * coordinator's current fencing epoch, so a stale coordinator's cancel is
+     * rejected at the TaskManager boundary exactly as in the checkpoint-abort
+     * path. RPC failures are logged and never propagate: the coordinator-side
+     * shutdown must complete regardless, and the epoch-rotation fencing of the
+     * next leader/recovery reclaims any task this fan-out could not cancel.
+     */
+    private void cancelAllAssignedTasks(String reason) {
+        long epoch = fencingEpoch.get();
+        for (Map.Entry<String, List<TaskAssignment>> entry : taskAssignmentMap.entrySet()) {
+            for (TaskAssignment ta : entry.getValue()) {
+                IStreamTaskRpcService rpc = taskRpcServices.get(ta.getNodeId());
+                if (rpc == null) {
+                    LOG.warn("No task RPC service for node {} during cancelTask fan-out ({}) for "
+                                    + "{}/{}/{} — relying on epoch-rotation fencing / TM restart "
+                                    + "for reclamation",
+                            ta.getNodeId(), reason, ta.getJobId(), ta.getVertexId(),
+                            ta.getSubtaskIndex());
+                    continue;
+                }
+                try {
+                    rpc.cancelTask(ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex(), epoch);
+                } catch (Exception e) {
+                    LOG.warn("cancelTask RPC failed for {}/{}/{} (node {}) during {} for job {}",
+                            ta.getJobId(), ta.getVertexId(), ta.getSubtaskIndex(), ta.getNodeId(),
+                            reason, jobId, e);
+                }
+            }
+        }
     }
 
     /**
@@ -730,6 +803,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         try {
             dispatches = assignmentPlanner.prepareAssignmentsLocked(
                     remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
+            markEverAssigned(dispatches);
         } finally {
             recoveryLock.unlock();
         }
@@ -930,7 +1004,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // TaskManager registry entry for tail commits, but the heartbeat
             // loop filters on isFinished() and never re-reports its frozen
             // activity clock).
-            subtaskLiveness.remove(livenessKey);
+            //
+            // REG-02 (plan366-regression audit): this removal races in-flight
+            // heartbeats — merge() INSERTS on an absent key, so a heartbeat
+            // batch built before the task finished but delivered after this
+            // removal used to resurrect the frozen timestamp, and after
+            // taskTimeoutMs the detector flagged the healthy finished task
+            // TASK_STALL (a spurious recovery that could cut the 2PC tail
+            // commit window). The completed-set tombstone, checked inside the
+            // same monitor by reportNodeTaskLiveness, closes the window: either
+            // the heartbeat's critical section ran first (it merged into the
+            // still-present entry, which this remove then deletes) or it
+            // observes the tombstone and skips — the frozen value can never be
+            // re-inserted.
+            synchronized (livenessLock) {
+                subtaskLiveness.remove(livenessKey);
+                completedSubtaskKeys.add(livenessKey);
+            }
         } else {
             // Any other terminal report (FAILED) is an
             // aliveness event in its own right — record the report arrival
@@ -999,12 +1089,57 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         for (TaskProgress p : progress) {
             String livenessKey = p.getVertexId() + "/" + p.getSubtaskIndex();
-            // Monotonic max via atomic merge: a getOrDefault→compare→put sequence
-            // is not atomic and an interleaved delivery could overwrite a newer
-            // timestamp with an older one, sending liveness backwards and causing
-            // spurious stall detection.
-            subtaskLiveness.merge(livenessKey, p.getLastProgressTime(), Math::max);
+            // CC-05 (R5 audit): reject heartbeats from a SUPERSEDED attempt. When a
+            // recovery's fencing-token push failed on some node (or raced its
+            // heartbeat), the zombie task of the old generation keeps heartbeating
+            // under the same liveness key; its fresh timestamps would merge over
+            // the new generation's values and permanently mask a genuinely hung
+            // new task (stall detection silently bypassed for that subtask). The
+            // current attempt number is read from the materialized assignment
+            // working set — kept in sync with the ClusterRegistry by
+            // prepareAssignmentsLocked — so no registry round-trip per heartbeat
+            // is needed. When no current assignment exists for the key the
+            // heartbeat is unclassifiable and harmless (detectFailures only reads
+            // liveness keys that back a current assignment), so it is accepted.
+            Integer currentAttempt = currentAttemptOf(p.getVertexId(), p.getSubtaskIndex());
+            if (currentAttempt != null && currentAttempt.intValue() != p.getAttemptNumber()) {
+                LOG.warn("Rejecting stale-attempt heartbeat from node {} for {}/{}: attempt={} "
+                                + "(current attempt={}) — zombie task of a superseded generation",
+                        nodeId, p.getVertexId(), p.getSubtaskIndex(),
+                        p.getAttemptNumber(), currentAttempt.intValue());
+                continue;
+            }
+            synchronized (livenessLock) {
+                // REG-02: a key tombstoned by a COMPLETED report must not be
+                // re-inserted — an in-flight heartbeat batch (built before the
+                // task finished) would otherwise resurrect its frozen timestamp.
+                if (completedSubtaskKeys.contains(livenessKey)) {
+                    continue;
+                }
+                // Monotonic max via atomic merge: a getOrDefault→compare→put sequence
+                // is not atomic and an interleaved delivery could overwrite a newer
+                // timestamp with an older one, sending liveness backwards and causing
+                // spurious stall detection.
+                subtaskLiveness.merge(livenessKey, p.getLastProgressTime(), Math::max);
+            }
         }
+    }
+
+    /**
+     * Returns the attempt number of the current assignment for the given
+     * subtask, or {@code null} when the subtask has no materialized assignment.
+     */
+    private Integer currentAttemptOf(String vertexId, int subtaskIndex) {
+        List<TaskAssignment> assignments = taskAssignmentMap.get(vertexId);
+        if (assignments == null) {
+            return null;
+        }
+        for (TaskAssignment ta : assignments) {
+            if (ta.getSubtaskIndex() == subtaskIndex) {
+                return ta.getAttemptNumber();
+            }
+        }
+        return null;
     }
 
     /**
@@ -1248,6 +1383,25 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 }
             }
 
+            // CC-01 bottom line (R5 audit): a recovery that aborts after the
+            // working set was cleared (storage rebuild failure on leadership
+            // grant, assignment-materialization failure) leaves the job "active
+            // but zero assignments" — both detection loops above iterate an
+            // empty map and would never fire again (permanent wedge). Once this
+            // coordinator HAS materialized assignments, an empty working set is
+            // itself the failure: re-trigger recovery so the assignments are
+            // re-materialized, or — if the failure persists — the restart budget
+            // fails the job loudly instead of hanging silently. A fresh
+            // coordinator that has not assigned yet is legitimately empty and
+            // must not self-recover (everAssigned gate).
+            if (everAssigned && taskAssignmentMap.isEmpty()) {
+                LOG.error("Job {} is active but its assignment working set is empty after a "
+                        + "previous assignment — the last recovery must have aborted mid-flight; "
+                        + "re-triggering recovery to re-materialize assignments", jobId);
+                requestRecovery(RecoveryCause.OTHER);
+                return;
+            }
+
             if (nodeFailureDetected || taskStallDetected) {
                 LOG.warn("Failures detected (nodeLoss={}, taskStall={}), triggering global recovery for job {}",
                         nodeFailureDetected, taskStallDetected, jobId);
@@ -1430,7 +1584,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // count (real + stall) so events/health stay monotonic across pools.
             int totalBefore = restartCount.get() + stallRestartCount.get();
             io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).recovery();
-            health.onRecoveryStarted(totalBefore + 1);
+            notifyRecoveryStartedSafely(totalBefore + 1);
             jobEventBus.fire(StreamJobEvent.simple(jobId,
                     io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_STARTED,
                     "restart-" + (totalBefore + 1)));
@@ -1499,6 +1653,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 // Materialize the assignment under the lock; fan-out after release.
                 dispatches = assignmentPlanner.prepareAssignmentsLocked(
                         remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
+                markEverAssigned(dispatches);
             } finally {
                 // This finally only releases the lock. The dedup flag is NOT
                 // cleared here — it stays armed through the assignment fan-out,
@@ -1529,7 +1684,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // the next durable checkpoint heals it. The trace
             // carries the TOTAL recovery count across both budget pools.
             int totalAfter = restartCount.get() + stallRestartCount.get();
-            health.onRecoveryCompleted(totalAfter);
+            notifyRecoveryCompletedSafely(totalAfter);
             jobEventBus.fire(StreamJobEvent.simple(jobId,
                     io.nop.stream.runtime.event.StreamJobEvent.EventType.RECOVERY_COMPLETED,
                     "restarts=" + totalAfter));
@@ -1547,6 +1702,46 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // exceptions (fencing DB write, assignment planning) also reach this
             // finally, so a failed recovery can never leave the flag stuck.
             recoveryPending.set(false);
+        }
+    }
+
+    /**
+     * CC-01 follow-on: the health transitions are OBSERVABILITY side effects
+     * and must never break the recovery itself. Concretely: a recovery that
+     * aborted mid-flight leaves the health machine in RECOVERING (its
+     * completion callback never ran); the sentinel-driven retry (see
+     * detectFailures) then hits the strict RECOVERING→RECOVERING rejection —
+     * which, unguarded, would abort the very recovery that is supposed to heal
+     * the wedge. Failures are logged and swallowed; the health machine
+     * converges on the recovery's completion callback (RECOVERING→DEGRADED).
+     */
+    private void notifyRecoveryStartedSafely(int sequence) {
+        try {
+            health.onRecoveryStarted(sequence);
+        } catch (Exception e) {
+            LOG.error("Health transition failed at recovery start for job {} (sequence={}); "
+                    + "recovery continues", jobId, sequence, e);
+        }
+    }
+
+    private void notifyRecoveryCompletedSafely(int totalRestarts) {
+        try {
+            health.onRecoveryCompleted(totalRestarts);
+        } catch (Exception e) {
+            LOG.error("Health transition failed at recovery completion for job {} (restarts={})",
+                    jobId, totalRestarts, e);
+        }
+    }
+
+    /**
+     * CC-01: records that this coordinator materialized a non-empty assignment
+     * working set, arming the empty-working-set sentinel in
+     * {@link #detectFailures()}. An empty dispatch list (no active nodes yet)
+     * does not arm the sentinel — there was never a working set to lose.
+     */
+    private void markEverAssigned(List<AssignmentPlanner.AssignmentDispatch> dispatches) {
+        if (dispatches != null && !dispatches.isEmpty()) {
+            everAssigned = true;
         }
     }
 
@@ -1607,11 +1802,43 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         taskAssignmentMap.clear();
         allTaskLocations.clear();
 
+        // CC-04 (R5 audit): the previous generation's per-subtask liveness entries
+        // must not survive the rotation. A frozen timestamp kept under a
+        // "vertexId/subtaskIndex" key that the new assignment reuses would be
+        // compared against the NEW assignment before its first heartbeat arrives;
+        // once its age crosses taskTimeoutMs the first detector tick flags a
+        // phantom TASK_STALL and burns one stall-recovery budget slot (worst
+        // case: stall cap exceeded → job failed). Every assignment after a
+        // rotation is a new generation, so the entries have no retained value.
+        //
+        // REG-02 (plan366-regression audit): the completed-subtask tombstones
+        // are generation-scoped for the same reason — every subtask is
+        // re-attempted under the new assignments.
+        subtaskLiveness.clear();
+        completedSubtaskKeys.clear();
+
         // Push the rotated fencing epoch to all registered TaskManagers so stale
         // envelopes are rejected at the data plane (RemoteInputChannel /
         // RemoteResultPartition filter on a single long epoch comparison).
-        for (IStreamTaskRpcService rpc : taskRpcServices.values()) {
-            rpc.updateFencingToken(newEpoch);
+        //
+        // CC-01 (R5 audit): the push is isolated PER NODE. Pre-fix a single
+        // failing/unreachable TaskManager aborted the whole recovery mid-flight —
+        // AFTER the working set above was cleared but BEFORE any redeploy. The
+        // job stayed "active but zero assignments": detectFailures iterated an
+        // empty map, so nothing was ever detectable again and no recovery could
+        // re-trigger (job-level permanent wedge). A failed push is now contained
+        // and logged: the target keeps its stale token until the next rotation
+        // fences it, and the empty-working-set sentinel in detectFailures (armed
+        // by everAssigned) is the bottom line for any residual wedge window.
+        for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
+            try {
+                entry.getValue().updateFencingToken(newEpoch);
+            } catch (Exception e) {
+                LOG.error("Failed to push rotated fencing epoch {} to node {} for job {} — "
+                                + "the node keeps its stale token until the next rotation; "
+                                + "recovery continues",
+                        newEpoch, entry.getKey(), jobId, e);
+            }
         }
 
         if (cause == FencingRotationCause.LEADERSHIP_GRANT) {
@@ -1752,6 +1979,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             seedAttemptCountersFromRegistryLocked();
             dispatches = assignmentPlanner.prepareAssignmentsLocked(
                     remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
+            markEverAssigned(dispatches);
         } finally {
             recoveryLock.unlock();
         }
@@ -1988,6 +2216,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                             mode, snapshotNoun, pending.getCheckpointId(), jobId);
                 }
             }
+        } catch (InterruptedException e) {
+            // CC-11 (R5 audit): restore the interrupt status. The terminal
+            // savepoint wait (up to terminationCheckpointTimeoutMs) must stay
+            // cancellable by shutdown hooks / REST timeouts — pre-fix the
+            // generic catch swallowed the interrupt and the caller's cancel
+            // request was lost. The terminal teardown below still runs
+            // (stopping the job is the correct action once the wait was
+            // interrupted); the caller re-observes the interrupt on its next
+            // blocking operation.
+            Thread.currentThread().interrupt();
+            LOG.warn("{}: interrupted while waiting for {} of job {}; stopping the job",
+                    mode, snapshotNoun, jobId);
         } catch (Exception e) {
             LOG.error("{}: failed to complete {} for job {}", mode, snapshotNoun, jobId, e);
         }

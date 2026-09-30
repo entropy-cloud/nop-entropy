@@ -87,10 +87,30 @@ public class ResultPartition implements IWriteStatus {
      * O(1), never blocks, takes ownership of the collection. May be called
      * before the consumer starts (region restart rebuild) or concurrently with
      * reads (channel-state restore).
+     *
+     * <p>Single-active-segment contract (REG-07/AR-05): the attachment REPLACES
+     * the {@link #pendingReplay} field. A second attach while a previous
+     * segment still holds unconsumed elements would silently orphan them, so
+     * that case fails fast. Callers must guarantee the previous segment is
+     * exhausted or first captured via {@link #drainBufferedElements()} (both
+     * production entries — region-restart rebuild and unaligned channel-state
+     * restore — drain before attaching). Attaching over an exhausted (empty)
+     * or never-attached field is the normal path and remains legal.
+     *
+     * @throws StreamException if a previous replay segment is still pending
+     *         (not yet fully consumed)
      */
     public void attachPendingReplay(List<StreamElement> elements) {
         if (elements == null || elements.isEmpty()) {
             return;
+        }
+        java.util.concurrent.ConcurrentLinkedQueue<StreamElement> existing = this.pendingReplay;
+        if (existing != null && !existing.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "attachPendingReplay called while a previous replay segment with "
+                            + existing.size() + " unconsumed element(s) is still pending; "
+                            + "a second attach would silently orphan them. Drain or capture "
+                            + "the pending segment first (see single-active-segment contract).");
         }
         this.pendingReplay = new java.util.concurrent.ConcurrentLinkedQueue<>(elements);
     }

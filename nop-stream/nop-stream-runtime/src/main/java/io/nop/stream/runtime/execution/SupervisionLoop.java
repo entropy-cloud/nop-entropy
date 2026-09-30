@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointPlan;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
@@ -33,11 +34,12 @@ import io.nop.stream.core.execution.InputChannel;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
+import io.nop.stream.core.execution.materialization.IMaterializationPoint;
+import io.nop.stream.core.execution.materialization.MaterializedElement;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.task.SubtaskTask;
 import io.nop.stream.core.execution.task.TaskExecutor;
-import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
@@ -113,17 +115,22 @@ import io.nop.stream.core.jobgraph.region.RegionId;
  * Region-scoped restart triggers consistent-cut replay: the restarted
  * consumer has its operator state restored from the latest completed
  * checkpoint (at epoch {@code N}), then keeps READING THE SAME producer
- * partition. {@code activateMaterializationReplay(N)} attaches precisely the
- * post-checkpoint records (epoch {@code >= N}) as pending replay, delivered
- * ahead of all queue content; materialization edges additionally drain the
- * residual queue first (its content is fully contained in the store, so
- * draining removes exactly the records the replay re-delivers). Because the
- * replay cut is checkpoint-aligned and the residual duplicates are drained,
- * no data is lost (all post-checkpoint records are replayed) and no data is
- * double-delivered on materialization edges. Non-materialization channels are
- * internal same-region edges whose producer is rebuilt with the SAME old
- * writer against the SAME old partition — the edge stays connected, and
- * at-least-once duplicates are acceptable for its delivery guarantee.
+ * partition. The replay attachment (CC-02, R5 audit) closes the drain→snapshot
+ * race in four steps: (T1) drain the residual queue — data records are
+ * store-backed and dropped (pre-cut ones are already reflected in the restored
+ * operator state; post-cut ones return via the replay segment), control events
+ * are preserved (they are never store-backed — AR-04); (T3) snapshot the store
+ * ({@code replay(N)}); (T3') drain the queue a SECOND time — every record the
+ * producer dual-wrote inside the (T1, T3) gap is already in the snapshot (the
+ * dual write precedes the enqueue), so the drain removes it and the identity
+ * check in {@code assembleReplaySegment} discards the duplicate, while records
+ * enqueued after the snapshot are kept; (T4) ONE attach of snapshot ++ kept
+ * elements. Delivery order is replay segment → live queue, globally ordered:
+ * no data is lost (all post-checkpoint records are replayed or kept) and no
+ * record is double-delivered on materialization edges. Non-materialization
+ * channels are internal same-region edges whose producer is rebuilt with the
+ * SAME old writer against the SAME old partition — the edge stays connected,
+ * and at-least-once duplicates are acceptable for its delivery guarantee.
  * Successfully COMPLETED tasks are not resubmitted: their finished partition
  * (residual data + EOS sentinel) is consumed by the rebuilt downstream
  * readers. When no checkpoint exists (startup edge case), the replay falls
@@ -805,6 +812,52 @@ public class SupervisionLoop {
             String vertexId,
             int taskIndex) {
         StreamTaskInvokable newInvokable;
+        InputGate newInputGate = rebuildConsumerInputGateWithReplay(
+                oldInputGate, consistentCutEpoch, vertexId, taskIndex);
+        // Consumer role: chain + inputGate. A pure SINK has no output writer; a
+        // MIDDLE task (input gate AND output writer) must carry over the OLD
+        // writer(s) — they are wired to the SAME output partitions its healthy
+        // downstream consumer keeps reading, and a null writer here would
+        // silently starve the downstream after the restart.
+        List<RecordWriter<Object>> oldFanOutWriters = oldInvokable.getFanOutWriters();
+        if (oldFanOutWriters != null && !oldFanOutWriters.isEmpty()) {
+            newInvokable = new StreamTaskInvokable(newChain, oldFanOutWriters, newInputGate);
+            LOG.info("Rebuilt consumer-role task vertex={} taskIndex={} carrying over {} fan-out output "
+                    + "writer(s)", vertexId, taskIndex, oldFanOutWriters.size());
+        } else {
+            RecordWriter<Object> oldOutputWriter = oldInvokable.getOutputWriter();
+            newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, newInputGate);
+        }
+        return newInvokable;
+    }
+
+    /**
+     * Rebuilds the consumer's {@link InputGate} over the reused upstream
+     * partitions, attaching the materialization replay for materialization-edge
+     * channels. Package-private so the focused gap-closure regression test can
+     * drive the exact production sequence without a full operator chain.
+     *
+     * <p>Reconnect-to-live-queue (ALL channels reuse the old partition):
+     * <ol>
+     *   <li>Materialization edge: CC-02/AR-04 gap-closed replay activation (see
+     *       {@link #assembleReplaySegment});</li>
+     *   <li>The consumer reads the attached replay segment first, then live data
+     *       from the surviving producer (which continues writing to the same
+     *       queue); a finished producer's end-of-stream is observed via the
+     *       partition's finished flag after both segments drain.</li>
+     *   <li>Non-materialization channel (a same-region INTERNAL edge — the
+     *       region decomposer only cuts at materialization edges): reuse the
+     *       partition as-is so the rebuilt producer, which reuses the old
+     *       writer, stays connected to the rebuilt consumer.</li>
+     * </ol>
+     * InputChannel.partition is final, so reconnect creates a NEW InputChannel
+     * wrapping the reused (old) partition and feeds it into the fresh
+     * InputGate.
+     */
+    static InputGate rebuildConsumerInputGateWithReplay(InputGate oldInputGate,
+                                                        long consistentCutEpoch,
+                                                        String vertexId,
+                                                        int taskIndex) {
         List<InputChannel> newChannels = new ArrayList<>();
         for (InputChannel oldChannel : oldInputGate.getChannels()) {
             ResultPartition oldPartition = oldChannel.getPartition();
@@ -821,20 +874,51 @@ public class SupervisionLoop {
             ResultPartition consumerPartition = oldPartition;
             if (matPoint != null) {
                 consumerPartition.setMaterializationPoint(matPoint);
-                // Drain residual queue content before attaching replay: for a
-                // still-running producer the residual is stale pre-replay data
-                // (fully contained in the materialization store); for a finished
-                // producer it exactly duplicates the replay set. Keeping it
-                // would double-deliver replayed records. The EOS sentinel (if
-                // the producer finished) stays in the queue, so the consumer
-                // observes replay first, then end-of-stream.
-                List<StreamElement> drained = oldPartition.drainBufferedElements();
+                // CC-02 / AR-04 (R5 audits): the pre-fix sequence "drain residual
+                // queue → attach store snapshot" stored a gap — any record the
+                // surviving producer dual-wrote between the drain (T1) and the
+                // store snapshot (T3) was delivered TWICE (replay set + queue),
+                // and every control event in the drained residual was silently
+                // dropped (control events are never store-backed, so they have no
+                // replay copy). The sequence below closes the gap:
+                // <ol>
+                //   <li>T1 — residual drain. pendingReplay is not yet attached, so
+                //       this is queue-only in effect. Data records are store-backed
+                //       (dropped: pre-cut ones are already reflected in the
+                //       restored operator state, post-cut ones return via the
+                //       replay segment); control events are preserved.</li>
+                //   <li>T3 — store snapshot via the channel's raw replay (does not
+                //       touch the queue).</li>
+                //   <li>T3' — SECOND queue drain closing over the (T1, T3) writes.
+                //       Because the dual write to the store happens BEFORE the
+                //       queue enqueue, every record enqueued in (T1, T3) is already
+                //       in the snapshot; the drain removes it from the queue and
+                //       the identity check in assembleReplaySegment drops the
+                //       duplicate. Records enqueued after the snapshot are not in
+                //       it — they are KEPT (dropping them would lose data).</li>
+                //   <li>T4 — ONE attach of [snapshot segment] ++ [preserved
+                //       controls + kept post-snapshot records]. Delivery order
+                //       stays replay-segment → live queue, globally ordered;
+                //       every record is delivered exactly once.</li>
+                // </ol>
+                List<StreamElement> residual = oldPartition.drainBufferedElements();
                 InputChannel tempChannel = new InputChannel(consumerPartition);
-                int injected = tempChannel.activateMaterializationReplay(consistentCutEpoch);
-                LOG.info("Reconnect-to-live-queue: drained {} stale element(s), attached {} post-checkpoint"
-                        + " replay element(s) (epoch >= {}) as pending replay for vertex={} taskIndex={}"
-                        + " (producer still running — consumer will continue reading live data after replay)",
-                        drained.size(), injected, consistentCutEpoch, vertexId, taskIndex);
+                List<MaterializedElement> snapshot =
+                        tempChannel.replayMaterialized(consistentCutEpoch);
+                List<StreamElement> gap = oldPartition.drainBufferedElements();
+                List<StreamElement> replaySegment =
+                        assembleReplaySegment(snapshot, residual, gap, consistentCutEpoch);
+                // REG-07/AR-05: attachPendingReplay is a REPLACE — the partition
+                // now fails fast on a second attach over an unconsumed segment.
+                // Both drains above left the replay field empty, so this is the
+                // one and only active segment for the partition.
+                tempChannel.injectElements(replaySegment);
+                LOG.info("Reconnect-to-live-queue: drained {} residual + {} gap element(s), attached "
+                                + "{} replay-segment element(s) (epoch >= {}) for vertex={} taskIndex={}"
+                                + " (producer still running — consumer will continue reading live data"
+                                + " after the replay segment)",
+                        residual.size(), gap.size(), replaySegment.size(), consistentCutEpoch,
+                        vertexId, taskIndex);
             }
             // matPoint == null (internal same-region edge, or a legacy
             // non-materialization channel): reuse the partition as-is. Residual
@@ -843,23 +927,110 @@ public class SupervisionLoop {
             newChannels.add(new InputChannel(consumerPartition));
         }
 
-        InputGate newInputGate = new InputGate(newChannels, (EdgeConfig) null,
+        return new InputGate(newChannels, (EdgeConfig) null,
                 InputGate.AlignmentMode.AT_LEAST_ONCE);
-        // Consumer role: chain + inputGate. A pure SINK has no output writer; a
-        // MIDDLE task (input gate AND output writer) must carry over the OLD
-        // writer(s) — they are wired to the SAME output partitions its healthy
-        // downstream consumer keeps reading, and a null writer here would
-        // silently starve the downstream after the restart.
-        List<RecordWriter<Object>> oldFanOutWriters = oldInvokable.getFanOutWriters();
-        if (oldFanOutWriters != null && !oldFanOutWriters.isEmpty()) {
-            newInvokable = new StreamTaskInvokable(newChain, oldFanOutWriters, newInputGate);
-            LOG.info("Rebuilt consumer-role task vertex={} taskIndex={} carrying over {} fan-out output "
-                    + "writer(s)", vertexId, taskIndex, oldFanOutWriters.size());
-        } else {
-            RecordWriter<Object> oldOutputWriter = oldInvokable.getOutputWriter();
-            newInvokable = new StreamTaskInvokable(newChain, oldOutputWriter, newInputGate);
+    }
+
+    /**
+     * CC-02 (R5 audit): assembles the SINGLE pending-replay segment a rebuilt
+     * consumer channel receives, from the store snapshot plus the two drained
+     * queue snapshots (T1 residual and T3' gap). Package-private for the
+     * deterministic seam test, which drives the exact "T1 drain → producer
+     * write → T3 snapshot → T3' drain" interleave by direct call.
+     *
+     * <p>Segment content and ordering:
+     * <ul>
+     *   <li>The store snapshot records first, in store order — the replay
+     *       segment.</li>
+     *   <li>Then both drained inputs in drain order: data records that are
+     *       already in the snapshot (identity — the dual write stores the SAME
+     *       instance the producer enqueued) are dropped as duplicates; data
+     *       records absent from the snapshot (written after the T3 snapshot)
+     *       are kept so exactly-once holds; control events (watermark /
+     *       watermark-status / latency marker) are always kept — they are never
+     *       store-backed and would be lost forever if dropped (AR-04);
+     *       checkpoint barriers with id &lt;= the replay cut are dropped (stale
+     *       barriers of the restored generation would start a spurious
+     *       alignment in the rebuilt task's fresh tracker), later barriers are
+     *       kept so the rebuilt task can participate in the in-flight
+     *       checkpoint.</li>
+     * </ul>
+     * T1 residual data records are dropped unconditionally (store-backed:
+     * pre-cut records are already reflected in the restored operator state;
+     * post-cut records return via the replay segment).
+     */
+    static List<StreamElement> assembleReplaySegment(List<MaterializedElement> snapshot,
+                                                     List<StreamElement> residualDrain,
+                                                     List<StreamElement> gapDrain,
+                                                     long consistentCutEpoch) {
+        List<StreamElement> segment = new ArrayList<>(snapshot.size());
+        Set<StreamElement> stored =
+                Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (MaterializedElement me : snapshot) {
+            segment.add(me.getElement());
+            stored.add(me.getElement());
         }
-        return newInvokable;
+        appendDrainedElements(segment, stored, residualDrain, consistentCutEpoch, true);
+        appendDrainedElements(segment, stored, gapDrain, consistentCutEpoch, false);
+        return segment;
+    }
+
+    /**
+     * Appends the non-duplicate, non-stale content of one drained queue
+     * snapshot to the replay segment (see {@link #assembleReplaySegment}).
+     */
+    private static void appendDrainedElements(List<StreamElement> out,
+                                              Set<StreamElement> stored,
+                                              List<StreamElement> drained,
+                                              long consistentCutEpoch,
+                                              boolean residual) {
+        for (StreamElement element : drained) {
+            if (element.isCheckpointBarrier()) {
+                long id = ((CheckpointBarrier) element).getId();
+                if (id <= consistentCutEpoch) {
+                    // Stale barrier of the restored/completed generation: the
+                    // rebuilt task's fresh tracker has never seen it, so letting
+                    // it through would start a spurious alignment for an epoch
+                    // that can no longer complete. Drop (observable).
+                    LOG.info("Dropping stale checkpoint barrier {} (<= replay cut {}) drained "
+                            + "from a materialization partition during region restart", id,
+                            consistentCutEpoch);
+                    continue;
+                }
+                // Live barrier of an in-flight post-restart checkpoint: the
+                // rebuilt task is re-wired into the barrier pipeline and must
+                // participate in the epoch, so it is delivered (after the replay
+                // segment, preserving queue order).
+                out.add(element);
+                continue;
+            }
+            if (element.isRecord()) {
+                if (residual) {
+                    // T1 residual: store-backed (the dual write precedes the
+                    // enqueue), so either its epoch < cut (already counted in the
+                    // restored operator state — re-delivery would double-count)
+                    // or epoch >= cut (returns via the replay segment). Dropped
+                    // either way.
+                    continue;
+                }
+                if (stored.contains(element)) {
+                    // Written inside the (T1, T3) gap: already in the replay
+                    // segment — drop this queue duplicate.
+                    continue;
+                }
+                // Enqueued after the snapshot: NOT in the replay segment — keep
+                // it (discarding would lose the record); it is delivered right
+                // after the replay segment, in queue order.
+                out.add(element);
+                continue;
+            }
+            // Control events (watermark / watermark-status / latency marker) are
+            // never dual-written to the store, so they have no replay copy —
+            // dropping them would stall event-time progress on the new gate
+            // until the producer's next watermark (AR-04). Forward them,
+            // preserving queue order.
+            out.add(element);
+        }
     }
 
     /**

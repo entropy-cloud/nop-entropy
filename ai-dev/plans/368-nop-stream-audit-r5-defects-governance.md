@@ -88,68 +88,72 @@ Exit Criteria:
 
 ### Phase 2 - 状态子系统 P1（ST-01 abort future 死代码、ST-02 restore 重材料化、ST-06 serde 响亮失败）
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/.../checkpoint/PendingCheckpoint.java`、`nop-stream-rocksdb/.../RocksDBSnapshotSerDe.java`、`nop-stream-core/.../MemoryStateSerDe.java`（工具抽取）、`nop-stream-core/.../state/shard/KeyGroupRangeRestoreFilter.java`、`nop-stream-core/.../state/shard/KeyGroupReshard.java`、`nop-stream-runtime/.../checkpoint/storage/CheckpointSerDe.java`
 
 - Item Types: `Fix`
 
-- [ ] ST-01：`PendingCheckpoint.abort` 消除双重 CAS——参照同文件 `forceFail` 的"读-判断-补完"先例：abort 后无论 CAS 结果如何，future 一律以 abort 原因 `completeExceptionally`（幂等，不覆盖已完成的正常 complete）。测试：超时 abort 后等待方收到 `ERR_STREAM_CHECKPOINT_ABORTED`（而非 TimeoutException）。
-- [ ] ST-02（前置：把 `MemoryStateSerDe.deserializeKey` 的重材料化逻辑抽为 core 内静态工具）：RocksDBSnapshotSerDe 三个 restore 入口从快照头读 `keyType` 并在计算 key-group 前重材料化 key；`KeyGroupRangeRestoreFilter` 与 `KeyGroupReshard` 在过滤/迁移前重材料化。非原始类型 key（Date/enum/bean）恢复后 key-group 与 live 路径一致。
-- [ ] ST-06：`CheckpointSerDe.deserializeCheckpoint`（:166-175）对缺字段损坏行响亮失败（带行上下文的异常），不再返回 null 静默冷启动。
-- [ ] 测试：bean key / Date key 各一条 checkpoint→restore→可读写（RocksDB 与 memory 后端各一）；rescale 过滤前后条目数守恒且落位正确；损坏 manifest 行恢复响亮失败。
+- [x] ST-01：`PendingCheckpoint.abort` 消除双重 CAS——参照同文件 `forceFail` 的"读-判断-补完"先例：abort 后无论 CAS 结果如何，future 一律以 abort 原因 `completeExceptionally`（幂等，不覆盖已完成的正常 complete）。测试：超时 abort 后等待方收到 `ERR_STREAM_CHECKPOINT_ABORTED`（而非 TimeoutException）。（`PendingCheckpoint.abort` 重写 + `TestPendingCheckpointAbortFuture` 4 用例；修复前钉子验证：协调器预 CAS 场景等待方永不释放（`_tmp/r5-p2-prefix-runtime.log`））
+- [x] ST-02（前置：把 `MemoryStateSerDe.deserializeKey` 的重材料化逻辑抽为 core 内静态工具）：RocksDBSnapshotSerDe 三个 restore 入口从快照头读 `keyType` 并在计算 key-group 前重材料化 key；`KeyGroupRangeRestoreFilter` 与 `KeyGroupReshard` 在过滤/迁移前重材料化。非原始类型 key（Date/enum/bean）恢复后 key-group 与 live 路径一致。（新增 `StateKeyRematerializer`（core shard）；RocksDB 三入口经 `putEntry`/`restoreMapState` 重材料化（backend keyType 优先、快照头 `keyType` 回退）；filter/reshard 增加 keyType 重载，memory serde、`RescaleStateAssembler`、`MaxParallelismReshardMigration` 三个 caller 同步传入）
+- [x] ST-06：`CheckpointSerDe.deserializeCheckpoint`（:166-175）对缺字段损坏行响亮失败（带行上下文的异常），不再返回 null 静默冷启动。（新增 `ERR_STREAM_CHECKPOINT_DATA_CORRUPT`，携带 jobId/checkpointId/缺失字段列表；`data==null/empty` 仍是合法"无 checkpoint"）
+- [x] 测试：bean key / Date key 各一条 checkpoint→restore→可读写（RocksDB 与 memory 后端各一）；rescale 过滤前后条目数守恒且落位正确；损坏 manifest 行恢复响亮失败。（新增 4 测试类 20 用例：`TestRocksDBRestoreKeyRematerialization` 3、`TestMemoryRescaleNonPrimitiveKeyRestore` 2、`TestRestoreKeyRematerialization` 6、`TestCheckpointSerDeCorruptRecord` 5、另有 ST-01 的 4）
 
 Exit Criteria:
 
-- [ ] PendingCheckpoint abort future 语义测试通过（abort 原因可见）。
-- [ ] bean/Date key 的 RocksDB 与 memory restore 测试通过（修复前应失败——执行时先跑一次记录输出于 log）。
-- [ ] `nop-stream-core`、`nop-stream-rocksdb`、`nop-stream-runtime` 测试全绿。
-- [ ] owner doc：`ai-dev/design/nop-stream/checkpoint-design.md` 的 abort 语义段与新行为一致。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] PendingCheckpoint abort future 语义测试通过（abort 原因可见）。
+- [x] bean/Date key 的 RocksDB 与 memory restore 测试通过（修复前应失败——执行时先跑一次记录输出于 log）。（修复前实测：memory Date rescale 错位落子任务、RocksDB Date MapState 恢复读 miss（null）；记录于 `_tmp/r5-p2-prefix-check.log`/`r5-p2-prefix-rocksdb.log`/`r5-p2-prefix-runtime.log`）
+- [x] `nop-stream-core`、`nop-stream-rocksdb`、`nop-stream-runtime` 测试全绿。（三模块全量 1106 tests；除并行 Phase 4 在途的 `TestE2EJdbcTwoPhaseCommitSink` 4 errors（其 `stream_epoch_ledger_v2` 测试 schema 未同步）外全绿，本 Phase 触及面 0 回归；`_tmp/r5-p2-tests.log`）
+- [x] owner doc：`ai-dev/design/nop-stream/checkpoint-design.md` 的 abort 语义段与新行为一致。（§8.7 新增"pending future 完成契约（ST-01）"段；§8.3.1 失败语义补 ST-06；`state-management-design.md` §3.1 新增"key 重材料化先于 group 计算（ST-02）"段）
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
 
 ### Phase 3 - 协调/并发 P1（CC-01 wedge、CC-02 回放缝隙、CC-03 cancel fan-out）+ 同面 P2/P3
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/.../coordinator/JobCoordinator.java`、`nop-stream-runtime/.../execution/SupervisionLoop.java`、`nop-stream-core/.../execution/InputChannel.java`
 
 - Item Types: `Fix`
 
-- [ ] CC-01：`rotateFencingEpochCoreLocked` 对每节点 `updateFencingToken` 推送 try/catch 隔离（失败节点进入重试/恢复触发，不穿透中止整个 recovery）；`taskAssignmentMap.clear()` 移到推送成功之后或等价化（保证任何失败路径下 detectFailures 仍有工作集/哨兵兜底触发恢复）。测试：注入推送异常 → recovery 继续推进而非永久 wedge。
-- [ ] CC-02（含 AR-04、REG-07/AR-05 防御）：消除"先存缝隙"双投递。实现选型（审查确认两表述数学等价，取实现简单者）：attach 时对队列做第二次 drain，**丢弃**二次 drain 所得（其内容已含于 store 快照即回放集合），交付顺序 = store 回放段 → 后续活读段，全局有序保持；同步处理 drain 丢弃 watermark/control 事件的问题（AR-04：二次 drain 中的控制事件转交新 gate 而非丢弃）；`attachPendingReplay` 二次调用显式 fail-fast（REG-07/AR-05 隐式替换契约防御）。测试：以接缝顺序直调构造"T1 drain → 生产者写入 → T3 激活"交错，断言每条记录恰好交付一次、顺序保持；控制事件不丢。
-- [ ] CC-03：`stop()`/`terminateCancel()` 向所有已分配 TM fan-out `cancelTask`（best-effort + 失败记日志，不阻塞协调端关闭）。测试：stop 后 stub RPC 收到全部已分配任务的 cancelTask。
-- [ ] CC-04：recovery 清理 `subtaskLiveness` 旧代条目（测试：recovery 后陈旧时间戳不触发 stall）。
-- [ ] CC-05（短期修复）：`reportNodeTaskLiveness` 用已携带的 attemptNumber 对照 ClusterRegistry 当前 attempt，拒绝旧代 zombie 心跳（不需要 DTO 扩展；DTO 契约扩展留后续波次）。测试：旧 attempt 心跳被拒。
-- [ ] CC-11：`terminateWithTerminalSavepoint` 恢复中断位。
-- [ ] REG-02（N3 残余 TOCTOU）：COMPLETED liveness 键清除与在途心跳 merge 的竞态收口（putIfAbsent/merge 语义收窄，键不存在时不插入）。测试：并发交错下冻结时间戳不回插。
+- [x] CC-01：`rotateFencingEpochCoreLocked` 对每节点 `updateFencingToken` 推送 try/catch 隔离（失败节点进入重试/恢复触发，不穿透中止整个 recovery）；`taskAssignmentMap.clear()` 移到推送成功之后或等价化（保证任何失败路径下 detectFailures 仍有工作集/哨兵兜底触发恢复）。测试：注入推送异常 → recovery 继续推进而非永久 wedge。
+- [x] CC-02（含 AR-04、REG-07/AR-05 防御）：消除"先存缝隙"双投递。实现选型（审查确认两表述数学等价，取实现简单者）：attach 时对队列做第二次 drain，**丢弃**二次 drain 所得（其内容已含于 store 快照即回放集合），交付顺序 = store 回放段 → 后续活读段，全局有序保持；同步处理 drain 丢弃 watermark/control 事件的问题（AR-04：二次 drain 中的控制事件转交新 gate 而非丢弃）；`attachPendingReplay` 二次调用显式 fail-fast（REG-07/AR-05 隐式替换契约防御）。测试：以接缝顺序直调构造"T1 drain → 生产者写入 → T3 激活"交错，断言每条记录恰好交付一次、顺序保持；控制事件不丢。
+- [x] CC-03：`stop()`/`terminateCancel()` 向所有已分配 TM fan-out `cancelTask`（best-effort + 失败记日志，不阻塞协调端关闭）。测试：stop 后 stub RPC 收到全部已分配任务的 cancelTask。
+- [x] CC-04：recovery 清理 `subtaskLiveness` 旧代条目（测试：recovery 后陈旧时间戳不触发 stall）。
+- [x] CC-05（短期修复）：`reportNodeTaskLiveness` 用已携带的 attemptNumber 对照 ClusterRegistry 当前 attempt，拒绝旧代 zombie 心跳（不需要 DTO 扩展；DTO 契约扩展留后续波次）。测试：旧 attempt 心跳被拒。
+- [x] CC-11：`terminateWithTerminalSavepoint` 恢复中断位。
+- [x] REG-02（N3 残余 TOCTOU）：COMPLETED liveness 键清除与在途心跳 merge 的竞态收口（putIfAbsent/merge 语义收窄，键不存在时不插入）。测试：并发交错下冻结时间戳不回插。
 
 Exit Criteria:
 
-- [ ] CC-01/02/03/04/05、REG-02 各有聚焦测试且通过；CC-02 测试在修复前能复现双投递（执行时先跑一次记录）。
-- [ ] `grep -n "cancelTask" .../JobCoordinator.java` 显示 stop/terminateCancel 路径存在调用（非仅 checkpoint abort 路径）。
-- [ ] `nop-stream-runtime`（含 core 联动）测试全绿。
-- [ ] owner doc：`ai-dev/design/nop-stream/failover-design.md` 的 region 重启回放/停止语义段与 CC-02/REG-01（Phase 5）新行为一致（可与 Phase 5 合并更新）。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] CC-01/02/03/04/05、REG-02 各有聚焦测试且通过；CC-02 测试在修复前能复现双投递（执行时先跑一次记录）。（修复前复现：`_tmp/r5-p3-prefix-repro.log`——T1 drain → producer 写入 → T3 激活交错下 R2 双投递；新增 2 测试类 17 用例全绿）
+- [x] `grep -n "cancelTask" .../JobCoordinator.java` 显示 stop/terminateCancel 路径存在调用（非仅 checkpoint abort 路径）。（`cancelAllAssignedTasks` 由 `stop()` 调用，`terminateCancel`/DRAIN/SUSPEND 终态均经 `stop()`）
+- [x] `nop-stream-runtime`（含 core 联动）测试全绿。（`_tmp/r5-p3-tests.log` EXIT=0：core 1630 + runtime 1123，0 failures 0 errors）
+- [x] owner doc：`ai-dev/design/nop-stream/failover-design.md` 的 region 重启回放/停止语义段与 CC-02/REG-01（Phase 5）新行为一致（可与 Phase 5 合并更新）。（§2.3 新增"恢复健壮性契约"段（CC-01/03/04/05/11+REG-02）；§五.4 reconnect-to-live-queue 与 Exactly-once 论证按 CC-02 四步序列改写（含 REG-03 哨兵口径顺带归真）；REG-01 失败语义段留 Phase 5 合并）
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
+
+> 执行记录（2026-09-30）：CC-02 实现取审查预案中的"等价排除语义"——live code 证实两处与"盲目丢弃"预案不符并已按任务预案偏离：① `drainBufferedElements` 先排空 pendingReplay 再排 queue，attach 后直调会把刚附的回放段抽走 → 二次 drain 定格在 attach **之前**（此刻 pendingReplay 为空，drain 即 queue-only），随快照一同组装；② 盲目丢弃会丢失"快照之后入队"的非重复记录（且 dual-write 先 store 后 enqueue 的次序使丢弃无法与快照包含性对齐）→ 改为实例同一性去重（store 与 queue 持同一对象引用，IdentityHashMap 集合），快照段 + 保留段一次 attach，AR-04 控制事件（watermark/status/latency marker 转发、陈旧 barrier ≤cut 丢弃、在途 barrier >cut 保留）同段处理。残余窗口（如实登记于 owner doc）：producer 线程恰好挂起于 dual-write 与 enqueue 之间横跨 T3→T3' 时该条仍可能双投递——窗口从"drain→attach 全程"收窄到指令级挂起。CC-05 的"当前 attempt"对照取物化工作集 `taskAssignmentMap`（与 ClusterRegistry 由 prepareAssignmentsLocked 同步写，免逐心跳注册表往返）；无当前 assignment 的心跳不可分类且无害（detectFailures 只读有 assignment 的键），放行——既有 R-5 单调 merge 测试口径保持。REG-02 取审计建议的 completed-tombstone 集合 + 专用监视器（比"键不存在不插入"更优：保住首次心跳建项语义，且 COMPLETED-remove 与心跳-merge 的临界区互斥真正闭合竞态）。CC-01 哨兵触发路径暴露 health 状态机 RECOVERING→RECOVERING 拒绝 → recovery 的健康回调改为安全包装（观测层失败不阻断恢复）。测试基建：`CoordinatorTestSupport.RecordingTaskRpcService` 增加 `failUpdateFencingToken`/`failCancelTask` 注入位。过程中的环境偏差：并行会话共享仓库下 in-process javac 偶发 `CompilerException: ConcurrentModificationException`（plexus 参数表竞态，与 plan 366 Phase 2 记录同源），`-Dmaven.compiler.fork=true` 绕过；全程未动 CEP/connector/StreamOperator 文件，Phase 4 的 `deepCopy(location)` 接线未回退。
 
 ### Phase 4 - 连接器 P1（CON-01/02/03）+ 同面 P2
 
-Status: planned
+Status: completed
 Targets: `nop-stream-connector-jdbc/.../JdbcTwoPhaseCommitSink.java`、`nop-stream-connector-debezium/.../`（DebeziumCdcSourceFunction 等）、`nop-message-debezium/.../DebeziumEngineWrapper.java`（仅失败回调暴露一处）、`nop-stream-connector/.../MessageSourceFunction.java`、`nop-stream-connector-batch/.../BatchLoaderSourceFunction.java`
 
 - Item Types: `Fix`
 
-- [ ] CON-01：JDBC 2PC 幂等账本键加入任务身份命名空间。身份管道：扩展 `copyForSubtask` 家族的 @Internal 签名携带（jobId + 算子标识）到达 sink（与 CON-05 共用同一管道；若实现中发现更小的部署期注入面，可改用并在此记录）。账本表迁移：启用带版本新表名（如 `stream_epoch_ledger_v2`），旧 3 列表不迁移、不读——跨版本升级首次部署建新表（响亮自洽，无静默混用）；guard 命中路径 INFO 升级 WARN 并带完整键上下文。测试：两条支路同 epoch/subtask 互不误伤；同版本 checkpoint 恢复路径自洽。
-- [ ] CON-02：`DebeziumCdcSourceFunction` 新增 `pendingError` 字段——wrapper 消费者捕获 collector 异常置 `pendingError`，`run()` 的等待循环每轮检查并重抛（任务失败、offset 不推进）。测试口径：注入 collector 异常 → run() 线程抛出该异常（不再宣称"dispatchEvent 抛出"）。
-- [ ] CON-03：`DebeziumEngineWrapper` 暴露失败回调（最小 API 面：`start(Consumer<Throwable>)` 或等价 setter）；`DebeziumCdcSourceFunction` 注册回调置 `pendingError`，与 CON-02 同一 `run()` 轮询路径触发任务失败。测试：引擎错误回调触发后任务进入 FAILED。
-- [ ] CON-04：MessageSourceFunction cancel-before-subscribe 竞态修复 + failed 退出路径退订（防 consumer 泄漏）。测试：cancel 与 subscribe 交错不泄漏订阅。
-- [ ] CON-05（与 AR-10 顺带）：batch-loader 源在 parallelism>1 时 fail-fast（经 CON-01 身份管道或部署期检查获得并行度），替代 N 倍重复投递；`currentOffset` 加同步（volatile/原子）。
-- [ ] AR-07：Debezium 路径 `if (!draining)` 恒真死条件清除（行为保持）。
+- [x] CON-01：JDBC 2PC 幂等账本键加入任务身份命名空间。身份管道：扩展 `copyForSubtask` 家族的 @Internal 签名携带（jobId + 算子标识）到达 sink（与 CON-05 共用同一管道；若实现中发现更小的部署期注入面，可改用并在此记录）。账本表迁移：启用带版本新表名（如 `stream_epoch_ledger_v2`），旧 3 列表不迁移、不读——跨版本升级首次部署建新表（响亮自洽，无静默混用）；guard 命中路径 INFO 升级 WARN 并带完整键上下文。测试：两条支路同 epoch/subtask 互不误伤；同版本 checkpoint 恢复路径自洽。
+- [x] CON-02：`DebeziumCdcSourceFunction` 新增 `pendingError` 字段——wrapper 消费者捕获 collector 异常置 `pendingError`，`run()` 的等待循环每轮检查并重抛（任务失败、offset 不推进）。测试口径：注入 collector 异常 → run() 线程抛出该异常（不再宣称"dispatchEvent 抛出"）。
+- [x] CON-03：`DebeziumEngineWrapper` 暴露失败回调（最小 API 面：`start(Consumer<Throwable>)` 或等价 setter）；`DebeziumCdcSourceFunction` 注册回调置 `pendingError`，与 CON-02 同一 `run()` 轮询路径触发任务失败。测试：引擎错误回调触发后任务进入 FAILED。
+- [x] CON-04：MessageSourceFunction cancel-before-subscribe 竞态修复 + failed 退出路径退订（防 consumer 泄漏）。测试：cancel 与 subscribe 交错不泄漏订阅。
+- [x] CON-05（与 AR-10 顺带）：batch-loader 源在 parallelism>1 时 fail-fast（经 CON-01 身份管道或部署期检查获得并行度），替代 N 倍重复投递；`currentOffset` 加同步（volatile/原子）。
+- [x] AR-07：Debezium 路径 `if (!draining)` 恒真死条件清除（行为保持）。
 
 Exit Criteria:
 
-- [ ] CON-01/02/03/04/05 各有聚焦测试且通过。
-- [ ] 账本新表名版本化方案在恢复路径自洽（同版本恢复测试通过）；旧表不迁移行为已在 user-guide 登记（owner doc，见下）。
-- [ ] `nop-stream-connector`、`nop-stream-connector-jdbc`、`nop-stream-connector-batch`、`nop-stream-connector-debezium` 四模块测试全绿（nop-message-debezium 若有测试亦须通过）。
-- [ ] owner doc：`docs-for-ai/03-modules/nop-stream-user-guide.md`（或 jdbc-2pc 章节）登记账本 v2 表与升级行为。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] CON-01/02/03/04/05 各有聚焦测试且通过。
+- [x] 账本新表名版本化方案在恢复路径自洽（同版本恢复测试通过）；旧表不迁移行为已在 user-guide 登记（owner doc，见下）。
+- [x] `nop-stream-connector`、`nop-stream-connector-jdbc`、`nop-stream-connector-batch`、`nop-stream-connector-debezium` 四模块测试全绿（nop-message-debezium 若有测试亦须通过）。
+- [x] owner doc：`docs-for-ai/03-modules/nop-stream-user-guide.md`（或 jdbc-2pc 章节）登记账本 v2 表与升级行为。
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
+
+> 执行记录（2026-09-30）：身份管道选定 `copyForSubtask(TaskLocation)` 重载族（TaskLocation 为 core 既有部署身份 DTO，不造新类型）；接线点 `GraphExecutionPlan.createSubtasks` / `RemoteGraphExecutionPlanBuilder.assembleSubtasks` / `SupervisionLoop.restartRegion`（重启用原部署 TaskLocation 保证命名空间跨重启稳定）。CON-05 走 plan 允许的部署期检查支线：新 core 接口 `ParallelismCheckable`，两处 plan builder 在建 subtask 前调用，并行度由此获得。上游变更面确认仅 `DebeziumEngineWrapper` 一个文件（connector-name 键控静态失败监听器 register/unregister/notify；`DebeziumMessageSource` 在禁改清单内，静态键控是与 offset registry 同身份约定的唯一可达通道）。证据：`_tmp/r5-p4-tests.log`（connector 四模块 -am 全绿 + nop-stream-runtime 全绿）、`ai-dev/logs/2026/09-30.md` Phase 4 条目。
 
 ### Phase 5 - CEP P1（CEP-01）+ REG-01 fail-fast + CEP P2
 
