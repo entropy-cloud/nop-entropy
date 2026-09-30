@@ -41,9 +41,17 @@ public class BashExecutor implements IToolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(BashExecutor.class);
     public static final String TOOL_NAME = "bash";
 
+    /**
+     * Prefix-shaped blacklist entry (G3-13-02): bash exports functions as env vars named
+     * {@code BASH_FUNC_<name>%%} (Shellshock-style {@code BASH_FUNC_x%%=() {...}}), so this
+     * entry requires prefix matching — an exact {@code Set.contains} can never fire on the
+     * attack form. Kept separate from the exact-match {@link #DANGEROUS_ENV_VARS} set.
+     */
+    static final String BASH_FUNC_ENV_PREFIX = "BASH_FUNC_";
+
     private static final Set<String> DANGEROUS_ENV_VARS = Set.of(
             "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_DEBUG", "LD_AUDIT",
-            "SHELLOPTS", "BASH_ENV", "BASH_FUNC_",
+            "SHELLOPTS", "BASH_ENV",
             "IFS", "PATH", "PYTHONPATH", "PERLLIB",
             "PERL5LIB", "RUBYLIB", "DYLD_INSERT_LIBRARIES"
     );
@@ -211,7 +219,8 @@ public class BashExecutor implements IToolExecutor {
             String value = envNode.attrText("value");
             if (name != null && value != null) {
                 String upperName = name.toUpperCase();
-                if (DANGEROUS_ENV_VARS.contains(upperName)) {
+                if (DANGEROUS_ENV_VARS.contains(upperName)
+                        || upperName.startsWith(BASH_FUNC_ENV_PREFIX)) {
                     LOG.warn("BashExecutor: rejecting dangerous env var {}", name);
                     continue;
                 }

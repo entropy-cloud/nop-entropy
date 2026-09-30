@@ -239,6 +239,53 @@ public class BashExecutorTest {
     }
 
     // ========================================================================
+    // G3-13-02: the BASH_FUNC_ blacklist entry is prefix-shaped (bash exports
+    // functions as env vars like BASH_FUNC_foo%%). Exact Set.contains matching
+    // never fires on the attack form, so prefix-form names must be stripped
+    // from the environment handed to the sandbox backend.
+    // ========================================================================
+
+    /**
+     * G3-13-02 regression: both the Shellshock-style export form {@code BASH_FUNC_foo%%} and the
+     * plain {@code BASH_FUNC_foo} form must be rejected by the dangerous-env-var filter, while a
+     * benign variable passes through untouched. Verified at the sandbox seam: the request the
+     * backend actually receives must not contain any BASH_FUNC_ key nor the injected payloads.
+     */
+    @Test
+    void testBashFuncPrefixFormEnvVarsRejected() {
+        RecordingSandbox sandbox = new RecordingSandbox();
+        BashExecutor wired = new BashExecutor(sandbox);
+
+        XNode node = XNode.make("bash");
+        node.setAttr("id", "1");
+        node.makeChild("command").setContentValue("echo ok");
+        // addChild (not makeChild): makeChild is find-or-create and would collapse the three
+        // env children into one node whose attrs keep being overwritten.
+        XNode envShellshock = node.addChild("env");
+        envShellshock.setAttr("name", "BASH_FUNC_foo%%");
+        envShellshock.setAttr("value", "() { evil; }");
+        XNode envPlain = node.addChild("env");
+        envPlain.setAttr("name", "BASH_FUNC_foo");
+        envPlain.setAttr("value", "() { evil-two; }");
+        XNode envBenign = node.addChild("env");
+        envBenign.setAttr("name", "GOOD_VAR");
+        envBenign.setAttr("value", "fine");
+        AiToolCall call = AiToolCall.fromNode(node);
+        AiToolCallResult result = wired.executeAsync(call, new MockContext()).toCompletableFuture().join();
+
+        assertEquals("success", result.getStatus());
+        Map<String, String> env = sandbox.lastRequest().getEnvironmentVariables();
+        assertFalse(env.keySet().stream().anyMatch(k -> k.toUpperCase().startsWith("BASH_FUNC_")),
+                "BASH_FUNC_ prefix-form env vars must be stripped, got keys: " + env.keySet());
+        assertFalse(env.containsValue("() { evil; }"),
+                "Shellshock-style payload must not reach the sandbox backend");
+        assertFalse(env.containsValue("() { evil-two; }"),
+                "plain BASH_FUNC_foo payload must not reach the sandbox backend");
+        assertEquals("fine", env.get("GOOD_VAR"),
+                "benign env vars must pass through the filter untouched");
+    }
+
+    // ========================================================================
     // Plan 335 Phase 1: fail-closed default + wiring verification
     // ========================================================================
 

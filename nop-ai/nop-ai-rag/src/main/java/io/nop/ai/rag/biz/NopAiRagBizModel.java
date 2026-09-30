@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.directive.Auth;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,15 @@ public class NopAiRagBizModel {
         this.synthesizeService = new RagSynthesizeService(chatService, searchService);
     }
 
+    /**
+     * G3-07-01：写操作必须携带 @Auth（auth == null 即公开访问）。权限名对齐同仓 MR2 基线
+     * {@code FileToolBizModel} 的 {@code @Auth(permissions = "FileTool:write")} 惯例，采用
+     * {@code NopAiRag:write}。本模块未注册对应权限资源（与 FileTool 先例相同，仅凭 permission 字符串
+     * 校验），部署侧在资源/角色映射落地前，该 permission 实际仅超管可授予——保守基线，检索投毒写入口
+     * 不对普通认证用户默认开放。
+     */
     @BizMutation
+    @Auth(permissions = "NopAiRag:write")
     public Map<String, Object> ingestDocument(
             @Name("indexId") String indexId,
             @Name("docId") String docId,

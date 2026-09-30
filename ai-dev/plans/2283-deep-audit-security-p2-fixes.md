@@ -74,24 +74,24 @@ Exit Criteria:
 
 ### Workstream 2 - nop-metadata 沙箱对齐 + nop-ai 工具与 RAG 鉴权 [G8-13-01][G3-13-02][G3-07-01]
 
-Status: planned
+Status: completed
 Targets: `MetaQualityRuleExecutor`、`TestMetaQualityRuleExecutorCustomSqlSandbox`、`BashExecutor`、`NopAiRagBizModel`
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] MetaQualityRuleExecutor custom_sql 黑名单补 `INTO`（裸 token）与 `PG_TERMINATE_BACKEND`，逐项对齐 ExpressionMeasureValidator（Fix）
-- [ ] 沙箱测试补拒绝向量：`SELECT ... INTO new_table`、`pg_terminate_backend(...)`（Proof）
-- [ ] BashExecutor `BASH_FUNC_` 黑名单改为前缀匹配（Fix）
-- [ ] BashExecutor 回归测试：`BASH_FUNC_foo=...` 与 `BASH_FUNC_foo%%=...` 形态均被拒绝（Proof）
-- [ ] NopAiRagBizModel：bizObjName 去掉 `/` 前缀；写操作 `ingestDocument` 加 `@Auth`（按 MR2 基线选择角色/权限名，对齐同仓 BizModel 惯例）（Fix）
-- [ ] NopAiRagBizModel 暴露路径最小测试：**断言层级裁定（对抗审查 F-2283-6）**——nop-ai-rag 测试基建无 IoC 容器/GraphQL 管道，测试在注解/工具类层级断言（bizObjName 为合法 GraphQL 标识符、写 action 具备 @Auth 元数据），不搭建 GraphQL 管道（Proof）
+- [x] MetaQualityRuleExecutor custom_sql 黑名单补 `INTO`（裸 token）与 `PG_TERMINATE_BACKEND`，逐项对齐 ExpressionMeasureValidator（Fix）
+- [x] 沙箱测试补拒绝向量：`SELECT ... INTO new_table`、`pg_terminate_backend(...)`（Proof）
+- [x] BashExecutor `BASH_FUNC_` 黑名单改为前缀匹配（Fix）
+- [x] BashExecutor 回归测试：`BASH_FUNC_foo=...` 与 `BASH_FUNC_foo%%=...` 形态均被拒绝（Proof）
+- [x] NopAiRagBizModel：写操作 `ingestDocument` 加 `@Auth(permissions="NopAiRag:write")`（对齐 FileToolBizModel MR2 基线；bizObjName 去前缀已由计划 2282-WS4 连带完成，本 WS 加防回归断言）（Fix）
+- [x] NopAiRagBizModel 暴露路径最小测试：**断言层级裁定（对抗审查 F-2283-6）**——nop-ai-rag 测试基建无 IoC 容器/GraphQL 管道，测试在注解/工具类层级断言（bizObjName 为合法 GraphQL 标识符、写 action 具备 @Auth 元数据），不搭建 GraphQL 管道（Proof）
 
 Exit Criteria:
 
-- [ ] 两个沙箱拒绝向量进测试且通过；ExpressionMeasureValidator 既有测试不回归
-- [ ] BASH_FUNC_ 前缀形态测试通过
-- [ ] RAG BizModel 的 bizObjName 为合法标识符（无 `/` 前缀）、写操作鉴权元数据存在，均有测试断言
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service,nop-ai/nop-ai-toolkit,nop-ai/nop-ai-rag -am` 全绿
+- [x] 两个沙箱拒绝向量进测试且通过；ExpressionMeasureValidator 既有测试不回归
+- [x] BASH_FUNC_ 前缀形态测试通过
+- [x] RAG BizModel 的 bizObjName 为合法标识符（无 `/` 前缀）、写操作鉴权元数据存在，均有测试断言
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service,nop-ai/nop-ai-toolkit,nop-ai/nop-ai-rag -am` 全绿
 - [ ] No owner-doc update required（黑名单对齐属既有 F9 裁定契约的补全；如 nop-metadata.md 列了沙箱 token 清单则同步）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 

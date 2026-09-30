@@ -453,6 +453,87 @@ public class TestMetaQualityRuleExecutorCustomSqlSandbox {
                 "F9: CTE block must identify WITH keyword: " + reason);
     }
 
+    // ===== G8-13-01（plan 2283）：裸 INTO token 与 PG_TERMINATE_BACKEND 沙箱缺口补齐 =====
+
+    /**
+     * <b>G8-13-01</b>：裸 {@code INTO} token 必须拒绝。PG 的 {@code SELECT c INTO new_table FROM t}
+     * 是 {@code CREATE TABLE AS} 的同义 DDL（token 化后不出现 CREATE token），MySQL 的
+     * {@code SELECT ... INTO @var} 为会话状态写入——custom_sql 上下文中 INTO 后接任何目标均非合法只读
+     * 检查形态，over-block 对齐 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST} 的 INTO 条目。
+     * 两个向量在黑名单补齐前均放行（无单 token 命中、无序列命中），补齐后由本测试钉死。
+     */
+    @Test
+    public void testBareSelectIntoBlocked() {
+        String[] payloads = {
+                "SELECT c INTO evil FROM t",                    // PG SELECT INTO 建表族（小写）
+                "SELECT * INTO new_table FROM orders",          // 大写形态
+                "SELECT COUNT(*) INTO @audit_var FROM orders"   // MySQL 会话变量写入形态
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "G8-13-01: bare INTO must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("INTO"),
+                    "G8-13-01: block reason must identify INTO token: " + reason + " (payload=" + payload + ")");
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present for audit (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * <b>G8-13-01</b>：{@code pg_terminate_backend(pid)} 终止其他后端连接（DoS 面），必须拒绝——
+     * 对齐 {@code ExpressionMeasureValidator.FUNCTION_BLACKLIST} 的 PG_TERMINATE_BACKEND 条目。
+     * 向量唯一钉住该条目（PG_STAT_ACTIVITY / PID 均不在黑名单，SIZE 列同理）。
+     */
+    @Test
+    public void testPgTerminateBackendBlocked() {
+        String[] payloads = {
+                "SELECT count(*) FROM pg_stat_activity WHERE pg_terminate_backend(pid)",
+                "SELECT PG_TERMINATE_BACKEND(123)"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> validateCustomSqlSandbox(payload),
+                    "G8-13-01: pg_terminate_backend must be blocked: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED for payload: " + payload);
+            String reason = String.valueOf(ex.getParam("reason"));
+            assertTrue(reason.contains("PG_TERMINATE_BACKEND"),
+                    "G8-13-01: block reason must identify PG_TERMINATE_BACKEND token: " + reason
+                            + " (payload=" + payload + ")");
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash param must be present for audit (payload=" + payload + ")");
+        }
+    }
+
+    /**
+     * <b>G8-13-01 接线验证</b>：两个新增 token 经 {@code judge} 公开入口（null Connection）到
+     * {@code ERR_QUALITY_CUSTOM_SQL_BLOCKED} 抛错链路成立——sqlHash 参数证明调用链经
+     * judge → judgeCustomSql → validateCustomSqlSandbox（沿 F9/R6.1 接线测试先例）。
+     */
+    @Test
+    public void testG801NewTokensBlockedViaJudgeEntry() {
+        String[] payloads = {
+                "SELECT c INTO evil FROM t",
+                "SELECT pg_terminate_backend(1)"
+        };
+        for (String payload : payloads) {
+            NopException ex = assertThrows(NopException.class,
+                    () -> judgeCustomSqlViaPublicEntry(payload),
+                    "G8-13-01: new token must be blocked via judge entry: " + payload);
+            assertEquals(NopMetadataErrors.ERR_QUALITY_CUSTOM_SQL_BLOCKED.getErrorCode(),
+                    ex.getErrorCode(),
+                    "must throw ERR_QUALITY_CUSTOM_SQL_BLOCKED via judge entry: " + payload);
+            assertNotNull(ex.getParam("sqlHash"),
+                    "sqlHash proves sandbox check reached from judgeCustomSql (payload=" + payload + ")");
+        }
+    }
+
     /** sqlHash 稳定性：相同 SQL 产出相同 hash；不同 SQL 产出不同 hash（审计追溯基础）。 */
     @Test
     public void testSqlHashStability() {
