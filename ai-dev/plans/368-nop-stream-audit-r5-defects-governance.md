@@ -1,6 +1,6 @@
 # 368 nop-stream 审计 R5 波次——P0/P1 缺陷修复与治理批次
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-09-30
 > Source: `ai-dev/audits/2026-09/2026-09-30-0530-deep-audit-nop-stream-quality-r4/`（9 份维度报告 + summary，125 项发现）+ `ai-dev/audits/2026-09/2026-09-30-0530-adversarial-review-nop-stream/01-open-findings.md`（对抗审查 11 项）；plan 审查记录：独立子 agent 对抗性审查（含想象性分析）2026-09-30 第 1 轮（1 Blocker + 7 Major + 5 Minor）与第 2 轮复审（13 点 12 PASS），全部发现已折入本版
 > Related: `ai-dev/plans/366-nop-stream-audit-r4-quality-perf.md`（上一波次，已 completed）
@@ -258,38 +258,38 @@ Exit Criteria:
 
 ### Phase 9 - Closure Audit 与收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、`ai-dev/logs/2026/09-30.md`、owner docs
 
 - Item Types: `Proof`
 
-- [ ] 全模块回归：`cd nop-stream && ../mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb,nop-stream-connector,nop-stream-connector-jdbc,nop-stream-connector-batch,nop-stream-connector-debezium -am`。
-- [ ] 独立子 agent closure audit（fresh session）：逐 Phase Exit Criteria + Closure Gates 对照 live repo 验证 + 裁定总表抽查（Deferred 项分类诚实性），evidence 写入本 plan Closure 段。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0。
-- [ ] Anti-Hollow：从入口点追踪 AR-01 修复后的路由链（DataStream keyBy → partitioner → TaskExecutor 投递 → keyed state 属主），确认运行时同一公式贯通；无空方法体/静默跳过。
-- [ ] owner docs 同步复核：Phase 1-7 各自 owner doc 更新项已完成；`docs-for-ai/04-reference/source-anchors.md` 如有锚点变化则更新。
+- [x] 全模块回归：`cd nop-stream && ../mvnw test -pl nop-stream-core,nop-stream-flow,nop-stream-runtime,nop-stream-cep,nop-stream-rocksdb,nop-stream-connector,nop-stream-connector-jdbc,nop-stream-connector-batch,nop-stream-connector-debezium -am`。
+- [x] 独立子 agent closure audit（fresh session）：逐 Phase Exit Criteria + Closure Gates 对照 live repo 验证 + 裁定总表抽查（Deferred 项分类诚实性），evidence 写入本 plan Closure 段。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0。
+- [x] Anti-Hollow：从入口点追踪 AR-01 修复后的路由链（DataStream keyBy → partitioner → TaskExecutor 投递 → keyed state 属主），确认运行时同一公式贯通；无空方法体/静默跳过。
+- [x] owner docs 同步复核：Phase 1-7 各自 owner doc 更新项已完成；`docs-for-ai/04-reference/source-anchors.md` 如有锚点变化则更新。
 
 Exit Criteria:
 
-- [ ] 全模块测试 EXIT=0（日志存 `_tmp/`）。
-- [ ] closure audit evidence 已写入下方 Closure 段（含每条 Gate 的 PASS/FAIL）。
-- [ ] 两个工具退出码均为 0（输出记录于 log）。
-- [ ] `ai-dev/logs/2026/09-30.md` 收口条目已更新。
+- [x] 全模块测试 EXIT=0（日志存 `_tmp/`）。
+- [x] closure audit evidence 已写入下方 Closure 段（含每条 Gate 的 PASS/FAIL）。
+- [x] 两个工具退出码均为 0（输出记录于 log）。
+- [x] `ai-dev/logs/2026/09-30.md` 收口条目已更新。
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（P0×1 + P1 代码×11 + P1 文档×4 + Phase 7 的 11 项 + Phase 8 治理项）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（路由/属主公式、错误码分层、文档契约）
-- [ ] 每项修复带聚焦回归测试且修复前可复现（或注明为何不可复现——如需真实多 JVM 时序）
-- [ ] 必要 focused verification 已完成（逐 Phase 模块测试 + Phase 9 全模块回归）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（所有延期项已进入"剩余发现裁定总表"并附理由）
-- [ ] 受影响的 owner docs 已同步到 live baseline（Phase 1-7 各自 owner doc 项 + Phase 6 文档面）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）路由/属主修复在运行时连通（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（nop-stream 全模块）
-- [ ] `./mvnw test`（nop-stream 全模块）
-- [ ] checkstyle / 代码规范检查通过（import 分组抽查受影响文件）
+- [x] 所有 in-scope confirmed live defects 已修复（P0×1 + P1 代码×11 + P1 文档×4 + Phase 7 的 11 项 + Phase 8 治理项）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（路由/属主公式、错误码分层、文档契约）
+- [x] 每项修复带聚焦回归测试且修复前可复现（或注明为何不可复现——如需真实多 JVM 时序）
+- [x] 必要 focused verification 已完成（逐 Phase 模块测试 + Phase 9 全模块回归）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（所有延期项已进入"剩余发现裁定总表"并附理由）
+- [x] 受影响的 owner docs 已同步到 live baseline（Phase 1-7 各自 owner doc 项 + Phase 6 文档面）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）路由/属主修复在运行时连通（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（nop-stream 全模块）
+- [x] `./mvnw test`（nop-stream 全模块）
+- [x] checkstyle / 代码规范检查通过（import 分组抽查受影响文件）
 
 ## 剩余发现裁定总表（不在执行 Phase 内的全部审计发现）
 
@@ -297,7 +297,7 @@ Exit Criteria:
 
 | 编号 | 裁定分类 | 理由（为何不阻塞 closure） | Successor |
 |------|---------|---------------------------|-----------|
-| ST-05 容器类型 ValueState 元素类型丢失 | watch-only residual | 需要类型系统级设计（容器元素类型管道），当前触发面为"容器型 ValueState + 恢复"组合；MapState 主路径已修复（ST-04/ST-02 覆盖主损坏面） | yes：状态序列化专项（backlog） |
+| ST-05 容器类型 ValueState 元素类型丢失 | watch-only residual | 需要类型系统级设计（容器元素类型管道）；损坏面为容器型 ValueState 的元素类型（ListState/MapState 不受影响；ST-04/ST-02 修的是 MapState 快照分组键与 key 重材料化，非本条损坏面） | yes：状态序列化专项（backlog） |
 | ST-08 `__java_bytes__` marker 判别歧义 | watch-only residual | 触发需用户 Map 值恰好使用该 magic key，窄；后果为响亮恢复失败非静默 | no |
 | ST-09 错误风格双轨（17 处 StreamException 无 ErrorCode） | out-of-scope improvement | 风格收敛类；模块内部异常 + 英文字符串是 AGENTS.md 两档策略允许的档位 | no |
 | ST-10 RocksDB restore 先清后写半恢复 | watch-only residual | fail-fast 语义正确；半恢复 DB 可由下次 restore 重建（清库在先） | no |
@@ -358,14 +358,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 2026-09-30 收口。P0×1 + P1 代码×11 + P1 文档×4 + Phase 7 P2 批次 11 项 + Phase 8 治理批次 13 项全部落地并提交（0dc22b8fab / bcadd20c72 / e20b7cef1b / a6cb2a5731 / 4cb16e87db / 6966ff7696 / 2bb7c013a7 / 5f9c6989bc / 598e52e71f，其中 598e52e71f 为 closure audit 发现的 4 个交付物入库缺口补提交）。剩余发现全部进入裁定总表；successor=yes 项已登记 `ai-dev/backlog/nop-stream-r5-successors.md`。
+Completed: 2026-09-30
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待 closure audit 填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立子 agent closure audit（fresh session，task id agent_01419703-1cf5-4322-a490-471a5fcf24f8）
+- Audit Session: agent_01419703-1cf5-4322-a490-471a5fcf24f8
+- Evidence:
+  - 逐 Phase Exit Criteria 抽查 25+ 项：全部 PASS（含自跑 grep/doc-links 复核）；首轮唯一 FAIL（4 个交付物未提交）已修复（598e52e71f）后复核通过
+  - Anti-Hollow：(a) AR-01 路由链逐段读码贯通（keyBy→RecordWriter:313→assignToSubtask→属主同源公式，restore/reshard/savepoint 物化同族）；(b) savepoint 全 miss/attach 二次调用/custom source body 三条新路径均显式失败带上下文；(c) scan-hollow-implementations --module nop-stream --severity high = 0 findings EXIT=0
+  - 裁定表诚实性抽查 5 行（CC-07/ST-05/RD-05/TE-03/PF）：分类诚实；ST-05 归因句已按审计意见修订
+  - 文本一致性：Phase 1-8 completed 且勾选一致，本 Closure 段与 Closure Gates 同步勾选
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/368-nop-stream-audit-r5-defects-governance.md --strict` 退出码 0（收口时最终确认）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0
+  - 全模块回归：`cd nop-stream && ../mvnw test -pl <9 模块> -am` EXIT=0（`_tmp/r5-final-regression.log`）
+  - Deferred 项分类检查：无 in-scope confirmed P0/P1 live defect 被降级；CC-07 为唯一被 defer 的 confirmed P2 live defect，理由已按"不否认真实性 + supported baseline 边界"口径登记
 
 Follow-up:
 
-- 见 Non-Blocking Follow-ups 与裁定总表
+- 见 Non-Blocking Follow-ups 与裁定总表（successor=yes 项归属 ai-dev/backlog/nop-stream-r5-successors.md）
