@@ -11,7 +11,7 @@ nop-stream 的 canonical 模型是 **StreamModel**（可序列化算子图 + 组
 2. **Java DataStream API** 编程构造
 3. **Delta 定制合成**（`x:extends` / `_delta` 目录，基于既有 `.stream.xml` 派生）
 
-编译管线（xdef 头注释的权威表述）：`StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → GraphExecutionPlan`。LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度（见「分布式部署」节）。
+编译管线为**五阶段**：`StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan`（层数口径裁定见设计文档 01-architecture §四 D71 三视角表；`GraphExecutionPlan` 不是第 6 个管线阶段，它是 LOCAL 模式下 DeploymentPlan 的运行时执行形态）。LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度（见「分布式部署」节）。
 
 ## DataStream API
 
@@ -23,6 +23,10 @@ nop-stream 的 canonical 模型是 **StreamModel**（可序列化算子图 + 组
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setParallelism(2);
 env.enableCheckpointing(60_000);           // 周期 checkpoint（ms）
+// 语义组合规则：默认 processingGuarantee 为 STRICT_EXACTLY_ONCE（要求 REPLAYABLE source + 2PC sink）。
+// fromElements/print 只满足 at-least-once，违配会在 build 期 fail-fast（nop.err.stream.invalid-state），
+// 故入门示例显式声明降档（规则详见「连接器使用指引」的语义组合规则条目）。
+env.getCheckpointConfig().setProcessingGuarantee(io.nop.stream.core.checkpoint.ProcessingGuarantee.AT_LEAST_ONCE);
 env.fromElements(1, 2, 3, 4, 5)
    .map(x -> x * 2)
    .filter(x -> x > 4)

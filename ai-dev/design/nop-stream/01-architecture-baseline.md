@@ -11,19 +11,25 @@
 1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
 2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
 3. 五阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan（原第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担；图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
-4. 依赖方向严格单向：runtime/checkpoint/connector/cep/flow → core → api
+4. 依赖方向严格单向：runtime/connector(+ connector-* 子模块)/rocksdb/cep/flow → core → api
 
 ## 二、模块划分
 
 ```
 nop-stream/
-├── nop-stream-core         [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
-├── nop-stream-runtime      [实现] task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
-├── nop-stream-connector    [实现] 连接器适配层：replayable source、transactional sink
-├── nop-stream-cep          [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
-├── nop-stream-flow         [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
-└── nop-stream-fraud-example[实现] 端到端欺诈检测示例
+├── nop-stream-core               [实现] StreamModel、StreamComponents、图模型、PartitionedPlan、DeploymentPlan、Checkpoint 类型定义
+├── nop-stream-runtime            [实现] task 执行、transport backend、fencing、node lifecycle、Checkpoint 协调器与存储
+├── nop-stream-connector          [实现] 连接器适配层：replayable source、transactional sink
+├── nop-stream-connector-batch    [实现] nop-batch 桥接连接器（批源/批汇）
+├── nop-stream-connector-jdbc     [实现] JDBC 两阶段提交 exactly-once sink
+├── nop-stream-connector-debezium [实现] Debezium CDC source
+├── nop-stream-rocksdb            [实现] RocksDB off-heap 增量状态后端
+├── nop-stream-cep                [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
+├── nop-stream-flow               [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
+└── nop-stream-fraud-example      [实现] 端到端欺诈检测示例
 ```
+
+> 子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 10 个）。
 
 ### 模块职责边界
 
@@ -31,16 +37,21 @@ nop-stream/
 |------|------|----------|
 | **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
 | **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | → core |
-| **nop-stream-connector** | Replayable source（`Source`/`SourceSplit` 契约）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配 | → core |
+| **nop-stream-connector** | Replayable source（`Source`/`SourceSplit` 契约）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配、file exactly-once sink 与 message 源/汇 | → core |
+| **nop-stream-connector-batch** | nop-batch 桥接连接器（`batch-loader` source / `batch-consumer` sink） | → core |
+| **nop-stream-connector-jdbc** | JDBC 两阶段提交 exactly-once sink（`jdbc-2pc`，epoch 台账 `IJdbcTemplate`） | → core |
+| **nop-stream-connector-debezium** | Debezium CDC source 连接器（`debezium-cdc`） | → core |
+| **nop-stream-rocksdb** | RocksDB off-heap keyed 状态后端（列族存储 + 增量快照 SST；注意：CEP 算子 × RocksDB 后端组合当前不可用，CEP 限 Memory 后端） | → core |
 | **nop-stream-cep** | Pattern DSL、NFA 编译、SharedBuffer、CepOperator（通过标准 state/timer 接口接入统一后端）、声明式模型（pattern.xdef） | → core |
 | **nop-stream-flow** | XDSL StreamModel 编排、Delta 定制支持 | → core, cep, xdefs |
+| **nop-stream-fraud-example** | 端到端欺诈检测示例（S1 CDC→CEP→2PC JDBC sink、S2 文件聚合、多 JVM gated 测试） | → cep, flow, connector(+jdbc/debezium), runtime, rocksdb |
 
 ### 依赖方向
 
 依赖只能从右向左：运行时和集成模块依赖 core，core 不依赖任何实现模块。
 
 ```
-runtime / connector / cep / flow  →  core
+runtime / connector(+ connector-* 子模块) / rocksdb / cep / flow  →  core
 ```
 
 关键约束：
@@ -261,10 +272,10 @@ CheckpointCoordinator (manifest durable → sink commit)
 
 **选了什么**：`ClusterRegistry`（coordinator / runtime node / lease / task assignment 的一致视图）提供 `InMemoryClusterRegistry`（开发测试）和 `JdbcClusterRegistry`（生产）两种实现。生产实现用 JDBC + `IJdbcTemplate` 多数据库适配，自动建表（`nop_stream_coordinator` / `nop_stream_node` / `nop_stream_task_assignment`），索引 `lease_expire_at` / `node_id`。
 
-**不变式（架构语义契约，交叉引用 `invariant-catalog.md` §5 不变式 #5，覆盖失败族 F5）**：
+**不变式（架构语义契约，交叉引用 `ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #5，覆盖失败族 F5）**：
 
 - **多实现语义一致性**：`JdbcClusterRegistry` 与 `InMemoryClusterRegistry` 对同一 `ClusterRegistry` 接口必须语义一致——(a) `registerNode` 成功后节点必须对 `getActiveNodes` 立即可见（JDBC 实现不得写 `lease_expire_at=0L` 导致注册窗口内不可见）；(b) `renewLease(nodeId, leaseTimeoutMs)` 必须按 per-renewal 参数计算过期时间，不得忽略参数使用固定 TTL；(c) 过期判定（eviction）一致。
-- **门禁（已入 CI）**：JUnit `TestClusterRegistryConsistencyInvariant`（`nop-stream-runtime/src/test/.../cluster`）对两实现跑同一语义场景参数化（registerNode 可见性、renewLease per-renewal timeout、eviction），行为差异**显式断言（pin）并登记 `red-list.md` 移交 I2，不在 I1 修复**。已知 residual：AR-9（JDBC 写 lease=0）、AR-18（InMemory 忽略 leaseTimeoutMs）。checkpoint 交互侧见 `checkpoint-design.md` §1.1.1。
+- **门禁（已入 CI）**：JUnit `TestClusterRegistryConsistencyInvariant`（`nop-stream-runtime/src/test/.../cluster`）对两实现跑同一语义场景参数化（registerNode 可见性、renewLease per-renewal timeout、eviction），行为差异**显式断言（pin）并登记 `ai-dev/audits/nop-stream-invariants/red-list.md` 移交 I2，不在 I1 修复**。已知 residual：AR-9（JDBC 写 lease=0）、AR-18（InMemory 忽略 leaseTimeoutMs）。checkpoint 交互侧见 `checkpoint-design.md` §1.1.1。
 - **历史证据**：R16-AR-9、R16-AR-18（详见 catalog §5 不变式 #5）。
 
 **与 Flink 的差异**：Flink HA 依赖 **ZooKeeper**（`LeaderElectionService` + `ZooKeeperLeaderElectionDriver` + `ZooKeeperHaServices`），需要外部协调服务作为强一致性后端。nop-stream 选择**用业务库 JDBC 表承担 durability**，不引入 ZooKeeper 依赖。
@@ -274,7 +285,7 @@ CheckpointCoordinator (manifest durable → sink commit)
 - **零基建部署**：JDBC 后端复用业务库（与 `JdbcCheckpointStorage` 同库），生产部署无需额外 ZooKeeper/Kubernetes 集群，降低 nop-stream 的部署门槛（中小规模生产场景）。
 - **与 Stage 41 决策点 D7 关联（D7 = Option B confirmed）**：`ClusterRegistry` 与平台 discovery（`IDiscoveryClient`/`INamingService`）的关系经 D7 裁定为**对接共存**——JDBC 实现**保留为 runtime source of truth**（coordinator 注册 / fencing epoch / node lease / task assignment），平台 discovery 提供跨系统可发现性（`StreamNodeAutoRegistration` 写方向 + `NodeDiscoveryConsistencyChecker` 读方向漂移检测）。JDBC 实现是 nop-stream HA 的最小基建路径，不因 discovery 接入而被替换。
 - **拒绝的方案**：(a) 引入 ZooKeeper 强依赖（违反"零基建部署"目标）；(b) 完全自建 leader election 与 HA 协议（与 Stage 38 `SysDaoLeaderElector` 接入路径矛盾）。JDBC + leader elector（Stage 38）的组合是 nop-stream HA 的最小基建路径。
-- **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
+- **已知取舍**：JDBC 写 lease 与 ZooKeeper 比较，lease TTL 粒度更粗（默认 15s）、跨节点时钟漂移敏感——这是为"零基建部署"付出的代价，由 `ClusterRegistry` 实现负责 lease TTL 校验的容错（详见 `ai-dev/analysis/nop-stream/07-distributed-comparison.md` §6 "JdbcClusterRegistry provides durable alternative"）。
 
 ### 跨 leader 接管的 attempt 连续性 — 种子化裁定（G56 补充，item 34）
 
@@ -664,7 +675,7 @@ StreamSource → ChainingOutput → StreamMap → ChainingOutput → WindowOpera
 | **Task 执行** | 每个 Task 独立线程 + Mailbox 事件循环 | 多个 Task 共享 TaskGroup 线程（协程式） | 每个 Task 独立线程 |
 | **RPC** | Akka/RPC 抽象 | Hazelcast Operations | IStreamTaskRpcService 强类型接口 |
 | **数据交换** | Netty + MemorySegments + NetworkBufferPool | Hazelcast IntermediateQueue | LOCAL: BlockingQueue；DISTRIBUTED: IMessageService |
-| **分布式 HA** | ZooKeeper + Standalone HA / K8s | Hazelcast IMap 自动恢复 | 已落地（Stage 38）：`ILeaderElector` WIRE 进 `JobCoordinator` + 平台 `SysDaoLeaderElector`（JDBC lease，零 ZooKeeper 依赖）+ composite fencing token |
+| **分布式 HA** | ZooKeeper + Standalone HA / K8s | Hazelcast IMap 自动恢复 | 已落地（Stage 38）：`ILeaderElector` WIRE 进 `JobCoordinator` + 平台 `SysDaoLeaderElector`（JDBC lease，零 ZooKeeper 依赖）+ 单调 long fencing epoch（Stage 39 统一：`leaderEpochValue * EPOCH_SCALE + recoveryGen`） |
 
 ### 8.2 Flink Translator 模式参考
 

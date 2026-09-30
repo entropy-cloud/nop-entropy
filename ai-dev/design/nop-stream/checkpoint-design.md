@@ -27,7 +27,7 @@ nop-stream 的 checkpoint 子系统为流处理管线提供**容错和状态一�
 > 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #2/#3（覆盖失败族 F2/F3）。
 
 - **synchronized 集合字段迭代点必须在 synchronized 块内（#2）**：所有 `Collections.synchronizedMap/List/Set` 类型字段的遍历（含 copy 构造 `new TreeMap<>(f)`、`entrySet()`/`iterator()` 迭代）必须持有该集合的 monitor（`synchronized(field)` / `synchronized(this)` / 局部别名 `synchronized(pending)` 均合规）；违反即潜在 CME。`TwoPhaseCommitSinkFunction` 的 `finishCommit`/`restoreFromEpoch` 迭代点均在此约束内；`saveState` 的 copy 迭代为**已知 residual（R16-AR-1，pin-and-record）**——行为 pin（快照内容完整）由 JUnit 断言，锁状态由 mjs 扫描器 pin（`mjs-pins.json`），行为漂移才触发 CI 红，修复移交 I2。
-- **CheckpointIDCounter 更新原子性 / 恢复后单调性（#3）**：(a) 并发下 `getAndIncrement` 原子（AtomicLong），无重复、无丢失；(b) 恢复路径必须将计数器推进至 `restoredId + 1`（`restoredId >= current` 才 set），任何恢复后 ID 倒退 = 违约（live 修复点 `CheckpointCoordinator.java:896-900`）。
+- **CheckpointIDCounter 更新原子性 / 恢复后单调性（#3）**：(a) 并发下 `getAndIncrement` 原子（AtomicLong），无重复、无丢失；(b) 恢复路径必须将计数器推进至 `restoredId + 1`（`restoredId >= current` 才 set），任何恢复后 ID 倒退 = 违约（live 修复点 `CheckpointCoordinator#advanceCheckpointIdCounterAfterRestore`）。
 - **门禁（已入 CI）**：JUnit `TestSynchronizedCollectionInvariant`（`nop-stream-core/src/test/.../functions/sink`）+ `TestCheckpointIDCounterInvariant`（`nop-stream-core/src/test/.../checkpoint`）；静态部分 `check-nop-stream-invariants.mjs scan-iterations`（扫描范围含 core 全部 synchronized 集合字段，`SourceReaderOperator`/`StreamSinkOperator`/`LocalSourceCoordinator` 兜底）。
 - **历史证据**：R16-AR-1/AR-11、R11-AR-3、R12-AR-1（synchronized 迭代）；R16-AR-5/AR-15、R8-AR-56（checkpoint ID 原子性/恢复单调性）（详见 catalog §5 不变式 #2/#3）。
 
@@ -1319,6 +1319,8 @@ reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**�
 - `GraphModelCheckpointExecutor.executeWithCheckpoint()` 构建 tasks 后，注册 abort handler：置位 `AtomicBoolean abortMarked` + 遍历 tasks 调 `SubtaskTask.cancel()`（中断阻塞线程）。
 - abort 标记插在 `submitAndRun` 返回后、`handleJobTermination` 之前：`if (abortMarked) throw StreamException`，同时实现"抛异常使 job 失败"和"跳过 handleJobTermination 的 final checkpoint"（task 已取消，final barrier 无人处理）。
 - **协作式 cancel（mailbox 控制面）**：abort handler 在 `task.cancel()` 之前经 `invokable.getMailboxExecutor().signalCancel()` 置 cancel flag + 投递 CONTROL marker mail。`Thread.interrupt()` 仍是解除阻塞 `InputGate.read()` / source I/O 的手段（无现成非阻塞 read API）；cancel flag 在 middle/sink 主循环（`processInputGate`）顶部和 source `SourceContext.collect()` 发射点检查，使退出为受控优雅退出。详见 `mailbox-design.md` §3.5。
+
+**pending future 完成契约（ST-01，2026-09-30）**：`PendingCheckpoint` 的 future 是 savepoint/DRAIN/SUSPEND 等待方（`triggerSavepoint`/`triggerTerminalSavepoint`/`JobCoordinator`）的唯一释放通道，三种终态都必须释放等待方——正常 complete 完成 future、`forceFail` 与 `abort` 以 `ERR_STREAM_CHECKPOINT_FAILED`/`ERR_STREAM_CHECKPOINT_ABORTED`（携带 reason）异常完成 future。协调器 `abortPendingCheckpoint` 先做 RUNNING→ABORTED 的 CAS 再委托 `pending.abort(reason)`，因此 `abort` 内部不得再次 CAS 判断（此前二次 CAS 恒 false 使 future 永不完成，等待方空等满 `checkpointTimeout` 后看到误导性 TimeoutException 而非 abort 原因）；现按 `forceFail` 的"读-判断-补完"先例：abort 后无论状态由谁迁移，future 一律以 abort 原因 `completeExceptionally`（幂等，已正常完成的 future 不被覆盖）。回归测试：`TestPendingCheckpointAbortFuture`。
 
 **为什么不能靠 task FAILED 传播**：
 - `SubtaskTask.cancel()` 的状态机先 CAS `RUNNING→CANCELING` 再 `t.interrupt()`，被取消的 task 中断后进入 `CANCELED`（非 `FAILED`），而 `checkTaskFailures` 只检 `FAILED`。

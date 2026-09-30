@@ -9,7 +9,7 @@
 
 状态管理负责算子处理数据时维护的状态（窗口聚合累加器、CEP NFA 状态、Source 消费偏移量）如何存储、序列化、分段持久化和故障恢复。
 
-nop-stream 采用纯内存 HashMap 存储 + JSON 序列化的极简策略，同时定义了分布式场景下的 `StateShard` 分片和 `StatePath` 持久化路径规则。
+nop-stream 的状态后端**可插拔**：默认 `MemoryStateBackend`（堆内存储 + JSON 序列化），另有 `RocksDBStateBackend`（off-heap 列族，`nop-stream-rocksdb` 模块，Stage 30 起交付，见 §5.3）；同时定义了分布式场景下的 `StateShard` 分片和 `StatePath` 持久化路径规则。
 
 ## 2. 状态类型体系
 
@@ -104,7 +104,9 @@ State (clear)
 
 **为什么**：局部恢复使 rescale 状态开销与切片大小成正比，而非全量。两条路径用同一可观测契约收敛：restore 后 backend 持有的 key 恰为其 `KeyGroupRange` 内的 key。
 
-**fail-fast**：增量 checkpoint restore 若未配置 `ISegmentStore` 则抛 `ERR_STREAM_STATE_ERROR`，不静默退化为全量 JSON（空）恢复。归属信息缺失（旧 checkpoint 无 `KeyGroupRange` 记录）时 executor 从 `parallelism` 计数派生区间，不静默丢弃或静默全量。
+**key 重材料化先于 group 计算（ST-02，2026-09-30）**：JSON 快照把非原始 key 退化为 JSON 原生形态（Long→Integer、Date→字段 map、bean→LinkedHashMap），其 hash 与 live typed key 不同。全量路径的三个 group 决策点——RocksDB restore 三入口（`putEntry`/`restoreMapState` 的 key-group 前缀）、`KeyGroupRangeRestoreFilter`（rescale 过滤）、`KeyGroupReshard.redistributeStates`（maxParallelism 迁移）——都必须先经 `StateKeyRematerializer.rematerializeKey(rawKey, keyType)`（core 共享静态工具，`MemoryStateSerDe.deserializeKey` 同样委托它）把 raw key 恢复为声明 keyType，再计算 group；keyType 取 restore backend 的声明类型，缺失时回退快照头 `keyType` 字段。违反该顺序时恢复条目落在错误 key-group（读路径静默 miss）或被所有 subtask 丢弃。回归测试：`TestRocksDBRestoreKeyRematerialization` / `TestMemoryRescaleNonPrimitiveKeyRestore` / `TestRestoreKeyRematerialization`（bean/Date key 各覆盖 checkpoint→restore→读写与 rescale 守恒）。原始类型 key 的重材料化是恒等变换，行为不变。
+
+**fail-fast**：增量 checkpoint restore 若未配置 `ISegmentStore` 则抛 `ERR_STREAM_STATE_ERROR`，不静默退化为全量 JSON（空）恢复。归属信息缺失（旧 checkpoint 无 `KeyGroupRange` 记录）时 executor 从 `parallelism` 计数派生区间，不静默丢弃或静默全量。key 重材料化失败（key 与声明 keyType 不兼容）同样 fail-fast 为 `ERR_STREAM_STATE_ERROR`，不静默保留错类型 key。
 
 ## 4. StatePath
 
@@ -423,7 +425,7 @@ interface IOperatorStateStore {
 3. **状态对象是引用** — MemoryValueState 直接存储用户对象引用，没有深拷贝。用户代码意外修改对象会影响状态一致性
 4. **MemoryInternalAppendingState accumulator 复用** — 单个 accumulator 实例在 add() 时先重置再加入，多线程不安全
 5. **SimpleKeyedStateStore 无 key 隔离** — 所有 key 共享状态，不可用于分布式 exactly-once 作业
-6. ~~**无状态恢复路径**~~ — `AbstractStreamOperator.snapshotState()` 是活跃路径，在 `processBarrier` 触发时调用 `keyedStateBackend.snapshotState()` 产出 `StateSnapshot`（参见 `AbstractStreamOperator.java:261-295`）。此路径对 Memory 和 RocksDB 后端均生效
+6. ~~**无状态恢复路径**~~ — `AbstractStreamOperator.snapshotState()` 是活跃路径，在 `processBarrier` 触发时调用 `keyedStateBackend.snapshotState()` 产出 `StateSnapshot`（参见 `AbstractStreamOperator#snapshotState`）。此路径对 Memory 和 RocksDB 后端均生效
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. ~~**仅 Memory 后端**~~ — `IStateBackend` 接口已有两个实现：`MemoryStateBackend`（堆内存）和 `RocksDBStateBackend`（off-heap，Stage 30）
 9. ~~**无 Operator State 实现**~~ — Operator State 已落地：`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式，E2E 测试覆盖 snapshot/restore 与 4-mode 重分布（见 §10.4）。专用 `BroadcastState` 类型经 G36 裁定永久排除（`BROADCAST` 重分布已覆盖其典型用例）

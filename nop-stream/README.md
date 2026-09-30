@@ -11,11 +11,17 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | `nop-stream-core` | 活跃 | StreamModel、StreamGraph/JobGraph、执行引擎、算子、状态管理、Checkpoint 类型定义 |
-| `nop-stream-runtime` | 活跃 | 窗口算子、Checkpoint 协调器与存储实现、分布式执行框架 |
+| `nop-stream-runtime` | 活跃 | 窗口算子、Checkpoint 协调器与存储实现、分布式执行框架（控制面 RPC + 跨 JVM 数据面 transport） |
 | `nop-stream-cep` | 活跃 | CEP 引擎（NFA + Pattern API + 声明式模型），依赖 core（`IEvalFunction` 经 `nop-core` 传递） |
-| `nop-stream-connector` | 活跃 | Source/Sink 连接器（nop-batch 桥接、CDC、消息队列） |
-| `nop-stream-fraud-example` | 活跃 | 欺诈检测示例 |
-| `nop-stream-flow` | 活跃 | XDSL 声明式流编排，依赖 core + cep（`CepPatternModel`）+ `nop-xdefs` |
+| `nop-stream-connector` | 活跃 | Source/Sink 连接器基础与 SPI（file source、file exactly-once sink、message 消息源/汇、split-based Source 协议） |
+| `nop-stream-connector-batch` | 活跃 | nop-batch 桥接连接器（批源 batch-loader / 批汇 batch-consumer） |
+| `nop-stream-connector-jdbc` | 活跃 | JDBC 两阶段提交 exactly-once sink（`jdbc-2pc`） |
+| `nop-stream-connector-debezium` | 活跃 | Debezium CDC source 连接器（`debezium-cdc`） |
+| `nop-stream-rocksdb` | 活跃 | RocksDB off-heap 增量状态后端（注意：CEP 算子 × RocksDB 后端组合当前不可用，CEP 限 Memory 后端） |
+| `nop-stream-flow` | 活跃 | XDSL 声明式流编排（`stream.xdef` → StreamModel，支持 Delta 定制），依赖 core + cep（`CepPatternModel`）+ `nop-xdefs` |
+| `nop-stream-fraud-example` | 活跃 | 欺诈检测端到端示例 |
+
+子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 10 个）；逐连接器能力矩阵见 `docs-for-ai/03-modules/nop-stream-connectors.md`。
 
 ## 设计文档
 
@@ -25,6 +31,10 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+// 语义组合规则：默认 processingGuarantee 为 STRICT_EXACTLY_ONCE（要求 REPLAYABLE source + 2PC sink）。
+// fromElements/print 只满足 at-least-once，违配会在 build 期 fail-fast（nop.err.stream.invalid-state），
+// 故入门示例显式声明降档（与 quickstart Topology1 的教学口径一致）。
+env.getCheckpointConfig().setProcessingGuarantee(io.nop.stream.core.checkpoint.ProcessingGuarantee.AT_LEAST_ONCE);
 env.fromElements(1, 2, 3, 4, 5)
    .map(x -> x * 2)
    .filter(x -> x > 4)
@@ -32,7 +42,7 @@ env.fromElements(1, 2, 3, 4, 5)
 env.execute("simple-pipeline");  // 统一走图模型路径：StreamGraph → JobGraph → TaskExecutor
 ```
 
-> DataStream API 是 StreamModel 的编程构造器，不是最终用户的主入口。主入口是 XDSL 声明式图模型定义（规划中，见 nop-stream-flow 模块）。
+> DataStream API 是 StreamModel 的编程构造器，不是最终用户的主入口。主入口是 XDSL 声明式图模型定义（已落地，见 `nop-stream-flow` 模块与 `nop-stream/quickstart/` 脚手架）。
 
 ## 构建
 

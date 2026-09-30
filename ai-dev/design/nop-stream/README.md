@@ -397,6 +397,10 @@ JobCoordinator / CheckpointCoordinator
   - abort 协作式 cancel（interrupt 解除阻塞 + cancel flag 循环顶检查）
   - `synchronized` 处置裁定、ACK 越界缺陷处置
 
+- `failover-design.md`
+  - Targeted failover 可行性裁定（Stage 27 NO-GO：all-pipelined 单 region + by-reference 队列下局部恢复不可行）
+  - Stage 44 五个 successor plans 的落地注记（Implementation status）
+
 ## 状态与时间层
 
 - `state-management-design.md`
@@ -498,6 +502,7 @@ JobCoordinator / CheckpointCoordinator
 
 4. `graph-model-design.md` — 图模型转换、算子链化、执行路径
 5. `checkpoint-design.md` — Checkpoint 协议、Exactly-Once
+5b. `failover-design.md` — targeted failover NO-GO 裁定 + Stage 44 successor 落地注记
 6. `state-management-design.md` — 状态后端、StateShard、序列化
 7. `window-design.md` — 窗口机制、Trigger、Evictor
 8. `time-model-design.md` — Watermark、时间戳分配

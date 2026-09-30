@@ -157,45 +157,49 @@ Exit Criteria:
 
 ### Phase 5 - CEP P1（CEP-01）+ REG-01 fail-fast + CEP P2
 
-Status: planned
+Status: completed
 Targets: `nop-stream-cep/.../operator/CepOperator.java`、`nop-stream-runtime/.../execution/SupervisionLoop.java`（REG-01 组合检测）、`nop-stream-cep/.../nfa/compiler/NFACompiler.java`
 
 - Item Types: `Fix`
 
-- [ ] CEP-01：PT 模式 bucket 排水不再依赖事件时间 ledger——PT 分支同步写 ledger 并在 `onProcessingTime` 做 ledger 清理（或 PT 模式回退 `elementQueueState.keys()` 桶迭代，二选一以 live 代码结构定，选择记录于 log）。测试：PT+comparator 模式，两轮 timer 后全部缓冲事件被排水匹配（修复前第二轮后丢失——先跑一次记录）。
-- [ ] REG-01：region 重启组合"内部边无物化 × consumer 状态已回滚（有 checkpoint）× producer 已 COMPLETED（F1 跳过）"为不可恢复的数据丢失窗口——在 `restartRegion` 的 F1 skip 处检测该组合，响亮失败（job fail，错误码 + 完整上下文：边、producer/consumer 子任务、checkpoint epoch）。测试：组合场景下恢复显式失败并带可定位错误。
-- [ ] CEP-02：NFACompiler 对 greedy+until+optional 组合不再编译出 null-target PROCEED 边——编译期拒绝（MalformedPatternException）或修正图语义（以最小正确修复为准，选择记录于 log）。测试：该组合不再在运行期 NPE。
-- [ ] CEP-08：`times(0,0)`/负参数抛 `MalformedPatternException`（替代裸 IllegalArgumentException）。
+- [x] CEP-01：PT 模式 bucket 排水不再依赖事件时间 ledger——PT 分支同步写 ledger 并在 `onProcessingTime` 做 ledger 清理（或 PT 模式回退 `elementQueueState.keys()` 桶迭代，二选一以 live 代码结构定，选择记录于 log）。测试：PT+comparator 模式，两轮 timer 后全部缓冲事件被排水匹配（修复前第二轮后丢失——先跑一次记录）。（选型方案 (a)：`registerTimer` PT 分支镜像写台账 + `onProcessingTime` STEP-6 清理；选型理由与偏离见执行记录）
+- [x] REG-01：region 重启组合"内部边无物化 × consumer 状态已回滚（有 checkpoint）× producer 已 COMPLETED（F1 跳过）"为不可恢复的数据丢失窗口——在 `restartRegion` 的 F1 skip 处检测该组合，响亮失败（job fail，错误码 + 完整上下文：边、producer/consumer 子任务、checkpoint epoch）。测试：组合场景下恢复显式失败并带可定位错误。（新错误码 `ERR_STREAM_RESTART_UNREPLAYABLE_INTERNAL_EDGE`；检测点提升到重建循环之前，理由见执行记录）
+- [x] CEP-02：NFACompiler 对 greedy+until+optional 组合不再编译出 null-target PROCEED 边——编译期拒绝（MalformedPatternException）或修正图语义（以最小正确修复为准，选择记录于 log）。测试：该组合不再在运行期 NPE。（选型修正图语义：读取 miss 回退未改写的 proceedState；理由见执行记录）
+- [x] CEP-08：`times(0,0)`/负参数抛 `MalformedPatternException`（替代裸 IllegalArgumentException）。（times 家族入口校验上移；times(0,0) 的 OPTIONAL 副作用移到校验后）
 
 Exit Criteria:
 
-- [ ] CEP-01/02/08、REG-01 各有聚焦测试且通过；CEP-01 测试在修复前能复现丢失（记录）。
-- [ ] `nop-stream-cep`、`nop-stream-runtime` 测试全绿。
-- [ ] owner doc：`ai-dev/design/nop-stream/cep-design.md` 的 PT 排水语义段（若有相关表述）与修复一致；REG-01 失败语义并入 failover-design（与 Phase 3 合并更新）。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] CEP-01/02/08、REG-01 各有聚焦测试且通过；CEP-01 测试在修复前能复现丢失（记录）。（修复前复现 `_tmp/r5-p5-prefix-repro.log`：CEP-01 第二轮 `got: [a1->end]` 丢失、窗口轮同型；CEP-02 两变体 NPE / ERR_CEP_NFA_FILTER_EXECUTION_FAILED）
+- [x] `nop-stream-cep`、`nop-stream-runtime` 测试全绿。（`_tmp/r5-p5-tests.log` EXIT=0：core 1630 + flow 118 + cep 380 + runtime 1124 = 3252 tests，0 failures 0 errors）
+- [x] owner doc：`ai-dev/design/nop-stream/cep-design.md` 的 PT 排水语义段（若有相关表述）与修复一致；REG-01 失败语义并入 failover-design（与 Phase 3 合并更新）。（cep-design 新增 §10"处理时间模式的 bucket 排水与 timer 台账"；failover-design §2.3 恢复健壮性契约新增 REG-01 条目 + §五.4 Writer 保留条目补 F1 失败语义边界）
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
+
+> 执行记录（2026-09-30，Phase 5）：**CEP-01 选型 (a)（PT 分支同步写 ledger）**——live code 中 `drainDueBuckets(dueOnly=false)` 的候选集完全来自台账，方案 (b)（PT 回退桶扫描）会放弃 plan 2279 的"免全桶扫描"收益并使 ET/PT 双候选源分叉；实现为 `registerTimer` PT 分支在注册墙钟 timer 的同时 `registerEventTimeTimerForKey` 镜像写台账（桶注册与窗口超时注册同路径覆盖），`onProcessingTime` 新增 STEP-6 台账清理（`removeIf(timer <= fireTime)`，与 `onEventTime` 的 ET 清理同构；未来的窗口台账项存活至自身触发轮）。台账字段 javadoc 同步声明 ET/PT 双模式语义。**REG-01 检测点偏离**：计划写"F1 skip 处检测"，实现将守卫 `failFastOnUnreplayableInternalEdge` 提升到 restartRegion 的 Phase 2（cancel/wait）之后、Phase 3 重建循环之前——检测条件即 F1 组合（非 COMPLETED 须重建任务 × `matPoint == null` 且 `partition.isFinished()` 的输入通道 × 存在已完成 checkpoint；finished ⇒ producer 走 EOS-COMPLETED 路径而失败/取消路径不 seal 分区，故无误报面），提升位置保证触发时 region 内无半重建/半重提交任务。检测从 consumer 侧扫描（`ResultPartition` 无 owner 元数据、`RecordWriter.getPartitions()` 为 package-private、plan Non-Goals 禁止第三类 core 公开 API 面扩展），producer 归因经 JobGraph 拓扑（in-region 入边源顶点 + 其 COMPLETED subtaskIndex 列表）写入错误 detail；新错误码 `ERR_STREAM_RESTART_UNREPLAYABLE_INTERNAL_EDGE`（`nop.err.stream.restart-unreplayable-internal-edge`，携带 regionId / consumer vertexId / taskIndex / checkpointId / detail）。无 checkpoint 的同拓扑重启行为保持（`TestRegionRestartInternalEdgeE2E` 3 用例零回归；`TestSupervisionLoopConsistentCut` 3 用例证明物化边不受影响）。**CEP-02 选型：修正图语义**（`createSingletonState` 读取 miss 回退未改写的 `proceedState`）而非编译期拒绝——`times(0,1).greedy().until` 是合法 API 形状，拒绝属行为回归；`from == to` 时 `createTimesState` 从未对 proceedState 施加 greedy 条件改写，回退目标即精确语义；变体 (b)（`copyWithoutTransitiveNots` 改名副本导致键不匹配）下回退目标与普通 optional PROCEED 边同目标，语义与非 greedy optional 一致（代价仅为审计所述"丢失 until 命中时绕过 transitive NOT 的副本优化"）。两个审计变体均有运行期测试钉死。**CEP-08**：`times(int)`/`times(from,to,...)`/`timesOrMore(int)` 数值域校验上移到 Pattern 入口并抛 `MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)`（英文消息、ARG_PATTERN_DETAIL）；`times(0,0)` 的 OPTIONAL 副作用移到全部校验通过之后（拒绝路径不再污染 quantifier；`Quantifier.Times` 构造器 Guard 保留为内部防线）。测试面：新增 `TestCepOperatorProcessingTimeBucketDrain`（2 用例：三轮 timer 排水 + 窗口超时轮后续轮排水/台账有界）、`TestGreedyUntilOptionalNullTarget`（2 用例：审计变体 a/b）、`TestRegionRestartUnreplayableInternalEdge`（1 用例：错误码 + producer/consumer/epoch 全上下文断言）；`TestPatternValidation` 4 处 IAE 断言改 MPE 并新增 `times(0,0)`/`times(0)`/拒绝不污染 quantifier 3 用例。过程偏差：CEP-01 测试两轮数据修正（end 事件名须满足 pattern 条件；name-comparator 下 start 事件须排序在 end 之前）与 PTS mock 改一次性触发（fireDue 不重放已触发 timer）——均属测试基建修正，非实现偏差。发现但未修（登记）：REG-01 守卫对"consumer 已消费完 residual 但尚未观察到 EOS 即失败"的窄场景会保守失败（此时窗口实际无缺失）——响亮失败方向符合本 plan 准绳，不做豁免；"producer FAILED（分区未 seal）+ 有 checkpoint"的负向矩阵无专门钉子（守卫条件 `partition.isFinished()` 结构性排除，producer 重建重发语义由 plan 366 四案例矩阵覆盖）。`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
 
 ### Phase 6 - 文档面 P1/P2（DC-01..13）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/README.md`、`docs-for-ai/03-modules/nop-stream-user-guide.md`、`ai-dev/design/nop-stream/cep-design.md`、`ai-dev/design/nop-stream/01-architecture-baseline.md`、`ai-dev/design/nop-stream/state-management-design.md`、`ai-dev/design/nop-stream/README.md`、`docs-for-ai/INDEX.md`、`docs-for-ai/02-core-guides/error-handling.md`
 
 - Item Types: `Fix`
 
-- [ ] DC-01/02：README 与 user-guide 快速开始示例改为默认配置下可运行（对齐 quickstart Topology1 的显式降档写法或声明 guarantee），修正后以 live classes 实际运行示例代码验证不再抛 `nop.err.stream.invalid-state`。
-- [ ] DC-03：cep-design.md「方式二」示例改用真实 API（`compileFactory(...).createNFA()` + `advanceTime(accessor, nfaState, ts, skipStrategy)`）。
-- [ ] DC-04：README 模块表补齐 10/10（rocksdb、connector-jdbc、connector-batch、connector-debezium）；01-architecture §二模块树同步。
-- [ ] DC-05：README:35 XDSL「规划中」与模块表「活跃」矛盾消除。
-- [ ] DC-06：docs-for-ai/INDEX.md nop-stream 清单补齐并修正 flow 描述。
-- [ ] DC-07：error-handling.md 与 AGENTS.md 对齐（NopStreamErrors 全英文为合规现状，移除"默认中文"误导或登记例外口径）。
-- [ ] DC-08/09：state-management-design「纯内存 HashMap」与 01-architecture「composite fencing token」残留表述归真。
-- [ ] DC-10..13：过期行号锚点、xdef 头注释「五层」、design/README 索引漏 failover-design、裸文件名引用。
+- [x] DC-01/02：README 与 user-guide 快速开始示例改为默认配置下可运行（对齐 quickstart Topology1 的显式降档写法或声明 guarantee），修正后以 live classes 实际运行示例代码验证不再抛 `nop.err.stream.invalid-state`。
+- [x] DC-03：cep-design.md「方式二」示例改用真实 API（`compileFactory(...).createNFA()` + `advanceTime(accessor, nfaState, ts, skipStrategy)`）。
+- [x] DC-04：README 模块表补齐 10/10（rocksdb、connector-jdbc、connector-batch、connector-debezium）；01-architecture §二模块树同步。
+- [x] DC-05：README:35 XDSL「规划中」与模块表「活跃」矛盾消除。
+- [x] DC-06：docs-for-ai/INDEX.md nop-stream 清单补齐并修正 flow 描述。
+- [x] DC-07：error-handling.md 与 AGENTS.md 对齐（NopStreamErrors 全英文为合规现状，移除"默认中文"误导或登记例外口径）。
+- [x] DC-08/09：state-management-design「纯内存 HashMap」与 01-architecture「composite fencing token」残留表述归真。
+- [x] DC-10..13：过期行号锚点、xdef 头注释「五层」、design/README 索引漏 failover-design、裸文件名引用。
 
 Exit Criteria:
 
-- [ ] README/user-guide 示例经实际运行验证通过（运行证据记录于 log）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
-- [ ] 审计报告 DC-01..13 指出的失实表述逐条复核不存在。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] README/user-guide 示例经实际运行验证通过（运行证据记录于 log）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+- [x] 审计报告 DC-01..13 指出的失实表述逐条复核不存在。
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
+
+> 执行记录（2026-09-30，Phase 6 文档批次）：DC-01/02 两处快速示例对齐 quickstart Topology1 显式降档写法（`env.getCheckpointConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE)` + 门控注释；user-guide 另保持 Phase 4 的 jdbc 台账内容不动），并对 `nop-stream-core/nop-stream-runtime` target/classes 实际编译运行探针验证：修正前示例复现 `nop.err.stream.invalid-state`（REPLAYABLE/TWO_PHASE_COMMIT 双门槛报错），修正后 README 探针输出 `6/8/10` 且 `DC01_PROBE_OK`、user-guide 探针（含 `enableCheckpointing`，runtime SPI 工厂接线）完成 checkpoint 0 且 `DC02_PROBE_OK`；探针临时文件已删除。DC-03 示例按 live API 重写（`NFACompiler#compileFactory(...).createNFA()` + `nfa.open` + `SharedBuffer#getAccessor`（AutoCloseable）+ `advanceTime` 返回 `Tuple2`（f0=matches/f1=timeouts）+ `process`，签名逐一对照 `NFA.java:193/237/266` 与 `FraudDetectionDemo#consumeEvent`）。DC-10 三处行号锚点改为符号锚点（`CheckpointCoordinator#advanceCheckpointIdCounterAfterRestore`（live :983/:986）、`CepOperator#open()`（live :322）、`AbstractStreamOperator#snapshotState`（live :275））。DC-07 登记双模块族英文口径（nop-ai + nop-stream（`NopStreamErrors` 全英文 `\p{Han}` 零命中），并区分异常消息 vs define 描述两类语言规则）。`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0（仅存 3 个 warning 位于 `ai-dev/plans/nop-bytecode/06-resource-leak-v1.md`，非本轮范围、本轮之前已存在）。daily log 条目由主 agent 按 Phase 汇总回写。
 
 ### Phase 7 - P2 缺陷批次（确认缺陷择要，11 项）
 
