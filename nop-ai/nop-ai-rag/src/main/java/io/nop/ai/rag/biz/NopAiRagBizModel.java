@@ -21,7 +21,7 @@ import java.util.Map;
  * K3 RAG 管线 BizModel：摄取/检索/合成三 action。
  * InMemoryVectorStore 缺省装配（开发/测试），生产通过 Delta 替换为 PgVectorStore。
  */
-@BizModel("/NopAiRag")
+@BizModel("NopAiRag")
 public class NopAiRagBizModel {
     private final RagIngestService ingestService;
     private final RagSearchService searchService;

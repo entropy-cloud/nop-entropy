@@ -116,21 +116,21 @@ Exit Criteria:
 
 ### Workstream 4 - nop-code 语言 bean 接线 + nop-xlang JsPromise 错误路径 [G11-03-01][G2-10-01]
 
-Status: planned
+Status: completed
 Targets: `nop-code/nop-code-service/app-service.beans.xml`（或对应手写 beans 文件）、`nop-kernel/nop-xlang/.../JsPromise.java`
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] nop-code-service：将 Go/C#/Rust 三个 ILanguageAdapter bean 纳入 `app-*` beans 装载（import 或移入正确文件名），与 pom 六语言依赖、六语言 import resolver 对齐（Fix）
-- [ ] nop-code-service：接线验证测试——容器装配后六语言 adapter 均可解析（经 merged beans 装载断言，满足 Wiring Verification Rule）（Proof）
-- [ ] nop-xlang JsPromise 三处修复：executor 抛错 → promise 进入 rejected；无 onR 的 `then` 保持 rejected 透传（不调用 identity 包装值）；`finally` 回调抛错 → promise 转 rejected（不再 ignore）（Fix）
-- [ ] TestJsPromise 新增错误路径用例：executor 同步抛错、executor 异步抛错、rejected+then(onF only)、then 链透传、finally 回调抛错、finally 正常放行（Proof）
+- [x] nop-code-service：将 Go/C#/Rust 三个 ILanguageAdapter bean 纳入 `app-*` beans 装载（import 或移入正确文件名），与 pom 六语言依赖、六语言 import resolver 对齐（Fix）
+- [x] nop-code-service：接线验证测试——容器装配后六语言 adapter 均可解析（经 merged beans 装载断言，满足 Wiring Verification Rule）（Proof）
+- [x] nop-xlang JsPromise 三处修复：executor 抛错 → promise 进入 rejected；无 onR 的 `then` 保持 rejected 透传（不调用 identity 包装值）；`finally` 回调抛错 → promise 转 rejected（不再 ignore）（Fix）
+- [x] TestJsPromise 新增错误路径用例：executor 同步抛错、executor 异步抛错、rejected+then(onF only)、then 链透传、finally 回调抛错、finally 正常放行（Proof）
 
 Exit Criteria:
 
-- [ ] merged beans 实测含六个语言 adapter bean（测试或 dump 断言）
-- [ ] JsPromise 六个新用例全部通过，且至少 executor 抛错与 finally 抛错两例在修复前失败（先红后绿）
-- [ ] `./mvnw test -pl nop-code/nop-code-service -am` 与 `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
+- [x] merged beans 实测含六个语言 adapter bean（测试或 dump 断言）
+- [x] JsPromise 六个新用例全部通过，且至少 executor 抛错与 finally 抛错两例在修复前失败（先红后绿）
+- [x] `./mvnw test -pl nop-code/nop-code-service -am` 与 `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
 - [ ] No owner-doc update required（修复使实现与既有宣称/JS 语义对齐，无契约变化）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
