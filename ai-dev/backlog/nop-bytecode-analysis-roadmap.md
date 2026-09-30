@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-29（Wave 4 收口：items 8-9 done——双跑收敛+CI 裁定暂缓[数据驱动]，M3 达成；Wave 1-3 已收口）
+> Last updated: 2026-09-30（Wave 5 立项：plan 09 active——items 10-11 planned；Wave 0-4 已收口）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -69,8 +69,8 @@
 
 ### Wave 5 — 跨过程扩展（adopt-or-skip）
 
-- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`todo` — deps: 9
-- 11. **taint 面重估**：统一账本 Sonar 行 not-replaceable 在案；仅当 item 10 成立才进入，否则归档不追：`todo` — deps: 10
+- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`planned`（plan: ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md——三轮腿 spike[G4 注解读取探针 / SootUp 调用图 / Tai-e 外部工具腿]+预钉判据 adopt-or-skip 终裁） — deps: 9
+- 11. **taint 面重估**：统一账本 Sonar 行 not-replaceable 在案；仅当 item 10 成立才进入，否则归档不追：`planned`（合并至 plan 09——item 10 终裁的条件分支） — deps: 10
 - ★ **Milestone M4（待裁形态）: 跨过程面 adopt-or-skip 落档**（unlocks when 10–11 done）
 
 ## Status values
