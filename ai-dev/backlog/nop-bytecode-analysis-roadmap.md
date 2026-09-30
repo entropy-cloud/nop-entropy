@@ -1,7 +1,7 @@
 # nop 字节码分析专项 Roadmap — 纯增量通道，承接源码引擎原则外缺口
 
 > Created: 2026-09-29
-> Last updated: 2026-09-30（Wave 5 立项：plan 09 active——items 10-11 planned；Wave 0-4 已收口）
+> Last updated: 2026-09-30（Wave 5 收口：items 10-11 done——跨过程 spike 五判据全过、裁定 adopt 窄桥接[M4 达成]；Wave 0-4 已收口——roadmap 全部 11 项完成）
 > 设计权威: [ai-dev/design/nop-bytecode/00-overview.md](../design/nop-bytecode/00-overview.md)（Vision + Architecture Baseline 双职，草案——底座 ADR 落档后转 active）
 > 发起：owner 指令（2026-09-29）——"原先的内容都不动，额外再引入字节码的分析工具专项分析其他内容"
 > 姊妹 roadmap: [nop-lint-tool-replacement-roadmap.md](./nop-lint-tool-replacement-roadmap.md)（源码 lane；本 roadmap 对其**零修改**，Hard constraint 1）
@@ -69,9 +69,9 @@
 
 ### Wave 5 — 跨过程扩展（adopt-or-skip）
 
-- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`planned`（plan: ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md——三轮腿 spike[G4 注解读取探针 / SootUp 调用图 / Tai-e 外部工具腿]+预钉判据 adopt-or-skip 终裁） — deps: 9
-- 11. **taint 面重估**：统一账本 Sonar 行 not-replaceable 在案；仅当 item 10 成立才进入，否则归档不追：`planned`（合并至 plan 09——item 10 终裁的条件分支） — deps: 10
-- ★ **Milestone M4（待裁形态）: 跨过程面 adopt-or-skip 落档**（unlocks when 10–11 done）
+- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`done`（plan: ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md——三轮腿数据落 [interprocedural-spike.md](../../nop-bytecode/docs/interprocedural-spike.md)：G4 读取能力实证+jq 语料契约空集诚实记录 / SootUp 34 jars 调用图 0.35s·170MB+注解入口 demo PASS[v61+v65] / Tai-e 仓外构建实跑 jq CHA 22.6k reachable 1.57s·1.13GB；五判据全过→裁定 **adopt 窄桥接**；closure audit agent_5f8d0835 APPROVE 见 plan Closure） — deps: 9
+- 11. **taint 面重估**：统一账本 Sonar 行 not-replaceable 在案；仅当 item 10 成立才进入，否则归档不追：`done`（合并至 plan 09——item 10 成立 → taint 面重估落档：Tai-e taint 探针 1 flow[source/sink 双定位]+source/sink 注册表=误报控制面形态+PTA 资源风险如实登记[toy 13.4s/2.3GB]，successor 面清单 §三.1；重估触发三条在档） — deps: 10
+- ★ **Milestone M4: 跨过程面 adopt-or-skip 落档**（unlocks when 10–11 done）——**UNLOCKED 2026-09-30**（裁定 = adopt 窄桥接形态[数据驱动，五判据对照在档]；实现归 successor plan——M4 语义为裁定落档）
 
 ## Status values
 

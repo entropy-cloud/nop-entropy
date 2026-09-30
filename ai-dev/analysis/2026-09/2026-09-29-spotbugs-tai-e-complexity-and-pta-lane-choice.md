@@ -1,6 +1,6 @@
 # SpotBugs 实现复杂度评估与指针分析通道选型（Tai-e 复用 / 参考重做 / 直接使用）
 
-> Status: open
+> Status: resolved（2026-09-30——Wave 5 倾向已被 plan 09 spike 实测消费并落终裁，见文末「Postscript」）
 > Date: 2026-09-29
 > Scope: nop-bytecode-analysis roadmap（Wave 0 底座裁定、Wave 5 跨过程扩展）的输入调研
 > Conclusion: 尚未裁定（归 roadmap Wave 0 item 2 / Wave 5 item 10）。当前倾向：Wave 2/3 维持 ASM 自研 + 参考 SpotBugs 分析形态；Wave 5 指针分析倾向**直接使用 Tai-e 作为外部工具**（maven central 构件、插件系统承接入口点适配），否决"从零参考重做"。许可证约束：两框架均为 LGPL，**作为外部依赖/工具使用不阻塞**，**拷贝/移植源码进本仓被阻塞**（本仓 Apache-2.0）。
@@ -82,16 +82,22 @@
 
 ## Conclusion
 
-- 未裁定（Status: open，归 roadmap Wave 0 / Wave 5 的 plan 流程）。
+- 未裁定（Status: open，归 roadmap Wave 0 / Wave 5 的 plan 流程）。（时态注记 2026-09-30：本节为 2026-09-29 原文快照；Wave 5 已由 plan 09 结案——见 header Status 与文末 Postscript）
 - 当前倾向：**Wave 5 指针分析直接使用 Tai-e**（外部工具/依赖形态，pin 版本 + 适配插件），**否决从零参考重做**（多年量级、 mandate 错位、许可证使"搬源码"本就不可行）；SpotBugs 与指针分析通道无关（无 PTA），其价值 = Wave 2/3 两个分析形态的参考 + 既有 qa 接线维持。
 - 后续工作：Wave 0 item 2 / Wave 5 item 10 plan 立项时消费本分析；若 owner 接受 Tai-e 倾向，建议在 nop-bytecode-analysis roadmap Wave 5 item 10 增注"候选 = Tai-e 优先，SootUp 对比"（纯增量原则下由 owner 拍板后改）。
 
 ## Open Questions
 
-- [ ] Tai-e 对 Java 21 产物（class file v65）的分析支持范围与 JRE 建模完备度（-java 支持版本上限）——需 spike 实测
-- [ ] 本仓全量（100 模块 + 依赖闭包）PTA 的耗时/内存——spike 采集
-- [ ] 框架型库（无 main）的入口点建模成本：@BizModel bean 方法 / XService 入口 → Tai-e entry point 配置或插件的映射工作量
-- [ ] Tai-e v0.5.x → 1.0 的 API 稳定性承诺（是否声明 semver）
+- [x] Tai-e 对 Java 21 产物（class file v65）的分析支持范围与 JRE 建模完备度（-java 支持版本上限）——**已结（plan 09 spike）**：应用产物 v61/v65 均解析通过；current-JRE 模式要求运行时 JRE 镜像 ≤ v69（Java 25，ASM 9.8 前端上限；Java 26 镜像 v70 报 Unsupported）
+- [x] 本仓全量（100 模块 + 依赖闭包）PTA 的耗时/内存——spike 采集——**按 plan 09 Non-Goals 未做全仓**；中间锚点在档：jq 单模块 CHA 1.57 s / 1.13 GB（22.6k reachable），全程序 PTA toy 已达 13.4 s / 2.30 GB（模块级实测 = successor 第一验收项）
+- [x] 框架型库（无 main）的入口点建模成本——**已结（plan 09 spike）**：main-class 直用 + entry driver（已 demo）/ `--input-classes` / EntryPointHandler 插件 / taint-config 式声明文件四条适配路径；SootUp 侧 = 显式 `List<MethodSignature>` 直传（已 demo）
+- [x] Tai-e v0.5.x → 1.0 的 API 稳定性承诺（是否声明 semver）——**已结（plan 09 spike）**：无 semver 声明且 churn 实锤（0.5.4 maven 构件不可直接运行[POM 无 main-class、无 fatJar] + jre-dir JIMAGE 路径缺陷 + master 默认改 current-JRE）——pin 版本 + 隔离适配层为必要条件
+
+## Postscript（2026-09-30，plan 09 消费记录）
+
+- **Wave 5 终裁**：adopt 窄桥接（五判据全过）——判定首选 Tai-e（taint/PTA 面）、SootUp 候选（调用图面）；数据与 successor 面清单见 [interprocedural-spike.md](../../../nop-bytecode/docs/interprocedural-spike.md)。
+- **坐标勘误**：`net.pascal-lab:tai-e` 在 central 的版本列表实查 = 0.2.2 / 0.5.1 / 0.5.2 / **0.5.4**（本文原句「maven central 有 v0.5.4」属实；maven search API 的 latestVersion 字段显示 0.5.1 系陈旧索引，非 central 实况）。补充事实：0.5.4 构件是裸 jar，**不可直接作为工具运行**——可运行发行物须自源码构建（master fatJar，0.5.5-SNAPSHOT）。
+- **本机环境注记**（影响复现）：ms-17.0.17 为空壳安装（Contents/Home 为空——jrt-fs.jar 与 modules 均缺）；可用的真实 JDK = zulu-26.0.1（v70 镜像）与 openjdk-25.0.1（v69 镜像）。
 
 ## References
 

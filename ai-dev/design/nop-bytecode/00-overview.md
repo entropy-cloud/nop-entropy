@@ -13,7 +13,7 @@
 |---|---|---|
 | 空指针解引用路径（null-flow） | Wave 2 | 方法内路径敏感：解引用前判空路径分析 |
 | 资源泄漏 acquire/release 跨路径配对 | Wave 3 | Closeable / 连接 / 锁资源注册表（v1 交付两类：Closeable NEW + JDBC 工厂；锁归 follow-up） |
-| 跨过程调用图 / 参数 nullness 契约 / taint | Wave 5（adopt-or-skip） | 全程序指针分析面，外部能力窄桥接（§2.5） |
+| 跨过程调用图 / 参数 nullness 契约 / taint | Wave 5（2026-09-30 已裁 adopt） | 外部能力窄桥接（§2.5、§3.1 外部桥接层；终裁数据与 successor 面见 [interprocedural-spike.md](../../../nop-bytecode/docs/interprocedural-spike.md)） |
 
 **成功标准**：(a) 两大缺口各有 v1 分析器，已知命中集对照在档（零 diff 或 delta 逐条裁定）；(b) 发现流进 CI（report-only 起步，升级须独立 plan + 误报数据）；(c) 与 SpotBugs 并行双跑对照收敛记录在案。
 
@@ -75,7 +75,7 @@ flowchart LR
 | 内核层 | 方法内显式 CFG + 抽象解释框架（帧沿 CFG 传播、路径聚合） | nullness lattice 优先；**自建引擎 + `tree.analysis` 仅作测试 oracle**（ADR §五，2026-09-29 内核落地）；JMH 基线在 `nop-bytecode/docs/perf-baseline.md` |
 | 分析器层 | 每分析器 = 检测逻辑 + 误报控制面 + fixtures + 对照记录 | 缺口归属单一；豁免面在缺口账本登记 |
 | 通道层 | 发现流输出；诊断结构与 nop-lint 诊断格式对齐（统一 AI/开发者消费面）；准入判据 3 的去重口径在此落实 | **独立 CLI 已落地（plan 04）**：`io.nop.bytecode.cli.NopBytecodeMain`，report-only 退出码 0/2；ruleId 命名空间 `nullflow/` + 通道级发现键去重 = 去重口径落实；maven goal Deferred |
-| 外部桥接层（Wave 5，待裁） | 外部全程序框架的进程边界调用、结果报告消费、Nop 语义入口点适配 | 外部工具/窄桥接形态（§2.5）；失败语义 = 降级为"跨过程面缺席"并报告，不阻塞字节码通道主体 |
+| 外部桥接层（Wave 5 已裁 adopt，2026-09-30） | 外部全程序框架的进程边界调用、结果报告消费、Nop 语义入口点适配（main/entry driver/plugin/声明式配置） | 外部工具/窄桥接形态（§2.5）；首选 Tai-e（taint/PTA 面）、SootUp 候选（调用图面）；实现归 successor（[interprocedural-spike.md](../../../nop-bytecode/docs/interprocedural-spike.md) §三）；运行前置 = Tai-e 需运行时 JRE 镜像 ≤ v69；失败语义 = 降级为"跨过程面缺席"并报告，不阻塞字节码通道主体 |
 
 ### 3.2 模块边界
 

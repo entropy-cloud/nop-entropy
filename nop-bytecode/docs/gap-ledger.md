@@ -39,21 +39,21 @@
 
 ### G3 跨过程 taint 分析
 
-- 归属裁定: **待裁**（Wave 5 adopt-or-skip，依赖 roadmap item 10 跨过程 spike 成立）
-- 执行状态: `open`（blocked on item 10）
-- 来源锚点: 统一账本 Sonar 行（跨过程 taint not-replaceable，HC 口径）
-- 理由/机制面证据: 源码 lane 已裁 not-replaceable（跨过程数据流传播超 per-file 引擎问题域）；本通道范围锚 = class-file 信息可及面，跨过程 taint 需调用图 + 指针分析能力——自建为多年量级工程尾（设计权威 §4 已拒绝），唯一可行形态 = 外部全程序框架窄桥接（§2.5：独立进程、结果报告消费、LGPL 仅限构建工具边界）。是否采纳 = item 10 spike 的 adopt-or-skip 裁定。
-- 误报控制面: 待裁后补（若采纳，taint 源/汇注册表白名单为最小控制面）。
-- 重估触发: item 10 spike 结论（成立 → 进入本面承接细化；不成立 → 本行翻 `不承接` 归档，与统一账本 Sonar 行并行有效）；Tai-e 或同级外部框架使用形态变化。
+- 归属裁定: **承接**（Wave 5 adopt——2026-09-30 plan 09 spike 五判据全过，窄桥接形态，判定首选 Tai-e）
+- 执行状态: `open`（successor 待立项；面清单指针 = [interprocedural-spike.md](../../nop-bytecode/docs/interprocedural-spike.md) §三.1）
+- 来源锚点: 统一账本 Sonar 行（跨过程 taint not-replaceable，HC 口径）+ plan 09 spike §一.3
+- 理由/机制面证据: 自建多年量级（设计权威 §4 已拒）；外部窄桥接实测可行——Tai-e（master 0.5.5-SNAPSHOT fatJar，仓外源码构建，GPL 源码不出仓）toy taint 探针 `Detected 1 taint flow(s)`（source/sink 双定位可解析，常量对照零误报形态）；jq 语料 CHA 22,595 reachable / 277,262 edges @ 1.57 s / 1.13 GB。资源风险如实登记 = 全程序 PTA toy 已达 13.4 s / 2.30 GB，模块级资源实测为 successor 第一验收项。
+- 误报控制面: taint source/sink 注册表白名单（Tai-e `taint-config` YAML 声明式——即本行原预设最小控制面的实现形态）；successor 实施时按平台方法/注解约定落注册表。
+- 重估触发: Tai-e/SootUp 版本线重大变化（1.0 GA、构件可运行化）；PTA 模块级资源实测超 CI 分钟级预算（届时调用图面与 taint 面可拆分裁定——调用图面资源余量大）；Tai-e 或同级外部框架使用形态变化。
 
 ### G4 参数 nullness 注解契约读取（RuntimeVisibleAnnotations 面）
 
-- 归属裁定: **承接候选**（Wave 5 item 10 的组成部分，不独立立项）
-- 执行状态: `open`（blocked on item 10）
-- 来源锚点: plan 24（NullAway 归因：全程序注解推导超出源码 lane 引擎）+ roadmap item 10（注解契约可读性）
-- 理由/机制面证据: `@Nullable` / `@NonNull` 编译后存于 RuntimeVisibleAnnotations/RuntimeInvisibleAnnotations，字节码层可直接读取——这是本通道对"注解契约面"的**读取**能力；它服务于跨过程参数 nullness 契约（G3 同一 spike 的输入面），不构成独立分析器。
+- 归属裁定: **承接**（Wave 5 adopt 随 G3——输入面，不独立立项）
+- 执行状态: `open`（随 G3 successor；spike §三.2）
+- 来源锚点: plan 24（NullAway 归因：全程序注解推导超出源码 lane 引擎）+ roadmap item 10（注解契约可读性）+ plan 09 spike §一.1
+- 理由/机制面证据: 读取能力全形态实证（plan 09 腿 1：runtime-visible/invisible 类/方法/参数注解 + 参数槽定位，ASM tree 9.7.1）；**诚实负结果 = nop-jq 语料注解契约空集**（仅 3 处 @FunctionalInterface，方法/字段/参数注解全零）——字节码契约面可读对象缺位是平台约定缺位，非通道能力缺口；successor 需与「平台字节码注解契约约定」同案裁定。
 - 误报控制面: 与 G3 共用（契约读取是输入面，非发现面）。
-- 重估触发: 同 G3。
+- 重估触发: 同 G3；另加：平台落地注解契约约定时本面从输入面升发现面重评。
 
 ### G5 全程序注解推导引擎（NullAway 形态）
 
@@ -63,6 +63,7 @@
 - 理由/机制面证据: 全程序注解推导需调用图 + 过程间传播 + 注解缺省推断，属全程序指针分析族——设计权威 §4 以"工程尾为多年量级、本通道 mandate 是发现流而非研究引擎"显式拒绝；self-contained 约束（§2.5）禁止其作为平台内嵌引擎支柱。G4 的读取面 + G3 的窄桥接是本通道对该问题域的全部承接形态。
 - 误报控制面: 不适用（不承接）。
 - 重估触发: Wave 5 采纳外部框架（item 10 成立）时，"全程序注解推导"作为外部工具能力面重估——承接形态仍限窄桥接，不改自建禁令。
+- 重估触发兑现注记（2026-09-30，plan 09）: Wave 5 已裁 adopt 窄桥接（判定首选 Tai-e）——Tai-e 无 NullAway 式全程序注解推导能力（PTA ≠ 注解推断），本行「不承接」**维持**，重估触发继续有效（承接形态仍限窄桥接，不改自建禁令）。
 
 ## 二、永不承接面归档（roadmap 范围锚 4）
 
@@ -88,8 +89,8 @@
 |---|---|---|---|---|
 | G1 | null-flow 解引用路径 | 承接 | `closed`（2026-09-29） | Wave 2 |
 | G2 | 资源泄漏 acquire/release 配对 | 承接 | `closed`（2026-09-29） | Wave 3 |
-| G3 | 跨过程 taint | 待裁 | `open`（blocked on item 10） | Wave 5 |
-| G4 | 参数 nullness 注解契约读取 | 承接候选 | `open`（blocked on item 10） | Wave 5 |
+| G3 | 跨过程 taint | 承接（adopt 窄桥接） | `open`（successor 待立项，2026-09-30 plan 09） | Wave 5 |
+| G4 | 参数 nullness 注解契约读取 | 承接（输入面） | `open`（随 G3 successor，2026-09-30 plan 09） | Wave 5 |
 | G5 | 全程序注解推导引擎 | 不承接 | `closed` | — |
 
 > 滚动维护规则：Wave 2/3 立项时把 G1/G2 翻 `claimed`（带 plan 指针）；v1 对照在档后翻 `closed`（带对照记录指针）。本表只加行与翻状态，不删历史行。
