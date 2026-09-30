@@ -12,7 +12,7 @@ pnpm install       # first time only
 pnpm check         # run all checks
 ```
 
-未安装依赖时，依赖 Node 包的工具会显式输出跳过原因并降级为轻量检查（不产生误报）。
+未安装依赖时，依赖 Node 包的工具会显式输出跳过原因并降级为轻量检查（不产生误报）。**例外**：`run-java-lint.sh`（pre-commit 钩子的 Java lint 门禁）没有降级路径——`sg` 是 `@ast-grep/cli` 提供的原生二进制，缺失时直接失败并输出一键安装指引（`pnpm --dir ai-dev/tools install`）。`node_modules/` 不受 git 跟踪，新 clone / 新 worktree 提交 Java 文件前需先装一次。
 
 ## Tool Index
 

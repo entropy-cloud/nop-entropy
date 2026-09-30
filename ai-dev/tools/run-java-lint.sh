@@ -17,7 +17,23 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 SG_BIN="$SCRIPT_DIR/node_modules/.bin/sg"
 
 if [ ! -x "$SG_BIN" ]; then
-  echo "Error: ast-grep not found at $SG_BIN. Run 'pnpm install' first." >&2
+  cat >&2 <<EOF
+Error: ast-grep (sg) not found at $SG_BIN.
+
+Java lint (pre-commit hook / 'pnpm lint:java') runs the native sg binary
+shipped by the @ast-grep/cli npm package. node_modules/ is NOT tracked by
+git, so every fresh clone or worktree needs a one-time install.
+
+Fix (one command, ~30s, copy-paste from anywhere):
+  pnpm --dir "$SCRIPT_DIR" install
+
+If pnpm is missing (this repo pins pnpm via packageManager, corepack can provide it):
+  corepack enable && pnpm --dir "$SCRIPT_DIR" install
+  # or as fallback (ignores pnpm-lock.yaml): npm --prefix "$SCRIPT_DIR" install
+
+Then retry the commit. To bypass this gate once (not recommended):
+  git commit --no-verify
+EOF
   exit 1
 fi
 
