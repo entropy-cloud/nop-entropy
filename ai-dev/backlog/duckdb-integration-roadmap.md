@@ -22,7 +22,7 @@
 
 ### M0 — 可行性与架构裁定
 
-- [ ] WI0 duckdb_jdbc 选型与集成架构 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；spike 实测四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
+- [ ] WI0 duckdb_jdbc 选型与既有方言实测 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；既有 duckdb 方言转实测（selector 自动选择、EQL/ORM 查询翻译、ddl_duckdb 建表、错误码翻译）；ORM 数据源接入路径实测（nop.datasource.* 指 jdbc:duckdb:{filePath}、命名 dataSourceMap 可否作实体路由、Hikari 池 + 单写者文件的连接策略）；spike 四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 核心集成
 
@@ -37,7 +37,7 @@
 
 ### M3 — 深度应用测试
 
-- [ ] WI5 数据正确性对拍矩阵：同一数据集上 DuckDB vs RDB 下推（经 nop-dao）vs tablesaw 三方对拍；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
+- [ ] WI5 数据正确性对拍矩阵：同一数据集上四方对拍——DuckDB 经 nop-duckdb 执行层 API、DuckDB 经 ORM/EQL 既有方言路径、RDB 下推（经 nop-dao）、tablesaw；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
 - [ ] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
 - [ ] WI7 性能基线与调优档：同一数据集下 DuckDB vs tablesaw vs RDB 下推的可重复基准（记录数据量档位与 threads/memory_limit 配置），对齐 nop-benchmark 既有 JMH 模式或落可重复脚本——只立基线不设竞速指标（Deliverable: 基准基线记录；deps: WI6；Item Type: Proof）
 
@@ -49,6 +49,7 @@
 
 **已存在：**
 
+- **nop-dao DuckDB SQL 方言已内置**（commit c6c09978c8，2025-11-14）：duckdb.dialect.xml（extends postgresql 方言，205 行：driver org.duckdb.DuckDBDriver、jdbcUrlPattern、类型映射、时间字面量、无锁覆写）+ selector/duckdb.selector.yaml（按 JDBC productName=DuckDB 自动选择）+ nop-orm 的 ddl_duckdb.xlib（DDL 生成）+ 错误码翻译器 duckdb 模式
 - 选型裁定与分层依据：`ai-dev/analysis/2026-09/2026-09-30-esproc-sqlazy-deep-analysis.md` §19
 - nop-task 编排引擎成熟：ITaskStep 步骤图 + Retry/Timeout/RateLimit/Transaction/OrmSession 装饰器 + DB 状态存档跨重启续跑（nop-task-ext 既有测试家族可作参照）
 - nop-tablesaw 数据面（tablesaw 0.43.1）：XlsxReader、DataSet↔Table 变换、行校验、facet 函数
@@ -56,7 +57,8 @@
 
 **主要缺口：**
 
-- 零 DuckDB 集成：无依赖坐标、无 dialect、无 task step、无测试（全仓唯一 "duckdb" 字样是 nop-dao 方言错误码翻译的注释示例）
+- 方言**零实测**：仓库内无任何 `jdbc:duckdb` 实际连接、无 ORM/EQL 对 DuckDB 的端到端测试（唯一 pattern 是方言自身）——方言是纸面支持，WI0 起转实测
+- 零执行层：无 duckdb_jdbc 依赖坐标（BOM 未收录）、无连接/会话管理、无 task step、无文件数据面
 - 全仓无 Arrow/Parquet 基础设施——"向量化文件"层不存在，Parquet 通路需从零引入
 - nop-tablesaw 模块外零引用（孤岛），与任何执行层无桥
 - 仓库无 CI——所有测试必须 `./mvnw test` 本地可跑可复现（esProc 零测试基线的反面教训）
@@ -65,6 +67,7 @@
 
 | 能力 | 提供方 | 约束 |
 | --- | --- | --- |
+| SQL 方言与 DDL 生成 | nop-dao 既有 DuckDB 方言（duckdb.dialect.xml + selector + ddl_duckdb.xlib，c6c09978c8） | 不重建方言、不把方言搬进 nop-duckdb；缺口修 dialect.xml（nop-dao 既有配置，非生成物）；nop-duckdb 只消费 |
 | 任务编排与状态续跑 | nop-task core + nop-task-ext（Retry/Timeout/RateLimit/Transaction/OrmSession 装饰器、DB 状态存档） | 不自造调度/重试/续跑机制；测试参照既有可靠性测试家族 |
 | XLSX 读取 | nop-tablesaw XlsxReader（既有） | DuckDB 不读 xlsx；不重造解析，只做转换桥 |
 | 业务库读写 | nop-dao / ORM（EQL 下推） | 业务表写回一律走 ORM；DuckDB 仅分析与文件 |
@@ -106,6 +109,7 @@ flowchart TD
 7. **测试取向**：断言业务语义而非凑数量；既有测试只增不删不削弱；测试暴露的产品缺陷走 `ai-dev/bugs/00-bug-fix-note-writing-guide.md` 独立立项，不在本 roadmap WI 内夹带修复。
 8. **closure 判定**：独立 closure audit（不同 task_id 子代理，不得自审）通过后，才勾选 Work Item Status checkbox，并同步当日 `ai-dev/logs/` 与承载 plan 三处状态。
 9. **边界回写**：任何"要不要多源/换存储/砍编排层"的范围变更，先改本文件 Purpose 硬边界再动工。
+10. **方言语义边界**：既有 duckdb 方言已声明无锁（forUpdate/lockHint 置空）、supportReturningForUpdate=false——依赖悲观锁 / UPDATE...RETURNING 的路径不适用，测试与调用方不得假设其存在；ORM 实体默认挂单一数据源，"业务 MySQL + 分析 DuckDB 双库并存"的路由能力以 WI0 实测为准，不预设。
 
 ## Rules
 
