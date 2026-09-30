@@ -50,6 +50,9 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, Connectivi
     private static final Logger LOG = LoggerFactory.getLogger(BatchConsumerSinkFunction.class);
     private static final long serialVersionUID = 1L;
 
+    /** Upper bound for the first-record summary emitted by the close() failure log (CON-06). */
+    private static final int MAX_LOG_RECORD_CHARS = 200;
+
     private final IBatchConsumerProvider.IBatchConsumer<R> consumer;
     private final int batchSize;
     private final List<R> buffer;
@@ -124,7 +127,7 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, Connectivi
         } catch (Exception flushErr) {
             LOG.error("Flush failed in close() with buffer size={}, first record summary={}",
                     buffer.size(),
-                    buffer.isEmpty() ? "<empty>" : String.valueOf(buffer.get(0)));
+                    buffer.isEmpty() ? "<empty>" : summarizeRecord(buffer.get(0)));
             flushError = flushErr;
         } finally {
             if (consumer instanceof AutoCloseable) {
@@ -146,6 +149,24 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, Connectivi
             throw new StreamException(ERR_STREAM_CHAINING_OUTPUT_FLUSH_FAILED, flushError)
                     .param(ARG_DETAIL, "Flush failed in close(), data may be lost");
         }
+    }
+
+    /**
+     * Bounded, non-sensitive summary of a buffered record for the close()
+     * failure log (CON-06): type name + full content length + a truncated
+     * value prefix. Never emits the whole record — typical DTO {@code toString()}
+     * carries business values (accounts, phone numbers) that must not land in
+     * the log verbatim.
+     */
+    private static String summarizeRecord(Object record) {
+        if (record == null) {
+            return "<null>";
+        }
+        String text = String.valueOf(record);
+        String value = text.length() <= MAX_LOG_RECORD_CHARS
+                ? text
+                : text.substring(0, MAX_LOG_RECORD_CHARS) + "...(truncated)";
+        return record.getClass().getName() + "[len=" + text.length() + ", value=" + value + "]";
     }
 
     @Override

@@ -100,7 +100,6 @@ public class TestDataStreamPipeline {
 
         assertNotNull(result);
         assertEquals("Result Test", result.getJobName());
-        assertTrue(result.getExecutionTime() >= 0);
         assertEquals(Arrays.asList(1, 2, 3), results);
     }
 

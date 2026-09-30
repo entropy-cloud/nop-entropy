@@ -25,4 +25,33 @@
         <module>nop-stream-flow</module>
         <module>nop-stream-fraud-example</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!--
+                        TE-15 (plan 368 Phase 8): fork-level hang guardrail. nop-stream's
+                        historical "permanent hang" regressions (N1/N2, EOS close ordering)
+                        all manifest as a fork that never finishes; without this setting such
+                        a regression blocks the build until an external kill.
+
+                        Calibration (2026-09-30, quiet workspace, forkCount=4/reuseForks=true
+                        inherited from the root pom): the heaviest module, nop-stream-runtime
+                        (1144 tests, 228 classes), completes its whole 4-fork run in ~42s wall
+                        (sum of per-class times 125.8s / slowest single class 20s). The strict
+                        3x of that measurement (~126s) is deliberately NOT used: this workspace
+                        regularly runs concurrent builds that slow a module run 3-5x (documented
+                        in plan 368 Phase 3/5 execution notes), so 126s would risk killing a
+                        healthy contended run. 300s (~7x the quiet baseline) keeps a hard,
+                        bounded kill for real hangs while staying false-kill-safe under
+                        contention.
+                    -->
+                    <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

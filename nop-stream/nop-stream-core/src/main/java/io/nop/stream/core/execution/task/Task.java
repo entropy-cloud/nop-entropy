@@ -22,6 +22,7 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INIT_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
@@ -265,8 +266,9 @@ public class Task implements Runnable, Serializable {
                         e.addSuppressed(closeEx);
                     }
                 }
-                throw new StreamException(
-                    "Failed to open operator chain " + i + " for task: " + getTaskName(), e);
+                throw new StreamException(ERR_STREAM_INIT_ERROR, e)
+                        .param(ARG_DETAIL,
+                                "Failed to open operator chain " + i + " for task: " + getTaskName());
             }
         }
     }

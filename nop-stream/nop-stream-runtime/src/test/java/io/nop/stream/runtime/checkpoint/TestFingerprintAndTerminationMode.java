@@ -352,24 +352,10 @@ class TestFingerprintAndTerminationMode {
         restoreCoordinator.shutdown();
     }
 
-    @Test
-    void testCoordinatorFingerprintGetterSetter() {
-        CheckpointConfig config = new CheckpointConfig();
-        CheckpointCoordinator coordinator = new CheckpointCoordinator("fp-test", "0", idCounter, storage, config);
-
-        assertNull(coordinator.getCurrentFingerprint());
-
-        StreamModelFingerprint fp = StreamModelFingerprint.builder()
-                .dagTopologyHash("abc")
-                .requirementsHash("def")
-                .build();
-        coordinator.setCurrentFingerprint(fp);
-
-        assertEquals(fp, coordinator.getCurrentFingerprint());
-        assertEquals("abc", coordinator.getCurrentFingerprint().getDagTopologyHash());
-
-        coordinator.shutdown();
-    }
+    // Note: the former {@code testCoordinatorFingerprintGetterSetter} pure
+    // setter/getter round-trip was removed (TE-06, R5 test-effectiveness
+    // audit) — it had no discriminating power beyond compilation; the real
+    // fingerprint contract is pinned by the manifest round-trip tests above.
 
     private static void deleteDirectory(java.io.File dir) {
         if (dir.isDirectory()) {

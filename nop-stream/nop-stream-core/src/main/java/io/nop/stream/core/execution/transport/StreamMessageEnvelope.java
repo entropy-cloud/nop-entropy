@@ -45,15 +45,13 @@ public class StreamMessageEnvelope implements Serializable {
     public static final String TYPE_SIDE_OUTPUT_RECORD = "SIDE_OUTPUT_RECORD";
 
     /**
-     * Stage 43: {@link #TYPE_CONTROL} payload values. {@code END_OF_STREAM}
-     * signals producer completion; {@code HEARTBEAT} is an idle-liveness signal
-     * sent by {@code RemoteResultPartition} when no data has flowed for the
-     * configured {@code heartbeatInterval}. Heartbeats carry the current fencing
-     * epoch and are distinguished from data so the consumer can update its
-     * liveness clock without enqueueing anything.
+     * {@link #TYPE_CONTROL} payload values. {@code END_OF_STREAM} signals
+     * producer completion: the consumer marks the channel finished and
+     * enqueues its local end-of-stream sentinel instead of delivering the
+     * control envelope as data. This is the only control payload currently
+     * produced anywhere in the engine.
      */
     public static final String CONTROL_END_OF_STREAM = "END_OF_STREAM";
-    public static final String CONTROL_HEARTBEAT = "HEARTBEAT";
 
     /**
      * 单调 fencing epoch。leadership 切换与同 leader 内 recovery 均推进该值

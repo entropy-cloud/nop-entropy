@@ -25,14 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * AR-1 (audit {@code nop-stream-independent-audit}, P1): proves the
  * {@link InputGate#read() single-channel remote-read} path surfaces producer
- * death via the Stage 43 channel heartbeat-timeout within a bounded window,
+ * death via the channel liveness (inactivity) timeout within a bounded window,
  * instead of hanging forever.
  *
  * <p>The legacy {@code InputGate.readSingleChannel()} called the unbounded
  * blocking {@code read()} overload, which parked in {@code queue.take()}.
  * Once a single-input consumer parked inside {@code take()}, a remote producer
- * that subsequently died (crash / partition / stopped emitting data and
- * heartbeats) left the consumer blocked indefinitely — the heartbeat-timeout
+ * that subsequently died (crash / partition / stopped emitting any traffic)
+ * left the consumer blocked indefinitely — the liveness-timeout
  * check at the top of {@code RemoteInputChannel.read()} could never re-fire
  * because the thread never returned to {@code checkChannelTimeout()}. This
  * silently disabled the documented fast-fail-on-producer-death safety feature
@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code read(50, MILLISECONDS)} overload (mirroring the already-correct
  * {@code readMultiChannel} path), so {@code checkChannelTimeout()} re-fires
  * every ~50 ms even while the consumer is effectively parked. These tests lift
- * the existing {@code TestRemoteInputChannelHeartbeat} channel-level proof to
+ * the existing {@code TestRemoteInputChannelLiveness} channel-level proof to
  * the {@link InputGate} layer — the gap the prior tests did not cover.
  *
  * <p>Plan guide coverage:
@@ -233,7 +233,7 @@ class TestInputGateSingleChannelRemoteLiveness {
         assertTrue(consumer.isFinished(),
                 "channel must be marked finished on END_OF_STREAM");
         assertFalse(consumer.isChannelTimedOut(),
-                "finished channel must never report heartbeat timeout");
+                "finished channel must never report liveness timeout");
         // Prompt: well under one poll round (no busy-spin on EOS, which would
         // be near-instant but never return; no hang, which would be >> 50ms).
         assertTrue(elapsed < 500L,

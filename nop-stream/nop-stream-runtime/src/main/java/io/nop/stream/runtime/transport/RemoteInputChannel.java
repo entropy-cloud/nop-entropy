@@ -126,9 +126,9 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private final boolean subscriptionActive;
 
     /**
-     * Channel heartbeat timeout in ms. When {@code > 0}, {@link #read()}
-     * / {@link #read(long, TimeUnit)} check that <em>some</em> message (data,
-     * barrier, watermark, or heartbeat) has arrived within this window; otherwise
+     * Channel liveness (inactivity) timeout in ms. When {@code > 0}, {@link #read()}
+     * / {@link #read(long, TimeUnit)} check that <em>some</em> accepted message
+     * (data, barrier, watermark, or control) has arrived within this window; otherwise
      * the producer is presumed dead / partitioned and the channel fails fast with
      * {@link ERR_STREAM_CHANNEL_TIMEOUT}. {@code <= 0} disables timeout detection
      * (back-compat default). This is faster than the coarse lease timeout
@@ -182,13 +182,13 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Creates a RemoteInputChannel with heartbeat timeout detection.
+     * Creates a RemoteInputChannel with liveness timeout detection.
      *
      * <p>When {@code channelTimeoutMs > 0}, {@link #read()} / {@link #read(long,
      * TimeUnit)} fail fast with {@link ERR_STREAM_CHANNEL_TIMEOUT} if no message
-     * (data, barrier, watermark, or heartbeat) is accepted within the window.
+     * (data, barrier, watermark, or control) is accepted within the window.
      * The liveness clock starts at subscription time, so a producer that never
-     * sends anything (including no heartbeat) is detected within one window.
+     * sends anything is detected within one window.
      *
      * @param messageService   the message service to subscribe to
      * @param topic            the topic to subscribe to
@@ -275,7 +275,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     public StreamElement read() throws InterruptedException {
         checkReadable();
         checkChannelError();
-        // Heartbeat-based timeout detection (piggybacks on the read
+        // Liveness-timeout detection (piggybacks on the read
         // path — no dedicated timer thread per channel).
         checkChannelTimeout();
         StreamElement element = queue.take();
@@ -302,7 +302,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     public StreamElement read(long timeout, TimeUnit unit) throws InterruptedException {
         checkReadable();
         checkChannelError();
-        // Heartbeat-based timeout detection (piggybacks on the read path).
+        // Liveness-timeout detection (piggybacks on the read path).
         checkChannelTimeout();
         StreamElement element = queue.poll(timeout, unit);
         // See read() — a flagged failure must surface as the
@@ -326,7 +326,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Has the channel exceeded its heartbeat timeout? {@code true} when
+     * Has the channel exceeded its liveness timeout? {@code true} when
      * detection is enabled ({@code channelTimeoutMs > 0}), the channel is not
      * finished, no decode error has occurred, and no accepted message has arrived
      * within {@code channelTimeoutMs}. An explicit {@link
@@ -390,7 +390,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     }
 
     /**
-     * Returns the configured channel heartbeat timeout in ms
+     * Returns the configured channel liveness timeout in ms
      * ({@code <= 0} means disabled).
      */
     public long getChannelTimeoutMs() {
@@ -625,10 +625,10 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
             }
 
             // Any message that passed the fencing filter counts as
-            // producer liveness. Refresh BEFORE branching on type so heartbeat,
-            // data, barrier, watermark all reset the timeout window. A wrong-epoch
-            // message (handled above) never reaches here, so stale heartbeats do
-            // NOT count as liveness (fencing invariant).
+            // producer liveness. Refresh BEFORE branching on type so data,
+            // barrier, watermark and control messages all reset the timeout
+            // window. A wrong-epoch message (handled above) never reaches here,
+            // so stale traffic does NOT count as liveness (fencing invariant).
             lastReceivedTime = CoreMetrics.currentTimeMillis();
 
             // Handle control messages
@@ -637,13 +637,6 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
                 if (StreamMessageEnvelope.CONTROL_END_OF_STREAM.equals(payload)) {
                     finished = true;
                     enqueueTerminalSentinel();
-                    return null;
-                }
-                if (StreamMessageEnvelope.CONTROL_HEARTBEAT.equals(payload)) {
-                    // Pure liveness signal — already refreshed lastReceivedTime
-                    // above. Do not enqueue anything; the read loop must not see
-                    // a control element as data.
-                    LOG.debug("Received heartbeat on topic={}", topic);
                     return null;
                 }
                 // Unknown control payload: explicit, observable — not silently swallowed.

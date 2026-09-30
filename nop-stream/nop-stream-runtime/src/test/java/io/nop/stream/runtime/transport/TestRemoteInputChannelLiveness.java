@@ -22,15 +22,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Consumer-side channel timeout failure detection on {@link RemoteInputChannel}
- * (the producer-side idle-heartbeat emission was removed in plan 366 Phase 3 —
- * liveness is now carried by data/barrier/EOS traffic alone).
+ * Consumer-side channel liveness (inactivity) timeout detection on
+ * {@link RemoteInputChannel}: liveness is carried by accepted
+ * data/barrier/watermark/control traffic alone — there is no dedicated
+ * producer idle-heartbeat protocol message.
  *
  * <p>Wires {@link RemoteResultPartition} (producer) and {@link RemoteInputChannel}
  * (consumer) together on the same {@link LocalMessageService} topic (plan guide
  * #23 接线验证: both sides exercised in the same test, not standalone unit tests).
  */
-class TestRemoteInputChannelHeartbeat {
+class TestRemoteInputChannelLiveness {
 
     private static final long EPOCH = 7L;
 

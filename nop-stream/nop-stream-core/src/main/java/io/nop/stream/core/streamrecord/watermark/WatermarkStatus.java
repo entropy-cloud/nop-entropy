@@ -31,24 +31,22 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_A
  * watermarks from the input stream that sent them. There are 2 kinds of status, namely {@link
  * WatermarkStatus#IDLE} and {@link WatermarkStatus#ACTIVE}. Watermark Status elements are generated
  * at the sources, and may be propagated through the tasks of the topology. They directly infer the
- * current status of the emitting task; a {@link SourceStreamTask} or {@link StreamTask} emits a
- * {@link WatermarkStatus#IDLE} if it will temporarily halt to emit any watermarks (i.e. is idle),
- * and emits a {@link WatermarkStatus#ACTIVE} once it resumes to do so (i.e. is active). Tasks are
- * responsible for propagating their status further downstream once they toggle between being idle
- * and active. The cases that source tasks and downstream tasks are considered either idle or active
- * is explained below:
+ * current status of the emitting task; a task emits a {@link WatermarkStatus#IDLE} if it will
+ * temporarily halt to emit any watermarks (i.e. is idle), and emits a {@link WatermarkStatus#ACTIVE}
+ * once it resumes to do so (i.e. is active). Tasks are responsible for propagating their status
+ * further downstream once they toggle between being idle and active. The cases that source tasks and
+ * downstream tasks are considered either idle or active is explained below:
  *
  * <ul>
- *   <li>Source tasks: A source task is considered to be idle if its head operator, i.e. a {@link
- *       StreamSource}, will not emit watermarks for an indefinite amount of time. This is the case,
- *       for example, for Flink's Kafka Consumer, where sources might initially have no assigned
- *       partitions to read from, or no records can be read from the assigned partitions. Once the
- *       head {@link StreamSource} operator detects that it will resume emitting data, the source
- *       task is considered to be active. {@link StreamSource}s are responsible for toggling the
- *       status of the containing source task and ensuring that no watermarks will be emitted while
- *       the task is idle. This guarantee should be enforced on sources through {@link
- *       io.nop.stream.core.common.functions.SourceFunction.SourceContext}
- *       implementations.
+ *   <li>Source tasks: A source task is considered to be idle if its head operator will not emit
+ *       watermarks for an indefinite amount of time. In this engine the status is emitted in two
+ *       places: a source whose reader has no work calls {@link
+ *       io.nop.stream.core.common.functions.source.SourceFunction.SourceContext#markAsTemporarilyIdle()}
+ *       (wired through {@link io.nop.stream.core.operators.StreamSourceOperator}), and a watermark
+ *       generator declares idleness via {@code markIdle()}/{@code markActive()} on the idleness
+ *       transition (wired through {@link io.nop.stream.core.operators.TimestampsAndWatermarksOperator}).
+ *       These operators are responsible for toggling the status of the containing task and ensuring
+ *       that no watermarks will be emitted while the task is idle.
  *   <li>Downstream tasks: a downstream task is considered to be idle if all its input streams are
  *       idle, i.e. the last received Watermark Status element from all input streams is a {@link
  *       WatermarkStatus#IDLE}. As long as one of its input streams is active, i.e. the last

@@ -333,7 +333,6 @@ class TestAsyncSnapshotPipeline {
 
             assertEquals(0, observedNegative.get(),
                     "numPendingCheckpoints must never be negative under concurrent trigger/complete");
-            assertTrue(coord.getNumberOfPendingCheckpoints() >= 0);
         } finally {
             coord.shutdown();
         }

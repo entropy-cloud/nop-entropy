@@ -24,13 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestMemoryOperatorStateBackend {
 
-    @Test
-    void testRedistributionModeEnumExists() {
-        assertNotNull(RedistributionMode.NONE);
-        assertNotNull(RedistributionMode.UNION);
-        assertNotNull(RedistributionMode.BROADCAST);
-        assertNotNull(RedistributionMode.SPLIT_DISTRIBUTE);
-    }
+    // R5-TE-16: the previous `testRedistributionModeEnumExists` (assertNotNull on
+    // enum constants) was a textbook existence test that could never fail — enum
+    // constants exist at compile time. Every RedistributionMode already has a real
+    // behavior test in this class: NONE (testNONERestoreSingle), UNION
+    // (testUnionRedistribution), BROADCAST (testBroadcastRedistribution),
+    // SPLIT_DISTRIBUTE (testSplitDistributeRoundRobin), plus the empty-state and
+    // fail-fast guards — the existence test carried no incremental value and was
+    // removed.
 
     @Test
     void testSnapshotAndBasicRestore() throws Exception {

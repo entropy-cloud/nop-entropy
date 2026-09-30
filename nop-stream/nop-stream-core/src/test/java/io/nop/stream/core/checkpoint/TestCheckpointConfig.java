@@ -42,28 +42,11 @@ class TestCheckpointConfig {
         assertTrue(config.getStorageConfig().isEmpty());
     }
 
-    @Test
-    void testSettersAndGetters() {
-        config.setCheckpointEnabled(false);
-        assertFalse(config.isCheckpointEnabled());
-
-        config.setCheckpointInterval(30000L);
-        assertEquals(30000L, config.getCheckpointInterval());
-        config.setCheckpointTimeout(300000L);
-        assertEquals(300000L, config.getCheckpointTimeout());
-
-        config.setMinPause(1000L);
-        assertEquals(1000L, config.getMinPause());
-
-        config.setMaxConcurrentCheckpoints(3);
-        assertEquals(3, config.getMaxConcurrentCheckpoints());
-
-        config.setMaxRetainedCheckpoints(10);
-        assertEquals(10, config.getMaxRetainedCheckpoints());
-
-        config.setStorageType("jdbc");
-        assertEquals("jdbc", config.getStorageType());
-    }
+    // Note: the former {@code testSettersAndGetters} pure setter/getter
+    // round-trip was removed (TE-06, R5 test-effectiveness audit): every field
+    // is already pinned by {@link #testDefaultValues} and {@link #testBuilder},
+    // and deleting a setter breaks compilation anyway — the round-trip had no
+    // discriminating power.
 
     @Test
     void testStorageConfig() {
@@ -203,18 +186,14 @@ class TestCheckpointConfig {
     }
 
     /**
-     * Stage 44 successor 5: setter stores custom values (1, 5, and 0 — 0 means
-     * "disable scoped restart, surface first failure immediately").
+     * Stage 44 successor 5: 0 is a VALID configuration value ("disable scoped
+     * restart, surface first failure immediately") — the boundary companion to
+     * {@link #testMaxRestartsPerRegionRejectsNegative}. The plain value
+     * round-trip (set 1 → get 1) is not asserted: it has no discriminating
+     * power beyond compilation (TE-06, R5 test-effectiveness audit).
      */
     @Test
-    void testMaxRestartsPerRegionSetter() {
-        config.setMaxRestartsPerRegion(1);
-        assertEquals(1, config.getMaxRestartsPerRegion());
-
-        config.setMaxRestartsPerRegion(5);
-        assertEquals(5, config.getMaxRestartsPerRegion());
-
-        // 0 is a valid configuration (disable scoped restart entirely).
+    void maxRestartsPerRegionZeroIsAcceptedToDisableScopedRestart() {
         config.setMaxRestartsPerRegion(0);
         assertEquals(0, config.getMaxRestartsPerRegion());
     }

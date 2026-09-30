@@ -15,8 +15,10 @@ import io.nop.commons.util.ClassHelper;
  * 1. XDSL 声明式定义（本 xdef 描述的形式）
  * 2. Java DataStream API 编程构造
  * 3. Delta 定制合成
- * 三种入口最终生成同一套 StreamModel，经五层执行管线编译执行：
- * StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan → GraphExecutionPlan
+ * 三种入口最终生成同一套 StreamModel，经统一的五阶段执行管线编译执行：
+ * StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
+ * （GraphExecutionPlan 不是第 6 个管线阶段：它是 LOCAL 模式下 DeploymentPlan 的运行时执行形态，
+ * 经 GraphExecutionPlan.build + TaskExecutor 执行）
  * 核心设计原则：
  * - 同像约束：xdef 结构与最终 XML 实例结构一致
  * - 组件注册表：所有可复用组件（windowingStrategies/coders/schemas）通过稳定 ID 引用

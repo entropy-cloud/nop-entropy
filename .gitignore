@@ -118,6 +118,8 @@ ai-dev/audits/evidence/**/*.jfr
 
 # AI temp files (scratch output, logs, analysis dumps)
 _tmp/
+# Stray root-level temp logs (evidence logs belong under _tmp/ with a filename kept)
+/_tmp-*.log
 
 # CodeGraph index database
 .codegraph/

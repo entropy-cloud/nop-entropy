@@ -12,6 +12,7 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * capacity-1024 queue BEFORE any consumer was running — a replay set larger
  * than the queue capacity blocked the supervision thread forever (silent job
  * hang). The EOS sentinel also leaked one buffer-pool permit per injection.
+ *
+ * <p>The original N1 defect shape is a HANG, not a failure: if a future change
+ * reintroduces blocking injection, these tests would park forever instead of
+ * going red. The class-level {@link Timeout @Timeout} turns that regression
+ * into a deterministic test failure (TE-02, R5 test-effectiveness audit).
  */
+@Timeout(30)
 class TestResultPartitionPendingReplay {
 
     private static List<StreamElement> records(String prefix, int count) {
@@ -99,11 +106,15 @@ class TestResultPartitionPendingReplay {
 
     /**
      * Unaligned-checkpoint capture sees pending replay too (capture → restore
-     * round-trip must not drop the not-yet-delivered replay segment), and the
-     * queue sentinel stays in place so the restored partition still signals EOS.
+     * round-trip must not drop the not-yet-delivered replay segment). Note the
+     * sentinel semantics: {@code drainBufferedElements} REMOVES the EOS sentinel
+     * from the queue (polled, never handed out as data); after the drain the
+     * finished partition still signals EOS through its finished flag — read
+     * returns null (isFinished + null disambiguation), not via a re-queued
+     * sentinel.
      */
     @Test
-    void captureIncludesPendingReplayAndKeepsSentinel() throws Exception {
+    void captureIncludesPendingReplayAndRemovesSentinel() throws Exception {
         ResultPartition partition = new ResultPartition(8);
         partition.write(new StreamRecord<>("q0"));
         partition.write(new StreamRecord<>("q1"));
@@ -117,7 +128,8 @@ class TestResultPartitionPendingReplay {
         assertEquals("q0", value(captured.get(2)));
         assertEquals("q1", value(captured.get(3)));
 
-        // Sentinel was not handed out; the finished partition still signals EOS.
+        // The sentinel was removed from the queue by the drain (not handed out
+        // as data); EOS after the drain is delivered via the finished flag.
         assertTrue(partition.isFinished());
         assertNull(partition.read(10, TimeUnit.MILLISECONDS));
     }

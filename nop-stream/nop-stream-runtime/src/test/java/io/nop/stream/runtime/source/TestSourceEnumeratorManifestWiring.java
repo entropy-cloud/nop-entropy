@@ -8,9 +8,11 @@ package io.nop.stream.runtime.source;
 
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
+import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot;
+import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -202,5 +204,127 @@ class TestSourceEnumeratorManifestWiring {
         assertEquals(1, snap.getVersion());
         assertNotNull(snap.getStateBytes());
         assertEquals(99, ser.deserialize(snap.getVersion(), snap.getStateBytes()));
+    }
+
+    // ==================== R5-TE-05: real-driver wiring tests ====================
+    //
+    // The reflection assertions above only prove the wiring METHODS EXIST.
+    // These tests drive the real call chain — a JobGraph with a
+    // SourceReaderOperator-headed vertex through GraphModelCheckpointExecutor
+    // .createCoordinator → registerSourceApiVertices → CheckpointCoordinator
+    // .buildEpochManifest — and assert the recorded side effects: the vertex id
+    // lands in the coordinator's registeredSourceVertexIds and the built
+    // manifest carries a non-empty sourceEnumeratorSnapshots section. Deleting
+    // the wiring call site fails these tests.
+
+    /**
+     * Builds a real JobGraph whose single vertex carries a {@link SourceReaderOperator}
+     * head (the FLIP-27 source-api path) under the given vertex id.
+     */
+    private static JobGraph newSourceApiJobGraph(String vertexId) {
+        SourceReaderOperator<String> head = new SourceReaderOperator<>(new IntStateSource(), 7);
+        OperatorChain chain = new OperatorChain(Collections.singletonList(head));
+        JobVertex vertex = new JobVertex(vertexId, "source-vertex", 1,
+                Collections.singletonList(chain), new StreamTaskInvokable(chain));
+        JobGraph jobGraph = new JobGraph("b1-wiring-job");
+        jobGraph.addVertex(vertex);
+        return jobGraph;
+    }
+
+    private CheckpointCoordinator newCoordinatorViaCreateCoordinator(JobGraph jobGraph)
+            throws Exception {
+        Method createMethod = Class.forName("io.nop.stream.runtime.execution.GraphModelCheckpointExecutor")
+                .getDeclaredMethod("createCoordinator",
+                        String.class, String.class,
+                        CheckpointIDCounter.class,
+                        io.nop.stream.core.checkpoint.storage.ICheckpointStorage.class,
+                        CheckpointConfig.class,
+                        JobGraph.class);
+        createMethod.setAccessible(true);
+        return (CheckpointCoordinator) createMethod.invoke(null,
+                "b1-wiring-job", "b1-pipe", new CheckpointIDCounter(),
+                new LocalFileCheckpointStorage(tempDir.resolve("b1-store").toString()),
+                new CheckpointConfig(), jobGraph);
+    }
+
+    private static java.util.Set<Integer> registeredVertexIdsOf(CheckpointCoordinator coordinator)
+            throws Exception {
+        java.lang.reflect.Field f = CheckpointCoordinator.class.getDeclaredField("registeredSourceVertexIds");
+        f.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.Set<Integer> ids = (java.util.Set<Integer>) f.get(coordinator);
+        return ids;
+    }
+
+    @Test
+    void createCoordinatorActuallyRegistersSourceApiVertex() throws Exception {
+        JobGraph jobGraph = newSourceApiJobGraph("vertex-7");
+
+        CheckpointCoordinator coordinator = newCoordinatorViaCreateCoordinator(jobGraph);
+
+        // The observable side effect of registerSourceApiVertices being CALLED:
+        // the source vertex id is recorded in the coordinator's registration set.
+        java.util.Set<Integer> ids = registeredVertexIdsOf(coordinator);
+        assertTrue(ids.contains(7),
+                "createCoordinator must call registerSourceEnumeratorVertex(7) for a "
+                        + "SourceReaderOperator-headed vertex; registered=" + ids
+                        + " (missing registration means the manifest section stays empty "
+                        + "and enumerator state is lost on restore)");
+    }
+
+    @Test
+    void jobGraphWithoutSourceHeadRegistersNoVertices() throws Exception {
+        // Control: a plain-operator vertex must NOT be registered — proves the
+        // registration is driven by the vertex scan, not a hardcoded add.
+        io.nop.stream.core.operators.StreamMap<String, String> mapHead =
+                new io.nop.stream.core.operators.StreamMap<>(value -> value);
+        OperatorChain chain = new OperatorChain(Collections.singletonList(mapHead));
+        JobVertex vertex = new JobVertex("vertex-9", "map-vertex", 1,
+                Collections.singletonList(chain), new StreamTaskInvokable(chain));
+        JobGraph jobGraph = new JobGraph("b1-control-job");
+        jobGraph.addVertex(vertex);
+
+        CheckpointCoordinator coordinator = newCoordinatorViaCreateCoordinator(jobGraph);
+
+        assertTrue(registeredVertexIdsOf(coordinator).isEmpty(),
+                "a non-source vertex must not be registered for enumerator snapshotting");
+    }
+
+    @Test
+    void manifestBuiltByRealCoordinatorCarriesEnumeratorState() throws Exception {
+        // Full real-driver chain: registered source vertex + a live
+        // LocalSourceCoordinator → buildEpochManifest → non-empty manifest section.
+        JobGraph jobGraph = newSourceApiJobGraph("vertex-7");
+        CheckpointCoordinator coordinator = newCoordinatorViaCreateCoordinator(jobGraph);
+        assertTrue(registeredVertexIdsOf(coordinator).contains(7));
+
+        // Boot a real coordinator for vertex 7 (the same registry the operator's
+        // open() populates in production).
+        IntStateSource source = new IntStateSource();
+        LocalSourceCoordinator<SimpleTestSplit, Integer> coord =
+                SourceCoordinatorRegistry.registerIfAbsent(7,
+                        v -> new LocalSourceCoordinator<>("vertex-7", source, 1));
+        coord.startEnumerator(null);
+
+        CompletedCheckpoint completed = CompletedCheckpoint.builder()
+                .jobId("b1-wiring-job").pipelineId("b1-pipe").checkpointId(3L)
+                .triggerTimestamp(1L).completedTimestamp(2L)
+                .checkpointType(CheckpointType.SAVEPOINT)
+                .taskStates(Collections.emptyMap())
+                .build();
+
+        Method buildManifest = CheckpointCoordinator.class.getDeclaredMethod(
+                "buildEpochManifest", CompletedCheckpoint.class);
+        buildManifest.setAccessible(true);
+        EpochManifest manifest = (EpochManifest) buildManifest.invoke(coordinator, completed);
+
+        Map<String, SourceEnumeratorSnapshot> section = manifest.getSourceEnumeratorSnapshots();
+        assertTrue(section.containsKey("7"),
+                "the built manifest must carry a sourceEnumeratorSnapshots entry for the "
+                        + "registered source vertex; section=" + section.keySet());
+        SourceEnumeratorSnapshot snap = section.get("7");
+        assertNotNull(snap);
+        assertEquals(42, new IntSerializer().deserialize(snap.getVersion(), snap.getStateBytes()),
+                "the manifest entry must carry the live enumerator's state (42)");
     }
 }

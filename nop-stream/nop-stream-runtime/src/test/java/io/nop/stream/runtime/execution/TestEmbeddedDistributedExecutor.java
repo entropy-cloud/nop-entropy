@@ -16,24 +16,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestEmbeddedDistributedExecutor {
 
+    /**
+     * Constructor smoke test (all three constructor shapes). Deliberately does
+     * NOT claim to verify nodeCount/timeout semantics: the fields are private
+     * without getters and are only consumed via the private
+     * {@code determineNodeCount}/{@code waitForCompletion} during deploy/stop —
+     * parameter behavior is exercised by the deploy E2E tests.
+     */
     @Test
-    void testDefaultConstructorUsesDefaultNodeCount() {
-        EmbeddedDistributedExecutor executor = new EmbeddedDistributedExecutor(new TestMessageService());
-        assertNotNull(executor);
-    }
-
-    @Test
-    void testCustomNodeCountConstructor() {
-        EmbeddedDistributedExecutor executor = new EmbeddedDistributedExecutor(
-                new TestMessageService(), 4);
-        assertNotNull(executor);
-    }
-
-    @Test
-    void testCustomTimeoutConstructor() {
-        EmbeddedDistributedExecutor executor = new EmbeddedDistributedExecutor(
-                new TestMessageService(), 2, 120);
-        assertNotNull(executor);
+    void constructorVariantsDoNotThrow() {
+        assertNotNull(new EmbeddedDistributedExecutor(new TestMessageService()));
+        assertNotNull(new EmbeddedDistributedExecutor(new TestMessageService(), 4));
+        assertNotNull(new EmbeddedDistributedExecutor(new TestMessageService(), 2, 120));
     }
 
     @Test

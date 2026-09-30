@@ -92,34 +92,13 @@ class TestTaskManagerLivenessAndReporting {
         taskManager.cancelTask("job-1", "v-1", 0, token);
     }
 
-    @Test
-    void heartbeatReportsLivenessWhenInvokableInstalled() throws Exception {
-        long token = 1L;
-        taskManager.updateFencingToken(token);
-        TaskAssignment a = new TaskAssignment(
-                "job-1", "v-1", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
-        taskManager.receiveAssignment(a);
-
-        // Install a SelfContained invokable (just an operator chain) — but we want
-        // this test to be deterministic without running the invokable. Use a marker
-        // invokable that just records progress.
-        // We install a no-op invokable that runs to completion immediately.
-        StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
-        taskManager.installInvokable("job-1", "v-1", 0, inv);
-
-        // Wait briefly for the task thread to enter the run loop (it will complete
-        // quickly because the empty operator chain has nothing to process)
-        // 负向窗口（容忍任务已完成的语义）：循环形式等待 150ms 窗口
-        TestAwait.elapsed("task thread enter run loop window", 150);
-
-        // Once the invokable has been installed, heartbeat should report liveness
-        // for this task (assuming it is still running). If the task already finished,
-        // the liveness batch will be empty — that is also acceptable.
-        taskManager.heartbeat();
-        // Either: still running → 1 liveness entry, or: already completed → 0 entries
-        // Both are valid; the key invariant is no NPE and no negative count.
-        assertTrue(coordinatorRpc.livenessBatches.size() >= 0);
-    }
+    // Note: the former {@code heartbeatReportsLivenessWhenInvokableInstalled}
+    // smoke test asserted only {@code livenessBatches.size() >= 0} (always true).
+    // Its two branches are covered deterministically by the neighboring tests:
+    // running task → {@link #idleSinkTaskHeartbeatReportsFreshAliveness}
+    // (exactly 1 entry, fresh timestamp); completed task →
+    // {@link #heartbeatSkipsFinishedTaskWhoseRegistryEntryIsRetained}
+    // (no re-report of a finished task).
 
     @Test
     void runningTaskFinallyReportsCompletedStatus() throws Exception {
@@ -264,21 +243,24 @@ class TestTaskManagerLivenessAndReporting {
         }
     }
 
+    /**
+     * TE-08 rename (R5 test-effectiveness audit): this test does NOT exercise
+     * the invokable-throws FAILED report path (building a failing operator
+     * chain here is impractical; the FAILED wiring is covered by
+     * TestJobCoordinatorPerTaskFailure#reportFailedTaskStatusTriggersGlobalRecovery).
+     * It pins the negative invariant: a cancel must NOT produce a spurious
+     * FAILED report.
+     */
     @Test
-    void runningTaskFinallyReportsFailedStatusOnException() throws Exception {
+    void cancelTaskProducesNoSpuriousFailedReport() throws Exception {
         long token = 1L;
         taskManager.updateFencingToken(token);
         TaskAssignment a = new TaskAssignment(
                 "job-1", "v-fail", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
         taskManager.receiveAssignment(a);
 
-        // Install an invokable that throws on invoke() — we cannot easily construct
-        // one without a real operator chain. Instead, install null and observe the
-        // 30s timeout path is too long for unit test. Instead simulate failure by
-        // sending a cancel — canceled tasks do NOT report (consistent with the
-        // finally-block rule). So this test verifies the wiring (no NPE, eventually
-        // reports something). For deterministic FAILED coverage, see
-        // TestJobCoordinatorPerTaskFailure#reportFailedTaskStatusTriggersGlobalRecovery.
+        // No invokable installed: a cancel must still be safe and must not
+        // fabricate a terminal FAILED report.
         taskManager.cancelTask("job-1", "v-fail", 0, token);
         // 负向窗口：cancel 后不得产生虚假 FAILED 报告（循环维持不变量）
         TestAwait.staysTrue("no spurious FAILED report after cancel",

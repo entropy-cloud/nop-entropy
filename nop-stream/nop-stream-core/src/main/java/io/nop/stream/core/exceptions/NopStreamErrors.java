@@ -76,12 +76,6 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_INIT_ERROR =
             define("nop.err.stream.init-error", "Initialization failed: {detail}", ARG_DETAIL);
 
-    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_NOT_INITIALIZED =
-            define("nop.err.stream.checkpoint-executor-not-initialized", "Checkpoint executor not initialized");
-
-    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_ALREADY_STARTED =
-            define("nop.err.stream.checkpoint-executor-already-started", "Checkpoint executor already started");
-
     ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED =
             define("nop.err.stream.checkpoint-executor-failed", "Checkpoint executor failed: {detail}", ARG_DETAIL);
 
@@ -90,9 +84,6 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED =
             define("nop.err.stream.checkpoint-executor-restore-failed", "Checkpoint restore failed: {detail}", ARG_DETAIL);
-
-    ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_SNAPSHOT_FAILED =
-            define("nop.err.stream.checkpoint-executor-snapshot-failed", "Checkpoint snapshot failed: {detail}", ARG_DETAIL);
 
     ErrorCode ERR_STREAM_CHECKPOINT_EXECUTOR_EXECUTE_FAILED =
             define("nop.err.stream.checkpoint-executor-execute-failed", "Task execution failed: {detail}", ARG_DETAIL);
@@ -117,26 +108,11 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_CHAINING_OUTPUT_FLUSH_FAILED =
             define("nop.err.stream.chaining-output-flush-failed", "Failed to flush chaining output");
 
-    ErrorCode ERR_STREAM_CHAINING_OUTPUT_SNAPSHOT_FAILED =
-            define("nop.err.stream.chaining-output-snapshot-failed", "Failed to snapshot chaining output: {detail}", ARG_DETAIL);
-
-    ErrorCode ERR_STREAM_CHAINING_OUTPUT_RESTORE_FAILED =
-            define("nop.err.stream.chaining-output-restore-failed", "Failed to restore chaining output: {detail}", ARG_DETAIL);
-
     ErrorCode ERR_STREAM_CODEC_VALUE_TYPE_LOAD_FAILED =
             define("nop.err.stream.codec-value-type-load-failed", "Failed to load valueType class: {className}", ARG_CLASS_NAME);
 
     ErrorCode ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED =
             define("nop.err.stream.window-trigger-state-accumulator-failed", "Failed to create trigger state accumulator: {detail}", ARG_DETAIL);
-
-    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_NOT_INITIALIZED =
-            define("nop.err.stream.window-aggregator-not-initialized", "Window aggregator not initialized: {detail}", ARG_DETAIL);
-
-    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_INVALID_STATE =
-            define("nop.err.stream.window-aggregator-invalid-state", "Invalid window aggregator state: {detail}", ARG_DETAIL);
-
-    ErrorCode ERR_STREAM_WINDOW_AGGREGATOR_STATE_RESTORE_FAILED =
-            define("nop.err.stream.window-aggregator-state-restore-failed", "Window aggregator state restore failed: {detail}", ARG_DETAIL);
 
     ErrorCode ERR_STREAM_CLASS_NOT_ALLOWED =
             define("nop.err.stream.class-not-allowed", "Class not allowed: {className}", ARG_CLASS_NAME);
@@ -190,14 +166,15 @@ public interface NopStreamErrors {
                     ARG_TIMEOUT_MS);
 
     /**
-     * A {@code RemoteInputChannel} detected producer failure via the
-     * channel heartbeat protocol — neither data, nor heartbeat, nor EOS arrived
-     * within {@code channelTimeout}. This is faster than waiting for the coarse
-     * lease timeout (~15-20s) and indicates producer death or network partition.
+     * A {@code RemoteInputChannel} detected producer failure via its
+     * liveness (inactivity) timeout — no accepted message (data, barrier,
+     * watermark, or control) arrived within {@code channelTimeout}. This is
+     * faster than waiting for the coarse lease timeout (~15-20s) and indicates
+     * producer death or network partition.
      */
     ErrorCode ERR_STREAM_CHANNEL_TIMEOUT =
             define("nop.err.stream.channel-timeout",
-                    "RemoteInputChannel timed out after {timeoutMs}ms with no data, heartbeat, or end-of-stream: producer is presumed dead or partitioned",
+                    "RemoteInputChannel timed out after {timeoutMs}ms with no accepted message or end-of-stream: producer is presumed dead or partitioned",
                     ARG_TIMEOUT_MS);
 
     String ARG_TOPIC = "topic";

@@ -116,6 +116,12 @@ public final class StateTtlConfig implements Serializable {
             return this;
         }
 
+        /**
+         * Sets the cleanup strategy. Note: {@link TtlCleanupStrategy} currently
+         * carries no live knob — cleanup is lazy-only and {@code lazyEviction=false}
+         * is a documented no-op (reserved slot). The value is still validated,
+         * stored and round-tripped through equals/hashCode/checkpoints.
+         */
         public Builder setCleanupStrategy(TtlCleanupStrategy cleanupStrategy) {
             if (cleanupStrategy == null) {
                 throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "cleanupStrategy must not be null");

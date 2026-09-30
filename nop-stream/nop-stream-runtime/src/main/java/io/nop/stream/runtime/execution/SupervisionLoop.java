@@ -731,19 +731,21 @@ public class SupervisionLoop {
      *       pre-checkpoint accumulated state. Falls back to empty initial state
      *       when no checkpoint exists (startup edge case — operator from empty
      *       state + full replay = correct).</li>
-     *   <li>For consumer tasks (with an InputGate): a fresh {@link ResultPartition}
-     *       sharing the materialization point of the old partition, with
-     *       materialization replay activated at the checkpoint-aligned epoch
-     *       (post-checkpoint records only). When the producer partition is
-     *       finished, the fresh partition is sealed (EOS); otherwise it stays
-     *       open for reconnect-to-live-queue.</li>
+     *   <li>For consumer tasks (with an InputGate): the OLD partition is reused
+     *       as-is (never a fresh partition) via
+     *       {@link #buildConsumerInvokableWithReplay} — for materialization
+     *       edges the residual queue content is drained and the post-checkpoint
+     *       replay segment is attached as pending replay at the checkpoint-aligned
+     *       epoch; for internal same-region edges the partition is reused
+     *       untouched. A finished producer partition is never re-sealed; its
+     *       end-of-stream is observed through the partition's finished flag.</li>
      *   <li>For producer tasks (with an output writer, no InputGate): reuses the
      *       old output writer (points to the same {@link ResultPartition}s with
      *       their attached materialization points), so the surviving consumer
      *       continues reading seamlessly.</li>
-     *   <li>A fresh {@link InputGate}/{@link InputChannel} pointing to the fresh
-     *       partition (consumer) or a fresh {@link StreamTaskInvokable} wired to
-     *       the reused writer (producer).</li>
+     *   <li>A fresh {@link InputGate}/{@link InputChannel} wrapping the reused
+     *       (old) partition (consumer) or a fresh {@link StreamTaskInvokable}
+     *       wired to the reused writer (producer).</li>
      *   <li>When {@code coordinator} + {@code checkpointPlan} are provided,
      *       the rebuilt invokable is re-wired into the checkpoint pipeline — a
      *       fresh {@code CheckpointBarrierTracker} is attached (so
@@ -927,8 +929,9 @@ public class SupervisionLoop {
      *       is running yet).</li>
      *   <li>The consumer reads pending replay first, then live data from the
      *       surviving producer (which continues writing to the same queue);
-     *       a finished producer's queued EOS sentinel delivers end-of-stream
-     *       after the replay.</li>
+     *       a finished producer's end-of-stream is observed via the partition's
+     *       finished flag (a drain removes the queued EOS sentinel — the gate
+     *       disambiguates EOS as finished-flag + read-null).</li>
      *   <li>Non-materialization channel (a same-region INTERNAL edge — the
      *       region decomposer only cuts at materialization edges): reuse the
      *       partition as-is so the rebuilt producer, which reuses the old

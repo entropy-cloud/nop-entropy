@@ -203,58 +203,58 @@ Exit Criteria:
 
 ### Phase 7 - P2 缺陷批次（确认缺陷择要，11 项）
 
-Status: planned
+Status: completed
 Targets: `nop-stream-rocksdb/.../RocksDBSnapshotSerDe.java`（ST-04）、`nop-stream-runtime/.../checkpoint/storage/CheckpointSerDe.java`（ST-07 恢复入口）、`nop-stream-flow`（AR-02）、`nop-stream-runtime/.../cluster/`（AR-03 reshard）、`nop-stream-cep`（CEP-03）、connector 三处（CON-07/08/10）、测试三处（TE-05/09/16）
 
 - Item Types: `Fix`
 
-- [ ] ST-04：RocksDB MapState 快照按 `namespace+"|"+rawKey` 字符串分组——改为无歧义编码（length-prefix 或转义），消除分隔符碰撞合并两 base key 数据。测试：含 "|" 的 key 对不再互串。
-- [ ] ST-07：显式 savepoint 恢复三级查找全 miss 时响亮失败（拒绝静默 fresh start；错误信息列出三级查找路径）。测试：显式 savepoint miss → 恢复失败且错误含路径。
-- [ ] AR-02：`<custom><source>` xpl body 声明但模型解析后静默蒸发——解析期 fail-fast（声明未消费即报错）或实现消费（以最小修复为准）。测试：带 custom source body 的模型解析报错/或行为生效。
-- [ ] AR-03：reshard 缩容丢弃被裁子任务 operator state 且"守恒校验"结构上不可能失败——缩容遇 operator state 时 fail-fast（或守恒校验改为可失败的真实断言）。测试：缩容 + operator state → 显式失败。
-- [ ] CEP-03：`numLateRecordsDropped` 从 JVM 级共享 registry 改为算子/子任务作用域注册。测试：两个并行实例指标互不串数。
-- [ ] CON-07：FileSourceReader 单行聚合缓冲设上界，超限响亮失败（防无换行大文件 OOM）。测试：超长行 fail-fast。
-- [ ] CON-08：JdbcCheckpointStorage 唯一键冲突判定不再靠异常消息嗅探（改用 SQLState/厂商码或先查后写等可靠判定）。测试：真冲突与真错误路径分流正确。
-- [ ] CON-10：FileSourceReader.openSplit 校验 split 路径归属源目录（legacy 无 checksum checkpoint 的路径篡改面收口）。测试：越界 split 路径拒绝。
-- [ ] TE-05：B1 source-enumerator manifest 接线补"真驱动"测试——断言接线方法**被调用**（spy/stub 录制调用），而非只证方法存在。
-- [ ] TE-09：allowedLateness>0 与迟到记录 side output 两条用户可见路径补测试。
-- [ ] TE-16：教科书式枚举存在性测试删除或替换为行为测试。
+- [x] ST-04：RocksDB MapState 快照按 `namespace+"|"+rawKey` 字符串分组——改为无歧义编码（length-prefix 或转义），消除分隔符碰撞合并两 base key 数据。测试：含 "|" 的 key 对不再互串。
+- [x] ST-07：显式 savepoint 恢复三级查找全 miss 时响亮失败（拒绝静默 fresh start；错误信息列出三级查找路径）。测试：显式 savepoint miss → 恢复失败且错误含路径。
+- [x] AR-02：`<custom><source>` xpl body 声明但模型解析后静默蒸发——解析期 fail-fast（声明未消费即报错）或实现消费（以最小修复为准）。测试：带 custom source body 的模型解析报错/或行为生效。
+- [x] AR-03：reshard 缩容丢弃被裁子任务 operator state 且"守恒校验"结构上不可能失败——缩容遇 operator state 时 fail-fast（或守恒校验改为可失败的真实断言）。测试：缩容 + operator state → 显式失败。
+- [x] CEP-03：`numLateRecordsDropped` 从 JVM 级共享 registry 改为算子/子任务作用域注册。测试：两个并行实例指标互不串数。
+- [x] CON-07：FileSourceReader 单行聚合缓冲设上界，超限响亮失败（防无换行大文件 OOM）。测试：超长行 fail-fast。
+- [x] CON-08：JdbcCheckpointStorage 唯一键冲突判定不再靠异常消息嗅探（改用 SQLState/厂商码或先查后写等可靠判定）。测试：真冲突与真错误路径分流正确。
+- [x] CON-10：FileSourceReader.openSplit 校验 split 路径归属源目录（legacy 无 checksum checkpoint 的路径篡改面收口）。测试：越界 split 路径拒绝。
+- [x] TE-05：B1 source-enumerator manifest 接线补"真驱动"测试——断言接线方法**被调用**（spy/stub 录制调用），而非只证方法存在。
+- [x] TE-09：allowedLateness>0 与迟到记录 side output 两条用户可见路径补测试。
+- [x] TE-16：教科书式枚举存在性测试删除或替换为行为测试。
 
 Exit Criteria:
 
-- [ ] 11 项各有聚焦测试且通过（行为变更项先跑修复前复现并记录）。
-- [ ] 受影响模块（rocksdb/runtime/flow/cep/connector*）测试全绿。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
-- [ ] owner doc：若 AR-02/AR-03 涉及 XDSL/reshard 对外语义变化，`docs-for-ai` 或 design 对应段同步；否则写明 No owner-doc update required（行为仅从静默错改为响亮失败）。
+- [x] 11 项各有聚焦测试且通过（行为变更项先跑修复前复现并记录）。
+- [x] 受影响模块（rocksdb/runtime/flow/cep/connector*）测试全绿。
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] owner doc：若 AR-02/AR-03 涉及 XDSL/reshard 对外语义变化，`docs-for-ai` 或 design 对应段同步；否则写明 No owner-doc update required（行为仅从静默错改为响亮失败）。
 
 ### Phase 8 - 治理批次（可读性 + 测试护栏 + 杂项）
 
-Status: planned
+Status: completed
 Targets: `nop-stream-runtime/.../transport/RemoteInputChannel.java`、`nop-stream-core/.../exceptions/NopStreamErrors.java`、`nop-stream-core/.../state/backend/IStateBackend.java`、`nop-stream/` 父 pom、注释与测试杂项、仓库根 `_tmp-*.log`
 
 - Item Types: `Fix`
 
-- [ ] RD-01：CONTROL_HEARTBEAT 死协议残留清除（RemoteInputChannel 接收分支 :642-648、常量、StreamMessageEnvelope 失实 javadoc :48-55、`TestRemoteInputChannelHeartbeat` 删除/改名）。
-- [ ] RD-02：NopStreamErrors 9 个孤儿错误码逐个裁定——能接线的接线（含 ERR_STREAM_INIT_ERROR），确无归属的删除（grep 模式与排除项记录于 log）。
-- [ ] RD-03：IStateBackend「RedisStateBackend」、WatermarkStatus「SourceStreamTask/StreamTask/StreamSource」失实 javadoc 修正。
-- [ ] RD-04：KafkaStringWireCodec :36 失实注释修正（"zero logic duplication"声明与 fromWire/extractData 逐字复制事实不符；重复本身维持 Deferred）。
-- [ ] RD-10：TtlCleanupStrategy lazyEviction 失效旋钮处置（移除或显式 no-op 文档化，选择记录于 log）。
-- [ ] REG-03/04：三处"EOS 哨兵留在队列"失实注释与 `rebuildTask` javadoc 归真。
-- [ ] REG-05：FileSourceReader.readBuf transient 字段 inline 初始化器移除（潜伏 NPE 防御）。
-- [ ] TE-01/TE-14：`size() >= 0` 永真断言改为有效断言（含残留处）。
-- [ ] TE-02：N1 单元回归测试补 `@Timeout`。
-- [ ] TE-04/06/08：退化构造器测试、getter/setter 往返三处、名实不符测试名——删除/替换/改名。
-- [ ] TE-15：nop-stream 父 pom surefire `forkedProcessTimeoutInSeconds` 配置——**按模块实测校准**（forkCount=4 + reuseForks 下按 fork 全生命周期计时，先实测 nop-stream-runtime 单 fork 耗时再定值，避免误杀）。
-- [ ] CON-06：BatchConsumerSink close() 日志改为首条记录摘要（截断），不再全文输出。
-- [ ] 仓库根 `_tmp-*.log` 残留（14 个，合计约 487MB）清理：审计证据日志移入 `_tmp/`，纯临时日志删除。
+- [x] RD-01：CONTROL_HEARTBEAT 死协议残留清除（RemoteInputChannel 接收分支 :642-648、常量、StreamMessageEnvelope 失实 javadoc :48-55、`TestRemoteInputChannelHeartbeat` 删除/改名）。
+- [x] RD-02：NopStreamErrors 9 个孤儿错误码逐个裁定——能接线的接线（含 ERR_STREAM_INIT_ERROR），确无归属的删除（grep 模式与排除项记录于 log）。
+- [x] RD-03：IStateBackend「RedisStateBackend」、WatermarkStatus「SourceStreamTask/StreamTask/StreamSource」失实 javadoc 修正。
+- [x] RD-04：KafkaStringWireCodec :36 失实注释修正（"zero logic duplication"声明与 fromWire/extractData 逐字复制事实不符；重复本身维持 Deferred）。
+- [x] RD-10：TtlCleanupStrategy lazyEviction 失效旋钮处置（移除或显式 no-op 文档化，选择记录于 log）。
+- [x] REG-03/04：三处"EOS 哨兵留在队列"失实注释与 `rebuildTask` javadoc 归真。
+- [x] REG-05：FileSourceReader.readBuf transient 字段 inline 初始化器移除（潜伏 NPE 防御）。
+- [x] TE-01/TE-14：`size() >= 0` 永真断言改为有效断言（含残留处）。
+- [x] TE-02：N1 单元回归测试补 `@Timeout`。
+- [x] TE-04/06/08：退化构造器测试、getter/setter 往返三处、名实不符测试名——删除/替换/改名。
+- [x] TE-15：nop-stream 父 pom surefire `forkedProcessTimeoutInSeconds` 配置——**按模块实测校准**（forkCount=4 + reuseForks 下按 fork 全生命周期计时，先实测 nop-stream-runtime 单 fork 耗时再定值，避免误杀）。
+- [x] CON-06：BatchConsumerSink close() 日志改为首条记录摘要（截断），不再全文输出。
+- [x] 仓库根 `_tmp-*.log` 残留（14 个，合计约 487MB）清理：审计证据日志移入 `_tmp/`，纯临时日志删除。
 
 Exit Criteria:
 
-- [ ] RD-01 后 `grep -rn "CONTROL_HEARTBEAT" nop-stream/` 仅零或合理残留（逐处复核记录）。
-- [ ] RD-02 后 `NopStreamErrors` 无零引用错误码（口径记录于 log）。
-- [ ] TE 项测试改动全部通过；surefire 超时配置生效且 nop-stream 全模块测试在配置值内通过（实测校准记录）。
-- [ ] `nop-stream` 全模块编译 + 受影响模块测试全绿。
-- [ ] `ai-dev/logs/2026/09-30.md` 已更新。
+- [x] RD-01 后 `grep -rn "CONTROL_HEARTBEAT" nop-stream/` 仅零或合理残留（逐处复核记录）。
+- [x] RD-02 后 `NopStreamErrors` 无零引用错误码（口径记录于 log）。
+- [x] TE 项测试改动全部通过；surefire 超时配置生效且 nop-stream 全模块测试在配置值内通过（实测校准记录）。
+- [x] `nop-stream` 全模块编译 + 受影响模块测试全绿。
+- [x] `ai-dev/logs/2026/09-30.md` 已更新。
 
 ### Phase 9 - Closure Audit 与收口
 

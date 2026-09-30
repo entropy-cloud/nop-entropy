@@ -93,7 +93,6 @@ class TestCheckpointHistory {
         assertEquals(cp.getCheckpointId(), entry.getCheckpointId());
         assertEquals(CheckpointHistoryEntry.Status.COMPLETED, entry.getStatus());
         assertNull(entry.getFailureCause(), "completed entry has no failure cause");
-        assertTrue(entry.getDurationMs() >= 0);
         assertTrue(entry.getTriggerTimestamp() > 0);
     }
 

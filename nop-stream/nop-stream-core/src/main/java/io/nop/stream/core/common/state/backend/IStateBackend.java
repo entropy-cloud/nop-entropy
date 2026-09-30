@@ -19,8 +19,9 @@ import io.nop.stream.core.common.state.shard.KeyGroup;
  * 
  * <p>实现可以是：
  * <ul>
- *     <li>{@link MemoryStateBackend} - 内存实现，用于测试</li>
- *     <li>{@link RedisStateBackend} - Redis 实现，用于生产环境</li>
+ *     <li>{@link MemoryStateBackend} - 内存实现，用于测试与嵌入式执行</li>
+ *     <li>{@code RocksDBStateBackend}（nop-stream-rocksdb 模块）- RocksDB 持久化实现，
+ *         用于生产环境；该实现位于独立模块，-core 不直接依赖</li>
  * </ul>
  */
 public interface IStateBackend extends Serializable {

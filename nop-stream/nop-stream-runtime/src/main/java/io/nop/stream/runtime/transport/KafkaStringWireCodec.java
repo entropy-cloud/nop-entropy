@@ -31,9 +31,10 @@ import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
  *
  * <p><strong>Why a separate class instead of reusing {@link PulsarStringWireCodec}.</strong>
  * {@code PulsarStringWireCodec} is {@code final} (cannot be extended), and naming a Kafka
- * deployment's codec "Pulsar" is misleading. This is a thin parallel implementation that
- * shares {@link DataPlaneWireSupport} for the actual (de)serialization logic, so there is
- * zero logic duplication — only the backend-identifying class name differs.
+ * deployment's codec "Pulsar" is misleading. Only {@code toWire} is shared via
+ * {@link DataPlaneWireSupport}; the {@code fromWire} + {@code extractData} pair below is a
+ * verbatim parallel copy of the Pulsar codec — a known, deliberately deferred duplication
+ * (any new wire form or decode fix must be applied to both codecs).
  *
  * <p>The codec only references {@link ApiMessage} / {@link JsonTool} — it does NOT depend
  * on {@code KafkaMessageService} or {@code kafka-clients}, keeping {@code nop-stream-runtime}
