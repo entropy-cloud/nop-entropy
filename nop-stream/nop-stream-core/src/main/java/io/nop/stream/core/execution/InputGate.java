@@ -837,7 +837,19 @@ public class InputGate {
         }
         long elapsed = CoreMetrics.currentTimeMillis() - oldest.startTime;
 
-        if (unalignedCheckpointEnabled && elapsed > unalignedThreshold) {
+        // C1 (plan 369): savepoint barriers are EXEMPT from the aligned→unaligned
+        // fallback. Flink guarantees savepoints stay aligned (CheckpointOptions
+        // alignedNoTimeout; unaligned() rejects savepoints) because a savepoint
+        // must remain a pure consistent cut — an unaligned savepoint would embed
+        // in-flight channel data and later trip the channel-state rescale
+        // fail-fast on restore. Only the plain CHECKPOINT type may degrade; every
+        // other type (SAVEPOINT / TERMINAL_SAVEPOINT / EXPORTED_SAVEPOINT /
+        // COMPLETED_POINT_TYPE, judged by CheckpointBarrier.isCheckpoint()) falls
+        // through to the absolute barrierAlignmentTimeout fail-fast below, which
+        // surfaces the backpressure loudly instead of silently degrading.
+        CheckpointBarrier oldestBarrier = oldest.firstBarrier;
+        boolean degradable = oldestBarrier == null || oldestBarrier.isCheckpoint();
+        if (unalignedCheckpointEnabled && degradable && elapsed > unalignedThreshold) {
             return Optional.of(switchToUnalignedAndEmit(oldest));
         }
 

@@ -89,6 +89,14 @@ class TestMemoryOperatorStateBackend {
         assertTrue(list.containsAll(Arrays.asList("a", "b", "c", "d")));
     }
 
+    /**
+     * NEW-B (plan 369): BROADCAST restore is UNION semantics (aligned with
+     * Flink's RoundRobinOperatorStateRepartitioner UNION/BROADCAST path):
+     * every non-empty snapshot contributes and the union reaches every new
+     * instance. Two old subtasks hold disjoint broadcast keys; after restore
+     * BOTH keys must be present on BOTH new subtasks (pre-fix only the first
+     * non-empty snapshot was kept, silently dropping subtask 2's state).
+     */
     @Test
     void testBroadcastRedistribution() throws Exception {
         OperatorSnapshotResult old1 = new OperatorSnapshotResult();
@@ -96,7 +104,7 @@ class TestMemoryOperatorStateBackend {
         old1.setCheckpointParallelism(3);
 
         OperatorSnapshotResult old2 = new OperatorSnapshotResult();
-        old2.putOperatorState("x", "from2");
+        old2.putOperatorState("y", "from2");
         old2.setCheckpointParallelism(3);
 
         MemoryOperatorStateBackend task0 = new MemoryOperatorStateBackend();
@@ -105,8 +113,94 @@ class TestMemoryOperatorStateBackend {
         MemoryOperatorStateBackend task1 = new MemoryOperatorStateBackend();
         task1.restoreState(Arrays.asList(old1, old2), 3, RedistributionMode.BROADCAST, 1, 2);
 
+        // Union: both disjoint keys restored on every instance.
         assertEquals("from1", task0.snapshotState(1).getOperatorState("x"));
+        assertEquals("from2", task0.snapshotState(1).getOperatorState("y"));
         assertEquals("from1", task1.snapshotState(1).getOperatorState("x"));
+        assertEquals("from2", task1.snapshotState(1).getOperatorState("y"));
+    }
+
+    /**
+     * NEW-B (plan 369): two non-empty snapshots with the SAME state name whose
+     * values are lists — the union concatenates both contributions in subtask
+     * order on every new instance (the Flink union-broadcast data-preservation
+     * shape).
+     */
+    @Test
+    void testBroadcastUnionConcatenatesListValuesAcrossSnapshots() throws Exception {
+        OperatorSnapshotResult old1 = new OperatorSnapshotResult();
+        old1.putOperatorState("rules", Arrays.asList("r0", "r1"));
+        old1.setCheckpointParallelism(2);
+
+        OperatorSnapshotResult old2 = new OperatorSnapshotResult();
+        old2.putOperatorState("rules", Arrays.asList("r2", "r3"));
+        old2.setCheckpointParallelism(2);
+
+        MemoryOperatorStateBackend task0 = new MemoryOperatorStateBackend();
+        task0.restoreState(Arrays.asList(old1, old2), 2, RedistributionMode.BROADCAST, 0, 3);
+        MemoryOperatorStateBackend task1 = new MemoryOperatorStateBackend();
+        task1.restoreState(Arrays.asList(old1, old2), 2, RedistributionMode.BROADCAST, 1, 3);
+
+        for (MemoryOperatorStateBackend task : Arrays.asList(task0, task1)) {
+            Object state = task.snapshotState(1).getOperatorState("rules");
+            assertTrue(state instanceof List);
+            assertEquals(Arrays.asList("r0", "r1", "r2", "r3"), state,
+                    "broadcast union must concatenate same-name list values from all snapshots");
+        }
+    }
+
+    /**
+     * NEW-B (plan 369): same-name MAP values merge entries (later snapshot
+     * wins key conflicts); scalar (non-list, non-map) conflicts resolve to the
+     * LATER snapshot's value on all instances — scalars carry no merge
+     * function, and the union must at least be CONSISTENT across instances
+     * (pre-fix it silently kept only the first snapshot's value).
+     */
+    @Test
+    void testBroadcastUnionMergesMapValuesAndConsistentScalarConflict() throws Exception {
+        OperatorSnapshotResult old1 = new OperatorSnapshotResult();
+        old1.putOperatorState("config", new java.util.HashMap<>(java.util.Map.of("a", 1, "shared", "old")));
+        old1.putOperatorState("version", 1);
+        old1.setCheckpointParallelism(2);
+
+        OperatorSnapshotResult old2 = new OperatorSnapshotResult();
+        old2.putOperatorState("config", new java.util.HashMap<>(java.util.Map.of("b", 2, "shared", "new")));
+        old2.putOperatorState("version", 2);
+        old2.setCheckpointParallelism(2);
+
+        MemoryOperatorStateBackend task0 = new MemoryOperatorStateBackend();
+        task0.restoreState(Arrays.asList(old1, old2), 2, RedistributionMode.BROADCAST, 0, 2);
+        MemoryOperatorStateBackend task1 = new MemoryOperatorStateBackend();
+        task1.restoreState(Arrays.asList(old1, old2), 2, RedistributionMode.BROADCAST, 1, 2);
+
+        for (MemoryOperatorStateBackend task : Arrays.asList(task0, task1)) {
+            @SuppressWarnings("unchecked")
+            Map<Object, Object> config = (Map<Object, Object>) task.snapshotState(1).getOperatorState("config");
+            assertEquals(1, config.get("a"), "map union keeps subtask-0 entries");
+            assertEquals(2, config.get("b"), "map union keeps subtask-1 entries");
+            assertEquals("new", config.get("shared"), "later snapshot wins map key conflicts");
+            assertEquals(2, task.snapshotState(1).getOperatorState("version"),
+                    "scalar conflict resolves to the later snapshot, identically on every instance");
+        }
+    }
+
+    /**
+     * NEW-B (plan 369): null and empty snapshots are ignored by the union —
+     * a subtask that checkpointed no broadcast state contributes nothing.
+     */
+    @Test
+    void testBroadcastUnionIgnoresEmptySnapshots() throws Exception {
+        OperatorSnapshotResult empty = new OperatorSnapshotResult();
+        empty.setCheckpointParallelism(2);
+
+        OperatorSnapshotResult old2 = new OperatorSnapshotResult();
+        old2.putOperatorState("x", "from2");
+        old2.setCheckpointParallelism(2);
+
+        MemoryOperatorStateBackend backend = new MemoryOperatorStateBackend();
+        backend.restoreState(Arrays.asList(null, empty, old2), 2, RedistributionMode.BROADCAST, 0, 2);
+
+        assertEquals("from2", backend.snapshotState(1).getOperatorState("x"));
     }
 
     @Test

@@ -400,10 +400,28 @@ public class GraphModelCheckpointExecutor {
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(rt.abortMarked);
 
-            PendingCheckpoint savepointPending = rt.coordinator.tryTriggerPendingCheckpoint(CheckpointType.SAVEPOINT);
+            // C2 (plan 369): bounded-retry trigger. A collision with an in-flight
+            // periodic checkpoint (maxConcurrent=1) no longer silently skips the
+            // savepoint — the trigger retries within the checkpoint timeout. A
+            // NO_TASKS_TO_ACK rejection short-circuits as success (null return:
+            // with the C3 participant contraction every task is terminal, so
+            // there is nothing to snapshot). A final trigger failure throws
+            // (loud) instead of returning a null savepoint path.
+            PendingCheckpoint savepointPending = rt.coordinator.triggerCheckpointBounded(
+                    CheckpointType.SAVEPOINT, checkpointConfig.getCheckpointTimeout());
             String savepointPath = null;
             if (savepointPending != null) {
-                triggerBarrierOnAllInvokables(rt.allInvokables, savepointPending);
+                // C2×C3: an all-terminal epoch is completed inline by the
+                // coordinator from inherited states — no live invokable left to
+                // fan a barrier into; the fan-out itself is contained, but
+                // skipping it for an already-done epoch avoids misleading
+                // per-task barrier warnings.
+                if (!savepointPending.getCompletableFuture().isDone()) {
+                    triggerBarrierOnAllInvokables(rt.allInvokables, savepointPending);
+                } else {
+                    LOG.info("Savepoint {} assembled from terminal states (no live participants); "
+                            + "barrier fan-out skipped", savepointPending.getCheckpointId());
+                }
 
                 CompletedCheckpoint completed = (CompletedCheckpoint) savepointPending.getCompletableFuture()
                         .get(checkpointConfig.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
@@ -437,7 +455,7 @@ public class GraphModelCheckpointExecutor {
                     rt.allInvokables, checkpointConfig,
                     checkpointConfig.getMaxRestartsPerRegion());
             checkAbortMarker(rt.abortMarked);
-            triggerFinalCheckpoint(rt.allInvokables, rt.coordinator);
+            triggerFinalCheckpoint(rt.allInvokables, rt.coordinator, checkpointConfig);
             checkTaskFailures(rt.tasks);
 
             long executionTime = CoreMetrics.currentTimeMillis() - startTime;
@@ -458,7 +476,7 @@ public class GraphModelCheckpointExecutor {
     private static void handleJobTermination(
             List<StreamTaskInvokable> allInvokables,
             CheckpointCoordinator coordinator,
-            CheckpointConfig config) {
+            CheckpointConfig config) throws Exception {
 
         JobTerminationMode mode = config.getJobTerminationMode();
         if (mode == null) {
@@ -480,7 +498,7 @@ public class GraphModelCheckpointExecutor {
                 break;
             case CANCEL:
             default:
-                triggerFinalCheckpoint(allInvokables, coordinator);
+                triggerFinalCheckpoint(allInvokables, coordinator, config);
                 break;
         }
     }
@@ -499,9 +517,24 @@ public class GraphModelCheckpointExecutor {
             return;
         }
         try {
-            PendingCheckpoint terminalPending = coordinator.tryTriggerPendingCheckpoint(checkpointType);
+            // C2 (plan 369): bounded-retry trigger with typed-reason disposition
+            // (see CheckpointCoordinator.triggerCheckpointBounded). A collision
+            // with an in-flight periodic checkpoint retries instead of silently
+            // skipping the terminal savepoint (DRAIN/SUSPEND must not complete a
+            // job without its durable savepoint); NO_TASKS_TO_ACK short-circuits
+            // as success; the retry budget exhausting throws (job fail, loud).
+            PendingCheckpoint terminalPending = coordinator.triggerCheckpointBounded(
+                    checkpointType, config.getCheckpointTimeout());
             if (terminalPending != null) {
-                triggerBarrierOnAllInvokables(allInvokables, terminalPending);
+                // C2×C3: an already-done epoch (assembled from terminal states)
+                // needs no barrier fan-out — see triggerSavepoint.
+                if (!terminalPending.getCompletableFuture().isDone()) {
+                    triggerBarrierOnAllInvokables(allInvokables, terminalPending);
+                } else {
+                    LOG.info("Terminal savepoint {} assembled from terminal states "
+                            + "(no live participants); barrier fan-out skipped",
+                            terminalPending.getCheckpointId());
+                }
 
                 // Wait for terminal savepoint completion
                 Object result = terminalPending.getCompletableFuture()
@@ -511,6 +544,13 @@ public class GraphModelCheckpointExecutor {
                             terminalPending.getCheckpointId());
                 }
             }
+        } catch (InterruptedException e) {
+            // C2 (plan 369): keep the interrupt cancellable — restore the flag
+            // and fail the terminal savepoint loudly (the caller's shutdown /
+            // cancel path re-observes the interrupt on its next blocking call).
+            Thread.currentThread().interrupt();
+            LOG.error("Interrupted while waiting for terminal savepoint of type {}", checkpointType, e);
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED, e);
         } catch (Exception e) {
             LOG.error("Failed to trigger terminal savepoint", e);
             throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED, e);
@@ -704,26 +744,39 @@ public class GraphModelCheckpointExecutor {
     }
 
     /**
-     * CANCEL-mode terminal checkpoint: <b>best-effort by design</b> (intentional
-     * asymmetry with {@link #triggerTerminalSavepoint}, which rethrows). CANCEL
-     * means "stop now" — the user has already accepted state loss — so a failed
-     * final checkpoint must not wedge the requested cancellation; the failure is
-     * surfaced via {@code LOG.error} (observable, not swallowed) and the cancel
-     * proceeds. DRAIN/SUSPEND instead promise a durable savepoint and therefore
-     * fail fast.
+     * CANCEL-mode COMPLETED_POINT_TYPE final checkpoint trigger.
+     *
+     * <p><b>C2 (plan 369) semantics change</b>: this trigger used to be
+     * best-effort (a collision with an in-flight periodic checkpoint returned
+     * null and the failure was logged while the job finished). The plan 369
+     * adjudication closes that gap: the trigger now uses
+     * {@link CheckpointCoordinator#triggerCheckpointBounded} — a collision with
+     * in-flight periodic work is retried within the checkpoint timeout,
+     * NO_TASKS_TO_ACK short-circuits as success (with the C3 participant
+     * contraction, an empty ACK set at CANCEL means every task is terminal —
+     * nothing to snapshot), and a final trigger failure throws loud (job fail)
+     * instead of being swallowed. Completion of the triggered checkpoint itself
+     * remains asynchronous (barrier fanned out; ACKs drain before the caller's
+     * shutdown).
      */
     private static void triggerFinalCheckpoint(
-            List<StreamTaskInvokable> allInvokables, CheckpointCoordinator coordinator) {
+            List<StreamTaskInvokable> allInvokables, CheckpointCoordinator coordinator,
+            CheckpointConfig config) throws Exception {
         if (allInvokables.isEmpty()) {
             return;
         }
-        try {
-            PendingCheckpoint finalPending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.COMPLETED_POINT_TYPE);
-            if (finalPending != null) {
+        PendingCheckpoint finalPending = coordinator.triggerCheckpointBounded(
+                CheckpointType.COMPLETED_POINT_TYPE, config.getCheckpointTimeout());
+        if (finalPending != null) {
+            // C2×C3: an already-done epoch (assembled from terminal states)
+            // needs no barrier fan-out — see triggerSavepoint.
+            if (!finalPending.getCompletableFuture().isDone()) {
                 triggerBarrierOnAllInvokables(allInvokables, finalPending);
+            } else {
+                LOG.info("Final checkpoint {} assembled from terminal states "
+                        + "(no live participants); barrier fan-out skipped",
+                        finalPending.getCheckpointId());
             }
-        } catch (Exception e) {
-            LOG.error("Failed to trigger final checkpoint (best-effort on CANCEL; continuing with cancellation)", e);
         }
     }
 

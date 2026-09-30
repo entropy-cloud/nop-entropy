@@ -318,20 +318,25 @@ class TestJobCoordinator {
         // Before termination, coordinator is running
         assertTrue(coordinator.isRunning());
 
-        // DRAIN triggers TERMINAL_SAVEPOINT checkpoint then stops
-        // (Stage 28: aligned to checkpoint-design.md §7.3)
+        // DRAIN triggers TERMINAL_SAVEPOINT checkpoint then fails the job loud
+        // on savepoint failure. C2 (plan 369): a terminal savepoint whose
+        // future never completes (the mock TM never ACKs; short timeout) no
+        // longer silently declares the job FINISHED and stops — the job is
+        // FAILED instead (final savepoint is a durability promise). The barrier
+        // of type TERMINAL_SAVEPOINT was still sent to the task managers.
         coordinator.terminate(JobTerminationMode.DRAIN);
 
-        // After DRAIN, coordinator should be stopped
-        assertFalse(coordinator.isRunning());
+        // The coordinator itself is not stopped on the failure path (failJob
+        // disables triggers via the FAILED status); the job status is FAILED.
+        assertEquals(io.nop.stream.runtime.coordinator.JobStatus.FAILED,
+                coordinator.getJobStatus().getJobStatus(),
+                "C2 (plan 369): a failed terminal savepoint must fail the job, not declare it FINISHED");
 
-        // The mock RPC service should have received at least one barrier
-        // (from assignTasks via triggerCheckpoint or from the DRAIN termination)
-        // For DRAIN, the barrier type should be TERMINAL_SAVEPOINT
-        // Since our mock doesn't complete the future, the DRAIN will timeout
-        // (configured to 500ms in setUp), but it should still have sent the barrier.
-        // Let's verify the last barrier was sent (it may be null if terminateDrain
-        // threw internally due to timeout - that's fine, the important thing is no crash)
+        // The mock RPC service should have received the terminal barrier.
+        // For DRAIN, the barrier type should be TERMINAL_SAVEPOINT.
+        assertNotNull(mockRpcService.lastBarrier.get());
+        assertEquals(CheckpointType.TERMINAL_SAVEPOINT,
+                mockRpcService.lastBarrier.get().getCheckpointType());
     }
 
     @Test
@@ -342,11 +347,13 @@ class TestJobCoordinator {
 
         assertTrue(coordinator.isRunning());
 
-        // SUSPEND triggers TERMINAL_SAVEPOINT then stops
+        // SUSPEND triggers TERMINAL_SAVEPOINT then fails the job loud when the
+        // savepoint cannot complete (C2, plan 369 — same as DRAIN).
         coordinator.terminate(JobTerminationMode.SUSPEND);
 
-        // After SUSPEND, coordinator should be stopped
-        assertFalse(coordinator.isRunning());
+        assertEquals(io.nop.stream.runtime.coordinator.JobStatus.FAILED,
+                coordinator.getJobStatus().getJobStatus(),
+                "C2 (plan 369): a failed suspend savepoint must fail the job");
     }
 
     @Test

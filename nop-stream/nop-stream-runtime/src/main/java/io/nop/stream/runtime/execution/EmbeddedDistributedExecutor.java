@@ -253,6 +253,10 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                                                List<TaskManager> taskManagers) {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         CheckpointConfig checkpointConfig = new CheckpointConfig();
+        // C4 (plan 369): fill the transport persistence declaration from the
+        // actual transport this topology was built on (see RpcDistributedExecutor
+        // and TransportDurability).
+        checkpointConfig.setTransportPersistence(TransportDurability.resolve(messageService));
         LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
                 GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(

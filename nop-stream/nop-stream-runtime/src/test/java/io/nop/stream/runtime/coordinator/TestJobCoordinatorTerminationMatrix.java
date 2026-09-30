@@ -11,6 +11,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -77,16 +78,32 @@ class TestJobCoordinatorTerminationMatrix {
                 JOB_ID, "pipeline-0", new CheckpointIDCounter(), storage,
                 CoordinatorTestSupport.defaultCheckpointConfig());
 
-        mockRpcService = new CoordinatorTestSupport.RecordingTaskRpcService();
+        CheckpointCoordinator checkpointCoordinatorRef = checkpointCoordinator;
+        // C2 (plan 369): the mock TM auto-ACKs the terminal-savepoint barrier so
+        // the savepoint COMPLETES — this matrix pins the per-mode SUCCESS-path
+        // differences (barrier type / event / health / stop). The failure path
+        // (never-ACKing TM → job fail instead of silent FINISHED) is pinned by
+        // TestJobCoordinatorTerminalSavepointFailure.
+        mockRpcService = new CoordinatorTestSupport.RecordingTaskRpcService() {
+            @Override
+            public void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch) {
+                super.triggerCheckpoint(barrier, fencingEpoch);
+                // Simulate the node's two subtasks ACKing the epoch.
+                for (String vertexId : new String[]{"source", "sink"}) {
+                    TaskLocation loc = new TaskLocation(JOB_ID, "pipeline-0", vertexId, 0);
+                    checkpointCoordinatorRef.acknowledgeTask(loc, barrier.getId(),
+                            new io.nop.stream.core.checkpoint.TaskStateSnapshot(loc, barrier.getId()));
+                }
+            }
+        };
         clusterRegistry.registerNode("node-1", "localhost:8080", 4);
 
         coordinator = new JobCoordinator(JOB_ID, COORDINATOR_ID,
                 CoordinatorTestSupport.twoVertexForwardPlan(JOB_ID),
                 clusterRegistry, checkpointCoordinator,
                 Map.of("node-1", mockRpcService));
-        // Short timeout: the mock TM never ACKs, so the terminal checkpoint future times
-        // out — each mode must STILL complete its health/event/stop side effects (the
-        // timeout is caught + logged per current behavior).
+        // Short timeout: the auto-ACKing mock TM completes the terminal
+        // checkpoint well within it (the matrix pins SUCCESS-path behavior).
         coordinator.setTerminationCheckpointTimeoutMs(200L);
         coordinator.addHealthListener((jobId, from, to, cause) ->
                 healthTransitions.add(from + "->" + to));

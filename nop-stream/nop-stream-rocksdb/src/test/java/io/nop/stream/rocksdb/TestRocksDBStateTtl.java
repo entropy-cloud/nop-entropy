@@ -239,7 +239,7 @@ class TestRocksDBStateTtl {
     void ttlStateCheckpointRoundTripPreservesUserValues() throws Exception {
         FakeClock clock = new FakeClock();
         RocksDBKeyedStateBackend<String> backend = newBackend(clock);
-        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("v", Integer.class, 0);
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("v", Integer.class);
         desc.setTtlConfig(ttl(Duration.ofHours(1)));
 
         ValueState<Integer> state = backend.getState(desc);
@@ -254,7 +254,7 @@ class TestRocksDBStateTtl {
         RocksDBKeyedStateBackend<String> restored = newBackend(new FakeClock());
         restored.restoreState(snapshot);
 
-        ValueStateDescriptor<Integer> plainDesc = new ValueStateDescriptor<>("v", Integer.class, 0);
+        ValueStateDescriptor<Integer> plainDesc = new ValueStateDescriptor<>("v", Integer.class);
         ValueState<Integer> rs = restored.getState(plainDesc);
         restored.setCurrentKey("a");
         assertEquals(11, rs.value());
@@ -262,5 +262,62 @@ class TestRocksDBStateTtl {
         assertEquals(22, rs.value(),
                 "user values round-trip correctly; sidecar timestamps never corrupt serialization");
         restored.close();
+    }
+
+    /**
+     * Plan 369 Phase 3 ST-12: the sweep runs
+     * {@code TtlContext.sweepExpired(Consumer)} — one iterator-remove pass over
+     * the live sidecar, invoking the RocksDB delete per expired key BEFORE the
+     * sidecar entry is removed. This exercises the callback path with MANY
+     * expired entries across value and map states (map keys delete by whole-map
+     * prefix), and confirms storage+sidecar shrink together (a second sweep
+     * reclaims nothing).
+     */
+    @Test
+    void sweepReclaimsManyExpiredEntriesAcrossStatesWithoutResidue() throws Exception {
+        FakeClock clock = new FakeClock();
+        RocksDBKeyedStateBackend<String> backend = newBackend(clock);
+
+        ValueStateDescriptor<Integer> vDesc = new ValueStateDescriptor<>("v", Integer.class);
+        vDesc.setTtlConfig(ttl(Duration.ofMillis(50)));
+        ValueState<Integer> vState = backend.getState(vDesc);
+
+        MapStateDescriptor<String, Integer> mDesc = new MapStateDescriptor<>("m", String.class, Integer.class);
+        mDesc.setTtlConfig(ttl(Duration.ofMillis(50)));
+        MapState<String, Integer> mState = backend.getMapState(mDesc);
+
+        for (int i = 0; i < 20; i++) {
+            backend.setCurrentKey("vk" + i);
+            vState.update(i);
+            backend.setCurrentKey("mk" + i);
+            mState.put("a", i);
+            mState.put("b", i);
+        }
+        clock.advance(60); // every entry in both states expired
+
+        // 20 scalar base keys + 20 whole-map base keys = 40 reclaimed.
+        int swept = backend.cleanupExpiredEntries();
+        assertEquals(40, swept, "sweep reclaims every expired base key across both states");
+        assertEquals(0, backend.cleanupExpiredEntries(),
+                "no residue: storage and sidecar shrank together, second sweep is a no-op");
+
+        // Plain byte-level probes confirm physical deletion from RocksDB.
+        try (org.rocksdb.RocksIterator it = backend.getDbForTest()
+                .newIterator(backend.getOrCreateColumnFamily("v"))) {
+            int count = 0;
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                count++;
+            }
+            assertEquals(0, count, "expired scalar entries physically deleted from the v column family");
+        }
+        try (org.rocksdb.RocksIterator it = backend.getDbForTest()
+                .newIterator(backend.getOrCreateColumnFamily("m"))) {
+            int count = 0;
+            for (it.seekToFirst(); it.isValid(); it.next()) {
+                count++;
+            }
+            assertEquals(0, count, "expired map entries (incl. suffix entries) physically deleted");
+        }
+        backend.close();
     }
 }

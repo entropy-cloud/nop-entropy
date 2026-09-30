@@ -212,6 +212,11 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
 
             CheckpointIDCounter idCounter = new CheckpointIDCounter();
             CheckpointConfig checkpointConfig = new CheckpointConfig();
+            // C4 (plan 369): fill the transport persistence declaration from
+            // the actual transport this topology was built on. The default
+            // DURABLE declaration is only a conservative guess; here the
+            // runtime knows the injected IMessageService.
+            checkpointConfig.setTransportPersistence(TransportDurability.resolve(messageService));
             LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
                     GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
             CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(

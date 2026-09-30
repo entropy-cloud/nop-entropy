@@ -9,6 +9,8 @@ package io.nop.stream.runtime.checkpoint;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import io.nop.api.core.time.CoreMetrics;
@@ -166,6 +168,17 @@ public class CheckpointCoordinator {
     private final AtomicInteger numPendingCheckpoints;
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
     private volatile Set<TaskLocation> tasksToAcknowledge;
+
+    /**
+     * C3 (plan 369): tasks that reported a terminal (COMPLETED) state and were
+     * contracted out of the checkpoint participant set. Their state is
+     * INHERITED into every subsequently triggered checkpoint from
+     * {@link #latestCompletedCheckpoint} so each new epoch still carries the
+     * full task-state set (restore semantics unchanged). The set is
+     * generation-scoped: {@link #setTasksToAcknowledge(Collection)} (the
+     * DISTRIBUTED re-assignment path) clears it together with the ACK set.
+     */
+    private final Set<TaskLocation> completedTasks = ConcurrentHashMap.newKeySet();
 
     /**
      * Wall-clock timestamp (ms) at which the most recent checkpoint entered the COMPLETED
@@ -339,6 +352,88 @@ public class CheckpointCoordinator {
     }
 
     /**
+     * C2 (plan 369): trigger a checkpoint of the given type with BOUNDED retry
+     * so a terminal/savepoint action survives a collision with in-flight
+     * periodic work. The pre-fix call shape
+     * {@code tryTriggerPendingCheckpoint → null → silently skip} let a DRAIN /
+     * SUSPEND / COMPLETED termination "finish" a job without its durable
+     * terminal savepoint whenever a periodic checkpoint was still in flight
+     * (maxConcurrent=1 default). This method implements the adjudicated
+     * typed-reason disposition:
+     * <ul>
+     *   <li>{@link TriggerRejectionReason#REJECTED_MAX_CONCURRENT} /
+     *       {@link TriggerRejectionReason#THROTTLED_MIN_PAUSE} (back-pressure):
+     *       bounded polling retry until {@code timeoutMs} elapses — the caller
+     *       waits for the in-flight checkpoint to complete, mirroring Flink's
+     *       {@code CheckpointRequestDecider} queueing of savepoint requests;</li>
+     *   <li>{@link TriggerRejectionReason#NO_TASKS_TO_ACK}: short-circuit
+     *       SUCCESS ({@code null} return). With the C3 participant contraction,
+     *       an empty ACK set on a trigger means every task has reached a
+     *       terminal state — there is nothing live to snapshot and treating
+     *       that as a failure would turn a normal shutdown into a job failure
+     *       (the C2×C3 interaction). For EXPLICIT (non-periodic) types with
+     *       terminal tombstones present the coordinator does not reject at all:
+     *       it assembles the epoch entirely from the inherited terminal states
+     *       and completes it inline (see
+     *       {@link #tryTriggerCheckpointWithReason}), so the durable artifact
+     *       the caller waits on still exists. NO_TASKS_TO_ACK therefore only
+     *       reaches this method for periodic ticks after full drain or for a
+     *       coordinator with no registered tasks;</li>
+     *   <li>retry budget exhausted: loud typed failure
+     *       ({@code ERR_STREAM_CHECKPOINT_FAILED}).</li>
+     * </ul>
+     *
+     * <p>Blocking: sleeps between retries OUTSIDE the coordinator monitor (each
+     * retry re-enters the synchronized trigger). Interruption propagates as
+     * {@link InterruptedException} so callers keep their recorded interrupt
+     * semantics (plan 368 CC-11).
+     *
+     * @param checkpointType the checkpoint type to trigger (any)
+     * @param timeoutMs      total retry budget in ms (the caller's checkpoint
+     *                       timeout); values &le; 0 get one attempt
+     * @return the triggered {@link PendingCheckpoint}, or {@code null} when the
+     *         trigger was short-circuited as success (nothing to acknowledge)
+     * @throws StreamException ERR_STREAM_CHECKPOINT_FAILED when no trigger
+     *                         succeeded within the budget
+     * @throws InterruptedException if the retry sleep was interrupted
+     */
+    public PendingCheckpoint triggerCheckpointBounded(CheckpointType checkpointType, long timeoutMs)
+            throws InterruptedException {
+        long deadline = CoreMetrics.currentTimeMillis() + Math.max(1L, timeoutMs);
+        long backoffMs = C2_RETRY_INITIAL_BACKOFF_MS;
+        while (true) {
+            TriggerOutcome outcome = tryTriggerCheckpointWithReason(checkpointType);
+            if (outcome.reason() == TriggerRejectionReason.TRIGGERED) {
+                return outcome.pending();
+            }
+            if (outcome.reason() == TriggerRejectionReason.NO_TASKS_TO_ACK) {
+                LOG.info("Checkpoint trigger of type {} short-circuited as success for job {}: "
+                        + "no tasks to acknowledge (all participants terminal; C2/C3 lifecycle endpoint)",
+                        checkpointType, jobId);
+                return null;
+            }
+            // Back-pressure rejection (in-flight periodic checkpoint / minPause):
+            // wait for it to clear and retry until the budget is exhausted. The
+            // sleep is clamped to the remaining budget so the full timeout window
+            // is actually used before giving up.
+            long now = CoreMetrics.currentTimeMillis();
+            if (now >= deadline) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_FAILED).param(ARG_REASON,
+                        "Could not trigger " + checkpointType + " checkpoint for job " + jobId
+                                + " within " + timeoutMs + "ms: " + outcome.reason()
+                                + " (in-flight checkpoint did not clear in time)");
+            }
+            Thread.sleep(Math.min(backoffMs, deadline - now));
+            backoffMs = Math.min(backoffMs * 2, C2_RETRY_MAX_BACKOFF_MS);
+        }
+    }
+
+    /** C2: initial retry backoff for {@link #triggerCheckpointBounded}. */
+    private static final long C2_RETRY_INITIAL_BACKOFF_MS = 50L;
+    /** C2: maximum retry backoff for {@link #triggerCheckpointBounded}. */
+    private static final long C2_RETRY_MAX_BACKOFF_MS = 500L;
+
+    /**
      * Trigger a new pending checkpoint and report the precise outcome. The external periodic
      * driver (e.g. {@code JobCoordinator#startPeriodicCheckpoints})
      * uses this method so that {@code THROTTLED_MIN_PAUSE} and {@code REJECTED_MAX_CONCURRENT}
@@ -387,19 +482,89 @@ public class CheckpointCoordinator {
         long timestamp = CoreMetrics.currentTimeMillis();
 
         Set<TaskLocation> tasksToAck = getTasksToAcknowledge();
+        // C2×C3 lifecycle endpoint (plan 369): an empty ACK set means every
+        // participant was contracted out as terminal (or none was ever
+        // registered). Disposition by trigger kind:
+        // <ul>
+        //   <li>Periodic CHECKPOINT: NO_TASKS_TO_ACK rejection — the periodic
+        //       driver skips the tick; assembling a synthetic epoch every
+        //       interval after the job fully drained would spam empty
+        //       checkpoints.</li>
+        //   <li>Explicit actions (SAVEPOINT / TERMINAL_SAVEPOINT /
+        //       EXPORTED_SAVEPOINT / COMPLETED_POINT_TYPE) with terminal
+        //       tombstones present: the epoch is assembled ENTIRELY from the
+        //       inherited terminal states (empty snapshot where nothing durable
+        //       exists — see {@link #inheritTerminalTaskState}), completed
+        //       inline, and published durably. This is the materialized form of
+        //       the C2 "short-circuit as success": zero waiting (no live
+        //       participant can hang the trigger), zero job-fail, AND the
+        //       durable artifact the explicit action promises (a savepoint file
+        //       / final manifest) still exists — a DRAIN must not bypass its
+        //       terminal savepoint (§2.9) even when every task already
+        //       finished.</li>
+        //   <li>Explicit action with NO terminal tombstone either (nothing was
+        //       ever registered): NO_TASKS_TO_ACK — genuinely nothing to
+        //       assemble.</li>
+        // </ul>
+        boolean allTerminalEpoch = false;
         if (tasksToAck.isEmpty()) {
-            LOG.debug("No tasks to acknowledge for checkpoint {}", checkpointId);
-            return TriggerOutcome.rejected(TriggerRejectionReason.NO_TASKS_TO_ACK);
+            if (completedTasks.isEmpty() || checkpointType == CheckpointType.CHECKPOINT) {
+                LOG.debug("No tasks to acknowledge for checkpoint {}", checkpointId);
+                return TriggerOutcome.rejected(TriggerRejectionReason.NO_TASKS_TO_ACK);
+            }
+            allTerminalEpoch = true;
+            LOG.info("Assembling {} epoch {} for job {} entirely from inherited terminal states "
+                    + "({} contracted task(s), no live participants)", checkpointType, checkpointId,
+                    jobId, completedTasks.size());
         }
 
         PendingCheckpoint pending = new PendingCheckpoint(
                 jobId, pipelineId, checkpointId, timestamp,
                 checkpointType, tasksToAck);
 
+        // C3 (plan 369): inherit the state of terminal (completed) tasks and
+        // pre-acknowledge them, so the new epoch's participant set excludes
+        // tasks that can never ACK again while the resulting CompletedCheckpoint
+        // still contains the FULL task-state set (restore semantics unchanged).
+        //
+        // Reference-count migration (incremental mode): the inherited snapshots
+        // are part of completed.getTaskStates(), so the incremental persist path
+        // (buildAndMaterializeSegments) re-registers every inherited SST handle
+        // against the SharedStateRegistry under THIS checkpoint's id and records
+        // the segments in this checkpoint's GC map. When the older checkpoint is
+        // later retention-pruned, its unregister only drops its own reference —
+        // the segments stay alive for this epoch (Flink SharedStateRegistry
+        // CLAIM semantics). No raw reference sharing for incremental state.
+        // Non-incremental (JSON) state shares the snapshot reference directly,
+        // which is acceptable (adjudicated in plan 369 C3).
+        if (!completedTasks.isEmpty()) {
+            for (TaskLocation completed : completedTasks) {
+                if (tasksToAck.contains(completed)) {
+                    // A re-registered (new-generation) live task wins over the
+                    // terminal tombstone.
+                    continue;
+                }
+                pending.acknowledgeTask(completed,
+                        inheritTerminalTaskState(completed, checkpointId));
+                LOG.debug("Inherited state of completed task {} into checkpoint {} of job {}",
+                        completed, checkpointId, jobId);
+            }
+        }
+
         pendingCheckpoints.put(checkpointId, pending);
         numPendingCheckpoints.incrementAndGet();
 
-        scheduleTimeout(pending);
+        if (allTerminalEpoch && pending.isFullyAcknowledged()) {
+            // No live participants: the epoch is complete as soon as it exists.
+            // Complete inline (we hold the monitor; the persist path hands I/O
+            // to the persist executor in async mode) instead of scheduling a
+            // timeout that could only abort an already-fully-acknowledged
+            // pending. The caller's future.get() therefore returns as soon as
+            // the durable persist finishes.
+            completePendingCheckpoint(pending.toCompletedCheckpoint());
+        } else {
+            scheduleTimeout(pending);
+        }
 
         LOG.info("Triggered checkpoint {} for job {}", checkpointId, jobId);
         return TriggerOutcome.triggered(pending);
@@ -1147,6 +1312,12 @@ public class CheckpointCoordinator {
             }
         }
         this.tasksToAcknowledge = newSet;
+        // C3: a (re-)assignment installs a NEW task generation. Terminal
+        // tombstones from the previous generation are generation-scoped (the
+        // DISTRIBUTED completedSubtaskKeys tombstones are cleared the same way
+        // on fencing rotation) — every subtask is re-attempted, so its terminal
+        // state must be re-reported before it is contracted out again.
+        this.completedTasks.clear();
     }
 
     public synchronized void registerTask(TaskLocation taskLocation) {
@@ -1155,6 +1326,90 @@ public class CheckpointCoordinator {
 
     public synchronized void unregisterTask(TaskLocation taskLocation) {
         this.tasksToAcknowledge.remove(taskLocation);
+    }
+
+    /**
+     * C3 (plan 369): contracts a task that reached its terminal COMPLETED state
+     * out of the checkpoint participant set. A completed task can never ACK a
+     * later epoch, so leaving it registered kept every subsequent checkpoint
+     * waiting for its full {@code checkpointTimeout} and aborting (the bounded
+     * job 600s timeout-abort loop). The contracted task's state is inherited
+     * into subsequent checkpoints from {@link #latestCompletedCheckpoint} at
+     * trigger time (see {@link #tryTriggerCheckpointWithReason}), so each new
+     * epoch still carries the full task-state set.
+     *
+     * <p>In-flight epochs are RESCUED immediately: every pending checkpoint that
+     * was triggered before the contraction and still waits for this task's ACK
+     * is acknowledged on the task's behalf (inherited state, or an empty
+     * snapshot when no durable prior state exists) — the Flink
+     * {@code onExecutionVertexFinished} analog. Without the sweep, an epoch
+     * racing the terminal notification (LOCAL poll tick / DISTRIBUTED tombstone
+     * RPC) could only end in the checkpoint-timeout abort.
+     *
+     * <p>Callers: the DISTRIBUTED {@code JobCoordinator.reportTaskStatus}
+     * COMPLETED tombstone path and the LOCAL {@code SupervisionLoop} terminal
+     * scan. Idempotent. Unknown (never-registered) locations are ignored so a
+     * stale report cannot inject a phantom tombstone.
+     *
+     * @param taskLocation the task that reached COMPLETED (same location family
+     *                     as the registered ACK set)
+     */
+    public synchronized void markTaskCompleted(TaskLocation taskLocation) {
+        if (taskLocation == null) {
+            return;
+        }
+        if (!tasksToAcknowledge.contains(taskLocation)) {
+            LOG.debug("Ignoring markTaskCompleted for unknown/unregistered task {}", taskLocation);
+            return;
+        }
+        if (tasksToAcknowledge.remove(taskLocation)) {
+            LOG.info("Task {} reached terminal state: contracted out of checkpoint ACK set "
+                    + "({} participant(s) remaining) for job {}", taskLocation,
+                    tasksToAcknowledge.size(), jobId);
+        }
+        completedTasks.add(taskLocation);
+
+        // C3 rescue: resolve the terminal task's outstanding ACK obligation on
+        // every in-flight epoch so a pending checkpoint that raced the terminal
+        // notification completes instead of timing out.
+        for (PendingCheckpoint pending : pendingCheckpoints.values()) {
+            if (pending.getStatus().get() != PendingCheckpoint.Status.RUNNING
+                    || !pending.getNotYetAcknowledgedTasks().contains(taskLocation)) {
+                continue;
+            }
+            try {
+                pending.acknowledgeTask(taskLocation,
+                        inheritTerminalTaskState(taskLocation, pending.getCheckpointId()));
+                LOG.info("Rescued in-flight checkpoint {} of job {}: acknowledged terminal task {} "
+                        + "with inherited state", pending.getCheckpointId(), jobId, taskLocation);
+            } catch (Exception e) {
+                LOG.warn("Failed to rescue in-flight checkpoint {} for terminal task {} of job {}",
+                        pending.getCheckpointId(), taskLocation, jobId, e);
+                continue;
+            }
+            if (pending.isFullyAcknowledged()) {
+                completePendingCheckpoint(pending.toCompletedCheckpoint());
+            }
+        }
+    }
+
+    /**
+     * C3: the state a terminal (COMPLETED) task contributes to an epoch — its
+     * snapshot from the latest completed checkpoint when one exists, otherwise
+     * an EMPTY snapshot (the Flink {@code FinishedOperatorState} analog: a task
+     * that finished before any epoch turned durable has nothing durable to
+     * inherit, and an empty snapshot is the truthful contribution). A terminal
+     * participant must never leave an epoch un-ACK-able.
+     */
+    private TaskStateSnapshot inheritTerminalTaskState(TaskLocation location, long checkpointId) {
+        CompletedCheckpoint latest = latestCompletedCheckpoint;
+        TaskStateSnapshot inherited = latest != null ? latest.getTaskState(location) : null;
+        if (inherited != null) {
+            return inherited;
+        }
+        LOG.debug("Terminal task {} of job {} has no durable prior state for checkpoint {} — "
+                + "contributing an empty snapshot", location, jobId, checkpointId);
+        return new TaskStateSnapshot(location, checkpointId);
     }
 
     private void scheduleTimeout(PendingCheckpoint pending) {

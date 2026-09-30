@@ -62,8 +62,16 @@ public class TestWindowOperatorLateRecordsDroppedMetric {
     }
 
     private double lateDroppedCount() {
+        // W-M1 (plan 369 Phase 2): the counter is registered under per-instance
+        // scope tags (the old JVM-level untagged meter merged every instance's
+        // drops). Location-less instances (this test) fall back to instance
+        // identity — read THIS operator's scope and look up its own meter.
         io.micrometer.core.instrument.Counter counter =
-                StreamMetricsRegistries.registry().find("numLateRecordsDropped").counter();
+                StreamMetricsRegistries.registry()
+                        .find("numLateRecordsDropped")
+                        .tags("operator", operator.getLateDropMetricOperatorTag(),
+                                "subtask", operator.getLateDropMetricSubtaskTag())
+                        .counter();
         return counter == null ? 0.0 : counter.count();
     }
 

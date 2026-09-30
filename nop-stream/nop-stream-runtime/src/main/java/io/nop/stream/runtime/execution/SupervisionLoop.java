@@ -283,6 +283,30 @@ public class SupervisionLoop {
         // Per-region restart counter (in-memory; successor plan 5 adds persistence).
         Map<RegionId, AtomicInteger> regionRestartCounts = new ConcurrentHashMap<>();
 
+        // C3 (plan 369): LOCAL terminal-state scan → coordinator notification
+        // wiring. When the coordinator is present, every task that reaches
+        // COMPLETED is contracted out of the checkpoint participant set
+        // (markTaskCompleted): a completed task can never ACK a later epoch, so
+        // leaving it registered kept every subsequent periodic checkpoint
+        // waiting for its full checkpointTimeout and aborting (the bounded-job
+        // timeout-abort loop). The scan runs every poll iteration so periodic
+        // checkpoints triggered while the job is draining still see the
+        // contracted participant set. Idempotent per task (markTaskCompleted
+        // guards re-entry); the coordinator notifies via warn-log on first
+        // contraction only.
+        Map<String, TaskLocation> taskLocations = null;
+        if (coordinator != null && checkpointPlan != null) {
+            taskLocations = new ConcurrentHashMap<>();
+            for (Map.Entry<String, SubtaskTask> e : tasks.entrySet()) {
+                Subtask subtask = e.getValue().getSubtask();
+                TaskLocation loc = TaskCheckpointWiring.findTaskLocationInPlan(
+                        checkpointPlan, subtask.getVertexId(), subtask.getTaskIndex());
+                if (loc != null) {
+                    taskLocations.put(e.getKey(), loc);
+                }
+            }
+        }
+
         // Main supervision loop.
         while (true) {
             SubtaskTask failedTask = findFirstFailed(tasks);
@@ -333,6 +357,20 @@ public class SupervisionLoop {
 
                 // Region was restarted — continue the supervision loop to monitor the new tasks.
                 continue;
+            }
+
+            // C3 (plan 369): scan for tasks that reached COMPLETED and notify
+            // the coordinator so the checkpoint participant set contracts
+            // BEFORE the next periodic trigger (not just at loop exit).
+            if (taskLocations != null) {
+                for (Map.Entry<String, SubtaskTask> e : tasks.entrySet()) {
+                    if (e.getValue().getState() == SubtaskTask.State.COMPLETED) {
+                        TaskLocation loc = taskLocations.get(e.getKey());
+                        if (loc != null) {
+                            coordinator.markTaskCompleted(loc);
+                        }
+                    }
+                }
             }
 
             // No failed task: check if all tasks have completed successfully.

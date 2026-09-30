@@ -10,6 +10,7 @@ package io.nop.stream.core.checkpoint;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +53,14 @@ public class CheckpointConfig implements Serializable {
     private String jobId = java.util.UUID.randomUUID().toString();
     private String pipelineId = "1";
     private JobTerminationMode jobTerminationMode = JobTerminationMode.CANCEL;
+
+    /**
+     * C4 (plan 369): transport persistence declaration tier. See
+     * {@link TransportPersistence}. Default {@link TransportPersistence#DURABLE}
+     * is the conservative choice: an undeclared transport must never silently
+     * unlock the unaligned output-side semantics that depend on it.
+     */
+    private TransportPersistence transportPersistence = TransportPersistence.DURABLE;
 
     /**
      * Stage 43 (unaligned checkpoint): when {@code true} (default), a checkpoint
@@ -193,13 +202,36 @@ public class CheckpointConfig implements Serializable {
      * bound) is rejected at config load rather than causing confusing runtime
      * behavior.
      *
+     * <p>C4 (plan 369): also enforces the capability entry "output-side
+     * in-flight data × transport persistence". An unaligned checkpoint captures
+     * ONLY the input-side in-flight data; the output side relies on the
+     * transport backend holding the in-flight records durably until they are
+     * replayed (checkpoint-design §2.11.5). With a NON_DURABLE transport the
+     * output-side in-flight data is silently lost on recovery, so the
+     * combination "non-durable transport × unaligned output" is rejected at
+     * startup with a typed error instead of corrupting exactly-once semantics
+     * at recovery time. The default DURABLE declaration never triggers this
+     * check (existing configurations are unaffected).
+     *
      * @throws IllegalArgumentException if the invariant is violated
+     * @throws StreamException ERR_STREAM_UNSUPPORTED when
+     *         {@code unalignedCheckpointEnabled=true} is combined with
+     *         {@code transportPersistence=NON_DURABLE}
      */
     public void validateUnalignedConfig() {
         if (unalignedCheckpointEnabled && unalignedThreshold >= barrierAlignmentTimeout) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Invalid checkpoint config: unalignedThreshold (" + unalignedThreshold
                             + "ms) must be < barrierAlignmentTimeout (" + barrierAlignmentTimeout
                             + "ms) when unalignedCheckpointEnabled=true");
+        }
+        if (unalignedCheckpointEnabled && transportPersistence == TransportPersistence.NON_DURABLE) {
+            throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_DETAIL,
+                    "Invalid checkpoint config: unalignedCheckpointEnabled=true requires a durable "
+                            + "transport, but transportPersistence=NON_DURABLE is declared. The unaligned "
+                            + "mode persists only the INPUT-side in-flight data; the OUTPUT side relies "
+                            + "on the transport holding in-flight records (checkpoint-design §2.11.5). "
+                            + "Either declare a durable transport or disable unaligned checkpoints "
+                            + "(unalignedCheckpointEnabled=false).");
         }
     }
 
@@ -321,6 +353,45 @@ public class CheckpointConfig implements Serializable {
         this.jobTerminationMode = jobTerminationMode != null ? jobTerminationMode : JobTerminationMode.CANCEL;
     }
 
+    /**
+     * C4 (plan 369): the declared persistence tier of the data-plane transport
+     * that carries this job's in-flight records (see {@link TransportPersistence}).
+     */
+    public TransportPersistence getTransportPersistence() {
+        return transportPersistence;
+    }
+
+    public void setTransportPersistence(TransportPersistence transportPersistence) {
+        this.transportPersistence = transportPersistence != null
+                ? transportPersistence : TransportPersistence.DURABLE;
+    }
+
+    /**
+     * C4 (plan 369): persistence tier of the data-plane transport, declared by
+     * the deployment wiring that actually knows the transport (the core default
+     * is the conservative {@link #DURABLE}; the runtime executors fill the
+     * declaration from the injected {@code IMessageService}).
+     *
+     * <ul>
+     *   <li>{@link #DURABLE} — in-flight records survive a process/transport
+     *       failure long enough to be replayed (persistent broker: JDBC
+     *       polling, Kafka, Pulsar, DB-backed queues; also the LOCAL in-JVM
+     *       by-reference model, where capture is synchronous and a JVM failure
+     *       recovers from the checkpoint plane regardless).</li>
+     *   <li>{@link #NON_DURABLE} — in-flight records are lost when the
+     *       transport fails (in-memory broker such as
+     *       {@code LocalMessageService} spanning separate processes). Output-side
+     *       in-flight data of an unaligned checkpoint cannot be relied on, so
+     *       this tier is incompatible with
+     *       {@code unalignedCheckpointEnabled=true} (validated by
+     *       {@code validateUnalignedConfig()}).</li>
+     * </ul>
+     */
+    public enum TransportPersistence {
+        DURABLE,
+        NON_DURABLE
+    }
+
     public IStateBackend getStateBackend() {
         return stateBackend;
     }
@@ -437,6 +508,15 @@ public class CheckpointConfig implements Serializable {
 
         public Builder jobTerminationMode(JobTerminationMode mode) {
             config.setJobTerminationMode(mode);
+            return this;
+        }
+
+        /**
+         * C4 (plan 369): transport persistence declaration tier (see
+         * {@link TransportPersistence}).
+         */
+        public Builder transportPersistence(TransportPersistence persistence) {
+            config.setTransportPersistence(persistence);
             return this;
         }
 
