@@ -83,11 +83,11 @@ State (clear)
 | `hashPolicy` | key 到 shard 的确定性 hash 规则 |
 | `maxParallelism` | **Stage 34 新增**：job-global 的 key-group 上界（默认 128），作为 keyed 作业的稳定上界。与 `stateShardCount` 同为后端实例属性，作业生命周期内不变 |
 
-**路由规则（Stage 34 演进）**：
+**路由规则（Stage 34 演进 + AR-01 统一）**：
 
-- **稳定哈希**（G38）：`KeyGroupAssignment.stableHash(key)` 不再直接调用 `Object.hashCode()`。对内置值类型（String / 基本类型包装类 / BigDecimal / BigInteger / UUID / Date / Enum）委托其 spec-stable 的 `hashCode()`；对其余类型（用户 POJO / Window / Tuple）使用 Murmur3 over canonical JSON 字节。同一 key 在不同 JVM、不同进程重启后映射一致。
+- **稳定哈希**（G38）：`KeyGroupAssignment.stableHash(key)` 不再直接调用 `Object.hashCode()`。对内置值类型（String / 基本类型包装类 / BigDecimal / BigInteger / UUID / Date）委托其 spec-stable 的 `hashCode()`；Enum 按 `name()` 的 String hash 参与（`Enum.hashCode()` 是 identity hash，跨 JVM 不稳定——plan 368 Phase 1 ST-03 修正）；对其余类型（用户 POJO / Window / Tuple）使用 Murmur3 over canonical JSON 字节（要求 key 可 JSON 序列化，即 `@DataBean`；不可序列化 key 回退 identity hash 并告警，属非生产输入的 best-effort）。同一 key 在不同 JVM、不同进程重启后映射一致。
 - **key→group 映射**（G37）：`keyGroupId = (stableHash(key) & 0x7FFFFFFF) % maxParallelism`。`maxParallelism` 是 job-global 上界，存在 `IStateBackend` 实例上（替代旧的 `shardCount` 概念），默认 128。
-- **路由等价性**：当 `maxParallelism == stateShardCount` 时，对内置值类型，新映射把每个 key 路由到与旧 `(key.hashCode() & 0x7FFFFFFF) % stateShardCount` **相同的桶**（向后兼容）。用户 POJO 的映射变化是预期行为（从 identity/POJO-hashCode 迁移到 JSON hash）。
+- **记录路由与属主同一公式**（AR-01，plan 368 Phase 1）：keyBy 的记录路由（`DataStreamImpl.KeySelectorPartitioner`）改走 `KeyGroupAssignment.assignToSubtask(key, maxParallelism, parallelism)`（stableHash → key-group → KeyGroupRange 属主），与 keyed-state 属主判定/恢复重放用同一公式。`maxParallelism` 在 keyBy 构图时从 `CheckpointConfig.getStateBackend()` 取值，未配置时取 `KeyGroup.DEFAULT_MAX_PARALLELISM`，非法值（<1）fail-fast。修复前路由用 `(key.hashCode() & MAX) % parallelism`、属主用 stableHash 公式，两公式仅在 `maxParallelism == parallelism` 时重合——rescale/reshard 恢复后状态会落到永远收不到对应记录的子任务（幻影状态 + 接收方从零重算）。
 
 `KeyGroupRange`（G39，半开区间 `[start, end)`）提供 `contains` / `intersect` / `overlaps` / `isAdjacent` 等集合操作，供 Stage 35 做 range 交集局部恢复。group→subtask 映射函数（连续区间分配）亦在 Stage 34 交付，生产 rescale 接线在 Stage 35。
 

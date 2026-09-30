@@ -29,12 +29,17 @@ import org.slf4j.LoggerFactory;
  * or POJO {@code hashCode()} implementations that may vary across JVM
  * instances. For JDK value types whose {@code hashCode()} is contractually
  * stable and value-derived (String, primitive wrappers, BigDecimal/BigInteger,
- * UUID, Date), {@code hashCode()} is reused directly &#8212; this preserves
- * routing parity with the legacy {@code (key.hashCode() & 0x7FFFFFFF) % shardCount}
- * formula for the built-in key types that dominate real jobs (String/Long/Integer).
- * For every other type (user POJOs, windows, tuples) the hash is Murmur3 over
- * the canonical JSON bytes, which is deterministic across JVMs and process
+ * UUID, Date), {@code hashCode()} is reused directly. Enum keys hash by
+ * {@code name()} because {@code Enum.hashCode()} is an identity hash. For every
+ * other type (user POJOs, windows, tuples) the hash is Murmur3 over the
+ * canonical JSON bytes, which is deterministic across JVMs and process
  * restarts.
+ *
+ * <p><b>Routing/ownership parity (AR-01).</b> Record routing (the keyBy
+ * partitioner) and keyed-state ownership must use this same hash: routing goes
+ * through {@link #assignToSubtask(Object, int, int)} (stableHash &#8594;
+ * key-group &#8594; range owner), so a record always lands on the subtask that
+ * owns &#8212; or will own, after a rescale restore &#8212; its keyed state.
  *
  * <p><b>Key&#8594;group mapping (G37).</b>
  * {@code keyGroupId = (stableHash(key) & 0x7FFFFFFF) % maxParallelism}, where
@@ -61,6 +66,11 @@ public final class KeyGroupAssignment {
     public static int stableHash(Object key) {
         if (key == null) {
             return 0;
+        }
+        if (key instanceof Enum<?>) {
+            // Enum.hashCode() is identity hash (JVM-variable), so enum keys hash
+            // by name() — value-stable across JVMs and restarts (ST-03).
+            return ((Enum<?>) key).name().hashCode();
         }
         if (isStableValueHashType(key)) {
             return key.hashCode();
@@ -94,6 +104,24 @@ public final class KeyGroupAssignment {
         }
         return (stableHash(key) & 0x7FFFFFFF) % maxParallelism;
     }
+
+    /**
+     * Assign {@code key} directly to the index of the subtask that owns its
+     * key-group under the given {@code maxParallelism} / {@code parallelism}.
+     * This is the single entry point record routing must use so that a record
+     * always lands on the subtask that owns (or will own, after a rescale
+     * restore) its keyed state.
+     *
+     * @param key            raw user key
+     * @param maxParallelism job-global key-group upper bound (&ge; 1)
+     * @param parallelism    per-vertex subtask count (&ge; 1, &le; {@code maxParallelism})
+     * @return owner subtask index in {@code [0, parallelism)}
+     */
+    public static int assignToSubtask(Object key, int maxParallelism, int parallelism) {
+        int keyGroupId = assignToKeyGroup(key, maxParallelism);
+        return assignKeyGroupToSubtask(keyGroupId, maxParallelism, parallelism);
+    }
+
 
     /**
      * Compute the contiguous {@link KeyGroupRange} owned by subtask
@@ -198,9 +226,6 @@ public final class KeyGroupAssignment {
                 || key instanceof BigDecimal
                 || key instanceof UUID
                 || key instanceof Date) {
-            return true;
-        }
-        if (key instanceof Enum<?>) {
             return true;
         }
         return false;

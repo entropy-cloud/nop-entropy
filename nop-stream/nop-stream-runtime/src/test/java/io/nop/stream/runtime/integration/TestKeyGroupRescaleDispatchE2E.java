@@ -62,6 +62,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       {@link KeyGroupRange} under P_new (per-subtask slice, not a full replica).</li>
  * </ul>
  *
+ * <p>Staging口径 note (plan 368 Phase 1): the savepoint here is hand-staged by
+ * the OWNERSHIP formula. Since the AR-01 fix, record routing uses the same
+ * formula (see {@code TestRealRoutingRescaleE2E} for the real-routing
+ * counterpart); before that fix this test could not detect the routing/
+ * ownership mismatch because real routing never flowed through the staged
+ * savepoint.
  * <p>Anti-hollow: a non-range-aware dispatch would either fail-fast (new subtask
  * index has no old TaskLocation) or hand every new subtask the full key set. Both
  * are caught by the per-subtask slice assertion.

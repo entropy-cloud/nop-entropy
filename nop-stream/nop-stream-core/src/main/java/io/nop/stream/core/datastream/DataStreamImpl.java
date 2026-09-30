@@ -11,6 +11,7 @@ import java.io.Serializable;
 
 import io.nop.commons.partition.IPartitioner;
 
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
@@ -19,6 +20,9 @@ import io.nop.stream.core.common.functions.MapFunction;
 import io.nop.stream.core.common.functions.ProcessFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
+import io.nop.stream.core.common.state.backend.IStateBackend;
+import io.nop.stream.core.common.state.shard.KeyGroup;
+import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
@@ -256,9 +260,11 @@ public class DataStreamImpl<T> implements DataStream<T> {
      */
     @Override
     public <K> KeyedStream<T, K> keyBy(KeySelector<T, K> key) {
-        // Create a partition transformation based on the key selector
-        // For now, we use a simple hash partitioner
-        IPartitioner<T> partitioner = new KeySelectorPartitioner<>(key);
+        // Create a partition transformation based on the key selector. Routing
+        // must use the same key-group ownership formula as the keyed state
+        // backends (AR-01), so records always land on the subtask that owns
+        // (or will own, after a rescale restore) their keyed state.
+        IPartitioner<T> partitioner = new KeySelectorPartitioner<>(key, resolveKeyGroupMaxParallelism());
         
         PartitionTransformation<T> partitionTransform = new PartitionTransformation<>(
             this.transformation,
@@ -384,15 +390,48 @@ public class DataStreamImpl<T> implements DataStream<T> {
      * 
      * @param <T> the type of elements being partitioned
      */
-    private static class KeySelectorPartitioner<T> implements IPartitioner<T>, PartitionPolicyAware, Serializable {
-        private static final long serialVersionUID = 1L;
-        
-        private final KeySelector<T, ?> keySelector;
-        
-        KeySelectorPartitioner(KeySelector<T, ?> keySelector) {
-            this.keySelector = keySelector;
+    /**
+     * Resolves the job-global key-group upper bound used by keyBy routing: the
+     * configured state backend's {@code maxParallelism}, or
+     * {@link KeyGroup#DEFAULT_MAX_PARALLELISM} when no backend is configured
+     * (matching the runtime wiring, which provisions a default backend then).
+     */
+    private int resolveKeyGroupMaxParallelism() {
+        CheckpointConfig checkpointConfig = environment.getCheckpointConfig();
+        IStateBackend backend = checkpointConfig != null ? checkpointConfig.getStateBackend() : null;
+        int maxParallelism = backend != null ? backend.getMaxParallelism() : KeyGroup.DEFAULT_MAX_PARALLELISM;
+        if (maxParallelism < 1) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "maxParallelism must be at least 1: " + maxParallelism);
         }
-        
+        return maxParallelism;
+    }
+
+    /**
+     * Production hash partitioner for {@code keyBy}: routes each record to the
+     * subtask that owns its key's key-group (stableHash &#8594; key-group &#8594;
+     * range owner), so record routing and keyed-state ownership share one
+     * formula (AR-01) and a rescale restore never leaves a record on a subtask
+     * that does not hold its state. Public so graph builders and tests can
+     * attach the exact production partitioner to a JobEdge.
+     */
+    public static class KeySelectorPartitioner<T> implements IPartitioner<T>, PartitionPolicyAware, Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final KeySelector<T, ?> keySelector;
+
+        /**
+         * Job-global key-group upper bound, fixed at graph construction so the
+         * routing mapping stays stable for the job lifetime (same contract as
+         * the keyed state backend's {@code maxParallelism}).
+         */
+        private final int maxParallelism;
+
+        public KeySelectorPartitioner(KeySelector<T, ?> keySelector, int maxParallelism) {
+            this.keySelector = keySelector;
+            this.maxParallelism = maxParallelism;
+        }
+
         @Override
         public int partition(T value, int numPartitions) {
             try {
@@ -400,7 +439,9 @@ public class DataStreamImpl<T> implements DataStream<T> {
                 if (key == null) {
                     return 0;
                 }
-                return (key.hashCode() & Integer.MAX_VALUE) % numPartitions;
+                return KeyGroupAssignment.assignToSubtask(key, maxParallelism, numPartitions);
+            } catch (StreamException e) {
+                throw e;
             } catch (Exception e) {
                 throw new StreamException(ERR_STREAM_PARTITION_KEY_FAILED, e);
             }
