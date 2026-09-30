@@ -1034,8 +1034,16 @@ public class StreamTaskInvokable implements Invokable<Void> {
         if (tagId == null || tagId.isEmpty()) {
             return null;
         }
-        return sideOutputConsumers.get(
+        Consumer<StreamRecord<?>> consumer = sideOutputConsumers.get(
                 new OutputTag<>(tagId, UnknownTypeInformation.INSTANCE));
+        if (consumer == null) {
+            // G-2+09e① (plan 369 Phase 2): fall back to the SideOutputRegistry —
+            // a consumer registered at plan time via getSideOutput(tag).sink(...)
+            // is valid for this JVM (embedded/local execution) even though it was
+            // not wired into this task's local registration map.
+            consumer = io.nop.stream.core.datastream.SideOutputRegistry.get(tagId);
+        }
+        return consumer;
     }
 
     public enum TaskRole {

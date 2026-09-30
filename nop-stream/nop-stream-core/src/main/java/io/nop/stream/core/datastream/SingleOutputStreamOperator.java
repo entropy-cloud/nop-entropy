@@ -17,6 +17,8 @@
 
 package io.nop.stream.core.datastream;
 
+import io.nop.stream.core.util.OutputTag;
+
 /**
  * {@code SingleOutputStreamOperator} represents a user defined transformation applied on a {@link
  * DataStream} with one predefined output type.
@@ -42,4 +44,24 @@ public interface SingleOutputStreamOperator<T> extends DataStream<T> {
      * @return The operator with only one parallelism.
      */
     SingleOutputStreamOperator<T> forceNonParallel();
+
+    /**
+     * G-2+09e① (plan 369 Phase 2, Flink-shaped retrieval API): gets the {@link DataStream}
+     * that contains the elements emitted to the side output identified by the given
+     * {@link OutputTag} (e.g. late data routed via
+     * {@code WindowedStream#sideOutputLateData(OutputTag)}).
+     *
+     * <p>The returned stream is a live side-output view: consumption goes through
+     * {@code sink(...)} / {@code print()} / {@code collect(...)}, which register a
+     * consumer for the tag in the {@link SideOutputRegistry} consulted by the
+     * runtime output protocol ({@code ChainingOutput} and the cross-task
+     * {@code StreamTaskInvokable} routing). Graph-level downstream transformations
+     * (map/filter/keyBy/...) on a side-output view are not deployable yet and fail
+     * fast with {@code ERR_STREAM_UNSUPPORTED}.
+     *
+     * @param outputTag the tag identifying the side output
+     * @param <X> the type of the elements in the side output
+     * @return the side-output stream view for the given tag
+     */
+    <X> DataStream<X> getSideOutput(OutputTag<X> outputTag);
 }

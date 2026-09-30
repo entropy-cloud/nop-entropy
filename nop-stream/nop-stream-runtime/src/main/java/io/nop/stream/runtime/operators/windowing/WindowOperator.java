@@ -33,6 +33,7 @@ import io.nop.commons.tuple.Tuple2;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
@@ -196,6 +197,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      * Registered against the process metrics registry in {@link #open()}.
      */
     private transient io.micrometer.core.instrument.Counter numLateRecordsDropped;
+
+    /**
+     * W-M1 (plan 369 Phase 2, R5-CEP-03 scheme): per-instance scope tags for
+     * {@link #numLateRecordsDropped}. A single JVM-level untagged counter was shared by
+     * every WindowOperator instance (all subtasks, all jobs), cross-contaminating drop
+     * counts. The deployment {@code TaskLocation} flows in through
+     * {@link #copyForSubtask(TaskLocation)}; instances opened without a location
+     * (embedded/test usage) fall back to instance identity so two instances never
+     * share a meter.
+     */
+    private transient String lateDropMetricOperator;
+    private transient String lateDropMetricSubtask;
 
     /**
      * Per-(key,window) pane tracking: pane index + onTimeEmitted flag. Used by
@@ -389,6 +402,46 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return new WindowOperator<>(this);
     }
 
+    /**
+     * W-M1: index-only variant (no job/vertex coordinates available) —
+     * still distinct per subtask index.
+     */
+    @Override
+    public WindowOperator<K, IN, ACC, OUT, W> copyForSubtask(int subtaskIndex) {
+        WindowOperator<K, IN, ACC, OUT, W> copy = copyForSubtask();
+        if (copy.lateDropMetricOperator == null) {
+            copy.lateDropMetricOperator = "window";
+        }
+        copy.lateDropMetricSubtask = String.valueOf(subtaskIndex);
+        return copy;
+    }
+
+    /**
+     * W-M1: carries the deployment identity into the copy so the
+     * {@code numLateRecordsDropped} counter is registered under a
+     * per-job/per-vertex/per-subtask scope instead of one JVM-wide meter.
+     */
+    @Override
+    public WindowOperator<K, IN, ACC, OUT, W> copyForSubtask(TaskLocation location) {
+        WindowOperator<K, IN, ACC, OUT, W> copy = copyForSubtask();
+        copy.lateDropMetricOperator = location.getJobId() + "." + location.getPipelineId()
+                + "." + location.getVertexId();
+        copy.lateDropMetricSubtask = String.valueOf(location.getTaskIndex());
+        return copy;
+    }
+
+    /** Scope tag this instance's drop counter registers under (test-visible). */
+    String getLateDropMetricOperatorTag() {
+        return lateDropMetricOperator != null
+                ? lateDropMetricOperator
+                : "window@" + Integer.toHexString(System.identityHashCode(this));
+    }
+
+    /** Subtask scope tag this instance's drop counter registers under (test-visible). */
+    String getLateDropMetricSubtaskTag() {
+        return lateDropMetricSubtask != null ? lateDropMetricSubtask : "-1";
+    }
+
     @Override
     public void open() throws Exception {
         super.open();
@@ -409,8 +462,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             this.paneTracking = new HashMap<>();
         }
 
+        // W-M1: register the drop counter under an operator/subtask scope — the
+        // previously shared JVM-level counter accumulated every instance's drops
+        // (multi subtask / multi job) into one number. The scope comes from the
+        // deployment TaskLocation (see copyForSubtask variants); location-less
+        // instances fall back to instance identity.
         this.numLateRecordsDropped = io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
-                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
+                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME,
+                        "operator", getLateDropMetricOperatorTag(),
+                        "subtask", getLateDropMetricSubtaskTag());
 
         // Apply any pane-tracking snapshot captured by restoreState() (called before open()).
         // Restores pane index / onTimeEmitted so that post-recovery firings are not mistaken
@@ -737,6 +797,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         if (paneTracking != null) {
                                             paneTracking.remove(paneKey(key, m));
                                         }
+                                        // G-3: per-window user state (ctx.windowState()) of a
+                                        // merged-away ACTUAL window dies with the merge. Required
+                                        // IN ADDITION to the mergeWindowContents wiring below:
+                                        // on the first merge the surviving window's state window
+                                        // is REUSED as the representative (mergedStateWindows is
+                                        // empty), so the retired actual window would otherwise
+                                        // never reach any discard path.
+                                        clearUserWindowState(m);
                                         deleteCleanupTimer(m);
                                     }
 
@@ -794,6 +862,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // (the clear may rebuild the entry via getSimpleAccumulator).
             triggerContext.clear();
             removeTriggerAccumulators(key, actualWindow);
+            // G-3: per-window user state (ctx.windowState()) must be released
+            // with the window (Flink clearAllState → processContext.clear()).
+            clearUserWindowState(actualWindow);
         }
         registerCleanupTimer(actualWindow);
     }
@@ -889,6 +960,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // both the accumulator entry AND the trigger's registered timers).
             triggerContext.clear();
             removeTriggerAccumulators(triggerContext.key, triggerContext.window);
+            // G-3: release per-window user state together with the window.
+            clearUserWindowState(triggerContext.window);
         }
 
         if (windowAssigner.isEventTime() == isEventTime
@@ -901,6 +974,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 triggerContext.clear();
                 // Delete after the last clear (the clear may rebuild).
                 removeTriggerAccumulators(triggerContext.key, triggerContext.window);
+                // G-3: release per-window user state together with the window.
+                // processContext.window is only assigned on the emit path, so it
+                // must be re-pointed at the expiring window before the clear.
+                clearUserWindowState(triggerContext.window);
                 // Retire the in-flight window (= cleanup timer namespace =
                 // MergingWindowSet mapping KEY) so the mapping converges after cleanup —
                 // otherwise the cleaned window leaks into the checkpointed merging-sets
@@ -1549,6 +1626,23 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
+    /**
+     * G-3 (plan 369 Phase 2, Flink {@code clearAllState} alignment): invokes
+     * {@link InternalWindowFunction#clear} via {@link #processContext} so per-window user
+     * state written through {@code ctx.windowState()} is released whenever the window is
+     * discarded (trigger purge, cleanup time, merge retirement).
+     *
+     * <p>{@code processContext.window} is only assigned on the emit path, so every caller
+     * must go through this helper to re-point the context at the window being cleared.
+     */
+    private void clearUserWindowState(W window) throws Exception {
+        if (processContext == null) {
+            return;
+        }
+        processContext.window = window;
+        processContext.clear();
+    }
+
     private void setWindowContents(K key, W window, ACC value) {
         IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
         typedBackend.setCurrentKey(key);
@@ -1580,7 +1674,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     @SuppressWarnings("unchecked")
-    private void mergeWindowContents(K key, W targetWindow, Collection<W> sourceWindows) {
+    private void mergeWindowContents(K key, W targetWindow, Collection<W> sourceWindows) throws Exception {
         if (sourceWindows == null || sourceWindows.isEmpty()) {
             return;
         }
@@ -1624,6 +1718,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
                 newAppendingWindowState.setCurrentNamespace(sourceWindow);
                 newAppendingWindowState.clear();
+                // G-3: the retired source window's user state dies with the merge.
+                clearUserWindowState(sourceWindow);
             }
 
             if (targetValue != null) {
@@ -1675,6 +1771,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 }
 
                 newListWindowState.clear();
+                // G-3: the retired source window's user state dies with the merge.
+                clearUserWindowState(sourceWindow);
             }
 
             newListWindowState.setCurrentNamespace(targetWindow);
@@ -1719,6 +1817,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             }
 
             clearWindowContents(key, sourceWindow, sourceWindow);
+            // G-3 (merge-clear path): the retired source window's user state dies
+            // with the merge — the fallback (MapState) clear above only removes the
+            // window CONTENTS, never the ctx.windowState() namespaces.
+            clearUserWindowState(sourceWindow);
         }
 
         if (targetValue != null) {

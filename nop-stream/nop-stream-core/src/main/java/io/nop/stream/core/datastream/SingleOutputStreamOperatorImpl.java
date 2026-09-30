@@ -8,7 +8,9 @@
 package io.nop.stream.core.datastream;
 
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.util.OutputTag;
 
 /**
  * Implementation of {@link SingleOutputStreamOperator} which represents a user defined
@@ -60,6 +62,17 @@ public class SingleOutputStreamOperatorImpl<T> extends DataStreamImpl<T> impleme
      * 
      * @return The operator with only one parallelism
      */
+    /**
+     * G-2+09e① (plan 369 Phase 2): Flink-shaped side-output retrieval. Returns a live
+     * {@link SideOutputDataStream} view for the given tag; consumption goes through
+     * {@code sink(...)} / {@code print()} / {@code collect(...)}, which register the
+     * consumer in the {@link SideOutputRegistry}.
+     */
+    @Override
+    public <X> DataStream<X> getSideOutput(OutputTag<X> outputTag) {
+        return new SideOutputDataStream<>(environment, transformation, outputTag);
+    }
+
     @Override
     public SingleOutputStreamOperator<T> forceNonParallel() {
         if (transformation != null) {

@@ -13,6 +13,7 @@ import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.IWindowOperatorFactory;
@@ -68,15 +69,8 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
             Class<IN> elementType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass) {
-        WindowOperatorBuilder<IN, K, W> builder = new WindowOperatorBuilder<>();
-        builder.windowAssigner(windowAssigner)
-               .trigger(trigger)
-               .evictor(evictor)
-               .allowedLateness(allowedLateness)
-               .keySelector(keySelector)
-               .keyClass(keyClass)
-               .keySerializer(createDummySerializer(keyClass))
-               .windowSerializer(inferWindowSerializer(windowAssigner));
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass, null);
         warnIfUninferableElementType("aggregate", elementType, evictor != null);
         return builder.aggregate(aggregateFunction, inferAccumulatorType(aggregateFunction, accumulatorType),
                 elementType);
@@ -122,15 +116,8 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
             Class<IN> valueType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass) {
-        WindowOperatorBuilder<IN, K, W> builder = new WindowOperatorBuilder<>();
-        builder.windowAssigner(windowAssigner)
-               .trigger(trigger)
-               .evictor(evictor)
-               .allowedLateness(allowedLateness)
-               .keySelector(keySelector)
-               .keyClass(keyClass)
-               .keySerializer(createDummySerializer(keyClass))
-               .windowSerializer(inferWindowSerializer(windowAssigner));
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass, null);
         warnIfUninferableElementType("reduce", valueType, evictor != null);
         return builder.reduce(reduceFunction, valueType);
     }
@@ -146,15 +133,8 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
             Class<IN> elementType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass) {
-        WindowOperatorBuilder<IN, K, W> builder = new WindowOperatorBuilder<>();
-        builder.windowAssigner(windowAssigner)
-               .trigger(trigger)
-               .evictor(evictor)
-               .allowedLateness(allowedLateness)
-               .keySelector(keySelector)
-               .keyClass(keyClass)
-               .keySerializer(createDummySerializer(keyClass))
-               .windowSerializer(inferWindowSerializer(windowAssigner));
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass, null);
         warnIfUninferableElementType("apply", elementType, true);
         return builder.apply(windowFunction, elementType);
     }
@@ -170,6 +150,111 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
             Class<IN> elementType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass) {
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass, null);
+        warnIfUninferableElementType("process", elementType, true);
+        return builder.process(processWindowFunction, elementType);
+    }
+
+    // ------------------------------------------------------------------
+    // G-2+09e① (plan 369 Phase 2): late-data side output aware variants —
+    // the OutputTag configured via WindowedStream#sideOutputLateData reaches
+    // WindowOperatorBuilder.lateDataOutputTag (previously an orphan setter)
+    // and from there the WindowOperator's late-data emission branch.
+    // ------------------------------------------------------------------
+
+    @Override
+    public <IN, ACC, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createAggregateOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            AggregateFunction<IN, ACC, OUT> aggregateFunction,
+            Class<ACC> accumulatorType,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass,
+                lateDataOutputTag);
+        warnIfUninferableElementType("aggregate", elementType, evictor != null);
+        return builder.aggregate(aggregateFunction, inferAccumulatorType(aggregateFunction, accumulatorType),
+                elementType);
+    }
+
+    @Override
+    public <IN, K, W extends Window>
+    OneInputStreamOperator<IN, IN> createReduceOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            ReduceFunction<IN> reduceFunction,
+            Class<IN> valueType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass,
+                lateDataOutputTag);
+        warnIfUninferableElementType("reduce", valueType, evictor != null);
+        return builder.reduce(reduceFunction, valueType);
+    }
+
+    @Override
+    public <IN, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createApplyOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            WindowFunction<IN, OUT, K, W> windowFunction,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass,
+                lateDataOutputTag);
+        warnIfUninferableElementType("apply", elementType, true);
+        return builder.apply(windowFunction, elementType);
+    }
+
+    @Override
+    public <IN, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createProcessOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        WindowOperatorBuilder<IN, K, W> builder = configureBuilder(
+                windowAssigner, trigger, evictor, allowedLateness, keySelector, keyClass,
+                lateDataOutputTag);
+        warnIfUninferableElementType("process", elementType, true);
+        return builder.process(processWindowFunction, elementType);
+    }
+
+    /**
+     * Shared builder setup for all create* variants (element/aggregate paths differ
+     * only in the builder chain head): assigns assigner/trigger/evictor/lateness/key
+     * configuration plus the inferred serializers, and (tag-aware variants only) the
+     * late-data output tag.
+     */
+    private <IN, K, W extends Window> WindowOperatorBuilder<IN, K, W> configureBuilder(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
         WindowOperatorBuilder<IN, K, W> builder = new WindowOperatorBuilder<>();
         builder.windowAssigner(windowAssigner)
                .trigger(trigger)
@@ -179,8 +264,10 @@ public class WindowOperatorFactoryImpl implements IWindowOperatorFactory {
                .keyClass(keyClass)
                .keySerializer(createDummySerializer(keyClass))
                .windowSerializer(inferWindowSerializer(windowAssigner));
-        warnIfUninferableElementType("process", elementType, true);
-        return builder.process(processWindowFunction, elementType);
+        if (lateDataOutputTag != null) {
+            builder.lateDataOutputTag(lateDataOutputTag);
+        }
+        return builder;
     }
 
     /**

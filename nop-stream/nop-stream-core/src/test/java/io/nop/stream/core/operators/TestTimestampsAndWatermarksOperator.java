@@ -87,8 +87,14 @@ public class TestTimestampsAndWatermarksOperator {
         assertEquals(Watermark.MAX_WATERMARK, watermarks.get(watermarks.size() - 1));
     }
 
+    /**
+     * D-2 (plan 369 Phase 2, Flink 2.3 alignment decision): this operator is the sole
+     * watermark authority for its segment — upstream watermarks are IGNORED so the
+     * generator's emissions can never be raced by an out-of-order upstream watermark.
+     * (Previously all advancing upstream watermarks were forwarded.)
+     */
     @Test
-    void testProcessWatermarkForwards() throws Exception {
+    void testProcessWatermarkIgnoresUpstream() throws Exception {
         TestOutput<TestEvent> output = new TestOutput<>();
         operator.setOutput((Output) output);
 
@@ -96,21 +102,26 @@ public class TestTimestampsAndWatermarksOperator {
         operator.processWatermark(new Watermark(6000L));
 
         List<Watermark> watermarks = output.getWatermarks();
-        assertTrue(watermarks.stream().anyMatch(w -> w.getTimestamp() == 5000L));
-        assertTrue(watermarks.stream().anyMatch(w -> w.getTimestamp() == 6000L));
+        assertTrue(watermarks.isEmpty(),
+                "upstream watermarks must not be forwarded by the timestamps-and-watermarks operator");
     }
 
+    /**
+     * D-2: only the end-of-stream MAX_WATERMARK passes through processWatermark.
+     */
     @Test
-    void testWatermarkDoesNotDecrease() throws Exception {
+    void testProcessWatermarkForwardsOnlyMaxWatermark() throws Exception {
         TestOutput<TestEvent> output = new TestOutput<>();
         operator.setOutput((Output) output);
 
         operator.processWatermark(new Watermark(5000L));
         operator.processWatermark(new Watermark(3000L));
+        operator.processWatermark(Watermark.MAX_WATERMARK);
 
         List<Watermark> watermarks = output.getWatermarks();
-        assertEquals(1, watermarks.size());
-        assertEquals(5000L, watermarks.get(0).getTimestamp());
+        assertEquals(1, watermarks.size(),
+                "only MAX_WATERMARK may pass through processWatermark");
+        assertEquals(Watermark.MAX_WATERMARK, watermarks.get(0));
     }
 
     static class TestEvent {

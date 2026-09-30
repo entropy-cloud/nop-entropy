@@ -20,6 +20,7 @@ import io.nop.stream.core.common.functions.WindowFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.ChainingStrategy;
 import io.nop.stream.core.operators.IWindowOperatorFactory;
@@ -49,6 +50,14 @@ public class WindowedStreamImpl<T, K, W extends Window>
     private Trigger<? super T, W> trigger;
     private Evictor<? super T, W> evictor;
     private long allowedLateness = 0L;
+
+    /**
+     * G-2+09e① (plan 369 Phase 2): tag for the late-data side output configured via
+     * {@link #sideOutputLateData(OutputTag)}. Reaches the created window operator
+     * through the {@code IWindowOperatorFactory} tag-aware variants; late records are
+     * retrievable via {@link SingleOutputStreamOperator#getSideOutput(OutputTag)}.
+     */
+    private OutputTag<T> lateDataOutputTag;
 
     private String windowingStrategyId;
     private StreamComponents components;
@@ -129,6 +138,17 @@ public class WindowedStreamImpl<T, K, W extends Window>
     public WindowedStreamImpl<T, K, W> evictor(Evictor<? super T, ? super W> evictor) {
         this.evictor = (Evictor<? super T, W>) evictor;
         return this;
+    }
+
+    @Override
+    public WindowedStreamImpl<T, K, W> sideOutputLateData(OutputTag<T> outputTag) {
+        this.lateDataOutputTag = outputTag;
+        return this;
+    }
+
+    /** Late-data side output tag configured via {@link #sideOutputLateData(OutputTag)}. */
+    public OutputTag<T> getLateDataOutputTag() {
+        return lateDataOutputTag;
     }
 
     public WindowedStreamImpl<T, K, W> allowedLateness(long allowedLateness) {
@@ -217,7 +237,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
                 assigner, trigger, evictor, allowedLateness, function,
                 inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
+                lateDataOutputTag);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -236,7 +257,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<ACC>) (Class<?>) Object.class,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
+                lateDataOutputTag);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -252,7 +274,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
+                lateDataOutputTag);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -268,7 +291,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
         OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class);
+                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
+                lateDataOutputTag);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 

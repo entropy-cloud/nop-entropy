@@ -116,6 +116,14 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         Consumer<StreamRecord<X>> consumer =
                 (Consumer<StreamRecord<X>>) (Consumer<?>) sideOutputConsumers.get(outputTag);
         if (consumer == null) {
+            // G-2+09e① (plan 369 Phase 2): fall back to the SideOutputRegistry —
+            // a consumer registered at plan time via getSideOutput(tag).sink(...)
+            // was never wired into this task's local map, but it IS a valid
+            // registration for this JVM (embedded/local execution).
+            consumer = (Consumer<StreamRecord<X>>) (Consumer<?>)
+                    io.nop.stream.core.datastream.SideOutputRegistry.get(outputTag.getId());
+        }
+        if (consumer == null) {
             throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)
                     .param(ARG_OUTPUT_TAG, outputTag.getId())
                     .param(ARG_DETAIL, "Side output '" + outputTag.getId()

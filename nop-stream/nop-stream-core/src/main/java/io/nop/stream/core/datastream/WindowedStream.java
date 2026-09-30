@@ -11,6 +11,7 @@ import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
@@ -85,4 +86,21 @@ public interface WindowedStream<T, K, W extends Window> extends DataStream<T> {
      * @return This windowed stream.
      */
     WindowedStream<T, K, W> evictor(Evictor<? super T, ? super W> evictor);
+
+    /**
+     * G-2+09e① (plan 369 Phase 2, Flink {@code WindowedStream#sideOutputLateData}
+     * alignment): sends late-arriving data (records whose window was already skipped and
+     * that are past the allowed-lateness bound at arrival) to the given side output,
+     * instead of dropping them and only counting
+     * {@code numLateRecordsDropped}. The tagged records can be retrieved from the
+     * {@link SingleOutputStreamOperator} produced by the window operation via
+     * {@link SingleOutputStreamOperator#getSideOutput(OutputTag)}.
+     *
+     * <p>Must be called before {@link #apply}, {@link #aggregate}, {@link #reduce} or
+     * {@link #process} so the tag reaches the created window operator.
+     *
+     * @param outputTag the tag identifying the late-data side output
+     * @return This windowed stream.
+     */
+    WindowedStream<T, K, W> sideOutputLateData(OutputTag<T> outputTag);
 }

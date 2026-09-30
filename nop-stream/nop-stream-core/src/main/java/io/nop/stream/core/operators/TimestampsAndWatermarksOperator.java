@@ -38,7 +38,6 @@ public class TimestampsAndWatermarksOperator<T>
     private transient volatile long lastWatermarkTimestamp;
     private transient long nextWatermarkTime;
     private transient long lastEmitTime;
-    private transient long elementsSinceLastEmit;
     private transient volatile boolean idle;
     private transient ScheduledFuture<?> watermarkTimerFuture;
 
@@ -72,7 +71,6 @@ public class TimestampsAndWatermarksOperator<T>
         this.lastWatermarkTimestamp = INITIAL_TIME;
         this.nextWatermarkTime = INITIAL_TIME;
         this.lastEmitTime = 0;
-        this.elementsSinceLastEmit = 0;
         this.idle = false;
 
         if (watermarkInterval > 0) {
@@ -106,7 +104,6 @@ public class TimestampsAndWatermarksOperator<T>
 
         output.collect(element);
 
-        elementsSinceLastEmit++;
         long now = CoreMetrics.currentTimeMillis();
 
         boolean shouldEmit;
@@ -117,23 +114,30 @@ public class TimestampsAndWatermarksOperator<T>
         }
 
         if (shouldEmit) {
-            if (now == lastEmitTime && watermarkInterval == 0) {
-            } else if (now == lastEmitTime && watermarkInterval > 0) {
-            }
             watermarkGenerator.onPeriodicEmit(new OperatorWatermarkOutput());
             lastEmitTime = now;
-            elementsSinceLastEmit = 0;
             if (watermarkInterval > 0) {
                 nextWatermarkTime = now + watermarkInterval;
             }
         }
     }
 
+    /**
+     * D-2 (plan 369 Phase 2, Flink 2.3 alignment decision): this operator is the SOLE
+     * watermark authority for its pipeline segment — the generator's periodic/element-driven
+     * emissions and an upstream watermark are two independent sources whose interleaving
+     * could push an out-of-order watermark downstream. Upstream watermarks are therefore
+     * IGNORED (no forwarding, no {@code lastWatermarkTimestamp} update); only the
+     * end-of-stream {@link Watermark#MAX_WATERMARK} passes through (also emitted by
+     * {@link #finish()}). This is a deliberate behavior change from the previous
+     * forward-all-upstream-watermarks semantics and is pinned by the
+     * {@code testProcessWatermarkIgnoresUpstream} /
+     * {@code testProcessWatermarkForwardsOnlyMaxWatermark} cases of
+     * {@code TestTimestampsAndWatermarksOperator}.
+     */
     @Override
     public void processWatermark(Watermark mark) throws Exception {
-        this.idle = false;
-        if (mark.getTimestamp() > lastWatermarkTimestamp) {
-            lastWatermarkTimestamp = mark.getTimestamp();
+        if (mark.getTimestamp() >= Watermark.MAX_WATERMARK.getTimestamp()) {
             output.emitWatermark(mark);
         }
     }

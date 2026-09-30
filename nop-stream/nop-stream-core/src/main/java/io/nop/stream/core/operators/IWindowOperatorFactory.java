@@ -12,6 +12,7 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -84,4 +85,76 @@ public interface IWindowOperatorFactory extends java.io.Serializable {
             Class<IN> elementType,
             KeySelector<IN, K> keySelector,
             Class<K> keyClass);
+
+    // ------------------------------------------------------------------
+    // G-2+09e① (plan 369 Phase 2): late-data side output aware variants.
+    // Each overload carries the {@code OutputTag} configured via
+    // {@code WindowedStream#sideOutputLateData} into the created window
+    // operator. Default implementations delegate to the tag-less variants
+    // (ignoring the tag) so existing implementations stay source-compatible;
+    // the runtime factory overrides them and wires the tag through the
+    // {@code WindowOperatorBuilder.lateDataOutputTag} chain.
+    // ------------------------------------------------------------------
+
+    default <IN, ACC, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createAggregateOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            AggregateFunction<IN, ACC, OUT> aggregateFunction,
+            Class<ACC> accumulatorType,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
+                aggregateFunction, accumulatorType, elementType, keySelector, keyClass);
+    }
+
+    default <IN, K, W extends Window>
+    OneInputStreamOperator<IN, IN> createReduceOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            ReduceFunction<IN> reduceFunction,
+            Class<IN> valueType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        return createReduceOperator(windowAssigner, trigger, evictor, allowedLateness,
+                reduceFunction, valueType, keySelector, keyClass);
+    }
+
+    default <IN, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createApplyOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            WindowFunction<IN, OUT, K, W> windowFunction,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        return createApplyOperator(windowAssigner, trigger, evictor, allowedLateness,
+                windowFunction, elementType, keySelector, keyClass);
+    }
+
+    default <IN, OUT, K, W extends Window>
+    OneInputStreamOperator<IN, OUT> createProcessOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            Trigger<? super IN, ? super W> trigger,
+            Evictor<? super IN, W> evictor,
+            long allowedLateness,
+            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
+            Class<IN> elementType,
+            KeySelector<IN, K> keySelector,
+            Class<K> keyClass,
+            OutputTag<IN> lateDataOutputTag) {
+        return createProcessOperator(windowAssigner, trigger, evictor, allowedLateness,
+                processWindowFunction, elementType, keySelector, keyClass);
+    }
+
 }

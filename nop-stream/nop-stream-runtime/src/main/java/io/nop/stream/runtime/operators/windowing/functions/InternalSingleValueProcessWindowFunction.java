@@ -46,7 +46,10 @@ public class InternalSingleValueProcessWindowFunction<IN, OUT, KEY, W extends Wi
     }
 
     @Override
-    public void clear(W window, InternalWindowContext context) {
+    public void clear(W window, InternalWindowContext context) throws Exception {
+        // G-3 (plan 369 Phase 2): delegate the per-window cleanup to the user
+        // function so state written via ctx.windowState() is released with the window.
+        wrappedFunction.clear(new ProcessWindowContextAdapter<KEY, W>(null, window, context));
     }
 
     private static class ProcessWindowContextAdapter<KEY, W extends Window>
