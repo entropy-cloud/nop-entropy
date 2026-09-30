@@ -391,6 +391,20 @@ final class AdvancedTransforms {
                             + "configure the custom operator bean constructor instead")
                     .loc(t.getLocation());
         }
+        // R5-AR-02: the <custom><source> xpl body is xdef-declared and parsed into
+        // the model but has no execution consumer — the custom operator bean is
+        // resolved purely from customType. Fail fast instead of silently dropping
+        // the declared transformation logic.
+        if (m.getSource() != null) {
+            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_ATTR_NAME, "source")
+                    .param(ARG_DETAIL, "<source> on <custom> has no execution consumer; the custom "
+                            + "operator bean resolved from customType receives the upstream input "
+                            + "directly. Implement the transformation inside the operator bean or "
+                            + "use <map>/<filter> with an inline xpl body instead")
+                    .loc(t.getLocation());
+        }
         Object in = requireSingleInput(upstreamIds, streamRegistry, owner, t);
         if (!(in instanceof DataStream)) {
             throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)

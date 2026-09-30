@@ -272,6 +272,34 @@ public class TestAdvancedTransforms {
                         + "<custom id=\"cu\"/>", ""));
     }
 
+    /**
+     * R5-AR-02: the &lt;custom&gt;&lt;source&gt; xpl body is xdef-declared and parsed
+     * into the model but has no execution consumer (the operator bean is resolved
+     * purely from customType). The builder must fail fast instead of silently
+     * dropping the declared transformation logic.
+     */
+    @Test
+    public void customWithSourceBodyFailsFastInsteadOfSilentDrop() {
+        StreamModel model = parseInline(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<custom id=\"cu\" customType=\"myOp\">"
+                        + "<source>return event;</source>"
+                        + "</custom>",
+                "");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("myOp", new StreamMap<>((MapFunction<String, String>) String::toUpperCase));
+
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build,
+                "<custom><source> must be rejected loudly, never silently dropped");
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString(),
+                () -> "expected ERR_STREAM_NOT_IMPLEMENTED, got: " + ex.getMessage());
+        String detail = String.valueOf(ex.getParam("detail"));
+        assertTrue(detail.contains("source"),
+                () -> "error must name the unconsumed <source> element, got: " + detail);
+    }
+
     // ----------------------------------------------------------------
     // CEP
     // ----------------------------------------------------------------

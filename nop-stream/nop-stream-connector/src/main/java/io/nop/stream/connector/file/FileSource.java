@@ -50,16 +50,39 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
 
     private final String directoryPath;
 
+    /**
+     * R5-CON-07: per-line aggregation bound handed to every created
+     * {@link FileSourceReader} (see {@link FileSourceReader#DEFAULT_MAX_LINE_BYTES}).
+     */
+    private final long maxLineBytes;
+
     public FileSource(String directoryPath) {
+        this(directoryPath, FileSourceReader.DEFAULT_MAX_LINE_BYTES);
+    }
+
+    /**
+     * @param maxLineBytes fail-fast bound for a single input line
+     *                     (R5-CON-07); must be &gt; 0.
+     */
+    public FileSource(String directoryPath, long maxLineBytes) {
         if (directoryPath == null || directoryPath.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
                     .param(ARG_DETAIL, "directory path must not be null or empty");
         }
+        if (maxLineBytes <= 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxLineBytes")
+                    .param(ARG_DETAIL, "maxLineBytes must be positive: " + maxLineBytes);
+        }
         this.directoryPath = directoryPath;
+        this.maxLineBytes = maxLineBytes;
     }
 
     public String getDirectoryPath() {
         return directoryPath;
+    }
+
+    public long getMaxLineBytes() {
+        return maxLineBytes;
     }
 
     @Override
@@ -78,7 +101,9 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
 
     @Override
     public SourceReader<String, FileSplit> createReader(SourceReaderContext readerContext) {
-        return new FileSourceReader(readerContext);
+        // R5-CON-10: the source directory flows into the reader so openSplit can
+        // enforce split-path containment (legacy checkpoints carry no checksum).
+        return new FileSourceReader(readerContext, directoryPath, maxLineBytes);
     }
 
     @Override

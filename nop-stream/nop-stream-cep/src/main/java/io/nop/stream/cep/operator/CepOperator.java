@@ -64,6 +64,7 @@ import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
@@ -233,6 +234,18 @@ public class CepOperator<IN, KEY, OUT>
      */
     private transient Counter numLateRecordsDropped;
 
+    /**
+     * R5-CEP-03: per-instance scope tags for {@link #numLateRecordsDropped}.
+     * A single JVM-level untagged counter was shared by every CepOperator
+     * instance (all subtasks, all jobs, all patterns), cross-contaminating
+     * drop counts. The deployment {@code TaskLocation} flows in through
+     * {@link #copyForSubtask(TaskLocation)}; instances opened without a
+     * location (embedded/test usage) fall back to instance identity so two
+     * instances never share a meter.
+     */
+    private transient String lateDropMetricOperator;
+    private transient String lateDropMetricSubtask;
+
     private transient long currentWatermark = Long.MIN_VALUE;
 
     private transient boolean watermarkRestored = false;
@@ -323,6 +336,54 @@ public class CepOperator<IN, KEY, OUT>
                 keyClass);
     }
 
+    /**
+     * R5-CEP-03: carries the deployment identity into the copy so the
+     * {@code numLateRecordsDropped} counter can be registered under a
+     * per-job/per-vertex/per-subtask scope instead of one JVM-wide meter.
+     */
+    @Override
+    public CepOperator<IN, KEY, OUT> copyForSubtask(TaskLocation location) {
+        CepOperator<IN, KEY, OUT> copy = copyForSubtask();
+        copy.lateDropMetricOperator = location.getJobId() + "." + location.getPipelineId()
+                + "." + location.getVertexId();
+        copy.lateDropMetricSubtask = String.valueOf(location.getTaskIndex());
+        return copy;
+    }
+
+    /**
+     * R5-CEP-03: index-only variant (no job/vertex coordinates available) —
+     * still distinct per subtask index.
+     */
+    @Override
+    public CepOperator<IN, KEY, OUT> copyForSubtask(int subtaskIndex) {
+        CepOperator<IN, KEY, OUT> copy = copyForSubtask();
+        if (copy.lateDropMetricOperator == null) {
+            copy.lateDropMetricOperator = "cep";
+        }
+        copy.lateDropMetricSubtask = String.valueOf(subtaskIndex);
+        return copy;
+    }
+
+    /** Scope tag this instance's drop counter registers under (test-visible). */
+    String getLateDropMetricOperatorTag() {
+        return effectiveLateDropOperatorTag();
+    }
+
+    /** Subtask scope tag this instance's drop counter registers under (test-visible). */
+    String getLateDropMetricSubtaskTag() {
+        return effectiveLateDropSubtaskTag();
+    }
+
+    private String effectiveLateDropOperatorTag() {
+        return lateDropMetricOperator != null
+                ? lateDropMetricOperator
+                : "cep@" + Integer.toHexString(System.identityHashCode(this));
+    }
+
+    private String effectiveLateDropSubtaskTag() {
+        return lateDropMetricSubtask != null ? lateDropMetricSubtask : "-1";
+    }
+
     @Override
     public void open() throws Exception {
         super.open();
@@ -346,8 +407,15 @@ public class CepOperator<IN, KEY, OUT>
         collector = new TimestampedCollector<>(output);
         userTimerService = new TimerServiceImpl();
 
+        // R5-CEP-03: register the drop counter under an operator/subtask scope —
+        // the previously shared JVM-level counter accumulated every instance's
+        // drops (multi subtask / multi job) into one number. The scope comes
+        // from the deployment TaskLocation (see copyForSubtask variants);
+        // location-less instances fall back to instance identity.
         this.numLateRecordsDropped = StreamMetricsRegistries.registry()
-                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
+                .counter(LATE_ELEMENTS_DROPPED_METRIC_NAME,
+                        "operator", effectiveLateDropOperatorTag(),
+                        "subtask", effectiveLateDropSubtaskTag());
 
         // Register the periodic cache-statistics timer on a dedicated ProcessingTimeCallback
         // (NOT via internalTimerService/userTimerService — those route to onProcessingTime

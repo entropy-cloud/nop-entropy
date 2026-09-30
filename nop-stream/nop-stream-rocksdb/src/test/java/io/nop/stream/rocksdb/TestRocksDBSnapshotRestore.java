@@ -592,6 +592,56 @@ class TestRocksDBSnapshotRestore {
         }
     }
 
+    // ==================== MapState delimiter-collision grouping (R5-ST-04) ====================
+
+    /**
+     * R5-ST-04: MapState snapshot grouping must not merge two distinct base keys
+     * whose {@code namespace|key} string forms collide. {@code (ns="x", key="a|b")}
+     * and {@code (ns="x|a", key="b")} previously produced the same
+     * {@code namespace + "|" + rawKey} group key, silently appending one map's
+     * rows to the other's snapshot entry. The group key is now the unambiguous
+     * base-key prefix bytes.
+     */
+    @Test
+    void testMapStateSnapshotGroupsCollidingDelimiterKeysSeparately() throws Exception {
+        RocksDBKeyedStateBackend<String> backend = newRocksBackend();
+
+        // (ns="x", key="a|b") — map row {"p" -> 1}
+        backend.setCurrentNamespace("x");
+        backend.setCurrentKey("a|b");
+        backend.getMapState(new MapStateDescriptor<>("ms", String.class, Long.class)).put("p", 1L);
+
+        // (ns="x|a", key="b") — map row {"q" -> 2}; "x|a|b" == "x" + "|" + "a|b"
+        backend.setCurrentNamespace("x|a");
+        backend.setCurrentKey("b");
+        backend.getMapState(new MapStateDescriptor<>("ms", String.class, Long.class)).put("q", 2L);
+
+        StateSnapshot snapshot = backend.snapshotState();
+        // run the snapshot through the storage-layer JSON round trip like a real checkpoint
+        String json = io.nop.core.lang.json.JsonTool.serialize(snapshot.getStateData(), false);
+        Map<String, Object> parsed = io.nop.core.lang.json.JsonTool.parseMap(json);
+        StateSnapshot persisted = new StateSnapshot(parsed);
+        backend.close();
+
+        RocksDBKeyedStateBackend<String> restored = newRocksBackend();
+        restored.restoreState(persisted);
+
+        restored.setCurrentNamespace("x");
+        restored.setCurrentKey("a|b");
+        MapState<String, Long> msAB = restored.getMapState(
+                new MapStateDescriptor<>("ms", String.class, Long.class));
+        assertEquals(1L, msAB.get("p"), "first base key keeps its own row");
+        assertNull(msAB.get("q"), "second base key's row must not leak into the first");
+
+        restored.setCurrentNamespace("x|a");
+        restored.setCurrentKey("b");
+        MapState<String, Long> msB = restored.getMapState(
+                new MapStateDescriptor<>("ms", String.class, Long.class));
+        assertEquals(2L, msB.get("q"), "second base key keeps its own row");
+        assertNull(msB.get("p"), "first base key's row must not leak into the second");
+        restored.close();
+    }
+
     // ==================== Numeric-key cross-backend consistency (AR-01) ====================
 
     /**

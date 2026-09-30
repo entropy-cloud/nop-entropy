@@ -127,6 +127,5 @@ public class TestWatermarkIntervalNodeLevel {
                 "root-level watermarkInterval=0 (per-event emission) must reach the env "
                         + "(previously the `> 0` guard silently dropped it and the 200ms "
                         + "default kept running)");
-        assertTrue(env.getWatermarkInterval() >= 0);
     }
 }

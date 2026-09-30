@@ -1024,8 +1024,20 @@ public class GraphModelCheckpointExecutor {
         }
 
         if (savepointCheckpoint == null) {
-            LOG.info("No recoverable savepoint found at path {}, starting fresh", savepointPath);
-            return;
+            // R5-ST-07: an EXPLICIT savepoint request that misses all three lookup
+            // tiers must fail loudly, not silently start fresh — a wrong path or a
+            // stale jobId would otherwise boot a stateful job from empty state
+            // (windows/CEP reset, 2PC pending commits lost). Enumerate every tier
+            // searched so the operator can correct the misconfiguration directly.
+            String tier1 = savepointPath + " [latest checkpoint for jobId=" + jobId
+                    + ", pipelineId=" + pipelineId + "]";
+            String tier2 = savepointPath + " [direct savepoint file load]";
+            String tier3 = tier1 + " via parent directory of the .checkpoint file";
+            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                    .param(ARG_DETAIL, "No recoverable savepoint found for the explicitly requested"
+                            + " savepoint path. Lookups performed (all missed): (1) " + tier1
+                            + "; (2) " + tier2 + "; (3) " + tier3
+                            + ". Refusing to start fresh from empty state.");
         }
 
         LOG.info("Recovering from savepoint {} (jobId={})",

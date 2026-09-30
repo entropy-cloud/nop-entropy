@@ -81,7 +81,6 @@ class TestRocksDBIncrementalBackendWiring {
                 "marker value must be an IncrementalSnapshotResult");
 
         IncrementalSnapshotResult result = (IncrementalSnapshotResult) raw;
-        assertTrue(result.getSstFileCount() >= 0);
         // The non-SST dir must exist and contain at least CURRENT.
         Path nonSstDir = Path.of(result.getNonSstDir());
         assertTrue(Files.isDirectory(nonSstDir));

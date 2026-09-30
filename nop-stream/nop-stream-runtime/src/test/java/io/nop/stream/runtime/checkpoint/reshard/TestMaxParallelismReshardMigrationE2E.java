@@ -241,6 +241,84 @@ class TestMaxParallelismReshardMigrationE2E {
         assertEquals(PARALLELISM, result.getOperatorStateCount());
     }
 
+    /**
+     * R5-AR-03: scale-down whose trimmed subtasks carry operator state
+     * (e.g. a file source's split assignment table) must fail fast — the
+     * operator-state copy is 1:1 by index, so the trimmed subtasks' state
+     * would be silently dropped and the migration would produce a lossy
+     * savepoint that looks successful.
+     */
+    @Test
+    void scaleDownWithOperatorState_failsFastInsteadOfSilentDrop() throws Exception {
+        Map<String, Long> allKeys = buildKeys(60);
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new LinkedHashMap<>();
+        // shard keys by old owner subtask (maxP=128, p=4) exactly like stageSavepoint
+        for (int s = 0; s < PARALLELISM; s++) {
+            TaskLocation loc = new TaskLocation("sd-job", "sd-pipe", VERTEX, s);
+            Map<String, Long> subEntries = new LinkedHashMap<>();
+            for (Map.Entry<String, Long> e : allKeys.entrySet()) {
+                int gid = KeyGroupAssignment.assignToKeyGroup(e.getKey(), OLD_MAX_P);
+                int sub = KeyGroupAssignment.assignKeyGroupToSubtask(gid, OLD_MAX_P, PARALLELISM);
+                if (sub == s) subEntries.put(e.getKey(), e.getValue());
+            }
+            TaskStateSnapshot ts = new TaskStateSnapshot(loc, 1L);
+            ts.putKeyedState(KEYED_KEY, buildKeyedStateData(subEntries));
+            // subtasks 2 and 3 will be trimmed by the scale-down to p=2; give
+            // them operator state that must not disappear silently.
+            if (s >= 2) {
+                ts.putOperatorState("split-assignment", java.util.List.of("file-a", "file-b"));
+            }
+            taskStates.put(loc, ts);
+        }
+        CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
+                .jobId("sd-job").pipelineId("sd-pipe").checkpointId(1L)
+                .triggerTimestamp(1L).completedTimestamp(2L)
+                .checkpointType(CheckpointType.SAVEPOINT).taskStates(taskStates).build();
+
+        StreamException ex = assertThrows(StreamException.class, () ->
+                        MaxParallelismReshardMigration.reshardCheckpoint(checkpoint, OLD_MAX_P, 256, 2),
+                "scale-down with operator state on trimmed subtasks must be rejected");
+        String detail = String.valueOf(ex.getParam("detail"));
+        assertTrue(detail.contains("Scale-down") && detail.contains("operator state"),
+                () -> "error must name the scale-down operator-state refusal, got: " + detail);
+        assertTrue(detail.contains("split-assignment"),
+                () -> "error must name the dropped operator states, got: " + detail);
+    }
+
+    /**
+     * R5-AR-03 counter-case: a scale-down whose trimmed subtasks carry NO
+     * operator state stays legal (keyed state is redistributed by pool, so
+     * nothing can be lost) and must keep conserving every keyed entry.
+     */
+    @Test
+    void scaleDownWithoutOperatorState_stillConservesKeys() throws Exception {
+        Map<String, Long> allKeys = buildKeys(60);
+        Map<TaskLocation, TaskStateSnapshot> taskStates = new LinkedHashMap<>();
+        for (int s = 0; s < PARALLELISM; s++) {
+            TaskLocation loc = new TaskLocation("sd-ok-job", "sd-ok-pipe", VERTEX, s);
+            Map<String, Long> subEntries = new LinkedHashMap<>();
+            for (Map.Entry<String, Long> e : allKeys.entrySet()) {
+                int gid = KeyGroupAssignment.assignToKeyGroup(e.getKey(), OLD_MAX_P);
+                int sub = KeyGroupAssignment.assignKeyGroupToSubtask(gid, OLD_MAX_P, PARALLELISM);
+                if (sub == s) subEntries.put(e.getKey(), e.getValue());
+            }
+            TaskStateSnapshot ts = new TaskStateSnapshot(loc, 1L);
+            ts.putKeyedState(KEYED_KEY, buildKeyedStateData(subEntries));
+            taskStates.put(loc, ts);
+        }
+        CompletedCheckpoint checkpoint = CompletedCheckpoint.builder()
+                .jobId("sd-ok-job").pipelineId("sd-ok-pipe").checkpointId(1L)
+                .triggerTimestamp(1L).completedTimestamp(2L)
+                .checkpointType(CheckpointType.SAVEPOINT).taskStates(taskStates).build();
+
+        MaxParallelismReshardMigration.Resharded resharded =
+                MaxParallelismReshardMigration.reshardCheckpoint(checkpoint, OLD_MAX_P, 256, 2);
+        assertEquals(allKeys.size(), resharded.getResult().totalKeyedEntries(),
+                "scale-down without operator state conserves all keyed entries");
+        assertEquals(2, resharded.getCheckpoint().getTaskStates().size(),
+                "scaled-down checkpoint must carry exactly the new parallelism's subtasks");
+    }
+
     @Test
     void oldEqualsNewMaxParallelism_failsFast() throws Exception {
         Map<String, Long> allKeys = buildKeys(50);

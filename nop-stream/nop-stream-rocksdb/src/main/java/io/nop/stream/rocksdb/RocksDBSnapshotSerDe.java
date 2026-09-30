@@ -184,8 +184,13 @@ final class RocksDBSnapshotSerDe {
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_MAP, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
-        Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
-        Map<String, List<List<Object>>> groupedMapValues = new LinkedHashMap<>();
+        // R5-ST-04: group by the raw base-key prefix bytes, not by a
+        // `namespace + "|" + rawKey` string — the delimiter is ambiguous and
+        // colliding (namespace, key) pairs merged distinct base keys' rows.
+        // The TLV-encoded base key prefix is injective by construction.
+        // ByteBuffer is used for content-based equals/hashCode over the prefix.
+        Map<ByteBuffer, Map<String, Object>> grouped = new LinkedHashMap<>();
+        Map<ByteBuffer, List<List<Object>>> groupedMapValues = new LinkedHashMap<>();
 
         TtlContext<ByteBuffer> ttl = state.ttlContext();
         try (RocksIterator it = backend.getDb().newIterator(state.cfHandle)) {
@@ -196,7 +201,7 @@ final class RocksDBSnapshotSerDe {
                 }
                 int baseLen = RocksDBKeyEncoder.baseKeyLength(fullKey);
                 RocksDBKeyEncoder.DecodedKey dk = RocksDBKeyEncoder.decode(fullKey, backend.getKeyType());
-                String groupKey = dk.namespace + "|" + dk.rawKey;
+                ByteBuffer groupKey = ByteBuffer.wrap(fullKey, 0, baseLen).slice();
                 Map<String, Object> entry = grouped.get(groupKey);
                 if (entry == null) {
                     entry = new LinkedHashMap<>();
@@ -225,7 +230,7 @@ final class RocksDBSnapshotSerDe {
                 groupedMapValues.get(groupKey).add(pair);
             }
         }
-        for (Map.Entry<String, Map<String, Object>> e : grouped.entrySet()) {
+        for (Map.Entry<ByteBuffer, Map<String, Object>> e : grouped.entrySet()) {
             e.getValue().put("mapValue", groupedMapValues.get(e.getKey()));
             entries.add(e.getValue());
         }

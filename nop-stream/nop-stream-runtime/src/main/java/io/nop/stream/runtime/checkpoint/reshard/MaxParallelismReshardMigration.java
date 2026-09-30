@@ -57,7 +57,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  *
  * <p><b>Failure semantics</b>: any structural anomaly (unknown state type, entry
  * without a key, unreadable savepoint) fails fast — no silent drop. A
- * meaningless migration ({@code old == new maxParallelism}) is rejected.
+ * meaningless migration ({@code old == new maxParallelism}) is rejected. A
+ * scale-down ({@code newParallelism < oldParallelism}) whose trimmed subtasks
+ * carry operator state is rejected as well: operator state has no rescale
+ * redistribution in this tool, so the migration would silently drop it
+ * (R5-AR-03). Keyed-state conservation is asserted with real before/after
+ * entry counts per state.
  */
 @Internal
 public final class MaxParallelismReshardMigration {
@@ -126,14 +131,11 @@ public final class MaxParallelismReshardMigration {
                     newMaxParallelism, newParallelismOverride, result, newTaskStates);
         }
 
-        // Sanity check: per-state conservation is structural (we only move
-        // entries), but assert explicitly to fail-fast on any logic bug.
-        for (Map.Entry<String, Integer> stateCount : result.getKeyCountByState().entrySet()) {
-            if (stateCount.getValue() == null || stateCount.getValue() < 0) {
-                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
-                        "Conservation check failed for state " + stateCount.getKey());
-            }
-        }
+        // R5-AR-03: the per-vertex conservation invariant is asserted against
+        // the real before/after entry counts in reshardVertexStates
+        // (assertKeyedStateConserved) — the previous checkpoint-level
+        // "non-negative counter" check could structurally never fail and was
+        // removed.
 
         CompletedCheckpoint newCheckpoint = buildReshardedCheckpoint(oldCheckpoint, newTaskStates);
 
@@ -184,6 +186,26 @@ public final class MaxParallelismReshardMigration {
                     .param(ARG_DETAIL, "newParallelism (" + newParallelism + ") for vertex " + vertexId
                             + " exceeds newMaxParallelism (" + newMaxParallelism + ")");
         }
+        // R5-AR-03: operator state is copied 1:1 by subtask index (it has no
+        // rescale redistribution in this tool), so a scale-down whose trimmed
+        // subtasks carry operator state (e.g. a file source's split assignment
+        // table) would silently drop that state and produce a lossy savepoint.
+        // Refuse the migration instead of writing data loss to disk.
+        if (newParallelism < oldParallelism) {
+            for (int s = newParallelism; s < oldParallelism; s++) {
+                TaskStateSnapshot trimmed = oldCheckpoint.getTaskStates().get(oldSubtasks.get(s));
+                if (trimmed != null && trimmed.getOperatorStates() != null
+                        && !trimmed.getOperatorStates().isEmpty()) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "Scale-down migration for vertex " + vertexId
+                                    + " from parallelism " + oldParallelism + " to " + newParallelism
+                                    + " would drop the operator state of trimmed subtask " + s
+                                    + " (states: " + trimmed.getOperatorStates().keySet()
+                                    + "). Operator state has no rescale redistribution in this "
+                                    + "tool; refusing to produce a lossy savepoint.");
+                }
+            }
+        }
         result.setNewParallelism(newParallelism);
 
         // Phase 1: build the per-state global keyed pool across all old
@@ -193,12 +215,17 @@ public final class MaxParallelismReshardMigration {
         // Phase 2: record per-stateName key counts (conservation invariant:
         // this is both the before and after count — redistribution only moves
         // entries).
-        recordKeyCounts(vertexId, pools, result);
+        Map<String, Integer> baselineKeyCounts = recordKeyCounts(vertexId, pools, result);
 
         // Phase 3: redistribute each keyed pool under the new maxParallelism.
         // newSubtaskIndex -> keyedStorageKey -> rebuilt stateData
         Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask =
                 redistributePools(pools, newMaxParallelism, newParallelism);
+
+        // R5-AR-03: real conservation assertion — compare the per-state entry
+        // counts after redistribution against the Phase-2 baseline. The old
+        // "sanity check" only asserted non-negative values and could never fail.
+        assertKeyedStateConserved(vertexId, baselineKeyCounts, newKeyedBySubtask);
 
         // Phase 4: assemble each new subtask snapshot.
         assembleNewSubtaskSnapshots(oldCheckpoint, vertexId, oldSubtasks, newMaxParallelism,
@@ -242,13 +269,16 @@ public final class MaxParallelismReshardMigration {
     /**
      * Phase 2: records per-stateName key counts. A keyed storage key (backend)
      * may hold multiple named states, so the report is keyed by the inner state
-     * name, not the storage key.
+     * name, not the storage key. Returns this vertex's per-state baseline used
+     * by {@link #assertKeyedStateConserved} (R5-AR-03).
      */
-    private static void recordKeyCounts(String vertexId, Map<String, GlobalKeyedPool> pools,
-                                        ReshardMigrationResult result) {
+    private static Map<String, Integer> recordKeyCounts(String vertexId, Map<String, GlobalKeyedPool> pools,
+                                                        ReshardMigrationResult result) {
+        Map<String, Integer> baseline = new LinkedHashMap<>();
         for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
             for (String stateName : poolEntry.getValue().globalStates.keySet()) {
                 int cnt = countEntriesOfState(poolEntry.getValue().globalStates, stateName);
+                baseline.merge(stateName, cnt, Integer::sum);
                 result.getKeyCountByState().merge(stateName, cnt, Integer::sum);
             }
         }
@@ -256,6 +286,55 @@ public final class MaxParallelismReshardMigration {
         if (pools.isEmpty() && result.getKeyCountByState().isEmpty()) {
             result.addWarning("vertex " + vertexId + " has no keyed state (operator-state-only); "
                     + "reshard is a structural no-op for this vertex and recorded explicitly");
+        }
+        return baseline;
+    }
+
+    /**
+     * R5-AR-03: real conservation assertion. The redistribution must only move
+     * entries between subtasks — every state's total entry count after the
+     * redistribution has to equal the Phase-2 baseline, and no new state name
+     * may appear. Replaces the old structurally-unfailable check that only
+     * asserted non-negative counters.
+     */
+    @SuppressWarnings("unchecked")
+    private static void assertKeyedStateConserved(String vertexId,
+                                                  Map<String, Integer> baselineKeyCounts,
+                                                  Map<Integer, Map<String, Map<String, Object>>> newKeyedBySubtask) {
+        Map<String, Integer> afterCounts = new LinkedHashMap<>();
+        for (Map<String, Map<String, Object>> keyedByStorageKey : newKeyedBySubtask.values()) {
+            for (Map<String, Object> stateData : keyedByStorageKey.values()) {
+                Object statesObj = stateData.get("states");
+                if (!(statesObj instanceof Map)) {
+                    continue;
+                }
+                Map<String, Object> states = (Map<String, Object>) statesObj;
+                for (String stateName : states.keySet()) {
+                    afterCounts.merge(stateName, countEntriesOfState(states, stateName), Integer::sum);
+                }
+            }
+        }
+        for (Map.Entry<String, Integer> before : baselineKeyCounts.entrySet()) {
+            Integer after = afterCounts.get(before.getKey());
+            // A state whose entry list is empty disappears from the
+            // redistribution output entirely (redistributeStates only emits
+            // buckets that own entries) — that is conservation, not loss.
+            int afterVal = after == null ? 0 : after;
+            if (afterVal != before.getValue()) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "Keyed-state conservation violated for vertex " + vertexId + ", state '"
+                                + before.getKey() + "': entries before=" + before.getValue()
+                                + ", after=" + afterVal
+                                + " (redistribution moves entries, it must never drop or duplicate them)");
+            }
+        }
+        for (Map.Entry<String, Integer> after : afterCounts.entrySet()) {
+            if (!baselineKeyCounts.containsKey(after.getKey())) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "Keyed-state conservation violated for vertex " + vertexId + ": state '"
+                                + after.getKey() + "' has " + after.getValue()
+                                + " entries after redistribution but none before it");
+            }
         }
     }
 
@@ -313,6 +392,9 @@ public final class MaxParallelismReshardMigration {
             // Operator (non-keyed) state: copy 1:1 by index where an old
             // subtask exists; scale-up subtasks start empty (operator-state
             // rescale redistribution is out of scope, orthogonal to reshard).
+            // Scale-down with operator state on the trimmed subtasks is
+            // rejected in reshardVertexStates before this loop runs
+            // (R5-AR-03), so reaching here cannot drop operator state.
             if (s < oldParallelism) {
                 TaskStateSnapshot oldState = oldCheckpoint.getTaskStates().get(oldSubtasks.get(s));
                 if (oldState != null && oldState.getOperatorStates() != null) {

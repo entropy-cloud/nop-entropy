@@ -50,7 +50,29 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSourceReader.class);
 
+    /**
+     * R5-CON-07: default upper bound for one aggregated line in
+     * {@link #readNextLine()}. A split's byte cap is the whole file (v1 splits
+     * one file per split), so an unterminated multi-GB input would otherwise
+     * be buffered into the heap in a single poll. Configurable per source via
+     * {@link FileSource#FileSource(String, long)}.
+     */
+    public static final long DEFAULT_MAX_LINE_BYTES = 16L * 1024 * 1024;
+
     private final SourceReaderContext context;
+
+    /**
+     * R5-CON-10: the source directory every assigned split path must be
+     * contained in (defence against tampered legacy checkpoints whose split
+     * payloads carry no checksum). {@code null} disables the check — only the
+     * legacy test constructor allows this; {@link FileSource#createReader}
+     * always supplies the directory.
+     */
+    private final String sourceDirectory;
+
+    /** R5-CON-07: max bytes buffered for a single line before fail-fast. */
+    private final long maxLineBytes;
+
     private final Deque<FileSplit> assignedSplits = new ArrayDeque<>();
     private final List<FileSplit> finishedSplits = new ArrayList<>();
 
@@ -66,8 +88,15 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
      * per-byte loop — a byte leaves this buffer exactly when it was counted as
      * consumed from the stream, and {@link #unreadBuffered()} rewinds the lone
      * lookahead byte (same contract the one-slot PushbackInputStream served).
+     *
+     * <p>Transient WITHOUT an inline initializer: this class is Serializable
+     * (via the {@code SourceReader} contract), and Java deserialization does
+     * not run field initializers — an inline {@code = new byte[8192]} would
+     * deserialize as {@code null} and NPE on first read. The buffer is
+     * allocated in {@link #openSplit(FileSplit)} together with the
+     * pos/limit reset.
      */
-    private transient byte[] readBuf = new byte[8192];
+    private transient byte[] readBuf;
     private transient int readBufPos;
     private transient int readBufLimit;
 
@@ -78,7 +107,19 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
     private transient boolean requestedMoreSplits;
 
     public FileSourceReader(SourceReaderContext context) {
+        this(context, null, DEFAULT_MAX_LINE_BYTES);
+    }
+
+    /**
+     * Full constructor: {@code sourceDirectory} enables the R5-CON-10 split-path
+     * containment check; {@code maxLineBytes} bounds the R5-CON-07 line
+     * aggregation buffer. {@link FileSource#createReader} always uses this
+     * constructor; the single-arg variant stays for existing tests.
+     */
+    public FileSourceReader(SourceReaderContext context, String sourceDirectory, long maxLineBytes) {
         this.context = context;
+        this.sourceDirectory = sourceDirectory;
+        this.maxLineBytes = maxLineBytes;
     }
 
     @Override
@@ -172,6 +213,21 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
 
     private void openSplit(FileSplit split) throws IOException {
         Path path = Paths.get(split.getFilePath());
+        // R5-CON-10: containment check. A split's path travels through the
+        // checkpoint payload; v1 legacy checkpoint bytes carry no checksum, so a
+        // tampered/corrupted payload could otherwise point the reader at any
+        // readable file on the machine. Only paths under the configured source
+        // directory are accepted (checked before existence, so probing for
+        // out-of-sandbox files yields the containment failure, not a file probe).
+        if (sourceDirectory != null) {
+            Path base = Paths.get(sourceDirectory).toAbsolutePath().normalize();
+            Path normalized = path.toAbsolutePath().normalize();
+            if (!normalized.startsWith(base)) {
+                throw new IOException("Split path escapes the source directory — refusing to open "
+                        + split.getFilePath() + " (source directory: " + sourceDirectory
+                        + "; tampered or foreign checkpoint payload?)");
+            }
+        }
         if (!Files.exists(path)) {
             throw new IOException("File not found for split: " + split);
         }
@@ -210,6 +266,10 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
                     + " (positioned only " + channel.position() + " bytes — truncated file?)", e);
         }
         activeReader = fis;
+        // Allocate/reset the chunk buffer here (NOT via a field initializer —
+        // a deserialized reader has no initializer run and must not NPE on
+        // first read).
+        readBuf = new byte[8192];
         readBufPos = 0;
         readBufLimit = 0;
         activeSplit = split;
@@ -232,6 +292,11 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
      * after the split was enumerated, bytes beyond the split's byte range are never
      * emitted (the split boundary is the contract; a later split covers the grown
      * region).
+     *
+     * <p>R5-CON-07: the aggregation buffer is bounded by {@code maxLineBytes}. A
+     * multi-GB file without a single line terminator would otherwise be buffered
+     * into the heap in one poll (per parallel subtask); exceeding the bound is a
+     * typed failure, never a silent truncation.
      */
     private String readNextLine() throws IOException {
         long cap = activeSplit.getEndOffset() - activeSplit.getStartOffset();
@@ -259,6 +324,12 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
                     }
                 }
                 return out.toString(StandardCharsets.UTF_8);
+            }
+            if (out.size() >= maxLineBytes) {
+                throw new IOException("Line exceeds maxLineBytes=" + maxLineBytes
+                        + " in split " + activeSplit + " (" + out.size()
+                        + " bytes buffered with no line terminator) — fail fast instead of "
+                        + "buffering an unbounded line; fix the input or raise the limit");
             }
             out.write(b);
         }

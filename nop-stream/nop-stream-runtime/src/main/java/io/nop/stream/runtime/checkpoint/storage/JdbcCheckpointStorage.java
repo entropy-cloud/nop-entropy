@@ -910,20 +910,65 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
         }
     }
 
-    private static boolean isDuplicateKeyException(Exception e) {
+    /**
+     * R5-CON-08: duplicate-key detection from the exception's STRUCTURED fields
+     * only — {@code SQLException.getSQLState()} plus the vendor error code.
+     * The previous implementation sniffed exception/class/message text, whose
+     * false positives downgraded genuine errors (any message mentioning
+     * "unique"/"primary key") into an UPDATE retry.
+     *
+     * <p>Decision table:
+     * <ul>
+     *   <li>SQLState {@code 23505} (unique violation, PostgreSQL/H2/Derby/...) — duplicate;</li>
+     *   <li>SQLState {@code 23000} (generic integrity violation, reported by
+     *       MySQL/SQL Server/Oracle for duplicates) AND a vendor code known to be
+     *       a duplicate-key error (MySQL 1062/1022, SQL Server 2627/2601,
+     *       Oracle 1 = ORA-00001) — duplicate;</li>
+     *   <li>anything else (including a 23000 foreign-key/check violation whose
+     *       vendor code is not a duplicate code) — NOT a duplicate, rethrown.</li>
+     * </ul>
+     *
+     * <p>A false negative (genuine duplicate not recognized) fails the write
+     * loudly — the safe direction; a false positive would mask a real error
+     * behind an UPDATE retry, which this decision table avoids.
+     *
+     * @return {@code true} only when the chain contains a duplicate-key violation
+     */
+    static boolean isDuplicateKeyException(Exception e) {
         Throwable cause = e;
         while (cause != null) {
-            String className = cause.getClass().getName().toLowerCase();
-            String message = cause.getMessage() != null ? cause.getMessage().toLowerCase() : "";
-            if (className.contains("integrity") || className.contains("constraint")
-                    || className.contains("duplicate") || className.contains("unique")
-                    || className.contains("primarykey") || className.contains("primary_key")
-                    || message.contains("duplicate") || message.contains("unique constraint")
-                    || message.contains("primary key") || message.contains("23505")) {
-                return true;
+            if (cause instanceof java.sql.SQLException) {
+                java.sql.SQLException sqlEx = (java.sql.SQLException) cause;
+                String sqlState = sqlEx.getSQLState();
+                int vendorCode = sqlEx.getErrorCode();
+                if ("23505".equals(sqlState)) {
+                    return true;
+                }
+                if ("23000".equals(sqlState) && isDuplicateVendorCode(vendorCode)) {
+                    return true;
+                }
+                // SQLException chains next exceptions via getNextException()
+                // (e.g. JDBC batch drivers); walk that chain as well.
+                for (java.sql.SQLException next = sqlEx.getNextException();
+                     next != null; next = next.getNextException()) {
+                    String nextState = next.getSQLState();
+                    if ("23505".equals(nextState)
+                            || ("23000".equals(nextState) && isDuplicateVendorCode(next.getErrorCode()))) {
+                        return true;
+                    }
+                }
             }
             cause = cause.getCause();
         }
         return false;
+    }
+
+    private static boolean isDuplicateVendorCode(int vendorCode) {
+        // MySQL: 1062 duplicate entry, 1022 duplicate key;
+        // SQL Server: 2627/2601 unique/unique-index violation;
+        // Oracle: 1 (ORA-00001 unique constraint violated).
+        return vendorCode == 1062 || vendorCode == 1022
+                || vendorCode == 2627 || vendorCode == 2601
+                || vendorCode == 1;
     }
 }
