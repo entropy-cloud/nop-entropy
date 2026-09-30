@@ -23,6 +23,10 @@
 | source | `message` | `MessageSourceFunction` | `io.nop.stream.connector.MessageSourceConnectorFactory` | `connector-message.beans.xml` |
 | source | `debezium-cdc` | `DebeziumCdcSourceFunction` | `io.nop.stream.connector.debezium.DebeziumCdcSourceConnectorFactory` | `connector-debezium.beans.xml` |
 | source | `batch-loader` | `BatchLoaderSourceFunction` | `io.nop.stream.connector.batch.BatchLoaderSourceConnectorFactory` | `connector-batch.beans.xml` |
+
+## Source API 冻结政策（plan 369 Phase 5）
+
+`SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
 | sink | `file` | `FileTwoPhaseCommitSink` | `io.nop.stream.connector.file.FileTwoPhaseCommitSinkConnectorFactory` | `connector-file.beans.xml` |
 | sink | `message` | `MessageSinkFunction` | `io.nop.stream.connector.MessageSinkConnectorFactory` | `connector-message.beans.xml` |
 | sink | `jdbc-2pc` | `JdbcTwoPhaseCommitSink` | `io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSinkConnectorFactory` | `connector-jdbc.beans.xml` |

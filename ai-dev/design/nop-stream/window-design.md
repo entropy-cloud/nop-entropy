@@ -564,3 +564,10 @@ savepoint 恢复时：
 
 `emitWindowContents` 的 DISCARDING 清除此前按 actualWindow 清 namespace（内容实际在 stateWindow 下）= 静默 no-op。随 §17.4 的双键签名重构一并修正为按 stateWindow 清除（属 P2 AR-19 的 merging 分支；xdef 默认值不接线部分仍在 backlog）。
 | `time-model-design.md` §2–§3 | 事件时间窗口依赖 watermark 推进（§2 WatermarkStrategy）；Trigger 的 `onEventTime` 由 watermark 驱动（§3 WatermarkGenerator 传播机制） |
+
+## 18. Processing-Time Session 与迟到数据公共 API（plan 369 Phase 2）
+
+- **`ProcessingTimeSessionWindows`**：session 合并的处理时间变体（gap 语义与 `EventTimeSessionWindows` 一致，mergeWindows 委托 `TimeWindow.mergeWindows`，默认 trigger 为处理时间 trigger）。窗口分配以 `getCurrentProcessingTime()` 为时钟源，复用 `MergingWindowSet` 合并管线，无需扩展 timer 服务结构。
+- **迟到数据 side output 公共 API**：`WindowedStream.sideOutputLateData(OutputTag)` 声明迟到收集（此前仅 `WindowOperatorBuilder.lateDataOutputTag` 内部 setter）；消费经 `SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 活视图（`SideOutputRegistry` 为 JVM 本地注册表，嵌入式/本地执行语义；graph 级下游变换对 side output 流 fail-fast）。`allowedLateness` 行为不变（见 §8.4）。
+- **per-window 状态清理**：`ProcessWindowFunction.clear(Context)` 已激活——purge/cleanup/merge-retire/合并首窗复用退休四路径均经 `clearUserWindowState` 调用（plan 369 G-3），`ctx.windowState()` 不再随窗口退休泄漏。
+- **指标作用域**：`numLateRecordsDropped` 按 jobId.pipelineId.vertexId + subtaskIndex tag 注册（同 CepOperator 方案），多实例不串数。

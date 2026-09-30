@@ -1625,3 +1625,12 @@ class CheckpointBarrier {
 ### 14.4 Task 级恢复
 
 SeaTunnel 的 `SourceSplitEnumeratorTask` 是独立的 coordinator task，在 `JobMaster` 侧运行。这意味著 Split Enumerator 可以独立 checkpoint/恢复。nop-stream 的 Split 管理当前在设计阶段（`connector-design.md` §4），还没有独立 Enumerator Task 的等价物。
+
+## 15. 生命周期端点契约（plan 369 Phase 1）
+
+四个 checkpoint 生命周期端点的行为契约（Flink 2.3 对比后收口的缺口，修复计划 plan 369）：
+
+1. **Savepoint 对齐豁免（C1）**：对齐超时降级 unaligned 仅对 `CheckpointType.CHECKPOINT` 生效——SAVEPOINT/TERMINAL_SAVEPOINT/EXPORTED_SAVEPOINT/COMPLETED_POINT 家族不降级，超时以 `ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT` 响亮失败。理由：savepoint 是纯一致切点承诺，降级破坏其 rescale 可恢复性（nop 的 unaligned 恢复 fail-fast 会拒绝跨并行度恢复该 savepoint）。
+2. **终止触发排队（C2）**：terminal savepoint / final checkpoint 的触发遇 in-flight 周期 checkpoint 时走 `triggerCheckpointBounded`（50ms→500ms 有界退避，预算=checkpoint timeout），不再静默跳过。typed reason 分类：TERMINAL/COMPLETED 最终失败 → job fail（终止 savepoint 是 durability promise，不是 best-effort）；EXPORT_SAVEPOINT 最终失败 → 响亮记录、作业保持运行；NO_TASKS_TO_ACK × 显式动作 × 存在 terminal tombstone → 以继承态组装 epoch 并 inline 完成（终止承诺物保留），纯周期 checkpoint 仍短路 null。
+3. **ACK 集合收缩与状态继承（C3）**：terminal 任务经 `markTaskCompleted` 退出 checkpoint 参与集合（DISTRIBUTED 经 reportTaskStatus tombstone，LOCAL 经终态扫描接线）；其后每个新 checkpoint 的该任务状态自 `latestCompletedCheckpoint` 继承——增量快照的 SST 段 handle 经 sharedStateRegistry 引用迁移到新 epoch（禁止裸引用共享：旧 checkpoint 被 retention 裁剪不得悬空新 checkpoint 的引用）；无前态时为空快照。恢复语义不变（每个 checkpoint 仍含全量任务状态）。
+4. **Transport 持久性校验（C4）**：`CheckpointConfig` 声明 transport 持久性（`TransportPersistence`，默认 DURABLE 保守），runtime 按 `IMessageService` 形态解析填充（LocalMessageService→NON_DURABLE，未知→DURABLE）；`validateUnalignedConfig` 对 NON_DURABLE × unaligned 输出声明启动期 typed fail-fast（输出侧在途数据依赖 transport 持久性）。已知边界：DISTRIBUTED 链的 unaligned 旗标未线入远端 InputGate，该校验当前 teeth 在 LOCAL 启动链（successor 义务已在 TransportDurability javadoc 登记）。
