@@ -50,6 +50,14 @@ abstract class AbstractMemoryState implements Serializable, TtlAware {
     }
 
     /**
+     * ST-12 (plan 369): each family exposes its live storage map so the
+     * backend's TTL sweep can delete expired entries through the
+     * {@link TtlAware} supertype without a per-family ladder.
+     */
+    @Override
+    public abstract Map<TypedNamespaceAndKey, ?> ttlStorage();
+
+    /**
      * Single point for the whole-storage migration shape: read every stored
      * value, pass it through {@code migrate}, write back under the same key.
      * Null values map to null (key preserved). The migrated object's type

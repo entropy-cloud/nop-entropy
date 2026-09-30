@@ -35,6 +35,11 @@ class MemoryAggregatingState<IN, ACC, OUT> extends AbstractMemoryState
         this.descriptor = descriptor;
     }
 
+    @Override
+    public Map<TypedNamespaceAndKey, ?> ttlStorage() {
+        return storage;
+    }
+
     /** Storage key for the current access; internal subclasses override with their own namespace. */
     protected TypedNamespaceAndKey storageKey() {
         return backend.getTypedNamespaceAndKey();

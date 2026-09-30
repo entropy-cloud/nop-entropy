@@ -33,6 +33,11 @@ class MemoryReducingState<T> extends AbstractMemoryState implements ReducingStat
     }
 
     @Override
+    public Map<TypedNamespaceAndKey, ?> ttlStorage() {
+        return storage;
+    }
+
+    @Override
     public StateDescriptor<?> getMigrationDescriptor() {
         return descriptor;
     }

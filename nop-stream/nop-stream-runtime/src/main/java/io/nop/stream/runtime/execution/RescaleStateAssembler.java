@@ -52,6 +52,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TASK_LOCATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_VERTEX_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SAVEPOINT_VERTEX_DIFFERENTIAL;
 
 /**
@@ -111,19 +112,78 @@ static void assertNoChannelStateOnRescale(
 }
 
 /**
+ * NEW-A (plan 369 Phase 3): scale-up symmetry for operator state. When
+ * {@code newParallelism > oldParallelism} and any old subtask snapshot carries
+ * a non-empty operator (non-keyed) state, throw
+ * {@code ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED} — the 1:1-by-index
+ * copy below cannot serve the added subtasks and no redistribution is wired,
+ * so proceeding would silently start them with empty state. Scale-down
+ * (newParallelism &lt; oldParallelism) never trips this guard: every kept
+ * subtask index still maps to an old subtask (trimmed subtasks are the AR-03
+ * concern of the maxParallelism reshard migration, which already refuses
+ * lossy operator-state scale-downs).
+ *
+ * <p>Package-private so the focused unit test can exercise the check directly
+ * (same pattern as {@link #assertNoChannelStateOnRescale}).
+ *
+ * @param vertexId        the rescaling vertex
+ * @param oldSubtasks     the checkpoint's old subtask locations for this vertex
+ * @param newParallelism  the new parallelism
+ * @param oldParallelism  the old parallelism
+ * @param stateLookup     lookup over the checkpoint's task states
+ * @throws StreamException ({@code ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED})
+ *         if any old subtask snapshot carries a non-empty operator state
+ */
+static void assertNoOperatorStateOnScaleUp(
+        String vertexId, List<TaskLocation> oldSubtasks,
+        int newParallelism, int oldParallelism, GraphModelCheckpointExecutor.TaskStateLookup stateLookup) throws Exception {
+    if (newParallelism <= oldParallelism) {
+        // Scale-down / same-parallelism: 1:1 by index serves every kept subtask.
+        return;
+    }
+    for (int s = 0; s < oldParallelism; s++) {
+        TaskStateSnapshot oldState = stateLookup.lookup(oldSubtasks.get(s));
+        if (oldState == null || oldState.getOperatorStates() == null
+                || oldState.getOperatorStates().isEmpty()) {
+            continue;
+        }
+        throw new StreamException(ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED)
+                .param(ARG_VERTEX_ID, vertexId)
+                .param(ARG_OLD_PARALLELISM, oldParallelism)
+                .param(ARG_NEW_PARALLELISM, newParallelism)
+                .param(ARG_DETAIL, "Old subtask " + s + " carries non-empty operator state "
+                        + oldState.getOperatorStates().keySet()
+                        + "; operator state has no cross-parallelism redistribution wiring "
+                        + "(state-management-design.md 10.4)");
+    }
+}
+
+/**
  * Build the rescaled TaskStateSnapshot for a new subtask by
  * merging keyed state from <em>all</em> old subtasks of the vertex (the new
  * subtask's KeyGroupRange may intersect several old subtask ranges) and
  * filtering the merged entries to those owned by {@code newRange}. Operator
  * (non-keyed) state is taken 1:1 from the old subtask at the same index
- * when it exists, and left empty for subtasks added by a scale-up (operator
- * state rescale redistribution is out of scope).
+ * when it exists (scale-down shape; trimmed subtasks are a separate AR-03
+ * concern owned by the reshard migration).
+ *
+ * <p>NEW-A (plan 369): a scale-up (newParallelism &gt; oldParallelism) whose
+ * old subtasks carry non-empty operator state fails fast — operator state has
+ * no cross-parallelism redistribution wiring, so the prior behavior silently
+ * left every added subtask's operator state empty. Same-parallelism restores
+ * never reach this method (the caller gates on {@code oldP != newP}), so the
+ * 1:1 restore path is unchanged. The check reads only the durable snapshots'
+ * operator-state maps; the C3 terminal-state inheritance reuses those same
+ * snapshots by reference (it never fabricates operator state), so it cannot
+ * produce a false positive.
  */
 @SuppressWarnings("unchecked")
 static TaskStateSnapshot buildRescaledTaskState(
         String vertexId, int taskIndex, KeyGroupRange newRange,
         List<TaskLocation> oldSubtasks, int newParallelism, int oldParallelism,
         int maxParallelism, GraphModelCheckpointExecutor.TaskStateLookup stateLookup, CheckpointPlan checkpointPlan) throws Exception {
+
+    assertNoOperatorStateOnScaleUp(vertexId, oldSubtasks, newParallelism, oldParallelism, stateLookup);
 
     TaskLocation newLoc = new TaskLocation(checkpointPlan.getJobId(), checkpointPlan.getPipelineId(), vertexId, taskIndex);
     TaskStateSnapshot merged = new TaskStateSnapshot(newLoc, -1);

@@ -406,7 +406,20 @@ interface IOperatorStateStore {
 | 发现进度 | CDC 快照阶段进度 | SPLIT_DISTRIBUTE |
 | 全局计数器 | 跨 key 的计数器 | UNION |
 
-### 10.4 与 Keyed State 的关系
+### 10.4 Rescale 语义裁定（plan 369）
+
+operator state 的 rescale 支持矩阵（plan 369 Phase 3 NEW-A 落地裁定，关闭 Flink 对比裁定 10 号 Open Question 3 的"显式降档"分支）：
+
+| 场景 | 行为 |
+|------|------|
+| 同并行度（1:1） | 按索引直拷，维持现状 |
+| 缩容且被裁子任务带非空 operator state | **fail-fast**（plan 368 AR-03； ERR_STREAM_OPERATOR_STATE_* 家族） |
+| 扩容且旧子任务带非空 operator state | **fail-fast**（`ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED`，plan 369 NEW-A；消除静默置空） |
+| UNDISTRIBUTED/UNION/BROADCAST 重分布原语 | 后端能力在位（含 plan 369 NEW-B 的 BROADCAST 并集语义），但**未接入生产 rescale 路径**——生产接线归 backlog successor（nop-stream-r5-successors.md），接线前不改变生产行为 |
+
+`restoreBroadcast` 为并集语义（全部非空快照并集发所有实例，对照 Flink RoundRobinOperatorStateRepartitioner）；TTL 清理挂 `setCurrentKey` 周期 sweep（默认 60s，`setTtlSweepIntervalMillis(≤0)` 关闭，plan 369 ST-12 部分），RocksDB sidecar 无界增长仍属资源上界专项。
+
+### 10.5 与 Keyed State 的关系
 
 | 维度 | Keyed State | Operator State |
 |------|------------|---------------|
@@ -428,7 +441,7 @@ interface IOperatorStateStore {
 6. ~~**无状态恢复路径**~~ — `AbstractStreamOperator.snapshotState()` 是活跃路径，在 `processBarrier` 触发时调用 `keyedStateBackend.snapshotState()` 产出 `StateSnapshot`（参见 `AbstractStreamOperator#snapshotState`）。此路径对 Memory 和 RocksDB 后端均生效
 7. **无状态重分布** — 不支持并行度变更后重新分配状态
 8. ~~**仅 Memory 后端**~~ — `IStateBackend` 接口已有两个实现：`MemoryStateBackend`（堆内存）和 `RocksDBStateBackend`（off-heap，Stage 30）
-9. ~~**无 Operator State 实现**~~ — Operator State 已落地：`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式，E2E 测试覆盖 snapshot/restore 与 4-mode 重分布（见 §10.4）。专用 `BroadcastState` 类型经 G36 裁定永久排除（`BROADCAST` 重分布已覆盖其典型用例）
+9. ~~**无 Operator State 实现**~~ — Operator State 已落地：`IOperatorStateBackend`（`MemoryOperatorStateBackend`）支持 4 种重分布模式，E2E 测试覆盖 snapshot/restore 与 4-mode 重分布（见 §10.2/§10.4；rescale 接线限制见 §10.4 裁定表）。专用 `BroadcastState` 类型经 G36 裁定永久排除（`BROADCAST` 重分布已覆盖其典型用例）
 
 ## 12. State TTL（Stage 32）
 

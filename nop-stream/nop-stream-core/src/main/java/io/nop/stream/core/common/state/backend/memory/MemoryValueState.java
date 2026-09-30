@@ -30,6 +30,11 @@ class MemoryValueState<T> extends AbstractMemoryState implements ValueState<T>, 
     }
 
     @Override
+    public Map<TypedNamespaceAndKey, ?> ttlStorage() {
+        return storage;
+    }
+
+    @Override
     public StateDescriptor<?> getMigrationDescriptor() {
         return descriptor;
     }

@@ -179,6 +179,16 @@ public final class KeyGroupAssignment {
      * {@link #computeKeyGroupRangeForSubtaskIndex}. Stage 35 rescale consumes
      * this to route a restored group to its new owner.
      *
+     * <p>O(1) closed form (plan 369 Phase 3), bit-exact equivalent to the
+     * former descending linear scan over range starts
+     * {@code start(i) = i*base + min(i, rem)}: the first {@code rem} subtasks
+     * own {@code base+1} groups each ({@code [0, rem*(base+1))}), the remaining
+     * {@code parallelism - rem} own {@code base} groups each. Hence
+     * {@code g < rem*(base+1) ? g/(base+1) : rem + (g - rem*(base+1))/base}.
+     * NOT the Flink formula {@code g*P/M} — the two differ at partition
+     * boundaries (e.g. M=15, P=10, g=3: nop=1, Flink=2); equivalence with the
+     * legacy scan is pinned by the full-grid property test.
+     *
      * @throws IllegalArgumentException on any invalid argument
      */
     public static int assignKeyGroupToSubtask(int keyGroupId, int maxParallelism, int parallelism) {
@@ -194,17 +204,13 @@ public final class KeyGroupAssignment {
         if (keyGroupId < 0 || keyGroupId >= maxParallelism) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "keyGroupId (" + keyGroupId + ") must be in [0, " + maxParallelism + ")");
         }
-        // Invert the contiguous-even partition: subtask boundaries are at
-        // start(i) = i * base + min(i, rem). Find the largest i whose start <= keyGroupId.
         int base = maxParallelism / parallelism;
         int rem = maxParallelism % parallelism;
-        for (int i = parallelism - 1; i >= 0; i--) {
-            int start = i * base + Math.min(i, rem);
-            if (keyGroupId >= start) {
-                return i;
-            }
+        int firstRegionEnd = rem * (base + 1);
+        if (keyGroupId < firstRegionEnd) {
+            return keyGroupId / (base + 1);
         }
-        return 0;
+        return rem + (keyGroupId - firstRegionEnd) / base;
     }
 
     /**

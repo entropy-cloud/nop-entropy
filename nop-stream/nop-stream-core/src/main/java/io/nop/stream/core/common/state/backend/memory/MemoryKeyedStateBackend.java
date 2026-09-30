@@ -78,6 +78,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * ST-12: default minimum distance between two automatic TTL sweeps.
+     */
+    public static final long DEFAULT_TTL_SWEEP_INTERVAL_MILLIS = 60_000L;
+
     private final Class<K> keyType;
 
     /**
@@ -111,6 +116,30 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
     /**
+     * ST-12 (plan 369): minimum distance between two automatic TTL sweeps.
+     * The memory backend otherwise only drops expired entries on access (lazy
+     * eviction) or at snapshot time — never-accessed-again entries stay in the
+     * JVM for the job's lifetime. Default: one sweep per 60s (gate runs on
+     * {@link System#nanoTime()}, see {@link #lastTtlSweepNanos}). Values &le; 0
+     * disable the automatic sweep (the explicit
+     * {@link #cleanupExpiredEntries()} entry point stays available).
+     */
+    private long ttlSweepIntervalMillis = DEFAULT_TTL_SWEEP_INTERVAL_MILLIS;
+
+    /**
+     * Nanotime of the last automatic TTL sweep ({@link System#nanoTime()} so
+     * the gate never fires on wall-clock adjustments; the expiry DECISION
+     * itself still uses {@link #ttlClock}). 0 = never swept.
+     */
+    private transient long lastTtlSweepNanos;
+
+    /**
+     * Set once any state binds a TTL context; the per-record sweep gate is a
+     * single volatile-free field read for TTL-free jobs (zero cost).
+     */
+    private transient boolean anyTtlBound;
+
+    /**
      * Stage 35: target key-group range for partial (per-subtask) restore. When
      * non-null, {@link #restoreState} only materializes entries whose key-group
      * id falls inside this range — the in-memory equivalent of the RocksDB SST
@@ -142,6 +171,72 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @Override
     public void setCurrentKey(K key) {
         this.currentKey = key;
+        maybeSweepExpiredEntries();
+    }
+
+    /**
+     * ST-12 (plan 369): periodic TTL sweep trigger outside the checkpoint path.
+     * nop-stream has no scheduler that is both periodic and outside the operator
+     * execution faces, so the periodic trigger lives INSIDE the backend: the
+     * per-record {@link #setCurrentKey} hook time-gates a full sweep at most
+     * once per {@link #ttlSweepIntervalMillis} of nanotime. Cost for a TTL-free
+     * job (or between sweeps) is one boolean + one long comparison; expiry
+     * decisions keep using {@link #ttlClock} so tests drive everything
+     * deterministically via {@link #setTtlTimeProvider}. Single-threaded
+     * mailbox model — no synchronization.
+     */
+    private void maybeSweepExpiredEntries() {
+        if (!anyTtlBound || ttlSweepIntervalMillis <= 0) {
+            return;
+        }
+        long now = System.nanoTime();
+        if (lastTtlSweepNanos != 0
+                && now - lastTtlSweepNanos < ttlSweepIntervalMillis * 1_000_000L) {
+            return;
+        }
+        lastTtlSweepNanos = now;
+        cleanupExpiredEntries();
+    }
+
+    /**
+     * Sweep every TTL-enabled state's sidecar and storage: expired entries are
+     * deleted (not merely excluded from snapshots), mirroring the RocksDB
+     * backend's {@code cleanupExpiredEntries}. Returns the number of expired
+     * entries reclaimed. The sweep runs
+     * {@link TtlContext#sweepExpired(java.util.function.Consumer)} — one
+     * iterator-remove pass over the live sidecar map, so no
+     * {@link java.util.ConcurrentModificationException} is possible and no
+     * full-table copy is made.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public int cleanupExpiredEntries() {
+        int total = 0;
+        for (Object stateObj : states.values()) {
+            if (!(stateObj instanceof TtlAware)) {
+                continue;
+            }
+            TtlContext<TypedNamespaceAndKey> ctx = ((TtlAware) stateObj).ttlContext();
+            if (ctx == null || !ctx.isEnabled()) {
+                continue;
+            }
+            Map storage = ((TtlAware) stateObj).ttlStorage();
+            total += ctx.sweepExpired(storage::remove);
+        }
+        return total;
+    }
+
+    /**
+     * ST-12: minimum {@link System#nanoTime()} distance between two automatic
+     * sweeps ({@link #setCurrentKey} trigger). &le; 0 disables the automatic
+     * sweep; the explicit {@link #cleanupExpiredEntries()} entry point is
+     * unaffected.
+     */
+    public void setTtlSweepIntervalMillis(long ttlSweepIntervalMillis) {
+        this.ttlSweepIntervalMillis = ttlSweepIntervalMillis;
+    }
+
+    public long getTtlSweepIntervalMillis() {
+        return ttlSweepIntervalMillis;
     }
 
     @Override
@@ -383,6 +478,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
             return;
         }
         aware.bindTtl(new TtlContext<>(cfg, ttlClock));
+        anyTtlBound = true;
     }
 
     public void setTtlTimeProvider(TtlTimeProvider ttlClock) {

@@ -11,11 +11,8 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Per-state sidecar that tracks the last-access timestamp of keyed-state entries so that
@@ -156,21 +153,43 @@ public final class TtlContext<K> implements Serializable {
     }
 
     /**
-     * Returns the set of keys whose recorded timestamp is past the TTL. The caller (e.g.
-     * a background sweep) removes them from its own storage and the sidecar.
+     * Copy-free TTL sweep (plan 369 Phase 3 ST-12): iterates the live timestamp
+     * map ONCE with an {@link java.util.Iterator}; for every entry past the TTL,
+     * invokes {@code storageRemoval} (the caller deletes the storage entry) and
+     * then removes the sidecar timestamp via {@link java.util.Iterator#remove}.
+     * Iterating with the iterator's own removal cannot raise
+     * {@link java.util.ConcurrentModificationException}, and no full-table copy
+     * (nor intermediate expired-key collection) is allocated. Storage deletion
+     * happens BEFORE the sidecar removal for the same key, so a storage failure
+     * keeps its timestamp and the entry is retried by the next sweep. Returns
+     * the number of expired entries swept.
+     *
+     * <p>Replaces the former {@code expiredKeys()} snapshot, which copied the
+     * whole timestamp table on every sweep.
+     *
+     * @param storageRemoval deletes the storage entry for an expired key
+     *        (invoked once per expired key, before the sidecar timestamp is
+     *        removed)
+     * @return the number of expired entries swept
      */
-    public Set<K> expiredKeys() {
-        if (!isEnabled()) {
-            return Collections.emptySet();
+    public int sweepExpired(java.util.function.Consumer<K> storageRemoval) {
+        if (!isEnabled() || timestamps.isEmpty()) {
+            return 0;
         }
-        Set<K> out = new HashSet<>();
+        int swept = 0;
         long now = now();
-        for (Map.Entry<K, Long> e : new HashMap<>(timestamps).entrySet()) {
-            if (now - e.getValue() > config.ttlMillis()) {
-                out.add(e.getKey());
+        long ttl = config.ttlMillis();
+        for (java.util.Iterator<Map.Entry<K, Long>> it = timestamps.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<K, Long> e = it.next();
+            if (now - e.getValue() > ttl) {
+                if (storageRemoval != null) {
+                    storageRemoval.accept(e.getKey());
+                }
+                it.remove();
+                swept++;
             }
         }
-        return out;
+        return swept;
     }
 
     /**

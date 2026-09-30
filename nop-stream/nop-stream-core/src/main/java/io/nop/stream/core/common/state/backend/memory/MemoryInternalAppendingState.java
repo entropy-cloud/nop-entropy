@@ -46,6 +46,11 @@ class MemoryInternalAppendingState<K, N, IN, ACC> extends AbstractMemoryState
         this.accumulator = createAccumulator();
     }
 
+    @Override
+    public Map<TypedNamespaceAndKey, ?> ttlStorage() {
+        return storage;
+    }
+
     private SimpleAccumulator<IN> createAccumulator() {
         try {
             return descriptor.getAccumulatorType().getDeclaredConstructor().newInstance();

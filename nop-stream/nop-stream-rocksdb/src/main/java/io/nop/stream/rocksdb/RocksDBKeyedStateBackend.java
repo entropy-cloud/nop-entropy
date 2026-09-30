@@ -69,11 +69,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_CHECKSUM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_CHECKSUM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_SCHEMA_MISMATCH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
@@ -130,6 +132,13 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private transient DBOptions dbOptions;
     private transient ColumnFamilyOptions cfOptions;
 
+    // Plan 369 Phase 3 memory-control preset (all null when the option config
+    // leaves the knobs at 0 — the pre-preset native option set is unchanged).
+    // Native handles held for close(); closed AFTER the db that references them.
+    private transient org.rocksdb.Cache blockCache;
+    private transient org.rocksdb.WriteBufferManager writeBufferManager;
+    private transient org.rocksdb.Filter bloomFilter;
+
     private transient K currentKey;
     private transient Object currentNamespace = DEFAULT_NAMESPACE;
 
@@ -180,6 +189,18 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         this.keyType = keyType;
         this.maxParallelism = maxParallelism;
         this.optionConfig = optionConfig != null ? optionConfig : new RocksDBOptionConfig();
+        // Plan 369 memory-control validation BEFORE any native handle is
+        // allocated: a WriteBufferManager cap without a block cache has nothing
+        // to charge (the rocksdbjni binding constructs a WriteBufferManager
+        // only over a Cache) — typed fail-fast, no leaked options.
+        if (this.optionConfig.getWriteBufferManagerCapacity() > 0 && this.optionConfig.getBlockCacheSize() <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "writeBufferManagerCapacity")
+                    .param(ARG_DETAIL, "RocksDB memory control requires blockCacheSize > 0 when "
+                            + "writeBufferManagerCapacity (" + this.optionConfig.getWriteBufferManagerCapacity()
+                            + ") is set: the WriteBufferManager is charged to the shared block cache "
+                            + "(RocksDBOptionConfig)");
+        }
         openDB();
     }
 
@@ -198,6 +219,16 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
         cfOptions = new ColumnFamilyOptions()
                 .setWriteBufferSize(optionConfig.getWriteBufferSize());
+
+        // Plan 369 Phase 3 memory-control preset: only when a knob is set does
+        // this build the shared cache / write-buffer manager / bloom filter and
+        // attach a custom table format. Every column family (default, existing,
+        // and later-created via getOrCreateColumnFamily) shares cfOptions, so
+        // one table-format wiring covers the whole DB. Conservative defaults:
+        // all knobs at 0 keep the exact pre-preset option set.
+        if (optionConfig.isMemoryControlEnabled()) {
+            applyMemoryControlPreset();
+        }
 
         List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
         cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
@@ -250,6 +281,60 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     /** Retained strongly for gauge lifetime (weak-gauge semantics). */
     private io.nop.stream.rocksdb.metrics.RocksDBMetricsRecorder metricsRecorder;
+
+    /**
+     * Build and attach the plan 369 memory-control preset: a shared LRU block
+     * cache, a {@code WriteBufferManager} capping TOTAL memtable memory across
+     * all column families (charged to the shared cache — the constructor has
+     * already validated that a cache is configured), and an optional bloom
+     * filter, wired through one {@code BlockBasedTableConfig} on the shared
+     * {@link #cfOptions}. The {@code WriteBufferManager} is also registered on
+     * {@link #dbOptions} (DB-level registration point).
+     */
+    private void applyMemoryControlPreset() {
+        if (optionConfig.getBlockCacheSize() > 0) {
+            this.blockCache = new org.rocksdb.LRUCache(optionConfig.getBlockCacheSize());
+        }
+        if (optionConfig.getWriteBufferManagerCapacity() > 0) {
+            this.writeBufferManager = new org.rocksdb.WriteBufferManager(
+                    optionConfig.getWriteBufferManagerCapacity(), blockCache);
+            dbOptions.setWriteBufferManager(writeBufferManager);
+        }
+        if (optionConfig.getBloomFilterBitsPerKey() > 0) {
+            this.bloomFilter = new org.rocksdb.BloomFilter(optionConfig.getBloomFilterBitsPerKey());
+        }
+        org.rocksdb.BlockBasedTableConfig tableConfig = new org.rocksdb.BlockBasedTableConfig();
+        if (blockCache != null) {
+            tableConfig.setBlockCache(blockCache);
+        }
+        if (bloomFilter != null) {
+            tableConfig.setFilter(bloomFilter);
+        }
+        cfOptions.setTableFormatConfig(tableConfig);
+    }
+
+    // Test visibility for the memory-control preset wiring (cross-package).
+    org.rocksdb.Cache getBlockCacheForTest() {
+        return blockCache;
+    }
+
+    org.rocksdb.WriteBufferManager getWriteBufferManagerForTest() {
+        return writeBufferManager;
+    }
+
+    org.rocksdb.Filter getBloomFilterForTest() {
+        return bloomFilter;
+    }
+
+    /** Test visibility (cross-package): live DB options for read-back assertions. */
+    DBOptions getDbOptionsForTest() {
+        return dbOptions;
+    }
+
+    /** Test visibility (cross-package): live column-family options for read-back assertions. */
+    ColumnFamilyOptions getCfOptionsForTest() {
+        return cfOptions;
+    }
 
     ColumnFamilyHandle getOrCreateColumnFamily(String stateName) {
         ColumnFamilyHandle handle = cfHandles.get(stateName);
@@ -694,13 +779,20 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     /**
-     * Background cleanup: for every TTL-enabled state, scan the sidecar for expired
+     * Background cleanup: for every TTL-enabled state, sweep the sidecar for expired
      * timestamps and delete the corresponding RocksDB entries (single-key delete for
      * scalar/list/accumulator states; prefix delete for {@code MapState}). Returns the
      * total number of expired base keys reclaimed. This is the pure-Java substitute for a
      * RocksDB compaction filter — the {@code rocksdbjni} binding does not expose a
      * pure-Java compaction-filter callback (see
      * {@code ai-dev/design/nop-stream/state-management-design.md} TTL section).
+     *
+     * <p>ST-12 (plan 369): the sidecar sweep is
+     * {@link TtlContext#sweepExpired(java.util.function.Consumer)} — a single
+     * iterator-remove pass over the live timestamp map (no full-table copy, no
+     * CME). Per key, the RocksDB delete runs BEFORE the sidecar timestamp is
+     * removed, so a failed delete keeps its timestamp and is retried by the
+     * next sweep.
      */
     public int cleanupExpiredEntries() {
         int total = 0;
@@ -713,7 +805,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                 continue;
             }
             ColumnFamilyHandle cf = ((RocksDbTtlAware) stateObj).cfHandle();
-            for (ByteBuffer baseKeyBuf : ctx.expiredKeys()) {
+            total += ctx.sweepExpired(baseKeyBuf -> {
                 byte[] baseBytes = new byte[baseKeyBuf.remaining()];
                 baseKeyBuf.duplicate().get(baseBytes);
                 if (stateObj instanceof RocksDBMapState) {
@@ -726,9 +818,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                                 .param(ARG_DETAIL, "Failed to delete expired entry during sweep");
                     }
                 }
-                ctx.removeTimestamp(baseKeyBuf);
-                total++;
-            }
+            });
         }
         return total;
     }
@@ -925,6 +1015,33 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                 errors.add(e);
             }
             db = null;
+        }
+        // Plan 369 memory-control preset handles: the db references them, so
+        // they close AFTER db (WriteBufferManager, then the cache it charges,
+        // then the table filter), each failure collected as suppressed.
+        if (writeBufferManager != null) {
+            try {
+                writeBufferManager.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            writeBufferManager = null;
+        }
+        if (blockCache != null) {
+            try {
+                blockCache.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            blockCache = null;
+        }
+        if (bloomFilter != null) {
+            try {
+                bloomFilter.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            bloomFilter = null;
         }
         if (cfOptions != null) {
             try {

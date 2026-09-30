@@ -98,16 +98,50 @@ public class MemoryOperatorStateBackend implements IOperatorStateBackend {
         operatorStates.putAll(merged);
     }
 
+    /**
+     * NEW-B (plan 369 Phase 3): union semantics, aligned with Flink's
+     * {@code RoundRobinOperatorStateRepartitioner} UNION/BROADCAST path — every
+     * non-empty old subtask snapshot contributes, and the union is restored into
+     * ALL new instances (previously only the first non-empty snapshot was kept,
+     * silently dropping divergent subtask states). Snapshot order (subtask
+     * index) is the merge order, so the result is deterministic.
+     *
+     * <p>Same-name value merge: two lists concatenate; two maps merge entries
+     * (later snapshot wins key conflicts); any other combination resolves to
+     * the later value (scalars carry no merge function). Note: this path is a
+     * backend-level semantic fix only — the 4-parameter {@code restoreState}
+     * redistribution overload has no production caller yet (same non-wiring
+     * adjudication as NEW-A), so production behavior is unchanged until
+     * operator-state redistribution is wired.
+     */
     private void restoreBroadcast(List<OperatorSnapshotResult> oldSnapshots) {
-        operatorStates.clear();
-        if (oldSnapshots != null && !oldSnapshots.isEmpty()) {
-            OperatorSnapshotResult first = oldSnapshots.stream()
-                    .filter(s -> s != null && !s.getOperatorStates().isEmpty())
-                    .findFirst().orElse(null);
-            if (first != null) {
-                operatorStates.putAll(first.getOperatorStates());
+        Map<String, Object> union = new HashMap<>();
+        if (oldSnapshots != null) {
+            for (OperatorSnapshotResult snap : oldSnapshots) {
+                if (snap == null || snap.getOperatorStates().isEmpty()) {
+                    continue;
+                }
+                for (Map.Entry<String, Object> entry : snap.getOperatorStates().entrySet()) {
+                    union.merge(entry.getKey(), entry.getValue(), MemoryOperatorStateBackend::unionBroadcastValues);
+                }
             }
         }
+        operatorStates.clear();
+        operatorStates.putAll(union);
+    }
+
+    private static Object unionBroadcastValues(Object oldValue, Object newValue) {
+        if (oldValue instanceof List && newValue instanceof List) {
+            List<Object> combined = new ArrayList<>((List<?>) oldValue);
+            combined.addAll((List<?>) newValue);
+            return combined;
+        }
+        if (oldValue instanceof Map && newValue instanceof Map) {
+            Map<Object, Object> merged = new HashMap<>((Map<?, ?>) oldValue);
+            merged.putAll((Map<?, ?>) newValue);
+            return merged;
+        }
+        return newValue;
     }
 
     private void restoreSplitDistribute(List<OperatorSnapshotResult> oldSnapshots,

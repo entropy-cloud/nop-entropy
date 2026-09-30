@@ -31,6 +31,11 @@ class MemoryMapState<UK, UV> extends AbstractMemoryState implements MapState<UK,
     }
 
     @Override
+    public Map<TypedNamespaceAndKey, ?> ttlStorage() {
+        return storage;
+    }
+
+    @Override
     public StateDescriptor<?> getMigrationDescriptor() {
         return descriptor;
     }
