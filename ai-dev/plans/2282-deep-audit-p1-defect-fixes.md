@@ -96,22 +96,22 @@ Exit Criteria:
 
 ### Workstream 3 - nop-file FILE_HASH 写入 + nop-graph TarjanSCC 修复 [G9-04-01][G11-15-01]
 
-Status: planned
+Status: completed
 Targets: nop-file 保存链路（`DaoResourceFileStore`/`NopFileStoreBizModel`/上传 bean）、`nop-graph/nop-graph-core/.../TarjanSCC.java`
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] nop-file：在文件保存/入库链路（`DaoResourceFileStore.saveFile`）计算内容 hash 并写入 FILE_HASH；hash 算法与调用范式参照 `nop-code` 的 `CodeIndexService` 既有实现（DigestHelper.sha256Hex）。**裁定（对抗审查 F-2282-1）：本计划只做"摘要落库可查询"，不实现去重复用特性**——live code 无消费 fileHash 的去重路径，新增去重属 scope 漂移（Fix）
-- [ ] nop-file：回归测试——保存文件后记录的 FILE_HASH 非空且内容变化时随之变化；同内容文件 hash 相同。测试基建声明：nop-file-dao 当前零测试且 pom 无 junit 依赖，需新增 test 依赖（junit + autotest + h2，参照 nop-retry-engine 范式）（Proof）
-- [ ] nop-graph：修复 TarjanSCC 迭代版 lowLink 合并（以 `CodeGraphService.tarjanSCC` 修复版语义为准），库版本与使用方语义收敛（Fix）
-- [ ] nop-graph：新增回归测试——用审计复核中"特定图形状"构造反例（DFS 树中存在多个子树回边的形状），断言 SCC 结果与递归定义一致；测试覆盖空图/不连通既有边界 + 自环（自环为新增用例）（Proof）
+- [x] nop-file：在文件保存/入库链路（`DaoResourceFileStore.saveFile`）计算内容 hash 并写入 FILE_HASH；hash 算法与调用范式参照 `nop-code` 的 `CodeIndexService` 既有实现（DigestHelper.sha256Hex）。**裁定（对抗审查 F-2282-1）：本计划只做"摘要落库可查询"，不实现去重复用特性**——live code 无消费 fileHash 的去重路径，新增去重属 scope 漂移（Fix）
+- [x] nop-file：回归测试——保存文件后记录的 FILE_HASH 非空且内容变化时随之变化；同内容文件 hash 相同。测试基建声明：nop-file-dao 当前零测试且 pom 无 junit 依赖，需新增 test 依赖（junit + autotest + h2，参照 nop-retry-engine 范式）（Proof）
+- [x] nop-graph：修复 TarjanSCC 迭代版 lowLink 合并（以 `CodeGraphService.tarjanSCC` 修复版语义为准），库版本与使用方语义收敛（Fix）
+- [x] nop-graph：新增回归测试——用审计复核中"特定图形状"构造反例（DFS 树中存在多个子树回边的形状），断言 SCC 结果与递归定义一致；测试覆盖空图/不连通既有边界 + 自环（自环为新增用例）（Proof）
 
 Exit Criteria:
 
-- [ ] FILE_HASH 在正常保存路径有值（测试断言）
-- [ ] TarjanSCC 新增反例测试修复前失败、修复后通过
-- [ ] `./mvnw test -pl nop-file/nop-file-dao,nop-graph/nop-graph-core -am` 全绿
-- [ ] `docs-for-ai/03-modules/reusable-modules-overview.md` 的"Hash 去重"宣称已收窄为与实际行为一致（摘要落库可查询；去重复用为后续特性）——文档同步属本 WS 交付物
+- [x] FILE_HASH 在正常保存路径有值（测试断言）
+- [x] TarjanSCC 新增反例测试修复前失败、修复后通过
+- [x] `./mvnw test -pl nop-file/nop-file-dao,nop-graph/nop-graph-core -am` 全绿
+- [x] `docs-for-ai/03-modules/reusable-modules-overview.md` 的"Hash 去重"宣称已收窄为与实际行为一致（摘要落库可查询；去重复用为后续特性）——文档同步属本 WS 交付物
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 4 - nop-code 语言 bean 接线 + nop-xlang JsPromise 错误路径 [G11-03-01][G2-10-01]

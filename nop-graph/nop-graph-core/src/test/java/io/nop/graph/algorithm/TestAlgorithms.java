@@ -1,6 +1,7 @@
 package io.nop.graph.algorithm;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,6 +103,53 @@ class TestAlgorithms {
         List<Set<String>> sccs = TarjanSCC.compute(g, nodes);
 
         assertEquals(3, sccs.size());
+    }
+
+    @Test
+    void testTarjanSCCMultipleChildrenWithBackEdge() {
+        // 反例形状（审计 2026-09-30 [G11-15-01]）：DFS 树中 v 有两个未访问子节点 a、b，
+        // 且首个子节点 a 有指回祖先 r 的回边。迭代实现若只在"扫描完所有出边、不再压入
+        // 新子节点"时才合并刚完成子树的 lowLink，a 的回边信息会被丢失，
+        // 真值 SCC {r,v,a} 被错误拆分为 {a,v} 与 {r}。
+        InMemoryGraph g = new InMemoryGraph();
+        g.addEdge("r", "v");
+        // v 的出边顺序 [a, b]：a 先于 b，保证恢复帧在扫描到 b 时触发缺陷路径
+        g.addEdge("v", "a");
+        g.addEdge("v", "b");
+        g.addEdge("a", "r");
+
+        // LinkedHashSet 固定节点迭代顺序，DFS 从 r 出发，测试完全确定
+        Set<String> nodes = new LinkedHashSet<>(List.of("r", "v", "a", "b"));
+        List<Set<String>> sccs = TarjanSCC.compute(g, nodes);
+
+        assertEquals(2, sccs.size());
+        Set<String> cycleScc = sccs.stream().filter(s -> s.size() == 3).findFirst().orElse(null);
+        assertNotNull(cycleScc, "SCC {r,v,a} must not be split");
+        assertTrue(cycleScc.contains("r"));
+        assertTrue(cycleScc.contains("v"));
+        assertTrue(cycleScc.contains("a"));
+
+        Set<String> sinkScc = sccs.stream().filter(s -> s.size() == 1).findFirst().orElse(null);
+        assertNotNull(sinkScc);
+        assertTrue(sinkScc.contains("b"));
+    }
+
+    @Test
+    void testTarjanSCCSelfLoop() {
+        InMemoryGraph g = new InMemoryGraph();
+        g.addEdge("x", "x");
+        g.addEdge("x", "y");
+
+        Set<String> nodes = new LinkedHashSet<>(List.of("x", "y"));
+        List<Set<String>> sccs = TarjanSCC.compute(g, nodes);
+
+        assertEquals(2, sccs.size());
+        for (Set<String> scc : sccs) {
+            assertEquals(1, scc.size(), "self loop forms a single-node SCC");
+        }
+        Set<String> selfLoopScc = sccs.stream().filter(s -> s.contains("x")).findFirst().orElse(null);
+        assertNotNull(selfLoopScc);
+        assertEquals(1, selfLoopScc.size());
     }
 
     // ==================== TopologicalSort Tests ====================

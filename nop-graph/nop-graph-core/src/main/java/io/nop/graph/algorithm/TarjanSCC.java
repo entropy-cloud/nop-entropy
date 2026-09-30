@@ -75,6 +75,18 @@ public final class TarjanSCC {
             }
 
             List<Edge> outEdges = graph.getOutEdges(v);
+
+            // propagate lowLink from the child subtree that just completed before scanning
+            // further neighbors; otherwise only the last child's lowLink would be merged and
+            // an SCC whose first child has a back edge to an ancestor would be split
+            // (audit 2026-09-30 [G11-15-01], aligned with CodeGraphService.tarjanSCC)
+            if (returning && edgeIdx > 0 && edgeIdx - 1 < outEdges.size()) {
+                String w = outEdges.get(edgeIdx - 1).getTargetId();
+                if (lowLink.containsKey(w)) {
+                    lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
+                }
+            }
+
             boolean pushedChild = false;
 
             for (int i = edgeIdx; i < outEdges.size(); i++) {
@@ -90,13 +102,6 @@ public final class TarjanSCC {
             }
 
             if (!pushedChild) {
-                if (returning && edgeIdx > 0 && edgeIdx - 1 < outEdges.size()) {
-                    String w = outEdges.get(edgeIdx - 1).getTargetId();
-                    if (lowLink.containsKey(w)) {
-                        lowLink.put(v, Math.min(lowLink.get(v), lowLink.get(w)));
-                    }
-                }
-
                 if (lowLink.get(v).equals(index.get(v))) {
                     Set<String> scc = new LinkedHashSet<>();
                     String w;

@@ -16,7 +16,7 @@ Nop 平台内置了大量开箱即用的业务模块。在应用项目中**不�
 | [nop-job](nop-job.md) | 分布式定时任务调度，CRON/固定频率/一次性触发 | Yes | Yes | nop-service-framework |
 | [nop-ai](nop-ai.md) | AI 集成，LLM Chat、Prompt 管理、Agent、RAG、MCP | Yes | Yes | nop-service-framework |
 | [nop-dyn](nop-dyn.md) | 动态表单/实体，运行时定义业务模型 | Yes | Yes | nop-service-framework |
-| [nop-file](nop-file.md) | 文件上传/下载/管理，Hash 去重 | Yes | Yes | nop-service-framework |
+| [nop-file](nop-file.md) | 文件上传/下载/管理，文件 SHA-256 摘要落库 | Yes | Yes | nop-service-framework |
 | [nop-retry](nop-retry.md) | 分布式重试引擎，可配置退避策略 | Yes | Yes | nop-service-framework |
 | [nop-tcc](nop-tcc.md) | TCC 分布式事务协调器 | Yes | Yes | nop-service-framework |
 | [nop-code](nop-code.md) | 多语言代码索引与智能分析 | Yes | Yes | nop-service-framework |
@@ -55,7 +55,7 @@ Nop 平台内置了大量开箱即用的业务模块。在应用项目中**不�
 | 定时任务 | **nop-job** | CRON 表达式，协调器/工作者架构 |
 | 失败重试 | **nop-retry** | 固定间隔/指数退避，命名空间隔离 |
 | 分布式事务 | **nop-tcc** | TCC 模式，分支事务管理 |
-| 文件上传/下载 | **nop-file** | Hash 去重、业务对象关联 |
+| 文件上传/下载 | **nop-file** | 文件 SHA-256 摘要落库可查询、业务对象关联（上传级 Hash 去重复用为后续特性，当前未实现） |
 | AI/大模型集成 | **nop-ai** | Prompt 模板、Agent、RAG、MCP Server |
 | 动态表单/低代码 | **nop-dyn** | 运行时定义实体/页面/SQL |
 | 消息队列集成 | **nop-message** | Kafka/Pulsar 适配 |

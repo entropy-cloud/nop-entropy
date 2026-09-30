@@ -1,0 +1,12 @@
+nop:
+  debug: true
+  file:
+    store-dir: target/file-store-test
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:test
+    username: sa
+    password:
+
+  orm:
+    init-database-schema: true
