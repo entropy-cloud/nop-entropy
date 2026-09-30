@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.elector.AbstractPollingLeaderElector;
 import io.nop.cluster.elector.LeaderEpoch;
@@ -22,6 +23,11 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
+import io.nop.stream.core.exceptions.StreamException;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ATTEMPTS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_LEADER_EPOCH_ALLOC_FAILED;
 
 /**
  * Stage 46: a production {@link io.nop.cluster.elector.ILeaderElector} backed by a JDBC
@@ -50,6 +56,20 @@ import io.nop.dataset.IDataSet;
  *       ({@code leaderEpochValue * EPOCH_SCALE + recoveryGen}).</li>
  * </ul>
  *
+ * <p><strong>Epoch monotonicity across lease-row loss</strong> (plan 369 Phase 4,
+ * R5-CC-15): the epoch granted when the lease row is MISSING is allocated from a
+ * dedicated persistent counter row (table {@code <leaseTable>_epoch_counter},
+ * keyed by {@code cluster_id}) that is <em>independent of the lease row and never
+ * cleaned up</em> — deleting the lease row (external ops, a wiped table) can no
+ * longer roll the fencing epoch back to a constant. The grant is a
+ * read-and-increment inside a transaction with an optimistic compare-and-set
+ * on the counter value, so concurrent takeovers serialize: each successful
+ * grant consumes a distinct, strictly increasing value. The lease-row-exists
+ * paths (takeover / restartElection) keep their original optimistic
+ * {@code leader_epoch = old + 1} UPDATE mechanism and, after winning, advance
+ * the counter row past the granted epoch so the counter never lags behind any
+ * epoch ever written to the lease row.
+ *
  * <p>Timestamps are stored as {@code BIGINT} epoch-millis (not {@code TIMESTAMP}) to
  * stay dialect-portable across H2/MySQL/Postgres and to avoid per-dialect timestamp
  * arithmetic.
@@ -61,11 +81,21 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
 
     private static final String DEFAULT_QUERY_SPACE = "default";
 
+    /**
+     * Bounded retry budget for the optimistic epoch-counter allocation. Each
+     * attempt is a short transaction; exhaustion means an implausible number of
+     * concurrent takeovers on one cluster id, surfaced as a typed error rather
+     * than an unbounded loop.
+     */
+    private static final int EPOCH_ALLOC_MAX_ATTEMPTS = 32;
+
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
     private final String leaseTable;
+    private final String epochCounterTable;
 
     private volatile boolean tableInitialized = false;
+    private volatile boolean counterTableInitialized = false;
 
     public JdbcLeaderElector(IJdbcTemplate jdbcTemplate) {
         this(jdbcTemplate, DEFAULT_QUERY_SPACE, "nop_stream_leader");
@@ -75,6 +105,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
         this.jdbcTemplate = jdbcTemplate;
         this.querySpace = querySpace != null ? querySpace : DEFAULT_QUERY_SPACE;
         this.leaseTable = leaseTable != null ? leaseTable : "nop_stream_leader";
+        this.epochCounterTable = this.leaseTable + "_epoch_counter";
     }
 
     // ==================== Lifecycle ====================
@@ -137,6 +168,9 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
                 if (affected > 0) {
                     LOG.info("nop.stream.leader-elector.restart: clusterId={} epoch {} -> {}",
                             getClusterId(), row.leaderEpoch, nextEpoch);
+                    // CC-15: keep the counter row ahead of every epoch written to
+                    // the lease row so a later lease-row loss cannot re-grant it.
+                    advanceCounterPast(nextEpoch);
                     return;
                 }
             }
@@ -228,7 +262,12 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
         }
         long now = CoreMetrics.currentTimeMillis();
         long expireAt = now + getLeaseMs();
-        long epoch = 1L;
+        // CC-15 (plan 369 Phase 4): the epoch comes from the dedicated counter
+        // row, NOT a hardcoded constant — deleting the lease row can never roll
+        // fencing back. An allocation failure (DB down, retry budget exhausted)
+        // propagates to checkElection's containment: logged + retried on the
+        // next poll; it is never swallowed as "another node raced and won".
+        long epoch = allocateNextEpoch();
         SQL sql = SQL.begin().name("tryBecomeLeader").querySpace(querySpace)
                 .sql("INSERT INTO " + leaseTable + " (cluster_id, leader_id, leader_addr, leader_epoch, "
                                 + "expire_at, refresh_at, elect_at, app_name) VALUES (?,?,?,?,?,?,?,?)",
@@ -242,9 +281,111 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
             onElectionCompleted(leaderEpoch);
         } catch (Exception e) {
             // Duplicate key or constraint violation — another node raced and won.
-            // Safe to ignore; the next poll re-evaluates.
+            // Safe to ignore; the next poll re-evaluates. The consumed counter
+            // value is simply skipped (gaps preserve monotonicity).
             LOG.debug("nop.stream.leader-elector.become-leader-fail: clusterId={}", getClusterId(), e);
         }
+    }
+
+    /**
+     * Allocates the next strictly-monotonic leader epoch from the persistent
+     * counter row — the CC-15 monotonic source that survives lease-row loss.
+     *
+     * <p>Each grant is a read-and-increment transaction with an optimistic CAS
+     * ({@code UPDATE ... SET next_epoch = current + 1 WHERE next_epoch = current}):
+     * under any isolation level ≥ READ COMMITTED, a racing contender's CAS
+     * affects 0 rows and retries against the refreshed value, so every
+     * <em>successful</em> grant consumes a distinct, strictly increasing value.
+     * A missing counter row (fresh table, or legacy deployment that never ran
+     * this version) is seeded at 1, matching the historical first-grant epoch.
+     *
+     * <p>Throws a typed {@link StreamException} when the bounded retry budget
+     * is exhausted — never falls back to a constant epoch (that would be the
+     * CC-15 rollback this method exists to prevent).
+     */
+    private long allocateNextEpoch() {
+        ensureEpochCounterTable();
+        for (int attempt = 1; attempt <= EPOCH_ALLOC_MAX_ATTEMPTS; attempt++) {
+            Long allocated = jdbcTemplate.txn()
+                    .runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
+                        Long current = readEpochCounter();
+                        if (current == null) {
+                            // Seed the counter row. If another elector seeded it
+                            // first, the duplicate-key failure retries the outer
+                            // loop against the winner's row.
+                            SQL seed = SQL.begin().name("seedEpochCounter").querySpace(querySpace)
+                                    .sql("INSERT INTO " + epochCounterTable
+                                                    + " (cluster_id, next_epoch) VALUES (?,?)",
+                                            getClusterId(), 1L)
+                                    .end();
+                            try {
+                                jdbcTemplate.executeUpdate(seed);
+                            } catch (Exception e) {
+                                LOG.debug("nop.stream.leader-elector.epoch-counter-seed-raced: clusterId={}",
+                                        getClusterId(), e);
+                                return null;
+                            }
+                            return 1L;
+                        }
+                        long next = current + 1;
+                        SQL cas = SQL.begin().name("bumpEpochCounter").querySpace(querySpace)
+                                .sql("UPDATE " + epochCounterTable + " SET next_epoch = ? "
+                                                + "WHERE cluster_id = ? AND next_epoch = ?",
+                                        next, getClusterId(), current)
+                                .end();
+                        if (jdbcTemplate.executeUpdate(cas) == 0) {
+                            // Another takeover consumed this counter value first.
+                            return null;
+                        }
+                        return next;
+                    });
+            if (allocated != null) {
+                return allocated;
+            }
+        }
+        throw new StreamException(ERR_STREAM_LEADER_EPOCH_ALLOC_FAILED)
+                .param(ARG_ATTEMPTS, EPOCH_ALLOC_MAX_ATTEMPTS)
+                .param(ARG_DETAIL, "clusterId=" + getClusterId());
+    }
+
+    /**
+     * Advances the counter row past {@code grantedEpoch} (counter becomes
+     * {@code grantedEpoch + 1}) without ever decreasing it. Used by the
+     * lease-row-exists grant paths (whose epoch mechanism stays
+     * {@code old + 1} on the lease row) so the counter never lags behind an
+     * epoch already written to the lease row — otherwise a later lease-row
+     * deletion could still re-grant a historical value (CC-15). Single-statement
+     * and idempotent; safe to run outside an explicit transaction.
+     */
+    private void advanceCounterPast(long grantedEpoch) {
+        try {
+            ensureEpochCounterTable();
+            SQL sql = SQL.begin().name("advanceEpochCounter").querySpace(querySpace)
+                    .sql("UPDATE " + epochCounterTable + " SET next_epoch = ? "
+                                    + "WHERE cluster_id = ? AND next_epoch < ?",
+                            grantedEpoch + 1, getClusterId(), grantedEpoch + 1)
+                    .end();
+            jdbcTemplate.executeUpdate(sql);
+        } catch (Exception e) {
+            // Observable WARN, not fatal: the lease row was already won. A missed
+            // sync only matters if the lease row is later deleted while the
+            // counter still lags, and the next successful grant re-syncs.
+            LOG.warn("nop.stream.leader-elector.advance-counter-fail: clusterId={} grantedEpoch={}",
+                    getClusterId(), grantedEpoch, e);
+        }
+    }
+
+    private Long readEpochCounter() {
+        SQL sql = SQL.begin().name("readEpochCounter").querySpace(querySpace)
+                .sql("SELECT next_epoch FROM " + epochCounterTable + " WHERE cluster_id = ?", getClusterId())
+                .end();
+        Long value = jdbcTemplate.executeQuery(sql, dataSet -> {
+            for (IDataRow row : dataSet) {
+                return getLong(row, 0);
+            }
+            return null;
+        });
+        return value;
     }
 
     private boolean changeLeader(LeaseRow row, long now) {
@@ -265,6 +406,10 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
                     getClusterId(), row.leaderEpoch, nextEpoch);
             return false;
         }
+        // CC-15: the takeover grant stays the optimistic old+1 lease-row UPDATE,
+        // but the counter row must not lag behind the granted epoch — otherwise
+        // a later lease-row deletion could re-grant this value from the counter.
+        advanceCounterPast(nextEpoch);
         LeaderEpoch leaderEpoch = new LeaderEpoch(getHostId(), nextEpoch, new Timestamp(expireAt));
         onBecomeLeader(leaderEpoch);
         onElectionCompleted(leaderEpoch);
@@ -275,6 +420,7 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
 
     private void ensureLeaseTable() {
         if (tableInitialized) {
+            ensureEpochCounterTable();
             return;
         }
         String ddl = "CREATE TABLE IF NOT EXISTS " + leaseTable + " (" +
@@ -298,6 +444,35 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
             // don't retry DDL every poll; the next query will surface a real problem.
             tableInitialized = true;
             LOG.debug("Leader lease table creation skipped (likely already exists): {}", leaseTable, e);
+        }
+        ensureEpochCounterTable();
+    }
+
+    /**
+     * Creates the CC-15 epoch-counter table — the persistent monotonic epoch
+     * source that is independent of the lease row. The row is NEVER cleaned up
+     * (no delete path in this class): wiping it would reintroduce the fencing
+     * rollback CC-15 exists to prevent. Best-effort DDL with the same
+     * concurrent-creation tolerance as {@link #ensureLeaseTable()}.
+     */
+    private void ensureEpochCounterTable() {
+        if (counterTableInitialized) {
+            return;
+        }
+        String ddl = "CREATE TABLE IF NOT EXISTS " + epochCounterTable + " (" +
+                "cluster_id VARCHAR(200) NOT NULL, " +
+                "next_epoch BIGINT NOT NULL, " +
+                "PRIMARY KEY (cluster_id)" +
+                ")";
+        try {
+            SQL sql = SQL.begin().name("createEpochCounterTable").querySpace(querySpace).sql(ddl).end();
+            jdbcTemplate.executeUpdate(sql);
+            counterTableInitialized = true;
+            LOG.info("Created leader epoch counter table {}", epochCounterTable);
+        } catch (Exception e) {
+            counterTableInitialized = true;
+            LOG.debug("Leader epoch counter table creation skipped (likely already exists): {}",
+                    epochCounterTable, e);
         }
     }
 

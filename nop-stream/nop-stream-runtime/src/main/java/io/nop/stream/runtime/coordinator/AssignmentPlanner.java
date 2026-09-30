@@ -218,6 +218,18 @@ class AssignmentPlanner {
      * recovery between unlock and dispatch) is rejected at the data plane.
      */
     void executeAssignmentFanOut(List<AssignmentDispatch> dispatches) {
+        executeAssignmentFanOut(dispatches, null);
+    }
+
+    /**
+     * R5-CC-07 (plan 369 Phase 4): variant of
+     * {@link #executeAssignmentFanOut(List)} that reports every per-dispatch
+     * transport failure to the coordinator's deploy-failure record point (the
+     * deployment grace period's observability hook). The failure is still
+     * contained per dispatch exactly as before — one unreachable TaskManager
+     * must not abort the remaining fan-out.
+     */
+    void executeAssignmentFanOut(List<AssignmentDispatch> dispatches, DeployFailureListener failureListener) {
         for (AssignmentDispatch d : dispatches) {
             // Per-dispatch containment (mirrors triggerCheckpoint/sendBarrierToAllTaskManagers):
             // one unreachable TaskManager must not abort the remaining fan-out and
@@ -235,8 +247,21 @@ class AssignmentPlanner {
                                 ? d.descriptor.getVertexId() + "/" + d.descriptor.getSubtaskIndex()
                                 : d.taskAssignment.getVertexId() + "/" + d.taskAssignment.getSubtaskIndex(),
                         d.epoch, e);
+                if (failureListener != null) {
+                    failureListener.onDeployTransportFailure(
+                            d.taskAssignment.getVertexId(), d.taskAssignment.getSubtaskIndex(), e);
+                }
             }
         }
+    }
+
+    /**
+     * R5-CC-07: receives one deploy/assignment RPC that failed at the transport
+     * level, so the coordinator can record the deployment failure (grace-period
+     * diagnostics).
+     */
+    interface DeployFailureListener {
+        void onDeployTransportFailure(String vertexId, int subtaskIndex, Throwable cause);
     }
 
     /**

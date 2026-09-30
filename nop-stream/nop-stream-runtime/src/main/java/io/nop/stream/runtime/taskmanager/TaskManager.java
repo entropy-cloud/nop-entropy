@@ -17,8 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -85,6 +87,14 @@ public class TaskManager implements IStreamTaskRpcService {
     private static final long DEFAULT_LEASE_TIMEOUT_MS = 15000L;
 
     /**
+     * Default capacity of the dedicated 2PC commit executor's wait queue
+     * (plan 369 Phase 4, R5-CC-10). Generous for any realistic task count x
+     * checkpoint backlog, but bounded: a pathologically slow commit can no
+     * longer grow the queue without limit.
+     */
+    public static final int DEFAULT_COMMIT_QUEUE_CAPACITY = 1000;
+
+    /**
      * Wait budget for the coordinator to install a task's invokable after the
      * assignment slot is created. Package-private and volatile so focused tests
      * can shorten it (the production default stays 30s).
@@ -107,7 +117,9 @@ public class TaskManager implements IStreamTaskRpcService {
 
     private final ExecutorService taskExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
-    private final ExecutorService commitExecutor;
+    private final ThreadPoolExecutor commitExecutor;
+    /** Wait-queue capacity of {@link #commitExecutor} (R5-CC-10 upper bound). */
+    private final int commitQueueCapacity;
 
     /** taskKey (jobId/vertexId/subtaskIndex) → RunningTask */
     final ConcurrentHashMap<String, RunningTask> runningTasks;
@@ -154,10 +166,35 @@ public class TaskManager implements IStreamTaskRpcService {
                        String controlTopic,
                        long heartbeatIntervalMs,
                        long leaseTimeoutMs) {
+        this(nodeId, endpoint, capacity, messageService, clusterRegistry, controlTopic,
+                heartbeatIntervalMs, leaseTimeoutMs, DEFAULT_COMMIT_QUEUE_CAPACITY);
+    }
+
+    /**
+     * Full constructor with an explicit commit-queue capacity
+     * (plan 369 Phase 4, R5-CC-10). A non-positive capacity fails fast.
+     *
+     * @param commitQueueCapacity upper bound of the 2PC commit executor's wait
+     *                            queue; overflow falls back to caller-runs
+     *                            (see {@link #notifyCheckpointComplete})
+     */
+    public TaskManager(String nodeId,
+                       String endpoint,
+                       int capacity,
+                       IMessageService messageService,
+                       ClusterRegistry clusterRegistry,
+                       String controlTopic,
+                       long heartbeatIntervalMs,
+                       long leaseTimeoutMs,
+                       int commitQueueCapacity) {
         if (heartbeatIntervalMs <= 0 || leaseTimeoutMs <= 0) {
             throw new StreamException(ERR_STREAM_INVALID_ARG)
                     .param(ARG_DETAIL, "heartbeatIntervalMs and leaseTimeoutMs must be positive (got "
                             + heartbeatIntervalMs + "/" + leaseTimeoutMs + ")");
+        }
+        if (commitQueueCapacity <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "commitQueueCapacity must be positive (got " + commitQueueCapacity + ")");
         }
         this.nodeId = nodeId;
         this.endpoint = endpoint;
@@ -177,8 +214,18 @@ public class TaskManager implements IStreamTaskRpcService {
         // stalls heartbeat, assignment and ACK dispatch for the whole node).
         // Single thread keeps commit ordering per task (subsuming semantics make
         // order benign, but serial execution preserves it anyway).
-        this.commitExecutor = Executors.newSingleThreadExecutor(
-                NopStreamThreadFactory.named("tm-commit-" + nodeId));
+        //
+        // R5-CC-10 (plan 369 Phase 4): the wait queue is BOUNDED. When the
+        // single commit thread cannot keep up, the queue can no longer grow
+        // without limit; see the saturation policy on
+        // notifyCheckpointComplete for the caller-runs fallback and
+        // why it was chosen over aborting the notification.
+        this.commitQueueCapacity = commitQueueCapacity;
+        this.commitExecutor = new ThreadPoolExecutor(
+                1, 1, 0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(commitQueueCapacity),
+                NopStreamThreadFactory.named("tm-commit-" + nodeId),
+                this::saturatedCommitQueuePolicy);
         this.runningTasks = new ConcurrentHashMap<>();
         this.completedTasks = new ConcurrentHashMap<>();
         this.currentFencingEpoch = new AtomicLong(0L);
@@ -188,6 +235,35 @@ public class TaskManager implements IStreamTaskRpcService {
         // Per-node meters on the real
         // deploy/cancel/failure paths.
         this.nodeMetrics = io.nop.stream.runtime.metrics.TaskNodeMetrics.forNode(nodeId);
+    }
+
+    /**
+     * R5-CC-10 saturation policy for the commit executor: CallerRuns with an
+     * observable counter (no dropped commit notifications).
+     *
+     * <p><strong>Choice record (plan 369 F-16)</strong>: of the two candidates —
+     * (a) CallerRuns and (b) Abort + typed exception — CallerRuns was chosen.
+     * The commit chain is the exactly-once tail: a dropped
+     * {@code notifyCheckpointComplete} is only healed by the NEXT epoch's
+     * subsuming commit or a restore-time re-commit, so for the last checkpoint
+     * of a bounded job an abort would stall the tail commit indefinitely.
+     * CallerRuns applies natural backpressure instead and never loses a
+     * notification. The critical-thread concern was checked: the callers of
+     * {@link #notifyCheckpointComplete} are the TM-side control-topic dispatch
+     * thread / coordinator commit forwarder — NOT the checkpoint monitor; the
+     * fallback delays at most ONE commit per saturated notify call on that
+     * thread, and only while the commit thread is already saturated. The
+     * fallback fires are counted ({@code nop.stream.task.commitCallerRuns.total})
+     * so sustained saturation is observable.
+     */
+    private void saturatedCommitQueuePolicy(Runnable r, java.util.concurrent.ThreadPoolExecutor executor) {
+        nodeMetrics.commitCallerRun();
+        LOG.warn("Commit executor queue saturated on node {} (capacity={}); running the commit "
+                        + "on the caller thread (CallerRuns backpressure, R5-CC-10)",
+                nodeId, commitQueueCapacity);
+        if (!executor.isShutdown()) {
+            r.run();
+        }
     }
 
     // ==================== Lifecycle ====================
@@ -209,6 +285,11 @@ public class TaskManager implements IStreamTaskRpcService {
         io.nop.stream.runtime.metrics.TaskNodeMetrics.registerRunningGauge(
                 io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
                 nodeId, this::getRunningTaskCount);
+
+        // R5-CC-10 backlog gauge: live depth of the commit executor's wait queue.
+        io.nop.stream.runtime.metrics.TaskNodeMetrics.registerCommitQueueDepthGauge(
+                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                nodeId, this::commitQueueDepth);
 
         heartbeatExecutor.scheduleAtFixedRate(
                 this::heartbeat,
@@ -770,6 +851,17 @@ public class TaskManager implements IStreamTaskRpcService {
      * notification ({@code finishCommit(M)} commits every {@code eid <= M}), and
      * the sink restore path re-commits durable-but-uncommitted transactions on
      * recovery redeploy, so exactly-once holds under lost notifications.
+     *
+     * <p><strong>Queue saturation (R5-CC-10)</strong>: commits are dispatched to
+     * the dedicated single-thread commit executor whose wait queue is bounded by
+     * {@code commitQueueCapacity}. When the queue is full, the commit falls back
+     * to the CALLER's thread (CallerRuns): the notification is never dropped —
+     * dropping it would defer the 2PC commit to the next epoch's subsuming
+     * commit (or a restore-time re-commit), which stalls the bounded-job tail —
+     * and the caller-side execution applies natural backpressure to the
+     * coordinator's commit forwarder. Fallbacks are counted on
+     * {@code nop.stream.task.commitCallerRuns.total} and logged; see
+     * {@link #saturatedCommitQueuePolicy} for the recorded choice.
      */
     @Override
     public void notifyCheckpointComplete(long checkpointId, long fencingEpoch) {
@@ -789,6 +881,20 @@ public class TaskManager implements IStreamTaskRpcService {
             // thread must stay responsive; finishCommit blocks on JDBC/file I/O.
             commitExecutor.execute(() -> task.notifyCheckpointComplete(checkpointId));
         }
+    }
+
+    /**
+     * Current wait-queue depth of the dedicated 2PC commit executor
+     * (R5-CC-10 backlog visibility; also backs the
+     * {@code nop.stream.task.commitQueueDepth} gauge).
+     */
+    int commitQueueDepth() {
+        return commitExecutor.getQueue().size();
+    }
+
+    /** Configured commit-queue capacity (R5-CC-10 upper bound). */
+    int commitQueueCapacity() {
+        return commitQueueCapacity;
     }
 
     /**

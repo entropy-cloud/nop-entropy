@@ -15,12 +15,60 @@ import io.nop.api.core.annotations.core.Internal;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 
+/**
+ * Task-side control-plane RPC surface: the calls a JobCoordinator issues to a
+ * TaskManager (assignment/deploy, checkpoint trigger, cancel, fencing-token
+ * push, 2PC commit notification).
+ *
+ * <p><strong>Timeout / retry contract</strong> (plan 369 Phase 4; the doc-first
+ * half of R5-CC-17, per {@code ai-dev/analysis/nop-stream/09c-flink2.3-compare-network-execution-orchestration.md}
+ * §5.3-2): every method here is a <em>one-way, fire-and-forget</em> control
+ * message carried by {@link io.nop.api.core.message.IMessageService}. There is
+ * NO application-level response, NO built-in RPC timeout and NO automatic
+ * retry at this interface — boundedness of the underlying send is the
+ * transport backend's responsibility (a backend whose send can block
+ * indefinitely violates this contract). Loss or silent drop of any single
+ * message must be tolerable; the safety net for each call is:
+ * <ul>
+ *   <li>{@link #receiveAssignment} / {@link #deployTask}: rejection or loss is
+ *       recovered by the coordinator's deployment grace period (R5-CC-07,
+ *       {@code JobCoordinator.detectFailures}) re-triggering global recovery;
+ *       TM-side rejections additionally report a FAILED {@code TaskStatusReport}
+ *       because the one-way RPC cannot carry the exception back.</li>
+ *   <li>{@link #triggerCheckpoint}: loss is healed by the checkpoint timeout —
+ *       the epoch is aborted (pending checkpoint abort) and the next periodic
+ *       trigger proceeds.</li>
+ *   <li>{@link #cancelTask}: loss is healed by fencing-epoch rotation — the
+ *       next recovery/leadership switch invalidates the missed generation.</li>
+ *   <li>{@link #updateFencingToken}: loss is healed by the next epoch push;
+ *       the stale node's control calls are rejected on fencing mismatch until
+ *       then.</li>
+ *   <li>{@link #notifyCheckpointComplete}: loss is healed by the NEXT epoch's
+ *       subsuming commit ({@code finishCommit(M)} commits every
+ *       {@code eid <= M}) and by the sink restore path's re-commit of
+ *       durable-but-uncommitted transactions.</li>
+ * </ul>
+ *
+ * <p>Implementations must not block unboundedly on the calling thread and must
+ * surface failures observably (log or metric), never silently swallow them.
+ * The mirror coordinator-side surface is {@link IStreamCoordinatorRpcService}.
+ */
 @Internal
 public interface IStreamTaskRpcService {
 
+    /**
+     * One-way assignment delivery (in-process mode). Loss is healed by the
+     * deployment grace period (R5-CC-07) re-triggering recovery; a rejecting
+     * TaskManager reports a FAILED {@code TaskStatusReport} so the rejection is
+     * observable coordinator-side (the RPC itself cannot return it).
+     */
     void receiveAssignment(TaskAssignment assignment);
 
     /**
+     * One-way checkpoint barrier injection. Loss is healed by the checkpoint
+     * timeout aborting the epoch; the next periodic trigger proceeds on the
+     * stable task set.
+     *
      * @param fencingEpoch monotonic fencing epoch (Stage 39: long, replaces composite String)
      */
     void triggerCheckpoint(CheckpointBarrier barrier, long fencingEpoch);
@@ -31,6 +79,9 @@ public interface IStreamTaskRpcService {
      * mutating entry: a stale coordinator (old leader / old recovery
      * generation) must not be able to cancel an active generation's task.
      *
+     * <p>One-way; loss is healed by fencing-epoch rotation at the next
+     * recovery/leadership switch.
+     *
      * @param fencingEpoch the monotonic fencing epoch of the coordinator issuing the cancel;
      *                     a mismatch against the TaskManager's active epoch is rejected
      *                     fail-fast with {@code ERR_STREAM_FENCING_TOKEN_MISMATCH}
@@ -39,6 +90,8 @@ public interface IStreamTaskRpcService {
 
     /**
      * Stage 39: pushes the rotated monotonic fencing epoch to the task side.
+     * One-way; a lost push leaves the target on its stale token until the next
+     * rotation (its control calls are fencing-rejected in the meantime).
      *
      * @param fencingEpoch the new monotonic fencing epoch
      */
@@ -64,6 +117,14 @@ public interface IStreamTaskRpcService {
      * doubles of this interface compile unchanged (they never receive
      * {@code deployTask} calls in the in-process / legacy path). The real
      * implementation lives in {@link io.nop.stream.runtime.taskmanager.TaskManager#deployTask}.
+     *
+     * <p><strong>No silent skip</strong> applies to the IMPLEMENTATION (see
+     * {@link io.nop.stream.runtime.taskmanager.TaskManager#deployTask}): the RPC
+     * is one-way, so a rejection thrown here never reaches the coordinator —
+     * the implementation must report a FAILED {@code TaskStatusReport} instead.
+     * A transport-LOST deploy (this call never arrives at all) has no reporter;
+     * it is healed by the coordinator's deployment grace period (R5-CC-07)
+     * re-triggering recovery.
      *
      * @param descriptor   the serializable deployment descriptor
      * @param fencingEpoch the monotonic fencing epoch the deployment is valid under

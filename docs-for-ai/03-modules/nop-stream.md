@@ -43,6 +43,8 @@
 | `nop.stream.task.failures.total` | counter | nodeId | 该节点任务失败数（部署失败 + 运行失败终态） |
 | `nop.stream.task.running` | gauge | nodeId | 该节点当前在跑任务数（不含已完成；plan 358 起 gauge 随 TaskManager.stop 释放，节点重启后注册新 supplier） |
 | `nop.stream.task.ackSendFailures.total` | counter | nodeId | checkpoint ACK 有限重试（3 次）耗尽后的失败数（plan 358 Fix-6；超时 abort 兜底仍存在） |
+| `nop.stream.task.commitQueueDepth` | gauge | nodeId | 2PC commit 专用执行器等待队列当前深度（plan 369 Phase 4 R5-CC-10 有界队列积压观测；随 TaskManager.stop 释放） |
+| `nop.stream.task.commitCallerRuns.total` | counter | nodeId | commit 队列打满后回退调用方线程执行（CallerRuns，不丢通知）的次数（plan 369 Phase 4 R5-CC-10 饱和打点） |
 
 **operator 层（算子）** — 更新点：StreamTaskInvokable 数据面热路径（LOCAL 与 REMOTE 两条执行路径均注入）
 

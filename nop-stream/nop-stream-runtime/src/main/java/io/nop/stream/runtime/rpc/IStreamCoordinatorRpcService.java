@@ -17,9 +17,46 @@ import io.nop.stream.runtime.coordinator.TaskProgress;
 import io.nop.stream.runtime.coordinator.TaskStatusReport;
 import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
 
+/**
+ * Coordinator-side control-plane RPC surface: the calls TaskManagers issue back
+ * to the JobCoordinator (checkpoint ACKs, terminal reports, liveness) plus the
+ * job-control entries (terminate / abort / status).
+ *
+ * <p><strong>Timeout / retry contract</strong> (plan 369 Phase 4; the doc-first
+ * half of R5-CC-17, per {@code ai-dev/analysis/nop-stream/09c-flink2.3-compare-network-execution-orchestration.md}
+ * §5.3-2): all entries are <em>one-way</em> control messages carried by
+ * {@link io.nop.api.core.message.IMessageService} — no application-level
+ * response, no built-in RPC timeout, no automatic retry at this interface.
+ * Boundedness of any individual send is the transport backend's responsibility
+ * (an unboundedly blocking send violates this contract). Loss tolerance per
+ * entry:
+ * <ul>
+ *   <li>{@link #receiveCheckpointAck}: the sender retries transient failures
+ *       inline with a bounded budget ({@code TaskManager.sendCheckpointAck});
+ *       exhaustion is counted and the coordinator-side checkpoint timeout abort
+ *       remains the subsuming safety net.</li>
+ *   <li>{@link #reportTaskStatus}: loss means the coordinator learns of the
+ *       failure later, via liveness aging ({@code taskTimeout}) or node-lease
+ *       expiry — both re-trigger the same recovery.</li>
+ *   <li>{@link #reportNodeTaskLiveness}: loss merely ages the affected
+ *       timestamps; the next heartbeat beat (5s cadence) re-reports.</li>
+ *   <li>{@link #terminate} / {@link #abortCheckpoint} / {@link #getJobStatus}:
+ *       job-control entries; {@code getJobStatus} is the only read-style call
+ *       and returns a value in-band — callers reaching it over RPC own any
+ *       retry they need.</li>
+ * </ul>
+ *
+ * <p>Implementations must surface failures observably (log or metric), never
+ * silently swallow them. The mirror task-side surface is
+ * {@link IStreamTaskRpcService}.
+ */
 @Internal
 public interface IStreamCoordinatorRpcService {
 
+    /**
+     * One-way checkpoint ACK delivery (see the bounded sender-side retry on
+     * {@code TaskManager.sendCheckpointAck}; checkpoint timeout = safety net).
+     */
     void receiveCheckpointAck(CheckpointAckMessage ack);
 
     /**

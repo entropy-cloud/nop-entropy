@@ -332,6 +332,21 @@ public interface NopStreamErrors {
                     "Fencing token mismatch: expected={expectedToken}, actual={actualToken}",
                     ARG_EXPECTED_TOKEN, ARG_ACTUAL_TOKEN);
 
+    String ARG_ATTEMPTS = "attempts";
+
+    /**
+     * Plan 369 Phase 4 (R5-CC-15): the JDBC leader elector failed to allocate a
+     * monotonic leader epoch from the persistent epoch-counter row after the
+     * bounded optimistic-concurrency retry budget was exhausted. The elector
+     * surfaces this loudly instead of falling back to a constant epoch, which
+     * would roll fencing back after a lease-row loss.
+     */
+    ErrorCode ERR_STREAM_LEADER_EPOCH_ALLOC_FAILED =
+            define("nop.err.stream.leader-epoch-alloc-failed",
+                    "Failed to allocate a monotonic leader epoch after {attempts} attempts "
+                            + "(concurrent takeovers keep racing the epoch counter): {detail}",
+                    ARG_ATTEMPTS, ARG_DETAIL);
+
     String ARG_CHECKPOINT_VERTEX_IDS = "checkpointVertexIds";
     String ARG_CURRENT_VERTEX_IDS = "currentVertexIds";
     String ARG_MISSING_VERTEX_IDS = "missingVertexIds";
@@ -371,6 +386,29 @@ public interface NopStreamErrors {
                             + "in-flight data cannot be redistributed across the new parallelism. "
                             + "vertex={vertexId}, oldParallelism={oldParallelism}, newParallelism={newParallelism}. "
                             + "Recover from an aligned checkpoint instead.",
+                    ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
+
+    /**
+     * Operator-state rescale interaction (plan 369 NEW-A): a scale-up rescale
+     * restore (newParallelism &gt; oldParallelism) detected that at least one old
+     * subtask carries a non-empty operator (non-keyed) state. Operator state has
+     * no cross-parallelism redistribution wiring in the execution path (explicit
+     * adjudication — see {@code state-management-design.md} §10.4), so the prior
+     * behavior silently left every added subtask's operator state empty (e.g. a
+     * source would lose its split-assignment table). The restore fails fast
+     * instead, symmetric with the AR-03 scale-down guard in
+     * {@code MaxParallelismReshardMigration}. Same-parallelism recovery (P
+     * unchanged) restores 1:1 and is unaffected.
+     */
+    ErrorCode ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED =
+            define("nop.err.stream.operator-state-scale-up-unsupported",
+                    "Cannot scale up (increase parallelism) from a checkpoint whose subtasks carry "
+                            + "non-empty operator state: operator state has no cross-parallelism "
+                            + "redistribution wiring, so the added subtasks would silently start with "
+                            + "empty state. vertex={vertexId}, oldParallelism={oldParallelism}, "
+                            + "newParallelism={newParallelism}. Restart with the checkpoint's parallelism "
+                            + "or run the maxParallelism reshard migration (which redistributes keyed "
+                            + "state and refuses lossy operator-state migrations).",
                     ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
     /**

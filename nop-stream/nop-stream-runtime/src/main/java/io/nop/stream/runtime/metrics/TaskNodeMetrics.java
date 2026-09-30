@@ -39,6 +39,10 @@ public final class TaskNodeMetrics {
     public static final String METRIC_TASKS_FAILED = "nop.stream.task.failures.total";
     public static final String METRIC_TASKS_RUNNING = "nop.stream.task.running";
     public static final String METRIC_TASKS_ACK_SEND_FAILED = "nop.stream.task.ackSendFailures.total";
+    /** R5-CC-10 (plan 369 Phase 4): caller-runs fallbacks of the saturated commit queue. */
+    public static final String METRIC_COMMIT_CALLER_RUNS = "nop.stream.task.commitCallerRuns.total";
+    /** R5-CC-10 (plan 369 Phase 4): live depth of the 2PC commit executor's wait queue. */
+    public static final String METRIC_COMMIT_QUEUE_DEPTH = "nop.stream.task.commitQueueDepth";
 
     public static final String TAG_NODE_ID = "nodeId";
 
@@ -54,12 +58,17 @@ public final class TaskNodeMetrics {
     private static final ConcurrentHashMap<String, Supplier<?>> RUNNING_GAUGE_REFS =
             new ConcurrentHashMap<>();
 
+    /** Retention for the R5-CC-10 commit-queue-depth gauges (same weak-gauge rationale). */
+    private static final ConcurrentHashMap<String, Supplier<?>> COMMIT_QUEUE_GAUGE_REFS =
+            new ConcurrentHashMap<>();
+
     private final MeterRegistry registry;
     private final String nodeId;
     private final io.micrometer.core.instrument.Counter deployed;
     private final io.micrometer.core.instrument.Counter cancelled;
     private final io.micrometer.core.instrument.Counter failures;
     private final io.micrometer.core.instrument.Counter ackSendFailures;
+    private final io.micrometer.core.instrument.Counter commitCallerRuns;
 
     private TaskNodeMetrics(MeterRegistry registry, String nodeId) {
         this.registry = registry;
@@ -69,6 +78,7 @@ public final class TaskNodeMetrics {
         this.cancelled = registry.counter(METRIC_TASKS_CANCELLED, tags);
         this.failures = registry.counter(METRIC_TASKS_FAILED, tags);
         this.ackSendFailures = registry.counter(METRIC_TASKS_ACK_SEND_FAILED, tags);
+        this.commitCallerRuns = registry.counter(METRIC_COMMIT_CALLER_RUNS, tags);
     }
 
     /** Cached per-node instance bound to the process composite registry. */
@@ -102,6 +112,24 @@ public final class TaskNodeMetrics {
     }
 
     /**
+     * R5-CC-10 (plan 369 Phase 4): counts one commit notification that found the
+     * commit executor's wait queue full and ran on the caller's thread instead
+     * (CallerRuns backpressure — never dropped).
+     */
+    public void commitCallerRun() {
+        commitCallerRuns.increment();
+    }
+
+    public double getAckSendFailureCount() {
+        return ackSendFailures.count();
+    }
+
+    /** R5-CC-10: number of commit-queue saturation fallbacks recorded for this node. */
+    public double getCommitCallerRunCount() {
+        return commitCallerRuns.count();
+    }
+
+    /**
      * Registers the per-node running-task gauge. Idempotent per registry for
      * identical id.
      */
@@ -109,6 +137,18 @@ public final class TaskNodeMetrics {
         // retain the state object strongly (weak-gauge semantics — see field javadoc)
         RUNNING_GAUGE_REFS.put(nodeId, supplier);
         registry.gauge(METRIC_TASKS_RUNNING, Tags.of(Tag.of(TAG_NODE_ID, nodeId)),
+                supplier, s -> s.get().doubleValue());
+    }
+
+    /**
+     * R5-CC-10 (plan 369 Phase 4): registers the per-node commit-queue-depth
+     * gauge. Idempotent per registry for identical id; released with the node's
+     * other meters by {@link #releaseNode(String)}.
+     */
+    public static void registerCommitQueueDepthGauge(MeterRegistry registry, String nodeId,
+                                                     Supplier<Number> supplier) {
+        COMMIT_QUEUE_GAUGE_REFS.put(nodeId, supplier);
+        registry.gauge(METRIC_COMMIT_QUEUE_DEPTH, Tags.of(Tag.of(TAG_NODE_ID, nodeId)),
                 supplier, s -> s.get().doubleValue());
     }
 
@@ -129,6 +169,12 @@ public final class TaskNodeMetrics {
                     .remove(new Meter.Id(METRIC_TASKS_RUNNING,
                             Tags.of(Tag.of(TAG_NODE_ID, nodeId)), null, null, Meter.Type.GAUGE));
         }
+        Supplier<?> commitGaugeState = COMMIT_QUEUE_GAUGE_REFS.remove(nodeId);
+        if (commitGaugeState != null) {
+            StreamMetricsRegistries.registry()
+                    .remove(new Meter.Id(METRIC_COMMIT_QUEUE_DEPTH,
+                            Tags.of(Tag.of(TAG_NODE_ID, nodeId)), null, null, Meter.Type.GAUGE));
+        }
     }
 
     private void removeFromRegistry() {
@@ -137,10 +183,8 @@ public final class TaskNodeMetrics {
         registry.remove(cancelled.getId());
         registry.remove(failures.getId());
         registry.remove(ackSendFailures.getId());
+        registry.remove(commitCallerRuns.getId());
         registry.remove(new Meter.Id(METRIC_TASKS_RUNNING, tags, null, null, Meter.Type.GAUGE));
-    }
-
-    public double getAckSendFailureCount() {
-        return ackSendFailures.count();
+        registry.remove(new Meter.Id(METRIC_COMMIT_QUEUE_DEPTH, tags, null, null, Meter.Type.GAUGE));
     }
 }

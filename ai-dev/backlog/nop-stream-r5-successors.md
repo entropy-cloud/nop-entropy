@@ -13,20 +13,20 @@
 ## checkpoint 编排并发重构
 
 - **CC-06** CheckpointCoordinator monitor 内执行 N×阻塞 RPC fan-out（monitor 与 fan-out 线程分离）。
-- **CC-17**（同波次）taskExecutor 无界队列 + 终端 RPC 在任务线程 finally 同步发送。
+- **CC-17**（同波次）taskExecutor 无界队列 + 终端 RPC 在任务线程 finally 同步发送。——其**超时契约 javadoc 前半已由 plan 369 Phase 4 落地**（`IStreamTaskRpcService`/`IStreamCoordinatorRpcService` 接口级"单向、无内建超时/重试、逐方法丢失兜底"契约；队列/线程后半仍 open）。
 
 ## HA / fencing 专项
 
-- **CC-07** deployTask 传输失败后任务无 liveness 记录的永久 benefit-of-the-doubt 豁免（部署宽限期；plan 368 Phase 3 已收敛两个更大 wedge 入口）。
-- **CC-15** JdbcLeaderElector tryBecomeLeader 硬编码 epoch=1（租约行丢失后 fencing 回卷）。
+- **CC-07** ~~deployTask 传输失败后任务无 liveness 记录的永久 benefit-of-the-doubt 豁免~~（部署宽限期；plan 368 Phase 3 已收敛两个更大 wedge 入口）——**已由 plan 369 收口**（`ai-dev/plans/369-nop-stream-r6-flink-compare-fixes.md` Phase 4：JobCoordinator 部署宽限期 + detectFailures 挂点 + deploy 传输失败记录点，可注入时钟；测试 `TestJobCoordinatorDeployGracePeriod`）。
+- **CC-15** ~~JdbcLeaderElector tryBecomeLeader 硬编码 epoch=1（租约行丢失后 fencing 回卷）~~——**已由 plan 369 收口**（plan 369 Phase 4：独立于租约行的持久 epoch 计数行 `<leaseTable>_epoch_counter`，事务内 read-and-increment + CAS，永不清理；测试 `TestJdbcLeaderElectorEpochMonotonicity`）。
 - **CC-05 后续**（关联）TaskProgress DTO 携带 fencingEpoch 的契约扩展（短期 attemptNumber 过滤已由 plan 368 Phase 3 落地）。
 
 ## 资源上界专项
 
 - **ST-12** TTL 清理仅发生在 checkpoint 时（RocksDB sidecar 无界增长、memory 过期条目永生）。
-- **CC-10**（同波次）commitExecutor 单线程无界队列。
+- **CC-10**（同波次）~~commitExecutor 单线程无界队列~~——**已由 plan 369 收口**（plan 369 Phase 4：TaskManager commitExecutor 有界队列（可配容量，默认 1000）+ 满队 CallerRuns 背压（选择记录见 `saturatedCommitQueuePolicy` javadoc）+ 积压打点 `nop.stream.task.commitQueueDepth` / `nop.stream.task.commitCallerRuns.total`；测试 `TestTaskManagerCommitQueueBound`）。
 - **CON-11**（既往登记）JDBC 2PC 整 epoch 驻留内存无上限。
-- **新移交**：WindowOperator:412 numLateRecordsDropped 同型无 tag 指标注册（CEP-03 同族收口）。
+- **新移交**：~~WindowOperator:412 numLateRecordsDropped 同型无 tag 指标注册（CEP-03 同族收口）~~——**已由 plan 369 收口**（W-M1，plan 369 Phase 2 带 tag 作用域注册方案，照抄 CepOperator）。
 
 ## CEP 专项
 

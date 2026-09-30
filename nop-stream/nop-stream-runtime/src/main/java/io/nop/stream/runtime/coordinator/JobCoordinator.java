@@ -100,6 +100,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     static final long DEFAULT_TASK_TIMEOUT_MS = 60_000L;
 
     /**
+     * Default deployment grace period (plan 369 Phase 4, R5-CC-07): how long an
+     * assignment with NO liveness record is given the benefit of the doubt
+     * after its deploy RPC was issued. Must comfortably exceed the TaskManager
+     * heartbeat interval (5s) so a successfully deployed task's first liveness
+     * report always lands within the window.
+     */
+    static final long DEFAULT_DEPLOY_GRACE_PERIOD_MS = 60_000L;
+
+    /**
      * The monotonic fencing epoch is encoded as
      * {@code leaderEpochValue * EPOCH_SCALE + recoveryGen}. The scale reserves the
      * low-order digits for the same-leader recovery counter so that:
@@ -250,6 +259,48 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 
     /** Per-task liveness timeout (configurable). */
     private volatile long taskTimeoutMs = DEFAULT_TASK_TIMEOUT_MS;
+
+    /**
+     * R5-CC-07 (plan 369 Phase 4): per-assignment deploy-issue timestamps,
+     * keyed by the liveness key {@code "{vertexId}/{subtaskIndex}"}. Populated
+     * right before each assignment RPC fan-out (all three drive sites:
+     * {@link #assignTasks()}, {@link #globalRecovery(RecoveryCause)},
+     * {@link #activateAsLeader(LeaderEpoch, boolean)}) and removed when the
+     * task's first liveness/terminal report arrives. Cleared with the working
+     * set on every fencing rotation (generation-scoped, like the liveness map).
+     *
+     * <p>This is the grace-period clock that closes the permanent
+     * benefit-of-the-doubt blind spot: a deploy whose one-way transport RPC was
+     * lost produces no liveness record EVER, so pre-fix such an assignment was
+     * exempt from detection forever. With the grace period, "no liveness AND
+     * deployed longer than {@link #deployGracePeriodMs} ago" is treated as a
+     * deployment failure and re-triggers recovery.
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> deployIssuedAtMs =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * R5-CC-07: liveness keys whose current-generation deploy RPC FAILED at the
+     * transport level (caught by {@code AssignmentPlanner.executeAssignmentFanOut}).
+     * Observability + diagnosis aid: these keys are known-bad from issue time;
+     * recovery still waits for the grace period so a slow-but-alive transport
+     * and a failed one behave identically. Cleared on every fencing rotation.
+     */
+    private final java.util.Set<String> deployTransportFailures = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * R5-CC-07: deployment grace period in ms. An assignment with no liveness
+     * record whose deploy was issued more than this long ago is treated as a
+     * deployment failure by {@link #detectFailures()}.
+     */
+    private volatile long deployGracePeriodMs = DEFAULT_DEPLOY_GRACE_PERIOD_MS;
+
+    /**
+     * Injectable wall clock for {@link #detectFailures()} and the deploy-issue
+     * timestamps (package-private for focused tests; production reads
+     * {@code CoreMetrics}).
+     */
+    private volatile java.util.function.LongSupplier clock = CoreMetrics::currentTimeMillis;
 
     /**
      * When {@code true} (default), a per-task FAILED report triggers
@@ -807,7 +858,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } finally {
             recoveryLock.unlock();
         }
-        assignmentPlanner.executeAssignmentFanOut(dispatches);
+        recordDeploysIssued(dispatches);
+        assignmentPlanner.executeAssignmentFanOut(dispatches, this::markDeployTransportFailed);
     }
 
     /**
@@ -1020,6 +1072,25 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             synchronized (livenessLock) {
                 subtaskLiveness.remove(livenessKey);
                 completedSubtaskKeys.add(livenessKey);
+                // R5-CC-07: the task is terminal — its deploy grace window is
+                // over and must never be evaluated again for this generation.
+                deployIssuedAtMs.remove(livenessKey);
+            }
+            // C3 (plan 369): contract the completed task out of the checkpoint
+            // participant set. A completed task can never ACK a later epoch;
+            // leaving it registered kept every subsequent checkpoint waiting for
+            // its full checkpointTimeout and aborting. The coordinator inherits
+            // the task's state from the latest completed checkpoint at trigger
+            // time, so subsequent epochs still carry the full task-state set.
+            // The TaskLocation uses the same (jobId, "pipeline-0") family the
+            // AssignmentPlanner registered the ACK set with.
+            try {
+                checkpointCoordinator.markTaskCompleted(new TaskLocation(
+                        jobId, "pipeline-0", report.getVertexId(), report.getSubtaskIndex()));
+            } catch (Exception e) {
+                LOG.warn("Failed to contract completed task {}/{} out of the checkpoint ACK set "
+                        + "for job {} — the task will remain a checkpoint participant",
+                        report.getVertexId(), report.getSubtaskIndex(), jobId, e);
             }
         } else {
             // Any other terminal report (FAILED) is an
@@ -1029,6 +1100,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // no more heartbeats → liveness ages → stall detection) starts
             // from a fresh baseline.
             subtaskLiveness.put(livenessKey, now);
+            // R5-CC-07: a terminal report proves the deploy reached a live task
+            // slot — its grace window is over.
+            deployIssuedAtMs.remove(livenessKey);
         }
 
         LOG.info("Task status report: {}/{}/{} attempt={} state={} cause={}",
@@ -1121,6 +1195,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 // timestamp with an older one, sending liveness backwards and causing
                 // spurious stall detection.
                 subtaskLiveness.merge(livenessKey, p.getLastProgressTime(), Math::max);
+                // R5-CC-07: the first liveness report proves the deploy reached a
+                // live task slot — close its grace window (beyond this point the
+                // task is covered by the regular liveness-stall detection).
+                deployIssuedAtMs.remove(livenessKey);
             }
         }
     }
@@ -1325,6 +1403,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * {@link #reportTaskStatus}, so only a genuinely hung task (loop stopped
      * ticking) or a task whose heartbeats have stopped (slot freed without a
      * terminal report) falls behind the cutoff.
+     *
+     * <p>R5-CC-07 (plan 369 Phase 4): an assignment with NO liveness record is
+     * given the benefit of the doubt only within {@link #deployGracePeriodMs}
+     * of its deploy-issue timestamp ({@code deployIssuedAtMs}); beyond the
+     * grace period it is a deployment failure (typically a deployTask whose
+     * one-way transport RPC was lost) and contributes to the recovery trigger.
      */
     public void detectFailures() {
         if (!running) {
@@ -1364,21 +1448,45 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // recorded values are the task-aliveness signal (see
             // subtaskLiveness), so idle/completed tasks never fall behind.
             boolean taskStallDetected = false;
-            long now = CoreMetrics.currentTimeMillis();
+            boolean deployFailureDetected = false;
+            long now = clock.getAsLong();
             long cutoff = now - taskTimeoutMs;
             for (List<TaskAssignment> assignments : taskAssignmentMap.values()) {
                 for (TaskAssignment assignment : assignments) {
                     String livenessKey = assignment.getVertexId() + "/" + assignment.getSubtaskIndex();
                     Long lastProgress = subtaskLiveness.get(livenessKey);
-                    // Only flag stall if we have a recorded liveness timestamp that
-                    // is older than the cutoff. A task with no liveness record yet
-                    // (just-assigned, before first heartbeat) gets the benefit of
-                    // the doubt — node-lease detection will catch a true failure.
                     if (lastProgress != null && lastProgress < cutoff) {
                         LOG.warn("Task {}/{}/{} stalled: lastProgressTime={} (cutoff={})",
                                 assignment.getVertexId(), assignment.getSubtaskIndex(),
                                 lastProgress, cutoff);
                         taskStallDetected = true;
+                    } else if (lastProgress == null && !completedSubtaskKeys.contains(livenessKey)) {
+                        // R5-CC-07 (plan 369 Phase 4): a task with no liveness
+                        // record used to get a PERMANENT benefit of the doubt —
+                        // a deploy whose one-way transport RPC was lost never
+                        // produces a liveness record or a FAILED report, so the
+                        // assignment was exempt from detection forever (silent
+                        // half-dead topology). Within the grace period the
+                        // benefit of the doubt still applies (just-assigned,
+                        // first heartbeat in flight); beyond it, the assignment
+                        // is a deployment failure and re-triggers recovery.
+                        Long issuedAt = deployIssuedAtMs.get(livenessKey);
+                        if (issuedAt == null) {
+                            // No deploy marker for the current generation
+                            // (assignment materialized before this coordinator
+                            // learned the key) — keep the legacy benefit of the
+                            // doubt; node-lease detection covers a dead node.
+                            continue;
+                        }
+                        long sinceDeploy = now - issuedAt;
+                        if (sinceDeploy > deployGracePeriodMs) {
+                            LOG.warn("Task {}/{}/{} has NO liveness record {}ms after its deploy was issued "
+                                            + "(grace={}ms, transportFailure={}) — treating as deployment failure",
+                                    assignment.getVertexId(), assignment.getSubtaskIndex(),
+                                    sinceDeploy, deployGracePeriodMs,
+                                    deployTransportFailures.contains(livenessKey));
+                            deployFailureDetected = true;
+                        }
                     }
                 }
             }
@@ -1402,9 +1510,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 return;
             }
 
-            if (nodeFailureDetected || taskStallDetected) {
-                LOG.warn("Failures detected (nodeLoss={}, taskStall={}), triggering global recovery for job {}",
-                        nodeFailureDetected, taskStallDetected, jobId);
+            if (nodeFailureDetected || taskStallDetected || deployFailureDetected) {
+                LOG.warn("Failures detected (nodeLoss={}, taskStall={}, deployGraceExpired={}), "
+                                + "triggering global recovery for job {}",
+                        nodeFailureDetected, taskStallDetected, deployFailureDetected, jobId);
                 // Route through requestRecovery() so concurrent triggers
                 // from the FAILED-report RPC path are deduped via the recoveryPending CAS.
                 //
@@ -1414,6 +1523,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 // stall budget with cooldown so stall storms cannot starve
                 // real-failure recovery. Both present → classified as real
                 // failure (node loss dominates: the stall is a consequence).
+                // R5-CC-07: a grace-expired deploy draws from the stall budget
+                // like a liveness stall (the plan's "正常 stall/恢复判定") — a
+                // persistently broken deploy path re-fires after each cooldown
+                // until the stall cap fails the job loudly instead of hanging.
                 requestRecovery(nodeFailureDetected ? RecoveryCause.NODE_FAILURE : RecoveryCause.TASK_STALL);
             }
         } catch (Exception e) {
@@ -1677,7 +1790,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // fresh trigger land strictly AFTER the deployment rows in topic order.
             // (The flag itself is cleared by the outer finally, which runs after
             // this fan-out completes.)
-            assignmentPlanner.executeAssignmentFanOut(dispatches);
+            recordDeploysIssued(dispatches);
+            assignmentPlanner.executeAssignmentFanOut(dispatches, this::markDeployTransportFailed);
 
             // A completed recovery always carries its failure
             // trace (restart count > 0) — post-recovery health is DEGRADED until
@@ -1743,6 +1857,44 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         if (dispatches != null && !dispatches.isEmpty()) {
             everAssigned = true;
         }
+    }
+
+    /**
+     * R5-CC-07 (plan 369 Phase 4): records the deploy-issue timestamp of every
+     * dispatch right before its RPC is issued, starting the deployment grace
+     * window that {@link #detectFailures()} evaluates for assignments that never
+     * produce a liveness record. Called at all three fan-out drive sites with
+     * the SAME injectable clock the detector reads, so the elapsed comparison is
+     * consistent.
+     */
+    private void recordDeploysIssued(List<AssignmentPlanner.AssignmentDispatch> dispatches) {
+        if (dispatches == null || dispatches.isEmpty()) {
+            return;
+        }
+        long now = clock.getAsLong();
+        for (AssignmentPlanner.AssignmentDispatch d : dispatches) {
+            deployIssuedAtMs.put(livenessKeyOf(d.taskAssignment), now);
+        }
+    }
+
+    /**
+     * R5-CC-07 deploy-failure record point: invoked by
+     * {@code AssignmentPlanner.executeAssignmentFanOut} when a deploy/assignment
+     * RPC failed at the transport level. The key is marked known-bad
+     * (observability + detector diagnostics); recovery still waits for the
+     * grace period so the failed-transport and lost-transport cases behave
+     * identically.
+     */
+    private void markDeployTransportFailed(String vertexId, int subtaskIndex, Throwable cause) {
+        String key = vertexId + "/" + subtaskIndex;
+        deployTransportFailures.add(key);
+        LOG.warn("Deploy transport failure recorded for {}/{} (job {}) — deployment grace period "
+                        + "applies before stall/recovery detection treats it as a deploy failure",
+                vertexId, subtaskIndex, jobId, cause);
+    }
+
+    private static String livenessKeyOf(io.nop.stream.runtime.cluster.TaskAssignment assignment) {
+        return assignment.getVertexId() + "/" + assignment.getSubtaskIndex();
     }
 
     /**
@@ -1816,6 +1968,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // re-attempted under the new assignments.
         subtaskLiveness.clear();
         completedSubtaskKeys.clear();
+
+        // R5-CC-07 (plan 369 Phase 4): the deploy grace markers are generation-
+        // scoped for the same reason as the liveness entries — every subtask is
+        // re-attempted under the new assignments and its fan-out re-records a
+        // fresh issue timestamp.
+        deployIssuedAtMs.clear();
+        deployTransportFailures.clear();
 
         // Push the rotated fencing epoch to all registered TaskManagers so stale
         // envelopes are rejected at the data plane (RemoteInputChannel /
@@ -1983,7 +2142,8 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } finally {
             recoveryLock.unlock();
         }
-        assignmentPlanner.executeAssignmentFanOut(dispatches);
+        recordDeploysIssued(dispatches);
+        assignmentPlanner.executeAssignmentFanOut(dispatches, this::markDeployTransportFailed);
     }
 
     /**
@@ -2197,14 +2357,39 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                                                 SavepointScope scope) {
         boolean terminal = (scope == SavepointScope.TERMINATES_JOB);
         LOG.info("{}: triggering {} for job {}", mode, snapshotNoun, jobId);
+        // C2 (plan 369): the trigger uses bounded retry with typed-reason
+        // disposition. A collision with an in-flight periodic checkpoint
+        // (maxConcurrent=1) previously returned null here and the terminal
+        // savepoint was silently skipped while the job was declared FINISHED —
+        // the "catch 后仍 stop()" hazard. Now: back-pressure rejections are
+        // retried within the checkpoint timeout budget; NO_TASKS_TO_ACK
+        // short-circuits as success (with the C3 participant contraction an
+        // empty ACK set means every task is terminal); a final trigger failure
+        // fails the job loud (failJob) for TERMINATES_JOB scope and is logged
+        // loud while the job keeps running for EXPORT_SAVEPOINT scope. The
+        // InterruptedException path keeps the plan 368 CC-11 recorded
+        // interrupt→teardown semantics unchanged.
         try {
-            PendingCheckpoint pending = checkpointCoordinator.tryTriggerPendingCheckpoint(checkpointType);
+            PendingCheckpoint pending = checkpointCoordinator.triggerCheckpointBounded(
+                    checkpointType, terminationCheckpointTimeoutMs);
             if (pending != null) {
-                CheckpointBarrier barrier = new CheckpointBarrier(
-                        pending.getCheckpointId(),
-                        pending.getTriggerTimestamp(),
-                        pending.getCheckpointType());
-                sendBarrierToAllTaskManagers(barrier);
+                // C2×C3 (plan 369): an all-terminal epoch is assembled from
+                // inherited states and completed inline by the coordinator —
+                // there are no live subtasks left to deliver a barrier to, so
+                // skip the RPC fan-out when the trigger already finished the
+                // epoch (the future is done; a barrier RPC would only hit
+                // dead/absent task slots).
+                if (!pending.getCompletableFuture().isDone()) {
+                    CheckpointBarrier barrier = new CheckpointBarrier(
+                            pending.getCheckpointId(),
+                            pending.getTriggerTimestamp(),
+                            pending.getCheckpointType());
+                    sendBarrierToAllTaskManagers(barrier);
+                } else {
+                    LOG.info("{}: {} {} assembled from terminal states for job {} "
+                            + "(no live participants; barrier fan-out skipped)",
+                            mode, snapshotNoun, pending.getCheckpointId(), jobId);
+                }
 
                 pending.getCompletableFuture()
                         .get(terminationCheckpointTimeoutMs, TimeUnit.MILLISECONDS);
@@ -2215,6 +2400,10 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     LOG.info("{}: {} {} exported for job {}. Job continues running.",
                             mode, snapshotNoun, pending.getCheckpointId(), jobId);
                 }
+            } else {
+                LOG.info("{}: {} trigger short-circuited as success for job {} "
+                        + "(no tasks to acknowledge — all participants terminal)",
+                        mode, snapshotNoun, jobId);
             }
         } catch (InterruptedException e) {
             // CC-11 (R5 audit): restore the interrupt status. The terminal
@@ -2229,7 +2418,24 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             LOG.warn("{}: interrupted while waiting for {} of job {}; stopping the job",
                     mode, snapshotNoun, jobId);
         } catch (Exception e) {
-            LOG.error("{}: failed to complete {} for job {}", mode, snapshotNoun, jobId, e);
+            // C2 (plan 369): a terminal savepoint that ultimately failed is NOT
+            // silently absorbed into a FINISHED teardown.
+            if (terminal) {
+                LOG.error("{}: failed to complete {} for job {} — failing the job (terminal "
+                        + "savepoint is a durability promise, not a best-effort step)",
+                        mode, snapshotNoun, jobId, e);
+                failJob(new io.nop.stream.core.exceptions.StreamException(
+                        io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FAILED, e)
+                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_REASON,
+                                mode + " terminal savepoint failed"));
+                return;
+            }
+            // EXPORT_SAVEPOINT (KEEPS_JOB_RUNNING): the export failed loudly but
+            // the job was never promised to stop — record the failure and keep
+            // running (adjudicated in plan 369 C2).
+            LOG.error("{}: failed to export {} for job {} — job keeps running",
+                    mode, snapshotNoun, jobId, e);
+            return;
         }
         if (!terminal) {
             // Job continues running after EXPORT_SAVEPOINT: no health transition,
@@ -2454,6 +2660,50 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     public void setTaskTimeoutMs(long taskTimeoutMs) {
         this.taskTimeoutMs = taskTimeoutMs;
+    }
+
+    /**
+     * R5-CC-07 (plan 369 Phase 4): deployment grace period. An assignment with
+     * no liveness record whose deploy RPC was issued more than this long ago is
+     * treated as a deployment failure by {@link #detectFailures()} (before the
+     * fix this case was a permanent benefit-of-the-doubt blind spot). Default
+     * {@value #DEFAULT_DEPLOY_GRACE_PERIOD_MS}ms — comfortably above the 5s TM
+     * heartbeat so a successfully deployed task's first liveness report always
+     * lands inside the window; {@code 0} disables the grace (every unreported
+     * assignment is a deploy failure on the next detector tick).
+     */
+    public void setDeployGracePeriodMs(long deployGracePeriodMs) {
+        this.deployGracePeriodMs = Math.max(0L, deployGracePeriodMs);
+    }
+
+    /** Deployment grace period in ms (R5-CC-07). */
+    public long getDeployGracePeriodMs() {
+        return deployGracePeriodMs;
+    }
+
+    /**
+     * Injects the wall clock used by {@link #detectFailures()} and the deploy
+     * grace timestamps. Package-private: focused tests advance time without
+     * sleeping; production never touches this.
+     */
+    void setClock(java.util.function.LongSupplier clock) {
+        this.clock = clock;
+    }
+
+    /**
+     * Package-private test accessor: number of assignments currently holding an
+     * open deploy grace window.
+     */
+    int getPendingDeployCount() {
+        return deployIssuedAtMs.size();
+    }
+
+    /**
+     * Package-private test accessor: whether the deploy RPC for this subtask
+     * failed at the transport level in the current generation.
+     */
+    boolean isDeployTransportFailed(String vertexId, int subtaskIndex) {
+        return deployTransportFailures.contains(vertexId + "/" + subtaskIndex);
     }
 
     /**
