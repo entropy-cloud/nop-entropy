@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.DefaultConfigReference;
@@ -46,7 +47,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * 开发期通过内省机制返回内部变量和函数定义等信息
+ * 开发期通过内省机制返回内部变量和函数定义等信息。
+ * 内省结果包含IoC容器bean定义XML、全部配置变量当前值、全量schema等敏感内容，
+ * 因此所有操作均要求admin角色（auth==null时平台按公开访问处理）。[G5-13-01]
  */
 @Locale("zh-CN")
 @BizModel("DevDoc")
@@ -56,6 +59,7 @@ public class DevDocBizModel {
     IGraphQLEngine graphQLEngine;
 
     @BizQuery
+    @Auth(roles = "admin")
     @Description("graphql模型定义")
     public String graphql() {
         GraphQLDocument doc = graphQLEngine.getSchemaLoader().getGraphQLDocument();
@@ -63,6 +67,7 @@ public class DevDocBizModel {
     }
 
     @BizQuery
+    @Auth(roles = "admin")
     @Description("全局函数列表")
     public List<FunctionDefBean> globalFunctions() {
         Map<String, IFunctionModel> funcs = new TreeMap<>(EvalGlobalRegistry.instance().getRegisteredFunctions());
@@ -92,6 +97,7 @@ public class DevDocBizModel {
     }
 
     @BizQuery
+    @Auth(roles = "admin")
     @Description("全局变量")
     public List<GlobalVariableDefBean> globalVars() {
         Map<String, IGlobalVariableDefinition> vars = new TreeMap<>(EvalGlobalRegistry.instance().getRegisteredVars());
@@ -115,6 +121,7 @@ public class DevDocBizModel {
 
     @Description("全局变量上的方法")
     @BizLoader(forType = GlobalVariableDefBean.class)
+    @Auth(roles = "admin")
     public List<FunctionDefBean> methods(@ContextSource GlobalVariableDefBean varDef) {
         IGlobalVariableDefinition var = EvalGlobalRegistry.instance().getRegisteredVariable(varDef.getName());
         if (var == null)
@@ -205,6 +212,7 @@ public class DevDocBizModel {
 
     @Description("Ioc容器中的bean定义")
     @BizQuery
+    @Auth(roles = "admin")
     public WebContentBean beans() {
         IBeanContainerImplementor container = (IBeanContainerImplementor) BeanContainer.instance();
         return WebContentBean.xml(container.toConfigNode().xml());
@@ -212,6 +220,7 @@ public class DevDocBizModel {
 
     @Description("所有配置变量的当前值")
     @BizQuery
+    @Auth(roles = "admin")
     public List<ConfigVarBean> configVars() {
         Map<String, DefaultConfigReference<?>> vars = new TreeMap<>(
                 AppConfig.getConfigProvider().getConfigReferences());
@@ -233,6 +242,7 @@ public class DevDocBizModel {
 
     @Description("模型文件的依赖文件")
     @BizQuery
+    @Auth(roles = "admin")
     public String dependsSet(@Name("path") String path) {
         ResourceDependencySet deps = ResourceComponentManager.instance().getModelDepends(path);
         if (deps == null)

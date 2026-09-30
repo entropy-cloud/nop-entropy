@@ -11,12 +11,17 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.graphql.grpc.proto.codegen.GraphQLToApiModel;
 import io.nop.rpc.model.ApiModel;
 import io.nop.rpc.model.proto.ProtoFileGenerator;
 import jakarta.inject.Inject;
 
+/**
+ * 导出全量GraphQL schema对应的grpc proto描述，属[G5-13-01]同类的dev内省面，
+ * 因此要求admin角色（auth==null时平台按公开访问处理）。
+ */
 @Locale("zh-CN")
 @BizModel("DevDoc")
 public class DevDocGrpcBizModel {
@@ -26,6 +31,7 @@ public class DevDocGrpcBizModel {
 
     @Description("为GraphQL服务生成对应Grpc proto描述")
     @BizQuery
+    @Auth(roles = "admin")
     public String grpc() {
         ApiModel apiModel = new GraphQLToApiModel().transformToApi(graphQLEngine.getSchemaLoader());
         return new ProtoFileGenerator().generateProtoFile(apiModel);

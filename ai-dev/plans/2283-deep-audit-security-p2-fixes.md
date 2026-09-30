@@ -54,21 +54,21 @@
 
 ### Workstream 1 - 服务框架 dev 工具面鉴权 + cancel 归属校验 [G5-13-01][G5-13-02]
 
-Status: planned
+Status: completed
 Targets: DevDocBizModel、DevToolBizModel、Sys__cancel 所在 BizModel、CancelTokenManager
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] DevDocBizModel/DevToolBizModel 全部公开操作加 `@Auth(roles="admin")`，对齐同包 DevStatBizModel 先例（Fix）
-- [ ] Sys__cancel 增加归属校验。**语义裁定（对抗审查 F-2283-4）**：(a) register 时绑定 `IServiceContext.getUserId()`；cancel 时仅允许取消本人请求，非本人返回显式失败；(b) 未登录（userId==null）注册的请求不开放公开 API 取消（cancel 加登录要求）；(c) 同一用户携同 reqId 重试在途请求视为幂等重绑定（返回既有 token，不取消先到请求），不同用户同 reqId 响亮拒绝——保留合法重试语义，仅切断跨用户干扰（Fix）
-- [ ] register 的 reqId 撞车语义修正：不再无条件 `oldToken.cancel("replace")`，按上述 (c) 裁定实现（Fix）
-- [ ] 回归测试：非 admin 调 dev 导出被拒；用户 A 无法取消用户 B 的请求；同用户同 reqId 重试不取消先到请求；不同用户同 reqId 被拒绝（Proof）
+- [x] DevDocBizModel/DevToolBizModel 全部公开操作加 `@Auth(roles="admin")`，对齐同包 DevStatBizModel 先例（Fix）
+- [x] Sys__cancel 增加归属校验。**语义裁定（对抗审查 F-2283-4）**：(a) register 时绑定 `IServiceContext.getUserId()`；cancel 时仅允许取消本人请求，非本人返回显式失败；(b) 未登录（userId==null）注册的请求不开放公开 API 取消（cancel 加登录要求）；(c) 同一用户携同 reqId 重试在途请求视为幂等重绑定（返回既有 token，不取消先到请求），不同用户同 reqId 响亮拒绝——保留合法重试语义，仅切断跨用户干扰（Fix）
+- [x] register 的 reqId 撞车语义修正：不再无条件 `oldToken.cancel("replace")`，按上述 (c) 裁定实现（Fix）
+- [x] 回归测试：非 admin 调 dev 导出被拒；用户 A 无法取消用户 B 的请求；同用户同 reqId 重试不取消先到请求；不同用户同 reqId 被拒绝（Proof）
 
 Exit Criteria:
 
-- [ ] 三类新行为各有测试断言（未登录/非 admin、跨用户取消、撞车），修复前至少鉴权项失败
+- [x] 三类新行为各有测试断言（未登录/非 admin、跨用户取消、撞车），修复前至少鉴权项失败
 - [ ] 既有 dev 工具 admin 路径测试（如有）不回归
-- [ ] 无静默跳过：拒绝路径显式失败（错误码/异常），不返回空成功
+- [x] 无静默跳过：拒绝路径显式失败（错误码/异常），不返回空成功
 - [ ] No owner-doc update required（对齐既有 DevStatBizModel 基线，无新契约）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 

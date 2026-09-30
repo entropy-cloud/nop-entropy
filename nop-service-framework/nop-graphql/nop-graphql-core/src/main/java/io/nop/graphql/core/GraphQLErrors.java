@@ -10,6 +10,7 @@ package io.nop.graphql.core;
 import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.ApiConstants.API_STATUS_BAD_REQUEST;
+import static io.nop.api.core.ApiConstants.API_STATUS_FORBIDDEN;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface GraphQLErrors {
@@ -410,4 +411,16 @@ public interface GraphQLErrors {
     ErrorCode ERR_GRAPHQL_PARSE_UNSUPPORTED_INLINE_FRAGMENT = define(API_STATUS_BAD_REQUEST,
             "nop.err.graphql.parse.unsupported-inline-fragment",
             "不支持inline fragment语法(... on Type)，请使用命名fragment", ARG_FRAGMENT_NAME);
+
+    // 请求取消归属校验[G5-13-02]
+    String ARG_REQ_ID = "reqId";
+
+    ErrorCode ERR_GRAPHQL_CANCEL_NOT_LOGIN = define(API_STATUS_FORBIDDEN, "nop.err.graphql.cancel.not-login",
+            "取消在途请求前需要先登录");
+
+    ErrorCode ERR_GRAPHQL_CANCEL_NOT_OWNER = define(API_STATUS_FORBIDDEN, "nop.err.graphql.cancel.not-owner",
+            "在途请求[{reqId}]不属于当前用户，不允许取消他人的请求", ARG_REQ_ID);
+
+    ErrorCode ERR_GRAPHQL_CANCEL_REQ_ID_CONFLICT = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.cancel.req-id-conflict",
+            "请求ID[{reqId}]已被其他用户注册，不允许复用", ARG_REQ_ID);
 }
