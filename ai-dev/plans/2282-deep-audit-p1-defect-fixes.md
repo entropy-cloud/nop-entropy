@@ -69,7 +69,7 @@ Exit Criteria:
 - [x] agree 路径既有 E2E 全绿
 - [x] 无静默跳过：模板层不引入吞异常分支
 - [x] No owner-doc update required → 触发补记分支：workflow-configuration.md 原文档无 listener 规则，已新增「事件监听」节 + `*end` 结束原因判定强制规则
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 2 - nop-batch taskKey 唯一性 + nop-retry 幂等键生命周期 [G7-04-01][G7-14-01]
 
@@ -92,7 +92,7 @@ Exit Criteria:
 - [x] COMPLETED/SUSPENDED 记录存在时重提交不再抛裸唯一键冲突，行为有测试断言
 - [x] `./mvnw test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-retry/nop-retry-engine -am` 全绿
 - [ ] No owner-doc update required（ORM 结构变更随模型走；`03-modules/nop-batch.md` 若描述了 taskKey 语义需核对一致）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 3 - nop-file FILE_HASH 写入 + nop-graph TarjanSCC 修复 [G9-04-01][G11-15-01]
 
@@ -112,7 +112,7 @@ Exit Criteria:
 - [x] TarjanSCC 新增反例测试修复前失败、修复后通过
 - [x] `./mvnw test -pl nop-file/nop-file-dao,nop-graph/nop-graph-core -am` 全绿
 - [x] `docs-for-ai/03-modules/reusable-modules-overview.md` 的"Hash 去重"宣称已收窄为与实际行为一致（摘要落库可查询；去重复用为后续特性）——文档同步属本 WS 交付物
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 4 - nop-code 语言 bean 接线 + nop-xlang JsPromise 错误路径 [G11-03-01][G2-10-01]
 
@@ -132,7 +132,7 @@ Exit Criteria:
 - [x] JsPromise 六个新用例全部通过，且至少 executor 抛错与 finally 抛错两例在修复前失败（先红后绿）
 - [x] `./mvnw test -pl nop-code/nop-code-service -am` 与 `./mvnw test -pl nop-kernel/nop-xlang -am` 全绿
 - [ ] No owner-doc update required（修复使实现与既有宣称/JS 语义对齐，无契约变化）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 

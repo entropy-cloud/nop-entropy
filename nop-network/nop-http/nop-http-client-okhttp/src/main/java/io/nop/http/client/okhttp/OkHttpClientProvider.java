@@ -152,6 +152,18 @@ public class OkHttpClientProvider extends LifeCycleSupport {
             try {
                 X509TrustManager trustManager = this.trustManager != null ? this.trustManager
                         : new DisableValidationTrustManager(); //NOSONAR
+                if (this.trustManager == null) {
+                    // G12-13-01：trust-all 组件被“静默默认”安装曾是零告警路径——对齐
+                    // CompositeX509TrustManager 的 F-N1-3 告警基线，安装点输出显著 WARN。
+                    // 默认行为不变（plan 2283 Deferred 裁定：useSsl 默认语义统一为显式
+                    // opt-in 留待本模块实际接线时处理，见 plan 2283 Deferred But Adjudicated）。
+                    LOG.warn("nop.http.okhttp.trust-all-trust-manager-enabled: TLS certificate validation "
+                            + "is DISABLED for this OkHttp client (use-ssl=true with no explicit X509TrustManager "
+                            + "injected; the default DisableValidationTrustManager accepts ALL certificates). "
+                            + "All outbound HTTPS traffic is exposed to man-in-the-middle attacks. Inject an "
+                            + "explicit trust manager via OkHttpClientProvider.setTrustManager() to enable "
+                            + "real certificate validation.");
+                }
                 TrustManager[] trustManagers = new TrustManager[]{trustManager};
                 SSLContext sslContext = SSLContext.getInstance(config.getSslVersion());
                 sslContext.init((KeyManager[]) null, trustManagers, new SecureRandom());
@@ -160,6 +172,14 @@ public class OkHttpClientProvider extends LifeCycleSupport {
 
                 HostnameVerifier verifier = this.hostnameVerifier != null ? this.hostnameVerifier
                         : new TrustAllHostnames(); //NOSONAR
+                if (this.hostnameVerifier == null) {
+                    LOG.warn("nop.http.okhttp.trust-all-hostname-verifier-enabled: HTTPS hostname verification "
+                            + "is DISABLED for this OkHttp client (use-ssl=true with no explicit HostnameVerifier "
+                            + "injected; the default TrustAllHostnames accepts ANY hostname). Connections to "
+                            + "spoofed endpoints are exposed to man-in-the-middle attacks. Inject an explicit "
+                            + "verifier via OkHttpClientProvider.setHostnameVerifier() to enable real "
+                            + "hostname validation.");
+                }
                 builder.hostnameVerifier(verifier);
             } catch (Exception e) {
                 LOG.warn("nop.err.okhttp.setSocketFactory-fail", e);

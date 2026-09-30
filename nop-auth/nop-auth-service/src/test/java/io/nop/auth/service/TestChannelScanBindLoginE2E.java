@@ -46,6 +46,7 @@ import io.nop.integration.api.bind.ChannelScanCallback;
 import io.nop.integration.api.channel.ChannelTypeCodes;
 import io.nop.integration.feishu.bind.FeishuBindProvider;
 import io.nop.integration.feishu.client.FeishuCredentials;
+import io.nop.integration.feishu.client.IFeishuOAuthApi;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.factory.DefaultOrmColumnBinderEnhancer;
 import io.nop.orm.factory.OrmSessionFactoryBean;
@@ -74,7 +75,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * W6-2 end-to-end test for the QR-scan channel binding + scan-login full chain.
  * Assembles the <b>real</b> production beans in a single JVM over a real in-memory
  * H2 database (the monolithic-deployment topology the roadmap assumes), with the
- * network boundary (Feishu OAuth) simulated by documented callback payloads:
+ * network boundary (Feishu OAuth) simulated by a stub server-side OAuth channel
+ * ({@link StubFeishuOAuthApi}: callback payloads carry the OAuth {@code code},
+ * the stub resolves it to the server-asserted open_id — the G12-13-03 contract):
  *
  * <ul>
  *   <li><b>W6-2a binding E2E</b> — real {@link ChannelBindServiceImpl} + real
@@ -131,6 +134,7 @@ class TestChannelScanBindLoginE2E {
 
     // ---- real beans under test ----
     private FeishuBindProvider feishuBindProvider;
+    private StubFeishuOAuthApi stubOAuthApi;
     private ChannelBindServiceImpl channelBindService;
     private JwtAuthTokenProvider authTokenProvider;
     private LocalUserContextCache userContextCache;
@@ -185,7 +189,8 @@ class TestChannelScanBindLoginE2E {
         assertTrue(start.getQrPayload().contains("state=" + start.getTicketId()),
                 "qrPayload must carry state=ticketId for callback correlation");
 
-        // simulate the documented Feishu scan callback (open_id + ticketId)
+        // simulate the documented Feishu scan callback (OAuth code + ticketId;
+        // the stub OAuth channel resolves the code to the server-side open_id)
         ChannelScanCallback callback = feishuCallback(start.getTicketId(), openId);
 
         ChannelBindingInfo binding = channelBindService.completeBinding(CHANNEL, userId, openId);
@@ -344,13 +349,17 @@ class TestChannelScanBindLoginE2E {
 
     /** Wire the REAL production beans around the H2 stack. */
     private void wireRealBeans() {
-        // real FeishuBindProvider
+        // real FeishuBindProvider + stub server-side OAuth channel (G12-13-03:
+        // the provider resolves the binding identity by exchanging the OAuth
+        // code with the Feishu API; the network hop is stubbed here)
         feishuBindProvider = new FeishuBindProvider();
         FeishuCredentials creds = new FeishuCredentials();
         creds.setAppId("cli_test_e2e");
         creds.setAppSecret("test-secret");
         feishuBindProvider.setCredentials(creds);
         feishuBindProvider.setTicketTtlMs(60_000L);
+        stubOAuthApi = new StubFeishuOAuthApi();
+        feishuBindProvider.setHttpApi(stubOAuthApi);
 
         // real ChannelBindServiceImpl + real FeishuBindProvider
         channelBindService = new ChannelBindServiceImpl();
@@ -429,12 +438,21 @@ class TestChannelScanBindLoginE2E {
         return FutureHelper.syncGet(loginApiBizModel.getLoginResultAsync(req, context));
     }
 
-    private static ChannelScanCallback feishuCallback(String ticketId, String openId) {
+    /**
+     * Build the Feishu scan callback under the G12-13-03 contract: the payload
+     * carries the OAuth authorization {@code code} (never a client-declared
+     * open_id), and the stub server-side OAuth channel resolves that code back
+     * to the open_id — mirroring the production code &rarr; user_access_token
+     * &rarr; open_id exchange.
+     */
+    private ChannelScanCallback feishuCallback(String ticketId, String openId) {
         ChannelScanCallback cb = new ChannelScanCallback();
         cb.setChannelType(CHANNEL);
         cb.setTicketId(ticketId);
+        String code = "auth-code-" + openId;
+        stubOAuthApi.codeToOpenId.put(code, openId);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", openId);
+        payload.put("code", code);
         cb.setRawPayload(payload);
         return cb;
     }
@@ -466,6 +484,28 @@ class TestChannelScanBindLoginE2E {
     }
 
     // ===================== off-chain stubs =====================
+
+    /**
+     * Stub server-side Feishu OAuth channel (G12-13-03): {@code exchangeUserAccessToken}
+     * stands in for code &rarr; user_access_token, {@code fetchOpenId} stands in for
+     * user_access_token &rarr; open_id — the open_id it returns is the SERVER-asserted
+     * identity the real {@code FeishuBindProvider} binds. Registered via
+     * {@code FeishuBindProvider.setHttpApi}.
+     */
+    static class StubFeishuOAuthApi implements IFeishuOAuthApi {
+        final Map<String, String> codeToOpenId = new HashMap<>();
+
+        @Override
+        public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+            // stub: the "user_access_token" simply carries the code through
+            return code;
+        }
+
+        @Override
+        public String fetchOpenId(String userAccessToken) {
+            return codeToOpenId.get(userAccessToken);
+        }
+    }
 
     /**
      * Minimal {@link IAuditService}: the scan-login bootstrap path

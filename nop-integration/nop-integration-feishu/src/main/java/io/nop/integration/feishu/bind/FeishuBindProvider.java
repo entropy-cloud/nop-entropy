@@ -9,6 +9,7 @@ import io.nop.integration.api.bind.ChannelScanCallback;
 import io.nop.integration.api.bind.IChannelBindProvider;
 import io.nop.integration.feishu.NopFeishuException;
 import io.nop.integration.feishu.client.FeishuCredentials;
+import io.nop.integration.feishu.client.IFeishuOAuthApi;
 
 import java.sql.Timestamp;
 import java.util.Map;
@@ -30,17 +31,30 @@ import java.util.concurrent.ConcurrentHashMap;
  *       connection or bot push — the binding flow is fully decoupled from the
  *       message transport.</li>
  *   <li>The user scans with Feishu, authorises, and Feishu redirects to the
- *       platform callback. The platform forwards the resolved {@code open_id}
- *       (or the OAuth {@code code} for the provider to exchange) in
- *       {@link ChannelScanCallback#getRawPayload()}.</li>
+ *       platform callback carrying the OAuth {@code code}. The platform
+ *       forwards it in {@link ChannelScanCallback#getRawPayload()} under the
+ *       {@code code} key.</li>
  * </ul>
  *
- * <p><b>No silent no-op</b>: missing {@code open_id}, unknown ticket, and
- * expired ticket all throw {@link NopFeishuException} rather than returning a
- * null/empty result.
+ * <p><b>Identity trust (G12-13-03)</b>: the binding identity is resolved
+ * <b>server-side</b> — the OAuth {@code code} is exchanged with the Feishu API
+ * ({@code IFeishuOAuthApi}: code &rarr; {@code user_access_token} &rarr; user
+ * info {@code open_id}) and the server-asserted {@code open_id} is the only
+ * identity this provider ever puts on the {@link ChannelBindResult}. A
+ * client-declared {@code open_id} field in {@code rawPayload} is
+ * <b>deliberately ignored</b> (kept tolerated in the payload map — the
+ * minimal-disruption option vs removing the field — but never read as
+ * identity), because the callback endpoint is publicly reachable and the whole
+ * payload is caller-controlled.
+ *
+ * <p><b>No silent no-op</b>: missing {@code code}, unknown ticket, expired
+ * ticket, and a failed identity exchange all throw {@link NopFeishuException}
+ * rather than returning a null/empty result. The ticket is consumed
+ * (single-use) only AFTER a successful server-side identity resolution, so a
+ * transient exchange failure can be retried on the same live ticket.
  *
  * <p><b>Layering</b>: depends only on {@code nop-integration-api} (the
- * {@code IChannelBindProvider} contract) + {@link FeishuCredentials} from the
+ * {@code IChannelBindProvider} contract) + the Feishu client types from the
  * same module. Does NOT depend on any {@code nop-ai-*} module.
  */
 public class FeishuBindProvider implements IChannelBindProvider {
@@ -56,6 +70,14 @@ public class FeishuBindProvider implements IChannelBindProvider {
     private long ticketTtlMs = DEFAULT_TICKET_TTL_MS;
     private String feishuOpenHost = DEFAULT_FEISHU_OPEN_HOST;
 
+    /**
+     * Server-side identity verification channel (G12-13-03). Lazily defaulted
+     * to the JDK-backed implementation on first use (so {@code feishuOpenHost},
+     * settable after construction, can be propagated as its base URL); tests
+     * and alternative deployments inject a stub via {@link #setHttpApi}.
+     */
+    private IFeishuOAuthApi httpApi;
+
     public void setCredentials(FeishuCredentials credentials) {
         this.credentials = credentials;
     }
@@ -66,6 +88,15 @@ public class FeishuBindProvider implements IChannelBindProvider {
 
     public void setFeishuOpenHost(String feishuOpenHost) {
         this.feishuOpenHost = feishuOpenHost;
+    }
+
+    /**
+     * Inject the OAuth verification channel (code &rarr; user_access_token
+     * &rarr; open_id). Optional: defaults to the JDK implementation against
+     * {@code feishuOpenHost}.
+     */
+    public void setHttpApi(IFeishuOAuthApi httpApi) {
+        this.httpApi = httpApi;
     }
 
     @Override
@@ -122,10 +153,16 @@ public class FeishuBindProvider implements IChannelBindProvider {
             throw new NopFeishuException(
                     "FeishuBindProvider.onChannelScanCallback: rawPayload must not be null/empty");
         }
-        String openId = stringField(payload, "open_id");
-        if (openId == null || openId.isEmpty()) {
+        // G12-13-03: the callback must carry the OAuth authorization code. A
+        // client-declared 'open_id' field is UNTRUSTED and deliberately ignored
+        // here — the binding identity is resolved below by exchanging the code
+        // with the Feishu API server-side.
+        String code = stringField(payload, "code");
+        if (code == null || code.isEmpty()) {
             throw new NopFeishuException(
-                    "FeishuBindProvider.onChannelScanCallback: rawPayload missing required field 'open_id'");
+                    "FeishuBindProvider.onChannelScanCallback: rawPayload missing required field 'code' "
+                            + "(the OAuth authorization code; a client-declared 'open_id' is not accepted "
+                            + "as identity)");
         }
         String ticketId = callback.getTicketId();
         if (ticketId == null || ticketId.isEmpty()) {
@@ -142,6 +179,12 @@ public class FeishuBindProvider implements IChannelBindProvider {
             throw new NopFeishuException(
                     "FeishuBindProvider.onChannelScanCallback: ticket expired: " + ticketId);
         }
+
+        // Server-side identity resolution (G12-13-03): code -> user_access_token
+        // -> open_id. Runs BEFORE the ticket is consumed so a failed exchange
+        // (network error, Feishu 5xx) can be retried on the same live ticket.
+        String openId = resolveOpenIdServerSide(code);
+
         // consume the ticket (single-use binding flow)
         tickets.remove(ticketId);
 
@@ -153,12 +196,39 @@ public class FeishuBindProvider implements IChannelBindProvider {
         return result;
     }
 
+    /**
+     * Exchange the OAuth {@code code} with the Feishu API and return the
+     * server-asserted {@code open_id}. This is the only identity source for
+     * the binding result — caller-supplied identity fields are never used.
+     */
+    private String resolveOpenIdServerSide(String code) {
+        String appId = requireAppId();
+        String appSecret = requireAppSecret();
+        String userAccessToken = requireHttpApi().exchangeUserAccessToken(appId, appSecret, code);
+        return requireHttpApi().fetchOpenId(userAccessToken);
+    }
+
+    private IFeishuOAuthApi requireHttpApi() {
+        if (httpApi == null) {
+            httpApi = IFeishuOAuthApi.jdkDefault(feishuOpenHost);
+        }
+        return httpApi;
+    }
+
     private String requireAppId() {
         if (credentials == null || credentials.getAppId() == null || credentials.getAppId().isEmpty()) {
             throw new NopFeishuException(
                     "FeishuBindProvider: FeishuCredentials.appId is not configured");
         }
         return credentials.getAppId();
+    }
+
+    private String requireAppSecret() {
+        if (credentials == null || credentials.getAppSecret() == null || credentials.getAppSecret().isEmpty()) {
+            throw new NopFeishuException(
+                    "FeishuBindProvider: FeishuCredentials.appSecret is not configured");
+        }
+        return credentials.getAppSecret();
     }
 
     private static String stringField(Map<String, Object> payload, String key) {

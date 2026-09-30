@@ -251,11 +251,14 @@ class TestScanLoginMfa {
     // ===================== Helpers =====================
 
     private ScanLoginResult scanLogin(String extId) {
+        // G12-13-03 contract: the callback payload carries the OAuth code (never a
+        // client-declared open_id); the stub provider resolves the identity from
+        // that code exactly like the real FeishuBindProvider's server-side exchange
         ChannelScanCallback callback = new ChannelScanCallback();
         callback.setChannelType(CHANNEL);
         callback.setTicketId("ticket-" + extId);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", extId);
+        payload.put("code", "auth-code-" + extId);
         callback.setRawPayload(payload);
         return FutureHelper.syncGet(channelLoginApi.loginByScanAsync(callback, new ServiceContextImpl()));
     }
@@ -457,7 +460,9 @@ class TestScanLoginMfa {
     // ===================== Stubs =====================
 
     /**
-     * Minimal provider: parses the callback open_id into an extId and asserts
+     * Minimal provider: parses the callback's OAuth {@code code} into an extId
+     * (G12-13-03: the code — not a client-declared open_id — is the only identity
+     * carrier on the callback; here the stub "resolves" it directly) and asserts
      * the ticket-owner identity the way the real FeishuBindProvider does
      * (server-side ticket record → platformUserId on the result).
      */
@@ -481,8 +486,12 @@ class TestScanLoginMfa {
         @Override
         public ChannelBindResult onChannelScanCallback(ChannelScanCallback callback) {
             ChannelBindResult r = new ChannelBindResult();
-            Object openId = callback.getRawPayload().get("open_id");
-            String extId = openId == null ? null : openId.toString();
+            Object code = callback.getRawPayload().get("code");
+            // stub server-side resolution: code "auth-code-<extId>" -> <extId>
+            String extId = code == null ? null
+                    : code.toString().startsWith("auth-code-")
+                            ? code.toString().substring("auth-code-".length())
+                            : code.toString();
             r.setExtId(extId);
             r.setPlatformUserId(bindService.map.get(extId));
             r.setStatus(ChannelBindResultStatus.BINDING_COMPLETED);

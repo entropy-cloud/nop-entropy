@@ -26,6 +26,41 @@ public class SftpConfig {
      */
     private String credentialId;
 
+    /**
+     * 是否启用 SSH 主机密钥严格校验（G12-13-02）。默认 {@code false}——保持历史行为
+     * （{@code StrictHostKeyChecking=no}，主机密钥不做任何校验）以兼容现网部署。
+     *
+     * <p><b>安全风险（默认关闭，需知悉）</b>：关闭校验时服务器身份不被验证，网络路径上的
+     * 攻击者可对 SFTP 连接实施中间人（MITM）攻击——截获/篡改传输的文件内容，或钓鱼获取
+     * password/passphrase 形态的凭证。默认关闭仅为历史兼容；生产环境应显式置为
+     * {@code true} 并通过 {@link #setKnownHostsPath(String)} 提供受信主机密钥清单。
+     * 校验关闭（无论默认还是显式关闭）时 {@code SftpClient} 每次建连输出 WARN，不留静默面。
+     */
+    private boolean strictHostKeyChecking = false;
+
+    /**
+     * 可选的 known_hosts 文件路径（OpenSSH 格式）：仅在 {@code strictHostKeyChecking=true}
+     * 时生效，经 {@code JSch#setKnownHosts(String)} 装载。未提供且开启严格校验时，JSch 对
+     * 未知主机 fail-closed（连接失败），不会静默接受陌生主机密钥。
+     */
+    private String knownHostsPath;
+
+    public boolean isStrictHostKeyChecking() {
+        return strictHostKeyChecking;
+    }
+
+    public void setStrictHostKeyChecking(boolean strictHostKeyChecking) {
+        this.strictHostKeyChecking = strictHostKeyChecking;
+    }
+
+    public String getKnownHostsPath() {
+        return knownHostsPath;
+    }
+
+    public void setKnownHostsPath(String knownHostsPath) {
+        this.knownHostsPath = knownHostsPath;
+    }
+
     public String getCredentialId() {
         return credentialId;
     }

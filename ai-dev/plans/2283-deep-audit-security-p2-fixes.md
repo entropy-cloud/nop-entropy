@@ -70,7 +70,7 @@ Exit Criteria:
 - [ ] 既有 dev 工具 admin 路径测试（如有）不回归
 - [x] 无静默跳过：拒绝路径显式失败（错误码/异常），不返回空成功
 - [ ] No owner-doc update required（对齐既有 DevStatBizModel 基线，无新契约）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 2 - nop-metadata 沙箱对齐 + nop-ai 工具与 RAG 鉴权 [G8-13-01][G3-13-02][G3-07-01]
 
@@ -93,29 +93,29 @@ Exit Criteria:
 - [x] RAG BizModel 的 bizObjName 为合法标识符（无 `/` 前缀）、写操作鉴权元数据存在，均有测试断言
 - [x] `./mvnw test -pl nop-metadata/nop-metadata-service,nop-ai/nop-ai-toolkit,nop-ai/nop-ai-rag -am` 全绿
 - [ ] No owner-doc update required（黑名单对齐属既有 F9 裁定契约的补全；如 nop-metadata.md 列了沙箱 token 清单则同步）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 3 - 外部协议边界默认值 [G12-13-01][G12-13-02][G12-13-03]
 
-Status: planned
+Status: completed
 Targets: `nop-http-client-okhttp/OkHttpClientProvider`、SftpClient（nop-network）、`FeishuBindProvider`（nop-integration-feishu）
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] OkHttpClientProvider：trust-all 组件被默认安装时输出 WARN（对齐 CompositeX509TrustManager F-N1-3 告警基线），消息说明风险与显式注入替代方案；默认行为不变（Fix）
-- [ ] SftpClient（模块 `nop-integration/nop-integration-sftp`）：`StrictHostKeyChecking` 改为可配置（遵循仓内既有配置注入模式），显式关闭时输出 WARN；默认值保持现网兼容并在 javadoc 声明风险（Fix）
-- [ ] FeishuBindProvider（模块 `nop-integration/nop-integration-feishu`）：open_id 改为服务端验证。**契约与实现裁定（对抗审查 F-2283-1，前提修正：当前链路不存在服务端响应，`IFeishuHttpApi` 亦无 OAuth/用户信息通道可复用）**：在 `IFeishuHttpApi`/`JdkFeishuHttpApi` 上新增 code→user_access_token→用户信息(open_id) 两个外部 API 方法；`loginByScan` 公开入参（`ChannelScanCallback`）变更为携带 OAuth `code`，客户端自声明 open_id 字段不再被信任（忽略或移除，实现时按最小破坏选择并在代码注释声明）（Fix）
-- [ ] 回归测试：okhttp WARN 路径可触发断言（logback captor 或等价手段）；sftp 配置项两态行为；feishu 用桩 HTTP 响应验证"code 换取的 open_id 与客户端声明不一致时以服务端为准"（Proof）
+- [x] OkHttpClientProvider：trust-all 组件被默认安装时输出 WARN（对齐 CompositeX509TrustManager F-N1-3 告警基线），消息说明风险与显式注入替代方案；默认行为不变（Fix）
+- [x] SftpClient（模块 `nop-integration/nop-integration-sftp`）：`StrictHostKeyChecking` 改为可配置（遵循仓内既有配置注入模式），显式关闭时输出 WARN；默认值保持现网兼容并在 javadoc 声明风险（Fix）
+- [x] FeishuBindProvider（模块 `nop-integration/nop-integration-feishu`）：open_id 改为服务端验证。**契约与实现裁定（对抗审查 F-2283-1，前提修正：当前链路不存在服务端响应，`IFeishuHttpApi` 亦无 OAuth/用户信息通道可复用）**：在 `IFeishuHttpApi`/`JdkFeishuHttpApi` 上新增 code→user_access_token→用户信息(open_id) 两个外部 API 方法；`loginByScan` 公开入参（`ChannelScanCallback`）变更为携带 OAuth `code`，客户端自声明 open_id 字段不再被信任（忽略或移除，实现时按最小破坏选择并在代码注释声明）（Fix）
+- [x] 回归测试：okhttp WARN 路径可触发断言（logback captor 或等价手段）；sftp 配置项两态行为；feishu 用桩 HTTP 响应验证"code 换取的 open_id 与客户端声明不一致时以服务端为准"（Proof）
 
 Exit Criteria:
 
-- [ ] 三个修复各有测试证明新行为（告警触发/配置生效/服务端值优先）
-- [ ] **下游模块测试同步**（对抗审查 F-2283-2）：`nop-auth/nop-auth-service`（TestChannelScanBindLoginE2E/TestScanLoginMfa 直接喂 open_id）与 `nop-ai/nop-ai-gateway`（TestChannelLoginApi）的既有测试已适配新契约且全绿
-- [ ] 既有 okhttp/sftp/feishu 模块测试不回归
-- [ ] 无静默跳过：不安全配置路径必有告警，验证路径失败必响亮
-- [ ] `./mvnw test -pl nop-network/nop-http/nop-http-client-okhttp,nop-integration/nop-integration-sftp,nop-integration/nop-integration-feishu,nop-auth/nop-auth-service,nop-ai/nop-ai-gateway -am` 全绿
+- [x] 三个修复各有测试证明新行为（告警触发/配置生效/服务端值优先）
+- [x] **下游模块测试同步**（对抗审查 F-2283-2）：`nop-auth/nop-auth-service`（TestChannelScanBindLoginE2E/TestScanLoginMfa 直接喂 open_id）与 `nop-ai/nop-ai-gateway`（TestChannelLoginApi）的既有测试已适配新契约且全绿
+- [x] 既有 okhttp/sftp/feishu 模块测试不回归
+- [x] 无静默跳过：不安全配置路径必有告警，验证路径失败必响亮
+- [x] `./mvnw test -pl nop-network/nop-http/nop-http-client-okhttp,nop-integration/nop-integration-sftp,nop-integration/nop-integration-feishu,nop-auth/nop-auth-service,nop-ai/nop-ai-gateway -am` 全绿
 - [ ] No owner-doc update required（默认行为未变；若 sftp 新增配置项，在模块 README 或既有配置文档中补一行）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
