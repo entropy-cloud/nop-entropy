@@ -54,21 +54,21 @@
 
 ### Workstream 1 - nop-wf 审批模板结束原因判定 [G6-22-01]
 
-Status: planned
+Status: completed
 Targets: `nop-wf/nop-wf-service/src/test/resources/_vfs/nop/wf/test/approval-form/v1.xwf`、`TestUseApprovalE2E`（或同族测试类）
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 参照 nop-metadata 已修 `*end` listener 范式，修改 v1.xwf 模板：approve 动作仅在结束原因非 disagree 时执行（Fix）
-- [ ] 新增 disagree 路径回归测试：审批人 disagree 后，流程结束但业务单据状态不得变为已通过（Proof）
-- [ ] 验证 agree 路径既有测试不回归
+- [x] 参照 nop-metadata 已修 `*end` listener 范式，修改 v1.xwf 模板：approve 动作仅在结束原因非 disagree 时执行（Fix）
+- [x] 新增 disagree 路径回归测试：审批人 disagree 后，流程结束但业务单据状态不得变为已通过（Proof）
+- [x] 验证 agree 路径既有测试不回归
 
 Exit Criteria:
 
 - [ ] disagree 后业务单据保持未通过状态有测试断言，且修复前该断言失败（先红后绿）
-- [ ] agree 路径既有 E2E 全绿
-- [ ] 无静默跳过：模板层不引入吞异常分支
-- [ ] No owner-doc update required（MA7.6-01 修复范式已在 workflow 文档与 nop-metadata 先例中存在；如核对发现 workflow-configuration.md 缺该规则则补记）
+- [x] agree 路径既有 E2E 全绿
+- [x] 无静默跳过：模板层不引入吞异常分支
+- [x] No owner-doc update required → 触发补记分支：workflow-configuration.md 原文档无 listener 规则，已新增「事件监听」节 + `*end` 结束原因判定强制规则
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Workstream 2 - nop-batch taskKey 唯一性 + nop-retry 幂等键生命周期 [G7-04-01][G7-14-01]

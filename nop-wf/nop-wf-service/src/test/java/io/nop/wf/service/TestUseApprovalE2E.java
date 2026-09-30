@@ -221,6 +221,62 @@ public class TestUseApprovalE2E extends AbstractWorkflowTestCase {
         });
     }
 
+    /**
+     * WORKFLOW 模式 disagree 路径回归测试 [G6-22-01]：
+     * 审批人在 approve1 执行 disagree（oa.xwf 公共 action：wfAppState=disagree → to-end）后，
+     * 流程应当结束，但 `*end` listener 不得把业务单据置为 APPROVED（驳回即通过）。
+     * listener 必须先判定 wfRt.wf.record.appState !== 'disagree' 再回调业务 approve。
+     */
+    @Test
+    public void testWorkflowApproval_disagreePath_endWithoutApprove() {
+        // 1. 创建实体
+        final String entityId = run(() -> {
+            IEntityDao<NopWfApprovableForm> dao = DaoProvider.instance().dao("NopWfApprovableForm");
+            NopWfApprovableForm entity = dao.newEntity();
+            entity.setFormTitle("Workflow Disagree Test Form");
+            entity.setApproveStatus("UNSUBMITTED");
+            dao.saveOrUpdateEntity(entity);
+            return entity.orm_idString();
+        });
+
+        IBizObject bizObj = bizObjectManager.getBizObject("NopWfApprovableForm");
+
+        // 2. submitForApproval: UNSUBMITTED → SUBMITTED + 启动 wf
+        NopWfApprovableForm formResult = invokeApprovalAction(bizObj, "submitForApproval", entityId, "test001");
+        assertEquals("SUBMITTED", formResult.getApproveStatus(),
+                "submitForApproval should set approveStatus to SUBMITTED");
+        String wfId = formResult.getNopFlowId();
+        assertNotNull(wfId, "submitForApproval should bind nopFlowId via bizEntityFlowIdProp");
+
+        // 3. 审批人 test002 在 approve1 执行 disagree（oa.xwf 公共 action，普通步骤可用）
+        run(() -> {
+            IWorkflow wf = workflowManager.getWorkflow(wfId);
+            assertNotNull(wf, "Workflow should exist with wfId=" + wfId);
+            assertFalse(wf.isEnded(), "Workflow should be active (not ended) after submitForApproval");
+
+            IServiceContext stepCtx = newServiceContext("test002");
+            executeTask(wfId, "test002", "approve1", step -> {
+                step.invokeAction("disagree", null, stepCtx);
+                step.getWorkflow().runAutoTransitions(stepCtx);
+            });
+            return null;
+        });
+
+        // 4. 流程已结束，但业务单据必须保持 SUBMITTED（不得被 *end listener 置为 APPROVED）
+        run(() -> {
+            IWorkflow wf = workflowManager.getWorkflow(wfId);
+            assertTrue(wf.isEnded(), "Workflow should be ended after disagree (to-end transition)");
+
+            IEntityDao<NopWfApprovableForm> dao = DaoProvider.instance().dao("NopWfApprovableForm");
+            NopWfApprovableForm entity = dao.getEntityById(entityId);
+            assertNotEquals("APPROVED", entity.getApproveStatus(),
+                    "disagree must not trigger business approve: approveStatus must not become APPROVED");
+            assertEquals("SUBMITTED", entity.getApproveStatus(),
+                    "After disagree, business form should stay in SUBMITTED (no approve action applied)");
+            return null;
+        });
+    }
+
     // ======================== 辅助方法 ========================
 
     @SuppressWarnings("unchecked")

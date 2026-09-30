@@ -7,13 +7,18 @@
             <source>
                 <c:script><![CDATA[
                     import io.nop.biz.api.IBizObjectManager;
-                    const bizObjManager = inject('nopBizObjectManager');
-                    const entityBizObj = bizObjManager.getBizObject('NopWfApprovableForm');
-                    const entityId = wfRt.wf.bizEntityId;
-                    // 幂等：仅在 SUBMITTED 状态时调用 approve（避免 EVENT_BEFORE_END/AFTER_END 重复触发）
-                    const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
-                    if (entity.approveStatus === 'SUBMITTED') {
-                        entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                    // 幂等：仅在 approveStatus=SUBMITTED 时调用 approve（避免 EVENT_BEFORE_END/AFTER_END 重复触发）。
+                    // 结束原因判定（MA7.6-01 / G6-22-01）：经基模板 oa.xwf 的 disagree 动作结束
+                    // （wf.record.appState='disagree'，驳回路径）不视为审批通过，不得调用业务 approve。
+                    const wfAppState = wfRt.wf.record.appState;
+                    if (wfAppState !== 'disagree') {
+                        const bizObjManager = inject('nopBizObjectManager');
+                        const entityBizObj = bizObjManager.getBizObject('NopWfApprovableForm');
+                        const entityId = wfRt.wf.bizEntityId;
+                        const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                        if (entity.approveStatus === 'SUBMITTED') {
+                            entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                        }
                     }
                 ]]></c:script>
             </source>
