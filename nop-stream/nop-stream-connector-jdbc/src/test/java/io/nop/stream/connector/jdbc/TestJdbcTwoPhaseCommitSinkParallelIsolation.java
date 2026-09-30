@@ -127,7 +127,7 @@ class TestJdbcTwoPhaseCommitSinkParallelIsolation {
 
         assertEquals(5, countRows("target_data"),
                 "all records from both subtasks must be committed — no loss, no overwrite");
-        assertEquals(2, countRows("stream_epoch_ledger"),
+        assertEquals(2, countRows("stream_epoch_ledger_v2"),
                 "one ledger row per subtask for the same epoch (composite PK epoch_id+subtask_id)");
         assertTrue(subtask0.getPendingCommits().isEmpty());
         assertTrue(subtask1.getPendingCommits().isEmpty());
@@ -157,7 +157,7 @@ class TestJdbcTwoPhaseCommitSinkParallelIsolation {
 
         assertEquals(2, countRows("target_data"),
                 "idempotent re-commit must not duplicate data");
-        assertEquals(2, countRows("stream_epoch_ledger"),
+        assertEquals(2, countRows("stream_epoch_ledger_v2"),
                 "re-commit must not add a new ledger row");
     }
 

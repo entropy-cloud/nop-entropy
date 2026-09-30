@@ -647,11 +647,17 @@ public class SupervisionLoop {
                             + " during region restart");
         }
 
-        // Deep-copy the operator chain (fresh operator state). Pass the task index so
-        // per-subtask user functions (2PC sinks) get an independent copy with the SAME
-        // stable subtask identity as before the restart — per-subtask commit keys /
-        // output paths and ledger idempotency guards remain consistent.
-        OperatorChain newChain = jobVertex.getOperatorChains().get(0).deepCopy(taskIndex);
+        // Deep-copy the operator chain (fresh operator state). Pass the OLD subtask's
+        // deployment TaskLocation so per-subtask user functions (2PC sinks) get an
+        // independent copy with the SAME stable task identity as the original deploy —
+        // per-subtask commit keys / output paths and the 2PC ledger namespace
+        // (jobId|vertexId, plan 368 Phase 4 / R5-CON-01) remain consistent, so the
+        // ledger idempotency guard still matches after the restart.
+        TaskLocation copyLocation = oldSubtask.getTaskLocation();
+        if (copyLocation == null) {
+            copyLocation = new TaskLocation("", "pipeline-0", vertexId, taskIndex);
+        }
+        OperatorChain newChain = jobVertex.getOperatorChains().get(0).deepCopy(copyLocation);
 
         long consistentCutEpoch = resolveConsistentCutEpochAndRestoreOperators(
                 newChain, coordinator, checkpointPlan, taskLocation, regionId, vertexId, taskIndex);

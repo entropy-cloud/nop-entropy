@@ -169,7 +169,7 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 
 多 JVM 独立进程形态的启动命令、REST 生命周期（`POST /jobs/{jobId}/stop?mode=CANCEL|DRAIN`）、savepoint 恢复、状态重置等**运维操作权威步骤见 owner doc `03-modules/nop-stream.md`「运维手册」节**（本文不重复）。用户侧要点：
 
-1. 预置共享 JDBC 库（JDBC 2PC sink 需预建数据表 + `stream_epoch_ledger` 台账表）。
+1. 预置共享 JDBC 库（JDBC 2PC sink 需预建数据表；台账表 `stream_epoch_ledger_v2` 可由 `initializeLedgerTable()` 自动创建——旧 3 列 `stream_epoch_ledger` 表不迁移不读，升级行为见 migration guide「JDBC 2PC 台账 schema」节）。
 2. 先启 TaskManager、后启 JobCoordinator（命令模板见 owner doc）。
 3. 作业拓扑经 `pipelineFactoryClass`（`ClusterPipelineFactory`）在 coordinator 进程重建——XDSL 管线经 `RemotePipelineResolver` 用与本地完全相同的 `DslModelParser → StreamModelDslBuilder → buildJobGraph` 链在 TM 侧重建，fingerprint 跨 JVM 一致。
 4. TM 失败自动 global recovery（fencing epoch 轮转 + 从最近 durable checkpoint 恢复）；健康状态机与告警见 owner doc。

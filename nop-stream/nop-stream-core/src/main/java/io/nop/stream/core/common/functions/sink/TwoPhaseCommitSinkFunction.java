@@ -135,6 +135,22 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
         return this;
     }
 
+    /**
+     * Identity-aware variant of {@link #copyForSubtask(int)}: produces the sink instance
+     * for the parallel subtask identified by the deployment {@link TaskLocation}.
+     * Sinks that key external state by job/vertex identity (e.g. the JDBC 2PC sink's
+     * ledger namespace) override this variant; the default delegates to
+     * {@link #copyForSubtask(int)} with the location's task index so index-only
+     * subclasses (file 2PC sink) keep their behavior unchanged.
+     *
+     * @param location the deployment task location (non-null)
+     * @return the sink instance for the given task location
+     */
+    @Internal
+    public TwoPhaseCommitSinkFunction<IN> copyForSubtask(TaskLocation location) {
+        return copyForSubtask(location.getTaskIndex());
+    }
+
     @Override
     public TaskStateSnapshot saveState(long epochId) throws Exception {
         TaskStateSnapshot snapshot = new TaskStateSnapshot(new TaskLocation(), epochId);

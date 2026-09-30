@@ -246,15 +246,25 @@ public class RemoteGraphExecutionPlanBuilder {
             JobVertex original = entry.getValue();
             int parallelism = parallelismMap.getOrDefault(vertexId, 1);
 
+            // R5-CON-05 deployment gate: same check as the embedded plan builder —
+            // a source function that cannot honor parallelism > 1 fails fast here.
+            validateSourceParallelism(original, parallelism, vertexId);
+
             List<JobEdge> outEdges = adjacency.outgoingEdges().getOrDefault(vertexId, Collections.emptyList());
             List<JobEdge> inEdges = adjacency.incomingEdges().getOrDefault(vertexId, Collections.emptyList());
 
             List<Subtask> vertexSubtasks = new ArrayList<>(parallelism);
 
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
+                // Task-identity pipeline (plan 368 Phase 4, R5-CON-01): the deployment
+                // location flows into per-subtask user functions (2PC sink ledger
+                // namespace). jobId mirrors the topic naming convention above
+                // (StreamTopicNaming.buildTopic uses jobGraph.getJobName() as jobId).
+                TaskLocation taskLocation = new TaskLocation(
+                        jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
                 OperatorChain chain = taskIndex == 0
                         ? original.getOperatorChains().get(0)
-                        : original.getOperatorChains().get(0).deepCopy(taskIndex);
+                        : original.getOperatorChains().get(0).deepCopy(taskLocation);
 
                 RemoteWriters writers = buildRemoteOutputWriters(
                         outEdges, taskIndex, transport.partitionMatrix(), deploymentPlan);
@@ -275,9 +285,6 @@ public class RemoteGraphExecutionPlanBuilder {
                     invokable = new StreamTaskInvokable(chain);
                 }
 
-                TaskLocation taskLocation = new TaskLocation(
-                        jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
-
                 Subtask subtask = new Subtask(vertexId, taskIndex, taskLocation, invokable);
                 vertexSubtasks.add(subtask);
 
@@ -295,6 +302,28 @@ public class RemoteGraphExecutionPlanBuilder {
         }
 
         return new SubtaskAssembly(executionVertices, invokables, subtasksMap);
+    }
+
+    /**
+     * R5-CON-05 deployment gate (remote mirror of the embedded check in
+     * {@code GraphExecutionPlan}): a source function implementing
+     * {@link ParallelismCheckable} rejects unsupported parallelism before any
+     * subtask is deployed, instead of duplicating its full dataset per copy.
+     */
+    private static void validateSourceParallelism(JobVertex vertex, int parallelism, String vertexId) {
+        if (parallelism <= 1 || vertex.getOperatorChains() == null || vertex.getOperatorChains().isEmpty()) {
+            return;
+        }
+        for (io.nop.stream.core.operators.StreamOperator<?> op : vertex.getOperatorChains().get(0).getOperators()) {
+            if (op instanceof io.nop.stream.core.operators.StreamSourceOperator) {
+                io.nop.stream.core.common.functions.source.SourceFunction<?> sourceFunction =
+                        ((io.nop.stream.core.operators.StreamSourceOperator<?>) op).getSourceFunction();
+                if (sourceFunction instanceof io.nop.stream.core.common.functions.source.ParallelismCheckable) {
+                    ((io.nop.stream.core.common.functions.source.ParallelismCheckable) sourceFunction)
+                            .validateParallelism(parallelism);
+                }
+            }
+        }
     }
 
     /** Per-subtask output writers: either a single writer or a per-edge fan-out list. */

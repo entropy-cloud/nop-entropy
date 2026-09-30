@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
+import io.nop.stream.core.common.functions.source.ParallelismCheckable;
+import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.buffer.BufferPool;
 import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.flow.EdgeConfig;
@@ -40,6 +42,8 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.region.RegionDecomposition;
 import io.nop.stream.core.jobgraph.region.RegionId;
+import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -424,6 +428,11 @@ public class GraphExecutionPlan {
             JobVertex original = entry.getValue();
             int parallelism = parallelismMap.getOrDefault(vertexId, 1);
 
+            // R5-CON-05 deployment gate: a source function that cannot honor
+            // parallelism > 1 (no per-subtask sharding) fails fast at plan build
+            // instead of duplicating its full dataset once per subtask copy.
+            validateSourceParallelism(original, parallelism, vertexId);
+
             List<JobEdge> outEdges = outgoingEdges.getOrDefault(vertexId, Collections.emptyList());
             List<JobEdge> inEdges = incomingEdges.getOrDefault(vertexId, Collections.emptyList());
 
@@ -431,8 +440,13 @@ public class GraphExecutionPlan {
 
             for (int taskIndex = 0; taskIndex < parallelism; taskIndex++) {
                 boolean needsCopy = parallelism > 1 || !outEdges.isEmpty() || !inEdges.isEmpty();
+                // Task-identity pipeline (plan 368 Phase 4, R5-CON-01): the deployment
+                // location flows into per-subtask user functions (2PC sink ledger
+                // namespace) and stays stable across region restarts.
+                TaskLocation taskLocation = new TaskLocation(
+                        jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
                 OperatorChain chain = needsCopy
-                        ? original.getOperatorChains().get(0).deepCopy(taskIndex)
+                        ? original.getOperatorChains().get(0).deepCopy(taskLocation)
                         : original.getOperatorChains().get(0);
 
                 RecordWriter<Object> recordWriter = null;
@@ -468,9 +482,6 @@ public class GraphExecutionPlan {
                 StreamTaskInvokable invokable =
                         createInvokable(chain, recordWriter, fanOutWriters, inputGate);
 
-                TaskLocation taskLocation = new TaskLocation(
-                        jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
-
                 // Stage 44 successor 2: propagate the vertex's region ID into the
                 // subtask so the full chain JobGraph → GraphExecutionPlan → Subtask
                 // → SubtaskTask is observable end-to-end.
@@ -490,6 +501,28 @@ public class GraphExecutionPlan {
             }
 
             subtasksMap.put(vertexId, vertexSubtasks);
+        }
+    }
+
+    /**
+     * R5-CON-05 deployment gate: before subtasks are created, give every source
+     * function implementing {@link ParallelismCheckable} a chance to reject the
+     * vertex's effective parallelism. A source without per-subtask sharding that
+     * deploys at {@code parallelism > 1} would deliver its full dataset once per
+     * subtask copy (stable N-times duplication) — that configuration now fails
+     * loudly at deployment instead.
+     */
+    private static void validateSourceParallelism(JobVertex vertex, int parallelism, String vertexId) {
+        if (parallelism <= 1 || vertex.getOperatorChains() == null || vertex.getOperatorChains().isEmpty()) {
+            return;
+        }
+        for (StreamOperator<?> op : vertex.getOperatorChains().get(0).getOperators()) {
+            if (op instanceof StreamSourceOperator) {
+                SourceFunction<?> sourceFunction = ((StreamSourceOperator<?>) op).getSourceFunction();
+                if (sourceFunction instanceof ParallelismCheckable) {
+                    ((ParallelismCheckable) sourceFunction).validateParallelism(parallelism);
+                }
+            }
         }
     }
 

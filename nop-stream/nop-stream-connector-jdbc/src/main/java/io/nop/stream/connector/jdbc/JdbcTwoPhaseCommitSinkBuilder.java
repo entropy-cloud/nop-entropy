@@ -24,7 +24,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
  *     .jdbcTemplate(jdbcTemplate)
  *     .querySpace("")
  *     .tableName("orders")
- *     .ledgerTableName("stream_epoch_ledger")
+ *     .ledgerTableName("stream_epoch_ledger_v2")
  *     .columns("id", "name", "amount")
  * .build();
  * }</pre>

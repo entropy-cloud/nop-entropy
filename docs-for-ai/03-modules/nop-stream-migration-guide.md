@@ -75,22 +75,15 @@
 - **白名单外类 → typed 拒绝**（`ERR_STREAM_CLASS_NOT_ALLOWED`，错误信息携带迁移提示）——checkpoint 存储字节跨信任边界（存储写权限集 > operator 集），此前该路径无任何过滤。
 - **用户自定义状态类迁移口径**：第三方包前缀（如 `com.mycompany.stream.state.*`）的 `Serializable` 状态恢复须声明系统属性 `nop.stream.state.deserialize.allowed-prefixes`（逗号分隔前缀表），在恢复进程启动参数（`-D`）中设置；不声明即拒绝（显式 breaking 语义——此前无过滤可裸恢复，属安全收紧）。证明：`TestStreamDeserializationFilter`（基线 round-trip/拒绝/逃生口放行）。
 
-### JDBC 2PC 台账 schema（复合主键，D2 裁定）
+### JDBC 2PC 台账 schema（v2 命名空间键，plan 368 Phase 4 / R5-CON-01）
 
-`JdbcTwoPhaseCommitSink` 的 epoch 台账表现行 DDL 主键为**复合键 `(epoch_id, subtask_id)`**（per-subtask 提交幂等守卫的载体，DDL 由 `getLedgerTableDDL()` 提供）：
+`JdbcTwoPhaseCommitSink` 的 epoch 台账表**默认表名为 `stream_epoch_ledger_v2`**，DDL 主键为**三元复合键 `(sink_namespace, epoch_id, subtask_id)`**（幂等提交守卫的载体，DDL 由 `getLedgerTableDDL()` 提供）：
 
-- commit `2de622fb6a` **之前**创建的单列（仅 `epoch_id` 主键）遗留台账表：`CREATE TABLE IF NOT EXISTS` 对旧表是 no-op，随后按复合列的 INSERT/SELECT 在旧表上**响亮失败**（column not found / count mismatch）——不存在静默丢数据路径。处置口径（D2 裁定，平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §6.4.2）= **DROP 旧表后按现行 DDL 重建**（无已发布版本，存量仅测试/演练库，不加代码探测）：
+- `sink_namespace` = 部署期任务身份 `jobId|vertexId`（经 `copyForSubtask(TaskLocation)` 身份管道注入）。同库多条 sink 支路（不同 vertex）、跨作业共库不再互踩幂等守卫——修复前键 `(epoch_id, subtask_id)` 缺命名空间，同作业双写支路的第二条会被第一条的账本行**静默挡写（数据丢失）**。未走部署管道（直接构造、无任务身份）时回退用目标数据表名作 namespace。
+- **升级行为（响亮自洽，无静默混用）**：旧表（3 列 `stream_epoch_ledger` 或更早单列表）**不迁移、不读**；本版本首次部署 `initializeLedgerTable()` 直接建全新 `stream_epoch_ledger_v2`，幂等守卫历史从零开始（首次恢复窗口内若恰有 durable-未提交 epoch，将重提交——只影响首个 epoch 一次，非静默）。旧表可手工 DROP（只丢台账行，不丢业务数据）。
+- 显式配置 `ledgerTableName` 的部署：配置名按原样使用，但本版本写入的 DDL/查询已是 4 列 v2 形状——指向旧 3 列表会在首次写入时**响亮失败**（column not found），须改配置指向新表或按 v2 DDL 重建。
 
-  ```sql
-  DROP TABLE stream_epoch_ledger;
-  -- 然后任选：调用 JdbcTwoPhaseCommitSink.initializeLedgerTable()，或手工执行
-  CREATE TABLE IF NOT EXISTS stream_epoch_ledger (
-      epoch_id BIGINT NOT NULL, subtask_id INT NOT NULL, committed_at TIMESTAMP,
-      PRIMARY KEY (epoch_id, subtask_id));
-  ```
-
-  重建只丢幂等守卫历史（台账行），**不丢业务数据**；旧表上已提交的数据行不受影响。
-- 台账表跨 sink 实例共享约束：复合键无 vertex 维度——同库多链 2PC sink 须各用独立 ledger 表（fraud-example S1 先例：4 链 4 ledger 表）。
+历史处置记录（v2 之前的两代表内迁移，均已过时，仅存档）：单列主键遗留表 → 复合键 `(epoch_id, subtask_id)` 表（commit `2de622fb6a`，D2 裁定 DROP 重建）。旧「同库多链 2PC sink 须各用独立 ledger 表」的共享约束已被 v2 命名空间列取代，不再需要。
 
 ### 状态重置（不迁移，全新重跑）
 
@@ -104,7 +97,7 @@
 | 改并行度（maxParallelism 不变） | stop-the-world 重启（TM 数可变）。**例外**：含 2PC sink 的顶点恢复时并行度须与快照一致——跨并行度恢复被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`，D1 裁定），改 2PC sink 并行度需 reset-state 重跑或全新作业 |
 | 改 maxParallelism | 离线 `reshard` → 新目录恢复 |
 | 状态值类型/结构变更 | 注册 `StateMigrationFunction`（或 reset-state 重跑） |
-| 遗留单列 2PC 台账表（`2de622fb6a` 前创建） | DROP 后按现行复合主键 DDL 重建（见「JDBC 2PC 台账 schema」节） |
+| 遗留 2PC 台账表（3 列 `stream_epoch_ledger` 或更早单列表） | 不迁移不读：新版本首次部署自动建 `stream_epoch_ledger_v2`（命名空间键）；旧表可手工 DROP（见「JDBC 2PC 台账 schema」节） |
 | checkpoint 格式不兼容（信封 formatVersion 拒绝） | 无迁移工具——reset-state 重跑（当前 formatVersion=2 向后兼容 legacy v1，此场景仅在远期版本出现） |
 | `.checkpoint` body checksum 失配（`ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`） | 存储字节被篡改/截断——按安全事件处置并 reset-state 重跑（body 完整性不支持「修复后续跑」） |
 | 用户自定义 `Serializable` 状态恢复被 `ERR_STREAM_CLASS_NOT_ALLOWED` 拒绝 | 恢复进程 `-Dnop.stream.state.deserialize.allowed-prefixes=<前缀表>` 声明第三方前缀（见「原生反序列化白名单」节） |

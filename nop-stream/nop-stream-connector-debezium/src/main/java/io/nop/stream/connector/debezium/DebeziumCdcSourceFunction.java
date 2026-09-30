@@ -19,6 +19,7 @@ import io.nop.credential.api.ICredentialProvider;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
+import io.nop.message.debezium.engine.DebeziumEngineWrapper;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 
 import org.slf4j.Logger;
@@ -88,6 +89,16 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     private transient volatile CountDownLatch completionLatch;
     private volatile DebeziumMessageSource source;
     private volatile ICancellable subscription;
+    /**
+     * R5-CON-02/CON-03: first error observed on the CDC path — either the downstream
+     * collector throwing inside the subscription consumer (previously swallowed by the
+     * upstream dispatcher, silently dropping the event while its offset still advanced)
+     * or a terminal Debezium engine failure (previously only an ERROR log line, leaving
+     * the task RUNNING with a dead CDC stream). {@code run()} rethrows it after the wait
+     * loop exits so the task is recognized as FAILED and the checkpoint offset is not
+     * advanced past the failure.
+     */
+    private transient volatile Throwable pendingError;
 
     /**
      * Offset backing store backing the checkpoint round-trip. {@code transient} because it is
@@ -183,25 +194,69 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
         // silently treated as EOS (missed changes, no error).
         this.running = true;
         this.draining = false;
+        this.pendingError = null;
         initCompletionLatch();
+        String connectorName = null;
 
         try {
-            if (!draining) {
-                source = createMessageSource(effectiveEngineConfig(), offsetStore);
-                try {
-                    subscription = source.subscribe(ctx::collect);
-                } catch (Exception e) {
-                    source.stop();
-                    throw e;
+            connectorName = resolveConnectorName();
+
+            // R5-CON-03: a terminal engine failure (run() threw / CompletionCallback
+            // success=false) must fail THIS task instead of leaving it RUNNING with a
+            // silently dead CDC stream. The engine failure surfaces through the wrapper's
+            // connector-name-keyed failure listener; it lands in pendingError and the wait
+            // loop below exits and rethrows (same path as collector errors, R5-CON-02).
+            DebeziumEngineWrapper.registerFailureListener(connectorName, error -> {
+                if (pendingError == null) {
+                    pendingError = error;
                 }
+                CountDownLatch latch = this.completionLatch;
+                if (latch != null) {
+                    latch.countDown();
+                }
+            });
+
+            source = createMessageSource(effectiveEngineConfig(), offsetStore);
+            try {
+                subscription = source.subscribe(event -> {
+                    try {
+                        ctx.collect(event);
+                    } catch (Exception e) {
+                        // R5-CON-02: capture-and-rethrow. The upstream dispatcher swallows
+                        // consumer exceptions by design; recording the first one here and
+                        // failing run() keeps the declared REPLAYABLE semantics — the task
+                        // fails and restarts from the last CHECKPOINTED offset instead of
+                        // silently advancing past a dropped event.
+                        if (pendingError == null) {
+                            pendingError = e;
+                        }
+                        CountDownLatch latch = this.completionLatch;
+                        if (latch != null) {
+                            latch.countDown();
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                source.stop();
+                throw e;
             }
 
             while (running && !draining) {
+                if (pendingError != null) {
+                    break;
+                }
                 if (completionLatch.await(1, TimeUnit.SECONDS)) {
                     break;
                 }
             }
+
+            if (pendingError != null) {
+                // Rethrow after the finally block has unsubscribed and stopped the
+                // source, so cleanup never races the failure propagation.
+                throwPendingError();
+            }
         } finally {
+            DebeziumEngineWrapper.unregisterFailureListener(connectorName);
             if (subscription != null) {
                 try {
                     subscription.cancel();
@@ -222,6 +277,15 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
             }
             runEntered.set(false);
         }
+    }
+
+    private void throwPendingError() throws Exception {
+        Throwable error = pendingError;
+        if (error instanceof Exception) {
+            throw (Exception) error;
+        }
+        throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                "Debezium CDC engine failed: " + error);
     }
 
     @Override

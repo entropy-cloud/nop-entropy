@@ -14,14 +14,19 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 
+import io.nop.stream.core.common.functions.source.ParallelismCheckable;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.exceptions.StreamException;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_VALUE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DECLARED_VALUE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
@@ -47,8 +52,16 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * (non-deterministic traversal, or the dataset shrank since the checkpoint),
  * {@link #run(SourceContext)} fails fast with a typed error instead of silently emitting
  * from a wrong position.
+ *
+ * <p><strong>Single-writer constraint (R5-CON-05)</strong>: the function has NO
+ * per-subtask sharding — every subtask copy would traverse the SAME loader and emit the
+ * full dataset, so {@code parallelism > 1} would deliver N stable duplicate copies
+ * downstream. The function implements {@link ParallelismCheckable} and the execution
+ * plan builders call {@link #validateParallelism(int)} at deployment time, so an
+ * over-parallel configuration fails fast instead of duplicating data.
  */
-public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>, ConnectivityCheckable {
+public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>, ConnectivityCheckable,
+        ParallelismCheckable {
 
     private static final long serialVersionUID = 1L;
 
@@ -57,7 +70,13 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
 
     private volatile boolean running = true;
 
-    private long currentOffset = 0;
+    /**
+     * AR-10: {@code volatile} — {@link #seek(long)} and {@link #getCurrentOffset()} run on
+     * the operator/checkpoint threads while {@link #run(SourceContext)} advances the
+     * counter on the task thread; without the modifier the checkpoint snapshot could
+     * observe a stale value indefinitely.
+     */
+    private volatile long currentOffset = 0;
 
     public BatchLoaderSourceFunction(IBatchLoaderProvider<S> loaderProvider) {
         this(loaderProvider, 1);
@@ -157,6 +176,26 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
     @Override
     public SourceConsistencyCapability getSourceConsistency() {
         return SourceConsistencyCapability.AT_LEAST_ONCE;
+    }
+
+    /**
+     * R5-CON-05: fail fast at deployment when the vertex is configured with
+     * {@code parallelism > 1}. The function traverses the SAME loader in every subtask
+     * copy with no shard filter, so parallel deployment would deliver N stable duplicate
+     * copies of the full dataset downstream. Called by the execution-plan builders
+     * before any subtask is created.
+     */
+    @Override
+    public void validateParallelism(int parallelism) {
+        if (parallelism > 1) {
+            throw new StreamException(ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH)
+                    .param(ARG_TYPE_NAME, "batch-loader")
+                    .param(ARG_DECLARED_VALUE, "parallelism=" + parallelism)
+                    .param(ARG_ACTUAL_VALUE,
+                            "single-writer implementation without per-subtask sharding — every "
+                                    + "subtask copy would emit the full loader dataset (N-times "
+                                    + "duplication); deploy with parallelism=1");
+        }
     }
 
     @Override

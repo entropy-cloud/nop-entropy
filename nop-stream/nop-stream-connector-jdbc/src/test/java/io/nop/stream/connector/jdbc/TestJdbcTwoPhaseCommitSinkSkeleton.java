@@ -274,7 +274,7 @@ class TestJdbcTwoPhaseCommitSinkSkeleton {
         assertDoesNotThrow(() -> {
             try (Connection conn = dataSource.getConnection()) {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "SELECT 1 FROM stream_epoch_ledger WHERE epoch_id = 0")) {
+                        "SELECT 1 FROM stream_epoch_ledger_v2 WHERE epoch_id = 0")) {
                     try (ResultSet rs = ps.executeQuery()) {
                         assertFalse(rs.next()); // no rows yet
                     }
@@ -304,7 +304,7 @@ class TestJdbcTwoPhaseCommitSinkSkeleton {
         // After commit: 2 rows in target_data, 1 row in ledger
         assertEquals(2, countRows("target_data"),
                 "commit should have written both data rows");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "commit should have written one ledger entry");
 
         // pendingCommits should be cleared for this epoch

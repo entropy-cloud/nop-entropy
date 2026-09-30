@@ -206,7 +206,7 @@ class TestE2EJdbcTwoPhaseCommitSink {
         // Verify data was written to JDBC via the coordinator → finishCommit → commit path.
         assertEquals(5, countRows("target_data"),
                 "Coordinator finishCommit should have driven the JDBC commit — 5 rows written (wiring verification)");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "One ledger entry for the committed epoch");
         assertTrue(sink.getPendingCommits().isEmpty(),
                 "pendingCommits should be cleared after coordinator-driven finishCommit");
@@ -235,7 +235,7 @@ class TestE2EJdbcTwoPhaseCommitSink {
         // but commit was never called — target_data should be empty.
         assertEquals(0, countRows("target_data"),
                 "Before recovery, no data should be in JDBC (kill before commit)");
-        assertEquals(0, countRows("stream_epoch_ledger"),
+        assertEquals(0, countRows("stream_epoch_ledger_v2"),
                 "Before recovery, no ledger entries");
 
         assertNotNull(sink.getPendingCommits().get(42L),
@@ -265,7 +265,7 @@ class TestE2EJdbcTwoPhaseCommitSink {
         // --- Verify exactly-once ---
         assertEquals(5, countRows("target_data"),
                 "After recovery, exactly 5 rows in target_data (re-committed from durable pendingCommits) — no loss");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "After recovery, exactly 1 ledger entry");
 
         List<Long> ids = getDataIds();
@@ -310,7 +310,7 @@ class TestE2EJdbcTwoPhaseCommitSink {
 
         assertEquals(2, countRows("target_data"),
                 "Second recovery re-commit must NOT produce duplicates (ledger idempotent guard)");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "Ledger must have exactly 1 entry (PK guard prevents duplicates)");
     }
 
@@ -354,7 +354,7 @@ class TestE2EJdbcTwoPhaseCommitSink {
 
         assertEquals(10, countRows("target_data"),
                 "Source replay into a new epoch produces additional rows (expected — these are genuinely new records from the replayed source position, not a duplicate commit of epoch 7)");
-        assertEquals(2, countRows("stream_epoch_ledger"),
+        assertEquals(2, countRows("stream_epoch_ledger_v2"),
                 "Two ledger entries: epoch 7 (recovery) + epoch 8 (new)");
 
         // Verify idempotent re-commit of epoch 7 produces NO additional rows

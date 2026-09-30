@@ -51,7 +51,9 @@ public final class JdbcTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                     ConnectorParamDescriptor.optional("querySpace", STRING,
                             "database/schema identifier, defaults to empty"),
                     ConnectorParamDescriptor.optional("ledgerTableName", STRING,
-                            "epoch ledger table name, defaults to stream_epoch_ledger")))
+                            "epoch ledger table name, defaults to stream_epoch_ledger_v2 (v2 adds "
+                                    + "the sink_namespace column; the pre-v2 3-column table is "
+                                    + "neither migrated nor read)")))
             .build();
 
     @Override

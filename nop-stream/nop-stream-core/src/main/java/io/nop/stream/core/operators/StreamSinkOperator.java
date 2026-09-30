@@ -13,6 +13,7 @@ import java.util.TreeMap;
 
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -69,6 +70,23 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
         SinkFunction<IN> fn = this.userFunction;
         if (fn instanceof TwoPhaseCommitSinkFunction) {
             fn = ((TwoPhaseCommitSinkFunction<IN>) fn).copyForSubtask(Math.max(subtaskIndex, 0));
+        }
+        return new StreamSinkOperator<>(fn);
+    }
+
+    /**
+     * Identity-aware copy for a parallel subtask (task-identity pipeline, plan 368
+     * Phase 4). Forwards the full deployment {@link TaskLocation} (jobId + vertexId +
+     * taskIndex) into the 2PC sink copy so sinks that key external state by job/vertex
+     * identity (e.g. the JDBC sink's idempotent commit ledger namespace) can namespace
+     * it per sink branch. Index-only sinks keep their behavior via the base default.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public StreamSinkOperator<IN> copyForSubtask(TaskLocation location) {
+        SinkFunction<IN> fn = this.userFunction;
+        if (fn instanceof TwoPhaseCommitSinkFunction) {
+            fn = ((TwoPhaseCommitSinkFunction<IN>) fn).copyForSubtask(location);
         }
         return new StreamSinkOperator<>(fn);
     }

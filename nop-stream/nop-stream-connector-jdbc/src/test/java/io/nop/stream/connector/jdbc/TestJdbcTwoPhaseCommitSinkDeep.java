@@ -193,7 +193,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         // First commit: writes 2 rows + ledger
         sink.commit(1L);
         assertEquals(2, countRows("target_data"));
-        assertEquals(1, countRows("stream_epoch_ledger"));
+        assertEquals(1, countRows("stream_epoch_ledger_v2"));
         assertFalse(sink.getPendingCommits().containsKey(1L));
 
         // Simulate recovery: put the same batch back and re-commit
@@ -208,7 +208,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         assertEquals(2, countRows("target_data"),
                 "Idempotent re-commit must NOT produce duplicate data rows");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "Idempotent re-commit must NOT produce duplicate ledger rows (PK guard)");
         // The idempotent path is a successful commit — it must drop the
         // staging entry like the normal path does, leaving no stale
@@ -259,7 +259,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
                 "abort must remove the pending entry");
         assertEquals(0, countRows("target_data"),
                 "abort must not write any data (commit was never called)");
-        assertEquals(0, countRows("stream_epoch_ledger"),
+        assertEquals(0, countRows("stream_epoch_ledger_v2"),
                 "abort must not write a ledger entry");
     }
 
@@ -302,7 +302,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         restoredSink.commit(1L);
         assertEquals(2, countRows("target_data"),
                 "Restored batch must be committable after serialization round-trip");
-        assertEquals(1, countRows("stream_epoch_ledger"));
+        assertEquals(1, countRows("stream_epoch_ledger_v2"));
     }
 
     // ---- Restore path: durable re-commit + non-durable abort ----
@@ -316,7 +316,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         sink.saveState(1L);
         sink.commit(1L);
         assertEquals(1, countRows("target_data"));
-        assertEquals(1, countRows("stream_epoch_ledger"));
+        assertEquals(1, countRows("stream_epoch_ledger_v2"));
 
         // Epoch 2 durable but not committed (in pendingCommits, no ledger entry)
         sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
@@ -339,7 +339,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         sink.saveState(1L);
         sink.commit(1L);
         assertEquals(1, countRows("target_data"));
-        assertEquals(1, countRows("stream_epoch_ledger"));
+        assertEquals(1, countRows("stream_epoch_ledger_v2"));
 
         // Simulate crash-recovery: pendingCommits still has epoch 1
         // (because finishCommit was never called to remove it)
@@ -351,7 +351,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         assertEquals(1, countRows("target_data"),
                 "Re-commit of already-committed epoch must not produce duplicates");
-        assertEquals(1, countRows("stream_epoch_ledger"),
+        assertEquals(1, countRows("stream_epoch_ledger_v2"),
                 "Ledger must not have duplicate entries (PK guard)");
     }
 
@@ -366,7 +366,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         assertEquals(0, countRows("target_data"),
                 "Non-durable pending epoch 8 must be aborted, NOT committed");
-        assertEquals(0, countRows("stream_epoch_ledger"),
+        assertEquals(0, countRows("stream_epoch_ledger_v2"),
                 "No ledger entry for aborted epoch");
         assertTrue(sink.getPendingCommits().isEmpty(),
                 "All pending must be cleared after restore");
@@ -387,7 +387,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         assertEquals(2, countRows("target_data"),
                 "Durable epochs 1 and 2 must be committed; non-durable 8 and 9 must be aborted");
-        assertEquals(2, countRows("stream_epoch_ledger"),
+        assertEquals(2, countRows("stream_epoch_ledger_v2"),
                 "Two ledger entries for committed epochs 1 and 2");
         assertTrue(sink.getPendingCommits().isEmpty());
 
@@ -413,7 +413,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         assertEquals(3, countRows("target_data"),
                 "All three epochs must be committed by subsuming finishCommit");
-        assertEquals(3, countRows("stream_epoch_ledger"));
+        assertEquals(3, countRows("stream_epoch_ledger_v2"));
         assertTrue(sink.getPendingCommits().isEmpty(),
                 "All pending must be cleared after subsuming commit");
     }
@@ -436,6 +436,6 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         assertEquals(2, countRows("target_data"));
 
         // Both ledger entries exist
-        assertEquals(2, countRows("stream_epoch_ledger"));
+        assertEquals(2, countRows("stream_epoch_ledger_v2"));
     }
 }

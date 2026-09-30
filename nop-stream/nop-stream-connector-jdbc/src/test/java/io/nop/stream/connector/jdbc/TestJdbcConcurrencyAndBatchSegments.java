@@ -158,7 +158,7 @@ class TestJdbcConcurrencyAndBatchSegments {
 
     private int countLedgerRows(long epochId) throws Exception {
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM stream_epoch_ledger WHERE epoch_id = ?");
+             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM stream_epoch_ledger_v2 WHERE epoch_id = ?");
         ) {
             ps.setLong(1, epochId);
             try (ResultSet rs = ps.executeQuery()) {

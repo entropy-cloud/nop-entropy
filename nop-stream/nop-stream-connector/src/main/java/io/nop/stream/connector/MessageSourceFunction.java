@@ -133,7 +133,10 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
         this.shutdownLatch = new CountDownLatch(1);
 
         String effectiveTopic = getEffectiveTopic();
-        subscription = messageService.subscribe(effectiveTopic, new IMessageConsumer() {
+        // R5-CON-04: keep the LOCAL reference. If cancel() lands between the reset above
+        // and this assignment, cancel() reads the field while it is still null/stale —
+        // only the local reference gives run() a handle it can definitely unsubscribe.
+        IMessageSubscription localSubscription = messageService.subscribe(effectiveTopic, new IMessageConsumer() {
             @Override
             public Object onMessage(String t, Object msg, IMessageConsumeContext context) {
                 if (typeClass != null && msg != null && !typeClass.isInstance(msg)) {
@@ -174,19 +177,31 @@ public class MessageSourceFunction<T> implements SourceFunction<T> {
                 return null;
             }
         });
+        this.subscription = localSubscription;
 
         while (running && !failed) {
             shutdownLatch.await(1, TimeUnit.SECONDS);
         }
 
-        // P1-9: surface the captured error to the invokable so the task is
-        // recognized as FAILED rather than completing normally (silent data loss).
-        if (pendingError != null) {
-            if (pendingError instanceof Exception) {
-                throw (Exception) pendingError;
+        try {
+            // P1-9: surface the captured error to the invokable so the task is
+            // recognized as FAILED rather than completing normally (silent data loss).
+            if (pendingError != null) {
+                if (pendingError instanceof Exception) {
+                    throw (Exception) pendingError;
+                }
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                        "Message source failed: " + pendingError.getMessage());
             }
-            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                    "Message source failed: " + pendingError.getMessage());
+        } finally {
+            // R5-CON-04: run() only ever exits via cancel() or a failed/pendingError
+            // exit — there is no natural EOS. Unsubscribe THIS run's subscription on
+            // every exit path so neither the cancel/subscribe race window nor a failed
+            // exit leaks the live consumer (message-service-side thread + group
+            // membership) after run() returns. Cancellations are idempotent, so the
+            // duplicate cancel() from cancel() + finally is harmless.
+            this.subscription = null;
+            localSubscription.cancel();
         }
     }
 

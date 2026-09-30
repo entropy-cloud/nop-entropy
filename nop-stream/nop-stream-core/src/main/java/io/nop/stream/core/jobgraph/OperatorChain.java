@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -253,6 +254,27 @@ public class OperatorChain implements Serializable {
         List<io.nop.stream.core.operators.StreamOperator<?>> copiedOperators = new ArrayList<>(operators.size());
         for (io.nop.stream.core.operators.StreamOperator<?> op : operators) {
             copiedOperators.add(op.copyForSubtask(subtaskIndex));
+        }
+        return new OperatorChain(copiedOperators, new ArrayList<>(keySelectors));
+    }
+
+    /**
+     * Identity-aware copy for a parallel subtask: like {@link #deepCopy(int)}, but the
+     * full deployment {@link TaskLocation} (jobId + pipelineId + vertexId + taskIndex)
+     * flows into per-subtask user functions via
+     * {@link io.nop.stream.core.operators.StreamOperator#copyForSubtask(TaskLocation)}.
+     * This is the task-identity pipeline (plan 368 Phase 4, audit R5-CON-01): the JDBC
+     * 2PC sink copy keys its idempotent commit ledger by the job/vertex namespace so
+     * same-epoch commits from different sink branches (or different jobs sharing one
+     * database) never collide.
+     *
+     * @param location the deployment task location for the subtask (non-null)
+     * @return a new OperatorChain with fresh operator state for the given task location
+     */
+    public OperatorChain deepCopy(TaskLocation location) {
+        List<io.nop.stream.core.operators.StreamOperator<?>> copiedOperators = new ArrayList<>(operators.size());
+        for (io.nop.stream.core.operators.StreamOperator<?> op : operators) {
+            copiedOperators.add(op.copyForSubtask(location));
         }
         return new OperatorChain(copiedOperators, new ArrayList<>(keySelectors));
     }

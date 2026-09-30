@@ -23,6 +23,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORT
 import java.io.Serializable;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
+import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -210,6 +211,28 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      */
     default StreamOperator<?> copyForSubtask(int subtaskIndex) {
         return copyForSubtask();
+    }
+
+    /**
+     * Identity-aware variant of {@link #copyForSubtask(int)}: produces the operator copy
+     * for the parallel subtask identified by the deployment {@link TaskLocation}
+     * (jobId + pipelineId + vertexId + taskIndex). This is the task-identity pipeline
+     * (plan 368 Phase 4, audit R5-CON-01/CON-05): operators whose user function keys
+     * external state by job/vertex identity (e.g. the JDBC 2PC sink's idempotent
+     * commit ledger) override this variant so the copy carries the full identity.
+     *
+     * <p>The default implementation delegates to {@link #copyForSubtask(int)} with the
+     * location's task index, preserving the pre-existing behavior for operators that
+     * only need the index.
+     *
+     * @param location the deployment task location (non-null)
+     * @return a new operator instance for the given task location
+     * @throws UnsupportedOperationException if this operator does not declare
+     *         copy semantics and is not marked {@link Shareable}
+     */
+    @io.nop.api.core.annotations.core.Internal
+    default StreamOperator<?> copyForSubtask(TaskLocation location) {
+        return copyForSubtask(location.getTaskIndex());
     }
 
     // ------------------------------------------------------------------------

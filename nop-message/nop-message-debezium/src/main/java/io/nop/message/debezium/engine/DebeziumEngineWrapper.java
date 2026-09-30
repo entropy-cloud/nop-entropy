@@ -18,7 +18,9 @@ import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -27,6 +29,65 @@ import java.util.function.Consumer;
  */
 public class DebeziumEngineWrapper {
     private static final Logger LOG = LoggerFactory.getLogger(DebeziumEngineWrapper.class);
+
+    /**
+     * Engine-terminal-failure listeners keyed by connector name (plan 368 Phase 4,
+     * audit R5-CON-03). The engine runs on a global worker thread; without a listener
+     * its terminal death (run() throwing or CompletionCallback(success=false)) was only
+     * visible as ERROR log lines, leaving the owning task RUNNING with a silently dead
+     * CDC stream. The registry is keyed by connector name because the wrapper instances
+     * are created internally by {@code DebeziumMessageSource} — the name is the same
+     * identity the offset registry ({@code NopStreamOffsetBackingStore.forConnector})
+     * already keys by, so consumers of this class register/deregister around their run
+     * lifecycle.
+     */
+    private static final Map<String, Consumer<Throwable>> FAILURE_LISTENERS = new ConcurrentHashMap<>();
+
+    /**
+     * Registers the terminal-failure listener for the given connector name (replaces any
+     * previous listener for that name). The listener is invoked for EVERY
+     * engine-terminal failure notification while registered; owners must deregister in
+     * their cleanup path.
+     */
+    public static void registerFailureListener(String connectorName, Consumer<Throwable> listener) {
+        if (connectorName == null || connectorName.isEmpty()) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "connectorName must not be empty");
+        }
+        if (listener == null) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "listener must not be null");
+        }
+        FAILURE_LISTENERS.put(connectorName, listener);
+    }
+
+    /**
+     * Removes the failure listener for the given connector name.
+     */
+    public static void unregisterFailureListener(String connectorName) {
+        if (connectorName != null) {
+            FAILURE_LISTENERS.remove(connectorName);
+        }
+    }
+
+    /**
+     * Delivers an engine-terminal failure to the listener registered for the connector
+     * name (no-op when nothing is registered). Production callers are the engine worker
+     * catch block and the completion callback below; embedders/tests may use it to
+     * report engine-terminal failures observed out of band.
+     */
+    public static void notifyEngineFailure(String connectorName, Throwable error) {
+        Consumer<Throwable> listener = connectorName == null ? null : FAILURE_LISTENERS.get(connectorName);
+        if (listener == null) {
+            return;
+        }
+        try {
+            listener.accept(error);
+        } catch (Exception listenerError) {
+            // never let a listener failure kill the engine worker thread
+            LOG.error("Debezium engine failure listener threw for connector {}", connectorName, listenerError);
+        }
+    }
 
     private final DebeziumConfig config;
     private final Consumer<ChangeEvent> changeEventConsumer;
@@ -95,6 +156,9 @@ public class DebeziumEngineWrapper {
                     engine.run();
                 } catch (Exception e) {
                     LOG.error("Debezium engine error: {}", config.getName(), e);
+                    // R5-CON-03: a terminal engine death must be observable by the
+                    // owning task, not only in the log.
+                    notifyEngineFailure(config.getName(), e);
                 } finally {
                     running.set(false);
                     LOG.info("Debezium engine stopped: {}", config.getName());
@@ -154,10 +218,23 @@ public class DebeziumEngineWrapper {
         public void handle(boolean success, String message, Throwable error) {
             if (!success) {
                 LOG.error("Debezium engine completed with error: {} - {}", config.getName(), message, error);
+                // R5-CON-03: CompletionCallback(success=false) is an engine-terminal
+                // failure — surface it the same way as a thrown engine error.
+                notifyEngineFailure(config.getName(),
+                        error != null ? error : new DebeziumEngineFailure(message));
             } else {
                 LOG.info("Debezium engine completed successfully: {}", config.getName());
             }
             running.set(false);
+        }
+    }
+
+    /** Placeholder throwable for failure completions that carry only a message. */
+    private static final class DebeziumEngineFailure extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        DebeziumEngineFailure(String message) {
+            super(message == null ? "Debezium engine failed" : message);
         }
     }
 
