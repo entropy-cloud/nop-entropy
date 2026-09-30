@@ -27,6 +27,7 @@ import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupReshard;
+import io.nop.stream.core.common.state.shard.StateKeyRematerializer;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.checkpoint.storage.CheckpointSerDe;
 
@@ -271,8 +272,12 @@ public final class MaxParallelismReshardMigration {
         for (Map.Entry<String, GlobalKeyedPool> poolEntry : pools.entrySet()) {
             String keyedStorageKey = poolEntry.getKey();
             GlobalKeyedPool pool = poolEntry.getValue();
+            // ST-02: the pool envelope's declared keyType drives key
+            // re-materialization, so redistribution hashes the typed key (the
+            // live group), not the JSON-native form persisted in the savepoint.
             Map<Integer, Map<String, Object>> redistributed = KeyGroupReshard.redistributeStates(
-                    pool.globalStates, newMaxParallelism, newParallelism);
+                    pool.globalStates, newMaxParallelism, newParallelism,
+                    StateKeyRematerializer.resolveSnapshotKeyType(pool.envelope, null));
             for (Map.Entry<Integer, Map<String, Object>> re : redistributed.entrySet()) {
                 Map<String, Object> newStates = re.getValue();
                 Map<String, Object> newStateData = new LinkedHashMap<>(pool.envelope);

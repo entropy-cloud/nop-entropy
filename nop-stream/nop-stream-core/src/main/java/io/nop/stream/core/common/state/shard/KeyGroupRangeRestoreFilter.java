@@ -26,6 +26,12 @@ import java.util.Map;
  * after restore the backend holds exactly the keys whose group is owned by the
  * target subtask.
  *
+ * <p>ST-02: raw snapshot keys are JSON-native forms whose hash can differ from
+ * the live typed key (Date/bean keys round-trip through JSON as maps). The
+ * keyType-aware overloads re-materialize each key via
+ * {@link StateKeyRematerializer#rematerializeKey} BEFORE computing its group,
+ * so the filter decision matches the live {@code routeKey}/storage-key group.
+ *
  * <p>The filter is purely a function of (snapshotData, targetRange,
  * maxParallelism) and performs no I/O, so it is unit-testable in isolation.
  */
@@ -39,13 +45,27 @@ public final class KeyGroupRangeRestoreFilter {
      * {@code maxParallelism}) falls inside {@code range}.
      */
     public static boolean keyOwnedByRange(Object rawKey, KeyGroupRange range, int maxParallelism) {
+        return keyOwnedByRange(rawKey, range, maxParallelism, null);
+    }
+
+    /**
+     * ST-02: keyType-aware ownership check — {@code rawKey} is first
+     * re-materialized to {@code keyType} (identity for String/primitive keys),
+     * then hashed for its key-group.
+     *
+     * @return {@code true} if the re-materialized key's key-group id (computed
+     * under {@code maxParallelism}) falls inside {@code range}.
+     */
+    public static boolean keyOwnedByRange(Object rawKey, KeyGroupRange range, int maxParallelism,
+                                          Class<?> keyType) {
         if (range == null) {
             return true;
         }
         if (maxParallelism <= 1) {
             return true;
         }
-        int keyGroupId = KeyGroupAssignment.assignToKeyGroup(rawKey, maxParallelism);
+        Object typedKey = StateKeyRematerializer.rematerializeKey(rawKey, keyType);
+        int keyGroupId = KeyGroupAssignment.assignToKeyGroup(typedKey, maxParallelism);
         return range.contains(keyGroupId);
     }
 
@@ -69,6 +89,25 @@ public final class KeyGroupRangeRestoreFilter {
     @SuppressWarnings("unchecked")
     public static Map<String, Object> filterKeyedStates(Map<String, Object> stateData,
                                                          KeyGroupRange range, int maxParallelism) {
+        return filterKeyedStates(stateData, range, maxParallelism, null);
+    }
+
+    /**
+     * ST-02: keyType-aware variant — entry keys are re-materialized to
+     * {@code keyType} before their group is derived, so the filter decision is
+     * a function of the typed key exactly as the live write path computes it.
+     *
+     * @param stateData      the {@code states} sub-map of a keyed StateSnapshot
+     *                       ({@code snapshot.getStateData().get("states")})
+     * @param range          target key-group range, or {@code null} for no filter
+     * @param maxParallelism job-global key-group upper bound
+     * @param keyType        the snapshot's declared key class, or {@code null}
+     *                       to skip re-materialization (legacy callers)
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> filterKeyedStates(Map<String, Object> stateData,
+                                                         KeyGroupRange range, int maxParallelism,
+                                                         Class<?> keyType) {
         if (stateData == null || stateData.isEmpty()) {
             return stateData;
         }
@@ -77,14 +116,16 @@ public final class KeyGroupRangeRestoreFilter {
         }
         Map<String, Object> filtered = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : stateData.entrySet()) {
-            filtered.put(entry.getKey(), filterStateInfo((Map<String, Object>) entry.getValue(), range, maxParallelism));
+            filtered.put(entry.getKey(),
+                    filterStateInfo((Map<String, Object>) entry.getValue(), range, maxParallelism, keyType));
         }
         return filtered;
     }
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> filterStateInfo(Map<String, Object> stateInfo,
-                                                        KeyGroupRange range, int maxParallelism) {
+                                                        KeyGroupRange range, int maxParallelism,
+                                                        Class<?> keyType) {
         Map<String, Object> copy = new LinkedHashMap<>(stateInfo);
         Object entriesObj = copy.get("entries");
         if (!(entriesObj instanceof List)) {
@@ -94,7 +135,7 @@ public final class KeyGroupRangeRestoreFilter {
         List<Map<String, Object>> kept = new ArrayList<>();
         for (Map<String, Object> e : entries) {
             Object rawKey = e.get("key");
-            if (keyOwnedByRange(rawKey, range, maxParallelism)) {
+            if (keyOwnedByRange(rawKey, range, maxParallelism, keyType)) {
                 kept.add(new LinkedHashMap<>(e));
             }
         }

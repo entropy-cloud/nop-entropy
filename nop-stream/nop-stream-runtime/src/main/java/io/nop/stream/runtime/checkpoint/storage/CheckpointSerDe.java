@@ -40,8 +40,10 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_CHECKSUM;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_FORMAT_VERSION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_JOB_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MISSING_FIELDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_FORMAT_VERSION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_DATA_CORRUPT;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
@@ -124,9 +126,12 @@ public class CheckpointSerDe {
         String json = new String(data, StandardCharsets.UTF_8);
         Map<String, Object> map = JsonTool.parseMap(json);
         if (map == null) {
-            return null;
+            // ST-06: an existing but unparseable record is corruption, not an
+            // empty store — fail loud with the record's context instead of
+            // folding it into "no checkpoint" (silent cold start).
+            throw corruptCheckpointRecord(null, java.util.List.of("jobId", "pipelineId", "checkpointId",
+                    "triggerTimestamp", "completedTimestamp"), "checkpoint record is not a JSON object");
         }
-
         int formatVersion = detectFormatVersion(map);
         if (formatVersion < CURRENT_FORMAT_VERSION) {
             LOG.debug("Deserializing legacy checkpoint (formatVersion={}, current={}) — backward-compatible",
@@ -168,10 +173,28 @@ public class CheckpointSerDe {
         Long checkpointId = map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : null;
         Long triggerTimestamp = map.get("triggerTimestamp") instanceof Number ? ((Number) map.get("triggerTimestamp")).longValue() : null;
         Long completedTimestamp = map.get("completedTimestamp") instanceof Number ? ((Number) map.get("completedTimestamp")).longValue() : null;
-        if (jobId == null || pipelineId == null || checkpointId == null
-                || triggerTimestamp == null || completedTimestamp == null) {
-            LOG.warn("Checkpoint data missing required fields, skipping deserialization");
-            return null;
+        // ST-06: a record that exists but lacks required identity fields is
+        // corruption (truncated/legacy/hand-edited row). Returning null used to
+        // fold it into "no checkpoint found" and silently cold-start a stateful
+        // job — fail loud with the record's identity context instead.
+        java.util.List<String> missingFields = new java.util.ArrayList<>(5);
+        if (jobId == null) {
+            missingFields.add("jobId");
+        }
+        if (pipelineId == null) {
+            missingFields.add("pipelineId");
+        }
+        if (checkpointId == null) {
+            missingFields.add("checkpointId");
+        }
+        if (triggerTimestamp == null) {
+            missingFields.add("triggerTimestamp");
+        }
+        if (completedTimestamp == null) {
+            missingFields.add("completedTimestamp");
+        }
+        if (!missingFields.isEmpty()) {
+            throw corruptCheckpointRecord(map, missingFields, "checkpoint record is missing required fields");
         }
         String checkpointTypeName = (String) map.get("checkpointType");
         CheckpointType checkpointType = checkpointTypeName != null ? CheckpointType.valueOf(checkpointTypeName) : CheckpointType.CHECKPOINT;
@@ -697,6 +720,23 @@ public class CheckpointSerDe {
                         : (map.get("checkpointId") instanceof Number ? ((Number) map.get("checkpointId")).longValue() : -1L))
                 .param(ARG_EXPECTED_CHECKSUM, stored)
                 .param(ARG_ACTUAL_CHECKSUM, recomputed);
+    }
+
+    /**
+     * ST-06: typed fail-fast for a checkpoint record that exists but cannot be
+     * interpreted (missing required identity fields, or not a JSON object).
+     * Carries whatever identity context the record still provides (jobId /
+     * checkpointId) plus the concrete defect, so the corrupt row is attributable
+     * instead of silently collapsing into "no checkpoint found".
+     */
+    private static io.nop.api.core.exceptions.NopException corruptCheckpointRecord(
+            Map<String, Object> map, java.util.List<String> missingFields, String detail) {
+        return new StreamException(ERR_STREAM_CHECKPOINT_DATA_CORRUPT)
+                .param(ARG_JOB_ID, map != null && map.get("jobId") instanceof String ? (String) map.get("jobId") : null)
+                .param(ARG_EPOCH_ID, map != null && map.get("checkpointId") instanceof Number
+                        ? ((Number) map.get("checkpointId")).longValue() : -1L)
+                .param(ARG_MISSING_FIELDS, String.join(", ", missingFields))
+                .param(ARG_DETAIL, detail);
     }
 
     public static String taskLocationToString(TaskLocation loc) {

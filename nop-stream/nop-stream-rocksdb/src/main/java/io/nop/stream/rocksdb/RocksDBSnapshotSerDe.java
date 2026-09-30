@@ -38,6 +38,7 @@ import io.nop.stream.core.common.state.backend.RestoredStateFlavor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
+import io.nop.stream.core.common.state.shard.StateKeyRematerializer;
 import io.nop.stream.core.util.ClassNameValidator;
 
 import org.rocksdb.ColumnFamilyHandle;
@@ -343,6 +344,13 @@ final class RocksDBSnapshotSerDe {
         clearAllStates(backend);
         backend.getStates().clear();
 
+        // ST-02: resolve the key class raw snapshot keys must be re-materialized
+        // to BEFORE any key-group computation. The backend's declared key type is
+        // authoritative (it is what live reads hash); the snapshot header's
+        // "keyType" field is the fallback for backends declared with a raw
+        // Object key type.
+        Class<?> restoreKeyType = resolveRestoreKeyType(backend, stateData);
+
         // Stage 35: per-subtask partial restore. When the backend carries a
         // target KeyGroupRange, reduce each state's entries to those whose key
         // is owned by the range before writing them to RocksDB. This is the
@@ -351,7 +359,7 @@ final class RocksDBSnapshotSerDe {
         Map<String, Object> effectiveStatesMap = statesMap;
         if (range != null) {
             effectiveStatesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(
-                    statesMap, range, backend.getMaxParallelism());
+                    statesMap, range, backend.getMaxParallelism(), restoreKeyType);
         }
 
         for (Map.Entry<String, Object> entry : effectiveStatesMap.entrySet()) {
@@ -361,34 +369,50 @@ final class RocksDBSnapshotSerDe {
 
             switch (stateType) {
                 case "ValueState":
-                    restoreValueState(backend, stateName, stateInfo);
+                    restoreValueState(backend, stateName, stateInfo, restoreKeyType);
                     break;
                 case "MapState":
-                    restoreMapState(backend, stateName, stateInfo);
+                    restoreMapState(backend, stateName, stateInfo, restoreKeyType);
                     break;
                 case "AppendingState":
-                    restoreAppendingState(backend, stateName, stateInfo);
+                    restoreAppendingState(backend, stateName, stateInfo, restoreKeyType);
                     break;
                 case "ListState":
-                    restoreListState(backend, stateName, stateInfo, false);
+                    restoreListState(backend, stateName, stateInfo, false, restoreKeyType);
                     break;
                 case "InternalListState":
-                    restoreListState(backend, stateName, stateInfo, true);
+                    restoreListState(backend, stateName, stateInfo, true, restoreKeyType);
                     break;
                 case "ReducingState":
-                    restoreReducingState(backend, stateName, stateInfo);
+                    restoreReducingState(backend, stateName, stateInfo, restoreKeyType);
                     break;
                 case "AggregatingState":
-                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.PUBLIC);
+                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.PUBLIC, restoreKeyType);
                     break;
                 case "InternalAggregatingState":
-                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.INTERNAL);
+                    restoreAggregatingState(backend, stateName, stateInfo, RestoredStateFlavor.INTERNAL, restoreKeyType);
                     break;
                 default:
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
                             .param(ARG_DETAIL, "Unknown state type during restore: " + stateType);
             }
         }
+    }
+
+    /**
+     * ST-02: the key class restored keys are re-materialized to. The backend's
+     * declared key type is authoritative — it is the type live reads hash when
+     * computing storage keys — and the snapshot header's {@code keyType} field
+     * (written by every full snapshot since the first format) is the fallback
+     * for raw {@code Object}-typed backends.
+     */
+    private static Class<?> resolveRestoreKeyType(RocksDBKeyedStateBackend<?> backend,
+                                                  Map<String, Object> stateData) {
+        Class<?> declared = backend.getKeyType();
+        if (declared != null && declared != Object.class) {
+            return declared;
+        }
+        return StateKeyRematerializer.resolveSnapshotKeyType(stateData, declared);
     }
 
     private static void clearAllStates(RocksDBKeyedStateBackend<?> backend) throws Exception {
@@ -405,11 +429,20 @@ final class RocksDBSnapshotSerDe {
         }
     }
 
+    /**
+     * ST-02: {@code rawKey} arrives as the JSON-native form persisted in the
+     * snapshot (a {@code Date} key round-trips as a field map, a bean key as a
+     * LinkedHashMap). It is re-materialized to the backend's declared key class
+     * BEFORE its key-group is computed and burned into the binary key prefix —
+     * otherwise restored rows carry a group prefix that live typed-key reads
+     * never ask for (silent read miss).
+     */
     private static void putEntry(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cf,
-                                 Object namespace, Object rawKey, byte[] valueBytes) {
-        int keyGroupId = backend.computeKeyGroupId(rawKey);
+                                 Object namespace, Class<?> keyType, Object rawKey, byte[] valueBytes) {
+        Object typedKey = StateKeyRematerializer.rematerializeKey(rawKey, keyType);
+        int keyGroupId = backend.computeKeyGroupId(typedKey);
         byte[] key = RocksDBKeyEncoder.encode(
-                RocksDBKeyEncoder.deserializeNamespace(namespace), rawKey, keyGroupId);
+                RocksDBKeyEncoder.deserializeNamespace(namespace), typedKey, keyGroupId);
         try {
             backend.getDb().put(cf, key, valueBytes);
         } catch (Exception e) {
@@ -435,19 +468,20 @@ final class RocksDBSnapshotSerDe {
      */
     @SuppressWarnings("unchecked")
     private static void restoreValueEntries(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cf,
-                                            Map<String, Object> stateInfo, Class<?> valueClass) throws Exception {
+                                            Map<String, Object> stateInfo, Class<?> keyType,
+                                            Class<?> valueClass) throws Exception {
         List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
         if (entries != null) {
             for (Map<String, Object> e : entries) {
                 Object value = RocksDBValueSerDe.deserializeObject(e.get("value"), valueClass);
-                putEntry(backend, cf, e.get("namespace"), e.get("key"), RocksDBValueSerDe.serialize(value));
+                putEntry(backend, cf, e.get("namespace"), keyType, e.get("key"), RocksDBValueSerDe.serialize(value));
             }
         }
     }
 
     @SuppressWarnings("unchecked")
     private static void restoreValueState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                          Map<String, Object> stateInfo) throws Exception {
+                                          Map<String, Object> stateInfo, Class<?> keyType) throws Exception {
         Class<Object> valueClass = loadValueClass(stateInfo);
 
         ValueStateDescriptor<Object> descriptor = new ValueStateDescriptor<>(stateName, valueClass);
@@ -455,12 +489,12 @@ final class RocksDBSnapshotSerDe {
         RocksDBValueState<Object> state = new RocksDBValueState<>(backend, cf, descriptor);
         registerRestoredState(backend, stateName, descriptor, state, ValueState.class);
 
-        restoreValueEntries(backend, cf, stateInfo, valueClass);
+        restoreValueEntries(backend, cf, stateInfo, keyType, valueClass);
     }
 
     @SuppressWarnings("unchecked")
     private static void restoreMapState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                        Map<String, Object> stateInfo) throws Exception {
+                                        Map<String, Object> stateInfo, Class<?> keyType) throws Exception {
         Class<Object> valueClass = loadValueClass(stateInfo);
         Class<Object> mapKeyClass = null;
         String keyTypeName = resolveTypeName(stateInfo, "mapKeyTypeName", "mapKeyType");
@@ -477,9 +511,11 @@ final class RocksDBSnapshotSerDe {
         if (entries != null) {
             for (Map<String, Object> e : entries) {
                 Object namespace = RocksDBKeyEncoder.deserializeNamespace(e.get("namespace"));
-                Object rawKey = e.get("key");
-                int keyGroupId = backend.computeKeyGroupId(rawKey);
-                byte[] baseKey = RocksDBKeyEncoder.encode(namespace, rawKey, keyGroupId);
+                // ST-02: re-materialize the raw key before computing the group
+                // burned into the base key prefix (same as putEntry).
+                Object typedKey = StateKeyRematerializer.rematerializeKey(e.get("key"), keyType);
+                int keyGroupId = backend.computeKeyGroupId(typedKey);
+                byte[] baseKey = RocksDBKeyEncoder.encode(namespace, typedKey, keyGroupId);
                 // Per-pair mapValue validation is the shared MapValuePairValidator
                 // (item 24 parity guards converged across Memory/RocksDB serdes).
                 MapValuePairValidator.forEachValidPair(e, stateName, (mapKeyObj, mapValueObj) -> {
@@ -504,7 +540,7 @@ final class RocksDBSnapshotSerDe {
 
     @SuppressWarnings("unchecked")
     private static void restoreAppendingState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                              Map<String, Object> stateInfo) throws Exception {
+                                              Map<String, Object> stateInfo, Class<?> keyType) throws Exception {
         Class<Object> valueClass = loadValueClass(stateInfo);
         Class<? extends SimpleAccumulator<Object>> accumulatorClass =
                 loadAccumulatorClass(resolveTypeName(stateInfo, "accumulatorTypeName", "accumulatorType"));
@@ -516,13 +552,14 @@ final class RocksDBSnapshotSerDe {
                 new RocksDBInternalAppendingState<>((RocksDBKeyedStateBackend<Object>) backend, cf, descriptor);
         registerRestoredState(backend, stateName, descriptor, state, InternalAppendingState.class);
 
-        restoreValueEntries(backend, cf, stateInfo, valueClass);
+        restoreValueEntries(backend, cf, stateInfo, keyType, valueClass);
     }
 
     /** ListState / InternalListState share one restore (only the state class differs). */
     @SuppressWarnings("unchecked")
     private static void restoreListState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                         Map<String, Object> stateInfo, boolean internal) throws Exception {
+                                         Map<String, Object> stateInfo, boolean internal,
+                                         Class<?> keyType) throws Exception {
         Class<Object> valueClass = loadValueClass(stateInfo);
 
         ListStateDescriptor<Object> descriptor = new ListStateDescriptor<>(stateName, valueClass);
@@ -536,12 +573,12 @@ final class RocksDBSnapshotSerDe {
             registerRestoredState(backend, stateName, descriptor, state, ListState.class);
         }
 
-        restoreListEntries(backend, cf, stateInfo, valueClass);
+        restoreListEntries(backend, cf, stateInfo, keyType, valueClass);
     }
 
     @SuppressWarnings("unchecked")
     private static void restoreReducingState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                             Map<String, Object> stateInfo) throws Exception {
+                                             Map<String, Object> stateInfo, Class<?> keyType) throws Exception {
         // Legacy *TypeName keys are accepted with the same fallback order as the other
         // restore branches and as MemoryStateSerDe (item 7 S-12 twin, item 11 RK-3).
         Class<Object> valueClass = loadValueClass(stateInfo);
@@ -554,13 +591,14 @@ final class RocksDBSnapshotSerDe {
         RocksDBReducingState<Object> state = new RocksDBReducingState<>(backend, cf, descriptor);
         registerRestoredState(backend, stateName, descriptor, state, ReducingState.class);
 
-        restoreValueEntries(backend, cf, stateInfo, valueClass);
+        restoreValueEntries(backend, cf, stateInfo, keyType, valueClass);
     }
 
     /** AggregatingState / InternalAggregatingState share one restore (only the state class differs). */
     @SuppressWarnings("unchecked")
     private static void restoreAggregatingState(RocksDBKeyedStateBackend<?> backend, String stateName,
-                                                Map<String, Object> stateInfo, RestoredStateFlavor flavor) throws Exception {
+                                                Map<String, Object> stateInfo, RestoredStateFlavor flavor,
+                                                Class<?> keyType) throws Exception {
         boolean internal = (flavor == RestoredStateFlavor.INTERNAL);
         // Legacy *TypeName fallback (item 11 RK-3, mirrors restoreReducingState).
         Class<Object> recordedClass = loadValueClass(stateInfo);
@@ -582,12 +620,13 @@ final class RocksDBSnapshotSerDe {
             registerRestoredState(backend, stateName, descriptor, state, AggregatingState.class);
         }
 
-        restoreValueEntries(backend, cf, stateInfo, valueClass);
+        restoreValueEntries(backend, cf, stateInfo, keyType, valueClass);
     }
 
     @SuppressWarnings("unchecked")
     private static void restoreListEntries(RocksDBKeyedStateBackend<?> backend, ColumnFamilyHandle cf,
-                                           Map<String, Object> stateInfo, Class<?> valueClass) {
+                                           Map<String, Object> stateInfo, Class<?> keyType,
+                                           Class<?> valueClass) {
         List<Map<String, Object>> entries = (List<Map<String, Object>>) stateInfo.get("entries");
         if (entries != null) {
             for (Map<String, Object> e : entries) {
@@ -598,7 +637,7 @@ final class RocksDBSnapshotSerDe {
                         list.add(RocksDBValueSerDe.deserializeObject(v, valueClass));
                     }
                 }
-                putEntry(backend, cf, e.get("namespace"), e.get("key"), RocksDBValueSerDe.serialize(list));
+                putEntry(backend, cf, e.get("namespace"), keyType, e.get("key"), RocksDBValueSerDe.serialize(list));
             }
         }
     }

@@ -74,6 +74,24 @@ public final class KeyGroupReshard {
     @SuppressWarnings("unchecked")
     public static Map<Integer, Map<String, Object>> redistributeStates(
             Map<String, Object> globalStates, int newMaxParallelism, int newParallelism) {
+        return redistributeStates(globalStates, newMaxParallelism, newParallelism, null);
+    }
+
+    /**
+     * ST-02: keyType-aware variant — each entry's raw key is re-materialized to
+     * {@code keyType} BEFORE it is re-hashed under {@code newMaxParallelism}, so
+     * the redistribution decision matches the live typed-key group (the JSON
+     * round trip changes the runtime type/hash of non-primitive keys: Date,
+     * {@code @DataBean} keys, ...). Same contract as
+     * {@link #redistributeStates(Map, int, int)} plus key re-materialization.
+     *
+     * @param keyType the snapshot's declared key class, or {@code null} to skip
+     *                re-materialization (legacy callers)
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<Integer, Map<String, Object>> redistributeStates(
+            Map<String, Object> globalStates, int newMaxParallelism, int newParallelism,
+            Class<?> keyType) {
         if (newMaxParallelism < 1) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "newMaxParallelism must be at least 1: " + newMaxParallelism);
         }
@@ -117,7 +135,10 @@ public final class KeyGroupReshard {
                     throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "KeyGroupReshard: state '" + stateName + "' has an entry without a 'key' "
                                     + "field (fail-fast instead of silent drop)");
                 }
-                int groupId = KeyGroupAssignment.assignToKeyGroup(rawKey, newMaxParallelism);
+                // ST-02: re-materialize before hashing — the group must be the
+                // live typed-key group, not the JSON-native form's group.
+                Object typedKey = StateKeyRematerializer.rematerializeKey(rawKey, keyType);
+                int groupId = KeyGroupAssignment.assignToKeyGroup(typedKey, newMaxParallelism);
                 int subtaskIndex = KeyGroupAssignment.assignKeyGroupToSubtask(groupId, newMaxParallelism, newParallelism);
                 bucketedBySubtask.computeIfAbsent(subtaskIndex, k -> new ArrayList<>()).add(new LinkedHashMap<>(e));
             }

@@ -165,16 +165,27 @@ public class PendingCheckpoint {
                 .build();
     }
 
+    /**
+     * ST-01: the coordinator's {@code abortPendingCheckpoint} CASes
+     * RUNNING&rarr;ABORTED BEFORE delegating here, so a second CAS inside this
+     * method always fails and the future used to stay incomplete forever —
+     * savepoint/DRAIN/SUSPEND waiters blocked for the full
+     * {@code checkpointTimeout} and then saw a misleading TimeoutException
+     * instead of the abort reason. Mirrors the {@link #forceFail(String, Throwable)}
+     * read-judge-complete precedent: the future completes exceptionally with the
+     * abort reason regardless of which side performed the status transition.
+     * Idempotent — a future already completed (normal complete / forceFail) is
+     * never overwritten.
+     */
     public synchronized void abort(String reason, Throwable cause) {
         checkValidTransition(Status.ABORTED);
-        if (status.compareAndSet(Status.RUNNING, Status.ABORTED)) {
-            isDisposed = true;
-            if (!completableFuture.isDone()) {
-                Exception error = cause != null
-                        ? new StreamException(ERR_STREAM_CHECKPOINT_ABORTED, cause).param(ARG_REASON, reason)
-                        : new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, reason);
-                completableFuture.completeExceptionally(error);
-            }
+        status.compareAndSet(Status.RUNNING, Status.ABORTED);
+        isDisposed = true;
+        if (!completableFuture.isDone()) {
+            Exception error = cause != null
+                    ? new StreamException(ERR_STREAM_CHECKPOINT_ABORTED, cause).param(ARG_REASON, reason)
+                    : new StreamException(ERR_STREAM_CHECKPOINT_ABORTED).param(ARG_REASON, reason);
+            completableFuture.completeExceptionally(error);
         }
     }
 

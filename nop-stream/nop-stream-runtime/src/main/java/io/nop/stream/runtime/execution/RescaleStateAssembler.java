@@ -31,6 +31,7 @@ import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
+import io.nop.stream.core.common.state.shard.StateKeyRematerializer;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.GraphExecutionPlan;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -140,7 +141,11 @@ static TaskStateSnapshot buildRescaledTaskState(
 
     // Keyed state: union of all old subtasks' keyed snapshots, filtered by newRange.
     // Collect each keyed storage key (e.g. "operator-3-keyed") and merge its entries.
+    // ST-02: resolve each snapshot's declared keyType so the range filter
+    // re-materializes raw keys before computing their group (Date/bean keys
+    // hash differently in their JSON-native form).
     Map<String, List<Map<String, Object>>> mergedKeyedByName = new LinkedHashMap<>();
+    Map<String, Class<?>> keyTypeByName = new LinkedHashMap<>();
     for (TaskLocation oldLoc : oldSubtasks) {
         TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
         if (oldState == null || oldState.getKeyedStates() == null) continue;
@@ -153,11 +158,15 @@ static TaskStateSnapshot buildRescaledTaskState(
             List<Map<String, Object>> bucket = mergedKeyedByName
                     .computeIfAbsent(ke.getKey(), k -> new ArrayList<>());
             bucket.add(statesMap);
+            if (!keyTypeByName.containsKey(ke.getKey())) {
+                keyTypeByName.put(ke.getKey(), StateKeyRematerializer.resolveSnapshotKeyType(dataMap, null));
+            }
         }
     }
 
     for (Map.Entry<String, List<Map<String, Object>>> entry : mergedKeyedByName.entrySet()) {
-        Map<String, Object> mergedStates = mergeAndFilterKeyedStates(entry.getValue(), newRange, maxParallelism);
+        Map<String, Object> mergedStates = mergeAndFilterKeyedStates(entry.getValue(), newRange, maxParallelism,
+                keyTypeByName.get(entry.getKey()));
         if (mergedStates.isEmpty()) continue;
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("states", mergedStates);
@@ -176,11 +185,23 @@ static TaskStateSnapshot buildRescaledTaskState(
 @SuppressWarnings("unchecked")
 private static Map<String, Object> mergeAndFilterKeyedStates(List<Map<String, Object>> sources,
                                                              KeyGroupRange range, int maxParallelism) {
+    return mergeAndFilterKeyedStates(sources, range, maxParallelism, null);
+}
+
+/**
+ * ST-02: keyType-aware merge — entry keys are re-materialized to
+ * {@code keyType} before their key-group is derived (see
+ * {@link KeyGroupRangeRestoreFilter#filterKeyedStates(Map, KeyGroupRange, int, Class)}).
+ */
+@SuppressWarnings("unchecked")
+private static Map<String, Object> mergeAndFilterKeyedStates(List<Map<String, Object>> sources,
+                                                             KeyGroupRange range, int maxParallelism,
+                                                             Class<?> keyType) {
     Map<String, Object> result = new LinkedHashMap<>();
     // stateName -> merged info map (entries list grows across contributors)
     Map<String, Map<String, Object>> byName = new LinkedHashMap<>();
     for (Map<String, Object> src : sources) {
-        Map<String, Object> filtered = KeyGroupRangeRestoreFilter.filterKeyedStates(src, range, maxParallelism);
+        Map<String, Object> filtered = KeyGroupRangeRestoreFilter.filterKeyedStates(src, range, maxParallelism, keyType);
         for (Map.Entry<String, Object> e : filtered.entrySet()) {
             Map<String, Object> info = (Map<String, Object>) e.getValue();
             Map<String, Object> acc = byName.get(e.getKey());

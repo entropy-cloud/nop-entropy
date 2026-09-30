@@ -274,6 +274,22 @@ public interface NopStreamErrors {
                     ARG_JOB_ID, ARG_EPOCH_ID, ARG_FORMAT_VERSION, ARG_STATE_FORMAT_VERSION,
                     ARG_CURRENT_FORMAT_VERSION);
 
+    String ARG_MISSING_FIELDS = "missingFields";
+
+    /**
+     * A persisted checkpoint record exists but is unreadable — required identity
+     * fields ({@code jobId}/{@code pipelineId}/{@code checkpointId}/
+     * {@code triggerTimestamp}/{@code completedTimestamp}) are missing from the
+     * stored JSON (truncated write, legacy row, or hand edit). Fails fast with
+     * the record's identity context instead of being folded into "no checkpoint
+     * found", which would silently cold-start a stateful job (R5-ST-06).
+     */
+    ErrorCode ERR_STREAM_CHECKPOINT_DATA_CORRUPT =
+            define("nop.err.stream.checkpoint-data-corrupt",
+                    "Checkpoint record corrupted for job={jobId} checkpoint={epochId}: "
+                            + "missing required fields [{missingFields}]",
+                    ARG_JOB_ID, ARG_EPOCH_ID, ARG_MISSING_FIELDS);
+
     /**
      * State schema fingerprint mismatch detected at {@code getState()} time.
      * The current descriptor's schema checksum differs from the restored state's

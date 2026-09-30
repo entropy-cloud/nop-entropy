@@ -35,6 +35,7 @@ import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.common.state.shard.KeyGroupRangeRestoreFilter;
 import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
+import io.nop.stream.core.common.state.shard.StateKeyRematerializer;
 import io.nop.stream.core.common.typeutils.IStreamSerializer;
 import io.nop.stream.core.common.typeutils.JsonToolSerializer;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
@@ -270,9 +271,13 @@ class MemoryStateSerDe {
         // target KeyGroupRange, reduce each state's entries to those whose key
         // is owned by the range before re-routing. This is the in-memory
         // equivalent of the RocksDB SST range scan (Stage 31 deferred item).
+        // ST-02: the filter must re-materialize each raw key to the declared
+        // keyType BEFORE computing its group, or non-primitive keys (Date,
+        // bean, ...) are filtered by a hash that differs from the live
+        // routeKey decision.
         KeyGroupRange range = backend.getTargetKeyGroupRange();
         if (range != null) {
-            statesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(statesMap, range, backend.getMaxParallelism());
+            statesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(statesMap, range, backend.getMaxParallelism(), keyType);
             if (statesMap.isEmpty()) {
                 return;
             }
@@ -648,7 +653,10 @@ class MemoryStateSerDe {
 
     /**
      * AR-01 (P0): re-materializes a restored state key to the backend's
-     * declared {@link #keyType}, mirroring {@code RocksDBKeyEncoder.jsonToKey}.
+     * declared {@link #keyType}. ST-02: the implementation moved to the shared
+     * static {@link StateKeyRematerializer#rematerializeKey} so the RocksDB
+     * restore path and the rescale/reshard filters reuse the exact same
+     * transformation.
      *
      * <p>JSON persistence ({@code storageType="local"}) round-trips numeric keys
      * through {@code TextScanner}, which tries {@code Integer.parseInt} first:
@@ -665,27 +673,7 @@ class MemoryStateSerDe {
      * instead of returning the original object.
      */
     private Object deserializeKey(Object obj) throws Exception {
-        if (obj == null) {
-            return null;
-        }
-        if (keyType != null && keyType != Object.class && !keyType.isInstance(obj)) {
-            String json = JsonTool.serialize(obj, false);
-            Object rematerialized;
-            try {
-                rematerialized = JsonTool.parseBeanFromText(json, keyType);
-            } catch (Exception e) {
-                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
-                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
-                                + " as " + keyType.getName() + " during restore");
-            }
-            if (rematerialized == null || !keyType.isInstance(rematerialized)) {
-                throw new StreamException(ERR_STREAM_STATE_ERROR)
-                        .param(ARG_DETAIL, "Failed to re-materialize state key " + json
-                                + " as " + keyType.getName() + " during restore");
-            }
-            return rematerialized;
-        }
-        return obj;
+        return StateKeyRematerializer.rematerializeKey(obj, keyType);
     }
 
     @SuppressWarnings("unchecked")
