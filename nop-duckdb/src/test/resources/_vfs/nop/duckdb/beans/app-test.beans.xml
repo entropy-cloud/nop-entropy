@@ -10,4 +10,23 @@
     <bean id="testFlakyDuckDbStep" class="io.nop.duckdb.TestFlakyDuckDbStep">
         <property name="engine" ref="nopDuckDbEngine"/>
     </bean>
+
+    <!-- test-only wrapper throwing the permanent file-locked error on first attempt -->
+    <bean id="testFileLockedStep" class="io.nop.duckdb.TestFileLockedStep">
+        <property name="engine" ref="nopDuckDbEngine"/>
+    </bean>
+
+    <!-- step wired to an engine whose native boundary always fails -->
+    <bean id="testBrokenNativeStep" class="io.nop.duckdb.DuckDbSqlTaskStep">
+        <property name="engine">
+            <bean class="io.nop.duckdb.TestBrokenNativeEngine"/>
+        </property>
+    </bean>
+
+    <!-- step wired to an engine with a tight budget and an unwritable spill directory -->
+    <bean id="testSpillStep" class="io.nop.duckdb.DuckDbSqlTaskStep">
+        <property name="engine">
+            <bean class="io.nop.duckdb.TestSpillEngine"/>
+        </property>
+    </bean>
 </beans>

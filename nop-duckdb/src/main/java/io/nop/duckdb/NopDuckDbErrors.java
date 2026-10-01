@@ -41,6 +41,13 @@ public interface NopDuckDbErrors {
             "nop.err.duckdb.engine-closed",
             "DuckDB engine is already closed");
 
+    ErrorCode ERR_DUCKDB_FILE_LOCKED = ErrorCode.define(
+            "nop.err.duckdb.file-locked",
+            "DuckDB file {filePath} is locked by another process (DuckDB allows a single writer "
+                    + "per file). Release the lock or use a different file; automatic retry will not "
+                    + "succeed while the holder is alive. Detail: {reason}",
+            ARG_FILE_PATH, ARG_REASON);
+
     ErrorCode ERR_DUCKDB_FILE_NOT_FOUND = ErrorCode.define(
             "nop.err.duckdb.file-not-found",
             "Data file does not exist: {filePath}",

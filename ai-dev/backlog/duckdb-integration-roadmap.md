@@ -33,7 +33,7 @@
 
 ### M2 — 可靠性与并发
 
-- [ ] WI4 单写者与续跑语义：同文件 lock conflict 的显式任务语义（错误码/可读英文消息/retry 策略，不假装可并行）、独立文件并行与多读单写测试、DB 状态存档跨重启续跑（任务中途 kill 后 resume 且数据一致）、native 缺失/磁盘满/临时目录不可写等故障注入（Deliverable: 语义裁定 + 测试；deps: WI3；Item Type: Feature + Fix）
+- [x] WI4 单写者与续跑语义：同文件 lock conflict 的显式任务语义（错误码/可读英文消息/retry 策略，不假装可并行）、独立文件并行与多读单写测试、DB 状态存档跨重启续跑（任务中途 kill 后 resume 且数据一致）、native 缺失/磁盘满/临时目录不可写等故障注入（Deliverable: 语义裁定 + 测试；deps: WI3；Item Type: Feature + Fix）
 
 ### M3 — 深度应用测试
 

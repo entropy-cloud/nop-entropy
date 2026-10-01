@@ -38,6 +38,7 @@ public class DuckDbEngine implements IDuckDbEngine {
 
     private static final String DUCKDB_URL_PREFIX = "jdbc:duckdb:";
     private static final String DIFFERENT_CONFIG_MARKER = "different configuration";
+    private static final String LOCK_MARKER = "Could not set lock on file";
 
     /**
      * JVM-wide registry enforcing config uniformity per absolute file path. Covers the case of
@@ -80,10 +81,11 @@ public class DuckDbEngine implements IDuckDbEngine {
 
         FileEntry entry = OPEN_FILES.get(normalized);
         if (entry != null && !entry.fingerprint.equals(fingerprint)) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_CONFIG_CONFLICT)
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_CONFIG_CONFLICT)
                     .param(NopDuckDbErrors.ARG_FILE_PATH, filePath)
                     .param(NopDuckDbErrors.ARG_REASON, "file is already opened with engine config ["
-                            + entry.fingerprint + "], requested [" + fingerprint + "]");
+                            + entry.fingerprint + "], requested [" + fingerprint + "]")
+                    .bizFatal(true);
         }
 
         Connection conn = openConnection(DUCKDB_URL_PREFIX + filePath, filePath);
@@ -129,17 +131,28 @@ public class DuckDbEngine implements IDuckDbEngine {
         } catch (SQLException e) {
             String msg = e.getMessage();
             if (msg != null && msg.contains(DIFFERENT_CONFIG_MARKER)) {
-                throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_CONFIG_CONFLICT, e)
+                // permanent: all connections to one file must share an identical config
+                throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_CONFIG_CONFLICT, e)
                         .param(NopDuckDbErrors.ARG_FILE_PATH, label)
-                        .param(NopDuckDbErrors.ARG_REASON, msg);
+                        .param(NopDuckDbErrors.ARG_REASON, msg)
+                        .bizFatal(true);
+            }
+            if (msg != null && msg.contains(LOCK_MARKER)) {
+                // permanent while the holder lives: single writer per file (WI0 Q3)
+                throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_FILE_LOCKED, e)
+                        .param(NopDuckDbErrors.ARG_FILE_PATH, label)
+                        .param(NopDuckDbErrors.ARG_REASON, msg)
+                        .bizFatal(true);
             }
             throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_CONNECT_FAILED, e)
                     .param(NopDuckDbErrors.ARG_FILE_PATH, label)
                     .param(NopDuckDbErrors.ARG_REASON, String.valueOf(msg));
         } catch (Throwable t) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_NATIVE_LOAD_FAILED, t)
+            // permanent: missing platform native will not appear on retry
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_NATIVE_LOAD_FAILED, t)
                     .param(NopDuckDbErrors.ARG_PLATFORM, platform())
-                    .param(NopDuckDbErrors.ARG_REASON, t.getMessage() == null ? t.toString() : t.getMessage());
+                    .param(NopDuckDbErrors.ARG_REASON, t.getMessage() == null ? t.toString() : t.getMessage())
+                    .bizFatal(true);
         }
     }
 
@@ -171,16 +184,20 @@ public class DuckDbEngine implements IDuckDbEngine {
         try (Statement st = conn.createStatement()) {
             st.execute("SET " + key + "=" + value);
         } catch (SQLException e) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_INVALID_CONFIG, e)
+            // permanent: a rejected SET means the configured value is unusable, retry cannot fix it
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_INVALID_CONFIG, e)
                     .param(NopDuckDbErrors.ARG_CONFIG_KEY, key)
-                    .param(NopDuckDbErrors.ARG_CONFIG_VALUE, value);
+                    .param(NopDuckDbErrors.ARG_CONFIG_VALUE, value)
+                    .bizFatal(true);
         }
     }
 
     private NopException invalidConfig(String key, String value) {
-        return new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_INVALID_CONFIG)
+        // permanent: retrying with the same config cannot succeed
+        return (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_INVALID_CONFIG)
                 .param(NopDuckDbErrors.ARG_CONFIG_KEY, key)
-                .param(NopDuckDbErrors.ARG_CONFIG_VALUE, value);
+                .param(NopDuckDbErrors.ARG_CONFIG_VALUE, value)
+                .bizFatal(true);
     }
 
     private static String quote(String value) {
@@ -222,7 +239,8 @@ public class DuckDbEngine implements IDuckDbEngine {
 
     private void checkClosed() {
         if (closed) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_ENGINE_CLOSED);
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_ENGINE_CLOSED)
+                    .bizFatal(true);
         }
     }
 

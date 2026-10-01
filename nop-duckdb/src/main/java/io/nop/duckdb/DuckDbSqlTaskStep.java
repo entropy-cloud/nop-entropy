@@ -210,8 +210,10 @@ public class DuckDbSqlTaskStep extends AbstractTaskStep {
     }
 
     private static NopException invalidInput(String reason) {
+        // permanent: the task DSL config is wrong, retrying cannot fix it
         return new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_INVALID_STEP_INPUT)
-                .param(NopDuckDbErrors.ARG_REASON, reason);
+                .param(NopDuckDbErrors.ARG_REASON, reason)
+                .bizFatal(true);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package io.nop.duckdb;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.tablesaw.xlsx.XlsxReadOptions;
 import io.nop.tablesaw.xlsx.XlsxReader;
 import tech.tablesaw.api.Table;
@@ -124,8 +125,9 @@ public final class DuckDbFiles {
     private static long readExternal(Connection conn, String filePath, String tableName, String readerFn) {
         requireFile(filePath);
         if (tableExists(conn, tableName)) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_TABLE_EXISTS)
-                    .param(NopDuckDbErrors.ARG_TABLE_NAME, tableName);
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_TABLE_EXISTS)
+                    .param(NopDuckDbErrors.ARG_TABLE_NAME, tableName)
+                    .bizFatal(true);
         }
         // single quotes are escaped by doubling; identifier quotes likewise.
         // header=true is a read_csv_auto-only parameter (read_parquet rejects it)
@@ -190,8 +192,9 @@ public final class DuckDbFiles {
 
     private static void requireFile(String filePath) {
         if (filePath == null || !new File(filePath).isFile()) {
-            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_FILE_NOT_FOUND)
-                    .param(NopDuckDbErrors.ARG_FILE_PATH, String.valueOf(filePath));
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_FILE_NOT_FOUND)
+                    .param(NopDuckDbErrors.ARG_FILE_PATH, String.valueOf(filePath))
+                    .bizFatal(true);
         }
     }
 

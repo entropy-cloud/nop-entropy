@@ -1,0 +1,21 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="setup" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="CREATE TABLE res AS SELECT 41 AS v UNION ALL SELECT 1 AS v"/>
+        </simple>
+
+        <suspend name="wait"/>
+
+        <simple name="verify" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT v FROM res WHERE v = 41"/>
+            <input name="resultTable" value="verify"/>
+            <output name="rowCount" exportAs="verifyRows"/>
+        </simple>
+    </steps>
+
+    <output name="verifyRows">
+        <source>verifyRows</source>
+    </output>
+</task>

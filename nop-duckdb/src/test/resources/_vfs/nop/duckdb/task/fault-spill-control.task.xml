@@ -1,0 +1,9 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="spill" bean="nopDuckDbSqlTaskStep" timeout="240000">
+            <input name="sql" value="SELECT k FROM read_csv_auto('${csvPath}', header=true) ORDER BY k DESC"/>
+            <input name="exportPath" value="${exportPath}"/>
+            <input name="exportFormat" value="csv"/>
+        </simple>
+    </steps>
+</task>
