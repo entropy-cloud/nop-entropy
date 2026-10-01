@@ -47,7 +47,7 @@
 12. 标记 `completed` 前，必须完成一次由独立审阅者或独立子 agent 执行的 closure audit，并把证据写进 plan 或对应 daily log。self-audit 可用于执行中的自查，但不能替代 `completed` 所需的独立 closure audit。
 13. **已经进入 `lint`、静态检查脚本、或 CI fail-fast 的固定规则，都是不可降级的硬约束。** 计划里不能把这些规则改写成 advisory、follow-up、或"如有时间再做"的事项。
 14. `ai-dev/design/` 下的文档**只记录架构决策和使用契约**：选了什么方案、为什么选、拒绝了哪些替代方案及原因。属于 design 层面的包括：架构约束、模块边界、接口契约（如 Meter 命名、API 命名规范、数据流方向）。**不写代码层面的类签名、方法列表、字段定义、伪代码——源码是代码层面的唯一事实。** 不写历史变迁、不写"Proposed vs Current"对比、不写演进叙事。如果一个 design doc 包含 "Proposed Design" 或 "Current vs Proposed" 章节，说明它还停留在 draft 状态，实施完成后必须重写为最终设计文档。
-15. 每个 execution item 都必须能被归类为 `Fix`、`Decision`、`Proof`、或 `Follow-up`。已确认的 live defect 或 contract drift 只能属于 `Fix`，不能降级成 `Follow-up`。
+15. 每个 execution item 都必须能被归类为 `Fix`、`Decision`、`Proof`、`Feature`、或 `Follow-up`。已确认的 live defect 或 contract drift 只能属于 `Fix`，不能降级成 `Follow-up`。`Feature` 仅用于「新增能力实现」——既非已确认缺陷、也非裁定或验证；若一个项能被诚实地写成 `Fix`，就不得写成 `Feature`。（2026-09-30 增补 `Feature`：`ai-dev/backlog/nop-stream-sql-roadmap.md` 起草时发现新能力实现无桶可归，新增前先满足「不是 Fix」这一前提。）
 16. 允许 deferred 的是优化项或已裁定为 non-blocking 的 residual，不允许 deferred 的是已确认且仍在 scope 内的 live defect、contract gap、owner-doc drift、以及未满足的硬门禁。
 17. 如果某个 Phase 改变了 live baseline、public contract、或 owner behavior，该 Phase 的 Exit Criteria 必须包含相应文档更新项。纯测试拆分、纯工具整理、纯内部重构可以显式写明 `No owner-doc update required`，但不能默默跳过文档裁定。
 18. **Checklist 打勾是 closure 的前置条件，不是附带动作。** 执行完一个 item 后必须立即将对应 `- [ ]` 改为 `- [x]`。标记 `Plan Status: completed` 时，文件内不得残留任何未勾选的 in-scope checklist item。如果存在未勾选项，要么完成它，要么显式移入 `Deferred But Adjudicated` 并写清原因。
@@ -210,7 +210,7 @@
 Status: planned
 Targets: `<<文件/模块/文档>>`
 
-- Item Types: `Fix | Decision | Proof | Follow-up`
+- Item Types: `Fix | Decision | Proof | Feature | Follow-up`
 
 - [ ] <<执行项>>
 - [ ] <<执行项>>
@@ -232,7 +232,7 @@ Exit Criteria:
 Status: planned
 Targets: `<<文件/模块/文档>>`
 
-- Item Types: `Fix | Decision | Proof | Follow-up`
+- Item Types: `Fix | Decision | Proof | Feature | Follow-up`
 
 - [ ] <<执行项>>
 - [ ] <<执行项>>
@@ -254,7 +254,7 @@ Exit Criteria:
 Status: planned
 Targets: `<<文件/模块/文档>>`
 
-- Item Types: `Fix | Decision | Proof | Follow-up`
+- Item Types: `Fix | Decision | Proof | Feature | Follow-up`
 
 - [ ] <<执行项>>
 - [ ] <<执行项>>
@@ -414,7 +414,7 @@ Follow-up:
    - **重构治理**：具体文件行数阈值、迁移完成的文件清单、`./mvnw compile && ./mvnw test` 全过。
      判断标准：读完这条 Exit Criteria 后，任何人都能在仓库里找到对应的文件、代码或文档，明确判断它是否成立。
 7. 如果计划要处理重构热点或大文件治理，先基于 live repo audit 写清当前超大文件清单、目标阈值，以及 closure 时将使用的复核命令；不要只引用旧日志或旧计划里的行数结论。
-8. 为每个 execution item 标记类型：`Fix`、`Decision`、`Proof`、`Follow-up`。如果一个项已经被确认为 live defect 或 contract drift，就不能写成 `Follow-up`。
+8. 为每个 execution item 标记类型：`Fix`、`Decision`、`Proof`、`Feature`、`Follow-up`。如果一个项已经被确认为 live defect 或 contract drift，就不能写成 `Follow-up`，也不能写成 `Feature`。
 9. 如果某个 Phase 改了代码或行为，该 Phase 的 exit criteria 必须列出需要更新的 `ai-dev/design/`、`docs-for-ai/` 或 `ai-dev/logs/` 条目；如果不需要 owner-doc 更新，也要显式写出 `No owner-doc update required`。文档更新不是全局收尾工作，而是 Phase 内的工作。`ai-dev/design/` 下的文档只写最终设计状态（见 Minimum Rules 第 14 条）。
 10. 如果你正在规划的是一个完整 feature，先问自己这份 plan 是否真的能把 feature 收口；如果答案是否定的，再考虑拆成 successor plans，而不是一开始就把 feature 切碎。
 11. **管线/流程/链条式系统的 Exit Criteria 必须包含端到端验证项**（见 Minimum Rules #22）。问自己：如果这个 phase 完成，用户能否从入口点开始、经过所有新增/修改的组件、到达出口点，完整地使用这个功能？如果答案是否定的，说明还有未接通的线。
