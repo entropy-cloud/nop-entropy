@@ -232,7 +232,7 @@
 - WI1 EQL 窗口 grammar 与 AST 补全: `done`（deps 无；Item Type Feature；四能力 grammar 与 AST 字段断言 21 用例全绿，nop-orm-eql 80 与 nop-orm 208 回归绿，生成物白名单零越界，七新关键字登记 unreservedWord_；承载 plan ai-dev/plans/nop-stream-sql/04-wi1-eql-window-grammar-ast.md，独立 closure audit PASS 2026-10-02）
 - WI2 窗口 codegen 与方言能力开关: `todo`（deps WI1；Item Type Feature；完成判定 AstToEqlGenerator 与 AstToSqlGenerator 输出 frame 与命名窗口，dialect.xdef 增按 frame 单位拆分的能力位，default.dialect.xml 缺省 false，TestEqlCompileSql 扩展覆盖未启用方言抛 ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE）
 - WI3 方言窗口能力实跑矩阵: `todo`（deps WI0b 与 WI2 与 WI4；Item Type Proof；完成判定 以 -Dnop.test.docker.enabled=true 跑 PG 与 Oracle 与 MySQL 与 H2，产出 frame 三单位乘命名窗口的支持矩阵并据此填各 dialect.xml 的 features 值，实跑范围按 D15 裁定执行，降级时逐方言标注未实测项）
-- WI4 窗口函数方言登记缺口修复: `todo`（deps 无；Item Type Fix；完成判定 postgresql.dialect.xml 及其继承者 duckdb 与 postgis 补 window-expr-support 继承或登记 10 个窗口函数，RANK 与 ROW_NUMBER 在 PG 方言下由 ERR_EQL_UNKNOWN_FUNCTION 转为可编译，TestPostgreDialect 在 opt-in 下回归绿，并确认与 default 与 geo-support 无函数名冲突）
+- WI4 窗口函数方言登记缺口修复: `done`（deps 无；Item Type Fix；postgresql.dialect.xml extends 链加 window-expr-support，PG 系三方言经继承获得 10 个窗口函数，真实方言加载回归 3 用例绿、nop-orm-eql -am 全量 83 绿；D15 标注：TestPostgreDialect docker opt-in 存量回归未在本环境实测，依据 TestDialect.java:193-196 跳过逻辑分析不受影响；承载 plan ai-dev/plans/nop-stream-sql/06-wi4-pg-window-function-registration.md，独立 closure audit PASS 2026-10-02）
 - WI5 双目标翻译 golden 与文档校正: `todo`（deps WI0b 与 WI2 与 WI3 与 WI4；Item Type Proof；完成判定 窗口两族乘 frame 三单位用例产出各方言 SQL 快照，实跑范围按 D15 裁定，eql-and-database-compatibility.md 窗口口径改为 grammar 交集 dialect features 交集方言继承链）
 - ★ **里程碑：M1 语法可用**（解锁条件 Phase 1 全部 done，含 WI1 至 WI5）：`todo`
 
