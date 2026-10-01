@@ -1,6 +1,6 @@
 # DuckDB 集成 Roadmap（数据文件与本地库的分析执行层）
 
-> Last updated: 2026-09-30
+> Last updated: 2026-10-01（WI0-WI9 全部完成，10/10 WI + 里程碑勾选；执行分支 feat/duckdb-integration）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources: `ai-dev/analysis/2026-09/2026-09-30-esproc-sqlazy-deep-analysis.md`（§19 性能归因与引擎选型裁定，primary）、2026-09-30 同日追问结论（范围收敛：仅数据文件 + 本地库，不做多源联邦；DuckDB 执行 + nop-task 编排；深度应用测试优先）
 
