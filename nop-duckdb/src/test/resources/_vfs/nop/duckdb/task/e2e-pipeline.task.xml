@@ -1,0 +1,82 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="bridge_export" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT * FROM t_xlsx"/>
+            <input name="exportPath" value="${bridgeCsv}"/>
+            <input name="exportFormat" value="csv"/>
+            <output name="rowsExported" exportAs="bridgeRows"/>
+        </simple>
+
+        <simple name="ingest" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="ingestCsvPath" value="${bridgeCsv}"/>
+            <input name="ingestTable" value="t_work"/>
+            <input name="sql" value="SELECT count(*) FROM t_work"/>
+            <output name="rowsIngested" exportAs="ingestedRows"/>
+        </simple>
+
+        <simple name="filter" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="${filterSql}"/>
+            <input name="resultTable" value="t_filtered"/>
+            <output name="rowCount" exportAs="filteredRows"/>
+        </simple>
+
+        <simple name="export_parquet" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT * FROM t_filtered"/>
+            <input name="exportPath" value="${parquetPath}"/>
+            <input name="exportFormat" value="parquet"/>
+            <output name="rowsExported" exportAs="parquetRows"/>
+        </simple>
+
+        <simple name="parquet_agg" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="ingestParquetPath" value="${parquetPath}"/>
+            <input name="ingestTable" value="t_pq"/>
+            <input name="sql" value="SELECT count(*) AS n FROM t_pq"/>
+            <input name="resultTable" value="t_agg"/>
+            <output name="rowCount" exportAs="aggRows"/>
+        </simple>
+
+        <simple name="final_export" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT n FROM t_agg"/>
+            <input name="exportPath" value="${finalCsv}"/>
+            <input name="exportFormat" value="csv"/>
+            <output name="rowsExported" exportAs="finalRows"/>
+        </simple>
+
+        <simple name="sqlite_attach" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="ATTACH '${sqlitePath}' AS sq (TYPE sqlite)"/>
+        </simple>
+
+        <!-- CTAS updateCount is driver-defined (-1 in duckdb JDBC), so the write is
+             verified by the independent read-back in the test, not by a row count output -->
+        <simple name="sqlite_write" bean="nopDuckDbSqlTaskStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="CREATE TABLE sq.result AS SELECT n FROM t_agg"/>
+        </simple>
+    </steps>
+
+    <output name="bridgeRows">
+        <source>bridgeRows</source>
+    </output>
+    <output name="ingestedRows">
+        <source>ingestedRows</source>
+    </output>
+    <output name="filteredRows">
+        <source>filteredRows</source>
+    </output>
+    <output name="parquetRows">
+        <source>parquetRows</source>
+    </output>
+    <output name="aggRows">
+        <source>aggRows</source>
+    </output>
+    <output name="finalRows">
+        <source>finalRows</source>
+    </output>
+</task>

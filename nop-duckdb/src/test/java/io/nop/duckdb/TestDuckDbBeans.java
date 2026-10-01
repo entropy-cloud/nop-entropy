@@ -35,7 +35,9 @@ public class TestDuckDbBeans extends BaseTestCase {
     @Test
     @Timeout(60)
     public void testEngineBeanAssembledAndConfigInjected() throws Exception {
-        IDuckDbEngine engine = (IDuckDbEngine) BeanContainer.getBeanByType(IDuckDbEngine.class);
+        // by id: the test VFS also registers extra IDuckDbEngine beans (WI6 spill engines),
+        // so a type lookup would be ambiguous
+        IDuckDbEngine engine = (IDuckDbEngine) BeanContainer.instance().getBean("nopDuckDbEngine");
         assertTrue(engine instanceof DuckDbEngine);
 
         try (Connection conn = engine.openMemory();

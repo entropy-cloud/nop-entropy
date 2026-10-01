@@ -29,4 +29,10 @@
             <bean class="io.nop.duckdb.TestSpillEngine"/>
         </property>
     </bean>
+
+    <!-- WI6 deep-spill scenario: 128MB budget, writable pollable spill directory -->
+    <bean id="testSpillTaskEngine" class="io.nop.duckdb.TestSpillTaskEngine"/>
+    <bean id="testDeepSpillStep" class="io.nop.duckdb.DuckDbSqlTaskStep">
+        <property name="engine" ref="testSpillTaskEngine"/>
+    </bean>
 </beans>

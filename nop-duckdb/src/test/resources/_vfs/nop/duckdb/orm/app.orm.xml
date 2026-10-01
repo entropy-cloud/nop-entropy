@@ -42,5 +42,11 @@
                 <column name="refName" code="ref_name" propId="3" stdSqlType="VARCHAR" precision="32"/>
             </columns>
         </entity>
+        <entity name="duckdb.PipelineResult" tableName="pipeline_result" className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="rid" code="rid" propId="1" stdSqlType="BIGINT" primary="true"/>
+                <column name="cnt" code="cnt" propId="2" stdSqlType="BIGINT"/>
+            </columns>
+        </entity>
     </entities>
 </orm>

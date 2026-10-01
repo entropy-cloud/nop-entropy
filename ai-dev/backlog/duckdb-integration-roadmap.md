@@ -38,7 +38,7 @@
 ### M3 — 深度应用测试
 
 - [x] WI5 数据正确性对拍矩阵：同一数据集上四方对拍——DuckDB 经 nop-duckdb 执行层 API、DuckDB 经 ORM/EQL 既有方言路径、RDB 下推（经 nop-dao）、tablesaw；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
-- [ ] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
+- [x] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
 - [ ] WI7 性能基线与调优档：同一数据集下 DuckDB vs tablesaw vs RDB 下推的可重复基准（记录数据量档位与 threads/memory_limit 配置），对齐 nop-benchmark 既有 JMH 模式或落可重复脚本——只立基线不设竞速指标（Deliverable: 基准基线记录；deps: WI6；Item Type: Proof）
 - [ ] WI8 duckdb 方言函数全量验证：覆盖 IDialect("duckdb").getFunctionNames() 生效集（继承链 default 49 ∪ postgresql 8 ∪ duckdb 覆盖 9 ≈ 50 个净函数，含 rand→random、instr→strpos、current_date/current_timestamp 括号语义、year 覆盖、uuid/uuidv7/cosh/sinh）+ sqls 模板（分页 LIMIT/OFFSET、dateTimeLiteral/timestampLiteral 字面量、forUpdate/lockHint 置空）+ errorCodes 模式匹配 + sqlDataTypes 映射的 DDL 可执行性；机制 = 参数化测试枚举全部函数逐一在真实 DuckDB 构造 SELECT fn(...) 执行（test scope duckdb_jdbc，jdbc:duckdb: 内存/临时库），要求无异常 + 关键语义断言（返回类型、括号、映射正确性）；发现方言定义错误修 duckdb.dialect.xml（nop-dao 既有配置，非生成物）并带回归；模式参照既有 TestDialect / TestSQLFunction / JdbcTestCase（Deliverable: 函数验证测试套件 + dialect.xml 缺陷修复；deps: WI0；Item Type: Proof + Fix）
 
