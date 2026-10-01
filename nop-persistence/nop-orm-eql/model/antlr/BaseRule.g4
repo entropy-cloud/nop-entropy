@@ -91,6 +91,7 @@ unreservedWord_:
     | RECURSIVE | CURRENT_USER | USER | DATE | OCTET_LENGTH
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP
     | BEGIN|END | CROSS
+    | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
     ;
 
 // variable
@@ -219,9 +220,10 @@ sqlAggregateFunction
     ;
 
 sqlWindowExpr
-    : function=sqlWindowFunction_ OVER LP_
-        partitionBy=sqlPartitionBy orderBy=sqlOrderBy
-    RP_
+    : function=sqlWindowFunction_ OVER
+        ( LP_ partitionBy=sqlPartitionBy? orderBy=sqlOrderBy? frame=sqlWindowFrame? RP_
+        | windowName=sqlIdentifier_
+        )
     ;
 
 sqlWindowFunction_: sqlAggregateFunction|sqlRegularFunction;
@@ -231,6 +233,41 @@ sqlPartitionBy:
 
 sqlPartitionByItems_:
    e=sqlExpr (COMMA_ e=sqlExpr)*;
+
+sqlWindowFrame
+    : unit=sqlWindowFrameUnit_ BETWEEN? start=sqlWindowFrameBound (AND end=sqlWindowFrameBound)?
+    ;
+
+sqlWindowFrameUnit_
+    : ROWS
+    | RANGE
+    | GROUPS
+    ;
+
+// boundType/offset 由手写 EqlASTBuildVisitor 解析：unbounded preceding/following 优先于 offset 形态
+// （同一 prop 不能出现在规则不同备选分支，AstGrammarBuilder 的 duplicate-prop-label 校验）
+sqlWindowFrameBound
+    : offset=sqlExpr? boundType=sqlWindowFrameBoundType_
+    ;
+
+sqlWindowFrameBoundType_
+    : UNBOUNDED PRECEDING
+    | PRECEDING
+    | CURRENT ROW
+    | FOLLOWING
+    | UNBOUNDED FOLLOWING
+    ;
+
+sqlWindowClause
+    : WINDOW items=sqlWindowDeclItems_
+    ;
+
+sqlWindowDeclItems_:
+   e=sqlWindowDecl (COMMA_ e=sqlWindowDecl)*;
+
+sqlWindowDecl
+    : name=sqlIdentifier_ AS LP_ partitionBy=sqlPartitionBy? orderBy=sqlOrderBy? frame=sqlWindowFrame? RP_
+    ;
 
 sqlIdentifier_agg_
     : MAX | MIN | SUM | COUNT | AVG

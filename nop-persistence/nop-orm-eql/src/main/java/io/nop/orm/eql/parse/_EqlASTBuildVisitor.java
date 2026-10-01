@@ -1095,6 +1095,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
             if(ctx.having != null){
                ret.setHaving((visitSqlHaving(ctx.having)));
             }
+            if(ctx.windowClause != null){
+               ret.setWindowClause((visitSqlWindowClause(ctx.windowClause)));
+            }
             if(ctx.orderBy != null){
                ret.setOrderBy((visitSqlOrderBy(ctx.orderBy)));
             }
@@ -1395,6 +1398,53 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlValues_(SqlValues_Cont
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlWindowClause visitSqlWindowClause(SqlWindowClauseContext ctx){
+          io.nop.orm.eql.ast.SqlWindowClause ret = new io.nop.orm.eql.ast.SqlWindowClause();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.items != null){
+               ret.setItems((buildSqlWindowDeclItems_(ctx.items)));
+            }else{
+               ret.setItems(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlWindowDecl visitSqlWindowDecl(SqlWindowDeclContext ctx){
+          io.nop.orm.eql.ast.SqlWindowDecl ret = new io.nop.orm.eql.ast.SqlWindowDecl();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.name != null){
+               ret.setName((SqlWindowDecl_name(ctx.name)));
+            }
+            if(ctx.partitionBy != null){
+               ret.setPartitionBy((visitSqlPartitionBy(ctx.partitionBy)));
+            }
+            if(ctx.orderBy != null){
+               ret.setOrderBy((visitSqlOrderBy(ctx.orderBy)));
+            }
+            if(ctx.frame != null){
+               ret.setFrame((visitSqlWindowFrame(ctx.frame)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+public java.util.List<io.nop.orm.eql.ast.SqlWindowDecl> buildSqlWindowDeclItems_(SqlWindowDeclItems_Context ctx){
+    java.util.List<io.nop.orm.eql.ast.SqlWindowDecl> list = new ArrayList<>();
+    List<SqlWindowDeclContext> elms = ctx.sqlWindowDecl();
+    if(elms != null){
+      for(SqlWindowDeclContext elm: elms){
+         list.add(visitSqlWindowDecl(elm));
+      }
+    }
+    return list;
+}
+      
       public io.nop.orm.eql.ast.SqlWindowExpr visitSqlWindowExpr(SqlWindowExprContext ctx){
           io.nop.orm.eql.ast.SqlWindowExpr ret = new io.nop.orm.eql.ast.SqlWindowExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1407,6 +1457,45 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlValues_(SqlValues_Cont
             }
             if(ctx.orderBy != null){
                ret.setOrderBy((visitSqlOrderBy(ctx.orderBy)));
+            }
+            if(ctx.frame != null){
+               ret.setFrame((visitSqlWindowFrame(ctx.frame)));
+            }
+            if(ctx.windowName != null){
+               ret.setWindowName((SqlWindowExpr_windowName(ctx.windowName)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlWindowFrame visitSqlWindowFrame(SqlWindowFrameContext ctx){
+          io.nop.orm.eql.ast.SqlWindowFrame ret = new io.nop.orm.eql.ast.SqlWindowFrame();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.unit != null){
+               ret.setUnit((SqlWindowFrame_unit(ctx.unit)));
+            }
+            if(ctx.start != null){
+               ret.setStart((visitSqlWindowFrameBound(ctx.start)));
+            }
+            if(ctx.end != null){
+               ret.setEnd((visitSqlWindowFrameBound(ctx.end)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlWindowFrameBound visitSqlWindowFrameBound(SqlWindowFrameBoundContext ctx){
+          io.nop.orm.eql.ast.SqlWindowFrameBound ret = new io.nop.orm.eql.ast.SqlWindowFrameBound();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.offset != null){
+               ret.setOffset((visitSqlExpr(ctx.offset)));
+            }
+            if(ctx.boundType != null){
+               ret.setBoundType((SqlWindowFrameBound_boundType(ctx.boundType)));
             }
             ret.normalize();
             ret.validate();
@@ -1565,6 +1654,16 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlUnionType SqlUnionSelect_unionType(ParseTree node);
 
   /**
+   * rules: sqlWindowFrameBound
+   */
+  public abstract io.nop.orm.eql.enums.SqlWindowFrameBoundType SqlWindowFrameBound_boundType(ParseTree node);
+
+  /**
+   * rules: sqlWindowFrame
+   */
+  public abstract io.nop.orm.eql.enums.SqlWindowFrameType SqlWindowFrame_unit(ParseTree node);
+
+  /**
    * rules: sqlAggregateFunction
    */
   public abstract java.lang.String SqlAggregateFunction_name(ParseTree node);
@@ -1648,6 +1747,16 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlTypeExpr
    */
   public abstract java.lang.String SqlTypeExpr_name(ParseTree node);
+
+  /**
+   * rules: sqlWindowDecl
+   */
+  public abstract java.lang.String SqlWindowDecl_name(ParseTree node);
+
+  /**
+   * rules: sqlWindowExpr
+   */
+  public abstract java.lang.String SqlWindowExpr_windowName(ParseTree node);
 
 }
  // resume CPD analysis - CPD-ON

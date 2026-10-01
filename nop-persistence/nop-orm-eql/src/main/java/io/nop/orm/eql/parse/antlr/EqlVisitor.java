@@ -596,6 +596,48 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowFrame}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowFrameUnit_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowFrameBound}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowFrameBoundType_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowClause(EqlParser.SqlWindowClauseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowDeclItems_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlWindowDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlIdentifier_agg_}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

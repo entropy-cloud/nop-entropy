@@ -166,6 +166,18 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlWindowExpr:
                 return optimizeSqlWindowExpr((SqlWindowExpr)node,context);
             
+                case SqlWindowFrame:
+                return optimizeSqlWindowFrame((SqlWindowFrame)node,context);
+            
+                case SqlWindowFrameBound:
+                return optimizeSqlWindowFrameBound((SqlWindowFrameBound)node,context);
+            
+                case SqlWindowDecl:
+                return optimizeSqlWindowDecl((SqlWindowDecl)node,context);
+            
+                case SqlWindowClause:
+                return optimizeSqlWindowClause((SqlWindowClause)node,context);
+            
                 case SqlMultiValueExpr:
                 return optimizeSqlMultiValueExpr((SqlMultiValueExpr)node,context);
             
@@ -656,6 +668,17 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { havingOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setHaving(havingOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getWindowClause() != null){
+                    
+                            io.nop.orm.eql.ast.SqlWindowClause windowClauseOpt = (io.nop.orm.eql.ast.SqlWindowClause)optimize(node.getWindowClause(),context);
+                            if(windowClauseOpt != node.getWindowClause()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { windowClauseOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setWindowClause(windowClauseOpt);
                             }
                         
                     }
@@ -1549,6 +1572,122 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { orderByOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOrderBy(orderByOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getFrame() != null){
+                    
+                            io.nop.orm.eql.ast.SqlWindowFrame frameOpt = (io.nop.orm.eql.ast.SqlWindowFrame)optimize(node.getFrame(),context);
+                            if(frameOpt != node.getFrame()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { frameOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setFrame(frameOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlWindowFrame(SqlWindowFrame node, C context){
+        SqlWindowFrame ret = node;
+
+        
+                    if(node.getStart() != null){
+                    
+                            io.nop.orm.eql.ast.SqlWindowFrameBound startOpt = (io.nop.orm.eql.ast.SqlWindowFrameBound)optimize(node.getStart(),context);
+                            if(startOpt != node.getStart()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { startOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setStart(startOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getEnd() != null){
+                    
+                            io.nop.orm.eql.ast.SqlWindowFrameBound endOpt = (io.nop.orm.eql.ast.SqlWindowFrameBound)optimize(node.getEnd(),context);
+                            if(endOpt != node.getEnd()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { endOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setEnd(endOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlWindowFrameBound(SqlWindowFrameBound node, C context){
+        SqlWindowFrameBound ret = node;
+
+        
+                    if(node.getOffset() != null){
+                    
+                            io.nop.orm.eql.ast.SqlExpr offsetOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getOffset(),context);
+                            if(offsetOpt != node.getOffset()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { offsetOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setOffset(offsetOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlWindowDecl(SqlWindowDecl node, C context){
+        SqlWindowDecl ret = node;
+
+        
+                    if(node.getPartitionBy() != null){
+                    
+                            io.nop.orm.eql.ast.SqlPartitionBy partitionByOpt = (io.nop.orm.eql.ast.SqlPartitionBy)optimize(node.getPartitionBy(),context);
+                            if(partitionByOpt != node.getPartitionBy()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { partitionByOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setPartitionBy(partitionByOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getOrderBy() != null){
+                    
+                            io.nop.orm.eql.ast.SqlOrderBy orderByOpt = (io.nop.orm.eql.ast.SqlOrderBy)optimize(node.getOrderBy(),context);
+                            if(orderByOpt != node.getOrderBy()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { orderByOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setOrderBy(orderByOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getFrame() != null){
+                    
+                            io.nop.orm.eql.ast.SqlWindowFrame frameOpt = (io.nop.orm.eql.ast.SqlWindowFrame)optimize(node.getFrame(),context);
+                            if(frameOpt != node.getFrame()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { frameOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setFrame(frameOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlWindowClause(SqlWindowClause node, C context){
+        SqlWindowClause ret = node;
+
+        
+                    if(node.getItems() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlWindowDecl> itemsOpt = optimizeList(node.getItems(),true, context);
+                            if(itemsOpt != node.getItems()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(itemsOpt); ret = node.deepClone();}
+                                ret.setItems(itemsOpt);
                             }
                         
                     }

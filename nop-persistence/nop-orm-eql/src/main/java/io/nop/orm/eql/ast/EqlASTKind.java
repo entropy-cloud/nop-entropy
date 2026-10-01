@@ -107,24 +107,32 @@ public enum EqlASTKind{
         
             SqlWindowExpr, // ordinal: 51
         
-            SqlMultiValueExpr, // ordinal: 52
+            SqlWindowFrame, // ordinal: 52
         
-            SqlExistsExpr, // ordinal: 53
+            SqlWindowFrameBound, // ordinal: 53
         
-            SqlIntervalExpr, // ordinal: 54
+            SqlWindowDecl, // ordinal: 54
         
-            SqlCaseExpr, // ordinal: 55
+            SqlWindowClause, // ordinal: 55
         
-            SqlCaseWhenItem, // ordinal: 56
+            SqlMultiValueExpr, // ordinal: 56
         
-            SqlCastExpr, // ordinal: 57
+            SqlExistsExpr, // ordinal: 57
         
-            SqlTypeExpr, // ordinal: 58
+            SqlIntervalExpr, // ordinal: 58
         
-            SqlCollectionAccessExpr, // ordinal: 59
+            SqlCaseExpr, // ordinal: 59
         
-            SqlCommit, // ordinal: 60
+            SqlCaseWhenItem, // ordinal: 60
         
-            SqlRollback, // ordinal: 61
+            SqlCastExpr, // ordinal: 61
+        
+            SqlTypeExpr, // ordinal: 62
+        
+            SqlCollectionAccessExpr, // ordinal: 63
+        
+            SqlCommit, // ordinal: 64
+        
+            SqlRollback, // ordinal: 65
         
 }

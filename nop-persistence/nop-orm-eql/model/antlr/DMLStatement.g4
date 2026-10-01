@@ -98,6 +98,7 @@ sqlQuerySelect
         (<br> where=sqlWhere)?
         (<br> groupBy=sqlGroupBy)?
         (<br> having=sqlHaving)?
+        (<br> windowClause=sqlWindowClause)?
         (<br> orderBy=sqlOrderBy)?
         (<br> limit=sqlLimit)?
         (<br> forUpdate=forUpdate_)?

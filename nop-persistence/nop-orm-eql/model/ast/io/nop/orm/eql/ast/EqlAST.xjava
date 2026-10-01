@@ -8,6 +8,8 @@ import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.enums.SqlUnionType;
+import io.nop.orm.eql.enums.SqlWindowFrameBoundType;
+import io.nop.orm.eql.enums.SqlWindowFrameType;
 
 import java.util.List;
 
@@ -157,6 +159,7 @@ class EqlAST {
         SqlWhere where;
         SqlGroupBy groupBy;
         SqlHaving having;
+        SqlWindowClause windowClause;
         SqlOrderBy orderBy;
         SqlLimit limit;
         boolean forUpdate;
@@ -450,6 +453,30 @@ class EqlAST {
         SqlFunction function;
         SqlPartitionBy partitionBy;
         SqlOrderBy orderBy;
+        SqlWindowFrame frame;
+        String windowName;
+    }
+
+    class SqlWindowFrame {
+        SqlWindowFrameType unit;
+        SqlWindowFrameBound start;
+        SqlWindowFrameBound end;
+    }
+
+    class SqlWindowFrameBound {
+        SqlWindowFrameBoundType boundType;
+        SqlExpr offset;
+    }
+
+    class SqlWindowDecl {
+        String name;
+        SqlPartitionBy partitionBy;
+        SqlOrderBy orderBy;
+        SqlWindowFrame frame;
+    }
+
+    class SqlWindowClause {
+        List<SqlWindowDecl> items;
     }
 
     class SqlMultiValueExpr extends SqlExpr {

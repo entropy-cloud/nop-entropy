@@ -990,6 +990,76 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowFrame}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowFrame}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowFrameUnit_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowFrameUnit_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowFrameBound}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowFrameBound}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowFrameBoundType_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowFrameBoundType_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowClause(EqlParser.SqlWindowClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowClause(EqlParser.SqlWindowClauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowDeclItems_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowDeclItems_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlWindowDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlWindowDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlIdentifier_agg_}.
 	 * @param ctx the parse tree
 	 */

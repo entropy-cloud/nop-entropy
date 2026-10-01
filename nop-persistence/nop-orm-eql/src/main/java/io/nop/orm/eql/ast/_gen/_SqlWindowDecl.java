@@ -1,7 +1,7 @@
 //__XGEN_FORCE_OVERRIDE__
 package io.nop.orm.eql.ast._gen;
 
-import io.nop.orm.eql.ast.SqlWindowExpr;
+import io.nop.orm.eql.ast.SqlWindowDecl;
 import io.nop.orm.eql.ast.EqlASTNode; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 
 import io.nop.orm.eql.ast.EqlASTKind;
@@ -14,20 +14,18 @@ import java.util.function.Consumer;
 // tell cpd to start ignoring code - CPD-OFF
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
-public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
+public abstract class _SqlWindowDecl extends EqlASTNode {
     
     protected io.nop.orm.eql.ast.SqlWindowFrame frame;
     
-    protected io.nop.orm.eql.ast.SqlFunction function;
+    protected java.lang.String name;
     
     protected io.nop.orm.eql.ast.SqlOrderBy orderBy;
     
     protected io.nop.orm.eql.ast.SqlPartitionBy partitionBy;
     
-    protected java.lang.String windowName;
-    
 
-    public _SqlWindowExpr(){
+    public _SqlWindowDecl(){
     }
 
     
@@ -42,15 +40,14 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
         this.frame = value;
     }
     
-    public io.nop.orm.eql.ast.SqlFunction getFunction(){
-        return function;
+    public java.lang.String getName(){
+        return name;
     }
 
-    public void setFunction(io.nop.orm.eql.ast.SqlFunction value){
+    public void setName(java.lang.String value){
         checkAllowChange();
-        if(value != null) value.setASTParent(this);
         
-        this.function = value;
+        this.name = value;
     }
     
     public io.nop.orm.eql.ast.SqlOrderBy getOrderBy(){
@@ -75,16 +72,6 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
         this.partitionBy = value;
     }
     
-    public java.lang.String getWindowName(){
-        return windowName;
-    }
-
-    public void setWindowName(java.lang.String value){
-        checkAllowChange();
-        
-        this.windowName = value;
-    }
-    
 
     public void validate(){
        super.validate();
@@ -92,21 +79,21 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     }
 
 
-    public SqlWindowExpr newInstance(){
-      return new SqlWindowExpr();
+    public SqlWindowDecl newInstance(){
+      return new SqlWindowDecl();
     }
 
     @Override
-    public SqlWindowExpr deepClone(){
-       SqlWindowExpr ret = newInstance();
+    public SqlWindowDecl deepClone(){
+       SqlWindowDecl ret = newInstance();
     ret.setLocation(getLocation());
     ret.setLeadingComment(getLeadingComment());
     ret.setTrailingComment(getTrailingComment());
     copyExtFieldsTo(ret);
     
-                if(function != null){
+                if(name != null){
                   
-                          ret.setFunction(function.deepClone());
+                          ret.setName(name);
                       
                 }
             
@@ -128,21 +115,12 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                       
                 }
             
-                if(windowName != null){
-                  
-                          ret.setWindowName(windowName);
-                      
-                }
-            
        return ret;
     }
 
     @Override
     public void forEachChild(Consumer<EqlASTNode> processor){
     
-            if(function != null)
-                processor.accept(function);
-        
             if(partitionBy != null)
                 processor.accept(partitionBy);
         
@@ -157,9 +135,6 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     @Override
     public ProcessResult processChild(Function<EqlASTNode,ProcessResult> processor){
     
-            if(function != null && processor.apply(function) == ProcessResult.STOP)
-               return ProcessResult.STOP;
-        
             if(partitionBy != null && processor.apply(partitionBy) == ProcessResult.STOP)
                return ProcessResult.STOP;
         
@@ -175,11 +150,6 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     @Override
     public boolean replaceChild(EqlASTNode oldChild, EqlASTNode newChild){
     
-            if(this.function == oldChild){
-               this.setFunction((io.nop.orm.eql.ast.SqlFunction)newChild);
-               return true;
-            }
-        
             if(this.partitionBy == oldChild){
                this.setPartitionBy((io.nop.orm.eql.ast.SqlPartitionBy)newChild);
                return true;
@@ -201,11 +171,6 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     @Override
     public boolean removeChild(EqlASTNode child){
     
-            if(this.function == child){
-                this.setFunction(null);
-                return true;
-            }
-        
             if(this.partitionBy == child){
                 this.setPartitionBy(null);
                 return true;
@@ -228,12 +193,12 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     public boolean isEquivalentTo(EqlASTNode node){
        if(this.getASTKind() != node.getASTKind())
           return false;
-    SqlWindowExpr other = (SqlWindowExpr)node;
+    SqlWindowDecl other = (SqlWindowDecl)node;
     
-            if(!isNodeEquivalent(this.function,other.getFunction())){
-               return false;
-            }
-        
+                if(!isValueEquivalent(this.name,other.getName())){
+                   return false;
+                }
+            
             if(!isNodeEquivalent(this.partitionBy,other.getPartitionBy())){
                return false;
             }
@@ -246,23 +211,19 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                return false;
             }
         
-                if(!isValueEquivalent(this.windowName,other.getWindowName())){
-                   return false;
-                }
-            
         return true;
     }
 
     @Override
     public EqlASTKind getASTKind(){
-       return EqlASTKind.SqlWindowExpr;
+       return EqlASTKind.SqlWindowDecl;
     }
 
     protected void serializeFields(IJsonHandler json) {
         
-                    if(function != null){
+                    if(name != null){
                       
-                              json.put("function", function);
+                              json.put("name", name);
                           
                     }
                 
@@ -284,20 +245,12 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                           
                     }
                 
-                    if(windowName != null){
-                      
-                              json.put("windowName", windowName);
-                          
-                    }
-                
     }
 
     @Override
     public void freeze(boolean cascade){
       super.freeze(cascade);
         
-                if(function != null)
-                    function.freeze(cascade);
                 if(partitionBy != null)
                     partitionBy.freeze(cascade);
                 if(orderBy != null)

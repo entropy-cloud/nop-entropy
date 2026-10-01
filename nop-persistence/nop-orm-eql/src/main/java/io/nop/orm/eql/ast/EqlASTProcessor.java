@@ -165,6 +165,18 @@ public class EqlASTProcessor<T,C>{
             case SqlWindowExpr:
                 return processSqlWindowExpr((SqlWindowExpr)node,context);
         
+            case SqlWindowFrame:
+                return processSqlWindowFrame((SqlWindowFrame)node,context);
+        
+            case SqlWindowFrameBound:
+                return processSqlWindowFrameBound((SqlWindowFrameBound)node,context);
+        
+            case SqlWindowDecl:
+                return processSqlWindowDecl((SqlWindowDecl)node,context);
+        
+            case SqlWindowClause:
+                return processSqlWindowClause((SqlWindowClause)node,context);
+        
             case SqlMultiValueExpr:
                 return processSqlMultiValueExpr((SqlMultiValueExpr)node,context);
         
@@ -406,6 +418,22 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlWindowExpr(SqlWindowExpr node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlWindowFrame(SqlWindowFrame node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlWindowFrameBound(SqlWindowFrameBound node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlWindowDecl(SqlWindowDecl node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlWindowClause(SqlWindowClause node, C context){
         return defaultProcess(node, context);
 	}
     

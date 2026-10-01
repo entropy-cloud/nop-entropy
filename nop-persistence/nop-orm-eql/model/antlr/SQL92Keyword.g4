@@ -407,6 +407,10 @@ FIRST
     : F I R S T
     ;
 
+FOLLOWING
+    : F O L L O W I N G
+    ;
+
 FOUND
     : F O U N D
     ;
@@ -425,6 +429,10 @@ GO
 
 GOTO
     : G O T O
+    ;
+
+GROUPS
+    : G R O U P S
     ;
 
 IDENTITY
@@ -539,6 +547,10 @@ PARTIAL
     : P A R T I A L
     ;
 
+PRECEDING
+    : P R E C E D I N G
+    ;
+
 PREPARE
     : P R E P A R E
     ;
@@ -555,6 +567,10 @@ PUBLIC
     : P U B L I C
     ;
 
+RANGE
+    : R A N G E
+    ;
+
 READ
     : R E A D
     ;
@@ -569,6 +585,10 @@ RELATIVE
 
 RESTRICT
     : R E S T R I C T
+    ;
+
+ROW
+    : R O W
     ;
 
 ROWS
@@ -651,6 +671,10 @@ TRANSLATION
     : T R A N S L A T I O N
     ;
 
+UNBOUNDED
+    : U N B O U N D E D
+    ;
+
 UNKNOWN
     : U N K N O W N
     ;
@@ -677,6 +701,10 @@ VARYING
 
 WHENEVER
     : W H E N E V E R
+    ;
+
+WINDOW
+    : W I N D O W
     ;
 
 WORK

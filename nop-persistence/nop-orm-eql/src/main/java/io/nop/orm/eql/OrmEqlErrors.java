@@ -218,4 +218,7 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_CANNOT_MERGE_COLLECTION_SCOPES = define("nop.err.eql.cannot-merge-collection-scopes",
             "无法合并集合操作符作用域: operator1={operator1}, operator2={operator2}",
             ARG_OPERATOR1, ARG_OPERATOR2);
+
+    ErrorCode ERR_EQL_INVALID_WINDOW_FRAME = define("nop.err.eql.invalid-window-frame",
+            "非法的窗口frame定义:{value}", ARG_VALUE);
 }

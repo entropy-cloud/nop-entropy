@@ -38,6 +38,8 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
     
     protected io.nop.orm.eql.ast.SqlWhere where;
     
+    protected io.nop.orm.eql.ast.SqlWindowClause windowClause;
+    
 
     public _SqlQuerySelect(){
     }
@@ -172,6 +174,17 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
         this.where = value;
     }
     
+    public io.nop.orm.eql.ast.SqlWindowClause getWindowClause(){
+        return windowClause;
+    }
+
+    public void setWindowClause(io.nop.orm.eql.ast.SqlWindowClause value){
+        checkAllowChange();
+        if(value != null) value.setASTParent(this);
+        
+        this.windowClause = value;
+    }
+    
 
     public void validate(){
        super.validate();
@@ -239,6 +252,12 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                       
                 }
             
+                if(windowClause != null){
+                  
+                          ret.setWindowClause(windowClause.deepClone());
+                      
+                }
+            
                 if(orderBy != null){
                   
                           ret.setOrderBy(orderBy.deepClone());
@@ -283,6 +302,9 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
             if(having != null)
                 processor.accept(having);
         
+            if(windowClause != null)
+                processor.accept(windowClause);
+        
             if(orderBy != null)
                 processor.accept(orderBy);
         
@@ -316,6 +338,9 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                return ProcessResult.STOP;
         
             if(having != null && processor.apply(having) == ProcessResult.STOP)
+               return ProcessResult.STOP;
+        
+            if(windowClause != null && processor.apply(windowClause) == ProcessResult.STOP)
                return ProcessResult.STOP;
         
             if(orderBy != null && processor.apply(orderBy) == ProcessResult.STOP)
@@ -363,6 +388,11 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
         
             if(this.having == oldChild){
                this.setHaving((io.nop.orm.eql.ast.SqlHaving)newChild);
+               return true;
+            }
+        
+            if(this.windowClause == oldChild){
+               this.setWindowClause((io.nop.orm.eql.ast.SqlWindowClause)newChild);
                return true;
             }
         
@@ -418,6 +448,11 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                 return true;
             }
         
+            if(this.windowClause == child){
+                this.setWindowClause(null);
+                return true;
+            }
+        
             if(this.orderBy == child){
                 this.setOrderBy(null);
                 return true;
@@ -464,6 +499,10 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
             }
         
             if(!isNodeEquivalent(this.having,other.getHaving())){
+               return false;
+            }
+        
+            if(!isNodeEquivalent(this.windowClause,other.getWindowClause())){
                return false;
             }
         
@@ -535,6 +574,12 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                           
                     }
                 
+                    if(windowClause != null){
+                      
+                              json.put("windowClause", windowClause);
+                          
+                    }
+                
                     if(orderBy != null){
                       
                               json.put("orderBy", orderBy);
@@ -567,6 +612,8 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                     groupBy.freeze(cascade);
                 if(having != null)
                     having.freeze(cascade);
+                if(windowClause != null)
+                    windowClause.freeze(cascade);
                 if(orderBy != null)
                     orderBy.freeze(cascade);
                 if(limit != null)

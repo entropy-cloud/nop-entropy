@@ -218,6 +218,22 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlWindowExpr((SqlWindowExpr)node);
                     return;
             
+                case SqlWindowFrame:
+                    visitSqlWindowFrame((SqlWindowFrame)node);
+                    return;
+            
+                case SqlWindowFrameBound:
+                    visitSqlWindowFrameBound((SqlWindowFrameBound)node);
+                    return;
+            
+                case SqlWindowDecl:
+                    visitSqlWindowDecl((SqlWindowDecl)node);
+                    return;
+            
+                case SqlWindowClause:
+                    visitSqlWindowClause((SqlWindowClause)node);
+                    return;
+            
                 case SqlMultiValueExpr:
                     visitSqlMultiValueExpr((SqlMultiValueExpr)node);
                     return;
@@ -351,6 +367,7 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getWhere());
                     this.visitChild(node.getGroupBy());
                     this.visitChild(node.getHaving());
+                    this.visitChild(node.getWindowClause());
                     this.visitChild(node.getOrderBy());
                     this.visitChild(node.getLimit());
             }
@@ -560,6 +577,30 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getFunction());
                     this.visitChild(node.getPartitionBy());
                     this.visitChild(node.getOrderBy());
+                    this.visitChild(node.getFrame());
+            }
+        
+            public void visitSqlWindowFrame(SqlWindowFrame node){
+            
+                    this.visitChild(node.getStart());
+                    this.visitChild(node.getEnd());
+            }
+        
+            public void visitSqlWindowFrameBound(SqlWindowFrameBound node){
+            
+                    this.visitChild(node.getOffset());
+            }
+        
+            public void visitSqlWindowDecl(SqlWindowDecl node){
+            
+                    this.visitChild(node.getPartitionBy());
+                    this.visitChild(node.getOrderBy());
+                    this.visitChild(node.getFrame());
+            }
+        
+            public void visitSqlWindowClause(SqlWindowClause node){
+            
+                    this.visitChildren(node.getItems());         
             }
         
             public void visitSqlMultiValueExpr(SqlMultiValueExpr node){

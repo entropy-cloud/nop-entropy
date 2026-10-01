@@ -13,12 +13,18 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
+import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlFunction;
+import io.nop.orm.eql.ast.SqlWindowFrame;
+import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlUnionType;
+import io.nop.orm.eql.enums.SqlWindowFrameBoundType;
+import io.nop.orm.eql.enums.SqlWindowFrameType;
 import io.nop.orm.eql.parse.antlr.EqlParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -36,6 +42,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_VALUE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_DATETIME_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_INTERVAL_UNIT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_SQL_TYPE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_WINDOW_FRAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PRECISION_NOT_POSITIVE_INT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SCALE_NOT_NON_NEGATIVE_INT;
 import static io.nop.orm.eql.parse.EqlParseHelper.operator;
@@ -370,6 +377,81 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     @Override
     public SqlFunction SqlWindowExpr_function(ParseTree node) {
         return (SqlFunction) node.accept(this);
+    }
+
+    @Override
+    public String SqlWindowExpr_windowName(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public String SqlWindowDecl_name(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public SqlWindowFrameType SqlWindowFrame_unit(ParseTree node) {
+        EqlParser.SqlWindowFrameUnit_Context ctx = (EqlParser.SqlWindowFrameUnit_Context) node;
+        if (ctx.ROWS() != null)
+            return SqlWindowFrameType.ROWS;
+        if (ctx.RANGE() != null)
+            return SqlWindowFrameType.RANGE;
+        if (ctx.GROUPS() != null)
+            return SqlWindowFrameType.GROUPS;
+        throw new NopEvalException(ERR_EQL_INVALID_WINDOW_FRAME).loc(loc(ctx)).param(ARG_VALUE, text(ctx));
+    }
+
+    @Override
+    public SqlWindowFrameBoundType SqlWindowFrameBound_boundType(ParseTree node) {
+        EqlParser.SqlWindowFrameBoundType_Context ctx = (EqlParser.SqlWindowFrameBoundType_Context) node;
+        if (ctx.UNBOUNDED() != null)
+            return ctx.PRECEDING() != null ? SqlWindowFrameBoundType.UNBOUNDED_PRECEDING
+                    : SqlWindowFrameBoundType.UNBOUNDED_FOLLOWING;
+        if (ctx.CURRENT() != null)
+            return SqlWindowFrameBoundType.CURRENT_ROW;
+        return ctx.PRECEDING() != null ? SqlWindowFrameBoundType.PRECEDING
+                : SqlWindowFrameBoundType.FOLLOWING;
+    }
+
+    /**
+     * `unbounded preceding|following` 在语法上会被可选的 offset=sqlExpr 先吃掉 unbounded 标识符
+     * （sqlExpr 可经 unreservedWord_ 匹配任意非保留关键字），此处归一化为 UNBOUNDED_PRECEDING /
+     * UNBOUNDED_FOLLOWING 并清空 offset。
+     */
+    @Override
+    public SqlWindowFrameBound visitSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx) {
+        SqlWindowFrameBound ret = super.visitSqlWindowFrameBound(ctx);
+        if (ret.getBoundType() == SqlWindowFrameBoundType.PRECEDING
+                || ret.getBoundType() == SqlWindowFrameBoundType.FOLLOWING) {
+            SqlExpr offset = ret.getOffset();
+            if (offset instanceof SqlColumnName) {
+                String name = ((SqlColumnName) offset).getName();
+                if ("unbounded".equalsIgnoreCase(name)) {
+                    ret.setOffset(null);
+                    ret.setBoundType(ret.getBoundType() == SqlWindowFrameBoundType.PRECEDING
+                            ? SqlWindowFrameBoundType.UNBOUNDED_PRECEDING
+                            : SqlWindowFrameBoundType.UNBOUNDED_FOLLOWING);
+                }
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * 标准要求 BETWEEN 与第二个 bound 成对出现；语法层 `BETWEEN?` 宽松接受以规避
+     * 同一 prop 跨备选分支的生成器校验限制，这里显式 fail-fast 而非静默接受残缺形态。
+     */
+    @Override
+    public SqlWindowFrame visitSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx) {
+        if (ctx.BETWEEN() == null && ctx.end != null) {
+            throw new NopEvalException(ERR_EQL_INVALID_WINDOW_FRAME).loc(loc(ctx))
+                    .param(ARG_VALUE, "AND 第二边界必须与 BETWEEN 成对出现");
+        }
+        if (ctx.BETWEEN() != null && ctx.end == null) {
+            throw new NopEvalException(ERR_EQL_INVALID_WINDOW_FRAME).loc(loc(ctx))
+                    .param(ARG_VALUE, "BETWEEN 后必须有 AND 第二边界");
+        }
+        return super.visitSqlWindowFrame(ctx);
     }
 
     @Override
