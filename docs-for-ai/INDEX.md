@@ -150,7 +150,7 @@
 | 排查 `module-meta.json`、页面菜单或 TOPM 图标生成结果 | `03-runbooks/debug-codegen-and-generated-files.md` |
 | 查后台页面开发路线图 | `03-runbooks/admin-page-development-roadmap.md` |
 | 写 BizModel 方法 | `03-runbooks/write-bizmodel-method.md` |
-| 构造可跨类/跨环境复用的测试夹具包（观测式导出/manifest/校验；M1.1 导出侧） | `03-runbooks/fixture-bundle.md` |
+| 构造可跨类/跨环境复用的测试夹具包（观测式导出/manifest/校验/分层导入/验收——导出+导入+验收全链） | `03-runbooks/fixture-bundle.md` |
 | **功能实现总流程（端到端 checklist）** | **`03-runbooks/feature-implementation-checklist.md`** |
 | 创建 Request / Response DTO | `03-runbooks/create-request-response-dto.md` |
 | 新增跨模块 Biz 接口 | `03-runbooks/add-cross-module-biz-interface.md` |

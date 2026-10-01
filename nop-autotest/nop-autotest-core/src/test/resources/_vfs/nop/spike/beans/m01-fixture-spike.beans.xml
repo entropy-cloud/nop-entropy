@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Spike bean override for M0.1 fixture-bundle spike (nop-app-erp plan 2026-10-01-1853-1).
-     nop-autotest-core has no nop-sys dependency, so orm-defaults' nopSequenceGenerator ref
-     would be unresolved; override with the nop-dao built-in UuidSequenceGenerator
-     (same pattern as nop-datav test beans). Test scope only. -->
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<!-- Spike bean override for the fixture-bundle M0.1 spike / M1.3 acceptance ①
+     (nop-app-erp plans 2026-10-01-1853-1 / 2026-10-01-2255-1, mechanism v4).
+     Loaded EXPLICITLY via nop.ioc.app-beans.files set in M01SpikeBoot.start()
+     (this file's name does not match the app*.beans.xml directory scan, so without
+     the explicit wiring it is a silent no-op — orm-defaults would then supply its own
+     nopSequenceGenerator). Overrides the orm-defaults UuidSequenceGenerator with a
+     monotonic counter so acceptance ① assertion (ii) (sequence-no-conflict, M0.1
+     Decision ③) is decidable; allow-override is mandatory because orm-defaults
+     registers the same bean id first (via /nop/autoconfig/nop-orm.beans). Test scope only. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
 
-    <bean id="nopSequenceGenerator" class="io.nop.dao.seq.UuidSequenceGenerator" ioc:default="true"/>
+    <bean id="nopSequenceGenerator" class="io.nop.autotest.core.spike.M13MonotonicSequenceGenerator"
+          ioc:default="true" ioc:allow-override="true"/>
 
 </beans>

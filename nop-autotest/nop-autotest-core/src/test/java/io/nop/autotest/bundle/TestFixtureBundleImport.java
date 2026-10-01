@@ -2,6 +2,7 @@ package io.nop.autotest.bundle;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.core.spike.M01SpikeBoot;
+import io.nop.autotest.core.spike.M13MonotonicSequenceGenerator;
 import io.nop.orm.model.IColumnModel;
 import io.nop.commons.util.FileHelper;
 import io.nop.orm.IOrmEntity;
@@ -28,6 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * non-overwrite, requires-missing, schema drift fail-fast/tolerant, in-run idempotent
  * re-import + UK-conflict wrapping + logical-deleted rejection + sys-table rejection +
  * version-strip normalization (approval condition B1).
+ *
+ * <p>M1.3 acceptance promotion (plan 2026-10-01-2255-1): this class carries fixture-bundle
+ * roadmap <b>acceptance case ①</b> (clean-replay: {@link #testCleanReplayWithIdRemapAndFkRewrite}
+ * + the monotonic-sequence extension {@link #testCleanReplayMonotonicSequenceNoConflict})
+ * and <b>acceptance case ③</b> ({@link #testRequiresMissing}: requires-missing rejected
+ * with a named ErrorCode). Acceptance case ② lives consumer-side:
+ * app-erp-all {@code TestErpFixtureBundleDirtyImport}.
  */
 public class TestFixtureBundleImport {
 
@@ -338,5 +346,44 @@ public class TestFixtureBundleImport {
         FileHelper.writeText(manifestFile, text, null);
         FixtureBundleManifest manifest = FixtureBundleManifest.read(bundleDir);
         assertEquals("replay-P-COMPAT", manifest.getBundleName());
+    }
+
+    @Test
+    public void testCleanReplayMonotonicSequenceNoConflict() {
+        // positive discrimination (mechanism v4): the spike beans file must be EXPLICITLY
+        // loaded via nop.ioc.app-beans.files — "existing tests stay green" proves nothing
+        Object generator = io.nop.api.core.ioc.BeanContainer.tryGetBean("nopSequenceGenerator");
+        assertTrue(generator instanceof M13MonotonicSequenceGenerator,
+                "beans 显式装载未生效：nopSequenceGenerator 应为单调测试实现，实际 "
+                        + (generator == null ? "null" : generator.getClass().getName()));
+
+        Object[] ids = new Object[2];
+        File bundleDir = exportParentChildBundle("monotonic", "P-MONO", ids);
+        deleteRow("spike.TestFxChild", ids[1]);
+        deleteRow("spike.TestFxParent", ids[0]);
+
+        FixtureBundleImportResult result = new FixtureBundleImporter().importBundle(bundleDir, M01SpikeBoot.orm());
+        assertEquals(1, result.getBaseImported());
+        assertEquals(1, result.getPayloadImported());
+
+        Object newParentId = result.getMaxNewIds().get("spike.TestFxParent");
+        Object newChildId = result.getMaxNewIds().get("spike.TestFxChild");
+        assertNotNull(newParentId);
+        assertNotNull(newChildId);
+        // (i) replayed ids are fresh — outside the source id set
+        assertNotEquals(ids[0], newParentId);
+        assertNotEquals(ids[1], newChildId);
+
+        // (ii) counter-equivalent form + (iii) M0.1 Decision ③ original wording:
+        // the next drawn number is strictly greater than max(new ids) and outside the
+        // imported set — monotonic semantics make the three decidable in tests
+        Object nextId = M01SpikeBoot.orm().runInSession(orm -> orm.save(newParent(orm, "P-MONO-NEXT")));
+        assertTrue(((Comparable<Object>) nextId).compareTo(newParentId) > 0,
+                "(ii) next drawn number must exceed max(new ids) under the monotonic generator");
+        assertTrue(((Comparable<Object>) nextId).compareTo(newChildId) > 0);
+        assertNotEquals(nextId, ids[0]);
+        assertNotEquals(nextId, ids[1]);
+        assertNotEquals(nextId, newParentId);
+        assertNotEquals(nextId, newChildId);
     }
 }

@@ -59,6 +59,11 @@ public class FixtureBundleExporter {
                 .sortEntityModelInTopoOrder(new ArrayList<>(collected.keySet()));
         int loadOrder = 1;
         for (IEntityModel entityModel : topoOrder) {
+            // sys/sequence tables are never bundle content (roadmap: 系统表与序列表不随包导入).
+            // In nop-sys environments id generation READS sequence rows through ORM, so the
+            // recording hook collects them — skip instead of demanding an export config.
+            if (FixtureBundleImporter.isSysTable(entityModel.getName()))
+                continue;
             FixtureBundleExportConfig.TableConfig tableConfig = config.getTableConfig(entityModel.getName());
             if (tableConfig == null)
                 throw new NopException(ERR_FIXTURE_BUNDLE_TABLE_NOT_CONFIGURED).param("tableName", entityModel.getName());

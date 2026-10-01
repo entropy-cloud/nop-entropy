@@ -244,11 +244,17 @@ public class FixtureBundleImporter {
             }
 
             IOrmEntity entity = orm.runInSession(session -> session.newEntity(entry.getTable()));
-            for (Map.Entry<String, Object> en : row.entrySet()) {
+            Map<String, Object> normalized = normalizeRow(byCode, row);
+            for (Map.Entry<String, Object> en : normalized.entrySet()) {
                 IColumnModel col = byCode.get(en.getKey());
-                if (col == null || col.isPrimary())
-                    continue; // unknown columns stripped; PK left for platform generation
-                entity.orm_propValueByName(col.getName(), en.getValue());
+                Object value = en.getValue();
+                // base rows may carry to-one FKs into other bundle tables — same rewrite
+                // + dangling-check discipline as the payload pass
+                String fkTarget = fkTargetByCode(entry.getTable(), model).get(en.getKey());
+                if (fkTarget != null && value != null) {
+                    value = resolveRef(String.valueOf(value), fkTarget, idMapping, orm, entry.getTable(), en.getKey());
+                }
+                entity.orm_propValueByName(col.getName(), value);
             }
             Object newId;
             try {
@@ -276,13 +282,7 @@ public class FixtureBundleImporter {
         Map<String, IColumnModel> byCode = columnMap(model);
         Map<String, Object> mapping = idMapping.computeIfAbsent(entry.getTable(), k -> new LinkedHashMap<>());
 
-        // to-one FK columns: single-join-column relations of this entity
-        Map<String, String> fkTargetByCode = new LinkedHashMap<>();
-        for (IEntityRelationModel rel : model.getRelations()) {
-            IColumnModel joinCol = rel.getSingleJoinColumn();
-            if (joinCol != null)
-                fkTargetByCode.put(joinCol.getCode(), rel.getRefEntityName());
-        }
+        Map<String, String> fkTargets = fkTargetByCode(entry.getTable(), model);
 
         for (Map<String, Object> row : rows) {
             String oldId = String.valueOf(row.get(pkCode(model)));
@@ -297,7 +297,7 @@ public class FixtureBundleImporter {
             for (Map.Entry<String, Object> en : normalized.entrySet()) {
                 String code = en.getKey();
                 Object value = en.getValue();
-                String fkTarget = fkTargetByCode.get(code);
+                String fkTarget = fkTargets.get(code);
                 if (fkTarget != null && value != null) {
                     value = resolveRef(String.valueOf(value), fkTarget, idMapping, orm, entry.getTable(), code);
                 }
@@ -310,11 +310,24 @@ public class FixtureBundleImporter {
         }
     }
 
+    static Map<String, String> fkTargetByCode(String table, IEntityModel model) {
+        Map<String, String> fkTargetByCode = new LinkedHashMap<>();
+        for (IEntityRelationModel rel : model.getRelations()) {
+            IColumnModel joinCol = rel.getSingleJoinColumn();
+            if (joinCol != null)
+                fkTargetByCode.put(joinCol.getCode(), rel.getRefEntityName());
+        }
+        return fkTargetByCode;
+    }
+
     /**
      * Import row normalization (approval condition B1 assertion target): non-model
      * columns — including packaged VERSION/DEL_VERSION of richer target models — are
      * stripped (never carried from the package); model-owned version columns are
      * forced to initial value 0; the PK column is dropped (platform generates).
+     * CSV string values are converted to the column's declared std data type so the
+     * in-memory entity matches the persisted row even under the factory-level global
+     * entity cache (execution-phase finding: unconverted strings read back as String).
      */
     static Map<String, Object> normalizeRow(Map<String, IColumnModel> byCode, Map<String, Object> row) {
         Map<String, Object> out = new LinkedHashMap<>();
@@ -322,7 +335,13 @@ public class FixtureBundleImporter {
             IColumnModel col = byCode.get(en.getKey());
             if (col == null || col.isPrimary())
                 continue;
-            out.put(en.getKey(), VERSION_CODES.contains(en.getKey()) ? 0 : en.getValue());
+            Object value = en.getValue();
+            if (VERSION_CODES.contains(en.getKey())) {
+                value = 0;
+            } else if (value instanceof String && col.getStdSqlType() != null) {
+                value = col.getStdSqlType().getStdDataType().convert(value);
+            }
+            out.put(en.getKey(), value);
         }
         return out;
     }

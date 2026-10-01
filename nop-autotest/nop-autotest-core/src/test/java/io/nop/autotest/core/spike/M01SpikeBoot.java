@@ -29,6 +29,9 @@ public class M01SpikeBoot {
         BaseTestCase.beginTest();
 
         BaseTestCase.setTestConfig(IocSpikeConfigs.APP_BEANS_CONTAINER_START_MODE, BeanContainerStartMode.ALL_LAZY.name());
+        // M1.3 mechanism v4: explicitly load the spike beans override (its file name does
+        // not match the app*.beans.xml scan; without this line the file is a silent no-op)
+        BaseTestCase.setTestConfig(IocSpikeConfigs.APP_BEANS_FILES, "/nop/spike/beans/m01-fixture-spike.beans.xml");
         BaseTestCase.setTestConfig(OrmConfigs.CFG_INIT_DATABASE_SCHEMA, true);
         BaseTestCase.setTestConfig(DaoConfigs.CFG_DATASOURCE_DRIVER_CLASS_NAME, "org.h2.Driver");
         BaseTestCase.setTestConfig(DaoConfigs.CFG_DATASOURCE_USERNAME, "sa");
@@ -40,6 +43,9 @@ public class M01SpikeBoot {
     }
 
     public static void stop() {
+        // hygiene (approval note): clear the explicit beans-file config so it cannot leak
+        // into any same-JVM container bootstrapping after this boot
+        BaseTestCase.clearTestConfig(IocSpikeConfigs.APP_BEANS_FILES.getName());
         CoreInitialization.destroy();
         CoreMetrics.registerClock(CoreMetrics.defaultClock());
         BaseTestCase.endTest();

@@ -1,6 +1,6 @@
 # Fixture Bundle（测试夹具可移植包）Runbook
 
-> 状态：M1.1 导出侧 + M1.2 导入侧定稿（2026-10-01；plan `nop-app-erp/docs/plans/2026-10-01-2049-1` 与 `2026-10-01-2142-1-m12-fixture-bundle-importer.md`）。
+> 状态：**定稿**（2026-10-01，M1.1 导出侧 + M1.2 导入侧 + M1.3 三条验收用例落位——plan `nop-app-erp/docs/plans/2026-10-01-2049-1` / `2026-10-01-2142-1-m12-fixture-bundle-importer.md` / `2026-10-01-2255-1-m13-fixture-bundle-acceptance-runbook.md`；验收①③载体 = nop-autotest-core `TestFixtureBundleImport`，验收②载体 = nop-app-erp `TestErpFixtureBundleDirtyImport`）。
 > 代码位置：`nop-autotest/nop-autotest-core/src/main/java/io/nop/autotest/bundle/`
 
 ## 1. 是什么
@@ -30,6 +30,8 @@ Fixture bundle 是**脱离 TestClass 归属、可跨环境搬运的自包含夹�
 | `sha256` | 表条目 | CSV 完整性，**用途限定 = 检测手改/截断，非防篡改安全保证** |
 | `maskedColumns` | 表条目 | 敏感列名单（导出时写 `MASKED-BUNDLE-SEED` 占位） |
 | `source` / `captureGaps` | 表条目 | 来源标记（observed-session）/ 会话内消失行数（导出行数 + gaps = 收集行数） |
+| `columnFingerprint` | 表条目 | 列名集排序摘要（SHA-256，两侧同源 `FixtureBundleImporter.fingerprint`）——导入前比对目标 EntityModel（fail-fast 缺省 / tolerant 告警）；缺省（旧 manifest）跳过并告警 |
+| `includeLogicalDeleted` | 表条目 | 是否含逻辑删除行声明（导出按行集写入，缺省 false）——true 的包导入即拒（导入器永不重建已删行） |
 
 ## 4. 导出 API
 
@@ -78,3 +80,4 @@ new FixtureBundleValidator().validate(bundleDir);   // 导入前独立校验仍�
 - **幂等口径**：base 对账天然幂等；同包重复业务键 → `uk-conflict` 拒绝（逐行对账会将重复键静默合并进第一行——执行期发现，包缺陷必须显式拒绝）；payload 幂等 = 同一 Importer 实例运行内跳过；**跨进程重复导入 payload 会产生重复行**——消费纪律：bundle 一次性导入 + 测试 fresh 库语义。并发窗口的 duplicate-key（flush at commit）仍被 wrap 为 `uk-conflict`。
 - **序列对齐（M0.1 Decision E）**：框架不内置序列改写——payload 新 ID 由目标平台序列生成自然推进；结果报告 `maxNewIds` 供消费方取号无冲突断言；非单调序列（uuid/snowflake）以经验口径断言。
 - **已知边界**：no-PK 实体不可导出故不在导入面；JDBC 直操构造的数据不经 hook 不可见（导出侧约束的导入侧回响）。
+- **M1.3 执行期增补**：nop-sys 环境下 ID 取号会经 ORM 读 `NopSysSequence` 行——导出 hook 会收集到系统表行，导出器按「系统表不随包导入」**静默跳过**（不要求配置）；CSV 字符串值在 `normalizeRow` 按列 `stdDataType` 转换后装载（工厂级全局实体缓存下未转换实例会以 String 形态被读回）；验收①单调序列环境 = 测试 beans 显式装载（`nop.ioc.app-beans.files` 点分键 + `ioc:allow-override="true"`——文件名扫描仅认 `app*.beans.xml`，静默摆放不生效）。

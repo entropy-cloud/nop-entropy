@@ -13,6 +13,13 @@ public final class IocSpikeConfigs {
     public static final io.nop.api.core.config.IConfigReference<String> APP_BEANS_CONTAINER_START_MODE =
             io.nop.api.core.config.AppConfig.varRef(s_loc, "nop.ioc.app-beans-container.start-mode", String.class, null);
 
+    /**
+     * M1.3 mechanism v4: explicit beans-file wiring (authoritative key form is
+     * dot-separated — IocConfigs.java:62; exact-match lookup with no normalization).
+     */
+    public static final io.nop.api.core.config.IConfigReference<String> APP_BEANS_FILES =
+            io.nop.api.core.config.AppConfig.varRef(s_loc, "nop.ioc.app-beans.files", String.class, null);
+
     private IocSpikeConfigs() {
     }
 }
