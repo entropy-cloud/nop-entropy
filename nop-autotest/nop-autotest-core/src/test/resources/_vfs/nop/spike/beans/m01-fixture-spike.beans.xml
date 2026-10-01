@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Spike bean override for M0.1 fixture-bundle spike (nop-app-erp plan 2026-10-01-1853-1).
+     nop-autotest-core has no nop-sys dependency, so orm-defaults' nopSequenceGenerator ref
+     would be unresolved; override with the nop-dao built-in UuidSequenceGenerator
+     (same pattern as nop-datav test beans). Test scope only. -->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="nopSequenceGenerator" class="io.nop.dao.seq.UuidSequenceGenerator" ioc:default="true"/>
+
+</beans>

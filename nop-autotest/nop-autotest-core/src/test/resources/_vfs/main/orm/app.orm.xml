@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Spike model for M0.1 fixture-bundle spike (nop-app-erp plan 2026-10-01-1853-1).
+     Minimal two-entity model with a to-one relation, used only by
+     TestM01SpikeRecordingSession / TestM01SpikeIdRemap in this module's test scope.
+     Loaded via OrmModelLoader's main-merge point /main/orm/app.orm.xml. -->
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <entity className="io.nop.orm.support.DynamicOrmEntity" displayName="Spike Parent"
+                name="spike.TestFxParent" tableName="test_fx_parent">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="seq"/>
+                <column code="CODE" displayName="Code" mandatory="true" name="code" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="NAME" displayName="Name" name="name" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+
+        <entity className="io.nop.orm.support.DynamicOrmEntity" displayName="Spike Child"
+                name="spike.TestFxChild" tableName="test_fx_child">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="seq"/>
+                <column code="PARENT_ID" displayName="Parent Id" name="parentId" propId="2"
+                        stdDataType="long" stdSqlType="BIGINT"/>
+                <column code="NAME" displayName="Name" name="name" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-one name="parent" refEntityName="spike.TestFxParent">
+                    <join>
+                        <on leftProp="parentId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

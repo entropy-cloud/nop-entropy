@@ -27,6 +27,14 @@
             <artifactId>nop-orm</artifactId>
         </dependency>
 
+        <!-- M0.1 fixture-bundle spike (nop-app-erp plan 2026-10-01-1853-1): test-scope only,
+             brings the IoC implementation so CoreInitialization can start BeanContainer in tests -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
