@@ -545,6 +545,7 @@
         <module>nop-treesitter</module>
         <module>nop-rg</module>
         <module>nop-jq</module>
+        <module>nop-duckdb</module>
         <module>nop-lint</module>
         <module>nop-refactor</module>
         <module>nop-bytecode</module>

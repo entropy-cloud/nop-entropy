@@ -1,0 +1,10 @@
+# Module-wide test defaults: dao-defaults.beans.xml starts the default Hikari config bean
+# eagerly at CoreInitialization boot, which requires a resolvable datasource config. The
+# parity tests (TestCrossEngine*) override specifics via setTestConfig in their own JVM
+# (surefire forkCount=1); this file only keeps every boot constructible (h2 in-memory).
+nop:
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:nopduckdb
+    username: sa
+    password:

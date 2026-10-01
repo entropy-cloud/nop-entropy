@@ -1,0 +1,7 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="broken_native" bean="testBrokenNativeStep">
+            <input name="sql" value="SELECT 1"/>
+        </simple>
+    </steps>
+</task>

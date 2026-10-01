@@ -1,0 +1,13 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="locked_open" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT 1"/>
+            <output name="rowCount" exportAs="rows"/>
+        </simple>
+    </steps>
+
+    <output name="rows">
+        <source>rows</source>
+    </output>
+</task>

@@ -1,0 +1,13 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="flaky_sql" bean="testFlakyDuckDbStep" timeout="60000">
+            <input name="sql" value="SELECT 1"/>
+            <retry maxRetryCount="3" retryDelay="10"/>
+            <output name="rowCount" exportAs="rowCount"/>
+        </simple>
+    </steps>
+
+    <output name="rowCount">
+        <source>rowCount</source>
+    </output>
+</task>

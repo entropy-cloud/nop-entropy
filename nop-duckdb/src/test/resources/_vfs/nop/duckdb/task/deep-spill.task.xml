@@ -1,0 +1,49 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="ingest_big" bean="testDeepSpillStep" timeout="300000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="ingestCsvPath" value="${csvPath}"/>
+            <input name="ingestTable" value="t_big"/>
+            <input name="sql" value="SELECT count(*) FROM t_big"/>
+        </simple>
+
+        <simple name="ingest_dim" bean="testDeepSpillStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="ingestCsvPath" value="${dimCsvPath}"/>
+            <input name="ingestTable" value="t_dim"/>
+            <input name="sql" value="SELECT count(*) FROM t_dim"/>
+        </simple>
+
+        <simple name="aggregate" bean="testDeepSpillStep" timeout="300000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT g, count(*) AS c, sum(k) AS s FROM t_big GROUP BY g"/>
+            <input name="resultTable" value="t_agg"/>
+            <output name="rowCount" exportAs="aggRows"/>
+        </simple>
+
+        <simple name="sort_export" bean="testDeepSpillStep" timeout="300000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT g, k FROM t_big ORDER BY k DESC"/>
+            <input name="exportPath" value="${exportPath}"/>
+            <input name="exportFormat" value="csv"/>
+            <output name="rowsExported" exportAs="exportedRows"/>
+        </simple>
+
+        <simple name="join_dim" bean="testDeepSpillStep" timeout="120000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT a.g, a.c, a.s, b.tag FROM t_agg a JOIN t_dim b ON a.g = b.g ORDER BY a.s DESC"/>
+            <input name="resultTable" value="t_joined"/>
+            <output name="rowCount" exportAs="joinedRows"/>
+        </simple>
+    </steps>
+
+    <output name="aggRows">
+        <source>aggRows</source>
+    </output>
+    <output name="joinedRows">
+        <source>joinedRows</source>
+    </output>
+    <output name="exportedRows">
+        <source>exportedRows</source>
+    </output>
+</task>

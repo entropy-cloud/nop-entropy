@@ -92,6 +92,40 @@
 
         <!-- TODO 按需补充其他 DuckDB 函数 -->
         <native name="uuidv7" returnType="VARCHAR"/>
+
+        <!-- duckdb 原生 bit_length 接受 STRING/BIT 而非 BLOB（default 继承的 VARBINARY 声明在
+             真实连接上执行失败，WI8 全量验证修复） -->
+        <native name="bit_length" returnType="INTEGER" argTypes="VARCHAR" x:override="replace"/>
+
+        <!-- 以下 ST_* 空间函数继承自 geo-support，但属于 spatial 扩展能力，原生 DuckDB 连接不可用
+             （WI8 全量验证：25 项执行失败，23 项报 "exists in the spatial extension"）。
+             方言建模"原生连接可用面"，故移除；st_astext/st_asbinary 原生可用予以保留。
+             若需 spatial 能力，另行建立 duckdb-spatial 方言变体。 -->
+        <native name="st_dimension" x:override="remove"/>
+        <native name="st_geometrytype" x:override="remove"/>
+        <native name="st_srid" x:override="remove"/>
+        <native name="st_envelope" x:override="remove"/>
+        <native name="st_isempty" x:override="remove"/>
+        <native name="st_issimple" x:override="remove"/>
+        <native name="st_boundary" x:override="remove"/>
+        <native name="st_equals" x:override="remove"/>
+        <native name="st_disjoint" x:override="remove"/>
+        <native name="st_intersects" x:override="remove"/>
+        <native name="st_touches" x:override="remove"/>
+        <native name="st_crosses" x:override="remove"/>
+        <native name="st_within" x:override="remove"/>
+        <native name="st_contains" x:override="remove"/>
+        <native name="st_overlaps" x:override="remove"/>
+        <native name="st_distance" x:override="remove"/>
+        <native name="st_buffer" x:override="remove"/>
+        <native name="st_convexhull" x:override="remove"/>
+        <native name="st_intersection" x:override="remove"/>
+        <native name="st_geomunion" x:override="remove"/>
+        <native name="st_difference" x:override="remove"/>
+        <native name="st_symdifference" x:override="remove"/>
+        <native name="st_dwithin" x:override="remove"/>
+        <native name="st_transform" x:override="remove"/>
+        <native name="st_extent" x:override="remove"/>
     </functions>
 
     <!-- DuckDB 未定义错误码，只抛出了异常信息：

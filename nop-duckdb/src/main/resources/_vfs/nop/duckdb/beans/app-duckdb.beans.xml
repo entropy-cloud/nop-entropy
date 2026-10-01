@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <!--
+        In-process DuckDB analysis engine. Config keys (all optional):
+        nop.duckdb.memory-limit / nop.duckdb.threads / nop.duckdb.temp-directory
+    -->
+    <bean id="nopDuckDbEngine" ioc:default="true"
+          class="io.nop.duckdb.DuckDbEngine"
+          destroy-method="close"/>
+
+    <!-- SQL execution task step for nop-task simple-step orchestration (shared singleton, stateless execute) -->
+    <bean id="nopDuckDbSqlTaskStep" class="io.nop.duckdb.DuckDbSqlTaskStep">
+        <property name="engine" ref="nopDuckDbEngine"/>
+    </bean>
+</beans>

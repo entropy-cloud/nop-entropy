@@ -189,6 +189,8 @@
 | **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL action / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-treesitter/README.md`（用户指南） |
 | 理解 nop-bytecode（字节码分析通道：架构 / 内核 / 性能基线） | `03-modules/nop-bytecode.md` |
 | **使用字节码发现流 CLI（report-only 诊断 / JSON 输出 / 退出码语义）** | **`03-modules/nop-bytecode.md`**（快速开始）+ `nop-bytecode/README.md`（模块指南） |
+| 理解 nop-duckdb（数据文件与本地库的进程内分析执行层：配置 / 执行层 API / task step / 单写者与内存约束 / 分析侧接入） | `03-modules/nop-duckdb.md` |
+| **用 DuckDB 做 CSV/Parquet 分析或 nop-task SQL 步骤编排（执行层 API / task step 输入输出 / 第二数据源路由 / 单写者与写边界硬约束）** | **`03-modules/nop-duckdb.md`** |
 | 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`，MFA 两阶段登录见同文件"多因子验证（MFA）"章节 + 操作级 MFA（敏感操作二次验证）见同文件"操作级 MFA"章节 + 角色级强制策略与受限会话见同文件"角色级强制策略与受限会话（W13）"章节 + 邮件验证码因子与可信设备豁免见同文件"邮件验证码因子（W15）"/"可信设备（记住此设备，W15）"章节 + `02-core-guides/auth-and-permissions.md`"两阶段登录（MFA）"章节） |
 | 理解 nop-sys（字典/序列号/编码规则/锁/事件） | `03-modules/nop-sys.md` |
 | **生成业务编码 / 单据编号（CodeRule）** | **`03-runbooks/generate-business-code.md`**（模式 `{@year}{@seq:5}` + `tagSet="code"` autoExpr 自动集成 + Sequence 并发模型） |

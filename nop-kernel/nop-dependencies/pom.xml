@@ -56,6 +56,7 @@
         <!--        <testcontainers.version>1.16.3</testcontainers.version>-->
 
         <tablesaw.version>0.43.1</tablesaw.version>
+        <duckdb.version>1.5.6.0</duckdb.version>
         <lucene.version>9.7.0</lucene.version>
 
         <commonmark.version>0.22.0</commonmark.version>
@@ -382,6 +383,12 @@
                 <groupId>tech.tablesaw</groupId>
                 <artifactId>tablesaw-core</artifactId>
                 <version>${tablesaw.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.duckdb</groupId>
+                <artifactId>duckdb_jdbc</artifactId>
+                <version>${duckdb.version}</version>
             </dependency>
 
             <dependency>

@@ -1,6 +1,6 @@
 # DuckDB 集成 Roadmap（数据文件与本地库的分析执行层）
 
-> Last updated: 2026-09-30
+> Last updated: 2026-10-01（WI0-WI9 全部完成，10/10 WI + 里程碑勾选；执行分支 feat/duckdb-integration）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources: `ai-dev/analysis/2026-09/2026-09-30-esproc-sqlazy-deep-analysis.md`（§19 性能归因与引擎选型裁定，primary）、2026-09-30 同日追问结论（范围收敛：仅数据文件 + 本地库，不做多源联邦；DuckDB 执行 + nop-task 编排；深度应用测试优先）
 
@@ -22,29 +22,29 @@
 
 ### M0 — 可行性与架构裁定
 
-- [ ] WI0 duckdb_jdbc 选型与既有方言实测 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；既有 duckdb 方言转实测（selector 自动选择、EQL/ORM 查询翻译、ddl_duckdb 建表、错误码翻译）；ORM 数据源接入路径实测（nop.datasource.* 指 jdbc:duckdb:{filePath}、命名 dataSourceMap 可否作实体路由、Hikari 池 + 单写者文件的连接策略）；spike 四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 duckdb_jdbc 选型与既有方言实测 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；既有 duckdb 方言转实测（selector 自动选择、EQL/ORM 查询翻译、ddl_duckdb 建表、错误码翻译）；ORM 数据源接入路径实测（nop.datasource.* 指 jdbc:duckdb:{filePath}、命名 dataSourceMap 可否作实体路由、Hikari 池 + 单写者文件的连接策略）；spike 四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 核心集成
 
-- [ ] WI1 nop-duckdb 单模块骨架与连接管理：新模块注册（根 pom modules + nop-dependencies BOM 条目）、IoC bean 的连接/会话管理（@InjectValue 配置：memory_limit / threads / temp_directory / 单文件锁策略）、模块级异常（English 消息，按 error-handling 两档惯例，不裸 RuntimeException）、基础单测（连接生命周期、配置注入、异常路径、native 缺失显式报错）（Deliverable: 模块 + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI2 文件数据面：CSV/Parquet 读写封装（读入与 COPY 导出）、类型映射与 NULL 语义、XLSX 入口桥（复用 nop-tablesaw 既有 XlsxReader 转 CSV/Parquet，不重造 xlsx 解析）、roundtrip 测试（文件 → DuckDB → 文件 一致性）（Deliverable: file IO API + 测试；deps: WI1；Item Type: Feature）
-- [ ] WI3 nop-task SQL 步骤集成：SQL 执行型 ITaskStep（step 类型注册与 XDSL 定义、参数绑定防注入、步骤间传文件路径/表名而非全量数据、结果摘要回传）、与既有 retry/timeout/ratelimit/transaction/orm 装饰器兼容、测试对齐 nop-task-ext 既有可靠性测试家族（Deliverable: step 实现 + 测试；deps: WI1；Item Type: Feature）
-- ★ **Milestone: 可用基线**（WI0+WI1+WI2+WI3 全部完成后勾选）
+- [x] WI1 nop-duckdb 单模块骨架与连接管理：新模块注册（根 pom modules + nop-dependencies BOM 条目）、IoC bean 的连接/会话管理（@InjectValue 配置：memory_limit / threads / temp_directory / 单文件锁策略）、模块级异常（English 消息，按 error-handling 两档惯例，不裸 RuntimeException）、基础单测（连接生命周期、配置注入、异常路径、native 缺失显式报错）（Deliverable: 模块 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI2 文件数据面：CSV/Parquet 读写封装（读入与 COPY 导出）、类型映射与 NULL 语义、XLSX 入口桥（复用 nop-tablesaw 既有 XlsxReader 转 CSV/Parquet，不重造 xlsx 解析）、roundtrip 测试（文件 → DuckDB → 文件 一致性）（Deliverable: file IO API + 测试；deps: WI1；Item Type: Feature）
+- [x] WI3 nop-task SQL 步骤集成：SQL 执行型 ITaskStep（step 类型注册与 XDSL 定义、参数绑定防注入、步骤间传文件路径/表名而非全量数据、结果摘要回传）、与既有 retry/timeout/ratelimit/transaction/orm 装饰器兼容、测试对齐 nop-task-ext 既有可靠性测试家族（Deliverable: step 实现 + 测试；deps: WI1；Item Type: Feature）
+- [x] ★ **Milestone: 可用基线**（WI0+WI1+WI2+WI3 全部完成后勾选）
 
 ### M2 — 可靠性与并发
 
-- [ ] WI4 单写者与续跑语义：同文件 lock conflict 的显式任务语义（错误码/可读英文消息/retry 策略，不假装可并行）、独立文件并行与多读单写测试、DB 状态存档跨重启续跑（任务中途 kill 后 resume 且数据一致）、native 缺失/磁盘满/临时目录不可写等故障注入（Deliverable: 语义裁定 + 测试；deps: WI3；Item Type: Feature + Fix）
+- [x] WI4 单写者与续跑语义：同文件 lock conflict 的显式任务语义（错误码/可读英文消息/retry 策略，不假装可并行）、独立文件并行与多读单写测试、DB 状态存档跨重启续跑（任务中途 kill 后 resume 且数据一致）、native 缺失/磁盘满/临时目录不可写等故障注入（Deliverable: 语义裁定 + 测试；deps: WI3；Item Type: Feature + Fix）
 
 ### M3 — 深度应用测试
 
-- [ ] WI5 数据正确性对拍矩阵：同一数据集上四方对拍——DuckDB 经 nop-duckdb 执行层 API、DuckDB 经 ORM/EQL 既有方言路径、RDB 下推（经 nop-dao）、tablesaw；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
-- [ ] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
-- [ ] WI7 性能基线与调优档：同一数据集下 DuckDB vs tablesaw vs RDB 下推的可重复基准（记录数据量档位与 threads/memory_limit 配置），对齐 nop-benchmark 既有 JMH 模式或落可重复脚本——只立基线不设竞速指标（Deliverable: 基准基线记录；deps: WI6；Item Type: Proof）
-- [ ] WI8 duckdb 方言函数全量验证：覆盖 IDialect("duckdb").getFunctionNames() 生效集（继承链 default 49 ∪ postgresql 8 ∪ duckdb 覆盖 9 ≈ 50 个净函数，含 rand→random、instr→strpos、current_date/current_timestamp 括号语义、year 覆盖、uuid/uuidv7/cosh/sinh）+ sqls 模板（分页 LIMIT/OFFSET、dateTimeLiteral/timestampLiteral 字面量、forUpdate/lockHint 置空）+ errorCodes 模式匹配 + sqlDataTypes 映射的 DDL 可执行性；机制 = 参数化测试枚举全部函数逐一在真实 DuckDB 构造 SELECT fn(...) 执行（test scope duckdb_jdbc，jdbc:duckdb: 内存/临时库），要求无异常 + 关键语义断言（返回类型、括号、映射正确性）；发现方言定义错误修 duckdb.dialect.xml（nop-dao 既有配置，非生成物）并带回归；模式参照既有 TestDialect / TestSQLFunction / JdbcTestCase（Deliverable: 函数验证测试套件 + dialect.xml 缺陷修复；deps: WI0；Item Type: Proof + Fix）
+- [x] WI5 数据正确性对拍矩阵：同一数据集上四方对拍——DuckDB 经 nop-duckdb 执行层 API、DuckDB 经 ORM/EQL 既有方言路径、RDB 下推（经 nop-dao）、tablesaw；类型矩阵（decimal 精度、date/time 时区、大整数、字符串、boolean、NULL）；聚合与 join 语义（count(*)、avg 忽略 NULL、NULL 等值 join、隐式类型提升）golden 断言——断言业务不变量，防快照漂移（Deliverable: 对拍测试矩阵；deps: WI2 + WI3；Item Type: Proof）
+- [x] WI6 深度场景端到端测试：大负载外存档（低 memory_limit + temp_directory 下大 CSV/Parquet 聚合/join/sort 不 OOM 完成、native 与连接句柄无泄漏）；端到端 pipeline（xlsx/csv 摄取 → parquet → SQL 步骤链 → 结果文件或写回本地库——SQLite ATTACH 直写、业务表经 ORM）；并发档（独立文件并行任务全绿、同文件冲突按 WI4 语义失败）（Deliverable: 场景测试套件；deps: WI4 + WI5；Item Type: Proof）
+- [x] WI7 性能基线与调优档：同一数据集下 DuckDB vs tablesaw vs RDB 下推的可重复基准（记录数据量档位与 threads/memory_limit 配置），对齐 nop-benchmark 既有 JMH 模式或落可重复脚本——只立基线不设竞速指标（Deliverable: 基准基线记录；deps: WI6；Item Type: Proof）
+- [x] WI8 duckdb 方言函数全量验证：覆盖 IDialect("duckdb").getFunctionNames() 生效集（继承链 default 49 ∪ postgresql 8 ∪ duckdb 覆盖 9 ≈ 50 个净函数，含 rand→random、instr→strpos、current_date/current_timestamp 括号语义、year 覆盖、uuid/uuidv7/cosh/sinh）+ sqls 模板（分页 LIMIT/OFFSET、dateTimeLiteral/timestampLiteral 字面量、forUpdate/lockHint 置空）+ errorCodes 模式匹配 + sqlDataTypes 映射的 DDL 可执行性；机制 = 参数化测试枚举全部函数逐一在真实 DuckDB 构造 SELECT fn(...) 执行（test scope duckdb_jdbc，jdbc:duckdb: 内存/临时库），要求无异常 + 关键语义断言（返回类型、括号、映射正确性）；发现方言定义错误修 duckdb.dialect.xml（nop-dao 既有配置，非生成物）并带回归；模式参照既有 TestDialect / TestSQLFunction / JdbcTestCase（Deliverable: 函数验证测试套件 + dialect.xml 缺陷修复；deps: WI0；Item Type: Proof + Fix）
 
 ### M4 — 收口
 
-- [ ] WI9 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI8 完成或显式延期裁定；Item Type: Proof）
+- [x] WI9 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI8 完成或显式延期裁定；Item Type: Proof）
 
 ## Current Baseline（2026-09-30 核对）
 
