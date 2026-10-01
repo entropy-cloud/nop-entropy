@@ -22,7 +22,7 @@
 
 ### M0 — 可行性与架构裁定
 
-- [ ] WI0 duckdb_jdbc 选型与既有方言实测 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；既有 duckdb 方言转实测（selector 自动选择、EQL/ORM 查询翻译、ddl_duckdb 建表、错误码翻译）；ORM 数据源接入路径实测（nop.datasource.* 指 jdbc:duckdb:{filePath}、命名 dataSourceMap 可否作实体路由、Hikari 池 + 单写者文件的连接策略）；spike 四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 duckdb_jdbc 选型与既有方言实测 spike：依赖坐标与版本裁定（duckdb_jdbc，MIT 许可，native 平台矩阵 darwin-aarch64 / linux-amd64 / linux-aarch64 / windows；版本收敛进 nop-dependencies BOM；JDK release=17 兼容实测）；既有 duckdb 方言转实测（selector 自动选择、EQL/ORM 查询翻译、ddl_duckdb 建表、错误码翻译）；ORM 数据源接入路径实测（nop.datasource.* 指 jdbc:duckdb:{filePath}、命名 dataSourceMap 可否作实体路由、Hikari 池 + 单写者文件的连接策略）；spike 四问——进程内连接与 CSV/Parquet 读写、memory_limit + temp_directory 外存溢出、同文件单写者锁冲突行为、不支持平台 native 加载失败的报错语义；模块归属预设裁定 = **单一顶层模块 nop-duckdb**（对齐 nop-jq 扁平先例：一个 pom 无子模块，连接管理 + 文件数据面 + task step 全放本模块；已裁定不拆、不叫 nop-dao-duckdb——职责是执行层而非 DAO/dialect），WI0 可按实测推翻并记录理由（Deliverable: 裁定报告（落 ai-dev/analysis/ 当月目录）+ 依赖坐标裁定；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 核心集成
 
