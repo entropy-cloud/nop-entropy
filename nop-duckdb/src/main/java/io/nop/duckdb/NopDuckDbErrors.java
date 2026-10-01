@@ -12,6 +12,7 @@ public interface NopDuckDbErrors {
     String ARG_CONFIG_VALUE = "configValue";
     String ARG_PLATFORM = "platform";
     String ARG_REASON = "reason";
+    String ARG_TABLE_NAME = "tableName";
 
     ErrorCode ERR_DUCKDB_NATIVE_LOAD_FAILED = ErrorCode.define(
             "nop.err.duckdb.native-load-failed",
@@ -39,4 +40,20 @@ public interface NopDuckDbErrors {
     ErrorCode ERR_DUCKDB_ENGINE_CLOSED = ErrorCode.define(
             "nop.err.duckdb.engine-closed",
             "DuckDB engine is already closed");
+
+    ErrorCode ERR_DUCKDB_FILE_NOT_FOUND = ErrorCode.define(
+            "nop.err.duckdb.file-not-found",
+            "Data file does not exist: {filePath}",
+            ARG_FILE_PATH);
+
+    ErrorCode ERR_DUCKDB_TABLE_EXISTS = ErrorCode.define(
+            "nop.err.duckdb.table-exists",
+            "Table {tableName} already exists in the DuckDB database. "
+                    + "readCsv/readParquet do not overwrite existing tables; drop it first or use another name.",
+            ARG_TABLE_NAME);
+
+    ErrorCode ERR_DUCKDB_IO_FAILED = ErrorCode.define(
+            "nop.err.duckdb.io-failed",
+            "DuckDB file IO failed for {filePath}. Detail: {reason}",
+            ARG_FILE_PATH, ARG_REASON);
 }
