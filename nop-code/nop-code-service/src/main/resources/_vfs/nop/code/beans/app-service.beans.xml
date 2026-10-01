@@ -11,6 +11,9 @@
     <import resource="_lang-java.beans.xml"/>
     <import resource="_lang-typescript.beans.xml"/>
     <import resource="_lang-python.beans.xml"/>
+    <import resource="_lang-go.beans.xml"/>
+    <import resource="_lang-csharp.beans.xml"/>
+    <import resource="_lang-rust.beans.xml"/>
 
     <bean id="io.nop.code.core.adapter.LanguageAdapterRegistry"
           class="io.nop.code.core.adapter.LanguageAdapterRegistry" ioc:default="true"/>

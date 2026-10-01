@@ -245,6 +245,18 @@ class TestFeishuClient {
             assertEquals("t-token-1", accessToken, "second call must reuse cached token");
             return 200;
         }
+
+        // G12-13-03 OAuth methods: not exercised by the FeishuClient lifecycle
+        // (client only uses tenant tokens), stubbed to fail loudly if ever hit.
+        @Override
+        public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+            throw new UnsupportedOperationException("OAuth exchange not used in FeishuClient tests");
+        }
+
+        @Override
+        public String fetchOpenId(String userAccessToken) {
+            throw new UnsupportedOperationException("fetchOpenId not used in FeishuClient tests");
+        }
     }
 
     /** A scheduler that captures schedule requests but never runs them. */

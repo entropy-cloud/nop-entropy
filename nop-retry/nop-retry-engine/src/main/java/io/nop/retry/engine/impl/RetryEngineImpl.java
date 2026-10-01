@@ -18,7 +18,9 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.DaoErrors;
 import io.nop.retry.api.IRetryEngine;
 import io.nop.retry.api.IRetryTask;
 import io.nop.retry.dao.entity.NopRetryAttempt;
@@ -29,7 +31,6 @@ import io.nop.retry.engine.NopRetryConstants;
 import io.nop.retry.engine.scanner.IRetryScanner;
 import io.nop.retry.engine.store.IRetryRecordStore;
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.core.exceptions.ErrorMessageManager;
 
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -167,15 +168,76 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     CompletionStage<ApiResponse<?>> executeTask(IRetryTask task, ApiRequest<?> request, ICancelToken cancelToken) {
         NopRetryPolicy policy = loadPolicyOrDefault(task.getPolicyId());
 
-        NopRetryRecord existingRecord = recordStore.findPendingRecordByIdempotentId(
+        NopRetryRecord existingRecord = recordStore.findRecordByIdempotentId(
                 task.getNamespaceId(), task.getGroupId(), task.getIdempotentId());
         if (existingRecord != null) {
-            return handleBlockStrategy(existingRecord, policy, request, cancelToken, task);
+            return handleExistingRecord(existingRecord, policy, request, cancelToken, task);
         }
 
         NopRetryRecord record = recordStore.newRecord(task, request);
-        recordStore.saveRecord(record);
+        try {
+            recordStore.saveRecord(record);
+        } catch (Exception e) {
+            NopRetryRecord raceWinner = resolveInsertRaceWinner(task, e);
+            if (raceWinner == null)
+                throw e;
+            // 并发首提的TOCTOU窗口（plan 2282 G7-14-01）：唯一键冲突兜底，
+            // 与先查后插同样按记录状态分流，不再以裸数据库约束冲突暴露
+            return handleExistingRecord(raceWinner, policy, request, cancelToken, task);
+        }
         return executeWithRetry(record, policy, request, cancelToken, task);
+    }
+
+    /**
+     * 幂等键生命周期语义（plan 2282 G7-14-01 修复裁定，二选一中选择"复用终态结果"）：
+     * <ul>
+     * <li>COMPLETED 记录：上次同键提交已成功，重提交按幂等重放处理——直接返回成功，
+     *     不重新执行业务副作用，也不咨询OVERWRITE策略（覆盖已成功的记录重新执行副作用
+     *     超出重复提交的授权范围；需要重新驱动时走死信/暂停恢复等显式运维入口）。</li>
+     * <li>其余状态（PENDING/RETRYING/SUSPENDED）：按blockStrategy处理。SUSPENDED是运维
+     *     主动暂停，重复提交不允许偷偷恢复执行——DISCARD保持暂停，OVERWRITE显式重建。</li>
+     * </ul>
+     * 不选"显式删除重建"的原因：删除COMPLETED记录会让下一次重放重新执行业务副作用，
+     * 违背幂等键契约；且死信路径已提供显式的重新驱动入口。
+     */
+    private CompletionStage<ApiResponse<?>> handleExistingRecord(
+            NopRetryRecord existingRecord,
+            NopRetryPolicy policy,
+            ApiRequest<?> request,
+            ICancelToken cancelToken,
+            IRetryTask task) {
+
+        int status = existingRecord.getStatus() != null ? existingRecord.getStatus() : 0;
+        if (status == NopRetryConstants.RETRY_RECORD_STATUS_COMPLETED) {
+            LOG.info("nop.retry.idempotent-replay-completed:recordId={},idempotentId={}",
+                    existingRecord.getSid(), existingRecord.getIdempotentId());
+            return FutureHelper.success(ApiResponse.success(null));
+        }
+        return handleBlockStrategy(existingRecord, policy, request, cancelToken, task);
+    }
+
+    /**
+     * 插入唯一键冲突时判定是否为并发首提竞争：是则返回竞胜者的记录（已提交可见），否则返回null。
+     */
+    private NopRetryRecord resolveInsertRaceWinner(IRetryTask task, Exception e) {
+        if (!isDuplicateKeyError(e))
+            return null;
+
+        NopRetryRecord winner = recordStore.findRecordByIdempotentId(
+                task.getNamespaceId(), task.getGroupId(), task.getIdempotentId());
+        if (winner == null) {
+            // 冲突行在我们读取前被删除（如并发OVERWRITE/死信迁移）：保留原始错误暴露给调用方
+            LOG.warn("nop.retry.insert-conflict-without-winner:idempotentId={}", task.getIdempotentId(), e);
+            return null;
+        }
+        LOG.info("nop.retry.concurrent-submit-race-lost:recordId={},idempotentId={}",
+                winner.getSid(), task.getIdempotentId());
+        return winner;
+    }
+
+    private static boolean isDuplicateKeyError(Throwable e) {
+        return e instanceof NopException
+                && DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(((NopException) e).getErrorCode());
     }
 
     private CompletionStage<ApiResponse<?>> handleBlockStrategy(

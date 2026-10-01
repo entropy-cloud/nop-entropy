@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <!-- 测试专用：以primary覆盖类型注入的IBatchStateStore（对齐nop-retry-engine测试先例），
+         在"任务不存在"路径上加会合栅栏；栅栏未设置时行为与生产实现完全一致 -->
+    <bean id="io.nop.batch.core.IBatchStateStore" class="io.nop.batch.dao.store.RaceWindowDaoBatchStateStore"
+          primary="true"/>
+
+</beans>

@@ -74,6 +74,14 @@ public class MetaQualityRuleExecutor {
      *       {@code DO}（PG 执行匿名 PL/pgSQL 代码块）、{@code PG_SLEEP}（时序盲注/DoS）、
      *       {@code PG_CATALOG}（PG 系统目录 schema）、{@code PG_STAT_USER_TABLES}（PG 系统统计视图，
      *       信息泄漏面）。{@code WITH}（CTE 递归）见下方 tradeoff 裁定。</li>
+     *   <li>G8-13-01（plan 2283，deep-audit 2026-09-30）补单 token {@code INTO} 与
+     *       {@code PG_TERMINATE_BACKEND}，对齐 {@code ExpressionMeasureValidator} 的
+     *       KEYWORD_BLACKLIST({@code INTO}) / FUNCTION_BLACKLIST({@code PG_TERMINATE_BACKEND}) 条目：
+     *       PG 的 {@code SELECT c INTO new_table} 是 {@code CREATE TABLE AS} 同义 DDL（token 化后无
+     *       CREATE token）、MySQL 的 {@code SELECT ... INTO @var} 为会话写入——custom_sql 上下文中
+     *       INTO 后接任何目标均非合法只读检查形态，over-block 符合既定哲学；
+     *       {@code pg_terminate_backend(pid)} 终止其他后端连接（DoS 面）。补齐后
+     *       {@code INTO OUTFILE}/{@code INTO DUMPFILE} 序列条目被单 token 条目覆盖，保留作 fail-fast 短路。</li>
      *   <li>多 token 条目（{@link #CUSTOM_SQL_FORBIDDEN_SEQUENCES}）：按连续 token 序列匹配，
      *       {@code INTO\tOUTFILE} / 注释分隔的 {@code INTO} 与 {@code OUTFILE} / 多空白分隔一律命中；
      *       {@code LOAD XML} 序列覆盖 H2 的 {@code LOAD XML INFILE} 文件读。</li>
@@ -112,6 +120,10 @@ public class MetaQualityRuleExecutor {
             "FILE_READ", "FILE_WRITE", "BACKUP", "CSVWRITE", "CSVREAD",
             // F9（plan 2026-08-14-1133-1）：PG 脚本执行 / 时序攻击 / 系统目录族 + CTE（WITH tradeoff 见上）
             "DO", "PG_SLEEP", "PG_CATALOG", "PG_STAT_USER_TABLES",
+            // G8-13-01（plan 2283）：裸 INTO（SELECT ... INTO 建表族，PG 语义为 CREATE TABLE AS 等价 DDL）
+            // 与 PG_TERMINATE_BACKEND（终止其他后端连接 DoS 面）——对齐 ExpressionMeasureValidator
+            // KEYWORD_BLACKLIST / FUNCTION_BLACKLIST 的同名条目（token 形态照抄：大写单 token）
+            "INTO", "PG_TERMINATE_BACKEND",
             "WITH");
 
     /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
@@ -382,7 +394,9 @@ public class MetaQualityRuleExecutor {
      * RENAME/LOCK/UNLOCK、PostgreSQL 文件/目录访问族（PG_READ_BINARY_FILE/PG_LS_LOGDIR/PG_LS_WALDIR/
      * PG_STAT_FILE/COPY 等）、脚本导出族（H2 RUNSCRIPT/SCRIPT、SYS_EXEC）与 H2 文件读写族
      * （FILE_READ/FILE_WRITE/BACKUP/CSVWRITE/CSVREAD）；条目集合与 {@code ExpressionMeasureValidator.KEYWORD_BLACKLIST}
-     * 逐项对齐（AR-04/AR-05 补齐）。future SQL 方言新增的同类关键字需阶段性审查更新。
+     * 逐项对齐（AR-04/AR-05 补齐），G8-13-01（plan 2283）补齐裸 {@code INTO} 与
+     * {@code PG_TERMINATE_BACKEND}（对齐该校验器 KEYWORD_BLACKLIST/FUNCTION_BLACKLIST 同名条目）。
+     * future SQL 方言新增的同类关键字需阶段性审查更新。
      * 本校验不检查 SQL 语义——PreparedStatement 参数绑定通道由调用方保证。
      */
     static void validateCustomSqlSandbox(String sql, String ruleKey, String sqlHash) {

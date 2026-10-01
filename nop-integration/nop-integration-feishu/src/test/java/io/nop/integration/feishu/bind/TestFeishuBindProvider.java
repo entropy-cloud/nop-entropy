@@ -7,6 +7,7 @@ import io.nop.integration.api.bind.ChannelBindResultStatus;
 import io.nop.integration.api.bind.ChannelScanCallback;
 import io.nop.integration.feishu.NopFeishuException;
 import io.nop.integration.feishu.client.FeishuCredentials;
+import io.nop.integration.feishu.client.IFeishuOAuthApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,13 +23,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link FeishuBindProvider}. Verifies the QR-payload selection
- * (Option A — Feishu OAuth URL), ticket lifecycle, scan-callback parsing, and
+ * (Option A — Feishu OAuth URL), ticket lifecycle, scan-callback parsing and
  * the "no silent no-op" contract (missing fields / unknown / expired tickets
  * all throw explicitly).
+ *
+ * <p><b>Identity contract (G12-13-03)</b>: the callback payload must carry the
+ * OAuth {@code code}; the provider resolves the binding identity server-side
+ * via the injected {@link IFeishuOAuthApi} stub — a client-declared
+ * {@code open_id} is never trusted.
  */
 class TestFeishuBindProvider {
 
     private FeishuBindProvider provider;
+    private StubOAuthApi oauthApi;
 
     @BeforeEach
     void setUp() {
@@ -38,6 +45,33 @@ class TestFeishuBindProvider {
         creds.setAppSecret("secret");
         provider.setCredentials(creds);
         provider.setTicketTtlMs(60_000L);
+        oauthApi = new StubOAuthApi("ou_server_resolved");
+        provider.setHttpApi(oauthApi);
+    }
+
+    /** 预设服务端换取结果的桩 OAuth 通道（记录调用次数）。 */
+    static class StubOAuthApi implements IFeishuOAuthApi {
+        final String resolvedOpenId;
+        int exchangeCalls;
+        int fetchCalls;
+
+        StubOAuthApi(String resolvedOpenId) {
+            this.resolvedOpenId = resolvedOpenId;
+        }
+
+        @Override
+        public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+            exchangeCalls++;
+            assertEquals("cli_test_app", appId);
+            assertEquals("secret", appSecret);
+            return "u-access-token-" + exchangeCalls;
+        }
+
+        @Override
+        public String fetchOpenId(String userAccessToken) {
+            fetchCalls++;
+            return resolvedOpenId;
+        }
     }
 
     @Test
@@ -59,25 +93,29 @@ class TestFeishuBindProvider {
     }
 
     @Test
-    void onCallbackReturnsCompletedWithOpenId() {
+    void onCallbackResolvesOpenIdFromOAuthCode() {
         BindTicket ticket = provider.createBindTicket("feishu", "user-1");
 
         ChannelScanCallback callback = new ChannelScanCallback();
         callback.setChannelType("feishu");
         callback.setTicketId(ticket.getTicketId());
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", "ou_scanned_user");
+        payload.put("code", "auth-code-1");
         callback.setRawPayload(payload);
 
         ChannelBindResult result = provider.onChannelScanCallback(callback);
 
         assertNotNull(result);
         assertEquals(ChannelBindResultStatus.BINDING_COMPLETED, result.getStatus());
-        assertEquals("ou_scanned_user", result.getExtId(),
-                "extId must be the open_id from the callback payload");
+        // the extId is the SERVER-resolved open_id (via the OAuth exchange stub)
+        assertEquals("ou_server_resolved", result.getExtId(),
+                "extId must be the open_id resolved server-side from the OAuth code");
         assertEquals("user-1", result.getPlatformUserId(),
                 "platformUserId must be rehydrated from the ticket");
         assertEquals(ticket.getTicketId(), result.getTicketId());
+        // the exchange really went through the OAuth channel (both hops)
+        assertEquals(1, oauthApi.exchangeCalls, "the OAuth code must be exchanged server-side");
+        assertEquals(1, oauthApi.fetchCalls, "the user info (open_id) must be fetched server-side");
     }
 
     @Test
@@ -86,30 +124,39 @@ class TestFeishuBindProvider {
         callback.setChannelType("feishu");
         callback.setTicketId("fs_bind_unknown");
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", "ou_x");
+        payload.put("code", "auth-code-1");
         callback.setRawPayload(payload);
 
         NopFeishuException ex = assertThrows(NopFeishuException.class,
                 () -> provider.onChannelScanCallback(callback));
         assertTrue(ex.getMessage().contains("unknown or expired ticket"),
                 "unknown ticket must fail explicitly, not silently: " + ex.getMessage());
+        // no outbound identity exchange for unknown tickets
+        assertEquals(0, oauthApi.exchangeCalls,
+                "unknown tickets must not trigger any Feishu identity exchange");
     }
 
     @Test
-    void onCallbackWithMissingPayloadFailsExplicitly() {
+    void onCallbackWithMissingPayloadOrCodeOrTicketFailsExplicitly() {
         BindTicket ticket = provider.createBindTicket("feishu", "user-1");
 
-        // missing open_id (non-empty map so we reach the open_id check)
-        ChannelScanCallback noOpenId = new ChannelScanCallback();
-        noOpenId.setChannelType("feishu");
-        noOpenId.setTicketId(ticket.getTicketId());
-        Map<String, Object> noOpenIdPayload = new HashMap<>();
-        noOpenIdPayload.put("some_other_field", "x");
-        noOpenId.setRawPayload(noOpenIdPayload);
+        // missing code (a client-declared open_id does NOT substitute for it)
+        ChannelScanCallback noCode = new ChannelScanCallback();
+        noCode.setChannelType("feishu");
+        noCode.setTicketId(ticket.getTicketId());
+        Map<String, Object> noCodePayload = new HashMap<>();
+        noCodePayload.put("open_id", "ou_client_declared");
+        noCodePayload.put("some_other_field", "x");
+        noCode.setRawPayload(noCodePayload);
         NopFeishuException ex1 = assertThrows(NopFeishuException.class,
-                () -> provider.onChannelScanCallback(noOpenId));
-        assertTrue(ex1.getMessage().contains("open_id"),
-                "missing open_id must fail explicitly: " + ex1.getMessage());
+                () -> provider.onChannelScanCallback(noCode));
+        assertTrue(ex1.getMessage().contains("'code'"),
+                "missing OAuth code must fail explicitly: " + ex1.getMessage());
+        assertTrue(ex1.getMessage().contains("not accepted"),
+                "the failure must state that a client-declared open_id is not accepted: "
+                        + ex1.getMessage());
+        assertEquals(0, oauthApi.exchangeCalls,
+                "no identity exchange without a code");
 
         // null rawPayload
         ChannelScanCallback nullPayload = new ChannelScanCallback();
@@ -126,7 +173,7 @@ class TestFeishuBindProvider {
         noTicket.setChannelType("feishu");
         noTicket.setTicketId(null);
         Map<String, Object> p = new HashMap<>();
-        p.put("open_id", "ou_y");
+        p.put("code", "auth-code-1");
         noTicket.setRawPayload(p);
         NopFeishuException ex3 = assertThrows(NopFeishuException.class,
                 () -> provider.onChannelScanCallback(noTicket));
@@ -148,13 +195,15 @@ class TestFeishuBindProvider {
         callback.setChannelType("feishu");
         callback.setTicketId(ticket.getTicketId());
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", "ou_z");
+        payload.put("code", "auth-code-1");
         callback.setRawPayload(payload);
 
         NopFeishuException ex = assertThrows(NopFeishuException.class,
                 () -> provider.onChannelScanCallback(callback));
         assertTrue(ex.getMessage().contains("unknown or expired") || ex.getMessage().contains("expired"),
                 "expired ticket must fail explicitly: " + ex.getMessage());
+        assertEquals(0, oauthApi.exchangeCalls,
+                "expired tickets must not trigger any Feishu identity exchange");
     }
 
     @Test
@@ -194,7 +243,7 @@ class TestFeishuBindProvider {
         callback.setChannelType("feishu");
         callback.setTicketId(ticket.getTicketId());
         Map<String, Object> payload = new HashMap<>();
-        payload.put("open_id", "ou_first");
+        payload.put("code", "auth-code-1");
         callback.setRawPayload(payload);
 
         // first use succeeds

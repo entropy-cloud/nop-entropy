@@ -40,8 +40,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
@@ -70,6 +74,8 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
             ErrorCode.define("nop.err.file.invalid-biz-obj-name", "非法的业务对象名[{bizObjName}]");
     static final ErrorCode ERR_FILE_INVALID_FILE_EXT =
             ErrorCode.define("nop.err.file.invalid-file-ext", "非法的文件扩展名[{fileExt}]");
+    static final ErrorCode ERR_FILE_DIGEST_NOT_AVAILABLE =
+            ErrorCode.define("nop.err.file.digest-not-available", "SHA-256 digest algorithm is not available");
     private IDaoProvider daoProvider;
 
     private IResourceStore resourceStore;
@@ -196,6 +202,11 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         InputStream is = null;
         try {
             is = record.getInputStream();
+            // [G9-04-01] persist the content SHA-256 digest into FILE_HASH. The stream is
+            // wrapped in a DigestInputStream so the digest is computed during the single
+            // write pass below instead of re-reading the stored content.
+            MessageDigest contentDigest = newSha256Digest();
+            is = new DigestInputStream(is, contentDigest);
             if (record.getLength() > 0) {
                 is = new LimitedInputStream(is, record.getLength());
                 filePath = resourceStore.saveResource(filePath, new InputStreamResource(filePath, is, record.getLastModified(), record.getLength()), null, null);
@@ -210,6 +221,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
             }
 
             entity.setFilePath(filePath);
+            entity.setFileHash(HexFormat.of().formatHex(contentDigest.digest()));
             dao.saveEntity(entity);
             return entity.getFileId();
         } catch (Exception e) {
@@ -226,6 +238,14 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         if (maxFileSize > 0 && length > maxFileSize)
             throw new NopException(ERR_FILE_LENGTH_EXCEED_LIMIT)
                     .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, maxFileSize);
+    }
+
+    private MessageDigest newSha256Digest() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new NopException(ERR_FILE_DIGEST_NOT_AVAILABLE, e);
+        }
     }
 
 

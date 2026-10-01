@@ -46,7 +46,7 @@
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
                 <column code="TASK_NAME" displayName="任务名" mandatory="true" name="taskName" precision="50" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Task Name"/>
-                <column code="TASK_KEY" comment="业务上区分任务是否已存在的唯一键" displayName="唯一Key" mandatory="true" name="taskKey"
+                <column code="TASK_KEY" comment="与taskName组成业务唯一键，区分任务是否已存在" displayName="唯一Key" mandatory="true" name="taskKey"
                         precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Task Key"/>
                 <column code="TASK_STATUS" displayName="任务状态" mandatory="true" name="taskStatus" propId="4"
@@ -125,6 +125,19 @@
                     </join>
                 </to-many>
             </relations>
+            <unique-keys>
+                <!-- 同(taskName,taskKey)只允许一个任务实例（断点续传/防重复启动的DB层保障，
+                     对照nop-job的UK_NOP_JOB_*惯例；查询语义对照DaoBatchStateStore.loadExistingTask） -->
+                <unique-key name="UK_NOP_BATCH_TASK_NAME_KEY"
+                            columns="taskName,taskKey"
+                            i18n-en:displayName="Unique Task Key Per Task Name"/>
+            </unique-keys>
+            <indexes>
+                <!-- 运维/监控按任务状态扫描（对照nop-job的IX_NOP_JOB_SCHEDULE_SCAN惯例） -->
+                <index name="IX_NOP_BATCH_TASK_STATUS" unique="false">
+                    <column name="taskStatus"/>
+                </index>
+            </indexes>
         </entity>
         <entity className="io.nop.batch.dao.entity.NopBatchTaskVar" createTimeProp="createTime" createrProp="createdBy"
                 displayName="批处理任务状态变量" name="io.nop.batch.dao.entity.NopBatchTaskVar" registerShortName="true"

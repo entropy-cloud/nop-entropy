@@ -368,6 +368,55 @@ transition 定义了 action 执行后的步骤流向。
 
 ---
 
+## 事件监听 (`<listeners>`)
+
+workflow 可通过 `<listeners>` 订阅生命周期事件（如步骤激活、流程结束）。`*end` 结束事件的典型用途是回调业务侧动作：
+
+```xml
+<listeners>
+    <listener id="onApproveEnd" eventPattern="*end">
+        <source>
+            <c:script><![CDATA[
+                // listener 作用域内的上下文变量见下方强制规则
+            ]]></c:script>
+        </source>
+    </listener>
+</listeners>
+```
+
+### 强制规则：`*end` listener 必须判定结束原因（MA7.6-01 / G6-22-01）
+
+**流程结束 ≠ 审批通过。** oa.xwf 的 `disagree` 公共 action 会让流程以 `wfAppState=disagree` 直接 `<to-end/>`（所有普通步骤可用）；引擎触发的 `before-end`/`after-end` 事件不携带结束原因参数，结束原因的唯一载体是 `wfRt.wf.record.appState`。
+
+凡在 `*end` listener 中执行"视为审批通过"的业务副作用（approve、归档、通知通过等），**必须**先判定结束原因：
+
+```xml
+<listener id="onApproveEnd" eventPattern="*end">
+    <source>
+        <c:script><![CDATA[
+            const wfAppState = wfRt.wf.record.appState;
+            if (wfAppState !== 'disagree') {
+                // 正常通过路径：回调业务 approve（需幂等守卫）
+                const bizObjManager = inject('nopBizObjectManager');
+                const entityBizObj = bizObjManager.getBizObject('YourEntity');
+                const entityId = wfRt.wf.bizEntityId;
+                const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
+                if (entity.approveStatus === 'SUBMITTED') {
+                    entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                }
+            }
+        ]]></c:script>
+    </source>
+</listener>
+```
+
+注意两点：
+
+1. **双触发幂等**：`*end` 模式同时命中 `before-end` 与 `after-end` 两个事件，listener 在一次流程结束中执行两次。副作用必须幂等（上例用 `approveStatus === 'SUBMITTED'` 守卫）；只需执行一次时使用精确的 `after-end` 模式。
+2. **参照实现**：`nop-metadata-service/src/main/resources/_vfs/nop/wf/` 下的 `metaDataContractApproval`、`tagLabelConfirmApproval`、`qualityBreachApproval`（后者为 disagree 分支处理误报标记），以及 nop-wf 测试资源 `nop-wf-service/src/test/resources/_vfs/nop/wf/test/approval-form/v1.xwf`（回归测试见 `TestUseApprovalE2E.testWorkflowApproval_disagreePath_endWithoutApprove`）。
+
+---
+
 ## 步骤状态机
 
 步骤实例的生命周期：

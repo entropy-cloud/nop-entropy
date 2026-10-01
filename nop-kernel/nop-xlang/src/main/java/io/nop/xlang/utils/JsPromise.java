@@ -29,10 +29,21 @@ import java.util.function.Supplier;
  */
 public class JsPromise extends CompletableFuture<Object> {
 
-    /** new Promise(executor)：executor 通过 ContinuationExecutor 调度（microtask 语义） */
+    /**
+     * new Promise(executor)：executor 通过 ContinuationExecutor 调度（microtask 语义）。
+     * <p>
+     * JS 语义：executor 执行（含经 {@link ContinuationExecutor} 异步调度执行）时抛出的异常
+     * 必须使 promise 进入 rejected 状态，而不是被调度器的 runLoop 吞掉导致 promise 永不 settle。
+     */
     public JsPromise(IEvalScope scope, BiFunction<JsPromise, JsPromise, Void> executor) {
         try {
-            ContinuationExecutor.INSTANCE.execute(() -> executor.apply(this, this));
+            ContinuationExecutor.INSTANCE.execute(() -> {
+                try {
+                    executor.apply(this, this);
+                } catch (Throwable e) {
+                    completeExceptionally(e);
+                }
+            });
         } catch (Throwable e) {
             completeExceptionally(e);
         }
@@ -70,7 +81,7 @@ public class JsPromise extends CompletableFuture<Object> {
     public JsPromise thenJs(IEvalScope scope, Object onFulfilled, Object onRejected) {
         BiFunction<Object, Throwable, Object> onF = asFunction(scope, onFulfilled);
         BiFunction<Object, Throwable, Object> onR = onRejected == null
-                ? (v, e) -> v
+                ? null
                 : asFunction(scope, onRejected);
         JsPromise next = new JsPromise();
         whenComplete((value, err) -> {
@@ -79,6 +90,9 @@ public class JsPromise extends CompletableFuture<Object> {
                     if (err == null) {
                         Object result = onF.apply(value, err);
                         next.complete(result);
+                    } else if (onR == null) {
+                        // JS 语义：无 onRejected 时保持 rejected 透传，不把 rejection reason 当正常值 resolve
+                        next.completeExceptionally(err);
                     } else {
                         Object reason = err instanceof Rejected ? ((Rejected) err).getReason() : err;
                         Object result = onR.apply(reason, null);
@@ -98,6 +112,10 @@ public class JsPromise extends CompletableFuture<Object> {
         return thenJs(scope, null, onRejected);
     }
 
+    /**
+     * JS 语义：finally 回调正常完成时透传原 settle 状态（回调返回值被忽略）；
+     * 回调抛错时返回的 promise 转 rejected（不吞异常）。
+     */
     @Name("finally")
     @EvalMethod
     public JsPromise finallyDo(IEvalScope scope, Object onFinally) {
@@ -115,7 +133,8 @@ public class JsPromise extends CompletableFuture<Object> {
                         ((IEvalFunction) onFinally).call0(null, scope);
                     }
                 } catch (Throwable e) {
-                    // ignore
+                    next.completeExceptionally(e);
+                    return;
                 }
                 if (err == null) {
                     next.complete(value);

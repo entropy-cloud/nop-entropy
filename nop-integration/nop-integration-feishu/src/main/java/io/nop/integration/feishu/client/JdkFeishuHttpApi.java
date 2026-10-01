@@ -13,8 +13,10 @@ import java.time.Duration;
  * Production {@link IFeishuHttpApi} backed by the JDK
  * {@link java.net.http.HttpClient} (Java 11+ stdlib — no external dependency,
  * per the W5-0 SDK-selection decision). Calls the Feishu/Lark Open API:
- * stream-gateway endpoint resolution, {@code tenant_access_token} acquisition
- * and {@code im/v1/messages} send. Real API behaviour is verified at W6 E2E.
+ * stream-gateway endpoint resolution, {@code tenant_access_token} acquisition,
+ * {@code im/v1/messages} send, and the OAuth code &rarr; {@code user_access_token}
+ * &rarr; {@code open_id} verification chain (G12-13-03). Real API behaviour is
+ * verified at W6 E2E.
  *
  * <p>Package-private: internal HTTP implementation, exercised only via the
  * {@link IFeishuHttpApi} seam.
@@ -78,6 +80,35 @@ class JdkFeishuHttpApi implements IFeishuHttpApi {
         return 200;
     }
 
+    @Override
+    public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+        // Feishu v1 authen API: authorization_code -> user_access_token (matches the
+        // /open-apis/authen/v1/index authorize URL built by FeishuBindProvider).
+        // Response: {"code":0,"msg":"ok","data":{"access_token":"u-...","expires_in":6900,...}}
+        String body = "{\"app_id\":\"" + appId + "\",\"app_secret\":\"" + appSecret + "\","
+                + "\"code\":\"" + code + "\",\"grant_type\":\"authorization_code\"}";
+        String resp = postJson(baseUrl + "/open-apis/authen/v1/accessToken", body);
+        String token = FeishuJsons.extractString(resp, "access_token");
+        if (token == null) {
+            throw new NopFeishuException(
+                    "JdkFeishuHttpApi.exchangeUserAccessToken: missing access_token in response: " + resp);
+        }
+        return token;
+    }
+
+    @Override
+    public String fetchOpenId(String userAccessToken) {
+        // Feishu v1 authen API: user_access_token -> user identity.
+        // Response: {"code":0,"msg":"ok","data":{"open_id":"ou_...","union_id":"...","name":"..."}}
+        String resp = getJsonWithAuth(baseUrl + "/open-apis/authen/v1/user_info", userAccessToken);
+        String openId = FeishuJsons.extractString(resp, "open_id");
+        if (openId == null) {
+            throw new NopFeishuException(
+                    "JdkFeishuHttpApi.fetchOpenId: missing open_id in response: " + resp);
+        }
+        return openId;
+    }
+
     private String postJson(String url, String body) {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -105,6 +136,26 @@ class JdkFeishuHttpApi implements IFeishuHttpApi {
                 .header("Content-Type", "application/json; charset=utf-8")
                 .header("Authorization", "Bearer " + accessToken)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                .build();
+        try {
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (resp.statusCode() / 100 != 2) {
+                throw new NopFeishuException("Feishu API " + url + " returned status " + resp.statusCode() + ": " + resp.body());
+            }
+            return resp.body();
+        } catch (NopFeishuException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopFeishuException("Feishu API call failed: " + url, e);
+        }
+    }
+
+    private String getJsonWithAuth(String url, String accessToken) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + accessToken)
+                .GET()
                 .build();
         try {
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));

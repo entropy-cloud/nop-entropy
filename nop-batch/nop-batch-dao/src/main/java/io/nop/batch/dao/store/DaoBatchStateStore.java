@@ -14,8 +14,13 @@ import io.nop.batch.dao.NopBatchDaoConstants;
 import io.nop.batch.dao.entity.NopBatchTask;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoErrors;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmSession;
 import io.nop.orm.dao.AbstractDaoHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_ID;
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_KEY;
@@ -25,10 +30,14 @@ import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_EXCEED_START_LIM
 import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_COMPLETED;
 import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE;
 import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED;
+import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_sid;
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskKey;
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskName;
+import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskStatus;
 
 public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStateStore {
+    static final Logger LOG = LoggerFactory.getLogger(DaoBatchStateStore.class);
+
     protected IEntityDao<NopBatchTask> taskDao() {
         return daoFor(NopBatchTask.class);
     }
@@ -36,26 +45,66 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
     @Override
     public void loadTaskState(IBatchTaskContext context) {
         runLocal(session -> {
-            loadTaskState0(context);
+            loadTaskState0(session, context);
             return null;
         });
     }
 
-    private void loadTaskState0(IBatchTaskContext context) {
+    private void loadTaskState0(IOrmSession session, IBatchTaskContext context) {
         IEntityDao<NopBatchTask> taskDao = taskDao();
         NopBatchTask task = loadExistingTask(taskDao, context);
+
         if (task == null) {
-            task = newTask(taskDao);
-            task.setTaskKey(context.getTaskKey());
-            task.setTaskName(context.getTaskName());
-            task.setFlowId(context.getFlowId());
-            task.setFlowStepId(context.getFlowStepId());
-            setTaskRecord(context, task);
-            saveTask(taskDao, task);
-            context.setTaskId(task.getSid());
-            return;
+            task = tryInsertNewTask(context);
+            if (task != null) {
+                context.setTaskId(task.getSid());
+                return;
+            }
+
+            // 输掉了(taskName,taskKey)唯一键的插入竞争：并发实例已提交同键任务行。
+            // 重新加载后转入既有实例路径，由startExistingTask的启动闸门裁决唯一活跃实例
+            task = loadExistingTask(taskDao, context);
+            if (task == null) {
+                // 理论不可达：唯一键冲突必然对应已提交行。防御性响亮失败，避免无行可启动时静默通过
+                throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
+                        .param(ARG_TASK_NAME, context.getTaskName())
+                        .param(ARG_TASK_KEY, context.getTaskKey());
+            }
         }
 
+        startExistingTask(session, taskDao, task, context);
+    }
+
+    /**
+     * 在独立事务（REQUIRES_NEW）中插入新任务行。数据库层的 (taskName,taskKey) 唯一键
+     * （nop-batch.orm.xml UK_NOP_BATCH_TASK_NAME_KEY）把并发首发的插入竞态转变为可判定结果：
+     * 冲突只回滚本次插入（避免污染外层会话/事务），返回null表示竞争失败。
+     */
+    protected NopBatchTask tryInsertNewTask(IBatchTaskContext context) {
+        try {
+            return runLocal(session -> {
+                IEntityDao<NopBatchTask> taskDao = taskDao();
+                NopBatchTask task = newTask(taskDao);
+                task.setTaskKey(context.getTaskKey());
+                task.setTaskName(context.getTaskName());
+                task.setFlowId(context.getFlowId());
+                task.setFlowStepId(context.getFlowStepId());
+                setTaskRecord(context, task);
+                saveTask(taskDao, task);
+                return task;
+            });
+        } catch (Exception e) {
+            if (isDuplicateKeyError(e)) {
+                LOG.info("nop.batch.task-start-insert-race-lost:taskName={},taskKey={}",
+                        context.getTaskName(), context.getTaskKey());
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    private void startExistingTask(IOrmSession session, IEntityDao<NopBatchTask> taskDao,
+                                   NopBatchTask task, IBatchTaskContext context) {
         if (task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_KILLED)
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED)
                     .param(ARG_TASK_NAME, task.getTaskName())
@@ -70,6 +119,7 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
                     .param(ARG_TASK_ID, task.getSid())
                     .param(ARG_TASK_STATUS, task.getTaskStatus());
 
+        // 常规路径的快失败检查（并发场景由下方启动闸门在DB层裁决）
         if (task.getTaskStatus() <= NopBatchDaoConstants.TASK_STATUS_RUNNING) {
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
                     .param(ARG_TASK_NAME, task.getTaskName())
@@ -80,6 +130,19 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
 
         if (!Boolean.TRUE.equals(context.getAllowStartIfComplete()) && task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_COMPLETED) {
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_COMPLETED)
+                    .param(ARG_TASK_NAME, task.getTaskName())
+                    .param(ARG_TASK_KEY, task.getTaskKey())
+                    .param(ARG_TASK_ID, task.getSid())
+                    .param(ARG_TASK_STATUS, task.getTaskStatus());
+        }
+
+        // 启动闸门（plan 2282 G7-04-01）：条件更新仅允许从可重启状态（taskStatus > RUNNING）
+        // 原子迁移到RUNNING。affected-rows=0表示并发实例已先行启动，check-then-act竞态
+        // 不再依赖读后判，而是由数据库层的单语句原子性判定
+        if (!tryMarkTaskRunning(session, task)) {
+            LOG.warn("nop.batch.task-start-conflict:taskId={},taskName={},taskKey={},taskStatus={}",
+                    task.getSid(), task.getTaskName(), task.getTaskKey(), task.getTaskStatus());
+            throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
                     .param(ARG_TASK_NAME, task.getTaskName())
                     .param(ARG_TASK_KEY, task.getTaskKey())
                     .param(ARG_TASK_ID, task.getSid())
@@ -102,7 +165,7 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
             task.setFlowStepId(context.getFlowStepId());
         }
 
-        taskDao.updateEntityDirectly(task);
+        updateTask(taskDao, task);
 
         context.setTaskName(task.getTaskName());
         context.setTaskKey(task.getTaskKey());
@@ -115,6 +178,20 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
         context.setFlowId(task.getFlowId());
         context.setFlowStepId(task.getFlowStepId());
         setTaskRecord(context, task);
+    }
+
+    /**
+     * 启动闸门：UPDATE ... SET taskStatus=RUNNING WHERE sid=? AND taskStatus > RUNNING。
+     * 返回false表示并发实例已先行启动（或状态已变化），调用方按既有错误语义响亮失败。
+     */
+    protected boolean tryMarkTaskRunning(IOrmSession session, NopBatchTask task) {
+        SQL sql = SQL.begin().update(NopBatchTask.class.getName())
+                .set()
+                .eq(PROP_NAME_taskStatus, NopBatchDaoConstants.TASK_STATUS_RUNNING)
+                .where().eq(PROP_NAME_sid, task.getSid())
+                .and().gt(PROP_NAME_taskStatus, NopBatchDaoConstants.TASK_STATUS_RUNNING)
+                .end();
+        return session.executeUpdate(sql) > 0;
     }
 
     void setTaskRecord(IBatchTaskContext context, NopBatchTask task) {
@@ -211,5 +288,10 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
         task.setLoadSkipCount(0L);
         task.setWorkerId(AppConfig.hostId());
         return task;
+    }
+
+    private static boolean isDuplicateKeyError(Throwable e) {
+        return e instanceof NopException
+                && DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(((NopException) e).getErrorCode());
     }
 }

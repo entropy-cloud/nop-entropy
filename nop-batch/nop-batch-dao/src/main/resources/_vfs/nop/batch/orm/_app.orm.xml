@@ -56,8 +56,8 @@
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
                 <column code="TASK_NAME" displayName="任务名" mandatory="true" name="taskName" precision="50" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Task Name"/>
-                <column code="TASK_KEY" comment="业务上区分任务是否已存在的唯一键" displayName="唯一Key" mandatory="true" name="taskKey"
-                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                <column code="TASK_KEY" comment="与taskName组成业务唯一键，区分任务是否已存在" displayName="唯一Key" mandatory="true"
+                        name="taskKey" precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Task Key"/>
                 <column code="TASK_STATUS" displayName="任务状态" mandatory="true" name="taskStatus" propId="4"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Task Status"
@@ -120,6 +120,11 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="31"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
+            <indexes>
+                <index name="IX_NOP_BATCH_TASK_STATUS" unique="false">
+                    <column name="taskStatus"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="批处理文件" name="inputFile" refEntityName="io.nop.batch.dao.entity.NopBatchFile"
                         tagSet="pub,ref-pub" i18n-en:displayName="Input File">
@@ -135,6 +140,10 @@
                     </join>
                 </to-many>
             </relations>
+            <unique-keys>
+                <unique-key columns="taskName,taskKey" name="UK_NOP_BATCH_TASK_NAME_KEY"
+                            i18n-en:displayName="Unique Task Key Per Task Name"/>
+            </unique-keys>
         </entity>
         <entity className="io.nop.batch.dao.entity.NopBatchTaskVar" createTimeProp="createTime" createrProp="createdBy"
                 displayName="批处理任务状态变量" name="io.nop.batch.dao.entity.NopBatchTaskVar" registerShortName="true"

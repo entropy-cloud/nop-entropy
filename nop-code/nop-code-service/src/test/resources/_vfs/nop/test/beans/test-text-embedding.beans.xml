@@ -4,7 +4,12 @@
     <!-- N4.3（plan nop-code/24）测试嵌入 bean：确定性 StubTestTextEmbedding。
          经 aaa- 前缀 autoconfig 文件（见同目录 aaa-test-text-embedding.beans）注册，
          前缀仅为可读性约定——bean 定义全量合并后由 buildAll 统一构建，
-         by-type 注入解析与 autoconfig 文件收集顺序无关。 -->
+         by-type 注入解析与 autoconfig 文件收集顺序无关。
+         primary="true"（WS4 2026-09-30）：nop-ai-core 的 autoconfig 无条件装载
+         ai-defaults.beans.xml（含同为 ioc:default 的 nopAiTextEmbedding），
+         两个 ITextEmbedding 候选并存时 by-type 属性注入（nopSearchEngine.textEmbedding）
+         抛 multiple-bean-with-type-when-for-prop，容器启动失败。测试 stub 依 N4.3
+         语义必须确定性胜出，故标记 primary（仅测试 classpath 生效，不影响生产装配）。 -->
     <bean id="nopTestTextEmbedding" class="io.nop.code.service.StubTestTextEmbedding" ioc:default="true"
-          ioc:type="io.nop.search.api.ITextEmbedding"/>
+          ioc:type="io.nop.search.api.ITextEmbedding" primary="true"/>
 </beans>

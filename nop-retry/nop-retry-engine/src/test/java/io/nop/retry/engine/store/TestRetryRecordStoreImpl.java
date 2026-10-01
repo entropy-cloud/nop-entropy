@@ -136,6 +136,34 @@ public class TestRetryRecordStoreImpl extends JunitAutoTestCase {
         assertNull(recordStore.findPendingRecordByIdempotentId("default", "default", "idem-query"));
     }
 
+    /**
+     * 幂等键查重（plan 2282 G7-14-01）：findRecordByIdempotentId 覆盖全部生命周期状态，
+     * 终态（COMPLETED）记录也必须能被提交去重命中，否则重提交会绕过blockStrategy直接撞唯一键。
+     */
+    @Test
+    void testFindRecordByIdempotentId_shouldCoverAllLifecycleStatuses() {
+        NopRetryPolicy policy = createPolicy("policy-find-all");
+        recordStore.savePolicy(policy);
+
+        NopRetryRecord pending = createRecord("find-all-record", RETRY_RECORD_STATUS_PENDING);
+        pending.setIdempotentId("idem-find-all");
+        recordStore.saveRecord(pending);
+
+        assertEquals("find-all-record", recordStore.findRecordByIdempotentId("default", "default", "idem-find-all").getSid());
+
+        pending.setStatus(RETRY_RECORD_STATUS_COMPLETED);
+        recordStore.updateRecord(pending);
+
+        // 终态记录仍被全状态查重命中（幂等键仍被占用）
+        NopRetryRecord found = recordStore.findRecordByIdempotentId("default", "default", "idem-find-all");
+        assertNotNull(found);
+        assertEquals("find-all-record", found.getSid());
+        assertEquals(RETRY_RECORD_STATUS_COMPLETED, found.getStatus());
+
+        // pending 专用查询的既有语义保持不变
+        assertNull(recordStore.findPendingRecordByIdempotentId("default", "default", "idem-find-all"));
+    }
+
     @Test
     void testTryLockRecordsForProcess_shouldMovePendingToRetrying() {
         NopRetryPolicy policy = createPolicy("policy-lock");

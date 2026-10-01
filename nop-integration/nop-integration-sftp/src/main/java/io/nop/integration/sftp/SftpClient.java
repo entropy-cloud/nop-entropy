@@ -134,10 +134,26 @@ public class SftpClient implements IFileServiceClient {
             jsch.addIdentity(keyPath, credential.passphrase);
         }
         session = jsch.getSession(credential.username, config.getHost(), config.getPort());
-        //disable known hosts checking
-        // jsch.setKnownHosts("path to known hosts file");
+        // G12-13-02：主机密钥校验改为可配置（SftpConfig#strictHostKeyChecking）。默认值保持
+        // 历史行为（"no"）以兼容现网部署——但这是不安全默认（见 SftpConfig javadoc 风险声明），
+        // 因此校验关闭的每次建连都输出 WARN（与 HTTP 客户端 ignore-ssl-certs 的 F-N1-3
+        // 告警基线同 rationale），不留静默面；显式开启时经 knownHostsPath 装载受信主机密钥，
+        // 未知主机由 JSch fail-closed 拒绝。
         Properties props = new Properties();
-        props.put("StrictHostKeyChecking", "no");
+        if (config.isStrictHostKeyChecking()) {
+            String knownHostsPath = config.getKnownHostsPath();
+            if (knownHostsPath != null && !knownHostsPath.isEmpty()) {
+                jsch.setKnownHosts(knownHostsPath);
+            }
+            props.put("StrictHostKeyChecking", "yes");
+        } else {
+            LOG.warn("nop.sftp.host-key-checking-disabled: SSH host key verification is DISABLED for this "
+                    + "SFTP connection (strictHostKeyChecking=false — the compatibility default). The server "
+                    + "identity is not verified, so a man-in-the-middle can impersonate the server, intercept "
+                    + "or tamper with transferred files, and capture credentials. Set "
+                    + "SftpConfig.strictHostKeyChecking=true (with knownHostsPath) to enable verification.");
+            props.put("StrictHostKeyChecking", "no");
+        }
         session.setConfig(props);
 
         // 没有设置密钥时才会使用密码

@@ -227,6 +227,23 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
     }
 
     @Override
+    public NopRetryRecord findRecordByIdempotentId(String namespaceId, String groupId, String idempotentId) {
+        if (idempotentId == null || idempotentId.isEmpty()) {
+            return null;
+        }
+
+        // 不带状态过滤：幂等键去重必须覆盖全部生命周期状态（plan 2282 G7-14-01）
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(PROP_NAME_namespaceId,
+                namespaceId != null ? namespaceId : this.namespaceId));
+        query.addFilter(FilterBeans.eq(PROP_NAME_groupId,
+                groupId != null ? groupId : this.groupId));
+        query.addFilter(FilterBeans.eq(PROP_NAME_idempotentId, idempotentId));
+
+        return getRecordDao().findFirstByQuery(query);
+    }
+
+    @Override
     public void deleteRecord(NopRetryRecord record) {
         getRecordDao().deleteEntityDirectly(record);
     }
