@@ -44,9 +44,11 @@
 | h2.dialect.xml | **填值 true×3**（实跑） |
 | postgresql.dialect.xml | **填值 true×3**（实跑；postgis/duckdb 经继承同值） |
 | db2.dialect.xml | **独立加载失败**（缺 driverClassName 等必备节点，生产经 selector 机制注入）——快照不适用、执行未实测、features 保持 false |
-| dm / mariadb / mssql / mysql / mysql5.7 / oracle / h2gis .dialect.xml | 快照通过（`__snapshot/<name>.window.sql`）+ 执行未实测 + features 保持 false |
+| dm / mariadb / mssql / mysql / mysql5.7 / oracle .dialect.xml | 快照通过（`__snapshot/<name>.window.sql`）+ 执行未实测 + features 保持 false |
+| h2gis.dialect.xml | 快照通过 + 执行未实测；features **经继承生效 true×3**（extends h2 无覆盖，继承外溢） |
 | duckdb.dialect.xml | 快照通过 + 执行未实测；features **经继承生效 true×3**（extends postgresql 无覆盖，继承外溢）；函数验证归 duckdb-integration roadmap WI8 |
-| postgis.dialect.xml | 快照通过 + 执行未实测；features 经继承同 postgresql（true×3） |
+| postgis.dialect.xml | 快照通过 + 执行未实测；features **经继承生效 true×3**（extends postgresql，WI4 后继承；WI4 行的「postgis 经继承同值」即此） |
+| （WI5 交叉注记 2026-10-02） | h2/postgresql/duckdb/postgis/h2gis 五方言的 frame 六组 + 对照轴翻译 golden 已入库 __snapshot/<dialect>.frames.sql（编译产出，WI5）；dm/mariadb/mssql/mysql/mysql5.7/oracle 六方言的 frame fail-fast 行为（抛 ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE）已参数化断言 |
 | es / tdengine .dialect.xml | 排名族窗口函数登记缺失（WI4 范围外），聚合 over 编译不受影响，执行未实测，features 保持 false |
 | default.dialect.xml | 基文件（承载三能力位集中缺省声明 false），不可独立加载，不适用 |
 | geo-support.dialect.xml / window-expr-support.dialect.xml | 基文件，不适用（window-expr-support 仅函数登记） |

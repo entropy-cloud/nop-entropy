@@ -233,8 +233,8 @@
 - WI2 窗口 codegen 与方言能力开关: `done`（deps WI1；Item Type Feature；AstToEqlGenerator/AstToSqlGenerator 双通道输出 frame 与命名窗口，EqlTransformVisitor 补 WINDOW 子句编译遍历与 over 引用校验，dialect.xdef 三能力位经 wrapper 保留文件绑定、default.dialect.xml 集中缺省 false；TestEqlCompileSql 26 用例含 EQL 通道 round-trip 与三单位双态矩阵，nop-orm-eql -am 全量 94 绿；承载 plan ai-dev/plans/nop-stream-sql/07-wi2-window-codegen-dialect-flags.md，独立 closure audit 首轮 FAIL 2 Major 补强后复核 PASS 2026-10-02）
 - WI3 方言窗口能力实跑矩阵: `done`（deps WI0b 与 WI2 与 WI4；Item Type Proof；docker 实测可用使 D15 主路径部分启用——H2 2.4.240 与 PostgreSQL 16 七组实跑矩阵全 PASS，h2/postgresql features 填 true×3 且 h2gis/postgis/duckdb 经继承同值；10 可独立加载方言快照 golden 入库，db2 独立加载失败单列；矩阵落 ai-dev/design/nop-stream/sql-window-dialect-matrix.md 含 D15 逐方言标注；承载 plan ai-dev/plans/nop-stream-sql/08-wi3-dialect-window-matrix.md，独立 closure audit 首轮 FAIL 2 项文本缺陷修正后达成 PASS 条件 2026-10-02）
 - WI4 窗口函数方言登记缺口修复: `done`（deps 无；Item Type Fix；postgresql.dialect.xml extends 链加 window-expr-support，PG 系三方言经继承获得 10 个窗口函数，真实方言加载回归 3 用例绿、nop-orm-eql -am 全量 83 绿；D15 标注：TestPostgreDialect docker opt-in 存量回归未在本环境实测，依据 TestDialect.java:193-196 跳过逻辑分析不受影响；承载 plan ai-dev/plans/nop-stream-sql/06-wi4-pg-window-function-registration.md，独立 closure audit PASS 2026-10-02）
-- WI5 双目标翻译 golden 与文档校正: `todo`（deps WI0b 与 WI2 与 WI3 与 WI4；Item Type Proof；完成判定 窗口两族乘 frame 三单位用例产出各方言 SQL 快照，实跑范围按 D15 裁定，eql-and-database-compatibility.md 窗口口径改为 grammar 交集 dialect features 交集方言继承链）
-- ★ **里程碑：M1 语法可用**（解锁条件 Phase 1 全部 done，含 WI1 至 WI5）：`todo`
+- WI5 双目标翻译 golden 与文档校正: `done`（deps WI0b 与 WI2 与 WI3 与 WI4；Item Type Proof；frame golden 扩至 5 可编译方言 h2/postgresql/duckdb/postgis/h2gis 各 6 组+对照轴，fail-fast 断言 6 方言×3 单位=18 条，eql-and-database-compatibility.md 窗口口径改为 grammar∩能力位∩继承链三层交集并保留函数登记附加维度、W2 未进语法层标注；矩阵文档补 WI5 交叉注记；承载 plan ai-dev/plans/nop-stream-sql/09-wi5-translation-golden-and-doc.md，独立 closure audit 三轮 FAIL→FAIL→PASS 2026-10-02）
+- ★ **里程碑：M1 语法可用**（解锁条件 Phase 1 全部 done；2026-10-02 达成，WI1 至 WI5 全 done）：`done`
 
 ### Phase 2 — 多输入通路（WI6 与 WI7 触门与否以 Purpose 表为准；WI6 门控，WI7 不触门）
 
