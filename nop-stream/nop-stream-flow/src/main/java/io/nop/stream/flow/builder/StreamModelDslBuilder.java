@@ -127,6 +127,8 @@ public final class StreamModelDslBuilder {
     private final StreamModel model;
     private final BeanFunctionResolver beanResolver;
 
+    private StreamSchemaRegistry schemaRegistry;
+
     private final Map<String, Object> streamRegistry = new LinkedHashMap<>();
 
     private StreamModelDslBuilder(StreamModel model, BeanFunctionResolver beanResolver) {
@@ -143,6 +145,16 @@ public final class StreamModelDslBuilder {
 
     public static StreamModelDslBuilder of(StreamModel model, BeanFunctionResolver beanResolver) {
         return new StreamModelDslBuilder(model, beanResolver);
+    }
+
+    /**
+     * WI8b: query the resolved {@code <schemas>} registry. Must be called after
+     * {@link #build()} — the registry is populated during the build walk.
+     */
+    public StreamSchemaRegistry schemaRegistry() {
+        if (schemaRegistry == null)
+            throw new IllegalStateException("schemaRegistry is only available after build(); call build() first");
+        return schemaRegistry;
     }
 
     /**
@@ -263,11 +275,11 @@ public final class StreamModelDslBuilder {
                     .param(ARG_DETAIL, "<onStart>/<onEnd>/<onError> lifecycle callbacks")
                     .loc(model.getLocation());
         }
-        if (model.hasSchemas()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<schemas> registry has no execution consumer")
-                    .loc(model.getLocation());
-        }
+        // WI8b: <schemas> declaration surface now has a consumer — fields resolve to
+        // BasicTypeInfo at build time (managed names only, first error fails fast);
+        // the field coder is the built-in SimpleTypeSerializer. The <coders> registry
+        // stays fail-fast (FU-3).
+        this.schemaRegistry = StreamSchemaRegistry.resolveSchemas(model);
         if (model.hasCoders()) {
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
                     .param(ARG_DETAIL, "<coders> registry has no execution consumer")

@@ -89,4 +89,6 @@
 
 **机制风险（显式，不作为已决事实）**：stream 模型类型化 Java 类（`_StreamAggregateModel` 等 30 个）由 `nop-stream/nop-stream-flow/precompile/gen-stream-xdsl.xgen` 在 nop-stream-flow 构建期从 stream.xdef 生成；stream.xdef 全仓仅存于 `nop-kernel/nop-xdefs`；跨模块 delta 扩展 xdef 仅 test/demo 先例（`x:extends` / `x:extends="super"`），无生产模块先例；依赖方向 sql→flow 时 flow 构建看不到下游新模块内的 delta xdef。因此「声明面落新模块」的**具体机制**——delta 路径、flow 侧 `_gen` 类型化模型类生成落点、builder 消费方式——**归 WI8b 的 plan 实测裁定；若证实不可行（如必须改走直改 nop-xdefs 通路、或通用 XNode/SPI 扩展通路），须回改本裁定与 roadmap 相应行**（回改本身按 plan-first 处理）。
 
+**delta 机制裁定注记（WI8b，2026-10-02）**：WI8b 的 schemas 声明面已在基础 stream.xdef 中，无需 delta 扩展——本步裁定「WI8b 无需 delta」；首个真实 delta 需求顺延至 WI8c plan 裁定，上述回改条款继续悬置。
+
 负责人：仓库 owner（建议项采纳）；日期 2026-10-02；受影响 WI：WI8a（落档衔接）、WI8b（骨架创建 + 机制裁定）、WI8c/WI8d（声明面落点）、WI17（编译器实现宿主）、WI21（注册接线核对）。
