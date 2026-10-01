@@ -21,6 +21,8 @@
             supportQueryTimeout="true" supportWithAsClause="true"
             supportDeleteFromJoin="false" supportILike="false"
             supportFullJoin="true" supportRightJoin="true" useAsInFrom="true"
+            supportWindowFrameRows="false" supportWindowFrameRange="false"
+            supportWindowFrameGroups="false"
     />
 
     <sqls insertKeyword="insert" updateKeyword="update" trueString="1" falseString="0" escapeSlash="true">

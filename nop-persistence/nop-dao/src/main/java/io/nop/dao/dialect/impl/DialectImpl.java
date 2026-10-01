@@ -284,6 +284,21 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportWindowFrameRows() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportWindowFrameRows());
+    }
+
+    @Override
+    public boolean isSupportWindowFrameRange() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportWindowFrameRange());
+    }
+
+    @Override
+    public boolean isSupportWindowFrameGroups() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportWindowFrameGroups());
+    }
+
+    @Override
     public boolean isSupportUpdateFromJoin() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpdateFromJoin());
     }

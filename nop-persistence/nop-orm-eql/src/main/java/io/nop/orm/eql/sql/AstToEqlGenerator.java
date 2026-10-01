@@ -70,6 +70,11 @@ import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTypeExpr;
 import io.nop.orm.eql.ast.SqlUnaryExpr;
 import io.nop.orm.eql.ast.SqlUnionSelect;
+import io.nop.orm.eql.ast.SqlWindowClause;
+import io.nop.orm.eql.ast.SqlWindowDecl;
+import io.nop.orm.eql.ast.SqlWindowExpr;
+import io.nop.orm.eql.ast.SqlWindowFrame;
+import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
@@ -78,6 +83,7 @@ import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlOperator;
 
 import java.util.List;
+import java.util.Locale;
 
 public class AstToEqlGenerator extends EqlASTVisitor {
     protected final SQL.SqlBuilder sb;
@@ -449,6 +455,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
         if (node.getHaving() != null) {
             visitSqlHaving(node.getHaving());
+        }
+
+        if (node.getWindowClause() != null) {
+            visitSqlWindowClause(node.getWindowClause());
         }
 
         if (node.getOrderBy() != null) {
@@ -914,10 +924,73 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlWindowExpr(SqlWindowExpr node) {
         this.visitChild(node.getFunction());
+        if (node.getWindowName() != null) {
+            print(" over ");
+            print(node.getWindowName());
+            return;
+        }
         print(" over( ");
         this.visitChild(node.getPartitionBy());
         this.visitChild(node.getOrderBy());
+        this.visitChild(node.getFrame());
         print(") ");
+    }
+
+    @Override
+    public void visitSqlWindowFrame(SqlWindowFrame node) {
+        print(' ');
+        print(node.getUnit().name().toLowerCase(Locale.ROOT));
+        if (node.getEnd() != null) {
+            print(" between");
+            visitChild(node.getStart());
+            print(" and");
+            visitChild(node.getEnd());
+        } else {
+            visitChild(node.getStart());
+        }
+    }
+
+    @Override
+    public void visitSqlWindowFrameBound(SqlWindowFrameBound node) {
+        switch (node.getBoundType()) {
+            case UNBOUNDED_PRECEDING:
+                print(" unbounded preceding");
+                break;
+            case PRECEDING:
+                // offset 表达式打印自带前导间隔，关键字不再补空格
+                visitChild(node.getOffset());
+                print("preceding");
+                break;
+            case CURRENT_ROW:
+                print(" current row");
+                break;
+            case FOLLOWING:
+                visitChild(node.getOffset());
+                print("following");
+                break;
+            case UNBOUNDED_FOLLOWING:
+                print(" unbounded following");
+                break;
+        }
+    }
+
+    @Override
+    public void visitSqlWindowClause(SqlWindowClause node) {
+        println();
+        print("window ");
+        List<SqlWindowDecl> decls = node.getItems();
+        for (int i = 0, n = decls.size(); i < n; i++) {
+            if (i != 0)
+                print(", ");
+            SqlWindowDecl decl = decls.get(i);
+            print(decl.getName());
+            print(" as (");
+            visitChild(decl.getPartitionBy());
+            visitChild(decl.getOrderBy());
+            visitChild(decl.getFrame());
+            print(" )");
+        }
+        println();
     }
 
     @Override

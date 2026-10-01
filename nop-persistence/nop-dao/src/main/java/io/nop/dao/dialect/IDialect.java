@@ -86,6 +86,12 @@ public interface IDialect extends IComponentModel {
 
     boolean isSupportWithAsClause();
 
+    boolean isSupportWindowFrameRows();
+
+    boolean isSupportWindowFrameRange();
+
+    boolean isSupportWindowFrameGroups();
+
     /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *

@@ -33,6 +33,7 @@ public interface OrmEqlErrors {
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_COL_NAME = "colName";
     String ARG_FUNC_NAME = "funcName";
+    String ARG_WINDOW_NAME = "windowName";
     String ARG_ARG_COUNT = "argCount";
     String ARG_MIN_ARG_COUNT = "minArgCount";
     String ARG_MAX_ARG_COUNT = "maxArgCount";
@@ -169,6 +170,9 @@ public interface OrmEqlErrors {
             ARG_FUNC_NAME);
 
     ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName}]", ARG_FUNC_NAME);
+
+    ErrorCode ERR_EQL_UNKNOWN_WINDOW_NAME = define("nop.err.eql.unknown-window-name",
+            "未声明的窗口名[{windowName}]", ARG_WINDOW_NAME);
 
     ErrorCode ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR =
             define("nop.err.eql.func-only-allow-in-window-expr", "函数[{funcName}]只允许在窗口表达式中使用", ARG_FUNC_NAME);
