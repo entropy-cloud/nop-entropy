@@ -26,7 +26,7 @@
 
 ### M1 — 核心集成
 
-- [ ] WI1 nop-duckdb 单模块骨架与连接管理：新模块注册（根 pom modules + nop-dependencies BOM 条目）、IoC bean 的连接/会话管理（@InjectValue 配置：memory_limit / threads / temp_directory / 单文件锁策略）、模块级异常（English 消息，按 error-handling 两档惯例，不裸 RuntimeException）、基础单测（连接生命周期、配置注入、异常路径、native 缺失显式报错）（Deliverable: 模块 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI1 nop-duckdb 单模块骨架与连接管理：新模块注册（根 pom modules + nop-dependencies BOM 条目）、IoC bean 的连接/会话管理（@InjectValue 配置：memory_limit / threads / temp_directory / 单文件锁策略）、模块级异常（English 消息，按 error-handling 两档惯例，不裸 RuntimeException）、基础单测（连接生命周期、配置注入、异常路径、native 缺失显式报错）（Deliverable: 模块 + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI2 文件数据面：CSV/Parquet 读写封装（读入与 COPY 导出）、类型映射与 NULL 语义、XLSX 入口桥（复用 nop-tablesaw 既有 XlsxReader 转 CSV/Parquet，不重造 xlsx 解析）、roundtrip 测试（文件 → DuckDB → 文件 一致性）（Deliverable: file IO API + 测试；deps: WI1；Item Type: Feature）
 - [ ] WI3 nop-task SQL 步骤集成：SQL 执行型 ITaskStep（step 类型注册与 XDSL 定义、参数绑定防注入、步骤间传文件路径/表名而非全量数据、结果摘要回传）、与既有 retry/timeout/ratelimit/transaction/orm 装饰器兼容、测试对齐 nop-task-ext 既有可靠性测试家族（Deliverable: step 实现 + 测试；deps: WI1；Item Type: Feature）
 - ★ **Milestone: 可用基线**（WI0+WI1+WI2+WI3 全部完成后勾选）

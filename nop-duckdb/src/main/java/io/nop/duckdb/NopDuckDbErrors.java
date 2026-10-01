@@ -1,0 +1,42 @@
+package io.nop.duckdb;
+
+import io.nop.api.core.exceptions.ErrorCode;
+
+/**
+ * Error codes for the nop-duckdb analysis execution layer. Descriptions are in English
+ * (new module family convention, see docs-for-ai/02-core-guides/error-handling.md).
+ */
+public interface NopDuckDbErrors {
+    String ARG_FILE_PATH = "filePath";
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+    String ARG_PLATFORM = "platform";
+    String ARG_REASON = "reason";
+
+    ErrorCode ERR_DUCKDB_NATIVE_LOAD_FAILED = ErrorCode.define(
+            "nop.err.duckdb.native-load-failed",
+            "DuckDB native library failed to load on platform {platform}. Bundled natives cover "
+                    + "linux_amd64, linux_arm64, osx_universal and windows_amd64 only. Root cause: {reason}",
+            ARG_PLATFORM, ARG_REASON);
+
+    ErrorCode ERR_DUCKDB_CONFIG_CONFLICT = ErrorCode.define(
+            "nop.err.duckdb.config-conflict",
+            "DuckDB file {filePath} is already in use with a different connection configuration. "
+                    + "All connections to the same file within one JVM must use an identical configuration. "
+                    + "Detail: {reason}",
+            ARG_FILE_PATH, ARG_REASON);
+
+    ErrorCode ERR_DUCKDB_CONNECT_FAILED = ErrorCode.define(
+            "nop.err.duckdb.connect-failed",
+            "Failed to open DuckDB connection for {filePath}. Detail: {reason}",
+            ARG_FILE_PATH, ARG_REASON);
+
+    ErrorCode ERR_DUCKDB_INVALID_CONFIG = ErrorCode.define(
+            "nop.err.duckdb.invalid-config",
+            "Invalid DuckDB engine config {configKey}={configValue}",
+            ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
+
+    ErrorCode ERR_DUCKDB_ENGINE_CLOSED = ErrorCode.define(
+            "nop.err.duckdb.engine-closed",
+            "DuckDB engine is already closed");
+}
