@@ -1,6 +1,6 @@
 # 05 WI0d D9-D12 四个 fail-fast 放行裁定
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/nop-stream-sql-roadmap.md（WI0d 行、前置裁定表 D9-D12 行、§3.5、sql-subset-and-semantics.md §1 对 D9-D12 的输入约束）
 > Related: ai-dev/plans/nop-stream-sql/02-wi0b-subset-and-semantics-decisions.md、ai-dev/design/nop-stream/sql-subset-and-semantics.md
@@ -58,16 +58,16 @@ Targets: ai-dev/design/nop-stream/window-failfast-decisions.md（未来交付物
 
 - Item Types: `Decision`
 
-- [ ] 新建文档：D9 放行（理由引 D1=(a) 语义 + 双层 fail-fast 位置 + 运行时管线已存在事实 + D9×D10 清空点推迟约束，注明 WI10 义务与陈旧注释更正）；D10 保持（两层理由：A&R spec-only 门禁原样；ACCUMULATING 运行时已支持、保持属 scope 收敛）；D11 保持（引 trigger 注册表缺失与部分发射语义）；D12 保持（引虚拟节点机制 :159-173 与 item 29 承载方式 + TestPerTransformParallelismWiring 锚点）+ per-transform parallelism 与 2PC 门禁不退化确认段
-- [ ] 写作约定（承接 WI0b 教训）：落档文档内文件引用一律全仓路径；裸 `Xxx.java`/`Xxx.g4` 反引号会触发 BROKEN_LINK error；`Xxx.java:449` 带行号冒号形式安全；未来交付物纯文本
-- [ ] 四项各含：选项（放行/保持）、结论、理由与代码证据（AdvancedTransforms 实测行号）、负责人、日期 2026-10-02、受影响 WI（WI10 各项实施义务）
+- [x] 新建文档：D9 放行（理由引 D1=(a) 语义 + 双层 fail-fast 位置 + 运行时管线已存在事实 + D9×D10 清空点推迟约束，注明 WI10 义务与陈旧注释更正）；D10 保持（两层理由：A&R spec-only 门禁原样；ACCUMULATING 运行时已支持、保持属 scope 收敛）；D11 保持（引 trigger 注册表缺失与部分发射语义）；D12 保持（引虚拟节点机制 :159-173 与 item 29 承载方式 + TestPerTransformParallelismWiring 锚点）+ per-transform parallelism 与 2PC 门禁不退化确认段
+- [x] 写作约定（承接 WI0b 教训）：落档文档内文件引用一律全仓路径或带行号冒号形式；裸的 java/g4 裸文件名反引号会触发 BROKEN_LINK error；未来交付物纯文本
+- [x] 四项各含：选项（放行/保持）、结论、理由与代码证据（AdvancedTransforms 实测行号）、负责人、日期 2026-10-02、受影响 WI（WI10 各项实施义务；audit M2 后 D10/D11 已补行）
 
 Exit Criteria:
 
-- [ ] 四项裁定要素齐全；D10/D12 与 D1=(a) 输入约束三条一致；D9/D11 与 D1=(a) 终值语义及 roadmap D9/D11 行耦合注一致
-- [ ] D9 落档含 D9×D10 清空点推迟约束；D12 确认段显式写明 per-transform parallelism（宿主元素承载，锚点 TestPerTransformParallelismWiring）与 2PC 门禁不退化
-- [ ] No new test required: 纯文档变更，无产品代码
-- [ ] ai-dev/logs/2026/10-02.md 已更新
+- [x] 四项裁定要素齐全；D10/D12 与 D1=(a) 输入约束三条一致；D9/D11 与 D1=(a) 终值语义及 roadmap D9/D11 行耦合注一致（audit 实测）
+- [x] D9 落档含 D9×D10 清空点推迟约束；D12 确认段显式写明 per-transform parallelism（宿主元素承载，锚点 TestPerTransformParallelismWiring）与 2PC 门禁不退化
+- [x] No new test required: 纯文档变更，无产品代码
+- [x] ai-dev/logs/2026/10-02.md 已更新
 
 ### Phase 2 - roadmap 同步与收口
 
@@ -76,28 +76,28 @@ Targets: `ai-dev/backlog/nop-stream-sql-roadmap.md`
 
 - Item Types: `Proof`
 
-- [ ] 前置裁定表 D9-D12 四行同步「**已裁定 owner 2026-10-02**」+ 结论短句 + 落档位置
-- [ ] 独立子 agent closure audit（不同 task_id）：核验四条裁定与 roadmap 行、D1 输入约束一致性 + 授权一致性；证据落 ai-dev/audits/nop-stream-sql/wi0d-closure-audit.md 与本 plan Closure 段
-- [ ] audit 通过后 roadmap WI0d 状态行 `todo` → `done`（括注单层非嵌套、**内容无任何圆括号字符**——ASCII 与全角一律不用，分支标记写「分支 a」式）；解析器核对 31 + 7：`node -e "import('./tools/mission-driver/src/roadmap-check.mjs').then(m=>{const r=m.parseRoadmapMarkdown(require('fs').readFileSync('ai-dev/backlog/nop-stream-sql-roadmap.md','utf8'));console.log('items',r.phases.filter(i=>!i.isMilestone).length,'milestones',r.phases.filter(i=>i.isMilestone).length)})"`
-- [ ] plan Closure 段写入证据，Plan Status → `completed`，check-plan-checklist --strict 退出码 0，check-doc-links --strict 退出码 0
+- [x] 前置裁定表 D9-D12 四行同步「**已裁定 owner 2026-10-02**」+ 结论短句 + 落档位置
+- [x] 独立子 agent closure audit（不同 task_id）：核验四条裁定与 roadmap 行、D1 输入约束一致性 + 授权一致性；裁定 PASS（20+ 处行号抽查全部精确）；证据落 ai-dev/audits/nop-stream-sql/wi0d-closure-audit.md 与本 plan Closure 段
+- [x] audit 通过后 roadmap WI0d 状态行 `todo` → `done`（括注单层非嵌套、内容无任何圆括号字符）；解析器翻转后实测 items 31 milestones 7
+- [x] plan Closure 段写入证据，Plan Status → `completed`，check-plan-checklist --strict 退出码 0，check-doc-links --strict 退出码 0
 
 Exit Criteria:
 
-- [ ] roadmap 四行 + WI0d 状态行同步，解析器实测 items 31 milestones 7
-- [ ] 独立 audit 证据已写入 plan Closure 段与 ai-dev/audits/nop-stream-sql/wi0d-closure-audit.md
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
-- [ ] ai-dev/logs/2026/10-02.md 收口记录三处一致
+- [x] roadmap 四行 + WI0d 状态行同步，解析器实测 items 31 milestones 7
+- [x] 独立 audit 证据已写入 plan Closure 段与 ai-dev/audits/nop-stream-sql/wi0d-closure-audit.md
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] ai-dev/logs/2026/10-02.md 收口记录三处一致
 
 ## Closure Gates
 
 > 纯文档计划：无产品代码变更，`./mvnw compile/test`、hollow-scan 按 guide 豁免条款删除。
 
-- [ ] 四条裁定全部落档且要素齐全（D10/D12 对齐输入约束三条，D9/D11 对齐 D1 语义与耦合注）
-- [ ] D9×D10 清空点约束与 D12 不退化确认段落档
-- [ ] 无超授权内容
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] Anti-Hollow Check（文档版）：四条裁定与 live 代码证据一致（抽查 AdvancedTransforms 四处 fail-fast 位置）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/05-wi0d-window-failfast-decisions.md --strict` 退出码 0
+- [x] 四条裁定全部落档且要素齐全（D10/D12 对齐输入约束三条，D9/D11 对齐 D1 语义与耦合注）
+- [x] D9×D10 清空点约束与 D12 不退化确认段落档
+- [x] 无超授权内容
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id，20+ 行号抽查全中）
+- [x] Anti-Hollow Check（文档版）：四条裁定与 live 代码证据一致（audit 抽查 AdvancedTransforms 四处 fail-fast 位置精确）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/05-wi0d-window-failfast-decisions.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -109,14 +109,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed:
+Status Note: D9-D12 四条裁定落档 window-failfast-decisions.md（D9 放行含清空点推迟约束、D10/D11/D12 保持且 D12 确认 item 29 与 2PC 门禁零退化），roadmap 四行与 WI0d 状态行同步，解析器 31+7 复核。纯文档计划，无产品代码变更。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子 agent（fresh session，与起草审查、执行均不同 task）
+- Audit Session: 证据落档 ai-dev/audits/nop-stream-sql/wi0d-closure-audit.md
+- Evidence:
+  - 四条裁定实质内容、roadmap 四行、D1 输入约束一致性全部 PASS
+  - 代码证据 20+ 处行号抽查全部精确命中
+  - audit 必修项 M1（勾选缺失）/M2（D10/D11 受影响 WI 行）已在翻转前修补
+  - check-doc-links --strict 0 errors；解析器翻转后 items 31 milestones 7
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/05-wi0d-window-failfast-decisions.md --strict` 退出码 0
 
 Follow-up:
 
-- 无 plan-owned 剩余工作
+- 无 plan-owned 剩余工作；D9 放行的实施义务归 WI10

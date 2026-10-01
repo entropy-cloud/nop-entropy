@@ -24,6 +24,7 @@
 | 选项 | 放行 DISCARDING 以外 / 保持 fail-fast |
 | 结论 | **保持 fail-fast**（仅 DISCARDING） |
 | 理由（两层） | (i) ACCUMULATING_AND_RETRACTING：spec-only，WindowOperator.java:449 运行时门禁原样保持（输入约束 2）。(ii) ACCUMULATING：**运行时已支持**（:449 错误文案明示可用 DISCARDING 或 ACCUMULATING；:1101 仅 DISCARDING 在 fire 后清空内容；算子构造缺省即 ACCUMULATING :360），与终值语义兼容——首版收敛为 DISCARDING-only 的理由是 **scope 最小化**，非语义不相容；放行属后续增量能力而非 retract 必需（输入约束 1 只消灭了 retract 路线下的放行必要性）。真正闸门是 build 期 AdvancedTransforms.java:211-218 |
+| 受影响 WI | WI10：保持 DISCARDING-only fail-fast 并配测试（非 DISCARDING 声明仍抛 ERR_STREAM_WINDOW_ATTR_UNSUPPORTED 的断言）；后续若放行 ACCUMULATING 须先修订本裁定 |
 
 ## 3. D11 triggerId = 保持 fail-fast
 
@@ -32,6 +33,7 @@
 | 选项 | 放行 / 保持 fail-fast |
 | 结论 | **保持 fail-fast**（首版不建 trigger 注册表） |
 | 理由 | triggers 需要专用注册表（AdvancedTransforms.java:190-192 注释自述）；自定义 trigger 引入部分发射语义，与首版 DISCARDING-only（窗口关闭一次性 emit）的结果一致性承诺不一致——部分发射经 last-value-wins 会被后续终值覆盖，但部分值本身未经验证。放行推迟至有 retract/触发器语义验证面后另行裁定。闸门位置：strategy 级 :198-203 与节点级 :234-239 |
+| 受影响 WI | WI10：保持 triggerId fail-fast 并配测试（strategy 级与节点级两处声明均须有断言）；后续放行须先建 trigger 注册表并修订本裁定 |
 
 ## 4. D12 窗口级 parallelism = 保持 fail-fast
 
