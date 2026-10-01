@@ -1,0 +1,7 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="no_sql" bean="nopDuckDbSqlTaskStep">
+            <input name="ingestTable" value="t_orphan"/>
+        </simple>
+    </steps>
+</task>

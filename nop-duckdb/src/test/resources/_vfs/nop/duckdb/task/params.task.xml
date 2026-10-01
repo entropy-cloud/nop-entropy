@@ -1,0 +1,14 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="bind_check" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT name FROM t WHERE name = ?"/>
+            <input name="params" value="${[evil]}"/>
+            <output name="rowCount" exportAs="evilMatches"/>
+        </simple>
+    </steps>
+
+    <output name="evilMatches">
+        <source>evilMatches</source>
+    </output>
+</task>

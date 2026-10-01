@@ -13,4 +13,9 @@
     <bean id="nopDuckDbEngine" ioc:default="true"
           class="io.nop.duckdb.DuckDbEngine"
           destroy-method="close"/>
+
+    <!-- SQL execution task step for nop-task simple-step orchestration (shared singleton, stateless execute) -->
+    <bean id="nopDuckDbSqlTaskStep" class="io.nop.duckdb.DuckDbSqlTaskStep">
+        <property name="engine" ref="nopDuckDbEngine"/>
+    </bean>
 </beans>

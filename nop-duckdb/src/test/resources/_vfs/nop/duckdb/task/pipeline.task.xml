@@ -1,0 +1,41 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="ingest" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="ingestCsvPath" value="${csvPath}"/>
+            <input name="ingestTable" value="t_raw"/>
+            <input name="sql" value="CREATE TABLE t_base AS SELECT * FROM t_raw"/>
+            <output name="rowsIngested" exportAs="ingestedRows"/>
+        </simple>
+
+        <simple name="filter" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT k FROM t_base WHERE k &gt; ${threshold}"/>
+            <input name="resultTable" value="t_filtered"/>
+            <output name="rowCount" exportAs="filteredRows"/>
+            <output name="outputTable" exportAs="filteredTableName"/>
+        </simple>
+
+        <simple name="export" bean="nopDuckDbSqlTaskStep" timeout="60000">
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="sql" value="SELECT k FROM ${filteredTableName}"/>
+            <input name="exportPath" value="${exportPath}"/>
+            <input name="exportFormat" value="parquet"/>
+            <output name="rowsExported" exportAs="exportedRows"/>
+            <output name="outputPath" exportAs="outPath"/>
+        </simple>
+    </steps>
+
+    <output name="filteredTableName">
+        <source>filteredTableName</source>
+    </output>
+    <output name="ingestedRows">
+        <source>ingestedRows</source>
+    </output>
+    <output name="filteredRows">
+        <source>filteredRows</source>
+    </output>
+    <output name="exportedRows">
+        <source>exportedRows</source>
+    </output>
+</task>

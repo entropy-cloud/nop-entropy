@@ -6,8 +6,10 @@ import tech.tablesaw.api.Table;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.nio.file.Files;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -93,12 +95,30 @@ public final class DuckDbFiles {
     }
 
     /**
+     * Export a SELECT statement with positional parameters to a CSV file. Overwrites an existing file.
+     *
+     * @return exported row count
+     */
+    public static long writeCsv(Connection conn, String sql, List<Object> params, String csvPath) {
+        return copyTo(conn, sql, params, csvPath, "FORMAT CSV, HEADER");
+    }
+
+    /**
      * Export a SELECT statement to a Parquet file. Overwrites an existing file.
      *
      * @return exported row count
      */
     public static long writeParquet(Connection conn, String sql, String parquetPath) {
         return copyTo(conn, sql, parquetPath, "FORMAT PARQUET");
+    }
+
+    /**
+     * Export a SELECT statement with positional parameters to a Parquet file. Overwrites an existing file.
+     *
+     * @return exported row count
+     */
+    public static long writeParquet(Connection conn, String sql, List<Object> params, String parquetPath) {
+        return copyTo(conn, sql, params, parquetPath, "FORMAT PARQUET");
     }
 
     private static long readExternal(Connection conn, String filePath, String tableName, String readerFn) {
@@ -124,9 +144,18 @@ public final class DuckDbFiles {
     }
 
     private static long copyTo(Connection conn, String sql, String filePath, String format) {
+        return copyTo(conn, sql, null, filePath, format);
+    }
+
+    private static long copyTo(Connection conn, String sql, List<Object> params, String filePath, String format) {
         String copy = "COPY (" + sql + ") TO '" + escapePath(filePath) + "' (" + format + ")";
-        try (Statement st = conn.createStatement()) {
-            return st.executeUpdate(copy);
+        try (PreparedStatement ps = conn.prepareStatement(copy)) {
+            if (params != null) {
+                for (int i = 0; i < params.size(); i++) {
+                    ps.setObject(i + 1, params.get(i));
+                }
+            }
+            return ps.executeUpdate();
         } catch (SQLException e) {
             throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_IO_FAILED, e)
                     .param(NopDuckDbErrors.ARG_FILE_PATH, filePath)
@@ -166,11 +195,11 @@ public final class DuckDbFiles {
         }
     }
 
-    private static String escapePath(String path) {
+    static String escapePath(String path) {
         return path.replace("'", "''");
     }
 
-    private static String quoteIdentifier(String tableName) {
+    static String quoteIdentifier(String tableName) {
         return '"' + tableName.replace("\"", "\"\"") + '"';
     }
 }

@@ -52,6 +52,11 @@ public interface NopDuckDbErrors {
                     + "readCsv/readParquet do not overwrite existing tables; drop it first or use another name.",
             ARG_TABLE_NAME);
 
+    ErrorCode ERR_DUCKDB_INVALID_STEP_INPUT = ErrorCode.define(
+            "nop.err.duckdb.invalid-step-input",
+            "Invalid DuckDB task step input: {reason}",
+            ARG_REASON);
+
     ErrorCode ERR_DUCKDB_IO_FAILED = ErrorCode.define(
             "nop.err.duckdb.io-failed",
             "DuckDB file IO failed for {filePath}. Detail: {reason}",
