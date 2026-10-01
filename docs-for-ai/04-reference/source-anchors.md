@@ -297,6 +297,11 @@
 | TS-003 | `nop-treesitter`: `ITreeSitterLanguageProvider`（`META-INF/services` 扩展，custom 覆盖内置同名语法） | 语法注册 SPI；默认实现为 IoC bean `treeSitterLanguageProvider` |
 | TS-004 | `nop-treesitter`: `TreeSitterBizModel`（GraphQL `TreeSitter__parseTreeSitter`，错误码 `nop.err.treesitter.unknown-language`） | GraphQL 门面；未知语法抛带码 NopException |
 | BY-001 | `nop-bytecode`: `NopBytecodeMain.run(args, out, err)`（report-only CLI，退出码 0/2） | 发现流通道入口；0=运行完成（含 findings），2=失败（fail-fast 不出部分报告）；诊断 ruleId `nullflow/*` |
+| DUK-001 | `nop-duckdb`: `DuckDbEngine`（`openMemory`/`openFile`/`close`；`@InjectValue` 三配置键 `nop.duckdb.memory-limit/threads/temp-directory`） | 连接管理入口；同文件配置指纹注册表 + DuckDB 原生 "different configuration" 双路径翻译 `config-conflict`（bizFatal）；跨进程锁冲突翻译 `file-locked`（bizFatal） |
+| DUK-002 | `nop-duckdb`: `DuckDbFiles`（`readCsv`/`readParquet`/`readXlsx`/`writeCsv`/`writeParquet`） | 文件数据面；表生命周期=连接生命周期；CSV 桥类型漂移边界（前导零 VARCHAR/纯数字串重推断） |
+| DUK-003 | `nop-duckdb`: `DuckDbSqlTaskStep`（bean `nopDuckDbSqlTaskStep`，`<step type="simple" bean>` 扩展点） | task SQL 步骤；输入经 `getLocalValue`（step 局部 scope）+ PreparedStatement 绑定防注入；步骤间只传路径/表名 |
+| DUK-004 | `nop-duckdb`: `NopDuckDbErrors`（10 错误码，8 个 bizFatal） | 错误码全集与 bizFatal/retry 联动口径（bizFatal 错误配置 `<retry>` 也不重试） |
+| DUK-005 | `nop-dao`: `duckdb.dialect.xml`（+ selector/`ddl_duckdb.xlib`）+ `DialectManager` | duckdb 方言定义（50 函数净集、ST_* spatial 裁定、无锁）；方言修复改此文件（非生成物） |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

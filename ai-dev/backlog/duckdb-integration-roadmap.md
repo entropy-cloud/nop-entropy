@@ -44,7 +44,7 @@
 
 ### M4 — 收口
 
-- [ ] WI9 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI8 完成或显式延期裁定；Item Type: Proof）
+- [x] WI9 文档与路由收口：owner doc 落 docs-for-ai/03-modules/（模块使用、配置项、单写者/内存/写边界约束）、docs-for-ai/INDEX.md 路由与 04-reference source-anchors 更新、01-repo-map/module-groups.md 登记新模块 nop-duckdb、当日 ai-dev/logs/ 状态一致（Deliverable: 文档更新 + 路由更新；deps: WI0–WI8 完成或显式延期裁定；Item Type: Proof）
 
 ## Current Baseline（2026-09-30 核对）
 
