@@ -44,8 +44,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 | Non-Goal | 理由 |
 |----------|------|
-| 双流 Join（interval join / window join / broadcast join） | 复杂度极高，用例有限。可通过 CEP 或外部 lookup 替代 |
-| SQL API | Nop 平台已有 GraphQL，流式 SQL 需求不迫切 |
+| 双流 Join（非等值 / 范围 / 广播 join） | 复杂度极高。**收窄裁定（2026-10-02，D2）**：双流**等值** join（hash / window merge）与静态维表 lookup join 已纳入规划，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI13 / WI14）；非等值 / 范围 / 广播 join 仍排除，可通过 CEP 或外部 lookup 替代 |
+| SQL API（Flink SQL / Table 栈复刻、代价优化器、方言全覆盖） | **收窄裁定（2026-10-02，D2）**：窄范围流 SQL 已纳入规划——复用 nop-orm-eql 的 EQL 作载体，覆盖单表查询、窗口聚合与等值 join，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`；完整 Flink SQL / Table 栈复刻、代价优化器与方言全覆盖仍排除，GraphQL 继续承担主 API 职能 |
 | 大规模并行（PB 级吞吐） | 分布式解决高可用和资源隔离。几十 GB 状态级别由远程 Redis/状态后端承载 |
 | 复制 Flink Runtime 结构 | 不引入 SlotSharingGroup、Netty 网络栈、二进制序列化体系。学习 Flink 语义边界，但实现结构自主 |
 | 在线/自动 reshard（运行时自动重分片） | `parallelism` 变化在 `maxParallelism` 上界内是 supported rescale（Stage 35，restore 时按 KeyGroupRange 区间路由）；`maxParallelism` 变化需显式离线 reshard migration action（Stage 37 已交付）。仅运行时自动重分片不在范围内 |
@@ -60,6 +60,7 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 3. **再定义执行引擎**（算子链、数据交换、分布式控制面）
 4. **再补 Checkpoint、状态管理、窗口、时间模型等支撑子系统**
 5. **最后实现连接器、CEP、XDSL 编排等上层能力**（XDSL 编排已由 `StreamModelDslBuilder` 落地，Stage 50）
+6. **在其上扩展窄范围 SQL 编译层与 join 算子**（EQL → 流模型的编译器、双流等值 join / 分析窗口算子，规划见 `ai-dev/backlog/nop-stream-sql-roadmap.md`；复用而非改动阶段 1-4 既有语义，收窄裁定 2026-10-02）
 
 只要这条顺序不乱，设计就不会滑入"先写 runtime 再补模型"的陷阱。
 
@@ -80,11 +81,15 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 裁定：**不构成需要单独人审批的协议变更，可推进。** 理由：决策点 #4 的判据是并发模型变更——示例即"从单 in-flight 扩展为多 in-flight"。Unaligned checkpoint（Stage 43）**保持 single-in-flight 约束不变**（一次仍只追踪一个 in-flight epoch，multi-concurrent 是 Stage 45 职责）。它只变更两件事：(a) barrier 处理模式（aligned 阻塞对齐 → 可选 unaligned 快照在途数据并立即完成），(b) snapshot 内容（`TaskEpochSnapshot` 新增 `ChannelState`）。这两者不改变 checkpoint 并发协议，而是在既有 single-in-flight 协议内的运行时优化与快照扩展。协议不变量（§八 4–6：barrier 由 source 线程注入并随数据 channel 传播；manifest durable 前不 commit；恢复从最新 durable epoch）全部保持。详细行为语义见 `checkpoint-design.md` §2.11。
 
+**#1 — 窄范围 SQL 所需的 StreamModel 结构变更（2026-10-02）**
+
+裁定：**窄范围 SQL roadmap 所需的结构变更已获授权，可推进。** 授权范围限定为两类：(a) 新增 Transformation 类型——union 多输入通路与双输入 join 形态所需；(b) `StreamComponents` 注册表新增条目——参数化窗口声明、聚合声明面（aggregators）、join 声明面（joins），编译落点裁定 D14=(a)（参数化算子面）。授权依据：`ai-dev/backlog/nop-stream-sql-roadmap.md`（2026-09-30 owner 立项，2026-10-02 owner 委托执行，门控判据见该文件 Purpose 条款表）。本裁定**不覆盖**决策点 #2-#6：定位、状态后端、checkpoint 协议、通信模型与 maxParallelism 均不变；§八 15 条设计不变量是被验证对象而非被修改对象。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
 - **保留（非核心路径）**：DataStream API——作为 StreamModel 的编程构造器，但不是最终用户的主入口
-- **去除**：复杂 Join、广播流、异步算子（广播流 / BroadcastState 的永久排除裁定见 `### 七裁决记录` #G36）
+- **去除**：复杂（非等值 / 范围）Join、广播流、异步算子（广播流 / BroadcastState 的永久排除裁定见 `### 七裁决记录` #G36；双流**等值** join 的 hash / window 两种已收窄纳入规划，收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`）
 - **聚焦**：单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错
 
 ### 七裁决记录

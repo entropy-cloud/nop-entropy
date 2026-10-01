@@ -74,7 +74,7 @@
 | 裁定 | 状态 | 负责 | 选项 | 结论 / 依据 |
 |---|---|---|---|---|
 | D1 结果表语义 | 待裁 WI0b | owner | (a) **终值语义降级**：`<reduce>` last-value-wins 加模型语义标注（**注意不是 append-only——引擎无逐条追加式聚合输出面**）；(b) 算子内模拟 retract 加 upsert sink；(c) `StreamRecord` 加 RowKind | 建议 **(a)**：`StreamRecord` 只有 `value/timestamp/hasTimestamp`；`AccumulationMode.ACCUMULATING_AND_RETRACTING` spec-only 且 `WindowOperator.java:449-452` 开期 fail-fast；`SinkConsistencyCapability.UPSERT_BY_KEY` 全仓零调用方。**注意**：`<reduce>` 语义是逐条 emit 当前归约值（`StreamReduceOperator.java:89-107`，last-value-wins），它既不提供 append-only 也不提供 retract 语义；D1=(a) 正是采用它并**显式标注 last-value-wins**，而不是把它当作 append-only |
-| D2 治理解冲突范围 | 待裁 WI0a | owner | 全解除 / 收窄表述 / 保留（roadmap 阻塞） | 建议**收窄表述**，按 Purpose「必须修订的断言全集」逐条同步 |
+| D2 治理解冲突范围 | **已裁定 owner 2026-10-02**：收窄表述 | owner | 全解除 / 收窄表述 / 保留（roadmap 阻塞） | Purpose「必须修订的断言全集」12 条逐条同步完成，落档 ai-dev/design/nop-stream/sql-vision-conflict-resolution.md 含修订前后对照与 owner 授权证据 |
 | D3 EQL 窗口语法补全范围 （落档归 WI0b）**已裁定** owner 2026-09-30 | owner | 按方言裁剪语法 / 全集直增 | **语法全集直增，方言差异不进 grammar**；能力经 dialect `<features>` 下发，缺省不启用，翻译期未启用 → `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` |
 | D4 流时间窗口语法选型 | 待裁 WI0b | owner | `TUMBLE(t, INTERVAL)` 伪表函数 / `WINDOW` 子句 / stream-only 标记 | 建议**伪表函数**，RDBMS 目标按 T1/T2/T3 三档（§3.4） |
 | D5 全局 `ORDER BY` 与 `LIMIT` | 待裁 WI0b | owner | 排除 / keyed 缓冲近似 | 建议**首版排除**，进不支持清单 |
@@ -221,7 +221,7 @@
 
 ### Phase 0 — 治理与裁定（门控项）
 
-- WI0a D2 治理解冲突唯一入口: `todo`（deps 无；Item Type Decision；完成判定 Purpose「必须修订的断言全集」12 条断言逐条修订并经 owner 确认，每条记录修订前后文本与依据并汇总落 ai-dev/design/nop-stream/sql-vision-conflict-resolution.md；D2 取保留时本 roadmap 除 Phase 1 外标 blocked 原因）
+- WI0a D2 治理解冲突唯一入口: `done`（deps 无；Item Type Decision；12 条断言逐条修订完成，D2=收窄表述落 ai-dev/design/nop-stream/sql-vision-conflict-resolution.md，owner 授权 2026-10-02 执行指令；承载 plan ai-dev/plans/nop-stream-sql/01-wi0a-d2-vision-conflict-resolution.md，独立 closure audit PASS 2026-10-02）
 - WI0b D1 D3 D4 D5 D6 D15 六条裁定落档: `todo`（deps 无；Item Type Decision；完成判定 六条裁定各落 ai-dev/design/nop-stream/sql-subset-and-semantics.md〔未来交付物〕含负责人与日期；D4 含 TUMBLE 语法面与 EQL grammar 及 AST 的落点裁定，D5 含不支持清单，D15 含多库实跑是否可降级；re-scope 表按 D1 结论更新）
 - WI0c D7 D8 D13 三条编译契约裁定: `todo`（deps 无；Item Type Decision；完成判定 D7 含 schema 五选项与解析入口选定及 SQL 类型到 BasicTypeInfo 映射表落 ai-dev/design/nop-stream/sql-compiler-contract.md〔未来交付物〕，D8 含接口面选定，D13 含宿主模块与依赖方向选定；三条落档含负责人与日期，且不重复 D14 已作出的裁定）
 - WI0d D9 至 D12 四个 fail-fast 放行裁定: `todo`（deps WI0b；Item Type Decision；完成判定 四项各有放行或保持结论与理由并落 ai-dev/design/nop-stream/window-failfast-decisions.md〔未来交付物〕，D12 附 per-transform parallelism 与 2PC 门禁不退化的确认）
