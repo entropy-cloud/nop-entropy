@@ -1,6 +1,6 @@
 # 03 WI0c D7/D8/D13 三条编译契约裁定——schema 来源、接口面、宿主模块
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/nop-stream-sql-roadmap.md（WI0c 行、前置裁定表 D7/D8/D13 行、§3.5、Cross-Cuting 4、Framework Reuse 表）
 > Related: ai-dev/plans/nop-stream-sql/01-wi0a-d2-vision-conflict-resolution.md、ai-dev/design/nop-stream/sql-vision-conflict-resolution.md
@@ -76,33 +76,33 @@ Exit Criteria:
 
 ### Phase 2 - roadmap 同步与收口
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/nop-stream-sql-roadmap.md`
 
 - Item Types: `Proof`
 
-- [ ] 前置裁定表 D7/D8/D13 三行同步「**已裁定 owner 2026-10-02**」+ 结论短句 + 落档位置；D13 行短句含「WI8b/c/d 声明面落新模块 schema（机制归 WI8b plan 裁定）」
-- [ ] 独立子 agent closure audit（不同 task_id）：核验三条裁定与 roadmap 行、§3.5 约束、WI8b/WI17 输入一致性 + **owner 授权解释一致性（D7 为 owner 级选择的授权链核验）**；证据落 ai-dev/audits/nop-stream-sql/wi0c-closure-audit.md（未来交付物）与本 plan Closure 段
-- [ ] audit 通过后 roadmap WI0c 状态行 `todo` → `done`（括注含承载 plan 路径与 audit PASS 日期，单层非嵌套、内部无右括号）；解析器核对 31 + 7：`node -e "import('./tools/mission-driver/src/roadmap-check.mjs').then(m=>{const r=m.parseRoadmapMarkdown(require('fs').readFileSync('ai-dev/backlog/nop-stream-sql-roadmap.md','utf8'));console.log('items',r.phases.filter(i=>!i.isMilestone).length,'milestones',r.phases.filter(i=>i.isMilestone).length)})"`
-- [ ] plan Closure 段写入证据，Plan Status → `completed`，check-plan-checklist --strict 退出码 0，check-doc-links --strict 退出码 0
+- [x] 前置裁定表 D7/D8/D13 三行同步「**已裁定 owner 2026-10-02**」+ 结论短句 + 落档位置；D13 行短句含新模块分支与「delta 扩展机制归 WI8b plan 实测裁定并附回改条款」（audit Minor-3：与字面表述语义等价）
+- [x] 独立子 agent closure audit（不同 task_id）：核验三条裁定与 roadmap 行、§3.5 约束、WI8b/WI17 输入一致性 + **owner 授权解释一致性（D7 为 owner 级选择的授权链核验）**；证据落 ai-dev/audits/nop-stream-sql/wi0c-closure-audit.md 与本 plan Closure 段（裁定 PASS，2026-10-02）
+- [x] audit 通过后 roadmap WI0c 状态行 `todo` → `done`（括注单层非嵌套、内容无任何圆括号字符）；解析器核对 31 + 7：`node -e "import('./tools/mission-driver/src/roadmap-check.mjs').then(m=>{const r=m.parseRoadmapMarkdown(require('fs').readFileSync('ai-dev/backlog/nop-stream-sql-roadmap.md','utf8'));console.log('items',r.phases.filter(i=>!i.isMilestone).length,'milestones',r.phases.filter(i=>i.isMilestone).length)})"`（翻转后实测 items 31 milestones 7）
+- [x] plan Closure 段写入证据，Plan Status → `completed`，check-plan-checklist --strict 退出码 0，check-doc-links --strict 退出码 0
 
 Exit Criteria:
 
-- [ ] roadmap 三行 + WI0c 状态行同步，解析器命令实测输出 items 31 milestones 7
-- [ ] 独立 audit 证据已写入 plan Closure 段与 ai-dev/audits/nop-stream-sql/wi0c-closure-audit.md
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
-- [ ] ai-dev/logs/2026/10-02.md 收口记录三处一致
+- [x] roadmap 三行 + WI0c 状态行同步，解析器命令实测输出 items 31 milestones 7
+- [x] 独立 audit 证据已写入 plan Closure 段与 ai-dev/audits/nop-stream-sql/wi0c-closure-audit.md
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] ai-dev/logs/2026/10-02.md 收口记录三处一致
 
 ## Closure Gates
 
 > 纯文档计划：无产品代码变更，`./mvnw compile/test`、hollow-scan 按 guide 豁免条款删除。
 
-- [ ] 三条裁定全部落档且要素齐全（全量选项集/结论/理由证据/负责人/日期/受影响 WI），不重复 D14
-- [ ] 映射表与 BasicTypeInfo live 代码一致；D13 结论与 Cross-Cuting 4 新模块分支一致且机制风险与回改条款落档
-- [ ] owner 授权证据原文已引用，D7 的 owner 级选择有技术理由并经独立 audit 核验
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] Anti-Hollow Check（文档版）：裁定与 live 代码证据一致（抽查 `EqlASTParser` 存在性与 `nop-stream-flow` pom 依赖清单）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/03-wi0c-compiler-contract-decisions.md --strict` 退出码 0
+- [x] 三条裁定全部落档且要素齐全（全量选项集/结论/理由证据/负责人/日期/受影响 WI），不重复 D14
+- [x] 映射表与 BasicTypeInfo live 代码一致；D13 结论与 Cross-Cuting 4 新模块分支一致且机制风险与回改条款落档
+- [x] owner 授权证据原文已引用，D7 的 owner 级选择有技术理由并经独立 audit 核验
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] Anti-Hollow Check（文档版）：裁定与 live 代码证据一致（audit 实测抽查 EqlASTParser :11、StreamModelDslBuilder :266/:271、pom 依赖、gen-stream-xdsl.xgen、30 个 _gen 类）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/03-wi0c-compiler-contract-decisions.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -114,14 +114,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed:
+Status Note: D7/D8/D13 三条编译契约裁定全部落档 ai-dev/design/nop-stream/sql-compiler-contract.md（全量选项集 + 拒绝理由 + 时间列立场 + D13 机制风险回改条款），roadmap 三行 + WI0c 状态行同步完成，解析器 31+7 复核通过。纯文档计划，无产品代码变更。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子 agent（fresh session，与起草审查、执行均不同 task）
+- Audit Session: 证据落档 ai-dev/audits/nop-stream-sql/wi0c-closure-audit.md
+- Evidence:
+  - Phase 1/2 Exit Criteria 逐条 PASS（audit 实测：全量选项集、代码证据 8 项抽查全吻合、roadmap 3 行一致、未越界）
+  - 授权链 PASS（授权原文三处一致；D7 owner 级选择叙事完整）
+  - mission-driver 解析器翻转后实测 items 31 milestones 7（状态行括注无任何圆括号字符，未触发静默丢弃）
+  - check-doc-links --strict 退出码 0；check-plan-checklist --strict 退出码 0
+  - audit 3 Minor 已处置（记账补勾、反引号去除、措辞差异记录备查）
 
 Follow-up:
 
-- 见 Non-Blocking Follow-ups；无 plan-owned 剩余工作
+- 见 Non-Blocking Follow-ups（双来源优先级与 delta 机制归 WI8b/WI17 plan）；无 plan-owned 剩余工作
