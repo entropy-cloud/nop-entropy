@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- WI5 cross-engine parity entities (plan 2287). ParityRow routes to the named duckdb
+         datasource (leg B), H2ParityRow uses the default h2 datasource (leg C). ParityRef is
+         the join helper table (native-SQL join legs A/C and tablesaw leg D; the EQL leg does
+         not participate in join parity, see plan Deferred adjudication). -->
+    <entities>
+        <entity name="duckdb.ParityRow" tableName="parity_row" className="io.nop.orm.support.DynamicOrmEntity"
+                querySpace="duck">
+            <columns>
+                <column name="id" code="id" propId="1" stdSqlType="BIGINT" primary="true"/>
+                <column name="grp" code="grp" propId="2" stdSqlType="VARCHAR" precision="8"/>
+                <column name="decVal" code="dec_val" propId="3" stdSqlType="DECIMAL" precision="12" scale="4"/>
+                <column name="big" code="big" propId="4" stdSqlType="BIGINT"/>
+                <column name="name" code="name" propId="5" stdSqlType="VARCHAR" precision="64"/>
+                <column name="flag" code="flag" propId="6" stdSqlType="BOOLEAN"/>
+                <column name="d" code="d" propId="7" stdSqlType="DATE"/>
+                <column name="ts" code="ts" propId="8" stdSqlType="TIMESTAMP"/>
+            </columns>
+        </entity>
+
+        <entity name="duckdb.H2ParityRow" tableName="parity_row_h2" className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="id" code="id" propId="1" stdSqlType="BIGINT" primary="true"/>
+                <column name="grp" code="grp" propId="2" stdSqlType="VARCHAR" precision="8"/>
+                <column name="decVal" code="dec_val" propId="3" stdSqlType="DECIMAL" precision="12" scale="4"/>
+                <column name="big" code="big" propId="4" stdSqlType="BIGINT"/>
+                <column name="name" code="name" propId="5" stdSqlType="VARCHAR" precision="64"/>
+                <column name="flag" code="flag" propId="6" stdSqlType="BOOLEAN"/>
+                <column name="d" code="d" propId="7" stdSqlType="DATE"/>
+                <column name="ts" code="ts" propId="8" stdSqlType="TIMESTAMP"/>
+            </columns>
+        </entity>
+
+        <entity name="duckdb.ParityRef" tableName="parity_ref" className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="id" code="id" propId="1" stdSqlType="BIGINT" primary="true"/>
+                <!-- nullable join key: the NULL-key row exercises inner-join NULL exclusion
+                     (a PK column would be NOT NULL and could not hold the NULL key) -->
+                <column name="linkId" code="link_id" propId="2" stdSqlType="BIGINT"/>
+                <column name="refName" code="ref_name" propId="3" stdSqlType="VARCHAR" precision="32"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

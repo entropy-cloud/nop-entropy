@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <!-- named duckdb datasource for the WI5 ORM/EQL parity leg (leg B), routed by entity
+         querySpace="duck". Independent from the leg A engine file (single-writer semantics,
+         plan 2287). The non-empty cfg fallback keeps the bean constructible in every boot
+         of every test class in this module (in-memory duckdb by default). -->
+    <bean id="nopDataSource_duck"
+          class="com.zaxxer.hikari.HikariDataSource">
+        <constructor-arg index="0">
+            <bean class="com.zaxxer.hikari.HikariConfig">
+                <property name="driverClassName" value="org.duckdb.DuckDBDriver"/>
+                <property name="jdbcUrl" value="@cfg:parity.duck.jdbc-url|jdbc:duckdb:"/>
+                <property name="maximumPoolSize" value="1"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+</beans>
