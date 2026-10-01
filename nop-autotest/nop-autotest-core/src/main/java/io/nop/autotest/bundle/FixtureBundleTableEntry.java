@@ -21,6 +21,8 @@ public class FixtureBundleTableEntry {
     private List<String> maskedColumns;
     private String source;
     private int captureGaps;
+    private String columnFingerprint;
+    private Boolean includeLogicalDeleted;
 
     public String getTable() {
         return table;
@@ -100,5 +102,21 @@ public class FixtureBundleTableEntry {
 
     public void setCaptureGaps(int captureGaps) {
         this.captureGaps = captureGaps;
+    }
+
+    public String getColumnFingerprint() {
+        return columnFingerprint;
+    }
+
+    public void setColumnFingerprint(String columnFingerprint) {
+        this.columnFingerprint = columnFingerprint;
+    }
+
+    public Boolean getIncludeLogicalDeleted() {
+        return includeLogicalDeleted;
+    }
+
+    public void setIncludeLogicalDeleted(Boolean includeLogicalDeleted) {
+        this.includeLogicalDeleted = includeLogicalDeleted;
     }
 }

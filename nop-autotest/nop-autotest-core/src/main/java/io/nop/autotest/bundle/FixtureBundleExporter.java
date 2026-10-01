@@ -92,6 +92,23 @@ public class FixtureBundleExporter {
             entry.setCsv(relativeCsv);
             entry.setSha256(sha256(new File(bundleDir, relativeCsv)));
 
+            // M1.2 schema extension (same-source normalization with the importer, B3):
+            // fingerprint over the exported column set + logical-deleted declaration from
+            // the exported row set (the importer rejects packages declaring deleted rows)
+            List<String> colNames = new ArrayList<>();
+            for (io.nop.orm.model.IColumnModel col : entityModel.getColumns())
+                colNames.add(col.getCode());
+            entry.setColumnFingerprint(FixtureBundleImporter.fingerprint(colNames));
+            boolean hasLogicalDeleted = false;
+            for (Map<String, Object> fullRow : fullRows) {
+                Object delVersion = fullRow.get("DEL_VERSION");
+                if (delVersion instanceof Number && ((Number) delVersion).longValue() > 0) {
+                    hasLogicalDeleted = true;
+                    break;
+                }
+            }
+            entry.setIncludeLogicalDeleted(hasLogicalDeleted);
+
             if (LAYER_BASE.equals(tableConfig.getLayer())) {
                 baseEntries.add(entry);
             } else if (LAYER_PAYLOAD.equals(tableConfig.getLayer())) {

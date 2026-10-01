@@ -1,6 +1,6 @@
 # Fixture Bundle（测试夹具可移植包）Runbook
 
-> 状态：M1.1 导出侧定稿（2026-10-01，plan `nop-app-erp/docs/plans/2026-10-01-2049-1-m11-fixture-bundle-format-exporter.md`）；导入节为 M1.2 占位。
+> 状态：M1.1 导出侧 + M1.2 导入侧定稿（2026-10-01；plan `nop-app-erp/docs/plans/2026-10-01-2049-1` 与 `2026-10-01-2142-1-m12-fixture-bundle-importer.md`）。
 > 代码位置：`nop-autotest/nop-autotest-core/src/main/java/io/nop/autotest/bundle/`
 
 ## 1. 是什么
@@ -56,6 +56,25 @@ new FixtureBundleValidator().validate(bundleDir);   // 独立校验（只读磁�
 - **已知边界**：no-PK 实体（`isNoPrimaryKey`）在 `orm_idString()` 键控下不可收集（既有 `AutoTestOrmHook` 共有约束）；跨数据库方言回放为 Non-Goal（见 roadmap）。
 - **载体可见性**（M0.1 Decision ⑥）：bundle 布局在消费方 test-scope classpath（建议 `_vfs/<module-short>/fixture-bundle/<bundle-name>/`）；JUnit/集成测试可见，runner.jar E2E 不可见。
 
-## 5. 导入（M1.2 占位）
+## 5. 导入 API（M1.2）
 
-分层导入器（base 业务键对账 + payload 剥 PK 重映射 + 引用重写 + requires 校验）由 roadmap M1.2 交付；本节届时扩写为导入 API 与事务边界文档。
+```java
+FixtureBundleImportResult result = new FixtureBundleImporter()
+        .importBundle(bundleDir, ormTemplate);
+// 可选：自定义 requires 解析器与漂移 tolerant 模式
+new FixtureBundleImporter().importBundle(bundleDir, orm, requiresPredicate, /*tolerant*/ true);
+new FixtureBundleValidator().validate(bundleDir);   // 导入前独立校验仍推荐
+```
+
+语义契约（M1.2，全部有验收测试承载）：
+
+- **两趟事务**：base 趟（业务键对账）整趟单事务——目标已存在同业务键行则登记映射**不覆盖**，缺失行剥 PK 平台生成；payload 趟整趟单事务、失败整体回滚，base 失败不进入 payload 趟。
+- **ID 重映射**：`oldId→newId` 内存映射贯穿两趟；payload to-one FK 列按映射重写；映射外且目标库不存在的引用值 → `nop.err.fixture-bundle.dangling-ref` 拒绝（直插不触发平台引用校验——导入器是唯一兜底，M0.1 Decision ⑤）。
+- **装载序**：按 manifest `loadOrder`（导出时子集拓扑序）装载。
+- **不可导入面**：系统表/序列表（`io.nop.sys.*`/`nop_sys_*` 形）入口即拒（`sys-table-forbidden`）；`includeLogicalDeleted=true` 的包拒（`logical-deleted-declared`——导入器永不重建已删行）；复合主键表拒（`composite-pk-payload`，base 与 payload 两趟同拒——两趟插入均剥 PK 依赖平台单列生成语义，复合主键无生成路径；真实需求出现时走结构变更审查）。
+- **版本列不随包携带**：`VERSION`/`DEL_VERSION` 列值不读包值——非模型列在 `normalizeRow` 中剥离，模型自有列强制置 0（与平台缺省同向）。
+- **requires**：缺失 → `requires-missing`；默认解析器 = bundle 同级目录下 `<name>/manifest.json5` 存在，可注入自定义谓词。
+- **漂移校验**：manifest `columnFingerprint`（列名集排序摘要，两侧同源 `FixtureBundleImporter.fingerprint`）比对目标 `EntityModel`——默认 fail-fast（`schema-drift`），tolerant 模式登记告警继续；旧 manifest 无指纹字段则跳过并告警（前向兼容：`Manifest.read` 对未知字段做已知键过滤，`formatVersion` 保持 1）。
+- **幂等口径**：base 对账天然幂等；同包重复业务键 → `uk-conflict` 拒绝（逐行对账会将重复键静默合并进第一行——执行期发现，包缺陷必须显式拒绝）；payload 幂等 = 同一 Importer 实例运行内跳过；**跨进程重复导入 payload 会产生重复行**——消费纪律：bundle 一次性导入 + 测试 fresh 库语义。并发窗口的 duplicate-key（flush at commit）仍被 wrap 为 `uk-conflict`。
+- **序列对齐（M0.1 Decision E）**：框架不内置序列改写——payload 新 ID 由目标平台序列生成自然推进；结果报告 `maxNewIds` 供消费方取号无冲突断言；非单调序列（uuid/snowflake）以经验口径断言。
+- **已知边界**：no-PK 实体不可导出故不在导入面；JDBC 直操构造的数据不经 hook 不可见（导出侧约束的导入侧回响）。
