@@ -73,12 +73,12 @@
 
 | 裁定 | 状态 | 负责 | 选项 | 结论 / 依据 |
 |---|---|---|---|---|
-| D1 结果表语义 | 待裁 WI0b | owner | (a) **终值语义降级**：`<reduce>` last-value-wins 加模型语义标注（**注意不是 append-only——引擎无逐条追加式聚合输出面**）；(b) 算子内模拟 retract 加 upsert sink；(c) `StreamRecord` 加 RowKind | 建议 **(a)**：`StreamRecord` 只有 `value/timestamp/hasTimestamp`；`AccumulationMode.ACCUMULATING_AND_RETRACTING` spec-only 且 `WindowOperator.java:449-452` 开期 fail-fast；`SinkConsistencyCapability.UPSERT_BY_KEY` 全仓零调用方。**注意**：`<reduce>` 语义是逐条 emit 当前归约值（`StreamReduceOperator.java:89-107`，last-value-wins），它既不提供 append-only 也不提供 retract 语义；D1=(a) 正是采用它并**显式标注 last-value-wins**，而不是把它当作 append-only |
+| D1 结果表语义 | **已裁定 owner 2026-10-02**：(a) 终值语义降级 | owner | (a) **终值语义降级**：`<reduce>` last-value-wins 加模型语义标注（**注意不是 append-only——引擎无逐条追加式聚合输出面**）；(b) 算子内模拟 retract 加 upsert sink；(c) `StreamRecord` 加 RowKind | **已裁 (a)**：`<reduce>` last-value-wins 显式标注，**非 append-only 非 retract**（引擎无逐条追加式聚合输出面；`<reduce>` 逐条 emit 当前归约值，既不提供 append-only 也不提供 retract 语义，`StreamReduceOperator.java:87-106`）；R1 关闭；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §1 含对 D9-D12 的输入约束 |
 | D2 治理解冲突范围 | **已裁定 owner 2026-10-02**：收窄表述 | owner | 全解除 / 收窄表述 / 保留（roadmap 阻塞） | Purpose「必须修订的断言全集」12 条逐条同步完成，落档 ai-dev/design/nop-stream/sql-vision-conflict-resolution.md 含修订前后对照与 owner 授权证据 |
-| D3 EQL 窗口语法补全范围 （落档归 WI0b）**已裁定** owner 2026-09-30 | owner | 按方言裁剪语法 / 全集直增 | **语法全集直增，方言差异不进 grammar**；能力经 dialect `<features>` 下发，缺省不启用，翻译期未启用 → `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` |
-| D4 流时间窗口语法选型 | 待裁 WI0b | owner | `TUMBLE(t, INTERVAL)` 伪表函数 / `WINDOW` 子句 / stream-only 标记 | 建议**伪表函数**，RDBMS 目标按 T1/T2/T3 三档（§3.4） |
-| D5 全局 `ORDER BY` 与 `LIMIT` | 待裁 WI0b | owner | 排除 / keyed 缓冲近似 | 建议**首版排除**，进不支持清单 |
-| D6 分析窗口流上执行语义 | 待裁 WI0b | owner | 事件时间 / processing-time 近似 | 建议**事件时间**，与 WI13 共用设施 |
+| D3 EQL 窗口语法补全范围 **已裁定** owner 2026-09-30（落档 2026-10-02 归 WI0b） | owner | 按方言裁剪语法 / 全集直增 | **语法全集直增，方言差异不进 grammar**；能力经 dialect `<features>` 下发，缺省不启用，翻译期未启用 → `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §2 |
+| D4 流时间窗口语法选型 | **已裁定 owner 2026-10-02**：伪表函数 | owner | `TUMBLE(t, INTERVAL)` 伪表函数 / `WINDOW` 子句 / stream-only 标记 | **已裁伪表函数**：语法落 DMLStatement.g4 表源分支（sqlTableSource/sqlSingleTableSource），AST 落 EqlAST.xjava；流目标映射窗口 assigner；RDBMS 目标 T1/T2/T3 三档（T2 全部语义不等价必须标注，外部数据库事实未在本仓库验证）；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §3 |
+| D5 全局 `ORDER BY` 与 `LIMIT` | **已裁定 owner 2026-10-02**：首版排除 | owner | 排除 / keyed 缓冲近似 | **已裁首版排除**，进不支持清单（清单草案在落档 §4，定稿归 WI16）；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §4 |
+| D6 分析窗口流上执行语义 | **已裁定 owner 2026-10-02**：事件时间 | owner | 事件时间 / processing-time 近似 | **已裁事件时间**，分析窗口与 WI13 共用 watermark 与每 key 有序缓冲设施；Q2 归属 WI12 设计时落实；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §5 |
 | D7 表列绑定来源与解析入口 | 待裁 WI0c | owner | ORM 实体元数据 / 连接器 schema / `.sql` DDL / xdef `schemas` 声明面 / **SQL 面自带 schema**；入口 `EqlASTParser` 与 `EqlExprASTParser` 二选一 | **必须含「SQL 面自带 schema」选项**（与 D8 的 `<sql>` 元素天然配对，是当前选项集遗漏的一档）。约束：xdef `schemas` 声明面在 build 期 fail-fast（`StreamModelDslBuilder.java:266-275`），类型面仅 `BasicTypeInfo`（`BasicTypeInfo.java:20-28`），**无 SQL 类型→流类型映射**——该映射裁定**归本决策**，不推给 WI8a 与 WI8b |
 | D8 用户可见接口面 | 待裁 WI0c | owner | 新增 `<sql>` xdef 元素 / `.sql` 文件加 bean / Java API / CLI / GraphQL | 建议**新增 `<sql>` xdef 元素**，但**不得预设编译落点**（落点已由 D14 裁定为 (a)，WI8a 负责落档） |
 | D9 `allowedLateness` 放行 | 待裁 WI0d | owner | 放行 / 保持 fail-fast | 与 D1 耦合；放行需先有 D1 结论 |
@@ -87,7 +87,7 @@
 | D12 窗口级 `parallelism` 放行 | 待裁 WI0d | owner | 放行 / 保持 fail-fast | **不得降级** productization item 29 已固定的 per-transform parallelism 与 2PC 门禁 |
 | D13 编译器宿主模块与依赖方向 | 待裁 WI0c | owner | (a) 新模块 `nop-stream-sql` 同时依赖 `nop-stream-flow` 与 `nop-orm-eql`；(b) 给 `nop-stream-flow` 加 `nop-orm-eql` 依赖；(c) 复制最小 EQL parser 子集 | 建议 **(a)**：现状 `nop-stream-flow` 只依赖 core/cep/xdefs/xlang/codegen/ioc，**零** `nop-orm-eql` 依赖；而 `nop-orm-eql` 依赖 `nop-dao` + `nop-orm-model` + `nop-core` + `nop-codegen` + `nop-antlr4-common`，(b) 会把持久层拖进引擎，破坏引擎独立性；(c) 违反单一口径原则。落地由 WI17 承担 |
 | D14 参数化算子面与编译落点 | **已裁定 owner 2026-09-30**，待 WI8a 落档 | owner | (a) 给 StreamModel 增加参数化算子面；(b) 预置 bean 家族，模型只引用 bean 名；(c) 绕过 XDSL 直产 StreamGraph | 与 D13 正交：D13 定**放哪个模块**，D14 定**产物长什么样**。**owner 已裁定走 (a)**：(b) 与 (c) 不再作为本 roadmap 的实施路径，若日后要改判须先改本行再动 WI8c 与 WI8d。落档见 WI8a |
-| D15 多库实跑降级档 | 待裁 WI0b | owner | opt-in 实跑为硬门 / 允许 H2 实跑加其余方言快照比对降级 | 未在本仓库验证 CI 是否会传 `-Dnop.test.docker.enabled=true`；建议**允许降级但必须在交付说明逐方言标注未实测**，禁止无标注收口 |
+| D15 多库实跑降级档 | **已裁定 owner 2026-10-02**：允许降级 + 强制标注 | owner | opt-in 实跑为硬门 / 允许 H2 实跑加其余方言快照比对降级 | **已裁允许降级**：默认 H2 实跑；opt-in 多库可用时实跑（5 个 Testcontainers 方言测试）；不可用时快照比对降级且交付说明**逐方言标注未实测，禁止无标注收口**；Q1 保持未决；落档 ai-dev/design/nop-stream/sql-subset-and-semantics.md §6 |
 
 每条裁定的记录落 `ai-dev/design/nop-stream/` 对应设计文档并注明负责人与日期；未落档的裁定视为未裁。
 
@@ -195,7 +195,7 @@
 
 | ID | 风险 / 开放问题 | 影响 WI | 缓解 |
 |---|---|---|---|
-| R1 | D1 选 (c) → 触及元素模型契约、状态/快照兼容、序列化路径与 §八 不变量 | WI11 WI12 WI13 需重排 | 见 re-scope 表；D1 未裁前不得开工 |
+| R1 | D1 选 (c) → 触及元素模型契约、状态/快照兼容、序列化路径与 §八 不变量 | WI11 WI12 WI13 需重排 | **已关闭（2026-10-02）**：D1 已裁 (a)，WI11 WI12 WI13 按 re-scope 表 (a) 行执行 |
 | R2 | D2 选「保留」→ 除 Phase 1 外整体阻塞 | WI6+ | WI0a 显式记录该分支；**状态用合法 token `todo` 并在括注写 `blocked 原因：D2=保留`，不得把 `blocked` 当状态 token**（`roadmap-check.mjs:14` 状态集不含它，写成 token 会被解析器静默丢弃） |
 | R3 | (a) 分支把参数化面做成 xdef 声明，可能与既有 `bean` 路径并存出错配（两个都声明或都不声明） | WI8c WI8d WI24 | 互斥校验在构造期 fail-fast；WI24 的迁移说明覆盖该互斥规则 |
 | R4 | frame 三单位支持度不一致，单一能力位表达不了 | WI2 WI3 | 按单位拆三个能力位；启用矩阵以实跑产出，不预设 |
@@ -203,16 +203,16 @@
 | R6 | 约束 2（边去重）只在 self-join 形态暴露 | WI6 WI7 | WI7 强制含 self-join 拓扑用例 |
 | R7 | 约束 4（水位合并固定 2 输入）使「builder 放行多输入」的上限实际为 2 | WI6 | WI6 明确记录该上界，或把 `forInputsCount` 参数化纳入范围 |
 | Q1 | 是否把 `-Dnop.test.docker.enabled=true` 纳入 CI？ | WI3 WI5 WI20 | 未决前按 A2 走 opt-in + H2 默认 |
-| Q2 | 窗口 frame 在事件时间语义下的「重开/修正」如何表达（无 RowKind 时） | WI12 | 随 D1/D6 一并裁 |
+| Q2 | 窗口 frame 在事件时间语义下的「重开/修正」如何表达（无 RowKind 时） | WI12 | 归属已裁（D1/D6 已裁 2026-10-02）：D1=(a) 无 RowKind 不引入修正语义，frame 重开按事件时间重算处理，WI12 设计时落实（见 sql-subset-and-semantics.md §5） |
 | Q3 | `<edge partition="HASH">` 与 `keyBy` 互斥后，非等值 join 的排序设施从哪来 | Follow-up | 已在 Follow-up FU-1 登记 |
 
 **D1/D2 结论 → 受影响 WI 重排表**：
 
 | 裁定结论 | 重排动作 |
 |---|---|
-| D1 = (a) | WI11 落为 `<reduce>` 映射加 last-value-wins 语义标注（**不得标为 append-only**）；WI12/WI13 保持终值输出；R1 关闭 |
-| D1 = (b) | WI11 追加撤回输出路径与 upsert sink（`SinkConsistencyCapability.UPSERT_BY_KEY` 需首次接线，范围显著变大）；WI12/WI13 追加撤回 |
-| D1 = (c) | `StreamRecord` 契约变更单独立项（独立 plan 加回归加迁移说明），WI11/WI12/WI13 全部重排并追加 RowKind 测试 |
+| D1 = (a)【**已生效 2026-10-02**】 | WI11 落为 `<reduce>` 映射加 last-value-wins 语义标注（**不得标为 append-only**）；WI12/WI13 保持终值输出；R1 关闭 |
+| D1 = (b)【未采纳】 | WI11 追加撤回输出路径与 upsert sink（`SinkConsistencyCapability.UPSERT_BY_KEY` 需首次接线，范围显著变大）；WI12/WI13 追加撤回 |
+| D1 = (c)【未采纳】 | `StreamRecord` 契约变更单独立项（独立 plan 加回归加迁移说明），WI11/WI12/WI13 全部重排并追加 RowKind 测试 |
 | D2 = 保留 | Phase 1 继续；WI6 及之后全部保持 `todo` 并在括注记 blocked 原因 |
 
 ## Work Item Status
@@ -222,7 +222,7 @@
 ### Phase 0 — 治理与裁定（门控项）
 
 - WI0a D2 治理解冲突唯一入口: `done`（deps 无；Item Type Decision；12 条断言逐条修订完成，D2=收窄表述落 ai-dev/design/nop-stream/sql-vision-conflict-resolution.md，owner 授权 2026-10-02 执行指令；承载 plan ai-dev/plans/nop-stream-sql/01-wi0a-d2-vision-conflict-resolution.md，独立 closure audit PASS 2026-10-02）
-- WI0b D1 D3 D4 D5 D6 D15 六条裁定落档: `todo`（deps 无；Item Type Decision；完成判定 六条裁定各落 ai-dev/design/nop-stream/sql-subset-and-semantics.md〔未来交付物〕含负责人与日期；D4 含 TUMBLE 语法面与 EQL grammar 及 AST 的落点裁定，D5 含不支持清单，D15 含多库实跑是否可降级；re-scope 表按 D1 结论更新）
+- WI0b D1 D3 D4 D5 D6 D15 六条裁定落档: `done`（deps 无；Item Type Decision；六条裁定已落 ai-dev/design/nop-stream/sql-subset-and-semantics.md，D4 落 TUMBLE 语法面与 EQL grammar 及 AST 落点，D5 落不支持清单草案，D15 落降级协议，re-scope 表已按 D1 分支 a 标注生效；承载 plan ai-dev/plans/nop-stream-sql/02-wi0b-subset-and-semantics-decisions.md，独立 closure audit PASS 2026-10-02）
 - WI0c D7 D8 D13 三条编译契约裁定: `todo`（deps 无；Item Type Decision；完成判定 D7 含 schema 五选项与解析入口选定及 SQL 类型到 BasicTypeInfo 映射表落 ai-dev/design/nop-stream/sql-compiler-contract.md〔未来交付物〕，D8 含接口面选定，D13 含宿主模块与依赖方向选定；三条落档含负责人与日期，且不重复 D14 已作出的裁定）
 - WI0d D9 至 D12 四个 fail-fast 放行裁定: `todo`（deps WI0b；Item Type Decision；完成判定 四项各有放行或保持结论与理由并落 ai-dev/design/nop-stream/window-failfast-decisions.md〔未来交付物〕，D12 附 per-transform parallelism 与 2PC 门禁不退化的确认）
 - ★ **里程碑：M0 治理解冲突**（解锁条件 WI0a 至 WI0d 全部 done）：`todo`
