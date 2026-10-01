@@ -15,7 +15,10 @@
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
-              supportILike="true" supportExecuteLargeUpdate="true"  supportReturningForUpdate="true"/>
+              supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="true"
+              supportWindowFrameRows="true" supportWindowFrameRange="true"
+              supportWindowFrameGroups="true"
+    />
 
     <reservedKeywords>
         ALL , AND , ANY , ARRAY , AS ,

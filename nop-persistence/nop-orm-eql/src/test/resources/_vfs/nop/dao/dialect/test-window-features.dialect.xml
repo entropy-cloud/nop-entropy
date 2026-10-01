@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- WI3 后 h2 已实跑开启三能力位；本 fixture 显式关 rows 验证按属性覆盖（非整块）合并语义 -->
 <dialect x:extends="h2.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef">
-    <features supportWindowFrameRows="true"/>
+    <features supportWindowFrameRows="false"/>
 </dialect>

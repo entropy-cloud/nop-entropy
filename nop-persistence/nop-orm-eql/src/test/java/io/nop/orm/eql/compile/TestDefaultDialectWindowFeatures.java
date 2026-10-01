@@ -19,9 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * WI2: 窗口 frame 能力位的真实方言绑定端到端验证。
- * (h) default 方言三能力位缺省 false；(h2) fixture 方言（x:extends h2 + supportWindowFrameRows=true）
- * 经 xdef 解析 + wrapper setter + extends 合并 + IDialect getter 全链为 true（排除绑定静默 no-op）。
+ * WI2/WI3: 窗口 frame 能力位的真实方言绑定端到端验证。
+ * (1) h2 方言经 WI3 实跑矩阵开启三能力位（H2 2.4.240 七组全 PASS）；(2) fixture 方言
+ * （extends h2 + 显式 supportWindowFrameRows=false）验证按属性覆盖语义——rows 关而
+ * range/groups 经继承为 true，一条用例钉住 xdef 解析、wrapper setter、extends 按属性合并、
+ * Boolean.TRUE.equals、IDialect getter 五环。「集中缺省 false」语义由合成方言用例
+ * （TestEqlCompileSql.windowContext(false,false,false) 的关态断言）承载。
  */
 public class TestDefaultDialectWindowFeatures {
     @BeforeAll
@@ -35,22 +38,22 @@ public class TestDefaultDialectWindowFeatures {
     }
 
     @Test
-    public void testDefaultDialectWindowFrameFeaturesOff() {
-        // default.dialect.xml 是被继承的基文件（缺 driverClassName 等必备节点），不能独立加载；
-        // 用可独立加载的 h2 方言验证「未显式开启即 false」的集中缺省语义
+    public void testH2WindowFrameFeaturesEnabledByMatrix() {
+        // WI3 实跑矩阵（TestH2WindowFrameMatrix 七组全 PASS）后 h2 显式开启
         IDialect dialect = DialectManager.instance().getDialect("h2");
         assertNotNull(dialect);
-        assertFalse(dialect.isSupportWindowFrameRows());
-        assertFalse(dialect.isSupportWindowFrameRange());
-        assertFalse(dialect.isSupportWindowFrameGroups());
+        assertTrue(dialect.isSupportWindowFrameRows());
+        assertTrue(dialect.isSupportWindowFrameRange());
+        assertTrue(dialect.isSupportWindowFrameGroups());
     }
 
     @Test
-    public void testFixtureDialectRowsEnabled() {
+    public void testFixtureOverridesRowsOnly() {
+        // fixture 显式 supportWindowFrameRows=false 覆盖 h2 的 true：按属性（非整块）合并语义
         IDialect dialect = DialectManager.instance().getDialect("test-window-features");
         assertNotNull(dialect, "fixture dialect not loaded");
-        assertTrue(dialect.isSupportWindowFrameRows(), "supportWindowFrameRows should be true via x:extends merge");
-        assertFalse(dialect.isSupportWindowFrameRange());
-        assertFalse(dialect.isSupportWindowFrameGroups());
+        assertFalse(dialect.isSupportWindowFrameRows(), "fixture explicitly overrides rows to false");
+        assertTrue(dialect.isSupportWindowFrameRange(), "range inherits true from h2");
+        assertTrue(dialect.isSupportWindowFrameGroups(), "groups inherits true from h2");
     }
 }
