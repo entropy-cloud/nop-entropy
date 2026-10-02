@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  WI14: dimension-table lookup pipeline DSL topology (process path). The lookup
+  function bean receives its ITableLookup adapter as a constructor/property injection
+  (protected field — Nop IoC forbids private-field injection).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-dim-lookup-pipeline" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="50" processingGuarantee="AT_LEAST_ONCE"/>
+
+    <transforms>
+        <source id="src" name="DimKeySource"
+                bean="dimKeySourceFunction"
+                parallelism="1"/>
+
+        <keyBy id="key" name="ByKeyDimKey" keyExpr="event.dimKey"/>
+
+        <process id="lookup" name="DimLookup" bean="dimLookupFunction"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="dimCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="key" partition="FORWARD"/>
+        <edge id="e1" from="key" to="lookup" partition="FORWARD"/>
+        <edge id="e2" from="lookup" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

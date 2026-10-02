@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  WI14 test beans: the dim lookup function + its ITableLookup adapter (in-memory stub)
+  + a bounded source emitting keyed records + a collecting sink.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="dimKeySourceFunction"
+          class="io.nop.stream.runtime.checkpoint.DimKeySourceFunction"/>
+
+    <bean id="dimCollectingSink"
+          class="io.nop.stream.runtime.checkpoint.DimCollectingSink"/>
+
+    <bean id="dimTableLookup"
+          class="io.nop.stream.runtime.checkpoint.InMemoryTableLookup"/>
+
+    <bean id="dimLookupFunction"
+          class="io.nop.stream.runtime.checkpoint.DimLookupEnrichFunction">
+        <property name="tableLookup" ref="dimTableLookup"/>
+    </bean>
+
+</beans>
