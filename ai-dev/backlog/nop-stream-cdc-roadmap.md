@@ -94,6 +94,8 @@
 
 ### WI8 reference 验收场景与文档同步
 
+> 交付边界（诚实化）：本 WI 已交付 mysql 源侧全场景 E2E（snapshot→stream→kill→restore→续传不重不丢）、pg 源侧 r/c/u/d 全谱 E2E（DELETE 传播 + 键像）、JdbcSchemaHistory 真实落库（MySQL）、dmlMode UPSERT/UPSERT_DELETE 真库语义（H2 方言路径）。**跨库单管线 e2e（pg source 与 jdbc-2pc UPSERT_DELETE target 在同一条 stream 作业内串跑）尚未执行**——源/汇两侧契约均已独立真实验证，单管线串跑属组合回归，留作首个真实跨库同步需求进入时的首个 gated 用例。
+
 - 场景 1：mysql→mysql CDC 镜像——并行快照、增量、任意点 kill、checkpoint 恢复续传，目标与源最终一致且无重复提交（gated Testcontainers）。
 - 场景 2：pg→mysql 初始化加增量——DELETE 传播（UPSERT_DELETE）与 JdbcSchemaHistory 落库验证（gated）。
 - 文档同步：docs-for-ai 的 nop-stream-cdc-cookbook.md 与 nop-stream-connectors.md 能力矩阵随实际落地更新；connector-design.md §5.4/§8.4 修订在案。
