@@ -150,6 +150,19 @@ public final class SessionFileReader {
         String tenantId = getString(map, SessionFileWriter.FIELD_TENANT_ID);
         session.setTenantId(tenantId);
 
+        // Plan 2288 (WI7): seen-input dedup keys — absent in legacy session
+        // files → empty map (backward compatible)
+        Object seenRaw = map.get(SessionFileWriter.FIELD_SEEN_INPUT_KEYS);
+        if (seenRaw instanceof Map) {
+            java.util.Map<String, Long> seen = new java.util.LinkedHashMap<>();
+            for (java.util.Map.Entry<?, ?> entry : ((java.util.Map<?, ?>) seenRaw).entrySet()) {
+                if (entry.getKey() != null && entry.getValue() instanceof Number) {
+                    seen.put(entry.getKey().toString(), ((Number) entry.getValue()).longValue());
+                }
+            }
+            session.setSeenInputKeys(seen);
+        }
+
         return session;
     }
 

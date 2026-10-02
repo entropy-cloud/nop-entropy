@@ -520,3 +520,9 @@ Session 加载
 ## 工具执行 checkpoint 水位约定（WI6，plan 2287）
 
 相位化 TOOL_EXECUTION checkpoint 的 watermark 格式：`{sessionId}:tool:{callId}:{PHASE}:{execStartTime}:{seq}`（sessionId 为 null 时 `anon:` 前缀）。约束：checkpointSeq 是 per-ExecutionState（restore 后从 0 重计），跨执行唯一性靠 execStartTime 段；DB checkpoint 表以 watermark 为主键、append-only INSERT（重复主键上抛）。相位段（`[phase:DISPATCHED]`/`[phase:EXECUTING]`）为相位唯一权威载体；无相位段 = 终态。恢复侧消费见 `nop-ai-agent-reliability.md` 相位裁决节与 `nop-ai-agent-async-tool-execution.md` §三.2 不变量③（committed 集合仅计终态）。
+
+## 外部输入双层幂等（WI7，plan 2288）
+
+**双层分工**：session 层为主防线——`AgentMessageRequest.idempotencyKey`（调用方提供稳定键，如 Feishu message_id）在 `DefaultAgentEngine` 两段判定：读检查于 `assembleExecutionSetup`（getOrCreate 后、事件发布与消息 append 前），记录+`sessionStore.save` 于执行槽注册成功后的锁内窗口（busy 拒绝/锁失败不毒化键；锁内 save 不与终态 save 竞态）。命中 → `sendMessage` 返回 ack status="duplicate"、`execute` future 异常完成（`ERR_AGENT_DUPLICATE_INPUT`），不 append 消息不 dispatch。存储：`AgentSession.seenInputKeys`（FIFO 有界 1024）随快照持久化（Writer/Reader 各一行）。mailbox 层为辅——`DeferredAckMailbox` correlationId 索引（duplicate offer == single entry），清理点 ack/dead-letter/nack(requeue=false)，requeue 保留。
+
+**at-least-once 契约与边界**（如实登记）：①mailbox 纯内存，进程 crash 丢消息（根治=mailbox 持久化，范围外）；②出厂默认 InMemorySessionStore 下持久化前置退化为内存级；③seenInputKeys FIFO 驱逐后最老键重投按新消息执行（1024 上限可接受；LRU 不解决重投窗口）；④Feishu 首消息重投窗口（channel→session 映射执行完成后才 save，执行期间重投绕过 session 级去重——connector 映射前置为后续改造）。

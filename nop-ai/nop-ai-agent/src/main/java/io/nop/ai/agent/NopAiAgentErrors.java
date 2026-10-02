@@ -32,6 +32,9 @@ public interface NopAiAgentErrors {
     ErrorCode ERR_AGENT_INTERNAL_DETAIL = define("nop.err.ai.agent.internal-detail",
             "{detail}", ARG_DETAIL);
 
+    ErrorCode ERR_AGENT_DUPLICATE_INPUT = define("nop.err.ai.agent.duplicate-input",
+            "Duplicate input (idempotencyKey already seen): {detail}", ARG_DETAIL);
+
 
     String ARG_MODE = "mode";
     String ARG_FILTER_ID = "filterId";

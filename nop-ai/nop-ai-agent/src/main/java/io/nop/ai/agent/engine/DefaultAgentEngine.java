@@ -1,6 +1,7 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.budget.IBudgetProvider;
@@ -669,6 +670,23 @@ public class DefaultAgentEngine implements IAgentEngine {
     public AgentMessageAck sendMessage(AgentMessageRequest request) {
         String sessionId = sessionSupport.resolveSessionId(request.getSessionId());
         CompletableFuture<AgentExecutionResult> future = doExecute(request, sessionId);
+        // Plan 2288 (WI7): a synchronously-completed failed future carrying
+        // ERR_AGENT_DUPLICATE_INPUT is the duplicate-input contract — the ack
+        // reports "duplicate" instead of "accepted" (execute() callers see
+        // the same exception via the failed future)
+        if (future.isCompletedExceptionally()) {
+            try {
+                future.join();
+            } catch (java.util.concurrent.CompletionException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                if (cause instanceof NopAiAgentException && isDuplicateInput((NopAiAgentException) cause)) {
+                    LOG.info("duplicate input suppressed (idempotencyKey={}, sessionId={})",
+                            request.getIdempotencyKey(), sessionId);
+                    return new AgentMessageAck(sessionId, "duplicate");
+                }
+                throw e;
+            }
+        }
         future.exceptionally(ex -> {
             LOG.error("Agent execution failed for agentName={}, sessionId={}: {}",
                     request.getAgentName(), sessionId, ex.getMessage(), ex);
@@ -708,9 +726,48 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
-        ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
-        AgentSessionLifecycle.CancelHandle handle = registerExecutionSlot(sessionId, setup.ctx());
-        return dispatchExecution(request, sessionId, setup, handle);
+        CompletableFuture<AgentExecutionResult> future;
+        try {
+            ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
+            AgentSessionLifecycle.CancelHandle handle;
+            try {
+                handle = registerExecutionSlot(sessionId, setup.ctx());
+            } catch (NopAiAgentException e) {
+                if (isDuplicateInput(e)) {
+                    return CompletableFuture.failedFuture(e);
+                }
+                throw e;
+            }
+            // Plan 2288 (WI7) record stage (second of the two-stage dedup):
+            // INSIDE the execution-slot window — busy-session rejection and
+            // takeover-lock failure happen BEFORE this line and leave the key
+            // unrecorded (a later redelivery executes, review B1); the in-lock
+            // save also cannot interleave with the worker thread's terminal
+            // save ("terminal snapshot first, then lock release" invariant,
+            // review M3). Save failure throws synchronously = the input is
+            // rejected; at-least-once delivery retries it.
+            if (request.getIdempotencyKey() != null && !request.getIdempotencyKey().isEmpty()) {
+                setup.session().markInputSeen(request.getIdempotencyKey());
+                sessionStore.save(setup.session());
+            }
+            future = dispatchExecution(request, sessionId, setup, handle);
+        } catch (NopAiAgentException e) {
+            if (isDuplicateInput(e)) {
+                // duplicate is an expected, benign outcome — surface it as a
+                // failed future so execute() callers can branch on the error
+                // code and sendMessage can translate it to a "duplicate" ack
+                return CompletableFuture.failedFuture(e);
+            }
+            throw e;
+        }
+        return future;
+    }
+
+    private static boolean isDuplicateInput(NopAiAgentException e) {
+        // NopException.getErrorCode() returns the String code (inherited from
+        // NopException via super(errorCode.getErrorCode()))
+        return e.getErrorCode() != null
+                && ERR_AGENT_DUPLICATE_INPUT.getErrorCode().equals(e.getErrorCode());
     }
 
     /**
@@ -729,6 +786,16 @@ public class DefaultAgentEngine implements IAgentEngine {
         // misconfiguration before entering the async block.
         teamBinder.precheckTeamDeclarations(agentModel);
         AgentSession session = sessionStore.getOrCreate(sessionId, request.getAgentName());
+        // Plan 2288 (WI7) read-check (first of the two-stage dedup): a seen
+        // idempotency key aborts BEFORE any event publication or message
+        // append — the duplicate never touches ctx. READ-ONLY probe
+        // (hasSeenInput): throwing here without recording keeps
+        // busy-session/lock failures from poisoning the key; recording
+        // happens post-registration in doExecute.
+        if (session.hasSeenInput(request.getIdempotencyKey())) {
+            throw new NopAiAgentException(ERR_AGENT_DUPLICATE_INPUT).param(ARG_DETAIL,
+                    "idempotencyKey=" + request.getIdempotencyKey() + ", sessionId=" + sessionId);
+        }
         // recovery paths (resumeSession/restoreSession — which have no
         // request/Principal source) can re-establish the tenant context
         // before tenant-scoped DB operations. Only set when the request

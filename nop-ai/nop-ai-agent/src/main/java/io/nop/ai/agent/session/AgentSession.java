@@ -27,6 +27,54 @@ public class AgentSession {
     private long updatedAt;
     private AgentExecStatus status;
     private Map<String, Object> metadata;
+    /**
+     * Plan 2288 (WI7): external input redelivery dedup keys (idempotencyKey →
+     * first-seen epoch millis), bounded FIFO (eldest evicted beyond
+     * {@link #MAX_SEEN_INPUT_KEYS}). Persisted with the session snapshot
+     * (SessionFileWriter/Reader) — recording happens BEFORE dispatch
+     * ("persistence-first"), so a redelivered input after a crash is deduped
+     * instead of re-executed. Package-private accessors; engine-owned.
+     */
+    public static final int MAX_SEEN_INPUT_KEYS = 1024;
+    private final java.util.LinkedHashMap<String, Long> seenInputKeys = new java.util.LinkedHashMap<>();
+
+    /**
+     * Records the key if unseen; returns false when the key was already
+     * recorded (duplicate input). FIFO eviction of the eldest entry beyond
+     * the bound — a re-delivery of an evicted key executes as new input
+     * (adjudicated residual, design session-and-storage.md 双层幂等节).
+     */
+    /** Read-only dedup probe (WI7 read-check stage; never mutates). */
+    public boolean hasSeenInput(String key) {
+        return key != null && !key.isEmpty() && seenInputKeys.containsKey(key);
+    }
+
+    public boolean markInputSeen(String key) {
+        if (key == null || key.isEmpty()) {
+            return true; // no key = no dedup, always "fresh"
+        }
+        if (seenInputKeys.containsKey(key)) {
+            return false;
+        }
+        if (seenInputKeys.size() >= MAX_SEEN_INPUT_KEYS) {
+            String eldest = seenInputKeys.keySet().iterator().next();
+            seenInputKeys.remove(eldest);
+        }
+        seenInputKeys.put(key, System.currentTimeMillis());
+        return true;
+    }
+
+    public Map<String, Long> getSeenInputKeys() {
+        return seenInputKeys;
+    }
+
+    /** Restore-side bulk load (SessionFileReader); replaces the default empty map contents. */
+    public void setSeenInputKeys(Map<String, Long> keys) {
+        seenInputKeys.clear();
+        if (keys != null) {
+            seenInputKeys.putAll(keys);
+        }
+    }
     private String parentSessionId;
     private String planId;
     private Long compactedAt;

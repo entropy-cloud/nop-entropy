@@ -45,7 +45,7 @@ audit-rounds: 0
 > 来源：unreal 比对 §3 + `dsh-D1-agent-loop.md` ⑥-建议2 / `pi-D1-agent-loop.md` ⑥-建议1 / `pi-D3-events.md` ⑥-建议2
 > 理由：channel 场景消息重复投递会重复触发执行；注入语义混同导致 followup/打断/背景注入不可区分
 
-- [ ] WI7 外部输入 redelivery 幂等：输入幂等键（session 级去重 + 持久化前置），契约对齐 at-least-once 投递 + 双层幂等；mailbox 体系（IMailbox/DeferredAckMailbox）扩展（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: unreal 比对 §3）
+- [x] WI7 外部输入 redelivery 幂等：输入幂等键（session 级去重 + 持久化前置），契约对齐 at-least-once 投递 + 双层幂等；mailbox 体系（IMailbox/DeferredAckMailbox）扩展（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: unreal 比对 §3）
 - [ ] WI8 注入持久化 + 语义三分 + 队列事件化：followup（空闲追加）/ steer（打断合流）/ inject（背景注入不触发打断）三语义区分 + 注入事件入 session 历史 + 注入队列事件化（queue_update 式：入队/排空对消费者可见，对齐 pi-D3 建议 2 原义）；steer 语义消费 WI5 的打断通道（Deliverable: 代码变更 + 测试；deps: WI5, WI7；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-react-engine.md` + `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: `99-overall-comparison.md` ⑤-D）
 
 ### M3 — 事件与扩展面治理

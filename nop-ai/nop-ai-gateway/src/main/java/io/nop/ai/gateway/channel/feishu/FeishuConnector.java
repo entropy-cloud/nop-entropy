@@ -330,8 +330,12 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         metadata.put("channelId", chatId);
         metadata.put("senderId", senderId);
 
+        // Plan 2288 (WI7): message-level redelivery dedup key — the Feishu
+        // event's message_id survives Stream redelivery; extraction failure →
+        // null = no dedup (input still processed, never blocked)
+        String idempotencyKey = extractMessageId(message);
         AgentMessageRequest request = new AgentMessageRequest(
-                agentName, text, existingSessionId, metadata, channelKind, null);
+                agentName, text, existingSessionId, metadata, channelKind, null, idempotencyKey);
 
         // Phase 0 裁定: execute() + future callback (not event subscription).
         // chatId is captured directly in the lambda closure — no reverse mapping.
@@ -339,6 +343,17 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         CompletableFuture<AgentExecutionResult> future;
         try {
             future = context.getAgentEngine().execute(request);
+        } catch (io.nop.ai.agent.engine.NopAiAgentException e) {
+            if (isDuplicateInputError(e)) {
+                // Plan 2288 (WI7): duplicate input is benign — log and ignore
+                // (no error reply to the user)
+                LOG.info("feishu-connector duplicate input ignored (chat={}, key={})",
+                        replyTarget, idempotencyKey);
+                return;
+            }
+            LOG.error("feishu-connector agentEngine.execute threw synchronously for chat {}", replyTarget, e);
+            sendReply(replyTarget, "执行出错: " + errorMessage(e));
+            return;
         } catch (Exception e) {
             LOG.error("feishu-connector agentEngine.execute threw synchronously for chat {}", replyTarget, e);
             sendReply(replyTarget, "执行出错: " + errorMessage(e));
@@ -362,6 +377,13 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
                              String chatId, boolean isNewSession, String agentName) {
         try {
             if (error != null) {
+                // Plan 2288 (WI7): duplicate input future-completes exceptionally
+                // — benign, silently ignored (no error reply to the user)
+                if (error instanceof io.nop.ai.agent.engine.NopAiAgentException
+                        && isDuplicateInputError((io.nop.ai.agent.engine.NopAiAgentException) error)) {
+                    LOG.info("feishu-connector duplicate input ignored (chat={})", chatId);
+                    return;
+                }
                 LOG.warn("feishu-connector execute future completed exceptionally for chat {}", chatId, error);
                 sendReply(chatId, "执行出错: " + error.getMessage());
                 return;
@@ -511,10 +533,39 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
     }
 
     /**
-     * Extract the user-facing text from a Feishu inbound message. Text-message
-     * content is JSON like {@code {"text":"hello"}}; other message types
-     * ({@code post}, {@code image}, ...) are not supported in v1 and return
-     * null (the caller skips them).
+     * Plan 2288 (WI7): true when the exception is the engine's duplicate-input
+     * contract error (NopException.getErrorCode() returns the String code).
+     */
+    static boolean isDuplicateInputError(io.nop.ai.agent.engine.NopAiAgentException e) {
+        return e.getErrorCode() != null
+                && "nop.err.ai.agent.duplicate-input".equals(e.getErrorCode());
+    }
+
+    /**
+     * Plan 2288 (WI7): extracts the Feishu event's message_id from the raw
+     * payload (JSON path {@code event.message.message_id}) as the input
+     * idempotency key. UTF-8 decode of the raw bytes + the same minimal
+     * extractor convention as {@link #extractJsonTextField} (no runtime JSON
+     * provider dependency). Returns null when absent/undecodable — the input
+     * then runs without dedup, never blocked.
+     */
+    static String extractMessageId(FeishuInboundMessage message) {
+        byte[] raw = message.getRawPayload();
+        if (raw == null || raw.length == 0) {
+            return null;
+        }
+        try {
+            String json = new String(raw, java.nio.charset.StandardCharsets.UTF_8);
+            return extractJsonTextField(json, "message_id");
+        } catch (Exception e) {
+            LOG.warn("feishu-connector extractMessageId failed — proceeding without dedup", e);
+            return null;
+        }
+    }
+
+    /**
+     * Extracts the user text from the Feishu content envelope
+     * ({@code {"text":"..."}} for text messages; null for other msg types).
      */
     static String extractUserText(FeishuInboundMessage message) {
         if (!MSG_TYPE_TEXT.equals(message.getMsgType())) {
