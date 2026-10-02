@@ -25,6 +25,14 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
         </dependency>
+
+        <!-- WI12: test-scope junit only — pure-logic unit tests for
+             BuildIndexTool / SearchEngineBizModel (plan 2304). -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
