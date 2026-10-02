@@ -1,6 +1,6 @@
 # 2299 unit-test-coverage-roadmap WI7 — nop-sys / nop-rule / nop-dyn 补强
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI7 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -19,23 +19,30 @@
 
 ## Goals
 
-- nop-sys-api：序列号/数据字典/分布式锁语义纯逻辑用例 ≥8 个。
+- nop-sys-api：**结构性用例** ≥8 个（实测该模块 57 文件全部为 `*Api` 接口 + `*InputBean/*OutputBean` 数据类，零实现逻辑——序列号/字典/锁**实现语义**在 sys-dao/sys-service，归入下一条）。
+- nop-sys-dao：字典/序列号/锁实现语义 ≥6 用例（SysDictLoader、OrmEntityChangeLogInterceptor 等靶点）。
 - nop-rule-api + nop-rule-dao：结构性用例 ≥6 个。
 - nop-dyn-api：结构性用例 ≥4 个；nop-dyn-dao：DynEntityMetaToOrmModel 转换语义 ≥4 用例。
-- nop-sys-dao 补强 ≥3 用例；nop-rule-service 快照测试修复并转绿。
+- nop-rule-service 快照测试修复并转绿（修复主路径见下）。
 - 各模块测试全绿，记录增量。
 
 ## Non-Goals
 
-- 不修改产品代码；nop-rule-core 已达标仅不回退确认。
+- 不修改产品代码；nop-rule-core（71.19% 已达标）移出本 WI 增量范围——显式裁定：roadmap WI7 条目中 rule-core "决策树/决策矩阵执行语义" 以达标确认替代增量补强。
 
 ## Scope
 
 ### In Scope
 
 - `nop-sys|nop-rule|nop-dyn/*/src/test/**` 新增测试与资源。
-- **pom 裁定**：允许且仅允许为缺测试依赖模块（sys-api/rule-api/rule-dao/dyn-api）新增 `junit-jupiter` test-scope 依赖并逐项记录。
-- nop-rule-service 既有快照测试修复（测试资源 + 必要的 orm tagSet 标注，逐项记录）。
+- **pom 裁定**：sys-api/rule-api/rule-dao/dyn-api 四模块 pom 实测均无 junit 依赖，各新增 `junit-jupiter` test-scope 并逐项记录。
+- nop-rule-service 既有快照测试修复。
+
+## Current Baseline 补充（FILE_HASH 修复主路径，审查确认）
+
+- 根因已查实：nop-file 的 G9-04-01 特性在 DaoResourceFileStore 上传时以 DigestInputStream 计算 SHA-256 写入 FILE_HASH（确定性字段），rule-service 的 `_cases` 快照录制于该特性之前 → "期望空实际有值"。**字段是确定性的，快照是过期的**（修正 WI0 报告的"非确定性字段"初判）。
+- **修复主路径**：testing.md「重新录制 output」——保留 input 快照，删该用例 output，`@EnableSnapshot(saveOutput = true)` 单方法重录，切回 CHECKING 验证绿。不改 orm tagSet（字段应被 pin 住，var 掩蔽会永久弱化快照）。
+- 仅当重录后仍不稳定时，才按 testing.md ORM 变更流程评估 tagSet——该变更落在 nop-file-dao 产品模型，属跨模块裁定，须先记录再执行。
 
 ### Out Of Scope
 
@@ -50,9 +57,9 @@ Targets: `nop-sys|nop-rule|nop-dyn/*/src/test/**`、nop-rule-service 快照
 
 - Item Types: `Fix`
 
-- [ ] sys-api ≥8 用例（序列号/字典/锁语义，参照 nop-sys 现有测试与 docs-for-ai 对应模块文档）。
-- [ ] rule-api + rule-dao ≥6 用例；dyn-api ≥4 用例；dyn-dao ≥4 用例；sys-dao ≥3 用例。
-- [ ] TestNopRuleDefinitionBizModel 快照修复转绿（按 testing.md 诊断流程；orm tagSet 变更需记录）。
+- [ ] sys-api 结构性 ≥8 用例；sys-dao 实现语义 ≥6 用例（SysDictLoader/OrmEntityChangeLogInterceptor 等）。
+- [ ] rule-api + rule-dao ≥6 用例；dyn-api ≥4 用例；dyn-dao ≥4 用例。
+- [ ] TestNopRuleDefinitionBizModel 快照修复转绿（重录 output 主路径；tagSet 仅作跨模块裁定的兜底并记录）。
 - [ ] 各模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
 
 Exit Criteria:

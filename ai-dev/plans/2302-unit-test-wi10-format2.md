@@ -1,6 +1,6 @@
 # 2302 unit-test-coverage-roadmap WI10 — nop-format 第二批（pdf / mermaid / converter / office-model / chart-export）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI10 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -11,7 +11,7 @@ nop-format 第二批：nop-pdf（28.03%）、nop-mermaid（6.40%）、nop-conver
 
 ## Current Baseline
 
-- nop-pdf 28.03% / 5619L；nop-mermaid 6.40% / 641L；nop-converter 9.30% / 731L；nop-office-model 与 nop-office-doc-model NO-EXEC（无测试；junit 依赖待查，缺则按 pom 裁定新增）；nop-chart-export 46.72% / 1828L（已达标）。
+- nop-pdf 28.03% / 5619L；nop-mermaid 6.40% / 641L；nop-converter 9.30% / 731L；nop-office-model 与 nop-office-doc-model NO-EXEC（无测试；pom 实测各有 junit 依赖，直接可写测试）；nop-chart-export 46.72% / 1828L（已达标）。
 - 测量管线：删模块 exec → `ai-dev/tools/coverage-baseline.sh --skip-test --label wi10-2026-10-02`；验证 `mvnq -- test -pl :<module> -am -fae`。mvnq = `ai-dev/tools/mvnq`。
 
 ## Goals
@@ -32,7 +32,7 @@ nop-format 第二批：nop-pdf（28.03%）、nop-mermaid（6.40%）、nop-conver
 ### In Scope
 
 - `nop-format/nop-pdf|nop-mermaid|nop-converter|nop-office-model|nop-office-doc-model|nop-chart-export/src/test/**` 与测试资源。
-- **pom 裁定**：office-model 两模块如缺 junit test 依赖则新增并记录。
+- **pom 裁定**：office-model 两模块 junit 依赖已具备，无 pom 变更。
 
 ### Out Of Scope
 

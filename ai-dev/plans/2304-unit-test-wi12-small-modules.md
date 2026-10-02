@@ -1,6 +1,6 @@
 # 2304 unit-test-coverage-roadmap WI12 — 小模块收尾与达标确认
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI12 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -48,7 +48,8 @@ Targets: 缺口模块 `src/test/**`、WI0 遗留清单
 - Item Types: `Fix`
 
 - [ ] spring-core-starter、file-service、search-core、integration-api 各 ≥4 用例（模块结构不支持纯逻辑测试的，如实记录不可行裁定）。
-- [ ] WI0 无报告遗留模块逐个处置（lint 链 install 后补跑；其余记录裁定）。
+- [ ] WI0 无报告遗留 8 项逐个处置（nop-rg-cli/vector 已由 WI0 裁定为 build-infra 独立项，不在本清单；lint 链先 `mvnq -- install -pl :nop-lint-nop -am -DskipTests` 再补跑 nop-lint-graphql/nop-lint-maven-plugin；其余记录裁定）。
+- [ ] nop-lint-nop 普查测试修复（WI0 失败指派）：TestNopRuleSuites/TestProductionRuleCount/TestMetricsRuleSuites 断言更新至当前规则普查（69 套件/74 规则），逐个补入期望清单（不得整段删除断言或弱化"no silent drops"语义）。
 - [ ] nop-code-web NopCodeWebPagesTest 修复转绿。
 - [ ] 各模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
 
@@ -56,7 +57,7 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 补测用例 ≥16 个或对应不可行裁定记录；遗留清单 10 项逐个有处置结果。
+- [ ] 补测用例 ≥16 个或对应不可行裁定记录；遗留清单 8 项逐个有处置结果（rg 两项 WI0 已裁定移出）。
 - [ ] nop-code-web 测试绿。
 - [ ] pom 变更（如有）仅 test-scope 依赖且已记录。
 - [ ] No owner-doc update required。
@@ -85,7 +86,7 @@ Exit Criteria:
 - [ ] 各模块全部新增测试绿（含既有测试零回归）
 - [ ] 产品代码零修改；pom 仅 test-scope 新增且记录
 - [ ] 覆盖增量实测记录
-- [ ] WI0 遗留 10 项逐个处置（无静默跳过）
+- [ ] WI0 遗留 8 项逐个处置（无静默跳过；rg 两项已由 WI0 裁定移出）
 - [ ] 残余缺口显式裁定（无静默降级）
 - [ ] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：补测断言语义（audit 抽查）

@@ -1,6 +1,6 @@
 # 2297 unit-test-coverage-roadmap WI5 — nop-wf 引擎面补强
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI5 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；docs-for-ai/03-runbooks/build-approval-flow.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -11,9 +11,10 @@ nop-wf 引擎面从 0 到 1 建立测试：nop-wf-core（80 main/0 test，全仓
 
 ## Current Baseline
 
-- nop-wf-core：NO-EXEC（无 src/test），80 main 文件；pom 已有 junit-jupiter test 依赖。
-- nop-wf-dao：NO-EXEC，36 main；nop-wf-api：NO-EXEC，61 main，**pom 无 junit 测试依赖**（见 Scope 裁定）。
-- nop-wf-service 82.44% 行（22 个测试文件）——模式与基类选型参照。
+- nop-wf-core：NO-EXEC（无 src/test），main 文件数按排除 `_gen` 口径 79（roadmap 80 口径未注明）；pom 已有 junit-jupiter test 依赖。
+- nop-wf-dao：NO-EXEC，排除 `_gen` 38 main；nop-wf-api：NO-EXEC，61 main；**两者 pom 均无 junit 测试依赖**（实测确认，均需新增，见 Scope 裁定）。
+- **测试基建（审查确认）**：wf-core/dao/api 均**无** nop-autotest 依赖；wf-service 的测试（AbstractWorkflowTestCase extends JunitAutoTestCase）依赖全栈容器，**不可照搬**。wf-core 测试走 nop-core 式 `CoreInitialization.initialize()/destroy()` 纯 junit 档（wf.xdef 经 nop-core→nop-xlang→nop-xdefs 传递到 test classpath，已验证可加载）。
+- **具名靶点（wf-core）**：WfModelParser（纯静态解析，`store/WfModelParser.java`，已验证可行）为第一优先；流程流转/回退语义主体在 WorkflowImpl/WorkflowStepImpl，依赖 IWfRuntime 协作对象——仅在其可用手写 fake 隔离时纳入（执行时判断，不可行则如实记录并转向解析/模型语义面）。
 - 测量管线：删模块 exec → `ai-dev/tools/coverage-baseline.sh --skip-test --label wi5-2026-10-02`；验证 `mvnq -- test -pl :<module> -am -fae`。mvnq = `ai-dev/tools/mvnq`。
 
 ## Goals
@@ -46,9 +47,9 @@ Targets: `nop-wf/*/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] wf-core 靶点 ≥15 用例（解析/流转/分配/回退；以 wf-service 测试与 `docs-for-ai/03-runbooks/build-approval-flow.md` 的语义为断言依据）。
+- [ ] wf-core 靶点 ≥15 用例（WfModelParser 解析语义优先；流转/回退语义仅在手写 fake 可隔离时纳入，断言以 wf.xdef 模型语义与 `docs-for-ai/03-runbooks/build-approval-flow.md` 为依据）。
 - [ ] wf-dao + wf-api 结构性用例 ≥8 个。
-- [ ] 需要的 pom test 依赖新增 ≤2 处并记录。
+- [ ] 需要的 pom test 依赖新增（wf-dao、wf-api 各一处 junit-jupiter test-scope）并记录。
 - [ ] 三模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
 
 Exit Criteria:

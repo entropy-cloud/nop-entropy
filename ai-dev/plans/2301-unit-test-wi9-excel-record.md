@@ -1,6 +1,6 @@
 # 2301 unit-test-coverage-roadmap WI9 — nop-format 第一批（nop-excel / nop-record）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI9 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -17,7 +17,7 @@ nop-excel（16.44%）模型解析/公式计算/导出（golden 快照模式）�
 
 ## Goals
 
-- nop-excel：≥15 个语义用例（xlsx 模型解析、公式计算、导出输出 golden 快照——按 testing.md「XPL Tag 输出 Golden JSON 快照」惯例，录入方法 @Disabled）。
+- nop-excel：≥15 个语义用例（xlsx 模型解析、公式模型解析/格式转换语义——模块内无公式求值引擎（求值在 POI/nop-report 侧），不作靶点、导出输出 golden 快照——按 testing.md「XPL Tag 输出 Golden JSON 快照」惯例，录入方法 @Disabled）。
 - nop-record：≥6 个 roundtrip 用例（encode→decode 恒等、边界值、类型宽度）。
 - 两模块测试全绿，记录增量。
 
@@ -44,7 +44,7 @@ Targets: `nop-format/nop-excel|nop-record/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] excel ≥15 用例（解析/公式/导出 golden；显式断言核心字段 + 快照全结构比对）。
+- [ ] excel ≥15 用例（解析/公式模型/导出 golden；显式断言核心字段 + 快照全结构比对）。
 - [ ] record ≥6 roundtrip 用例。
 - [ ] 两模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
 

@@ -1,6 +1,6 @@
 # 2303 unit-test-coverage-roadmap WI11 — 可靠性外围（cluster / retry / tcc / network / graph）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI11 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md（异步防挂起六规则）；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -16,10 +16,10 @@
 
 ## Goals
 
-- nop-cluster-core ≥8 用例（注册/发现/心跳语义；并发用例带 @Timeout(10)、future.get 带超时）。
+- nop-cluster-core ≥8 用例（naming 注册/discovery 发现 + health/elector 轮询语义——模块无 heartbeat 命名，"心跳"映射 health/elector；并发用例带 @Timeout(10)、future.get 带超时）。
 - nop-tcc-core ≥8 用例（try/confirm/cancel 语义）。
 - nop-retry api/dao/service 结构性用例 ≥6 个。
-- nop-network：按快照找 1-2 个低覆盖可测模块补 ≥6 用例。
+- nop-network：具名靶点 nop-rpc-core（31.52%/917L，已有 4 个测试先例）与 nop-http-api（32.3%/1384L）补 ≥6 用例。
 - nop-graph-core：不回退确认（TarjanSCC 回归测试待缺陷修复立项时并入）。
 - 测试全绿，记录增量。
 
@@ -32,7 +32,7 @@
 ### In Scope
 
 - `nop-cluster|nop-retry|nop-tcc|nop-network|nop-graph/*/src/test/**`。
-- **pom 裁定**：缺 junit 依赖的模块新增 test-scope junit 并记录。
+- **pom 裁定**：nop-retry-api 新增 test-scope junit（实测缺失）并记录；其余模块依赖已具备。
 
 ### Out Of Scope
 
