@@ -13,6 +13,20 @@ public final class AgentEventPayloads {
     private AgentEventPayloads() {
     }
 
+    // ---- tool call repair audit (WI12) ----
+    /** TOOL_CALL_STARTED payload: the provider tool-call id (join key). */
+    public static final String CALL_ID = "callId";
+    /** TOOL_CALL_STARTED payload: whether a repair changed the call. */
+    public static final String REPAIR_APPLIED = "repairApplied";
+    /** TOOL_CALL_STARTED payload: tool name before repair (present when repaired). */
+    public static final String NAME_BEFORE = "nameBefore";
+    /** TOOL_CALL_STARTED payload: tool name after repair. */
+    public static final String NAME_AFTER = "nameAfter";
+    /** TOOL_CALL_STARTED payload: arguments text before repair (truncated to 512 chars). */
+    public static final String ARGS_BEFORE = "argsBefore";
+    /** TOOL_CALL_STARTED payload: arguments text after repair (truncated to 512 chars). */
+    public static final String ARGS_AFTER = "argsAfter";
+
     // ---- subscriber failure channel (WI10) ----
     /** Subscriber failure payloads: subscriber class name. */
     public static final String SUBSCRIBER_ID = "subscriberId";

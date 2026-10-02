@@ -1522,6 +1522,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
             List<ChatToolCall> allowed = new ArrayList<>();
             String fingerprintWorkDir = securityConsultation.resolveWorkDirString(ctx.getAgentModel());
             for (ChatToolCall call : derivedCalls) {
+                // Plan 2293 (WI12): heartbeat-derived calls go through the same
+                // repair stage as the main dispatch path (consistency: the
+                // approved call is the repaired call)
+                call = toolCallRepairer.repair(call, ctx);
                 SecurityCheckpoint.CheckContext checkCtx = SecurityCheckpoint.CheckContext.create(
                         sessionId, agentName, call, ctx, fingerprintWorkDir, ctx.getAgentModel());
                 SecurityCheckpoint.Decision decision = checkpointChain.evaluate(checkCtx);
@@ -1602,6 +1606,28 @@ public class ReActAgentExecutor implements IAgentExecutor {
     }
 
     /**
+     * Plan 2293 (WI12): repair-change detection — authoritative check is the
+     * name + serialized arguments comparison (reference inequality alone is a
+     * fast-path pre-filter; ChainRepairer stages are copy-on-change so
+     * reference inequality is necessary but not sufficient evidence of a
+     * semantic change).
+     */
+    private static boolean isRepaired(ChatToolCall before, ChatToolCall after) {
+        if (before == after) {
+            return false;
+        }
+        return !java.util.Objects.equals(before.getName(), after.getName())
+                || !java.util.Objects.equals(before.getArgumentsText(), after.getArgumentsText());
+    }
+
+    private static String truncateForAudit(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.length() <= 512 ? text : text.substring(0, 512) + "...(truncated)";
+    }
+
+    /**
      * AI-1 (plan 355): extracted from execute() — the tool fan-out phase:
      * dispatch-context preparation, the security-checkpoint dispatch loop,
      * allowed-calls execution, post-dispatch cancel check, steering drain,
@@ -1623,13 +1649,32 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
         dispatchLoop:
         for (ChatToolCall chatToolCall : responseToolCalls) {
+            // Plan 2292→2293 (WI12): capture the pre-repair snapshot so the
+            // audit trail can show what the LLM actually emitted vs what was
+            // approved/executed
+            ChatToolCall beforeRepair = chatToolCall.copy();
+
             chatToolCall = toolCallRepairer.repair(chatToolCall, ctx);
 
             String toolName = chatToolCall.getName();
 
+            // Plan 2293 (WI12): repair diff detection — reference inequality
+            // as fast path, name+args comparison as the authoritative check
+            Map<String, Object> startedPayload = new HashMap<>();
+            startedPayload.put(AgentEventPayloads.TOOL_NAME, toolName);
+            startedPayload.put(AgentEventPayloads.ITERATION, ctx.getCurrentIteration());
+            startedPayload.put(AgentEventPayloads.CALL_ID, chatToolCall.getId());
+            if (isRepaired(beforeRepair, chatToolCall)) {
+                startedPayload.put(AgentEventPayloads.REPAIR_APPLIED, true);
+                startedPayload.put(AgentEventPayloads.NAME_BEFORE, beforeRepair.getName());
+                startedPayload.put(AgentEventPayloads.NAME_AFTER, chatToolCall.getName());
+                startedPayload.put(AgentEventPayloads.ARGS_BEFORE,
+                        truncateForAudit(beforeRepair.getArgumentsText()));
+                startedPayload.put(AgentEventPayloads.ARGS_AFTER,
+                        truncateForAudit(chatToolCall.getArgumentsText()));
+            }
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_STARTED, sessionId, agentName,
-                    Map.of(AgentEventPayloads.TOOL_NAME, toolName,
-                            AgentEventPayloads.ITERATION, ctx.getCurrentIteration()));
+                    startedPayload);
 
             // Each checkpoint implements one deny path from the original
             // inline if-else chain. The chain replaces all 7 deny paths

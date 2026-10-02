@@ -138,3 +138,9 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 - `nop-ai-tool-dsl.md` — 工具 DSL 详细设计（`tool.xdef`、`tool-call.xdef`、`call-tools.xdef`）
 - `nop-ai-call-agent-dsl.md` — call-agent 工具 DSL
 - `nop-ai-agent-security-and-permissions.md` — 工具执行的安全边界
+
+## 修复前后差异审计（WI12，plan 2293）
+
+- **记录通道**：TOOL_CALL_STARTED 事件 payload 扩展——`callId`（join key，恒在）；repair 变更时附加 `repairApplied=true` + `nameBefore`/`nameAfter` + `argsBefore`/`argsAfter`（getArgumentsText，截断 512 字符）。变更检测 = 引用不等快速路径 + name/argsText 字符串权威比较（ChainRepairer stage 为 copy-on-change，引用不等是必要非充分条件）。
+- **一致性**：审批所见（checkpoint chain 收 repair 后 call）=执行所用（AiToolCall 构造同 call）——差异审计补的是"LLM 实际发出 vs 审批/执行"的可见性。heartbeat 唤醒轮派生调用走同一 repair 阶段（adjudicateHeartbeatReply 内 repair→checkpoint→dispatch 一致）。
+- **边界**：audit logger 通道为 follow-up（executor 无句柄）；无 repair 时 repairApplied 缺席（前向兼容 payload 契约）。
