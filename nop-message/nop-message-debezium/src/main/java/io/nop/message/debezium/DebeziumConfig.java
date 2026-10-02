@@ -30,7 +30,7 @@ public class DebeziumConfig implements Serializable {
     private String name;
 
     /**
-     * 连接器类型: mysql, postgres, sqlserver
+     * 连接器类型: mysql, postgres（白名单，其他值在引擎配置构建期 fail-fast）
      */
     private String connectorType;
 
@@ -105,14 +105,9 @@ public class DebeziumConfig implements Serializable {
     private Duration heartbeatInterval = Duration.ofMinutes(5);
 
     /**
-     * 是否包含Schema变更
+     * 是否包含Schema变更（仅 MySQL 连接器映射 include.schema.changes）
      */
     private boolean includeSchemaChanges = false;
-
-    /**
-     * 是否包含DDL
-     */
-    private boolean includeDdl = false;
 
     /**
      * 额外的配置属性
@@ -255,14 +250,6 @@ public class DebeziumConfig implements Serializable {
 
     public void setIncludeSchemaChanges(boolean includeSchemaChanges) {
         this.includeSchemaChanges = includeSchemaChanges;
-    }
-
-    public boolean isIncludeDdl() {
-        return includeDdl;
-    }
-
-    public void setIncludeDdl(boolean includeDdl) {
-        this.includeDdl = includeDdl;
     }
 
     public Map<String, String> getExtraProperties() {

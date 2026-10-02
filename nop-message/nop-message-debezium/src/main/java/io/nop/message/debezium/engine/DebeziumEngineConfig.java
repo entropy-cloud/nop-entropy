@@ -62,13 +62,15 @@ public class DebeziumEngineConfig {
             props.setProperty("database.password", config.getDatabasePassword());
         }
 
-        // 逻辑服务器名称
+        // 逻辑名称：Debezium 2.x 起 topic.prefix 取代了旧的 database.server.name，
+        // 是 topic 命名与 offset key 的基础；name 属性继续作为 connector 实例名供引擎使用。
         String serverName = config.getServerName();
         if (serverName == null) {
             serverName = config.getName();
         }
+        props.setProperty("topic.prefix", serverName);
 
-        // 根据连接器类型设置特定属性
+        // 根据连接器类型设置特定属性（白名单见 getConnectorClass）
         switch (config.getConnectorType().toLowerCase()) {
             case "mysql":
                 configureMySqlConnector(props, config, serverName);
@@ -77,12 +79,10 @@ public class DebeziumEngineConfig {
             case "postgresql":
                 configurePostgresConnector(props, config, serverName);
                 break;
-            case "sqlserver":
-                configureSqlServerConnector(props, config, serverName);
-                break;
             default:
                 throw new NopException(DebeziumErrors.ERR_DEBEZIUM_UNSUPPORTED_CONNECTOR_TYPE)
-                        .param("connectorType", config.getConnectorType());
+                        .param("connectorType", config.getConnectorType())
+                        .param("supportedTypes", "mysql, postgres");
         }
 
         // 偏移量存储配置
@@ -118,9 +118,6 @@ public class DebeziumEngineConfig {
         // 快照模式
         props.setProperty("snapshot.mode", config.getSnapshotMode());
 
-        // DDL 配置
-        props.setProperty("include.schema.changes", String.valueOf(config.isIncludeSchemaChanges()));
-        props.setProperty("include.ddl", String.valueOf(config.isIncludeDdl()));
         // 心跳配置
         props.setProperty("heartbeat.interval.ms", String.valueOf(config.getHeartbeatInterval().toMillis()));
         // 额外属性
@@ -130,22 +127,18 @@ public class DebeziumEngineConfig {
         return props;
     }
     private static void configureMySqlConnector(Properties props, DebeziumConfig config, String serverName) {
-        props.setProperty("database.server.name", serverName);
         if (config.getDatabaseServerId() != null) {
             props.setProperty("database.server.id", String.valueOf(config.getDatabaseServerId()));
         } else {
             // 生成随机 server id
             props.setProperty("database.server.id", String.valueOf(CoreMetrics.currentTimeMillis() % 1000000000L));
         }
+        // schema change 事件为 MySQL 连接器能力（Postgres 经 schema history 承载 DDL 上下文）
+        props.setProperty("include.schema.changes", String.valueOf(config.isIncludeSchemaChanges()));
     }
     private static void configurePostgresConnector(Properties props, DebeziumConfig config, String serverName) {
-        props.setProperty("database.server.name", serverName);
         props.setProperty("database.dbname", config.getDatabaseName());
         props.setProperty("plugin.name", "pgoutput");
-    }
-    private static void configureSqlServerConnector(Properties props, DebeziumConfig config, String serverName) {
-        props.setProperty("database.server.name", serverName);
-        props.setProperty("database.names", config.getDatabaseName());
     }
     private static String getConnectorClass(String connectorType) {
         switch (connectorType.toLowerCase()) {
@@ -154,11 +147,10 @@ public class DebeziumEngineConfig {
             case "postgres":
             case "postgresql":
                 return "io.debezium.connector.postgresql.PostgresConnector";
-            case "sqlserver":
-                return "io.debezium.connector.sqlserver.SqlServerConnector";
             default:
                 throw new NopException(DebeziumErrors.ERR_DEBEZIUM_UNSUPPORTED_CONNECTOR_TYPE)
-                        .param("connectorType", connectorType);
+                        .param("connectorType", connectorType)
+                        .param("supportedTypes", "mysql, postgres");
         }
     }
 }

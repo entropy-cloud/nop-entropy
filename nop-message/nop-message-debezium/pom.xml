@@ -13,7 +13,7 @@
     <description>Debezium CDC integration for Nop Platform</description>
 
     <properties>
-        <debezium.version>2.4.0.Final</debezium.version>
+        <debezium.version>3.7.0.Final</debezium.version>
     </properties>
 
     <dependencies>
@@ -61,13 +61,11 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Debezium SQL Server Connector (optional) -->
+        <!-- Official JDBC storage for schema history (cdc-design.md §3.4) -->
         <dependency>
             <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-sqlserver</artifactId>
+            <artifactId>debezium-storage-jdbc</artifactId>
             <version>${debezium.version}</version>
-            <scope>provided</scope>
-            <optional>true</optional>
         </dependency>
 
         <!-- SLF4J for logging -->

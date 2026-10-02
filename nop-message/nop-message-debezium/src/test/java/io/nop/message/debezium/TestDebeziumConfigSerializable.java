@@ -38,7 +38,6 @@ public class TestDebeziumConfigSerializable {
         config.setSnapshotMode("schema_only");
         config.setHeartbeatInterval(Duration.ofSeconds(10));
         config.setIncludeSchemaChanges(true);
-        config.setIncludeDdl(true);
         config.addExtraProperty("custom.key", "custom.value");
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -67,7 +66,6 @@ public class TestDebeziumConfigSerializable {
         assertEquals("schema_only", restored.getSnapshotMode());
         assertEquals(Duration.ofSeconds(10), restored.getHeartbeatInterval());
         assertTrue(restored.isIncludeSchemaChanges());
-        assertTrue(restored.isIncludeDdl());
         assertEquals("custom.value", restored.getExtraProperties().get("custom.key"));
     }
 }
