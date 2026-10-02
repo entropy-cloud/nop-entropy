@@ -2,18 +2,21 @@
   "data": {
     "logMessages": [
       {
+        "context": null,
         "logTime": "@var:rule-log-time",
         "message": "MISMATCH",
         "ruleNodeId": "@var:NopRuleNode@sid",
         "ruleNodeLabel": "Fall"
       },
       {
+        "context": null,
         "logTime": "@var:rule-log-time_1",
         "message": "MATCH",
         "ruleNodeId": "@var:NopRuleNode@sid_2",
         "ruleNodeLabel": "Winter"
       },
       {
+        "context": null,
         "logTime": "@var:rule-log-time_2",
         "message": "MATCH",
         "ruleNodeId": "@var:NopRuleNode@sid_3",
