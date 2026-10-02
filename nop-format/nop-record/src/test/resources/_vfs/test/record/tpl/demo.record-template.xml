@@ -1,0 +1,8 @@
+<record x:schema="/nop/schema/record/record-template.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <template>{"a":${a}}</template>
+    <fields>
+        <field name="a" type="int" mandatory="true" defaultValue="1"/>
+        <!-- optional 字段：变量未提供时跳过注入，模板未引用则不参与渲染 -->
+        <field name="b" type="String" optional="true"/>
+    </fields>
+</record>

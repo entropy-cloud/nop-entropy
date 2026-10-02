@@ -1,0 +1,6 @@
+<record x:schema="/nop/schema/record/record-template.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <template>{"x":${x}}</template>
+    <fields>
+        <field name="x" type="int" mandatory="true"/>
+    </fields>
+</record>

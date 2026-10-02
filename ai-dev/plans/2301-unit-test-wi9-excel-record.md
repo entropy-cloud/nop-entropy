@@ -39,61 +39,71 @@ nop-excel（16.44%）模型解析/公式计算/导出（golden 快照模式）�
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: completed
 Targets: `nop-format/nop-excel|nop-record/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] excel ≥15 用例（解析/公式模型/导出 golden；显式断言核心字段 + 快照全结构比对）。
-- [ ] record ≥6 roundtrip 用例。
-- [ ] 两模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+- [x] excel 28 活动用例 + 1 @Disabled 录入（ExcelDateHelper 序列日期/ExcelFormatHelper/UnitsHelper/FileMagic/PredefinedColors/PageMargins/公式模型解析/导出 golden 2 场景）。
+- [x] record 31 用例（BinaryWordType roundtrip/EOL/LV/FLS codec、XOR/zlib helper、模型级 roundtrip、RecordTemplateManager 语义）+ 3 个 record-template fixtures（仓库首个该类型样例）。
+- [x] 两模块 `mvnq -- test -pl :<module> -am -fae` 全绿（excel 76 / record 192 tests，既有零回归）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增测试 ≥21 用例，含显式语义断言；golden 文件入库。
-- [ ] 两模块测试全绿。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 15 测试类 / 59 活动用例 + golden fixtures 入库（≥21）。
+- [x] 两模块测试全绿。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI9 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 删两模块 exec → baseline 脚本复测，记录增量。
-- [ ] 残余缺口显式裁定（periphery 目标 30%）。
+- [x] 删两模块 exec → baseline 脚本复测（label wi9-2026-10-02）：excel 16.44%→31.06%（+14.62，**首次达标 ≥30%**）、record 59.17%→64.48%（+5.31）；excel 低覆盖 34→24、record 11→5。
+- [x] 残余缺口显式裁定（Deferred 段：excel imp 导入链需真实 xlsx fixture、chart 子系统、reader/IO 边角）。
 - [ ] 独立子 agent closure audit 通过后勾选 roadmap WI9 checkbox。
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI9 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI9 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 两模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码/pom 零修改（git 证据）
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 两模块全部新增测试绿（含既有测试零回归）
+- [x] 产品代码/pom 零修改（git 证据：仅 src/test 新增）
+- [x] 覆盖增量实测记录
+- [x] 残余缺口显式裁定（无静默降级）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：导出/编解码测试断言产出内容而非仅调用（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2301-unit-test-wi9-excel-record.md --strict` 退出码 0
 - [ ] roadmap WI9 checkbox 与 plan/log 一致
 
+## 执行偏差记录
+
+1. golden 录入：@Disabled 录入方法无法被 surefire 执行，临时移除 @Disabled 运行一次、复制 target/golden 产物后立即恢复——最终入库状态符合 testing.md 惯例。
+2. 修复断言期间的中间调试轮次部分用 `-pl :nop-record -fae` 省时；两模块最终证据运行均为 plan 指定命令且退出码 0。
+
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### nop-excel 残余 24 类 / nop-record 残余 5 类
+
+- Classification: `optimization candidate`（WI13 复裁）
+- Why Not Blocking Closure: 两模块均已达 periphery 30% 目标（excel 首次达标）。excel 残余主体为 imp 导入链 5 类（需真实 xlsx 二进制 fixture，约 450 行）、chart 子系统 5 类、未测常量枚举 4 类（可低成本补齐）；record 残余 5 类全部为 reader/IO 分块缓冲边角（29.8%-37.5%），属 periphery 残余。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/unit-test-coverage-roadmap.md`（WI13 复裁）
 
 ## Non-Blocking Follow-ups
 
-（执行结束时填写）
+- 7 项产品缺陷嫌疑走独立 bug 流程（bugs/2026-10/2026-10-02-wi9-defect-suspects.md）：UnitsHelper FixedPoint 负数不对称、parseYYYYMMDDDate 分隔符/lenient 归一化、PredefinedColors 索引冲突、FLS 空值缺省不一致、RecordTemplateManager vars 防御性拷贝、文本路径类型反推缺失、record-template 记录级 generator 疑似死代码。
 
 ## Closure
 

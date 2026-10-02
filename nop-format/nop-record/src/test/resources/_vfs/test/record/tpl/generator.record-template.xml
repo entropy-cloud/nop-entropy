@@ -1,0 +1,10 @@
+<record x:schema="/nop/schema/record/record-template.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <template>{"a":${a},"dbl":${dbl}}</template>
+    <fields>
+        <field name="a" type="int" mandatory="true"/>
+        <field name="dbl" type="int">
+            <!-- xpl 域的文本内容按完整表达式编译，字段 generator 先于模板求值 -->
+            <generator>c * 2</generator>
+        </field>
+    </fields>
+</record>
