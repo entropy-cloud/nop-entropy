@@ -46,56 +46,66 @@ Targets: `nop-kernel/nop-xlang/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] WI0 快照 0% 靶点中选定 ≥10 个补测（按靶点过滤规则剔除 antlr 生成类/接口/抽象类/内部类）。
-- [ ] xpl/xscript 求值边界语义用例 ≥10 个（内建函数边界、运算符错误路径、解析错误恢复）。
-- [ ] `mvnq -- test -pl :nop-xlang -am -fae` 全绿。
+- [x] WI0 快照 0% 靶点补测 11 个（DeltaDiffer/XDslCleaner/XSchemaToJsonSchema/BizActionGenHelper/ExpressionToFilterBeanTransformer/JavaToXLangTransformer/PrintResolvedIdentifier/ObjXmlValueHelper/ReflectObjMetaParser/VarExecutableFunction/BetweenOpExecutable，全部退出低覆盖名单）。
+- [x] xpl/xscript 求值边界语义用例 31 个（TestEvalBoundarySemantics 18 + TestXplBoundarySemantics 13：内建函数边界、运算符错误路径、解析错误恢复、c:unit outputMode 语义发现）。
+- [x] `mvnq -- test -pl :nop-xlang` 855 tests 全绿（0F/0E，既有 skip 2）；`-am` 链经 CLI 排除 8 个并行工作流外来红类后退出码 0（偏差 1，nop-xlang 自身不受影响）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增/扩展测试 ≥20 个用例，含显式语义断言。
-- [ ] 测试全绿（既有测试零回归，以 live 为准）。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 13 测试类 + 1 测试资源，共 123 用例，全部含显式语义断言。
+- [x] 测试全绿（855 tests，既有零回归）。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI3 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 重建 nop-xlang 覆盖报告：删模块 `target/*.exec` → `ai-dev/tools/coverage-baseline.sh --skip-test --label wi3-2026-10-02`（与 WI0 同管线同口径），记录增量。
-- [ ] 残余缺口显式裁定（语义基线口径）。
+- [x] 重建 nop-xlang 覆盖报告（同管线同口径，分母含 antlr 生成类）：行覆盖 47.70%→49.73%（+2.03pp），分支 35.33%→37.37%；快照 coverage-baseline-wi3-2026-10-02.json；lowCoverageClasses 41→30。
+- [x] 残余缺口显式裁定：antlr 生成类 4 + 接口 5 + 内部/抽象 4 按过滤规则永久剔除；可测残余 17 类（XLangASTOptimizer 1386L 等）显式裁定保留给后继 WI（golden 快照模式适配 AST 打印/优化器）。
 - [ ] 独立子 agent closure audit 通过后勾选 roadmap WI3 checkbox。
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI3 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI3 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码/pom 零修改（git 证据）
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 全部新增测试绿（含既有测试零回归：855/0F/0E）
+- [x] 产品代码/pom 零修改（git 证据：仅 src/test 新增）
+- [x] 覆盖增量实测记录（47.70%→49.73%）
+- [x] 残余缺口显式裁定（无静默降级：/antlr/接口/内部类剔除、可测残余 17 类留给后继）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：新增测试断言语义（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2295-unit-test-wi3-nop-xlang.md --strict` 退出码 0
 - [ ] roadmap WI3 checkbox 与 plan/log 一致
 
+## 执行偏差记录
+
+1. `-am` 链外来红：工作区存在并行 WI1/WI2 执行器的进行中未跟踪测试（nop-commons 2 类 + nop-core 6 类），按"只新增 nop-xlang/src/test"约束不可修，采用 CLI 排除（`-Dtest='!…' -Dsurefire.failIfNoSpecifiedTests=false`）使 -am 链退出码 0；nop-xlang 单独跑无任何排除即全绿。WI1/WI2 最终门均已复核全绿（时序性中间态，非真实回归）。
+2. xdef 测试资源新增 1 个（`src/test/resources/_vfs/test/wi3-clean.xdef`，测试资源范围）。
+
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### nop-xlang 残余低覆盖类（30 个）
+
+- Classification: `optimization candidate`（后继 WI 靶点池）
+- Why Not Blocking Closure: 语义基线口径下本 WI 已补 123 用例并实测 +2.03pp；残余 30 类中 13 个为 antlr 生成类/接口/内部抽象类（按过滤规则永久剔除），17 个可测类显式裁定保留——XLangASTOptimizer(1386L)/XLangExpressionPrinter(350L) 等适合 golden 快照模式，归入 WI13 复裁与后继靶点池。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/unit-test-coverage-roadmap.md`（WI13 复裁）
 
 ## Non-Blocking Follow-ups
 
-- JsPromise 错误路径三处偏离（既有审计发现）——修复立项时回归测试并入本 WI 记账。
+- 5 项产品缺陷嫌疑走独立 bug 流程（bugs/2026-10/2026-10-02-wi3-defect-suspects.md）：ExpressionToFilterBeanTransformer 常量在左语义反转、CallExpression.getArgument 越界、XSchemaToJsonSchema union 分支、JavaToXLangTransformer 字段丢失（janino 3.1.12）、JsPromise 三处（既有审计项，现有 TestJsPromise 可作回归基线）。
 
 ## Closure
 
@@ -106,10 +116,6 @@ Completed:
 Closure Audit Evidence:
 
 - Reviewer / Agent:（待独立子 agent closure audit 后填写）
-
-Follow-up:
-
-- （待填写）
 
 ## Optional Sections
 

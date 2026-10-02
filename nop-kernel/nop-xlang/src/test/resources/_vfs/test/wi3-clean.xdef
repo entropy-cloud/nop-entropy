@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<root x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef"
+      name="string"
+      desc="string"
+      count="int">
+
+    <item name="!var-name" xdef:unique-attr="name"/>
+
+</root>
