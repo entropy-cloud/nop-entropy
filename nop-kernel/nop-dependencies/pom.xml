@@ -45,9 +45,13 @@
 
         <pulsar.version>2.8.0</pulsar.version>
 
-        <!-- kafka-clients: production stream data-plane backend (nop-message-kafka).
-             3.5.0 requires JDK 11+ (nop-entropy baseline is JDK 17). -->
-        <kafka.version>3.5.0</kafka.version>
+        <!-- kafka-clients: production stream data-plane backend (nop-message-kafka)
+             + Debezium 3.7 嵌入式引擎（nop-message-debezium 的 connect-* 3.9.2 依赖面）。
+             3.9.2 要求 JDK 11+（nop-entropy baseline 为 JDK 17）；client API 对
+             nop-message-kafka 的 3.5 用法向后兼容，且 BrokerSecurityConfigs.SSL_CLIENT_AUTH
+             等 connect-runtime 需要的内部字段在 3.8+ 才存在（3.5.0 会致引擎启动即
+             NoSuchFieldError）。 -->
+        <kafka.version>3.9.2</kafka.version>
 
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 

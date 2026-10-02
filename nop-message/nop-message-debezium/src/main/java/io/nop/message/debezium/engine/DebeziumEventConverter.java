@@ -81,18 +81,32 @@ public class DebeziumEventConverter {
         String schema = (String) source.get("schema");
         String table = (String) source.get("table");
 
-        // MySQL 特定字段
-        Long binlogPosition = (Long) source.get("pos");
+        // MySQL 特定字段（JSON 数值经解析可能落到 Integer/Long 任一宽度，统一数值化）
+        Long binlogPosition = asLong(source.get("pos"));
         String binlogFile = (String) source.get("file");
 
         // PostgreSQL 特定字段
-        Long lsn = (Long) source.get("lsn");
+        Long lsn = asLong(source.get("lsn"));
 
         // SQL Server 特定字段
-        Long commitLsn = (Long) source.get("commit_lsn");
+        Long commitLsn = asLong(source.get("commit_lsn"));
 
         return new ChangeEventMetadata(connector, serverName, database, schema, table, "data",
                 binlogPosition, binlogFile, lsn, commitLsn);
+    }
+
+    private static Long asLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String str && !str.isEmpty()) {
+            try {
+                return Long.parseLong(str);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static Map<String, Object> parseKey(byte[] keyBytes) {
