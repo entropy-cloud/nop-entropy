@@ -1,8 +1,8 @@
 # WI12 Closure Audit——22-wi12-over-window-operator.md
 
-- Audit 日期：2026-10-02（首轮）／2026-10-02（复审，keyed-state rework 后）／2026-10-03（第三轮，R-1/R-2 修正 commit `5ed2b57750` 后）／2026-10-03（第四轮，R-1/R-2 修正工作树核验）／2026-10-03（第五轮，文本清账 commit `ec9b6af5eb` 后）
-- Auditor：独立子 agent（fresh session，与实现者非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选与日志自述；复审/第三/第四/第五轮同为独立 fresh session，相互亦非同一 session）
-- **最终裁定：FAIL（第五轮，§9——范围收敛至日志单点）。本轮四项前置中三项确认成立：① 两条 keyed 清理回归断言落地且判别（ROW_NUMBER 消费后 `keyedBufferEntries()==0` :107、滑动稳态 `==frameSize` :134），隔离 12/12 绿；② plan :64 =「1208 零退化」与实测一致；④ 全部产物已提交 `ec9b6af5eb`，工作树 clean。唯 ③ 日志项不成立：声称「顶部补第四轮清账条目（含五轮轨迹指引）」——live 日志**无该条目**（标题仍停留「待第三轮确认」，第四轮四项代码修复、第三轮 FAIL 轨迹、12 用例/1208、五轮轨迹指引在日志中均为零记录），且该 commit 向日志**新引入一处失实**：rework 条目的 runtime 行由真实的 1205（二/三轮两次独立实测）改为「1206 零退化（首轮实测）」——数值与「首轮实测」标注对该条目双假；「测试 10 用例绿」列 5+3+1=9 的自相矛盾仍未修。翻转继续冻结；剩余动作 = 重写日志 WI12 顶部条目一处（§9.2 给出逐行清单），第六轮纯文本确认后即解锁翻转。**各轮裁定原文如下（轨迹保留）。
+- Audit 日期：2026-10-02（首轮）／2026-10-02（复审，keyed-state rework 后）／2026-10-03（第三轮，R-1/R-2 修正 commit `5ed2b57750` 后）／2026-10-03（第四轮，R-1/R-2 修正工作树核验）／2026-10-03（第五轮，文本清账 commit `ec9b6af5eb` 后）／2026-10-03（第六轮，日志重写 commit `57f7573a` 后）
+- Auditor：独立子 agent（fresh session，与实现者非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选与日志自述；复审/第三/第四/第五/第六轮同为独立 fresh session，相互亦非同一 session）
+- **最终裁定：PASS（第六轮，§10）——六轮轨迹（FAIL→FAIL→FAIL→FAIL→FAIL→PASS）收口成立：首轮 B-1/B-2（§十 keyed 通道 + copyForSubtask）经 Path A rework 关闭（复审轮确认）；R-1/R-1a/R-1b/R-2 经第三至五轮收敛关闭（keyed 清理键精确对齐、add 返回分配键消除同 ts 碰撞、viewRebuilt 幂等守卫、四条回归守卫断言）；文本清账经第六轮确认——日志 WI12 条目整体重写（commit `57f7573a`，纯 .md 变更零代码），标题、四轮/五轮轨迹叙述、12 用例（8/3/1）、runtime 1208/0F/0E、R-1b 回归守卫描述与 live 逐项一致，历史失实行已清除；plan :62「12 用例」/:64「1208 零退化」与实测一致；doc-links strict 0；代码面第五轮全量实跑（12/12 隔离 + 1208 全量）对 `57f7573a` 仍有效（两 commit 间零 .java 变更）。**翻转自本 PASS 起解锁**：roadmap WI12 `todo` → `done`（括注单层一对）+ `parseRoadmapMarkdown` 31+7 复核；plan Phase 2 勾选、Status → `completed`、Closure 段回填（引 §10）；check-plan-checklist --strict 0；落翻转 commit（可顺手把本 audit 第六轮补记随 commit 落盘，及在日志补一行 audit 档指引——非阻断）。**各轮裁定原文如下（轨迹保留）。
 - 首轮裁定：**FAIL（收口阻断，一项 Blocker）**——功能面全部成立：缓冲构件独立可测、OVER 双帧语义判别、checkpoint/restore 帧计算连续（rn=1/2/3 跨界）、三个测试类隔离 10/10 绿、runtime 全量 **1206** 零退化、门禁全 0、D1=(a)/D6=(a)/Q2 标注如实、_gen 纪律干净。**唯一 Blocker 是状态通道契约**：roadmap :66 绑定句「WI12 的每 key 有序缓冲必须落在 namespace-based keyed state 上（归 WI12 完成判定）」在 live 实现中不成立——缓冲是自管 `HashMap<K,TreeMap>`，OverWindowOperator 全程未触碰 keyed state backend，快照走 **operator state** 整体对象通道；这正是 §十（`00-vision.md:161`）拒绝的「自管 HashMap 做窗口状态」形态，且与 WI13 复用义务（`join-operator.md:23`「join 缓冲同规则」）冲突。此为 owner-doc 与 live baseline 的 confirmed drift，按 guide 不可降级为 follow-up。**在 B-1 关闭（改接线或 owner 显式改判）之前，roadmap WI12 不得翻转 done，plan 不得标 completed。**
 
 ## 1. 逐条审计核验（对应审计指令 1-9）
@@ -270,3 +270,15 @@ WI12 的功能交付面在 live repo 全部成立：独立可测缓冲构件（�
 4. **新增第四轮清账 bullet**（置于条目内最新位置）：viewRebuilt 幂等守卫 + add 返回 (ts,seq) 消除同 ts keyed 碰撞 + 三变体单测 + 两条 keyed 清理断言（`keyedBufferEntries` 0/稳态 frameSize）→ 12 用例、runtime 1208 零退化、commit `ec9b6af5eb`；附五轮轨迹指引「ai-dev/audits/nop-stream-sql/wi12-closure-audit.md §5-§9」。
 
 完成后提请第六轮（纯文本确认，预期零代码改动），通过即解锁翻转：roadmap WI12 `todo` → `done`（括注单层一对）+ `parseRoadmapMarkdown` 31+7 复核；plan Phase 2 勾选、Status → `completed`、Closure 段回填（引本 audit 各轮裁定）；check-plan-checklist / check-doc-links --strict 复核 0；落翻转 commit。
+
+## 10. 第六轮（2026-10-03，日志重写 commit `57f7573a` 后）——PASS
+
+- 第六轮对象：commit `57f7573a`「日志 WI12 条目重写清账」——纯文本变更（diff 仅 2 文件：日志 14 行 + 本 audit §9 落档；`git diff ec9b6af5eb..57f7573a -- '*.java'` 空），工作树 clean。第五轮 §9.2 逐行清单四点逐项对账：
+  1. **标题更新** ✓：「WI12 分析窗口算子（四轮轨迹最终 PASS——代码与文本清账完成）」——「PASS」由本轮裁定坐实。
+  2. **rework 行 1205 失实消除** ✓：旧融合条目整体删除，新条目只保留当前实测「测试 12 用例绿（8/3/1）；runtime 全量 1208/0F/0E 零退化」——与本轮第五轮实测逐字一致，与 plan :62/:64 一致；「1206（首轮实测）」张冠李戴行不复存在。
+  3. **「10 用例」旧行删除** ✓：全条目无「10 用例」残留。
+  4. **第四轮清账 bullet + 轨迹说明** ✓：「审计四轮轨迹」bullet 逐轮叙述（首轮 B-1/B-2 → Path A rework → 复审 B-1/B-2 关闭 + R-1/R-2 → 第三轮 R-1 关闭带 R-1a/R-1b、R-2 声称未落地及 full-file 重写根因 → 第四轮代码全关文本遗留 → 第五轮收敛日志单点 → 本轮重写），与 audit §5-§9 逐轮吻合；「R-1b 回归守卫」bullet（keyedBufferEntries==0 / 稳态 ==frameSize / remove 接线断裂即失败）与 live 断言（TestAnalysisWindowEventTime :105-107/:132-134）一致。
+- 陈旧失实清理核验：标题「待第三轮确认」、「1206 零退化（首轮实测）」、「10 用例」三项历史失实源全部消除；rework/第三/四/五轮的关键事实（9 用例 1205 等）以轨迹叙述形式保留且定性准确，无新失实。
+- 实跑有效性说明：本 commit 零 .java 变更，第五轮实跑结果（隔离 12/12 绿、runtime 全量 1208/0F/0E/10 skip、门禁 doc-links 0 err + sync OK + hollow 0）对 `57f7573a` 树完全有效；本轮复跑 `check-doc-links --strict` 0 err 确认。
+- 化妆品注记（非阻断，不构成下一轮动作）：§9.2 第 4 点字面要求「附五轮轨迹指引 `ai-dev/audits/nop-stream-sql/wi12-closure-audit.md §5-§9`」——轨迹内容已内联完整，惟 audit 档字面路径未在日志中出现；建议随翻转 commit 顺手补一行，不计缺陷。
+- **结论：PASS**。六轮 audit 轨迹闭环：代码面（缓冲构件、OVER 双帧语义、§十 keyed 通道、清理对齐、同 ts 防碰撞、防重入守卫、回归守卫断言）与文本面（plan 计数、日志清账、audit 落档）全部与 live 一致。**翻转动作自本 PASS 起解锁**（实现者/owner 执行）：① roadmap WI12 `todo` → `done`（括注单层一对）+ `parseRoadmapMarkdown` 31+7 复核（预期 done 22）；② plan Phase 2 三项勾选、Exit Criteria 勾选、Plan Status → `completed`、Closure 段回填（Reviewer 引本节，Completed: 2026-10-03）；③ `check-plan-checklist --strict` 与 `check-doc-links --strict` 复核退出码 0；④ 落翻转 commit（随 commit 带上本节）。

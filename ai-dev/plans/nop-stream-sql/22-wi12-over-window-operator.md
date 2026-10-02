@@ -1,6 +1,6 @@
 # 22 WI12 分析窗口算子
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI12 行、D6=(a)、Q2）、`ai-dev/design/nop-stream/join-operator.md` §5（有序缓冲复用）
 > Related: `ai-dev/plans/nop-stream-sql/12-wi10-window-parameterization.md`
@@ -66,20 +66,20 @@ Exit Criteria:
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（不同 task_id）：构件独立可测、OVER 语义判别、checkpoint 证据；证据落 ai-dev/audits/nop-stream-sql/wi12-closure-audit.md
-- [ ] audit 通过后 roadmap WI12 `todo` → `done`（括注单层一对）；`parseRoadmapMarkdown` 复核 31 + 7
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 独立子 agent closure audit（不同 task_id）：四轮轨迹——首轮 FAIL（B-1 §十 违反、B-2 共享实例）→ Path A rework → 复审（B-1/B-2 关闭；R-1/R-2 发现）→ 第三轮（R-2 守卫声称未落地）→ 第四轮（代码项全关）→ 第五轮文本清账确认 → 第六轮 PASS；证据落 ai-dev/audits/nop-stream-sql/wi12-closure-audit.md
+- [x] audit 通过后 roadmap WI12 `todo` → `done`（括注单层一对）；`parseRoadmapMarkdown` 复核 31 工作项 + 7 里程碑、22 done、无静默丢弃
+- [x] Plan Status → `completed`；check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI12 = done + 解析器 31 + 7 复核通过
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI12 = done + 解析器 31 + 7 复核通过
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 
 ## Closure Gates
 
@@ -94,14 +94,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 分析窗口算子落地——PerKeyOrderedBuffer 独立构件（8 单测）、OverWindowOperator 双帧语义（持久化走 keyed MapState §十 通道）、keyed 清理回归守卫两断言、checkpoint/restore E2E rn=1/2/3 跨界连续（A5 证据）。独立 closure audit 四轮轨迹（首轮 FAIL §十 违反 → Path A rework → R-1/R-2 发现与修复 → 文本清账）最终 PASS。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，四轮独立实读实跑）
+- Audit Session: 证据落档 ai-dev/audits/nop-stream-sql/wi12-closure-audit.md（四轮轨迹，最终 PASS）
+- Evidence:
+  - PerKeyOrderedBuffer 六 API + 具名 Serializable comparator + 序列化往返单测
+  - OverWindowOperator keyed MapState 持久化实读核验（open 自建 backend / 每元素 durable copy / snapshot 经 super 携带 keyed lineage）
+  - 隔离 12/12 绿；runtime 全量 1208/0F/0E 零退化（多轮独立复跑）
+  - 门禁：doc-links strict 0、invariants sync OK、scan-hollow 0、roadmap 31+7
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/22-wi12-over-window-operator.md --strict` 退出码 0
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work；WI13 复用 PerKeyOrderedBuffer 时留意 viewRebuilt 守卫时点（audit 第四轮 watch-only 注记）
