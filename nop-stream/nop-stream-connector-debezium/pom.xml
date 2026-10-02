@@ -40,6 +40,17 @@
             <artifactId>nop-stream-core</artifactId>
         </dependency>
 
+        <!--
+            WI 收口验证（跨库单管线 e2e）：pg source + jdbc-2pc dmlMode target 在同一 gated
+            测试内串跑——test scope only，产品依赖面不变。
+        -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-connector-jdbc</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-message-debezium</artifactId>

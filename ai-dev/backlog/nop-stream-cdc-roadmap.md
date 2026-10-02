@@ -94,7 +94,7 @@
 
 ### WI8 reference 验收场景与文档同步
 
-> 交付边界（诚实化）：本 WI 已交付 mysql 源侧全场景 E2E（snapshot→stream→kill→restore→续传不重不丢）、pg 源侧 r/c/u/d 全谱 E2E（DELETE 传播 + 键像）、JdbcSchemaHistory 真实落库（MySQL）、dmlMode UPSERT/UPSERT_DELETE 真库语义（H2 方言路径）。**跨库单管线 e2e（pg source 与 jdbc-2pc UPSERT_DELETE target 在同一条 stream 作业内串跑）尚未执行**——源/汇两侧契约均已独立真实验证，单管线串跑属组合回归，留作首个真实跨库同步需求进入时的首个 gated 用例。
+> 交付边界（2026-10-02 第二轮收口，用户裁定「执行」后更新）：本 WI 已交付 mysql 源侧全场景 E2E（snapshot→stream→kill→restore→续传不重不丢）、pg 源侧 r/c/u/d 全谱 E2E、JdbcSchemaHistory 真实落库（MySQL）、dmlMode UPSERT/UPSERT_DELETE 真库语义（H2 方言路径），**并已完成三项组合验证收口**：V1 = A 层 `snapshotMaxThreads=4` 真库 chunk 并行快照（2000 行完整交付零重复，`TestDebeziumRealMysqlParallel.testLayerA_*`）；V2 = B 层 `parallelism=2` 双实例真库路由隔离（各收各表、无交叉路由、实例名/offset/schema history/serverName 全隔离，`testLayerB_*`）；V3 = 跨库单管线 e2e（pg source → jdbc-2pc UPSERT_DELETE → 真实 MySQL 目标镜像 + ledger 幂等重提交，`TestDebeziumCrossDbSyncPipeline`）。V1/V2 挖出并修复两个真产品缺陷：B 层未按实例隔离 schema history（共享存储致 recovery 互锁卡死）与 serverName 共享（JMX MBean ObjectName 冲突致 registerMXBean 死循环）；另加固 MySQL 随机 server id 的实例名混淆（B 层同毫秒启动碰撞）。
 
 - 场景 1：mysql→mysql CDC 镜像——并行快照、增量、任意点 kill、checkpoint 恢复续传，目标与源最终一致且无重复提交（gated Testcontainers）。
 - 场景 2：pg→mysql 初始化加增量——DELETE 传播（UPSERT_DELETE）与 JdbcSchemaHistory 落库验证（gated）。

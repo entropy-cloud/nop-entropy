@@ -199,8 +199,11 @@ public class DebeziumEngineConfig {
         if (config.getDatabaseServerId() != null) {
             props.setProperty("database.server.id", String.valueOf(config.getDatabaseServerId()));
         } else {
-            // 生成随机 server id
-            props.setProperty("database.server.id", String.valueOf(CoreMetrics.currentTimeMillis() % 1000000000L));
+            // 随机 server id 混入连接器名 hash：B 层表路由的多个实例可能同毫秒启动，
+            // 纯时间戳派生会同 id 撞车（MySQL 拒绝重复 server id 的 binlog 注册）。
+            long mixed = CoreMetrics.currentTimeMillis() * 31L
+                    + config.getName().hashCode();
+            props.setProperty("database.server.id", String.valueOf(Math.floorMod(mixed, 1_000_000_000L) + 1));
         }
         // schema change 事件为 MySQL 连接器能力（Postgres 经 schema history 承载 DDL 上下文）
         props.setProperty("include.schema.changes", String.valueOf(config.isIncludeSchemaChanges()));

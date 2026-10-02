@@ -229,7 +229,7 @@ class TestDebeziumRealMysqlCdc {
         return restored;
     }
 
-    private static Thread runAndCollect(DebeziumCdcSourceFunction source,
+    static Thread runAndCollect(DebeziumCdcSourceFunction source,
                                         List<ChangeEvent> collected) {
         Thread runner = new Thread(() -> {
             try {

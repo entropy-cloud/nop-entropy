@@ -640,10 +640,41 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             if (result == cfg) {
                 result = serializationRoundTripCopy(cfg);
             }
-            result.setName(instanceName(resolveBaseName()));
+            String instance = instanceName(resolveBaseName());
+            result.setName(instance);
             result.setTableIncludeList(routedIncludeList());
+            // serverName 同步实例化：它决定 Debezium 指标 MBean 的 ObjectName 与 topic 前缀，
+            // 同 JVM 双实例共享 serverName 会让后注册者卡死在 JmxUtils.registerMXBean 重试循环
+            result.setServerName(instance);
+            qualifySchemaHistoryPerInstance(result, instance);
         }
         return result;
+    }
+
+    /**
+     * Schema history MUST be instance-qualified in B-layer parallel mode: two instances
+     * sharing one history store adopt each other's DDL records during recovery (the
+     * second connector sees "storage was found, use pre-existing storage" and stalls
+     * against the first instance's state). File history gets an instance-prefixed file
+     * name under the same directory; JDBC history gets an instance-suffixed table name.
+     */
+    private static void qualifySchemaHistoryPerInstance(DebeziumConfig config, String instance) {
+        String path = config.getSchemaHistoryPath();
+        if (path != null && !path.isEmpty()) {
+            java.nio.file.Path p = java.nio.file.Path.of(path);
+            java.nio.file.Path parent = p.getParent();
+            config.setSchemaHistoryPath((parent == null ? "" : parent + "/")
+                    + instance + "-" + p.getFileName());
+        }
+        String table = config.getSchemaHistoryJdbcTable();
+        config.setSchemaHistoryJdbcTable(
+                (table == null || table.isEmpty() ? "nop_cdc_schema_history" : table)
+                        + "_" + lastSegment(instance));
+    }
+
+    private static String lastSegment(String instance) {
+        int dash = instance.lastIndexOf('-');
+        return dash >= 0 ? instance.substring(dash + 1) : instance;
     }
 
     private String resolveBaseName() {

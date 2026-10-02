@@ -2,7 +2,7 @@
 
 > 定位：Debezium CDC source（`DebeziumCdcSourceFunction`，`nop-stream-connector-debezium`）与 CDC 落库（`jdbc-2pc` dmlMode）的生产操作手册。
 > 设计基线：Debezium 3.7 嵌入式引擎、两层单机并行（A 层引擎内 chunk 快照并行 + B 层 subtask 表路由）、connectorType 白名单 mysql/postgres、schema history 无静默默认、offset 真相源钉定；连接器能力矩阵见 `03-modules/nop-stream-connectors.md`；checkpoint 机制总览见 owner doc `03-modules/nop-stream.md`。
-> 本文关键声称带 live 行为核对锚点（测试名），均可通过模块测试复现；真实数据库行为由 gated 集成测试钉定（`TestDebeziumRealMysqlCdc` / `TestDebeziumRealPostgresCdc`，docker 不可达时显式 SKIP）。
+> 本文关键声称带 live 行为核对锚点（测试名），均可通过模块测试复现；真实数据库行为由 gated 集成测试钉定（`TestDebeziumRealMysqlCdc` / `TestDebeziumRealPostgresCdc` / `TestDebeziumRealMysqlParallel`（A 层并行快照 + B 层双实例路由）/ `TestDebeziumCrossDbSyncPipeline`（pg→MySQL 跨库单管线），docker 不可达时显式 SKIP）。
 
 ## 机制总览（先读）
 
@@ -27,7 +27,7 @@
 ## 二、offset 恢复与重放
 
 1. **恢复路径**：作业重启 → 从最近 durable checkpoint 恢复 → `initializeState` 从 `cdc-offsets` 条目恢复 offset 到 backing store → engine 续读。
-   - 核对锚点（offset round-trip）：`TestDebeziumCdcCheckpoint.testSnapshotStateStoresOffsetsFromStore` / `testInitializeStateRestoresOffsetsToStore` / `testSnapshotRestoreRoundTrip`；真实 MySQL 全链路（snapshot→stream→kill→restore→续传不重不丢）由 gated `TestDebeziumRealMysqlCdc.testSnapshotStreamKillRestoreResume` 钉定。
+   - 核对锚点（offset round-trip）：`TestDebeziumCdcCheckpoint.testSnapshotStateStoresOffsetsFromStore` / `testInitializeStateRestoresOffsetsToStore` / `testSnapshotRestoreRoundTrip`；真实 MySQL 全链路（snapshot→stream→kill→restore→续传不重不丢）由 gated `TestDebeziumRealMysqlCdc.testSnapshotStreamKillRestoreResume` 钉定；A 层并行快照完整性（threads=4，2000 行零重复）与 B 层双实例路由隔离由 gated `TestDebeziumRealMysqlParallel` 钉定——**B 层实例的 serverName 与 schema history 存储均按实例隔离，不可共享**（共享会分别导致 JMX MBean 注册死循环与 recovery 互锁，均为真库测试发现并已修复的产品缺陷）。
 2. **重放语义**：恢复后从 checkpoint 位点重读——checkpoint 之后、崩溃之前已发的事件会**重发**（source 边界 at-least-once）；配合 2PC sink 端到端 exactly-once。**键控 sink（UPSERT/UPSERT_DELETE）使重放结构性安全**（第五节）。
 3. **B 层并行的恢复**：operator state 本就 per-subtask——每实例恢复自己的 offset，路由函数是纯函数（表名 + N 决定分片），restore 后分片一致。
 4. **升级语义**：Debezium 大版本升级（如 2.x → 3.x）存在 offset 格式破坏性变更，**不支持跨大版本位点恢复**——升级 = 重新 initial snapshot，安全性由键控 upsert 幂等保证（cdc-design.md §3.4）。
