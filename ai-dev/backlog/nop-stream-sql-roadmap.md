@@ -264,7 +264,7 @@
 
 ### Phase 5 — SQL 编译与接口面（门控归属以 Purpose 表为准：WI16 WI17 WI18 WI19 WI22 触门，WI20 与 WI23 不触门；WI21 挂 Phase 3）
 
-- WI16 SQL 子集与不支持清单确认: `todo`（deps WI0b 与 WI0c 与 WI3；Item Type Decision；完成判定 纳入面与不支持清单定稿并覆盖 D4 选定的 TUMBLE 语法面与 D5 的排除项、W2 三档策略确认或微调、编译器错误码表落 ai-dev/design/nop-stream/sql-subset-and-semantics.md〔未来交付物〕；D4 与 D5 已在 WI0b 落档，本 WI 只做确认与错误码表）
+- WI16 SQL 子集与不支持清单确认: `done`（deps WI0b 与 WI0c 与 WI3；Item Type Decision；sql-subset-and-semantics.md 新增四节定稿——§4a 不支持清单九项每项附 fail-fast 形态与钉码测试指认，§4b 纳入面总表九行含 TUMBLE 语法面现状锚点即 grammar 变更尚未落地须随 WI17 前补，§4c W2 三档确认，§4d 错误码表三段零新增码逐项对账钉码测试；独立 closure audit 首轮 FAIL 一项 M-1 即 TUMBLE 归属 WI1 失实修正后复核 PASS 2026-10-02；承载 plan ai-dev/plans/nop-stream-sql/19-wi16-subset-confirmation.md）
 - WI17 SQL 编译器实现: `todo`（deps WI7 与 WI8a 与 WI8b 与 WI8c 与 WI8d 与 WI9 与 WI10 与 WI13 与 WI16；Item Type Feature；完成判定 EQL AST 编译为 D8 选定形态，WHERE 与投影走 filter 与 map 内联 xpl，聚合落 WI8c 的 aggregatorRef 与 join 落 WI8d 的 joinRef；宿主模块与 pom 依赖按 D13 落档结论落地，选新模块时含 pom 与 xdef 资源注册；产物通过既有 xdef 校验与 builder，EQL 错误码映射到 stream 错误码）
 - WI18 用户接口面与用户文档: `todo`（deps WI16 与 WI17；Item Type Feature；完成判定 D8 选定入口具名可调用；TestStreamSqlEntryE2E 从 SQL 文本到 sink 输出端到端跑通；用户文档写入 docs-for-ai/03-modules/nop-stream-sql.md 并登记 docs-for-ai/INDEX.md 与 source-anchors）
 - WI19 Delta 定制验证: `todo`（deps WI17；Item Type Proof；完成判定 编译产物可被 Delta 覆盖定制且有用例，并显式验证 §八 10 即 Delta 只改模型不 patch runtime object；记录单一确定结论及其证据，判据为前句两项，不留二选一判据）

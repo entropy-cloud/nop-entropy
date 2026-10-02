@@ -72,6 +72,71 @@
 | Q1 | CI 是否纳入该 flag 保持未决（本裁定不裁）；WI3/WI5/WI20 按 opt-in 执行 |
 | 受影响 WI | WI3、WI5、WI20 |
 
+## 4a. D5 不支持清单（WI16 定稿）
+
+WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fast 形态与代码指认——清单不是愿望列表，每一项都有当前的显式失败路径：
+
+| # | 不支持项 | 当前 fail-fast 形态 | 指认 |
+|---|---|---|---|
+| 1 | 全局 ORDER BY / LIMIT（D5） | 编译器不支持清单（WI17 落地时对 SQL 文本报 `nop.err.eql.dialect-not-support-feature` 或对应 stream 码）；引擎无 sort/TopN 设施 | roadmap §3.1 |
+| 2 | 非等值 / 范围 join（FU-1） | join 声明面仅等值键集（leftKeyExprs/rightKeyExprs 数量相等校验，`nop.err.stream.invalid-arg`） | StreamModelDslBuilder.validateJoinDeclarations；TestParameterizedJoinModel.keyCountMismatchFailsFast |
+| 3 | retract / CDC 全链路（D1=(a) 终值语义降级） | 模型语义标注 last-value-wins，非 append-only 非 retract；`<reduce>` 逐条 emit 当前归约值 | sql-subset-and-semantics §1；StreamReduceOperator |
+| 4 | Flink SQL 方言兼容 | 非目标（roadmap Non-Goals），编译器不解析 Flink 方言 | roadmap Purpose |
+| 5 | DATE / TIMESTAMP / DECIMAL 列绑定（D7） | 九受管类型闭集严格解析，集合外类型名 `nop.err.stream.invalid-arg` | StreamSchemaRegistry.resolveManagedType；TestStreamSchemaConsumer |
+| 6 | DISTINCT 聚合 | `StreamSqlAggregation.withDistinct(true).create` 抛 `nop.err.stream.invalid-arg` | TestStreamSqlAggregations.distinctFailsFast |
+| 7 | 标量子集外表达式（正则函数调用 / CASE / CAST / IN 子查询 / 参数标记 / null AST） | StreamSqlExprCompiler 分派默认分支抛 `nop.err.stream.invalid-arg`（含 AST 节点类型） | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode |
+| 8 | FULL 窗口 join（窗口补齐语义） | join 声明面校验：窗口 join 的 joinType 限 INNER/LEFT，`nop.err.stream.invalid-arg`（FULL 非 window 补齐属 WI13 评估项，非窗口 FULL join 不受限） | TestParameterizedJoinModel.fullWindowJoinFailsFast |
+| 9 | CEP 级复杂编排 | 不在本 roadmap（productization roadmap 边界） | roadmap Rules |
+
+## 4b. 纳入面总表（WI16 定稿）
+
+| 能力 | 纳入形态 | 依据 |
+|---|---|---|
+| SELECT 投影 | WI9 标量子集：列引用（含限定名）/字面量/算术（+ - * / %，除法恒 double）/比较/AND-OR-NOT/IS NULL/BETWEEN/IN 值列表 | StreamSqlExprCompiler；TestStreamSqlExprCompiler |
+| WHERE | 既有 filter 通路（xpl-fn 内联）+ WI9 编译器形态（同标量子集） | stream.xdef filter；WI9 |
+| 聚合 | sum/count/avg/min/max 五 id（与 BaseRule.g4 五关键字对齐）；COUNT(*) 无参形态；DISTINCT 排除（4a#6） | StreamSqlAggregations.builtinIds 钉子 |
+| GROUP BY | keyBy（keyExpr）+ 窗口聚合（WI8c aggregatorRef）或持续聚合（WI11） | stream.xdef；WI11 |
+| 流时间窗口 | TUMBLE(t, INTERVAL) 伪表函数——D4 已裁语法面（DMLStatement.g4 表源分支），**grammar 变更尚未落地**（现状锚点：DMLStatement.g4 表源仅三分支、TUMBLE 仅注释残迹；W1 分析窗口四能力由 WI1 交付）需随 WI17 编译器接线前补 grammar 落地项；RDBMS 目标 T1/T2/T3 三档（见 4c） | sql-subset-and-semantics §3；TestDialectWindowSqlSnapshot 注记 |
+| 双流等值 join | WI8d 声明面（joins/joinRef，恰两条上游边）+ WI13 运行时；HASH 边禁入 | validateJoinDeclarations；join-operator.md |
+| 静态维表 lookup | process 桥接形态：ITableLookup 注入（应用实现包 IJdbcTemplate/IBatchLoader） | ITableLookup；WI14 |
+| union 多流 | DataStream.union（WI6）；重复声明边=重复合流 | multi-input-model.md |
+| 窗口声明 | windowingStrategies（WI10 duration 参数化 + D9 allowedLateness 放行） | window-failfast-decisions |
+
+## 4c. W2 三档确认（D4 落点复核）
+
+| 档 | 语义 | WI16 确认 |
+|---|---|---|
+| T1 直通 | 仅流目标，产物标注 stream-only | 确认：TUMBLE/HOP/SESSION 在 RDBMS 无原生对应（外部事实未在本仓库验证），直通产物必须带 stream-only 标注 |
+| T2 近似 | RDBMS 侧映射近似函数，**语义不等价必须标注** | 确认：仓库内唯一可证映射为 oracle date→trunc；各方言映射写法以 WI3 实跑矩阵为准（sql-window-dialect-matrix.md） |
+| T3 拒绝 | 无近似即拒绝并给替代建议 | 确认：拒绝时给 T1 降级建议（stream-only 执行） |
+
+## 4d. SQL 链路错误码表（WI16 定稿，零新增码）
+
+全部复用既有 `nop.err.*` 码；按链路阶段分组，每项与钉码测试对账：
+
+**声明面（DSL 构造期，StreamModelDslBuilder / AdvancedTransforms）**
+
+| 码 | 触发 | 钉码测试 |
+|---|---|---|
+| nop.err.stream.invalid-arg | aggregate bean/aggregatorRef 并存或双缺；join 上游非恰两条边；joinType 缺失；键集缺失/数量不等；timeout 依赖窗口或格式非法；union 无上游 | TestAdvancedTransforms（恰一两用例）、TestParameterizedJoinModel（六用例）、TestAdvancedTransforms.unionWithoutUpstreamFailsFast |
+| nop.err.stream.ref-unknown | 未知 aggregatorRef/joinRef/windowStrategyRef | TestAdvancedTransforms.aggregateUnknownAggregatorRefFailsFast、TestParameterizedJoinModel（两用例） |
+| nop.err.stream.upstream-type | aggregate 上游非 WindowedStream；union 上游 KeyedStream/WindowedStream | TestAdvancedTransforms（既有 + unionRejectsKeyedUpstream） |
+| nop.err.stream.edge-hash-redundant | HASH 边入 keyBy/union/join | TestAdvancedTransforms.hashEdgeIntoUnionFailsFast、TestParameterizedJoinModel.hashEdgeIntoJoinFailsFast |
+| nop.err.stream.not-implemented | join 运行时占位（WI13 交付前）；sideOutput | TestParameterizedJoinModel.selfJoinTopologyWalksValidationToRuntimePlaceholder |
+
+**编译期（SQL 文本 → AST → 求值器/声明面）**
+
+| 码 | 触发 | 钉码测试 |
+|---|---|---|
+| nop.err.stream.invalid-arg | 标量子集外表达式（含 null AST）；聚合 fnId 未知；expr 编译失败；参数个数/类型不符；DISTINCT；schema 受管类型名未知；多入边 gate 配置冲突；无 resolver provider | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode、TestStreamSqlAggregations、TestStreamSchemaConsumer、TestMultiEdgeGateConfigConsistency、TestAdvancedTransforms.aggregateRefWithoutProviderFailsFastNamingDependency、TestStreamAggregatorFunctionResolver（unknownFnIdFailsFast/exprCompileFailureFailsFast/missingArgumentOnNonCountFailsFast/sumOfNonNumericColumnFailsFastWithSchema） |
+
+**运行期（方言能力与执行）**
+
+| 码 | 触发 | 钉码测试 |
+|---|---|---|
+| nop.err.eql.dialect-not-support-feature | 方言未启用窗口能力位（既有消费点） | TestEqlCompileSql（既有断言） |
+| nop.err.stream.invalid-state / job-execute-failed 等 | 既有执行期错误面（不在 SQL 子集新增范围） | 既有测试 |
+
 ## 7. 裁定一致性备注
 
 - 六条裁定的 roadmap 行由承载 plan Phase 2 同步「已裁定 owner + 日期」；本档为落档权威文本。
