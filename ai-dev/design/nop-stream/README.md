@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-05-19
-> Updated: 2026-09-04（items 28+31：新增 dataplane-transport-design.md 数据面传输收敛与持续运行稳定性设计——D1 订阅范围三态（全订阅/指定 subtask 集/零订阅，拒绝惰性订阅）/D2 有界等待 + typed 溢出失败（默认 10s，拒绝重投协议）/D3 恢复预算按原因分池 + stall 冷却窗口/D4 BP-1+CHAOS-2 全格复验纳入/JDBC retained manifests 双存储契约；item 20：新增 pre-submit-validation-design.md 提交前校验设计——P-REQ-13/14 裁定：入口族收敛/bean 来源三形态/逐族探测红线/凭据引用驻留+瞬态解密/encrypt 等价物/两模式并存/分层错误契约；item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
+> Updated: 2026-10-02（新增 cdc-design.md——CDC 子系统设计：Debezium 2.4→3.7 升级（AsyncEmbeddedEngine 兼容/位点不跨大版本语义）/单机两层并行（A 层 snapshot.max.threads 透传 + B 层 subtask 确定性表路由，debezium-cdc 描述符 SINGLE_INSTANCE→PARALLEL）/状态存储分工（nop checkpoint = offset 真相源钉定，schema history 换轨 JdbcSchemaHistory）/jdbc-2pc dmlMode DML 语义（INSERT/UPSERT/UPSERT_DELETE，方言 upsert/delete，拒绝 XA）/连接器一等清单收敛 mysql+postgres/取代 SeaTunnel 范围矩阵与双 reference 验收口径；决策用户裁定 2026-10-02，实施待 plan）；2026-09-04（items 28+31：新增 dataplane-transport-design.md 数据面传输收敛与持续运行稳定性设计——D1 订阅范围三态（全订阅/指定 subtask 集/零订阅，拒绝惰性订阅）/D2 有界等待 + typed 溢出失败（默认 10s，拒绝重投协议）/D3 恢复预算按原因分池 + stall 冷却窗口/D4 BP-1+CHAOS-2 全格复验纳入/JDBC retained manifests 双存储契约；item 20：新增 pre-submit-validation-design.md 提交前校验设计——P-REQ-13/14 裁定：入口族收敛/bean 来源三形态/逐族探测红线/凭据引用驻留+瞬态解密/encrypt 等价物/两模式并存/分层错误契约；item 19：connector-design.md 新增 §8 连接器 SPI 注册与能力矩阵（P-REQ-28）——D1..D8 裁定含 OLAP 最小集三态与 tis OQ-2 收敛；item 16：新增 observability-design.md 可观测性与运维面设计——P-REQ-1..12 正式裁定 + 指标/暴露面/REST/健康/告警/重置/治理决策；item 14：新增 distributed-runbook.md 分布式运行手册；composite-scenario-design.md A.0-D 分布式落地裁定）
 
 ---
 
@@ -432,6 +432,13 @@ JobCoordinator / CheckpointCoordinator
   - 消息队列与 CDC 适配
   - SPI 注册与能力矩阵（§8：工厂形态/类型名命名空间/注册载体/单一事实源/catalog 工具入口/OLAP 最小集三态/tis OQ-2，item 19 / P-REQ-28）
 
+- `cdc-design.md`
+  - CDC 子系统设计（决策用户裁定 2026-10-02，实施待 plan）：Debezium 2.4→3.7 升级与兼容面（AsyncEmbeddedEngine / Java 17 baseline / 位点不跨大版本语义）
+  - 单机两层并行模型：A 层 `snapshot.max.threads` 引擎内 chunk 并行透传 + B 层 subtask 确定性表路由（描述符 SINGLE_INSTANCE→PARALLEL，单表+并行 fail-fast）
+  - 状态存储分工：nop checkpoint 为 offset 唯一真相源（`NopStreamOffsetBackingStore` 换轨钉定禁止），schema history 换轨 `JdbcSchemaHistory`（file 保留回退）
+  - CDC 目标端 DML：jdbc-2pc `dmlMode`（INSERT/UPSERT/UPSERT_DELETE），MySQL/PG 方言 upsert/delete，epoch 2PC+ledger 复用，拒绝 XA
+  - 连接器一等清单收敛（mysql+postgres，sqlserver 降级透传）、引擎线程模型单写者钉定、取代 SeaTunnel 范围矩阵与双 reference 验收口径、自完备约束裁定
+
 - `cep-design.md`
   - Pattern DSL、NFA 编译与匹配
   - SharedBuffer（引用计数 + Dewey 编号）
@@ -507,6 +514,7 @@ JobCoordinator / CheckpointCoordinator
 7. `window-design.md` — 窗口机制、Trigger、Evictor
 8. `time-model-design.md` — Watermark、时间戳分配
 9. `connector-design.md` — 连接器适配 + SPI 注册与能力矩阵（item 19）
+9b. `cdc-design.md` — CDC 子系统设计（Debezium 升级 / 单机并行 / 状态存储分工 / CDC sink DML / 取代 SeaTunnel 矩阵）
 10. `cep-design.md` — CEP 引擎
 11. `stream-dsl-design.md` — XDSL 声明式流处理模型
 12. `composite-scenario-design.md` — 复合场景设计与验收断言（S1/S2 + 分布式验证矩阵）

@@ -360,6 +360,8 @@ Pulsar 支持事务，可实现 `TwoPhaseCommitSinkFunction` 提供 exactly-once
 
 ### 5.4 DebeziumCdcSourceFunction + CDC checkpoint offset 集成（Stage 53）
 
+> 2026-10-02：CDC 子系统的升级/并行/存储分工/DML sink 设计移至 `cdc-design.md`（决策用户裁定，实施待 plan）。本章继续描述已落地基线；其中 §5.4.2 D1 的 registry 桥接经 cdc-design 核实在 Debezium 3.7 下仍需保留（Builder 仍无 `using(OffsetBackingStore)`），§7-7 successor 条件未触发。
+
 #### 5.4.1 定位
 
 `DebeziumCdcSourceFunction` 实现 `CheckpointedSourceFunction<ChangeEvent>`，使 CDC 消费位点参与 nop-stream checkpoint 协议：checkpoint 时把 Debezium offset map 持久化进 operator state，恢复时重建 offset store 让引擎从 checkpoint 位点继续消费（无重复、无丢失）。同时修复 `config` 字段的 `transient` 问题（跨 JVM 恢复丢失连接信息）。
