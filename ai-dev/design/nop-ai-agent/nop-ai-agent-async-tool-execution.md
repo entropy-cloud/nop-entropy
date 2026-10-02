@@ -71,6 +71,10 @@ flowchart TD
 - **入 ctx 顺序**：心跳/steering 消息先入 ctx，assistant 回复后入（会话时序）。
 - **放弃的 checkpoint 语义**：合成取消 result 对齐安全链 deny 先例——不写 TOOL_EXECUTION checkpoint（消息级闭合即终态，不污染不变量③三态判定）。
 
+**steering 唤醒轮（WI5 Phase A）**：等待期 steering 到达时模型空闲（无在飞请求可打断）——等待循环以 steering probe（200ms 量子感知）检测队列，命中即以非破坏性快照构造瞬时请求（占位 + steering 消息），LLM 成功后执行 drain-commit（steering 消息先/回复后入 ctx）；失败路径 steering 留队列不回灌（下轮 probe 重试）；guardrail BAIL 特例：弃置回复但 steering 消息必须入史（真实用户输入）。裁决复用同一三选项协议。COMPLETED 事件优先于 STEERING_PENDING（边界 drain 兜底消费，不丢失）。facade 路径（heartbeat 关闭模式）不接 probe——steering 仍只在 round 边界消费（语义不变）。
+
+**Phase B（在飞 LLM 请求打断-重建）立项裁定：不立项**（2026-10-02，plan 2286）。理由：Phase A 已覆盖等待期 steering 的及时处理（模型在工具等待期本就空闲，无需打断在飞请求）；在飞打断-重建要求请求可取消、新输入与占位状态合流、迟到响应按 turn 边界丢弃，改造成本覆盖流式语义且当前无场景驱动。successor 条件：出现流式 UI 桥接或亚秒级 steering 延迟需求时再立项。
+
 **唤醒轮响应能力**：assistant 回复可携带三种决策之一——继续等待、放弃（cancel 对应工具 future 并合成取消 result）、并行独立工作（回复携带新 tool_use）。**决策线协议**：回复文本 `WAIT` = 继续等待（不可解析时默认）；`ABANDON <callId>`（或裸 `ABANDON` = 全部）= 放弃；回复携带 tool_calls = 并行独立工作（全量安全链后并入 pending）。派生工具调用的约束：
 
 - 立即经**正常 dispatch 路径**执行：全量通过 7-checkpoint 安全链（`AgentSecurityConsultation.buildCheckpointChain:113-285`，逐 call 评估 `ReActAgentExecutor:1185-1193`）与 PRE_TOOL_ATTEMPT 执行级中间件，安全覆盖无豁免；

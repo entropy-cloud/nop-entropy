@@ -311,6 +311,9 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 
 实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5），实施契约见 `nop-ai-agent-async-tool-execution.md`。
 
+
+**等待期 steering 唤醒（WI5 Phase A，契约权威 `nop-ai-agent-async-tool-execution.md` §三.3）**：heartbeat 等待模式下，round 边界 drain 之上新增等待期 steering 唤醒——steering 到达（200ms 感知）即以占位瞬时请求处理新输入，drain-commit 在 LLM 成功后执行，失败留队列重试；round 边界 drain 保留为兜底消费点（heartbeat 关闭模式下是唯一消费点）。两条消费路径共享单消费者纪律（仅 ReAct 线程 poll）。
+
 ## 6. 结束条件
 
 引擎必须显式处理：

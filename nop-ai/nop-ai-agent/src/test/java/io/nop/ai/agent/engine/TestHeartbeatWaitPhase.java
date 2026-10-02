@@ -343,6 +343,148 @@ public class TestHeartbeatWaitPhase {
                 "B1 result is the real tool output: " + bMsg.getContent());
     }
 
+    // ---- WI5 Phase A: steering wakeup during the wait phase ----
+
+    @Test
+    void steeringDuringWaitIsConsumedAndLateResultInsertsInPlace() {
+        CompletableFuture<AiToolCallResult> slow = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", slow));
+        AgentExecutionContext ctx = buildContext("s-st-1", Set.of("slow-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        // heartbeat 1: WAIT — its action injects steering (simulating the
+        // Actor thread; CLQ is thread-safe)
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> ctx.enqueueSteering(new ChatUserMessage("[steer] switch to plan B")));
+        // steering wakeup turn: reply continues waiting; its action releases the tool
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> slow.complete(DelayedToolManager.successResult("built")));
+        chat.enqueue(ChatResponseFixtures.assistantText("final"), null);
+
+        ReActAgentExecutor executor = executor(chat, tools, null);
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        List<String> tokens = tokens(ctx.getMessages());
+        int callIdx = tokens.indexOf("call:A1");
+        int resultIdx = tokens.indexOf("result:A1");
+        // invariant ②: the late result lands right after its tool_call,
+        // BEFORE the steering message consumed during the wait
+        assertTrue(resultIdx == callIdx + 1,
+                "late result in-place before steering messages: " + tokens);
+        // steering message + reply both entered history (steering consumed
+        // mid-wait; check actual content — tokens() folds user messages)
+        assertTrue(ctx.getMessages().stream().anyMatch(m ->
+                        m instanceof ChatUserMessage && m.getContent() != null
+                                && m.getContent().contains("switch to plan B")),
+                "steering message in history: " + tokens);
+
+    }
+
+    @Test
+    void steeringWakeupAbandonAdjudicationWorks() {
+        CompletableFuture<AiToolCallResult> never = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", never));
+        AgentExecutionContext ctx = buildContext("s-st-2", Set.of("slow-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> ctx.enqueueSteering(new ChatUserMessage("[steer] give up on the build")));
+        // steering wakeup reply: abandon via the same decision protocol
+        chat.enqueue(ChatResponseFixtures.assistantText("ABANDON"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("gave up on steer"), null);
+
+        CancelRecordingTracker tracker = new CancelRecordingTracker();
+        ReActAgentExecutor executor = executor(chat, tools, tracker);
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertTrue(tracker.cancelled.contains("A1"), "steering-driven abandon cancels the call");
+        List<String> tokens = tokens(ctx.getMessages());
+        int callIdx = tokens.indexOf("call:A1");
+        assertEquals("result:A1", tokens.get(callIdx + 1),
+                "synthetic cancel result in-place: " + tokens);
+        assertTrue(((ChatToolResponseMessage) ctx.getMessages().get(callIdx + 1)).getContent()
+                .contains("abandoned"));
+    }
+
+    @Test
+    void steeringWakeupLlmFailureKeepsSteeringQueued() {
+        CompletableFuture<AiToolCallResult> slow = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", slow));
+        AgentExecutionContext ctx = buildContext("s-st-3", Set.of("slow-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> ctx.enqueueSteering(new ChatUserMessage("[steer] hello")));
+        // steering wakeup turn fails → fail-soft → steering stays queued
+        chat.enqueue(errorResponse(), null);
+        // next heartbeat succeeds and releases the tool
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> slow.complete(DelayedToolManager.successResult("built")));
+        chat.enqueue(ChatResponseFixtures.assistantText("final"), null);
+
+        ReActAgentExecutor executor = executor(chat, tools, null);
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // the failed steering turn committed nothing; the RETRY steering turn
+        // (probe re-fired) consumed the steering on its successful call — the
+        // steering message ends up in history via that retry, not via the
+        // failed turn (closure-audit: direct content assertion, tokens()
+        // folds user messages and would make the old filter vacuous)
+        assertTrue(ctx.getMessages().stream().anyMatch(m ->
+                        m instanceof ChatUserMessage && m.getContent() != null
+                                && m.getContent().contains("[steer] hello")),
+                "steering is eventually consumed by the retry turn: " + tokens(ctx.getMessages()));
+        // its content appears exactly once (the failed turn did not commit it)
+        long occurrences = ctx.getMessages().stream()
+                .filter(m -> m instanceof ChatUserMessage && m.getContent() != null
+                        && m.getContent().contains("[steer] hello")).count();
+        assertEquals(1, occurrences, "exactly-once commit across the retry");
+    }
+
+    @Test
+    void guardrailBlockedSteeringReplyCommitsSteeringOnly() {
+        CompletableFuture<AiToolCallResult> slow = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", slow));
+        AgentExecutionContext ctx = buildContext("s-st-4", Set.of("slow-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> ctx.enqueueSteering(new ChatUserMessage("[steer] plan B please")));
+        chat.enqueue(ChatResponseFixtures.assistantText("BAD steer reply"),
+                () -> slow.complete(DelayedToolManager.successResult("built")));
+        chat.enqueue(ChatResponseFixtures.assistantText("final"), null);
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chat)
+                .toolManager(tools)
+                .hookRegistry(new DefaultHookRegistry())
+                .heartBeatIntervalMs(50L)
+                .toolTimeoutMs(0L)
+                .contentGuardrail((GuardrailDirection direction, String content,
+                                   AgentExecutionContext guardrailCtx) ->
+                        direction == GuardrailDirection.OUTPUT && content != null && content.contains("BAD")
+                                ? new GuardrailResult.BlockResult("bad content")
+                                : GuardrailResult.PassResult.instance())
+                .build();
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // steering message entered history (real user input), reply did not —
+        // tokens() folds non-heartbeat user messages, so check actual content
+        assertTrue(ctx.getMessages().stream().anyMatch(m ->
+                        m instanceof ChatUserMessage && m.getContent() != null
+                                && m.getContent().contains("plan B please")),
+                "steering message must be committed even on guardrail block: " + tokens(ctx.getMessages()));
+        assertTrue(ctx.getMessages().stream().noneMatch(m ->
+                        m instanceof ChatAssistantMessage && m.getContent() != null
+                                && m.getContent().contains("BAD steer reply")),
+                "blocked reply must not enter history: " + tokens(ctx.getMessages()));
+    }
+
     // ---- ③b parallel derived call DENIED by the security chain → rejected, no dispatch ----
 
     @Test

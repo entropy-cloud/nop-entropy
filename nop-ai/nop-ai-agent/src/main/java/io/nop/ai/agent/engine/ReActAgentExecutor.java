@@ -1206,7 +1206,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                        ChatOptions options, ExecutionState state) {
         AgentToolDispatcher.ToolPhaseSession session = toolDispatcher.startToolPhase(
                 ctx, agentName, sessionId, allowedCalls, toolExecCtx, execStartTime, checkpointSeq);
-        while (!session.awaitCompletionSlice(nextWaitSlice(session))) {
+        while (true) {
+            AgentToolDispatcher.PhaseWaitEvent event = session.awaitWakeup(
+                    nextWaitSlice(session), () -> !ctx.getSteeringQueue().isEmpty());
+            if (event == AgentToolDispatcher.PhaseWaitEvent.COMPLETED) {
+                break;
+            }
             // wakeup-turn gate set (design §三.3): cancel + pause + forceStop.
             // No WAIT_FOR/assessGoal/compaction — no iteration semantics here.
             if (ctx.isCancelRequested()) {
@@ -1220,9 +1225,126 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 break;
             }
 
-            runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx, options, state);
+            if (event == AgentToolDispatcher.PhaseWaitEvent.STEERING_PENDING) {
+                boolean consumed = runSteeringWakeupTurn(ctx, sessionId, agentName, session,
+                        toolExecCtx, options, state);
+                if (!consumed) {
+                    // failed steering turn: throttle the next probe by one
+                    // full slice (circuit-open + queued steering must not
+                    // hot-loop the fail-soft path)
+                    session.awaitCompletionSlice(nextWaitSlice(session));
+                }
+            } else {
+                runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx, options, state);
+            }
         }
         session.commitResults();
+    }
+
+    /**
+     * Plan 2286 (WI5 Phase A): steering wakeup turn — the model is idle
+     * (blocked on tools, no in-flight request), so queued steering input is
+     * processed through a transient request carrying placeholders for the
+     * running tools, then the wait continues; late tool results still commit
+     * in-place (WI3 invariant 2).
+     *
+     * <p>Queue discipline (plan 2286 review P1): the request is built from a
+     * NON-destructive snapshot of the steering queue (CLQ weakly-consistent
+     * toArray); the destructive drain-commit (messages into ctx, in enqueue
+     * order, BEFORE the assistant reply) runs only after a SUCCESSFUL LLM
+     * call. Failure paths (fail-soft / guardrail-less early return) leave the
+     * steering in the queue for the next probe — no re-enqueue reorder risk.
+     * The guardrail-block branch is the exception: the reply is discarded but
+     * the steering messages MUST enter history (real user input), so that
+     * branch drains and commits the messages alone, adjudicating as WAIT.
+     * The reply adjudicates with the same three-option protocol as the
+     * heartbeat turn (WAIT / ABANDON / tool_calls = parallel work).
+     */
+    private boolean runSteeringWakeupTurn(AgentExecutionContext ctx, String sessionId, String agentName,
+                                          AgentToolDispatcher.ToolPhaseSession session,
+                                          AgentToolExecuteContext toolExecCtx,
+                                          ChatOptions options, ExecutionState state) {
+        List<String> pendingCallIds = session.pendingCallIds();
+        if (pendingCallIds.isEmpty()) {
+            // all futures completed in the race window — the steering stays
+            // queued for the boundary drain (loss-free fallback chain)
+            return false;
+        }
+
+        // non-destructive snapshot of queued steering for request construction
+        Object[] queued = ctx.getSteeringQueue().toArray();
+        if (queued.length == 0) {
+            return false;
+        }
+        List<ChatMessage> steeringSnapshot = new ArrayList<>();
+        for (Object o : queued) {
+            steeringSnapshot.add((ChatMessage) o);
+        }
+
+        // transient request copy: placeholders + steering messages (copy only)
+        List<ChatMessage> requestMessages = new ArrayList<>(ctx.getMessages());
+        for (String callId : pendingCallIds) {
+            ChatToolCall call = session.callByCallId(callId);
+            if (call == null) {
+                continue;
+            }
+            ChatToolResponseMessage placeholder = ToolCallPlaceholderRenderer.renderPlaceholder(
+                    new ChatToolCallMessage(callId, call.getName(), java.util.Map.of()));
+            AgentToolDispatcher.insertToolResultInList(requestMessages, placeholder);
+        }
+        requestMessages.addAll(steeringSnapshot);
+
+        ChatOptions routedOptions = resolveRoutedOptions(ctx, options, sessionId, state, false);
+        ChatRequest wakeupRequest = new ChatRequest(requestMessages);
+        wakeupRequest.setOptions(routedOptions);
+
+        LlmCallCoordinator.LlmCallResult llmResult = llmCoordinator.doWakeupCallWithRetry(
+                wakeupRequest, ctx, sessionId, agentName, routedOptions);
+        if (llmResult == null || !llmResult.isSuccess()) {
+            // fail-soft: steering stays queued; the caller throttles the next
+            // probe by one slice so a queued steering + open circuit cannot
+            // hot-loop the wakeup path (closure-audit edge-case finding)
+            return false;
+        }
+
+        ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
+        List<ChatToolCall> derivedCalls = extractToolCalls(llmResult.response);
+
+        if (llmResult.response.getUsage() != null) {
+            recordLlmTurnUsage(ctx, sessionId, agentName, wakeupRequest, llmResult.routedOptions, llmResult);
+        }
+
+        // content guardrail fast path — exception branch: discard the reply
+        // but commit the steering messages (real user input must reach
+        // history); adjudicated as WAIT
+        if (assistantMsg != null && promptAssembly.checkOutputGuardrailBlockedForWakeup(ctx, assistantMsg)) {
+            LOG.warn("steering wakeup reply blocked by content guardrail; committing steering messages "
+                    + "and adjudicating as WAIT. session={}", sessionId);
+            drainCommitSteering(ctx);
+            return true;
+        }
+
+        // drain-commit: steering messages first, reply after (session order)
+        drainCommitSteering(ctx);
+        if (assistantMsg != null) {
+            ctx.addMessage(assistantMsg);
+        }
+        appendToolCallMessages(ctx, llmResult.response);
+
+        adjudicateHeartbeatReply(ctx, sessionId, agentName, session, toolExecCtx,
+                derivedCalls, assistantMsg);
+        return true;
+    }
+
+    /**
+     * Destructive drain of the steering queue into ctx (enqueue order).
+     * Single-consumer discipline: only the ReAct thread polls the queue
+     * (boundary drain + wakeup turns).
+     */
+    private void drainCommitSteering(AgentExecutionContext ctx) {
+        for (ChatMessage msg : ctx.drainSteering()) {
+            ctx.addMessage(msg);
+        }
     }
 
     /**

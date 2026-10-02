@@ -125,6 +125,16 @@ public class AgentToolDispatcher {
         this.toolTimeoutPolicy = toolTimeoutPolicy;
     }
 
+    /**
+     * Plan 2286 (WI5 Phase A): wait-phase wakeup events. COMPLETED beats
+     * STEERING_PENDING (a finished phase commits and the round-boundary drain
+     * consumes the queued steering — nothing is lost); the probe is checked
+     * before slice expiry (new input outranks heartbeat evidence).
+     */
+    public enum PhaseWaitEvent {
+        COMPLETED, SLICE_EXPIRED, STEERING_PENDING
+    }
+
     // ---- moved verbatim from ReActAgentExecutor (MA4.2-05 split) ----
     static final class ToolCallOutput {
         final ChatToolCall chatToolCall;
@@ -203,6 +213,65 @@ public class AgentToolDispatcher {
             } catch (ExecutionException e) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e)
                         .param(ARG_DETAIL, "tool wait phase failed: " + e.getMessage());
+            }
+        }
+
+        /**
+         * Plan 2286 (WI5 Phase A): tri-state wait with a steering probe.
+         * Internally slices {@code sliceMs} into ≤200ms quanta (clamped to the
+         * remaining slice; a non-positive slice does one completion check plus
+         * one probe — the cap contract of nextWaitSlice is preserved) and
+         * checks {@code steeringProbe} before every expiry judgement, so a
+         * queued steering message is observed within ~200ms without a watcher
+         * thread. COMPLETED wins over STEERING_PENDING (the boundary drain
+         * consumes then). Interruption keeps the awaitCompletionSlice
+         * discipline.
+         *
+         * <p>Consumed ONLY by the executor's heartbeat wait loop — the
+         * facade path (executeAllowedCalls) must keep using
+         * awaitCompletionSlice: an empty-loop facade with a live probe would
+         * busy-spin the whole tool wait phase.
+         */
+        public PhaseWaitEvent awaitWakeup(long sliceMs, java.util.function.BooleanSupplier steeringProbe) {
+            if (steeringProbe != null && steeringProbe.getAsBoolean()
+                    && !pendingFutures().isEmpty()) {
+                return PhaseWaitEvent.STEERING_PENDING;
+            }
+            if (pendingFutures().isEmpty()) {
+                return PhaseWaitEvent.COMPLETED;
+            }
+            long deadline = CoreMetrics.currentTimeMillis() + Math.max(0L, sliceMs);
+            while (true) {
+                if (steeringProbe != null && steeringProbe.getAsBoolean()
+                        && !pendingFutures().isEmpty()) {
+                    return PhaseWaitEvent.STEERING_PENDING;
+                }
+                long remaining = deadline - CoreMetrics.currentTimeMillis();
+                if (remaining <= 0) {
+                    return pendingFutures().isEmpty()
+                            ? PhaseWaitEvent.COMPLETED
+                            : PhaseWaitEvent.SLICE_EXPIRED;
+                }
+                long quantum = Math.min(200L, remaining);
+                try {
+                    CompletableFuture.allOf(pendingFutures().toArray(new CompletableFuture[0]))
+                            .get(quantum, TimeUnit.MILLISECONDS);
+                    return pendingFutures().isEmpty()
+                            ? PhaseWaitEvent.COMPLETED
+                            : PhaseWaitEvent.SLICE_EXPIRED;
+                } catch (TimeoutException e) {
+                    // quantum expired — loop re-checks the probe
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    for (CompletableFuture<ToolCallOutput> f : pendingFutures()) {
+                        f.cancel(true);
+                    }
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
+                            .param(ARG_DETAIL, "tool wait phase interrupted");
+                } catch (ExecutionException e) {
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e)
+                            .param(ARG_DETAIL, "tool wait phase failed: " + e.getMessage());
+                }
             }
         }
 
