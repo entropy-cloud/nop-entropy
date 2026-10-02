@@ -46,7 +46,7 @@
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: in progress
 Targets: `nop-kernel/nop-core/src/test/**`
 
 - Item Types: `Fix`

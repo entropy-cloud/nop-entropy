@@ -41,7 +41,7 @@ nop-xlang（WI0 实测 47.70% 行 / 44949L，语义基线裁定模块）增量�
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: in progress
 Targets: `nop-kernel/nop-xlang/src/test/**`
 
 - Item Types: `Fix`

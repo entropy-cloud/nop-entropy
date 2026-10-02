@@ -44,7 +44,7 @@ nop-persistence 组核心域补强：nop-orm-eql EQL→SQL 翻译（53.24%，方
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: in progress
 Targets: `nop-persistence/*/src/test/**`
 
 - Item Types: `Fix`
