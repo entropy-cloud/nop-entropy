@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.operators.windowing;
 
+import io.nop.stream.core.common.buffer.PerKeyOrderedBuffer;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.operators.windowing;
 
+import io.nop.stream.core.common.buffer.PerKeyOrderedBuffer;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
@@ -116,6 +117,14 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
     @SuppressWarnings("unchecked")
     public void restoreState(io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
+        // WI13 fix (found by the join checkpoint E2E): restoreState rebuilds the
+        // backend's state objects (MemoryStateSerDe clears and re-creates them per
+        // state name) — re-acquire the handle so writes and rebuilds after restore
+        // bind to the restored state object, not an orphaned pre-restore instance
+        if (keyedStateBackend != null) {
+            bufferState = rawKeyedBackend().getMapState(
+                    new MapStateDescriptor<>(BUFFER_STATE, String.class, String.class));
+        }
         if (snapshotResult != null) {
             Object restored = snapshotResult.getOperatorState(BUFFER_STATE);
             if (restored instanceof PerKeyOrderedBuffer) {

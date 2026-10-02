@@ -8,6 +8,7 @@
 package io.nop.stream.flow.builder;
 
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -213,11 +215,12 @@ public class TestParameterizedJoinModel {
     }
 
     @Test
-    public void selfJoinTopologyWalksValidationToRuntimePlaceholder() {
+    public void selfJoinTopologyWalksValidationToRealJoinBuild() {
         // SELF-JOIN shape (roadmap WI8d completion criterion): ONE join element fed
         // by two edges from the SAME source — the exactly-two-upstream check's
-        // positive case, and the wiring proof that the declared topology reaches the
-        // join transform before the runtime placeholder fires.
+        // positive case. WI13 landed the join runtime: the declared topology now
+        // walks validation into a REAL join build (tag → union → keyBy →
+        // EquiJoinOperator) instead of the former NOT_IMPLEMENTED placeholder.
         StreamModel model = parseWithJoins(
                 "<source id=\"s1\" bean=\"srcFn\"/>" + JOIN_TRANSFORM,
                 WINDOWED_JOIN_SPEC,
@@ -228,12 +231,8 @@ public class TestParameterizedJoinModel {
 
         InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver();
         resolver.register("srcFn", new io.nop.stream.flow.testing.TestSourceFunction());
-        StreamException ex = assertThrows(StreamException.class,
-                () -> StreamModelDslBuilder.of(model, resolver).build());
-        // all declaration validation passed (exactly-two upstream, spec complete) and
-        // the source bean resolved — the failure is the WI13 runtime placeholder
-        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
-        assertTrue(ex.getMessage().contains("WI13"), () -> ex.getMessage());
+        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver).build();
+        assertNotNull(env, "self-join topology assembles through the real buildJoin");
     }
 
     @Test

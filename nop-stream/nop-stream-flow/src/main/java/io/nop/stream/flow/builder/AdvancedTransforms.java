@@ -49,6 +49,7 @@ import io.nop.stream.core.common.eventtime.WatermarkOutput;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
+import io.nop.stream.core.model.JoinSideRecord;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
@@ -56,13 +57,17 @@ import io.nop.stream.core.datastream.WindowedStream;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.join.EquiJoinOperator;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
+import io.nop.stream.flow.builder.functions.JoinSideKeySelector;
+import io.nop.stream.flow.builder.functions.JoinSideTagFunction;
 import io.nop.stream.flow.builder.functions.XplReduceFunction;
 import io.nop.stream.flow.model.StreamAggregateModel;
 import io.nop.stream.flow.model.StreamCepModel;
 import io.nop.stream.flow.model.StreamJoinModel;
+import io.nop.stream.flow.model.StreamJoinSpecModel;
 import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamProcessModel;
 import io.nop.stream.flow.model.StreamReduceModel;
@@ -109,7 +114,7 @@ final class AdvancedTransforms {
             return buildAggregate(owner, t, upstreamIds, streamRegistry, (StreamAggregateModel) t);
         }
         if (t instanceof StreamJoinModel) {
-            return buildJoin((StreamJoinModel) t);
+            return buildJoin(owner, t, upstreamIds, streamRegistry, (StreamJoinModel) t);
         }
         if (t instanceof StreamReduceModel) {
             return buildReduce(owner, t, upstreamIds, streamRegistry, (StreamReduceModel) t);
@@ -461,19 +466,129 @@ final class AdvancedTransforms {
     }
 
     /**
-     * WI8d: consumes the validated joinRef declaration. The declaration surface and
-     * its build-time validation land here; the join RUNTIME (hash join / window join
-     * operator) is delivered by WI13's buildJoin — this placeholder fails fast
-     * explicitly (never a silent no-op) until that lands.
+     * WI13: consumes the validated joinRef declaration (WI8d's build-time validation
+     * has already guaranteed: spec exists, joinType set, equal-arity non-empty key
+     * sets, exactly two upstream edges, no HASH edge, windowStrategyRef resolvable
+     * and window join restricted to INNER/LEFT). Assembles the runtime:
+     *
+     * <pre>left --- map(side-tag) ---\
+     *                              union --- keyBy(equiKey) --- EquiJoinOperator</pre>
+     *
+     * <pre>right -- map(side-tag) ---/</pre>
+     *
+     * The side-tag map evaluates the side's key expressions once per record (the
+     * operator itself evaluates nothing); keyBy on the pre-computed equi-key
+     * co-locates same-key records from both sides on one keyed subtask. Key
+     * expression format: comma-separated XLang expressions with {@code event} bound
+     * to the record (the same binding as {@code <keyBy keyExpr>}), compiled with
+     * {@link io.nop.xlang.api.XLang} — flow needs no SQL-expression dependency.
      */
-    private static Object buildJoin(StreamJoinModel m) {
-        // Defensive entry lookup happens here in WI13's buildJoin; the declaration
-        // was already validated by validateJoinDeclarations.
-        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                .param(ARG_DETAIL, "Stream DSL <join id='" + m.getId() + "' joinRef='" + m.getJoinRef()
-                        + "'> declaration is validated, but the join runtime (hash join / window join "
-                        + "operator) is delivered by WI13 buildJoin — not yet implemented")
-                .loc(m.getLocation());
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildJoin(StreamModelDslBuilder owner, StreamTransformModel t,
+                                    Set<String> upstreamIds, Map<String, Object> streamRegistry,
+                                    StreamJoinModel m) {
+        StreamJoinSpecModel spec = owner.model().getJoinSpec(m.getJoinRef());
+        // defensive lookup (validated non-null, but never dereference without a check)
+        if (spec == null) {
+            throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_REF_TYPE, "<joins>/<joinSpec>")
+                    .param(ARG_REF_NAME, m.getJoinRef())
+                    .loc(m.getLocation());
+        }
+
+        // declared edge order determines left/right; DECLARED EDGES, not distinct
+        // upstream ids — a self-join declares two edges from the same source
+        // (roadmap WI8d completion criterion) and joins that stream with itself
+        List<String> ordered = new ArrayList<>(2);
+        for (io.nop.stream.flow.model.StreamEdgeModel e : owner.model().getEdges()) {
+            if (t.getId().equals(e.getTo()) && upstreamIds.contains(e.getFrom())) {
+                ordered.add(e.getFrom());
+            }
+        }
+        if (ordered.size() != 2) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_DETAIL, "<join id='" + t.getId() + "'> requires exactly two "
+                            + "upstream edges (left/right), resolved " + ordered.size())
+                    .loc(m.getLocation());
+        }
+        DataStream left = joinInput(owner, t, streamRegistry, ordered.get(0));
+        DataStream right = joinInput(owner, t, streamRegistry, ordered.get(1));
+
+        List<io.nop.core.lang.eval.IEvalAction> leftKeys = compileJoinKeyExprs(spec, true);
+        List<io.nop.core.lang.eval.IEvalAction> rightKeys = compileJoinKeyExprs(spec, false);
+
+        Long windowDuration = null;
+        long timeout = 0L;
+        if (spec.getWindowStrategyRef() != null) {
+            // window join: duration is mandatory (parameterized tumbling), timeout
+            // reuses the WI10 duration parser (D9-released lateness grace)
+            WindowingStrategyModel strategy = owner.model().getStrategy(spec.getWindowStrategyRef());
+            if (strategy == null || strategy.getDuration() == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId() + "' window join requires "
+                                + "windowingStrategies/<strategy> with a parameterized duration "
+                                + "(windowFnId=\"tumbling-event-time\" + duration=\"...\"), found "
+                                + (strategy == null ? "missing strategy" : "strategy without duration"))
+                        .loc(m.getLocation());
+            }
+            windowDuration = parseDurationMillis(strategy.getDuration());
+            if (spec.getTimeout() != null) {
+                timeout = parseDurationMillis(spec.getTimeout());
+            }
+        }
+
+        DataStream<JoinSideRecord<Object>> tagged = left
+                .map(new JoinSideTagFunction(true, leftKeys))
+                .union(right.map(new JoinSideTagFunction(false, rightKeys)));
+        KeyedStream<JoinSideRecord<Object>, Object> keyed = tagged.keyBy(JoinSideKeySelector.INSTANCE);
+        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration, timeout);
+        return StreamModelDslBuilder.applyDeclaredParallelism(
+                (SingleOutputStreamOperator) keyed.transform("Join:" + m.getId(),
+                        UnknownTypeInformation.INSTANCE, joinOp), t);
+    }
+
+    private static DataStream<?> joinInput(StreamModelDslBuilder owner, StreamTransformModel t,
+                                           Map<String, Object> streamRegistry, String upstreamId) {
+        Object in = streamRegistry.get(upstreamId);
+        if (!(in instanceof DataStream) || in instanceof KeyedStream || in instanceof WindowedStream) {
+            throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_EXPECTED_STREAM_TYPE, "DataStream (non-keyed, non-windowed)")
+                    .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
+                    .loc(t.getLocation());
+        }
+        return owner.applyEdgePartition((DataStream<?>) in, upstreamId, t.getId(), t.getParallelism());
+    }
+
+    /**
+     * Compiles the side's comma-separated key expressions into XLang actions
+     * ({@code event} binding). Compilation failure fails fast with the side named.
+     */
+    private static List<io.nop.core.lang.eval.IEvalAction> compileJoinKeyExprs(StreamJoinSpecModel spec, boolean left) {
+        String exprs = left ? spec.getLeftKeyExprs() : spec.getRightKeyExprs();
+        String[] parts = exprs.split(",");
+        List<io.nop.core.lang.eval.IEvalAction> actions = new ArrayList<>(parts.length);
+        // key expressions reference the runtime-bound record ({@code event}, the
+        // same binding as <keyBy keyExpr>) — the compile-time scope check must not
+        // reject it as unresolved
+        io.nop.xlang.api.XLangCompileTool tool = io.nop.xlang.api.XLang.newCompileTool()
+                .allowUnregisteredScopeVar(true);
+        for (int i = 0; i < parts.length; i++) {
+            String text = parts[i].trim();
+            try {
+                actions.add(tool.compileSimpleExpr(spec.getLocation(), text));
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "joinSpec '" + spec.getJoinId() + "'")
+                        .param(ARG_DETAIL, (left ? "leftKeyExprs" : "rightKeyExprs") + "[" + i + "]='"
+                                + text + "' is not a valid expression: " + e.getMessage())
+                        .loc(spec.getLocation());
+            }
+        }
+        return actions;
     }
 
     // ----------------------------------------------------------------

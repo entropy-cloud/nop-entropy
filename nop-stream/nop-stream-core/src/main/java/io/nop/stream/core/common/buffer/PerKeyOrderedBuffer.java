@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.common.buffer;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -1,7 +1,7 @@
 # 23 WI13 双流等值 join 算子
 
 > Plan Status: active
-> Last Reviewed: 2026-10-02
+> Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI13 行、A6）、`ai-dev/design/nop-stream/join-operator.md`
 > Related: `ai-dev/plans/nop-stream-sql/13-wi6-union-multi-input.md`、`ai-dev/plans/nop-stream-sql/22-wi12-over-window-operator.md`
 > Owner: 仓库 owner（2026-10-02 执行指令委托）
@@ -73,7 +73,7 @@ Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（不同 task_id）：join 语义判别（四种 JoinType 反事实）、A6 结论、checkpoint 证据、buildJoin 接线；证据落 ai-dev/audits/nop-stream-sql/wi13-closure-audit.md
+- [ ] 独立子 agent closure audit（不同 task_id）：join 语义判别（四种 JoinType 反事实）、A6 结论、checkpoint 证据、buildJoin 接线；证据落 ai-dev/audits/nop-stream-sql/wi13-closure-audit.md（接管注记：本 plan 由另一并发会话起草，2026-10-03 起由接管会话继续执行——接管时点前置工作为 plan 草稿与已被替代的 EquiJoinCore 草稿，后者按 §十/复用义务重设计为 EquiJoinOperator）
 - [ ] audit 通过后 roadmap WI13 `todo` → `done`（括注单层一对）+ A6 回写；`parseRoadmapMarkdown` 复核 31 + 7
 - [ ] Plan Status → `completed`；check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 

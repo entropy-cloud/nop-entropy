@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.operators.windowing;
 
+import io.nop.stream.core.common.buffer.PerKeyOrderedBuffer;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
