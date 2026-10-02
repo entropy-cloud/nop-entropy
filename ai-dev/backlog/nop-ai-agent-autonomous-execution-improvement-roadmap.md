@@ -47,7 +47,7 @@ audit-rounds: 0
 > 理由：D5×D8 跨维缺口，模型切换后阈值/前缀不更新
 
 - [ ] WI7 maxContextTokens 动态刷新：`SmartModelRouter` 切换模型时同步刷新 `maxContextTokens`，与路由模型的 `contextWindow` 对齐（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-context-compaction-economics.md`；来源: `dsh-D8-context-compaction.md` ⑥-建议2；**文档同步**：更新 `nop-ai-agent-context-compaction-economics.md` §3.2 触发条件 + `nop-ai-agent-llm-layer.md` 路由刷新语义）
-- [ ] WI8 Anthropic cache_control 位置纠错：修正 `AnthropicDialect.convertMessage` 中 cache_control 放置位置，从 message map 顶层改为 content block 级别（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-context-compaction-economics.md`；来源: `dsh-D6-prefix-cache.md` ⑥-建议5；**文档同步**：更新 `nop-ai-agent-context-compaction-economics.md` §3.3 缓存断点 + `nop-ai-agent-llm-layer.md` dialect 规范）
+- [ ] WI8 Anthropic cache_control 位置纠错：修正 `AnthropicDialect.convertMessage` 中 cache_control 放置位置，从 message map 顶层改为 content block 级别（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-context-compaction-economics.md`；来源: `dsh-D6-prefix-cache.md` ⑥-建议5；**文档同步**：更新 `nop-ai-agent-context-compaction-economics.md` §3.3 缓存断点 + `nop-ai-agent-llm-layer.md` dialect 规范）。**WI1 裁定 2026-10-02**：与 refactor roadmap WI20 同靶，合并归属 refactor WI20 执行（放置纠错为断点引擎子集），裁定依据见 `ai-dev/analysis/2026-10/2026-10-02-wi1-dedup-ruling.md` 必裁②；本条 checkbox 待 refactor WI20 落地验收后关闭
 
 ### M3 — 崩溃恢复完整性（P1）
 

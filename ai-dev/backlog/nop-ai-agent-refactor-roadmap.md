@@ -27,7 +27,7 @@ audit-rounds: 0
 
 ### M0 — 划界复核与吸收裁定
 
-- [ ] WI1 吸收候选基线复核与划界裁定：对 M1–M7 全部吸收候选按执行时 HEAD 复核（本文件基线快照 2026-09-25，autonomous roadmap 之后无相关代码落地），与 autonomous roadmap 20 项逐项去重裁定（本 roadmap 吸收 / 已落地无需做 / 移交 autonomous / 裁定移出）；必裁清单含：① pi-D4 建议 2"重试前摘除失败响应"复核（nop 失败响应是否本就不入上下文，若然登记已满足）；② WI20 与 autonomous WI8 的同靶合并裁定（两者均改 AnthropicDialect 请求侧 cache_control，裁定归属或合并执行）；③ WI21 与 autonomous WI3 的观测/消费分界复核（Deliverable: 裁定表一份——M1–M7 候选 × autonomous 20 项的裁定结论，落当日 log 条目并链接各 WI plan 的 Current Baseline；deps: 无；Owner: 本文件）
+- [x] WI1 吸收候选基线复核与划界裁定：对 M1–M7 全部吸收候选按执行时 HEAD 复核（本文件基线快照 2026-09-25，autonomous roadmap 之后无相关代码落地），与 autonomous roadmap 20 项逐项去重裁定（本 roadmap 吸收 / 已落地无需做 / 移交 autonomous / 裁定移出）；必裁清单含：① pi-D4 建议 2"重试前摘除失败响应"复核（nop 失败响应是否本就不入上下文，若然登记已满足）；② WI20 与 autonomous WI8 的同靶合并裁定（两者均改 AnthropicDialect 请求侧 cache_control，裁定归属或合并执行）；③ WI21 与 autonomous WI3 的观测/消费分界复核（Deliverable: 裁定表一份——M1–M7 候选 × autonomous 20 项的裁定结论，落当日 log 条目并链接各 WI plan 的 Current Baseline；deps: 无；Owner: 本文件）
 
 ### M1 — 异步工具执行模型重构（unreal 核心增量，最大改造面）
 
@@ -131,6 +131,7 @@ graph TD
 
 ## Current Baseline
 
+- **WI1 划界裁定（2026-10-02 @ HEAD `86ad2c389d`）**：23 项候选全部本 roadmap 吸收（无已落地/移交/移出）；必裁① pi-D4 建议2 已结构性满足登记不做、必裁② autonomous WI8 移交 WI20 合并执行、必裁③ WI21 与 autonomous WI3 解析/消费正交分层——裁定表 `ai-dev/analysis/2026-10/2026-10-02-wi1-dedup-ruling.md`，后续各 WI plan 的 Current Baseline 引用本裁定表。
 - **比对基线**：dsh/pi 报告 2026-09-12（后续 4 轮 deep-audit 修复落地了一批 Remediation，报告快照需执行时复核）；unreal 比对 2026-09-25（HEAD `1b9f778453f4`）。
 - **在途划界**：autonomous roadmap（2026-09-16，20 项全部未勾选，audit-rounds: 0）承接 ⑤-A（缓存基础）、⑤-B（溢出环）、⑤-E 的崩溃孤儿与取消分型（E-3 正则归类器归本 roadmap WI22）、D6 辅助调用治理、D8 压缩精度及若干 ⑤ 外的终态语义建议（max-tokens 粘性等）；本 roadmap 承接其余全部归组。
 - **已核对资产**（2026-09-25 live spot check @ `571412f0b2`）：
