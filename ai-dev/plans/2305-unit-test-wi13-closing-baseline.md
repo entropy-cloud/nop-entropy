@@ -1,6 +1,6 @@
 # 2305 unit-test-coverage-roadmap WI13 — 基线刷新与缺口榜收口
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI13 条目）；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2293-2304（WI1-WI12 承载 plan）
@@ -68,14 +68,14 @@ Targets: roadmap Current Baseline、刷新报告
 - [x] roadmap Current Baseline 整体回写（2026-10-02 收口数字 + WI0→WI13 增量摘要 + 达标状态 + 分母效应说明）。
 - [x] 未达标模块（59 个）逐类显式裁定：A 接受结构性现状 8 / B 生成样板 13 / C 容器耦合延期 19 / D 内核大模块后继投入 7 / E 引擎运行时延期 7 / F 管线外 N/A 5——理由见刷新报告。
 - [x] 刷新报告落 ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md（收口数字、增量总账、裁定表、缺陷嫌疑 44 项汇总核对）。
-- [ ] roadmap WI13 checkbox 勾选（独立 closure audit 通过后）。
+- [x] roadmap WI13 checkbox 勾选（独立 closure audit 通过后）。
 
 Exit Criteria:
 
 - [x] roadmap Current Baseline 与收口快照一致。
 - [x] 裁定表逐模块有理由。
 - [x] 刷新报告落位。
-- [ ] roadmap WI13 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI13 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 
 ## Closure Gates
 
@@ -85,10 +85,10 @@ Exit Criteria:
 - [x] 脚本固化确认（ai-dev/tools/，WI0 已交付，本 plan 全管线复用成功）
 - [x] 缺陷嫌疑汇总核对无丢失（实测 44 项：43 WI 嫌疑 + 1 fraud 2PC 独立 bug）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：收口数字与分段快照对账（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2305-unit-test-wi13-closing-baseline.md --strict` 退出码 0
-- [ ] roadmap WI13 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：收口数字与分段快照对账（audit 抽查：nop-core 13247/30072、tcc-core 338/540、excel 1430/4604 三模块 XML counter 逐位一致；六类裁定抽样诚实）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2305-unit-test-wi13-closing-baseline.md --strict` 退出码 0
+- [x] roadmap WI13 checkbox 与 plan/log 一致
 
 ## Deferred But Adjudicated
 
@@ -100,13 +100,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 全仓统一重跑收口（58.37%，213/318 有报告），三模块 XML counter 逐位复核一致，roadmap Current Baseline 回写一致，59 个未达标模块六类裁定经抽样核实诚实（A 类 sys-api 查证 57 文件全为 Api 接口），缺陷嫌疑 43+1=44 无丢失，roadmap 13/14 checkbox 注记与 plan 一致。roadmap 全程（WI0-WI13）关闭。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_3817675c-3816-47b9-a7c0-4dc9f2dd0581，fresh session）
 
 Follow-up:
 

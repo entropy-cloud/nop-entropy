@@ -111,7 +111,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 
 ### M4 — 收口
 
-- [ ] WI13 基线刷新与缺口榜收口：用 WI0 脚本重跑全仓基线，各波次覆盖数字回写本 roadmap Current Baseline；未达标模块逐个显式裁定（继续投入/延期/接受现状，记录理由）；脚本固化入 ai-dev/tools/ 供后续巡检防倒退（Deliverable: 刷新报告 + 裁定记录；deps: WI0 + M1–M3 全部 WI 完成或显式延期裁定；Item Type: Proof）
+- [x] WI13 基线刷新与缺口榜收口：用 WI0 脚本重跑全仓基线，各波次覆盖数字回写本 roadmap Current Baseline；未达标模块逐个显式裁定（继续投入/延期/接受现状，记录理由）；脚本固化入 ai-dev/tools/ 供后续巡检防倒退（Deliverable: 刷新报告 + 裁定记录；deps: WI0 + M1–M3 全部 WI 完成或显式延期裁定；Item Type: Proof）
+
+> WI13 完成（2026-10-02）：全仓统一重跑 58.37%（213/318 模块有报告，WI0 56.92%→+1.45pp）；分层 kernel 47.87/engine 46.79（分母效应）/periphery 68.42；159/210 非语义模块达标 + 语义 2；59 个未达标模块 A-F 六类裁定；缺陷嫌疑 44 项核对无丢失。刷新报告 `ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md`；独立 closure audit APPROVE（7/7）。**roadmap 全程（WI0-WI13）关闭。**
 
 ## Dependency Graph
 
