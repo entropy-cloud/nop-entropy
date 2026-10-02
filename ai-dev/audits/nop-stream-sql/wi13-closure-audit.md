@@ -1,9 +1,9 @@
 # WI13 Closure Audit——23-wi13-equi-join-operator.md
 
-- Audit 日期：2026-10-03（首轮）
+- Audit 日期：2026-10-03（首轮，FAIL）；2026-10-03（第二轮，PASS——fresh session，与实现者及第一轮 audit 均非同一 session）
 - Auditor：独立子 agent（fresh session，与 plan 起草会话及接管实现会话均非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选、日志自述或 commit message）
-- 审计对象：HEAD `d345e4e850`（分支 add-stream-sql，工作树 clean）
-- **最终裁定：FAIL（1 项 Major 代码面缺陷 MAJ-1 + 3 项 Minor 文本/证据级）——roadmap WI13 `todo` → `done` 翻转冻结，直至 MAJ-1 修复并经新一轮独立 audit 复核**
+- 审计对象：首轮 HEAD `d345e4e850`；第二轮 HEAD `754556b002`（分支 add-stream-sql，两轮审计起止时工作树均 clean）
+- **最终裁定：PASS（第二轮 2026-10-03 复核）——首轮 MAJ-1 修复经机制读码 + 探针复跑 + 修复前红态实证三重核验关闭，MIN-1/MIN-2/MIN-3 关闭（MIN-2 残留一处 plan 计数笔误，列为收口必改项不阻断裁定）；roadmap WI13 `todo` → `done` 翻转解锁，收口动作清单见 §7.6。首轮 FAIL 裁定原文见 §0，第二轮复核见 §7**
 
 ## 0. 裁定摘要
 
@@ -195,3 +195,122 @@ WI13 的语义面、装配面、证据面、纪律面均达到收口水准，日
 4. 文本收敛：MIN-1 注释修正、MIN-2 plan 23 Phase 1/Deferred/计数与 live 一致化、MIN-3 纳入 A6 回写措辞；
 5. 新一轮独立 closure audit（fresh session）复核上述各项后 PASS；
 6. 随后按 plan Phase 2 完成勾选、Closure 段回填（引用两轮 audit 证据）、`check-plan-checklist --strict` 0、`check-doc-links --strict` 0。
+
+---
+
+## 7. 第二轮 closure audit（2026-10-03，fresh session，翻转复核）
+
+- Auditor：独立子 agent（fresh session，与实现者会话及第一轮 audit 会话均非同一 task_id；全部结论来自 live repo 实跑/实读）
+- 审计对象：HEAD `754556b002`（分支 add-stream-sql，工作树 clean）——即第一轮报告唯一后续 commit「wi13: audit 一轮 MAJ-1 修复」
+- 原始日志：`_tmp/audit-wi13-r2/`（runtime/flow/core 全量、四组隔离、红态/绿态复跑、探针源码与输出、门禁输出）
+
+### 7.0 裁定摘要
+
+**PASS**。首轮唯一阻断项 MAJ-1 已按处置路径①②③完整关闭：修复机制读码核验成立（scopeToEquiKey 在每处 keyed 删除前重设 currentKey，键对象与写入路径同源同值，复合键安全性优于字符串方案）；首轮探针形态独立复跑 ALL SCOPES CLEAN；新增回归断言经修复前红态实证确具判别力（红态失败点恰为跨 key scope 断言，同 key 断言修复前通过——精确复现首轮指认的 scope 盲区形态）。MIN-1/MIN-2/MIN-3 关闭。全量回归三模块复跑零退化，门禁三项全 0，git 纪律干净。遗留一处 plan 计数笔误（「17 用例」应为 18，见 7.4-MIN-2a），属文本级、不阻断裁定，列为收口必改项。
+
+### 7.1 MAJ-1 修复核验（翻转条件 1）——PASS
+
+commit `754556b002` 对 `EquiJoinOperator.java` +20/-4 行：新增 `scopeToEquiKey`（:206-211），`completeAndTrimHash` :192 与 `fireReachedWindows` :229 两处调用。
+
+**(a) 机制正确性（读码）**：
+
+- **每个 keyed 删除前已重设 scope**：`completeAndTrimHash` 循环体内 `scopeToEquiKey(key)` :192 先于 `trimToWatermark` :196→`removeDurable` :316-327（`bufferState.remove`）；`fireReachedWindows` 在窗口到达分支内 :229 先于 `fireWindow` :236-245。未到达窗口的 key 无任何 keyed 操作（条件在 scope 调用前判断，纯字符串解析）。
+- **键对象与写入路径同源同值**：`scopeToEquiKey` 取 `buffer.sortedView(key).get(0).getEquiKey()` :207-209。工作视图条目即写入时的记录对象（`processElement` :163 `buffer.add(bufferKey, ts, rec)` 存入的同一 `rec` 实例），`JoinSideRecord.getEquiKey()` 返回构造时存入的字段引用（JoinSideRecord.java:50-52）；写入路径 `setCurrentKey(rec.getEquiKey())` :155 用的正是该对象。引擎 scope 机制复核：`MemoryMapState.remove/put/entries` → `getMap()/currentKey()` → `backend.getTypedNamespaceAndKey()` = `(currentNamespace, currentKey)`（MemoryMapState.java:89-93、:126-131；MemoryKeyedStateBackend.java:527-528、:172-173）——同一键对象 → 同一 TypedNamespaceAndKey → 同一 scope。
+- **复合键安全性**：修复有意不用 `equiKeyOf(key)` 字符串反解（buffer key 是 `String.valueOf(equiKey)` 的拼接形态，反解只能得到 String，与写入时传入的原始键对象类型不符；复合键字符串形态路由不稳定），javadoc :200-205 明示此裁定。优于第一轮处置路径建议的 `setCurrentKey(equiKeyOf(key))` 字符串方案。
+- **fireWindow 的 twin dropAll 同 scope**：twin = 同 equiKey 的对侧 buffer key（:356-364），`scopeToEquiKey(key)` 已在同一 fireWindow 调用前把 scope 设到共享 equiKey，`dropAll(key)` 与 `dropAll(twin)` 均在该 scope 下执行。
+- **边界情形穷举**：① `snapshotKeys()` 条目在自身迭代时 view 必非空——buffer 的 trim/drop 变体清空即删 key（PerKeyOrderedBuffer.java:175-177、:194-196），且每 key 每 pass 只处理一次、trim 只影响当前 key；② fire 后残留的空 key（同 pass 内被 twin drop 提前清空）在后续迭代中 view 为空 → scope 不重设，但 `dropAll` trimmed 为空列表、`removeDurable` 零 keyed 操作、twin 检查 `size>0` 为 false——无任何 keyed 写入，危害不存在；③ `scopeToEquiKey` 空 view 不调用 setCurrentKey 的设计在上述 ② 下安全。
+
+**(b) 首轮探针形态独立复跑**——`_tmp/audit-wi13-r2/DurableTrimProbeR2.java`（只用 core target/classes 编译产物 + 依赖 jar，零仓库修改，最终态复跑 EXIT 0）：
+
+```text
+FULL join，L k1(10) + R k2(10)，wm(50)：
+  post-watermark outputs: [J|a|null, J|null|b]；working bufferedCount=0
+  per-key scoped reads: k1=0 k2=0
+  durable scope [key=k2] entries=[]；durable scope [key=k1] entries=[]
+  TOTAL durable entries across ALL scopes = 0        ← 首轮此值为 1（k1 残留）
+  after new k1 element: keyedBufferEntries()=1（恰 1 条新条目）← 首轮此值为 2（残留+新条）
+window fire 路径（LEFT 10/0 双 key，wm(30)）：k1=0 k2=0，全 scope 总数 0
+=====> OVERALL: ALL SCOPES CLEAN (fix holds)
+```
+
+**(c) 回归断言判别力（含修复前红态实证）**：以 `git checkout d345e4e850 -- EquiJoinOperator.java` + 重装 core 快照取得修复前代码，保留 HEAD 两条新回归实跑——
+
+```text
+TestEquiJoinHashSemantics.watermarkCleansDurableEntriesAcrossAllKeys
+  :175 FAILURE "k2 durable entries cleaned at the watermark (cross-key scope) ==> expected: <0> but was: <1>"
+TestEquiJoinWindowTimeout.windowFireCleansDurableEntriesAcrossAllKeys
+  :125 FAILURE "k1 durable entries dropped at fire ==> expected: <0> but was: <1>"
+Tests run: 2, Failures: 2   （BUILD FAILURE）
+```
+
+判别力关键证据：hash 用例中**同 key 的 k1 断言（:173）修复前通过**（彼时 currentKey 恰为 k1），失败仅发生在跨 key 的 k2 断言——精确复现首轮 §3 MAJ-1 指认的「仅最后 current key 有效」形态，证明逐 key `setCurrentKey` 断言正是刺穿首轮 scope 盲区的判别形态（首轮 :78 的盲区断言 `keyedBufferEntries()==0` 对泄漏不可见，新断言可见）。恢复 HEAD 后复跑 2/2 绿（Tests run: 2, Failures: 0），工作树恢复后 `git status --porcelain` 空、`git diff` 空。
+
+**(d) 残余风险排查（keyed 写读点全枚举）**：
+
+- `emitMatches`→`persistCurrent`（:264→:329-338，对侧 durable 重写）：currentKey 由 `processElement` :155 设为本记录 equiKey，对侧 bufferKey 由同一 `rec.getEquiKey()` 派生（:252、:348-354）——匹配只在同 equiKey 内发生，重写落在对侧条目原始写入的同一 scope，无跨 key 暴露。
+- `completeUnmatched`（:268-275）：仅读工作视图 + `output.collect`，零 keyed 依赖。
+- `restoreState`（:132-149）：`super.restoreState` 后重取 MapState 句柄（孤儿句柄防御），工作视图经 operator-state 传输恢复；restore 期间无 keyed 操作，restore 后的水印清理走同一 scoped 路径（checkpoint 测试 :104-107 绿佐证）。
+- 诊断口 `keyedBufferEntries`/`keyedAnyMatched`（:401-427）javadoc 明示须先 `setCurrentKey`，属约定式读口，不构成生产路径风险。
+
+**结论：MAJ-1 关闭，翻转条件 1、2（修复 + 判别性回归且修复前红）同时满足。**
+
+### 7.2 MIN-1（翻转条件 4 之一）——关闭
+
+`EquiJoinOperator.java:86` 字段注释已改为 `working view: bufferKey → ordered entries (restored through the operator-state transport).`，与 restoreState :143-148 实际通道及 javadoc :66-70 口径一致。
+
+### 7.3 MIN-2（翻转条件 4 之一）——关闭（残留一处计数笔误，见 7.4）
+
+plan 23 通读核对：
+
+- Phase 1 = EquiJoinOperator（含执行期三条裁定 + 孤儿句柄/scope 两处执行期发现）+ buildJoin 真实装配（:59-61），与 live 一致；「successor 路由」仅存于 Phase 2 对首轮 FAIL 的历史记录（:78-79）与 Current Baseline 对 WI8d 交付的历史描述（:15），不再作为交付叙事；Deferred 节已不存在（全文件 grep 零命中）；Phase 2 逐条记录首轮 FAIL 与修复（:78-79）。
+- Exit Criteria「buildJoin 从 NOT_IMPLEMENTED 占位转为真实装配（test-join-pipeline.stream.xml 端到端…恰两条）」与首轮 §1.4/§1.5 实证一致。
+
+### 7.4 计数勾稽（MIN-2a，收口必改）
+
+实跑计数（本审计独立复跑）：`TestEquiJoinHashSemantics` 8 + `TestEquiJoinWindowTimeout` 5 + `TestEquiJoinWithCheckpoint` 2（runtime）+ `TestEquiJoinParallelismInvariant` 3（flow）= **四具名类 18 用例**；runtime 另有同名异包 A6 类 1 用例，runtime join 总数 16（runtime 隔离含其跑 16/16 绿，见 7.5 E1/E2）。
+
+- 当日日志「join 隔离 15+3 用例全绿」= 15（runtime 三类）+ 3（flow）= 18，**与实跑一致**；
+- 当日日志「join 隔离 16/16 绿（8+5+2+1 A6 于 flow 另计）」= runtime 口径含 runtime 版 A6 单例，**与实跑一致**——两处口径不同但各自成立，非矛盾；
+- **plan 23 Phase 1 Exit Criteria「17 用例 8+5+2+3」算术不符（8+5+2+3=18）**——「17」为笔误，且与全量基线勾稽（runtime 1208 + 新增 16 = 1224）互证：本 WI 新增用例实为 16（runtime 15+1）+ 3（flow）。收口时须改「17」为「18」（或改写为 15+3=18 口径）。
+
+### 7.5 全量回归复跑（翻转条件 3）——全绿
+
+原始日志存 `_tmp/audit-wi13-r2/`。
+
+| 运行 | 结果 |
+|---|---|
+| E1 runtime 隔离 `TestEquiJoinHashSemantics,TestEquiJoinWindowTimeout,TestEquiJoinWithCheckpoint` | 8+5+2 = **15/15 绿**，EXIT 0 |
+| E2 runtime `TestEquiJoinParallelismInvariant`（runtime 版 A6） | **1/1 绿**，EXIT 0（runtime join 总数 16 勾稽） |
+| E3 flow 隔离 `TestEquiJoinParallelismInvariant` | **3/3 绿**，EXIT 0 |
+| E4 runtime 全量 | **Tests run: 1224, Failures: 0, Errors: 0, Skipped: 10**（首轮 1222 + 2 条新回归；skip 既有），EXIT 0 |
+| E5 flow 全量 | **Tests run: 159, Failures: 0, Errors: 0**，EXIT 0 |
+| E6 core 全量 | **Tests run: 1665, Failures: 0, Errors: 0, Skipped: 1**，EXIT 0 |
+| E7 WI12 三类隔离 `TestPerKeyOrderedBuffer,TestAnalysisWindowEventTime,TestE2EOverWindowWithCheckpoint` | 8+3+1 = **12/12 绿**，EXIT 0 |
+| E8 修复前红态（checkout `d345e4e850` operator + 重装 core，两条新回归） | **2/2 红**（失败点均为跨 key scope 断言） |
+| E9 修复后绿态复跑（恢复 HEAD） | **2/2 绿** |
+
+计数基线勾稽：WI12 收口基线 1208 + 本 WI runtime 新增 16（15 具名 + 1 runtime A6）= 1224，与 E4 实测一致；flow 159、core 1665 与首轮及实现者声称一致。
+
+### 7.6 门禁与 git 纪律——全过
+
+- `node ai-dev/tools/check-doc-links.mjs --strict`：**退出码 0**（0 errors；3 warnings 与首轮完全相同，均为 `ai-dev/plans/nop-bytecode/06-resource-leak-v1.md` 既存断链，与本轮无关）。
+- `node ai-dev/tools/check-nop-stream-invariants.mjs sync`：**OK**，退出码 0。
+- `node ai-dev/tools/scan-hollow-implementations.mjs --module core|flow|runtime --severity high`：三模块 **Critical 0 / High 0**。
+- git 纪律：审计起止 `git status --porcelain` 均空（红态验证的临时 checkout 已确定性恢复并复核）；`git diff ecd421c3b5..HEAD` 对 `_gen/`、`_*.xml/_*.java/_*.xmeta` 生成物**零改动**、`stream.xdef` 零改动；修复 commit `754556b002` 恰触 6 文件（audit 报告/日志/plan/算子/两测试），无探针残留（探针仅存 `_tmp/audit-wi13-r2/`，untracked）；EquiJoinOperator grep `TODO|FIXME|System.out` 零命中。
+
+### 7.7 MIN-3 与 roadmap 现状
+
+- plan 23 Phase 2 的 A6 回写项（:81）已含 MIN-3 边界声明：「含 MIN-3 边界：结构性与构建级证据成立、parallelism>1 的 join 执行受本地 runner 限制未覆盖」——措辞达标。
+- roadmap WI13 行仍 `todo`（:261）、A6 行（:192）仍为待验证旧文本——**属预期态**（回写动作本身在 PASS 后执行，见下）。
+
+### 7.8 最终裁定与翻转宣告
+
+**PASS。** 首轮 §6 翻转解锁条件 1-5 全部满足（条件 6 属实现者收口动作）。**roadmap WI13 `todo` → `done` 翻转正式解锁。**
+
+**实现者收口动作清单（按序执行）**：
+
+1. plan 23 Phase 1 Exit Criteria 计数笔误修正：「17 用例 8+5+2+3」→「18 用例 8+5+2+3」（15 runtime + 3 flow；runtime 全量口径 1224 = 基线 1208 + 16）。
+2. roadmap WI13 行 `todo` → `done`（括注单层一对，引用本 audit 两轮证据），A6 行按 plan :81 措辞回写（推翻结论 + MIN-3 边界声明）；`parseRoadmapMarkdown` 复核 31 + 7。
+3. plan 23 Phase 2 剩余项勾选（第二轮 audit 行引用本节）、Exit Criteria 勾选、Plan Status → `completed`、Closure 段回填（两轮 audit 证据索引）。
+4. `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/23-wi13-equi-join-operator.md --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+5. 当日日志追记第二轮 audit PASS 与收口翻转；commit。
