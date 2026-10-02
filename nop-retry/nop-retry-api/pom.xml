@@ -16,6 +16,12 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-api-core</artifactId>
         </dependency>
+        <!-- test-only: 结构性单元测试用（WI11 plan 2303 裁定：nop-retry-api 实测缺失 junit test 依赖） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

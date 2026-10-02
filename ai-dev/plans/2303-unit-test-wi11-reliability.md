@@ -42,61 +42,70 @@
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: completed
 Targets: `nop-cluster|nop-retry|nop-tcc|nop-network|nop-graph/*/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] cluster-core ≥8、tcc-core ≥8、retry 结构性 ≥6、network 补缺 ≥6 用例；全部遵守防挂起六规则。
-- [ ] 各模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+- [x] cluster-core 23 用例（naming/discovery/health/elector，含异步自旋等待模式）；tcc-core 42 新用例（分支状态机/endAsync 路由/引擎事务/元数据反射）；retry-api 20 结构性用例；rpc-core 17 + http-api 15 用例——合计 117 用例（≥28）。
+- [x] 五模块联合 `mvnq -- test -pl :nop-cluster-core,:nop-tcc-core,:nop-retry-api,:nop-rpc-core,:nop-http-api -am -fae` BUILD SUCCESS（453 模块 reactor，tcc 52/http 38/rpc 26/cluster 57/retry 20 tests，既有零回归）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增测试 ≥28 用例，含显式语义断言；异步测试类均有 @Timeout。
-- [ ] 各模块测试全绿。
-- [ ] pom 变更（如有）仅 test-scope 依赖且已记录。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 117 用例（≥28），全部含显式语义断言；异步类全部 @Timeout(10)、future.get 带 5s 超时、无阻塞 take。
+- [x] 各模块测试全绿。
+- [x] pom 变更仅 retry-api 1 处 test-scope junit 且已记录。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI11 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 删模块 exec → baseline 脚本复测，记录增量；graph/retry-engine 不回退确认。
-- [ ] 残余缺口显式裁定（periphery 目标 30%）。
+- [x] 删模块 exec → baseline 脚本复测（label wi11-2026-10-02）：cluster-core 13.95%→34.06%（+20.11）、tcc-core 6.11%→62.59%（+56.48）、retry-api 0→43.38%、rpc-core 31.52%→40.68%、http-api 32.3%→40.61%——五靶模块全部越过 30%；graph-core 79.28% 与 retry-engine 83.55% 持平不回退确认。
+- [x] 残余缺口显式裁定（Deferred 段：cluster 资源规格值对象、rpc 反射代理/消息服务端、http 文件传输、retry bean 面——容器/装配依赖为主）。
 - [ ] 独立子 agent closure audit 通过后勾选 roadmap WI11 checkbox。
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI11 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI11 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 各模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码零修改；pom 仅 test-scope 新增且记录
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 各模块全部新增测试绿（含既有测试零回归）
+- [x] 产品代码零修改；pom 仅 test-scope 新增且记录
+- [x] 覆盖增量实测记录
+- [x] 残余缺口显式裁定（无静默降级）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：并发/TCC 语义测试断言行为；无裸 future.get()/take()（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2303-unit-test-wi11-reliability.md --strict` 退出码 0
 - [ ] roadmap WI11 checkbox 与 plan/log 一致
 
+## 执行偏差记录
+
+1. 验证命令形式：任务要求逐模块 `-am`，实际以一次五模块联合 `-pl ... -am -fae` 等价执行（同一 upstream 全集、一次编译，验证强度相同），无上游红失败、无需降级。
+
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### 可靠性外围残余低覆盖类
+
+- Classification: `optimization candidate`（WI13 复裁）
+- Why Not Blocking Closure: 五靶模块全部越过 periphery 30%。残余主体为容器/装配依赖类：cluster 资源规格值对象 6 类 0%（纯逻辑可低成本补）、rpc 反射代理与消息服务端（需 IoC/channel）、http 文件传输（需 IO 装配）、tcc 的 TccRpcServiceInterceptor（需完整引擎流）——归 WI13 与后续容器化测试切片。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/unit-test-coverage-roadmap.md`（WI13 复裁）
 
 ## Non-Blocking Follow-ups
 
-- TarjanSCC lowLink 缺陷、retry 幂等键生命周期 P1——修复立项时回归测试并入本 WI 记账。
+- 2 项新缺陷嫌疑走独立 bug 流程（bugs/2026-10/2026-10-02-wi11-defect-suspects.md）：HealthStatus.merge 语义疑似反转（DOWN 拉不低聚合）、MultiRpcService 空映射未 fail-fast；TarjanSCC lowLink 与 retry 幂等键 P1 既有项维持独立立项。
 
 ## Closure
 
