@@ -268,7 +268,11 @@ public class TestHookInReActLoop {
     }
 
     @Test
-    void vetoFromPreActingSkipsTool() {
+    void vetoFromPreActingFailsLoudAsContractViolation() {
+        // Plan 2292 (WI11): PRE_ACTING is a dead veto point (its return value
+        // was never consumed; the execution-level PRE_TOOL_ATTEMPT owns veto
+        // semantics) — a VetoResult there now fails loud as a contract
+        // violation instead of being silently ignored.
         DefaultHookRegistry registry = new DefaultHookRegistry();
         registry.register(AgentLifecyclePoint.PRE_ACTING, ctx -> new HookResult.VetoResult("not allowed"));
 
@@ -292,7 +296,12 @@ public class TestHookInReActLoop {
                 .hookRegistry(registry).build();
 
         AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
-        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // the misconfigured veto fails the execution loudly (was: silently
+        // ignored while the tool still ran — the dead-configuration evidence)
+        assertEquals(AgentExecStatus.failed, result.getStatus());
+        assertTrue(result.getError() != null
+                && result.getError().contains("VetoResult is only valid at PRE lifecycle points"),
+                "contract violation error: " + result.getError());
     }
 
     @Test

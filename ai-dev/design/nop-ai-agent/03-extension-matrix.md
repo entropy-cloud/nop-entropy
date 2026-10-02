@@ -4,7 +4,7 @@
 **范围**：`nop-ai-agent` 模块全部 Java 接口（`io.nop.ai.agent` 主源码，排除 `_gen`）
 **状态**：active
 
-**修订记录**：2026-09-14 依据 WI5 登记的 6 项勘误线索（`ai-dev/analysis/compare-agent-design/04-extension-capability-matrix.md` §⑤）与 live 代码复核修订：① `IContentGuardrail` 状态与实现列更新（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 已落地）；②③ 接口计数与扩展点数量重算（67 → 72，含 4 个接口迁出登记与 5 个 live 接口补登）；④ `REASONING_CHUNK` 死点标注；⑤ `HookToMiddlewareAdapter` 死代码标注；⑥ "主要消费者"列按实际消费类抽查更新并登记免责注记。**2026-09-15**：`REASONING_CHUNK` 死点收口——裁定收窄合同（nop 无流式执行路径），枚举值 + 注册映射移除（`AgentLifecyclePoint` 12→11 值），§4.2 L2 注与 §6.3 条目同步为"已移除"。
+**修订记录**：**2026-10-02** veto 合同收窄（plan 2292 WI11）——VetoResult 仅 PRE_CALL/PRE_REASONING 合法（fail-loud 校验，镜像 Bail 白名单）；ON_ERROR/POST_COMPACT 为非链 observer 点（veto WARN-drop）；BEFORE/AFTER_TOOL_RESULT_PROCESSED 的 veto 维度收窄（Reenter 为唯一活通道）；PRE_ACTING/POST_ACTING veto 收窄（执行级 PRE/POST_TOOL_ATTEMPT 已有等价 veto 消费）。2026-09-14 依据 WI5 登记的 6 项勘误线索（`ai-dev/analysis/compare-agent-design/04-extension-capability-matrix.md` §⑤）与 live 代码复核修订：① `IContentGuardrail` 状态与实现列更新（`PromptInjectionGuardrail` / `RuleGraphGuardrail` 已落地）；②③ 接口计数与扩展点数量重算（67 → 72，含 4 个接口迁出登记与 5 个 live 接口补登）；④ `REASONING_CHUNK` 死点标注；⑤ `HookToMiddlewareAdapter` 死代码标注；⑥ "主要消费者"列按实际消费类抽查更新并登记免责注记。**2026-09-15**：`REASONING_CHUNK` 死点收口——裁定收窄合同（nop 无流式执行路径），枚举值 + 注册映射移除（`AgentLifecyclePoint` 12→11 值），§4.2 L2 注与 §6.3 条目同步为"已移除"。
 
 ---
 
@@ -346,3 +346,21 @@ nop-ai-agent-roadmap.md (Layer 阶段状态层)
 - `nop-ai-agent-roadmap.md` Phase Status — 本篇为其提供 per-扩展点细粒度
 - `nop-ai-agent-security-audit-readiness-analysis.md` — 唯一同款"渐进式审计"文档，本篇方法论推广自该文档
 - 源码 `io.nop.ai.agent.*` — 本矩阵的事实来源
+
+## veto 合同收窄后生命周期点能力矩阵（WI11，plan 2292，权威）
+
+| 点 | Veto | Bail | Reenter | 能力级别 |
+|---|---|---|---|---|
+| PRE_CALL | ✅ 消费（整执行返回 completed+vetoedAt） | 非法 fail-loud | 非法 fail-loud | abort |
+| PRE_REASONING | ✅ 消费（iteration++ continue） | 非法 fail-loud | 非法 fail-loud | veto |
+| POST_REASONING | 非法 fail-loud（WI11 收窄） | ✅ 消费（弃响应+re-prompt，cap 3） | 非法 fail-loud | bail |
+| PRE_ACTING | 非法 fail-loud（WI11 收窄；执行级 PRE_TOOL_ATTEMPT 承接 veto） | 非法 fail-loud | 非法 fail-loud | — |
+| POST_ACTING | 非法 fail-loud（WI11 收窄；执行级 POST_TOOL_ATTEMPT 承接） | 非法 fail-loud | 非法 fail-loud | — |
+| ON_ERROR | observer（WARN-drop，非链点） | 非法 fail-loud | 非法 fail-loud | observe |
+| POST_CALL | 非法 fail-loud（WI11 收窄） | ✅ 消费（bailReason/guardrailBlocked 标记） | 非法 fail-loud | bail |
+| PRE_COMPACT | 非法 fail-loud（WI11 收窄；压缩为无条件流 §8.3） | 非法 fail-loud | 非法 fail-loud | — |
+| POST_COMPACT | observer（WARN-drop，非链点） | 非法 fail-loud | 非法 fail-loud | observe |
+| BEFORE_TOOL_RESULT_PROCESSED | 非法 fail-loud（WI11 收窄） | 非法 fail-loud | ✅ Reenter（transform+inject，cap 3/迭代） | transform+inject |
+| AFTER_TOOL_RESULT_PROCESSED | 非法 fail-loud（WI11 收窄） | 非法 fail-loud | ✅ Reenter（批后 user marker） | inject |
+
+执行级 4 点（PRE/POST_LLM_ATTEMPT、PRE/POST_TOOL_ATTEMPT）veto 全活，不变。锚点：`AgentHookInvoker.validateVetoPoint`（白名单校验）。

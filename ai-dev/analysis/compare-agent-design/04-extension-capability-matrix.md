@@ -3,6 +3,8 @@
 > Status: resolved
 > Date: 2026-09-12
 > Scope: nop-ai-agent / deepseek-harness（dsh）/ pi 三方全部扩展点的能力语义矩阵：五级能力定义（observe/transform/veto/abort-bail/inject）、逐点触发时机/可影响内容/能力级别/同步异步/异常传播；S2 主题权威深挖
+> **WI11 更新（2026-10-02，plan 2292）**：本表 §3.1.1 所载 veto 死点（PRE_ACTING/POST_ACTING/POST_CALL/PRE_COMPACT/POST_COMPACT/ON_ERROR）已由 veto 合同收窄处置——链点 fail-loud、非链 observer WARN-drop；REASONING_CHUNK 已于 2026-09-15 移除。权威矩阵见 `ai-dev/design/nop-ai-agent/03-extension-matrix.md` veto 合同节。本表保留为 2026-09-12 快照。
+>
 > Conclusion: 三方能力面结构迥异——nop 能力最强也最不对称：12 个 lifecycle point 中 6 个的 veto/bail 返回值实际无消费者（PRE_ACTING/POST_ACTING/POST_CALL/PRE_COMPACT/POST_COMPACT=observe、REASONING_CHUNK 是死点），但策略对象面（judge/sustainer/wait/denial/breaker/retry/compactor）全部可改变循环走向；dsh 扩展点**无 abort-bail**（轮次中断只有 agent.cancel() 命令通道，veto 只在 4 处有明确决策类型）；pi 双轨面能力分明（配置级 hook 抛异常=run 终止，扩展事件抛异常=被包含降级）。关键否定性结论：nop 执行级 middleware 无 transform 通道（AttemptContext 只读）；nop HookContext.executionContext 活引用构成合同外越权通道；dsh tools/change 裸 emit 无异常包含；pi AgentLoopConfig.beforeToolCall 类型上不能改参数而扩展层 tool_call 可就地 mutate（无再校验）。
 > 基线: nop=800baf32da（nop-ai 模块与 c585459f83 diff 为空）、dsh=c291e7961a（2026-09-10，重钉；141eb6fef8 为其祖先）、pi=c49906ec7；全部锚点行号当日实测；能力级别以代码实际行为为准（返回值被谁消费、消费后走什么分支）
 > 锚点重钉: 2026-09-14，HEAD 4582e780dad4（nop，plan 355 重构+M5/M6 修复后逐锚点核对；仅行号更新，结论不变）

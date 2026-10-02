@@ -37,6 +37,14 @@ public abstract class HookResult {
         }
     }
 
+    /**
+     * Plan 2292 (WI11) contract: VetoResult is only consumable at PRE
+     * lifecycle points (PRE_CALL, PRE_REASONING — the callers that check
+     * {@code isVeto()}). Returning a VetoResult at any other lifecycle point
+     * fails loud via {@code AgentHookInvoker.validateVetoPoint} (mirrors the
+     * Bail whitelist); the POST-side "veto semantics do not apply" note in
+     * {@link BailResult} is now contract-enforced rather than advisory.
+     */
     public static final class VetoResult extends HookResult {
         private final String reason;
 
@@ -70,8 +78,9 @@ public abstract class HookResult {
      * lifecycle point fails loud (throws {@code NopAiAgentException}).
      *
      * <p>Distinct from {@link VetoResult} (PRE-side rejection, core not
-     * executed — POST-side core has already executed, Veto semantics do not
-     * apply) and from "rewrite" interception ({@code GuardrailResult.ModifyResult}
+     * executed — POST-side core has already executed, and since plan 2292
+     * WI11 a VetoResult at POST points fails loud as a contract violation
+     * rather than being silently ignored) and from "rewrite" interception ({@code GuardrailResult.ModifyResult}
      * rewrites content and passes through — BAIL does not apply the response).
      *
      * <p>Nested inside {@code HookResult} because the abstract base's
