@@ -283,6 +283,18 @@ ChatOptions options = buildChatOptions(ChatOptionsHelper.toChatOptions(agentMode
     }
 
     /**
+     * Plan 2285 (WI4): pure output-guardrail check for heartbeat wakeup
+     * replies — the reply is NOT yet committed to ctx, so the block path is
+     * "drop the reply" (caller adjudicates as WAIT) and no ctx mutation /
+     * pairing repair is needed here (unlike {@link #checkOutputGuardrail}).
+     */
+    public boolean checkOutputGuardrailBlockedForWakeup(AgentExecutionContext ctx,
+                                                        ChatAssistantMessage assistantMsg) {
+        String outputContent = getOutputContent(assistantMsg);
+        return contentGuardrail.check(GuardrailDirection.OUTPUT, outputContent, ctx).isBlock();
+    }
+
+    /**
      * Check the output content guardrail (extracted from
      * ReActAgentExecutor.execute, MA4.2-05). On BLOCK: injects an assistant
      * message (or per-tool error responses preserving the tool_call_id

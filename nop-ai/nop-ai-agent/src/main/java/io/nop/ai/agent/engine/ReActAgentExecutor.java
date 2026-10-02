@@ -92,6 +92,7 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.reliability.ICircuitBreaker;
@@ -174,6 +175,10 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final AgentToolPlanResolver toolPlanResolver;
     private final AgentPromptAssembly promptAssembly;
     private final AgentToolDispatcher toolDispatcher;
+    // Plan 2285 (WI4): heartbeat slice interval for the tool wait phase.
+    private final long heartBeatIntervalMs;
+    // Plan 2285 (WI4): tool execution progress/cancel seam.
+    private final io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
     private final AgentLoopGuard loopGuard;
     private final IWaitCoordinator waitCoordinator;
 
@@ -222,6 +227,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                            ITeamAclChecker teamAclChecker,
                                             long llmTimeoutMs,
                                             long toolTimeoutMs,
+                                            long heartBeatIntervalMs,
+                                            java.util.Map<String, Long> toolTimeoutPolicy,
+                                            io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker,
                                             Executor timeoutExecutor,
                                             IWaitCoordinator waitCoordinator) {
         this.tokenEstimator = tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator();
@@ -315,7 +323,14 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 this.checkpointManager,
                 this.hookInvoker,
                 this.toolPlanResolver,
-                this.securityConsultation);
+                this.securityConsultation,
+                toolTimeoutPolicy);
+        // Plan 2285 (WI4): heartbeat slice interval for the tool wait phase
+        // (<=0 disables sliced waiting — single deadline-bounded wait).
+        this.heartBeatIntervalMs = heartBeatIntervalMs;
+        this.toolProgressTracker = toolProgressTracker != null
+                ? toolProgressTracker
+                : io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp();
         this.checkpointChain = securityConsultation.buildCheckpointChain();
     }
 
@@ -717,7 +732,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         return runToolFanout(ctx, agentModel, sessionId, agentName, turn.responseToolCalls(),
-                execStartTime, state.checkpointSeq) == IterationFlow.CONTINUE_LOOP;
+                execStartTime, state.checkpointSeq, options, state) == IterationFlow.CONTINUE_LOOP;
     }
 
     /**
@@ -855,6 +870,27 @@ public class ReActAgentExecutor implements IAgentExecutor {
      */
     private RoutedRequest prepareRoutedRequest(AgentExecutionContext ctx, ChatOptions options,
                                                String sessionId, ExecutionState state) {
+        ChatOptions routedOptions = resolveRoutedOptions(ctx, options, sessionId, state);
+        ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
+        request.setOptions(routedOptions);
+        return new RoutedRequest(request, routedOptions);
+    }
+
+    /**
+     * Plan 2285 (WI4): routing core shared by the regular iteration request
+     * and wait-phase wakeup requests — budget snapshot, model route,
+     * circuit-aware resolution, model-switched audit (skippable: wakeup turns
+     * skip the audit write and leave {@code state.lastModelKey} untouched,
+     * design nop-ai-agent-async-tool-execution.md §三.3 实现补充裁定).
+     */
+    private ChatOptions resolveRoutedOptions(AgentExecutionContext ctx, ChatOptions options,
+                                             String sessionId, ExecutionState state) {
+        return resolveRoutedOptions(ctx, options, sessionId, state, true);
+    }
+
+    private ChatOptions resolveRoutedOptions(AgentExecutionContext ctx, ChatOptions options,
+                                             String sessionId, ExecutionState state,
+                                             boolean writeModelSwitchAudit) {
         // before routing so a functional IModelRouter can read
         // ctx.getBudgetSnapshot() and downgrade the model on budget
         // exhaustion (design nop-ai-agent-usage-and-billing.md §3.6).
@@ -900,28 +936,27 @@ public class ReActAgentExecutor implements IAgentExecutor {
         routedOptions = llmCoordinator.resolveCircuitAware(
                 routedOptions, sessionId);
 
-        // persist a model-switched audit message (role=80) when the
-        // routed model differs from the previous iteration's model
-        // (design nop-ai-agent-usage-and-billing.md §3.5). The message
-        // is an audit record persisted to nop_ai_session_message — it is
-        // NOT added to ctx.getMessages() and therefore never injected
-        // into the LLM reasoning context.
-        String currentModelKey = ModelKeys.buildModelKey(routedOptions);
-        if (state.lastModelKey != null && !currentModelKey.equals(state.lastModelKey)
-                && sessionId != null) {
-            state.messageSeq[0]++;
-            modelSwitchedMessageWriter.writeModelSwitched(
-                    sessionId, state.lastModelKey, currentModelKey,
-                    routingResult.getRoutingReason(),
-                    routingResult.getComplexity(),
-                    state.messageSeq[0]);
+        if (writeModelSwitchAudit) {
+            // persist a model-switched audit message (role=80) when the
+            // routed model differs from the previous iteration's model
+            // (design nop-ai-agent-usage-and-billing.md §3.5). The message
+            // is an audit record persisted to nop_ai_session_message — it is
+            // NOT added to ctx.getMessages() and therefore never injected
+            // into the LLM reasoning context.
+            String currentModelKey = ModelKeys.buildModelKey(routedOptions);
+            if (state.lastModelKey != null && !currentModelKey.equals(state.lastModelKey)
+                    && sessionId != null) {
+                state.messageSeq[0]++;
+                modelSwitchedMessageWriter.writeModelSwitched(
+                        sessionId, state.lastModelKey, currentModelKey,
+                        routingResult.getRoutingReason(),
+                        routingResult.getComplexity(),
+                        state.messageSeq[0]);
+            }
+            state.lastModelKey = currentModelKey;
         }
-        state.lastModelKey = currentModelKey;
 
-        ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
-        request.setOptions(routedOptions);
-        List<ChatMessage> messagesAtCallTime = request.getMessages();
-        return new RoutedRequest(request, routedOptions);
+        return routedOptions;
     }
 
     /**
@@ -1150,6 +1185,234 @@ public class ReActAgentExecutor implements IAgentExecutor {
         return IterationFlow.PROCEED;
     }
 
+    // ---- Plan 2285 (WI4): heartbeat wait phase (design nop-ai-agent-async-tool-execution.md §三.1/§三.3/§三.6) ----
+
+    /** Heartbeat wakeup decision protocol (design §三.3 响应能力): reply text tokens. */
+    private static final String WAKEUP_DECISION_WAIT = "WAIT";
+    private static final String WAKEUP_DECISION_ABANDON = "ABANDON";
+
+    /**
+     * The tool wait phase with heartbeat wakeup turns: sliced waiting on the
+     * tool-phase session; each expiry triggers a transient wakeup LLM request
+     * (ctx snapshot + placeholders + heartbeat evidence) whose assistant
+     * reply adjudicates continue/abandon/parallel. Wakeup turns are NOT
+     * iterations: no iteration budget, no ISustainer, no LLM_TURN checkpoint,
+     * no session-level lifecycle hooks, no EXECUTION_COMPLETED — only the
+     * content guardrail fast path applies (design §三.3 语义表 + 实现补充裁定).
+     */
+    private void runHeartbeatToolPhase(AgentExecutionContext ctx, String sessionId, String agentName,
+                                       List<ChatToolCall> allowedCalls, AgentToolExecuteContext toolExecCtx,
+                                       long execStartTime, int[] checkpointSeq,
+                                       ChatOptions options, ExecutionState state) {
+        AgentToolDispatcher.ToolPhaseSession session = toolDispatcher.startToolPhase(
+                ctx, agentName, sessionId, allowedCalls, toolExecCtx, execStartTime, checkpointSeq);
+        while (!session.awaitCompletionSlice(nextWaitSlice(session))) {
+            // wakeup-turn gate set (design §三.3): cancel + pause + forceStop.
+            // No WAIT_FOR/assessGoal/compaction — no iteration semantics here.
+            if (ctx.isCancelRequested()) {
+                break;
+            }
+            if (ctx.getStatus() == AgentExecStatus.paused) {
+                break;
+            }
+            if (loopGuard.shouldForceStop(ctx)) {
+                loopGuard.handleForcedStop(ctx, sessionId, agentName, checkpointSeq);
+                break;
+            }
+
+            runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx, options, state);
+        }
+        session.commitResults();
+    }
+
+    /**
+     * Slice budget: never sleep past a mechanical cap (the cap expiry
+     * completes a future exceptionally and shrinks the pending set).
+     */
+    private long nextWaitSlice(AgentToolDispatcher.ToolPhaseSession session) {
+        long remainingCap = session.earliestDeadlineRemainingMs();
+        long slice = heartBeatIntervalMs;
+        if (remainingCap < slice) {
+            slice = remainingCap;
+        }
+        return slice;
+    }
+
+    /**
+     * One heartbeat wakeup turn: build the transient request (ctx snapshot +
+     * per-own-callId anchored placeholders + heartbeat evidence message),
+     * call the LLM via the fail-soft wakeup entry, apply the content
+     * guardrail fast path, commit the heartbeat message and the assistant
+     * reply to ctx (heartbeat first, reply after — session order), record
+     * usage, and adjudicate the reply (WAIT / ABANDON [callId] / tool_calls
+     * = parallel work).
+     */
+    private void runHeartbeatWakeupTurn(AgentExecutionContext ctx, String sessionId, String agentName,
+                                        AgentToolDispatcher.ToolPhaseSession session,
+                                        AgentToolExecuteContext toolExecCtx,
+                                        ChatOptions options, ExecutionState state) {
+        List<String> pendingCallIds = session.pendingCallIds();
+        if (pendingCallIds.isEmpty()) {
+            return;
+        }
+
+        // transient request copy: placeholders are inserted into the COPY
+        // only (WI3 invariant 1 — derived state never enters session history)
+        List<ChatMessage> requestMessages = new ArrayList<>(ctx.getMessages());
+        for (String callId : pendingCallIds) {
+            ChatToolCall call = session.callByCallId(callId);
+            if (call == null) {
+                continue;
+            }
+            ChatToolResponseMessage placeholder = ToolCallPlaceholderRenderer.renderPlaceholder(
+                    new ChatToolCallMessage(callId, call.getName(), java.util.Map.of()));
+            AgentToolDispatcher.insertToolResultInList(requestMessages, placeholder);
+        }
+        ChatUserMessage heartbeatMessage = buildHeartbeatMessage(ctx, sessionId, agentName, session);
+        requestMessages.add(heartbeatMessage);
+
+        ChatOptions routedOptions = resolveRoutedOptions(ctx, options, sessionId, state, false);
+        ChatRequest wakeupRequest = new ChatRequest(requestMessages);
+        wakeupRequest.setOptions(routedOptions);
+
+        LlmCallCoordinator.LlmCallResult llmResult = llmCoordinator.doWakeupCallWithRetry(
+                wakeupRequest, ctx, sessionId, agentName, routedOptions);
+        if (llmResult == null || !llmResult.isSuccess()) {
+            // fail-soft (design §三.3 实现补充裁定): stay in the wait phase;
+            // the next slice retries the wakeup
+            return;
+        }
+
+        ChatAssistantMessage assistantMsg = extractAssistantMessage(llmResult.response);
+        List<ChatToolCall> derivedCalls = extractToolCalls(llmResult.response);
+
+        // usage first: the tokens were consumed whether or not the reply
+        // survives the guardrail check (closure-audit note a)
+        if (llmResult.response.getUsage() != null) {
+            recordLlmTurnUsage(ctx, sessionId, agentName, wakeupRequest, llmResult.routedOptions, llmResult);
+        }
+
+        // content guardrail fast path (design §三.3: checkOutputGuardrail
+        // mechanism applies to wakeup replies; BAIL → discard the reply,
+        // adjudicate as WAIT). The reply is NOT yet in ctx — a block simply
+        // drops it (nothing to unwind), which preserves the pairing
+        // invariant trivially.
+        if (assistantMsg != null && promptAssembly.checkOutputGuardrailBlockedForWakeup(ctx, assistantMsg)) {
+            LOG.warn("heartbeat wakeup reply blocked by content guardrail; adjudicated as WAIT. session={}", sessionId);
+            ctx.addMessage(heartbeatMessage);
+            return;
+        }
+
+        // heartbeat message first, reply after (session order, design §三.3)
+        ctx.addMessage(heartbeatMessage);
+        if (assistantMsg != null) {
+            ctx.addMessage(assistantMsg);
+        }
+        // parallel-work derived calls: append their tool_call messages to ctx
+        // (same discipline as the regular turn — appendToolCallMessages before
+        // dispatch — so deny results pair up and committed results anchor
+        // in-place by their own callId)
+        appendToolCallMessages(ctx, llmResult.response);
+
+        adjudicateHeartbeatReply(ctx, sessionId, agentName, session, toolExecCtx,
+                derivedCalls, assistantMsg);
+    }
+
+    /**
+     * Adjudicates the wakeup reply: tool_calls = parallel work (dispatched
+     * through the full security chain, joined into the pending set);
+     * "ABANDON [callId]" = abandon (one or all) with synthetic cancel
+     * results; anything else = keep waiting.
+     */
+    private void adjudicateHeartbeatReply(AgentExecutionContext ctx, String sessionId, String agentName,
+                                          AgentToolDispatcher.ToolPhaseSession session,
+                                          AgentToolExecuteContext toolExecCtx,
+                                          List<ChatToolCall> derivedCalls,
+                                          ChatAssistantMessage assistantMsg) {
+        if (derivedCalls != null && !derivedCalls.isEmpty()) {
+            // parallel independent work (design §三.3 响应能力): full security
+            // chain per call — no wakeup-turn exemption
+            List<ChatToolCall> allowed = new ArrayList<>();
+            String fingerprintWorkDir = securityConsultation.resolveWorkDirString(ctx.getAgentModel());
+            for (ChatToolCall call : derivedCalls) {
+                SecurityCheckpoint.CheckContext checkCtx = SecurityCheckpoint.CheckContext.create(
+                        sessionId, agentName, call, ctx, fingerprintWorkDir, ctx.getAgentModel());
+                SecurityCheckpoint.Decision decision = checkpointChain.evaluate(checkCtx);
+                if (decision == SecurityCheckpoint.Decision.DENY_AND_BREAK) {
+                    break;
+                }
+                if (decision == SecurityCheckpoint.Decision.DENY) {
+                    continue;
+                }
+                allowed.add(call);
+            }
+            if (!allowed.isEmpty()) {
+                toolDispatcher.addCallsToPhase(session, ctx, agentName, allowed, toolExecCtx);
+                LOG.info("heartbeat wakeup spawned {} parallel tool call(s). session={}", allowed.size(), sessionId);
+            }
+            return;
+        }
+
+        String text = assistantMsg != null && assistantMsg.getContent() != null
+                ? assistantMsg.getContent().trim() : "";
+        if (text.regionMatches(true, 0, WAKEUP_DECISION_ABANDON, 0, WAKEUP_DECISION_ABANDON.length())) {
+            String rest = text.substring(WAKEUP_DECISION_ABANDON.length()).trim();
+            List<String> targets = new ArrayList<>();
+            if (rest.isEmpty()) {
+                targets.addAll(session.pendingCallIds());
+            } else {
+                targets.add(rest.split("\\s+")[0]);
+            }
+            for (String callId : targets) {
+                ChatToolCall call = session.callByCallId(callId);
+                ChatToolResponseMessage cancelResult = ChatToolResponseMessage.error(callId,
+                        call != null ? call.getName() : "unknown",
+                        "abandoned by model heartbeat decision before completion");
+                // process-level kill channel first (no-op when no tracker is
+                // wired); future cancel + synthetic result follow in abandon()
+                toolProgressTracker.cancelExecution(callId);
+                if (session.abandon(callId, cancelResult)) {
+                    LOG.info("heartbeat abandon: callId={} cancelled with synthetic result. session={}",
+                            callId, sessionId);
+                }
+            }
+            return;
+        }
+        // WAIT (explicit token or any other reply): fall through — the wait
+        // loop's next slice continues
+    }
+
+    /**
+     * Heartbeat evidence message (ChatUserMessage, design §三.3): running
+     * tool list + elapsed per call + sandbox incremental output tail — the
+     * progress evidence the model needs to distinguish slow from hung.
+     */
+    private ChatUserMessage buildHeartbeatMessage(AgentExecutionContext ctx, String sessionId,
+                                                  String agentName,
+                                                  AgentToolDispatcher.ToolPhaseSession session) {
+        StringBuilder text = new StringBuilder();
+        text.append("[heartbeat] Tools still running (").append(session.pendingCallIds().size())
+                .append("). For each: elapsed ms and latest output tail. ")
+                .append("Reply ").append(WAKEUP_DECISION_WAIT).append(" to keep waiting, ")
+                .append(WAKEUP_DECISION_ABANDON).append(" <callId> to abandon one (or ")
+                .append(WAKEUP_DECISION_ABANDON).append(" for all), or issue other tool calls ")
+                .append("to do independent work in parallel.\n");
+        for (String callId : session.pendingCallIds()) {
+            ChatToolCall call = session.callByCallId(callId);
+            io.nop.ai.agent.tool.ToolProgressSnapshot snapshot = toolProgressTracker.progressSnapshot(callId);
+            text.append("- callId=").append(callId)
+                    .append(" tool=").append(call != null ? call.getName() : "unknown")
+                    .append(" elapsedMs=").append(session.elapsedMs(callId))
+                    .append(" inFlight=").append(snapshot.isInFlight())
+                    .append(" outputBytes=").append(snapshot.getOutputBytes())
+                    .append("\n");
+            if (!snapshot.getOutputTail().isEmpty()) {
+                text.append("  tail: ").append(snapshot.getOutputTail().replace("\n", " | ")).append("\n");
+            }
+        }
+        return new ChatUserMessage(text.toString());
+    }
+
     /**
      * AI-1 (plan 355): extracted from execute() — the tool fan-out phase:
      * dispatch-context preparation, the security-checkpoint dispatch loop,
@@ -1159,7 +1422,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private IterationFlow runToolFanout(AgentExecutionContext ctx, AgentModel agentModel,
                                         String sessionId, String agentName,
                                         List<ChatToolCall> responseToolCalls,
-                                        long execStartTime, int[] checkpointSeq) {
+                                        long execStartTime, int[] checkpointSeq,
+                                        ChatOptions options, ExecutionState state) {
         // the provider (when wired). When the provider is null
         // (executor constructed outside the engine for testing, or
         // explicitly opted out), the store stays null and memory tools
@@ -1210,8 +1474,16 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         if (!allowedCalls.isEmpty()) {
-            toolDispatcher.executeAllowedCalls(ctx, agentName, sessionId, allowedCalls,
-                    toolExecCtx, execStartTime, checkpointSeq);
+            if (heartBeatIntervalMs > 0) {
+                // Plan 2285 (WI4): sliced wait with heartbeat wakeup turns —
+                // the model adjudicates continue/abandon/parallel while the
+                // tools run; mechanical caps stay the fallback.
+                runHeartbeatToolPhase(ctx, sessionId, agentName, allowedCalls, toolExecCtx,
+                        execStartTime, checkpointSeq, options, state);
+            } else {
+                toolDispatcher.executeAllowedCalls(ctx, agentName, sessionId, allowedCalls,
+                        toolExecCtx, execStartTime, checkpointSeq);
+            }
         }
 
         if (ctx.isCancelRequested()) {

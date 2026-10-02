@@ -493,6 +493,21 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     public long getToolTimeoutMs() { return config.getToolTimeoutMs(); }
 
+    /** Plan 2285 (WI4): heartbeat slice interval for the tool wait phase. */
+    public void setHeartBeatIntervalMs(long heartBeatIntervalMs) { config.setHeartBeatIntervalMs(heartBeatIntervalMs); }
+
+    public long getHeartBeatIntervalMs() { return config.getHeartBeatIntervalMs(); }
+
+    /** Plan 2285 (WI4): per-tool mechanical-timeout cap policy (design §三.5 layer 2). */
+    public void setToolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) { config.setToolTimeoutPolicy(toolTimeoutPolicy); }
+
+    public java.util.Map<String, Long> getToolTimeoutPolicy() { return config.getToolTimeoutPolicy(); }
+
+    /** Plan 2285 (WI4): tool execution progress/cancel seam (default NoOp). */
+    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker tracker) { config.setToolProgressTracker(tracker); }
+
+    public io.nop.ai.agent.tool.IToolProgressTracker getToolProgressTracker() { return config.getToolProgressTracker(); }
+
     /** I3 R-2-3: team-flow member-execution deadline (ms), single config source. */
     public void setMemberExecTimeoutMs(long memberExecTimeoutMs) { config.setMemberExecTimeoutMs(memberExecTimeoutMs); }
 

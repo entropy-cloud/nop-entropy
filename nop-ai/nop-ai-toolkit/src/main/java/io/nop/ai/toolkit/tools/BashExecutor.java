@@ -115,6 +115,9 @@ public class BashExecutor implements IToolExecutor {
                     .workingDirectory(workingDir)
                     .environmentVariables(env)
                     .config(config)
+                    // Plan 2285 (WI4): address the in-flight execution by the
+                    // provider call id for heartbeat progress + abandon cancel
+                    .callId(call.getCallId())
                     .build();
 
             BashSandboxResult sr;

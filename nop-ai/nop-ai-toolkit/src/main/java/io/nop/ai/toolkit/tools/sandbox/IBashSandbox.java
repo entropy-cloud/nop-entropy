@@ -31,4 +31,25 @@ public interface IBashSandbox {
      *         host execution
      */
     BashSandboxResult execute(BashSandboxRequest request);
+
+    /**
+     * Plan 2285 (WI4): progress snapshot of the in-flight execution registered
+     * under {@code callId} (from {@link BashSandboxRequest#getCallId()}).
+     * Returns {@link BashProgressSnapshot#empty()} for unknown or finished
+     * callIds — an explicit "no tracking information" value, never null.
+     * The default (sandbox without introspection) always returns empty.
+     */
+    default BashProgressSnapshot progressSnapshot(String callId) {
+        return BashProgressSnapshot.empty();
+    }
+
+    /**
+     * Plan 2285 (WI4): cancel the in-flight execution registered under
+     * {@code callId} (destroy the process / kill the container). Returns
+     * false when no execution is registered for the callId. The default
+     * (sandbox without introspection) never cancels anything.
+     */
+    default boolean cancelExecution(String callId) {
+        return false;
+    }
 }

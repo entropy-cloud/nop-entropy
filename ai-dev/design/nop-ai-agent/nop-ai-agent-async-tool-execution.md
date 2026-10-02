@@ -63,7 +63,15 @@ flowchart TD
 | 会话级 lifecycle 钩子（9 点）与 EXECUTION_COMPLETED | 触发 | 不触发（完成语义不适用于唤醒轮） |
 | 持久化 | LLM_TURN checkpoint + session 同步 | ctx.addMessage 随下一次正常 checkpoint（TOOL_EXECUTION/LLM_TURN）落盘，不新增 checkpoint 类型；崩溃窗口内 steering 靠输入幂等（WI7）重投，心跳丢失无害 |
 
-**唤醒轮响应能力**：assistant 回复可携带三种决策之一——继续等待、放弃（cancel 对应工具 future 并合成取消 result）、并行独立工作（回复携带新 tool_use）。派生工具调用的约束：
+**唤醒轮实现补充裁定**（plan 2285 执行钉定；实现构件：等待会话 `AgentToolDispatcher.ToolPhaseSession`、fail-soft 入口 `LlmCallCoordinator.doWakeupCallWithRetry`、编排 `ReActAgentExecutor.runHeartbeatToolPhase/runHeartbeatWakeupTurn`、进度接缝 `IToolProgressTracker` + toolkit `BashExecutionTracker`）：
+
+- **唤醒轮 LLM 失败语义 = fail-soft**：唤醒调用经 LlmCallCoordinator 专用入口（retry/熔断/执行级中间件保留），重试耗尽的终态失败只记日志并回到等待分片（下一节拍重试），不置 ctx failed、不发布 EXECUTION_FAILED、不触发 invokeOnError——工具仍在运行，LLM 瞬时不可用不应终结执行。常规迭代的失败语义不变。
+- **模型切换审计跳过**：唤醒轮不写 model-switched 审计消息、不动 state.lastModelKey（审计属迭代语义）。
+- **usage 归账**：唤醒轮 usage 照常累计（ctx.tokensUsed + usageRecorder），但不落 LLM_TURN checkpoint。
+- **入 ctx 顺序**：心跳/steering 消息先入 ctx，assistant 回复后入（会话时序）。
+- **放弃的 checkpoint 语义**：合成取消 result 对齐安全链 deny 先例——不写 TOOL_EXECUTION checkpoint（消息级闭合即终态，不污染不变量③三态判定）。
+
+**唤醒轮响应能力**：assistant 回复可携带三种决策之一——继续等待、放弃（cancel 对应工具 future 并合成取消 result）、并行独立工作（回复携带新 tool_use）。**决策线协议**：回复文本 `WAIT` = 继续等待（不可解析时默认）；`ABANDON <callId>`（或裸 `ABANDON` = 全部）= 放弃；回复携带 tool_calls = 并行独立工作（全量安全链后并入 pending）。派生工具调用的约束：
 
 - 立即经**正常 dispatch 路径**执行：全量通过 7-checkpoint 安全链（`AgentSecurityConsultation.buildCheckpointChain:113-285`，逐 call 评估 `ReActAgentExecutor:1185-1193`）与 PRE_TOOL_ATTEMPT 执行级中间件，安全覆盖无豁免；
 - 新 future 并入原批次 pending 集合，原 round 继续等待全部 pending 完成；
@@ -92,6 +100,8 @@ flowchart TD
 
 推导约束：单工具等待期心跳轮数上界 = 策略硬上限 / heartBeatIntervalMs；封顶口径为单工具（唤醒轮派生的工具各获独立 cap 窗口，整轮聚合等待的治理兜底为 forceStop 硬闸 + 心跳模型判断），不存在单工具无界等待。
 
+**工具内 wall-time 交互**：心跳裁决的"继续等待"只覆盖 dispatcher 层机械超时（orTimeout 兜底）；工具自级的 per-call wall-time（如 bash timeoutMs）仍由工具自身到期执行——模型裁决继续等待不能延长工具内部时限，需要更长时限时模型应在下次调用自选更大 timeoutMs（第 1/3 层交互边界）。
+
 配置命名契约：`heartBeatIntervalMs`（默认 60_000——mvn 类场景输出增量 60s 可见性优于事件循环范式的 10min 粒度）、`toolTimeoutPolicy`（per-tool 覆盖 + 全局 cap）。
 
 ### 6. 等待实现与交互边界（裁定④）
@@ -101,6 +111,8 @@ flowchart TD
 - **7-checkpoint 安全链**：占位是请求构造期渲染，不经过安全链（安全链评估真实 dispatch）；占位不触发 PRE/POST_TOOL_ATTEMPT（无 attempt）；真实结果 commit 仍走 POST_TOOL_ATTEMPT + TOOL_EXECUTION checkpoint，语义不变。
 - **POST_CALL guardrail**：占位不经 POST_CALL（会话级执行完成点，执行未完成不触发）；唤醒轮回复的内容 guardrail 适用（§三.3）。guardrail 覆盖面无净裁减。
 - **溢出恢复环**：唤醒请求构造前执行 forceStop 硬闸检查；溢出→压缩→重试恢复环（autonomous roadmap WI5）落地后该检查自动升级为压缩重算，实施 WI 执行时复核吸收。
+- **进度证据接缝**（plan 2285 修正：原 capturedRef 锚点为无生产流量的接缝）：bash 类工具的进度证据与进程取消通道落在 toolkit 的 `IBashSandbox` 接缝——`BashSandboxRequest` 携带 callId，host/docker 实现维护 callId 寻址的运行中登记（增量输出尾部快照 + 进程句柄），execute 开始登记/结束注销；agent 侧经 `IToolProgressTracker` 适配查询/取消（无实现时显式空值=证据不可用，非静默）。agent 侧 `ISandboxBackend`（NoOp/DockerSandboxBackend）为未接线的 shell-exec 预留面，与本机制无关。WI25 后台任务 registry 复用同一 tracker。
+- **唤醒请求占位插入位置**：占位插入发生在请求副本（ctx 快照拷贝），锚定为该占位自身 callId 所在连续 tool_call/tool_output 区段末尾——多轮心跳/并行派生后历史含多个区段，逐占位按自身 callId 锚定保证 tool_result 紧随各自 tool_use（与不变量②同一区段语义，复用同一 list 级 helper）。
 
 ### 7. 工具级后台模式 runInBackground（裁定⑤）
 

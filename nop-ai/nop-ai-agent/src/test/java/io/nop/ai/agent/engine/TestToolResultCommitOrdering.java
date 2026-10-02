@@ -226,6 +226,27 @@ public class TestToolResultCommitOrdering {
     }
 
     @Test
+    void multiSegmentHistoryAnchorsResultByItsOwnCallId() {
+        // plan 2285（WI4 并行派生形态）：心跳消息与唤醒回复入史后，同一提交批次
+        // 的结果必须锚定在各自 callId 的区段尾——result:B1 不得落在 call:B1 之前
+        AgentExecutionContext c = ctx();
+        c.addMessage(new ChatUserMessage("run tools"));
+        c.addMessage(new ChatAssistantMessage(""));
+        c.addMessage(callMessage("A1", "read-file"));
+        // 等待期心跳消息 + 唤醒轮回复（assistant 文本）
+        c.addMessage(new ChatUserMessage("[heartbeat] bash still running"));
+        c.addMessage(new ChatAssistantMessage("continuing to wait"));
+        // 唤醒轮并行派生的新工具调用
+        c.addMessage(callMessage("B1", "read-file"));
+
+        dispatch(dispatcher(new DefaultHookRegistry()), c, callOf("A1", "read-file"),
+                callOf("B1", "read-file"));
+
+        assertEquals(List.of("user", "assistant", "call:A1", "result:A1", "user", "assistant",
+                "call:B1", "result:B1"), roles(c.getMessages()));
+    }
+
+    @Test
     void reenterResultFollowsSameInPlaceDiscipline() {
         IHookRegistry registry = new DefaultHookRegistry();
         registry.register(AgentLifecyclePoint.BEFORE_TOOL_RESULT_PROCESSED, new IAgentLifecycleHook() {

@@ -200,6 +200,9 @@ public class AgentExecutorResolver {
                     // ReAct executor.
                     .llmTimeoutMs(config.getLlmTimeoutMs())
                     .toolTimeoutMs(config.getToolTimeoutMs())
+                    .heartBeatIntervalMs(config.getHeartBeatIntervalMs())
+                    .toolTimeoutPolicy(config.getToolTimeoutPolicy())
+                    .toolProgressTracker(config.getToolProgressTracker())
                     .timeoutExecutor(agentExecutorSupplier.get())
                     .waitCoordinator(config.getWaitCoordinator())
                     .build();
