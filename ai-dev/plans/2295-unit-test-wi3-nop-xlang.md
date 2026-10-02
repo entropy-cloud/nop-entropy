@@ -1,6 +1,6 @@
 # 2295 unit-test-coverage-roadmap WI3 — nop-xlang 补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI3 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -68,13 +68,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI3 checkbox
 
 - [x] 重建 nop-xlang 覆盖报告（同管线同口径，分母含 antlr 生成类）：行覆盖 47.70%→49.73%（+2.03pp），分支 35.33%→37.37%；快照 coverage-baseline-wi3-2026-10-02.json；lowCoverageClasses 41→30。
 - [x] 残余缺口显式裁定：antlr 生成类 4 + 接口 5 + 内部/抽象 4 按过滤规则永久剔除；可测残余 17 类（XLangASTOptimizer 1386L 等）显式裁定保留给后继 WI（golden 快照模式适配 AST 打印/优化器）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI3 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI3 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI3 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI3 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -84,10 +84,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录（47.70%→49.73%）
 - [x] 残余缺口显式裁定（无静默降级：/antlr/接口/内部类剔除、可测残余 17 类留给后继）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：新增测试断言语义（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2295-unit-test-wi3-nop-xlang.md --strict` 退出码 0
-- [ ] roadmap WI3 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：新增测试断言语义（audit 抽查：TestDeltaDiffer 错误码/结构断言、TestXplBoundarySemantics c:for index/转义/return 值断言）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2295-unit-test-wi3-nop-xlang.md --strict` 退出码 0
+- [x] roadmap WI3 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -109,13 +109,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 13 测试类+1 资源入库、855/0F/0E、49.73%/44949 与 jacoco.xml 逐位一致（分母同 WI0 口径）、41→30 名单变动与靶点退出（82%/89%/71%/87%）可验证、缺陷嫌疑经源码逐字核实（transformBinary reverseOp 死计算）、残余 30 类裁定自洽。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_e94518f4-9630-464b-92ed-03424392e594，fresh session）
 
 ## Optional Sections
 
