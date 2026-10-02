@@ -43,6 +43,7 @@
 1. **声明面落点**：新增声明面（aggregators/joins/参数化窗口声明）**按 D13 落新模块 nop-stream-sql 的 schema、经 delta 扩展 stream.xdef**——不直改 `nop-kernel/nop-xdefs`；delta 扩展的具体机制（delta 路径、类型化模型类生成落点、builder 消费方式）归 WI8b plan 实测裁定并附回改条款（`sql-compiler-contract.md` §3.2 机制风险与回改条款继续有效）。
    **delta 机制裁定注记（WI8b，2026-10-02）**：schemas 声明面已在基础 stream.xdef，WI8b 无需 delta——首个真实 delta 需求顺延 WI8c plan 裁定，回改条款继续悬置。
    **回改裁定执行（WI8c，2026-10-02）**：delta 机制经实验证实不可行（typed codegen 绑定 base xdef，证据见 sql-compiler-contract.md §3.2 回改注记与 WI8c plan）——aggregators/joins 声明面改落 base stream.xdef；新模块经 SPI（IAggregatorFunctionResolver，WI8d 为 IJoinResolver 同构）承载解析资产。本条「不直改 nop-kernel/nop-xdefs」的前半句自此修订。
+   **IJoinResolver 作废注记（WI8d，2026-10-02）**：join 无构建期函数解析需求（声明面校验由 builder 前置承担，运行时 keyExpr 求值由 WI13 直接消费 WI9 编译器），预估的 IJoinResolver 不再建设。
 2. **互斥校验**：既有 bean 引用与新 aggregatorRef/joinRef 并存或双缺，构造期 fail-fast（R3 缓解）；用户面兼容与迁移说明归 **WI24**（不与本裁定重复记账）。
 3. **报错变更**：WI8c 将「取代现行 bean 缺失时的报错」（现 aggregate 强制 bean 的 `ERR_STREAM_REQUIRED_ATTR` 面）——既有 .stream.xml 用户迁移注意点归 WI24 记账。
 

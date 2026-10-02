@@ -65,6 +65,20 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
         </aggregator>
     </aggregators>
 
+    <!-- WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+         可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+         buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+         为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。 -->
+    <joins xdef:key-attr="joinId" xdef:body-type="list">
+        <joinSpec joinId="!string"
+                  joinType="enum:io.nop.stream.core.model.JoinType"
+                  leftKeyExprs="string" rightKeyExprs="string"
+                  windowStrategyRef="string" timeout="string"
+                  xdef:name="StreamJoinSpecModel" xdef:unique-attr="joinId">
+            <description>string</description>
+        </joinSpec>
+    </joins>
+
     <!-- 序列化器注册表 -->
     <coders xdef:key-attr="id" xdef:body-type="list">
         <coder id="!string" className="!class-name"
@@ -169,6 +183,10 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
              恰好其一（并存或双缺构建期 fail-fast）；aggregatorRef 引用 <aggregators>
              注册表 entry，累加语义由聚合求值器提供。 -->
         <aggregate aggregatorRef="string" xdef:name="StreamAggregateModel" xdef:ref="StreamTransformModel"/>
+
+        <!-- Join 节点：等值 join 声明（WI8d）。joinRef 引用 <joins> 注册表 entry；
+             上游恰两条边（left/right）。仅声明与构造期校验，运行时由 WI13 buildJoin 承接。 -->
+        <join joinRef="!string" xdef:name="StreamJoinModel" xdef:ref="StreamTransformModel"/>
 
         <!-- Reduce 节点：实现 ReduceFunction 接口 -->
         <reduce xdef:name="StreamReduceModel" xdef:ref="StreamTransformModel">

@@ -75,6 +75,16 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: joins
+     * WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+     * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+     * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+     * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     */
+    private KeyedList<io.nop.stream.flow.model.StreamJoinSpecModel> _joins = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -390,6 +400,54 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
 
     public boolean hasEnvironments(){
         return !this._environments.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: joins
+     *  WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+     * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+     * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+     * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     */
+    
+    public java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> getJoins(){
+      return _joins;
+    }
+
+    
+    public void setJoins(java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> value){
+        checkAllowChange();
+        
+        this._joins = KeyedList.fromList(value, io.nop.stream.flow.model.StreamJoinSpecModel::getJoinId);
+           
+    }
+
+    
+    public io.nop.stream.flow.model.StreamJoinSpecModel getJoinSpec(String name){
+        return this._joins.getByKey(name);
+    }
+
+    public boolean hasJoinSpec(String name){
+        return this._joins.containsKey(name);
+    }
+
+    public void addJoinSpec(io.nop.stream.flow.model.StreamJoinSpecModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> list = this.getJoins();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.stream.flow.model.StreamJoinSpecModel::getJoinId);
+            setJoins(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_joins(){
+        return this._joins.keySet();
+    }
+
+    public boolean hasJoins(){
+        return !this._joins.isEmpty();
     }
     
     /**
@@ -834,6 +892,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
             
            this._environments = io.nop.api.core.util.FreezeHelper.deepFreeze(this._environments);
             
+           this._joins = io.nop.api.core.util.FreezeHelper.deepFreeze(this._joins);
+            
            this._patterns = io.nop.api.core.util.FreezeHelper.deepFreeze(this._patterns);
             
            this._requirements = io.nop.api.core.util.FreezeHelper.deepFreeze(this._requirements);
@@ -861,6 +921,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("coders",this.getCoders());
         out.putNotNull("edges",this.getEdges());
         out.putNotNull("environments",this.getEnvironments());
+        out.putNotNull("joins",this.getJoins());
         out.putNotNull("name",this.getName());
         out.putNotNull("onEnd",this.getOnEnd());
         out.putNotNull("onError",this.getOnError());
@@ -892,6 +953,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         instance.setCoders(this.getCoders());
         instance.setEdges(this.getEdges());
         instance.setEnvironments(this.getEnvironments());
+        instance.setJoins(this.getJoins());
         instance.setName(this.getName());
         instance.setOnEnd(this.getOnEnd());
         instance.setOnError(this.getOnError());

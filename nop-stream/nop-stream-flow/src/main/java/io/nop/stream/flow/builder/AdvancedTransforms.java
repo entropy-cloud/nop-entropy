@@ -62,6 +62,7 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.flow.builder.functions.XplReduceFunction;
 import io.nop.stream.flow.model.StreamAggregateModel;
 import io.nop.stream.flow.model.StreamCepModel;
+import io.nop.stream.flow.model.StreamJoinModel;
 import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamProcessModel;
 import io.nop.stream.flow.model.StreamReduceModel;
@@ -106,6 +107,9 @@ final class AdvancedTransforms {
         }
         if (t instanceof StreamAggregateModel) {
             return buildAggregate(owner, t, upstreamIds, streamRegistry, (StreamAggregateModel) t);
+        }
+        if (t instanceof StreamJoinModel) {
+            return buildJoin((StreamJoinModel) t);
         }
         if (t instanceof StreamReduceModel) {
             return buildReduce(owner, t, upstreamIds, streamRegistry, (StreamReduceModel) t);
@@ -447,6 +451,22 @@ final class AdvancedTransforms {
                 .param(ARG_EXPECTED_STREAM_TYPE, "KeyedStream or WindowedStream")
                 .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
                 .loc(t.getLocation());
+    }
+
+    /**
+     * WI8d: consumes the validated joinRef declaration. The declaration surface and
+     * its build-time validation land here; the join RUNTIME (hash join / window join
+     * operator) is delivered by WI13's buildJoin — this placeholder fails fast
+     * explicitly (never a silent no-op) until that lands.
+     */
+    private static Object buildJoin(StreamJoinModel m) {
+        // Defensive entry lookup happens here in WI13's buildJoin; the declaration
+        // was already validated by validateJoinDeclarations.
+        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
+                .param(ARG_DETAIL, "Stream DSL <join id='" + m.getId() + "' joinRef='" + m.getJoinRef()
+                        + "'> declaration is validated, but the join runtime (hash join / window join "
+                        + "operator) is delivered by WI13 buildJoin — not yet implemented")
+                .loc(m.getLocation());
     }
 
     // ----------------------------------------------------------------

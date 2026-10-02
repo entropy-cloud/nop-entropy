@@ -78,7 +78,11 @@ import io.nop.stream.flow.model.StorageConfigEntryModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamFilterModel;
 import io.nop.stream.flow.model.StreamFlatMapModel;
+import io.nop.stream.core.model.JoinType;
+import io.nop.stream.flow.model.StreamJoinModel;
+import io.nop.stream.flow.model.StreamJoinSpecModel;
 import io.nop.stream.flow.model.StreamKeyByModel;
+import io.nop.stream.flow.model.WindowingStrategyModel;
 import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.stream.flow.model.StreamSinkModel;
@@ -355,6 +359,7 @@ public final class StreamModelDslBuilder {
             upstreams.get(e.getTo()).add(e.getFrom());
         }
         validateEdgeDeclarations(edges, byId);
+        validateJoinDeclarations(edges, upstreams);
         return edges;
     }
 
@@ -447,6 +452,16 @@ public final class StreamModelDslBuilder {
                                     + "AFTER the union instead")
                             .loc(e.getLocation());
                 }
+                // WI8d: same for <join> — the joinKey set comes from the join spec's
+                // leftKeyExprs/rightKeyExprs; a per-input keyBy would double-key.
+                if (byId.get(e.getTo()) instanceof StreamJoinModel) {
+                    throw new StreamException(ERR_STREAM_EDGE_HASH_REDUNDANT)
+                            .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
+                            .param(ARG_DETAIL, "HASH edge into <join id='" + e.getTo()
+                                    + "'> is not supported: the join keys are declared by the "
+                                    + "join spec's leftKeyExprs/rightKeyExprs")
+                            .loc(e.getLocation());
+                }
             } else if (p == PartitionPolicy.REBALANCE || p == PartitionPolicy.BROADCAST) {
                 throw new StreamException(ERR_STREAM_EDGE_PARTITION_UNSUPPORTED)
                         .param(ARG_EDGE_ID, e.getId()).param(ARG_PARTITION, p)
@@ -463,6 +478,113 @@ public final class StreamModelDslBuilder {
                         .loc(e.getLocation());
             }
         }
+    }
+
+    /**
+     * WI8d: build-time validation of {@code <join>} declarations. Runs inside
+     * validateDag (after validateEdgeDeclarations) so every failure surfaces before
+     * any transform is built. Eight checks, each fail-fast:
+     * unknown joinRef, missing joinType, missing/unequal key sets, exactly-two
+     * upstream edges (left/right), windowStrategyRef resolution, window-join
+     * joinType restriction (INNER/LEFT — FULL completion is a WI13 item), timeout
+     * requiring a window strategy, and timeout format.
+     */
+    private void validateJoinDeclarations(List<StreamEdgeModel> edges,
+                                          Map<String, Set<String>> upstreams) {
+        List<StreamJoinSpecModel> specs = model.getJoins() == null
+                ? Collections.emptyList() : model.getJoins();
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (!(t instanceof StreamJoinModel)) {
+                continue;
+            }
+            StreamJoinModel jm = (StreamJoinModel) t;
+            StreamJoinSpecModel spec = model.getJoinSpec(jm.getJoinRef());
+            if (spec == null) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_REF_TYPE, "<joins>/<joinSpec>")
+                        .param(ARG_REF_NAME, jm.getJoinRef())
+                        .loc(t.getLocation());
+            }
+            if (spec.getJoinType() == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' must declare joinType (INNER/LEFT/RIGHT/FULL)")
+                        .loc(t.getLocation());
+            }
+            int leftKeys = countKeyExprs(spec.getLeftKeyExprs());
+            int rightKeys = countKeyExprs(spec.getRightKeyExprs());
+            if (leftKeys == 0 || rightKeys == 0) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' requires non-empty leftKeyExprs and rightKeyExprs (equi-join)")
+                        .loc(t.getLocation());
+            }
+            if (leftKeys != rightKeys) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' key count mismatch: leftKeyExprs has " + leftKeys
+                                + ", rightKeyExprs has " + rightKeys
+                                + " (equi-join requires equal arity)")
+                        .loc(t.getLocation());
+            }
+            // count DECLARED EDGES (not the deduped upstream-id set): a self-join
+            // declares two edges from the same source, and upstreams collapses them
+            long inEdgeCount = edges.stream()
+                    .filter(e -> t.getId().equals(e.getTo())).count();
+            if (inEdgeCount != 2) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "<join id='" + t.getId() + "'> requires exactly two "
+                                + "upstream edges (left/right), found " + inEdgeCount)
+                        .loc(t.getLocation());
+            }
+            Set<String> ups = upstreams.getOrDefault(t.getId(), Collections.emptySet());
+            if (ups.isEmpty()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "<join id='" + t.getId() + "'> has no resolvable upstream")
+                        .loc(t.getLocation());
+            }
+            if (spec.getWindowStrategyRef() != null) {
+                WindowingStrategyModel strategy = model.getStrategy(spec.getWindowStrategyRef());
+                if (strategy == null) {
+                    throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_REF_TYPE, "<windowingStrategies>/<strategy>")
+                            .param(ARG_REF_NAME, spec.getWindowStrategyRef())
+                            .loc(t.getLocation());
+                }
+                if (spec.getJoinType() != JoinType.INNER && spec.getJoinType() != JoinType.LEFT) {
+                    throw new StreamException(ERR_STREAM_INVALID_ARG)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_DETAIL, "window join '" + spec.getJoinId()
+                                    + "' supports joinType INNER/LEFT only; " + spec.getJoinType()
+                                    + " window completion is a WI13 evaluation item")
+                            .loc(t.getLocation());
+                }
+                if (spec.getTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getTimeout());
+                }
+            } else if (spec.getTimeout() != null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' declares timeout but no windowStrategyRef; timeout only "
+                                + "applies to window joins")
+                        .loc(t.getLocation());
+            }
+        }
+    }
+
+    private static int countKeyExprs(String exprs) {
+        if (exprs == null || exprs.trim().isEmpty()) {
+            return 0;
+        }
+        return exprs.split(",").length;
     }
 
     private static String firstDeclaredFlowControlAttr(StreamEdgeModel e) {
