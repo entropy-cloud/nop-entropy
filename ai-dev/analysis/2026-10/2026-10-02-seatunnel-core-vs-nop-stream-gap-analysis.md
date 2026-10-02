@@ -3,7 +3,7 @@
 > Status: resolved
 > Date: 2026-10-02
 > Scope: `~/sources/seatunnel`（dev @ a1084015，2026-10-01 最新） vs `nop-stream/` + `nop-message/nop-message-debezium`
-> Conclusion: nop 平台确已有 Debezium 集成（嵌入式引擎、offset 进 checkpoint）、完整流处理能力（窗口/CEP/watermark/双状态后端）和真 barrier 协议 checkpoint（对齐+unaligned、savepoint、restore 端到端 wired、E2E kill-recover 验证）；但与 SeaTunnel 核心功能对比，缺口集中在连接器生态（8 工厂 vs ~84 连接器）、CDC 深度（无并行/无锁增量快照、无 schema evolution 协调、3 种库 vs 9+）、Catalog/类型系统元数据层、集群生产化（无 K8s/YARN、生产进程入口在 test sources）四项；流计算语义（窗口/CEP/状态）反而是 nop 超出 SeaTunnel 的方向——SeaTunnel 是数据集成引擎，本不做窗口聚合与 CEP。
+> Conclusion: nop 平台确已有 Debezium 集成（嵌入式引擎、offset 进 checkpoint）、完整流处理能力（窗口/CEP/watermark/双状态后端）和真 barrier 协议 checkpoint（对齐+unaligned、savepoint、restore 端到端 wired、E2E kill-recover 验证）；但与 SeaTunnel 核心功能对比，缺口集中在连接器生态（8 工厂 vs ~84 连接器）、CDC 深度（现状无并行快照——Debezium 3.5+ 已内置线程级并行快照，升级可解，但框架级分布式 chunk 并行与断点续传仍需自建；无 schema evolution 协调、3 种库 vs 9+）、Catalog/类型系统元数据层、集群生产化（无 K8s/YARN、生产进程入口在 test sources）四项；流计算语义（窗口/CEP/状态）反而是 nop 超出 SeaTunnel 的方向——SeaTunnel 是数据集成引擎，本不做窗口聚合与 CEP。
 
 ## Context
 
@@ -29,6 +29,7 @@
 - 错误传播已闭环：collector 异常与引擎终死都会置 `pendingError` → `run()` rethrow，任务 FAILED 而非静默断流。
 - 测试：9 文件 / 42 个 @Test，含真 E2E（`TestDebeziumCdcCheckpoint.testCdcCheckpointKillRecoverNoDuplicates`：跑→cancel→snapshot→新实例 restore→断言恢复续跑且跨两次运行无重复 key）。**但全部测试用 `MockCdcMessageSource` 替身，无任何 Testcontainers/真实数据库集成测试**。
 - Debezium 版本对比：nop 用 2.4.0.Final（较新）；SeaTunnel CDC 反而锁在 **1.9.8.Final**（`~/sources/seatunnel/seatunnel-connectors-v2/connector-cdc/pom.xml:47`），但绕过 Engine 黑盒、直接复用 Debezium 内核类并打补丁（自带 `io/debezium/{connector/base, heartbeat, relational}` 补丁包），换来并行快照与 schema 协调能力。两条路线的取舍见 §4。
+- **勘误（2026-10-02 补查）**：Debezium **3.5.0.Final**（2026 年春 GA）起内置**单表 chunk 级多线程并行 initial snapshot**（`snapshot.max.threads`，默认 1 关闭；旧版 2.3 起已有 `snapshot.max.threads` 多表并行）。即「Debezium 不支持并行快照」只在 nop 当前钉住的 2.4.0 + 默认配置下成立，升级 3.5+ 可经配置获得线程级并行 initial snapshot——但这是**单进程内线程并行**，非框架级分布式 chunk 分发，且 initial snapshot 中途失败不可从 chunk 断点续传（chunk 进度不进 offset）。增量（信号驱动）快照的 chunk 处理至今仍是单线程交错流式。详见 G2 勘误。
 
 ### 1.2 Stream 处理能力：**已有，语义覆盖接近 Flink 子集**
 
@@ -68,7 +69,7 @@
 | # | 支柱 | SeaTunnel | nop-stream | 缺口评级 |
 |---|------|-----------|------------|---------|
 | 1 | 连接器生态 | ~84 连接器、98+85 映射、22 transform | 8 个内建工厂：source= file/message/debezium-cdc/batch-loader，sink= file/message/jdbc-2pc/batch-consumer | **P0 最大缺口** |
-| 2 | CDC 深度 | 内核复用 + 无锁并行快照 + schema evolution 协调 + 9+ 库 + XA | 嵌入式引擎单线程、3 库、schema 事件仅透传、无 DDL 协调执行、schema history 仅文件 | **P0** |
+| 2 | CDC 深度 | 内核复用 + 分布式并行快照（chunk 跨 subtask）+ schema evolution 协调 + 9+ 库 + XA | 嵌入式引擎（钉 2.4.0：无并行快照；Debezium 3.5+ 有单进程线程级并行，升级可解）、3 库、schema 事件仅透传、无 DDL 协调执行、schema history 仅文件 | **P0**（可部分经升级 Debezium 收窄） |
 | 3 | 类型系统/Catalog | SeaTunnelRow + RowKind changelog + CatalogTable + 多表 tableId | `StreamRecord<T>` 泛型，无统一类型系统、无 Catalog 抽象、无 SchemaSaveMode/DataSaveMode | **P1** |
 | 4 | checkpoint 机制 | barrier + 存储插件（hdfs/s3/oss/cos/gcs）+ savepoint/HA | barrier + **unaligned** + savepoint + 改并行度 reshard；存储仅 local-file/JDBC | **基本持平**（机制 nop 略强，存储选项 nop 少） |
 | 5 | exactly-once sink | SinkCommitter 双层 + JDBC XA | TwoPhaseCommitSinkFunction + JDBC epoch ledger 幂等 / file epoch+manifest | 持平（路线不同：XA 需 DB 支持，ledger 需建表，各有前提） |
@@ -79,7 +80,7 @@
 ### 缺口明细与原因
 
 - **G1 连接器生态（8 vs ~84）**：缺 kafka/pulsar 直连 source、jdbc batch source、es/iceberg/paimon/clickhouse/doris/redis/mongodb 等全部生态 sink。原因不是架构不能，而是纯工程量：SeaTunnel 的 2644 个连接器文件是 Apache 顶级项目多年社区积累；nop-stream 自 2026-08-01 以来 193 条 commit 全部是内部质量迭代（plan 366/368/369 审计-修复），尚未进入连接器扩张期。另有一个前置技术债：连接器 API 有两代（legacy `SourceFunction` 已冻结、FLIP-27 式 `Source/SplitEnumerator/SourceReader` 新代就位但存量连接器未迁移），扩生态前必须先统一到新代，否则每加一个连接器都在加深欠账。
-- **G2 CDC 深度**：(a) 无并行/无锁增量快照——DebeziumEngine 是单线程黑盒，大表 initial snapshot 只能串行全量，SeaTunnel 为此自研 ChunkSplitter + 水位协议（connector-cdc 284 个文件的主体），这是多年投入的护城河；(b) schema evolution 只有「事件开关」，没有 SeaTunnel 的 SCHEMA_CHANGE checkpoint 阻塞协调 + sink 侧 DDL 执行，上游 DDL 会直接断流或数据错位；(c) schema history 仅文件路径，多节点/容器化场景不可靠；(d) 数据库覆盖 3 vs 9+。注意一个反向细节：**Debezium 版本 nop（2.4.0）新于 SeaTunnel（1.9.8）**——SeaTunnel 为内核改造自由被旧版锁死，nop 的 Engine 黑盒路线反而升级容易，这是两种路线的代价交换（详见 §4）。
+- **G2 CDC 深度**：(a) 无并行快照（**勘误**：这是 nop 钉住 2.4.0 + 默认配置的现状，而非 Debezium 的能力上限——Debezium 2.3 起支持 `snapshot.max.threads` 多表并行 initial snapshot，3.5.0.Final 起 GA 单表 chunk 级多线程并行；但增量/信号驱动快照的 chunk 处理至今单线程，且 Debezium 原生并行是单进程线程级，initial snapshot 中途失败不能从 chunk 断点续传）。SeaTunnel 的护城河在框架级：ChunkSplitter 把 chunk 作为 split 分发给多 subtask **跨进程/跨节点**并行、chunk 完成状态进引擎 checkpoint 支持断点续传、低/高水位协议把并行快照与增量流合并（connector-cdc 284 个文件的主体）——这三点升级 Debezium 版本无法消解；(b) schema evolution 只有「事件开关」，没有 SeaTunnel 的 SCHEMA_CHANGE checkpoint 阻塞协调 + sink 侧 DDL 执行，上游 DDL 会直接断流或数据错位；(c) schema history 仅文件路径，多节点/容器化场景不可靠；(d) 数据库覆盖 3 vs 9+。注意一个反向细节：**Debezium 版本 nop（2.4.0）新于 SeaTunnel（1.9.8）**——SeaTunnel 为内核改造自由被旧版锁死，nop 的 Engine 黑盒路线反而升级容易（升至 3.5+ 即得线程级并行快照），这是两种路线的代价交换（详见 §4）。
 - **G3 类型系统/Catalog 元数据层**：SeaTunnelRow 的 `RowKind`（INSERT/UPDATE_BEFORE/UPDATE_AFTER/DELETE）+ `tableId` + CatalogTable 是多表同步、CDC 下游正确应用变更（upsert/delete 语义）、自动建表（SaveMode）的元数据基础。nop 的 `StreamRecord<T>` 让 CDC 变更语义只能编码在消息体内部约定里，无法做引擎级的多表路由、投影下推、类型转换链（DB 类型→引擎类型→目标 DDL）。这是实现 G1 生态连接器之前的**结构性前置**——没有 CatalogTable 抽象，每个 sink 都要自己猜 schema。
 - **G4 集群生产化**：nop 的分布式骨架（RPC 控制面 + DB 选主 + epoch fencing + 跨 JVM 数据面）是真的且有测试，但 (a) 生产进程入口在 test sources（`JobCoordinatorMain`/`TaskManagerMain` 在 `src/test/java/.../launch/`），无打包/启动脚本/容器镜像；(b) 无 K8s/YARN 编排与 HPA（README 自曝）；(c) 无 slot/资源隔离模型（SeaTunnel 有 slot service + resource manager）；(d) checkpoint 存储缺对象存储/HDFS 后端（对云上部署是硬前提）。原因：nop 的部署策略是复用平台已有的 IMessageService/DB 基础设施而非引入 Hazelcast，方向自洽，但外围编排层还没补。
 - **G5 可观测性/运维面**：nop 有 StreamOpsHttpServer/健康状态机/告警渠道，SeaTunnel 有 REST + 完整 Vue3 UI + 作业事件日志 + 实时指标聚合。nop 有运维 API 未见 UI 与连接器 jar 动态上传/客户端 SDK 生态。
@@ -88,7 +89,7 @@
 
 | 场景 | 判定 | 依据 |
 |------|------|------|
-| A. 单/少数库 CDC 管道（mysql/postgres/sqlserver → jdbc/file/message），中小吞吐，单机或小集群 | **基本满足**，前提是接受大表初始化串行 + 无真实 DB 集成测试的风险 | checkpoint kill-recover E2E、offset 进 checkpoint、2PC ledger 幂等均有测试佐证；G2a/G2c 是吞吐与运维风险 |
+| A. 单/少数库 CDC 管道（mysql/postgres/sqlserver → jdbc/file/message），中小吞吐，单机或小集群 | **基本满足**，前提是接受大表初始化串行（可经升级 Debezium 3.5+ + `snapshot.max.threads` 缓解）+ 无真实 DB 集成测试的风险 | checkpoint kill-recover E2E、offset 进 checkpoint、2PC ledger 幂等均有测试佐证；G2a（并行快照）/G2c（schema history）是吞吐与运维风险 |
 | B. 多源异构数据集成平台（SeaTunnel 主战场：数入湖、多库汇聚、批量同步） | **不满足** | G1（76+ 连接器缺失）+ G3（无 Catalog/多表语义）是硬缺口 |
 | C. 流式计算（风控规则、CEP、窗口聚合、有状态流处理） | **不适用该对比**——SeaTunnel 不提供此能力，nop-stream 反而是超集 | SeaTunnel 引擎无窗口/CEP/keyed 聚合概念 |
 | D. 云上/容器化弹性部署 | **不满足** | G4：无 K8s/YARN、生产进程入口未发布、无对象存储 checkpoint |
@@ -105,7 +106,7 @@
 - G3 先行：引入 CatalogTable 级元数据抽象（含 RowKind 变更语义与 tableId）是 G1/G2 的共同前置，且与 nop 现有元数据体系（nop-metadata）天然契合。
 - checkpoint 存储加一个 S3 协议后端（覆盖 s3/oss/cos 大多数云）成本低于 hdfs 全家桶。
 - 新代 Source API（FLIP-27 式）迁移完成后再扩连接器，避免两代并存加深欠账——这与 SeaTunnel 自身正在经历的 CatalogTable 迁移教训一致。
-- CDC 若要上强度：中等路线是先用 Debezium 原生增量快照（信号表触发，经 `DebeziumConfig.extraProperties` 理论上可开启，且其进度存于 offset 因此可随 checkpoint 恢复——**未经验证，需真实 DB 集成测试确认**）；重量路线才是 SeaTunnel 式内核复用（代价是被版本锁死）。
+- CDC 若要上强度（按代价升序）：① 升级 Debezium 至 3.5+ 并开启 `snapshot.max.threads`（单表 chunk 线程级并行 initial snapshot，纯配置+兼容性校验，需重验 `NopStreamOffsetBackingStore` 反射 wiring 与 3.x breaking changes）；② Debezium 原生增量快照（信号表触发，2.4 经 `DebeziumConfig.extraProperties` 理论可开启，chunk 进度存于 offset 可随 checkpoint 恢复——**未经验证，需真实 DB 集成测试确认**）；③ 重量路线 SeaTunnel 式内核复用（框架级分布式 chunk 并行 + 断点续传 + schema 协调，代价是被版本锁死）。
 
 **不可借鉴：**
 - Hazelcast 全家桶（IMap 状态存储、Operation RPC、强耦合集群）：nop 已选择 IMessageService + DB 注册的自洽路线，引入 Hazelcast 会造成两套集群基础设施。
@@ -121,6 +122,7 @@
 ## Open Questions
 
 - [ ] Debezium 原生增量快照经 `extraProperties` + 信号表开启后，进度是否能随 nop checkpoint offset 正确恢复？（需真实 DB 集成测试，当前 42 个测试全为 mock）
+- [ ] 升级 Debezium 2.4.0 → 3.5+/3.7 的兼容面：`NopStreamOffsetBackingStore` 反射注入链、`snapshot.max.threads` 并行快照在嵌入式引擎（`DebeziumEngine`）路径下是否等效生效、3.x offset 格式/API breaking changes 对 checkpoint 恢复旧位点的影响
 - [ ] nop-stream 生产进程入口（`JobCoordinatorMain`/`TaskManagerMain`）从 test sources 提升为正式模块的时机与打包形态（fat-jar? 容器镜像?）
 - [ ] `StreamRecord<T>` 是否值得升级为带 RowKind/tableId 的引擎级记录类型，还是仅在 CDC 连接器层约定消息信封（影响 G3 实施深度）
 
@@ -132,4 +134,4 @@
 - `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/`（DebeziumEngineWrapper / NopStreamOffsetBackingStore）
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/`
 - SeaTunnel：`~/sources/seatunnel` @ a1084015 — `seatunnel-engine/seatunnel-engine-server/.../checkpoint/CheckpointCoordinator.java`、`seatunnel-connectors-v2/connector-cdc/`（增量快照体系）、`seatunnel-connectors-v2/connector-cdc/pom.xml:47`（Debezium 1.9.8.Final）
-- 外部：[Apache SeaTunnel](https://github.com/apache/seatunnel)、[Debezium incremental snapshots](https://debezium.io/documentation/reference/transformations/incremental-snapshot.html)
+- 外部：[Apache SeaTunnel](https://github.com/apache/seatunnel)、[Debezium incremental snapshots](https://debezium.io/documentation/reference/transformations/incremental-snapshot.html)、[Debezium 3.5.0.Beta1 发布公告（并行 chunk 快照）](https://debezium.io/blog/2026/02/26/debezium-3-5-beta1-released)、[Debezium 3.7 Final 发布公告（2026-09-29，当前 latest）](https://debezium.io/blog/2026/09/29/debezium-3-7-final-released)
