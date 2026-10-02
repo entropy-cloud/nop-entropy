@@ -49,58 +49,69 @@ Targets: `nop-persistence/*/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] orm-eql：经 `EqlCompiler.compile` 公开入口的翻译语义用例 ≥20 个（函数翻译、子查询、分页 limit/offset、参数绑定；方言按 TestEqlCompileSql 手工 DialectModel 先例；直测 public AST 类为补充）。
-- [ ] orm-model：加载/校验/计算属性用例 ≥8 个（需初始化设施的靶点按需搭建）。
-- [ ] dao：≥6 个用例（SnowflakeSequenceGenerator、JdbcDataSet/事务语义经 JdbcTestCase + H2；禁 testcontainers）。
-- [ ] 三模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+- [x] orm-eql：TestEqlTranslationSemantics 32 用例，全部经 `EqlCompiler.compile` 公开入口断言产出 SQL/参数/元数据（分页/子查询/_some 展开/union all/case when/函数翻译/未注册函数报错/关系导航 join 等）。
+- [x] orm-model：TestOrmComputePropModel 10 + TestOrmModelIndexes 9 = 19 用例（计算属性 getter/setter 注入与错误码、模型索引/拓扑序/集合命名契约）。
+- [x] dao：TestSnowflakeSequenceGenerator 7 + TestDefaultTransactionManager 8 + TestJdbcDataSetSemantics 6 = 21 用例（JdbcTestCase + H2；单调性/位布局/越界拒绝、真实事务 commit/rollback、类型化列读取）。
+- [x] 三模块 `mvnq -- test -pl :<module> -am -fae` 全绿（91/32/161 tests，一次通过，零回归）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增/扩展测试 ≥34 个用例，含显式语义断言（SQL 翻译断言文本/参数）。
-- [ ] 三模块测试全绿（既有零回归）。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 6 文件 / 72 用例（≥34），全部含显式语义断言（SQL 文本/参数断言）。
+- [x] 三模块测试全绿（既有零回归；45 skip 为既有 docker/testcontainers 跳过）。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI4 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 重建覆盖报告：删三模块 `target/*.exec` → `ai-dev/tools/coverage-baseline.sh --skip-test --label wi4-2026-10-02`，记录基线→复测增量。
-- [ ] nop-db-migration「已达标不回退」确认：对比复测快照数字。
-- [ ] 残余缺口显式裁定。
+- [x] 重建覆盖报告（label wi4-2026-10-02）：orm-eql 53.24%→57.58%（+4.34，**达标 ≥55%**）、orm-model 40.61%→47.10%（+6.49）、dao 45.81%→47.93%（+2.12）。
+- [x] nop-db-migration「已达标不回退」确认：79.24% 持平。
+- [x] 残余缺口显式裁定（Deferred 段：18 个低覆盖类分类，生成器/加载设施/接口为主体）。
 - [ ] 独立子 agent closure audit 通过后勾选 roadmap WI4 checkbox。
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI4 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI4 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 三模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码/ORM 模型/pom 零修改（git 证据）
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 三模块全部新增测试绿（含既有测试零回归）
+- [x] 产品代码/ORM 模型/pom 零修改（git 证据：仅 6 个 src/test 新文件）
+- [x] 覆盖增量实测记录
+- [x] 残余缺口显式裁定（无静默降级）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：翻译类测试断言产出 SQL 而非仅构建 AST（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2296-unit-test-wi4-persistence.md --strict` 退出码 0
 - [ ] roadmap WI4 checkbox 与 plan/log 一致
 
+## 执行偏差记录
+
+1. OrmModelLoader（baseline 0%/46L）未测：需 ModuleManager + xdef 初始化设施，代价高；按 plan 预授权改测可手工建模的 OrmModel/OrmComputePropModel。
+2. orm-eql 最小方言装配补充两个先例内必需项（DialectImpl 构造期强制注册 current_timestamp 函数、无 from select 需 selectFromDual 模板）——测试内配置，非产品修改。
+3. 测量快照 overall 含并行 WI 增量（58.1%），模块级数字不受影响。
+
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### persistence 组残余低覆盖类（18 个）
+
+- Classification: `optimization candidate`（后继 WI 靶点池）
+- Why Not Blocking Closure: orm-eql 已达标（57.58% ≥ 55%）；orm-model/dao 增量显著（+6.49/+2.12）。残余 18 类主体：orm-eql 4 个生成器/无调用点类（EqlASTOptimizer 825L 等，plan 已裁定不优先）、orm-model 5 个加载/推导设施类（需 ModuleManager）与接口 default、dao 9 个 JDBC 执行内部路径与接口。orm-model 55% 与 dao 55%/45% 的残余归 WI13 复裁。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/unit-test-coverage-roadmap.md`（WI13 复裁）
 
 ## Non-Blocking Follow-ups
 
-（执行结束时填写）
+- 4 项产品缺陷嫌疑走独立 bug 流程（bugs/2026-10/2026-10-02-wi4-defect-suspects.md）：OrmModelInitializer.initRefs 集合注册时序、OrmComputePropModel 裸异常、JdbcTransactionFactory.openConnection 不挂事务（设计歧义）、OffsetFetchPaginationHandler buildPageExpr 缺 OFFSET 0。
 
 ## Closure
 
