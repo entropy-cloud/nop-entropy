@@ -302,12 +302,14 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 
 **与后台模式的关系**：工具级后台模式（`runInBackground` 参数，模型显式后台化、完成通知入 mailbox）为同期裁定的第二形态，与占位唤醒正交互补、共享任务 registry/进度快照/通知桥构件，见 `04-tool-invocation.md` §4.5。
 
+**实施契约**：等待期唤醒轮语义（计数归属、前置门槛集、guardrail 适用面、唤醒轮响应能力与持久化）、provider 请求构造契约、超时分层参数面、等待实现形态与 runInBackground 完整裁定的实施契约权威是 `nop-ai-agent-async-tool-execution.md`；本节保留目标形态概述。
+
 **拒绝了**：
 - 全量事件循环形态（工具完成即唤醒 + 输入记账不变量驱动循环推进）——等待期唤醒场景下模型空闲，请求取消机制无用武之地，round 语义解体的改造面与收益不成比例；
 - session 事件化（不可变事件溯源 + 投影去重承载占位/替换）——占位入史后真实结果只能二次追加，在重放流中制造同 callId 双份结果的残留清理问题；快照+journal 范式内三条不变量即可承载，存储结构零新增；
 - 纯机械超时路线——对数十分钟真实负载直接不可用，且无法区分慢任务与死锁。
 
-实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5）。
+实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5），实施契约见 `nop-ai-agent-async-tool-execution.md`。
 
 ## 6. 结束条件
 

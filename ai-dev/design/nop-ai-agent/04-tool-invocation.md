@@ -115,7 +115,7 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 
 - **决策**：长任务的第二种承载形态——工具调用参数增加模型可调的 `runInBackground` 属性（camelCase，对齐既有 `timeoutMs`/`workingDir` 命名格式；语义对齐 zcode 的 `run_in_background`）。置真时调用**立即返回启动确认**（taskId + 输出文件路径），真实结果不占用本轮 tool result，而是经**完成通知桥**入 mailbox 作为新输入驱动下一轮。
 - **配套构件**：跨调用可寻址的后台任务 registry（状态/pid/输出文件/进度快照——stdout/stderr tail+bytes，证据源复用沙箱 capturedRef 增量缓冲）；任务管理工具面（任务输出读取 + 停止）；读取与完成通知共享"恰好一次"claim 令牌，杜绝双份结果通道（zcode 的 TaskOutput 工具已废弃即此教训：双通道导致上下文重复）。
-- **形态边界**（由重构 roadmap WI2 必裁⑤收口）：后台化要求模型预判长任务并主动选择，解决"模型主动并行"；占位+唤醒（§4.4 / `nop-ai-agent-react-engine.md` §5.5）解决"未预判长任务 + steering 响应"。两者正交互补，共享 registry/进度快照/通知桥/超时分层构件。后台任务超时独立分层，subagent 类强制 max runtime。
+- **形态边界**（已由 `nop-ai-agent-async-tool-execution.md` §三.7 收口）：后台化要求模型预判长任务并主动选择，解决"模型主动并行"；占位+唤醒（§4.4 / `nop-ai-agent-react-engine.md` §5.5）解决"未预判长任务 + steering 响应"。两者正交互补，共享 registry/进度快照/通知桥/超时分层构件。后台任务超时独立分层（`backgroundTaskTimeoutMs`，默认 3_600_000，策略封顶），subagent 类（call-agent）不开放模型自选后台（member spawn 已有异步编排面，避免双通道）；开放面为声明 `background` 能力 tag 的 bash/shell 类长时工具。
 - **既有 `&` 语义处置（已登记缺陷）**：`nop-ai-shell` 的 `cmd &` 启动即失联（`ShellCommandExecutor.java:346-361`——jobId 为实例内计数器，无查询/等待/取消/输出回收，结果随流丢弃）。后台模式落地时 `&` 必须接入任务 registry 获得闭环，或显式禁用并报错，不得维持现状。
 
 ## 五、JSON Schema 兼容
