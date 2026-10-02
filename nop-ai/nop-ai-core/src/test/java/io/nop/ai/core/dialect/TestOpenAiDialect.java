@@ -7,6 +7,8 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
@@ -355,5 +357,42 @@ public class TestOpenAiDialect extends JunitBaseTestCase {
         assertEquals("get_weather", toolCalls.get(0).getName());
         assertNull(toolCalls.get(0).getArguments(),
                 "malformed arguments JSON must be distinguishable from a legitimate {} (empty map)");
+    }
+
+    /**
+     * Plan 2284（WI3 占位协议 / WI2 必裁①）：等待期唤醒请求的 OpenAI 形态 pin——
+     * ChatToolCallMessage → assistant(tool_calls)，ChatToolResponseMessage →
+     * role "tool" 消息紧随其后，steering 为独立 user 消息（1:1 保序，现状合规形态）。
+     */
+    @Test
+    public void testWakeupRequestFormToolMessagesFollowToolCalls() {
+        OpenAiDialect dialect = new OpenAiDialect();
+
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatUserMessage("run the build"));
+        messages.add(new ChatAssistantMessage(""));
+        messages.add(new ChatToolCallMessage("call_1", "bash", Map.of("cmd", "mvn install")));
+        messages.add(new ChatToolResponseMessage("call_1", "bash", "Tool \"bash\" is still running."));
+        messages.add(new ChatUserMessage("[steering] switch to plan B"));
+
+        ChatRequest request = new ChatRequest(messages);
+        request.setOptions(new ChatOptions());
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.openai);
+
+        Map<String, Object> body = dialect.buildBody(request, config, null, "gpt-4o", false);
+
+        List<Map<String, Object>> msgs = (List<Map<String, Object>>) body.get("messages");
+        assertEquals(5, msgs.size());
+        assertEquals("user", msgs.get(0).get("role"));
+        assertEquals("assistant", msgs.get(1).get("role"));
+        assertEquals("assistant", msgs.get(2).get("role"));
+        assertNotNull(msgs.get(2).get("tool_calls"), "tool_call message carries tool_calls");
+        assertEquals("tool", msgs.get(3).get("role"));
+        assertEquals("call_1", msgs.get(3).get("tool_call_id"));
+        // steering 独立 user 消息紧随 tool 消息之后（1:1 保序，无合并）
+        assertEquals("user", msgs.get(4).get("role"));
+        assertEquals("[steering] switch to plan B", msgs.get(4).get("content"));
     }
 }

@@ -685,8 +685,52 @@ public class AgentSessionLifecycle {
                 }
             }
         }
+
+        logOpenToolCallDiff(sessionId, session);
         return new CheckpointVerification(latestCheckpointWatermark, divergenceDetected,
                 rejectedCheckpointWatermark);
+    }
+
+    /**
+     * Plan 2284 (WI3 invariant 3): restore-time open tool_call diff — open
+     * set = snapshot messages × TOOL_EXECUTION checkpoint callIds. Three-state
+     * semantics (plan 2284): (a) message-level open with no checkpoint =
+     * never-committed orphan, WARN (the recoverable-orphan surface that
+     * successor WI10 synthesis will consume); (b) message-level closed (any
+     * result, including security-deny error results) = terminal, silent;
+     * (c) message-level open with a checkpoint = committed-but-unsynced
+     * crash window, DEBUG only — the messageCount warning above already owns
+     * that state. Best-effort: never blocks recovery. With the NoOp
+     * checkpoint default the checkpoint list is empty; state (c) is empty and
+     * every message-level open call alarms — but a NoOp manager also means
+     * no TOOL_EXECUTION checkpoints exist at all, so a message-level open
+     * call genuinely is a never-committed call. Session messages are the
+     * source of truth; recovery is not blocked either way.
+     */
+    private void logOpenToolCallDiff(String sessionId, AgentSession session) {
+        List<ChatMessage> snapshotMessages = session.getMessages();
+        if (snapshotMessages == null || snapshotMessages.isEmpty()) {
+            return;
+        }
+        java.util.Set<String> openCallIds = OpenToolCallResolver.findOpenCallIds(snapshotMessages);
+        if (openCallIds.isEmpty()) {
+            return;
+        }
+        List<Checkpoint> checkpoints = config.getCheckpointManager().getCheckpoints(sessionId);
+        java.util.Set<String> neverCommitted = OpenToolCallResolver.filterNeverCommitted(openCallIds, checkpoints);
+        java.util.Set<String> committedButUnsynced = OpenToolCallResolver.filterCommittedButUnsynced(openCallIds, checkpoints);
+        if (!neverCommitted.isEmpty()) {
+            LOG.warn("restoreSession open tool_call diff: {} tool call(s) have no result and no "
+                            + "TOOL_EXECUTION checkpoint (never committed — recoverable orphans, callIds={}). "
+                            + "Continuing with best-effort recovery (session is source of truth). session={}",
+                    neverCommitted.size(), neverCommitted, sessionId);
+        }
+        if (!committedButUnsynced.isEmpty()) {
+            LOG.debug("restoreSession open tool_call diff: {} tool call(s) committed (TOOL_EXECUTION "
+                    + "checkpoint present) but missing from the persisted snapshot (commit→session-sync "
+                    + "crash window, owned by the messageCount consistency check; callIds={}). session={}",
+                    committedButUnsynced.size(), committedButUnsynced, sessionId);
+        }
     }
 
     /**

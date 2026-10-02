@@ -24,6 +24,7 @@ import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -348,6 +350,17 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                                       Map<AgentLifecyclePoint, Integer> reentryCounters,
                                       CompletableFuture<ToolCallOutput>[] futuresArray) {
         boolean reenterRequested = false;
+        // WI3 invariant 2 (design nop-ai-agent-async-tool-execution.md §三.2):
+        // results are committed IN-PLACE — inserted at the end of the batch's
+        // contiguous tool_call/tool_output segment, before any message a
+        // wait-phase wakeup appended after the tool calls (WI4 heartbeat /
+        // WI5 steering). The batch callIds are snapshotted once before the
+        // commit loop anchors every insertion of this batch; each insertion
+        // itself becomes part of the segment, so the recomputed index advances
+        // naturally. With no wait-phase messages (the only shape that exists
+        // before WI4/WI5 land) the insertion index is the list tail —
+        // byte-identical ordering to the previous tail-append behaviour.
+        Set<String> batchCallIds = OpenToolCallResolver.findOpenCallIds(ctx.getMessages());
         for (CompletableFuture<ToolCallOutput> f : futuresArray) {
             ToolCallOutput output = f.join();
             ChatToolCall chatToolCall = output.chatToolCall;
@@ -406,14 +419,14 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                     // drop them and break the tool_call_id
                     // pairing invariant for the assistant's
                     // multi-tool call message.
-                    ctx.addMessage(ChatToolResponseMessage.fromToolCall(chatToolCall,
+                    addToolResultInPlace(ctx, batchCallIds, ChatToolResponseMessage.fromToolCall(chatToolCall,
                             reenterMsg != null ? reenterMsg : "hook re-enter"));
                     reenterRequested = true;
                     continue;
                 }
             }
 
-            ctx.addMessage(toolResponse);
+            addToolResultInPlace(ctx, batchCallIds, toolResponse);
 
             // Layer 3-4 checkpoint recording (design §5.4a
             // "tool execution after" trigger point): after the tool
@@ -484,6 +497,53 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                             "status", toolStatus));
         }
         return reenterRequested;
+    }
+
+    /**
+     * WI3 invariant 2: insert a tool result IN-PLACE rather than appending at
+     * the tail. The insertion index is the end of the contiguous
+     * tool_call/tool_output segment that starts at the first message of the
+     * batch (located by callId — {@code batchCallIds} is the open-call
+     * snapshot taken at commit start), so results always land between the
+     * batch's tool calls and any message a wait-phase wakeup appended after
+     * them. Segment membership is type-based ({@code instanceof}, never role
+     * strings) — security-chain deny results and already-committed batch
+     * results are part of the segment. With no wait-phase messages the index
+     * is the list tail, which reproduces the previous tail-append ordering
+     * exactly (zero regression).
+     * <p>
+     * Locator miss (no batch tool_call found — a caller wiring bug) falls
+     * back to tail append with a WARN so the pairing problem is visible
+     * instead of silently dropping the result.
+     */
+    private void addToolResultInPlace(AgentExecutionContext ctx, Set<String> batchCallIds,
+                                      ChatToolResponseMessage result) {
+        List<ChatMessage> messages = ctx.getMessages();
+        int start = -1;
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessage message = messages.get(i);
+            if (message instanceof ChatToolCallMessage
+                    && batchCallIds.contains(((ChatToolCallMessage) message).getCallId())) {
+                start = i;
+                break;
+            }
+        }
+        if (start < 0) {
+            LOG.warn("tool_call for batch not found in context; falling back to tail append "
+                    + "(callId={}). This indicates a commit/dispatch wiring bug.", result.getCallId());
+            ctx.addMessage(result);
+            return;
+        }
+        int end = start;
+        for (int i = start; i < messages.size(); i++) {
+            ChatMessage message = messages.get(i);
+            if (message instanceof ChatToolCallMessage || message instanceof ChatToolResponseMessage) {
+                end = i;
+            } else {
+                break;
+            }
+        }
+        messages.add(end + 1, result);
     }
 
     /**

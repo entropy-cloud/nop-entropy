@@ -1,5 +1,8 @@
 package io.nop.ai.agent.reliability;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Reliability-layer checkpoint contract (design §5.4): records and retrieves
  * recovery-safe checkpoints so that a long-running agent session can be
@@ -114,5 +117,27 @@ public interface ICheckpointManager {
      * @param sessionId the session identifier; may be null (no-op)
      */
     default void remove(String sessionId) {
+    }
+
+    /**
+     * Plan 2284 (WI3): retrieve all checkpoints recorded for a session, in
+     * save order. Consumed by the restore path's open-tool-call diff
+     * ({@code OpenToolCallResolver.filterNeverCommitted} — crash-recovery
+     * open set = snapshot messages × TOOL_EXECUTION checkpoint callIds).
+     *
+     * <p>The default returns an empty list, which keeps {@link NoOpCheckpoint}
+     * unmodified: with the shipped default the diff input is empty, the
+     * open-set restore alarm stays off — an explicit "functional manager not
+     * registered" behaviour, not a silent skip. The functional implementations
+     * ({@link FileBackedCheckpointManager}, {@link DBCheckpointManager},
+     * {@code ToolExecutionCheckpoint}) already expose this same-shaped method
+     * and override it.
+     *
+     * @param sessionId the session identifier; may be null (returns empty)
+     * @return all checkpoints for the session in save order; empty (never
+     *         null) when none recorded or for the NoOp default
+     */
+    default List<Checkpoint> getCheckpoints(String sessionId) {
+        return Collections.emptyList();
     }
 }

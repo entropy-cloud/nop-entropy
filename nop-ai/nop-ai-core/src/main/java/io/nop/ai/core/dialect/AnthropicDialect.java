@@ -262,19 +262,43 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             }
         }
 
-        // 分离 system 消息到单独字段
+        // 分离 system 消息到单独字段；相邻同角色消息合并为单一轮（plan 2284
+        // 请求侧形态修正：Anthropic 轮以 role 交替承载——assistant 轮收纳 text+
+        // tool_use 块、user 轮收纳 tool_result+后续文本块，块序保持消息序）。
         List<Map<String, Object>> messages = new ArrayList<>();
         ChatMessage lastMessage = request.getLastMessage();
+        Map<String, Object> currentTurn = null;
+        String currentRole = null;
+        Map<String, Object> turnWithLastMessage = null;
         for (ChatMessage msg : request.getMessages()) {
             if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
                 body.put("system", msg.getContent());
-            } else {
-                Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
-                if (msg == lastMessage && modelConfig != null) {
-                    applyThinkingToContentBlocks(msgMap, modelConfig, options);
-                }
-                messages.add(msgMap);
+                continue;
             }
+            String role = getRole(msg);
+            if (currentTurn == null || !role.equals(currentRole)) {
+                currentTurn = new LinkedHashMap<>();
+                currentTurn.put("role", role);
+                currentTurn.put("content", new ArrayList<Map<String, Object>>());
+                messages.add(currentTurn);
+                currentRole = role;
+                turnWithLastMessage = null;
+            }
+            if (msg == lastMessage) {
+                turnWithLastMessage = currentTurn;
+            }
+            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+            ((List<Map<String, Object>>) currentTurn.get("content")).addAll(
+                    (List<Map<String, Object>>) msgMap.get("content"));
+            // 合并轮的顶层 providerHints（cache_control）保留首个携带者；
+            // 合并轮 hints 放置语义由 WI20（per-provider 缓存键放置）复核钉定
+            if (!currentTurn.containsKey("cache_control") && msgMap.containsKey("cache_control")) {
+                currentTurn.put("cache_control", msgMap.get("cache_control"));
+            }
+        }
+
+        if (turnWithLastMessage != null && modelConfig != null) {
+            applyThinkingToContentBlocks(turnWithLastMessage, modelConfig, options);
         }
 
         if (!messages.isEmpty()) {
@@ -561,27 +585,25 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
                                                ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
-        
+
         msgMap.put("role", getRole(message));
 
         List<Map<String, Object>> contentBlocks = new ArrayList<>();
 
-        String textContent = message.getContent();
-        if (textContent != null && !textContent.isEmpty()) {
-            Map<String, Object> textBlock = new LinkedHashMap<>();
-            textBlock.put("type", "text");
-            textBlock.put("text", textContent);
-            contentBlocks.add(textBlock);
-        }
-
-        if (message instanceof ChatReasoningMessage) {
-            Map<String, Object> thinkingBlock = new LinkedHashMap<>();
-            thinkingBlock.put("type", "thinking");
-            thinkingBlock.put("thinking", message.getContent());
-            contentBlocks.add(thinkingBlock);
-        }
-
-        if (message instanceof ChatToolCallMessage) {
+        if (message instanceof ChatToolResponseMessage) {
+            // plan 2284 请求侧形态修正：tool_result 块先于同轮文本块（Anthropic
+            // 契约要求 tool_result 位于 user 轮前部）；工具输出内容仅承载于
+            // tool_result 块——不再重复产出携带同一文本的 text 块（旧形态双份内容）。
+            ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
+            Map<String, Object> toolResultBlock = new LinkedHashMap<>();
+            toolResultBlock.put("type", "tool_result");
+            toolResultBlock.put("tool_use_id", toolMsg.getCallId());
+            toolResultBlock.put("content", toolMsg.getContent());
+            contentBlocks.add(toolResultBlock);
+        } else if (message instanceof ChatToolCallMessage) {
+            // plan 2284：仅产出 tool_use 块——getContent()（arguments JSON）是
+            // 寄居伪影，参数已由 tool_use.input 承载，不再重复产出 text 块
+            // （旧伪影在 parse 侧已有等值丢弃兜底，此处源头清除保证合并轮 roundtrip 等价）。
             ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
             Map<String, Object> toolBlock = new LinkedHashMap<>();
             toolBlock.put("type", "tool_use");
@@ -589,15 +611,21 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             toolBlock.put("name", toolCallMsg.getName());
             toolBlock.put("input", toolCallMsg.getArguments());
             contentBlocks.add(toolBlock);
-        }
+        } else {
+            String textContent = message.getContent();
+            if (textContent != null && !textContent.isEmpty()) {
+                Map<String, Object> textBlock = new LinkedHashMap<>();
+                textBlock.put("type", "text");
+                textBlock.put("text", textContent);
+                contentBlocks.add(textBlock);
+            }
 
-        if (message instanceof ChatToolResponseMessage) {
-            ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
-            Map<String, Object> toolResultBlock = new LinkedHashMap<>();
-            toolResultBlock.put("type", "tool_result");
-            toolResultBlock.put("tool_use_id", toolMsg.getCallId());
-            toolResultBlock.put("content", toolMsg.getContent());
-            contentBlocks.add(toolResultBlock);
+            if (message instanceof ChatReasoningMessage) {
+                Map<String, Object> thinkingBlock = new LinkedHashMap<>();
+                thinkingBlock.put("type", "thinking");
+                thinkingBlock.put("thinking", message.getContent());
+                contentBlocks.add(thinkingBlock);
+            }
         }
 
         if (message.getProviderHints() != null && message.getProviderHints().containsKey("cache_control")) {
@@ -625,6 +653,11 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
     @Override
     public String getRole(ChatMessage message) {
+        if (message instanceof ChatToolResponseMessage) {
+            // Anthropic Messages API 只接受 user/assistant 两种角色：tool_result
+            // 搭载于 tool_use 之后紧跟的 user 轮（plan 2284 请求侧形态修正）
+            return "user";
+        }
         String role = getBaseRole(message);
         // Claude 使用 model 而不是 assistant
         return "assistant".equals(role) ? "model" : role;

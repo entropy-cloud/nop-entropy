@@ -45,9 +45,9 @@ flowchart TD
 
 ### 2. 三条不变量（占位协议契约）
 
-1. **派生态渲染**：占位 tool result 仅在唤醒请求构造期存在，不入 session 历史。消息列表"有 tool_call 无 tool_result"即 running 态的判定依据。
-2. **原位插入**：真实结果到达后按 callId 插入对应 tool_call 之后，非尾部追加。任一请求中同一 callId 的 tool_result 至多一份。
-3. **差集可判定**：崩溃恢复的开放 tool_call 集合 = 快照消息 × `TOOL_EXECUTION` checkpoint（callId 幂等键，`CheckpointType.java:26`）差集，不依赖任何新增持久结构。
+1. **派生态渲染**：占位 tool result 仅在唤醒请求构造期存在，不入 session 历史。消息列表"有 tool_call 无 tool_result"即 running 态的判定依据。实现构件：`OpenToolCallResolver`（消息级开放判定）+ `ToolCallPlaceholderRenderer`（占位渲染，每开放 callId 恰一份、不修改上下文）。
+2. **原位插入**：真实结果到达后按 callId 插入对应 tool_call 之后（批次连续 tool_call/tool_output 区段末尾），非尾部追加。任一请求中同一 callId 的 tool_result 至多一份。实现锚点：`AgentToolDispatcher.commitToolResults`（正常/reenter 两路径共用同一插入 helper）。
+3. **差集可判定**：崩溃恢复的开放 tool_call 集合 = 快照消息 × `TOOL_EXECUTION` checkpoint（callId 幂等键，`CheckpointType.java:26`）差集，不依赖任何新增持久结构。三态语义：(a) 消息级开放且无 checkpoint = never-committed orphan（恢复告警，`AgentSessionLifecycle` restore 验证环节接线）；(b) 消息级闭合（含 deny 错误 result）= 终态不告警；(c) 开放但有 checkpoint = commit→sync 崩溃窗口（归既有 messageCount 告警语义）。实现构件：`OpenToolCallResolver.filterNeverCommitted/filterCommittedButUnsynced`。
 
 ### 3. 唤醒轮语义（裁定③）
 
@@ -78,7 +78,9 @@ flowchart TD
 
 **双份 tool_result 不可达**：不变量①+②使占位与真实结果在任一请求中结构性互斥（占位仅在请求构造期存在、真实结果原位替换），因此不依赖任何 provider 对同 callId 双份 tool_result 的容忍度——这是放弃"占位入史后追加"形态的决定性理由。
 
-验证方式：实施 WI 以 dialect 级单测断言唤醒请求的 JSON 形态（tool_result 邻接性、占位先于文本）；live provider probe 为 watch-only residual（当前环境无 API key）。
+**Anthropic 请求侧实现形态**（plan 2284 修正落地）：`AnthropicDialect.getRole` 将 tool_output 映射为 user 角色；`convertMessage` 中 tool_result 块先于文本块、工具输出不重复产出 text 块、tool_call 的 arguments JSON 寄居伪影 text 块源头清除（仅 tool_use 块）；`buildBody` 将相邻同角色消息合并为单一轮（块序保持消息序；合并轮顶层 providerHints 保留首个携带者，放置语义由 WI20 复核钉定）。OpenAI 侧 1:1 保序无需修正。
+
+验证方式：dialect 级单测断言唤醒请求的 JSON 形态（`TestAnthropicDialect.testWakeupRequestFormToolResultBeforeText`、`TestOpenAiDialect.testWakeupRequestFormToolMessagesFollowToolCalls`）；live provider probe 为 watch-only residual（当前环境无 API key）。
 
 ### 5. 超时分层与心跳兜底（裁定②）
 
