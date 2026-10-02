@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="wf-start"/>
+
+    <actions>
+        <action name="toDead" displayName="进入死步骤">
+            <transition>
+                <to-step stepName="dead"/>
+            </transition>
+        </action>
+        <action name="finishMid" displayName="mid结束">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-step stepName="mid"/>
+            </transition>
+        </step>
+        <step displayName="中间步骤" name="mid">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="toDead"/>
+                <ref-action name="finishMid"/>
+            </ref-actions>
+        </step>
+        <step displayName="无法结束的步骤" name="dead">
+            <assignment>
+                <actors>
+                    <actor actorId="3" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+        </step>
+    </steps>
+</workflow>

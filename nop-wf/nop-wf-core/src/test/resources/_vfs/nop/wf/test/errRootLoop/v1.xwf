@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 缺陷记录用例（plan 2297，不修产品）：
+     环包含根节点（起始步骤）时，GraphBreadthFirstIterator 未将 root 加入 visited 集合，
+     BFS 重复访问根节点导致 DagAnalyzer.checkStartReachable 抛出
+     ArrayIndexOutOfBoundsException，ERR_WF_GRAPH_CONTAINS_LOOP 的友好错误不可达。 -->
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="a"/>
+
+    <actions>
+        <action name="aToB" displayName="a到b">
+            <transition>
+                <to-step stepName="b"/>
+            </transition>
+        </action>
+        <action name="bToA" displayName="b到a">
+            <transition>
+                <to-step stepName="a"/>
+            </transition>
+        </action>
+        <action name="finishA" displayName="a结束">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+        <action name="finishB" displayName="b结束">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="步骤a" name="a">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="aToB"/>
+                <ref-action name="finishA"/>
+            </ref-actions>
+        </step>
+        <step displayName="步骤b" name="b">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="bToA"/>
+                <ref-action name="finishB"/>
+            </ref-actions>
+        </step>
+    </steps>
+</workflow>

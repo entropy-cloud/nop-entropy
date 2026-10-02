@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow displayName="元数据解析" priority="200" allowStepLoop="false"
+          wfName="meta-model" wfVersion="3" tagSet="a,b" wfGroup="custom"
+          bizEntityStateProp="state" bizEntityFlowIdProp="flowId"
+          x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <description>用于测试模型元数据解析</description>
+    <diagram>{"nodes":[]}</diagram>
+
+    <auths>
+        <auth id="auth1" actorType="user" actorId="1" allowStart="true"/>
+        <auth id="auth2" actorType="user" actorId="2" allowEdit="true" allowManage="true"/>
+    </auths>
+
+    <listeners>
+        <listener id="l1" eventPattern="wf-start:*"/>
+    </listeners>
+
+    <actions>
+        <action name="sh" displayName="审核">
+            <arg name="opinion" displayName="意见"/>
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="m1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+    </steps>
+
+    <start startStepName="wf-start"/>
+</workflow>

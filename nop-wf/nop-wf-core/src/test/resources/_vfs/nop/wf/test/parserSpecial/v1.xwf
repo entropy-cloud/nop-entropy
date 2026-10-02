@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="wf-start"/>
+
+    <actions>
+        <action displayName="直接结束" name="aEnd">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+        <action displayName="迁移到空步骤" name="aEmpty">
+            <transition>
+                <to-empty/>
+            </transition>
+        </action>
+        <action displayName="重新分配" name="aAssigned">
+            <transition>
+                <to-assigned/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="aEnd"/>
+                <ref-action name="aEmpty"/>
+                <ref-action name="aAssigned"/>
+            </ref-actions>
+            <transition>
+                <to-step stepName="step1"/>
+            </transition>
+        </step>
+        <step displayName="普通步骤" name="step1">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</workflow>

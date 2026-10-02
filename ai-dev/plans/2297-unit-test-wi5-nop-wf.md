@@ -42,59 +42,83 @@ nop-wf 引擎面从 0 到 1 建立测试：nop-wf-core（80 main/0 test，全仓
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: completed
 Targets: `nop-wf/*/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] wf-core 靶点 ≥15 用例（WfModelParser 解析语义优先；流转/回退语义仅在手写 fake 可隔离时纳入，断言以 wf.xdef 模型语义与 `docs-for-ai/03-runbooks/build-approval-flow.md` 为依据）。
-- [ ] wf-dao + wf-api 结构性用例 ≥8 个。
-- [ ] 需要的 pom test 依赖新增（wf-dao、wf-api 各一处 junit-jupiter test-scope）并记录。
-- [ ] 三模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+- [x] wf-core 靶点 ≥15 用例（WfModelParser 解析语义优先；流转/回退语义仅在手写 fake 可隔离时纳入，断言以 wf.xdef 模型语义与 `docs-for-ai/03-runbooks/build-approval-flow.md` 为依据）。
+  - 实测：47 个用例（TestWfModelParser 9、TestWfModelParserValidation 8、TestWfModelHelper 4、TestExecGroupVoteSemantics 9、TestWorkflowEngineFlow 8、TestApprovalFlowHelper 4、TestWfActorAssignSupport 5）。流转/回退/驳回/撤回语义经手写 InMemoryWfStore + SimpleWfActorResolver 隔离纳入（TestWorkflowEngineFlow）。
+- [x] wf-dao + wf-api 结构性用例 ≥8 个。
+  - 实测：dao 13 个（TestWorkflowDefinitionDO 5、TestWfResourceNamespaceHandler 3、TestWfDaoEntityStructure 5）+ api 16 个（TestWfActorHelper 4、TestWfActorModelSemantics 6、TestWfApiBeanContracts 6）= 29 个。
+- [x] 需要的 pom test 依赖新增（wf-dao、wf-api 各一处 junit-jupiter test-scope）并记录。
+  - pom 记录：`nop-wf/nop-wf-dao/pom.xml` 与 `nop-wf/nop-wf-api/pom.xml` 各新增 1 条 `org.junit.jupiter:junit-jupiter` test-scope 依赖（无版本号，由 root dependencyManagement 管理），带 `WI5 plan 2297` 注释；nop-wf-core 未改（已有 junit test 依赖）。产品代码零修改。
+- [x] 三模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+  - 实测：nop-wf-api / nop-wf-dao / nop-wf-core 三条命令均 BUILD SUCCESS（退出码 0，2026-10-02）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增测试 ≥23 用例，含显式语义断言。
-- [ ] 三模块测试全绿。
-- [ ] pom 变更（如有）仅 test-scope 依赖且已记录。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增测试 ≥23 用例，含显式语义断言。（实测 76 个：47 core + 13 dao + 16 api）
+- [x] 三模块测试全绿。
+- [x] pom 变更（如有）仅 test-scope 依赖且已记录。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。（plan owner 已补记）
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI5 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 删三模块 exec → baseline 脚本复测，记录 0 → X 增量。
-- [ ] 残余缺口显式裁定（engine 层目标 45%）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI5 checkbox。
+- [x] 删三模块 exec → baseline 脚本复测，记录 0 → X 增量。
+  - 实测（`coverage-baseline.sh --skip-test --label wi5-2026-10-02`，快照 `ai-dev/analysis/2026-10/coverage-baseline-wi5-2026-10-02.json`）：
+    - nop-wf-core：NO-EXEC/0% → linePct 41.55%（1227/2953），branch 31.49%
+    - nop-wf-dao：NO-EXEC/0% → linePct 12.35%（51/413），branch 8.11%
+    - nop-wf-api：NO-EXEC/0% → linePct 7.94%（125/1574），branch 85.29%
+- [x] 残余缺口显式裁定（engine 层目标 45%）。
+  - 裁定：nop-wf-core 41.55% 距 engine 层 45% 目标差 3.45pct，残余集中在运行时协作面——WorkflowEngineImpl 35.45%（1072 行，信号等待/子流程/异常 listener 路径）、WorkflowStepImpl 19.49%（118 行）、WorkflowServiceImpl 0%（158 行，全运行时 facade）、AbstractWorkflowStore 18.89%。这些路径需要更深的 IWfRuntime 全交互（signal/subflow/exec-group 运行时），超出本 WI"从 0 建立"的门槛，裁定为 watch-only residual，建议由后续引擎深化切片（聚焦 WorkflowEngineImpl 信号/子流程路径）承接；本 WI 不静默降级，目标差额已记录。
+  - nop-wf-dao 残余：DaoWorkflowStore 0%（162 行，需 ORM 全容器，属 wf-service 容器测试覆盖面）、NopWfInstance/NopWfStepInstance 实体细粒度逻辑 0%（生成代码为主）。
+  - nop-wf-api 残余：18 个 `NopWf*Input/OutputBean` 生成 DTO（0%，约 1100 行），纯字段搬运结构，判定为低价值填充面，watch-only。
+- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI5 checkbox。（audit 进行中）
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI5 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI5 checkbox 与 plan/log 一致。（待 audit 后同步）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（plan owner 已补记）
 
 ## Closure Gates
 
-- [ ] 三模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码零修改；pom 仅 test-scope 新增且记录
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：流转/回退测试断言状态机语义（audit 抽查）
+- [x] 三模块全部新增测试绿（含既有测试零回归）
+- [x] 产品代码零修改；pom 仅 test-scope 新增且记录（git status 实证：仅 nop-wf-api/pom.xml、nop-wf-dao/pom.xml 修改 + 三个 src/test 新目录）
+- [x] 覆盖增量实测记录（`ai-dev/analysis/2026-10/coverage-baseline-wi5-2026-10-02.{json,md}`）
+- [x] 残余缺口显式裁定（无静默降级）（见 Phase 2 裁定 + Deferred But Adjudicated）
+- [x] No owner-doc update required（已裁定）
+- [ ] Anti-Hollow Check：流转/回退测试断言状态机语义（audit 抽查）（执行侧证据：TestWorkflowEngineFlow 断言 start→激活→迁移→to-end 终止→驳回回退→撤回的状态迁移与状态码；待独立 audit 抽查确认）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2297-unit-test-wi5-nop-wf.md --strict` 退出码 0
 - [ ] roadmap WI5 checkbox 与 plan/log 一致
 
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### `ai-dev/logs/` 条目与 roadmap checkbox（执行会话受协调约束不修改共享文件）
+
+- Classification: `resolved`（已由协调方收口：log 条目已补记、roadmap checkbox 待 audit APPROVE 后勾选）
+- Why Not Blocking Closure: 测试增量与测量数字已全部落在本 plan 与 `ai-dev/analysis/2026-10/coverage-baseline-wi5-2026-10-02.*`；协调方已补写 log 条目，roadmap 勾选按流程待独立 audit 通过。
+- Successor Required: `no`
+
+### 产品缺陷嫌疑（不修，本 WI 只记录）— 待独立立项
+
+- Classification: `watch-only residual`（对 plan 2297 而言）
+- Why Not Blocking Closure: 本 plan Non-Goals 明确"不修改产品代码"；缺陷有 focused trip-wire 测试固化当前行为，修复立项时回归测试可并入。
+- Successor Required: `yes`
+- Successor Path: 缺陷修复立项（见 Closure 报告缺陷清单）：
+  1. `GraphBreadthFirstIterator`（nop-core）未把 root 加入 visited 集合：环包含根节点的工作流定义在模型校验期抛 `ArrayIndexOutOfBoundsException`（`DagAnalyzer.checkStartReachable`），`ERR_WF_GRAPH_CONTAINS_LOOP` 友好错误不可达。trip-wire：`TestWfModelParserValidation.testRootCycleCrashesBeforeFriendlyLoopError`（资源 `errRootLoop/v1.xwf`）。
+  2. `WfModelAnalyzer.checkEnd`（nop-wf-core）的 `eventuallyToAssigned` 传播缺少 `isNextToAssigned` 前置条件，任何步骤都被无条件标记 `eventuallyToAssigned=true`，`ERR_WF_STEP_NOT_ENDABLE` 成为死代码。trip-wire：`TestWfModelParserValidation.testStepNotEndableValidationIsDeadCode`（资源 `errNotEndable/v1.xwf`）。
 
 ## Non-Blocking Follow-ups
 
