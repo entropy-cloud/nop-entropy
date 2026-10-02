@@ -19,7 +19,7 @@
 
 ## Current Baseline（2026-10-02 WI13 收口实测；起草基线 2026-09-30 见 git 历史）
 
-> WI0-WI13 全部收口（承载 plan 2292-2305，独立 closure audit 全部 APPROVE）。收口快照：`ai-dev/analysis/2026-10/coverage-baseline-wi13-2026-10-02.json/.md`（WI0 管线全仓统一重跑，318 模块 / 213 有报告）。刷新与裁定报告：`ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md`。
+> WI0-WI13 全部收口（承载 plan 2292-2305，独立 closure audit 全部 APPROVE）。收口快照：`ai-dev/analysis/2026-10/coverage-baseline-wi13-2026-10-02.json` 与同名 `.md`（WI0 管线全仓统一重跑，318 模块 / 213 有报告）。刷新与裁定报告：`ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md`。
 
 - 全仓加权行覆盖：**56.92% → 58.37%**（+1.45pp；分母因 15 个模块首次产出覆盖而扩大——逐模块全部为增量，无回归）。
 - 分层：kernel 44.38%→**47.87%**（+3.49）；engine 52.62%→46.79%（**名义下降为分母效应**——六个此前 NO-EXEC 的 api/dao 模块建立测试后以低行覆盖进入加权，逐模块增量见 WI5/WI7/WI8）；periphery 67.14%→**68.42%**（+1.28）。
