@@ -661,9 +661,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props, config.getForkMessageFilter());
 
             Map<String, Object> eventPayload = new HashMap<>();
-            eventPayload.put("parentSessionId", parentSessionId);
-            eventPayload.put("childSessionId", childSessionId);
-            eventPayload.put("inheritContext", inheritContext);
+            eventPayload.put(AgentEventPayloads.PARENT_SESSION_ID, parentSessionId);
+            eventPayload.put(AgentEventPayloads.CHILD_SESSION_ID, childSessionId);
+            eventPayload.put(AgentEventPayloads.INHERIT_CONTEXT, inheritContext);
 
             AgentSession childSession = sessionStore.get(childSessionId);
             String childAgentName = childSession != null ? childSession.getAgentName() : null;
@@ -854,7 +854,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         } else {
             eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_LOADED,
                     sessionId, request.getAgentName(),
-                    java.util.Map.of("historyCount", historyCount)));
+                    java.util.Map.of(AgentEventPayloads.HISTORY_COUNT, historyCount)));
         }
 
         AgentExecutionContext ctx = lifecycle.buildBaseExecutionContext(agentModel, session);

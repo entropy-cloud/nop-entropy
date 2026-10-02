@@ -378,7 +378,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         String sessionId = ctx.getSessionId();
 
         hookInvoker.publishEvent(AgentEventType.EXECUTION_STARTED, sessionId, agentName,
-                Map.of("agentName", agentName != null ? agentName : ""));
+                Map.of(AgentEventPayloads.AGENT_NAME, agentName != null ? agentName : ""));
 
         // filtering. When sessionStore is null (testing) or the session is
         // not found, pass null — resolveActiveTags falls back to the agent
@@ -625,7 +625,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private void handleCancellation(AgentExecutionContext ctx, String sessionId, String agentName) {
         ctx.setStatus(AgentExecStatus.cancelled);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", ctx.getCancelReason() != null ? ctx.getCancelReason() : "");
+        payload.put(AgentEventPayloads.REASON, ctx.getCancelReason() != null ? ctx.getCancelReason() : "");
         hookInvoker.publishEvent(AgentEventType.SESSION_CANCELLED, sessionId, agentName, payload);
     }
 
@@ -640,7 +640,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         if (preCallResult.isVeto()) {
             ctx.setStatus(AgentExecStatus.completed);
             hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName,
-                    Map.of("vetoedAt", "PRE_CALL", "reason", hookInvoker.vetoReason(preCallResult)));
+                    Map.of(AgentEventPayloads.VETOED_AT, "PRE_CALL",
+                            AgentEventPayloads.REASON, hookInvoker.vetoReason(preCallResult)));
             return true;
         }
         return false;
@@ -1013,8 +1014,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         saveLlmTurnCheckpoint(ctx, sessionId, execStartTime, checkpointSeq, assistantMsg);
 
         Map<String, Object> llmPayload = new HashMap<>();
-        llmPayload.put("iteration", ctx.getCurrentIteration());
-        llmPayload.put("hasToolCalls", !responseToolCalls.isEmpty());
+        llmPayload.put(AgentEventPayloads.ITERATION, ctx.getCurrentIteration());
+        llmPayload.put(AgentEventPayloads.HAS_TOOL_CALLS, !responseToolCalls.isEmpty());
         hookInvoker.publishEvent(AgentEventType.LLM_RESPONSE_RECEIVED, sessionId, agentName, llmPayload);
 
         HookResult postReasoningResult = hookInvoker.executeWithMiddleware(AgentLifecyclePoint.POST_REASONING, ctx, agentName, null, null);
@@ -1627,8 +1628,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
             String toolName = chatToolCall.getName();
 
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_STARTED, sessionId, agentName,
-                    Map.of("toolName", toolName,
-                            "iteration", ctx.getCurrentIteration()));
+                    Map.of(AgentEventPayloads.TOOL_NAME, toolName,
+                            AgentEventPayloads.ITERATION, ctx.getCurrentIteration()));
 
             // Each checkpoint implements one deny path from the original
             // inline if-else chain. The chain replaces all 7 deny paths
@@ -1791,15 +1792,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
         }
 
         Map<String, Object> completedPayload = new HashMap<>();
-        completedPayload.put("totalIterations", ctx.getCurrentIteration());
-        completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-        completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
+        completedPayload.put(AgentEventPayloads.TOTAL_ITERATIONS, ctx.getCurrentIteration());
+        completedPayload.put(AgentEventPayloads.TOTAL_TOKENS_USED, ctx.getTokensUsed());
+        completedPayload.put(AgentEventPayloads.DURATION_MS, CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
         // W5-3: additive guardrailBlocked marker so downstream
         // consumers can distinguish "completed" from "completed but
         // final response guardrail-blocked" (design §5.4 裁定 E).
-        completedPayload.put("guardrailBlocked", guardrailBlocked);
+        completedPayload.put(AgentEventPayloads.GUARDRAIL_BLOCKED, guardrailBlocked);
         if (guardrailBlocked) {
-            completedPayload.put("bailReason",
+            completedPayload.put(AgentEventPayloads.BAIL_REASON,
                     ((HookResult.BailResult) postCallResult).getReason());
         }
         hookInvoker.publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);

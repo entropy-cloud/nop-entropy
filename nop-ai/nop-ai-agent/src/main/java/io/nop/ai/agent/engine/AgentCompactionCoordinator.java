@@ -183,10 +183,10 @@ public class AgentCompactionCoordinator {
                 // compactSummary (tokensBefore/tokensAfter/shadowedTokenCount/
                 // snapshotId). Emitted only on real compaction success.
                 Map<String, Object> compactionPayload = new HashMap<>();
-                compactionPayload.put("tokensBefore", result.getTokensBefore());
-                compactionPayload.put("tokensAfter", result.getTokensAfter());
-                compactionPayload.put("shadowedTokenCount", result.getShadowedTokenCount());
-                compactionPayload.put("snapshotId", snapshotId);
+                compactionPayload.put(AgentEventPayloads.TOKENS_BEFORE, result.getTokensBefore());
+                compactionPayload.put(AgentEventPayloads.TOKENS_AFTER, result.getTokensAfter());
+                compactionPayload.put(AgentEventPayloads.SHADOWED_TOKEN_COUNT, result.getShadowedTokenCount());
+                compactionPayload.put(AgentEventPayloads.SNAPSHOT_ID, snapshotId);
                 hookInvoker.publishEvent(AgentEventType.COMPACTION,
                         compactionSessionId, agentName, compactionPayload);
 

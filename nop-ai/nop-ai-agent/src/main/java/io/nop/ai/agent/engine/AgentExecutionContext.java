@@ -327,9 +327,9 @@ public class AgentExecutionContext {
             return;
         }
         Map<String, Object> payload = new HashMap<>();
-        payload.put("semantics", semantics.name());
-        payload.put("action", action);
-        payload.put("pendingCount", steeringQueue.size());
+        payload.put(AgentEventPayloads.SEMANTICS, semantics.name());
+        payload.put(AgentEventPayloads.ACTION, action);
+        payload.put(AgentEventPayloads.PENDING_COUNT, steeringQueue.size());
         injectionEventPublisher.publish(AgentEvent.create(
                 AgentEventType.INJECTION_QUEUE_UPDATED, sessionId, injectionEventAgentName, payload));
     }

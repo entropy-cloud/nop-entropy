@@ -68,7 +68,7 @@ public class SingleTurnExecutor implements IAgentExecutor {
         ctx.setStatus(AgentExecStatus.running);
 
         publishEvent(AgentEventType.EXECUTION_STARTED, sessionId, agentName,
-                Map.of("agentName", agentName != null ? agentName : ""));
+                Map.of(AgentEventPayloads.AGENT_NAME, agentName != null ? agentName : ""));
 
         try {
             ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
@@ -105,9 +105,9 @@ public class SingleTurnExecutor implements IAgentExecutor {
             ctx.setStatus(AgentExecStatus.completed);
 
             Map<String, Object> completedPayload = new HashMap<>();
-            completedPayload.put("totalIterations", ctx.getCurrentIteration());
-            completedPayload.put("totalTokensUsed", ctx.getTokensUsed());
-            completedPayload.put("durationMs", CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
+            completedPayload.put(AgentEventPayloads.TOTAL_ITERATIONS, ctx.getCurrentIteration());
+            completedPayload.put(AgentEventPayloads.TOTAL_TOKENS_USED, ctx.getTokensUsed());
+            completedPayload.put(AgentEventPayloads.DURATION_MS, CoreMetrics.currentTimeMillis() - ctx.getStartTimeMs());
             publishEvent(AgentEventType.EXECUTION_COMPLETED, sessionId, agentName, completedPayload);
 
         } catch (Exception e) {

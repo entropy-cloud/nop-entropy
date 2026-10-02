@@ -3,6 +3,7 @@ package io.nop.ai.agent.runtime;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.ai.agent.engine.AgentEventPayloads;
 import io.nop.ai.agent.engine.InjectionEntry;
 import io.nop.ai.agent.engine.InjectionSemantics;
 import io.nop.ai.agent.engine.NopAiAgentException;
@@ -466,9 +467,9 @@ public final class InMemoryActorRuntime implements IActorRuntime {
                             if (publisher != null) {
                                 String sid = actor.getSessionId();
                                 java.util.Map<String, Object> payload = new java.util.HashMap<>();
-                                payload.put("semantics", InjectionSemantics.STEER.name());
-                                payload.put("action", "enqueued");
-                                payload.put("pendingCount", steeringQueue.size());
+                                payload.put(AgentEventPayloads.SEMANTICS, InjectionSemantics.STEER.name());
+                                payload.put(AgentEventPayloads.ACTION, "enqueued");
+                                payload.put(AgentEventPayloads.PENDING_COUNT, steeringQueue.size());
                                 publisher.publish(io.nop.ai.agent.engine.AgentEvent.create(
                                         io.nop.ai.agent.engine.AgentEventType.INJECTION_QUEUE_UPDATED,
                                         sid, actor.getActorId(), payload));

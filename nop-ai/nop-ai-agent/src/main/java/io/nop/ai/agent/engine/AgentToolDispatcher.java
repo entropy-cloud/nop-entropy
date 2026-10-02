@@ -862,8 +862,8 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             }
 
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_COMPLETED, sessionId, agentName,
-                    Map.of("toolName", chatToolCall.getName(),
-                            "status", toolStatus));
+                    Map.of(AgentEventPayloads.TOOL_NAME, chatToolCall.getName(),
+                            AgentEventPayloads.TOOL_STATUS, toolStatus));
         }
         return reenterRequested;
     }

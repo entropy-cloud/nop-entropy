@@ -95,14 +95,14 @@ public class AgentSessionLifecycle {
     }
     public void publishCancelRequested(String sessionId, String agentName, String reason, boolean forced) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", reason != null ? reason : "");
-        payload.put("forced", forced);
+        payload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+        payload.put(AgentEventPayloads.FORCED, forced);
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_CANCEL_REQUESTED,
                 sessionId, agentName, payload));
     }
     public void publishCancelled(String sessionId, String agentName, String reason) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", reason != null ? reason : "");
+        payload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_CANCELLED,
                 sessionId, agentName, payload));
     }
@@ -334,9 +334,9 @@ public class AgentSessionLifecycle {
                 session.setStatus(AgentExecStatus.running);
 
                 Map<String, Object> resumePayload = new HashMap<>();
-                resumePayload.put("approver", approver != null ? approver : "");
-                resumePayload.put("reason", reason != null ? reason : "");
-                resumePayload.put("preResetDenialCount", preResetDenialCount);
+                resumePayload.put(AgentEventPayloads.APPROVER, approver != null ? approver : "");
+                resumePayload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+                resumePayload.put(AgentEventPayloads.PRE_RESET_DENIAL_COUNT, preResetDenialCount);
                 eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
                         sessionId, agentName, resumePayload));
             } finally {
@@ -511,7 +511,7 @@ public class AgentSessionLifecycle {
                 session.setStatus(AgentExecStatus.running);
 
                 Map<String, Object> wakePayload = new HashMap<>();
-                wakePayload.put("reason", "condition satisfied");
+                wakePayload.put(AgentEventPayloads.REASON, "condition satisfied");
                 eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_WOKE,
                         sessionId, agentName, wakePayload));
             } finally {
@@ -834,17 +834,17 @@ public class AgentSessionLifecycle {
         // Publish the SESSION_RESTORED audit event carrying approver, reason,
         // and latestCheckpointWatermark for audit trail.
         Map<String, Object> restorePayload = new HashMap<>();
-        restorePayload.put("approver", approver != null ? approver : "");
-        restorePayload.put("reason", reason != null ? reason : "");
-        restorePayload.put("latestCheckpointWatermark",
+        restorePayload.put(AgentEventPayloads.APPROVER, approver != null ? approver : "");
+        restorePayload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+        restorePayload.put(AgentEventPayloads.LATEST_CHECKPOINT_WATERMARK,
                 verification.latestCheckpointWatermark() != null ? verification.latestCheckpointWatermark() : "");
-        restorePayload.put("preRestoreStatus", currentStatus != null ? currentStatus.name() : "");
+        restorePayload.put(AgentEventPayloads.PRE_RESTORE_STATUS, currentStatus != null ? currentStatus.name() : "");
         // Design §13.2 Decision B: the divergence flag + rejected watermark
         // make checkpoint rejection observably distinct from the best-effort
         // messageCount warning (divergenceDetected=false / empty here means
         // "checkpoint accepted or best-effort fallback").
-        restorePayload.put("divergenceDetected", verification.divergenceDetected());
-        restorePayload.put("rejectedCheckpointWatermark",
+        restorePayload.put(AgentEventPayloads.DIVERGENCE_DETECTED, verification.divergenceDetected());
+        restorePayload.put(AgentEventPayloads.REJECTED_CHECKPOINT_WATERMARK,
                 verification.rejectedCheckpointWatermark() != null ? verification.rejectedCheckpointWatermark() : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESTORED,
                 sessionId, agentName, restorePayload));
