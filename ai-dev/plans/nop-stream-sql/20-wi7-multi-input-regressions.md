@@ -106,8 +106,8 @@ Exit Criteria:
 - [x] 全部端到端（非 wire 级直调）
 - [x] 既有测试零退化
 - [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id，五轮轨迹最终 PASS）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/20-wi7-multi-input-regressions.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/20-wi7-multi-input-regressions.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Closure
 
