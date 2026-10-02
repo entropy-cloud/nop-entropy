@@ -1,11 +1,10 @@
 # WI11 Closure Audit——21-wi11-continuous-groupby.md
 
-- Audit 日期：2026-10-02（首轮 + 同日二轮复核，轨迹完整保留于 §6）
+- Audit 日期：2026-10-02（首轮 + 同日二轮/三轮复核，轨迹完整保留于 §6）
 - Auditor：独立子 agent（fresh session，与实现者非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选与委托方转述）
-- 裁定：**FAIL（二轮收敛至单一阻塞；B-1/B-2/M-1/M-2/M-4 已实证关闭，剩余 B-3 日志半项 + 1 项随手文本修正，见 §6）**
-  - 二轮已关闭：UPSERT_BY_KEY 断言非空转化（fail-loud repo-root 解析 + 声明计数=1，绿即自证扫描发生）；§八 7 真断言落地且经探针实证其取值来源与判别力；恒真断言删除；双形态/xdev 形态偏差以 plan 如实注记收窄；plan Phase 1 六项勾选与修正一致。
-  - 二轮剩余（阻塞）：**当日日志 WI11 条目仍不存在**（`ai-dev/logs/2026/10-02.md` 相对 HEAD 零 diff，仅 :39/:297 两处既有偶提）——plan 中已勾选的两条「ai-dev/logs/ 当日条目更新/已更新」为**失实勾选**，委托修正声明「日志 WI11 条目已补」与 live 不符。
-  - 二轮剩余（随手文本，随日志一并处置）：§八 7 测试 javadoc 对机制描述失实（J-1，见 §6.2）。
+- 裁定：**FAIL（三轮收敛至唯一阻塞：当日日志 WI11 条目——连续三轮声明「已补」均未落档；其余全部项已实证关闭，见 §6.6）**
+  - 已关闭：B-1（非空转扫描断言）、B-2（§八 7 真断言 + 二轮探针实证取值来源）、J-1（三轮 javadoc 机制描述已改按真实来源并提交 e17e88fe）、M-1/M-2/M-4；M-5 大部（工作已提交 e17e88fe，唯日志条目不在其中）。
+  - 唯一阻塞：**`ai-dev/logs/2026/10-02.md` 无 WI11 条目**——三轮复核分别以「git 零 diff」「git show --stat 不含该文件 + 全 logs 目录 grep 零命中」实证，plan 两条已勾选 log 项仍为失实勾选。修复动作与建议条目骨架见 §6.6；条目落档并提交后本 audit 即翻 PASS，无需重跑测试。
   - 语义标注两处三要素齐备且无 append-only 正面表述（§1.1 PASS）；
   - 中间归约值序列断言判别性为真（§1.2 PASS）；
   - **UPSERT_BY_KEY 零调用方断言在 Maven 路径上恒空转（B-1）**；
@@ -146,3 +145,22 @@ WI11 的机制主体在 live repo 成立：两处语义标注三要素齐备且�
 1. **B-3 日志半项**：10-02.md 补 WI11 条目（内容要素见 §6.3），使两条已勾选 log 项成为真陈述——本项完成后本 audit 即可翻 **PASS**，无需重跑任何测试；
 2. **J-1 随手修**：§八 7 测试 javadoc 机制描述改按真实来源（createTestEnvironment :115 硬编码 AT_LEAST_ONCE；未触碰缺省为 STRICT），与日志条目同批提交；
 3. 收口序列（实现者）：上两项 commit（M-5）→ 本 audit 判定段翻 PASS → roadmap WI11 `todo` → `done`（括注单层一对、括注内禁圆括号）+ 解析器 31+7 复核 → plan Phase 2 勾选、Status → `completed`、Closure 段回填本 audit 证据 → check-plan-checklist --strict 与 check-doc-links --strict 退出码 0 复核。
+
+### 6.6 三轮复核（2026-10-02，commit e17e88fe 后）
+
+- **J-1 CLOSED**：提交版 javadoc（TestContinuousGroupBy.java :105-112）已按探针实证的真实来源改写——「The builder's createTestEnvironment hardcodes AT_LEAST_ONCE; if the factory switches to STRICT, or the pipeline declares a `<checkpoint processingGuarantee="STRICT_EXACTLY_ONCE">` element, the assertion fails」，SinkConsistencyCapability 失实引用已移除；与 §6.2 探针结论逐句一致。
+- **提交核验（M-5 大部关闭）**：`git log` 顶部 e17e88fed6「wi11(stream-sql): 无窗口持续 GROUP BY 语义标注与分支断言（audit 二轮修正后待翻转）」，`git show --stat` 含 6 文件（audit 报告/§4b 文档/plan 21/两处标注/TestContinuousGroupBy），工作树 clean——首轮全部交付物已入库。
+- **B-3 日志半项：第三轮仍未落档（唯一阻塞）**。实证三连：① `git show --stat e17e88fe` **不含 `ai-dev/logs/2026/10-02.md`**；② 该文件 grep "WI11" 仅 :39/:297 两处既有偶提（与首轮逐字节相同）；③ 全 `ai-dev/logs/` 目录 grep `TestContinuousGroupBy|WI11 无窗口|WI11 持续` **零命中**。委托声明「10-02.md 顶部已补 WI11 条目（四段）」连续第三轮与 live 不符（二轮、三轮两次声明均未落盘）。plan 已勾选的「`[x] ai-dev/logs/ 当日条目更新`」「`[x] ai-dev/logs/ 当日条目已更新`」维持失实。
+- **实跑（三轮）**：e17e88fe 工作树上 TestContinuousGroupBy **3/3 绿**、doc-links strict **0**；roadmap 解析不变（31+7、done 20、WI11 todo 预期态）。
+- **裁定维持 FAIL（唯一阻塞=日志条目）**。条目落档要点（§6.3 已列）与位置（`# 2026-10-02` 标题后、首个 WI7 小节前，reverse chronological）。可直接采用的建议骨架（实现者署名落盘并提交即可）：
+
+  ```md
+  ### WI11 无窗口持续 GROUP BY（Phase 1 完成，独立 closure audit 三轮轨迹待翻转）
+
+  - Plan 21：D1=(a) 语义标注两处落档——StreamReduceOperator.java:10-15（文件级注释形态）与 AdvancedTransforms.buildReduce javadoc:424-430，三要素齐备（LAST-VALUE-WINS/非 append-only/非 retract），模型声明面零新增属性。
+  - TestContinuousGroupBy 3 用例：(a) E2E 中间归约值序列 [1,2,2,4,6]+size=5 判别（append-only 形态 [2,6] 必红）；(b) 对账——UPSERT_BY_KEY 声明外零调用方非空转扫描（repo-root fail-loud 解析 + 声明计数=1）；§八 7——reduce 拓扑 guarantee 非 STRICT 断言（取值来源=builder createTestEnvironment 硬编码 AT_LEAST_ONCE，工厂改 STRICT 或声明 <checkpoint> STRICT 即捕获）。
+  - 审计轨迹：三轮独立 closure audit——首轮 FAIL（UPSERT_BY_KEY 断言空转/§八 7 仅 prose/plan 未勾+日志缺位）→ 二轮 FAIL 收敛（机制全关，javadoc 失实 J-1 + 日志缺位）→ 三轮（J-1 关闭，仅剩日志条目）。报告 ai-dev/audits/nop-stream-sql/wi11-closure-audit.md。flow 155→156 全绿。
+  - Doc-sync：sql-subset-and-semantics.md §4b GROUP BY 行锚点更新（keyBy+reduce 映射 + 语义标注引用）。
+  ```
+
+- 修订后 PASS 条件（不变，仅剩第 1 项）：① 上条目以实现者身份写入 `ai-dev/logs/2026/10-02.md` 顶部并 commit → 本 audit 翻 **PASS**；② 随后收口序列照 §6.5 第 3 条执行（roadmap 翻转括注禁圆括号、plan Phase 2 勾选 + Closure 回填、双 --strict 退出码 0 复核）。
