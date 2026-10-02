@@ -68,7 +68,9 @@ import io.nop.stream.flow.model.StreamReduceModel;
 import io.nop.stream.flow.model.StreamSideOutputModel;
 import io.nop.stream.flow.model.StreamTimestampsAndWatermarksModel;
 import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.model.StreamAggregatorModel;
 import io.nop.stream.flow.model.StreamUnionModel;
+import io.nop.stream.flow.spi.IAggregatorFunctionResolver;
 import io.nop.stream.flow.model.StreamWindowModel;
 import io.nop.stream.flow.model.WindowingStrategyModel;
 
@@ -349,16 +351,70 @@ final class AdvancedTransforms {
                     .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
                     .loc(t.getLocation());
         }
-        if (m.getBean() == null) {
-            throw new StreamException(ERR_STREAM_REQUIRED_ATTR)
+        // WI8c exactly-one adjudication: bean and aggregatorRef are mutually exclusive
+        // and at least one must be declared — both together or neither fail fast (this
+        // replaces the former bean-required error).
+        if ((m.getBean() == null) == (m.getAggregatorRef() == null)) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "bean")
+                    .param(ARG_DETAIL, "<aggregate> requires exactly one of bean or aggregatorRef, found "
+                            + (m.getBean() == null ? "neither" : "both"))
                     .loc(t.getLocation());
         }
-        AggregateFunction fn = owner.resolveBean(t, m.getBean(), AggregateFunction.class);
         WindowedStream windowed = (WindowedStream) in;
+        AggregateFunction fn;
+        if (m.getBean() != null) {
+            fn = owner.resolveBean(t, m.getBean(), AggregateFunction.class);
+        } else {
+            fn = resolveAggregatorRef(owner, t, m);
+        }
         return StreamModelDslBuilder.applyDeclaredParallelism(
                 (SingleOutputStreamOperator<R>) windowed.aggregate(fn), t);
+    }
+
+    /**
+     * WI8c: resolves an {@code aggregatorRef} declaration in the A4 order — the
+     * registry entry lookup (unknown id fails fast), then the A4 bean-first check
+     * ({@code beanResolver.contains(fnId)} keeps custom aggregate beans usable), and
+     * finally the {@link IAggregatorFunctionResolver} provider looked up by type in
+     * the BeanContainer. No provider (including an uninitialized container) fails
+     * fast naming the missing nop-stream-sql dependency — never a silent fallback.
+     */
+    private static AggregateFunction<?, ?, ?> resolveAggregatorRef(
+            StreamModelDslBuilder owner, StreamTransformModel t, StreamAggregateModel m) {
+        StreamAggregatorModel entry = owner.model().getAggregator(m.getAggregatorRef());
+        if (entry == null) {
+            throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_REF_TYPE, "<aggregators>/<aggregator>")
+                    .param(ARG_REF_NAME, m.getAggregatorRef())
+                    .loc(t.getLocation());
+        }
+        String fnId = entry.getFnId();
+        // A4 ordering: an explicitly registered aggregate bean for the fnId wins over
+        // the builtin catalog.
+        if (owner.beanResolver().contains(fnId)) {
+            return owner.resolveBean(t, fnId, AggregateFunction.class);
+        }
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized()) {
+            throw noProvider(m);
+        }
+        IAggregatorFunctionResolver resolver =
+                io.nop.api.core.ioc.BeanContainer.instance()
+                        .tryGetBeanByType(IAggregatorFunctionResolver.class);
+        if (resolver == null) {
+            throw noProvider(m);
+        }
+        return resolver.resolve(fnId, entry.getExpr(), owner.columnTypeLookup(entry.getSchemaId()));
+    }
+
+    private static StreamException noProvider(StreamAggregateModel m) {
+        // param()/loc() are declared on NopException; the chain returns this
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_DETAIL, "aggregate '" + m.getId() + "' declares aggregatorRef='"
+                        + m.getAggregatorRef() + "' but no " + IAggregatorFunctionResolver.class.getName()
+                        + " provider is registered; add io.github.entropy-cloud:nop-stream-sql to the classpath")
+                .loc(m.getLocation());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

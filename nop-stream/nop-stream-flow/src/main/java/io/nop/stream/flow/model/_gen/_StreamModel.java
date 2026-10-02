@@ -30,6 +30,16 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: aggregators
+     * WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+     * 稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+     * 与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+     * 供参数类型校验。
+     */
+    private KeyedList<io.nop.stream.flow.model.StreamAggregatorModel> _aggregators = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: checkpoint
      * Checkpoint 配置
      */
@@ -160,6 +170,54 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 窗口策略注册表
      */
     private KeyedList<io.nop.stream.flow.model.WindowingStrategyModel> _windowingStrategies = KeyedList.emptyList();
+    
+    /**
+     * 
+     * xml name: aggregators
+     *  WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+     * 稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+     * 与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+     * 供参数类型校验。
+     */
+    
+    public java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> getAggregators(){
+      return _aggregators;
+    }
+
+    
+    public void setAggregators(java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> value){
+        checkAllowChange();
+        
+        this._aggregators = KeyedList.fromList(value, io.nop.stream.flow.model.StreamAggregatorModel::getAggregatorId);
+           
+    }
+
+    
+    public io.nop.stream.flow.model.StreamAggregatorModel getAggregator(String name){
+        return this._aggregators.getByKey(name);
+    }
+
+    public boolean hasAggregator(String name){
+        return this._aggregators.containsKey(name);
+    }
+
+    public void addAggregator(io.nop.stream.flow.model.StreamAggregatorModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> list = this.getAggregators();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.stream.flow.model.StreamAggregatorModel::getAggregatorId);
+            setAggregators(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_aggregators(){
+        return this._aggregators.keySet();
+    }
+
+    public boolean hasAggregators(){
+        return !this._aggregators.isEmpty();
+    }
     
     /**
      * 
@@ -764,6 +822,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._aggregators = io.nop.api.core.util.FreezeHelper.deepFreeze(this._aggregators);
+            
            this._checkpoint = io.nop.api.core.util.FreezeHelper.deepFreeze(this._checkpoint);
             
            this._checkpointParticipants = io.nop.api.core.util.FreezeHelper.deepFreeze(this._checkpointParticipants);
@@ -795,6 +855,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aggregators",this.getAggregators());
         out.putNotNull("checkpoint",this.getCheckpoint());
         out.putNotNull("checkpointParticipants",this.getCheckpointParticipants());
         out.putNotNull("coders",this.getCoders());
@@ -825,6 +886,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(StreamModel instance){
         super.copyTo(instance);
         
+        instance.setAggregators(this.getAggregators());
         instance.setCheckpoint(this.getCheckpoint());
         instance.setCheckpointParticipants(this.getCheckpointParticipants());
         instance.setCoders(this.getCoders());

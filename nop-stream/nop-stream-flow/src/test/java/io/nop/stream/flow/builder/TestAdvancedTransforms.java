@@ -129,7 +129,11 @@ public class TestAdvancedTransforms {
     }
 
     @Test
-    public void aggregateWithoutBeanFailsFast() {
+    public void aggregateWithoutBeanOrRefFailsFast() {
+        // WI8c: exactly-one adjudication replaces the former bean-required error —
+        // neither bean nor aggregatorRef is now ERR_STREAM_INVALID_ARG. The
+        // upstream WindowedStream check runs first, so the keyBy+window chain is
+        // required for this test to reach the exactly-one branch.
         StreamModel model = parseInline(
                 "<source id=\"src\" bean=\"srcFn\"/>"
                         + "<keyBy id=\"k\" keyExpr=\"event\"/>"
@@ -142,9 +146,79 @@ public class TestAdvancedTransforms {
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
         StreamException ex = assertThrows(StreamException.class,
                 builder::build);
-        assertEquals("nop.err.stream.required-attr", ex.getErrorCode().toString());
-        assertTrue(ex.getMessage().contains("bean"),
-                () -> "Expected bean requirement error, got: " + ex.getMessage());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("exactly one of bean or aggregatorRef"),
+                () -> "Expected exactly-one error, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void aggregateWithBothBeanAndRefFailsFast() {
+        // WI8c: bean and aggregatorRef together are rejected — no silent precedence.
+        StreamModel model = parseInline(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"global-strat\"/>"
+                        + "<aggregate id=\"agg\" bean=\"aggFn\" aggregatorRef=\"a1\"/>",
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
+                        + "</windowingStrategies>"
+                        + "<aggregators>"
+                        + "<aggregator aggregatorId=\"a1\" fnId=\"sum\" expr=\"amount\"/>"
+                        + "</aggregators>");
+
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
+        StreamException ex = assertThrows(StreamException.class,
+                builder::build);
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("exactly one of bean or aggregatorRef"),
+                () -> "Expected exactly-one error, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void aggregateRefWithoutProviderFailsFastNamingDependency() {
+        // WI8c no-provider branch: this module's test classpath has nop-stream-sql
+        // absent, so the BeanContainer has no IAggregatorFunctionResolver provider —
+        // a legal aggregatorRef declaration must fail fast naming the dependency,
+        // never silently fall back.
+        StreamModel model = parseInline(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"global-strat\"/>"
+                        + "<aggregate id=\"agg\" aggregatorRef=\"a1\"/>",
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
+                        + "</windowingStrategies>"
+                        + "<aggregators>"
+                        + "<aggregator aggregatorId=\"a1\" fnId=\"sum\" expr=\"amount\"/>"
+                        + "</aggregators>");
+
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("nop-stream-sql"),
+                () -> "Expected no-provider error naming nop-stream-sql, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void aggregateUnknownAggregatorRefFailsFast() {
+        StreamModel model = parseInline(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"global-strat\"/>"
+                        + "<aggregate id=\"agg\" aggregatorRef=\"missing\"/>",
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"global-strat\" windowFnId=\"global\"/>"
+                        + "</windowingStrategies>"
+                        + "<aggregators>"
+                        + "<aggregator aggregatorId=\"a1\" fnId=\"sum\" expr=\"amount\"/>"
+                        + "</aggregators>");
+
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
+        StreamException ex = assertThrows(StreamException.class,
+                builder::build);
+        assertEquals("nop.err.stream.ref-unknown", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("missing"),
+                () -> "Expected unknown-ref error naming the id, got: " + ex.getMessage());
     }
 
     // ----------------------------------------------------------------

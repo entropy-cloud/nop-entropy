@@ -54,6 +54,17 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
         </strategy>
     </windowingStrategies>
 
+    <!-- WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+         稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+         与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+         供参数类型校验。 -->
+    <aggregators xdef:key-attr="aggregatorId" xdef:body-type="list">
+        <aggregator aggregatorId="!string" fnId="!string" expr="string" schemaId="string"
+                    xdef:name="StreamAggregatorModel" xdef:unique-attr="aggregatorId">
+            <description>string</description>
+        </aggregator>
+    </aggregators>
+
     <!-- 序列化器注册表 -->
     <coders xdef:key-attr="id" xdef:body-type="list">
         <coder id="!string" className="!class-name"
@@ -154,8 +165,10 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
             <triggerId>string</triggerId>
         </window>
 
-        <!-- Aggregate 节点：实现 AggregateFunction 接口 -->
-        <aggregate xdef:name="StreamAggregateModel" xdef:ref="StreamTransformModel"/>
+        <!-- Aggregate 节点：实现 AggregateFunction 接口。WI8c：bean 与 aggregatorRef
+             恰好其一（并存或双缺构建期 fail-fast）；aggregatorRef 引用 <aggregators>
+             注册表 entry，累加语义由聚合求值器提供。 -->
+        <aggregate aggregatorRef="string" xdef:name="StreamAggregateModel" xdef:ref="StreamTransformModel"/>
 
         <!-- Reduce 节点：实现 ReduceFunction 接口 -->
         <reduce xdef:name="StreamReduceModel" xdef:ref="StreamTransformModel">

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Test beans for the WI8c parameterized-aggregate wiring proof. The counting fake
+  resolver records invocations on a static counter the test asserts on.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="testAggregatorResolver"
+          class="io.nop.stream.flow.builder.TestParameterizedAggregateModel$CountingFakeResolver"/>
+
+</beans>

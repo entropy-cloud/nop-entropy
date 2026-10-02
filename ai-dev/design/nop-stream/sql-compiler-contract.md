@@ -91,4 +91,6 @@
 
 **delta 机制裁定注记（WI8b，2026-10-02）**：WI8b 的 schemas 声明面已在基础 stream.xdef 中，无需 delta 扩展——本步裁定「WI8b 无需 delta」；首个真实 delta 需求顺延至 WI8c plan 裁定，上述回改条款继续悬置。
 
+**回改裁定执行（WI8c，2026-10-02）**：首个真实 delta 需求（aggregators 注册表）经 delta 机制实验裁定「新模块 schema」不可行——实验证据（probe 实测两轮，证据随 WI8c plan 落档）：(1) 新模块提供 x:extends 基座 stream.xdef 的 delta xdef 后，新增顶层子节点可过 schema 校验，但同名子节点不显式重声明时既有元素拒绝新属性；(2) 显式重声明后 parse 通过，但 flow 构建期 codegen（gen-stream-xdsl.xgen 渲染 BASE /nop/schema/stream/stream.xdef）产出的 typed 模型不携带新字段——flow 构建看不到下游模块的 delta schema，xdefs jar 是全仓唯一 schema 来源。**回改执行**：声明面（aggregators 注册表 + aggregate@aggregatorRef）落 base stream.xdef（nop-kernel/nop-xdefs），消费面经新公共 SPI IAggregatorFunctionResolver（flow 定义）由 nop-stream-sql 提供实现并以 Nop 模块 app-beans 机制自动注册——「新模块承载 SQL 编译资产」的 D13 (a) 方向不变，仅声明面 XML 归 base xdef。
+
 负责人：仓库 owner（建议项采纳）；日期 2026-10-02；受影响 WI：WI8a（落档衔接）、WI8b（骨架创建 + 机制裁定）、WI8c/WI8d（声明面落点）、WI17（编译器实现宿主）、WI21（注册接线核对）。

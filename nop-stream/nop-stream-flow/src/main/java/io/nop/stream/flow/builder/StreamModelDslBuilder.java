@@ -723,6 +723,25 @@ public final class StreamModelDslBuilder {
         return model;
     }
 
+    /**
+     * WI8c: column-key → type lookup for parameterized aggregates, built from the
+     * model's declared schemas (WI8b registry). A null/unknown schemaId or unknown
+     * column yields null — the resolver then skips type validation instead of
+     * failing on schemas the declaration never promised.
+     */
+    java.util.function.Function<String, io.nop.stream.core.common.typeinfo.BasicTypeInfo<?>> columnTypeLookup(
+            String schemaId) {
+        if (schemaId == null || !StreamSchemaRegistry.resolveSchemas(model).contains(schemaId)) {
+            return column -> null;
+        }
+        java.util.Map<String, io.nop.stream.core.common.typeinfo.BasicTypeInfo<?>> columns =
+                new java.util.HashMap<>();
+        for (StreamSchemaRegistry.FieldSpec spec : StreamSchemaRegistry.resolveSchemas(model).resolveSchema(schemaId)) {
+            columns.put(spec.getName(), spec.getType());
+        }
+        return columns::get;
+    }
+
     Object registeredStream(String transformId) {
         return streamRegistry.get(transformId);
     }
