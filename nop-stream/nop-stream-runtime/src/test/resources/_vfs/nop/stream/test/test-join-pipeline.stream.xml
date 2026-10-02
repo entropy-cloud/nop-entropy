@@ -1,0 +1,32 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-join-pipeline" version="1" parallelism="1">
+
+    <joins>
+        <joinSpec joinId="j1" joinType="INNER"
+                  leftKeyExprs="event.key" rightKeyExprs="event.key">
+            <description>WI13 E2E: single-key INNER equi-join over the test record key</description>
+        </joinSpec>
+    </joins>
+
+    <transforms>
+        <source id="srcL" name="LeftSource"
+                bean="joinLeftSource"
+                parallelism="1"/>
+
+        <source id="srcR" name="RightSource"
+                bean="joinRightSource"
+                parallelism="1"/>
+
+        <join id="j" name="EquiJoin" joinRef="j1"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="joinCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="srcL" to="j" partition="FORWARD"/>
+        <edge id="e1" from="srcR" to="j" partition="FORWARD"/>
+        <edge id="e2" from="j" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

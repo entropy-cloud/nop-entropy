@@ -1,0 +1,21 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="wi21-stability" version="1" parallelism="1">
+
+    <joins>
+        <joinSpec joinId="j1" joinType="INNER"
+                  leftKeyExprs="event.key" rightKeyExprs="event.key"/>
+    </joins>
+
+    <transforms>
+        <source id="sL" name="LeftSource" bean="wi21Left" parallelism="1"/>
+        <source id="sR" name="RightSource" bean="wi21Right" parallelism="1"/>
+        <join id="j" name="EquiJoin" joinRef="j1"/>
+        <sink id="out" name="CollectingSink" bean="wi21Sink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="sL" to="j" partition="FORWARD"/>
+        <edge id="e1" from="sR" to="j" partition="FORWARD"/>
+        <edge id="e2" from="j" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

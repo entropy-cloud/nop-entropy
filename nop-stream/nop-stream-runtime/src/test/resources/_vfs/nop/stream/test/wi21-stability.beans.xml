@@ -1,0 +1,9 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <bean id="wi21Left" class="io.nop.stream.runtime.wi21.Wi21SourceFunction">
+        <constructor-arg index="0" value="L"/>
+    </bean>
+    <bean id="wi21Right" class="io.nop.stream.runtime.wi21.Wi21SourceFunction">
+        <constructor-arg index="0" value="R"/>
+    </bean>
+    <bean id="wi21Sink" class="io.nop.stream.runtime.wi21.Wi21CollectingSink"/>
+</beans>

@@ -66,6 +66,7 @@ import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.model.StreamComponentEntry;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.builder.functions.XplFilterFunction;
@@ -180,8 +181,59 @@ public final class StreamModelDslBuilder {
         }
         applyCheckpointConfig(env);
         failFastOnUnsupportedRegistries();
+        declareComponentRegistries(env);
         buildTransforms(env);
         return env;
+    }
+
+    /**
+     * WI21 (§八 11): normalizes the DSL registry declarations (aggregators /
+     * joins / schemas) into flow-free {@link StreamComponentEntry} carriers and
+     * declares them on the environment, so the core StreamComponents of every
+     * materialized model carries them. Descriptive attribute values only — the
+     * executable semantics stay with the builder-time validation and the
+     * transform assembly.
+     */
+    private void declareComponentRegistries(StreamExecutionEnvironment env) {
+        if (model.getAggregators() != null) {
+            for (io.nop.stream.flow.model.StreamAggregatorModel a : model.getAggregators()) {
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("fnId", a.getFnId());
+                attrs.put("expr", a.getExpr());
+                attrs.put("schemaId", a.getSchemaId());
+                env.declareRegistry("aggregators",
+                        Collections.singletonMap(a.getAggregatorId(), new StreamComponentEntry("aggregators", a.getAggregatorId(), attrs)));
+            }
+        }
+        if (model.getJoins() != null) {
+            for (StreamJoinSpecModel j : model.getJoins()) {
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("joinType", j.getJoinType() == null ? null : j.getJoinType().name());
+                attrs.put("leftKeyExprs", j.getLeftKeyExprs());
+                attrs.put("rightKeyExprs", j.getRightKeyExprs());
+                attrs.put("windowStrategyRef", j.getWindowStrategyRef());
+                attrs.put("timeout", j.getTimeout());
+                env.declareRegistry("joins",
+                        Collections.singletonMap(j.getJoinId(), new StreamComponentEntry("joins", j.getJoinId(), attrs)));
+            }
+        }
+        if (model.getSchemas() != null) {
+            for (io.nop.stream.flow.model.StreamSchemaModel sc : model.getSchemas()) {
+                StringBuilder fields = new StringBuilder();
+                if (sc.getFields() != null) {
+                    for (io.nop.stream.flow.model.StreamSchemaFieldModel f : sc.getFields()) {
+                        if (fields.length() > 0) {
+                            fields.append(',');
+                        }
+                        fields.append(f.getName()).append(':').append(f.getType());
+                    }
+                }
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("fields", fields.toString());
+                env.declareRegistry("schemas",
+                        Collections.singletonMap(sc.getId(), new StreamComponentEntry("schemas", sc.getId(), attrs)));
+            }
+        }
     }
 
     // ----------------------------------------------------------------

@@ -58,7 +58,13 @@ _vfs/nop/stream/sql/beans/app-*.beans.xml  ← app-beans 装载查询路径（ge
 | 项 | 归属 |
 |---|---|
 | coders/sideInputs/requirements/checkpointParticipants 注册表消费者 | FU-3 |
-| join 运行时消费 joinRef | WI13 |
+| join 运行时消费 joinRef | WI13（已交付） |
 | 编译器产出这些声明面（SQL → stream.xml） | WI17 |
 | 声明面变更的用户兼容迁移说明 | WI24 |
 | xdef/dialect 声明面的 delta 扩展机制 | 已裁定不可行（D13 回改），如需重启须先改 contract §3.2 |
+
+## 6. 注册表进入 StreamComponents（WI21 落地）
+
+三注册表（aggregators/joins/schemas）的声明在 core `StreamComponents.declarativeRegistries` 有注册条目：flow 模型对象在 builder 内规范化为 flow-free 的 `StreamComponentEntry`（registry/id/attributes，attributes 为描述性键值，不含可执行语义），经 `StreamExecutionEnvironment.declareRegistry` 累积、合并进 env 物化的每个 StreamModel（buildStreamModel 与 graph 附着模型两处同源）。合并点口径：graph 附着模型的 requirements 填充（StreamGraphGenerator.detectRequirements）保持既有路径不动；纯 DataStream API 路径（无 DSL 声明源）的注册表为结构性空，不强行穿线。schemas 条目是 WI8b 授权声明面的注册实现，00-vision §六 #1 授权原文仅点名 aggregators/joins，延伸授权在 WI21 收口时回写注记。
+
+§八 12 的运行时二道校验（WI21）：门 A——core execute() 在图构建后检测 TWO_PHASE_COMMIT_SINK requirement 而 checkpoint 未声明即 fail-fast（2PC sink 无 checkpoint = 静默不提交）；门 B——runtime 图模型 checkpoint 执行器（execute 与 savepoint 两个入口）在解引用 config 前校验 2PC 图必须携带 CheckpointConfig。RemoteTaskDeploySupport 部署路径显式降级：deploy 侧无 CheckpointConfig 访问权（该类 javadoc 在案），不发明 descriptor 扩展，留 owner 裁定。

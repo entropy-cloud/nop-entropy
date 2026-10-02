@@ -46,11 +46,13 @@ import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MISSING_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_NEW_PARALLELISM;
@@ -121,6 +123,7 @@ public class GraphModelCheckpointExecutor {
         // pinned). No fingerprint source; restore without a StreamModel;
         // 4-arg plan build without unaligned passthrough (pinned asymmetry — see
         // buildExecutionPlan selection in the skeleton).
+        gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         return executeWithCheckpointSkeleton(jobGraph, jobName, checkpointConfig,
                 resolveJobId(checkpointConfig), resolvePipelineId(checkpointConfig),
                 null, PlanBuildMode.LEGACY_NO_UNALIGNED, null);
@@ -213,6 +216,7 @@ public class GraphModelCheckpointExecutor {
             StreamModel streamModel) throws Exception {
         long startTime = CoreMetrics.currentTimeMillis();
 
+        gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         boolean threadUnalignedConfig = (planBuildMode == PlanBuildMode.THREAD_UNALIGNED_CONFIG);
@@ -345,6 +349,7 @@ public class GraphModelCheckpointExecutor {
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
+        gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 
@@ -1529,4 +1534,58 @@ public class GraphModelCheckpointExecutor {
         return RescaleStateAssembler.buildSnapshotFromTaskState(taskState, operatorIndex, mappings);
     }
 
+
+    /**
+     * WI21 gate B fallback: vertex-chain scan for a 2PC sink (same discovery rule
+     * as {@code CheckpointPlanBuilder}'s operator marking) — used when the job
+     * graph carries no attached StreamModel.
+     */
+    /**
+     * WI21 gate B (§八 12): runtime-side requirement re-validation — the
+     * requirements ride the job graph's attached model (JobGraphGenerator
+     * population); if absent (JobGraph-only entry), fall back to scanning the
+     * vertex chain for a TwoPhaseCommitSinkFunction (same discovery rule as
+     * CheckpointPlanBuilder's 2PC marking). Every runtime checkpoint-coordinated
+     * entry (execute / savepoint) calls this BEFORE any config dereference.
+     */
+    private static void gateTwoPhaseRequiresConfig(JobGraph jobGraph, CheckpointConfig checkpointConfig) {
+        boolean twoPhaseRequirement = false;
+        if (jobGraph.getStreamModel() != null) {
+            twoPhaseRequirement = jobGraph.getStreamModel().getRequirements()
+                    .contains(StreamRequirement.TWO_PHASE_COMMIT_SINK);
+        }
+        if (!twoPhaseRequirement) {
+            twoPhaseRequirement = hasTwoPhaseCommitSinkOnGraph(jobGraph);
+        }
+        if (twoPhaseRequirement && checkpointConfig == null) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                    "job declares a TwoPhaseCommitSinkFunction sink but reached the runtime "
+                            + "checkpoint path without a CheckpointConfig — 2PC prepare/commit cannot "
+                            + "run without checkpointing");
+        }
+    }
+
+    private static boolean hasTwoPhaseCommitSinkOnGraph(JobGraph jobGraph) {
+        if (jobGraph.getVertices() == null) {
+            return false;
+        }
+        for (JobVertex vertex : jobGraph.getVertices().values()) {
+            if (vertex.getOperatorChains() == null) {
+                continue;
+            }
+            for (OperatorChain chain : vertex.getOperatorChains()) {
+                if (chain == null || chain.getOperators() == null) {
+                    continue;
+                }
+                for (StreamOperator<?> op : chain.getOperators()) {
+                    if (op instanceof AbstractUdfStreamOperator
+                            && ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction()
+                                    instanceof TwoPhaseCommitSinkFunction) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 }

@@ -62,6 +62,15 @@ public class StreamComponents implements Serializable, StateMigrationRegistry {
      */
     private final Map<String, List<StateMigrationFunction<?, ?>>> stateMigrationFunctions = new LinkedHashMap<>();
 
+    /**
+     * WI21 (§八 11): the declarative registry entries — the DSL layer's registry
+     * declarations (aggregators / joins / schemas) normalized into flow-free
+     * {@link StreamComponentEntry} carriers, keyed by registry name then entry id.
+     * Populated by the DSL builder via the environment's declareRegistry path;
+     * merged into every StreamModel the environment materializes.
+     */
+    private final Map<String, Map<String, StreamComponentEntry>> declarativeRegistries = new LinkedHashMap<>();
+
     public StreamComponents() {
         this.transforms = new LinkedHashMap<>();
         this.streams = new LinkedHashMap<>();
@@ -276,5 +285,48 @@ public class StreamComponents implements Serializable, StateMigrationRegistry {
                 ", requirements=" + requirements.size() +
                 ", checkpointParticipants=" + checkpointParticipants.size() +
                 '}';
+    }
+
+    /**
+     * WI21: registers one declarative component entry under the given registry
+     * name (§八 11 — every StreamModel's components carry the declared
+     * registries).
+     */
+    public void addDeclarativeEntry(StreamComponentEntry entry) {
+        if (entry == null || entry.getRegistry() == null || entry.getId() == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "declarative entry");
+        }
+        declarativeRegistries.computeIfAbsent(entry.getRegistry(), k -> new LinkedHashMap<>())
+                .put(entry.getId(), entry);
+    }
+
+    /**
+     * WI21: merges a whole declared registry view (environment-side accumulation)
+     * into this components instance. Existing entries with the same registry+id
+     * are overwritten (last declaration wins — mirrors the builder's own
+     * last-wins registry parsing).
+     */
+    public void mergeDeclarativeRegistries(Map<String, Map<String, StreamComponentEntry>> registries) {
+        if (registries == null) {
+            return;
+        }
+        for (Map.Entry<String, Map<String, StreamComponentEntry>> e : registries.entrySet()) {
+            declarativeRegistries.computeIfAbsent(e.getKey(), k -> new LinkedHashMap<>())
+                    .putAll(e.getValue());
+        }
+    }
+
+    public boolean hasDeclarativeRegistry(String registry) {
+        Map<String, StreamComponentEntry> m = declarativeRegistries.get(registry);
+        return m != null && !m.isEmpty();
+    }
+
+    public StreamComponentEntry getDeclarativeEntry(String registry, String id) {
+        Map<String, StreamComponentEntry> m = declarativeRegistries.get(registry);
+        return m == null ? null : m.get(id);
+    }
+
+    public Map<String, Map<String, StreamComponentEntry>> getDeclarativeRegistries() {
+        return declarativeRegistries;
     }
 }
