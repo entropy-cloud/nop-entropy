@@ -364,3 +364,10 @@ nop-ai-agent-roadmap.md (Layer 阶段状态层)
 | AFTER_TOOL_RESULT_PROCESSED | 非法 fail-loud（WI11 收窄） | 非法 fail-loud | ✅ Reenter（批后 user marker） | inject |
 
 执行级 4 点（PRE/POST_LLM_ATTEMPT、PRE/POST_TOOL_ATTEMPT）veto 全活，不变。锚点：`AgentHookInvoker.validateVetoPoint`（白名单校验）。
+
+## hook 注册类型化合同（WI13，plan 2294）
+
+- **fail-loud 注册**：agent.xml `<hooks><on event>` 未知名（含 typo）在 `DefaultHookRegistry.fromAgentModel` 抛 `ERR_AGENT_INVALID_ARGUMENT`（消息含 event 名与合法名单）；`reasoning_chunk`（已移除点）有专属提示。替代原"未知名静默 continue"。
+- **middleware 同步**：`AgentExecutorResolver.resolveMiddlewares` 对未知名（lifecycle 与 execution 两类）同样 fail-loud。
+- **类型化解析入口**：`AgentLifecyclePoint.fromName(String)` 为事件名→点位解析的单一委托点。
+- **xdef schema 层枚举校验**为 follow-up（平台级契约演进，登记）。

@@ -27,5 +27,15 @@ public enum AgentLifecyclePoint {
     PRE_COMPACT,
     POST_COMPACT,
     BEFORE_TOOL_RESULT_PROCESSED,
-    AFTER_TOOL_RESULT_PROCESSED
+    AFTER_TOOL_RESULT_PROCESSED;
+
+    /**
+     * Plan 2294 (WI13): typed-name resolution — the single delegation point
+     * for event-name → lifecycle-point parsing (case-insensitive; accepts
+     * snake_case aliases and enum names). Returns {@code null} when the name
+     * is unknown; callers decide policy (registration paths fail loud).
+     */
+    public static AgentLifecyclePoint fromName(String name) {
+        return DefaultHookRegistry.resolveLifecyclePoint(name);
+    }
 }
