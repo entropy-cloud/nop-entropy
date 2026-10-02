@@ -141,6 +141,22 @@ public interface DataStream<T> {
             OneInputStreamOperator<T, R> operator);
 
     /**
+     * Merges this stream with the given streams into one stream carrying the elements of
+     * all inputs (Flink {@code union} semantics, WI6). Element order across inputs is not
+     * defined; every element of every input reaches the output exactly once. Inputs keep
+     * their own parallelism — the union vertex reads one channel per upstream subtask.
+     *
+     * <p>The union vertex is a pass-through execution vertex; downstream operators see a
+     * single merged stream and cannot tell which input a record came from. Key-based
+     * operators that need both inputs co-located declare {@code keyBy} AFTER the union,
+     * not before.
+     *
+     * @param streams the streams to merge with this one, at least one and no null elements
+     * @return a new data stream producing the merged element stream
+     */
+    DataStream<T> union(DataStream<T>... streams);
+
+    /**
      * Prints the elements of the DataStream to the standard output.
      * 
      * <p>This method creates a sink that prints each element to standard output.

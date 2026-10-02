@@ -1,0 +1,23 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-self-union-pipeline" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src" name="IntSource"
+                bean="intSourceFunction"
+                parallelism="1"/>
+
+        <union id="merge" name="SelfUnion"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="unionCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <!-- self-union: one source declared twice into the same union — each edge is
+             one merge input (WI6 constraint 2), so the sink sees every element twice -->
+        <edge id="e0" from="src" to="merge" partition="FORWARD"/>
+        <edge id="e1" from="src" to="merge" partition="FORWARD"/>
+        <edge id="e2" from="merge" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

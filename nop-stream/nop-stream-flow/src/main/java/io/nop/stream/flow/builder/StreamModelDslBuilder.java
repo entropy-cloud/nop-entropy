@@ -83,6 +83,7 @@ import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.stream.flow.model.StreamSinkModel;
 import io.nop.stream.flow.model.StreamSourceModel;
+import io.nop.stream.flow.model.StreamUnionModel;
 import io.nop.stream.flow.model.StreamTransformModel;
 
 /**
@@ -433,6 +434,17 @@ public final class StreamModelDslBuilder {
                 if (byId.get(e.getTo()) instanceof StreamKeyByModel) {
                     throw new StreamException(ERR_STREAM_EDGE_HASH_REDUNDANT)
                             .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
+                            .loc(e.getLocation());
+                }
+                // WI6: a HASH edge into <union> has no consumer — union merges raw
+                // records and cannot carry a per-input keyBy. The supported shape is
+                // keyBy AFTER the union (roadmap §3.1).
+                if (byId.get(e.getTo()) instanceof StreamUnionModel) {
+                    throw new StreamException(ERR_STREAM_EDGE_HASH_REDUNDANT)
+                            .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
+                            .param(ARG_DETAIL, "HASH edge into <union id='" + e.getTo()
+                                    + "'> is not supported: declare keyBy on the transform "
+                                    + "AFTER the union instead")
                             .loc(e.getLocation());
                 }
             } else if (p == PartitionPolicy.REBALANCE || p == PartitionPolicy.BROADCAST) {

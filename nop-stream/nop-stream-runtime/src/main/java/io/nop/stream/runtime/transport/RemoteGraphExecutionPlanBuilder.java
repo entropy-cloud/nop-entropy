@@ -34,10 +34,15 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.transport.TypeRegistry;
+import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
 /**
  * Builds a {@link GraphExecutionPlan} that uses {@link IMessageService} for
@@ -175,15 +180,31 @@ public class RemoteGraphExecutionPlanBuilder {
                                                  java.util.Set<String> subscribedTargetKeys) {
         String jobId = jobGraph.getJobName();
 
-        Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
-        Map<JobEdge, List<RemoteInputChannel>> edgeInputChannels = new LinkedHashMap<>();
+        // WI6 constraint 2: parallel edges into a union vertex are equals()-equal but
+        // must keep separate matrices/channels — identity keying preserves one entry
+        // per JobEdge instance.
+        Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new java.util.IdentityHashMap<>();
+        Map<JobEdge, List<RemoteInputChannel>> edgeInputChannels = new java.util.IdentityHashMap<>();
+
+        // WI6: parallel edges between the same vertex pair would generate identical
+        // topic names (edgeId is vertex-pair based) — disambiguate with a 1-based
+        // ordinal, but only when a duplicate pair actually occurs so every
+        // pre-existing topology keeps its historical topic names.
+        Map<String, Integer> pairCounts = new java.util.HashMap<>();
+        for (JobEdge edge : jobGraph.getEdges()) {
+            pairCounts.merge(edge.getSourceVertex() + "->" + edge.getTargetVertex(), 1, Integer::sum);
+        }
+        Map<String, Integer> pairOrdinals = new java.util.HashMap<>();
 
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
             int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
 
             // Build an edge ID from sourceVertex->targetVertex
-            String edgeId = edge.getSourceVertex() + "->" + edge.getTargetVertex();
+            String pairKey = edge.getSourceVertex() + "->" + edge.getTargetVertex();
+            String edgeId = pairCounts.get(pairKey) > 1
+                    ? pairKey + "#" + pairOrdinals.merge(pairKey, 1, Integer::sum)
+                    : pairKey;
 
             ResultPartition[][] matrix = new ResultPartition[srcP][tgtP];
             List<RemoteInputChannel> channels = new ArrayList<>();
@@ -403,12 +424,44 @@ public class RemoteGraphExecutionPlanBuilder {
             }
 
             if (!channels.isEmpty()) {
+                // WI6 constraint 1 (same fix as GraphExecutionPlan.buildInputGate):
+                // a multi-input vertex must not silently inherit the first edge's
+                // flow-control config — two edges that both declare configs must
+                // agree by value; an undeclared edge defers to a declared one.
                 EdgeConfig gateConfig = resolveEdgeConfig(inEdges.get(0), deploymentPlan);
+                for (int i = 1; i < inEdges.size(); i++) {
+                    EdgeConfig other = resolveEdgeConfig(inEdges.get(i), deploymentPlan);
+                    if (!sameGateConfig(gateConfig, other)) {
+                        throw new StreamException(ERR_STREAM_INVALID_ARG)
+                                .param(ARG_DETAIL, "multi-input vertex '"
+                                        + inEdges.get(i).getTargetVertex() + "' has incoming edges with "
+                                        + "conflicting flow-control configs; align the DeploymentPlan "
+                                        + "edgeConfigs for these edges.");
+                    }
+                    if (gateConfig == null && other != null) {
+                        gateConfig = other;
+                    }
+                }
                 inputGate = new InputGate(channels, gateConfig,
                         InputGate.alignmentModeFor(barrierAlignment));
             }
         }
         return inputGate;
+    }
+
+    /**
+     * WI6 constraint 1: value consistency for EdgeConfig (which has no equals).
+     * Null means "no config declared" — an undeclared side defers to a declared one;
+     * two declared configs must agree on all four fields.
+     */
+    private static boolean sameGateConfig(EdgeConfig a, EdgeConfig b) {
+        if (a == null || b == null) {
+            return true;
+        }
+        return a.getFlowControlPolicy() == b.getFlowControlPolicy()
+                && a.getQueueCapacity() == b.getQueueCapacity()
+                && a.getReceiveWindow() == b.getReceiveWindow()
+                && a.getPacketSize() == b.getPacketSize();
     }
 
     // --- Helper methods (same logic as GraphExecutionPlan) ---

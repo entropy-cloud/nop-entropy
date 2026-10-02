@@ -30,6 +30,7 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.operators.StreamUnionOperator;
 import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
 import io.nop.stream.core.source.Source;
 import io.nop.stream.core.transformation.OneInputTransformation;
@@ -39,6 +40,7 @@ import io.nop.stream.core.transformation.SourceApiTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.transformation.UnionTransformation;
 import io.nop.stream.core.exceptions.StreamException;
 
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -167,8 +169,21 @@ public class StreamGraphGenerator {
     private void registerStreams(StreamComponents components) {
         for (Map.Entry<Integer, List<StreamEdge>> entry : streamGraph.getAllStreamEdges().entrySet()) {
             int sourceId = entry.getKey();
-            for (StreamEdge edge : entry.getValue()) {
-                String streamId = sourceId + "->" + edge.getTargetId();
+            List<StreamEdge> edges = entry.getValue();
+            // WI6: parallel edges between the same vertex pair (self-union) must not
+            // overwrite each other's registry entry — disambiguate with a 1-based
+            // edge ordinal, but only when a duplicate key actually occurs, so every
+            // pre-existing topology keeps its historical stream id form.
+            Map<String, Integer> keyCounts = new HashMap<>();
+            for (StreamEdge edge : edges) {
+                keyCounts.merge(sourceId + "->" + edge.getTargetId(), 1, Integer::sum);
+            }
+            Map<String, Integer> keyOrdinals = new HashMap<>();
+            for (StreamEdge edge : edges) {
+                String base = sourceId + "->" + edge.getTargetId();
+                String streamId = keyCounts.get(base) > 1
+                        ? base + "#" + keyOrdinals.merge(base, 1, Integer::sum)
+                        : base;
                 components.registerStream(streamId, edge);
             }
         }
@@ -212,6 +227,8 @@ public class StreamGraphGenerator {
             transformSourceApi((SourceApiTransformation<?>) transformation);
         } else if (transformation instanceof OneInputTransformation) {
             transformOneInput((OneInputTransformation<?, ?>) transformation);
+        } else if (transformation instanceof UnionTransformation) {
+            transformUnion((UnionTransformation<?>) transformation);
         } else if (transformation instanceof SinkTransformation) {
             transformSink((SinkTransformation<?>) transformation);
         } else if (transformation instanceof PartitionTransformation) {
@@ -288,6 +305,36 @@ public class StreamGraphGenerator {
         addUpstreamEdge(transformation, node);
     }
     
+    /**
+     * Transforms a UnionTransformation into a pass-through StreamNode with one StreamEdge
+     * per declared input (WI6). The union vertex is a real execution vertex backed by
+     * {@code StreamUnionOperator}: its input gate collects one channel per upstream
+     * subtask across all incoming edges, so the merge happens at the vertex's gate.
+     *
+     * @param transformation the union transformation to process
+     * @param <T> the element type shared by all inputs
+     */
+    private <T> void transformUnion(UnionTransformation<T> transformation) {
+        // 1. Recursively process every input transformation
+        for (Transformation<?> input : transformation.getUnionInputs()) {
+            transform(input);
+        }
+
+        // 2. Create the pass-through union vertex (chain boundary: multiple incoming
+        //    edges can never chain into this node, see JobGraphGenerator.canChain)
+        StreamOperatorFactory<T> unionFactory = new SimpleStreamOperatorFactory<>(
+                new StreamUnionOperator<>(), transformation.getName(), resolveParallelism(transformation));
+        StreamNode node = addOperatorNode(transformation, unionFactory);
+        streamGraph.addUnionID(node.getId());
+
+        // 3. One StreamEdge per input — parallel edges between the same vertex pair
+        //    (self-union) are legal and survive to the JobGraph (WI6 constraint 2)
+        for (Transformation<?> input : transformation.getUnionInputs()) {
+            StreamEdge edge = new StreamEdge(input.getId(), node.getId());
+            streamGraph.addStreamEdge(edge);
+        }
+    }
+
     /**
      * Transforms a SinkTransformation into a StreamNode and StreamEdge.
      * 

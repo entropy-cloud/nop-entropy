@@ -238,7 +238,7 @@
 
 ### Phase 2 — 多输入通路（WI6 与 WI7 触门与否以 Purpose 表为准；WI6 门控，WI7 不触门）
 
-- WI6 union 多输入通路与内核约束修复: `todo`（deps WI0a；Item Type Feature；完成判定 UnionTransformation 与 DataStream.union 落地，StreamGraphGenerator 支持 union 分支，builder 放行多输入；约束 1 首边 EdgeConfig 继承与约束 2 边去重各有回归，约束 4 的两输入上界被显式记录或参数化；两源进单算子端到端用例绿。约束 1 与 2 与 4 为**潜在**缺陷——当前无大于 1 输入的可达路径，故不属 live defect，本 WI 按 Feature 归类；若在别处被发现为 live defect，按 Fix 单独立项）
+- WI6 union 多输入通路与内核约束修复: `done`（deps WI0a；Item Type Feature；UnionTransformation 与 DataStream.union 与 StreamUnionOperator pass-through 顶点落地，transformUnion 分支每输入一条 StreamEdge，registerStreams 重复键序号消歧；约束 2 修复——union 目标保留平行 JobEdge 加 IdentityHashMap matrix 键控加 remote topic 序号消歧，非 union 目标维持去重防链内扇入双写，回归 TestJobGraphParallelEdges；约束 1 修复——declared-vs-declared 四字段值不一致 fail-fast、undeclared 让位于 declared，core 与 remote 双侧同修，回归 TestMultiEdgeGateConfigConsistency 4 用例；约束 4 二输入上界 javadoc 显式记录；builder 放行——buildUnion 按边声明顺序重复合流、KeyedStream 拒绝、HASH 边入 union fail-fast 指引 union 后 keyBy；端到端两源进单算子 TestUnionPipelineE2E 与 self-union TestSelfUnionPipelineE2E 绿；core 1663 runtime 1185 flow 136 全绿；承载 plan ai-dev/plans/nop-stream-sql/13-wi6-union-multi-input.md，独立 closure audit PASS 2026-10-02）
 - WI7 多输入回归三件套: `todo`（deps WI6；Item Type Proof；完成判定 具名测试类 TestMultiInputBarrierAlignment 与 TestMultiInputWatermarkMinMerge 与 TestMultiInputExactlyOnceCheckpoint 三者齐备，且 TestMultiInputSelfJoinEdgeDedup 覆盖约束 2；另有用例断言 §八 4 即 barrier 仍只由 source 读取线程注入与 §八 6 即恢复从最新 durable epoch manifest 开始）
 - ★ **里程碑：M2 多输入可用**（解锁条件 WI6 与 WI7 done）：`todo`
 
@@ -290,7 +290,7 @@
 - FU-2 SQL92Keyword.g4 中 ROWS token 与未来的 PRECEDING 与 FOLLOWING 与 GROUPS 与 WINDOW token 归位: `todo`
 - FU-3 xdef 中 sideInputs 与 coders 与 requirements 与 checkpointParticipants 四个 no-execution-consumer 声明面是否补消费者: `todo`
 - FU-4 reduce 的 last-value-wins 语义是否需要显式 sink 能力标记: `todo`
-- FU-5 self-join 在 JobGraphGenerator 边去重下的表示法即多条平行边如何命名与区分: `todo`
+- FU-5 self-join 在 JobGraphGenerator 边去重下的表示法即多条平行边如何命名与区分: `todo`（WI6 注记：union 目标的平行边已可存活且 remote topic 以 #序号 消歧；本条残余范围是非 union 拓扑的平行边命名规范）
 - FU-6 AbstractStreamOperator 水位合并固定两输入是否参数化以支持多于两输入: `todo`
 - FU-7 window 节点从 StreamTransformModel 继承的 bean 属性被 buildWindow 静默忽略，是否补 fail-fast 或纳入消费: `todo`
 - FU-8 WindowedStreamImpl/WindowOperatorFactoryImpl.configureBuilder 从不传递 accumulationMode 到 WindowOperator——xdef 声明 DISCARDING 的模型构建出的算子恒为 ACCUMULATING（WI10 audit 发现的结构性接线缺口）: `todo`

@@ -77,11 +77,12 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * {@link StreamModelDslBuilder} does not handle inline.
  *
  * <p>Every branch is either a real DataStream-API call or fails fast with a
- * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. Two
- * transforms ({@code <union>}, {@code <sideOutput>}) fail fast because the underlying
- * {@code nop-stream-core} runtime does not yet expose the corresponding API
- * ({@code DataStream.union} / {@code SingleOutputStreamOperator.getSideOutput});
- * these are tracked as runtime-API-gap follow-ups in the plan.
+ * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. The
+ * {@code <union>} transform (WI6) now builds a real multi-input merge over the declared
+ * edges; {@code <sideOutput>} still fails fast because the underlying
+ * {@code nop-stream-core} runtime does not yet expose
+ * {@code SingleOutputStreamOperator.getSideOutput}; that is tracked as a runtime-API-gap
+ * follow-up in the plan.
  *
  * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
  * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
@@ -111,7 +112,7 @@ final class AdvancedTransforms {
             return buildProcess(owner, t, upstreamIds, streamRegistry, (StreamProcessModel) t);
         }
         if (t instanceof StreamUnionModel) {
-            return buildUnion(t, upstreamIds);
+            return buildUnion(owner, t, upstreamIds, streamRegistry);
         }
         if (t instanceof StreamCustomModel) {
             return buildCustom(owner, t, upstreamIds, streamRegistry, (StreamCustomModel) t);
@@ -427,17 +428,62 @@ final class AdvancedTransforms {
     }
 
     // ----------------------------------------------------------------
-    // union — runtime API gap (DataStream.union does not exist)
+    // union — WI6: real multi-input merge over the declared edges
     // ----------------------------------------------------------------
 
-    private static Object buildUnion(StreamTransformModel t, Set<String> upstreamIds) {
-        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                .param(ARG_DETAIL, "Stream DSL <union id='" + t.getId()
-                        + "'> requires DataStream.union() which is not yet implemented in "
-                        + "nop-stream-core runtime. Union is a multi-input operator and the "
-                        + "runtime only supports OneInputStreamOperator. Tracked as a "
-                        + "runtime-API-gap follow-up.")
-                .loc(t.getLocation());
+    /**
+     * WI6: builds the union stream from every upstream edge, in edge declaration
+     * order (the registry's upstream ids are an unordered Set). Every upstream must
+     * be a plain {@link DataStream} — KeyedStream/WindowedStream shapes are rejected
+     * (key partitioning is declared AFTER the union, see the HASH-edge fail-fast in
+     * {@code StreamModelDslBuilder.validateEdgeDeclarations}); each upstream still
+     * runs through {@code applyEdgePartition} so undeclared non-HASH edges pass
+     * through untouched and the registry-level guard stays in one place.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildUnion(StreamModelDslBuilder owner, StreamTransformModel t,
+                                     Set<String> upstreamIds, Map<String, Object> streamRegistry) {
+        if (upstreamIds.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "upstream edges")
+                    .param(ARG_DETAIL, "<union id='" + t.getId() + "'> requires at least one "
+                            + "upstream edge, found none")
+                    .loc(t.getLocation());
+        }
+        // Preserve the declared edge order for deterministic merge order. A source
+        // declaring TWO edges into the same <union> merges twice (self-union) — each
+        // declared edge is one merge input, matching the runtime's one-channel-per-
+        // declared-edge contract (WI6 constraint 2); silently dropping the duplicate
+        // edge would violate the builder's no-silent-drop rule.
+        List<String> ordered = new ArrayList<>(upstreamIds.size());
+        for (io.nop.stream.flow.model.StreamEdgeModel e : owner.model().getEdges()) {
+            if (t.getId().equals(e.getTo()) && upstreamIds.contains(e.getFrom())) {
+                ordered.add(e.getFrom());
+            }
+        }
+        // Registry ids that no declared edge reaches (defensive — validateDag derives
+        // upstreamIds from the same edge list, so this stays empty in practice).
+        for (String id : upstreamIds) {
+            if (!ordered.contains(id)) {
+                ordered.add(id);
+            }
+        }
+
+        DataStream merged = null;
+        for (String upstreamId : ordered) {
+            Object in = streamRegistry.get(upstreamId);
+            if (!(in instanceof DataStream) || in instanceof KeyedStream || in instanceof WindowedStream) {
+                throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_EXPECTED_STREAM_TYPE, "DataStream (non-keyed, non-windowed)")
+                        .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
+                        .loc(t.getLocation());
+            }
+            DataStream input = owner.applyEdgePartition((DataStream<?>) in, upstreamId,
+                    t.getId(), t.getParallelism());
+            merged = merged == null ? input : merged.union(input);
+        }
+        return StreamModelDslBuilder.applyDeclaredParallelism(merged, t);
     }
 
     // ----------------------------------------------------------------

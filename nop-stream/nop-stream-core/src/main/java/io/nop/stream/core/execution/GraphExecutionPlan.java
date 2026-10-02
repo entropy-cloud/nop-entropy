@@ -50,6 +50,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CYCLIC_JOB_GRAPH;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
@@ -378,7 +379,10 @@ public class GraphExecutionPlan {
     private static Map<JobEdge, ResultPartition[][]> buildPartitionMatrix(
             JobGraph jobGraph, Map<String, Integer> parallelismMap,
             DeploymentPlan deploymentPlan, IBufferPool bufferPool) {
-        Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new LinkedHashMap<>();
+        // WI6 constraint 2: parallel edges into a union vertex are equals()-equal
+        // (JobEdge equality is vertex-pair + partition type) but must keep separate
+        // matrices — identity keying preserves one matrix per JobEdge instance.
+        Map<JobEdge, ResultPartition[][]> edgePartitionMatrix = new java.util.IdentityHashMap<>();
         for (JobEdge edge : jobGraph.getEdges()) {
             int srcP = parallelismMap.getOrDefault(edge.getSourceVertex(), 1);
             int tgtP = parallelismMap.getOrDefault(edge.getTargetVertex(), 1);
@@ -559,9 +563,60 @@ public class GraphExecutionPlan {
         if (channels.isEmpty()) {
             return null;
         }
+        // WI6 constraint 1: a multi-input vertex must not silently inherit the first
+        // edge's flow-control config. EdgeConfig has no equals, so compare by value
+        // (all four fields). Semantics: null means "no config declared" — an
+        // undeclared edge defers to a declared one (documented inheritance), but two
+        // edges that both DECLARE configs must agree on every field or the plan build
+        // fails fast. The common all-default case stays untouched.
         EdgeConfig gateConfig = EdgeAssembly.resolveEdgeConfig(inEdges.get(0), deploymentPlan);
+        List<String> mismatches = null;
+        for (int i = 1; i < inEdges.size(); i++) {
+            EdgeConfig other = EdgeAssembly.resolveEdgeConfig(inEdges.get(i), deploymentPlan);
+            if (!sameGateConfig(gateConfig, other)) {
+                if (mismatches == null) {
+                    mismatches = new ArrayList<>();
+                }
+                mismatches.add(edgeConfigSummary(inEdges.get(i), other));
+            } else if (gateConfig == null && other != null) {
+                gateConfig = other;
+            }
+        }
+        if (mismatches != null) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "multi-input vertex has incoming edges with conflicting flow-control configs: ["
+                            + edgeConfigSummary(inEdges.get(0), gateConfig) + ", " + String.join(", ", mismatches)
+                            + "]. The input gate applies one config to all channels; align the "
+                            + "DeploymentPlan edgeConfigs for these edges.");
+        }
         return new InputGate(channels, gateConfig, InputGate.alignmentModeFor(barrierAlignment),
                 barrierAlignmentTimeout, unalignedCheckpointEnabled, unalignedThreshold);
+    }
+
+    /**
+     * WI6 constraint 1: value consistency for EdgeConfig (which has no equals).
+     * Null means "no config declared" — an undeclared side defers to a declared one;
+     * two declared configs must agree on all four fields.
+     */
+    private static boolean sameGateConfig(EdgeConfig a, EdgeConfig b) {
+        if (a == null || b == null) {
+            return true;
+        }
+        return a.getFlowControlPolicy() == b.getFlowControlPolicy()
+                && a.getQueueCapacity() == b.getQueueCapacity()
+                && a.getReceiveWindow() == b.getReceiveWindow()
+                && a.getPacketSize() == b.getPacketSize();
+    }
+
+    private static String edgeConfigSummary(JobEdge edge, EdgeConfig config) {
+        if (config == null) {
+            return edge.getSourceVertex() + "->" + edge.getTargetVertex() + "[config=none]";
+        }
+        return edge.getSourceVertex() + "->" + edge.getTargetVertex()
+                + "[policy=" + config.getFlowControlPolicy()
+                + ", queueCapacity=" + config.getQueueCapacity()
+                + ", receiveWindow=" + config.getReceiveWindow()
+                + ", packetSize=" + config.getPacketSize() + "]";
     }
 
     /**

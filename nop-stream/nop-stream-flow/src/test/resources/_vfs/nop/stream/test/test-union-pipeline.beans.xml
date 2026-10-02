@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Test beans for the union pipeline end-to-end tests (WI6).
+  Provides:
+    * intSourceFunction — emits the fixed sequence [1, 1, 2, 2, 2]
+    * evenSourceFunction — emits the fixed sequence [2, 4]
+    * unionCollectingSink — collects every consumed element into a List<Integer>
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="intSourceFunction"
+          class="io.nop.stream.flow.testing.IntegerSourceFunction"/>
+
+    <bean id="evenSourceFunction"
+          class="io.nop.stream.flow.testing.EvenSourceFunction"/>
+
+    <bean id="unionCollectingSink"
+          class="io.nop.stream.flow.testing.CollectingSinkFunction"/>
+
+</beans>

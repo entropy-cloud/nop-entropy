@@ -53,8 +53,17 @@ public class TestStreamModelDslBuilderFailFast {
     }
 
     @Test
-    public void unionTransformThrowsUnsupportedOperationException() {
-        assertFailFast("<union id=\"u\"/>", "union");
+    public void unionTransformWithoutUpstreamFailsFast() {
+        // WI6: <union> now builds a real multi-input merge; an orphan union with no
+        // upstream edge still fails fast, but with ERR_STREAM_INVALID_ARG (not the
+        // former ERR_STREAM_NOT_IMPLEMENTED runtime-gap code).
+        StreamModel model = parseInline("<union id=\"u\"/>", "");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString(),
+                () -> "Orphan union must fail with ERR_STREAM_INVALID_ARG: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("union"),
+                "Exception should mention union: " + ex.getMessage());
     }
 
     @Test

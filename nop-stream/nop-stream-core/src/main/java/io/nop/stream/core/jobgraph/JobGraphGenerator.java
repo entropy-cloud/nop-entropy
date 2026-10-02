@@ -553,7 +553,8 @@ public class JobGraphGenerator implements Serializable {
                                 Map<Integer, String> nodeToVertexMap,
                                 DeploymentPlan deploymentPlan) {
 
-        // Track created edges to avoid duplicates
+        // WI6: union targets keep one JobEdge per declared StreamEdge; every other
+        // target dedupes per vertex pair (chain fan-in must not double-write).
         Set<String> createdEdges = new HashSet<>();
         // S-10 (2026-09-01 core audit): an edge endpoint that no chain mapped to a
         // vertex must never be dropped silently — that would be an invisible
@@ -578,15 +579,24 @@ public class JobGraphGenerator implements Serializable {
                 if (sourceVertexId != null && targetVertexId != null &&
                     !sourceVertexId.equals(targetVertexId)) {
 
-                    // Create unique edge key to avoid duplicates
                     String edgeKey = sourceVertexId + "->" + targetVertexId;
-                    if (!createdEdges.contains(edgeKey)) {
+                    // WI6 constraint 2: a union vertex consumes one input channel per
+                    // declared StreamEdge, so parallel edges into it (self-union: one
+                    // upstream feeding the union twice) must each become a JobEdge —
+                    // the historical per-vertex-pair dedup silently halved the merge.
+                    // Non-union targets keep the dedup: duplicates there arise from
+                    // chain fan-in (two chained upstream nodes feeding one target),
+                    // where per-edge JobEdges would double-write every element.
+                    boolean unionTarget = streamGraph.isUnionNode(targetNodeId);
+                    if (unionTarget || createdEdges.add(edgeKey)) {
                         ResultPartitionType partitionType = determinePartitionType(streamEdge);
                         IPartitioner<?> partitioner = resolveJobEdgePartitioner(streamEdge, streamGraph);
 
                         JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType, partitioner);
 
-                        // Set EdgeConfig from DeploymentPlan if available
+                        // Set EdgeConfig from DeploymentPlan if available. The plan's
+                        // edgeConfigs map is keyed by the vertex pair form; parallel edges
+                        // into a union share that key and therefore the same declared config.
                         if (deploymentPlan != null) {
                             EdgeConfig config = deploymentPlan.getEdgeConfigs().get(edgeKey);
                             if (config != null) {
@@ -595,8 +605,6 @@ public class JobGraphGenerator implements Serializable {
                         }
 
                         jobGraph.addEdge(jobEdge);
-
-                        createdEdges.add(edgeKey);
                     }
                 }
             }

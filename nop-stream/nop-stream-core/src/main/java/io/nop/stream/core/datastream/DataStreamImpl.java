@@ -8,6 +8,8 @@
 package io.nop.stream.core.datastream;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.nop.commons.partition.IPartitioner;
 
@@ -43,6 +45,7 @@ import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.TimestampsAndWatermarksTransformation;
 import io.nop.stream.core.transformation.Transformation;
+import io.nop.stream.core.transformation.UnionTransformation;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -142,6 +145,38 @@ public class DataStreamImpl<T> implements DataStream<T> {
         return new SingleOutputStreamOperatorImpl<>(environment, transform);
     }
     
+    /**
+     * {@inheritDoc}
+     *
+     * <p>WI6: builds a {@link UnionTransformation} over this stream's transformation and
+     * every argument's transformation, registered with the environment so graph generation
+     * picks it up. The union vertex's parallelism is the environment-level parallelism;
+     * declare {@code setParallelism} on the returned stream to override.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public DataStream<T> union(DataStream<T>... streams) {
+        if (streams == null || streams.length == 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "streams")
+                    .param(ARG_DETAIL, "union requires at least one argument stream");
+        }
+        List<Transformation<T>> inputs = new ArrayList<>(streams.length + 1);
+        inputs.add(this.transformation);
+        for (DataStream<T> stream : streams) {
+            if (stream == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "streams")
+                        .param(ARG_DETAIL, "union argument stream must not be null");
+            }
+            inputs.add(((DataStreamImpl<T>) stream).transformation);
+        }
+        UnionTransformation<T> unionTransform = new UnionTransformation<>(
+                "Union", inputs, environment.getParallelism());
+        environment.addTransformation(unionTransform);
+        return new DataStreamImpl<>(environment, unionTransform);
+    }
+
     /**
      * Applies a map transformation to this data stream. The map function is called for each
      * element in the stream and produces exactly one output element for each input element.

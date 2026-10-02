@@ -67,9 +67,15 @@ public class StreamGraph implements Serializable {
      * 汇节点是流拓扑的终端点。
      */
     private final List<Integer> sinkIDs;
-    
+
+    /**
+     * WI6: union 节点 ID 的列表。union 顶点按声明的每条入边各建一条 JobEdge
+     * （平行边合法），而普通汇入顶点仍按顶点对去重（链内扇入塌缩）。
+     */
+    private final List<Integer> unionIDs;
+
     private StreamModel streamModel;
-    
+
     /**
      * 创建一个新的空 StreamGraph。
      */
@@ -78,6 +84,7 @@ public class StreamGraph implements Serializable {
         this.streamEdges = new HashMap<>();
         this.sourceIDs = new ArrayList<>();
         this.sinkIDs = new ArrayList<>();
+        this.unionIDs = new ArrayList<>();
     }
     
     /**
@@ -196,13 +203,45 @@ public class StreamGraph implements Serializable {
     
     /**
      * Adds a sink node ID to the list of sinks.
-     * 
+     *
      * @param sinkId the sink node ID to add
      */
     public void addSinkID(int sinkId) {
         if (!sinkIDs.contains(sinkId)) {
             sinkIDs.add(sinkId);
         }
+    }
+
+    /**
+     * Marks a node as a union vertex (WI6): JobGraph generation then keeps one
+     * JobEdge per declared StreamEdge into it (parallel edges legal), instead of
+     * deduplicating per vertex pair.
+     *
+     * @param unionId the union node ID to add
+     */
+    public void addUnionID(int unionId) {
+        if (!unionIDs.contains(unionId)) {
+            unionIDs.add(unionId);
+        }
+    }
+
+    /**
+     * Returns whether the given node is a union vertex.
+     *
+     * @param nodeId the node ID to check
+     * @return true if the node was registered as a union vertex
+     */
+    public boolean isUnionNode(int nodeId) {
+        return unionIDs.contains(nodeId);
+    }
+
+    /**
+     * Returns the union node IDs registered in this graph.
+     *
+     * @return the unmodifiable view of union node IDs
+     */
+    public List<Integer> getUnionIDs() {
+        return java.util.Collections.unmodifiableList(unionIDs);
     }
     
     /**
