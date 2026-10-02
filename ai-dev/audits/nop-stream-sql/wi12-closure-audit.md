@@ -1,8 +1,9 @@
 # WI12 Closure Audit——22-wi12-over-window-operator.md
 
-- Audit 日期：2026-10-02
-- Auditor：独立子 agent（fresh session，与实现者非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选与日志自述）
-- 裁定：**FAIL（收口阻断，一项 Blocker）**——功能面全部成立：缓冲构件独立可测、OVER 双帧语义判别、checkpoint/restore 帧计算连续（rn=1/2/3 跨界）、三个测试类隔离 10/10 绿、runtime 全量 **1206** 零退化、门禁全 0、D1=(a)/D6=(a)/Q2 标注如实、_gen 纪律干净。**唯一 Blocker 是状态通道契约**：roadmap :66 绑定句「WI12 的每 key 有序缓冲必须落在 namespace-based keyed state 上（归 WI12 完成判定）」在 live 实现中不成立——缓冲是自管 `HashMap<K,TreeMap>`，OverWindowOperator 全程未触碰 keyed state backend，快照走 **operator state** 整体对象通道；这正是 §十（`00-vision.md:161`）拒绝的「自管 HashMap 做窗口状态」形态，且与 WI13 复用义务（`join-operator.md:23`「join 缓冲同规则」）冲突。此为 owner-doc 与 live baseline 的 confirmed drift，按 guide 不可降级为 follow-up。**在 B-1 关闭（改接线或 owner 显式改判）之前，roadmap WI12 不得翻转 done，plan 不得标 completed。**
+- Audit 日期：2026-10-02（首轮）／2026-10-02（复审，keyed-state rework 后）
+- Auditor：独立子 agent（fresh session，与实现者非同一 session；全部结论来自 live repo 实跑/实读，未采信 plan 勾选与日志自述；复审轮同为独立 fresh session，与首轮 audit 亦非同一 session）
+- **最终裁定：PASS（复审轮，§6）——首轮 FAIL 的唯一 Blocker B-1 已按 Path A 关闭，B-2 关闭；剩余 R-1/R-2（Major，非阻断）路由为 WI13 复用前置条件，M-5（计数文本陈旧）须在翻转前同步。**首轮裁定原文如下（轨迹保留）。
+- 首轮裁定：**FAIL（收口阻断，一项 Blocker）**——功能面全部成立：缓冲构件独立可测、OVER 双帧语义判别、checkpoint/restore 帧计算连续（rn=1/2/3 跨界）、三个测试类隔离 10/10 绿、runtime 全量 **1206** 零退化、门禁全 0、D1=(a)/D6=(a)/Q2 标注如实、_gen 纪律干净。**唯一 Blocker 是状态通道契约**：roadmap :66 绑定句「WI12 的每 key 有序缓冲必须落在 namespace-based keyed state 上（归 WI12 完成判定）」在 live 实现中不成立——缓冲是自管 `HashMap<K,TreeMap>`，OverWindowOperator 全程未触碰 keyed state backend，快照走 **operator state** 整体对象通道；这正是 §十（`00-vision.md:161`）拒绝的「自管 HashMap 做窗口状态」形态，且与 WI13 复用义务（`join-operator.md:23`「join 缓冲同规则」）冲突。此为 owner-doc 与 live baseline 的 confirmed drift，按 guide 不可降级为 follow-up。**在 B-1 关闭（改接线或 owner 显式改判）之前，roadmap WI12 不得翻转 done，plan 不得标 completed。**
 
 ## 1. 逐条审计核验（对应审计指令 1-9）
 
@@ -112,3 +113,67 @@
 WI12 的功能交付面在 live repo 全部成立：独立可测缓冲构件（六 API + 具名 Serializable comparator + 序列化往返单测）、OVER 双帧语义（乱序重排与滑动历史的断言判别均为真）、watermark 触发、D1=(a)/D6=(a)/Q2 标注如实、无 retract 语义合规、checkpoint/restore 帧计算连续（rn=1/2/3 跨界，冷缓冲必失败）、隔离 10/10 + runtime 1206 零退化、四项门禁全 0、_gen 纪律干净。
 
 **裁定 FAIL（一项 Blocker）**：缓冲状态通道未满足 roadmap :66 绑定句「必须落在 namespace-based keyed state 上（归 WI12 完成判定）」，live 为自管 HashMap + operator-state 整体快照，与 §十（00-vision.md:161）及 WI13 复用义务（join-operator.md:23）冲突，且伴生 copyForSubtask 共享实例缺陷（B-2）。本 audit 构成 plan Phase 2 第一项的执行证据（证据落档两处之 audit 档半边），但**结论为不通过**——后续收口动作（实现者/owner 执行，非本 audit 范围）：① 按 §3 B-1 路径 A 或路径 B 处置（含 B-2、M-1/M-2/M-3 顺手项）；② 处置后复核（若走路径 A：三测试类隔离 + runtime 全量 + 新增 keyed 通道断言；若走路径 B：roadmap/join-operator/plan 三处改判文本一致）；③ 再启独立 closure audit 复核；④ 通过后方翻转 roadmap WI12 `todo` → `done`（括注单层一对）+ `parseRoadmapMarkdown` 31+7 复核、plan Phase 2 勾选与 Status → `completed`、Closure 段落回填、check-plan-checklist/check-doc-links --strict 复核 0。当前证据下上述翻转动作均不得执行。
+
+---
+
+## 6. 复审（Round 2，2026-10-02，keyed-state rework 后）——PASS
+
+- 复审对象：commit `66ef34f979`「wi12(stream-sql): 分析窗口算子 keyed-state rework（audit B-1 修正）」——首轮 §3 B-1 路径 A 的实现（工作树 clean，rework 与全部 WI12 产物已随该 commit 落盘，首轮 M-4 随之关闭）。
+- 复审方式：live 代码实读 + 测试实跑 + 门禁实跑，与首轮同标准；全部行号为当前工作树实读行号。
+- **裁定：PASS**。B-1 关闭、B-2 关闭（§6.1/§6.2）；剩余 R-1/R-2（Major，非阻断）路由为 WI13 复用前置条件，M-5（翻转前文本同步义务）见 §6.5。
+
+### 6.1 B-1 复核：Path A 五要素逐项对账（live 实读）——全部成立
+
+绑定链复核（本轮重读，与首轮一致）：`00-vision.md:161`（§十：拒绝「不参与平台 keyed state 生命周期管理（checkpoint、恢复、分片路由）」的自管状态，「必须使用 namespace-based state」）；roadmap :66（「WI12 的每 key 有序缓冲必须落在 namespace-based keyed state 上（归 WI12 完成判定）」）；roadmap :260（完成判定 = keyed state 经 checkpoint 与 restore 的端到端证据落在先例同级用例）。
+
+| Path A 要素 | live 证据 | 结论 |
+|---|---|---|
+| ① `open()` 自建 keyed backend（ProcessOperator :59-62 三步） | `OverWindowOperator.open()` :88-101：`super.open()` → `if (keyedStateBackend == null && stateBackend != null)` :92 → `stateBackend.createKeyedStateBackend(Object.class)` :93 → `applyPendingRestoreState()` :94——与先例逐行同构 | ✓ |
+| ② 缓冲条目经 keyed/namespace state 承载 | `processElement` :126-145：`buffer.add` 后逐元素 `bufferState.put(key+"\0"+ts+"\0"+nanoTime, value)` :138 写入 keyed MapState（descriptor 名 `over-window-buffer` :54/:98-99）；`MemoryKeyedStateBackend` 存储结构为 `Map<stateName, Map<TypedNamespaceAndKey, value>>`（类注释 :61-65、`cachedNamespaceAndKey` :541-549 含 `routeKey`）——namespace-based keyed state 实锤 | ✓ |
+| ③ 快照恢复由 super 自动接管（keyed lineage） | `snapshotState` :104-111 先调 `super.snapshotState(context)` → `AbstractStreamOperator` :307-312 `keyedStateBackend.snapshotState()` → `putKeyedState("keyed-state", StateSnapshot)`；`MemoryStateSerDe.snapshotState` :113-115 以 stateName 为键 → `StateSnapshot.getStates()` 含 `over-window-buffer`。restore 侧：`AbstractStreamOperator.restoreState` :225-231 → `doRestoreKeyedStates` :271-282 → `keyedStateBackend.restoreState(StateSnapshot)`（E2E 中 op2 先 `open()` 后 `restoreState`，backend 非 null，keyed 通道实时走通；restore-before-open 由 `pendingRestoreState` :260-269 兜底） | ✓ |
+| ④ `copyForSubtask` 新建实例（B-2） | :81-85 `return new OverWindowOperator(kind, frameSize, aggId)`——零字段共享，keyed backend 由各子任务 `open()` 自备 | ✓ |
+| ⑤ E2E 补断言 keyed 通道 | `TestE2EOverWindowWithCheckpoint` :54 `assertEquals(2, op1.keyedBufferEntries())`、:63 `assertFalse(snapshot.getKeyedStates().isEmpty())`、:65-77 lineage 断言、:100-112 rn=1/2/3 跨界连续（判别性见 §6.3） | ✓（断言缺口见 §6.3 注记） |
+
+### 6.2 §十 合规判断：working view + durable copy 双通道设计——满足绑定
+
+- §十 的拒绝对象是**不参与 keyed state 生命周期**的自管状态；绑定句要求每 key 有序缓冲**落在 namespace-based keyed state 上**。live 形态：working view（`PerKeyOrderedBuffer` 内存实例）是**计算视图**——javadoc :42-47 明文「in-memory working view for frame computation…every buffered element is ALSO persisted into keyed MapState」，字段注释 :67-70 标注 view / `bufferState`（durable copy）双角色；durable 权威在 keyed 通道——checkpoint 携带 keyed lineage、restore 经 `doRestoreKeyedStates` 回灌 keyed backend。§十 三项生命周期关切中 checkpoint/恢复两项闭环，分片路由以 keyed backend + routeKey + per-subtask backend（要素④新实例 + open() 自备）结构性在场。**首轮失败形态（全程未触碰 keyed backend、快照走 operator-state 整体对象通道）不复存在。**
+- operator-state 通道的角色已重新定义并如实标注：`snapshotState` :105-107 注释明示 keyed MapState 是 §十 durable 通道、operator-state 条目是「working-view restore transport」；两通道在写入点逐元素镜像（"agree by construction"）。该形态不违反绑定句——被禁止的是缓冲的**持久化权威**落在 keyed state 之外，而权威现为 keyed 通道（其权威性的现存边界见 §6.5 R-1）。
+- 设计注记（非阻断）：OverWindowOperator 未逐记录 `setCurrentKey`（WindowOperator 先例 :721/:1131 有此接线）——MapState 条目键自含记录 key（`key\0ts\0seq` 复合键），单 subtask 语义正确，生产 keyed stream 由 keyBy/OperatorChain 接线提供 current key 上下文。WI13 复用接线时应与 WindowOperator 先例对齐。
+
+### 6.3 TestE2EOverWindowWithCheckpoint 实跑与判别性核验——PASS
+
+隔离实跑 1/1 绿（exit 0）；断言判别性读码核验：
+
+- **keyed lineage 断言** :65-77：遍历 `snapshot.getKeyedStates()` 找 `StateSnapshot` 且 `getStates()` 键集含 `over-window-buffer`——直接钉死首轮失败形态；若 keyed backend 未建则 :63 先失败（super :307 分支不触发、keyedStates 空）；若 MapState 未写则 `getStates()` 无该键、:76 失败。`MemoryStateSerDe.snapshotState` :113-115 按 stateName 键化，断言读取路径与机制逐环对上。
+- **keyedBufferEntries=2** :54：2 元素产生 2 条 keyed durable 条目；缺 keyed 写入即 0 失败。
+- **rn=1/2/3 跨界连续** :111-112：冷缓冲反事实仍成立（冷缓冲只发 `rn=1 val=k|30|c`，列表相等断言必失败）。
+- **断言缺口（建议，不阻断）**：restore 后未断言 op2 的 keyed 条目数（如 restore 后 `keyedBufferEntries()==2`、`k|30|c` 后 `==3`）——keyed 通道 restore 已机制性走通（`doRestoreKeyedStates` 实跑于 E2E 流程，若抛错测试即失败），但回灌结果未被断言二次钉住；视图连续性目前由 operator-state transport 承载（设计内角色，:79-89 注释明示）。建议随 M-5 同步顺手补两行断言。
+
+### 6.4 实跑与门禁（全部本轮实跑）
+
+| 项 | 结果 |
+|---|---|
+| TestE2EOverWindowWithCheckpoint 隔离 | 1/1 绿，exit 0 |
+| 三测试类隔离 | **9/9 绿（5+3+1）**，exit 0 |
+| runtime 全量 | **1205（0 F / 0 E / 10 skip 既有）**，BUILD SUCCESS，exit 0——首轮 1206 − 1 = 1205：rework 将 TestAnalysisWindowEventTime 4→3（trim 消费断言并入 rowNumber 用例内联 :104，四场景覆盖无损、新增 key 隔离用例），与日志 rework 条目「1205」一致；WI11 基线 1196 + 9 = 1205 算术自洽 |
+| `check-doc-links --strict` | 0（3 warnings 均为 nop-bytecode 旧 plan 既存，与本 WI 无关） |
+| `check-nop-stream-invariants.mjs sync` | `sync: OK`，exit 0 |
+| `scan-hollow-implementations --module nop-stream/nop-stream-runtime --severity high` | Critical/High/Medium/Low 全 0 |
+| `parseRoadmapMarkdown`（roadmap-check.mjs 实调） | items **31** + milestones **7**，done 21，31 名唯一无静默丢弃，progress 0.68；WI12 `todo`、M4 `not-done`（翻转前预期态） |
+| git/_gen/hygiene | working tree clean；`_gen`/`_*` 零改动；五个 WI12 文件 TODO/FIXME/XXX/System.out 零命中 |
+
+原始日志 `_tmp/audit-wi12-r2/`（e2e-isolated.log、isolated.log、runtime-full.log、runtime-full.exit）。
+
+### 6.5 剩余项（均非阻断；处置义务落档）
+
+- **R-1（Major，WI13 复用前必修）**：keyed durable 通道零清理——`emitRowNumbers` :166-175 的 remove 键 `key+"\0"+ts+"\0"`（:169）与写入键 `key+"\0"+ts+"\0"+nanoTime`（:138）恒不匹配（remove 永远 no-op），`emitSlidingAgg` :179-204 无 keyed 清理；双帧模式下 keyed 通道只增不减、post-watermark 与已 trim 的工作视图发散（:171-173 注释自认 "best-effort — the working view is authoritative"；字段注释 :69「one keyed-state entry per buffered element」在 trim 后失真）。E2E 窗口在 trim 之前，全绿不受影响；长跑流下 durable 通道无界增长。WI13 按 `join-operator.md:23` 复用本缓冲（「join 缓冲同规则」）时必须先修此清理（或由 owner 显式改判通道角色）。
+- **R-2（Major，与 R-1 同簇）**：`rebuildViewFromKeyedState()` :211-228 现为零调用方的潜伏陷阱（grep 全仓确认无 caller）——按 javadoc 在 `restoreState` 之后调用会重复叠加条目（视图已由 putAll 填充）；独立调用则会从已发散的 keyed 通道复活已消费元素。以 keyed 通道为权威 restore 前，先修 R-1 并重定义本方法语义（或删除）。
+- **M-5（Minor，翻转 roadmap/plan 前必须同步）**：plan Exit Criteria :62「10 用例」/:64「1206 零退化」与日志 rework 条目「测试 10 用例绿」（其后自列 5+3+1=9）均为 rework 前数字——live 为 **9 用例 / 1205**。按 plan guide 文本一致性规则，翻转前必须改齐（plan :62/:64 + ai-dev/logs/2026/10-02.md rework 条目）。
+- **M-3（Minor，首轮提出未修，随手）**：E2E :104 行内注释「a cold buffer would emit only rn=3」仍不精确（冷缓冲实际发射 `rn=1 val=k|30|c`，同样使断言失败——判别力无损）。
+- 首轮 Minor 清账：M-1（javadoc trim 讹误）**已修**（现行 :31-34 与 emitRowNumbers 行为一致）；M-2（「序列化」措辞）**已收口**（序列化往返由 `TestPerKeyOrderedBuffer.serializableForOperatorDeepCopies` :67-80 独立承载）；M-4（未提交）**已修**（66ef34f979）。
+
+### 6.6 复审结论
+
+**PASS**。首轮唯一 Blocker B-1 按 Path A 关闭：持久化权威通道为 namespace-based keyed state（写入/快照/恢复三段 live 走通并被判别性断言钉住），伴生 B-2 关闭；双通道设计满足 §十 绑定（working view 为计算视图、durable 权威在 keyed 通道）；功能面（缓冲构件、双帧语义判别、D1=(a)/D6=(a)/Q2 标注）、测试面（隔离 9/9、runtime 1205 零退化）、门禁四项、git/_gen 纪律复核全部成立。R-1/R-2 不属于绑定句落点的违背、不推翻已交付证据，路由为 WI13 复用的显式前置条件（建议在 roadmap WI13 行括注或 FU 登记处留痕）；M-5 为翻转前文本同步义务。
+
+**首轮 §5 末列出的翻转动作自本 PASS 起解锁**，执行顺序（实现者/owner，非本 audit 范围）：① 修 M-5（plan :62/:64 与日志计数 10→9、1206→1205；可顺手补 §6.3 断言缺口与 M-3 注释）；② roadmap WI12 `todo` → `done`（括注单层一对）+ `parseRoadmapMarkdown` 31+7 复核；③ plan Phase 2 勾选与 Status → `completed`、Closure 段回填（引用本复审节）；④ check-plan-checklist / check-doc-links --strict 复核 0；⑤ 按里程碑落 commit。

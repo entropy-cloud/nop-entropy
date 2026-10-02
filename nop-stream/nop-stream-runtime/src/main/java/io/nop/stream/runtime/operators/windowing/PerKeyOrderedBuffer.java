@@ -148,4 +148,60 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
         return new ArrayList<>(buffers.keySet());
     }
 
+    /**
+     * trimToWatermark variant returning the exact (ts, seq) keys of the dropped
+     * entries — the operator uses them to remove the matching keyed-state entries.
+     */
+    public List<long[]> trimToWatermarkWithKeys(K key, long watermark) {
+        TreeMap<long[], V> tree = buffers.get(key);
+        if (tree == null) {
+            return Collections.emptyList();
+        }
+        List<long[]> dropped = new ArrayList<>();
+        for (long[] tsKey : tree.keySet()) {
+            if (tsKey[0] <= watermark) {
+                dropped.add(tsKey);
+            }
+        }
+        for (long[] tsKey : dropped) {
+            tree.remove(tsKey);
+        }
+        if (tree.isEmpty()) {
+            buffers.remove(key);
+        }
+        return dropped;
+    }
+
+    /** trimToCount variant returning the exact (ts, seq) keys of the dropped entries. */
+    public List<long[]> trimToCountWithKeys(K key, int count) {
+        TreeMap<long[], V> tree = buffers.get(key);
+        if (tree == null || tree.size() <= count) {
+            return Collections.emptyList();
+        }
+        List<long[]> keys = new ArrayList<>(tree.keySet());
+        keys.sort(TsSeqComparator.INSTANCE);
+        List<long[]> dropped = keys.subList(0, tree.size() - count);
+        List<long[]> copy = new ArrayList<>(dropped);
+        for (long[] tsKey : copy) {
+            tree.remove(tsKey);
+        }
+        if (tree.isEmpty()) {
+            buffers.remove(key);
+        }
+        return copy;
+    }
+
+    /** the insertion-seq recorded for a (key, ts) entry — keyed-state key suffix. */
+    public long seqFor(K key, long ts) {
+        TreeMap<long[], V> tree = buffers.get(key);
+        if (tree != null) {
+            for (long[] tsKey : tree.keySet()) {
+                if (tsKey[0] == ts) {
+                    return tsKey[1];
+                }
+            }
+        }
+        return -1L;
+    }
+
 }

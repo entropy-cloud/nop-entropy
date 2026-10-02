@@ -54,7 +54,7 @@ Targets: `nop-stream/nop-stream-runtime`
 
 - [x] PerKeyOrderedBuffer（add/sortedView/trimToWatermark/trimToCount/keys/putAll；standalone 可测；执行期修正——TreeMap comparator 须具名 Serializable 类，lambda 比较器不可序列化）
 - [x] OverWindowOperator（watermark 触发帧求值；ROW_NUMBER + 滑动聚合；**audit B-1 rework——持久化改走 keyed MapState（§十 通道），open() 自建 keyed backend，snapshotState 经 super 携带 keyed lineage，copyForSubtask 新建实例**）
-- [x] TestPerKeyOrderedBuffer + TestAnalysisWindowEventTime + TestE2EOverWindowWithCheckpoint
+- [x] TestPerKeyOrderedBuffer + TestAnalysisWindowEventTime + TestE2EOverWindowWithCheckpoint（复审 R-1/R-2 修正——keyed 通道清理与写入键对齐 key\u0000ts\u0000seq、trimToWatermark/trimToCount WithKeys 变体返回被删键、rebuildViewFromKeyedState 防重入守卫）
 - [x] ai-dev/logs/ 当日条目更新
 
 Exit Criteria:

@@ -131,11 +131,12 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         String key = value.substring(0, p1);
         long ts = Long.parseLong(value.substring(p1 + 1, p2));
         buffer.add(key, ts, value);
-        // durable copy into keyed state (one entry per element; the view is rebuilt
-        // from these entries on restore)
+        // durable copy into keyed state (one entry per element; the entry key is
+        // deterministic key\u0000ts\u0000seq so removal can target it exactly; the
+        // view is rebuilt from these entries on restore)
         if (bufferState != null) {
             try {
-                bufferState.put(key + "\u0000" + ts + "\u0000" + System.nanoTime(), value);
+                bufferState.put(key + "\u0000" + ts + "\u0000" + buffer.seqFor(key, ts), value);
             } catch (Exception e) {
                 throw new io.nop.stream.core.exceptions.StreamException(
                         io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
@@ -162,18 +163,20 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         for (int i = 0; i < ordered.size(); i++) {
             output.collect(new StreamRecord<>("rn=" + (i + 1) + " val=" + ordered.get(i)));
         }
-        // ROW_NUMBER consumes the frame at the watermark; drop the durable entries too
-        for (long[] tsKey : buffer.sortedTimestamps(key)) {
-            if (bufferState != null) {
+        // ROW_NUMBER consumes the frame at the watermark — drop the consumed entries
+        // from the keyed channel too (exact keys via the buffer's trimmed tsKeys)
+        List<long[]> trimmed = buffer.trimToWatermarkWithKeys(key, currentWatermark);
+        if (bufferState != null) {
+            for (long[] tsKey : trimmed) {
                 try {
-                    bufferState.remove(key + "\u0000" + tsKey[0] + "\u0000");
+                    bufferState.remove(key + "\u0000" + tsKey[0] + "\u0000" + tsKey[1]);
                 } catch (Exception e) {
-                    // durable cleanup is best-effort — the working view is authoritative
-                    // for frame computation within this run
+                    throw new io.nop.stream.core.exceptions.StreamException(
+                            io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
+                            .param("detail", "failed to remove consumed OVER buffer entry from keyed state");
                 }
             }
         }
-        buffer.trimToWatermark(key, currentWatermark);
     }
 
     private void emitSlidingAgg(String key) {
@@ -200,7 +203,18 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
             output.collect(new StreamRecord<>("agg=" + agg + " n=" + n));
         }
         // sliding frame needs history: trim only elements beyond the last frameSize
-        buffer.trimToCount(key, frameSize);
+        List<long[]> trimmed = buffer.trimToCountWithKeys(key, frameSize);
+        if (bufferState != null) {
+            for (long[] tsKey : trimmed) {
+                try {
+                    bufferState.remove(key + "\u0000" + tsKey[0] + "\u0000" + tsKey[1]);
+                } catch (Exception e) {
+                    throw new io.nop.stream.core.exceptions.StreamException(
+                            io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
+                            .param("detail", "failed to remove sliding-frame OVER entry from keyed state");
+                }
+            }
+        }
     }
 
     /**
