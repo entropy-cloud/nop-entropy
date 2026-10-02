@@ -1,6 +1,6 @@
 # 21 WI11 无窗口持续 GROUP BY
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI11 行、D1=(a) 重排表）、`ai-dev/design/nop-stream/sql-subset-and-semantics.md` §1
 > Related: `ai-dev/plans/nop-stream-sql/14-wi9-aggregate-eval.md`
@@ -67,20 +67,20 @@ Exit Criteria:
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（不同 task_id）：语义标注落点、分支断言判别性（中间值序列 vs 仅终值的区分）、D1=(a) 合规（无 append-only 表述）；证据落 ai-dev/audits/nop-stream-sql/wi11-closure-audit.md
-- [ ] audit 通过后 roadmap WI11 `todo` → `done`（括注单层一对）；`parseRoadmapMarkdown` 复核 31 + 7
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 独立子 agent closure audit（不同 task_id）：三轮轨迹——首轮 FAIL（B-1 扫描恒空转、B-2 §八 7 无可执行断言、B-3 plan/日志未同步）、二轮（B-1/B-2 关闭，B-3 日志半项 + J-1 javadoc 失实）、三轮（B-3 落盘但 WI7 标题行尾重复一行机械残留）、四轮（机械修复后确认 CLOSED，最终 PASS）；证据落 ai-dev/audits/nop-stream-sql/wi11-closure-audit.md
+- [x] audit 通过后 roadmap WI11 `todo` → `done`（括注单层一对）；`parseRoadmapMarkdown` 复核 31 工作项 + 7 里程碑、21 done、无静默丢弃
+- [x] Plan Status → `completed`；check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI11 = done + 解析器 31 + 7 复核通过
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI11 = done + 解析器 31 + 7 复核通过
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 
 ## Closure Gates
 
@@ -88,10 +88,10 @@ Exit Criteria:
 - [x] 语义标注两处落档（buildReduce + StreamReduceOperator），无 append-only 表述
 - [x] (b)/(c) 对账断言绿（UPSERT_BY_KEY 声明外零调用非空转扫描 + D10 门禁既有承载）
 - [x] §八 7 断言落地（guarantee 非 STRICT）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-flow` 绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/21-wi11-continuous-groupby.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `./mvnw test -pl nop-stream/nop-stream-flow` 绿
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/21-wi11-continuous-groupby.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -104,14 +104,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 无窗口持续 GROUP BY 按 D1=(a) 落地——语义标注两处（last-value-wins / 非 append-only / 非 retract），分支断言 3 用例（中间值序列判别、UPSERT_BY_KEY 非空转扫描、§八 7 guarantee 非 STRICT）。独立 closure audit 三轮轨迹（首轮 FAIL 三项 → 修正 → 最终 PASS），日志落盘两轮失实的根因（replace 锚点失配）已用精确锚点 + git show 自证消除。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，三轮独立实读实跑）
+- Audit Session: 证据落档 ai-dev/audits/nop-stream-sql/wi11-closure-audit.md（三轮轨迹，最终 PASS）
+- Evidence:
+  - 语义标注两处三要素实读核验；TestContinuousGroupBy 3/3 隔离与 flow 全量 156 绿
+  - B-1 修复自证（扫描声明计数=1 非空转）；B-2 探针实证（AT_LEAST_ONCE 来源 + STRICT 声明可捕获）
+  - B-3 git show --stat 自证日志文件在 commit 内
+  - 门禁：doc-links strict 0、roadmap 31+7
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/21-wi11-continuous-groupby.md --strict` 退出码 0
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work
