@@ -54,7 +54,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 
 ### M0 — 度量基线与目标裁定
 
-- [ ] WI0 全仓覆盖率基线快照与分模块目标裁定：消费既有 jacoco 管线（root pom coverage profile 默认激活、jacoco 0.8.14、`tests/pom.xml` 聚合报告、`_gen`/`_*.java` 已排除）跑全仓 test + report，产出分模块行/分支覆盖基线快照；快照脚本落 ai-dev/tools/（可重复执行，WI13 复用）；裁定分模块覆盖目标——按模块角色分层，预设建议内核层 ≥55% 行覆盖、业务引擎层 ≥45%、外围 ≥30%，WI0 可按实测推翻并记录理由；修正文件数比已知误判（nop-jq、nop-xlang 等数据驱动模块）；基线报告落 ai-dev/analysis/ 当月目录（Deliverable: 基线报告 + 目标裁定记录 + 可重复脚本；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 全仓覆盖率基线快照与分模块目标裁定：消费既有 jacoco 管线（root pom coverage profile 默认激活、jacoco 0.8.14、`tests/pom.xml` 聚合报告、`_gen`/`_*.java` 已排除）跑全仓 test + report，产出分模块行/分支覆盖基线快照；快照脚本落 ai-dev/tools/（可重复执行，WI13 复用）；裁定分模块覆盖目标——按模块角色分层，预设建议内核层 ≥55% 行覆盖、业务引擎层 ≥45%、外围 ≥30%，WI0 可按实测推翻并记录理由；修正文件数比已知误判（nop-jq、nop-xlang 等数据驱动模块）；基线报告落 ai-dev/analysis/ 当月目录（Deliverable: 基线报告 + 目标裁定记录 + 可重复脚本；deps: 无；Item Type: Decision + Proof）
+
+> WI0 完成（2026-10-02）：基线报告 `ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md`；承载 plan `ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md`（独立 closure audit APPROVE，9/9 PASS）。实施裁定：基线数据源为逐模块 jacoco:report（tests 聚合仅覆盖直接依赖 ~135/409，不能作全仓源）；分层目标采纳预设 + nop-jq/nop-xlang 语义基线 2 例；缺口补跑闭环记录见 plan rev3（nop-kernel 组 pom 无 parent 等三个管线结构性发现）。
 
 ### M1 — 框架内核（回归爆炸半径最大；受保护区零修改）
 
