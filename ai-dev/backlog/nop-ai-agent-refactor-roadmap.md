@@ -54,7 +54,7 @@ audit-rounds: 0
 > 理由：事件 payload 无类型契约（消费者只能强转）与扩展面死配置是治理债，阻塞下游消费（观测/UI 桥接未来形态）
 
 - [x] WI9 AgentEvent payload 类型化 + ignorable 兼容：事件 payload 判别类型化 + 消费者可声明跳过未知事件的兼容契约（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/02-execution-model.md`；来源: `dsh-D3-events.md` ⑥-建议1 + `pi-D3-events.md` ⑥-建议1）
-- [ ] WI10 订阅者失败上报通道：订阅者处理失败不静默吞掉，提供上报路径与策略（Deliverable: 代码变更 + 测试；deps: WI9；Owner: `ai-dev/design/nop-ai-agent/02-execution-model.md`；来源: `pi-D2-extension-points.md` ⑥-建议1）
+- [x] WI10 订阅者失败上报通道：订阅者处理失败不静默吞掉，提供上报路径与策略（Deliverable: 代码变更 + 测试；deps: WI9；Owner: `ai-dev/design/nop-ai-agent/02-execution-model.md`；来源: `pi-D2-extension-points.md` ⑥-建议1）
 - [ ] WI11 veto 死配置收敛：hook 生命周期点 veto 合同收窄——AgentHookInvoker/HookResult 层与 agent.xdef lifecycle 映射中"声明了 veto 能力但无消费点位"的死配置要么实现消费要么类型收窄；live census 以执行时为准（dsh-D2 报告快照的 6 个 veto 点含已移除的 REASONING_CHUNK，需重做）（Deliverable: 代码变更/类型收窄 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/03-extension-matrix.md`；来源: `dsh-D2-extension-points.md` ⑥-建议1）
 - [ ] WI12 修复前后差异审计：IToolCallRepairer 修复链输出修复前后参数差异记录（可观测、可审计），与 7-checkpoint 安全链的"审批所见 vs 执行所用"一致性对齐（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: `dsh-D2-extension-points.md` ⑥-建议2 + `dsh-D7-tool-system.md` ⑥-建议3）
 - [ ] WI13 hook 注册白名单类型化：hook 注册从字符串点白名单升级为类型化契约（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/03-extension-matrix.md`；来源: `pi-D2-extension-points.md` ⑥-建议2）

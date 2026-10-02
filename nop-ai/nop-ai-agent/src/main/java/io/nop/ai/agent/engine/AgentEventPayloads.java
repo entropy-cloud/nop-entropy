@@ -13,6 +13,12 @@ public final class AgentEventPayloads {
     private AgentEventPayloads() {
     }
 
+    // ---- subscriber failure channel (WI10) ----
+    /** Subscriber failure payloads: subscriber class name. */
+    public static final String SUBSCRIBER_ID = "subscriberId";
+    /** Subscriber failure payloads: cumulative failure count. */
+    public static final String FAILURE_COUNT = "failureCount";
+
     // ---- execution lifecycle ----
     /** EXECUTION_COMPLETED payload: veto origin point ("PRE_CALL" etc.). */
     public static final String VETOED_AT = "vetoedAt";
