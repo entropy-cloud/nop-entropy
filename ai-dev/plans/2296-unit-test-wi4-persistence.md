@@ -1,6 +1,6 @@
 # 2296 unit-test-coverage-roadmap WI4 — nop-persistence 核心域补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI4 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；docs-for-ai/02-core-guides/model-first-development.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -73,13 +73,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI4 checkbox
 - [x] 重建覆盖报告（label wi4-2026-10-02）：orm-eql 53.24%→57.58%（+4.34，**达标 ≥55%**）、orm-model 40.61%→47.10%（+6.49）、dao 45.81%→47.93%（+2.12）。
 - [x] nop-db-migration「已达标不回退」确认：79.24% 持平。
 - [x] 残余缺口显式裁定（Deferred 段：18 个低覆盖类分类，生成器/加载设施/接口为主体）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI4 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI4 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI4 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI4 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -89,10 +89,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：翻译类测试断言产出 SQL 而非仅构建 AST（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2296-unit-test-wi4-persistence.md --strict` 退出码 0
-- [ ] roadmap WI4 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：翻译类测试断言产出 SQL 而非仅构建 AST（audit 抽查：TestEqlTranslationSemantics L256-264 断言 from APP_USER/参数序，TestSnowflakeSequenceGenerator 单调性/位布局断言）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2296-unit-test-wi4-persistence.md --strict` 退出码 0
+- [x] roadmap WI4 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -115,13 +115,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 72 用例全绿（91/32/161），orm-eql 57.58% 达标且三处（plan/快照/XML counter 3481/6046）一致，产品/ORM 模型/pom 零修改（git 干净），缺陷嫌疑经源码核实（initRefs 两遍循环时序 L201-206/L216-218 实锤），Deferred 18 类对账吻合。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_3d7bac4c-7f68-434d-81d9-c649606a64d6，fresh session）
 
 Follow-up:
 
