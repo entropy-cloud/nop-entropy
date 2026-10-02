@@ -110,6 +110,24 @@ public class TestEquiJoinWindowTimeout {
         assertEquals(0, op.bufferedCount(), "late record left no state behind");
     }
 
+    @Test
+    public void windowFireCleansDurableEntriesAcrossAllKeys() throws Exception {
+        // MAJ-1 regression guard (audit round 1): the window fire path must re-scope
+        // the keyed backend per equiKey before dropping both sides' entries
+        EquiJoinOperator<String, String> op = join(JoinType.LEFT, 10L, 0L);
+        feed(op, true, "k1", "a", 1);
+        feed(op, true, "k2", "b", 1);
+        wm(op, 30); // window [0,10) fires for both keys
+        assertEquals(java.util.Set.of("J|a|null", "J|b|null"),
+                new java.util.HashSet<>(outs(op)), "both keys' unmatched lefts complete at fire");
+        assertEquals(0, op.bufferedCount());
+        op.setCurrentKey("k1");
+        assertEquals(0, op.keyedBufferEntries(), "k1 durable entries dropped at fire");
+        op.setCurrentKey("k2");
+        assertEquals(0, op.keyedBufferEntries(),
+                "k2 durable entries dropped at fire (cross-key scope)");
+    }
+
     /** output buffer with no E2E env — collects formatted JoinMatch values. */
     static final class WindowListOutput implements Output<StreamRecord<JoinMatch<String, String>>> {
         final List<String> records = new ArrayList<>();

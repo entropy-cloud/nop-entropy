@@ -83,7 +83,7 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private final Long windowDuration;
     private final long timeout;
 
-    /** working view: bufferKey → ordered entries (rebuilt from keyed state on restore). */
+    /** working view: bufferKey → ordered entries (restored through the operator-state transport). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, JoinSideRecord<Object>> bufferState;
@@ -186,10 +186,27 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
 
     private void completeAndTrimHash() throws Exception {
         for (String key : snapshotKeys()) {
+            // keyed MapState ops are scoped to (namespace, CURRENT key) — re-scope
+            // to this buffer key's equiKey before its durable ops, or every
+            // non-current key's entries would leak (audit MAJ-1)
+            scopeToEquiKey(key);
             if (isCompletionSide(sideOf(key))) {
                 completeUnmatched(key);
             }
             trimToWatermark(key, currentWatermark);
+        }
+    }
+
+    /**
+     * Re-scopes the keyed backend to the equiKey that owns this buffer key. The
+     * key OBJECT comes from the buffered records — the exact value the write path
+     * passed to {@code setCurrentKey} (the buffer key's string form is not
+     * route-stable for composite keys).
+     */
+    private void scopeToEquiKey(String key) {
+        List<JoinSideRecord<Object>> view = buffer.sortedView(key);
+        if (!view.isEmpty()) {
+            setCurrentKey(view.get(0).getEquiKey());
         }
     }
 
@@ -209,6 +226,7 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
         for (String key : snapshotKeys()) {
             long winStart = windowStartOf(key);
             if (currentWatermark >= winStart + windowDuration + timeout) {
+                scopeToEquiKey(key);
                 fireWindow(key, winStart);
             }
         }

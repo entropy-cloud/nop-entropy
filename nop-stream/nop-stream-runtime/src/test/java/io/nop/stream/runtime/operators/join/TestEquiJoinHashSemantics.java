@@ -156,6 +156,26 @@ public class TestEquiJoinHashSemantics {
         assertEquals(0, op.bufferedCount());
     }
 
+    @Test
+    public void watermarkCleansDurableEntriesAcrossAllKeys() throws Exception {
+        // MAJ-1 regression guard (audit round 1): the engine's keyed MapState is
+        // scoped to (namespace, CURRENT key) — the watermark cleanup loop must
+        // re-scope per equiKey or every non-current key's durable entries leak.
+        // Per-key scope reads (setCurrentKey before each read) make the leak visible.
+        EquiJoinOperator<String, String> op = join(JoinType.INNER);
+        feed(op, true, "k1", "a", 10);
+        feed(op, false, "k2", "b", 10);
+        feed(op, false, "k1", "c", 20);
+        assertEquals(java.util.Set.of("J|a|c"), new java.util.HashSet<>(outs(op)));
+        wm(op, 100);
+        assertEquals(0, op.bufferedCount(), "working view trimmed across all keys");
+        op.setCurrentKey("k1");
+        assertEquals(0, op.keyedBufferEntries(), "k1 durable entries cleaned at the watermark");
+        op.setCurrentKey("k2");
+        assertEquals(0, op.keyedBufferEntries(),
+                "k2 durable entries cleaned at the watermark (cross-key scope)");
+    }
+
     /**
      * WI8d audit M-2 obligation: isOuter() is actually consumed — INNER (the only
      * non-outer type) emits no completions while the outer types do, on identical
