@@ -1,6 +1,6 @@
 # 2301 unit-test-coverage-roadmap WI9 — nop-format 第一批（nop-excel / nop-record）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI9 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -66,13 +66,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI9 checkbox
 
 - [x] 删两模块 exec → baseline 脚本复测（label wi9-2026-10-02）：excel 16.44%→31.06%（+14.62，**首次达标 ≥30%**）、record 59.17%→64.48%（+5.31）；excel 低覆盖 34→24、record 11→5。
 - [x] 残余缺口显式裁定（Deferred 段：excel imp 导入链需真实 xlsx fixture、chart 子系统、reader/IO 边角）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI9 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI9 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI9 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI9 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -82,10 +82,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：导出/编解码测试断言产出内容而非仅调用（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2301-unit-test-wi9-excel-record.md --strict` 退出码 0
-- [ ] roadmap WI9 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：导出/编解码测试断言产出内容而非仅调用（audit 抽查：golden 全结构比对+关键字段断言、u2be/u2le 字节反序与 IEEE754 位模式逐字节校验）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2301-unit-test-wi9-excel-record.md --strict` 退出码 0
+- [x] roadmap WI9 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -107,13 +107,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 提交 amend 后纯净（无并行 WI10 夹带、无产品/pom 改动），15 测试类/59 用例全绿（76/192），excel 31.06%/record 64.48% 与 jacoco XML 逐位一致且双达标，golden 与字节级 Anti-Hollow 抽查通过，7 项缺陷嫌疑有源码依据。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_8542bbed-98a1-44d1-a1a4-d9a24b587bd6，fresh session）
 
 Follow-up:
 

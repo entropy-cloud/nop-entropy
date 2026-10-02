@@ -88,7 +88,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 
 ### M3 — format 与外围
 
-- [ ] WI9 nop-format 第一批：nop-excel（224/11）模型解析/公式计算/导出（golden 快照模式）、nop-record 二进制编解码 roundtrip 补强（103/24）（Deliverable: 测试 + golden fixtures；deps: WI0；Item Type: Fix）
+- [x] WI9 nop-format 第一批：nop-excel（224/11）模型解析/公式计算/导出（golden 快照模式）、nop-record 二进制编解码 roundtrip 补强（103/24）（Deliverable: 测试 + golden fixtures；deps: WI0；Item Type: Fix）
+
+> WI9 完成（2026-10-02）：15 测试类/59 用例全绿（76/192）+ golden fixtures；excel 16.44%→31.06%（**首次达标 ≥30%**）、record 59.17%→64.48%（快照 coverage-baseline-wi9-2026-10-02.json）。7 项缺陷嫌疑记录（bugs/2026-10/2026-10-02-wi9-defect-suspects.md）。独立 closure audit APPROVE（9/9，提交经 amend 纯净）。
 - [ ] WI10 nop-format 第二批：nop-pdf（107/6）、nop-mermaid（40/1）、nop-converter（35/1）、nop-office-model（24/0）、nop-office-doc-model（33/0）、nop-chart-export（29/3）（Deliverable: 测试；deps: WI0；Item Type: Fix）
 - [ ] WI11 可靠性外围：nop-cluster-core（54/6）、nop-retry（41/4）、nop-tcc（43/5）、nop-network（48/10）、nop-graph（27/3）；异步/并发域严格遵守 testing.md 防挂起六规则；已知缺陷（TarjanSCC lowLink、retry 幂等键生命周期）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
 - [ ] WI12 小模块收尾与达标确认：nop-spring（29/1）、nop-quarkus（21/0）、nop-file（14/0）、nop-autotest（41/1 测试基建自身）、nop-search（17/3）、nop-integration（61/16）、nop-frontend-support（84/18）、nop-utils（115/24）、nop-dev-tools/nop-message/nop-credential/nop-runner/nop-bytecode/nop-refactor/nop-report 按 WI0 基线确认达标或补缺（Deliverable: 测试 + 确认记录；deps: WI0；Item Type: Fix）
