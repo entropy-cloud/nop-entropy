@@ -42,7 +42,7 @@ public class TestDebeziumConnectorFactory {
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("debezium-cdc", d.getTypeName());
         assertEquals(d.getSourceConsistency(), source.getSourceConsistency());
-        assertEquals(ConnectorParallelism.SINGLE_INSTANCE, d.getParallelism());
+        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.OFFSET_CHECKPOINT, d.getRecoverySemantic());
     }
 

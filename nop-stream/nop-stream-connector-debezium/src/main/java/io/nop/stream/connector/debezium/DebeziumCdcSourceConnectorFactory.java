@@ -33,7 +33,9 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFun
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
             .source(TYPE_NAME, DebeziumCdcSourceFunction.class.getName())
             .sourceConsistency(SourceConsistencyCapability.REPLAYABLE)
-            .parallelism(ConnectorParallelism.SINGLE_INSTANCE)
+            // B 层确定性表路由（cdc-design.md §3.3）：parallelism > 1 时按表名 hash 分片，
+            // 每实例独立 connector name 与 offset；validateParallelism 在部署期 fail-fast。
+            .parallelism(ConnectorParallelism.PARALLEL)
             .recoverySemantic(ConnectorRecoverySemantic.OFFSET_CHECKPOINT)
             .params(List.of(
                     ConnectorParamDescriptor.required("config", OBJECT,

@@ -22,6 +22,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.functions.source.SubtaskShardedSourceFunction;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.execution.Mail;
 import io.nop.stream.core.execution.MailboxExecutor;
@@ -203,6 +204,22 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     @Override
     public StreamSourceOperator<OUT> copyForSubtask() {
         return new StreamSourceOperator<>(sourceFunction);
+    }
+
+    /**
+     * Index-aware copy (cdc-design.md §3.3 layer B): when the wrapped function implements
+     * {@link SubtaskShardedSourceFunction}, each subtask gets its OWN function copy bound
+     * to the deterministic shard for {@code subtaskIndex}; the legacy shared-instance
+     * semantics is preserved for all other functions (zero regression).
+     */
+    @Override
+    public StreamSourceOperator<OUT> copyForSubtask(int subtaskIndex) {
+        SourceFunction<OUT> fn = this.sourceFunction;
+        if (fn instanceof SubtaskShardedSourceFunction) {
+            SubtaskShardedSourceFunction<OUT> sharded = (SubtaskShardedSourceFunction<OUT>) fn;
+            return new StreamSourceOperator<>(sharded.copyForSubtask(subtaskIndex));
+        }
+        return copyForSubtask();
     }
 
     /**

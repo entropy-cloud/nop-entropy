@@ -280,6 +280,10 @@ public class TestDebeziumCdcCheckpoint {
         // Kill: cancel the source
         source.cancel();
         runner.join(5000);
+        assertFalse(runner.isAlive(),
+                "first-run emitter thread must be dead before snapshot: a live thread committing"
+                        + " offsets after the snapshot is exactly the replay-duplicate race this"
+                        + " test guards against");
 
         // Snapshot AFTER kill: capture the final committed offset. Snapshotting before cancel
         // races with the emitter thread (events committed between snapshot and cancel would be
@@ -332,6 +336,7 @@ public class TestDebeziumCdcCheckpoint {
         }
         recovered.cancel();
         runner2.join(5000);
+        assertFalse(runner2.isAlive(), "recovery emitter thread must be dead before assertions");
 
         assertFalse(recoveredCollected.isEmpty(), "recovery run should emit at least one new event");
 

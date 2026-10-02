@@ -27,14 +27,14 @@
 - WI1 引擎升级 3.7.0.Final: `done`
 - WI2 真实数据库集成测试基建: `todo`
 - WI3 A 层并行快照透传与配置契约: `done`
-- WI4 B 层 subtask 表路由与描述符 PARALLEL: `todo`
+- WI4 B 层 subtask 表路由与描述符 PARALLEL: `done`
 - WI5 jdbc-2pc dmlMode CDC 落库: `todo`
 - WI6 schema history 换轨 JdbcSchemaHistory: `done`
 - WI7 引擎单写者钉定与配置守卫: `done`
 - WI8 reference 验收场景与文档同步: `todo`
 
 ★ **里程碑：M1 引擎换代完成**（WI1 通过全部既有与新增单元测试）：`done`
-★ **里程碑：M2 单机并行可用**（WI3 + WI4 落地，debezium-cdc 声明 PARALLEL）：`todo`
+★ **里程碑：M2 单机并行可用**（WI3 + WI4 落地，debezium-cdc 声明 PARALLEL）：`done`
 ★ **里程碑：M3 CDC 镜像闭环**（WI5 + WI6 + WI8 验收通过）：`todo`
 
 ## Phase 1——引擎换代（门：M1）

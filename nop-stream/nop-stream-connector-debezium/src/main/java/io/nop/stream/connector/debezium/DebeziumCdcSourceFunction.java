@@ -9,6 +9,8 @@ package io.nop.stream.connector.debezium;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +32,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.functions.source.SubtaskShardedSourceFunction;
 import io.nop.stream.core.connector.ConnectivityCheckable;
 import io.nop.stream.core.connector.DrainableSource;
 import io.nop.stream.core.credentials.StreamCredentialSupport;
@@ -53,7 +56,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  *
  * <p>See {@code ai-dev/design/nop-stream/connector-design.md} §5.4 for the full design rationale.
  */
-public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
+public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<ChangeEvent>,
+        DrainableSource<ChangeEvent>,
         CheckpointedSourceFunction<ChangeEvent>, ConnectivityCheckable {
 
     private static final long serialVersionUID = 1L;
@@ -106,6 +110,15 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
      * is carried in the checkpoint, not in the serialized source instance).
      */
     private transient NopStreamOffsetBackingStore offsetStore;
+
+    /**
+     * B-layer sharding identity (cdc-design.md §3.3): this copy's subtask index and the
+     * total parallelism recorded at {@link #validateParallelism(int)} time. Defaults to the
+     * single-instance identity (0, 1) — every pre-existing single-instance behavior is the
+     * {@code totalParallelism == 1} path.
+     */
+    private int subtaskIndex;
+    private int totalParallelism = 1;
 
     public DebeziumCdcSourceFunction(DebeziumConfig config) {
         this(config, null);
@@ -399,7 +412,7 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
     private String resolveConnectorName() {
         DebeziumConfig cfg = this.config;
         if (cfg != null && cfg.getName() != null && !cfg.getName().isEmpty()) {
-            return cfg.getName();
+            return instanceName(cfg.getName());
         }
         // AR-03: unnamed connectors silently share the "_default_" offset bucket and overwrite
         // each other's offsets in the same JVM. Fail fast with configuration guidance.
@@ -408,6 +421,139 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
                         "Debezium connector name is required: set DebeziumConfig.name so the offset "
                                 + "registry bucket is unique per connector (unnamed connectors share "
                                 + "the '_default_' bucket and silently overwrite each other's offsets)");
+    }
+
+    // ------------------------------------------------------------------
+    // B-layer subtask sharding (cdc-design.md §3.3): deterministic table routing
+    // ------------------------------------------------------------------
+
+    /**
+     * Deployment-time parallelism validation on the TEMPLATE instance, invoked by the
+     * execution-plan builders before any subtask copy exists. Records the parallelism so
+     * {@link #copyForSubtask(int)} copies route deterministically, and simulates the hash
+     * routing so an instance that would receive zero tables fails at deployment instead of
+     * starting a silent idle engine.
+     */
+    @Override
+    public void validateParallelism(int parallelism) {
+        if (parallelism <= 1) {
+            this.totalParallelism = 1;
+            this.subtaskIndex = 0;
+            return;
+        }
+        List<String> tables = includeListEntries(config.getTableIncludeList());
+        if (tables.isEmpty()) {
+            throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                    .param(ARG_DETAIL, "DebeziumConfig.tableIncludeList is required when the CDC source"
+                            + " parallelism > 1: table sharding is the B-layer routing domain"
+                            + " (single-table parallel snapshot: use snapshotMaxThreads, layer A)");
+        }
+        if (tables.size() < parallelism) {
+            throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                    .param(ARG_DETAIL, "CDC source parallelism " + parallelism
+                            + " exceeds tableIncludeList size " + tables.size()
+                            + ": route at most one parallelism per table; for intra-table parallel"
+                            + " snapshot use snapshotMaxThreads (layer A)");
+        }
+        for (int shard = 0; shard < parallelism; shard++) {
+            if (route(tables, parallelism, shard).isEmpty()) {
+                throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                        .param(ARG_DETAIL, "table routing would leave subtask " + shard
+                                + " with zero tables (hash collision at parallelism " + parallelism
+                                + "): adjust the table list or reduce the parallelism");
+            }
+        }
+        this.totalParallelism = parallelism;
+    }
+
+    /**
+     * Per-subtask copy via a serialization round-trip of this (serializable) function, then
+     * bound to the shard for {@code subtaskIndex}. The original template instance is never
+     * mutated; each copy owns its own config object.
+     */
+    @Override
+    public SubtaskShardedSourceFunction<ChangeEvent> copyForSubtask(int subtaskIndex) {
+        DebeziumCdcSourceFunction copy = serializationRoundTripCopy(this);
+        copy.credentialProvider = null;
+        copy.subtaskIndex = subtaskIndex;
+        copy.totalParallelism = Math.max(1, this.totalParallelism);
+        return copy;
+    }
+
+    /**
+     * The shard of a table entry: floor-mod of the entry's {@code String.hashCode()}
+     * (stable across JVMs by JLS) over the total parallelism — deterministic and
+     * negative-safe.
+     */
+    static int shardOf(String tableEntry, int totalParallelism) {
+        return Math.floorMod(tableEntry.hashCode(), totalParallelism);
+    }
+
+    private List<String> includeListEntries(String includeList) {
+        if (includeList == null || includeList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> entries = new java.util.ArrayList<>();
+        for (String entry : includeList.split(",")) {
+            String trimmed = entry.trim();
+            if (!trimmed.isEmpty()) {
+                entries.add(trimmed);
+            }
+        }
+        return entries;
+    }
+
+    static List<String> route(List<String> tables, int totalParallelism, int subtaskIndex) {
+        List<String> routed = new java.util.ArrayList<>();
+        for (String table : tables) {
+            if (shardOf(table, totalParallelism) == subtaskIndex) {
+                routed.add(table);
+            }
+        }
+        return routed;
+    }
+
+    /**
+     * The include list THIS instance passes to its Debezium engine: the full list when
+     * single-instance, otherwise the hash-routed subset for {@link #subtaskIndex}.
+     */
+    private String routedIncludeList() {
+        if (totalParallelism <= 1) {
+            return config.getTableIncludeList();
+        }
+        List<String> routed = route(includeListEntries(config.getTableIncludeList()),
+                totalParallelism, subtaskIndex);
+        return String.join(",", routed);
+    }
+
+    /**
+     * The engine-visible connector identity: the base name when single-instance, otherwise
+     * {@code name-<subtaskIndex>} so the offset registry, the failure-listener registry and
+     * the Debezium {@code name} property are unique per instance (AR-03 lifecycle applies
+     * per instance name).
+     */
+    private String instanceName(String baseName) {
+        return totalParallelism > 1 ? baseName + "-" + subtaskIndex : baseName;
+    }
+
+    int getSubtaskIndexForTest() {
+        return subtaskIndex;
+    }
+
+    int getTotalParallelismForTest() {
+        return totalParallelism;
+    }
+
+    String instanceConnectorNameForTest() {
+        return resolveConnectorName();
+    }
+
+    String routedIncludeListForTest() {
+        return routedIncludeList();
+    }
+
+    DebeziumConfig effectiveEngineConfigForTest() {
+        return effectiveEngineConfig();
     }
 
     /**
@@ -476,31 +622,54 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
      */
     private DebeziumConfig effectiveEngineConfig() {
         DebeziumConfig cfg = this.config;
+        DebeziumConfig result;
         if (!hasCredentialReferences()) {
-            return cfg;
+            result = cfg;
+        } else {
+            result = serializationRoundTripCopy(cfg);
+            result.setDatabaseUser(resolveIfReference(cfg.getDatabaseUser(), FIELD_DATABASE_USER));
+            result.setDatabasePassword(resolveIfReference(cfg.getDatabasePassword(), FIELD_DATABASE_PASSWORD));
+            result.setSchemaHistoryJdbcUser(resolveIfReference(cfg.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER));
+            result.setSchemaHistoryJdbcPassword(
+                    resolveIfReference(cfg.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD));
         }
-        DebeziumConfig copy = serializationRoundTripCopy(cfg);
-        copy.setDatabaseUser(resolveIfReference(cfg.getDatabaseUser(), FIELD_DATABASE_USER));
-        copy.setDatabasePassword(resolveIfReference(cfg.getDatabasePassword(), FIELD_DATABASE_PASSWORD));
-        copy.setSchemaHistoryJdbcUser(resolveIfReference(cfg.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER));
-        copy.setSchemaHistoryJdbcPassword(
-                resolveIfReference(cfg.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD));
-        return copy;
+        if (totalParallelism > 1) {
+            // B-layer routing: the engine of THIS instance only sees its own identity and
+            // table shard. The original config object is never mutated (it is shared by the
+            // template instance and every serialization path).
+            if (result == cfg) {
+                result = serializationRoundTripCopy(cfg);
+            }
+            result.setName(instanceName(resolveBaseName()));
+            result.setTableIncludeList(routedIncludeList());
+        }
+        return result;
     }
 
-    private static DebeziumConfig serializationRoundTripCopy(DebeziumConfig cfg) {
+    private String resolveBaseName() {
+        DebeziumConfig cfg = this.config;
+        if (cfg != null && cfg.getName() != null && !cfg.getName().isEmpty()) {
+            return cfg.getName();
+        }
+        throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                .param(ARG_DETAIL, "Debezium connector name is required");
+    }
+
+    private static <X> X serializationRoundTripCopy(X obj) {
         try {
             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
             try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos)) {
-                oos.writeObject(cfg);
+                oos.writeObject(obj);
             }
             try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
                     new java.io.ByteArrayInputStream(bos.toByteArray()))) {
-                return (DebeziumConfig) ois.readObject();
+                @SuppressWarnings("unchecked")
+                X copy = (X) ois.readObject();
+                return copy;
             }
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_CONFIG_ERROR, e)
-                    .param(ARG_DETAIL, "failed to build the transient decrypted config copy");
+                    .param(ARG_DETAIL, "failed to build the serialization round-trip copy");
         }
     }
 }
