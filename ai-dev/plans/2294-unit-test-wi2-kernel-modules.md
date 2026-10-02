@@ -1,6 +1,6 @@
 # 2294 unit-test-coverage-roadmap WI2 — nop-commons / nop-api-core / kernel 小模块补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI2 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -72,13 +72,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI2 checkbox
 - [x] 重建四模块覆盖报告：删各模块 `target/*.exec` → `coverage-baseline.sh --skip-test --label wi2-2026-10-02`，基线→复测：commons 23.97%→28.57%（+4.60）、api-core 29.29%→35.01%（+5.72）、dataset 21.63%→25.50%（+3.87）、codegen 26.07%→38.94%（+12.87）。
 - [x] nop-record-mapping（58.16%→58.16%）与 nop-markdown（56.28%→56.28%）"已达标不回退"确认：复测与基线一致。
 - [x] 残余缺口显式裁定：四模块均未达 55% 预设——deferred to WI13 复裁（Deferred 段）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI2 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI2 checkbox。
 
 Exit Criteria:
 
 - [x] 四模块增量数字记录在案（快照 coverage-baseline-wi2-2026-10-02.json）。
 - [x] 残余缺口裁定有记录（Deferred 段）。
-- [ ] roadmap WI2 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI2 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -88,10 +88,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录（基线 vs 复测）
 - [x] 残余缺口显式裁定（无静默降级，见 Deferred 段）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：新增测试断言语义而非仅实例化（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2294-unit-test-wi2-kernel-modules.md --strict` 退出码 0
-- [ ] roadmap WI2 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：新增测试断言语义而非仅实例化（audit 抽查：TestMutableIntArray 90 处断言、TestGraphQLResponseBean 36 处断言，均显式语义）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2294-unit-test-wi2-kernel-modules.md --strict` 退出码 0
+- [x] roadmap WI2 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -114,13 +114,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 20/20 测试类真实、含语义断言、全绿零失败；产品代码/pom 零修改；测量数字与 wi2 快照 JSON 逐项吻合；@Disabled 缺陷钉住规范；Deferred 裁定合规且理由经 JSON 交叉验证。roadmap closure 规则 (a)(b) 满足，(c) 三处状态已同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_d40a3c9e-5e94-409a-a147-2307346c8feb，fresh session）
 
 Follow-up:
 

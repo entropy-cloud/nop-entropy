@@ -61,7 +61,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 ### M1 — 框架内核（回归爆炸半径最大；受保护区零修改）
 
 - [ ] WI1 nop-core 补强（实测 749/66）：resource/VFS 加载与 Delta 合并、config 体系、entity 元模型、XML/JSON 解析边界、错误码注册等纯逻辑域优先（`BaseTestCase` 级，无 DB 无 IoC）；protected area——产品代码零修改（Deliverable: 测试；deps: WI0；Item Type: Fix）
-- [ ] WI2 nop-commons + nop-api-core 补强（403/41 + 322/33）：helpers/util 边角值域、api-core 模型解析；nop-kernel 其余小模块顺带补强（nop-dataset 59/5、nop-codegen 41/10、nop-record-mapping 24/5、nop-markdown 25/9）（Deliverable: 测试；deps: WI0；Item Type: Fix）
+- [x] WI2 nop-commons + nop-api-core 补强（403/41 + 322/33）：helpers/util 边角值域、api-core 模型解析；nop-kernel 其余小模块顺带补强（nop-dataset 59/5、nop-codegen 41/10、nop-record-mapping 24/5、nop-markdown 25/9）（Deliverable: 测试；deps: WI0；Item Type: Fix）
+
+> WI2 完成（2026-10-02）：20 个测试类全绿（commons 8/api-core 7/dataset 1/codegen 4）；覆盖 commons 23.97%→28.57%、api-core 29.29%→35.01%、dataset 21.63%→25.50%、codegen 26.07%→38.94%（快照 coverage-baseline-wi2-2026-10-02.json）；record-mapping/markdown 持平不回退。残余缺口 deferred to WI13（plan 2294 Deferred 段）。4 项产品缺陷嫌疑记录未修（bugs/2026-10/2026-10-02-wi2-defect-suspects.md）。独立 closure audit APPROVE。
 - [ ] WI3 nop-xlang 补强（734/98）：xpl/xscript 求值边界（字面量/运算符/内建函数/错误路径——2026-09-30 审计已发现 JsPromise 错误路径偏离 JS 语义三处，修复时回归并入）、解析错误恢复、xdef 校验规则边角；已有 98 个测试文件，增量聚焦 WI0 基线显示的低覆盖类；protected area——产品代码零修改（Deliverable: 测试；deps: WI0；Item Type: Fix）
 - [ ] WI4 nop-persistence 核心域补强：nop-orm-eql EQL→SQL 翻译（149/8——方言分支/函数翻译/子查询/分页）、nop-orm-model 模型加载与校验（64/4）、nop-db-migration DDL diff 与迁移生成（72/9）、nop-dao 补强（107/28）；orm 主模块 136 个测试文件为就近模式参照（Deliverable: 测试；deps: WI0；Item Type: Fix）
 
