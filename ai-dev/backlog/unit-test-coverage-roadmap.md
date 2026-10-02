@@ -1,6 +1,6 @@
 # 全仓单元测试补充 Roadmap（unit-test coverage uplift）
 
-> Last updated: 2026-09-30
+> Last updated: 2026-10-02（WI13 收口回写）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > 数据口径：main = `src/main/java` 下 `.java` 文件数（排除 `_gen` 生成物，与 root pom sonar/jacoco 排除口径一致）；test = `src/test/java` 下 `.java` 文件数。实测日期 2026-09-30。
 
@@ -17,9 +17,15 @@
 
 **硬边界**：本 roadmap 的 work item 只新增测试与测试资源，**不修改产品行为**。测试暴露的产品缺陷一律走独立 bug 流程（`ai-dev/bugs/00-bug-fix-note-writing-guide.md`），修复作为独立变更立项（其回归测试天然计入覆盖增量）。
 
-## Current Baseline（2026-09-30 实测）
+## Current Baseline（2026-10-02 WI13 收口实测；起草基线 2026-09-30 见 git 历史）
 
-文件数比只是**粗筛信号**，不作为完成判定：数据驱动测试模块会被严重低估（nop-jq 官方 jq 1.7.1 套件 430/430 走单个 `.test` 资源文件驱动，仅 7 个测试类；nop-xlang 大量为数据用例集）。WI0 用既有 jacoco 管线实测行/分支覆盖后校准目标。
+> WI0-WI13 全部收口（承载 plan 2292-2305，独立 closure audit 全部 APPROVE）。收口快照：`ai-dev/analysis/2026-10/coverage-baseline-wi13-2026-10-02.json/.md`（WI0 管线全仓统一重跑，318 模块 / 213 有报告）。刷新与裁定报告：`ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md`。
+
+- 全仓加权行覆盖：**56.92% → 58.37%**（+1.45pp；分母因 15 个模块首次产出覆盖而扩大——逐模块全部为增量，无回归）。
+- 分层：kernel 44.38%→**47.87%**（+3.49）；engine 52.62%→46.79%（**名义下降为分母效应**——六个此前 NO-EXEC 的 api/dao 模块建立测试后以低行覆盖进入加权，逐模块增量见 WI5/WI7/WI8）；periphery 67.14%→**68.42%**（+1.28）。
+- 达标总览：非语义模块 210 中 **159 达标**；语义 2（nop-jq 73.24%、nop-xlang 49.73%）；未达标 59 模块已逐类显式裁定（8 接受结构性现状 / 13 生成样板 / 19 容器耦合延期 / 7 内核大模块后继投入 / 7 引擎运行时延期 / 5 管线外 N/A），理由见刷新报告。
+- 文件数比仍是粗筛信号（历史表格保留在 git 历史供比对）；完成判定一律以 WI0 裁定的 jacoco 实测口径。
+- 后续巡检：`ai-dev/tools/coverage-baseline.sh --skip-maven` 对比 wi13 快照防倒退。缺陷嫌疑 44 项（bugs/2026-10/）待独立立项。
 
 ### 缺口榜（按波次分组）
 
