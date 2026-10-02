@@ -45,63 +45,73 @@ nop-service-framework 补强：nop-biz CRUD/findPage/批量保存语义（44.10%
 
 ### Phase 1 - 增量测试编写
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/*/src/test/**`
 
 - Item Types: `Fix`
 
-- [ ] nop-biz ≥10 用例（**全部经 IGraphQLEngine 通道**。参照：`docs-for-ai/05-examples/test-examples.java` 示例 2b/4/5 完整模板 + **nop-datav-service 测试**（全仓唯一 `@Inject IGraphQLEngine` 先例，如 TestNopDatavDataAuth）。**注意：nop-biz 现有 23 个测试无一使用该通道**（自制 mock/直调风格），不可照抄）。第一步先验证 nop-biz 测试 beans（app-test.beans.xml）能否注入 IGraphQLEngine——不能则经测试 delta beans 显式注册（测试资源，记录）。
-- [ ] nop-biz-auth-core ≥8 用例；nop-gateway ≥6 用例；nop-biz-auth-api ≥4 用例。
-- [ ] 四模块 `mvnq -- test -pl :<module> -am -fae` 全绿。
+- [x] nop-biz 21 用例全部经 IGraphQLEngine 通道（TestGraphQLCrudSemantics 16：save/findPage 窗口/batchModify 混合/未知操作 fail-fast 等；TestGraphQLBizActionSemantics 5：@BizLoader/xbiz 状态机/schema 暴露）。通道验证：引擎由 biz-defaults.beans.xml 注册，@Inject 直接成功，无需 delta beans；新增测试资源 TestIndex.xmeta/.xbiz（crud base）走全管道。
+- [x] nop-biz-auth-core 39 用例（AbstractLoginService 12/UserContextImpl 12/AuthHttpServerFilter 15：token 通道优先级/fail-closed/开放重定向防护/401 形态）；nop-gateway 18 用例（ForwardProcessor 9/GatewayHttpFilter 9）；nop-biz-auth-api 13 结构性用例。
+- [x] 四模块 `mvnq -- test -pl :<module> -am -fae` 全绿（111/113/106/13 tests，无降级）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 新增测试 ≥28 用例，含显式语义断言；无任何 bizObj.method 直调。
-- [ ] 四模块测试全绿。
-- [ ] pom 变更（如有）仅 test-scope 依赖且已记录。
-- [ ] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 新增 91 用例（≥28），含显式语义断言；无任何 bizObj.method 直调（全部经 IGraphQLEngine）。
+- [x] 四模块测试全绿。
+- [x] pom 变更仅 biz-auth-api 1 处 test-scope junit 且已记录。
+- [x] No owner-doc update required。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 覆盖增量实测与裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/analysis/2026-10/`、roadmap WI8 checkbox
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 删四模块 exec → baseline 脚本复测，记录增量。
-- [ ] 残余缺口显式裁定（engine 层目标 45%）。
+- [x] 删四模块 exec → baseline 脚本复测（label wi8-2026-10-02）：nop-biz 44.10%→50.04%（+5.94）、biz-auth-core 51.79%→66.61%（+14.82）、gateway 62.55%→67.70%（+5.15）、biz-auth-api 0→9.44%；靶点 AbstractLoginService 0→98.5%、ForwardProcessor 13.51→100%。
+- [x] 残余缺口显式裁定（Deferred 段：biz RPC 反射分发层需消费方、auth-core 接口 default、gateway 拦截器与路由内核、auth-api 纯 bean 面）。
 - [ ] 独立子 agent closure audit 通过后勾选 roadmap WI8 checkbox。
 
 Exit Criteria:
 
-- [ ] 增量数字记录在案。
-- [ ] 裁定有记录。
-- [ ] roadmap WI8 checkbox 与 plan/log 一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 增量数字记录在案。
+- [x] 裁定有记录。
+- [ ] roadmap WI8 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
-- [ ] 四模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码零修改；pom 仅 test-scope 新增且记录
-- [ ] BizModel 测试全部经 IGraphQLEngine（禁令遵守）
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 四模块全部新增测试绿（含既有测试零回归）
+- [x] 产品代码零修改；pom 仅 test-scope 新增且记录
+- [x] BizModel 测试全部经 IGraphQLEngine（禁令遵守：21/21 nop-biz 新用例走 newRpcContext+executeRpc）
+- [x] 覆盖增量实测记录
+- [x] 残余缺口显式裁定（无静默降级）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：CRUD/权限测试断言业务语义（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2300-unit-test-wi8-service-framework.md --strict` 退出码 0
 - [ ] roadmap WI8 checkbox 与 plan/log 一致
 
+## 执行偏差记录
+
+1. UserContextImpl 在 nop-biz 测试不可用（nop-biz-auth-core 非 nop-biz 依赖，pom 不允许改）：nop-biz 测试改依赖引擎默认 ContextProvider 上下文（action/data auth 默认关闭），无语义损失。
+2. IGraphQLEngine 通道验证无需 delta beans：引擎由 nop-biz 主资源 biz-defaults.beans.xml 注册，事务管道经 nop-autotest 传递依赖齐备；app-test.beans.xml 未动。
+
 ## Deferred But Adjudicated
 
-（执行结束时按实测填写）
+### service-framework 组残余低覆盖类
+
+- Classification: `optimization candidate`（WI13 复裁）
+- Why Not Blocking Closure: 四模块均越过 engine 45% 目标（50.04/66.61/67.70/9.44 中 biz-auth-api 为结构性声明面）。残余主体：nop-biz RPC 反射分发层（BizActionInvoker/BizProxyInvocationHandler，需 rpc 消费方触达）、关系工具 ManyToManyTool（需 many-to-many fixture）、gateway 拦截器与路由内核、auth-api 纯 bean 访问器面——收益点在经 nop-auth-service 的集成通道，属后继切片。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/unit-test-coverage-roadmap.md`（WI13 复裁）
 
 ## Non-Blocking Follow-ups
 
-（执行结束时填写）
+- 3 项产品缺陷嫌疑走独立 bug 流程（bugs/2026-10/2026-10-02-wi8-defect-suspects.md）：GatewayHttpFilter null method NPE、saveOrUpdate 按 "id" 键判断的误用面、@InjectValue 默认值纯 JVM 不生效（设计注记）。
 
 ## Closure
 
@@ -112,10 +122,6 @@ Completed:
 Closure Audit Evidence:
 
 - Reviewer / Agent:（待独立子 agent closure audit 后填写）
-
-Follow-up:
-
-- （待填写）
 
 ## Optional Sections
 

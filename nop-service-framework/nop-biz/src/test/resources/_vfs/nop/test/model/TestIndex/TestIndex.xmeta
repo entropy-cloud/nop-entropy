@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:biz="biz" xmlns:graphql="graphql"
+      displayName="Test Index">
+
+    <entityName>test.TestIndex</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <props>
+        <prop name="sid" displayName="ID" propId="1" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+
+        <prop name="name" displayName="名称" propId="2"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+
+        <prop name="parentId" displayName="父指标" propId="3"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+
+        <prop name="unit" displayName="单位" propId="4"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+
+        <prop name="value" displayName="值" propId="5"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+    </props>
+</meta>

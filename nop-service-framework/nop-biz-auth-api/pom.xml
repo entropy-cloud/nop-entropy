@@ -23,6 +23,13 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-api-core</artifactId>
         </dependency>
+
+        <!-- WI8 (plan 2300): 模块此前无 src/test 且无测试依赖；junit-jupiter 版本由根 pom dependencyManagement 管理 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
