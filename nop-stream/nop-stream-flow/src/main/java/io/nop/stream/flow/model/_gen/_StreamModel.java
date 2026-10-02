@@ -148,6 +148,18 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: sql
+     * WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
+     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
+     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
+     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
+     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
+     * 追加 sink 声明与边（产物自洽可执行）。
+     */
+    private io.nop.stream.flow.model.StreamSqlModel _sql ;
+    
+    /**
+     *  
      * xml name: streams
      * 流定义注册表（命名流，用于跨算子引用）
      */
@@ -701,6 +713,30 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: sql
+     *  WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
+     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
+     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
+     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
+     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
+     * 追加 sink 声明与边（产物自洽可执行）。
+     */
+    
+    public io.nop.stream.flow.model.StreamSqlModel getSql(){
+      return _sql;
+    }
+
+    
+    public void setSql(io.nop.stream.flow.model.StreamSqlModel value){
+        checkAllowChange();
+        
+        this._sql = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: streams
      *  流定义注册表（命名流，用于跨算子引用）
      */
@@ -902,6 +938,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
             
            this._sideInputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sideInputs);
             
+           this._sql = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sql);
+            
            this._streams = io.nop.api.core.util.FreezeHelper.deepFreeze(this._streams);
             
            this._transforms = io.nop.api.core.util.FreezeHelper.deepFreeze(this._transforms);
@@ -931,6 +969,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("requirements",this.getRequirements());
         out.putNotNull("schemas",this.getSchemas());
         out.putNotNull("sideInputs",this.getSideInputs());
+        out.putNotNull("sql",this.getSql());
         out.putNotNull("streams",this.getStreams());
         out.putNotNull("transforms",this.getTransforms());
         out.putNotNull("version",this.getVersion());
@@ -963,6 +1002,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         instance.setRequirements(this.getRequirements());
         instance.setSchemas(this.getSchemas());
         instance.setSideInputs(this.getSideInputs());
+        instance.setSql(this.getSql());
         instance.setStreams(this.getStreams());
         instance.setTransforms(this.getTransforms());
         instance.setVersion(this.getVersion());

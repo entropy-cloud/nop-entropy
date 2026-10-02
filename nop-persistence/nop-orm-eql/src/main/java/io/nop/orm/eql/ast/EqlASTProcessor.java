@@ -99,6 +99,9 @@ public class EqlASTProcessor<T,C>{
             case SqlSubqueryTableSource:
                 return processSqlSubqueryTableSource((SqlSubqueryTableSource)node,context);
         
+            case SqlTumbleTableSource:
+                return processSqlTumbleTableSource((SqlTumbleTableSource)node,context);
+        
             case SqlNotExpr:
                 return processSqlNotExpr((SqlNotExpr)node,context);
         
@@ -330,6 +333,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlSubqueryTableSource(SqlSubqueryTableSource node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlTumbleTableSource(SqlTumbleTableSource node, C context){
         return defaultProcess(node, context);
 	}
     

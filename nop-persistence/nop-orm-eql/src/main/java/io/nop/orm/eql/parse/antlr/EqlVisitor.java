@@ -201,6 +201,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlTumbleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlSingleTableSource_ex}
 	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
@@ -220,6 +227,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlTumbleTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSubqueryTableSource}.
 	 * @param ctx the parse tree

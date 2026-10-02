@@ -647,6 +647,12 @@ TEMPORARY
     : T E M P O R A R Y
     ;
 
+// WI17: TUMBLE(t, INTERVAL) 流时间切片伪表函数（D4 裁定）。登记 unreservedWord_
+// 保持既有标识符兼容（列/表名可用 tumble）。
+TUMBLE
+    : T U M B L E
+    ;
+
 TIMEZONE_HOUR
     : T I M E Z O N E UL_ H O U R
     ;

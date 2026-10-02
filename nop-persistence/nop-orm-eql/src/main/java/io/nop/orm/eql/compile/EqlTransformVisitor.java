@@ -52,6 +52,7 @@ import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlWhere;
@@ -132,6 +133,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIA
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
@@ -493,6 +495,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // lateral 表示可以看到同级的表
             SqlSubqueryTableSource source = (SqlSubqueryTableSource) table;
             scope.addTable(source.getAlias().getAlias(), source);
+        } else if (table instanceof SqlTumbleTableSource) {
+            // WI17: TUMBLE 伪表函数是 stream-only 表源（D4/T1 裁定），ORM 编译通道
+            // 不支持——显式 fail-fast 而非静默跳过作用域注册
+            throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             addAliasToScope(scope, source.getLeft());

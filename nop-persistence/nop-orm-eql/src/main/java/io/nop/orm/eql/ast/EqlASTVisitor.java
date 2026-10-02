@@ -130,6 +130,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlSubqueryTableSource((SqlSubqueryTableSource)node);
                     return;
             
+                case SqlTumbleTableSource:
+                    visitSqlTumbleTableSource((SqlTumbleTableSource)node);
+                    return;
+            
                 case SqlNotExpr:
                     visitSqlNotExpr((SqlNotExpr)node);
                     return;
@@ -461,6 +465,13 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             
                     this.visitChildren(node.getDecorators());         
                     this.visitChild(node.getQuery());
+                    this.visitChild(node.getAlias());
+            }
+        
+            public void visitSqlTumbleTableSource(SqlTumbleTableSource node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChild(node.getInterval());
                     this.visitChild(node.getAlias());
             }
         

@@ -55,4 +55,37 @@ public final class StreamSqlAggregations {
     public static java.util.Set<String> builtinIds() {
         return BUILTINS.keySet();
     }
+
+    /**
+     * WI17 (plan 25 r2 B1): assembles the composite aggregate function for a parsed
+     * {@code sql-row-agg} spec — group-key evaluators plus one builtin sub-aggregator
+     * per SELECT aggregate (accumulation semantics come from {@link StreamSqlAggregation}
+     * instances; nothing is re-implemented here). Unknown sub-aggregate ids and
+     * non-count aggregates without an argument fail fast with the stream-side
+     * invalid-arg code.
+     */
+    public static SqlRowCompositeFunction buildComposite(SqlRowAggregateSpec spec) {
+        StreamRecordEvaluator[] keyEvals = new StreamRecordEvaluator[spec.getKeys().size()];
+        for (int i = 0; i < keyEvals.length; i++) {
+            keyEvals[i] = StreamSqlExprCompiler.compileScalar(spec.getKeys().get(i));
+        }
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        io.nop.stream.core.common.functions.AggregateFunction<Object, Object, Object>[] subFns =
+                new io.nop.stream.core.common.functions.AggregateFunction[spec.getAggs().size()];
+        for (int i = 0; i < subFns.length; i++) {
+            SqlRowAggregateSpec.AggCall call = spec.getAggs().get(i);
+            StreamSqlAggregation desc = resolve(call.getFnId());
+            if (desc == null) {
+                throw RecordColumnAccess.invalidArg("unknown aggregate fnId '" + call.getFnId()
+                        + "' in composite spec: builtin ids are " + builtinIds());
+            }
+            StreamRecordEvaluator arg = call.getExpr() == null
+                    ? null : StreamSqlExprCompiler.compileScalar(call.getExpr());
+            if (call.isStar() && desc.allowsNoArg()) {
+                arg = null;
+            }
+            subFns[i] = desc.create(arg);
+        }
+        return new SqlRowCompositeFunction(spec, keyEvals, subFns);
+    }
 }

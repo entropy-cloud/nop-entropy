@@ -280,6 +280,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlSubqueryTableSource(node);
         }
       
+        public io.nop.orm.eql.ast.SqlTumbleTableSource visitSqlTumbleTableSource_ex(SqlTumbleTableSource_exContext ctx){
+           SqlTumbleTableSourceContext node = ctx.sqlTumbleTableSource();
+           return node == null ? null : visitSqlTumbleTableSource(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex(SqlUnionSelect_exContext ctx){
           io.nop.orm.eql.ast.SqlUnionSelect ret = new io.nop.orm.eql.ast.SqlUnionSelect();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1282,6 +1287,33 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
           
       }
             
+      public io.nop.orm.eql.ast.SqlTumbleTableSource visitSqlTumbleTableSource(SqlTumbleTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlTumbleTableSource ret = new io.nop.orm.eql.ast.SqlTumbleTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.tableName != null){
+               ret.setTableName((SqlTumbleTableSource_tableName(ctx.tableName)));
+            }
+            if(ctx.timeColumn != null){
+               ret.setTimeColumn((SqlTumbleTableSource_timeColumn(ctx.timeColumn)));
+            }
+            if(ctx.interval != null){
+               ret.setInterval((visitSqlIntervalExpr(ctx.interval)));
+            }
+            if(ctx.alias != null){
+               ret.setAlias((visitSqlAlias(ctx.alias)));
+            }
+            if(ctx.decorators != null){
+               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
+            }else{
+               ret.setDecorators(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlTypeExpr visitSqlTypeExpr(SqlTypeExprContext ctx){
           io.nop.orm.eql.ast.SqlTypeExpr ret = new io.nop.orm.eql.ast.SqlTypeExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1732,6 +1764,16 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlTableName
    */
   public abstract java.lang.String SqlTableName_name(ParseTree node);
+
+  /**
+   * rules: sqlTumbleTableSource
+   */
+  public abstract java.lang.String SqlTumbleTableSource_tableName(ParseTree node);
+
+  /**
+   * rules: sqlTumbleTableSource
+   */
+  public abstract java.lang.String SqlTumbleTableSource_timeColumn(ParseTree node);
 
   /**
    * rules: sqlTypeExpr

@@ -100,6 +100,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlSubqueryTableSource:
                 return optimizeSqlSubqueryTableSource((SqlSubqueryTableSource)node,context);
             
+                case SqlTumbleTableSource:
+                return optimizeSqlTumbleTableSource((SqlTumbleTableSource)node,context);
+            
                 case SqlNotExpr:
                 return optimizeSqlNotExpr((SqlNotExpr)node,context);
             
@@ -1110,6 +1113,46 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { queryOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setQuery(queryOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getAlias() != null){
+                    
+                            io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
+                            if(aliasOpt != node.getAlias()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setAlias(aliasOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlTumbleTableSource(SqlTumbleTableSource node, C context){
+        SqlTumbleTableSource ret = node;
+
+        
+                    if(node.getDecorators() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
+                            if(decoratorsOpt != node.getDecorators()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
+                                ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getInterval() != null){
+                    
+                            io.nop.orm.eql.ast.SqlIntervalExpr intervalOpt = (io.nop.orm.eql.ast.SqlIntervalExpr)optimize(node.getInterval(),context);
+                            if(intervalOpt != node.getInterval()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { intervalOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setInterval(intervalOpt);
                             }
                         
                     }

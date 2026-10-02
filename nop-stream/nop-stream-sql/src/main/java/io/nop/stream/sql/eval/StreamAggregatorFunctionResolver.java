@@ -42,6 +42,17 @@ public class StreamAggregatorFunctionResolver implements IAggregatorFunctionReso
     @Override
     public AggregateFunction<Object, Object, Object> resolve(String fnId, String expr,
                                                              Function<String, BasicTypeInfo<?>> columnTypes) {
+        // WI17 (plan 25 r2 B1): the synthesized composite entry (fnId=sql-row-agg) is
+        // resolved here into the composite AggregateFunction — group-key evaluators plus
+        // N builtin sub-aggregators. This extends (never rewrites) the WI8c dispatch:
+        // regular fnIds keep flowing through the WI9 catalog below.
+        if (SqlRowAggregateSpec.FN_ID.equals(fnId)) {
+            if (expr == null || expr.isEmpty()) {
+                throw invalidArg("composite aggregator entry '" + SqlRowAggregateSpec.FN_ID
+                        + "' requires a structured spec in expr");
+            }
+            return StreamSqlAggregations.buildComposite(SqlRowAggregateSpec.fromJson(expr));
+        }
         StreamSqlAggregation spec = StreamSqlAggregations.resolve(fnId);
         if (spec == null) {
             throw invalidArg("unknown aggregate fnId '" + fnId

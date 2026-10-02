@@ -150,7 +150,7 @@ public final class RecordColumnAccess implements Serializable {
                 ? s : Character.toLowerCase(s.charAt(0)) + s.substring(1);
     }
 
-    static StreamException unsupported(Object node) {
+    public static StreamException unsupported(Object node) {
         return (StreamException) new StreamException(NopStreamErrors.ERR_STREAM_INVALID_ARG)
                 .param(ARG_ARG_NAME, "sqlExpr")
                 .param(ARG_DETAIL, "expression construct is outside the stream SQL v1 subset: "

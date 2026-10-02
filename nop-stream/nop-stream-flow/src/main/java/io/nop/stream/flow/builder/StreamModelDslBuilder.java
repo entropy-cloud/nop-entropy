@@ -90,6 +90,7 @@ import io.nop.stream.flow.model.StreamSinkModel;
 import io.nop.stream.flow.model.StreamSourceModel;
 import io.nop.stream.flow.model.StreamUnionModel;
 import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.spi.ISqlStreamCompiler;
 
 /**
  * Translates a parsed {@link StreamModel} (the XDSL declarative form) into a fully wired
@@ -168,6 +169,7 @@ public final class StreamModelDslBuilder {
      * transformation chain for the parsed {@link StreamModel}.
      */
     public StreamExecutionEnvironment build() {
+        expandSqlModel();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         if (model.getParallelism() > 0) {
             env.setParallelism(model.getParallelism());
@@ -239,6 +241,87 @@ public final class StreamModelDslBuilder {
     // ----------------------------------------------------------------
     // Checkpoint + top-level registry handling
     // ----------------------------------------------------------------
+
+    /**
+     * WI17 (plan 25 r2 B4): {@code <sql>} is a model-level GENERATOR — the compilation
+     * happens here, before buildTransforms. The provider is looked up by type in the
+     * BeanContainer (the IAggregatorFunctionResolver pattern); its XML product is
+     * parsed back through the platform DSL parser and REPLACES the parent model's
+     * transforms/edges/registries. {@code <sql>} must be the model's only content
+     * (coexistence with other transforms/edges/registries fails fast); no provider
+     * (including an uninitialized container) fails fast naming the missing
+     * nop-stream-sql dependency.
+     */
+    private void expandSqlModel() {
+        io.nop.stream.flow.model.StreamSqlModel sql = model.getSql();
+        if (sql == null) {
+            return;
+        }
+        if (model.hasTransforms() || model.hasEdges() || model.hasAggregators()
+                || model.hasJoins() || model.hasSchemas() || !model.getWindowingStrategies().isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "<sql> must be the model's only content: it compiles to "
+                            + "the complete transform/edge/registry set, so coexisting "
+                            + "transforms, edges, <aggregators>, <joins>, <schemas> or "
+                            + "<windowingStrategies> are rejected")
+                    .loc(sql.getLocation());
+        }
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized()) {
+            throw noSqlProvider(sql);
+        }
+        ISqlStreamCompiler compiler =
+                io.nop.api.core.ioc.BeanContainer.instance()
+                        .tryGetBeanByType(ISqlStreamCompiler.class);
+        if (compiler == null) {
+            throw noSqlProvider(sql);
+        }
+        Map<String, String> schema = new LinkedHashMap<>();
+        if (sql.getSchemas() != null) {
+            for (io.nop.stream.flow.model.StreamSqlFieldModel f : sql.getSchemas()) {
+                schema.put(f.getName(), f.getType());
+            }
+        }
+        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean());
+        io.nop.core.lang.xml.XNode node;
+        try {
+            node = io.nop.core.lang.xml.XNode.parse(xml);
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "SQL compiler returned invalid model XML: " + e.getMessage())
+                    .loc(sql.getLocation());
+        }
+        StreamModel compiled;
+        try {
+            compiled = (StreamModel) new io.nop.xlang.xdsl.DslModelParser().parseFromNode(node);
+        } catch (NopException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "SQL compiler product failed stream.xdef validation: "
+                            + e.getMessage())
+                    .loc(sql.getLocation());
+        }
+        // 替换父模型内容（B4）：transforms/edges/registries 全量来自编译产物
+        model.setTransforms(compiled.getTransforms());
+        model.setEdges(compiled.getEdges());
+        model.setSchemas(compiled.getSchemas());
+        model.setAggregators(compiled.getAggregators());
+        model.setJoins(compiled.getJoins());
+        model.setWindowingStrategies(compiled.getWindowingStrategies());
+        model.setSql(null);
+    }
+
+    private static StreamException noSqlProvider(io.nop.stream.flow.model.StreamSqlModel sql) {
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_ELEMENT, "<sql>")
+                .param(ARG_DETAIL, "<sql sinkBean='" + sql.getSinkBean()
+                        + "'> declares a SQL model generator but no "
+                        + ISqlStreamCompiler.class.getName()
+                        + " provider is registered; add io.github.entropy-cloud:nop-stream-sql "
+                        + "to the classpath")
+                .loc(sql.getLocation());
+    }
 
     private void applyCheckpointConfig(StreamExecutionEnvironment env) {
         CheckpointConfigModel cfg = model.getCheckpoint();

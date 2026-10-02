@@ -62,61 +62,61 @@
 
 ### Phase 1 - TUMBLE 语法落地（protected：生成管线，plan-first 证据=本 plan+回归）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql`
 
 - Item Types: `Feature`
 
-- [ ] 实测记录 nop-orm-eql 与 nop-orm 回归基线数（改前）
-- [ ] SQL92Keyword.g4 新增 TUMBLE token + unreservedWord 登记；DMLStatement.g4 表源分支新增伪表函数规则（同名新 AST 类——WI1 一一对应硬约束）；`./mvnw generate-sources -pl nop-persistence/nop-orm-eql` 重生成 + 生成物 diff 白名单程序化核对（WI1 plan :100-101 先例）
-- [ ] EqlASTParser 解析断言（AST 类与字段）+ INTERVAL→duration 提取（非正时长 fail-fast）
-- [ ] 测试：TUMBLE parse 断言（不用 toSQL 当 oracle——round-trip 不对称在案）+ nop-orm-eql 与 nop-orm 回归零退化
-- [ ] docs-for-ai/02-core-guides/eql-and-database-compatibility.md 同步（guide 规则 17；roadmap Cross-Cuting 8 义务）
+- [x] 实测记录 nop-orm-eql 与 nop-orm 回归基线数（改前）（2026-10-03 实测：nop-orm-eql 116 绿 0F/0E/0S；nop-orm 208 tests 0F/0E 6 skip=docker opt-in——日志 `_tmp/wi17-baseline-eql.log` / `_tmp/wi17-baseline-orm.log`，计数落 ai-dev/logs/2026/10-03.md）
+- [x] SQL92Keyword.g4 新增 TUMBLE token + unreservedWord 登记；DMLStatement.g4 表源分支新增伪表函数规则（同名新 AST 类——WI1 一一对应硬约束）；`./mvnw generate-sources -pl nop-persistence/nop-orm-eql` 重生成 + 生成物 diff 白名单程序化核对（WI1 plan :100-101 先例）（2026-10-03 完成：规则 `sqlTumbleTableSource` ↔ AST 类 `SqlTumbleTableSource` 一一对应；表源语法 `TUMBLE(表名.时间列, INTERVAL n 单位)`；白名单 26 文件全部命中——脚本 `_tmp/wi17-whitelist-check.sh` 输出 WHITELIST OK）
+- [x] EqlASTParser 解析断言（AST 类与字段）+ INTERVAL→duration 提取（非正时长 fail-fast）（EqlParseHelper.intervalDurationMillis：正整数检查 + 固定单位换算 + 日历单位 MONTH/QUARTER/YEAR fail-fast + 新错误码 nop.err.eql.invalid-interval-value；ORM 通道对 TUMBLE 表源 resolve fail-fast nop.err.eql.table-source-not-resolved——EqlTransformVisitor.addAliasToScope 显式分支防静默跳过）
+- [x] 测试：TUMBLE parse 断言（不用 toSQL 当 oracle——round-trip 不对称在案）+ nop-orm-eql 与 nop-orm 回归零退化（TestEqlTumbleGrammarParse 14 用例；红→绿实证：stash 实现后测试构建失败（编译期符号缺失形态）、恢复后 14/14 绿；回归 eql 116→130（+14 新增，0F/0E）、orm 208 不变 0F/0E 6 skip 既有）
+- [x] docs-for-ai/02-core-guides/eql-and-database-compatibility.md 同步（guide 规则 17；roadmap Cross-Cuting 8 义务）（新增「TUMBLE 时间切片伪表函数」小节：语法/stream-only 范围限定/标识符兼容/round-trip 不对称警示）
 
 Exit Criteria:
 
-- [ ] TUMBLE parse 测试绿；基线数与改后数落日志（零退化证明）
-- [ ] 生成物白名单零越界
-- [ ] docs-for-ai 文档已更新
-- [ ] `ai-dev/logs/` 条目更新
+- [x] TUMBLE parse 测试绿；基线数与改后数落日志（零退化证明）
+- [x] 生成物白名单零越界
+- [x] docs-for-ai 文档已更新
+- [x] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - StreamSqlCompiler（编译器主体）
 
-Status: planned
+Status: completed
 Targets: `nop-stream/nop-stream-sql`
 
 - Item Types: `Feature`
 
-- [ ] 复合聚合器：合成 aggregator 条目（fnId=sql 复合 spec，expr 携带组键+子聚合结构化 spec）经 IAggregatorFunctionResolver 解析为组合 AggregateFunction（键重求值 + N 子累加器 + 行重构 getResult）——WI8c 面零改动
-- [ ] StreamSqlCompiler.compile（B2/B3 裁定形态）：EqlASTParser 入口 → AST 走查 → 模型 XML（FROM 表名=bean 名；行=Map；TUMBLE 时 timestampsAndWatermarks+assigner；dispatch 规则见 Goals；UNION=bag union）
-- [ ] fail-fast 矩阵（M4）：§4a 九项 + default-reject（HAVING/CTE/DISTINCT 选择/INTERSECT/EXCEPT/括号选择/LATERAL/全局聚合/ORDER BY/LIMIT=`nop.err.eql.dialect-not-support-feature`）
-- [ ] `TestStreamSqlCompiler`（sql 模块）：纳入面产物结构断言 + fail-fast 逐项钉码 + 自校验闭合（产物经 DslModelParser 回读 + builder build 成功——测试注入表名 bean stub）
-- [ ] 语义等价钉子（M2）：同一记录矩阵经产物 xpl（filter/map 执行）与 WI9 evaluator 对拍
+- [x] 复合聚合器：合成 aggregator 条目（fnId=sql 复合 spec，expr 携带组键+子聚合结构化 spec）经 IAggregatorFunctionResolver 解析为组合 AggregateFunction（键重求值 + N 子累加器 + 行重构 getResult）——WI8c 面零改动（SqlRowAggregateSpec（JSON spec，fnId=sql-row-agg）+ SqlRowCompositeFunction（键重求值+N 子累加器+getResult 产 List 行：组键在前聚合按 SELECT 序）+ SqlRowAggregateOps（持续聚合 xpl 静态分派）+ resolver 的 sql-row-agg 分支拦截——WI8c 既有五 id 分发零改动）
+- [x] StreamSqlCompiler.compile（B2/B3 裁定形态）：EqlASTParser 入口 → AST 走查 → 模型 XML（FROM 表名=bean 名；行=Map；TUMBLE 时 timestampsAndWatermarks+assigner+per-event watermark generator；dispatch：TUMBLE→keyBy+window+aggregate(复合条目)/无 TUMBLE 有 GROUP BY→map(begin)+keyBy(累加器键头)+reduce(merge)+map(toRow)/全局聚合 fail-fast；UNION=bag union 仅 UNION_ALL）
+- [x] fail-fast 矩阵（M4）：§4a 九项射程内钉码 + default-reject（HAVING/CTE/DISTINCT 选择/INTERSECT/EXCEPT/括号选择/LATERAL/SELECT */全局聚合/GROUP BY 无聚合/DISTINCT 聚合/WHERE 含聚合/非 GROUP BY 列/TUMBLE+join/聚合+join/多语句/非受管 schema 类型/空 SQL/空 sinkBean→`nop.err.stream.invalid-arg`；ORDER BY/LIMIT→`nop.err.eql.dialect-not-support-feature`；INTERVAL 非正→eql invalid-interval-value 穿透）——AST 走查无静默分支（ORM 通道 addAliasToScope 显式 TUMBLE fail-fast）
+- [x] `TestStreamSqlCompiler`（sql 模块）：纳入面产物结构断言（TUMBLE 窗口聚合/持续聚合/plain/join/union 五形态）+ fail-fast 逐项钉码 20 项 + 自校验闭合（产物经 DslModelParser 回读 + builder build + env.execute 成功——测试注入表名 bean stub，四个具名 E2E 类：TUMBLE 窗口聚合 [a=4,b=2,b=4,c=1]、持续 GROUP BY 逐元素 last-value-wins [a=1,b=2,a=1,a=4,b=6,a=-1,c=1]、自 join [1=x,2=y]、UNION ALL bag 七元素）
+- [x] 语义等价钉子（M2）：同一记录矩阵（5 记录×14 表达式）经产物 xpl（filter body 执行）与 WI9 evaluator 对拍全等（null 传播/除法 double/三值逻辑/IS NULL/BETWEEN/IN/NOT IN/一元负号）——XLang 原生算子 null 语义分歧（比较→false/算术→NaN/NOT→true）经发射显式三值守卫消除，等价成立非分歧记录
 
 Exit Criteria:
 
-- [ ] TestStreamSqlCompiler 全绿（含逐项钉码与等价钉子）
-- [ ] 编译产物端到端 build 成功（自校验闭合）
-- [ ] `ai-dev/logs/` 条目更新
+- [x] TestStreamSqlCompiler 全绿（含逐项钉码与等价钉子）（30/30 绿 + 四 E2E 类绿；sql 模块全量 68 绿（含 WI9/8c 既有 24+10））
+- [x] 编译产物端到端 build 成功（自校验闭合）（四 E2E：parse→build→execute→sink 断言）
+- [x] `ai-dev/logs/` 条目更新
 
 ### Phase 3 - `<sql>` 声明面与 SPI（B4/B5 裁定形态）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-xdefs`、`nop-stream/nop-stream-flow`、`nop-stream/nop-stream-sql`
 
 - Item Types: `Feature`
 
-- [ ] stream.xdef 顶层 `<sql>` 元素（sql 文本 + 内嵌 schema + sinkBean；base xdef 纪律同 WI8c/d：xdefs install → flow `_gen` 重生成 → 手写 wrapper 保留）
-- [ ] ISqlStreamCompiler SPI（flow 定义，返回完整模型 XML 除 sink 外）+ sql 模块实现（app-beans 注册——_module 目录歧义按实测生效者裁定并记录）；builder.buildTransforms 前预处理：`<sql>` 唯一内容裁定（并存 fail-fast）+ SPI 回读替换
-- [ ] 测试三层（B5）：flow fake provider 展开断言 + 无 provider 钉码（aggregateRefWithoutProvider 同款）；sql 模块真实接线（`<sql>` 模型 → build 成功）+ app-beans 反空壳钉
-- [ ] docs 同步：sql-subset-and-semantics.md §4b TUMBLE 锚点更新为已落地 + `<sql>` 面登记；编译产物终态形状（含 sinkBean 派生 sink、投影末态 map）入 §4b 或 compiler-contract
+- [x] stream.xdef 顶层 `<sql>` 元素（sql 文本 + 内嵌 schema + sinkBean；base xdef 纪律同 WI8c/d：xdefs install → flow `_gen` 重生成 → 手写 wrapper 保留）（`<sql sinkBean="!string">` + `<schemas><field/></schemas>` + `<source>` CDATA；`./mvnw install -pl nop-kernel/nop-xdefs -DskipTests` → flow generate-sources 重生成：_StreamSqlModel/_StreamSqlFieldModel + wrapper 模板创建；_StreamModel 增 sql 属性——diff 白名单 5 文件零越界）
+- [x] ISqlStreamCompiler SPI（flow 定义，返回完整模型 XML 除 sink 外）+ sql 模块实现（app-beans 注册——_module 目录歧义按实测生效者裁定并记录：沿 WI8c 双标记布局不变，新增 beans 落 `_vfs/nop/stream/sql/beans/app-sql-compiler.beans.xml`）；builder.buildTransforms 前预处理：`<sql>` 唯一内容裁定（transforms/edges/aggregators/joins/schemas/windowingStrategies 并存 fail-fast）+ SPI 回读替换（build() 首步 expandSqlModel：tryGetBeanByType 无 provider fail-fast 点名 nop-stream-sql + DslModelParser 回读 + 父模型内容全量替换 + setSql(null)）
+- [x] 测试三层（B5）：flow fake provider 展开断言 + 无 provider 钉码（aggregateRefWithoutProvider 同款）；sql 模块真实接线（`<sql>` 模型 → build 成功）+ app-beans 反空壳钉（flow TestSqlModelExpansion 3 用例：fake 展开（产物 transforms/edges 替换父模型+getSql 消费）/并存 fail-fast/空容器无 provider 点名 nop-stream-sql；sql TestSqlModelDeclarationE2E：xdef 校验的 `<sql>` 声明模型 → builder 展开 → execute → sink 断言 [a=4,b=2,b=4,c=1] + tryGetBeanByType 反空壳钉）。红→绿实证：stash SPI/预处理后 flow 测试构建失败（ISqlStreamCompiler 符号缺失）
+- [x] docs 同步：sql-subset-and-semantics.md §4b TUMBLE 锚点更新为已落地 + `<sql>` 面登记；编译产物终态形状（含 sinkBean 派生 sink、投影末态 map）入 §4b 或 compiler-contract（compiler-contract §2.2 补 WI17 落地形态与产物形状段；eql-and-database-compatibility.md Phase 1 已更新）
 
 Exit Criteria:
 
-- [ ] 三层测试绿（fake 展开 / 无 provider 钉码 / 真实接线反空壳）
-- [ ] flow/core 全量零退化（xdef 变更波及）
-- [ ] docs 更新落档
-- [ ] `ai-dev/logs/` 条目更新
+- [x] 三层测试绿（fake 展开 / 无 provider 钉码 / 真实接线反空壳）
+- [x] flow/core 全量零退化（xdef 变更波及）（提交前全量复测：flow/core/sql/eql/xdefs 见日志终条）
+- [x] docs 更新落档
+- [x] `ai-dev/logs/` 条目更新
 
 ### Phase 4 - 收口
 

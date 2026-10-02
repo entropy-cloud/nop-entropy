@@ -326,6 +326,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlTumbleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlTumbleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlSingleTableSource_ex}
 	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
@@ -359,6 +371,16 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlTumbleTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlTumbleTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSubqueryTableSource}.
 	 * @param ctx the parse tree

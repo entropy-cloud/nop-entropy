@@ -225,4 +225,9 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_INVALID_WINDOW_FRAME = define("nop.err.eql.invalid-window-frame",
             "非法的窗口frame定义:{value}", ARG_VALUE);
+
+    // WI17: TUMBLE(t, INTERVAL) 的 INTERVAL 字面量必须是正的固定时长（日历单位
+    // MONTH/QUARTER/YEAR 无固定毫秒时长，进 fail-fast）
+    ErrorCode ERR_EQL_INVALID_INTERVAL_VALUE = define("nop.err.eql.invalid-interval-value",
+            "非法的INTERVAL时长定义:{value}", ARG_VALUE);
 }

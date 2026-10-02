@@ -278,6 +278,21 @@ class EqlAST {
         SqlAlias alias;
     }
 
+    // WI17: TUMBLE(t, INTERVAL) 流时间切片伪表函数表源（D4 裁定）。
+    // tableName/timeColumn 对应 t 限定的形式 表名.列名；interval 为窗口时长。
+    class SqlTumbleTableSource extends SqlTableSource {
+        @PropMeta(mandatory = true)
+        String tableName;
+
+        @PropMeta(mandatory = true)
+        String timeColumn;
+
+        @PropMeta(mandatory = true)
+        SqlIntervalExpr interval;
+
+        SqlAlias alias;
+    }
+
     class SqlNotExpr extends SqlExpr {
         @PropMeta(mandatory = true)
         SqlExpr expr;

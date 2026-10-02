@@ -83,6 +83,10 @@ SQL 窄范围接口的全部设计文档与覆盖面（WI17 起草时按此路�
 
 `<sql>` xdef 元素：属性含 SQL 文本（内嵌或 .sql 文件引用）与 schema 声明面（D7 §1.3 受管类型名）；**编译落点已由 D14=(a) 裁定（WI8a 落档），本裁定不另设落点**；产出经 WI17 编译为既有 xdef 校验与 builder 消费的模型。首版不含 Java API / CLI / GraphQL 入口。
 
+**WI17 落地形态（2026-10-03，plan 25 r2 B4 裁定）**：`<sql>` 是模型级生成器而非 transform——顶层元素 `<sql sinkBean="!string">`（`<schemas><field name type/></schemas>` 内嵌 schema + `<source>` CDATA sql 文本），落在 base stream.xdef（D13 回改裁定通路）。编译发生在 `StreamModelDslBuilder.build()` 的 buildTransforms 之前：SPI `ISqlStreamCompiler`（nop-stream-flow/spi 定义，nop-stream-sql 的 `StreamSqlCompilerProvider` 经 app-beans 注册）返回完整流模型 XML，builder 经 DslModelParser 回读并**替换父模型的 transforms/edges/registries**（transforms/edges/aggregators/joins/schemas/windowingStrategies 全量）；`<sql>` 必须是模型唯一内容（与其他内容并存 fail-fast `nop.err.stream.invalid-arg`）；无 provider（含容器未初始化）fail-fast 点名 nop-stream-sql。编译产物自洽可执行：sink 由 sinkBean 派生（`<sink bean>` + 边）。
+
+**编译产物形状（WI17 交付钉子）**：SQL 行 = Map（SELECT 输出名 → 值）；聚合查询的中间行 = 有序 List（组键在前、聚合按 SELECT 序，`SqlRowCompositeFunction.getResult`）；投影/WHERE 以 XLang xpl 内联发射（`SqlScalarXplPrinter`，对全部二元/一元形式发射显式三值守卫使产物语义与 WI9 evaluator 等价——等价钉子测试在案）；持续聚合的 xpl 体经 `SqlRowAggregateOps` 静态分派（import + 静态调用形态，XLang 实测：裸 FQN 调用不可用、局部声明用 `let`）。
+
 负责人：仓库 owner（建议项采纳）；日期 2026-10-02；受影响 WI：WI17（编译为该形态）、WI18（入口具名可调用 + E2E）。
 
 ## 3. D13 编译器宿主模块与依赖方向

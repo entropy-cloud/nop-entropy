@@ -364,6 +364,17 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         return text(node);
     }
 
+    // WI17: TUMBLE(t, INTERVAL) 伪表函数表源——t 的限定形式 表名.列名 拆为两个裸标识符
+    @Override
+    public String SqlTumbleTableSource_tableName(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public String SqlTumbleTableSource_timeColumn(ParseTree node) {
+        return text(node);
+    }
+
     @Override
     public boolean SqlLikeExpr_ignoreCase(Token token) {
         return true;

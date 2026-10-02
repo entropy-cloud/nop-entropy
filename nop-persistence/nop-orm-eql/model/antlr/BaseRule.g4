@@ -92,6 +92,7 @@ unreservedWord_:
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP
     | BEGIN|END | CROSS
     | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
+    | TUMBLE
     ;
 
 // variable
