@@ -95,7 +95,7 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 | SELECT 投影 | WI9 标量子集：列引用（含限定名）/字面量/算术（+ - * / %，除法恒 double）/比较/AND-OR-NOT/IS NULL/BETWEEN/IN 值列表 | StreamSqlExprCompiler；TestStreamSqlExprCompiler |
 | WHERE | 既有 filter 通路（xpl-fn 内联）+ WI9 编译器形态（同标量子集） | stream.xdef filter；WI9 |
 | 聚合 | sum/count/avg/min/max 五 id（与 BaseRule.g4 五关键字对齐）；COUNT(*) 无参形态；DISTINCT 排除（4a#6） | StreamSqlAggregations.builtinIds 钉子 |
-| GROUP BY | keyBy（keyExpr）+ 窗口聚合（WI8c aggregatorRef）或持续聚合（WI11） | stream.xdef；WI11 |
+| GROUP BY | keyBy（keyExpr）+ 窗口聚合（WI8c aggregatorRef）或持续聚合（keyBy + reduce，D1=(a) last-value-wins 终值语义——非 append-only 非 retract，中间归约值逐条 emit；标注见 StreamReduceOperator/AdvancedTransforms.buildReduce javadoc） | stream.xdef；TestContinuousGroupBy |
 | 流时间窗口 | TUMBLE(t, INTERVAL) 伪表函数——D4 已裁语法面（DMLStatement.g4 表源分支），**grammar 变更尚未落地**（现状锚点：DMLStatement.g4 表源仅三分支、TUMBLE 仅注释残迹；W1 分析窗口四能力由 WI1 交付）需随 WI17 编译器接线前补 grammar 落地项；RDBMS 目标 T1/T2/T3 三档（见 4c） | sql-subset-and-semantics §3；TestDialectWindowSqlSnapshot 注记 |
 | 双流等值 join | WI8d 声明面（joins/joinRef，恰两条上游边）+ WI13 运行时；HASH 边禁入 | validateJoinDeclarations；join-operator.md |
 | 静态维表 lookup | process 桥接形态：ITableLookup 注入（应用实现包 IJdbcTemplate/IBatchLoader） | ITableLookup；WI14 |

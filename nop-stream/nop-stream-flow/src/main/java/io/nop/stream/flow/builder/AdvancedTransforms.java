@@ -421,6 +421,13 @@ final class AdvancedTransforms {
                 .loc(m.getLocation());
     }
 
+    /**
+     * D1=(a) SEMANTICS ANNOTATION (WI11): the windowless {@code <reduce>} transform
+     * maps SQL continuous GROUP BY to keyBy + reduce with LAST-VALUE-WINS final-value
+     * semantics — the output emits the running reduction per input element and is
+     * NOT append-only and NOT a retract stream. See
+     * sql-subset-and-semantics.md §1.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <T> SingleOutputStreamOperator<T> buildReduce(
             StreamModelDslBuilder owner, StreamTransformModel t, Set<String> upstreamIds,

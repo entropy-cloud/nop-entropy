@@ -7,6 +7,13 @@
  */
 package io.nop.stream.core.operators;
 
+// D1=(a) SEMANTICS ANNOTATION (WI11): this operator implements LAST-VALUE-WINS
+// final-value semantics for continuous (windowless) GROUP BY — every input element
+// emits the current running reduction for its key. The output stream is therefore
+// NOT append-only and NOT a retract stream: downstream consumers see intermediate
+// reduction values and must treat the latest value per key as the current result.
+// See sql-subset-and-semantics.md §1 for the adjudication.
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
