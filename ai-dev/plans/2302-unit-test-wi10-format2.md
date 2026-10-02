@@ -1,6 +1,6 @@
 # 2302 unit-test-coverage-roadmap WI10 — nop-format 第二批（pdf / mermaid / converter / office-model / chart-export）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI10 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -69,13 +69,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI10 checkbox
 
 - [x] 删模块 exec → baseline 脚本复测（label wi10-2026-10-02）：pdf 28.03%→35.59%（达标）、mermaid 6.40%→42.28%（+35.88，达标）、converter 9.30%→22.57%（未达 30%，显式裁定 follow-up）、office-model 0→53.90%（达标）、office-doc-model 0→60.26%（达标）、chart-export 46.72% 持平确认。
 - [x] 残余缺口显式裁定（Deferred 段：converter 残余全部为容器/OOXML 耦合类；mermaid 5 类残余主要是文法缺陷导致不可达路径——修复文法后自然解锁）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI10 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI10 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI10 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI10 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -85,10 +85,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级：converter 未达标已显式 follow-up）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：解析/转换测试断言产出语义（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2302-unit-test-wi10-format2.md --strict` 退出码 0
-- [ ] roadmap WI10 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：解析/转换测试断言产出语义（audit 抽查：TestMermaidASTParser 语句计数/错误码/offendingToken 断言、TestTabulaRectangle 几何数值断言带容差）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2302-unit-test-wi10-format2.md --strict` 退出码 0
+- [x] roadmap WI10 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -110,13 +110,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 16 文件/117 测试方法五模块全绿（pdf 70/mermaid 25/converter 17/office-model 16/office-doc-model 8），覆盖数字与 jacoco XML 逐位一致（mermaid 271/641），converter 未达标有显式 follow-up 裁定（合规），mermaid 文法 P1 嫌疑 g4 源文件坐实。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_c2093e01-c720-44f8-8af4-1d9712b06573，fresh session）
 
 Follow-up:
 
