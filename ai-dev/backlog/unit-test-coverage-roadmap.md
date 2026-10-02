@@ -84,7 +84,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 - [x] WI7 可复用业务模块补强：nop-sys（sys-api 57/0 序列号/数据字典/分布式锁语义、sys-dao 58/14 补强）、nop-rule（rule-core 34/7 决策树/决策矩阵执行语义、rule-api 21/0、rule-dao 17/0）、nop-dyn（dyn-api 45/0、dyn-dao 35/4 动态表单校验）（Deliverable: 测试；deps: WI0；Item Type: Fix）
 
 > WI7 完成（2026-10-02）：11 测试文件/51 用例全绿（七模块）；sys-api 0→7.48%、sys-dao 67.99%→75.21%、rule-api 0→5.70%、dyn-api 0→4.01%、dyn-dao 29.58%→48.20%；rule-core 移出增量（已达标）。**WI0 失败项清零**：rule-service 快照按 testing.md 重录修复 4/4 绿。4 项缺陷嫌疑记录（bugs/2026-10/2026-10-02-wi7-defect-suspects.md）。独立 audit 首轮 REJECT（.gitignore **/log/ 误吞测试包）→ 负向例外整改 → 复核 APPROVE。
-- [ ] WI8 nop-service-framework 补强（238/56）：nop-biz CRUD/findPage/批量保存语义（89/22）、nop-biz-auth-core 数据权限过滤（60/14）、nop-gateway 补强（44/18）、nop-biz-auth-api 结构性用例（28/0）；BizModel 服务测试必须经 `IGraphQLEngine`（testing.md 禁令：禁止直调 bizObj.method）（Deliverable: 测试；deps: WI0；Item Type: Fix）
+- [x] WI8 nop-service-framework 补强（238/56）：nop-biz CRUD/findPage/批量保存语义（89/22）、nop-biz-auth-core 数据权限过滤（60/14）、nop-gateway 补强（44/18）、nop-biz-auth-api 结构性用例（28/0）；BizModel 服务测试必须经 `IGraphQLEngine`（testing.md 禁令：禁止直调 bizObj.method）（Deliverable: 测试；deps: WI0；Item Type: Fix）
+
+> WI8 完成（2026-10-02）：91 用例四模块 -am 全绿（111/113/106/13）；nop-biz 44.10%→50.04%、biz-auth-core 51.79%→66.61%、gateway 62.55%→67.70%、biz-auth-api 0→9.44%（快照 coverage-baseline-wi8-2026-10-02.json）。IGraphQLEngine 硬通道零违反。3 项缺陷嫌疑记录（bugs/2026-10/2026-10-02-wi8-defect-suspects.md，saveOrUpdate 已源码坐实）。独立 closure audit APPROVE（9/9）。
 
 ### M3 — format 与外围
 

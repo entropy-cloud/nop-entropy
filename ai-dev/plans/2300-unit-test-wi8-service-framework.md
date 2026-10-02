@@ -1,6 +1,6 @@
 # 2300 unit-test-coverage-roadmap WI8 — nop-service-framework 补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI8 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；docs-for-ai/02-core-guides/service-layer.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -73,13 +73,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI8 checkbox
 
 - [x] 删四模块 exec → baseline 脚本复测（label wi8-2026-10-02）：nop-biz 44.10%→50.04%（+5.94）、biz-auth-core 51.79%→66.61%（+14.82）、gateway 62.55%→67.70%（+5.15）、biz-auth-api 0→9.44%；靶点 AbstractLoginService 0→98.5%、ForwardProcessor 13.51→100%。
 - [x] 残余缺口显式裁定（Deferred 段：biz RPC 反射分发层需消费方、auth-core 接口 default、gateway 拦截器与路由内核、auth-api 纯 bean 面）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI8 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI8 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI8 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI8 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -90,10 +90,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：CRUD/权限测试断言业务语义（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2300-unit-test-wi8-service-framework.md --strict` 退出码 0
-- [ ] roadmap WI8 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：CRUD/权限测试断言业务语义（audit 抽查：TestAuthHttpServerFilterSemantics 15 断言全行为级、TestGraphQLCrudSemantics 30 处 executeRpc 零直调）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2300-unit-test-wi8-service-framework.md --strict` 退出码 0
+- [x] roadmap WI8 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -115,13 +115,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 91 用例四模块 -am 全绿（111/113/106/13），IGraphQLEngine 禁令零违反（30+9 处 executeRpc、bizObj 直调仅 javadoc 声明），覆盖数字与四模块 XML counter 精确互证（AbstractLoginService 98.51%/ForwardProcessor 100% 类级抽查吻合），saveOrUpdate 缺陷源码坐实（CrudBizModel.java L1431-1444）。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_0a9fe965-1493-4316-9473-35caa881a3bd，fresh session）
 
 ## Optional Sections
 
