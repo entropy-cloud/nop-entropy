@@ -1051,3 +1051,13 @@ WAIT_FOR（13.1，裁定 A-H ✅，✅ 已落地）→ idempotency_key（13.2，
 > **跳序执行 reconcile（plan `2026-08-01-1905-3`）**：13.4（W2-4）实际在 13.3（W2-3）之前落地。理由：W2-4 的**硬前置**是 W2e 错误分类 + 账号链（W2e-0..5，均已 ✅ 落地）——第三通道消费账号链耗尽信号 + QUOTA/AUTH 分类，与 W2-1（WAIT_FOR checkpoint）/ W2-2（idempotency_key，已 ✅）/ W2-3（三级失败升级）**无硬依赖**。W2-3 三级失败升级中的"基础设施失败 max_dispatch_retries"虽概念上关联 ThresholdBreaker，但那是单 attempt 内的失败聚合（§13.3 与 W1-4 边界注），与 W2-4 跨 provider failover 正交。故 W2-4 可独立先行。
 >
 > **WAIT_FOR skip reconcile（plan `2026-08-01-1437-1）**：13.1（W2-1）在 13.2/13.4 之后落地。理由：W2-1 与 W2-2（idempotency_key，已 ✅）/ W2-4（failover，已 ✅）**无硬依赖**——WAIT_FOR 是全新的执行模型能力（挂起/唤醒），不依赖 idempotency_key 发散检测或跨 provider failover。13.1 裁定 A-H 已将 12 行草图升级为含挂起执行模型/唤醒机制/条件 DSL/restore 分支/防重复挂起/序列化范围的可执行规格（§13.1 elaboration）。
+
+## 工具执行相位检查点与保守恢复纪律（WI6，plan 2287）
+
+**决策**：高副作用工具（bash/文件写类）的执行记录三相位——DISPATCHED（dispatch intent，future 创建后）/ EXECUTING（沙箱可观测已启动，executor 轮询 progressSnapshot 首见写入）/ COMPLETED（=既有终态 checkpoint，**无相位段**即终态标记）。相位以 TOOL_EXECUTION 类型 + watermark 相位段承载（`{s}:tool:{c}:{PHASE}:{execStartTime}:{seq}`，anon 分支保留），**watermark 相位段是唯一权威**（payload 永不解析）；不新增 CheckpointType 值。
+
+**保守恢复纪律**：崩溃恢复时开放 callId 的相位裁决（`OpenToolCallResolver.resolveExecutionPhase`）——COMPLETED > EXECUTING > DISPATCHED > NEVER_STARTED；COMPLETED 以下一律"结果不可判定=显式失败"，**不做按相位续跑**（bash 进程在 sandbox register 之后才可观测，"无 EXECUTING"≠"无副作用"，续跑=重跑）。孤儿处置动作（合成收尾响应）归 autonomous roadmap WI10，本机制供其相位信息。
+
+**committed 集合收窄**：不变量③ 差集判定中，仅终态（无相位段）TOOL_EXECUTION checkpoint 计为 committed——相位 checkpoint 描述在飞执行，计入会静默消灭孤儿告警。divergence 检查对相位 latest + liveKey 缺失的情形重分类告警文案（inconclusive cause：派生调用未持久化 vs 截断历史不可区分，保守保留标记）。
+
+**代价裁定**：DISPATCHED 对所有工具写入（非 heartbeat 模式与只读工具同样受益）；DB checkpoint append-only 永不删除，工具 checkpoint 量 2-3 倍为已接受成本。EXECUTING 依赖进度 tracker（NoOp 缺省下休眠，裁决不受影响）。

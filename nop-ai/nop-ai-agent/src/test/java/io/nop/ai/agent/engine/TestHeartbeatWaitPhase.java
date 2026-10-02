@@ -302,12 +302,15 @@ public class TestHeartbeatWaitPhase {
         assertTrue(cancelMsg.getContent().contains("abandoned"),
                 "cancel result text: " + cancelMsg.getContent());
 
-        // abandoned calls write NO TOOL_EXECUTION checkpoint (deny precedent,
-        // design §三.3 实现补充裁定)
-        long toolCheckpoints = checkpoints.getCheckpoints("s-hb-2").stream()
+        // abandoned calls write NO TERMINAL checkpoint (deny precedent, design
+        // §三.3 实现补充裁定). WI6: the DISPATCHED phase checkpoint legitimately
+        // exists (intent was recorded) — only phase-less (terminal) ones are
+        // forbidden for an abandoned call
+        long terminalCheckpoints = checkpoints.getCheckpoints("s-hb-2").stream()
                 .filter(cp -> cp.getType() == CheckpointType.TOOL_EXECUTION)
+                .filter(cp -> ToolExecutionPhase.fromWatermark(cp.getWatermark()) == null)
                 .count();
-        assertEquals(0, toolCheckpoints, "abandoned call must not checkpoint");
+        assertEquals(0, terminalCheckpoints, "abandoned call must not write a terminal checkpoint");
     }
 
     // ---- ③ parallel derived call → security chain → joins pending → commits after own call ----
@@ -535,6 +538,97 @@ public class TestHeartbeatWaitPhase {
                 "denial result text: " + denial.getContent());
         assertFalse(denial.getContent().contains("done:forbidden-tool"),
                 "denied call must not have been executed");
+    }
+
+    // ---- WI6: EXECUTING production write path + derived-call DISPATCHED ----
+
+    @Test
+    void executingPhaseCheckpointWrittenOnceForInFlightTool() {
+        CompletableFuture<AiToolCallResult> slow = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", slow));
+        AgentExecutionContext ctx = buildContext("s-wi6-1", Set.of("slow-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("WAIT"),
+                () -> slow.complete(DelayedToolManager.successResult("built")));
+        chat.enqueue(ChatResponseFixtures.assistantText("final"), null);
+
+        // tracker reports in-flight for the slow tool → the executor's poll
+        // writes exactly one EXECUTING checkpoint (startedExec dedup)
+        ToolExecutionCheckpoint checkpoints = new ToolExecutionCheckpoint();
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chat)
+                .toolManager(tools)
+                .hookRegistry(new DefaultHookRegistry())
+                .heartBeatIntervalMs(50L)
+                .toolTimeoutMs(0L)
+                .toolProgressTracker(new IToolProgressTracker() {
+                    @Override
+                    public ToolProgressSnapshot progressSnapshot(String callId) {
+                        return "A1".equals(callId)
+                                ? new ToolProgressSnapshot("running...", 10L, true)
+                                : ToolProgressSnapshot.empty();
+                    }
+
+                    @Override
+                    public boolean cancelExecution(String callId) {
+                        return false;
+                    }
+                })
+                .checkpointManager(checkpoints)
+                .build();
+
+        AgentExecutionResult result = executor.execute(ctx).toCompletableFuture().join();
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+
+        long executingCount = checkpoints.getCheckpoints("s-wi6-1").stream()
+                .filter(cp -> ToolExecutionPhase.fromWatermark(cp.getWatermark())
+                        == ToolExecutionPhase.EXECUTING)
+                .count();
+        assertEquals(1, executingCount,
+                "EXECUTING checkpoint written exactly once despite multiple poll rounds");
+        // DISPATCHED + EXECUTING + terminal = 3 checkpoints for A1
+        long dispatchedCount = checkpoints.getCheckpoints("s-wi6-1").stream()
+                .filter(cp -> ToolExecutionPhase.fromWatermark(cp.getWatermark())
+                        == ToolExecutionPhase.DISPATCHED)
+                .count();
+        assertEquals(1, dispatchedCount);
+    }
+
+    @Test
+    void derivedParallelCallGetsDispatchedPhaseCheckpoint() {
+        CompletableFuture<AiToolCallResult> slow = new CompletableFuture<>();
+        DelayedToolManager tools = new DelayedToolManager(Map.of("slow-tool", slow));
+        AgentExecutionContext ctx = buildContext("s-wi6-2", Set.of("slow-tool", "quick-tool"), 10);
+        ScriptedChatService chat = new ScriptedChatService();
+        chat.enqueue(toolCallResponse("A1", "slow-tool"), null);
+        chat.enqueue(toolCallResponse("B1", "quick-tool"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("ABANDON"), null);
+        chat.enqueue(ChatResponseFixtures.assistantText("done"), null);
+
+        ToolExecutionCheckpoint checkpoints = new ToolExecutionCheckpoint();
+        ReActAgentExecutor exec = ReActAgentExecutor.builder()
+                .chatService(chat)
+                .toolManager(tools)
+                .hookRegistry(new DefaultHookRegistry())
+                .heartBeatIntervalMs(50L)
+                .toolTimeoutMs(0L)
+                .checkpointManager(checkpoints)
+                .build();
+        AgentExecutionResult result = exec.execute(ctx).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // the derived call (B1) got its own DISPATCHED checkpoint via
+        // addCallsToPhase — same conservative marker as the primary batch
+        long b1Dispatched = checkpoints.getCheckpoints("s-wi6-2").stream()
+                .filter(cp -> "B1".equals(cp.getCallId()))
+                .filter(cp -> ToolExecutionPhase.fromWatermark(cp.getWatermark())
+                        == ToolExecutionPhase.DISPATCHED)
+                .count();
+        assertEquals(1, b1Dispatched, "derived call DISPATCHED checkpoint: "
+                + checkpoints.getCheckpoints("s-wi6-2").size() + " total");
     }
 
     // ---- ④ wakeup LLM failure → fail-soft, execution continues ----

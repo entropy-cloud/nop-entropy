@@ -516,3 +516,7 @@ Session 加载
 | NopAiSessionContext | 低（压缩时） | ~50 KB | ~数 MB |
 | NopAiTodo | 中 | ~0.5 KB | ~2 KB |
 | NopAiEvent | 高（异步） | ~1 KB | ~50 KB |
+
+## 工具执行 checkpoint 水位约定（WI6，plan 2287）
+
+相位化 TOOL_EXECUTION checkpoint 的 watermark 格式：`{sessionId}:tool:{callId}:{PHASE}:{execStartTime}:{seq}`（sessionId 为 null 时 `anon:` 前缀）。约束：checkpointSeq 是 per-ExecutionState（restore 后从 0 重计），跨执行唯一性靠 execStartTime 段；DB checkpoint 表以 watermark 为主键、append-only INSERT（重复主键上抛）。相位段（`[phase:DISPATCHED]`/`[phase:EXECUTING]`）为相位唯一权威载体；无相位段 = 终态。恢复侧消费见 `nop-ai-agent-reliability.md` 相位裁决节与 `nop-ai-agent-async-tool-execution.md` §三.2 不变量③（committed 集合仅计终态）。

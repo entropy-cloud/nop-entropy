@@ -109,7 +109,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -1206,6 +1208,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
                                        ChatOptions options, ExecutionState state) {
         AgentToolDispatcher.ToolPhaseSession session = toolDispatcher.startToolPhase(
                 ctx, agentName, sessionId, allowedCalls, toolExecCtx, execStartTime, checkpointSeq);
+        Set<String> executingStarted = new HashSet<>();
         while (true) {
             AgentToolDispatcher.PhaseWaitEvent event = session.awaitWakeup(
                     nextWaitSlice(session), () -> !ctx.getSteeringQueue().isEmpty());
@@ -1227,7 +1230,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
             if (event == AgentToolDispatcher.PhaseWaitEvent.STEERING_PENDING) {
                 boolean consumed = runSteeringWakeupTurn(ctx, sessionId, agentName, session,
-                        toolExecCtx, options, state);
+                        toolExecCtx, execStartTime, checkpointSeq, options, state);
                 if (!consumed) {
                     // failed steering turn: throttle the next probe by one
                     // full slice (circuit-open + queued steering must not
@@ -1235,7 +1238,25 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     session.awaitCompletionSlice(nextWaitSlice(session));
                 }
             } else {
-                runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx, options, state);
+                runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx,
+                        execStartTime, checkpointSeq, options, state);
+            }
+
+            // Plan 2287 (WI6): EXECUTING phase via polling (first sight of an
+            // in-flight sandbox execution per callId, executor thread, at most
+            // one EXECUTING checkpoint per call; NoOp tracker → dormant).
+            // The facade path (heartbeat disabled) does not poll — DISPATCHED
+            // already covers its conservative ruling.
+            for (String callId : session.pendingCallIds()) {
+                if (executingStarted.contains(callId)) {
+                    continue;
+                }
+                if (toolProgressTracker.progressSnapshot(callId).isInFlight()) {
+                    executingStarted.add(callId);
+                    ChatToolCall call = session.callByCallId(callId);
+                    toolDispatcherSaveExecuting(ctx, sessionId, execStartTime, checkpointSeq,
+                            callId, call != null ? call.getName() : "unknown");
+                }
             }
         }
         session.commitResults();
@@ -1263,6 +1284,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private boolean runSteeringWakeupTurn(AgentExecutionContext ctx, String sessionId, String agentName,
                                           AgentToolDispatcher.ToolPhaseSession session,
                                           AgentToolExecuteContext toolExecCtx,
+                                          long execStartTime, int[] checkpointSeq,
                                           ChatOptions options, ExecutionState state) {
         List<String> pendingCallIds = session.pendingCallIds();
         if (pendingCallIds.isEmpty()) {
@@ -1332,7 +1354,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         appendToolCallMessages(ctx, llmResult.response);
 
         adjudicateHeartbeatReply(ctx, sessionId, agentName, session, toolExecCtx,
-                derivedCalls, assistantMsg);
+                execStartTime, checkpointSeq, derivedCalls, assistantMsg);
         return true;
     }
 
@@ -1345,6 +1367,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
         for (ChatMessage msg : ctx.drainSteering()) {
             ctx.addMessage(msg);
         }
+    }
+
+    /**
+     * Plan 2287 (WI6): bridge to the dispatcher's phase-checkpoint writer for
+     * the EXECUTING polling path (same thread, same checkpointSeq discipline).
+     */
+    private void toolDispatcherSaveExecuting(AgentExecutionContext ctx, String sessionId,
+                                             long execStartTime, int[] checkpointSeq,
+                                             String callId, String toolName) {
+        toolDispatcher.saveExecutingPhaseCheckpoint(ctx, sessionId, execStartTime,
+                checkpointSeq, callId, toolName);
     }
 
     /**
@@ -1372,6 +1405,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private void runHeartbeatWakeupTurn(AgentExecutionContext ctx, String sessionId, String agentName,
                                         AgentToolDispatcher.ToolPhaseSession session,
                                         AgentToolExecuteContext toolExecCtx,
+                                        long execStartTime, int[] checkpointSeq,
                                         ChatOptions options, ExecutionState state) {
         List<String> pendingCallIds = session.pendingCallIds();
         if (pendingCallIds.isEmpty()) {
@@ -1437,7 +1471,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         appendToolCallMessages(ctx, llmResult.response);
 
         adjudicateHeartbeatReply(ctx, sessionId, agentName, session, toolExecCtx,
-                derivedCalls, assistantMsg);
+                execStartTime, checkpointSeq, derivedCalls, assistantMsg);
     }
 
     /**
@@ -1449,6 +1483,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private void adjudicateHeartbeatReply(AgentExecutionContext ctx, String sessionId, String agentName,
                                           AgentToolDispatcher.ToolPhaseSession session,
                                           AgentToolExecuteContext toolExecCtx,
+                                          long execStartTime, int[] checkpointSeq,
                                           List<ChatToolCall> derivedCalls,
                                           ChatAssistantMessage assistantMsg) {
         if (derivedCalls != null && !derivedCalls.isEmpty()) {
@@ -1469,7 +1504,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 allowed.add(call);
             }
             if (!allowed.isEmpty()) {
-                toolDispatcher.addCallsToPhase(session, ctx, agentName, allowed, toolExecCtx);
+                toolDispatcher.addCallsToPhase(session, ctx, agentName, sessionId,
+                        execStartTime, checkpointSeq, allowed, toolExecCtx);
                 LOG.info("heartbeat wakeup spawned {} parallel tool call(s). session={}", allowed.size(), sessionId);
             }
             return;

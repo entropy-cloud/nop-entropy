@@ -675,13 +675,31 @@ public class AgentSessionLifecycle {
                 if (liveKey == null || !liveKey.equals(storedKey)) {
                     divergenceDetected = true;
                     rejectedCheckpointWatermark = latestCheckpointWatermark;
-                    LOG.warn("restoreSession checkpoint divergence detected: idempotency_key mismatch "
-                                    + "(stored={}, live={}) for callId={} watermark={} — tool-call input has "
-                                    + "diverged (state corruption). Rejecting checkpoint as resume-point "
-                                    + "verification and degrading to session replay (session is source of "
-                                    + "truth, recovery not blocked). session={}",
-                            storedKey, liveKey, latestCheckpoint.getCallId(),
-                            latestCheckpointWatermark, sessionId);
+                    // Plan 2287 (WI6): a phase-tagged checkpoint with a missing
+                    // live key is ambiguous — a wakeup-derived call not yet
+                    // persisted vs a truncated history are indistinguishable
+                    // from the snapshot alone. Conservative discipline keeps
+                    // the divergence flag; the message reclassifies the cause
+                    // instead of asserting state corruption.
+                    ToolExecutionPhase checkpointPhase =
+                            ToolExecutionPhase.fromWatermark(latestCheckpoint.getWatermark());
+                    if (checkpointPhase != null && liveKey == null) {
+                        LOG.warn("restoreSession checkpoint divergence (reclassified): phase-tagged "
+                                        + "checkpoint ({}) has no matching persisted call message — "
+                                        + "inconclusive cause (wakeup-derived call not yet persisted, OR "
+                                        + "truncated history); flagging divergence conservatively. "
+                                        + "Rejecting checkpoint as resume-point verification, recovery "
+                                        + "not blocked. session={}",
+                                latestCheckpoint.getWatermark(), sessionId);
+                    } else {
+                        LOG.warn("restoreSession checkpoint divergence detected: idempotency_key mismatch "
+                                        + "(stored={}, live={}) for callId={} watermark={} — tool-call input has "
+                                        + "diverged (state corruption). Rejecting checkpoint as resume-point "
+                                        + "verification and degrading to session replay (session is source of "
+                                        + "truth, recovery not blocked). session={}",
+                                storedKey, liveKey, latestCheckpoint.getCallId(),
+                                latestCheckpointWatermark, sessionId);
+                    }
                 }
             }
         }
@@ -720,10 +738,28 @@ public class AgentSessionLifecycle {
         java.util.Set<String> neverCommitted = OpenToolCallResolver.filterNeverCommitted(openCallIds, checkpoints);
         java.util.Set<String> committedButUnsynced = OpenToolCallResolver.filterCommittedButUnsynced(openCallIds, checkpoints);
         if (!neverCommitted.isEmpty()) {
-            LOG.warn("restoreSession open tool_call diff: {} tool call(s) have no result and no "
-                            + "TOOL_EXECUTION checkpoint (never committed — recoverable orphans, callIds={}). "
-                            + "Continuing with best-effort recovery (session is source of truth). session={}",
-                    neverCommitted.size(), neverCommitted, sessionId);
+            // Plan 2287 (WI6): phase-graded orphan alarm — EXECUTING (sandbox
+            // observably started; side effects possible) ranks above
+            // DISPATCHED (intent only). Conservative discipline: both mean
+            // "result undeterminable — explicit failure, never a blind
+            // rerun"; the disposition (synthetic closure) is autonomous WI10.
+            Map<String, List<String>> graded = gradeOrphanPhases(neverCommitted, checkpoints);
+            List<String> executingOrphans = graded.getOrDefault("EXECUTING", java.util.Collections.emptyList());
+            List<String> dispatchedOrphans = graded.getOrDefault("DISPATCHED", java.util.Collections.emptyList());
+            if (!executingOrphans.isEmpty()) {
+                LOG.warn("restoreSession open tool_call diff: {} tool call(s) reached EXECUTING "
+                                + "phase with no terminal checkpoint (side effects possible, result "
+                                + "undeterminable — explicit failure, never blind rerun; callIds={}). "
+                                + "Continuing with best-effort recovery (session is source of truth). session={}",
+                        executingOrphans.size(), executingOrphans, sessionId);
+            }
+            if (!dispatchedOrphans.isEmpty()) {
+                LOG.warn("restoreSession open tool_call diff: {} tool call(s) reached DISPATCHED "
+                                + "phase with no terminal checkpoint (dispatch intent, result "
+                                + "undeterminable — explicit failure, never blind rerun; callIds={}). "
+                                + "Continuing with best-effort recovery (session is source of truth). session={}",
+                        dispatchedOrphans.size(), dispatchedOrphans, sessionId);
+            }
         }
         if (!committedButUnsynced.isEmpty()) {
             LOG.debug("restoreSession open tool_call diff: {} tool call(s) committed (TOOL_EXECUTION "
@@ -731,6 +767,29 @@ public class AgentSessionLifecycle {
                     + "crash window, owned by the messageCount consistency check; callIds={}). session={}",
                     committedButUnsynced.size(), committedButUnsynced, sessionId);
         }
+    }
+
+    /**
+     * Plan 2287 (WI6): phase-grades never-committed orphan callIds by their
+     * furthest recorded execution phase. Package-visible for focused
+     * verification of the restore alarm split (EXECUTING vs DISPATCHED rows).
+     */
+    static Map<String, List<String>> gradeOrphanPhases(java.util.Set<String> neverCommitted,
+                                                       List<Checkpoint> checkpoints) {
+        List<String> executing = new java.util.ArrayList<>();
+        List<String> dispatched = new java.util.ArrayList<>();
+        for (String callId : neverCommitted) {
+            ToolExecutionPhase phase = OpenToolCallResolver.resolveExecutionPhase(callId, checkpoints);
+            if (phase == ToolExecutionPhase.EXECUTING) {
+                executing.add(callId);
+            } else {
+                dispatched.add(callId);
+            }
+        }
+        Map<String, List<String>> graded = new java.util.LinkedHashMap<>();
+        graded.put("EXECUTING", executing);
+        graded.put("DISPATCHED", dispatched);
+        return graded;
     }
 
     /**

@@ -429,6 +429,12 @@ public class AgentToolDispatcher {
                 session.deadlinesByCallId.put(chatToolCall.getId(),
                         capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
                 session.startsByCallId.put(chatToolCall.getId(), startMs);
+                // Plan 2287 (WI6): DISPATCHED phase checkpoint (conservative
+                // recovery discipline — crash between here and the terminal
+                // commit leaves an explicit undeterminable-result marker)
+                savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                        checkpointSeq, chatToolCall.getId(), chatToolCall.getName(),
+                        ToolExecutionPhase.DISPATCHED);
             }
         } catch (RuntimeException | Error e) {
             // AR-15: a synchronous throw mid-loop must not leave the
@@ -450,6 +456,9 @@ public class AgentToolDispatcher {
     public void addCallsToPhase(ToolPhaseSession session,
                                 AgentExecutionContext ctx,
                                 String agentName,
+                                String sessionId,
+                                long execStartTime,
+                                int[] checkpointSeq,
                                 List<ChatToolCall> allowedCalls,
                                 AgentToolExecuteContext toolExecCtx) {
         try {
@@ -470,6 +479,9 @@ public class AgentToolDispatcher {
                 session.deadlinesByCallId.put(chatToolCall.getId(),
                         capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
                 session.startsByCallId.put(chatToolCall.getId(), startMs);
+                savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                        checkpointSeq, chatToolCall.getId(), chatToolCall.getName(),
+                        ToolExecutionPhase.DISPATCHED);
             }
         } catch (RuntimeException | Error e) {
             for (CompletableFuture<ToolCallOutput> f : session.futures) {
@@ -854,6 +866,61 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                             "status", toolStatus));
         }
         return reenterRequested;
+    }
+
+    /**
+     * Plan 2287 (WI6): phase-tagged checkpoint watermark. Keeps the
+     * execStartTime segment (the per-execution checkpointSeq restarts at 0
+     * after restore — uniqueness across executions rides on execStartTime;
+     * the DB checkpoint table's watermark is a primary key with append-only
+     * INSERT, so a colliding watermark would abort the dispatch loop).
+     */
+    static String phaseWatermark(String sessionId, String callId, long execStartTime,
+                                 int seq, ToolExecutionPhase phase) {
+        String prefix = sessionId != null ? sessionId : "anon";
+        return prefix + ":tool:" + callId + ":" + phase.watermarkSegment()
+                + ":" + execStartTime + ":" + seq;
+    }
+
+    /**
+     * Plan 2287 (WI6): writes a phase checkpoint (DISPATCHED/EXECUTING) for an
+     * in-flight tool call. resultText is a fixed constant — the watermark
+     * phase segment is the sole phase authority and payloads are never
+     * parsed. Best-effort: a null checkpoint manager (unassembled test
+     * wiring) skips the write — the phase is an observability enhancement,
+     * not a correctness gate.
+     */
+    private void savePhaseCheckpoint(AgentExecutionContext ctx, String sessionId,
+                                     ICheckpointManager checkpoints, long execStartTime,
+                                     int[] checkpointSeq, String callId, String toolName,
+                                     ToolExecutionPhase phase) {
+        if (checkpoints == null) {
+            return;
+        }
+        checkpoints.saveCheckpoint(Checkpoint.of(
+                sessionId,
+                phaseWatermark(sessionId, callId, execStartTime, checkpointSeq[0], phase),
+                checkpointSeq[0],
+                CoreMetrics.currentTimeMillis(),
+                CheckpointType.TOOL_EXECUTION,
+                toolName,
+                callId,
+                null,
+                "[phase:" + phase.name() + "]",
+                ctx.getMessages().size(),
+                ctx.getTokensUsed()));
+        checkpointSeq[0]++;
+    }
+
+    /**
+     * Plan 2287 (WI6): package-visible bridge for the executor's EXECUTING
+     * polling path (same checkpointSeq discipline as DISPATCHED).
+     */
+    void saveExecutingPhaseCheckpoint(AgentExecutionContext ctx, String sessionId,
+                                      long execStartTime, int[] checkpointSeq,
+                                      String callId, String toolName) {
+        savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                checkpointSeq, callId, toolName, ToolExecutionPhase.EXECUTING);
     }
 
     /**

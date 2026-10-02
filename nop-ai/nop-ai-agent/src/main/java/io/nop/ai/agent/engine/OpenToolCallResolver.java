@@ -127,15 +127,50 @@ public final class OpenToolCallResolver {
     }
 
     private static Set<String> collectCheckpointedCallIds(List<Checkpoint> checkpoints) {
+        // plan 2287 (WI6) committed-set narrowing: only TERMINAL checkpoints
+        // (no phase segment in the watermark) count as committed — phase-tagged
+        // DISPATCHED/EXECUTING checkpoints describe in-flight executions whose
+        // results are undeterminable; counting them as committed would
+        // silently silence the orphan alarm (invariant ③ state (a))
         Set<String> callIds = new HashSet<>();
         if (checkpoints == null) {
             return callIds;
         }
         for (Checkpoint checkpoint : checkpoints) {
-            if (checkpoint.getType() == CheckpointType.TOOL_EXECUTION && checkpoint.getCallId() != null) {
+            if (checkpoint.getType() == CheckpointType.TOOL_EXECUTION
+                    && checkpoint.getCallId() != null
+                    && ToolExecutionPhase.fromWatermark(checkpoint.getWatermark()) == null) {
                 callIds.add(checkpoint.getCallId());
             }
         }
         return callIds;
+    }
+
+    /**
+     * Plan 2287 (WI6): resolves the furthest execution phase recorded for an
+     * open callId. COMPLETED (a terminal, phase-less checkpoint exists) beats
+     * EXECUTING beats DISPATCHED beats NEVER_STARTED (null). Conservative
+     * recovery discipline: anything below COMPLETED means the result is
+     * undeterminable — explicit failure, never a blind rerun.
+     */
+    public static ToolExecutionPhase resolveExecutionPhase(String callId, List<Checkpoint> checkpoints) {
+        if (callId == null || checkpoints == null) {
+            return null;
+        }
+        ToolExecutionPhase furthest = null;
+        for (Checkpoint checkpoint : checkpoints) {
+            if (checkpoint.getType() != CheckpointType.TOOL_EXECUTION
+                    || !callId.equals(checkpoint.getCallId())) {
+                continue;
+            }
+            ToolExecutionPhase phase = ToolExecutionPhase.fromWatermark(checkpoint.getWatermark());
+            if (phase == null) {
+                return null; // terminal beats everything
+            }
+            if (furthest == null || phase == ToolExecutionPhase.EXECUTING) {
+                furthest = phase;
+            }
+        }
+        return furthest;
     }
 }
