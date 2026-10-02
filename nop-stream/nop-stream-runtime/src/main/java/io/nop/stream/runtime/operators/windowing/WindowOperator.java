@@ -874,7 +874,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         boolean isSkippedElement = true;
 
         for (W window : elementWindows) {
-            if (isWindowLate(window)) {
+            boolean late = isWindowLate(window);
+            if (late) {
                 continue;
             }
             isSkippedElement = false;
@@ -1098,7 +1099,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     key, window, processContext, contents, timestampedCollector);
         }
 
-        if (accumulationMode == AccumulationMode.DISCARDING) {
+        // WI10/D9: skip purge when allowedLateness > 0 on an event-time window.
+        // The cleanup timer (at window.maxTimestamp + allowedLateness) already
+        // clears contents at the cleanup point; purging on fire would reduce
+        // the late re-fire to a partial aggregate, breaking D1=(a) full-aggregate.
+        // GlobalWindows (not event-time) and processing-time paths keep eager
+        // purge (no lateness semantics; prevents unbounded state growth).
+        boolean skipPurgeForLateness = allowedLateness > 0 && windowAssigner.isEventTime();
+        if (accumulationMode == AccumulationMode.DISCARDING && !skipPurgeForLateness) {
             // DISCARDING under a merging
             // assigner must clear the STATE window namespace (where contents live),
             // not the actual window (a clear on the actual window would be a silent no-op).

@@ -39,6 +39,13 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: duration
+     * 
+     */
+    private java.lang.String _duration ;
+    
+    /**
+     *  
      * xml name: strategyId
      * 
      */
@@ -111,6 +118,25 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: duration
+     *  
+     */
+    
+    public java.lang.String getDuration(){
+      return _duration;
+    }
+
+    
+    public void setDuration(java.lang.String value){
+        checkAllowChange();
+        
+        this._duration = value;
            
     }
 
@@ -190,6 +216,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("accumulationMode",this.getAccumulationMode());
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("description",this.getDescription());
+        out.putNotNull("duration",this.getDuration());
         out.putNotNull("strategyId",this.getStrategyId());
         out.putNotNull("triggerId",this.getTriggerId());
         out.putNotNull("windowFnId",this.getWindowFnId());
@@ -207,6 +234,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setAccumulationMode(this.getAccumulationMode());
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setDescription(this.getDescription());
+        instance.setDuration(this.getDuration());
         instance.setStrategyId(this.getStrategyId());
         instance.setTriggerId(this.getTriggerId());
         instance.setWindowFnId(this.getWindowFnId());

@@ -83,11 +83,10 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * ({@code DataStream.union} / {@code SingleOutputStreamOperator.getSideOutput});
  * these are tracked as runtime-API-gap follow-ups in the plan.
  *
- * <p>P1-XDSL-6: window strategy declarations ({@code triggerId}/{@code allowedLateness}/
- * {@code accumulationMode}) and window node-level {@code allowedLateness}/{@code triggerId}
- * children are rejected at build time when they differ from the xdef defaults — the core
- * {@link WindowedStream} only exposes {@code trigger()}/{@code evictor()}, so a declared
- * non-default value would otherwise be silently ignored.
+ * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
+ * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
+ * at build time when they differ from the xdef defaults. allowedLateness was released by
+ * D9: consumed by buildWindow and passed to the operator.
  */
 final class AdvancedTransforms {
 
@@ -183,15 +182,25 @@ final class AdvancedTransforms {
         failFastOnUnsupportedWindowNodeAttrs(t, m);
         WindowAssigner assigner = (WindowAssigner) resolveWindowAssigner(owner, t, strategy);
         KeyedStream keyed = (KeyedStream<T, K>) in;
-        return keyed.window(assigner);
+        io.nop.stream.core.datastream.WindowedStreamImpl<?, ?, ?> windowed =
+                (io.nop.stream.core.datastream.WindowedStreamImpl<?, ?, ?>) keyed.window(assigner);
+        // WI10/D9: consume the merged allowedLateness (node-level explicit Long
+        // overrides strategy-level long; null node means strategy value applies).
+        long lateness = m.getAllowedLateness() != null
+                ? m.getAllowedLateness()
+                : strategy.getAllowedLateness();
+        if (lateness > 0) {
+            windowed.allowedLateness(lateness);
+        }
+        return windowed;
     }
 
     /**
-     * P1-XDSL-6: strategy-level windowing attributes that the core {@link WindowedStream}
-     * cannot express (no {@code allowedLateness()}/{@code accumulationMode()} API; triggers
-     * would require a trigger registry) must fail fast on non-default values instead of
-     * being silently ignored. xdef defaults: allowedLateness=0, accumulationMode=DISCARDING,
-     * triggerId unset.
+     * P1-XDSL-6 (updated WI10/D9): strategy-level windowing attributes that the core
+     * pipeline cannot express (triggers would require a trigger registry) must fail fast
+     * on non-default values. allowedLateness was released by D9 (WI10): consumed by
+     * buildWindow and passed to the operator. xdef defaults: allowedLateness=0,
+     * accumulationMode=DISCARDING, triggerId unset.
      */
     private static void failFastOnUnsupportedWindowStrategy(StreamTransformModel t,
                                                             WindowingStrategyModel strategy) {
@@ -201,13 +210,8 @@ final class AdvancedTransforms {
                     .param(ARG_ATTR_NAME, "triggerId").param(ARG_ATTR_VALUE, strategy.getTriggerId())
                     .loc(t.getLocation());
         }
-        if (strategy.getAllowedLateness() != XDEF_DEFAULT_ALLOWED_LATENESS) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "allowedLateness")
-                    .param(ARG_ATTR_VALUE, strategy.getAllowedLateness())
-                    .loc(t.getLocation());
-        }
+        // WI10/D9: allowedLateness is now released — consumed by buildWindow.
+
         if (strategy.getAccumulationMode() != null
                 && strategy.getAccumulationMode() != AccumulationMode.DISCARDING) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
@@ -219,18 +223,12 @@ final class AdvancedTransforms {
     }
 
     /**
-     * AR-12 (P2, closed by natural coverage): window node-level {@code allowedLateness}/
-     * {@code triggerId} children would also be silently ignored; the same fail-fast
-     * mechanism applies (xdef default: allowedLateness=0, triggerId unset).
+     * AR-12 (updated WI10/D9): window node-level {@code triggerId} children fail fast.
+     * allowedLateness was released by D9 — consumed by buildWindow.
      */
     private static void failFastOnUnsupportedWindowNodeAttrs(StreamTransformModel t,
                                                              StreamWindowModel m) {
-        if (m.getAllowedLateness() != null && m.getAllowedLateness() != XDEF_DEFAULT_ALLOWED_LATENESS) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "allowedLateness").param(ARG_ATTR_VALUE, m.getAllowedLateness())
-                    .loc(t.getLocation());
-        }
+        // WI10/D9: node-level allowedLateness is now released — consumed by buildWindow.
         if (m.getTriggerId() != null) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
@@ -242,11 +240,33 @@ final class AdvancedTransforms {
     private static WindowAssigner<? super Object, ?> resolveWindowAssigner(
             StreamModelDslBuilder owner, StreamTransformModel t, WindowingStrategyModel strategy) {
         String windowFnId = strategy.getWindowFnId();
+        // WI10: bean takes priority over the parameterized path (review m1: bean
+        // precedes duration conflict check to preserve existing semantics).
         if (owner.beanResolver().contains(windowFnId)) {
             return owner.resolveBean(t, windowFnId, WindowAssigner.class);
         }
-        // A small builtin catalog so tests can reference well-known window assigners by id
-        // without registering a bean. Production code should register an explicit bean.
+        // WI10: duration + legacy id together is a conflict (no silent ignore).
+        if (strategy.getDuration() != null && isLegacyWindowId(windowFnId))
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration")
+                    .param(ARG_DETAIL, "windowingStrategies: duration cannot be combined with legacy windowFnId="
+                            + windowFnId + " (declare windowFnId=\"tumbling-event-time\" + duration instead)")
+                    .loc(t.getLocation());
+        // WI10: parameterized kind + duration declaration — arbitrary window size
+        // without pre-registered beans or whitelisted ids. Exact match (not
+        // startsWith) so legacy tumbling-event-time-1s/5s fall through to the
+        // whitelist below.
+        if (windowFnId.equals("tumbling-event-time")) {
+            if (strategy.getDuration() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires a duration declaration (e.g. duration=\"2s\")")
+                        .loc(t.getLocation());
+            long millis = parseDurationMillis(strategy.getDuration());
+            return io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows.of(millis);
+        }
+        // A small builtin catalog for backward compatibility (legacy ids without duration).
         switch (windowFnId) {
             case "tumbling-global":
             case "global":
@@ -260,6 +280,59 @@ final class AdvancedTransforms {
                         .param(ARG_ELEMENT, "windowingStrategies")
                         .param(ARG_REF_TYPE, "windowFnId").param(ARG_REF_NAME, windowFnId)
                         .loc(t.getLocation());
+        }
+    }
+
+    static boolean isLegacyWindowId(String windowFnId) {
+        switch (windowFnId) {
+            case "tumbling-global":
+            case "global":
+            case "tumbling-event-time-1s":
+            case "tumbling-event-time-5s":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * WI10: parses a duration string with ms/s/m suffix into milliseconds.
+     * Plain numbers are interpreted as milliseconds.
+     */
+    static long parseDurationMillis(String duration) {
+        if (duration == null || duration.isEmpty())
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "duration must not be empty");
+        String unit = "ms";
+        String num = duration;
+        if (duration.endsWith("ms")) {
+            num = duration.substring(0, duration.length() - 2);
+        } else if (duration.endsWith("s") || duration.endsWith("m")) {
+            unit = duration.substring(duration.length() - 1);
+            num = duration.substring(0, duration.length() - 1);
+        }
+        long value;
+        try {
+            value = Long.parseLong(num.trim());
+        } catch (NumberFormatException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "invalid duration: " + duration);
+        }
+        // WI10/M-C: non-positive values are rejected (zero or negative window
+        // size is a semantic error, not a valid parameterization).
+        if (value <= 0)
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "duration must be positive: " + duration);
+        switch (unit) {
+            case "s":
+                return value * 1000L;
+            case "m":
+                return value * 60_000L;
+            case "ms":
+                return value;
+            default:
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "unknown duration unit: " + duration);
         }
     }
 

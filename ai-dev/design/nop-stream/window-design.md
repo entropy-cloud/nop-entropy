@@ -126,7 +126,7 @@ Trigger 的 `ctx` 提供注册/删除定时器和获取当前 watermark 的能�
 | 模式 | 语义 | 状态 |
 |---|---|---|
 | `ACCUMULATING` | 窗口触发时输出累积结果，不清除状态，下次触发包含之前所有数据 | 已实现 |
-| `DISCARDING` | 窗口触发时输出结果，清除状态，下次触发只包含新数据 | 已实现 |
+| `DISCARDING` | 窗口触发时输出结果，清除状态，下次触发只包含新数据；**WI10/D9 修订**：allowedLateness > 0 时 fire 不清除（迟到更新携带全量聚合），清除推迟至 cleanup 时点（maxTimestamp + allowedLateness） | 已实现 |
 | `ACCUMULATING_AND_RETRACTING` | 窗口触发时输出新结果并回撤之前的输出（需要下游支持 retraction） | **spec-only**（未实现，`WindowOperator.open()` 快速失败抛 `UnsupportedOperationException`） |
 
 > **注**：枚举值名与代码一致（`AccumulationMode.ACCUMULATING_AND_RETRACTING`）。nop-stream 无 retract 下游消费者，故该模式标 spec-only 并在未实现分支快速失败，而非静默当作 ACCUMULATING。
@@ -403,7 +403,7 @@ Evictor 在 `emitWindowContents` 中执行，不是独立的算子或外部策�
 **两次调用（evictBefore / evictAfter）**：`Evictor` 接口定义 `evictBefore`（计算前裁剪）与 `evictAfter`（计算后裁剪）两个回调，`emitWindowContents` 按序调用：先 `evictBefore` → 再 `userFunction.process` → 最后 `evictAfter`。两者均作用于局部瞬态副本，**不持久化**。
 
 **瞬态淘汰语义（transient-per-fire）**：eviction 每次窗口触发从 state 读取全量元素到局部副本后裁剪，裁剪结果**不写回 state**。因此：
-- `DISCARDING` 模式：触发后 `clearWindowContents` 清空 state，下次触发从空开始。
+- `DISCARDING` 模式：触发后 `clearWindowContents` 清空 state，下次触发从空开始。**WI10/D9 条件化修订**：allowedLateness > 0 时 fire 不清除，由 cleanup timer（maxTimestamp + allowedLateness）清除——迟到更新携带全量聚合（fire-then-update 语义）。
 - `ACCUMULATING` 模式：触发后不清空 state，全量元素跨 firing 持久化，eviction 每次 firing 重算。
 
 此语义与 Flink `EvictingWindowOperator` 一致。**明确不引入"evictAfter 持久化裁剪"**——后者会永久丢弃 ACCUMULATING 模式下本应跨 firing 保留的元素，构成回归。
@@ -463,7 +463,7 @@ PaneTiming 判定（`computePaneInfo`）：
 
 ### 13.4 与 AccumulationMode 的交互（spec）
 
-- `DISCARDING`：每次触发后清除窗口内容，paneIndex 递增
+- `DISCARDING`：每次触发后清除窗口内容（WI10/D9 条件化：allowedLateness > 0 且 event-time 时跳过 purge，由 cleanup timer 清除），paneIndex 递增
 - `ACCUMULATING`：窗口内容持续累积，paneIndex 递增，每次输出包含全部累积数据
 - `ACCUMULATING_AND_RETRACTING`：spec-only，输出新结果 + 回撤上一 pane 的输出（未实现，见 §6）
 

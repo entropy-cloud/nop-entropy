@@ -51,6 +51,7 @@ public final class WindowingTestSupport {
                     windowFunction, trigger, allowedLateness, lateDataOutputTag);
         }
 
+
         public void advanceInternalWatermark(long timestamp) throws Exception {
             if (internalTimerService instanceof HeapInternalTimerService) {
                 ((HeapInternalTimerService<String, TimeWindow>) internalTimerService).advanceWatermark(timestamp);

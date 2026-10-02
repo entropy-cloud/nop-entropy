@@ -93,6 +93,10 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
   <windowingStrategies>
     <strategy strategyId="tx-window" windowFnId="txWindowAssigner"/>
   </windowingStrategies>
+
+**参数化窗口声明（WI10）**：`windowFnId="tumbling-event-time"` 搭配 `duration` 属性声明任意时长的 tumbling event-time 窗口（如 `duration="2s"`、`duration="500ms"`）。旧白名单 id（`tumbling-event-time-1s`/`-5s`）继续兼容但不能与 `duration` 同时声明。
+
+**allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
   <transforms>
     <source id="src" bean="mySource"/>
     <map id="upper"><source>return event.toString().toUpperCase();</source></map>
