@@ -1,6 +1,6 @@
 # 2293 unit-test-coverage-roadmap WI1 — nop-core 补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI1 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -73,13 +73,13 @@ Targets: `ai-dev/analysis/2026-10/`（复测快照）、`ai-dev/backlog/unit-tes
 
 - [x] 重建 nop-core 覆盖报告（同上管线，快照 coverage-baseline-wi1-2026-10-02.json）：行覆盖 36.59%→44.05%（+7.46pp / +2243 行），分支 29.21%→34.54%；全仓加权 56.92%→57.96%。
 - [x] 按 roadmap closure 规则裁定：44.05% < 55% 目标——deferred to WI13 复裁（Deferred 段含残余 111 个低覆盖类的分类统计与理由）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI1 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI1 checkbox。
 
 Exit Criteria:
 
 - [x] 复测数字与增量记录在案（36.59% → 44.05%）。
 - [x] 残余缺口裁定有记录（Deferred 段）。
-- [ ] roadmap WI1 checkbox 与 plan/log 三处一致（待 audit 后同步）。
+- [x] roadmap WI1 checkbox 与 plan/log 三处一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -91,10 +91,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录（36.59%→44.05%）
 - [x] 残余缺口显式裁定（无静默降级，见 Deferred 段）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：新增测试断言语义而非仅实例化（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2293-unit-test-wi1-nop-core.md --strict` 退出码 0
-- [ ] roadmap WI1 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：新增测试断言语义而非仅实例化（audit 抽查：TestDefaultTaskExecutionQueue 全 @Timeout+有界 get、TestFilterOpHelper 边界/null 语义/失败路径断言）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2293-unit-test-wi1-nop-core.md --strict` 退出码 0
+- [x] roadmap WI1 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -116,13 +116,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 25 测试类/192 用例全绿（491/0F/0E），nop-core 36.59%→44.05% 与 jacoco.xml 原始 counter 逐位一致，产品代码零修改，缺陷嫌疑经源码逐字核实（FilterOpHelper.java:269 确为 toLocalDate(min) 误写），Deferred 分类经独立全量重现 111 类证实合规。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_72176ad4-cbf1-40e7-b832-068a2ba73ded，fresh session）
 
 Follow-up:
 
