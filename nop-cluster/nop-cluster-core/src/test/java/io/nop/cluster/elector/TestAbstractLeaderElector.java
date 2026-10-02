@@ -1,5 +1,6 @@
 package io.nop.cluster.elector;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
