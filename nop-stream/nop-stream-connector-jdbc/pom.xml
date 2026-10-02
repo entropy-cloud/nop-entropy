@@ -33,6 +33,19 @@
             <artifactId>nop-dao</artifactId>
         </dependency>
 
+        <!--
+            cdc-design.md §3.5: dmlMode UPSERT/UPSERT_DELETE consumes the nop ChangeEvent
+            envelope (operation c/u/d/r + key + after) natively. provided+optional: jobs
+            that feed ChangeEvent records already carry this module at runtime; pure
+            INSERT-mode sinks never touch these types.
+        -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-message-debezium</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

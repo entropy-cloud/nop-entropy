@@ -95,12 +95,19 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         return sink;
     }
 
-    private Map<String, Object> row(long id, String name, long amount) {
+    private static Map<String, Object> row(long id, String name, long amount) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", id);
         m.put("name", name);
         m.put("amount", amount);
         return m;
+    }
+    private static JdbcTwoPhaseCommitSink.DmlOp insertOp(Map<String, Object> row) {
+        return new JdbcTwoPhaseCommitSink.DmlOp(JdbcTwoPhaseCommitSink.DmlOp.KIND_INSERT, row);
+    }
+
+    private static JdbcTwoPhaseCommitSink.DmlOp insertOp(long id, String name, long amount) {
+        return insertOp(row(id, name, amount));
     }
 
     private int countRows(String tableName) throws Exception {
@@ -234,8 +241,8 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         assertEquals(2, countRows("target_data"));
 
         // Simulate recovery: re-commit epoch 1 and 2
-        sink.getPendingCommits().put(1L, Collections.singletonList(row(1L, "a", 100L)));
-        sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
+        sink.getPendingCommits().put(1L, Collections.singletonList(insertOp(1L, "a", 100L)));
+        sink.getPendingCommits().put(2L, Collections.singletonList(insertOp(2L, "b", 200L)));
 
         sink.finishCommit(2L, true); // subsuming commit for epochs <= 2
 
@@ -319,7 +326,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         assertEquals(1, countRows("stream_epoch_ledger_v2"));
 
         // Epoch 2 durable but not committed (in pendingCommits, no ledger entry)
-        sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
+        sink.getPendingCommits().put(2L, Collections.singletonList(insertOp(2L, "b", 200L)));
 
         // Restore at epoch 5: epoch 2 is durable (2 <= 5) → re-commit
         sink.restoreFromEpoch(5L, null);
@@ -343,7 +350,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         // Simulate crash-recovery: pendingCommits still has epoch 1
         // (because finishCommit was never called to remove it)
-        sink.getPendingCommits().put(1L, Collections.singletonList(row(1L, "a", 100L)));
+        sink.getPendingCommits().put(1L, Collections.singletonList(insertOp(1L, "a", 100L)));
 
         // Restore at epoch 1: epoch 1 is durable (1 <= 1) → re-commit
         // But ledger already has epoch 1 → idempotent skip
@@ -360,7 +367,7 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         JdbcTwoPhaseCommitSink<Map<String, Object>> sink = createSink();
 
         // Epoch 8 is non-durable (epochId > restore epoch)
-        sink.getPendingCommits().put(8L, Collections.singletonList(row(8L, "h", 800L)));
+        sink.getPendingCommits().put(8L, Collections.singletonList(insertOp(8L, "h", 800L)));
 
         sink.restoreFromEpoch(3L, null);
 
@@ -377,11 +384,11 @@ class TestJdbcTwoPhaseCommitSinkDeep {
         JdbcTwoPhaseCommitSink<Map<String, Object>> sink = createSink();
 
         // Durable epochs (will be committed)
-        sink.getPendingCommits().put(1L, Collections.singletonList(row(1L, "a", 100L)));
-        sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
+        sink.getPendingCommits().put(1L, Collections.singletonList(insertOp(1L, "a", 100L)));
+        sink.getPendingCommits().put(2L, Collections.singletonList(insertOp(2L, "b", 200L)));
         // Non-durable epochs (will be aborted)
-        sink.getPendingCommits().put(8L, Collections.singletonList(row(8L, "h", 800L)));
-        sink.getPendingCommits().put(9L, Collections.singletonList(row(9L, "i", 900L)));
+        sink.getPendingCommits().put(8L, Collections.singletonList(insertOp(8L, "h", 800L)));
+        sink.getPendingCommits().put(9L, Collections.singletonList(insertOp(9L, "i", 900L)));
 
         sink.restoreFromEpoch(3L, null);
 
@@ -404,9 +411,9 @@ class TestJdbcTwoPhaseCommitSinkDeep {
     void testFinishCommitSubsumesMultiplePendingEpochs() throws Exception {
         JdbcTwoPhaseCommitSink<Map<String, Object>> sink = createSink();
 
-        sink.getPendingCommits().put(1L, Collections.singletonList(row(1L, "a", 100L)));
-        sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
-        sink.getPendingCommits().put(3L, Collections.singletonList(row(3L, "c", 300L)));
+        sink.getPendingCommits().put(1L, Collections.singletonList(insertOp(1L, "a", 100L)));
+        sink.getPendingCommits().put(2L, Collections.singletonList(insertOp(2L, "b", 200L)));
+        sink.getPendingCommits().put(3L, Collections.singletonList(insertOp(3L, "c", 300L)));
 
         // finishCommit(3, true) commits all epochs <= 3
         sink.finishCommit(3L, true);
@@ -424,8 +431,8 @@ class TestJdbcTwoPhaseCommitSinkDeep {
 
         // This test verifies that multiple epoch commits don't interfere.
         // If they shared a connection, one failure would corrupt all.
-        sink.getPendingCommits().put(1L, Collections.singletonList(row(1L, "a", 100L)));
-        sink.getPendingCommits().put(2L, Collections.singletonList(row(2L, "b", 200L)));
+        sink.getPendingCommits().put(1L, Collections.singletonList(insertOp(1L, "a", 100L)));
+        sink.getPendingCommits().put(2L, Collections.singletonList(insertOp(2L, "b", 200L)));
 
         // Commit epoch 1 first
         sink.commit(1L);

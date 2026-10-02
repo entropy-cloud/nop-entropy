@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -114,18 +115,13 @@ public class TestJdbcConnectorFactory {
                         "recordMapper", ROW_MAPPER))));
         assertEquals("tableName", ex.getParam("paramName"));
 
-        // columns missing
-        ex = assertThrows(StreamException.class, () -> factory.createSink(
+        // columns / recordMapper are now OPTIONAL (required only for dmlMode=insert,
+        // enforced by the sink construction contract): a keyed-mode config without them
+        // must build fine.
+        assertDoesNotThrow(() -> factory.createSink(
                 new StreamConnectorConfig("jdbc-2pc", Map.of(
                         "jdbcTemplate", jdbcTemplate, "tableName", "t",
-                        "recordMapper", ROW_MAPPER))));
-        assertEquals("columns", ex.getParam("paramName"));
-
-        // recordMapper missing
-        ex = assertThrows(StreamException.class, () -> factory.createSink(
-                new StreamConnectorConfig("jdbc-2pc", Map.of(
-                        "jdbcTemplate", jdbcTemplate, "tableName", "t", "columns", List.of("c")))));
-        assertEquals("recordMapper", ex.getParam("paramName"));
+                        "dmlMode", "upsert", "keyColumns", List.of("id")))));
     }
 
     @Test

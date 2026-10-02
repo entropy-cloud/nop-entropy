@@ -38,6 +38,10 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
     private final List<String> columnNames = new ArrayList<>();
     private Function<IN, Map<String, Object>> recordMapper;
     private int maxBatchSize = JdbcTwoPhaseCommitSink.DEFAULT_MAX_BATCH_SIZE;
+    private JdbcTwoPhaseCommitSink.DmlMode dmlMode;
+    private final List<String> keyColumns = new ArrayList<>();
+    private Function<IN, String> opMapper;
+    private Function<IN, Map<String, Object>> deleteKeyMapper;
 
     JdbcTwoPhaseCommitSinkBuilder() {
     }
@@ -87,8 +91,52 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
         return this;
     }
 
+    /**
+     * DML semantics (cdc-design.md §3.5): INSERT（默认，追加）/ UPSERT（键控覆盖写）/
+     * UPSERT_DELETE（键控覆盖写 + d 事件删除）。String overload accepts
+     * "insert" / "upsert" / "upsert_delete".
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> dmlMode(String dmlMode) {
+        this.dmlMode = JdbcTwoPhaseCommitSink.DmlMode.parse(dmlMode);
+        return this;
+    }
+
+    public JdbcTwoPhaseCommitSinkBuilder<IN> dmlMode(JdbcTwoPhaseCommitSink.DmlMode dmlMode) {
+        this.dmlMode = dmlMode;
+        return this;
+    }
+
+    /**
+     * Key columns for the keyed modes (required for UPSERT/UPSERT_DELETE).
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> keyColumns(String... keyColumns) {
+        this.keyColumns.addAll(Arrays.asList(keyColumns));
+        return this;
+    }
+
+    /**
+     * Operation source for keyed modes: maps a record to its Debezium operation code
+     * (c/u/d/r). Optional for {@code io.nop.message.debezium.ChangeEvent} records
+     * (read from the envelope); required for other record types.
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> opMapper(Function<IN, String> opMapper) {
+        this.opMapper = opMapper;
+        return this;
+    }
+
+    /**
+     * Key map source for delete events in UPSERT_DELETE mode. Optional for ChangeEvent
+     * records (uses {@code getKey()}); mapped records fall back to the value row
+     * restricted to {@code keyColumns}.
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> deleteKeyMapper(Function<IN, Map<String, Object>> deleteKeyMapper) {
+        this.deleteKeyMapper = deleteKeyMapper;
+        return this;
+    }
+
     public JdbcTwoPhaseCommitSink<IN> build() {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
-                ledgerTableName, columnNames, recordMapper, 0, maxBatchSize);
+                ledgerTableName, columnNames, recordMapper, 0, maxBatchSize, null,
+                dmlMode, keyColumns, opMapper, deleteKeyMapper);
     }
 }

@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.message.debezium.ChangeEvent;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -34,6 +35,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -98,13 +100,101 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private static final String LEDGER_SUBTASK_COL = "subtask_id";
     private static final String LEDGER_TIMESTAMP_COL = "committed_at";
 
+    /**
+     * DML semantics of the sink (cdc-design.md §3.5).
+     */
+    public enum DmlMode {
+        /** Append-only inserts (legacy semantics, the default). */
+        INSERT,
+        /** Keyed upsert for c/r/u events; a d event is a typed error. */
+        UPSERT,
+        /** Keyed upsert for c/r/u events plus keyed delete for d events (CDC mirror). */
+        UPSERT_DELETE;
+
+        public static DmlMode parse(String value) {
+            if (value == null || value.isEmpty()) {
+                return INSERT;
+            }
+            switch (value.trim().toLowerCase()) {
+                case "insert":
+                    return INSERT;
+                case "upsert":
+                    return UPSERT;
+                case "upsert_delete":
+                case "upsert-delete":
+                    return UPSERT_DELETE;
+                default:
+                    throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                            .param(ARG_DETAIL, "unknown dmlMode: " + value
+                                    + " (supported: insert, upsert, upsert_delete)");
+            }
+        }
+    }
+
+    /**
+     * One buffered DML operation. Kind {@code I} = plain insert, {@code U} = keyed
+     * upsert, {@code D} = keyed delete. Buffered per epoch and persisted in
+     * {@code pendingCommits}; {@code Serializable} because the pending batch rides the
+     * checkpoint state.
+     */
+    public static final class DmlOp implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+
+        public static final char KIND_INSERT = 'I';
+        public static final char KIND_UPSERT = 'U';
+        public static final char KIND_DELETE = 'D';
+
+        public final char kind;
+        /**
+         * KIND_INSERT / KIND_UPSERT: value columns → values.
+         * KIND_DELETE: key columns → values.
+         */
+        public final Map<String, Object> row;
+
+        public DmlOp(char kind, Map<String, Object> row) {
+            this.kind = kind;
+            this.row = row;
+        }
+    }
+
+    /**
+     * Upsert SQL style of the resolved dialect (mirrors the JdbcCheckpointStorage
+     * UpsertDialect precedent). Anything outside the built-in three is rejected for
+     * UPSERT modes: the built-in sync scope targets MySQL and PostgreSQL (cdc-design
+     * §3.2); H2 is recognized for tests.
+     */
+    private enum UpsertDialect {
+        MYSQL, POSTGRESQL, H2
+    }
+
     // ---- Configuration (final) ----
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
     private final String tableName;
     private final String ledgerTableName;
+    /**
+     * Value columns for KIND_INSERT ops (fixed, required in INSERT mode). In UPSERT
+     * modes this may be empty — the column set is then derived from the first buffered
+     * op's row and cached (schema drift within a run = typed error, no silent widening).
+     */
     private final List<String> columnNames;
     private final Function<IN, Map<String, Object>> recordMapper;
+    /** DML semantics (cdc-design.md §3.5); INSERT keeps the legacy append-only path. */
+    private final DmlMode dmlMode;
+    /** Key columns for keyed modes (UPSERT/UPSERT_DELETE); required there, empty for INSERT. */
+    private final List<String> keyColumns;
+    /**
+     * Operation source for keyed modes: maps a record to its Debezium operation code
+     * (c/u/d/r). Optional — when absent, records must be {@link ChangeEvent} instances
+     * (the operation is read from the envelope).
+     */
+    private final Function<IN, String> opMapper;
+    /**
+     * Key map source for KIND_DELETE ops in keyed modes. Optional — ChangeEvent records
+     * use {@link ChangeEvent#getKey()}; mapped records fall back to the value row
+     * restricted to {@code keyColumns}.
+     */
+    private final Function<IN, Map<String, Object>> deleteKeyMapper;
     /**
      * Upper bound for one JDBC batch execution. The whole epoch
      * used to be buffered into a single {@code executeBatch()}, which can OOM the
@@ -129,13 +219,23 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private final String ledgerNamespace;
 
     // ---- In-memory buffer for the current epoch (not yet in pendingCommits) ----
-    private final List<Map<String, Object>> currentBuffer = new ArrayList<>();
+    private final List<DmlOp> currentBuffer = new ArrayList<>();
 
     // ---- Cached SQL and dialect (lazily initialized in beginTransaction) ----
     private transient IDialect dialect;
     private transient String insertDataSql;
     private transient String insertLedgerSql;
     private transient String ledgerExistsSql;
+    /**
+     * Upsert/delete SQL and column set, established from the FIRST keyed batch and
+     * cached; a later batch with a different column set is a typed error (no silent
+     * schema drift). volatile: invoke (task thread) establishes the column set via the
+     * buffered rows, commit (commit thread) consumes the SQL.
+     */
+    private transient volatile List<String> keyedColumns;
+    private transient volatile String upsertSql;
+    private transient volatile String deleteSql;
+    private transient volatile UpsertDialect upsertDialect;
     /**
      * volatile so the task thread (saveState on the barrier
      * path) and the commit thread (finishCommit notification) safely publish /
@@ -177,34 +277,88 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     /**
      * Full copy constructor including the ledger namespace (task-identity pipeline,
      * plan 368 Phase 4). Package-private: used by {@link #copyForSubtask} variants.
+     * Delegates with INSERT dml semantics (legacy signature).
      */
     JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
                            String ledgerTableName, List<String> columnNames,
                            Function<IN, Map<String, Object>> recordMapper, int subtaskIndex,
                            int maxBatchSize, String ledgerNamespace) {
+        this(jdbcTemplate, querySpace, tableName, ledgerTableName, columnNames, recordMapper,
+                subtaskIndex, maxBatchSize, ledgerNamespace,
+                DmlMode.INSERT, null, null, null);
+    }
+
+    /**
+     * Canonical constructor including the DML contract (cdc-design.md §3.5).
+     * Package-private: reached via the builder and the {@code copyForSubtask} variants.
+     *
+     * <p>Validation is mode-conditional: INSERT requires fixed {@code columnNames} and a
+     * {@code recordMapper}; keyed modes (UPSERT/UPSERT_DELETE) require non-empty
+     * {@code keyColumns}, accept a null {@code recordMapper} (native
+     * {@link ChangeEvent} path) and derive operations from {@code opMapper} or the
+     * ChangeEvent envelope.
+     */
+    JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
+                           String ledgerTableName, List<String> columnNames,
+                           Function<IN, Map<String, Object>> recordMapper, int subtaskIndex,
+                           int maxBatchSize, String ledgerNamespace,
+                           DmlMode dmlMode, List<String> keyColumns,
+                           Function<IN, String> opMapper,
+                           Function<IN, Map<String, Object>> deleteKeyMapper) {
         if (jdbcTemplate == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jdbcTemplate");
         }
         if (tableName == null || tableName.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "tableName");
         }
-        if (columnNames == null || columnNames.isEmpty()) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "columnNames");
+        if (maxBatchSize <= 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxBatchSize");
         }
-        if (recordMapper == null) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "recordMapper");
+        DmlMode mode = dmlMode != null ? dmlMode : DmlMode.INSERT;
+        if (mode == DmlMode.INSERT) {
+            if (columnNames == null || columnNames.isEmpty()) {
+                throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "columnNames");
+            }
+            if (recordMapper == null) {
+                throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "recordMapper");
+            }
+            if (keyColumns != null && !keyColumns.isEmpty()) {
+                throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                        .param(ARG_DETAIL, "keyColumns is only valid for dmlMode UPSERT/UPSERT_DELETE");
+            }
+            if (opMapper != null || deleteKeyMapper != null) {
+                throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                        .param(ARG_DETAIL, "opMapper/deleteKeyMapper are only valid for dmlMode"
+                                + " UPSERT/UPSERT_DELETE");
+            }
+        } else {
+            if (keyColumns == null || keyColumns.isEmpty()) {
+                throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                        .param(ARG_ARG_NAME, "keyColumns")
+                        .param(ARG_DETAIL, "dmlMode " + mode + " requires non-empty keyColumns");
+            }
+            if (mode == DmlMode.UPSERT && deleteKeyMapper != null) {
+                throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                        .param(ARG_DETAIL, "deleteKeyMapper is only valid for dmlMode UPSERT_DELETE"
+                                + " (UPSERT does not carry delete events)");
+            }
         }
         this.jdbcTemplate = jdbcTemplate;
         this.querySpace = querySpace != null ? querySpace : "";
         this.tableName = tableName;
         this.ledgerTableName = ledgerTableName != null ? ledgerTableName : DEFAULT_LEDGER_TABLE;
-        this.columnNames = Collections.unmodifiableList(new ArrayList<>(columnNames));
+        this.columnNames = columnNames != null
+                ? Collections.unmodifiableList(new ArrayList<>(columnNames))
+                : Collections.emptyList();
         this.recordMapper = recordMapper;
         this.subtaskIndex = subtaskIndex;
         this.ledgerNamespace = ledgerNamespace;
-        if (maxBatchSize <= 0) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxBatchSize");
-        }
+        this.dmlMode = mode;
+        this.keyColumns = keyColumns != null
+                ? Collections.unmodifiableList(new ArrayList<>(keyColumns))
+                : Collections.emptyList();
+        this.opMapper = opMapper;
+        this.deleteKeyMapper = deleteKeyMapper;
         this.maxBatchSize = maxBatchSize;
     }
 
@@ -221,7 +375,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     public JdbcTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
                 ledgerTableName, columnNames, recordMapper, subtaskIndex, maxBatchSize,
-                this.ledgerNamespace);
+                this.ledgerNamespace, dmlMode, keyColumns, opMapper, deleteKeyMapper);
     }
 
     /**
@@ -236,7 +390,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     public JdbcTwoPhaseCommitSink<IN> copyForSubtask(TaskLocation location) {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
                 ledgerTableName, columnNames, recordMapper, location.getTaskIndex(),
-                maxBatchSize, location.getJobId() + "|" + location.getVertexId());
+                maxBatchSize, location.getJobId() + "|" + location.getVertexId(),
+                dmlMode, keyColumns, opMapper, deleteKeyMapper);
     }
 
     /**
@@ -291,21 +446,147 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
     // ---- Data path ----
 
+    /**
+     * Returns the DML semantics of this sink. Primarily for tests and the connector
+     * capability probe.
+     */
+    public DmlMode getDmlMode() {
+        return dmlMode;
+    }
+
     @Override
     public void invoke(IN value) throws Exception {
         if (value == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "value");
         }
-        Map<String, Object> row = recordMapper.apply(value);
+        DmlOp op = toDmlOp(value);
+        // Same monitor as saveState/rollback: an unsynchronized add racing a concurrent
+        // saveState snapshot can lose elements or corrupt the ArrayList.
+        synchronized (currentBuffer) {
+            currentBuffer.add(op);
+        }
+    }
+
+    /**
+     * Maps a record to its buffered {@link DmlOp} according to {@link #dmlMode}.
+     */
+    private DmlOp toDmlOp(IN value) {
+        if (dmlMode == DmlMode.INSERT) {
+            if (value instanceof ChangeEvent) {
+                String operation = ((ChangeEvent) value).getOperation();
+                if ("u".equals(operation) || "d".equals(operation)) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "dmlMode=INSERT received an update/delete CDC event"
+                                    + " (operation=" + operation + "): updates and deletes cannot be"
+                                    + " expressed as appends; use UPSERT or UPSERT_DELETE");
+                }
+            }
+            requireRecordMapper();
+            return new DmlOp(DmlOp.KIND_INSERT, copyRow(requireRow(recordMapper.apply(value), value)));
+        }
+
+        // Keyed modes: resolve the operation code
+        String operation;
+        if (opMapper != null) {
+            operation = opMapper.apply(value);
+        } else if (value instanceof ChangeEvent) {
+            operation = ((ChangeEvent) value).getOperation();
+        } else {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "dmlMode " + dmlMode + " requires an opMapper for records"
+                            + " that are not ChangeEvent instances: " + value.getClass().getName());
+        }
+        if (operation == null || operation.isEmpty()) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "resolved an empty CDC operation for value: " + value);
+        }
+
+        if ("d".equals(operation)) {
+            if (dmlMode == DmlMode.UPSERT) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "dmlMode=UPSERT received a delete CDC event: deletes"
+                                + " require dmlMode=UPSERT_DELETE");
+            }
+            return new DmlOp(DmlOp.KIND_DELETE, copyRow(resolveDeleteKey(value)));
+        }
+
+        // c / r / u → keyed upsert on the after-image
+        Map<String, Object> row = resolveValueRow(value);
+        verifyKeyColumnsPresent(row, value);
+        return new DmlOp(DmlOp.KIND_UPSERT, copyRow(row));
+    }
+
+    private void requireRecordMapper() {
+        if (recordMapper == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "dmlMode=INSERT requires a recordMapper");
+        }
+    }
+
+    private Map<String, Object> requireRow(Map<String, Object> row, IN value) {
         if (row == null) {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "recordMapper returned null for value: " + value);
         }
-        // Same monitor as saveState/rollback: an unsynchronized add racing a concurrent
-        // saveState snapshot can lose elements or corrupt the ArrayList.
-        synchronized (currentBuffer) {
-            currentBuffer.add(new LinkedHashMap<>(row));
+        return row;
+    }
+
+    private Map<String, Object> resolveValueRow(IN value) {
+        if (recordMapper != null) {
+            return requireRow(recordMapper.apply(value), value);
         }
+        if (value instanceof ChangeEvent) {
+            Map<String, Object> after = ((ChangeEvent) value).getAfter();
+            if (after == null || after.isEmpty()) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "ChangeEvent carries no after-image for an upsert op");
+            }
+            return after;
+        }
+        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                .param(ARG_DETAIL, "keyed dmlMode without recordMapper requires ChangeEvent records");
+    }
+
+    private Map<String, Object> resolveDeleteKey(IN value) {
+        if (deleteKeyMapper != null) {
+            Map<String, Object> key = deleteKeyMapper.apply(value);
+            if (key == null || key.isEmpty()) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "deleteKeyMapper returned an empty key map for value: " + value);
+            }
+            return key;
+        }
+        if (value instanceof ChangeEvent) {
+            Map<String, Object> key = ((ChangeEvent) value).getKey();
+            if (key != null && !key.isEmpty()) {
+                return key;
+            }
+            // fall through to the after-image restriction below
+        }
+        Map<String, Object> row = resolveValueRow(value);
+        Map<String, Object> key = new LinkedHashMap<>();
+        for (String col : keyColumns) {
+            if (!row.containsKey(col)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "delete key column '" + col + "' is absent from the record"
+                                + " (no key image and no deleteKeyMapper)");
+            }
+            key.put(col, row.get(col));
+        }
+        return key;
+    }
+
+    private void verifyKeyColumnsPresent(Map<String, Object> row, IN value) {
+        for (String col : keyColumns) {
+            if (!row.containsKey(col)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "upsert value row is missing key column '" + col + "'");
+            }
+        }
+    }
+
+    private Map<String, Object> copyRow(Map<String, Object> row) {
+        return new LinkedHashMap<>(row);
     }
 
     /**
@@ -317,12 +598,11 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * lag by one epoch and be permanently lost on restore.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public TaskStateSnapshot saveState(long epochId) throws Exception {
         ensureInitialized();
         synchronized (currentBuffer) {
             if (!currentBuffer.isEmpty()) {
-                List<Map<String, Object>> batch = new ArrayList<>(currentBuffer);
+                List<DmlOp> batch = new ArrayList<>(currentBuffer);
                 getPendingCommits().put(epochId, batch);
                 currentBuffer.clear();
             }
@@ -349,9 +629,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             return;
         }
 
-        List<Map<String, Object>> batch;
+        List<DmlOp> batch;
         if (raw instanceof List) {
-            batch = (List<Map<String, Object>>) raw;
+            batch = (List<DmlOp>) raw;
         } else {
             throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
                     .param(ARG_EPOCH_ID, checkpointId)
@@ -387,7 +667,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
             // Write data rows
             if (!batch.isEmpty()) {
-                writeDataRows(connection, batch);
+                writeOps(connection, batch);
             }
 
             // Write ledger entry (same transaction as data)
@@ -550,31 +830,30 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     @SuppressWarnings("unchecked")
-    private void writeDataRows(Connection connection, List<?> batch) throws SQLException {
+    private void writeOps(Connection connection, List<DmlOp> batch) throws SQLException {
+        if (dmlMode == DmlMode.INSERT) {
+            writeInserts(connection, batch);
+            return;
+        }
+        writeKeyedOps(connection, batch);
+    }
+
+    /**
+     * INSERT mode: append-only batch of KIND_INSERT ops through the cached
+     * {@code insertDataSql}. Segments large epochs so no single executeBatch buffers an
+     * unbounded number of rows (driver OOM / packet limits); all segments stay inside the
+     * caller's single transaction.
+     */
+    private void writeInserts(Connection connection, List<DmlOp> batch) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(insertDataSql)) {
             int pending = 0;
-            for (Object item : batch) {
-                Map<String, Object> row;
-                if (item instanceof Map) {
-                    row = (Map<String, Object>) item;
-                } else {
+            for (DmlOp op : batch) {
+                if (op.kind != DmlOp.KIND_INSERT) {
                     throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
-                            .param(ARG_DETAIL, "Batch item is not a Map: " + item.getClass().getName());
+                            .param(ARG_DETAIL, "INSERT-mode batch carries op kind " + op.kind);
                 }
-                int index = 1;
-                for (String col : columnNames) {
-                    Object value = row.get(col);
-                    if (value == null) {
-                        ps.setNull(index, Types.NULL);
-                    } else {
-                        ps.setObject(index, value);
-                    }
-                    index++;
-                }
+                bindRow(ps, columnNames, op.row);
                 ps.addBatch();
-                // Segment large epochs so no single executeBatch
-                // buffers an unbounded number of rows (driver OOM / packet limits).
-                // All segments stay inside the caller's single transaction.
                 if (++pending >= maxBatchSize) {
                     ps.executeBatch();
                     pending = 0;
@@ -584,6 +863,255 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 ps.executeBatch();
             }
         }
+    }
+
+    /**
+     * Keyed modes: fold the batch by key tuple (last-write-wins, insertion order
+     * preserved — same-key ops collapse so intra-batch ordering survives batching), then
+     * execute upserts and deletes through their prepared statements. Different keys are
+     * row-independent, so statement-grouped execution inside one transaction is
+     * order-safe; same keys were already folded.
+     */
+    private void writeKeyedOps(Connection connection, List<DmlOp> batch) throws SQLException {
+        LinkedHashMap<String, DmlOp> folded = new LinkedHashMap<>();
+        for (DmlOp op : batch) {
+            folded.put(keyTuple(op.row), op);
+        }
+
+        List<String> columns = resolveKeyedColumns(folded);
+        PreparedStatement upsertPs = null;
+        PreparedStatement deletePs = null;
+        try {
+            int pendingUpserts = 0;
+            int pendingDeletes = 0;
+            List<DmlOp> deletes = new ArrayList<>();
+            for (DmlOp op : folded.values()) {
+                if (op.kind == DmlOp.KIND_UPSERT) {
+                    if (upsertPs == null) {
+                        upsertPs = connection.prepareStatement(upsertSql);
+                    }
+                    bindRow(upsertPs, columns, op.row);
+                    upsertPs.addBatch();
+                    if (++pendingUpserts >= maxBatchSize) {
+                        upsertPs.executeBatch();
+                        pendingUpserts = 0;
+                    }
+                } else if (op.kind == DmlOp.KIND_DELETE) {
+                    if (deletePs == null) {
+                        deletePs = connection.prepareStatement(deleteSql);
+                    }
+                    bindRow(deletePs, keyColumns, op.row);
+                    deletePs.addBatch();
+                    if (++pendingDeletes >= maxBatchSize) {
+                        deletePs.executeBatch();
+                        pendingDeletes = 0;
+                    }
+                } else {
+                    throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                            .param(ARG_DETAIL, "keyed batch carries op kind " + op.kind);
+                }
+            }
+            if (upsertPs != null && pendingUpserts > 0) {
+                upsertPs.executeBatch();
+            }
+            if (deletePs != null && pendingDeletes > 0) {
+                deletePs.executeBatch();
+            }
+        } finally {
+            if (upsertPs != null) {
+                try {
+                    upsertPs.close();
+                } catch (SQLException closeErr) {
+                    LOG.warn("Failed to close upsert statement", closeErr);
+                }
+            }
+            if (deletePs != null) {
+                try {
+                    deletePs.close();
+                } catch (SQLException closeErr) {
+                    LOG.warn("Failed to close delete statement", closeErr);
+                }
+            }
+        }
+    }
+
+    /**
+     * The value column set of the keyed mode, established from the first buffered row and
+     * cached together with the upsert/delete SQL; a later batch with a different column
+     * set is a typed error (no silent schema drift within one sink instance).
+     */
+    private List<String> resolveKeyedColumns(LinkedHashMap<String, DmlOp> folded) {
+        List<String> first = null;
+        for (DmlOp op : folded.values()) {
+            if (op.kind == DmlOp.KIND_UPSERT) {
+                first = new ArrayList<>(op.row.keySet());
+                break;
+            }
+        }
+        if (first == null) {
+            // delete-only batch: only the delete statement is needed
+            if (deleteSql == null) {
+                synchronized (this) {
+                    if (deleteSql == null) {
+                        deleteSql = buildDeleteSql(dialect);
+                    }
+                }
+            }
+            return keyColumns;
+        }
+        synchronized (this) {
+            if (keyedColumns == null) {
+                keyedColumns = first;
+                upsertDialect = resolveUpsertDialect();
+                upsertSql = buildUpsertSql(dialect, upsertDialect, keyedColumns);
+                deleteSql = buildDeleteSql(dialect);
+            } else if (!keyedColumns.equals(first)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "upsert column set changed within one sink instance: "
+                                + keyedColumns + " -> " + first
+                                + " (schema drift is not silently widened)");
+            }
+        }
+        return keyedColumns;
+    }
+
+    private String keyTuple(Map<String, Object> row) {
+        StringBuilder sb = new StringBuilder();
+        for (String col : keyColumns) {
+            sb.append(row.get(col)).append('\u0000');
+        }
+        return sb.toString();
+    }
+
+    private void bindRow(PreparedStatement ps, List<String> columns, Map<String, Object> row)
+            throws SQLException {
+        int index = 1;
+        for (String col : columns) {
+            Object value = row.get(col);
+            if (value == null) {
+                ps.setNull(index, Types.NULL);
+            } else {
+                ps.setObject(index, value);
+            }
+            index++;
+        }
+    }
+
+    private UpsertDialect resolveUpsertDialect() {
+        String name = dialect.getName() == null ? "" : dialect.getName().toLowerCase();
+        if (name.startsWith("postgresql") || name.startsWith("pg")) {
+            return UpsertDialect.POSTGRESQL;
+        }
+        if (name.startsWith("mysql") || name.startsWith("mariadb")) {
+            return UpsertDialect.MYSQL;
+        }
+        if (name.startsWith("h2")) {
+            return UpsertDialect.H2;
+        }
+        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                .param(ARG_DETAIL, "dialect '" + dialect.getName()
+                        + "' has no keyed upsert support in the built-in sync scope"
+                        + " (supported: mysql/mariadb, postgresql; h2 for tests)");
+    }
+
+    /**
+     * Keyed upsert statement for the resolved dialect (cdc-design.md §3.5):
+     * MySQL/MariaDB INSERT ... ON DUPLICATE KEY UPDATE, PostgreSQL INSERT ... ON CONFLICT
+     * DO UPDATE SET col = EXCLUDED.col, H2 MERGE INTO ... KEY (...) for tests.
+     */
+    private String buildUpsertSql(IDialect d, UpsertDialect style, List<String> columns) {
+        StringBuilder columnList = new StringBuilder();
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) {
+                columnList.append(", ");
+            }
+            columnList.append(d.escapeSQLName(columns.get(i)));
+        }
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < columns.size(); i++) {
+            if (i > 0) {
+                placeholders.append(", ");
+            }
+            placeholders.append("?");
+        }
+        StringBuilder keyList = new StringBuilder();
+        for (int i = 0; i < keyColumns.size(); i++) {
+            if (i > 0) {
+                keyList.append(", ");
+            }
+            keyList.append(d.escapeSQLName(keyColumns.get(i)));
+        }
+
+        StringBuilder updateColumns = new StringBuilder();
+        for (String col : columns) {
+            if (keyColumns.contains(col)) {
+                continue;
+            }
+            if (updateColumns.length() > 0) {
+                updateColumns.append(", ");
+            }
+            updateColumns.append(d.escapeSQLName(col));
+        }
+
+        String insert = "INSERT INTO " + d.escapeSQLName(tableName)
+                + " (" + columnList + ") VALUES (" + placeholders + ")";
+        switch (style) {
+            case POSTGRESQL: {
+                if (updateColumns.length() == 0) {
+                    return insert + " ON CONFLICT (" + keyList + ") DO NOTHING";
+                }
+                StringBuilder set = new StringBuilder();
+                for (String col : columns) {
+                    if (keyColumns.contains(col)) {
+                        continue;
+                    }
+                    if (set.length() > 0) {
+                        set.append(", ");
+                    }
+                    set.append(d.escapeSQLName(col)).append(" = EXCLUDED.")
+                            .append(d.escapeSQLName(col));
+                }
+                return insert + " ON CONFLICT (" + keyList + ") DO UPDATE SET " + set;
+            }
+            case MYSQL: {
+                if (updateColumns.length() == 0) {
+                    String firstKey = d.escapeSQLName(keyColumns.get(0));
+                    return insert + " ON DUPLICATE KEY UPDATE " + firstKey + " = " + firstKey;
+                }
+                StringBuilder set = new StringBuilder();
+                for (String col : columns) {
+                    if (keyColumns.contains(col)) {
+                        continue;
+                    }
+                    if (set.length() > 0) {
+                        set.append(", ");
+                    }
+                    set.append(d.escapeSQLName(col)).append(" = VALUES(")
+                            .append(d.escapeSQLName(col)).append(")");
+                }
+                return insert + " ON DUPLICATE KEY UPDATE " + set;
+            }
+            case H2:
+                return "MERGE INTO " + d.escapeSQLName(tableName)
+                        + " (" + columnList + ") KEY (" + keyList + ") VALUES (" + placeholders + ")";
+            default:
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "unsupported upsert dialect style: " + style);
+        }
+    }
+
+    /**
+     * Parameterized keyed delete: DELETE FROM table WHERE key1 = ? AND key2 = ? ...
+     */
+    private String buildDeleteSql(IDialect d) {
+        StringBuilder where = new StringBuilder();
+        for (int i = 0; i < keyColumns.size(); i++) {
+            if (i > 0) {
+                where.append(" AND ");
+            }
+            where.append(d.escapeSQLName(keyColumns.get(i))).append(" = ?");
+        }
+        return "DELETE FROM " + d.escapeSQLName(tableName) + " WHERE " + where;
     }
 
     // ---- SQL builders ----

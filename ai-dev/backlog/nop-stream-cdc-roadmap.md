@@ -28,7 +28,7 @@
 - WI2 真实数据库集成测试基建: `todo`
 - WI3 A 层并行快照透传与配置契约: `done`
 - WI4 B 层 subtask 表路由与描述符 PARALLEL: `done`
-- WI5 jdbc-2pc dmlMode CDC 落库: `todo`
+- WI5 jdbc-2pc dmlMode CDC 落库: `done`
 - WI6 schema history 换轨 JdbcSchemaHistory: `done`
 - WI7 引擎单写者钉定与配置守卫: `done`
 - WI8 reference 验收场景与文档同步: `todo`
