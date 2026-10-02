@@ -1,6 +1,6 @@
 # 2298 unit-test-coverage-roadmap WI6 — nop-batch 引擎面补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI6 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -68,26 +68,26 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI6 checkbox
 
 - [x] 删三模块 exec → baseline 脚本复测，记录增量。（`coverage-baseline-wi6-2026-10-02.json`：batch-core 55.40%→61.20%（+5.80pp）、batch-dsl 44.35%→52.07%（+7.72pp）、batch-exp 65.74%→69.76%（+4.02pp）；靶点类 RangeSplitUtils 0%→96.91%（94/97L）、JdbcBatchSupport 0%→97.37%（37/38L）、ImportTableConfig 39.47%→100%（38/38L）；三模块新快照 lowCoverageClasses 均清空）
 - [x] 残余缺口显式裁定（engine 层目标 45%）。（三模块全部超过 engine 目标 45%；残余缺口为接口 default 方法、2 行级 dsl model 类与 BatchTaskContextImpl setter 面（126L）、BlockingSourceBatchLoader/SplitBatchConsumer 等 consumer/loader 面——与本 WI 靶点无关，裁定不在本 WI 内追补，见 Deferred But Adjudicated）
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI6 checkbox。（audit 进行中）
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI6 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI6 checkbox 与 plan/log 一致。（待独立 closure audit）
+- [x] roadmap WI6 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。（plan owner 已补记）
 
 ## Closure Gates
 
 - [x] 三模块全部新增测试绿（含既有测试零回归；xmeta 回退后复跑 BUILD SUCCESS 仍绿）
-- [x] 产品代码/pom 零修改（git 证据：初次提交误卷入其他会话遗留的 _NopBatchTask.xmeta 产品改动，已在回退提交 d459aedd32 移出并复跑验证，见偏差节 2）
+- [x] 产品代码/pom 零修改（git 证据：初次提交 80b08d4ad3 误卷入其他会话遗留的 _NopBatchTask.xmeta 产品改动（taskKey P1 唯一键），已在回退提交 d459aedd32 恢复父版本并复跑三模块 BUILD SUCCESS；卷入/回退/教训全程记录于本 gate、执行偏差第 2 条与当日 log）
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：chunk/checkpoint 测试断言语义（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2298-unit-test-wi6-nop-batch.md --strict` 退出码 0
-- [ ] roadmap WI6 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：chunk/checkpoint 测试断言语义（audit 抽查：TestBatchTaskCheckpoint load 先于 save/续传去重/fail-fast 断言、TestRangeSplitUtils 严格递增不重不漏）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2298-unit-test-wi6-nop-batch.md --strict` 退出码 0
+- [x] roadmap WI6 checkbox 与 plan/log 一致
 
 ## Deferred But Adjudicated
 
@@ -103,13 +103,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 5 文件/41 用例全绿（59/20/19），三模块 61.20%/52.07%/69.76% 全部越过 engine 45% 目标且与 jacoco XML 逐位一致，靶点 96.91%/97.37%/100%，新快照 lowCoverageClasses 清空。首轮 audit REJECT（必修：误卷入产品 xmeta 改动）→ 回退提交 d459aedd32 + 复跑绿 + plan/log 勘误 → 复核 APPROVE（必修项 VERIFIED PASS，与父版本逐位一致）。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_6a87dcce-61c9-4cc1-84bf-afdd300e8dfb，fresh session；首轮 REJECT 一项必修 + 复核 APPROVE）
 
 Follow-up:
 

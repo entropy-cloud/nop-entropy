@@ -76,7 +76,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 ### M2 — 业务引擎（零测试重灾区）
 
 - [ ] WI5 nop-wf 引擎面：nop-wf-core（80/0）流程定义解析/节点流转/任务分配/回退跳转语义；nop-wf-dao（36/0）与 nop-wf-api（61/0）结构性用例；wf-service 已有 22 个测试文件为模式参照；已知 P1（canonical 审批模板 end listener 驳回即通过）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
-- [ ] WI6 nop-batch 引擎面（组内 216/38）：nop-batch-core chunk 处理/断点续传/checkpoint 语义（85/17）、nop-batch-dsl 模型解析（33/8）、nop-batch-exp 表达式求值（23/4）；已知 P1（taskKey 无唯一约束并发防重）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
+- [x] WI6 nop-batch 引擎面（组内 216/38）：nop-batch-core chunk 处理/断点续传/checkpoint 语义（85/17）、nop-batch-dsl 模型解析（33/8）、nop-batch-exp 表达式求值（23/4）；已知 P1（taskKey 无唯一约束并发防重）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
+
+> WI6 完成（2026-10-02）：5 文件/41 用例全绿（59/20/19）；batch-core 55.40%→61.20%、batch-dsl 44.35%→52.07%、batch-exp 65.74%→69.76%——三模块全部越过 engine 45% 目标（快照 coverage-baseline-wi6-2026-10-02.json），靶点 96.91%/97.37%/100%。taskKey P1 维持独立立项。独立 closure audit 首轮 REJECT（误卷入产品 xmeta）→ 回退整改 → 复核 APPROVE。
 - [ ] WI7 可复用业务模块补强：nop-sys（sys-api 57/0 序列号/数据字典/分布式锁语义、sys-dao 58/14 补强）、nop-rule（rule-core 34/7 决策树/决策矩阵执行语义、rule-api 21/0、rule-dao 17/0）、nop-dyn（dyn-api 45/0、dyn-dao 35/4 动态表单校验）（Deliverable: 测试；deps: WI0；Item Type: Fix）
 - [ ] WI8 nop-service-framework 补强（238/56）：nop-biz CRUD/findPage/批量保存语义（89/22）、nop-biz-auth-core 数据权限过滤（60/14）、nop-gateway 补强（44/18）、nop-biz-auth-api 结构性用例（28/0）；BizModel 服务测试必须经 `IGraphQLEngine`（testing.md 禁令：禁止直调 bizObj.method）（Deliverable: 测试；deps: WI0；Item Type: Fix）
 
