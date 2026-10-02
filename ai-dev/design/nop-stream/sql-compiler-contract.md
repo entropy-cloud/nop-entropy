@@ -7,6 +7,22 @@
 > 承载 plan: ai-dev/plans/nop-stream-sql/03-wi0c-compiler-contract-decisions.md
 > 与 D14 的边界：D14 已裁定 (a) 参数化算子面（产物形态，落档归 sql-landing-decision.md）；本档 D13 定放哪个模块，D7/D8 定输入与入口，三者不互相预设。
 
+## 0. SQL 子系统设计文档族 index
+
+SQL 窄范围接口的全部设计文档与覆盖面（WI17 起草时按此路由）：
+
+| 文档 | 覆盖面 |
+|---|---|
+| 本档（sql-compiler-contract） | D7 表列绑定/解析入口/类型映射、D8 接口面、D13 模块边界（含回改注记） |
+| sql-landing-decision | D14 编译落点（保留面分化 + 迁移影响 + IJoinResolver 作废注记） |
+| sql-subset-and-semantics | D1 结果表语义/D3 语法分层/D4 伪表函数/D5 排除清单/D6 事件时间/D15 多库降级 |
+| window-failfast-decisions | D9-D12 窗口 fail-fast 放行裁定 |
+| sql-window-dialect-matrix | 方言窗口能力实跑矩阵（WI3） |
+| sql-vision-conflict-resolution | D2 治理解冲突（12 条断言修订） |
+| multi-input-model | union 多输入模型（WI6 落地设计：顶点形态/平行边/键控/gate 语义）——WI13 的 union 形态与 WI7 回归引用 |
+| join-operator | join 算子设计（WI13 实现依据：声明面消费/双形态/复用义务/A6 验证） |
+| parameterized-declarations | 参数化声明面总纲（WI8b/c/d：三注册表/SPI/模块布局）——WI17 产出消费与 WI21 接线核对引用 |
+
 ## 1. D7 表列绑定来源与解析入口
 
 ### 1.1 选项集（五项，roadmap :82 全集）
