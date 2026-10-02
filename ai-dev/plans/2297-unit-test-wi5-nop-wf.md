@@ -1,6 +1,6 @@
 # 2297 unit-test-coverage-roadmap WI5 — nop-wf 引擎面补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI5 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；docs-for-ai/03-runbooks/build-approval-flow.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -82,13 +82,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI5 checkbox
   - 裁定：nop-wf-core 41.55% 距 engine 层 45% 目标差 3.45pct，残余集中在运行时协作面——WorkflowEngineImpl 35.45%（1072 行，信号等待/子流程/异常 listener 路径）、WorkflowStepImpl 19.49%（118 行）、WorkflowServiceImpl 0%（158 行，全运行时 facade）、AbstractWorkflowStore 18.89%。这些路径需要更深的 IWfRuntime 全交互（signal/subflow/exec-group 运行时），超出本 WI"从 0 建立"的门槛，裁定为 watch-only residual，建议由后续引擎深化切片（聚焦 WorkflowEngineImpl 信号/子流程路径）承接；本 WI 不静默降级，目标差额已记录。
   - nop-wf-dao 残余：DaoWorkflowStore 0%（162 行，需 ORM 全容器，属 wf-service 容器测试覆盖面）、NopWfInstance/NopWfStepInstance 实体细粒度逻辑 0%（生成代码为主）。
   - nop-wf-api 残余：18 个 `NopWf*Input/OutputBean` 生成 DTO（0%，约 1100 行），纯字段搬运结构，判定为低价值填充面，watch-only。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI5 checkbox。（audit 进行中）
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI5 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI5 checkbox 与 plan/log 一致。（待 audit 后同步）
+- [x] roadmap WI5 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。（plan owner 已补记）
 
 ## Closure Gates
@@ -98,10 +98,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录（`ai-dev/analysis/2026-10/coverage-baseline-wi5-2026-10-02.{json,md}`）
 - [x] 残余缺口显式裁定（无静默降级）（见 Phase 2 裁定 + Deferred But Adjudicated）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：流转/回退测试断言状态机语义（audit 抽查）（执行侧证据：TestWorkflowEngineFlow 断言 start→激活→迁移→to-end 终止→驳回回退→撤回的状态迁移与状态码；待独立 audit 抽查确认）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2297-unit-test-wi5-nop-wf.md --strict` 退出码 0
-- [ ] roadmap WI5 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：流转/回退测试断言状态机语义（audit 抽查：TestWorkflowEngineFlow 经真实 WorkflowManagerImpl/EngineImpl 断言激活/迁移/终止/回退/撤回全状态迁移，无裸 future.get）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2297-unit-test-wi5-nop-wf.md --strict` 退出码 0
+- [x] roadmap WI5 checkbox 与 plan/log 一致
 
 ## Deferred But Adjudicated
 
@@ -126,13 +126,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 13 测试类/76 用例全绿（47/13/16），wf-core 0→41.55% 与 XML counter 逐位一致，手写 fake 驱动真实引擎的 Anti-Hollow 抽查通过，缺陷嫌疑经源码逐字核实（WfModelAnalyzer.checkEnd L175-183 无条件传播实锤），Deferred 裁定量化（WorkflowEngineImpl 35.45%/1072L 等）。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_4333be50-9528-468e-8a68-406180a5e46e，fresh session）
 
 Follow-up:
 

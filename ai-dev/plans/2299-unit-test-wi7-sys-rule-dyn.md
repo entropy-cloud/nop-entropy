@@ -1,6 +1,6 @@
 # 2299 unit-test-coverage-roadmap WI7 — nop-sys / nop-rule / nop-dyn 补强
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI7 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -81,13 +81,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI7 checkbox
 
 - [x] 删模块 exec → baseline 脚本复测（label wi7-2026-10-02）：sys-api 0→7.48%、sys-dao 67.99%→75.21%（+7.22）、rule-api 0→5.70%、rule-dao 0%（结构性测试断言元数据而非行，如实记录）、rule-service 44.19% 持平、dyn-api 0→4.01%、dyn-dao 29.58%→48.20%（+18.62）、rule-core 71.19% 持平（已裁定移出）。
 - [x] 残余缺口显式裁定（Deferred 段：api 族结构性模块行覆盖天然低，语义面由 sys-dao/dyn-dao 承载）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI7 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI7 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI7 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI7 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -97,10 +97,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：序列号/锁语义测试断言行为而非仅实例化（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2299-unit-test-wi7-sys-rule-dyn.md --strict` 退出码 0
-- [ ] roadmap WI7 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：序列号/锁语义测试断言行为而非仅实例化（audit 抽查：TestOrmEntityChangeLogInterceptor 审计列语义 6 断言、TestDynEntityMetaToOrmModelTransform 转换产物断言）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2299-unit-test-wi7-sys-rule-dyn.md --strict` 退出码 0
+- [x] roadmap WI7 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -128,13 +128,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 11 测试文件/51 用例全绿（七模块），sys-dao 75.21% 与 XML counter 逐位一致，快照修复 4/4 绿（WI0 失败项清零），缺陷嫌疑源码实锤（SysDictLoader.loadDict locale 参数零引用）。首轮 audit REJECT（.gitignore **/log/ 误吞测试包目录）→ 精确负向例外整改 → 复核 APPROVE（4/4 VERIFIED，副作用零噪声）。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_283c9299-bab3-4d12-95c7-2c00ca823fce，fresh session；首轮 REJECT 一项必修 + 复核 APPROVE）
 
 ## Optional Sections
 
