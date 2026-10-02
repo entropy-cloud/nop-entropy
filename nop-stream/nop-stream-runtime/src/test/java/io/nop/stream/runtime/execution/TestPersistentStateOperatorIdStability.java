@@ -103,6 +103,12 @@ public class TestPersistentStateOperatorIdStability {
         boolean joinSemanticNameSurvives = ids1.values().stream().anyMatch(n -> n.contains("Join:j"));
         assertTrue(joinSemanticNameSurvives,
                 "join semantic name must survive vertex chaining: " + ids1.values());
+        // union vertex occurrence: buildJoin's internal union materializes under
+        // the constant "Union" name (DataStreamImpl) — present and rebuild-stable
+        // (ids1 == ids2 above already pins cross-build identity)
+        assertTrue(ids1.values().stream().anyMatch(n -> n.contains("Union")),
+                "the join's internal union vertex must appear under the constant Union name: "
+                        + ids1.values());
 
         // stream-model fingerprint equality — the strongest single identity pin
         // (fingerprints feed the recovery validation)

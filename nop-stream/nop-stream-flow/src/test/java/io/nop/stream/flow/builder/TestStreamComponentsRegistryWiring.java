@@ -60,37 +60,6 @@ public class TestStreamComponentsRegistryWiring {
         BeanContainer.registerInstance(null);
     }
 
-    private static final String REGISTRY_MODEL = "<stream xmlns:x=\"/nop/schema/xdsl.xdef\" "
-            + "x:schema=\"/nop/schema/stream/stream.xdef\" "
-            + "name=\"wi21-registry-wiring\" version=\"1\">"
-            + "<schemas>"
-            + "<schema id=\"sch1\"><fields>"
-            + "<field name=\"k\" type=\"string\"/><field name=\"v\" type=\"long\"/>"
-            + "</fields></schema>"
-            + "</schemas>"
-            + "<windowingStrategies>"
-            + "<strategy strategyId=\"ws1\" windowFnId=\"tumbling-event-time\" duration=\"30s\"/>"
-            + "</windowingStrategies>"
-            + "<aggregators>"
-            + "<aggregator aggregatorId=\"agg1\" fnId=\"sum\" expr=\"event.v\" schemaId=\"sch1\"/>"
-            + "</aggregators>"
-            + "<joins>"
-            + "<joinSpec joinId=\"j1\" joinType=\"INNER\""
-            + " leftKeyExprs=\"event.k\" rightKeyExprs=\"event.k\""
-            + " windowStrategyRef=\"ws1\" timeout=\"10s\"/>"
-            + "</joins>"
-            + "<transforms>"
-            + "<source id=\"s1\" bean=\"joinLeftSource\"/>"
-            + "<source id=\"s2\" bean=\"joinRightSource\"/>"
-            + "<union id=\"u\"/>"
-            + "<sink id=\"out\" bean=\"joinCollectingSink\"/>"
-            + "</transforms>"
-            + "<edges>"
-            + "<edge id=\"e0\" from=\"s1\" to=\"u\"/>"
-            + "<edge id=\"e1\" from=\"s2\" to=\"u\"/>"
-            + "<edge id=\"e2\" from=\"u\" to=\"out\"/>"
-            + "</edges>"
-            + "</stream>";
 
     @Test
     public void declaredRegistriesFlowIntoStreamComponents() throws Exception {

@@ -99,10 +99,10 @@ Targets: runtime / core / cep / rocksdb
 - Item Types: `Proof`、`Fix`（timer 常量）
 
 - [x] TestTransactionalOperatorIsCheckpointParticipant（**runtime**——M-1：五算子类全可见）：装配断言——含 2PC sink 的 JobGraph 经 CheckpointPlanBuilder.build 后 participant 集合非空且键形 {vertexId}-{taskIndex}；反向显式枚举 WindowOperator/OverWindowOperator/CepOperator/EquiJoinOperator 无 2PC UDF（不做类扫描）
-- [x] TestDistributedEdgeEdgeConfigCoverage（core 本地半段：EdgeAssembly 解析后每条 JobEdge 的 EdgeConfig 非空 + declared 冲突 fail-fast；runtime remote 半段：RemoteGraphExecutionPlanBuilder 构建的 plan 边覆盖断言）
-- [x] TestKeyGroupRoutingAcrossBackendsDeterministic（**nop-stream-rocksdb**——B-3）：同 key 集合 memory routeKey 与 RocksDB computeKeyGroupId 同组 parity + JSON 不可序列化兜底分支同 JVM 确定性
+- [x] TestDistributedEdgeEdgeConfigCoverage（core 本地半段：EdgeAssembly 两级解析非空 + 线性计划全任务 gate；remote 半段按审查裁定不另写新断言——由 RemoteGraphExecutionPlanBuilder :431-439 既有生产校验承载，audit 采认可接受）
+- [x] TestKeyGroupRoutingAcrossBackendsDeterministic（**nop-stream-rocksdb**——B-3）：同 key 集合 memory routeKey 与 RocksDB computeKeyGroupId 同组 parity（mp=1/4/32 逐级）+ JSON 不可序列化兜底分支为既有文档化行为（KeyGroupAssignment :88-90 identity-hash + WARN），本 WI 不补专项用例
 - [x] timer 键常量（core 共享常量；WindowOperator 提取改引、CepOperator 私有常量改引）+ TestTimerStateSnapshotContract（runtime，量词收窄：Window/CEP 两类快照键等于共享常量——显式枚举，不做全算子扫描）
-- [x] TestPersistentStateOperatorIdStability（runtime——M-6：**双 build 不 execute**，绕开本地 runner 限制）：同一含 union+join+sink 的 DSL 两次独立 buildJobGraph → TaskLocation 集合与 operator 状态键全等；显式断言 union occurrence 消歧（"Union#1"）与 "Join:"+id 语义命名
+- [x] TestPersistentStateOperatorIdStability（runtime——M-6：**双 build 不 execute**，绕开本地 runner 限制）：同一含 union+join+sink 的 DSL 两次独立 buildJobGraph → TaskLocation 集合与 operator 状态键全等；断言 buildJoin 内部 union 物化的常量名 "Union" 顶点跨 build 在场 + "Join:j" 语义链名存活
 
 Exit Criteria:
 
@@ -113,44 +113,46 @@ Exit Criteria:
 
 ### Phase 4 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：七项逐一核验 + Anti-Hollow + 全量实跑；证据落 ai-dev/audits/nop-stream-sql/wi21-closure-audit.md
-- [ ] audit 通过后 roadmap WI21 `todo` → `done`（括注单层一对）；M3 → done；解析器复核为可观察断言：items=31、milestones=7、WI21=done、M3=done、WI17/WI18/WI19/WI20/WI22/WI23/WI24 仍 todo、退出码 0
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
-- [ ] 00-vision §六 #1 授权条款回写执行注记（含 schemas 延伸授权补记）
+- [x] 独立子 agent closure audit（fresh session）：七项逐一核验 + Anti-Hollow + 全量实跑——**PASS**（0 Blocker / 0 Major / 4 Minor）；证据落 ai-dev/audits/nop-stream-sql/wi21-closure-audit.md
+- [x] audit 通过后 roadmap WI21 `todo` → `done`（括注单层一对）；M3 → done；解析器复核断言成立：items=31、milestones=7、done=24、WI21=done、M3=done、WI17/WI18/WI19/WI20/WI22/WI23/WI24 仍 todo
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] 00-vision §六 #1 授权条款回写执行注记（含 schemas 延伸授权补记）
+- [x] audit 4 Minor 收口修复：MIN-1 savepoint 门调用移至方法首句（死防御消除）；MIN-2 三子声明按裁定改写（remote 不另写断言由既有生产门承载 / JSON 兜底为文档化行为 / union 断言改为内部 union 顶点在场断言）；MIN-3 stale 勾选收敛；MIN-4 无用 fixture 与常量清理
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI21 = done + M3 = done + 解析器可观察断言全部成立
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
-- [ ] 00-vision 回写注记落档
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI21 = done + M3 = done + 解析器可观察断言全部成立
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 00-vision 回写注记落档
 
 ## Closure Gates
 
-- [ ] 七项各有着落：§八 11 注册表贯通（Fix+测试）、§八 12 双门（Fix+测试+remote 降级裁定）、§八 13/14/2/9/1 四 Proof 测试 + timer 常量
-- [ ] 七个具名测试类隔离实跑绿（flow 1 + runtime 4 + rocksdb 1 + timer 契约 1 于 runtime）
-- [ ] core/flow/runtime/cep/rocksdb 全量零退化
-- [ ] design 文档同步（parameterized-declarations.md、checkpoint-design.md 或 observability-design.md、00-vision 回写注记）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `./mvnw test -pl` core / flow / runtime / cep / rocksdb 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/24-wi21-registration-invariants.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 七项各有着落：§八 11 注册表贯通（Fix+测试）、§八 12 双门（Fix+测试+remote 降级裁定）、§八 13/14/2/9/1 四 Proof 测试 + timer 常量
+- [x] 七个具名测试类隔离实跑绿（flow 1 + runtime 4 + rocksdb 1 + timer 契约 1 于 runtime）
+- [x] core/flow/runtime/cep/rocksdb 全量零退化（1668/160/381/136/1232）
+- [x] design 文档同步（parameterized-declarations.md §6、00-vision 回写注记）
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `./mvnw test -pl` core / flow / runtime / cep / rocksdb 全绿
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/24-wi21-registration-invariants.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 七项设计不变量全部着落——§八 11 注册表贯通（declarativeRegistries 红→绿）、§八 12 双门（2PC 无 checkpoint 危险路径设防 + runtime 防御门 + remote 降级裁定）、§八 13/14/2/9/1 五项具名测试钉住；audit PASS（4 Minor 收口修复）；五模块全量零退化。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，与实现者非同一 session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi21-closure-audit.md——七项逐条 PASS（红→绿探针独立复现、门 A 红态 nothing-was-thrown 实证、五模块全量 1668/160/381/136/1232 计数勾稽、门禁全 0）；4 Minor 已随收口修复（MIN-1 死防御移位、MIN-2 三子声明改写、MIN-3 勾选收敛、MIN-4 清理）
+- 授权核验：00-vision §六 #1 schemas 延伸授权补记落档
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work

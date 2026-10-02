@@ -346,10 +346,10 @@ public class GraphModelCheckpointExecutor {
     private static SavepointRuntime prepareSavepointRuntime(
             JobGraph jobGraph, CheckpointConfig checkpointConfig,
             String overrideStoragePath, String restoreSavepointPath) throws Exception {
+        gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         checkpointConfig.validateUnalignedConfig();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
-        gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         String jobId = resolveJobId(checkpointConfig);
         String pipelineId = resolvePipelineId(checkpointConfig);
 

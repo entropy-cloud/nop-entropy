@@ -85,6 +85,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 裁定：**窄范围 SQL roadmap 所需的结构变更已获授权，可推进。** 授权范围限定为两类：(a) 新增 Transformation 类型——union 多输入通路与双输入 join 形态所需；(b) `StreamComponents` 注册表新增条目——参数化窗口声明、聚合声明面（aggregators）、join 声明面（joins），编译落点裁定 D14=(a)（参数化算子面）。授权依据：`ai-dev/backlog/nop-stream-sql-roadmap.md`（2026-09-30 owner 立项，2026-10-02 owner 委托执行，门控判据见该文件 Purpose 条款表）。本裁定**不覆盖**决策点 #2-#6：定位、状态后端、checkpoint 协议、通信模型与 maxParallelism 均不变；§八 15 条设计不变量是被验证对象而非被修改对象。
 
+> 执行注记（WI21，2026-10-03）：授权 (b) 已落地——`StreamComponents.declarativeRegistries` 以 flow-free 载体 `StreamComponentEntry` 收录 aggregators/joins 条目；**schemas 条目为授权原文之外的实施延伸**（schemas 声明面本身经 WI8b 授权，其注册条目是该授权的注册实现），在此显式补记。条目为描述性规范化载体，不含可执行语义，未改 §八 15 条不变量的被验证对象地位。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
