@@ -101,6 +101,9 @@ dependency-reduced-pom.xml
 
 # Log directories
 **/log/
+# 但测试源码目录不忽略（如 io/nop/sys/dao/log 包目录恰名为 log，WI7 审计发现）
+!**/src/*/java/**/log/
+!**/src/*/java/**/log/**
 .sisyphus/
 /nop-task.md
 /nul

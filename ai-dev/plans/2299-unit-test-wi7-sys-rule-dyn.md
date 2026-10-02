@@ -66,7 +66,7 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [x] 新增 8 文件 / 51 用例（≥25），全部含显式语义断言；快照测试 CHECKING 模式 4/4 绿。
+- [x] 新增 11 测试文件 / 51 用例（≥25），全部含显式语义断言；快照测试 CHECKING 模式 4/4 绿。（勘误：原记"8 文件"与 git 实际不符；且 TestOrmEntityChangeLogInterceptor.java 曾被 .gitignore `**/log/` 规则误忽略未入库，audit REJECT 后已加精确负向例外修复入库，见偏差 4）
 - [x] 各模块测试全绿。
 - [x] pom 变更仅 4 处 test-scope junit（sys-api/rule-api/rule-dao/dyn-api，按 plan 裁定）；orm tagSet 零修改。
 - [x] No owner-doc update required。
@@ -106,7 +106,8 @@ Exit Criteria:
 
 1. -am 链在上游非本 plan 模块（nop-stream-connector-debezium）红测试处中断，按预案改用 `-pl :<module> -fae` 单模块验证（接受 .m2-repo 工件）。
 2. .m2-repo 的 nop-file-dao jar 过期（9/20，早于 G9-04-01）导致首次快照测试假绿；为复现缺陷执行 `mvnq -- install -pl :nop-file-dao -am -DskipTests -fae`（跳测试安装，零代码改动）后重现 3 errors 再重录——测量与修复有效性的必要前提。
-3. 快照重录波及记录：response2/response4-exec.json5 新增 `context:null` 日志字段（录制以来产品侧新增字段的固化）；nop_rule_node.csv 行序变化（业务等价，不变量由 testImportDuplicatePredicate 独立锚定）。
+3. 快照重录波及记录：response2/response4-exec.json5 新增 `context:null` 日志字段（录制以来产品侧新增字段的固化）；nop_rule_node.csv 行序变化（业务等价，不变量由 testImportDuplicatePredicate 独立锚定）。_cases 口径：14 为删+重录毛变更，git 净变更 8 文件、全部 output 侧。
+4. （audit REJECT 必修项）TestOrmEntityChangeLogInterceptor.java 被 .gitignore `**/log/` 规则（原义为忽略运行期日志目录）误忽略而未入库；已在 .gitignore 增加精确负向例外 `!**/src/*/java/**/log/` + `!**/src/*/java/**/log/**` 后入库。教训：包目录名恰为 log 的测试源码会被该规则吞掉。
 
 ## Deferred But Adjudicated
 
