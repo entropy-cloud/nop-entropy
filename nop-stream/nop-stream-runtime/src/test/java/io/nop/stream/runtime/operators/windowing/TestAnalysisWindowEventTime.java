@@ -102,6 +102,10 @@ public class TestAnalysisWindowEventTime {
         assertEquals(List.of("rn=1 val=k|10|a", "rn=2 val=k|20|b", "rn=3 val=k|30|c"),
                 filtered(out, "rn="), "row numbers follow event-time order, not arrival order");
         assertEquals(0, op.sortedView("k").size(), "ROW_NUMBER consumes the frame at the watermark");
+        // R-1 regression guard: the keyed channel must be cleaned in lockstep with the
+        // view — if the remove wiring breaks, entries accumulate unboundedly
+        assertEquals(0, op.keyedBufferEntries(),
+                "keyed-state durable copy must be cleaned when the frame is consumed");
     }
 
     @Test
@@ -125,6 +129,10 @@ public class TestAnalysisWindowEventTime {
         // watermarks (trimToCount keeps the newest frameSize elements)
         assertEquals(List.of("agg=1 n=1", "agg=3 n=2", "agg=5 n=2"),
                 filtered(out, "agg="), "sliding sum evaluates over the declared frame");
+        // R-1 regression guard: the keyed channel settles at the frame size (sliding
+        // history) — no unbounded growth
+        assertEquals(2, op.keyedBufferEntries(),
+                "keyed-state durable copy must settle at the sliding frame size");
     }
 
     @Test

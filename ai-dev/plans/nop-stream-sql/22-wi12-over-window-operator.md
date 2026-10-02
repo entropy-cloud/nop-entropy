@@ -59,9 +59,9 @@ Targets: `nop-stream/nop-stream-runtime`
 
 Exit Criteria:
 
-- [x] 三个测试类隔离实跑绿（10 用例）
+- [x] 三个测试类隔离实跑绿（12 用例——含 R-1b 变体单测）
 - [x] **端到端验证**：E2E checkpoint/restore 后帧计算连续（缓冲恢复，rn=1/2/3 跨界证明）
-- [x] `./mvnw test -pl nop-stream/nop-stream-runtime` 绿（1206 零退化）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime` 绿（1208 零退化）
 - [x] ai-dev/logs/ 当日条目已更新
 
 ### Phase 2 - 收口

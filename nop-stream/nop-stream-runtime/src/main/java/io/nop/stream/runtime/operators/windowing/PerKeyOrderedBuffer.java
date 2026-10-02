@@ -63,10 +63,16 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
     /**
      * Adds one element for the key at the given event time. Out-of-order inserts are
      * sorted by timestamp; equal timestamps keep arrival order.
+     *
+     * @return the allocated (timestamp, seq) key — callers use it as the exact
+     *         keyed-state entry key suffix (same-ts inserts get distinct seqs, so
+     *         the keyed mirror never collides)
      */
-    public void add(K key, long timestamp, V value) {
+    public long[] add(K key, long timestamp, V value) {
         TreeMap<long[], V> tree = buffers.computeIfAbsent(key, k -> new TreeMap<>(TsSeqComparator.INSTANCE));
-        tree.put(new long[]{timestamp, insertionSeq++}, value);
+        long[] tsKey = new long[]{timestamp, insertionSeq++};
+        tree.put(tsKey, value);
+        return tsKey;
     }
 
     /**

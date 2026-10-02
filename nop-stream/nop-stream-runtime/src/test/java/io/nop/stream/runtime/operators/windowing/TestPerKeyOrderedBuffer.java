@@ -64,6 +64,44 @@ public class TestPerKeyOrderedBuffer {
     }
 
     @Test
+    public void addReturnsDistinctTsSeqForSameTimestamp() {
+        PerKeyOrderedBuffer<String, String> buf = new PerKeyOrderedBuffer<>();
+        long[] k1 = buf.add("k", 10, "first");
+        long[] k2 = buf.add("k", 10, "second");
+        assertEquals(10, k1[0]);
+        assertEquals(10, k2[0]);
+        assertTrue(k1[1] != k2[1], "same-ts inserts must get distinct seqs (no keyed-state collision)");
+        assertEquals(List.of("first", "second"), buf.sortedView("k"));
+    }
+
+    @Test
+    public void trimToWatermarkWithKeysReturnsDroppedKeys() {
+        PerKeyOrderedBuffer<String, String> buf = new PerKeyOrderedBuffer<>();
+        long[] k10 = buf.add("k", 10, "v10");
+        long[] k20 = buf.add("k", 20, "v20");
+        long[] k30 = buf.add("k", 30, "v30");
+        List<long[]> dropped = buf.trimToWatermarkWithKeys("k", 20);
+        assertEquals(2, dropped.size());
+        // dropped keys are exactly k10 and k20 (order by ts)
+        assertEquals(k10[1], dropped.get(0)[1]);
+        assertEquals(k20[1], dropped.get(1)[1]);
+        assertEquals(List.of("v30"), buf.sortedView("k"));
+    }
+
+    @Test
+    public void trimToCountWithKeysReturnsOldestDropped() {
+        PerKeyOrderedBuffer<String, String> buf = new PerKeyOrderedBuffer<>();
+        long[] k10 = buf.add("k", 10, "v10");
+        long[] k20 = buf.add("k", 20, "v20");
+        long[] k30 = buf.add("k", 30, "v30");
+        List<long[]> dropped = buf.trimToCountWithKeys("k", 1);
+        assertEquals(2, dropped.size());
+        assertEquals(k10[1], dropped.get(0)[1]);
+        assertEquals(k20[1], dropped.get(1)[1]);
+        assertEquals(List.of("v30"), buf.sortedView("k"));
+    }
+
+    @Test
     public void serializableForOperatorDeepCopies() throws Exception {
         PerKeyOrderedBuffer<String, String> buf = new PerKeyOrderedBuffer<>();
         buf.add("k", 1, "v");

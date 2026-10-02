@@ -68,6 +68,8 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
     private transient PerKeyOrderedBuffer<String, String> buffer;
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, String> bufferState;
+    /** rebuild idempotence guard — a second rebuild would stack duplicate entries. */
+    private transient boolean viewRebuilt;
 
     private long currentWatermark;
 
@@ -130,13 +132,14 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         int p2 = value.indexOf('|', p1 + 1);
         String key = value.substring(0, p1);
         long ts = Long.parseLong(value.substring(p1 + 1, p2));
-        buffer.add(key, ts, value);
-        // durable copy into keyed state (one entry per element; the entry key is
-        // deterministic key\u0000ts\u0000seq so removal can target it exactly; the
-        // view is rebuilt from these entries on restore)
+        long[] tsKey = buffer.add(key, ts, value);
+        // durable copy into keyed state (one entry per element; the entry key is the
+        // exact key\u0000ts\u0000seq returned by add — same-ts inserts get distinct
+        // seqs so the keyed mirror never collides; the view is rebuilt from these
+        // entries on restore)
         if (bufferState != null) {
             try {
-                bufferState.put(key + "\u0000" + ts + "\u0000" + buffer.seqFor(key, ts), value);
+                bufferState.put(key + "\u0000" + ts + "\u0000" + tsKey[1], value);
             } catch (Exception e) {
                 throw new io.nop.stream.core.exceptions.StreamException(
                         io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
@@ -223,6 +226,12 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
      * element in the "key|ts|payload" record form.
      */
     public void rebuildViewFromKeyedState() {
+        // idempotence guard: a second rebuild would stack duplicate entries into the
+        // view (WI12 audit R-2)
+        if (viewRebuilt) {
+            return;
+        }
+        viewRebuilt = true;
         if (bufferState == null) {
             return;
         }
