@@ -239,8 +239,8 @@
 ### Phase 2 — 多输入通路（WI6 与 WI7 触门与否以 Purpose 表为准；WI6 门控，WI7 不触门）
 
 - WI6 union 多输入通路与内核约束修复: `done`（deps WI0a；Item Type Feature；UnionTransformation 与 DataStream.union 与 StreamUnionOperator pass-through 顶点落地，transformUnion 分支每输入一条 StreamEdge，registerStreams 重复键序号消歧；约束 2 修复——union 目标保留平行 JobEdge 加 IdentityHashMap matrix 键控加 remote topic 序号消歧，非 union 目标维持去重防链内扇入双写，回归 TestJobGraphParallelEdges；约束 1 修复——declared-vs-declared 四字段值不一致 fail-fast、undeclared 让位于 declared，core 与 remote 双侧同修，回归 TestMultiEdgeGateConfigConsistency 4 用例；约束 4 二输入上界 javadoc 显式记录；builder 放行——buildUnion 按边声明顺序重复合流、KeyedStream 拒绝、HASH 边入 union fail-fast 指引 union 后 keyBy；端到端两源进单算子 TestUnionPipelineE2E 与 self-union TestSelfUnionPipelineE2E 绿；core 1663 runtime 1185 flow 136 全绿；承载 plan ai-dev/plans/nop-stream-sql/13-wi6-union-multi-input.md，独立 closure audit PASS 2026-10-02）
-- WI7 多输入回归三件套: `todo`（deps WI6；Item Type Proof；完成判定 具名测试类 TestMultiInputBarrierAlignment 与 TestMultiInputWatermarkMinMerge 与 TestMultiInputExactlyOnceCheckpoint 三者齐备，且 TestMultiInputSelfJoinEdgeDedup 覆盖约束 2；另有用例断言 §八 4 即 barrier 仍只由 source 读取线程注入与 §八 6 即恢复从最新 durable epoch manifest 开始）
-- ★ **里程碑：M2 多输入可用**（解锁条件 WI6 与 WI7 done）：`todo`
+- WI7 多输入回归三件套: `done`（deps WI6；Item Type Proof；四个具名测试类齐备且实跑绿——TestMultiInputBarrierAlignment 严格模式契约断言加 §八 4 barrier-after-element 行为断言，TestMultiInputWatermarkMinMerge min 合并被慢侧拖住加 EOS MAX 排除，TestMultiInputExactlyOnceCheckpoint §八 6 双证据即 manifest task snapshots 绑定 durable offset 加 RESTORE_PROBE 断言 initializeState 收到 durable offset 加消费区间零重发，TestMultiInputSelfJoinEdgeDedup 覆盖约束 2；执行期发现 union 顶点 E2E 对齐阻塞缺位为 live defect 已路由 FU-9 须 Fix 单独立项，时序判别断言待修复后启用；线程同一性由 core TestSourcePullBarrierInjection 承载；runtime 全量 1196 零退化；承载 plan ai-dev/plans/nop-stream-sql/20-wi7-multi-input-regressions.md，独立 closure audit 五轮轨迹最终 PASS 2026-10-02）
+- ★ **里程碑：M2 多输入可用**（解锁条件 WI6 与 WI7 done；2026-10-02 达成）：`done`
 
 ### Phase 3 — 执行面地基（WI8a WI8b WI8c WI8d WI10 WI21 门控；WI9 WI15 不触门，以 Purpose 表为准）
 
@@ -294,6 +294,7 @@
 - FU-6 AbstractStreamOperator 水位合并固定两输入是否参数化以支持多于两输入: `todo`
 - FU-7 window 节点从 StreamTransformModel 继承的 bean 属性被 buildWindow 静默忽略，是否补 fail-fast 或纳入消费: `todo`
 - FU-8 WindowedStreamImpl/WindowOperatorFactoryImpl.configureBuilder 从不传递 accumulationMode 到 WindowOperator——xdef 声明 DISCARDING 的模型构建出的算子恒为 ACCUMULATING（WI10 audit 发现的结构性接线缺口）: `todo`
+- FU-9 union 顶点 E2E 层对齐阻塞缺位——STRICT_EXACTLY_ONCE 下 union 顶点 gate 未阻塞 fast channel（WI7 TestMultiInputBarrierAlignment 实测 f-4→f-5 转发间隔 8ms≈源速率而非对齐窗口 ≈80ms；单算子级 gate 阻塞已被 TestProcessingGuaranteeBehavior 证明，缺口在 union 顶点 barrier wiring/tracker 路径）。已确认 live defect，须 Fix 单独立项（Plan guide 规则 15），修复后 TestMultiInputBarrierAlignment 的时序判别断言即可启用: `todo`
 
 ## Dependency Graph
 
