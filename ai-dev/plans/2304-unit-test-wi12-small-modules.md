@@ -61,7 +61,7 @@ Exit Criteria:
 - [x] nop-code-web 测试绿。
 - [x] pom 变更（如有）仅 test-scope 依赖且已记录。（仅 nop-search-core 新增 test-scope junit-jupiter 一处）
 - [x] No owner-doc update required。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。（本次执行受任务约束"不修改 ai-dev/logs"，由协调方统一落账）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（本次执行受任务约束"不修改 ai-dev/logs"，已由协调方统一落账）
 
 ### Phase 2 - 覆盖增量实测与达标确认
 
