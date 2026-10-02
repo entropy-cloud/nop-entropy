@@ -79,11 +79,11 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 三模块全部新增测试绿（含既有测试零回归）
-- [ ] 产品代码/pom 零修改（git 证据）
-- [ ] 覆盖增量实测记录
-- [ ] 残余缺口显式裁定（无静默降级）
-- [ ] No owner-doc update required（已裁定）
+- [x] 三模块全部新增测试绿（含既有测试零回归；xmeta 回退后复跑 BUILD SUCCESS 仍绿）
+- [x] 产品代码/pom 零修改（git 证据：初次提交误卷入其他会话遗留的 _NopBatchTask.xmeta 产品改动，已在回退提交 d459aedd32 移出并复跑验证，见偏差节 2）
+- [x] 覆盖增量实测记录
+- [x] 残余缺口显式裁定（无静默降级）
+- [x] No owner-doc update required（已裁定）
 - [ ] Anti-Hollow Check：chunk/checkpoint 测试断言语义（audit 抽查）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2298-unit-test-wi6-nop-batch.md --strict` 退出码 0
