@@ -1,0 +1,18 @@
+{
+  "name": "nop-stream-cdc",
+  "description": "Upgrade the nop Debezium integration to 3.7.0.Final and close the gap to SeaTunnel for single-machine DB-to-DB sync: connector whitelist mysql+postgres, two-layer single-host parallelism (engine-internal chunked parallel snapshot passthrough + nop-stream subtask-level deterministic table routing), JdbcSchemaHistory as default schema-history store with the nop checkpoint pinned as the single offset source of truth, jdbc-2pc dmlMode (INSERT/UPSERT/UPSERT_DELETE) for CDC mirroring with the existing epoch 2PC + ledger idempotency, engine single-writer pinning and config guards, and two gated Testcontainers reference scenarios (mysql->mysql mirror with kill/recover; pg->mysql with DELETE propagation) as the SeaTunnel-replacement acceptance bar. Design decisions are recorded in ai-dev/design/nop-stream/cdc-design.md; the prior CDC implementation was never released, so there is no backward-compatibility burden.",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-stream-cdc-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-stream-cdc",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-stream-cdc",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "commands": {
+    "test": "./mvnw test -pl nop-message/nop-message-debezium,nop-stream/nop-stream-core,nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-connector-jdbc -am -T 1C",
+    "build": "./mvnw clean install -pl nop-message/nop-message-debezium,nop-stream/nop-stream-core,nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-connector-jdbc -am -T 1C -DskipTests",
+    "lint": "node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high",
+    "typecheck": "node ai-dev/tools/check-doc-links.mjs --strict"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}
