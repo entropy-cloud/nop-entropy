@@ -116,11 +116,10 @@ public class TestInputIdempotency {
         InMemorySessionStore store = new InMemorySessionStore();
         DefaultAgentEngine engine = engine(store);
 
-        // complete the first execution before the second send (execution-slot
-        // exclusion would otherwise reject the concurrent second send)
+        // complete both executions before asserting (messages reach the
+        // session snapshot at the terminal sync; sendMessage is async)
         engine.execute(request("s-idem-2", null)).join();
-        AgentMessageAck second = engine.sendMessage(request("s-idem-2", null));
-        assertEquals("accepted", second.getStatus(), "null key = no dedup (backward compat)");
+        engine.execute(request("s-idem-2", null)).join();
         AgentSession session = store.get("s-idem-2");
         long userMessages = session.getMessages().stream()
                 .filter(m -> m instanceof ChatUserMessage).count();

@@ -152,6 +152,22 @@ public final class SessionFileReader {
 
         // Plan 2288 (WI7): seen-input dedup keys — absent in legacy session
         // files → empty map (backward compatible)
+        // Plan 2289 (WI8): offline injection staging — absent in legacy files
+        Object pendingRaw = map.get(SessionFileWriter.FIELD_PENDING_INJECTIONS);
+        if (pendingRaw instanceof java.util.List) {
+            java.util.List<AgentSession.PendingInjection> staged = new java.util.ArrayList<>();
+            for (Object o : (java.util.List<?>) pendingRaw) {
+                if (o instanceof java.util.Map) {
+                    Object sem = ((java.util.Map<?, ?>) o).get("semantics");
+                    Object mj = ((java.util.Map<?, ?>) o).get("messageJson");
+                    if (sem != null && mj != null) {
+                        staged.add(new AgentSession.PendingInjection(sem.toString(), mj.toString()));
+                    }
+                }
+            }
+            session.getPendingInjections().addAll(staged);
+        }
+
         Object seenRaw = map.get(SessionFileWriter.FIELD_SEEN_INPUT_KEYS);
         if (seenRaw instanceof Map) {
             java.util.Map<String, Long> seen = new java.util.LinkedHashMap<>();

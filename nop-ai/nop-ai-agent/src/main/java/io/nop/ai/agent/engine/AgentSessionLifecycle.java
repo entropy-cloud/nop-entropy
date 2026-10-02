@@ -137,6 +137,29 @@ public class AgentSessionLifecycle {
     }
     public AgentExecutionContext buildBaseExecutionContext(AgentModel agentModel, AgentSession session) {
         AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, session.getSessionId());
+        // Plan 2289 (WI8): bridge the injection event publisher (nullable —
+        // direct ctx construction stays silent) so enqueues are observable.
+        ctx.setInjectionEventPublisher(eventPublisher, session.getAgentName());
+        // Plan 2289 (WI8): merge offline-injected entries (injectInput while
+        // the session was not executing) into this execution's queue, then
+        // clear the staging + persist (single-writer: caller's thread before
+        // the execution slot is registered).
+        if (!session.getPendingInjections().isEmpty()) {
+            for (AgentSession.PendingInjection staged : session.getPendingInjections()) {
+                // messageJson is a JSON string (not a map) — parse to ChatMessage
+                ChatMessage msg = io.nop.core.lang.json.JsonTool.parseBeanFromText(
+                        staged.getMessageJson(), ChatMessage.class);
+                InjectionSemantics semantics = InjectionSemantics.STEER;
+                try {
+                    semantics = InjectionSemantics.valueOf(staged.getSemantics());
+                } catch (IllegalArgumentException e) {
+                    semantics = InjectionSemantics.STEER;
+                }
+                ctx.enqueueSteering(msg, semantics);
+            }
+            session.clearPendingInjections();
+            sessionStore.save(session);
+        }
 
         String systemPrompt = null;
         if (agentModel.getPrompt() != null) {

@@ -374,3 +374,11 @@ AgentActor 的生命周期状态（计划文档 actor-runtime-vision §3.2，尚
 ## 10. 本篇结论
 
 ReAct 是当前阶段最合适的单 Agent Java 执行引擎模型。
+
+## 注入语义三分（WI8，plan 2289）
+
+**语义**：注入队列条目携带 `InjectionSemantics`——STEER（打断合流：等待期唤醒轮消费，fallback 到 round 边界）/ FOLLOWUP（空闲追加：仅 round 边界消费，等待期不算"空闲"，延迟上界=工具策略硬上限）/ INJECT（背景注入：仅 round 边界静默入史，不进唤醒请求快照、不触发唤醒）。
+
+**消费与持久化**：唤醒 probe（`hasQueuedInjection(STEER)`）只对 STEER 唤醒；唤醒轮快照/commit 只取 STEER；round 边界 drain 消费全部语义。三个提交点（drainCommitSteering 含 guardrail 分支 + round 边界）后立即 `persistInjectedMessages`（replaceMessages+save，worker 线程单写者）；终态残留 drain 在 fromContext 前捕获最后一轮 LLM 期间到达的注入。离线注入（会话非 running）走 `AgentSession.pendingInjections` staging（随 session 持久化），`buildBaseExecutionContext` 合并进新队列并清空。
+
+**事件化**：`INJECTION_QUEUE_UPDATED`（action=enqueued|drained + semantics + pendingCount），三发布点（ctx 入队与排空经 nullable publisher 桥接、actor 入队经 runtime optional publisher——NoOp 默认静默=登记边界）；契约权威与边界（mailbox 内存丢失、pre-drain 残留、FIFO 驱逐）见 `nop-ai-agent-session-and-storage.md` 双层幂等与注入持久化节。

@@ -64,6 +64,34 @@ public class AgentSession {
         return true;
     }
 
+    /**
+     * Plan 2289 (WI8): offline injection staging (injectInput while the
+     * session is not executing). Entries survive process restarts (persisted
+     * with the session snapshot); merged into the next execution's injection
+     * queue at buildBaseExecutionContext and cleared there. Element shape =
+     * "semantics|role-escaped message JSON" is NOT used — entries are stored
+     * as pre-rendered ChatMessage JSON plus the semantics name so the session
+     * file stays reader-compatible.
+     */
+    public static final int MAX_PENDING_INJECTIONS = 256;
+    private final java.util.List<PendingInjection> pendingInjections = new java.util.ArrayList<>();
+
+    public java.util.List<PendingInjection> getPendingInjections() {
+        return pendingInjections;
+    }
+
+    public void addPendingInjection(String semantics, String messageJson) {
+        if (pendingInjections.size() >= MAX_PENDING_INJECTIONS) {
+            throw new IllegalStateException("pendingInjections overflow (max="
+                    + MAX_PENDING_INJECTIONS + ")");
+        }
+        pendingInjections.add(new PendingInjection(semantics, messageJson));
+    }
+
+    public void clearPendingInjections() {
+        pendingInjections.clear();
+    }
+
     public Map<String, Long> getSeenInputKeys() {
         return seenInputKeys;
     }
@@ -73,6 +101,25 @@ public class AgentSession {
         seenInputKeys.clear();
         if (keys != null) {
             seenInputKeys.putAll(keys);
+        }
+    }
+
+    /** Plan 2289 (WI8): one staged offline injection (semantics + message JSON). */
+    public static final class PendingInjection {
+        private final String semantics;
+        private final String messageJson;
+
+        public PendingInjection(String semantics, String messageJson) {
+            this.semantics = semantics;
+            this.messageJson = messageJson;
+        }
+
+        public String getSemantics() {
+            return semantics;
+        }
+
+        public String getMessageJson() {
+            return messageJson;
         }
     }
     private String parentSessionId;

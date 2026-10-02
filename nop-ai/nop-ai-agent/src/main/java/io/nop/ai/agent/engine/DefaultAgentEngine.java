@@ -4,6 +4,8 @@ import io.nop.ai.agent.engine.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -110,6 +112,13 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final ISessionStore sessionStore;
     private final String instanceId = UUID.randomUUID().toString();
     private final ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> runningExecutions = new ConcurrentHashMap<>();
+    /**
+     * Plan 2289 (WI8): live injection-queue targets for injectInput while a
+     * session runs (ctx is per-execution; registered at slot registration,
+     * removed symmetrically in the terminal finally).
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> runningInjectionTargets =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ExecutorService agentExecutor;
     private volatile boolean ownAgentExecutor;
@@ -667,6 +676,36 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
     }
 
+    /**
+     * Plan 2289 (WI8): two-branch injection. Session running (execution slot
+     * held) → enqueue by semantics into the live ctx queue (STEER wakes the
+     * wait phase). Session not running → stage in the session (persisted) for
+     * the next execution to merge at buildBaseExecutionContext.
+     */
+    @Override
+    public void injectInput(String sessionId, io.nop.ai.api.chat.messages.ChatMessage message,
+                            InjectionSemantics semantics) {
+        if (sessionId == null || message == null || semantics == null) {
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "injectInput: sessionId, message and semantics must not be null");
+        }
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "injectInput: no session found for sessionId=" + sessionId);
+        }
+        // "running" = an execution slot is registered (the persisted session
+        // status only updates to a terminal value in the engine's terminal
+        // sync, so getStatus() is NOT a reliable in-flight signal)
+        AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
+        if (liveTarget != null) {
+            liveTarget.enqueueSteering(message, semantics);
+        } else {
+            session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+            sessionStore.save(session);
+        }
+    }
+
     public AgentMessageAck sendMessage(AgentMessageRequest request) {
         String sessionId = sessionSupport.resolveSessionId(request.getSessionId());
         CompletableFuture<AgentExecutionResult> future = doExecute(request, sessionId);
@@ -732,6 +771,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             AgentSessionLifecycle.CancelHandle handle;
             try {
                 handle = registerExecutionSlot(sessionId, setup.ctx());
+            // Plan 2289 (WI8): make the live queue addressable for
+            // injectInput while the session runs
+            runningInjectionTargets.put(sessionId, setup.ctx());
             } catch (NopAiAgentException e) {
                 if (isDuplicateInput(e)) {
                     return CompletableFuture.failedFuture(e);
@@ -964,6 +1006,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
+                    // Plan 2289 (WI8): before the terminal sync, drain any
+                    // injections that arrived during the final LLM call into
+                    // ctx so the terminal replaceMessages persists them
+                    runningInjectionTargets.remove(sessionId);
                     // was lost mid-execution, force terminal status to
                     // failed (the executor's cancel path would otherwise set
                     // cancelled — lease-lost is a system-level failure,

@@ -122,6 +122,10 @@ public class TestInvariantGate2OrchestrationTimeout {
             new Entry("IAgentEngine.restorePendingSessions", "engine/DefaultAgentEngineConfig.java",
                     "callAgentTimeoutMs", "declared"),
             new Entry("IAgentEngine.getSessionStatus", null, null, "not-applicable"),
+            // Plan 2289 (WI8): injectInput queues/stages input, never awaits
+            // an async execution wait surface — same not-applicable class as
+            // forkSession/cancelSession/getSessionStatus
+            new Entry("IAgentEngine.injectInput", null, null, "not-applicable"),
             new Entry("IAgentEngine.close", null, null, "not-applicable"),
             new Entry("ReActAgentExecutor.execute", "engine/ReActAgentExecutor.java",
                     "llmTimeoutMs", "declared"),

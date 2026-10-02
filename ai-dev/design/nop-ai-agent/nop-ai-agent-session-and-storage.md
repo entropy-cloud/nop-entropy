@@ -526,3 +526,7 @@ Session 加载
 **双层分工**：session 层为主防线——`AgentMessageRequest.idempotencyKey`（调用方提供稳定键，如 Feishu message_id）在 `DefaultAgentEngine` 两段判定：读检查于 `assembleExecutionSetup`（getOrCreate 后、事件发布与消息 append 前），记录+`sessionStore.save` 于执行槽注册成功后的锁内窗口（busy 拒绝/锁失败不毒化键；锁内 save 不与终态 save 竞态）。命中 → `sendMessage` 返回 ack status="duplicate"、`execute` future 异常完成（`ERR_AGENT_DUPLICATE_INPUT`），不 append 消息不 dispatch。存储：`AgentSession.seenInputKeys`（FIFO 有界 1024）随快照持久化（Writer/Reader 各一行）。mailbox 层为辅——`DeferredAckMailbox` correlationId 索引（duplicate offer == single entry），清理点 ack/dead-letter/nack(requeue=false)，requeue 保留。
 
 **at-least-once 契约与边界**（如实登记）：①mailbox 纯内存，进程 crash 丢消息（根治=mailbox 持久化，范围外）；②出厂默认 InMemorySessionStore 下持久化前置退化为内存级；③seenInputKeys FIFO 驱逐后最老键重投按新消息执行（1024 上限可接受；LRU 不解决重投窗口）；④Feishu 首消息重投窗口（channel→session 映射执行完成后才 save，执行期间重投绕过 session 级去重——connector 映射前置为后续改造）。
+
+## 注入持久化（WI8，plan 2289）
+
+三提交点（drainCommitSteering 含 guardrail 分支 + round 边界 drain）后立即 `persistInjectedMessages`（replaceMessages+save，worker 线程单写者）；执行终态 fromContext 前 drain 全部残留（最后一轮 LLM 期间到达的注入随终态快照落盘）。离线注入：会话非 running 时 `injectInput` 写 `AgentSession.pendingInjections`（staging，随 session 快照持久化、重启后存活），下次执行 `buildBaseExecutionContext` 合并进注入队列并清空。residual 如实登记：①等待期注入仅在内存队列，drain 前崩溃丢失（pre-drain 残留窗口）；②非 running 分支的 staging save 发生在调用方线程且无锁，与毫秒级同时发起的 `execute()` 存在理论竞窗——InMemory store 同对象突变无害，拷贝型 store 有丢失风险（后续可在 injectInput 分支复用 takeover 锦消除）；③FOLLOWUP/INJECT 在长工具等待期间延迟消费（上界=工具策略硬上限）为语义裁定非缺陷。等待期 pre-drain 残留（注入在内存队列、drain 前崩溃丢失）为如实登记的 residual；FOLLOWUP/INJECT 在长工具等待期间延迟消费（上界=工具策略硬上限）为语义裁定非缺陷。

@@ -3,6 +3,8 @@ package io.nop.ai.agent.runtime;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.ai.agent.engine.InjectionEntry;
+import io.nop.ai.agent.engine.InjectionSemantics;
 import io.nop.ai.agent.engine.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
@@ -118,6 +120,14 @@ public final class InMemoryActorRuntime implements IActorRuntime {
     private final Function<String, IMailbox> mailboxLookup;
     private final long pollIntervalMs;
     private final long shutdownTimeoutMs;
+    /**
+     * Plan 2289 (WI8): optional publisher for injection-queue visibility
+     * events from the actor enqueue path (INJECTION_QUEUE_UPDATED). Null
+     * (shipped default) = actor-path enqueues stay silent — registered as a
+     * boundary in session-and-storage.md. Wired via
+     * {@link #setInjectionEventPublisher}.
+     */
+    private volatile io.nop.ai.agent.engine.IAgentEventPublisher injectionEventPublisher;
 
     private final ConcurrentHashMap<String, ExecutorService> executors = new ConcurrentHashMap<>();
 
@@ -224,7 +234,14 @@ public final class InMemoryActorRuntime implements IActorRuntime {
         return true;
     }
 
-    @Override
+    /**
+     * Plan 2289 (WI8): wires the publisher used for actor-path enqueue events
+     * (nullable — NoOp default keeps actor-path enqueues silent).
+     */
+    public void setInjectionEventPublisher(io.nop.ai.agent.engine.IAgentEventPublisher publisher) {
+        this.injectionEventPublisher = publisher;
+    }
+
     public AgentActor createActor(String sessionId, String agentName) {
         if (sessionId == null || sessionId.isEmpty()) {
             throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
@@ -439,10 +456,23 @@ public final class InMemoryActorRuntime implements IActorRuntime {
                         // the message is recorded above but NOT injected
                         // (裁定 2 null 退路 — do not drop the message, just
                         // don't inject).
-                        Queue<ChatMessage> steeringQueue = actor.getSteeringQueue();
+                        Queue<InjectionEntry> steeringQueue = actor.getSteeringQueue();
                         if (steeringQueue != null) {
                             ChatMessage steeringMsg = toSteeringMessage(entry);
-                            steeringQueue.add(steeringMsg);
+                            // Plan 2289 (WI8): actor-path injections default to
+                            // STEER semantics (prior behaviour preserved)
+                            steeringQueue.add(new InjectionEntry(InjectionSemantics.STEER, steeringMsg));
+                            io.nop.ai.agent.engine.IAgentEventPublisher publisher = injectionEventPublisher;
+                            if (publisher != null) {
+                                String sid = actor.getSessionId();
+                                java.util.Map<String, Object> payload = new java.util.HashMap<>();
+                                payload.put("semantics", InjectionSemantics.STEER.name());
+                                payload.put("action", "enqueued");
+                                payload.put("pendingCount", steeringQueue.size());
+                                publisher.publish(io.nop.ai.agent.engine.AgentEvent.create(
+                                        io.nop.ai.agent.engine.AgentEventType.INJECTION_QUEUE_UPDATED,
+                                        sid, actor.getActorId(), payload));
+                            }
                             LOG.info("AgentActor steering-injection: actorId={}, sessionId={}, "
                                             + "deliveryId={}, kind={}, senderId={}, payload={}",
                                     actor.getActorId(), actor.getSessionId(), entry.getDeliveryId(),

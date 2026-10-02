@@ -41,6 +41,11 @@ gate-2-orchestration-timeout:
     reason-type: not-applicable
     date: 2026-08-12
     owner: I1-executor
+  - instance: IAgentEngine.injectInput
+    reason: 不适用：injectInput 仅入队/暂存输入（running 入 ctx 队列、非 running 写 session staging），不启动 agent 执行路径、无异步等待面（plan 2289 WI8 裁定）
+    reason-type: not-applicable
+    date: 2026-10-02
+    owner: refactor-wi8
   - instance: IAgentEngine.cancelSession
     reason: 不适用：取消原语（取消即终结等待），无异步执行等待面（I3 裁决输入）
     reason-type: not-applicable

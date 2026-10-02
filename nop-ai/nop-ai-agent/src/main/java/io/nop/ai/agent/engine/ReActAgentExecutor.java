@@ -511,6 +511,13 @@ public class ReActAgentExecutor implements IAgentExecutor {
             }
         }
 
+        // Plan 2289 (WI8) terminal residual drain: injections arriving during
+        // the final LLM call (after the last boundary drain) still reach the
+        // result snapshot and the engine's terminal save — never lost
+        for (ChatMessage residualMsg : ctx.drainSteering()) {
+            ctx.addMessage(residualMsg);
+        }
+
         return CompletableFuture.completedFuture(AgentExecutionResult.fromContext(ctx));
     }
 
@@ -1211,7 +1218,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         Set<String> executingStarted = new HashSet<>();
         while (true) {
             AgentToolDispatcher.PhaseWaitEvent event = session.awaitWakeup(
-                    nextWaitSlice(session), () -> !ctx.getSteeringQueue().isEmpty());
+                    nextWaitSlice(session),
+                    () -> ctx.hasQueuedInjection(InjectionSemantics.STEER));
             if (event == AgentToolDispatcher.PhaseWaitEvent.COMPLETED) {
                 break;
             }
@@ -1293,14 +1301,15 @@ public class ReActAgentExecutor implements IAgentExecutor {
             return false;
         }
 
-        // non-destructive snapshot of queued steering for request construction
-        Object[] queued = ctx.getSteeringQueue().toArray();
-        if (queued.length == 0) {
+        // non-destructive snapshot: STEER entries only — FOLLOWUP/INJECT stay
+        // queued for their round-boundary consumer (plan 2289 consumption rules)
+        List<InjectionEntry> steerEntries = ctx.snapshotSteeringBySemantics(InjectionSemantics.STEER);
+        if (steerEntries.isEmpty()) {
             return false;
         }
         List<ChatMessage> steeringSnapshot = new ArrayList<>();
-        for (Object o : queued) {
-            steeringSnapshot.add((ChatMessage) o);
+        for (InjectionEntry entry : steerEntries) {
+            steeringSnapshot.add(entry.getMessage());
         }
 
         // transient request copy: placeholders + steering messages (copy only)
@@ -1342,12 +1351,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
         if (assistantMsg != null && promptAssembly.checkOutputGuardrailBlockedForWakeup(ctx, assistantMsg)) {
             LOG.warn("steering wakeup reply blocked by content guardrail; committing steering messages "
                     + "and adjudicating as WAIT. session={}", sessionId);
-            drainCommitSteering(ctx);
+            drainCommitSteering(ctx, sessionId);
             return true;
         }
 
         // drain-commit: steering messages first, reply after (session order)
-        drainCommitSteering(ctx);
+        drainCommitSteering(ctx, sessionId);
         if (assistantMsg != null) {
             ctx.addMessage(assistantMsg);
         }
@@ -1363,10 +1372,30 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * Single-consumer discipline: only the ReAct thread polls the queue
      * (boundary drain + wakeup turns).
      */
-    private void drainCommitSteering(AgentExecutionContext ctx) {
+    private void drainCommitSteering(AgentExecutionContext ctx, String sessionId) {
         for (ChatMessage msg : ctx.drainSteering()) {
             ctx.addMessage(msg);
         }
+        // Plan 2289 (WI8): persist immediately after commit — closes the
+        // "drained but not checkpointed" crash window for committed injections
+        persistInjectedMessages(ctx, sessionId);
+    }
+
+    /**
+     * Plan 2289 (WI8): syncs the ctx message list into the persisted session
+     * (same two-step shape as the LLM_TURN sync, without the checkpoint).
+     * Single-writer safe: runs on the executor worker thread only.
+     */
+    private void persistInjectedMessages(AgentExecutionContext ctx, String sessionId) {
+        if (sessionId == null || sessionStore == null) {
+            return;
+        }
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            return;
+        }
+        session.replaceMessages(ctx.getMessages());
+        sessionStore.save(session);
     }
 
     /**
@@ -1666,6 +1695,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
             for (ChatMessage steeringMsg : steeringMessages) {
                 ctx.addMessage(steeringMsg);
             }
+            // Plan 2289 (WI8): persist committed injections immediately
+            persistInjectedMessages(ctx, sessionId);
             LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
                             + "(iteration={}). session={}",
                     steeringMessages.size(), ctx.getCurrentIteration(), sessionId);

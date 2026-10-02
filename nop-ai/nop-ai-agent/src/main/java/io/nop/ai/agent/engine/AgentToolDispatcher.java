@@ -985,23 +985,6 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
     }
 
     /**
-     * Drain the actor steering queue at the round boundary (extracted from
-     * ReActAgentExecutor.execute, MA4.2-05): append any queued steering
-     * messages to the context before the next LLM call.
-     */
-    public void drainSteering(AgentExecutionContext ctx, String sessionId) {
-        List<ChatMessage> steeringMessages = ctx.drainSteering();
-        if (!steeringMessages.isEmpty()) {
-            for (ChatMessage steeringMsg : steeringMessages) {
-                ctx.addMessage(steeringMsg);
-            }
-            LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
-                    + "(iteration={}). session={}",
-                    steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
-        }
-    }
-
-    /**
      * Spill-to-store path for oversized successful tool results (design §3.3).
      * <p>
      * When the result exceeds the inline threshold AND the tool is
