@@ -69,6 +69,9 @@ public class TestDebeziumCdcCheckpoint {
         config.setName(CONNECTOR);
         config.setConnectorType("mysql");
         config.setDatabaseHost("localhost");
+        // 本测试只验证 offset 注入链，schema history 用显式 file 模式（jdbc 为默认且强制要求 URL）
+        config.setSchemaHistoryStore("file");
+        config.setSchemaHistoryPath("/tmp/" + CONNECTOR + "/schema-history.dat");
         return config;
     }
 

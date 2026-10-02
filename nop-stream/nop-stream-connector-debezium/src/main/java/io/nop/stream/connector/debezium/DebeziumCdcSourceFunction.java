@@ -435,10 +435,14 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
 
     private static final String FIELD_DATABASE_USER = "databaseUser";
     private static final String FIELD_DATABASE_PASSWORD = "databasePassword";
+    private static final String FIELD_SCHEMA_HISTORY_USER = "schemaHistoryJdbcUser";
+    private static final String FIELD_SCHEMA_HISTORY_PASSWORD = "schemaHistoryJdbcPassword";
 
     private boolean hasCredentialReferences() {
         return StreamCredentialSupport.isCredentialReference(config.getDatabaseUser())
-                || StreamCredentialSupport.isCredentialReference(config.getDatabasePassword());
+                || StreamCredentialSupport.isCredentialReference(config.getDatabasePassword())
+                || StreamCredentialSupport.isCredentialReference(config.getSchemaHistoryJdbcUser())
+                || StreamCredentialSupport.isCredentialReference(config.getSchemaHistoryJdbcPassword());
     }
 
     /**
@@ -448,21 +452,24 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
      * systematic false negative). Plaintext is never logged or reported.
      */
     private void verifyCredentialReferences() {
-        String user = config.getDatabaseUser();
-        if (StreamCredentialSupport.isCredentialReference(user)) {
-            StreamCredentialSupport.resolve(user, FIELD_DATABASE_USER, credentialProvider);
+        resolveIfReference(config.getDatabaseUser(), FIELD_DATABASE_USER);
+        resolveIfReference(config.getDatabasePassword(), FIELD_DATABASE_PASSWORD);
+        resolveIfReference(config.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER);
+        resolveIfReference(config.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD);
+    }
+
+    private String resolveIfReference(String value, String field) {
+        if (StreamCredentialSupport.isCredentialReference(value)) {
+            return StreamCredentialSupport.resolve(value, field, credentialProvider);
         }
-        String password = config.getDatabasePassword();
-        if (StreamCredentialSupport.isCredentialReference(password)) {
-            StreamCredentialSupport.resolve(password, FIELD_DATABASE_PASSWORD, credentialProvider);
-        }
+        return value;
     }
 
     /**
      * The config handed to the engine: the ORIGINAL config when it carries no
      * credential references; otherwise a TRANSIENT DECRYPTED COPY (built via
-     * serialization round-trip so every field survives) whose user/password fields
-     * are resolved plaintext. The plaintext lives only inside this method's local
+     * serialization round-trip so every field survives) whose credential-reference
+     * fields are resolved plaintext. The plaintext lives only inside this method's local
      * path and the engine instance it constructs — the original config object and
      * every serialization path keep the reference string (D4: reference persists,
      * decrypt is engine-side transient).
@@ -473,15 +480,11 @@ public class DebeziumCdcSourceFunction implements DrainableSource<ChangeEvent>,
             return cfg;
         }
         DebeziumConfig copy = serializationRoundTripCopy(cfg);
-        String user = cfg.getDatabaseUser();
-        if (StreamCredentialSupport.isCredentialReference(user)) {
-            copy.setDatabaseUser(StreamCredentialSupport.resolve(user, FIELD_DATABASE_USER, credentialProvider));
-        }
-        String password = cfg.getDatabasePassword();
-        if (StreamCredentialSupport.isCredentialReference(password)) {
-            copy.setDatabasePassword(
-                    StreamCredentialSupport.resolve(password, FIELD_DATABASE_PASSWORD, credentialProvider));
-        }
+        copy.setDatabaseUser(resolveIfReference(cfg.getDatabaseUser(), FIELD_DATABASE_USER));
+        copy.setDatabasePassword(resolveIfReference(cfg.getDatabasePassword(), FIELD_DATABASE_PASSWORD));
+        copy.setSchemaHistoryJdbcUser(resolveIfReference(cfg.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER));
+        copy.setSchemaHistoryJdbcPassword(
+                resolveIfReference(cfg.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD));
         return copy;
     }
 

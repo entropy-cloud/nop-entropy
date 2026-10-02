@@ -100,6 +100,43 @@ public class DebeziumConfig implements Serializable {
     private String snapshotMode = "initial";
 
     /**
+     * A 层并行快照线程数：透传 Debezium snapshot.max.threads（引擎内单表 chunk 级并行
+     * initial snapshot）。默认 1 = 串行。快照期写入必须配合幂等 upsert（cdc-design.md §3.3）。
+     */
+    private int snapshotMaxThreads = 1;
+
+    /**
+     * schema history 存储模式：jdbc（默认，多节点可靠）或 file（单机零依赖回退）。
+     * 不再提供静默内存默认——无历史上下文的快照是错误行为（cdc-design.md §3.4）。
+     */
+    private String schemaHistoryStore = "jdbc";
+
+    /**
+     * jdbc 模式的 schema history 连接 URL（schema.history.internal.jdbc.url）
+     */
+    private String schemaHistoryJdbcUrl;
+
+    /**
+     * jdbc 模式用户名，支持 credential:{id}#{field} 引用（引擎侧瞬态解密）
+     */
+    private String schemaHistoryJdbcUser;
+
+    /**
+     * jdbc 模式密码，支持 credential:{id}#{field} 引用（引擎侧瞬态解密）
+     */
+    private String schemaHistoryJdbcPassword;
+
+    /**
+     * jdbc 模式存储表名（可选；缺省使用 Debezium 官方默认表名）
+     */
+    private String schemaHistoryJdbcTable;
+
+    /**
+     * 增量快照信号表（透传 signal.data.collection，为信号驱动的增量快照预留）
+     */
+    private String signalDataCollection;
+
+    /**
      * 心跳间隔
      */
     private Duration heartbeatInterval = Duration.ofMinutes(5);
@@ -234,6 +271,62 @@ public class DebeziumConfig implements Serializable {
 
     public void setSnapshotMode(String snapshotMode) {
         this.snapshotMode = snapshotMode;
+    }
+
+    public int getSnapshotMaxThreads() {
+        return snapshotMaxThreads;
+    }
+
+    public void setSnapshotMaxThreads(int snapshotMaxThreads) {
+        this.snapshotMaxThreads = snapshotMaxThreads;
+    }
+
+    public String getSchemaHistoryStore() {
+        return schemaHistoryStore;
+    }
+
+    public void setSchemaHistoryStore(String schemaHistoryStore) {
+        this.schemaHistoryStore = schemaHistoryStore;
+    }
+
+    public String getSchemaHistoryJdbcUrl() {
+        return schemaHistoryJdbcUrl;
+    }
+
+    public void setSchemaHistoryJdbcUrl(String schemaHistoryJdbcUrl) {
+        this.schemaHistoryJdbcUrl = schemaHistoryJdbcUrl;
+    }
+
+    public String getSchemaHistoryJdbcUser() {
+        return schemaHistoryJdbcUser;
+    }
+
+    public void setSchemaHistoryJdbcUser(String schemaHistoryJdbcUser) {
+        this.schemaHistoryJdbcUser = schemaHistoryJdbcUser;
+    }
+
+    public String getSchemaHistoryJdbcPassword() {
+        return schemaHistoryJdbcPassword;
+    }
+
+    public void setSchemaHistoryJdbcPassword(String schemaHistoryJdbcPassword) {
+        this.schemaHistoryJdbcPassword = schemaHistoryJdbcPassword;
+    }
+
+    public String getSchemaHistoryJdbcTable() {
+        return schemaHistoryJdbcTable;
+    }
+
+    public void setSchemaHistoryJdbcTable(String schemaHistoryJdbcTable) {
+        this.schemaHistoryJdbcTable = schemaHistoryJdbcTable;
+    }
+
+    public String getSignalDataCollection() {
+        return signalDataCollection;
+    }
+
+    public void setSignalDataCollection(String signalDataCollection) {
+        this.signalDataCollection = signalDataCollection;
     }
 
     public Duration getHeartbeatInterval() {

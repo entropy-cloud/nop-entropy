@@ -100,13 +100,8 @@ public class DebeziumEngineConfig {
             props.setProperty("offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
         }
 
-        // Schema 历史存储
-        if (config.getSchemaHistoryPath() != null) {
-            props.setProperty("schema.history.internal", "io.debezium.storage.file.history.FileSchemaHistory");
-            props.setProperty("schema.history.internal.file.filename", config.getSchemaHistoryPath());
-        } else {
-            props.setProperty("schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory");
-        }
+        // Schema 历史存储（cdc-design.md §3.4）：jdbc 默认 / file 单机回退，无静默内存默认
+        applySchemaHistory(props, config);
         // 表过滤
         if (config.getTableIncludeList() != null) {
             props.setProperty("table.include.list", config.getTableIncludeList());
@@ -118,6 +113,33 @@ public class DebeziumEngineConfig {
         // 快照模式
         props.setProperty("snapshot.mode", config.getSnapshotMode());
 
+        // A 层并行快照（cdc-design.md §3.3）：默认 1 = 串行，>1 透传 Debezium 单表 chunk 并行
+        if (config.getSnapshotMaxThreads() > 1) {
+            props.setProperty("snapshot.max.threads", String.valueOf(config.getSnapshotMaxThreads()));
+        }
+
+        // 增量快照信号表（预留信号驱动的增量快照）
+        if (config.getSignalDataCollection() != null) {
+            props.setProperty("signal.data.collection", config.getSignalDataCollection());
+        }
+
+        // WI7 守卫：nop checkpoint 是 offset 唯一恢复真相源，offset.storage 由本类钉定，
+        // 外部覆盖会造成 restore 位点与引擎外部位点两主并存，类型化拒绝。
+        if (config.getExtraProperties().containsKey("offset.storage")) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "offset.storage is managed by nop (NopStreamOffsetBackingStore via "
+                            + "the checkpoint protocol is the single recovery source of truth); "
+                            + "override via extraProperties is not allowed");
+        }
+        // WI7 守卫：事件处理并发钉定为 1，保护 source 单写者不变量（Barrier 由 source 读取线程注入）
+        String processingThreads = config.getExtraProperties().get("record.processing.threads");
+        if (processingThreads != null && !"1".equals(processingThreads.trim())) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "record.processing.threads is pinned to 1 to preserve the "
+                            + "source single-writer invariant (00-vision.md invariant #4)");
+        }
+        props.setProperty("record.processing.threads", "1");
+
         // 心跳配置
         props.setProperty("heartbeat.interval.ms", String.valueOf(config.getHeartbeatInterval().toMillis()));
         // 额外属性
@@ -125,6 +147,53 @@ public class DebeziumEngineConfig {
             props.setProperty(entry.getKey(), entry.getValue());
         }
         return props;
+    }
+
+    /**
+     * Schema history 存储装配。jdbc 模式（默认）要求 schemaHistoryJdbcUrl，凭证字段支持
+     * credential 引用（由调用方在引擎侧瞬态解密）；file 模式要求 schemaHistoryPath。
+     * 两者皆缺 = 配置错误——静默内存 schema history 会导致快照后无法回放 DDL 上下文。
+     */
+    private static void applySchemaHistory(Properties props, DebeziumConfig config) {
+        String mode = config.getSchemaHistoryStore() == null ? "jdbc"
+                : config.getSchemaHistoryStore().trim().toLowerCase();
+        switch (mode) {
+            case "jdbc": {
+                String url = config.getSchemaHistoryJdbcUrl();
+                if (url == null || url.isEmpty()) {
+                    throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                            .param("detail", "schemaHistoryJdbcUrl is required when schemaHistoryStore=jdbc"
+                                    + " (the default); set schemaHistoryStore=file + schemaHistoryPath for"
+                                    + " the single-node fallback");
+                }
+                props.setProperty("schema.history.internal", "io.debezium.storage.jdbc.history.JdbcSchemaHistory");
+                props.setProperty("schema.history.internal.jdbc.url", url);
+                if (config.getSchemaHistoryJdbcUser() != null) {
+                    props.setProperty("schema.history.internal.jdbc.user", config.getSchemaHistoryJdbcUser());
+                }
+                if (config.getSchemaHistoryJdbcPassword() != null) {
+                    props.setProperty("schema.history.internal.jdbc.password", config.getSchemaHistoryJdbcPassword());
+                }
+                if (config.getSchemaHistoryJdbcTable() != null) {
+                    props.setProperty("schema.history.internal.jdbc.table.name", config.getSchemaHistoryJdbcTable());
+                }
+                break;
+            }
+            case "file": {
+                String path = config.getSchemaHistoryPath();
+                if (path == null || path.isEmpty()) {
+                    throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                            .param("detail", "schemaHistoryPath is required when schemaHistoryStore=file");
+                }
+                props.setProperty("schema.history.internal", "io.debezium.storage.file.history.FileSchemaHistory");
+                props.setProperty("schema.history.internal.file.filename", path);
+                break;
+            }
+            default:
+                throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                        .param("detail", "unknown schemaHistoryStore: " + config.getSchemaHistoryStore()
+                                + " (supported: jdbc, file)");
+        }
     }
     private static void configureMySqlConnector(Properties props, DebeziumConfig config, String serverName) {
         if (config.getDatabaseServerId() != null) {
@@ -137,6 +206,11 @@ public class DebeziumEngineConfig {
         props.setProperty("include.schema.changes", String.valueOf(config.isIncludeSchemaChanges()));
     }
     private static void configurePostgresConnector(Properties props, DebeziumConfig config, String serverName) {
+        if (config.getDatabaseName() == null || config.getDatabaseName().isEmpty()) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "databaseName is required for the postgres connector"
+                            + " (mapped to database.dbname)");
+        }
         props.setProperty("database.dbname", config.getDatabaseName());
         props.setProperty("plugin.name", "pgoutput");
     }
