@@ -1,6 +1,6 @@
 # 2304 unit-test-coverage-roadmap WI12 — 小模块收尾与达标确认
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI12 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -72,13 +72,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI12 checkbox
 
 - [x] baseline 脚本复测（label wi12-2026-10-02，lint 链补跑后刷新）：spring-core-starter 0→40.48%、file-service 0→100%、search-core 0→75.61%、integration-api 15.35%→58.66%、lint-graphql 94.2%、lint-maven-plugin 83.93%；全仓加权 58.37%。
 - [x] 已达标模块不回退确认（快照对比）；未达标残余显式裁定（Deferred 段）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI12 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI12 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI12 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI12 checkbox 与 plan/log 一致（待 audit 后同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -89,10 +89,10 @@ Exit Criteria:
 - [x] WI0 遗留 8 项逐个处置（无静默跳过；rg 两项已由 WI0 裁定移出）
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：补测断言语义（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2304-unit-test-wi12-small-modules.md --strict` 退出码 0
-- [ ] roadmap WI12 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：补测断言语义（audit 抽查：TestBuildIndexTool 行为捕获 stub+真实临时文件 I/O、TestNopSpringBeanContainer scope 透传/autowire 解析断言）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2304-unit-test-wi12-small-modules.md --strict` 退出码 0
+- [x] roadmap WI12 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -114,13 +114,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 44 用例（spring 12/search 12/integration 16/file 4，audit 勘误原记 36）五模块全绿；WI0 遗留 8 项清零（lint 链 94.2%/83.93%、nop-code-web 修复、其余逐项裁定）；缺口模块覆盖 spring 40.48%/search 75.61%/integration 58.66%/file 100%。lint 普查修复由并行会话完成经本 WI 验证记账。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_c692b361-86bb-4e37-af9b-a079a4577800，fresh session）
 
 Follow-up:
 

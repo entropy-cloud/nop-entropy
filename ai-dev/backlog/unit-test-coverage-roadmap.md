@@ -99,7 +99,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 - [x] WI11 可靠性外围：nop-cluster-core（54/6）、nop-retry（41/4）、nop-tcc（43/5）、nop-network（48/10）、nop-graph（27/3）；异步/并发域严格遵守 testing.md 防挂起六规则；已知缺陷（TarjanSCC lowLink、retry 幂等键生命周期）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
 
 > WI11 完成（2026-10-02）：117 用例五模块联合 -am 全绿（52/38/26/57/20）；cluster-core 13.95%→34.06%、tcc-core 6.11%→62.59%（+56.48）、retry-api 0→43.38%、rpc-core →40.68%、http-api →40.61%——全部越过 30%（快照 coverage-baseline-wi11-2026-10-02.json）。2 项缺陷嫌疑（HealthStatus.merge P1 嫨疑）记录（bugs/2026-10/2026-10-02-wi11-defect-suspects.md）。独立 closure audit APPROVE（8/8）。
-- [ ] WI12 小模块收尾与达标确认：nop-spring（29/1）、nop-quarkus（21/0）、nop-file（14/0）、nop-autotest（41/1 测试基建自身）、nop-search（17/3）、nop-integration（61/16）、nop-frontend-support（84/18）、nop-utils（115/24）、nop-dev-tools/nop-message/nop-credential/nop-runner/nop-bytecode/nop-refactor/nop-report 按 WI0 基线确认达标或补缺（Deliverable: 测试 + 确认记录；deps: WI0；Item Type: Fix）
+- [x] WI12 小模块收尾与达标确认：nop-spring（29/1）、nop-quarkus（21/0）、nop-file（14/0）、nop-autotest（41/1 测试基建自身）、nop-search（17/3）、nop-integration（61/16）、nop-frontend-support（84/18）、nop-utils（115/24）、nop-dev-tools/nop-message/nop-credential/nop-runner/nop-bytecode/nop-refactor/nop-report 按 WI0 基线确认达标或补缺（Deliverable: 测试 + 确认记录；deps: WI0；Item Type: Fix）
+
+> WI12 完成（2026-10-02）：44 用例五模块全绿（spring-core-starter 0→40.48%、search-core 75.61%、integration-api 58.66%、file-service 100%）；WI0 无报告遗留 8 项清零（lint 链 94.2%/83.93%）；nop-code-web 修复转绿（WI0 失败项全部清零）。独立 closure audit APPROVE（9/9，执行会话中断由协调方接管收尾）。
 
 ### M4 — 收口
 
