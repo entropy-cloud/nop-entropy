@@ -96,7 +96,9 @@ nop-stream 690/703（≈101%）、nop-lint 160/133（83%）、nop-metadata 242/1
 - [x] WI10 nop-format 第二批：nop-pdf（107/6）、nop-mermaid（40/1）、nop-converter（35/1）、nop-office-model（24/0）、nop-office-doc-model（33/0）、nop-chart-export（29/3）（Deliverable: 测试；deps: WI0；Item Type: Fix）
 
 > WI10 完成（2026-10-02）：16 文件/117 用例五模块全绿；pdf 28.03%→35.59%（达标）、mermaid 6.40%→42.28%（+35.88）、converter 9.30%→22.57%（未达 30%，容器/OOXML 耦合类显式 follow-up 裁定）、office-model 0→53.90%、office-doc-model 0→60.26%；chart-export 持平。6 项缺陷嫌疑记录（bugs/2026-10/2026-10-02-wi10-defect-suspects.md，mermaid 文法 P1 嫌疑）。独立 closure audit APPROVE（7/7）。
-- [ ] WI11 可靠性外围：nop-cluster-core（54/6）、nop-retry（41/4）、nop-tcc（43/5）、nop-network（48/10）、nop-graph（27/3）；异步/并发域严格遵守 testing.md 防挂起六规则；已知缺陷（TarjanSCC lowLink、retry 幂等键生命周期）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
+- [x] WI11 可靠性外围：nop-cluster-core（54/6）、nop-retry（41/4）、nop-tcc（43/5）、nop-network（48/10）、nop-graph（27/3）；异步/并发域严格遵守 testing.md 防挂起六规则；已知缺陷（TarjanSCC lowLink、retry 幂等键生命周期）修复时回归测试并入（Deliverable: 测试；deps: WI0；Item Type: Fix）
+
+> WI11 完成（2026-10-02）：117 用例五模块联合 -am 全绿（52/38/26/57/20）；cluster-core 13.95%→34.06%、tcc-core 6.11%→62.59%（+56.48）、retry-api 0→43.38%、rpc-core →40.68%、http-api →40.61%——全部越过 30%（快照 coverage-baseline-wi11-2026-10-02.json）。2 项缺陷嫌疑（HealthStatus.merge P1 嫨疑）记录（bugs/2026-10/2026-10-02-wi11-defect-suspects.md）。独立 closure audit APPROVE（8/8）。
 - [ ] WI12 小模块收尾与达标确认：nop-spring（29/1）、nop-quarkus（21/0）、nop-file（14/0）、nop-autotest（41/1 测试基建自身）、nop-search（17/3）、nop-integration（61/16）、nop-frontend-support（84/18）、nop-utils（115/24）、nop-dev-tools/nop-message/nop-credential/nop-runner/nop-bytecode/nop-refactor/nop-report 按 WI0 基线确认达标或补缺（Deliverable: 测试 + 确认记录；deps: WI0；Item Type: Fix）
 
 ### M4 — 收口

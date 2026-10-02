@@ -1,6 +1,6 @@
 # 2303 unit-test-coverage-roadmap WI11 — 可靠性外围（cluster / retry / tcc / network / graph）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/backlog/unit-test-coverage-roadmap.md（WI11 条目）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi0-coverage-baseline.md
 > Related: docs-for-ai/02-core-guides/testing.md（异步防挂起六规则）；ai-dev/plans/2292-unit-test-wi0-coverage-baseline.md
@@ -69,13 +69,13 @@ Targets: `ai-dev/analysis/2026-10/`、roadmap WI11 checkbox
 
 - [x] 删模块 exec → baseline 脚本复测（label wi11-2026-10-02）：cluster-core 13.95%→34.06%（+20.11）、tcc-core 6.11%→62.59%（+56.48）、retry-api 0→43.38%、rpc-core 31.52%→40.68%、http-api 32.3%→40.61%——五靶模块全部越过 30%；graph-core 79.28% 与 retry-engine 83.55% 持平不回退确认。
 - [x] 残余缺口显式裁定（Deferred 段：cluster 资源规格值对象、rpc 反射代理/消息服务端、http 文件传输、retry bean 面——容器/装配依赖为主）。
-- [ ] 独立子 agent closure audit 通过后勾选 roadmap WI11 checkbox。
+- [x] 独立子 agent closure audit 通过后勾选 roadmap WI11 checkbox。
 
 Exit Criteria:
 
 - [x] 增量数字记录在案。
 - [x] 裁定有记录。
-- [ ] roadmap WI11 checkbox 与 plan/log 一致（待 audit 后同步）。
+- [x] roadmap WI11 checkbox 与 plan/log 一致（audit APPROVE 后已同步）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
@@ -85,10 +85,10 @@ Exit Criteria:
 - [x] 覆盖增量实测记录
 - [x] 残余缺口显式裁定（无静默降级）
 - [x] No owner-doc update required（已裁定）
-- [ ] Anti-Hollow Check：并发/TCC 语义测试断言行为；无裸 future.get()/take()（audit 抽查）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2303-unit-test-wi11-reliability.md --strict` 退出码 0
-- [ ] roadmap WI11 checkbox 与 plan/log 一致
+- [x] Anti-Hollow Check：并发/TCC 语义测试断言行为；无裸 future.get()/take()（audit 抽查：TCC 三异步类全 @Timeout、11 处 get 全 5s 超时、自旋+短 sleep 模式确认）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2303-unit-test-wi11-reliability.md --strict` 退出码 0
+- [x] roadmap WI11 checkbox 与 plan/log 一致
 
 ## 执行偏差记录
 
@@ -109,13 +109,12 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成时填写）
-
-Completed:
+Status Note: 117 用例五模块联合 -am 全绿（52/38/26/57/20），防挂起六规则审计逐条核实（零裸 get、全 @Timeout、自旋模式），覆盖数字与 tcc XML counter 逐位一致（338/540=62.59%），HealthStatus.merge 缺陷源码坐实（ordinal 序 UP(1)/DOWN(2)）。收口波折：提交曾两次静默失败（pre-commit lint 拦截 + http-api 路径笔误），已修复入库。roadmap closure (a)(b) 满足，(c) 三处同步。
+Completed: 2026-10-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（Explore，agent_f4335307-3841-4894-ac70-02c5c5983304，fresh session）
 
 Follow-up:
 
