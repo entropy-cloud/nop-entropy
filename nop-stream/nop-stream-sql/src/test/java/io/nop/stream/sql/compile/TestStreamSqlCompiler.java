@@ -227,6 +227,23 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
+    public void joinReversedOnDecomposesByScopeNotPosition() {
+        // MIN-3 pin (wi17 audit): the ON condition is decomposed by table-alias
+        // SCOPE, not operand position — a reversed form (right alias on the left
+        // operand) must still map each key expr to its own side
+        XNode n = XNode.parse(StreamSqlCompiler.compile(null,
+                "SELECT o.item AS i, u.name AS n FROM orders o JOIN items u "
+                        + "ON u.name = o.item",
+                schema(entry("item", "string"), entry("name", "string")),
+                "testSink"));
+        XNode spec = child(n, "joins").childByTag("joinSpec");
+        assertEquals("event['item']", spec.attrText("leftKeyExprs"),
+                "left key must come from the orders (o) alias regardless of ON operand order");
+        assertEquals("event['name']", spec.attrText("rightKeyExprs"),
+                "right key must come from the items (u) alias regardless of ON operand order");
+    }
+
+    @Test
     public void unionAllBagProductShape() {
         XNode n = compileNode(
                 "SELECT item FROM orders WHERE amount > 0 UNION ALL "

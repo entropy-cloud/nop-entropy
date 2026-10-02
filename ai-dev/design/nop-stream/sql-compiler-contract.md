@@ -81,7 +81,7 @@ SQL 窄范围接口的全部设计文档与覆盖面（WI17 起草时按此路�
 
 ### 2.2 结论
 
-`<sql>` xdef 元素：属性含 SQL 文本（内嵌或 .sql 文件引用）与 schema 声明面（D7 §1.3 受管类型名）；**编译落点已由 D14=(a) 裁定（WI8a 落档），本裁定不另设落点**；产出经 WI17 编译为既有 xdef 校验与 builder 消费的模型。首版不含 Java API / CLI / GraphQL 入口。
+`<sql>` xdef 元素：属性含 SQL 文本（内嵌或 .sql 文件引用）与 schema 声明面（D7 §1.3 受管类型名）；**编译落点已由 D14=(a) 裁定（WI8a 落档），本裁定不另设落点**；产出经 WI17 编译为既有 xdef 校验与 builder 消费的模型。首版不含 Java API / CLI / GraphQL 入口。WI17 执行裁定补记（2026-10-03）：`<sql>` 为**模型级生成器**（builder.buildTransforms 前经 ISqlStreamCompiler SPI 展开为完整流模型，元素须为模型唯一内容，sinkBean 属性派生产物 sink）；UNION 编译为 bag union 不去重，UNION DISTINCT fail-fast。
 
 **WI17 落地形态（2026-10-03，plan 25 r2 B4 裁定）**：`<sql>` 是模型级生成器而非 transform——顶层元素 `<sql sinkBean="!string">`（`<schemas><field name type/></schemas>` 内嵌 schema + `<source>` CDATA sql 文本），落在 base stream.xdef（D13 回改裁定通路）。编译发生在 `StreamModelDslBuilder.build()` 的 buildTransforms 之前：SPI `ISqlStreamCompiler`（nop-stream-flow/spi 定义，nop-stream-sql 的 `StreamSqlCompilerProvider` 经 app-beans 注册）返回完整流模型 XML，builder 经 DslModelParser 回读并**替换父模型的 transforms/edges/registries**（transforms/edges/aggregators/joins/schemas/windowingStrategies 全量）；`<sql>` 必须是模型唯一内容（与其他内容并存 fail-fast `nop.err.stream.invalid-arg`）；无 provider（含容器未初始化）fail-fast 点名 nop-stream-sql。编译产物自洽可执行：sink 由 sinkBean 派生（`<sink bean>` + 边）。
 

@@ -309,6 +309,10 @@ public final class StreamSqlCompiler {
 
         String prev = srcId;
         if (tumble != null) {
+            // MIN-5 (wi17 audit): plain-TUMBLE pipelines validate the interval too —
+            // non-positive / calendar-unit INTERVALs must fail fast even without a
+            // window node (same contract as the aggregate path)
+            io.nop.orm.eql.parse.EqlParseHelper.intervalDurationMillis(tumble.getInterval());
             String tswId = idPrefix + "tsw";
             transforms.add(timestampsNode(tumble, tswId));
             edges.add(edge(loc(tumble), idPrefix + "e0", prev, tswId));

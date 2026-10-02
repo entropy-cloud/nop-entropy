@@ -1,6 +1,6 @@
 # 25 WI17 SQL 编译器实现
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI17 行）、`ai-dev/design/nop-stream/sql-compiler-contract.md`（D7/D8/D13）、`ai-dev/design/nop-stream/sql-subset-and-semantics.md`（§4a/4b/4d）、`ai-dev/design/nop-stream/sql-landing-decision.md`（D14）
 > Related: `ai-dev/plans/nop-stream-sql/15-wi8c-parameterized-aggregate.md`、`16-wi8d-parameterized-join.md`、`11-wi8b-schemas-consumer.md`
@@ -120,34 +120,35 @@ Exit Criteria:
 
 ### Phase 4 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：纳入面/不支持面/裁定形态逐项核验 + Anti-Hollow（编译产物真实可执行）+ 全量实跑；证据落 ai-dev/audits/nop-stream-sql/wi17-closure-audit.md
-- [ ] audit 通过后 roadmap WI17 `todo` → `done`（括注单层一对）；解析器断言：items=31、milestones=7、WI17=done、退出码 0
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
-- [ ] r2 五项 Blocker 裁定的 roadmap/设计文档回写复核（B1 复合聚合器如触 §4b 表述则同步）
+- [x] 独立子 agent closure audit（fresh session）：**PASS**（0 Blocker / 0 Major / 5 Minor）；证据落 ai-dev/audits/nop-stream-sql/wi17-closure-audit.md——r2 五裁定忠实度 diff 级核验、红→绿探针复现、等价钉子反事实（无三值守卫则 null 记录立即红）、五模块计数勾稽
+- [x] audit 通过后 roadmap WI17 `todo` → `done`（括注单层一对）；解析器断言成立：items=31、milestones=7、done=25、WI17=done
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] r2 裁定回写复核：B4 的 §2.2 `<sql>` 模型生成器口径已随实现落档并复核相符；MIN-2 UNION bag 裁定补记 compiler-contract §2.2
+- [x] audit 5 Minor 收口修复：MIN-2 UNION bag 入 contract §2.2；MIN-3 两测试钉（ORM 通道 table-source-not-resolved 15/15、反写 ON scope 归侧 31/31）；MIN-4 _module 注释修正；MIN-5 plain TUMBLE interval 校验一行；MIN-1（invariants 无参全量 stale 漂移，非本 WI 引入）登记独立 chore 归 WI22 顺手核验
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI17 = done + 解析器断言成立
-- [ ] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI17 = done + 解析器断言成立
+- [x] check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0
 
 ## Closure Gates
 
-- [ ] TUMBLE grammar 落地（token/规则/AST 类一一对应 + parse 断言 + 白名单零越界 + eql/nop-orm 回归零退化）
-- [ ] StreamSqlCompiler 覆盖 §4b 纳入面（含复合聚合器/事件时间/join 映射/UNION 语义）+ fail-fast 矩阵（§4a 九项 + default-reject + 钉死错误码）
-- [ ] 语义等价钉子测试（产物 xpl vs WI9 evaluator）
-- [ ] 编译产物端到端可 build（自校验闭合）
-- [ ] `<sql>` 声明面 + 三层 SPI 测试（fake 展开/无 provider/真实接线反空壳）
-- [ ] eql/flow/core/sql/nop-xdefs 波及面全量零退化
-- [ ] design 文档同步（subset §4b 锚点、compiler-contract 产物形状、eql-and-database-compatibility）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/25-wi17-sql-compiler.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] TUMBLE grammar 落地（token/规则/AST 类一一对应 + parse 断言 + 白名单零越界 + eql/nop-orm 回归零退化）
+- [x] StreamSqlCompiler 覆盖 §4b 纳入面（含复合聚合器/事件时间/join 映射/UNION 语义）+ fail-fast 矩阵（§4a 九项 + default-reject + 钉死错误码）
+- [x] 语义等价钉子测试（产物 xpl vs WI9 evaluator）
+- [x] 编译产物端到端可 build（自校验闭合）
+- [x] `<sql>` 声明面 + 三层 SPI 测试（fake 展开/无 provider/真实接线反空壳）
+- [x] eql/flow/core/sql/nop-xdefs 波及面全量零退化
+- [x] design 文档同步（subset §4b 锚点、compiler-contract 产物形状、eql-and-database-compatibility）
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/25-wi17-sql-compiler.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -167,14 +168,16 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: TUMBLE grammar 与 StreamSqlCompiler（r2 五裁定形态）全量落地；编译产物端到端可执行（四具名 E2E 实跑）；fail-fast 矩阵与等价钉子齐备；`<sql>` 声明面三层测试全绿；五模块全量零退化。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，与实现者非同一 session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi17-closure-audit.md——PASS（0 Blocker/0 Major/5 Minor 随收口修复）；五模块实跑 eql 130(+1 pin)/core 1668/flow 163/sql 69(+2 pin)/orm 208 全 0F/0E；门禁 doc-links 0/sync OK/hollow 0
+- r2 裁定忠实度：五项 Blocker 裁定 diff 级核验无静默偏离（audit §裁定忠实度节）
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- MIN-1（invariants 无参全量 stale 漂移重钉）为既有 chore，非本 plan 范围——已登记，归 WI22 顺手核验
+- OVER 编译面与 HOP/SESSION 见 Deferred But Adjudicated（Follow-up Backlog 登记义务归 WI24 收口）

@@ -197,4 +197,18 @@ public class TestEqlTumbleGrammarParse extends BaseTestCase {
         assertNotNull(parse("select a from tumble"));
         assertNotNull(parse("select a from t where tumble > 1"));
     }
+
+    @Test
+    public void ormChannelTumbleResolveFailsFast() {
+        // MIN-3 pin (wi17 audit): the ORM channel has no TUMBLE semantics — the
+        // table source's resolve accessors fail fast with table-source-not-resolved
+        // (stream-only contract; toSQL rendering belongs to WI20)
+        io.nop.orm.eql.ast.SqlTumbleTableSource table =
+                parseTumble("select a from TUMBLE(orders.ts, INTERVAL 5 SECOND)");
+
+        NopException ex1 = assertThrows(NopException.class, table::getSourceSelect);
+        assertEquals("nop.err.eql.table-source-not-resolved", ex1.getErrorCode().toString());
+        NopException ex2 = assertThrows(NopException.class, table::getResolvedTableMeta);
+        assertEquals("nop.err.eql.table-source-not-resolved", ex2.getErrorCode().toString());
+    }
 }
