@@ -62,6 +62,9 @@
 
         <sqlDataType name="JSON" stdSqlType="JSON"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+        <!-- WI9a: UUID 原生类型（duckdb.org/docs/sql/data_types/uuid）；本表 x:override="replace"
+             不继承 postgresql，须自有条目 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
     <!-- https://duckdb.org/docs/stable/sql/functions/overview

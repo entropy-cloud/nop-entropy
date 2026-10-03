@@ -72,6 +72,12 @@ public class TestEqlCastUuidDialectCompile {
         assertTrue(sql.toLowerCase().contains("cast(o.sid as uuid)"), sql);
     }
 
+    @Test
+    public void testDuckdbUuidCastGeneratesUuid() {
+        String sql = sqlOf(dialectOf("duckdb"), "select cast(o.id as uuid) from AppDept o");
+        assertTrue(sql.toLowerCase().contains("cast(o.sid as uuid)"), sql);
+    }
+
     // ---- "不支持"载体（真实方言无 UUID 映射 + 手工最小方言） ----
 
     @Test
