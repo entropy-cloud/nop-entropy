@@ -106,7 +106,11 @@
 
     <!-- WI1 BUG-2: MariaDB 无 LATERAL 语法（roadmap WI1 表明令），显式 false 作为
          文档化证据与 EQL 编译期报错的负向载体 -->
-    <features supportSequence="true" supportLateral="false" supportFullJoin="false"/>
+    <!-- WI3 第 6 项：显式 supportReturningForUpdate="false"（与 mysql 的 Phase 1 翻转解耦、
+         独立成声明）。MariaDB 的 UPDATE … RETURNING 自 13.0 起可用（且仅单表），承诺下限
+         10.2 无此能力 ⇒ 保守 false + 编译期报错；≥13.0 部署经 delta 方言显式开启
+         （版本前提与升级路径见 owner doc，Phase 7 落档）。 -->
+    <features supportSequence="true" supportReturningForUpdate="false" supportLateral="false" supportFullJoin="false"/>
 
     <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MariaDB 10.3 起才有 INTERSECT/EXCEPT
          （MDEV-10141），承诺下限 10.2 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT

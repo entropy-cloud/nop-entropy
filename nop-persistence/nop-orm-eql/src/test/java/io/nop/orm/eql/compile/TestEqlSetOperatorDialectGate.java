@@ -102,6 +102,15 @@ public class TestEqlSetOperatorDialectGate {
     }
 
     /**
+     * WI3 第 6 项：mariadb 的 `update … returning` 编译期报错——与 INTERSECT 门同一形态
+     * （声明式保守值 + 编译期报错 + delta 覆盖），feature=supportReturningForUpdate。
+     */
+    @Test
+    public void testMariadbRejectsUpdateReturningSameGateShape() {
+        assertGateError("mariadb", UPDATE_RETURNING, "supportReturningForUpdate");
+    }
+
+    /**
      * union 不受版本门影响（union 关键字不读方言配置）。
      */
     @Test

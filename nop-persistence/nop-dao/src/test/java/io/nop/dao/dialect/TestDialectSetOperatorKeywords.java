@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,6 +89,16 @@ public class TestDialectSetOperatorKeywords {
         DialectImpl oracle = dialectOf("oracle");
         assertEquals("minus", oracle.getExceptKeyword(), "oracle's existing minus must stay");
         assertNull(oracle.getIntersectKeyword(), "oracle does not customize intersect");
+    }
+
+    /**
+     * WI3 第 6 项：mariadb 显式 supportReturningForUpdate="false"（与 mysql 的 Phase 1
+     * 翻转解耦、独立成声明，floor=10.2 保守值；≥13.0 经 delta 显式开启）。
+     */
+    @Test
+    public void testMariadbReturningExplicitFalse() {
+        assertFalse(dialectOf("mariadb").isSupportReturningForUpdate(),
+                "mariadb declares supportReturningForUpdate=false explicitly (WI3 item 6)");
     }
 
     /**
