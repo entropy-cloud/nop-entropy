@@ -703,6 +703,33 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#extractField__}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

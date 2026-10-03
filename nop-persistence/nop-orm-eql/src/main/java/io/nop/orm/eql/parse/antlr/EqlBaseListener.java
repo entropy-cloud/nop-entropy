@@ -1350,6 +1350,54 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTrimDirection__(EqlParser.TrimDirection__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTrimDirection__(EqlParser.TrimDirection__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterExtractField__(EqlParser.ExtractField__Context ctx) { }
 	/**
 	 * {@inheritDoc}

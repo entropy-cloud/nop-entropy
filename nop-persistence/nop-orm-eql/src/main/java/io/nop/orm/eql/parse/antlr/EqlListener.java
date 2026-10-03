@@ -1170,6 +1170,52 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 */
+	void enterTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 */
+	void exitTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#extractField__}.
 	 * @param ctx the parse tree
 	 */

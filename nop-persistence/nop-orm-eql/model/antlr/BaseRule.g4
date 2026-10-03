@@ -304,6 +304,19 @@ sqlExpr_special
     // 七个字段，WEEK/MICROSECOND 等文法层即拒绝；字段位置只认这七个 token，与遮蔽放开
     // （unreservedWord_）解耦。
     | EXTRACT LP_ extractField__ FROM sqlExpr RP_ # SqlRegularFunction_extract
+    // WI5 Phase 4: TRIM 标准三段式两档——无 chars 形态按方向归一化 trim/ltrim/rtrim
+    // （单参已注册）；带 chars 形态归一化 trimChars/ltrimChars/rtrimChars 三件套（逐方言
+    // <template> 注册，无模板方言编译期响亮报错，禁止静默丢 chars/降级单参）。
+    // 单参 trim(x) 不在此列——仍走 sqlRegularFunction，不新增第二个可解析入口。
+    | TRIM LP_ trimDirection__ FROM sqlExpr RP_ # SqlRegularFunction_trimDirection
+    | TRIM LP_ trimDirection__ sqlExpr_simple FROM sqlExpr RP_ # SqlRegularFunction_trimDirectionChars
+    | TRIM LP_ sqlExpr_simple FROM sqlExpr RP_ # SqlRegularFunction_trimChars
+    ;
+
+// WI5: TRIM 方向关键字（SQL92Keyword LEADING/BOTH/TRAILING），仅 TRIM 特殊备选可达。
+// 规则名带双下划线后缀 = AstGrammarBuilder notInAst 约定（getInnerRule 跳过，同 extractField__）。
+trimDirection__
+    : LEADING | BOTH | TRAILING
     ;
 
 // WI5: EXTRACT 允许的 datetime 字段——与归一化目标函数（year/month/day/hour/minute/
