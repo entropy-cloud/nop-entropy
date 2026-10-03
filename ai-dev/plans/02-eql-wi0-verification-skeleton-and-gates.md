@@ -47,7 +47,7 @@
 
 ### Phase 1 - 方言能力矩阵棘轮测试与快照
 
-Status: in progress
+Status: completed
 Targets: `nop-dao/src/test/java/io/nop/dao/dialect/TestDialectCapabilityMatrix.java`、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs`
 
 - Item Types: `Feature`、`Proof`
@@ -66,25 +66,25 @@ Exit Criteria:
 - [x] `TestDialectCapabilityMatrix` 全绿且对快照 drift 会红（手工改动快照一个函数名可验证转红，验证后还原）。
 - [x] 快照 JSON 中可加载数 + 不可加载数 = 18，与 roadmap 基线（14+4）一致；`db2` 的 selector 断链事实（selector 已注册 + 方言不可加载）在快照中可见。
 - [x] mjs 门禁脚本对当前仓库 exit 0；临时删除快照中一个方言条目可使其 exit 1（验证后还原）。
-- [ ] `ai-dev/logs/2026/10-03.md` 已更新。
+- [x] `ai-dev/logs/2026/10-03.md` 已更新。
 
 ### Phase 2 - TemplateSQLFunction marker 加载期校验
 
-Status: in progress
+Status: completed
 Targets: `nop-dao/.../function/TemplateSQLFunction.java`、`nop-dao` 错误码登记、`TestSQLFunction.java` 或新测试类
 
 - Item Types: `Fix`
 
-- [ ] 构造期校验：任一全数字 marker 的索引 ≥ `argTypes.size()` 时抛 `NopException`（新错误码，param 带 funcName/模板源/索引），使坏模板在**方言加载期**失败而非查询期静默产出 `" null "`。错误码定义遵循 `DaoErrors.java` 既有惯例（`ErrorCode.define` + `@Locale` 注解风格与全文件一致），并满足 `ai-dev/tools/check-error-param-consistency.mjs` 门禁。
-- [ ] 既有行为保持：合法 marker（索引 < argCount）替换逻辑不变；`{name}` 形式非全数字 marker 的既有跳过行为不变（记录该行为于测试注释）。
-- [ ] 参数化单测：遍历全部可加载方言的每个 `<template>` 函数，构造 `TemplateSQLFunction` 断言不抛错（守护现存模板全部合法）；另设越界模板用例断言**构造期**抛错。
+- [x] 构造期校验：任一全数字 marker 的索引 ≥ `argTypes.size()` 时抛 `NopException`（新错误码 `nop.err.dao.func-template-marker-out-of-range`，param 带 funcName/模板源/索引），使坏模板在**方言加载期**失败而非查询期静默产出 `" null "`。错误码定义遵循 `DaoErrors.java` 既有惯例（`ErrorCode.define` + `@Locale` 注解风格与全文件一致），并满足 `ai-dev/tools/check-error-param-consistency.mjs` 门禁。（注：该工具 registry 仅识别 `NopMetadataArgs/NopMetadataErrors`，对 nop-dao 结构性不适用、报 "registry empty"；其支持范围 nop-metadata 实测仍 exit 0 无新问题，新 define 的 placeholder↔param 已按 define-face 规则人工核对对称。）
+- [x] 既有行为保持：合法 marker（索引 < argCount）替换逻辑不变；`{name}` 形式非全数字 marker 的既有跳过行为不变（记录该行为于测试注释）。
+- [x] 参数化单测：遍历全部可加载方言的每个 `<template>` 函数，构造 `TemplateSQLFunction` 断言不抛错（守护现存模板全部合法，实测 14 个可加载方言共 22 个 template 函数）；另设越界模板用例断言**构造期**抛错。
 
 Exit Criteria:
 
-- [ ] 新增负向用例：越界 marker 模板构造时抛错（错误码可断言）。
-- [ ] 全方言参数化守护测试全绿（18 个资源中的可加载者全部覆盖）。
-- [ ] `./mvnw test -pl :nop-dao` 相关测试全绿。
-- [ ] `ai-dev/logs/2026/10-03.md` 已更新。
+- [x] 新增负向用例：越界 marker 模板构造时抛错（错误码可断言）。
+- [x] 全方言参数化守护测试全绿（18 个资源中的可加载者全部覆盖）。
+- [x] `./mvnw test -pl :nop-dao` 相关测试全绿。
+- [x] `ai-dev/logs/2026/10-03.md` 已更新。
 
 ### Phase 3 - 既有 EQL 语料基线快照 + 溯源记录 + stream 基线
 
