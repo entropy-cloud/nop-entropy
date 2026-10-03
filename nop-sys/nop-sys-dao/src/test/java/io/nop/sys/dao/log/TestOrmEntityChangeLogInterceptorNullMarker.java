@@ -3,7 +3,6 @@
  */
 package io.nop.sys.dao.log;
 
-import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -35,7 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * 空串（newValue="" 表示"列存在但值为空"），newValue 为 NULL 保留给"记录未初始化"，
  * 两者不得混同。
  */
-public class TestOrmEntityChangeLogInterceptorNullMarker extends JunitBaseTestCase {
+/**
+ * 纯单元测试（与 TestOrmEntityChangeLogInterceptor 同型：dao/ormTemplate/session/entity/model 全为反射代理桩），
+ * 不继承 JunitBaseTestCase——本模块测试资源无数据源配置，启动完整 IoC 环境会因
+ * nop.datasource.driver-class-name 为空而失败。
+ */
+public class TestOrmEntityChangeLogInterceptorNullMarker {
 
     static IDaoProvider originalProvider;
 
