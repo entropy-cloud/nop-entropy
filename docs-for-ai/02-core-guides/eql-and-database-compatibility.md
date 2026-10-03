@@ -133,6 +133,40 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 
 > 完整标志列表见 `_DialectFeatures.java`。这些标志由 dialect 模型文件（`_vfs/nop/dao/dialect/*.dialect.xml`）配置，开发时不需要手工干预。
 
+### `LIKE … ESCAPE`：执行路径无条件输出（2026-10-03 WI1 BUG-1）
+
+EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生成的 SQL 中**无条件输出** `escape '<literal>'`（`AstToSqlGenerator`）；回显路径（`toSqlString()`）目前不回显 escape（属 WI2 BUG-4 回显治理批次）。
+
+裁定依据（详见 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md` §5）：全仓没有"该方言是否支持 ESCAPE"的字段载体，且已取证方言全部支持该子句，分叉只在**默认 escape 字符**——显式 escape 字符覆盖默认值差异，因此无条件输出、不设方言门。
+
+**默认 escape 字符三分类**（证据等级逐行标注；未取证者不得计入覆盖率）：
+
+| 方言 | `ESCAPE` 子句 | 默认 escape 字符 | 证据等级 |
+|------|--------------|-----------------|---------|
+| Oracle | 支持 | NULL（无默认） | `[文档]` |
+| DB2 | 支持 | NULL（无默认） | `[文档]` |
+| H2 | 支持 | backslash（`ESCAPE ''` 显式关闭） | `[文档]` |
+| PostgreSQL | 支持 | backslash（PG 自述偏离 SQL 标准） | `[文档]` |
+| MySQL | 支持 | backslash（`NO_BACKSLASH_ESCAPES` 开启时失效） | `[文档]` |
+| MSSQL | 支持 | 无默认（`[]` 括号或显式 ESCAPE） | `[文档]` |
+| SQLite | 支持 | 无默认（必须显式 ESCAPE） | `[文档]` |
+| DuckDB | 支持 | 未取证 | `[unverified]` |
+| MariaDB | 支持 | 未取证（MySQL 家族推测 backslash） | `[unverified]` |
+| DM8 | 未取证 | 未取证 | `[unverified]` |
+| TDengine | 未取证 | 未取证 | `[unverified]` |
+
+**ILIKE + ESCAPE 组合显式报错**：`ilike` 在执行路径经方言函数改写（如 Oracle 的 `regexp_like(x,p,'i')`），改写后的函数形式没有 ESCAPE 挂载点——静默丢弃会改变匹配语义，因此 `ignoreCase=true` 且携带 escape 时编译期报错，错误码 `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`）。"发现真实不支持 ESCAPE 子句的方言时改写为函数调用"已登记为 Deferred（触发时 DM8 优先复核）。
+
+### 方言敏感输出点登记表（roadmap 级 EC 第 4 条）
+
+本表登记 EQL 编译管线中"按方言能力分叉的输出点"：generator/transform 位置 + 能力标志 + 不支持时的错误码。**每行都有对应的"该方言编译期报错"负向测试。**
+
+| 输出点 | 位置 | 能力标志 / 通路 | 不支持时错误码 | 负向测试 |
+|--------|------|----------------|---------------|---------|
+| ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
+| 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
+| UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate` | `nop.err.eql.dialect-not-support-feature` | `TestEqlCompileSql.testUpdateReturningAllChecksDialect` |
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

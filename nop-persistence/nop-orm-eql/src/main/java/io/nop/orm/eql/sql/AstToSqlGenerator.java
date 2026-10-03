@@ -61,7 +61,10 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
 
 public class AstToSqlGenerator extends AstToEqlGenerator {
@@ -476,8 +479,24 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlLikeExpr(SqlLikeExpr node) {
+        SqlExpr escape = node.getEscape();
+        if (node.getIgnoreCase() && escape != null) {
+            // WI1 BUG-1: ilike 经方言函数改写（如 regexp_like）后 ESCAPE 子句没有挂载点，
+            // 静默丢弃会改变匹配语义，必须显式报错（裁定: ai-dev/design/eql-cross-db-compat/
+            // 2026-10-03-wi1-class-a-adjudications.md §5）
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "ilike+escape");
+        }
+
         if (!node.getIgnoreCase()) {
             super.visitSqlLikeExpr(node);
+            // WI1 BUG-1: escape 字段此前被静默丢弃。默认 escape 字符随方言分叉
+            // （{Oracle,DB2}=NULL / {H2,PG}=backslash），必须显式输出用户指定的 escape。
+            if (escape != null) {
+                print(" escape");
+                visit(escape);
+            }
             return;
         }
 
