@@ -403,6 +403,19 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 
 **语义差异登记（不等价类）**：chars 参数是**字符集合**语义（标准 SQL/MySQL/H2/PG/Oracle/DuckDB 一致——`trimChars('xy', s)` 移除串两端任意 'x' 或 'y' 字符）；无 chars 的 `trim(s)` 各库默认修剪空格。EQL 原样 lowering 不做语义合并。
 
+#### 关键字遮蔽放开：`day/hour/minute/second/quarter`（2026-10-04 WI5 Phase 5）
+
+五个日期词加入 `unreservedWord_`（`BaseRule.g4`），在**函数名位置与标识符位置（列名/别名）可解析**；`Keyword.g4` 词法 token 不动（不删不改不重排），`YEAR|MONTH` 既有成员不变。行为口径：
+
+| 位置 | 修复前 | 修复后 |
+|------|------|------|
+| 函数名 `day(x)` | 解析失败（`nop.err.antlr.common.parse-fail`） | 可解析 → transform 层：已注册方言（EXTRACT 字段函数覆盖的 15 方言）lowering `day(x)`；未注册方言 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错 |
+| 标识符 `o.day` | 解析失败 | 可解析，回显照常 |
+| `month()/year()` | 能解析（`unreservedWord_` 既有成员） | 行为不变（`month` 现亦为 EXTRACT 字段注册函数，与 `day` 同待遇） |
+| `interval 1 day` / `interval '3 hours'` | 可解析 | 逐字不变（`intervalUnit_` 上下文只有该规则可达，`TestEqlIntervalLiteralParse` 全量回归） |
+
+无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增六词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

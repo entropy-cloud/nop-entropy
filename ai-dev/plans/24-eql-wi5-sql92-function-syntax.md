@@ -280,32 +280,32 @@ Exit Criteria:
 
 ### Phase 5 - 放开 `day`/`hour`/`minute`/`second`/`quarter` 关键字遮蔽
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`unreservedWord_`）、重生成产物、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-orm-eql` 测试
 
 > 本 Phase 是**文法放开**：五个词进入函数名/标识符位置后，`day(x)` 等的预期行为 = 可解析 + transform 层报 `ERR_EQL_UNKNOWN_FUNCTION`（0/14 注册，响亮）——归一化日期函数注册是 WI6 的交付面（roadmap WI6 依赖关系明文）。本 Phase 的可用性判据**不含**"day() 返回正确结果"。
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`select day(col) from t` 与 `select o.day from t`（列名位置）解析失败——回归测试断言可解析，修复前红。
-- [ ] 文法（按 Phase 0 裁定）：`DAY/HOUR/MINUTE/SECOND/QUARTER` 加入 `unreservedWord_`（`BaseRule.g4:72-96`）；**不动** `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 词法器、不删任何 token、不动 `YEAR|MONTH` 既有成员。
-- [ ] 正向用例（EC ① 的遮蔽面）：五个词各一条"函数名位置可解析"用例（断言产出 `SqlRegularFunction` 且 name 小写）+ 至少一条"标识符位置可解析"用例（`select o.day from t` 的回显/方言输出）。**断言到 parse/echo 层为止**——transform 层断言为具体错误码 `ERR_EQL_UNKNOWN_FUNCTION`（未注册的响亮行为锁定），不得断言执行结果。
-- [ ] **month()/year() 行为不变**：`month(x)`/`year(x)` 解析与 transform 行为与放开前一致（守护用例——`month` 仍 0 注册、`year` 在注册方言上行为不变）。
-- [ ] **interval 共存回归**：`interval 1 day`、`interval '3 hours'`（WI1 形态）解析与输出逐字不变（`TestEqlIntervalLiteralParse` 全量回归 + 新增 `day`/`hour` 在 intervalUnit_ 与 unreservedWord_ 双重身份下的歧义消解用例）。
-- [ ] 既有语料 BC（EC ⑦）：三份必测逐字一致（Phase 0 已证 7 文件 0 命中，本 Phase 用棘轮实测兜底）。
-- [ ] owner doc（EC ④）：遮蔽放开说明——五个词的"可解析但未注册 → 响亮报错"现状、`month`/`year` 的对照差异、WI6 是注册 owner 的指引。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交；`ast/_gen/` 零 diff。
+- [x] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`select day(col) from t` 与 `select o.day from t`（列名位置）解析失败——回归测试断言可解析，修复前红。
+- [x] 文法（按 Phase 0 裁定）：`DAY/HOUR/MINUTE/SECOND/QUARTER` 加入 `unreservedWord_`（`BaseRule.g4:72-96`）；**不动** `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 词法器、不删任何 token、不动 `YEAR|MONTH` 既有成员。
+- [x] 正向用例（EC ① 的遮蔽面）：五个词各一条"函数名位置可解析"用例（断言产出 `SqlRegularFunction` 且 name 小写）+ 至少一条"标识符位置可解析"用例（`select o.day from t` 的回显/方言输出）。**断言到 parse/echo 层为止**——transform 层断言为具体错误码 `ERR_EQL_UNKNOWN_FUNCTION`（未注册的响亮行为锁定），不得断言执行结果。
+- [x] **month()/year() 行为不变**：`month(x)`/`year(x)` 解析与 transform 行为与放开前一致（守护用例——`month` 仍 0 注册、`year` 在注册方言上行为不变）。
+- [x] **interval 共存回归**：`interval 1 day`、`interval '3 hours'`（WI1 形态）解析与输出逐字不变（`TestEqlIntervalLiteralParse` 全量回归 + 新增 `day`/`hour` 在 intervalUnit_ 与 unreservedWord_ 双重身份下的歧义消解用例）。
+- [x] 既有语料 BC（EC ⑦）：三份必测逐字一致（Phase 0 已证 7 文件 0 命中，本 Phase 用棘轮实测兜底）。
+- [x] owner doc（EC ④）：遮蔽放开说明——五个词的"可解析但未注册 → 响亮报错"现状、`month`/`year` 的对照差异、WI6 是注册 owner 的指引。
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交；`ast/_gen/` 零 diff。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：五个词在函数名位置可解析（name 小写断言）；标识符位置至少一条用例。
-- [ ] transform 层响亮行为锁定：未注册的 `day(x)` 断言 `ERR_EQL_UNKNOWN_FUNCTION`（或该方言已注册时的具体行为）；无静默跳过。
-- [ ] `month()`/`year()`/`interval 1 day`/`interval '3 hours'` 行为逐字不变的守护用例通过；`TestEqlIntervalLiteralParse` 全绿。
-- [ ] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
-- [ ] owner doc 遮蔽放开说明已落档（含 WI6 指引）。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交；`ast/_gen/` 零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试：五个词在函数名位置可解析（name 小写断言）；标识符位置至少一条用例。
+- [x] transform 层响亮行为锁定：未注册的 `day(x)` 断言 `ERR_EQL_UNKNOWN_FUNCTION`（或该方言已注册时的具体行为）；无静默跳过。
+- [x] `month()`/`year()`/`interval 1 day`/`interval '3 hours'` 行为逐字不变的守护用例通过；`TestEqlIntervalLiteralParse` 全绿。
+- [x] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
+- [x] owner doc 遮蔽放开说明已落档（含 WI6 指引）。
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交；`ast/_gen/` 零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
