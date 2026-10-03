@@ -99,6 +99,17 @@ public class TestEqlUpdateReturningDialectGate {
     }
 
     /**
+     * WI3 第 3 项：h2 翻转后 `update … returning` 编译期报错；第 4 项回归：duckdb
+     * （确认正确的 false）同样拒绝——UPDATE 上的 returning 在 DuckDB 仅 INSERT/DELETE/MERGE
+     * 才有，UPDATE 投影列表形式不存在。
+     */
+    @Test
+    public void testH2AndDuckdbRejectUpdateReturning() {
+        assertGateError("h2");
+        assertGateError("duckdb");
+    }
+
+    /**
      * 正向对照：postgresql 现值 true（`postgresql.dialect.xml` features 行），不受本 WI 翻转影响，
      * returning 投影照常输出（postgresql 列名输出为小写）。
      */

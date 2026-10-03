@@ -87,4 +87,41 @@ public class TestDialectReturningForUpdateFlag {
         assertFalse(dialectOf("mysql5.7").isSupportReturningForUpdate(),
                 "mysql5.7 declares false itself and inherits mysql's false");
     }
+
+    /**
+     * WI3 第 3 项：h2 `true` → `false`（H2 五页文档零 RETURNING）；继承涟漪 h2gis 同步。
+     */
+    @Test
+    public void testH2ExplicitFalseAndRipple() {
+        assertFalse(dialectOf("h2").isSupportReturningForUpdate(),
+                "H2 has no RETURNING clause at all; see WI3 item 3");
+        assertFalse(dialectOf("h2gis").isSupportReturningForUpdate(),
+                "h2gis inherits h2's explicit false");
+    }
+
+    /**
+     * WI3 第 4 项（确认无需改动桶的防回归断言）：duckdb 保持 false——DuckDB 的 RETURNING
+     * 仅在 INSERT/DELETE/MERGE 上，UPDATE 文档零 RETURNING，现值正确（v1 曾误判为 true）。
+     */
+    @Test
+    public void testDuckdbConfirmedFalse() {
+        assertFalse(dialectOf("duckdb").isSupportReturningForUpdate(),
+                "DuckDB RETURNING exists only on INSERT/DELETE/MERGE; false is correct (WI3 item 4)");
+    }
+
+    /**
+     * WI3 第 5 项（unverified 固化断言，不改值）：dm 保持 true 并显式标注 unverified。
+     * <p>
+     * ⚠️ UNVERIFIED：DM8 无公开一手文档（roadmap 红线「证据等级纪律」：禁止以未取证支撑
+     * "已修正"结论），且本文件由 AI 仿 mysql 方言自动生成、未经实测（文件头自注）。
+     * 现值 true 可能高估能力——DM8 的 UPDATE…RETURNING 疑为 INTO 宿主变量风格（同 Oracle），
+     * 投影列表形式未取证。本断言固化现值防静默漂移；结论修订归 successor
+     * （plan 20 Deferred But Adjudicated「dm RETURNING 语义取证」，取得一手文档或可实测环境后重裁定）。
+     */
+    @Test
+    public void testDmUnverifiedValuePinned() {
+        assertTrue(dialectOf("dm").isSupportReturningForUpdate(),
+                "dm keeps true with explicit UNVERIFIED annotation (WI3 item 5); "
+                        + "re-adjudicate when DM8 primary documentation becomes available");
+    }
 }

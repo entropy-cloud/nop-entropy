@@ -14,8 +14,11 @@
 
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
+    <!-- WI3 第 3 项纠错：H2 完全没有 RETURNING 子句（h2database.com 的 grammar/commands/
+         features/functions/changelog 五页零 RETURNING）⇒ supportReturningForUpdate=false
+         （真实语义仅指 UPDATE 投影列表形式）。 -->
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
-              supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="true"
+              supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="false"
               supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
     />
