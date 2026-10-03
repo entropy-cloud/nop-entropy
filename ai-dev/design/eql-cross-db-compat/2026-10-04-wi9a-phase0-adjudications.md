@@ -133,11 +133,11 @@ WI0 快照（`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`）+ 门禁�
 
 列结构：`被移除的拒绝项 | 收窄前行为（错误码字面值） | 收窄后行为（错误码字面值，候选 A） | 现在接受的等价拼写 → 载体方言生成 SQL | 备注（WI9b 边界/等价性登记）`。
 
-收窄前行为统一 = 解析通过 + `SqlTypeExpr_name` 语义拒绝，错误码字面值 **`nop.err.eql.invalid-sql-type`**（`ERR_EQL_INVALID_SQL_TYPE`，`OrmEqlErrors.java:121`，param `ARG_SQL_TYPE` + `ARG_ALLOWED_NAMES`）。收窄后行为统一 = 解析失败，错误码为 **`nop.err.antlr.*` 前缀字面值**（候选值：`nop.err.antlr.common.parse-fail` / `nop.err.antlr.not-end-properly`，`AntlrErrors.java:22/25`——具体落点以 Phase 2 红→绿测试实测为准逐行终稿，测试断言用 `startsWith("nop.err.antlr")` 与 `TestEqlSqlTypeClauseGuard` 同形态）。
+收窄前行为统一 = 解析通过 + `SqlTypeExpr_name` 语义拒绝，错误码字面值 **`nop.err.eql.invalid-sql-type`**（`ERR_EQL_INVALID_SQL_TYPE`，`OrmEqlErrors.java:121`，param `ARG_SQL_TYPE` + `ARG_ALLOWED_NAMES`）。收窄后行为统一 = 解析失败，错误码字面值 **`nop.err.antlr.common.parse-fail`**（`ERR_ANTLR_PARSE_FAIL`，`AntlrErrors.java:22`）——**Phase 2 实测终稿**（2026-10-04，14 项逐项 probe 实测记录 `_tmp/wi9a/red-phase2-full.log`）：SLL→LL 双阶段重试后经 `reportError→buildError` 统一落 `parse-fail`（未出现 `not-end-properly` 形态）；offending token 逐项：`character`/`national`（NATIONAL CHAR 系列）/`nchar`/`bit`/`dec`/`double`/`interval`/`with`（TIME(WITH TIME ZONE) 系列）。收窄前全量 14 项的 `nop.err.eql.invalid-sql-type` 实测证据同在 `red-phase2-full.log`（红→绿锚）。测试断言用 `startsWith("nop.err.antlr")`（与 `TestEqlSqlTypeClauseGuard` 同形态），落 `TestEqlCastTypeNarrowingParse`。
 
 | # | 被移除的拒绝项 | 收窄前 | 收窄后（候选 A） | 现在接受的等价拼写 → 生成 SQL（h2 载体） | 备注 |
 |---|---|---|---|---|---|
-| 1 | `CHARACTER` | 解析过 + `nop.err.eql.invalid-sql-type` | `nop.err.antlr.*` 解析失败 | `char` → `cast(o.SID as CHAR)` | CHAR 显式备选存留 |
+| 1 | `CHARACTER` | 解析过 + `nop.err.eql.invalid-sql-type` | `nop.err.antlr.common.parse-fail`（offending=character） | `char` → `cast(o.SID as CHAR)` | CHAR 显式备选存留 |
 | 2 | `CHARACTER VARYING` | 同上 | 同上 | `varchar` → `cast(o.SID as VARCHAR)` | |
 | 3 | `NATIONAL CHARACTER` | 同上 | 同上 | 无（std 闭集无 national charset 成员；语义近似 `varchar`，不声明等价） | 术语不对称登记，非等价替换 |
 | 4 | `NATIONAL CHARACTER VARYING` | 同上 | 同上 | 无 | 同上 |
@@ -148,9 +148,9 @@ WI0 快照（`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`）+ 门禁�
 | 9 | `BIT VARYING` | 同上 | 同上 | 无（std 闭集无 bit varying 成员） | |
 | 10 | `DEC` | 同上 | 同上 | `decimal` → `cast(o.SID as DECIMAL)`；别名 `number` → `cast(o.SID as NUMERIC)`（h2 链路推导） | DEC=DECIMAL 缩写，等价 |
 | 11 | `DOUBLE PRECISION` | 同上 | 同上 | **无拼写入口**（`DOUBLE` 为关键字 token 且不在 `unreservedWord_`——既有缺口随删除显形，follow-up 登记，不顺手修） | §五 |
-| 12 | `INTERVAL` | 同上 | 同上 | 无（INTERVAL 走 WI1 的 interval 字面量语法，不是 cast 目标类型） | 与 `sqlIntervalExpr`/`sqlIdentifier_func_` 共用 token 不触碰 |
-| 13 | `TIME WITH TIME ZONE` | 同上 | 同上 | 无 | **WI9b 边界注记**：`… WITH LOCAL TIME ZONE` 拼写归 WI9b，与本删除项是两个名字集 |
-| 14 | `TIMESTAMP WITH TIME ZONE` | 同上 | 同上 | 无 | **WI9b 边界注记**：同上（方言 XML native 名 `TIMESTAMP WITH TIME ZONE` 属另一张 native→std 表，不受文法收窄影响，已核实无冲突） |
+| 12 | `INTERVAL` | 同上 | `nop.err.antlr.common.parse-fail`（offending=interval） | 无（INTERVAL 走 WI1 的 interval 字面量语法，不是 cast 目标类型） | 与 `sqlIntervalExpr`/`sqlIdentifier_func_` 共用 token 不触碰 |
+| 13 | `TIME WITH TIME ZONE` | 同上 | `nop.err.antlr.common.parse-fail`（offending=with） | 无 | **WI9b 边界注记**：`… WITH LOCAL TIME ZONE` 拼写归 WI9b，与本删除项是两个名字集 |
+| 14 | `TIMESTAMP WITH TIME ZONE` | 同上 | `nop.err.antlr.common.parse-fail`（offending=with） | 无 | **WI9b 边界注记**：同上（方言 XML native 名 `TIMESTAMP WITH TIME ZONE` 属另一张 native→std 表，不受文法收窄影响，已核实无冲突） |
 
 **收窄 BC 面复核**（执行时重申 plan Current Baseline 的 grep 结论）：7 个含 `<eql>` 的 `sql-lib.xml` 语料 `cast(` 零命中；114 个 orm.xml 不经此文法；全仓资源无 `stdSqlType|returnType|argTypes|stdType` 取删除项拼写的命中（2026-10-04 重跑 0）。⇒ 删除 14 备选对既有模型与语料零影响。
 

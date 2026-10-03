@@ -252,6 +252,21 @@ CAST 类型表达式的 `character set`/`collate` 子句（文法 `characterSet_
 
 **拒绝面（不弱化）**：未知拼写（如 `nosuchtype`）仍响亮报 `nop.err.eql.invalid-sql-type` 且 `allowedNames` 含全部新键；别名已放行但方言无映射时**生成期响亮报错**（不静默降级/改写）。回归：`TestEqlCastTypeAliasParse`（解析层）、`TestEqlCastTypeAliasCompile`（别名全链 + 一致性/不等价两类用例）、`TestEqlCastUuidDialectCompile`（UUID 四正三负载体）、`TestEqlCastBooleanParse`/`TestEqlCastBooleanCompile`（WI2 BOOLEAN 底线）。
 
+**文法收窄（2026-10-04 WI9a BUG-11，候选 A）**：`dataTypeName_` 删除 14 个"解析可过、AST 必拒"的死备选——错误形态从"解析过 + `nop.err.eql.invalid-sql-type`"迁移为"解析失败 + `nop.err.antlr.common.parse-fail`"（同为响亮失败）。收窄后文法接受集 = 12 个活显式备选 ∪ `sqlIdentifier_` 单词兜底；`stdNameMap` 34 键中仅 `DOUBLE`/`ARRAY`/`ANY` 三者为关键字 token 且无显式备选（无拼写入口，收窄前即如此）。14 项对照（完整版见 WI9a Phase 0 裁定文档 §五）：
+
+| 被移除拼写 | 收窄前 | 收窄后 | 语义等价拼写 |
+|-----------|--------|--------|------------|
+| `character` / `character varying` | 解析过 + `nop.err.eql.invalid-sql-type` | `nop.err.antlr.common.parse-fail` | `char` / `varchar` |
+| `national character (varying)` / `national char (varying)` / `nchar` | 同上 | 同上 | 无（std 闭集无 national charset 成员） |
+| `bit` | 同上 | 同上 | `boolean`（BIT 的布尔语义等价） |
+| `bit varying` | 同上 | 同上 | 无 |
+| `dec` | 同上 | 同上 | `decimal`（或别名 `number`） |
+| `double precision` | 同上 | 同上 | 无（`DOUBLE` 为关键字 token 且不在 `unreservedWord_`——拼写缺口收窄前已存在，follow-up 登记） |
+| `interval` | 同上 | 同上 | 无（INTERVAL 走 interval 字面量语法） |
+| `time with time zone` / `timestamp with time zone` | 同上 | 同上 | 无（`WITH LOCAL TIME ZONE` 拼写归 WI9b，两个名字集互不替） |
+
+守护测试：`TestEqlCastTypeNarrowingParse`（红绿锚 + 兜底/活备选不变组 + `stdNameMap` 34 键穷举式"文法放行 ⇒ 语义必过或响亮拒"证明）；`TestEqlSqlTypeClauseGuard`（`characterSet_`/`collateClause_` 守卫不受收窄影响）。
+
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 
 EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打印 `lateral` 关键字；执行路径按方言能力门控：`supportLateral=false`（或未配置——**保守缺省 = 不支持**）时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportLateral`），`true` 时输出 `lateral`。修复前该关键字被静默丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同，退化为不相关子查询）。

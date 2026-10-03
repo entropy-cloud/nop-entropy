@@ -215,24 +215,24 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`dataTypeName_`
 
 - Item Types: `Fix`（BUG-11：文法接受面与语义接受面不一致的既登记缺陷——`ai-dev/analysis/2026-10/2026-10-02-eql-cross-database-compatibility-syntax-research.md:513` 实测 6+ 个"解析过、AST 必拒"）、`Proof`
 
-- [ ] 修复前红（按 Phase 0 收窄清单抽样）：必拒项拼写（如 `cast(x as double precision)` / `cast(x as dec)` / `cast(x as bit)`）在候选 A 下断言其行为——修复前为"解析过 + `ERR_EQL_INVALID_SQL_TYPE`"，若收窄改变失败形态，红→绿断言锚定**新形态**（解析失败或语义拒绝，以裁定为准）并登记迁移。（候选 A 下 `IDENTIFIER_` 可词法化的拼写行为不变，用例登记为"不变组"。）
-- [ ] 按 Phase 0 裁定收窄 `dataTypeName_`：删除 14 个必拒显式备选（候选 A）或按候选 B 追加兜底删除；**不删除任何 lexer token**、不触碰 `characterSet_`/`collateClause_`、不触碰 `sqlDateTimeLiteral`/`sqlIntervalExpr` 等共用 token 的规则；文法改动**单独提交**，重生成产物随该提交。
-- [ ] 重生成 diff 审计：确认仅 `EqlParser.java`/`Eql.interp` ATN 变化、token 表零增删、`ast/_gen` 零 diff（WI2 两次文法提交的同口径先例）；parser 词表中变为无引用的 token（如 `VARYING`/`PRECISION`/`NATIONAL`/`NCHAR`/`DEC`/`BIT`——词表保留、无重编号）登记进提交说明。
-- [ ] roadmap EC ③ 对照表定稿并落档：14 项逐行"被移除的拒绝项 → 收窄前行为 / 收窄后行为（**错误码字面值级**：收窄前 `nop.err.eql.invalid-sql-type` / 收窄后 `nop.err.antlr.*` 解析失败码，口径见 Phase 0 第 6 项）/ 现在接受的等价拼写 → 生成什么 SQL（载体方言文本）"；含 `TIME WITH TIME ZONE`/`TIMESTAMP WITH TIME ZONE` 两行的 WI9b 边界注记（LOCAL 拼写归 WI9b）。落 `eql-and-database-compatibility.md`（或裁定文档附录 + owner doc 引用，按 Phase 0 裁定口径）。
-- [ ] WI2 回归底线存活的显式断言：`nosuchtype` 语义拒绝（候选 A）/按候选 B 迁移后的新断言；`TestEqlSqlTypeClauseGuard` 全部用例不改动且通过；`cast(x as boolean)` 与 h2 文本断言不受影响。
-- [ ] WI9b 边界确认：本次改动未引入任何时区类型拼写/枚举变化（对照 Current Baseline"WI9b 边界声明"逐项自查，结论写进提交说明或日志）。
-- [ ] owner doc：`eql-and-database-compatibility.md` 的 cast 拒绝面/接受面小节按对照表同步（与 Phase 1 的登记行合并为一张表）。
+- [x] 修复前红（按 Phase 0 收窄清单抽样）：必拒项拼写（如 `cast(x as double precision)` / `cast(x as dec)` / `cast(x as bit)`）在候选 A 下断言其行为——修复前为"解析过 + `ERR_EQL_INVALID_SQL_TYPE`"，若收窄改变失败形态，红→绿断言锚定**新形态**（解析失败或语义拒绝，以裁定为准）并登记迁移。（候选 A 下 `IDENTIFIER_` 可词法化的拼写行为不变，用例登记为"不变组"。）（红：`_tmp/wi9a/red-phase2-full.log` 14 项逐项"解析过 + `nop.err.eql.invalid-sql-type`"全量捕获；绿：`TestEqlCastTypeNarrowingParse` 6|0 锚定新形态 `nop.err.antlr.common.parse-fail`）
+- [x] 按 Phase 0 裁定收窄 `dataTypeName_`：删除 14 个必拒显式备选（候选 A）或按候选 B 追加兜底删除；**不删除任何 lexer token**、不触碰 `characterSet_`/`collateClause_`、不触碰 `sqlDateTimeLiteral`/`sqlIntervalExpr` 等共用 token 的规则；文法改动**单独提交**，重生成产物随该提交。（commit `41bfbcba56`：候选 A，14 备选删除，token 零删除）
+- [x] 重生成 diff 审计：确认仅 `EqlParser.java`/`Eql.interp` ATN 变化、token 表零增删、`ast/_gen` 零 diff（WI2 两次文法提交的同口径先例）；parser 词表中变为无引用的 token（如 `VARYING`/`PRECISION`/`NATIONAL`/`NCHAR`/`DEC`/`BIT`——词表保留、无重编号）登记进提交说明。（`git status` 仅 BaseRule.g4/EqlParser.java/Eql.interp 三文件；token/rule 常量表 grep 零 diff；EqlLexer.java/Eql.tokens/_EqlASTBuildVisitor.java/ast/_gen 零 diff；失引用 token 已登记提交说明，`CharacterSet_Context` 的 CHARACTER accessor 复核在位）
+- [x] roadmap EC ③ 对照表定稿并落档：14 项逐行"被移除的拒绝项 → 收窄前行为 / 收窄后行为（**错误码字面值级**：收窄前 `nop.err.eql.invalid-sql-type` / 收窄后 `nop.err.antlr.*` 解析失败码，口径见 Phase 0 第 6 项）/ 现在接受的等价拼写 → 生成什么 SQL（载体方言文本）"；含 `TIME WITH TIME ZONE`/`TIMESTAMP WITH TIME ZONE` 两行的 WI9b 边界注记（LOCAL 拼写归 WI9b）。落 `eql-and-database-compatibility.md`（或裁定文档附录 + owner doc 引用，按 Phase 0 裁定口径）。（裁定文档 §五定稿（实测终稿：14 项统一 `nop.err.antlr.common.parse-fail`，offending token 逐项登记）+ `eql-and-database-compatibility.md`「文法收窄」对照表落地）
+- [x] WI2 回归底线存活的显式断言：`nosuchtype` 语义拒绝（候选 A）/按候选 B 迁移后的新断言；`TestEqlSqlTypeClauseGuard` 全部用例不改动且通过；`cast(x as boolean)` 与 h2 文本断言不受影响。（`TestEqlCastTypeNarrowingParse.testUnknownSpellingStillSemanticRejection` + `TestEqlCastBooleanParse` 4|0 + `TestEqlSqlTypeClauseGuard` 7|0 零改动全过 + `TestEqlCastBooleanCompile` h2 文本 4|0）
+- [x] WI9b 边界确认：本次改动未引入任何时区类型拼写/枚举变化（对照 Current Baseline"WI9b 边界声明"逐项自查，结论写进提交说明或日志）。（结论在 commit `41bfbcba56` 说明 + `TestEqlCastTypeNarrowingParse` javadoc；`StdSqlType.java` 时区注释未触碰、无 LOCAL 拼写引入；方言 XML native 名 `TIMESTAMP WITH TIME ZONE` 属另一张表不触碰）
+- [x] owner doc：`eql-and-database-compatibility.md` 的 cast 拒绝面/接受面小节按对照表同步（与 Phase 1 的登记行合并为一张表）。（CAST 目标类型节内新增「文法收窄」对照表小节，与别名表同节）
 
 Exit Criteria:
 
-- [ ] 收窄后文法接受集 = `stdNameMap` 键集 ∪（候选 A 时的兜底集），一个穷举式用例（或生成断言表）证明"文法放行 ⇒ 语义必过或语义响亮拒"，无"文法放行 + 静默错误 SQL"路径。
-- [ ] 红→绿/形态迁移断言按裁定落地；错误形态迁移逐项在对照表登记。
-- [ ] WI2 底线（`nosuchtype`、`TestEqlSqlTypeClauseGuard`、h2 BOOLEAN 文本）全部存活。
-- [ ] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成 diff 符合本 Phase 第 3 项口径。
-- [ ] 对照表（EC ③）定稿落档，含 WI9b 边界注记。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径同 Phase 1）。
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致；不声称"7 个全测"。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 收窄后文法接受集 = `stdNameMap` 键集 ∪（候选 A 时的兜底集），一个穷举式用例（或生成断言表）证明"文法放行 ⇒ 语义必过或语义响亮拒"，无"文法放行 + 静默错误 SQL"路径。（`TestEqlCastTypeNarrowingParse.testEveryRegisteredStdNameGrammarAcceptableOrExplicitlyUnspellable`：34 键穷举，仅 DOUBLE/ARRAY/ANY 为已知不可拼写组（解析失败），其余全部解析通过=闸门 A 必过）
+- [x] 红→绿/形态迁移断言按裁定落地；错误形态迁移逐项在对照表登记。
+- [x] WI2 底线（`nosuchtype`、`TestEqlSqlTypeClauseGuard`、h2 BOOLEAN 文本）全部存活。
+- [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成 diff 符合本 Phase 第 3 项口径。（commit `41bfbcba56` 仅 .g4+重生成产物+收窄测试）
+- [x] 对照表（EC ③）定稿落档，含 WI9b 边界注记。
+- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径同 Phase 1）。（与 Phase 1 EC⑤/终局为同一条命令，终局一次执行共享证据，mtime 以届时最后 commit 为准核对）
+- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致；不声称"7 个全测"。（待终局 run 内 `TestEqlCorpusBaseline` 复核后勾选）
+- [ ] `ai-dev/logs/` 对应日期条目已更新。（随终局条目落档）
 
 ## Closure Gates
 
