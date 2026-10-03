@@ -152,30 +152,32 @@ Exit Criteria:
 
 ### Phase 2 - BUG-2 `LATERAL` 静默丢弃 + `supportLateral` 全链接线
 
-Status: planned
+Status: completed（2026-10-03，commit `8312d79d54`）
 Targets: `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/dialect.xdef`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/DialectFeatures.java`（retention）、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/*.dialect.xml`（确证支持者显式开启）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（如快照口径需同步）、`nop-orm-eql`/`nop-dao` 测试
+
+> **执行期记录**：修复前红实测——`TestEqlLateralSubqueryTableSource` 4 用例全红（echo 与执行路径输出均无 ` lateral `；且红输出证明 transform 层已正确消费 lateral 作用域 `r.USER_ID = x.c1`，缺陷只在打印侧）。方言 XML 落位比 plan 起草多一项：**`mysql5.7.dialect.xml` 显式 `supportLateral="false"`**——它 `x:extends="mysql.dialect.xml"` 会继承 true，而 LATERAL 需 8.0.14+；属新属性首次配置用法（Non-Goals 放宽口径），不是既有能力值纠错。快照 JSON 不记录 feature 位（仅 loadable/extends/functions），无需同步。`TestDialectLateralFlag`（nop-dao）经 `DialectManager` 真实加载 5 个方言 XML 验证 XML→retention→accessor 链。
 
 - Item Types: `Fix`、`Feature`、`Proof`
 
-- [ ] 修复前红：`… from (select …) lateral (select …)`（等价输入）断言输出含 ` lateral `——修复前与去掉 `lateral` 的输出字节相同，断言红。
-- [ ] `supportLateral` 四层接线：`dialect.xdef` features 块（`:53-58` 区域）新增属性 → `DialectFeatures.java` 手写 retention getter/setter（照 window frame 三属性先例 `:25-31`）→ `IDialect` accessor（照 `IDialect.java:89-93` 先例）→ `DialectImpl` 实现（读 `dialectModel.getFeatures()`，照 `DialectImpl.java:287` 先例）。**零生成**（nop-dao 无 codegen 管线）。
-- [ ] 路径分工（`AstToEqlGenerator` 没有 `dialect` 字段，门只能落子类）：**回显路径无损打印**——lateral 打印进基类 `AstToEqlGenerator.visitSqlSubqueryTableSource`（回显与输入一致，无门、不受方言开关影响）；**执行路径按方言门控**——`AstToSqlGenerator` override 相应打印/编译方法（其持有 `dialect`，`:69`）。
-- [ ] 编译期门：`supportLateral=false` 的方言上编译含 `lateral` 的查询 → 编译期报错，**复用既有 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`**（`OrmEqlErrors.java:195-196`，`.param` 带 ARG_DIALECT/ARG_FEATURE，窗口能力门同款；**不新起新码**）；`true` 时输出 ` lateral `。
-- [ ] 接线验证（Minimum Rules #23）：一个测试证明运行时连通链——XML 配置值 → retention → accessor → 生成器行为差异（同一查询在开关两个值下输出不同）。
-- [ ] 负向载体：`mariadb`（`mariadb.dialect.xml` 实配 `supportLateral="false"`，roadmap 证据：MariaDB 无 LATERAL）或手构 `DialectModel`（先例 `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestEqlTranslationSemantics.java:83`）；**禁止用 `default`**（不可实例化，缺 mandatory 子节点）。
-- [ ] 方言 XML 落位：按 Phase 0 矩阵给已确认支持者显式开启；`es` 不参与；`default` 缺省值按裁定。
-- [ ] owner doc：LATERAL 能力矩阵落档（逐行证据等级），"新增能力点登记表"新增一行（generator 方法 + `supportLateral` + 不支持时错误码 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，对应 roadmap 级 EC 第 4 条）。
+- [x] 修复前红：`… from (select …) lateral (select …)`（等价输入）断言输出含 ` lateral `——修复前与去掉 `lateral` 的输出字节相同，断言红。
+- [x] `supportLateral` 四层接线：`dialect.xdef` features 块（`:53-58` 区域）新增属性 → `DialectFeatures.java` 手写 retention getter/setter（照 window frame 三属性先例 `:25-31`）→ `IDialect` accessor（照 `IDialect.java:89-93` 先例）→ `DialectImpl` 实现（读 `dialectModel.getFeatures()`，照 `DialectImpl.java:287` 先例）。**零生成**（nop-dao 无 codegen 管线）。
+- [x] 路径分工（`AstToEqlGenerator` 没有 `dialect` 字段，门只能落子类）：**回显路径无损打印**——lateral 打印进基类 `AstToEqlGenerator.visitSqlSubqueryTableSource`（回显与输入一致，无门、不受方言开关影响）；**执行路径按方言门控**——`AstToSqlGenerator` override 相应打印/编译方法（其持有 `dialect`，`:69`）。
+- [x] 编译期门：`supportLateral=false` 的方言上编译含 `lateral` 的查询 → 编译期报错，**复用既有 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`**（`OrmEqlErrors.java:195-196`，`.param` 带 ARG_DIALECT/ARG_FEATURE，窗口能力门同款；**不新起新码**）；`true` 时输出 ` lateral `。
+- [x] 接线验证（Minimum Rules #23）：一个测试证明运行时连通链——XML 配置值 → retention → accessor → 生成器行为差异（同一查询在开关两个值下输出不同）。（`testFlagValueReallyChangesExecutionPathOutput` + `TestDialectLateralFlag` 真实 XML 加载。）
+- [x] 负向载体：`mariadb`（`mariadb.dialect.xml` 实配 `supportLateral="false"`，roadmap 证据：MariaDB 无 LATERAL）或手构 `DialectModel`（先例 `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestEqlTranslationSemantics.java:83`）；**禁止用 `default`**（不可实例化，缺 mandatory 子节点）。（两者都落：mariadb 实配 + 手构双值 DialectModel。）
+- [x] 方言 XML 落位：按 Phase 0 矩阵给已确认支持者显式开启；`es` 不参与；`default` 缺省值按裁定。（postgresql/mysql/duckdb=true，mariadb/mysql5.7=false，其余不配置；未动 default.dialect.xml。）
+- [x] owner doc：LATERAL 能力矩阵落档（逐行证据等级），"新增能力点登记表"新增一行（generator 方法 + `supportLateral` + 不支持时错误码 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，对应 roadmap 级 EC 第 4 条）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（含 ` lateral ` 的完整输出）。
-- [ ] 负向用例：`supportLateral=false`（mariadb 实配或手构 `DialectModel`）编译期报错，断言错误码 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`；无静默跳过（不允许 `false` 时静默丢掉 lateral 关键字）。
-- [ ] 回显路径用例：`lateral` 回显文本与输入一致（基类打印无损，不因方言开关变化）。
-- [ ] 接线验证测试通过（flag 值真实改变执行路径生成行为，非仅 accessor 存在）。
-- [ ] owner doc LATERAL 矩阵 + 登记表行已落档；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] 既有 EQL 语料 BC：三份必测（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（含 ` lateral ` 的完整输出）。
+- [x] 负向用例：`supportLateral=false`（mariadb 实配或手构 `DialectModel`）编译期报错，断言错误码 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`；无静默跳过（不允许 `false` 时静默丢掉 lateral 关键字）。
+- [x] 回显路径用例：`lateral` 回显文本与输入一致（基类打印无损，不因方言开关变化）。
+- [x] 接线验证测试通过（flag 值真实改变执行路径生成行为，非仅 accessor 存在）。
+- [x] owner doc LATERAL 矩阵 + 登记表行已落档；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] 既有 EQL 语料 BC：三份必测（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随 `:nop-orm-eql` 全量运行通过。）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿（nop-orm-eql 171 tests 0 failures；BUILD SUCCESS）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - BUG-3 `for update` 硬编码绕过方言锁模板
 
