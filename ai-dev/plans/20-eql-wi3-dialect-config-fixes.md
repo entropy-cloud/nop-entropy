@@ -198,25 +198,25 @@ Exit Criteria:
 
 ### Phase 2 - mysql5.7 窗口 mixin 移除（第 7 项）
 
-Status: planned
+Status: completed（2026-10-04；commit `b5c4e439b4`，按 Phase 0 裁定候选 B 落地）
 Targets: 按 Phase 0 裁定（候选 A：新增 `mysql-base.dialect.xml` + 改 `mysql.dialect.xml:3`/`mysql5.7.dialect.xml:3` 继承链；候选 B：`mysql5.7.dialect.xml` 内联 10 个 `x:override="remove"`）、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`nop-dao`/`nop-orm-eql` 测试
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 按 Phase 0 裁定落地（候选 A 改继承链 / 候选 B 内联移除）：`mysql5.7` 的有效函数表不再含 10 个窗口函数；`mysql` 与 `mariadb` 的有效函数表**逐字节不变**（mariadb 10.2+ 确有窗口函数，勿顺手改）。
-- [ ] 配置断言测试：mysql5.7 加载后函数表不含 `rank`/`dense_rank`/`row_number`/`lead`/`lag`/`first_value`/`last_value`/`nth_value`/`percent_rank`/`cume_dist`；mysql 与 mariadb 仍含全量 10 个（防「顺手修正」回归）。
-- [ ] **窗口回归载体（已核验事实，修订时实测）**：`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/` 下三个窗口测试随本 Phase 全绿，作为 mysql5.7 路径的回归载体——`TestDialectWindowSqlSnapshot`（快照方言集含 `mysql5.7`）、`TestDefaultDialectWindowFeatures`、`TestPostgresWindowFunctionDialect`。核验依据：golden `nop-persistence/nop-orm-eql/src/test/resources/__snapshot/mysql5.7.window.sql`（实测内容）只含 `sum(…) over(…)`（走聚合硬编码路径，roadmap 约束 2：聚合名不经 `<functions>` 表），不经 window mixin 函数表；frame 能力位（`supportWindowFrameRows/Range/Groups`）继承自 `default.dialect.xml` 集中缺省，与 mixin 无关（mixin 文件零 `<features>`，实测）。⇒ 两个候选下三测试都应**原样通过**；**不得顺手修改 golden**（golden 变化即说明改动破坏了函数表以外的路径，属失败信号而非预期产物）。
-- [ ] 矩阵快照同步：候选 A 的新方言文件登记进快照（18→19，`mysql-base` 为 loadable）；候选 B 确认快照无需变更（保持 18、无 diff）；两候选均重跑 `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0 + `TestDialectCapabilityMatrix` 字节比对通过。
-- [ ] 第 8 项（已完成记录）回归断言：postgresql/duckdb/postgis 窗口函数仍注册（防本 Phase 意外破坏继承链）。
+- [x] 按 Phase 0 裁定落地（候选 A 改继承链 / 候选 B 内联移除）：`mysql5.7` 的有效函数表不再含 10 个窗口函数；`mysql` 与 `mariadb` 的有效函数表**逐字节不变**（mariadb 10.2+ 确有窗口函数，勿顺手改）。（候选 B：mysql5.7 内联 10 个 remove；注释引用裁定文档 §三）
+- [x] 配置断言测试：mysql5.7 加载后函数表不含 `rank`/`dense_rank`/`row_number`/`lead`/`lag`/`first_value`/`last_value`/`nth_value`/`percent_rank`/`cume_dist`；mysql 与 mariadb 仍含全量 10 个（防「顺手修正」回归）。（`TestMysql57WindowFunctionsRemoved` 4 测试）
+- [x] **窗口回归载体（已核验事实，修订时实测）**：`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/` 下三个窗口测试随本 Phase 全绿，作为 mysql5.7 路径的回归载体——`TestDialectWindowSqlSnapshot`（快照方言集含 `mysql5.7`）、`TestDefaultDialectWindowFeatures`、`TestPostgresWindowFunctionDialect`。核验依据：golden `nop-persistence/nop-orm-eql/src/test/resources/__snapshot/mysql5.7.window.sql`（实测内容）只含 `sum(…) over(…)`（走聚合硬编码路径，roadmap 约束 2：聚合名不经 `<functions>` 表），不经 window mixin 函数表；frame 能力位（`supportWindowFrameRows/Range/Groups`）继承自 `default.dialect.xml` 集中缺省，与 mixin 无关（mixin 文件零 `<features>`，实测）。⇒ 两个候选下三测试都应**原样通过**；**不得顺手修改 golden**（golden 变化即说明改动破坏了函数表以外的路径，属失败信号而非预期产物）。（Phase 2 门禁全绿含三测试；`git diff -- __snapshot/` 零改动实测）
+- [x] 矩阵快照同步：候选 A 的新方言文件登记进快照（18→19，`mysql-base` 为 loadable）；候选 B 确认快照无需变更（保持 18、无 diff）；两候选均重跑 `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0 + `TestDialectCapabilityMatrix` 字节比对通过。（**执行期勘误**：候选 B 下 dialectCount 保持 18 正确，但 mysql5.7 的 functions 列表变化 -10 ⇒ 快照**有 diff、须重生成**（起草时「无 diff」假设不成立，与 EC「所有 functions 变化必须重生成快照」一致）；已重生成（10 deletions）+ 两道门禁绿）
+- [x] 第 8 项（已完成记录）回归断言：postgresql/duckdb/postgis 窗口函数仍注册（防本 Phase 意外破坏继承链）。（`testPostgresFamilyWindowFunctionsStillRegistered`）
 
 Exit Criteria:
 
-- [ ] mysql5.7 函数表断言红→绿（改动前 mysql5.7 含 10 个窗口函数，改动后不含）。
-- [ ] mysql/mariadb/postgresql/duckdb 函数表逐项不变（防回归断言全绿）。
-- [ ] 快照已同步且两道门禁（mjs 脚本 + JUnit 字节比对）均绿（候选 B：确认快照保持 18 无 diff、门禁复跑绿）；`es` 伪方言不参与断言。
-- [ ] 三个窗口回归测试（`TestDialectWindowSqlSnapshot`/`TestDefaultDialectWindowFeatures`/`TestPostgresWindowFunctionDialect`）**原样通过且 mysql5.7 窗口 golden 文件零改动**（`git diff -- 'nop-persistence/nop-orm-eql/src/test/resources/__snapshot/'` 可证）。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
+- [x] mysql5.7 函数表断言红→绿（改动前 mysql5.7 含 10 个窗口函数，改动后不含）。（red-first 留痕：stash 原值 `rank` registered，主断言+守卫双红）
+- [x] mysql/mariadb/postgresql/duckdb 函数表逐项不变（防回归断言全绿）。
+- [x] 快照已同步且两道门禁（mjs 脚本 + JUnit 字节比对）均绿（候选 B：确认快照保持 18 无 diff、门禁复跑绿）；`es` 伪方言不参与断言。（快照 18 保持、mysql5.7 functions -10 重生成；mjs exit 0 + 字节比对绿）
+- [x] 三个窗口回归测试（`TestDialectWindowSqlSnapshot`/`TestDefaultDialectWindowFeatures`/`TestPostgresWindowFunctionDialect`）**原样通过且 mysql5.7 窗口 golden 文件零改动**（`git diff -- 'nop-persistence/nop-orm-eql/src/test/resources/__snapshot/'` 可证）。
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，2026-10-04）
+- [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - ilike 函数注册（第 9 项）
 
