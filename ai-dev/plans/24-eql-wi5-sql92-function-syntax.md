@@ -199,30 +199,30 @@ Exit Criteria:
 
 ### Phase 2 - `SUBSTRING(x FROM a [FOR b])` → `substr(x,a[,b])`（2/3 元多态）
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 的文法/归一化/文档/测试面
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`substring(x from 2)` 与 `substring(x from 2 for 3)` 解析失败——回归测试断言可解析，修复前红。
-- [ ] 文法与归一化（按 Phase 0 裁定）：`SUBSTRING LP_ expr FROM expr (FOR expr)? RP_` 备选分支 → `SqlRegularFunction`（name=`substr`，2 或 3 参）；`FOR` 缺省时 2 参（走 default.dialect.xml `:196` 的 `minArgCount="2" maxArgCount="3"` 多态）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①）：h2 的 2 参与 3 参两种输出；mssql 的 `substring` realName 输出（或按 Phase 0 矩阵选替代方言）。
-- [ ] 负向用例（EC ②）双条：未注册方言报 `ERR_EQL_UNKNOWN_FUNCTION`；元数边界（方言把 maxArgCount 压到 2 时的 3 参报错 `ERR_EQL_FUNC_TOO_MANY_ARGS`，或等价机制化用例）。
-- [ ] 接线验证（#23）：三层连通端到端用例。
-- [ ] 既有逗号形态 `substring(x,a,b)` 行为不变守护用例。
-- [ ] "不等价"类用例（约束 4）：负起点索引语义分叉至少一项登记用例或 owner doc 差异行（default.dialect.xml 描述明言"start 为负则相对末尾"——并非所有方言同语义）。
-- [ ] 矩阵快照核实零增量 + 门禁 exit 0（EC ③）；owner doc SUBSTRING 覆盖表（EC ④，含 `[未取证]`）；真库证据（EC ⑥，同 Phase 1 口径）；语料 BC（EC ⑦）。
+- [x] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`substring(x from 2)` 与 `substring(x from 2 for 3)` 解析失败——回归测试断言可解析，修复前红。
+- [x] 文法与归一化（按 Phase 0 裁定）：`SUBSTRING LP_ expr FROM expr (FOR expr)? RP_` 备选分支 → `SqlRegularFunction`（name=`substr`，2 或 3 参）；`FOR` 缺省时 2 参（走 default.dialect.xml `:196` 的 `minArgCount="2" maxArgCount="3"` 多态）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①）：h2 的 2 参与 3 参两种输出；mssql 的 `substring` realName 输出（或按 Phase 0 矩阵选替代方言）。
+- [x] 负向用例（EC ②）双条：未注册方言报 `ERR_EQL_UNKNOWN_FUNCTION`；元数边界（方言把 maxArgCount 压到 2 时的 3 参报错 `ERR_EQL_FUNC_TOO_MANY_ARGS`，或等价机制化用例）。
+- [x] 接线验证（#23）：三层连通端到端用例。
+- [x] 既有逗号形态 `substring(x,a,b)` 行为不变守护用例。
+- [x] "不等价"类用例（约束 4）：负起点索引语义分叉至少一项登记用例或 owner doc 差异行（default.dialect.xml 描述明言"start 为负则相对末尾"——并非所有方言同语义）。
+- [x] 矩阵快照核实零增量 + 门禁 exit 0（EC ③）；owner doc SUBSTRING 覆盖表（EC ④，含 `[未取证]`）；真库证据（EC ⑥，同 Phase 1 口径）；语料 BC（EC ⑦）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（2 参与 3 参两种形态 + 一个 realName 方言）。
-- [ ] 负向用例断言具体错误码（unknown-function + 元数）；无静默跳过。
-- [ ] 接线验证与"不等价"登记完成。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（2 参与 3 参两种形态 + 一个 realName 方言）。
+- [x] 负向用例断言具体错误码（unknown-function + 元数）；无静默跳过。
+- [x] 接线验证与"不等价"登记完成。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - `EXTRACT(f FROM d)` → 逐字段方言 lowering
 

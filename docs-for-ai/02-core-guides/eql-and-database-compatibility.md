@@ -362,6 +362,19 @@ EQL 接受四个 SQL-92 标准语法形态，构建期归一化为**普通函数
 
 既有逗号形态 `position(x,y)` 行为不变：解析通过，函数表无 `position` 注册 → 编译期响亮报错。`position(a in (b,c))`（IN 列表竞争）固定按特殊语法解析（ANTLR 备选序取 `sqlExpr_special`）。
 
+#### SUBSTRING(x FROM a [FOR b]) → `substr(x, a[, b])`
+
+FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCount="2" maxArgCount="3"` 两元多态；回显输出归一化形态 `substr(...)`。
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis / mysql / mariadb / mysql5.7 / oracle / oracle-reverse / dm / tdengine / es / db2 | `substr(o.name,2)` / `substr(o.name,2,3)`（native） | `[实测]`（h2，`TestEqlSubstringFunctionDialect` 2/3 参两用例 + `TestDialect.testFunctions` 既有执行）/ dm、tdengine、db2、es 标注 `[未取证]` |
+| mssql | `substring(o.name,2,3)`（realName=substring；MSSQL `SUBSTRING(expr,start,len)` 语义同序） | `[文档]`（MSSQL SUBSTRING）/ `[实测]`（mssql 模型编译文本，testMssqlRealNameSubstring） |
+| duckdb / postgresql / postgis | `substr(...)`（native 同名；DuckDB/PG 均有 `substr(string, start[, length])`；PG 同语义亦可用 `substring(a from b for c)` 原生形态） | `[文档]`（PG 15 / DuckDB string functions） |
+
+既有逗号形态 `substring(x,a,b)` 行为不变：解析通过（函数名归一为 `substring`），函数表注册名是 `substr` → 编译期响亮报 `ERR_EQL_UNKNOWN_FUNCTION(substring)`（守护用例锁定，不静默改道）。
+**语义差异登记（不等价类）**：负起点索引——H2/MySQL `substr(str, -n)` 自串尾倒数（default.dialect.xml 描述明言"start 为负则相对末尾"）；MSSQL `SUBSTRING` 起点必须 ≥1（负值/0 行为不同）。EQL 归一化只做无损换形，不合并方言语义，跨库依赖负起点需自行核对目标库。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

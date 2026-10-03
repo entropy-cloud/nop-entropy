@@ -246,6 +246,33 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * WI5 Phase 2: SQL-92 标准函数语法 {@code SUBSTRING(x FROM a [FOR b])}（BaseRule.g4
+     * sqlExpr_special 的 {@code SqlRegularFunction_substring} 备选分支）。构建期归一化
+     * 装入**既有** {@link SqlRegularFunction}（name=substr，FOR 缺省 2 参、否则 3 参，
+     * 复用方言函数表 substr 的 minArgCount=2/maxArgCount=3 两元多态），不新增 AST 节点。
+     * 生成方法体只建空节点 + validate()（name 必填校验必失败），因此完全重写、不调 super。
+     * 负起点索引等方言语义分叉见 owner doc 差异表（EQL 只做无损换形不做语义合并）。
+     */
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx) {
+        SqlExpr str = (SqlExpr) visit(ctx.sqlExpr_bit(0));
+        SqlExpr start = (SqlExpr) visit(ctx.sqlExpr_bit(1));
+
+        SqlRegularFunction ret = new SqlRegularFunction();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setName("substr");
+        List<SqlExpr> args = new ArrayList<>(3);
+        args.add(str);
+        args.add(start);
+        if (ctx.FOR() != null)
+            args.add((SqlExpr) visit(ctx.sqlExpr_bit(2)));
+        ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
      * WI1 BUG-5: PG 形态 {@code interval '1 day'}（BaseRule.g4 sqlIntervalExpr 的
      * {@code INTERVAL STRING_} 备选分支）。构建期归一化为 value+unit 装入**既有**
      * {@link io.nop.orm.eql.ast.SqlIntervalExpr}（不新增 AST 节点、不改 EqlAST.xjava）；
