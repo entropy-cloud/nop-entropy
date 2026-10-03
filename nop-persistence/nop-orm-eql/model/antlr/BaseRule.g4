@@ -295,6 +295,10 @@ sqlExpr_special
     // WI5 Phase 1: POSITION(x IN y) → instr(y, x)，调用点换序在构建期完成（instr(str, substr) 参数序）。
     // 首 arg 限定 sqlExpr_bit：IN 是 sqlExpr_predicate 层算子，首参解析不会吞掉分隔符 IN。
     | POSITION LP_ sqlExpr_bit IN sqlExpr RP_ # SqlRegularFunction_position
+    // WI5 Phase 2: SUBSTRING(x FROM a [FOR b]) → substr(x, a[, b])，复用方言函数表
+    // substr 的 minArgCount=2/maxArgCount=3 两元多态。首/中/尾 arg 限定 sqlExpr_bit：
+    // FROM/FOR 不是 sqlExpr_bit 层算子，参数解析不会吞掉分隔关键字。
+    | SUBSTRING LP_ sqlExpr_bit FROM sqlExpr_bit (FOR sqlExpr_bit)? RP_ # SqlRegularFunction_substring
     ;
 
 sqlCastExpr

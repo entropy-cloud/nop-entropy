@@ -1146,6 +1146,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_substring}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_substring}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree
 	 */

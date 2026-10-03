@@ -1326,6 +1326,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlCastExpr(EqlParser.SqlCastExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
