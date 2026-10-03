@@ -3,13 +3,14 @@
 > **来源调研**：`ai-dev/analysis/2026-10/2026-10-02-eql-cross-database-compatibility-syntax-research.md`（v3，经两轮共 8 个独立子 agent 交叉审查）
 > **执行分支**：`feat/eql-cross-db-compat`（worktree `../nop-entropy-eql-cross-db-compat`）
 > **本图产出方法**：调研报告 Part 7 的 S-1..S-14 批次 → 本图的 WI0..WI12；经**三轮**独立子 agent 三路审查（代码事实 / 跨库矩阵 / 结构可执行性）修订至 **v7.1**（四轮独立子 agent 审查至 `consensus-reached-with-nits` + 合并后锚点重核验两轮）
-> **Last updated**：2026-10-03
-> **当前状态**：roadmap 待审查，**尚未开始执行**
+> **Last updated**：2026-10-03（v7.2）
+> **当前状态**：**draft review 已通过（v7.2）**，执行中 —— WI0 已 `planned`；状态流转见 Work Item Status
 > **v2 修订摘要**：修正 `supportReturningForUpdate` 语义误读（v1 据此误判 duckdb/oracle/h2 三处；该标志只门控 `UPDATE … RETURNING`，不是"该库有没有 RETURNING"）；`orm.xml` 计数 78→114；修正"扩展点全部没接线"的过claim；WI9 拆为 WI9a/WI9b；补 6 项此前被遗漏的活缺陷。
 > **v3 修订摘要**：更正 H2 的默认 `LIKE` escape 是**反斜杠**而非 NULL（v1/v2 误列入 NULL 组）；更正 H2 `greatest`/`least` 的"忽略 NULL"兼容模式**仅 `LEGACY`/`MS SQL Server`/`PostgreSQL`**；把 `DB2`/`TDengine`/`H2` 的聚合 `FILTER` 移入"未取证"；`INTERSECT`/`EXCEPT` 缺口补上 **MariaDB ≤10.2**；`orm.xml` 属性的 `stdSqlType=` 计数 8307→8332；AST 零生成器消费字段 3→**7**；死标志口径 13→**14** 并给 `supportNullsFirst` 一个真实 owner；全部 `-pl` 命令改为 Maven 可运行的 `:` 前缀形式（v3 前每条验证命令都会报错）。
 > **v4 修订摘要**：登记 DM8 默认 escape 为 `unverified`；删除一条**不成立的** `mariadb` 保留字缺陷指控（仓库其实正确）；统一死标志计数（接线 10 / 总计 14）；给 WI9b 补 BC 门禁 + 生成管线 Protected Area + 可编译的 `-pl`；给 `supportNullsFirst` 与 `ORDER BY … COLLATE`、`lastDay(d)` 三条 ledger 项落实真实 owner；消解 G-3↔WI9b 与 WI3 计数口径的残留矛盾；更正 5 处 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 行号（此前整体偏移 −1）。
 > **v5 修订摘要**：把 10 条 per-WI 的既有 EQL 语料 BC 判据从"7 个全测"改为**按各 WI `-pl` 的实际覆盖面**如实陈述（`:nop-orm-demo` 3 份与 `nop-spring-simple-demo` 1 份本就无法由单 WI 命令覆盖，改由 EC 第 8 条 + WI0 静态快照兜底）；新增 **BUG-15**（`SqlTypeExpr.characterSet`/`collate` 的潜在静默丢弃，owner=WI2）并把 WI2 从 4 项扩为 5 项；补齐门控矩阵中 WI2/WI3 的 `G-1` 与 WI9a 的 `WI0`；更正 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 中 `characterSet_`(`:384`)/`collateClause_`(`:388`) 的行号与"永久不可达"结论。
 > **v6 修订摘要**（sign-off 后的收尾）：删除 ledger 中残留的调研报告错误（`Oracle 无 WHEN MATCHED THEN DELETE` → **有**）；把 WI2 的 4→5 缺陷数同步到 mermaid/Current Baseline/EC#2；把 Cross-Cutting 的 `-pl` 强制项收敛到各 WI 真正跑得到的范围（另两个 EQL 消费方只由 EC 第 8 条覆盖）；登记 `nop-stream-runtime` 的 3 项**既有**失败并定义"全绿"口径；为 `stringAgg`/`regexpLike`/`MERGE` 三条 ledger 行补上 EC 级 owner。
+> **v7.2 修订摘要**（执行前 draft review 通过轮）：独立子 agent 抽查 12 处必查锚点 + 约 50 处附加锚点**全部命中**，`parseRoadmapMarkdown` 16 工作项全部合法，**无 Blocker**。据此修正 4 处：① EC 第 6 条的 broken-link 基线由陈旧的"7 项"改为与 Current Baseline 一致的 **3 项**（`06-resource-leak-v1.md:54,83,91`），并更正"real exit 1"的过时口径（实测 `--strict` 退出码 0、3 个 warning 计 0 error；门禁口径维持"**新增 broken link = 0** + 不顺手修 3 个无关 pre-existing 文件"）；② 依赖图注记"WI3 的其余 11 项"改为**其余 9 项**（G-1 只阻塞 mariadb `RETURNING` 与 `INTERSECT` 两项，12−1(已完成第 8 项)−2=9 的算术残留）；③ WI0 交付 1 的"从 `DialectManager` 动态取集合"改为**VFS 枚举**（`DialectManager` 无方言枚举 API，正确形态是枚举 `/nop/dao/dialect/*.dialect.xml`（18 个）后逐个 try-load）。
 > **v7.1 修订摘要**：v7 的批量修正**首轮不完整** —— 独立复核发现 **9 处锚点漏改**（都是"同一批里兄弟锚点已改、本处未改"的 off-by-one）：`sqlExpr_special` `:248-251`→`:286-289`、`_EqlASTBuildVisitor` `:1296/:1299`→`:1331/:1334`、**手写** `EqlASTBuildVisitor.java:270-272`（v7 误加了 `_` 前缀，而 `_` 前缀的生成物里根本没有 `stdName` 字样）、`escapeSql` `:684`→`:715`、`AstToSqlGenerator` `:388`→`:410`、`IDialect` `:145`→`:151`、`h2` CROSS `:26`→`:29`、`h2` FILTER `:34`→`:37`、`JdbcTwoPhaseCommitSink` `:166`→`:167`；另修正 `ast/` 手写文件计数 **81→80**（`SqlStatementKind.java` 被重复计入）与文档链接基线 **7→3**（合并顺带修好 4 项）。经此两轮，**190 个锚点全部逐个开文件核对完毕**。
 > **v7 修订摘要（合并 `add-stream-sql` 后的锚点重核验）**：rebase 到新 master 后重核全部 `file:line` 锚点，**修正 54 处行号**（`EqlParser.java` 9933→**10785**、`ast/_gen/` 72→**77**、`ast/` 手写 75→**80**（v7.1 更正：首轮误算成 81，`SqlStatementKind.java` 被重复计入）、`EqlASTKind.java` 130→**140**、`_EqlASTBuildVisitor.java` 1653→**1804** 且路径本就是 `parse/` 而非 `ast/`、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`/`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 整体下移 +10、`owner doc` 四处失真 `:91/:94/:96/:97`→`:105/:108/:110/:111`、`dialect.xdef` 六个 literal 行 +1、`h2.dialect.xml` `:26/:34`→`:29/:37`）。**三处实质更正**（不是行号问题）：① **`nop-dao` 没有 codegen 管线**（`pom.xml:119`），方言标志"改 xdef → `_gen` 重生成 = 生成管线 plan-first"的前提**不成立**，本图 7 处成本/门控表述已改；② **WI3 第 8 项已被另一分支顺带修好**（`postgresql:3` 现在 extends `window-expr-support`）⇒ 12 项待结论项减为 **11**；③ **WI12 的"窗口命名 `WINDOW`（需新 AST 节点）"已建成**（新增 `SqlWindowClause`/`SqlWindowDecl`/`SqlWindowFrame`/`SqlWindowFrameBound`/`SqlTumbleTableSource` 五个 AST 节点）。另新增两条登记：`EqlASTKind` **ordinal 已被重编号**（常量 62→67，插入点 30 与 53-56），以及 `STRING` token **可证不可词法化**（`EqlLexer.java:21-81` 与 `EqlParser.java:21-81` 在第 81 行分叉：parser 有 `STRING=358`、lexer 没有）—— 后者是 BUG-15 的直接机器证据。WI5 的前提"`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 那 4 条 SQL-92 规则从未生效过"经字节级 diff **仍然成立**（整块仅位移 +38）。
 > **对源调研报告的显式覆盖**（以下 6 处 v4 判定调研报告有误，**不得回引调研报告**）：① `__XGEN_FORCE_OVERRIDE__` 的语义是"每次强制覆盖"而非"不会重生成"；② `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 那 4 条规则从未在本仓库生效过（不存在"曾做过又被回退"）；③ Oracle **有** `WHEN MATCHED THEN DELETE`；④ H2 默认 `LIKE` escape 是反斜杠；⑤ `supportReturningForUpdate` 的真实语义；⑥ `orm.xml`/`stdSqlType=` 计数。调研报告称"7 个方言配置错误"，实际待结论项为 **12**（见 WI3）。
@@ -77,7 +78,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 >
 > **格式约束**：header 必须是 `## Work Item Status`，且状态值必须是本行**最后一个反引号 token**（mission-driver 的 `roadmap-check.mjs` 用 `tryParseTableRow`（状态须在第 2 列）或 `BULLET_RE` 解析；markdown 表格若把"交付范围"放在状态之前会解析出 **0 个工作项**）。已用 `parseRoadmapMarkdown` 实测通过。
 
-- **WI0** 多方言验证骨架（方言能力矩阵棘轮测试）+ `TemplateSQLFunction` marker 加载期校验 + G-1..G-4 四门裁决 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 上游溯源: `todo`
+- **WI0** 多方言验证骨架（方言能力矩阵棘轮测试）+ `TemplateSQLFunction` marker 加载期校验 + G-1..G-4 四门裁决 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 上游溯源: `planned`
 - **WI1** A 类 6 项执行路径缺陷 BUG-1/2/3/5/10/14（同批次接线 `supportLateral` / `sqlIntervalLiteral` **骨架** / `getForUpdateSql` 空值编译期报错等方言门）: `todo`
 - **WI2** B 类 5 项缺陷 BUG-4 回显（`selectAll`+`LIMIT`）/ BUG-6 `full outer join`+`supportFullJoin` 门 / BUG-7 小写 `date '…'` CCE / BUG-8 `cast(x as boolean)` / BUG-15 `SqlTypeExpr` 潜在静默丢弃: `todo`
 - **WI3** 11 项方言相关纠错（4 项 `supportReturningForUpdate` 值 / 1 项 `unverified` 保留 / 1 项窗口函数 mixin 归属（`mysql5.7` 去除，PG/DuckDB 已由合并完成）/ 1 项 `ilike` 函数注册 / 2 项 `defaultNullsFirst` 接线 + H2 补配 / `INTERSECT`+mariadb `RETURNING` 版本门 / `db2` selector 断链）+ owner doc 四处失真: `todo`
@@ -148,7 +149,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 
 **交付**
 
-1. **方言能力矩阵测试**（`nop-dao`，无需真实 DB）：用 `DialectManager` 遍历**当前可实例化的全部方言模型**（基线 **14** 个，见下方"可加载性实测"），断言 `dialectModel.getFunctions().size() == count(getFunction(name) != null)`，并输出"已注册 / 未注册"清单作为棘轮快照。⚠️ **不要把"14"写死进测试** —— WI3 可能新增方言；应从 `DialectManager` 动态取集合。
+1. **方言能力矩阵测试**（`nop-dao`，无需真实 DB）：用 `DialectManager` 遍历**当前可实例化的全部方言模型**（基线 **14** 个，见下方"可加载性实测"），断言 `dialectModel.getFunctions().size() == count(getFunction(name) != null)`，并输出"已注册 / 未注册"清单作为棘轮快照。⚠️ **不要把"14"写死进测试** —— WI3 可能新增方言；`DialectManager` 无方言枚举 API，应枚举 VFS 路径 `/nop/dao/dialect/*.dialect.xml`（当前 18 个）后逐个 try-load 动态取集合。
    > **可加载性实测**：18 个 `*.dialect.xml` 中 **4 个无法实例化** —— `default`（继承根，缺 `dialect.xdef:19/20/21` 标 `mandatory="true"` 的 `driverClassName`/`dbProductNames`/`jdbcUrlPattern` 三个 mandatory 子节点）、`db2`（父级是 `default.dialect.xml` + `window-expr-support.dialect.xml` mixin —— **mixin 不是方言、不带 mandatory 子节点**，补不上；`db2.dialect.xml:5` 自带 `dbProductNames` 但缺 `driverClassName` 与 `jdbcUrlPattern`）、以及 2 个 mixin `geo-support`/`window-expr-support`（本就不作为独立方言加载）。⇒ 实际可加载 **14 个**。⚠️ 注意 `x:extends` 对继承**是有效的**（`h2gis`/`mysql5.7`/`oracle-reverse`/`postgis` 本地无 `driverClassName` 但加载正常）。⚠️ 更严重的是 `db2.selector.yaml`（路径 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/selector/`，不是 `dao/selector/`）（`productName: DB2 → dialectName: db2`）已注册，意味着 **DB2 自动选择当前就是坏的** —— 这是本 roadmap 新发现的缺陷，登记进 WI3（并在 WI3 里作为**可复现步骤**验证，不只是断言）。
 2. **`TemplateSQLFunction` marker 校验**：`TemplateSQLFunction.java:119-121` 目前对越界 `{n}` 静默产出 `" null "`（`:52-54` 只替换全数字 marker 名）。改为**方言加载期抛错**，并补覆盖全部方言的参数化单测。理由：WI5/WI6 计划新增约 100 行手写模板字符串，没有这道闸就是在往 SQL 里注入静默 `null`。
 3. **G-1..G-4 四道门裁决** + 结论回写本 roadmap（含删除/改写对应 Gate 行的"阻塞"列）。
@@ -235,7 +236,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - `db2` selector 断链**已按 WI0 的复现步骤确认**并修复（不是仅断言）。
 - `INTERSECT` 版本门有明确形态（拆分方言 / 运行时检查 / 补 `intersectKeyword` xdef 属性）并落地；第 6 项 mariadb `RETURNING` 版本门的形态与之一致。
 - `eql-and-database-compatibility.md` 四处失真已改，且全文与实际 dialect XML **逐项对账无差异**；「明确延后项」中 **`stringAgg`（各库排序/`WITHIN GROUP`/分隔符差异）与 `regexpLike`（已确认有：PG/MariaDB/H2；已确认无：MSSQL/TDengine；未取证：Oracle/DuckDB/DB2/DM8/MySQL operator 页）两行已在本 WI 落档**（owner doc 内独立小节）；「调研报告 Part 9 的 17 条语义陷阱」亦已转为 owner doc 的"陷阱 + 配置建议"小节。
-- `node ai-dev/tools/check-doc-links.mjs --strict`：**本次改动新增 broken link = 0**（当前基线 3 项、real exit 1，见总则第 6 条；⚠️ **不得**要求退出 0，那会驱使实现者去改 3 个无关文件）。
+- `node ai-dev/tools/check-doc-links.mjs --strict`：**本次改动新增 broken link = 0**（当前基线 3 项 warning、0 error、退出码 0，见总则第 6 条；⚠️ **不得**顺手去修那 3 个无关 pre-existing 文件，只比对新增量）。
 - `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
 
 ### WI4 — AST 改写管线接线（WI8 的硬前置）
@@ -435,7 +436,7 @@ flowchart TB
 ```
 
 > G-2（`GREATEST` NULL 策略）**不指向任何 WI** —— `greatest`/`least` 已在「明确延后项」中，不属本 roadmap 范围。
-> ⚠️ `G1 --> WI2` 只针对 BUG-8（`cast(x as boolean)` 受 Oracle 23ai 约束）；`G1 --> WI3` 只针对 `INTERSECT` 版本门与 mariadb `RETURNING` 版本门。WI2 的其余 4 项、WI3 的其余 11 项**不被 G-1 阻塞**。
+> ⚠️ `G1 --> WI2` 只针对 BUG-8（`cast(x as boolean)` 受 Oracle 23ai 约束）；`G1 --> WI3` 只针对 `INTERSECT` 版本门与 mariadb `RETURNING` 版本门。WI2 的其余 4 项、WI3 的其余 9 项**不被 G-1 阻塞**。
 
 ## Exit Criteria（整个 roadmap 收口）
 
@@ -446,7 +447,7 @@ flowchart TB
 3. **方言相关项零遗留**：WI3 的 11 项**逐项有结论**（7 项改值 + `dm RETURNING` 显式保留 `unverified` 并登记 successor + `duckdb` 确认无需改动 + 2 项版本门/selector 落地）。⚠️ **不得要求 `dm` 被"修正"** —— 它无一手文档，按红线不得计入覆盖率，closure audit 也不得据此判失败。逐项核对：`mysql`/`oracle`/`h2` 的 `supportReturningForUpdate` → `false`；`duckdb` 保持 `false`；`mariadb` 的版本门形态；窗口函数 mixin 的 `mysql5.7` 去除（`PG`/`DuckDB` 补齐项已由合并完成，只需回归验证）；`ilike` 函数注册；`defaultNullsFirst` 7 个 XML 全部有消费路径 + H2 补配；`db2` selector 断链已复现并修复；`INTERSECT` 版本门落地。
 4. **能力门闭环且可核对**：本 roadmap **新增/修改**的每一个方言敏感输出点，在 `eql-and-database-compatibility.md` 中成表登记（列：generator 方法 + 触发的能力标志 + 不支持时的错误码），且**表中每行都有一个对应的"该方言编译期报错"负向测试**。⚠️ 准入门槛（"覆写点数 ≥5"，Part 3 筛选标准 1）与收口判据是**两件事** —— 已知 <5 的例外（`supportLateral`）已在 WI1 的 plan 里记录理由，不因本条而失效。
 5. **无新增死标志**：本 roadmap 引入的每个方言特性标志都同时满足「有 `IDialect` accessor」+「至少一个生成器消费点」+「一个负向测试」；WI10b 的 14 个存量死标志完成三档处置。
-6. **文档一致**：`eql-and-database-compatibility.md` 与实际 dialect XML **逐项对账无差异**；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 已更新；新增 `nop-dao` public API 的 owner doc 已补。**门禁口径**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出 0；或（若 7 项登记为既有债）**本次改动新增 broken link = 0**，且基线已在 daily log 记为 pre-existing。⚠️ 当前实测基线是 **7 项既有 broken link**（`docs-for-ai/03-runbooks/fixture-bundle.md:3` ×2、`ai-dev/design/nop-deepwiki/01-toolchain-absorption-design.md:75,163`、`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`），直接要求退出 0 会迫使 agent 去改无关文件。
+6. **文档一致**：`eql-and-database-compatibility.md` 与实际 dialect XML **逐项对账无差异**；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 已更新；新增 `nop-dao` public API 的 owner doc 已补。**门禁口径**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出 0；或（若 3 项登记为既有债）**本次改动新增 broken link = 0**，且基线已在 daily log 记为 pre-existing。⚠️ 当前实测基线是 **3 项既有 broken link**（`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，实测 `--strict` 退出码 0、计 0 error；v7.1 前的 7 项中另 4 项已被合并顺带修好），门禁只比对新增量，不要求顺手修这 3 个无关文件。
 7. **既有 EQL 语料 BC**：**7 个**含 `<eql>` 的 `sql-lib.xml`（清单见 Cross-Cutting）在非目标语义上与 WI0 的基线快照**逐字一致**。
 8. **跨模块验证**：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-metadata-service,:nop-duckdb,:nop-job-dao,:nop-auth-service,:nop-orm-tdengine,:nop-db-migration,:nop-orm-demo -am -T 1C` 全绿；`./mvnw clean install -T 1C` 通过（含 codegen 重生成链路与 **114 个 orm.xml** 回归）。
 9. **独立 closure audit**：由不同于执行者的子 agent 对上述 8 条逐条核验，0 Blocker / 0 Major；`scan-hollow-implementations.mjs --severity high` 零命中。
