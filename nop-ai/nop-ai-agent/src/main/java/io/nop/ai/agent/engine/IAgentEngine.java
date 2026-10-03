@@ -5,6 +5,7 @@ import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
 
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INJECT_INPUT_NOT_SUPPORTED;
 
@@ -253,5 +254,14 @@ public interface IAgentEngine extends AutoCloseable {
      */
     @Override
     default void close() throws Exception {
+    }
+
+    /**
+     * Plan 2301 (WI25): the engine-owned background task registry
+     * (Builder-wired). {@code null} when this engine has no background
+     * support (runInBackground callers fail loud).
+     */
+    default IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        return null;
     }
 }

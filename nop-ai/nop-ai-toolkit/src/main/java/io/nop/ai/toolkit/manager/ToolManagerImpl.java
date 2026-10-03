@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -63,6 +64,18 @@ public class ToolManagerImpl implements IToolManager {
             return CompletableFuture.completedFuture(
                     buildErrorResult(call, "Unknown tool: " + toolName)
             );
+        }
+
+        // Plan 2301 (WI25): runInBackground is a reserved argument — only
+        // background-capable tools may carry it. A non-capable tool fails
+        // loud instead of silently running in the foreground (the model must
+        // learn the flag is not a no-op on this tool). Dual-source read: the
+        // engine dispatch path carries arguments as input JSON with a null
+        // node (ToolPathAffinity precedent).
+        if (runInBackgroundRequested(call) && !isBackgroundCapable(toolName)) {
+            return CompletableFuture.completedFuture(buildErrorResult(call,
+                    "Tool '" + toolName + "' does not support runInBackground "
+                            + "(not declared <background-capable>)"));
         }
 
         // The execution itself (not just its callbacks) must be lazy so a
@@ -119,6 +132,50 @@ public class ToolManagerImpl implements IToolManager {
             LOG.debug("ToolManagerImpl: failed to load model for '{}' — treating as concurrency-unsafe", toolName, e);
             return false;
         }
+    }
+
+    private boolean isBackgroundCapable(String toolName) {
+        try {
+            AiToolModel model = loadTool(toolName);
+            return model != null && model.isBackgroundCapable();
+        } catch (Exception e) {
+            // Model lookup failure must not turn into a silent foreground
+            // run — conservative fallback is "not capable" (the call is
+            // rejected with an explicit error).
+            LOG.debug("ToolManagerImpl: failed to load model for '{}' — treating as not background-capable", toolName, e);
+            return false;
+        }
+    }
+
+    /**
+     * Plan 2301 (WI25): dual-source {@code runInBackground} read — node
+     * attribute first (XML DSL path), then the input JSON (engine dispatch
+     * path; ToolPathAffinity precedent). Malformed JSON yields {@code false}
+     * — the reserved-flag read is never a failure surface.
+     */
+    static boolean runInBackgroundRequested(AiToolCall call) {
+        if (call.attrBoolean("runInBackground", false)) {
+            return true;
+        }
+        String input = call.getInput();
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+        try {
+            Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(input);
+            if (parsed instanceof Map<?, ?> map) {
+                Object value = map.get("runInBackground");
+                if (value instanceof Boolean b) {
+                    return b;
+                }
+                if (value instanceof String s) {
+                    return Boolean.parseBoolean(s);
+                }
+            }
+        } catch (Exception e) {
+            LOG.debug("ToolManagerImpl: input is not JSON — no runInBackground flag");
+        }
+        return false;
     }
 
     @Override

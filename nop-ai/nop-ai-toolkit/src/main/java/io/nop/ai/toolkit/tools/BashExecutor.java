@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.tools;
 
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
@@ -37,6 +38,7 @@ import java.util.regex.Pattern;
  * control — the isolation backend (and its resource limits / working-directory jail) is the
  * primary control.
  */
+@SuppressWarnings("unchecked")
 public class BashExecutor implements IToolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(BashExecutor.class);
     public static final String TOOL_NAME = "bash";
@@ -58,6 +60,14 @@ public class BashExecutor implements IToolExecutor {
             "BashExecutor has no IBashSandbox backend wired (fail-closed): the bash tool refuses to "
                     + "execute on the host shell. Wire an explicit backend (e.g. HostBashSandbox for opt-in "
                     + "host execution, or DockerBashSandbox for isolation) before invoking the bash tool.";
+
+    /**
+     * Plan 2301 (WI25): default wall-clock budget for background tasks and
+     * the hard cap for the model-tunable {@code backgroundTaskTimeoutMs}
+     * (1h-class tasks; the foreground 30s default must not kill them).
+     */
+    public static final long DEFAULT_BACKGROUND_TIMEOUT_MS = 3_600_000L;
+    private static final long BACKGROUND_TIMEOUT_CAP_MS = 3_600_000L;
 
     private IBashSandbox sandbox;
 
@@ -88,6 +98,16 @@ public class BashExecutor implements IToolExecutor {
 
     private AiToolCallResult doExecute(AiToolCall call, IToolExecuteContext context) {
         try {
+            // Plan 2301 (WI25): dual-source argument resolution (the
+            // CallAgentExecutor precedent) — the engine dispatch path
+            // provides JSON arguments in call.getInput() with a null node;
+            // the XML DSL path provides node attributes/children.
+            Map<String, Object> jsonArgs = parseJsonArgs(call);
+
+            if (boolArg(jsonArgs, call, "runInBackground", false)) {
+                return doExecuteBackground(call, context, jsonArgs);
+            }
+
             IBashSandbox backend = this.sandbox;
             if (backend == null) {
                 LOG.warn("BashExecutor: refusing call {} — no IBashSandbox backend wired (fail-closed)",
@@ -95,10 +115,11 @@ public class BashExecutor implements IToolExecutor {
                 return AiToolCallResult.errorResult(call.getId(), NO_BACKEND_ERROR);
             }
 
-            String command = call.childText("command", "");
-            File workingDir = resolveWorkingDir(call.attrText("workingDir"), context);
-            Map<String, String> env = parseEnv(call);
-            int timeoutMs = call.attrInt("timeoutMs", call.getTimeoutMs() != null ? call.getTimeoutMs() : 30000);
+            String command = textArg(jsonArgs, call, "command", "");
+            File workingDir = resolveWorkingDir(textArg(jsonArgs, call, "workingDir", null), context);
+            Map<String, String> env = parseEnv(call, jsonArgs);
+            int timeoutMs = intArg(jsonArgs, call, "timeoutMs",
+                    call.getTimeoutMs() != null && call.getTimeoutMs() > 0 ? call.getTimeoutMs() : 30000);
 
             String validationError = validateCommand(command);
             if (validationError != null) {
@@ -136,8 +157,117 @@ public class BashExecutor implements IToolExecutor {
         }
     }
 
-    private AiToolCallResult toResult(int id, BashSandboxResult sr) {
+    /**
+     * Plan 2301 (WI25): background submission — returns the startup
+     * confirmation immediately; the real command runs on the registry's
+     * dedicated background executor (never the foreground dispatch pool) and
+     * its terminal state is bridged into the session input channel by the
+     * engine (single result channel: the notification carries the taskId,
+     * the full tail is read via the task-output tool).
+     *
+     * <p>Fail-loud seams: no agent-engine context (registry bridge UOE),
+     * unwired registry, unwired sandbox, or a blocked command each return an
+     * explicit error result — never a silent foreground fallback.
+     */
+    private AiToolCallResult doExecuteBackground(AiToolCall call, IToolExecuteContext context,
+                                                 Map<String, Object> jsonArgs) {
+        if (this.sandbox == null) {
+            return AiToolCallResult.errorResult(call.getId(), NO_BACKEND_ERROR);
+        }
+
+        IBackgroundTaskRegistry registry;
+        try {
+            registry = context.getBackgroundTaskRegistry();
+        } catch (UnsupportedOperationException e) {
+            return AiToolCallResult.errorResult(call.getId(),
+                    "runInBackground requires the agent engine context (no background task registry on "
+                            + context.getClass().getSimpleName() + ")");
+        }
+        if (registry == null) {
+            return AiToolCallResult.errorResult(call.getId(),
+                    "Background task registry is not wired in this engine (runInBackground unavailable)");
+        }
+
+        String command = textArg(jsonArgs, call, "command", "");
+        String validationError = validateCommand(command);
+        if (validationError != null) {
+            return AiToolCallResult.errorResult(call.getId(), "Command blocked: " + validationError);
+        }
+
+        long timeoutMs = clampBackgroundTimeout(
+                longArg(jsonArgs, call, "backgroundTaskTimeoutMs", DEFAULT_BACKGROUND_TIMEOUT_MS));
+        String callId = call.getCallId();
+        String sessionId = context.getSessionId();
+        String taskId = registry.submit(TOOL_NAME, sessionId, callId, timeoutMs);
+
+        File workingDir = resolveWorkingDir(textArg(jsonArgs, call, "workingDir", null), context);
+        Map<String, String> env = parseEnv(call, jsonArgs);
+        List<String> argv = buildArgv(command);
+        IBashSandbox backend = this.sandbox;
+
+        registry.run(taskId, () -> {
+            int wallSeconds = (int) Math.max(1, (timeoutMs + 999) / 1000);
+            BashSandboxRequest request = BashSandboxRequest.builder()
+                    .command(argv)
+                    .workingDirectory(workingDir)
+                    .environmentVariables(env)
+                    .config(BashSandboxConfig.builder().wallSeconds(wallSeconds).build())
+                    // same callId as the foreground path — the progress
+                    // tracker / registry kill channel address the in-flight
+                    // process by this id
+                    .callId(callId)
+                    .build();
+
+            String status;
+            String output;
+            try {
+                BashSandboxResult sr = backend.execute(request);
+                output = combineOutput(sr);
+                status = sr.isTimedOut() ? IBackgroundTaskRegistry.STATUS_TIMEOUT
+                        : sr.getExitCode() == 0 ? IBackgroundTaskRegistry.STATUS_COMPLETED
+                        : IBackgroundTaskRegistry.STATUS_FAILED;
+            } catch (BashSandboxException e) {
+                LOG.warn("BashExecutor: background task {} sandbox refused call {}: [{}]",
+                        taskId, call.getId(), e.getReason(), e);
+                output = "Sandbox refused execution [" + e.getReason() + "]";
+                status = IBackgroundTaskRegistry.STATUS_FAILED;
+            }
+            registry.complete(taskId, status, output);
+        });
+
         AiToolCallResult result = new AiToolCallResult();
+        result.setId(call.getId());
+        result.setStatus("success");
+        AiToolOutput output = new AiToolOutput();
+        output.setBody("[BACKGROUND_TASK started taskId=" + taskId
+                + " backgroundTaskTimeoutMs=" + timeoutMs
+                + "]\nThe command is running in the background. A completion notification will arrive "
+                + "as a new message. Before it arrives you can read the current output tail with the "
+                + "task-output tool (taskId=" + taskId + ") or cancel with task-stop.");
+        result.setOutput(output);
+        return result;
+    }
+
+    static long clampBackgroundTimeout(long timeoutMs) {
+        if (timeoutMs <= 0) {
+            return DEFAULT_BACKGROUND_TIMEOUT_MS;
+        }
+        return Math.min(timeoutMs, BACKGROUND_TIMEOUT_CAP_MS);
+    }
+
+    private static String combineOutput(BashSandboxResult sr) {
+        String out = sr.getStdout() == null ? "" : sr.getStdout();
+        String err = sr.getStderr() == null ? "" : sr.getStderr();
+        if (out.isEmpty()) {
+            return err;
+        }
+        if (err.isEmpty()) {
+            return out;
+        }
+        return out + "\n--- stderr ---\n" + err;
+    }
+
+    private AiToolCallResult toResult(int id, BashSandboxResult sr) {        AiToolCallResult result = new AiToolCallResult();
         result.setId(id);
         result.setExitCode(sr.getExitCode());
 
@@ -201,30 +331,127 @@ public class BashExecutor implements IToolExecutor {
         return null;
     }
 
-    private Map<String, String> parseEnv(AiToolCall call) {
+    private Map<String, String> parseEnv(AiToolCall call, Map<String, Object> jsonArgs) {
         Map<String, String> env = new HashMap<>();
         XNode node = call.getNode();
-        if (node == null) return env;
-
-        List<XNode> envNodes = node.childrenByTag("env");
-        if (envNodes == null) return env;
-
-        for (XNode envNode : envNodes) {
-            String name = envNode.attrText("name");
-            String value = envNode.attrText("value");
-            if (name != null && value != null) {
-                String upperName = name.toUpperCase();
-                if (DANGEROUS_ENV_VARS.contains(upperName)) {
-                    LOG.warn("BashExecutor: rejecting dangerous env var {}", name);
-                    continue;
+        if (node != null) {
+            List<XNode> envNodes = node.childrenByTag("env");
+            if (envNodes != null) {
+                for (XNode envNode : envNodes) {
+                    String name = envNode.attrText("name");
+                    String value = envNode.attrText("value");
+                    if (name != null && value != null) {
+                        putSafeEnv(env, name, value);
+                    }
                 }
-                if (name.startsWith("-")) {
-                    LOG.warn("BashExecutor: rejecting env var with leading dash: {}", name);
-                    continue;
+            }
+        }
+        // dual-source: the engine dispatch path carries envs inside the input
+        // JSON — either a map {name: value} or a list of {name, value} objects
+        Object jsonEnvs = jsonArgs.get("envs");
+        if (jsonEnvs instanceof Map<?, ?> envMap) {
+            for (Map.Entry<?, ?> entry : envMap.entrySet()) {
+                if (entry.getValue() != null) {
+                    putSafeEnv(env, String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
                 }
-                env.put(name, value);
+            }
+        } else if (jsonEnvs instanceof List<?> envList) {
+            for (Object item : envList) {
+                if (item instanceof Map<?, ?> itemMap) {
+                    Object name = itemMap.get("name");
+                    Object value = itemMap.get("value");
+                    if (name != null && value != null) {
+                        putSafeEnv(env, String.valueOf(name), String.valueOf(value));
+                    }
+                }
             }
         }
         return env;
+    }
+
+    private void putSafeEnv(Map<String, String> env, String name, String value) {
+        String upperName = name.toUpperCase();
+        if (DANGEROUS_ENV_VARS.contains(upperName)) {
+            LOG.warn("BashExecutor: rejecting dangerous env var {}", name);
+            return;
+        }
+        if (name.startsWith("-")) {
+            LOG.warn("BashExecutor: rejecting env var with leading dash: {}", name);
+            return;
+        }
+        env.put(name, value);
+    }
+
+    // ------------------------------------------------------------------------
+    // Plan 2301 (WI25): dual-source argument resolution (CallAgentExecutor
+    // precedent). The engine dispatch path provides JSON arguments in
+    // call.getInput() with a null node; the XML DSL path provides node
+    // attributes/children. Malformed JSON never throws — the empty map makes
+    // every lookup fall back to the node view.
+    // ------------------------------------------------------------------------
+
+    static Map<String, Object> parseJsonArgs(AiToolCall call) {
+        String input = call.getInput();
+        if (input == null || input.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(input);
+            if (parsed instanceof Map<?, ?> map) {
+                return (Map<String, Object>) map;
+            }
+        } catch (Exception e) {
+            LOG.debug("BashExecutor: input is not a JSON object — node args only: {}", e.toString());
+        }
+        return Map.of();
+    }
+
+    static String textArg(Map<String, Object> jsonArgs, AiToolCall call, String key, String defaultValue) {
+        Object value = jsonArgs.get(key);
+        if (value != null && !String.valueOf(value).isEmpty()) {
+            return String.valueOf(value);
+        }
+        return call.childText(key, defaultValue);
+    }
+
+    static boolean boolArg(Map<String, Object> jsonArgs, AiToolCall call, String key, boolean defaultValue) {
+        Object value = jsonArgs.get(key);
+        if (value instanceof Boolean b) {
+            return b;
+        }
+        if (value instanceof String s) {
+            return Boolean.parseBoolean(s);
+        }
+        return call.attrBoolean(key, defaultValue);
+    }
+
+    static int intArg(Map<String, Object> jsonArgs, AiToolCall call, String key, int defaultValue) {
+        Object value = jsonArgs.get(key);
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        if (value instanceof String s && !s.isEmpty()) {
+            try {
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                LOG.debug("BashExecutor: non-numeric {} value ignored: {}", key, s);
+            }
+        }
+        return call.attrInt(key, defaultValue);
+    }
+
+    static long longArg(Map<String, Object> jsonArgs, AiToolCall call, String key, long defaultValue) {
+        Object value = jsonArgs.get(key);
+        if (value instanceof Number n) {
+            return n.longValue();
+        }
+        if (value instanceof String s && !s.isEmpty()) {
+            try {
+                return Long.parseLong(s.trim());
+            } catch (NumberFormatException e) {
+                LOG.debug("BashExecutor: non-numeric {} value ignored: {}", key, s);
+            }
+        }
+        return call.attrLong(key, defaultValue);
     }
 }

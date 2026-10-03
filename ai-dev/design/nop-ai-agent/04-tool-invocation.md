@@ -111,12 +111,16 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 - **目标形态**：机械超时降级为兜底防线，按工具类型分层配置（build/命令类显著高于快调用）；卡死/死循环的**主判定交由模型**——心跳消息携带沙箱增量输出缓冲尾部作为进度证据（`NoOpSandboxBackend.java:101-113`、`DockerSandboxBackend.java:255` 的 capturedRef 增量 drain 已在位，无需新增采集机制）。
 - **配套约束**：等待期 steering/心跳唤醒的循环侧语义见 `nop-ai-agent-react-engine.md` §5.5；本篇边界是工具执行面的超时参数分层与进度证据来源。
 
-### 4.5 工具级后台模式（已裁定第二形态）
+### 4.5 工具级后台模式（WI25，plan 2301 已落地）
 
-- **决策**：长任务的第二种承载形态——工具调用参数增加模型可调的 `runInBackground` 属性（camelCase，对齐既有 `timeoutMs`/`workingDir` 命名格式；语义对齐 zcode 的 `run_in_background`）。置真时调用**立即返回启动确认**（taskId + 输出文件路径），真实结果不占用本轮 tool result，而是经**完成通知桥**入 mailbox 作为新输入驱动下一轮。
-- **配套构件**：跨调用可寻址的后台任务 registry（状态/pid/输出文件/进度快照——stdout/stderr tail+bytes，证据源复用沙箱 capturedRef 增量缓冲）；任务管理工具面（任务输出读取 + 停止）；读取与完成通知共享"恰好一次"claim 令牌，杜绝双份结果通道（zcode 的 TaskOutput 工具已废弃即此教训：双通道导致上下文重复）。
-- **形态边界**（已由 `nop-ai-agent-async-tool-execution.md` §三.7 收口）：后台化要求模型预判长任务并主动选择，解决"模型主动并行"；占位+唤醒（§4.4 / `nop-ai-agent-react-engine.md` §5.5）解决"未预判长任务 + steering 响应"。两者正交互补，共享 registry/进度快照/通知桥/超时分层构件。后台任务超时独立分层（`backgroundTaskTimeoutMs`，默认 3_600_000，策略封顶），subagent 类（call-agent）不开放模型自选后台（member spawn 已有异步编排面，避免双通道）；开放面为声明 `background` 能力 tag 的 bash/shell 类长时工具。
-- **既有 `&` 语义处置（已登记缺陷）**：`nop-ai-shell` 的 `cmd &` 启动即失联（`ShellCommandExecutor.java:346-361`——jobId 为实例内计数器，无查询/等待/取消/输出回收，结果随流丢弃）。后台模式落地时 `&` 必须接入任务 registry 获得闭环，或显式禁用并报错，不得维持现状。
+- **契约**：工具参数 `runInBackground: true`（camelCase，对齐既有 `timeoutMs`/`workingDir`）时调用**立即返回启动确认**（`[BACKGROUND_TASK started taskId=... backgroundTaskTimeoutMs=...]`），真实结果不占用本轮 tool result——完成通知桥（`DefaultAgentEngine.bridgeBackgroundCompletion` → `injectInput(FOLLOWUP)`，非第三唤醒源，`nop-ai-agent-async-tool-execution.md` §三.5 裁定不破）把终态作为新输入驱动下一轮。
+- **能力声明**：tool.xdef 专用元素 `<background-capable>!boolean=false</background-capable>`（默认 false=拒绝 `runInBackground`）。**不用 tags**——tags 是可见性过滤机制（plan 296），加 `background` tag 会使 activeTags 不含该 tag 的 agent 隐藏 bash。执法 chokepoint = `ToolManagerImpl.callTool`（WI17 同位）：非 background-capable 工具携带 `runInBackground` → 显式错误（双源读取：node 属性 + input JSON，ToolPathAffinity 先例）。当前开放面仅 bash（`bash.tool.xml` 声明）；call-agent（member spawn 已有异步编排面）与文件读写类不开放（`nop-ai-agent-async-tool-execution.md` §三.7 形态边界）。
+- **后台任务 registry**：`IBackgroundTaskRegistry`（nop-ai-toolkit api）+ `DefaultBackgroundTaskRegistry`（nop-ai-agent 实现，engine Builder 默认装配 + 专属 fork 池，`close()` 回收自有池）。状态机 RUNNING→COMPLETED/FAILED/TIMEOUT（幂等，先到先得）；完成通知**恰好一次**（notificationSent claim）；桥注入失败→NOTIFICATION_FAILED（fail-visible）+ 下次 snapshot/readOutput 惰性补投。输出捕获=内存有界 tail（8KB）+ 总字节数；RUNNING 期 live tail 复用 `IToolProgressTracker`（WI4 接缝，无 tracker 显式空值）。stop 优先 tracker kill 通道（`cancelExecution(callId)`，design §三.6），降级 future cancel。registry 经 `AgentToolExecuteContext.getBackgroundTaskRegistry()` default-UOE 桥访问（getCompactionArchiveReader 同构）。
+- **任务管理工具**：`task-output`（状态+tail+bytes 幂等读取，不消费 claim）/ `task-stop`（取消，已终态幂等报状态）——均 `meta=true`（不受 activeTags 过滤）；同 session 默认、跨 session fail-loud（read-spill 安全默认）。单一结果通道：通知只带 taskId/状态，内容经 task-output 读取（zcode TaskOutput 双结果通道废弃教训）。
+- **超时独立分层**：`backgroundTaskTimeoutMs` per-call 模型可调，`clamp(默认 3_600_000, 硬上限 3_600_000)`，映射沙箱 `wallSeconds`——后台 fork 不占前台派发池（`AgentDispatchExecutor` 管前台，registry 专属池管后台）；沙箱墙钟到期 → TIMEOUT 终态。call-agent 不开放（无 subagent 强制 max runtime 需求面）。
+- **参数解析双源纪律**：engine 派发路径 `AiToolCall` 节点恒 null（只有 input JSON）——BashExecutor 全参数与 task 工具 taskId 均双源解析（input JSON 优先、node 属性回退，CallAgentExecutor 先例）。此为顺带修复的存量缺陷：修复前 bash/write-file 类经 engine 派发读不到任何参数。
+- **既有 `&` 语义闭环**：`nop-ai-shell` SPI `IBackgroundJobSink`——sink 在位时 `&` 经 sink 提交（确认携带 `[taskId=...]`，可 snapshot/stop/完成通知），sink 缺席时 `&` **显式报错**（exit 126，fail-loud）。agent 侧 `BackgroundRegistryJobSink` 适配器（registry.submit + run，exitCode→COMPLETED/FAILED，stdout+stderr→输出 tail）为 **test-wiring only**（nop-ai-shell 孤儿模块无生产消费者，nop-ai-agent 对其依赖 test-scoped）；executor 不再自持 backgroundJobs（生命周期归 sink 的 taskId 通道）。
+- **已登记 residual**（plan 2301 Known Residuals）：输出仅内存 tail 无文件 offload（optimization candidate）；完成通知不唤醒 idle/终态会话（FOLLOWUP 边界——idle 下次 execute 合并 staged 注入，终态会话通知滞留 staged 有界）；shell `&` 生产消费者缺席；registry 进程内单例（进程重启任务丢失）；非 bash 工具后台化未开放。
 
 ## 五、JSON Schema 兼容
 

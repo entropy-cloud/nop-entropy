@@ -89,4 +89,21 @@ public interface IToolExecuteContext {
                         + "(read-ref requires the agent engine's AgentToolExecuteContext). "
                         + "Class: " + getClass().getName());
     }
+    /**
+     * Plan 2301 (WI25): toolkit bridge to the agent-side background task
+     * registry — same shape as {@link #getCompactionArchiveReader()} (the
+     * toolkit cannot import the agent module, so the agent's
+     * AgentToolExecuteContext overrides this; toolkit-side callers surface
+     * the UOE as "background mode requires the agent engine").
+     *
+     * @return the registry; never null when overridden by the agent engine
+     * @throws UnsupportedOperationException when no registry is available
+     *         (default implementation)
+     */
+    default IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        throw new UnsupportedOperationException(
+                "getBackgroundTaskRegistry is not available on this IToolExecuteContext implementation "
+                        + "(runInBackground requires the agent engine's AgentToolExecuteContext). "
+                        + "Class: " + getClass().getName());
+    }
 }

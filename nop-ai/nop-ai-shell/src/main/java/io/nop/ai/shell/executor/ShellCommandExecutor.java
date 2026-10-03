@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +46,14 @@ public class ShellCommandExecutor implements Closeable {
     private String currentWorkingDir = "/";
     private boolean workingDirInitialized = false;
 
-    private final Map<String, CompletableFuture<?>> backgroundJobs = new LinkedHashMap<>();
-    private final AtomicLong jobIdCounter = new AtomicLong(0);
     private volatile boolean closed = false;
+
+    /**
+     * Plan 2301 (WI25): the addressable-lifecycle sink for {@code &} jobs.
+     * Null (shipped default) = {@code &} fails loud — an unwired sink would
+     * mean start-and-lose jobs (the pre-WI25 defect).
+     */
+    private volatile IBackgroundJobSink backgroundJobSink;
 
     public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker, IToolFileSystem fileSystem) {
         this.registry = registry;
@@ -344,20 +348,30 @@ public class ShellCommandExecutor implements Closeable {
     }
 
     private CompletionStage<ExecutionResult> executeBackground(BackgroundExpr background, IShellCommandExecutionContext context, ICancelToken cancelToken) {
-        String jobId = String.valueOf(jobIdCounter.incrementAndGet());
+        // Plan 2301 (WI25): '&' closure lives in the background job sink —
+        // the pre-WI25 form started the job and lost it (instance-counted
+        // jobId, no query/wait/cancel/output recovery). No sink wired =
+        // fail loud (non-zero exit) instead of silently losing the job.
+        IBackgroundJobSink sink = this.backgroundJobSink;
+        if (sink == null) {
+            return FutureHelper.success(new ExecutionResult(126, "",
+                    "'&' background execution is not available: no IBackgroundJobSink is wired "
+                            + "(start-and-lose background jobs are rejected — wire a sink "
+                            + "or run the command in the foreground)"));
+        }
 
-        CompletableFuture<ExecutionResult> bgFuture = CompletableFuture.supplyAsync(() -> {
-            return executeExpression(background.inner(), context, cancelToken)
-                    .toCompletableFuture().join();
-        }, executor);
-
-        backgroundJobs.put(jobId, bgFuture);
-
-        bgFuture.whenComplete((r, ex) -> backgroundJobs.remove(jobId));
+        String taskId = sink.submit(String.valueOf(background.inner()),
+                () -> executeExpression(background.inner(), context, cancelToken)
+                        .toCompletableFuture().join());
 
         return FutureHelper.success(
-                new ExecutionResult(0, "[" + jobId + "] running in background", "")
+                new ExecutionResult(0, "[taskId=" + taskId + "] running in background", "")
         );
+    }
+
+    /** Plan 2301 (WI25): wire the addressable-lifecycle sink for {@code &} jobs. */
+    public void setBackgroundJobSink(IBackgroundJobSink backgroundJobSink) {
+        this.backgroundJobSink = backgroundJobSink;
     }
 
     private CompletionStage<ExecutionResult> executeSequence(List<CommandExpression> commands, IShellCommandExecutionContext context, ICancelToken cancelToken) {
@@ -620,20 +634,10 @@ public class ShellCommandExecutor implements Closeable {
 
     @Override
     public void close() throws IOException {
+        // Plan 2301 (WI25): '&' jobs are owned by the IBackgroundJobSink
+        // (addressable + cancellable through its taskId channel) — close() no
+        // longer tracks or cancels them.
         closed = true;
-        for (Map.Entry<String, CompletableFuture<?>> entry : backgroundJobs.entrySet()) {
-            entry.getValue().cancel(true);
-        }
-        for (Map.Entry<String, CompletableFuture<?>> entry : backgroundJobs.entrySet()) {
-            try {
-                entry.getValue().get(1, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (Exception e) { /* wait for cancellation, ignore timeout/interrupt */ }
-        }
-        backgroundJobs.clear();
-    }
-
-    public Map<String, CompletableFuture<?>> getBackgroundJobs() {
-        return Collections.unmodifiableMap(backgroundJobs);
     }
 
     public Map<String, String> getExportedEnv() {

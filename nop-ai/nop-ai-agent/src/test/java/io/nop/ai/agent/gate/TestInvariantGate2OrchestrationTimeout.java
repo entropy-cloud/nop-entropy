@@ -89,8 +89,10 @@ public class TestInvariantGate2OrchestrationTimeout {
     }
 
     /**
-     * I0 target set table §3.2 (16 entries: 14 original + 2 team/flow
-     * entries added by I3 R-2-3). verdict: {@code declared} =
+     * I0 target set table §3.2 (18 entries: 14 original + 2 team/flow
+     * entries added by I3 R-2-3 + injectInput added by plan 2289/WI8 +
+     * getBackgroundTaskRegistry added by plan 2301/WI25). verdict:
+     * {@code declared} =
      * evidence file must contain the marker; {@code not-applicable} /
      * {@code missing} = must be registered in gate-gaps.yaml family
      * gate-2-orchestration-timeout. The gateway-channel dispatch entry
@@ -127,6 +129,10 @@ public class TestInvariantGate2OrchestrationTimeout {
             // forkSession/cancelSession/getSessionStatus
             new Entry("IAgentEngine.injectInput", null, null, "not-applicable"),
             new Entry("IAgentEngine.close", null, null, "not-applicable"),
+            // Plan 2301 (WI25): synchronous getter returning the Builder-wired
+            // background task registry — no async wait surface, same
+            // not-applicable class as getSessionStatus
+            new Entry("IAgentEngine.getBackgroundTaskRegistry", null, null, "not-applicable"),
             new Entry("ReActAgentExecutor.execute", "engine/ReActAgentExecutor.java",
                     "llmTimeoutMs", "declared"),
             new Entry("SingleTurnExecutor.execute", "engine/SingleTurnExecutor.java",

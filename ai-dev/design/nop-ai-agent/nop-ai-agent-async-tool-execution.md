@@ -118,18 +118,18 @@ flowchart TD
 - **进度证据接缝**（plan 2285 修正：原 capturedRef 锚点为无生产流量的接缝）：bash 类工具的进度证据与进程取消通道落在 toolkit 的 `IBashSandbox` 接缝——`BashSandboxRequest` 携带 callId，host/docker 实现维护 callId 寻址的运行中登记（增量输出尾部快照 + 进程句柄），execute 开始登记/结束注销；agent 侧经 `IToolProgressTracker` 适配查询/取消（无实现时显式空值=证据不可用，非静默）。agent 侧 `ISandboxBackend`（NoOp/DockerSandboxBackend）为未接线的 shell-exec 预留面，与本机制无关。WI25 后台任务 registry 复用同一 tracker。
 - **唤醒请求占位插入位置**：占位插入发生在请求副本（ctx 快照拷贝），锚定为该占位自身 callId 所在连续 tool_call/tool_output 区段末尾——多轮心跳/并行派生后历史含多个区段，逐占位按自身 callId 锚定保证 tool_result 紧随各自 tool_use（与不变量②同一区段语义，复用同一 list 级 helper）。
 
-### 7. 工具级后台模式 runInBackground（裁定⑤）
+### 7. 工具级后台模式 runInBackground（裁定⑤，plan 2301 已落地）
 
 **形态边界**：
 
-- 开放面：bash/shell 类长时工具，通过 tool.xdef 既有 tags 机制声明 `background` 能力 tag；模型在工具参数上设 `runInBackground: true`（camelCase，对齐既有 timeoutMs/workingDir 命名）选择后台执行；
+- 开放面：bash/shell 类长时工具，经 tool.xdef `<background-capable>!boolean=false</background-capable>` 元素声明（**落地修订 plan 2301：不用 tags——tags 是可见性过滤机制（plan 296），加 `background` tag 会使 activeTags 不含该 tag 的 agent 隐藏 bash**）；模型在工具参数上设 `runInBackground: true`（camelCase，对齐既有 timeoutMs/workingDir 命名）选择后台执行；
 - 不开放：subagent 类（call-agent）——member spawn 已有异步编排面，开放模型自选后台构成双通道；文件读写类——毫秒级完成无后台语义。
 
-**语义**：置真时调用立即返回启动确认（taskId + 输出文件路径）；真实结果经完成通知桥入 mailbox 作为新输入驱动下一轮。**完成通知不是第三唤醒源**——经由既有 mailbox/steering 通道，"唤醒源仅 steering/心跳"的裁定不破。读取与完成通知共享"恰好一次"claim 令牌防双发（单一结果通道：输出文件 + 通知携带路径，模型用文件读取工具消费，不设双结果查询通道）。
+**语义**：置真时调用立即返回启动确认（taskId）；真实结果经完成通知桥入 mailbox 作为新输入驱动下一轮。**完成通知不是第三唤醒源**——经由既有 mailbox/steering 通道，"唤醒源仅 steering/心跳"的裁定不破。完成通知**恰好一次**（claim 令牌）；**输出读取单一通道**（plan 2301 落地裁定：不设"输出文件路径"——registry 内存有界 tail（8KB）+ 总字节，模型经 task-output 工具凭 taskId 读取；zcode 的 TaskOutput 双结果通道已废弃即此教训，读取幂等不消费 claim）。
 
-**超时独立分层**：`backgroundTaskTimeoutMs` 默认 3_600_000，模型 per-call 可调但策略封顶；后台任务 registry 提供跨调用可寻址的状态/输出文件/进度快照（stdout/stderr tail + bytes，证据源复用沙箱 capturedRef 增量缓冲）。
+**超时独立分层**：`backgroundTaskTimeoutMs` 默认 3_600_000 模型 per-call 可调、硬上限 1h（映射沙箱 wallSeconds）；后台任务 registry（`DefaultBackgroundTaskRegistry`）提供跨调用可寻址的状态/输出 tail/进度快照（RUNNING 期 live tail 复用 IToolProgressTracker，§6 进度证据接缝）。
 
-**既有 `&` 语义修复**：`ShellCommandExecutor.executeBackground`（`ShellCommandExecutor.java:346-361`）现状 jobId 实例内计数、无查询/等待/取消/输出回收，启动即失联。裁定：`&` 接入后台任务 registry 闭环（`&` 解析为 runInBackground 提交、jobId = registry taskId）；registry 未就绪的过渡期 `&` 显式报错（快速失败），不维持失联现状。
+**既有 `&` 语义修复**：`&` 接入后台任务 registry 闭环（shell 侧 SPI `IBackgroundJobSink`，确认携带 `[taskId=...]`）；registry 未就绪时 `&` 显式报错（exit 126，快速失败），不维持失联现状。落地契约详见 `04-tool-invocation.md` §4.5。
 
 ## 四、拒绝了什么
 

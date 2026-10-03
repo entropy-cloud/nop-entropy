@@ -385,7 +385,27 @@ class ShellCommandExecutorTest {
     }
 
     @Test
-    void testBackgroundExprReturnsImmediately() throws Exception {
+    void testBackgroundWithoutSinkFailsLoud() throws Exception {
+        IShellCommandExecutionContext context = createContext(
+                new BlockingQueueShellInput(1),
+                new BlockingQueueShellOutput(),
+                new BlockingQueueShellOutput()
+        );
+
+        // Plan 2301 (WI25): no IBackgroundJobSink wired = '&' fails loud
+        // (the pre-WI25 form started the job and lost it)
+        ExecutionResult result = executor.execute("echo bg &", context)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+
+        assertEquals(126, result.exitCode());
+        assertTrue(result.stderr().contains("no IBackgroundJobSink is wired"),
+                result.stderr());
+    }
+
+    @Test
+    void testBackgroundWithSinkReturnsAddressableTaskId() throws Exception {
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
@@ -396,7 +416,16 @@ class ShellCommandExecutorTest {
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        assertTrue(result.stdout().contains("running in background"));
+        assertTrue(result.stdout().contains("running in background"), result.stdout());
+        String taskId = sink.awaitSubmission();
+        assertTrue(result.stdout().contains("[taskId=" + taskId + "]"),
+                "the confirmation must carry the addressable taskId: " + result.stdout());
+
+        // the sink owns the completion: the job body runs and its result is
+        // delivered to the sink channel
+        ExecutionResult jobResult = sink.awaitCompletion(taskId, 5, TimeUnit.SECONDS);
+        assertEquals(0, jobResult.exitCode());
+        assertEquals(1, sink.snapshotCount(taskId), "exactly one completion per task");
     }
 
     @Test
@@ -587,14 +616,17 @@ class ShellCommandExecutorTest {
                 new BlockingQueueShellOutput()
         );
 
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
+
         ExecutionResult result = executor.execute("sleep 200 & echo after", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
         assertTrue(result.stdout().contains("after"),
                 "the command after & must still run in the foreground — got: " + result.stdout());
-        assertFalse(executor.getBackgroundJobs().isEmpty(),
-                "the background job must have been registered");
+        String taskId = sink.awaitSubmission();
+        assertTrue(taskId.startsWith("bg-"), "the background job must be sink-registered: " + taskId);
 
         executor.close();
     }
@@ -649,7 +681,7 @@ class ShellCommandExecutorTest {
     }
 
     @Test
-    void testCloseCancelsBackgroundJobs() throws Exception {
+    void testBackgroundJobLifecycleOwnedBySink() throws Exception {
         AtomicBoolean wasInterrupted = new AtomicBoolean(false);
         AtomicBoolean started = new AtomicBoolean(false);
 
@@ -678,6 +710,8 @@ class ShellCommandExecutorTest {
         });
 
         ShellCommandExecutor localExecutor = new ShellCommandExecutor(localRegistry, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        localExecutor.setBackgroundJobSink(sink);
         IShellCommandExecutionContext context = createContext(
                 new BlockingQueueShellInput(1),
                 new BlockingQueueShellOutput(),
@@ -688,16 +722,23 @@ class ShellCommandExecutorTest {
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-        assertFalse(localExecutor.getBackgroundJobs().isEmpty());
+        String taskId = sink.awaitSubmission();
+        assertNotNull(taskId, "the sink must own the job lifecycle");
 
         for (int i = 0; i < 100 && !started.get(); i++) {
             Thread.sleep(10);
         }
         assertTrue(started.get(), "Background job should have started");
 
-        localExecutor.close();
+        // Plan 2301 (WI25): the job is cancellable through its taskId — the
+        // sink channel replaces the old start-and-lose executor-owned map
+        assertTrue(sink.cancel(taskId));
+        for (int i = 0; i < 200 && !wasInterrupted.get(); i++) {
+            Thread.sleep(10);
+        }
+        assertTrue(wasInterrupted.get(), "sink cancel must reach the running job body");
 
-        assertTrue(localExecutor.getBackgroundJobs().isEmpty(), "Background jobs should be cleared after close");
+        localExecutor.close();
     }
 
     @Test

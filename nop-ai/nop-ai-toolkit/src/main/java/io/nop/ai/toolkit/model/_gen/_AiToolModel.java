@@ -18,6 +18,21 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: background-capable
+     * Plan 2301 (WI25): background-execution capability declaration.
+     * Default false — a call carrying the reserved `runInBackground=true`
+     * argument is rejected (fail-loud, never a silent foreground fallback).
+     * Declare true on bash/shell-class long tools to allow
+     * runInBackground=true (immediate taskId confirmation; the real result
+     * arrives as a completion notification through the session input
+     * channel). Deliberately NOT a tag — tags are the visibility-filter
+     * mechanism (plan 296); a `background` tag would hide the tool from
+     * agents whose activeTags do not include it.
+     */
+    private boolean _backgroundCapable ;
+    
+    /**
+     *  
      * xml name: class
      * 
      */
@@ -109,6 +124,33 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
      * to filter which tools are exposed to the LLM. Empty = no tags.
      */
     private java.util.Set<java.lang.String> _tags ;
+    
+    /**
+     * 
+     * xml name: background-capable
+     *  Plan 2301 (WI25): background-execution capability declaration.
+     * Default false — a call carrying the reserved `runInBackground=true`
+     * argument is rejected (fail-loud, never a silent foreground fallback).
+     * Declare true on bash/shell-class long tools to allow
+     * runInBackground=true (immediate taskId confirmation; the real result
+     * arrives as a completion notification through the session input
+     * channel). Deliberately NOT a tag — tags are the visibility-filter
+     * mechanism (plan 296); a `background` tag would hide the tool from
+     * agents whose activeTags do not include it.
+     */
+    
+    public boolean isBackgroundCapable(){
+      return _backgroundCapable;
+    }
+
+    
+    public void setBackgroundCapable(boolean value){
+        checkAllowChange();
+        
+        this._backgroundCapable = value;
+           
+    }
+
     
     /**
      * 
@@ -381,6 +423,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("backgroundCapable",this.isBackgroundCapable());
         out.putNotNull("className",this.getClassName());
         out.putNotNull("concurrencySafe",this.isConcurrencySafe());
         out.putNotNull("description",this.getDescription());
@@ -403,6 +446,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(AiToolModel instance){
         super.copyTo(instance);
         
+        instance.setBackgroundCapable(this.isBackgroundCapable());
         instance.setClassName(this.getClassName());
         instance.setConcurrencySafe(this.isConcurrencySafe());
         instance.setDescription(this.getDescription());

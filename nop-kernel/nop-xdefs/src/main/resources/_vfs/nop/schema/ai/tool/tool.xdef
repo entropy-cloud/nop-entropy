@@ -51,4 +51,15 @@
          (conservative default). -->
     <concurrency-safe>!boolean=false</concurrency-safe>
 
+    <!-- Plan 2301 (WI25): background-execution capability declaration.
+         Default false — a call carrying the reserved `runInBackground=true`
+         argument is rejected (fail-loud, never a silent foreground fallback).
+         Declare true on bash/shell-class long tools to allow
+         runInBackground=true (immediate taskId confirmation; the real result
+         arrives as a completion notification through the session input
+         channel). Deliberately NOT a tag — tags are the visibility-filter
+         mechanism (plan 296); a `background` tag would hide the tool from
+         agents whose activeTags do not include it. -->
+    <background-capable>!boolean=false</background-capable>
+
 </tool>

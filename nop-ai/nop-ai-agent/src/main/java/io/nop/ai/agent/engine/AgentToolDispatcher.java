@@ -1,6 +1,7 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.tool.AgentDispatchExecutor;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
@@ -540,17 +541,23 @@ public class AgentToolDispatcher {
                                                           AgentModel agentModel,
                                                           String sessionId,
                                                           String agentName) {
-IAiMemoryStore memoryStore = memoryStoreProvider != null && sessionId != null
-        ? memoryStoreProvider.getOrCreate(sessionId)
-        : null;
+        IAiMemoryStore memoryStore = memoryStoreProvider != null && sessionId != null
+                ? memoryStoreProvider.getOrCreate(sessionId)
+                : null;
 
-AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
-        toolPlanResolver.resolveWorkDir(agentModel),
-        Collections.emptyMap(),
-        0L,
-        null,
-        null,
-        null,
+        // Plan 2301 (WI25): the executor slot must be non-null on the engine
+        // dispatch path — BashExecutor.executeAsync calls
+        // context.getExecutor().submit unconditionally (the pre-WI25 default
+        // null made the engine+bash combination NPE; no integration test
+        // covered it). The shared ForkJoin-pool adapter preserves the
+        // async tool-execution semantics the dispatcher's fanout relies on.
+        AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
+                toolPlanResolver.resolveWorkDir(agentModel),
+                Collections.emptyMap(),
+                0L,
+                null,
+                null,
+                AgentDispatchExecutor.INSTANCE,
         engine,
         messenger,
         sessionId,

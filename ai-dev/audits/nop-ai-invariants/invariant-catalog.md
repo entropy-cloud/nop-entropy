@@ -31,7 +31,7 @@
   - AUDIT-13-04 / L23-SDI → plan `ai-dev/archived/2026-06/199-nop-ai-agent-layer23-secure-defaults.md` + `ai-dev/plans/200-nop-ai-agent-layer23-secure-default-impls.md` → live 4 个 Layer 2/3 Default* 组件（`DefaultPermissionMatrix` / `DefaultSecurityLevelResolver` / `DefaultApprovalGate` / `DefaultDenialLedger` / `DefaultPostDenialGuard`，`DefaultAgentEngineConfig.java:114-118` 字段默认值用 Default*）+ `TestLayer23SecureDefaults` / `TestLayer23SecureDefaultImpls`。
   - AUDIT-14-01（runningExecutions）→ plan `ai-dev/archived/2026-06/197-nop-ai-agent-session-concurrency-guard.md` → live `DefaultAgentEngine.java:786` `runningExecutions.putIfAbsent(sessionId, handle)`（并发执行 fail-fast）。
   - AUDIT-09-01 → plan `ai-dev/archived/2026-06/196-nop-ai-agent-exception-base-class.md` → live `NopAiAgentException extends NopException`。
-- **检测方法**（I1 门禁①）：ArchUnit 规则（`com.tngtech.archunit:archunit-junit5:1.5.0`，**全仓当前无 ArchUnit 依赖，I1 需先引入**）或 JUnit 反射扫描：对 §3.1 目标集表全部 33 个 Default* 类断言「声明安全默认配置」，判定标准与跨模块 classpath 约束（agent/core/toolkit/shell 四模块分布，nop-ai-agent 依赖 core+toolkit 但不依赖 shell）由 I1 Phase 1 裁定；表完备性接线（新 Default* 类不入表即 red）。
+- **检测方法**（I1 门禁①）：ArchUnit 规则（`com.tngtech.archunit:archunit-junit5:1.5.0`，**全仓当前无 ArchUnit 依赖，I1 需先引入**）或 JUnit 反射扫描：对 §3.1 目标集表全部 35 个 Default* 类断言「声明安全默认配置」，判定标准与跨模块 classpath 约束（agent/core/toolkit/shell 四模块分布，nop-ai-agent 依赖 core+toolkit 但不依赖 shell）由 I1 Phase 1 裁定；表完备性接线（新 Default* 类不入表即 red）。
   - **I1 裁定（2026-08-12）**：声明形式 = 类级 marker 注解 `@SecureDefault`（`nop-ai-api` 包 `io.nop.ai.api.secure`，纯声明无行为）。门禁只验证注解存在性 + 类别属性（`src/main` 具体类、`Default` 前缀、非生成类），**不验证行为语义**（行为验证 = I2）。落地 = `TestInvariantGate1SecureDefault`（nop-ai-agent，覆盖 agent+core+toolkit 31 类）+ `TestInvariantGate1SecureDefaultShell`（nop-ai-shell，覆盖 shell 2 类）；表完备性 = 源树机械反查（复刻 §4 find 命令）与表 diff。首跑 33 类均无注解 → 全部登记 `gate-gaps.yaml`（`missing-declaration`，等 I4 补注解，不修复）。ArchUnit 与 junit-platform 6 / Java 26 兼容性实测失败则回退 JUnit 反射扫描（本目录记录裁定）。
 
 ### INV-2 异步编排：每个编排入口必须声明 timeout
@@ -97,17 +97,17 @@
 
 > 每张表头含「判定标准原文 + 复现命令」；条目数为 live 枚举数与表行数一致（差异零或显式记录）。所有行号均于 2026-08-12 live 核实。
 
-### 3.1 Default* 类表（33 条）
+### 3.1 Default* 类表（35 条）
 
-> 门禁①对应：known-gaps family `gate-1-default-secure`（机制见 §3.5）；I1 首跑 33/33 无 `@SecureDefault` 声明已全部登记（I4 补注解）。
+> 门禁①对应：known-gaps family `gate-1-default-secure`（机制见 §3.5）；I1 首跑 33/33 无 `@SecureDefault` 声明已全部登记（I4 补注解）。**plan 2301（WI25，2026-10-03）按 Loop Rule 增补 23 号行 `tool/DefaultBackgroundTaskRegistry`（`@SecureDefault` 注解在位，声明直判通过、无 gaps 登记）；同批修复存量漂移——24 号行 `routing/DefaultSelectionStrategy`（plan 2026-08-15-0849 落地时漏同步本表，门禁①完备性测试不覆盖 core 模块故未变红；本次补录 + 补 `@SecureDefault`）。**
 
 - **判定标准**：文件名以 `Default` 开头且位于 `src/main`（非测试、非生成）的 Java 类。文件在仓库中的位置由下方复现命令机械决定；是否参与 I1 门禁①以本表为准（表完备性 = 命令输出 == 表行数）。
 - **复现命令**：
   ```bash
   find nop-ai -name "Default*.java" -not -path "*/target/*" -not -path "*/test/*" -not -path "*/_gen/*" | sort
   ```
-  （输出 33 行，与本表行数一致）
-- **边缘类裁定**：`nop-ai-agent/src/main/java/io/nop/ai/agent/guardrail/test/DefaultGuardrailGrader.java` 位于 `src/main` 但包路径含 `/test/` 段，被复现命令排除（`-not -path "*/test/*"`）。**裁定：排除**（理由：该 class 是 guardrail 测试辅助 grader（`GuardrailGrader` 实现，对 AttackCase 打分），非引擎/安全组件 Default* 类，不承担 secure-default 语义；若后续升级为生产组件，由 I2/I5 按 Loop Rule 复触发重新裁定）。本裁定使「命令输出 == 表行数」成立（33 行，不含 DefaultGuardrailGrader）。
+  （输出 35 行，与本表行数一致）
+- **边缘类裁定**：`nop-ai-agent/src/main/java/io/nop/ai/agent/guardrail/test/DefaultGuardrailGrader.java` 位于 `src/main` 但包路径含 `/test/` 段，被复现命令排除（`-not -path "*/test/*"`）。**裁定：排除**（理由：该 class 是 guardrail 测试辅助 grader（`GuardrailGrader` 实现，对 AttackCase 打分），非引擎/安全组件 Default* 类，不承担 secure-default 语义；若后续升级为生产组件，由 I2/I5 按 Loop Rule 复触发重新裁定）。本裁定使「命令输出 == 表行数」成立（35 行，不含 DefaultGuardrailGrader）。
 
 | # | 模块 | 类（`包路径/文件`） | IoC 注入候选标注 |
 |---|------|---------------------|------------------|
@@ -133,23 +133,25 @@
 | 20 | nop-ai-agent | `security/DefaultToolAccessChecker.java` | 构造注入候选（`ReActAgentExecutorBuilder`/`AgentStartupWarnings` 引用） |
 | 21 | nop-ai-agent | `team/DefaultMemberSpawner.java` | 构造注入候选（`NoOpMemberSpawner` 并列存在） |
 | 22 | nop-ai-agent | `team/DefaultTeamAclChecker.java` | 构造注入候选（`DbTeamManager` 引用） |
-| 23 | nop-ai-core | `api/tool/DefaultAiChatFunctionTool.java` | 构造注入候选（`GraphQLToolProvider` 等引用） |
-| 24 | nop-ai-core | `api/tool/DefaultAiChatToolSet.java` | 构造注入候选（`GraphQLToolSetFactoryBean` 引用） |
-| 25 | nop-ai-core | `persist/DefaultAiChatExchangePersister.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.5-002 修复载体 |
-| 26 | nop-ai-core | `persist/DefaultAiChatResponseCache.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；MA6.5-AR-7 修复载体 |
-| 27 | nop-ai-core | `prompt/DefaultSystemPromptLoader.java` | 构造注入候选（`AiCommand` 引用） |
-| 28 | nop-ai-core | `service/DefaultAiChatService.java` | **IoC bean 注册**（`ai-defaults.beans.xml`，废弃 API 保留向后兼容）；MR1/MR2 修复载体 |
-| 29 | nop-ai-core | `service/DefaultAiChatSession.java` | 构造注入候选（`DefaultAiChatService` 内部） |
-| 30 | nop-ai-core | `service/DefaultChatLogger.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.1-003 修复载体 |
-| 31 | nop-ai-shell | `checker/DefaultCommandChecker.java` | 构造注入候选（`ShellCommandExecutor` 两参构造默认装配；P2-MA3-023 修复载体） |
-| 32 | nop-ai-shell | `commands/DefaultShellExecutionContext.java` | 构造注入候选（`ShellCommandExecutor`/`CdCommand` 引用） |
-| 33 | nop-ai-toolkit | `executor/DefaultToolExecutorProvider.java` | **IoC bean 注册**（`ai-tools-defaults.beans.xml`；test beans 引用） |
+| 23 | nop-ai-agent | `tool/DefaultBackgroundTaskRegistry.java` | 构造注入候选（`DefaultAgentEngine` Builder 装配；plan 2301 WI25 产物） |
+| 24 | nop-ai-core | `api/tool/DefaultAiChatFunctionTool.java` | 构造注入候选（`GraphQLToolProvider` 等引用） |
+| 26 | nop-ai-core | `api/tool/DefaultAiChatToolSet.java` | 构造注入候选（`GraphQLToolSetFactoryBean` 引用） |
+| 27 | nop-ai-core | `persist/DefaultAiChatExchangePersister.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.5-002 修复载体 |
+| 28 | nop-ai-core | `persist/DefaultAiChatResponseCache.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；MA6.5-AR-7 修复载体 |
+| 29 | nop-ai-core | `prompt/DefaultSystemPromptLoader.java` | 构造注入候选（`AiCommand` 引用） |
+| 30 | nop-ai-core | `routing/DefaultSelectionStrategy.java` | 构造注入候选（`ModelClassRouter` 默认策略；plan 2026-08-15-0849 产物，plan 2301 WI25 补录表） |
+| 30 | nop-ai-core | `service/DefaultAiChatService.java` | **IoC bean 注册**（`ai-defaults.beans.xml`，废弃 API 保留向后兼容）；MR1/MR2 修复载体 |
+| 31 | nop-ai-core | `service/DefaultAiChatSession.java` | 构造注入候选（`DefaultAiChatService` 内部） |
+| 32 | nop-ai-core | `service/DefaultChatLogger.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.1-003 修复载体 |
+| 33 | nop-ai-shell | `checker/DefaultCommandChecker.java` | 构造注入候选（`ShellCommandExecutor` 两参构造默认装配；P2-MA3-023 修复载体） |
+| 34 | nop-ai-shell | `commands/DefaultShellExecutionContext.java` | 构造注入候选（`ShellCommandExecutor`/`CdCommand` 引用） |
+| 35 | nop-ai-toolkit | `executor/DefaultToolExecutorProvider.java` | **IoC bean 注册**（`ai-tools-defaults.beans.xml`；test beans 引用） |
 
-### 3.2 编排入口表（17 条）
+### 3.2 编排入口表（19 条）
 
-> 门禁②对应：known-gaps family `gate-2-orchestration-timeout`（机制见 §3.5）；I1 首跑 4 not-applicable（forkSession/cancelSession/close/getSessionStatus）+ 1 missing（SingleTurnExecutor.execute）已登记；I3 裁决（R-2-1/R-2-3）补表 3 条（gateway 派发 + team/flow fan-out），I4 修复后 missing 条目已移除（2026-08-12）。
+> 门禁②对应：known-gaps family `gate-2-orchestration-timeout`（机制见 §3.5）；I1 首跑 4 not-applicable（forkSession/cancelSession/close/getSessionStatus）+ 1 missing（SingleTurnExecutor.execute）已登记；I3 裁决（R-2-1/R-2-3）补表 3 条（gateway 派发 + team/flow fan-out），I4 修复后 missing 条目已移除（2026-08-12）。**plan 2289（WI8，2026-10-02）按 Loop Rule 增补 11 号行 `injectInput`（not-applicable，gate-gaps 已登记、本表行当时漏同步）；plan 2301（WI25，2026-10-03）增补 12 号行 `getBackgroundTaskRegistry`（not-applicable 同步 getter）。**
 
-- **判定标准（机械派生，原文 + I3 补表扩展）**：编排入口 = ① `IAgentEngine` 接口的全部公共方法（10 个：`sendMessage`/`execute`/`forkSession`/`getSessionStatus`/`cancelSession`/`resumeSession`/`restoreSession`/`wakeSession`/`restorePendingSessions`/`close`——接口是编排契约面，实现类（`DefaultAgentEngine`/`AgentSessionLifecycle`）的 `@Override` 方法不重复计数；**I1 修正：live 接口公共方法实为 10 个，I0 漏计 `getSessionStatus`（同步状态查询，非异步编排面），由 I1 门禁②表完备性发现，补入表并登记 not-applicable**）；② `io.nop.ai.agent.engine` 包内声明类上方法名 ∈ {`execute`, `executeAllowedCalls`} 的公共方法（机械 grep 结果：`ReActAgentExecutor.execute` :339、`SingleTurnExecutor.execute` :54、`AgentToolDispatcher.executeAllowedCalls` :165——executeAllowedCalls 返回 void，但语义为工具 fanout 编排步骤且带 timeout/join 契约，列入）；③ `CallAgentExecutor.executeAsync`（`io.nop.ai.agent.tool` 包唯一特例：其声明类实现 IToolExecutor，但语义为「启动子 agent 执行路径」，是 AUDIT-14-01 timeout 契约的直接主题，故同时出现在本表；§3.3 的安全边界检查不替代其 timeout 声明检查）；④ **I3 R-2-3 扩展：team/flow 包 fan-out 入口**——`MemberFanOutDispatcher.dispatch`（public static，经 `agentEngine.execute` :326 启动 agent 执行路径）+ `TeamTaskFlowOrchestrator.executeAsync`（daemon 级编排入口，result future 整体 deadline 兜底）；⑤ **I3 R-2-1 扩展：channel 派发入口**——`ChannelMessageServiceImpl.dispatchInbound`（gateway 包，mode-1 listener fan-out / mode-2 sendAsync 等待面，统一有界化）。**排除**（按本标准机械排除，非主观判断）：tool executors 的 `executeAsync`（归 §3.3）、messenger/DB 传输方法（`LocalAgentMessenger.request`、`DBMessageService.sendAsync`）。**R-2-2 watch 记录（I3 裁决）**：plan/runtime 包（`PlanExecutor`/`TaskRunner`/`PlanScheduler` 等 20 文件）生产零接线（唯一 src/main 引用 = `AgentPlan` → `AgentPlanValidator` 模型校验），不构成编排入口、不入表；**触发条件** = plan/runtime 接线时（出现 `TaskRunner` 产品实现 / 引擎引用 `PlanExecutor.execute`）须补 timeout 契约 + 本表登记（missing-declaration），复触发 I2/I5。
+- **判定标准（机械派生，原文 + I3 补表扩展）**：编排入口 = ① `IAgentEngine` 接口的全部公共方法（12 个：`sendMessage`/`execute`/`forkSession`/`getSessionStatus`/`cancelSession`/`resumeSession`/`restoreSession`/`wakeSession`/`restorePendingSessions`/`close`/`injectInput`（WI8）/`getBackgroundTaskRegistry`（WI25）——接口是编排契约面，实现类（`DefaultAgentEngine`/`AgentSessionLifecycle`）的 `@Override` 方法不重复计数；**I1 修正：live 接口公共方法当时实为 10 个，I0 漏计 `getSessionStatus`（同步状态查询，非异步编排面），由 I1 门禁②表完备性发现，补入表并登记 not-applicable；WI8/WI25 又各增 1 法（均 not-applicable，见 11/12 号行）**）；② `io.nop.ai.agent.engine` 包内声明类上方法名 ∈ {`execute`, `executeAllowedCalls`} 的公共方法（机械 grep 结果：`ReActAgentExecutor.execute` :339、`SingleTurnExecutor.execute` :54、`AgentToolDispatcher.executeAllowedCalls` :165——executeAllowedCalls 返回 void，但语义为工具 fanout 编排步骤且带 timeout/join 契约，列入）；③ `CallAgentExecutor.executeAsync`（`io.nop.ai.agent.tool` 包唯一特例：其声明类实现 IToolExecutor，但语义为「启动子 agent 执行路径」，是 AUDIT-14-01 timeout 契约的直接主题，故同时出现在本表；§3.3 的安全边界检查不替代其 timeout 声明检查）；④ **I3 R-2-3 扩展：team/flow 包 fan-out 入口**——`MemberFanOutDispatcher.dispatch`（public static，经 `agentEngine.execute` :326 启动 agent 执行路径）+ `TeamTaskFlowOrchestrator.executeAsync`（daemon 级编排入口，result future 整体 deadline 兜底）；⑤ **I3 R-2-1 扩展：channel 派发入口**——`ChannelMessageServiceImpl.dispatchInbound`（gateway 包，mode-1 listener fan-out / mode-2 sendAsync 等待面，统一有界化）。**排除**（按本标准机械排除，非主观判断）：tool executors 的 `executeAsync`（归 §3.3）、messenger/DB 传输方法（`LocalAgentMessenger.request`、`DBMessageService.sendAsync`）。**R-2-2 watch 记录（I3 裁决）**：plan/runtime 包（`PlanExecutor`/`TaskRunner`/`PlanScheduler` 等 20 文件）生产零接线（唯一 src/main 引用 = `AgentPlan` → `AgentPlanValidator` 模型校验），不构成编排入口、不入表；**触发条件** = plan/runtime 接线时（出现 `TaskRunner` 产品实现 / 引擎引用 `PlanExecutor.execute`）须补 timeout 契约 + 本表登记（missing-declaration），复触发 I2/I5。
 - **复现命令**：
   ```bash
   # ① engine 包内返回 future 的公共方法（11 行 = DefaultAgentEngine ×6 @Override + AgentSessionLifecycle ×3 @Override + ReAct ×1 + SingleTurn ×1）
@@ -159,7 +161,7 @@
   grep -n "public void executeAllowedCalls" nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/AgentToolDispatcher.java
   # ④ CallAgentExecutor.executeAsync（tool 包唯一特例）→ :144
   grep -n "public CompletionStage<AiToolCallResult> executeAsync" nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/CallAgentExecutor.java
-  # ⑤ IAgentEngine 公共入口（9 个，read engine/IAgentEngine.java，行号见下表）
+  # ⑤ IAgentEngine 公共入口（12 个，read engine/IAgentEngine.java，行号见下表）
   # ⑥ I3 R-2-3 team/flow fan-out 入口（机械派生）
   grep -n "public static CompletableFuture<MemberDispatchOutcome> dispatch(" nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/team/flow/MemberFanOutDispatcher.java
   grep -n "public CompletableFuture<TeamTaskFlowResult> executeAsync(" nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/team/flow/TeamTaskFlowOrchestrator.java
@@ -179,13 +181,15 @@
 | 8 | `IAgentEngine.java:214` `restorePendingSessions(...)` | 批量恢复编排 |
 | 9 | `IAgentEngine.java:42` `getSessionStatus(...)` | **I1 补录**：同步状态查询入口（非异步编排面，timeout 不适用；I0 漏计，live 接口公共方法 10 个） |
 | 10 | `IAgentEngine.java:237` `close()` | 生命周期终止入口（AutoCloseable，见 §3.4） |
-| 11 | `engine/ReActAgentExecutor.java:339` `execute(AgentExecutionContext ctx)` | ReAct 主循环（timeout 家族修复点） |
-| 12 | `engine/SingleTurnExecutor.java:54` `execute(AgentExecutionContext ctx)` | 单轮执行器（**I4 修复**：llmTimeoutMs + timeoutExecutor 机制，`get(llmTimeoutMs, TimeUnit)` + TimeoutException 失败路径） |
-| 13 | `engine/AgentToolDispatcher.java:165` `executeAllowedCalls(...)` | 工具 fanout 调度 |
-| 14 | `tool/CallAgentExecutor.java:144` `executeAsync(AiToolCall, IToolExecuteContext)` | 子 agent 调用入口（timeout 家族修复点） |
-| 15 | `team/flow/MemberFanOutDispatcher.java:157` `dispatch(...)` | **I3 R-2-3 补录**：team-flow fan-out 入口（static，`agentEngine.execute` :326 启动 agent 执行路径；**I4 修复**：per-member `orTimeout(memberExecTimeoutMs)` + 超时取消子会话，deadline 唯一来源 = `DefaultAgentEngineConfig.memberExecTimeoutMs`）。**分支级标注（plan 2026-08-12-2050-2 / AR-2 拆分）**：两条执行分支各自声明 timeout marker —— BOUND 分支 `executeBoundMember`（:326 `orTimeout` + :334 超时 `cancelSession`）+ SPAWN 分支 `spawnOneTarget`（:387 per-target `orTimeout`；spawner 层 `DefaultMemberSpawner` 另有有界 `get(memberExecTimeoutMs, TimeUnit)`）。门禁②判定 = **代码级（去注释/去字符串）`orTimeout` 计数 ≥ 2**（门禁测试 `TestInvariantGate2OrchestrationTimeout` 该行 `minOccurrences=2`） |
-| 16 | `team/flow/TeamTaskFlowOrchestrator.java:581` `executeAsync(String teamId)` | **I3 R-2-3 补录**：daemon 级编排入口（**I4 修复**：result future 整体 `orTimeout` deadline 兜底；:443 `awaitTermination(2, TimeUnit.SECONDS)` 为 close 路径关闭等待，非编排 timeout）。**整体 deadline 语义（plan 2026-08-12-2050-2 / AR-3 升级）**：整体 deadline = `memberExecTimeoutMs × maxDepth`（maxDepth = 图最长依赖链，build 期从 blockedBy DAG 计算）——与 per-member 解耦，合法 N 层顺序 DAG（每层合法跑满 per-member）不被整体 deadline 误杀；整体超时（unwrap 后 `TimeoutException` 限定）→ `ITaskRuntime.cancel(CANCEL_REASON_TIMEOUT)` 取消底层图（nop-task `ICancellable` 能力）+ 诚实失败结果，取消失败显式 LOG（不静默）；普通节点失败不触发整图 cancel（保持 GraphTaskStep 短路语义） |
-| 17 | `nop-ai-gateway/.../channel/ChannelMessageServiceImpl.java:329` `dispatchInbound(...)` | **I3 R-2-1 补录**（gateway 包，判定标准扩展为「channel 派发入口」）：**按 mode 拆两条目（plan 2026-08-12-2050-2 / AR-4 + WS4）**——mode-1（`fanOutToListeners` :371-373 per-listener `runAsync(...).orTimeout(dispatchTimeoutMs)`，**AR-4 修复**：超时 cancel **原始 runAsync future**（保留 `raw` 引用）+ 显式中断 worker 线程（JDK `CompletableFuture.cancel` 不保证中断运行中任务——worker 线程引用在 runnable 内捕获、超时路径直接 `interrupt()`，合作型 listener 释放池线程，对齐库内 SingleTurnExecutor/AgentToolDispatcher 中断 cancel 模式；**局限**：marker 计数无法检测 cancel 回归，cancel 语义由 WS3 行为测试 `TestChannelFanOutTimeoutCancel` 拦截）；mode-2（`dispatchInbound` :348 `sendAsync(...).orTimeout(dispatchTimeoutMs)`——持久化等待面，at-least-once 契约，**裁定不 cancel**（cancel 可能中止慢但进行中的 persist，破坏投递；超时只停等待，消费者须幂等——I3 R-2-1 原判），理由记录 plan daily log）。配置旋钮 `nop.ai.gateway.channel.dispatchTimeoutMs` 默认 30000。门禁②判定 = **按 mode 拆条**（`[mode-1]` / `[mode-2]` 各 ≥1 个代码级 marker，门禁测试 `TestInvariantGate2GatewayTimeout` 拆两条目） |
+| 11 | `IAgentEngine.java:24` `injectInput(...)` | **plan 2289 WI8 补录（2026-10-02）**：注入原语——running 入 live ctx 队列（STEER 唤醒 wait phase）、非 running staging 持久化下轮合并，仅入队/暂存不启动 agent 执行路径、无异步等待面（**not-applicable**，gate-gaps 已登记） |
+| 12 | `IAgentEngine.java:262` `getBackgroundTaskRegistry()` | **plan 2301 WI25 补录（2026-10-03）**：同步 getter（返回 Builder 装配的后台任务 registry 引用），无异步执行等待面（**not-applicable**，gate-gaps 已登记；后台 fork timeout 契约由 backgroundExecutor 侧 wallSeconds 封顶承载） |
+| 13 | `engine/ReActAgentExecutor.java:339` `execute(AgentExecutionContext ctx)` | ReAct 主循环（timeout 家族修复点） |
+| 14 | `engine/SingleTurnExecutor.java:54` `execute(AgentExecutionContext ctx)` | 单轮执行器（**I4 修复**：llmTimeoutMs + timeoutExecutor 机制，`get(llmTimeoutMs, TimeUnit)` + TimeoutException 失败路径） |
+| 15 | `engine/AgentToolDispatcher.java:165` `executeAllowedCalls(...)` | 工具 fanout 调度 |
+| 16 | `tool/CallAgentExecutor.java:144` `executeAsync(AiToolCall, IToolExecuteContext)` | 子 agent 调用入口（timeout 家族修复点） |
+| 17 | `team/flow/MemberFanOutDispatcher.java:157` `dispatch(...)` | **I3 R-2-3 补录**：team-flow fan-out 入口（static，`agentEngine.execute` :326 启动 agent 执行路径；**I4 修复**：per-member `orTimeout(memberExecTimeoutMs)` + 超时取消子会话，deadline 唯一来源 = `DefaultAgentEngineConfig.memberExecTimeoutMs`）。**分支级标注（plan 2026-08-12-2050-2 / AR-2 拆分）**：两条执行分支各自声明 timeout marker —— BOUND 分支 `executeBoundMember`（:326 `orTimeout` + :334 超时 `cancelSession`）+ SPAWN 分支 `spawnOneTarget`（:387 per-target `orTimeout`；spawner 层 `DefaultMemberSpawner` 另有有界 `get(memberExecTimeoutMs, TimeUnit)`）。门禁②判定 = **代码级（去注释/去字符串）`orTimeout` 计数 ≥ 2**（门禁测试 `TestInvariantGate2OrchestrationTimeout` 该行 `minOccurrences=2`） |
+| 18 | `team/flow/TeamTaskFlowOrchestrator.java:581` `executeAsync(String teamId)` | **I3 R-2-3 补录**：daemon 级编排入口（**I4 修复**：result future 整体 `orTimeout` deadline 兜底；:443 `awaitTermination(2, TimeUnit.SECONDS)` 为 close 路径关闭等待，非编排 timeout）。**整体 deadline 语义（plan 2026-08-12-2050-2 / AR-3 升级）**：整体 deadline = `memberExecTimeoutMs × maxDepth`（maxDepth = 图最长依赖链，build 期从 blockedBy DAG 计算）——与 per-member 解耦，合法 N 层顺序 DAG（每层合法跑满 per-member）不被整体 deadline 误杀；整体超时（unwrap 后 `TimeoutException` 限定）→ `ITaskRuntime.cancel(CANCEL_REASON_TIMEOUT)` 取消底层图（nop-task `ICancellable` 能力）+ 诚实失败结果，取消失败显式 LOG（不静默）；普通节点失败不触发整图 cancel（保持 GraphTaskStep 短路语义） |
+| 19 | `nop-ai-gateway/.../channel/ChannelMessageServiceImpl.java:329` `dispatchInbound(...)` | **I3 R-2-1 补录**（gateway 包，判定标准扩展为「channel 派发入口」）：**按 mode 拆两条目（plan 2026-08-12-2050-2 / AR-4 + WS4）**——mode-1（`fanOutToListeners` :371-373 per-listener `runAsync(...).orTimeout(dispatchTimeoutMs)`，**AR-4 修复**：超时 cancel **原始 runAsync future**（保留 `raw` 引用）+ 显式中断 worker 线程（JDK `CompletableFuture.cancel` 不保证中断运行中任务——worker 线程引用在 runnable 内捕获、超时路径直接 `interrupt()`，合作型 listener 释放池线程，对齐库内 SingleTurnExecutor/AgentToolDispatcher 中断 cancel 模式；**局限**：marker 计数无法检测 cancel 回归，cancel 语义由 WS3 行为测试 `TestChannelFanOutTimeoutCancel` 拦截）；mode-2（`dispatchInbound` :348 `sendAsync(...).orTimeout(dispatchTimeoutMs)`——持久化等待面，at-least-once 契约，**裁定不 cancel**（cancel 可能中止慢但进行中的 persist，破坏投递；超时只停等待，消费者须幂等——I3 R-2-1 原判），理由记录 plan daily log）。配置旋钮 `nop.ai.gateway.channel.dispatchTimeoutMs` 默认 30000。门禁②判定 = **按 mode 拆条**（`[mode-1]` / `[mode-2]` 各 ≥1 个代码级 marker，门禁测试 `TestInvariantGate2GatewayTimeout` 拆两条目） |
 
 > 说明：`DefaultAgentEngine` 的 execute/resumeSession/restoreSession/wakeSession/forkSession/cancelSession（`DefaultAgentEngine.java:702` 等）为接口实现的 `@Override`，不重复计数（接口行为面即 §3.2 的契约面；实现类的行号供接线抽查使用）。**I3 更正（R-2-3 owner-doc drift）**：I0 排除理由「team-flow 内部方法（`TeamTaskFlowOrchestrator.executeAsync`、`MemberFanOutDispatcher.dispatch`）——不启动 agent 执行路径、无 timeout 契约面」与 live 矛盾（fan-out 经 `MemberFanOutDispatcher.java:326 agentEngine.execute` 启动 agent 执行路径）——已删除，改为 live 事实：「fan-out 启动 agent 执行路径，属编排入口面，须声明 timeout」。
 

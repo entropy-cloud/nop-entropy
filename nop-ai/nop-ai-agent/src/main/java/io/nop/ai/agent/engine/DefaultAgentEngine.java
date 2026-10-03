@@ -82,6 +82,9 @@ import io.nop.ai.core.reliability.ICircuitBreaker;
 import io.nop.ai.core.reliability.IRetryPolicy;
 import io.nop.ai.core.reliability.StandardRetryPolicy;
 import io.nop.ai.core.reliability.ThresholdBreaker;
+import io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry;
+import io.nop.ai.agent.tool.IToolProgressTracker;
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
 import io.nop.ai.toolkit.api.IToolManager;
 
 import org.slf4j.Logger;
@@ -107,6 +110,10 @@ public class DefaultAgentEngine implements IAgentEngine {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
 
     private final IChatService chatService;
+    private IBackgroundTaskRegistry backgroundTaskRegistry;
+    private ExecutorService backgroundExecutor;
+    private boolean ownsBackgroundExecutor;
+    private IToolProgressTracker toolProgressTracker;
     private final IToolManager toolManager;
     private final DefaultAgentEventPublisher eventPublisher;
     private final ISessionStore sessionStore;
@@ -163,6 +170,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
         private IRetryPolicy retryPolicy = new StandardRetryPolicy();
         private ICircuitBreaker circuitBreaker = new ThresholdBreaker();
+        private IBackgroundTaskRegistry backgroundTaskRegistry;
+        private ExecutorService backgroundExecutor;
         private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
         private ISustainer sustainer = NoOpSustainer.noOp();
         private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
@@ -178,6 +187,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         private long llmTimeoutMs = 120_000L;
         private long toolTimeoutMs = 300_000L;
         private IWaitCoordinator waitCoordinator;
+
+        /** Plan 2301 (WI25): custom registry (a default one is created when absent). */
+        public Builder backgroundTaskRegistry(IBackgroundTaskRegistry val) { this.backgroundTaskRegistry = val; return this; }
+
+        /** Plan 2301 (WI25): dedicated executor for background task forks (a default pool is created when absent). */
+        public Builder backgroundExecutor(ExecutorService val) { this.backgroundExecutor = val; return this; }
 
         public Builder(IChatService chatService, IToolManager toolManager) {
             this.chatService = chatService;
@@ -274,6 +289,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             engine.setLlmTimeoutMs(llmTimeoutMs);
             engine.setToolTimeoutMs(toolTimeoutMs);
             if (waitCoordinator != null) engine.setWaitCoordinator(waitCoordinator);
+            engine.initBackgroundSupport(backgroundTaskRegistry, backgroundExecutor);
         }
     }
 
@@ -703,6 +719,87 @@ public class DefaultAgentEngine implements IAgentEngine {
         } else {
             session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
             sessionStore.save(session);
+        }
+    }
+
+    /**
+     * Plan 2301 (WI25): engine-owned background task registry (Builder-wired).
+     */
+    @Override
+    public IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        return backgroundTaskRegistry;
+    }
+
+    /**
+     * Plan 2301 (WI25): Builder wiring — create the default registry (with the
+     * completion-notification bridge) and the dedicated background executor
+     * pool when the caller did not supply custom ones. Called from
+     * {@code Builder.applyTo} after all setters.
+     */
+    void initBackgroundSupport(IBackgroundTaskRegistry customRegistry,
+                               ExecutorService customExecutor) {
+        ExecutorService exec = customExecutor != null
+                ? customExecutor
+                : Executors.newCachedThreadPool(r -> {
+                    Thread t = new Thread(r, "nop-ai-background-task");
+                    t.setDaemon(true);
+                    return t;
+                });
+        this.backgroundExecutor = exec;
+        this.ownsBackgroundExecutor = customExecutor == null;
+
+        IBackgroundTaskRegistry registry = customRegistry != null
+                ? customRegistry
+                : new DefaultBackgroundTaskRegistry(this::bridgeBackgroundCompletion);
+        this.backgroundTaskRegistry = registry;
+        if (registry instanceof DefaultBackgroundTaskRegistry defaultRegistry) {
+            defaultRegistry.setTrackerCancelHook(this::cancelBackgroundViaTracker);
+            defaultRegistry.setBackgroundExecutor(exec);
+            // live evidence for RUNNING snapshots comes from the engine's
+            // progress tracker (WI4 seam); the hook resolves the tracker per
+            // call so late wiring (setBackgroundProgressTracker) is visible
+            defaultRegistry.setProgressSnapshotHook(
+                    callId -> {
+                        IToolProgressTracker tracker = this.toolProgressTracker;
+                        return tracker == null ? null : tracker.progressSnapshot(callId);
+                    });
+        }
+    }
+
+    /**
+     * Completion bridge: inject the terminal-state notification into the
+     * owning session as a FOLLOWUP input (the existing mailbox/steering
+     * channel — NOT a third wake source, WI2 ruling). Throws on failure so
+     * the registry can move the task to NOTIFICATION_FAILED (lazy redelivery
+     * on the next snapshot/readOutput). Reads the Entry fields directly —
+     * going through {@code registry.snapshot} would re-enter the lazy
+     * redelivery path and recurse.
+     */
+    private void bridgeBackgroundCompletion(DefaultBackgroundTaskRegistry.Entry entry, String status) {
+        String tail = entry.outputTail == null ? "" : entry.outputTail;
+        String preview = tail.length() > 512 ? tail.substring(0, 512) + "...(truncated)" : tail;
+        ChatUserMessage notification = new ChatUserMessage(
+                "[BACKGROUND_TASK taskId=" + entry.taskId
+                        + " tool=" + entry.toolName
+                        + " status=" + status
+                        + " bytes=" + entry.totalBytes
+                        + "]\nBackground task finished. Use the task-output tool with taskId="
+                        + entry.taskId + " to read the captured output.\nTail preview:\n" + preview);
+        injectInput(entry.sessionId, notification, InjectionSemantics.FOLLOWUP);
+    }
+
+    private void cancelBackgroundViaTracker(String sessionId, String callId) {
+        IToolProgressTracker tracker = this.toolProgressTracker;
+        if (tracker != null) {
+            tracker.cancelExecution(callId);
+        }
+    }
+
+    /** Plan 2301 (WI25): install the progress tracker for the stop kill-channel. */
+    public void setBackgroundProgressTracker(IToolProgressTracker tracker) {
+        this.toolProgressTracker = tracker;
+        if (backgroundTaskRegistry instanceof DefaultBackgroundTaskRegistry defaultRegistry) {
+            defaultRegistry.setTrackerCancelHook(this::cancelBackgroundViaTracker);
         }
     }
 
@@ -1140,6 +1237,15 @@ public class DefaultAgentEngine implements IAgentEngine {
                 LOG.debug("DefaultAgentEngine.close(): shut down self-created agentExecutor");
             } catch (RuntimeException e) {
                 LOG.warn("DefaultAgentEngine.close(): failed to shut down agentExecutor: {}",
+                        e.toString());
+            }
+        }
+        if (ownsBackgroundExecutor && backgroundExecutor != null) {
+            try {
+                backgroundExecutor.shutdown();
+                LOG.debug("DefaultAgentEngine.close(): shut down self-created backgroundExecutor");
+            } catch (RuntimeException e) {
+                LOG.warn("DefaultAgentEngine.close(): failed to shut down backgroundExecutor: {}",
                         e.toString());
             }
         }

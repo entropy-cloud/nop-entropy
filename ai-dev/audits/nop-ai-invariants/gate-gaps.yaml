@@ -61,6 +61,11 @@ gate-2-orchestration-timeout:
     reason-type: not-applicable
     date: 2026-08-12
     owner: I1-executor
+  - instance: IAgentEngine.getBackgroundTaskRegistry
+    reason: 不适用：同步 getter（返回 Builder 装配的后台任务 registry 引用，plan 2301 WI25 新增），无异步执行等待面——后台 fork 的 timeout 契约由 backgroundExecutor 侧 wallSeconds 封顶承载、完成通知经 injectInput（已登记 not-applicable）
+    reason-type: not-applicable
+    date: 2026-10-03
+    owner: refactor-wi25
 
 # I3 裁决后登记（入口 #2，附裁决证据，2026-08-12，owner: I3 adjudicator）：
 #   登记依据：ai-dev/audits/nop-ai-invariants/adjudication-2026-08.md §3（R-2-1 / R-2-3）。

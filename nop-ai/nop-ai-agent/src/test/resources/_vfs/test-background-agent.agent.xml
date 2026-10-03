@@ -1,0 +1,12 @@
+<agent x:schema="/nop/schema/ai/agent.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="test-background-agent">
+
+    <description>E2E test agent for plan 2301 (WI25) background task mode</description>
+
+    <chatOptions provider="test-provider" model="test-model" temperature="0.7"/>
+
+    <tools>bash,task-output,task-stop</tools>
+
+    <prompt>You are a task agent. Use the bash tool (runInBackground) and the task tools.</prompt>
+
+</agent>
