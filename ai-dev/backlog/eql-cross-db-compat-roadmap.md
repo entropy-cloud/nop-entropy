@@ -83,7 +83,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - **WI2** B 类 5 项缺陷 BUG-4 回显（`selectAll`+`LIMIT`）/ BUG-6 `full outer join`+`supportFullJoin` 门 / BUG-7 小写 `date '…'` CCE / BUG-8 `cast(x as boolean)` / BUG-15 `SqlTypeExpr` 潜在静默丢弃: `planned`
 - **WI3** 11 项方言相关纠错（4 项 `supportReturningForUpdate` 值 / 1 项 `unverified` 保留 / 1 项窗口函数 mixin 归属（`mysql5.7` 去除，PG/DuckDB 已由合并完成）/ 1 项 `ilike` 函数注册 / 2 项 `defaultNullsFirst` 接线 + H2 补配 / `INTERSECT`+mariadb `RETURNING` 版本门 / `db2` selector 断链）+ owner doc 四处失真: `planned`
 - **WI4** AST 改写管线接线：把 `IEqlAstTransformer` 提升为 `EqlCompiler` 内部固定环节 + 缓存键（WI8 硬前置）: `planned`
-- **WI5** SQL-92 标准函数语法（`POSITION`/`SUBSTRING`/`EXTRACT`/`TRIM`）+ 放开 `day`/`hour`/`minute`/`second`/`quarter` 关键字遮蔽（须含真库执行证据）: `todo`
+- **WI5** SQL-92 标准函数语法（`POSITION`/`SUBSTRING`/`EXTRACT`/`TRIM`）+ 放开 `day`/`hour`/`minute`/`second`/`quarter` 关键字遮蔽（须含真库执行证据）: `planned`
 - **WI6** 归一化日期时间函数族（`dayofweek`/`weekofyear`/`dateAdd`/`dateDiff`/`dateTrunc` 等，须含真库执行证据）: `todo`
 - **WI7** 分页（`FETCH FIRST` / `OFFSET..FETCH NEXT`）+ `NULLS FIRST/LAST`（接线 `nullsFirst` + `defaultNullsFirst`）: `todo`
 - **WI7b** 分析型：`sqlIntervalLiteral` 模板落地 + `rollup`/`cube`/`grouping` 注册 + 窗口 `OVER` 放宽与 frame + `count(*) FILTER` 文档引导: `todo`
