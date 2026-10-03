@@ -414,7 +414,7 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 | `month()/year()` | 能解析（`unreservedWord_` 既有成员） | 行为不变（`month` 现亦为 EXTRACT 字段注册函数，与 `day` 同待遇） |
 | `interval 1 day` / `interval '3 hours'` | 可解析 | 逐字不变（`intervalUnit_` 上下文只有该规则可达，`TestEqlIntervalLiteralParse` 全量回归） |
 
-无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增六词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
+无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增五词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
 
 ## 相关文档
 

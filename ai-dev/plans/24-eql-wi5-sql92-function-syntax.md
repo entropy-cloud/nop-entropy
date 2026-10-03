@@ -1,6 +1,6 @@
 # 24 EQL WI5 — SQL-92 标准函数语法（POSITION/SUBSTRING/EXTRACT/TRIM）+ 关键字遮蔽放开
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI5 节 + 约束 1-4 + 前置决策门末段 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 溯源结论 + 门控矩阵 WI5 行 + Cross-Cutting 全部 + 关键约束与红线节，v7.2）；Current Baseline 全部代码事实于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 `completed`）、`ai-dev/plans/03-eql-wi1-class-a-defects.md`（硬前置，已 `completed`；文法分支+构建期归一化的结构先例）、`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md`（**硬前置，Status: active，实施排队中——WI4 completed 前不得开工本 plan 的任何代码 Phase，见下方硬前置声明**）
@@ -322,11 +322,11 @@ Exit Criteria:
 - [x] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI5 EC ⑤ 命令）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 的 **2 项既有 flake**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`、`TestMessageSourceFunctionRestart`，均单跑 PASS）与基线一致即豁免，不得据此判本 WI 失败。
 - [x] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；重生成后 `ast/_gen/` 零 diff；无 lexer token 删除。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/24-eql-wi5-sql92-function-syntax.md --strict` 退出码 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/24-eql-wi5-sql92-function-syntax.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不 lowering/只打印不设门"正是半实现形态）。
 - [x] owner doc 已同步到 live baseline（见 EC ④ 条目），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）四个函数从 EQL 文本 → parse 归一化 → transform 函数解析 → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op（lowering 不可用时必须响亮报错，不允许回退原文输出）；（c）遮蔽放开未引入任何静默行为变化。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI5 EC ⑧）；roadmap Work Item Status 的 WI5 行据此才可 `todo` → `done`（先 `planned` 后 `done`，见 roadmap Status values）。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）四个函数从 EQL 文本 → parse 归一化 → transform 函数解析 → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op（lowering 不可用时必须响亮报错，不允许回退原文输出）；（c）遮蔽放开未引入任何静默行为变化。（独立审计 Anti-Hollow 三链路经端到端编译测试与 H2 真库执行双重实证）
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI5 EC ⑧）；roadmap Work Item Status 的 WI5 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -359,12 +359,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: 6 个 Phase 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑧/B1-B5/C/D 全 PASS，**0 Blocker / 0 Major / 2 Minor**（①"新增六词"系误计，实际五词——QUARTER/DAY/HOUR/MINUTE/SECOND，MONTH 既有；已随收口勘误 daily log+owner doc；② P3 文法 commit 含手写 visit 方法——逻辑/文法 commit 仍分离且 message 如实披露，记录不构成违规）。这是本系列首个**零计数误差**的审计（surefire 来源纪律见效）；Anti-Hollow 三链路经端到端编译测试与 H2 真库执行双重实证。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，须与执行者不同 task_id）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI5 closure audit（一次通过，结论"WI5 通过 closure audit"）
+- Evidence:
+  - A① PASS：13 个测试类 62/62 独立复跑全绿；四函数方言文本逐 commit 核断言（h2/duckdb/mssql/oracle 多族）
+  - A② PASS：负向逐函数断言 ERR_EQL_UNKNOWN_FUNCTION+归一化名；dm trimChars 硬性禁令锁定；TOO_MANY_ARGS 与逗号形态守护
+  - A③ PASS：矩阵快照 +123 程序化核验（+6×15 可加载、+3×11 trimChars、dm/tdengine/db2/es 零注册=禁令落实；POSITION/SUBSTRING 零增量）；门禁 exit 0
+  - A④ PASS：owner doc 覆盖表（:348-417）逐行 [实测]/[文档]/[未取证]
+  - A⑥ PASS：审计员本人复跑 TestDialect 9/9 绿，surefire XML 实证 61 次真库函数执行；[未取证] 清单未计覆盖率
+  - A⑦ PASS：棘轮 diff 恰 2 行均为 ANTLR 诊断元数据漂移（added tokens 程序化对比=5 词、removed=∅、source/offendingToken 逐字不变），CorpusBaseline 1/1
+  - B1-B5 PASS：altLabel 三约束 7 label 全合规+工具硬约束回写裁定文档 §3.1；遮蔽放开=纯 parser 规则（lexer/tokens 零触碰）；5 文法+5 逻辑 commit 逐 Phase 分离；归一化解析链走既有 visitSqlRegularFunction 通路未新造；无手改生成物
+  - C PASS：四门禁+checklist exit 0（doc-links 0 error、3 基线 warning 恰为登记项）
+  - D PASS：声称计数五模块逐一全符（303/205|46skip/1340/87/461|4skip，stream 目录 1238|1 豁免项症状逐字一致、排除后 1230|0）——首次零计数误差
+  - Deferred 项分类检查：无 in-scope live defect 被降级；WEEK 不在放开清单为 roadmap 明文（观察项已记 owner doc）
 - Audit Session: （session/task ID）
 - Evidence:
   - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
