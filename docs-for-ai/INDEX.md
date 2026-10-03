@@ -136,6 +136,7 @@
 | **使用 nop-stream 构建流作业（DataStream API / XDSL `.stream.xml` / 状态与计时器 / 分布式部署 / 触发语义对照 Spark-Flink）** | **`03-modules/nop-stream-user-guide.md`** |
 | **选择 nop-stream 连接器（file/message/jdbc/debezium/batch 能力矩阵：交付语义/并行度/恢复语义；SPI 注册中心类型名与维护/探测入口）** | **`03-modules/nop-stream-connectors.md`** |
 | **CDC 生产化操作（Debezium snapshot→增量、offset 恢复重放、schema 演进边界、故障排查）** | **`03-modules/nop-stream-cdc-cookbook.md`** |
+| **使用 nop-stream-sql 声明式 SQL 接口（`<sql>` 元素/schema/纳入面与不支持清单/执行语义）** | **`03-modules/nop-stream-sql.md`** |
 | **nop-stream 版本迁移（XDSL Delta 演进 / 状态格式变更 / reshard / 版本策略）** | **`03-modules/nop-stream-migration-guide.md`** |
 | **nop-stream 快速起步（脚手架生成 + 3 入门拓扑：最小链路/窗口聚合+keyed state/CEP）** | `nop-stream/quickstart/README.md`（仓库侧脚手架：`generate.sh`/`verify.sh`） |
 | CEP 模式匹配开发 | `01-repo-map/module-groups.md`（nop-stream-cep） |
