@@ -54,19 +54,19 @@ Targets: 四模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：`git status` 干净后开始
-- [ ] 机械基线：四模块行数榜、模板清单（162 逐个文件名）、xdef 清单（114 逐个）、`_` 生成物→模板反向抽样对（注明口径）
-- [ ] 维度 02 子 agent（commons/api-core）：StringHelper/ConvertHelper 解剖（职责块行数占比/内聚/拆缝/裁定）、两模块包级职责漂移、>1500 与 watch
-- [ ] 维度 05 子 agent（codegen/xdefs）：死模板清单（162 中全仓零引用的）；模板↔生成物抽样验证（≥10 对：模板→消费任务→产物文件存在且结构吻合）；CodeGenTask/XCodeGenerator 生成链入口连通；xdef 114 一致性（互引闭合/无主 schema/命名规范；口径：另有 68 个 .xdef 在 nop-xdefs 之外——src/main 真实 schema、docs 副本、测试 fixture 分层计数，闭合判定以 src/main 全仓为引用面，副本/fixture 不计入无主候选）
-- [ ] 维度 17 子 agent（四模块抽样）：import 分组/命名/注释规范抽验（每模块 ≥20 文件）、CodeGenErrors/api-core 错误码浅层一致性
-- [ ] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-1.4-dim{02,05,17}.md`
+- [x] 动手前基线确认：`git status` 干净后开始
+- [x] 机械基线：四模块行数榜、模板清单（162 逐个文件名）、xdef 清单（114 逐个）、`_` 生成物→模板反向抽样对（注明口径）
+- [x] 维度 02 子 agent（commons/api-core）：>1500 全清单 4 文件解剖与裁定（StringHelper/Bytes/TextScanner/ConvertHelper）、两模块包级职责漂移、500–1500 watch
+- [x] 维度 05 子 agent（codegen/xdefs）：死模板清单（162 中全仓零引用的）；模板↔生成物抽样验证（≥10 对：模板→消费任务→产物文件存在且结构吻合）；CodeGenTask/XCodeGenerator 生成链入口连通；xdef 114 一致性（互引闭合/无主 schema/命名规范；口径：另有 68 个 .xdef 在 nop-xdefs 之外——src/main 真实 schema、docs 副本、测试 fixture 分层计数，闭合判定以 src/main 全仓为引用面，副本/fixture 不计入无主候选）
+- [x] 维度 17 子 agent（三 Java 模块抽样）：import 分组/命名/注释规范抽验（每模块 ≥20 文件）、CodeGenErrors/api-core 错误码浅层一致性
+- [x] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-1.4-dim{02,05,17}.md`
 
 Exit Criteria:
 
-- [ ] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
+- [x] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
@@ -75,42 +75,42 @@ Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；跨维度/跨工作项合并（1.2/1.3 已登记项交叉引用）
-- [ ] StringHelper/ConvertHelper 裁定收敛
+- [x] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；跨维度/跨工作项合并（1.2/1.3 已登记项交叉引用）
+- [x] StringHelper/ConvertHelper 裁定收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-1.4-dim{02,05,17}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-1.4-dim{02,05,17}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `1.4-kernel-utils-codegen-xdefs-audit.md`；index 登记 1.4 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 独立子 agent closure audit；通过后 roadmap 1.4 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `1.4-kernel-utils-codegen-xdefs-audit.md`；index 登记 1.4 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 独立子 agent closure audit；通过后 roadmap 1.4 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除构建验证；引用 2026-09-22 绿色基线。
 
-- [ ] 报告落盘且三维度全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 1.4 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且三维度全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 1.4 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -122,14 +122,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 1.4 三维度全部完成（P0=0/P1=0/P2=6/P3=34 + watch×3，驳回 1/归档 2/docs 移交 4 全部正文留痕）；closure audit 一次 PASS（2 Minor 顺手修复）；P2×6 进 R1.0；未改产品代码，无 P0。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: agent_32ce981d-3df5-4863-9005-d791f24c1cde（独立 fresh-session closure auditor，只读）
+- Evidence:
+  - 发现清单完整性：P2 表 6 行/P3 表 34 行编号无断重（机械复核）；抽验 9 组 file:line 全实锤（含八进制分叉双实现实读、FutureHelper released 守恒缺陷、dyn IDENTICAL diff、双 log 行号）
+  - severity 标定：P2×6 恰当（审计员独立裁定）；02-15 降 P3 恰当（确定性缺陷+零调用方=潜伏缺陷，正式 P3 编号保留未静默降级）；漏升 P1 排查通过（八进制分叉 fail-closed/fail-loud、消费面非鉴权闸门）
+  - 5 项独立复测全过：xdef 114 计数+3 schema 闭合三形态、抽样 2 对全链、死模板三口径、生成链 6 锚点逐行、无主 schema 旁证
+  - index 对账 0/0/6/34 一致；roadmap 翻 done 前置成立
+  - 2 个 Minor（plan Closure 段空引用——本次回填消除；1113 计数口径命令——已补入报告复现口径）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs` 退出码 0
+  - Anti-Hollow（审计版）：3 条正结论均有真证据（模板链 2 全链+6 锚点、xdef 闭合独立复现、vendored 版权头实测）
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（StringHelper 拆分粒度评估、codegen/xdefs 清理方向已移交 R1.0；docs D1–D4 移交 G.2/修复批）
