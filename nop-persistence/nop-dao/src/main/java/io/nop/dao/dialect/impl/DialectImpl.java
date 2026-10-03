@@ -299,6 +299,11 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportLateral() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportLateral());
+    }
+
+    @Override
     public boolean isSupportUpdateFromJoin() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpdateFromJoin());
     }

@@ -13,6 +13,7 @@ public class DialectFeatures extends _DialectFeatures {
     private Boolean supportWindowFrameRows;
     private Boolean supportWindowFrameRange;
     private Boolean supportWindowFrameGroups;
+    private Boolean supportLateral;
 
     public DialectFeatures() {
 
@@ -45,5 +46,18 @@ public class DialectFeatures extends _DialectFeatures {
 
     public void setSupportWindowFrameGroups(Boolean supportWindowFrameGroups) {
         this.supportWindowFrameGroups = supportWindowFrameGroups;
+    }
+
+    /**
+     * WI1 BUG-2: LATERAL 子查询表源能力位。同窗口 frame 三能力位：生成管线未接线，
+     * 手写 retention 字段 + xdef 按属性名反射 setter。缺省（未配置）= null，
+     * 由 IDialect.isSupportLateral() 归一为 false（保守缺省，编译期报错）。
+     */
+    public Boolean getSupportLateral() {
+        return supportLateral;
+    }
+
+    public void setSupportLateral(Boolean supportLateral) {
+        this.supportLateral = supportLateral;
     }
 }

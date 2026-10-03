@@ -2,5 +2,7 @@
 
 <dialect x:extends="mysql.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef">
-    <features supportSequence="false" supportReturningForUpdate="false"/>
+    <!-- WI1 BUG-2: LATERAL 需 MySQL 8.0.14+，5.7 不支持；显式 false 覆盖从 mysql
+         继承的 supportLateral="true" -->
+    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="false"/>
 </dialect>

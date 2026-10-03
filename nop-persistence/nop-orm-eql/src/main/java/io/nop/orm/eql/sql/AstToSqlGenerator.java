@@ -38,6 +38,7 @@ import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
+import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlTypeExpr;
@@ -60,6 +61,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_LATERAL;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
@@ -241,6 +243,22 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         print(node.getInterval().getIntervalUnit().name());
         print(")");
         printAlias(node.getAlias());
+    }
+
+    /**
+     * WI1 BUG-2: 执行路径按方言门控 LATERAL 子查询表源。修复前 lateral 关键字被静默
+     * 丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同），退化为不相关子查询——现在
+     * `supportLateral=false`（含未配置的保守缺省）时编译期显式报错，`true` 时由基类
+     * 无损打印。回显路径不受方言开关影响（走基类实现）。
+     */
+    @Override
+    public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
+        if (node.getLateral() && !dialect.isSupportLateral()) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_LATERAL);
+        }
+        super.visitSqlSubqueryTableSource(node);
     }
 
     void appendPropJoins(SqlSingleTableSource node) {

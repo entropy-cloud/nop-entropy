@@ -664,6 +664,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
+        // WI1 BUG-2: 回显路径无损打印 lateral 关键字（修复前 lateral (sub) 与 (sub)
+        // 输出字节相同）。回显无方言开关——方言门在子类 AstToSqlGenerator。
+        if (node.getLateral())
+            print("lateral ");
         print('(');
         beginBlock();
         visit(node.getQuery());

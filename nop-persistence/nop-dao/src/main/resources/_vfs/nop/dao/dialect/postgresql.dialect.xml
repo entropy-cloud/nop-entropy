@@ -94,6 +94,7 @@
     <features supportSequence="true" supportNullsFirst="true" supportReturningForUpdate="true"
               supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
+              supportLateral="true"
     />
 
     <sqls escapeSlash="false" trueString="true" falseString="false">

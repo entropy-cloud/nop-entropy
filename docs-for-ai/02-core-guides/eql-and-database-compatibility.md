@@ -128,6 +128,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | `supportSequence` | 是否支持数据库序列 | Oracle 支持，MySQL 不支持 |
 | `supportReturningForUpdate` | UPDATE 是否支持 `RETURNING` 子句 | PostgreSQL 支持 |
 | `supportFullJoin` / `supportRightJoin` | 是否支持 FULL / RIGHT JOIN | 部分数据库不支持 |
+| `supportLateral` | 是否支持 `LATERAL` 子查询表源 | MySQL 8.0.14+/PG/DuckDB 支持；未配置 = 保守 false（编译期报错） |
 | `supportWithAsClause` | 是否支持 CTE（WITH AS） | MySQL 8.0+ 支持 |
 | `supportBatchUpdate` | 是否支持批量更新 | 大部分数据库支持 |
 
@@ -157,12 +158,34 @@ EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生
 
 **ILIKE + ESCAPE 组合显式报错**：`ilike` 在执行路径经方言函数改写（如 Oracle 的 `regexp_like(x,p,'i')`），改写后的函数形式没有 ESCAPE 挂载点——静默丢弃会改变匹配语义，因此 `ignoreCase=true` 且携带 escape 时编译期报错，错误码 `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`）。"发现真实不支持 ESCAPE 子句的方言时改写为函数调用"已登记为 Deferred（触发时 DM8 优先复核）。
 
+### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
+
+EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打印 `lateral` 关键字；执行路径按方言能力门控：`supportLateral=false`（或未配置——**保守缺省 = 不支持**）时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportLateral`），`true` 时输出 `lateral`。修复前该关键字被静默丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同，退化为不相关子查询）。
+
+能力矩阵（证据等级逐行标注；unverified 边界维持保守缺省，不计入覆盖率）：
+
+| 方言 | `LATERAL` | 证据 | 证据等级 | 配置 |
+|------|-----------|------|---------|------|
+| PostgreSQL | 支持（9.0 引入；承诺基线 PG 15） | PG 文档 SELECT | `[文档]` | 显式 `true` |
+| MySQL | 支持（8.0.14 引入 lateral derived tables） | MySQL 手册 §13.2.11.9 | `[文档]` | 显式 `true` |
+| DuckDB | 支持（LATERAL 关键字可省略、自动识别相关子查询） | duckdb.org friendly_sql | `[文档]` | 显式 `true` |
+| PostGIS | 继承 PostgreSQL | 运行于 PG | `[文档]`（继承） | 继承 `true` |
+| MariaDB | 不支持 | roadmap WI1 登记 | `[roadmap 登记]` | 显式 `false` |
+| MySQL 5.7 | 不支持（8.0.14+ 才有） | MySQL 手册 | `[文档]` | 显式 `false`（覆盖继承） |
+| H2 | 不支持（官方 grammar 无 LATERAL） | h2database.com grammar | `[文档]` | 未配置（=false） |
+| MSSQL | 无 LATERAL 关键字（CROSS/OUTER APPLY 形态） | MS Learn T-SQL | `[文档]` | 未配置（=false） |
+| SQLite | 无 LATERAL 关键字 | sqlite.org grammar | `[文档]` | 未配置（=false） |
+| Oracle | 12.1+ 边界未获一手确认 | — | `[unverified]` | 未配置（=false） |
+| DB2 | 11.5 支持，9.7 边界未获一手确认 | — | `[unverified]` | 未配置（=false） |
+| TDengine / DM8 | 文档零提及 / 无一手文档 | — | `[unverified]` | 未配置（=false） |
+
 ### 方言敏感输出点登记表（roadmap 级 EC 第 4 条）
 
 本表登记 EQL 编译管线中"按方言能力分叉的输出点"：generator/transform 位置 + 能力标志 + 不支持时的错误码。**每行都有对应的"该方言编译期报错"负向测试。**
 
 | 输出点 | 位置 | 能力标志 / 通路 | 不支持时错误码 | 负向测试 |
 |--------|------|----------------|---------------|---------|
+| LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate` | `nop.err.eql.dialect-not-support-feature` | `TestEqlCompileSql.testUpdateReturningAllChecksDialect` |

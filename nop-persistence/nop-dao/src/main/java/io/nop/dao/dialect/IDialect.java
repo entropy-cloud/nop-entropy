@@ -93,6 +93,14 @@ public interface IDialect extends IComponentModel {
     boolean isSupportWindowFrameGroups();
 
     /**
+     * WI1 BUG-2: 是否支持 `from (select ...) x lateral (select ...) y` 形式的 LATERAL
+     * 子查询表源。未配置时返回 false（保守缺省）：EQL 编译期对含 lateral 的查询报
+     * `nop.err.eql.dialect-not-support-feature`，而不是静默丢弃 lateral 关键字
+     * （那会退化为不相关的子查询，语义改变）。
+     */
+    boolean isSupportLateral();
+
+    /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *
      * @return

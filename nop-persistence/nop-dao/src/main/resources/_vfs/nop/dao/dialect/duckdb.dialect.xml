@@ -18,7 +18,7 @@
     > - 支持 `NULLS FIRST` 和 `NULLS LAST`: https://duckdb.org/docs/stable/sql/query_syntax/orderby#syntax
     > - 支持事务管理：https://duckdb.org/docs/stable/sql/statements/transactions
     -->
-    <features supportNullsFirst="true" supportReturningForUpdate="false"/>
+    <features supportNullsFirst="true" supportReturningForUpdate="false" supportLateral="true"/>
 
     <!-- https://duckdb.org/docs/stable/core_extensions/spatial/overview -->
     <geometryTypeHandler>io.nop.orm.geo.dialect.postgis.PostgisGeometryTypeHandler</geometryTypeHandler>

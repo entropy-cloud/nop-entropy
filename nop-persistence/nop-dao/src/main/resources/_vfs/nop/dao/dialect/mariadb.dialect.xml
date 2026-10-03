@@ -104,7 +104,9 @@
         ZEROFILL
     </reservedKeywords>
 
-    <features supportSequence="true"/>
+    <!-- WI1 BUG-2: MariaDB 无 LATERAL 语法（roadmap WI1 表明令），显式 false 作为
+         文档化证据与 EQL 编译期报错的负向载体 -->
+    <features supportSequence="true" supportLateral="false"/>
 
     <sqls>
         <!--
