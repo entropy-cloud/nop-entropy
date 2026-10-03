@@ -47,67 +47,67 @@
 
 ### Phase 1 - 两维度深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: 9 模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：`git status` 干净后开始
-- [ ] 机械基线：9 模块 main/test 行数榜、>1500 清单、@Disabled/@Ignore 清单、测试类↔被测类映射表（注明口径）
-- [ ] 维度 02 子 agent（必读：`ai-dev/design/xlang-java/01-architecture-baseline.md` + `ai-dev/audits/xlang-execution-optimization/` r5 报告移交清单，先建「已裁定」对照表再判级）：ExecToJavaTranslator 2656 行解剖与裁定；truffle 节点族组织（节点类清单/覆盖的 Executable 类型完备性对照 xlang 的 Executable 族——缺类型=静默降级候选）；e2e 模块定位裁定（main 55 全部为 `Gen__test_xlang_e2e_*`——corpus xpl 编译产物落 main；Gen__* 前缀生成物按内容豁免，裁定对象是位置口径而非文件内容）；javac/antlr4 包装纯度；四杂项模块职责边界
-- [ ] 维度 16 子 agent：低测试模块逐一裁定（javac/antlr4 是包装层？kernel-cli 5 类）；e2e 模块测试口径；truffle 覆盖抽样（26 test 覆盖哪些节点族、缺口）；@Disabled 核定；反模式抽查（无断言/sleep 依赖/顺序依赖）
-- [ ] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-1.5-dim{02,16}.md`
+- [x] 动手前基线确认：`git status` 干净后开始
+- [x] 机械基线：9 模块 main/test 行数榜、>1500 清单、@Disabled/@Ignore 清单、测试类↔被测类映射表（注明口径）
+- [x] 维度 02 子 agent（必读：`ai-dev/design/xlang-java/01-architecture-baseline.md` + `ai-dev/audits/xlang-execution-optimization/` r5 报告移交清单，先建「已裁定」对照表再判级）：ExecToJavaTranslator 2656 行解剖与裁定；truffle 节点族组织（节点类清单/覆盖的 Executable 类型完备性对照 xlang 的 Executable 族——缺类型=静默降级候选）；e2e 模块定位裁定（main 55 全部为 `Gen__test_xlang_e2e_*`——corpus xpl 编译产物落 main；Gen__* 前缀生成物按内容豁免，裁定对象是位置口径而非文件内容）；javac/antlr4 包装纯度；四杂项模块职责边界
+- [x] 维度 16 子 agent：低测试模块逐一裁定（javac/antlr4 是包装层？kernel-cli 5 类）；e2e 模块测试口径；truffle 覆盖抽样（26 test 覆盖哪些节点族、缺口）；@Disabled 核定；反模式抽查（无断言/sleep 依赖/顺序依赖）
+- [x] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-1.5-dim{02,16}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 1.2/4.2 边界协调（测试面发现的最终归属）
-- [ ] ExecToJavaTranslator 裁定收敛
+- [x] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 1.2/4.2 边界协调（测试面发现的最终归属）
+- [x] ExecToJavaTranslator 裁定收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-1.5-dim{02,16}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-1.5-dim{02,16}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `1.5-xlang-backend-misc-audit.md`；index 登记 1.5 行
+- [x] 编制 `1.5-xlang-backend-misc-audit.md`；index 登记 1.5 行
 - [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 独立子 agent closure audit；通过后 roadmap 1.5 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 独立子 agent closure audit；通过后 roadmap 1.5 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除构建验证；引用 2026-09-22 绿色基线。
 
-- [ ] 报告落盘且两维度全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 1.5 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且两维度全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 1.5 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -119,14 +119,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 1.5 两维度全部完成（P0=0/P1=0/P2=5/P3=6，驳回 1 正文留痕）；closure audit 一次 PASS（1 Minor 顺手修复）；P2×5 测试缺口带修复精算进 R1.0；未改产品代码，无 P0；过程安全事件 1 起已登记（dim16 深挖 agent 拒绝采纳工具输出注入文本）。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: agent_f5908e09-fa91-4c9c-aa61-435767de9677（独立 fresh-session closure auditor，只读）
+- Evidence:
+  - 发现清单完整性：P2 表 5 行/P3 表 6 行/驳回 1（机械复核）；抽验 7 条 file:line 全精确命中
+  - severity 标定：P2×5 三条件判级一致恰当；02-02 驳回三层理由独立核实成立（XNode.saveToResource:2280 同构惯例 + CliSplitCommand:40 唯一调用方）；16-R2-03 降 P3 反证核实（TestKernelCli 三方法崩溃级断言）
+  - 4 项关键结论独立复测精确一致：SUPPORTED_NODE_CLASSES=123（buildSupportedNodeClasses :295-359 枚举计数）、ExecToJavaTranslator 2656 行、矩阵 assertEquals(123)@195、record-mapping 24 方法/71 断言
+  - index 对账 0/0/5/6 一致；roadmap 翻 done 前置成立
+  - 1 个 Minor（buildPagedSql 复现口径缺文件名）已顺手修复
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs` 退出码 0
+  - Anti-Hollow（审计版）：truffle 差集与 e2e 定位两项正结论均有 live code 真证据
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×5 修复已带精算移交 R1.x；测试缺口模块组子集已全量覆盖供 4.2 引用）
