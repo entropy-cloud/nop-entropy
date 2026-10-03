@@ -286,24 +286,24 @@ Exit Criteria:
 
 ### Phase 6 - defaultNullsFirst accessor + H2 补配 + WI7 移交标注（第 10/11 项）
 
-Status: planned
+Status: completed（2026-10-04；commit `42703f21e2`）
 Targets: `h2.dialect.xml`（dialect 元素属性区 `:3-5`）、`IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`nop-dao` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`（移交标注随 Phase 7 落档）
 
 - Item Types: `Feature`（accessor）、`Fix`（第 11 项补配）、`Proof`（配置断言）
 
-- [ ] 第 10 项 accessor 层：`IDialect.isDefaultNullsFirst()` + `DialectImpl` 实现（读 `dialectModel.getDefaultNullsFirst()`，`Boolean.TRUE.equals(...)` 惯例，照 `DialectImpl.java:327-328` 先例；零生成）。
-- [ ] 第 11 项：`h2.dialect.xml` 补 `defaultNullsFirst="true"`（H2 默认 NULL 序 `LOW`，ASC 时 NULL 在前）；`supportNullsFirst="true"`（`:17`）保留不动。
-- [ ] 配置断言测试：8 方言 accessor 返回值逐个断言——mysql/mssql/dm=true、tdengine/duckdb/postgresql/oracle=false、h2=true（补配后）；未配置属性的方言（如 h2 之外的 default 系）断言缺省行为（false 语义）与文档一致。
-- [ ] **不写任何生成器消费**；在本 plan 与 owner doc 中写明移交链：消费点唯一 owner = WI7（roadmap WI7 EC ②③④⑤），WI3 交付止于 accessor + 配置正确性。
-- [ ] 正交性标注素材：`defaultNullsFirst`（默认序事实）与 `supportNullsFirst`（子句接受度）两概念的边界、以及「单布尔不足以表达方向相关 NULL 序」（H2 `FIRST`/`LAST` 方向无关 vs `LOW`/`HIGH` 方向相关；DuckDB-vs-PG DESC 差异）证据指针，供 WI7 引用（Phase 7 落 owner doc）。
+- [x] 第 10 项 accessor 层：`IDialect.isDefaultNullsFirst()` + `DialectImpl` 实现（读 `dialectModel.getDefaultNullsFirst()`，`Boolean.TRUE.equals(...)` 惯例，照 `DialectImpl.java:327-328` 先例；零生成）。（javadoc 显式移交链：消费点唯一 owner=WI7）
+- [x] 第 11 项：`h2.dialect.xml` 补 `defaultNullsFirst="true"`（H2 默认 NULL 序 `LOW`，ASC 时 NULL 在前）；`supportNullsFirst="true"`（`:17`）保留不动。（随注说明正交性；supportNullsFirst 4 处现值模型层锁定断言）
+- [x] 配置断言测试：8 方言 accessor 返回值逐个断言——mysql/mssql/dm=true、tdengine/duckdb/postgresql/oracle=false、h2=true（补配后）；未配置属性的方言（如 h2 之外的 default 系）断言缺省行为（false 语义）与文档一致。（`TestDefaultNullsFirstFlag` 3 测试：8 方言契约 + 继承面 mysql5.7/未配置面 db2 + supportNullsFirst 未触碰）
+- [x] **不写任何生成器消费**；在本 plan 与 owner doc 中写明移交链：消费点唯一 owner = WI7（roadmap WI7 EC ②③④⑤），WI3 交付止于 accessor + 配置正确性。（plan Deferred But Adjudicated 已有移交条目；owner doc 随 Phase 7）
+- [x] 正交性标注素材：`defaultNullsFirst`（默认序事实）与 `supportNullsFirst`（子句接受度）两概念的边界、以及「单布尔不足以表达方向相关 NULL 序」（H2 `FIRST`/`LAST` 方向无关 vs `LOW`/`HIGH` 方向相关；DuckDB-vs-PG DESC 差异）证据指针，供 WI7 引用（Phase 7 落 owner doc）。（测试 javadoc + IDialect javadoc 已含边界表述；证据指针随 Phase 7 落 owner doc）
 
 Exit Criteria:
 
-- [ ] accessor 契约测试 8 方言全绿（含 h2 补配前后差异可断言）。
-- [ ] 接线验证：XML 属性值 → 模型 → accessor 的读取链有测试证明（Minimum Rules #23）；本 Phase 新增公共方法若暂无消费方，其「暂无消费方」状态已在本 plan 与移交记录中显式声明（非静默 no-op，Minimum Rules #24 以移交记录履行）。
-- [ ] 未改任何生成器代码（`git log` 可证）；`supportNullsFirst` 四处配置未被触碰。
-- [ ] `./mvnw test -pl :nop-dao -am -T 1C` 全绿。
-- [ ] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
+- [x] accessor 契约测试 8 方言全绿（含 h2 补配前后差异可断言）。（red-first：h2 未补配 expected true but false）
+- [x] 接线验证：XML 属性值 → 模型 → accessor 的读取链有测试证明（Minimum Rules #23）；本 Phase 新增公共方法若暂无消费方，其「暂无消费方」状态已在本 plan 与移交记录中显式声明（非静默 no-op，Minimum Rules #24 以移交记录履行）。
+- [x] 未改任何生成器代码（`git log` 可证）；`supportNullsFirst` 四处配置未被触碰。（commit 仅含 nop-dao accessor/XML/测试）
+- [x] `./mvnw test -pl :nop-dao -am -T 1C` 全绿。（经两模块门禁覆盖，BUILD SUCCESS 2026-10-04）
+- [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 7 - owner doc 对齐 + 矩阵快照终同步
 
