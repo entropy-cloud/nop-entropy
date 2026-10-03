@@ -114,7 +114,8 @@
 - `getAstNodeName`（`:259-262`）：label 首段下划线前缀首字母大写——`SqlRegularFunction_position` → `SqlRegularFunction`（约束 1 的推导依据）。
 - **带 prop 赋值的备选，prop 名必须命中目标 AST 类的真实属性**：`AstGrammar.initRuleReturnType`（`AstGrammar.java:186-200`）对每个 prop 调 `fn.apply(astNodeName, propName)` 反查 `EqlAST.xjava` 属性表，查不到抛 `ERR_GRAMMAR_INVALID_AST_PROP`。⇒ **备选内根本不能发明中间 prop 名**（如 `posBegin=sqlExpr_bit`），这与约束 2"备选内不写 prop 赋值"互相印证且更硬：不是"写了也要手写重写"，而是"写了非属性名直接构建失败"。
 - 规则内全部备选都有 label 时，规则方法生成 `return (${rule.returnType})ctx.accept(this)`（模板 `_ASTBuildVisitor.java.xgen` 的 group+altLabel 分支）；规则返回类型取规则名推导（`sqlExpr_special` → firstPart(`_`)=`sqlExpr` → `SqlExpr`，**SqlExpr 类真实存在**于 `ast/`）。
-- 子元素不加 prop 赋值时，生成 context 提供 `ctx.sqlExpr_bit()`/`ctx.sqlExpr()`/`ctx.FOR()` 等按规则名/token 名的访问器，手写 visit 方法用它们做归一化（`_`-后缀辅助规则 `extractField_`/`trimDirection_` 同理提供 `ctx.extractField_()` 访问器）。
+- 子元素不加 prop 赋值时，生成 context 提供 `ctx.sqlExpr_bit()`/`ctx.sqlExpr()`/`ctx.FOR()` 等按规则名/token 名的访问器，手写 visit 方法用它们做归一化。
+- **【执行期新增实测，第二条工具硬约束】`_`-后缀辅助规则名会被 `getInnerRule` 误选**：零 prop 备选里出现单下划线规则引用（如 `extractField_`）时，`AstGrammarBuilder.getInnerRule`（`notInAst()` 只查双下划线 `__`）会把它选为备选 innerRule，而其规则无 astNodeName ⇒ 生成 `public null buildXxx(...)` 编译错。**修正 = 辅助规则名取双下划线后缀**（`extractField__`，"不属抽象语法树"约定被 `getInnerRule` 显式跳过，innerRule 落到 `sqlExpr`，生成体被手写 visit 完全重写、永不执行）。
 - duplicate-prop-label（`AstGrammarBuilder.java:524` 抛出点）是**同一备选内** prop 查重；跨备选同 prop 名会撞"NodeName_PropName"转换函数名。本裁定所有备选**零 prop 赋值**，该问题面整体不存在。
 
 ### 3.2 三条约束逐条落实确认
@@ -130,14 +131,15 @@ sqlExpr_special
     : sqlCastExpr # SqlCastExpr_cast
     | POSITION LP_ sqlExpr_bit IN sqlExpr RP_                        # SqlRegularFunction_position
     | SUBSTRING LP_ sqlExpr_bit FROM sqlExpr_bit (FOR sqlExpr_bit)?  # SqlRegularFunction_substring
-    | EXTRACT LP_ extractField_ FROM sqlExpr RP_                     # SqlRegularFunction_extract
-    | TRIM LP_ trimDirection_ FROM sqlExpr RP_                       # SqlRegularFunction_trimDirection
-    | TRIM LP_ trimDirection_ sqlExpr_simple FROM sqlExpr RP_        # SqlRegularFunction_trimDirectionChars
+    | EXTRACT LP_ extractField__ FROM sqlExpr RP_                    # SqlRegularFunction_extract
+    | TRIM LP_ trimDirection__ FROM sqlExpr RP_                      # SqlRegularFunction_trimDirection
+    | TRIM LP_ trimDirection__ sqlExpr_simple FROM sqlExpr RP_       # SqlRegularFunction_trimDirectionChars
     | TRIM LP_ sqlExpr_simple FROM sqlExpr RP_                       # SqlRegularFunction_trimChars
     ;
 
-extractField_: YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | QUARTER;
-trimDirection_: LEADING | BOTH | TRAILING;
+// 双下划线后缀 = AstGrammarBuilder notInAst 约定（见 §3.1 执行期新增硬约束）
+extractField__: YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | QUARTER;
+trimDirection__: LEADING | BOTH | TRAILING;
 ```
 
 - 首 arg 用 `sqlExpr_bit`（POSITION/SUBSTRING）：`IN`/`FROM` 是 `sqlExpr_predicate` 以上才出现的算子，`sqlExpr_bit` 保证首参不会吞掉分隔关键字——**文法层即无歧义**。
