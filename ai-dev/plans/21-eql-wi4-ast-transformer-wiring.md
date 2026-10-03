@@ -1,7 +1,7 @@
 # 21 EQL WI4 — AST 改写管线接线（`IEqlAstTransformer` 固定环节 + 编译缓存键，WI8 硬前置）
 
 > Plan Status: active
-> Last Reviewed: 2026-10-03
+> Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI4 节 + 门控矩阵 WI4 行 + Cross-Cutting，v7.2）；全部代码锚点于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 completed）；`ai-dev/plans/03-eql-wi1-class-a-defects.md`（结构先例）；本 plan 是 WI8（NULL 三值语义谓词）的硬前置
 
@@ -23,7 +23,7 @@
 
 ### 生产调用点与 transformer 来源链（`rg 'new EqlCompiler'` + `rg '\.compileSql\('` 全量实测）
 
-- **`new EqlCompiler()` 的生产构造点仅 2 处**：`nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java:102`（缓存未命中路径）与 `:121`（非缓存路径）。⇒ **EQL 编译的唯一生产入口是 `LoadedOrmModel.compileSql`**。其余 17 处命中全部在 `nop-orm-eql` / `nop-orm` 的 `src/test`。
+- **`new EqlCompiler()` 的生产构造点仅 2 处**：`nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java:102`（缓存未命中路径）与 `:121`（非缓存路径）。⇒ **EQL 编译的唯一生产入口是 `LoadedOrmModel.compileSql`**。其余命中（执行期 2026-10-04 实测 30 处，WI1-WI3 方言门测试新增所致；起草值"其余 17 处"、审查修订值"15 处"均已过时）全部在 `src/test`（nop-orm-eql 29 处 + nop-duckdb 1 处）。计数演进与结构性结论见裁定文档 §六.1。
 - 上游 **5 类生产入口**，全部最终汇入 `LoadedOrmModel.compileSql`（经 `SessionFactoryImpl.compileSql` 7-arg 委托 `:344-349`）：
   1. **7-arg**（`SessionFactoryImpl.java:344-349`）← `nop-persistence/nop-orm/src/main/java/io/nop/orm/filter/FilterSqlHelper.java:29-30`：**显式传 null transformer、useCache=true**（上游为数据权限过滤器 `DataAuthEntityFilterProvider.java:36`）。
   2. **3-arg**（`SessionFactoryImpl.java:333-335`，**已显式传 `defaultAstTransformer`**，`:334`）← `SqlLibManager.java:259`（sql-lib 启动校验 `checkLibValid`，仅 `<eql>` 类型语句）。
@@ -39,7 +39,7 @@
 - 接口声明：`IPersistEnv.java:48`；唯一实现 `SessionFactoryImpl`（`:64 implements IPersistEnv`；字段 `:100`、setter `:127`、getter `:131`）。
 - 配置注入链：`OrmSessionFactoryBean.java:88` `impl.setDefaultAstTransformer(getEqlAstTransformer())` ← `SessionFactoryConfig.java:81` 字段 / `:95` getter / `:99` setter（`OrmSessionFactoryBean extends SessionFactoryConfig`，`OrmSessionFactoryBean.java:40`）。
 - ⚠️ **有管线、无水源**：全仓**零** `setEqlAstTransformer` 调用方、零 beans/XML 配置 ⇒ 生产 `defaultAstTransformer` 恒为 null。叠加零生产实现者 ⇒ WI4 落地后、WI8 配置真实 transformer 之前，固定环节处于"已接线、未配置"的合法态（本 plan 用测试桩证明契约，不产生生产行为变化）。
-- 该接线**非本分支引入**（`git log master..HEAD` 仅 roadmap/WI0 文档与测试提交）；`ILoadedOrmModel.java:67-71` 的缓存键警告 javadoc 来自 master 侧 check2 整改提交 `0084822b0b`——即缓存键风险此前被登记为 **javadoc 层的"调用方责任"**，本 plan 将其升级为**代码强制**。
+- 该接线**非本分支引入**：`git log master..HEAD -- <接线链 9 文件>` 中仅 `EqlTransformVisitor.java` 被 WI2 触及（BUG-6 fullJoin 门，与 transformer 管线无接续关系），其余 8 文件（`OrmSessionFactoryBean`/`SessionFactoryConfig`/`SessionFactoryImpl`/`ILoadedOrmModel`/`LoadedOrmModel`/`IPersistEnv`/`IEqlAstTransformer`/`EqlCompiler`）零提交 ⇒ master 侧继承（精确化于裁定文档 §六.2；分支现含 81 个提交，原"仅 roadmap/WI0 文档与测试提交"表述过时）；`ILoadedOrmModel.java:67-71` 的缓存键警告 javadoc 来自 master 侧 check2 整改提交 `0084822b0b`——即缓存键风险此前被登记为 **javadoc 层的"调用方责任"**，本 plan 将其升级为**代码强制**。
 
 ### 缓存键链路（缺陷本体）
 
@@ -112,28 +112,28 @@ Phase 0 → Phase 1 → Phase 2 顺序执行；Phase 1 的代码改动单独提�
 
 ### Phase 0 - 四项裁定（签名范围 / transform 时机 / 缓存键方案 / 旧参数去留）
 
-Status: planned
+Status: completed（2026-10-04，裁定文档 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi4-phase0-adjudications.md`）
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增裁定文档）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] **裁定 1（签名范围）**：逐一复核 Current Baseline 列出的 6 组签名点在"接线收窄后"是否必须改动；默认裁定 = **零签名改动**。记录每组"不动"的依据（env 钩子 + `SessionFactoryImpl.java:334/:340` 直通 + `LoadedOrmModel.java:92-93` 回落已覆盖全部 5 类生产入口），并写明若必须改签名时的 plan-first 增补流程。
-- [ ] **裁定 2（transform 时机）**：给出 `transformBeforeAnalyze` vs `transformAfterAnalyze` 的结论与理由。倾向结论 = **`transformBeforeAnalyze` 为固定 lowering 槽位**。理由要素（执行时复核后落档）：(a) before 槽位的改写产物会被完整分析管线处理——参数编号（`EqlTransformVisitor.java:204` `collectNames`）、实体解析（`:622/:690/:1049/:1137/:1528`）、隐式 join 展开、`CollectionOperatorTransformer`、`SqlParamTypeResolver`（`:206-208`）；(b) after 槽位注入的新节点全部绕过上述管线（`SqlParameterMarker` 不编号 → `buildParams` 错位；属性导航不展开 → 生成器直印未解析名），只对"不引入参数/实体引用的纯语法改写"安全；(c) before 槽位拿不到 querySpace（`EqlTransformVisitor.java:274/:752-761` 在 analyze 中途才确定）⇒ **需要方言判定的 lowering（WI8 的 `IS DISTINCT FROM` 按方言矩阵仅 Oracle 需展开）的方言信息来源必须在本裁定中一并给出**（候选：经 `context.getDialectForQuerySpace(<默认 querySpace>)`；或该具体改写放 after 槽位并满足 (b) 的约束），不得留空给 WI8。
-- [ ] **裁定 3（缓存键方案，两候选给推荐 + 理由）**：
+- [x] **裁定 1（签名范围）**：逐一复核 Current Baseline 列出的 6 组签名点在"接线收窄后"是否必须改动；默认裁定 = **零签名改动**。记录每组"不动"的依据（env 钩子 + `SessionFactoryImpl.java:334/:340` 直通 + `LoadedOrmModel.java:92-93` 回落已覆盖全部 5 类生产入口），并写明若必须改签名时的 plan-first 增补流程。（裁定文档 §一：6 组签名点逐文件"不动"判定表 + 升级流程；执行期锚点复核零漂移）
+- [x] **裁定 2（transform 时机）**：给出 `transformBeforeAnalyze` vs `transformAfterAnalyze` 的结论与理由。倾向结论 = **`transformBeforeAnalyze` 为固定 lowering 槽位**。理由要素（执行时复核后落档）：(a) before 槽位的改写产物会被完整分析管线处理——参数编号（`EqlTransformVisitor.java:204` `collectNames`）、实体解析（`:622/:690/:1049/:1137/:1528`）、隐式 join 展开、`CollectionOperatorTransformer`、`SqlParamTypeResolver`（`:206-208`）；(b) after 槽位注入的新节点全部绕过上述管线（`SqlParameterMarker` 不编号 → `buildParams` 错位；属性导航不展开 → 生成器直印未解析名），只对"不引入参数/实体引用的纯语法改写"安全；(c) before 槽位拿不到 querySpace（`EqlTransformVisitor.java:274/:752-761` 在 analyze 中途才确定）⇒ **需要方言判定的 lowering（WI8 的 `IS DISTINCT FROM` 按方言矩阵仅 Oracle 需展开）的方言信息来源必须在本裁定中一并给出**（候选：经 `context.getDialectForQuerySpace(<默认 querySpace>)`；或该具体改写放 after 槽位并满足 (b) 的约束），不得留空给 WI8。（裁定文档 §二：before=固定 lowering 槽位、after=仅参数保持型改写；2c 三级可信度排序——after 槽位+已解析 AST 推导（推荐）/ before+AST 自行推导（中）/ before+默认 querySpace 猜测（低可信，拒绝）；`IS DISTINCT FROM` 展开的参数保持性论证 WI8 可直接引用）
+- [x] **裁定 3（缓存键方案，两候选给推荐 + 理由）**：
   - **候选 A**：把 transformer（或其语义指纹）纳入 `QueryPlanCacheKey`（照 `enableFilter` 先例 `QueryPlanCacheKey.java:23-25` + `TestQueryPlanCacheKey.java:22-37`）。成本：指纹来源要么给 `IEqlAstTransformer` 加方法（跨模块消费接口变更），要么用 className+identity（脆弱、跨进程不可比）；收益：非默认 transformer 也可安全使用缓存。
   - **候选 B（推荐）**：**非默认 transformer 强制绕过缓存**——`LoadedOrmModel.compileSql` 在 `:92-93` 解析后，比较 resolved transformer 与 `env.getDefaultAstTransformer()`，不同实例则 `useCache` 按 false 处理。收益：零签名、零接口变更；缓存中只存在"默认 transformer 编译的计划"，而默认 transformer 是 **per-session-factory 常量**（`init()` 时注入一次，`OrmSessionFactoryBean.java:88`）⇒ 键不含 transformer 即无歧义；与既有先例一致（`TestEqlCompiler.java:63-65` 显式 transformer 时 `useCache=false`）。代价：显式非默认 transformer 的编译不缓存（生产唯一 7-arg 调用点 `FilterSqlHelper.java:29` 传 null，无实际影响）。
-  - 记录被拒候选与理由，并做 **No-Silent-NoOp 裁定说明**（Minimum Rules #24）：候选 B 的"绕过缓存"是显式策略——绕过后仍完整编译并返回正确结果，不存在被跳过的能力分支。
-- [ ] **裁定 4（旧参数去留）**：7-arg `compileSql` 的 `astTransformer` 参数结论 = **保留**（理由：测试/工具 opt-in 路径在用——`TestEqlCompiler.java:63-65`；删除即触发签名 plan-first；"固定性"由解析点唯一化 + 缓存策略保证而非删参），使用边界写进 owner doc："生产代码不应 per-call 传 transformer，统一走 factory 默认配置；显式传入视为测试/工具行为且不参与缓存"。
-- [ ] 复核 WI0 基线未回退：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 与 `TestEqlCorpusBaseline` 存在且可跑——Phase 1 的 BC 判据依赖。
+  - 记录被拒候选与理由，并做 **No-Silent-NoOp 裁定说明**（Minimum Rules #24）：候选 B 的"绕过缓存"是显式策略——绕过后仍完整编译并返回正确结果，不存在被跳过的能力分支。（裁定文档 §三：候选 B + 三个显式假设（实例身份比较语义 / `setDefaultAstTransformer` public setter 的 init 期常量守护 / transformer 确定性）；候选 A 被拒理由 + No-Silent-NoOp 说明）
+- [x] **裁定 4（旧参数去留）**：7-arg `compileSql` 的 `astTransformer` 参数结论 = **保留**（理由：测试/工具 opt-in 路径在用——`TestEqlCompiler.java:63-65`；删除即触发签名 plan-first；"固定性"由解析点唯一化 + 缓存策略保证而非删参），使用边界写进 owner doc："生产代码不应 per-call 传 transformer，统一走 factory 默认配置；显式传入视为测试/工具行为且不参与缓存"。（裁定文档 §四，使用边界 Phase 1 落 owner doc）
+- [x] 复核 WI0 基线未回退：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 与 `TestEqlCorpusBaseline` 存在且可跑——Phase 1 的 BC 判据依赖。（裁定文档 §五）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含四项裁定、被拒候选与理由、WI8 面向的方言信息来源约束（裁定 2c）。
-- [ ] 裁定 1 明确记录"零签名改动 ⇒ 不触发 roadmap WI4 行 plan-first"，或触发时的增补流程已写明。
-- [ ] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含四项裁定、被拒候选与理由、WI8 面向的方言信息来源约束（裁定 2c）。（`2026-10-04-wi4-phase0-adjudications.md`；plan 审查 6 项 Minor 一并吸收，见裁定文档 §六）
+- [x] 裁定 1 明确记录"零签名改动 ⇒ 不触发 roadmap WI4 行 plan-first"，或触发时的增补流程已写明。
+- [x] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-04.md` WI4 Phase 0 条目）
 
 ### Phase 1 - 接线落地与缓存键修复（两个证明测试）
 
