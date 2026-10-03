@@ -179,8 +179,10 @@ sqlTableSource_joinRight:
 innerJoin_:
     INNER? JOIN;
 
+// WI2 BUG-6: 补 OUTER? 与 leftJoin_/rightJoin_ 形态对齐（修复前 `full outer join`
+// 解析失败 expected=JOIN）。OUTER/FULL 均为关键字 token，不在 unreservedWord_，无别名歧义
 fullJoin_:
-   FULL JOIN;
+   FULL OUTER? JOIN;
 
 leftJoin_:
     LEFT OUTER? JOIN;
