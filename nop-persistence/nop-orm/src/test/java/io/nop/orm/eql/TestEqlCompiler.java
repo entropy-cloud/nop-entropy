@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_ENTITY_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -212,16 +213,26 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
 
     @Test
     public void testUpdateReturning() {
+        // WI3 将 h2 的 supportReturningForUpdate 纠错为 false（H2 无 UPDATE..RETURNING 投影列表形式），
+        // 编译期响亮拒绝；各方言正负向对照见 nop-orm-eql 的 TestEqlUpdateReturningDialectGate
         String sqlText = "update SimsClass o set o.collegeId = 1 returning *";
 
-        SQL sql = compile(sqlText);
-        sql.dump();
+        try {
+            compile(sqlText);
+            fail();
+        } catch (NopException e) {
+            assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
+        }
     }
 
     @Test
     public void testFunctions() {
         IDialect dialect = DialectManager.instance().getDialect("h2");
         for (String funcName : dialect.getFunctionNames()) {
+            // WI3 注册的 ilike 是 LIKE ignore-case 的改写模板（owner doc「ilike 函数注册与消费」），
+            // `ilike(a,b)` 调用语法不在 EQL 文法中，不属于本迭代验证的"可调用函数"面
+            if ("ilike".equals(funcName))
+                continue;
             ISQLFunction func = dialect.getFunction(funcName);
             String sqlText = dialect.getSelectFromDualSql(getFuncSql(func));
             try {
