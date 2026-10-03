@@ -61,6 +61,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static io.nop.orm.eql.OrmEqlConstants.DIALECT_KEYWORD_NONE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_EXCEPT_KEYWORD;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_INTERSECT_KEYWORD;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_LATERAL;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
@@ -567,17 +570,31 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     @Override
     protected String getIntercectKeyword() {
         String keyword = dialect.getIntersectKeyword();
-        if (!StringHelper.isEmpty(keyword))
-            return keyword;
+        if (StringHelper.isEmpty(keyword))
+            return super.getIntercectKeyword();
 
-        return super.getIntercectKeyword();
+        // WI3 版本门：哨兵 none = 方言声明无 INTERSECT 算子（MySQL 5.7 / MariaDB 10.2 落地
+        // 配置）。编译期响亮报错，不静默输出目标库不支持的算子。空串经 xdef 绑定实测被
+        // 规范化为 null、与未配置不可区分，故用显式哨兵（裁定文档 §二）
+        if (DIALECT_KEYWORD_NONE.equals(keyword))
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_INTERSECT_KEYWORD);
+
+        return keyword;
     }
 
     @Override
     protected String getExceptKeyword() {
         String keyword = dialect.getExceptKeyword();
-        if (!StringHelper.isEmpty(keyword))
+        if (!StringHelper.isEmpty(keyword)) {
+            // WI3 版本门：EXCEPT 复用既有 exceptKeyword 属性、走同一条哨兵门规则
+            if (DIALECT_KEYWORD_NONE.equals(keyword))
+                throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                        .param(ARG_DIALECT, dialect.getName())
+                        .param(ARG_FEATURE, FEATURE_EXCEPT_KEYWORD);
             return keyword;
+        }
         return super.getExceptKeyword();
     }
 

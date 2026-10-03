@@ -25,4 +25,9 @@
         <native name="percent_rank" x:override="remove"/>
         <native name="cume_dist" x:override="remove"/>
     </functions>
+
+    <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MySQL 8.0.31 起才有 INTERSECT/EXCEPT，
+         5.7 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT 的查询时显式报错。
+         mysql 本体（floor 8.0.31）不配置。≥8.0.31 的旧版本部署经 delta 方言显式覆盖。 -->
+    <sqls intersectKeyword="none" exceptKeyword="none"/>
 </dialect>

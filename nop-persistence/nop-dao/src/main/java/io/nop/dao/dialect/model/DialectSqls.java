@@ -18,6 +18,15 @@ public class DialectSqls extends _DialectSqls {
      */
     private String sqlIntervalLiteral;
 
+    /**
+     * WI3 版本门：INTERSECT 集合算子关键字（`<sqls>` 属性，与既有 exceptKeyword 对称）。
+     * 值面契约（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi3-phase0-adjudications.md` §二）：
+     * null = 未配置（生成器回落缺省 "intersect"）；"none" = 方言无 INTERSECT 算子
+     * （生成器编译期报错）；其他非空值 = 直接用作关键字。空串经 xdef string 绑定实测
+     * 被规范化为 null、与未配置不可区分，故「显式不支持」用哨兵 none 表达。
+     */
+    private String intersectKeyword;
+
     public DialectSqls() {
 
     }
@@ -28,5 +37,13 @@ public class DialectSqls extends _DialectSqls {
 
     public void setSqlIntervalLiteral(String sqlIntervalLiteral) {
         this.sqlIntervalLiteral = sqlIntervalLiteral;
+    }
+
+    public String getIntersectKeyword() {
+        return intersectKeyword;
+    }
+
+    public void setIntersectKeyword(String intersectKeyword) {
+        this.intersectKeyword = intersectKeyword;
     }
 }

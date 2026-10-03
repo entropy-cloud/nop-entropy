@@ -108,7 +108,10 @@
          文档化证据与 EQL 编译期报错的负向载体 -->
     <features supportSequence="true" supportLateral="false" supportFullJoin="false"/>
 
-    <sqls>
+    <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MariaDB 10.3 起才有 INTERSECT/EXCEPT
+         （MDEV-10141），承诺下限 10.2 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT
+         的查询时显式报错。≥10.3 部署经 delta 方言显式覆盖（INTERSECT ALL/DISTINCT 自 10.5）。 -->
+    <sqls intersectKeyword="none" exceptKeyword="none">
         <!--
         CREATE [OR REPLACE] [TEMPORARY] SEQUENCE [IF NOT EXISTS] sequence_name
         [ INCREMENT [ BY | = ] increment ]

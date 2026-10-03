@@ -165,10 +165,20 @@ public interface IDialect extends IComponentModel {
         return "update";
     }
 
+    /**
+     * INTERSECT 集合算子的输出关键字。值面契约（WI3 版本门，实现类读
+     * {@code <sqls>} 的 intersectKeyword 配置）：null = 未配置（回落缺省 "intersect"）；
+     * "none" = 方言无 INTERSECT 算子（EQL 编译含 INTERSECT [ ALL] 的查询时显式报错，
+     * 不会静默输出目标库不支持的算子）；其他非空值 = 直接用作关键字。
+     */
     default String getIntersectKeyword() {
         return "intersect";
     }
 
+    /**
+     * EXCEPT 集合算子的输出关键字。值面契约与 {@link #getIntersectKeyword()} 一致
+     * （null 回落 "except"；"none" = 方言无该算子，编译期报错；如 Oracle 配置 minus）。
+     */
     default String getExceptKeyword() {
         return "except";
     }

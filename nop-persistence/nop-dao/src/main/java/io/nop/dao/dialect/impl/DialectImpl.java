@@ -374,6 +374,16 @@ public class DialectImpl implements IDialect {
         return dialectModel.getSqls().getExceptKeyword();
     }
 
+    /**
+     * WI3 版本门：返回 `<sqls>` 的 intersectKeyword 原始配置值（与 getExceptKeyword 同契约）：
+     * null = 未配置（生成器回落缺省 "intersect"，行为与未引入本覆写前逐字节一致）；
+     * "none" = 方言声明无 INTERSECT 算子（生成器编译期报错）；其他非空值 = 直接使用。
+     */
+    @Override
+    public String getIntersectKeyword() {
+        return dialectModel.getSqls().getIntersectKeyword();
+    }
+
     @Override
     public String getCreateSequenceSql(String sequenceName, long initialValue, int incrementSize) {
         return StringHelper.renderTemplate(dialectModel.getSqls().getCreateSequence(), name -> {

@@ -71,8 +71,14 @@
 
     <!--
     @escapeSlash 对sql字符串字面量进行转义时，是否需要将\转义为\\
+    @exceptKeyword 集合算子 EXCEPT 输出的关键字，如 Oracle 配置 minus。特殊值 none = 方言无该集合算子，
+        编译含 EXCEPT [ ALL] 的查询时显式报错（WI3 版本门）。未配置时使用缺省关键字 except
+    @intersectKeyword 集合算子 INTERSECT 输出的关键字。特殊值 none = 方言无该集合算子，
+        编译含 INTERSECT [ ALL] 的查询时显式报错（WI3 版本门；MySQL <= 8.0.30、MariaDB <= 10.2
+        无 INTERSECT/EXCEPT）。未配置时使用缺省关键字 intersect
     -->
     <sqls xdef:name="DialectSqls" xdef:mandatory="true" escapeSlash="boolean" exceptKeyword="string"
+          intersectKeyword="string"
           insertKeyword="string" updateKeyword="string" trueString="string='1'" falseString="string='0'">
 
         <!--
