@@ -136,7 +136,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 
 ### `LIKE … ESCAPE`：执行路径无条件输出（2026-10-03 WI1 BUG-1）
 
-EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生成的 SQL 中**无条件输出** `escape '<literal>'`（`AstToSqlGenerator`）；回显路径（`toSqlString()`）目前不回显 escape（属 WI2 BUG-4 回显治理批次）。
+EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生成的 SQL 中**无条件输出** `escape '<literal>'`（`AstToSqlGenerator`）；回显路径（`toSqlString()`）目前不回显 escape（WI1 起草时曾预期随 WI2 BUG-4 批次治理，但 WI2 plan 的 BUG-4 范围经 draft review 收口为 selectAll/LIMIT/字面量三项，ESCAPE 回显未获授权承接——已登记为 WI2 plan Non-Blocking Follow-up，待 roadmap 立项授权后再动）。
 
 裁定依据：全仓没有"该方言是否支持 ESCAPE"的字段载体，且已取证方言全部支持该子句，分叉只在**默认 escape 字符**——显式 escape 字符覆盖默认值差异，因此无条件输出、不设方言门（裁定过程见框架开发档案的 WI1 裁决文档 §5）。
 
@@ -157,6 +157,17 @@ EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生
 | TDengine | 未取证 | 未取证 | `[unverified]` |
 
 **ILIKE + ESCAPE 组合显式报错**：`ilike` 在执行路径经方言函数改写（如 Oracle 的 `regexp_like(x,p,'i')`），改写后的函数形式没有 ESCAPE 挂载点——静默丢弃会改变匹配语义，因此 `ignoreCase=true` 且携带 escape 时编译期报错，错误码 `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`）。"发现真实不支持 ESCAPE 子句的方言时改写为函数调用"已登记为 Deferred（触发时 DM8 优先复核）。
+
+### EQL 回显路径契约：`selectAll`/`LIMIT`/字面量（2026-10-03 WI2 BUG-4）
+
+`toSqlString()`/`@dump` 的回显路径（`AstToEqlGenerator`）与执行路径（`AstToSqlGenerator`）分工：
+
+- **`select *`**：解析层形态（`selectAll` 为真且 projections 为空）回显 `*`；经 `EqlTransformVisitor` 展开后的 AST（projections 非空）继续回显展开投影——分页内嵌渲染（`PrintSqlSelect`）依赖这一点，不允许把裸 `*` 文本嵌进外层分页包装 SQL。
+- **`LIMIT`/`OFFSET`**：回显经 `printLimit` 钩子输出（复用 `visitSqlLimit`）；执行路径的 limit 在 `visitSqlQuerySelect` 经 `dialect.getPaginationHandler().buildPageExpr(...)` 消费（`AstToSqlGenerator.printLimit` 刻意置空，避免与外层分页文本双份）。修复前回显整体丢失 limit/offset，回显文本再喂回编译器会静默变义。
+- **布尔字面量**：回显输出 EQL 关键字形态 `true`/`false`（可重新解析回 `SqlBooleanLiteral`）；此前硬编码 `1`/`0`——重解析为 NUMBER，boolean→integer 类型语义分歧。执行路径继续走 `dialect.getBooleanValueLiteral`（`trueString`/`falseString` 方言形态）。
+- **字符串字面量**：回显维持 `escapeSql(value, false)` 的 `''` 双写形，与执行路径 `escapeSlash=false` 方言的 `getStringLiteral` 渲染一致。已知既有缺口（非回显缺陷）：EQL parse 层 `EqlParseHelper.stringLiteralValue` 只 unescape 反斜杠形态、不 un-double `''`（lexer 的 `STRING_` 规则接受 `''` 但值层不还原），故含引号值的回显文本重解析后值含字面 `''`——已登记 WI2 plan Non-Blocking Follow-up，修它属 parse 语义变更需另行立项。
+
+无方言门（roadmap BUG-4 明令"无需方言门"）。回归测试：`TestEqlSelectAllLimitEcho`（回显 7 例，含 round-trip）、`TestEqlSelectAllLimitCompile`（执行路径不变 + 单 LIMIT 断言）。
 
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 

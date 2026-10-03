@@ -136,6 +136,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         }
     }
 
+    /**
+     * WI2 BUG-4: 执行路径的 limit 已由 {@link #visitSqlQuerySelect(SqlQuerySelect)} 经
+     * {@code dialect.getPaginationHandler().buildPageExpr(...)} 消费（分页文本在外层
+     * 追加），printSelect 内不再打印——否则经 printWrappedNode→printSelect 的分页内嵌
+     * 渲染路径会与外层 LIMIT/OFFSET 文本重复。基类钩子仅服务回显路径（AstToEqlGenerator）。
+     */
+    @Override
+    protected void printLimit(SqlQuerySelect node) {
+        // limit 在 visitSqlQuerySelect 的分页分支消费，此处刻意不输出（非静默跳过：
+        // 消费点在 buildPageExpr，行为由 TestEqlSelectAllLimitCompile 的单 LIMIT 断言钉死）
+    }
+
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         SqlExpr expr = node.getExpr();

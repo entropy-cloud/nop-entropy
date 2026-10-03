@@ -442,7 +442,15 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getDistinct()) {
             print("distinct ");
         }
-        printList(node.getProjections(), ",");
+        // WI2 BUG-4: selectAll（select *）此前不回显任何投影文本（`select * from t` 变
+        // `select from t`）。仅在解析层形态（selectAll 且 projections 为空）打印 *；
+        // transform 展开后的 AST（selectAll 为真且 projections 非空，如分页内嵌渲染）
+        // 必须继续打印展开投影，否则裸 * 文本会破坏实体列展开语义。
+        if (node.getSelectAll() && node.getProjections().isEmpty()) {
+            print("*");
+        } else {
+            printList(node.getProjections(), ",");
+        }
         endBlock();
 
         if (node.getFrom() != null) {
@@ -467,8 +475,25 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             visitSqlOrderBy(node.getOrderBy());
         }
 
+        printLimit(node);
+
         if (node.getForUpdate()) {
             printForUpdate(node);
+        }
+    }
+
+    /**
+     * WI2 BUG-4: 回显路径补齐 LIMIT/OFFSET（此前 printSelect 手写遍历从不 visit limit，
+     * 回显静默丢弃分页子句）。复用既有 {@code visitSqlLimit}（不删除——
+     * {@code _SqlQuerySelect} 的 child 遍历链仍依赖它）。执行路径的 limit 在
+     * {@code AstToSqlGenerator.visitSqlQuerySelect} 经
+     * {@code dialect.getPaginationHandler().buildPageExpr(...)} 消费并在外层追加分页
+     * 文本，子类 override 本方法置空以避免双份 LIMIT/OFFSET。
+     */
+    protected void printLimit(SqlQuerySelect node) {
+        if (node.getLimit() != null) {
+            println();
+            visitSqlLimit(node.getLimit());
         }
     }
 
@@ -763,7 +788,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlBooleanLiteral(SqlBooleanLiteral node) {
-        print(node.getValue() ? " 1 " : " 0 ");
+        // WI2 BUG-4 字面量一致化（裁定=候选 A）：回显输出 EQL 关键字形态。此前硬编码
+        // " 1 "/" 0 "——重解析为 NUMBER 字面量，boolean→integer 类型语义分歧；
+        // true/false 经 sqlBooleanLiteral 文法重解析回 SqlBooleanLiteral 同值。
+        // 执行路径（AstToSqlGenerator）继续走 dialect.getBooleanValueLiteral 方言形态。
+        print(node.getValue() ? " true " : " false ");
     }
 
     @Override

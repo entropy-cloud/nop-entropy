@@ -121,26 +121,26 @@ Exit Criteria:
 
 ### Phase 1 - BUG-4 回显丢 `selectAll` 与 `LIMIT`（含字面量一致化）
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`（`printSelect` `:437-472`、`visitSqlStringLiteral` `:714-717`、`visitSqlBooleanLiteral` `:750-752`）、按 Phase 0 裁定可能涉及 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Fix`、`Decision`（字面量一致化形态，Phase 0 已裁定）、`Proof`
 
-- [ ] 修复前红：`select * from t` 的 `toSqlString()` 断言含 `*`——修复前输出 `select from t`，断言红；`select distinct * from t` 断言 `distinct *`；`select … from t limit 10 offset 5` 的回显断言含 `limit 10` 与 `offset 5`——修复前整体丢失，断言红。
-- [ ] `printSelect` 补齐：`selectAll` 为真时回显 `*`；`limit` 非空时回显 `LIMIT`/`OFFSET`（复用既有 `visitSqlLimit` 或等价输出）。**不得删除 `visitSqlLimit`**（roadmap 明令；`_SqlQuerySelect.java:311-312` 遍历链仍依赖它）。
-- [ ] 字面量一致化（按 Phase 0 裁定形态）：字符串转义（`AstToEqlGenerator.java:715` 的 `StringHelper.escapeSql(value, false)`）与布尔字面量（`:750-752` 硬编码 `" 1 "`/`" 0 "`）不再与执行路径（`AstToSqlGenerator.java:410` `dialect.getStringLiteral` / `:416` `dialect.getBooleanValueLiteral`）产生语义分歧；含单引号字符串与 `true`/`false` 字面量各有断言。
-- [ ] 回显 round-trip 守护：`select * from t limit 10 offset 5` 的回显文本重新解析后 `selectAll`/`limit`/`offset` 语义不丢（本缺陷的复刻即"回显文本再喂回编译器会静默变义"）。
-- [ ] 执行路径回归：`EqlTransformVisitor.java:300-307` 的 `selectAll` 展开与 `AstToSqlGenerator.java:91-100` 的 pagination 路径行为不变（BUG-4 仅回显缺陷，不波及执行）。
-- [ ] owner doc：如回显契约（`toSqlString()`/`@dump`）有文档表述需同步则更新，或明确写 `No owner-doc update required`。
+- [x] 修复前红：`select * from t` 的 `toSqlString()` 断言含 `*`——修复前输出 `select from t`，断言红；`select distinct * from t` 断言 `distinct *`；`select … from t limit 10 offset 5` 的回显断言含 `limit 10` 与 `offset 5`——修复前整体丢失，断言红。（红证据实测：`TestEqlSelectAllLimitEcho` 6 红 1 错——`select from t`/`select distinct from t`/limit 丢失 ×2/布尔 `a.flag = 1`/round-trip 再解析 `select [f]rom t` parse-fail。）
+- [x] `printSelect` 补齐：`selectAll` 为真时回显 `*`；`limit` 非空时回显 `LIMIT`/`OFFSET`（复用既有 `visitSqlLimit` 或等价输出）。**不得删除 `visitSqlLimit`**（roadmap 明令；`_SqlQuerySelect.java:311-312` 遍历链仍依赖它）。（落地按 Phase 0 执行期精确化：`selectAll && projections.isEmpty()` 才打印 `*`（transform 展开后 projections 非空继续打印展开投影）；limit 经新钩子 `printLimit`（复用 `visitSqlLimit` 未删），`AstToSqlGenerator.printLimit` override 置空避免分页内嵌渲染双份 LIMIT。）
+- [x] 字面量一致化（按 Phase 0 裁定形态）：字符串转义（`AstToEqlGenerator.java:715` 的 `StringHelper.escapeSql(value, false)`）与布尔字面量（`:750-752` 硬编码 `" 1 "`/`" 0 "`）不再与执行路径（`AstToSqlGenerator.java:410` `dialect.getStringLiteral` / `:416` `dialect.getBooleanValueLiteral`）产生语义分歧；含单引号字符串与 `true`/`false` 字面量各有断言。（布尔→`" true "/" false "`（重解析回 `SqlBooleanLiteral`）；字符串维持 `escapeSql(value,false)`（与 escapeSlash=false 方言执行渲染逐字一致）。**执行期发现并登记**：EQL parse 层 `stringLiteralValue` 不 un-double `''`，含引号值的回显重解析值含字面 `''`——parse 语义缺口非回显缺陷，入 Non-Blocking Follow-ups；测试改为锁定回显形态与执行形式一致 + 简单字符串 round-trip。既有测试 `TestCollectionOperatorTransformer` 4 处布尔回显期望文本（`<> 0`→`<> false`、`<> 1`→`<> true`）按裁定同步，transform 覆盖面不变。）
+- [x] 回显 round-trip 守护：`select * from t limit 10 offset 5` 的回显文本重新解析后 `selectAll`/`limit`/`offset` 语义不丢（本缺陷的复刻即"回显文本再喂回编译器会静默变义"）。（`TestEqlSelectAllLimitEcho.testEchoRoundTripsSelectAllAndLimit`。）
+- [x] 执行路径回归：`EqlTransformVisitor.java:300-307` 的 `selectAll` 展开与 `AstToSqlGenerator.java:91-100` 的 pagination 路径行为不变（BUG-4 仅回显缺陷，不波及执行）。（`TestEqlSelectAllLimitCompile`：`select * … limit 10 offset 5` 展开实体列 + LIMIT/OFFSET 各恰一次（双 LIMIT 回归锚）+ 既有 `testLimitOffsetTranslation` 同口径回归。）
+- [x] owner doc：如回显契约（`toSqlString()`/`@dump`）有文档表述需同步则更新，或明确写 `No owner-doc update required`。（`eql-and-database-compatibility.md` 新增「EQL 回显路径契约」小节；同步 ESCAPE 小节的 WI2 批次表述为实际落地面（ESCAPE 回显未获授权承接，登记 follow-up）。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试存在且断言具体 SQL 文本（`select * from t`、`distinct *`、`limit 10 offset 5` 完整回显；修复前红一次并留痕于提交说明或日志）。
-- [ ] 字面量一致化断言通过（同一 AST 在回显/执行两路径的字面量输出无语义分歧）。
-- [ ] 回显 round-trip 守护测试通过（`selectAll`/`limit`/`offset` 经回显→重解析不丢失）。
-- [ ] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致——**该判据显式挂钩 Phase 0**：其成立前提是 Phase 0 第 2 项的零 diff 前提复核通过（语料简单字符串无内嵌引号 + 零布尔字面量，差异登记第 5 条）**且**第 6 项裁定不改变简单字面量的回显渲染；若裁定改变了渲染，须先按 Phase 0 裁定的快照重生成范围执行（`-Dnop.orm.eql.updateCorpusSnapshot=true` + 人工审阅 diff）并以新快照为 BC 基准，在提交说明中逐条对照变更语句。不声称 7 个全测。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试存在且断言具体 SQL 文本（`select * from t`、`distinct *`、`limit 10 offset 5` 完整回显；修复前红一次并留痕于提交说明或日志）。
+- [x] 字面量一致化断言通过（同一 AST 在回显/执行两路径的字面量输出无语义分歧）。
+- [x] 回显 round-trip 守护测试通过（`selectAll`/`limit`/`offset` 经回显→重解析不丢失）。
+- [x] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致——**该判据显式挂钩 Phase 0**：其成立前提是 Phase 0 第 2 项的零 diff 前提复核通过（语料简单字符串无内嵌引号 + 零布尔字面量，差异登记第 5 条）**且**第 6 项裁定不改变简单字面量的回显渲染；若裁定改变了渲染，须先按 Phase 0 裁定的快照重生成范围执行（`-Dnop.orm.eql.updateCorpusSnapshot=true` + 人工审阅 diff）并以新快照为 BC 基准，在提交说明中逐条对照变更语句。不声称 7 个全测。（无需重生成：Phase 0 裁定字符串渲染不变 + 语料零布尔；`TestEqlCorpusBaseline` 随全量运行通过，快照零 diff。）
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。（实测 203 tests 0 failures BUILD SUCCESS。）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - BUG-6 `full outer join` + `supportFullJoin` 全链接线（.g4，单独提交）
 
@@ -263,6 +263,8 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- **ESCAPE 回显未随 BUG-4 承接**：WI1 plan 曾把 `LIKE … ESCAPE` 的回显缺失（基类 `AstToEqlGenerator.visitSqlLikeExpr` 不打印 escape）预期为"随 WI2 BUG-4 回显治理批次"，但本 plan 起草与 draft review 收口的 BUG-4 范围为 selectAll/LIMIT/字面量三项、EC 不含 ESCAPE 回显。回显 escape 属新增回显形态变更，待 roadmap 立项授权；owner doc ESCAPE 小节已同步实际落地面（watch-only）。
+- **EQL parse 层 `''` 双写不 un-double 的既有缺口**：lexer `STRING_` 规则（`Literals.g4`）接受 `'a''b'` 为单 token，但 `EqlParseHelper.stringLiteralValue` 只 unescape 反斜杠形态 ⇒ 含引号值的回显文本（`''` 双写形）重解析后值含字面 `''`。属 parse 语义缺口非回显缺陷（回显文本与执行路径 `escapeSlash=false` 渲染逐字一致），修复会改变既有 parse 语义，需另行立项（owner=`parse 层`，非本 roadmap 缺陷清单条目）。
 - `EqlASTBuildVisitor.java:200`（`SqlIntervalExpr_intervalUnit`）的同款 `(ParserRuleContext)` 强转类型正确、非缺陷，不动；WI1 BUG-5 触碰该区域时如顺手统一错误定位形态，须以符号定位并独立说明。
 - roadmap Cross-Cutting"生成物变更纪律"的 CI `git diff --stat` 阈值告警 carrier 待定（WI0 Non-Blocking Follow-up）；本 plan 以"两处 `.g4` 各自单独提交 + `git log` 可审计"作为过程替代。
 - WI1 plan Closure Gates 中的"3 项既有失败"表述滞后于实测 1 项基线（差异登记第 4 条）；WI1 收口时按其自身流程更正，本 plan 不代改。
