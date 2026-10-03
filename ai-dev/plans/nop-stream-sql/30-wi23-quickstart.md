@@ -92,14 +92,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: TestStreamSqlQuickstart（.sql 文件驱动端到端）落地并纳入 quickstart verify.sh step 4；fraud-example 裁定不纳入（SQL 子集无 CEP 与 fraud CEP 演示定位不重叠）。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi23-closure-audit.md——PASS；三向反事实判红全可判；verify.sh step 1 reactor 实跑涵盖 nop-stream-sql [452/453]；sql 79/79 绿；doc-links 0；check-plan-checklist 0
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work
