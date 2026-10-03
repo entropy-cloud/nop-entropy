@@ -1,6 +1,6 @@
 # 2306 缺陷嫌疑批量修复（WI0-WI11 测试暴露的 44 项）
 
-> Plan Status: active（rev2 复审通过：3 处一等笔误与 2 处格式已修，可进入执行）
+> Plan Status: completed
 > Last Reviewed: 2026-10-02
 > Source: ai-dev/bugs/2026-10/ 下 11 个缺陷记录文件（43 项源条目 + 1 项 fraud 2PC = 44）；ai-dev/analysis/2026-10/2026-10-02-unit-test-wi13-closing-baseline.md（P1 优先清单）
 > Related: ai-dev/plans/2293-2305（缺陷发现方）；ai-dev/bugs/00-bug-fix-note-writing-guide.md；docs-for-ai/02-core-guides/error-handling.md
@@ -125,7 +125,7 @@ Exit Criteria:
 
 - [x] 20 条目全部 `fixed` 或 `adjudicated-not-a-defect`（含理由）。——20/20 fixed
 - [x] 回归测试到位；项 16 新错误码已注册（nop.err.orm.compute-prop-arg-missing，OrmModelErrors）；异常类型/消息变化项全 reactor 验证（项 13 IAE 契约，_cases 零命中成立）。
-- [x] ▲ 项（18/22）下游当期验证绿。——nop-wf-service 115 / nop-biz 111 全绿
+- [x] ▲ 项（18/22）下游当期验证绿。——nop-wf-service 138 / nop-biz 111 全绿
 - [x] 各模块 `-am` 全绿。——19 模块当期全绿（明细见汇总文件验证证据节）
 - [x] bug 文件回填，`ai-dev/logs/` 已更新。
 - [x] Owner-doc 裁定：项 22 公开 mutation 语义变化核查 docs-for-ai/service-layer 描述一致性——记录结论。——核查：service-layer 文档"没有主键就新增，否则更新"与修复后行为一致，无需变更（记录于 wi8 bug 文件）
@@ -152,7 +152,7 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [x] 9 条目逐项落地 `fixed` / `adjudicated-not-a-defect` / `diagnosed-split`（后者指向新 plan）。——7 fixed + 2 adjudicated（wi4#3 文档告警、wi9#7 探针证伪）；0 diagnosed-split
+- [x] 9 条目逐项落地 `fixed` / `adjudicated-not-a-defect` / `diagnosed-split`（后者指向新 plan）。——7 fixed + 2 adjudicated（wi4#3 文档告警、wi9#7 探针证伪）；0 diagnosed-split（本表为执行条目口径 9 条；按源条目口径 10 条含 wi10#6，该项为 adjudicated，见汇总文件）
 - [x] 修复项回归测试绿；Decision 项裁定记录于 bug 文件。——wi4#3/wi9#7/wi10#6 裁定均在 bug 文件留痕
 - [x] 各模块 `-am` 全绿。
 - [x] bug 文件回填，`ai-dev/logs/` 已更新。
@@ -173,26 +173,26 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] fraud 2PC 诊断结论有证据、按结论修复/分流。
-- [ ] 全仓 `test -T 1C` 零失败（或失败项全部为本 plan 外新暴露并记录裁定）。
-- [ ] 44 项最终状态表（源条目口径）落位。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
-- [ ] Owner-doc 裁定：若 fraud 修复改变 exactly-once 语义文档面，同步 `docs-for-ai` 对应模块文档——记录结论。
+- [x] fraud 2PC 诊断结论有证据、按结论修复/分流。——嫌疑 A 成立（两层产品缺陷，诊断证据链在 bug 文件）；嫌疑 B 排除
+- [x] 全仓 `test -T 1C` 零失败（或失败项全部为本 plan 外新暴露并记录裁定）。——plan 相关失败 9 轮迭代全部修复；剩余失败裁定为 plan 外负载 flake 族（孤立全绿）+ 兄弟会话 ~/.m2 构件竞争，详见 Phase 4 第 3 条
+- [x] 44 项最终状态表（源条目口径）落位。——bugs/2026-10/2026-10-03-plan-2306-remediation-44-summary.md
+- [x] `ai-dev/logs/` 对应日期条目已更新。——logs/2026/10-03.md
+- [x] Owner-doc 裁定：若 fraud 修复改变 exactly-once 语义文档面，同步 `docs-for-ai` 对应模块文档——记录结论。——exactly-once 语义未变（修复的是提交可达性与 key 路由分布，2PC 协议契约不变）；cookbook 描述与修复后行为一致，无需变更（记录于 stream-2pc bug 文件）
 
 ## Closure Gates
 
-- [ ] 44 项（源条目口径）逐项落地三态之一，汇总表可机械核对，无静默跳过
-- [ ] 全部 `fixed` 项有回归测试（翻转钉子/解除 @Disabled/新增），既有测试零回归（声明翻转的用例除外）
-- [ ] 消费方爆炸半径评估记录（行为语义变化项）；▲ 项下游当期验证证据
-- [ ] protected area 变更（nop-core/nop-xlang/nop-antlr4-common）均有本 plan 依据 + 回归测试
-- [ ] 错误消息/错误码/异常类型变化项全 reactor 验证
-- [ ] bug 文件全部回填 Fix/Tests 段（bug guide 合规）；wi3#5 回填 already-fixed 指向 df4e4f8fa7
-- [ ] 不存在被静默降级的项（adjudicated/diagnosed-split 均有理由与去向）
-- [ ] Anti-Hollow Check：修复是真语义修复而非改测试凑绿（audit 抽查钉住测试翻转前后 diff）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0（逐模块）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 44 项（源条目口径）逐项落地三态之一，汇总表可机械核对，无静默跳过
+- [x] 全部 `fixed` 项有回归测试（翻转钉子/解除 @Disabled/新增），既有测试零回归（声明翻转的用例除外）
+- [x] 消费方爆炸半径评估记录（行为语义变化项）；▲ 项下游当期验证证据
+- [x] protected area 变更（nop-core/nop-xlang/nop-antlr4-common）均有本 plan 依据 + 回归测试
+- [x] 错误消息/错误码/异常类型变化项全 reactor 验证
+- [x] bug 文件全部回填 Fix/Tests 段（bug guide 合规）；wi3#5 回填 already-fixed 指向 df4e4f8fa7
+- [x] 不存在被静默降级的项（adjudicated/diagnosed-split 均有理由与去向）
+- [x] Anti-Hollow Check：修复是真语义修复而非改测试凑绿（audit 抽查钉住测试翻转前后 diff）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0（逐模块）
+- [x] 独立子 agent closure-audit 已完成并记录证据（见 Closure 段）
 - [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2306-bug-suspects-remediation.md --strict` 退出码 0（closure 时复核）
-- [ ] `ai-dev/logs/` 收口条目与 plan 一致
+- [x] `ai-dev/logs/` 收口条目与 plan 一致
 
 ## Revision Note
 
@@ -205,18 +205,35 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - build-infra 三项（nop-kernel parent、nop-rg argLine、JDK profile 停用 activeByDefault）——独立立项。
-- janino 升级评估（若项 32 最小修复不可行）。
+- janino 升级评估（项 32 已最小修复，不依赖升级；升级后复核字段提取路径）。
+- SysDictLoader 选项级多语言过滤：需 sys 字典模型增加 locale 列（ORM 模型 protected area，独立立项）。
+- stableHash 公式变更对存量 checkpoint keyed state 布局不兼容：如需存量兼容须引入带版本状态迁移（2.0.0-SNAPSHOT 阶段裁定接受）。
+- 全仓 stable 全绿基线：待兄弟 worktree 会话结束后重测（本轮受共享 ~/.m2 构件竞争与负载 flake 族影响，watch-only，详见 Phase 4 第 3 条）。
 
 ## Closure
 
-Status Note: （完成时填写）
+Status Note: 44 项缺陷嫌疑全部落地三态（40 fixed + 3 adjudicated-not-a-defect + 1 already-fixed = 44，源条目口径机械核对式：12+20+7 源条目 fixed + fraud fixed = 40；wi4#3/wi9#7/wi10#6 adjudicated；wi3#5 already-fixed）。逐项修复协议（确认→爆炸半径→最小修复→回归测试→验证→落账）全程执行；受影响 19 模块 + nop-stream 1653 当期全绿；全仓 test -T 1C 经 9 轮迭代将 plan 相关失败全部修复收敛，剩余失败均为 plan 外（负载 flake 族孤立全绿 + 兄弟会话 ~/.m2 构件竞争）并记录裁定（Phase 4 第 3 条）。独立 closure audit（agent_d48a43e9）确认修复本体全部通过后，其指出的三处文本计数/笔误问题（Major：三态计数 41/2→40/3；Minor：wi9 MAROON 笔误、wf-service 测试数口径）已全部修正，plan Non-Blocking Follow-ups 已收编 summary 的 watch-only 条目。
 
-Completed:
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（待独立子 agent closure audit 后填写）
+- Reviewer / Agent: 独立子 agent（fresh session）agent_d48a43e9-9f4f-4719-b32d-d7970b02eba8
+- Audit Session: agent_d48a43e9-9f4f-4719-b32d-d7970b02eba8（2026-10-03，约 85 次工具调用，读 plan/guide/11 个 bug 文件 + 源码逐项实证）
+- Evidence:
+  - A 三态落地：PASS（43 源条目 + fraud 全部三态裁定、无静默跳过；源码抽查 6+9 项修复全部实证：FilterOpHelper:269/:70、AStarPathFinder:103/:130、WfModelAnalyzer:181、KeyGroupAssignment:78-80、JdbcTwoPhaseCommitSink:140/:832、AbstractParseTreeParser:93-101 等）。审计发现计数表错误（41/2 应为 40/3），已修正 summary/plan/log 三处
+  - B Anti-Hollow：PASS（4/4 钉住测试翻转 git diff 实证均为断言方向反转+语义增强，零删除凑绿：lt→gt 全比较符、AOOB→ERR_WF_GRAPH_CONTAINS_LOOP、merge(UP,DOWN) UP→DOWN、String→Number 断言）
+  - C 测试真实性：PASS（TestTwoPhaseParseRetry 三例合同、TestCellDataLocators 双用例、TestPredefinedColorsIndex 首注册裁定、TestGraphQLCrudSemantics _chgType=A、TestKeyGroupAssignment.sequentialKeysSpreadAcrossSubtasks 均在库且断言一致）
+  - D 文本一致性：PASS（审计指出的三处 41/2 计数矛盾已修正；wi5 wf-service 测试数口径已统一为 138）
+  - E Deferred 诚实性：PASS（plan 外裁定三处留痕、零文件交集经 commit 文件清单 grep 验证、无 in-scope defect 降级；watch-only 条目已收编 plan Follow-ups）
+  - F 想象性分析：PASS（15+ 项抽查均为产品代码实改；49 src/main vs 35 src/test 提交形态健康；scan-hollow 22 受影响模块 0 critical/0 high）
+  - Closure Gates：全部勾选；`node ai-dev/tools/check-plan-checklist.mjs --strict` 复核退出码 0（completed 后复核）
+  - 全仓验证：9 轮 test -T 1C -fae 迭代，plan 相关失败全部修复收敛；剩余失败裁定记录于 Phase 4 第 3 条
+- Deferred 项分类检查：3 个 adjudicated 均有探针/裁定理由与去向；无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填写）
+- SysDictLoader 选项级多语言过滤：需 sys 字典模型增加 locale 列（ORM protected area，独立立项）。
+- stableHash 公式变更对存量 checkpoint keyed state 布局不兼容：如需存量兼容须引入带版本状态迁移（SNAPSHOT 阶段接受）。
+- 全仓 stable 全绿基线：待兄弟 worktree 会话结束后重测（watch-only）。
+- build-infra 三项与 janino 升级评估：见 Non-Blocking Follow-ups（plan 前置既有项）。

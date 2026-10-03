@@ -35,7 +35,7 @@
 
 - **1 UnitsHelper FixedPoint 负数不对称：`fixed`**。encode 按 `floor` 拆分整数/小数（小数恒非负），与 decode 的"符号整数+无符号小数"语义对称。回归：TestUnitsHelper.testFixedPointNegativeNumbersRoundtrip（-1.5/-0.5/-2.25/-0.0）。
 - **2 parseYYYYMMDDDate 校验缺失：`fixed`**。第 5/8 字符分隔符必须为 '/'（对齐声明的 YYYY/MM/DD 格式）；Calendar setLenient(false) 拒绝 2 月 30 日等无效日期。无生产调用方（grep 证据，仅测试引用），分隔符收紧无兼容风险。回归：TestExcelDateHelper.testParseYYYYMMDDDate 扩展（"2024/02/30"、"2024-02-29" 必须拒绝）。
-- **3 PredefinedColors 索引冲突：`fixed`（裁定：首注册优先）**。indexColors/indexMap 统一 putIfAbsent——主索引与先声明 ARGB 胜出，index2 别名与重复 ARGB（BLACK/AUTOMATIC 同 FF000000）不再覆盖；查找结果由枚举声明顺序唯一确定。回归：TestPredefinedColorsIndex.testColorIndexRoundtrip 特征化断言调整（getByIndex(0x19)==MAROON、getColorIndex("FF000000")==0x08）。
+- **3 PredefinedColors 索引冲突：`fixed`（裁定：首注册优先）**。indexColors/indexMap 统一 putIfAbsent——主索引与先声明 ARGB 胜出，index2 别名与重复 ARGB（BLACK/AUTOMATIC 同 FF000000）不再覆盖；查找结果由枚举声明顺序唯一确定。回归：TestPredefinedColorsIndex.testColorIndexRoundtrip 特征化断言调整（getByIndex(0x19)==PLUM——首注册优先下 PLUM 先经 index2 注册 0x19、getColorIndex("FF000000")==0x08）。
 - **4 FLS 空值缺省不一致：`fixed`**。文本路径 encode null 缺省 "0"→""，与二进制路径一致（不伪造数值内容）。回归：TestFixedLengthStringCodec.testTextEncodeNullUsesEmptyDefault。
 - **5 RecordTemplateManager vars 无防御拷贝：`fixed`**。prepareVars 防御性拷贝入新 HashMap 再建 scope，调用方不可变 Map（Map.of）不被回写。回归：TestRecordTemplateManager.testBuildRecordWithImmutableVarsMap。
 - **6 文本路径类型反推缺失：`fixed`**。无 codec 时按字段声明 stdDataType 转换（STRING/ANY 透传），与 FLS 二进制路径类型语义对称。回归：TestRecordTextRoundtrip 全部 "a" 字段断言翻转为 Integer（含边界用例 99999）。

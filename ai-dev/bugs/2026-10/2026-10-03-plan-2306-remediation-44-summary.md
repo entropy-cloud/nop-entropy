@@ -7,13 +7,13 @@
 
 | 状态 | 数量 | 条目 |
 |---|---|---|
-| `fixed` | 41 | 见下表明细 |
-| `adjudicated-not-a-defect` | 2 | wi4#3（openConnection 文档告警裁定）、wi9#7（记录级 generator 探针证伪）|
+| `fixed` | 40 | 见下表明细 |
+| `adjudicated-not-a-defect` | 3 | wi4#3（openConnection 文档告警裁定）、wi9#7（记录级 generator 探针证伪）、wi10#6（DashPatternDetector 滑窗文档化裁定）|
 | `already-fixed`（改判） | 1 | wi3#5（df4e4f8fa7 已修，回填指向）|
 | `diagnosed-split` | 0 | — |
 | 合计 | **44** | |
 
-注：wi10#6（DashPatternDetector 滑窗）在 plan 中列为 Decision 项，最终裁定为 `adjudicated-not-a-defect`（文档化），计入第二行；wi7#3（existsDict 租户旁路）以"保留乐观语义 + 显式 warn 日志"最小修复落地，计入 `fixed`。若按 43 源条目 + fraud 口径：42 fixed + 2 adjudicated（含 wi10#6 与 wi4#3）+ 1 already-fixed（wi3#5 含在 43 内）+ fraud 1 fixed = 44。
+注：40 fixed 含 39 个源条目 + fraud 项；wi7#3（existsDict 租户旁路）以"保留乐观语义 + 显式 warn 日志"最小修复落地，计入 `fixed`。机械核对式：39 + 3 + 1 = 43（源条目），+ fraud fixed 1 = 44。
 
 ## 逐项状态表（Phase / 项号 ↔ 源条目）
 
@@ -85,7 +85,7 @@
 
 ## 验证证据
 
-- 受影响 19 模块当期全绿：nop-core 496 / nop-commons 351 / nop-xlang 855 / nop-api-core 151 / nop-orm-model 32 / nop-dao 164 / nop-orm 210 / nop-wf-core 47 / nop-wf-service 115 / nop-cluster-core 27 / nop-pdf 70 / nop-gateway 106 / nop-biz 111 / nop-biz-auth-core 138 / nop-excel 76 / nop-record 192 / nop-rpc-core 58 / nop-sys-dao 64 / nop-mermaid 26。
+- 受影响 19 模块当期全绿：nop-core 496 / nop-commons 351 / nop-xlang 855 / nop-api-core 151 / nop-orm-model 32 / nop-dao 164 / nop-orm 210 / nop-wf-core 47 / nop-wf-service 138 / nop-cluster-core 27 / nop-pdf 70 / nop-gateway 106 / nop-biz 111 / nop-biz-auth-core 138 / nop-excel 76 / nop-record 192 / nop-rpc-core 58 / nop-sys-dao 64 / nop-mermaid 26。
 - nop-stream 全套件 1653 测试零失败（含转绿的 TestParallel2PcJdbcE2E 与 stableHash 爆炸半径复核）。
 - ▲ 行为语义变化项（1/2/6b/18/22）下游当期验证全部执行并记录于对应 bug 文件。
 - 全仓 `./mvnw test -T 1C -fae`：见 plan Closure 段（收口记录）。
