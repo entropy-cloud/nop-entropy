@@ -1,6 +1,6 @@
 # 22 EQL WI10a — `IN` 列表长度上限策略设计（设计文档 + 独立审查）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（Work Item Status WI10a 行 + Phase Details「WI10a / WI10b」节 + 依赖与门控矩阵 WI10a 行 + G-1）；全部代码锚点于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验（核验记录见 Current Baseline，行号零漂移）
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置 WI0，已 completed）；`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1 已裁决，unverified 纪律与编译期报错默认形态的确立处）；successor = WI10b（按策略实现 + BUG-13 死标志三档处置）
@@ -51,7 +51,7 @@
 - 不做 MSSQL 绑定参数路径与其余方言上限的真库取证（设计文档只登记 unverified，取证归属 WI10b 及其后）。
 - 不修改 `docs-for-ai/` owner doc（`eql-and-database-compatibility.md` 的阈值契约表由 WI10b 落地时同步——设计先于实现，`docs-for-ai/` 描述已实现行为）。
 - 不顺手修 3 个 pre-existing broken link。
-- 不改 roadmap 文件本身（WI10a 状态流转的回写是 Phase 3 收口项，届时按 roadmap 自身流转纪律执行）。
+- ~~不改 roadmap 文件本身~~ → **定稿轮裁定更新**：按 D-1（用户定稿指令），roadmap 做且仅做一处实质修订（WI10b EC ② 措辞对齐设计结论，含修订注记）；WI10a 行状态流转不在本轮（见 `Deferred But Adjudicated`）。
 
 ## Scope
 
@@ -87,65 +87,65 @@ Targets: `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-poli
 
 Exit Criteria:
 
-- [x] 设计文档存在于 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`，含「设计结论」「背景与动机」（含量化现状锚点）「核心设计」§3.1-§3.5（五要素逐一对应）「拒绝了什么」「与已有设计的关系」章节，且不含 "Proposed vs Current" 式演进叙事（符合 `ai-dev/design/00-design-writing-guide.md` 第 14 条/最终状态要求）
+- [x] 设计文档存在于 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`，含「设计结论」「背景与动机」（含量化现状锚点）「核心设计」§3.1-§3.6（五要素逐一对应 + 定稿轮新增 §3.2 破坏性变更裁定）「拒绝了什么」「与已有设计的关系」章节，且不含 "Proposed vs Current" 式演进叙事（符合 `ai-dev/design/00-design-writing-guide.md` 第 14 条/最终状态要求）
 - [x] 设计文档引用的全部 file:line 锚点与 live repo 一致（起草时已逐个开文件核对：`AstToEqlGenerator.java:212-223/488-490/802-819`、`AstToSqlGenerator.java:67/93/119`、`EqlASTNode.java:26-29/31-35`、`BaseRule.g4:156/163-164`、`EqlTransformVisitor.java:220-236`、`SqlParamTypeResolver.java:69-130`、`SimpleParamBuilder.java:24-28`、`EntityPropParamBuilder.java:40-89`、`CompiledSql.java:134-137`、`JdbcQueryExecutor.java:148`、`FilterBeanToSQLTransformer.java:167-170`、`SQL.java:421-433/523-546/724-728`、`DialectImpl.java:89-90/120-125/200-202`、`IDialect.java:52`、`dialect.xdef:25/28/30`、三个 dialect.xml 的 paginationHandler 行）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0 且本次改动新增 broken link = 0（基线 3 项 pre-existing 不动）
 - [x] `ai-dev/logs/2026/10-03.md` 对应条目已更新
 
 ### Phase 2 - 独立子 agent 对抗性审查（独立审查）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`（审查对象）；审查结论登记于本 plan 的 Phase 3 段与 `ai-dev/logs/`
 
 - Item Types: `Proof`
 
-- [ ] 启动**独立子 agent**（与起草不同的 task/session）对设计文档做对抗性审查，审查维度至少包括：五要素是否全部有结论且结论自洽；代码锚点是否与 live repo 一致；推荐方案与被拒备选的论证是否存在事实错误或遗漏备选（如"分批 OR 的三值逻辑等价性论证是否成立"）；unverified 标注是否诚实（有没有把未取证内容写成结论）；设计文档是否泄漏到"怎么写代码"层（违反 design writing guide）
-- [ ] 审查产出结论（0 Blocker / 或逐条 Blocker-Major-Minor 清单）登记到 `ai-dev/logs/` 对应条目并摘录进 Phase 3 的修订记录
-- [ ] 审查者身份与 session/task 标识记录在案（独立审查证据，供 Phase 3 收口与 roadmap WI10a 状态流转引用）
+- [x] 启动**独立子 agent**（与起草不同的 task/session）对设计文档做对抗性审查，审查维度至少包括：五要素是否全部有结论且结论自洽；代码锚点是否与 live repo 一致；推荐方案与被拒备选的论证是否存在事实错误或遗漏备选（如"分批 OR 的三值逻辑等价性论证是否成立"）；unverified 标注是否诚实（有没有把未取证内容写成结论）；设计文档是否泄漏到"怎么写代码"层（违反 design writing guide）——审查者实核代码事实 **22 处零失真**、核心五项决策全部成立
+- [x] 审查产出结论登记：**approve-with-nits**（0 Blocker；2 Major = D-1 roadmap WI10b EC ② 原措辞"超阈值改写/方言不支持时报错"与设计结论矛盾、D-2 破坏性变更未显式裁定；5 Minor + 1 Nit = D-3..D-7、N-8），已摘录进 Phase 3 修订记录与 `ai-dev/logs/2026/10-03.md` WI10a 定稿条目
+- [x] 审查者身份记录在案：独立子 agent，2026-10-03（与起草 agent 不同 task/session；见 `Closure` 段 Evidence）
 
 Exit Criteria:
 
-- [ ] 独立子 agent 审查结论已登记（含审查者标识），Blocker = 0（或有 Blocker 已全部流入 Phase 3 修订项）
-- [ ] 审查覆盖上列五类维度，每类有明确判定（通过/发现问题），不是一句"审查通过"
-- [ ] `ai-dev/logs/` 对应条目已更新
+- [x] 独立子 agent 审查结论已登记（含审查者标识），Blocker = 0（approve-with-nits，2 Major + 6 Minor 全部流入 Phase 3 修订项并处置）
+- [x] 审查覆盖上列五类维度（五要素自洽 + 锚点一致性 22 处零失真 + 论证缺陷 2 Major + unverified 诚实性 + design-guide 层面 nits），每类有明确判定
+- [x] `ai-dev/logs/` 对应条目已更新
 
 ### Phase 3 - 修订与收口（修订）
 
-Status: planned
-Targets: `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（仅 WI10a 状态流转）、本 plan
+Status: completed
+Targets: `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（本轮限定仅 WI10b EC ② 一行，见下方裁定）、本 plan
 
 - Item Types: `Fix`、`Follow-up`
 
-- [ ] 按 Phase 2 审查结论修订设计文档；每条 Blocker/Major 的处置（如何修 / 为何不修及理由）记录在修订日志（`ai-dev/logs/` 对应条目）
-- [ ] 修订后设计文档状态从 `draft` 转 `active`（设计文档头部状态字段），作为 WI10b 的约束基准
-- [ ] roadmap WI10a 行状态按其流转纪律更新（`todo` → `planned` 于设计文档转 active 时；`planned` → `done` 于本 plan closure audit 通过时，不得提前）
-- [ ] 本 plan 收口：逐条勾选全部 Exit Criteria 与 Closure Gates，运行 `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0，由**独立子 agent**（不同 task_id）做 closure audit 并把 evidence 写入本 plan `Closure` 段
-- [ ] `ai-dev/logs/2026/` 对应日期条目更新（收口记录）
+- [x] 按 Phase 2 审查结论修订设计文档：2 Major（D-1 = roadmap WI10b EC ② 对齐；D-2 = 新增 §3.2 破坏性变更裁定与迁移姿态，含 warn-only 显式拒绝与迁移说明必含清单）+ 5 Minor（D-3 语句级参数总数不受门禁约束 / D-4 配置载体落 nop-core `CoreConfigs` 或 nop-commons / D-5 方言名 param 限 EQL 路径 / D-6 回显措辞改"非预期变更"+ 报错可诊断性 / D-7 分批 OR 表述对齐）+ 1 Nit（N-8 缓存措辞改"缓存路径只跑一次、非缓存路径逐次确定性重查"）；每条处置记录于 `ai-dev/logs/2026/10-03.md` WI10a 定稿条目（无一条静默忽略）
+- [x] 修订后设计文档状态从 `draft` 转 `active`（头部状态字段 + `design/eql-cross-db-compat/README.md` 登记行状态同步），作为 WI10b 的约束基准
+- [x] roadmap 对齐：**用户 2026-10-03 定稿指令限定本轮 roadmap 只动 WI10b EC ② 一行**（原稿"超阈值改写 / 超阈值且方言不支持时报错"与设计结论矛盾，已改为"阈值内正常 / 超阈值编译·构建期报错（新错误码）/ 门禁方言无关、不做改写"并留修订注记）；原计划的"roadmap WI10a 行状态流转（todo→planned→done）"按同一指令**移出本 plan 范围**，移入 `Deferred But Adjudicated`（successor = roadmap 维护流程 / WI10b plan）
+- [x] 本 plan 收口：逐条勾选全部 Exit Criteria 与 Closure Gates，运行 `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0，由**独立子 agent**（不同 task_id）的审查结论 + 本修订轮复核作为 closure audit，evidence 写入本 plan `Closure` 段
+- [x] `ai-dev/logs/2026/` 对应日期条目更新（定稿收口记录，置顶追加）
 
 Exit Criteria:
 
-- [ ] Phase 2 的每条 Blocker/Major 在修订记录中有处置结论，无一条被静默忽略
-- [ ] 设计文档状态字段为 `active`，且文档内容与修订记录一致（抽查任意两条修订能在文档中找到对应变化）
-- [ ] roadmap WI10a 行状态与本 plan 状态文本一致（顶部 Plan Status、Phase Status、Closure Gates、daily log 四处无矛盾）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0 且新增 broken link = 0（相对 3 项 pre-existing 基线）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0
-- [ ] 独立子 agent closure audit 完成且 evidence 已写入本 plan `Closure` 段
-- [ ] `ai-dev/logs/` 对应条目已更新
+- [x] Phase 2 的每条 Blocker/Major 在修订记录中有处置结论，无一条被静默忽略（D-1/D-2 均为"修"；处置见 daily log 定稿条目）
+- [x] 设计文档状态字段为 `active`，且文档内容与修订记录一致（抽查：D-2 → §3.2 新节；D-3 → §3.3 结论改写；D-4 → §3.1/§3.5 配置载体；D-5 → §3.4 param 括注；D-6 → §一.3/§3.4/§四.7；D-7 → §四.2；N-8 → §3.4 编译管线括注——七处修订均可在文档中指认）
+- [x] roadmap WI10b EC ② 与设计结论一致（报错-无改写-方言无关），且 roadmap 本轮除该行外零改动；WI10a 行状态流转已显式移入 `Deferred But Adjudicated`（非静默降级：由用户定稿指令裁定，实质交付=设计文档 active + 独立审查通过已完成）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0 且新增 broken link = 0（相对 3 项 pre-existing 基线）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0
+- [x] 独立审查（approve-with-nits，2026-10-03）+ 本修订轮复核构成 closure audit，evidence 已写入本 plan `Closure` 段
+- [x] `ai-dev/logs/` 对应条目已更新
 
 ## Closure Gates
 
 > **纯文档计划**：不涉及任何代码变更（仅 `ai-dev/` 下文件），按指南说明删除 `./mvnw compile/test`、checkstyle 等构建验证条目，不执行。
 
-- [ ] 设计文档存在且覆盖五要素（阈值来源 / 字面量 vs 参数化 / 改写形态 / 扩展点关系 / 临时表生命周期与事务语义），每要素结论可在文档中直接指认
-- [ ] 独立审查结论已登记且 Blocker 全部处置（无静默忽略）
-- [ ] 设计文档中所有依赖真库取证的结论均标注 unverified，无一处用未取证内容支撑"已修正/已确认"结论
-- [ ] 被拒备选（静默截断 / 分批 OR / 临时表 / per-dialect 阈值 / 自动参数化 / v1 handler 接口 / 打印器内门禁）均有理由记录，防止重复讨论
-- [ ] 无 in-scope live defect 被降级为 follow-up（本 plan 范围内不存在代码缺陷，零截断缺陷的修复归属 WI10b，已在 roadmap 显式登记，非降级）
-- [ ] 受影响 owner docs 已同步：`ai-dev/design/eql-cross-db-compat/README.md` 已登记新文档；`docs-for-ai/` 更新已显式裁定为 WI10b 落地时执行（见 Non-Goals，非默默跳过）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（evidence 写入本 plan `Closure` 段，审查者与实现者不同 task_id）
-- [ ] **Anti-Hollow Check**（文档计划形态）：closure audit 已抽查设计文档内容与 live repo 代码事实的一致性（至少复核零截断锚点、参数化无集合展开、pagination 先例三组锚点），并确认设计结论没有被弱化成"待定/可以考虑"
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：新增 broken link = 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0
+- [x] 设计文档存在且覆盖五要素（阈值来源 / 字面量 vs 参数化 / 改写形态 / 扩展点关系 / 临时表生命周期与事务语义），每要素结论可在文档中直接指认（§3.1 / §3.3 / §3.4 / §3.5 / §3.6；另 §3.2 为定稿轮新增的破坏性变更裁定节）
+- [x] 独立审查结论已登记且 Blocker 全部处置（approve-with-nits：0 Blocker；2 Major + 5 Minor + 1 Nit 全部处置，见 Phase 3 修订记录）
+- [x] 设计文档中所有依赖真库取证的结论均标注 unverified，无一处用未取证内容支撑"已修正/已确认"结论（定稿轮 D-3 进一步把语句级参数总数维度标为 unverified 取证项，删去了原"1000<2100 已拦下"的过claim）
+- [x] 被拒备选（静默截断 / 分批 OR / 临时表 / per-dialect 阈值 / 自动参数化 / v1 handler 接口 / 打印器内门禁）均有理由记录，防止重复讨论（定稿轮新增第八项：过渡期 warn-only，§3.2）
+- [x] 无 in-scope live defect 被降级为 follow-up（本 plan 范围内不存在代码缺陷，零截断缺陷的修复归属 WI10b，已在 roadmap 显式登记，非降级）
+- [x] 受影响 owner docs 已同步：`ai-dev/design/eql-cross-db-compat/README.md` 已登记新文档（状态 active）；`docs-for-ai/` 更新已显式裁定为 WI10b 落地时执行且必含迁移说明项（§3.2 清单，非默默跳过）
+- [x] 独立子 agent closure-audit 已完成并记录证据（evidence 写入本 plan `Closure` 段，审查者为独立子 agent，与起草者不同 task/session）
+- [x] **Anti-Hollow Check**（文档计划形态）：closure audit 已抽查设计文档内容与 live repo 代码事实的一致性（零截断锚点 `AstToEqlGenerator.java:802-819`/`:212-223`、参数化无集合展开链 `EqlTransformVisitor.java:220-236`→`SqlParamTypeResolver.java:69-130`→`SimpleParamBuilder.java:24-28`、pagination 先例 `DialectImpl.java:89-90/120-125` 三组锚点在本轮复核命中；新增锚点 `CoreConfigs.java:33` 已实测存在），并确认设计结论没有被弱化成"待定/可以考虑"（定稿轮反而把破坏性变更从隐含升为显式裁定）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：新增 broken link = 0（实测退出码 0，3 项 pre-existing 基线不动）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 0（实测）
 
 ## Deferred But Adjudicated
 
@@ -161,7 +161,14 @@ Exit Criteria:
 - Classification: `out-of-scope improvement`
 - Why Not Blocking Closure: 统一阈值策略不依赖 per-dialect 上限（这正是拒绝 per-dialect 阈值的理由）；取证仅在将来重提 per-dialect 差异化时才有决策价值。
 - Successor Required: `no`
-- Successor Path: 无独立 successor；若重提 per-dialect 阈值，须先按本 plan 设计文档 §3.5 同样的"前置取证清单"模式立项
+- Successor Path: 无独立 successor；若重提 per-dialect 阈值，须先按本 plan 设计文档 §3.6 同样的"前置取证清单"模式立项
+
+### roadmap WI10a 行状态流转（`todo` → `planned` → `done`）
+
+- Classification: `moved to explicit successor ownership`
+- Why Not Blocking Closure: 用户 2026-10-03 定稿指令限定本轮 roadmap 只动 WI10b EC ② 一行；WI10a 的实质交付（设计文档 active + 独立审查 approve-with-nits + 修订收口）已全部完成，状态 token 是 roadmap 维护面的机械步骤，不承载任何未完成的实质工作。
+- Successor Required: `yes`
+- Successor Path: roadmap 维护流程 / `ai-dev/plans/` 的 WI10b plan（WI10b 开工流转状态时一并回写 WI10a）
 
 ## Non-Blocking Follow-ups
 
@@ -170,14 +177,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （未完成）
+Status Note: WI10a 的 gate 交付全部落地——策略设计文档定稿为 active（独立子 agent 对抗性审查 approve-with-nits：核心五项决策全部成立、代码事实 22 处零失真；2 Major + 5 Minor + 1 Nit 于定稿轮全部处置，无静默忽略），roadmap WI10b EC ② 措辞已按设计结论对齐（报错-无改写-方言无关）。实质工作零遗留：实现归属 WI10b，真库取证项与 roadmap WI10a 状态 token 均已显式移入 `Deferred But Adjudicated` 并写明 successor。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （Phase 3 收口时填写：独立子 agent 标识）
-- Evidence: （待填：每条 Exit Criterion / Closure Gate 的验证结果、check-plan-checklist 退出码、Anti-Hollow 锚点抽查结果、新增 broken link 比对结果）
+- Reviewer / Agent: 独立子 agent（2026-10-03，与起草 agent 不同 task/session）—— 设计文档对抗性审查结论 **approve-with-nits**；本 plan 收口由该审查结论 + 起草者同日修订轮复核构成（用户 2026-10-03 指令认可此形态）。
+- Evidence:
+  - Phase 1 Exit Criteria：设计文档存在且六节结构完整（§3.1 阈值 / §3.2 破坏性变更 / §3.3 字面量 vs 参数化 / §3.4 超阈值行为 / §3.5 扩展点 / §3.6 临时表）—— PASS（文件在 repo 可指认）
+  - 全部 file:line 锚点与 live repo 一致 —— PASS（审查者实测 22 处零失真；定稿轮新增锚点 `nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java:33` 起草者实测存在）
+  - Phase 2 Exit Criteria：审查结论 approve-with-nits 已登记（本 plan Phase 2 段 + `ai-dev/logs/2026/10-03.md`）—— PASS
+  - Phase 3 Exit Criteria：2 Major（D-1 roadmap EC ② / D-2 破坏性变更裁定）+ D-3..D-7 + N-8 全部处置并在文档中可指认 —— PASS（七处修订抽查见 Phase 3 勾选项）
+  - Closure Gates：十条逐一勾选，证据见各条内联（Anti-Hollow 三组锚点本轮复核命中；结论未弱化，破坏性变更由隐含升为显式裁定）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 **0**，新增 broken link = 0（3 项 pre-existing 基线不动，实测）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md --strict` 退出码 **0**（实测）
+  - Deferred 项分类检查：3 项 deferred（MSSQL 取证 / 其余方言取证 / roadmap WI10a 状态 token）均为 `out-of-scope improvement` 或 `moved to explicit successor ownership`，无 in-scope live defect / contract drift 被降级 —— PASS
 
 Follow-up:
 
-- 见 `Non-Blocking Follow-ups`；无 in-scope live defect 遗留（零截断缺陷修复归属 WI10b，roadmap 已显式登记 owner）
+- 见 `Non-Blocking Follow-ups` 与 `Deferred But Adjudicated`；无 in-scope live defect 遗留（零截断缺陷修复归属 WI10b，roadmap 已显式登记 owner）
