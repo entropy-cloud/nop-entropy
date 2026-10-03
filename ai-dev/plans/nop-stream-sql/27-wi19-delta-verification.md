@@ -1,6 +1,6 @@
 # 27 WI19 Delta 定制验证
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI19 行）、`ai-dev/design/nop-stream/00-vision.md` §八 10
 > Related: `ai-dev/plans/nop-stream-sql/25-wi17-sql-compiler.md`
@@ -18,7 +18,7 @@
 
 ## Goals
 
-- 单一确定结论：**编译产物可被 Delta 覆盖定制**——编译产物落为模型资源，Delta 以 x:extends 引用之，增删 transform 并重定向边，执行行为可观察地不同（base 与 delta 产物 sink 输出不同）。
+- 单一确定结论：**编译产物可被 Delta 覆盖定制**——编译产物落为模型资源，Delta 以 x:extends 引用之，增删 transform 并重定向边；合并模型结构断言 + delta 单次执行行为断言（b 行缺席证新增过滤器在编译拓扑上运行）。
 - §八 10 证据：Delta 生效全程为模型层操作（xdef 校验的 XML 解析与合并）；base 与 delta 各自从全新 env 构建+执行（无 runtime object 复用/patch）；防陈旧钉——提交的编译产物资源与当前 StreamSqlCompiler 现编译输出全等（编译器演进后该测试即红，强制重生成）。
 
 ## Non-Goals
@@ -51,35 +51,35 @@ Targets: `nop-stream/nop-stream-sql`
 
 Exit Criteria:
 
-- [x] 防陈旧钉 + 双执行断言绿（先写防陈旧钉观察红/绿的判别）
+- [x] 防陈旧钉 + 执行断言绿（防陈旧钉红态：变体查询 normalize 不等——audit 独立探针复现）
 - [x] sql 模块全量零退化
 - [x] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）；证据落 ai-dev/audits/nop-stream-sql/wi19-closure-audit.md
-- [ ] audit 通过后 roadmap WI19 `todo` → `done`；解析器断言 items=31/milestones=7/WI19=done
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] 独立子 agent closure audit（fresh session）：**PASS**（2 Minor 文字措辞收口修复——plan/日志「双执行」与「base/delta 均为全新 env 构建」措辞按实况改齐）；证据落 ai-dev/audits/nop-stream-sql/wi19-closure-audit.md——三成分实证（防陈旧钉独立探针复现红态/结构断言三反事实各自必红/delta 执行逐行核过 orders 定数）
+- [x] audit 通过后 roadmap WI19 `todo` → `done`；解析器断言成立：items=31/milestones=7/done=27/WI19=done
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI19 = done + 解析器断言成立
-- [ ] 双门禁退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI19 = done + 解析器断言成立
+- [x] 双门禁退出码 0
 
 ## Closure Gates
 
-- [ ] 编译产物 Delta 覆盖用例齐备且实跑绿（防陈旧钉 + 双执行行为断言）
-- [ ] §八 10 单一确定结论落档（模型层全程证据）
-- [ ] sql 模块全量零退化
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/27-wi19-delta-verification.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 编译产物 Delta 覆盖用例齐备且实跑绿（防陈旧钉 + 合并结构断言 + delta 执行判别）
+- [x] §八 10 单一确定结论落档（模型层全程证据）
+- [x] sql 模块全量零退化（74/74）
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/27-wi19-delta-verification.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Current Baseline
 
@@ -87,14 +87,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 编译产物可被 Delta 覆盖定制的单一确定结论成立（防陈旧钉 + 合并结构断言 + delta 执行判别三重证据）；§八 10 模型层全程验证。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi19-closure-audit.md——PASS；sql 全量 74/74（audit 独立实跑，简报 77 系预估误差以实跑为准）；doc-links 0；check-plan-checklist 0
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work
