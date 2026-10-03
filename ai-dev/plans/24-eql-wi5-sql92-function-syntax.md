@@ -311,20 +311,20 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] 四个 SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM）全部落地：各有断言正确方言 SQL 文本的红→绿正向用例（EC ①）。
-- [ ] 每个函数的"方言未注册目标函数时编译期报错"负向用例存在且断言具体错误码（EC ②；机制复用既有 `ERR_EQL_UNKNOWN_FUNCTION` 族，差异登记第 3 条）。
-- [ ] 方言能力矩阵快照的覆盖增量已更新并核实：POSITION/SUBSTRING **预期零增量**（目标函数已 14/14 注册，仅核实）；**TRIM 带 chars 的 `<template>` 注册与 EXTRACT 非 year 字段注册预期为真增量**（必须同步快照）；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③）。
-- [ ] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步：四个函数的"各库覆盖情况"表（逐行 `[实测]`/`[文档]`/`[未取证]`）+ 能力点登记表行 + 遮蔽放开说明（EC ④）。
-- [ ] **真库执行证据（EC ⑥）**：本 plan 新注册的每个函数在 `nop-dao/TestDialect.testFunctions` 真库（H2）执行路径下全绿；无法真库验证的方言（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）已逐个列出并给替代证据，`dm`/`tdengine` 标 `[未取证]` 且未计入覆盖率。
-- [ ] **既有 EQL 语料 BC（EC ⑦）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。
-- [ ] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（SUBSTRING 负起点、TRIM 字符集语义、EXTRACT 时区字段至少各一项）。
-- [ ] 遮蔽放开完成且零回归：`day`/`hour`/`minute`/`second`/`quarter` 可解析、`month()`/`year()`/interval 形态逐字不变。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI5 EC ⑤ 命令）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 的 **2 项既有 flake**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`、`TestMessageSourceFunctionRestart`，均单跑 PASS）与基线一致即豁免，不得据此判本 WI 失败。
-- [ ] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；重生成后 `ast/_gen/` 零 diff；无 lexer token 删除。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
+- [x] 四个 SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM）全部落地：各有断言正确方言 SQL 文本的红→绿正向用例（EC ①）。
+- [x] 每个函数的"方言未注册目标函数时编译期报错"负向用例存在且断言具体错误码（EC ②；机制复用既有 `ERR_EQL_UNKNOWN_FUNCTION` 族，差异登记第 3 条）。
+- [x] 方言能力矩阵快照的覆盖增量已更新并核实：POSITION/SUBSTRING **预期零增量**（目标函数已 14/14 注册，仅核实）；**TRIM 带 chars 的 `<template>` 注册与 EXTRACT 非 year 字段注册预期为真增量**（必须同步快照）；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③）。
+- [x] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步：四个函数的"各库覆盖情况"表（逐行 `[实测]`/`[文档]`/`[未取证]`）+ 能力点登记表行 + 遮蔽放开说明（EC ④）。
+- [x] **真库执行证据（EC ⑥）**：本 plan 新注册的每个函数在 `nop-dao/TestDialect.testFunctions` 真库（H2）执行路径下全绿；无法真库验证的方言（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）已逐个列出并给替代证据，`dm`/`tdengine` 标 `[未取证]` 且未计入覆盖率。
+- [x] **既有 EQL 语料 BC（EC ⑦）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。
+- [x] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（SUBSTRING 负起点、TRIM 字符集语义、EXTRACT 时区字段至少各一项）。
+- [x] 遮蔽放开完成且零回归：`day`/`hour`/`minute`/`second`/`quarter` 可解析、`month()`/`year()`/interval 形态逐字不变。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI5 EC ⑤ 命令）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 的 **2 项既有 flake**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`、`TestMessageSourceFunctionRestart`，均单跑 PASS）与基线一致即豁免，不得据此判本 WI 失败。
+- [x] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；重生成后 `ast/_gen/` 零 diff；无 lexer token 删除。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/24-eql-wi5-sql92-function-syntax.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不 lowering/只打印不设门"正是半实现形态）。
-- [ ] owner doc 已同步到 live baseline（见 EC ④ 条目），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不 lowering/只打印不设门"正是半实现形态）。
+- [x] owner doc 已同步到 live baseline（见 EC ④ 条目），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
 - [ ] **Anti-Hollow Check**：closure audit 已验证（a）四个函数从 EQL 文本 → parse 归一化 → transform 函数解析 → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op（lowering 不可用时必须响亮报错，不允许回退原文输出）；（c）遮蔽放开未引入任何静默行为变化。
 - [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI5 EC ⑧）；roadmap Work Item Status 的 WI5 行据此才可 `todo` → `done`（先 `planned` 后 `done`，见 roadmap Status values）。
 
