@@ -87,6 +87,13 @@ unreservedWord_:
     | UNCOMMITTED | UNNAMED
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
+    // WI5 Phase 5: 放开五个日期词的关键字遮蔽（roadmap WI5——month()/year() 能解析而
+    // day()/hour()/minute()/second()/quarter() 不能，纯属遮蔽不一致）。词法 token 不动
+    // （Keyword.g4 保留 token 不删不改）；五词经 sqlIdentifier_ 进入函数名/标识符位置。
+    // interval 1 day 等既有形态不受影响（intervalUnit_ 上下文只有该规则可达）；
+    // 7 个语料文件对这些词 0 命中（WI0 基线棘轮兜底）。day() 等的归一化日期函数注册
+    // 属 WI6（EXTRACT 字段函数已随 WI5 Phase 3 注册的方言上可正常 lowering）。
+    | DAY | HOUR | MINUTE | SECOND | QUARTER
     | LOWER | UPPER | ZONE |WORK
     | RECURSIVE | CURRENT_USER | USER | DATE | OCTET_LENGTH
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP

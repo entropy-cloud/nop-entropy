@@ -910,7 +910,7 @@ public class EqlParser extends Parser {
 			setState(280);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115816283L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 1940097L) != 0)) {
+			if (((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115808539L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 1940097L) != 0)) {
 				{
 				setState(279);
 				((SqlUpdateContext)_localctx).alias = sqlAlias();
@@ -976,7 +976,12 @@ public class EqlParser extends Parser {
 				case LOCALTIME:
 				case LOCALTIMESTAMP:
 				case YEAR:
+				case QUARTER:
 				case MONTH:
+				case DAY:
+				case HOUR:
+				case MINUTE:
+				case SECOND:
 				case MAX:
 				case MIN:
 				case SUM:
@@ -1420,7 +1425,7 @@ public class EqlParser extends Parser {
 			setState(330);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115816283L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 1940097L) != 0)) {
+			if (((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115808539L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 1940097L) != 0)) {
 				{
 				setState(329);
 				((SqlDeleteContext)_localctx).alias = sqlAlias();
@@ -2045,7 +2050,12 @@ public class EqlParser extends Parser {
 			case LOCALTIME:
 			case LOCALTIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case MAX:
 			case MIN:
 			case SUM:
@@ -2588,7 +2598,12 @@ public class EqlParser extends Parser {
 			case DATE:
 			case TIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case COUNT:
 			case CURRENT_USER:
 			case NAME:
@@ -3452,7 +3467,12 @@ public class EqlParser extends Parser {
 			case DATE:
 			case TIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case COUNT:
 			case CURRENT_USER:
 			case NAME:
@@ -4886,7 +4906,12 @@ public class EqlParser extends Parser {
 			case DATE:
 			case TIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case COUNT:
 			case CURRENT_USER:
 			case NAME:
@@ -5047,6 +5072,11 @@ public class EqlParser extends Parser {
 		public TerminalNode COALESCE() { return getToken(EqlParser.COALESCE, 0); }
 		public TerminalNode YEAR() { return getToken(EqlParser.YEAR, 0); }
 		public TerminalNode MONTH() { return getToken(EqlParser.MONTH, 0); }
+		public TerminalNode DAY() { return getToken(EqlParser.DAY, 0); }
+		public TerminalNode HOUR() { return getToken(EqlParser.HOUR, 0); }
+		public TerminalNode MINUTE() { return getToken(EqlParser.MINUTE, 0); }
+		public TerminalNode SECOND() { return getToken(EqlParser.SECOND, 0); }
+		public TerminalNode QUARTER() { return getToken(EqlParser.QUARTER, 0); }
 		public TerminalNode LOWER() { return getToken(EqlParser.LOWER, 0); }
 		public TerminalNode UPPER() { return getToken(EqlParser.UPPER, 0); }
 		public TerminalNode ZONE() { return getToken(EqlParser.ZONE, 0); }
@@ -5099,7 +5129,7 @@ public class EqlParser extends Parser {
 			{
 			setState(626);
 			_la = _input.LA(1);
-			if ( !(((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115816283L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 367233L) != 0)) ) {
+			if ( !(((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145804037969674241L) != 0) || ((((_la - 131)) & ~0x3f) == 0 && ((1L << (_la - 131)) & -543124115808539L) != 0) || ((((_la - 195)) & ~0x3f) == 0 && ((1L << (_la - 195)) & 18085319156957183L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762296071260161L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 367233L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -6791,7 +6821,7 @@ public class EqlParser extends Parser {
 			setState(809);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812560258590721L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230878849L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812560258590721L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230863361L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
 				{
 				setState(808);
 				((SqlCollectionAccessExprContext)_localctx).collFuncArgs = functionArgs_();
@@ -7188,7 +7218,12 @@ public class EqlParser extends Parser {
 			case LOCALTIME:
 			case LOCALTIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case MAX:
 			case MIN:
 			case SUM:
@@ -7412,7 +7447,12 @@ public class EqlParser extends Parser {
 			case DATE:
 			case TIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case COUNT:
 			case CURRENT_USER:
 			case NAME:
@@ -8950,7 +8990,7 @@ public class EqlParser extends Parser {
 			setState(1005);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812560258590721L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230878849L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812560258590721L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230863361L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
 				{
 				setState(1004);
 				((SqlRegularFunctionContext)_localctx).args = functionArgs_();
@@ -9020,7 +9060,12 @@ public class EqlParser extends Parser {
 			case DATE:
 			case TIMESTAMP:
 			case YEAR:
+			case QUARTER:
 			case MONTH:
+			case DAY:
+			case HOUR:
+			case MINUTE:
+			case SECOND:
 			case COUNT:
 			case CURRENT_USER:
 			case NAME:
@@ -9450,7 +9495,7 @@ public class EqlParser extends Parser {
 			setState(1048);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812285380683777L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230878849L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 137707401240L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 145812285380683777L) != 0) || ((((_la - 130)) & ~0x3f) == 0 && ((1L << (_la - 130)) & -1086248230863361L) != 0) || ((((_la - 194)) & ~0x3f) == 0 && ((1L << (_la - 194)) & 180285826389770239L) != 0) || ((((_la - 263)) & ~0x3f) == 0 && ((1L << (_la - 263)) & 1803762364790737153L) != 0) || ((((_la - 334)) & ~0x3f) == 0 && ((1L << (_la - 334)) & 16620161L) != 0)) {
 				{
 				setState(1047);
 				((SqlCaseExprContext)_localctx).test = sqlExpr_simple();
@@ -10756,7 +10801,7 @@ public class EqlParser extends Parser {
 		"\u00b6\u00b8\u00ba\u00bc\u00be\u00c0\u00c2\u00c4\u00c6\u00c8\u00ca\u00cc"+
 		"\u00ce\u00d0\u00d2\u00d4\u00d6\u00d8\u00da\u00dc\u00de\u00e0\u0000\u0013"+
 		"\u0003\u0000II\u010a\u010a\u011f\u011f\u0001\u0000\u0083\u0085\u0001\u0000"+
-		"hi#\u0000@@YYqryy\u0083\u0083\u0085\u0085\u0088\u0088\u008a\u008a\u0094"+
+		"hi#\u0000@@YYqryy\u0083\u0083\u0085\u0085\u0088\u008a\u008c\u008f\u0094"+
 		"\u0094\u009f\u009f\u00a6\u00a6\u00ac\u00ac\u00af\u00af\u00b4\u00e1\u00ea"+
 		"\u00ea\u00f1\u00f1\u00f9\u00f9\u0107\u0107\u0112\u0112\u0118\u0118\u011b"+
 		"\u011b\u011e\u011e\u0121\u0121\u0124\u0125\u012d\u012d\u0135\u0135\u013a"+
