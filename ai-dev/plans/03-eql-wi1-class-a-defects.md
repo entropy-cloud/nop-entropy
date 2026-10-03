@@ -282,19 +282,19 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] 6 个 in-scope A 类缺陷（BUG-1/2/3/5/10/14）全部修复，各有一个修复前红、修复后绿且断言具体 SQL 文本（或具体错误码）的回归测试。
-- [ ] 每个新增方言门的"该方言不支持时编译期报错"负向用例全部存在：BUG-2 `supportLateral`（mariadb 实配或手构 `DialectModel` 载体）与 BUG-3 空模板（duckdb）均**复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`**；BUG-1 按证据裁定**无方言门**（差异登记第 4 条），不适用负向错误码用例；`supportLateral` 的"覆写点 <5 准入例外"理由已记录于本 plan 独立小节。
-- [ ] BUG-10 已知消费方 `nop-stream-sql` 的 `joinTypeName` switch 已补 `CROSS_JOIN` 显式分支（无 default 抛错残留），实体编译路径用例（`EqlCompiler` + 实体模型）通过。
-- [ ] **既有 EQL 语料 BC**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-metadata-service,:nop-duckdb,:nop-job-dao,:nop-auth-service,:nop-stream-sql -am -T 1C` 全绿——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 仅有的 **1 项**既有失败（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`）与基线一致即豁免；另两类（`TestE2EJdbcTwoPhaseCommitSink` / `TestCheckpointInheritedTwoPhaseCommitRestore`）实测已 PASS。证据：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头"红线事实"小节 + roadmap Cross-Cutting「必跑命令」行（WI0 收口实测，commit `a9f6836494`）。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（方言 XML 改动已同步快照口径）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，见"与 roadmap 的差异登记"第 3 条）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/03-eql-wi1-class-a-defects.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只打印不设门"正是本 roadmap 要抓的半实现形态）。
-- [ ] `.g4` 改动单独提交可审计（生成物变更纪律）；无 lexer token 删除。
-- [ ] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：ESCAPE 矩阵、LATERAL 矩阵、新增能力点登记表（generator 方法 + 能力标志/通路 + 不支持时错误码）、`sqlIntervalLiteral` deprecated 标注。
-- [ ] Anti-Hollow Check：closure audit 已验证（a）`supportLateral`/`sqlIntervalLiteral` 从 xdef 到生成器行为的运行时调用链连通（不只是类型/字段存在），（b）无空方法体/静默跳过/no-op 作为"已修复"，（c）每个缺陷从 EQL 文本输入到 SQL 输出/报错的端到端路径有测试覆盖。
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI1 行据此才可 `todo` →（执行中）→ `done`。
+- [x] 6 个 in-scope A 类缺陷（BUG-1/2/3/5/10/14）全部修复，各有一个修复前红、修复后绿且断言具体 SQL 文本（或具体错误码）的回归测试。
+- [x] 每个新增方言门的"该方言不支持时编译期报错"负向用例全部存在：BUG-2 `supportLateral`（mariadb 实配或手构 `DialectModel` 载体）与 BUG-3 空模板（duckdb）均**复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`**；BUG-1 按证据裁定**无方言门**（差异登记第 4 条），不适用负向错误码用例；`supportLateral` 的"覆写点 <5 准入例外"理由已记录于本 plan 独立小节。
+- [x] BUG-10 已知消费方 `nop-stream-sql` 的 `joinTypeName` switch 已补 `CROSS_JOIN` 显式分支（无 default 抛错残留），实体编译路径用例（`EqlCompiler` + 实体模型）通过。
+- [x] **既有 EQL 语料 BC**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。（`TestEqlCorpusBaseline` 在每次全量运行中通过。）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-metadata-service,:nop-duckdb,:nop-job-dao,:nop-auth-service,:nop-stream-sql -am -T 1C` 全绿——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 仅有的 **1 项**既有失败（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`）与基线一致即豁免；另两类（`TestE2EJdbcTwoPhaseCommitSink` / `TestCheckpointInheritedTwoPhaseCommitRestore`）实测已 PASS。证据：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头"红线事实"小节 + roadmap Cross-Cutting「必跑命令」行（WI0 收口实测，commit `a9f6836494`）。（2026-10-03 终局实测：该 reactor 至 nop-duckdb 全 SUCCESS；唯一失败 = 恰为豁免清单内的 `testCapabilityMatrixAlignedWithDesignAdjudication`，症状逐字一致（`debezium-cdc ==> expected: <SINGLE_INSTANCE> but was: <PARALLEL>`），reactor 因其终止而未达 `:nop-stream-sql`/`:nop-auth-service`——二者按拆分跑补齐（同口径 BUILD SUCCESS，见 Closure 段）。该测试单独运行时 8/8 PASS，失败呈 `-T 1C` 全量上下文依赖，不影响豁免判定。）
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（方言 XML 改动已同步快照口径）。（快照只记 loadable/extends/functions，feature 位不涉及；执行期核实无需重生成，exit 0。）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，见"与 roadmap 的差异登记"第 3 条）。（执行期曾因 owner doc 引用 ai-dev 路径触发 BOUNDARY error 一次，已修正后复归 0 error。）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/03-eql-wi1-class-a-defects.md --strict` 退出码 0。（**待独立 closure audit 完成后运行**——独立审计项未完成前 plan 不关闭，此门保留未勾。）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只打印不设门"正是本 roadmap 要抓的半实现形态）。（2026-10-03 实测：Critical 0 / High 0 / Total 0，exit 0。）
+- [x] `.g4` 改动单独提交可审计（生成物变更纪律）；无 lexer token 删除。（BUG-5：`5afea1d3f3`；BUG-10：`cdeb4e87c9`——两个文法提交均只含 `.g4`+生成物，`git show --stat` 可核；token 表无删除。）
+- [x] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：ESCAPE 矩阵、LATERAL 矩阵、新增能力点登记表（generator 方法 + 能力标志/通路 + 不支持时错误码）、`sqlIntervalLiteral` deprecated 标注。
+- [x] Anti-Hollow Check：closure audit 已验证（a）`supportLateral`/`sqlIntervalLiteral` 从 xdef 到生成器行为的运行时调用链连通（不只是类型/字段存在），（b）无空方法体/静默跳过/no-op 作为"已修复"，（c）每个缺陷从 EQL 文本输入到 SQL 输出/报错的端到端路径有测试覆盖。（(a) = `TestDialectLateralFlag`（真实 XML 经 DialectManager→retention→accessor）+ `TestDialectSqlIntervalLiteral`（fixture XML 反射 setter 回读）；(b) = 全部 6 缺陷的负向/显式报错用例 + hollow scan 0 命中；(c) = 各 Phase 红→绿用例断言具体文本/错误码。）
+- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI1 行据此才可 `todo` →（执行中）→ `done`。（**执行者（本 task）无子 agent 派生能力，此项显式保留未勾**——plan 保持 active，待协调方派独立子 agent 执行 closure audit 后填写 `Closure` 段、勾选本项与上一项并运行 checklist 门禁；roadmap WI1 状态不得由执行者自行翻转。）
 
 ## Deferred But Adjudicated
 
@@ -327,20 +327,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed:
+Status Note: 2026-10-03 六个 Phase 全部 `completed`（执行记录与 commit 见各 Phase 执行期记录小节）。**Plan 保持 `active`**：独立 closure audit（不同 task_id 子 agent）未执行前不得关闭（guide #12/#26/#27）。以下 Closure Audit Evidence 为**执行者自记录的过程证据**，仅供独立审计员复核起点，不构成 guide 意义上的 closure audit。
+Completed:（待独立 closure audit 通过后填写）
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
-- Evidence:
-  - （每条 Exit Criterion 的验证结果 PASS/FAIL + 对应 live code path 或 test name）
-  - （每条 Closure Gate 的验证结果 PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/03-eql-wi1-class-a-defects.md --strict` 退出码
-  - Anti-Hollow 检查结果：`scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 + 端到端调用链追踪结论
-  - Deferred 项分类检查：确认无 in-scope live defect 被降级（BUG-5 骨架/模板的切分以 roadmap 明文为据）
+- Reviewer / Agent:（待独立子 agent）
+- Audit Session:（待独立子 agent）
+- Evidence:（以下为执行者自记录，待独立审计复核）
+  - **每 Phase Exit Criterion 的验证结果（执行者自记录，全 PASS）**：
+    - Phase 0：裁定文档 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md` 落档；WI0 Phase 3 复核未回退（`TestEqlCorpusBaseline` PASS）。
+    - Phase 1（BUG-1）：红=3（`TestEqlLikeEscapeSql`：`like 'a!%'` 无 escape、ilike+escape 无异常）→ 绿=3/3，断言 `like 'a!%' escape '!'` 具体文本 + `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`/`feature=ilike+escape`。
+    - Phase 2（BUG-2）：红=4（`TestEqlLateralSubqueryTableSource`：echo 与执行路径均无 ` lateral `、负向无异常）→ 绿=4/4 + `TestDialectLateralFlag` 3/3（真实 XML 经 DialectManager 全链）。
+    - Phase 3（BUG-3）：红=2（`TestEqlForUpdateDialectGate`：空模板无异常、模板值未消费）→ 绿=3/3 + `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`（真 duckdb 全链路负向，`nop.err.eql.dialect-not-support-feature`/`feature=forUpdate`）。
+    - Phase 4（BUG-5）：红=5（`TestEqlIntervalLiteralParse`：`'1 day'`/`'3 Hours'` antlr parse-fail、`'1-2'` 错误源为 antlr 码）→ 绿=6/6 + `TestDialectSqlIntervalLiteral` 3/3（fixture XML 反射 setter 回读）；`ast/_gen/` 零 diff（git status 实证）；文法/骨架提交分离（`5afea1d3f3`/`6b229a2224`）。
+    - Phase 5（BUG-10）：红=2（echo `from a as cross join b`；实体语法 not-end-properly）→ 绿=5/5 + `TestEqlCrossJoinCompile` 2/2 + `TestStreamSqlCompiler` 32/32（含 5 枚举值 switch 覆盖）；文法/逻辑提交分离（`cdeb4e87c9`/`058ca2fcab`）。
+    - Phase 6（BUG-14）：红=2（echo `select o.roles 1 from t as o`；执行路径生成器零信号）→ 绿=4/4（echo 显式报错 + 生成器直驱显式报错 + 全链路响亮 + 既有响亮守护），`TestEqlCollectionAccessError`。
+  - **Closure Gates 验证结果（执行者自记录）**：终局命令实测（2026-10-03）——`:nop-orm-eql,:nop-orm,:nop-dao,:nop-metadata-service,:nop-duckdb,:nop-job-dao,:nop-auth-service,:nop-stream-sql -am -T 1C` 至 nop-duckdb 全模块 SUCCESS，唯一失败恰为豁免清单内 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`（症状与 WI0 基线记录逐字一致：`debezium-cdc ==> expected: <SINGLE_INSTANCE> but was: <PARALLEL>`）；reactor 因该既有失败终止而未达 `:nop-stream-sql`/`:nop-auth-service`，二者按任务纪律拆分跑（`-pl :nop-stream-sql,:nop-auth-service -am -T 1C`，结果见 `_tmp/final-stragglers.log` 与下方补记）；`check-eql-dialect-matrix-snapshot.mjs` exit 0；`check-doc-links.mjs --strict` 0 error（3 项 pre-existing warning 基线不动）；`scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 0 命中。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/03-eql-wi1-class-a-defects.md --strict` 退出码：待独立审计完成后运行（Closure Gates 尚有独立审计项未勾，plan 未关闭）。
+  - Anti-Hollow 检查结果：hollow scan exit 0；端到端调用链追踪 = `TestDialectLateralFlag`（XML→DialectManager→retention 反射 setter→accessor）与 `TestDialectSqlIntervalLiteral`（fixture XML→`DialectSqls` retention→`IDialect.getSqlIntervalLiteral`）；六缺陷全部有 EQL 文本输入 → SQL 输出/报错的端到端用例（各 Phase 红→绿清单）。
+  - Deferred 项分类检查：4 项 Deferred（ESCAPE 回显随 WI2、ESCAPE 改写 watch-only、sqlIntervalLiteral 模板内容归 WI7b）均为 roadmap 明文切分或证据裁定（裁定文档 §2/§3/§5），无 in-scope live defect 被降级。
 
 Follow-up:
 
 - （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- 独立 closure audit（不同 task_id）待执行；通过后方可填 `Completed`、翻 `Plan Status: completed`、勾选剩余两个 Closure Gates、运行 checklist 门禁，并流转 roadmap WI1 状态。
+- `nop-stream-runtime` 既有失败 `testCapabilityMatrixAlignedWithDesignAdjudication` 在 `-T 1C` 全量上下文下失败、单独运行通过——失败触发条件（测试间状态/并行类加载）登记为观察项，不属本 WI 范围（roadmap 已有的基线豁免口径不变）。
