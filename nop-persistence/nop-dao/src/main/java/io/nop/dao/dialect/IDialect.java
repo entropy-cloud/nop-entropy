@@ -125,6 +125,19 @@ public interface IDialect extends IComponentModel {
     boolean isSupportReturningForUpdate();
 
     /**
+     * 默认 NULL 排序事实：缺省升序排序时 NULL 是否排在非 NULL 之前。
+     *
+     * <p>与 {@link #isSupportNullsFirst()}（是否原生接受 <code>NULLS FIRST/LAST</code> 子句，
+     * accessor 归 WI7）正交，各司其职：本标志描述方言的缺省行为事实，后者描述子句接受度。
+     * 未配置时返回 false（保守缺省）。
+     *
+     * <p>⚠️ 消费点唯一 owner = roadmap WI7（NULLS FIRST/LAST 文法接受 + 门控 + 默认序行为）；
+     * WI3 交付止于 accessor + 配置正确性断言，生成器消费不得在 WI3 声称完成
+     * （plan 20「defaultNullsFirst 消费点调研结论」的移交链）。
+     */
+    boolean isDefaultNullsFirst();
+
+    /**
      * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
      */
     boolean isUseGetStringForDate();

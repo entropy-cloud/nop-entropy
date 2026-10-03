@@ -4,7 +4,12 @@
          xmlns:x="/nop/schema/xdsl.xdef"
          maxStringSize="1048576" maxBytesSize="1048576"
          tableNameCase="upper"
+         defaultNullsFirst="true"
 >
+    <!-- WI3 第 11 项补配：H2 原生 SET DEFAULT_NULL_ORDERING 的默认是 LOW
+         （"NULL values are considered as smaller than other values during sorting"）
+         ⇒ ASC 时 NULL 在前 = defaultNullsFirst=true。与 supportNullsFirst="true"
+         （是否原生接受 NULLS FIRST/LAST 子句）正交，两者各司其职。 -->
     <driverClassName>org.h2.Driver</driverClassName>
     <dbProductNames>H2</dbProductNames>
     <jdbcUrlPattern>jdbc:h2:{filePath}</jdbcUrlPattern>

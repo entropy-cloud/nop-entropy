@@ -347,6 +347,16 @@ public class DialectImpl implements IDialect {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportReturningForUpdate());
     }
 
+    /**
+     * WI3 第 10 项：defaultNullsFirst accessor（读 dialect 根属性，非 features）。
+     * 暂无生成器消费方——消费点唯一 owner = roadmap WI7（移交链见 IDialect javadoc 与
+     * plan 20），本 accessor + 配置断言即 WI3 交付面。
+     */
+    @Override
+    public boolean isDefaultNullsFirst() {
+        return Boolean.TRUE.equals(dialectModel.getDefaultNullsFirst());
+    }
+
     @Override
     public boolean isUseGetStringForDate() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getUseGetStringForDate());
