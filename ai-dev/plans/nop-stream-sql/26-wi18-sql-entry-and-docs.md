@@ -10,6 +10,11 @@
 
 D8 选定入口（`<sql>` 模型元素）具名可调用并有端到端证据；用户文档落 docs-for-ai 并登记路由。
 
+## Current Baseline
+
+- WI17 已交付：`<sql>` xdef 顶层元素（sql 文本 + 内嵌 schema + sinkBean 属性）；builder expandSqlModel 预处理展开（ISqlStreamCompiler SPI，nop-stream-sql app-beans 自动注册）；TestSqlModelDeclarationE2E（sql 模块）已从 `<sql>` 声明模型 execute 到 sink——入口已具名可调用，缺 roadmap 明文类名的 TestStreamSqlEntryE2E 与文档面。
+- docs-for-ai/03-modules/ 目录在案；docs-for-ai/INDEX.md 与 04-reference/source-anchors.md 为路由登记面。
+
 ## Current Baseline（2026-10-03 实测）
 
 - WI17 已交付：`<sql>` xdef 顶层元素（sql 文本 + 内嵌 schema + sinkBean 属性）；builder expandSqlModel 预处理展开（ISqlStreamCompiler SPI，nop-stream-sql app-beans 自动注册）；`TestSqlModelDeclarationE2E`（sql 模块）已从 `<sql>` 声明模型 execute 到 sink（[a=4,b=2,b=4,c=1]）——**入口已具名可调用，缺 roadmap 明文类名的 TestStreamSqlEntryE2E 与文档面**。
@@ -81,8 +86,8 @@ Exit Criteria:
 - [x] docs-for-ai 三处登记齐备且链接零断
 - [x] sql 模块全量零退化（71 绿）
 - [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/26-wi18-sql-entry-and-docs.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/26-wi18-sql-entry-and-docs.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 执行记录（Phase 2）：三轮独立 audit——一审 FAIL（MAJ-1 错误码写反 + 3 Minor 文档失实）、二审 FAIL（MIN-2 静默未改：替换串不匹配且无断言）、三轮点核 PASS；4 处文档失实全部修正。
 
