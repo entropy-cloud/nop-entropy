@@ -147,29 +147,29 @@ Phase 1–7 相互独立、可分别落地与回滚；**每个 Phase 独立提�
 
 ### Phase 0 - 前置核验与裁定
 
-Status: planned
+Status: completed（2026-10-04；裁定文档 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi3-phase0-adjudications.md`）
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增裁定文档）、WI1 交集文件状态核验
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 复核 WI1 并行状态：`supportLateral`/`sqlIntervalLiteral` 是否已落地；若已落地，重核交集文件（`dialect.xdef`/`IDialect`/`DialectImpl`/`AstToSqlGenerator`）当期结构并更新本 plan 的锚点行号；若未落地，按起草锚点执行。
-- [ ] 终裁 `INTERSECT`/`EXCEPT` 版本门形态（默认③，含上方行为契约 a/b/c 三条；回退①须记录理由并触发快照 18→19 同步）；同步裁定 mariadb `RETURNING` 门的显式化写法与 delta 覆盖路径文案。
-- [ ] **契约 (b) 必答项（实测取证，不得推断）**：`intersectKeyword=""` 空串经 xdef `string` 属性绑定后，模型上（`DialectSqls` retention 字段经 getter 读取）是保真 `""` 还是被规范化为 `null`——写一个最小方言 XML 加载实测，把原始输出证据记入裁定文档。**若空串不保真**（与未配置的 null 不可区分，契约 (b) 的「显式不支持」无法表达）：改用显式哨兵值（字面值随裁定记录）或回退形态①；Phase 4 契约 (b) 的落地写法与负向用例**依赖本结论**，未取证前 Phase 4 不得开工。
-- [ ] 终裁第 7 项机制——**两个并列候选，裁定文档必须逐维对比后选择**：
+- [x] 复核 WI1 并行状态：`supportLateral`/`sqlIntervalLiteral` 是否已落地；若已落地，重核交集文件（`dialect.xdef`/`IDialect`/`DialectImpl`/`AstToSqlGenerator`）当期结构并更新本 plan 的锚点行号；若未落地，按起草锚点执行。（**实测：WI1/WI2 均已落地**；锚点漂移全表见裁定文档 §五，本 plan 后续行号一律以符号定位为准）
+- [x] 终裁 `INTERSECT`/`EXCEPT` 版本门形态（默认③，含上方行为契约 a/b/c 三条；回退①须记录理由并触发快照 18→19 同步）；同步裁定 mariadb `RETURNING` 门的显式化写法与 delta 覆盖路径文案。（**终裁 = 形态③ + 显式哨兵 `none` 替代空串**（必答项实测否决空串，见下条）；契约 a/b/c 修正为 a/b′/c 三条，裁定文档 §一/§二）
+- [x] **契约 (b) 必答项（实测取证，不得推断）**：`intersectKeyword=""` 空串经 xdef `string` 属性绑定后，模型上（`DialectSqls` retention 字段经 getter 读取）是保真 `""` 还是被规范化为 `null`——写一个最小方言 XML 加载实测，把原始输出证据记入裁定文档。**若空串不保真**（与未配置的 null 不可区分，契约 (b) 的「显式不支持」无法表达）：改用显式哨兵值（字面值随裁定记录）或回退形态①；Phase 4 契约 (b) 的落地写法与负向用例**依赖本结论**，未取证前 Phase 4 不得开工。（**实测结论：空串不保真——`exceptKeyword=""`（与拟新增 intersectKeyword 同元素/同类型/同绑定机制）在模型上为 null；改用哨兵 `none`。原始输出证据 + 附加发现「未声明属性加载期响亮报 `nop.err.xlang.xdsl.attr-not-allowed`（证明补 xdef 属性是必需前提）」均记入裁定文档 §二**）
+- [x] 终裁第 7 项机制——**两个并列候选，裁定文档必须逐维对比后选择**：
   - **候选 A（新中间方言）**：新增 `mysql-base.dialect.xml`（承载 mysql 现有非窗口内容，extends `default,geo-support`）；`mysql.dialect.xml:3` 改 extends `mysql-base,window-expr-support`（mysql 能力不变）；`mysql5.7.dialect.xml:3` 改 extends `mysql-base`。
   - **候选 B（内联移除）**：`mysql5.7.dialect.xml` 新增 `<functions>` 块，对 10 个窗口函数逐个 `<native name="…" x:override="remove"/>`；继承链不动。机制可行性已被仓库现网证明（修订时补充实测先例）：`mysql.dialect.xml:144-145`（remove `cosh`/`sinh`）、`postgresql.dialect.xml:155`（remove `uuid`）、`duckdb.dialect.xml:108-129`（跨两跳继承 remove 25 个 `st_*`——证明可删 mixin/祖先贡献的函数节点）。
   - **必比四维**（写入裁定文档对比表）：① 快照算术（A：18→19；B：保持 18）；② 可加载方言数（A：14→15，`mysql-base` 带 mandatory 子节点；B：不变）；③ 回滚面（A：3 文件——新增 + `mysql.dialect.xml:3` + `mysql5.7.dialect.xml:3`；B：1 文件）；④ 语义差异——**mixin 未来新增函数是否泄漏进 mysql5.7**（A：结构性隔离，永不泄漏；B：列举式移除，mixin 新增函数会经继承泄漏，须随 mixin 演进维护 remove 清单，泄漏风险须显式接受或拒绝）。
-  - 记录选择与被拒候选的逐维理由。
-- [ ] 终裁第 12 项修法：默认方案 = 给 `db2.dialect.xml` 补 `<driverClassName>` 与 `<jdbcUrlPattern>`（补齐 mandatory 子节点，参照 `dm.dialect.xml:11-15` 形态）；**驱动坐标候选字面值预写**（实施时以 DB2 JCC 官方文档核对）：`com.ibm.db2.jcc.DB2Driver` / `jdbc:db2://{host}:{port}/{db}`；备选 = 下掉 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/selector/db2.selector.yaml`（DB2 自动选择变为响亮失败）。记录选择理由。
-- [ ] 核对本 plan 全部 file:line 锚点在执行时点仍成立（行号漂移则以符号重定位并在本 plan 勘误）。
+  - 记录选择与被拒候选的逐维理由。（**终裁 = 候选 B**；四维对比表 + 理由（house style 先例/最小回滚面/快照稳定/泄漏风险以 live-parsed mixin 动态守卫测试机制化拒绝）见裁定文档 §三）
+- [x] 终裁第 12 项修法：默认方案 = 给 `db2.dialect.xml` 补 `<driverClassName>` 与 `<jdbcUrlPattern>`（补齐 mandatory 子节点，参照 `dm.dialect.xml:11-15` 形态）；**驱动坐标候选字面值预写**（实施时以 DB2 JCC 官方文档核对）：`com.ibm.db2.jcc.DB2Driver` / `jdbc:db2://{host}:{port}/{db}`；备选 = 下掉 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/selector/db2.selector.yaml`（DB2 自动选择变为响亮失败）。记录选择理由。（**终裁 = 补 mandatory 子节点**；JCC 坐标已经 IBM 官方文档核对，拒绝下掉 selector 的理由见裁定文档 §四）
+- [x] 核对本 plan 全部 file:line 锚点在执行时点仍成立（行号漂移则以符号重定位并在本 plan 勘误）。（**勘误：交集文件因 WI1/WI2 落地普遍漂移（如 `AstToSqlGenerator.getIntercectKeyword` :501→:567、`IDialect.getIntersectKeyword` :151→:168）；方言 XML/xdef/g4 锚点全部成立。全表见裁定文档 §五；本 plan 各 Phase 执行以符号定位为准**）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：版本门形态（三条行为契约）+ **空串绑定保真实测证据（必答项结论，Phase 4 开工前置）**、第 7 项机制（**候选 A/B 四维对比表 + 选择理由**）、第 12 项修法（含 JCC 驱动坐标候选）、WI1 交集核验结论、锚点复核结论。
-- [ ] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：版本门形态（三条行为契约）+ **空串绑定保真实测证据（必答项结论，Phase 4 开工前置）**、第 7 项机制（**候选 A/B 四维对比表 + 选择理由**）、第 12 项修法（含 JCC 驱动坐标候选）、WI1 交集核验结论、锚点复核结论。（`2026-10-04-wi3-phase0-adjudications.md` §一～§五）
+- [x] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。（临时实验 fixture/测试已删除，未进提交）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-04.md`）
 
 ### Phase 1 - `supportReturningForUpdate` 值纠错（第 1/2/3/4/5 项）
 
