@@ -15,6 +15,7 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
 import io.nop.orm.*;
+import io.nop.orm.IOrmEntityEnhancer;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IComputePropModel;
 import io.nop.orm.model.IEntityComponentModel;
@@ -308,7 +309,14 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         if (ref != null)
             return ref;
 
-        ref = requireEnhancer().internalLoadRefEntity(this, propName);
+        // 回归覆盖 wi7#1（plan 2306 项 35）：区分"未设置"与"需懒加载"。
+        // detached / transient 实体无法懒加载，ref 未显式设置时按未加载（null）处理，
+        // 不再抛 session-not-attached——detached 元数据遍历（如 toColumnModel）依赖此语义
+        IOrmEntityEnhancer enhancer = orm_enhancer();
+        if (enhancer == null)
+            return null;
+
+        ref = enhancer.internalLoadRefEntity(this, propName);
         if (ref == null)
             return null;
 

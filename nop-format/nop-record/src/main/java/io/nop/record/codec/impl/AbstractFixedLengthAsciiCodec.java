@@ -74,7 +74,9 @@ public abstract class AbstractFixedLengthAsciiCodec implements IFieldCodec {
     @Override
     public void encode(ITextDataWriter output, Object value, int length,
                        IFieldCodecContext context, IModelBasedTextRecordSerializer serializer) throws IOException {
-        String text = ConvertHelper.toString(value, "0");
+        // null 缺省统一为 ""，与二进制路径 encode 一致（回归覆盖 wi9#4，plan 2306 项 26）；
+        // 此前文本路径缺省 "0" 会伪造数值内容
+        String text = ConvertHelper.toString(value, "");
         text = padString(text, length);
         output.append(text);
     }

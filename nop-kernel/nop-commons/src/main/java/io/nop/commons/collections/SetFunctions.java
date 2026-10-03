@@ -61,7 +61,10 @@ public class SetFunctions {
             ret.addAll(c);
             return ret;
         } else {
+            // 按 JS concat 语义保留接收集合内容（回归覆盖 wi2#2，plan 2306 项 31）：
+            // 此前标量分支只返回 [source]，丢弃 list 既有元素
             List<T> ret = new ArrayList<>(list.size() + 1);
+            ret.addAll(list);
             ret.add((T) source);
             return ret;
         }
@@ -147,7 +150,8 @@ public class SetFunctions {
                 List<K> mapped = ((Stream<K>) v).collect(Collectors.toList());
                 ret.addAll(mapped);
             } else {
-                ret.add((K) item);
+                // 标量分支应加入映射结果而非原元素（回归覆盖 wi2#3，plan 2306 项 31）
+                ret.add((K) v);
             }
         }
         return ret;

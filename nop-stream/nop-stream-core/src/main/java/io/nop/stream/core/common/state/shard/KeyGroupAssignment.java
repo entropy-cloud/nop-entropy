@@ -10,10 +10,6 @@ package io.nop.stream.core.common.state.shard;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Date;
-import java.util.UUID;
 
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.commons.crypto.HashHelper;
@@ -72,9 +68,13 @@ public final class KeyGroupAssignment {
             // by name() — value-stable across JVMs and restarts (ST-03).
             return ((Enum<?>) key).name().hashCode();
         }
-        if (isStableValueHashType(key)) {
-            return key.hashCode();
-        }
+        // 回归覆盖 stream-2pc 单 subtask 归集（plan 2306 Phase 4）：
+        // 所有值类型统一走 canonical JSON + murmur3_32。此前 String/Integer 等直接用
+        // Object#hashCode()（算术递增），顺序 key 族（key-0/key-1/...）会全部落到相邻
+        // key-group，P>1 时 100% 塌缩到单一 subtask——并行度静默退化为 1。
+        // 注意：这改变 key→key-group 映射，旧 checkpoint 的 keyed state 布局不兼容
+        // （2.0.0-SNAPSHOT 预发布阶段裁定接受；record routing 与 state ownership 仍经
+        // 同一本函数保持 AR-01 parity）。
         try {
             String json = JsonTool.serialize(key, false);
             return HashHelper.murmur3_32(json);
@@ -213,27 +213,4 @@ public final class KeyGroupAssignment {
         return rem + (keyGroupId - firstRegionEnd) / base;
     }
 
-    /**
-     * @return {@code true} if {@code key}'s {@link Object#hashCode()} is
-     * contractually stable and value-derived (so delegating to it preserves
-     * both cross-JVM determinism and routing parity with the legacy formula).
-     */
-    private static boolean isStableValueHashType(Object key) {
-        if (key instanceof String
-                || key instanceof Integer
-                || key instanceof Long
-                || key instanceof Boolean
-                || key instanceof Byte
-                || key instanceof Short
-                || key instanceof Character
-                || key instanceof Float
-                || key instanceof Double
-                || key instanceof BigInteger
-                || key instanceof BigDecimal
-                || key instanceof UUID
-                || key instanceof Date) {
-            return true;
-        }
-        return false;
-    }
 }

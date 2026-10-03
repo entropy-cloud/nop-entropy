@@ -21,7 +21,8 @@ public class TestUnitsHelper {
         assertEquals(UnitsHelper.EMU_PER_CHARACTER, UnitsHelper.charactersToEMU(1));
     }
 
-    // FixedPoint（16.16 定点数）与 double 双向转换 roundtrip（负数编码有精度损失，见 final report quirk 记录）
+    // FixedPoint（16.16 定点数）与 double 双向转换 roundtrip。
+    // 回归覆盖 wi9#1（plan 2306 项 23）：整数部分按 floor 拆分后负数 roundtrip 对称
     @Test
     public void testFixedPointRoundtrip() {
         assertEquals(98304, UnitsHelper.doubleToFixedPoint(1.5));
@@ -31,6 +32,15 @@ public class TestUnitsHelper {
             // 16.16 定点数最低分辨率为 1/65536，量化误差在半个 ulp 内
             assertEquals(v, UnitsHelper.fixedPointToDouble(UnitsHelper.doubleToFixedPoint(v)), 1e-4);
         }
+    }
+
+    @Test
+    public void testFixedPointNegativeNumbersRoundtrip() {
+        // 修复前 -1.5 编码为 floor(-1)%1 拆分（i=-1, f=0x8000），解码得 -0.5
+        assertEquals(-1.5, UnitsHelper.fixedPointToDouble(UnitsHelper.doubleToFixedPoint(-1.5)), 1e-12);
+        assertEquals(-0.5, UnitsHelper.fixedPointToDouble(UnitsHelper.doubleToFixedPoint(-0.5)), 1e-12);
+        assertEquals(-2.25, UnitsHelper.fixedPointToDouble(UnitsHelper.doubleToFixedPoint(-2.25)), 1e-12);
+        assertEquals(-0.0, UnitsHelper.fixedPointToDouble(UnitsHelper.doubleToFixedPoint(-0.0)), 1e-12);
     }
 
     @Test

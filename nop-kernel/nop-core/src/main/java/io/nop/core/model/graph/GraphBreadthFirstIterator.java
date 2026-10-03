@@ -31,6 +31,7 @@ public class GraphBreadthFirstIterator<V> implements Iterator<V> {
     public GraphBreadthFirstIterator(ITargetVertexVisitor<V> graph, V root) {
         this.graph = graph;
         this.deque.add(root);
+        this.set.add(root);
     }
 
     // tell cpd to start ignoring code - CPD-OFF

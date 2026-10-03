@@ -66,7 +66,8 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     private ILoginService loginService;
 
-    private boolean autoRefreshToken;
+    // 字段初始化为 @InjectValue 配置默认值（回归覆盖 wi8#3，plan 2306 项 37）
+    private boolean autoRefreshToken = true;
 
     @InjectValue("@cfg:nop.auth.auto-refresh-token|true")
     public void setAutoRefreshToken(boolean autoRefreshToken) {

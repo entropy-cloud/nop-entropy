@@ -317,7 +317,11 @@ public class GatewayHttpFilter implements IHttpServerFilter {
         svcCtx.setRequestPath(context.getRequestPath());
         svcCtx.setRequestHeaders(request.getHeaders());
         svcCtx.setQueryParams(context.getQueryParams());
-        svcCtx.setHttpMethod(context.getMethod());
+        // httpMethod 落点是 CHM，null method 会 NPE（回归覆盖 wi8#1，plan 2306 项 21）；
+        // method 缺失时跳过该元数据，不伪造 GET 语义
+        String method = context.getMethod();
+        if (method != null)
+            svcCtx.setHttpMethod(method);
         return svcCtx;
     }
 }

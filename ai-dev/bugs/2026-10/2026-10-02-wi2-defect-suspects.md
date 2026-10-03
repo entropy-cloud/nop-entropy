@@ -1,4 +1,4 @@
-# 2026-10-02 WI2 测试暴露的产品缺陷嫌疑清单（未修，待独立立项）
+# 2026-10-02 WI2 测试暴露的产品缺陷嫌疑清单（已修复，plan 2306 收口）
 
 > 来源：plan 2294（WI2 kernel 小模块补强）执行期发现。按 roadmap 硬边界（测试暴露的产品缺陷一律走独立 bug 流程）记录，修复独立立项。各项均为**嫌疑**（有钉住证据，未做根因确认与修复）。
 
@@ -26,7 +26,22 @@
 - 证据：`TestMutableIntArray` 边界用例。
 - 修复方向：补齐前置校验统一异常契约（注意既有调用方是否依赖 AIOOBE）。
 
+
+## Fix（2026-10-03 plan 2306 回填）
+
+- **1 toErrorBean null Boolean NPE：`fixed`**。`error.setBizFatal(getBizFatal())` 对 null Boolean 拆箱。修复：`Boolean.TRUE.equals(getBizFatal())`（未设扩展 → bizFatal=false，与 ErrorBean 原始类型字段缺省一致）。回归：解除 @Disabled 的 testToErrorBeanWithoutBizFatalExtensionShouldNotThrow（增强断言 bizFatal==false）。
+- **2 concat 标量分支：`fixed`**。结果 = list + source（JS Array.concat 语义，与集合分支一致）。消费方 grep：Java 直调仅 Underscore.flatMap(identity)（不受影响）；SetFunctions 经 ReflectionManager 注册为 Set/Collection helper 供脚本调用——语义修正面向 JS 兼容契约，行为变化记录于此。回归：testConcatScalarBranchKeepsReceiverList（原特征化断言翻转）。
+- **3 flatMap 标量分支：`fixed`**。`ret.add((K) v)` 加入映射结果而非原元素。消费方 grep 同上。回归：testFlatMapScalarBranchUsesMappedValue（String::length 映射断言）。
+- **4 MutableIntArray.addAll 校验：`fixed`**。int[] 变体补前置校验（AIOOBE→IAE，异常类型契约变化），并给 IntArray 变体补负值防御。_cases 对该异常类型零命中（plan 预检成立）；全 reactor 验证通过。回归：TestMutableIntArray.testAddAllAndBounds 扩展（越界/负 offset/负 length → IAE，边界内正常）。
+
 ## Notes For Future Refactors
 
-- 第 1 项的 @Disabled 测试即回归测试：修复后解除 @Disabled 应转绿。
-- 第 2/3 项修复前先全仓 grep 消费方，确认无人依赖现行行为。
+- （已执行：@Disabled 已解除并转绿。）
+- （已执行：消费方 grep 记录见 Fix 段。）
+
+## Affected Files
+
+- nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/graphql/GraphQLResponseBean.java
+- nop-kernel/nop-commons/src/main/java/io/nop/commons/collections/SetFunctions.java
+- nop-kernel/nop-commons/src/main/java/io/nop/commons/collections/MutableIntArray.java
+- 对应 src/test 下 TestGraphQLResponseBean / TestSetFunctions / TestMutableIntArray

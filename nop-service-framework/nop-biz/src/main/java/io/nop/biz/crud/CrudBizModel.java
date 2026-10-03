@@ -982,14 +982,19 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
-        Object id = data.get(OrmConstants.PROP_ID);
+        // 回归覆盖 wi8#2（plan 2306 项 22）：按实体模型的真实主键属性名取主键，
+        // 而非固定 "id" 键（否则主键名为 sid 等的实体会被误判为无主键）
+        Object id = getId(data, dao());
 
         ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
                 context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
-        // id不允许被更新
+        // id不允许被更新：按真实主键属性名清理，并兼容旧调用以 "id" 键传主键的形式
         validated.remove(OrmConstants.PROP_ID);
+        for (String pkName : dao().getPkColumnNames()) {
+            validated.remove(pkName);
+        }
 
         T entity = StringHelper.isEmptyObject(id) ? null : requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
 
@@ -1402,7 +1407,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                 if (common != null) {
                     item.putAll(common);
                 }
-                Object id = item.get(OrmConstants.PROP_ID);
+                Object id = getId(item, dao());
                 if (!StringHelper.isEmptyObject(id)) {
                     idList.add(id);
                 }
@@ -1411,7 +1416,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
             dao().batchGetEntitiesByIds(idList);
 
             for (Map<String, Object> item : data) {
-                Object id = item.get(OrmConstants.PROP_ID);
+                // 按实体真实主键属性名判断插入/更新/删除（回归覆盖 wi8#2）
+                Object id = getId(item, dao());
                 String chgType = DaoHelper.getChangeType(item);
                 if (StringHelper.isEmptyObject(id) || DaoConstants.CHANGE_TYPE_ADD.equals(chgType)) {
                     save(item, context);
@@ -1426,24 +1432,25 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         batchDelete(delIds, context);
     }
 
-    @Description("@i18n:biz.saveOrUpdate|如果没有id就修改记录，否则就新增记录")
+    @Description("@i18n:biz.saveOrUpdate|如果没有主键就新增记录，否则就修改记录")
     @BizMutation
     public T saveOrUpdate(@Name("data") Map<String, Object> data, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         T result;
-        Object id = data.get(OrmConstants.PROP_ID);
+        // 按实体真实主键属性名判断插入/更新，而非固定 "id" 键（回归覆盖 wi8#2，plan 2306 项 22）
+        Object id = getId(data, dao());
         if (StringHelper.isEmptyObject(id) || DaoConstants.CHANGE_TYPE_ADD.equals(DaoHelper.getChangeType(data))) {
             result = save(data, context);
         } else {
-            // 具有id属性，且没有标记为_forAdd，则是update
+            // 具有主键属性，且没有标记为_forAdd，则是update
             result = update(data, context);
         }
         return result;
     }
 
-    @Description("@i18n:biz.saveOrUpdate|如果没有id就修改记录，否则就新增记录。已经被saveOrUpdate取代")
+    @Description("@i18n:biz.saveOrUpdate|如果没有主键就新增记录，否则就修改记录。已经被saveOrUpdate取代")
     @BizMutation
     @Deprecated
     public T save_update(@Name("data") Map<String, Object> data, IServiceContext context) {

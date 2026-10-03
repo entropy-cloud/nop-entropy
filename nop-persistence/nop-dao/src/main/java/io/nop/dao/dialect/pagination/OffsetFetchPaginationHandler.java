@@ -40,6 +40,9 @@ public class OffsetFetchPaginationHandler extends AbstractPaginationHandler {
         exprs.add(sqlExpr);
         if (offsetExpr != null) {
             exprs.add(" OFFSET ").add(offsetExpr).add(" ROWS ");
+        } else if (limitExpr != null) {
+            // SQL 标准：FETCH FIRST 必须有 OFFSET 子句前置（回归覆盖 wi4#4）
+            exprs.add(" OFFSET 0 ROWS ");
         }
         if (limitExpr != null) {
             exprs.add(" FETCH ").add(offsetExpr == null ? " FIRST " : " NEXT ").add(limitExpr).add(" ROWS ONLY");

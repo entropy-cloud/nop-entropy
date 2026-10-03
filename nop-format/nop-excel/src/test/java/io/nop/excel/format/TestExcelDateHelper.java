@@ -129,13 +129,13 @@ public class TestExcelDateHelper {
 
         // 月份越界
         assertThrows(IllegalArgumentException.class, () -> ExcelDateHelper.parseYYYYMMDDDate("2024/13/01"));
-        // 日越界（day 范围只做 1..31 检查，2 月 30 日经 lenient Calendar 归一化为 3 月 1 日，不视为非法）
+        // 2 月 30 日必须拒绝（回归覆盖 wi9#2，plan 2306 项 24：非 lenient 校验），
+        // 修复前经 lenient Calendar 静默归一化为 3 月 1 日
+        assertThrows(IllegalArgumentException.class, () -> ExcelDateHelper.parseYYYYMMDDDate("2024/02/30"));
+        // 日越界
         assertThrows(IllegalArgumentException.class, () -> ExcelDateHelper.parseYYYYMMDDDate("2024/02/32"));
-        // 分隔符不做校验：'-' 与 '/' 同样按位置解析（位置固定，分隔符可以是任意字符）
-        Date dashed = ExcelDateHelper.parseYYYYMMDDDate("2024-02-29");
-        cal.setTime(dashed);
-        assertEquals(Calendar.FEBRUARY, cal.get(Calendar.MONTH));
-        assertEquals(29, cal.get(Calendar.DAY_OF_MONTH));
+        // 分隔符必须为 '/'（回归覆盖 wi9#2：此前 "2024-02-29" 被静默接受）
+        assertThrows(IllegalArgumentException.class, () -> ExcelDateHelper.parseYYYYMMDDDate("2024-02-29"));
         // 长度不足 10
         assertThrows(IllegalArgumentException.class, () -> ExcelDateHelper.parseYYYYMMDDDate("2024/2/9"));
     }

@@ -78,15 +78,11 @@ public class AStarPathFinder<V, E extends IEdge<V>> {
     private List<E> reconstructPath(Map<V, DNode<V, E>> scoreMap, V current) {
         final List<E> totalPath = new ArrayList<>();
 
-        while (current != null) {
-            DNode<V, E> node = scoreMap.get(current);
-            if (node != null) {
-                final E edge = node.from;
-                totalPath.add(edge);
-                current = edge.getSource();
-            } else {
-                break;
-            }
+        DNode<V, E> node = scoreMap.get(current);
+        while (node != null && node.from != null) {
+            final E edge = node.from;
+            totalPath.add(edge);
+            node = scoreMap.get(edge.getSource());
         }
         Collections.reverse(totalPath);
         return totalPath;
@@ -102,15 +98,18 @@ public class AStarPathFinder<V, E extends IEdge<V>> {
         final Set<V> closedSet = new HashSet<>(); // The set of nodes already evaluated.
         final Set<V> openSet = new HashSet<>(); // The set of tentative nodes to be evaluated, initially containing the
         // start node
-        openSet.add(start);
 
+        DNode<V, E> startNode = new DNode<>(start, 0, heuristicCost(start, end));
+        scoreMap.put(start, startNode);
         PriorityQueue<DNode<V, E>> pq = new PriorityQueue<>();
-        pq.offer(new DNode<>(start, 0, heuristicCost(start, end)));
+        pq.offer(startNode);
         openSet.add(start);
 
         while (!pq.isEmpty()) {
             DNode<V, E> node = pq.poll();
             V v = node.vertex;
+            if (closedSet.contains(v))
+                continue; // stale entry: a better path was already expanded
             openSet.remove(v);
             closedSet.add(v);
 
@@ -124,19 +123,17 @@ public class AStarPathFinder<V, E extends IEdge<V>> {
 
                 int g = node.g + costFn.applyAsInt(edge);
 
-                DNode<V, E> toNode = scoreMap.get(to); // !openSet.contains(to) 时 toNode == null
-                if (toNode == null || g < toNode.g) {
-                    if (toNode == null) {
-                        toNode = new DNode<>(to, g, heuristicCost(to, end));
-                    } else {
-                        toNode.g = g;
-                    }
+                DNode<V, E> toNode = scoreMap.get(to);
+                if (toNode == null) {
+                    toNode = new DNode<>(to, g, heuristicCost(to, end));
                     toNode.from = edge;
-
-                    if (!openSet.contains(to)) {
-                        pq.offer(toNode);
-                        openSet.add(to);
-                    }
+                    scoreMap.put(to, toNode);
+                    pq.offer(toNode);
+                    openSet.add(to);
+                } else if (g < toNode.g) {
+                    toNode.g = g;
+                    toNode.from = edge;
+                    pq.offer(toNode); // lazy re-offer; stale instances are skipped via closedSet
                 }
             });
         }

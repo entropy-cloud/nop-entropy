@@ -63,6 +63,11 @@ public class JdbcTransactionFactory implements ITransactionFactory {
         return new JdbcTransaction(querySpace, this::getConnection, dialect, eagerReleaseConnection, daoMetrics);
     }
 
+    /**
+     * 设计裁定（plan 2306 项 34）：返回不参与事务的独立池连接。改为挂接活跃事务
+     * 会把连接关闭职责转移给事务，破坏既有消费方的生命周期契约，故保持语义并以
+     * {@link io.nop.dao.txn.ITransactionManager#openConnection} 文档告警。
+     */
     @Override
     public Connection openConnection(String txnGroup) {
         return getConnection();

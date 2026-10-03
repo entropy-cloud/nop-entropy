@@ -1,4 +1,4 @@
-# 2026-10-02 WI1 测试暴露的产品缺陷嫌疑清单（未修，待独立立项）
+# 2026-10-02 WI1 测试暴露的产品缺陷嫌疑清单（已修复，plan 2306 收口）
 
 > 来源：plan 2293（WI1 nop-core 补强）执行期发现。各项均以编译后产品类直接探针复现（非推断），按 roadmap 硬边界记录，修复独立立项。
 
@@ -38,7 +38,31 @@
 - `AnnotationData.fromAnnotation` 捕获 `annotationType`/`toString` 噪声键。
 - `FilterBeanFormatter.visitCompareOp` 的 useFunctionCall 分支缺右括号（渲染 `like(name,"a%"`）。
 
+
+## Fix（2026-10-03 plan 2306 回填）
+
+- **1 dateBetween max 失效：`fixed`**。根因：FilterOpHelper.dateBetween L269 `m2` 误用 `min`（对照 L293 dateTimeBetween 正确用 max，笔误实锤）。修复：`toLocalDate(min)`→`toLocalDate(max)`。爆炸半径：`grep "FilterOpHelper::dateBetween|FilterOpHelper.dateBetween"` 全仓仅 nop-core 内 FilterOp（L362）方法引用，模块外零直接消费方（▲ 项裁定：nop-core 自身测试当期跑，496 全绿）。回归：TestFilterOpHelper.testDateBetweenMaxBoundEnforced（含 bug 复现输入 "2026-01-15"/"2026-01-01"/"2026-02-01"）。
+- **2 like 方向反：`fixed`**。根因：L70-71 把 value（s1）转 regex 再自匹配，pattern 只参与空判断。修复：`sqlToRegexLike(s2)` 匹配 s1。爆炸半径：同项 1 口径（FilterOp L352 唯一方法引用）。回归：TestFilterOpHelper.testLikePatternMatching（含 bug 复现 like("abc","xyz%")==false）。
+- **3 ModifierBuilder PUBLIC_MASK：`fixed`**。`&`→`|`。回归：TestModifierBuilder.testAccessModifiersAreMutuallyExclusive（isPublic().isPrivate() 必须仅余 PRIVATE）。
+- **4 GlobalStatManager 排序反：`fixed`**。`-Long.compare(b,a)` 数学上等价升序，删除负号恢复降序（3 处：sql/rpc client/rpc server）。回归：TestGlobalStatManager.testGetAllJdbcSqlStatOrderByAvgTimeDesc（正向顺序断言）+ testRpcStatsOrderByAvgTimeDesc。
+- **5 AStar scoreMap：`fixed`**。scoreMap 全程无 put：路径重建恒空、松弛失效（openSet 门把更优路径丢弃）。修复：scoreMap 写入 + closedSet stale-entry 跳过 + reconstructPath 按 from 边回溯。回归：TestGraphAlgorithms.testAStarWeightedRelaxationChoosesCheaperPath（bug 复现：a→c=10 vs a→b→c=4 应取 4）+ 退化断言翻转为正向路径断言。
+- **6 低危三项：`fixed`（3/3）**。
+  - compareTo 懒加载：改经 `getSqlHash()` 触发懒计算（此前直接读字段，未调用 getSqlHash 前两实例比较恒 0）。
+  - AnnotationData 噪声键：过滤 `Annotation` 接口声明的 `annotationType()`（与 Object 声明方法一并排除）。
+  - FilterBeanFormatter 缺右括号：useFunctionCall 分支补 `)`。
+
 ## Notes For Future Refactors
 
-- 1/2/4 项的修复均应以现有测试的反向断言（把"缺陷行为"断言改为正确语义）作为回归测试，修复前测试保持对现状的记录性断言并注释缺陷编号。
-- 5 项修复后 TestGraphAlgorithms 中记录退化行为的断言需同步改为正确路径/代价断言。
+- （已按此执行：1/2/4/5 项的记录性断言已翻转为正确语义正向断言，见 Fix 段。）
+- （已执行：TestGraphAlgorithms 路径/代价正向断言已落地。）
+
+## Affected Files
+
+- nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterOpHelper.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/model/query/FilterBeanFormatter.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/reflect/impl/ModifierBuilder.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/stat/GlobalStatManager.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/stat/JdbcSqlStat.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/reflect/impl/AnnotationData.java
+- nop-kernel/nop-core/src/main/java/io/nop/core/model/graph/AStarPathFinder.java
+- 对应 src/test 下 TestFilterOpHelper / TestModifierBuilder / TestGlobalStatManager / TestGraphAlgorithms

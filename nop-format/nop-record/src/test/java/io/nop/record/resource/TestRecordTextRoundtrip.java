@@ -61,8 +61,9 @@ public class TestRecordTextRoundtrip extends BaseTestCase {
         ModelBasedTextRecordInput<Map<String, Object>> input =
                 new ModelBasedTextRecordInput<>(new SimpleTextDataReader(text), meta());
         Map<String, Object> restored = input.next();
-        // 字段未配置 codec 时文本路径返回去补齐后的原始字符串（不做 int 类型反推，见 final report quirk）
-        assertEquals("1", restored.get("a"));
+        // 回归覆盖 wi9#6（plan 2306 项 28）：字段未配置 codec 时文本路径按声明的
+        // stdDataType 反推类型，int 字段还原为 Integer 而非 String（与 FLS 二进制路径对称）
+        assertEquals(1, ((Number) restored.get("a")).intValue());
         assertEquals("BB", restored.get("b"));
         input.close();
     }
@@ -83,13 +84,13 @@ public class TestRecordTextRoundtrip extends BaseTestCase {
         ModelBasedTextRecordInput<Map<String, Object>> input =
                 new ModelBasedTextRecordInput<>(new SimpleTextDataReader(sb.toString()), meta());
         Map<String, Object> r1 = input.next();
-        assertEquals("1", r1.get("a"));
+        assertEquals(1, ((Number) r1.get("a")).intValue());
         assertEquals("one", r1.get("b"));
         Map<String, Object> r2 = input.next();
-        assertEquals("22", r2.get("a"));
+        assertEquals(22, ((Number) r2.get("a")).intValue());
         assertEquals("two", r2.get("b"));
         Map<String, Object> r3 = input.next();
-        assertEquals("333", r3.get("a"));
+        assertEquals(333, ((Number) r3.get("a")).intValue());
         assertEquals("three", r3.get("b"));
         // EOF：不再有记录（next() 在 EOF 抛 NoSuchElementException，用 hasNext 判定）
         assertEquals(false, input.hasNext());
@@ -112,7 +113,7 @@ public class TestRecordTextRoundtrip extends BaseTestCase {
         ModelBasedTextRecordInput<Map<String, Object>> input =
                 new ModelBasedTextRecordInput<>(new SimpleTextDataReader(sb.toString()), meta());
         Map<String, Object> restored = input.next();
-        assertEquals("99999", restored.get("a"));
+        assertEquals(99999, ((Number) restored.get("a")).intValue());
         assertEquals("0123456789", restored.get("b"));
         input.close();
     }

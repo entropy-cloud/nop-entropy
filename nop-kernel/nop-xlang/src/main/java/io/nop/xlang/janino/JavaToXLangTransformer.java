@@ -37,6 +37,7 @@ import org.codehaus.janino.Java;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -159,7 +160,9 @@ public class JavaToXLangTransformer {
         ParameterizedTypeNode pType = buildType(type.extendedType);
         def.setExtendsType(pType);
         def.setImplementTypes(buildTypes(type.implementedTypes));
-        List<FieldDeclaration> fields = buildFieldDeclarations(type.getMemberTypeDeclarations());
+        // janino 3.1.12 的 getMemberTypeDeclarations() 只含嵌套类型不含字段
+        // （回归覆盖 wi3#4，plan 2306 项 32）：字段必须从 fieldDeclarationsAndInitializers 提取
+        List<FieldDeclaration> fields = buildFieldDeclarations(type.fieldDeclarationsAndInitializers);
         def.setFields(fields);
         List<FunctionDeclaration> methods = buildFunctionDeclarations(type.getMethodDeclarations());
         def.setMethods(methods);
@@ -183,6 +186,9 @@ public class JavaToXLangTransformer {
                 }
                 ret.setTypeArgs(args);
             }
+        } else if (type instanceof Java.PrimitiveType) {
+            // 原始类型的 typeName 不能留空（回归覆盖 wi3#4 附带缺陷）
+            ret.setTypeName(((Java.PrimitiveType) type).primitive.name().toLowerCase(Locale.ROOT));
         }
         return ret;
     }
@@ -215,19 +221,32 @@ public class JavaToXLangTransformer {
         return def;
     }
 
-    public List<FieldDeclaration> buildFieldDeclarations(Collection<Java.MemberTypeDeclaration> members) {
-        return members.stream().map(this::buildFieldDeclaration).collect(Collectors.toList());
+    public List<FieldDeclaration> buildFieldDeclarations(
+            Collection<Java.FieldDeclarationOrInitializer> members) {
+        List<FieldDeclaration> ret = new ArrayList<>();
+        for (Java.FieldDeclarationOrInitializer member : members) {
+            if (!(member instanceof Java.FieldDeclaration))
+                continue;
+            Java.FieldDeclaration fieldDecl = (Java.FieldDeclaration) member;
+            // 一个字段声明可含多个 variableDeclarator（如 int a, b;）
+            for (Java.VariableDeclarator declarator : fieldDecl.variableDeclarators) {
+                ret.add(buildFieldDeclaration(fieldDecl, declarator));
+            }
+        }
+        return ret;
     }
 
     public List<FunctionDeclaration> buildFunctionDeclarations(List<Java.MethodDeclarator> members) {
         return members.stream().map(this::buildFunctionDeclaration).collect(Collectors.toList());
     }
 
-    public FieldDeclaration buildFieldDeclaration(Java.MemberTypeDeclaration member) {
-        SourceLocation loc = buildLocation(member);
+    public FieldDeclaration buildFieldDeclaration(Java.FieldDeclaration fieldDecl,
+                                                  Java.VariableDeclarator declarator) {
+        SourceLocation loc = buildLocation(declarator);
         FieldDeclaration ret = new FieldDeclaration();
         ret.setLocation(loc);
-        ret.setName(Identifier.valueOf(loc, member.getName()));
+        ret.setName(Identifier.valueOf(loc, declarator.name));
+        ret.setType(buildType(fieldDecl.type));
         return ret;
     }
 

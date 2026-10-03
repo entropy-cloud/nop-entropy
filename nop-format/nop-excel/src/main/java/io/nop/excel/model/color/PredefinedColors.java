@@ -141,16 +141,17 @@ public enum PredefinedColors {
     static final Map<String, Integer> indexMap = new HashMap<>();
 
     static {
+        // 稳定注册语义：首注册优先（回归覆盖 wi9#3，plan 2306 项 25）。
+        // index2（历史别名索引）与重复 ARGB（如 BLACK 与 AUTOMATIC 同为 FF000000）
+        // 不再覆盖先注册的主索引/主映射，查找结果由枚举声明顺序唯一确定
         for (PredefinedColors value : values()) {
             Integer index1 = value.getIndex();
-            if (!indexColors.containsKey(index1)) {
-                indexColors.put(index1, value);
-            }
+            indexColors.putIfAbsent(index1, value);
             Integer index2 = value.getIndex2();
-            if (index2 != -1 && !indexColors.containsKey(index2)) {
-                indexColors.put(index2, value);
+            if (index2 != -1) {
+                indexColors.putIfAbsent(index2, value);
             }
-            indexMap.put(value.getArgb(), value.getIndex());
+            indexMap.putIfAbsent(value.getArgb(), value.getIndex());
         }
     }
 

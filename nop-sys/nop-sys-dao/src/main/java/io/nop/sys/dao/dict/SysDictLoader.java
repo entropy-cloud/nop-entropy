@@ -8,6 +8,8 @@
 package io.nop.sys.dao.dict;
 
 import io.nop.api.core.annotations.ioc.IgnoreDepends;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FilterBeans;
@@ -33,6 +35,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SysDictLoader implements IDictLoader {
+    static final Logger LOG = LoggerFactory.getLogger(SysDictLoader.class);
+
     @IgnoreDepends
     @Inject
     IDaoProvider daoProvider;
@@ -59,7 +63,10 @@ public class SysDictLoader implements IDictLoader {
         IEntityDao<NopSysDictOption> dao = daoProvider.daoFor(NopSysDictOption.class);
 
         DictBean bean = new DictBean();
-        bean.setLocale(I18nMessageManager.instance().getDefaultLocale());
+        // 回归覆盖 wi7#2（plan 2306 项 19）：不得忽略调用方传入的 locale。
+        // 注：sys 字典表本身没有 locale 列，选项级多语言过滤需模型扩展，此处仅保证
+        // 返回的 DictBean.locale 忠实反映请求
+        bean.setLocale(locale != null ? locale : I18nMessageManager.instance().getDefaultLocale());
         bean.setName(dictName);
 
         QueryBean query = new QueryBean();
@@ -81,9 +88,13 @@ public class SysDictLoader implements IDictLoader {
     @Override
     public boolean existsDict(String dictName) {
         IOrmEntityDao<NopSysDict> dao = (IOrmEntityDao<NopSysDict>) daoProvider.daoFor(NopSysDict.class);
-        // 系统启动时会调用到这里，跳过检查
-        if (dao.getEntityModel().isUseTenant() && ContextProvider.currentTenantId() == null)
+        if (dao.getEntityModel().isUseTenant() && ContextProvider.currentTenantId() == null) {
+            // 回归覆盖 wi7#3（plan 2306 项 36）：无租户上下文时无法执行租户过滤的 DB 检查，
+            // 保持启动期乐观语义（返回 true），但必须显式记录而非静默放行——
+            // 运行期调用命中此分支时日志可暴露误报风险
+            LOG.warn("nop.sys.exists-dict-skip-tenant-check:dictName={}", dictName);
             return true;
+        }
 
         QueryBean query = new QueryBean();
         query.setFilter(FilterBeans.eq(NopSysDict.PROP_NAME_dictName, dictName));

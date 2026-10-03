@@ -191,5 +191,7 @@ public interface OrmModelErrors {
     ErrorCode ERR_ORM_UNKNOWN_COMPUTE_PROP_ARG = define("nop.err.orm.unknown-compute-prop-arg",
             "对象[{entityName}]的计算属性[{propName}]不支持参数[{argName}]", ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_ARG_NAME);
 
+    ErrorCode ERR_ORM_COMPUTE_PROP_ARG_MISSING = define("nop.err.orm.compute-prop-arg-missing",
+            "实体[{entityName}]的计算属性[{propName}]缺少必需参数[{argName}]", ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_ARG_NAME);
 
 }

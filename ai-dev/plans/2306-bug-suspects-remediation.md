@@ -62,7 +62,7 @@
 
 ### Phase 1 - P1 核心（10 条目 / 12 源条目）
 
-Status: planned
+Status: completed
 
 - Item Types: `Fix`
 
@@ -83,16 +83,16 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 10 条目全部 `fixed` 或 `adjudicated-not-a-defect`（记录理由）。
-- [ ] 每项回归测试绿（翻转/新增/解除 @Disabled）；项 6 生成物与 .g4 同步入库。
-- [ ] ▲ 项（1/2/6b）下游模块当期验证绿；消费方 grep 记录入 bug 文件。
-- [ ] 各模块 `-am` 全绿（既有测试零回归，除各行「回归基座」列声明翻转/调整的用例集合：项 3/5/6/8/9 与 6b 的 mermaid 错误路径用例）。
-- [ ] bug 文件 Fix/Tests 段回填，`ai-dev/logs/` 已更新。
-- [ ] Owner-doc 裁定：nop-core/nop-xlang 行为修复不改变公开契约文档（docs-for-ai 查询语义描述与修复后行为一致）——记录核查结论。
+- [x] 10 条目全部 `fixed` 或 `adjudicated-not-a-defect`（记录理由）。——10/10 fixed；证据见 bugs/2026-10/ 各文件 Fix 段与汇总文件
+- [x] 每项回归测试绿（翻转/新增/解除 @Disabled）；项 6 生成物与 .g4 同步入库。——nop-core 496 / nop-xlang 855 / nop-orm-model 32 / nop-wf-core 47 / nop-cluster-core 27 / nop-pdf 70 / nop-mermaid 26 / nop-antlr4-common 3 全绿；mermaid 生成物（.java/.tokens/.interp/_Visitor）已随 precompile 再生入库
+- [x] ▲ 项（1/2/6b）下游模块当期验证绿；消费方 grep 记录入 bug 文件。——6b：nop-xlang 855 + nop-orm-eql 91 当期跑全绿；1/2 grep 证据在 wi1 bug 文件
+- [x] 各模块 `-am` 全绿（既有测试零回归，除各行「回归基座」列声明翻转/调整的用例集合：项 3/5/6/8/9 与 6b 的 mermaid 错误路径用例）。——批次验证记录见 daily log；唯一非声明回归（TestXLangParser.testIdentifier）系 6b 首版宽捕引入，已按错误码分流修复并补三例合同测试
+- [x] bug 文件 Fix/Tests 段回填，`ai-dev/logs/` 已更新。
+- [x] Owner-doc 裁定：nop-core/nop-xlang 行为修复不改变公开契约文档（docs-for-ai 查询语义描述与修复后行为一致）——记录核查结论。——核查：dateBetween/like 查询语义、比较符交换语义在 docs-for-ai 中的描述与修复后一致；无需变更（结论记录于 wi1/wi3 bug 文件）
 
 ### Phase 2 - 确认机制类 20 条目（20 源条目）
 
-Status: planned
+Status: completed
 
 - Item Types: `Fix`
 
@@ -123,16 +123,16 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 20 条目全部 `fixed` 或 `adjudicated-not-a-defect`（含理由）。
-- [ ] 回归测试到位；项 16 新错误码已注册；异常类型/消息变化项全 reactor 验证。
-- [ ] ▲ 项（18/22）下游当期验证绿。
-- [ ] 各模块 `-am` 全绿。
-- [ ] bug 文件回填，`ai-dev/logs/` 已更新。
-- [ ] Owner-doc 裁定：项 22 公开 mutation 语义变化核查 docs-for-ai/service-layer 描述一致性——记录结论。
+- [x] 20 条目全部 `fixed` 或 `adjudicated-not-a-defect`（含理由）。——20/20 fixed
+- [x] 回归测试到位；项 16 新错误码已注册（nop.err.orm.compute-prop-arg-missing，OrmModelErrors）；异常类型/消息变化项全 reactor 验证（项 13 IAE 契约，_cases 零命中成立）。
+- [x] ▲ 项（18/22）下游当期验证绿。——nop-wf-service 115 / nop-biz 111 全绿
+- [x] 各模块 `-am` 全绿。——19 模块当期全绿（明细见汇总文件验证证据节）
+- [x] bug 文件回填，`ai-dev/logs/` 已更新。
+- [x] Owner-doc 裁定：项 22 公开 mutation 语义变化核查 docs-for-ai/service-layer 描述一致性——记录结论。——核查：service-layer 文档"没有主键就新增，否则更新"与修复后行为一致，无需变更（记录于 wi8 bug 文件）
 
 ### Phase 3 - 确认后处置 9 条目（10 源条目，含设计裁定）
 
-Status: planned
+Status: completed
 
 - Item Types: `Fix`（确认属缺陷）/ `Decision`（确认属设计或特性移除裁定）
 
@@ -152,11 +152,11 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 9 条目逐项落地 `fixed` / `adjudicated-not-a-defect` / `diagnosed-split`（后者指向新 plan）。
-- [ ] 修复项回归测试绿；Decision 项裁定记录于 bug 文件。
-- [ ] 各模块 `-am` 全绿。
-- [ ] bug 文件回填，`ai-dev/logs/` 已更新。
-- [ ] Owner-doc 裁定：项 34 若改公开语义，`docs-for-ai` 事务使用文档同步——记录结论。
+- [x] 9 条目逐项落地 `fixed` / `adjudicated-not-a-defect` / `diagnosed-split`（后者指向新 plan）。——7 fixed + 2 adjudicated（wi4#3 文档告警、wi9#7 探针证伪）；0 diagnosed-split
+- [x] 修复项回归测试绿；Decision 项裁定记录于 bug 文件。——wi4#3/wi9#7/wi10#6 裁定均在 bug 文件留痕
+- [x] 各模块 `-am` 全绿。
+- [x] bug 文件回填，`ai-dev/logs/` 已更新。
+- [x] Owner-doc 裁定：项 34 若改公开语义，`docs-for-ai` 事务使用文档同步——记录结论。——公开语义未变（文档告警路线），无需同步；openConnection 契约说明已写入接口 javadoc
 
 ### Phase 4 - fraud 2PC 诊断修复与全程收口
 

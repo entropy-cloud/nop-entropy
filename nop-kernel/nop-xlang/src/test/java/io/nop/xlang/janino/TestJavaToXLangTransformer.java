@@ -71,9 +71,18 @@ public class TestJavaToXLangTransformer extends BaseTestCase {
         assertEquals(2, cls.getImplementTypes().size(), "implements 列表必须保留");
         assertEquals("java.io.Serializable", cls.getImplementTypes().get(1).getTypeName());
 
-        // 【产品缺陷记录，不修】janino 3.1.12 下 getMemberTypeDeclarations() 不包含字段，
-        // JavaToXLangTransformer.buildFieldDeclarations 实际拿不到字段，字段全部丢失。
-        assertTrue(cls.getFields().isEmpty(), "缺陷锚定：字段在当前 janino 版本下未被提取");
+        // 回归覆盖 wi3#4（plan 2306 项 32）：字段从 fieldDeclarationsAndInitializers 提取，
+        // janino 3.1.12 下字段不再丢失
+        assertEquals(2, cls.getFields().size(), "names 与 value 两个字段必须被提取");
+        assertEquals("names", cls.getFields().get(0).getName().getName());
+        // transformer 构建的是 ParameterizedTypeNode，typeName 访问器在其上
+        org.junit.jupiter.api.Assertions.assertInstanceOf(io.nop.xlang.ast.ParameterizedTypeNode.class,
+                cls.getFields().get(0).getType());
+        assertEquals("List", ((io.nop.xlang.ast.ParameterizedTypeNode) cls.getFields().get(0).getType()).getTypeName(),
+                "字段类型必须被转换");
+        assertEquals("value", cls.getFields().get(1).getName().getName());
+        assertEquals("int", ((io.nop.xlang.ast.ParameterizedTypeNode) cls.getFields().get(1).getType()).getTypeName(),
+                "原始类型字段的 typeName 不得为 null");
 
         assertEquals(1, cls.getMethods().size());
         assertEquals("run", cls.getMethods().get(0).getName().getName());

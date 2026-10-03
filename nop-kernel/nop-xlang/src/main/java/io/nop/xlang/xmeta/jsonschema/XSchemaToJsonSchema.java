@@ -52,7 +52,8 @@ public class XSchemaToJsonSchema {
                 for (ISchema subSchema : schemas) {
                     list.add(toJsonSchema(subSchema, context));
                 }
-                ret.put("anyOf", schemas);
+                // anyOf 成员必须是 JSON Schema Map（回归覆盖 wi3#3：此前误放原始 ISchema 列表）
+                ret.put("anyOf", list);
             }
         } else {
             toSimpleSchema(ret, schema, context);

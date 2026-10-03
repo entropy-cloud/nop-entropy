@@ -5,7 +5,10 @@ import io.nop.mermaid.ast.MermaidASTKind;
 import io.nop.mermaid.ast.MermaidASTNode;
 import io.nop.mermaid.ast.MermaidASTOptimizer;
 import io.nop.mermaid.ast.MermaidASTProcessor;
+import io.nop.mermaid.ast.MermaidClassNode;
 import io.nop.mermaid.ast.MermaidDiagramType;
+import io.nop.mermaid.ast.MermaidDirection;
+import io.nop.mermaid.ast.MermaidDirectionStatement;
 import io.nop.mermaid.ast.MermaidDocument;
 import io.nop.mermaid.ast.MermaidEdgeType;
 import io.nop.mermaid.ast.MermaidFlowEdge;
@@ -15,6 +18,8 @@ import io.nop.mermaid.ast.MermaidGanttTask;
 import io.nop.mermaid.ast.MermaidNodeShape;
 import io.nop.mermaid.ast.MermaidParticipant;
 import io.nop.mermaid.ast.MermaidPieItem;
+import io.nop.mermaid.ast.MermaidSequenceMessage;
+import io.nop.mermaid.ast.MermaidStateNode;
 import io.nop.mermaid.ast.MermaidStyleAttribute;
 import io.nop.mermaid.ast.MermaidStyleStatement;
 import io.nop.mermaid.ast.MermaidVisibility;
@@ -30,12 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * mermaid 文本解析语义：文法可解析语句（flowchart节点/边、participant、subgraph、style、pie、gantt）
- * 解析出的 AST 字段必须与源文本一一对应；注释走 HIDDEN 通道不产生语句；非法文法抛 NopException。
+ * mermaid 文本解析语义：文法可解析语句（flowchart节点/边、participant、subgraph、style、pie、gantt、
+ * class/state/direction/sequence message）解析出的 AST 字段必须与源文本一一对应；
+ * 注释走 HIDDEN 通道不产生语句；非法文法抛 NopException。
  *
- * 已知文法缺陷（缺陷嫌疑，不在此修复）：BaseRules.g4 中 CLASS/STATE token 被重复定义且字面量冲突
- * （'classDiagram'/'stateDiagram' vs 'class'/'state'，ANTLR 取首个定义），导致 'class'/'state'
- * 语句退化为普通 FlowNode；DIRECTION token 无词法定义，direction 语句不可达。
+ * 文法缺陷修复回归（plan 2306 项 6）：CLASS/STATE token 重复定义已拆分为
+ * CLASS/STATE（图表类型）与 CLASS_KEYWORD/STATE_KEYWORD（语句关键字）；DIRECTION 已补词法规则；
+ * sequenceMessage 与 flowEdge 已按 "to 后置 COLON message" 结构区分。
  */
 public class TestMermaidASTParser {
 
@@ -97,13 +103,26 @@ public class TestMermaidASTParser {
     }
 
     @Test
-    public void testSequenceMessageTokensDispatchToFlowEdge() {
-        // 特征化锁定：mermaidSequenceMessage 与 mermaidFlowEdge 规则体完全同构
-        // （from edgeType? (message)? to），adaptivePredict 恒选靠前的 flowEdge 分支，
-        // 序列消息以 FlowEdge 承载且字段语义完整保留
-        MermaidDocument doc = parse("sequenceDiagram\n A ->> \"hello\" B");
+    public void testSequenceMessageDispatchesToSequenceMessageNode() {
+        // 回归覆盖 wi10#3（plan 2306 项 6）：sequenceMessage 与 flowEdge 规则已按
+        // "to 后置 COLON message" 结构区分，A ->> B: "hello" 必须分发到 MermaidSequenceMessage
+        MermaidDocument doc = parse("sequenceDiagram\n A ->> B: \"hello\"");
         assertEquals(MermaidDiagramType.SEQUENCE, doc.getType());
         assertEquals(1, doc.getStatements().size());
+        assertEquals(MermaidASTKind.MermaidSequenceMessage, doc.getStatements().get(0).getASTKind());
+
+        MermaidSequenceMessage msg = (MermaidSequenceMessage) doc.getStatements().get(0);
+        assertEquals("A", msg.getFrom());
+        assertEquals("B", msg.getTo());
+        assertEquals(MermaidEdgeType.OPEN_ARROW, msg.getEdgeType());
+        assertEquals("hello", msg.getMessage());
+    }
+
+    @Test
+    public void testSequenceMessageWithoutColonStillParsesAsFlowEdge() {
+        // 无 COLON 后缀的边语法仍按 flowEdge 承载（两规则结构可区分后各归其位）
+        MermaidDocument doc = parse("sequenceDiagram\n A ->> \"hello\" B");
+        assertEquals(MermaidDiagramType.SEQUENCE, doc.getType());
         assertEquals(MermaidASTKind.MermaidFlowEdge, doc.getStatements().get(0).getASTKind());
 
         MermaidFlowEdge edge = (MermaidFlowEdge) doc.getStatements().get(0);
@@ -191,24 +210,47 @@ public class TestMermaidASTParser {
     }
 
     @Test
-    public void testClassKeywordLexesAsIdentifier() {
-        // 特征化锁定：CLASS token 只匹配 'classDiagram'（重复定义取首个），
-        // 语句首的 'class' 词退化为 Identifier，即解析为普通 FlowNode
-        MermaidDocument doc = parse("classDiagram\n class Foo");
+    public void testClassNodeParsesWithMembers() {
+        // 回归覆盖 wi10#1（plan 2306 项 6）：'class' 关键字语句解析为 MermaidClassNode
+        // 而非退化为 FlowNode；CLASS token 仅匹配图表类型 'classDiagram'
+        MermaidDocument doc = parse("classDiagram\n class Foo [\n   +name : String\n   m static\n ]");
         assertEquals(MermaidDiagramType.CLASS, doc.getType());
-        assertEquals(2, doc.getStatements().size());
-        assertEquals(MermaidASTKind.MermaidFlowNode, doc.getStatements().get(0).getASTKind());
-        assertEquals("class", ((MermaidFlowNode) doc.getStatements().get(0)).getId());
-        assertEquals("Foo", ((MermaidFlowNode) doc.getStatements().get(1)).getId());
+        assertEquals(1, doc.getStatements().size());
+        assertEquals(MermaidASTKind.MermaidClassNode, doc.getStatements().get(0).getASTKind());
+
+        MermaidClassNode cls = (MermaidClassNode) doc.getStatements().get(0);
+        assertEquals("Foo", cls.getClassName());
+        assertEquals(2, cls.getMembers().size());
+        assertEquals("name", cls.getMembers().get(0).getName());
+        assertEquals(MermaidVisibility.PUBLIC, cls.getMembers().get(0).getVisibility());
+        assertEquals("String", cls.getMembers().get(0).getType());
+        assertEquals("m", cls.getMembers().get(1).getName());
+        assertEquals(Boolean.TRUE, cls.getMembers().get(1).getIsStatic());
     }
 
     @Test
-    public void testStateKeywordLexesAsIdentifier() {
-        // 同上：STATE token 只匹配 'stateDiagram'，'state' 语句退化为 FlowNode
-        MermaidDocument doc = parse("stateDiagram\n state A");
+    public void testStateNodeParsesWithDescription() {
+        // 回归覆盖 wi10#1：'state' 关键字语句解析为 MermaidStateNode
+        MermaidDocument doc = parse("stateDiagram\n state A : \"active\"");
         assertEquals(MermaidDiagramType.STATE, doc.getType());
+        assertEquals(1, doc.getStatements().size());
+        assertEquals(MermaidASTKind.MermaidStateNode, doc.getStatements().get(0).getASTKind());
+
+        MermaidStateNode state = (MermaidStateNode) doc.getStatements().get(0);
+        assertEquals("A", state.getId());
+        assertEquals("active", state.getDescription());
+    }
+
+    @Test
+    public void testDirectionStatementParses() {
+        // 回归覆盖 wi10#2（plan 2306 项 6）：DIRECTION 已补词法规则，
+        // direction TB 解析为 MermaidDirectionStatement 而非普通 FlowNode
+        MermaidDocument doc = parse("flowchart\n direction LR\n a --> b");
+        assertEquals(MermaidDiagramType.FLOWCHART, doc.getType());
         assertEquals(2, doc.getStatements().size());
-        assertEquals(MermaidASTKind.MermaidFlowNode, doc.getStatements().get(0).getASTKind());
+        assertEquals(MermaidASTKind.MermaidDirectionStatement, doc.getStatements().get(0).getASTKind());
+        assertEquals(MermaidDirection.LR, ((MermaidDirectionStatement) doc.getStatements().get(0)).getDirection());
+        assertEquals(MermaidASTKind.MermaidFlowEdge, doc.getStatements().get(1).getASTKind());
     }
 
     @Test

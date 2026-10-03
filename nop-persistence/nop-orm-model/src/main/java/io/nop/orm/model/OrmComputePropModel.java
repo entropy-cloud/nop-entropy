@@ -20,8 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.orm.model.OrmModelErrors.ARG_ARG_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_ARG_MISSING;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_NO_GETTER;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_NO_SETTER;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COMPUTE_PROP_ARG;
@@ -74,6 +76,12 @@ public class OrmComputePropModel extends _OrmComputePropModel implements IComput
             args = Collections.emptyMap();
 
         for (OrmComputeArgModel argModel : getArgs()) {
+            if (!args.containsKey(argModel.getName()))
+                throw new NopException(ERR_ORM_COMPUTE_PROP_ARG_MISSING)
+                        .param(ARG_ENTITY_NAME, this.getOwnerEntityModel().getName())
+                        .param(ARG_PROP_NAME, getName())
+                        .param(ARG_ARG_NAME, argModel.getName());
+
             Object value = args.get(argModel.getName());
             value = BeanTool.castBeanToType(value, argModel.getType());
             scope.setLocalValue(argModel.getName(), value);

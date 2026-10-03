@@ -52,19 +52,20 @@ public class RecordTemplateManager {
     }
 
     private IEvalScope prepareVars(RecordTemplateModel tpl, Map<String, Object> vars) {
-        if (vars == null)
-            vars = new HashMap<>();
+        // 防御性拷贝（回归覆盖 wi9#5，plan 2306 项 27）：模板生成过程会向 scope 写入
+        // 局部变量，传入不可变 Map（如 Map.of）时原地写会抛 UnsupportedOperationException
+        Map<String, Object> scopeVars = vars == null ? new HashMap<>() : new HashMap<>(vars);
 
-        IEvalScope scope = XLang.newEvalScope(vars);
+        IEvalScope scope = XLang.newEvalScope(scopeVars);
 
         for (RecordTemplateFieldModel field : tpl.getFields()) {
             if (field.isOptional()) {
-                if (!vars.containsKey(field.getName())) {
+                if (!scopeVars.containsKey(field.getName())) {
                     continue;
                 }
             }
 
-            Object value = vars.get(field.getName());
+            Object value = scopeVars.get(field.getName());
             if (field.isMandatory()) {
                 if (value == null)
                     value = field.getDefaultValue();

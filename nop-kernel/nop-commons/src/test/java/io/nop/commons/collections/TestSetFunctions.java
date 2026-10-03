@@ -84,16 +84,25 @@ public class TestSetFunctions {
     }
 
     /**
-     * 产品缺陷嫌疑记录（不修）：SetFunctions.concat(Collection, Object) 的标量分支
-     * 只 new 了 size+1 的列表并 add(source)，未把接收集合 list 复制进结果，
-     * 与 JS Array.concat 语义（结果以原集合开头）及同文件集合分支行为不一致。
-     * 此处固化当前实际行为；若修复为"结果 = list + source"，本断言应同步更新。
+     * 回归覆盖 wi2#2（plan 2306 项 31）：concat 标量分支按 JS Array.concat 语义
+     * 保留接收集合内容，结果 = list + source。
      */
     @Test
-    public void testConcatScalarBranchDropsReceiverList_currentBehavior() {
+    public void testConcatScalarBranchKeepsReceiverList() {
         List<String> base = Arrays.asList("a");
         List<String> result = SetFunctions.concat(base, "b");
-        assertEquals(Arrays.asList("b"), result);
+        assertEquals(Arrays.asList("a", "b"), result);
+    }
+
+    /**
+     * 回归覆盖 wi2#3（plan 2306 项 31）：flatMap 标量分支必须加入映射结果而非原元素。
+     */
+    @Test
+    public void testFlatMapScalarBranchUsesMappedValue() {
+        List<String> list = Arrays.asList("a", "bb");
+        // 标量映射：取长度
+        List<Integer> result = SetFunctions.flatMap(list, String::length);
+        assertEquals(Arrays.asList(1, 2), result);
     }
 
     @Test

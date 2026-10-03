@@ -8,9 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * 验证 CompositeHealthChecker 的聚合语义：
- * 空检查器集合默认 UP；details 按 checker 名聚合（default 名下的 details 平铺展开）。
- * 注意：当前 HealthStatus.merge 实现（取 ordinal 较小者）下，单 checker DOWN 不改变
- * 全 UP 聚合结果——与常见 worst-wins 语义相反，已作为缺陷嫌疑记录，不在此断言修复后行为。
+ * 空检查器集合默认 UP；details 按 checker 名聚合（default 名下的 details 平铺展开）；
+ * worst-wins 聚合：任一 checker DOWN 时聚合状态必须降为 DOWN（回归覆盖 wi11#1）。
  */
 public class TestCompositeHealthChecker {
 
@@ -40,13 +39,26 @@ public class TestCompositeHealthChecker {
     }
 
     @Test
-    public void testMergeIsFirstArgWhenOrdinalSmaller() {
-        // 刻画当前 merge 行为：返回 ordinal 较小的一方。
-        // UP(1)/DOWN(2) 合并返回 UP，使 DOWN 不抬升聚合状态，
-        // 与常见 worst-wins 语义相反，已记录为缺陷嫌疑（characterization test）。
-        assertEquals(HealthStatus.UP, HealthStatus.merge(HealthStatus.UP, HealthStatus.DOWN));
-        assertEquals(HealthStatus.UP, HealthStatus.merge(HealthStatus.DOWN, HealthStatus.UP));
-        assertEquals(HealthStatus.UNKNOWN, HealthStatus.merge(HealthStatus.UNKNOWN, HealthStatus.UP));
+    public void testSingleDownCheckerPullsAggregateDown() {
+        CompositeHealthChecker composite = new CompositeHealthChecker(Map.of(
+                "a", checker(HealthStatus.UP),
+                "b", checker(HealthStatus.DOWN)));
+        assertEquals(HealthStatus.DOWN, composite.checkHealth(false).getStatus(),
+                "worst-wins: one DOWN checker must degrade the aggregate");
+    }
+
+    @Test
+    public void testMergeIsWorstWinsWithSpringBootSeverityOrder() {
+        // 回归覆盖 wi11#1：merge 返回更严重一方，严重度对齐 Spring Boot 默认次序
+        // DOWN > OUT_OF_SERVICE > UP > UNKNOWN
+        assertEquals(HealthStatus.DOWN, HealthStatus.merge(HealthStatus.UP, HealthStatus.DOWN));
+        assertEquals(HealthStatus.DOWN, HealthStatus.merge(HealthStatus.DOWN, HealthStatus.UP));
+        assertEquals(HealthStatus.UP, HealthStatus.merge(HealthStatus.UNKNOWN, HealthStatus.UP));
+        assertEquals(HealthStatus.OUT_OF_SERVICE, HealthStatus.merge(HealthStatus.UP, HealthStatus.OUT_OF_SERVICE));
+        assertEquals(HealthStatus.DOWN, HealthStatus.merge(HealthStatus.DOWN, HealthStatus.OUT_OF_SERVICE));
+        assertEquals(HealthStatus.OUT_OF_SERVICE, HealthStatus.merge(HealthStatus.OUT_OF_SERVICE, HealthStatus.UNKNOWN));
+        // 同级保持先到者
+        assertEquals(HealthStatus.UP, HealthStatus.merge(HealthStatus.UP, HealthStatus.UP));
     }
 
     @Test

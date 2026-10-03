@@ -117,25 +117,40 @@ class TestKeyGroupAssignment {
         assertEquals(maxP, used.size());
     }
 
-    // ==================== Routing parity (legacy formula) ====================
+    // ==================== Routing formula (canonical JSON + murmur3) ====================
 
     @Test
-    void routingParityForBuiltInTypesWhenMaxParallelismEqualsShardCount() {
-        // For built-in value types, the new stable hash delegates to hashCode(),
-        // so at maxParallelism == shardCount the bucket must match the legacy
-        // (key.hashCode() & 0x7FFFFFFF) % shardCount formula exactly.
+    void routingForBuiltInTypesUsesCanonicalJsonMurmur() {
+        // 回归覆盖 stream-2pc 单 subtask 归集（plan 2306 Phase 4）：内置类型不再走
+        // Object#hashCode()（算术递增使顺序 key 族全部落到相邻 key-group，P>1 塌缩到
+        // 单一 subtask），统一按 canonical JSON + murmur3_32 公式派生。
         int n = 8;
-        checkParity("a-string-key", n);
-        checkParity(Long.valueOf(123456789L), n);
-        checkParity(Integer.valueOf(-42), n);
-        checkParity("key-0", n);
-        checkParity("", n);
+        checkMurmurFormula("a-string-key", n);
+        checkMurmurFormula(Long.valueOf(123456789L), n);
+        checkMurmurFormula(Integer.valueOf(-42), n);
+        checkMurmurFormula("key-0", n);
+        checkMurmurFormula("", n);
     }
 
-    private static void checkParity(Object key, int shardCount) {
-        int legacy = (key.hashCode() & 0x7FFFFFFF) % shardCount;
-        int now = KeyGroupAssignment.assignToKeyGroup(key, shardCount);
-        assertEquals(legacy, now, "routing parity broken for " + key.getClass().getSimpleName());
+    private static void checkMurmurFormula(Object key, int maxParallelism) {
+        int expected = (io.nop.commons.crypto.HashHelper
+                .murmur3_32(io.nop.core.lang.json.JsonTool.serialize(key, false)) & 0x7FFFFFFF)
+                % maxParallelism;
+        int now = KeyGroupAssignment.assignToKeyGroup(key, maxParallelism);
+        assertEquals(expected, now,
+                "routing must use canonical-JSON murmur3 for " + key.getClass().getSimpleName());
+    }
+
+    @Test
+    void sequentialKeysSpreadAcrossSubtasks() {
+        // 顺序 key 族不得塌缩到单一 subtask（旧 String.hashCode 公式的缺陷签名）
+        int maxP = 128;
+        java.util.Set<Integer> owners = new java.util.HashSet<>();
+        for (int i = 0; i < 30; i++) {
+            owners.add(KeyGroupAssignment.assignToSubtask("key-" + i, maxP, 2));
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(2, owners.size(),
+                "30 个顺序 key 在 P=2 下必须分布到两个 subtask");
     }
 
     // ==================== G39 / Phase 3: group->subtask mapping ====================

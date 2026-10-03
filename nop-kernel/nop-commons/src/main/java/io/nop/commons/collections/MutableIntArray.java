@@ -130,7 +130,7 @@ public class MutableIntArray implements IntArray {
     }
 
     public MutableIntArray addAll(IntArray array, int offset, int length) {
-        if (offset + length > array.size())
+        if (offset < 0 || length < 0 || offset + length > array.size())
             throw new IllegalArgumentException(
                     "offset + length must be <= size: " + offset + " + " + length + " <= " + array.size());
 
@@ -148,6 +148,12 @@ public class MutableIntArray implements IntArray {
     }
 
     public MutableIntArray addAll(int[] array, int offset, int length) {
+        // 与 addAll(IntArray,offset,length) 保持一致的参数契约：
+        // 越界抛 IllegalArgumentException 而非让 System.arraycopy 抛 AIOOBE
+        if (offset < 0 || length < 0 || offset + length > array.length)
+            throw new IllegalArgumentException(
+                    "offset + length must be <= array.length: " + offset + " + " + length + " <= " + array.length);
+
         int[] items = this.items;
         int sizeNeeded = size + length - offset;
         if (sizeNeeded >= items.length)

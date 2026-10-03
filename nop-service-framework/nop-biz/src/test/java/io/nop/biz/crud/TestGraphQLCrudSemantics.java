@@ -106,8 +106,9 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
     public void testUpdateChangesOnlyProvidedFields() {
         saveIndex("gs-upd-1", "idx-upd", null, 1);
 
+        // TestIndex 主键属性名为 sid：data 必须携带 sid 而非固定 "id" 键（plan 2306 项 22）
         ApiResponse<?> update = executeRpc(GraphQLOperationType.mutation, "TestIndex__update",
-                Map.of("data", Map.of("id", "gs-upd-1", "value", 42)));
+                Map.of("data", Map.of("sid", "gs-upd-1", "value", 42)));
         assertEquals(0, update.getStatus(), "update should succeed, got: " + update);
 
         ApiResponse<?> get = executeRpc(GraphQLOperationType.query, "TestIndex__get",
@@ -123,7 +124,7 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
     @Test
     public void testUpdateUnknownIdFails() {
         ApiResponse<?> response = executeRpc(GraphQLOperationType.mutation, "TestIndex__update",
-                Map.of("data", Map.of("id", "gs-missing", "value", 1)));
+                Map.of("data", Map.of("sid", "gs-missing", "value", 1)));
 
         assertNotEquals(0, response.getStatus(),
                 "update on unknown id must fail, got: " + response);
@@ -131,6 +132,9 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
 
     /**
      * saveOrUpdate：无记录时插入，再次调用同一主键时更新（而非新增第二条）。
+     * 回归覆盖 wi8#2（plan 2306 项 22）：插入/更新的判定依据是实体真实主键属性名 sid。
+     * 修复前两次调用必须分别携带 sid/id 两种键——带 sid 的第二次调用会被误判为插入，
+     * 最终以 duplicate-key 报错；修复后统一携带 sid 即可完成 upsert。
      */
     @Test
     public void testSaveOrUpdateInsertsThenUpdates() {
@@ -139,7 +143,7 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
         assertEquals(0, insert.getStatus(), "saveOrUpdate insert should succeed, got: " + insert);
 
         ApiResponse<?> upsert = executeRpc(GraphQLOperationType.mutation, "TestIndex__saveOrUpdate",
-                Map.of("data", Map.of("id", "gs-upsert-1", "name", "idx-upsert", "value", 5)));
+                Map.of("data", Map.of("sid", "gs-upsert-1", "name", "idx-upsert", "value", 5)));
         assertEquals(0, upsert.getStatus(), "saveOrUpdate update should succeed, got: " + upsert);
 
         assertEquals(1, countBy("name", "idx-upsert"),
@@ -309,7 +313,7 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
 
         List<Map<String, Object>> data = Arrays.asList(
                 new LinkedHashMap<>(Map.of("sid", "gs-bm-new", "name", "idx-bm", "value", 30)),
-                new LinkedHashMap<>(Map.of("id", "gs-bm-1", "value", 99)));
+                new LinkedHashMap<>(Map.of("sid", "gs-bm-1", "value", 99)));
 
         ApiResponse<?> response = executeRpc(GraphQLOperationType.mutation, "TestIndex__batchModify",
                 Map.of("data", data, "delIds", Set.of("gs-bm-2")));

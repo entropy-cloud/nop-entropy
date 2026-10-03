@@ -125,7 +125,7 @@ public class ExpressionToFilterBeanTransformer {
                                     .param(ARG_OP, expr.getOperator()).param(ARG_EXPR, expr);
                         String rightName = XLangASTHelper.getQualifiedName(expr.getRight());
                         Object leftValue = XLangASTHelper.toJsonValue(expr.getLeft());
-                        return FilterBeans.compareOp(filterOp, rightName, leftValue);
+                        return FilterBeans.compareOp(reverseOp.toFilterOp(), rightName, leftValue);
                     }
                 }
                 return transformOtherExpr(expr);

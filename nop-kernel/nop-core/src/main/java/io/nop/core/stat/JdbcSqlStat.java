@@ -866,7 +866,9 @@ public final class JdbcSqlStat implements Comparable<JdbcSqlStat> {
 
     @Override
     public int compareTo(JdbcSqlStat o) {
-        if (o.sqlHash == this.sqlHash) {
+        // 必须经 getSqlHash() 触发懒加载（回归覆盖 wi1#6-1，plan 2306 项 30）：
+        // 直接读字段时未计算的 hash 恒为 0，两个不同 SQL 的实例比较恒返回 0
+        if (o.getSqlHash() == this.getSqlHash()) {
             return 0;
         }
 

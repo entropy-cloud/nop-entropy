@@ -127,20 +127,45 @@ public class TestGraphAlgorithms {
         AStarPathFinder<String, DefaultEdge<String>> finder = new AStarPathFinder<>(newDiamond());
 
         AStarPathFinder.FindResult<String, DefaultEdge<String>> result = finder.find("a", "e");
-        // 菱形图每个节点只经一条最短路径到达，代价计算不受 scoreMap 缺陷影响
         assertEquals(3, result.getCost(), "unweighted path a->b->d->e costs 3");
-        // 注意：getPath() 恒为空列表（scoreMap 从未写入，疑似缺陷，见测试报告），不断言路径内容
+        // scoreMap 修复后路径可重建（回归覆盖 wi1#5）
+        List<DefaultEdge<String>> path = result.getPath();
+        assertEquals(3, path.size(), "path should contain 3 edges a->b->d->e");
+        assertEquals("a", path.get(0).getSource());
+        assertEquals("b", path.get(0).getTarget());
+        assertEquals("b", path.get(1).getSource());
+        assertEquals("d", path.get(1).getTarget());
+        assertEquals("d", path.get(2).getSource());
+        assertEquals("e", path.get(2).getTarget());
+    }
+
+    @Test
+    public void testAStarWeightedRelaxationChoosesCheaperPath() {
+        // 回归覆盖 wi1#5：a->c 直连代价 10，a->b->c 代价 4，松弛后应选后者
+        MapGraph g = new MapGraph();
+        g.addEdge("a", "c");
+        g.addEdge("a", "b");
+        g.addEdge("b", "c");
+        AStarPathFinder<String, DefaultEdge<String>> finder = new AStarPathFinder<>(g,
+                edge -> "a->c".equals(edge.getSource() + "->" + edge.getTarget()) ? 10 : 1,
+                (start, end) -> 0);
+
+        AStarPathFinder.FindResult<String, DefaultEdge<String>> result = finder.find("a", "c");
+        assertEquals(2, result.getCost(), "weighted relaxation should pick a->b->c with cost 2");
+        assertEquals(2, result.getPath().size(), "path should be a->b->c");
+        assertEquals("b", result.getPath().get(0).getTarget());
     }
 
     @Test
     public void testAStarFindSingleEdgeCost() {
         MapGraph g = new MapGraph();
         g.addEdge("a", "c");
-        // 单边路径不涉及松弛，代价计算正确
         AStarPathFinder<String, DefaultEdge<String>> finder = new AStarPathFinder<>(g,
                 edge -> 7, (start, end) -> 0);
-        assertEquals(7, finder.find("a", "c").getCost());
-        // 带权松弛场景存在缺陷（scoreMap 从未写入导致代价无法被更新，见测试报告），不在此断言
+        AStarPathFinder.FindResult<String, DefaultEdge<String>> result = finder.find("a", "c");
+        assertEquals(7, result.getCost());
+        assertEquals(1, result.getPath().size(), "single-edge path should be reconstructed");
+        assertEquals("c", result.getPath().get(0).getTarget());
     }
 
     @Test

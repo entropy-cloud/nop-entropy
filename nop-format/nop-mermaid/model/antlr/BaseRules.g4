@@ -12,6 +12,7 @@ ER: 'er';
 JOURNEY: 'journey';
 
 // ======================= 方向关键字 =======================
+DIRECTION: 'direction';
 TB: 'TB' | 'TD';
 BT: 'BT';
 LR: 'LR';
@@ -39,10 +40,9 @@ THICK: '==>';
 // ======================= 其他关键字 =======================
 PARTICIPANT: 'participant';
 AS: 'as';
-CLASS: 'class';
-STATE: 'state';
+CLASS_KEYWORD: 'class';
+STATE_KEYWORD: 'state';
 TASK: 'task';
-PIE: 'pie';
 SUBGRAPH: 'subgraph';
 STYLE: 'style';
 STATIC: 'static';

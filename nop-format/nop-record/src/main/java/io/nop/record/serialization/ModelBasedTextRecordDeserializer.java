@@ -2,6 +2,7 @@ package io.nop.record.serialization;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.bit.IBitSet;
+import io.nop.commons.type.StdDataType;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
@@ -20,6 +21,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_EXPECTED;
 import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ARG_VALUE;
@@ -101,12 +103,22 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
                             .param(ARG_VALUE, str);
             }
             str = RecordMetaHelper.trimText(str, field);
-            value = str;
+            // 无 codec 时按字段声明的 stdDataType 反推类型（回归覆盖 wi9#6，plan 2306 项 28），
+            // 使 type="int" 等字段的文本路径与 FLS 二进制路径类型语义对称
+            value = convertByStdDataType(str, field, context);
         }
 
         if (field.getTransformIn() != null)
             value = field.getTransformIn().call3(null, record, value, context, context.getEvalScope());
         return value;
+    }
+
+    protected Object convertByStdDataType(String str, RecordSimpleFieldMeta field, IFieldCodecContext context) {
+        StdDataType dataType = field.getStdDataType();
+        if (dataType == null || dataType == StdDataType.STRING || dataType == StdDataType.ANY)
+            return str;
+        return dataType.convert(str,
+                err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }
 
     @Override

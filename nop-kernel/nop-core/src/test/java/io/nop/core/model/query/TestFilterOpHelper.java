@@ -64,6 +64,19 @@ public class TestFilterOpHelper {
     }
 
     @Test
+    public void testLikePatternMatchesValue() {
+        // 回归覆盖 wi1#2：pattern（第二个参数）转为 regex 去匹配 value
+        assertTrue(FilterOpHelper.like("abc", "a%"), "prefix pattern should match");
+        assertTrue(FilterOpHelper.like("abc", "%c"), "suffix pattern should match");
+        assertTrue(FilterOpHelper.like("abc", "%b%"), "infix pattern should match");
+        assertTrue(FilterOpHelper.like("abc", "abc"), "exact pattern should match");
+        assertTrue(FilterOpHelper.like("abc", "a_c"), "underscore should match single char");
+        assertFalse(FilterOpHelper.like("abc", "xyz%"), "unrelated pattern must not match");
+        assertFalse(FilterOpHelper.like("abc", "b%"), "wrong prefix must not match");
+        assertFalse(FilterOpHelper.like("abc", "%x"), "wrong suffix must not match");
+    }
+
+    @Test
     public void testInNotIn() {
         assertTrue(FilterOpHelper.in(2, Arrays.asList(1, 2, 3)));
         assertFalse(FilterOpHelper.in(5, Arrays.asList(1, 2, 3)));
@@ -161,7 +174,6 @@ public class TestFilterOpHelper {
 
     @Test
     public void testDateBetweenMinBoundOnly() {
-        // max 参数存在缺陷嫌疑（实现误用 min 两次，见测试报告），只断言不受缺陷影响的部分
         assertTrue(FilterOpHelper.dateBetween("2026-01-01", "2026-01-01", null, false, false),
                 "value == min should pass");
         assertFalse(FilterOpHelper.dateBetween("2025-12-31", "2026-01-01", null, false, false),
@@ -171,6 +183,24 @@ public class TestFilterOpHelper {
         // 无法解析为日期的 value 抛转换异常（ConvertHelper 语义）
         org.junit.jupiter.api.Assertions.assertThrows(NopException.class,
                 () -> FilterOpHelper.dateBetween("not-a-date", null, null, false, false));
+    }
+
+    @Test
+    public void testDateBetweenMaxBoundEnforced() {
+        // 回归覆盖 wi1#1：max 上界必须生效（此前实现误用 min 两次）
+        assertTrue(FilterOpHelper.dateBetween("2026-01-15", "2026-01-01", "2026-02-01", false, false),
+                "value inside [min,max] should pass");
+        assertFalse(FilterOpHelper.dateBetween("2026-03-01", "2026-01-01", "2026-02-01", false, false),
+                "value > max should fail");
+        assertTrue(FilterOpHelper.dateBetween("2026-02-01", "2026-01-01", "2026-02-01", false, false),
+                "value == max should pass in closed interval");
+        assertFalse(FilterOpHelper.dateBetween("2026-02-01", "2026-01-01", "2026-02-01", false, true),
+                "excludeMax should reject value == max");
+        assertFalse(FilterOpHelper.dateBetween("2026-01-01", "2026-01-01", "2026-02-01", true, false),
+                "excludeMin should reject value == min");
+        // 只给 max
+        assertTrue(FilterOpHelper.dateBetween("2026-01-15", null, "2026-02-01", false, false));
+        assertFalse(FilterOpHelper.dateBetween("2026-03-01", null, "2026-02-01", false, false));
     }
 
     @Test

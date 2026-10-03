@@ -120,7 +120,7 @@ public final class GraphQLResponseBean implements Serializable {
             msg = errors.get(0).getMessage();
         }
         error.setDescription(msg);
-        error.setBizFatal(getBizFatal());
+        error.setBizFatal(Boolean.TRUE.equals(getBizFatal()));
         return error;
     }
 

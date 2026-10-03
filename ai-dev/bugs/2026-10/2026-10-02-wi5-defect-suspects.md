@@ -1,4 +1,4 @@
-# 2026-10-02 WI5 测试暴露的产品缺陷嫌疑清单（未修，待独立立项）
+# 2026-10-02 WI5 测试暴露的产品缺陷嫌疑清单（已修复，plan 2306 收口）
 
 > 来源：plan 2297（WI5 nop-wf 引擎面补强）执行期发现。各项均以 trip-wire 测试 + 模型资源固化（记录现状而非错误行为），修复独立立项。
 
@@ -13,6 +13,18 @@
 - trip-wire：`testStepNotEndableValidationIsDeadCode` + `errNotEndable/v1.xwf`。
 - 影响：不可能结束的流程定义可通过模型校验。
 
+
+## Fix（2026-10-03 plan 2306 回填）
+
+- **1 GraphBreadthFirstIterator root 未入 visited：`fixed`**。构造器补 `this.set.add(root)`。环含根时 DagAnalyzer.checkStartReachable 不再因 root 重复入队导致 data[index] 越界，友好错误 ERR_WF_GRAPH_CONTAINS_LOOP（带 loopEdges 定位参数）可达。回归：TestWfModelParserValidation.testRootCycleCrashesBeforeFriendlyLoopError 翻转为 testRootCycleRejectedWithFriendlyLoopError（正向错误码+参数断言）。
+- **2 checkEnd 死校验：`fixed`**。eventuallyToAssigned 传播补 `isNextToAssigned()` 前置条件（nextToAssigned 在 DAG 构建期 addTransitionNext 中设置，修复自洽）。ERR_WF_STEP_NOT_ENDABLE 不再是死代码。回归：testStepNotEndableValidationIsDeadCode 翻转为 testStepNotEndableRejectedWithFriendlyError（errNotEndable/v1.xwf 解析必须失败且定位 dead 步骤）。▲ 下游：nop-wf-service 115 测试当期跑全绿（含 testPublish 流 _cases）。
+
 ## Notes For Future Refactors
 
-- 两项修复后对应 trip-wire 测试应改为正向断言（友好错误码 / 校验生效），当前固化的是缺陷现状。
+- （已执行：两个 trip-wire 均已翻转为正向断言。）
+
+## Affected Files
+
+- nop-kernel/nop-core/src/main/java/io/nop/core/model/graph/GraphBreadthFirstIterator.java
+- nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/model/analyze/WfModelAnalyzer.java
+- 对应 src/test 下 TestWfModelParserValidation

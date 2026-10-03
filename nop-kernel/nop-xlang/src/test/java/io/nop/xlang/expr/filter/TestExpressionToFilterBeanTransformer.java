@@ -77,17 +77,24 @@ public class TestExpressionToFilterBeanTransformer extends BaseTestCase {
     }
 
     /**
-     * 常量在左侧时交换操作数（3 < a ⇒ 属性 a 在左侧）。
-     * 【产品缺陷记录，不修】reverseOp 仅做非空校验但未被使用，比较符未取反：
-     * 3 < a（等价 a > 3）被生成为 lt(a,3)。本测试按当前实际行为锚定，防止无感知漂移。
+     * 常量在左侧时交换操作数并取反比较符（回归覆盖 wi3#1）：3 < a 语义等价 a > 3，
+     * 应生成 gt(a,3)，而非 lt(a,3)。
      */
     @Test
     public void testCompareWithConstantOnLeftIsSwapped() {
         TreeBean bean = transform("3 < a");
-        assertEquals(FilterBeanConstants.FILTER_OP_LT, bean.getTagName(),
-                "缺陷锚定：reverseOp 未生效，比较符保持原样 lt");
+        assertEquals(FilterBeanConstants.FILTER_OP_GT, bean.getTagName(),
+                "常量在左时必须使用 reverseOp：3 < a 等价 a > 3");
         assertEquals("a", attr(bean, FilterBeanConstants.FILTER_ATTR_NAME));
         assertEquals(3, attr(bean, FilterBeanConstants.FILTER_ATTR_VALUE));
+
+        // 其余比较符的交换语义
+        assertEquals(FilterBeanConstants.FILTER_OP_LT, transform("3 > a").getTagName());
+        assertEquals(FilterBeanConstants.FILTER_OP_GE, transform("3 <= a").getTagName());
+        assertEquals(FilterBeanConstants.FILTER_OP_LE, transform("3 >= a").getTagName());
+        // eq/ne 交换后保持不变
+        assertEquals(FilterBeanConstants.FILTER_OP_EQ, transform("1 == a").getTagName());
+        assertEquals(FilterBeanConstants.FILTER_OP_NE, transform("1 != a").getTagName());
     }
 
     /**
@@ -205,14 +212,27 @@ public class TestExpressionToFilterBeanTransformer extends BaseTestCase {
     }
 
     /**
-     * 【产品缺陷记录，不修】CallExpression.getArgument(i) 无越界保护
-     * （arguments.get(i) 直接取值），3/4 参数的 between 调用在取第 4/5 个排除标记时
-     * 抛 IndexOutOfBoundsException。锚定当前行为，修复立项时改回语义断言。
+     * 回归覆盖 wi3#2（plan 2306 项 14）：getArgument 越界返回 null，
+     * 3/4 参数的 between 调用合法，排除标记缺省为 false。
      */
     @Test
-    public void testBetweenWithThreeArgsThrowsIndexOutOfBounds() {
-        assertThrows(IndexOutOfBoundsException.class, () -> transform("between(a, 1, 10)"),
-                "缺陷锚定：3 参数 between 因 getArgument(3) 越界而失败");
+    public void testBetweenWithThreeAndFourArgsIsSupported() {
+        TreeBean three = transform("between(a, 1, 10)");
+        assertEquals(FilterBeanConstants.FILTER_OP_BETWEEN, three.getTagName());
+        assertEquals("a", attr(three, FilterBeanConstants.FILTER_ATTR_NAME));
+        assertNull(attr(three, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MIN),
+                "3 参数形式排除标记缺省 false（不输出标记）");
+        assertNull(attr(three, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MAX));
+
+        TreeBean four = transform("between(a, 1, 10, true)");
+        assertEquals(FilterBeanConstants.FILTER_OP_BETWEEN, four.getTagName());
+        assertEquals(Boolean.TRUE, attr(four, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MIN));
+        assertNull(attr(four, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MAX));
+
+        // 参数个数超出 5 仍报既有错误码
+        NopException e = assertThrows(NopException.class,
+                () -> transform("between(a, 1, 10, true, true, true)"));
+        assertTrue(e.getErrorCode().contains("filter-op-invalid-arg-count"));
     }
 
     /**
@@ -236,12 +256,16 @@ public class TestExpressionToFilterBeanTransformer extends BaseTestCase {
     }
 
     /**
-     * between(name, min, max, true) 4 参数形式同样因 getArgument(4) 越界失败（缺陷锚定）。
+     * 回归覆盖 wi3#2：4 参数 between 不再因 getArgument(4) 越界失败，
+     * 仅 excludeMin 生效（见 testBetweenWithThreeAndFourArgsIsSupported 的 four 分支断言）。
+     * 保留本用例作为 4 参数形式的独立锚点。
      */
     @Test
-    public void testBetweenWithFourArgsThrowsIndexOutOfBounds() {
-        assertThrows(IndexOutOfBoundsException.class, () -> transform("between(a, 1, 10, true)"),
-                "缺陷锚定：4 参数 between 因 getArgument(4) 越界而失败");
+    public void testBetweenWithFourArgsIsSupported() {
+        TreeBean bean = transform("between(a, 1, 10, true)");
+        assertEquals(FilterBeanConstants.FILTER_OP_BETWEEN, bean.getTagName());
+        assertEquals(Boolean.TRUE, attr(bean, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MIN));
+        assertNull(attr(bean, FilterBeanConstants.FILTER_ATTR_EXCLUDE_MAX));
     }
 
     /**

@@ -35,7 +35,12 @@ public class MultiRpcService implements IRpcService {
     private final Map<String, IRpcService> services;
 
     public MultiRpcService(Map<String, IRpcService> services) {
-        this.services = Guard.notEmpty(services, "services");
+        // Guard.notEmpty 对 Map 只判 null（ApiStringHelper.isEmptyObject 不处理集合类型），
+        // 空 map 会构造成功、所有调用延迟到运行期 unknown-service 失败。
+        // 回归覆盖 wi11#2（plan 2306 项 29）：配置错误必须在构造期暴露
+        if (Guard.notEmpty(services, "services").isEmpty())
+            throw new IllegalArgumentException("services is empty");
+        this.services = services;
     }
 
     @Override

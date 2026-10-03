@@ -34,10 +34,11 @@ public class TestPredefinedColorsIndex {
         assertEquals(0x09, PredefinedColors.WHITE.getIndex());
     }
 
-    // getColorIndex / getByIndex 语义：按 values() 顺序注册，indexColors 先注册者优先，indexMap 后写覆盖
+    // getColorIndex / getByIndex 语义：首注册优先（回归覆盖 wi9#3，plan 2306 项 25），
+    // index2 别名索引与重复 ARGB 不覆盖先注册的主映射，结果由枚举声明顺序唯一确定
     @Test
     public void testColorIndexRoundtrip() {
-        // 以注册顺序模拟两张索引表的构建规则
+        // 以注册顺序模拟两张索引表的构建规则（与实现一致均为 putIfAbsent）
         Map<Integer, PredefinedColors> indexColors = new HashMap<>();
         Map<String, Integer> indexMap = new HashMap<>();
         for (PredefinedColors value : PredefinedColors.values()) {
@@ -45,7 +46,7 @@ public class TestPredefinedColorsIndex {
             if (value.getIndex2() != -1) {
                 indexColors.putIfAbsent(value.getIndex2(), value);
             }
-            indexMap.put(value.getArgb(), value.getIndex());
+            indexMap.putIfAbsent(value.getArgb(), value.getIndex());
         }
 
         for (PredefinedColors color : PredefinedColors.values()) {
@@ -55,10 +56,12 @@ public class TestPredefinedColorsIndex {
                     color.name());
         }
 
-        // 已知冲突：MAROON 的 index 0x19 与 PLUM 的 index2 相同，先注册的 PLUM 胜出
-        assertEquals(PredefinedColors.PLUM, PredefinedColors.getByIndex(0x19));
-        // BLACK 与 AUTOMATIC 同为 FF000000，indexMap 后写覆盖为 AUTOMATIC 的 index
-        assertEquals(0x40, PredefinedColors.getColorIndex("FF000000").intValue());
+        // 已知冲突裁定：MAROON 的主索引 0x19 胜出，PLUM 仅经其 index2=0x3D 路径可达
+        assertEquals(PredefinedColors.MAROON, PredefinedColors.getByIndex(0x19));
+        assertEquals(PredefinedColors.PLUM, PredefinedColors.getByIndex(0x3D));
+        // BLACK 与 AUTOMATIC 同为 FF000000，先声明的 BLACK 主映射胜出；
+        // AUTOMATIC 仍可通过主索引 0x40 查到
+        assertEquals(0x08, PredefinedColors.getColorIndex("FF000000").intValue());
         assertEquals(PredefinedColors.BLACK, PredefinedColors.getByIndex(0x08));
         assertEquals(PredefinedColors.AUTOMATIC, PredefinedColors.getByIndex(0x40));
 

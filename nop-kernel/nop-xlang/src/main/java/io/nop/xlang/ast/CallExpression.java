@@ -24,7 +24,13 @@ public class CallExpression extends _CallExpression {
         return node;
     }
 
+    /**
+     * 取第 i 个参数；超出实际参数个数时返回 null 而非抛越界异常，
+     * 以支持 between 等可选尾随参数的 3/4 参数调用形式（回归覆盖 wi3#2）
+     */
     public Expression getArgument(int i) {
-        return arguments == null ? null : arguments.get(i);
+        if (arguments == null || i >= arguments.size())
+            return null;
+        return arguments.get(i);
     }
 }

@@ -40,7 +40,7 @@ public class TestRecordTemplateManager extends BaseTestCase {
                 .parseFromVirtualPath(path);
     }
 
-    // 模板渲染 + JSON 解析：传入变量成为记录字段（vars 必须可写：evalScope 会原地写入字段值）
+    // 模板渲染 + JSON 解析：传入变量成为记录字段
     @Test
     public void testBuildRecordFromTemplate() {
         RecordTemplateModel model = tpl("/test/record/tpl/demo.record-template.xml");
@@ -50,6 +50,18 @@ public class TestRecordTemplateManager extends BaseTestCase {
         vars.put("b", "x");
         Map<String, Object> record = manager.buildRecord(model, vars);
         assertEquals(5, record.get("a"));
+    }
+
+    // 回归覆盖 wi9#5（plan 2306 项 27）：传入不可变 Map（Map.of）不得抛
+    // UnsupportedOperationException；prepareVars 防御性拷贝后调用方 Map 也不被回写
+    @Test
+    public void testBuildRecordWithImmutableVarsMap() {
+        RecordTemplateModel model = tpl("/test/record/tpl/demo.record-template.xml");
+
+        Map<String, Object> vars = Map.of("a", 5, "b", "x");
+        Map<String, Object> record = manager.buildRecord(model, vars);
+        assertEquals(5, record.get("a"));
+        assertEquals(2, vars.size(), "调用方传入的不可变 Map 不得被写入");
     }
 
     // mandatory 字段缺失时取 defaultValue；optional 字段缺失跳过注入且不报错
@@ -69,6 +81,19 @@ public class TestRecordTemplateManager extends BaseTestCase {
         NopException e = assertThrows(NopException.class, () -> manager.buildRecord(model, new HashMap<>()));
         assertTrue(e.getErrorCode().equals(RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY.getErrorCode()));
         assertEquals("x", e.getParam("fieldName"));
+    }
+
+    // plan 2306 项 38 探针：记录级 generator（表达式形式）是否可编译且参与合并
+    @Test
+    public void testBuildRecordWithRecordLevelGenerator() {
+        RecordTemplateModel model = tpl("/test/record/tpl/record-generator.record-template.xml");
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("a", 2);
+        Map<String, Object> record = manager.buildRecordWithGenerator(model, vars);
+        assertEquals(2, record.get("a"));
+        org.junit.jupiter.api.Assertions.assertNotNull(record.get("extra"),
+                "记录级 generator 产物必须合并进记录（死代码探针）");
     }
 
     // buildRecordWithGenerator：字段 generator 在模板渲染前依据 scope 变量求值

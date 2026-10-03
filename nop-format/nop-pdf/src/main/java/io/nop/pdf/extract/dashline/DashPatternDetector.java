@@ -4,7 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 虚线，点划线模式检测
+ * 虚线，点划线模式检测。
+ *
+ * <p><b>滑窗锚定语义（plan 2306 项 39 设计裁定，文档化而非改语义）</b>：
+ * walk 以 startPos 为模式锚点逐窗比较，窗口间长度偏差在 {@code maxChange}（默认 20%）
+ * 内即视为同一周期——该容差是为吸收 PDF 图形段长度的测量噪声而设计，并非缺陷。
+ * 因此噪声前缀若与后续窗口恰好相近，会被并入以 startPos=0 起始的模式
+ * （start 锚定的是检测起点而非严格的周期起点）。改为中断式严格匹配会降低
+ * 真实文档的检测稳健性，无证据表明更优。</p>
  */
 public class DashPatternDetector {
 

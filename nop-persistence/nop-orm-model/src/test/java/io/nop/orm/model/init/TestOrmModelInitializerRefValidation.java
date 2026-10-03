@@ -13,6 +13,7 @@ import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmToManyReferenceModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MAT
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -210,5 +212,37 @@ public class TestOrmModelInitializerRefValidation {
         model.init();
 
         assertFalse(relation.isOneToOne());
+    }
+
+    @Test
+    public void testToManyCollectionRegisteredUnderBuiltCollectionName() {
+        // 回归覆盖 wi4#1（plan 2306 项 4）：未手工 setCollectionName 的 to-many ref，
+        // init() 后必须按 "Entity@prop" 注册进 collectionMap，getCollectionModel 可取回
+        OrmEntityModel entityA = entity("EntityA", "tbl_a", false,
+                column("sid", "SID", 1, StdSqlType.VARCHAR, true),
+                column("refId", "REF_ID", 2, StdSqlType.VARCHAR, false));
+        OrmEntityModel entityB = entity("EntityB", "tbl_b", false,
+                column("tid", "TID", 1, StdSqlType.VARCHAR, true));
+
+        OrmToManyReferenceModel toMany = new OrmToManyReferenceModel();
+        toMany.setName("bs");
+        toMany.setRefEntityName("EntityB");
+        List<OrmJoinOnModel> joins = new ArrayList<>();
+        OrmJoinOnModel join = new OrmJoinOnModel();
+        join.setLeftProp("refId");
+        join.setRightProp("tid");
+        joins.add(join);
+        toMany.setJoin(joins);
+        entityA.setRelations(List.of(toMany));
+
+        OrmModel model = new OrmModel();
+        model.setEntities(List.of(entityA, entityB));
+        model.init();
+
+        assertEquals("EntityA@bs", toMany.getCollectionName());
+        assertSame(toMany, model.getCollectionModel("EntityA@bs"),
+                "collectionMap 必须以 init 阶段生成的 collectionName 注册");
+        assertFalse(model.getCollectionMap().containsKey(null),
+                "不允许以 null collectionName 注册");
     }
 }

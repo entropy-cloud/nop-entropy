@@ -11,6 +11,7 @@ import io.nop.record.writer.AppendableTextDataWriter;
 import io.nop.record.writer.IBinaryDataWriter;
 import io.nop.record.writer.ITextDataWriter;
 import io.nop.record.writer.StreamBinaryDataWriter;
+import io.nop.record.codec.IFieldTextCodec;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -105,5 +106,18 @@ public class TestFixedLengthStringCodec {
         assertEquals(42, zeroPadCodec.decode(
                 new ByteBufferBinaryDataReader("00042".getBytes(StandardCharsets.UTF_8)), null, 5,
                 DummyFieldCodecContext.INSTANCE, null));
+    }
+
+    // 回归覆盖 wi9#4（plan 2306 项 26）：文本路径 encode 的 null 缺省统一为 ""，
+    // 与二进制路径一致；此前文本路径缺省 "0" 会伪造数值内容
+    @Test
+    public void testTextEncodeNullUsesEmptyDefault() throws Exception {
+        DefaultFieldConfig config = new DefaultFieldConfig("f", StdDataType.STRING, 5);
+        config.setLeftPad(false);
+        IFieldTextCodec codec = FixedLengthStringCodecFactory.INSTANCE.newTextCodec(config);
+
+        StringBuilder sb = new StringBuilder();
+        codec.encode(new AppendableTextDataWriter(sb), null, 5, DummyFieldCodecContext.INSTANCE, null);
+        assertEquals("     ", sb.toString(), "null 必须按空串补齐，而非按 \"0\" 补齐");
     }
 }

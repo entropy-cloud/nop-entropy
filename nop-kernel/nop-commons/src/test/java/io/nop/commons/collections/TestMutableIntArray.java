@@ -133,12 +133,20 @@ public class TestMutableIntArray {
         array.addAll(other);
         assertArrayEquals(new int[]{1, 2, 3, 5, 6, 7, 8}, array.toArray());
 
-        // offset + length 越界：IntArray 变体有前置校验，int[] 变体缺校验、由 arraycopy 抛出
-        // （两变体校验行为不一致，已记录为观察项）
+        // offset + length 越界：两变体现已统一抛 IllegalArgumentException
+        // （回归覆盖 wi2#4，plan 2306 项 13：int[] 变体此前缺校验由 arraycopy 抛 AIOOBE）
         assertThrows(IllegalArgumentException.class,
                 () -> array.addAll(other, 1, 2));
-        assertThrows(Exception.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> array.addAll(new int[]{1, 2}, 1, 2));
+        // 负 offset / 负 length 同样拒绝（负 offset 在修复前会漏过校验由 arraycopy 抛 AIOOBE）
+        assertThrows(IllegalArgumentException.class,
+                () -> array.addAll(new int[]{1, 2}, -1, 2));
+        assertThrows(IllegalArgumentException.class,
+                () -> array.addAll(new int[]{1, 2}, 0, -1));
+        // 边界内仍正常：offset+length == array.length
+        array.addAll(new int[]{9, 10}, 0, 2);
+        assertEquals(10, array.last());
     }
 
     @Test

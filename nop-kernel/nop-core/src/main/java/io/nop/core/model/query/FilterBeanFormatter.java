@@ -100,7 +100,9 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
         indent();
         String opText = getOpText(filterOp);
         if (useFunctionCall && filterOp.getMathSymbol() == null) {
-            buf.append(opText).append('(').append(label).append(',').append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE));
+            // 函数调用形式必须闭合右括号（回归覆盖 wi1#6-3，plan 2306 项 30）；
+            // 此前渲染为 like(name,"a%"
+            buf.append(opText).append('(').append(label).append(',').append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE)).append(')');
         } else {
             buf.append(label).append(' ').append(opText).append(' ')
                     .append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE));

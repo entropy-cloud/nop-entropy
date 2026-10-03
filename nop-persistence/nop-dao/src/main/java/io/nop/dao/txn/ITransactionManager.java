@@ -39,5 +39,13 @@ public interface ITransactionManager {
 
     ITransactionFactory getTransactionFactory(String querySpace);
 
+    /**
+     * 打开一个不参与当前事务的独立连接。
+     *
+     * <p><b>易误用告警（plan 2306 项 34 设计裁定）</b>：本方法返回的是连接池中的全新
+     * 连接（autocommit），<em>不会</em>挂接到 querySpace 已注册的活跃事务——在事务内
+     * 经此连接执行的写入无法被事务 rollback 撤回。事务内的数据库访问必须通过
+     * {@code IJdbcTransaction.getConnection()} 获取事务绑定连接。</p>
+     */
     Connection openConnection(String querySpace);
 }

@@ -89,19 +89,32 @@ public abstract class AbstractParseTreeParser extends AbstractCharReaderResource
             checkEnd(parser);
             return new ParseTreeResult(parser, baseLocation, result);
         } catch (final ParseCancellationException ex) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("nop.parse.first-phase-parse-fail", buildError(ex));
-            }
-            parser.reset();
-            try {
-                parser.getInterpreter().setPredictionMode(PredictionMode.LL);
-                ParseTree result = parseFn.apply(parser);
-                checkEnd(parser);
-                return new ParseTreeResult(parser, baseLocation, result);
-            } catch (ParseCancellationException e2) {
-                reportError(e2.getCause());
-                return null;
-            }
+            return retryInLlMode(parser, parseFn, ex);
+        } catch (NopException ex) {
+            // SLL 阶段 checkEnd 的 not-end-properly 同样代表 SLL 预测失败，
+            // 必须回落到 LL 重试而非直接终止（回归覆盖 wi10#4）。
+            // 词法等其他 NopException（如 string-literal-not-end）说明输入本身非法，
+            // LL 重试不会得到更好结果，保持原错误语义直接抛出
+            if (!ERR_ANTLR_PARSE_NOT_END_PROPERLY.getErrorCode().equals(ex.getErrorCode()))
+                throw ex;
+            return retryInLlMode(parser, parseFn, ex);
+        }
+    }
+
+    private <T extends Parser> ParseTreeResult retryInLlMode(T parser, Function<T, ParseTree> parseFn,
+                                                             RuntimeException ex) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("nop.parse.first-phase-parse-fail", buildError(ex));
+        }
+        parser.reset();
+        try {
+            parser.getInterpreter().setPredictionMode(PredictionMode.LL);
+            ParseTree result = parseFn.apply(parser);
+            checkEnd(parser);
+            return new ParseTreeResult(parser, baseLocation, result);
+        } catch (ParseCancellationException e2) {
+            reportError(e2.getCause());
+            return null;
         }
     }
 

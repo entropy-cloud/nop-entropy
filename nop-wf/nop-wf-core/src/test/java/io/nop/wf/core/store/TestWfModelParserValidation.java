@@ -24,7 +24,6 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_REF_ACTION_IS_COMMON;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TO_UNKNOWN_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -78,31 +77,21 @@ public class TestWfModelParserValidation extends BaseTestCase {
     }
 
     @Test
-    public void testRootCycleCrashesBeforeFriendlyLoopError() {
-        // 缺陷记录用例（plan 2297，不修产品）：环包含根节点时，
-        // GraphBreadthFirstIterator 未将 root 放入 visited 集合，
-        // checkStartReachable 先于环校验抛出 ArrayIndexOutOfBoundsException。
-        // 若未来修复该缺陷，本用例应改为断言 ERR_WF_GRAPH_CONTAINS_LOOP。
-        try {
-            WfModel model = WfModelParser.parseWorkflowModel(getResource("/nop/wf/test/errRootLoop/v1.xwf"));
-            fail("expect crash or friendly loop error, but parsed " + model.getWfName());
-        } catch (ArrayIndexOutOfBoundsException e) {
-            // 当前缺陷行为：越界异常先于 ERR_WF_GRAPH_CONTAINS_LOOP 发生
-        }
+    public void testRootCycleRejectedWithFriendlyLoopError() {
+        // 回归覆盖 wi5#1（plan 2306 项 5）：环包含根节点时不再抛 ArrayIndexOutOfBoundsException，
+        // 而是返回友好的 ERR_WF_GRAPH_CONTAINS_LOOP（修复：GraphBreadthFirstIterator 将 root 加入 visited）
+        NopException e = assertParseFails("/nop/wf/test/errRootLoop/v1.xwf",
+                ERR_WF_GRAPH_CONTAINS_LOOP.getErrorCode());
+        assertNotNull(e.getParam(ARG_LOOP_EDGES), "环错误必须携带loopEdges定位参数");
     }
 
     @Test
-    public void testStepNotEndableValidationIsDeadCode() {
-        // 缺陷记录用例（plan 2297，不修产品）：WfModelAnalyzer.checkEnd 的
-        // eventuallyToAssigned 传播缺少 isNextToAssigned 前置条件，任何步骤都会被
-        // 无条件标记为 eventuallyToAssigned，导致 ERR_WF_STEP_NOT_ENDABLE 不可达：
-        // dead 步骤没有任何出边（无 transition、无 action），解析仍然成功。
-        WfModel model = WfModelParser.parseWorkflowModel(getResource("/nop/wf/test/errNotEndable/v1.xwf"));
-        WfStepModel dead = model.getStep("dead");
-        assertNotNull(dead);
-        assertTrue(dead.getTransitionToStepNames().isEmpty());
-        assertTrue(dead.isEventuallyToAssigned(), "缺陷签名：无出边步骤仍被标记eventuallyToAssigned");
-        assertFalse(dead.isEventuallyToEnd());
+    public void testStepNotEndableRejectedWithFriendlyError() {
+        // 回归覆盖 wi5#2（plan 2306 项 18）：checkEnd 的 eventuallyToAssigned 传播已补
+        // isNextToAssigned 前置条件，不可能结束的流程定义必须被模型校验拒绝
+        NopException e = assertParseFails("/nop/wf/test/errNotEndable/v1.xwf",
+                NopWfCoreErrors.ERR_WF_STEP_NOT_ENDABLE.getErrorCode());
+        assertEquals("dead", e.getParam(ARG_STEP_NAME), "错误必须定位到不可结束的步骤");
     }
 
     @Test

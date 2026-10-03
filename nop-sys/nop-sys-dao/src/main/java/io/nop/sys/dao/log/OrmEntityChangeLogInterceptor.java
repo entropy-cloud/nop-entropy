@@ -41,7 +41,9 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
 
             NopSysChangeLog log = changeLog.cloneInstance();
             log.setPropName(col.getName());
-            log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId)));
+            // null 显式记为空串：newValue 为 NULL 表示记录未初始化，"" 表示列存在但值为空
+            // （回归覆盖 wi7#4，plan 2306 项 20）
+            log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId), ""));
             saveDirectly(dao, log);
         });
     }
@@ -68,8 +70,9 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
             NopSysChangeLog log = changeLog.cloneInstance();
             IColumnModel col = entityModel.getColumnByPropId(propId, false);
             log.setPropName(col.getName());
-            log.setOldValue(ConvertHelper.toString(value));
-            log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId)));
+            // null 显式记为空串，保持与 postSave 一致的 NULL/"" 语义区分
+            log.setOldValue(ConvertHelper.toString(value, ""));
+            log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId), ""));
             saveDirectly(dao, log);
         });
     }

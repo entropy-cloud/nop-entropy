@@ -216,6 +216,7 @@ public class OrmModelInitializer {
                     String collectionName = OrmModelHelper.buildCollectionName(entityModel.getName(), ref.getName())
                             .intern();
                     toMany.setCollectionName(collectionName);
+                    collectionMap.put(collectionName, toMany);
 
                     checkRefProp(toMany);
                 }
@@ -260,9 +261,6 @@ public class OrmModelInitializer {
             checkRefPrimary(entityModel, ref);
 
             OrmEntityModel refEntityModel = (OrmEntityModel) ref.getRefEntityModel();
-
-            if (ref.isToManyRelation())
-                collectionMap.put(ref.getCollectionName(), (OrmToManyReferenceModel) ref);
 
             List<OrmJoinOnModel> joins = ref.getJoin();
             for (OrmJoinOnModel join : joins) {

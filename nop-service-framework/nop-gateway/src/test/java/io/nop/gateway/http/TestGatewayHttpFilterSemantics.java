@@ -110,6 +110,24 @@ public class TestGatewayHttpFilterSemantics {
         assertSame(request, gatewayCtx.getRequest());
     }
 
+    /**
+     * 回归覆盖 wi8#1（plan 2306 项 21）：method 为 null 时 buildGatewayContext 不得
+     * 因向 ConcurrentHashMap 写入 null value 抛 NPE；method 元数据被跳过而非伪造。
+     */
+    @Test
+    public void testBuildGatewayContextToleratesNullMethod() {
+        GatewayHttpFilter filter = new GatewayHttpFilter();
+        FakeHttpContext ctx = new FakeHttpContext();
+        ctx.requestPath = "/test/simple";
+        ctx.method = null;
+
+        ApiRequest<?> request = filter.buildRequest(ctx, "{}");
+        io.nop.gateway.core.context.IGatewayContext gatewayCtx = filter.buildGatewayContext(request, ctx);
+
+        assertNull(gatewayCtx.getHttpMethod(), "缺失的 method 被跳过，不得伪造 GET 等语义");
+        assertEquals("/test/simple", gatewayCtx.getRequestPath());
+    }
+
     // ==================== 响应写出 ====================
 
     /**

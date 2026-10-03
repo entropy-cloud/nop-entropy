@@ -137,6 +137,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * {@code pendingCommits}; {@code Serializable} because the pending batch rides the
      * checkpoint state.
      */
+    @io.nop.api.core.annotations.data.DataBean
     public static final class DmlOp implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -629,15 +630,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             return;
         }
 
-        List<DmlOp> batch;
-        if (raw instanceof List) {
-            batch = (List<DmlOp>) raw;
-        } else {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
-                    .param(ARG_EPOCH_ID, checkpointId)
-                    .param(ARG_DETAIL,
-                            "pendingCommits value is not a List: " + raw.getClass().getName());
-        }
+        List<DmlOp> batch = normalizeBatch(raw, checkpointId);
 
         Connection connection = jdbcTemplate.openConnection(querySpace);
         boolean committed = false;
@@ -829,7 +822,51 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         }
     }
 
+    /**
+     * 回归覆盖 stream-2pc commit-key 单 subtask 诊断（plan 2306 Phase 4，嫌疑 A）：
+     * checkpoint 状态经 JSON 序列化往返后，{@link DmlOp} 会漂移为 {@link LinkedHashMap}
+     * （Nop JSON 还原不回水合 @DataBean 类型）。提交前必须把漂移条目重建为 DmlOp，
+     * 否则恢复后的首个 epoch 提交会以 ClassCastException 失败。
+     */
     @SuppressWarnings("unchecked")
+    private List<DmlOp> normalizeBatch(Object raw, long checkpointId) {
+        if (!(raw instanceof List)) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_EPOCH_ID, checkpointId)
+                    .param(ARG_DETAIL,
+                            "pendingCommits value is not a List: "
+                                    + (raw == null ? "null" : raw.getClass().getName()));
+        }
+        List<?> rawList = (List<?>) raw;
+        List<DmlOp> batch = new ArrayList<>(rawList.size());
+        for (Object element : rawList) {
+            if (element instanceof DmlOp) {
+                batch.add((DmlOp) element);
+            } else if (element instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) element;
+                Object kind = map.get("kind");
+                Object row = map.get("row");
+                if (kind == null || !(row instanceof Map)) {
+                    throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                            .param(ARG_EPOCH_ID, checkpointId)
+                            .param(ARG_DETAIL,
+                                    "pendingCommits entry cannot be rehydrated as DmlOp: " + map);
+                }
+                char kindChar = kind instanceof Character
+                        ? (Character) kind
+                        : String.valueOf(kind).charAt(0);
+                batch.add(new DmlOp(kindChar, (Map<String, Object>) row));
+            } else {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                        .param(ARG_EPOCH_ID, checkpointId)
+                        .param(ARG_DETAIL,
+                                "pendingCommits entry is neither DmlOp nor Map: "
+                                        + (element == null ? "null" : element.getClass().getName()));
+            }
+        }
+        return batch;
+    }
+
     private void writeOps(Connection connection, List<DmlOp> batch) throws SQLException {
         if (dmlMode == DmlMode.INSERT) {
             writeInserts(connection, batch);

@@ -9,7 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 虚线模式检测语义：实/虚段长度交替序列中必须检出周期性模式（mod=周期, start=起点, length=跨越点数）；
- * 无周期性的序列不得误报
+ * 无周期性的序列不得误报。
+ *
+ * <p>plan 2306 项 39 裁定复核：容差滑窗锚定（噪声前缀可并入 start=0 的模式）是
+ * 抗测量噪声的启发式设计，testPatternDetectedDespiteNoisyPrefix 锚定的即该语义，
+ * 不作为缺陷修复。</p>
  */
 public class TestDashPatternDetector {
 

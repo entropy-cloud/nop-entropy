@@ -10,7 +10,7 @@ package io.nop.core.reflect.impl;
 import java.lang.reflect.Modifier;
 
 public class ModifierBuilder {
-    static final int PUBLIC_MASK = Modifier.PUBLIC & Modifier.PROTECTED & Modifier.PRIVATE;
+    static final int PUBLIC_MASK = Modifier.PUBLIC | Modifier.PROTECTED | Modifier.PRIVATE;
 
     private int mod;
 

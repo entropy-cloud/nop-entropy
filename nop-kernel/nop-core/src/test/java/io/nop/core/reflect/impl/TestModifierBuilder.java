@@ -17,14 +17,29 @@ public class TestModifierBuilder {
 
     @Test
     public void testAccessModifierBitsAreSet() {
-        // 注意：PUBLIC_MASK = PUBLIC & PROTECTED & PRIVATE == 0，is* 系列不会清除
-        // 先设置的访问修饰符（疑似缺陷，见测试报告），因此这里只断言目标位被置位
+        // 回归覆盖 wi1#3（plan 2306 项 10）：PUBLIC_MASK = PUBLIC|PROTECTED|PRIVATE，
+        // is* 系列必须清除先前设置的访问修饰符，保证同一时刻只有一个访问位
         assertEquals(Modifier.PUBLIC, ModifierBuilder.begin().isPublic().end() & Modifier.PUBLIC);
         assertEquals(Modifier.PRIVATE, new ModifierBuilder().isPrivate().end() & Modifier.PRIVATE);
         assertEquals(Modifier.PROTECTED, new ModifierBuilder(Modifier.PRIVATE).isProtected().end()
                 & Modifier.PROTECTED);
         // not* 系列的清除语义正常
         assertEquals(0, new ModifierBuilder(Modifier.PUBLIC).notPublic().end() & Modifier.PUBLIC);
+    }
+
+    @Test
+    public void testAccessModifiersAreMutuallyExclusive() {
+        // 回归覆盖 wi1#3：isPrivate 覆盖先前 isPublic，结果不能出现 PUBLIC|PRIVATE 非法组合
+        int mod = ModifierBuilder.begin().isPublic().isPrivate().end();
+        assertEquals(Modifier.PRIVATE, mod,
+                "isPrivate must replace PUBLIC; PUBLIC|PRIVATE combination is illegal");
+
+        int mod2 = new ModifierBuilder(Modifier.PRIVATE | Modifier.FINAL).isPublic().end();
+        assertEquals(Modifier.PUBLIC | Modifier.FINAL, mod2,
+                "isPublic must replace PRIVATE while keeping non-access flags");
+
+        int mod3 = new ModifierBuilder(Modifier.PROTECTED).isPublic().end();
+        assertEquals(Modifier.PUBLIC, mod3);
     }
 
     @Test

@@ -19,13 +19,14 @@ public class MermaidParser extends Parser {
 		new PredictionContextCache();
 	public static final int
 		FLOWCHART=1, SEQUENCE=2, CLASS=3, STATE=4, GANTT=5, PIE=6, GIT=7, ER=8, 
-		JOURNEY=9, TB=10, BT=11, LR=12, RL=13, ROUND=14, STADIUM=15, SUBROUTINE=16, 
-		CYLINDER=17, CIRCLE=18, ASYMMETRIC=19, RHOMBUS=20, HEXAGON=21, PARALLELOGRAM=22, 
-		TRAPEZOID=23, DOUBLE_CIRCLE=24, ARROW=25, OPEN_ARROW=26, DOTTED=27, THICK=28, 
-		PARTICIPANT=29, AS=30, TASK=31, SUBGRAPH=32, STYLE=33, STATIC=34, Visibility=35, 
-		LPAREN=36, RPAREN=37, LCURLY=38, RCURLY=39, LBRACE=40, RBRACE=41, COLON=42, 
-		SEMI=43, COMMA=44, DOT=45, PIPE=46, StringLiteral_=47, NumberLiteral_=48, 
-		Identifier_=49, COMMENT=50, WS=51, DIRECTION=52, Identifier=53;
+		JOURNEY=9, DIRECTION=10, TB=11, BT=12, LR=13, RL=14, ROUND=15, STADIUM=16, 
+		SUBROUTINE=17, CYLINDER=18, CIRCLE=19, ASYMMETRIC=20, RHOMBUS=21, HEXAGON=22, 
+		PARALLELOGRAM=23, TRAPEZOID=24, DOUBLE_CIRCLE=25, ARROW=26, OPEN_ARROW=27, 
+		DOTTED=28, THICK=29, PARTICIPANT=30, AS=31, CLASS_KEYWORD=32, STATE_KEYWORD=33, 
+		TASK=34, SUBGRAPH=35, STYLE=36, STATIC=37, Visibility=38, LPAREN=39, RPAREN=40, 
+		LCURLY=41, RCURLY=42, LBRACE=43, RBRACE=44, COLON=45, SEMI=46, COMMA=47, 
+		DOT=48, PIPE=49, StringLiteral_=50, NumberLiteral_=51, Identifier_=52, 
+		COMMENT=53, WS=54;
 	public static final int
 		RULE_mermaidDocument = 0, RULE_mermaidDiagramType_ = 1, RULE_mermaidStatements_ = 2, 
 		RULE_mermaidStatement = 3, RULE_mermaidDirectionStatement = 4, RULE_mermaidDirection_ = 5, 
@@ -50,25 +51,27 @@ public class MermaidParser extends Parser {
 	private static String[] makeLiteralNames() {
 		return new String[] {
 			null, null, "'sequenceDiagram'", "'classDiagram'", "'stateDiagram'", 
-			"'gantt'", "'pie'", "'git'", "'er'", "'journey'", null, "'BT'", "'LR'", 
-			"'RL'", "'round'", "'stadium'", "'subroutine'", "'cylinder'", "'circle'", 
-			"'asymmetric'", "'rhombus'", "'hexagon'", "'parallelogram'", "'trapezoid'", 
-			"'double_circle'", "'-->'", "'->>'", "'-.->'", "'==>'", "'participant'", 
-			"'as'", "'task'", "'subgraph'", "'style'", "'static'", null, "'('", "')'", 
-			"'{'", "'}'", "'['", "']'", "':'", "';'", "','", "'.'", "'|'"
+			"'gantt'", "'pie'", "'git'", "'er'", "'journey'", "'direction'", null, 
+			"'BT'", "'LR'", "'RL'", "'round'", "'stadium'", "'subroutine'", "'cylinder'", 
+			"'circle'", "'asymmetric'", "'rhombus'", "'hexagon'", "'parallelogram'", 
+			"'trapezoid'", "'double_circle'", "'-->'", "'->>'", "'-.->'", "'==>'", 
+			"'participant'", "'as'", "'class'", "'state'", "'task'", "'subgraph'", 
+			"'style'", "'static'", null, "'('", "')'", "'{'", "'}'", "'['", "']'", 
+			"':'", "';'", "','", "'.'", "'|'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
 			null, "FLOWCHART", "SEQUENCE", "CLASS", "STATE", "GANTT", "PIE", "GIT", 
-			"ER", "JOURNEY", "TB", "BT", "LR", "RL", "ROUND", "STADIUM", "SUBROUTINE", 
-			"CYLINDER", "CIRCLE", "ASYMMETRIC", "RHOMBUS", "HEXAGON", "PARALLELOGRAM", 
-			"TRAPEZOID", "DOUBLE_CIRCLE", "ARROW", "OPEN_ARROW", "DOTTED", "THICK", 
-			"PARTICIPANT", "AS", "TASK", "SUBGRAPH", "STYLE", "STATIC", "Visibility", 
-			"LPAREN", "RPAREN", "LCURLY", "RCURLY", "LBRACE", "RBRACE", "COLON", 
-			"SEMI", "COMMA", "DOT", "PIPE", "StringLiteral_", "NumberLiteral_", "Identifier_", 
-			"COMMENT", "WS", "DIRECTION", "Identifier"
+			"ER", "JOURNEY", "DIRECTION", "TB", "BT", "LR", "RL", "ROUND", "STADIUM", 
+			"SUBROUTINE", "CYLINDER", "CIRCLE", "ASYMMETRIC", "RHOMBUS", "HEXAGON", 
+			"PARALLELOGRAM", "TRAPEZOID", "DOUBLE_CIRCLE", "ARROW", "OPEN_ARROW", 
+			"DOTTED", "THICK", "PARTICIPANT", "AS", "CLASS_KEYWORD", "STATE_KEYWORD", 
+			"TASK", "SUBGRAPH", "STYLE", "STATIC", "Visibility", "LPAREN", "RPAREN", 
+			"LCURLY", "RCURLY", "LBRACE", "RBRACE", "COLON", "SEMI", "COMMA", "DOT", 
+			"PIPE", "StringLiteral_", "NumberLiteral_", "Identifier_", "COMMENT", 
+			"WS"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -282,7 +285,7 @@ public class MermaidParser extends Parser {
 				setState(54); 
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 6192465056890968L) != 0) );
+			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 13510933099840576L) != 0) );
 			}
 		}
 		catch (RecognitionException re) {
@@ -540,7 +543,7 @@ public class MermaidParser extends Parser {
 			{
 			setState(73);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 15360L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 30720L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -673,7 +676,7 @@ public class MermaidParser extends Parser {
 			setState(87);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 33538048L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 67076096L) != 0)) {
 				{
 				setState(86);
 				((MermaidFlowNodeContext)_localctx).shape = mermaidNodeShape_();
@@ -734,7 +737,7 @@ public class MermaidParser extends Parser {
 			{
 			setState(89);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 33538048L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 67076096L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -800,7 +803,7 @@ public class MermaidParser extends Parser {
 			setState(93);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 503316480L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1006632960L) != 0)) {
 				{
 				setState(92);
 				((MermaidFlowEdgeContext)_localctx).edgeType = mermaidEdgeType_();
@@ -866,7 +869,7 @@ public class MermaidParser extends Parser {
 			{
 			setState(100);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 503316480L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 1006632960L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -1026,12 +1029,13 @@ public class MermaidParser extends Parser {
 	public static class MermaidSequenceMessageContext extends ParserRuleContext {
 		public Token from;
 		public MermaidEdgeType_Context edgeType;
-		public Token message;
 		public Token to;
+		public Token message;
 		public List<TerminalNode> Identifier_() { return getTokens(MermaidParser.Identifier_); }
 		public TerminalNode Identifier_(int i) {
 			return getToken(MermaidParser.Identifier_, i);
 		}
+		public TerminalNode COLON() { return getToken(MermaidParser.COLON, 0); }
 		public MermaidEdgeType_Context mermaidEdgeType_() {
 			return getRuleContext(MermaidEdgeType_Context.class,0);
 		}
@@ -1067,25 +1071,27 @@ public class MermaidParser extends Parser {
 			setState(119);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 503316480L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1006632960L) != 0)) {
 				{
 				setState(118);
 				((MermaidSequenceMessageContext)_localctx).edgeType = mermaidEdgeType_();
 				}
 			}
 
-			setState(122);
+			setState(121);
+			((MermaidSequenceMessageContext)_localctx).to = match(Identifier_);
+			setState(124);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==StringLiteral_) {
+			if (_la==COLON) {
 				{
-				setState(121);
+				setState(122);
+				match(COLON);
+				setState(123);
 				((MermaidSequenceMessageContext)_localctx).message = match(StringLiteral_);
 				}
 			}
 
-			setState(124);
-			((MermaidSequenceMessageContext)_localctx).to = match(Identifier_);
 			}
 		}
 		catch (RecognitionException re) {
@@ -1103,7 +1109,7 @@ public class MermaidParser extends Parser {
 	public static class MermaidClassNodeContext extends ParserRuleContext {
 		public Token className;
 		public MermaidClassMembers_Context members;
-		public TerminalNode CLASS() { return getToken(MermaidParser.CLASS, 0); }
+		public TerminalNode CLASS_KEYWORD() { return getToken(MermaidParser.CLASS_KEYWORD, 0); }
 		public TerminalNode LBRACE() { return getToken(MermaidParser.LBRACE, 0); }
 		public TerminalNode RBRACE() { return getToken(MermaidParser.RBRACE, 0); }
 		public TerminalNode Identifier_() { return getToken(MermaidParser.Identifier_, 0); }
@@ -1137,7 +1143,7 @@ public class MermaidParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(126);
-			match(CLASS);
+			match(CLASS_KEYWORD);
 			setState(127);
 			((MermaidClassNodeContext)_localctx).className = match(Identifier_);
 			setState(128);
@@ -1235,10 +1241,12 @@ public class MermaidParser extends Parser {
 		public Token name;
 		public Token type;
 		public Token isStatic;
-		public TerminalNode Identifier_() { return getToken(MermaidParser.Identifier_, 0); }
+		public List<TerminalNode> Identifier_() { return getTokens(MermaidParser.Identifier_); }
+		public TerminalNode Identifier_(int i) {
+			return getToken(MermaidParser.Identifier_, i);
+		}
 		public TerminalNode COLON() { return getToken(MermaidParser.COLON, 0); }
 		public TerminalNode Visibility() { return getToken(MermaidParser.Visibility, 0); }
-		public TerminalNode Identifier() { return getToken(MermaidParser.Identifier, 0); }
 		public TerminalNode STATIC() { return getToken(MermaidParser.STATIC, 0); }
 		public MermaidClassMemberContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -1286,7 +1294,7 @@ public class MermaidParser extends Parser {
 				setState(143);
 				match(COLON);
 				setState(144);
-				((MermaidClassMemberContext)_localctx).type = match(Identifier);
+				((MermaidClassMemberContext)_localctx).type = match(Identifier_);
 				}
 			}
 
@@ -1317,7 +1325,7 @@ public class MermaidParser extends Parser {
 	public static class MermaidStateNodeContext extends ParserRuleContext {
 		public Token id;
 		public Token description;
-		public TerminalNode STATE() { return getToken(MermaidParser.STATE, 0); }
+		public TerminalNode STATE_KEYWORD() { return getToken(MermaidParser.STATE_KEYWORD, 0); }
 		public TerminalNode Identifier_() { return getToken(MermaidParser.Identifier_, 0); }
 		public TerminalNode COLON() { return getToken(MermaidParser.COLON, 0); }
 		public TerminalNode StringLiteral_() { return getToken(MermaidParser.StringLiteral_, 0); }
@@ -1348,7 +1356,7 @@ public class MermaidParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(150);
-			match(STATE);
+			match(STATE_KEYWORD);
 			setState(151);
 			((MermaidStateNodeContext)_localctx).id = match(Identifier_);
 			setState(154);
@@ -1709,7 +1717,7 @@ public class MermaidParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u00015\u00c0\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
+		"\u0004\u00016\u00c0\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
 		"\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004\u0002"+
 		"\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007\u0002"+
 		"\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0002\u000b\u0007\u000b\u0002"+
@@ -1727,7 +1735,7 @@ public class MermaidParser extends Parser {
 		"\t\u0003\ta\b\t\u0001\t\u0001\t\u0001\n\u0001\n\u0001\u000b\u0001\u000b"+
 		"\u0001\u000b\u0003\u000bj\b\u000b\u0001\u000b\u0001\u000b\u0001\u000b"+
 		"\u0001\u000b\u0001\f\u0001\f\u0001\f\u0001\f\u0003\ft\b\f\u0001\r\u0001"+
-		"\r\u0003\rx\b\r\u0001\r\u0003\r{\b\r\u0001\r\u0001\r\u0001\u000e\u0001"+
+		"\r\u0003\rx\b\r\u0001\r\u0001\r\u0001\r\u0003\r}\b\r\u0001\u000e\u0001"+
 		"\u000e\u0001\u000e\u0001\u000e\u0003\u000e\u0083\b\u000e\u0001\u000e\u0001"+
 		"\u000e\u0001\u000f\u0004\u000f\u0088\b\u000f\u000b\u000f\f\u000f\u0089"+
 		"\u0001\u0010\u0003\u0010\u008d\b\u0010\u0001\u0010\u0001\u0010\u0001\u0010"+
@@ -1741,9 +1749,9 @@ public class MermaidParser extends Parser {
 		"\u00b8\u0001\u0016\u0001\u0016\u0001\u0016\u0003\u0016\u00be\b\u0016\u0001"+
 		"\u0016\u0000\u0000\u0017\u0000\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012"+
 		"\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,\u0000\u0004\u0001\u0000\u0001"+
-		"\t\u0001\u0000\n\r\u0001\u0000\u000e\u0018\u0001\u0000\u0019\u001c\u00c8"+
-		"\u0000.\u0001\u0000\u0000\u0000\u00021\u0001\u0000\u0000\u0000\u00044"+
-		"\u0001\u0000\u0000\u0000\u0006D\u0001\u0000\u0000\u0000\bF\u0001\u0000"+
+		"\t\u0001\u0000\u000b\u000e\u0001\u0000\u000f\u0019\u0001\u0000\u001a\u001d"+
+		"\u00c8\u0000.\u0001\u0000\u0000\u0000\u00021\u0001\u0000\u0000\u0000\u0004"+
+		"4\u0001\u0000\u0000\u0000\u0006D\u0001\u0000\u0000\u0000\bF\u0001\u0000"+
 		"\u0000\u0000\nI\u0001\u0000\u0000\u0000\fK\u0001\u0000\u0000\u0000\u000e"+
 		"N\u0001\u0000\u0000\u0000\u0010Y\u0001\u0000\u0000\u0000\u0012[\u0001"+
 		"\u0000\u0000\u0000\u0014d\u0001\u0000\u0000\u0000\u0016f\u0001\u0000\u0000"+
@@ -1764,65 +1772,65 @@ public class MermaidParser extends Parser {
 		"\u0000D;\u0001\u0000\u0000\u0000D<\u0001\u0000\u0000\u0000D=\u0001\u0000"+
 		"\u0000\u0000D>\u0001\u0000\u0000\u0000D?\u0001\u0000\u0000\u0000D@\u0001"+
 		"\u0000\u0000\u0000DA\u0001\u0000\u0000\u0000DB\u0001\u0000\u0000\u0000"+
-		"DC\u0001\u0000\u0000\u0000E\u0007\u0001\u0000\u0000\u0000FG\u00054\u0000"+
+		"DC\u0001\u0000\u0000\u0000E\u0007\u0001\u0000\u0000\u0000FG\u0005\n\u0000"+
 		"\u0000GH\u0003\n\u0005\u0000H\t\u0001\u0000\u0000\u0000IJ\u0007\u0001"+
-		"\u0000\u0000J\u000b\u0001\u0000\u0000\u0000KL\u00052\u0000\u0000LM\u0005"+
-		"/\u0000\u0000M\r\u0001\u0000\u0000\u0000NT\u00051\u0000\u0000OQ\u0005"+
-		"$\u0000\u0000PR\u0005/\u0000\u0000QP\u0001\u0000\u0000\u0000QR\u0001\u0000"+
-		"\u0000\u0000RS\u0001\u0000\u0000\u0000SU\u0005%\u0000\u0000TO\u0001\u0000"+
-		"\u0000\u0000TU\u0001\u0000\u0000\u0000UW\u0001\u0000\u0000\u0000VX\u0003"+
-		"\u0010\b\u0000WV\u0001\u0000\u0000\u0000WX\u0001\u0000\u0000\u0000X\u000f"+
-		"\u0001\u0000\u0000\u0000YZ\u0007\u0002\u0000\u0000Z\u0011\u0001\u0000"+
-		"\u0000\u0000[]\u00051\u0000\u0000\\^\u0003\u0014\n\u0000]\\\u0001\u0000"+
-		"\u0000\u0000]^\u0001\u0000\u0000\u0000^`\u0001\u0000\u0000\u0000_a\u0005"+
-		"/\u0000\u0000`_\u0001\u0000\u0000\u0000`a\u0001\u0000\u0000\u0000ab\u0001"+
-		"\u0000\u0000\u0000bc\u00051\u0000\u0000c\u0013\u0001\u0000\u0000\u0000"+
-		"de\u0007\u0003\u0000\u0000e\u0015\u0001\u0000\u0000\u0000fg\u0005 \u0000"+
-		"\u0000gi\u00051\u0000\u0000hj\u0005/\u0000\u0000ih\u0001\u0000\u0000\u0000"+
-		"ij\u0001\u0000\u0000\u0000jk\u0001\u0000\u0000\u0000kl\u0005(\u0000\u0000"+
-		"lm\u0003\u0004\u0002\u0000mn\u0005)\u0000\u0000n\u0017\u0001\u0000\u0000"+
-		"\u0000op\u0005\u001d\u0000\u0000ps\u00051\u0000\u0000qr\u0005\u001e\u0000"+
-		"\u0000rt\u0005/\u0000\u0000sq\u0001\u0000\u0000\u0000st\u0001\u0000\u0000"+
-		"\u0000t\u0019\u0001\u0000\u0000\u0000uw\u00051\u0000\u0000vx\u0003\u0014"+
-		"\n\u0000wv\u0001\u0000\u0000\u0000wx\u0001\u0000\u0000\u0000xz\u0001\u0000"+
-		"\u0000\u0000y{\u0005/\u0000\u0000zy\u0001\u0000\u0000\u0000z{\u0001\u0000"+
-		"\u0000\u0000{|\u0001\u0000\u0000\u0000|}\u00051\u0000\u0000}\u001b\u0001"+
-		"\u0000\u0000\u0000~\u007f\u0005\u0003\u0000\u0000\u007f\u0080\u00051\u0000"+
-		"\u0000\u0080\u0082\u0005(\u0000\u0000\u0081\u0083\u0003\u001e\u000f\u0000"+
-		"\u0082\u0081\u0001\u0000\u0000\u0000\u0082\u0083\u0001\u0000\u0000\u0000"+
-		"\u0083\u0084\u0001\u0000\u0000\u0000\u0084\u0085\u0005)\u0000\u0000\u0085"+
-		"\u001d\u0001\u0000\u0000\u0000\u0086\u0088\u0003 \u0010\u0000\u0087\u0086"+
-		"\u0001\u0000\u0000\u0000\u0088\u0089\u0001\u0000\u0000\u0000\u0089\u0087"+
-		"\u0001\u0000\u0000\u0000\u0089\u008a\u0001\u0000\u0000\u0000\u008a\u001f"+
-		"\u0001\u0000\u0000\u0000\u008b\u008d\u0005#\u0000\u0000\u008c\u008b\u0001"+
-		"\u0000\u0000\u0000\u008c\u008d\u0001\u0000\u0000\u0000\u008d\u008e\u0001"+
-		"\u0000\u0000\u0000\u008e\u0091\u00051\u0000\u0000\u008f\u0090\u0005*\u0000"+
-		"\u0000\u0090\u0092\u00055\u0000\u0000\u0091\u008f\u0001\u0000\u0000\u0000"+
-		"\u0091\u0092\u0001\u0000\u0000\u0000\u0092\u0094\u0001\u0000\u0000\u0000"+
-		"\u0093\u0095\u0005\"\u0000\u0000\u0094\u0093\u0001\u0000\u0000\u0000\u0094"+
-		"\u0095\u0001\u0000\u0000\u0000\u0095!\u0001\u0000\u0000\u0000\u0096\u0097"+
-		"\u0005\u0004\u0000\u0000\u0097\u009a\u00051\u0000\u0000\u0098\u0099\u0005"+
-		"*\u0000\u0000\u0099\u009b\u0005/\u0000\u0000\u009a\u0098\u0001\u0000\u0000"+
-		"\u0000\u009a\u009b\u0001\u0000\u0000\u0000\u009b#\u0001\u0000\u0000\u0000"+
-		"\u009c\u009d\u0005\u001f\u0000\u0000\u009d\u009e\u00051\u0000\u0000\u009e"+
-		"\u009f\u0005*\u0000\u0000\u009f\u00a2\u0005/\u0000\u0000\u00a0\u00a1\u0005"+
-		",\u0000\u0000\u00a1\u00a3\u0005/\u0000\u0000\u00a2\u00a0\u0001\u0000\u0000"+
-		"\u0000\u00a2\u00a3\u0001\u0000\u0000\u0000\u00a3\u00a6\u0001\u0000\u0000"+
-		"\u0000\u00a4\u00a5\u0005,\u0000\u0000\u00a5\u00a7\u0005/\u0000\u0000\u00a6"+
-		"\u00a4\u0001\u0000\u0000\u0000\u00a6\u00a7\u0001\u0000\u0000\u0000\u00a7"+
-		"%\u0001\u0000\u0000\u0000\u00a8\u00a9\u0005\u0006\u0000\u0000\u00a9\u00aa"+
-		"\u0005/\u0000\u0000\u00aa\u00ab\u0005*\u0000\u0000\u00ab\u00ac\u00050"+
-		"\u0000\u0000\u00ac\'\u0001\u0000\u0000\u0000\u00ad\u00ae\u0005!\u0000"+
-		"\u0000\u00ae\u00af\u0005/\u0000\u0000\u00af\u00b1\u0005(\u0000\u0000\u00b0"+
+		"\u0000\u0000J\u000b\u0001\u0000\u0000\u0000KL\u00055\u0000\u0000LM\u0005"+
+		"2\u0000\u0000M\r\u0001\u0000\u0000\u0000NT\u00054\u0000\u0000OQ\u0005"+
+		"\'\u0000\u0000PR\u00052\u0000\u0000QP\u0001\u0000\u0000\u0000QR\u0001"+
+		"\u0000\u0000\u0000RS\u0001\u0000\u0000\u0000SU\u0005(\u0000\u0000TO\u0001"+
+		"\u0000\u0000\u0000TU\u0001\u0000\u0000\u0000UW\u0001\u0000\u0000\u0000"+
+		"VX\u0003\u0010\b\u0000WV\u0001\u0000\u0000\u0000WX\u0001\u0000\u0000\u0000"+
+		"X\u000f\u0001\u0000\u0000\u0000YZ\u0007\u0002\u0000\u0000Z\u0011\u0001"+
+		"\u0000\u0000\u0000[]\u00054\u0000\u0000\\^\u0003\u0014\n\u0000]\\\u0001"+
+		"\u0000\u0000\u0000]^\u0001\u0000\u0000\u0000^`\u0001\u0000\u0000\u0000"+
+		"_a\u00052\u0000\u0000`_\u0001\u0000\u0000\u0000`a\u0001\u0000\u0000\u0000"+
+		"ab\u0001\u0000\u0000\u0000bc\u00054\u0000\u0000c\u0013\u0001\u0000\u0000"+
+		"\u0000de\u0007\u0003\u0000\u0000e\u0015\u0001\u0000\u0000\u0000fg\u0005"+
+		"#\u0000\u0000gi\u00054\u0000\u0000hj\u00052\u0000\u0000ih\u0001\u0000"+
+		"\u0000\u0000ij\u0001\u0000\u0000\u0000jk\u0001\u0000\u0000\u0000kl\u0005"+
+		"+\u0000\u0000lm\u0003\u0004\u0002\u0000mn\u0005,\u0000\u0000n\u0017\u0001"+
+		"\u0000\u0000\u0000op\u0005\u001e\u0000\u0000ps\u00054\u0000\u0000qr\u0005"+
+		"\u001f\u0000\u0000rt\u00052\u0000\u0000sq\u0001\u0000\u0000\u0000st\u0001"+
+		"\u0000\u0000\u0000t\u0019\u0001\u0000\u0000\u0000uw\u00054\u0000\u0000"+
+		"vx\u0003\u0014\n\u0000wv\u0001\u0000\u0000\u0000wx\u0001\u0000\u0000\u0000"+
+		"xy\u0001\u0000\u0000\u0000y|\u00054\u0000\u0000z{\u0005-\u0000\u0000{"+
+		"}\u00052\u0000\u0000|z\u0001\u0000\u0000\u0000|}\u0001\u0000\u0000\u0000"+
+		"}\u001b\u0001\u0000\u0000\u0000~\u007f\u0005 \u0000\u0000\u007f\u0080"+
+		"\u00054\u0000\u0000\u0080\u0082\u0005+\u0000\u0000\u0081\u0083\u0003\u001e"+
+		"\u000f\u0000\u0082\u0081\u0001\u0000\u0000\u0000\u0082\u0083\u0001\u0000"+
+		"\u0000\u0000\u0083\u0084\u0001\u0000\u0000\u0000\u0084\u0085\u0005,\u0000"+
+		"\u0000\u0085\u001d\u0001\u0000\u0000\u0000\u0086\u0088\u0003 \u0010\u0000"+
+		"\u0087\u0086\u0001\u0000\u0000\u0000\u0088\u0089\u0001\u0000\u0000\u0000"+
+		"\u0089\u0087\u0001\u0000\u0000\u0000\u0089\u008a\u0001\u0000\u0000\u0000"+
+		"\u008a\u001f\u0001\u0000\u0000\u0000\u008b\u008d\u0005&\u0000\u0000\u008c"+
+		"\u008b\u0001\u0000\u0000\u0000\u008c\u008d\u0001\u0000\u0000\u0000\u008d"+
+		"\u008e\u0001\u0000\u0000\u0000\u008e\u0091\u00054\u0000\u0000\u008f\u0090"+
+		"\u0005-\u0000\u0000\u0090\u0092\u00054\u0000\u0000\u0091\u008f\u0001\u0000"+
+		"\u0000\u0000\u0091\u0092\u0001\u0000\u0000\u0000\u0092\u0094\u0001\u0000"+
+		"\u0000\u0000\u0093\u0095\u0005%\u0000\u0000\u0094\u0093\u0001\u0000\u0000"+
+		"\u0000\u0094\u0095\u0001\u0000\u0000\u0000\u0095!\u0001\u0000\u0000\u0000"+
+		"\u0096\u0097\u0005!\u0000\u0000\u0097\u009a\u00054\u0000\u0000\u0098\u0099"+
+		"\u0005-\u0000\u0000\u0099\u009b\u00052\u0000\u0000\u009a\u0098\u0001\u0000"+
+		"\u0000\u0000\u009a\u009b\u0001\u0000\u0000\u0000\u009b#\u0001\u0000\u0000"+
+		"\u0000\u009c\u009d\u0005\"\u0000\u0000\u009d\u009e\u00054\u0000\u0000"+
+		"\u009e\u009f\u0005-\u0000\u0000\u009f\u00a2\u00052\u0000\u0000\u00a0\u00a1"+
+		"\u0005/\u0000\u0000\u00a1\u00a3\u00052\u0000\u0000\u00a2\u00a0\u0001\u0000"+
+		"\u0000\u0000\u00a2\u00a3\u0001\u0000\u0000\u0000\u00a3\u00a6\u0001\u0000"+
+		"\u0000\u0000\u00a4\u00a5\u0005/\u0000\u0000\u00a5\u00a7\u00052\u0000\u0000"+
+		"\u00a6\u00a4\u0001\u0000\u0000\u0000\u00a6\u00a7\u0001\u0000\u0000\u0000"+
+		"\u00a7%\u0001\u0000\u0000\u0000\u00a8\u00a9\u0005\u0006\u0000\u0000\u00a9"+
+		"\u00aa\u00052\u0000\u0000\u00aa\u00ab\u0005-\u0000\u0000\u00ab\u00ac\u0005"+
+		"3\u0000\u0000\u00ac\'\u0001\u0000\u0000\u0000\u00ad\u00ae\u0005$\u0000"+
+		"\u0000\u00ae\u00af\u00052\u0000\u0000\u00af\u00b1\u0005+\u0000\u0000\u00b0"+
 		"\u00b2\u0003*\u0015\u0000\u00b1\u00b0\u0001\u0000\u0000\u0000\u00b1\u00b2"+
 		"\u0001\u0000\u0000\u0000\u00b2\u00b3\u0001\u0000\u0000\u0000\u00b3\u00b4"+
-		"\u0005)\u0000\u0000\u00b4)\u0001\u0000\u0000\u0000\u00b5\u00b7\u0003,"+
+		"\u0005,\u0000\u0000\u00b4)\u0001\u0000\u0000\u0000\u00b5\u00b7\u0003,"+
 		"\u0016\u0000\u00b6\u00b5\u0001\u0000\u0000\u0000\u00b7\u00b8\u0001\u0000"+
 		"\u0000\u0000\u00b8\u00b6\u0001\u0000\u0000\u0000\u00b8\u00b9\u0001\u0000"+
-		"\u0000\u0000\u00b9+\u0001\u0000\u0000\u0000\u00ba\u00bb\u00051\u0000\u0000"+
-		"\u00bb\u00bd\u0005*\u0000\u0000\u00bc\u00be\u0005/\u0000\u0000\u00bd\u00bc"+
+		"\u0000\u0000\u00b9+\u0001\u0000\u0000\u0000\u00ba\u00bb\u00054\u0000\u0000"+
+		"\u00bb\u00bd\u0005-\u0000\u0000\u00bc\u00be\u00052\u0000\u0000\u00bd\u00bc"+
 		"\u0001\u0000\u0000\u0000\u00bd\u00be\u0001\u0000\u0000\u0000\u00be-\u0001"+
-		"\u0000\u0000\u0000\u00166DQTW]`iswz\u0082\u0089\u008c\u0091\u0094\u009a"+
+		"\u0000\u0000\u0000\u00166DQTW]`isw|\u0082\u0089\u008c\u0091\u0094\u009a"+
 		"\u00a2\u00a6\u00b1\u00b8\u00bd";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());

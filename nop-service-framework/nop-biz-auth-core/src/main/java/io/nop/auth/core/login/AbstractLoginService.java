@@ -34,7 +34,9 @@ public abstract class AbstractLoginService implements ILoginService {
     @Nullable
     protected ILoginSessionStore loginSessionStore;
 
-    private boolean returnUserId;
+    // 字段初始化为 @InjectValue 配置默认值（回归覆盖 wi8#3，plan 2306 项 37）：
+    // IoC 容器外（纯 JVM）使用时，未注入的字段与配置默认语义一致，不再反转为 false
+    private boolean returnUserId = true;
 
     public boolean isReturnUserId() {
         return returnUserId;

@@ -1,6 +1,6 @@
 # Fixture Bundle（测试夹具可移植包）Runbook
 
-> 状态：**定稿**（2026-10-01，M1.1 导出侧 + M1.2 导入侧 + M1.3 三条验收用例落位——plan `nop-app-erp/docs/plans/2026-10-01-2049-1` / `2026-10-01-2142-1-m12-fixture-bundle-importer.md` / `2026-10-01-2255-1-m13-fixture-bundle-acceptance-runbook.md`；验收①③载体 = nop-autotest-core `TestFixtureBundleImport`，验收②载体 = nop-app-erp `TestErpFixtureBundleDirtyImport`）。
+> 状态：**定稿**（2026-10-01，M1.1 导出侧 + M1.2 导入侧 + M1.3 三条验收用例落位——plan `nop-app-erp/docs/plans/2026-10-01-2049-1` / `2026-10-01-2142-1-m12-fixture-bundle-importer` / `2026-10-01-2255-1-m13-fixture-bundle-acceptance-runbook`；验收①③载体 = nop-autotest-core `TestFixtureBundleImport`，验收②载体 = nop-app-erp `TestErpFixtureBundleDirtyImport`）。
 > 代码位置：`nop-autotest/nop-autotest-core/src/main/java/io/nop/autotest/bundle/`
 
 ## 1. 是什么

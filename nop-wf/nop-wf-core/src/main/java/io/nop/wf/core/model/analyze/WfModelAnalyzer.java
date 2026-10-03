@@ -172,14 +172,19 @@ public class WfModelAnalyzer {
                 }
             }
 
-            Iterator<WfStepModel> it = new GraphDepthFirstIterator<>(s -> {
-                if (s.isEventuallyToAssigned())
-                    return null;
-                return s.getTransitionFromSteps();
-            }, step);
+            // 只有 nextToAssigned 的步骤才允许向前传播 eventuallyToAssigned；
+            // 无条件传播会使所有步骤都视为"最终会到 assigned"，令 ERR_WF_STEP_NOT_ENDABLE
+            // 校验成为死代码（回归覆盖 wi5#2）
+            if (step.isNextToAssigned()) {
+                Iterator<WfStepModel> it = new GraphDepthFirstIterator<>(s -> {
+                    if (s.isEventuallyToAssigned())
+                        return null;
+                    return s.getTransitionFromSteps();
+                }, step);
 
-            while (it.hasNext()) {
-                it.next().setEventuallyToAssigned(true);
+                while (it.hasNext()) {
+                    it.next().setEventuallyToAssigned(true);
+                }
             }
         }
 

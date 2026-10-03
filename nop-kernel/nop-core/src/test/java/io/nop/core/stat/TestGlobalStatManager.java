@@ -63,15 +63,34 @@ public class TestGlobalStatManager {
 
         List<JdbcSqlStatValue> values = mgr.getAllJdbcSqlStat(true);
         assertEquals(2, values.size());
-        // 平均时间计算正确（slow=100ms, fast=1ms）
-        for (JdbcSqlStatValue v : values) {
-            if (v.getSql().equals("slow-sql")) {
-                assertEquals(100_000_000L, v.getExecuteAvgTime());
-            } else if (v.getSql().equals("fast-sql")) {
-                assertEquals(1_000_000L, v.getExecuteAvgTime());
-            }
-        }
-        // 注意：orderByAvgTime=true 实际按平均时间升序而非降序（疑似缺陷，见测试报告），此处不锁定顺序
+        // 回归覆盖 wi1#4（plan 2306 项 11）：orderByAvgTime=true 必须按平均时间降序，
+        // 最慢的排在最前
+        assertEquals("slow-sql", values.get(0).getSql());
+        assertEquals("fast-sql", values.get(1).getSql());
+    }
+
+    @Test
+    public void testRpcStatsOrderByAvgTimeDesc() {
+        GlobalStatManager mgr = GlobalStatManager.instance();
+        RpcClientStat fastClient = mgr.getRpcClientStat("Svc", "fast");
+        fastClient.incrementExecuteSuccessCount();
+        fastClient.addExecuteTime(1_000_000L);
+        RpcClientStat slowClient = mgr.getRpcClientStat("Svc", "slow");
+        slowClient.incrementExecuteSuccessCount();
+        slowClient.addExecuteTime(100_000_000L);
+
+        assertEquals("Svc:slow", mgr.getAllRpcClientStats(true).get(0).getFullServiceName(),
+                "rpc client stats must sort by avg time descending");
+
+        RpcServerStat fastServer = mgr.getRpcServerStat("fast-op");
+        fastServer.incrementExecuteSuccessCount();
+        fastServer.addExecuteTime(1_000_000L);
+        RpcServerStat slowServer = mgr.getRpcServerStat("slow-op");
+        slowServer.incrementExecuteSuccessCount();
+        slowServer.addExecuteTime(100_000_000L);
+
+        assertEquals("slow-op", mgr.getAllRpcServerStats(true).get(0).getOperationName(),
+                "rpc server stats must sort by avg time descending");
     }
 
     @Test

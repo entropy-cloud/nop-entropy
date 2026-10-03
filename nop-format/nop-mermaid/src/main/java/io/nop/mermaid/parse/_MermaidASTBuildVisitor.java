@@ -234,11 +234,11 @@ public java.util.List<io.nop.mermaid.ast.MermaidClassMember> buildMermaidClassMe
             if(ctx.edgeType != null){
                ret.setEdgeType((MermaidSequenceMessage_edgeType(ctx.edgeType)));
             }
-            if(ctx.message != null){
-               ret.setMessage((MermaidSequenceMessage_message(ctx.message)));
-            }
             if(ctx.to != null){
                ret.setTo((MermaidSequenceMessage_to(ctx.to)));
+            }
+            if(ctx.message != null){
+               ret.setMessage((MermaidSequenceMessage_message(ctx.message)));
             }
             ret.normalize();
             ret.validate();

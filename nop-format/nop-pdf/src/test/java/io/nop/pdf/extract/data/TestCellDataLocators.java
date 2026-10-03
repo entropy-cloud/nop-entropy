@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.awt.geom.Rectangle2D;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -94,6 +95,68 @@ public class TestCellDataLocators {
         CellDataLocatorContext ctx = new CellDataLocatorContext();
         // 行路径命中合并组首行，列路径命中数据列首行
         assertEquals("10", locator.locate(ctx, table).getContent());
+    }
+
+    @Test
+    public void testRcPathLocatorDoesNotClobberRowsBelowMergedCell() {
+        // 回归覆盖 wi10#5 双重展开（plan 2306 项 7）：getCell 对被覆盖坐标返回锚点单元格，
+        // 修复前 (1,0) 处二次展开把 (2,0) 的真实文本 "B组" 覆盖为 "A组"，行路径无法命中
+        TableBlock table = new TableBlock();
+        table.setViewBounding(new Rectangle2D.Double(0, 0, 200, 90));
+        TableCellBlock group = new TableCellBlock(0, 0, 2, 1);
+        group.setContent("A组");
+        group.setViewBounding(new Rectangle2D.Double(0, 0, 100, 60));
+        table.addCell(0, 0, group);
+        TableCellBlock b = new TableCellBlock(2, 0, 1, 1);
+        b.setContent("B组");
+        b.setViewBounding(new Rectangle2D.Double(0, 60, 100, 30));
+        table.addCell(2, 0, b);
+        TableCellBlock v1 = new TableCellBlock(0, 1, 1, 1);
+        v1.setContent("1");
+        v1.setViewBounding(new Rectangle2D.Double(100, 0, 100, 30));
+        table.addCell(0, 1, v1);
+        TableCellBlock v2 = new TableCellBlock(1, 1, 1, 1);
+        v2.setContent("2");
+        v2.setViewBounding(new Rectangle2D.Double(100, 30, 100, 30));
+        table.addCell(1, 1, v2);
+        TableCellBlock v3 = new TableCellBlock(2, 1, 1, 1);
+        v3.setContent("3");
+        v3.setViewBounding(new Rectangle2D.Double(100, 60, 100, 30));
+        table.addCell(2, 1, v3);
+
+        RCPathCellDataLocator locator = new RCPathCellDataLocator("v", "/B组", "/3");
+        assertEquals("3", locator.locate(new CellDataLocatorContext(), table).getContent(),
+                "B组 行不能被上方合并单元格的二次展开覆盖");
+    }
+
+    @Test
+    public void testRcPathLocatorToleratesMergedCellAtTableEdge() {
+        // 回归覆盖 wi10#5 贴边越界（plan 2306 项 7）：合并区锚点在最后一行/列且
+        // rowspan/colspan 触及表边界时，平坦化不得抛 ArrayIndexOutOfBoundsException
+        TableBlock table = new TableBlock();
+        table.setViewBounding(new Rectangle2D.Double(0, 0, 200, 60));
+        TableCellBlock edge = new TableCellBlock(1, 1, 2, 2);
+        edge.setContent("右下合并");
+        edge.setViewBounding(new Rectangle2D.Double(100, 30, 100, 30));
+        table.addCell(1, 1, edge);
+        TableCellBlock a = new TableCellBlock(0, 0, 1, 1);
+        a.setContent("A");
+        a.setViewBounding(new Rectangle2D.Double(0, 0, 100, 30));
+        table.addCell(0, 0, a);
+        TableCellBlock b = new TableCellBlock(0, 1, 1, 1);
+        b.setContent("B");
+        b.setViewBounding(new Rectangle2D.Double(100, 0, 100, 30));
+        table.addCell(0, 1, b);
+        TableCellBlock c = new TableCellBlock(1, 0, 1, 1);
+        c.setContent("C");
+        c.setViewBounding(new Rectangle2D.Double(0, 30, 100, 30));
+        table.addCell(1, 0, c);
+
+        // 贴边单元格仍参与平坦化：行路径命中首列 "C" 所在行，列路径命中其数据 "B"
+        RCPathCellDataLocator locator = new RCPathCellDataLocator("v", "/C", "/B");
+        TableCellBlock cell = locator.locate(new CellDataLocatorContext(), table);
+        assertNotNull(cell);
+        assertEquals("B", cell.getContent());
     }
 
     @Test

@@ -185,23 +185,28 @@ public class RCPathCellDataLocator extends AbstractCellDataLocator {
         String[][] cells = new String[rows][cols];
         
         for( int i = 0; i < rows; i++ ) {
-            
+
             for( int j = 0; j < cols; j++ ) {
-                
+
                 TableCellBlock cell = table.getCell( i, j );
                 if( cell == null ) continue;
-                
+
+                // getCell 对被合并覆盖的坐标同样返回锚点单元格本身，
+                // 必须只在锚点位置展开一次，否则双重展开会越界（贴边时）
+                // 或覆盖后续行列的真实文本
+                if( cell.getRowPos() != i || cell.getColPos() != j ) continue;
+
                 String text = cell.getContent();
                 if( text == null ) text = "";
                 text = text.trim();
-                
+
                 //替换掉路径定义字符: / * !
                 text = StringHelper.replace( text, "/", "∕" );
                 text = StringHelper.replace( text, "*", "※" );
                 text = StringHelper.replace( text, "!", "！" );
-                
-                for( int p = 0; p < cell.getRowspan(); p++ ) {
-                    for( int q = 0; q < cell.getColspan(); q++ ) {
+
+                for( int p = 0; p < cell.getRowspan() && i + p < rows; p++ ) {
+                    for( int q = 0; q < cell.getColspan() && j + q < cols; q++ ) {
                         cells[i+p][j+q] = text;
                     }
                 }

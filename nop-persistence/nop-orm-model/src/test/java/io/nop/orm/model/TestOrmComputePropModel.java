@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_ARG_MISSING;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_NO_GETTER;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_COMPUTE_PROP_NO_SETTER;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COMPUTE_PROP_ARG;
@@ -143,6 +144,22 @@ public class TestOrmComputePropModel {
     public void testComputeValueNullArgsTreatedAsEmpty() {
         OrmComputePropModel prop = computeProp("calc", ctx -> "const", null);
         assertEquals("const", prop.computeValue(new FakeEntity(), null));
+    }
+
+    @Test
+    public void testComputeValueMissingDeclaredArgThrowsTypedError() {
+        // 回归覆盖 wi4#2（plan 2306 项 16）：声明参数缺失时必须抛带错误码与上下文的
+        // NopException，而不是让 castBeanToType(null, ...) 抛裸 IllegalArgumentException
+        OrmComputePropModel prop = computeProp("calc",
+                ctx -> "v=" + ((IEvalScope) ctx).getLocalValue("flag"), null,
+                arg("flag", PredefinedGenericTypes.STRING_TYPE));
+
+        NopException e = assertThrows(NopException.class,
+                () -> prop.computeValue(new FakeEntity(), new HashMap<>()));
+        assertEquals(ERR_ORM_COMPUTE_PROP_ARG_MISSING.getErrorCode(), e.getErrorCode());
+        assertEquals("TestEntity", e.getParam("entityName"));
+        assertEquals("calc", e.getParam("propName"));
+        assertEquals("flag", e.getParam("argName"));
     }
 
     @Test

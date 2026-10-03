@@ -106,12 +106,15 @@ public class TestKeyRoutingOwnershipParity {
 
     @Test
     void enumKeyHashesByNameNotByIdentity() {
+        // plan 2306 Phase 4 后：enum 键仍按 name().hashCode() 派生（JVM 稳定，ST-03）；
+        // String 键已改走 canonical JSON + murmur3，两条公式不同但各自值稳定，
+        // 不再断言 enum 与其 name 字符串同公式，改断言 name 派生性与路由一致性
         for (Color c : Color.values()) {
-            assertEquals(KeyGroupAssignment.stableHash(c.name()), KeyGroupAssignment.stableHash(c),
+            assertEquals(c.name().hashCode(), KeyGroupAssignment.stableHash(c),
                     "enum stableHash must be derived from name(), not identity hashCode()");
-            assertEquals(KeyGroupAssignment.assignToKeyGroup(c.name(), MAX_P),
-                    KeyGroupAssignment.assignToKeyGroup(c, MAX_P),
-                    "enum key-group assignment must equal its name's assignment");
+            int expectedGroup = (KeyGroupAssignment.stableHash(c) & 0x7FFFFFFF) % MAX_P;
+            assertEquals(expectedGroup, KeyGroupAssignment.assignToKeyGroup(c, MAX_P),
+                    "enum key-group assignment must derive from its own stable hash");
         }
     }
 

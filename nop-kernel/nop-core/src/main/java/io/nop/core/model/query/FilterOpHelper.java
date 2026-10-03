@@ -67,7 +67,7 @@ public class FilterOpHelper {
             return false;
         if (s2.isEmpty())
             return true;
-        String regex = SqlLikeUtils.sqlToRegexLike(s1, '\\');
+        String regex = SqlLikeUtils.sqlToRegexLike(s2, '\\');
         return RegexHelper.fromPattern(regex).test(s1);
     }
 
@@ -266,7 +266,7 @@ public class FilterOpHelper {
             return false;
 
         LocalDate m1 = ConvertHelper.toLocalDate(min, NopException::new);
-        LocalDate m2 = ConvertHelper.toLocalDate(min, NopException::new);
+        LocalDate m2 = ConvertHelper.toLocalDate(max, NopException::new);
 
         if (m1 != null) {
             int cmp1 = d1.compareTo(m1);

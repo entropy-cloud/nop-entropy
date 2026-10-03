@@ -1,0 +1,8 @@
+<record x:schema="/nop/schema/record/record-template.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <template>{"a":${a}}</template>
+    <fields>
+        <field name="a" type="int" mandatory="true"/>
+    </fields>
+    <!-- 记录级 generator：表达式形式返回补充字段（plan 2306 项 38 死代码探针） -->
+    <generator>{"extra": a + 1}</generator>
+</record>

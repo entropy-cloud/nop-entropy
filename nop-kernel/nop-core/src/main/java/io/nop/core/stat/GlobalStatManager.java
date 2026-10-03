@@ -66,7 +66,7 @@ public class GlobalStatManager implements IJdbcStatManager, IRpcClientStatManage
             ret.add(v.getValue(false));
         });
         if (orderByAvgTime) {
-            ret.sort((a, b) -> -Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
+            ret.sort((a, b) -> Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
         } else {
             ret.sort(Comparator.comparing(JdbcSqlStatValue::getSql));
         }
@@ -86,7 +86,7 @@ public class GlobalStatManager implements IJdbcStatManager, IRpcClientStatManage
             ret.add(v);
         });
         if (orderByAvgTime) {
-            ret.sort((a, b) -> -Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
+            ret.sort((a, b) -> Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
         } else {
             ret.sort(Comparator.comparing(RpcClientStat::getFullServiceName));
         }
@@ -105,7 +105,7 @@ public class GlobalStatManager implements IJdbcStatManager, IRpcClientStatManage
             ret.add(v);
         });
         if (orderByAvgTime) {
-            ret.sort((a, b) -> -Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
+            ret.sort((a, b) -> Long.compare(b.getExecuteAvgTime(), a.getExecuteAvgTime()));
         } else {
             ret.sort(Comparator.comparing(RpcServerStat::getOperationName));
         }

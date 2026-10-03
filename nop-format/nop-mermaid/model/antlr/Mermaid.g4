@@ -98,12 +98,12 @@ mermaidParticipant
     ;
 
 mermaidSequenceMessage
-    : from=Identifier_ edgeType=mermaidEdgeType_? (message=StringLiteral_)? to=Identifier_
+    : from=Identifier_ edgeType=mermaidEdgeType_? to=Identifier_ (COLON message=StringLiteral_)?
     ;
 
 // ======================= Class Diagram Statements =======================
 mermaidClassNode
-    : CLASS className=Identifier_ LBRACE  members=mermaidClassMembers_?  RBRACE
+    : CLASS_KEYWORD className=Identifier_ LBRACE  members=mermaidClassMembers_?  RBRACE
     ;
 
 mermaidClassMembers_
@@ -111,12 +111,12 @@ mermaidClassMembers_
     ;
 
 mermaidClassMember
-    : visibility=Visibility? name=Identifier_ (COLON type=Identifier)? (isStatic=STATIC)?
+    : visibility=Visibility? name=Identifier_ (COLON type=Identifier_)? (isStatic=STATIC)?
     ;
 
 // ======================= State Diagram Statements =======================
 mermaidStateNode
-    : STATE id=Identifier_ (COLON description=StringLiteral_)?
+    : STATE_KEYWORD id=Identifier_ (COLON description=StringLiteral_)?
     ;
 
 // ======================= Gantt Diagram Statements =======================

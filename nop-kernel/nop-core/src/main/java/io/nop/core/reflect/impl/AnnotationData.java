@@ -108,6 +108,11 @@ public class AnnotationData implements IAnnotationData, Serializable, IKeyedElem
             if (method.getDeclaringClass() == Object.class)
                 continue;
 
+            // Annotation 接口自带的 annotationType() 不是注解属性
+            // （回归覆盖 wi1#6-2，plan 2306 项 30：此前被当作普通属性收集为噪声键）
+            if (method.getDeclaringClass() == Annotation.class || method.getName().equals("annotationType"))
+                continue;
+
             if (method.getParameters().length != 0)
                 continue;
 

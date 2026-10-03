@@ -141,9 +141,11 @@ public class UnitsHelper {
      * FixedPoint</a>
      */
     public static int doubleToFixedPoint(double floatPoint) {
-        double fractionalPart = floatPoint % 1d;
-        double integralPart = floatPoint - fractionalPart;
-        int i = (int) Math.floor(integralPart);
+        // 整数部分按 floor 拆分，小数部分恒为非负，与 fixedPointToDouble 的
+        // "符号整数 + 无符号小数" 解码语义对称（回归覆盖 wi9#1，plan 2306 项 23）
+        double integralPart = Math.floor(floatPoint);
+        double fractionalPart = floatPoint - integralPart;
+        int i = (int) integralPart;
         int f = (int) Math.rint(fractionalPart * 65536d);
         return (i << 16) | (f & 0xFFFF);
     }

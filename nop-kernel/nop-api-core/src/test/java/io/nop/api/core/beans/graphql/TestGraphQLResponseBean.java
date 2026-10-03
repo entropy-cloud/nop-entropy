@@ -83,13 +83,9 @@ public class TestGraphQLResponseBean {
     }
 
     /**
-     * 产品缺陷嫌疑记录（不修）：GraphQLResponseBean.toErrorBean() 第 123 行
-     * error.setBizFatal(getBizFatal()) 会对 null 的 Boolean 自动拆箱。
-     * 当响应携带错误但从未设置 nop-biz-fatal 扩展（addError 只在 bizFatal=true 时写入扩展）
-     * 时，toErrorBean() 抛 NullPointerException。
-     * 解除 @Disabled 并断言不再抛异常即为缺陷修复信号。
+     * 回归覆盖 wi2#1（plan 2306 项 12）：toErrorBean() 对未设置 nop-biz-fatal 扩展的
+     * 错误响应必须 null 安全（bizFatal 缺省为 false），不得因 Boolean 拆箱抛 NPE。
      */
-    @org.junit.jupiter.api.Disabled("product defect: toErrorBean NPE when bizFatal extension absent")
     @Test
     public void testToErrorBeanWithoutBizFatalExtensionShouldNotThrow() {
         GraphQLResponseBean res = new GraphQLResponseBean();
@@ -97,7 +93,10 @@ public class TestGraphQLResponseBean {
         error.setDescription("desc");
         res.addError(error);
         // 修复后应返回 ErrorBean 而不是抛 NPE
-        org.junit.jupiter.api.Assertions.assertNotNull(res.toErrorBean());
+        ErrorBean converted = res.toErrorBean();
+        org.junit.jupiter.api.Assertions.assertNotNull(converted);
+        org.junit.jupiter.api.Assertions.assertFalse(converted.isBizFatal(),
+                "未设置扩展时 bizFatal 必须缺省为 false");
     }
 
     @Test

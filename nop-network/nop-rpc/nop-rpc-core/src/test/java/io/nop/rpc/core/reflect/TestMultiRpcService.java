@@ -78,4 +78,13 @@ public class TestMultiRpcService {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
                 () -> new MultiRpcService(null));
     }
+
+    @Test
+    public void testEmptyServicesMapRejectedAtConstruction() {
+        // 回归覆盖 wi11#2（plan 2306 项 29）：Guard.notEmpty 对 Map 只判 null，
+        // 修复前空 map 构造成功、所有调用延迟到运行期 unknown-service 失败；
+        // 修复后必须在构造期 fail-fast
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new MultiRpcService(Map.of()));
+    }
 }

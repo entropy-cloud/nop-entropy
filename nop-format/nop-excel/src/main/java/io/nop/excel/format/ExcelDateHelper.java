@@ -668,6 +668,12 @@ public class ExcelDateHelper {
             throw new FormatException("Bad length");
         }
 
+        // 分隔符必须与声明的 'YYYY/MM/DD' 格式一致（回归覆盖 wi9#2，plan 2306 项 24）；
+        // 此前未校验，"2024-02-29" 等形式也会被静默接受
+        if (timeStr.charAt(4) != '/' || timeStr.charAt(7) != '/') {
+            throw new FormatException("Bad separator");
+        }
+
         String yearStr = timeStr.substring(0, 4);
         String monthStr = timeStr.substring(5, 7);
         String dayStr = timeStr.substring(8, 10);
@@ -676,7 +682,13 @@ public class ExcelDateHelper {
         int day = parseInt(dayStr, "day", 1, 31);
 
         Calendar cal = LocaleHelper.getLocaleCalendar(year, month - 1, day);
-        return cal.getTime();
+        // 非 lenient 校验：2 月 30 日等无效日期必须报错，而非静默归一化为 3 月 1 日
+        cal.setLenient(false);
+        try {
+            return cal.getTime();
+        } catch (IllegalArgumentException e) {
+            throw new FormatException("Bad date value");
+        }
     }
 
     private static int parseInt(String strVal, String fieldName, int rangeMax) throws FormatException {

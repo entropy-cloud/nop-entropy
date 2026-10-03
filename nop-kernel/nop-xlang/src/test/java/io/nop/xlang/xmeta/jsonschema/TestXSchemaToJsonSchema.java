@@ -14,8 +14,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -188,7 +190,10 @@ public class TestXSchemaToJsonSchema extends BaseTestCase {
 
     /**
      * union schema：子 schema 逐一映射后以 anyOf 聚合。
+     * 回归覆盖 wi3#3（plan 2306 项 15）：anyOf 成员必须是转换后的 JSON Schema Map，
+     * 而非原始 ISchema 列表。
      */
+    @SuppressWarnings("unchecked")
     @Test
     public void testUnionSchemaBecomesAnyOf() {
         SchemaImpl union = new SchemaImpl();
@@ -197,7 +202,21 @@ public class TestXSchemaToJsonSchema extends BaseTestCase {
                 simpleSchema(PredefinedGenericTypes.INT_TYPE)));
 
         Map<String, Object> ret = transformer().toJsonSchema(union, null);
-        assertNotNull(ret.get("anyOf"));
+        Object anyOf = ret.get("anyOf");
+        assertNotNull(anyOf);
+        List<Object> members = assertInstanceOf(List.class, anyOf).stream().toList();
+        assertEquals(2, members.size());
+        for (Object member : members) {
+            Map<String, Object> map = assertInstanceOf(Map.class, member,
+                    "anyOf 成员必须是 JSON Schema Map 而非 ISchema");
+            assertNotNull(map.get("type"), "转换后的成员必须携带 type 字段");
+        }
+        // 两个分支类型不同：string 与 number（StdDataType.INT 的 JSON Schema 类型为 number）
+        java.util.Set<Object> types = new java.util.HashSet<>();
+        for (Object member : members) {
+            types.add(((Map<String, Object>) member).get("type"));
+        }
+        assertEquals(java.util.Set.of("string", "number"), types);
     }
 
     /**
