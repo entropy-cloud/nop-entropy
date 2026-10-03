@@ -33,7 +33,7 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 **纳入**：SELECT 投影、WHERE、五聚合（sum/count/avg/min/max，COUNT(*) 无参形态）、GROUP BY、`TUMBLE(t, INTERVAL)` 流时间窗口、双流等值 join（INNER/LEFT/RIGHT/FULL）、UNION ALL。
 
-**不支持**——多数项构建期显式 fail-fast：全局 ORDER BY/LIMIT（`nop.err.eql.dialect-not-support-feature`）；非等值/范围 join；DATE/TIMESTAMP/DECIMAL 列绑定；DISTINCT 聚合；子集外表达式（CASE/CAST/正则/IN 子查询等）；FULL 窗口 join；HAVING/CTE/INTERSECT/EXCEPT（default-reject）；全局聚合（无 GROUP BY 的聚合）。两项性质不同：retract/CDC 为 D1 裁定的语义降级（last-value-wins 终值语义，非 fail-fast 项）；Flink SQL 方言为非目标（编译器不解析）。语义边界：UNION 为 bag union 不去重（UNION DISTINCT fail-fast）。
+**不支持**——多数项构建期显式 fail-fast：全局 ORDER BY/LIMIT（`nop.err.eql.dialect-not-support-feature`）；非等值/范围 join；DATE/TIMESTAMP/DECIMAL 列绑定；DISTINCT 聚合；子集外表达式（CASE/CAST/正则/IN 子查询等）；FULL 窗口 join；HAVING/CTE/INTERSECT/EXCEPT（default-reject）；全局聚合（无 GROUP BY 的聚合）。两项性质不同：retract/CDC 为 D1 裁定的语义降级（last-value-wins 终值语义，非 fail-fast 项）；Flink SQL 方言为非目标（编译器不解析）。语义边界：UNION 为 bag union 不去重（UNION DISTINCT fail-fast）；TUMBLE 为流目标专用（W2/T1：SQL 通道按原样回显 TUMBLE 语法——该文本在真实 RDBMS 上解析即失败，属预期边界而非缺陷；双目标一致性仅对非 TUMBLE 查询承诺精确集相等，聚合查询仅终态可比——D1 last-value-wins，流目标发射运行值）。
 
 ## 3. 执行语义标注（D1/D6）
 

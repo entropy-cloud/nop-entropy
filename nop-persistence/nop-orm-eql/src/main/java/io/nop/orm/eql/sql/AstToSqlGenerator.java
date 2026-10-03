@@ -218,6 +218,28 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         appendPropJoins(node);
     }
 
+    /**
+     * WI20 (W2/T1): the SQL channel renders the TUMBLE pseudo-table function
+     * verbatim — the generated text is deliberately NOT valid RDBMS SQL (the
+     * windowed form is stream-only, sql-subset-and-semantics §4c). Rendering it
+     * loudly (rather than dropping the table source like the visitor default)
+     * makes any attempt to run the text on a real RDBMS fail fast at parse time
+     * instead of silently querying the wrong rows.
+     */
+    @Override
+    public void visitSqlTumbleTableSource(io.nop.orm.eql.ast.SqlTumbleTableSource node) {
+        print("TUMBLE(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getInterval().getExpr());
+        print(" ");
+        print(node.getInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
     void appendPropJoins(SqlSingleTableSource node) {
         if (node.getPropJoins() != null) {
             for (SqlPropJoin propJoin : node.getPropJoins().values()) {

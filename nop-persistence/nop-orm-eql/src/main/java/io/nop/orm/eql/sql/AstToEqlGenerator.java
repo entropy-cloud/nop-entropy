@@ -634,6 +634,27 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         decIndent();
     }
 
+    /**
+     * WI20: render the TUMBLE pseudo-table function back in EQL syntax. The
+     * windowed form is stream-only (W2/T1, sql-subset-and-semantics §4c) — the
+     * round-trip printing keeps it loud instead of silently dropping the table
+     * source (the visitor default visits only interval/alias); the resulting
+     * text is NOT executable SQL on an RDBMS, which is the documented boundary.
+     */
+    @Override
+    public void visitSqlTumbleTableSource(io.nop.orm.eql.ast.SqlTumbleTableSource node) {
+        print("TUMBLE(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getInterval().getExpr());
+        print(" ");
+        print(node.getInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
     protected void printJoin(SqlJoinTableSource node) {
         if (node.getCondition() != null) {
             print(" on ");
