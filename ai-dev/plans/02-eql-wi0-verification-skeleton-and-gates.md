@@ -7,7 +7,7 @@
 
 ## Purpose
 
-把 roadmap WI0 收口：建立后续所有文法/方言 WI 都要依赖的验证骨架（方言能力矩阵棘轮 + 既有 EQL 语料基线快照），堵住 `TemplateSQLFunction` 的静默 `null` 注入口，完成 G-1..G-4 四门书面裁决并回写 roadmap，固定 `BaseRule.g4` 注释规则的上游溯源事实。
+把 roadmap WI0 收口：建立后续所有文法/方言 WI 都要依赖的验证骨架（方言能力矩阵棘轮 + 既有 EQL 语料基线快照），堵住 `TemplateSQLFunction` 的静默 `null` 注入口，完成 G-1..G-4 四门书面裁决并回写 roadmap，固定 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 注释规则的上游溯源事实。
 
 ## Current Baseline
 
@@ -24,7 +24,7 @@
 - 落地方言能力矩阵测试 + 棘轮快照（快照存 `ai-dev/audits/`），新增方言/函数不同步快照时门禁转红。
 - `TemplateSQLFunction` 越界 marker 在**方言加载期**抛错；全方言参数化单测覆盖。
 - G-1..G-4 四门书面裁决，结论回写 roadmap。
-- `BaseRule.g4` 上游溯源（git 证据）记入 owner doc；既有 EQL 语料 `toSqlString()` 基线快照落 `ai-dev/audits/`。
+- `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 上游溯源（git 证据）记入 owner doc；既有 EQL 语料 `toSqlString()` 基线快照落 `ai-dev/audits/`。
 - 实测记录 `nop-stream-runtime` 3 项既有失败的当前基线。
 
 ## Non-Goals
@@ -48,7 +48,7 @@
 ### Phase 1 - 方言能力矩阵棘轮测试与快照
 
 Status: completed
-Targets: `nop-dao/src/test/java/io/nop/dao/dialect/TestDialectCapabilityMatrix.java`、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs`
+Targets: `nop-persistence/nop-dao/src/test/java/io/nop/dao/dialect/TestDialectCapabilityMatrix.java`、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs`
 
 - Item Types: `Feature`、`Proof`
 
@@ -98,7 +98,7 @@ Targets: `nop-orm-eql` 新增快照测试、`ai-dev/audits/eql-wi0/eql-corpus-ba
 - [ ] 快照落 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md`（每文件每语句：归一化源 → 回显文本或错误），测试比对 drift 即 fail；快照文档头记录两条红线事实（见下）。
 - [ ] 快照文档头记录两条红线事实：`EqlASTKind.ordinal()` 不稳定（67 常量、已被合并重编号、禁止持久化比较）；`nop-stream-runtime` 3 项既有失败是基线豁免（附实测输出摘要）。
 - [ ] 实测 `nop-stream-runtime` 3 个测试类当前状态并记录（若本地依赖不全则先 `-am install` 一次性补齐）。
-- [ ] owner doc 新增"语法溯源"小节：`BaseRule.g4` 4 条 SQL-92 函数规则自 `aa1b310122`（2022-06-27）首次提交即为注释态、从未生效（附 `git log -S` 证据结论），不得当作"EQL 曾正确实现过"的先例。
+- [ ] owner doc 新增"语法溯源"小节：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 4 条 SQL-92 函数规则自 `aa1b310122`（2022-06-27）首次提交即为注释态、从未生效（附 `git log -S` 证据结论），不得当作"EQL 曾正确实现过"的先例。（✅ 已由 Phase 4 一并完成，见该节勾稽）
 
 Exit Criteria:
 
@@ -110,22 +110,22 @@ Exit Criteria:
 
 ### Phase 4 - G-1..G-4 四门书面裁决与回写
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`、roadmap Gate 表
 
 - Item Types: `Decision`
 
-- [ ] G-1：采纳 roadmap 已确认的最低版本门（Oracle 23ai / MySQL 8.0.31 / MariaDB 10.2 / MariaDB 13.0（UPDATE RETURNING）/ PG 15 / MSSQL 2022 / SQLite 3.39）为承诺基线；全部 `unverified` 边界维持 `unverified` 纪律（不计入覆盖率），逐条列出。
-- [ ] G-2：**结论 = 维持 open**——`greatest`/`least` 已在 ledger 延后且不阻塞任何 WI；回写 roadmap：G-2 的"阻塞"列改为"仅 ledger 项，无 WI 阻塞"，产品侧后续裁决后按 successor 路径（WI6 同批）重开。
-- [ ] G-3：给出证据化影响分析（别名只扩合法 `stdSqlType` 接受集、不改变既有合法取值的映射；114 个 orm.xml + `clean install` 全量回归作为落地门），**结论 = 接受** `TEXT→CLOB`/`NUMBER→NUMERIC`/`BOOL→BOOLEAN` 别名进入 WI9a；WI9b 时区类型不受 G-3 别名影响但共享该结论的回归门。
-- [ ] G-4：**结论 = 批准 WI3 按表逐项纠错**（7 项改值均有调研证据链）；版本门形态与 G-1 一致；记录"执行授权来自用户对 roadmap 的执行指令 + 逐项证据，全程可 git 回滚"。
-- [ ] 四门结论回写 roadmap：Gate 表"阻塞"列与 WI0 交付 3 勾稽；不删除 Gate 行本身（保留溯源）。
+- [x] G-1：采纳 roadmap 已确认的最低版本门（Oracle 23ai / MySQL 8.0.31 / MariaDB 10.2 / MariaDB 13.0（UPDATE RETURNING）/ PG 15 / MSSQL 2022 / SQLite 3.39）为承诺基线；全部 `unverified` 边界维持 `unverified` 纪律（不计入覆盖率），逐条列出。
+- [x] G-2：**结论 = 维持 open**——`greatest`/`least` 已在 ledger 延后且不阻塞任何 WI；回写 roadmap：G-2 的"阻塞"列改为"仅 ledger 项，无 WI 阻塞"，产品侧后续裁决后按 successor 路径（WI6 同批）重开。
+- [x] G-3：给出证据化影响分析（别名只扩合法 `stdSqlType` 接受集、不改变既有合法取值的映射；114 个 orm.xml + `clean install` 全量回归作为落地门），**结论 = 接受** `TEXT→CLOB`/`NUMBER→NUMERIC`/`BOOL→BOOLEAN` 别名进入 WI9a；WI9b 时区类型不受 G-3 别名影响但共享该结论的回归门。（实测 TEXT/NUMBER/BOOL 全仓 orm.xml 出现 0/0/0 次）
+- [x] G-4：**结论 = 批准 WI3 按表逐项纠错**（7 项改值均有调研证据链）；版本门形态与 G-1 一致；记录"执行授权来自用户对 roadmap 的执行指令 + 逐项证据，全程可 git 回滚"。
+- [x] 四门结论回写 roadmap：Gate 表"阻塞"列与 WI0 交付 3 勾稽；不删除 Gate 行本身（保留溯源）。（commit `abbdeabf32`）
 
 Exit Criteria:
 
-- [ ] 裁决文档四门各有结论 + 证据引用 + 回滚方式。
-- [ ] roadmap Gate 表与裁决文档一致（无"仍阻塞但已裁决"的矛盾）。
-- [ ] `ai-dev/logs/2026/10-03.md` 已更新。
+- [x] 裁决文档四门各有结论 + 证据引用 + 回滚方式。
+- [x] roadmap Gate 表与裁决文档一致（无"仍阻塞但已裁决"的矛盾）。
+- [x] `ai-dev/logs/2026/10-03.md` 已更新。
 
 ## Closure Gates
 
