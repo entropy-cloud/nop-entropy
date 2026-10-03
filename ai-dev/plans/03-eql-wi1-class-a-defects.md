@@ -204,27 +204,29 @@ Exit Criteria:
 
 ### Phase 4 - BUG-5 `INTERVAL` 骨架（构建期归一化；模板内容归 WI7b）
 
-Status: planned
+Status: completed（2026-10-03，文法 commit `5afea1d3f3` + 逻辑 commit `6b229a2224`）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlIntervalExpr` 新增 `INTERVAL STRING_` 备选分支）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`（interval 构建处归一化）、`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/dialect.xdef`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/DialectSqls.java` 或 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/DialectFeatures.java`（按 Phase 0 载体裁定）、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-orm-eql` / `nop-dao` 测试。**生成器（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java` / `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`）零改动**——归一化复用既有 `SqlIntervalExpr` 打印路径。
+
+> **执行期记录**：① 文法实现形态修正——AstGrammarBuilder 对多备选规则强制"每个备选都必须解析为 AST 节点"（`nop.err.antlr4.grammar.rule-alternative-is-not-ast-node`），裸 `INTERVAL STRING_` 备选被拒；落地方案 = 两个备选**都加 altLabel**（`# SqlIntervalExpr_unit` / `# SqlIntervalExpr_string`，`sqlTableSource` 同款先例），label 按下划线截断后 astNodeName 同为 `SqlIntervalExpr` ⇒ **不新增 AST 节点、`ast/_gen/` 零 diff（git status 实证）、未触 `EqlAST.xjava`**，红线满足。② 单位解析在大小写不敏感之上**接受 PG 复数形式**（`'3 hours'`→HOUR）。③ 修复前红实测：`interval '1 day'`/`'3 Hours'` 均 `nop.err.antlr.common.parse-fail`；`'1-2'` 报 antlr 错误码而非归一化码（错误源红）。④ `sqlIntervalLiteral` 接线验证：fixture 方言 `test-interval-literal.dialect.xml`（test resources，先例 `test-window-features`）经 `DialectManager` 真实加载证明 XML→retention 反射 setter→accessor 连通；生产方言（h2）未配置返回 null。
 
 - Item Types: `Fix`（PG 形态不解析属缺陷现象的一部分）、`Feature`（模型骨架）、`Decision`（deprecated 标注）
 
-- [ ] 修复前红：`interval '1 day'`（PG 形态）解析失败（parse error）——回归测试断言其可解析，修复前红。
-- [ ] 文法：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlIntervalExpr` 新增 `INTERVAL STRING_` 备选分支（同构先例 `sqlDateTimeLiteral`，`BaseRule.g4:45-46`，`value=STRING_` 进专用构建逻辑——仅作参考，**不新增 AST 节点**）。
-- [ ] 构建期归一化：手写 `EqlASTBuildVisitor` 在 interval 构建处把字符串字面量解析为 value+unit 装入**既有** `SqlIntervalExpr`（如 `'1 day'` → value=1、unit=DAY；单位大小写不敏感）；SQL 标准多字段形态（如 `'1-2' year to month`）不支持则**明确报错**（复用 `ERR_EQL_INVALID_INTERVAL_UNIT`，`OrmEqlErrors.java:94`）——该错误码只覆盖**归一化层检查**（同一错误码）；**文法层失败**（antlr 语法不匹配，如 `'1-2'` 后缺 unit）走 antlr 既有错误码（`nop.err.antlr.*`），不与本码混同——不允许静默跳过。
-- [ ] **禁止改 `EqlAST.xjava` 与 `ast/_gen/`**（避免 `EqlASTKind` ordinal 重编号，roadmap 红线）；重生成命令 `./mvnw generate-sources -pl :nop-orm-eql -am`，`ast/_gen/` 幂等无 diff 可作为回归证据。
-- [ ] `sqlIntervalLiteral` 骨架：`dialect.xdef` 新增元素（Phase 0 裁定载体）+ retention 手写字段 + `IDialect` accessor + `DialectImpl` 实现（返回已配置模板文本，未配置返回空）。**不填逐方言模板**（WI7b 唯一 owner）；已有方言 XML 不新增模板内容。
-- [ ] 既有形态不破坏：`interval 1 day` 仍解析、生成输出与 WI0 基线逐字一致；deprecated 标注落 owner doc（不禁止、不报错——roadmap 明文"不禁止现有语法（属破坏性变更），只标 deprecated"）。
-- [ ] 文法改动单独提交（生成物纪律）；Protected Area 声明见上文。
+- [x] 修复前红：`interval '1 day'`（PG 形态）解析失败（parse error）——回归测试断言其可解析，修复前红。
+- [x] 文法：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlIntervalExpr` 新增 `INTERVAL STRING_` 备选分支（同构先例 `sqlDateTimeLiteral`，`BaseRule.g4:45-46`，`value=STRING_` 进专用构建逻辑——仅作参考，**不新增 AST 节点**）。（带 altLabel 形态，见执行期记录①。）
+- [x] 构建期归一化：手写 `EqlASTBuildVisitor` 在 interval 构建处把字符串字面量解析为 value+unit 装入**既有** `SqlIntervalExpr`（如 `'1 day'` → value=1、unit=DAY；单位大小写不敏感）；SQL 标准多字段形态（如 `'1-2' year to month`）不支持则**明确报错**（复用 `ERR_EQL_INVALID_INTERVAL_UNIT`，`OrmEqlErrors.java:94`）——该错误码只覆盖**归一化层检查**（同一错误码）；**文法层失败**（antlr 语法不匹配，如 `'1-2'` 后缺 unit）走 antlr 既有错误码（`nop.err.antlr.*`），不与本码混同——不允许静默跳过。
+- [x] **禁止改 `EqlAST.xjava` 与 `ast/_gen/`**（避免 `EqlASTKind` ordinal 重编号，roadmap 红线）；重生成命令 `./mvnw generate-sources -pl :nop-orm-eql -am`，`ast/_gen/` 幂等无 diff 可作为回归证据。（实证：git status ast/_gen 0 条。）
+- [x] `sqlIntervalLiteral` 骨架：`dialect.xdef` 新增元素（Phase 0 裁定载体）+ retention 手写字段 + `IDialect` accessor + `DialectImpl` 实现（返回已配置模板文本，未配置返回空）。**不填逐方言模板**（WI7b 唯一 owner）；已有方言 XML 不新增模板内容。（载体=`<sqls>` 子元素 + `DialectSqls`，按裁定文档 §3。）
+- [x] 既有形态不破坏：`interval 1 day` 仍解析、生成输出与 WI0 基线逐字一致；deprecated 标注落 owner doc（不禁止、不报错——roadmap 明文"不禁止现有语法（属破坏性变更），只标 deprecated"）。
+- [x] 文法改动单独提交（生成物纪律）；Protected Area 声明见上文。（`5afea1d3f3` 文法+生成物，`6b229a2224` 逻辑。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：PG 形态解析成功且装入既有 `SqlIntervalExpr`，value/unit 可断言（`'1 day'` → 1/DAY）；多字段形态显式报错，断言错误码 `ERR_EQL_INVALID_INTERVAL_UNIT`。
-- [ ] accessor 契约测试：已配置/未配置两侧返回值可断言；骨架各层存在且被 xdef 绑定真实读写（retention 字段经反射 setter 生效的接线验证，照 window frame 先例）。
-- [ ] 既有形态输出不变（BC）：三份必测（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致；`ast/_gen/` 在 `git status` 中无 diff。
-- [ ] owner doc deprecated 标注已落档，并写明"逐方言模板唯一 owner = WI7b"。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿（含 `.g4` 重生成后的完整编译）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新；文法提交与骨架提交分离可审计。
+- [x] 红→绿回归测试：PG 形态解析成功且装入既有 `SqlIntervalExpr`，value/unit 可断言（`'1 day'` → 1/DAY）；多字段形态显式报错，断言错误码 `ERR_EQL_INVALID_INTERVAL_UNIT`。（`TestEqlIntervalLiteralParse` 6/6：含单位大小写+复数、归一化层同码、文法层 antlr 码分离、既有形态不变。）
+- [x] accessor 契约测试：已配置/未配置两侧返回值可断言；骨架各层存在且被 xdef 绑定真实读写（retention 字段经反射 setter 生效的接线验证，照 window frame 先例）。（`TestDialectSqlIntervalLiteral` 3/3。）
+- [x] 既有形态输出不变（BC）：三份必测（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致；`ast/_gen/` 在 `git status` 中无 diff。（`TestEqlCorpusBaseline` 随全量运行通过。）
+- [x] owner doc deprecated 标注已落档，并写明"逐方言模板唯一 owner = WI7b"。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿（含 `.g4` 重生成后的完整编译；nop-orm-eql 183 tests 0 failures）。
+- [x] `ai-dev/logs/` 对应日期条目已更新；文法提交与骨架提交分离可审计。
 
 ### Phase 5 - BUG-10 `cross join` 静默误解析（.g4，单独提交）
 
