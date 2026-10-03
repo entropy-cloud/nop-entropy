@@ -93,6 +93,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlCastExpr visitSqlCastExpr_cast(SqlCastExpr_castContext ctx){
+           SqlCastExprContext node = ctx.sqlCastExpr();
+           return node == null ? null : visitSqlCastExpr(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlCompareWithQueryExpr visitSqlCompareWithQueryExpr(SqlCompareWithQueryExprContext ctx){
           io.nop.orm.eql.ast.SqlCompareWithQueryExpr ret = new io.nop.orm.eql.ast.SqlCompareWithQueryExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -289,6 +294,15 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlQuerySelect(node);
         }
       
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_position(SqlRegularFunction_positionContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
         public io.nop.orm.eql.ast.SqlSelect visitSqlSelect_ex(SqlSelect_exContext ctx){
            SqlSelectContext node = ctx.sqlSelect();
            return node == null ? null : visitSqlSelect(node);
@@ -766,11 +780,12 @@ public java.util.List<io.nop.orm.eql.ast.SqlDecorator> buildSqlDecorators_(SqlDe
           
       }
             
-        public io.nop.orm.eql.ast.SqlCastExpr visitSqlExpr_special(SqlExpr_specialContext ctx){
-           SqlCastExprContext node = ctx.sqlCastExpr();
-           return node == null ? null : visitSqlCastExpr(node);
-        }
-      
+      public io.nop.orm.eql.ast.SqlExpr visitSqlExpr_special(SqlExpr_specialContext ctx){
+        
+            return (io.nop.orm.eql.ast.SqlExpr)ctx.accept(this);
+          
+      }
+            
       public io.nop.orm.eql.ast.SqlFrom visitSqlFrom(SqlFromContext ctx){
           io.nop.orm.eql.ast.SqlFrom ret = new io.nop.orm.eql.ast.SqlFrom();
           ret.setLocation(ParseTreeHelper.loc(ctx));

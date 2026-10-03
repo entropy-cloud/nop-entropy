@@ -675,11 +675,19 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionArgs_(EqlParser.FunctionArgs_Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Visit a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	T visitSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree

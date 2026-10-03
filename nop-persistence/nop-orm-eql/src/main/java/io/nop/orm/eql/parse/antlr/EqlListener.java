@@ -1122,15 +1122,29 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitFunctionArgs_(EqlParser.FunctionArgs_Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Enter a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	void enterSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Exit a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	void exitSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree

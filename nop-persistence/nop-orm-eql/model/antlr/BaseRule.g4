@@ -283,9 +283,18 @@ functionArgs_:
 
 // EXTRACT(unit FROM date)
 // extract函数在mysql中可以用date(value), time(value)等函数代替
+// WI5: altLabel 三约束（ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md §3）：
+// ① label 以目标 AST 类名为前缀（getAstNodeName 取首段下划线前缀）；② 备选内不写 prop 赋值
+// （prop 名必须命中 AST 类真实属性，否则 AstGrammarBuilder 报 ERR_GRAMMAR_INVALID_AST_PROP；
+// 生成体只建空节点+validate 必失败，归一化全部在手写 EqlASTBuildVisitor 完全重写、不调 super，
+// WI1 visitSqlIntervalExpr_string 同款）；③ 既有 sqlCastExpr 备选同步补 label——全部备选
+// label 化后规则级生成 ctx.accept 分派，无 label 备选推导出的 SqlExpr 与子节点类型冲突。
 sqlExpr_special
 //    : castFunction | convertFunction | positionFunction | substringFunction | extractFunction | trimFunction
-    : sqlCastExpr //| extractFunction
+    : sqlCastExpr # SqlCastExpr_cast
+    // WI5 Phase 1: POSITION(x IN y) → instr(y, x)，调用点换序在构建期完成（instr(str, substr) 参数序）。
+    // 首 arg 限定 sqlExpr_bit：IN 是 sqlExpr_predicate 层算子，首参解析不会吞掉分隔符 IN。
+    | POSITION LP_ sqlExpr_bit IN sqlExpr RP_ # SqlRegularFunction_position
     ;
 
 sqlCastExpr
