@@ -79,7 +79,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 > **格式约束**：header 必须是 `## Work Item Status`，且状态值必须是本行**最后一个反引号 token**（mission-driver 的 `roadmap-check.mjs` 用 `tryParseTableRow`（状态须在第 2 列）或 `BULLET_RE` 解析；markdown 表格若把"交付范围"放在状态之前会解析出 **0 个工作项**）。已用 `parseRoadmapMarkdown` 实测通过。
 
 - **WI0** 多方言验证骨架（方言能力矩阵棘轮测试）+ `TemplateSQLFunction` marker 加载期校验 + G-1..G-4 四门裁决 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 上游溯源: `done`
-- **WI1** A 类 6 项执行路径缺陷 BUG-1/2/3/5/10/14（同批次接线 `supportLateral` / `sqlIntervalLiteral` **骨架** / `getForUpdateSql` 空值编译期报错等方言门）: `todo`
+- **WI1** A 类 6 项执行路径缺陷 BUG-1/2/3/5/10/14（同批次接线 `supportLateral` / `sqlIntervalLiteral` **骨架** / `getForUpdateSql` 空值编译期报错等方言门）: `planned`
 - **WI2** B 类 5 项缺陷 BUG-4 回显（`selectAll`+`LIMIT`）/ BUG-6 `full outer join`+`supportFullJoin` 门 / BUG-7 小写 `date '…'` CCE / BUG-8 `cast(x as boolean)` / BUG-15 `SqlTypeExpr` 潜在静默丢弃: `todo`
 - **WI3** 11 项方言相关纠错（4 项 `supportReturningForUpdate` 值 / 1 项 `unverified` 保留 / 1 项窗口函数 mixin 归属（`mysql5.7` 去除，PG/DuckDB 已由合并完成）/ 1 项 `ilike` 函数注册 / 2 项 `defaultNullsFirst` 接线 + H2 补配 / `INTERSECT`+mariadb `RETURNING` 版本门 / `db2` selector 断链）+ owner doc 四处失真: `todo`
 - **WI4** AST 改写管线接线：把 `IEqlAstTransformer` 提升为 `EqlCompiler` 内部固定环节 + 缓存键（WI8 硬前置）: `todo`
