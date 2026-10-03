@@ -220,23 +220,23 @@ Exit Criteria:
 
 ### Phase 3 - ilike 函数注册（第 9 项）
 
-Status: planned
+Status: completed（2026-10-04；commit `f4c2a17cf4`）
 Targets: `h2.dialect.xml`（`<functions>` `:131-190`）、`postgresql.dialect.xml`（`<functions>` `:147-165`）、（如 Phase 0/3 实测 merge 不可达则 `duckdb.dialect.xml` `<functions>` `:81-129`）、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`nop-dao`/`nop-orm-eql` 测试
 
 - Item Types: `Feature`（补注册）、`Proof`
 
-- [ ] h2 与 postgresql 注册 `ilike` 模板（照 `oracle.dialect.xml:174-176` 的元素形态；H2/PG 原生 ILIKE 算子，模板体输出 `<expr> ilike <value>` 语义）；duckdb 有效性实测：经继承其加载后函数表含 ilike 即可，不可达则显式补配（裁定记录在提交说明）。
-- [ ] **不改任何 `supportILike` 标志**（`default.dialect.xml:22` 的 `false` 与 `h2.dialect.xml:18` 的 `true` 均保持）。
-- [ ] 配置断言测试：h2/postgresql/duckdb 加载后 `getFunction("ilike") != null`；继承面 h2gis（经 h2）/postgis（经 postgresql）同样命中；mysql/mssql 等未注册方言仍为 null。
-- [ ] 行为断言测试（nop-orm-eql）：`ilike` 语义查询在 h2 上输出含 ` ilike ` 的 SQL（断言具体文本）；在未注册方言（如 mysql）上仍抛 `ERR_EQL_NOT_SUPPORT_ILIKE`（既有负向路径回归）。
-- [ ] 矩阵快照同步（h2/postgresql/duckdb/h2gis/postgis 的 functions 列表变化）+ 两道门禁复跑绿。
+- [x] h2 与 postgresql 注册 `ilike` 模板（照 `oracle.dialect.xml:174-176` 的元素形态；H2/PG 原生 ILIKE 算子，模板体输出 `<expr> ilike <value>` 语义）；duckdb 有效性实测：经继承其加载后函数表含 ilike 即可，不可达则显式补配（裁定记录在提交说明）。（**实测：duckdb 经 extends postgresql 继承可达**，无需显式补配——结论记录于提交说明）
+- [x] **不改任何 `supportILike` 标志**（`default.dialect.xml:22` 的 `false` 与 `h2.dialect.xml:18` 的 `true` 均保持）。（锁定断言 `testSupportIlikeFlagsUntouched`）
+- [x] 配置断言测试：h2/postgresql/duckdb 加载后 `getFunction("ilike") != null`；继承面 h2gis（经 h2）/postgis（经 postgresql）同样命中；mysql/mssql 等未注册方言仍为 null。（`TestIlikeFunctionRegistration` 4 测试，另含 oracle 既有防回归）
+- [x] 行为断言测试（nop-orm-eql）：`ilike` 语义查询在 h2 上输出含 ` ilike ` 的 SQL（断言具体文本）；在未注册方言（如 mysql）上仍抛 `ERR_EQL_NOT_SUPPORT_ILIKE`（既有负向路径回归）。（`TestEqlIlikeDialectFunction` 3 测试，另含 oracle regexp_like 正向对照）
+- [x] 矩阵快照同步（h2/postgresql/duckdb/h2gis/postgis 的 functions 列表变化）+ 两道门禁复跑绿。（快照 +5 处 ilike，mjs exit 0 + 字节比对绿）
 
 Exit Criteria:
 
-- [ ] 配置断言 + 行为断言全绿；未注册方言负向路径不回归。
-- [ ] 快照已同步且 `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 配置断言 + 行为断言全绿；未注册方言负向路径不回归。
+- [x] 快照已同步且 `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，nop-dao 855 / nop-orm-eql 242）
+- [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - INTERSECT/EXCEPT 版本门 + mariadb RETURNING 门（第 6 项 + 门形态）
 
