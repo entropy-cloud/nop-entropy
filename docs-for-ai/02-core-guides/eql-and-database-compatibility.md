@@ -188,12 +188,17 @@ EQL 的 INTERVAL 现在接受两种语法形态，构建期归一化装入同一
 
 **方言模板骨架**：`dialect.xdef` 的 `<sqls>` 新增 `sqlIntervalLiteral` 元素（与 `<dateLiteral>` 同构），retention 落 `DialectSqls`，accessor `IDialect.getSqlIntervalLiteral()`（未配置返回 null）。**WI1 不填任何逐方言模板内容、不消费模板改写 interval 输出——逐方言模板内容的唯一 owner 是 roadmap WI7b**（占位符形态、各方言正确输出用例均由 WI7b 裁定与交付）。
 
+### 集合下标表达式：显式报错（2026-10-03 WI1 BUG-14）
+
+EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）在生成器中**显式报错** `nop.err.eql.collection-access-not-support`（echo 与执行路径同门），不再静默产出垃圾 SQL。裁定依据：该文法的方括号内容是**集合过滤语义**（`where` + `order by`，非下标取值），编译管线对该节点没有 lowering，"机械回显"没有任何数据库能接受；显式失败遵循"静默降级会改变语义必须显式报错"的平台原则。写作替代：集合语义请改写为关联属性 join 或集合操作符（`_some`/`_all` 走另一条 AST 路径，不受影响）。今天文法层即失败的输入（`o.roles[]`、`o.roles[order by a].x()`）保持解析期响亮失败。
+
 ### 方言敏感输出点登记表（roadmap 级 EC 第 4 条）
 
 本表登记 EQL 编译管线中"按方言能力分叉的输出点"：generator/transform 位置 + 能力标志 + 不支持时的错误码。**每行都有对应的"该方言编译期报错"负向测试。**
 
 | 输出点 | 位置 | 能力标志 / 通路 | 不支持时错误码 | 负向测试 |
 |--------|------|----------------|---------------|---------|
+| 集合下标表达式 | `AstToEqlGenerator.visitSqlCollectionAccessExpr`（echo/执行同门） | 无 lowering 通路（语义不支持翻译） | `nop.err.eql.collection-access-not-support` | `TestEqlCollectionAccessError` |
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |

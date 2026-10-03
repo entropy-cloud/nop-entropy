@@ -7,11 +7,13 @@
  */
 package io.nop.orm.eql.sql;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
 import io.nop.core.lang.sql.StringSqlExpr;
+import io.nop.orm.eql.OrmEqlErrors;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
@@ -894,6 +896,25 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         }
         print(" exists ");
         visit(node.getQuery());
+    }
+
+    /**
+     * WI1 BUG-14（裁定 = 候选 B 显式报错，见
+     * ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md §2）：
+     * {@code SqlCollectionAccessExpr}（如 {@code o.roles[1].x()}）的方括号文法是集合
+     * 过滤语义（where + order by），非下标取值；编译管线对该节点没有任何 lowering，
+     * {@code collFuncName} 全仓零读取——修复前两个生成器零处理，静默产出
+     * {@code select o.roles 1 from t as o} 一类垃圾 SQL。机械回显没有正确的输出目标，
+     * 因此 echo 与执行路径同门显式报错（基类 override 即两条路径同时生效）；今天已
+     * 失败的输入（{@code o.roles[]} 等）保持文法层响亮失败，集合操作符 _some/_all
+     * 走另一条 AST 路径不受影响。
+     */
+    @Override
+    public void visitSqlCollectionAccessExpr(io.nop.orm.eql.ast.SqlCollectionAccessExpr node) {
+        String text = node.getCollection().getFullName() + "[" + node.getCollFuncName() + "]";
+        throw new NopException(OrmEqlErrors.ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT)
+                .loc(node.getLocation())
+                .param(OrmEqlErrors.ARG_EXPR, text);
     }
 
     @Override

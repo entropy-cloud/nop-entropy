@@ -196,6 +196,11 @@ public interface OrmEqlErrors {
             define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",
                     ARG_DIALECT, ARG_FEATURE);
 
+    // WI1 BUG-14（裁定=候选B 显式报错）：SqlCollectionAccessExpr 的 [..] 是集合过滤语义，
+    // 编译管线无 lowering，机械回显没有正确输出目标 ⇒ 生成器显式失败而非静默产出垃圾 SQL
+    ErrorCode ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT = define("nop.err.eql.collection-access-not-support",
+            "集合下标表达式[{expr}]不支持翻译为SQL，请改写为关联属性join或集合操作符(_some/_all)", ARG_EXPR);
+
     ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
             define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
 
