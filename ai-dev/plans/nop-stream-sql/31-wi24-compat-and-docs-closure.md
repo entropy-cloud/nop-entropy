@@ -1,6 +1,6 @@
 # 31 WI24 兼容迁移说明与 docs 收口
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI24 行、roadmap 级完成判定四条）
 > Related: 全部前序 WI plans（01-30）
@@ -50,15 +50,15 @@ Targets: docs-for-ai
 
 - Item Types: `Proof`
 
-- [ ] nop-stream-sql.md 增「兼容与迁移」节（`<sql>` 增量语义/classpath 依赖/W2-T1 边界/D9 说明/D1 标注）
-- [ ] OBS-1 回链 + OBS-2 措辞精确化
-- [ ] 日志
+- [x] nop-stream-sql.md 增「兼容与迁移」节（`<sql>` 增量语义/classpath 依赖/W2-T1 边界/D9 说明/D1 标注）
+- [x] OBS-1 回链 + OBS-2 措辞精确化
+- [x] 日志
 
 Exit Criteria:
 
-- [ ] 文档节落地且与 live 一致
-- [ ] check-doc-links --strict 0
-- [ ] `ai-dev/logs/` 条目更新
+- [x] 文档节落地且与 live 一致
+- [x] check-doc-links --strict 0
+- [x] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - roadmap 完成判定核验与收口
 
@@ -93,14 +93,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 兼容迁移节与 docs 收口落地；roadmap 级完成判定四条全部满足（31/31 done + allDone、独立 audit PASS、六模块 hollow 0 + invariants 0、D1-D15 五文档落档含负责人与日期）——nop-stream-sql roadmap 收口成立。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi24-closure-audit.md——PASS（0 Blocker/0 Major/4 Minor 收口落笔：v9 头注记、五份计数、日志节、WI24 行 PASS 记录）；§5 兼容迁移五条逐句对照实码成立；OBS-1/OBS-2 落档
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- no remaining plan-owned work；roadmap 级遗留见 Follow-up Backlog（FU-1 至 FU-10）
