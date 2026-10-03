@@ -230,49 +230,53 @@ Exit Criteria:
 
 ### Phase 5 - BUG-10 `cross join` 静默误解析（.g4，单独提交）
 
-Status: planned
+Status: completed（2026-10-03，文法 commit `cdeb4e87c9` + 逻辑 commit `058ca2fcab`）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`joinType_` + `crossJoin_`）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/enums/SqlJoinType.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`（`:291-299` 映射）、`nop-stream/nop-stream-sql/src/main/java/io/nop/stream/sql/compile/StreamSqlCompiler.java`（`:594-608` `joinTypeName` switch 补显式分支）、`nop-persistence/nop-orm-eql/src/test/`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
+
+> **执行期记录**：修复前红实测——echo 输出 `select count(*) from a as cross join b`（`cross` 被消费为别名）；实体语法形态 `from AppUser o cross join AppRole r` 直接 `nop.err.antlr.not-end-properly`。**① 真实歧义与消歧**：`joinType_` 新增 `crossJoin_` 后 `a cross join b` 仍存在第二种合法解析（`cross` 作别名 + `INNER?` 可选的裸 `join` = inner join）——ANTLR 的贪婪可选别名子决策抢先消费 `cross`，回显不变。落地方案 = `sqlSingleTableSource` 的 alias 元素加**语义谓词** `{_input.LA(1) != CROSS || _input.LA(2) != JOIN}`（AstGrammarBuilder 的 getUniqueRef 对 SEMPRED 透明，先例检索无既有谓词；`a as cross join b` 显式 AS 别名形态从"静默误解析"变为"解析错误"——响亮化，列入提交说明）。② 别名场景裁定：`from a cross`（cross 作别名、无 JOIN）不受影响，用例锁定；③ 既有回显行为实证：`inner join` 回显为 `join`（INNER 可选）、`left outer join` 回显丢 `OUTER`——均为既有 BUG-4 族回显小节行为，测试按现状锁定（修复前后不变），治理归 WI2；④ 实体间无 ON 条件的 join（含 cross join）在 transform 层保持既有响亮拒绝（`ERR_EQL_JOIN_NO_CONDITION`）——文法放开后无静默错误 SQL 阶段；实体编译路径正用例右侧用子查询表源（`EqlTransformVisitor.visitJoinRight` 对子查询右侧不要求条件）。
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 修复前红：`select count(*) from a cross join b` 断言输出 `… from a cross join b`——修复前输出 `from a as cross join b`，断言红。
-- [ ] 文法新增 `crossJoin_: CROSS JOIN` 并入 `joinType_`；**不动 `CROSS` 在 `unreservedWord_`（`BaseRule.g4:93`）与 7 个方言 `<reservedKeywords>` 中的位置**（移出即回归，roadmap 明令）。
-- [ ] 枚举与映射补全：`SqlJoinType` 新增 cross 值（文本 `cross join`），手写映射 `EqlASTBuildVisitor.SqlJoinTableSource_joinType`（`:291-299`）补分支，生成器经 `getJoinType().getText()`（`AstToEqlGenerator.java:630`）自然输出。
-- [ ] **已知消费方同批处理**：`nop-stream-sql` 的 `StreamSqlCompiler.joinTypeName` switch（`:594-608`）补 `CROSS_JOIN` 显式分支（返回值裁定为 `"CROSS"`，与既有分支返回 `"INNER"`/`"LEFT"`/`"RIGHT"`/`"FULL"` 的大写枚举名风格一致；执行时已核实其输出仅流入 stream 编译产物的 joinSpec `joinType` 字段，`nop-stream-sql` 测试无对 `"cross join"` 全文的断言依赖）——**不修跨语法语义**，但文法放开后 stream 侧会从"解析失败（响亮）"退化为"解析成功但运行时抛错（更晚的响亮）"，属已知消费方必须同批处理；该模块不在本 WI 原有 `-pl` 闭包，自本 Phase 起 `-pl` 追加 `:nop-stream-sql`。
-- [ ] **实体编译路径用例**：经 `EqlCompiler` + 实体模型编译 `from A a cross join B b`，断言产出 SQL 文本——覆盖 `EqlTransformVisitor.markMainSource`（`:523-538`，现仅对 LEFT/RIGHT/FULL 分派）对 CROSS_JOIN 的行为，不再是纯 parse+echo 层用例。
-- [ ] 回归守护：`natural join` 仍失败（`nop.err.antlr.not-end-properly`，行为不变——roadmap 未授权扩展）；别名场景 `from a cross b`（`cross` 作别名）在新文法下的行为经裁定并记录（如受影响，列入提交说明）。
-- [ ] 文法改动**单独提交**；重生成产物随该提交（`./mvnw generate-sources -pl :nop-orm-eql -am`）；不删除任何 lexer token。
+- [x] 修复前红：`select count(*) from a cross join b` 断言输出 `… from a cross join b`——修复前输出 `from a as cross join b`，断言红。
+- [x] 文法新增 `crossJoin_: CROSS JOIN` 并入 `joinType_`；**不动 `CROSS` 在 `unreservedWord_`（`BaseRule.g4:93`）与 7 个方言 `<reservedKeywords>` 中的位置**（移出即回归，roadmap 明令）。（歧义消解谓词见执行期记录①。）
+- [x] 枚举与映射补全：`SqlJoinType` 新增 cross 值（文本 `cross join`），手写映射 `EqlASTBuildVisitor.SqlJoinTableSource_joinType`（`:291-299`）补分支，生成器经 `getJoinType().getText()`（`AstToEqlGenerator.java:630`）自然输出。
+- [x] **已知消费方同批处理**：`nop-stream-sql` 的 `StreamSqlCompiler.joinTypeName` switch（`:594-608`）补 `CROSS_JOIN` 显式分支（返回值裁定为 `"CROSS"`，与既有分支返回 `"INNER"`/`"LEFT"`/`"RIGHT"`/`"FULL"` 的大写枚举名风格一致；执行时已核实其输出仅流入 stream 编译产物的 joinSpec `joinType` 字段，`nop-stream-sql` 测试无对 `"cross join"` 全文的断言依赖）——**不修跨语法语义**，但文法放开后 stream 侧会从"解析失败（响亮）"退化为"解析成功但运行时抛错（更晚的响亮）"，属已知消费方必须同批处理；该模块不在本 WI 原有 `-pl` 闭包，自本 Phase 起 `-pl` 追加 `:nop-stream-sql`。
+- [x] **实体编译路径用例**：经 `EqlCompiler` + 实体模型编译 `from A a cross join B b`，断言产出 SQL 文本——覆盖 `EqlTransformVisitor.markMainSource`（`:523-538`，现仅对 LEFT/RIGHT/FULL 分派）对 CROSS_JOIN 的行为，不再是纯 parse+echo 层用例。（正用例右侧为子查询表源——实体间无 ON 条件的 join 在既有 transform 语义下响亮拒绝（`ERR_EQL_JOIN_NO_CONDITION`，与 join 类型无关的既有行为），拒绝行为以负向用例锁定；`markMainSource` 的 CROSS_JOIN no-op 分支经正用例覆盖不崩溃。）
+- [x] 回归守护：`natural join` 仍失败（`nop.err.antlr.not-end-properly`，行为不变——roadmap 未授权扩展）；别名场景 `from a cross b`（`cross` 作别名）在新文法下的行为经裁定并记录（如受影响，列入提交说明）。（用例 = `from a cross`：别名解析不受影响，`from a as cross join b` 显式 AS 形态从静默误解析变解析错误——响亮化，已记录。）
+- [x] 文法改动**单独提交**；重生成产物随该提交（`./mvnw generate-sources -pl :nop-orm-eql -am`）；不删除任何 lexer token。（`cdeb4e87c9` 文法+生成物 / `058ca2fcab` 逻辑。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（`from a cross join b`）。
-- [ ] 实体编译路径用例通过：`from A a cross join B b` 经 `EqlCompiler` 编译产出含 `cross join` 的 SQL 文本（且不触发 `markMainSource`/`joinTypeName` 的异常路径）。
-- [ ] `StreamSqlCompiler.joinTypeName` 对 5 个枚举值（JOIN/LEFT_JOIN/RIGHT_JOIN/FULL_JOIN/CROSS_JOIN）均有显式分支、无 default 抛错路径的回归用例（或等价的 switch 覆盖断言）。
-- [ ] 既有 join 形态回归：inner/left/right/full（含 `LEFT OUTER JOIN` 等变体）解析与输出不变；三份必测 BC 与 WI0 基线快照逐字一致。
-- [ ] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-stream-sql -am -T 1C` 全绿。
-- [ ] owner doc（如 join 能力面有文档表述需同步）已更新，或明确写 `No owner-doc update required`（CROSS JOIN 无方言门，roadmap 未要求）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（`from a cross join b`）。
+- [x] 实体编译路径用例通过：`from A a cross join B b` 经 `EqlCompiler` 编译产出含 `cross join` 的 SQL 文本（且不触发 `markMainSource`/`joinTypeName` 的异常路径）。（`TestEqlCrossJoinCompile` 2/2；实体-实体无条件的既有响亮拒绝以负向用例锁定。）
+- [x] `StreamSqlCompiler.joinTypeName` 对 5 个枚举值（JOIN/LEFT_JOIN/RIGHT_JOIN/FULL_JOIN/CROSS_JOIN）均有显式分支、无 default 抛错路径的回归用例（或等价的 switch 覆盖断言）。（`TestStreamSqlCompiler.joinTypeNameCoversAllFiveEnumValuesExplicitly`——真实编译路径 5 形态断言 joinSpec joinType。）
+- [x] 既有 join 形态回归：inner/left/right/full（含 `LEFT OUTER JOIN` 等变体）解析与输出不变；三份必测 BC 与 WI0 基线快照逐字一致。（`TestEqlCrossJoinParse.testLegacyJoinFormsUnchanged` + `TestEqlCorpusBaseline` 随全量运行通过。）
+- [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-stream-sql -am -T 1C` 全绿。（nop-stream-runtime 闭包含 1 项既有失败 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`，与 WI0 基线豁免口径一致；详见 Closure 段终局验证记录。）
+- [x] owner doc（如 join 能力面有文档表述需同步）已更新，或明确写 `No owner-doc update required`（CROSS JOIN 无方言门，roadmap 未要求）。——`No owner-doc update required`（CROSS JOIN 无方言门；既有回显小节的 INNER/OUTER 丢弃行为属 BUG-4 族既有事实，不由本 Phase 改变）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 6 - BUG-14 集合下标产出垃圾 SQL
 
-Status: planned
+Status: completed（2026-10-03，commit `9fa31999d7`）
 Targets: 按 Phase 0 裁定（生成器补齐打印 → `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java` / `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`；或显式报错 → 同文件 + `OrmEqlErrors.java`）、`nop-orm-eql` 测试
+
+> **执行期记录**：修复前红实测——echo 输出 `select o.roles 1 from t as o`（垃圾文本零信号）。落地 = 基类 `AstToEqlGenerator.visitSqlCollectionAccessExpr` override（echo 与执行路径同门）抛新错误码 `nop.err.eql.collection-access-not-support`（ARG_EXPR 携带 collection[collFuncName] 文本）。**执行路径实证分层响亮**：全链路（EqlCompiler）下实体解析层对未知属性先行响亮拒绝（`nop.err.eql.unknown-column-name`）；直接驱动 `AstToSqlGenerator` 访问该 AST 节点证明 SQL 产出环节的分派真实到达显式报错——两个阶段都不存在静默垃圾输出。`o.roles[]`/`o.roles[order by a].x()` 保持文法层响亮失败（用例锁定），`_some`/`_all` 不受影响（既有 `TestCollectionOperatorTransformer` 19 用例随全量运行通过）。
 
 - Item Types: `Fix`（按 Phase 0 裁定的形态落地）、`Proof`
 
-- [ ] 按 Phase 0 裁定落地：`select o.roles[1].x()` 不再产出 `select o.roles 1 from t as o`——或输出补齐的 SQL 文本（候选 A），或编译期显式报错（候选 B，断言错误码，遵循 `SqlSelectFieldExtractor.java:124-127` 先例）。
-- [ ] 修复前红：以上断言在修复前为红（现状为垃圾输出且零信号）。
-- [ ] 无静默跳过：无论哪个候选，`SqlCollectionAccessExpr` 必须被生成器显式处理（打印或报错），不允许维持现状的"零处理 → 垃圾输出"。
-- [ ] 既有通过的输入不受影响：`o.roles[]`、`o.roles[order by a].x()` 等**今天已失败**的输入保持响亮失败（不得因本 Phase 变成静默通过或静默丢弃）；集合操作符 `_some`/`_all` 行为不受影响（roadmap 明文）。
-- [ ] owner doc：按裁定结果登记（若选 A，记录"补齐打印"的语义边界；若选 B，登记错误码与触发条件），或明确写 `No owner-doc update required`。
+- [x] 按 Phase 0 裁定落地：`select o.roles[1].x()` 不再产出 `select o.roles 1 from t as o`——或输出补齐的 SQL 文本（候选 A），或编译期显式报错（候选 B，断言错误码，遵循 `SqlSelectFieldExtractor.java:124-127` 先例）。（裁定 = 候选 B，裁定文档 §2。）
+- [x] 修复前红：以上断言在修复前为红（现状为垃圾输出且零信号）。
+- [x] 无静默跳过：无论哪个候选，`SqlCollectionAccessExpr` 必须被生成器显式处理（打印或报错），不允许维持现状的"零处理 → 垃圾输出"。
+- [x] 既有通过的输入不受影响：`o.roles[]`、`o.roles[order by a].x()` 等**今天已失败**的输入保持响亮失败（不得因本 Phase 变成静默通过或静默丢弃）；集合操作符 `_some`/`_all` 行为不受影响（roadmap 明文）。
+- [x] owner doc：按裁定结果登记（若选 A，记录"补齐打印"的语义边界；若选 B，登记错误码与触发条件），或明确写 `No owner-doc update required`。（已落「集合下标表达式：显式报错」小节 + 登记表行。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本或具体错误码（与 Phase 0 裁定一致）。
-- [ ] 负向/守护用例：今天失败的输入仍响亮失败；`_some`/`_all` 路径回归通过。
-- [ ] 三份必测 BC（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-metadata-service -am -T 1C` 全绿（metadata-service 是 `SqlCollectionAccessExpr` 语义的消费方之一）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本或具体错误码（与 Phase 0 裁定一致）。（`TestEqlCollectionAccessError` 4/4：echo 路径 + 执行路径生成器 + 全链路响亮 + 既有响亮守护，全部断言 `nop.err.eql.collection-access-not-support` 或 antlr 前缀错误码。）
+- [x] 负向/守护用例：今天失败的输入仍响亮失败；`_some`/`_all` 路径回归通过。
+- [x] 三份必测 BC（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随 `:nop-orm-eql` 全量运行通过。）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-metadata-service -am -T 1C` 全绿（metadata-service 是 `SqlCollectionAccessExpr` 语义的消费方之一）。（BUILD SUCCESS。）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
