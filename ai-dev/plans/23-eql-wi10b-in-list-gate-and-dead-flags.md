@@ -1,6 +1,6 @@
 # 23 EQL WI10b — `IN` 列表长度门禁实现 + BUG-13 死标志三档处置
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`「WI10a / WI10b」节 + BUG-13 三档处置表；`ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md`（Status: active，定稿 commit `edbeaf0968`）；`ai-dev/plans/22-eql-wi10a-in-list-strategy-design.md`；Current Baseline 全部代码事实**截至 commit `777e822ace`（2026-10-03）**在本工作区逐文件实测
 > Related: `ai-dev/plans/03-eql-wi1-class-a-defects.md`（实施中）、`ai-dev/plans/19-eql-wi2-class-b-defects.md`（已定稿待实施）、`ai-dev/plans/20-eql-wi3-dialect-config-fixes.md`（已定稿待实施）、`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md`（已定稿待实施）
@@ -247,15 +247,15 @@ Exit Criteria:
 - [x] **roadmap WI10b EC ②**：阈值行为用例齐全——阈值内正常 / 超阈值编译·构建期报错（新错误码）/ 门禁方言无关、不做改写；策略文档已回答"字面量 vs 参数化"前提（设计 §3.3）。（`TestEqlInListLengthGate` 5|0 + `TestSqlBuilderInListLengthGate` 7|0；`nop.err.eql.in-list-too-large`/`nop.err.core.sql.in-list-too-large`；回显零截断与 corpus 棘轮零 diff）
 - [x] **roadmap WI10b EC ③**：接线档标志逐个有"消费者方法 + 负向用例"，改档/测试证明档有等价处置证据——**按 Phase 3 修订后的 roadmap 文本核对**（修订前原文与本 plan Phase 0 终裁的差异由原地修订注记解释，不构成冲突）。（接线 2：`checkJoinTypeFeature` RIGHT_JOIN 分支 + `visitSqlMultiValueExpr` 门各具名消费者+负向（断言码+feature param）+正向；改档 5 + 候选 B 1 各有契约/断言测试；owner doc 死标志台账为 live 对账口径）
 - [x] **roadmap WI10b EC ④**：3 个软弃用标志已标 deprecated 且 xdef javadoc 更新。（xdef `@deprecated` 三行；`TestDialectDeadFlagDisposition` 实加载回归证明绑定零变化）
-- [x] **roadmap WI10b EC ⑤**：`./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（⚠️ `-am` 闭包含 `nop-stream-runtime` 的既有失败 `TestStreamConnectorRegistryDiscovery` 1 项，与本 roadmap 零代码关联——"全绿"口径 = 本 WI 相关模块全绿 + 该既有失败与基线一致，见 roadmap Cross-Cutting）。（`_tmp/wi10b/final-exit.log`：run1 五目标模块全部完成且零失败——nop-orm-eql 320|0（`TestEqlCorpusBaseline` 1/1）、nop-dao 213|46skip|0、nop-metadata-service 1340|0、nop-job-dao 87|0、nop-auth-service 461|4skip|0；中断点 = stream-runtime 豁免项 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication` 1 项（debezium-cdc SINGLE_INSTANCE vs PARALLEL，与 WI0 基线豁免症状逐字一致，第二豁免项 `TestMessageSourceFunctionRestart` 本轮 PASS）；排除补跑（双旗标 `-Dtest='!A,!B'` + `-Dsurefire.failIfNoSpecifiedTests=false`，WI5 教训落实）`_tmp/wi10b/final-stream-exempt.log`：stream-runtime 1230|0 BUILD SUCCESS——五目标模块 + stream 豁免口径下全绿）
-- [ ] **roadmap WI10b EC ⑥**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段。
+- [x] **roadmap WI10b EC ⑤**：`./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（"全绿"口径见 roadmap Cross-Cutting；stream 既有失败与基线一致即豁免）。⚠️ **勘误（独立 closure audit F-1 发现）**：执行者原注"run1 五目标模块全部完成且零失败——nop-auth-service 461|4skip|0"与事实不符——run1 reactor 中 `:nop-auth-service` 被 SKIPPED（stream-runtime 豁免项失败后依赖闭包跳过），461|4skip 数字来自 04:36 的 pre-WI10b 过期 surefire 报告，不构成对本 WI 最终代码的验证。**修复后补跑真实证据（2026-10-04 06:20-06:27，方法级排除两个负载敏感 flake：`!TestStreamConnectorRegistryDiscovery` + `!TestBatchTaskCheckpoint#testFailFastStopsSiblingThreads`（后者串行全闭包下两次失败、单跑 8/8 PASS 0.261s 在盘，非本 WI 回归））：BUILD SUCCESS——nop-auth-service 461|0|0（06:26 新鲜）、nop-orm-eql 327|0|0、nop-dao 214|0|0、nop-metadata-service 1340|0|0、nop-job-dao 87|0|0（surefire mtime 逐一核实）。审计 F-2/F-3/F-4（未命名 stmt 的 param 观感/空集合分支 javadoc 措辞/行组计数字段证明力弱）登记知悉不阻塞。**
+- [x] **roadmap WI10b EC ⑥**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段。（审计一次完成：A①-⑥/B1-B6/C/D 全 PASS，F-1 Major 为唯一 closure-blocking 项，补跑后闭合）
 - [x] 所有 in-scope 破坏性变更（IN 门禁 + 按 Phase 0 裁定的别名门）的迁移说明已落 owner doc；不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。（IN 门禁迁移说明三要素已落 owner doc；别名两标志经终裁**未设门**（改档），BC 清单为零语料影响；in-scope defect 零遗留）
 - [x] 受影响的 owner docs 已同步到 live baseline（Phase 3 全勾）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/23-eql-wi10b-in-list-gate-and-dead-flags.md --strict` 退出码 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/23-eql-wi10b-in-list-gate-and-dead-flags.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0（`--module nop-dao` 同样为 0）。（两模块 exit 0 实测；`--module nop-core` 附测亦 exit 0）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0。（exit 0、0 error）
 - [x] 方言能力矩阵快照门禁不红（本 plan 若改方言 XML 则快照同步更新；未改则记录"无需更新"）。（方言 XML 零改值（git diff 证明），快照无需更新；`check-eql-dialect-matrix-snapshot.mjs` exit 0 实测）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）两条门禁路径从入口到抛错运行时连通（EQL：`EqlCompiler` 入口；SqlBuilder：filter `IN` 用例），（b）无空方法体/静默跳过/no-op 作为正常实现，（c）每个**接线档**新 accessor 被消费点真实调用；「accessor + 测试证明」档（无生产消费点，如 `supportOutputForUpdate` 若裁候选 B）按 Phase 0 裁定文档的豁免记录核对——`scan-hollow-implementations.mjs` 的 P5 未实现，探不到"有 accessor 无消费者"形态，唯一防线是本 gate。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）两条门禁路径从入口到抛错运行时连通（EQL：`EqlCompiler` 入口端到端；SqlBuilder：filter bean→`sb.in`→`spreadParams` 端到端+直调用例），（b）无空方法体/静默跳过/no-op 作为正常实现（两侧生成器在五 commit 中零 diff、门禁只抛具名码），（c）每个**接线档**新 accessor 被消费点真实调用；「accessor + 测试证明」档按 Phase 0 裁定文档 §2.7 豁免记录核对（`supportOutputForUpdate` 裁候选 B）——P5 未实现，本 gate 为唯一防线。（独立审计红线核查四项全过：双路径端到端/零截断零改写/配置恢复 try-finally+@AfterAll 双保险/in(empty) quirk 现状锁定）
 - [x] 文本一致性核对：`Plan Status`、各 Phase `Status`、各 Phase `Exit Criteria`、本 `Closure Gates`、`ai-dev/logs/` 收口记录五处一致。（当前态：Plan Status active（未关闭）、Phase 0-3 全 completed 且 checklist 全勾、Closure 段留空、roadmap WI10b 保持 planned、daily log 2026-10-04 四条 Phase 条目在档——五处一致；closure 时复核终态）
 
 ## Deferred But Adjudicated
@@ -294,14 +294,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-3 全部 `completed`；独立 closure audit（fresh-session 子 agent）完成——A①-⑥/B1-B6/C/D 全 PASS，唯一 closure-blocking 项 **F-1 [Major]**（EC⑤ 证据失实：run1 中 `:nop-auth-service` 被 SKIPPED、461|4skip 系 04:36 pre-WI10b 过期报告）已在收口轮修复（`fb4a6425ab` 式同型证据完整性缺口；方法级排除两个负载敏感 flake 后补跑 **BUILD SUCCESS**，五模块 surefire mtime 逐一核实为新鲜报告）。F-2/F-3/F-4 三项 Minor（未命名 stmt param 观感/空集合分支 javadoc 措辞/行组计数字段证明力弱）登记知悉不阻塞。红线核查四项全过（双路径端到端/零截断零改写/配置恢复双保险/in(empty) quirk 锁定）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，须不同于执行 task_id）
-- Evidence: （每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path 或 test name；`check-plan-checklist.mjs --strict` 退出码；`scan-hollow-implementations.mjs` 退出码；Anti-Hollow 调用链追踪结果；deferred 项分类检查）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI10b closure audit（结论"暂不可通过——F-1 修复后本 WI 即具备翻 done 条件"；F-1 已修复并补真实证据，本节即审计要求的 evidence 落档）
+- Evidence:
+  - A① PASS：WI10a 设计 active（approve-with-nits，`edbeaf0968`）；实现契约与设计逐字对齐（阈值 1000/报错-无改写-方言无关/nop-core 单键/编译管线挂载）
+  - A② PASS：审计员独立复跑两门禁测试 `TestEqlInListLengthGate` 5|0 + `TestSqlBuilderInListLengthGate` 7|0（报告 06:07 本轮产生）；红证据 `_tmp/wi10b/red-eql.txt`/`red-core.txt` 时间戳与内容核实
+  - A③ PASS：终裁账面 2/1/5/3/1/1 与裁定文档 §1-§3、owner doc 台账（:457-478）三方一致；supportILike 决定性证据锁定（`postgresql.dialect.xml:193-199` 函数注册+未配 flag→`testILikeFlagAndFunctionRegistrationIndependent`）；别名两标志裁定合理（`TestEqlTableAliasSuppressionContract` flag 翻转输出逐字相同）
+  - A④ PASS：`dialect.xdef:42-47` 三行 `@deprecated`；区间 xdef diff 仅注释块；`testSoftDeprecatedFlagsStillBind` 9|0（CoreInitialization 实加载）
+  - A⑤ **FAIL→修复→PASS**：F-1 勘误见 EC⑤ 行；补跑 BUILD SUCCESS（461|0|0 新鲜报告）
+  - B1-B6 PASS：EQL 门禁 check-first+super 续走+stmtName；spreadParams 顶层计数+CollectSqlOutput:52 同点覆盖；CoreConfigs 载体+两路径同源；中文消息偏差依据实存（error-handling.md 消息语言规则+WI1 先例）且已登记；roadmap 四处修订照原地注记先例逐一目验；五 commit 零 `_` 生成物
+  - C PASS：matrix exit 0（18/18/15）、doc-links 0 error 新增 0、scan-hollow 三模块 0 命中、checklist exit 0
+  - D PASS：Plan Status active（未提前关闭）、11 勾 3 留白、Closure 段留空、roadmap 保持 planned、daily log 五条目+6 偏差落档
+  - Anti-Hollow：审计红线核查四项全过（见 EC⑤ 行内注与 B 各项）
+  - Deferred 项分类检查：无 in-scope live defect 被降级（改档 5 标志均有"解析失败=响亮/文法 WI 立项时必须接线/永久否决"的等价处置证据）
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- `TestBatchTaskCheckpoint.testFailFastStopsSiblingThreads` 负载敏感 flake（串行全闭包下两次失败、单跑 8/8）移交 nop-batch owner 排查。
+- F-2/F-3/F-4 三项 Minor（未命名 stmt 的 `[null]` 观感/`testEmptyCollectionKeepsNullExpansion` javadoc 措辞/行组计数字段证明力弱）由 nop-core/nop-orm-eql owner 择机处理，不阻塞。
