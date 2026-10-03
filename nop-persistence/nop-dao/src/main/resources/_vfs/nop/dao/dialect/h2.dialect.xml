@@ -248,6 +248,8 @@
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <!-- WI9a: UUID 原生类型（h2database.com/html/datatypes.html）；h2gis 继承本表 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
 </dialect>

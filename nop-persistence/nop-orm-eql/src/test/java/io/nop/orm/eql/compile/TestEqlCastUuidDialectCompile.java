@@ -58,6 +58,14 @@ public class TestEqlCastUuidDialectCompile {
         return TestEqlCastTypeAliasCompile.minimalDialect();
     }
 
+    // ---- "支持"载体（原生 UUID 类型，逐方言独立提交携带） ----
+
+    @Test
+    public void testH2UuidCastGeneratesUuid() {
+        String sql = sqlOf(dialectOf("h2"), "select cast(o.id as uuid) from AppDept o");
+        assertTrue(sql.contains("cast(o.SID as UUID)"), sql);
+    }
+
     // ---- "不支持"载体（真实方言无 UUID 映射 + 手工最小方言） ----
 
     @Test
