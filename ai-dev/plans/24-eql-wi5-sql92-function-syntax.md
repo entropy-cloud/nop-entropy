@@ -226,32 +226,32 @@ Exit Criteria:
 
 ### Phase 3 - `EXTRACT(f FROM d)` → 逐字段方言 lowering
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 + `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/*.dialect.xml`（若 Phase 0 裁定补注册字段目标函数）
 
 - Item Types: `Feature`、`Decision`（若裁定补注册）、`Proof`
 
-- [ ] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`extract(year from d)` 解析失败——回归测试断言可解析，修复前红。
-- [ ] 文法与归一化（按 Phase 0 裁定；**默认归一化形态已钉死为逐字段函数**）：`EXTRACT LP_ <字段> FROM expr RP_` 备选分支，`EXTRACT(YEAR FROM d)` → `SqlRegularFunction`（name=`year`，args=[d]）；字段名规则按 Phase 0 裁定（独立 token 规则或 `unreservedWord_`）。逗号形态 `extract(f,d)` 是既有行为，本 Phase 不改其文法与 lowering。
-- [ ] **字段落地范围与 Phase 0 裁定一致**：`year` 字段必须有正向 lowering（14/14 就绪）；其余字段的"落地 / 显式报错 / 移交 WI6"三分处置逐字段落实并记录——**不允许名义 owner**（裁定为移交的字段须写入 Deferred But Adjudicated + successor）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①，**按逐字段形态书写**）：`extract(year from d)` 在 h2 断言输出为 `year(d)` 形态文本（以 h2 实际注册的 `year` 定义输出为准）；若裁定补注册 `month`/`quarter` 等字段，则每个新注册字段在 h2 各一条输出用例（`extract(month from d)` → `month(d)` 形态）。
-- [ ] 负向用例（EC ②，**按逐字段形态书写**）：无目标字段函数的方言编译期报错（断言具体错误码）——`year` 已 14/14 注册，用例以手构无 `year` 的 `DialectModel` 载体实现（先例 `buildDialect` 模式）；裁定补注册的字段各一条"方言未注册该字段函数"负向用例。ⓘ **mssql 叙述拆开**：逐字段形态的 `year` 在 mssql **已注册（14/14 之一）、`EXTRACT(YEAR FROM d)` 在 mssql 可用**；**逗号形态** `extract(x,y)` 在 mssql 无注册（13/14 的唯一缺口）——该缺口是既有现状、逗号形态非本 plan 交付面，本 Phase 不修（如需覆盖属后续裁定并登记）。
-- [ ] 接线验证（#23）+ 既有逗号形态 `extract(x,y)` 在 h2 行为不变的守护用例（BC，差异登记第 7 条）。
-- [ ] 矩阵快照增量（EC ③）：本 Phase 与 Phase 4（TRIM 模板）并列**预期产生快照增量**的两个 Phase——新注册字段函数必须同步 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（重生成 `TestDialectCapabilityMatrix` 快照测试），门禁 exit 0；若裁定 EXTRACT 只落地 year 字段则核实零增量。
-- [ ] owner doc（EC ④）：EXTRACT 逐字段 × 逐方言覆盖表（`[实测]`/`[文档]`/`[未取证]`）；时区字段语义分叉登记（约束 4"不等价"类）。
-- [ ] 真库证据（EC ⑥）：**每个新注册字段函数**在 h2 经 `TestDialect.testFunctions` 真库执行全绿（有 `<testSql>` 用 `testSql`）；无法真库验证的方言（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）逐个列出 + 替代证据；`dm`/`tdengine` 标 `[未取证]`。
-- [ ] 语料 BC（EC ⑦）：三份必测逐字一致。
+- [x] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`extract(year from d)` 解析失败——回归测试断言可解析，修复前红。
+- [x] 文法与归一化（按 Phase 0 裁定；**默认归一化形态已钉死为逐字段函数**）：`EXTRACT LP_ <字段> FROM expr RP_` 备选分支，`EXTRACT(YEAR FROM d)` → `SqlRegularFunction`（name=`year`，args=[d]）；字段名规则按 Phase 0 裁定（独立 token 规则或 `unreservedWord_`）。逗号形态 `extract(f,d)` 是既有行为，本 Phase 不改其文法与 lowering。
+- [x] **字段落地范围与 Phase 0 裁定一致**：`year` 字段必须有正向 lowering（14/14 就绪）；其余字段的"落地 / 显式报错 / 移交 WI6"三分处置逐字段落实并记录——**不允许名义 owner**（裁定为移交的字段须写入 Deferred But Adjudicated + successor）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①，**按逐字段形态书写**）：`extract(year from d)` 在 h2 断言输出为 `year(d)` 形态文本（以 h2 实际注册的 `year` 定义输出为准）；若裁定补注册 `month`/`quarter` 等字段，则每个新注册字段在 h2 各一条输出用例（`extract(month from d)` → `month(d)` 形态）。
+- [x] 负向用例（EC ②，**按逐字段形态书写**）：无目标字段函数的方言编译期报错（断言具体错误码）——`year` 已 14/14 注册，用例以手构无 `year` 的 `DialectModel` 载体实现（先例 `buildDialect` 模式）；裁定补注册的字段各一条"方言未注册该字段函数"负向用例。ⓘ **mssql 叙述拆开**：逐字段形态的 `year` 在 mssql **已注册（14/14 之一）、`EXTRACT(YEAR FROM d)` 在 mssql 可用**；**逗号形态** `extract(x,y)` 在 mssql 无注册（13/14 的唯一缺口）——该缺口是既有现状、逗号形态非本 plan 交付面，本 Phase 不修（如需覆盖属后续裁定并登记）。
+- [x] 接线验证（#23）+ 既有逗号形态 `extract(x,y)` 在 h2 行为不变的守护用例（BC，差异登记第 7 条）。
+- [x] 矩阵快照增量（EC ③）：本 Phase 与 Phase 4（TRIM 模板）并列**预期产生快照增量**的两个 Phase——新注册字段函数必须同步 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（重生成 `TestDialectCapabilityMatrix` 快照测试），门禁 exit 0；若裁定 EXTRACT 只落地 year 字段则核实零增量。
+- [x] owner doc（EC ④）：EXTRACT 逐字段 × 逐方言覆盖表（`[实测]`/`[文档]`/`[未取证]`）；时区字段语义分叉登记（约束 4"不等价"类）。
+- [x] 真库证据（EC ⑥）：**每个新注册字段函数**在 h2 经 `TestDialect.testFunctions` 真库执行全绿（有 `<testSql>` 用 `testSql`）；无法真库验证的方言（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）逐个列出 + 替代证据；`dm`/`tdengine` 标 `[未取证]`。
+- [x] 语料 BC（EC ⑦）：三份必测逐字一致。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（`extract(year from d)` + 裁定落地的每个字段）。
-- [ ] 负向用例断言具体错误码；未落地字段均为显式报错或已登记 successor（无静默跳过、无名义 owner）。
-- [ ] 矩阵快照增量已同步（或核实零增量）+ 门禁 exit 0。
-- [ ] 新注册函数（若有）在 h2 `TestDialect.testFunctions` 真库执行全绿；无法真库验证方言清单 + 替代证据已落 owner doc。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（`extract(year from d)` + 裁定落地的每个字段）。
+- [x] 负向用例断言具体错误码；未落地字段均为显式报错或已登记 successor（无静默跳过、无名义 owner）。
+- [x] 矩阵快照增量已同步（或核实零增量）+ 门禁 exit 0。
+- [x] 新注册函数（若有）在 h2 `TestDialect.testFunctions` 真库执行全绿；无法真库验证方言清单 + 替代证据已落 owner doc。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - `TRIM` 标准三段式
 

@@ -205,6 +205,32 @@
             <source>datepart(year,{0})</source>
         </template>
 
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 MSSQL 覆盖（MSSQL 无 month(d) 全族
+             函数，统一走 DATEPART）。 -->
+        <template name="month" x:override="merge">
+            <source>datepart(month,{0})</source>
+        </template>
+
+        <template name="day" x:override="merge">
+            <source>datepart(day,{0})</source>
+        </template>
+
+        <template name="hour" x:override="merge">
+            <source>datepart(hour,{0})</source>
+        </template>
+
+        <template name="minute" x:override="merge">
+            <source>datepart(minute,{0})</source>
+        </template>
+
+        <template name="second" x:override="merge">
+            <source>datepart(second,{0})</source>
+        </template>
+
+        <template name="quarter" x:override="merge">
+            <source>datepart(quarter,{0})</source>
+        </template>
+
     </functions>
 
     <sqlDataTypes>

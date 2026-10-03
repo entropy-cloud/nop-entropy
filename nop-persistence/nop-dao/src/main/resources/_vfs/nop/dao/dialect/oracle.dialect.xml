@@ -191,6 +191,33 @@
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
         </template>
+
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 Oracle 覆盖（镜像 year 模板；
+             注意 EXTRACT(SECOND) 含小数秒，与 MySQL second() 0-59 语义不同——owner doc 差异表）。 -->
+        <template name="month" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(MONTH from {0})</source>
+        </template>
+
+        <template name="day" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(DAY from {0})</source>
+        </template>
+
+        <template name="hour" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(HOUR from {0})</source>
+        </template>
+
+        <template name="minute" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(MINUTE from {0})</source>
+        </template>
+
+        <template name="second" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(SECOND from {0})</source>
+        </template>
+
+        <!-- Oracle EXTRACT 不支持 QUARTER 字段，用 TO_CHAR 的 'Q' 格式替代。 -->
+        <template name="quarter" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>to_number(to_char({0},'Q'))</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

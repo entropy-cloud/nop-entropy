@@ -375,6 +375,18 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 既有逗号形态 `substring(x,a,b)` 行为不变：解析通过（函数名归一为 `substring`），函数表注册名是 `substr` → 编译期响亮报 `ERR_EQL_UNKNOWN_FUNCTION(substring)`（守护用例锁定，不静默改道）。
 **语义差异登记（不等价类）**：负起点索引——H2/MySQL `substr(str, -n)` 自串尾倒数（default.dialect.xml 描述明言"start 为负则相对末尾"）；MSSQL `SUBSTRING` 起点必须 ≥1（负值/0 行为不同）。EQL 归一化只做无损换形，不合并方言语义，跨库依赖负起点需自行核对目标库。
 
+#### EXTRACT(f FROM d) → 逐字段函数 `f(d)`
+
+归一化为**与字段同名的小写函数**：`EXTRACT(YEAR FROM d)` → `year(d)`、`EXTRACT(QUARTER FROM d)` → `quarter(d)`（默认形态钉死为逐字段函数；逗号形态 `extract(f,d)` 是另一条既有路径，行为不变）。字段规则仅放行 `YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/QUARTER` 七个（`BaseRule.g4` 的 `extractField__` 规则）；`WEEK`/`MICROSECOND` 等无注册函数的字段在文法层即拒绝（响亮），扩展字段须先注册同名函数。
+
+| 字段 | default（h2/h2gis/mysql/mariadb/mysql5.7/dm/tdengine/es/db2 继承） | mssql | oracle / oracle-reverse | postgresql / postgis / duckdb | 证据 |
+|------|------|------|------|------|------|
+| year | `year(d)` native（既有） | `datepart(year,d)` | `extract(YEAR from d)` | `extract(year from d)` | `[实测]` h2 + `[文档]` |
+| month/day/hour/minute/second | `month(d)` 等 native（WI5 注册） | `datepart(f,d)` ×5 | `extract(F from d)` ×5 | `extract(f from d)` ×5 | `[实测]` h2（六字段 testSql 真库执行，`TestDialect.testFunctions` + `TestEqlExtractFunctionDialect.testH2AllSixNewFields`）；mssql/oracle/pg `[文档]`（MySQL 8.0 日期函数、MSSQL DATEPART、Oracle EXTRACT、PG 15 datetime functions） |
+| quarter | `quarter(d)` native（WI5 注册） | `datepart(quarter,d)` | `to_number(to_char(d,'Q'))`（Oracle EXTRACT 无 QUARTER 字段） | `extract(quarter from d)` | `[实测]` h2（H2 真库 QUARTER 执行）；其余 `[文档]` |
+
+`dm`/`tdengine`/`db2`/`es` 经 default 继承获得注册，实际函数行为 `[未取证]`（与既有 `year` 同等待遇，不计入覆盖率）。**语义差异登记（不等价类）**：Oracle `extract(SECOND from ts)` 含小数秒，MySQL/`second()` 0-59——跨库需要整数秒时自行截断。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

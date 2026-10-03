@@ -164,6 +164,32 @@
             <source>extract(YEAR from {0})</source>
         </template>
 
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 PG 覆盖（PG 无 month(d) 函数形态，
+             统一走原生 EXTRACT；duckdb/postgis 经继承获得——DuckDB/PG 原生支持 EXTRACT）。 -->
+        <template name="month" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(month from {0})</source>
+        </template>
+
+        <template name="day" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(day from {0})</source>
+        </template>
+
+        <template name="hour" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(hour from {0})</source>
+        </template>
+
+        <template name="minute" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(minute from {0})</source>
+        </template>
+
+        <template name="second" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(second from {0})</source>
+        </template>
+
+        <template name="quarter" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(quarter from {0})</source>
+        </template>
+
         <!-- WI3 第 9 项：注册 ilike 函数（PG 原生 ILIKE 算子——"The key word ILIKE can be
              used instead of LIKE to make the match case-insensitive"。default 继承的
              supportILike="false" 标志不动：缺的是函数表注册，不是标志翻转，翻标志会引入
