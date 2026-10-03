@@ -78,6 +78,13 @@ public class TestEqlCastUuidDialectCompile {
         assertTrue(sql.toLowerCase().contains("cast(o.sid as uuid)"), sql);
     }
 
+    @Test
+    public void testMssqlUuidRendersUniqueidentifier() {
+        // mssql 原生类型名是 uniqueidentifier：std 键名 UUID、code 属性渲染 UNIQUEIDENTIFIER
+        String sql = sqlOf(dialectOf("mssql"), "select cast(o.id as uuid) from AppDept o");
+        assertTrue(sql.contains("UNIQUEIDENTIFIER"), sql);
+    }
+
     // ---- "不支持"载体（真实方言无 UUID 映射 + 手工最小方言） ----
 
     @Test

@@ -267,6 +267,9 @@
         <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="IMAGE" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <!-- WI9a: MSSQL 原生类型为 uniqueidentifier（learn.microsoft.com T-SQL 数据类型），
+             std 键名 UUID、code 渲染 UNIQUEIDENTIFIER -->
+        <sqlDataType name="UUID" code="UNIQUEIDENTIFIER" stdSqlType="UUID"/>
     </sqlDataTypes>
 
 </dialect>
