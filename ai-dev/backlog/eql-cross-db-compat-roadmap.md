@@ -81,7 +81,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - **WI0** 多方言验证骨架（方言能力矩阵棘轮测试）+ `TemplateSQLFunction` marker 加载期校验 + G-1..G-4 四门裁决 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 上游溯源: `done`
 - **WI1** A 类 6 项执行路径缺陷 BUG-1/2/3/5/10/14（同批次接线 `supportLateral` / `sqlIntervalLiteral` **骨架** / `getForUpdateSql` 空值编译期报错等方言门）: `planned`
 - **WI2** B 类 5 项缺陷 BUG-4 回显（`selectAll`+`LIMIT`）/ BUG-6 `full outer join`+`supportFullJoin` 门 / BUG-7 小写 `date '…'` CCE / BUG-8 `cast(x as boolean)` / BUG-15 `SqlTypeExpr` 潜在静默丢弃: `planned`
-- **WI3** 11 项方言相关纠错（4 项 `supportReturningForUpdate` 值 / 1 项 `unverified` 保留 / 1 项窗口函数 mixin 归属（`mysql5.7` 去除，PG/DuckDB 已由合并完成）/ 1 项 `ilike` 函数注册 / 2 项 `defaultNullsFirst` 接线 + H2 补配 / `INTERSECT`+mariadb `RETURNING` 版本门 / `db2` selector 断链）+ owner doc 四处失真: `todo`
+- **WI3** 11 项方言相关纠错（4 项 `supportReturningForUpdate` 值 / 1 项 `unverified` 保留 / 1 项窗口函数 mixin 归属（`mysql5.7` 去除，PG/DuckDB 已由合并完成）/ 1 项 `ilike` 函数注册 / 2 项 `defaultNullsFirst` 接线 + H2 补配 / `INTERSECT`+mariadb `RETURNING` 版本门 / `db2` selector 断链）+ owner doc 四处失真: `planned`
 - **WI4** AST 改写管线接线：把 `IEqlAstTransformer` 提升为 `EqlCompiler` 内部固定环节 + 缓存键（WI8 硬前置）: `planned`
 - **WI5** SQL-92 标准函数语法（`POSITION`/`SUBSTRING`/`EXTRACT`/`TRIM`）+ 放开 `day`/`hour`/`minute`/`second`/`quarter` 关键字遮蔽（须含真库执行证据）: `todo`
 - **WI6** 归一化日期时间函数族（`dayofweek`/`weekofyear`/`dateAdd`/`dateDiff`/`dateTrunc` 等，须含真库执行证据）: `todo`
@@ -349,7 +349,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 | 补 accessor + 消费者（1） | `supportOutputForUpdate` | 补一个真实消费点或补测试证明（需先补 `IDialect` accessor） |
 | 软弃用（3） | `supportSavePoint` / `supportTransaction` / `supportSequence`（`isSupportSequence` 唯一调用方是测试 `TestDialect.java:148`） | ⚠️ 删 `dialect.xdef` 属性**会破坏现有 XML 校验**（`default.dialect.xml:17` 就配了 `supportTransaction="true" supportSavePoint="true"`）⇒ 走「标 deprecated + 保留 + 加 xdef 注释」的软路径；硬删除需先全仓清理引用 |
 
-**Exit Criteria** —— ① 策略设计文档已产出并被独立 audit；② 按策略实现的阈值行为有用例（阈值内正常 / 超阈值改写 / 超阈值且方言不支持时报错），且策略文档已回答"字面量 vs 参数化"这一前提；③ 10 个"接线"标志**逐个**有"消费者方法 + 负向用例"；④ 3 个"软弃用"标志已标 deprecated 且 xdef javadoc 更新；⑤ `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿；⑥ 独立 closure audit（不同 `task_id`，evidence 写入 plan 的 `Closure` 段）。
+**Exit Criteria** —— ① 策略设计文档已产出并被独立 audit；② 按策略实现的阈值行为有用例（阈值内正常 / 超阈值编译·构建期报错（新错误码）/ 门禁方言无关、不做改写），且策略文档已回答"字面量 vs 参数化"这一前提（⚠️ ② 措辞已按 WI10a 设计文档 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md` 的定稿结论对齐——本策略是**报错-无改写-方言无关**，原稿"超阈值改写 / 超阈值且方言不支持时报错"与之矛盾；2026-10-03 定稿轮修订）；③ 10 个"接线"标志**逐个**有"消费者方法 + 负向用例"；④ 3 个"软弃用"标志已标 deprecated 且 xdef javadoc 更新；⑤ `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿；⑥ 独立 closure audit（不同 `task_id`，evidence 写入 plan 的 `Closure` 段）。
 
 #### WI11 — DAO 层批量 upsert 原语
 
