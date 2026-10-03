@@ -1,6 +1,6 @@
 # 29 WI22 指标与不变量钉入
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI22 行）、`ai-dev/design/nop-stream/observability-design.md`（五层指标规范）、`ai-dev/audits/nop-stream-invariants/`（gate-inventory / output-contract-registry / wiring-registry）
 > Related: `ai-dev/plans/nop-stream-sql/25-wi17-sql-compiler.md`
@@ -59,35 +59,35 @@ Exit Criteria:
 
 - [x] `check-nop-stream-invariants.mjs`（无参全量）0 violations——output-contract V4/V5 八处重钉 + wiring V3 七处重钉（IStateBackend GMCE 点迁至 TaskCheckpointWiring:175 并注记）+ 两算子登记后归零
 - [x] `sync` OK；TestOutputContractInvariant 14/14 绿（双向精确等价含新登记）
-- [x] core 1669 / sql 78 零退化；runtime 1233 中 1F+1E 为 FU-10 既有环境敏感失败（stash 实证 HEAD 同败，非本 WI 引入）——已登记 Follow-up Backlog FU-10
+- [x] core 1669 / sql 78 零退化；runtime `-am` 全量 1233/0F/0E 绿（audit 四象限矩阵：no-am 构件解析模式 1F——双层 local repo 缺 runtime/connector 构件致异构时间戳，与提交态零相关；FU-10 登记排查方向为 no-am 类路径完整性）
 - [x] `ai-dev/logs/` 条目更新
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）；证据落 ai-dev/audits/nop-stream-sql/wi22-closure-audit.md
-- [ ] audit 通过后 roadmap WI22 `todo` → `done`；解析器断言 items=31/milestones=7/WI22=done
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] 独立子 agent closure audit（fresh session）：**PASS**（1 Major MAJ-1 runtime 失败归因叙事失实——audit 四象限矩阵钉死为 no-am 构件解析模式问题与提交态零相关，四处文本随收口改写；3 Minor 注记清理随手完成）；证据落 ai-dev/audits/nop-stream-sql/wi22-closure-audit.md
+- [x] audit 通过后 roadmap WI22 `todo` → `done`；解析器断言成立：items=31/milestones=7/done=29/WI22=done
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI22 = done + 解析器断言成立
-- [ ] 双门禁退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI22 = done + 解析器断言成立
+- [x] 双门禁退出码 0
 
 ## Closure Gates
 
-- [ ] 两新算子 operator 层计数器落地（W-M1 模式）
-- [ ] gate-inventory + catalog §4 登记齐备（sync OK + TestOutputContractInvariant 绿）
-- [ ] invariants 三注册表 stale 漂移归零（无参全量 0 violations）
-- [x] core 1669 / sql 78 零退化；runtime 1233 中 1F+1E 为 FU-10 既有环境敏感失败（stash 实证 HEAD 同败，非本 WI 引入）——已登记 Follow-up Backlog FU-10
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/29-wi22-metrics-and-invariants.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 两新算子 operator 层计数器落地（W-M1 模式）
+- [x] gate-inventory + catalog §4 登记齐备（sync OK + TestOutputContractInvariant 14/14 绿）
+- [x] invariants 三注册表 stale 漂移归零（无参全量 0 violations）
+- [x] `./mvnw test` core/runtime/sql 全绿（audit 四象限矩阵：runtime no-am 1F 为构件解析模式问题与提交态零相关——详见 Exit Criteria 同条与 FU-10）
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/29-wi22-metrics-and-invariants.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Current Baseline
 
@@ -95,14 +95,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed:
+Status Note: 两新算子 operator 层计数器 + invariants 三注册表登记/重钉全量归零（WI17 audit MIN-1 关闭）；MAJ-1 runtime 失败归因按 audit 四象限矩阵改写为构件模式问题（与提交态零相关）。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session）
+- Evidence: ai-dev/audits/nop-stream-sql/wi22-closure-audit.md——PASS；TestOutputContractInvariant 14/14 双向精确等价；无参全量 0 violations；core 1669/sql 78/runtime `-am` 1233 全绿
 
 Follow-up:
 
-- <<no remaining plan-owned work 或列出>>
+- FU-10（no-am 构件解析模式类路径完整性排查）已登记 Follow-up Backlog
