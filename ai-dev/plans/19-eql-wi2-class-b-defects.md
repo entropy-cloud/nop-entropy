@@ -98,26 +98,26 @@ Phase 1-5 相互独立、可分别落地与回滚；Phase 0 为前置纯裁定�
 
 ### Phase 0 - 前置核验与裁定
 
-Status: planned
+Status: completed（2026-10-03，裁定文档 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi2-class-b-adjudications.md`）
 Targets: `ai-dev/audits/eql-wi0/eql-corpus-baseline.md`（状态核验）、`ai-dev/design/eql-cross-db-compat/`（新增裁定文档）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 复核 WI0 两件产物状态未回退：语料基线快照（`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` + `TestEqlCorpusBaseline`，起草时已 `completed`）与方言矩阵快照（`dialect-capability-matrix.json`）——本 plan 每个 Phase 的 BC 判据与门禁脚本依赖它们存在。
-- [ ] 复核"语料零 `select *`、零 `limit`/`offset`"与**零 diff 前提的两个字面量事实**（差异登记第 5 条：语料 13+ 处简单字符串字面量无内嵌引号、零布尔字面量）在当时代码基线仍成立；若任一事实已不成立，登记受影响语料条目清单并裁定 BUG-4 的快照重生成范围。**若本 Phase 第 6 项的字面量形态裁定改变简单字符串或布尔字面量的回显渲染，必须先裁定快照重生成范围并人工审阅 diff 之后，才允许动生成器**（Phase 1 的 BC 判据以此裁定为前提）。
-- [ ] 裁定 BUG-15 显式拒绝的落点并记录：候选 A = 解析期拒绝——手写 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate`（`EqlASTBuildVisitor.java:321-330`）在分支可达时抛错（离生成物的写入点 `_EqlASTBuildVisitor.java:1331/1334` 最近、零生成、守护面最窄）；候选 B = 编译期/生成期拒绝——`EqlTransformVisitor` 或生成器对 `SqlTypeExpr` 的 `characterSet`/`collate` 非空即抛。写明选择理由与被拒候选原因、错误码（复用或新增，遵循 `NopException` + `ErrorCode` + `.param(...)`、消息英文）。
-- [ ] 裁定 BUG-6 能力门消费点：默认照 `checkWindowFrameFeature` 先例落编译期（`EqlTransformVisitor`，`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `OrmEqlConstants` 新增 `FEATURE_SUPPORT_FULL_JOIN`）；备选为生成器侧消费。**裁定必须产出门的具体方法名与挂载点并写入裁定文档与本 plan**（候选：独立私有方法 `checkJoinTypeFeature(SqlJoinTableSource)`，从 join table source 的转换遍历点调用，仿 `checkWindowFrameFeature` 的调用形态；或挂载在既有 join 处理分支——由 Phase 0 定名）。记录理由。
-- [ ] 裁定 `mariadb.dialect.xml` 是否显式重复配置 `supportFullJoin="false"`（继承 `mysql` 已可得 `false`；显式配置的自文档化价值 vs 与 WI3 第 7 项"不要顺手改 mariadb"精神的关系——本项只涉及显式与否，两方案值均为 `false`）。
-- [ ] 裁定 BUG-4 字面量一致化的验收形态并记录：候选 A = 回显路径继续输出 EQL 语法形态但消除与执行路径的语义分歧（如 `true`/`false` 的回显可被重新解析回布尔字面量）；候选 B = 给回显生成器注入 dialect 使字面量渲染逐字对齐 `dialect.getStringLiteral`/`getBooleanValueLiteral`。**候选 B 影响面定价见差异登记第 6 条**：`EqlASTNode.appendTo`（`EqlASTNode.java:26-29`）硬编码 `new AstToEqlGenerator(sb)`，`toSqlString()`/`toSQL()` 调用链无 dialect 可得 ⇒ 候选 B = 动公开签名链或引入默认方言回退，API/语义面变更、成本高且与 roadmap 修法原文实质偏离 ⇒ **裁定倾向候选 A，终裁权保留**。断言以"同一 AST 两条路径的字面量输出无语义分歧"为准；**裁定结论须同时给出"是否改变简单字符串/布尔字面量的回显渲染"的明确回答**——若改变，Phase 1 动生成器前须先完成 Phase 0 第 2 项的快照重生成范围裁定。
+- [x] 复核 WI0 两件产物状态未回退：语料基线快照（`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` + `TestEqlCorpusBaseline`，起草时已 `completed`）与方言矩阵快照（`dialect-capability-matrix.json`）——本 plan 每个 Phase 的 BC 判据与门禁脚本依赖它们存在。（实测 2026-10-03：`TestEqlCorpusBaseline` 1/1 通过，WI1 收口后快照零 drift；`check-eql-dialect-matrix-snapshot.mjs` exit 0，18 方言 14 loadable 与快照一致。）
+- [x] 复核"语料零 `select *`、零 `limit`/`offset`"与**零 diff 前提的两个字面量事实**（差异登记第 5 条：语料 13+ 处简单字符串字面量无内嵌引号、零布尔字面量）在当时代码基线仍成立；若任一事实已不成立，登记受影响语料条目清单并裁定 BUG-4 的快照重生成范围。**若本 Phase 第 6 项的字面量形态裁定改变简单字符串或布尔字面量的回显渲染，必须先裁定快照重生成范围并人工审阅 diff 之后，才允许动生成器**（Phase 1 的 BC 判据以此裁定为前提）。（实测成立：0 条 `select *`、0 条 limit/offset；'Fall'×12/'Spring'×6/'Biology'×6 合计 24 处命中全部无内嵌引号（`''` 0 命中、`\'` 0 命中）；布尔字面量 0 条——TRUE/FALSE 仅出现在 parse-error expected token 集合。裁定=候选 A：字符串渲染**不改变**、布尔字面量语料零命中 ⇒ 无需重生成快照。）
+- [x] 裁定 BUG-15 显式拒绝的落点并记录：候选 A = 解析期拒绝——手写 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate`（`EqlASTBuildVisitor.java:321-330`）在分支可达时抛错（离生成物的写入点 `_EqlASTBuildVisitor.java:1331/1334` 最近、零生成、守护面最窄）；候选 B = 编译期/生成期拒绝——`EqlTransformVisitor` 或生成器对 `SqlTypeExpr` 的 `characterSet`/`collate` 非空即抛。写明选择理由与被拒候选原因、错误码（复用或新增，遵循 `NopException` + `ErrorCode` + `.param(...)`、消息英文）。（**终裁=候选 A**，accessor 无条件抛错=字段结构性钉死 null；新错误码 `ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT`；守护测试形态=手构 `CharacterSet_Context`/`CollateClause_Context` 直调 accessor。理由与被拒候选见裁定文档 §六。）
+- [x] 裁定 BUG-6 能力门消费点：默认照 `checkWindowFrameFeature` 先例落编译期（`EqlTransformVisitor`，`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `OrmEqlConstants` 新增 `FEATURE_SUPPORT_FULL_JOIN`）；备选为生成器侧消费。**裁定必须产出门的具体方法名与挂载点并写入裁定文档与本 plan**（候选：独立私有方法 `checkJoinTypeFeature(SqlJoinTableSource)`，从 join table source 的转换遍历点调用，仿 `checkWindowFrameFeature` 的调用形态；或挂载在既有 join 处理分支——由 Phase 0 定名）。记录理由。（**终裁=独立私有方法 `checkJoinTypeFeature(SqlJoinTableSource)`**，挂载 `visitTableSource` 的 SqlJoinTableSource 分支、`visitJoinLeft/visitJoinRight` 之前（先门后遍历；visitJoinLeft 递归回 visitTableSource 保证嵌套 join 全覆盖）；生成器侧与 markMainSource 挂载被拒，理由见裁定文档 §三。）
+- [x] 裁定 `mariadb.dialect.xml` 是否显式重复配置 `supportFullJoin="false"`（继承 `mysql` 已可得 `false`；显式配置的自文档化价值 vs 与 WI3 第 7 项"不要顺手改 mariadb"精神的关系——本项只涉及显式与否，两方案值均为 `false`）。（**终裁=显式配置**：负向点名载体的契约自文档性；两方案运行时值相同、非语义变更，与 WI1 mariadb `supportLateral="false"` 先例一致；见裁定文档 §五。）
+- [x] 裁定 BUG-4 字面量一致化的验收形态并记录：候选 A = 回显路径继续输出 EQL 语法形态但消除与执行路径的语义分歧（如 `true`/`false` 的回显可被重新解析回布尔字面量）；候选 B = 给回显生成器注入 dialect 使字面量渲染逐字对齐 `dialect.getStringLiteral`/`getBooleanValueLiteral`。**候选 B 影响面定价见差异登记第 6 条**：`EqlASTNode.appendTo`（`EqlASTNode.java:26-29`）硬编码 `new AstToEqlGenerator(sb)`，`toSqlString()`/`toSQL()` 调用链无 dialect 可得 ⇒ 候选 B = 动公开签名链或引入默认方言回退，API/语义面变更、成本高且与 roadmap 修法原文实质偏离 ⇒ **裁定倾向候选 A，终裁权保留**。断言以"同一 AST 两条路径的字面量输出无语义分歧"为准；**裁定结论须同时给出"是否改变简单字符串/布尔字面量的回显渲染"的明确回答**——若改变，Phase 1 动生成器前须先完成 Phase 0 第 2 项的快照重生成范围裁定。（**终裁=候选 A**：字符串维持 `escapeSql(value,false)` 不变（EQL 规范形、round-trip 等价）；布尔回显 `" 1 "/" 0 "` → `" true "/" false "`。明确回答：简单字符串渲染**不改变**、布尔**改变**但语料零布尔字面量 ⇒ 免重生成。执行期精确化两条：① `selectAll && projections.isEmpty()` 才打印 `*`（transform 展开后 projections 非空必须继续打印展开投影，保分页内嵌 `PrintSqlSelect` 路径）；② limit 回显经新钩子 `printLimit`，`AstToSqlGenerator` override 置空——执行路径 limit 在 `visitSqlQuerySelect` 经 pagination 消费，`printSelect` 再打印会同外层 `buildPageExpr` 文本双份 LIMIT。见裁定文档 §二。）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含 BUG-15 拒绝点选型与被拒候选、BUG-6 消费点（含门方法定名与挂载点）、`mariadb` 显式配置与否、BUG-4 字面量一致化验收形态（含候选 B 影响面定价与倾向结论、"是否改变简单字面量回显渲染"的明确回答）。
-- [ ] WI0 两件产物状态核验结论已记录（`completed`/未回退，或显式声明等待并阻塞后续 Phase）。
-- [ ] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含 BUG-15 拒绝点选型与被拒候选、BUG-6 消费点（含门方法定名与挂载点）、`mariadb` 显式配置与否、BUG-4 字面量一致化验收形态（含候选 B 影响面定价与倾向结论、"是否改变简单字面量回显渲染"的明确回答）。（`ai-dev/design/eql-cross-db-compat/2026-10-03-wi2-class-b-adjudications.md`，四节结论+裁决总表。）
+- [x] WI0 两件产物状态核验结论已记录（`completed`/未回退，或显式声明等待并阻塞后续 Phase）。（裁定文档 §四：TestEqlCorpusBaseline 1/1、matrix 脚本 exit 0。）
+- [x] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-03.md` WI2 Phase 0 条目。）
 
 ### Phase 1 - BUG-4 回显丢 `selectAll` 与 `LIMIT`（含字面量一致化）
 
