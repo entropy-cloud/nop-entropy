@@ -323,6 +323,27 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate`（仅指投影列表形式，WI3 纠错后 mysql/oracle/h2/mariadb/duckdb 均拒） | `nop.err.eql.dialect-not-support-feature`（`feature=supportReturningForUpdate`） | `TestEqlCompileSql.testUpdateReturningAllChecksDialect`、`TestEqlUpdateReturningDialectGate` |
 | INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
 
+### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
+
+`IEqlAstTransformer` 是 EQL 编译管线中的**固定编译环节**（不是可选组件）：所有 EQL 编译最终经由唯一生产入口 `LoadedOrmModel.compileSql`，transformer 解析点唯一——入参为 null 时回落 `env.getDefaultAstTransformer()`；缓存安全（非默认实例绕过缓存）由该方法体强制，契约载于 `ILoadedOrmModel.compileSql` javadoc。
+
+**默认注入链（配置方式）**：实现 `IEqlAstTransformer` → 配置 `SessionFactoryConfig.eqlAstTransformer`（beans.xml 属性注入）→ `OrmSessionFactoryBean.init()` 时一次性注入 `SessionFactoryImpl.defaultAstTransformer` → 编译时 `LoadedOrmModel` 回落使用。未配置时生产 `defaultAstTransformer` 为 null，管线处于"已接线、未配置"的合法态，行为与未引入管线前一致。
+
+**时机槽位（两个钩子的分工，WI8 直接消费）**：
+
+| 槽位 | 安全条件 | 用途 |
+|------|---------|------|
+| `transformBeforeAnalyze` | 无限制（改写产物会被完整分析管线处理：参数编号、实体解析、隐式 join、类型解析） | 引入新参数/实体引用的 lowering 的**固定槽位** |
+| `transformAfterAnalyze` | 仅**参数保持型 + 实体引用保持型**纯语法改写（不新增 `SqlParameter`、不新增实体引用、不改变既有参数相对顺序；新增未解析节点会被生成器的 resolvedExprMeta 解引用拒绝） | 需要方言判定的改写（querySpace 在 analyze 中途才确定，after 槽位可从已解析表源 `getResolvedTableMeta().getQuerySpace()` 推导方言，禁止用默认 querySpace 猜测） |
+
+**缓存策略（迁移说明——选型结论）**：`QueryPlanCacheKey`（name/sqlText/disableLogicalDelete/allowUnderscoreName/enableFilter 五字段）**不含 transformer**。已选方案 = **非默认 transformer 绕过缓存**：显式传入与 `env.getDefaultAstTransformer()` 不同实例的 transformer 时，`useCache` 按 false 处理（不读不写），仍完整编译并返回正确结果。不变式 = 缓存中只存在默认 transformer 编译的计划。被拒备选 = transformer 语义指纹纳入缓存键（需跨模块接口变更且无真实场景；出现"高频编译 + 必须非默认 transformer 且需要计划缓存"场景时另立 plan，照 `enableFilter` 先例扩键维度）。
+
+**init 期常量契约**：`defaultAstTransformer` 是 per-session-factory 常量（init 时注入一次；全仓唯一 setter 调用点在 `init()`）。若 init 之后更换默认 transformer，缓存中旧默认的存量计划立即过期——该场景出现时必须清缓存（`clearQueryPlanCache`）或重开缓存键裁定。配套假设：同一 transformer 实例对相同输入产出相同改写（确定性）；非确定 transformer 不满足缓存前提。
+
+**旧参数使用边界（迁移说明）**：7-arg `compileSql` 的 `astTransformer` 参数**保留**（测试/工具 opt-in 路径在用）。**生产代码不应 per-call 传入 transformer**，统一走 factory 默认配置；显式传入视为测试/工具行为，且非默认实例不参与计划缓存。合同由 `ILoadedOrmModel.compileSql` javadoc 载明（原"调用方必须保证语义一致"的转嫁措辞已删除——缓存安全由代码强制，不再依赖调用方纪律）。
+
+**WI8 消费指引**：`IS DISTINCT FROM` 类方言展开放 `transformAfterAnalyze`（展开式只重排/包装既有操作数节点，满足参数保持条件），方言经已解析表源推导；引入新参数/实体的改写放 `transformBeforeAnalyze` 且必须方言无关。证明测试先例：`nop-persistence/nop-orm/src/test/java/io/nop/orm/TestEqlAstTransformerWiring.java`（factory 默认配置端到端 + 缓存绕过）。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

@@ -137,30 +137,32 @@ Exit Criteria:
 
 ### Phase 1 - 接线落地与缓存键修复（两个证明测试）
 
-Status: planned
+Status: completed（2026-10-04；commit 见 daily log）
 Targets: `nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/LoadedOrmModel.java`、`nop-persistence/nop-orm/src/main/java/io/nop/orm/ILoadedOrmModel.java`（javadoc）、（按裁定）`nop-persistence/nop-orm/src/main/java/io/nop/orm/compile/EqlCompileContext.java`、`nop-persistence/nop-orm/src/test/java/io/nop/orm/`（新增测试）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Fix`（缓存键缺陷：同键不同 transformer 返回过期 SQL）、`Feature`（固定环节契约）、`Proof`（两个证明测试）
 
-- [ ] **修复前红**：先落证明测试 2（缓存过期 SQL），在未修复代码上运行确认红（第二个 transformer 编译返回第一个 transformer 的 SQL）并留痕于日志/提交说明。
-- [ ] 缓存键修复落地（按 Phase 0 裁定；默认 = 候选 B）于 `LoadedOrmModel.compileSql`。
-- [ ] 固定环节落地（按 Phase 0 裁定）：transformer 解析点唯一化 +（如裁定）`EqlCompileContext` 空值回落不变式（`env` 字段已在 `EqlCompileContext.java:20`，签名不变）；确保 5 类生产入口在"不传 transformer"时都解析到 env 默认。
-- [ ] **证明测试 1（端到端 #22 + 接线 #23）**：经生产配置路径注入测试 transformer（`OrmSessionFactoryBean.setEqlAstTransformer`，在 `init()` 前调用，参照 `AbstractOrmTestCase.java:48-55` 的构造顺序），随后经**不带 transformer 参数**的入口（3-arg `sessionFactory.compileSql` 与/或 5-arg `env.compileSql`——即 `JdbcQueryExecutor` 的实际路径）编译一条 EQL，断言 lowering 标记出现在生成 SQL 文本中（测试桩做确定性可断言的 AST 改写，如追加一个可识别投影别名，参照 `TestEqlCompiler.java:76` 桩先例）；并以计数器/标志断言 transformer 方法确实被运行时调用（#23 的 mock-verify 形态，不允许只断言"类型存在"）。
-- [ ] **证明测试 2（缓存）**：同一 querySpace、同 `name+sqlText+flags`：transformer A 编译（`useCache=true`）断言结果含 A 标记；transformer B 编译（`useCache=true`）断言结果含 B 标记、**不含** A 标记；无 transformer 的默认路径编译断言不含任何标记。参照 `TestQueryPlanCacheKey.java` 键维度测试先例。
-- [ ] javadoc/注释同步：`ILoadedOrmModel.java:67-71` 警告改写为新契约（"缓存中只存在默认 transformer 编译的计划；非默认 transformer 的编译绕过缓存"），删除"调用方必须保证"的转嫁措辞；`QueryPlanCacheKey.java` 注释如需同步。
-- [ ] 无静默跳过自查：新增分支不吞错、不返回占位值；"绕过缓存"是显式裁定策略（Phase 0 记录）而非静默降级。
-- [ ] owner doc：`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 新增"AST 改写管线（IEqlAstTransformer）"小节——固定环节契约、配置方式（`SessionFactoryConfig.eqlAstTransformer`）、旧参数保留结论与使用边界（裁定 4）、缓存策略（裁定 3）、时机槽位结论（裁定 2）。
-- [ ] 既有 EQL 语料 BC：三份必测（`:nop-job-dao` NopJobTask / `:nop-auth-service` test / `:nop-orm` test）与 WI0 基线快照逐字一致（未配置 transformer 的默认路径行为不变）；不声称"7 个全测"。
+- [x] **修复前红**：先落证明测试 2（缓存过期 SQL），在未修复代码上运行确认红（第二个 transformer 编译返回第一个 transformer 的 SQL）并留痕于日志/提交说明。（`TestEqlAstTransformerWiring.testNonDefaultTransformerBypassesQueryPlanCache` 修复前 FAILURE："B compile must contain B marker, got: select o.CLASS_ID as cid_wi4_a…"；留痕 `_tmp/wi4/red-evidence-TestEqlAstTransformerWiring.txt` + daily log）
+- [x] 缓存键修复落地（按 Phase 0 裁定；默认 = 候选 B）于 `LoadedOrmModel.compileSql`。（回落解析后 `useCache && astTransformer != env.getDefaultAstTransformer()` ⇒ useCache=false，不读不写；零签名改动）
+- [x] 固定环节落地（按 Phase 0 裁定）：transformer 解析点唯一化 +（如裁定）`EqlCompileContext` 空值回落不变式（`env` 字段已在 `EqlCompileContext.java:20`，签名不变）；确保 5 类生产入口在"不传 transformer"时都解析到 env 默认。（解析点唯一化结构性既存（`:92-93` 回落为全仓唯一解析点），本 Phase 以证明测试 1 三入口（3-arg/5-arg/ILoadedOrmModel default）+ 第 4 入口同构论证（FilterSqlHelper 7-arg 显式 null→同一回落）证明；`EqlCompileContext` 不变式按裁定 1 不加，登记 Non-Blocking Follow-ups）
+- [x] **证明测试 1（端到端 #22 + 接线 #23）**：经生产配置路径注入测试 transformer（`OrmSessionFactoryBean.setEqlAstTransformer`，在 `init()` 前调用，参照 `AbstractOrmTestCase.java:48-55` 的构造顺序），随后经**不带 transformer 参数**的入口（3-arg `sessionFactory.compileSql` 与/或 5-arg `env.compileSql`——即 `JdbcQueryExecutor` 的实际路径）编译一条 EQL，断言 lowering 标记出现在生成 SQL 文本中（测试桩做确定性可断言的 AST 改写，如追加一个可识别投影别名，参照 `TestEqlCompiler.java:76` 桩先例）；并以计数器/标志断言 transformer 方法确实被运行时调用（#23 的 mock-verify 形态，不允许只断言"类型存在"）。（`testDefaultTransformerFromFactoryConfigEndToEnd`：自建 OrmSessionFactoryBean（裁定文档 §六.5——基类 setUp 自调 init 无法 init 前注入 + DefaultOrmModelProvider 固定名全局缓存注册限制）；三入口断言 `cid_wi4_default` 标记 + 双钩子计数 3/3；末段经 OrmTemplate session 查询真实执行 lowering SQL 并断言行数与计数 4/4；标记实现=改写已解析投影 alias（新增未解析节点在 after 槽位会被生成器 resolvedExprMeta 解引用拒绝，故非"追加投影"））
+- [x] **证明测试 2（缓存）**：同一 querySpace、同 `name+sqlText+flags`：transformer A 编译（`useCache=true`）断言结果含 A 标记；transformer B 编译（`useCache=true`）断言结果含 B 标记、**不含** A 标记；无 transformer 的默认路径编译断言不含任何标记。参照 `TestQueryPlanCacheKey.java` 键维度测试先例。（`testNonDefaultTransformerBypassesQueryPlanCache` 全部三段断言 + B 计数=1 证明新鲜编译）
+- [x] javadoc/注释同步：`ILoadedOrmModel.java:67-71` 警告改写为新契约（"缓存中只存在默认 transformer 编译的计划；非默认 transformer 的编译绕过缓存"），删除"调用方必须保证"的转嫁措辞；`QueryPlanCacheKey.java` 注释如需同步。（javadoc 已改写；`QueryPlanCacheKey` 类本体零改动、既有 enableFilter 注释仍准确——无需同步）
+- [x] 无静默跳过自查：新增分支不吞错、不返回占位值；"绕过缓存"是显式裁定策略（Phase 0 记录）而非静默降级。（bypass 分支仅改写 useCache 局部值、后续仍完整编译返回；测试桩找不到改写目标时抛 IllegalStateException）
+- [x] owner doc：`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 新增"AST 改写管线（IEqlAstTransformer）"小节——固定环节契约、配置方式（`SessionFactoryConfig.eqlAstTransformer`）、旧参数保留结论与使用边界（裁定 4）、缓存策略（裁定 3）、时机槽位结论（裁定 2）。（小节含四块 + init 期常量契约 + WI8 消费指引；doc-links 0 error / 3 既有 warning）
+- [x] 既有 EQL 语料 BC：三份必测（`:nop-job-dao` NopJobTask / `:nop-auth-service` test / `:nop-orm` test）与 WI0 基线快照逐字一致（未配置 transformer 的默认路径行为不变）；不声称"7 个全测"。（`TestEqlCorpusBaseline` 1/1（棘轮覆盖三份必测语料区间）；三份 sql-lib 文件本 Phase 零改动）
 
 Exit Criteria:
 
-- [ ] **证明测试 1 存在且绿**：不传 transformer 的调用方拿到 lowering（断言具体 SQL 文本）+ transformer 方法运行时被调用的显式断言（端到端 #22 与接线 #23 同时满足）。
-- [ ] **证明测试 2 修复前红、修复后绿**：同一 querySpace 下 transformer 语义不一致时不返回过期 SQL（红证据留痕于日志或提交说明）。
-- [ ] 默认路径零行为变化：三份必测语料 BC 与 WI0 基线快照逐字一致。
-- [ ] `ILoadedOrmModel` javadoc 与实现一致（旧"调用方必须保证语义一致"的转嫁措辞已按新契约更新）。
-- [ ] owner doc"AST 改写管线"小节已落档（含迁移说明与四项裁定结论）；`node ai-dev/tools/check-doc-links.mjs --strict` 本 plan 新增 broken link = 0。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm -am -T 1C` 全绿（快速反馈口径）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **证明测试 1 存在且绿**：不传 transformer 的调用方拿到 lowering（断言具体 SQL 文本）+ transformer 方法运行时被调用的显式断言（端到端 #22 与接线 #23 同时满足）。
+- [x] **证明测试 2 修复前红、修复后绿**：同一 querySpace 下 transformer 语义不一致时不返回过期 SQL（红证据留痕于日志或提交说明）。
+- [x] 默认路径零行为变化：三份必测语料 BC 与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 1/1；nop-dao 205|46skip / nop-orm-eql 253|0 / nop-orm 212|6skip 全零失败，计数以各模块 target/surefire-reports 汇总为准）
+- [x] `ILoadedOrmModel` javadoc 与实现一致（旧"调用方必须保证语义一致"的转嫁措辞已按新契约更新）。
+- [x] owner doc"AST 改写管线"小节已落档（含迁移说明与四项裁定结论）；`node ai-dev/tools/check-doc-links.mjs --strict` 本 plan 新增 broken link = 0。（exit 0，0 error）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm -am -T 1C` 全绿（快速反馈口径）。（exit 0；期间暴露并修复 2 个 WI3 遗留过期测试，见偏差登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（daily log WI4 Phase 1 条目）
+
+**Phase 1 执行期偏差登记**：`TestEqlCompiler`（nop-orm）2 用例（`testUpdateReturning`/`testFunctions`）在 WI4 全量口径下红——stash 本 Phase 全部改动 + reactor 依赖（`-am`，规避 .m2 过期 nop-dao 假绿）复跑证实为 **WI3 既有遗留**（h2 `supportReturningForUpdate=false` 纠错与 `ilike` 模板注册均 WI3 授权行为变更；WI3 的 `-pl :nop-dao,:nop-orm-eql` 闭包未覆盖 nop-orm 测试模块故未暴露），非 WI4 引入。按授权行为更新两测试（returning 断言编译期 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`；functions 迭代显式跳过非调用语法的 ilike 模板并注释缘由），随本 Phase 提交。
 
 ### Phase 2 - 全量回归与收口门禁
 
