@@ -344,7 +344,11 @@ sqlCaseWhenItem
     ;
 
 sqlIntervalExpr
-    : INTERVAL expr=sqlExpr intervalUnit=intervalUnit_
+    : INTERVAL expr=sqlExpr intervalUnit=intervalUnit_ # SqlIntervalExpr_unit
+    // WI1 BUG-5: PG 形态 `interval '1 day'`。字符串字面量在手写 EqlASTBuildVisitor
+    // 的 visitSqlIntervalExpr_string 构建处归一化为 value+unit 装入既有 SqlIntervalExpr
+    // （不新增 AST 节点；label 后缀按 astNodeName 规则截断后同为 SqlIntervalExpr）
+    | INTERVAL STRING_ # SqlIntervalExpr_string
     ;
 
 intervalUnit_

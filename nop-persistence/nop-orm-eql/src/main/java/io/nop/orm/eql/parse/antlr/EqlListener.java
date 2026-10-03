@@ -1212,15 +1212,29 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlCaseWhenItem(EqlParser.SqlCaseWhenItemContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Enter a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	void enterSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Exit a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	void exitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#intervalUnit_}.
 	 * @param ctx the parse tree

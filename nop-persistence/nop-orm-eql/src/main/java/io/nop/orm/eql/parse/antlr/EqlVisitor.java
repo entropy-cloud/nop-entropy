@@ -729,11 +729,19 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlCaseWhenItem(EqlParser.SqlCaseWhenItemContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Visit a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	T visitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#intervalUnit_}.
 	 * @param ctx the parse tree

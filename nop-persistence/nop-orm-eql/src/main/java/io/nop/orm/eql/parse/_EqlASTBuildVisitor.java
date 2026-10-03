@@ -173,6 +173,30 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr_string(SqlIntervalExpr_stringContext ctx){
+          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr_unit(SqlIntervalExpr_unitContext ctx){
+          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr(ctx.expr)));
+            }
+            if(ctx.intervalUnit != null){
+               ret.setIntervalUnit((SqlIntervalExpr_intervalUnit(ctx.intervalUnit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlIsNullExpr visitSqlIsNullExpr(SqlIsNullExprContext ctx){
           io.nop.orm.eql.ast.SqlIsNullExpr ret = new io.nop.orm.eql.ast.SqlIsNullExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -872,18 +896,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
       }
             
       public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr(SqlIntervalExprContext ctx){
-          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlIntervalExpr)ctx.accept(this);
           
-            if(ctx.expr != null){
-               ret.setExpr((visitSqlExpr(ctx.expr)));
-            }
-            if(ctx.intervalUnit != null){
-               ret.setIntervalUnit((SqlIntervalExpr_intervalUnit(ctx.intervalUnit)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
       public io.nop.orm.eql.ast.SqlLimit visitSqlLimit(SqlLimitContext ctx){
@@ -1651,7 +1666,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlDateTimeType SqlDateTimeLiteral_type(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: sqlIntervalExpr
+   * rules: SqlIntervalExpr_unit
    */
   public abstract io.nop.orm.eql.enums.SqlIntervalUnit SqlIntervalExpr_intervalUnit(ParseTree node);
 

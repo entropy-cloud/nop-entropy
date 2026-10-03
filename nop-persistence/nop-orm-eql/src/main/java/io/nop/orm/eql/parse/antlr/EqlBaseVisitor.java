@@ -831,7 +831,14 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx) { return visitChildren(ctx); }
+	@Override public T visitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

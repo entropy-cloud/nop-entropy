@@ -1410,13 +1410,25 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx) { }
+	@Override public void enterSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx) { }
+	@Override public void exitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
