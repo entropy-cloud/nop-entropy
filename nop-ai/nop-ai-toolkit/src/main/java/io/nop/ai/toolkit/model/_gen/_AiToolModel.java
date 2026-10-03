@@ -54,6 +54,20 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: output-budget
+     * Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+     * absent = runtime defaults (8000 chars, spill allowed). max-chars is
+     * the per-tool default budget; the model may override per call with the
+     * reserved `maxOutputChars` argument (clamped to this declared value,
+     * then to the global hard cap). spill=false disables the full-text
+     * spill path for this tool (truncation-only degradation). Opt-in
+     * metadata: NOT auto-injected into any tool's LLM-facing schema
+     * (prefix-cache stability, plan 2297 前缀缓存影响评估).
+     */
+    private io.nop.ai.toolkit.model.AiToolOutputBudgetModel _outputBudget ;
+    
+    /**
+     *  
      * xml name: response-schema
      * 可选的结果格式定义
      */
@@ -208,6 +222,32 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: output-budget
+     *  Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+     * absent = runtime defaults (8000 chars, spill allowed). max-chars is
+     * the per-tool default budget; the model may override per call with the
+     * reserved `maxOutputChars` argument (clamped to this declared value,
+     * then to the global hard cap). spill=false disables the full-text
+     * spill path for this tool (truncation-only degradation). Opt-in
+     * metadata: NOT auto-injected into any tool's LLM-facing schema
+     * (prefix-cache stability, plan 2297 前缀缓存影响评估).
+     */
+    
+    public io.nop.ai.toolkit.model.AiToolOutputBudgetModel getOutputBudget(){
+      return _outputBudget;
+    }
+
+    
+    public void setOutputBudget(io.nop.ai.toolkit.model.AiToolOutputBudgetModel value){
+        checkAllowChange();
+        
+        this._outputBudget = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: response-schema
      *  可选的结果格式定义
      */
@@ -296,6 +336,8 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         
            this._examples = io.nop.api.core.util.FreezeHelper.deepFreeze(this._examples);
             
+           this._outputBudget = io.nop.api.core.util.FreezeHelper.deepFreeze(this._outputBudget);
+            
         }
     }
 
@@ -308,6 +350,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("examples",this.getExamples());
         out.putNotNull("meta",this.isMeta());
         out.putNotNull("name",this.getName());
+        out.putNotNull("outputBudget",this.getOutputBudget());
         out.putNotNull("responseSchema",this.getResponseSchema());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("schemaJson",this.getSchemaJson());
@@ -328,6 +371,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         instance.setExamples(this.getExamples());
         instance.setMeta(this.isMeta());
         instance.setName(this.getName());
+        instance.setOutputBudget(this.getOutputBudget());
         instance.setResponseSchema(this.getResponseSchema());
         instance.setSchema(this.getSchema());
         instance.setSchemaJson(this.getSchemaJson());

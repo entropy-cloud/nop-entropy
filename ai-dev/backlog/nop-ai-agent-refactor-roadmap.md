@@ -72,7 +72,7 @@ audit-rounds: 0
 > 来源：`99-overall-comparison.md` ⑤-H（工具部分）+ unreal 比对 §7 + zcode 比对（2026-09-28，工具级后台模式）
 > 理由：输出预算模型不可控是上下文膨胀的源头之一；并发标记与串行队列缺失使并行工具对同路径文件有竞态风险；长任务缺后台承载形态（zcode 已验证的第三条路线）
 
-- [ ] WI16 工具输出预算 schema 内建：tool.xdef 增加模型可调输出预算参数 + 统一截断协议（头尾保留 + 精确字节数 + 全文 spill 路径指针回填），与既有 spill store 打通；**波及面提示**：schema 参数改变全部工具暴露给 LLM 的定义面，与前缀缓存稳定目标（WI20 / autonomous WI1 工具排序）交互，plan 中必须评估前缀影响；tool.xdef 位于 nop-kernel/nop-xdefs，遵守 Cross-Cutting 平台级契约演进规则（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: unreal 比对 §7）
+- [x] WI16 工具输出预算 schema 内建：tool.xdef 增加模型可调输出预算参数 + 统一截断协议（头尾保留 + 精确字节数 + 全文 spill 路径指针回填），与既有 spill store 打通；**波及面提示**：schema 参数改变全部工具暴露给 LLM 的定义面，与前缀缓存稳定目标（WI20 / autonomous WI1 工具排序）交互，plan 中必须评估前缀影响；tool.xdef 位于 nop-kernel/nop-xdefs，遵守 Cross-Cutting 平台级契约演进规则（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: unreal 比对 §7）
 - [ ] WI17 并发安全标记 + 按路径串行队列：工具声明并发安全标记，不安全工具按路径亲和串行（同路径排队、异路径并行）；与既有 executeParallel Semaphore 上限（2026-09-15 落地）正交叠加（Deliverable: 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/04-tool-invocation.md`；来源: `dsh-D7-tool-system.md` ⑥-建议1 + `pi-D7-tool-system.md` ⑥-建议2）
 - [ ] WI18 deferred 工具引入机制裁定：transcript 中途引入工具定义与前缀缓存稳定的冲突裁定——若冲突不可调和则裁定移出并记录（Deliverable: 裁定记录落 `ai-dev/design/nop-ai-agent/04-tool-invocation.md` 新增裁定小节（移出则含理由）；deps: 无；Item Type: Decision；Owner: 同左；来源: `pi-D7-tool-system.md` ⑥-建议1）
 - [ ] WI19 continuable 子代理 + 传输抽象裁定：D10 是 nop 领先域（team.flow 编排全栈），dsh 的 continuable 子代理与传输抽象是否补强 nop 短板——裁定吸收/移出并记录（Deliverable: 裁定记录落 `ai-dev/design/nop-ai-agent/nop-ai-agent-multi-agent.md` 新增裁定小节（吸收则含实施项拆分）；deps: 无；Item Type: Decision；Owner: 同左；来源: `dsh-D10-multi-agent.md` ⑥-建议1/2 + `pi-D10-multi-agent.md` ⑥-建议1）
@@ -156,6 +156,7 @@ graph TD
 - **审计收敛状态**：设计比对 roadmap 的 M5–M8 全部 P0/P1 与 Follow-up P2/P3 已收口（2026-09-15）；本 roadmap 不重复已修复面。
 - **WI14 落地锚点（2026-10-03 @ plan 2295）**：store 层写路径增量化为写路径 O(delta)（非 CPU 优化——append 常态前缀指纹重算与全量序列化同级 CPU）；append 判据 = 逐位置内容指纹（guardrail 持久化后原地改写使引用 diff 失效）；自愈 = 对重放态 fold；DB `ai_agent_session_journal`（PK (SESSION_ID,SEQ)）append 附标量列 UPDATE；同 sessionId 跨租户裁定不受支持（plan 232 MERGE KEY 对单键 PK 表的 H2 自冲突为存量限制，登记 plan 2295 Known Residuals）；裁定与契约见 `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md` 快照增量写路径节 + `ai-dev/plans/2295-wi14-session-snapshot-incremental-write.md` Ruling 节。WI15 的双真相源裁定与本项正交（journal 为 store 层物理优化层，非 session 历史条目）。
 - **WI15 落地锚点（2026-10-03 @ plan 2296）**：`ChatCompactionMessage`（extends ChatUserMessage，role=compaction）为压缩事实 in-history 权威记录；富化协议 = CompactionResult.producedEntry 身份引用经 PipelineCompactor 透传至 coordinator（禁止扫描式富化——Micro/Layer2 轮旧条目存活）；pi-D9 建议2 部分吸收裁定见 `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md` 压缩产物条目化节 + `ai-dev/plans/2296-wi15-compaction-artifact-typed-entry.md` Ruling 节。
+- **WI16 落地锚点（2026-10-03 @ plan 2297）**：`<output-budget xdef:name="AiToolOutputBudgetModel">` per-tool 声明 + 保留参数 `maxOutputChars` per-call 钳制 + `applyBudget` 等比缩放协议；前缀缓存裁定=已发布工具定义面字节零变化（opt-in 宣传）；契约见 `ai-dev/design/nop-ai-agent/04-tool-invocation.md` 工具输出预算节。
 
 ## Cross-Cutting
 

@@ -144,3 +144,13 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 - **记录通道**：TOOL_CALL_STARTED 事件 payload 扩展——`callId`（join key，恒在）；repair 变更时附加 `repairApplied=true` + `nameBefore`/`nameAfter` + `argsBefore`/`argsAfter`（getArgumentsText，截断 512 字符）。变更检测 = 引用不等快速路径 + name/argsText 字符串权威比较（ChainRepairer stage 为 copy-on-change，引用不等是必要非充分条件）。
 - **一致性**：审批所见（checkpoint chain 收 repair 后 call）=执行所用（AiToolCall 构造同 call）——差异审计补的是"LLM 实际发出 vs 审批/执行"的可见性。heartbeat 唤醒轮派生调用走同一 repair 阶段（adjudicateHeartbeatReply 内 repair→checkpoint→dispatch 一致）。
 - **边界**：audit logger 通道为 follow-up（executor 无句柄）；无 repair 时 repairApplied 缺席（前向兼容 payload 契约）。
+
+## 工具输出预算（WI16，plan 2297）
+
+**契约**：输出预算是模型可调的工具参数（unreal 对位：per-call `max_output_length`，nop 保留参数名 `maxOutputChars`）。解析优先级（`ToolOutputBudgetResolver`）：per-call 参数（钳制到 ≤ 工具声明的 max-chars，再钳到全局硬上限 1,000,000）→ 工具 `<output-budget max-chars>` 声明 → 默认 8000（历史值不变）。spill 开关 = 工具 `spill` 声明（默认 true）。`NON_TRUNCATABLE_TOOLS`（ask-oracle/ask-human）语义最高：永不截断、永不 spill。
+
+**截断协议**（`ToolResultTruncator.applyBudget`）：头尾保留 + 精确移除数标记；head/tail 按预算等比缩放（75%/25%，上限既有 6000/1000 窗口），预算 ≤32 硬切——任意正整数预算不越界、不虚标。
+
+**前缀缓存裁定**：不向任何已发布工具 schema 自动注入预算参数——全部已发布工具 LLM 定义面字节不变；工具要向模型宣传该旋钮，自行在 `<schema>` 加可选参数（opt-in 才有定义面代价）。spill 指针协议不变（`[SPILL_REF id=...] Full result stored; use read-spill to retrieve.`）。
+
+**迁移说明**：tool.xdef 新增可选 `<output-budget xdef:name="AiToolOutputBudgetModel" .../>`——additive，不声明的工具零改动、运行时走默认；xdef 属平台级契约（nop-kernel/nop-xdefs），生成模型 `AiToolOutputBudgetModel` 随构建 precompile 自动再生。

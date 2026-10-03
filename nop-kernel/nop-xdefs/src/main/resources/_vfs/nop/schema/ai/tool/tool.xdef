@@ -33,4 +33,14 @@
         </example>
     </examples>
 
+    <!-- Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+         absent = runtime defaults (8000 chars, spill allowed). max-chars is
+         the per-tool default budget; the model may override per call with the
+         reserved `maxOutputChars` argument (clamped to this declared value,
+         then to the global hard cap). spill=false disables the full-text
+         spill path for this tool (truncation-only degradation). Opt-in
+         metadata: NOT auto-injected into any tool's LLM-facing schema
+         (prefix-cache stability, plan 2297 前缀缓存影响评估). -->
+    <output-budget xdef:name="AiToolOutputBudgetModel" max-chars="int" spill="!boolean=true"/>
+
 </tool>

@@ -757,7 +757,10 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             if ("success".equals(toolResult.getStatus()) && toolResult.getError() == null) {
                 String resultText = toolResult.getOutput() != null ? toolResult.getOutput().getBody() : "";
                 resultText = resultText != null ? resultText : "";
-                resultText = spillIfOversized(sessionId, resultText, toolName);
+                // Plan 2297 (WI16): the model-tunable budget rides the call's
+                // own arguments text (reserved maxOutputChars, clamped in the
+                // resolver) — no shipped tool schema changes (prefix-cache ruling).
+                resultText = spillIfOversized(sessionId, resultText, toolName, chatToolCall.getArgumentsText());
                 toolResponse = ChatToolResponseMessage.fromToolCall(chatToolCall, resultText);
                 toolStatus = "success";
             } else {
@@ -1014,22 +1017,38 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
      */
     private String spillIfOversized(final String sessionId, final String resultText,
                                     final String toolName) {
-        if (resultText.length() <= ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS) {
+        return spillIfOversized(sessionId, resultText, toolName, null);
+    }
+
+    /**
+     * Plan 2297 (WI16): budget-aware spill/truncation — the budget resolves
+     * per call (per-call {@code maxOutputChars} override, clamped) → per-tool
+     * {@code <output-budget>} declaration → the 8000 default. With no
+     * declaration and no per-call override this is byte-identical to the
+     * pre-WI16 behaviour (same 8000 threshold, same head/tail windows via
+     * {@link ToolResultTruncator#truncate}'s defaults). NON_TRUNCATABLE_TOOLS
+     * keeps the highest precedence (never truncated, never spilled).
+     */
+    private String spillIfOversized(final String sessionId, final String resultText,
+                                    final String toolName, final String argumentsText) {
+        io.nop.ai.agent.compact.ToolOutputBudgetResolver.Budget budget =
+                io.nop.ai.agent.compact.ToolOutputBudgetResolver.resolve(toolName, argumentsText, toolManager);
+        int maxChars = budget.getMaxChars();
+        if (resultText.length() <= maxChars) {
             return resultText;
         }
         if (toolName != null
                 && ToolResultTruncator.NON_TRUNCATABLE_TOOLS.contains(toolName)) {
             return resultText;
         }
-        if (sessionStore != null && sessionId != null) {
+        if (sessionStore != null && sessionId != null && budget.isSpillAllowed()) {
             AgentSession session = sessionStore.get(sessionId);
             if (session != null) {
                 try {
                     String spillId = session.getOrCreateSpillStore().put(resultText);
-                    String preview = ToolResultTruncator.truncate(resultText,
-                            ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS);
-                    LOG.debug("Tool result spilled: tool={}, bytes={}, spillId={}, session={}",
-                            toolName, resultText.length(), spillId, sessionId);
+                    String preview = ToolResultTruncator.applyBudget(resultText, maxChars);
+                    LOG.debug("Tool result spilled: tool={}, bytes={}, spillId={}, session={}, budget={}",
+                            toolName, resultText.length(), spillId, sessionId, maxChars);
                     return preview + "\n\n[SPILL_REF id=" + spillId
                             + "] Full result stored; use read-spill to retrieve.";
                 } catch (Exception e) {
@@ -1040,8 +1059,7 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             }
             // null-session: unassembled wiring, not a failure — silent truncation.
         }
-        return ToolResultTruncator.truncateIfAllowed(resultText,
-                ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS, toolName);
+        return ToolResultTruncator.applyBudget(resultText, maxChars);
     }
 
 }

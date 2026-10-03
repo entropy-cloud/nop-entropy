@@ -23,6 +23,7 @@ import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.ai.toolkit.model.AiToolOutputBudgetModel;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
@@ -158,6 +159,12 @@ public class TestSpillStore {
     // ------------------------------------------------------------------
 
     private IToolManager toolManagerReturning(String content) {
+        return toolManagerReturning(content, null);
+    }
+
+    // Plan 2297 (WI16): variant carrying an xdef-declared output budget so the
+    // budget linkage can be driven end-to-end through the executor.
+    private IToolManager toolManagerReturning(String content, AiToolOutputBudgetModel budget) {
         return new IToolManager() {
             @Override
             public CompletableFuture<AiToolCallResult> callTool(String toolName, AiToolCall call, IToolExecuteContext context) {
@@ -180,6 +187,7 @@ public class TestSpillStore {
                 AiToolModel m = new AiToolModel();
                 m.setName(toolName);
                 m.setDescription("Test tool");
+                m.setOutputBudget(budget);
                 return m;
             }
         };
@@ -389,4 +397,55 @@ public class TestSpillStore {
         assertTrue(!"success".equals(result.getStatus()));
         assertNotNull(result.getError());
     }
+
+    @Test
+    void budgetedToolResultSpilledWithModelOverride() {
+        // Plan 2297 (WI16) end-to-end: xdef-declared budget + per-call
+        // maxOutputChars override drive the SPILL decision through the real
+        // executor path. Declared max=1000; the model asks 500 (within the
+        // declared cap) — the spill preview must honour 500, not the 8000
+        // default (whose head retention alone would exceed the budget).
+        sessionStore.getOrCreate("test-session", "test-agent");
+        AiToolOutputBudgetModel budget = new AiToolOutputBudgetModel();
+        budget.setMaxChars(1000);
+        budget.setSpill(true);
+
+        ChatToolCall call = new ChatToolCall();
+        call.setId("tc-1");
+        call.setName("bash");
+        call.setArguments(java.util.Collections.singletonMap("maxOutputChars", 500));
+        AtomicInteger calls = new AtomicInteger();
+        IChatService chatService = new IChatService() {
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                if (calls.getAndIncrement() == 0) {
+                    return CompletableFuture.completedFuture(
+                            ChatResponseFixtures.assistantWithToolCalls("use tool", call));
+                }
+                ChatAssistantMessage msg = new ChatAssistantMessage();
+                msg.setContent("done");
+                return CompletableFuture.completedFuture(ChatResponse.success(msg));
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {
+                };
+            }
+        };
+
+        ReActAgentExecutor executor = buildExecutor(chatService,
+                toolManagerReturning("B".repeat(20000), budget));
+        AgentExecutionContext ctx = executeViaExecutor(executor);
+
+        String inline = toolResponseText(ctx);
+        assertNotNull(inline);
+        assertTrue(inline.contains("[SPILL_REF id="), "budget still spills: " + inline);
+        int refIndex = inline.indexOf("[SPILL_REF");
+        assertTrue(refIndex > 0 && refIndex < 600,
+                "preview must honour the model's 500-char budget (default 8000 would put the ref past 6000): refIndex="
+                        + refIndex);
+        assertTrue(inline.contains("characters removed"), "budget preview carries the exact removed-count marker");
+    }
+
 }
