@@ -1,6 +1,6 @@
 # 19 EQL WI2 — B 类缺陷（5 项：1 回显 + 3 解析 + 1 潜在静默丢弃）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI2 节 + 门控矩阵 WI2 行 + Cross-Cutting 全部 + 关键约束与红线节，v7.2）
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 `completed`）、`ai-dev/plans/03-eql-wi1-class-a-defects.md`（并行实施中，行号漂移见 Current Baseline 注记）、`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1 已裁决，本 plan 仅 BUG-8 消费）
@@ -163,7 +163,7 @@ Exit Criteria:
 - [x] 红→绿回归测试断言具体行为（`full outer join` 可解析；`full join` 输出不变；断言具体 SQL 文本）。
 - [x] 负向用例：MySQL（或 mariadb）方言上 `full outer join` 编译期报错，断言具体错误码与 `ARG_FEATURE=supportFullJoin` param；无静默跳过（`false` 时不得静默改写或丢弃 join 类型）。（手构 false 方言断言错误码+feature param；mysql/mariadb XML=false 值由 nop-dao 链测试钉死，两测试合成"真 mysql 配置值→门行为"连通证明。）
 - [x] 接线验证测试通过（flag 值真实改变编译行为）。
-- [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。（文法 `feat(nop-orm-eql)` 单独提交；实测两模块 BUILD SUCCESS——nop-orm-eql 212、nop-dao 855。）
+- [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。（文法 `feat(nop-orm-eql)` 单独提交；实测两模块 BUILD SUCCESS——nop-orm-eql 212、nop-dao 223（177 通过+46 既有豁免 skip；初稿误记的 855 为同 reactor 中 nop-xlang 的套件数，独立审计勘误）。）
 - [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若快照口径覆盖 features 字段，同步 `mysql`/`mariadb` 的新值）。（exit 0；快照 entry 键=extends/functions/loadable/pseudo 无 features 字段，无需同步——执行期核实。）
 - [x] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随全量运行通过。）
 - [x] owner doc FULL JOIN 登记已落档。
@@ -246,12 +246,12 @@ Exit Criteria:
 - [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿——**"全绿"口径**：本 plan 相关模块全绿 + `nop-stream-runtime` 的 1 项既有失败（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`，与基线一致即豁免，不据此判本 plan 失败；来源 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 头部第 2 条红线事实）。（⚠️ 执行期实测两段：① `-T 1C` 下 reactor 在 `nop-batch` 因 `TestBatchTaskCheckpoint.testFailFastStopsSiblingThreads` 并发时序 flake 中断（expected IllegalStateException was BatchCancelException，与本 plan 零代码关联；单独复跑 8/8 PASS 在 surefire 报告）；② 改串行复跑全量闭包：**唯一失败 = 恰为豁免清单内的 `testCapabilityMatrixAlignedWithDesignAdjudication`，症状逐字一致**（`debezium-cdc ==> expected: <SINGLE_INSTANCE> but was: <PARALLEL>`），reactor 因其终止致 `:nop-auth-service` SKIPPED；③ 按任务预案以 `-Dtest='!TestStreamConnectorRegistryDiscovery' -Dsurefire.failIfNoSpecifiedTests=false` 补跑：**BUILD SUCCESS**，五个目标模块（nop-orm-eql/nop-orm/nop-metadata-service/nop-job-dao/nop-auth-service）全 SUCCESS，`TestEqlCorpusBaseline` 1/1（快照零 diff）。判定=与豁免基线一致，不判失败。）
 - [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（方言 XML 值变更已同步快照口径）。（exit 0；快照 entry 键=extends/functions/loadable/pseudo 无 features 字段，值变更不触口径——执行期核实，无需同步。）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，见 roadmap EC 第 6 条口径）。（每个 Phase 提交前实测 exit 0 / No errors found。）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/19-eql-wi2-class-b-defects.md --strict` 退出码 0。（执行者实测 exit 0（Plan Status=active 下通过）；**留白待独立审计终门复跑**——执行者不得勾。）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/19-eql-wi2-class-b-defects.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow 对本 roadmap 尤其关键——"只打印不设门"正是它要抓的半实现形态）。（2026-10-03 实测 exit 0 / 0 命中，含 `printLimit` 置空 override 与 BUG-15 无条件抛错守卫的审查通过。）
 - [x] 两处 `.g4` 改动各自单独提交可审计（生成物变更纪律）；无 lexer token 删除。（BUG-6 文法=`a3de1c9564`、BUG-8 文法=`9a76048670`——两个文法提交均只含 `.g4`+生成物（EqlParser.java/Eql.interp），`git show --stat` 可核；两次重生成 `ast/_gen` 零 diff、token 表零增删。）
 - [x] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：FULL JOIN 能力面与 `supportFullJoin` 登记、BUG-15 拒绝行为小节；Phase 0 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`。（另含 WI2 BUG-4「EQL 回显路径契约」小节与敏感输出点登记表 3 个新行（FULL JOIN/CAST 子句）；裁定文档=`2026-10-03-wi2-class-b-adjudications.md`。）
-- [ ] Anti-Hollow Check：closure audit 已验证（a）`supportFullJoin` 从 `mysql.dialect.xml` 配置值到编译期门行为的运行时调用链连通（不只是 accessor/字段存在），（b）BUG-4 从 EQL 文本到回显文本的端到端路径有测试，（c）无空方法体/静默跳过/no-op 作为"已修复"（BUG-15 拒绝路径尤其不得是吞字段）。（执行者侧自证材料：(a)=`TestDialectFullJoinFlag`（XML→accessor）+`TestEqlFullJoinDialectGate`（flag 值分叉门行为）；(b)=`TestEqlSelectAllLimitEcho` round-trip+`TestEqlSelectAllLimitCompile`；(c)=BUG-15 无条件抛错+`testGuardIsUnconditionalNotValueDependent`、hollow scan 0 命中。**留白待独立审计复核**——执行者不得勾。）
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI2 行据此才可 `todo` →（执行中）→ `done`。（**留白给主会话+独立审计**——执行者不得自行翻转 roadmap 状态。）
+- [x] Anti-Hollow Check：closure audit 已验证（a）`supportFullJoin` 从 `mysql.dialect.xml` 配置值到编译期门行为的运行时调用链连通（不只是 accessor/字段存在），（b）BUG-4 从 EQL 文本到回显文本的端到端路径有测试，（c）无空方法体/静默跳过/no-op 作为"已修复"（BUG-15 拒绝路径尤其不得是吞字段）。（独立审计 D 项确认三项全部验证：(a)=XML→accessor→门行为分叉两测试合成、(b)=round-trip+编译锚、(c)=无条件抛错+hollow 0 命中）
+- [x] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI2 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -265,26 +265,30 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - **ESCAPE 回显未随 BUG-4 承接**：WI1 plan 曾把 `LIKE … ESCAPE` 的回显缺失（基类 `AstToEqlGenerator.visitSqlLikeExpr` 不打印 escape）预期为"随 WI2 BUG-4 回显治理批次"，但本 plan 起草与 draft review 收口的 BUG-4 范围为 selectAll/LIMIT/字面量三项、EC 不含 ESCAPE 回显。回显 escape 属新增回显形态变更，待 roadmap 立项授权；owner doc ESCAPE 小节已同步实际落地面（watch-only）。
-- **EQL parse 层 `''` 双写不 un-double 的既有缺口**：lexer `STRING_` 规则（`Literals.g4`）接受 `'a''b'` 为单 token，但 `EqlParseHelper.stringLiteralValue` 只 unescape 反斜杠形态 ⇒ 含引号值的回显文本（`''` 双写形）重解析后值含字面 `''`。属 parse 语义缺口非回显缺陷（回显文本与执行路径 `escapeSlash=false` 渲染逐字一致），修复会改变既有 parse 语义，需另行立项（owner=`parse 层`，非本 roadmap 缺陷清单条目）。
+- **EQL parse 层 `''` 双写不 un-double 的既有缺口**：lexer `STRING_` 规则（`nop-persistence/nop-orm-eql/model/antlr/Literals.g4`）接受 `'a''b'` 为单 token，但 `EqlParseHelper.stringLiteralValue` 只 unescape 反斜杠形态 ⇒ 含引号值的回显文本（`''` 双写形）重解析后值含字面 `''`。属 parse 语义缺口非回显缺陷（回显文本与执行路径 `escapeSlash=false` 渲染逐字一致），修复会改变既有 parse 语义，需另行立项（owner=`parse 层`，非本 roadmap 缺陷清单条目）。
 - `EqlASTBuildVisitor.java:200`（`SqlIntervalExpr_intervalUnit`）的同款 `(ParserRuleContext)` 强转类型正确、非缺陷，不动；WI1 BUG-5 触碰该区域时如顺手统一错误定位形态，须以符号定位并独立说明。
 - roadmap Cross-Cutting"生成物变更纪律"的 CI `git diff --stat` 阈值告警 carrier 待定（WI0 Non-Blocking Follow-up）；本 plan 以"两处 `.g4` 各自单独提交 + `git log` 可审计"作为过程替代。
 - WI1 plan Closure Gates 中的"3 项既有失败"表述滞后于实测 1 项基线（差异登记第 4 条）；WI1 收口时按其自身流程更正，本 plan 不代改。
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed:
+Status Note: 5 个 Phase 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A1..A4/B1..B6/C/D 全部 PASS，0 Blocker / 0 Major / 3 Minor（均为文本/证据行精度勘误，收口时已顺手修正：① plan `:268` 裸 `Literals.g4` 改全路径；② Phase 2 EC 的"nop-dao 855"勘误为 223=177 通过+46 既有豁免 skip（855 系 nop-xlang 套件数张冠李戴）；③ 裁定文档 §一 BUG-6 挂载点旧表述与 §三 执行期修订同步）。产品实质（5 缺陷红→绿、接线验证、语料 BC 零再生成裁定复核、门禁全过、生成物纪律）全部独立证实。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI2 closure audit（一次通过，结论"可通过 closure audit，roadmap WI2 可翻 done"）
 - Evidence:
-  - （每条 Exit Criterion 的验证结果 PASS/FAIL + 对应 live code path 或 test name）
-  - （每条 Closure Gate 的验证结果 PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/19-eql-wi2-class-b-defects.md --strict` 退出码
-  - Anti-Hollow 检查结果：`scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 + 端到端调用链追踪结论
-  - Deferred 项分类检查：确认无 in-scope live defect 被降级（BUG-15 的"尚不可达"以 token 分叉证据为准，不属 live defect 降级）
+  - A1 PASS：5 缺陷红→绿测试计数勾稽（203→212→219→227→234 与各 Phase 提交逐一吻合）；审计员独立复跑 `TestEqlSelectAllLimitEcho` 7/7、`TestEqlFullJoinDialectGate` 5/5、`TestEqlSqlTypeClauseGuard` 7/7
+  - A2 PASS：负向断言错误码+param+flag 两值分叉；`TestDialectFullJoinFlag` 2/2 真 XML 链（mysql/mariadb/mysql5.7=false、7 方言继承 true）
+  - A3 PASS：快照自 WI0 后零 diff（git 证据）；审计员对 7 个语料文件独立 grep 复核 Phase 0 免再生成裁定（零 select */零 limit/零 SQL 层布尔字面量）
+  - A4 PASS：`-pl` 命令与 roadmap WI2 EC 逐字一致、三份必测口径如实
+  - B1..B6 PASS：printSelect 守卫/printLimit 钩子/布尔回显、门挂载点执行期修订三处一致回写、toUpperCase+loc(Token)、BOOLEAN 文法零 token 增删、BUG-15 无条件抛错+quoted collate 执行期事实增补入档、无手改生成物（审计员自跑带 codegen 的 maven 后工作树仍净=幂等实证）
+  - C PASS：matrix/doc-links/hollow/checklist 四门禁审计员自跑 exit 0（doc-links 0 error；Minor-1 的 1 warning 已在本收口修正）
+  - D PASS：5 Phase + Closure Gates + daily log 三处一致；执行者三项偏差全部有据登记
+  - Anti-Hollow：hollow scan exit 0 + (a)(b)(c) 三链路独立验证（见上）
+  - Deferred 项分类检查：BUG-15"尚不可达→quoted 可达"执行期事实已按证据纪律增补登记，无 in-scope live defect 被降级；ESCAPE 回显债以 watch-only 显式登记（roadmap ledger 本次收口补行）
 
 Follow-up:
 

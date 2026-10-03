@@ -12,7 +12,7 @@
 | 裁定点 | 结论 | 回滚单位 |
 |---|---|---|
 | BUG-4 字面量一致化 | **候选 A：回显保持 EQL 语法形态，消除语义分歧**——字符串转义维持 `escapeSql(value,false)` 不变（已是 EQL 规范形、round-trip 等价）；布尔字面量回显由 `" 1 "/" 0 "` 改为 `" true "/" false "`（可重新解析回 `SqlBooleanLiteral`）。拒绝候选 B（注入 dialect） | `AstToEqlGenerator.visitSqlBooleanLiteral` 一处，单独 git revert |
-| BUG-6 门消费点 | **编译期门，独立私有方法 `checkJoinTypeFeature(SqlJoinTableSource)`**，挂载于 `EqlTransformVisitor.visitTableSource` 的 `SqlJoinTableSource` 分支、`visitJoinLeft/visitJoinRight` 之前（先门后遍历，仿 `checkWindowFrameFeature`）；错误码复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + 新常量 `FEATURE_SUPPORT_FULL_JOIN` | 门方法 + 常量，单独 git revert |
+| BUG-6 门消费点 | **编译期门，独立私有方法 `checkJoinTypeFeature(SqlJoinTableSource)`**，挂载于 `EqlTransformVisitor.visitTableSource` 的 `SqlJoinTableSource` 分支、`visitJoinLeft` 之后、`visitJoinRight` 之前（⚠️ 执行期修订：原拟分支头部，实测方言实例要到首个实体解析才确定、头部触发 NPE——详见 §三"挂载点（执行期修订）"）；错误码复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + 新常量 `FEATURE_SUPPORT_FULL_JOIN` | 门方法 + 常量，单独 git revert |
 | mariadb 显式配置 | **显式配置 `supportFullJoin="false"`**（继承 mysql 已可得 false；显式化换契约自文档性，与 WI1 mariadb `supportLateral="false"` 负向载体先例一致） | `mariadb.dialect.xml` 一行，单独 git revert |
 | BUG-15 拒绝落点 | **候选 A：解析期拒绝**——手写 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate`（`EqlASTBuildVisitor`）改为无条件抛错（方法被调用即抛，即"分支可达"本身就是要拒绝的事件）；新错误码 `ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT`。拒绝候选 B（编译/生成期检查字段非空） | 两个 accessor + 新错误码，单独 git revert |
 
