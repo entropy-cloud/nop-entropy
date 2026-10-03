@@ -170,25 +170,25 @@ Exit Criteria:
 
 ### Phase 3 - BUG-7 小写 `date '…'` CCE
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`（`SqlDateTimeLiteral_type` `:184-191`）、`nop-orm-eql` 测试
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 修复前红：小写 `date '2020-01-01'` 断言正常解析且 AST `type=DATE`——修复前抛 `ClassCastException`（`EqlASTBuildVisitor.java:188` 的 `(ParserRuleContext) node` 强转对 `Token` 参数），断言红。
-- [ ] 修复：`SqlDateTimeLiteral_type` 把 token 文本 `toUpperCase(Locale.ROOT)` 后再 `SqlDateTimeType.fromText`；错误分支去掉 `(ParserRuleContext)` 强转，改用 `ParseTreeHelper.loc(Token)` 重载——非法类型名（如 `dat`）响亮抛 `ERR_EQL_INVALID_DATETIME_TYPE`（断言错误码 + `ARG_VALUE` param，不再被 CCE 掩盖）。
-- [ ] 大小写回归守护：`DATE`/`TIME`/`TIMESTAMP` 大写与 `date`/`time`/`timestamp` 小写解析结果一致（enum 同值）；`Date '…'` 等混合大小写行为经断言明确（词法层本就大小写不敏感，`Alphabet.g4:22-25` fragment 证据）。
-- [ ] 不越界声明：`EqlASTBuildVisitor.java:200`（`SqlIntervalExpr_intervalUnit`）的同款强转**类型正确**（参数本就是 `ParseTree`），不改；interval 单位的既有行为（含 `ERR_EQL_INVALID_INTERVAL_UNIT`）回归不变（WI1 BUG-5 会另行触碰该区域，以符号定位避免冲突）。
-- [ ] 修法属纯方法内修复：`No owner-doc update required`（或如 owner doc 有日期字面量表述则同步）。
+- [x] 修复前红：小写 `date '2020-01-01'` 断言正常解析且 AST `type=DATE`——修复前抛 `ClassCastException`（`EqlASTBuildVisitor.java:188` 的 `(ParserRuleContext) node` 强转对 `Token` 参数），断言红。（红证据实测（git stash 还原修复后以最终测试输入复跑）：7 用例 6 错 1 失败，全部 `ClassCastException: CommonToken cannot be cast to ParserRuleContext` / expected NopEvalException but was CCE。）
+- [x] 修复：`SqlDateTimeLiteral_type` 把 token 文本 `toUpperCase(Locale.ROOT)` 后再 `SqlDateTimeType.fromText`；错误分支去掉 `(ParserRuleContext)` 强转，改用 `ParseTreeHelper.loc(Token)` 重载——非法类型名（如 `dat`）响亮抛 `ERR_EQL_INVALID_DATETIME_TYPE`（断言错误码 + `ARG_VALUE` param，不再被 CCE 掩盖）。（落地一致；非法类型名载体=真实 lexer 产物 token（`loc(Token)` 读 `getInputStream()`，合成 token 无流会 NPE）直调访问器。）
+- [x] 大小写回归守护：`DATE`/`TIME`/`TIMESTAMP` 大写与 `date`/`time`/`timestamp` 小写解析结果一致（enum 同值）；`Date '…'` 等混合大小写行为经断言明确（词法层本就大小写不敏感，`Alphabet.g4:22-25` fragment 证据）。（`TestEqlDateTimeLiteralCase` 5 解析用例覆盖大小写/混合各形态。）
+- [x] 不越界声明：`EqlASTBuildVisitor.java:200`（`SqlIntervalExpr_intervalUnit`）的同款强转**类型正确**（参数本就是 `ParseTree`），不改；interval 单位的既有行为（含 `ERR_EQL_INVALID_INTERVAL_UNIT`）回归不变（WI1 BUG-5 会另行触碰该区域，以符号定位避免冲突）。（未触碰该方法；interval 路径随全量运行通过（TestEqlIntervalLiteralParse 等）。测试文件的 interval 直调守护用例因 `ParseTree` 参数类型不匹配改为依赖既有 WI1 interval 测试覆盖。）
+- [x] 修法属纯方法内修复：`No owner-doc update required`（或如 owner doc 有日期字面量表述则同步）。（owner doc 零日期字面量表述，grep 实证。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：小写 `date '2020-01-01'` 解析成功且**双断言钉死**——AST 枚举值 `SqlDateTimeType.DATE` **与**回显文本 `DATE '2020-01-01'`；小写 `time '…'`/`timestamp '…'` 同理各断言枚举值（`SqlDateTimeType.TIME`/`TIMESTAMP`）与回显文本。
-- [ ] 负向用例：真正非法的类型名抛 `ERR_EQL_INVALID_DATETIME_TYPE`（断言错误码，非 `ClassCastException`）；无静默跳过。
-- [ ] 大写形态回归不变；interval 单位路径回归不变。
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试：小写 `date '2020-01-01'` 解析成功且**双断言钉死**——AST 枚举值 `SqlDateTimeType.DATE` **与**回显文本 `DATE '2020-01-01'`；小写 `time '…'`/`timestamp '…'` 同理各断言枚举值（`SqlDateTimeType.TIME`/`TIMESTAMP`）与回显文本。
+- [x] 负向用例：真正非法的类型名抛 `ERR_EQL_INVALID_DATETIME_TYPE`（断言错误码，非 `ClassCastException`）；无静默跳过。（+ `ARG_VALUE` param 断言。）
+- [x] 大写形态回归不变；interval 单位路径回归不变。
+- [x] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随全量运行通过。）
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。（实测 219 tests 0 failures BUILD SUCCESS。）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - BUG-8 `cast(x as boolean)`（.g4，单独提交）
 

@@ -191,9 +191,14 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
      */
     public io.nop.orm.eql.enums.SqlDateTimeType SqlDateTimeLiteral_type(Token node) {
         String value = text(node);
-        SqlDateTimeType dateTimeType = SqlDateTimeType.fromText(value);
+        // WI2 BUG-7: 词法层关键字大小写不敏感（Alphabet.g4 fragment [Aa]），小写
+        // date/time/timestamp 正常进入本方法；fromText 是大小写敏感精确匹配，须先
+        // 归一化，否则小写输入落入错误分支。错误分支此前对 Token 参数做
+        // (ParserRuleContext) 强转 ⇒ ClassCastException 掩盖 ERR_EQL_INVALID_DATETIME_TYPE；
+        // loc(Token) 重载已存在（ParseTreeHelper），直接使用。
+        SqlDateTimeType dateTimeType = SqlDateTimeType.fromText(value.toUpperCase(Locale.ROOT));
         if (dateTimeType == null)
-            throw new NopEvalException(ERR_EQL_INVALID_DATETIME_TYPE).loc(loc((ParserRuleContext) node))
+            throw new NopEvalException(ERR_EQL_INVALID_DATETIME_TYPE).loc(loc(node))
                     .param(ARG_VALUE, value);
         return dateTimeType;
     }
