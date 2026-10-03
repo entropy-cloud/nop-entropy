@@ -1,0 +1,22 @@
+<!--
+  WI19: Delta over the COMPILED PRODUCT (x:extends explicit base path). Adds a
+  filter that drops item "b" between the compiled projection (sproj) and the
+  sink (out), rewiring e_out — observably different sink output from the base
+  product. Model-level only (§八 10).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        x:extends="/nop/stream/sql/test/wi19-compiled-base.stream.xml"
+        name="wi19-compiled-delta" version="1">
+
+    <transforms>
+        <filter id="wi19DropB">
+            <source>return !"b".equals(event['item']);</source>
+        </filter>
+    </transforms>
+
+    <edges>
+        <edge id="e_out" from="sproj" to="wi19DropB" partition="FORWARD"/>
+        <edge id="e_wi19" from="wi19DropB" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
