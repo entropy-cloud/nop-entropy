@@ -88,25 +88,25 @@ Exit Criteria:
 
 ### Phase 3 - 既有 EQL 语料基线快照 + 溯源记录 + stream 基线
 
-Status: planned
+Status: completed
 Targets: `nop-orm-eql` 新增快照测试、`ai-dev/audits/eql-wi0/eql-corpus-baseline.md`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Proof`、`Decision`
 
-- [ ] 语料快照测试（`nop-orm-eql`）：**解析机制**——`SqlLibModel` 在 nop-orm 模块、7 个语料文件分属 5 个其他模块，均不在 nop-orm-eql classpath；因此用 XNode 通用 XML 解析 + repo-root walk-up（自 cwd 向上找 `ai-dev/`，先例 `nop-stream-core` 的 `InvariantTableCompleteness.findInventoryFile()`）定位语料文件，抽取 `<eql>` 元素文本，经 `EqlASTParser.parseFromText` 解析、`toSqlString()` 回显。
-- [ ] **模板归一化策略**（先归一化再解析，保证参数化语句不退化为 parse-error 记录）：① 递归把 `<eql>` 体内嵌套的动态子元素（如 `<sql:filter>`）替换为其内部文本（剥标签留内容）；② `${...}` XPL 占位符统一替换为哑字面量 `1`；③ 注释剥离。归一化规则写进快照文档头；对归一化后仍解析失败的语句记录确定性错误文本。
-- [ ] 快照落 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md`（每文件每语句：归一化源 → 回显文本或错误），测试比对 drift 即 fail；快照文档头记录两条红线事实（见下）。
-- [ ] 快照文档头记录两条红线事实：`EqlASTKind.ordinal()` 不稳定（67 常量、已被合并重编号、禁止持久化比较）；`nop-stream-runtime` 3 项既有失败是基线豁免（附实测输出摘要）。
-- [ ] 实测 `nop-stream-runtime` 3 个测试类当前状态并记录（若本地依赖不全则先 `-am install` 一次性补齐）。
-- [ ] owner doc 新增"语法溯源"小节：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 4 条 SQL-92 函数规则自 `aa1b310122`（2022-06-27）首次提交即为注释态、从未生效（附 `git log -S` 证据结论），不得当作"EQL 曾正确实现过"的先例。（✅ 已由 Phase 4 一并完成，见该节勾稽）
+- [x] 语料快照测试（`nop-orm-eql`）：**解析机制**——`SqlLibModel` 在 nop-orm 模块、7 个语料文件分属 5 个其他模块，均不在 nop-orm-eql classpath；因此用 XNode 通用 XML 解析 + repo-root walk-up（自 cwd 向上找 `ai-dev/`，先例 `nop-stream-core` 的 `InvariantTableCompleteness.findInventoryFile()`）定位语料文件，抽取 `<eql>` 元素文本，经 `EqlASTParser.parseFromText` 解析、`toSqlString()` 回显。
+- [x] **模板归一化策略**（先归一化再解析，保证参数化语句不退化为 parse-error 记录）：① 递归把 `<eql>` 体内嵌套的动态子元素（如 `<sql:filter>`）替换为其内部文本（剥标签留内容）；② `${...}` XPL 占位符统一替换为哑字面量 `1`；③ 注释剥离。归一化规则写进快照文档头；对归一化后仍解析失败的语句记录确定性错误文本。（实测：36 语句 = 34 回显 + 2 真实 parse-error，`testComplexParams`/`findBySqlFilter` 剥 `<sql:filter>` 后残留 `:name` 绑定参数，属 XPL 模板层职责）
+- [x] 快照落 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md`（每文件每语句：归一化源 → 回显文本或错误），测试比对 drift 即 fail；快照文档头记录两条红线事实（见下）。
+- [x] 快照文档头记录两条红线事实：`EqlASTKind.ordinal()` 不稳定（67 常量、已被合并重编号、禁止持久化比较）；`nop-stream-runtime` 既有失败是基线豁免（附实测输出摘要）。
+- [x] 实测 `nop-stream-runtime` 3 个测试类当前状态并记录。**实测偏差：roadmap 记载的"3 项既有失败"已过时 —— 13 个测试仅 1 项仍失败**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`，debezium-cdc capability 期望 SINGLE_INSTANCE 实为 PARALLEL）；另两类 5 项全部通过。豁免口径按实测收窄（已同步 roadmap Cross-Cutting）。
+- [x] owner doc 新增"语法溯源"小节：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 4 条 SQL-92 函数规则自 `aa1b310122`（2022-06-27）首次提交即为注释态、从未生效（附 `git log -S` 证据结论），不得当作"EQL 曾正确实现过"的先例。（✅ 已由 Phase 4 一并完成，见该节勾稽）
 
 Exit Criteria:
 
-- [ ] 语料快照测试全绿且对回显文本 drift 会红（临时改动快照一行可验证转红，验证后还原）。
-- [ ] 快照覆盖 7/7 个 sql-lib.xml，逐文件列出语句数与回显文本（或 parse-error 记录）。
-- [ ] `nop-stream-runtime` 3 项失败的实测结果已记入快照文档（class 名 + 失败摘要）。
-- [ ] owner doc 溯源小节含 git 证据结论。
-- [ ] `ai-dev/logs/2026/10-03.md` 已更新。
+- [x] 语料快照测试全绿且对回显文本 drift 会红（临时改动快照一行可验证转红，验证后还原）。
+- [x] 快照覆盖 7/7 个 sql-lib.xml，逐文件列出语句数与回显文本（或 parse-error 记录）。
+- [x] `nop-stream-runtime` 既有失败的实测结果已记入快照文档（class 名 + 失败摘要）。
+- [x] owner doc 溯源小节含 git 证据结论。
+- [x] `ai-dev/logs/2026/10-03.md` 已更新。（commit `299f4dec7f`）
 
 ### Phase 4 - G-1..G-4 四门书面裁决与回写
 
