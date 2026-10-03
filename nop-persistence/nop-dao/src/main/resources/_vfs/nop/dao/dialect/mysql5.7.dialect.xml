@@ -5,4 +5,24 @@
     <!-- WI1 BUG-2: LATERAL 需 MySQL 8.0.14+，5.7 不支持；显式 false 覆盖从 mysql
          继承的 supportLateral="true" -->
     <features supportSequence="false" supportReturningForUpdate="false" supportLateral="false"/>
+
+    <!-- WI3 第 7 项纠错（裁定=候选 B 内联移除，见
+         ai-dev/design/eql-cross-db-compat/2026-10-04-wi3-phase0-adjudications.md §三）：
+         mysql 经 window-expr-support.dialect.xml mixin 继承的 10 个窗口函数（rank/
+         dense_rank/row_number/lead/lag/first_value/last_value/nth_value/percent_rank/
+         cume_dist）在 MySQL 5.7 上不存在（窗口函数自 8.0 引入），逐个 remove。
+         泄漏防护：TestMysql57WindowFunctionsRemoved 动态守卫——mixin 新增函数会立即使
+         测试转红，强迫显式补 remove 或重新裁定。 -->
+    <functions>
+        <native name="rank" x:override="remove"/>
+        <native name="dense_rank" x:override="remove"/>
+        <native name="row_number" x:override="remove"/>
+        <native name="lead" x:override="remove"/>
+        <native name="lag" x:override="remove"/>
+        <native name="first_value" x:override="remove"/>
+        <native name="last_value" x:override="remove"/>
+        <native name="nth_value" x:override="remove"/>
+        <native name="percent_rank" x:override="remove"/>
+        <native name="cume_dist" x:override="remove"/>
+    </functions>
 </dialect>
