@@ -18,6 +18,27 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: cacheBreakpointTtl
+     * 
+     */
+    private java.lang.String _cacheBreakpointTtl ;
+    
+    /**
+     *  
+     * xml name: cacheBreakpoints
+     * 
+     */
+    private java.lang.Integer _cacheBreakpoints ;
+    
+    /**
+     *  
+     * xml name: cacheKeyHeader
+     * 
+     */
+    private java.lang.String _cacheKeyHeader ;
+    
+    /**
+     *  
      * xml name: contextLength
      * 
      */
@@ -60,6 +81,13 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: promptCacheKey
+     * 
+     */
+    private java.lang.Boolean _promptCacheKey ;
+    
+    /**
+     *  
      * xml name: supportToolCalls
      * 
      */
@@ -78,6 +106,63 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
      * 
      */
     private java.lang.String _thinkStartMarker ;
+    
+    /**
+     * 
+     * xml name: cacheBreakpointTtl
+     *  
+     */
+    
+    public java.lang.String getCacheBreakpointTtl(){
+      return _cacheBreakpointTtl;
+    }
+
+    
+    public void setCacheBreakpointTtl(java.lang.String value){
+        checkAllowChange();
+        
+        this._cacheBreakpointTtl = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: cacheBreakpoints
+     *  
+     */
+    
+    public java.lang.Integer getCacheBreakpoints(){
+      return _cacheBreakpoints;
+    }
+
+    
+    public void setCacheBreakpoints(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._cacheBreakpoints = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: cacheKeyHeader
+     *  
+     */
+    
+    public java.lang.String getCacheKeyHeader(){
+      return _cacheKeyHeader;
+    }
+
+    
+    public void setCacheKeyHeader(java.lang.String value){
+        checkAllowChange();
+        
+        this._cacheKeyHeader = value;
+           
+    }
+
     
     /**
      * 
@@ -195,6 +280,25 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: promptCacheKey
+     *  
+     */
+    
+    public java.lang.Boolean getPromptCacheKey(){
+      return _promptCacheKey;
+    }
+
+    
+    public void setPromptCacheKey(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._promptCacheKey = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: supportToolCalls
      *  
      */
@@ -265,12 +369,16 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("cacheBreakpointTtl",this.getCacheBreakpointTtl());
+        out.putNotNull("cacheBreakpoints",this.getCacheBreakpoints());
+        out.putNotNull("cacheKeyHeader",this.getCacheKeyHeader());
         out.putNotNull("contextLength",this.getContextLength());
         out.putNotNull("defaultMaxTokens",this.getDefaultMaxTokens());
         out.putNotNull("disableThinkingPrompt",this.getDisableThinkingPrompt());
         out.putNotNull("enableThinkingPrompt",this.getEnableThinkingPrompt());
         out.putNotNull("maxTokensLimit",this.getMaxTokensLimit());
         out.putNotNull("name",this.getName());
+        out.putNotNull("promptCacheKey",this.getPromptCacheKey());
         out.putNotNull("supportToolCalls",this.getSupportToolCalls());
         out.putNotNull("thinkEndMarker",this.getThinkEndMarker());
         out.putNotNull("thinkStartMarker",this.getThinkStartMarker());
@@ -285,12 +393,16 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void copyTo(LlmModelModel instance){
         super.copyTo(instance);
         
+        instance.setCacheBreakpointTtl(this.getCacheBreakpointTtl());
+        instance.setCacheBreakpoints(this.getCacheBreakpoints());
+        instance.setCacheKeyHeader(this.getCacheKeyHeader());
         instance.setContextLength(this.getContextLength());
         instance.setDefaultMaxTokens(this.getDefaultMaxTokens());
         instance.setDisableThinkingPrompt(this.getDisableThinkingPrompt());
         instance.setEnableThinkingPrompt(this.getEnableThinkingPrompt());
         instance.setMaxTokensLimit(this.getMaxTokensLimit());
         instance.setName(this.getName());
+        instance.setPromptCacheKey(this.getPromptCacheKey());
         instance.setSupportToolCalls(this.getSupportToolCalls());
         instance.setThinkEndMarker(this.getThinkEndMarker());
         instance.setThinkStartMarker(this.getThinkStartMarker());

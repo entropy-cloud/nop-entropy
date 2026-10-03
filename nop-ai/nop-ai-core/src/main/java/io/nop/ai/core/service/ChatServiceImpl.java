@@ -271,6 +271,11 @@ public class ChatServiceImpl implements IChatService {
 
         httpRequest.setTimeout(CFG_AI_SERVICE_READ_TIMEOUT.get());
 
+        // Plan 2302 (WI20): per-provider cache-key placement — session-
+        // affinity header form (after auth headers; config-gated no-op when
+        // LlmModelModel.cacheKeyHeader is unset)
+        dialect.applyCacheHeaders(httpRequest, request, modelConfig);
+
         Map<String, Object> body = dialect.buildBody(request, config, modelConfig, model, stream);
         httpRequest.setBody(JsonTool.serialize(body, false));
 

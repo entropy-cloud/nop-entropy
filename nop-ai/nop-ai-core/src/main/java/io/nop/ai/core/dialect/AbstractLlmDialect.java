@@ -2,6 +2,7 @@ package io.nop.ai.core.dialect;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -264,6 +265,30 @@ public abstract class AbstractLlmDialect {
         }
 
         return content;
+    }
+
+    /**
+     * Plan 2302 (WI20): session-affinity header placement (the concrete
+     * implementation of {@link ILlmDialect#applyCacheHeaders} — all shipped
+     * dialects extend this class, so the interface default no-op is
+     * uniformly shadowed). Config-gated via {@code cacheKeyHeader}; a
+     * missing session id skips the placement with a debug log — the
+     * optimization knob is never a failure surface.
+     */
+    public void applyCacheHeaders(io.nop.http.api.client.HttpRequest httpRequest,
+                                  ChatRequest request, io.nop.ai.core.model.LlmModelModel modelConfig) {
+        if (modelConfig == null || modelConfig.getCacheKeyHeader() == null
+                || modelConfig.getCacheKeyHeader().isEmpty()) {
+            return;
+        }
+        ChatOptions options = request != null ? request.getOptions() : null;
+        String sessionId = options != null ? options.getSessionId() : null;
+        if (sessionId == null || sessionId.isEmpty()) {
+            LOG.debug("applyCacheHeaders: cacheKeyHeader={} configured but no sessionId on the request — "
+                    + "session-affinity placement skipped", modelConfig.getCacheKeyHeader());
+            return;
+        }
+        httpRequest.setHeader(modelConfig.getCacheKeyHeader(), sessionId);
     }
 
     /**

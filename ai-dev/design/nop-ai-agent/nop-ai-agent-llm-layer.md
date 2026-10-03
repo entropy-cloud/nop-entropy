@@ -65,7 +65,7 @@ thinking prompt 注入由各 Dialect 的 `buildBody()` 在最后一条消息上�
    - **API 正确性**（托管 DeepSeek API）：`reasoning_content` 不应作为 messages 入参回传——API 入参不接受它。
    - **缓存正确性**（本地字节精确 KV 前缀缓存服务器，如 DS4）：reasoning **是 KV checkpoint 的一部分**，必须按服务器期望的 item 类型与顺序回放，否则渲染前缀从前一点起静默分歧、磁盘 checkpoint 失效。两个层面方向相反。
    - 因此 reasoning 回放策略必须由 **per-model compat flag**（如 `requiresReasoningContentOnAssistantMessages`）在 Dialect/Provider 适配层选择，而非全局硬规则。详见 §8.4。
-3. **`providerHints` 的角色**：`ChatMessage.providerHints` 是 Provider 特定提示的透传通道（如 Anthropic 的 `cache_control`）。它是元数据，不影响消息文本内容的序列化。前缀缓存匹配只看 `ILlmDialect` 输出的字节序列。
+3. **`providerHints` 的角色**：`ChatMessage.providerHints` 是 Provider 特定提示的透传通道。它是元数据，不影响消息文本内容的序列化。前缀缓存匹配只看 `ILlmDialect` 输出的字节序列。**cache_control 不再经此通道消费**（plan 2302/WI20：Anthropic 缓存断点由请求侧断点引擎按模型配置构造，顶层 message-map 透传是 Anthropic 不接受的位置——autonomous WI8 纠错已并入断点引擎）。
 
 ### 3.4 拒绝了什么
 
@@ -414,6 +414,20 @@ Reasonix 验证（原则层 + 不变性保证）：435M input tokens, 99.82% cac
 **与 roadmap 项的关系**：三项均不新增 roadmap 项，但建议在各自归属项的验收标准（acceptance criteria）中补充"缓存场景验证"子项——特别是 cache_write 记录，应作为 L2-18 的已知缺口补齐。另建议在 roadmap Layer 2 验收标准的后续 successor 区记录 cache_write runtime 写入尚未实现。
 
 ---
+
+## 八点五、缓存键放置框架（plan 2302/WI20，Layer 2）
+
+per-provider 缓存键放置（unreal D6 增量）：键值 = `ChatOptions.sessionId`（引擎在 `resolveRoutedOptions` 末尾统一 stamp——regular + steering/heartbeat 唤醒路径收敛点；SingleTurnExecutor 从零创建仅含 sessionId 的 options；辅助 LLM 调用路径（Layer3FullSummaryStrategy/LlmCompletionJudge/LLMCurator）不 stamp——"缺键跳过"语义使其天然隔离于会话缓存命名空间，与 autonomous WI11 划界）。三种形态全部 per-model 配置门控（llm.xdef `LlmModelModel`），**默认关闭 = 请求字节零变化**：
+
+| 形态 | 配置 | 产出 | 语义 |
+|------|------|------|------|
+| TTL 断点（Anthropic） | `cacheBreakpoints="int"` + `cacheBreakpointTtl="string"`（空=默认 ephemeral；如 `1h`） | system 字符串→单元素块数组+末块断点；最后 N 个**非空 turn** 各自**最后一个可承载块**（跳过 thinking 块——Anthropic 契约禁止；仅 thinking 的轮不计入 N）落 `cache_control` | 请求侧断点引擎（`AnthropicDialect.applyCacheBreakpoints`），构造确定性；负值=off；关闭时 system 保持字符串形态 |
+| 字段（OpenAI chat completions） | `promptCacheKey="boolean"` | body 附加 `prompt_cache_key=<sessionId>` | Responses API 形态未裁定（watch） |
+| 会话亲和 header（openrouter/fireworks） | `cacheKeyHeader="string"`（如 `x-session-id`） | `applyCacheHeaders`（`ChatServiceImpl.buildHttpRequest` 在 setHeaders 后调用）注入 header | `ILlmDialect` default no-op + `AbstractLlmDialect` 具体实现（全部方言继承） |
+
+**缺 sessionId 语义**：配置了放置形态但请求无 sessionId → debug log + 跳过放置（成本优化语义：无键可放不是错误，不 fail-loud）。
+
+**已知不对称（登记后继）**：断点开启后 outbound system 为块数组，`AnthropicDialect.parseRequestBody` 对 system 仅 `toString()`——build→parse 自闭环有损（真实 provider 客户端发块数组同样命中此既有缺口）；parse 侧支持留待后继。
 
 ## 九、拒绝了什么
 

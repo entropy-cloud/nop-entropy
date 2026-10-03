@@ -72,6 +72,16 @@ public class SingleTurnExecutor implements IAgentExecutor {
 
         try {
             ChatRequest request = new ChatRequest(new ArrayList<>(ctx.getMessages()));
+            // Plan 2302 (WI20): the single-turn request carries no options of
+            // its own — create a minimal ChatOptions carrying the session id
+            // so the per-provider cache-key placement can key off it (an
+            // empty ChatOptions is behaviour-equivalent to null options for
+            // provider resolution / stream defaults)
+            if (sessionId != null) {
+                io.nop.ai.api.chat.ChatOptions options = new io.nop.ai.api.chat.ChatOptions();
+                options.setSessionId(sessionId);
+                request.setOptions(options);
+            }
             ChatResponse response = callWithTimeout(request);
 
             if (!response.isSuccess()) {

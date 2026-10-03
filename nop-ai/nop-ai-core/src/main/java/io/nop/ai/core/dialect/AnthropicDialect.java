@@ -27,6 +27,9 @@ import io.nop.http.api.client.HttpRequest;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +61,8 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_RESPONSE;
  * </pre>
  */
 public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect {
+    private static final Logger LOG = LoggerFactory.getLogger(AnthropicDialect.class);
+
 
     @Override
     public String getName() {
@@ -290,22 +295,102 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
             ((List<Map<String, Object>>) currentTurn.get("content")).addAll(
                     (List<Map<String, Object>>) msgMap.get("content"));
-            // 合并轮的顶层 providerHints（cache_control）保留首个携带者；
-            // 合并轮 hints 放置语义由 WI20（per-provider 缓存键放置）复核钉定
-            if (!currentTurn.containsKey("cache_control") && msgMap.containsKey("cache_control")) {
-                currentTurn.put("cache_control", msgMap.get("cache_control"));
-            }
+            // Plan 2302 (WI20): the merged-turn top-level cache_control
+            // retention (former providerHints passthrough) was removed —
+            // breakpoints are engine-placed at the content-block level
+            // (applyCacheBreakpoints), never as a turn-level key.
         }
 
         if (turnWithLastMessage != null && modelConfig != null) {
             applyThinkingToContentBlocks(turnWithLastMessage, modelConfig, options);
         }
 
+        // Plan 2302 (WI20): request-side cache breakpoint engine — replaces
+        // the providerHints cache_control passthrough (removed below, the
+        // autonomous-WI8 top-level placement defect). Config-gated: zero
+        // breakpoints = byte-identical request shape.
+        applyCacheBreakpoints(body, messages, modelConfig);
+
         if (!messages.isEmpty()) {
             body.put("messages", messages);
         }
 
         return body;
+    }
+
+    /**
+     * Plan 2302 (WI20): deterministic cache breakpoint placement at the
+     * content-block level (the only position Anthropic accepts).
+     *
+     * <ul>
+     *   <li>system: the string form becomes a single-element block array with
+     *       the breakpoint on that block (skipped when no system key is
+     *       present);</li>
+     *   <li>messages: the last {@code cacheBreakpoints} non-empty turns each
+     *       get the breakpoint on their last cache-control-carryable block
+     *       (thinking blocks are skipped — the Anthropic contract forbids
+     *       cache_control on thinking; a turn with only thinking blocks is
+     *       skipped and does not count toward N).</li>
+     * </ul>
+     *
+     * <p>Negative configuration equals off (debug log — the knob is never a
+     * failure surface). Same message sequence → same breakpoint positions
+     * (serialization determinism, llm-layer §3.2).
+     */
+    @SuppressWarnings("unchecked")
+    private void applyCacheBreakpoints(Map<String, Object> body,
+                                       List<Map<String, Object>> turns,
+                                       LlmModelModel modelConfig) {
+        int breakpoints = modelConfig != null && modelConfig.getCacheBreakpoints() != null
+                ? modelConfig.getCacheBreakpoints() : 0;
+        if (breakpoints <= 0) {
+            if (breakpoints < 0) {
+                LOG.debug("AnthropicDialect: negative cacheBreakpoints={} treated as off", breakpoints);
+            }
+            return;
+        }
+
+        Object systemObj = body.get("system");
+        if (systemObj instanceof String && !((String) systemObj).isEmpty()) {
+            Map<String, Object> systemBlock = new LinkedHashMap<>();
+            systemBlock.put("type", "text");
+            systemBlock.put("text", systemObj);
+            systemBlock.put("cache_control", cacheControlValue(modelConfig));
+            List<Map<String, Object>> systemBlocks = new ArrayList<>(1);
+            systemBlocks.add(systemBlock);
+            body.put("system", systemBlocks);
+        }
+
+        int placed = 0;
+        for (int i = turns.size() - 1; i >= 0 && placed < breakpoints; i--) {
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) turns.get(i).get("content");
+            if (blocks == null || blocks.isEmpty()) {
+                continue; // empty turn — skipped, does not count toward N
+            }
+            Map<String, Object> target = null;
+            for (int b = blocks.size() - 1; b >= 0; b--) {
+                Map<String, Object> block = blocks.get(b);
+                if (!"thinking".equals(block.get("type"))) {
+                    target = block;
+                    break;
+                }
+            }
+            if (target == null) {
+                continue; // only thinking blocks — skipped, does not count
+            }
+            target.put("cache_control", cacheControlValue(modelConfig));
+            placed++;
+        }
+    }
+
+    private Map<String, Object> cacheControlValue(LlmModelModel modelConfig) {
+        Map<String, Object> cacheControl = new LinkedHashMap<>();
+        cacheControl.put("type", "ephemeral");
+        String ttl = modelConfig.getCacheBreakpointTtl();
+        if (ttl != null && !ttl.isEmpty()) {
+            cacheControl.put("ttl", ttl);
+        }
+        return cacheControl;
     }
 
     @Override
@@ -628,10 +713,11 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             }
         }
 
-        if (message.getProviderHints() != null && message.getProviderHints().containsKey("cache_control")) {
-            msgMap.put("cache_control", message.getProviderHints().get("cache_control"));
-        }
-
+        // Plan 2302 (WI20): the providerHints cache_control passthrough was
+        // removed — a top-level message-map key is not a position Anthropic
+        // accepts (the autonomous-WI8 placement defect). Cache breakpoints
+        // are engine-constructed at the content-block level
+        // (applyCacheBreakpoints, model-config gated).
         msgMap.put("content", contentBlocks);
         return msgMap;
     }

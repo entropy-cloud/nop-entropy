@@ -162,6 +162,15 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
             addOptionIfNotNull(body, "top_k", options.getTopK());
             addOptionIfNotNull(body, "stop", options.getStop());
 
+            // Plan 2302 (WI20): per-provider cache-key placement — the
+            // OpenAI field form. Config-gated and session-keyed; missing
+            // session id skips the placement (optimization semantics,
+            // llm-layer cache-key placement section).
+            if (modelConfig != null && Boolean.TRUE.equals(modelConfig.getPromptCacheKey())
+                    && options.getSessionId() != null && !options.getSessionId().isEmpty()) {
+                body.put("prompt_cache_key", options.getSessionId());
+            }
+
             if (options.getTools() != null && !options.getTools().isEmpty()) {
                 body.put("tools", convertToolDefinitions(options.getTools()));
             }

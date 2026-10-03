@@ -966,6 +966,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
             state.lastModelKey = currentModelKey;
         }
 
+        // Plan 2302 (WI20): stamp the agent session id onto the routed
+        // options — the per-provider cache-key placement (Anthropic
+        // breakpoints are turn-derived; OpenAI prompt_cache_key and the
+        // session-affinity header key off ChatOptions.sessionId). Single
+        // convergence point: regular iteration + both wakeup request paths
+        // (steering/heartbeat) flow through this method. A caller-set value
+        // is never overwritten.
+        if (routedOptions.getSessionId() == null && sessionId != null) {
+            routedOptions.setSessionId(sessionId);
+        }
+
         return routedOptions;
     }
 
