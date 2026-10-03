@@ -166,41 +166,41 @@ Exit Criteria:
 
 ### Phase 2 - 全量回归与收口门禁
 
-Status: planned
+Status: completed（2026-10-04；执行者产品面收口，独立 closure audit 待启动）
 Targets: 全量验证命令 + 门禁脚本 + roadmap 状态回写准备
 
 - Item Types: `Proof`
 
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI4 EC 原文口径）。**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 既有失败 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication` 1 项与基线一致即豁免（WI0 实测记录：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头；debezium-cdc capability 期望 SINGLE_INSTANCE 实为 PARALLEL，与本 roadmap 零代码关联；该模块仅因 `:nop-auth-service` 的 `-am` 闭包进入）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 与 `--module nop-orm-eql --severity high` 均零命中。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（既有 3 项基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`；不顺手修无关文件）。
-- [ ] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 裁定：若 owner doc 新增小节构成新路由锚点则同步；否则明确写 `No update required` 并记录理由。
-- [ ] WI8 前置条件确认：固定环节 + 缓存安全 + 时机槽位三项契约对 WI8 可用；缺口（如有）登记 successor，不允许名义 owner。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI4 EC 原文口径）。**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 既有失败 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication` 1 项与基线一致即豁免（WI0 实测记录：`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头；debezium-cdc capability 期望 SINGLE_INSTANCE 实为 PARALLEL，与本 roadmap 零代码关联；该模块仅因 `:nop-auth-service` 的 `-am` 闭包进入）。（三段式实测：①`-T 1C` 首跑 reactor 在 `nop-batch-core` `TestBatchTaskCheckpoint.testFailFastStopsSiblingThreads` 中断——并行负载 flake，串行复跑 8/8 绿、与本 WI 零关联，经 `-am` 闭包进入；②排除该 flake 补跑（`-Dtest='!TestBatchTaskCheckpoint'`）：五目标模块测试绿，但 nop-auth-service 被豁免项 stream 失败的 fail-fast 级联取消（`--fail-at-end` 下 metadata/job-dao 完成、auth-service fork 仍未产出报告）；③按 WI2 补跑先例 `install -DskipTests` + module-only 补跑 nop-auth-service：461|4skip 全绿 exit 0。终态计数（各模块 target/surefire-reports 汇总）：nop-dao 205|46skip、nop-orm-eql 253|0、nop-orm 212|6skip、nop-metadata-service 1340|0、nop-job-dao 87|0、nop-auth-service 461|4skip、nop-stream-runtime 1238|1（豁免项，症状 `debezium-cdc ==> expected: <SINGLE_INSTANCE> but was: <PARALLEL>` 与 WI0 基线逐字一致））
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 与 `--module nop-orm-eql --severity high` 均零命中。（双 exit 0）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（既有 3 项基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`；不顺手修无关文件）。（exit 0：0 error、3 既有 warning；执行中发现 docs-for-ai 禁引用 ai-dev/ 的 boundary 规则并即时修正 owner doc 引用形态）
+- [x] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 裁定：若 owner doc 新增小节构成新路由锚点则同步；否则明确写 `No update required` 并记录理由。（INDEX.md :80 路由行关键词补「AST 改写管线 `IEqlAstTransformer`」——文件路径未变、仅描述增词；source-anchors **No update required**：该表无 EQL 规则 ID 命名空间、无本文件既有引用，新小节的实现锚点（LoadedOrmModel.compileSql/ILoadedOrmModel javadoc/TestEqlAstTransformerWiring）已内联于 owner doc 小节，沿 WI3 同型裁定先例）
+- [x] WI8 前置条件确认：固定环节 + 缓存安全 + 时机槽位三项契约对 WI8 可用；缺口（如有）登记 successor，不允许名义 owner。（①固定环节：证明测试 1 三入口 lowering + 生产配置链；②缓存安全：证明测试 2 bypass + `ILoadedOrmModel` javadoc 新契约；③时机槽位：裁定文档 §二 槽位分工 + 2c 方言来源（after 槽位 + 已解析表源推导）+ `IS DISTINCT FROM` 参数保持性论证。无缺口，无需 successor）
 
 Exit Criteria:
 
-- [ ] 上述命令与门禁全部通过且结果记录于 `ai-dev/logs/` 对应日期条目。
-- [ ] roadmap Work Item Status 的 WI4 行具备翻 `done` 的前提（独立 closure audit 通过后才翻，不得提前）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 上述命令与门禁全部通过且结果记录于 `ai-dev/logs/` 对应日期条目。
+- [x] roadmap Work Item Status 的 WI4 行具备翻 `done` 的前提（独立 closure audit 通过后才翻，不得提前）。（产品面全部落地、四门禁通过、WI8 三契约可用；roadmap WI4 行按留白纪律未翻，待独立 audit）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（daily log WI4 Phase 2 终局条目）
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] Phase 0 四项裁定（签名范围 / transform 时机 / 缓存键方案 / 旧参数去留）全部落档 `ai-dev/design/eql-cross-db-compat/`，含被拒候选与理由。
-- [ ] 缓存键缺陷（同键不同 transformer 返回过期 SQL）已修复：证明测试 2 修复前红、修复后绿，断言具体 SQL 文本而非"没抛异常"。
-- [ ] 固定环节契约成立：证明测试 1 通过（生产配置路径 → 不带 transformer 参数的入口 → 生成 SQL 含 lowering + 运行时调用断言）。
-- [ ] 零签名改动裁定成立（若执行中改为改签名，则 plan-first draft review 已完成并以 Closure audit 实核结论为准）。
-- [ ] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）迁移说明与 `ILoadedOrmModel.java` javadoc 已同步 live baseline。
-- [ ] 三份必测语料 BC（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致；未声称"7 个全测"。
-- [ ] 无被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（候选 A 按 Phase 0 记录为被拒备选并登记于 `Deferred But Adjudicated`，属 non-defect 的范围裁定）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（stream 既有失败按 Phase 2 口径豁免）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 与 `--module nop-orm-eql --severity high` 零命中。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）transformer 从 `SessionFactoryConfig` 配置到 `EqlCompiler` 钩子调用的运行时链确实连通（计数器/标志证据，不只是类型系统），（b）解析回落 / 缓存 bypass 路径无空方法体、吞异常、no-op 当作正常实现，（c）缓存键链路（`LoadedOrmModel.java:92-93` 解析 → `:96-97` 构键 → `:98` 查 → `:115` 写）与新策略逐点一致。
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI4 行据此才可 `todo` →（执行中）→ `done`。
+- [x] Phase 0 四项裁定（签名范围 / transform 时机 / 缓存键方案 / 旧参数去留）全部落档 `ai-dev/design/eql-cross-db-compat/`，含被拒候选与理由。（`2026-10-04-wi4-phase0-adjudications.md`，含 6 项审查 Minor 吸收记录 §六）
+- [x] 缓存键缺陷（同键不同 transformer 返回过期 SQL）已修复：证明测试 2 修复前红、修复后绿，断言具体 SQL 文本而非"没抛异常"。（红证据 `_tmp/wi4/red-evidence-TestEqlAstTransformerWiring.txt`："got: select o.CLASS_ID as cid_wi4_a"；绿：`testNonDefaultTransformerBypassesQueryPlanCache` 三段断言全过）
+- [x] 固定环节契约成立：证明测试 1 通过（生产配置路径 → 不带 transformer 参数的入口 → 生成 SQL 含 lowering + 运行时调用断言）。（`testDefaultTransformerFromFactoryConfigEndToEnd`：三入口 + 双钩子计数 + session 查询真实执行）
+- [x] 零签名改动裁定成立（若执行中改为改签名，则 plan-first draft review 已完成并以 Closure audit 实核结论为准）。（全部改动 = `LoadedOrmModel.compileSql` 方法体 + `ILoadedOrmModel` javadoc + 测试；接口/方法签名零改动）
+- [x] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）迁移说明与 `ILoadedOrmModel.java` javadoc 已同步 live baseline。
+- [x] 三份必测语料 BC（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致；未声称"7 个全测"。（`TestEqlCorpusBaseline` 1/1 覆盖三份必测语料棘轮区间；本 WI 零 sql-lib/XML 资源改动）
+- [x] 无被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（候选 A 按 Phase 0 记录为被拒备选并登记于 `Deferred But Adjudicated`，属 non-defect 的范围裁定）。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（stream 既有失败按 Phase 2 口径豁免）。（三段式：-T 1C 首跑 break 于 nop-batch 并行 flake（串行 8/8）→ 排除补跑五目标绿但 auth-service 被级联取消 → auth-service install+module-only 补跑 461|4skip 绿；五目标模块终态全零失败，计数以各模块 surefire-reports 汇总）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。（留白待独立 audit；执行者已实测 active 状态下 exit 0——completed 后才强制全勾+evidence，终勾随 Plan Status completed 一并复核）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 与 `--module nop-orm-eql --severity high` 零命中。（双 exit 0，2026-10-04 实测）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0。（exit 0；执行中新增 1 处 docs-forai→ai-dev boundary 违规已即时修正）
+- [ ] **Anti-Hollow Check**：closure audit 已验证（a）transformer 从 `SessionFactoryConfig` 配置到 `EqlCompiler` 钩子调用的运行时链确实连通（计数器/标志证据，不只是类型系统），（b）解析回落 / 缓存 bypass 路径无空方法体、吞异常、no-op 当作正常实现，（c）缓存键链路（`LoadedOrmModel.java:92-93` 解析 → `:96-97` 构键 → `:98` 查 → `:115` 写）与新策略逐点一致。（留白待独立 audit；执行者自查证据：证明测试 1 计数器断言 + bypass 分支完整编译返回 + hollow 扫描双 exit 0）
+- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI4 行据此才可 `todo` →（执行中）→ `done`。（留白待独立 audit；roadmap WI4 行未翻）
 
 ## Deferred But Adjudicated
 
