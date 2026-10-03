@@ -16,6 +16,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlFunction;
+import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.enums.SqlCompareRange;
@@ -49,6 +50,13 @@ import static io.nop.orm.eql.parse.EqlParseHelper.operator;
 
 @SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
 public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
+
+    /**
+     * WI1 BUG-5: PG 形态 interval 字符串的归一化解析格式：单个数值 + 空白 + 单位词
+     * （单位大小写不敏感）。多字段值（如 '1-2'）不匹配，落归一化层显式报错。
+     */
+    static final java.util.regex.Pattern INTERVAL_STRING_PATTERN = java.util.regex.Pattern
+            .compile("(\\d+(?:\\.\\d+)?)\\s+([A-Za-z]+)");
 
     /**
      * rules: sqlAggregateFunction
@@ -200,6 +208,45 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
             throw new NopEvalException(ERR_EQL_INVALID_INTERVAL_UNIT).loc(loc((ParserRuleContext) node))
                     .param(ARG_VALUE, text);
         return unit;
+    }
+
+    /**
+     * WI1 BUG-5: PG 形态 {@code interval '1 day'}（BaseRule.g4 sqlIntervalExpr 的
+     * {@code INTERVAL STRING_} 备选分支）。构建期归一化为 value+unit 装入**既有**
+     * {@link io.nop.orm.eql.ast.SqlIntervalExpr}（不新增 AST 节点、不改 EqlAST.xjava）；
+     * 单位大小写不敏感。多字段值（如 '1-2'）与非法定义在归一化层显式拒绝，复用
+     * {@code ERR_EQL_INVALID_INTERVAL_UNIT}；文法层失败（如 {@code '1-2' year to month}）
+     * 走 antlr 错误码。生成方法体只建空节点 + validate()（必填校验必失败），因此完全
+     * 重写、不调 super。逐方言模板 {@code sqlIntervalLiteral} 归 WI7b（唯一 owner）。
+     */
+    @Override
+    public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr_string(
+            EqlParser.SqlIntervalExpr_stringContext ctx) {
+        String raw = EqlParseHelper.stringLiteralValue(ctx.STRING_().getSymbol());
+        java.util.regex.Matcher m = INTERVAL_STRING_PATTERN.matcher(raw.trim());
+        if (!m.matches())
+            throw new NopException(ERR_EQL_INVALID_INTERVAL_UNIT).loc(loc(ctx)).param(ARG_VALUE, raw);
+
+        // 单位大小写不敏感，且接受 PG 的复数形式（'3 hours' / '3 Hours' → HOUR）
+        String unitText = m.group(2);
+        SqlIntervalUnit unit = SqlIntervalUnit.fromText(unitText);
+        if (unit == null && unitText.length() > 1
+                && unitText.regionMatches(true, unitText.length() - 1, "s", 0, 1))
+            unit = SqlIntervalUnit.fromText(unitText.substring(0, unitText.length() - 1));
+        if (unit == null)
+            throw new NopException(ERR_EQL_INVALID_INTERVAL_UNIT).loc(loc(ctx)).param(ARG_VALUE, raw);
+
+        SqlNumberLiteral value = new SqlNumberLiteral();
+        value.setLocation(ParseTreeHelper.loc(ctx));
+        value.setValue(m.group(1));
+
+        io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setExpr(value);
+        ret.setIntervalUnit(unit);
+        ret.normalize();
+        ret.validate();
+        return ret;
     }
 
     /**

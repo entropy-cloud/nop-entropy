@@ -222,6 +222,14 @@ public interface IDialect extends IComponentModel {
     String getValueLiteral(Object value);
 
     /**
+     * WI1 BUG-5 骨架：INTERVAL 字面量的数据库层输出模板（`<sqls>` 的
+     * `sqlIntervalLiteral` 元素）。返回已配置的模板文本，未配置返回 null。
+     * ⚠️ 占位符形态与逐方言模板内容由 WI7b 收口（唯一 owner）；WI1 只承接配置
+     * 通路，不消费模板改写 interval 输出。
+     */
+    String getSqlIntervalLiteral();
+
+    /**
      * 数据库中的数据类型与java程序中的数据类型可能不一致，由binder负责转换
      *
      * @param stdType java程序中的数据类型

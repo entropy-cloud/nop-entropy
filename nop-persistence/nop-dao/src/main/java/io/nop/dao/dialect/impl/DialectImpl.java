@@ -304,6 +304,12 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public String getSqlIntervalLiteral() {
+        // WI1 BUG-5 骨架：直读 <sqls> 配置文本，未配置为 null（模板内容由 WI7b 收口）
+        return dialectModel.getSqls().getSqlIntervalLiteral();
+    }
+
+    @Override
     public boolean isSupportUpdateFromJoin() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpdateFromJoin());
     }

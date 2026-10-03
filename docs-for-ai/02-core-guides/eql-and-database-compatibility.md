@@ -179,6 +179,15 @@ EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打�
 | DB2 | 11.5 支持，9.7 边界未获一手确认 | — | `[unverified]` | 未配置（=false） |
 | TDengine / DM8 | 文档零提及 / 无一手文档 | — | `[unverified]` | 未配置（=false） |
 
+### `INTERVAL` 字面量：PG 字符串形态可解析（2026-10-03 WI1 BUG-5 骨架）
+
+EQL 的 INTERVAL 现在接受两种语法形态，构建期归一化装入同一个 `SqlIntervalExpr`：
+
+- **既有形态（deprecated，不禁止、不报错）**：`interval 1 day` —— `expr=sqlExpr + unit`，回显输出 `interval 1 DAY`（单位规范为 token 文本）。该形态不经方言模板直接输出，在 PostgreSQL 上非法，**标记 deprecated**；禁止它属破坏性变更，roadmap 明令不做，仅在本文档标注。
+- **PG 字符串形态（新增）**：`interval '1 day'` —— 文法 `sqlIntervalExpr` 的 `INTERVAL STRING_` 备选分支；构建期（手写 `EqlASTBuildVisitor.visitSqlIntervalExpr_string`）解析为 value+unit（单位大小写不敏感，接受复数形式 `'3 hours'` → HOUR）。多字段值（`'1-2'`）与非法单位在归一化层显式报错 `nop.err.eql.invalid-interval-unit`；文法层失败（`'1-2' year to month`，qualifier 无文法支持）走 antlr 错误码，两者不混同。
+
+**方言模板骨架**：`dialect.xdef` 的 `<sqls>` 新增 `sqlIntervalLiteral` 元素（与 `<dateLiteral>` 同构），retention 落 `DialectSqls`，accessor `IDialect.getSqlIntervalLiteral()`（未配置返回 null）。**WI1 不填任何逐方言模板内容、不消费模板改写 interval 输出——逐方言模板内容的唯一 owner 是 roadmap WI7b**（占位符形态、各方言正确输出用例均由 WI7b 裁定与交付）。
+
 ### 方言敏感输出点登记表（roadmap 级 EC 第 4 条）
 
 本表登记 EQL 编译管线中"按方言能力分叉的输出点"：generator/transform 位置 + 能力标志 + 不支持时的错误码。**每行都有对应的"该方言编译期报错"负向测试。**

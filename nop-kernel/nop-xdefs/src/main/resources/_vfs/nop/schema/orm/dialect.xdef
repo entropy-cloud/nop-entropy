@@ -100,6 +100,13 @@
         -->
         <timestampLiteral>string</timestampLiteral>
 
+        <!--
+        WI1 BUG-5 骨架（WI7b 是逐方言模板内容的唯一 owner）：INTERVAL 字面量的
+        数据库层输出模板。未配置时为空。占位符形态由 WI7b 裁定（如 {value}/{unit}），
+        本 WI 不填任何方言模板内容。
+        -->
+        <sqlIntervalLiteral>string</sqlIntervalLiteral>
+
         <!-- 通过 {sequenceName}来表示参数 -->
         <sequenceNextVal>string</sequenceNextVal>
 
