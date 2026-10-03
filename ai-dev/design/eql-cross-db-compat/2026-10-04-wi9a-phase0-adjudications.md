@@ -11,7 +11,7 @@
 
 | 复核项 | 结论 | 证据 |
 |---|---|---|
-| WI0 产物 1：语料基线快照 | **未回退**。`TestEqlCorpusBaseline` 1/1 PASS（surefire 报告 `Tests run: 1, Failures: 0`，mtime 2026-10-04 06:45，晚于本 WI 开工前最后 commit `949531d93e`） | `nop-persistence/nop-orm-eql/target/surefire-reports/io.nop.orm.eql.parse.TestEqlCorpusBaseline.txt` |
+| WI0 产物 1：语料基线快照 | **未回退**。`TestEqlCorpusBaseline` 1/1 PASS（surefire 报告 `Tests run: 1, Failures: 0`，mtime 2026-10-04 06:45，晚于本 WI 开工前最后 commit `949531d93e`） | nop-orm-eql 模块 surefire-reports 下 `io.nop.orm.eql.parse.TestEqlCorpusBaseline.txt` |
 | WI0 产物 2：方言矩阵快照门禁 | **未回退**。`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（18 个 dialect XML、18 注册、15 可加载、3 不可加载：`default`/`geo-support`/`window-expr-support`；伪方言 `es` 单列不入矩阵） | 门禁输出与本节记录 |
 | 硬前置 plan 状态 | WI0 `completed`、WI2 `completed`、G-3/G-1 已裁决（2026-10-03）——与 plan Current Baseline 记载一致，无排队门 | `ai-dev/plans/02-*`/`19-*`、`2026-10-03-wi0-gate-adjudications.md` |
 | 锚点符号复核 | plan 所引全部符号仍存在，**行号整体漂移**（WI3/WI5 并行落地所致）：`dataTypeName_` `:381-390`→`:428-437`；`sqlCastExpr` `:292`→`:339`；`SqlTypeExpr_name` 手写闸门 `EqlASTBuildVisitor.java:321-326`→`:470-474`；h2 std DECIMAL→native `NUMERIC`（WI3 后 `:221`→现 `:242`）、h2 BOOLEAN `:227`→`:248`、oracle native `NUMBER`→std DECIMAL `:212`→`:252`。本文件与执行一律以符号定位为准 | 逐符号 grep 实测 |

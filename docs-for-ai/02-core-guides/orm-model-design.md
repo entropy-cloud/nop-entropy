@@ -53,6 +53,22 @@ Nop ORM 的列类型系统有两个独立维度：
 
 > 完整列表见 `StdSqlType.java` 和 `StdDataType.java`。
 
+### stdSqlType 别名与 UUID（解析接受集扩展，WI9a）
+
+`StdSqlType.fromStdName` 的键集（`stdNameMap`）除了全部枚举名外还接受以下**别名拼写**。别名只扩展"合法 `stdSqlType=` 取值集合"与 `cast` 目标类型的解析接受面，**不修改任何既有映射条目**（既有取值的解析/映射结果逐字不变）：
+
+| 拼写 | 解析为 stdSqlType | 默认 stdDataType |
+|------|------------------|-----------------|
+| `INT` | INTEGER | int |
+| `TEXT` | CLOB | string |
+| `NUMBER` | DECIMAL | decimal |
+| `BOOL` | BOOLEAN | boolean |
+| `UUID` | UUID（枚举成员，非别名） | string |
+
+- `NUMBER` 的映射目标是 `DECIMAL`（2026-10-04 G-3 增补裁决：std NUMERIC 无任何方言映射且其 native 名已被 DECIMAL 条目占用，裁定见平台开发过程文档 design 目录的 WI9a Phase 0 裁定记录）。
+- `UUID` 是 2026-10-04 WI9a 新增的枚举成员（`stdDataType=string` 家族）。方言 DDL 映射：h2/postgresql/duckdb 原生 `UUID`、mssql `UNIQUEIDENTIFIER`；**无映射方言（mysql/oracle 等）生成 DDL/cast 时响亮报错**，不静默降级为 VARCHAR。
+- EQL `cast(x as text/number/bool/uuid)` 全链可用（解析 → 方言映射渲染）；方言渲染文本按 `stdToNativeSqlType` 链路推导（如 h2 上 `number` 渲染 `NUMERIC`、oracle 上渲染 `NUMBER`），详见 `eql-and-database-compatibility.md` 的「CAST 目标类型」节。
+
 ### ORM 常用 stdDataType 速查
 
 | stdDataType | Java 类型 | 典型用途 |

@@ -233,6 +233,25 @@ CAST 类型表达式的 `character set`/`collate` 子句（文法 `characterSet_
 
 若未来立项实现 `CAST … CHARACTER SET/COLLATE` 的真实语义，必须先修文法（`STRING` token 分叉）并按生成管线 plan-first 走新 plan，同时移除访问器守卫并通过 `TestEqlSqlTypeClauseGuard` 审视。回归测试：`TestEqlSqlTypeClauseGuard`（不可达固化 3 例 + 拒绝路径手构 context 3 例 + 拒绝无条件性 1 例）。
 
+### CAST 目标类型：别名与 UUID（2026-10-04 WI9a）
+
+`cast(x as <type>)` 的目标类型接受面由两层共同决定：**文法层** `dataTypeName_`（显式备选 + `sqlIdentifier_` 单词兜底）与**语义层** `StdSqlType.fromStdName` 的 `stdNameMap` 键集（闸门 A：手写 `EqlASTBuildVisitor.SqlTypeExpr_name`，未登记报 `nop.err.eql.invalid-sql-type`，param `sqlType` + `allowedNames`）。
+
+**接受的别名/新成员（WI9a 落地）**：`text`→CLOB、`number`→DECIMAL（2026-10-04 G-3 增补裁决修订，原 NUMERIC 无任何方言映射）、`bool`→BOOLEAN、`uuid`（新枚举成员）。大小写不敏感（构建期 `toUpperCase` 归一）；`getNames()` 键集 = 25 枚举名 + `INT`/`TEXT`/`NUMBER`/`BOOL` 别名 + `UUID`。
+
+**方言渲染（按 `dialect.stdToNativeSqlType` 链路实测推导，非直觉）**：
+
+| 拼写 | h2 | postgresql | oracle | mssql | duckdb | 无映射方言（响亮报错） |
+|------|----|-----------|--------|-------|--------|------|
+| `text` | CLOB | TEXT | CLOB | **报错**（无 CLOB 映射） | **报错**（自有映射表无 CLOB） | `nop.err.dao.dialect.std-data-type-not-supported` |
+| `number` | NUMERIC（非 DECIMAL！） | NUMERIC | NUMBER | DECIMAL | DECIMAL | 同上 |
+| `bool` | BOOLEAN | BOOLEAN | CHAR(1) | BIT | BOOLEAN | 同上 |
+| `uuid` | UUID | UUID | **报错**（无原生 UUID） | UNIQUEIDENTIFIER（code 渲染） | UUID | mysql/oracle/tdengine/db2 + 手工方言 |
+
+一致性：同义拼写同方言输出逐字一致（`text`≡`clob`、`number`≡`decimal`、`bool`≡`boolean`）。**注意** h2 上 `number` 渲染 `NUMERIC`（h2 的 std DECIMAL 唯一映射条目是 native NUMERIC）——期望文本必须按链路推导，不得按别名拼写直觉填。bare decimal 形态（无 precision/scale）因 `SqlTypeExpr.getScale()` 缺省 0 渲染为 `XXX(-1,0)`（既有行为，别名与原名同型）。
+
+**拒绝面（不弱化）**：未知拼写（如 `nosuchtype`）仍响亮报 `nop.err.eql.invalid-sql-type` 且 `allowedNames` 含全部新键；别名已放行但方言无映射时**生成期响亮报错**（不静默降级/改写）。回归：`TestEqlCastTypeAliasParse`（解析层）、`TestEqlCastTypeAliasCompile`（别名全链 + 一致性/不等价两类用例）、`TestEqlCastUuidDialectCompile`（UUID 四正三负载体）、`TestEqlCastBooleanParse`/`TestEqlCastBooleanCompile`（WI2 BOOLEAN 底线）。
+
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 
 EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打印 `lateral` 关键字；执行路径按方言能力门控：`supportLateral=false`（或未配置——**保守缺省 = 不支持**）时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportLateral`），`true` 时输出 `lateral`。修复前该关键字被静默丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同，退化为不相关子查询）。
@@ -356,6 +375,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | IN 列表长度（EQL 路径，WI10b） | `EqlTransformVisitor.visitSqlInValuesExpr`（编译管线；**无方言门**——无条件计数） | 无能力标志（阈值 `nop.core.sql.in-list-max-size`，默认 1000） | `nop.err.eql.in-list-too-large` | `TestEqlInListLengthGate` |
 | IN 列表长度（SqlBuilder 集合展开路径，WI10b） | `SQL.SqlBuilder#spreadParams`（集合展开全局入口；**无方言门**；计数=Collection 顶层元素数） | 无能力标志（同一配置项） | `nop.err.core.sql.in-list-too-large` | `TestSqlBuilderInListLengthGate`（filter bean `in` 端到端） |
 | CAST 类型 characterSet/collate 子句 | `EqlASTBuildVisitor.SqlTypeExpr_characterSet/collate`（解析期守卫，字段双向零消费） | 无消费通路（显式拒绝，见 BUG-15 小节） | `nop.err.eql.sql-type-clause-not-support` | `TestEqlSqlTypeClauseGuard` |
+| CAST 目标类型别名/UUID（WI9a） | `AstToSqlGenerator.visitSqlCastExpr` → `dialect.stdToNativeSqlType`（**无方言能力标志**——std 类型映射表驱动，无映射即响亮报错） | 无能力标志（方言 `<sqlDataType>` 映射表；std 键集闸门= `StdSqlType.fromStdName`） | `nop.err.eql.invalid-sql-type`（未登记拼写）/ `nop.err.dao.dialect.std-data-type-not-supported`（无映射方言） | `TestEqlCastTypeAliasCompile`、`TestEqlCastUuidDialectCompile` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate`（仅指投影列表形式，WI3 纠错后 mysql/oracle/h2/mariadb/duckdb 均拒） | `nop.err.eql.dialect-not-support-feature`（`feature=supportReturningForUpdate`） | `TestEqlCompileSql.testUpdateReturningAllChecksDialect`、`TestEqlUpdateReturningDialectGate` |

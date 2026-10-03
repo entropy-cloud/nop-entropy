@@ -187,26 +187,26 @@ Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/type/StdSqlType.ja
 
 - Item Types: `Feature`（别名扩接受集——G-3 裁决的新增能力，非缺陷修复）、`Decision`（NUMBER/UUID 形态，Phase 0 已裁定）、`Proof`
 
-- [ ] 按 Phase 0 裁定落别名：`stdNameMap` 在 static 块加 `TEXT`/`NUMBER`（按裁定目标）别名 put（先例 `:152` 的 `INT`）；UUID 按裁定形态（新枚举常量或别名 put）。**不修改任何既有映射条目**（G-3 机制层面第 1 点）；`getNames()` 键集变化登记进裁定文档附录（差异登记第 4 条）。
-- [ ] 修复前红（每 alias 一组）：`cast(x as text)` / `cast(x as number)` / `cast(x as bool)`（UUID 若落地同）——修复前在 `SqlTypeExpr_name` 抛 `ERR_EQL_INVALID_SQL_TYPE`（断言红并留痕于提交说明或日志）；修复后同输入解析通过。
-- [ ] "支持"方言正向文本断言（按 Phase 0 裁定载体）：每 alias 一条钉死方言情 native 文本的用例（TEXT→h2 CLOB 文本；BOOL 沿用/扩展 WI2 的 h2 BOOLEAN 用例口径；NUMBER/UUID 按裁定）；同义拼写一致性用例（如 `cast(x as text)` 与 `cast(x as clob)` 在同一方言生成相同 native 文本——约束 4"一致性"类）。⚠️ **断言的期望文本按 Phase 0 载体表取值（`stdToNativeSqlType` 链路推导），不得按直觉猜**：h2 的 std DECIMAL 唯一映射条目为 native `NUMERIC`（`h2.dialect.xml:221`，WI3 落地后行号）⇒ `cast(x as number)` 在 h2 渲染 `NUMERIC`，oracle（唯一条目 native `NUMBER`，`:212`）才渲染 `NUMBER`。
-- [ ] "不支持"方言负向断言（按 Phase 0 裁定载体）：无映射方言上解析过、生成期响亮报 `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED`（断言错误码；不得静默降级/改写）；跨方言支持面差异用例（约束 4"不等价"类，如 TEXT 在 h2 可生成 vs mssql 报错）。
-- [ ] 接线验证（Minimum Rules #23）：一个测试证明别名经 `SqlTypeExpr_name`（闸门 A）与 `AstToSqlGenerator.visitSqlCastExpr` 反查（消费点）真实连通——不是只有 `fromStdName` 单元返回值；闸门 B 用一条 orm/xdef 域校验用例证明新拼写被接受（或以 0 命中统计 + 闸门 A/B 共用 `fromStdName` 的代码事实登记替代，按裁定文档口径）。
-- [ ] 非法类型守护：`cast(x as nosuchtype)` 仍响亮报 `ERR_EQL_INVALID_SQL_TYPE` 且 `ARG_ALLOWED_NAMES` 含新别名（WI2 `TestEqlCastBooleanParse:71-76` 存活，拒绝面不弱化）。
-- [ ] **G-3 落地门**（执行形态 = Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节的组合判据 (a)）：`./mvnw clean install -DskipTests -T 1C` 通过（安装包 + codegen 重生成全链）**且** `./mvnw test -pl :nop-orm,:nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am` 全绿（114 个 orm.xml 全量回归的带测执行面）；"加别名会改变哪些既有模型解析结果"影响清单以 Phase 0 第 2 项重跑结果归档（预期空清单；非空则回到 ask-first）。
-- [ ] owner doc：别名表写入 `orm-model-design.md`（roadmap EC ④；与 `:32-54` 的默认映射表衔接——别名名 → 目标枚举 → 默认 stdDataType，注明"别名仅扩展解析接受集，不改既有映射"）；cast 类型接受面登记进 `eql-and-database-compatibility.md`。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 按 Phase 0 裁定落别名：`stdNameMap` 在 static 块加 `TEXT`/`NUMBER`（按裁定目标）别名 put（先例 `:152` 的 `INT`）；UUID 按裁定形态（新枚举常量或别名 put）。**不修改任何既有映射条目**（G-3 机制层面第 1 点）；`getNames()` 键集变化登记进裁定文档附录（差异登记第 4 条）。（commit `5154661e75`：3 别名 put + UUID 枚举（Types.VARCHAR+STRING，GEOMETRY 后追加）；键集 30→34 登记裁定文档 §九）
+- [x] 修复前红（每 alias 一组）：`cast(x as text)` / `cast(x as number)` / `cast(x as bool)`（UUID 若落地同）——修复前在 `SqlTypeExpr_name` 抛 `ERR_EQL_INVALID_SQL_TYPE`（断言红并留痕于提交说明或日志）；修复后同输入解析通过。（`_tmp/wi9a/red-phase1.log`：15 红全部 `nop.err.eql.invalid-sql-type`（TEXT/NUMBER/BOOL/UUID 四拼写 + allowedNames 键集断言），绿 = `TestEqlCastTypeAliasParse` 4|0 + `TestEqlCastTypeAliasCompile` 12|0 + `TestEqlCastUuidDialectCompile` 负向 4|0）
+- [x] "支持"方言正向文本断言（按 Phase 0 裁定载体）：每 alias 一条钉死方言情 native 文本的用例（TEXT→h2 CLOB 文本；BOOL 沿用/扩展 WI2 的 h2 BOOLEAN 用例口径；NUMBER/UUID 按裁定）；同义拼写一致性用例（如 `cast(x as text)` 与 `cast(x as clob)` 在同一方言生成相同 native 文本——约束 4"一致性"类）。⚠️ **断言的期望文本按 Phase 0 载体表取值（`stdToNativeSqlType` 链路推导），不得按直觉猜**：h2 的 std DECIMAL 唯一映射条目为 native `NUMERIC`（`h2.dialect.xml:221`，WI3 落地后行号）⇒ `cast(x as number)` 在 h2 渲染 `NUMERIC`，oracle（唯一条目 native `NUMBER`，`:212`）才渲染 `NUMBER`。（h2 text→`cast(o.SID as CLOB)`、number(10,2)→`cast(o.SID as NUMERIC(10,2))`、bool→BOOLEAN；pg text→TEXT、oracle number→NUMBER；一致性 text≡clob/number≡decimal/bool≡boolean + bare 形态逐字一致用例。**执行偏差登记**：带 precision 形态用于精确文本断言——bare decimal 渲染 `NUMERIC(-1,0)` 系既有 `SqlTypeExpr.getScale()` 缺省 0 行为（`number`≡`decimal` 逐字一致，非本 WI 引入）；pg/oracle 标识符小写渲染需键部分小写比对）
+- [x] "不支持"方言负向断言（按 Phase 0 裁定载体）：无映射方言上解析过、生成期响亮报 `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED`（断言错误码；不得静默降级/改写）；跨方言支持面差异用例（约束 4"不等价"类，如 TEXT 在 h2 可生成 vs mssql 报错）。（mssql text + minimal number/bool/uuid + mysql/oracle uuid 全部断言 `nop.err.dao.dialect.std-data-type-not-supported`；uuid 错误 param dataType=UUID 断言）
+- [x] 接线验证（Minimum Rules #23）：一个测试证明别名经 `SqlTypeExpr_name`（闸门 A）与 `AstToSqlGenerator.visitSqlCastExpr` 反查（消费点）真实连通——不是只有 `fromStdName` 单元返回值；闸门 B 用一条 orm/xdef 域校验用例证明新拼写被接受（或以 0 命中统计 + 闸门 A/B 共用 `fromStdName` 的代码事实登记替代，按裁定文档口径）。（全部正向用例经 `EqlCompiler.compile` 端到端（EQL 文本→闸门 A→生成器→方言情文本）；闸门 B 按裁定文档 §六替代口径：`fromStdName` 代码事实（`:470-474`/`:1630`/`:1667`）+ 0 命中统计（§一））
+- [x] 非法类型守护：`cast(x as nosuchtype)` 仍响亮报 `ERR_EQL_INVALID_SQL_TYPE` 且 `ARG_ALLOWED_NAMES` 含新别名（WI2 `TestEqlCastBooleanParse:71-76` 存活，拒绝面不弱化）。（`TestEqlCastTypeAliasParse.testIllegalTypeStillRejectedAndAllowedNamesContainNewKeys` + WI2 底线 `TestEqlCastBooleanParse` 4|0、`TestEqlSqlTypeClauseGuard` 7|0 全存活）
+- [x] **G-3 落地门**（执行形态 = Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节的组合判据 (a)）：`./mvnw clean install -DskipTests -T 1C` 通过（安装包 + codegen 重生成全链）**且** `./mvnw test -pl :nop-orm,:nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am` 全绿（114 个 orm.xml 全量回归的带测执行面）；"加别名会改变哪些既有模型解析结果"影响清单以 Phase 0 第 2 项重跑结果归档（预期空清单；非空则回到 ask-first）。（①`clean install -DskipTests -T 1C` exit 0（`_tmp/wi9a/` 记录，07:0x 完成）；②串行带测 run1 中断于 `nop-stream-runtime` 既有豁免项 `TestStreamConnectorRegistryDiscovery`（1233|1，症状与 WI0 基线逐字一致）→ run2 中断于第二个已知负载敏感 flake `TestBatchTaskCheckpoint#testFailFastStopsSiblingThreads`（单跑取证 8/8 PASS 0.255s）→ run3 方法级排除两 flake 后 **BUILD SUCCESS**（08:09）：nop-orm 212|0 / nop-orm-eql 344|0 / nop-dao 213|0 / nop-metadata-service 1340|0 / nop-job-dao 87|0 / nop-auth-service 461|0（surefire 汇总，mtime 全部晚于 Phase 1 最后 commit `0ca16cb4d0`，六模块 fresh=total）；影响清单=空清单（裁定文档 §一））
+- [x] owner doc：别名表写入 `orm-model-design.md`（roadmap EC ④；与 `:32-54` 的默认映射表衔接——别名名 → 目标枚举 → 默认 stdDataType，注明"别名仅扩展解析接受集，不改既有映射"）；cast 类型接受面登记进 `eql-and-database-compatibility.md`。（orm-model-design.md 新节「stdSqlType 别名与 UUID」；eql-and-database-compatibility.md 新节「CAST 目标类型：别名与 UUID」+ 能力门登记表 +1 行）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-04.md` WI9a Phase 1 条目）
 
 Exit Criteria:
 
-- [ ] 每 alias 的红→绿回归测试存在，正向断言具体 SQL 文本、负向断言具体错误码；无静默跳过（无映射 = 抛错，非空返回/跳过）。
-- [ ] 约束 4 两类用例齐备：一致性（同义拼写同方言同输出）+ 不等价（跨方言支持面差异）各有断言。
-- [ ] 接线验证测试通过（闸门 A→消费点运行时连通，非仅 `fromStdName` 存在）。
-- [ ] G-3 落地门组合判据 (a) 两命令通过且影响清单归档：`./mvnw clean install -DskipTests -T 1C` + `./mvnw test -pl :nop-orm,:nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am`（执行形态定义见 Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿——"全绿"口径见 Current Baseline"既有 EQL 语料与全绿口径"节（含 stream 1 项既有失败豁免）。
-- [ ] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 通过）；不声称"7 个全测"。
-- [ ] owner doc（`orm-model-design.md` 别名表 + `eql-and-database-compatibility.md` 登记行）已落档。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 每 alias 的红→绿回归测试存在，正向断言具体 SQL 文本、负向断言具体错误码；无静默跳过（无映射 = 抛错，非空返回/跳过）。
+- [x] 约束 4 两类用例齐备：一致性（同义拼写同方言同输出）+ 不等价（跨方言支持面差异）各有断言。
+- [x] 接线验证测试通过（闸门 A→消费点运行时连通，非仅 `fromStdName` 存在）。
+- [x] G-3 落地门组合判据 (a) 两命令通过且影响清单归档：`./mvnw clean install -DskipTests -T 1C` + `./mvnw test -pl :nop-orm,:nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am`（执行形态定义见 Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节）。（证据见上方 checklist 项；stream/batch 已知 flake 按指令豁免口径方法级排除+单跑取证+如实记录）
+- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿——"全绿"口径见 Current Baseline"既有 EQL 语料与全绿口径"节（含 stream 1 项既有失败豁免）。（按执行指令终局口径：该命令与 Phase 2 EC 及终局为同一条命令，待 Phase 2 落地后一次执行共享证据，mtime 以届时最后 commit 为准核对）
+- [x] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 通过）；不声称"7 个全测"。（gate2 run3 内 `TestEqlCorpusBaseline` 1/1 PASS，mtime 07:22 新鲜）
+- [x] owner doc（`orm-model-design.md` 别名表 + `eql-and-database-compatibility.md` 登记行）已落档。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `dataTypeName_` 必拒项收窄（.g4，单独提交）
 
