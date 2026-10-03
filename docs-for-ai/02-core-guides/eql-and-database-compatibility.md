@@ -137,7 +137,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 
 EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生成的 SQL 中**无条件输出** `escape '<literal>'`（`AstToSqlGenerator`）；回显路径（`toSqlString()`）目前不回显 escape（属 WI2 BUG-4 回显治理批次）。
 
-裁定依据（详见 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md` §5）：全仓没有"该方言是否支持 ESCAPE"的字段载体，且已取证方言全部支持该子句，分叉只在**默认 escape 字符**——显式 escape 字符覆盖默认值差异，因此无条件输出、不设方言门。
+裁定依据：全仓没有"该方言是否支持 ESCAPE"的字段载体，且已取证方言全部支持该子句，分叉只在**默认 escape 字符**——显式 escape 字符覆盖默认值差异，因此无条件输出、不设方言门（裁定过程记录在 `ai-dev/design/eql-cross-db-compat/` 的 WI1 裁决文档，属框架开发档案）。
 
 **默认 escape 字符三分类**（证据等级逐行标注；未取证者不得计入覆盖率）：
 
