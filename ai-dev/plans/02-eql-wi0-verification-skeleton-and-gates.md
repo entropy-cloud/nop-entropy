@@ -1,6 +1,6 @@
 # 02 EQL WI0 — 多方言验证骨架与前置决策
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI0 节，v7.2）
 > Related: `ai-dev/analysis/2026-10/2026-10-02-eql-cross-database-compatibility-syntax-research.md`
@@ -129,12 +129,12 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] Phase 1-4 全部 Exit Criteria 勾选完毕。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：新增 broken link = 0（基线 3 项不动）。
-- [ ] roadmap WI0 状态改 `done` 前完成独立 closure audit（不同 task_id 子 agent）。
-- [ ] Anti-Hollow Check：矩阵测试真实加载方言模型（非读文件比对）；marker 校验在加载路径上真实触发（参数化测试证明）；快照测试真实解析 EQL 语料。
+- [x] Phase 1-4 全部 Exit Criteria 勾选完毕。
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（2026-10-03T18:32 实测 BUILD SUCCESS，41s wall clock）
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。（18/18 登记=14+4；负向：删条目实测 exit 1）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：新增 broken link = 0（基线 3 项不动）。
+- [x] roadmap WI0 状态改 `done` 前完成独立 closure audit（不同 task_id 子 agent）。（2026-10-03 fresh-session auditor，A1..A4/B/C1..C4/D/E 全部 PASS，0 Blocker/0 Major）
+- [x] Anti-Hollow Check：矩阵测试真实加载方言模型（非读文件比对）；marker 校验在加载路径上真实触发（参数化测试证明）；快照测试真实解析 EQL语料。（审计员实跑测试确认 `ResourceComponentManager` 加载链路、`guard checked template functions: 22`、34 条真实回显抽查）
 
 ## Deferred But Adjudicated
 
@@ -151,10 +151,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed:
+Status Note: 四 Phase 全部落地并经独立 closure audit 通过（2026-10-03）。交付：方言能力矩阵棘轮测试（18=14+4，`es` 伪方言标注，`db2` 断链事实入快照）+ mjs 门禁 + CI 结论（maven.yml 全 reactor 自动覆盖）；`TemplateSQLFunction` 越界 marker 构造期校验（新错误码 `nop.err.dao.func-template-marker-out-of-range`，14 方言 22 模板函数守护）；EQL 语料基线快照（7/7 文件 36 语句=34 回显+2 真实 parse-error）+ `EqlASTKind` ordinal 红线记录；stream 既有失败实测（roadmap"3 项"已过时，实仅 1 项，roadmap Cross-Cutting 已按实测收窄）；G-1..G-4 四门裁决（commit `abbdeabf32`）+ owner doc 语法溯源。合并测试 `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` BUILD SUCCESS。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: fresh-session 独立子 agent（与全部执行者不同 task_id）
+- Audit Session: 2026-10-03 WI0 closure audit pass（结论"WI0 可通过 closure audit"，0 Blocker / 0 Major）
 - Evidence:
+  - A1 PASS：矩阵测试实跑出现 `ResourceComponentManager`/`DslModelParser` 加载日志（非文件比对）；快照 18=14+4；棘轮负向实测 exit 1 后还原 exit 0；CI=maven.yml 全 reactor
+  - A2 PASS：`TemplateSQLFunction.java:56-61` 构造期校验；`DaoErrors.java:125-127` 错误码 placeholder↔param 3↔3 对称（审计员独立复核）；负向用例断言错误码+3 param
+  - A3 PASS：四门裁决文档与 roadmap Gate 表逐字勾稽；`git log -S positionFunction` 审计员复跑仅命中 `aa1b310122`
+  - A4 PASS：合并命令 BUILD SUCCESS（18:32）+ 工作树无未提交 tracked 改动 + 审计员聚焦重跑 `TestTemplateSQLFunction,TestDialectCapabilityMatrix` exit 0
+  - B PASS：Phase 3 快照 7/7、逐字节比对机制、stream 仅 1 项失败的实测记录与 roadmap 收窄一致
+  - C1..C4 PASS：真实加载链路 `DialectManager.getDialect → DialectImpl.initFunctions → new TemplateSQLFunction`；`guard checked template functions: 22`；34 条回显抽查 3 条语义一致；无空方法体/静默跳过
+  - D PASS：matrix mjs exit 0；doc-links 新增=0；daily log 三条 WI0 条目
+  - E PASS：文本一致性（audit 时点 Closure Gates 未勾为正确状态，本收口动作后勾选）
+- Deferred 项分类检查：G-2 维持 open（watch-only residual，不属任何 WI）——分类诚实，无 in-scope live defect 被降级
+
+Follow-up:
+
+- `db2.selector.yaml` 断链修复属 WI3（快照已记录事实与复现路径）。
+- mjs 门禁脚本接入 CI 的独立 workflow job 未做（现有 mjs 门禁仅 3 处接入；JUnit 棘轮已进 CI，mjs 为本地/审计用），维持 plan Non-Blocking Follow-up。
