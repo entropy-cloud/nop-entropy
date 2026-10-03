@@ -96,8 +96,11 @@
         </errorCode>
     </errorCodes>
 
+    <!-- WI3 第 2 项纠错：Oracle 的 UPDATE … returning_clause 只允许 INTO 宿主变量形式
+         （data_item 为宿主/PL-SQL 变量），生成器的投影列表形式（无 INTO）在 Oracle 上非法
+         ⇒ supportReturningForUpdate=false（真实语义仅指 UPDATE 投影列表形式）。 -->
     <features supportSequence="true" supportNullsFirst="true" useAsInFrom="false"
-              supportSomeSubQuery="true" supportReturningForUpdate="true" />
+              supportSomeSubQuery="true" supportReturningForUpdate="false" />
 
     <!--
     Oracle使用minus关键字代替SQL标准中的except

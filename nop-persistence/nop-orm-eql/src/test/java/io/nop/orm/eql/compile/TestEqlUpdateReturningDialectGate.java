@@ -81,11 +81,21 @@ public class TestEqlUpdateReturningDialectGate {
     }
 
     /**
-     * 继承涟漪的编译期证明：mariadb 经继承得到 false，走同一校验点同样报错。
+     * WI3 第 2 项：oracle 翻转后投影列表形式的 returning 编译期报错。
      */
     @Test
-    public void testMariadbInheritsGateFromMysql() {
+    public void testOracleRejectsUpdateReturning() {
+        assertGateError("oracle");
+    }
+
+    /**
+     * 继承涟漪的编译期证明：mariadb 经继承得到 false，走同一校验点同样报错；
+     * oracle-reverse 经继承 oracle 同理。
+     */
+    @Test
+    public void testDerivedDialectsInheritGate() {
         assertGateError("mariadb");
+        assertGateError("oracle-reverse");
     }
 
     /**

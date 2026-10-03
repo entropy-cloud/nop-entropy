@@ -57,6 +57,25 @@ public class TestDialectReturningForUpdateFlag {
     }
 
     /**
+     * WI3 第 2 项：oracle `true` → `false`（Oracle 的 UPDATE … returning_clause 仅允许
+     * INTO 宿主变量形式，生成器的投影列表形式非法）。
+     */
+    @Test
+    public void testOracleExplicitFalse() {
+        assertFalse(dialectOf("oracle").isSupportReturningForUpdate(),
+                "Oracle UPDATE returning_clause only allows INTO host-variable form; see WI3 item 2");
+    }
+
+    /**
+     * 继承涟漪：oracle 翻转经 x:extends 传播到 oracle-reverse（无本值配置，继承 oracle）。
+     */
+    @Test
+    public void testInheritanceRippleFromOracle() {
+        assertFalse(dialectOf("oracle-reverse").isSupportReturningForUpdate(),
+                "oracle-reverse inherits oracle's explicit false");
+    }
+
+    /**
      * 继承涟漪：mysql 翻转经 x:extends 传播——mariadb（无本值配置，继承 mysql）、
      * mysql5.7（本就显式 false，双层证明）加载后有效值均为 false。
      * mariadb 的显式化（第 6 项，G-1 版本门形态）由 Phase 4 落地。
