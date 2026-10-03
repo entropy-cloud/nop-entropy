@@ -1,9 +1,11 @@
 package io.nop.duckdb;
 
 import io.nop.commons.metrics.GlobalMeterRegistry;
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.ISqlExpr;
@@ -23,6 +25,15 @@ import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.commons.util.objects.Pair;
 import io.nop.dataset.rowmapper.SingleBinderRowMapper;
+import io.nop.orm.eql.IEqlAstTransformer;
+import io.nop.orm.eql.compile.EqlCompiler;
+import io.nop.orm.eql.compile.ISqlCompileContext;
+import io.nop.orm.eql.meta.EntityTableMeta;
+import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.sql.IAliasGenerator;
+import io.nop.orm.eql.sql.SeqAliasGenerator;
+import io.nop.orm.model.OrmColumnModel;
+import io.nop.orm.model.OrmEntityModel;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -282,7 +294,13 @@ public class TestDuckDbDialect extends BaseTestCase {
                 new SingleBinderRowMapper(DataParameterBinders.BOOLEAN));
         assertEquals(Boolean.TRUE, tsMatch, "rendered timestampLiteral must execute and hold");
 
-        // forUpdate / lockHint are adjudicated empty for duckdb (no lock support)
+        // forUpdate / lockHint are adjudicated empty for duckdb (no lock support).
+        // WI1 BUG-3 note: these are XML-direct reads — they prove the <sqls>
+        // configuration is empty, NOT that the EQL path is safe. The EQL compile path
+        // consumes dialect.getForUpdateSql via AstToSqlGenerator and must fail loudly
+        // on this empty template; that behavior is covered by
+        // testForUpdateEqlPathFailsLoudly below (the pre-WI1 wording of this comment
+        // gave false confidence that the XML assertion covered the EQL path).
         assertNull(dialect.getDialectModel().getSqls().getForUpdate(),
                 "forUpdate must be empty (no lock support)");
         assertNull(dialect.getDialectModel().getSqls().getLockHint(),
@@ -290,6 +308,79 @@ public class TestDuckDbDialect extends BaseTestCase {
         assertFalse(dialect.isSupportReturningForUpdate(),
                 "supportReturningForUpdate must be false");
         safeDropTable("pg_t");
+    }
+
+    @Test
+    @Timeout(120)
+    public void testForUpdateEqlPathFailsLoudly() {
+        // WI1 BUG-3 negative carrier: on duckdb (empty <forUpdate> template) an EQL
+        // query with `for update` must fail at compile time with
+        // nop.err.eql.dialect-not-support-feature instead of silently emitting
+        // `for update` text the database cannot parse.
+        NopException e = assertThrows(NopException.class,
+                () -> compileWithDuckDbDialect("select o.id from AuthUser o for update"));
+        assertEquals("nop.err.eql.dialect-not-support-feature", e.getErrorCode(),
+                "empty forUpdate template must fail at EQL compile time");
+        assertEquals("forUpdate", e.getParam("feature"));
+    }
+
+    /**
+     * Minimal EQL compile path (EqlCompiler -> AstToSqlGenerator) against the real
+     * duckdb dialect loaded via DialectManager. Entity resolution only needs one
+     * single-column entity; no database execution is involved.
+     */
+    private void compileWithDuckDbDialect(String eql) {
+        OrmColumnModel id = new OrmColumnModel();
+        id.setName("id");
+        id.setCode("SID");
+        id.setPropId(1);
+        id.setStdSqlType(StdSqlType.INTEGER);
+        id.setStdDataType(StdDataType.INT);
+        id.setPrimary(true);
+        OrmEntityModel entity = new OrmEntityModel();
+        entity.setName("AuthUser");
+        entity.setTableName("AUTH_USER");
+        entity.setQuerySpace("duckdb");
+        entity.setColumns(new ArrayList<>(List.of(id)));
+        entity.init();
+
+        ISqlCompileContext ctx = new ISqlCompileContext() {
+            @Override
+            public boolean isDisableLogicalDelete() {
+                return false;
+            }
+
+            @Override
+            public boolean isAllowUnderscoreName() {
+                return false;
+            }
+
+            @Override
+            public boolean isEnableFilter() {
+                return false;
+            }
+
+            @Override
+            public IEqlAstTransformer getAstTransformer() {
+                return null;
+            }
+
+            @Override
+            public IDialect getDialectForQuerySpace(String querySpace) {
+                return dialect;
+            }
+
+            @Override
+            public ISqlTableMeta resolveEntityTableMeta(String entityName) {
+                return new EntityTableMeta(entity, null, dialect);
+            }
+
+            @Override
+            public IAliasGenerator getAliasGenerator() {
+                return new SeqAliasGenerator();
+            }
+        };
+        new EqlCompiler().compile("test", eql, ctx);
     }
 
     @Test

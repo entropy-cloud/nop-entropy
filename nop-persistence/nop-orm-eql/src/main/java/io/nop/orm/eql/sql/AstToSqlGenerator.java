@@ -261,6 +261,24 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         super.visitSqlSubqueryTableSource(node);
     }
 
+    /**
+     * WI1 BUG-3: 执行路径消费方言锁模板 `IDialect.getForUpdateSql`。修复前 EQL 路径
+     * 硬编码输出 "for update"，在锁模板为空的方言（如 duckdb）上静默产出数据库不支持
+     * 的 SQL。空模板时编译期显式报错；LockOption 暂传 null（AST 只有 boolean forUpdate，
+     * NOWAIT/SKIP LOCKED 归 WI12）。回显路径（基类）保持不动。
+     */
+    @Override
+    protected void printForUpdate(SqlQuerySelect node) {
+        String lockSql = dialect.getForUpdateSql(null);
+        if (StringHelper.isEmpty(lockSql)) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "forUpdate");
+        }
+        println();
+        print(lockSql);
+    }
+
     void appendPropJoins(SqlSingleTableSource node) {
         if (node.getPropJoins() != null) {
             for (SqlPropJoin propJoin : node.getPropJoins().values()) {

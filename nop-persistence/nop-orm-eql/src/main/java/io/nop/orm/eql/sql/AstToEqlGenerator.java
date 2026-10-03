@@ -466,9 +466,18 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         }
 
         if (node.getForUpdate()) {
-            println();
-            print("for update");
+            printForUpdate(node);
         }
+    }
+
+    /**
+     * WI1 BUG-3: 回显路径保持硬编码 "for update"（WI0 语料基线只比对 toSqlString()
+     * 回显，7 个语料文件均不含 for update，回显治理归 WI2 BUG-4 批次）。执行路径的
+     * 方言锁模板消费在子类 AstToSqlGenerator 的 override 中。
+     */
+    protected void printForUpdate(SqlQuerySelect node) {
+        println();
+        print("for update");
     }
 
     protected void printWhere(SqlQuerySelect node) {

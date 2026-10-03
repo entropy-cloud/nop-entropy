@@ -185,6 +185,7 @@ EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打�
 
 | 输出点 | 位置 | 能力标志 / 通路 | 不支持时错误码 | 负向测试 |
 |--------|------|----------------|---------------|---------|
+| `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
