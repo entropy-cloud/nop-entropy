@@ -57,7 +57,7 @@ Targets: nop-xdefs/tool.xdef、nop-ai-toolkit（生成模型）、nop-ai-agent�
 
 - Item Types: `Feature`
 
-- [ ] tool.xdef 增 `<output-budget max-chars="int" spill="!boolean=true"/>`；构建再生 `_AiToolModel`（若 codegen 不自动再生，定位 xgen 命令显式执行；禁手改 `_gen/`）
+- [x] tool.xdef 增 `<output-budget xdef:name="AiToolOutputBudgetModel" max-chars="int" spill="!boolean=true"/>`；构建再生 `_AiToolModel`/`AiToolOutputBudgetModel`（codegen precompile 自动再生，非手改）
 - [x] `ToolOutputBudgetResolver`：`resolve(toolName, argumentsText, toolManager)` → Budget{maxChars, spillAllowed}；优先级与钳制如 Goals；`ToolResultTruncator.applyBudget`
 - [x] dispatcher：`spillIfOversized` 改收预算参数；:760 调用点经 resolver；既有 8000 默认行为字节级不变（无声明无 per-call 时）
 - [x] 测试：xdef 解析正反例；resolver 优先级矩阵（含畸形 args/整体非 JSON/钳制边界/小预算区间不越界）；spill/截断预算联动；**端到端**（扩展 TestSpillStore 模式：声明 output-budget 的工具 + 带 maxOutputChars 调用 → SPILL_REF 生成与预算联动）；零回归
