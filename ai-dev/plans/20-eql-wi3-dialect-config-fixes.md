@@ -173,28 +173,28 @@ Exit Criteria:
 
 ### Phase 1 - `supportReturningForUpdate` 值纠错（第 1/2/3/4/5 项）
 
-Status: planned
+Status: completed（2026-10-04；commits `76e4db0add`/`c3bf32f909`/`dec036777f`）
 Targets: `mysql.dialect.xml`（`:136-137`）、`oracle.dialect.xml`（features 行）、`h2.dialect.xml`（`:17-21` features 行）、`nop-persistence/nop-dao/src/test/java/io/nop/dao/dialect/`（新增/扩展配置断言测试）、`ai-dev/logs/`
 
 - Item Types: `Fix`（第 1/2/3 项）、`Proof`（第 4 项防回归断言、第 5 项 unverified 固化断言）
 
-- [ ] 第 1 项：`mysql.dialect.xml:137` → `supportReturningForUpdate="false"`，同提交修正 `:136` 误导注释（删除或改写为如实记录：MySQL 无 `UPDATE … RETURNING`；MariaDB 的 `UPDATE … RETURNING` 自 13.0）。
-- [ ] 第 2 项：`oracle.dialect.xml` features 行 → `false`（Oracle 仅支持 `INTO` 宿主变量形式，投影列表形式非法）。
-- [ ] 第 3 项：`h2.dialect.xml` features 行 → `false`（H2 无 RETURNING 子句）。
-- [ ] 第 4 项：`duckdb.dialect.xml:21` 保持 `false` 不动；补防回归断言（duckdb 加载后 `isSupportReturningForUpdate()` 为 false）。
-- [ ] 第 5 项：`dm.dialect.xml:67` 保持 `true` 不改值；补固化断言（dm 加载后为 true）并在测试 javadoc 标注 `unverified`（依据：DM8 无一手文档，G-1 红线）；同步在 `Deferred But Adjudicated` 登记（本 plan 已含）。
-- [ ] 每项一个方言配置断言测试（新测试类或扩展现有 per-dialect 测试）：对 18 个方言中受影响的 5 个直接方言断言 `DialectManager` 加载后 accessor 返回值与结论一致；对 mysql/oracle/h2 附加 nop-orm-eql 侧负向用例——`update … returning` 在这三种方言上编译期抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`（断言具体错误码，非泛化异常）。
-- [ ] **继承涟漪断言**（roadmap 未点名，本 plan 显式覆盖）：翻转经 `x:extends` 传播到衍生方言——`mariadb`（extends mysql）、`oracle-reverse`（extends oracle）、`h2gis`（extends h2）的加载后有效值均随父级同步为 `false`，纳入配置断言；衍生方言上 `update … returning` 同样编译期报错（经继承的 false 走同一校验点）。
+- [x] 第 1 项：`mysql.dialect.xml:137` → `supportReturningForUpdate="false"`，同提交修正 `:136` 误导注释（删除或改写为如实记录：MySQL 无 `UPDATE … RETURNING`；MariaDB 的 `UPDATE … RETURNING` 自 13.0）。（commit `76e4db0add`：注释改写为语义说明+错误值来源记录；red-first 留痕=stash 原值 2 断言 expected false but was true）
+- [x] 第 2 项：`oracle.dialect.xml` features 行 → `false`（Oracle 仅支持 `INTO` 宿主变量形式，投影列表形式非法）。（commit `c3bf32f909`，附语义注释）
+- [x] 第 3 项：`h2.dialect.xml` features 行 → `false`（H2 无 RETURNING 子句）。（commit `dec036777f`，附语义注释）
+- [x] 第 4 项：`duckdb.dialect.xml:21` 保持 `false` 不动；补防回归断言（duckdb 加载后 `isSupportReturningForUpdate()` 为 false）。（`TestDialectReturningForUpdateFlag.testDuckdbConfirmedFalse` + nop-orm-eql `testH2AndDuckdbRejectUpdateReturning` 的 duckdb 段）
+- [x] 第 5 项：`dm.dialect.xml:67` 保持 `true` 不改值；补固化断言（dm 加载后为 true）并在测试 javadoc 标注 `unverified`（依据：DM8 无一手文档，G-1 红线）；同步在 `Deferred But Adjudicated` 登记（本 plan 已含）。（`TestDialectReturningForUpdateFlag.testDmUnverifiedValuePinned`，javadoc 显式 UNVERIFIED + successor 指针）
+- [x] 每项一个方言配置断言测试（新测试类或扩展现有 per-dialect 测试）：对 18 个方言中受影响的 5 个直接方言断言 `DialectManager` 加载后 accessor 返回值与结论一致；对 mysql/oracle/h2 附加 nop-orm-eql 侧负向用例——`update … returning` 在这三种方言上编译期抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`（断言具体错误码，非泛化异常）。（nop-dao `TestDialectReturningForUpdateFlag` 7 测试（mysql/oracle/h2 三改 + duckdb 确认 + dm 固化 + mariadb/mysql5.7/oracle-reverse/h2gis 涟漪）；nop-orm-eql `TestEqlUpdateReturningDialectGate` 5 测试（mysql/oracle/h2/duckdb 真实方言编译期拒绝，断言错误码+feature param；postgresql 正向对照））
+- [x] **继承涟漪断言**（roadmap 未点名，本 plan 显式覆盖）：翻转经 `x:extends` 传播到衍生方言——`mariadb`（extends mysql）、`oracle-reverse`（extends oracle）、`h2gis`（extends h2）的加载后有效值均随父级同步为 `false`，纳入配置断言；衍生方言上 `update … returning` 同样编译期报错（经继承的 false 走同一校验点）。（accessor 侧 4 方言断言 + mariadb/oracle-reverse 真实方言门侧断言）
 
 Exit Criteria:
 
-- [ ] 三个改值项落地且各自独立提交；`mysql.dialect.xml:136` 注释已修正。
-- [ ] 配置断言测试覆盖 5 个直接方言（3 改 + 1 保持 + 1 unverified 固化）+ 3 个衍生方言继承涟漪（mariadb/oracle-reverse/h2gis 均为 false），全绿。
-- [ ] nop-orm-eql 负向用例：mysql/oracle/h2 上 `update … returning` 编译期报错且断言错误码；`duckdb`/支持方言（如 postgresql `:94` 现值 true）不受影响（正向对照）。
-- [ ] 第 5 项 unverified 处置与本 plan `Deferred But Adjudicated` 条目一致，未伪造「已修正」。
-- [ ] 既有 EQL 语料 BC：三份必测语料不含 returning，`TestEqlCorpusBaseline` 回归不变（不声称 7 个全测）。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] owner doc 更新归 Phase 7 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 7`；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 三个改值项落地且各自独立提交；`mysql.dialect.xml:136` 注释已修正。（`76e4db0add`/`c3bf32f909`/`dec036777f`）
+- [x] 配置断言测试覆盖 5 个直接方言（3 改 + 1 保持 + 1 unverified 固化）+ 3 个衍生方言继承涟漪（mariadb/oracle-reverse/h2gis 均为 false），全绿。
+- [x] nop-orm-eql 负向用例：mysql/oracle/h2 上 `update … returning` 编译期报错且断言错误码；`duckdb`/支持方言（如 postgresql `:94` 现值 true）不受影响（正向对照）。
+- [x] 第 5 项 unverified 处置与本 plan `Deferred But Adjudicated` 条目一致，未伪造「已修正」。
+- [x] 既有 EQL 语料 BC：三份必测语料不含 returning，`TestEqlCorpusBaseline` 回归不变（不声称 7 个全测）。（Phase 1 门禁 nop-orm-eql 239 测试全绿含该测试；语料零命中已 Phase 0 复核）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，2026-10-04）
+- [x] owner doc 更新归 Phase 7 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 7`；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - mysql5.7 窗口 mixin 移除（第 7 项）
 
