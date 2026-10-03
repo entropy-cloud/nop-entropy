@@ -25,8 +25,8 @@
 | `EqlParser.java` 行数 | plan 记 10904 | **10927**（WI2 文法提交再平移，非本 plan 范围） | 登记漂移，不影响符号定位 |
 | `_EqlASTBuildVisitor.java` 行数 | 1819 | **1819** | 一致 |
 | `ast/_gen/` 文件数 | 77 | **77** | 一致 |
-| `BaseRule.g4` 各锚点 | `unreservedWord_ :72-96`、`sqlExpr_special :286-289`、`sqlCastExpr :291-293`、注释块 `:295-314`、`sqlRegularFunction :316-318`、`sqlIdentifier_func_ :320-323`、`sqlIntervalExpr :346-352`、`intervalUnit_ :354-356` | 全部一致（`unreservedWord_` 含 `POSITION :88`、`YEAR|MONTH :89`，不含 DAY/HOUR/MINUTE/SECOND/QUARTER） | 一致 |
-| `Keyword.g4` 保留 token | YEAR:397 / QUARTER:401 / MONTH:405 / DAY:413 / HOUR:417 / MINUTE:421 / SECOND:425；POSITION:110 / TRIM:166 / SUBSTRING:170 / FROM:174 / FOR:241 / IN:285；SQL92Keyword EXTRACT:398 / LEADING:478 / BOTH:254 / TRAILING:664 | 全部一致 | 一致 |
+| `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 各锚点 | `unreservedWord_ :72-96`、`sqlExpr_special :286-289`、`sqlCastExpr :291-293`、注释块 `:295-314`、`sqlRegularFunction :316-318`、`sqlIdentifier_func_ :320-323`、`sqlIntervalExpr :346-352`、`intervalUnit_ :354-356` | 全部一致（`unreservedWord_` 含 `POSITION :88`、`YEAR|MONTH :89`，不含 DAY/HOUR/MINUTE/SECOND/QUARTER） | 一致 |
+| `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 保留 token | YEAR:397 / QUARTER:401 / MONTH:405 / DAY:413 / HOUR:417 / MINUTE:421 / SECOND:425；POSITION:110 / TRIM:166 / SUBSTRING:170 / FROM:174 / FOR:241 / IN:285；SQL92Keyword EXTRACT:398 / LEADING:478 / BOTH:254 / TRAILING:664 | 全部一致 | 一致 |
 | **方言可加载数** | plan 起草期口径 **14 可加载**（db2 不可加载） | **15 可加载**（db2 经 WI3 补 mandatory 子节点后可加载，快照 `functions` 57 项）；3 不可加载 = default/geo-support/window-expr-support；`es` 仍为 pseudo | **登记漂移**：本 plan 的函数覆盖计数以快照实测为准（15 家含 db2），正文用"15/15 可加载方言"口径；dm/tdengine 红线不变 |
 
 ## 1. 逐函数 lowering 目标矩阵（Decision）
@@ -96,7 +96,7 @@
 
 ## 2. 关键字遮蔽放开的文法形态（Decision）
 
-- **采纳**：`DAY | HOUR | MINUTE | SECOND | QUARTER` 加入 `unreservedWord_`（`BaseRule.g4:72-96` 末段新增一行）。不动 `Keyword.g4` 词法器、不删/不重命名任何 lexer token、不动 `YEAR|MONTH` 既有成员。**被拒备选**：① 专属 token 清单规则（如 `shadowedFuncName_`）——需要新语法入口且与 `sqlIdentifier_` 双入口并存，回显/歧义面更大；② 改 Keyword.g4 把五个词降为非保留——删除/重排 token 违反 roadmap 红线（token 重编号），且影响全部保留字判定面。
+- **采纳**：`DAY | HOUR | MINUTE | SECOND | QUARTER` 加入 `unreservedWord_`（`BaseRule.g4:72-96` 末段新增一行）。不动 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 词法器、不删/不重命名任何 lexer token、不动 `YEAR|MONTH` 既有成员。**被拒备选**：① 专属 token 清单规则（如 `shadowedFuncName_`）——需要新语法入口且与 `sqlIdentifier_` 双入口并存，回显/歧义面更大；② 改 Keyword.g4 把五个词降为非保留——删除/重排 token 违反 roadmap 红线（token 重编号），且影响全部保留字判定面。
 - **三点论证**：
   1. **语料 BC**：7 个含 `<eql>` 的 `sql-lib.xml` 对 `day/hour/minute/second/quarter`（调用形态+裸词形态）grep=0 命中（plan Current Baseline 实测沿用），遮蔽放开对既有语料可解析集合纯增量；棘轮 `TestEqlCorpusBaseline` 逐字节兜底。
   2. **`intervalUnit_` 歧义消解**：`intervalUnit_`（`BaseRule.g4:354-356`）与 `unreservedWord_` 是两条独立 parser 规则，`interval 1 day` 中 `DAY` 在 `sqlIntervalExpr` 上下文只有 `intervalUnit_` 一个可行解析（`sqlIdentifier_` 不在该上下文可达），ANTLR 自适应预测无歧义。既有 `TestEqlIntervalLiteralParse` 全量回归 + 新增 `interval 1 day`/`interval '3 hours'` 双形态守护用例锁定。

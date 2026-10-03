@@ -347,7 +347,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 
 ### SQL-92 标准函数语法（2026-10-04 WI5：POSITION/SUBSTRING/EXTRACT/TRIM + 遮蔽放开）
 
-EQL 接受四个 SQL-92 标准语法形态，构建期归一化为**普通函数调用**（复用既有 `SqlRegularFunction` + 方言函数表解析：未注册 lowering 目标的方言编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错，不允许静默按原文输出）。裁定与逐方言证据：`ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md`。覆盖标注口径：`[实测]`=CI 真库（H2 in-mem）执行证据；`[文档]`=一手文档引证；`[未取证]`=无一手文档，不计入覆盖率。
+EQL 接受四个 SQL-92 标准语法形态，构建期归一化为**普通函数调用**（复用既有 `SqlRegularFunction` + 方言函数表解析：未注册 lowering 目标的方言编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错，不允许静默按原文输出）。裁定与逐方言证据：EQL 跨库兼容 roadmap WI5（执行计划与裁定正文归 ai-dev 设计域，此处只保留源码锚点：归一化实现 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java` 的 `visitSqlRegularFunction_*` 组，文法 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlExpr_special`）。覆盖标注口径：`[实测]`=CI 真库（H2 in-mem）执行证据；`[文档]`=一手文档引证；`[未取证]`=无一手文档，不计入覆盖率。
 
 #### POSITION(x IN y) → `instr(y, x)`
 
@@ -377,7 +377,7 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 
 #### EXTRACT(f FROM d) → 逐字段函数 `f(d)`
 
-归一化为**与字段同名的小写函数**：`EXTRACT(YEAR FROM d)` → `year(d)`、`EXTRACT(QUARTER FROM d)` → `quarter(d)`（默认形态钉死为逐字段函数；逗号形态 `extract(f,d)` 是另一条既有路径，行为不变）。字段规则仅放行 `YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/QUARTER` 七个（`BaseRule.g4` 的 `extractField__` 规则）；`WEEK`/`MICROSECOND` 等无注册函数的字段在文法层即拒绝（响亮），扩展字段须先注册同名函数。
+归一化为**与字段同名的小写函数**：`EXTRACT(YEAR FROM d)` → `year(d)`、`EXTRACT(QUARTER FROM d)` → `quarter(d)`（默认形态钉死为逐字段函数；逗号形态 `extract(f,d)` 是另一条既有路径，行为不变）。字段规则仅放行 `YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/QUARTER` 七个（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `extractField__` 规则）；`WEEK`/`MICROSECOND` 等无注册函数的字段在文法层即拒绝（响亮），扩展字段须先注册同名函数。
 
 | 字段 | default（h2/h2gis/mysql/mariadb/mysql5.7/dm/tdengine/es/db2 继承） | mssql | oracle / oracle-reverse | postgresql / postgis / duckdb | 证据 |
 |------|------|------|------|------|------|
@@ -405,7 +405,7 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 
 #### 关键字遮蔽放开：`day/hour/minute/second/quarter`（2026-10-04 WI5 Phase 5）
 
-五个日期词加入 `unreservedWord_`（`BaseRule.g4`），在**函数名位置与标识符位置（列名/别名）可解析**；`Keyword.g4` 词法 token 不动（不删不改不重排），`YEAR|MONTH` 既有成员不变。行为口径：
+五个日期词加入 `unreservedWord_`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`），在**函数名位置与标识符位置（列名/别名）可解析**；`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 词法 token 不动（不删不改不重排），`YEAR|MONTH` 既有成员不变。行为口径：
 
 | 位置 | 修复前 | 修复后 |
 |------|------|------|
