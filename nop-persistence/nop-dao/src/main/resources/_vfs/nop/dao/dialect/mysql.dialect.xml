@@ -133,8 +133,12 @@
         </errorCode>
     </errorCodes>
 
-    <!-- mysql 8.0.14 和mariadb都支持returning语句 -->
-    <features supportSequence="false" supportReturningForUpdate="true" supportLateral="true" supportFullJoin="false"/>
+    <!-- WI3 第 1 项纠错：MySQL 8.4 的 SELECT/INSERT/UPDATE 文法均无 RETURNING 子句
+         （mysql5.7.dialect.xml 早已显式 false）。supportReturningForUpdate 的真实语义是
+         "UPDATE 上返回投影列表（无 INTO）"，MySQL 不具备 ⇒ false。
+         历史注释"mysql 8.0.14 和mariadb都支持returning语句"为该错误值的来源记录，已删。
+         MariaDB 的 UPDATE … RETURNING 自 13.0 起才可用，由 mariadb.dialect.xml 自行声明。 -->
+    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"/>
 
     <sqls escapeSlash="true">
 
