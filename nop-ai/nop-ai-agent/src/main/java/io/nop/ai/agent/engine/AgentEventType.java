@@ -124,5 +124,12 @@ public enum AgentEventType {
      * stop with best-effort final summary): COMPACTION reports a successful
      * mid-loop context reduction, not a terminal stop.
      */
-    COMPACTION
+    COMPACTION,
+    /**
+     * Plan 2289 (WI8): injection queue visibility — published on enqueue and
+     * drain (queue_update semantics: action=enqueued|drained + pendingCount
+     * + semantics), so external consumers observe injection flow without
+     * polling the queue.
+     */
+    INJECTION_QUEUE_UPDATED
 }

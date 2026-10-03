@@ -47,6 +47,14 @@ public class ChatUsage {
      */
     private Integer cacheMissTokens;
 
+    /**
+     * Plan 2303 (WI21): provider 原始 usage 对象（Usage Raw 原始保留）——方言
+     * 翻译与审计依据。只读视图：由 dialect 解析期一次性构建，之后不做防御性
+     * 拷贝（{@link #copy()} 共享引用）。additive 字段，无生产持久化消费方，
+     * 无 roundtrip 面。
+     */
+    private java.util.Map<String, Object> rawUsage;
+
     public ChatUsage() {
     }
 
@@ -116,6 +124,15 @@ public class ChatUsage {
         this.cacheMissTokens = cacheMissTokens;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public java.util.Map<String, Object> getRawUsage() {
+        return rawUsage;
+    }
+
+    public void setRawUsage(java.util.Map<String, Object> rawUsage) {
+        this.rawUsage = rawUsage;
+    }
+
     @JsonIgnore
     public double getCacheHitRate() {
         if (promptTokens == null || promptTokens == 0) return 0;
@@ -137,6 +154,7 @@ public class ChatUsage {
         copy.setCacheHitTokens(this.cacheHitTokens);
         copy.setCacheCreationTokens(this.cacheCreationTokens);
         copy.setCacheMissTokens(this.cacheMissTokens);
+        copy.rawUsage = this.rawUsage;
         return copy;
     }
 }

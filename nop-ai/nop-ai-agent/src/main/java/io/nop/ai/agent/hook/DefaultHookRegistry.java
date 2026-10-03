@@ -1,5 +1,11 @@
 package io.nop.ai.agent.hook;
 
+import io.nop.ai.agent.NopAiAgentErrors;
+import io.nop.ai.agent.engine.NopAiAgentException;
+
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
@@ -105,7 +111,19 @@ public class DefaultHookRegistry implements IHookRegistry {
             for (AgentHookModel hookModel : model.getHooks()) {
                 AgentLifecyclePoint point = resolveLifecyclePoint(hookModel.getEvent());
                 if (point == null) {
-                    continue;
+                    // Plan 2294 (WI13): unknown hook names fail loud instead of
+                    // being silently skipped (the dead-configuration surface) —
+                    // a typo'd event name previously vanished without a trace
+                    if ("reasoning_chunk".equalsIgnoreCase(
+                            String.valueOf(hookModel.getEvent()))) {
+                        throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                                "hook event '" + hookModel.getEvent()
+                                        + "' was removed in plan 2026-09-15-1029-2 (no streaming path); "
+                                        + "valid events: " + EVENT_NAME_MAP.keySet());
+                    }
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                            "unknown hook event '" + hookModel.getEvent() + "'; valid events: "
+                                    + EVENT_NAME_MAP.keySet());
                 }
                 IEvalFunction body = hookModel.getBody();
                 registry.register(point, new EvalFunctionHookAdapter(body));

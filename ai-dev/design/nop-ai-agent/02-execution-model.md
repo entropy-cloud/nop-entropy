@@ -182,3 +182,15 @@ Agent 执行有**循环控制**和**计算资源控制**：
 - `nop-ai-agent-react-engine.md` — ReAct 引擎详细设计（本篇 §3 的展开）
 - `nop-ai-agent-hook-skill-engine.md` — Hook/Skill 引擎层详细设计
 - `nop-ai-agent-reliability.md` — 可靠性增强层详细设计
+
+## 事件 payload 契约（WI9，plan 2290）
+
+- **key 契约**：`AgentEventPayloads` 是全部事件 payload key 的权威常量类——发布点必须引用常量（编译期防拼写漂移），每个常量 javadoc 载明所属事件与取值语义。
+- **typed 视图**：`AgentEvent.typedPayload()` 提供 null 安全的类型化读取（getString/getInteger/getLong/getBoolean；缺 key 或类型不匹配返回 null 不抛）。`getPayload()` Map 形态保持（序列化形态不变，typed 视图是读取助手）。
+- **ignorable 契约**：`AgentEvent.schemaVersion`（默认 1）——订阅者遇到未知 key/payload 形态且 schemaVersion 高于其理解版本时跳过（向前兼容）；`DefaultAgentEventPublisher` 发布时保留版本。消费者实现 `IAgentEventSubscriber` 即插即用。
+
+## 订阅者失败上报通道（WI10，plan 2291）
+
+- **计数**：`DefaultAgentEventPublisher.getSubscriberFailureCount(subscriber)` 暴露 per-subscriber 累计失败数（0 = 从未失败）。
+- **策略**：`SubscriberFailurePolicy`——LOG_ONLY（默认，每次失败 LOG.error + 计数增长，订阅者保留）/ REMOVE_AFTER_THRESHOLD（累计失败达 `failureRemovalThreshold` 默认 10 自动摘除该订阅者并 WARN，失败计数保留供查询）。
+- **fan-out 保证**：单个订阅者失败不阻断其余订阅者投递（既有行为保持）。发布不抛——失败经计数与日志上报。

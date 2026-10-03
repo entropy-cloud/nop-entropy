@@ -129,6 +129,9 @@ import java.util.concurrent.Executor;
         // the executor used to wrap the synchronous chatService.call.
         private long llmTimeoutMs;
         private long toolTimeoutMs;
+        private long heartBeatIntervalMs = 60_000L;
+        private java.util.Map<String, Long> toolTimeoutPolicy = java.util.Collections.emptyMap();
+        private io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
         private Executor timeoutExecutor;
         private IWaitCoordinator waitCoordinator;
 
@@ -585,6 +588,21 @@ import java.util.concurrent.Executor;
          * (backward-compatible escape hatch). The engine wires the shipped
          * default (300s) via {@code DefaultAgentEngine.resolveExecutor}.
          */
+        public ReActAgentExecutorBuilder heartBeatIntervalMs(long heartBeatIntervalMs) {
+            this.heartBeatIntervalMs = heartBeatIntervalMs;
+            return this;
+        }
+
+        public ReActAgentExecutorBuilder toolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) {
+            this.toolTimeoutPolicy = toolTimeoutPolicy != null ? toolTimeoutPolicy : java.util.Collections.emptyMap();
+            return this;
+        }
+
+        public ReActAgentExecutorBuilder toolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker) {
+            this.toolProgressTracker = toolProgressTracker;
+            return this;
+        }
+
         public ReActAgentExecutorBuilder toolTimeoutMs(long toolTimeoutMs) {
             this.toolTimeoutMs = toolTimeoutMs;
             return this;
@@ -670,6 +688,11 @@ import java.util.concurrent.Executor;
                     teamAclChecker,
                     llmTimeoutMs,
                     toolTimeoutMs,
+                    heartBeatIntervalMs,
+                    toolTimeoutPolicy,
+                    toolProgressTracker != null
+                            ? toolProgressTracker
+                            : io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp(),
                     timeoutExecutor,
                     waitCoordinator != null ? waitCoordinator : NoOpWaitCoordinator.noOp()
             );

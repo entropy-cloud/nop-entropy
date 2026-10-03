@@ -48,13 +48,17 @@ public class TestLlmErrorClassifier {
     }
 
     @Test
-    void rateLimitedErrorWithoutHttpStatusClassifiesAsTransient() {
+    void rateLimitedErrorWithoutHttpStatusStaysRetryable() {
         // Safety net: if the ERR_AI_RATE_LIMITED error ever lost its
-        // httpStatus param, the unknown-error default (TRANSIENT) still keeps
-        // it retryable — the classification never wrongly fails fast.
+        // httpStatus param, the classification never wrongly fails fast.
+        // Plan 2304 (WI22): the message classifier refines the unknown-error
+        // TRANSIENT fallback to the semantically-correct RATE_LIMITED (the
+        // error text "call rate-limited" matches the retryable token table) —
+        // still retryable, so the safety-net intent is preserved (plan-logged
+        // behaviour refinement, not a regression).
         NopException ex = new NopException(NopAiCoreErrors.ERR_AI_RATE_LIMITED)
                 .param(NopAiCoreErrors.ARG_LLM_NAME, "test-provider");
-        assertEquals(ErrorClassification.TRANSIENT, LlmErrorClassifier.classify(ex));
+        assertEquals(ErrorClassification.RATE_LIMITED, LlmErrorClassifier.classify(ex));
     }
 
     @Test

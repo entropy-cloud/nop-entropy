@@ -8,6 +8,7 @@ import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
+import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.http.api.client.HttpRequest;
@@ -59,6 +60,23 @@ public interface ILlmDialect {
      * @param apiKeyHeader 自定义 API Key Header（可选）
      */
     void setHeaders(HttpRequest httpRequest, String apiKey, String apiKeyHeader);
+
+    /**
+     * Plan 2302 (WI20): per-provider cache-key placement — the
+     * session-affinity header form (openrouter/fireworks {@code x-session-id}
+     * shape). Called by ChatServiceImpl after {@link #setHeaders}.
+     * Config-gated via {@code LlmModelModel.cacheKeyHeader} (empty/absent =
+     * nothing sent); the header value is {@code ChatOptions.sessionId}.
+     * Default no-op — dialects inherit the AbstractLlmDialect implementation
+     * (or this no-op) with zero behaviour change when unconfigured.
+     *
+     * @param httpRequest HTTP 请求对象
+     * @param request     当前聊天请求（sessionId 键值来源）
+     * @param modelConfig per-model 配置（cacheKeyHeader 载体）
+     */
+    default void applyCacheHeaders(HttpRequest httpRequest, ChatRequest request,
+                                   LlmModelModel modelConfig) {
+    }
 
     /**
      * 构建请求体

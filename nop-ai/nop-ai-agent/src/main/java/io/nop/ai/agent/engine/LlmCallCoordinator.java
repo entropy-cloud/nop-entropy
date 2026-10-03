@@ -176,6 +176,61 @@ public class LlmCallCoordinator {
     }
 
     /**
+     * Plan 2285 (WI4): fail-soft variant of {@link #doLlmCallWithRetry} for
+     * wait-phase wakeup turns (heartbeat / WI5 steering). Identical retry
+     * loop, circuit breaker, FALLBACK channels and execution-level middleware
+     * — but the terminal failure path skips the regular execution's failure
+     * side-effects (ctx.setStatus(failed) / setLastError / invokeOnError /
+     * EXECUTION_FAILED event): the tools are still running and a transient
+     * LLM outage must not kill the execution — the executor loop simply
+     * returns to its wait slice and retries at the next wakeup point (design
+     * nop-ai-agent-async-tool-execution.md §三.3 "唤醒轮 LLM 失败语义 =
+     * fail-soft"). The {@code fallbackExhausted} throw is likewise converted
+     * into an unsuccessful result.
+     *
+     * <p>Success handling is unchanged (circuit success + provider health
+     * recorded).
+     */
+    public LlmCallResult doWakeupCallWithRetry(ChatRequest request,
+                                               AgentExecutionContext ctx,
+                                               String sessionId,
+                                               String agentName,
+                                               ChatOptions routedOptions) {
+        try {
+            ensureCircuitAllowsCall(routedOptions, sessionId);
+        } catch (NopAiAgentException e) {
+            LOG.warn("wakeup LLM call skipped: circuit breaker rejected (session={})", sessionId);
+            return new LlmCallResult(ChatResponse.error(ErrorClassification.TRANSIENT, null,
+                    "circuit-open", "circuit breaker open for wakeup call", null),
+                    routedOptions, CoreMetrics.currentTimeMillis(), false);
+        }
+        RetryState st = new RetryState(routedOptions);
+        st.llmCallStart = CoreMetrics.currentTimeMillis();
+        runRetryLoop(request, ctx, agentName, st);
+
+        if (st.fallbackExhausted != null) {
+            LOG.warn("wakeup LLM call failed after fallback exhaustion (session={}): {}",
+                    sessionId, st.fallbackExhausted.getMessage());
+            return new LlmCallResult(ChatResponse.error(ErrorClassification.TRANSIENT, null,
+                    "fallback-exhausted", st.fallbackExhausted.getMessage(), null),
+                    routedOptions, st.llmCallStart, false);
+        }
+
+        if (!st.response.isSuccess()) {
+            // fail-soft：不置 ctx failed、不 invokeOnError、不发 EXECUTION_FAILED——
+            // 仅记录熔断失败已在循环内完成，等待期下一节拍重试。
+            LOG.warn("wakeup LLM call failed (session={}, classification={}) — staying in wait "
+                            + "phase, will retry at next wakeup point",
+                    sessionId, st.lastClassification);
+            return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, false);
+        }
+
+        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions));
+        providerFailoverQueue.recordProviderSuccess(st.routedOptions.getProvider());
+        return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, true);
+    }
+
+    /**
      * AI-12b (plan 355): extracted from doLlmCallWithRetry — the retry
      * loop's OUTER circuit-breaker gate over the primary model (fail fast,
      * no silent skip).

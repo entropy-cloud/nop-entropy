@@ -151,6 +151,30 @@ public class DefaultAgentEngineConfig {
     private long llmTimeoutMs = 120_000L;
     private long toolTimeoutMs = 300_000L;
     private long memberExecTimeoutMs = DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
+    /**
+     * Plan 2285 (WI4): heartbeat slice interval for the tool wait phase
+     * (design nop-ai-agent-async-tool-execution.md §三.5). {@code <= 0}
+     * disables sliced waiting — the tool phase degrades to a single
+     * deadline-bounded wait with no heartbeat wakeup turns. Note: unlike the
+     * other timeout setters, non-positive values are ACCEPTED here
+     * (disable semantics, not validation failure).
+     */
+    private long heartBeatIntervalMs = 60_000L;
+    /**
+     * Plan 2285 (WI4) toolTimeoutPolicy (design §三.5 layer 2): key = exact
+     * tool name, tool tag, or "*" global cap; value = per-tool mechanical
+     * timeout cap in millis. Empty = every tool uses {@link #toolTimeoutMs}.
+     */
+    private java.util.Map<String, Long> toolTimeoutPolicy = java.util.Collections.emptyMap();
+    /**
+     * Plan 2285 (WI4): tool execution progress/cancel seam (design
+     * nop-ai-agent-async-tool-execution.md §三.6). Default = NoOp (snapshots
+     * explicitly empty, cancellation reports false); production assembly
+     * wires the toolkit IBashSandbox-backed adapter (BashSandboxProgressTracker),
+     * which MUST share the sandbox instance the executing BashExecutor holds.
+     */
+    private io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker =
+            io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp();
     private IWaitCoordinator waitCoordinator = NoOpWaitCoordinator.noOp();
 
     /**
@@ -980,6 +1004,23 @@ public class DefaultAgentEngineConfig {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "memberExecTimeoutMs must be positive, got: " + memberExecTimeoutMs);
         }
         this.memberExecTimeoutMs = memberExecTimeoutMs;
+    }
+
+    public long getHeartBeatIntervalMs() { return heartBeatIntervalMs; }
+    public void setHeartBeatIntervalMs(long heartBeatIntervalMs) {
+        this.heartBeatIntervalMs = heartBeatIntervalMs;
+    }
+
+    public java.util.Map<String, Long> getToolTimeoutPolicy() { return toolTimeoutPolicy; }
+    public void setToolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) {
+        this.toolTimeoutPolicy = toolTimeoutPolicy != null ? toolTimeoutPolicy : java.util.Collections.emptyMap();
+    }
+
+    public io.nop.ai.agent.tool.IToolProgressTracker getToolProgressTracker() { return toolProgressTracker; }
+    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker) {
+        this.toolProgressTracker = toolProgressTracker != null
+                ? toolProgressTracker
+                : io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp();
     }
 
     public IWaitCoordinator getWaitCoordinator() { return waitCoordinator; }

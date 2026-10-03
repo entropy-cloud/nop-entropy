@@ -194,11 +194,44 @@ public class AgentHookInvoker {
                 return result;
             }
 
+            // Plan 2292 (WI11): veto contract narrowing — VetoResult is only
+            // consumable at PRE_CALL/PRE_REASONING (the call sites that check
+            // isVeto). Every other lifecycle point previously swallowed the
+            // veto silently (dead configuration). Chain points now fail loud,
+            // mirroring the Bail whitelist precedent. ON_ERROR/POST_COMPACT
+            // are non-chain observer points invoked directly from error and
+            // terminal handling — failing loud there would be hazardous, so a
+            // veto at those two points is warn-logged and dropped (still
+            // observably distinct from the old silent swallow).
             if (result.isVeto()) {
+                if (point == AgentLifecyclePoint.ON_ERROR
+                        || point == AgentLifecyclePoint.POST_COMPACT) {
+                    LOG.warn("VetoResult at observer point {} is not consumable — dropped "
+                            + "(plan 2292 WI11 veto contract narrowing)", point);
+                    continue;
+                }
+                validateVetoPoint(point);
                 return result;
             }
         }
         return HookResult.PassResult.instance();
+    }
+
+    /**
+     * Plan 2292 (WI11): validate that VetoResult is only returned at
+     * PRE_CALL or PRE_REASONING — the only two points whose callers consume
+     * the veto (abort execution / skip the iteration). VetoResult at any
+     * other lifecycle point indicates a misconfigured hook/middleware — fail
+     * loud rather than silently ignoring it (mirrors
+     * {@link #validateBailPoint}). Applies to all 11 points including the
+     * direct-call non-chain points ON_ERROR/POST_COMPACT.
+     */
+    private static void validateVetoPoint(AgentLifecyclePoint point) {
+        if (point != AgentLifecyclePoint.PRE_CALL
+                && point != AgentLifecyclePoint.PRE_REASONING) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "VetoResult is only valid at PRE lifecycle points (PRE_CALL, PRE_REASONING), got: " + point
+                    + " — use BailResult at POST points or ReenterResult at tool-result points");
+        }
     }
     public void invokeOnError(AgentExecutionContext ctx, String agentName) {
         try {

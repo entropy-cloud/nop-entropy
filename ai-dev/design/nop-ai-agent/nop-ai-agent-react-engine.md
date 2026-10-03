@@ -302,12 +302,17 @@ MiMoCode 在工具执行前后插入两条额外的 ReAct 重入点：PreStop Ho
 
 **与后台模式的关系**：工具级后台模式（`runInBackground` 参数，模型显式后台化、完成通知入 mailbox）为同期裁定的第二形态，与占位唤醒正交互补、共享任务 registry/进度快照/通知桥构件，见 `04-tool-invocation.md` §4.5。
 
+**实施契约**：等待期唤醒轮语义（计数归属、前置门槛集、guardrail 适用面、唤醒轮响应能力与持久化）、provider 请求构造契约、超时分层参数面、等待实现形态与 runInBackground 完整裁定的实施契约权威是 `nop-ai-agent-async-tool-execution.md`；本节保留目标形态概述。
+
 **拒绝了**：
 - 全量事件循环形态（工具完成即唤醒 + 输入记账不变量驱动循环推进）——等待期唤醒场景下模型空闲，请求取消机制无用武之地，round 语义解体的改造面与收益不成比例；
 - session 事件化（不可变事件溯源 + 投影去重承载占位/替换）——占位入史后真实结果只能二次追加，在重放流中制造同 callId 双份结果的残留清理问题；快照+journal 范式内三条不变量即可承载，存储结构零新增；
 - 纯机械超时路线——对数十分钟真实负载直接不可用，且无法区分慢任务与死锁。
 
-实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5）。
+实施编排见 `ai-dev/backlog/nop-ai-agent-refactor-roadmap.md`（WI2–WI5），实施契约见 `nop-ai-agent-async-tool-execution.md`。
+
+
+**等待期 steering 唤醒（WI5 Phase A，契约权威 `nop-ai-agent-async-tool-execution.md` §三.3）**：heartbeat 等待模式下，round 边界 drain 之上新增等待期 steering 唤醒——steering 到达（200ms 感知）即以占位瞬时请求处理新输入，drain-commit 在 LLM 成功后执行，失败留队列重试；round 边界 drain 保留为兜底消费点（heartbeat 关闭模式下是唯一消费点）。两条消费路径共享单消费者纪律（仅 ReAct 线程 poll）。
 
 ## 6. 结束条件
 
@@ -369,3 +374,39 @@ AgentActor 的生命周期状态（计划文档 actor-runtime-vision §3.2，尚
 ## 10. 本篇结论
 
 ReAct 是当前阶段最合适的单 Agent Java 执行引擎模型。
+
+
+
+## 流式管线可行性评估与裁定（WI23，plan 2305）
+
+> **裁定：不立项**（2026-10-03，plan 2305 close）。重引入条件与 successor 出口见文末。
+
+### 评估基线（live @ `4272ecfb3a`，2026-10-03）
+
+dsh 比对报告（D1-4，2026-09 快照）判 nop"无流式路径"——按当前 HEAD 需分层复核：**基础设施层已有流式面**（`IChatService.callStream` Flow.Publisher<ChatStreamChunk>、`ChatServiceImpl` 流式实现+聚合器 :400、5 个 dialect `parseStreamChunk`、流式错误恢复（ChatServiceImpl.parseStreamError :463 调 dialect.parseErrorResponse）、gateway 流式 failover 全链路 FailoverStreamFlow）；**引擎层无流式路径**（ReActAgentExecutor/SingleTurnExecutor/LlmCallCoordinator 零 `callStream` 引用，非流式 `call`/`callAsync` 入口是引擎 LLM 调用唯一路径（LlmCallCoordinator:787,790 调 chatService.call））；REASONING_CHUNK 已于 2026-09-15 审计修复中移除（AgentLifecyclePoint 无该值）。另有流式 usage 解析缺口（OpenAI/Gemini/Ollama 流式不解析 usage；Anthropic 流式手写不走 parseUsage→raw 不捕获）——WI21（plan 2303）registered residual，承接出口即本裁定。
+
+### 改造面（四层）
+
+| 层 | 内容 | 关键交互 |
+|----|------|----------|
+| 引擎接线 | ReActAgentExecutor/SingleTurnExecutor/LlmCallCoordinator 换流式调用 + 流式治理面 | guardrail（内容级 guardrail 目前按完整响应评估——token 流需要增量或缓冲语义重审）；WI2 唤醒轮/占位渲染语义与 token 流的交互（占位是请求构造期派生态，流式下工具等待期无 token 流产生，交互面小）；steering 打断（abort 中断固化——dsh interrupted:true 形态）；IRetryPolicy/熔断 × 流式重试语义（流中途失败能否重放——本评估遗漏项，只会加大成本、强化不立项） |
+| 事件管线 | REASONING_CHUNK 重引入 + AgentEvent payload（WI9 类型化契约的流式扩展） | 2026-09-15 移除的根因是"声明未接线的死点"——重引入的前提是完整消费链（引擎→事件→订阅者），非仅加回枚举值 |
+| 持久化 | dsh 整流记录持久化（assistant/attempt 结算一次性落盘，token 级重放保真）vs nop 快照+journal 范式 | nop 现有 TOOL_EXECUTION checkpoint + 消息历史承载结算后事实；token 级重放需要新存储形态（attempt 级 append 流）——与 WI14 增量写路径的交互需评估 |
+| dialect | 流式 usage 解析补齐（OpenAI/Gemini/Ollama 流式无 usage；Anthropic 流式手写不走 parseUsage） | WI21 residual；若不立项则该缺口随重启条件封存 |
+
+### 成本/收益
+
+- **收益**：UI 可感知流式（agent 输出逐 token 呈现）；token 级重放保真（审计/调试）；首 token 延迟可观测。
+- **成本**：四层改造（引擎接线 + 事件管线重引入 + 持久化新形态 + dialect 补齐）；流式治理语义重审（guardrail 增量评估、steering 打断与中断固化）；**双路径维护**（非流式路径必须保留——治理面/测试面/无流式需求的嵌入方）；无生产需求下全部成本前置。
+
+### 裁定
+
+**不立项**。核心理由：①无已登记生产需求（当前 nop 消费场景——自主 agent 循环、channel 驱动、任务型调用——均无 token 流外露面；gateway 流式服务于直连 chat 而非 agent 循环）；②基础设施层（IChatService/dialect/gateway）已具备流式面，引擎接线的边际成本虽可控但四层治理语义重审（guardrail/事件/持久化）在无消费方验证下是纯负债；③WI2-WI5 异步执行模型裁定（等待优先、唤醒源仅 steering/心跳）与流式正交——流式不解决长任务等待问题。**重启条件**（可判定，满足其一即复评）：①生产流式 UI 消费场景立项（agent 输出需逐 token 呈现给终端用户）；②流式 usage 观测需求落地（WI21 residual 的消费方出现）；③dsh 范式的重放保真在审计需求中出现实证场景（以审计需求立项记录为登记载体，对齐 WI18 先例的可判定精度）。重启时 successor = 新 plan/roadmap（本文件不承接实施）；dialect 流式 usage 补齐可独立先行（不依赖引擎接线，归 successor plan 首个 slice）。
+
+## 注入语义三分（WI8，plan 2289）
+
+**语义**：注入队列条目携带 `InjectionSemantics`——STEER（打断合流：等待期唤醒轮消费，fallback 到 round 边界）/ FOLLOWUP（空闲追加：仅 round 边界消费，等待期不算"空闲"，延迟上界=工具策略硬上限）/ INJECT（背景注入：仅 round 边界静默入史，不进唤醒请求快照、不触发唤醒）。
+
+**消费与持久化**：唤醒 probe（`hasQueuedInjection(STEER)`）只对 STEER 唤醒；唤醒轮快照/commit 只取 STEER；round 边界 drain 消费全部语义。三个提交点（drainCommitSteering 含 guardrail 分支 + round 边界）后立即 `persistInjectedMessages`（replaceMessages+save，worker 线程单写者）；终态残留 drain 在 fromContext 前捕获最后一轮 LLM 期间到达的注入。离线注入（会话非 running）走 `AgentSession.pendingInjections` staging（随 session 持久化），`buildBaseExecutionContext` 合并进新队列并清空。
+
+**事件化**：`INJECTION_QUEUE_UPDATED`（action=enqueued|drained + semantics + pendingCount），三发布点（ctx 入队与排空经 nullable publisher 桥接、actor 入队经 runtime optional publisher——NoOp 默认静默=登记边界）；契约权威与边界（mailbox 内存丢失、pre-drain 残留、FIFO 驱逐）见 `nop-ai-agent-session-and-storage.md` 双层幂等与注入持久化节。

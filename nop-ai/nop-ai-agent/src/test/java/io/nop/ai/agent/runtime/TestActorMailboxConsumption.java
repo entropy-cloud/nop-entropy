@@ -28,7 +28,9 @@ public class TestActorMailboxConsumption {
     private static final long FAST_SHUTDOWN_MS = 3000L;
 
     private static AgentMessageEnvelope envelope(String payload) {
-        return new AgentMessageEnvelope("sender-1", "agent.s1.inbox", "corr-1",
+        // WI7: distinct correlationId per message — identical payloads share a
+        // key only when they ARE the same logical message (dedup contract)
+        return new AgentMessageEnvelope("sender-1", "agent.s1.inbox", "corr-" + payload,
                 AgentMessageKind.ASYNC, payload);
     }
 

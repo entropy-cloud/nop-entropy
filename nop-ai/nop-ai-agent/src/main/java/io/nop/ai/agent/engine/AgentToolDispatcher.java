@@ -1,6 +1,7 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.tool.AgentDispatchExecutor;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
@@ -24,6 +25,7 @@ import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
@@ -37,8 +39,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -68,6 +70,13 @@ public class AgentToolDispatcher {
     private final AgentHookInvoker hookInvoker;
     private final AgentToolPlanResolver toolPlanResolver;
     private final AgentSecurityConsultation securityConsultation;
+    /**
+     * Plan 2285 (WI4) toolTimeoutPolicy (design §三.5 layer 2): key = exact
+     * tool name, tool tag, or "*" global cap; value = per-tool mechanical
+     * timeout cap in millis. Empty/null = plain toolTimeoutMs for every tool
+     * (shipped default, zero behaviour change).
+     */
+    private final Map<String, Long> toolTimeoutPolicy;
 
     public AgentToolDispatcher(IToolManager toolManager,
                                IAgentEngine engine,
@@ -82,6 +91,25 @@ public class AgentToolDispatcher {
                                AgentHookInvoker hookInvoker,
                                AgentToolPlanResolver toolPlanResolver,
                                AgentSecurityConsultation securityConsultation) {
+        this(toolManager, engine, messenger, teamManager, teamTaskStore, teamAclChecker,
+                memoryStoreProvider, toolTimeoutMs, sessionStore, checkpointManager, hookInvoker,
+                toolPlanResolver, securityConsultation, null);
+    }
+
+    public AgentToolDispatcher(IToolManager toolManager,
+                               IAgentEngine engine,
+                               IAgentMessenger messenger,
+                               ITeamManager teamManager,
+                               ITeamTaskStore teamTaskStore,
+                               ITeamAclChecker teamAclChecker,
+                               IMemoryStoreProvider memoryStoreProvider,
+                               long toolTimeoutMs,
+                               ISessionStore sessionStore,
+                               ICheckpointManager checkpointManager,
+                               AgentHookInvoker hookInvoker,
+                               AgentToolPlanResolver toolPlanResolver,
+                               AgentSecurityConsultation securityConsultation,
+                               Map<String, Long> toolTimeoutPolicy) {
         this.toolManager = toolManager;
         this.engine = engine;
         this.messenger = messenger;
@@ -95,6 +123,17 @@ public class AgentToolDispatcher {
         this.hookInvoker = hookInvoker;
         this.toolPlanResolver = toolPlanResolver;
         this.securityConsultation = securityConsultation;
+        this.toolTimeoutPolicy = toolTimeoutPolicy;
+    }
+
+    /**
+     * Plan 2286 (WI5 Phase A): wait-phase wakeup events. COMPLETED beats
+     * STEERING_PENDING (a finished phase commits and the round-boundary drain
+     * consumes the queued steering — nothing is lost); the probe is checked
+     * before slice expiry (new input outranks heartbeat evidence).
+     */
+    public enum PhaseWaitEvent {
+        COMPLETED, SLICE_EXPIRED, STEERING_PENDING
     }
 
     // ---- moved verbatim from ReActAgentExecutor (MA4.2-05 split) ----
@@ -109,6 +148,389 @@ public class AgentToolDispatcher {
     }
 
     /**
+     * Plan 2285 (WI4): one tool wait-phase session. Encapsulates the pending
+     * futures with their callId addressing and deadlines so the ReAct executor
+     * can drive the wait loop (heartbeat slices, WI5 steering wakeups) that
+     * used to be a blocking {@code allOf().get()} inside
+     * {@link #executeAllowedCalls}. The session owns the re-entry counters and
+     * checkpoint-sequence continuity; heartbeat/steering wakeup turns are
+     * executor-side concerns and never touch this object's state.
+     *
+     * <p>Thread-safety: all methods are called on the ReAct executor thread
+     * (the same thread that runs build → wait → commit), matching the
+     * existing single-writer discipline on ctx.messages.
+     */
+    public class ToolPhaseSession {
+
+        private final AgentExecutionContext ctx;
+        private final String agentName;
+        private final String sessionId;
+        private final long execStartTime;
+        private final int[] checkpointSeq;
+        private final Map<AgentLifecyclePoint, Integer> reentryCounters = new java.util.HashMap<>();
+        private final List<CompletableFuture<ToolCallOutput>> futures = new ArrayList<>();
+        private final Map<String, CompletableFuture<ToolCallOutput>> futuresByCallId = new java.util.LinkedHashMap<>();
+        private final Map<String, ChatToolCall> callsByCallId = new java.util.LinkedHashMap<>();
+        private final Map<String, Long> deadlinesByCallId = new java.util.LinkedHashMap<>();
+        private final Map<String, Long> startsByCallId = new java.util.LinkedHashMap<>();
+        private final Set<String> cancelledCallIds = new java.util.LinkedHashSet<>();
+
+        ToolPhaseSession(AgentExecutionContext ctx, String agentName, String sessionId,
+                         long execStartTime, int[] checkpointSeq) {
+            this.ctx = ctx;
+            this.agentName = agentName;
+            this.sessionId = sessionId;
+            this.execStartTime = execStartTime;
+            this.checkpointSeq = checkpointSeq;
+        }
+
+        /**
+         * Waits up to {@code sliceMs} for ALL pending (non-cancelled) futures
+         * to complete. Returns true when everything has completed (phase can
+         * commit), false when the slice expired without completion — the
+         * heartbeat wakeup point for the executor loop. Interruption keeps the
+         * existing discipline: cancel every pending future and throw
+         * {@code NopAiAgentException} (awaitToolFutures precedent).
+         */
+        public boolean awaitCompletionSlice(long sliceMs) {
+            List<CompletableFuture<ToolCallOutput>> pending = pendingFutures();
+            if (pending.isEmpty()) {
+                return true;
+            }
+            CompletableFuture<Void> allOf = CompletableFuture.allOf(
+                    pending.toArray(new CompletableFuture[0]));
+            try {
+                allOf.get(sliceMs, TimeUnit.MILLISECONDS);
+                return true;
+            } catch (TimeoutException e) {
+                return false;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                for (CompletableFuture<ToolCallOutput> f : pending) {
+                    f.cancel(true);
+                }
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
+                        .param(ARG_DETAIL, "tool wait phase interrupted");
+            } catch (ExecutionException e) {
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e)
+                        .param(ARG_DETAIL, "tool wait phase failed: " + e.getMessage());
+            }
+        }
+
+        /**
+         * Plan 2286 (WI5 Phase A): tri-state wait with a steering probe.
+         * Internally slices {@code sliceMs} into ≤200ms quanta (clamped to the
+         * remaining slice; a non-positive slice does one completion check plus
+         * one probe — the cap contract of nextWaitSlice is preserved) and
+         * checks {@code steeringProbe} before every expiry judgement, so a
+         * queued steering message is observed within ~200ms without a watcher
+         * thread. COMPLETED wins over STEERING_PENDING (the boundary drain
+         * consumes then). Interruption keeps the awaitCompletionSlice
+         * discipline.
+         *
+         * <p>Consumed ONLY by the executor's heartbeat wait loop — the
+         * facade path (executeAllowedCalls) must keep using
+         * awaitCompletionSlice: an empty-loop facade with a live probe would
+         * busy-spin the whole tool wait phase.
+         */
+        public PhaseWaitEvent awaitWakeup(long sliceMs, java.util.function.BooleanSupplier steeringProbe) {
+            if (steeringProbe != null && steeringProbe.getAsBoolean()
+                    && !pendingFutures().isEmpty()) {
+                return PhaseWaitEvent.STEERING_PENDING;
+            }
+            if (pendingFutures().isEmpty()) {
+                return PhaseWaitEvent.COMPLETED;
+            }
+            long deadline = CoreMetrics.currentTimeMillis() + Math.max(0L, sliceMs);
+            while (true) {
+                if (steeringProbe != null && steeringProbe.getAsBoolean()
+                        && !pendingFutures().isEmpty()) {
+                    return PhaseWaitEvent.STEERING_PENDING;
+                }
+                long remaining = deadline - CoreMetrics.currentTimeMillis();
+                if (remaining <= 0) {
+                    return pendingFutures().isEmpty()
+                            ? PhaseWaitEvent.COMPLETED
+                            : PhaseWaitEvent.SLICE_EXPIRED;
+                }
+                long quantum = Math.min(200L, remaining);
+                try {
+                    CompletableFuture.allOf(pendingFutures().toArray(new CompletableFuture[0]))
+                            .get(quantum, TimeUnit.MILLISECONDS);
+                    return pendingFutures().isEmpty()
+                            ? PhaseWaitEvent.COMPLETED
+                            : PhaseWaitEvent.SLICE_EXPIRED;
+                } catch (TimeoutException e) {
+                    // quantum expired — loop re-checks the probe
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    for (CompletableFuture<ToolCallOutput> f : pendingFutures()) {
+                        f.cancel(true);
+                    }
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
+                            .param(ARG_DETAIL, "tool wait phase interrupted");
+                } catch (ExecutionException e) {
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e)
+                            .param(ARG_DETAIL, "tool wait phase failed: " + e.getMessage());
+                }
+            }
+        }
+
+        /**
+         * The callIds still in flight (never completed and not cancelled) —
+         * the heartbeat payload's running list and the placeholder renderer's
+         * input surface.
+         */
+        public List<String> pendingCallIds() {
+            List<String> pending = new ArrayList<>();
+            for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                if (!entry.getValue().isDone() && !cancelledCallIds.contains(entry.getKey())) {
+                    pending.add(entry.getKey());
+                }
+            }
+            return pending;
+        }
+
+        /**
+         * Millis elapsed since this call started (heartbeat payload evidence).
+         */
+        public long elapsedMs(String callId) {
+            Long start = startsByCallId.get(callId);
+            return start == null ? 0L : CoreMetrics.currentTimeMillis() - start;
+        }
+
+        /**
+         * Millis until the earliest pending deadline (the next slice must not
+         * oversleep past a cap); Long.MAX_VALUE when nothing is pending.
+         */
+        public long earliestDeadlineRemainingMs() {
+            long now = CoreMetrics.currentTimeMillis();
+            long min = Long.MAX_VALUE;
+            for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                if (entry.getValue().isDone() || cancelledCallIds.contains(entry.getKey())) {
+                    continue;
+                }
+                Long deadline = deadlinesByCallId.get(entry.getKey());
+                if (deadline != null) {
+                    min = Math.min(min, Math.max(0L, deadline - now));
+                }
+            }
+            return min;
+        }
+
+        /**
+         * "Abandon" adjudication (plan 2285): cancels the future, records the
+         * cancellation so {@link #commitResults()} skips it, and (when a
+         * progress tracker is wired) cancels the tool process itself. Returns
+         * false for unknown or already-completed callIds — the caller then
+         * knows no synthetic cancel result should be emitted for it.
+         */
+        public boolean cancelCall(String callId) {
+            CompletableFuture<ToolCallOutput> future = futuresByCallId.get(callId);
+            if (future == null || future.isDone() || cancelledCallIds.contains(callId)) {
+                return false;
+            }
+            future.cancel(true);
+            cancelledCallIds.add(callId);
+            return true;
+        }
+
+        /**
+         * Plan 2285 (WI4) "abandon" adjudication backend: cancels the future,
+         * registers the cancellation (commit skips it — no TOOL_EXECUTION
+         * checkpoint, aligned with the security-deny precedent), and inserts
+         * the caller-built synthetic cancel result IN-PLACE (WI3 invariant 2).
+         * Returns false when the callId is unknown/completed/already
+         * cancelled (the caller then skips the synthetic result).
+         */
+        public boolean abandon(String callId, ChatToolResponseMessage syntheticCancelResult) {
+            if (!cancelCall(callId)) {
+                return false;
+            }
+            if (!insertToolResultInList(ctx.getMessages(), syntheticCancelResult)) {
+                // the open tool_call must exist for a pending call — a miss is
+                // a wiring bug; tail-append keeps the result visible (fail-visible)
+                ctx.addMessage(syntheticCancelResult);
+            }
+            return true;
+        }
+
+        /**
+         * Commits every completed, non-cancelled future's result (WI3 in-place
+         * insertion) and emits nothing for cancelled callIds — their synthetic
+         * cancel results were already inserted by the abandon adjudication.
+         * Returns the reenter flag (AR-03) for the executor's round tail.
+         */
+        public boolean commitResults() {
+            List<CompletableFuture<ToolCallOutput>> ordered = new ArrayList<>(futures);
+            ordered.removeIf(CompletableFuture::isCancelled);
+            boolean reenterRequested = commitToolResults(ctx, agentName, sessionId, execStartTime,
+                    checkpointSeq, reentryCounters, ordered.toArray(new CompletableFuture[0]));
+            // AR-03 (plan 277): after ALL batch results are committed, inject
+            // the single iteration-level re-enter marker when any hook
+            // requested re-enter (moved from executeAllowedCalls so both the
+            // facade path and the WI4 executor-driven wait loop share it).
+            if (reenterRequested) {
+                ctx.addMessage(new ChatUserMessage("[re-enter requested by lifecycle hook]"));
+            }
+            return reenterRequested;
+        }
+
+        ChatToolCall callByCallId(String callId) {
+            return callsByCallId.get(callId);
+        }
+
+        private List<CompletableFuture<ToolCallOutput>> pendingFutures() {
+            List<CompletableFuture<ToolCallOutput>> pending = new ArrayList<>();
+            for (CompletableFuture<ToolCallOutput> f : futures) {
+                if (!f.isDone()) {
+                    pending.add(f);
+                }
+            }
+            return pending;
+        }
+    }
+
+    /**
+     * Plan 2285 (WI4): builds and arms one tool wait-phase session — the
+     * future fan-out (buildToolFutures) plus callId/deadline addressing.
+     * The executor drives {@link ToolPhaseSession#awaitCompletionSlice} in its
+     * wait loop (heartbeat slices; WI5 adds the steering wakeup source) and
+     * finishes with {@link ToolPhaseSession#commitResults}.
+     */
+    public ToolPhaseSession startToolPhase(AgentExecutionContext ctx,
+                                           String agentName,
+                                           String sessionId,
+                                           List<ChatToolCall> allowedCalls,
+                                           AgentToolExecuteContext toolExecCtx,
+                                           long execStartTime,
+                                           int[] checkpointSeq) {
+        ToolPhaseSession session = new ToolPhaseSession(ctx, agentName, sessionId,
+                execStartTime, checkpointSeq);
+        try {
+            for (ChatToolCall chatToolCall : allowedCalls) {
+                long startMs = CoreMetrics.currentTimeMillis();
+                long capMs = resolveToolTimeoutMs(chatToolCall.getName());
+                List<CompletableFuture<ToolCallOutput>> built = buildToolFutures(ctx, agentName,
+                        List.of(chatToolCall), toolExecCtx);
+                if (built.size() != 1) {
+                    // buildToolFutures emits exactly one future per call; a
+                    // different shape is a wiring bug — fail loud, no silent skip
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
+                            .param(ARG_DETAIL, "buildToolFutures returned " + built.size()
+                                    + " futures for a single call: tool=" + chatToolCall.getName());
+                }
+                CompletableFuture<ToolCallOutput> future = built.get(0);
+                session.futures.add(future);
+                session.futuresByCallId.put(chatToolCall.getId(), future);
+                session.callsByCallId.put(chatToolCall.getId(), chatToolCall);
+                // cap <= 0 = mechanical timeout disabled → no deadline bound
+                // (MAX_VALUE); a zero deadline would collapse the wait slice
+                // to a busy heartbeat loop
+                session.deadlinesByCallId.put(chatToolCall.getId(),
+                        capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
+                session.startsByCallId.put(chatToolCall.getId(), startMs);
+                // Plan 2287 (WI6): DISPATCHED phase checkpoint (conservative
+                // recovery discipline — crash between here and the terminal
+                // commit leaves an explicit undeterminable-result marker)
+                savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                        checkpointSeq, chatToolCall.getId(), chatToolCall.getName(),
+                        ToolExecutionPhase.DISPATCHED);
+            }
+        } catch (RuntimeException | Error e) {
+            // AR-15: a synchronous throw mid-loop must not leave the
+            // already-started futures as orphans — cancel them, then rethrow.
+            for (CompletableFuture<ToolCallOutput> f : session.futures) {
+                f.cancel(true);
+            }
+            throw e;
+        }
+        return session;
+    }
+
+    /**
+     * Plan 2285 (WI4) parallel-work adjudication: adds security-chain-cleared
+     * derived calls (wakeup-turn tool_calls) into a running wait-phase
+     * session — new futures join the pending set so the executor's wait loop
+     * covers them. AR-15 mid-loop throw discipline applies.
+     */
+    public void addCallsToPhase(ToolPhaseSession session,
+                                AgentExecutionContext ctx,
+                                String agentName,
+                                String sessionId,
+                                long execStartTime,
+                                int[] checkpointSeq,
+                                List<ChatToolCall> allowedCalls,
+                                AgentToolExecuteContext toolExecCtx) {
+        try {
+            for (ChatToolCall chatToolCall : allowedCalls) {
+                long startMs = CoreMetrics.currentTimeMillis();
+                long capMs = resolveToolTimeoutMs(chatToolCall.getName());
+                List<CompletableFuture<ToolCallOutput>> built = buildToolFutures(ctx, agentName,
+                        List.of(chatToolCall), toolExecCtx);
+                if (built.size() != 1) {
+                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
+                            .param(ARG_DETAIL, "buildToolFutures returned " + built.size()
+                                    + " futures for a single call: tool=" + chatToolCall.getName());
+                }
+                CompletableFuture<ToolCallOutput> future = built.get(0);
+                session.futures.add(future);
+                session.futuresByCallId.put(chatToolCall.getId(), future);
+                session.callsByCallId.put(chatToolCall.getId(), chatToolCall);
+                session.deadlinesByCallId.put(chatToolCall.getId(),
+                        capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
+                session.startsByCallId.put(chatToolCall.getId(), startMs);
+                savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                        checkpointSeq, chatToolCall.getId(), chatToolCall.getName(),
+                        ToolExecutionPhase.DISPATCHED);
+            }
+        } catch (RuntimeException | Error e) {
+            for (CompletableFuture<ToolCallOutput> f : session.futures) {
+                if (!f.isDone()) {
+                    f.cancel(true);
+                }
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Per-tool mechanical-timeout cap resolution (plan 2285 / design §三.5
+     * layer 2): explicit policy override by exact tool name, then by any tool
+     * tag, then the wildcard global cap, then the plain toolTimeoutMs default.
+     * Tag lookup goes through the tool manager's tool model; unknown tools
+     * resolve to the default.
+     */
+    long resolveToolTimeoutMs(String toolName) {
+        if (toolTimeoutPolicy != null && !toolTimeoutPolicy.isEmpty()) {
+            Long byName = toolTimeoutPolicy.get(toolName);
+            if (byName != null && byName > 0) {
+                return byName;
+            }
+            // precedence per design §三.5: exact name → any tool tag →
+            // wildcard global cap → plain default (the global cap is the
+            // LAST override, not the first — a tag override must not be
+            // shadowed by "*")
+            if (toolManager != null) {
+                io.nop.ai.toolkit.model.AiToolModel model = toolManager.loadTool(toolName);
+                if (model != null && model.getTags() != null) {
+                    for (String tag : model.getTags()) {
+                        Long byTag = toolTimeoutPolicy.get(tag);
+                        if (byTag != null && byTag > 0) {
+                            return byTag;
+                        }
+                    }
+                }
+            }
+            Long global = toolTimeoutPolicy.get("*");
+            if (global != null && global > 0) {
+                return global;
+            }
+        }
+        return toolTimeoutMs;
+    }
+
+    /**
      * Build the AgentToolExecuteContext for one iteration's dispatch
      * (extracted from ReActAgentExecutor.execute, MA4.2-05): resolves the
      * per-session memory store, the effective (parent-clamped) tool / path
@@ -119,17 +541,23 @@ public class AgentToolDispatcher {
                                                           AgentModel agentModel,
                                                           String sessionId,
                                                           String agentName) {
-IAiMemoryStore memoryStore = memoryStoreProvider != null && sessionId != null
-        ? memoryStoreProvider.getOrCreate(sessionId)
-        : null;
+        IAiMemoryStore memoryStore = memoryStoreProvider != null && sessionId != null
+                ? memoryStoreProvider.getOrCreate(sessionId)
+                : null;
 
-AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
-        toolPlanResolver.resolveWorkDir(agentModel),
-        Collections.emptyMap(),
-        0L,
-        null,
-        null,
-        null,
+        // Plan 2301 (WI25): the executor slot must be non-null on the engine
+        // dispatch path — BashExecutor.executeAsync calls
+        // context.getExecutor().submit unconditionally (the pre-WI25 default
+        // null made the engine+bash combination NPE; no integration test
+        // covered it). The shared ForkJoin-pool adapter preserves the
+        // async tool-execution semantics the dispatcher's fanout relies on.
+        AgentToolExecuteContext toolExecCtx = new AgentToolExecuteContext(
+                toolPlanResolver.resolveWorkDir(agentModel),
+                Collections.emptyMap(),
+                0L,
+                null,
+                null,
+                AgentDispatchExecutor.INSTANCE,
         engine,
         messenger,
         sessionId,
@@ -167,7 +595,7 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
      * per-iteration re-entry counter.
      *
      * <p>AI-12b (plan 355): the body is split into the phase methods
-     * {@link #buildToolFutures}, {@link #awaitToolFutures} and
+     * {@link #buildToolFutures}, the wait-phase session and
      * {@link #commitToolResults} — a pure extract-method refactor with zero
      * behaviour change.
      */
@@ -178,38 +606,22 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                                     AgentToolExecuteContext toolExecCtx,
                                     long execStartTime,
                                     int[] checkpointSeq) {
-        // AR-06 (plan 277): per-iteration re-entry counter, scoped to this
-        // one call (one invocation per iteration).
-        java.util.Map<AgentLifecyclePoint, Integer> reentryCounters = new java.util.HashMap<>();
-        if (!allowedCalls.isEmpty()) {
-            // AR-03 (plan 277): re-enter requested by any hook in this
-            // tool-batch's result processing. When set, after the for
-            // loop finishes committing ALL tool results (so
-            // tool_call_id pairing is complete), an iteration-level
-            // re-enter marker message is injected before the next LLM
-            // call. The flag replaces the old `break` that dropped
-            // same-batch tool results and broke the tool_call_id
-            // pairing invariant.
-            List<CompletableFuture<ToolCallOutput>> futures =
-                    buildToolFutures(ctx, agentName, allowedCalls, toolExecCtx);
-            CompletableFuture<ToolCallOutput>[] futuresArray = awaitToolFutures(futures);
-            boolean reenterRequested = commitToolResults(ctx, agentName, sessionId,
-                    execStartTime, checkpointSeq, reentryCounters, futuresArray);
-
-            // AR-03 (plan 277): after ALL tool results in the batch
-            // are committed (tool_call_id pairing intact), inject a
-            // single iteration-level re-enter marker message if any
-            // hook requested re-enter. This is the unified re-entry
-            // trigger for both BEFORE_TOOL_RESULT_PROCESSED and
-            // AFTER_TOOL_RESULT_PROCESSED — consistent behaviour
-            // across both re-entrant hook points. The marker is a
-            // user message (not a tool message) so it does not
-            // interfere with tool_call_id pairing, and the LLM sees
-            // the re-enter request in the next iteration's context.
-            if (reenterRequested) {
-                ctx.addMessage(new ChatUserMessage("[re-enter requested by lifecycle hook]"));
-            }
+        if (allowedCalls.isEmpty()) {
+            return;
         }
+        // Plan 2285 (WI4): the legacy one-shot path is now a facade over the
+        // wait-phase session — same build/security/commit machinery, wait
+        // driven by deadline slices (no heartbeat: the executor-level loop is
+        // what re-arms slices with heartBeatIntervalMs). AR-15 mid-loop throw
+        // discipline is preserved inside startToolPhase.
+        ToolPhaseSession session = startToolPhase(ctx, agentName, sessionId,
+                allowedCalls, toolExecCtx, execStartTime, checkpointSeq);
+        while (!session.awaitCompletionSlice(session.earliestDeadlineRemainingMs())) {
+            // mechanical cap expiries complete futures exceptionally
+            // (.exceptionally error results), shrinking the pending set —
+            // loop until nothing is pending
+        }
+        session.commitResults();
     }
 
     /**
@@ -235,6 +647,9 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                 AiToolCall aiToolCall = new AiToolCall();
                 aiToolCall.setToolName(chatToolCall.getName());
                 aiToolCall.setInput(chatToolCall.getArgumentsText());
+                // Plan 2285 (WI4): propagate the provider callId so sandbox
+                // progress/cancel can address the running execution
+                aiToolCall.setCallId(chatToolCall.getId());
 
                 // W3-1 (D4 方案 a): PRE_TOOL_ATTEMPT 执行级中间件——同步触发（在调用线程上，
                 // 提交 future 之前）。安全检查在工具执行前确定性完成，不受线程池调度影响。
@@ -268,13 +683,15 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                 CompletableFuture<ToolCallOutput> toolFuture = toolManager.callTool(
                                 chatToolCall.getName(), aiToolCall, toolExecCtx)
                         .thenApply(result -> new ToolCallOutput(chatToolCall, result));
-                if (toolTimeoutMs > 0) {
+                long effectiveTimeoutMs = resolveToolTimeoutMs(chatToolCall.getName());
+                if (effectiveTimeoutMs > 0) {
                     final ChatToolCall timedCall = chatToolCall;
-                    toolFuture = toolFuture.orTimeout(toolTimeoutMs, TimeUnit.MILLISECONDS)
+                    final long timeoutForLog = effectiveTimeoutMs;
+                    toolFuture = toolFuture.orTimeout(effectiveTimeoutMs, TimeUnit.MILLISECONDS)
                             .exceptionally(ex -> {
                                 Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
                                 String errMsg = cause instanceof java.util.concurrent.TimeoutException
-                                        ? "tool timed out after " + toolTimeoutMs + "ms: tool=" + timedCall.getName()
+                                        ? "tool timed out after " + timeoutForLog + "ms: tool=" + timedCall.getName()
                                         : "tool execution failed: tool=" + timedCall.getName()
                                                 + ", error=" + cause.getMessage();
                                 int resultId = LlmCallCoordinator.parseToolCallId(timedCall.getId());
@@ -296,42 +713,6 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
     }
 
     /**
-     * AI-12b (plan 355): extracted from executeAllowedCalls — the
-     * interruptible allOf join over the built futures. Returns the future
-     * array the commit loop consumes.
-     */
-    @SuppressWarnings("unchecked")
-    private CompletableFuture<ToolCallOutput>[] awaitToolFutures(List<CompletableFuture<ToolCallOutput>> futures) {
-        CompletableFuture<ToolCallOutput>[] futuresArray = futures.toArray(new CompletableFuture[0]);
-        // 14-02 (plan 280): use interruptible get() instead of
-        // join() so lease-lost / forced-cancel thread interrupts
-        // can break the wait immediately (each tool already has its
-        // own orTimeout; no batch-level timeout needed). Aligned
-        // with callChatWithTimeout's interrupt semantics.
-        CompletableFuture<Void> allFuture = CompletableFuture.allOf(futuresArray);
-        try {
-            allFuture.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            for (CompletableFuture<ToolCallOutput> f : futuresArray) {
-                f.cancel(true);
-            }
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "fan-out join interrupted (forced cancel or thread interrupt)");
-        } catch (ExecutionException e) {
-            // Preserve join()-style CompletionException wrapping so
-            // exceptionally-completing tool futures (only possible
-            // when toolTimeoutMs <= 0, no .exceptionally handler)
-            // surface the same way as before this change.
-            Throwable cause = e.getCause();
-            if (cause instanceof CompletionException) {
-                throw (CompletionException) cause;
-            }
-            throw new CompletionException(cause != null ? cause : e);
-        }
-        return futuresArray;
-    }
-
-    /**
      * AI-12b (plan 355): extracted from executeAllowedCalls — the per-tool
      * result commit loop: POST_TOOL_ATTEMPT middleware, success/error
      * response construction (with spill), the re-entrant
@@ -348,6 +729,14 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                                       Map<AgentLifecyclePoint, Integer> reentryCounters,
                                       CompletableFuture<ToolCallOutput>[] futuresArray) {
         boolean reenterRequested = false;
+        // WI3 invariant 2 (design nop-ai-agent-async-tool-execution.md §三.2):
+        // results are committed IN-PLACE — each result is anchored by its OWN
+        // callId (plan 2285), landing at the end of its contiguous
+        // tool_call/tool_output segment, before any message a wait-phase
+        // wakeup appended after the tool calls (WI4 heartbeat / WI5 steering).
+        // With no wait-phase messages (the only shape before WI4/WI5 land)
+        // the insertion index is the list tail — byte-identical ordering to
+        // the previous tail-append behaviour.
         for (CompletableFuture<ToolCallOutput> f : futuresArray) {
             ToolCallOutput output = f.join();
             ChatToolCall chatToolCall = output.chatToolCall;
@@ -375,7 +764,10 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             if ("success".equals(toolResult.getStatus()) && toolResult.getError() == null) {
                 String resultText = toolResult.getOutput() != null ? toolResult.getOutput().getBody() : "";
                 resultText = resultText != null ? resultText : "";
-                resultText = spillIfOversized(sessionId, resultText, toolName);
+                // Plan 2297 (WI16): the model-tunable budget rides the call's
+                // own arguments text (reserved maxOutputChars, clamped in the
+                // resolver) — no shipped tool schema changes (prefix-cache ruling).
+                resultText = spillIfOversized(sessionId, resultText, toolName, chatToolCall.getArgumentsText());
                 toolResponse = ChatToolResponseMessage.fromToolCall(chatToolCall, resultText);
                 toolStatus = "success";
             } else {
@@ -406,14 +798,14 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
                     // drop them and break the tool_call_id
                     // pairing invariant for the assistant's
                     // multi-tool call message.
-                    ctx.addMessage(ChatToolResponseMessage.fromToolCall(chatToolCall,
+                    addToolResultInPlace(ctx, ChatToolResponseMessage.fromToolCall(chatToolCall,
                             reenterMsg != null ? reenterMsg : "hook re-enter"));
                     reenterRequested = true;
                     continue;
                 }
             }
 
-            ctx.addMessage(toolResponse);
+            addToolResultInPlace(ctx, toolResponse);
 
             // Layer 3-4 checkpoint recording (design §5.4a
             // "tool execution after" trigger point): after the tool
@@ -480,27 +872,126 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             }
 
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_COMPLETED, sessionId, agentName,
-                    Map.of("toolName", chatToolCall.getName(),
-                            "status", toolStatus));
+                    Map.of(AgentEventPayloads.TOOL_NAME, chatToolCall.getName(),
+                            AgentEventPayloads.TOOL_STATUS, toolStatus));
         }
         return reenterRequested;
     }
 
     /**
-     * Drain the actor steering queue at the round boundary (extracted from
-     * ReActAgentExecutor.execute, MA4.2-05): append any queued steering
-     * messages to the context before the next LLM call.
+     * Plan 2287 (WI6): phase-tagged checkpoint watermark. Keeps the
+     * execStartTime segment (the per-execution checkpointSeq restarts at 0
+     * after restore — uniqueness across executions rides on execStartTime;
+     * the DB checkpoint table's watermark is a primary key with append-only
+     * INSERT, so a colliding watermark would abort the dispatch loop).
      */
-    public void drainSteering(AgentExecutionContext ctx, String sessionId) {
-        List<ChatMessage> steeringMessages = ctx.drainSteering();
-        if (!steeringMessages.isEmpty()) {
-            for (ChatMessage steeringMsg : steeringMessages) {
-                ctx.addMessage(steeringMsg);
-            }
-            LOG.info("Steering checkpoint: injected {} steering message(s) at round boundary "
-                    + "(iteration={}). session={}",
-                    steeringMessages.size(), ctx.getCurrentIteration(), sessionId);
+    static String phaseWatermark(String sessionId, String callId, long execStartTime,
+                                 int seq, ToolExecutionPhase phase) {
+        String prefix = sessionId != null ? sessionId : "anon";
+        return prefix + ":tool:" + callId + ":" + phase.watermarkSegment()
+                + ":" + execStartTime + ":" + seq;
+    }
+
+    /**
+     * Plan 2287 (WI6): writes a phase checkpoint (DISPATCHED/EXECUTING) for an
+     * in-flight tool call. resultText is a fixed constant — the watermark
+     * phase segment is the sole phase authority and payloads are never
+     * parsed. Best-effort: a null checkpoint manager (unassembled test
+     * wiring) skips the write — the phase is an observability enhancement,
+     * not a correctness gate.
+     */
+    private void savePhaseCheckpoint(AgentExecutionContext ctx, String sessionId,
+                                     ICheckpointManager checkpoints, long execStartTime,
+                                     int[] checkpointSeq, String callId, String toolName,
+                                     ToolExecutionPhase phase) {
+        if (checkpoints == null) {
+            return;
         }
+        checkpoints.saveCheckpoint(Checkpoint.of(
+                sessionId,
+                phaseWatermark(sessionId, callId, execStartTime, checkpointSeq[0], phase),
+                checkpointSeq[0],
+                CoreMetrics.currentTimeMillis(),
+                CheckpointType.TOOL_EXECUTION,
+                toolName,
+                callId,
+                null,
+                "[phase:" + phase.name() + "]",
+                ctx.getMessages().size(),
+                ctx.getTokensUsed()));
+        checkpointSeq[0]++;
+    }
+
+    /**
+     * Plan 2287 (WI6): package-visible bridge for the executor's EXECUTING
+     * polling path (same checkpointSeq discipline as DISPATCHED).
+     */
+    void saveExecutingPhaseCheckpoint(AgentExecutionContext ctx, String sessionId,
+                                      long execStartTime, int[] checkpointSeq,
+                                      String callId, String toolName) {
+        savePhaseCheckpoint(ctx, sessionId, checkpointManager, execStartTime,
+                checkpointSeq, callId, toolName, ToolExecutionPhase.EXECUTING);
+    }
+
+    /**
+     * WI3 invariant 2: insert a tool result IN-PLACE rather than appending at
+     * the tail. The insertion index is the end of the contiguous
+     * tool_call/tool_output segment that starts at the tool_call message
+     * carrying THIS result's own callId (plan 2285: anchoring by the result's
+     * own callId — not the batch's first callId — keeps tool_result
+     * immediately after its own tool_use even in multi-segment histories
+     * produced by wait-phase heartbeats and wakeup-spawned parallel calls).
+     * With no wait-phase messages the index is the list tail, which
+     * reproduces the previous tail-append ordering exactly (zero regression).
+     * <p>
+     * Locator miss (no matching tool_call found — a caller wiring bug) falls
+     * back to tail append with a WARN so the pairing problem is visible
+     * instead of silently dropping the result.
+     */
+    private void addToolResultInPlace(AgentExecutionContext ctx,
+                                      ChatToolResponseMessage result) {
+        if (!insertToolResultInList(ctx.getMessages(), result)) {
+            LOG.warn("tool_call for result not found in context; falling back to tail append "
+                    + "(callId={}). This indicates a commit/dispatch wiring bug.", result.getCallId());
+            ctx.addMessage(result);
+        }
+    }
+
+    /**
+     * List-level twin of {@link #addToolResultInPlace} for request copies:
+     * inserts {@code result} at the end of the contiguous
+     * tool_call/tool_output segment that starts at the tool_call message with
+     * the same callId. Type-based ({@code instanceof}), never role strings.
+     * Consumed by the wakeup-request builder (WI4) so placeholder results in
+     * a request copy satisfy the provider adjacency contract in multi-heartbeat
+     * histories. Does nothing (returns false) when the callId has no
+     * tool_call message in the list.
+     */
+    public static boolean insertToolResultInList(List<ChatMessage> messages, ChatToolResponseMessage result) {
+        String callId = result.getCallId();
+        int start = -1;
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessage message = messages.get(i);
+            if (message instanceof ChatToolCallMessage
+                    && callId != null && callId.equals(((ChatToolCallMessage) message).getCallId())) {
+                start = i;
+                break;
+            }
+        }
+        if (start < 0) {
+            return false;
+        }
+        int end = start;
+        for (int i = start; i < messages.size(); i++) {
+            ChatMessage message = messages.get(i);
+            if (message instanceof ChatToolCallMessage || message instanceof ChatToolResponseMessage) {
+                end = i;
+            } else {
+                break;
+            }
+        }
+        messages.add(end + 1, result);
+        return true;
     }
 
     /**
@@ -533,22 +1024,38 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
      */
     private String spillIfOversized(final String sessionId, final String resultText,
                                     final String toolName) {
-        if (resultText.length() <= ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS) {
+        return spillIfOversized(sessionId, resultText, toolName, null);
+    }
+
+    /**
+     * Plan 2297 (WI16): budget-aware spill/truncation — the budget resolves
+     * per call (per-call {@code maxOutputChars} override, clamped) → per-tool
+     * {@code <output-budget>} declaration → the 8000 default. With no
+     * declaration and no per-call override this is byte-identical to the
+     * pre-WI16 behaviour (same 8000 threshold, same head/tail windows via
+     * {@link ToolResultTruncator#truncate}'s defaults). NON_TRUNCATABLE_TOOLS
+     * keeps the highest precedence (never truncated, never spilled).
+     */
+    private String spillIfOversized(final String sessionId, final String resultText,
+                                    final String toolName, final String argumentsText) {
+        io.nop.ai.agent.compact.ToolOutputBudgetResolver.Budget budget =
+                io.nop.ai.agent.compact.ToolOutputBudgetResolver.resolve(toolName, argumentsText, toolManager);
+        int maxChars = budget.getMaxChars();
+        if (resultText.length() <= maxChars) {
             return resultText;
         }
         if (toolName != null
                 && ToolResultTruncator.NON_TRUNCATABLE_TOOLS.contains(toolName)) {
             return resultText;
         }
-        if (sessionStore != null && sessionId != null) {
+        if (sessionStore != null && sessionId != null && budget.isSpillAllowed()) {
             AgentSession session = sessionStore.get(sessionId);
             if (session != null) {
                 try {
                     String spillId = session.getOrCreateSpillStore().put(resultText);
-                    String preview = ToolResultTruncator.truncate(resultText,
-                            ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS);
-                    LOG.debug("Tool result spilled: tool={}, bytes={}, spillId={}, session={}",
-                            toolName, resultText.length(), spillId, sessionId);
+                    String preview = ToolResultTruncator.applyBudget(resultText, maxChars);
+                    LOG.debug("Tool result spilled: tool={}, bytes={}, spillId={}, session={}, budget={}",
+                            toolName, resultText.length(), spillId, sessionId, maxChars);
                     return preview + "\n\n[SPILL_REF id=" + spillId
                             + "] Full result stored; use read-spill to retrieve.";
                 } catch (Exception e) {
@@ -559,8 +1066,7 @@ String fingerprintWorkDir = securityConsultation.resolveWorkDirString(agentModel
             }
             // null-session: unassembled wiring, not a failure — silent truncation.
         }
-        return ToolResultTruncator.truncateIfAllowed(resultText,
-                ToolResultTruncator.DEFAULT_TRUNCATION_THRESHOLD_CHARS, toolName);
+        return ToolResultTruncator.applyBudget(resultText, maxChars);
     }
 
 }

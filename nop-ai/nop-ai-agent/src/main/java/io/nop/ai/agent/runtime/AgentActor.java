@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.ai.agent.engine.InjectionEntry;
+
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
@@ -88,7 +90,7 @@ public final class AgentActor {
 
     // Bound by the engine after createActor returns, before execute(ctx). See
     // class Javadoc for the full thread-safety / null-degradation contract.
-    private volatile Queue<ChatMessage> steeringQueue;
+    private volatile Queue<InjectionEntry> steeringQueue;
 
     /**
      * Create a new Actor instance.
@@ -219,7 +221,7 @@ public final class AgentActor {
      * @param steeringQueue the ctx steering queue to bind (may be null to
      *                      unbind / force observation-only degradation)
      */
-    public void setSteeringQueue(Queue<ChatMessage> steeringQueue) {
+    public void setSteeringQueue(Queue<InjectionEntry> steeringQueue) {
         this.steeringQueue = steeringQueue;
     }
 
@@ -232,7 +234,7 @@ public final class AgentActor {
      *
      * @return the bound steering queue, or {@code null} if not bound
      */
-    public Queue<ChatMessage> getSteeringQueue() {
+    public Queue<InjectionEntry> getSteeringQueue() {
         return steeringQueue;
     }
 

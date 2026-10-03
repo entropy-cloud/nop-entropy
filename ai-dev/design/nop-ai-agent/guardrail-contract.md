@@ -406,6 +406,8 @@ nop 拦截是"改写/拒绝"，增加 BAIL 语义（对标 parlant hooks.py + gr
 
 消息/checkpoint/session-store 在 POST_REASONING 前已落账——BAIL 是"不作用 + 重新提示"，非"未发生"（与 `checkOutputGuardrail` 同边界）。
 
+**等待期唤醒轮边界**（契约权威 `nop-ai-agent-async-tool-execution.md` §三.3）：长时工具等待期的 steering/心跳唤醒轮不是 react loop 迭代——会话级 lifecycle 钩子点（含 POST_REASONING/POST_CALL 钩子挂载）与 EXECUTION_COMPLETED 不触发；但唤醒轮 assistant 回复的输出内容 guardrail 照常适用（走 `checkOutputGuardrail` 快速路径机制或其等价抽取），命中即放弃该唤醒回复、按继续等待处理并记审计——guardrail 覆盖面无净裁减。占位 tool result 是唤醒请求构造期渲染，不经过 7-checkpoint 安全链（安全链只评估真实 dispatch；唤醒轮派生的工具调用经正常 dispatch 全量过链）。
+
 ### 增量 4：决策链场景测试（CheckpointTestHarness）— final
 
 > **Status: final**（plan 2249）。case 模型 + harness I/O 契约 + matchedRule 映射表已固化，可直接编码。

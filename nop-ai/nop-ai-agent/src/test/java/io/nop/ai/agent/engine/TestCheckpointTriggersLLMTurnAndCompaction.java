@@ -320,17 +320,25 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
         executor.execute(ctx).toCompletableFuture().join();
 
         List<Checkpoint> all = mgr.getCheckpoints("seq-session");
-        // Expected: LLM_TURN(0) → TOOL_EXECUTION(1) → LLM_TURN(2)
-        assertEquals(3, all.size(), "3 checkpoints: LLM_TURN, TOOL_EXECUTION, LLM_TURN");
+        // Expected (WI6): LLM_TURN(0) → TOOL_EXECUTION DISPATCHED(1) →
+        // TOOL_EXECUTION terminal(2) → LLM_TURN(3)
+        assertEquals(4, all.size(), "4 checkpoints: LLM_TURN, TE(DISPATCHED), TE(terminal), LLM_TURN");
 
         assertEquals(CheckpointType.LLM_TURN, all.get(0).getType());
         assertEquals(0, all.get(0).getSeq());
 
         assertEquals(CheckpointType.TOOL_EXECUTION, all.get(1).getType());
         assertEquals(1, all.get(1).getSeq());
+        assertEquals(io.nop.ai.agent.engine.ToolExecutionPhase.DISPATCHED,
+                io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(all.get(1).getWatermark()),
+                "first TE is the DISPATCHED phase checkpoint");
 
-        assertEquals(CheckpointType.LLM_TURN, all.get(2).getType());
-        assertEquals(2, all.get(2).getSeq());
+        assertEquals(CheckpointType.TOOL_EXECUTION, all.get(2).getType());
+        assertNull(io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(all.get(2).getWatermark()),
+                "second TE is the terminal checkpoint (no phase segment)");
+
+        assertEquals(CheckpointType.LLM_TURN, all.get(3).getType());
+        assertEquals(3, all.get(3).getSeq());
 
         // LLM_TURN seq < TOOL_EXECUTION seq within the same turn (LLM before tool).
         assertTrue(all.get(0).getSeq() < all.get(1).getSeq(),

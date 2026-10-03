@@ -8,6 +8,7 @@ import io.nop.ai.agent.team.ITeamAclChecker;
 import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.NoOpTeamAclChecker;
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
 import io.nop.ai.toolkit.api.ICompactionArchiveReader;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
@@ -499,5 +500,18 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
             return null;
         }
         return session.getCompactionArchive();
+    }
+
+    /**
+     * Plan 2301 (WI25): toolkit bridge — expose the engine-owned background
+     * task registry to engine-aware tools (runInBackground). {@code null}
+     * when the engine has no registry (unassembled wiring — callers fail
+     * loud, they do not silently degrade to foreground execution).
+     */
+    @Override
+    public IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        // Engine-owned registry (Builder-wired) — null when the engine has no
+        // background support (callers fail loud).
+        return engine != null ? engine.getBackgroundTaskRegistry() : null;
     }
 }

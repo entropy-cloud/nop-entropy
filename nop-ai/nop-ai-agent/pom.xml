@@ -25,6 +25,16 @@
             <artifactId>nop-ai-core</artifactId>
         </dependency>
         <dependency>
+            <!-- Plan 2301 (WI25): test-wiring only — the IBackgroundJobSink
+                 adapter (BackgroundRegistryJobSink) bridges shell '&' jobs to
+                 the background task registry. nop-ai-shell has no production
+                 consumer (orphan module, plan 2301 Known Residual); this
+                 dependency must stay test-scoped. -->
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-shell</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-message-core</artifactId>
             <scope>test</scope>

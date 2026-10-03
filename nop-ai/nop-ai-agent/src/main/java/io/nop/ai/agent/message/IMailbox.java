@@ -59,7 +59,13 @@ public interface IMailbox {
      * @param envelope the message to deliver (must not be null)
      * @return {@code true} if the message was accepted; {@code false} if the
      *         mailbox is bounded and currently full (back-pressure signal —
-     *         never throws on capacity exhaustion)
+     *         never throws on capacity exhaustion). <b>Dedup contract (plan
+     *         2288, WI7)</b>: for <i>buffered</i> implementations (e.g.
+     *         {@code DeferredAckMailbox}), an offer whose envelope carries a
+     *         stable non-blank {@code correlationId} already tracked by the
+     *         mailbox returns {@code true} as a no-op — "duplicate offer ==
+     *         single entry" (the dedup check precedes the capacity check);
+     *         blank correlationIds are never deduplicated.
      * @throws NullPointerException if {@code envelope} is null
      */
     boolean offer(AgentMessageEnvelope envelope);

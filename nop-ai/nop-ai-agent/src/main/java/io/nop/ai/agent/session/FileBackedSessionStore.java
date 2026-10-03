@@ -9,8 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,9 +67,15 @@ import java.util.stream.Stream;
  * <p><b>Thread safety</b>: the cache is a {@code ConcurrentHashMap}. File
  * writes are serialized by {@link SessionFileWriter}'s internal lock.
  *
- * <p><b>Retention</b>: the session file is overwritten on each save (full
- * rewrite, not append-only). At test scale this is safe; a
- * retention/rotation policy is a non-blocking follow-up (plan 183 Non-Goal).
+ * <p><b>Retention / incremental write path (plan 2295, WI14)</b>: the base
+ * {@code session.json} is rewritten only on fold (first save, structural
+ * change, in-place content mutation, or after {@link SessionPersistenceState}
+ * journal threshold). Between folds each save appends one entry to the
+ * sidecar {@code session.journal.jsonl} (delta messages + scalar state
+ * block), so disk writes are O(delta) instead of O(session). The snapshot
+ * remains the authoritative state; the journal is a bounded optimization
+ * replayed through a version check ({@code baseVersion}/{@code seq}) that
+ * self-heals stale journals away.
  *
  * <p><b>Fail-closed sessionId validation</b> (P0 path-traversal fix,
  * finding [13-15]): every caller-supplied {@code sessionId} that reaches a
@@ -85,10 +93,33 @@ public class FileBackedSessionStore implements ISessionStore {
 
     static final String SESSION_FILE_NAME = "session.json";
 
+    /**
+     * Plan 2295 (WI14): append-only sidecar holding the journal entries
+     * (one JSON object per line) accumulated since the last fold. Deleted on
+     * fold and on replay-validated self-heal.
+     */
+    static final String JOURNAL_FILE_NAME = "session.journal.jsonl";
+
     static final String PROPS_KEY_AGENT_NAME = "agentName";
 
     private final Path rootDirectory;
     private final ConcurrentHashMap<String, AgentSession> sessions = new ConcurrentHashMap<>();
+    /**
+     * Plan 2295 (WI14): persisted-state bookkeeping per session — independent
+     * of {@link #sessions} (the cache holds live objects; this tracks what is
+     * on disk). Guarded by the per-session lock from {@link #sessionLocks}.
+     */
+    private final ConcurrentHashMap<String, SessionPersistenceState> persistedStates = new ConcurrentHashMap<>();
+    /**
+     * Plan 2295 (WI14): per-session locks serializing the whole
+     * diff→write→state-update save sequence. The engine has real concurrent
+     * writers per session (injectInput/steering on the caller thread vs the
+     * ReAct worker thread); full-rewrite used to converge them into
+     * "whole-file either/or" via the writer's ioLock + atomic replace — the
+     * journal needs explicit serialization to stay line-consistent. Lock
+     * order: sessionLock → SessionFileWriter.ioLock (one-way, no deadlock).
+     */
+    private final ConcurrentHashMap<String, Object> sessionLocks = new ConcurrentHashMap<>();
     private final SessionFileWriter writer = new SessionFileWriter();
     private final SessionFileReader reader = new SessionFileReader();
 
@@ -118,7 +149,7 @@ public class FileBackedSessionStore implements ISessionStore {
         if (existing != null) {
             return existing;
         }
-        AgentSession loaded = loadSessionFile(sessionId);
+        AgentSession loaded = loadPersisted(sessionId);
         if (loaded != null) {
             AgentSession raced = putIfAbsent(sessionId, loaded);
             return raced != null ? raced : loaded;
@@ -134,7 +165,7 @@ public class FileBackedSessionStore implements ISessionStore {
         if (cached != null) {
             return cached;
         }
-        AgentSession loaded = loadSessionFile(sessionId);
+        AgentSession loaded = loadPersisted(sessionId);
         if (loaded != null) {
             AgentSession raced = putIfAbsent(sessionId, loaded);
             return raced != null ? raced : loaded;
@@ -144,20 +175,30 @@ public class FileBackedSessionStore implements ISessionStore {
 
     @Override
     public void remove(String sessionId) {
-        sessions.remove(sessionId);
-        Path sessionFile = sessionFilePath(sessionId);
-        try {
-            Files.deleteIfExists(sessionFile);
-            // Best-effort cleanup of the now-empty per-session directory.
-            Path sessionDir = sessionDirPath(sessionId);
-            try (Stream<Path> entries = Files.list(sessionDir)) {
-                if (!entries.findAny().isPresent()) {
-                    Files.delete(sessionDir);
+        Object lock = sessionLock(sessionId);
+        synchronized (lock) {
+            sessions.remove(sessionId);
+            persistedStates.remove(sessionId);
+            sessionLocks.remove(sessionId);
+            Path sessionFile = sessionFilePath(sessionId);
+            try {
+                // Journal first (plan 2295/WI14): the sidecar must not outlive
+                // the snapshot, or a later directory reuse could replay stale
+                // entries (version check would discard them, but cleanliness
+                // beats relying on the guard).
+                Files.deleteIfExists(journalFilePath(sessionId));
+                Files.deleteIfExists(sessionFile);
+                // Best-effort cleanup of the now-empty per-session directory.
+                Path sessionDir = sessionDirPath(sessionId);
+                try (Stream<Path> entries = Files.list(sessionDir)) {
+                    if (!entries.findAny().isPresent()) {
+                        Files.delete(sessionDir);
+                    }
                 }
+            } catch (IOException e) {
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.remove: failed to delete " + sessionFile
+                                + ": " + e.getMessage());
             }
-        } catch (IOException e) {
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.remove: failed to delete " + sessionFile
-                            + ": " + e.getMessage());
         }
     }
 
@@ -222,7 +263,10 @@ public class FileBackedSessionStore implements ISessionStore {
                     return;
                 }
                 try {
-                    AgentSession loaded = reader.readIfExists(sessionFile);
+                    // Unified load path (plan 2295/WI14): snapshot + journal
+                    // replay — discovery must not return a journal-missing
+                    // tail that a later get() would then treat as authoritative.
+                    AgentSession loaded = loadPersisted(sessionId);
                     if (loaded != null) {
                         AgentSession raced = sessions.putIfAbsent(sessionId, loaded);
                         discovered.add(raced != null ? raced : loaded);
@@ -233,7 +277,7 @@ public class FileBackedSessionStore implements ISessionStore {
                     // later get(sessionId) will still fail fast for this id.
                     LOG.warn("FileBackedSessionStore.listAllSessions: skipping unreadable "
                                     + "session file (corrupt or truncated JSON): file={}",
-                            sessionFile, e);
+                            sessionDir.resolve(SESSION_FILE_NAME), e);
                 }
             });
         } catch (IOException e) {
@@ -246,19 +290,214 @@ public class FileBackedSessionStore implements ISessionStore {
     /**
      * {@inheritDoc}
      * <p>
-     * <b>Full persistence</b>: serialize the session to
-     * {@code {rootDirectory}/{sessionId}/session.json}, overwriting the
-     * previous state. Also updates the in-memory cache so subsequent
-     * {@code get} calls return the latest state without a disk read.
+     * <b>Incremental write path (plan 2295 / WI14)</b>: the save first tries
+     * the append fast path — the incoming message list must fingerprint-match
+     * the persisted prefix per position (catches guardrail in-place rewrites
+     * of persisted messages) and the journal must be below the fold threshold.
+     * A matching save appends one journal entry (delta messages + scalar
+     * state block) instead of rewriting the snapshot. Every non-append case
+     * (first save, structural change, content mutation, threshold) folds:
+     * full snapshot rewrite with a bumped {@code snapshotVersion}, then the
+     * journal is cleared. Fold ordering (snapshot first, journal second) is
+     * crash-safe: an orphaned journal fails the replay version check and is
+     * self-healed away on the next load.
      */
     @Override
     public void save(AgentSession session) {
         if (session == null) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "FileBackedSessionStore.save: session must not be null");
         }
+        String sessionId = session.getSessionId();
+        Object lock = sessionLock(sessionId);
+        synchronized (lock) {
+            SessionPersistenceState state = persistedStates.get(sessionId);
+            List<ChatMessage> current = session.getMessages();
+
+            if (state != null && state.canAppend() && tryAppend(state, session, current)) {
+                sessions.put(sessionId, session);
+                return;
+            }
+
+            fold(state, session, current);
+            sessions.put(sessionId, session);
+        }
+    }
+
+    /**
+     * Append fast path: verify the persisted prefix still matches by content
+     * fingerprint, then append one journal entry with the delta messages and
+     * the current scalar state. Returns false when the caller must fold.
+     */
+    private boolean tryAppend(SessionPersistenceState state, AgentSession session, List<ChatMessage> current) {
+        int persistedCount = state.prefixFingerprints.size();
+        if (current.size() < persistedCount) {
+            return false; // shrink → fold
+        }
         Path sessionFile = sessionFilePath(session.getSessionId());
-        writer.write(sessionFile, session);
-        sessions.put(session.getSessionId(), session);
+        if (!Files.exists(sessionFile)) {
+            return false; // snapshot externally deleted → rebuild base first
+        }
+        // O(prefix) fingerprint recompute — the deliberate cost of the append
+        // fast path (WI14 trades I/O, not CPU, for determinism).
+        for (int i = 0; i < persistedCount; i++) {
+            if (ChatMessageFingerprints.fingerprint(current.get(i)) != state.prefixFingerprints.get(i)) {
+                return false; // in-place content mutation → fold
+            }
+        }
+        List<ChatMessage> appended =
+                current.subList(persistedCount, current.size());
+
+        String line = SessionDeltaJournal.encodeEntry(state.snapshotVersion, state.journalEntryCount,
+                current.size(), appended, session);
+        try {
+            Path journalFile = journalFilePath(session.getSessionId());
+            Files.createDirectories(journalFile.getParent());
+            Files.write(journalFile, (line + "\n").getBytes(StandardCharsets.UTF_8),
+                    StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.tryAppend: failed to append journal for session '"
+                    + session.getSessionId() + "': " + e.getMessage());
+        }
+        state.journalEntryCount++;
+        // Register the delta as persisted (fingerprints for new tail messages).
+        for (ChatMessage message : appended) {
+            state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+        }
+        return true;
+    }
+
+    /**
+     * Fold: full snapshot rewrite (version + 1) then journal clear. Crash
+     * between the two steps leaves an orphaned journal that the replay
+     * version check discards and self-heals (see {@link #replayJournal}).
+     */
+    private void fold(SessionPersistenceState state, AgentSession session, List<ChatMessage> current) {
+        long newVersion = (state != null ? state.snapshotVersion : 0L) + 1L;
+        Path sessionFile = sessionFilePath(session.getSessionId());
+        writer.write(sessionFile, session, newVersion);
+        try {
+            Files.deleteIfExists(journalFilePath(session.getSessionId()));
+        } catch (IOException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.fold: failed to clear journal for session '"
+                    + session.getSessionId() + "': " + e.getMessage());
+        }
+        SessionPersistenceState fresh = state != null ? state : new SessionPersistenceState();
+        fresh.resetAfterFold(newVersion, current);
+        persistedStates.put(session.getSessionId(), fresh);
+    }
+
+    /**
+     * Unified load path: base snapshot + journal replay (also registers the
+     * persisted state so the next save can append). Shared by
+     * {@code getOrCreate}/{@code get}/{@code listAllSessions} — discovery
+     * must return the same journal-extended state a later get() would.
+     */
+    private AgentSession loadPersisted(String sessionId) {
+        Path sessionFile = sessionFilePath(sessionId);
+        SessionFileReader.PersistedSnapshot snapshot = reader.readSnapshotIfExists(sessionFile);
+        if (snapshot == null) {
+            return null;
+        }
+        AgentSession session = snapshot.getSession();
+        List<ChatMessage> persisted = session.getMessages();
+
+        SessionPersistenceState state = new SessionPersistenceState();
+        ReplayOutcome replay = replayJournal(session, sessionId, snapshot.getSnapshotVersion());
+        if (replay.healed) {
+            // Self-heal = fold the replayed state (plan 2295/WI14): the journal
+            // entries applied in memory were just deleted from disk with the
+            // heal, so the replayed state must be re-persisted as the new base
+            // to restore the "disk == replayed state + empty journal"
+            // invariant. A plain bookkeeping reset would leave the next append
+            // believing the healed entries are still persisted.
+            synchronized (sessionLock(sessionId)) {
+                long healedVersion = snapshot.getSnapshotVersion() + 1L;
+                writer.write(sessionFile, session, healedVersion);
+                state.snapshotVersion = healedVersion;
+                state.journalEntryCount = 0;
+                persisted = session.getMessages();
+                for (ChatMessage message : persisted) {
+                    state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+                }
+                persistedStates.put(sessionId, state);
+            }
+        } else {
+            state.snapshotVersion = snapshot.getSnapshotVersion();
+            state.journalEntryCount = replay.applied;
+            for (ChatMessage message : persisted) {
+                state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+            }
+            persistedStates.put(sessionId, state);
+        }
+        return session;
+    }
+
+    /**
+     * Replay journal entries onto the snapshot: contiguous {@code seq} from 0
+     * with {@code baseVersion == snapshotVersion}, stopping at the first torn
+     * or invalid entry — which is then self-healed by deleting the residual
+     * journal (Ruling: fold-crash orphaned entries sit at the journal head, so
+     * version-check-only would keep shadowing every future append until the
+     * next fold; deleting resets accumulation to a clean baseline). The base
+     * snapshot is self-sufficient, so the discarded entries represent no state
+     * loss beyond what a crash already lost.
+     *
+     * @return applied count + heal flag (0 applied when absent or healed away)
+     */
+    private ReplayOutcome replayJournal(AgentSession snapshot, String sessionId, long snapshotVersion) {
+        ReplayOutcome outcome = new ReplayOutcome();
+        Path journalFile = journalFilePath(sessionId);
+        if (!Files.exists(journalFile)) {
+            return outcome;
+        }
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(journalFile, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "FileBackedSessionStore.replayJournal: failed to read journal for session '"
+                    + sessionId + "': " + e.getMessage());
+        }
+        for (String line : lines) {
+            if (line.isBlank()) {
+                continue;
+            }
+            SessionDeltaJournal.Entry entry;
+            try {
+                entry = SessionDeltaJournal.decodeEntry(line);
+            } catch (NopAiAgentException e) {
+                // Torn tail (partial line) or structurally illegal entry.
+                LOG.warn("FileBackedSessionStore.replayJournal: discarding journal from invalid entry on "
+                        + "(session={}, applied={})", sessionId, outcome.applied, e);
+                outcome.healed = true;
+                break;
+            }
+            if (entry.getBaseVersion() != snapshotVersion || entry.getSeq() != outcome.applied) {
+                // Stale journal (orphaned by a fold crash) or a seq gap.
+                LOG.warn("FileBackedSessionStore.replayJournal: stale journal for session={} "
+                                + "(entryBaseVersion={}, snapshotVersion={}, expectedSeq={}, gotSeq={}) — clearing",
+                        sessionId, entry.getBaseVersion(), snapshotVersion, outcome.applied, entry.getSeq());
+                outcome.healed = true;
+                break;
+            }
+            SessionDeltaJournal.applyTo(snapshot, entry);
+            outcome.applied++;
+        }
+        if (outcome.healed) {
+            try {
+                Files.deleteIfExists(journalFile);
+            } catch (IOException e) {
+                // The stale journal stays on disk; the version check above
+                // keeps discarding it on every load. Surfaced, not silent.
+                LOG.warn("FileBackedSessionStore.replayJournal: failed to delete stale journal for session={}", sessionId, e);
+            }
+        }
+        return outcome;
+    }
+
+    /** Replay result: applied entry count plus whether a self-heal cleared the journal. */
+    private static final class ReplayOutcome {
+        int applied;
+        boolean healed;
     }
 
     @Override
@@ -308,9 +547,12 @@ public class FileBackedSessionStore implements ISessionStore {
         return existing;
     }
 
-    private AgentSession loadSessionFile(String sessionId) {
-        Path sessionFile = sessionFilePath(sessionId);
-        return reader.readIfExists(sessionFile);
+    private Object sessionLock(String sessionId) {
+        return sessionLocks.computeIfAbsent(sessionId, k -> new Object());
+    }
+
+    private Path journalFilePath(String sessionId) {
+        return sessionDirPath(sessionId).resolve(JOURNAL_FILE_NAME);
     }
 
     private Path sessionDirPath(String sessionId) {

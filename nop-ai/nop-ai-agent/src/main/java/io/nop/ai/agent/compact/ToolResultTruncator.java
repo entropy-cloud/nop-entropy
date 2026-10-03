@@ -13,16 +13,36 @@ public class ToolResultTruncator {
     );
 
     public static String truncate(String content, int thresholdChars) {
-        if (content == null || content.length() <= thresholdChars) {
+        return applyBudget(content, thresholdChars, HEAD_CHARS, TAIL_CHARS);
+    }
+
+    /**
+     * Plan 2297 (WI16): budget-driven unified truncation protocol — head/tail
+     * retention with an exact removed-count marker. The retention windows
+     * scale with the budget so ANY positive budget is honoured without
+     * out-of-bounds access or silent budget inflation (a fixed 6000+1000
+     * window under a 2000-char budget would both overflow and blow the
+     * budget). head = 75% of the budget, tail = 25%, capped at the default
+     * windows; below the 32-char floor there is no retention semantics left
+     * to preserve, so the content is hard-cut to the budget.
+     */
+    public static String applyBudget(String content, int maxChars) {
+        int head = Math.min(HEAD_CHARS, maxChars * 3 / 4);
+        int tail = Math.min(TAIL_CHARS, maxChars / 4);
+        return applyBudget(content, maxChars, head, tail);
+    }
+
+    private static String applyBudget(String content, int maxChars, int head, int tail) {
+        if (content == null || content.length() <= maxChars) {
             return content;
         }
+        if (maxChars <= 32) {
+            return content.substring(0, Math.max(0, maxChars));
+        }
 
-        int truncatedCount = content.length() - HEAD_CHARS - TAIL_CHARS;
-        String head = content.substring(0, HEAD_CHARS);
-        String tail = content.substring(content.length() - TAIL_CHARS);
+        int truncatedCount = content.length() - head - tail;
         String marker = "\n\n... [TRUNCATED: " + truncatedCount + " characters removed] ...\n\n";
-
-        return head + marker + tail;
+        return content.substring(0, head) + marker + content.substring(content.length() - tail);
     }
 
     public static String truncateIfAllowed(String content, int thresholdChars, String toolName) {

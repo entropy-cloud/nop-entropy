@@ -126,8 +126,9 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
         sample.put("system", "You are a helpful assistant.");
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(messageWithTextBlock("user", "Hello!"));
-        messages.add(messageWithTextBlock("model", "Hi back"));
-        messages.add(messageWithToolUse());
+        // plan 2284 请求侧形态修正后 buildBody 的规范形态：相邻同角色轮合并为单一
+        // model 轮（text + tool_use），tool_result 独立 user 轮且仅含 tool_result 块
+        messages.add(messageWithTextAndToolUse("model", "Hi back"));
         messages.add(messageWithToolResult());
         sample.put("messages", messages);
         List<Map<String, Object>> tools = new ArrayList<>();
@@ -750,14 +751,14 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
         return msg;
     }
 
-    private Map<String, Object> messageWithToolUse() {
+    private Map<String, Object> messageWithTextAndToolUse(String role, String text) {
+        // plan 2284 修正后原生形态：合并 model 轮 = [text, tool_use]——
+        // ChatToolCallMessage 的 arguments JSON 寄居伪影 text 块已从源头清除
         Map<String, Object> msg = new LinkedHashMap<>();
-        msg.put("role", "model");
-        // 含 convertMessage 伪影 text block（ChatToolCallMessage.getContent()=arguments JSON）——
-        // 这是 buildBody 产出的原生形态，E2E 闭环样本必须与之一致
+        msg.put("role", role);
         Map<String, Object> textBlock = new LinkedHashMap<>();
         textBlock.put("type", "text");
-        textBlock.put("text", "{\"location\":\"beijing\"}");
+        textBlock.put("text", text);
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("type", "tool_use");
         block.put("id", "toolu_1");
@@ -768,18 +769,15 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
     }
 
     private Map<String, Object> messageWithToolResult() {
+        // plan 2284 修正后原生形态：getRole(ChatToolResponseMessage)="user"，
+        // 内容仅承载于 tool_result 块（先于同轮文本块；无重复 text 块）
         Map<String, Object> msg = new LinkedHashMap<>();
-        // getRole(ChatToolResponseMessage)="tool"（dialect 原生形态），与 buildBody 输出一致
-        msg.put("role", "tool");
-        // 含 convertMessage 伪影 text block（ChatToolResponseMessage.content=result 文本）
-        Map<String, Object> textBlock = new LinkedHashMap<>();
-        textBlock.put("type", "text");
-        textBlock.put("text", "sunny");
+        msg.put("role", "user");
         Map<String, Object> block = new LinkedHashMap<>();
         block.put("type", "tool_result");
         block.put("tool_use_id", "toolu_1");
         block.put("content", "sunny");
-        msg.put("content", List.of(textBlock, block));
+        msg.put("content", List.of(block));
         return msg;
     }
 

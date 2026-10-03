@@ -18,10 +18,37 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: background-capable
+     * Plan 2301 (WI25): background-execution capability declaration.
+     * Default false — a call carrying the reserved `runInBackground=true`
+     * argument is rejected (fail-loud, never a silent foreground fallback).
+     * Declare true on bash/shell-class long tools to allow
+     * runInBackground=true (immediate taskId confirmation; the real result
+     * arrives as a completion notification through the session input
+     * channel). Deliberately NOT a tag — tags are the visibility-filter
+     * mechanism (plan 296); a `background` tag would hide the tool from
+     * agents whose activeTags do not include it.
+     */
+    private boolean _backgroundCapable ;
+    
+    /**
+     *  
      * xml name: class
      * 
      */
     private java.lang.String _className ;
+    
+    /**
+     *  
+     * xml name: concurrency-safe
+     * Plan 2298 (WI17): concurrency-safety declaration. Default false =
+     * unsafe — the tool participates in per-path serialization when its
+     * call arguments carry a reserved path key (path/file_path/filePath):
+     * same-path calls queue, different paths stay parallel. Declare true
+     * to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+     * (conservative default).
+     */
+    private boolean _concurrencySafe ;
     
     /**
      *  
@@ -51,6 +78,20 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: output-budget
+     * Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+     * absent = runtime defaults (8000 chars, spill allowed). max-chars is
+     * the per-tool default budget; the model may override per call with the
+     * reserved `maxOutputChars` argument (clamped to this declared value,
+     * then to the global hard cap). spill=false disables the full-text
+     * spill path for this tool (truncation-only degradation). Opt-in
+     * metadata: NOT auto-injected into any tool's LLM-facing schema
+     * (prefix-cache stability, plan 2297 前缀缓存影响评估).
+     */
+    private io.nop.ai.toolkit.model.AiToolOutputBudgetModel _outputBudget ;
     
     /**
      *  
@@ -86,6 +127,33 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: background-capable
+     *  Plan 2301 (WI25): background-execution capability declaration.
+     * Default false — a call carrying the reserved `runInBackground=true`
+     * argument is rejected (fail-loud, never a silent foreground fallback).
+     * Declare true on bash/shell-class long tools to allow
+     * runInBackground=true (immediate taskId confirmation; the real result
+     * arrives as a completion notification through the session input
+     * channel). Deliberately NOT a tag — tags are the visibility-filter
+     * mechanism (plan 296); a `background` tag would hide the tool from
+     * agents whose activeTags do not include it.
+     */
+    
+    public boolean isBackgroundCapable(){
+      return _backgroundCapable;
+    }
+
+    
+    public void setBackgroundCapable(boolean value){
+        checkAllowChange();
+        
+        this._backgroundCapable = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: class
      *  
      */
@@ -99,6 +167,30 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._className = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrency-safe
+     *  Plan 2298 (WI17): concurrency-safety declaration. Default false =
+     * unsafe — the tool participates in per-path serialization when its
+     * call arguments carry a reserved path key (path/file_path/filePath):
+     * same-path calls queue, different paths stay parallel. Declare true
+     * to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+     * (conservative default).
+     */
+    
+    public boolean isConcurrencySafe(){
+      return _concurrencySafe;
+    }
+
+    
+    public void setConcurrencySafe(boolean value){
+        checkAllowChange();
+        
+        this._concurrencySafe = value;
            
     }
 
@@ -208,6 +300,32 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: output-budget
+     *  Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+     * absent = runtime defaults (8000 chars, spill allowed). max-chars is
+     * the per-tool default budget; the model may override per call with the
+     * reserved `maxOutputChars` argument (clamped to this declared value,
+     * then to the global hard cap). spill=false disables the full-text
+     * spill path for this tool (truncation-only degradation). Opt-in
+     * metadata: NOT auto-injected into any tool's LLM-facing schema
+     * (prefix-cache stability, plan 2297 前缀缓存影响评估).
+     */
+    
+    public io.nop.ai.toolkit.model.AiToolOutputBudgetModel getOutputBudget(){
+      return _outputBudget;
+    }
+
+    
+    public void setOutputBudget(io.nop.ai.toolkit.model.AiToolOutputBudgetModel value){
+        checkAllowChange();
+        
+        this._outputBudget = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: response-schema
      *  可选的结果格式定义
      */
@@ -296,6 +414,8 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         
            this._examples = io.nop.api.core.util.FreezeHelper.deepFreeze(this._examples);
             
+           this._outputBudget = io.nop.api.core.util.FreezeHelper.deepFreeze(this._outputBudget);
+            
         }
     }
 
@@ -303,11 +423,14 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("backgroundCapable",this.isBackgroundCapable());
         out.putNotNull("className",this.getClassName());
+        out.putNotNull("concurrencySafe",this.isConcurrencySafe());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("examples",this.getExamples());
         out.putNotNull("meta",this.isMeta());
         out.putNotNull("name",this.getName());
+        out.putNotNull("outputBudget",this.getOutputBudget());
         out.putNotNull("responseSchema",this.getResponseSchema());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("schemaJson",this.getSchemaJson());
@@ -323,11 +446,14 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(AiToolModel instance){
         super.copyTo(instance);
         
+        instance.setBackgroundCapable(this.isBackgroundCapable());
         instance.setClassName(this.getClassName());
+        instance.setConcurrencySafe(this.isConcurrencySafe());
         instance.setDescription(this.getDescription());
         instance.setExamples(this.getExamples());
         instance.setMeta(this.isMeta());
         instance.setName(this.getName());
+        instance.setOutputBudget(this.getOutputBudget());
         instance.setResponseSchema(this.getResponseSchema());
         instance.setSchema(this.getSchema());
         instance.setSchemaJson(this.getSchemaJson());

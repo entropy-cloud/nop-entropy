@@ -27,6 +27,102 @@ public class AgentSession {
     private long updatedAt;
     private AgentExecStatus status;
     private Map<String, Object> metadata;
+    /**
+     * Plan 2288 (WI7): external input redelivery dedup keys (idempotencyKey →
+     * first-seen epoch millis), bounded FIFO (eldest evicted beyond
+     * {@link #MAX_SEEN_INPUT_KEYS}). Persisted with the session snapshot
+     * (SessionFileWriter/Reader) — recording happens BEFORE dispatch
+     * ("persistence-first"), so a redelivered input after a crash is deduped
+     * instead of re-executed. Package-private accessors; engine-owned.
+     */
+    public static final int MAX_SEEN_INPUT_KEYS = 1024;
+    private final java.util.LinkedHashMap<String, Long> seenInputKeys = new java.util.LinkedHashMap<>();
+
+    /**
+     * Records the key if unseen; returns false when the key was already
+     * recorded (duplicate input). FIFO eviction of the eldest entry beyond
+     * the bound — a re-delivery of an evicted key executes as new input
+     * (adjudicated residual, design session-and-storage.md 双层幂等节).
+     */
+    /** Read-only dedup probe (WI7 read-check stage; never mutates). */
+    public boolean hasSeenInput(String key) {
+        return key != null && !key.isEmpty() && seenInputKeys.containsKey(key);
+    }
+
+    public boolean markInputSeen(String key) {
+        if (key == null || key.isEmpty()) {
+            return true; // no key = no dedup, always "fresh"
+        }
+        if (seenInputKeys.containsKey(key)) {
+            return false;
+        }
+        if (seenInputKeys.size() >= MAX_SEEN_INPUT_KEYS) {
+            String eldest = seenInputKeys.keySet().iterator().next();
+            seenInputKeys.remove(eldest);
+        }
+        seenInputKeys.put(key, System.currentTimeMillis());
+        return true;
+    }
+
+    /**
+     * Plan 2289 (WI8): offline injection staging (injectInput while the
+     * session is not executing). Entries survive process restarts (persisted
+     * with the session snapshot); merged into the next execution's injection
+     * queue at buildBaseExecutionContext and cleared there. Element shape =
+     * "semantics|role-escaped message JSON" is NOT used — entries are stored
+     * as pre-rendered ChatMessage JSON plus the semantics name so the session
+     * file stays reader-compatible.
+     */
+    public static final int MAX_PENDING_INJECTIONS = 256;
+    private final java.util.List<PendingInjection> pendingInjections = new java.util.ArrayList<>();
+
+    public java.util.List<PendingInjection> getPendingInjections() {
+        return pendingInjections;
+    }
+
+    public void addPendingInjection(String semantics, String messageJson) {
+        if (pendingInjections.size() >= MAX_PENDING_INJECTIONS) {
+            throw new IllegalStateException("pendingInjections overflow (max="
+                    + MAX_PENDING_INJECTIONS + ")");
+        }
+        pendingInjections.add(new PendingInjection(semantics, messageJson));
+    }
+
+    public void clearPendingInjections() {
+        pendingInjections.clear();
+    }
+
+    public Map<String, Long> getSeenInputKeys() {
+        return seenInputKeys;
+    }
+
+    /** Restore-side bulk load (SessionFileReader); replaces the default empty map contents. */
+    public void setSeenInputKeys(Map<String, Long> keys) {
+        seenInputKeys.clear();
+        if (keys != null) {
+            seenInputKeys.putAll(keys);
+        }
+    }
+
+    /** Plan 2289 (WI8): one staged offline injection (semantics + message JSON). */
+    @io.nop.api.core.annotations.data.DataBean
+    public static final class PendingInjection {
+        private final String semantics;
+        private final String messageJson;
+
+        public PendingInjection(String semantics, String messageJson) {
+            this.semantics = semantics;
+            this.messageJson = messageJson;
+        }
+
+        public String getSemantics() {
+            return semantics;
+        }
+
+        public String getMessageJson() {
+            return messageJson;
+        }
+    }
     private String parentSessionId;
     private String planId;
     private Long compactedAt;
@@ -237,6 +333,35 @@ public class AgentSession {
      */
     void restoreUpdatedAt(long updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Plan 2295 (WI14): absolute-value setters used by the journal-replay
+     * state application ({@link SessionFileReader#applyState}). The journal
+     * state block is last-writer-wins (it carries the whole scalar state at
+     * capture time), so the accumulators must be settable to an absolute
+     * value — {@link #addTokensUsed}/{@link #addIterations} would re-add on
+     * top of the snapshot values already applied.
+     */
+    void restoreTotalTokensUsed(long totalTokensUsed) {
+        this.totalTokensUsed = totalTokensUsed;
+    }
+
+    void restoreTotalIterations(int totalIterations) {
+        this.totalIterations = totalIterations;
+    }
+
+    /**
+     * Plan 2295 (WI14): journal-entry truncation guard. Each journal entry
+     * carries the total message count at capture time; a same-reference
+     * shrink (list truncated without replacing any message object) between
+     * two saves is invisible to per-position fingerprints, so the replay
+     * truncates the replayed list back to the captured count.
+     */
+    void truncateMessages(int size) {
+        while (messages.size() > size) {
+            messages.remove(messages.size() - 1);
+        }
     }
 
     public String getParentSessionId() {

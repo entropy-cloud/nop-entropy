@@ -23,6 +23,9 @@ package io.nop.ai.api.chat;
  *   <li>{@link #AUTH_INVALID} — 401/403 key 无效/过期/无权限；不可重试 → 切换账号</li>
  *   <li>{@link #NON_TRANSIENT} — 400 请求错误/prompt 过长/内容过滤；不可重试 → STOP</li>
  *   <li>{@link #CACHE_STATE_LOST} — 409 本地推理缓存丢失（TRANSIENT 族）；原样回放 → RETRY</li>
+ *   <li>{@link #OVERLOADED} — provider 过载（Anthropic 529 overloaded_error / openrouter
+ *       slow_down，plan 2304/WI22 additive）；独立长退避曲线 → RETRY；gateway failover 可切换
+ *       （跨 provider 候选），coordinator 账号链不切换（同 provider 换 key 无意义）</li>
  * </ul>
  *
  * <p>注意（设计 §6.1 零回归红线不变量）：{@link #QUOTA_EXCEEDED} / {@link #AUTH_INVALID} /
@@ -35,5 +38,6 @@ public enum ErrorClassification {
     RATE_LIMITED,
     QUOTA_EXCEEDED,
     AUTH_INVALID,
-    CACHE_STATE_LOST
+    CACHE_STATE_LOST,
+    OVERLOADED
 }

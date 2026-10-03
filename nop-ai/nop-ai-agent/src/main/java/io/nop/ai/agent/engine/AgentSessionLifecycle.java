@@ -95,14 +95,14 @@ public class AgentSessionLifecycle {
     }
     public void publishCancelRequested(String sessionId, String agentName, String reason, boolean forced) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", reason != null ? reason : "");
-        payload.put("forced", forced);
+        payload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+        payload.put(AgentEventPayloads.FORCED, forced);
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_CANCEL_REQUESTED,
                 sessionId, agentName, payload));
     }
     public void publishCancelled(String sessionId, String agentName, String reason) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", reason != null ? reason : "");
+        payload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_CANCELLED,
                 sessionId, agentName, payload));
     }
@@ -137,6 +137,29 @@ public class AgentSessionLifecycle {
     }
     public AgentExecutionContext buildBaseExecutionContext(AgentModel agentModel, AgentSession session) {
         AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, session.getSessionId());
+        // Plan 2289 (WI8): bridge the injection event publisher (nullable —
+        // direct ctx construction stays silent) so enqueues are observable.
+        ctx.setInjectionEventPublisher(eventPublisher, session.getAgentName());
+        // Plan 2289 (WI8): merge offline-injected entries (injectInput while
+        // the session was not executing) into this execution's queue, then
+        // clear the staging + persist (single-writer: caller's thread before
+        // the execution slot is registered).
+        if (!session.getPendingInjections().isEmpty()) {
+            for (AgentSession.PendingInjection staged : session.getPendingInjections()) {
+                // messageJson is a JSON string (not a map) — parse to ChatMessage
+                ChatMessage msg = io.nop.core.lang.json.JsonTool.parseBeanFromText(
+                        staged.getMessageJson(), ChatMessage.class);
+                InjectionSemantics semantics = InjectionSemantics.STEER;
+                try {
+                    semantics = InjectionSemantics.valueOf(staged.getSemantics());
+                } catch (IllegalArgumentException e) {
+                    semantics = InjectionSemantics.STEER;
+                }
+                ctx.enqueueSteering(msg, semantics);
+            }
+            session.clearPendingInjections();
+            sessionStore.save(session);
+        }
 
         String systemPrompt = null;
         if (agentModel.getPrompt() != null) {
@@ -311,9 +334,9 @@ public class AgentSessionLifecycle {
                 session.setStatus(AgentExecStatus.running);
 
                 Map<String, Object> resumePayload = new HashMap<>();
-                resumePayload.put("approver", approver != null ? approver : "");
-                resumePayload.put("reason", reason != null ? reason : "");
-                resumePayload.put("preResetDenialCount", preResetDenialCount);
+                resumePayload.put(AgentEventPayloads.APPROVER, approver != null ? approver : "");
+                resumePayload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+                resumePayload.put(AgentEventPayloads.PRE_RESET_DENIAL_COUNT, preResetDenialCount);
                 eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESUMED,
                         sessionId, agentName, resumePayload));
             } finally {
@@ -488,7 +511,7 @@ public class AgentSessionLifecycle {
                 session.setStatus(AgentExecStatus.running);
 
                 Map<String, Object> wakePayload = new HashMap<>();
-                wakePayload.put("reason", "condition satisfied");
+                wakePayload.put(AgentEventPayloads.REASON, "condition satisfied");
                 eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_WOKE,
                         sessionId, agentName, wakePayload));
             } finally {
@@ -675,18 +698,121 @@ public class AgentSessionLifecycle {
                 if (liveKey == null || !liveKey.equals(storedKey)) {
                     divergenceDetected = true;
                     rejectedCheckpointWatermark = latestCheckpointWatermark;
-                    LOG.warn("restoreSession checkpoint divergence detected: idempotency_key mismatch "
-                                    + "(stored={}, live={}) for callId={} watermark={} — tool-call input has "
-                                    + "diverged (state corruption). Rejecting checkpoint as resume-point "
-                                    + "verification and degrading to session replay (session is source of "
-                                    + "truth, recovery not blocked). session={}",
-                            storedKey, liveKey, latestCheckpoint.getCallId(),
-                            latestCheckpointWatermark, sessionId);
+                    // Plan 2287 (WI6): a phase-tagged checkpoint with a missing
+                    // live key is ambiguous — a wakeup-derived call not yet
+                    // persisted vs a truncated history are indistinguishable
+                    // from the snapshot alone. Conservative discipline keeps
+                    // the divergence flag; the message reclassifies the cause
+                    // instead of asserting state corruption.
+                    ToolExecutionPhase checkpointPhase =
+                            ToolExecutionPhase.fromWatermark(latestCheckpoint.getWatermark());
+                    if (checkpointPhase != null && liveKey == null) {
+                        LOG.warn("restoreSession checkpoint divergence (reclassified): phase-tagged "
+                                        + "checkpoint ({}) has no matching persisted call message — "
+                                        + "inconclusive cause (wakeup-derived call not yet persisted, OR "
+                                        + "truncated history); flagging divergence conservatively. "
+                                        + "Rejecting checkpoint as resume-point verification, recovery "
+                                        + "not blocked. session={}",
+                                latestCheckpoint.getWatermark(), sessionId);
+                    } else {
+                        LOG.warn("restoreSession checkpoint divergence detected: idempotency_key mismatch "
+                                        + "(stored={}, live={}) for callId={} watermark={} — tool-call input has "
+                                        + "diverged (state corruption). Rejecting checkpoint as resume-point "
+                                        + "verification and degrading to session replay (session is source of "
+                                        + "truth, recovery not blocked). session={}",
+                                storedKey, liveKey, latestCheckpoint.getCallId(),
+                                latestCheckpointWatermark, sessionId);
+                    }
                 }
             }
         }
+
+        logOpenToolCallDiff(sessionId, session);
         return new CheckpointVerification(latestCheckpointWatermark, divergenceDetected,
                 rejectedCheckpointWatermark);
+    }
+
+    /**
+     * Plan 2284 (WI3 invariant 3): restore-time open tool_call diff — open
+     * set = snapshot messages × TOOL_EXECUTION checkpoint callIds. Three-state
+     * semantics (plan 2284): (a) message-level open with no checkpoint =
+     * never-committed orphan, WARN (the recoverable-orphan surface that
+     * successor WI10 synthesis will consume); (b) message-level closed (any
+     * result, including security-deny error results) = terminal, silent;
+     * (c) message-level open with a checkpoint = committed-but-unsynced
+     * crash window, DEBUG only — the messageCount warning above already owns
+     * that state. Best-effort: never blocks recovery. With the NoOp
+     * checkpoint default the checkpoint list is empty; state (c) is empty and
+     * every message-level open call alarms — but a NoOp manager also means
+     * no TOOL_EXECUTION checkpoints exist at all, so a message-level open
+     * call genuinely is a never-committed call. Session messages are the
+     * source of truth; recovery is not blocked either way.
+     */
+    private void logOpenToolCallDiff(String sessionId, AgentSession session) {
+        List<ChatMessage> snapshotMessages = session.getMessages();
+        if (snapshotMessages == null || snapshotMessages.isEmpty()) {
+            return;
+        }
+        java.util.Set<String> openCallIds = OpenToolCallResolver.findOpenCallIds(snapshotMessages);
+        if (openCallIds.isEmpty()) {
+            return;
+        }
+        List<Checkpoint> checkpoints = config.getCheckpointManager().getCheckpoints(sessionId);
+        java.util.Set<String> neverCommitted = OpenToolCallResolver.filterNeverCommitted(openCallIds, checkpoints);
+        java.util.Set<String> committedButUnsynced = OpenToolCallResolver.filterCommittedButUnsynced(openCallIds, checkpoints);
+        if (!neverCommitted.isEmpty()) {
+            // Plan 2287 (WI6): phase-graded orphan alarm — EXECUTING (sandbox
+            // observably started; side effects possible) ranks above
+            // DISPATCHED (intent only). Conservative discipline: both mean
+            // "result undeterminable — explicit failure, never a blind
+            // rerun"; the disposition (synthetic closure) is autonomous WI10.
+            Map<String, List<String>> graded = gradeOrphanPhases(neverCommitted, checkpoints);
+            List<String> executingOrphans = graded.getOrDefault("EXECUTING", java.util.Collections.emptyList());
+            List<String> dispatchedOrphans = graded.getOrDefault("DISPATCHED", java.util.Collections.emptyList());
+            if (!executingOrphans.isEmpty()) {
+                LOG.warn("restoreSession open tool_call diff: {} tool call(s) reached EXECUTING "
+                                + "phase with no terminal checkpoint (side effects possible, result "
+                                + "undeterminable — explicit failure, never blind rerun; callIds={}). "
+                                + "Continuing with best-effort recovery (session is source of truth). session={}",
+                        executingOrphans.size(), executingOrphans, sessionId);
+            }
+            if (!dispatchedOrphans.isEmpty()) {
+                LOG.warn("restoreSession open tool_call diff: {} tool call(s) reached DISPATCHED "
+                                + "phase with no terminal checkpoint (dispatch intent, result "
+                                + "undeterminable — explicit failure, never blind rerun; callIds={}). "
+                                + "Continuing with best-effort recovery (session is source of truth). session={}",
+                        dispatchedOrphans.size(), dispatchedOrphans, sessionId);
+            }
+        }
+        if (!committedButUnsynced.isEmpty()) {
+            LOG.debug("restoreSession open tool_call diff: {} tool call(s) committed (TOOL_EXECUTION "
+                    + "checkpoint present) but missing from the persisted snapshot (commit→session-sync "
+                    + "crash window, owned by the messageCount consistency check; callIds={}). session={}",
+                    committedButUnsynced.size(), committedButUnsynced, sessionId);
+        }
+    }
+
+    /**
+     * Plan 2287 (WI6): phase-grades never-committed orphan callIds by their
+     * furthest recorded execution phase. Package-visible for focused
+     * verification of the restore alarm split (EXECUTING vs DISPATCHED rows).
+     */
+    static Map<String, List<String>> gradeOrphanPhases(java.util.Set<String> neverCommitted,
+                                                       List<Checkpoint> checkpoints) {
+        List<String> executing = new java.util.ArrayList<>();
+        List<String> dispatched = new java.util.ArrayList<>();
+        for (String callId : neverCommitted) {
+            ToolExecutionPhase phase = OpenToolCallResolver.resolveExecutionPhase(callId, checkpoints);
+            if (phase == ToolExecutionPhase.EXECUTING) {
+                executing.add(callId);
+            } else {
+                dispatched.add(callId);
+            }
+        }
+        Map<String, List<String>> graded = new java.util.LinkedHashMap<>();
+        graded.put("EXECUTING", executing);
+        graded.put("DISPATCHED", dispatched);
+        return graded;
     }
 
     /**
@@ -708,17 +834,17 @@ public class AgentSessionLifecycle {
         // Publish the SESSION_RESTORED audit event carrying approver, reason,
         // and latestCheckpointWatermark for audit trail.
         Map<String, Object> restorePayload = new HashMap<>();
-        restorePayload.put("approver", approver != null ? approver : "");
-        restorePayload.put("reason", reason != null ? reason : "");
-        restorePayload.put("latestCheckpointWatermark",
+        restorePayload.put(AgentEventPayloads.APPROVER, approver != null ? approver : "");
+        restorePayload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
+        restorePayload.put(AgentEventPayloads.LATEST_CHECKPOINT_WATERMARK,
                 verification.latestCheckpointWatermark() != null ? verification.latestCheckpointWatermark() : "");
-        restorePayload.put("preRestoreStatus", currentStatus != null ? currentStatus.name() : "");
+        restorePayload.put(AgentEventPayloads.PRE_RESTORE_STATUS, currentStatus != null ? currentStatus.name() : "");
         // Design §13.2 Decision B: the divergence flag + rejected watermark
         // make checkpoint rejection observably distinct from the best-effort
         // messageCount warning (divergenceDetected=false / empty here means
         // "checkpoint accepted or best-effort fallback").
-        restorePayload.put("divergenceDetected", verification.divergenceDetected());
-        restorePayload.put("rejectedCheckpointWatermark",
+        restorePayload.put(AgentEventPayloads.DIVERGENCE_DETECTED, verification.divergenceDetected());
+        restorePayload.put(AgentEventPayloads.REJECTED_CHECKPOINT_WATERMARK,
                 verification.rejectedCheckpointWatermark() != null ? verification.rejectedCheckpointWatermark() : "");
         eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_RESTORED,
                 sessionId, agentName, restorePayload));

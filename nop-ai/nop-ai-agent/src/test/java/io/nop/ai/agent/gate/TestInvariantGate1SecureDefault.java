@@ -64,7 +64,7 @@ public class TestInvariantGate1SecureDefault {
 
     /**
      * I0 target set table §3.1 — classes visible on the nop-ai-agent test
-     * classpath (agent 22 + core 8 + toolkit 1 = 31; shell's 2 are covered by
+     * classpath (agent 23 + core 9 + toolkit 1 = 33; shell's 2 are covered by
      * the shell-side gate test). Must equal the reproduction command output
      * (catalog §4, "Default* 类表" find command) minus the shell rows.
      */
@@ -91,11 +91,13 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.security.DefaultToolAccessChecker",
             "io.nop.ai.agent.team.DefaultMemberSpawner",
             "io.nop.ai.agent.team.DefaultTeamAclChecker",
+            "io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry",
             "io.nop.ai.core.api.tool.DefaultAiChatFunctionTool",
             "io.nop.ai.core.api.tool.DefaultAiChatToolSet",
             "io.nop.ai.core.persist.DefaultAiChatExchangePersister",
             "io.nop.ai.core.persist.DefaultAiChatResponseCache",
             "io.nop.ai.core.prompt.DefaultSystemPromptLoader",
+            "io.nop.ai.core.routing.DefaultSelectionStrategy",
             "io.nop.ai.core.service.DefaultAiChatService",
             "io.nop.ai.core.service.DefaultAiChatSession",
             "io.nop.ai.core.service.DefaultChatLogger",
@@ -104,9 +106,10 @@ public class TestInvariantGate1SecureDefault {
 
     /**
      * The nop-ai-agent module's own Default* classes (I0 table §3.1 rows
-     * 1-22). Used for table-completeness against this module's source tree;
-     * the declaration check uses {@link #TABLE} (agent+core+toolkit, all
-     * visible on this test classpath).
+     * 1-23; 23 = 22 original + DefaultBackgroundTaskRegistry added by plan
+     * 2301/WI25 per the Loop Rule). Used for table-completeness against this
+     * module's source tree; the declaration check uses {@link #TABLE} (agent
+     * +core+toolkit, all visible on this test classpath).
      */
     static final List<String> MODULE_TABLE = List.of(
             "io.nop.ai.agent.engine.DefaultAgentEngine",
@@ -130,7 +133,8 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.security.DefaultSecurityLevelResolver",
             "io.nop.ai.agent.security.DefaultToolAccessChecker",
             "io.nop.ai.agent.team.DefaultMemberSpawner",
-            "io.nop.ai.agent.team.DefaultTeamAclChecker"
+            "io.nop.ai.agent.team.DefaultTeamAclChecker",
+            "io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry"
     );
 
     /**

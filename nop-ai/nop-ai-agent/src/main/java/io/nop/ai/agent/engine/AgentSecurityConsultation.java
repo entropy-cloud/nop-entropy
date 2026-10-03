@@ -128,10 +128,10 @@ public class AgentSecurityConsultation {
                         "layer3_post_denial_guard",
                         postDenialResult.getActionFingerprint(), CoreMetrics.currentTimeMillis()));
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
-                        Map.of("toolName", ctx.toolName() != null ? ctx.toolName() : "",
-                                "reason", denyMessage,
-                                "denialReason", postDenialResult.getReason().name(),
-                                "suggestedNextStep", postDenialResult.getSuggestedNextStep().name()));
+                        Map.of(AgentEventPayloads.TOOL_NAME, ctx.toolName() != null ? ctx.toolName() : "",
+                                AgentEventPayloads.REASON, denyMessage,
+                                AgentEventPayloads.DENIAL_REASON, postDenialResult.getReason().name(),
+                                AgentEventPayloads.SUGGESTED_NEXT_STEP, postDenialResult.getSuggestedNextStep().name()));
                 ctx.executionContext().addMessage(ChatToolResponseMessage.error(
                         ctx.chatToolCall().getId(), ctx.toolName(),
                         denyMessage + " (suggested: " + postDenialResult.getSuggestedNextStep() + ")"));
@@ -156,8 +156,8 @@ public class AgentSecurityConsultation {
                     CoreMetrics.currentTimeMillis()));
             if (!accessResult.isAllowed()) {
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
-                        Map.of("toolName", ctx.toolName(),
-                                "reason", accessResult.getReason() != null ? accessResult.getReason() : ""));
+                        Map.of(AgentEventPayloads.TOOL_NAME, ctx.toolName(),
+                                AgentEventPayloads.REASON, accessResult.getReason() != null ? accessResult.getReason() : ""));
                 ctx.executionContext().addMessage(ChatToolResponseMessage.error(
                         ctx.chatToolCall().getId(), ctx.toolName(),
                         "Access denied: " + (accessResult.getReason() != null ? accessResult.getReason() : "hardcoded deny")));
@@ -182,8 +182,8 @@ public class AgentSecurityConsultation {
                     CoreMetrics.currentTimeMillis()));
             if (!perm.isAllowed()) {
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, ctx.sessionId(), ctx.agentName(),
-                        Map.of("toolName", ctx.toolName(),
-                                "reason", perm.getReason() != null ? perm.getReason() : ""));
+                        Map.of(AgentEventPayloads.TOOL_NAME, ctx.toolName(),
+                                AgentEventPayloads.REASON, perm.getReason() != null ? perm.getReason() : ""));
                 ctx.executionContext().addMessage(ChatToolResponseMessage.error(
                         ctx.chatToolCall().getId(), ctx.toolName(),
                         "Permission denied: " + (perm.getReason() != null ? perm.getReason() : "access denied")));
@@ -342,10 +342,10 @@ public class AgentSecurityConsultation {
                 AuditDecision.DENY, "denial threshold exceeded (count=" + outcome.getCount() + ")",
                 "layer3_denial_ledger", null, CoreMetrics.currentTimeMillis()));
         Map<String, Object> payload = new HashMap<>();
-        payload.put("toolName", toolName != null ? toolName : "");
-        payload.put("layerSource", layerSource.name());
-        payload.put("denialCount", outcome.getCount());
-        payload.put("reason", reason != null ? reason : "");
+        payload.put(AgentEventPayloads.TOOL_NAME, toolName != null ? toolName : "");
+        payload.put(AgentEventPayloads.LAYER_SOURCE, layerSource.name());
+        payload.put(AgentEventPayloads.DENIAL_COUNT, outcome.getCount());
+        payload.put(AgentEventPayloads.REASON, reason != null ? reason : "");
         hookInvoker.publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
         return true;
     }
@@ -392,8 +392,8 @@ public class AgentSecurityConsultation {
                         AuditDecision.DENY, pathResult.getReason(), pathResult.getMatchedRule(),
                         pathValue, CoreMetrics.currentTimeMillis()));
                 hookInvoker.publishEvent(AgentEventType.PATH_ACCESS_DENIED, sessionId, agentName,
-                        Map.of("path", pathValue,
-                                "reason", pathResult.getReason() != null ? pathResult.getReason() : ""));
+                        Map.of(AgentEventPayloads.PATH, pathValue,
+                                AgentEventPayloads.REASON, pathResult.getReason() != null ? pathResult.getReason() : ""));
                 return pathResult.getReason() != null ? pathResult.getReason() : "path access denied";
             }
         }
@@ -446,10 +446,10 @@ public class AgentSecurityConsultation {
                     AuditDecision.DENY, reason, "layer2_permission_matrix",
                     auditContext, CoreMetrics.currentTimeMillis()));
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                    Map.of("toolName", toolName,
-                            "reason", decision.getReason() != null ? decision.getReason() : "",
-                            "securityLevel", level.name(),
-                            "channel", channel != null ? channel.name() : "unknown"));
+                    Map.of(AgentEventPayloads.TOOL_NAME, toolName,
+                            AgentEventPayloads.REASON, decision.getReason() != null ? decision.getReason() : "",
+                            AgentEventPayloads.SECURITY_LEVEL, level.name(),
+                            AgentEventPayloads.CHANNEL, channel != null ? channel.name() : "unknown"));
             return SecurityConsultationOutcome.denied(level, reason);
         }
         return SecurityConsultationOutcome.allowed(level);
@@ -490,11 +490,11 @@ public class AgentSecurityConsultation {
                     AuditDecision.DENY, reason, "layer3_approval_gate",
                     auditContext, CoreMetrics.currentTimeMillis()));
             hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                    Map.of("toolName", toolName,
-                            "reason", decision.getReason() != null ? decision.getReason() : "",
-                            "securityLevel", level.name(),
-                            "denialKind", decision.getDenialKind() != null ? decision.getDenialKind().name() : "",
-                            "channel", channel != null ? channel.name() : "unknown"));
+                    Map.of(AgentEventPayloads.TOOL_NAME, toolName,
+                            AgentEventPayloads.REASON, decision.getReason() != null ? decision.getReason() : "",
+                            AgentEventPayloads.SECURITY_LEVEL, level.name(),
+                            AgentEventPayloads.DENIAL_KIND, decision.getDenialKind() != null ? decision.getDenialKind().name() : "",
+                            AgentEventPayloads.CHANNEL, channel != null ? channel.name() : "unknown"));
             return reason;
         }
         return null;
@@ -598,12 +598,12 @@ public class AgentSecurityConsultation {
                     normalized, now));
             if (result.isDenied()) {
                 hookInvoker.publishEvent(AgentEventType.TOOL_CALL_DENIED, sessionId, agentName,
-                        Map.of("toolName", toolName != null ? toolName : "",
-                                "reason", result.getReason() != null ? result.getReason() : "",
-                                "conflictPath", normalized,
-                                "conflictStrategy", result.getStrategyName() != null
+                        Map.of(AgentEventPayloads.TOOL_NAME, toolName != null ? toolName : "",
+                                AgentEventPayloads.REASON, result.getReason() != null ? result.getReason() : "",
+                                AgentEventPayloads.CONFLICT_PATH, normalized,
+                                AgentEventPayloads.CONFLICT_STRATEGY, result.getStrategyName() != null
                                         ? result.getStrategyName() : "",
-                                "conflictingSessions", conflicting.stream()
+                                AgentEventPayloads.CONFLICTING_SESSIONS, conflicting.stream()
                                         .map(WriteIntent::getSessionId)
                                         .findFirst().orElse("")));
                 return result.getReason() != null

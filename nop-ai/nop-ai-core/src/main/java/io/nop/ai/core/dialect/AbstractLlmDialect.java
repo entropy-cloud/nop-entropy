@@ -2,6 +2,7 @@ package io.nop.ai.core.dialect;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
@@ -90,11 +91,25 @@ public abstract class AbstractLlmDialect {
                 }
             }
         }
+        // Plan 2304 (WI22): regex classifier (dsh-D4 ⑥-建议3) — provider
+        // unstructured texts mapped onto canonical values before the bare
+        // status heuristic (the text is the only signal a non-structured
+        // provider gives). QUOTA/AUTH rows are gated to <500 — a 5xx text
+        // like "insufficient capacity" must not divert a transient server
+        // error into the account-chain channel.
+        if (classification == null) {
+            String combined = String.join("\n",
+                    errorType != null ? errorType : "",
+                    errorCode != null ? errorCode : "",
+                    errorMessage != null ? errorMessage : "");
+            classification = io.nop.ai.core.reliability.ErrorMessageClassifier.classify(
+                    combined, httpStatus < 500);
+        }
         if (classification == null) {
             classification = defaultHeuristic(httpStatus);
         }
 
-        Long retryAfterMs = resolveRetryAfterMs(headers, bodyMap, errorResponse, matched);
+        Long retryAfterMs = resolveRetryAfterMs(headers, bodyMap, errorResponse, matched, errorMessage);
 
         String code = errorCode != null ? errorCode : errorType;
         // 永远标记为错误响应（isSuccess()=error==null）。未抽到 message 时用 fallback 文案，
@@ -162,7 +177,8 @@ public abstract class AbstractLlmDialect {
      * 全部缺失返回 null（策略层退回纯 full-jitter 退避）。解析失败不抛异常（容错）。
      */
     private Long resolveRetryAfterMs(Map<String, String> headers, Map<String, Object> bodyMap,
-                                     LlmErrorResponseModel errorResponse, LlmErrorMappingModel matched) {
+                                     LlmErrorResponseModel errorResponse, LlmErrorMappingModel matched,
+                                     String errorMessage) {
         if (headers != null) {
             Long fromHeaderMs = findHeaderMs(headers, "retry-after-ms");
             if (fromHeaderMs != null) {
@@ -184,8 +200,66 @@ public abstract class AbstractLlmDialect {
                 return fromBody;
             }
         }
+        // Plan 2304 (WI22): fourth source — the error message text
+        // ("try again in N s/ms/minutes", unreal retry.go shape). Lowest
+        // priority; parse failures stay null (the knob is never a failure
+        // surface).
+        Long fromMessage = parseRetryAfterText(errorMessage);
+        if (fromMessage != null) {
+            return fromMessage;
+        }
         return null;
     }
+
+    /**
+     * Plan 2304 (WI22): extracts the retry hint from an error message text —
+     * {@code try again in 30s} / {@code try again in 1.5 seconds} /
+     * {@code try again in 2 minutes}. Unit suffix optional (bare number =
+     * seconds). Returns null when no hint is present or the value is
+     * unparseable.
+     */
+    static Long parseRetryAfterText(String message) {
+        if (message == null || message.isEmpty()) {
+            return null;
+        }
+        java.util.regex.Matcher m = RETRY_HINT_PATTERN.matcher(message);
+        if (!m.find()) {
+            return null;
+        }
+        double value;
+        try {
+            value = Double.parseDouble(m.group(1));
+        } catch (NumberFormatException e) {
+            LOG.debug("nop.ai.parse-retry-after-text-fail: value={}", m.group(1));
+            return null;
+        }
+        String unit = m.group(2);
+        if (unit == null) {
+            unit = "s";
+        }
+        double multiplierMs;
+        switch (unit) {
+            case "ms":
+                multiplierMs = 1.0;
+                break;
+            case "m":
+            case "min":
+            case "mins":
+            case "minute":
+            case "minutes":
+                multiplierMs = 60_000.0;
+                break;
+            default: // s / sec / secs / second / seconds
+                multiplierMs = 1_000.0;
+                break;
+        }
+        long millis = (long) (value * multiplierMs);
+        return millis > 0 ? millis : null;
+    }
+
+    private static final java.util.regex.Pattern RETRY_HINT_PATTERN = java.util.regex.Pattern.compile(
+            "try again in\\s+(\\d+(?:\\.\\d+)?)\\s*(ms|seconds?|secs?|s|minutes?|mins?|m)?",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
 
     private static String findHeaderIgnoreCase(Map<String, String> headers, String name) {
         if (headers == null) {
@@ -264,6 +338,30 @@ public abstract class AbstractLlmDialect {
         }
 
         return content;
+    }
+
+    /**
+     * Plan 2302 (WI20): session-affinity header placement (the concrete
+     * implementation of {@link ILlmDialect#applyCacheHeaders} — all shipped
+     * dialects extend this class, so the interface default no-op is
+     * uniformly shadowed). Config-gated via {@code cacheKeyHeader}; a
+     * missing session id skips the placement with a debug log — the
+     * optimization knob is never a failure surface.
+     */
+    public void applyCacheHeaders(io.nop.http.api.client.HttpRequest httpRequest,
+                                  ChatRequest request, io.nop.ai.core.model.LlmModelModel modelConfig) {
+        if (modelConfig == null || modelConfig.getCacheKeyHeader() == null
+                || modelConfig.getCacheKeyHeader().isEmpty()) {
+            return;
+        }
+        ChatOptions options = request != null ? request.getOptions() : null;
+        String sessionId = options != null ? options.getSessionId() : null;
+        if (sessionId == null || sessionId.isEmpty()) {
+            LOG.debug("applyCacheHeaders: cacheKeyHeader={} configured but no sessionId on the request — "
+                    + "session-affinity placement skipped", modelConfig.getCacheKeyHeader());
+            return;
+        }
+        httpRequest.setHeader(modelConfig.getCacheKeyHeader(), sessionId);
     }
 
     /**
@@ -392,8 +490,28 @@ public abstract class AbstractLlmDialect {
      * @param defaultTotalPath 默认的 total tokens 路径
      * @return ChatUsage 对象
      */
+    /**
+     * Plan 2303 (WI21) compatibility shim — delegates to the full form with
+     * no cache defaults and no raw-usage capture (config-only cache parsing,
+     * the pre-WI21 behaviour byte-for-byte).
+     */
     protected ChatUsage parseUsage(Map<String, Object> responseMap, LlmResponseModel responseConfig,
                                    String defaultPromptPath, String defaultCompletionPath, String defaultTotalPath) {
+        return parseUsage(responseMap, responseConfig, defaultPromptPath, defaultCompletionPath,
+                defaultTotalPath, null, null, null);
+    }
+
+    /**
+     * Plan 2303 (WI21): full usage parsing — cache fields gain dialect-level
+     * defaults (explicit responseConfig paths still win), and the raw usage
+     * object is captured for dialect translation / audit when
+     * {@code defaultUsageRootPath} is non-null (dialect-level only — no
+     * config channel, that would require the llm.xdef codegen pipeline).
+     */
+    protected ChatUsage parseUsage(Map<String, Object> responseMap, LlmResponseModel responseConfig,
+                                   String defaultPromptPath, String defaultCompletionPath, String defaultTotalPath,
+                                   String defaultCacheHitPath, String defaultCacheCreationPath,
+                                   String defaultUsageRootPath) {
         ChatUsage usage = new ChatUsage();
 
         // 基础 token 统计
@@ -408,20 +526,41 @@ public abstract class AbstractLlmDialect {
         usage.setCompletionTokens(getIntByPath(responseMap, completionPath));
         usage.setTotalTokens(getIntByPath(responseMap, totalPath));
 
-        // 缓存 token 统计（用于 Prompt Caching）
-        if (responseConfig != null) {
-            String cacheHitPath = responseConfig.getPromptCacheHitTokensPath();
-            String cacheCreationPath = responseConfig.getPromptCacheCreationTokensPath();
+        // 缓存 token 统计（用于 Prompt Caching）——显式配置优先，dialect 默认兜底
+        String cacheHitPath = responseConfig != null && responseConfig.getPromptCacheHitTokensPath() != null
+                ? responseConfig.getPromptCacheHitTokensPath() : defaultCacheHitPath;
+        String cacheCreationPath = responseConfig != null && responseConfig.getPromptCacheCreationTokensPath() != null
+                ? responseConfig.getPromptCacheCreationTokensPath() : defaultCacheCreationPath;
 
-            if (cacheHitPath != null) {
-                usage.setCacheHitTokens(getIntByPath(responseMap, cacheHitPath));
-            }
-            if (cacheCreationPath != null) {
-                usage.setCacheCreationTokens(getIntByPath(responseMap, cacheCreationPath));
+        if (cacheHitPath != null) {
+            usage.setCacheHitTokens(getIntByPath(responseMap, cacheHitPath));
+        }
+        if (cacheCreationPath != null) {
+            usage.setCacheCreationTokens(getIntByPath(responseMap, cacheCreationPath));
+        }
+
+        // Usage Raw 原始保留（dialect 级 root，无 config 通道——plan 2303 round 1 P1 裁定）
+        if (defaultUsageRootPath != null) {
+            Object raw = getRawByPath(responseMap, defaultUsageRootPath);
+            if (raw instanceof Map) {
+                usage.setRawUsage((Map<String, Object>) raw);
             }
         }
 
         return usage;
+    }
+
+    /**
+     * Plan 2303 (WI21): map-valued path read for raw-usage capture (null when
+     * absent or not a map — a malformed usage root never breaks parsing).
+     */
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> getRawByPath(Map<String, Object> map, String path) {
+        if (path == null) {
+            return null;
+        }
+        Object value = BeanTool.getComplexProperty(map, path);
+        return value instanceof Map ? (Map<String, Object>) value : null;
     }
 
     /**

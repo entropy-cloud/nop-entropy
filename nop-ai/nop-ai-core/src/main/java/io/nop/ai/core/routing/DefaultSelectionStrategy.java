@@ -1,6 +1,7 @@
 package io.nop.ai.core.routing;
 
 import io.nop.ai.api.chat.ChatRequest;
+import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
 
@@ -16,6 +17,7 @@ import java.util.Set;
  * <p><b>无失败记账副作用</b>：跳过（含并发饱和跳过）不调用 {@code ThresholdBreaker.recordFailure}
  * ——并发超限/熔断跳过是非失败事件，失败记账归编排层（见 {@link ModelClassRouter} 契约）。
  */
+@SecureDefault
 public final class DefaultSelectionStrategy implements ISelectionStrategy {
 
     @Override

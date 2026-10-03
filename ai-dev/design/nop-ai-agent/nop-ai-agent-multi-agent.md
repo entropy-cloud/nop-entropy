@@ -308,3 +308,11 @@ Phase 2+ 的具体架构设计见 **`nop-ai-agent-actor-runtime-vision.md`**，�
 | Flow 编排 | nop-ai-agent-roadmap.md | 本篇定义演进路径 |
 | 上下文隔离 | nop-ai-agent-context-model.md | 并行时的上下文独立性保证 + 协调消息注入 |
 | Phase 2+ 架构 | nop-ai-agent-actor-runtime-vision.md | 本篇 Phase 2+ 的具体实现方案 |
+
+## continuable 子代理与传输抽象裁定（WI19，plan 2300）
+
+**建议1（dsh continuable call-agent）：部分满足，剩余差距登记为 residual（不吸收实施）。** 满足面：session 跨 turn 持续（continue 语义）+ send-message/team 通信工具 followup（fire-and-forget 投递，plan 168/225）+ 引擎级 WAIT_FOR/wakeSession 驻留状态机（waiting 状态 checkpoint 保留、wakeSession takeover 锁透明续跑——比 dsh 报告"无状态机"的判断更完整）。**差距面（round 1 审查否证初版"已满足"判定后如实登记）**：call-agent 无 continuable 工具形态——plan 224 async mailbox pathway 是"异步管道、父同步等响应"（AgentCallDelegate.java:92-93 join；plan 224 Non-Goals 明确排除异步 handler）；子执行进入 waiting 态对父呈 failure（CallAgentExecutor.java:494、AgentCallDelegate.java:98-102），非 continuable 句柄；无 LLM 可达的 wake/取回工具（wakeSession 仅引擎 API 面）。差距属工具面便利性缺口（引擎机制在位），非机制缺口。
+
+**建议2（dsh SubagentProvider 传输抽象）与 pi-D10 建议1（进程外协议参照）：移出。** nop 子代理全在进程内（Actor runtime + 嵌套 engine + team 编排），无外部 agent 运行时接入需求；无第二实现时抽象接缝即猜测性设计（anti-hollow）。pi 参照（JSON 结构化输出捕获）到时可取用。
+
+**重启条件**：(a) 建议2/pi 建议1——出现真实外部 agent 运行时接入需求（ACP 或等价协议）且进程内形态无法满足时，successor 立项 SubagentProvider 接缝；(b) 建议1 差距——生产场景出现 call-agent continuable 工具形态需求时 successor 立项（实施拆分草图：call-agent 增加 fire-and-forget 变体返回子 sessionId + retrieve/wake 工具复用既有 wakeSession 机制；LLM 可达面为唯一新工作）。相关 residual：delegationDepth 为钳制表达，显式深度审计字段为 optimization candidate（dsh 建议4）。维度佐证：dsh-D10 总裁定"等价"（D10-3 nop 编排全栈显著领先）；pi-D10 总裁定"nop 领先"（pi 零内置最弱）。

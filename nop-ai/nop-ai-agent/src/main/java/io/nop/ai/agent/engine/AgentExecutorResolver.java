@@ -1,6 +1,7 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
@@ -200,6 +201,9 @@ public class AgentExecutorResolver {
                     // ReAct executor.
                     .llmTimeoutMs(config.getLlmTimeoutMs())
                     .toolTimeoutMs(config.getToolTimeoutMs())
+                    .heartBeatIntervalMs(config.getHeartBeatIntervalMs())
+                    .toolTimeoutPolicy(config.getToolTimeoutPolicy())
+                    .toolProgressTracker(config.getToolProgressTracker())
                     .timeoutExecutor(agentExecutorSupplier.get())
                     .waitCoordinator(config.getWaitCoordinator())
                     .build();
@@ -265,18 +269,22 @@ public class AgentExecutorResolver {
                 io.nop.ai.agent.middleware.ExecutionPoint execPoint =
                         io.nop.ai.agent.hook.DefaultHookRegistry.resolveExecutionPoint(pointName);
                 if (execPoint == null) {
-                    LOG.warn("DefaultAgentEngine: skipping execution-scope middleware with unknown execution point: "
-                            + "impl={}, point={}", impl, pointName);
-                    continue;
+                    // Plan 2294 (WI13): unknown execution points fail loud
+                    // instead of being silently skipped (dead-configuration
+                    // surface — a typo'd point name vanished without a trace)
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                            "unknown execution point for middleware: impl=" + impl
+                                    + ", point=" + pointName);
                 }
                 hookRegistry.registerExecutionMiddleware(execPoint, instance);
             } else {
                 io.nop.ai.agent.hook.AgentLifecyclePoint point =
                         io.nop.ai.agent.hook.DefaultHookRegistry.resolveLifecyclePoint(pointName);
                 if (point == null) {
-                    LOG.warn("DefaultAgentEngine: skipping middleware with unknown lifecycle point: impl={}, point={}",
-                            impl, pointName);
-                    continue;
+                    // Plan 2294 (WI13): unknown lifecycle points fail loud
+                    throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                            "unknown lifecycle point for middleware: impl=" + impl
+                                    + ", point=" + pointName);
                 }
                 // W3-2 (D3 coexistence): the same impl class declared via BOTH
                 // <filter-chain> and <middlewares> at the same lifecycle point is

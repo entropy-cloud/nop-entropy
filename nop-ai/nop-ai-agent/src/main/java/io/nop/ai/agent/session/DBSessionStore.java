@@ -77,6 +77,20 @@ public class DBSessionStore implements ISessionStore {
 
     private final DataSource dataSource;
     private final ConcurrentHashMap<String, AgentSession> sessions = new ConcurrentHashMap<>();
+    /**
+     * Plan 2295 (WI14): persisted-state bookkeeping per session — independent
+     * of {@link #sessions} because tenant mode bypasses the cache entirely;
+     * a cache-anchored state would make the append path unreachable there.
+     * Guarded by the per-session lock from {@link #sessionLocks}.
+     */
+    private final ConcurrentHashMap<String, SessionPersistenceState> persistedStates = new ConcurrentHashMap<>();
+    /**
+     * Plan 2295 (WI14): per-session locks serializing the whole
+     * diff→write→state-update save sequence (engine has real concurrent
+     * writers per session: injectInput/steering caller thread vs the ReAct
+     * worker thread).
+     */
+    private final ConcurrentHashMap<String, Object> sessionLocks = new ConcurrentHashMap<>();
     private final ITenantResolver tenantResolver;
 
     /**
@@ -131,6 +145,10 @@ public class DBSessionStore implements ISessionStore {
              Statement stmt = conn.createStatement()) {
             stmt.execute(AiAgentSessionTable.DDL_CREATE_TABLE);
             stmt.execute(AiAgentSessionTable.DDL_CREATE_INDEX);
+            // Plan 2295 (WI14): incremental write path — self-managed journal
+            // table (store-layer boundary: not registered in ORM, see
+            // store-layer-contract.md).
+            stmt.execute(AiAgentSessionJournalTable.DDL_CREATE_TABLE);
         } catch (SQLException e) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore: failed to initialize schema: " + e.getMessage());
         }
@@ -181,19 +199,35 @@ public class DBSessionStore implements ISessionStore {
         if (cacheEnabled()) {
             sessions.remove(sessionId);
         }
+        persistedStates.remove(sessionId);
+        sessionLocks.remove(sessionId);
         String tenant = currentTenant();
         String deleteSql = "DELETE FROM " + AiAgentSessionTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionTable.COL_SESSION_ID + " = ?";
+        String deleteJournalSql = "DELETE FROM " + AiAgentSessionJournalTable.TABLE_NAME
+                + " WHERE " + AiAgentSessionJournalTable.COL_SESSION_ID + " = ?";
         if (tenant != null) {
             deleteSql += TenantSql.whereTenant(AiAgentSessionTable.COL_TENANT_ID);
+            deleteJournalSql += TenantSql.whereTenant(AiAgentSessionJournalTable.COL_TENANT_ID);
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(deleteSql)) {
-            ps.setString(1, sessionId);
-            if (tenant != null) {
-                ps.setString(2, tenant);
+        try (Connection conn = dataSource.getConnection()) {
+            // Journal first (plan 2295/WI14): the delta rows must not outlive
+            // the snapshot row (a replay against a missing snapshot finds no
+            // base and would be meaningless anyway).
+            try (PreparedStatement ps = conn.prepareStatement(deleteJournalSql)) {
+                ps.setString(1, sessionId);
+                if (tenant != null) {
+                    ps.setString(2, tenant);
+                }
+                ps.executeUpdate();
             }
-            ps.executeUpdate();
+            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+                ps.setString(1, sessionId);
+                if (tenant != null) {
+                    ps.setString(2, tenant);
+                }
+                ps.executeUpdate();
+            }
         } catch (SQLException e) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.remove: failed to delete session '" + sessionId
                             + "': " + e.getMessage());
@@ -252,7 +286,12 @@ public class DBSessionStore implements ISessionStore {
                 while (rs.next()) {
                     String json = rs.getString(1);
                     try {
-                        AgentSession loaded = SessionFileReader.deserialize(json);
+                        // Unified load path (plan 2295/WI14): snapshot + journal
+                        // replay — discovery must not return a journal-missing
+                        // tail that a later get() would treat as authoritative.
+                        SessionFileReader.PersistedSnapshot snapshot = SessionFileReader.deserializeSnapshot(json);
+                        AgentSession loaded = snapshot.getSession();
+                        registerPersistedState(loaded, loaded.getSessionId(), snapshot.getSnapshotVersion());
                         String sid = loaded.getSessionId();
                         if (cacheEnabled()) {
                             AgentSession raced = sessions.putIfAbsent(sid, loaded);
@@ -277,19 +316,152 @@ public class DBSessionStore implements ISessionStore {
     /**
      * {@inheritDoc}
      * <p>
-     * <b>Full persistence</b>: serialize the session to JSON via
-     * {@link SessionFileWriter#serialize} and upsert it into the
-     * {@code ai_agent_session} table using {@code MERGE INTO} (idempotent
-     * overwrite — same semantics as {@link FileBackedSessionStore#save}). Also
-     * updates the in-memory cache so subsequent {@link #get} calls return the
-     * latest state without a DB read.
+     * <b>Incremental write path (plan 2295 / WI14)</b>: the save first tries
+     * the append fast path — the incoming message list must fingerprint-match
+     * the persisted prefix per position (catches guardrail in-place rewrites)
+     * and the journal must be below the fold threshold. A matching save
+     * INSERTs one journal row (delta messages + scalar state block) and
+     * UPDATEs the queryable scalar columns (AGENT_NAME/STATUS/UPDATED_AT —
+     * never the CLOB, and never inserting a main row: {@code SESSION_DATA} is
+     * NOT NULL, so the UPDATE on a missing row fails loud instead of creating
+     * a partial one). Every non-append case folds: full CLOB MERGE with a
+     * bumped {@code snapshotVersion} (first) then journal row DELETE (second);
+     * a crash between the two leaves stale rows that the replay version check
+     * discards and self-heals. A cross-process writer winning the (SESSION_ID,
+     * SEQ) insert race degrades the save to a fold (last-writer-wins, same as
+     * the pre-WI14 MERGE semantics).
      */
     @Override
     public void save(AgentSession session) {
         if (session == null) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBSessionStore.save: session must not be null");
         }
-        String json = SessionFileWriter.serialize(session);
+        String sessionId = session.getSessionId();
+        Object lock = sessionLock(sessionId);
+        synchronized (lock) {
+            SessionPersistenceState state = persistedStates.get(sessionId);
+            List<ChatMessage> current = session.getMessages();
+
+            if (state != null && state.canAppend() && tryAppend(state, session, current)) {
+                if (cacheEnabled()) {
+                    sessions.put(sessionId, session);
+                }
+                return;
+            }
+
+            fold(state, session, current);
+            if (cacheEnabled()) {
+                sessions.put(sessionId, session);
+            }
+        }
+    }
+
+    /**
+     * Append fast path: verify the persisted prefix by content fingerprint,
+     * then INSERT one journal row + UPDATE the scalar columns. Statement
+     * order = journal row first, scalar columns second (self-sufficient data
+     * before derived data — the mirror of the fold order). Returns false when
+     * the caller must fold.
+     */
+    private boolean tryAppend(SessionPersistenceState state, AgentSession session, List<ChatMessage> current) {
+        int persistedCount = state.prefixFingerprints.size();
+        if (current.size() < persistedCount) {
+            return false; // shrink → fold
+        }
+        // O(prefix) fingerprint recompute — the deliberate cost of the append
+        // fast path (WI14 trades I/O, not CPU, for determinism).
+        for (int i = 0; i < persistedCount; i++) {
+            if (ChatMessageFingerprints.fingerprint(current.get(i)) != state.prefixFingerprints.get(i)) {
+                return false; // in-place content mutation → fold
+            }
+        }
+        List<ChatMessage> appended = current.subList(persistedCount, current.size());
+
+        String entryJson = SessionDeltaJournal.encodeEntry(state.snapshotVersion, state.journalEntryCount,
+                current.size(), appended, session);
+        String tenant = currentTenant();
+        String insertSql = "INSERT INTO " + AiAgentSessionJournalTable.TABLE_NAME
+                + " (" + AiAgentSessionJournalTable.COL_SESSION_ID
+                + ", " + AiAgentSessionJournalTable.COL_SEQ
+                + ", " + AiAgentSessionJournalTable.COL_TENANT_ID
+                + ", " + AiAgentSessionJournalTable.COL_BASE_VERSION
+                + ", " + AiAgentSessionJournalTable.COL_ENTRY_JSON
+                + ", " + AiAgentSessionJournalTable.COL_CREATED_AT
+                + ") VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setString(1, session.getSessionId());
+            ps.setLong(2, state.journalEntryCount);
+            ps.setString(3, tenant);
+            ps.setLong(4, state.snapshotVersion);
+            ps.setString(5, entryJson);
+            ps.setLong(6, System.currentTimeMillis());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            // Cross-process writer won the (SESSION_ID, SEQ) race — degrade to
+            // fold (last-writer-wins, the pre-WI14 MERGE semantics) instead of
+            // failing the execution.
+            LOG.debug("DBSessionStore.tryAppend: journal insert raced with another writer for session '{}' — folding", session.getSessionId(), e);
+            return false;
+        }
+
+        // Scalar columns second: keep the queryable STATUS/UPDATED_AT truthful
+        // without touching the CLOB. UPDATE (not MERGE) — the append path must
+        // never create a main row.
+        String updateScalars = "UPDATE " + AiAgentSessionTable.TABLE_NAME + " SET "
+                + AiAgentSessionTable.COL_AGENT_NAME + " = ?, "
+                + AiAgentSessionTable.COL_STATUS + " = ?, "
+                + AiAgentSessionTable.COL_UPDATED_AT + " = ? WHERE "
+                + AiAgentSessionTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            updateScalars += TenantSql.whereTenant(AiAgentSessionTable.COL_TENANT_ID);
+        }
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateScalars)) {
+            ps.setString(1, session.getAgentName());
+            ps.setString(2, session.getStatus() != null ? session.getStatus().name() : null);
+            ps.setLong(3, session.getUpdatedAt());
+            ps.setString(4, session.getSessionId());
+            if (tenant != null) {
+                ps.setString(5, tenant);
+            }
+            if (ps.executeUpdate() == 0) {
+                // No main row — the append path must never create one.
+                throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBSessionStore.tryAppend: main row missing for session '"
+                        + session.getSessionId() + "' (append never creates the base)");
+            }
+        } catch (SQLException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.tryAppend: failed to update scalar columns for session '"
+                    + session.getSessionId() + "': " + e.getMessage());
+        }
+
+        state.journalEntryCount++;
+        for (ChatMessage message : appended) {
+            state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+        }
+        return true;
+    }
+
+    /**
+     * Fold: full CLOB MERGE (with bumped snapshotVersion) FIRST, journal row
+     * DELETE second. Crash between the two leaves stale rows that the replay
+     * version check discards and self-heals by folding the replayed state.
+     */
+    private void fold(SessionPersistenceState state, AgentSession session, List<ChatMessage> current) {
+        long newVersion = (state != null ? state.snapshotVersion : 0L) + 1L;
+        mergeFullRow(session, newVersion);
+        deleteJournalRows(session.getSessionId());
+        SessionPersistenceState fresh = state != null ? state : new SessionPersistenceState();
+        fresh.resetAfterFold(newVersion, current);
+        persistedStates.put(session.getSessionId(), fresh);
+    }
+
+    /**
+     * The pre-WI14 full-row MERGE, parameterized by the snapshot version
+     * stamped into the CLOB.
+     */
+    private void mergeFullRow(AgentSession session, long snapshotVersion) {
+        String json = SessionFileWriter.serialize(session, snapshotVersion);
         String tenant = currentTenant();
         // becomes (SESSION_ID, TENANT_ID) so each tenant has its own session
         // namespace; TENANT_ID is appended as the last VALUES column. When no
@@ -331,11 +503,28 @@ public class DBSessionStore implements ISessionStore {
             }
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.save: failed to persist session '" + session.getSessionId()
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.fold: failed to persist session '" + session.getSessionId()
                             + "': " + e.getMessage());
         }
-        if (cacheEnabled()) {
-            sessions.put(session.getSessionId(), session);
+    }
+
+    private void deleteJournalRows(String sessionId) {
+        String tenant = currentTenant();
+        String deleteSql = "DELETE FROM " + AiAgentSessionJournalTable.TABLE_NAME
+                + " WHERE " + AiAgentSessionJournalTable.COL_SESSION_ID + " = ?";
+        if (tenant != null) {
+            deleteSql += TenantSql.whereTenant(AiAgentSessionJournalTable.COL_TENANT_ID);
+        }
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+            ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.fold: failed to clear journal for session '"
+                    + sessionId + "': " + e.getMessage());
         }
     }
 
@@ -385,6 +574,10 @@ public class DBSessionStore implements ISessionStore {
         return sessions.putIfAbsent(sessionId, session);
     }
 
+    private Object sessionLock(String sessionId) {
+        return sessionLocks.computeIfAbsent(sessionId, k -> new Object());
+    }
+
     private AgentSession loadFromDb(String sessionId) {
         String tenant = currentTenant();
         // carries its own tenant for recovery paths (resumeSession/
@@ -405,13 +598,19 @@ public class DBSessionStore implements ISessionStore {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String json = rs.getString(1);
-                    AgentSession loaded = SessionFileReader.deserialize(json);
+                    SessionFileReader.PersistedSnapshot snapshot = SessionFileReader.deserializeSnapshot(json);
+                    AgentSession loaded = snapshot.getSession();
                     // The persisted JSON may predate the tenantId field; the
                     // TENANT_ID column is authoritative, so set it from the
                     // column when the JSON did not carry one.
                     if (loaded.getTenantId() == null) {
                         loaded.setTenantId(rs.getString(2));
                     }
+                    // Plan 2295 (WI14): replay the journal tail and register
+                    // the persisted state so subsequent saves can append (the
+                    // tenant mode bypasses the session cache — the state map
+                    // is what keeps the append path alive there).
+                    registerPersistedState(loaded, sessionId, snapshot.getSnapshotVersion());
                     return loaded;
                 }
             }
@@ -420,6 +619,103 @@ public class DBSessionStore implements ISessionStore {
                             + "': " + e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Plan 2295 (WI14): replay the journal tail onto the loaded snapshot and
+     * register the per-session persisted state. On a stale/illegal journal
+     * (fold-crash orphaned rows sit at the head), self-heals by folding the
+     * replayed state — CLOB MERGE with a bumped version + journal row delete —
+     * restoring the "CLOB == replayed state, journal empty" invariant.
+     */
+    private void registerPersistedState(AgentSession session, String sessionId, long snapshotVersion) {
+        SessionPersistenceState state = new SessionPersistenceState();
+        List<JournalRow> rows = selectJournalRows(sessionId);
+        int applied = 0;
+        boolean heal = false;
+        for (JournalRow row : rows) {
+            SessionDeltaJournal.Entry entry;
+            try {
+                entry = SessionDeltaJournal.decodeEntry(row.entryJson);
+            } catch (NopAiAgentException e) {
+                LOG.warn("DBSessionStore.registerPersistedState: discarding journal from invalid row "
+                        + "(session={}, applied={})", sessionId, applied, e);
+                heal = true;
+                break;
+            }
+            if (entry.getBaseVersion() != snapshotVersion || entry.getSeq() != applied) {
+                LOG.warn("DBSessionStore.registerPersistedState: stale journal rows for session={} "
+                                + "(entryBaseVersion={}, snapshotVersion={}, expectedSeq={}, gotSeq={}) — healing",
+                        sessionId, entry.getBaseVersion(), snapshotVersion, applied, entry.getSeq());
+                heal = true;
+                break;
+            }
+            SessionDeltaJournal.applyTo(session, entry);
+            applied++;
+        }
+
+        if (heal) {
+            synchronized (sessionLock(sessionId)) {
+                long healedVersion = snapshotVersion + 1L;
+                mergeFullRow(session, healedVersion);
+                deleteJournalRows(sessionId);
+                state.snapshotVersion = healedVersion;
+                state.journalEntryCount = 0;
+                for (ChatMessage message : session.getMessages()) {
+                    state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+                }
+                persistedStates.put(sessionId, state);
+            }
+        } else {
+            state.snapshotVersion = snapshotVersion;
+            state.journalEntryCount = applied;
+            for (ChatMessage message : session.getMessages()) {
+                state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+            }
+            persistedStates.put(sessionId, state);
+        }
+    }
+
+    private List<JournalRow> selectJournalRows(String sessionId) {
+        String tenant = currentTenant();
+        String selectSql = "SELECT " + AiAgentSessionJournalTable.COL_SEQ
+                + ", " + AiAgentSessionJournalTable.COL_BASE_VERSION
+                + ", " + AiAgentSessionJournalTable.COL_ENTRY_JSON
+                + " FROM " + AiAgentSessionJournalTable.TABLE_NAME
+                + " WHERE " + AiAgentSessionJournalTable.COL_SESSION_ID + " = ?"
+                + " ORDER BY " + AiAgentSessionJournalTable.COL_SEQ;
+        if (tenant != null) {
+            selectSql += TenantSql.whereTenant(AiAgentSessionJournalTable.COL_TENANT_ID);
+        }
+        List<JournalRow> rows = new ArrayList<>();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, sessionId);
+            if (tenant != null) {
+                ps.setString(2, tenant);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new JournalRow(rs.getLong(1), rs.getLong(2), rs.getString(3)));
+                }
+            }
+        } catch (SQLException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBSessionStore.selectJournalRows: failed to read journal for session '"
+                    + sessionId + "': " + e.getMessage());
+        }
+        return rows;
+    }
+
+    private static final class JournalRow {
+        final long seq;
+        final long baseVersion;
+        final String entryJson;
+
+        JournalRow(long seq, long baseVersion, String entryJson) {
+            this.seq = seq;
+            this.baseVersion = baseVersion;
+            this.entryJson = entryJson;
+        }
     }
 
     private static String resolveChildAgentName(AgentSession parent, Map<String, Object> props) {

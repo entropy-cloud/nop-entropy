@@ -7,6 +7,24 @@ import io.nop.core.lang.xml.XNode;
 public class AiToolCall extends _AiToolCall {
     private XNode node;
 
+    /**
+     * Plan 2285 (WI4): the provider tool-call id (ChatToolCall.getId()) that
+     * produced this call, propagated by the agent dispatch path so sandbox
+     * progress snapshots / abandon-time cancellation can address the running
+     * execution by the same key the engine uses. Distinct from the inherited
+     * int {@code id} (a lossy numeric view). Null when the caller is not the
+     * agent dispatch path.
+     */
+    private String callId;
+
+    public String getCallId() {
+        return callId;
+    }
+
+    public void setCallId(String callId) {
+        this.callId = callId;
+    }
+
     public AiToolCall() {
     }
 

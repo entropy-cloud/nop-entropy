@@ -100,14 +100,22 @@ public class TestSessionStoreIntraExecutionPersistence {
                 int idx = callIndex.getAndIncrement();
                 if (idx == 1) {
                     // Second call: the first tool has completed and the
-                    // intra-execution save should have written the session
-                    // file. Check the file content.
+                    // intra-execution save should have persisted the tool
+                    // response. Check it through the crash-recovery read path
+                    // (a fresh store instance = snapshot + journal replay,
+                    // plan 2295/WI14: the tail lives in the journal sidecar
+                    // until the next fold, so the raw session.json is no
+                    // longer the recovery source by itself).
                     Path sessionFile = root.resolve("session-intra")
                             .resolve(FileBackedSessionStore.SESSION_FILE_NAME);
                     if (Files.exists(sessionFile)) {
                         try {
-                            String content = Files.readString(sessionFile);
-                            if (content.contains("tool-response-from-first-call")) {
+                            FileBackedSessionStore recoveryStore =
+                                    new FileBackedSessionStore(root);
+                            AgentSession recovered = recoveryStore.get("session-intra");
+                            if (recovered != null && recovered.getMessages().stream()
+                                    .anyMatch(m -> String.valueOf(m.getContent())
+                                            .contains("tool-response-from-first-call"))) {
                                 fileHadToolResponseDuringSecondCall.set(true);
                             }
                         } catch (Exception e) {

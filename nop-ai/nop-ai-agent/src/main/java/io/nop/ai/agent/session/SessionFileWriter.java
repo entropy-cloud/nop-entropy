@@ -54,17 +54,45 @@ public final class SessionFileWriter {
     static final String FIELD_PLAN_ID = "planId";
     static final String FIELD_COMPACTED_AT = "compactedAt";
     static final String FIELD_TENANT_ID = "tenantId";
+    static final String FIELD_SEEN_INPUT_KEYS = "seenInputKeys";
+    static final String FIELD_PENDING_INJECTIONS = "pendingInjections";
+
+    /**
+     * Plan 2295 (WI14): monotonically increasing version of the base snapshot.
+     * Journal entries record the snapshot version they extend
+     * ({@code baseVersion}); a mismatch on replay means the journal is stale
+     * (fold crash window) and it is self-healed away. Absent field in legacy
+     * session files → version 0.
+     */
+    static final String FIELD_SNAPSHOT_VERSION = "snapshotVersion";
 
     private final Object ioLock = new Object();
 
     /**
-     * Write (or overwrite) the session file.
+     * Write (or overwrite) the session file with snapshot version 0 (legacy
+     * shape — used by callers that do not participate in the incremental
+     * journal protocol).
      *
      * @param sessionFile the per-session session.json path; never null
      * @param session     the session to serialize; never null
      * @throws NopAiAgentException if serialization or I/O fails
      */
     public void write(Path sessionFile, AgentSession session) {
+        write(sessionFile, session, 0L);
+    }
+
+    /**
+     * Write (or overwrite) the session file, stamping the given
+     * {@code snapshotVersion} into the persisted JSON (plan 2295 / WI14).
+     * Called by the incremental write path on every fold; the version is
+     * what journal entries validate their {@code baseVersion} against.
+     *
+     * @param sessionFile     the per-session session.json path; never null
+     * @param session         the session to serialize; never null
+     * @param snapshotVersion the new base-snapshot version; fold increments it
+     * @throws NopAiAgentException if serialization or I/O fails
+     */
+    public void write(Path sessionFile, AgentSession session, long snapshotVersion) {
         if (sessionFile == null) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileWriter.write: sessionFile must not be null");
         }
@@ -72,7 +100,7 @@ public final class SessionFileWriter {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "SessionFileWriter.write: session must not be null");
         }
 
-        String json = serialize(session);
+        String json = serialize(session, snapshotVersion);
 
         synchronized (ioLock) {
             // Crash-safe write (plan 195): write to a sibling .tmp file, then
@@ -109,6 +137,14 @@ public final class SessionFileWriter {
     }
 
     static String serialize(AgentSession session) {
+        return serialize(session, 0L);
+    }
+
+    /**
+     * Serialize the full session state with the given {@code snapshotVersion}
+     * stamped in (plan 2295 / WI14).
+     */
+    static String serialize(AgentSession session, long snapshotVersion) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put(FIELD_SESSION_ID, session.getSessionId());
         map.put(FIELD_AGENT_NAME, session.getAgentName());
@@ -125,10 +161,36 @@ public final class SessionFileWriter {
         map.put(FIELD_PLAN_ID, session.getPlanId());
         map.put(FIELD_COMPACTED_AT, session.getCompactedAt());
         map.put(FIELD_TENANT_ID, session.getTenantId());
+        map.put(FIELD_SEEN_INPUT_KEYS, session.getSeenInputKeys());
+        map.put(FIELD_PENDING_INJECTIONS, session.getPendingInjections());
+        map.put(FIELD_SNAPSHOT_VERSION, snapshotVersion);
         try {
             return JsonTool.stringify(map);
         } catch (Exception e) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "SessionFileWriter.serialize: failed to serialize session: " + e.getMessage());
         }
+    }
+
+    /**
+     * Serialize only the mutable scalar state (everything except identity,
+     * createdAt, and messages) — the {@code state} block of a journal entry
+     * (plan 2295 / WI14). Absolute-value semantics: the block carries the
+     * whole scalar state at capture time, and replay overwrites (not
+     * accumulates) each field.
+     */
+    static Map<String, Object> serializeState(AgentSession session) {
+        Map<String, Object> state = new LinkedHashMap<>();
+        state.put(FIELD_TOTAL_TOKENS_USED, session.getTotalTokensUsed());
+        state.put(FIELD_TOTAL_ITERATIONS, session.getTotalIterations());
+        state.put(FIELD_UPDATED_AT, session.getUpdatedAt());
+        state.put(FIELD_STATUS, session.getStatus() != null ? session.getStatus().name() : null);
+        state.put(FIELD_METADATA, session.getMetadata());
+        state.put(FIELD_PARENT_SESSION_ID, session.getParentSessionId());
+        state.put(FIELD_PLAN_ID, session.getPlanId());
+        state.put(FIELD_COMPACTED_AT, session.getCompactedAt());
+        state.put(FIELD_TENANT_ID, session.getTenantId());
+        state.put(FIELD_SEEN_INPUT_KEYS, session.getSeenInputKeys());
+        state.put(FIELD_PENDING_INJECTIONS, session.getPendingInjections());
+        return state;
     }
 }

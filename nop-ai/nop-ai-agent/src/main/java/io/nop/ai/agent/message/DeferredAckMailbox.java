@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
@@ -57,6 +58,13 @@ public final class DeferredAckMailbox implements IMailbox {
     private final Deque<MailboxEntry> pending = new ArrayDeque<>();
     private final Map<Long, MailboxEntry> inFlight = new LinkedHashMap<>();
     private final List<MailboxEntry> deadLetter = new ArrayList<>();
+    /**
+     * Plan 2288 (WI7): correlationId → deliveryId dedup index. Stable keys
+     * (non-blank correlationId) dedupe repeated offers — "duplicate offer ==
+     * single entry". Cleaned on ack, dead-letter AND nack(requeue=false);
+     * retained across nack(requeue=true) redelivery. Guarded by {@link #lock}.
+     */
+    private final Map<String, Long> keysByCorrelationId = new HashMap<>();
 
     private final Object lock = new Object();
 
@@ -89,6 +97,12 @@ public final class DeferredAckMailbox implements IMailbox {
     public boolean offer(AgentMessageEnvelope envelope) {
         Objects.requireNonNull(envelope, "envelope");
         synchronized (lock) {
+            // Plan 2288 (WI7): dedup check BEFORE the capacity check — a
+            // duplicate offer is a no-op returning true even when full
+            String key = envelope.getCorrelationId();
+            if (key != null && !key.isEmpty() && keysByCorrelationId.containsKey(key)) {
+                return true; // duplicate offer == single entry
+            }
             if (capacity > 0 && (pending.size() + inFlight.size()) >= capacity) {
                 return false;
             }
@@ -96,6 +110,9 @@ public final class DeferredAckMailbox implements IMailbox {
             MailboxEntry entry = new MailboxEntry(
                     id, 1, MailboxDeliveryState.PENDING, envelope, CoreMetrics.currentTimeMillis(), 0L);
             pending.addLast(entry);
+            if (key != null && !key.isEmpty()) {
+                keysByCorrelationId.put(key, id);
+            }
             return true;
         }
     }
@@ -127,6 +144,12 @@ public final class DeferredAckMailbox implements IMailbox {
                 return false;
             }
             // Entry is permanently removed (ACKED). No need to retain it.
+            // Plan 2288 (WI7): release the dedup key — the same correlationId
+            // may legitimately be offered again later
+            String key = entry.getEnvelope().getCorrelationId();
+            if (key != null && !key.isEmpty()) {
+                keysByCorrelationId.remove(key);
+            }
             return true;
         }
     }
@@ -149,8 +172,15 @@ public final class DeferredAckMailbox implements IMailbox {
                             entry.getOfferedAt(),
                             entry.getPolledAt());
                     deadLetter.add(dead);
+                    // Plan 2288 (WI7): dead-letter releases the dedup key
+                    String key = entry.getEnvelope().getCorrelationId();
+                    if (key != null && !key.isEmpty()) {
+                        keysByCorrelationId.remove(key);
+                    }
                 } else {
                     // Redeliver: assign a new deliveryId, increment deliveryCount.
+                    // Plan 2288 (WI7): dedup index RETAINED across requeue —
+                    // the same envelope is still in flight logically
                     long newId = deliveryIdSeq.incrementAndGet();
                     MailboxEntry requeued = new MailboxEntry(
                             newId,
@@ -160,6 +190,18 @@ public final class DeferredAckMailbox implements IMailbox {
                             entry.getOfferedAt(),
                             0L);
                     pending.addLast(requeued);
+                    String key = entry.getEnvelope().getCorrelationId();
+                    if (key != null && !key.isEmpty()) {
+                        keysByCorrelationId.put(key, newId);
+                    }
+                }
+            } else {
+                // Plan 2288 (WI7): nack(requeue=false) discards the entry —
+                // release the dedup key so a later legitimate offer of the
+                // same correlationId is not suppressed forever
+                String key = entry.getEnvelope().getCorrelationId();
+                if (key != null && !key.isEmpty()) {
+                    keysByCorrelationId.remove(key);
                 }
             }
             // requeue=false → entry already removed from inFlight, mark NACKED (discarded).

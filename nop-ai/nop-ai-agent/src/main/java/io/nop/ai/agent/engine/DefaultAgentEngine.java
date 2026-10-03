@@ -1,8 +1,11 @@
 package io.nop.ai.agent.engine;
 
 import io.nop.ai.agent.engine.NopAiAgentException;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
 import io.nop.ai.agent.budget.IBudgetProvider;
 import io.nop.ai.agent.budget.NoOpBudgetProvider;
 import io.nop.ai.agent.compact.IContextCompactor;
@@ -79,6 +82,9 @@ import io.nop.ai.core.reliability.ICircuitBreaker;
 import io.nop.ai.core.reliability.IRetryPolicy;
 import io.nop.ai.core.reliability.StandardRetryPolicy;
 import io.nop.ai.core.reliability.ThresholdBreaker;
+import io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry;
+import io.nop.ai.agent.tool.IToolProgressTracker;
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
 import io.nop.ai.toolkit.api.IToolManager;
 
 import org.slf4j.Logger;
@@ -104,11 +110,22 @@ public class DefaultAgentEngine implements IAgentEngine {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAgentEngine.class);
 
     private final IChatService chatService;
+    private IBackgroundTaskRegistry backgroundTaskRegistry;
+    private ExecutorService backgroundExecutor;
+    private boolean ownsBackgroundExecutor;
+    private IToolProgressTracker toolProgressTracker;
     private final IToolManager toolManager;
     private final DefaultAgentEventPublisher eventPublisher;
     private final ISessionStore sessionStore;
     private final String instanceId = UUID.randomUUID().toString();
     private final ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> runningExecutions = new ConcurrentHashMap<>();
+    /**
+     * Plan 2289 (WI8): live injection-queue targets for injectInput while a
+     * session runs (ctx is per-execution; registered at slot registration,
+     * removed symmetrically in the terminal finally).
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> runningInjectionTargets =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private ExecutorService agentExecutor;
     private volatile boolean ownAgentExecutor;
@@ -153,6 +170,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
         private IRetryPolicy retryPolicy = new StandardRetryPolicy();
         private ICircuitBreaker circuitBreaker = new ThresholdBreaker();
+        private IBackgroundTaskRegistry backgroundTaskRegistry;
+        private ExecutorService backgroundExecutor;
         private IGoalTracker goalTracker = NoOpGoalTracker.noOp();
         private ISustainer sustainer = NoOpSustainer.noOp();
         private IConflictStrategy conflictStrategy = FailFastStrategy.failFast();
@@ -168,6 +187,12 @@ public class DefaultAgentEngine implements IAgentEngine {
         private long llmTimeoutMs = 120_000L;
         private long toolTimeoutMs = 300_000L;
         private IWaitCoordinator waitCoordinator;
+
+        /** Plan 2301 (WI25): custom registry (a default one is created when absent). */
+        public Builder backgroundTaskRegistry(IBackgroundTaskRegistry val) { this.backgroundTaskRegistry = val; return this; }
+
+        /** Plan 2301 (WI25): dedicated executor for background task forks (a default pool is created when absent). */
+        public Builder backgroundExecutor(ExecutorService val) { this.backgroundExecutor = val; return this; }
 
         public Builder(IChatService chatService, IToolManager toolManager) {
             this.chatService = chatService;
@@ -264,6 +289,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             engine.setLlmTimeoutMs(llmTimeoutMs);
             engine.setToolTimeoutMs(toolTimeoutMs);
             if (waitCoordinator != null) engine.setWaitCoordinator(waitCoordinator);
+            engine.initBackgroundSupport(backgroundTaskRegistry, backgroundExecutor);
         }
     }
 
@@ -493,6 +519,21 @@ public class DefaultAgentEngine implements IAgentEngine {
 
     public long getToolTimeoutMs() { return config.getToolTimeoutMs(); }
 
+    /** Plan 2285 (WI4): heartbeat slice interval for the tool wait phase. */
+    public void setHeartBeatIntervalMs(long heartBeatIntervalMs) { config.setHeartBeatIntervalMs(heartBeatIntervalMs); }
+
+    public long getHeartBeatIntervalMs() { return config.getHeartBeatIntervalMs(); }
+
+    /** Plan 2285 (WI4): per-tool mechanical-timeout cap policy (design §三.5 layer 2). */
+    public void setToolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) { config.setToolTimeoutPolicy(toolTimeoutPolicy); }
+
+    public java.util.Map<String, Long> getToolTimeoutPolicy() { return config.getToolTimeoutPolicy(); }
+
+    /** Plan 2285 (WI4): tool execution progress/cancel seam (default NoOp). */
+    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker tracker) { config.setToolProgressTracker(tracker); }
+
+    public io.nop.ai.agent.tool.IToolProgressTracker getToolProgressTracker() { return config.getToolProgressTracker(); }
+
     /** I3 R-2-3: team-flow member-execution deadline (ms), single config source. */
     public void setMemberExecTimeoutMs(long memberExecTimeoutMs) { config.setMemberExecTimeoutMs(memberExecTimeoutMs); }
 
@@ -636,9 +677,9 @@ public class DefaultAgentEngine implements IAgentEngine {
             String childSessionId = sessionStore.forkSession(parentSessionId, inheritContext, props, config.getForkMessageFilter());
 
             Map<String, Object> eventPayload = new HashMap<>();
-            eventPayload.put("parentSessionId", parentSessionId);
-            eventPayload.put("childSessionId", childSessionId);
-            eventPayload.put("inheritContext", inheritContext);
+            eventPayload.put(AgentEventPayloads.PARENT_SESSION_ID, parentSessionId);
+            eventPayload.put(AgentEventPayloads.CHILD_SESSION_ID, childSessionId);
+            eventPayload.put(AgentEventPayloads.INHERIT_CONTEXT, inheritContext);
 
             AgentSession childSession = sessionStore.get(childSessionId);
             String childAgentName = childSession != null ? childSession.getAgentName() : null;
@@ -651,9 +692,137 @@ public class DefaultAgentEngine implements IAgentEngine {
         }
     }
 
+    /**
+     * Plan 2289 (WI8): two-branch injection. Session running (execution slot
+     * held) → enqueue by semantics into the live ctx queue (STEER wakes the
+     * wait phase). Session not running → stage in the session (persisted) for
+     * the next execution to merge at buildBaseExecutionContext.
+     */
+    @Override
+    public void injectInput(String sessionId, io.nop.ai.api.chat.messages.ChatMessage message,
+                            InjectionSemantics semantics) {
+        if (sessionId == null || message == null || semantics == null) {
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "injectInput: sessionId, message and semantics must not be null");
+        }
+        AgentSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "injectInput: no session found for sessionId=" + sessionId);
+        }
+        // "running" = an execution slot is registered (the persisted session
+        // status only updates to a terminal value in the engine's terminal
+        // sync, so getStatus() is NOT a reliable in-flight signal)
+        AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
+        if (liveTarget != null) {
+            liveTarget.enqueueSteering(message, semantics);
+        } else {
+            session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+            sessionStore.save(session);
+        }
+    }
+
+    /**
+     * Plan 2301 (WI25): engine-owned background task registry (Builder-wired).
+     */
+    @Override
+    public IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        return backgroundTaskRegistry;
+    }
+
+    /**
+     * Plan 2301 (WI25): Builder wiring — create the default registry (with the
+     * completion-notification bridge) and the dedicated background executor
+     * pool when the caller did not supply custom ones. Called from
+     * {@code Builder.applyTo} after all setters.
+     */
+    void initBackgroundSupport(IBackgroundTaskRegistry customRegistry,
+                               ExecutorService customExecutor) {
+        ExecutorService exec = customExecutor != null
+                ? customExecutor
+                : Executors.newCachedThreadPool(r -> {
+                    Thread t = new Thread(r, "nop-ai-background-task");
+                    t.setDaemon(true);
+                    return t;
+                });
+        this.backgroundExecutor = exec;
+        this.ownsBackgroundExecutor = customExecutor == null;
+
+        IBackgroundTaskRegistry registry = customRegistry != null
+                ? customRegistry
+                : new DefaultBackgroundTaskRegistry(this::bridgeBackgroundCompletion);
+        this.backgroundTaskRegistry = registry;
+        if (registry instanceof DefaultBackgroundTaskRegistry defaultRegistry) {
+            defaultRegistry.setTrackerCancelHook(this::cancelBackgroundViaTracker);
+            defaultRegistry.setBackgroundExecutor(exec);
+            // live evidence for RUNNING snapshots comes from the engine's
+            // progress tracker (WI4 seam); the hook resolves the tracker per
+            // call so late wiring (setBackgroundProgressTracker) is visible
+            defaultRegistry.setProgressSnapshotHook(
+                    callId -> {
+                        IToolProgressTracker tracker = this.toolProgressTracker;
+                        return tracker == null ? null : tracker.progressSnapshot(callId);
+                    });
+        }
+    }
+
+    /**
+     * Completion bridge: inject the terminal-state notification into the
+     * owning session as a FOLLOWUP input (the existing mailbox/steering
+     * channel — NOT a third wake source, WI2 ruling). Throws on failure so
+     * the registry can move the task to NOTIFICATION_FAILED (lazy redelivery
+     * on the next snapshot/readOutput). Reads the Entry fields directly —
+     * going through {@code registry.snapshot} would re-enter the lazy
+     * redelivery path and recurse.
+     */
+    private void bridgeBackgroundCompletion(DefaultBackgroundTaskRegistry.Entry entry, String status) {
+        String tail = entry.outputTail == null ? "" : entry.outputTail;
+        String preview = tail.length() > 512 ? tail.substring(0, 512) + "...(truncated)" : tail;
+        ChatUserMessage notification = new ChatUserMessage(
+                "[BACKGROUND_TASK taskId=" + entry.taskId
+                        + " tool=" + entry.toolName
+                        + " status=" + status
+                        + " bytes=" + entry.totalBytes
+                        + "]\nBackground task finished. Use the task-output tool with taskId="
+                        + entry.taskId + " to read the captured output.\nTail preview:\n" + preview);
+        injectInput(entry.sessionId, notification, InjectionSemantics.FOLLOWUP);
+    }
+
+    private void cancelBackgroundViaTracker(String sessionId, String callId) {
+        IToolProgressTracker tracker = this.toolProgressTracker;
+        if (tracker != null) {
+            tracker.cancelExecution(callId);
+        }
+    }
+
+    /** Plan 2301 (WI25): install the progress tracker for the stop kill-channel. */
+    public void setBackgroundProgressTracker(IToolProgressTracker tracker) {
+        this.toolProgressTracker = tracker;
+        if (backgroundTaskRegistry instanceof DefaultBackgroundTaskRegistry defaultRegistry) {
+            defaultRegistry.setTrackerCancelHook(this::cancelBackgroundViaTracker);
+        }
+    }
+
     public AgentMessageAck sendMessage(AgentMessageRequest request) {
         String sessionId = sessionSupport.resolveSessionId(request.getSessionId());
         CompletableFuture<AgentExecutionResult> future = doExecute(request, sessionId);
+        // Plan 2288 (WI7): a synchronously-completed failed future carrying
+        // ERR_AGENT_DUPLICATE_INPUT is the duplicate-input contract — the ack
+        // reports "duplicate" instead of "accepted" (execute() callers see
+        // the same exception via the failed future)
+        if (future.isCompletedExceptionally()) {
+            try {
+                future.join();
+            } catch (java.util.concurrent.CompletionException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                if (cause instanceof NopAiAgentException && isDuplicateInput((NopAiAgentException) cause)) {
+                    LOG.info("duplicate input suppressed (idempotencyKey={}, sessionId={})",
+                            request.getIdempotencyKey(), sessionId);
+                    return new AgentMessageAck(sessionId, "duplicate");
+                }
+                throw e;
+            }
+        }
         future.exceptionally(ex -> {
             LOG.error("Agent execution failed for agentName={}, sessionId={}: {}",
                     request.getAgentName(), sessionId, ex.getMessage(), ex);
@@ -693,9 +862,51 @@ public class DefaultAgentEngine implements IAgentEngine {
     }
 
     private CompletableFuture<AgentExecutionResult> doExecute(AgentMessageRequest request, String sessionId) {
-        ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
-        AgentSessionLifecycle.CancelHandle handle = registerExecutionSlot(sessionId, setup.ctx());
-        return dispatchExecution(request, sessionId, setup, handle);
+        CompletableFuture<AgentExecutionResult> future;
+        try {
+            ExecutionSetup setup = assembleExecutionSetup(request, sessionId);
+            AgentSessionLifecycle.CancelHandle handle;
+            try {
+                handle = registerExecutionSlot(sessionId, setup.ctx());
+            // Plan 2289 (WI8): make the live queue addressable for
+            // injectInput while the session runs
+            runningInjectionTargets.put(sessionId, setup.ctx());
+            } catch (NopAiAgentException e) {
+                if (isDuplicateInput(e)) {
+                    return CompletableFuture.failedFuture(e);
+                }
+                throw e;
+            }
+            // Plan 2288 (WI7) record stage (second of the two-stage dedup):
+            // INSIDE the execution-slot window — busy-session rejection and
+            // takeover-lock failure happen BEFORE this line and leave the key
+            // unrecorded (a later redelivery executes, review B1); the in-lock
+            // save also cannot interleave with the worker thread's terminal
+            // save ("terminal snapshot first, then lock release" invariant,
+            // review M3). Save failure throws synchronously = the input is
+            // rejected; at-least-once delivery retries it.
+            if (request.getIdempotencyKey() != null && !request.getIdempotencyKey().isEmpty()) {
+                setup.session().markInputSeen(request.getIdempotencyKey());
+                sessionStore.save(setup.session());
+            }
+            future = dispatchExecution(request, sessionId, setup, handle);
+        } catch (NopAiAgentException e) {
+            if (isDuplicateInput(e)) {
+                // duplicate is an expected, benign outcome — surface it as a
+                // failed future so execute() callers can branch on the error
+                // code and sendMessage can translate it to a "duplicate" ack
+                return CompletableFuture.failedFuture(e);
+            }
+            throw e;
+        }
+        return future;
+    }
+
+    private static boolean isDuplicateInput(NopAiAgentException e) {
+        // NopException.getErrorCode() returns the String code (inherited from
+        // NopException via super(errorCode.getErrorCode()))
+        return e.getErrorCode() != null
+                && ERR_AGENT_DUPLICATE_INPUT.getErrorCode().equals(e.getErrorCode());
     }
 
     /**
@@ -714,6 +925,16 @@ public class DefaultAgentEngine implements IAgentEngine {
         // misconfiguration before entering the async block.
         teamBinder.precheckTeamDeclarations(agentModel);
         AgentSession session = sessionStore.getOrCreate(sessionId, request.getAgentName());
+        // Plan 2288 (WI7) read-check (first of the two-stage dedup): a seen
+        // idempotency key aborts BEFORE any event publication or message
+        // append — the duplicate never touches ctx. READ-ONLY probe
+        // (hasSeenInput): throwing here without recording keeps
+        // busy-session/lock failures from poisoning the key; recording
+        // happens post-registration in doExecute.
+        if (session.hasSeenInput(request.getIdempotencyKey())) {
+            throw new NopAiAgentException(ERR_AGENT_DUPLICATE_INPUT).param(ARG_DETAIL,
+                    "idempotencyKey=" + request.getIdempotencyKey() + ", sessionId=" + sessionId);
+        }
         // recovery paths (resumeSession/restoreSession — which have no
         // request/Principal source) can re-establish the tenant context
         // before tenant-scoped DB operations. Only set when the request
@@ -730,7 +951,7 @@ public class DefaultAgentEngine implements IAgentEngine {
         } else {
             eventPublisher.publish(AgentEvent.create(AgentEventType.SESSION_LOADED,
                     sessionId, request.getAgentName(),
-                    java.util.Map.of("historyCount", historyCount)));
+                    java.util.Map.of(AgentEventPayloads.HISTORY_COUNT, historyCount)));
         }
 
         AgentExecutionContext ctx = lifecycle.buildBaseExecutionContext(agentModel, session);
@@ -882,6 +1103,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
                     runningExecutions.remove(sessionId, handle);
+                    // Plan 2289 (WI8): before the terminal sync, drain any
+                    // injections that arrived during the final LLM call into
+                    // ctx so the terminal replaceMessages persists them
+                    runningInjectionTargets.remove(sessionId);
                     // was lost mid-execution, force terminal status to
                     // failed (the executor's cancel path would otherwise set
                     // cancelled — lease-lost is a system-level failure,
@@ -1012,6 +1237,15 @@ public class DefaultAgentEngine implements IAgentEngine {
                 LOG.debug("DefaultAgentEngine.close(): shut down self-created agentExecutor");
             } catch (RuntimeException e) {
                 LOG.warn("DefaultAgentEngine.close(): failed to shut down agentExecutor: {}",
+                        e.toString());
+            }
+        }
+        if (ownsBackgroundExecutor && backgroundExecutor != null) {
+            try {
+                backgroundExecutor.shutdown();
+                LOG.debug("DefaultAgentEngine.close(): shut down self-created backgroundExecutor");
+            } catch (RuntimeException e) {
+                LOG.warn("DefaultAgentEngine.close(): failed to shut down backgroundExecutor: {}",
                         e.toString());
             }
         }

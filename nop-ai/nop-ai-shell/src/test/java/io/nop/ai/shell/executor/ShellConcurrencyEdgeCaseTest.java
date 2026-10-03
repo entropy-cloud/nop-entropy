@@ -279,19 +279,19 @@ class ShellConcurrencyEdgeCaseTest {
     }
 
     @Test
-    void testBackgroundJobRemovedFromMapOnCompletion() throws Exception {
+    void testBackgroundJobCompletesWithResultDeliveredToSink() throws Exception {
         ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
+
         ExecutionResult result = executor.execute("echo done &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
-
-        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
-            Thread.sleep(20);
-        }
-
-        assertTrue(executor.getBackgroundJobs().isEmpty(),
-                "Background job should be removed from map after completion");
+        String taskId = sink.awaitSubmission();
+        ExecutionResult jobResult = sink.awaitCompletion(taskId, 5, TimeUnit.SECONDS);
+        assertEquals(0, jobResult.exitCode(), "the sink receives the job's real exit code");
+        assertTrue(jobResult.stdout().contains("done"), jobResult.stdout());
     }
 
     @Test
@@ -308,17 +308,23 @@ class ShellConcurrencyEdgeCaseTest {
         });
 
         ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
+
         ExecutionResult result = executor.execute("crash &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode(), "Background launch always returns 0");
 
-        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
-            Thread.sleep(20);
+        String taskId = sink.awaitSubmission();
+        try {
+            sink.awaitCompletion(taskId, 5, TimeUnit.SECONDS);
+            org.junit.jupiter.api.Assertions.fail(
+                    "the crashing job must surface its failure to the sink channel");
+        } catch (java.util.concurrent.ExecutionException expected) {
+            // the body's throwable is the completion — the sink/registry maps
+            // it to a FAILED state (BackgroundRegistryJobSink contract)
         }
-
-        assertTrue(executor.getBackgroundJobs().isEmpty(),
-                "Background job should be removed from map even after exception");
     }
 
     @Test
@@ -337,6 +343,8 @@ class ShellConcurrencyEdgeCaseTest {
         });
 
         ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
 
         ExecutionResult r1 = executor.execute("counter &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
@@ -345,19 +353,29 @@ class ShellConcurrencyEdgeCaseTest {
         ExecutionResult r3 = executor.execute("counter &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        assertTrue(r1.stdout().contains("[1]"));
-        assertTrue(r2.stdout().contains("[2]"));
-        assertTrue(r3.stdout().contains("[3]"));
+        String id1 = extractTaskId(r1);
+        String id2 = extractTaskId(r2);
+        String id3 = extractTaskId(r3);
+        org.junit.jupiter.api.Assertions.assertNotEquals(id1, id2);
+        org.junit.jupiter.api.Assertions.assertNotEquals(id2, id3);
 
         for (int i = 0; i < 500 && executionCount.get() < 3; i++) {
             Thread.sleep(20);
         }
         assertEquals(3, executionCount.get(), "All 3 background jobs should have executed");
+        sink.awaitCompletion(id1, 5, TimeUnit.SECONDS);
+        sink.awaitCompletion(id2, 5, TimeUnit.SECONDS);
+        sink.awaitCompletion(id3, 5, TimeUnit.SECONDS);
+    }
 
-        for (int i = 0; i < 500 && !executor.getBackgroundJobs().isEmpty(); i++) {
-            Thread.sleep(20);
+    private static String extractTaskId(ExecutionResult result) {
+        String stdout = result.stdout();
+        int start = stdout.indexOf("[taskId=");
+        if (start < 0) {
+            throw new AssertionError("no taskId in background confirmation: " + stdout);
         }
-        assertTrue(executor.getBackgroundJobs().isEmpty(), "All background jobs should be removed after completion");
+        int end = stdout.indexOf(']', start);
+        return stdout.substring(start + "[taskId=".length(), end);
     }
 
     @Test
@@ -373,8 +391,9 @@ class ShellConcurrencyEdgeCaseTest {
         ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);
         executor.execute("echo hello", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        // Plan 2301 (WI25): close() no longer tracks '&' jobs — the sink owns
+        // their lifecycle; close just flips the terminal flag
         executor.close();
-        assertTrue(executor.getBackgroundJobs().isEmpty());
     }
 
     @Test
@@ -514,6 +533,8 @@ class ShellConcurrencyEdgeCaseTest {
         });
 
         ShellCommandExecutor executor = new ShellCommandExecutor(localRegistry, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
         executor.execute("veryslow &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
@@ -522,11 +543,12 @@ class ShellConcurrencyEdgeCaseTest {
         }
         assertTrue(started.get());
 
-        assertFalse(executor.getBackgroundJobs().isEmpty(), "Job should be in map before close");
+        // Plan 2301 (WI25): lifecycle is sink-owned — cancel via the taskId
+        // channel (in production: the registry tracker/future kill path)
+        String taskId = sink.awaitSubmission();
+        assertTrue(sink.cancel(taskId), "the running job must be cancellable via its taskId");
 
         executor.close();
-
-        assertTrue(executor.getBackgroundJobs().isEmpty(), "Job should be cleared after close");
     }
 
     @Test
@@ -596,10 +618,17 @@ class ShellConcurrencyEdgeCaseTest {
         };
 
         ShellCommandExecutor executor = new ShellCommandExecutor(registry, null, checker, fileSystem);
+        RecordingBackgroundJobSink sink = new RecordingBackgroundJobSink();
+        executor.setBackgroundJobSink(sink);
+
         ExecutionResult result = executor.execute("echo bg &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
         assertEquals(0, result.exitCode());
+        // the checker runs when the sink-forked body executes — await the
+        // completion before asserting
+        String taskId = sink.awaitSubmission();
+        sink.awaitCompletion(taskId, 5, TimeUnit.SECONDS);
         assertTrue(innerChecked.get(), "Background inner command should be pre-checked");
     }
 }
