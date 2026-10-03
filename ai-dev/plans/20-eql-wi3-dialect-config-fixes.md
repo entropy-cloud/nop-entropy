@@ -307,46 +307,46 @@ Exit Criteria:
 
 ### Phase 7 - owner doc 对齐 + 矩阵快照终同步
 
-Status: planned
+Status: completed（2026-10-04；commit `2a826f9d18`）
 Targets: `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`（如路由变化）、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（终态复核）
 
 - Item Types: `Fix`（文档失真）、`Proof`（对账）
 
-- [ ] 四处失真修正（以符号定位，起草时行号 `:124/:127/:129/:130`）：`supportNullsFirst` 行改为如实状态（无 accessor/无消费点，WI7 承接；`IF(ISNULL(f),0,1)` 仅为 xdef javadoc 设想，无实现）；`supportILike` 行修正 PG 表述并写明 ilike 模板已注册方言清单（Phase 3 产物）；`supportReturningForUpdate` 行补「仅指 UPDATE、投影列表形式无 INTO」限定 + mysql/oracle/h2=false、duckdb=false 正确、mariadb 版本门的实测结论；`supportFullJoin`/`supportRightJoin` 行改为「无 accessor、零消费（WI2/WI10b 归属）」。
-- [ ] 新增独立小节一：**`stringAgg` 各库差异**（排序语义 / `WITHIN GROUP` / 分隔符三处分叉、无法无损归一，对应 roadmap ledger 行落档）。
-- [ ] 新增独立小节二：**`regexpLike` 支持面两栏表**（已确认有：PG/MariaDB/H2；已确认无：MSSQL/TDengine；`[未取证]`：Oracle/DuckDB/DB2/DM8/MySQL operator 页——按证据等级纪律呈现，不用比例表述）。
-- [ ] 新增独立小节三：**语义陷阱 + 配置建议**（调研报告 Part 9 的 17 条语义陷阱转文档，对应 roadmap ledger 行落档）。
-- [ ] 本 WI 落地内容同步：`intersectKeyword`/`exceptKeyword` 空值门契约与 delta 覆盖路径（Phase 4 产物）、mariadb 版本门、`defaultNullsFirst`/`supportNullsFirst` 正交性与移交状态、第 7 项 mixin 归属结论（mysql5.7 无窗口函数、mariadb 有）。
-- [ ] 全文与实际 dialect XML **逐项对账**（标志表中每行抽查到至少一个方言 XML 实值）；owner doc 内 stream-roadmap 的 WI1/WI2/WI3/WI17 编号与本 roadmap WI3 的混用风险以限定词消除（避免读者误读）。
-- [ ] **对账证据机械化**：daily log 附「features 标志 × 全部 `*.dialect.xml`（当前 18 个；候选 A 落地则 19 个）实值」的 grep 对账清单——对本 WI 触及的每个标志（`supportReturningForUpdate`/`supportNullsFirst`/`defaultNullsFirst`/`supportILike` 及版本门关键字配置）逐标志输出各 XML 实值（如 `grep -n "<标志名>" .../dialect/*.dialect.xml` 或等价表格），作为「逐项对账无差异」的可复核证据载体。
-- [ ] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`：owner doc 章节变化是否影响路由/锚点，变化则同步。
-- [ ] 矩阵快照终态复核（所有 Phase 的快照同步无遗漏）+ `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：**本次改动新增 broken link = 0**（既有基线 3 项 warning、0 error、退出码 0；不得顺手修 3 个无关 pre-existing 文件，只比对新增量）。
+- [x] 四处失真修正（以符号定位，起草时行号 `:124/:127/:129/:130`）：`supportNullsFirst` 行改为如实状态（无 accessor/无消费点，WI7 承接；`IF(ISNULL(f),0,1)` 仅为 xdef javadoc 设想，无实现）；`supportILike` 行修正 PG 表述并写明 ilike 模板已注册方言清单（Phase 3 产物）；`supportReturningForUpdate` 行补「仅指 UPDATE、投影列表形式无 INTO」限定 + mysql/oracle/h2=false、duckdb=false 正确、mariadb 版本门的实测结论；`supportFullJoin`/`supportRightJoin` 行改为「无 accessor、零消费（WI2/WI10b 归属）」。（**执行期勘误**：WI2 已更新过 supportFullJoin 行使其如实，第 4 处失真实测漂移到 supportRightJoin 行「归 WI3」的错误归属声明——已改为 WI10b 归属；supportFullJoin 行保持 WI2 的如实版本）
+- [x] 新增独立小节一：**`stringAgg` 各库差异**（排序语义 / `WITHIN GROUP` / 分隔符三处分叉、无法无损归一，对应 roadmap ledger 行落档）。
+- [x] 新增独立小节二：**`regexpLike` 支持面两栏表**（已确认有：PG/MariaDB/H2；已确认无：MSSQL/TDengine；`[未取证]`：Oracle/DuckDB/DB2/DM8/MySQL operator 页——按证据等级纪律呈现，不用比例表述）。（另备注 oracle 方言模板以 regexp_like 为改写目标与 ledger 口径的关系）
+- [x] 新增独立小节三：**语义陷阱 + 配置建议**（调研报告 Part 9 的 17 条语义陷阱转文档，对应 roadmap ledger 行落档）。（9.1–9.17 全量转档，每条附建议）
+- [x] 本 WI 落地内容同步：`intersectKeyword`/`exceptKeyword` 空值门契约与 delta 覆盖路径（Phase 4 产物）、mariadb 版本门、`defaultNullsFirst`/`supportNullsFirst` 正交性与移交状态、第 7 项 mixin 归属结论（mysql5.7 无窗口函数、mariadb 有）。（版本门小节含哨兵 none 契约表 + ≥10.3/≥10.5/≥13.0 delta 升级路径；另加 ilike 注册、窗口 mixin 归属两个小节）
+- [x] 全文与实际 dialect XML **逐项对账**（标志表中每行抽查到至少一个方言 XML 实值）；owner doc 内 stream-roadmap 的 WI1/WI2/WI3/WI17 编号与本 roadmap WI3 的混用风险以限定词消除（避免读者误读）。（分析窗口/TUMBLE/frame 三节加限定词注；对账清单见 daily log 2026-10-04 Phase 7 条目）
+- [x] **对账证据机械化**：daily log 附「features 标志 × 全部 `*.dialect.xml`（当前 18 个；候选 A 落地则 19 个）实值」的 grep 对账清单——对本 WI 触及的每个标志（`supportReturningForUpdate`/`supportNullsFirst`/`defaultNullsFirst`/`supportILike` 及版本门关键字配置）逐标志输出各 XML 实值（如 `grep -n "<标志名>" .../dialect/*.dialect.xml` 或等价表格），作为「逐项对账无差异」的可复核证据载体。（候选 B 未新增方言，仍 18 个）
+- [x] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`：owner doc 章节变化是否影响路由/锚点，变化则同步。（核对结论：路由未变、source-anchors 无该文件引用，无需同步——核对记录在 daily log）
+- [x] 矩阵快照终态复核（所有 Phase 的快照同步无遗漏）+ `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：**本次改动新增 broken link = 0**（既有基线 3 项 warning、0 error、退出码 0；不得顺手修 3 个无关 pre-existing 文件，只比对新增量）。
 
 Exit Criteria:
 
-- [ ] 四处失真全部修正且逐项对账无差异（对账结果记录于 daily log 或本 plan 勘误注记），且 daily log 含「标志 × XML 实值」grep 对账清单（可复核证据）。
-- [ ] 三个 ledger 小节落档且与 roadmap「明确延后项」对应行一致（`stringAgg`/`regexpLike` 的 ledger Successor 列即「文档归 WI3」，本 Phase 兑现）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0 且新增 broken link = 0。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 四处失真全部修正且逐项对账无差异（对账结果记录于 daily log 或本 plan 勘误注记），且 daily log 含「标志 × XML 实值」grep 对账清单（可复核证据）。
+- [x] 三个 ledger 小节落档且与 roadmap「明确延后项」对应行一致（`stringAgg`/`regexpLike` 的 ledger Successor 列即「文档归 WI3」，本 Phase 兑现）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0 且新增 broken link = 0。
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] roadmap WI3 的 11 项**逐项有结论**（7 改值 + 1 unverified 标注 + 1 确认不改 + 2 版本门/selector；第 8 项为已完成记录只做回归验证）：逐项核对——`mysql`/`oracle`/`h2` 的 `supportReturningForUpdate` → `false`；`duckdb` 保持 `false`；`dm` 显式保留 `unverified` 并登记 successor（不得要求 dm 被「修正」，closure audit 不得据此判失败）；`mariadb` 显式 false + 版本门形态与 INTERSECT 门一致；窗口 mixin 的 `mysql5.7` 移除（PG/DuckDB 补齐项回归验证）；`ilike` 注册；`defaultNullsFirst` accessor + 8 方言断言 + H2 补配；`db2` selector 断链已复现并修复；`INTERSECT` 版本门落地。
-- [ ] 11 项**每项一个方言配置断言测试**（矩阵断言或独立测试类），全部存在且绿。
-- [ ] `defaultNullsFirst` 消费点移交链已写明（WI3 不声称消费完成；WI7 为唯一消费 owner）；不存在两 WI 双重 owner 或双重「完成」声称。
-- [ ] **矩阵快照同步**：所有 functions/extends/loadable 变化已重生成快照；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0；`TestDialectCapabilityMatrix` 字节比对通过。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿——**「全绿」口径**：本 WI 相关模块全绿；该命令闭包不含 `:nop-auth-service`，故 `nop-stream-runtime` 既有失败（`TestStreamConnectorRegistryDiscovery`，见 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头登记）不进本闭包；若执行中扩大 `-pl` 面致其入闭包，以「与基线一致即豁免」口径处理，不得据此判本 WI 失败。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 改动新增 broken link = 0（既有 3 项 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/20-eql-wi3-dialect-config-fixes.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 与 `--module nop-orm-eql --severity high` 均零命中（anti-hollow 对本 WI 尤其关键：accessor-without-consumer、空值门不生效都是要抓的半实现形态）。
-- [ ] 11 项逐项独立提交可审计（G-4 回滚单位 = `git revert` 单项）；零 `.g4`/`_gen`/lexer token 改动。
-- [ ] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：四处失真 + `stringAgg`/`regexpLike`/17 条语义陷阱三小节 + 版本门契约 + 逐项对账无差异；INDEX/source-anchors 已核对。
-- [ ] Anti-Hollow Check：closure audit 已验证（a）`intersectKeyword` 空值门从 XML 配置 → retention → accessor → 生成器报错的运行时调用链真实连通（不只是字段存在）；(b) 未配置方言逐字节零变化有测试证据；(c) 无空方法体/静默跳过/no-op（第 10 项 accessor 的「暂无消费方」以移交记录显式声明）；(d) db2 修复从 selector 命中到方言实例化的端到端路径有测试。
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI3 行据此才可 `todo` →（执行中）→ `done`。
+- [x] roadmap WI3 的 11 项**逐项有结论**（7 改值 + 1 unverified 标注 + 1 确认不改 + 2 版本门/selector；第 8 项为已完成记录只做回归验证）：逐项核对——`mysql`/`oracle`/`h2` 的 `supportReturningForUpdate` → `false`；`duckdb` 保持 `false`；`dm` 显式保留 `unverified` 并登记 successor（不得要求 dm 被「修正」，closure audit 不得据此判失败）；`mariadb` 显式 false + 版本门形态与 INTERSECT 门一致；窗口 mixin 的 `mysql5.7` 移除（PG/DuckDB 补齐项回归验证）；`ilike` 注册；`defaultNullsFirst` accessor + 8 方言断言 + H2 补配；`db2` selector 断链已复现并修复；`INTERSECT` 版本门落地。
+- [x] 11 项**每项一个方言配置断言测试**（矩阵断言或独立测试类），全部存在且绿。（TestDialectReturningForUpdateFlag / TestMysql57WindowFunctionsRemoved / TestIlikeFunctionRegistration / TestDefaultNullsFirstFlag / TestDb2DialectSelectorChain / TestDialectSetOperatorKeywords——第 4/5 项并入 TestDialectReturningForUpdateFlag，第 6 项与版本门并入 TestDialectSetOperatorKeywords/TestEqlSetOperatorDialectGate）
+- [x] `defaultNullsFirst` 消费点移交链已写明（WI3 不声称消费完成；WI7 为唯一消费 owner）；不存在两 WI 双重 owner 或双重「完成」声称。
+- [x] **矩阵快照同步**：所有 functions/extends/loadable 变化已重生成快照；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0；`TestDialectCapabilityMatrix` 字节比对通过。（Phase 2 mysql5.7 functions -10；Phase 3 五方言 +ilike；Phase 5 db2 转 loadable + 函数表 63 项、loadable 14→15）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿——**「全绿」口径**：本 WI 相关模块全绿；该命令闭包不含 `:nop-auth-service`，故 `nop-stream-runtime` 既有失败（`TestStreamConnectorRegistryDiscovery`，见 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头登记）不进本闭包；若执行中扩大 `-pl` 面致其入闭包，以「与基线一致即豁免」口径处理，不得据此判本 WI 失败。（终局实测 2026-10-04：BUILD SUCCESS，nop-dao 855+2skip / nop-orm-eql 247）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 改动新增 broken link = 0（既有 3 项 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`）。（终局实测 exit 0、0 error、3 warning=既有基线）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/20-eql-wi3-dialect-config-fixes.md --strict` 退出码 0。（**留白**：checklist 终门随独立 closure audit 一并核验；执行期预跑 exit 0——active 状态下通过、completed 后强制全勾+evidence，已留痕 daily log）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 与 `--module nop-orm-eql --severity high` 均零命中（anti-hollow 对本 WI 尤其关键：accessor-without-consumer、空值门不生效都是要抓的半实现形态）。（终局实测两命令 exit 0；accessor-without-consumer 形态以移交记录显式声明，见上两条）
+- [x] 11 项逐项独立提交可审计（G-4 回滚单位 = `git revert` 单项）；零 `.g4`/`_gen`/lexer token 改动。（逐项提交清单见 daily log；`git diff --stat 90806e869e..HEAD -- '*.g4' '*_gen*' '*EqlParser*' '*EqlLexer*' '*EqlAST*' '*_Dialect*' '*tokens'` 零输出实测）
+- [x] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：四处失真 + `stringAgg`/`regexpLike`/17 条语义陷阱三小节 + 版本门契约 + 逐项对账无差异；INDEX/source-anchors 已核对。
+- [ ] Anti-Hollow Check：closure audit 已验证（a）`intersectKeyword` 空值门从 XML 配置 → retention → accessor → 生成器报错的运行时调用链真实连通（不只是字段存在）；(b) 未配置方言逐字节零变化有测试证据；(c) 无空方法体/静默跳过/no-op（第 10 项 accessor 的「暂无消费方」以移交记录显式声明）；(d) db2 修复从 selector 命中到方言实例化的端到端路径有测试。（**留白**：执行者已备执行期证据——红→绿留痕/BC 精确文本钉死/端到端 db2 测试/两模块 scan-hollow exit 0——终验归独立 closure audit）
+- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI3 行据此才可 `todo` →（执行中）→ `done`。（**留白**）
 
 ## Deferred But Adjudicated
 
