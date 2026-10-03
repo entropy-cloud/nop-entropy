@@ -471,7 +471,24 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
             total = usage.getPromptTokens() + usage.getCompletionTokens();
         }
         usage.setTotalTokens(total);
+        // Plan 2303 (WI21): cache observability — the Responses usage carries
+        // the cached-token count under input_tokens_details; the usage map
+        // itself is the raw audit view (shared by the non-stream and stream
+        // paths via this parser)
+        usage.setCacheHitTokens(toInt(getByPath(usageMap, "input_tokens_details.cached_tokens")));
+        usage.setRawUsage(usageMap);
         return usage;
+    }
+
+    private Object getByPath(Map<String, Object> map, String path) {
+        Object current = map;
+        for (String segment : path.split("\\.")) {
+            if (!(current instanceof Map)) {
+                return null;
+            }
+            current = ((Map<?, ?>) current).get(segment);
+        }
+        return current;
     }
 
     // ==================== parseStreamChunk（流式方向） ====================

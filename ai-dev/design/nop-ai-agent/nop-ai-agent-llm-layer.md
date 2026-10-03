@@ -429,6 +429,23 @@ per-provider 缓存键放置（unreal D6 增量）：键值 = `ChatOptions.sessi
 
 **已知不对称（登记后继）**：断点开启后 outbound system 为块数组，`AnthropicDialect.parseRequestBody` 对 system 仅 `toString()`——build→parse 自闭环有损（真实 provider 客户端发块数组同样命中此既有缺口）；parse 侧支持留待后继。
 
+## 八点六、缓存观测解析面（plan 2303/WI21，Layer 2）
+
+**解析面**（消费面归 autonomous WI3，WI1 必裁③ 正交分层）：全 dialect 的 usage 缓存字段开箱解析（**non-stream 响应面**；流式 usage 缺口为 registered residual，锚 WI23）：
+
+| Dialect | cacheHitTokens 默认路径 | cacheCreationTokens | rawUsage root |
+|---------|------------------------|---------------------|---------------|
+| OpenAI | `usage.prompt_tokens_details.cached_tokens` | 无（provider 无 cache-write 计费概念） | `usage` |
+| Gemini | `usageMetadata.cachedContentTokenCount` | 无 | `usageMetadata` |
+| Ollama | 显式无（本地运行时无缓存字段） | 显式无 | 无 |
+| Anthropic | `usage.cache_read_input_tokens`（专用映射，plan 2303 不动） | `usage.cache_creation_input_tokens`（同左） | `usage` |
+| Responses | `usage.input_tokens_details.cached_tokens` | 无 | usage map 本身 |
+| deepseek | `usage.prompt_cache_hit_tokens`（**deepseek.llm.xml 显式配置**——字段形态非 OpenAI 兼容，dialect 默认不适用；free.llm.xml extends deepseek 自动继承） | 无 | `usage`（OpenAI 形态继承） |
+
+- **优先序**：`LlmResponseModel` 显式配置 > dialect 级默认（parseUsage 既有三元结构）。
+- **`ChatUsage.rawUsage`**（nop-ai-api additive，plan 2303）：provider 原始 usage 对象的只读视图——方言翻译与审计依据；copy() 共享引用（解析期一次性构建，之后只读）；无生产持久化消费方（UsageRecord 仅摘标量），无 roundtrip 面。
+- **显式登记**：cacheMissTokens 无填充通道（全仓零生产写入方、llm.xdef 无 miss path 配置——WI1 裁定书所列共享契约点按 hit/creation 两字段成立；补通道需动生成管线，successor=autonomous WI3 落地时裁定按 provider 计算 prompt−hit 或补配置通道）；volcengine 等字段形态未经 fixture 实证前不配置。
+
 ## 九、拒绝了什么
 
 ### 9.1 拒绝：每种 Provider 独立定义完整的消息模型

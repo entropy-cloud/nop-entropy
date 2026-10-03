@@ -296,9 +296,10 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
                 ? responseConfig.getStatusPath() : "done_reason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // Usage（使用基类通用方法）
+        // Usage（使用基类通用方法；plan 2303/WI21：Ollama 本地运行时无缓存字段，
+        // 缓存默认显式为 null——非遗漏）
         response.setUsage(parseUsage(responseMap, responseConfig,
-                "prompt_eval_count", "eval_count", null));
+                "prompt_eval_count", "eval_count", null, null, null, null));
 
         return response;
     }

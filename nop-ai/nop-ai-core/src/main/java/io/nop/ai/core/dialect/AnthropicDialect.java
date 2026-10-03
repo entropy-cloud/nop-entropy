@@ -470,9 +470,10 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 ? responseConfig.getStatusPath() : "stop_reason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // 解析 Usage（使用基类通用方法，支持缓存 token）
+        // 解析 Usage（使用基类通用方法，支持缓存 token；plan 2303/WI21 补
+        // rawUsage 保留——hit/creation 由下方 Anthropic 专用字段映射承载）
         ChatUsage usage = parseUsage(responseMap, responseConfig,
-                "usage.input_tokens", "usage.output_tokens", null);
+                "usage.input_tokens", "usage.output_tokens", null, null, null, "usage");
 
         // Anthropic Prompt Caching 专用字段
         // cache_creation_input_tokens: 创建缓存时消耗的 token

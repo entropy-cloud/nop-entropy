@@ -231,9 +231,11 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
                 : "choices.0.finish_reason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // 解析 Usage（使用基类通用方法）
+        // 解析 Usage（使用基类通用方法；plan 2303/WI21 缓存观测默认路径——
+        // OpenAI 无 cache-write 计费概念，creation 无默认）
         response.setUsage(parseUsage(responseMap, responseConfig,
-                "usage.prompt_tokens", "usage.completion_tokens", "usage.total_tokens"));
+                "usage.prompt_tokens", "usage.completion_tokens", "usage.total_tokens",
+                "usage.prompt_tokens_details.cached_tokens", null, "usage"));
 
         return response;
     }

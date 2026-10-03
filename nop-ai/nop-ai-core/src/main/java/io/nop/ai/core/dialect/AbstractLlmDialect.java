@@ -417,8 +417,28 @@ public abstract class AbstractLlmDialect {
      * @param defaultTotalPath 默认的 total tokens 路径
      * @return ChatUsage 对象
      */
+    /**
+     * Plan 2303 (WI21) compatibility shim — delegates to the full form with
+     * no cache defaults and no raw-usage capture (config-only cache parsing,
+     * the pre-WI21 behaviour byte-for-byte).
+     */
     protected ChatUsage parseUsage(Map<String, Object> responseMap, LlmResponseModel responseConfig,
                                    String defaultPromptPath, String defaultCompletionPath, String defaultTotalPath) {
+        return parseUsage(responseMap, responseConfig, defaultPromptPath, defaultCompletionPath,
+                defaultTotalPath, null, null, null);
+    }
+
+    /**
+     * Plan 2303 (WI21): full usage parsing — cache fields gain dialect-level
+     * defaults (explicit responseConfig paths still win), and the raw usage
+     * object is captured for dialect translation / audit when
+     * {@code defaultUsageRootPath} is non-null (dialect-level only — no
+     * config channel, that would require the llm.xdef codegen pipeline).
+     */
+    protected ChatUsage parseUsage(Map<String, Object> responseMap, LlmResponseModel responseConfig,
+                                   String defaultPromptPath, String defaultCompletionPath, String defaultTotalPath,
+                                   String defaultCacheHitPath, String defaultCacheCreationPath,
+                                   String defaultUsageRootPath) {
         ChatUsage usage = new ChatUsage();
 
         // 基础 token 统计
@@ -433,20 +453,41 @@ public abstract class AbstractLlmDialect {
         usage.setCompletionTokens(getIntByPath(responseMap, completionPath));
         usage.setTotalTokens(getIntByPath(responseMap, totalPath));
 
-        // 缓存 token 统计（用于 Prompt Caching）
-        if (responseConfig != null) {
-            String cacheHitPath = responseConfig.getPromptCacheHitTokensPath();
-            String cacheCreationPath = responseConfig.getPromptCacheCreationTokensPath();
+        // 缓存 token 统计（用于 Prompt Caching）——显式配置优先，dialect 默认兜底
+        String cacheHitPath = responseConfig != null && responseConfig.getPromptCacheHitTokensPath() != null
+                ? responseConfig.getPromptCacheHitTokensPath() : defaultCacheHitPath;
+        String cacheCreationPath = responseConfig != null && responseConfig.getPromptCacheCreationTokensPath() != null
+                ? responseConfig.getPromptCacheCreationTokensPath() : defaultCacheCreationPath;
 
-            if (cacheHitPath != null) {
-                usage.setCacheHitTokens(getIntByPath(responseMap, cacheHitPath));
-            }
-            if (cacheCreationPath != null) {
-                usage.setCacheCreationTokens(getIntByPath(responseMap, cacheCreationPath));
+        if (cacheHitPath != null) {
+            usage.setCacheHitTokens(getIntByPath(responseMap, cacheHitPath));
+        }
+        if (cacheCreationPath != null) {
+            usage.setCacheCreationTokens(getIntByPath(responseMap, cacheCreationPath));
+        }
+
+        // Usage Raw 原始保留（dialect 级 root，无 config 通道——plan 2303 round 1 P1 裁定）
+        if (defaultUsageRootPath != null) {
+            Object raw = getRawByPath(responseMap, defaultUsageRootPath);
+            if (raw instanceof Map) {
+                usage.setRawUsage((Map<String, Object>) raw);
             }
         }
 
         return usage;
+    }
+
+    /**
+     * Plan 2303 (WI21): map-valued path read for raw-usage capture (null when
+     * absent or not a map — a malformed usage root never breaks parsing).
+     */
+    @SuppressWarnings("unchecked")
+    protected Map<String, Object> getRawByPath(Map<String, Object> map, String path) {
+        if (path == null) {
+            return null;
+        }
+        Object value = BeanTool.getComplexProperty(map, path);
+        return value instanceof Map ? (Map<String, Object>) value : null;
     }
 
     /**
