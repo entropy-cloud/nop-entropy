@@ -157,28 +157,28 @@ Phase 0 为前置纯裁定、不产产品代码（其各项是 Phase 1/2 的硬�
 
 ### Phase 0 - 前置裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增裁定文档）、`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 与 `dialect-capability-matrix.json`（状态核验，只读）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 复核 WI0 两件产物状态未回退：语料基线快照（`TestEqlCorpusBaseline` 通过）与方言矩阵快照（`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0）——Phase 1/2 的 BC 判据与门禁依赖它们存在。
-- [ ] 重跑 G-3 的 0 命中统计（`git ls-files '*.orm.xml'` 口径，`stdSqlType="TEXT|NUMBER|BOOL|UUID"` 大小写不敏感）并把结果登记进裁定文档；同时按本 plan Current Baseline 第 3 项的口径扩到全仓 `_vfs`/`xdef`/`xmeta` 的 `stdSqlType|returnType|argTypes|stdType` 属性——**这是"加别名会改变哪些既有模型解析结果"影响清单的落地时重跑**（G-3 落地门要求；起草时实证 = 0，执行时以重跑结果为准，若非 0 须逐文件列清单并回到 ask-first）。
-- [ ] 按 WI3 落地后状态重核方言锚点与可加载方言清单（漂移清单见 Current Baseline"WI3 并行实施注记"）：① 本 plan 引用的全部 dialect XML 锚点符号仍存在；② 可加载方言清单——**db2 若按 WI3 第 12 项修复 selector 断链将变为可加载**，重核本 plan"db2 为 stub、不入矩阵"的表述与测试载体表；③ "两闸门（闸门 A/B）直调 `StdSqlType.fromStdName`、无独立白名单"的结论复核（WI3 只改方言 XML 值/函数注册、不改 `StdSqlType`/`SimpleStdDomainHandlers`，预期不变；前提变化时回写裁定文档）。
-- [ ] 裁定 `NUMBER` 别名目标：差异登记第 1 条的候选 (a)/(b)/(c) 三选一，记录理由与被拒候选；若偏离 G-3 字面表（候选 a）或引入方言 XML 新增（候选 b），在 `2026-10-03-wi0-gate-adjudications.md` 追加带日期的增补小节（不重写原文）并同步 roadmap G-3 行注记。产出：NUMBER 的映射目标、'支持/不支持'载体方言名。
-- [ ] 裁定 UUID 形态：差异登记第 2 条的候选 (a)/(b)/(c) 三选一，记录理由；候选 (a) 须同时列出拟补映射的方言清单与 `StdSqlType.java` static 块三个 map（`stdNameMap`/`jdbcTypeMap` 先到先得/`stdTypeMap` 重钉）的不变量核验结论；候选 (c) 须写 successor 与触发条件。**书面裁定的形态同 G-3 模式**：平台负责人经执行指令授权、AI 代拟、人可推翻，落裁定文档"裁决人注记"小节——`StdSqlType` 位于 `nop-kernel/nop-commons` 属模型层变更（ask-first 级），不得以 plan-first 之名替代询问。产出：UUID 是否在本 plan 落地及其形态。
-- [ ] 裁定 `dataTypeName_` 收窄边界：候选 A（删 14 个必拒显式备选、保留 `sqlIdentifier_` 兜底，`nosuchtype` 语义拒绝面不变）vs 候选 B（兜底也删，全部前移到文法，`TestEqlCastBooleanParse:71-76` 断言随裁定迁移）。产出：收窄清单（14 项逐项列"收窄前行为 / 收窄后行为 / 等价接受拼写 / 生成 SQL"——即 roadmap EC ③ 对照表的定稿列结构与草表）、错误形态迁移的登记口径。**行为列必须写错误码字面值**：收窄前 = `nop.err.eql.invalid-sql-type`（`ERR_EQL_INVALID_SQL_TYPE`，`OrmEqlErrors.java:116`）；收窄后（候选 A）= `nop.err.antlr` 前缀的解析失败错误码（`TestEqlSqlTypeClauseGuard` 同款断言形态）；不接受"响亮失败"之类定性词替代字面值。
-- [ ] 裁定测试矩阵载体：逐 alias 列"支持"载体（真方言，`DialectManager` + `CoreInitialization`，`TestH2WindowFrameCompileEndToEnd`/WI2 `TestEqlCastBooleanCompile` 先例）与"不支持"载体（真方言无映射者如 mssql-TEXT，或手工最小方言 `TestEqlTranslationSemantics.buildDialect()` 先例）；**不得用 `es`（伪方言红线）**、`db2` 按 stub 事实暂不入矩阵（若 WI3 修复 selector 使其可加载，按本 Phase 第 3 项重核）；约束 4 的一致性/不等价两类用例的落点（同义拼写同方言输出一致；跨方言支持面差异）在本项定稿。**载体表逐行含"载体方言 + 期望渲染文本"，期望文本按 `stdToNativeSqlType` 实际链路推导**（std 键 → 该方言条目列表中首个非 deprecated 且 `allowPrecision` 匹配项），不得按别名/方言名直觉填——实证：h2 的 std DECIMAL 唯一映射条目是 native `NUMERIC`（`h2.dialect.xml:221`，WI3 落地后行号）⇒ `cast(x as number)`（若裁定目标为 DECIMAL）在 h2 渲染 `NUMERIC`，oracle（唯一条目 native `NUMBER`，`:212`）才渲染 `NUMBER`。
-- [ ] 裁定各 Phase 的提交切分：`StdSqlType.java` 单独提交（G-3 回滚单位）；`.g4` + 重生成产物单独提交；方言 XML（若有）逐条独立提交——与本 plan Protected Areas 表一致，无新增裁定则记录"按默认"。
+- [x] 复核 WI0 两件产物状态未回退：语料基线快照（`TestEqlCorpusBaseline` 通过）与方言矩阵快照（`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0）——Phase 1/2 的 BC 判据与门禁依赖它们存在。（2026-10-04 实测：CorpusBaseline 1/1 PASS、mtime 晚于 `949531d93e`；矩阵门禁 exit 0，15 可加载含 db2——WI3 第 12 项已修复，见裁定文档 §2.1）
+- [x] 重跑 G-3 的 0 命中统计（`git ls-files '*.orm.xml'` 口径，`stdSqlType="TEXT|NUMBER|BOOL|UUID"` 大小写不敏感）并把结果登记进裁定文档；同时按本 plan Current Baseline 第 3 项的口径扩到全仓 `_vfs`/`xdef`/`xmeta` 的 `stdSqlType|returnType|argTypes|stdType` 属性——**这是"加别名会改变哪些既有模型解析结果"影响清单的落地时重跑**（G-3 落地门要求；起草时实证 = 0，执行时以重跑结果为准，若非 0 须逐文件列清单并回到 ask-first）。（重跑双口径均 0 命中，影响清单=空清单，裁定文档 §一）
+- [x] 按 WI3 落地后状态重核方言锚点与可加载方言清单（漂移清单见 Current Baseline"WI3 并行实施注记"）：① 本 plan 引用的全部 dialect XML 锚点符号仍存在；② 可加载方言清单——**db2 若按 WI3 第 12 项修复 selector 断链将变为可加载**，重核本 plan"db2 为 stub、不入矩阵"的表述与测试载体表；③ "两闸门（闸门 A/B）直调 `StdSqlType.fromStdName`、无独立白名单"的结论复核（WI3 只改方言 XML 值/函数注册、不改 `StdSqlType`/`SimpleStdDomainHandlers`，预期不变；前提变化时回写裁定文档）。（裁定文档 §二：符号全部在位、行号漂移登记；15 可加载含 db2、载体表仍不用 db2；两闸门结论不变 `:470-474`/`:1630`/`:1667`）
+- [x] 裁定 `NUMBER` 别名目标：差异登记第 1 条的候选 (a)/(b)/(c) 三选一，记录理由与被拒候选；若偏离 G-3 字面表（候选 a）或引入方言 XML 新增（候选 b），在 `2026-10-03-wi0-gate-adjudications.md` 追加带日期的增补小节（不重写原文）并同步 roadmap G-3 行注记。产出：NUMBER 的映射目标、'支持/不支持'载体方言名。（**候选 (a) `NUMBER→DECIMAL`**；G-3 增补裁决落裁定文档 §三、roadmap G-3 行原地注记已加；载体 h2/oracle 等 9 方言 / 手工最小方言）
+- [x] 裁定 UUID 形态：差异登记第 2 条的候选 (a)/(b)/(c) 三选一，记录理由；候选 (a) 须同时列出拟补映射的方言清单与 `StdSqlType.java` static 块三个 map（`stdNameMap`/`jdbcTypeMap` 先到先得/`stdTypeMap` 重钉）的不变量核验结论；候选 (c) 须写 successor 与触发条件。**书面裁定的形态同 G-3 模式**：平台负责人经执行指令授权、AI 代拟、人可推翻，落裁定文档"裁决人注记"小节——`StdSqlType` 位于 `nop-kernel/nop-commons` 属模型层变更（ask-first 级），不得以 plan-first 之名替代询问。产出：UUID 是否在本 plan 落地及其形态。（**候选 (a) 新增枚举 + h2/postgresql/duckdb/mssql 四方言映射逐条独立提交**；三 map 不变量核验结论在裁定文档 §四；裁决人注记已落）
+- [x] 裁定 `dataTypeName_` 收窄边界：候选 A（删 14 个必拒显式备选、保留 `sqlIdentifier_` 兜底，`nosuchtype` 语义拒绝面不变）vs 候选 B（兜底也删，全部前移到文法，`TestEqlCastBooleanParse:71-76` 断言随裁定迁移）。产出：收窄清单（14 项逐项列"收窄前行为 / 收窄后行为 / 等价接受拼写 / 生成 SQL"——即 roadmap EC ③ 对照表的定稿列结构与草表）、错误形态迁移的登记口径。**行为列必须写错误码字面值**：收窄前 = `nop.err.eql.invalid-sql-type`（`ERR_EQL_INVALID_SQL_TYPE`，`OrmEqlErrors.java:116`）；收窄后（候选 A）= `nop.err.antlr` 前缀的解析失败错误码（`TestEqlSqlTypeClauseGuard` 同款断言形态）；不接受"响亮失败"之类定性词替代字面值。（**候选 A**；14 行对照表草表落裁定文档 §五，收窄前 `nop.err.eql.invalid-sql-type`/收窄后 `nop.err.antlr.common.parse-fail`/`not-end-properly`（`AntlrErrors.java:22/25`），逐项以 Phase 2 实测终稿；DOUBLE 拼写缺口新发现登记 follow-up）
+- [x] 裁定测试矩阵载体：逐 alias 列"支持"载体（真方言，`DialectManager` + `CoreInitialization`，`TestH2WindowFrameCompileEndToEnd`/WI2 `TestEqlCastBooleanCompile` 先例）与"不支持"载体（真方言无映射者如 mssql-TEXT，或手工最小方言 `TestEqlTranslationSemantics.buildDialect()` 先例）；**不得用 `es`（伪方言红线）**、`db2` 按 stub 事实暂不入矩阵（若 WI3 修复 selector 使其可加载，按本 Phase 第 3 项重核）；约束 4 的一致性/不等价两类用例的落点（同义拼写同方言输出一致；跨方言支持面差异）在本项定稿。**载体表逐行含"载体方言 + 期望渲染文本"，期望文本按 `stdToNativeSqlType` 实际链路推导**（std 键 → 该方言条目列表中首个非 deprecated 且 `allowPrecision` 匹配项），不得按别名/方言名直觉填——实证：h2 的 std DECIMAL 唯一映射条目是 native `NUMERIC`（`h2.dialect.xml:221`，WI3 落地后行号）⇒ `cast(x as number)`（若裁定目标为 DECIMAL）在 h2 渲染 `NUMERIC`，oracle（唯一条目 native `NUMBER`，`:212`）才渲染 `NUMBER`。（裁定文档 §六载体表：text→h2 CLOB/pg TEXT、number→h2 NUMERIC/oracle NUMBER、bool→h2 BOOLEAN、uuid→h2/pg/duckdb UUID+mssql UNIQUEIDENTIFIER；负向 mssql/minimal/mysql/oracle）
+- [x] 裁定各 Phase 的提交切分：`StdSqlType.java` 单独提交（G-3 回滚单位）；`.g4` + 重生成产物单独提交；方言 XML（若有）逐条独立提交——与本 plan Protected Areas 表一致，无新增裁定则记录"按默认"。（按默认 + 顺序细化：StdSqlType 提交先于方言 XML（XML 的 stdSqlType="UUID" 依赖闸门 B 放行）；方言 XML 各携该方言正向用例自洽可绿；裁定文档 §七）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：0 命中统计重跑结果、WI3 落地后方言锚点与可加载方言清单重核结论（含 db2 可加载与否对载体表的影响）、NUMBER 目标三选一结论及（如适用）G-3 增补小节、UUID 形态三选一结论（含 static 块不变量核验或 successor）、收窄边界 A/B 结论与 EC ③ 对照表定稿列结构（含错误码字面值口径）、测试矩阵载体表（含逐行期望渲染文本）、提交切分结论。
-- [ ] WI0 两件产物状态核验结论已记录（`completed`/未回退，或显式声明等待并阻塞后续 Phase）。
-- [ ] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物；G-3 增补小节若产生，按其小节内说明登记）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：0 命中统计重跑结果、WI3 落地后方言锚点与可加载方言清单重核结论（含 db2 可加载与否对载体表的影响）、NUMBER 目标三选一结论及（如适用）G-3 增补小节、UUID 形态三选一结论（含 static 块不变量核验或 successor）、收窄边界 A/B 结论与 EC ③ 对照表定稿列结构（含错误码字面值口径）、测试矩阵载体表（含逐行期望渲染文本）、提交切分结论。（`2026-10-04-wi9a-phase0-adjudications.md` §一-§七 + 裁决人注记）
+- [x] WI0 两件产物状态核验结论已记录（`completed`/未回退，或显式声明等待并阻塞后续 Phase）。（裁定文档 §〇：均未回退）
+- [x] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物；G-3 增补小节若产生，按其小节内说明登记）。（G-3 增补小节已落裁定文档 §三 + roadmap G-3 行注记；owner docs 归 Phase 1/2）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-04.md` WI9a Phase 0 置顶条目）
 
 ### Phase 1 - `stdNameMap` 别名 + UUID 形态落地（模型层，单独提交）
 
