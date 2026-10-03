@@ -51,7 +51,7 @@
 
 - 不修 BUG-4/6/7/8/15（WI2 的 5 项 B 类缺陷）。
 - 不填 `sqlIntervalLiteral` 逐方言模板、不定 interval 输出形态（**WI7b 是唯一 owner**，roadmap 明文）。
-- 不改任何既有方言 XML 能力值纠错（WI3，G-4 授权范围外不得顺手改）；本 WI 只**新增** `supportLateral` 属性与 LATERAL 已确认支持方言的显式开启。
+- 不改任何**既有**方言 XML 能力值纠错（WI3，G-4 授权范围外不得顺手改）；本 WI 只**新增** `supportLateral` 属性——"已确认支持方言显式开启 `true`"与"mariadb 显式配置 `false`（文档化证据载体，roadmap WI1 表明令 MariaDB 无 LATERAL）"同属该**新属性的首次配置用法**，不属于既有能力值纠错。
 - 不把 `CROSS` 移出 `unreservedWord_` 或任何 `<reservedKeywords>`（roadmap WI1 表明令）。
 - 不做 `natural join`、`FOR UPDATE NOWAIT`/`SKIP LOCKED`（WI12）。
 - 不引入 `:nop-orm-tdengine` / `:nop-db-migration` / `:nop-orm-demo` 进 `-pl`（roadmap 级 EC 第 8 条覆盖，塞入会拖入无关依赖树）。
@@ -78,6 +78,7 @@
 2. **`sqlIntervalLiteral` 的模型载体**：roadmap 写"新增 `sqlIntervalLiteral` 元素"（即 `<sqls>` 子元素，与 `<forUpdate>` `dialect.xdef:117` 同构），retention 落点应为 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/DialectSqls.java`（现为空 retention 子类）而非 `DialectFeatures.java`。Phase 0 以 Decision 项裁定并记录，默认按 roadmap 口径落 `<sqls>` 子元素。
 3. **doc-link 基线**：roadmap 记录的既有 broken link 基线是 3 项；起草初期实测曾为 5 项 warning（多出的 2 项来自 `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md` 对 WI0 Phase 3 未落地产物的引用），WI0 Phase 3 的快照落地后回落为 **3 项**（`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`），与 roadmap 口径一致。`--strict` 退出码 0（0 error）。本 plan 门禁只比对**本文件新增 = 0**。
 4. **BUG-1 的"不支持者改写为函数调用"按证据裁定为不可实现**：roadmap WI1 BUG-1 门控列要求"各方言 ESCAPE 支持矩阵结论落档 owner doc…**不支持者改写为函数调用**"——前半句照做（owner doc 矩阵，逐行标 `[实测]`/`[文档]`/`[unverified]`，含默认 escape 字符三分类 {Oracle, DB2}=NULL / {H2, PG}=backslash / {DM8}=unverified）；后半句经证据裁定**当前不可实现**：全仓没有"该方言是否支持 ESCAPE"的字段载体，且证据面没有"不支持 ESCAPE"的方言成员（已取证方言全部支持该子句，分叉只在默认 escape 字符）。本 plan 采用 **`AstToSqlGenerator` 无条件输出 `ESCAPE <literal>`** + owner doc 矩阵兜底；"改写为函数调用"移入 `Deferred But Adjudicated`（触发条件 = 发现真实不支持的方言成员）。随之，BUG-1 **无方言门、无负向错误码用例**（roadmap WI1 EC"每个门控都有负向用例"对 BUG-1 不适用——它没有门控）。
+5. **终局 `-pl` 闭包比 roadmap WI1 EC 第 5 条多 `:nop-stream-sql`（加严，非偏离）**：BUG-10 修复触碰 `nop-stream/nop-stream-sql` 的 `StreamSqlCompiler.joinTypeName` switch（`:594-608`），该模块必须进终局验证命令才能证明消费方接线不破；roadmap WI1 EC 第 5 条的命令清单没有它（roadmap 级 EC 第 8 条的跨模块命令也不含），本 plan 终局命令显式追加 `:nop-stream-sql`。方向是**加严**验证面，不构成对 roadmap 的偏离。
 
 ## Protected Areas 与准入声明（roadmap Cross-Cutting 强制）
 
@@ -104,24 +105,26 @@ Phase 1-6 相互独立、可分别落地与回滚；每个代码 Phase 单独提
 
 ### Phase 0 - 前置核验与裁定
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（Phase 3 状态核验）、`ai-dev/design/eql-cross-db-compat/`（新增裁定文档）
+
+> **执行期记录（2026-10-03）**：5 条复核 Minor 已先落本文件（Deferred 补"ESCAPE 回显随 WI2 BUG-4"、Phase 4"归一化层检查同码/文法层走 antlr"、差异登记第 5 条、Phase 5 CROSS 返回值 `"CROSS"`、Non-Goals 措辞放宽）。四项裁定全部落 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md`：BUG-14 = **候选 B 显式报错**（候选 A 被拒：`[...]` 文法是集合过滤语义非下标，机械回显无正确输出目标；新错误码 `nop.err.eql.collection-access-not-support`）；`sqlIntervalLiteral` 载体 = **按 roadmap 口径 `<sqls>` 子元素 + retention 落 `DialectSqls.java`**；`supportLateral` = **未配置即不支持（编译期报错）**，显式 true = postgresql / mysql / duckdb（均 `[文档]`），mariadb 显式 false 作负向载体；ⓘ 执行期证据修正：**H2 经取证不支持 LATERAL**（官方 grammar 无该关键字 + Hibernate H2Dialect 明文），plan 起草括号中"H2 或可开启"的猜测不成立，以矩阵证据为准——h2 不配置（=false）。ESCAPE = **执行路径无条件输出**，ILIKE+ESCAPE 组合显式报错（复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，feature=`ilike+escape`）；两张矩阵证据分派表见裁定文档 §4/§5。
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 复核 WI0 Phase 3（既有 EQL 语料基线快照，`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` + `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlCorpusBaseline.java`）状态未回退（起草时已 `completed`）——本 plan 每个 Phase 的 BC 判据（"与 WI0 基线快照逐字一致"）依赖该快照存在。
-- [ ] 裁定 BUG-14 修法并记录：候选 A = 补齐打印（`collection` + 下标语义 + `. collFuncName(collFuncArgs)` 机械回显）；候选 B = 对非集合实体属性显式报错（遵循 `SqlSelectFieldExtractor.java:124-127` 的"显式失败、不静默跳过"裁决）。写明选择理由、被拒候选与原因、对 `o.roles[1].x()` 具体输入的目标输出/报错形态。
-- [ ] 裁定 `sqlIntervalLiteral` 的 xdef 载体（默认按 roadmap 口径：`<sqls>` 子元素、retention 落 `DialectSqls.java`；备选：features 布尔、retention 落 `DialectFeatures.java`），记录理由。
-- [ ] 裁定 `supportLateral` 的 `default.dialect.xml` 缺省值与"已确认支持"方言清单（逐行标 `[实测]`/`[文档]`；unverified 维持 unverified ⇒ 缺省保守值），产出 ESCAPE 与 LATERAL 两张矩阵的证据分派表（DM8 默认 escape、TDengine LATERAL、DB2 9.7 边界、Oracle 12.1 边界一律 `[unverified]`）。ESCAPE 侧同时登记"无条件输出"已定案的证据面（无字段载体 + 无证据成员，差异登记第 4 条）。
+- [x] 复核 WI0 Phase 3（既有 EQL 语料基线快照，`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` + `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlCorpusBaseline.java`）状态未回退（起草时已 `completed`）——本 plan 每个 Phase 的 BC 判据（"与 WI0 基线快照逐字一致"）依赖该快照存在。（2026-10-03 实测：`./mvnw test -pl :nop-orm-eql -am -Dtest=TestEqlCorpusBaseline -Dsurefire.failIfNoSpecifiedTests=false` 通过，plan 02 Status=completed，快照 7/7 在位。）
+- [x] 裁定 BUG-14 修法并记录：候选 A = 补齐打印（`collection` + 下标语义 + `. collFuncName(collFuncArgs)` 机械回显）；候选 B = 对非集合实体属性显式报错（遵循 `SqlSelectFieldExtractor.java:124-127` 的"显式失败、不静默跳过"裁决）。写明选择理由、被拒候选与原因、对 `o.roles[1].x()` 具体输入的目标输出/报错形态。（裁定 = 候选 B，见裁定文档 §2。）
+- [x] 裁定 `sqlIntervalLiteral` 的 xdef 载体（默认按 roadmap 口径：`<sqls>` 子元素、retention 落 `DialectSqls.java`；备选：features 布尔、retention 落 `DialectFeatures.java`），记录理由。（裁定 = 采纳默认口径，见裁定文档 §3。）
+- [x] 裁定 `supportLateral` 的 `default.dialect.xml` 缺省值与"已确认支持"方言清单（逐行标 `[实测]`/`[文档]`；unverified 维持 unverified ⇒ 缺省保守值），产出 ESCAPE 与 LATERAL 两张矩阵的证据分派表（DM8 默认 escape、TDengine LATERAL、DB2 9.7 边界、Oracle 12.1 边界一律 `[unverified]`）。ESCAPE 侧同时登记"无条件输出"已定案的证据面（无字段载体 + 无证据成员，差异登记第 4 条）。（见裁定文档 §4/§5。）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含 BUG-14 选型与被拒候选、`sqlIntervalLiteral` 载体、`supportLateral` 缺省值、两张矩阵的证据分派表与 ESCAPE 无条件输出的证据面登记。
-- [ ] WI0 Phase 3 状态核验结论已记录（`completed`，或显式声明等待并阻塞后续 Phase）。
-- [ ] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含 BUG-14 选型与被拒候选、`sqlIntervalLiteral` 载体、`supportLateral` 缺省值、两张矩阵的证据分派表与 ESCAPE 无条件输出的证据面登记。
+- [x] WI0 Phase 3 状态核验结论已记录（`completed`，或显式声明等待并阻塞后续 Phase）。
+- [x] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 1 - BUG-1 `LIKE … ESCAPE` 静默丢弃（无条件输出，无方言门）
 
@@ -204,7 +207,7 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlIntervalExp
 
 - [ ] 修复前红：`interval '1 day'`（PG 形态）解析失败（parse error）——回归测试断言其可解析，修复前红。
 - [ ] 文法：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlIntervalExpr` 新增 `INTERVAL STRING_` 备选分支（同构先例 `sqlDateTimeLiteral`，`BaseRule.g4:45-46`，`value=STRING_` 进专用构建逻辑——仅作参考，**不新增 AST 节点**）。
-- [ ] 构建期归一化：手写 `EqlASTBuildVisitor` 在 interval 构建处把字符串字面量解析为 value+unit 装入**既有** `SqlIntervalExpr`（如 `'1 day'` → value=1、unit=DAY；单位大小写不敏感）；SQL 标准多字段形态（如 `'1-2' year to month`）不支持则**明确报错**（复用 `ERR_EQL_INVALID_INTERVAL_UNIT`，`OrmEqlErrors.java:94`），解析失败同码——不允许静默跳过。
+- [ ] 构建期归一化：手写 `EqlASTBuildVisitor` 在 interval 构建处把字符串字面量解析为 value+unit 装入**既有** `SqlIntervalExpr`（如 `'1 day'` → value=1、unit=DAY；单位大小写不敏感）；SQL 标准多字段形态（如 `'1-2' year to month`）不支持则**明确报错**（复用 `ERR_EQL_INVALID_INTERVAL_UNIT`，`OrmEqlErrors.java:94`）——该错误码只覆盖**归一化层检查**（同一错误码）；**文法层失败**（antlr 语法不匹配，如 `'1-2'` 后缺 unit）走 antlr 既有错误码（`nop.err.antlr.*`），不与本码混同——不允许静默跳过。
 - [ ] **禁止改 `EqlAST.xjava` 与 `ast/_gen/`**（避免 `EqlASTKind` ordinal 重编号，roadmap 红线）；重生成命令 `./mvnw generate-sources -pl :nop-orm-eql -am`，`ast/_gen/` 幂等无 diff 可作为回归证据。
 - [ ] `sqlIntervalLiteral` 骨架：`dialect.xdef` 新增元素（Phase 0 裁定载体）+ retention 手写字段 + `IDialect` accessor + `DialectImpl` 实现（返回已配置模板文本，未配置返回空）。**不填逐方言模板**（WI7b 唯一 owner）；已有方言 XML 不新增模板内容。
 - [ ] 既有形态不破坏：`interval 1 day` 仍解析、生成输出与 WI0 基线逐字一致；deprecated 标注落 owner doc（不禁止、不报错——roadmap 明文"不禁止现有语法（属破坏性变更），只标 deprecated"）。
@@ -229,7 +232,7 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`joinType_`
 - [ ] 修复前红：`select count(*) from a cross join b` 断言输出 `… from a cross join b`——修复前输出 `from a as cross join b`，断言红。
 - [ ] 文法新增 `crossJoin_: CROSS JOIN` 并入 `joinType_`；**不动 `CROSS` 在 `unreservedWord_`（`BaseRule.g4:93`）与 7 个方言 `<reservedKeywords>` 中的位置**（移出即回归，roadmap 明令）。
 - [ ] 枚举与映射补全：`SqlJoinType` 新增 cross 值（文本 `cross join`），手写映射 `EqlASTBuildVisitor.SqlJoinTableSource_joinType`（`:291-299`）补分支，生成器经 `getJoinType().getText()`（`AstToEqlGenerator.java:630`）自然输出。
-- [ ] **已知消费方同批处理**：`nop-stream-sql` 的 `StreamSqlCompiler.joinTypeName` switch（`:594-608`）补 `CROSS_JOIN` 显式分支（返回 `"cross join"`）——**不修跨语法语义**，但文法放开后 stream 侧会从"解析失败（响亮）"退化为"解析成功但运行时抛错（更晚的响亮）"，属已知消费方必须同批处理；该模块不在本 WI 原有 `-pl` 闭包，自本 Phase 起 `-pl` 追加 `:nop-stream-sql`。
+- [ ] **已知消费方同批处理**：`nop-stream-sql` 的 `StreamSqlCompiler.joinTypeName` switch（`:594-608`）补 `CROSS_JOIN` 显式分支（返回值裁定为 `"CROSS"`，与既有分支返回 `"INNER"`/`"LEFT"`/`"RIGHT"`/`"FULL"` 的大写枚举名风格一致；执行时已核实其输出仅流入 stream 编译产物的 joinSpec `joinType` 字段，`nop-stream-sql` 测试无对 `"cross join"` 全文的断言依赖）——**不修跨语法语义**，但文法放开后 stream 侧会从"解析失败（响亮）"退化为"解析成功但运行时抛错（更晚的响亮）"，属已知消费方必须同批处理；该模块不在本 WI 原有 `-pl` 闭包，自本 Phase 起 `-pl` 追加 `:nop-stream-sql`。
 - [ ] **实体编译路径用例**：经 `EqlCompiler` + 实体模型编译 `from A a cross join B b`，断言产出 SQL 文本——覆盖 `EqlTransformVisitor.markMainSource`（`:523-538`，现仅对 LEFT/RIGHT/FULL 分派）对 CROSS_JOIN 的行为，不再是纯 parse+echo 层用例。
 - [ ] 回归守护：`natural join` 仍失败（`nop.err.antlr.not-end-properly`，行为不变——roadmap 未授权扩展）；别名场景 `from a cross b`（`cross` 作别名）在新文法下的行为经裁定并记录（如受影响，列入提交说明）。
 - [ ] 文法改动**单独提交**；重生成产物随该提交（`./mvnw generate-sources -pl :nop-orm-eql -am`）；不删除任何 lexer token。
@@ -284,6 +287,13 @@ Exit Criteria:
 - [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI1 行据此才可 `todo` →（执行中）→ `done`。
 
 ## Deferred But Adjudicated
+
+### ESCAPE 回显输出（BUG-1 的回显侧，随 WI2 BUG-4 批次）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: BUG-1 本 plan 的修复面是**执行路径**（`AstToSqlGenerator` 渲染进真实 SQL）；回显路径 `AstToEqlGenerator.visitSqlLikeExpr`（`:835-839`）是否打印 escape 属回显治理，与 BUG-4（`select *`/limit 回显丢失）同属一批——WI0 语料基线只锁定现有回显文本不变，本 plan Phase 1 明确"回显路径维持现状"。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/backlog/eql-cross-db-compat-roadmap.md` WI2 BUG-4 批次（回显治理时统一让回显路径与执行路径一致）。
 
 ### ESCAPE"不支持者改写为函数调用"（roadmap BUG-1 门控列的后半句）
 
