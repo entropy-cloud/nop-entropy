@@ -150,7 +150,8 @@ sqlTableSource:
     ;
 
 sqlSingleTableSource:
-    tableName=sqlTableName AS? alias=sqlAlias? decorators=sqlDecorators_?;
+    tableName=sqlTableName AS? ({_input.LA(1) != CROSS || _input.LA(2) != JOIN}?
+      alias=sqlAlias)? decorators=sqlDecorators_?;
 
 // WI17: TUMBLE(t, INTERVAL) 流时间切片伪表函数（D4 裁定，stream-only 目标）。
 // t 为限定的时间列（表名.列名，bigint epoch-millis），INTERVAL 为窗口时长；
@@ -170,7 +171,7 @@ sqlSubqueryTableSource:
 
 
 joinType_:
-    innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_;
+    crossJoin_ | innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_;
 
 sqlTableSource_joinRight:
     sqlSingleTableSource | sqlSubqueryTableSource;
@@ -186,6 +187,11 @@ leftJoin_:
 
 rightJoin_:
     RIGHT OUTER? JOIN;
+
+// WI1 BUG-10: cross join 此前被误解析（cross 经 unreservedWord_ 消费为别名）。
+// CROSS 不移出 unreservedWord_ 与各方言 reservedKeywords（roadmap 明令）
+crossJoin_:
+    CROSS JOIN;
 
 sqlWhere
     : WHERE expr=sqlExpr
