@@ -32,6 +32,16 @@ public interface CoreConfigs {
     @Description("SQL统计条目缓存的最大数量")
     IConfigReference<Integer> CFG_CORE_STAT_SQL_CACHE_MAX_SIZE = varRef(s_loc, "nop.core.stat.sql-cache-max-size", Integer.class, 1000);
 
+    /**
+     * WI10b（WI10a 设计定稿）：SQL 语句中单个 IN 列表允许的最大元素个数。超限在编译/构建期
+     * 显式报错，不做任何改写或截断。唯一硬依据为 Oracle IN 表达式列表上限 1000（ORA-01795）。
+     * 本配置只允许调高（最小有效值为 1，小于 1 将拒绝所有 IN 列表），不存在"关闭检查"的取值；
+     * 调高阈值即部署方自担其数据库实际上限的取证责任。EQL 编译路径（nop.err.eql.in-list-too-large）
+     * 与 SqlBuilder 集合展开路径（nop.err.core.sql.in-list-too-large）共用本配置项。
+     */
+    @Description("SQL语句中单个IN列表允许的最大元素个数(唯一硬依据为Oracle ORA-01795的1000上限,超限显式报错不改写;最小有效值为1,不存在关闭检查的取值)")
+    IConfigReference<Integer> CFG_CORE_SQL_IN_LIST_MAX_SIZE = varRef(s_loc, "nop.core.sql.in-list-max-size", Integer.class, 1000);
+
     @Description("RPC客户端调用统计缓存的最大数量")
     IConfigReference<Integer> CFG_CORE_STAT_RPC_CLIENT_CACHE_MAX_SIZE = varRef(s_loc, "nop.core.stat.rpc-client-cache-max-size",
             Integer.class, 3000);

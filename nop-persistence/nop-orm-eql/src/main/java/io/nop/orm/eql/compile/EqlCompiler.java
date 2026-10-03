@@ -59,7 +59,7 @@ public class EqlCompiler implements ISqlCompiler {
             astTransformer.transformBeforeAnalyze(program, name, eql, context);
         }
 
-        EqlTransformVisitor transformer = new EqlTransformVisitor(context);
+        EqlTransformVisitor transformer = new EqlTransformVisitor(context, name);
         transformer.transform(program);
 
         if (astTransformer != null) {

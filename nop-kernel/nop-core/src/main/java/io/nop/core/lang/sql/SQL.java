@@ -19,6 +19,7 @@ import io.nop.commons.cache.CacheRef;
 import io.nop.commons.text.marker.IMarkedString;
 import io.nop.commons.text.marker.MarkedString;
 import io.nop.commons.text.marker.MarkedStringBuilderT;
+import io.nop.core.CoreConfigs;
 import io.nop.commons.text.marker.Marker;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.text.marker.Markers.ValueMarker;
@@ -40,6 +41,10 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import static io.nop.core.CoreErrors.ARG_COUNT;
+import static io.nop.core.CoreErrors.ARG_ITEM_COUNT;
+import static io.nop.core.CoreErrors.ARG_MAX_ITEMS;
+import static io.nop.core.CoreErrors.ARG_NAME;
+import static io.nop.core.CoreErrors.ERR_CORE_SQL_IN_LIST_TOO_LARGE;
 import static io.nop.core.CoreErrors.ERR_SQL_PARAM_COUNT_MISMATCH;
 
 @ImmutableBean
@@ -726,6 +731,21 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         }
 
         public SqlBuilder spreadParams(Collection<?> c) {
+            // WI10b（WI10a 设计定稿 2026-10-03）：IN 列表长度门禁，集合展开入口全局拦截。
+            // 挂载点裁定（2026-10-04-wi10b-phase0-adjudications.md §4.2）：本方法是唯一全覆盖
+            // 单点——上游为 paramCollection 链（in()/paramEx()）与 CollectSqlOutput 的直调，
+            // paramCollection-only 与 FilterBeanToSQLTransformer-only 均不完备。
+            // 计数口径 = Collection 顶层元素个数（行组 Object[]/嵌套 Collection 按 1 计；
+            // 标量集合时 == 展开后 ? 数）。空集合的既有 (NULL) 行为保留在门禁之前。
+            // 契约与 EQL 编译路径一致：不静默、不截断、不自动改写，阈值同源
+            // CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE；错误码归属 CoreErrors（模块边界，
+            // 与 nop.err.eql.in-list-too-large 不共用）。
+            if (c != null && c.size() > CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE.get()) {
+                throw new NopException(ERR_CORE_SQL_IN_LIST_TOO_LARGE)
+                        .param(ARG_ITEM_COUNT, c.size())
+                        .param(ARG_MAX_ITEMS, CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE.get())
+                        .param(ARG_NAME, name);
+            }
             if (c == null || c.isEmpty()) {
                 append("(NULL)");
             } else {

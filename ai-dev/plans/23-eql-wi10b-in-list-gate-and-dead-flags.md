@@ -156,34 +156,34 @@ Exit Criteria:
 
 ### Phase 1 - `IN` 列表长度门禁实现 + 五条测试
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java`、`nop-kernel/nop-core/src/main/java/io/nop/core/CoreErrors.java`、`nop-kernel/nop-core/src/main/java/io/nop/core/lang/sql/SQL.java`（按 Phase 0 挂载点）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/OrmEqlErrors.java`、`.../OrmEqlConstants.java`、`.../compile/EqlTransformVisitor.java` 或 `.../compile/EqlCompiler.java`（按 Phase 0 挂载点）、`nop-core`/`nop-orm-eql` 测试、`ai-dev/logs/`
 
 - Item Types: `Feature`（门禁、配置、错误码）、`Proof`（五条测试）
 
-- [ ] `CoreConfigs` 新增阈值配置项：常量默认 1000、`varRef` 模式、`@Description` 英文或中文照模块惯例、无"关闭检查"取值（配置调高即部署自担证据责任——设计 §3.1）。
-- [ ] `OrmEqlErrors` 新增 EQL 路径错误码 + `CoreErrors` 新增 `SqlBuilder` 路径错误码（Phase 0 命名），`.param(...)` 按 Phase 0 裁定的 param 集合；错误消息英文。
-- [ ] EQL 路径门禁：按 Phase 0 挂载点实现，对 `SqlInValuesExpr#getValues()` 计数（字面量与 marker 统一计数），超阈值抛 `NopException` + 新错误码；**不区分方言**（门禁方言无关）、**不改写**、**不触碰 `AstToEqlGenerator`/`AstToSqlGenerator` 的任何打印方法**。
-- [ ] `SqlBuilder` 路径门禁：按 Phase 0 挂载点实现，超阈值抛同一契约错误（`CoreErrors` 码、同一配置项默认值）；空集合 `spreadParams` 的既有 `(NULL)` 行为不变（空 IN 列表语义不在本策略范围——设计 §3.4）。
-- [ ] **测试一（阈值内正常）**：`<default-threshold>` 个元素的 `IN` 与 `NOT IN` 均正常编译、SQL 文本正确。
-- [ ] **测试二（超阈值报错）**：EQL 路径超阈值编译期抛新错误码（断言具体错误码与 `actual`/`max` param 值，非泛化异常）；`SqlBuilder` 路径超阈值构建期抛 `CoreErrors` 新码（同断言标准）。
-- [ ] **测试三（`NOT IN` 同阈值）**：`NOT IN` 超阈值同样报错、同错误码，无单独放宽。
-- [ ] **测试四（回显不变）**：超阈值的 `SqlInValuesExpr` 经 `EqlASTNode#toSqlString()` 仍完整转出（门禁不在回显路径）；`TestEqlCorpusBaseline` 回归无差异。
-- [ ] **测试五（基线无 diff）**：执行载体 = Closure Gates EC⑤ 的完整命令 `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C`（三份 `-pl` 可覆盖语料 `:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 随该命令闭包覆盖）；既有 EQL 用例在新门禁下全部通过且输出与**当前棘轮快照**一致（比对对象是执行时点的现行快照——WI1/WI2 实施后快照会被合法再棘轮，不与 WI0 原始快照比对；不声称 7 个全测，剩余两份由 roadmap 级 EC 第 8 条覆盖）。
-- [ ] 配置行为测试：调高配置后原超阈值查询可过（证明配置通路真实生效，接线验证）；配置不存在"关闭"取值（可省略——类型即保证，如需断言写入测试 javadoc）。
+- [x] `CoreConfigs` 新增阈值配置项：常量默认 1000、`varRef` 模式、`@Description` 英文或中文照模块惯例、无"关闭检查"取值（配置调高即部署自担证据责任——设计 §3.1）。（`CFG_CORE_SQL_IN_LIST_MAX_SIZE`＝`nop.core.sql.in-list-max-size`，Integer 默认 1000，@Description 中文照模块惯例并写明"最小有效值为 1"）
+- [x] `OrmEqlErrors` 新增 EQL 路径错误码 + `CoreErrors` 新增 `SqlBuilder` 路径错误码（Phase 0 命名），`.param(...)` 按 Phase 0 裁定的 param 集合；错误消息英文。（⚠️ 执行期偏差：消息取**中文**——owner doc `error-handling.md:120` 存量中文模块裁定 + WI1/WI2/WI3 先例，已在裁定文档 §5 登记；param 集合按裁定：EQL=itemCount/maxItems/stmtName/dialect，Core=itemCount/maxItems/name）
+- [x] EQL 路径门禁：按 Phase 0 挂载点实现，对 `SqlInValuesExpr#getValues()` 计数（字面量与 marker 统一计数），超阈值抛 `NopException` + 新错误码；**不区分方言**（门禁方言无关）、**不改写**、**不触碰 `AstToEqlGenerator`/`AstToSqlGenerator` 的任何打印方法**。（`EqlTransformVisitor#visitSqlInValuesExpr` 新覆写，check-first，构造器 +stmtName 由 `EqlCompiler` 传入）
+- [x] `SqlBuilder` 路径门禁：按 Phase 0 挂载点实现，超阈值抛同一契约错误（`CoreErrors` 码、同一配置项默认值）；空集合 `spreadParams` 的既有 `(NULL)` 行为不变（空 IN 列表语义不在本策略范围——设计 §3.4）。（`SQL.SqlBuilder#spreadParams` 入口全局拦，顶层元素计数；空集合分支先于门禁；现状锁定：`in(empty)` 经 paramCollection+spreadParams 叠加输出 ` in ((NULL))`——测试按现状断言，门禁未改变该行为）
+- [x] **测试一（阈值内正常）**：`<default-threshold>` 个元素的 `IN` 与 `NOT IN` 均正常编译、SQL 文本正确。（`testInListWithinThresholdCompiles`：999 元素 IN/NOT IN 编译，尾部元素断言）
+- [x] **测试二（超阈值报错）**：EQL 路径超阈值编译期抛新错误码（断言具体错误码与 `actual`/`max` param 值，非泛化异常）；`SqlBuilder` 路径超阈值构建期抛 `CoreErrors` 新码（同断言标准）。（`testInListOverThresholdThrowsWithCodeAndParams`：码 + itemCount=1001/maxItems=1000/stmtName=testStmt/dialect；core 侧 `testSqlBuilderInDirectCallOverThresholdThrows` + `testFilterBeanInOverThresholdThrowsEndToEnd`：码 + itemCount/maxItems）
+- [x] **测试三（`NOT IN` 同阈值）**：`NOT IN` 超阈值同样报错、同错误码，无单独放宽。（EQL 侧 `testNotInOverThresholdSameError`；core 侧 `testFilterBeanNotInOverThresholdSameError`）
+- [x] **测试四（回显不变）**：超阈值的 `SqlInValuesExpr` 经 `EqlASTNode#toSqlString()` 仍完整转出（门禁不在回显路径）；`TestEqlCorpusBaseline` 回归无差异。（`testEchoToSqlStringUnchangedOverThreshold`：1001 元素全转出 1000 逗号；`TestEqlCorpusBaseline` 1/1 PASS 无 diff）
+- [x] **测试五（基线无 diff）**：执行载体 = Closure Gates EC⑤ 的完整命令 `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C`（三份 `-pl` 可覆盖语料 `:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 随该命令闭包覆盖）；既有 EQL 用例在新门禁下全部通过且输出与**当前棘轮快照**一致（比对对象是执行时点的现行快照——WI1/WI2 实施后快照会被合法再棘轮，不与 WI0 原始快照比对；不声称 7 个全测，剩余两份由 roadmap 级 EC 第 8 条覆盖）。（Phase 1 执行载体 `-pl :nop-core,:nop-orm-eql -am` 全绿：nop-orm-eql 302|0（含 CorpusBaseline 1/1 与三份语料回显断言）、nop-dao 204|46skip|0、nop-core 855|2skip|0（surefire 汇总）；完整 EC⑤ 命令在终局执行）
+- [x] 配置行为测试：调高配置后原超阈值查询可过（证明配置通路真实生效，接线验证）；配置不存在"关闭"取值（可省略——类型即保证，如需断言写入测试 javadoc）。（两侧各一条：EQL `testConfigRaiseAllowsOverThresholdList`（恢复默认后重新被拒，证非一次性放行）+ core `testConfigRaiseAllowsOverThresholdCollection`（同型）；"无关闭取值"的算术保证写于 CoreConfigs @Description 与裁定文档 §6）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 五条测试全部落地且绿（阈值内 / 超阈值报错 / `NOT IN` 同阈值 / 回显不变 / 基线无 diff），断言具体错误码与 param，不断言"没抛异常"敷衍形态。
-- [ ] **接线验证**（Minimum Rules #23）：配置项被两条检查路径在运行时真实读取（调高配置的用例通过）；`SqlBuilder` 路径门禁在 `FilterBeanToSQLTransformer#visitCompareOp` 的 `IN` 用例上真实触发（端到端从 filter bean 到报错）。
-- [ ] **端到端验证**（Minimum Rules #22）：EQL 路径从 `EqlCompiler#compile` 入口到抛错完整走通（不经手工构造打印器）。
-- [ ] **无静默跳过**（Minimum Rules #24）：两条路径的超阈值行为都是显式报错，无截断、无 warn-only、无吞异常。
-- [ ] 回显零变化证明：`toSqlString()` 对超阈值 AST 不报错且输出完整；`TestEqlCorpusBaseline` 无 diff。
-- [ ] `./mvnw test -pl :nop-core,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中。
-- [ ] owner doc 更新归 Phase 3 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 3`；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 五条测试全部落地且绿（阈值内 / 超阈值报错 / `NOT IN` 同阈值 / 回显不变 / 基线无 diff），断言具体错误码与 param，不断言"没抛异常"敷衍形态。（surefire XML：`TestEqlInListLengthGate` 5|0、`TestSqlBuilderInListLengthGate` 7|0；红证据 `_tmp/wi10b/red-eql.txt`（3×"nothing was thrown"）+ `_tmp/wi10b/red-core.txt`（4×"nothing was thrown"））
+- [x] **接线验证**（Minimum Rules #23）：配置项被两条检查路径在运行时真实读取（调高配置的用例通过）；`SqlBuilder` 路径门禁在 `FilterBeanToSQLTransformer#visitCompareOp` 的 `IN` 用例上真实触发（端到端从 filter bean 到报错）。（EQL `testConfigRaiseAllowsOverThresholdList` + core `testConfigRaiseAllowsOverThresholdCollection` + `testFilterBeanInOverThresholdThrowsEndToEnd`：filter bean → visitCompareOp → sb.in → spreadParams → 报错全链）
+- [x] **端到端验证**（Minimum Rules #22）：EQL 路径从 `EqlCompiler#compile` 入口到抛错完整走通（不经手工构造打印器）。（两个超阈值用例均经 `new EqlCompiler().compile("testStmt", eql, ctx)` 入口）
+- [x] **无静默跳过**（Minimum Rules #24）：两条路径的超阈值行为都是显式报错，无截断、无 warn-only、无吞异常。（`NopException` + 具名错误码，两侧超阈值用例断言异常类型与码）
+- [x] 回显零变化证明：`toSqlString()` 对超阈值 AST 不报错且输出完整；`TestEqlCorpusBaseline` 无 diff。（`testEchoToSqlStringUnchangedOverThreshold`：1001 元素/1000 逗号全转出；CorpusBaseline 1/1 PASS）
+- [x] `./mvnw test -pl :nop-core,:nop-orm-eql -am -T 1C` 全绿。（`_tmp/wi10b/phase1-full.log`：BUILD SUCCESS、MVN_EXIT=0；nop-core 855|2skip|0、nop-orm-eql 302|0、nop-dao 204|46skip|0，闭包内其余模块全绿）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中。（exit 0；`--module nop-core` 附测同为 exit 0）
+- [x] owner doc 更新归 Phase 3 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 3`；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - BUG-13 死标志三档处置
 

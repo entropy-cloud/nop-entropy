@@ -76,6 +76,11 @@ public interface OrmEqlErrors {
     String ARG_COLLECTION2 = "collection2";
     String ARG_REASON = "reason";
 
+    // WI10b: IN 列表长度门禁（EQL 编译路径）；dialect 复用上方 ARG_DIALECT
+    String ARG_ITEM_COUNT = "itemCount";
+    String ARG_MAX_ITEMS = "maxItems";
+    String ARG_STMT_NAME = "stmtName";
+
     ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
             "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口",
             ARG_ENTITY_NAME, ARG_COL_NAME, ARG_SQL_TYPE, ARG_DATA_TYPE);
@@ -242,4 +247,13 @@ public interface OrmEqlErrors {
     // MONTH/QUARTER/YEAR 无固定毫秒时长，进 fail-fast）
     ErrorCode ERR_EQL_INVALID_INTERVAL_VALUE = define("nop.err.eql.invalid-interval-value",
             "非法的INTERVAL时长定义:{value}", ARG_VALUE);
+
+    // WI10b（WI10a 设计定稿 2026-10-03）：EQL 编译路径的 IN 列表长度门禁。统一阈值 1000
+    // （唯一硬依据 Oracle ORA-01795），经 CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE 可调高、
+    // 无关闭取值；门禁方言无关、超限显式报错、不做改写；NOT IN 与 IN 同为 SqlInValuesExpr
+    // 节点同受本门。回显路径（EqlASTNode#toSqlString）不设门，保持忠实转储。
+    // 与 nop-core 侧 nop.err.core.sql.in-list-too-large 契约一致但不共用错误码
+    ErrorCode ERR_EQL_IN_LIST_TOO_LARGE = define("nop.err.eql.in-list-too-large",
+            "IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{stmtName}],方言[{dialect}],请分批查询或调高配置nop.core.sql.in-list-max-size",
+            ARG_ITEM_COUNT, ARG_MAX_ITEMS, ARG_STMT_NAME, ARG_DIALECT);
 }

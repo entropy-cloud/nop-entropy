@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
+import io.nop.core.CoreConfigs;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
@@ -34,6 +35,7 @@ import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
 import io.nop.orm.eql.ast.SqlGroupBy;
+import io.nop.orm.eql.ast.SqlInValuesExpr;
 import io.nop.orm.eql.ast.SqlInsert;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLiteral;
@@ -119,9 +121,13 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE_MAP;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ITEM_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_MAX_ITEMS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_STMT_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_IN_LIST_TOO_LARGE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
@@ -153,6 +159,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     private IDialect dialect;
 
+    // WI10b: 语句名（IN 列表超长错误定位用），由 EqlCompiler 传入；可为 null
+    private final String stmtName;
+
     // 预先收集所有明确指定的alias，自动生成的alias需要避免和它们冲突
     private final Set<String> assignedAliases = new HashSet<>();
 
@@ -180,7 +189,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     private CollectionOperatorTransformer collectionOperatorTransformer;
 
     public EqlTransformVisitor(ISqlCompileContext context) {
+        this(context, null);
+    }
+
+    /**
+     * WI10b：stmtName 仅用于 IN 列表超长错误的定位 param（`EqlCompiler#compile` 传入语句名）。
+     */
+    public EqlTransformVisitor(ISqlCompileContext context, String stmtName) {
         this.context = context;
+        this.stmtName = stmtName;
         this.aliasGenerator = context.getAliasGenerator();
         this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator);
     }
@@ -609,6 +626,32 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
                     .param(ARG_DIALECT, dialect.getName())
                     .param(ARG_FEATURE, FEATURE_SUPPORT_FULL_JOIN);
+    }
+
+    /**
+     * WI10b（WI10a 设计定稿 2026-10-03）：IN 列表长度门禁。统一阈值 1000（唯一硬依据
+     * Oracle ORA-01795），经 {@link CoreConfigs#CFG_CORE_SQL_IN_LIST_MAX_SIZE} 可调高、
+     * 无关闭取值；门禁方言无关、超限显式报错（{@link OrmEqlErrors#ERR_EQL_IN_LIST_TOO_LARGE}）、
+     * 不做任何改写。`NOT IN` 与 `IN` 同为 SqlInValuesExpr 节点，本门天然覆盖两者。
+     *
+     * <p>挂载点裁定（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md`
+     * §4.1）：检查在编译管线（transform 遍历点，与 {@link #checkJoinTypeFeature(SqlJoinTableSource)}
+     * / returning 门同层），不在打印器——回显路径 `EqlASTNode#toSqlString()` 保持忠实转储零变化。
+     * 缓存路径（useCache=true）下检查随首次编译执行一次，非缓存路径逐次确定性重查。
+     * 字面量与 marker 统一计数（对 values.size() 计数，不逐元素分型）。
+     */
+    @Override
+    public void visitSqlInValuesExpr(SqlInValuesExpr node) {
+        int max = CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE.get();
+        int count = node.getValues() == null ? 0 : node.getValues().size();
+        if (count > max) {
+            throw new NopException(ERR_EQL_IN_LIST_TOO_LARGE).source(node)
+                    .param(ARG_ITEM_COUNT, count)
+                    .param(ARG_MAX_ITEMS, max)
+                    .param(ARG_STMT_NAME, stmtName)
+                    .param(ARG_DIALECT, dialect == null ? null : dialect.getName());
+        }
+        super.visitSqlInValuesExpr(node);
     }
 
     void addTableFilterForJoin(SqlJoinTableSource source) {
