@@ -192,26 +192,26 @@ Exit Criteria:
 
 ### Phase 4 - BUG-8 `cast(x as boolean)`（.g4，单独提交）
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`dataTypeName_` `:377-382`）、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`（如 cast 类型面有文档表述）
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 修复前红：`cast(x as boolean)` 与 `cast(x as BOOLEAN)` 断言可解析——修复前均解析失败（`BOOLEAN` 是独立关键字 token `EqlParser.java:38` `BOOLEAN=125`，不在 `dataTypeName_` 备选也不在 `unreservedWord_`），断言红。
-- [ ] 文法补 `BOOLEAN` 备选：`dataTypeName_` 增加 `BOOLEAN`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:377-382`）；文法改动**单独提交**，重生成产物随该提交；不新增/删除任何 token。
-- [ ] 全链验证：`SqlTypeExpr_name`（`EqlASTBuildVisitor.java:268-274`，`toUpperCase` + `StdSqlType.fromStdName` 校验）放行 `BOOLEAN` → `StdSqlType.BOOLEAN`（`StdSqlType.java:22`）→ `AstToSqlGenerator.visitSqlCastExpr`（`:455-475`）经 `dialect.stdToNativeSqlType`（`DialectImpl.java:189-190`）产出方言映射文本；正向文本断言钉死在 **h2**（已配映射：`h2.dialect.xml:217` `<sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>`）：`cast(x as boolean)` → 生成 **`cast(x as BOOLEAN)`**。
-- [ ] 方言边界声明：无 `BOOLEAN` 映射的方言（如 `default` 继承链未配该 `sqlDataType`）在 `stdToNativeSqlType` 处**响亮报错** `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED`（`nop-persistence/nop-dao/src/main/java/io/nop/dao/DaoErrors.java:113`；抛出点 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/SqlDataTypeMapping.java:89/:112`）——此类方言的 `cast(x as boolean)` 状态是"解析已过、生成期显式报错"，**不属"可生成"缺陷回归**，不需要也不得为它们在本 plan 内补映射或 lowering。
-- [ ] G-1 落实记录：Oracle 原生 `BOOLEAN` 门 = 23ai（`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md` 裁决总表已采纳）；本 plan 不做低于 23ai 的 lowering、不加版本门代码；unverified 边界不涉及本项。
-- [ ] 非法类型名守护：`cast(x as nosuchtype)` 仍抛 `ERR_EQL_INVALID_SQL_TYPE`（`EqlASTBuildVisitor.java:270-272` 既有路径回归，`ARG_ALLOWED_NAMES` 含 `BOOLEAN` 后不弱化拒绝面）。
-- [ ] owner doc：`No owner-doc update required`（或如 cast 类型支持清单有文档表述则同步登记 `BOOLEAN`）。
+- [x] 修复前红：`cast(x as boolean)` 与 `cast(x as BOOLEAN)` 断言可解析——修复前均解析失败（`BOOLEAN` 是独立关键字 token `EqlParser.java:38` `BOOLEAN=125`，不在 `dataTypeName_` 备选也不在 `unreservedWord_`），断言红。（红证据实测：`TestEqlCastBooleanParse` 3 错，`parse-fail offendingToken=boolean/BOOLEAN`；非法类型拒绝守护用例同批绿。）
+- [x] 文法补 `BOOLEAN` 备选：`dataTypeName_` 增加 `BOOLEAN`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:377-382`）；文法改动**单独提交**，重生成产物随该提交；不新增/删除任何 token。（重生成仅 `EqlParser.java`/`Eql.interp`，零 token 增删、`ast/_gen` 零 diff。）
+- [x] 全链验证：`SqlTypeExpr_name`（`EqlASTBuildVisitor.java:268-274`，`toUpperCase` + `StdSqlType.fromStdName` 校验）放行 `BOOLEAN` → `StdSqlType.BOOLEAN`（`StdSqlType.java:22`）→ `AstToSqlGenerator.visitSqlCastExpr`（`:455-475`）经 `dialect.stdToNativeSqlType`（`DialectImpl.java:189-190`）产出方言映射文本；正向文本断言钉死在 **h2**（已配映射：`h2.dialect.xml:217` `<sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>`）：`cast(x as boolean)` → 生成 **`cast(x as BOOLEAN)`**。（`TestEqlCastBooleanCompile.testH2BooleanCastGeneratesNativeText`：真 h2 方言（`DialectManager` 经 `CoreInitialization` 加载，`TestH2WindowFrameCompileEndToEnd` 先例）断言 `cast(o.SID as BOOLEAN)`。）
+- [x] 方言边界声明：无 `BOOLEAN` 映射的方言（如 `default` 继承链未配该 `sqlDataType`）在 `stdToNativeSqlType` 处**响亮报错** `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED`（`nop-persistence/nop-dao/src/main/java/io/nop/dao/DaoErrors.java:113`；抛出点 `SqlDataTypeMapping.java:89/:112`）——此类方言的 `cast(x as boolean)` 状态是"解析已过、生成期显式报错"，**不属"可生成"缺陷回归**，不需要也不得为它们在本 plan 内补映射或 lowering。（`testNoBooleanMappingDialectFailsLoudlyAtGeneration`：手工最小 dialect（空 dataTypes，`TestEqlTranslationSemantics.buildDialect()` 先例）断言错误码；对照组 `testMinimalDialectStillCastsMappedTypes` 证明失败点确为 BOOLEAN 映射缺失。未用 es/db2（红线）。）
+- [x] G-1 落实记录：Oracle 原生 `BOOLEAN` 门 = 23ai（`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md` 裁决总表已采纳）；本 plan 不做低于 23ai 的 lowering、不加版本门代码；unverified 边界不涉及本项。（无版本门代码落地，裁定文档 §一总表引用。）
+- [x] 非法类型名守护：`cast(x as nosuchtype)` 仍抛 `ERR_EQL_INVALID_SQL_TYPE`（`EqlASTBuildVisitor.java:270-272` 既有路径回归，`ARG_ALLOWED_NAMES` 含 `BOOLEAN` 后不弱化拒绝面）。（`testIllegalTypeStillRejectedLoudly` 红→绿同批。）
+- [x] owner doc：`No owner-doc update required`（或如 cast 类型支持清单有文档表述则同步登记 `BOOLEAN`）。（owner doc 仅一处 CAST 文法挂载点旁注、无类型支持清单——grep 实证。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：`cast(x as boolean)`/`cast(x as BOOLEAN)` 可解析；h2 上生成 SQL 文本断言钉死为 `cast(x as BOOLEAN)`；无 BOOLEAN 映射的载体断言 `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED` 响亮报错——可加载方言继承链均解析出 BOOLEAN 映射，负向载体用手工最小 dialect（`TestEqlTranslationSemantics.buildDialect()` 先例、空 dataTypes 映射），**不得**用 `es`（伪方言红线）/`db2`（不可实例化）。
-- [ ] 非法类型名仍响亮报错（断言 `ERR_EQL_INVALID_SQL_TYPE`）；无静默跳过。
-- [ ] `.g4` 提交独立可审计；重生成后 `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试：`cast(x as boolean)`/`cast(x as BOOLEAN)` 可解析；h2 上生成 SQL 文本断言钉死为 `cast(x as BOOLEAN)`；无 BOOLEAN 映射的载体断言 `ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED` 响亮报错——可加载方言继承链均解析出 BOOLEAN 映射，负向载体用手工最小 dialect（`TestEqlTranslationSemantics.buildDialect()` 先例、空 dataTypes 映射），**不得**用 `es`（伪方言红线）/`db2`（不可实例化）。
+- [x] 非法类型名仍响亮报错（断言 `ERR_EQL_INVALID_SQL_TYPE`）；无静默跳过。
+- [x] `.g4` 提交独立可审计；重生成后 `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。（`feat(nop-orm-eql)` 文法单独提交 `9a76048670`；实测 227 tests 0 failures BUILD SUCCESS。）
+- [x] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随全量运行通过。）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 5 - BUG-15 `SqlTypeExpr.characterSet`/`collate` 显式拒绝防护（守护测试）
 
