@@ -425,10 +425,19 @@ sqlTypeExpr
     : name=dataTypeName_ ( LP_ precision=NUMBER_ (COMMA_ scale=NUMBER_)? RP_)? characterSet=characterSet_? collate=collateClause_?
     ;
 
+// WI9a BUG-11（ai-dev/plans/25-eql-wi9a-cast-type-aliases.md）：删除 14 个"解析可过、
+// SqlTypeExpr_name 必拒"的死文法备选——CHARACTER / CHARACTER VARYING / NATIONAL CHARACTER /
+// NATIONAL CHARACTER VARYING / NCHAR / NATIONAL CHAR / NATIONAL CHAR VARYING / BIT / BIT VARYING /
+// DEC / DOUBLE PRECISION / INTERVAL / TIME WITH TIME ZONE / TIMESTAMP WITH TIME ZONE——文法接受面
+// 不再承诺注定被 AST 拒绝的拼写。收窄边界=候选 A（保留 sqlIdentifier_ 单词兜底，未知拼写仍走
+// nop.err.eql.invalid-sql-type 语义拒绝，WI2 nosuchtype 断言不破）；错误形态迁移：上述 14 拼写从
+// "解析过 + nop.err.eql.invalid-sql-type"变为"解析失败（nop.err.antlr.*）"，同为响亮失败。
+// EC ③ 对照表：ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §五。
+// 不删除任何 lexer token（无重编号）；不触碰 characterSet_/collateClause_（WI2 BUG-15 守卫）；
+// TIME/TIMESTAMP WITH LOCAL TIME ZONE 拼写归 WI9b（两个名字集，互不替）。
 dataTypeName_
-    : CHARACTER | CHARACTER VARYING | NATIONAL CHARACTER | NATIONAL CHARACTER VARYING | CHAR | VARCHAR | NCHAR
-    | NATIONAL CHAR | NATIONAL CHAR VARYING | BIT | BIT VARYING | NUMERIC | DECIMAL | DEC | INTEGER | SMALLINT
-    | FLOAT | REAL | DOUBLE PRECISION | DATE | TIME | TIMESTAMP | INTERVAL | TIME WITH TIME ZONE | TIMESTAMP WITH TIME ZONE
+    : CHAR | VARCHAR | NUMERIC | DECIMAL | INTEGER | SMALLINT
+    | FLOAT | REAL | DATE | TIME | TIMESTAMP
     // WI2 BUG-8: BOOLEAN 是独立关键字 token（不在 unreservedWord_，sqlIdentifier_ 备选
     // 救不了它）。语义链已就绪：SqlTypeExpr_name 的 toUpperCase + StdSqlType.fromStdName
     // 校验放行 StdSqlType.BOOLEAN，生成侧经 dialect.stdToNativeSqlType 产方言映射
