@@ -382,6 +382,10 @@ dataTypeName_
     : CHARACTER | CHARACTER VARYING | NATIONAL CHARACTER | NATIONAL CHARACTER VARYING | CHAR | VARCHAR | NCHAR
     | NATIONAL CHAR | NATIONAL CHAR VARYING | BIT | BIT VARYING | NUMERIC | DECIMAL | DEC | INTEGER | SMALLINT
     | FLOAT | REAL | DOUBLE PRECISION | DATE | TIME | TIMESTAMP | INTERVAL | TIME WITH TIME ZONE | TIMESTAMP WITH TIME ZONE
+    // WI2 BUG-8: BOOLEAN 是独立关键字 token（不在 unreservedWord_，sqlIdentifier_ 备选
+    // 救不了它）。语义链已就绪：SqlTypeExpr_name 的 toUpperCase + StdSqlType.fromStdName
+    // 校验放行 StdSqlType.BOOLEAN，生成侧经 dialect.stdToNativeSqlType 产方言映射
+    | BOOLEAN
     | sqlIdentifier_
     ;
 
