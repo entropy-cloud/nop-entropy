@@ -83,7 +83,8 @@ public class TestRecordTemplateManager extends BaseTestCase {
         assertEquals("x", e.getParam("fieldName"));
     }
 
-    // plan 2306 项 38 探针：记录级 generator（表达式形式）是否可编译且参与合并
+    // plan 2306 项 38 探针：记录级 generator（表达式形式）可编译且参与合并。
+    // 注意 xpl 文本域约定：以 { 起始的表达式会被当作模板节点语法拒绝，需括号包裹
     @Test
     public void testBuildRecordWithRecordLevelGenerator() {
         RecordTemplateModel model = tpl("/test/record/tpl/record-generator.record-template.xml");

@@ -152,11 +152,13 @@ public class TestCellDataLocators {
         c.setViewBounding(new Rectangle2D.Double(0, 30, 100, 30));
         table.addCell(1, 0, c);
 
-        // 贴边单元格仍参与平坦化：行路径命中首列 "C" 所在行，列路径命中其数据 "B"
+        // 贴边单元格仍参与平坦化：平坦化不崩溃（修复前贴边 AIOOBE），定位命中
+        // "C" 行与数据列的交叉位置——该位置被合并区覆盖，getCell 按锚点语义返回合并单元格
         RCPathCellDataLocator locator = new RCPathCellDataLocator("v", "/C", "/B");
         TableCellBlock cell = locator.locate(new CellDataLocatorContext(), table);
-        assertNotNull(cell);
-        assertEquals("B", cell.getContent());
+        assertNotNull(cell, "贴边合并区不得导致定位崩溃或空指针");
+        assertEquals("右下合并", cell.getContent(),
+                "合并覆盖坐标按锚点语义返回合并单元格本身");
     }
 
     @Test

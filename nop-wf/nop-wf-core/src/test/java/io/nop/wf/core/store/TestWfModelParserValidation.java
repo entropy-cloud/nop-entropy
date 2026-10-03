@@ -20,6 +20,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_OTHER_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_GRAPH_CONTAINS_LOOP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MULTIPLE_STEP_REF_SAME_ACTION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_NOT_ENDABLE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_REF_ACTION_IS_COMMON;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TO_UNKNOWN_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
@@ -90,7 +91,7 @@ public class TestWfModelParserValidation extends BaseTestCase {
         // 回归覆盖 wi5#2（plan 2306 项 18）：checkEnd 的 eventuallyToAssigned 传播已补
         // isNextToAssigned 前置条件，不可能结束的流程定义必须被模型校验拒绝
         NopException e = assertParseFails("/nop/wf/test/errNotEndable/v1.xwf",
-                NopWfCoreErrors.ERR_WF_STEP_NOT_ENDABLE.getErrorCode());
+                ERR_WF_STEP_NOT_ENDABLE.getErrorCode());
         assertEquals("dead", e.getParam(ARG_STEP_NAME), "错误必须定位到不可结束的步骤");
     }
 

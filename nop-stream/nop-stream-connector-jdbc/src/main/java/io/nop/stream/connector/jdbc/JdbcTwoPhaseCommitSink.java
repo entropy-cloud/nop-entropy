@@ -846,16 +846,18 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 Map<String, Object> map = (Map<String, Object>) element;
                 Object kind = map.get("kind");
                 Object row = map.get("row");
-                if (kind == null || !(row instanceof Map)) {
-                    throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
-                            .param(ARG_EPOCH_ID, checkpointId)
-                            .param(ARG_DETAIL,
-                                    "pendingCommits entry cannot be rehydrated as DmlOp: " + map);
+                if (kind != null && row instanceof Map) {
+                    char kindChar = kind instanceof Character
+                            ? (Character) kind
+                            : String.valueOf(kind).charAt(0);
+                    batch.add(new DmlOp(kindChar, (Map<String, Object>) row));
+                } else {
+                    // 遗留形态（dmlMode 引入前的 INSERT 批）：pendingCommits 直接持有裸行
+                    // Map（既有测试 TestJdbcTwoPhaseCommitLedgerNamespace /
+                    // TestJdbcTwoPhaseCommitSinkParallelIsolation 沿用该形态注入），
+                    // 按 INSERT 语义兼容回水合
+                    batch.add(new DmlOp(DmlOp.KIND_INSERT, map));
                 }
-                char kindChar = kind instanceof Character
-                        ? (Character) kind
-                        : String.valueOf(kind).charAt(0);
-                batch.add(new DmlOp(kindChar, (Map<String, Object>) row));
             } else {
                 throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
                         .param(ARG_EPOCH_ID, checkpointId)

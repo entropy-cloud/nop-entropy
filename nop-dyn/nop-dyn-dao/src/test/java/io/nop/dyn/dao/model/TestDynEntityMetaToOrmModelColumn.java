@@ -122,9 +122,14 @@ public class TestDynEntityMetaToOrmModelColumn {
         DynEntityMetaToOrmModel transformer = new DynEntityMetaToOrmModel(false);
         NopDynPropMeta propMeta = newProp("status", StdSqlType.VARCHAR, 10);
         propMeta.setDefaultValue("'active'");
-        // 合法带引号缺省值必须通过校验：脱离session的实体在getDomain懒加载处才会抛OrmException，
-        // 未抛ERR_DYN_INVALID_DEFAULT_VALUE即证明校验放行（precision缺省值的完整断言在service集成测试中覆盖）
-        OrmException ex = assertThrows(OrmException.class, () -> transformer.toColumnModel(propMeta));
-        assertFalse(ERR_DYN_INVALID_DEFAULT_VALUE.getErrorCode().equals(ex.getErrorCode()));
+        // 合法带引号缺省值必须通过校验并完成转换。回归覆盖 wi7#1（plan 2306 项 35）：
+        // 修复前 detached 实体在 getDomain 懒加载处抛 OrmException，本断言只能以
+        // "抛的不是缺省值错误" 的间接方式证明校验放行；修复后 detached ref 按"未设置"
+        // 处理（domain=null 合法分支），toColumnModel 对未挂域的 detached propMeta 完整可用
+        io.nop.orm.model.OrmColumnModel col = transformer.toColumnModel(propMeta);
+        org.junit.jupiter.api.Assertions.assertNotNull(col);
+        org.junit.jupiter.api.Assertions.assertEquals("status", col.getName());
+        org.junit.jupiter.api.Assertions.assertEquals("'active'", col.getDefaultValue(),
+                "合法带引号缺省值必须原样保留");
     }
 }

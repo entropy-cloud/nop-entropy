@@ -56,9 +56,12 @@ public class TestPredefinedColorsIndex {
                     color.name());
         }
 
-        // 已知冲突裁定：MAROON 的主索引 0x19 胜出，PLUM 仅经其 index2=0x3D 路径可达
-        assertEquals(PredefinedColors.MAROON, PredefinedColors.getByIndex(0x19));
+        // 已知冲突裁定（首注册优先）：PLUM 在声明序中先经 index2=0x19 注册，
+        // MAROON 的主索引 0x19 不再覆盖——查找结果由声明顺序唯一确定（稳定、可复现）
+        assertEquals(PredefinedColors.PLUM, PredefinedColors.getByIndex(0x19));
         assertEquals(PredefinedColors.PLUM, PredefinedColors.getByIndex(0x3D));
+        // MAROON 的 ARGB 查询不受影响（indexMap 按主索引登记）
+        assertEquals(0x19, PredefinedColors.getColorIndex("FF7F0000").intValue());
         // BLACK 与 AUTOMATIC 同为 FF000000，先声明的 BLACK 主映射胜出；
         // AUTOMATIC 仍可通过主索引 0x40 查到
         assertEquals(0x08, PredefinedColors.getColorIndex("FF000000").intValue());

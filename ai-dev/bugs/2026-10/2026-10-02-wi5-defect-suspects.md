@@ -17,7 +17,8 @@
 ## Fix（2026-10-03 plan 2306 回填）
 
 - **1 GraphBreadthFirstIterator root 未入 visited：`fixed`**。构造器补 `this.set.add(root)`。环含根时 DagAnalyzer.checkStartReachable 不再因 root 重复入队导致 data[index] 越界，友好错误 ERR_WF_GRAPH_CONTAINS_LOOP（带 loopEdges 定位参数）可达。回归：TestWfModelParserValidation.testRootCycleCrashesBeforeFriendlyLoopError 翻转为 testRootCycleRejectedWithFriendlyLoopError（正向错误码+参数断言）。
-- **2 checkEnd 死校验：`fixed`**。eventuallyToAssigned 传播补 `isNextToAssigned()` 前置条件（nextToAssigned 在 DAG 构建期 addTransitionNext 中设置，修复自洽）。ERR_WF_STEP_NOT_ENDABLE 不再是死代码。回归：testStepNotEndableValidationIsDeadCode 翻转为 testStepNotEndableRejectedWithFriendlyError（errNotEndable/v1.xwf 解析必须失败且定位 dead 步骤）。▲ 下游：nop-wf-service 115 测试当期跑全绿（含 testPublish 流 _cases）。
+- **2 checkEnd 死校验：`fixed`**。eventuallyToAssigned 传播补 `isNextToAssigned()` 前置条件（nextToAssigned 在 DAG 构建期 addTransitionNext 中设置，修复自洽）。ERR_WF_STEP_NOT_ENDABLE 不再是死代码。回归：testStepNotEndableValidationIsDeadCode 翻转为 testStepNotEndableRejectedWithFriendlyError（errNotEndable/v1.xwf 解析必须失败且定位 dead 步骤）。▲ 下游：nop-wf-service 138 测试当期跑全绿（含 testPublish 流 _cases）。
+  - **全仓验证暴露的合法形态边界（已补）**：首版前置条件误伤了两个合法流程形态——① independent="true" 的独立传阅步骤（loop/v1.xwf 的 kcy 自环）被判不可结束；② 把控制权移交给独立步骤的前驱（cyStart→kcy）。处置：① independent 步骤豁免可结束判定（其语义即"流程结束时允许继续运行"）；② 独立步骤同为传播种子（前驱视同流程责任终止，eventuallyToAssigned 实际承载"最终到达终态（assigned/独立移交）"语义，注释已写明）。errNotEndable 的 dead 步骤仍被正确拒绝，修复语义未弱化。
 
 ## Notes For Future Refactors
 

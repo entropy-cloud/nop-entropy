@@ -29,7 +29,7 @@
 
 ## Fix（2026-10-03）
 
-- **缺陷 1**：`DmlOp` 标记 `@DataBean`（对齐 TaskLocation 等既有 checkpoint 状态类模式）；`JdbcTwoPhaseCommitSink.commit()` 增加 normalizeBatch——JSON 往返后 DmlOp 漂移为 LinkedHashMap，提交前按 kind/row 回水合（instanceof DmlOp 快路径保持组件级测试兼容）。
+- **缺陷 1**：`DmlOp` 标记 `@DataBean`（对齐 TaskLocation 等既有 checkpoint 状态类模式）；`JdbcTwoPhaseCommitSink.commit()` 增加 normalizeBatch——JSON 往返后 DmlOp 漂移为 LinkedHashMap，提交前按 kind/row 回水合（instanceof DmlOp 快路径保持组件级测试兼容）。全仓复跑补遗：normalizeBatch 首版拒绝了遗留裸行 Map 形态（dmlMode 引入前 INSERT 批直接持有行 Map；TestJdbcTwoPhaseCommitLedgerNamespace/TestJdbcTwoPhaseCommitSinkParallelIsolation 沿用该形态注入）——已补兼容分支：无 kind/row 的 Map 按 INSERT 语义回水合。
 - **缺陷 2**：`stableHash` 对所有值类型统一走 canonical JSON + murmur3_32（类 javadoc 本就承诺 canonical JSON 跨 JVM 确定性；murmur 分布实证 20/10）。**兼容性裁定**：key→key-group 映射改变，旧 checkpoint 的 keyed state 布局不兼容——2.0.0-SNAPSHOT 预发布阶段接受；record routing 与 state ownership 仍经同一函数保持 AR-01 parity。受影响既有测试改判：TestKeyRoutingOwnershipParity.enumKeyHashesByNameNotByIdentity（enum 与 String 公式分离后各按己公式断言）、TestKeyGroupAssignment.routingParityForBuiltInTypes（"legacy hashCode 平价"用例改写为 murmur 公式断言 + 新增 sequentialKeysSpreadAcrossSubtasks 缺陷签名守卫）。
 
 ## Tests
@@ -37,6 +37,7 @@
 - 守门测试 `TestParallel2PcJdbcE2E` 转绿（multiset/恢复/per-subtask 证据/D1 拒绝四断言全过）。
 - 新增/改写回归：TestKeyGroupAssignment.routingForBuiltInTypesUsesCanonicalJsonMurmur + sequentialKeysSpreadAcrossSubtasks；TestKeyRoutingOwnershipParity 枚举断言按新合同调整。
 - nop-stream 全套件 1653 测试零失败（陈旧 surefire 报告清理后复核）。
+- 全仓 `test -T 1C -fae` 复跑收口记录：本轮修复暴露的三个回归全部修复（connector 遗留形态兼容、TestCellDataLocators 贴边断言按锚点语义修正、TestPredefinedColorsIndex 冲突断言按首注册优先语义修正——后两者为测试断言与裁定语义不符，非产品缺陷）；nop-batch-core `testFailFastStopsSiblingThreads` 在 -T 1C 全仓高并发下偶发（期望 IllegalStateException 实得 BatchCancelException 的线程时序竞争），孤立复跑两连绿，本 plan 零文件涉及 nop-batch——裁定为 plan 外既有负载敏感 flake，另行观察。
 
 ## Affected Files
 

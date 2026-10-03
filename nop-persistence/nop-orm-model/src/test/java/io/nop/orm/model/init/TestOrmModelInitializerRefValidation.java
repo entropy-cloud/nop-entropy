@@ -24,6 +24,7 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_JOIN_COLUMNS_NOT_MAT
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_REF_ENTITY_NO_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -242,7 +243,7 @@ public class TestOrmModelInitializerRefValidation {
         assertEquals("EntityA@bs", toMany.getCollectionName());
         assertSame(toMany, model.getCollectionModel("EntityA@bs"),
                 "collectionMap 必须以 init 阶段生成的 collectionName 注册");
-        assertFalse(model.getCollectionMap().containsKey(null),
-                "不允许以 null collectionName 注册");
+        // 无 null collectionName 注册（修复前 map 以 null 为 key）
+        assertNull(model.getCollectionModel(null));
     }
 }

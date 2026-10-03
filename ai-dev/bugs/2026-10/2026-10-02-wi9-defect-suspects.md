@@ -39,7 +39,7 @@
 - **4 FLS 空值缺省不一致：`fixed`**。文本路径 encode null 缺省 "0"→""，与二进制路径一致（不伪造数值内容）。回归：TestFixedLengthStringCodec.testTextEncodeNullUsesEmptyDefault。
 - **5 RecordTemplateManager vars 无防御拷贝：`fixed`**。prepareVars 防御性拷贝入新 HashMap 再建 scope，调用方不可变 Map（Map.of）不被回写。回归：TestRecordTemplateManager.testBuildRecordWithImmutableVarsMap。
 - **6 文本路径类型反推缺失：`fixed`**。无 codec 时按字段声明 stdDataType 转换（STRING/ANY 透传），与 FLS 二进制路径类型语义对称。回归：TestRecordTextRoundtrip 全部 "a" 字段断言翻转为 Integer（含边界用例 99999）。
-- **7 record-template 记录级 generator：`adjudicated-not-a-defect`（探针证伪）**。新增探针测试 testBuildRecordWithRecordLevelGenerator（record-generator.record-template.xml，表达式形式 `<generator>{"extra": a + 1}</generator>` + buildRecordWithGenerator 合并断言）——表达式形式可编译且合并生效，"死代码"指控不成立（tag-body 形式不支持按 full-expr 编译属 xpl 域的既有编译约定，非本特性缺陷）。nop-record 192 测试全绿。
+- **7 record-template 记录级 generator：`adjudicated-not-a-defect`（探针证伪，两轮）**。探针测试 testBuildRecordWithRecordLevelGenerator（record-generator.record-template.xml）。第一轮用裸 `{...}` 起始的 Map 字面量被 xpl 文本域拒绝（`nop.err.xlang.xdef.illegal-content-value-for-std-domain`）——该失败恰与源条目"表达式形式无法编译"的观察吻合，一度支持死代码指控；第二轮改用括号形式 `({"extra": a + 1})` 编译通过且 buildRecordWithGenerator 合并生效。结论：记录级 generator 可用，指控不成立；裸 `{` 起始被拒属 xpl 文本域"节点语法 vs 表达式"的解析约定（需括号消除歧义），建议后续在 xdef 文档中标注该约定（watch-only）。nop-record 测试全绿。
 
 ## Affected Files
 

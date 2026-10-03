@@ -174,8 +174,11 @@ public class WfModelAnalyzer {
 
             // 只有 nextToAssigned 的步骤才允许向前传播 eventuallyToAssigned；
             // 无条件传播会使所有步骤都视为"最终会到 assigned"，令 ERR_WF_STEP_NOT_ENDABLE
-            // 校验成为死代码（回归覆盖 wi5#2）
-            if (step.isNextToAssigned()) {
+            // 校验成为死代码（回归覆盖 wi5#2）。
+            // independent 步骤同为传播种子：把控制权移交给独立步骤（如传阅）的前驱
+            // 视为流程责任终止（loop/v1.xwf 的 cyStart→kcy 合法形态），
+            // 此处 eventuallyToAssigned 实际承载"最终到达终态（assigned/独立移交）"语义
+            if (step.isNextToAssigned() || step.isIndependent()) {
                 Iterator<WfStepModel> it = new GraphDepthFirstIterator<>(s -> {
                     if (s.isEventuallyToAssigned())
                         return null;
@@ -189,6 +192,11 @@ public class WfModelAnalyzer {
         }
 
         wfModel.getSteps().forEach(step -> {
+            // independent 步骤（如传阅）在流程结束时被允许继续运行，不参与主流程可结束判定
+            // （回归覆盖 wi5#2 修复的边界：loop/v1.xwf 的 independent 自环步骤合法）
+            if (step.isIndependent())
+                return;
+
             if (!step.isEventuallyToEnd() && !step.isEventuallyToEmpty() && !step.isEventuallyToAssigned())
                 throw new NopException(ERR_WF_STEP_NOT_ENDABLE)
                         .source(step)

@@ -143,11 +143,13 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.MessageSinkFunction",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
+        // WI5 dmlMode 裁定：columns/recordMapper 转条件必需（dmlMode=insert 需要，
+        // 键控模式从首记录派生列集），描述符层面登记为 optional
         assertDescriptor(ConnectorDirection.SINK, "jdbc-2pc",
                 "io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink",
                 "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
-                "jdbcTemplate", "tableName", "columns", "recordMapper");
+                "jdbcTemplate", "tableName");
         assertDescriptor(ConnectorDirection.SINK, "batch-consumer",
                 "io.nop.stream.connector.batch.BatchConsumerSinkFunction",
                 "IDEMPOTENT", ConnectorParallelism.PARALLEL,

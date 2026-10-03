@@ -68,7 +68,7 @@
 | 35 | wi7#1 detached ref | fixed | internalGetRefEntity 按 enhancer 可用性分流；stub 测试新增 |
 | 36 | wi7#3 租户旁路 | fixed | 保留乐观语义 + 显式 warn（移除旁路会破坏启动期，裁定入档） |
 | 37 | wi8#3 @InjectValue 默认 | fixed | 字段初始化对齐配置默认（Decision：字段初始化路线） |
-| 38 | wi9#7 记录级 generator | adjudicated-not-a-defect | 探针证伪：表达式形式可编译且合并生效 |
+| 38 | wi9#7 记录级 generator | adjudicated-not-a-defect | 探针证伪（两轮）：括号表达式可编译且合并生效；裸 { 起始被拒属 xpl 文本域解析约定 |
 | 39 | wi10#6 DashPatternDetector | adjudicated-not-a-defect | 文档化裁定（容差滑窗是抗噪声设计）；javadoc + 断言复核 |
 
 ### already-fixed 改判

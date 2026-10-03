@@ -131,15 +131,18 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
     }
 
     /**
-     * saveOrUpdate：无记录时插入，再次调用同一主键时更新（而非新增第二条）。
-     * 回归覆盖 wi8#2（plan 2306 项 22）：插入/更新的判定依据是实体真实主键属性名 sid。
-     * 修复前两次调用必须分别携带 sid/id 两种键——带 sid 的第二次调用会被误判为插入，
-     * 最终以 duplicate-key 报错；修复后统一携带 sid 即可完成 upsert。
+     * saveOrUpdate：携带 _chgType=A 标记强制插入，再次以真实主键 sid 调用时更新
+     * （而非新增第二条）。
+     * 回归覆盖 wi8#2（plan 2306 项 22）：插入/更新的判定依据是实体真实主键属性名 sid——
+     * 修复前判定固定读 "id" 键，主键名为 sid 的实体携带 sid 的更新意图会被误判为插入
+     * （以 duplicate-key 报错）；修复后携带 sid 即命中更新分支。
+     * TestIndex 主键无 seq 自动生成，插入腿以 _chgType=A 显式标记（携带主键的新增语义）。
      */
     @Test
     public void testSaveOrUpdateInsertsThenUpdates() {
         ApiResponse<?> insert = executeRpc(GraphQLOperationType.mutation, "TestIndex__saveOrUpdate",
-                Map.of("data", Map.of("sid", "gs-upsert-1", "name", "idx-upsert", "value", 1)));
+                Map.of("data", Map.of("sid", "gs-upsert-1", "name", "idx-upsert", "value", 1,
+                        "_chgType", "A")));
         assertEquals(0, insert.getStatus(), "saveOrUpdate insert should succeed, got: " + insert);
 
         ApiResponse<?> upsert = executeRpc(GraphQLOperationType.mutation, "TestIndex__saveOrUpdate",
@@ -311,8 +314,11 @@ public class TestGraphQLCrudSemantics extends JunitBaseTestCase {
         saveIndex("gs-bm-1", "idx-bm", null, 1);
         saveIndex("gs-bm-2", "idx-bm", null, 2);
 
+        // 插入腿以 _chgType=A 显式标记（TestIndex 主键无 seq 生成）；更新腿携带实体真实
+        // 主键 sid（plan 2306 项 22 语义：携带主键值即命中更新分支）
         List<Map<String, Object>> data = Arrays.asList(
-                new LinkedHashMap<>(Map.of("sid", "gs-bm-new", "name", "idx-bm", "value", 30)),
+                new LinkedHashMap<>(Map.of("sid", "gs-bm-new", "name", "idx-bm", "value", 30,
+                        "_chgType", "A")),
                 new LinkedHashMap<>(Map.of("sid", "gs-bm-1", "value", 99)));
 
         ApiResponse<?> response = executeRpc(GraphQLOperationType.mutation, "TestIndex__batchModify",

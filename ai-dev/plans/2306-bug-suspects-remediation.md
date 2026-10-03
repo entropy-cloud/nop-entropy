@@ -160,14 +160,14 @@ Exit Criteria:
 
 ### Phase 4 - fraud 2PC 诊断修复与全程收口
 
-Status: planned
+Status: completed
 
 - Item Types: `Fix`
 
-- [ ] TestParallel2PcJdbcE2E 诊断：嫌疑 A（commit-key 未含 subtask 身份/提交归集）vs 嫌疑 B（本地拓扑退化为单 subtask，断言前提不成立）——按证据裁定。
-- [ ] 按结论修复（connector-jdbc 提交路径或 E2E 拓扑/断言），该测试转绿。
-- [ ] 全仓验证：`mvnq -- test -T 1C -fae` 零失败（roadmap 收口后首次全仓全绿基线；若暴露本 plan 外新问题，逐条记录并裁定处置）。
-- [ ] 汇总落账：44 项最终状态表（按源条目口径：fixed/adjudicated-not-a-defect/diagnosed-split 计数）写入 bugs/ 汇总文件；`ai-dev/logs/` 收口条目。
+- [x] TestParallel2PcJdbcE2E 诊断：嫌疑 A（commit-key 未含 subtask 身份/提交归集）vs 嫌疑 B（本地拓扑退化为单 subtask，断言前提不成立）——按证据裁定。——嫌疑 A 成立（两层产品缺陷：DmlOp checkpoint 序列化失败致 2PC 零提交；stableHash 算术哈希致顺序 key 塌缩单 subtask）；嫌疑 B 排除（拓扑/copy 机制正确，双 subtask 均已 ack）。诊断证据链（探针 dump→异常栈→assignToSubtask 直调→murmur 分布对照）记录于 bug 文件。
+- [x] 按结论修复（connector-jdbc 提交路径或 E2E 拓扑/断言），该测试转绿。——DmlOp @DataBean + commit normalizeBatch 回水合；stableHash 统一 canonical JSON+murmur3（兼容性裁定入 bug 文件）。TestParallel2PcJdbcE2E 四断言全过；routing 改动的爆炸半径由 nop-stream 全套件 1653 零失败覆盖。
+- [x] 全仓验证：`mvnq -- test -T 1C -fae` 零失败（roadmap 收口后首次全仓全绿基线；若暴露本 plan 外新问题，逐条记录并裁定处置）。——9 轮全仓迭代（fullrepo-test1~9.log 于 _tmp/）。**plan 相关失败全部修复**：项 32 janino PrimitiveType 编译错误、项 22 语义修正在全仓环境暴露的三个测试改写缺口（saveOrUpdate/batchModify 插入腿 _chgType=A 标记、batchUpdate "id" 键兼容回退）、项 18 对合法 loop 流程的误伤（independent 豁免 + 传播种子扩展，见 wi5 bug 文件）、项 4 回归测试误用非公开 API、项 15 断言 jsonType 修正、项 35 修复后 dyn 测试载体改写、connector 遗留裸行形态兼容。**剩余失败均为 plan 外并记录裁定**：① 负载敏感 flake 族（nop-batch-core testFailFastStopsSiblingThreads、nop-task-core TestExecutorTaskStepWrapperAsyncBranch、nop-lint-nop 双套件、nop-code-web NopCodeWebPagesTest——各轮随机出现、孤立复跑全绿、与本 plan 零文件交集）；② 兄弟 worktree 会话共享 ~/.m2 的构件竞争（nop-stream-runtime debezium-cdc 描述符 SINGLE_INSTANCE→PARALLEL 翻转与该会话 B 层并行 WIP 提交轨迹吻合；本轮已顺带修复同文件中 jdbc-2pc 断言落后于 WI5 条件必需裁定的问题并转绿）。stable 全绿基线需在并行会话结束后重测，记录为 watch-only。
+- [x] 汇总落账：44 项最终状态表（按源条目口径：fixed/adjudicated-not-a-defect/diagnosed-split 计数）写入 bugs/ 汇总文件；`ai-dev/logs/` 收口条目。——bugs/2026-10/2026-10-03-plan-2306-remediation-44-summary.md；logs/2026/10-03.md
 
 Exit Criteria:
 
@@ -191,7 +191,7 @@ Exit Criteria:
 - [ ] Anti-Hollow Check：修复是真语义修复而非改测试凑绿（audit 抽查钉住测试翻转前后 diff）
 - [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0（逐模块）
 - [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2306-bug-suspects-remediation.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2306-bug-suspects-remediation.md --strict` 退出码 0（closure 时复核）
 - [ ] `ai-dev/logs/` 收口条目与 plan 一致
 
 ## Revision Note

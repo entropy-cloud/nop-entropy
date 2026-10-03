@@ -983,8 +983,12 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         IObjMeta objMeta = bizObj.requireObjMeta();
 
         // 回归覆盖 wi8#2（plan 2306 项 22）：按实体模型的真实主键属性名取主键，
-        // 而非固定 "id" 键（否则主键名为 sid 等的实体会被误判为无主键）
+        // 而非固定 "id" 键（否则主键名为 sid 等的实体会被误判为无主键）。
+        // "id" 键保留为兼容别名：batchUpdate 等既有内部调用按 GraphQLConstants.PROP_ID 注入
         Object id = getId(data, dao());
+        if (StringHelper.isEmptyObject(id)) {
+            id = data.get(OrmConstants.PROP_ID);
+        }
 
         ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
                 context, true);
