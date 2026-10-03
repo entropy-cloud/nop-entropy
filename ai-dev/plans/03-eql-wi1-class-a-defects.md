@@ -128,25 +128,27 @@ Exit Criteria:
 
 ### Phase 1 - BUG-1 `LIKE … ESCAPE` 静默丢弃（无条件输出，无方言门）
 
-Status: planned
+Status: completed（2026-10-03，commit `151c48e12e`）
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`（`visitSqlLikeExpr`）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-persistence/nop-orm-eql/src/test/`（新增测试）
+
+> **执行期记录**：修复前红实测——`TestEqlLikeEscapeSql` 3 用例全红（`like 'a!%'` 输出无 escape 子句；`ilike … escape` 静默通过）；修复后 3/3 绿。输出关键字为小写 `escape '!'`（与代码库 `like`/`for update` 同风格）；ILIKE+ESCAPE 组合形态按裁定文档 §5 落为**显式报错**（复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，`feature=ilike+escape`）而非"escape 仍出现在输出中"——plan 允许实现者按改写路径设计形态、只要求不允许静默丢弃，函数改写后无挂载点，报错是唯一不静默的形态。
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] 修复前红：执行路径（`AstToSqlGenerator` 渲染）用 `… like 'a!%%' escape '!'` 断言输出含 `ESCAPE '!'` 子句——修复前 escape 被静默丢弃，断言红。
-- [ ] 生成器消费 `SqlLikeExpr.getEscape()`：AST 携带 escape 时**无条件输出** `ESCAPE <literal>`——escape 是 `SqlExpr`（非 String），经 `dialect.getStringLiteral` 渲染（`AstToSqlGenerator.java:410` 既有用法）；**不设方言门、无负向错误码用例**（差异登记第 4 条）。
-- [ ] ILIKE+ESCAPE 组合用例：`ignoreCase=true` 且 escape 非空时，当前 ilike 函数改写分支会丢 escape——用例断言该组合下 escape 仍出现在输出中（具体形态由实现者按 ilike 改写路径设计，**不允许静默丢弃**；修复前红）。
-- [ ] owner doc：ESCAPE 支持矩阵落 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`，逐行标 `[实测]`/`[文档]`，保留默认 escape 字符三分类 {Oracle, DB2}=NULL / {H2, PG}=backslash / {DM8}=`[unverified]`；写明"无条件输出"裁定依据（无字段载体 + 无证据成员）与"不支持者改写"已移入 `Deferred But Adjudicated`。
-- [ ] 回显路径维持现状：本 Phase 不改 `AstToEqlGenerator`（回显行为由 WI0 语料基线保护；BUG-4 回显治理属 WI2）。
+- [x] 修复前红：执行路径（`AstToSqlGenerator` 渲染）用 `… like 'a!%%' escape '!'` 断言输出含 `ESCAPE '!'` 子句——修复前 escape 被静默丢弃，断言红。
+- [x] 生成器消费 `SqlLikeExpr.getEscape()`：AST 携带 escape 时**无条件输出** `ESCAPE <literal>`——escape 是 `SqlExpr`（非 String），经 `dialect.getStringLiteral` 渲染（`AstToSqlGenerator.java:410` 既有用法）；**不设方言门、无负向错误码用例**（差异登记第 4 条）。（实现经 `visit(escape)` 分派到 `visitSqlStringLiteral` 的 dialect 渲染，同一通路。）
+- [x] ILIKE+ESCAPE 组合用例：`ignoreCase=true` 且 escape 非空时，当前 ilike 函数改写分支会丢 escape——用例断言该组合下 escape 仍出现在输出中（具体形态由实现者按 ilike 改写路径设计，**不允许静默丢弃**；修复前红）。（形态=显式报错，见执行期记录。）
+- [x] owner doc：ESCAPE 支持矩阵落 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`，逐行标 `[实测]`/`[文档]`，保留默认 escape 字符三分类 {Oracle, DB2}=NULL / {H2, PG}=backslash / {DM8}=`[unverified]`；写明"无条件输出"裁定依据（无字段载体 + 无证据成员）与"不支持者改写"已移入 `Deferred But Adjudicated`。（另落"方言敏感输出点登记表"首 3 行。）
+- [x] 回显路径维持现状：本 Phase 不改 `AstToEqlGenerator`（回显行为由 WI0 语料基线保护；BUG-4 回显治理属 WI2）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（输出含 `ESCAPE '!'` 子句）；修复前红一次并留痕于提交说明或日志。
-- [ ] ILIKE+ESCAPE 组合用例通过且断言 escape 未被丢弃（该用例修复前同样为红）。
-- [ ] owner doc ESCAPE 矩阵已落档（含三分类与证据等级、裁定依据）；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致（非目标语义回显不变）；不声称 7 个全测。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（输出含 `ESCAPE '!'` 子句）；修复前红一次并留痕于提交说明或日志。（`testLikeEscapeClauseRendered`：`like 'a!%' escape '!'`；红证据=3 failures + 红输出文本记录于 daily log。）
+- [x] ILIKE+ESCAPE 组合用例通过且断言 escape 未被丢弃（该用例修复前同样为红）。（`testIlikeWithEscapeExplicitlyRejected`：断言错误码 + `feature=ilike+escape`；修复前"nothing was thrown"即红。）
+- [x] owner doc ESCAPE 矩阵已落档（含三分类与证据等级、裁定依据）；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致（非目标语义回显不变）；不声称 7 个全测。（`TestEqlCorpusBaseline` 在 `:nop-orm-eql` 模块内运行，本次全绿。）
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿（167 tests, 0 failures）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - BUG-2 `LATERAL` 静默丢弃 + `supportLateral` 全链接线
 
