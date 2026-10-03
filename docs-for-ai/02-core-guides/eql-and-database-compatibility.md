@@ -37,6 +37,8 @@ EQL 的语法可用性 = **grammar 接受度 ∩ 方言能力位 ∩ 方言继�
 
 #### 分析窗口语法（2026-10-02 WI1 扩展）
 
+> ⚠️ 本节及下面两节（TUMBLE、frame 能力开关）标题中的 WI 编号均指 **`nop-stream-sql` roadmap**（窗口/TUMBLE 能力的 owner），与 **EQL 跨数据库兼容 roadmap** 的 WI 编号（其 WI3=方言配置纠错，2026-10-04 落地）无关，阅读时勿混用。
+
 语法层（grammar）现接受完整分析窗口形态：`OVER (PARTITION BY ...)` 单子句、`OVER ()` 空参、frame 三单位 `ROWS`/`RANGE`/`GROUPS`（含 `BETWEEN ... AND ...` 与单 bound 简写、`UNBOUNDED PRECEDING|FOLLOWING`、`CURRENT ROW`、`expr PRECEDING|FOLLOWING`）、命名窗口 `WINDOW w AS (...)` 子句与 `OVER w` 引用。**方言层可用性另算**：窗口函数能否翻译到目标数据库取决于方言函数登记与能力开关（翻译期不支撑时抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`），不以语法层接受度为准。
 
 **迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。
@@ -121,14 +123,14 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | 标志 | 含义 | 典型差异数据库 |
 |------|------|---------------|
 | `useAsInFrom` | `FROM t AS v` 是否允许 `AS` | Oracle 不允许 |
-| `supportNullsFirst` | 是否支持 `NULLS FIRST/LAST` | 不支持时 ORM 用 `IF(ISNULL(f),0,1)` 模拟 |
+| `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **尚未接线**：现无 accessor、无消费点（2026-10-04 实测），accessor 补齐与门控归 EQL 兼容 roadmap WI7。dialect.xdef javadoc 中「不支持时用 `order by if(isnull(f),0,1), f` 模拟」仅是设想，全仓无任何实现。与 `defaultNullsFirst`（缺省 NULL 序**事实**）正交，见下方「defaultNullsFirst」小节 |
 | `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | MySQL 不允许 |
 | `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | MySQL 不允许 |
-| `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | PostgreSQL 支持 |
+| `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | H2 显式 `true`；PostgreSQL/DuckDB 继承 default 的 `false`（PG 原生支持 ILIKE，但该标志的现值是 false——消费方以 `ilike` **函数注册**为准，见「ilike 函数注册」小节；翻标志会引入假阴性） |
 | `supportSequence` | 是否支持数据库序列 | Oracle 支持，MySQL 不支持 |
-| `supportReturningForUpdate` | UPDATE 是否支持 `RETURNING` 子句 | PostgreSQL 支持 |
+| `supportReturningForUpdate` | **仅指 UPDATE 上返回投影列表形式（无 `INTO` 宿主变量）的 `RETURNING`**（不是"该库有没有 RETURNING"）。值现状（WI3 纠错后）：postgresql `true`；mysql/oracle/h2 及其衍生 mariadb/oracle-reverse/h2gis `false`；duckdb `false`（其 RETURNING 仅 INSERT/DELETE/MERGE）；dm `true` `[unverified]`（DM8 无一手文档）。mysql5.7/mariadb 另有版本门表达，见「集合算子与 RETURNING 版本门」小节 | PostgreSQL 支持；MySQL/Oracle（投影列表形式）/H2 不支持 |
 | `supportFullJoin` | 是否支持 `FULL JOIN`/`FULL OUTER JOIN` 表源 | MySQL/MariaDB 显式 `false`（已确认无 FULL JOIN，roadmap WI7b 证据）；TDengine ≥3.3.0.0、MSSQL、PG、H2 等继承 default 的 `true` `[文档]`。已接线编译期门（见下文 FULL JOIN 小节） |
-| `supportRightJoin` | 是否支持 RIGHT JOIN | 部分数据库不支持（该标志**尚未接线**，accessor 补齐与纠错归 WI3） |
+| `supportRightJoin` | 是否支持 RIGHT JOIN | **无 accessor、零消费**（2026-10-04 实测；accessor 补齐与三档处置归 EQL 兼容 roadmap WI10b 的死标志收拢，**不归 WI3**） |
 | `supportLateral` | 是否支持 `LATERAL` 子查询表源 | MySQL 8.0.14+/PG/DuckDB 支持；未配置 = 保守 false（编译期报错） |
 | `supportWithAsClause` | 是否支持 CTE（WITH AS） | MySQL 8.0+ 支持 |
 | `supportBatchUpdate` | 是否支持批量更新 | 大部分数据库支持 |
@@ -231,6 +233,80 @@ EQL 的 INTERVAL 现在接受两种语法形态，构建期归一化装入同一
 
 EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）在生成器中**显式报错** `nop.err.eql.collection-access-not-support`（echo 与执行路径同门），不再静默产出垃圾 SQL。裁定依据：该文法的方括号内容是**集合过滤语义**（`where` + `order by`，非下标取值），编译管线对该节点没有 lowering，"机械回显"没有任何数据库能接受；显式失败遵循"静默降级会改变语义必须显式报错"的平台原则。写作替代：集合语义请改写为关联属性 join 或集合操作符（`_some`/`_all` 走另一条 AST 路径，不受影响）。今天文法层即失败的输入（`o.roles[]`、`o.roles[order by a].x()`）保持解析期响亮失败。
 
+### `ilike` 函数注册与消费（2026-10-04 EQL 兼容 roadmap WI3 第 9 项）
+
+`supportILike` 标志只是声明位，**真正的消费通路是 `ilike` 函数注册**：执行路径（`AstToSqlGenerator.visitSqlLikeExpr`）在 `ignoreCase` 时取 `dialect.getFunction("ilike")`，取不到抛 `nop.err.eql.not-support-ilike`——静默降级为大小写敏感 LIKE 会改变查询语义，不允许。
+
+已注册 `ilike` 模板的方言（2026-10-04 现状）：**oracle**（`regexp_like({0},{1},'i')`，既有）、**h2** 与 **postgresql**（`{0} ilike {1}` 原生算子直出，WI3 注册）；经继承 h2gis（经 h2）、postgis/duckdb（经 postgresql）同样命中。未注册：mysql/mssql 等（ilike 查询编译期报错）。⚠️ 不要为 PG 翻 `supportILike` 标志（其继承值为 false 且保持——翻标志会引入假阴性，假阴性=编译期报错而非错误 SQL，标志与注册解耦是刻意的）。
+
+### mysql5.7 窗口函数 mixin 归属（2026-10-04 EQL 兼容 roadmap WI3 第 7 项）
+
+`window-expr-support.dialect.xml` 的 10 个窗口函数（rank/dense_rank/row_number/lead/lag/first_value/last_value/nth_value/percent_rank/cume_dist）**mariadb 与 mysql 合法继承**（MariaDB 10.2+、MySQL 8.0+ 均有窗口函数），**mysql5.7 已内联逐个 `x:override="remove"`**（MySQL 5.7 无窗口函数；裁定=候选 B，泄漏由 `TestMysql57WindowFunctionsRemoved` 的动态守卫拒绝——mixin 未来新增函数会使守卫转红）。**不要"顺手修正" mariadb**。
+
+### `defaultNullsFirst` 与 `supportNullsFirst`：正交两标志（2026-10-04 EQL 兼容 roadmap WI3 第 10/11 项）
+
+- `defaultNullsFirst`（dialect 根属性）= 缺省升序下 NULL 是否排前的**事实**；`supportNullsFirst`（features 标志）= 是否原生接受 `NULLS FIRST/LAST` **子句**。两者正交、各司其职，不是重复标志（duckdb `defaultNullsFirst=false` + `supportNullsFirst=true` 同时成立且都正确）。
+- 现值（2026-10-04）：`defaultNullsFirst` 显式配置 mysql/mssql/dm/h2=`true`，tdengine/duckdb/postgresql/oracle=`false`；未配置（如 db2）= 模型 null → accessor false（保守缺省）。accessor `IDialect.isDefaultNullsFirst()` 已接线（WI3）；**生成器消费唯一 owner = EQL 兼容 roadmap WI7**（NULLS FIRST/LAST 文法接受 + supportNullsFirst 门 + 默认序行为）——今天 EQL 文法不接受 `NULLS FIRST/LAST`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlOrderByItem` 只有 `ASC|DESC`），`SqlOrderByItem.nullsFirst` 只能程序化构造，`AstToEqlGenerator` 会为其打印 `nulls first/last`。
+- ⚠️ 单个布尔不足以表达真实 NULL 序：H2 除方向相对的 `LOW`/`HIGH` 外还有方向无关的 `FIRST`/`LAST`（"sorted before other values, no matter if ascending or descending order is used"）；DuckDB（`NULLS LAST` 缺省）与 PG 在 DESC 下的行为分叉。WI7 设计时引用。
+
+### 集合算子与 RETURNING 版本门（2026-10-04 EQL 兼容 roadmap WI3 第 1/6 项 + 门形态）
+
+**`INTERSECT`/`EXCEPT` 版本门**：dialect `<sqls>` 支持 `intersectKeyword`/`exceptKeyword` 属性（后者既有、前者 WI3 新增），值面契约：
+
+| 配置 | 行为 |
+|------|------|
+| 未配置（模型 null） | 回落缺省关键字 `intersect`/`except`（与未引入门前逐字节一致） |
+| 显式 `none`（哨兵） | 该方言声明**无该集合算子**：编译含 `INTERSECT [ ALL]`/`EXCEPT [ ALL]` 的查询时抛 `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword`/`exceptKeyword`），不静默产出目标库不支持的 SQL |
+| 其他非空值 | 原样用作关键字（如 Oracle 的 `exceptKeyword="minus"`） |
+
+⚠️ 空串**不能**表达"显式不支持"——空串经 xdef string 属性绑定实测被规范化为 null、与未配置不可区分（2026-10-04 实测），故哨兵用 `none`。
+
+落地配置：`mysql5.7` 与 `mariadb` 显式 `intersectKeyword="none" exceptKeyword="none"`（MySQL 8.0.31 起才有两算子；MariaDB 10.3 起，MDEV-10141；`INTERSECT ALL/DISTINCT` 自 10.5）；`mysql`（floor 8.0.31 已含）不配置；`oracle` 的 `minus` 既有用法不变。
+
+**`UPDATE … RETURNING` 版本门**：`supportReturningForUpdate` 已按真实语义（仅指 UPDATE 投影列表形式）纠错——mysql/oracle/h2 `false`（MySQL 全文法无 RETURNING；Oracle 仅允许 `INTO` 宿主变量形式；H2 无 RETURNING）；mariadb 显式 `false`（`UPDATE … RETURNING` 自 **MariaDB 13.0** 且仅单表）。
+
+**升级路径（部署级 delta 覆盖）**：≥MariaDB 10.3（集合算子）/ ≥10.5（INTERSECT ALL）/ ≥13.0（UPDATE RETURNING）以及 MySQL 5.7 之外的旧版部署，在自有 delta 方言 XML 中显式覆盖——集合算子配 `intersectKeyword="intersect" exceptKeyword="except"`（或删除哨兵配置）、RETURNING 配 `supportReturningForUpdate="true"`。模式 = **声明式保守值 + 编译期报错 + delta 显式覆盖**，与 G-1 裁决一致。
+
+### `stringAgg`：无法无损归一的三处分叉
+
+字符串聚合在各库是三个独立维度的分叉，EQL **不做跨方言归一**（无 `stringAgg` 归一通路），需要排序语义时按目标库原生写法走 `<sql>`：
+
+1. **排序语义**：PG `string_agg(expr, delim ORDER BY x)`（排序在函数内）、MSSQL `STRING_AGG(expr, delim) WITHIN GROUP (ORDER BY x)`、MySQL `GROUP_CONCAT(expr ORDER BY x SEPARATOR d)`、Oracle `LISTAGG(expr, delim) WITHIN GROUP (ORDER BY x)`——同一语义四种句法位置。
+2. **`WITHIN GROUP`**：MSSQL/Oracle 必需（MSSQL 不带它则排序不确定），PG/MySQL 无此子句。
+3. **分隔符**：MySQL 用 `SEPARATOR` 关键字、其余用第二参数；且 NULL/空组的回退行为（MySQL `GROUP_CONCAT` 全 NULL 时返回 NULL、MSSQL `STRING_AGG` 返回 NULL）与超长截断行为（MySQL `group_concat_max_len` 默认 1024 静默截断）各库不同。
+
+### `regexpLike` 支持面（证据两栏，2026-10-04 对账）
+
+| 已确认有 | 已确认无 | `[未取证]`（不得计入覆盖率） |
+|---------|---------|------------------------------|
+| PostgreSQL / MariaDB / H2 | MSSQL / TDengine | Oracle / DuckDB / DB2 / DM8 / MySQL 的 operator 页 |
+
+备注：oracle.dialect.xml 的 `ilike` 模板以 `regexp_like` 为改写目标（函数注册先例），但 `regexpLike` 作为独立函数的支持面按上表口径维持 Oracle 未取证，不以方言文件内的使用推断官方支持。
+
+### 跨库语义陷阱与配置建议（17 条，源自跨库调研报告 Part 9）
+
+以下是"能跑但结果不同"的一类——**大多无法靠补语法解决**，靠配置约定与代码评审防范（按调研报告 9.1–9.17 编号）：
+
+| # | 陷阱 | 差异要点 | 建议 |
+|---|------|---------|------|
+| 9.1 | Collation 决定 `=`/`ORDER BY`/`LIKE` 大小写敏感性 | MySQL 默认 `_ci` 匹配 `'ABC'='abc'`，PG 默认敏感，MSSQL 默认 CI——同一段 EQL 返回行数可不同 | 统一列 collation 约定；大小写不敏感匹配用 `ilike`（仅注册方言）或显式 `lower()` |
+| 9.2 | NULL 排序默认值 4 类 | 见 `defaultNullsFirst` 小节 | 不依赖缺省序，显式排序键 |
+| 9.3 | Oracle 空字符串即 NULL | 破坏基于 `coalesce` 的 lowering | 平台已默认 `auto_convert_empty_string_to_null`（见上文），勿关闭 |
+| 9.4 | 隐式类型转换 | `where intCol = '1'`：MySQL 数值上下文、PG 报错、Oracle 隐式 TO_NUMBER | 参数类型与列类型对齐，勿传字符串比数值列 |
+| 9.5 | 日期范围边界 | MySQL `DATE` 起点 1000-01-01，Oracle DATE 含时间跨 BC | 历史日期范围查询按目标库核对 |
+| 9.6 | TIMESTAMP vs TIMESTAMPTZ | 各库时区语义不同；default 字面量模板无时区分量 | 时间戳列统一 UTC 约定；涉时区用 `TIMESTAMP(6) WITH TIME ZONE` 类映射 |
+| 9.7 | 标识符长度上限 | MySQL 64 / Oracle 12.2 前 30 / PG 63 | 长实体/属性名（`T`+entity+prop 拼接）评审长度 |
+| 9.8 | 关键字遮蔽/保留字冲突（双向） | 224 个 EQL 保留词不能作标识符；`unreservedWord_` 放行词与各方言保留字冲突（DuckDB 26 个等） | 列名避开 EQL 保留词与各方言保留词；方言 `<reservedKeywords>` 负责生成侧 quote |
+| 9.9 | `CHAR` 尾部空格补齐 | Oracle/MySQL 的 CHAR 比较忽略尾随空格 | 定长字符串谨慎使用 |
+| 9.10 | 整除与取模符号 | `5 % -2`：MySQL 截断 −1，PG floor 1 | 负数取模避免跨库依赖 |
+| 9.11 | 聚合溢出与返回类型 | `SUM(int)` PG 报错/MySQL 回绕；`AVG(int)` MySQL 返回 int | 数值聚合列用 DECIMAL/BIGINT |
+| 9.12 | 布尔↔整数转换 | `WHERE boolCol = 1` PG 非法 | 布尔列用布尔字面量（经 `trueString/falseString` 方言形态） |
+| 9.13 | `IN` 列表长度上限 | Oracle 1000 硬上限、MSSQL 参数 2100 | 大列表改临时表/分批 `in` |
+| 9.14 | `UNION` 类型归并与列数 | 各库归一规则不同 | union 两侧投影显式同型 |
+| 9.15 | 字符串/Unicode 长度语义 | Oracle VARCHAR2 默认按字节；MSSQL nvarchar 按 UTF-16 单元（emoji 算 2） | 多语言列预留长度；VARCHAR precision 富余 |
+| 9.16 | 反斜杠转义分叉 | `escapeSlash` 各库不同（MySQL/DM/TDengine 转义） | 字面量含反斜杠时依赖方言 `escapeSlash` 配置，勿手写双重转义 |
+| 9.17 | 递归 CTE 深度 | MySQL 默认 1000、MSSQL 需 hint、PG 无限 | 递归 CTE 设上限并捕获错误 |
+
 ### 方言敏感输出点登记表（roadmap 级 EC 第 4 条）
 
 本表登记 EQL 编译管线中"按方言能力分叉的输出点"：generator/transform 位置 + 能力标志 + 不支持时的错误码。**每行都有对应的"该方言编译期报错"负向测试。**
@@ -244,7 +320,8 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | CAST 类型 characterSet/collate 子句 | `EqlASTBuildVisitor.SqlTypeExpr_characterSet/collate`（解析期守卫，字段双向零消费） | 无消费通路（显式拒绝，见 BUG-15 小节） | `nop.err.eql.sql-type-clause-not-support` | `TestEqlSqlTypeClauseGuard` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
-| UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate` | `nop.err.eql.dialect-not-support-feature` | `TestEqlCompileSql.testUpdateReturningAllChecksDialect` |
+| UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate`（仅指投影列表形式，WI3 纠错后 mysql/oracle/h2/mariadb/duckdb 均拒） | `nop.err.eql.dialect-not-support-feature`（`feature=supportReturningForUpdate`） | `TestEqlCompileSql.testUpdateReturningAllChecksDialect`、`TestEqlUpdateReturningDialectGate` |
+| INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
 
 ## 相关文档
 
