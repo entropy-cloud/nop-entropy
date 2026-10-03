@@ -44,6 +44,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_DATETIME_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_INTERVAL_UNIT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_SQL_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_WINDOW_FRAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PRECISION_NOT_POSITIVE_INT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SCALE_NOT_NON_NEGATIVE_INT;
 import static io.nop.orm.eql.parse.EqlParseHelper.operator;
@@ -371,16 +372,31 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         }
     }
 
+    /**
+     * WI2 BUG-15（裁定=候选A 解析期拒绝，裁定文档 §六）：SqlTypeExpr 的 characterSet
+     * 零消费点——AstToEqlGenerator.visitSqlTypeExpr 只打印 name/precision/scale，
+     * AstToSqlGenerator.visitSqlCastExpr 绕过 SqlTypeExpr ⇒ 字段有值即被静默丢弃。
+     * 本访问器被调用 = 文法分支可达（今天 STRING token 无 lexer 规则而永久不可达）=
+     * 显式拒绝，防止未来文法修复后退化为 BUG-1 同型静默丢弃。守护测试
+     * TestEqlSqlTypeClauseGuard 锁定"一旦可达即失败"。
+     */
     @Override
     public String SqlTypeExpr_characterSet(ParseTree node) {
-        EqlParser.CharacterSet_Context ctx = (EqlParser.CharacterSet_Context) node;
-        return text(ctx.characterSet);
+        throw new NopException(ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT)
+                .loc(loc(node))
+                .param(ARG_VALUE, text(node));
     }
 
+    /**
+     * WI2 BUG-15：同 {@link #SqlTypeExpr_characterSet(ParseTree)}——quoted 形态
+     * {@code collate 'xx'}（STRING_ 可词法化）今天即可达，此前 collate 字段被写入后
+     * 被两个生成器静默丢弃；本守卫把该通路即刻转为响亮拒绝。
+     */
     @Override
     public String SqlTypeExpr_collate(ParseTree node) {
-        EqlParser.CollateClause_Context ctx = (EqlParser.CollateClause_Context) node;
-        return text(ctx.collate);
+        throw new NopException(ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT)
+                .loc(loc(node))
+                .param(ARG_VALUE, text(node));
     }
 
     @Override

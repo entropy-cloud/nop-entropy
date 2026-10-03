@@ -201,6 +201,13 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT = define("nop.err.eql.collection-access-not-support",
             "集合下标表达式[{expr}]不支持翻译为SQL，请改写为关联属性join或集合操作符(_some/_all)", ARG_EXPR);
 
+    // WI2 BUG-15（裁定=候选A 解析期拒绝，裁定文档 §六）：SqlTypeExpr 的 characterSet/collate
+    // 零消费点（AstToEqlGenerator 只打印 name/precision/scale，AstToSqlGenerator.visitSqlCastExpr
+    // 绕过 SqlTypeExpr），字段有值即静默丢弃。手写访问器被调用 = 分支可达 = 显式拒绝，
+    // 防止未来文法修复后退化为 BUG-1 同型静默丢弃
+    ErrorCode ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT = define("nop.err.eql.sql-type-clause-not-support",
+            "CAST类型表达式的[{value}]子句不支持翻译为SQL（无任何方言消费其语义），显式拒绝", ARG_VALUE);
+
     ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
             define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
 

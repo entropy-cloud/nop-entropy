@@ -189,6 +189,14 @@ EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生
 
 回归测试：`TestEqlFullJoinParse`（解析红→绿 + `full join` 既有形态守护）、`TestEqlFullJoinDialectGate`（负向错误码 + feature param、嵌套过门、flag 两值行为分叉=接线验证）、`TestDialectFullJoinFlag`（nop-dao，XML→accessor 链逐方言断言）。
 
+### `SqlTypeExpr.characterSet`/`collate`：显式拒绝防护（2026-10-03 WI2 BUG-15）
+
+CAST 类型表达式的 `character set`/`collate` 子句（文法 `characterSet_`/`collateClause_`）被写入 `SqlTypeExpr.characterSet`/`collate` 字段后**没有任何消费者**：`AstToEqlGenerator.visitSqlTypeExpr` 只打印 name/precision/scale，`AstToSqlGenerator.visitSqlCastExpr` 绕过 `SqlTypeExpr` 渲染 ⇒ 字段有值即被静默丢弃（BUG-1 同型的静默丢弃隐患）。防护（裁定=候选 A，解析期拒绝）：手写访问器 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate` **无条件抛** `nop.err.eql.sql-type-clause-not-support`（param `value`）——访问器被调用即等价于"文法分支可达"，显式拒绝而非吞字段继续编译。
+
+不可达性与可达面（token 分叉证据）：`characterSet_` 期望 `STRING` token——parser token 表有 `STRING=358` 而 lexer token 表止于 `BIT_NUM_=357`（`EqlParser.java`/`EqlLexer.java`），该 token 无任何 lexer 规则可产生 ⇒ 任何形态（含 `character set 'utf8'`）都解析失败；`collateClause_` 期望 `STRING_`（带引号字面量），unquoted 形态（`collate xx`）词法为 `IDENTIFIER_` ⇒ 解析失败；**quoted 形态 `collate 'xx'` 今天即可解析**——防护前它是一条活的最小静默丢弃通路，现在解析期响亮拒绝。与「`LIKE … ESCAPE`」小节同属"回显/生成不消费的 AST 字段"治理面：ESCAPE 是执行路径消费、回显缺失（deferred）；本节两字段是双向零消费（显式拒绝）。
+
+若未来立项实现 `CAST … CHARACTER SET/COLLATE` 的真实语义，必须先修文法（`STRING` token 分叉）并按生成管线 plan-first 走新 plan，同时移除访问器守卫并通过 `TestEqlSqlTypeClauseGuard` 审视。回归测试：`TestEqlSqlTypeClauseGuard`（不可达固化 3 例 + 拒绝路径手构 context 3 例 + 拒绝无条件性 1 例）。
+
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 
 EQL 的 `from (select ...) x, lateral (select ...) y` 在回显路径无损打印 `lateral` 关键字；执行路径按方言能力门控：`supportLateral=false`（或未配置——**保守缺省 = 不支持**）时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportLateral`），`true` 时输出 `lateral`。修复前该关键字被静默丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同，退化为不相关子查询）。
@@ -233,6 +241,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | FULL JOIN 表源 | `EqlTransformVisitor.checkJoinTypeFeature`（join 表源转换遍历点） | `supportFullJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`） | `TestEqlFullJoinDialectGate`、`TestDialectFullJoinFlag` |
+| CAST 类型 characterSet/collate 子句 | `EqlASTBuildVisitor.SqlTypeExpr_characterSet/collate`（解析期守卫，字段双向零消费） | 无消费通路（显式拒绝，见 BUG-15 小节） | `nop.err.eql.sql-type-clause-not-support` | `TestEqlSqlTypeClauseGuard` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate` | `nop.err.eql.dialect-not-support-feature` | `TestEqlCompileSql.testUpdateReturningAllChecksDialect` |

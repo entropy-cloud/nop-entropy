@@ -80,6 +80,7 @@ WI1 plan（`ai-dev/plans/03-eql-wi1-class-a-defects.md`）已起草、代码尚�
 4. **stream 既有失败基线**：WI1 plan 的 Closure Gates 仍写"3 项既有失败"；roadmap Cross-Cutting 与 WI0 语料基线头部已按 2026-10-03 实测收窄为 **1 项**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`）。本 plan 采用 1 项口径。
 5. **语料 BC 与 BUG-4 无冲突，但前提是两个字面量事实**：WI0 快照 34 条 echo 实测零 `select *`、零 `limit`/`offset` 语句 ⇒ BUG-4 的 `printSelect` 补齐本身不触碰任何语料回显文本。但"预期零 diff"的完整前提是：**（a）语料字符串字面量无内嵌引号、（b）语料零布尔字面量**——起草时实测两者今天均成立：语料含 **13+ 处字符串字面量**（`'Fall'`/`'Spring'`/`'Biology'` 等，normalized source 与 echo 合计 24 行命中），但 SQL 双写 `''` 与转义 `\'` 均 **0 命中**（简单字面量，`escapeSql(value,false)` 与 `dialect.getStringLiteral` 对其渲染等价）；布尔字面量 **0 条**（快照中 `TRUE`/`FALSE` 仅出现在 parse-error 的 expected token 集合，非语句内容）。⇒ 一旦 Phase 0 第 6 项的字面量形态裁定改变**简单字符串或布尔字面量**的回显渲染，零 diff 前提即失效，必须先裁定快照重生成范围再动生成器（见 Phase 0 第 2 项与 Phase 1 BC 判据的挂钩）。
 6. **BUG-4 字面量一致化候选 B（注入 dialect）的 API 影响面定价**：回显路径由 `EqlASTNode.appendTo`（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/EqlASTNode.java:26-29`）**硬编码** `new AstToEqlGenerator(sb)`（`:27`）驱动，`toSqlString()`（`:31-35`）与 `toSQL()`（`:37-40`）均经它——整条调用链无 dialect 可得。候选 B（回显生成器注入 dialect）意味着改动 `appendTo`/`toSqlString`/`toSQL` 的公开签名链，或引入"默认方言回退"这类语义含糊的形态，属 **AST 公共 API/语义面变更、成本显著高于候选 A**，且与 roadmap 修法原文（"也走 dialect，使回显路径与执行路径一致"）存在**实质偏离**（该表述在无 dialect 的回显路径上不可直接落地）。⇒ Phase 0 第 6 项裁定据此**倾向候选 A**（保持 EQL 语法形态、消除语义分歧），终裁权保留。
+7. **（执行期增补，2026-10-03 Phase 5 实测）`collateClause_` 的 quoted 形态今天可达**：起草时"两条分支今天永久不可达"的结论对 `characterSet_`（任何形态）与 `collateClause_` 的 unquoted 形态成立（token 分叉证据不变），但 **quoted 形态 `collate 'xx'`（`STRING_` 可词法化）今天即可解析**——collate 字段被写入后被两个生成器静默丢弃，即 BUG-15 存在一条活的最小静默丢弃通路（不只是"未来文法修好后"的隐患）。BUG-15 的候选 A 守卫把该通路即刻转为响亮拒绝（`TestEqlSqlTypeClauseGuard.testQuotedCollateExplicitlyRejectedNotSilentlyDropped` 的真实 red→green）。roadmap 对 BUG-15 "尚不可达"的表述据此增补（不构成 live defect 降级——防护在 Phase 5 同批落地）。
 
 ## Protected Areas 与准入声明（roadmap Cross-Cutting 强制）
 
@@ -215,25 +216,25 @@ Exit Criteria:
 
 ### Phase 5 - BUG-15 `SqlTypeExpr.characterSet`/`collate` 显式拒绝防护（守护测试）
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: 按 Phase 0 裁定（候选 A：`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java:321-330`；候选 B：`EqlTransformVisitor.java` 或生成器）、`OrmEqlErrors.java`（如需新错误码）、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`（防患性防护——BUG-15 尚不可达、还不是 live defect，故不是 `Fix`）、`Proof`
 
-- [ ] 按 Phase 0 裁定落显式拒绝：`SqlTypeExpr` 的 `characterSet`/`collate` 一旦有值即抛错（断言具体错误码），**不允许静默丢弃**（杜绝"未来文法修好后退化成 BUG-1 同型静默丢弃"）。
-- [ ] 不可达性守护测试（今天的现状固化）：`cast(a as varchar(10) character set utf8)` 与 `cast(a as varchar(10) collate xx)` 解析失败——固化"`STRING` token 无 lexer 规则（`EqlLexer.java` token 表无 `STRING`，`EqlParser.java:81` 有 `STRING=358`）⇒ 分支不可达"的现状；若未来文法修复使这两条可解析，守护测试失败并强制实现者走显式拒绝路径。
-- [ ] 拒绝路径测试（**测试形态与 Phase 0 裁定候选绑定**——按裁定落点构造对应缝隙的输入）：候选 A（解析期守卫）= 手构 `CharacterSet_Context`/`CollateClause_Context`（携带 `STRING` token 文本）直调 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate` 访问器，断言抛具体错误码；候选 B（编译/生成期守卫）= 构造 `SqlTypeExpr` 的 `characterSet`/`collate` 字段非空的 AST 并触发编译/生成路径，断言抛具体错误码。无论哪个候选，都证明"一旦可达即失败"——这是 roadmap 所称"未来文法修好后不得静默丢弃"的守护测试本体。
-- [ ] 无静默跳过：拒绝逻辑不得写成吞掉字段继续编译（那正是本防护要杜绝的形态）。
-- [ ] owner doc：`eql-and-database-compatibility.md` 登记 `SqlTypeExpr.characterSet`/`collate` 的"显式拒绝 + 不可达原因（token 分叉证据）"小节，与 WI1 的 ESCAPE 矩阵章节衔接（不重复矩阵内容）。
+- [x] 按 Phase 0 裁定落显式拒绝：`SqlTypeExpr` 的 `characterSet`/`collate` 一旦有值即抛错（断言具体错误码），**不允许静默丢弃**（杜绝"未来文法修好后退化成 BUG-1 同型静默丢弃"）。（候选 A 落地：两个手写访问器改为无条件抛 `ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT`（`nop.err.eql.sql-type-clause-not-support`，param `value`）——访问器被调用即分支可达，字段结构性钉死 null。）
+- [x] 不可达性守护测试（今天的现状固化）：`cast(a as varchar(10) character set utf8)` 与 `cast(a as varchar(10) collate xx)` 解析失败——固化"`STRING` token 无 lexer 规则（`EqlLexer.java` token 表无 `STRING`，`EqlParser.java:81` 有 `STRING=358`）⇒ 分支不可达"的现状；若未来文法修复使这两条可解析，守护测试失败并强制实现者走显式拒绝路径。（3 例不可达锁定：character set unquoted/quoted + collate unquoted，均断言 antlr 错误码前缀。）
+- [x] 拒绝路径测试（**测试形态与 Phase 0 裁定候选绑定**——按裁定落点构造对应缝隙的输入）：候选 A（解析期守卫）= 手构 `CharacterSet_Context`/`CollateClause_Context`（携带 `STRING` token 文本）直调 `SqlTypeExpr_characterSet`/`SqlTypeExpr_collate` 访问器，断言抛具体错误码；候选 B（编译/生成期守卫）= 构造 `SqlTypeExpr` 的 `characterSet`/`collate` 字段非空的 AST 并触发编译/生成路径，断言抛具体错误码。无论哪个候选，都证明"一旦可达即失败"——这是 roadmap 所称"未来文法修好后不得静默丢弃"的守护测试本体。（候选 A 形态落地 3 例：两个手构 context 直调 + 拒绝无条件性（空串文本同样拒绝）。手构 context 需同时注入 `start` token（`loc()` 读取）与字段 token。**执行期事实核实**：quoted `collate 'xx'`（STRING_ 可词法化）今天即可解析、字段被写入后静默丢弃——活的最小静默丢弃通路，修复前红="nothing was thrown"+echo 无痕迹，修复后同输入响亮拒绝。）
+- [x] 无静默跳过：拒绝逻辑不得写成吞掉字段继续编译（那正是本防护要杜绝的形态）。（无条件抛错、不依赖字段值，`testGuardIsUnconditionalNotValueDependent` 锁定。）
+- [x] owner doc：`eql-and-database-compatibility.md` 登记 `SqlTypeExpr.characterSet`/`collate` 的"显式拒绝 + 不可达原因（token 分叉证据）"小节，与 WI1 的 ESCAPE 矩阵章节衔接（不重复矩阵内容）。（新增「SqlTypeExpr.characterSet/collate：显式拒绝防护」小节（token 分叉证据 + quoted collate 可达面 + 与 ESCAPE 治理面衔接）+ 敏感输出点登记表新行。）
 
 Exit Criteria:
 
-- [ ] 显式拒绝落点与 Phase 0 裁定一致，拒绝路径测试断言具体错误码。
-- [ ] 不可达性守护测试存在（两条解析失败输入）；文法若被第三方修复，守护测试能转红。
-- [ ] 三份必测 BC 与 WI0 基线快照逐字一致。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] owner doc 小节已落档。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 显式拒绝落点与 Phase 0 裁定一致，拒绝路径测试断言具体错误码。
+- [x] 不可达性守护测试存在（两条解析失败输入）；文法若被第三方修复，守护测试能转红。（3 条输入；另以 quoted collate 的真实可达通路验证了"可达即拒绝"行为本体。）
+- [x] 三份必测 BC 与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随全量运行通过，语料零 characterSet/collate。）
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。（实测 234 tests 0 failures BUILD SUCCESS。）
+- [x] owner doc 小节已落档。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
