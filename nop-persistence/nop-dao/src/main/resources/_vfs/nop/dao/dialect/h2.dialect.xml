@@ -202,6 +202,22 @@
         <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
             <source>{0} ilike {1}</source>
         </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。H2 TRIM 支持标准全形态（[LEADING|TRAILING|BOTH] [chars] FROM str）。h2gis 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+            <testSql>TRIM(BOTH 'x' FROM 'xxabcxx')</testSql>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+            <testSql>TRIM(LEADING 'x' FROM 'xxabcxx')</testSql>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+            <testSql>TRIM(TRAILING 'x' FROM 'xxabcxx')</testSql>
+        </template>
     </functions>
 
     <sqlDataTypes>

@@ -255,28 +255,28 @@ Exit Criteria:
 
 ### Phase 4 - `TRIM` 标准三段式
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`trim(both from x)` / `trim(leading 'x' from y)` 解析失败——回归测试断言可解析，修复前红。
-- [ ] 文法与归一化（按 Phase 0 裁定，Major-2/Minor-②）：特殊备选分支**强制要求** `LEADING|BOTH|TRAILING` spec 关键字或 `FROM` 方可进入（即 `TRIM LP_ (LEADING|BOTH|TRAILING) …` / `TRIM LP_ expr FROM expr RP_` 形态）；**单参 `trim(x)` 留在既有 `sqlRegularFunction` 路径、不新增第二个可解析入口**（避免双可解析 + 回显漂移风险）。归一化分两档：**无 chars 形态**（`TRIM(BOTH FROM y)` → `trim(y)`、LEADING → `ltrim(y)`、TRAILING → `rtrim(y)`——三个目标函数均单参、14/14 已注册，`default.dialect.xml:110-112`）；**带 chars 形态**（`TRIM(BOTH 'x' FROM y)`）→ 逐方言 `<template>`（多数库原生支持 `TRIM(BOTH ? FROM ?)` 语法，照 `oracle.dialect.xml:174` ilike 模板先例）——**chars 参数不得静默丢弃**（roadmap 排序原则"只打印不设门 = 净回归"的 P1 头号禁令），无模板方言必须编译期显式报错、不允许降级为单参 trim。既有单参 `trim(str)` 行为逐字不变（守护用例）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①）：无 chars 形态 `both`/`leading`/`trailing` 各一条 h2 输出（`trim(y)`/`ltrim(y)`/`rtrim(y)` 形态）；带 chars 形态至少一条 h2 模板输出（`TRIM(BOTH 'x' FROM y)` 的模板渲染文本）。
-- [ ] 负向用例（EC ②）：**带 chars 形态在无模板方言上编译期显式报错**（断言具体错误码——不允许静默丢 chars、不允许静默降级单参 trim）；无 chars 形态目标函数缺失方言的编译期报错；`LEADING/BOTH/TRAILING` 非法组合的解析期/构建期响亮失败。
-- [ ] 接线验证（#23）+ "不等价"类用例（约束 4）：**带 chars 的 TRIM 语义分叉**（标准 SQL 是字符集合修剪；部分方言 `trim(s)` 只修剪空格）至少一项差异用例或 owner doc 差异行。
-- [ ] 矩阵快照**预期有增量**（带 chars 的 `<template>` 注册会进入方言函数表）：同步 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（重生成 `TestDialectCapabilityMatrix` 快照测试）+ 门禁 exit 0（EC ③）；owner doc TRIM 覆盖表与语义分叉登记（EC ④）；真库证据（EC ⑥，**新增模板函数**在 h2 经 `TestDialect.testFunctions` 真库执行全绿 + `trim`/`ltrim`/`rtrim` 既有执行保持全绿；无法真库验证方言逐个列出）；语料 BC（EC ⑦）。
+- [x] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`trim(both from x)` / `trim(leading 'x' from y)` 解析失败——回归测试断言可解析，修复前红。
+- [x] 文法与归一化（按 Phase 0 裁定，Major-2/Minor-②）：特殊备选分支**强制要求** `LEADING|BOTH|TRAILING` spec 关键字或 `FROM` 方可进入（即 `TRIM LP_ (LEADING|BOTH|TRAILING) …` / `TRIM LP_ expr FROM expr RP_` 形态）；**单参 `trim(x)` 留在既有 `sqlRegularFunction` 路径、不新增第二个可解析入口**（避免双可解析 + 回显漂移风险）。归一化分两档：**无 chars 形态**（`TRIM(BOTH FROM y)` → `trim(y)`、LEADING → `ltrim(y)`、TRAILING → `rtrim(y)`——三个目标函数均单参、14/14 已注册，`default.dialect.xml:110-112`）；**带 chars 形态**（`TRIM(BOTH 'x' FROM y)`）→ 逐方言 `<template>`（多数库原生支持 `TRIM(BOTH ? FROM ?)` 语法，照 `oracle.dialect.xml:174` ilike 模板先例）——**chars 参数不得静默丢弃**（roadmap 排序原则"只打印不设门 = 净回归"的 P1 头号禁令），无模板方言必须编译期显式报错、不允许降级为单参 trim。既有单参 `trim(str)` 行为逐字不变（守护用例）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①）：无 chars 形态 `both`/`leading`/`trailing` 各一条 h2 输出（`trim(y)`/`ltrim(y)`/`rtrim(y)` 形态）；带 chars 形态至少一条 h2 模板输出（`TRIM(BOTH 'x' FROM y)` 的模板渲染文本）。
+- [x] 负向用例（EC ②）：**带 chars 形态在无模板方言上编译期显式报错**（断言具体错误码——不允许静默丢 chars、不允许静默降级单参 trim）；无 chars 形态目标函数缺失方言的编译期报错；`LEADING/BOTH/TRAILING` 非法组合的解析期/构建期响亮失败。
+- [x] 接线验证（#23）+ "不等价"类用例（约束 4）：**带 chars 的 TRIM 语义分叉**（标准 SQL 是字符集合修剪；部分方言 `trim(s)` 只修剪空格）至少一项差异用例或 owner doc 差异行。
+- [x] 矩阵快照**预期有增量**（带 chars 的 `<template>` 注册会进入方言函数表）：同步 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（重生成 `TestDialectCapabilityMatrix` 快照测试）+ 门禁 exit 0（EC ③）；owner doc TRIM 覆盖表与语义分叉登记（EC ④）；真库证据（EC ⑥，**新增模板函数**在 h2 经 `TestDialect.testFunctions` 真库执行全绿 + `trim`/`ltrim`/`rtrim` 既有执行保持全绿；无法真库验证方言逐个列出）；语料 BC（EC ⑦）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（无 chars 三方向形态 + 带 chars 模板形态 + 单参不变）。
-- [ ] 带 chars 形态在无模板方言上编译期显式报错且断言具体错误码（无静默丢参/无静默降级）；其余负向用例断言具体错误码。
-- [ ] TRIM 语义分叉差异已登记（用例或 owner doc 差异行）。
-- [ ] 矩阵快照增量已同步 + 门禁 exit 0；owner doc 覆盖表已落档。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（无 chars 三方向形态 + 带 chars 模板形态 + 单参不变）。
+- [x] 带 chars 形态在无模板方言上编译期显式报错且断言具体错误码（无静默丢参/无静默降级）；其余负向用例断言具体错误码。
+- [x] TRIM 语义分叉差异已登记（用例或 owner doc 差异行）。
+- [x] 矩阵快照增量已同步 + 门禁 exit 0；owner doc 覆盖表已落档。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `.g4` 改动单独提交；`ast/_gen/` 零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 5 - 放开 `day`/`hour`/`minute`/`second`/`quarter` 关键字遮蔽
 

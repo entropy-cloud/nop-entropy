@@ -218,6 +218,19 @@
         <template name="quarter" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>to_number(to_char({0},'Q'))</source>
         </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。Oracle TRIM(LEADING|TRAILING|BOTH trim_character FROM trim_source)。oracle-reverse 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

@@ -387,6 +387,22 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 
 `dm`/`tdengine`/`db2`/`es` 经 default 继承获得注册，实际函数行为 `[未取证]`（与既有 `year` 同等待遇，不计入覆盖率）。**语义差异登记（不等价类）**：Oracle `extract(SECOND from ts)` 含小数秒，MySQL/`second()` 0-59——跨库需要整数秒时自行截断。
 
+#### TRIM 标准三段式（两档）
+
+无 chars 档按方向归一化既有单参函数（全体方言零新增注册）；带 chars 档归一化新规范函数三件套 **`trimChars/ltrimChars/rtrimChars(str, chars)`**（主串在前），方向进逐方言 `<template>`。**硬性禁令：带 chars 形态在未注册模板的方言上编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错——不允许静默丢 chars 参数、不允许降级单参 trim。** 单参 `trim(x)` 不新增可解析入口（仍走普通函数路径，行为逐字不变）。
+
+| 方言 | 无 chars（BOTH/LEADING/TRAILING） | 带 chars（trimChars/ltrimChars/rtrimChars） | 证据 |
+|------|------|------|------|
+| h2 / h2gis | `trim(y)` / `ltrim(y)` / `rtrim(y)` | `TRIM(BOTH {chars} FROM {str})` 等标准模板 | `[实测]`（h2 真库 testSql + `TestEqlTrimFunctionDialect`）/ `[文档]`（H2 TRIM 标准全形态） |
+| mysql / mariadb / mysql5.7 | 同上 | 同标准模板（`TRIM(BOTH remstr FROM str)`） | `[文档]`（MySQL 8.0 String Functions） |
+| postgresql / postgis | 同上 | 同标准模板 | `[文档]`（PG 15 TRIM） |
+| oracle / oracle-reverse | 同上 | 同标准模板 | `[文档]`（Oracle TRIM） |
+| mssql | 同上 | 同标准模板（**MSSQL 2022 起**支持 LEADING/TRAILING/BOTH characters FROM；G-1 承诺基线恰为 2022） | `[文档]`（MSSQL 2022 TRIM） |
+| duckdb | 同上 | 函数形态 `trim/ltrim/rtrim({str}, {chars})`（DuckDB 无关键字形态，显式覆盖防继承 PG 关键字模板） | `[文档]`（DuckDB trim/ltrim/rtrim 双参签名）/ `[实测]`（编译文本 testDuckDbFunctionFormTemplate） |
+| dm / tdengine / es / db2 | 同上（单参 15/15 既有） | **未注册 → 编译期响亮报错**（dm/tdengine/db2 `[未取证]`，es pseudo） | `[实测]`（负向：testCharsFormFailsLoudOnUnregisteredDialect） |
+
+**语义差异登记（不等价类）**：chars 参数是**字符集合**语义（标准 SQL/MySQL/H2/PG/Oracle/DuckDB 一致——`trimChars('xy', s)` 移除串两端任意 'x' 或 'y' 字符）；无 chars 的 `trim(s)` 各库默认修剪空格。EQL 原样 lowering 不做语义合并。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

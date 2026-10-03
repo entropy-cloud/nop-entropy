@@ -246,6 +246,74 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * WI5 Phase 4: TRIM 标准三段式的构建期归一化（BaseRule.g4 sqlExpr_special 的三个
+     * trim 备选分支）。两档设计（裁定 §1.4/§4）：
+     * <ul>
+     * <li>无 chars：TRIM(BOTH FROM y) → trim(y)、LEADING → ltrim(y)、TRAILING → rtrim(y)
+     * （目标函数单参、全体方言已注册）；</li>
+     * <li>带 chars：TRIM([dir] chars FROM y) → trimChars/ltrimChars/rtrimChars(y, chars)
+     * （args=[str, chars] 主串在前，方向进逐方言模板；无模板方言编译期
+     * ERR_EQL_UNKNOWN_FUNCTION 响亮报错——禁止静默丢 chars、禁止降级单参 trim）。</li>
+     * </ul>
+     * 生成方法体只建空节点或透明委托，因此三个方法均完全重写、不调 super。单参
+     * {@code trim(x)} 不经过本组方法（留在 sqlRegularFunction 路径）。
+     */
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_trimDirection(
+            EqlParser.SqlRegularFunction_trimDirectionContext ctx) {
+        String dir = text(token(ctx.trimDirection__())).toLowerCase(Locale.ROOT);
+        return newTrimFunction(ctx, dir, null, (SqlExpr) visit(ctx.sqlExpr()));
+    }
+
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_trimDirectionChars(
+            EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx) {
+        String dir = text(token(ctx.trimDirection__())).toLowerCase(Locale.ROOT);
+        SqlExpr chars = (SqlExpr) visit(ctx.sqlExpr_simple());
+        return newTrimFunction(ctx, dir, chars, (SqlExpr) visit(ctx.sqlExpr()));
+    }
+
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_trimChars(
+            EqlParser.SqlRegularFunction_trimCharsContext ctx) {
+        SqlExpr chars = (SqlExpr) visit(ctx.sqlExpr_simple());
+        return newTrimFunction(ctx, "both", chars, (SqlExpr) visit(ctx.sqlExpr()));
+    }
+
+    private SqlRegularFunction newTrimFunction(EqlParser.SqlExpr_specialContext ctx, String dir, SqlExpr chars,
+            SqlExpr str) {
+        boolean withChars = chars != null;
+        String name;
+        switch (dir) {
+            case "leading":
+                name = withChars ? "ltrimChars" : "ltrim";
+                break;
+            case "trailing":
+                name = withChars ? "rtrimChars" : "rtrim";
+                break;
+            case "both":
+                name = withChars ? "trimChars" : "trim";
+                break;
+            default:
+                // 文法层 trimDirection__ 仅放行 leading/trailing/both，此分支不可达；
+                // 照 SqlDateTimeLiteral 同款防御（不新起错误码，Phase 0 裁定 §6）
+                throw new IllegalStateException("Unknown trim direction: " + dir);
+        }
+
+        SqlRegularFunction ret = new SqlRegularFunction();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setName(name);
+        List<SqlExpr> args = new ArrayList<>(2);
+        args.add(str);
+        if (withChars)
+            args.add(chars);
+        ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
      * WI5 Phase 3: SQL-92 标准函数语法 {@code EXTRACT(f FROM d)}（BaseRule.g4
      * sqlExpr_special 的 {@code SqlRegularFunction_extract} 备选分支，字段规则
      * extractField_ 只放行七个有 lowering 目标的字段）。构建期归一化装入**既有**

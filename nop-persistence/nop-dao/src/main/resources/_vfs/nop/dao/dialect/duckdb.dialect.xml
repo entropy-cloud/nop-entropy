@@ -126,7 +126,23 @@
         <native name="st_dwithin" x:override="remove"/>
         <native name="st_transform" x:override="remove"/>
         <native name="st_extent" x:override="remove"/>
-    </functions>
+                <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars）。DuckDB 无
+             TRIM(BOTH x FROM y) 关键字形态，用函数形态 trim/ltrim/rtrim(string, characters)——
+             必须显式覆盖，否则继承 postgresql 的关键字模板产出非法 SQL。无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>trim({0}, {1})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>ltrim({0}, {1})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>rtrim({0}, {1})</source>
+        </template>
+
+</functions>
 
     <!-- DuckDB 未定义错误码，只抛出了异常信息：
     https://github.com/duckdb/duckdb-java/blob/c7cb0f252dd0047f4ec4acbe70269db45bdfae4c/src/jni/duckdb_java.cpp#L34
