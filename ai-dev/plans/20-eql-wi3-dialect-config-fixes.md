@@ -264,25 +264,25 @@ Exit Criteria:
 
 ### Phase 5 - db2 selector 断链修复（第 12 项）
 
-Status: planned
+Status: completed（2026-10-04；commit `9a250aadc9`）
 Targets: `db2.dialect.xml` 或 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/selector/db2.selector.yaml`（按 Phase 0 裁定）、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`、`nop-dao` 测试
 
 - Item Types: `Fix`、`Proof`
 
-- [ ] **先复现再修**：按 WI0 快照登记的事实复现——快照 `dialects.db2` 记录 `loadable:false` + `nop.err.xlang.xdsl.missing-mandatory-child` + `missingMandatoryChild: driverClassName`；复现步骤 = `DialectManager` 按 productName `DB2` 经 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/selector/db2.selector.yaml` 命中 `dialectName: db2` 后实例化失败（或直接 try-load `db2.dialect.xml` 抛 `nop.err.xlang.xdsl.missing-mandatory-child`）。复现以一个**修复前红**的测试固化。
-- [ ] 按 Phase 0 裁定修复（默认 = 补 `<driverClassName>`/`<jdbcUrlPattern>`，形态参照 `dm.dialect.xml:11-15`；备选 = 下掉 selector）：修复后 DB2 自动选择可用（或显式响亮失败），复现测试转绿。
-- [ ] 矩阵快照同步：db2 的 `loadable`/functions/extends 状态按修复后实测重生成（若转 loadable，快照新增其函数表）+ 两道门禁复跑绿。
-- [ ] **连带失真修正**：`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestDialectWindowSqlSnapshot.java:37-38` 的注释「db2 缺 driverClassName 等必备节点无法独立加载（生产经 selector 注入）——不适用快照」在本 Phase 后可能失真——若走「补 mandatory 子节点」方案（db2 转可加载），必须同 Phase 更新该注释（是否把 db2 纳入快照方言集随裁定记录，不强制扩面）；若走「下掉 selector」方案，注释仍成立、保持原文不改。
-- [ ] 既有 `db2` errorCodes 表（`-803` 等，`DialectSQLExceptionTranslator` 消费）不因修复改变。
+- [x] **先复现再修**：按 WI0 快照登记的事实复现——快照 `dialects.db2` 记录 `loadable:false` + `nop.err.xlang.xdsl.missing-mandatory-child` + `missingMandatoryChild: driverClassName`；复现步骤 = `DialectManager` 按 productName `DB2` 经 `db2.selector.yaml` 命中 `dialectName: db2` 后实例化失败（或直接 try-load `db2.dialect.xml` 抛 `nop.err.xlang.xdsl.missing-mandatory-child`）。复现以一个**修复前红**的测试固化。（`TestDb2DialectSelectorChain`：修复前 3 用例红、报错 `missing-mandatory-child tagName=driverClassName` 与快照逐字一致；selector 注册断言绿=断链"半边"先证）
+- [x] 按 Phase 0 裁定修复（默认 = 补 `<driverClassName>`/`<jdbcUrlPattern>`，形态参照 `dm.dialect.xml:11-15`；备选 = 下掉 selector）：修复后 DB2 自动选择可用（或显式响亮失败），复现测试转绿。（**执行期新发现并一并修复**：`<reservedKeywords>` 也是 mandatory 且 default/mixin 均不提供，此前被 driverClassName 先行报错遮蔽——补空集 + `DialectImpl` 构造器对 null reservedKeywords 容错（空内容经 xdef 绑定为 null，原 addAll NPE）；保留字表补全需 DB2 一手文档取证，登记 Non-Blocking Follow-up）
+- [x] 矩阵快照同步：db2 的 `loadable`/functions/extends 状态按修复后实测重生成（若转 loadable，快照新增其函数表）+ 两道门禁复跑绿。（db2 `loadable:true` + 继承面函数表 63 项；loadable 14→15；mjs exit 0 + 字节比对绿）
+- [x] **连带失真修正**：`TestDialectWindowSqlSnapshot.java:37-38` 的注释「db2 缺 driverClassName 等必备节点无法独立加载（生产经 selector 注入）——不适用快照」在本 Phase 后可能失真——若走「补 mandatory 子节点」方案（db2 转可加载），必须同 Phase 更新该注释（是否把 db2 纳入快照方言集随裁定记录，不强制扩面）；若走「下掉 selector」方案，注释仍成立、保持原文不改。（注释已更新：db2 可加载但窗口 golden 方言集保持 10 个不扩面，理由=db2 无方言自有函数、输出与继承面方言同构、扩面无增量信息，随注记录）
+- [x] 既有 `db2` errorCodes 表（`-803` 等，`DialectSQLExceptionTranslator` 消费）不因修复改变。（`testDb2ErrorCodesUntouched` 断言）
 
 Exit Criteria:
 
-- [ ] 复现测试存在且修复前红（红→绿留痕于提交说明或日志）。
-- [ ] 修复后配置断言测试：DB2 选择路径（selector → dialect 实例）端到端可用（或按备选方案断言响亮失败的错误形态）；`TestDialectSelector` 既有排序约定回归不变。
-- [ ] 快照已同步且门禁绿。
-- [ ] `TestDialectWindowSqlSnapshot.java:37-38` 注释状态与第 12 项修法裁定一致（可加载化 ⇒ 注释已更新；下掉 selector ⇒ 保持原文）。
-- [ ] `./mvnw test -pl :nop-dao -am -T 1C` 全绿。
-- [ ] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 复现测试存在且修复前红（红→绿留痕于提交说明或日志）。
+- [x] 修复后配置断言测试：DB2 选择路径（selector → dialect 实例）端到端可用（或按备选方案断言响亮失败的错误形态）；`TestDialectSelector` 既有排序约定回归不变。（同批运行 3/3 绿）
+- [x] 快照已同步且门禁绿。
+- [x] `TestDialectWindowSqlSnapshot.java:37-38` 注释状态与第 12 项修法裁定一致（可加载化 ⇒ 注释已更新；下掉 selector ⇒ 保持原文）。
+- [x] `./mvnw test -pl :nop-dao -am -T 1C` 全绿。（经两模块门禁 `:nop-dao,:nop-orm-eql -am` 覆盖，BUILD SUCCESS 2026-10-04）
+- [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 6 - defaultNullsFirst accessor + H2 补配 + WI7 移交标注（第 10/11 项）
 
@@ -366,7 +366,8 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- `dialect.xdef:38-39` 的 javadoc 勘误：`supportNullsFirst` 的「`if(isnull(field),0,1)` 模拟」表述（无实现、且是 owner doc 失真的源头）与 `supportReturningForUpdate` 补「仅指 UPDATE、投影列表形式」限定——xdef 注释属配置 schema 文档，随下次触碰该文件的 WI 顺带修正。
+- **db2 `<reservedKeywords>` 保留字表补全**（Phase 5 执行期新发现）：db2 现为空集（mandatory 节点存在但零登记），列名与 DB2 保留字同名时不会被 quote。补全需 DB2 一手文档取证（DB2 文档站有 403/JS 门禁先例，见 roadmap 红线），超出本 WI 范围；空集语义已由测试固化、静默面与修复前一致（修复前整个方言不可加载）。
+- `dialect.xdef:38-39` 的 javadoc 勘误：`supportNullsFirst` 的「`if(isnull(field),0,1)` 模拟」表述（无实现、且是 owner doc 失真的源头）与 `supportReturningForUpdate` 补「仅指 UPDATE、投影列表形式」限定——xdef 注释属配置 schema 文档，随下次触碰该文件的 WI 顺带修正。（WI3 已触碰该文件的 `<sqls>` 区域并顺带补了 intersectKeyword 的如实 javadoc；features 区域两条留此）
 - `getIntercectKeyword` 拼写修正（`AstToEqlGenerator.java:537` 基类 + `AstToSqlGenerator.java:501` 覆写 + 调用点，同步更名）：纯 cosmetic，涉及与 WI1 的共享文件，单独提交、不阻塞本 WI。
 - EQL 回显路径的集合算子关键字不读方言（`AstToEqlGenerator.visitSqlUnionSelect` 经基类硬编码 `intersect`/`except`，而执行路径经 dialect 可输出 `minus` 等）——回显保真属 BUG-4（WI2）的范畴，登记其 scope 参考。
 - `mariadb` 版本变体拆分方言（如 `mariadb-pre10.3`）：仅当产品侧出现「需要同时承诺 MariaDB 10.2 与 10.3+ 各自完整能力」的需求时复议（届时矩阵快照 18→19 + selector 同步）。
