@@ -88,7 +88,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - **WI7** 分页（`FETCH FIRST` / `OFFSET..FETCH NEXT`）+ `NULLS FIRST/LAST`（接线 `nullsFirst` + `defaultNullsFirst`）: `todo`
 - **WI7b** 分析型：`sqlIntervalLiteral` 模板落地 + `rollup`/`cube`/`grouping` 注册 + 窗口 `OVER` 放宽与 frame + `count(*) FILTER` 文档引导: `todo`
 - **WI8** NULL 三值语义谓词 `IS [NOT] DISTINCT FROM` / `IS [NOT] TRUE/FALSE/UNKNOWN`: `todo`
-- **WI9a** CAST 类型系统·语法与别名（复用 WI2 已落地的 `BOOLEAN`；新增 `NUMBER`/`TEXT`/`BOOL` 别名 / `UUID` / 收窄 `dataTypeName_` 必拒项）: `todo`
+- **WI9a** CAST 类型系统·语法与别名（复用 WI2 已落地的 `BOOLEAN`；新增 `NUMBER`/`TEXT`/`BOOL` 别名 / `UUID` / 收窄 `dataTypeName_` 必拒项）: `planned`
 - **WI9b** CAST 类型系统·时区类型（取消 `StdSqlType` 时区类型注释 + 同步语法拼写 + 迁移说明）: `todo`
 - **WI10a** `IN` 列表长度上限策略设计（阈值来源 + 改写形态 + 事务语义，产出物落 `ai-dev/design/`）: `done`
 - **WI10b** 按策略实现 + BUG-13 死标志三档处置（接线 10 / 补消费者 1 / 标 deprecated 3）: `planned`
