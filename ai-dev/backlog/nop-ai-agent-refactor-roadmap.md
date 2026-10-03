@@ -93,7 +93,7 @@ audit-rounds: 0
 
 ### M8 — 收口
 
-- [ ] WI24 总收口报告 + 交叉校对：独立子代理校对本 roadmap 全部产物间结论一致性、与 autonomous roadmap 的划界无重复无遗漏、锚点有效；修正后在收口记录登记（Deliverable: 收口记录（本文件 Rules 通道 + 当日 log）；deps: WI1–WI23 全部）
+- [x] WI24 总收口报告 + 交叉校对：独立子代理校对本 roadmap 全部产物间结论一致性、与 autonomous roadmap 的划界无重复无遗漏、锚点有效；修正后在收口记录登记（Deliverable: 收口记录（本文件 Rules 通道 + 当日 log）；deps: WI1–WI23 全部）
 
 ## Dependency Graph
 
@@ -181,6 +181,7 @@ graph TD
 - 状态只在本文件 `## Work Item Status` 的 checkbox 通道维护；不设第二状态面，里程碑无状态。
 - WI 编号全文件唯一递增；执行顺序 = 文档顺序；AI 不重排优先级、不发明工作项；需新增/调整工作项时先提请人工确认。
 - 本文件不写实现方案正文；设计裁定落 `ai-dev/design/`，执行细节落 plan，代码放源码。
+- **收口记录（2026-10-03，plan 2306/WI24）**：25 个工作项全部落地或显式裁定——20 项实现/评估落地（WI1-WI17、WI20-WI22、WI25）+ 3 项纯裁定（WI18 deferred 工具移出、WI19 建议2/传输抽象移出、WI23 流式管线不立项）+ WI24 本收口。独立交叉校对（agent_fa1c1c12，49 项抽查）三项全 PASS：①产物间结论一致性（六组配对互洽）②与 autonomous roadmap 划界（必裁①②③执行到位，无重复/遗漏；⑤-E-3 已并入 WI22、⑤-C-1 出口已经 WI23 行使）③锚点有效性（49 项全有效，doc-links 0 error）。修正 3 项 Minor（invariant-catalog §3.1 编号顺序重排/§4 索引计数 33→35/plan 2306 基线句）；watch-only residuals 分散登记于各 plan（不在此重复）。全量验证面：四模块 `-am` 全绿（plan 2304 closure audit 实测）。
 - 划界规则：不得吸收已被 autonomous roadmap 承接的项（除非显式裁定移交并登记）；与 99-总报告 ⑤ A–H 的映射关系变动时同步更新本文件 Purpose。
 - 每个 execution item 必须能归类为 `Fix`、`Decision`、`Proof`、`Follow-up`；已确认 live defect 不得降级为 Follow-up。
 - `completed` 必须来自单独的 closure audit，不在完成最后一个编码 slice 的同时顺手宣布关闭。

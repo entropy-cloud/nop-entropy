@@ -135,11 +135,11 @@
 | 22 | nop-ai-agent | `team/DefaultTeamAclChecker.java` | 构造注入候选（`DbTeamManager` 引用） |
 | 23 | nop-ai-agent | `tool/DefaultBackgroundTaskRegistry.java` | 构造注入候选（`DefaultAgentEngine` Builder 装配；plan 2301 WI25 产物） |
 | 24 | nop-ai-core | `api/tool/DefaultAiChatFunctionTool.java` | 构造注入候选（`GraphQLToolProvider` 等引用） |
-| 26 | nop-ai-core | `api/tool/DefaultAiChatToolSet.java` | 构造注入候选（`GraphQLToolSetFactoryBean` 引用） |
-| 27 | nop-ai-core | `persist/DefaultAiChatExchangePersister.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.5-002 修复载体 |
-| 28 | nop-ai-core | `persist/DefaultAiChatResponseCache.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；MA6.5-AR-7 修复载体 |
-| 29 | nop-ai-core | `prompt/DefaultSystemPromptLoader.java` | 构造注入候选（`AiCommand` 引用） |
-| 30 | nop-ai-core | `routing/DefaultSelectionStrategy.java` | 构造注入候选（`ModelClassRouter` 默认策略；plan 2026-08-15-0849 产物，plan 2301 WI25 补录表） |
+| 25 | nop-ai-core | `api/tool/DefaultAiChatToolSet.java` | 构造注入候选（`GraphQLToolSetFactoryBean` 引用） |
+| 26 | nop-ai-core | `persist/DefaultAiChatExchangePersister.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.5-002 修复载体 |
+| 27 | nop-ai-core | `persist/DefaultAiChatResponseCache.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；MA6.5-AR-7 修复载体 |
+| 28 | nop-ai-core | `prompt/DefaultSystemPromptLoader.java` | 构造注入候选（`AiCommand` 引用） |
+| 29 | nop-ai-core | `routing/DefaultSelectionStrategy.java` | 构造注入候选（`ModelClassRouter` 默认策略；plan 2026-08-15-0849 产物，plan 2301 WI25 补录表） |
 | 30 | nop-ai-core | `service/DefaultAiChatService.java` | **IoC bean 注册**（`ai-defaults.beans.xml`，废弃 API 保留向后兼容）；MR1/MR2 修复载体 |
 | 31 | nop-ai-core | `service/DefaultAiChatSession.java` | 构造注入候选（`DefaultAiChatService` 内部） |
 | 32 | nop-ai-core | `service/DefaultChatLogger.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.1-003 修复载体 |
@@ -289,7 +289,7 @@
 
 | 用途 | 命令 |
 |------|------|
-| Default* 类表 | `find nop-ai -name "Default*.java" -not -path "*/target/*" -not -path "*/test/*" -not -path "*/_gen/*" \| sort`（33 行） |
+| Default* 类表 | `find nop-ai -name "Default*.java" -not -path "*/target/*" -not -path "*/test/*" -not -path "*/_gen/*" \| sort`（35 行） |
 | 编排入口表 | `grep -rn "public.*\(CompletableFuture\|CompletionStage\)<" nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/{engine,tool} --include="*.java"` + IAgentEngine 公共入口 |
 | ToolExecutor 表 | `grep -rn "implements\s\+IToolExecutor\b" nop-ai --include="*.java" \| grep -v target`（28 行）；`grep -rln "extends AbstractMemoryToolExecutor" nop-ai --include="*.java"`（3 行） |
 | 资源 entry-point 表 | §3.4 六条 grep 命令 |
