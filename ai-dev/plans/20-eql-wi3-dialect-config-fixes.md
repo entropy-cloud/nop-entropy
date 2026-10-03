@@ -1,6 +1,6 @@
 # 20 EQL WI3 — 方言配置纠错（11 项）与 owner doc 对齐
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI3 节 + 门控矩阵 WI3 行 + Cross-Cutting 全部 + 关键约束与红线「证据等级纪律」，v7.2）
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已完成）、`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1/G-4 已裁决）、`ai-dev/plans/03-eql-wi1-class-a-defects.md`（并行实施，文件交集见专节）、`ai-dev/audits/eql-wi0/dialect-capability-matrix.json`（矩阵快照）
@@ -235,7 +235,7 @@ Exit Criteria:
 
 - [x] 配置断言 + 行为断言全绿；未注册方言负向路径不回归。
 - [x] 快照已同步且 `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，nop-dao 855 / nop-orm-eql 242）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS；⚠️ 初稿计数勘误（独立审计）：855 系上游 nop-xlang 的数字，nop-dao 实际 205 通过+46 既有豁免 skip、nop-orm-eql 以当轮 surefire 为准——全绿实质成立）
 - [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - INTERSECT/EXCEPT 版本门 + mariadb RETURNING 门（第 6 项 + 门形态）
@@ -259,7 +259,7 @@ Exit Criteria:
 - [x] mysql5.7/mariadb 负向用例断言具体错误码；`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` 复用而非新造错误码（或 Phase 0 若裁定新码，断言新码）。
 - [x] mariadb `RETURNING` 门与 INTERSECT 门形态一致性有测试证明（同一「声明式保守值 + 编译期报错 + delta 覆盖」模式）。
 - [x] `DialectSqls` retention 字段经 xdef 反射绑定真实读写（接线验证：配置值 → 模型 → accessor → 生成器行为差异，Minimum Rules #23）。（nop-dao 测试证 XML→模型→accessor（"none" 逐方言读出），nop-orm-eql 测试证 accessor→生成器行为差异（门抛错 vs 回落），两模块合起来即全链）
-- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，nop-dao 855+2skip / nop-orm-eql 247）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS；⚠️ 初稿计数勘误（独立审计）：855+2skip 系 nop-xlang，nop-dao 实际 205|46skip、nop-orm-eql 实际 253|0skip）
 - [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 5 - db2 selector 断链修复（第 12 项）
@@ -271,7 +271,7 @@ Targets: `db2.dialect.xml` 或 `nop-persistence/nop-dao/src/main/resources/_vfs/
 
 - [x] **先复现再修**：按 WI0 快照登记的事实复现——快照 `dialects.db2` 记录 `loadable:false` + `nop.err.xlang.xdsl.missing-mandatory-child` + `missingMandatoryChild: driverClassName`；复现步骤 = `DialectManager` 按 productName `DB2` 经 `db2.selector.yaml` 命中 `dialectName: db2` 后实例化失败（或直接 try-load `db2.dialect.xml` 抛 `nop.err.xlang.xdsl.missing-mandatory-child`）。复现以一个**修复前红**的测试固化。（`TestDb2DialectSelectorChain`：修复前 3 用例红、报错 `missing-mandatory-child tagName=driverClassName` 与快照逐字一致；selector 注册断言绿=断链"半边"先证）
 - [x] 按 Phase 0 裁定修复（默认 = 补 `<driverClassName>`/`<jdbcUrlPattern>`，形态参照 `dm.dialect.xml:11-15`；备选 = 下掉 selector）：修复后 DB2 自动选择可用（或显式响亮失败），复现测试转绿。（**执行期新发现并一并修复**：`<reservedKeywords>` 也是 mandatory 且 default/mixin 均不提供，此前被 driverClassName 先行报错遮蔽——补空集 + `DialectImpl` 构造器对 null reservedKeywords 容错（空内容经 xdef 绑定为 null，原 addAll NPE）；保留字表补全需 DB2 一手文档取证，登记 Non-Blocking Follow-up）
-- [x] 矩阵快照同步：db2 的 `loadable`/functions/extends 状态按修复后实测重生成（若转 loadable，快照新增其函数表）+ 两道门禁复跑绿。（db2 `loadable:true` + 继承面函数表 63 项；loadable 14→15；mjs exit 0 + 字节比对绿）
+- [x] 矩阵快照同步：db2 的 `loadable`/functions/extends 状态按修复后实测重生成（若转 loadable，快照新增其函数表）+ 两道门禁复跑绿。（db2 `loadable:true` + 继承面函数表 57 项（⚠️ 勘误：初稿 63 系误记，快照与 git show 实证 57=default 47+窗口 mixin 10）；loadable 14→15；mjs exit 0 + 字节比对绿）
 - [x] **连带失真修正**：`TestDialectWindowSqlSnapshot.java:37-38` 的注释「db2 缺 driverClassName 等必备节点无法独立加载（生产经 selector 注入）——不适用快照」在本 Phase 后可能失真——若走「补 mandatory 子节点」方案（db2 转可加载），必须同 Phase 更新该注释（是否把 db2 纳入快照方言集随裁定记录，不强制扩面）；若走「下掉 selector」方案，注释仍成立、保持原文不改。（注释已更新：db2 可加载但窗口 golden 方言集保持 10 个不扩面，理由=db2 无方言自有函数、输出与继承面方言同构、扩面无增量信息，随注记录）
 - [x] 既有 `db2` errorCodes 表（`-803` 等，`DialectSQLExceptionTranslator` 消费）不因修复改变。（`testDb2ErrorCodesUntouched` 断言）
 
@@ -338,15 +338,15 @@ Exit Criteria:
 - [x] roadmap WI3 的 11 项**逐项有结论**（7 改值 + 1 unverified 标注 + 1 确认不改 + 2 版本门/selector；第 8 项为已完成记录只做回归验证）：逐项核对——`mysql`/`oracle`/`h2` 的 `supportReturningForUpdate` → `false`；`duckdb` 保持 `false`；`dm` 显式保留 `unverified` 并登记 successor（不得要求 dm 被「修正」，closure audit 不得据此判失败）；`mariadb` 显式 false + 版本门形态与 INTERSECT 门一致；窗口 mixin 的 `mysql5.7` 移除（PG/DuckDB 补齐项回归验证）；`ilike` 注册；`defaultNullsFirst` accessor + 8 方言断言 + H2 补配；`db2` selector 断链已复现并修复；`INTERSECT` 版本门落地。
 - [x] 11 项**每项一个方言配置断言测试**（矩阵断言或独立测试类），全部存在且绿。（TestDialectReturningForUpdateFlag / TestMysql57WindowFunctionsRemoved / TestIlikeFunctionRegistration / TestDefaultNullsFirstFlag / TestDb2DialectSelectorChain / TestDialectSetOperatorKeywords——第 4/5 项并入 TestDialectReturningForUpdateFlag，第 6 项与版本门并入 TestDialectSetOperatorKeywords/TestEqlSetOperatorDialectGate）
 - [x] `defaultNullsFirst` 消费点移交链已写明（WI3 不声称消费完成；WI7 为唯一消费 owner）；不存在两 WI 双重 owner 或双重「完成」声称。
-- [x] **矩阵快照同步**：所有 functions/extends/loadable 变化已重生成快照；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0；`TestDialectCapabilityMatrix` 字节比对通过。（Phase 2 mysql5.7 functions -10；Phase 3 五方言 +ilike；Phase 5 db2 转 loadable + 函数表 63 项、loadable 14→15）
-- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿——**「全绿」口径**：本 WI 相关模块全绿；该命令闭包不含 `:nop-auth-service`，故 `nop-stream-runtime` 既有失败（`TestStreamConnectorRegistryDiscovery`，见 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头登记）不进本闭包；若执行中扩大 `-pl` 面致其入闭包，以「与基线一致即豁免」口径处理，不得据此判本 WI 失败。（终局实测 2026-10-04：BUILD SUCCESS，nop-dao 855+2skip / nop-orm-eql 247）
+- [x] **矩阵快照同步**：所有 functions/extends/loadable 变化已重生成快照；`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0；`TestDialectCapabilityMatrix` 字节比对通过。（Phase 2 mysql5.7 functions -10；Phase 3 五方言 +ilike；Phase 5 db2 转 loadable + 函数表 57 项（勘误见上）、loadable 14→15）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿——**「全绿」口径**：本 WI 相关模块全绿；该命令闭包不含 `:nop-auth-service`，故 `nop-stream-runtime` 既有失败（`TestStreamConnectorRegistryDiscovery`，见 `ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 文档头登记）不进本闭包；若执行中扩大 `-pl` 面致其入闭包，以「与基线一致即豁免」口径处理，不得据此判本 WI 失败。（终局实测 2026-10-04：BUILD SUCCESS；计数勘误见上——nop-dao 205|46skip / nop-orm-eql 253|0skip）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 改动新增 broken link = 0（既有 3 项 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`）。（终局实测 exit 0、0 error、3 warning=既有基线）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/20-eql-wi3-dialect-config-fixes.md --strict` 退出码 0。（**留白**：checklist 终门随独立 closure audit 一并核验；执行期预跑 exit 0——active 状态下通过、completed 后强制全勾+evidence，已留痕 daily log）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/20-eql-wi3-dialect-config-fixes.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）（**留白**：checklist 终门随独立 closure audit 一并核验；执行期预跑 exit 0——active 状态下通过、completed 后强制全勾+evidence，已留痕 daily log）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 与 `--module nop-orm-eql --severity high` 均零命中（anti-hollow 对本 WI 尤其关键：accessor-without-consumer、空值门不生效都是要抓的半实现形态）。（终局实测两命令 exit 0；accessor-without-consumer 形态以移交记录显式声明，见上两条）
 - [x] 11 项逐项独立提交可审计（G-4 回滚单位 = `git revert` 单项）；零 `.g4`/`_gen`/lexer token 改动。（逐项提交清单见 daily log；`git diff --stat 90806e869e..HEAD -- '*.g4' '*_gen*' '*EqlParser*' '*EqlLexer*' '*EqlAST*' '*_Dialect*' '*tokens'` 零输出实测）
 - [x] owner doc（`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`）已同步：四处失真 + `stringAgg`/`regexpLike`/17 条语义陷阱三小节 + 版本门契约 + 逐项对账无差异；INDEX/source-anchors 已核对。
-- [ ] Anti-Hollow Check：closure audit 已验证（a）`intersectKeyword` 空值门从 XML 配置 → retention → accessor → 生成器报错的运行时调用链真实连通（不只是字段存在）；(b) 未配置方言逐字节零变化有测试证据；(c) 无空方法体/静默跳过/no-op（第 10 项 accessor 的「暂无消费方」以移交记录显式声明）；(d) db2 修复从 selector 命中到方言实例化的端到端路径有测试。（**留白**：执行者已备执行期证据——红→绿留痕/BC 精确文本钉死/端到端 db2 测试/两模块 scan-hollow exit 0——终验归独立 closure audit）
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI3 行据此才可 `todo` →（执行中）→ `done`。（**留白**）
+- [x] Anti-Hollow Check：closure audit 已验证（a）`intersectKeyword` 空值门从 XML 配置 → retention → accessor → 生成器报错的运行时调用链真实连通（不只是字段存在）；(b) 未配置方言逐字节零变化有测试证据；(c) 无空方法体/静默跳过/no-op（第 10 项 accessor 的「暂无消费方」以移交记录显式声明）；(d) db2 修复从 selector 命中到方言实例化的端到端路径有测试。（独立审计确认"Anti-Hollow Gate 可勾"：(a) 代码逐层读通+负向测试证明；(b) `testUnconfiguredDialectsByteIdenticalOutput` 精确文本钉死；(c) 移交显式声明+两模块 hollow 0 命中；(d) `TestDb2DialectSelectorChain` 4/4 端到端绿）
+- [x] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI3 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -374,19 +374,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed:
+Status Note: 7 个 Phase 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A1..A4/B1..B6/C/D 全 PASS，**WI3 实质通过**：11 项逐项结论与分桶算术（7 改值+1 unverified+1 确认不改+2 版本门/selector）无遗漏，dm 未改值、mariadb 未误动、窗口 golden 零改动、零生成管线改动、6 条偏差全部落档、纪律性留白合规。审计发现的 1 Major（测试计数误标：855 系 nop-xlang 数字，nop-dao 实际 205|46skip、nop-orm-eql 253|0skip——同型问题第三次出现，已在 Closure Gate 行勘误）与 2 Minor（db2 函数表 63→57、"19 commits"实为 18）均已随收口勘误。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI3 closure audit（一次通过，结论"WI3 实质通过 closure audit——roadmap WI3 可翻 done（前提=数字勘误随 Closure 段落档）"）
 - Evidence:
-  - （每条 Exit Criterion 的验证结果 PASS/FAIL + 对应 live code path 或 test name）
-  - （每条 Closure Gate 的验证结果 PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/20-eql-wi3-dialect-config-fixes.md --strict` 退出码
-  - Anti-Hollow 检查结果：`scan-hollow-implementations.mjs --module nop-dao/--module nop-orm-eql --severity high` 退出码 + 空值门/accessor 调用链追踪结论
-  - Deferred 项分类检查：确认无 in-scope live defect 被降级（dm unverified 以 G-1 纪律与 roadmap EC 明文为据；defaultNullsFirst 移交以 roadmap WI7 EC 为据）
+  - A1 PASS：11 项全落位（①②③ false / ④ 防回归 / ⑤ UNVERIFIED 固化 / ⑥ mariadb false+版本门同构 / ⑦ 候选 B / ⑧ 回归验证 / ⑨ ilike / ⑩⑪ accessor+h2 / ⑫ db2+哨兵门）；审计员聚焦复跑 10+ 测试类全绿（ReturningForUpdateFlag 7、Mysql57WindowFunctionsRemoved 4、IlikeFunctionRegistration 4、DefaultNullsFirstFlag 3、Db2DialectSelectorChain 4、SetOperatorKeywords 5、CapabilityMatrix 2、EqlSetOperatorDialectGate 5、EqlUpdateReturningDialectGate 5、EqlIlikeDialectFunction 3、CorpusBaseline 1、窗口回归 21+2+3）
+  - A2 PASS：修复前快照三元组逐字吻合+red-first 留痕+端到端绿；reservedKeywords 缺口进 Follow-ups+`DialectImpl:94-97` null 容错
+  - A3 PASS：哨兵 `none` 全链（xdef:80-81 → DialectSqls retention → DialectImpl:396-398 → AstToSqlGenerator:571-596 显式拒绝）；空串不保真原始输出证据在裁定文档 §二；mariadb 同构双测证明
+  - A4 PASS：四处失真全修（含第 4 处漂移 supportRightJoin 行勘误为 WI10b 归属）+7 新小节+「标志 × 18 XML」grep 对账清单独立抽查吻合
+  - B1..B6 PASS：三改值独立提交、dm XML 零改动+`testDmUnverifiedValuePinned` 红线合规、候选 B 仅触 3 文件+mariadb 未动+golden 零 diff、快照 18/15/72/57 逐项抽查吻合、哨兵正负用例+零生成复核、CorpusBaseline 1/1+生成管线 diff 零输出独立复核
+  - C PASS：matrix mjs exit 0（18 方言 loadable 15）、doc-links 0 error 新增 0、scan-hollow 双模块 0 命中、checklist --strict exit 0
+  - D PASS：7 Phase+Closure Gates+daily log 三处一致；6 偏差全部落档
+  - Anti-Hollow：审计确认可勾（见对应 gate 行内注）
+  - Deferred 项分类检查：dm unverified 以 G-1 纪律与 roadmap EC 明文为据；defaultNullsFirst 移交以 roadmap WI7 EC 为据——无 in-scope live defect 被降级
 
 Follow-up:
 
