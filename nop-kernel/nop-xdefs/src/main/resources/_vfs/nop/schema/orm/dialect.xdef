@@ -33,11 +33,34 @@
 
     <!--
     @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...
+        WI10b 行为注记：EQL 文法与 transform 均接受别名（o.col 可解析），打印期统一抑制别名输出
+        （单表 UPDATE 语义无损归一化，flag 翻转不改变输出）。勿按本标志在打印器分支输出——
+        "按 flag 打印"=静默抑制，已裁定不成立；勿设编译期拒绝门（全方言 false ⇒ 拒绝语义无损写法，
+        纯 BC 破坏零收益）。别名语义承载化（多表 UPDATE 文法 WI 立项）时必须以编译期能力门接线。
     @supportDeleteTableAlias delete语句是否允许表别名。例如 delete my_table a where ...
+        WI10b 行为注记：同 supportUpdateTableAlias（接受并归一化，单表 DELETE 语义无损）。
+    @supportSavePoint
+        @deprecated 预留未接线（全仓零消费点）。属性保留、配置兼容（default.dialect.xml 已配 true），勿新增消费依赖。
+    @supportTransaction
+        @deprecated 预留未接线（全仓零消费点）。属性保留、配置兼容，勿新增消费依赖。
+    @supportSequence
+        @deprecated 预留未接线（isSupportSequence 唯一调用方为测试；序列 SQL 供给走
+        getCreateSequenceSql/getSequenceNextValSql）。属性保留、配置兼容，勿新增消费依赖。
     @supportNullsFirst 对于不支持的数据库，可以通过
         order by if(isnull(field),0,1), field来模拟
     @supportReturningForUpdate Update语句增加returning子句支持
     @supportOutputForUpdate Update语句支持output子句
+        WI10b 注记：EQL v1 无 OUTPUT lowering，本标志为能力声明（唯一 true 载体 mssql）；
+        MSSQL OUTPUT 语义立项（文法 WI，plan-first）时必须消费本标志。
+    @supportUpdateFromJoin WI10b 注记：EQL 文法暂无 UPDATE..FROM（解析失败=响亮），本标志为方言能力声明；
+        UPDATE..FROM 文法 WI 立项（plan-first）时必须接线本标志（EqlTransformVisitor#visitSqlUpdate 编译期门）。
+    @supportTruncateTable WI10b 注记：EQL 永不消费本标志（TRUNCATE 进 EQL 为 roadmap ledger 永久否决项）；
+        保留为 JDBC/DAO 层能力声明，勿在 EQL 内新增消费。
+    @supportDeleteFromJoin WI10b 注记：EQL 文法暂无多表 DELETE（解析失败=响亮），本标志为方言能力声明；
+        DELETE 多表文法 WI 立项（plan-first）时必须接线本标志。
+    @supportILike WI10b 注记：本标志当前无运行时消费点；ilike 的真实门是方言函数表
+        （getFunction("ilike") 取不到即报 nop.err.eql.not-support-ilike-operator）。勿将本标志接为
+        第二道门——postgresql 继承 false 但已注册 ilike 函数且工作正常，接标志即引入假阴性。
     @useGetStringForDate 使用ResultSet.getString来获取日期时间类型的值。
         h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
     @useAsInFrom select xx from t as v 这种语句是否允许使用as，oracle不允许使用as

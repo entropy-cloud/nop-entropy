@@ -26,6 +26,10 @@ public interface OrmEqlConstants {
     String FEATURE_SUPPORT_LATERAL = "supportLateral";
     // WI2 BUG-6: full [outer] join 编译期能力门
     String FEATURE_SUPPORT_FULL_JOIN = "supportFullJoin";
+    // WI10b（Phase 0 §2.5 终裁）：right join 编译期能力门（checkJoinTypeFeature 扩展分支）
+    String FEATURE_SUPPORT_RIGHT_JOIN = "supportRightJoin";
+    // WI10b（Phase 0 §2.6 终裁）：行值构造器 (a,b) 编译期能力门（visitSqlMultiValueExpr 覆写）
+    String FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR = "supportRowValueConstructor";
     String FEATURE_SUPPORT_WINDOW_FRAME_ROWS = "supportWindowFrameRows";
     String FEATURE_SUPPORT_WINDOW_FRAME_RANGE = "supportWindowFrameRange";
     String FEATURE_SUPPORT_WINDOW_FRAME_GROUPS = "supportWindowFrameGroups";

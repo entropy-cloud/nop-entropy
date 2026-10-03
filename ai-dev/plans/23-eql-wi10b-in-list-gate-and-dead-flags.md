@@ -187,32 +187,32 @@ Exit Criteria:
 
 ### Phase 2 - BUG-13 死标志三档处置
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java`（join 门、别名两标志的编译期门（若终裁接线）、`supportRowValueConstructor` 门，均按 Phase 0 终裁形态）、必要时 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`（仅 `supportRowValueConstructor` 若裁打印侧覆写时使用，及 `supportILike` 若 Phase 0 裁真实接线则其消费点落 `visitSqlLikeExpr` 区域一并纳入本 Targets；回显生成器零改动）、`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/dialect.xdef`（仅 javadoc 注释块）、`nop-dao`/`nop-orm-eql` 测试、`ai-dev/logs/`
 
 - Item Types: `Feature`（新接线）、`Fix`（死标志收拢）、`Decision`（Phase 0 改档的落地）、`Proof`（负向用例、配置断言）
 
-- [ ] **`supportRightJoin` 接线**：补 `IDialect.isSupportRightJoin` + `DialectImpl` 实现（照 `isSupportLateral`/window-frame 先例，javadoc 写明报错契约）；按 Phase 0 形态在 `EqlTransformVisitor` 落 join 能力门，抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `FEATURE_*` 常量；正向用例（right join 正常方言）+ 负向用例（Phase 0 载体，断言错误码）。
-- [ ] **`supportUpdateTableAlias`/`supportDeleteTableAlias` 处置**：按 Phase 0 两向终裁落地——裁「编译期门」者：门 + 负向用例（断言错误码）+ 正向用例，BC 迁移说明项已在 Phase 0 记录、Phase 3 落档；裁「改档」者：按改档档位落地（xdef javadoc 标注或档 2 测试证明）。三份语料回归不受影响（或有影响则按 Phase 0 的 BC 清单处理，不得静默）。
-- [ ] **`supportRowValueConstructor` 处置**：按 Phase 0 终裁落地（接线 + 负向用例，或改档的测试证明）。
-- [ ] **`supportUpdateFromJoin`/`supportTruncateTable`/`supportDeleteFromJoin`/`supportILike` 处置**：按 Phase 0 终裁落地——每个标志要么有可核验的测试证明（契约登记/能力声明形态；`supportILike` 若裁"真实接线"则为新增标志消费点 + 负向用例），要么已转入软弃用档并完成 xdef javadoc 标注；台账登记必须与实际处置一致（`ilike` 函数注册 ≠ 标志接线）；**不允许不落任何处置结论**。
-- [ ] **`supportOutputForUpdate`（档 2）**：补 `IDialect.isSupportOutputForUpdate` + `DialectImpl`（照 Boolean getter 读法先例）；按 Phase 0 终裁补真实消费点或补测试证明（mssql 配置断言 + 语义文档落 owner doc）；mssql 载体的行为断言。⚠️ 若裁候选 B（accessor + 测试证明、无生产消费点），Phase 0 裁定文档必须**显式豁免**该 accessor 的"运行时消费"接线验证并写明理由（`scan-hollow-implementations.mjs` 的 P5「unused public methods」未实现，探不到"有 accessor 无消费者"形态——该豁免只能靠本条手工 gate 把关）；或直接裁候选 A 消除豁免。
-- [ ] **软弃用 3 个**：`dialect.xdef` javadoc 注释块为 `supportSavePoint`/`supportTransaction`/`supportSequence` 加 `@deprecated` 行（说明"预留未接线、保留配置兼容、勿新增消费依赖"语义）；属性声明与绑定行为零变化（`default.dialect.xml:17` 的 `supportTransaction="true" supportSavePoint="true"` 等既有配置照常可加载——配置加载回归测试证明）；**不硬删属性**。
-- [ ] **跨 WI 标志核对收拢（不重复实施）**：核对 `supportFullJoin`（owner WI2）、`supportNullsFirst`（owner WI7）在本 plan 执行时点的落地状态；已落地者纳入死标志台账"已处置"；未落地者（如 WI7 未立项）按 WI3 plan 的移交链措辞登记为 successor-owned 中间态，**WI10b 不补 accessor、不建消费点、不写负向用例**（无双 owner）。`supportILike` 不在此档——其标志处置已归 Phase 0 终裁（WI3 只负责函数注册）；台账不得出现"supportILike 已接线（WI3）"这类与 live code 不符的登记。
-- [ ] 每个本 plan 新接线的标志在能力矩阵快照 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json` 的口径下无破坏（若本 plan 未改任何方言 XML，则显式记录"快照无需更新"）。
+- [x] **`supportRightJoin` 接线**：补 `IDialect.isSupportRightJoin` + `DialectImpl` 实现（照 `isSupportLateral`/window-frame 先例，javadoc 写明报错契约）；按 Phase 0 形态在 `EqlTransformVisitor` 落 join 能力门，抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `FEATURE_*` 常量；正向用例（right join 正常方言）+ 负向用例（Phase 0 载体，断言错误码）。（`checkJoinTypeFeature` 扩展 RIGHT_JOIN 分支 + `FEATURE_SUPPORT_RIGHT_JOIN`；`TestEqlRightJoinDialectGate` 4|0：负向断言码+feature param（right join/right outer join 双形态）+ 正向 SQL 保真 + left join 不受累守护；合成方言载体照 Phase 0 裁定）
+- [x] **`supportUpdateTableAlias`/`supportDeleteTableAlias` 处置**：按 Phase 0 两向终裁落地——裁「编译期门」者：门 + 负向用例（断言错误码）+ 正向用例，BC 迁移说明项已在 Phase 0 记录、Phase 3 落档；裁「改档」者：按改档档位落地（xdef javadoc 标注或档 2 测试证明）。三份语料回归不受影响（或有影响则按 Phase 0 的 BC 清单处理，不得静默）。（Phase 0 裁**改档（档 2）**：`TestEqlTableAliasSuppressionContract` 6|0 锁定"接受并归一化"契约——false 方言别名写法照常编译且 flag=true/false 输出逐字相同（证无打印分支无编译期拒绝）+ returning 门回归守护；xdef 行为注记已落；三份语料零别名写法（Phase 0 BC 清单）随回归证明不受影响）
+- [x] **`supportRowValueConstructor` 处置**：按 Phase 0 终裁落地（接线 + 负向用例，或改档的测试证明）。（接线：`visitSqlMultiValueExpr` 覆写门 + `FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR`；`TestEqlRowValueConstructorGate` 4|0：三形态可达性证明（比较/IN 行组）+ 负向（合成 false 断言码+feature）+ 正向（true 方言行组保真）+ 与 IN 门正交证明（行组作单元素 IN 不触发长度门））
+- [x] **`supportUpdateFromJoin`/`supportTruncateTable`/`supportDeleteFromJoin`/`supportILike` 处置**：按 Phase 0 终裁落地——每个标志要么有可核验的测试证明（契约登记/能力声明形态；`supportILike` 若裁"真实接线"则为新增标志消费点 + 负向用例），要么已转入软弃用档并完成 xdef javadoc 标注；台账登记必须与实际处置一致（`ilike` 函数注册 ≠ 标志接线）；**不允许不落任何处置结论**。（四者均裁档 2：`TestEqlDeadFlagGrammarContract` 4|0 文法契约（UPDATE..FROM 报 `nop.err.antlr.not-end-properly` offendingToken=from、多表 DELETE/DELETE..USING 响亮、单表别名形态照常解析）+ `TestDialectDeadFlagDisposition` 配置断言（updateFromJoin/deleteFromJoin 全 false、truncateTable 全 true）+ `testILikeFlagAndFunctionRegistrationIndependent` 锁定"标志与函数表互不强约束"（pg flag=false 且 ilike 函数可用=禁接标志的实证）+ xdef 注记含触发条件）
+- [x] **`supportOutputForUpdate`（档 2）**：补 `IDialect.isSupportOutputForUpdate` + `DialectImpl`（照 Boolean getter 读法先例）；按 Phase 0 终裁补真实消费点或补测试证明（mssql 配置断言 + 语义文档落 owner doc）；mssql 载体的行为断言。⚠️ 若裁候选 B（accessor + 测试证明、无生产消费点），Phase 0 裁定文档必须**显式豁免**该 accessor 的"运行时消费"接线验证并写明理由（`scan-hollow-implementations.mjs` 的 P5「unused public methods」未实现，探不到"有 accessor 无消费者"形态——该豁免只能靠本条手工 gate 把关）；或直接裁候选 A 消除豁免。（Phase 0 裁候选 B：accessor 已补 + `testOutputForUpdateOnlyMssqlTrue`（mssql true/其余 false）+ 语义文档 Phase 3 落 owner doc；"运行时消费"豁免已在裁定文档 §2.7 显式记录——mssql 上 `update..returning` 仍被 `supportReturningForUpdate=false` 拒绝的既有行为即"OUTPUT 标志当前不改变行为"的行为断言）
+- [x] **软弃用 3 个**：`dialect.xdef` javadoc 注释块为 `supportSavePoint`/`supportTransaction`/`supportSequence` 加 `@deprecated` 行（说明"预留未接线、保留配置兼容、勿新增消费依赖"语义）；属性声明与绑定行为零变化（`default.dialect.xml:17` 的 `supportTransaction="true" supportSavePoint="true"` 等既有配置照常可加载——配置加载回归测试证明）；**不硬删属性**。（xdef `@deprecated` 三行已落；`TestDialectDeadFlagDisposition.testSoftDeprecatedFlagsStillBind` + 全部 9 测试经 CoreInitialization 实加载 18 XML 配置链证明绑定行为零变化）
+- [x] **跨 WI 标志核对收拢（不重复实施）**：核对 `supportFullJoin`（owner WI2）、`supportNullsFirst`（owner WI7）在本 plan 执行时点的落地状态；已落地者纳入死标志台账"已处置"；未落地者（如 WI7 未立项）按 WI3 plan 的移交链措辞登记为 successor-owned 中间态，**WI10b 不补 accessor、不建消费点、不写负向用例**（无双 owner）。`supportILike` 不在此档——其标志处置已归 Phase 0 终裁（WI3 只负责函数注册）；台账不得出现"supportILike 已接线（WI3）"这类与 live code 不符的登记。（Phase 0 裁定文档 §0.2/§1 已核对：fullJoin=WI2 已处置（accessor+门+断言测试全在位，live 实测）；nullsFirst=WI7 successor-owned（WI3 移交链在 `IDialect.isDefaultNullsFirst` javadoc，`isSupportNullsFirst` accessor 留待 WI7）——台账落 Phase 3）
+- [x] 每个本 plan 新接线的标志在能力矩阵快照 `ai-dev/audits/eql-wi0/dialect-capability-matrix.json` 的口径下无破坏（若本 plan 未改任何方言 XML，则显式记录"快照无需更新"）。（本 plan 方言 XML **零改值**——`git diff` 证明；矩阵快照门禁 exit 0（2026-10-04 实测"无需更新"））
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 14 个标志逐一有最终档位结论，与 Phase 0 裁定文档一致；roadmap「接线（10）/ 补 accessor+消费者（1）/ 软弃用（3）」的账面与本 plan 的执行结果差异已显式记录（含改档理由），不是静默偏差。
-- [ ] 本 plan 接线的每个标志（**按 Phase 0 裁定形态条件化验收**）：裁「编译期门」者——具名消费者方法 + 一条"该方言不支持时编译期报错"的负向用例（断言错误码）+ 一条正向用例；裁「测试证明/改档」者——Phase 0 裁定文档中的等价处置证据（契约登记测试或改档落地）。负向载体（合成方言或 XML）与 Phase 0 裁定一致。
-- [ ] **接线验证**（Minimum Rules #23，限**接线档** accessor）：每个接线档新 accessor 被其消费点在运行时真实调用（负向用例即证明——accessor 返回 false 时门真的拦）；Phase 0 裁为「accessor + 测试证明」（候选 B）且无生产消费点的 accessor（如 `supportOutputForUpdate` 若裁 B）在本条**显式豁免**，豁免及理由已写入 Phase 0 裁定文档。
-- [ ] 软弃用 3 个标志：xdef javadoc 已更新；既有方言 XML 加载回归通过（配置兼容未破坏）；全仓 grep 确认无新增消费依赖。
-- [ ] **无静默跳过**：本 Phase 新增的每个门/分支在不支持时显式报错，不静默忽略。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中；`--module nop-dao` 同样零命中。（注：该工具的 P5「unused public methods」规则**未实现**——实测规则面为 P1/P2a/P2b/P3/P3b/P4/P6/P6b/P8，探不到"有 accessor 无消费者"形态；该形态的唯一防线是上一条的接线验证 gate。）
-- [ ] owner doc 更新归 Phase 3 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 3`；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 14 个标志逐一有最终档位结论，与 Phase 0 裁定文档一致；roadmap「接线（10）/ 补 accessor+消费者（1）/ 软弃用（3）」的账面与本 plan 的执行结果差异已显式记录（含改档理由），不是静默偏差。（裁定文档 §1 汇总表 + Phase 3 roadmap 修订落地差异：接线 2 / 补 accessor+测试证明 1 / 改档 5 / 软弃用 3 / WI2 已处置 1 / WI7 successor-owned 1）
+- [x] 本 plan 接线的每个标志（**按 Phase 0 裁定形态条件化验收**）：裁「编译期门」者——具名消费者方法 + 一条"该方言不支持时编译期报错"的负向用例（断言错误码）+ 一条正向用例；裁「测试证明/改档」者——Phase 0 裁定文档中的等价处置证据（契约登记测试或改档落地）。负向载体（合成方言或 XML）与 Phase 0 裁定一致。（`checkJoinTypeFeature` RIGHT_JOIN 分支 + `visitSqlMultiValueExpr` 门各有负向（合成方言断言码+feature param）与正向；改档五标志各有契约/断言测试，载体与裁定一致）
+- [x] **接线验证**（Minimum Rules #23，限**接线档** accessor）：每个接线档新 accessor 被其消费点在运行时真实调用（负向用例即证明——accessor 返回 false 时门真的拦）；Phase 0 裁为「accessor + 测试证明」（候选 B）且无生产消费点的 accessor（如 `supportOutputForUpdate` 若裁 B）在本条**显式豁免**，豁免及理由已写入 Phase 0 裁定文档。（`isSupportRightJoin`←checkJoinTypeFeature、`isSupportRowValueConstructor`←visitSqlMultiValueExpr 均由负向用例证明真拦；`isSupportOutputForUpdate`/`isSupportDeleteFromJoin` 档 2 豁免已记录于裁定文档 §2.4/§2.7）
+- [x] 软弃用 3 个标志：xdef javadoc 已更新；既有方言 XML 加载回归通过（配置兼容未破坏）；全仓 grep 确认无新增消费依赖。（xdef 三行 `@deprecated` 已落；`TestDialectDeadFlagDisposition` 9|0 经 CoreInitialization 实加载证明绑定零变化；`isSupportSavePoint/Transaction/Sequence` 消费方仍为零）
+- [x] **无静默跳过**：本 Phase 新增的每个门/分支在不支持时显式报错，不静默忽略。（RIGHT_JOIN 门与 rowValueConstructor 门均 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` 显式报错；别名两标志按裁定未新增任何分支——"按 flag 打印即静默抑制"形态被裁定否决，契约由测试锁定）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。（`_tmp/wi10b/phase2-full.log`：BUILD SUCCESS、MVN_EXIT=0；nop-dao 213|46skip|0、nop-orm-eql 320|0（surefire 汇总，含 CorpusBaseline 1/1））
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中；`--module nop-dao` 同样零命中。（注：该工具的 P5「unused public methods」规则**未实现**——实测规则面为 P1/P2a/P2b/P3/P3b/P4/P6/P6b/P8，探不到"有 accessor 无消费者"形态；该形态的唯一防线是上一条的接线验证 gate。）（两模块 exit 0 实测）
+- [x] owner doc 更新归 Phase 3 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 3`；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - owner doc 同步：IN 契约 + 迁移说明 + 死标志台账
 

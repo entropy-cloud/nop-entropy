@@ -40,6 +40,7 @@ import io.nop.orm.eql.ast.SqlInsert;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLiteral;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlMultiValueExpr;
 import io.nop.orm.eql.ast.SqlOrderBy;
 import io.nop.orm.eql.ast.SqlParameterMarker;
 import io.nop.orm.eql.ast.SqlProgram;
@@ -96,6 +97,8 @@ import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_FULL_JOIN;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RIGHT_JOIN;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
@@ -626,6 +629,30 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
                     .param(ARG_DIALECT, dialect.getName())
                     .param(ARG_FEATURE, FEATURE_SUPPORT_FULL_JOIN);
+        // WI10b（Phase 0 §2.5 终裁）：right join 与 full join 同门同层，不支持时响亮报错
+        if (source.getJoinType() == SqlJoinType.RIGHT_JOIN && !dialect.isSupportRightJoin())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_RIGHT_JOIN);
+    }
+
+    /**
+     * WI10b（Phase 0 §2.6 终裁）：行值构造器 `(a,b)` 能力门。SqlMultiValueExpr 三形态
+     * 文法可达且无条件打印——`(a,b)` 独立值表达式、`(a,b) = (1,2)` 真行值比较、
+     * `(a,b) IN ((1,2))`（IN 列表元素本身是行组）——门在 transform 遍历点统一拦截，
+     * 覆盖三形态全集；不在打印器设门（回显忠实转储零变化）。
+     *
+     * <p>与 IN 列表长度门正交：SqlMultiValueExpr 不是 SqlInValuesExpr，本门不计数、
+     * IN 门不管行组语义。全部既有方言 XML 继承 default 的 true ⇒ 真实方言零 BC；
+     * 负向载体 = 合成方言 false（无任何真实方言应配 false 的一手证据）。
+     */
+    @Override
+    public void visitSqlMultiValueExpr(SqlMultiValueExpr node) {
+        if (dialect != null && !dialect.isSupportRowValueConstructor())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR);
+        super.visitSqlMultiValueExpr(node);
     }
 
     /**

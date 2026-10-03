@@ -86,7 +86,7 @@
 
 - 事实：EQL 无 TRUNCATE 语法且 roadmap ledger 永久否决「TRUNCATE 进 EQL」⇒ EQL 内永不会有消费点，接线档永久不成立。
 - 不转软弃用的理由：`getDropTableSql`/`getCreateSequenceSql` 先例表明 IDialect 承载非 EQL 的 JDBC 层 SQL 供给；「该库是否支持 TRUNCATE TABLE」对 DAO/工具层是有效能力声明，非废弃项。
-- 处置落地（Phase 2）：① 配置断言测试（default true / tdengine false）；② xdef javadoc 注记（「EQL 永不消费本标志（ledger 永久否决 TRUNCATE 进 EQL）；保留为 JDBC/DAO 层能力声明，勿在 EQL 内新增消费」）。
+- 处置落地（Phase 2）：① 配置断言测试（default true，无任何 XML 覆写该键——2026-10-04 执行期更正：此前起草稿误记 tdengine 显式 false，实测 tdengine.dialect.xml:170 的显式键是 supportSequence）；② xdef javadoc 注记（「EQL 永不消费本标志（ledger 永久否决 TRUNCATE 进 EQL）；保留为 JDBC/DAO 层能力声明，勿在 EQL 内新增消费」）。
 
 ### 2.4 `supportDeleteFromJoin` → 改档（档 2 契约登记）+ 补 accessor
 

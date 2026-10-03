@@ -110,6 +110,33 @@ public interface IDialect extends IComponentModel {
     boolean isSupportFullJoin();
 
     /**
+     * WI10b（Phase 0 §2.5 终裁）：是否支持 `right join`/`right outer join` 表源。
+     * 全部既有方言 XML 继承 default 的 true（RIGHT JOIN 为 MySQL 8.0.31/PG/H2/MSSQL/
+     * Oracle/DuckDB 等全支持的标准能力）。配置为 false 时 EQL 编译期对含 right [outer]
+     * join 的查询报 `nop.err.eql.dialect-not-support-feature`
+     * （feature=supportRightJoin），而不是静默产出目标库不支持的 SQL。
+     */
+    boolean isSupportRightJoin();
+
+    /**
+     * WI10b（Phase 0 §2.4 终裁）：是否支持多表 DELETE（`DELETE t1 FROM t1 JOIN t2 …` /
+     * `DELETE FROM t1 USING t2 …`）。EQL 文法当前为单表 DELETE（多表形式解析失败=响亮），
+     * 本标志为方言能力声明：未来 DELETE 多表文法 WI 立项（plan-first）时必须接线本标志。
+     * 配置断言见 `TestDialectDeadFlagDisposition`。
+     */
+    boolean isSupportDeleteFromJoin();
+
+    /**
+     * WI10b（Phase 0 §2.7 终裁=候选 B）：是否支持 `UPDATE … OUTPUT inserted./deleted. …`
+     * 子句（MSSQL 形态，唯一 XML 载体 mssql 配 true）。v1 无运行时消费点——EQL 无任何
+     * 语句产出 OUTPUT 子句，本标志为能力声明；升级触发条件：EQL 立项 MSSQL OUTPUT
+     * 语义（文法 WI，plan-first）时必须消费本标志。注意与
+     * {@link #isSupportReturningForUpdate()} 正交：mssql 上 `update..returning` 仍被后者
+     * 拒绝（mssql 未配 returning）。
+     */
+    boolean isSupportOutputForUpdate();
+
+    /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *
      * @return
