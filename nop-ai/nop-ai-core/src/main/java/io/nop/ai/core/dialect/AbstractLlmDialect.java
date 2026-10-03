@@ -91,11 +91,25 @@ public abstract class AbstractLlmDialect {
                 }
             }
         }
+        // Plan 2304 (WI22): regex classifier (dsh-D4 ⑥-建议3) — provider
+        // unstructured texts mapped onto canonical values before the bare
+        // status heuristic (the text is the only signal a non-structured
+        // provider gives). QUOTA/AUTH rows are gated to <500 — a 5xx text
+        // like "insufficient capacity" must not divert a transient server
+        // error into the account-chain channel.
+        if (classification == null) {
+            String combined = String.join("\n",
+                    errorType != null ? errorType : "",
+                    errorCode != null ? errorCode : "",
+                    errorMessage != null ? errorMessage : "");
+            classification = io.nop.ai.core.reliability.ErrorMessageClassifier.classify(
+                    combined, httpStatus < 500);
+        }
         if (classification == null) {
             classification = defaultHeuristic(httpStatus);
         }
 
-        Long retryAfterMs = resolveRetryAfterMs(headers, bodyMap, errorResponse, matched);
+        Long retryAfterMs = resolveRetryAfterMs(headers, bodyMap, errorResponse, matched, errorMessage);
 
         String code = errorCode != null ? errorCode : errorType;
         // 永远标记为错误响应（isSuccess()=error==null）。未抽到 message 时用 fallback 文案，
@@ -163,7 +177,8 @@ public abstract class AbstractLlmDialect {
      * 全部缺失返回 null（策略层退回纯 full-jitter 退避）。解析失败不抛异常（容错）。
      */
     private Long resolveRetryAfterMs(Map<String, String> headers, Map<String, Object> bodyMap,
-                                     LlmErrorResponseModel errorResponse, LlmErrorMappingModel matched) {
+                                     LlmErrorResponseModel errorResponse, LlmErrorMappingModel matched,
+                                     String errorMessage) {
         if (headers != null) {
             Long fromHeaderMs = findHeaderMs(headers, "retry-after-ms");
             if (fromHeaderMs != null) {
@@ -185,8 +200,66 @@ public abstract class AbstractLlmDialect {
                 return fromBody;
             }
         }
+        // Plan 2304 (WI22): fourth source — the error message text
+        // ("try again in N s/ms/minutes", unreal retry.go shape). Lowest
+        // priority; parse failures stay null (the knob is never a failure
+        // surface).
+        Long fromMessage = parseRetryAfterText(errorMessage);
+        if (fromMessage != null) {
+            return fromMessage;
+        }
         return null;
     }
+
+    /**
+     * Plan 2304 (WI22): extracts the retry hint from an error message text —
+     * {@code try again in 30s} / {@code try again in 1.5 seconds} /
+     * {@code try again in 2 minutes}. Unit suffix optional (bare number =
+     * seconds). Returns null when no hint is present or the value is
+     * unparseable.
+     */
+    static Long parseRetryAfterText(String message) {
+        if (message == null || message.isEmpty()) {
+            return null;
+        }
+        java.util.regex.Matcher m = RETRY_HINT_PATTERN.matcher(message);
+        if (!m.find()) {
+            return null;
+        }
+        double value;
+        try {
+            value = Double.parseDouble(m.group(1));
+        } catch (NumberFormatException e) {
+            LOG.debug("nop.ai.parse-retry-after-text-fail: value={}", m.group(1));
+            return null;
+        }
+        String unit = m.group(2);
+        if (unit == null) {
+            unit = "s";
+        }
+        double multiplierMs;
+        switch (unit) {
+            case "ms":
+                multiplierMs = 1.0;
+                break;
+            case "m":
+            case "min":
+            case "mins":
+            case "minute":
+            case "minutes":
+                multiplierMs = 60_000.0;
+                break;
+            default: // s / sec / secs / second / seconds
+                multiplierMs = 1_000.0;
+                break;
+        }
+        long millis = (long) (value * multiplierMs);
+        return millis > 0 ? millis : null;
+    }
+
+    private static final java.util.regex.Pattern RETRY_HINT_PATTERN = java.util.regex.Pattern.compile(
+            "try again in\\s+(\\d+(?:\\.\\d+)?)\\s*(ms|seconds?|secs?|s|minutes?|mins?|m)?",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
 
     private static String findHeaderIgnoreCase(Map<String, String> headers, String name) {
         if (headers == null) {

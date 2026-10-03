@@ -128,7 +128,8 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             return RetryOutcome.fallback();
         }
         if (classification != ErrorClassification.TRANSIENT
-                && classification != ErrorClassification.RATE_LIMITED) {
+                && classification != ErrorClassification.RATE_LIMITED
+                && classification != ErrorClassification.OVERLOADED) {
             return RetryOutcome.stop();
         }
 
@@ -141,16 +142,59 @@ public final class StandardRetryPolicy implements IRetryPolicy {
         // Retryable + attempts remaining → RETRY with backoff.
         long delay;
         Long retryAfterMs = context.getRetryAfterMs();
-        if (classification == ErrorClassification.RATE_LIMITED && retryAfterMs != null) {
+        if (classification == ErrorClassification.OVERLOADED) {
+            // Plan 2304 (WI22)：overloaded 独立长退避曲线（unattended 场景，
+            // unreal retry.go 形态：10s→60s 指数 + ±20% 抖动）。曲线不受
+            // maxDelayMs 约束（对既有延迟包络契约的显式例外）；服务器
+            // retryAfterMs 提示仍为 floor。
+            delay = computeOverloadedDelay(context.getAttempt(), retryAfterMs);
+        } else if (classification == ErrorClassification.RATE_LIMITED && retryAfterMs != null) {
             // 设计 §3.7：RATE_LIMITED 用 Retry-After 作 floor（永不低于服务器要求）。
             // delay = retryAfterMs + uniform(0, jitterCap)。retryAfterMs 可超过 maxDelay
             // （服务器明确要求的等待优先于 cap）。jitterCap 仍受 maxDelay 约束。
             delay = computeRateLimitedDelay(retryAfterMs, context.getAttempt());
         } else {
             // TRANSIENT / RATE_LIMITED 无 Retry-After 提示 → 纯 full-jitter 退避。
+            // Plan 2304 (WI22) floor 补强：TRANSIENT 携带服务器 retryAfterMs 时
+            // 以之为下限（服务器告知等待即遵守——与 RATE_LIMITED floor 同一理由；
+            // 行为改进，原"TRANSIENT 忽略 retryAfterMs"契约由本 plan 改写）。
             delay = computeBackoff(context.getAttempt());
+            if (classification == ErrorClassification.TRANSIENT && retryAfterMs != null) {
+                delay = Math.max(delay, retryAfterMs);
+            }
         }
         return RetryOutcome.retryAfter(delay);
+    }
+
+    /** Plan 2304 (WI22): overloaded curve floor — 10s first step. */
+    static final long OVERLOADED_BASE_DELAY_MS = 10_000L;
+    /** Plan 2304 (WI22): overloaded curve cap — 60s. Deliberately outside maxDelayMs. */
+    static final long OVERLOADED_MAX_DELAY_MS = 60_000L;
+    /** Plan 2304 (WI22): unreal retry.go ±20% jitter around the curve step. */
+    private static final double OVERLOADED_JITTER_FRACTION = 0.2;
+
+    /**
+     * Plan 2304 (WI22)：overloaded 独立长退避（unattended 场景）：
+     * {@code step = min(10s × 2^attempt, 60s)}，实际延迟 = step ± 20% 抖动，
+     * 服务器 retryAfterMs 提示为下限（floor 优先于曲线）。曲线刻意不受
+     * maxDelayMs（默认 30s）约束——过载需要比常规退避显著更长的冷静期。
+     */
+    static long computeOverloadedDelay(int attempt, Long retryAfterMs) {
+        long step = OVERLOADED_BASE_DELAY_MS;
+        for (int i = 0; i < attempt && step < OVERLOADED_MAX_DELAY_MS; i++) {
+            long next = step << 1;
+            if (next < step) {
+                break;
+            }
+            step = Math.min(next, OVERLOADED_MAX_DELAY_MS);
+        }
+        double jitterFactor = 1.0 + ThreadLocalRandom.current()
+                .nextDouble(-OVERLOADED_JITTER_FRACTION, OVERLOADED_JITTER_FRACTION);
+        long delay = (long) (step * jitterFactor);
+        if (retryAfterMs != null) {
+            delay = Math.max(delay, retryAfterMs);
+        }
+        return delay;
     }
 
     /**

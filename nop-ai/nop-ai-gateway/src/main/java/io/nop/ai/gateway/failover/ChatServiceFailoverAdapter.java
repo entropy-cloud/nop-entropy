@@ -450,12 +450,16 @@ public class ChatServiceFailoverAdapter implements IChatService {
 
     /**
      * 动作表分类判断（Phase 1 D5）：QUOTA_EXCEEDED/AUTH_INVALID/RATE_LIMITED/TRANSIENT → 切换。
+     * Plan 2304 (WI22)：OVERLOADED 入集——gateway 候选是跨 provider/跨 model-class，
+     * provider 过载恰是跨 provider 切换的标准场景（与 coordinator 账号链裁定相反：
+     * 同 provider 换 key 对 provider 过载无意义）。
      */
     static boolean isSwitchable(ErrorClassification cls) {
         return cls == ErrorClassification.QUOTA_EXCEEDED
                 || cls == ErrorClassification.AUTH_INVALID
                 || cls == ErrorClassification.RATE_LIMITED
-                || cls == ErrorClassification.TRANSIENT;
+                || cls == ErrorClassification.TRANSIENT
+                || cls == ErrorClassification.OVERLOADED;
     }
 
     /**
