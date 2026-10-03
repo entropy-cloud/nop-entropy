@@ -209,6 +209,8 @@
 | `nop-stream-runtime/.../windowing/WindowOperatorBuilder.java` | `windowAssigner`(:61), `trigger`(:66), `evictor`(:71), `allowedLateness`(:76), `keySelector`(:81), `keyClass`(:86), `keySerializer`(:91), `windowSerializer`(:96), `lateDataOutputTag`(:101), `accumulationMode`(:106), `reduce`(:135), `apply`(:163), `process`(:173), `aggregate`(:119) |
 | `nop-stream-runtime/.../windowing/WindowOperator.java` | `open`(:386), `processElement`(:578), `processWatermark`(:494), `onEventTime`(:725), `onProcessingTime`(:791), `snapshotState`(:513), `restoreState`(:545), `close`(:500), `copyForSubtask`(:381)；I1 补表：`createAccumulatorForWindow`(:1075), `deleteCleanupTimer`(:1052), `registerCleanupTimer`(:1059), `sideOutput`(:1015) |
 | `nop-stream-core/.../operators/StreamReduceOperator.java` | I1 复核落定：`copyForSubtask`(:55), `setCurrentKey`(:60), `open`(:74), `processElement`(:80), `snapshotState`(:101), `restoreState`(:121) |
+| `nop-stream-core/.../operators/join/EquiJoinOperator.java`（WI13） | `open`, `processElement`, `processWatermark`, `processWatermarkStatus`, `snapshotState`, `restoreState`, `copyForSubtask`, `bufferedCount`, `keyedAnyMatched`, `keyedBufferEntries`（WI22 登记机械分类器全量） |
+| `nop-stream-runtime/.../windowing/OverWindowOperator.java`（WI12） | `open`, `processElement`, `processWatermark`, `processWatermarkStatus`, `snapshotState`, `restoreState`, `copyForSubtask`, `rebuildViewFromKeyedState`, `mergeRestoredBuffer`, `bufferedKeys`, `keyedBufferEntries`, `keyedStore`, `sortedView`（WI22 登记机械分类器全量） |
 
 ### 4.3 SinkFunction 族
 

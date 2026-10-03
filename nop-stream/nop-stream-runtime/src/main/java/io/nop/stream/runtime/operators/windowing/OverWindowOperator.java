@@ -72,6 +72,17 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
     /** rebuild idempotence guard — a second rebuild would stack duplicate entries. */
     private transient boolean viewRebuilt;
 
+
+    private static final String OVER_OUTPUTS_METRIC_NAME = "numOverRowsEmitted";
+
+    /**
+     * WI22 (observability operator layer): per-instance counter for emitted OVER
+     * rows (row numbers + frame aggregates). Registered in {@link #open()}
+     * against the process metrics registry; instance-identity scope for
+     * location-less embedded usage (W-M1 pattern).
+     */
+    private transient io.micrometer.core.instrument.Counter overRowsCounter;
+
     private long currentWatermark;
 
     public OverWindowOperator(FrameKind kind, int frameSize, String aggId) {
@@ -101,6 +112,9 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor<>(BUFFER_STATE, String.class, String.class));
         }
+        overRowsCounter = io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
+                .counter(OVER_OUTPUTS_METRIC_NAME,
+                        "operator", getClass().getSimpleName() + "@" + System.identityHashCode(this));
     }
 
     @Override
@@ -174,6 +188,9 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         List<String> ordered = buffer.sortedView(key);
         for (int i = 0; i < ordered.size(); i++) {
             output.collect(new StreamRecord<>("rn=" + (i + 1) + " val=" + ordered.get(i)));
+            if (overRowsCounter != null) {
+                overRowsCounter.increment();
+            }
         }
         // ROW_NUMBER consumes the frame at the watermark — drop the consumed entries
         // from the keyed channel too (exact keys via the buffer's trimmed tsKeys)
@@ -213,6 +230,9 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         }
         if (n > 0 || "sum".equals(aggId) || "count".equals(aggId)) {
             output.collect(new StreamRecord<>("agg=" + agg + " n=" + n));
+            if (overRowsCounter != null) {
+                overRowsCounter.increment();
+            }
         }
         // sliding frame needs history: trim only elements beyond the last frameSize
         List<long[]> trimmed = buffer.trimToCountWithKeys(key, frameSize);

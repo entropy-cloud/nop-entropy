@@ -294,6 +294,7 @@
 - FU-6 AbstractStreamOperator 水位合并固定两输入是否参数化以支持多于两输入: `todo`
 - FU-7 window 节点从 StreamTransformModel 继承的 bean 属性被 buildWindow 静默忽略，是否补 fail-fast 或纳入消费: `todo`
 - FU-8 WindowedStreamImpl/WindowOperatorFactoryImpl.configureBuilder 从不传递 accumulationMode 到 WindowOperator——xdef 声明 DISCARDING 的模型构建出的算子恒为 ACCUMULATING（WI10 audit 发现的结构性接线缺口）: `todo`
+- FU-10 runtime 全量中 TestE2EJdbcTwoPhaseCommitSink.testSourceReplayLedgerEliminatesDuplicates 与 TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication 环境敏感失败（stash 实证 HEAD 同败，非 WI22 引入；pendingCommits DmlOp rehydrate 报错——疑似用例间状态污染或 H2 会话残留，须独立排查）: `todo`
 - FU-9 union 顶点 E2E 层对齐阻塞缺位——STRICT_EXACTLY_ONCE 下 union 顶点 gate 未阻塞 fast channel（WI7 TestMultiInputBarrierAlignment 实测 f-4→f-5 转发间隔 8ms≈源速率而非对齐窗口 ≈80ms；单算子级 gate 阻塞已被 TestProcessingGuaranteeBehavior 证明，缺口在 union 顶点 barrier wiring/tracker 路径）。已确认 live defect，须 Fix 单独立项（Plan guide 规则 15），修复后 TestMultiInputBarrierAlignment 的时序判别断言即可启用: `todo`
 
 ## Dependency Graph

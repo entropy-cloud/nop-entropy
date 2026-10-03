@@ -20,6 +20,9 @@ import io.nop.stream.core.model.JoinType;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.metrics.StreamMetricsRegistries;
+
+import io.micrometer.core.instrument.Counter;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
@@ -87,6 +90,18 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, JoinSideRecord<Object>> bufferState;
+
+    private static final String JOIN_OUTPUTS_METRIC_NAME = "numJoinOutputsEmitted";
+
+    /**
+     * WI22 (observability operator layer): per-instance counter for emitted join
+     * outputs (match pairs + outer completions). Registered in {@link #open()}
+     * against the process metrics registry (StreamMetricsRegistries); instances
+     * opened without a deployment location fall back to instance identity so two
+     * instances never share a meter (W-M1 pattern).
+     */
+    private transient Counter joinOutputsCounter;
+
     private long currentWatermark;
 
     public EquiJoinOperator(JoinType joinType, Long windowDuration, long timeout) {
@@ -116,6 +131,9 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor(BUFFER_STATE, String.class, JoinSideRecord.class));
         }
+        joinOutputsCounter = StreamMetricsRegistries.registry()
+                .counter(JOIN_OUTPUTS_METRIC_NAME,
+                        "operator", getClass().getSimpleName() + "@" + System.identityHashCode(this));
     }
 
     @Override
@@ -256,6 +274,7 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
                 continue;
             }
             output.collect(new StreamRecord<>(matchOf(rec, other), ts));
+            incOutputs();
             rec.setMatched(true);
             other.setMatched(true);
             // both durable copies flip in lockstep so a restored buffer never
@@ -270,6 +289,7 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             JoinSideRecord<Object> rec = buffer.valueAt(key, tsKey);
             if (!rec.isMatched()) {
                 output.collect(new StreamRecord<>(completionOf(sideOf(key), rec), tsKey[0]));
+                incOutputs();
             }
         }
     }
@@ -396,6 +416,12 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     // ----------------------------------------------------------------
     // test/diagnostic surface
     // ----------------------------------------------------------------
+
+    private void incOutputs() {
+        if (joinOutputsCounter != null) {
+            joinOutputsCounter.increment();
+        }
+    }
 
     /** test/diagnostic: the keyed state size visible to this operator. */
     public int keyedBufferEntries() {
