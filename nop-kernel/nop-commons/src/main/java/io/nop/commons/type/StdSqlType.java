@@ -105,7 +105,16 @@ public enum StdSqlType implements ISqlDataType {
     /**
      * Spatial type. Though not standard, it is common to several DBs, so we do not flag it 'special' (internal).
      */
-    GEOMETRY(false, false, 2015, StdDataType.GEOMETRY);
+    GEOMETRY(false, false, 2015, StdDataType.GEOMETRY),
+
+    /**
+     * WI9a: UUID（通用唯一标识符）。JDBC 无标准 UUID 类型，按 {@link #JSON} 同例落在
+     * VARCHAR/STRING 家族（StdDataType 无独立 UUID 成员）。DDL 方向由方言
+     * {@code <sqlDataType>} 决定（h2/postgresql/duckdb 原生 UUID、mssql UNIQUEIDENTIFIER，
+     * 无映射方言经 stdToNativeSqlType 响亮报错）。取值裁定见
+     * ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §四。
+     */
+    UUID(false, false, Types.VARCHAR, StdDataType.STRING);
 
     private final boolean allowPrecision;
     private final boolean allowScale;
@@ -150,6 +159,14 @@ public enum StdSqlType implements ISqlDataType {
 
     static {
         stdNameMap.put("INT", INTEGER);
+
+        // WI9a: CAST 类型别名 —— 仅扩展解析接受集（stdNameMap 键集），不修改任何既有映射条目
+        // （G-3 裁决 TEXT→CLOB / BOOL→BOOLEAN；NUMBER 目标由 NUMERIC 修订为 DECIMAL，
+        // 见 ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §三）。
+        // UUID 为枚举常量，经下方 values() 循环自动入表，无需显式 put。
+        stdNameMap.put("TEXT", CLOB);
+        stdNameMap.put("NUMBER", DECIMAL);
+        stdNameMap.put("BOOL", BOOLEAN);
 
         for (StdSqlType type : StdSqlType.values()) {
             stdNameMap.put(type.getName(), type);
