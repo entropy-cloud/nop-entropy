@@ -16,8 +16,9 @@
 
 | 模块组 | main/test Java | 子模块 | 评级 | 备注 |
 |---|---|---|---|---|
-| nop-kernel | ~2765 / 389 | 17 | **S** | xlang(896)/core(758)/commons(403)/api-core(322) 占 87%；jq 空壳 |
+| nop-kernel | 2788 / 451 | 17 | **S** | xlang/core/commons/api-core 占大头（2026-10-03 实测，src/main+src/test/java 口径）；jq 已于 2026-09-28 迁出为顶层组 nop-jq |
 | nop-persistence | ~757 / 209 | 13 | **S** | 复杂度集中在 orm+orm-eql（会话状态机 + 查询语言编译器） |
+| nop-core-framework | 229 / 124 | 6 | **S** | boot/config/ioc/log/plugin/security（plugin 嵌套 api/manager/support）；CORE-02 defer 未修 |
 | nop-ai | ~1189 / 649 | 18+ | **S** | v16 审计-修复闭环（50/50 done），审计后 89 提交有 plan 背书 |
 | nop-service-framework | 505 / 96 | 6 | **S** | 量化达标；代码卫生极好，风险集中在权限 fail-open 模式 |
 | nop-metadata | 452 / 168 | 8 | **S** | arm 全维度 + invariant loop 全闭环 |
@@ -25,15 +26,15 @@
 | nop-batch | 294 / 42 | 15 | **S** | **S 级中唯一零专项审计** |
 | nop-wf | 287 / 30 | 10 | **S** | WorkflowEngineImpl 1941 行（全仓最大手写）；测试比最低 |
 | nop-task | 284 / 64 | 10 | **S** | 仅 security 第 5 组组合覆盖，无独立 deep-audit |
-| nop-stream | ~708 / 634 | 10 | **S** | 全仓审计最密（40+ 轮）；残留 P2 台账 ~15 项 |
+| nop-stream | 770 / 784 | 11 | **S** | 全仓审计最密（40+ 轮）；残留 P2 台账 ~15 项；nop-stream-sql 2026-10-02 入库（首审 2.8） |
 | nop-job | 227 / 58 | 12 | **S** | 多轮审计；R10 新代码 17 发现未跟踪 |
 | nop-report | 201 / 48 | 12 | **S** | **零专项审计**；XPT 展开/公式函数为表达式注入面 |
 | nop-sys | 192 / 27 | 7 | **A（近 S）** | 零专项审计；check 系列发现锁过期判断反向 P0 |
 | nop-format | 917 / 82 | — | **S** | 零审计；TODO=27 全仓最多 |
 | nop-dyn | 142 / 20 | 8 | **A** | 仅 DYN-01 单点；DynCodeGen 是动态模型信任边界 |
 | nop-rule | 102 / 14 | 8 | **A** | 零专项审计（仅 check 系列单轮覆盖） |
-| nop-code | ~207 / 89 | 12 | **A** | invariant Cycle 1 关闭；1 项 gated 待人工确认 |
-| nop-lint + nop-treesitter | ~150 / ~140 | 6 | **A** | 在建（W4–6 todo）；audits 目录空壳 |
+| nop-code | 261 / 137 | 15 | **A**（人工维持：量化已过 S 线，但审计已闭包、增量归 7.4） | invariant Cycle 1 关闭；1 项 gated 待人工确认；nop-code-lang-go/rust/csharp 2026-09-29 入库 |
+| nop-lint + nop-treesitter | 216 / 204 | 6+1 | **S**（js/-maven-plugin/-graphql 入库后过 200 线；在建 W4–6） | nop-lint 6 子模块（core/java/nop/js/maven-plugin/graphql）+ nop-treesitter 单模块；新增面首审归 4.6 |
 | nop-datav | 150 / 81 | — | **A** | P0/P1 闭包；P2×~55 backlog |
 | nop-dev-tools | 155 / 21 | — | **B** | 零审计 |
 | nop-frontend-support | 109 / 18 | — | **B** | 零审计 |
@@ -42,6 +43,7 @@
 | nop-cluster | 74 / 10 | — | **B** | 零审计 |
 | nop-rg | 43 / 13 | 5 | **B** | roadmap 全 done 但零审计；FFM/incubator 重度使用 |
 | nop-search | 17 / 3 | — | **B** | LuceneSearchEngine 1130 行单类，零审计 |
+| nop-jq | 71 / 7 | — | **B** | 2026-09-28 自 nop-kernel 迁出的扁平单模块；官方 jq 1.7.1 套件 430/430 为语义基线；首审 1.9 |
 | nop-message（非 pulsar） | 30 / 14 | — | **B** | PulsarConsumeTask seek TODO 未实现 |
 | nop-tcc / nop-retry | 53 / 8、52 / 7 | 各 8–9 | **B** | security NET 组覆盖过；修复状态未跟踪 |
 | nop-credential | 46 / 25 | — | **B** | D1–D6 已闭环；W9–W16 二期 todo |
@@ -50,7 +52,10 @@
 | nop-runner / nop-autotest | 37 / 12、41 / 5 | — | **C** | CLI 双入口；测试基建自身覆盖低 |
 | nop-file | 18 / 3 | 8 | **C** | FILE-01..02 已覆盖 |
 | nop-entropy-e2e | 0 Java（~44 Playwright TS） | — | **C** | 零审计；Node/Playwright 测试资产（auth/code/job/web），归属裁定见 1.8 |
-| nop-migration / nop-benchmark / nop-record / nop-utils | <70 合计 | — | **C** | 零审计/零测试 |
+| nop-refactor | 33 / 16 | 3 | **C** | 在建 AI-first 代码修改工具链（core/java/graphql）；首审 1.9 |
+| nop-bytecode | 27 / 13 | — | **C** | 字节码分析通道（report-only 发现流）；首审 1.10 |
+| nop-duckdb | 6 / 22 | — | **C** | 进程内分析执行层（扁平单模块）；首审 1.10 |
+| nop-migration / nop-benchmark / nop-utils | 207 / 25 | 16（migration 1、benchmark 5、utils 10） | **A**（量化已过 S 线，人工下调：迁移工具/基准/工具库性质） | 零专项审计；nop-record 非顶层组（实位于 nop-format/nop-record、nop-format/nop-record-netty、nop-kernel/nop-record-mapping）；nop-benchmark 含 nop-benchmark-stream（16 main JMH，2026-09-26） |
 
 ---
 
@@ -78,8 +83,27 @@
 | 其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | ❓ | ❓ | ❓ | ⚠️（security 部分触及） | ❓ | ⚠️（format TODO=27；search 1130 行单类） | ❓ | ❓ |
 | nop-datav | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️（P2×~55 backlog） | ✅ | ⚠️ |
 | nop-credential | ✅ | ✅ | ⚠️ | ✅（D1–D6 闭环） | ⚠️（RESP3 P0 关联未修） | ✅ | ✅ | ✅ |
+| nop-jq（v6 新增） | ❓（1.9） | N/A | N/A | ❓（1.9） | ❓（1.9） | ❓ | ❓ | ❓ |
+| nop-refactor（v6 新增） | ❓（1.9） | N/A | ❓（1.9） | ❓（1.9） | ❓（1.9） | ❓ | ❓ | ❓ |
+| nop-bytecode（v6 新增） | ❓（1.10） | N/A | N/A | N/A（report-only，仅读自家构建产物，无鉴权/求值面） | ❓（1.10） | ❓ | ❓ | ❓ |
+| nop-duckdb（v6 新增） | ❓（1.10） | N/A | N/A | ❓（文件读写面，兜底 3.11） | ❓（1.10） | ❓ | ❓ | ❓ |
 
-`❓` 格合计 **55 格**，是 Wave 1（MA1–MA6）审计工作项的直接来源；`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
+`❓` 格合计 **79 格**（基线 18 行 55 格 + v6 新组 4 行 24 格），是 Wave 1（MA1–MA6）审计工作项的直接来源；新组行未锚定专项首审的 ⑥⑦⑧ 格（及 duckdb ④ 兜底格）由全仓扫描类工作项（4.1/4.2/4.3、6.1/6.2）与文档审计（5.1/5.2）天然覆盖；`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
+
+### v6 新增子模块登记（0.5）
+
+> 编制基线（2026-09-22）当日或之后入库、未入 v5 任何工作项覆盖的新子模块；归属工作项与 roadmap Details 一致。
+
+| 新增子模块 | 入库日期 | 所属模块组（§1 行） | 审计归属 |
+|---|---|---|---|
+| nop-stream-sql | 2026-10-02 | nop-stream（11 子模块） | 2.8 首审 |
+| nop-code-lang-go | 2026-09-29 | nop-code（15 子模块） | 7.4 增量巡检 |
+| nop-code-lang-rust | 2026-09-29 | nop-code（15 子模块） | 7.4 增量巡检 |
+| nop-code-lang-csharp | 2026-09-29 | nop-code（15 子模块） | 7.4 增量巡检 |
+| nop-lint-js | 2026-09-22 | nop-lint（6 子模块） | 4.6 首审 |
+| nop-lint-maven-plugin | 2026-09-24 | nop-lint（6 子模块） | 4.6 首审 |
+| nop-lint-graphql | 2026-09-25 | nop-lint（6 子模块） | 4.6 首审 |
+| nop-benchmark-stream | 2026-09-26 | nop-benchmark（其他行） | 4.2 测试有效性（JMH 基准为测试基建、非生产代码） |
 
 ---
 
@@ -140,7 +164,9 @@
 
 ## 6. check 系列 P1 抽样分批权威归属（roadmap 6.5–6.8）
 
-> 本节是 6.5–6.8 四批成员的**唯一权威定义**；check 系列报告按模块名映射到批次成员，四批并集 = 本矩阵 §2 全部 18 行。metadata 唯一归属批次 c，search 唯一归属批次 d——杜绝双认领/漏认领。
+> 本节是 6.5–6.8 四批成员的**唯一权威定义**；check 系列报告按模块名映射到批次成员，四批并集 = 本矩阵 §2 全部 18 个基线行（v6 新增 4 行不参与，见下方注记）。metadata 唯一归属批次 c，search 唯一归属批次 d——杜绝双认领/漏认领。
+
+> **v6 基线刷新注记**：check 系列（2026-08-19~21）早于全部 v6 新增组/子模块入库，4 个新顶层组（nop-jq/nop-refactor/nop-bytecode/nop-duckdb）无 check 系列发现，不参与 6.5–6.8 的 P1 抽样分批。
 
 | 批次 | 成员（§2 行名） | 对应 roadmap 工作项 |
 |---|---|---|

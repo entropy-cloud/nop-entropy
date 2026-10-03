@@ -30,7 +30,7 @@
 | 0.2 | 建立轮次子目录与报告索引骨架 | done | 轮次子目录 `index.md` | 0.1 | 同上 |
 | 0.3 | 绿色构建基线验证 | done | — | 0.1 | none（`./mvnw clean install -DskipTests -T 1C`，2026-09-22T19:56:36+08:00 BUILD SUCCESS） |
 | 0.4 | 未闭包发现汇聚清单 | done | 矩阵 `00-scope-and-dimension-matrix.md` §4 | 0.1 | `audit-remediation-verification-prompt.md`（登记口径） |
-| 0.5 | 基线刷新（v6 增补），交付物四组：① 矩阵 §1/§2 纳入编制基线当日或之后入库且未入 v5 覆盖的新组/新子模块（nop-refactor、nop-jq、nop-bytecode、nop-duckdb；nop-stream-sql、nop-code-lang-go/rust/csharp、nop-lint-maven-plugin/-graphql、nop-benchmark-stream，nop-lint-js 与基线同日入库同样未覆盖），刷新 ❓ 计数，并对齐 §1 与 live 顶层组（补缺的 nop-core-framework 行、勘正幻影顶层组 nop-record——实位于 nop-format/nop-record、nop-format/nop-record-netty 与 nop-kernel/nop-record-mapping、修 nop-kernel 行「jq 空壳」过时注记）；② 矩阵 §6 增注「新组无 check 系列发现、不参与 P1 抽样分批」并同步 §6 头部「四批并集 = §2 全部 18 行」措辞；③ 同步 roadmap 侧交叉引用（「审计维度矩阵」节的 18 行/55 格计数、6.5–6.8 Details 的批次并集措辞）；④ 同步 `docs-for-ai/01-repo-map/module-groups.md`（补 nop-bytecode 行、勘正 nop-code/nop-lint 行子模块清单） | todo | 矩阵 `00-scope-and-dimension-matrix.md` | 0.1 | `audit-remediation-roadmap-authoring-prompt.md` |
+| 0.5 | 基线刷新（v6 增补），交付物四组：① 矩阵 §1/§2 纳入编制基线当日或之后入库且未入 v5 覆盖的新组/新子模块（nop-refactor、nop-jq、nop-bytecode、nop-duckdb；nop-stream-sql、nop-code-lang-go/rust/csharp、nop-lint-maven-plugin/-graphql、nop-benchmark-stream，nop-lint-js 与基线同日入库同样未覆盖），刷新 ❓ 计数，并对齐 §1 与 live 顶层组（补缺的 nop-core-framework 行、勘正幻影顶层组 nop-record——实位于 nop-format/nop-record、nop-format/nop-record-netty 与 nop-kernel/nop-record-mapping、修 nop-kernel 行「jq 空壳」过时注记）；② 矩阵 §6 增注「新组无 check 系列发现、不参与 P1 抽样分批」并同步 §6 头部「四批并集 = §2 全部 18 行」措辞；③ 同步 roadmap 侧交叉引用（「审计维度矩阵」节的 18 行/55 格计数、6.5–6.8 Details 的批次并集措辞）；④ 同步 `docs-for-ai/01-repo-map/module-groups.md`（补 nop-bytecode 行、勘正 nop-code/nop-lint 行子模块清单） | done（2026-10-03，plan 2307，独立 closure audit PASS——见 plan Closure 段与轮次 index） | 矩阵 `00-scope-and-dimension-matrix.md` | 0.1 | `audit-remediation-roadmap-authoring-prompt.md` |
 
 ### MA1 — 结构与架构层审计（Wave 1）
 
@@ -157,7 +157,7 @@
 
 ## 审计维度矩阵
 
-见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/00-scope-and-dimension-matrix.md`：模块组清单与 S/A/B/C 评级、8 维度 × 18 模块组覆盖矩阵（❓ 未审计格 55 格 → MA1–MA6 工作项来源）、未闭包发现清单、check 系列 P1 抽样分批权威归属（§6）、风险热点 Top 10。
+见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/00-scope-and-dimension-matrix.md`：模块组清单与 S/A/B/C 评级、8 维度 × 22 模块组覆盖矩阵（❓ 未审计格 79 格 = 基线 55 + v6 新组 24 → MA1–MA6 工作项来源；v6 新增子模块另见矩阵 §2 登记表）、未闭包发现清单、check 系列 P1 抽样分批权威归属（§6）、风险热点 Top 10。
 
 ## Milestones 概览
 
@@ -220,7 +220,7 @@
 - **6.2**：空 catch/吞异常/no-op 全仓清单，逐个裁定「合法忽略（带注释）」或「静默跳过违规」。
 - **6.3**：四条关键链路入口→出口追踪（codegen、db-migration 执行、IoC 启动、GraphQL 请求），验证无断链。
 - **6.4**：check 系列 36 个 P0 逐项标定：`still-live / already-fixed / false-positive / duplicated`；check/SUMMARY 记录部分 P0 曾在 `fix-ai-check` 分支处置——标定时以该处置记录为输入、**以 master 当前代码为准**复核 live-ness；仍 live 的全部进入 R1.0 输入。
-- **6.5–6.8**：check 系列 209 个 P1 按矩阵 §6 的批次成员表分四批抽样标定（每批 ≥50%，优先安全与数据正确性类；仍 live 的进入 R1.0 输入；check 报告按模块名映射到批次成员，四批并集 = 矩阵 §2 全部 18 行，metadata 唯一归属批次 c、search 唯一归属批次 d）。
+- **6.5–6.8**：check 系列 209 个 P1 按矩阵 §6 的批次成员表分四批抽样标定（每批 ≥50%，优先安全与数据正确性类；仍 live 的进入 R1.0 输入；check 报告按模块名映射到批次成员，四批并集 = 矩阵 §2 全部 18 个基线行——v6 新增行无 check 发现、不参与，见矩阵 §6 注记——metadata 唯一归属批次 c、search 唯一归属批次 d）。
 - **6.9**：check 系列 P2/P3 批量归类为 watch-only 档案；若发现应升级的异常项，逐条上报 R1.0 裁决通道。
 - **7.1**：nop-ai 2026-08 后全部增量（非安全维度：契约/错误处理/测试质量；含 nop-ai-agent 重构、nop-ai-core 缓存键/Retry-After 面）+ 3 个千行回涨文件复杂度巡检。
 - **7.2–7.7**：各自台账逐项标定（fixed/still-open/watch-only），仍 live 的 P0/P1 进入 R1.0 输入。

@@ -9,6 +9,7 @@
 | 工作项 | 报告文件 | P0 | P1 | P2 | P3 | 报告状态 | closure audit |
 |---|---|---|---|---|---|---|---|
 | 0.1–0.4 | `00-scope-and-dimension-matrix.md` | — | — | — | — | done（编制期产物） | —（编制期自查，roadmap 对抗审查替代） |
+| 0.5 | `00-scope-and-dimension-matrix.md`（§1/§2/§6 基线刷新 + v6 新增子模块登记表；执行载体 plan 2307） | — | — | — | — | done（矩阵刷新，无新发现） | 独立子 agent（见 plan 2307 Closure 段） |
 | 1.1 | — | | | | | todo | |
 | 1.2 | — | | | | | todo | |
 | 1.3 | — | | | | | todo | |
