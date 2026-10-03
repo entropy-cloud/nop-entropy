@@ -501,4 +501,26 @@ public class TestStreamSqlCompiler {
         assertEquals(2.5, expected, "WI9 evaluator divides as double");
         assertEquals(expected, d, () -> "product xpl division must equal the WI9 evaluator");
     }
+
+    @Test
+    public void joinTypeNameCoversAllFiveEnumValuesExplicitly() {
+        // WI1 BUG-10: 文法放开 cross join（SqlJoinType 新增 CROSS_JOIN）后，joinTypeName
+        // 的 switch 必须对全部 5 个枚举值显式分支，不落 default 抛错路径。joinType 在
+        // stream 编译产物中做透传登记（不修跨语法语义，CROSS 与 ON 条件并存仅为覆盖
+        // switch 分支的最小合法输入）。
+        String[] sqls = {
+                "SELECT o.item AS i, u.name AS n FROM orders o JOIN items u ON o.item = u.name",
+                "SELECT o.item AS i, u.name AS n FROM orders o LEFT JOIN items u ON o.item = u.name",
+                "SELECT o.item AS i, u.name AS n FROM orders o RIGHT JOIN items u ON o.item = u.name",
+                "SELECT o.item AS i, u.name AS n FROM orders o FULL JOIN items u ON o.item = u.name",
+                "SELECT o.item AS i, u.name AS n FROM orders o CROSS JOIN items u ON o.item = u.name",
+        };
+        String[] expected = {"INNER", "LEFT", "RIGHT", "FULL", "CROSS"};
+        for (int i = 0; i < sqls.length; i++) {
+            XNode n = XNode.parse(StreamSqlCompiler.compile(null, sqls[i],
+                    schema(entry("item", "string"), entry("name", "string")), "testSink"));
+            assertEquals(expected[i], child(n, "joins").childByTag("joinSpec").attrText("joinType"),
+                    sqls[i]);
+        }
+    }
 }

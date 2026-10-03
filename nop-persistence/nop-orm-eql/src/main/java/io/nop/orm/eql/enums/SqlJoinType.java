@@ -8,7 +8,9 @@
 package io.nop.orm.eql.enums;
 
 public enum SqlJoinType {
-    JOIN("join"), LEFT_JOIN("left join"), RIGHT_JOIN("right join"), FULL_JOIN("full join");
+    JOIN("join"), LEFT_JOIN("left join"), RIGHT_JOIN("right join"), FULL_JOIN("full join"),
+    // WI1 BUG-10: cross join 此前被静默误解析为别名
+    CROSS_JOIN("cross join");
 
     private final String text;
 

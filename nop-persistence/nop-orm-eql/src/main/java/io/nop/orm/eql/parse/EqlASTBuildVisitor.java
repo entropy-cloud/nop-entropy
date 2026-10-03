@@ -337,6 +337,8 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     @Override
     public SqlJoinType SqlJoinTableSource_joinType(ParseTree node) {
         EqlParser.JoinType_Context ctx = (EqlParser.JoinType_Context) node;
+        if (ctx.crossJoin_() != null)
+            return SqlJoinType.CROSS_JOIN;
         if (ctx.leftJoin_() != null)
             return SqlJoinType.LEFT_JOIN;
         if (ctx.fullJoin_() != null)
