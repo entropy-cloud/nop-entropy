@@ -299,6 +299,20 @@ sqlExpr_special
     // substr 的 minArgCount=2/maxArgCount=3 两元多态。首/中/尾 arg 限定 sqlExpr_bit：
     // FROM/FOR 不是 sqlExpr_bit 层算子，参数解析不会吞掉分隔关键字。
     | SUBSTRING LP_ sqlExpr_bit FROM sqlExpr_bit (FOR sqlExpr_bit)? RP_ # SqlRegularFunction_substring
+    // WI5 Phase 3: EXTRACT(f FROM d) → 逐字段函数 year(d)/month(d)/...（默认形态已钉死）。
+    // 字段用独立 extractField_ 规则（intervalUnit_ 同款先例）：只放行有 lowering 目标的
+    // 七个字段，WEEK/MICROSECOND 等文法层即拒绝；字段位置只认这七个 token，与遮蔽放开
+    // （unreservedWord_）解耦。
+    | EXTRACT LP_ extractField__ FROM sqlExpr RP_ # SqlRegularFunction_extract
+    ;
+
+// WI5: EXTRACT 允许的 datetime 字段——与归一化目标函数（year/month/day/hour/minute/
+// second/quarter，见 default.dialect.xml 及各方言模板）一一同名；扩展字段须先注册函数。
+// 规则名带双下划线后缀 = AstGrammarBuilder 的"不属抽象语法树"约定（notInAst）：
+// 单下划线规则会被生成器的 getInnerRule 误选为备选 innerRule 且无返回类型（public null 编译错），
+// 双下划线被 getInnerRule 显式跳过，备选 innerRule 落到 sqlExpr（生成体被手写 visit 完全重写）。
+extractField__
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | QUARTER
     ;
 
 sqlCastExpr

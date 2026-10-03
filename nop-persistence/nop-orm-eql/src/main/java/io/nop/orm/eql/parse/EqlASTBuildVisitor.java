@@ -246,6 +246,31 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * WI5 Phase 3: SQL-92 标准函数语法 {@code EXTRACT(f FROM d)}（BaseRule.g4
+     * sqlExpr_special 的 {@code SqlRegularFunction_extract} 备选分支，字段规则
+     * extractField_ 只放行七个有 lowering 目标的字段）。构建期归一化装入**既有**
+     * {@link SqlRegularFunction}（name=字段名小写，单参 [d]——EXTRACT(YEAR FROM d)
+     * → year(d)），与方言函数表注册名一一同名，不新增 AST 节点。生成方法体只建空节点 +
+     * validate()（必填校验必失败），因此完全重写、不调 super。既有逗号形态
+     * {@code extract(f,d)} 走 sqlRegularFunction 路径不变。
+     */
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) {
+        String field = text(token(ctx.extractField__())).toLowerCase(Locale.ROOT);
+        SqlExpr source = (SqlExpr) visit(ctx.sqlExpr());
+
+        SqlRegularFunction ret = new SqlRegularFunction();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setName(field);
+        List<SqlExpr> args = new ArrayList<>(1);
+        args.add(source);
+        ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
      * WI5 Phase 2: SQL-92 标准函数语法 {@code SUBSTRING(x FROM a [FOR b])}（BaseRule.g4
      * sqlExpr_special 的 {@code SqlRegularFunction_substring} 备选分支）。构建期归一化
      * 装入**既有** {@link SqlRegularFunction}（name=substr，FOR 缺省 2 参、否则 3 参，

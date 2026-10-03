@@ -696,6 +696,19 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExtractField__(EqlParser.ExtractField__Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

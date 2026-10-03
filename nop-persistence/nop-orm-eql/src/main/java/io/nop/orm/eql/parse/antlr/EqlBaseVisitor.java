@@ -789,6 +789,20 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitExtractField__(EqlParser.ExtractField__Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitSqlCastExpr(EqlParser.SqlCastExprContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

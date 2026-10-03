@@ -1158,6 +1158,28 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 */
+	void enterExtractField__(EqlParser.ExtractField__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 */
+	void exitExtractField__(EqlParser.ExtractField__Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree
 	 */

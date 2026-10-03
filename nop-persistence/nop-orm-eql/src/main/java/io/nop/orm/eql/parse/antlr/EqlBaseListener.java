@@ -1338,6 +1338,30 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExtractField__(EqlParser.ExtractField__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExtractField__(EqlParser.ExtractField__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlCastExpr(EqlParser.SqlCastExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
