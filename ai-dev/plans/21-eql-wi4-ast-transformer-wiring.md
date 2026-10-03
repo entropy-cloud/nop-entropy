@@ -1,6 +1,6 @@
 # 21 EQL WI4 — AST 改写管线接线（`IEqlAstTransformer` 固定环节 + 编译缓存键，WI8 硬前置）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI4 节 + 门控矩阵 WI4 行 + Cross-Cutting，v7.2）；全部代码锚点于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 completed）；`ai-dev/plans/03-eql-wi1-class-a-defects.md`（结构先例）；本 plan 是 WI8（NULL 三值语义谓词）的硬前置
@@ -196,11 +196,11 @@ Exit Criteria:
 - [x] 三份必测语料 BC（`:nop-job-dao` / `:nop-auth-service` / `:nop-orm`）与 WI0 基线快照逐字一致；未声称"7 个全测"。（`TestEqlCorpusBaseline` 1/1 覆盖三份必测语料棘轮区间；本 WI 零 sql-lib/XML 资源改动）
 - [x] 无被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（候选 A 按 Phase 0 记录为被拒备选并登记于 `Deferred But Adjudicated`，属 non-defect 的范围裁定）。
 - [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（stream 既有失败按 Phase 2 口径豁免）。（三段式：-T 1C 首跑 break 于 nop-batch 并行 flake（串行 8/8）→ 排除补跑五目标绿但 auth-service 被级联取消 → auth-service install+module-only 补跑 461|4skip 绿；五目标模块终态全零失败，计数以各模块 surefire-reports 汇总）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。（留白待独立 audit；执行者已实测 active 状态下 exit 0——completed 后才强制全勾+evidence，终勾随 Plan Status completed 一并复核）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 与 `--module nop-orm-eql --severity high` 零命中。（双 exit 0，2026-10-04 实测）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0。（exit 0；执行中新增 1 处 docs-forai→ai-dev boundary 违规已即时修正）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）transformer 从 `SessionFactoryConfig` 配置到 `EqlCompiler` 钩子调用的运行时链确实连通（计数器/标志证据，不只是类型系统），（b）解析回落 / 缓存 bypass 路径无空方法体、吞异常、no-op 当作正常实现，（c）缓存键链路（`LoadedOrmModel.java:92-93` 解析 → `:96-97` 构键 → `:98` 查 → `:115` 写）与新策略逐点一致。（留白待独立 audit；执行者自查证据：证明测试 1 计数器断言 + bypass 分支完整编译返回 + hollow 扫描双 exit 0）
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI4 行据此才可 `todo` →（执行中）→ `done`。（留白待独立 audit；roadmap WI4 行未翻）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）transformer 从 `SessionFactoryConfig` 配置到 `EqlCompiler` 钩子调用的运行时链确实连通（计数器/标志证据，不只是类型系统），（b）解析回落 / 缓存 bypass 路径无空方法体、吞异常、no-op 当作正常实现，（c）缓存键链路（`:92-93` 解析 → `:99-100` bypass → `:103-104` 构键 → `:105` 查 → `:122` 写）与新策略逐点一致。（独立审计 Anti-Hollow 三项确认：复跑日志直接可见真实 JDBC SQL 含 marker；测试桩找不到改写目标抛 IllegalStateException 响亮；bypass 为显式策略且完整编译返回非 no-op）
+- [x] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI4 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -218,18 +218,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure audit 通过后填写）
-Completed:
+Status Note: Phase 0/1/2 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A1..A3/B1..B5/C/D 全 PASS，**0 Blocker / 0 Major / 2 Minor**（① daily log 散文计数"9 项"应为 10 项——已随收口勘误；② 裁定文档 §六.2"81 提交"为点时值现 87——设计文档最终态不回写，登记知悉）。surefire 交叉核对零不符（nop-orm 212|6skip 含两证明测试 2/2）；Anti-Hollow 三项由审计独立确认（复跑日志直接可见真实 JDBC SQL 含 marker）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI4 closure audit（一次通过，结论"WI4 可以通过 closure audit，roadmap WI4 行可翻 done"）
 - Evidence:
-  - （每条 Exit Criterion 的验证结果 PASS/FAIL + 对应 live code path 或 test name）
-  - （每条 Closure Gate 的验证结果 PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md --strict` 退出码
-  - Anti-Hollow 检查结果：`scan-hollow-implementations.mjs --module nop-orm / nop-orm-eql --severity high` 退出码 + "配置 → EqlCompiler 钩子"运行时调用链追踪结论
+  - A1 PASS：证明测试 1 审计员本人复跑 exit 0（2/2）；三入口断言+双钩子 3/3+OrmTemplate session 真实执行 rows>0+计数 4/4；复跑日志可见真实 JDBC SQL 含 `cid_wi4_default`（live 端到端）；自建 OrmSessionFactoryBean 合理性核实（基类 setUp 自调 init 无法前置注入+全局缓存注册限制）
+  - A2 PASS：红证据 `_tmp/wi4/red-evidence-*.txt`（02:35，早于修复 02:50）FAILURE 原文精确；修复面读代码核实 `LoadedOrmModel.java:99-100` bypass 分支无任何 get/put=真不读不写；回落(:92-93)在比较前
+  - A3 PASS：owner doc「AST 改写管线」七块齐全（:328 起）+INDEX.md:80；source-anchors No update required 裁定一致
+  - B1 PASS：`git show --stat` 产品面仅 LoadedOrmModel 方法体+ILoadedOrmModel javadoc；`git diff master...HEAD` 对 10 个签名文件 diff 为空
+  - B2 PASS：`!=` 引用比较；都 null 边界 `null != null` = false → 走缓存=现状不变（代码读证）
+  - B3 PASS：零 sql-lib/XML 资源改动+CorpusBaseline 1/1
+  - B4 PASS：WI3 遗留 2 测试忠实反映授权行为且强度提升（testUpdateReturning 零断言→错误码断言；testFunctions 跳过有注释缘由——ilike 真实消费是中缀语法非函数调用）
+  - B5 PASS：候选 B 选型记录+被拒理由+触发条件+WI8 消费指引齐全
+  - C PASS：doc-links 0 error 新增 0、scan-hollow 双模块 0 命中、checklist exit 0、matrix exit 0（18 方言未破）
+  - D PASS：3 Phase+10 勾 3 留白+daily log 三条目+5 项偏差落档全部一致；surefire 交叉核对零不符（212/253/205/461/1340/87 全吻合）
+  - Deferred 项分类检查：无 in-scope live defect 被降级；"有管线无水源⇒零生产行为变化"前提经全仓零配置源复核成立
   - Deferred 项分类检查：确认候选 A 属范围裁定而非 live defect 降级；无 in-scope defect 被移入 non-blocking
 
 Follow-up:
