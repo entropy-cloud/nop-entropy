@@ -34,8 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestDialectWindowSqlSnapshot {
 
-    // 无 frame 的 over/WINDOW 快照方言集（10 个，含 postgresql）。db2 缺 driverClassName 等必备节点
-    // 无法独立加载（生产经 selector 注入）——不适用快照；h2 走 WI3 端到端测试不在本清单
+    // 无 frame 的 over/WINDOW 快照方言集（10 个，含 postgresql）。db2 自 WI3 第 12 项
+    // 补齐 mandatory 子节点后已可独立加载（selector 断链已修复），但窗口 golden 快照方言集
+    // 保持既有 10 个不扩面——db2 无方言自有函数（纯 default+window-expr-support 继承面），
+    // golden 输出与 dm 等继承面方言同构，扩面无增量信息（plan 20 Phase 5 裁定记录）。
+    // h2 走 WI3 端到端测试不在本清单
     static Stream<String> dialects() {
         return Stream.of("dm", "duckdb", "mariadb", "mssql", "mysql", "mysql5.7",
                 "oracle", "postgis", "postgresql", "h2gis");

@@ -4,6 +4,17 @@
          xmlns:x="/nop/schema/xdsl.xdef">
     <dbProductNames>DB2</dbProductNames>
 
+    <!-- WI3 第 12 项修复（裁定文档 §四）：补 mandatory 子节点，恢复 DB2 自动选择
+         （db2.selector.yaml 已注册 productName: DB2 → dialectName: db2，但本文件此前缺
+         driverClassName 无法实例化=断链）。JCC 坐标 = IBM Data Server Driver for JDBC/SQLJ
+         （Type 4 纯 Java，默认端口 50000），已经 IBM 官方文档核对。 -->
+    <driverClassName>com.ibm.db2.jcc.DB2Driver</driverClassName>
+    <jdbcUrlPattern>jdbc:db2://{host}:{port}/{db}</jdbcUrlPattern>
+
+    <!-- xdef mandatory 节点（此前被 driverClassName 先行报错遮蔽）。空集 = 暂不登记 DB2
+         保留字；补全保留字表需 DB2 一手文档取证，超出 WI3 范围（follow-up 登记）。 -->
+    <reservedKeywords></reservedKeywords>
+
     <errorCodes>
         <errorCode name="nop.err.dao.sql.bad-sql-grammar">
             -007,-029,-097,-104,-109,-115,-128,-199,-204,-206,-301,-408,-441,-491

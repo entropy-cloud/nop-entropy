@@ -90,8 +90,11 @@ public class DialectImpl implements IDialect {
                 LimitOffsetPaginationHandler.INSTANCE);
         initFunctions();
         initDataTypes();
-        // 将reservedWords转换为大小写不敏感的集合
-        this.reservedWords.addAll(dialectModel.getReservedKeywords());
+        // 将reservedWords转换为大小写不敏感的集合。
+        // WI3 第12项：reservedKeywords 允许为空集——xdef 只要求节点存在（mandatory），
+        // 空内容经 xdef 绑定为 null（如 db2 暂不登记保留字），此处显式容错而非 NPE 断链
+        if (dialectModel.getReservedKeywords() != null)
+            this.reservedWords.addAll(dialectModel.getReservedKeywords());
         this.currentTimestampSql = buildFunctionSql("current_timestamp");
 
         if (dialectModel.getRename() != null) {
