@@ -240,27 +240,27 @@ Exit Criteria:
 
 ### Phase 4 - INTERSECT/EXCEPT 版本门 + mariadb RETURNING 门（第 6 项 + 门形态）
 
-Status: planned
+Status: completed（2026-10-04；commits `e969b32b68`（门基础设施+哨兵配置）/`72747fe47b`（第 6 项显式 false））
 Targets: `dialect.xdef`（`<sqls>` `:74-75` 区域）、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/DialectSqls.java`、`IDialect.java`（`:151-157` 区域）、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`（`:356-359` 区域）、`AstToSqlGenerator.java`（`:501-515`）、`mysql5.7.dialect.xml`、`mariadb.dialect.xml`、`nop-dao`/`nop-orm-eql` 测试、`ai-dev/design/eql-cross-db-compat/`（Phase 0 契约文档落定）
 
 - Item Types: `Feature`（intersectKeyword 配置通路）、`Fix`（mariadb 显式 false）、`Proof`
 
-- [ ] 形态③落地（按 Phase 0 契约；**依赖 Phase 0 空串保真必答项结论**，若裁定为哨兵值/形态①则以裁定为准重写本条）：`dialect.xdef` `<sqls>` 新增 `intersectKeyword="string"`（带 javadoc：空串 = 方言无 INTERSECT 算子）→ `DialectSqls` retention 手写字段（window-frame 先例）→ `IDialect`/`DialectImpl` 覆写 `getIntersectKeyword()`（未配置回落 `"intersect"`，与现行为逐字节一致）→ `AstToSqlGenerator` 空值门（显式空串 ⇒ `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，`ARG_FEATURE=intersectKeyword`；`EXCEPT` 经既有 `exceptKeyword` 走同一空值门规则，无需新属性）。
-- [ ] 门配置落地：`mysql5.7.dialect.xml` 与 `mariadb.dialect.xml` 配置 `intersectKeyword=""` 与 `exceptKeyword=""`（floor 保守）；`mysql` 不配置。
-- [ ] 第 6 项：`mariadb.dialect.xml` 显式 `supportReturningForUpdate="false"`（与 mysql 的 Phase 1 翻转解耦，独立声明 floor 保守值）；既有校验点即编译期报错。
-- [ ] **未配置零变化断言**：`oracle`（`exceptKeyword="minus"` 在用）、`mysql`、`h2` 等未配置 intersectKeyword 的方言，`union`/`intersect`/`except` 查询输出与改动前逐字节一致（BC 守护）。
-- [ ] 负向用例（nop-orm-eql，加载真实方言模型）：mysql5.7 与 mariadb 上编译含 `INTERSECT`/`EXCEPT` 的查询抛错并断言错误码与 `ARG_FEATURE`；mariadb 上 `update … returning` 抛错（门形态与 INTERSECT 一致性的证明）。
-- [ ] 部署级覆盖路径文档（Phase 7 落 owner doc）：≥MariaDB 10.3 / ≥13.0 部署经 delta XML 显式开启 `intersectKeyword`/`exceptKeyword`/`supportReturningForUpdate` 的写法与版本前提。
-- [ ] mariadb 的 `<reservedKeywords>` 不动（`EXCEPT :30`/`INTERSECT :43` 实测正确）。
+- [x] 形态③落地（按 Phase 0 契约；**依赖 Phase 0 空串保真必答项结论**，若裁定为哨兵值/形态①则以裁定为准重写本条）：`dialect.xdef` `<sqls>` 新增 `intersectKeyword="string"`（带 javadoc：空串 = 方言无 INTERSECT 算子）→ `DialectSqls` retention 手写字段（window-frame 先例）→ `IDialect`/`DialectImpl` 覆写 `getIntersectKeyword()`（未配置回落 `"intersect"`，与现行为逐字节一致）→ `AstToSqlGenerator` 空值门（显式空串 ⇒ `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`，`ARG_FEATURE=intersectKeyword`；`EXCEPT` 经既有 `exceptKeyword` 走同一空值门规则，无需新属性）。（**按 Phase 0 必答项结论重写**：空串不保真 ⇒ 哨兵 `none` 表达显式不支持，xdef javadoc 记录哨兵契约；DialectImpl 返回原始配置值，未配置 null→生成器回落，逐字节一致已实测钉死）
+- [x] 门配置落地：`mysql5.7.dialect.xml` 与 `mariadb.dialect.xml` 配置 `intersectKeyword=""` 与 `exceptKeyword=""`（floor 保守）；`mysql` 不配置。（**以哨兵 `none` 落地**（空串实测不可用）；`mysql`/`h2`/`postgresql` 未配置断言为 null）
+- [x] 第 6 项：`mariadb.dialect.xml` 显式 `supportReturningForUpdate="false"`（与 mysql 的 Phase 1 翻转解耦，独立声明 floor 保守值）；既有校验点即编译期报错。（commit `72747fe47b` 独立提交，回滚单位）
+- [x] **未配置零变化断言**：`oracle`（`exceptKeyword="minus"` 在用）、`mysql`、`h2` 等未配置 intersectKeyword 的方言，`union`/`intersect`/`except` 查询输出与改动前逐字节一致（BC 守护）。（`TestEqlSetOperatorDialectGate.testUnconfiguredDialectsByteIdenticalOutput` 精确文本钉死 4 方言 × intersect/except + union 不过门）
+- [x] 负向用例（nop-orm-eql，加载真实方言模型）：mysql5.7 与 mariadb 上编译含 `INTERSECT`/`EXCEPT` 的查询抛错并断言错误码与 `ARG_FEATURE`；mariadb 上 `update … returning` 抛错（门形态与 INTERSECT 一致性的证明）。（`TestEqlSetOperatorDialectGate`：两方言 × intersect/intersect all/except/except all + mariadb returning 同形态）
+- [x] 部署级覆盖路径文档（Phase 7 落 owner doc）：≥MariaDB 10.3 / ≥13.0 部署经 delta XML 显式开启 `intersectKeyword`/`exceptKeyword`/`supportReturningForUpdate` 的写法与版本前提。（裁定文档 §二已含文案，Phase 7 落 owner doc）
+- [x] mariadb 的 `<reservedKeywords>` 不动（`EXCEPT :30`/`INTERSECT :43` 实测正确）。（`testMariadbReservedKeywordsUntouched` 锁定断言）
 
 Exit Criteria:
 
-- [ ] 未配置方言零变化断言全绿（BC）；`oracle` 的 `minus` 行为不变。
-- [ ] mysql5.7/mariadb 负向用例断言具体错误码；`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` 复用而非新造错误码（或 Phase 0 若裁定新码，断言新码）。
-- [ ] mariadb `RETURNING` 门与 INTERSECT 门形态一致性有测试证明（同一「声明式保守值 + 编译期报错 + delta 覆盖」模式）。
-- [ ] `DialectSqls` retention 字段经 xdef 反射绑定真实读写（接线验证：配置值 → 模型 → accessor → 生成器行为差异，Minimum Rules #23）。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
-- [ ] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 未配置方言零变化断言全绿（BC）；`oracle` 的 `minus` 行为不变。
+- [x] mysql5.7/mariadb 负向用例断言具体错误码；`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` 复用而非新造错误码（或 Phase 0 若裁定新码，断言新码）。
+- [x] mariadb `RETURNING` 门与 INTERSECT 门形态一致性有测试证明（同一「声明式保守值 + 编译期报错 + delta 覆盖」模式）。
+- [x] `DialectSqls` retention 字段经 xdef 反射绑定真实读写（接线验证：配置值 → 模型 → accessor → 生成器行为差异，Minimum Rules #23）。（nop-dao 测试证 XML→模型→accessor（"none" 逐方言读出），nop-orm-eql 测试证 accessor→生成器行为差异（门抛错 vs 回落），两模块合起来即全链）
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。（BUILD SUCCESS，nop-dao 855+2skip / nop-orm-eql 247）
+- [x] owner-doc update deferred to Phase 7；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 5 - db2 selector 断链修复（第 12 项）
 
