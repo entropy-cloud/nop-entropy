@@ -105,6 +105,7 @@ public class AgentSession {
     }
 
     /** Plan 2289 (WI8): one staged offline injection (semantics + message JSON). */
+    @io.nop.api.core.annotations.data.DataBean
     public static final class PendingInjection {
         private final String semantics;
         private final String messageJson;
@@ -332,6 +333,35 @@ public class AgentSession {
      */
     void restoreUpdatedAt(long updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Plan 2295 (WI14): absolute-value setters used by the journal-replay
+     * state application ({@link SessionFileReader#applyState}). The journal
+     * state block is last-writer-wins (it carries the whole scalar state at
+     * capture time), so the accumulators must be settable to an absolute
+     * value — {@link #addTokensUsed}/{@link #addIterations} would re-add on
+     * top of the snapshot values already applied.
+     */
+    void restoreTotalTokensUsed(long totalTokensUsed) {
+        this.totalTokensUsed = totalTokensUsed;
+    }
+
+    void restoreTotalIterations(int totalIterations) {
+        this.totalIterations = totalIterations;
+    }
+
+    /**
+     * Plan 2295 (WI14): journal-entry truncation guard. Each journal entry
+     * carries the total message count at capture time; a same-reference
+     * shrink (list truncated without replacing any message object) between
+     * two saves is invisible to per-position fingerprints, so the replay
+     * truncates the replayed list back to the captured count.
+     */
+    void truncateMessages(int size) {
+        while (messages.size() > size) {
+            messages.remove(messages.size() - 1);
+        }
     }
 
     public String getParentSessionId() {

@@ -64,7 +64,7 @@ audit-rounds: 0
 > 来源：`99-overall-comparison.md` ⑤-G
 > 理由：nop 为快照+journal 范式——checkpoint journal 已是 append-only（`CheckpointJournalWriter.java:15-17`，只追加不重写），真正的全量重写在 **session 快照侧**（`FileBackedSessionStore.java:68-69` 每次 save 全量覆写 + DB CLOB 全量更新），大 session 下有写放大；压缩产物未条目化影响历史可解释性
 
-- [ ] WI14 session 快照写路径增量化 + 条目版本化字段：靶点是 FileBackedSessionStore 全量覆写与 DB CLOB 全量更新（dsh-D9 建议 1 原靶点：消息级追加 + 周期快照压缩）；先裁定增量收益（nop 范式下快照是权威真相、追加条目仅是优化，收益不成立则登记移出），成立则实现消息级 append 写路径 + 条目版本化字段；checkpoint journal 已 append-only 不在本项范围（Deliverable: 裁定记录 + 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: `dsh-D9-session-persistence.md` ⑥-建议1 + `pi-D9-session-persistence.md` ⑥-建议1）
+- [x] WI14 session 快照写路径增量化 + 条目版本化字段：靶点是 FileBackedSessionStore 全量覆写与 DB CLOB 全量更新（dsh-D9 建议 1 原靶点：消息级追加 + 周期快照压缩）；先裁定增量收益（nop 范式下快照是权威真相、追加条目仅是优化，收益不成立则登记移出），成立则实现消息级 append 写路径 + 条目版本化字段；checkpoint journal 已 append-only 不在本项范围（Deliverable: 裁定记录 + 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: `dsh-D9-session-persistence.md` ⑥-建议1 + `pi-D9-session-persistence.md` ⑥-建议1）
 - [ ] WI15 压缩产物条目化：压缩产物以类型化条目落 session 历史（与既有 COMPACTION checkpoint + snapshot archive 裁定职责边界，避免双真相源）（Deliverable: 裁定记录 + 代码变更 + 测试；deps: 无；Owner: `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md`；来源: `pi-D9-session-persistence.md` ⑥-建议2）
 
 ### M5 — 工具系统增量
@@ -154,6 +154,7 @@ graph TD
   - nop 现状残件：shell 语法级 `&` 启动即失联（`ShellCommandExecutor.java:346-361`，无查询/等待/取消/输出回收，jobId 实例内计数）；`bash.tool.xml` 已有模型可调 timeoutMs（`BashExecutor.java:101` 默认 30s，无封顶策略）；session 级异步构件（WAIT_FOR/wakeSession/mailbox/steering）在位
   - 属性命名裁定：后台参数命名 runInBackground（camelCase 对齐既有 timeoutMs/workingDir）
 - **审计收敛状态**：设计比对 roadmap 的 M5–M8 全部 P0/P1 与 Follow-up P2/P3 已收口（2026-09-15）；本 roadmap 不重复已修复面。
+- **WI14 落地锚点（2026-10-03 @ plan 2295）**：store 层写路径增量化为写路径 O(delta)（非 CPU 优化——append 常态前缀指纹重算与全量序列化同级 CPU）；append 判据 = 逐位置内容指纹（guardrail 持久化后原地改写使引用 diff 失效）；自愈 = 对重放态 fold；DB `ai_agent_session_journal`（PK (SESSION_ID,SEQ)）append 附标量列 UPDATE；同 sessionId 跨租户裁定不受支持（plan 232 MERGE KEY 对单键 PK 表的 H2 自冲突为存量限制，登记 plan 2295 Known Residuals）；裁定与契约见 `ai-dev/design/nop-ai-agent/nop-ai-agent-session-and-storage.md` 快照增量写路径节 + `ai-dev/plans/2295-wi14-session-snapshot-incremental-write.md` Ruling 节。WI15 的双真相源裁定与本项正交（journal 为 store 层物理优化层，非 session 历史条目）。
 
 ## Cross-Cutting
 

@@ -530,3 +530,21 @@ Session 加载
 ## 注入持久化（WI8，plan 2289）
 
 三提交点（drainCommitSteering 含 guardrail 分支 + round 边界 drain）后立即 `persistInjectedMessages`（replaceMessages+save，worker 线程单写者）；执行终态 fromContext 前 drain 全部残留（最后一轮 LLM 期间到达的注入随终态快照落盘）。离线注入：会话非 running 时 `injectInput` 写 `AgentSession.pendingInjections`（staging，随 session 快照持久化、重启后存活），下次执行 `buildBaseExecutionContext` 合并进注入队列并清空。residual 如实登记：①等待期注入仅在内存队列，drain 前崩溃丢失（pre-drain 残留窗口）；②非 running 分支的 staging save 发生在调用方线程且无锁，与毫秒级同时发起的 `execute()` 存在理论竞窗——InMemory store 同对象突变无害，拷贝型 store 有丢失风险（后续可在 injectInput 分支复用 takeover 锦消除）；③FOLLOWUP/INJECT 在长工具等待期间延迟消费（上界=工具策略硬上限）为语义裁定非缺陷。等待期 pre-drain 残留（注入在内存队列、drain 前崩溃丢失）为如实登记的 residual；FOLLOWUP/INJECT 在长工具等待期间延迟消费（上界=工具策略硬上限）为语义裁定非缺陷。
+
+## 快照增量写路径（WI14，plan 2295）
+
+**裁定**：store 层写路径增量化收益成立（channel 驱动长会话 + 每 LLM turn/per-tool-call/注入 drain 的 save 热点使全量重写为 O(N²) 累计放大；DB CLOB 全量 MERGE 另有 redo/binlog 放大），实现消息级 append 写路径 + 条目版本化字段。快照仍是权威真相，journal 只是 fold 之间的有界优化层——无双真相源。
+
+**File 布局**：`{root}/{sessionId}/session.json`（base 快照，fold 时原子重写，携带 `snapshotVersion` 字段，legacy 文件缺省 0）+ `{root}/{sessionId}/session.journal.jsonl`（sidecar，一行一个条目，fold/自愈时删除）。
+
+**条目格式**（`SessionDeltaJournal`，file 与 DB 共用 codec）：`{baseVersion, seq, totalMessageCount, appendedMessages[], state}`——state 为快照 serialize 的全部可变标量（tokens/iterations/status/metadata/parentSessionId/planId/compactedAt/tenantId/seenInputKeys/pendingInjections），绝对值语义（last-writer-wins）；`totalMessageCount` 供重放侧截断守护（同引用 shrink 对指纹不可见）。
+
+**Diff 判据（append 条件）**：incoming 消息列表 ≥ 持久化前缀长度，且前缀逐位置**内容指纹相等**（`ChatMessageFingerprints`：`JsonTool.stringify(message)` 的 FNV-1a 64）。指纹必须基于序列化形态而非引用相等——`ChatMessage` 全可变，guardrail 会在持久化后对同一实例 `setContent` 原地改写（output guardrail 于 saveLlmTurnCheckpoint 之后、input guardrail 于注入持久化后的下一轮），引用 diff 察觉不到。指纹重算使 append 常态 CPU 与全量序列化同级——本特性交付的是**写路径** O(delta)（磁盘字节/DB 行重写），不是 CPU 优化。非 append 情形（首存、结构插入/截断、内容改写、journal 条目数 ≥ 64）一律 **fold**：快照 version+1 全量重写 → journal 清除（顺序：file 先快照后删 journal；DB 先 CLOB MERGE 后删行——崩溃窗口由版本校验兜底）。
+
+**重放与自愈**：load（getOrCreate/get/listAllSessions 统一路径）= 快照 + journal 逐条应用，校验 `baseVersion==snapshotVersion && seq 自 0 连续`；首个撕裂/非法/过期条目处停止并**自愈 = 对重放态做 fold**（重写快照 v+1 + 清 journal），恢复"磁盘 = 重放态 + 空 journal"不变式——fold 崩溃窗口的孤儿条目位于 journal 头部，若只做记账重置，后续 append 会一直被残留头部遮蔽直至下次 fold（round 2 审查 Major-1）。
+
+**并发纪律**：per-session 锁串行化 diff→写→状态更新全序（file 与 DB 同）；session 对象本身保持单写者契约（引擎：ReAct worker 线程单执行 + WI8 已登记的 staging save 理论竞窗）。
+
+**DB journal 表**：`ai_agent_session_journal`（PK `(SESSION_ID, SEQ)`，列 TENANT_ID/BASE_VERSION/ENTRY_JSON/CREATED_AT，DDL 自管不注册 ORM）。append = journal INSERT（先）+ 标量列 UPDATE（后，AGENT_NAME/STATUS/UPDATED_AT，不含 CLOB；UPDATE 命中 0 行 fail-loud——**append 永不创建主行**）。(SESSION_ID,SEQ) 跨进程竞速 SQLException 降级为 fold（last-writer-wins，与旧 MERGE 语义对齐）。租户裁定：journal 行携带写入方 TENANT_ID 并按主表同款过滤；**同 sessionId 跨租户为不受支持场景**（存量限制：plan 232 的 `MERGE KEY (SESSION_ID, TENANT_ID)` 作用于 SESSION_ID 单键 PK 表，跨租户同 id 时 H2 自冲突超时——WI14 fold 路径继承同一语义，已在 plan 2295 Known Residuals 登记）。
+
+**已知 residual**：append 路径崩溃耐久 = 快照 + journal 有效前缀（最后一条撕裂 save 丢失，与全量覆写的整步丢失同级）；跨进程并发写 last-writer-wins；journal 条目携带标量块的体积受 fold 阈值（64 条）有界。fsync、阈值可配置化、CPU 侧增量为 follow-up。
