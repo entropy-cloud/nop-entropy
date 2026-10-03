@@ -12,7 +12,7 @@
 | 0.5 | `00-scope-and-dimension-matrix.md`（§1/§2/§6 基线刷新 + v6 新增子模块登记表；执行载体 plan 2307） | — | — | — | — | done（矩阵刷新，无新发现） | 独立子 agent（见 plan 2307 Closure 段） |
 | 1.1 | `1.1-dependency-graph-and-boundaries.md` | 0 | 0 | 2 | 3 | done（裁决：通过——零环/api 零污染/T1 装配零越界；P2×2 入 R1.0，P3×3 watch；初版 P2-1.1-003 经 closure audit 证伪撤回） | 独立子 agent 四轮（FAIL→FAIL→残留→PASS，见 plan 2308 Closure 段） |
 | 1.2 | `1.2-xlang-structure-pipeline-audit.md` | 0 | 1 | 10 | 18 | done（裁决：通过——链路全连通正结论；P1×1 包级 SCC 三档治理 + P2×10 进 R1.0；JsPromise already-fixed；XLangASTOptimizer 实为生成物） | 独立子 agent（见 plan 2309 Closure 段） |
-| 1.3 | — | | | | | todo | |
+| 1.3 | `1.3-nop-core-structure-audit.md` | 0 | 0 | 3 | 29 | done（裁决：通过——四依赖边合规/VFS 链连通/初始化幂等正结论；P2×3 进 R1.0：SCC(10) 两红线治理+disabled-initializers 死配置+reinitialize 失败残留；watch×5） | 独立子 agent（见 plan 2310 Closure 段） |
 | 1.4 | — | | | | | todo | |
 | 1.5 | — | | | | | todo | |
 | 1.6 | — | | | | | todo | |
