@@ -265,3 +265,5 @@ runtime 集成：`WindowOperator` 对 `CountTrigger`/`ContinuousProcessingTimeTr
 | processing-time timer（`TimerService`） | 无 timer API（`flatMapGroupsWithState` + timeout 近似） | `TimerService`（同源） | 无 |
 
 一句话结论：Spark 把「触发」做成作业级参数、Flink/nop-stream 把「触发」做成窗口级 Trigger + 作业级 checkpoint 周期；nop-stream 的窗口 Trigger 家族与 Flink 同源同语义，与 Spark 的差异是连续流 vs 微批的模型差异（by design，非缺口）。
+
+> **声明式 SQL 接口**：除 DataStream API 与 XDSL `.stream.xml` 外，nop-stream 另提供 `<sql>` 声明式 SQL 查询入口（SELECT/WHERE/GROUP BY/聚合/TUMBLE/join/UNION ALL 子集），详见 `03-modules/nop-stream-sql.md`。

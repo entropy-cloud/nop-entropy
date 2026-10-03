@@ -45,7 +45,15 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 全部复用既有 `nop.err.*` 码（§4d 零新增码）：编译期 `nop.err.stream.invalid-arg`（子集外/未知类型/DISTINCT/全局聚合/default-reject）；ORDER BY/LIMIT `nop.err.eql.dialect-not-support-feature`；TUMBLE 间隔 `nop.err.eql.invalid-interval-value`；声明面 ref/边错误 `nop.err.stream.ref-unknown`/`invalid-arg`；SPI 缺失 `nop.err.stream.invalid-arg`（文案点名 nop-stream-sql 模块）。
 
-## 5. 编程入口（模块内部）
+## 5. 兼容与迁移
 
-- `io.nop.stream.sql.compile.StreamSqlCompiler.compile(loc, sql, schema, sinkBean)`（四参必填：源位置/SQL 文本/schema 字段面/sink bean 名）：SQL 文本 → 流模型 XML（`<sql>` SPI 的底层实现）；产物可经 `DslModelParser` 回读后 `StreamModelDslBuilder` 构建。
+- **既有 .stream.xml 模型**：`<sql>` 为纯增量顶层元素——不含 `<sql>` 的既有模型零影响；新增 `<sql>` 时模型必须以 `<sql>` 为唯一内容（不得与既有 transforms/edges 混写），且运行期 classpath 需含 nop-stream-sql（缺失时构建期 `nop.err.stream.invalid-arg` fail-fast，文案点名模块）。
+- **schema 声明**：九受管类型名闭集（见 §1）；DATE/TIMESTAMP/DECIMAL 列绑定构建期 fail-fast（不静默近似）。
+- **D9 allowedLateness 放行**（WI10）：`<window>` 与 `<strategy>` 的 allowedLateness 自本 roadmap 起按语义消费（窗口关闭点推迟至 watermark 越过 lateness 界）；accumulationMode/triggerId/窗口级 parallelism 仍保持 fail-fast。
+- **聚合语义（D1）**：SQL 聚合输出为 last-value-wins 终值语义——非 append-only、非 retract；持续聚合逐条 emit 运行值。
+- **W2/T1 边界（WI20）**：`TUMBLE` 查询仅流目标可执行；SQL 通道按原样回显 `TUMBLE(...)` 语法（该文本在真实 RDBMS 解析即失败——预期边界而非缺陷）。
+
+## 6. 编程入口（模块内部）
+
+- `io.nop.stream.sql.compile.StreamSqlCompiler.compile(loc, sql, schema, sinkBean)`（四参：源位置/SQL 文本/schema 字段面/sink bean 名——sql 与 sinkBean 必填，schema 可为 null/empty 表示未声明 schema）：SQL 文本 → 流模型 XML（`<sql>` SPI 的底层实现）；产物可经 `DslModelParser` 回读后 `StreamModelDslBuilder` 构建。
 - 求值原语（WI9）：`io.nop.stream.sql.eval.StreamSqlExprCompiler`（标量子集 → StreamRecordEvaluator）、`StreamSqlAggregations`（五聚合 id 目录）。
