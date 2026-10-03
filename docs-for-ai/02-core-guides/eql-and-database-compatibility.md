@@ -124,13 +124,13 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 |------|------|---------------|
 | `useAsInFrom` | `FROM t AS v` 是否允许 `AS` | Oracle 不允许 |
 | `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **尚未接线**：现无 accessor、无消费点（2026-10-04 实测），accessor 补齐与门控归 EQL 兼容 roadmap WI7。dialect.xdef javadoc 中「不支持时用 `order by if(isnull(f),0,1), f` 模拟」仅是设想，全仓无任何实现。与 `defaultNullsFirst`（缺省 NULL 序**事实**）正交，见下方「defaultNullsFirst」小节 |
-| `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | MySQL 不允许 |
-| `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | MySQL 不允许 |
-| `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | H2 显式 `true`；PostgreSQL/DuckDB 继承 default 的 `false`（PG 原生支持 ILIKE，但该标志的现值是 false——消费方以 `ilike` **函数注册**为准，见「ilike 函数注册」小节；翻标志会引入假阴性） |
-| `supportSequence` | 是否支持数据库序列 | Oracle 支持，MySQL 不支持 |
+| `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | 全部方言 `false`（继承 default）。WI10b 行为契约：EQL **接受并归一化**别名（可解析、输出抑制、语义无损），标志为能力声明，勿按 flag 建打印分支或编译期拒绝门（见「UPDATE/DELETE 表别名」小节） |
+| `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | 同上（`supportDeleteTableAlias` 行） |
+| `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | H2 显式 `true`；PostgreSQL/DuckDB 继承 default 的 `false`（PG 原生支持 ILIKE，但该标志的现值是 false——消费方以 `ilike` **函数注册**为准，见「ilike 函数注册」小节；翻标志会引入假阴性）。WI10b 裁定：**勿将本标志接为第二道门**（PG 实证：flag=false 且 ilike 函数已注册可用，接标志即破坏两个已收口方言）；标志与注册互不强约束由 `TestDialectDeadFlagDisposition` 锁定 |
+| `supportSequence` | 是否支持数据库序列 | Oracle 支持，MySQL 不支持。WI10b 软弃用标注（xdef `@deprecated`：预留未接线、保留配置兼容、勿新增消费依赖——序列 SQL 供给走 `getCreateSequenceSql`/`getSequenceNextValSql`） |
 | `supportReturningForUpdate` | **仅指 UPDATE 上返回投影列表形式（无 `INTO` 宿主变量）的 `RETURNING`**（不是"该库有没有 RETURNING"）。值现状（WI3 纠错后）：postgresql `true`；mysql/oracle/h2 及其衍生 mariadb/oracle-reverse/h2gis `false`；duckdb `false`（其 RETURNING 仅 INSERT/DELETE/MERGE）；dm `true` `[unverified]`（DM8 无一手文档）。mysql5.7/mariadb 另有版本门表达，见「集合算子与 RETURNING 版本门」小节 | PostgreSQL 支持；MySQL/Oracle（投影列表形式）/H2 不支持 |
 | `supportFullJoin` | 是否支持 `FULL JOIN`/`FULL OUTER JOIN` 表源 | MySQL/MariaDB 显式 `false`（已确认无 FULL JOIN，roadmap WI7b 证据）；TDengine ≥3.3.0.0、MSSQL、PG、H2 等继承 default 的 `true` `[文档]`。已接线编译期门（见下文 FULL JOIN 小节） |
-| `supportRightJoin` | 是否支持 RIGHT JOIN | **无 accessor、零消费**（2026-10-04 实测；accessor 补齐与三档处置归 EQL 兼容 roadmap WI10b 的死标志收拢，**不归 WI3**） |
+| `supportRightJoin` | 是否支持 RIGHT JOIN | 全部方言继承 default 的 `true`。**已接线编译期门**（2026-10-04 WI10b，`checkJoinTypeFeature` RIGHT_JOIN 分支，见「RIGHT JOIN 表源」小节）；负向载体 = 合成方言（无任何真实方言应配 false 的一手证据） |
 | `supportLateral` | 是否支持 `LATERAL` 子查询表源 | MySQL 8.0.14+/PG/DuckDB 支持；未配置 = 保守 false（编译期报错） |
 | `supportWithAsClause` | 是否支持 CTE（WITH AS） | MySQL 8.0+ 支持 |
 | `supportBatchUpdate` | 是否支持批量更新 | 大部分数据库支持 |
@@ -190,6 +190,40 @@ EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生
 | DB2 / DM8 | `true`（继承 default，未逐库复核 FULL JOIN 语法） | `[unverified]` |
 
 回归测试：`TestEqlFullJoinParse`（解析红→绿 + `full join` 既有形态守护）、`TestEqlFullJoinDialectGate`（负向错误码 + feature param、嵌套过门、flag 两值行为分叉=接线验证）、`TestDialectFullJoinFlag`（nop-dao，XML→accessor 链逐方言断言）。
+
+### `IN` 列表长度门禁（2026-10-04 WI10b，WI10a 设计定稿）
+
+单个 `IN` 列表的元素个数有全局上限 **1000**，超限在**编译/构建期显式报错**，不做任何改写、截断或静默放行。唯一硬依据：Oracle `IN` 表达式列表上限 1000（`ORA-01795`）；其余方言无一手上限引证（unverified 不进契约），故全方言统一阈值。
+
+| 契约面 | 内容 |
+|--------|------|
+| 阈值 | 1000，唯一硬依据 `ORA-01795` |
+| 配置项 | `nop.core.sql.in-list-max-size`（`CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE`，Integer，默认 1000）。**只可调高、无关闭取值**：最小有效值 1，≤0 的配置会拒绝所有 IN 列表（算术上不存在"关闭"）；**调高阈值 = 部署方自担其数据库实际上限的取证责任** |
+| EQL 编译路径错误码 | `nop.err.eql.in-list-too-large`，param：`itemCount`（实际元素数）/`maxItems`（阈值）/`stmtName`（语句名）/`dialect`（方言名）。挂载点 `EqlTransformVisitor#visitSqlInValuesExpr`（编译管线，`EqlCompiler#compile` 入口必经；缓存路径下随首次编译执行一次） |
+| SqlBuilder 集合展开路径错误码 | `nop.err.core.sql.in-list-too-large`，param：`itemCount`/`maxItems`/`name`（语句名，未设置时不带）。挂载点 `SQL.SqlBuilder#spreadParams`（集合展开全局入口，覆盖 `in()`/`paramEx()`/filter bean 的 `in`/`notIn` 与 INSERT VALUES 直调）；**计数口径 = Collection 顶层元素个数**（标量集合时==`?` 数；行组 `Object[]`/嵌套 Collection 按 1 计） |
+| `NOT IN` | 与 `IN` 同为 `SqlInValuesExpr` 节点，同阈值同错误码，无单独放宽 |
+| 门禁方言无关 | 不读任何方言能力——超限与否不因目标库改变；字面量与 `:param` marker 统一计数 |
+| 回显边界 | `EqlASTNode#toSqlString()` 回显路径**不设门**：忠实转储零截断（既是既有契约，也保证触发门禁时用户能 dump 完整 SQL 定位） |
+
+**迁移说明（这是有意的破坏性变更，WI10a 设计 §3.2 裁定）**：
+
+1. **哪些既有查询会开始失败**：>1000 元素的 IN 列表——两个失败面：EQL 编译路径（`.eql`/`<eql>` 查询，编译期报错）与 filter 展开路径（filter bean 的 `in`/`notIn` 传 >1000 元素集合，SQL 构建期报错）。升级前在无 1000 硬限的方言（MySQL/PG 等）上正确运行的此类查询将开始失败。
+2. **升级前评估步骤**：部署到预发环境，按上述两个错误码做一次全量回归盘点，命中查询即为需改造对象（应用侧分批查询，或按下条调高阈值）。
+3. **阈值调高出口**：配置 `nop.core.sql.in-list-max-size`（如 `1500`）即可零代码迁移既有合法查询；不存在关闭检查的取值。过渡期 warn-only 被设计明确拒绝（"只打印不设门 = 净回归"）。
+
+回归测试：`TestEqlInListLengthGate`（nop-orm-eql，5 例：阈值内/超阈值码+param/NOT IN 同阈值/回显零截断/配置调高通路）、`TestSqlBuilderInListLengthGate`（nop-core，7 例：filter bean 端到端/直调/空集合 `(NULL)` 既有行为不变/配置通路/行组计数口径）。
+
+### `RIGHT JOIN` 表源与 `supportRightJoin` 编译期门（2026-10-04 WI10b）
+
+`right join`/`right outer join` 的执行路径经 `EqlTransformVisitor.checkJoinTypeFeature` 的 RIGHT_JOIN 分支（与 FULL JOIN 同门同层）：`supportRightJoin=false` 时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportRightJoin`），绝不静默改写或丢弃 join 类型。全部既有方言 XML 继承 default 的 `true`（RIGHT JOIN 为各库全支持的标准能力）⇒ 该门只对显式配 false 的部署生效，负向载体用合成方言。回归：`TestEqlRightJoinDialectGate`（nop-orm-eql）+ `TestDialectDeadFlagDisposition`（nop-dao，配置断言）。
+
+### 行值构造器 `(a,b)` 与 `supportRowValueConstructor` 编译期门（2026-10-04 WI10b）
+
+`(a, b)` 行组表达式（独立值表达式 / `(a,b) = (1,'x')` 行值比较 / 作 IN 列表元素）在执行路径经 `EqlTransformVisitor.visitSqlMultiValueExpr` 门：`supportRowValueConstructor=false` 时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportRowValueConstructor`）。与 IN 列表长度门正交（不同 AST 节点：`SqlMultiValueExpr` vs `SqlInValuesExpr`）。全部既有方言继承 default 的 `true`（零 BC）；回显路径不设门。回归：`TestEqlRowValueConstructorGate`。
+
+### UPDATE/DELETE 表别名：接受并归一化（2026-10-04 WI10b 行为契约）
+
+`update tbl o set o.col = …` / `delete from tbl o where …` 的别名写法在 EQL 中**被接受**（文法可解析、transform 期 `makeTableAlias` 注册进 table scope，`o.col` 正常解析），打印期**统一抑制别名输出**——单表 UPDATE/DELETE 下语义无损（flag 值不改变输出，无按 flag 的打印分支或编译期拒绝）。`supportUpdateTableAlias`/`supportDeleteTableAlias` 两标志保留为能力声明（全部方言现值 false），**勿按 flag 在打印器分支输出**（=静默抑制，裁定不成立）也**勿设编译期拒绝门**（全方言 false ⇒ 拒绝语义无损写法，纯 BC 破坏零收益）。未来多表 UPDATE/DELETE 文法 WI 立项使别名语义承载化时，必须以编译期能力门接线两标志。回归：`TestEqlTableAliasSuppressionContract`（flag 两值输出逐字相同锁定）。
 
 ### `SqlTypeExpr.characterSet`/`collate`：显式拒绝防护（2026-10-03 WI2 BUG-15）
 
@@ -301,7 +335,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | 9.10 | 整除与取模符号 | `5 % -2`：MySQL 截断 −1，PG floor 1 | 负数取模避免跨库依赖 |
 | 9.11 | 聚合溢出与返回类型 | `SUM(int)` PG 报错/MySQL 回绕；`AVG(int)` MySQL 返回 int | 数值聚合列用 DECIMAL/BIGINT |
 | 9.12 | 布尔↔整数转换 | `WHERE boolCol = 1` PG 非法 | 布尔列用布尔字面量（经 `trueString/falseString` 方言形态） |
-| 9.13 | `IN` 列表长度上限 | Oracle 1000 硬上限、MSSQL 参数 2100 | 大列表改临时表/分批 `in` |
+| 9.13 | `IN` 列表长度上限 | Oracle 1000 硬上限、MSSQL 参数 2100 | **平台已设门禁（WI10b）**：单 IN 列表 >1000 元素编译/构建期显式报错（见「`IN` 列表长度门禁」小节）；大列表改分批查询或调高 `nop.core.sql.in-list-max-size`（自担取证责任） |
 | 9.14 | `UNION` 类型归并与列数 | 各库归一规则不同 | union 两侧投影显式同型 |
 | 9.15 | 字符串/Unicode 长度语义 | Oracle VARCHAR2 默认按字节；MSSQL nvarchar 按 UTF-16 单元（emoji 算 2） | 多语言列预留长度；VARCHAR precision 富余 |
 | 9.16 | 反斜杠转义分叉 | `escapeSlash` 各库不同（MySQL/DM/TDengine 转义） | 字面量含反斜杠时依赖方言 `escapeSlash` 配置，勿手写双重转义 |
@@ -317,6 +351,10 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | FULL JOIN 表源 | `EqlTransformVisitor.checkJoinTypeFeature`（join 表源转换遍历点） | `supportFullJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`） | `TestEqlFullJoinDialectGate`、`TestDialectFullJoinFlag` |
+| RIGHT JOIN 表源（WI10b） | `EqlTransformVisitor.checkJoinTypeFeature`（同方法 RIGHT_JOIN 分支） | `supportRightJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportRightJoin`） | `TestEqlRightJoinDialectGate` |
+| 行值构造器 `(a,b)`（WI10b） | `EqlTransformVisitor.visitSqlMultiValueExpr`（transform 遍历点，覆盖比较/独立值/IN 行组三形态） | `supportRowValueConstructor` | `nop.err.eql.dialect-not-support-feature`（`feature=supportRowValueConstructor`） | `TestEqlRowValueConstructorGate` |
+| IN 列表长度（EQL 路径，WI10b） | `EqlTransformVisitor.visitSqlInValuesExpr`（编译管线；**无方言门**——无条件计数） | 无能力标志（阈值 `nop.core.sql.in-list-max-size`，默认 1000） | `nop.err.eql.in-list-too-large` | `TestEqlInListLengthGate` |
+| IN 列表长度（SqlBuilder 集合展开路径，WI10b） | `SQL.SqlBuilder#spreadParams`（集合展开全局入口；**无方言门**；计数=Collection 顶层元素数） | 无能力标志（同一配置项） | `nop.err.core.sql.in-list-too-large` | `TestSqlBuilderInListLengthGate`（filter bean `in` 端到端） |
 | CAST 类型 characterSet/collate 子句 | `EqlASTBuildVisitor.SqlTypeExpr_characterSet/collate`（解析期守卫，字段双向零消费） | 无消费通路（显式拒绝，见 BUG-15 小节） | `nop.err.eql.sql-type-clause-not-support` | `TestEqlSqlTypeClauseGuard` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
@@ -415,6 +453,29 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 | `interval 1 day` / `interval '3 hours'` | 可解析 | 逐字不变（`intervalUnit_` 上下文只有该规则可达，`TestEqlIntervalLiteralParse` 全量回归） |
 
 无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增五词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
+
+### 死标志台账：14 个存量方言能力标志的三档处置（2026-10-04 WI10b）
+
+roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部落到明确处置（裁定正文：EQL 兼容 roadmap WI10b 的 Phase 0 裁定文档；本表为 live 对账口径）：
+
+| 标志 | 最终档位 | 消费点 / 证据 | 负向用例 / 证明测试 |
+|------|---------|--------------|-------------------|
+| `supportFullJoin` | 已处置（WI2 交付） | `EqlTransformVisitor.checkJoinTypeFeature` 消费 | `TestEqlFullJoinDialectGate` |
+| `supportRightJoin` | **接线**（WI10b） | `checkJoinTypeFeature` RIGHT_JOIN 分支 + `IDialect.isSupportRightJoin` | `TestEqlRightJoinDialectGate`（合成方言负向） |
+| `supportRowValueConstructor` | **接线**（WI10b） | `EqlTransformVisitor.visitSqlMultiValueExpr` 门 | `TestEqlRowValueConstructorGate`（合成方言负向） |
+| `supportOutputForUpdate` | 档 2：补 accessor + 测试证明（候选 B） | 无运行时消费点（v1 不做 MSSQL OUTPUT lowering；豁免与升级触发条件见裁定文档 §2.7） | `TestDialectDeadFlagDisposition.testOutputForUpdateOnlyMssqlTrue` |
+| `supportUpdateTableAlias` | 改档：档 2 行为契约登记 | 无新消费点——EQL 实际行为 = 接受并归一化（见「UPDATE/DELETE 表别名」小节）；多表文法立项时必须接线 | `TestEqlTableAliasSuppressionContract`（flag 两值输出逐字相同） |
+| `supportDeleteTableAlias` | 改档：档 2 行为契约登记 | 同上 | 同上 |
+| `supportUpdateFromJoin` | 改档：档 2 契约登记 | EQL 文法暂无 UPDATE..FROM（解析失败=响亮）；文法 WI 立项时必须接线 | `TestEqlDeadFlagGrammarContract.testUpdateFromClauseIsLoudParseError` |
+| `supportDeleteFromJoin` | 改档：档 2 契约登记 + 补 accessor | EQL 文法暂无多表 DELETE（响亮）；同上触发条件 | `TestEqlDeadFlagGrammarContract`（multi-table delete / DELETE..USING 两例） |
+| `supportTruncateTable` | 改档：档 2 能力声明 | EQL **永不**消费（TRUNCATE 进 EQL 为 roadmap ledger 永久否决项）；保留为 JDBC/DAO 层能力声明 | `TestDialectDeadFlagDisposition.testTruncateTableConfigUnchanged` |
+| `supportILike` | 改档：档 2 契约登记（**禁止接标志**） | 无标志消费点；ilike 真实门 = 函数表（见「ilike 函数注册」小节）。⚠️ 台账口径：**不得登记为"已接线"**——WI3 交付的是函数注册，不是标志接线 | `TestDialectDeadFlagDisposition.testILikeFlagAndFunctionRegistrationIndependent` |
+| `supportSavePoint` | 软弃用 | 无消费点（xdef `@deprecated`：预留未接线、保留配置兼容、勿新增消费依赖） | `TestDialectDeadFlagDisposition.testSoftDeprecatedFlagsStillBind`（配置加载回归） |
+| `supportTransaction` | 软弃用 | 同上 | 同上 |
+| `supportSequence` | 软弃用 | `isSupportSequence` 唯一调用方为测试；序列 SQL 供给走 `getCreateSequenceSql`/`getSequenceNextValSql` | 同上 |
+| `supportNullsFirst` | successor-owned（WI7，未立项） | 无 accessor（刻意留给 WI7）；`defaultNullsFirst` accessor 已由 WI3 落地（javadoc 移交链）；WI10b 不补 accessor、不建消费点（无双 owner） | —（roadmap WI7 Exit Criteria ③b） |
+
+配置断言总入口：`TestDialectDeadFlagDisposition`（nop-dao，9 例——accessor 链 × 既有 XML 值逐一锁定，方言 XML 零改值）。
 
 ## 相关文档
 

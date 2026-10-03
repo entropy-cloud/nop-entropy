@@ -216,28 +216,28 @@ Exit Criteria:
 
 ### Phase 3 - owner doc 同步：IN 契约 + 迁移说明 + 死标志台账
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI10b EC③ 措辞 / BUG-13 三档表 / `:29` Current Baseline 行 / `:94` 状态行，四处修订 + 原地注记）、`docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`（如路由/锚点变化）、`ai-dev/logs/`
 
 - Item Types: `Fix`（owner doc 与 live baseline 对齐）、`Proof`（doc-links 门禁）
 
-- [ ] `eql-and-database-compatibility.md` 写入 **IN 列表契约表**：统一阈值 1000 及其唯一硬依据（Oracle `ORA-01795`）、配置项名称与调高方法（含"调高即自担证据责任"约定、无关闭取值）、两条路径的错误码、param 集合、`NOT IN` 同阈值、门禁方言无关不改写、回显不设门的边界。
-- [ ] **roadmap 文本修订**（对齐 WI10a 先例：commit `edbeaf0968` + WI10a 设计 §五「定稿动作」的同一形态）：按 Phase 0 终裁结果修订 `ai-dev/backlog/eql-cross-db-compat-roadmap.md` 四处——① WI10b Exit Criteria ③ 措辞（接线数与档位按终裁，如「N 接线 / M 补测试证明或改档 / 3 软弃用」，以终裁为准）；② BUG-13 三档处置表（`:346-350` 区域）；③ Current Baseline `:29` 存量死标志行；④ `:94` WI10b 状态行（状态值按 roadmap 流转规则：本 plan draft review 通过后 `todo`→`planned`；closure audit 通过后 `planned`→`done`，不得提前）。修订处**原地留 2026-10 修订注记（若软弃用数因终裁变化，EC④ 一并按终裁修订）**（照 WI10a 对 EC② 的修订注记形态）。不加此项，closure audit 按 roadmap 原文核对时本 plan 与 roadmap 直接冲突。
-- [ ] 写入 **迁移说明必含项**（WI10a 设计 §3.2 清单，对齐 WI9b "不接受留空"姿态）：哪些既有查询会开始失败（>1000 元素 IN，EQL 编译路径与 filter 展开路径两个面）、升级前评估步骤（预发环境按新错误码全量回归盘点）、阈值调高方法。破坏性变更裁定引用设计文档，不重写。
-- [ ] 写入 **方言敏感输出点登记**（roadmap EC 第 4 条格式）：本 plan 新增的每个门——generator/校验方法、触发的能力标志、不支持时的错误码——逐行登记；与 WI1/WI2 已登记行合并成表。
-- [ ] 更新 **死标志台账**：14 个标志的最终档位、消费者方法、负向用例位置、owner（WI2/WI3/WI7/WI10b）；`supportUpdateFromJoin` 等改档标志记录改档理由与未来触发条件（如 UPDATE..FROM 文法 WI 立项时必须接线该标志）。
-- [ ] 若 `docs-for-ai/` 路由或实现锚点变化，同步 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（当前基线 3 项 pre-existing，见 roadmap Current Baseline；不顺手修无关文件，只比对新增量）。
+- [x] `eql-and-database-compatibility.md` 写入 **IN 列表契约表**：统一阈值 1000 及其唯一硬依据（Oracle `ORA-01795`）、配置项名称与调高方法（含"调高即自担证据责任"约定、无关闭取值）、两条路径的错误码、param 集合、`NOT IN` 同阈值、门禁方言无关不改写、回显不设门的边界。（新节「`IN` 列表长度门禁（2026-10-04 WI10b）」：契约表 7 行 + 迁移说明 + 回归测试锚点；错误码名/配置键名/方法名逐一可 grep）
+- [x] **roadmap 文本修订**（对齐 WI10a 先例：commit `edbeaf0968` + WI10a 设计 §五「定稿动作」的同一形态）：按 Phase 0 终裁结果修订 `ai-dev/backlog/eql-cross-db-compat-roadmap.md` 四处——① WI10b Exit Criteria ③ 措辞（接线数与档位按终裁，如「N 接线 / M 补测试证明或改档 / 3 软弃用」，以终裁为准）；② BUG-13 三档处置表（`:346-350` 区域）；③ Current Baseline `:29` 存量死标志行；④ `:94` WI10b 状态行（状态值按 roadmap 流转规则：本 plan draft review 通过后 `todo`→`planned`；closure audit 通过后 `planned`→`done`，不得提前）。修订处**原地留 2026-10 修订注记（若软弃用数因终裁变化，EC④ 一并按终裁修订）**（照 WI10a 对 EC② 的修订注记形态）。不加此项，closure audit 按 roadmap 原文核对时本 plan 与 roadmap 直接冲突。（四处全部落地：① EC③ 原文保留 + 终裁措辞注记（接线 2 逐个"消费者+负向用例"/改档+候选B 6 个等价证据/软弃用 3，引裁定文档）；② BUG-13 表保留历史账面 + 追加终裁注记块（含逐标志推翻理由摘要）；③ `:29` 行终裁档位注记；④ `:94` 行保持 `planned` 不翻 done（本 plan 未 closure）、括号账面更新 + 注记；EC④ 软弃用数仍 3 无需修订）
+- [x] 写入 **迁移说明必含项**（WI10a 设计 §3.2 清单，对齐 WI9b "不接受留空"姿态）：哪些既有查询会开始失败（>1000 元素 IN，EQL 编译路径与 filter 展开路径两个面）、升级前评估步骤（预发环境按新错误码全量回归盘点）、阈值调高方法。破坏性变更裁定引用设计文档，不重写。（IN 门禁新节内嵌"迁移说明"三点齐全，破坏性变更裁定引用 WI10a 设计 §3.2）
+- [x] 写入 **方言敏感输出点登记**（roadmap EC 第 4 条格式）：本 plan 新增的每个门——generator/校验方法、触发的能力标志、不支持时的错误码——逐行登记；与 WI1/WI2 已登记行合并成表。（登记表追加 3 行：RIGHT JOIN 门、行值构造器门、IN 两路径门（标注"无方言门/无能力标志"形态）；各行均带负向测试锚点）
+- [x] 更新 **死标志台账**：14 个标志的最终档位、消费者方法、负向用例位置、owner（WI2/WI3/WI7/WI10b）；`supportUpdateFromJoin` 等改档标志记录改档理由与未来触发条件（如 UPDATE..FROM 文法 WI 立项时必须接线该标志）。（新节「死标志台账」14 行表：档位/消费点或证据/测试锚点 + supportILike"不得登记为已接线"口径 + nullsFirst successor-owned + 配置断言总入口）
+- [x] 若 `docs-for-ai/` 路由或实现锚点变化，同步 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`。（INDEX `:80` 路由行补 IN 门禁+能力门/死标志台账关键词；source-anchors **No update required**——本 plan 锚点已内联 owner doc 各节（WI3/WI4/WI5 同款裁定），source-anchors 的最小锚点表无需新增行）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（当前基线 3 项 pre-existing，见 roadmap Current Baseline；不顺手修无关文件，只比对新增量）。（exit 0、0 error——实测输出 "No errors found"）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `eql-and-database-compatibility.md` 的 IN 契约表、迁移说明、能力门登记、死标志台账四项齐全，且与 live code 逐项对账无差异（错误码名、配置键名、方法名逐一可 grep 到）；死标志台账无与 live code 不符的"已接线"登记（`supportILike` 不得登记为已接线，除非 Phase 0 裁定真实接线且消费点已落）。
-- [ ] roadmap 四处修订已落地且与 Phase 0 终裁一致（WI10b EC③ 措辞 / BUG-13 三档表 / `:29` 存量死标志行 / `:94` 状态行），修订注记原地可查；本次 roadmap 修订新增 broken link = 0。
-- [ ] 迁移说明三要素（失败面 / 评估步骤 / 调高出口）无留空，与 WI10a 设计 §3.2 清单逐条对上。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `eql-and-database-compatibility.md` 的 IN 契约表、迁移说明、能力门登记、死标志台账四项齐全，且与 live code 逐项对账无差异（错误码名、配置键名、方法名逐一可 grep 到）；死标志台账无与 live code 不符的"已接线"登记（`supportILike` 不得登记为已接线，除非 Phase 0 裁定真实接线且消费点已落）。（四项齐全；`nop.err.eql.in-list-too-large`/`nop.err.core.sql.in-list-too-large`/`nop.core.sql.in-list-max-size`/`visitSqlInValuesExpr`/`spreadParams`/`checkJoinTypeFeature`/`visitSqlMultiValueExpr` 均可 grep 到 live 定义；supportILike 台账口径="改档（契约登记），禁止接标志"）
+- [x] roadmap 四处修订已落地且与 Phase 0 终裁一致（WI10b EC③ 措辞 / BUG-13 三档表 / `:29` 存量死标志行 / `:94` 状态行），修订注记原地可查；本次 roadmap 修订新增 broken link = 0。（doc-links exit 0）
+- [x] 迁移说明三要素（失败面 / 评估步骤 / 调高出口）无留空，与 WI10a 设计 §3.2 清单逐条对上。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0。（exit 0，0 error——本批新增链接全部通过）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 

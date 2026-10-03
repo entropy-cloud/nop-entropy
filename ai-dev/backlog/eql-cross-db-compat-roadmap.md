@@ -26,7 +26,7 @@
 | 已知 A 类静默错误 SQL 缺陷 | **6**（BUG-1/2/3/5/10/14） |
 | 已知 B 类缺陷 | **4 个已可复现**（BUG-4/6/7/8）+ **1 个潜在**（BUG-15 `SqlTypeExpr`，尚不可达） |
 | 方言相关待结论项 | **11**（WI3：4 项 `supportReturningForUpdate` 值、1 项 `unverified` 只标注、1 项窗口函数 mixin 归属（`mysql5.7` 去除；PG/DuckDB 补齐项**已完成**）、1 项 `ilike` 函数注册、2 项 Java 接线（`defaultNullsFirst` + H2 补配）、**2 项版本门/selector**） |
-| 存量死标志 | **14**（WI10b 三档处置：10 接线 / 1 补 accessor+消费者 / 3 软弃用） |
+| 存量死标志 | **14**（WI10b 三档处置。⚠️ **2026-10-04 WI10b 执行终裁修订**：原账面"10 接线 / 1 补 accessor+消费者 / 3 软弃用"与 live code 不符——实际落地=**接线 2 / 补 accessor+测试证明 1 / 改档（契约或能力登记）5 / 软弃用 3 / WI2 已处置 1 / WI7 successor-owned 1**；改档理由逐个登记于 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md` §1-§3 与 owner doc「死标志台账」，台账与 live code 一致） |
 | 零生成器消费的 AST 字段 | **7**（`SqlLikeExpr.escape`、`SqlOrderByItem.collate`、`SqlQuerySelect.nowait`、`SqlCollectionAccessExpr.collFuncName`、`SqlCollectionAccessExpr.collFuncArgs`、`SqlTypeExpr.characterSet`、`SqlTypeExpr.collate`） |
 | 零生产消费的 `IDialect` accessor | **9**（另有 5 个标志连 accessor 都没有） |
 | 可加载方言 | **14**（18 个 `*.dialect.xml` 中 4 个不可实例化） |
@@ -91,7 +91,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - **WI9a** CAST 类型系统·语法与别名（复用 WI2 已落地的 `BOOLEAN`；新增 `NUMBER`/`TEXT`/`BOOL` 别名 / `UUID` / 收窄 `dataTypeName_` 必拒项）: `planned`
 - **WI9b** CAST 类型系统·时区类型（取消 `StdSqlType` 时区类型注释 + 同步语法拼写 + 迁移说明）: `todo`
 - **WI10a** `IN` 列表长度上限策略设计（阈值来源 + 改写形态 + 事务语义，产出物落 `ai-dev/design/`）: `done`
-- **WI10b** 按策略实现 + BUG-13 死标志三档处置（接线 10 / 补消费者 1 / 标 deprecated 3）: `planned`
+- **WI10b** 按策略实现 + BUG-13 死标志三档处置（原账面"接线 10 / 补消费者 1 / 标 deprecated 3"；⚠️ 2026-10-04 执行终裁修订：**接线 2 / 补 accessor+测试证明 1 / 改档登记 5 / 软弃用 3 / WI2 已处置 1 / WI7 successor-owned 1**——改档与台账见 Phase 0 裁定文档 §1-§3，owner doc「死标志台账」为 live 对账口径）: `planned`
 - **WI11** DAO 层批量 upsert 原语（复用已归一化的 `ERR_SQL_DUPLICATE_KEY`，迁移 nop-stream 两个私有枚举）: `todo`
 - **WI12** P2 长尾（S-11）：`SAVEPOINT`/`ROLLBACK TO`、窗口命名 `WINDOW`、`FOR UPDATE NOWAIT`/`SKIP LOCKED`、`FROM (VALUES …)`、`AT TIME ZONE`: `todo`
 
@@ -350,7 +350,9 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 | 补 accessor + 消费者（1） | `supportOutputForUpdate` | 补一个真实消费点或补测试证明（需先补 `IDialect` accessor） |
 | 软弃用（3） | `supportSavePoint` / `supportTransaction` / `supportSequence`（`isSupportSequence` 唯一调用方是测试 `TestDialect.java:148`） | ⚠️ 删 `dialect.xdef` 属性**会破坏现有 XML 校验**（`default.dialect.xml:17` 就配了 `supportTransaction="true" supportSavePoint="true"`）⇒ 走「标 deprecated + 保留 + 加 xdef 注释」的软路径；硬删除需先全仓清理引用 |
 
-**Exit Criteria** —— ① 策略设计文档已产出并被独立 audit；② 按策略实现的阈值行为有用例（阈值内正常 / 超阈值编译·构建期报错（新错误码）/ 门禁方言无关、不做改写），且策略文档已回答"字面量 vs 参数化"这一前提（⚠️ ② 措辞已按 WI10a 设计文档 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md` 的定稿结论对齐——本策略是**报错-无改写-方言无关**，原稿"超阈值改写 / 超阈值且方言不支持时报错"与之矛盾；2026-10-03 定稿轮修订）；③ 10 个"接线"标志**逐个**有"消费者方法 + 负向用例"；④ 3 个"软弃用"标志已标 deprecated 且 xdef javadoc 更新；⑤ `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿；⑥ 独立 closure audit（不同 `task_id`，evidence 写入 plan 的 `Closure` 段）。
+> ⚠️ **2026-10-04 WI10b 执行终裁修订（上表保留为历史账面，live 对账以下表为准）**：执行期逐标志实测推翻了"接线（10）"账面的大部分成员——`supportUpdateFromJoin`/`supportDeleteFromJoin` 的语法在 EQL 中**不存在**（解析失败=响亮，无静默风险，接线无对象）、`supportTruncateTable` 对 EQL 是 ledger 永久否决项、`supportILike` 的真实门在函数表（postgresql flag=false 但 WI3 已注册 ilike 函数可用——接标志即引入假阴性）、别名两标志的实际行为是"接受并归一化"（编译期门=全方言拒绝语义无损写法，纯 BC 破坏零收益，打印器按 flag=静默抑制已被 plan 审查否决）。**终裁档位：接线 2（`supportRightJoin`/`supportRowValueConstructor`）/ 补 accessor+测试证明 1（`supportOutputForUpdate`，候选 B）/ 改档（契约或能力登记）5（`supportUpdateFromJoin`/`supportDeleteFromJoin`/`supportTruncateTable`/别名两标志/`supportILike`）/ 软弃用 3 / WI2 已处置 1 / WI7 successor-owned 1**。逐标志理由与触发条件见 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md` §1-§3；live 对账口径 = owner doc「死标志台账」。
+
+**Exit Criteria** —— ① 策略设计文档已产出并被独立 audit；② 按策略实现的阈值行为有用例（阈值内正常 / 超阈值编译·构建期报错（新错误码）/ 门禁方言无关、不做改写），且策略文档已回答"字面量 vs 参数化"这一前提（⚠️ ② 措辞已按 WI10a 设计文档 `ai-dev/design/eql-cross-db-compat/2026-10-03-wi10a-in-list-length-policy.md` 的定稿结论对齐——本策略是**报错-无改写-方言无关**，原稿"超阈值改写 / 超阈值且方言不支持时报错"与之矛盾；2026-10-03 定稿轮修订）；③ 10 个"接线"标志**逐个**有"消费者方法 + 负向用例"（⚠️ ③ 措辞已按 WI10b Phase 0 终裁修订——live code 实测证明原"接线（10）"账面中 6 个标志的接线前提不成立（语法不存在/永久否决/无消费者且接了会破坏已收口方言/门=纯 BC 破坏），改档为契约或能力登记：**接线 2 逐个有"消费者方法 + 负向用例"，改档/测试证明档 6 个（5 改档 + 1 候选 B）各有等价处置证据，软弃用 3**；逐标志裁定见 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md` §1-§3；2026-10-04 执行轮修订）；④ 3 个"软弃用"标志已标 deprecated 且 xdef javadoc 更新；⑤ `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿；⑥ 独立 closure audit（不同 `task_id`，evidence 写入 plan 的 `Closure` 段）。
 
 #### WI11 — DAO 层批量 upsert 原语
 
