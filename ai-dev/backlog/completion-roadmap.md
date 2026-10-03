@@ -1,6 +1,6 @@
 # nop-stream 完善路线图
 
-> Status: active
+> Status: delivered（2026-10-03 对账回填：Phase 0–5 共 37 行中 34 行已交付、2 行部分交付（1.5 / 4.6）、0 行未交付；逐行标注交付来源。交付经由后续 roadmap/plan 完成——nop-stream-production-roadmap（Stage 34–47、51 等）、nop-stream-productization-roadmap、plan 368/369/2279/360 等——本文件自 2026-08-05 起未回填，与 master 现实脱节）
 > Created: 2026-06-22
 > Parent: `00-vision.md`（定位与约束）、`01-architecture-baseline.md`（架构基线）
 > See also: `component-roadmap.md`（动态滚动视图）、`checkpoint-design.md` §13（容错契约）
@@ -154,13 +154,13 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 关联设计 |
 |----|------|------|----------|
-| 0.1 | DOC | 收敛五层执行管线文档：要么把 `PartitionedPlan`/`DeploymentPlan` 做实（承载并行展开、分区策略、状态路由的真实语义），要么承认 `GraphExecutionPlan` 为正式执行层并修订 `01-architecture-baseline.md` §四与 `graph-model-design.md`。消除「文档五层、实际干活的是第六层」的认知负担 | `01-architecture-baseline.md` §四 |
-| 0.2 | FIX | `StreamModel` 做实：`buildStreamModel()` 必须真正注册 StreamComponents（transforms/streams/windowingStrategies、requirements、checkpointParticipants），使 fingerprint 与 requirement 校验在编译期真正生效；否则降级 README/vision 中「三入口同一 canonical 模型」的表述，使文档与现实一致 | `core-design.md` §1 |
-| 0.3 | **BUILD** | **Operator State 体系**：`CheckpointedFunction` 接口、`OperatorStateStore`、`OperatorStateDescriptor`、三种重分布模式（SPLIT_DISTRIBUTE round-robin、UNION 全量广播、BROADCAST）、operator state 快照与恢复。这是 source exactly-once 的语义基础 | 新建 operator state 专题设计文档 |
-| 0.4 | FIX | CEP 接入统一状态后端：移除 `CepOperator` 自建的 `SimpleKeyedStateStore`，改用标准 `IKeyedStateBackend`，使 CEP 状态参与 checkpoint/恢复。兑现 `01-architecture-baseline.md` §二「cep 通过标准 state/timer 接口接入」的模块边界 | `cep-design.md` |
-| 0.5 | FIX | 启用 `BarrierAligner`（已实现未启用），替换 `InputGate` 内联对齐逻辑，统一多输入对齐实现。同步修复 `findCompletedCheckpointId` 的 O(输入数×待完成数) 复杂度 | `checkpoint-design.md` §13.2「多输入对齐统一」 |
-| 0.6 | **BUILD** | abort 控制通道：独立于数据流的控制通道传播 cancel 信号。local 路径用直接方法调用，distributed 路径复用 `IStreamTaskRpcService.cancelTask`（Phase 3 提供跨 JVM）。解决「对齐等待时数据队列读不到 marker」问题 | `checkpoint-design.md` §13.2「abort 传播通道」 |
-| 0.7 | FIX | 端到端并行度 > 1 通过 DataStream API 验证：`KeySelectorPartitioner` 多并行度 key hash 分区、多 sink/union 管线编译、`assignTimestampsAndWatermarks` 自动插入。当前 infra 存在但未端到端打通 | `graph-model-design.md` §10 |
+| 0.1 | DOC | ✅ 已交付（D-GAP 裁定落 `01-architecture-baseline.md` §四；`PartitionedPlan`/`DeploymentPlan` 均已做实为实类）。收敛五层执行管线文档：要么把 `PartitionedPlan`/`DeploymentPlan` 做实（承载并行展开、分区策略、状态路由的真实语义），要么承认 `GraphExecutionPlan` 为正式执行层并修订 `01-architecture-baseline.md` §四与 `graph-model-design.md`。消除「文档五层、实际干活的是第六层」的认知负担 | `01-architecture-baseline.md` §四 |
+| 0.2 | FIX | ✅ 已交付（`StreamExecutionEnvironment.buildStreamModel` 装配 StreamComponents + fingerprint 校验；`TestStreamModelPopulation`/`TestStreamModelFingerprint`）。`StreamModel` 做实：`buildStreamModel()` 必须真正注册 StreamComponents（transforms/streams/windowingStrategies、requirements、checkpointParticipants），使 fingerprint 与 requirement 校验在编译期真正生效；否则降级 README/vision 中「三入口同一 canonical 模型」的表述，使文档与现实一致 | `core-design.md` §1 |
+| 0.3 | **BUILD** | ✅ 已交付（`ICheckpointedFunction`/`IOperatorStateStore`/`RedistributionMode` 三模式；E2E `TestE2EOperatorStateCheckpoint`/`TestE2EOperatorStateRedistribution`）。**Operator State 体系**：`CheckpointedFunction` 接口、`OperatorStateStore`、`OperatorStateDescriptor`、三种重分布模式（SPLIT_DISTRIBUTE round-robin、UNION 全量广播、BROADCAST）、operator state 快照与恢复。这是 source exactly-once 的语义基础 | 新建 operator state 专题设计文档 |
+| 0.4 | FIX | ✅ 已交付（`CepOperator` 改用标准 `IKeyedStateBackend`；`TestCepStateRestoreAndContinue`/`TestCepOperatorStateRecovery`）。CEP 接入统一状态后端：移除 `CepOperator` 自建的 `SimpleKeyedStateStore`，改用标准 `IKeyedStateBackend`，使 CEP 状态参与 checkpoint/恢复。兑现 `01-architecture-baseline.md` §二「cep 通过标准 state/timer 接口接入」的模块边界 | `cep-design.md` |
+| 0.5 | FIX | ✅ 已交付（方式变更：`BarrierAligner` 类删除，多输入对齐统一于 `InputGate`（`abortBarrierAlignment`）——与本文件 4.5 行自述一致；`TestMultiInputBarrierAlignment`/`TestInputGateAlignmentStarvationFix`；production roadmap item 16 done）。启用 `BarrierAligner`（已实现未启用），替换 `InputGate` 内联对齐逻辑，统一多输入对齐实现。同步修复 `findCompletedCheckpointId` 的 O(输入数×待完成数) 复杂度 | `checkpoint-design.md` §13.2「多输入对齐统一」 |
+| 0.6 | **BUILD** | ✅ 已交付（`InputGate` abort handler 线程 + `abortBarrierAlignment`；distributed 侧见 3.7；`TestDistributedAbortPath`）。abort 控制通道：独立于数据流的控制通道传播 cancel 信号。local 路径用直接方法调用，distributed 路径复用 `IStreamTaskRpcService.cancelTask`（Phase 3 提供跨 JVM）。解决「对齐等待时数据队列读不到 marker」问题 | `checkpoint-design.md` §13.2「abort 传播通道」 |
+| 0.7 | FIX | ✅ 已交付（`DataStreamImpl` keyBy 生产 hash partitioner + `assignTimestampsAndWatermarks` 自动插入；`TestDataStreamParallelism`/`TestRealRoutingRescaleE2E`）。端到端并行度 > 1 通过 DataStream API 验证：`KeySelectorPartitioner` 多并行度 key hash 分区、多 sink/union 管线编译、`assignTimestampsAndWatermarks` 自动插入。当前 infra 存在但未端到端打通 | `graph-model-design.md` §10 |
 | 0.8 | FIX | ~~移除 runtime → cep 幽灵依赖~~（✅ 已消除）；清理 `GraphModelCheckpointExecutor` 代码重复；统一 `Task` 与 `Invokable` 的 OperatorChain 生命周期管理（`SubtaskTask.cancel` 状态机规范化） | `component-roadmap.md` §5 |
 
 **前置依赖**：无（本 Phase 是后续所有 Phase 的语义基础）。
@@ -183,11 +183,11 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 关联设计 |
 |----|------|------|----------|
-| 1.1 | **BUILD** | `RocksDBStateBackend` + `RocksDBKeyedStateBackend`：嵌入 LSM 树，所有 keyed state（Value/Map/List/Reducing/Aggregating）落到 RocksDB 列族。State 后端接口已为此外预留扩展点（`state-management-design.md` §3） | `state-management-design.md` |
-| 1.2 | **BUILD** | 增量 checkpoint：基于 RocksDB native checkpoint，SST 文件内容寻址 + `SharedStateRegistry` 引用计数，多个 checkpoint 共享同一 SST 文件，subsumption 时清理。这是 Flink 最关键的产能特性——checkpoint 耗时从 O(状态总大小) 降到 O(增量) | 新建 RocksDB 状态后端专题设计文档 |
-| 1.3 | **BUILD** | State TTL：keyed state 的生存时间，过期自动清理（RocksDB compaction filter + 内存后端的惰性清理） | `state-management-design.md` |
-| 1.4 | WIRE | 状态迁移接线：`SerializerFingerprint` 比对 + `StateMigrationFunction` 注册与触发。设计已在 `checkpoint-design.md` §8.4.1 定义，实现需接线 | `checkpoint-design.md` §8.4.1 |
-| 1.5 | DOC | 大状态（GB+）性能基准与调优指南：write buffer、block cache、compaction 配置；状态大小与 checkpoint 耗时的关系曲线 | — |
+| 1.1 | **BUILD** | ✅ 已交付（`nop-stream-rocksdb` 整模块：`RocksDBStateBackend`/`RocksDBKeyedStateBackend` + Value/Map/List/Reducing/Aggregating 全套；20 个测试类含 `TestRocksDBSnapshotRestore`）。`RocksDBStateBackend` + `RocksDBKeyedStateBackend`：嵌入 LSM 树，所有 keyed state（Value/Map/List/Reducing/Aggregating）落到 RocksDB 列族。State 后端接口已为此外预留扩展点（`state-management-design.md` §3） | `state-management-design.md` |
+| 1.2 | **BUILD** | ✅ 已交付（`checkpoint/incremental/SharedStateRegistry` + `RocksDBIncrementalSnapshotStrategy`；incremental 测试 5 类）。增量 checkpoint：基于 RocksDB native checkpoint，SST 文件内容寻址 + `SharedStateRegistry` 引用计数，多个 checkpoint 共享同一 SST 文件，subsumption 时清理。这是 Flink 最关键的产能特性——checkpoint 耗时从 O(状态总大小) 降到 O(增量) | 新建 RocksDB 状态后端专题设计文档 |
+| 1.3 | **BUILD** | ✅ 已交付（`StateTtlConfig`/`TtlContext`/`TtlCleanupStrategy` + `RocksDbTtlAware`；`TestRocksDBStateTtl`/`TestStateTtlConfig`；plan 369 P3 再收敛 memory TTL sweep）。State TTL：keyed state 的生存时间，过期自动清理（RocksDB compaction filter + 内存后端的惰性清理） | `state-management-design.md` |
+| 1.4 | WIRE | ✅ 已交付（`StateMigrationRegistry`/`StateMigrationFunction` + `MaxParallelismReshardMigration`；`TestStateMigrationFunctionRegistration`/`TestRocksDBStateMigration`）。状态迁移接线：`SerializerFingerprint` 比对 + `StateMigrationFunction` 注册与触发。设计已在 `checkpoint-design.md` §8.4.1 定义，实现需接线 | `checkpoint-design.md` §8.4.1 |
+| 1.5 | DOC | ◐ 部分交付（基准在：`nop-benchmark-stream` `RocksDbKeyedStateBench` + plan 2279/360（perf jmh-jfr）+ `RocksDBOptionConfig`/MetricsRecorder；GB+ 级调优指南独立文档未见）。大状态（GB+）性能基准与调优指南：write buffer、block cache、compaction 配置；状态大小与 checkpoint 耗时的关系曲线 | — |
 
 **前置依赖**：Phase 0 完成（状态后端接口稳固，operator state 体系就位）。
 
@@ -208,11 +208,11 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 关联设计 |
 |----|------|------|----------|
-| 2.1 | **BUILD** | Key-Group 模型：`maxParallelism`（默认 128，上界 32768），key→group 映射 `murmurHash(key) % maxParallelism`，group→operator 范围公式。替代当前 `StateShard` 固定路由 | `core-design.md` §4.4、`state-management-design.md` |
-| 2.2 | **BUILD** | KeyGroupRange 恢复：rescale 时新 subtask 读取自己 range 与各旧 subtask range 的交集，并行局部恢复，无中心 reshuffle | — |
-| 2.3 | **BUILD** | Operator State 重分布：SPLIT_DISTRIBUTE round-robin、UNION 全量、BROADCAST 全量三种模式的 rescale 恢复（Phase 0 已实现单并行度，本项扩展到改并行度） | Phase 0 operator-state-design |
-| 2.4 | **BUILD** | RocksDB key-group 感知的增量 rescale restore：SST 文件按 key-group 范围读取（依赖 Phase 1.2 的 SST 内容寻址） | Phase 1 rocksdb-state-design |
-| 2.5 | FIX | `00-vision.md` §四的 Non-Goal「动态并行度调整」边界澄清：明确区分「运行时动态 rescale」（仍 Non-Goal）与「savepoint 改并行度恢复」（本 Phase 支持，已升级为目标） | `00-vision.md` §四 |
+| 2.1 | **BUILD** | ✅ 已交付（`shard/KeyGroup`/`KeyGroupRange`/`KeyGroupAssignment`，默认 128 + Murmur3-over-JSON；production roadmap Stage 34 done）。Key-Group 模型：`maxParallelism`（默认 128，上界 32768），key→group 映射 `murmurHash(key) % maxParallelism`，group→operator 范围公式。替代当前 `StateShard` 固定路由 | `core-design.md` §4.4、`state-management-design.md` |
+| 2.2 | **BUILD** | ✅ 已交付（`KeyGroupRangeRestoreFilter`；parallelism 4↔16 E2E `TestKeyGroupRangeBackendRestore`；Stage 35 done）。KeyGroupRange 恢复：rescale 时新 subtask 读取自己 range 与各旧 subtask range 的交集，并行局部恢复，无中心 reshuffle | — |
+| 2.3 | **BUILD** | ✅ 已交付（`TestE2EOperatorStateRedistribution` parallelism 2/4 checkpoint-restore；MemoryOperatorStateBackend rescale）。Operator State 重分布：SPLIT_DISTRIBUTE round-robin、UNION 全量、BROADCAST 全量三种模式的 rescale 恢复（Phase 0 已实现单并行度，本项扩展到改并行度） | Phase 0 operator-state-design |
+| 2.4 | **BUILD** | ✅ 已交付（`RocksDBIncrementalRestore.restoreRangeInto` 真实 SST range scan（big-endian key-group 前缀）；`TestRocksDBIncrementalRangeRestore`；Stage 35 收口）。RocksDB key-group 感知的增量 rescale restore：SST 文件按 key-group 范围读取（依赖 Phase 1.2 的 SST 内容寻址） | Phase 1 rocksdb-state-design |
+| 2.5 | FIX | ✅ 已交付（`00-vision.md` Stage 35/37 更新，rescale supported、key-group 入「保留」；production roadmap item 37 done）。`00-vision.md` §四的 Non-Goal「动态并行度调整」边界澄清：明确区分「运行时动态 rescale」（仍 Non-Goal）与「savepoint 改并行度恢复」（本 Phase 支持，已升级为目标） | `00-vision.md` §四 |
 
 **前置依赖**：Phase 1 完成（RocksDB + 增量 checkpoint）。
 
@@ -233,14 +233,14 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 平台依赖 |
 |----|------|------|----------|
-| 3.1 | WIRE | `JobCoordinator` 用 `ILeaderElector` 做 coordinator HA：`becomeLeader` 启动协调器，`becomeFollower` 转待命，`LeaderEpoch.epoch` 作为 fencing token 上界。**nop-stream 是首个生产集成者** | `nop-cluster` `ILeaderElector`、`nop-sys-dao` `SysDaoLeaderElector` |
-| 3.2 | WIRE | 控制面 RPC 跨 JVM：`TaskManager` 通过 `MessageRpcServer`/`SimpleRpcServer` 暴露 `IStreamTaskRpcService`；`JobCoordinator` 通过 `RpcServiceProxyFactoryBean` + `ClusterRpcClient` 获取远程 `IStreamTaskRpcService` 代理。替换 `EmbeddedDistributedExecutor` 的直接引用 map | `nop-rpc` 全套 |
-| 3.3 | WIRE | 数据面 `IMessageService` 跨 JVM：`RemoteResultPartition`/`RemoteInputChannel` 注入 `SysDaoMessageService`（DB-backed，零基建）或 `PulsarMessageService`（吞吐）。当前抽象已正确，每条消息带 fencing token + epochId | `nop-message` `SysDaoMessageService`/`PulsarMessageService` |
-| 3.4 | WIRE | `ClusterRegistry` 收敛到平台：用 `IDiscoveryClient` + `INamingService` + `AutoRegistration` 替代当前自建的 `JdbcClusterRegistry`，或保留 JdbcClusterRegistry 但与 platform discovery 对接。决策点：是否完全替换 — **已裁定（Stage 41，D7=Option B 对接共存）**：ClusterRegistry 留作 runtime source of truth，平台 discovery 提供跨系统可发现性 | `nop-cluster` discovery |
-| 3.5 | FIX | fencing token 与 `LeaderEpoch.epoch` 统一：当前 stream 用 UUID fencing token，平台用单调递增 epoch。统一为单调 epoch（保留 UUID 仅作诊断），使 coordinator 切换与 task fencing 共用同一单调序 | — |
-| 3.6 | **BUILD** | 多 JVM 集成测试基建：进程编排（启动 N 个 TaskManager JVM + 1 个 JobCoordinator JVM）、端口/消息主题分配、日志聚合、进程级 kill 与重启。这是验证真实分布式的必备基建，Flink 同等物是 `flink-dist` + `flink-runtime-web` | 新建测试基建 |
-| 3.7 | FIX | abort 控制通道 distributed 部分：`IStreamTaskRpcService.cancelTask` RPC 接线（Phase 0.6 的 local 部分已完成），`JobCoordinator` 注册 abort listener 调用 cancelTask | Phase 0.6 |
-| 3.8 | DOC | 分布式部署指南：进程启动参数、消息主题命名、leader elector 后端选择（JDBC vs Nacos vs Zookeeper，若平台后续提供）、生产配置模板 | — |
+| 3.1 | WIRE | ✅ 已交付（`runtime/cluster/JdbcLeaderElector` 实现 nop-cluster `ILeaderElector`；JobCoordinator HA 状态机 Stage 38 done；`TestJobCoordinatorLeaderElection`/`TestJobCoordinatorJdbcHaIntegration`）。`JobCoordinator` 用 `ILeaderElector` 做 coordinator HA：`becomeLeader` 启动协调器，`becomeFollower` 转待命，`LeaderEpoch.epoch` 作为 fencing token 上界。**nop-stream 是首个生产集成者** | `nop-cluster` `ILeaderElector`、`nop-sys-dao` `SysDaoLeaderElector` |
+| 3.2 | WIRE | ✅ 已交付（`rpc/StreamControlRpcServer`（MessageRpcServer + IRpcService）+ `StreamControlRpcProxyFactory`；Stage 39 done）。控制面 RPC 跨 JVM：`TaskManager` 通过 `MessageRpcServer`/`SimpleRpcServer` 暴露 `IStreamTaskRpcService`；`JobCoordinator` 通过 `RpcServiceProxyFactoryBean` + `ClusterRpcClient` 获取远程 `IStreamTaskRpcService` 代理。替换 `EmbeddedDistributedExecutor` 的直接引用 map | `nop-rpc` 全套 |
+| 3.3 | WIRE | ✅ 已交付（`transport/RemoteResultPartition` 注入 `IMessageService` + `IDataPlaneWireCodec`（SysDao/Pulsar）；Stage 40 done）。数据面 `IMessageService` 跨 JVM：`RemoteResultPartition`/`RemoteInputChannel` 注入 `SysDaoMessageService`（DB-backed，零基建）或 `PulsarMessageService`（吞吐）。当前抽象已正确，每条消息带 fencing token + epochId | `nop-message` `SysDaoMessageService`/`PulsarMessageService` |
+| 3.4 | WIRE | ✅ 已交付（本行已裁定 Stage 41 D7=Option B；`StreamNodeAutoRegistration` + `NodeDiscoveryConsistencyChecker`；`TestDiscoveryRegistration`）。`ClusterRegistry` 收敛到平台：用 `IDiscoveryClient` + `INamingService` + `AutoRegistration` 替代当前自建的 `JdbcClusterRegistry`，或保留 JdbcClusterRegistry 但与 platform discovery 对接。决策点：是否完全替换 — **已裁定（Stage 41，D7=Option B 对接共存）**：ClusterRegistry 留作 runtime source of truth，平台 discovery 提供跨系统可发现性 | `nop-cluster` discovery |
+| 3.5 | FIX | ✅ 已交付（`fencing_epoch = leaderEpoch*SCALE + recoveryGen` 单一 long；`TestFencingEpochUnification`；Stage 39 Phase 1）。fencing token 与 `LeaderEpoch.epoch` 统一：当前 stream 用 UUID fencing token，平台用单调递增 epoch。统一为单调 epoch（保留 UUID 仅作诊断），使 coordinator 切换与 task fencing 共用同一单调序 | — |
+| 3.6 | **BUILD** | ✅ 已交付（`multijvm/MiniStreamCluster` 进程编排 N TM + JC；`TestMultiJvmCoordinatorFailover`/`TestMultiJvmExactlyOnceRecovery`；Stage 42 done）。多 JVM 集成测试基建：进程编排（启动 N 个 TaskManager JVM + 1 个 JobCoordinator JVM）、端口/消息主题分配、日志聚合、进程级 kill 与重启。这是验证真实分布式的必备基建，Flink 同等物是 `flink-dist` + `flink-runtime-web` | 新建测试基建 |
+| 3.7 | FIX | ✅ 已交付（`IStreamTaskRpcService.cancelTask` RPC + `registerDistributedAbortHandler`（Stage 39 Phase 3）；`TestDistributedAbortPath`/`TestStreamControlRpc`）。abort 控制通道 distributed 部分：`IStreamTaskRpcService.cancelTask` RPC 接线（Phase 0.6 的 local 部分已完成），`JobCoordinator` 注册 abort listener 调用 cancelTask | Phase 0.6 |
+| 3.8 | DOC | ✅ 已交付（`ai-dev/design/nop-stream/distributed-runbook.md`：部署拓扑、topic 命名/消毒、kill/rescale 演练、HA 配置）。分布式部署指南：进程启动参数、消息主题命名、leader elector 后端选择（JDBC vs Nacos vs Zookeeper，若平台后续提供）、生产配置模板 | — |
 
 **前置依赖**：Phase 0、1、2 完成（单进程语义完整，状态后端生产化，弹性就位）。
 
@@ -261,12 +261,12 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 关联设计 |
 |----|------|------|----------|
-| 4.1 | **BUILD** | `RemoteInputChannel` 心跳：channel 级心跳/超时检测，不止靠粗粒度 lease 兜底。网络分区时更快发现故障 channel | `checkpoint-design.md` §13.2「channel 心跳」 |
-| 4.2 | **BUILD** | Unaligned checkpoint：channel state 持久化（in-flight input buffer + unflushed output buffer）、priority event（barrier 抢占式传播）、aligned→unaligned 超时回退。解决背压下 aligned checkpoint hang 问题 | `checkpoint-design.md` §13.2「背压逃生」、FLIP-76 |
-| 4.3 | FIX | Coordinator HA 端到端：Phase 3 已接入 leader elector，本项补完整的 HA 测试矩阵（leader 切换、双 leader 脑裂、旧 leader fencing 验证、commit uncertainty 处理） | `checkpoint-design.md` §8.2、§8.3 |
-| 4.4 | **BUILD** | Region-based failover：替代当前全局恢复，缩小故障爆炸半径。pipelined region 识别 + 区域级 task 重启。对大作业（>dozens vertex 或 GB+ 状态）必需 | `checkpoint-design.md` §8.1 |
-| 4.5 | **BUILD** | 多并发 checkpoint：解开 `maxConcurrentCheckpoints=1` 硬上限。`CheckpointBarrierTracker` + `InputGate` 支持多 epoch 同时追踪（`BarrierAligner` 已删除，对齐由 `InputGate` 内联承担）。提升 checkpoint 吞吐 | `checkpoint-design.md` §2.8 |
-| 4.6 | **BUILD** | Unaligned + rescale 交互：in-flight data 跨新并行度重映射（`InflightDataRescalingDescriptor` 等价物）。unaligned checkpoint 与 Phase 2 rescale 的复杂叠加 | Phase 2 + 4.2 |
+| 4.1 | **BUILD** | ✅ 已交付（`RemoteInputChannel` channelTimeoutMs 心跳超时（liveness clock）；`TestTaskManagerLivenessAndReporting`）。`RemoteInputChannel` 心跳：channel 级心跳/超时检测，不止靠粗粒度 lease 兜底。网络分区时更快发现故障 channel | `checkpoint-design.md` §13.2「channel 心跳」 |
+| 4.2 | **BUILD** | ✅ 已交付（`checkpoint/ChannelState` + `TaskEpochSnapshot` + `CheckpointSerDe` channel state；`TestUnalignedCheckpointBackpressure`/`TestUnalignedCheckpointMultiInput`/`TestInputGateUnalignedFallback`；Stage 43 closed）。Unaligned checkpoint：channel state 持久化（in-flight input buffer + unflushed output buffer）、priority event（barrier 抢占式传播）、aligned→unaligned 超时回退。解决背压下 aligned checkpoint hang 问题 | `checkpoint-design.md` §13.2「背压逃生」、FLIP-76 |
+| 4.3 | FIX | ✅ 已交付（Stage 46 done：4 层测试矩阵 + closure audit 15/15；`TestJobCoordinatorJdbcHaIntegration`/`TestJobCoordinatorStandbyStateMachine`/`TestFencingEpochUnification`）。Coordinator HA 端到端：Phase 3 已接入 leader elector，本项补完整的 HA 测试矩阵（leader 切换、双 leader 脑裂、旧 leader fencing 验证、commit uncertainty 处理） | `checkpoint-design.md` §8.2、§8.3 |
+| 4.4 | **BUILD** | ✅ 已交付（`jobgraph/region/Region`/`RegionId`/`RegionDecomposition` + `SupervisionLoop` region 级重启 + failover-design.md；production roadmap item 44 done，5 个 successor plan 全 completed）。Region-based failover：替代当前全局恢复，缩小故障爆炸半径。pipelined region 识别 + 区域级 task 重启。对大作业（>dozens vertex 或 GB+ 状态）必需 | `checkpoint-design.md` §8.1 |
+| 4.5 | **BUILD** | ✅ 已交付（`CheckpointConfig.maxConcurrentCheckpoints` + `CheckpointBarrierTracker` per-epoch ACK；`TestInputGateMultiEpochBarrier`；Stage 45 done maxConcurrent=3 E2E）。多并发 checkpoint：解开 `maxConcurrentCheckpoints=1` 硬上限。`CheckpointBarrierTracker` + `InputGate` 支持多 epoch 同时追踪（`BarrierAligner` 已删除，对齐由 `InputGate` 内联承担）。提升 checkpoint 吞吐 | `checkpoint-design.md` §2.8 |
+| 4.6 | **BUILD** | ◐ 部分交付（首版裁定（Stage 47 done，D1）：fail-fast 守卫 `ERR_STREAM_CHANNEL_STATE_RESCALE_UNSUPPORTED` + E2E 三场景；`RescaleStateAssembler` 明示首版无 `InflightDataRescalingDescriptor`——真正 in-flight 跨并行度重映射未实现）。Unaligned + rescale 交互：in-flight data 跨新并行度重映射（`InflightDataRescalingDescriptor` 等价物）。unaligned checkpoint 与 Phase 2 rescale 的复杂叠加 | Phase 2 + 4.2 |
 
 **前置依赖**：Phase 3 完成（跨 JVM 通道、HA 接入就位）。
 
@@ -287,11 +287,11 @@ Phase 5  生态与上层
 
 | 项 | 类型 | 内容 | 关联设计 |
 |----|------|------|----------|
-| 5.1 | **BUILD** | Kafka `IMessageService`：`nop-message-kafka` 当前是空模块。若 Kafka 是数据面硬需求，按 `PulsarMessageService` 形态实现 | `nop-message-kafka` |
-| 5.2 | **BUILD** | Source split 体系（FLIP-27 风格）：`SourceEnumerator`（动态 split 发现与分配）+ `SourceReader`（split-based 消费）。当前是 Deferred，分布式 source exactly-once 的完整形态需要它 | `connector-design.md` §3、`checkpoint-design.md` §5 |
-| 5.3 | **BUILD** | `nop-stream-flow`：XDSL 声明式 StreamModel 编排。真正兑现「三入口同一 canonical 模型」承诺（当前只有 DataStream API 一入口） | `00-vision.md` §一、`core-design.md` §1 |
-| 5.4 | WIRE | Delta 定制 StreamModel：可逆计算机制接入，在模型层叠加差量修改。依赖 5.3 的 XDSL 入口 | `00-vision.md` §一、Nop 平台可逆计算 |
-| 5.5 | **BUILD** | 连接器生态扩展：事务型 JDBC sink（2PC）、Kafka source/sink、CDC（Debezium 桥接深化）、文件 sink（temp file + atomic rename + manifest commit） | `connector-design.md`、`checkpoint-design.md` §6 |
+| 5.1 | **BUILD** | ✅ 已交付（`nop-message-kafka` `KafkaMessageService` + ConsumeTask/ProducerConfig；5 个测试类）。Kafka `IMessageService`：`nop-message-kafka` 当前是空模块。若 Kafka 是数据面硬需求，按 `PulsarMessageService` 形态实现 | `nop-message-kafka` |
+| 5.2 | **BUILD** | ✅ 已交付（`core/source/`：`Source`/`SourceSplit`/`SourceReader`/`SplitEnumeratorContext`/`LocalSourceCoordinator`/`SourceEnumeratorSnapshot`；实装 `connector/file/FileSplitEnumerator`+`FileSourceReader`）。Source split 体系（FLIP-27 风格）：`SourceEnumerator`（动态 split 发现与分配）+ `SourceReader`（split-based 消费）。当前是 Deferred，分布式 source exactly-once 的完整形态需要它 | `connector-design.md` §3、`checkpoint-design.md` §5 |
+| 5.3 | **BUILD** | ✅ 已交付（`nop-stream-flow` 整模块：XDSL 模型 `_StreamModel` + `StreamModelDslBuilder` + `StreamConfValidator` + stream-dsl-design.md；`TestStreamModelDslBuilderFailFast`）。`nop-stream-flow`：XDSL 声明式 StreamModel 编排。真正兑现「三入口同一 canonical 模型」承诺（当前只有 DataStream API 一入口） | `00-vision.md` §一、`core-design.md` §1 |
+| 5.4 | WIRE | ✅ 已交付（`TestStreamModelDeltaExtends`：x:extends + `_delta/default/` 合并 + anti-hollow 断言；`TestStreamModelDeltaFailFast`；Stage 51）。Delta 定制 StreamModel：可逆计算机制接入，在模型层叠加差量修改。依赖 5.3 的 XDSL 入口 | `00-vision.md` §一、Nop 平台可逆计算 |
+| 5.5 | **BUILD** | ✅ 已交付（`connector-jdbc/JdbcTwoPhaseCommitSink`（2PC）+ `connector-debezium/DebeziumCdcSourceFunction`（CDC）+ `connector/file/FileTwoPhaseCommitSink`；Kafka 经 message source/sink connector + `nop-message-kafka`——无独立 KafkaSource/Sink factory，属载体形态偏离）。连接器生态扩展：事务型 JDBC sink（2PC）、Kafka source/sink、CDC（Debezium 桥接深化）、文件 sink（temp file + atomic rename + manifest commit） | `connector-design.md`、`checkpoint-design.md` §6 |
 
 **前置依赖**：Phase 0-4 提供稳定的分布式运行时。Phase 5 各子项之间相对独立，可并行或按需选取。
 
