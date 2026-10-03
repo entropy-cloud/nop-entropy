@@ -182,7 +182,7 @@ Exit Criteria:
 
 ### Phase 1 - `stdNameMap` 别名 + UUID 形态落地（模型层，单独提交）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/type/StdSqlType.java`、按 Phase 0 裁定可能涉及 `*.dialect.xml` 新增 `<sqlDataType>`、`nop-orm-eql`/`nop-dao` 测试、`docs-for-ai/02-core-guides/orm-model-design.md`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`（别名扩接受集——G-3 裁决的新增能力，非缺陷修复）、`Decision`（NUMBER/UUID 形态，Phase 0 已裁定）、`Proof`
@@ -203,14 +203,14 @@ Exit Criteria:
 - [x] 约束 4 两类用例齐备：一致性（同义拼写同方言同输出）+ 不等价（跨方言支持面差异）各有断言。
 - [x] 接线验证测试通过（闸门 A→消费点运行时连通，非仅 `fromStdName` 存在）。
 - [x] G-3 落地门组合判据 (a) 两命令通过且影响清单归档：`./mvnw clean install -DskipTests -T 1C` + `./mvnw test -pl :nop-orm,:nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am`（执行形态定义见 Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节）。（证据见上方 checklist 项；stream/batch 已知 flake 按指令豁免口径方法级排除+单跑取证+如实记录）
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿——"全绿"口径见 Current Baseline"既有 EQL 语料与全绿口径"节（含 stream 1 项既有失败豁免）。（按执行指令终局口径：该命令与 Phase 2 EC 及终局为同一条命令，待 Phase 2 落地后一次执行共享证据，mtime 以届时最后 commit 为准核对）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿——"全绿"口径见 Current Baseline"既有 EQL 语料与全绿口径"节（含 stream 1 项既有失败豁免）。（终局执行 `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` BUILD SUCCESS（`_tmp/wi9a/final-t1c-rerun.log`，04:41）：run1 中断于 nop-task-core `TestExecutorTaskStepWrapperAsyncBranch`（-am 闭包上游模块，异步负载敏感 flake，单跑取证 2/2 PASS 0.141s，与本 WI 零代码关联）→ 方法级排除后 SUCCESS；五模块 surefire 汇总 2451|0（nop-orm 212 / nop-orm-eql 351 / nop-metadata-service 1340 / nop-job-dao 87 / nop-auth-service 461，mtime 全部晚于 `5f9bc6a5ba` fresh=total；已知 3 flake + 1 新证 flake 方法级排除如实记录）
 - [x] 既有 EQL 语料 BC：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 通过）；不声称"7 个全测"。（gate2 run3 内 `TestEqlCorpusBaseline` 1/1 PASS，mtime 07:22 新鲜）
 - [x] owner doc（`orm-model-design.md` 别名表 + `eql-and-database-compatibility.md` 登记行）已落档。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `dataTypeName_` 必拒项收窄（.g4，单独提交）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`dataTypeName_` `:381-390`）→ 重生成产物、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Fix`（BUG-11：文法接受面与语义接受面不一致的既登记缺陷——`ai-dev/analysis/2026-10/2026-10-02-eql-cross-database-compatibility-syntax-research.md:513` 实测 6+ 个"解析过、AST 必拒"）、`Proof`
@@ -230,28 +230,28 @@ Exit Criteria:
 - [x] WI2 底线（`nosuchtype`、`TestEqlSqlTypeClauseGuard`、h2 BOOLEAN 文本）全部存活。
 - [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成 diff 符合本 Phase 第 3 项口径。（commit `41bfbcba56` 仅 .g4+重生成产物+收窄测试）
 - [x] 对照表（EC ③）定稿落档，含 WI9b 边界注记。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径同 Phase 1）。（与 Phase 1 EC⑤/终局为同一条命令，终局一次执行共享证据，mtime 以届时最后 commit 为准核对）
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致；不声称"7 个全测"。（待终局 run 内 `TestEqlCorpusBaseline` 复核后勾选）
-- [ ] `ai-dev/logs/` 对应日期条目已更新。（随终局条目落档）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径同 Phase 1）。（终局执行 BUILD SUCCESS，证据同 Phase 1 EC⑤：五模块 2451|0，mtime 审计 fresh=total，4 项方法级排除如实记录）
+- [x] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致；不声称"7 个全测"。（终局 run 内 `TestEqlCorpusBaseline` 1/1 PASS（mtime 07:53 新鲜，4.835s 全量比对）；三份必测载体 `:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 在 `-pl` 闭包内）
+- [x] `ai-dev/logs/` 对应日期条目已更新。（`ai-dev/logs/2026/10-04.md` WI9a Phase 2 + 终局条目）
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] roadmap WI9a EC ①：每个落地类型（别名 + UUID 若落地）在"支持"与"不支持"两类方言上各有用例（按 Phase 0 裁定的载体表逐项核对；NUMBER/UUID 若裁定为特殊形态，按裁定登记 EC ① 的适用口径）。
-- [ ] roadmap WI9a EC ②：114 个 orm.xml 全量回归通过且影响清单已归档——执行形态 = Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节的**组合判据 (a)**（`clean install -DskipTests -T 1C` + orm 全闭包 `-pl` 带测；带测 `clean install -T 1C` 因 stream 既有失败字面不可达，不采用单命令 `-Dtest` 豁免口径）。
-- [ ] roadmap WI9a EC ③：`dataTypeName_` 必拒项收窄对照表已定稿落档（14 项逐行，含错误形态迁移与 WI9b 边界注记）。
-- [ ] roadmap WI9a EC ④：`orm-model-design.md` 已同步别名表（+ UUID 形态，若落地）；`eql-and-database-compatibility.md` 登记行已落。
-- [ ] roadmap WI9a EC ⑤：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（含 stream 1 项既有失败豁免口径）。
-- [ ] roadmap WI9a EC ⑥：既有 EQL 语料 BC 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"。
-- [ ] roadmap 约束 4：一致性 + 不等价两类用例齐备（Phase 1 EC 的对应项）。
-- [ ] 两个 Protected Area 的提交纪律可审计：`StdSqlType.java` 提交与 `.g4` 提交分离、方言 XML（若有）逐条独立提交；无 lexer token 删除；无手改生成物。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若方言 XML 有新增条目，快照口径同步）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，roadmap EC 第 6 条口径）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/25-eql-wi9a-cast-type-aliases.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（别名/收窄都是"改接受面"，anti-hollow 抓的是"只放行不设门/只删文法不留证据"的半实现形态；`nop-commons` 侧改动随 G-3 落地门（组合判据 (a)）与接线验证用例覆盖，并在 closure audit 中抽查）。
-- [ ] Anti-Hollow Check：closure audit 已验证（a）别名从 EQL 文本 → 闸门 A → `AstToSqlGenerator` → 方言文本的端到端路径有测试；（b）收窄后"文法放行 ⇒ 语义必过或语义响亮拒"无静默路径；（c）无空方法体/静默跳过/no-op 作为"已落地"。
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9a 行据此才可 `todo` → `done`。
+- [x] roadmap WI9a EC ①：每个落地类型（别名 + UUID 若落地）在"支持"与"不支持"两类方言上各有用例（按 Phase 0 裁定的载体表逐项核对；NUMBER/UUID 若裁定为特殊形态，按裁定登记 EC ① 的适用口径）。（TEXT/NUMBER/BOOL：h2+pg/oracle 正向 vs mssql/minimal 负向；UUID（枚举形态）：h2/pg/duckdb/mssql 正向 vs mysql/oracle/minimal 负向——`TestEqlCastTypeAliasCompile` 12|0 + `TestEqlCastUuidDialectCompile` 8|0）
+- [x] roadmap WI9a EC ②：114 个 orm.xml 全量回归通过且影响清单已归档——执行形态 = Current Baseline"G-3 落地门（114 个 orm.xml 全量回归）的执行形态"专节的**组合判据 (a)**（`clean install -DskipTests -T 1C` + orm 全闭包 `-pl` 带测；带测 `clean install -T 1C` 因 stream 既有失败字面不可达，不采用单命令 `-Dtest` 豁免口径）。（两命令通过，证据见 Phase 1 EC；影响清单=空清单归档裁定文档 §一，落地时重跑 0 命中）
+- [x] roadmap WI9a EC ③：`dataTypeName_` 必拒项收窄对照表已定稿落档（14 项逐行，含错误形态迁移与 WI9b 边界注记）。（裁定文档 §五实测终稿 + `eql-and-database-compatibility.md` 对照表）
+- [x] roadmap WI9a EC ④：`orm-model-design.md` 已同步别名表（+ UUID 形态，若落地）；`eql-and-database-compatibility.md` 登记行已落。
+- [x] roadmap WI9a EC ⑤：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（含 stream 1 项既有失败豁免口径）。（终局 BUILD SUCCESS + 2451|0 + mtime 审计）
+- [x] roadmap WI9a EC ⑥：既有 EQL 语料 BC 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"。（终局 run `TestEqlCorpusBaseline` 1/1）
+- [x] roadmap 约束 4：一致性 + 不等价两类用例齐备（Phase 1 EC 的对应项）。
+- [x] 两个 Protected Area 的提交纪律可审计：`StdSqlType.java` 提交与 `.g4` 提交分离、方言 XML（若有）逐条独立提交；无 lexer token 删除；无手改生成物。（`5154661e75`（StdSqlType+测试）/ `8574a33371`+`462d60c459`+`e7d8ddeac9`+`0ca16cb4d0`（4 方言 XML 逐条，各携用例）/ `41bfbcba56`（.g4+重生成+测试）；重生成 diff 审计零 token 变化）
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若方言 XML 有新增条目，快照口径同步）。（exit 0；快照只记可加载性+functions，UUID 条目无需同步——裁定文档 §四.3）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，roadmap EC 第 6 条口径）。（exit 0、0 error、3 warning 为既有基线）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/25-eql-wi9a-cast-type-aliases.md --strict` 退出码 0。（**留白至 closure**：实测 exit 0（active 语义，三项留白不影响）；本项随独立 closure audit 通过后勾选）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（别名/收窄都是"改接受面"，anti-hollow 抓的是"只放行不设门/只删文法不留证据"的半实现形态；`nop-commons` 侧改动随 G-3 落地门（组合判据 (a)）与接线验证用例覆盖，并在 closure audit 中抽查）。（exit 0）
+- [ ] Anti-Hollow Check：closure audit 已验证（a）别名从 EQL 文本 → 闸门 A → `AstToSqlGenerator` → 方言文本的端到端路径有测试；（b）收窄后"文法放行 ⇒ 语义必过或语义响亮拒"无静默路径；（c）无空方法体/静默跳过/no-op 作为"已落地"。（**留白**：待不同 task_id 独立 closure audit 执行；执行侧证据已备——端到端文本断言 + 34 键穷举用例 + hollow 扫描 exit 0）
+- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9a 行据此才可 `todo` → `done`。（**留白**）
 
 ## Deferred But Adjudicated
 
@@ -264,9 +264,12 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- `DOUBLE` 拼写缺口（WI9a 执行期新发现）：`DOUBLE` 是 `StdSqlType` 枚举成员但为关键字 token 且不在 `unreservedWord_`、无显式文法备选——`cast(x as double)` 今天即解析失败；其唯一可解析拼写 `DOUBLE PRECISION` 已随 BUG-11 收窄删除，`DOUBLE` 家族现无任何拼写入口（`ARRAY`/`ANY` 同族，收窄前已存在）。属 roadmap 未登记的文法扩展，按 Out Of Scope 不顺手修；successor = roadmap 登记后入后续批次（裁定文档 §五登记）。
+- `TestEqlCastBooleanCompile` javadoc 中"db2 不可实例化"注释随 WI3 第 12 项落地过时（db2 现可加载）——注释性文档噪声，未随本 plan 改动以避免 diff 噪声；WI9b 或下次触碰该文件时顺带更正（裁定文档 §2.1 登记）。
 - `TEXT` 在 mssql 方言语境的 native 语义（native TEXT→std VARCHAR）与 std 别名 `TEXT→CLOB` 的术语不对称：文档对照表登记即可，无需代码动作（两张映射表独立，无冲突）。
 - `STRING=358` 类"parser 词表有、lexer 无规则"的隐式 token 现象（与 WI2 登记的 `STRING=358` 同族）：本 plan 不扩大该治理面，仅在新registrations 出现时按 WI2 的 token 分叉证据纪律登记。
 - roadmap Cross-Cutting 的 CI `git diff --stat` 阈值告警 carrier 待定（WI0 Non-Blocking Follow-up 延续）：本 plan 以"提交切分 + 重生成 diff 审计口径"作为过程替代。
+- `nop-task-core` `TestExecutorTaskStepWrapperAsyncBranch`（WI9a 终局 run1 新发现的异步负载敏感 flake：`-T 1C` 并行下 `asyncSubStepFailure_propagatesException` 偶发 uncaught async 异常，单跑 2/2 PASS 0.141s，与本 WI 零代码关联）——移交 nop-task owner 评估加并发隔离/重试（同 `TestBatchTaskCheckpoint` 移交先例）。
 
 ## Closure
 
