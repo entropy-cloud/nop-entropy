@@ -46,23 +46,23 @@
 
 ### Phase 1 - 两维度深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 六模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：`git status` 干净后开始
-- [ ] 机械基线：组内模块依赖边表（pom + import 双口径）、行数榜、`_` 生成物计数（口径注明）
-- [ ] 维度 01 子 agent：组内依赖方向 DAG（pom 声明依赖 vs import 实际；环甄别）；六模块职责纯度（模块名↔内容物一致性；跨域类放置）；plugin 嵌套组分层（api 零依赖/manager→api 单向/support→api）；对 nop-kernel 依赖面合规
-- [ ] 维度 02 子 agent：行数榜与职责块（>1500 清单；500–1500 watch 移交 4.3）；**CORE-02 F-C2-1 defer 现状复核**（HttpPluginResourceResolver 哈希优先级 live 现状 vs 审计报告 L207-223 描述；defer 理由/临时缓解 HTTPS 指引是否仍有效且文档化）；**nop-config 弱加密默认路径 fail-closed 评估**（装配面在 nop-config：ConfigStarter L461-477 `new AESTextCipher()` + DefaultConfigValueEnhancer + ConfigConstants L73-77 `nop.config.encrypt-key/-salt-key/-concat-iv`；**算法与默认密钥路径在 nop-kernel/nop-commons `io.nop.commons.crypto.impl.AESTextCipher`**（legacy 兼容格式、硬编码默认 IV/固定盐、CFG_CRYPT_DEFAULT_ENC_KEY 默认密钥路径）——跨组只读取证不展开审计）；**矩阵 ⑦ 列 docs 发现 CORE-01（缺 owner doc，非 security-audit CORE-01 密钥管理）现状标定**（nop-plugin.md 覆盖面 vs 三嵌套模块实际）
-- [ ] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-1.6-dim{01,02}.md`
+- [x] 动手前基线确认：`git status` 干净后开始
+- [x] 机械基线：组内模块依赖边表（pom + import 双口径）、行数榜、`_` 生成物计数（口径注明）
+- [x] 维度 01 子 agent：组内依赖方向 DAG（pom 声明依赖 vs import 实际；环甄别）；六模块职责纯度（模块名↔内容物一致性；跨域类放置）；plugin 嵌套组分层（api 零依赖/manager→api 单向/support→api）；对 nop-kernel 依赖面合规
+- [x] 维度 02 子 agent：行数榜与职责块（>1500 清单；500–1500 watch 移交 4.3）；**CORE-02 F-C2-1 defer 现状复核**（HttpPluginResourceResolver 哈希优先级 live 现状 vs 审计报告 L207-223 描述；defer 理由/临时缓解 HTTPS 指引是否仍有效且文档化）；**nop-config 弱加密默认路径 fail-closed 评估**（装配面在 nop-config：ConfigStarter L461-477 `new AESTextCipher()` + DefaultConfigValueEnhancer + ConfigConstants L73-77 `nop.config.encrypt-key/-salt-key/-concat-iv`；**算法与默认密钥路径在 nop-kernel/nop-commons `io.nop.commons.crypto.impl.AESTextCipher`**（legacy 兼容格式、硬编码默认 IV/固定盐、CFG_CRYPT_DEFAULT_ENC_KEY 默认密钥路径）——跨组只读取证不展开审计）；**矩阵 ⑦ 列 docs 发现 CORE-01（缺 owner doc，非 security-audit CORE-01 密钥管理）现状标定**（nop-plugin.md 覆盖面 vs 三嵌套模块实际）
+- [x] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-1.6-dim{01,02}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
@@ -71,14 +71,14 @@ Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 3.11/4.1/4.3 边界协调（安全横切/错误处理/巨型文件移交）
-- [ ] CORE-02 现状标定收敛（still-deferred/已修/恶化 三选一结论）
+- [x] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 3.11/4.1/4.3 边界协调（安全横切/错误处理/巨型文件移交）
+- [x] CORE-02 现状标定收敛（still-deferred/已修/恶化 三选一结论）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-1.6-dim{01,02}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-1.6-dim{01,02}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
@@ -87,26 +87,26 @@ Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `1.6-core-framework-structure-audit.md`；index 登记 1.6 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 独立子 agent closure audit；通过后 roadmap 1.6 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `1.6-core-framework-structure-audit.md`；index 登记 1.6 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 独立子 agent closure audit；通过后 roadmap 1.6 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除构建验证；引用 2026-09-22 绿色基线。
 
-- [ ] 报告落盘且两维度 + 三项点名复核（CORE-02 现状/nop-config 弱加密/CORE-01 docs 标定）全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 1.6 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且两维度 + 三项点名复核（CORE-02 现状/nop-config 弱加密/CORE-01 docs 标定）全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 1.6 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -118,14 +118,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 1.6 两维度 + 三项点名复核全部完成（P0=0/P1=0/P2=3/P3=9，驳回 0/降级 0）；closure audit 一次 PASS（2 Minor 顺手修复）；P2×3 进 R1.0；未改产品代码，无 P0。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: agent_548d9dc3-7c01-4353-8ab2-99ad9f1b3946（独立 fresh-session closure auditor，只读）
+- Evidence:
+  - 发现清单完整性：P2 表 3 行/P3 表 9 行/标定 5 项（机械复核）；抽验 8 条 file:line 全精确命中
+  - severity 标定：01-06 上调 P2 同案同判成立（对照 1.2 P2-1.2-002）；02-06 四点理由+P1 升级触发条件在档；漏升 P1 排查通过（CORE-03 F-C3-1/plan-328 先例）
+  - 4 项关键结论独立复现：11-pom 全量边表 22=9+12+1 严格分层零反向 import；CORE-02 bfcd5f1a83/2026-08-25 still-deferred；CORE-01 nop-plugin.md 202 行闭环；nop-ioc 四 execution 生成管线
+  - index 对账 0/0/3/9 一致；roadmap 翻 done 前置成立
+  - 2 个 Minor（plan 状态/勾选实时回写、报告空驳回台账节）已修复
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs` 退出码 0
+  - Anti-Hollow（审计版）：组内无环正结论经 11-pom 全量边表机械复现
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（CORE-02 defer 维持/转修复归 R1.0 裁决；P2×3 归 R1.x；nop-security owner doc 缺失 LOW 移交 5.1/5.2）
