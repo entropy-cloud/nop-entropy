@@ -414,6 +414,39 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
+    /**
+     * 为 update/delete 语句的 where 子句补齐缺省租户过滤条件。
+     *
+     * select 语句的缺省过滤由 {@link #addTableFilter} 注入，但 update/delete 走
+     * {@link #visitSqlUpdate} 与 {@link #visitSqlDelete}，此前只设置 useTenantModel
+     * 这个「查询计划缓存标记」，并不生成 SQL 条件，导致
+     * `delete from X where id = ?` / `update X set ... where ...` 完全绕过租户隔离
+     * （GenSqlHelper 只覆盖按主键与 example 的入口，EQL 写语句不经由它）。
+     *
+     * 注入时机与 select 对齐：都在访问 where 之前追加，使新条件与用户书写的条件
+     * 一起经过后续的 SqlParamTypeResolver 参数解析。
+     *
+     * 只补租户条件，不补逻辑删除条件。给 update/delete 注入逻辑删除条件会改变
+     * 「硬删除一条已逻辑删除的行」的既有语义，属独立决策，不在本次修复范围内。
+     *
+     * @param where        语句当前的 where，可能为 null
+     * @param source       目标实体的表源，用于生成带别名的列名
+     * @param tableMeta    目标实体的元数据
+     * @param whereSetter  where 为 null 时用于回填新建的 SqlWhere
+     */
+    void addWriteTenantFilter(SqlWhere where, SqlSingleTableSource source, ISqlTableMeta tableMeta,
+            Consumer<SqlWhere> whereSetter) {
+        if (!tableMeta.getEntityModel().isUseTenant())
+            return;
+
+        SqlWhere target = where;
+        if (target == null) {
+            target = new SqlWhere();
+            whereSetter.accept(target);
+        }
+        target.appendFilter(newTenantExpr(source, tableMeta));
+    }
+
     SqlBinaryExpr newTenantExpr(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
         IEntityModel entityModel = tableMeta.getEntityModel();
         SqlBinaryExpr expr = new SqlBinaryExpr();
@@ -1552,6 +1585,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (tableMeta.getEntityModel().isTenantModel())
             this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
+        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
+
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
 
@@ -1610,6 +1645,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
+
+        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
 
         this.visitChild(node.getWhere());
 
