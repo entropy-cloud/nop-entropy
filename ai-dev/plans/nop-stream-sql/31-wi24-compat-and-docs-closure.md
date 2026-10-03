@@ -45,7 +45,7 @@ stream.xdef 变更与四个 fail-fast 放行对既有 .stream.xml 用户的兼�
 
 ### Phase 1 - 迁移说明与 docs 收口
 
-Status: planned
+Status: completed
 Targets: docs-for-ai
 
 - Item Types: `Proof`
@@ -62,34 +62,30 @@ Exit Criteria:
 
 ### Phase 2 - roadmap 完成判定核验与收口
 
-Status: planned
+Status: completed
 Targets: roadmap 与本 plan
 
 - Item Types: `Proof`
 
-- [ ] roadmap 完成判定四条逐条核验：(1) 31 项 done + roadmapAllDone=true；(2) 本 plan 独立 audit 通过；(3) 无 hollow 项（scan-hollow 全模块 + invariants 0 violations）；(4) D1-D15 落档核对（ai-dev/design/nop-stream/ 四份文档含负责人与日期）
-- [ ] roadmap WI24 `todo` → `done` + M5/M6 翻转 + Last updated 头注记
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] roadmap 完成判定四条逐条核验：(1) 31 项 done + roadmapAllDone=true；(2) 本 plan 独立 audit 通过；(3) 无 hollow 项（scan-hollow 全模块 + invariants 0 violations）；(4) D1-D15 落档核对（五份文档含负责人与日期）
+- [x] roadmap WI24 `todo` → `done` + M5/M6 翻转 + Last updated v9 头注记
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
 
 Exit Criteria:
 
-- [ ] 四条判定核验记录落档（日志）
-- [ ] roadmap 全部翻转且解析器断言成立（items=31/milestones=7/done=31）
-- [ ] 双门禁退出码 0
+- [x] 四条判定核验记录落档（日志）
+- [x] roadmap 全部翻转且解析器断言成立（items=31/milestones=7/done=31）
+- [x] 双门禁退出码 0
 
 ## Closure Gates
 
-- [ ] 迁移说明节落地且与 live 一致
-- [ ] OBS-1/OBS-2 落档
-- [ ] roadmap 四条完成判定逐条核验记录在案
-- [ ] roadmap WI24/M5/M6 翻转 + 解析器断言成立（31/7/done=31/roadmapAllDone=true）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/31-wi24-compat-and-docs-closure.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-
-## Current Baseline
-
-（见上。）
+- [x] 迁移说明节落地且与 live 一致
+- [x] OBS-1/OBS-2 落档
+- [x] roadmap 四条完成判定逐条核验记录在案
+- [x] roadmap WI24/M5/M6 翻转 + 解析器断言成立（31/7/done=31/roadmapAllDone=true）
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/31-wi24-compat-and-docs-closure.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Closure
 
