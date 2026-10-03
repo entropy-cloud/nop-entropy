@@ -163,6 +163,14 @@
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
         </template>
+
+        <!-- WI3 第 9 项：注册 ilike 函数（PG 原生 ILIKE 算子——"The key word ILIKE can be
+             used instead of LIKE to make the match case-insensitive"。default 继承的
+             supportILike="false" 标志不动：缺的是函数表注册，不是标志翻转，翻标志会引入
+             假阴性。duckdb 经 extends postgresql 传递获得）。 -->
+        <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
+            <source>{0} ilike {1}</source>
+        </template>
     </functions>
 
 </dialect>

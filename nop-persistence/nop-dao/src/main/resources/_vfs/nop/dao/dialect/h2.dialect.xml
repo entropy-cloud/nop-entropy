@@ -190,6 +190,13 @@
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
         </template>
+
+        <!-- WI3 第 9 项：注册 ilike 函数（supportILike="true" 标志本就正确，缺的是函数表注册）。
+             H2 文法原生 [NOT] ILIKE 算子（"ILIKE does a case-insensitive compare"），
+             模板直出原生算子。先例：oracle.dialect.xml 的 regexp_like 形态。 -->
+        <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
+            <source>{0} ilike {1}</source>
+        </template>
     </functions>
 
     <sqlDataTypes>
