@@ -1,0 +1,39 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="wi21-registry-wiring" version="1" parallelism="1">
+
+    <schemas>
+        <schema id="sch1">
+            <fields>
+                <field name="k" type="string"/>
+                <field name="v" type="bigint"/>
+            </fields>
+        </schema>
+    </schemas>
+
+    <windowingStrategies>
+        <strategy strategyId="ws1" windowFnId="tumbling-event-time" duration="30s"/>
+    </windowingStrategies>
+
+    <aggregators>
+        <aggregator aggregatorId="agg1" fnId="sum" expr="event.v" schemaId="sch1"/>
+    </aggregators>
+
+    <joins>
+        <joinSpec joinId="j1" joinType="INNER"
+                  leftKeyExprs="event.k" rightKeyExprs="event.k"
+                  windowStrategyRef="ws1" timeout="10s"/>
+    </joins>
+
+    <transforms>
+        <source id="s1" name="LeftSource" bean="joinLeftSource" parallelism="1"/>
+        <source id="s2" name="RightSource" bean="joinRightSource" parallelism="1"/>
+        <union id="u" name="Merge"/>
+        <sink id="out" name="CollectingSink" bean="joinCollectingSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="s1" to="u" partition="FORWARD"/>
+        <edge id="e1" from="s2" to="u" partition="FORWARD"/>
+        <edge id="e2" from="u" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

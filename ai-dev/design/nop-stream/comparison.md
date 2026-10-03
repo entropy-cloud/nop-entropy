@@ -184,8 +184,8 @@ DeploymentPlan
 | CEP | `CEP.pattern(ds, pattern).select(...)` | 无原生 CEP | `CEP.pattern(ds, pattern).select(...)` |
 | Time/Watermark | `ds.assignTimestampsAndWatermarks(WatermarkStrategy)` | 内部处理（不暴露给用户） | `ds.assignTimestampsAndWatermarks(WatermarkStrategy)` |
 | Side Output | `ds.sideOutput(outputTag)` / `OutputTag` | 无侧输出概念 | 无（用 flatMap 替代） |
-| SQL | `TableEnvironment.sqlQuery("SELECT ...")` | `Transform { Sql { ... } }` | ❌ 明确不实现 |
-| 双流 Join | `ds1.join(ds2).where(...).equalTo(...).window(...)` | 通过 SQL 或外部插件 | ❌ 明确不实现 |
+| SQL | `TableEnvironment.sqlQuery("SELECT ...")` | `Transform { Sql { ... } }` | ⚠️ 规划窄范围流 SQL——复用 EQL 作载体，单表查询 + 窗口聚合 + 等值 join，无方言兼容 / 优化器（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
+| 双流 Join | `ds1.join(ds2).where(...).equalTo(...).window(...)` | 通过 SQL 或外部插件 | ⚠️ 规划等值 join（hash / window merge）+ 静态维表 lookup join，非等值 / 范围 / 广播 join 仍排除（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
 
 ### 4.2 API 设计模式对比
 
@@ -268,7 +268,7 @@ nop-stream 规划的 XDSL 声明式入口应类似：
 |-------|-----------|------------|
 | `StreamOperator<OUT>` | 无算子接口（按 Action 类型分发） | `StreamOperator<OUT>` |
 | `OneInputStreamOperator<IN, OUT>` | `SeaTunnelMapTransform<T>` / `SeaTunnelFlatMapTransform<T>` | `OneInputStreamOperator<IN, OUT>` |
-| `TwoInputStreamOperator<IN1, IN2, OUT>` | 无等价物 | ❌ 不实现 |
+| `TwoInputStreamOperator<IN1, IN2, OUT>` | 无等价物 | ⚠️ 规划——双流等值 join 需双输入算子（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
 | `StreamOperatorFactory<OUT>` | `TableSourceFactory` / `TableSinkFactory` / `TableTransformFactory` | `StreamOperatorFactory<OUT>` |
 | `AbstractStreamOperator<OUT>` | 无（Action 直接实现运行逻辑） | `AbstractStreamOperator<OUT>` |
 | `AbstractUdfStreamOperator<OUT, F>` | 无（transform 直接包含函数） | `AbstractUdfStreamOperator<OUT, F>` |
@@ -669,8 +669,8 @@ nop-stream 的分布式模式采用**三面分离**架构，与 Flink 和 SeaTun
 
 | 功能 | 在 Flink 中的状态 | 在 SeaTunnel 中的状态 | nop-stream 决策 |
 |------|------------------|---------------------|-----------------|
-| 双流 Join | ✅ 完整 | ✅ SQL Join | ❌ 不实现 |
-| SQL API | ✅ Table API + SQL | ✅ SQL Transform | ❌ 不实现 |
+| 双流 Join | ✅ 完整 | ✅ SQL Join | ⚠️ 规划——窄范围等值 join（hash / window）+ 静态维表 lookup（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
+| SQL API | ✅ Table API + SQL | ✅ SQL Transform | ⚠️ 规划——窄范围流 SQL（EQL 复用，无方言兼容 / 优化器；收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
 | 大规模分布式 | ✅ 数千节点 | ✅ 数百节点 | ❌ 几十 GB 级别 |
 | 异步算子 | ✅ AsyncDataStream | ❌ 无 | ❌ 不实现 |
 | 动态并行度 | ✅ （通过 savepoint） | ⚠️ 有限 | ❌ 不实现（运行时） |
@@ -682,7 +682,7 @@ nop-stream 的分布式模式采用**三面分离**架构，与 Flink 和 SeaTun
 | RocksDB 状态后端 | ✅ | ❌ | ⚠️ 规划 Phase 1 |
 | Key-Group 重分布 | ✅ | ❌ | ⚠️ 规划 Phase 2 |
 | Source Split 体系 | ✅ (FLIP-27) | ✅ | ✅ Stage 49 已实现（FLIP-27 风格 `Source`/`SplitEnumerator`/`SourceReader`/`SourceSplit` + 参考 `FileSource` E2E） |
-| 声明式编排 | ❌（SQL 除外） | ✅ HOCON | ⚠️ 规划 Phase 5 |
+| 声明式编排 | ❌（SQL 除外） | ✅ HOCON | ✅ XDSL 编排已落地（`StreamModelDslBuilder`，Stage 50）+ ⚠️ 窄范围流 SQL 规划中（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`） |
 | Flink 后端适配 | — | ✅ translation layer | ⚠️ 规划 Phase 5 |
 
 ### 14.3 nop-stream 的独特价值

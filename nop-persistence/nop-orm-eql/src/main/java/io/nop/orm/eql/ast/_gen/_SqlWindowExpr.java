@@ -16,16 +16,31 @@ import java.util.function.Consumer;
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
     
+    protected io.nop.orm.eql.ast.SqlWindowFrame frame;
+    
     protected io.nop.orm.eql.ast.SqlFunction function;
     
     protected io.nop.orm.eql.ast.SqlOrderBy orderBy;
     
     protected io.nop.orm.eql.ast.SqlPartitionBy partitionBy;
     
+    protected java.lang.String windowName;
+    
 
     public _SqlWindowExpr(){
     }
 
+    
+    public io.nop.orm.eql.ast.SqlWindowFrame getFrame(){
+        return frame;
+    }
+
+    public void setFrame(io.nop.orm.eql.ast.SqlWindowFrame value){
+        checkAllowChange();
+        if(value != null) value.setASTParent(this);
+        
+        this.frame = value;
+    }
     
     public io.nop.orm.eql.ast.SqlFunction getFunction(){
         return function;
@@ -58,6 +73,16 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
         if(value != null) value.setASTParent(this);
         
         this.partitionBy = value;
+    }
+    
+    public java.lang.String getWindowName(){
+        return windowName;
+    }
+
+    public void setWindowName(java.lang.String value){
+        checkAllowChange();
+        
+        this.windowName = value;
     }
     
 
@@ -97,6 +122,18 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                       
                 }
             
+                if(frame != null){
+                  
+                          ret.setFrame(frame.deepClone());
+                      
+                }
+            
+                if(windowName != null){
+                  
+                          ret.setWindowName(windowName);
+                      
+                }
+            
        return ret;
     }
 
@@ -112,6 +149,9 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
             if(orderBy != null)
                 processor.accept(orderBy);
         
+            if(frame != null)
+                processor.accept(frame);
+        
     }
 
     @Override
@@ -124,6 +164,9 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                return ProcessResult.STOP;
         
             if(orderBy != null && processor.apply(orderBy) == ProcessResult.STOP)
+               return ProcessResult.STOP;
+        
+            if(frame != null && processor.apply(frame) == ProcessResult.STOP)
                return ProcessResult.STOP;
         
        return ProcessResult.CONTINUE;
@@ -144,6 +187,11 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
         
             if(this.orderBy == oldChild){
                this.setOrderBy((io.nop.orm.eql.ast.SqlOrderBy)newChild);
+               return true;
+            }
+        
+            if(this.frame == oldChild){
+               this.setFrame((io.nop.orm.eql.ast.SqlWindowFrame)newChild);
                return true;
             }
         
@@ -168,6 +216,11 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                 return true;
             }
         
+            if(this.frame == child){
+                this.setFrame(null);
+                return true;
+            }
+        
     return false;
     }
 
@@ -189,6 +242,14 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                return false;
             }
         
+            if(!isNodeEquivalent(this.frame,other.getFrame())){
+               return false;
+            }
+        
+                if(!isValueEquivalent(this.windowName,other.getWindowName())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -217,6 +278,18 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                           
                     }
                 
+                    if(frame != null){
+                      
+                              json.put("frame", frame);
+                          
+                    }
+                
+                    if(windowName != null){
+                      
+                              json.put("windowName", windowName);
+                          
+                    }
+                
     }
 
     @Override
@@ -229,6 +302,8 @@ public abstract class _SqlWindowExpr extends io.nop.orm.eql.ast.SqlExpr {
                     partitionBy.freeze(cascade);
                 if(orderBy != null)
                     orderBy.freeze(cascade);
+                if(frame != null)
+                    frame.freeze(cascade);
     }
 
 }

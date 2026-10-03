@@ -49,6 +49,7 @@ import io.nop.stream.core.common.eventtime.WatermarkOutput;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
+import io.nop.stream.core.model.JoinSideRecord;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
@@ -56,19 +57,26 @@ import io.nop.stream.core.datastream.WindowedStream;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.join.EquiJoinOperator;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
+import io.nop.stream.flow.builder.functions.JoinSideKeySelector;
+import io.nop.stream.flow.builder.functions.JoinSideTagFunction;
 import io.nop.stream.flow.builder.functions.XplReduceFunction;
 import io.nop.stream.flow.model.StreamAggregateModel;
 import io.nop.stream.flow.model.StreamCepModel;
+import io.nop.stream.flow.model.StreamJoinModel;
+import io.nop.stream.flow.model.StreamJoinSpecModel;
 import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamProcessModel;
 import io.nop.stream.flow.model.StreamReduceModel;
 import io.nop.stream.flow.model.StreamSideOutputModel;
 import io.nop.stream.flow.model.StreamTimestampsAndWatermarksModel;
 import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.model.StreamAggregatorModel;
 import io.nop.stream.flow.model.StreamUnionModel;
+import io.nop.stream.flow.spi.IAggregatorFunctionResolver;
 import io.nop.stream.flow.model.StreamWindowModel;
 import io.nop.stream.flow.model.WindowingStrategyModel;
 
@@ -77,17 +85,17 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * {@link StreamModelDslBuilder} does not handle inline.
  *
  * <p>Every branch is either a real DataStream-API call or fails fast with a
- * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. Two
- * transforms ({@code <union>}, {@code <sideOutput>}) fail fast because the underlying
- * {@code nop-stream-core} runtime does not yet expose the corresponding API
- * ({@code DataStream.union} / {@code SingleOutputStreamOperator.getSideOutput});
- * these are tracked as runtime-API-gap follow-ups in the plan.
+ * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. The
+ * {@code <union>} transform (WI6) now builds a real multi-input merge over the declared
+ * edges; {@code <sideOutput>} still fails fast because the underlying
+ * {@code nop-stream-core} runtime does not yet expose
+ * {@code SingleOutputStreamOperator.getSideOutput}; that is tracked as a runtime-API-gap
+ * follow-up in the plan.
  *
- * <p>P1-XDSL-6: window strategy declarations ({@code triggerId}/{@code allowedLateness}/
- * {@code accumulationMode}) and window node-level {@code allowedLateness}/{@code triggerId}
- * children are rejected at build time when they differ from the xdef defaults — the core
- * {@link WindowedStream} only exposes {@code trigger()}/{@code evictor()}, so a declared
- * non-default value would otherwise be silently ignored.
+ * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
+ * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
+ * at build time when they differ from the xdef defaults. allowedLateness was released by
+ * D9: consumed by buildWindow and passed to the operator.
  */
 final class AdvancedTransforms {
 
@@ -105,6 +113,9 @@ final class AdvancedTransforms {
         if (t instanceof StreamAggregateModel) {
             return buildAggregate(owner, t, upstreamIds, streamRegistry, (StreamAggregateModel) t);
         }
+        if (t instanceof StreamJoinModel) {
+            return buildJoin(owner, t, upstreamIds, streamRegistry, (StreamJoinModel) t);
+        }
         if (t instanceof StreamReduceModel) {
             return buildReduce(owner, t, upstreamIds, streamRegistry, (StreamReduceModel) t);
         }
@@ -112,7 +123,7 @@ final class AdvancedTransforms {
             return buildProcess(owner, t, upstreamIds, streamRegistry, (StreamProcessModel) t);
         }
         if (t instanceof StreamUnionModel) {
-            return buildUnion(t, upstreamIds);
+            return buildUnion(owner, t, upstreamIds, streamRegistry);
         }
         if (t instanceof StreamCustomModel) {
             return buildCustom(owner, t, upstreamIds, streamRegistry, (StreamCustomModel) t);
@@ -183,15 +194,25 @@ final class AdvancedTransforms {
         failFastOnUnsupportedWindowNodeAttrs(t, m);
         WindowAssigner assigner = (WindowAssigner) resolveWindowAssigner(owner, t, strategy);
         KeyedStream keyed = (KeyedStream<T, K>) in;
-        return keyed.window(assigner);
+        io.nop.stream.core.datastream.WindowedStreamImpl<?, ?, ?> windowed =
+                (io.nop.stream.core.datastream.WindowedStreamImpl<?, ?, ?>) keyed.window(assigner);
+        // WI10/D9: consume the merged allowedLateness (node-level explicit Long
+        // overrides strategy-level long; null node means strategy value applies).
+        long lateness = m.getAllowedLateness() != null
+                ? m.getAllowedLateness()
+                : strategy.getAllowedLateness();
+        if (lateness > 0) {
+            windowed.allowedLateness(lateness);
+        }
+        return windowed;
     }
 
     /**
-     * P1-XDSL-6: strategy-level windowing attributes that the core {@link WindowedStream}
-     * cannot express (no {@code allowedLateness()}/{@code accumulationMode()} API; triggers
-     * would require a trigger registry) must fail fast on non-default values instead of
-     * being silently ignored. xdef defaults: allowedLateness=0, accumulationMode=DISCARDING,
-     * triggerId unset.
+     * P1-XDSL-6 (updated WI10/D9): strategy-level windowing attributes that the core
+     * pipeline cannot express (triggers would require a trigger registry) must fail fast
+     * on non-default values. allowedLateness was released by D9 (WI10): consumed by
+     * buildWindow and passed to the operator. xdef defaults: allowedLateness=0,
+     * accumulationMode=DISCARDING, triggerId unset.
      */
     private static void failFastOnUnsupportedWindowStrategy(StreamTransformModel t,
                                                             WindowingStrategyModel strategy) {
@@ -201,13 +222,8 @@ final class AdvancedTransforms {
                     .param(ARG_ATTR_NAME, "triggerId").param(ARG_ATTR_VALUE, strategy.getTriggerId())
                     .loc(t.getLocation());
         }
-        if (strategy.getAllowedLateness() != XDEF_DEFAULT_ALLOWED_LATENESS) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "allowedLateness")
-                    .param(ARG_ATTR_VALUE, strategy.getAllowedLateness())
-                    .loc(t.getLocation());
-        }
+        // WI10/D9: allowedLateness is now released — consumed by buildWindow.
+
         if (strategy.getAccumulationMode() != null
                 && strategy.getAccumulationMode() != AccumulationMode.DISCARDING) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
@@ -219,18 +235,12 @@ final class AdvancedTransforms {
     }
 
     /**
-     * AR-12 (P2, closed by natural coverage): window node-level {@code allowedLateness}/
-     * {@code triggerId} children would also be silently ignored; the same fail-fast
-     * mechanism applies (xdef default: allowedLateness=0, triggerId unset).
+     * AR-12 (updated WI10/D9): window node-level {@code triggerId} children fail fast.
+     * allowedLateness was released by D9 — consumed by buildWindow.
      */
     private static void failFastOnUnsupportedWindowNodeAttrs(StreamTransformModel t,
                                                              StreamWindowModel m) {
-        if (m.getAllowedLateness() != null && m.getAllowedLateness() != XDEF_DEFAULT_ALLOWED_LATENESS) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "allowedLateness").param(ARG_ATTR_VALUE, m.getAllowedLateness())
-                    .loc(t.getLocation());
-        }
+        // WI10/D9: node-level allowedLateness is now released — consumed by buildWindow.
         if (m.getTriggerId() != null) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
@@ -242,11 +252,33 @@ final class AdvancedTransforms {
     private static WindowAssigner<? super Object, ?> resolveWindowAssigner(
             StreamModelDslBuilder owner, StreamTransformModel t, WindowingStrategyModel strategy) {
         String windowFnId = strategy.getWindowFnId();
+        // WI10: bean takes priority over the parameterized path (review m1: bean
+        // precedes duration conflict check to preserve existing semantics).
         if (owner.beanResolver().contains(windowFnId)) {
             return owner.resolveBean(t, windowFnId, WindowAssigner.class);
         }
-        // A small builtin catalog so tests can reference well-known window assigners by id
-        // without registering a bean. Production code should register an explicit bean.
+        // WI10: duration + legacy id together is a conflict (no silent ignore).
+        if (strategy.getDuration() != null && isLegacyWindowId(windowFnId))
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration")
+                    .param(ARG_DETAIL, "windowingStrategies: duration cannot be combined with legacy windowFnId="
+                            + windowFnId + " (declare windowFnId=\"tumbling-event-time\" + duration instead)")
+                    .loc(t.getLocation());
+        // WI10: parameterized kind + duration declaration — arbitrary window size
+        // without pre-registered beans or whitelisted ids. Exact match (not
+        // startsWith) so legacy tumbling-event-time-1s/5s fall through to the
+        // whitelist below.
+        if (windowFnId.equals("tumbling-event-time")) {
+            if (strategy.getDuration() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires a duration declaration (e.g. duration=\"2s\")")
+                        .loc(t.getLocation());
+            long millis = parseDurationMillis(strategy.getDuration());
+            return io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows.of(millis);
+        }
+        // A small builtin catalog for backward compatibility (legacy ids without duration).
         switch (windowFnId) {
             case "tumbling-global":
             case "global":
@@ -263,6 +295,59 @@ final class AdvancedTransforms {
         }
     }
 
+    static boolean isLegacyWindowId(String windowFnId) {
+        switch (windowFnId) {
+            case "tumbling-global":
+            case "global":
+            case "tumbling-event-time-1s":
+            case "tumbling-event-time-5s":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * WI10: parses a duration string with ms/s/m suffix into milliseconds.
+     * Plain numbers are interpreted as milliseconds.
+     */
+    static long parseDurationMillis(String duration) {
+        if (duration == null || duration.isEmpty())
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "duration must not be empty");
+        String unit = "ms";
+        String num = duration;
+        if (duration.endsWith("ms")) {
+            num = duration.substring(0, duration.length() - 2);
+        } else if (duration.endsWith("s") || duration.endsWith("m")) {
+            unit = duration.substring(duration.length() - 1);
+            num = duration.substring(0, duration.length() - 1);
+        }
+        long value;
+        try {
+            value = Long.parseLong(num.trim());
+        } catch (NumberFormatException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "invalid duration: " + duration);
+        }
+        // WI10/M-C: non-positive values are rejected (zero or negative window
+        // size is a semantic error, not a valid parameterization).
+        if (value <= 0)
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "duration must be positive: " + duration);
+        switch (unit) {
+            case "s":
+                return value * 1000L;
+            case "m":
+                return value * 60_000L;
+            case "ms":
+                return value;
+            default:
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration").param(ARG_DETAIL, "unknown duration unit: " + duration);
+        }
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <T, ACC, R> SingleOutputStreamOperator<R> buildAggregate(
             StreamModelDslBuilder owner, StreamTransformModel t, Set<String> upstreamIds,
@@ -275,18 +360,79 @@ final class AdvancedTransforms {
                     .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
                     .loc(t.getLocation());
         }
-        if (m.getBean() == null) {
-            throw new StreamException(ERR_STREAM_REQUIRED_ATTR)
+        // WI8c exactly-one adjudication: bean and aggregatorRef are mutually exclusive
+        // and at least one must be declared — both together or neither fail fast (this
+        // replaces the former bean-required error).
+        if ((m.getBean() == null) == (m.getAggregatorRef() == null)) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "bean")
+                    .param(ARG_DETAIL, "<aggregate> requires exactly one of bean or aggregatorRef, found "
+                            + (m.getBean() == null ? "neither" : "both"))
                     .loc(t.getLocation());
         }
-        AggregateFunction fn = owner.resolveBean(t, m.getBean(), AggregateFunction.class);
         WindowedStream windowed = (WindowedStream) in;
+        AggregateFunction fn;
+        if (m.getBean() != null) {
+            fn = owner.resolveBean(t, m.getBean(), AggregateFunction.class);
+        } else {
+            fn = resolveAggregatorRef(owner, t, m);
+        }
         return StreamModelDslBuilder.applyDeclaredParallelism(
                 (SingleOutputStreamOperator<R>) windowed.aggregate(fn), t);
     }
 
+    /**
+     * WI8c: resolves an {@code aggregatorRef} declaration in the A4 order — the
+     * registry entry lookup (unknown id fails fast), then the A4 bean-first check
+     * ({@code beanResolver.contains(fnId)} keeps custom aggregate beans usable), and
+     * finally the {@link IAggregatorFunctionResolver} provider looked up by type in
+     * the BeanContainer. No provider (including an uninitialized container) fails
+     * fast naming the missing nop-stream-sql dependency — never a silent fallback.
+     */
+    private static AggregateFunction<?, ?, ?> resolveAggregatorRef(
+            StreamModelDslBuilder owner, StreamTransformModel t, StreamAggregateModel m) {
+        StreamAggregatorModel entry = owner.model().getAggregator(m.getAggregatorRef());
+        if (entry == null) {
+            throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_REF_TYPE, "<aggregators>/<aggregator>")
+                    .param(ARG_REF_NAME, m.getAggregatorRef())
+                    .loc(t.getLocation());
+        }
+        String fnId = entry.getFnId();
+        // A4 ordering: an explicitly registered aggregate bean for the fnId wins over
+        // the builtin catalog.
+        if (owner.beanResolver().contains(fnId)) {
+            return owner.resolveBean(t, fnId, AggregateFunction.class);
+        }
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized()) {
+            throw noProvider(m);
+        }
+        IAggregatorFunctionResolver resolver =
+                io.nop.api.core.ioc.BeanContainer.instance()
+                        .tryGetBeanByType(IAggregatorFunctionResolver.class);
+        if (resolver == null) {
+            throw noProvider(m);
+        }
+        return resolver.resolve(fnId, entry.getExpr(), owner.columnTypeLookup(entry.getSchemaId()));
+    }
+
+    private static StreamException noProvider(StreamAggregateModel m) {
+        // param()/loc() are declared on NopException; the chain returns this
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_DETAIL, "aggregate '" + m.getId() + "' declares aggregatorRef='"
+                        + m.getAggregatorRef() + "' but no " + IAggregatorFunctionResolver.class.getName()
+                        + " provider is registered; add io.github.entropy-cloud:nop-stream-sql to the classpath")
+                .loc(m.getLocation());
+    }
+
+    /**
+     * D1=(a) SEMANTICS ANNOTATION (WI11): the windowless {@code <reduce>} transform
+     * maps SQL continuous GROUP BY to keyBy + reduce with LAST-VALUE-WINS final-value
+     * semantics — the output emits the running reduction per input element and is
+     * NOT append-only and NOT a retract stream. See
+     * sql-subset-and-semantics.md §1.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static <T> SingleOutputStreamOperator<T> buildReduce(
             StreamModelDslBuilder owner, StreamTransformModel t, Set<String> upstreamIds,
@@ -317,6 +463,132 @@ final class AdvancedTransforms {
                 .param(ARG_EXPECTED_STREAM_TYPE, "KeyedStream or WindowedStream")
                 .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
                 .loc(t.getLocation());
+    }
+
+    /**
+     * WI13: consumes the validated joinRef declaration (WI8d's build-time validation
+     * has already guaranteed: spec exists, joinType set, equal-arity non-empty key
+     * sets, exactly two upstream edges, no HASH edge, windowStrategyRef resolvable
+     * and window join restricted to INNER/LEFT). Assembles the runtime:
+     *
+     * <pre>left --- map(side-tag) ---\
+     *                              union --- keyBy(equiKey) --- EquiJoinOperator</pre>
+     *
+     * <pre>right -- map(side-tag) ---/</pre>
+     *
+     * The side-tag map evaluates the side's key expressions once per record (the
+     * operator itself evaluates nothing); keyBy on the pre-computed equi-key
+     * co-locates same-key records from both sides on one keyed subtask. Key
+     * expression format: comma-separated XLang expressions with {@code event} bound
+     * to the record (the same binding as {@code <keyBy keyExpr>}), compiled with
+     * {@link io.nop.xlang.api.XLang} — flow needs no SQL-expression dependency.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildJoin(StreamModelDslBuilder owner, StreamTransformModel t,
+                                    Set<String> upstreamIds, Map<String, Object> streamRegistry,
+                                    StreamJoinModel m) {
+        StreamJoinSpecModel spec = owner.model().getJoinSpec(m.getJoinRef());
+        // defensive lookup (validated non-null, but never dereference without a check)
+        if (spec == null) {
+            throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_REF_TYPE, "<joins>/<joinSpec>")
+                    .param(ARG_REF_NAME, m.getJoinRef())
+                    .loc(m.getLocation());
+        }
+
+        // declared edge order determines left/right; DECLARED EDGES, not distinct
+        // upstream ids — a self-join declares two edges from the same source
+        // (roadmap WI8d completion criterion) and joins that stream with itself
+        List<String> ordered = new ArrayList<>(2);
+        for (io.nop.stream.flow.model.StreamEdgeModel e : owner.model().getEdges()) {
+            if (t.getId().equals(e.getTo()) && upstreamIds.contains(e.getFrom())) {
+                ordered.add(e.getFrom());
+            }
+        }
+        if (ordered.size() != 2) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_DETAIL, "<join id='" + t.getId() + "'> requires exactly two "
+                            + "upstream edges (left/right), resolved " + ordered.size())
+                    .loc(m.getLocation());
+        }
+        DataStream left = joinInput(owner, t, streamRegistry, ordered.get(0));
+        DataStream right = joinInput(owner, t, streamRegistry, ordered.get(1));
+
+        List<io.nop.core.lang.eval.IEvalAction> leftKeys = compileJoinKeyExprs(spec, true);
+        List<io.nop.core.lang.eval.IEvalAction> rightKeys = compileJoinKeyExprs(spec, false);
+
+        Long windowDuration = null;
+        long timeout = 0L;
+        if (spec.getWindowStrategyRef() != null) {
+            // window join: duration is mandatory (parameterized tumbling), timeout
+            // reuses the WI10 duration parser (D9-released lateness grace)
+            WindowingStrategyModel strategy = owner.model().getStrategy(spec.getWindowStrategyRef());
+            if (strategy == null || strategy.getDuration() == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId() + "' window join requires "
+                                + "windowingStrategies/<strategy> with a parameterized duration "
+                                + "(windowFnId=\"tumbling-event-time\" + duration=\"...\"), found "
+                                + (strategy == null ? "missing strategy" : "strategy without duration"))
+                        .loc(m.getLocation());
+            }
+            windowDuration = parseDurationMillis(strategy.getDuration());
+            if (spec.getTimeout() != null) {
+                timeout = parseDurationMillis(spec.getTimeout());
+            }
+        }
+
+        DataStream<JoinSideRecord<Object>> tagged = left
+                .map(new JoinSideTagFunction(true, leftKeys))
+                .union(right.map(new JoinSideTagFunction(false, rightKeys)));
+        KeyedStream<JoinSideRecord<Object>, Object> keyed = tagged.keyBy(JoinSideKeySelector.INSTANCE);
+        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration, timeout);
+        return StreamModelDslBuilder.applyDeclaredParallelism(
+                (SingleOutputStreamOperator) keyed.transform("Join:" + m.getId(),
+                        UnknownTypeInformation.INSTANCE, joinOp), t);
+    }
+
+    private static DataStream<?> joinInput(StreamModelDslBuilder owner, StreamTransformModel t,
+                                           Map<String, Object> streamRegistry, String upstreamId) {
+        Object in = streamRegistry.get(upstreamId);
+        if (!(in instanceof DataStream) || in instanceof KeyedStream || in instanceof WindowedStream) {
+            throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_EXPECTED_STREAM_TYPE, "DataStream (non-keyed, non-windowed)")
+                    .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
+                    .loc(t.getLocation());
+        }
+        return owner.applyEdgePartition((DataStream<?>) in, upstreamId, t.getId(), t.getParallelism());
+    }
+
+    /**
+     * Compiles the side's comma-separated key expressions into XLang actions
+     * ({@code event} binding). Compilation failure fails fast with the side named.
+     */
+    private static List<io.nop.core.lang.eval.IEvalAction> compileJoinKeyExprs(StreamJoinSpecModel spec, boolean left) {
+        String exprs = left ? spec.getLeftKeyExprs() : spec.getRightKeyExprs();
+        String[] parts = exprs.split(",");
+        List<io.nop.core.lang.eval.IEvalAction> actions = new ArrayList<>(parts.length);
+        // key expressions reference the runtime-bound record ({@code event}, the
+        // same binding as <keyBy keyExpr>) — the compile-time scope check must not
+        // reject it as unresolved
+        io.nop.xlang.api.XLangCompileTool tool = io.nop.xlang.api.XLang.newCompileTool()
+                .allowUnregisteredScopeVar(true);
+        for (int i = 0; i < parts.length; i++) {
+            String text = parts[i].trim();
+            try {
+                actions.add(tool.compileSimpleExpr(spec.getLocation(), text));
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "joinSpec '" + spec.getJoinId() + "'")
+                        .param(ARG_DETAIL, (left ? "leftKeyExprs" : "rightKeyExprs") + "[" + i + "]='"
+                                + text + "' is not a valid expression: " + e.getMessage())
+                        .loc(spec.getLocation());
+            }
+        }
+        return actions;
     }
 
     // ----------------------------------------------------------------
@@ -354,17 +626,62 @@ final class AdvancedTransforms {
     }
 
     // ----------------------------------------------------------------
-    // union — runtime API gap (DataStream.union does not exist)
+    // union — WI6: real multi-input merge over the declared edges
     // ----------------------------------------------------------------
 
-    private static Object buildUnion(StreamTransformModel t, Set<String> upstreamIds) {
-        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                .param(ARG_DETAIL, "Stream DSL <union id='" + t.getId()
-                        + "'> requires DataStream.union() which is not yet implemented in "
-                        + "nop-stream-core runtime. Union is a multi-input operator and the "
-                        + "runtime only supports OneInputStreamOperator. Tracked as a "
-                        + "runtime-API-gap follow-up.")
-                .loc(t.getLocation());
+    /**
+     * WI6: builds the union stream from every upstream edge, in edge declaration
+     * order (the registry's upstream ids are an unordered Set). Every upstream must
+     * be a plain {@link DataStream} — KeyedStream/WindowedStream shapes are rejected
+     * (key partitioning is declared AFTER the union, see the HASH-edge fail-fast in
+     * {@code StreamModelDslBuilder.validateEdgeDeclarations}); each upstream still
+     * runs through {@code applyEdgePartition} so undeclared non-HASH edges pass
+     * through untouched and the registry-level guard stays in one place.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildUnion(StreamModelDslBuilder owner, StreamTransformModel t,
+                                     Set<String> upstreamIds, Map<String, Object> streamRegistry) {
+        if (upstreamIds.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "upstream edges")
+                    .param(ARG_DETAIL, "<union id='" + t.getId() + "'> requires at least one "
+                            + "upstream edge, found none")
+                    .loc(t.getLocation());
+        }
+        // Preserve the declared edge order for deterministic merge order. A source
+        // declaring TWO edges into the same <union> merges twice (self-union) — each
+        // declared edge is one merge input, matching the runtime's one-channel-per-
+        // declared-edge contract (WI6 constraint 2); silently dropping the duplicate
+        // edge would violate the builder's no-silent-drop rule.
+        List<String> ordered = new ArrayList<>(upstreamIds.size());
+        for (io.nop.stream.flow.model.StreamEdgeModel e : owner.model().getEdges()) {
+            if (t.getId().equals(e.getTo()) && upstreamIds.contains(e.getFrom())) {
+                ordered.add(e.getFrom());
+            }
+        }
+        // Registry ids that no declared edge reaches (defensive — validateDag derives
+        // upstreamIds from the same edge list, so this stays empty in practice).
+        for (String id : upstreamIds) {
+            if (!ordered.contains(id)) {
+                ordered.add(id);
+            }
+        }
+
+        DataStream merged = null;
+        for (String upstreamId : ordered) {
+            Object in = streamRegistry.get(upstreamId);
+            if (!(in instanceof DataStream) || in instanceof KeyedStream || in instanceof WindowedStream) {
+                throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_EXPECTED_STREAM_TYPE, "DataStream (non-keyed, non-windowed)")
+                        .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
+                        .loc(t.getLocation());
+            }
+            DataStream input = owner.applyEdgePartition((DataStream<?>) in, upstreamId,
+                    t.getId(), t.getParallelism());
+            merged = merged == null ? input : merged.union(input);
+        }
+        return StreamModelDslBuilder.applyDeclaredParallelism(merged, t);
     }
 
     // ----------------------------------------------------------------

@@ -33,6 +33,7 @@ public interface OrmEqlErrors {
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_COL_NAME = "colName";
     String ARG_FUNC_NAME = "funcName";
+    String ARG_WINDOW_NAME = "windowName";
     String ARG_ARG_COUNT = "argCount";
     String ARG_MIN_ARG_COUNT = "minArgCount";
     String ARG_MAX_ARG_COUNT = "maxArgCount";
@@ -170,6 +171,9 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName}]", ARG_FUNC_NAME);
 
+    ErrorCode ERR_EQL_UNKNOWN_WINDOW_NAME = define("nop.err.eql.unknown-window-name",
+            "未声明的窗口名[{windowName}]", ARG_WINDOW_NAME);
+
     ErrorCode ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR =
             define("nop.err.eql.func-only-allow-in-window-expr", "函数[{funcName}]只允许在窗口表达式中使用", ARG_FUNC_NAME);
 
@@ -218,4 +222,12 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_CANNOT_MERGE_COLLECTION_SCOPES = define("nop.err.eql.cannot-merge-collection-scopes",
             "无法合并集合操作符作用域: operator1={operator1}, operator2={operator2}",
             ARG_OPERATOR1, ARG_OPERATOR2);
+
+    ErrorCode ERR_EQL_INVALID_WINDOW_FRAME = define("nop.err.eql.invalid-window-frame",
+            "非法的窗口frame定义:{value}", ARG_VALUE);
+
+    // WI17: TUMBLE(t, INTERVAL) 的 INTERVAL 字面量必须是正的固定时长（日历单位
+    // MONTH/QUARTER/YEAR 无固定毫秒时长，进 fail-fast）
+    ErrorCode ERR_EQL_INVALID_INTERVAL_VALUE = define("nop.err.eql.invalid-interval-value",
+            "非法的INTERVAL时长定义:{value}", ARG_VALUE);
 }

@@ -30,6 +30,16 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: aggregators
+     * WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+     * 稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+     * 与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+     * 供参数类型校验。
+     */
+    private KeyedList<io.nop.stream.flow.model.StreamAggregatorModel> _aggregators = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: checkpoint
      * Checkpoint 配置
      */
@@ -62,6 +72,16 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 运行环境注册表（支持多环境配置）
      */
     private KeyedList<io.nop.stream.flow.model.StreamEnvironmentModel> _environments = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: joins
+     * WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+     * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+     * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+     * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     */
+    private KeyedList<io.nop.stream.flow.model.StreamJoinSpecModel> _joins = KeyedList.emptyList();
     
     /**
      *  
@@ -128,6 +148,18 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: sql
+     * WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
+     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
+     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
+     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
+     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
+     * 追加 sink 声明与边（产物自洽可执行）。
+     */
+    private io.nop.stream.flow.model.StreamSqlModel _sql ;
+    
+    /**
+     *  
      * xml name: streams
      * 流定义注册表（命名流，用于跨算子引用）
      */
@@ -160,6 +192,54 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 窗口策略注册表
      */
     private KeyedList<io.nop.stream.flow.model.WindowingStrategyModel> _windowingStrategies = KeyedList.emptyList();
+    
+    /**
+     * 
+     * xml name: aggregators
+     *  WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+     * 稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+     * 与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+     * 供参数类型校验。
+     */
+    
+    public java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> getAggregators(){
+      return _aggregators;
+    }
+
+    
+    public void setAggregators(java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> value){
+        checkAllowChange();
+        
+        this._aggregators = KeyedList.fromList(value, io.nop.stream.flow.model.StreamAggregatorModel::getAggregatorId);
+           
+    }
+
+    
+    public io.nop.stream.flow.model.StreamAggregatorModel getAggregator(String name){
+        return this._aggregators.getByKey(name);
+    }
+
+    public boolean hasAggregator(String name){
+        return this._aggregators.containsKey(name);
+    }
+
+    public void addAggregator(io.nop.stream.flow.model.StreamAggregatorModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.stream.flow.model.StreamAggregatorModel> list = this.getAggregators();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.stream.flow.model.StreamAggregatorModel::getAggregatorId);
+            setAggregators(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_aggregators(){
+        return this._aggregators.keySet();
+    }
+
+    public boolean hasAggregators(){
+        return !this._aggregators.isEmpty();
+    }
     
     /**
      * 
@@ -332,6 +412,54 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
 
     public boolean hasEnvironments(){
         return !this._environments.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: joins
+     *  WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+     * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+     * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+     * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     */
+    
+    public java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> getJoins(){
+      return _joins;
+    }
+
+    
+    public void setJoins(java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> value){
+        checkAllowChange();
+        
+        this._joins = KeyedList.fromList(value, io.nop.stream.flow.model.StreamJoinSpecModel::getJoinId);
+           
+    }
+
+    
+    public io.nop.stream.flow.model.StreamJoinSpecModel getJoinSpec(String name){
+        return this._joins.getByKey(name);
+    }
+
+    public boolean hasJoinSpec(String name){
+        return this._joins.containsKey(name);
+    }
+
+    public void addJoinSpec(io.nop.stream.flow.model.StreamJoinSpecModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> list = this.getJoins();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.stream.flow.model.StreamJoinSpecModel::getJoinId);
+            setJoins(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_joins(){
+        return this._joins.keySet();
+    }
+
+    public boolean hasJoins(){
+        return !this._joins.isEmpty();
     }
     
     /**
@@ -585,6 +713,30 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: sql
+     *  WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
+     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
+     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
+     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
+     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
+     * 追加 sink 声明与边（产物自洽可执行）。
+     */
+    
+    public io.nop.stream.flow.model.StreamSqlModel getSql(){
+      return _sql;
+    }
+
+    
+    public void setSql(io.nop.stream.flow.model.StreamSqlModel value){
+        checkAllowChange();
+        
+        this._sql = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: streams
      *  流定义注册表（命名流，用于跨算子引用）
      */
@@ -764,6 +916,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._aggregators = io.nop.api.core.util.FreezeHelper.deepFreeze(this._aggregators);
+            
            this._checkpoint = io.nop.api.core.util.FreezeHelper.deepFreeze(this._checkpoint);
             
            this._checkpointParticipants = io.nop.api.core.util.FreezeHelper.deepFreeze(this._checkpointParticipants);
@@ -774,6 +928,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
             
            this._environments = io.nop.api.core.util.FreezeHelper.deepFreeze(this._environments);
             
+           this._joins = io.nop.api.core.util.FreezeHelper.deepFreeze(this._joins);
+            
            this._patterns = io.nop.api.core.util.FreezeHelper.deepFreeze(this._patterns);
             
            this._requirements = io.nop.api.core.util.FreezeHelper.deepFreeze(this._requirements);
@@ -781,6 +937,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
            this._schemas = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schemas);
             
            this._sideInputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sideInputs);
+            
+           this._sql = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sql);
             
            this._streams = io.nop.api.core.util.FreezeHelper.deepFreeze(this._streams);
             
@@ -795,11 +953,13 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aggregators",this.getAggregators());
         out.putNotNull("checkpoint",this.getCheckpoint());
         out.putNotNull("checkpointParticipants",this.getCheckpointParticipants());
         out.putNotNull("coders",this.getCoders());
         out.putNotNull("edges",this.getEdges());
         out.putNotNull("environments",this.getEnvironments());
+        out.putNotNull("joins",this.getJoins());
         out.putNotNull("name",this.getName());
         out.putNotNull("onEnd",this.getOnEnd());
         out.putNotNull("onError",this.getOnError());
@@ -809,6 +969,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("requirements",this.getRequirements());
         out.putNotNull("schemas",this.getSchemas());
         out.putNotNull("sideInputs",this.getSideInputs());
+        out.putNotNull("sql",this.getSql());
         out.putNotNull("streams",this.getStreams());
         out.putNotNull("transforms",this.getTransforms());
         out.putNotNull("version",this.getVersion());
@@ -825,11 +986,13 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(StreamModel instance){
         super.copyTo(instance);
         
+        instance.setAggregators(this.getAggregators());
         instance.setCheckpoint(this.getCheckpoint());
         instance.setCheckpointParticipants(this.getCheckpointParticipants());
         instance.setCoders(this.getCoders());
         instance.setEdges(this.getEdges());
         instance.setEnvironments(this.getEnvironments());
+        instance.setJoins(this.getJoins());
         instance.setName(this.getName());
         instance.setOnEnd(this.getOnEnd());
         instance.setOnError(this.getOnError());
@@ -839,6 +1002,7 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         instance.setRequirements(this.getRequirements());
         instance.setSchemas(this.getSchemas());
         instance.setSideInputs(this.getSideInputs());
+        instance.setSql(this.getSql());
         instance.setStreams(this.getStreams());
         instance.setTransforms(this.getTransforms());
         instance.setVersion(this.getVersion());

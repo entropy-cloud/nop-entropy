@@ -27,6 +27,9 @@ import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlCteStatement;
 import io.nop.orm.eql.ast.SqlDecorator;
 import io.nop.orm.eql.ast.SqlDelete;
+import io.nop.orm.eql.ast.SqlWindowDecl;
+import io.nop.orm.eql.ast.SqlWindowExpr;
+import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
@@ -49,6 +52,7 @@ import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlWhere;
@@ -74,7 +78,10 @@ import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IOrmDataType;
 import io.nop.orm.model.OrmEntityFilterModel;
 
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -86,6 +93,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
@@ -96,6 +106,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPECTED_COUNT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FIELD_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_LEFT_SOURCE;
@@ -110,6 +121,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
@@ -121,6 +133,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTI_JOIN_ON_ALIA
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_OWNER_NOT_REF_TO_ENTITY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_TABLE_SOURCE_NOT_RESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SELECT_NO_PROJECTIONS;
@@ -134,6 +147,9 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_QUERY_SPACE;
 public class EqlTransformVisitor extends EqlASTVisitor {
 
     private final ISqlCompileContext context;
+    // WI2: 当前查询链上已声明的命名窗口名（每个 SqlQuerySelect 入栈一层）
+    private final Deque<Set<String>> windowNameScopes = new ArrayDeque<>();
+
     private IDialect dialect;
 
     // 预先收集所有明确指定的alias，自动生成的alias需要避免和它们冲突
@@ -245,7 +261,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             addTableFilter(node);
         } else {
             if (node.getWhere() != null || node.getHaving() != null || node.getOrderBy() != null
-                    || node.getGroupBy() != null || node.getLimit() != null)
+                    || node.getGroupBy() != null || node.getLimit() != null
+                    || node.getWindowClause() != null)
                 throw new NopException(ERR_EQL_QUERY_NO_FROM_CLAUSE).source(node);
 
             // 如果没有指定from，则需要根据decorator来确定querySpace
@@ -269,6 +286,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             addAliasToScope(scope, from);
         }
         currentScope = scope;
+
+        // WI2: 收集本查询声明的命名窗口名，供 over <name> 引用校验
+        Set<String> windowNames = Collections.emptySet();
+        if (node.getWindowClause() != null && node.getWindowClause().getItems() != null) {
+            windowNames = new HashSet<>();
+            for (SqlWindowDecl decl : node.getWindowClause().getItems()) {
+                windowNames.add(decl.getName());
+            }
+        }
+        windowNameScopes.push(windowNames);
 
         // 分析所有的projection，并且确保每一列都有一个别名
         if (node.getProjections().isEmpty()) {
@@ -300,6 +327,18 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             visitSqlHaving(node.getHaving());
         }
 
+        // WI2: 命名窗口声明位于 having 之后 order by 之前；逐 decl 解析列并校验 frame 能力位
+        if (node.getWindowClause() != null) {
+            for (SqlWindowDecl decl : node.getWindowClause().getItems()) {
+                if (decl.getFrame() != null) {
+                    checkWindowFrameFeature(decl.getFrame());
+                }
+                visitChild(decl.getPartitionBy());
+                visitChild(decl.getOrderBy());
+                visitChild(decl.getFrame());
+            }
+        }
+
         if (node.getOrderBy() != null) {
             visitSqlOrderBy(node.getOrderBy());
         }
@@ -308,7 +347,46 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             visitSqlLimit(node.getLimit());
         }
 
+        windowNameScopes.pop();
         currentScope = scope.getParent();
+    }
+
+    private void checkWindowFrameFeature(SqlWindowFrame frame) {
+        switch (frame.getUnit()) {
+            case ROWS:
+                if (!dialect.isSupportWindowFrameRows())
+                    throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(frame)
+                            .param(ARG_DIALECT, dialect.getName())
+                            .param(ARG_FEATURE, FEATURE_SUPPORT_WINDOW_FRAME_ROWS);
+                break;
+            case RANGE:
+                if (!dialect.isSupportWindowFrameRange())
+                    throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(frame)
+                            .param(ARG_DIALECT, dialect.getName())
+                            .param(ARG_FEATURE, FEATURE_SUPPORT_WINDOW_FRAME_RANGE);
+                break;
+            case GROUPS:
+                if (!dialect.isSupportWindowFrameGroups())
+                    throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(frame)
+                            .param(ARG_DIALECT, dialect.getName())
+                            .param(ARG_FEATURE, FEATURE_SUPPORT_WINDOW_FRAME_GROUPS);
+                break;
+        }
+    }
+
+    // WI2: over <name> 引用必须命中当前查询声明的窗口名；inline frame 按单位过能力门。
+    // 先门后遍历：能力门/引用校验先于子节点解析（错误优先级高于子表达式的 unknown-function 等）
+    @Override
+    public void visitSqlWindowExpr(SqlWindowExpr node) {
+        if (node.getWindowName() != null) {
+            Set<String> names = windowNameScopes.isEmpty() ? Collections.emptySet() : windowNameScopes.peek();
+            if (!names.contains(node.getWindowName()))
+                throw new NopException(ERR_EQL_UNKNOWN_WINDOW_NAME).source(node)
+                        .param(ARG_WINDOW_NAME, node.getWindowName());
+        } else if (node.getFrame() != null) {
+            checkWindowFrameFeature(node.getFrame());
+        }
+        super.visitSqlWindowExpr(node);
     }
 
     void addTableFilter(SqlQuerySelect node) {
@@ -417,6 +495,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // lateral 表示可以看到同级的表
             SqlSubqueryTableSource source = (SqlSubqueryTableSource) table;
             scope.addTable(source.getAlias().getAlias(), source);
+        } else if (table instanceof SqlTumbleTableSource) {
+            // WI17: TUMBLE 伪表函数是 stream-only 表源（D4/T1 裁定），ORM 编译通道
+            // 不支持——显式 fail-fast 而非静默跳过作用域注册
+            throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             addAliasToScope(scope, source.getLeft());

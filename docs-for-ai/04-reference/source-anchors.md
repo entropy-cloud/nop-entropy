@@ -241,6 +241,9 @@
 | `STRM-002` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamComponents.java` | 管道元数据注册表：transforms/streams/windowingStrategies/requirements/checkpointParticipants |
 | `STRM-003` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamModelFingerprint.java` | 编译期 fingerprint，`isCompatibleWith()` 拒绝不兼容 requirements 组合 |
 | `STRM-004` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/StreamGraphGenerator.java` | Transformation DAG → StreamGraph （Graph Path 第一阶段），含 `populateStreamModel()` |
+| `STRM-SQL-001` | `nop-stream/nop-stream-sql/src/main/java/io/nop/stream/sql/compile/StreamSqlCompiler.java` | WI17：EQL AST → 流模型 XML 编译器（`<sql>` SPI 底层实现） |
+| `STRM-SQL-002` | `nop-stream/nop-stream-sql/src/main/java/io/nop/stream/sql/eval/StreamSqlExprCompiler.java` | WI9：标量子集表达式 → StreamRecordEvaluator |
+| `STRM-SQL-003` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/join/EquiJoinOperator.java` | WI13：双流等值 join 算子（hash/window 双形态，keyed MapState） |
 | `STRM-005` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/StreamGraph.java` | 逻辑流拓扑；现携带 `StreamModel` |
 | `STRM-006` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/JobGraphGenerator.java` | StreamGraph → JobGraph（Graph Path 第二阶段，算子链化优化）；现传播 `StreamModel` |
 | `STRM-007` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/jobgraph/JobGraph.java` | 可执行 DAG；现携带 `StreamModel` |

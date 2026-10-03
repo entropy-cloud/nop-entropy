@@ -72,7 +72,7 @@
 
 ### P0-2 Mermaid 真渲染校验 + 优雅降级
 
-**决策**：mermaid 解析器经 **`ai-dev/tools/`**（仓库工具依赖的唯一 pnpm 根，`ai-dev/tools/package.json`，pnpm 安装 mermaid + jsdom，node_modules 不入库；克隆后 `cd ai-dev/tools && pnpm install` 一次即启用）。`check-wiki.mjs` 从脚本位置上溯项目根、从 `ai-dev/tools/node_modules` 显式解析 mermaid（完整构建优先，core 回退），并以 jsdom 注入全局 DOM 后做无头 `mermaid.parse`（openwiki dom-shim 同做法）——**不引用项目外的工具脚本，裸 `import('mermaid')` 不可用（脚本目录链上无 node_modules），也不得另建第二个 pnpm 根**。解析失败输出 ERROR（含页面、块序号与解析器原文错误）；`ai-dev/tools/node_modules` 缺失或加载失败时显式输出一行跳过原因并回退块首正则白名单，不产生误报。
+**决策**：mermaid 解析器经 **`ai-dev/tools/`**（仓库工具依赖的唯一 pnpm 根，`ai-dev/tools/package.json`，pnpm 安装 mermaid + jsdom，node_modules 不入库；克隆后 `cd ai-dev/tools && pnpm install` 一次即启用）。`check-wiki.mjs` 从脚本位置上溯项目根、从 ai-dev/tools/node_modules 显式解析 mermaid（完整构建优先，core 回退），并以 jsdom 注入全局 DOM 后做无头 `mermaid.parse`（openwiki dom-shim 同做法）——**不引用项目外的工具脚本，裸 `import('mermaid')` 不可用（脚本目录链上无 node_modules），也不得另建第二个 pnpm 根**。解析失败输出 ERROR（含页面、块序号与解析器原文错误）；ai-dev/tools/node_modules 缺失或加载失败时显式输出一行跳过原因并回退块首正则白名单，不产生误报。
 
 **理由**：借鉴 openwiki 的降级协议。SKILL.md 的"语法防坑清单"是静态经验集，防不住新形态语法错误；deepwiki.com 的图之所以"合适"，一是符号级内容，二是渲染从不失败——后者只能靠真解析保证。依赖收敛在仓库内既有 pnpm 根 `ai-dev/tools/`，符合"工具脚本不引用项目外路径"约束；无 Node 环境依赖时全部门禁仍可运行（自完备设计）。
 
@@ -160,4 +160,4 @@
 - 本文与 [00-overview.md](./00-overview.md) 共同构成 skill 的设计权威：00 管现状基线，01 管下一步行为变更；实施 P0 时同步回改 00 的门禁表（新增代码块密度行、mermaid 真解析行）。
 - **P0 的实施计划已立项为 `ai-dev/plans/367-nop-deepwiki-survey-absorption-and-density-upgrade.md`（active，2026-09-29）**：实施以该计划为载体，但行为决策以本文为准——计划执行中若发现与本文 P0 决策冲突（如 mermaid 可选性的降级路径、密度阈值口径），先修本文再改计划。
 - SKILL.md 是操作协议本体：P0 全部四项落地后，SKILL.md 的派发模板（代码块下限）、Phase 5 序列（fixture eval 必跑）、反模式（新增"不要用合成代码充当摘录"）随之更新，`deepwiki/README.md` 的门禁命令不变。
-- 平台级约束 `ai-dev/design/self-contained-design.md`（自完备设计）对 P0-2 划定的边界：工具依赖收敛在仓库内既有 pnpm 根 `ai-dev/tools/`，**禁止引用仓库外的工具脚本路径，也禁止另建第二个 pnpm 根**（既有例外仅 mission driver 使用 AGE 模板）；`ai-dev/tools/node_modules` 缺失时全部门禁仍须可运行（显式跳过 + 轻量回退），校验器缺失不阻断其余检查。
+- 平台级约束 `ai-dev/design/self-contained-design.md`（自完备设计）对 P0-2 划定的边界：工具依赖收敛在仓库内既有 pnpm 根 `ai-dev/tools/`，**禁止引用仓库外的工具脚本路径，也禁止另建第二个 pnpm 根**（既有例外仅 mission driver 使用 AGE 模板）；ai-dev/tools/node_modules 缺失时全部门禁仍须可运行（显式跳过 + 轻量回退），校验器缺失不阻断其余检查。

@@ -390,6 +390,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -421,6 +433,18 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1141,6 +1165,90 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowClause(EqlParser.SqlWindowClauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowClause(EqlParser.SqlWindowClauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

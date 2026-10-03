@@ -55,7 +55,7 @@ DataStream API         StreamGraph               JobGraph                    Tas
 
 ## 3. StreamGraph：逻辑拓扑
 
-> **实现状态**：已完成。StreamGraphGenerator 可正确处理 SourceTransformation、OneInputTransformation、SinkTransformation、PartitionTransformation 四种类型。
+> **实现状态**：已完成。StreamGraphGenerator 可正确处理 SourceTransformation、OneInputTransformation、SinkTransformation、PartitionTransformation、UnionTransformation（WI6）五种类型。
 
 ### 3.1 数据结构
 
@@ -75,6 +75,7 @@ DataStream API         StreamGraph               JobGraph                    Tas
 | `OneInputTransformation` | 递归处理 input → 创建 StreamNode（含 keySelector、operatorFactory）→ 创建 StreamEdge（forward，null partitioner） |
 | `SinkTransformation` | 递归处理 input → 创建 StreamNode（用 SinkOperatorFactory 包装 SinkFunction）→ 创建 StreamEdge → 注册为 sinkID |
 | `PartitionTransformation` | 递归处理 input → 创建 StreamNode（用 PartitionOperatorFactory 占位）→ 创建 StreamEdge（**在入边上设置 partitioner，出边为 forward/null partitioner**） |
+| `UnionTransformation`（WI6） | 递归处理**每个**输入 → 创建 StreamNode（`StreamUnionOperator` pass-through 真实执行顶点，链边界）→ **每个输入各建一条 StreamEdge** → 注册为 unionID（JobGraph 阶段对 union 目标保留平行边）。数据元素不携带输入溯源；需要区分两条输入的算子（join）用 union 后 keyBy + process 形态 |
 
 **关键点**：PartitionTransformation 在 StreamGraph 中被保留为一个独立节点。这个节点在 JobGraph 阶段会被优化掉（不产生独立的 JobVertex），但它的分区策略信息被保留在 JobEdge 的 `ResultPartitionType` 中。注意 partitioner 被设置在 Partition 节点的**入边**（从上游节点到 Partition 节点），而 Partition 节点的出边始终是 forward（null partitioner）。
 
@@ -153,6 +154,12 @@ buildChain(currentNode, chain, processedNodes)
 ### 4.5 JobEdge 创建逻辑
 
 遍历 StreamGraph 的所有 StreamEdge，如果 source 和 target 属于**不同的 JobVertex**（即不在同一条链中），则创建一条 JobEdge。同一条链内的 StreamEdge 不产生 JobEdge（算子间通过 ChainingOutput 直接调用）。
+
+**union 顶点的平行边例外（WI6）**：目标顶点为 union 节点时，每条声明的 StreamEdge 各建一条 JobEdge（不做顶点对去重）——union 顶点按声明边数消费输入通道，self-union（同一上游声明两条边入同一 union）每条边一条独立数据管道。非 union 目标维持顶点对去重：链内扇入（同链两个上游节点汇入同一目标）若不去重会导致元素双写。配套裁定：
+
+- 平行边的 partition matrix 键控用 `IdentityHashMap`（JobEdge 的 equals 是顶点对+partitionType，平行边 equals 相等但必须各自持独立 matrix）；
+- remote 传输的 topic 名对平行边加 `#序号` 消歧（仅重复对出现时，既有拓扑 topic 名不变）；
+- 多入边顶点的 gate 流控配置：两条入边都声明 EdgeConfig 时四字段值必须一致否则 fail-fast（`ERR_STREAM_INVALID_ARG`）；undeclared 边让位于 declared 边（文档化继承）——与 WI6 前「静默取首边」的区别在于 declared 间冲突不再被吞。
 
 ## 5. Task 与 TaskExecutor：运行时执行
 

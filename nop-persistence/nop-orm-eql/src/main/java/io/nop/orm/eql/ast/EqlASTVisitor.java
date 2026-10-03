@@ -130,6 +130,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlSubqueryTableSource((SqlSubqueryTableSource)node);
                     return;
             
+                case SqlTumbleTableSource:
+                    visitSqlTumbleTableSource((SqlTumbleTableSource)node);
+                    return;
+            
                 case SqlNotExpr:
                     visitSqlNotExpr((SqlNotExpr)node);
                     return;
@@ -216,6 +220,22 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             
                 case SqlWindowExpr:
                     visitSqlWindowExpr((SqlWindowExpr)node);
+                    return;
+            
+                case SqlWindowFrame:
+                    visitSqlWindowFrame((SqlWindowFrame)node);
+                    return;
+            
+                case SqlWindowFrameBound:
+                    visitSqlWindowFrameBound((SqlWindowFrameBound)node);
+                    return;
+            
+                case SqlWindowDecl:
+                    visitSqlWindowDecl((SqlWindowDecl)node);
+                    return;
+            
+                case SqlWindowClause:
+                    visitSqlWindowClause((SqlWindowClause)node);
                     return;
             
                 case SqlMultiValueExpr:
@@ -351,6 +371,7 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getWhere());
                     this.visitChild(node.getGroupBy());
                     this.visitChild(node.getHaving());
+                    this.visitChild(node.getWindowClause());
                     this.visitChild(node.getOrderBy());
                     this.visitChild(node.getLimit());
             }
@@ -444,6 +465,13 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             
                     this.visitChildren(node.getDecorators());         
                     this.visitChild(node.getQuery());
+                    this.visitChild(node.getAlias());
+            }
+        
+            public void visitSqlTumbleTableSource(SqlTumbleTableSource node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChild(node.getInterval());
                     this.visitChild(node.getAlias());
             }
         
@@ -560,6 +588,30 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getFunction());
                     this.visitChild(node.getPartitionBy());
                     this.visitChild(node.getOrderBy());
+                    this.visitChild(node.getFrame());
+            }
+        
+            public void visitSqlWindowFrame(SqlWindowFrame node){
+            
+                    this.visitChild(node.getStart());
+                    this.visitChild(node.getEnd());
+            }
+        
+            public void visitSqlWindowFrameBound(SqlWindowFrameBound node){
+            
+                    this.visitChild(node.getOffset());
+            }
+        
+            public void visitSqlWindowDecl(SqlWindowDecl node){
+            
+                    this.visitChild(node.getPartitionBy());
+                    this.visitChild(node.getOrderBy());
+                    this.visitChild(node.getFrame());
+            }
+        
+            public void visitSqlWindowClause(SqlWindowClause node){
+            
+                    this.visitChildren(node.getItems());         
             }
         
             public void visitSqlMultiValueExpr(SqlMultiValueExpr node){

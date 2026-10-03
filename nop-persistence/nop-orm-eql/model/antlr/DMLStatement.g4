@@ -98,6 +98,7 @@ sqlQuerySelect
         (<br> where=sqlWhere)?
         (<br> groupBy=sqlGroupBy)?
         (<br> having=sqlHaving)?
+        (<br> windowClause=sqlWindowClause)?
         (<br> orderBy=sqlOrderBy)?
         (<br> limit=sqlLimit)?
         (<br> forUpdate=forUpdate_)?
@@ -144,11 +145,20 @@ tableSources_
 sqlTableSource:
     sqlSingleTableSource  #SqlSingleTableSource_ex
     | sqlSubqueryTableSource #SqlSubqueryTableSource_ex
+    | sqlTumbleTableSource #SqlTumbleTableSource_ex
     | left=sqlTableSource  joinType=joinType_ right=sqlTableSource_joinRight  (ON condition=sqlExpr)? #SqlJoinTableSource
     ;
 
 sqlSingleTableSource:
     tableName=sqlTableName AS? alias=sqlAlias? decorators=sqlDecorators_?;
+
+// WI17: TUMBLE(t, INTERVAL) 流时间切片伪表函数（D4 裁定，stream-only 目标）。
+// t 为限定的时间列（表名.列名，bigint epoch-millis），INTERVAL 为窗口时长；
+// 对应新 AST 类 SqlTumbleTableSource（WI1 一一对应硬约束）。
+sqlTumbleTableSource:
+    TUMBLE LP_ tableName=sqlIdentifier_ DOT_ timeColumn=sqlIdentifier_ COMMA_
+    interval=sqlIntervalExpr RP_ AS? alias=sqlAlias? decorators=sqlDecorators_?
+    ;
 
 sqlSubqueryTableSource:
    lateral=LATERAL? LP_  query=sqlSelect RP_ AS? alias=sqlAlias;

@@ -39,6 +39,15 @@ public abstract class AbstractStreamOperator<OUT> implements StreamOperator<OUT>
     /**
      * Combined watermark for two-input operators. Lazily initialized on first use.
      * Single-input operators that call processWatermark() directly never use this.
+     *
+     * <p>WI6 explicit upper bound (roadmap R7 adjudication): this operator-level
+     * two-input watermark merge is hard-coded to {@code forInputsCount(2)} — an
+     * operator can only distinguish inputs 1 and 2 via processWatermark1/2, so more
+     * than two operator-level inputs is not expressible (parameterization is tracked
+     * as FU-6). The EXECUTION main path is not affected by this bound: the InputGate
+     * min-merges watermarks across ALL channels of a vertex (any channel count) and
+     * the task dispatches the combined result through the single-input
+     * processWatermark(Watermark) — the union vertex's N-input merge happens there.
      */
     private transient IndexedCombinedWatermarkStatus combinedWatermark;
 

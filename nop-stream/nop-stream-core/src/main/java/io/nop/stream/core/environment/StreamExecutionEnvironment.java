@@ -40,7 +40,9 @@ import io.nop.stream.core.jobgraph.JobGraphGenerator;
 import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.model.StreamBackendCapability;
 import io.nop.stream.core.model.StreamComponents;
+import io.nop.stream.core.model.StreamComponentEntry;
 import io.nop.stream.core.model.StreamModel;
+import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.model.StreamModelFingerprint;
 import io.nop.stream.core.model.StreamRequirementValidator;
 import io.nop.stream.core.source.Source;
@@ -97,6 +99,30 @@ public class StreamExecutionEnvironment {
      * keeps the pre-fix LOCAL fallback.
      */
     private boolean checkpointingDeclared;
+
+    /**
+     * WI21 (§八 11): declarative registry entries declared by the DSL builder
+     * (aggregators / joins / schemas, normalized into flow-free carriers) —
+     * merged into every StreamModel this environment materializes.
+     */
+    private final Map<String, Map<String, StreamComponentEntry>> declaredRegistries = new LinkedHashMap<>();
+
+    /**
+     * WI21: registers one registry's entries (§八 11 — the DSL declarations must
+     * reach the core {@link StreamComponents} of every materialized model).
+     */
+    public void declareRegistry(String registry, Map<String, StreamComponentEntry> entries) {
+        if (registry == null || entries == null || entries.isEmpty()) {
+            return;
+        }
+        declaredRegistries.computeIfAbsent(registry, k -> new LinkedHashMap<>()).putAll(entries);
+    }
+
+    private void mergeDeclaredRegistries(StreamComponents components) {
+        if (components != null) {
+            components.mergeDeclarativeRegistries(declaredRegistries);
+        }
+    }
 
     private DeploymentMode deploymentMode = DeploymentMode.LOCAL;
 
@@ -352,6 +378,24 @@ public class StreamExecutionEnvironment {
             );
 
             JobGraph jobGraph = compilePlans(jobName, sinks);
+            // WI21 (§八 11): the graph-attached model carries the derived
+            // requirements — merge the declared registries into it too so both
+            // materialized models agree
+            mergeDeclaredRegistries(jobGraph.getStreamModel() == null
+                    ? null : jobGraph.getStreamModel().getComponents());
+            // WI21 gate A (§八 12): a TwoPhaseCommitSinkFunction only prepare/commits
+            // on the checkpoint path — running it with no checkpointing configured
+            // would silently never commit. Fail fast instead (the runtime checkpoint
+            // path is the only sanctioned way to execute a 2PC sink).
+            if (jobGraph.getStreamModel() != null
+                    && jobGraph.getStreamModel().getRequirements().contains(StreamRequirement.TWO_PHASE_COMMIT_SINK)
+                    && !checkpointingDeclared && checkpointExecutorFactory == null) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                        "job declares a TwoPhaseCommitSinkFunction sink but no checkpointing is "
+                                + "configured — 2PC prepare/commit only runs on the checkpoint path, so the "
+                                + "sink would silently never commit. Declare <checkpoint> / call "
+                                + "enableCheckpointing() (or configure a checkpoint executor factory).");
+            }
             PartitionedPlan partitionedPlan = buildPartitionedPlan(jobGraph, streamModel);
             DeploymentPlan deploymentPlan = generateDeploymentPlan(partitionedPlan);
 
@@ -652,6 +696,8 @@ public class StreamExecutionEnvironment {
             t.assignStableId(stableId);
         }
 
+        mergeDeclaredRegistries(components);
+
         return new StreamModel(components, transformMap);
     }
 
@@ -711,6 +757,11 @@ public class StreamExecutionEnvironment {
         @SuppressWarnings("unchecked")
         List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
         StreamGraph streamGraph = graphGenerator.generate(sinkList);
+
+        // WI21 (§八 11): the graph-attached model is the distributed launch path's
+        // carrier — merge the declared registries into it as well
+        mergeDeclaredRegistries(streamGraph.getStreamModel() == null
+                ? null : streamGraph.getStreamModel().getComponents());
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
         // AR-1: same job-name threading as execute() — the distributed launch path's

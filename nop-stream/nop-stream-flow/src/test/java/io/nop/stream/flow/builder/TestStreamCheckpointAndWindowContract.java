@@ -141,12 +141,144 @@ public class TestStreamCheckpointAndWindowContract {
                 () -> "Error must name attribute '" + expectedAttrName + "': " + ex.getMessage());
     }
 
+    @Test
+    public void parameterizedDurationWindowBuilds() {
+        // WI10: parameterized kind + duration — arbitrary window size without
+        // whitelisted ids or pre-registered beans.
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time\" duration=\"2s\" allowedLateness=\"1000\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"/>");
+        // WI10/D9: allowedLateness=1000 passes the build (released by D9)
+        StreamModelDslBuilder.of(model, resolver()).build();
+    }
+
+    @Test
+    public void parameterizedDurationRequiredForKind() {
+        // kind without duration → fail-fast
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"/>");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, resolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+    }
+
+    @Test
+    public void durationConflictingWithLegacyIdFails() {
+        // legacy id + duration → fail-fast (no silent ignore)
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time-1s\" duration=\"2s\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"/>");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, resolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+    }
+
+    @Test
+    public void windowNodeParallelismFailsFast() {
+        // WI10/D12: window-level parallelism stays fail-fast (virtual node, no vertex)
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time-1s\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\" parallelism=\"2\"/>");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, resolver()).build());
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("parallelism"), ex.getMessage());
+    }
+
+    @Test
+    public void testNodeLatenessOverridesStrategy() {
+        // M6: node-level explicit allowedLateness overrides strategy-level.
+        // strategy=1000/node=5000 → merged value = 5000 (node wins).
+        // Observable via build success (fail-fast would reject if merge broke).
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time-1s\" allowedLateness=\"1000\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"><allowedLateness>5000</allowedLateness></window>");
+        // WI10/D9: both levels accepted; node-level overrides
+        StreamModelDslBuilder.of(model, resolver()).build();
+    }
+
+    @Test
+    public void testNodeLatenessZeroCancelsStrategy() {
+        // Node-level explicit 0 cancels strategy-level non-zero value.
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time-1s\" allowedLateness=\"1000\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"><allowedLateness>0</allowedLateness></window>");
+        // Build must succeed; the merged lateness=0 means no lateness semantics.
+        StreamModelDslBuilder.of(model, resolver()).build();
+    }
+
+    @Test
+    public void testNodeAllowedLatenessBuildSucceeds() {
+        // B3: node-level <allowedLateness> declaration alone (no strategy-level)
+        StreamModel model = parseInline(
+                "<windowingStrategies>"
+                        + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time-1s\"/>"
+                        + "</windowingStrategies>",
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                        + "<window id=\"w\" strategyRef=\"g\"><allowedLateness>2000</allowedLateness></window>");
+        StreamModelDslBuilder.of(model, resolver()).build();
+    }
+
+    @Test
+    public void testLegacyIdPositiveCompat() {
+        for (String id : new String[]{"tumbling-global", "global", "tumbling-event-time-1s", "tumbling-event-time-5s"}) {
+            String xml = "<windowingStrategies>"
+                    + "<strategy strategyId=\"g\" windowFnId=\"" + id + "\"/>"
+                    + "</windowingStrategies>";
+            StreamModel model = parseInline(xml,
+                    "<source id=\"src\" bean=\"srcFn\"/>"
+                            + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                            + "<window id=\"w\" strategyRef=\"g\"/>");
+            StreamModelDslBuilder.of(model, resolver()).build();
+        }
+    }
+
+    @Test
+    public void testNonPositiveDurationFails() {
+        for (String dur : new String[]{"0", "0s", "-1s"}) {
+            String xml = "<windowingStrategies>"
+                    + "<strategy strategyId=\"g\" windowFnId=\"tumbling-event-time\" duration=\"" + dur + "\"/>"
+                    + "</windowingStrategies>";
+            StreamModel model = parseInline(xml,
+                    "<source id=\"src\" bean=\"srcFn\"/>"
+                            + "<keyBy id=\"k\" keyExpr=\"event\"/>"
+                            + "<window id=\"w\" strategyRef=\"g\"/>");
+            assertThrows(Exception.class, () -> StreamModelDslBuilder.of(model, resolver()).build(),
+                    "duration=" + dur + " should fail");
+        }
+    }
+
     static Stream<Arguments> windowFailFastCases() {
         return Stream.of(
                 Arguments.of("triggerId=\"t\"", "", "triggerId"),
-                Arguments.of("allowedLateness=\"1\"", "", "allowedLateness"),
+                // WI10/D9: allowedLateness released — no longer fail-fast
                 Arguments.of("accumulationMode=\"ACCUMULATING\"", "", "accumulationMode"),
-                Arguments.of("", "<allowedLateness>1</allowedLateness>", "allowedLateness"),
                 Arguments.of("", "<triggerId>t</triggerId>", "triggerId"));
     }
 

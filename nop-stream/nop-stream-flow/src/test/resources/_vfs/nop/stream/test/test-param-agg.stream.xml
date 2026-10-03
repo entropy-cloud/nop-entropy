@@ -1,0 +1,34 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-param-agg" version="1" parallelism="1">
+
+    <aggregators>
+        <aggregator aggregatorId="amountSum" fnId="sum" expr="amount"/>
+    </aggregators>
+
+    <transforms>
+        <source id="src" name="IntSource"
+                bean="intSourceFunction"
+                parallelism="1"/>
+
+        <keyBy id="key" name="ByKey" keyExpr="event"/>
+
+        <window id="w" strategyRef="global-strat"/>
+
+        <aggregate id="agg" name="ParamAgg" aggregatorRef="amountSum"/>
+
+        <sink id="out" name="CollectingSink"
+              bean="advancedCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <windowingStrategies>
+        <strategy strategyId="global-strat" windowFnId="global"/>
+    </windowingStrategies>
+
+    <edges>
+        <edge id="e0" from="src" to="key" partition="FORWARD"/>
+        <edge id="e1" from="key" to="w" partition="FORWARD"/>
+        <edge id="e2" from="w" to="agg" partition="FORWARD"/>
+        <edge id="e3" from="agg" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

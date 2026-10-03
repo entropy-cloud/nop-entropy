@@ -1,0 +1,31 @@
+<!--
+  WI19: committed COMPILED PRODUCT — the deterministic StreamSqlCompiler output for
+  "SELECT item, amount FROM orders WHERE amount > 0" (schema item:string, amount:int,
+  sink bean testSink). TestDeltaOverCompiledProduct pins it against a fresh compile
+  (anti-stale) and Delta-overrides it via x:extends.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef" xmlns:x="/nop/schema/xdsl.xdef" name="sql-compiled" version="1">
+    <schemas>
+        <schema id="sqlschema0">
+            <fields>
+                <field name="item" type="string"/>
+                <field name="amount" type="int"/>
+            </fields>
+        </schema>
+    </schemas>
+    <transforms>
+        <filter id="sflt">
+            <source>return (((event['amount']) == null || (0) == null) ? null : ((event['amount']) &gt; (0)));</source>
+        </filter>
+        <source id="ssrc" bean="orders"/>
+        <map id="sproj">
+            <source>let __r = {"item": event['item'], "amount": event['amount']}; return __r;</source>
+        </map>
+        <sink id="out" bean="testSink"/>
+    </transforms>
+    <edges>
+        <edge id="se1" from="ssrc" to="sflt"/>
+        <edge id="se3" from="sflt" to="sproj"/>
+        <edge id="e_out" from="sproj" to="out"/>
+    </edges>
+</stream>

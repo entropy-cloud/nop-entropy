@@ -82,6 +82,7 @@ import io.nop.stream.core.operators.HeapInternalTimerService;
 import io.nop.stream.core.operators.InternalTimer;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
+import io.nop.stream.core.operators.TimerStateKeys;
 import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.operators.Triggerable;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -642,7 +643,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // snapshotted — fired timers are naturally excluded because they are removed
         // from the internal data structures when they fire (no double-fire risk).
         if (internalTimerService != null) {
-            result.putOperatorState("internal-timers", internalTimerService.snapshotTimers());
+            result.putOperatorState(TimerStateKeys.WINDOW_INTERNAL_TIMERS, internalTimerService.snapshotTimers());
         }
         // Persist pane-tracking (pane index + onTimeEmitted) so that post-recovery
         // window firings are not mistaken for ON_TIME / isFirst. Only TimeWindow-scoped
@@ -676,7 +677,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // point internalTimerService is still null (restoreState runs before
             // open()), so we cannot apply the snapshot immediately — we store it
             // and apply it in open() after the timer service is constructed.
-            Object timerSnapshot = snapshotResult.getOperatorState("internal-timers");
+            Object timerSnapshot = snapshotResult.getOperatorState(TimerStateKeys.WINDOW_INTERNAL_TIMERS);
             if (timerSnapshot instanceof HeapInternalTimerService.TimerSnapshot) {
                 this.restoredTimerSnapshot =
                         (HeapInternalTimerService.TimerSnapshot<K, W>) timerSnapshot;
@@ -874,7 +875,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         boolean isSkippedElement = true;
 
         for (W window : elementWindows) {
-            if (isWindowLate(window)) {
+            boolean late = isWindowLate(window);
+            if (late) {
                 continue;
             }
             isSkippedElement = false;
@@ -1098,7 +1100,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     key, window, processContext, contents, timestampedCollector);
         }
 
-        if (accumulationMode == AccumulationMode.DISCARDING) {
+        // WI10/D9: skip purge when allowedLateness > 0 on an event-time window.
+        // The cleanup timer (at window.maxTimestamp + allowedLateness) already
+        // clears contents at the cleanup point; purging on fire would reduce
+        // the late re-fire to a partial aggregate, breaking D1=(a) full-aggregate.
+        // GlobalWindows (not event-time) and processing-time paths keep eager
+        // purge (no lateness semantics; prevents unbounded state growth).
+        boolean skipPurgeForLateness = allowedLateness > 0 && windowAssigner.isEventTime();
+        if (accumulationMode == AccumulationMode.DISCARDING && !skipPurgeForLateness) {
             // DISCARDING under a merging
             // assigner must clear the STATE window namespace (where contents live),
             // not the actual window (a clear on the actual window would be a silent no-op).

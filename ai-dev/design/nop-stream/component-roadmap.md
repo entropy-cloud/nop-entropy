@@ -10,7 +10,7 @@
 
 nop-stream 是 Nop 平台的流处理引擎，定位为**可分布式执行的 Flink 简化版**。不是嵌入式玩具，不是设计原型，不是 MVP。
 
-**核心取舍**：保留 Flink DataStream API 概念和流处理语义，去除复杂 Join、广播流、异步算子等高级特性，聚焦于单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错。
+**核心取舍**：保留 Flink DataStream API 概念和流处理语义，去除复杂（非等值 / 范围）Join、广播流、异步算子等高级特性，聚焦于单流窗口聚合 + CEP 模式匹配 + Checkpoint 容错；双流**等值** join（hash / window）与窄范围流 SQL 已收窄纳入规划（收窄裁定 2026-10-02，见 `ai-dev/backlog/nop-stream-sql-roadmap.md`）。
 
 **与 Nop 平台的关系**：nop-stream 是 Nop 平台的正式模块，使用 Nop 平台的标准基础设施——nop-dao 的 `IJdbcTemplate` + `IDialect` 做多数据库适配，nop-batch 的 `IBatchLoader`/`IBatchConsumer` 做数据源接入，nop-xlang 的 `IEvalFunction` 做 CEP 条件表达式。
 

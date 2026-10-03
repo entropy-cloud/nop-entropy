@@ -55,6 +55,7 @@
               supportFullJoin="boolean" supportRightJoin="boolean" supportSomeSubQuery="boolean"
               supportReturningForUpdate="boolean" supportOutputForUpdate="boolean"
               useAsInFrom="boolean"
+              supportWindowFrameRows="boolean" supportWindowFrameRange="boolean" supportWindowFrameGroups="boolean"
     />
 
     <!--

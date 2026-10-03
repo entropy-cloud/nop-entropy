@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  WI17 Phase 2 test beans: stub SourceFunction beans registered per FROM table name
+  (r2 B2: FROM 表名即 bean 名) plus the collecting sink. The sql module's own
+  app-aggregator.beans.xml is added in the test setup so the composite sql-row-agg
+  resolver is discoverable in the same container.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="orders" class="io.nop.stream.sql.compile.testing.OrdersSourceFunction"/>
+
+    <bean id="items" class="io.nop.stream.sql.compile.testing.ItemsSourceFunction"/>
+
+    <bean id="testSink" class="io.nop.stream.sql.compile.testing.SqlTestSink"/>
+
+</beans>

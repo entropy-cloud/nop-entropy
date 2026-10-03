@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  WI17: registers the <sql> model-generator SPI provider so <sql sinkBean="...">
+  models compile in any application with nop-stream-sql on the classpath. Loaded by
+  the Nop IoC module-app-beans mechanism (module marker at _vfs/nop/stream/sql/_module,
+  app-*.beans.xml naming convention).
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="nopStreamSqlCompilerProvider"
+          class="io.nop.stream.sql.compile.StreamSqlCompilerProvider"/>
+
+</beans>

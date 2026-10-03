@@ -66,6 +66,7 @@ import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.model.StreamComponentEntry;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.builder.functions.XplFilterFunction;
@@ -78,12 +79,18 @@ import io.nop.stream.flow.model.StorageConfigEntryModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamFilterModel;
 import io.nop.stream.flow.model.StreamFlatMapModel;
+import io.nop.stream.core.model.JoinType;
+import io.nop.stream.flow.model.StreamJoinModel;
+import io.nop.stream.flow.model.StreamJoinSpecModel;
 import io.nop.stream.flow.model.StreamKeyByModel;
+import io.nop.stream.flow.model.WindowingStrategyModel;
 import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.stream.flow.model.StreamSinkModel;
 import io.nop.stream.flow.model.StreamSourceModel;
+import io.nop.stream.flow.model.StreamUnionModel;
 import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.spi.ISqlStreamCompiler;
 
 /**
  * Translates a parsed {@link StreamModel} (the XDSL declarative form) into a fully wired
@@ -127,6 +134,8 @@ public final class StreamModelDslBuilder {
     private final StreamModel model;
     private final BeanFunctionResolver beanResolver;
 
+    private StreamSchemaRegistry schemaRegistry;
+
     private final Map<String, Object> streamRegistry = new LinkedHashMap<>();
 
     private StreamModelDslBuilder(StreamModel model, BeanFunctionResolver beanResolver) {
@@ -146,10 +155,21 @@ public final class StreamModelDslBuilder {
     }
 
     /**
+     * WI8b: query the resolved {@code <schemas>} registry. Must be called after
+     * {@link #build()} — the registry is populated during the build walk.
+     */
+    public StreamSchemaRegistry schemaRegistry() {
+        if (schemaRegistry == null)
+            throw new IllegalStateException("schemaRegistry is only available after build(); call build() first");
+        return schemaRegistry;
+    }
+
+    /**
      * Build a fresh {@link StreamExecutionEnvironment} populated with an equivalent
      * transformation chain for the parsed {@link StreamModel}.
      */
     public StreamExecutionEnvironment build() {
+        expandSqlModel();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         if (model.getParallelism() > 0) {
             env.setParallelism(model.getParallelism());
@@ -163,13 +183,145 @@ public final class StreamModelDslBuilder {
         }
         applyCheckpointConfig(env);
         failFastOnUnsupportedRegistries();
+        declareComponentRegistries(env);
         buildTransforms(env);
         return env;
+    }
+
+    /**
+     * WI21 (§八 11): normalizes the DSL registry declarations (aggregators /
+     * joins / schemas) into flow-free {@link StreamComponentEntry} carriers and
+     * declares them on the environment, so the core StreamComponents of every
+     * materialized model carries them. Descriptive attribute values only — the
+     * executable semantics stay with the builder-time validation and the
+     * transform assembly.
+     */
+    private void declareComponentRegistries(StreamExecutionEnvironment env) {
+        if (model.getAggregators() != null) {
+            for (io.nop.stream.flow.model.StreamAggregatorModel a : model.getAggregators()) {
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("fnId", a.getFnId());
+                attrs.put("expr", a.getExpr());
+                attrs.put("schemaId", a.getSchemaId());
+                env.declareRegistry("aggregators",
+                        Collections.singletonMap(a.getAggregatorId(), new StreamComponentEntry("aggregators", a.getAggregatorId(), attrs)));
+            }
+        }
+        if (model.getJoins() != null) {
+            for (StreamJoinSpecModel j : model.getJoins()) {
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("joinType", j.getJoinType() == null ? null : j.getJoinType().name());
+                attrs.put("leftKeyExprs", j.getLeftKeyExprs());
+                attrs.put("rightKeyExprs", j.getRightKeyExprs());
+                attrs.put("windowStrategyRef", j.getWindowStrategyRef());
+                attrs.put("timeout", j.getTimeout());
+                env.declareRegistry("joins",
+                        Collections.singletonMap(j.getJoinId(), new StreamComponentEntry("joins", j.getJoinId(), attrs)));
+            }
+        }
+        if (model.getSchemas() != null) {
+            for (io.nop.stream.flow.model.StreamSchemaModel sc : model.getSchemas()) {
+                StringBuilder fields = new StringBuilder();
+                if (sc.getFields() != null) {
+                    for (io.nop.stream.flow.model.StreamSchemaFieldModel f : sc.getFields()) {
+                        if (fields.length() > 0) {
+                            fields.append(',');
+                        }
+                        fields.append(f.getName()).append(':').append(f.getType());
+                    }
+                }
+                Map<String, String> attrs = new LinkedHashMap<>();
+                attrs.put("fields", fields.toString());
+                env.declareRegistry("schemas",
+                        Collections.singletonMap(sc.getId(), new StreamComponentEntry("schemas", sc.getId(), attrs)));
+            }
+        }
     }
 
     // ----------------------------------------------------------------
     // Checkpoint + top-level registry handling
     // ----------------------------------------------------------------
+
+    /**
+     * WI17 (plan 25 r2 B4): {@code <sql>} is a model-level GENERATOR — the compilation
+     * happens here, before buildTransforms. The provider is looked up by type in the
+     * BeanContainer (the IAggregatorFunctionResolver pattern); its XML product is
+     * parsed back through the platform DSL parser and REPLACES the parent model's
+     * transforms/edges/registries. {@code <sql>} must be the model's only content
+     * (coexistence with other transforms/edges/registries fails fast); no provider
+     * (including an uninitialized container) fails fast naming the missing
+     * nop-stream-sql dependency.
+     */
+    private void expandSqlModel() {
+        io.nop.stream.flow.model.StreamSqlModel sql = model.getSql();
+        if (sql == null) {
+            return;
+        }
+        if (model.hasTransforms() || model.hasEdges() || model.hasAggregators()
+                || model.hasJoins() || model.hasSchemas() || !model.getWindowingStrategies().isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "<sql> must be the model's only content: it compiles to "
+                            + "the complete transform/edge/registry set, so coexisting "
+                            + "transforms, edges, <aggregators>, <joins>, <schemas> or "
+                            + "<windowingStrategies> are rejected")
+                    .loc(sql.getLocation());
+        }
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized()) {
+            throw noSqlProvider(sql);
+        }
+        ISqlStreamCompiler compiler =
+                io.nop.api.core.ioc.BeanContainer.instance()
+                        .tryGetBeanByType(ISqlStreamCompiler.class);
+        if (compiler == null) {
+            throw noSqlProvider(sql);
+        }
+        Map<String, String> schema = new LinkedHashMap<>();
+        if (sql.getSchemas() != null) {
+            for (io.nop.stream.flow.model.StreamSqlFieldModel f : sql.getSchemas()) {
+                schema.put(f.getName(), f.getType());
+            }
+        }
+        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean());
+        io.nop.core.lang.xml.XNode node;
+        try {
+            node = io.nop.core.lang.xml.XNode.parse(xml);
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "SQL compiler returned invalid model XML: " + e.getMessage())
+                    .loc(sql.getLocation());
+        }
+        StreamModel compiled;
+        try {
+            compiled = (StreamModel) new io.nop.xlang.xdsl.DslModelParser().parseFromNode(node);
+        } catch (NopException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<sql>")
+                    .param(ARG_DETAIL, "SQL compiler product failed stream.xdef validation: "
+                            + e.getMessage())
+                    .loc(sql.getLocation());
+        }
+        // 替换父模型内容（B4）：transforms/edges/registries 全量来自编译产物
+        model.setTransforms(compiled.getTransforms());
+        model.setEdges(compiled.getEdges());
+        model.setSchemas(compiled.getSchemas());
+        model.setAggregators(compiled.getAggregators());
+        model.setJoins(compiled.getJoins());
+        model.setWindowingStrategies(compiled.getWindowingStrategies());
+        model.setSql(null);
+    }
+
+    private static StreamException noSqlProvider(io.nop.stream.flow.model.StreamSqlModel sql) {
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_ELEMENT, "<sql>")
+                .param(ARG_DETAIL, "<sql sinkBean='" + sql.getSinkBean()
+                        + "'> declares a SQL model generator but no "
+                        + ISqlStreamCompiler.class.getName()
+                        + " provider is registered; add io.github.entropy-cloud:nop-stream-sql "
+                        + "to the classpath")
+                .loc(sql.getLocation());
+    }
 
     private void applyCheckpointConfig(StreamExecutionEnvironment env) {
         CheckpointConfigModel cfg = model.getCheckpoint();
@@ -263,11 +415,11 @@ public final class StreamModelDslBuilder {
                     .param(ARG_DETAIL, "<onStart>/<onEnd>/<onError> lifecycle callbacks")
                     .loc(model.getLocation());
         }
-        if (model.hasSchemas()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<schemas> registry has no execution consumer")
-                    .loc(model.getLocation());
-        }
+        // WI8b: <schemas> declaration surface now has a consumer — fields resolve to
+        // BasicTypeInfo at build time (managed names only, first error fails fast);
+        // the field coder is the built-in SimpleTypeSerializer. The <coders> registry
+        // stays fail-fast (FU-3).
+        this.schemaRegistry = StreamSchemaRegistry.resolveSchemas(model);
         if (model.hasCoders()) {
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
                     .param(ARG_DETAIL, "<coders> registry has no execution consumer")
@@ -342,6 +494,7 @@ public final class StreamModelDslBuilder {
             upstreams.get(e.getTo()).add(e.getFrom());
         }
         validateEdgeDeclarations(edges, byId);
+        validateJoinDeclarations(edges, upstreams);
         return edges;
     }
 
@@ -423,6 +576,27 @@ public final class StreamModelDslBuilder {
                             .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
                             .loc(e.getLocation());
                 }
+                // WI6: a HASH edge into <union> has no consumer — union merges raw
+                // records and cannot carry a per-input keyBy. The supported shape is
+                // keyBy AFTER the union (roadmap §3.1).
+                if (byId.get(e.getTo()) instanceof StreamUnionModel) {
+                    throw new StreamException(ERR_STREAM_EDGE_HASH_REDUNDANT)
+                            .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
+                            .param(ARG_DETAIL, "HASH edge into <union id='" + e.getTo()
+                                    + "'> is not supported: declare keyBy on the transform "
+                                    + "AFTER the union instead")
+                            .loc(e.getLocation());
+                }
+                // WI8d: same for <join> — the joinKey set comes from the join spec's
+                // leftKeyExprs/rightKeyExprs; a per-input keyBy would double-key.
+                if (byId.get(e.getTo()) instanceof StreamJoinModel) {
+                    throw new StreamException(ERR_STREAM_EDGE_HASH_REDUNDANT)
+                            .param(ARG_EDGE_ID, e.getId()).param(ARG_TRANSFORM_ID, e.getTo())
+                            .param(ARG_DETAIL, "HASH edge into <join id='" + e.getTo()
+                                    + "'> is not supported: the join keys are declared by the "
+                                    + "join spec's leftKeyExprs/rightKeyExprs")
+                            .loc(e.getLocation());
+                }
             } else if (p == PartitionPolicy.REBALANCE || p == PartitionPolicy.BROADCAST) {
                 throw new StreamException(ERR_STREAM_EDGE_PARTITION_UNSUPPORTED)
                         .param(ARG_EDGE_ID, e.getId()).param(ARG_PARTITION, p)
@@ -439,6 +613,113 @@ public final class StreamModelDslBuilder {
                         .loc(e.getLocation());
             }
         }
+    }
+
+    /**
+     * WI8d: build-time validation of {@code <join>} declarations. Runs inside
+     * validateDag (after validateEdgeDeclarations) so every failure surfaces before
+     * any transform is built. Eight checks, each fail-fast:
+     * unknown joinRef, missing joinType, missing/unequal key sets, exactly-two
+     * upstream edges (left/right), windowStrategyRef resolution, window-join
+     * joinType restriction (INNER/LEFT — FULL completion is a WI13 item), timeout
+     * requiring a window strategy, and timeout format.
+     */
+    private void validateJoinDeclarations(List<StreamEdgeModel> edges,
+                                          Map<String, Set<String>> upstreams) {
+        List<StreamJoinSpecModel> specs = model.getJoins() == null
+                ? Collections.emptyList() : model.getJoins();
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (!(t instanceof StreamJoinModel)) {
+                continue;
+            }
+            StreamJoinModel jm = (StreamJoinModel) t;
+            StreamJoinSpecModel spec = model.getJoinSpec(jm.getJoinRef());
+            if (spec == null) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_REF_TYPE, "<joins>/<joinSpec>")
+                        .param(ARG_REF_NAME, jm.getJoinRef())
+                        .loc(t.getLocation());
+            }
+            if (spec.getJoinType() == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' must declare joinType (INNER/LEFT/RIGHT/FULL)")
+                        .loc(t.getLocation());
+            }
+            int leftKeys = countKeyExprs(spec.getLeftKeyExprs());
+            int rightKeys = countKeyExprs(spec.getRightKeyExprs());
+            if (leftKeys == 0 || rightKeys == 0) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' requires non-empty leftKeyExprs and rightKeyExprs (equi-join)")
+                        .loc(t.getLocation());
+            }
+            if (leftKeys != rightKeys) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' key count mismatch: leftKeyExprs has " + leftKeys
+                                + ", rightKeyExprs has " + rightKeys
+                                + " (equi-join requires equal arity)")
+                        .loc(t.getLocation());
+            }
+            // count DECLARED EDGES (not the deduped upstream-id set): a self-join
+            // declares two edges from the same source, and upstreams collapses them
+            long inEdgeCount = edges.stream()
+                    .filter(e -> t.getId().equals(e.getTo())).count();
+            if (inEdgeCount != 2) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "<join id='" + t.getId() + "'> requires exactly two "
+                                + "upstream edges (left/right), found " + inEdgeCount)
+                        .loc(t.getLocation());
+            }
+            Set<String> ups = upstreams.getOrDefault(t.getId(), Collections.emptySet());
+            if (ups.isEmpty()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "<join id='" + t.getId() + "'> has no resolvable upstream")
+                        .loc(t.getLocation());
+            }
+            if (spec.getWindowStrategyRef() != null) {
+                WindowingStrategyModel strategy = model.getStrategy(spec.getWindowStrategyRef());
+                if (strategy == null) {
+                    throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_REF_TYPE, "<windowingStrategies>/<strategy>")
+                            .param(ARG_REF_NAME, spec.getWindowStrategyRef())
+                            .loc(t.getLocation());
+                }
+                if (spec.getJoinType() != JoinType.INNER && spec.getJoinType() != JoinType.LEFT) {
+                    throw new StreamException(ERR_STREAM_INVALID_ARG)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_DETAIL, "window join '" + spec.getJoinId()
+                                    + "' supports joinType INNER/LEFT only; " + spec.getJoinType()
+                                    + " window completion is a WI13 evaluation item")
+                            .loc(t.getLocation());
+                }
+                if (spec.getTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getTimeout());
+                }
+            } else if (spec.getTimeout() != null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                + "' declares timeout but no windowStrategyRef; timeout only "
+                                + "applies to window joins")
+                        .loc(t.getLocation());
+            }
+        }
+    }
+
+    private static int countKeyExprs(String exprs) {
+        if (exprs == null || exprs.trim().isEmpty()) {
+            return 0;
+        }
+        return exprs.split(",").length;
     }
 
     private static String firstDeclaredFlowControlAttr(StreamEdgeModel e) {
@@ -697,6 +978,25 @@ public final class StreamModelDslBuilder {
 
     StreamModel model() {
         return model;
+    }
+
+    /**
+     * WI8c: column-key → type lookup for parameterized aggregates, built from the
+     * model's declared schemas (WI8b registry). A null/unknown schemaId or unknown
+     * column yields null — the resolver then skips type validation instead of
+     * failing on schemas the declaration never promised.
+     */
+    java.util.function.Function<String, io.nop.stream.core.common.typeinfo.BasicTypeInfo<?>> columnTypeLookup(
+            String schemaId) {
+        if (schemaId == null || !StreamSchemaRegistry.resolveSchemas(model).contains(schemaId)) {
+            return column -> null;
+        }
+        java.util.Map<String, io.nop.stream.core.common.typeinfo.BasicTypeInfo<?>> columns =
+                new java.util.HashMap<>();
+        for (StreamSchemaRegistry.FieldSpec spec : StreamSchemaRegistry.resolveSchemas(model).resolveSchema(schemaId)) {
+            columns.put(spec.getName(), spec.getType());
+        }
+        return columns::get;
     }
 
     Object registeredStream(String transformId) {

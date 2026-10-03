@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  WI17 B5 layer-1 test beans: the fake ISqlStreamCompiler plus the stub beans its
+  fixed product references.
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="fakeSqlCompiler" class="io.nop.stream.flow.builder.FakeSqlStreamCompiler"/>
+
+    <bean id="fakeSrcFn" class="io.nop.stream.flow.testing.TestSourceFunction"/>
+
+    <bean id="fakeSinkFn" class="io.nop.stream.flow.testing.CollectingSinkFunction"/>
+
+</beans>

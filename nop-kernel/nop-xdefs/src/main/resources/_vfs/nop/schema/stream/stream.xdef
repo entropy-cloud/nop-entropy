@@ -46,13 +46,38 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
 
     <!-- 窗口策略注册表 -->
     <windowingStrategies xdef:key-attr="strategyId" xdef:body-type="list">
-        <strategy strategyId="!string" windowFnId="!string" triggerId="string"
+        <strategy strategyId="!string" windowFnId="!string" duration="string" triggerId="string"
                   allowedLateness="!long=0"
                   accumulationMode="!enum:io.nop.stream.core.windowing.AccumulationMode=DISCARDING"
                   xdef:name="WindowingStrategyModel" xdef:unique-attr="strategyId">
             <description>string</description>
         </strategy>
     </windowingStrategies>
+
+    <!-- WI8c: 参数化聚合注册表——entry 是纯参数描述符（fnId + 取值表达式），
+         稳定 ID 供 <aggregate aggregatorRef> 引用；累加语义由聚合求值器提供，
+         与 windowingStrategies 同构。schemaId 可选：声明时按该 schema 解析列类型
+         供参数类型校验。 -->
+    <aggregators xdef:key-attr="aggregatorId" xdef:body-type="list">
+        <aggregator aggregatorId="!string" fnId="!string" expr="string" schemaId="string"
+                    xdef:name="StreamAggregatorModel" xdef:unique-attr="aggregatorId">
+            <description>string</description>
+        </aggregator>
+    </aggregators>
+
+    <!-- WI8d: 参数化 join 注册表——entry 是纯声明描述符（joinType + 双键集 +
+         可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
+         buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
+         为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。 -->
+    <joins xdef:key-attr="joinId" xdef:body-type="list">
+        <joinSpec joinId="!string"
+                  joinType="enum:io.nop.stream.core.model.JoinType"
+                  leftKeyExprs="string" rightKeyExprs="string"
+                  windowStrategyRef="string" timeout="string"
+                  xdef:name="StreamJoinSpecModel" xdef:unique-attr="joinId">
+            <description>string</description>
+        </joinSpec>
+    </joins>
 
     <!-- 序列化器注册表 -->
     <coders xdef:key-attr="id" xdef:body-type="list">
@@ -71,6 +96,19 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
             </fields>
         </schema>
     </schemas>
+
+    <!-- WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
+         builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
+         定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
+         替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
+         → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
+         追加 sink 声明与边（产物自洽可执行）。 -->
+    <sql sinkBean="!string" xdef:name="StreamSqlModel">
+        <schemas xdef:key-attr="name" xdef:body-type="list">
+            <field name="!string" type="!string" xdef:name="StreamSqlFieldModel"/>
+        </schemas>
+        <source>string</source>
+    </sql>
 
     <!-- 运行环境注册表（支持多环境配置） -->
     <environments xdef:key-attr="name" xdef:body-type="list">
@@ -154,8 +192,14 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
             <triggerId>string</triggerId>
         </window>
 
-        <!-- Aggregate 节点：实现 AggregateFunction 接口 -->
-        <aggregate xdef:name="StreamAggregateModel" xdef:ref="StreamTransformModel"/>
+        <!-- Aggregate 节点：实现 AggregateFunction 接口。WI8c：bean 与 aggregatorRef
+             恰好其一（并存或双缺构建期 fail-fast）；aggregatorRef 引用 <aggregators>
+             注册表 entry，累加语义由聚合求值器提供。 -->
+        <aggregate aggregatorRef="string" xdef:name="StreamAggregateModel" xdef:ref="StreamTransformModel"/>
+
+        <!-- Join 节点：等值 join 声明（WI8d）。joinRef 引用 <joins> 注册表 entry；
+             上游恰两条边（left/right）。仅声明与构造期校验，运行时由 WI13 buildJoin 承接。 -->
+        <join joinRef="!string" xdef:name="StreamJoinModel" xdef:ref="StreamTransformModel"/>
 
         <!-- Reduce 节点：实现 ReduceFunction 接口 -->
         <reduce xdef:name="StreamReduceModel" xdef:ref="StreamTransformModel">

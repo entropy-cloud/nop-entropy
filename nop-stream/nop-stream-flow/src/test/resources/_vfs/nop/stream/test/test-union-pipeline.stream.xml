@@ -1,0 +1,30 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-union-pipeline" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src1" name="IntSource1"
+                bean="intSourceFunction"
+                parallelism="1"/>
+
+        <source id="src2" name="EvenSource"
+                bean="evenSourceFunction"
+                parallelism="1"/>
+
+        <union id="merge" name="MergeStreams"/>
+
+        <map id="scale" name="ScaleByTen">
+            <source>return event * 10;</source>
+        </map>
+
+        <sink id="out" name="CollectingSink"
+              bean="unionCollectingSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src1" to="merge" partition="FORWARD"/>
+        <edge id="e1" from="src2" to="merge" partition="FORWARD"/>
+        <edge id="e2" from="merge" to="scale" partition="FORWARD"/>
+        <edge id="e3" from="scale" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

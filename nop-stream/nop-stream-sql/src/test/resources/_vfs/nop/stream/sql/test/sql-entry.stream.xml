@@ -1,0 +1,13 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="sql-entry" version="1">
+
+    <sql sinkBean="testSink">
+        <schemas>
+            <field name="ts" type="bigint"/>
+            <field name="item" type="string"/>
+            <field name="amount" type="int"/>
+        </schemas>
+        <source><![CDATA[SELECT item, sum(amount) AS total
+FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></source>
+    </sql>
+</stream>

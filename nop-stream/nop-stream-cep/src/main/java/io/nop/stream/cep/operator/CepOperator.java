@@ -66,6 +66,7 @@ import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
+import io.nop.stream.core.operators.TimerStateKeys;
 import io.nop.stream.core.operators.InternalTimerService;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.TimestampedCollector;
@@ -657,7 +658,7 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private static final String WATERMARK_STATE_NAME = "cep-current-watermark";
-    private static final String EVENT_TIME_TIMERS_STATE_NAME = "cep-event-time-timers";
+    private static final String EVENT_TIME_TIMERS_STATE_NAME = TimerStateKeys.CEP_EVENT_TIME_TIMERS;
 
     @Override
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {

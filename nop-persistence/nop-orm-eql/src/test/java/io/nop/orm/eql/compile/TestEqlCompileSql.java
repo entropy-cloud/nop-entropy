@@ -34,8 +34,11 @@ import java.util.Map;
 
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_TOO_FEW_ARGS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_WINDOW_FRAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_QUERY_NO_FROM_CLAUSE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -416,5 +419,153 @@ public class TestEqlCompileSql {
         SqlParameterMarker cloned = (SqlParameterMarker) marker.deepClone();
         assertTrue(cloned.isMasked());
         assertEquals(3, cloned.getParamIndex());
+    }
+
+    // ---- WI2: 窗口 frame 能力开关与命名窗口编译 ----
+
+    static IDialect windowDialect(boolean rows, boolean range, boolean groups) {
+        DialectModel model = new DialectModel();
+        DialectFeatures features = new DialectFeatures();
+        features.setSupportReturningForUpdate(true);
+        features.setSupportWindowFrameRows(rows);
+        features.setSupportWindowFrameRange(range);
+        features.setSupportWindowFrameGroups(groups);
+        model.setFeatures(features);
+        model.setReservedKeywords(Collections.emptySet());
+        model.setSqls(new io.nop.dao.dialect.model.DialectSqls());
+        model.setSqlDataTypes(Collections.emptyList());
+
+        SqlNativeFunctionModel currentTimestamp = new SqlNativeFunctionModel();
+        currentTimestamp.setName("current_timestamp");
+        currentTimestamp.setHasParenthesis(false);
+        currentTimestamp.setReturnType(StdSqlType.TIMESTAMP);
+
+        SqlNativeFunctionModel rowNumber = new SqlNativeFunctionModel();
+        rowNumber.setName("row_number");
+        rowNumber.setReturnType(StdSqlType.BIGINT);
+        rowNumber.setOnlyForWindowExpr(true);
+
+        SqlNativeFunctionModel upper = new SqlNativeFunctionModel();
+        upper.setName("upper");
+        upper.setArgTypes(Collections.singletonList(StdSqlType.VARCHAR));
+        upper.setReturnType(StdSqlType.VARCHAR);
+        model.setFunctions(Arrays.asList(currentTimestamp, rowNumber, upper));
+        return new DialectImpl(model);
+    }
+
+    static TestCompileContext windowContext(IDialect dialect) {
+        TestCompileContext ctx = new TestCompileContext();
+        ctx.entities.put("AppUser", entity("AppUser", "APP_USER", "spaceA",
+                col("id", "SID", 1, true), col("name", "NAME", 2, false)));
+        ctx.effectiveDialect = dialect;
+        return ctx;
+    }
+
+    static TestCompileContext windowContext(boolean rows, boolean range, boolean groups) {
+        return windowContext(windowDialect(rows, range, groups));
+    }
+
+    @Test
+    public void testWindowFrameFeatureOffThrows() {
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(false, false, false),
+                        "select row_number() over (order by o.id rows between unbounded preceding and current row) from AppUser o"));
+        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
+        assertEquals("supportWindowFrameRows", e.getParam("feature"));
+    }
+
+    @Test
+    public void testWindowFrameFeatureOnCompiles() {
+        ICompiledSql compiled = compile(windowContext(true, false, false),
+                "select row_number() over (order by o.id rows between unbounded preceding and current row) from AppUser o");
+        String sql = compiled.getSql().getText();
+        assertTrue(sql.contains("rows between unbounded preceding and current row"), sql);
+    }
+
+    @Test
+    public void testWindowFrameRangeAndGroupsGate() {
+        // range 开
+        ICompiledSql compiled = compile(windowContext(false, true, false),
+                "select row_number() over (order by o.id range between 5 preceding and 5 following) from AppUser o");
+        assertTrue(compiled.getSql().getText().contains("range between"), compiled.getSql().getText());
+        // groups 关
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(true, true, false),
+                        "select row_number() over (order by o.id groups 1 preceding) from AppUser o"));
+        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
+        assertEquals("supportWindowFrameGroups", e.getParam("feature"));
+    }
+
+    @Test
+    public void testNamedWindowSqlOutput() {
+        ICompiledSql compiled = compile(windowContext(false, false, false),
+                "select row_number() over w from AppUser o "
+                        + "group by o.name having count(*) > 0 window w as (partition by o.name order by o.id)");
+        String sql = compiled.getSql().getText();
+        // decl 内列被 resolve 为表列，WINDOW 子句位于 having 之后 order by 之前
+        int havingPos = sql.indexOf("having");
+        int windowPos = sql.indexOf("window w as");
+        int orderPos = sql.indexOf("order by", windowPos);
+        assertTrue(windowPos > 0, sql);
+        assertTrue(havingPos > 0 && windowPos > havingPos, sql);
+        assertTrue(orderPos > windowPos, sql);
+        assertTrue(sql.contains("partition by"), sql);
+        assertTrue(sql.contains("NAME"), sql);
+    }
+
+    @Test
+    public void testUnknownWindowNameThrows() {
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(false, false, false),
+                        "select row_number() over w2 from AppUser o window w as (order by o.id)"));
+        assertEquals(ERR_EQL_UNKNOWN_WINDOW_NAME.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testWindowClauseWithoutFromThrows() {
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(false, false, false),
+                        "select 1 window w as (order by 1)"));
+        assertEquals(ERR_EQL_QUERY_NO_FROM_CLAUSE.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    public void testEqlChannelRoundTrip() {
+        // EQL 通道（AstToEqlGenerator 经 toSqlString）：frame 与命名窗口不再被静默丢弃（WI1 遗留不对称的消除证明）
+        io.nop.orm.eql.ast.SqlProgram program = new io.nop.orm.eql.parse.EqlASTParser().parseFromText(null,
+                "select sum(a) over (partition by b order by c "
+                        + "rows between unbounded preceding and current row) from AppUser o");
+        String eqlText = program.toSqlString();
+        assertTrue(eqlText.contains("rows between unbounded preceding and current row"), eqlText);
+        assertTrue(eqlText.contains("partition by"), eqlText);
+
+        program = new io.nop.orm.eql.parse.EqlASTParser().parseFromText(null,
+                "select sum(a) over w from AppUser o window w as (partition by o.name order by o.id)");
+        eqlText = program.toSqlString();
+        assertTrue(eqlText.contains("over w"), eqlText);
+        assertTrue(eqlText.contains("window w as"), eqlText);
+    }
+
+    @Test
+    public void testWindowFrameRangeOffGroupsOnGate() {
+        // RANGE 关态（补三单位双态覆盖）
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(true, false, true),
+                        "select row_number() over (order by o.id range between 5 preceding and 5 following) from AppUser o"));
+        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
+        assertEquals("supportWindowFrameRange", e.getParam("feature"));
+        // GROUPS 开态（补三单位双态覆盖）
+        ICompiledSql compiled = compile(windowContext(true, false, true),
+                "select row_number() over (order by o.id groups 1 preceding) from AppUser o");
+        assertTrue(compiled.getSql().getText().contains("groups 1 preceding"), compiled.getSql().getText());
+    }
+
+    @Test
+    public void testWindowFrameAndWithoutBetweenRejected() {
+        // WI1 已裁定行为：AND 第二边界必须与 BETWEEN 成对，parse 后 build 阶段 fail-fast（pre-green 回归钉）
+        NopException e = assertThrows(NopException.class,
+                () -> compile(windowContext(true, true, true),
+                        "select row_number() over (order by o.id rows 1 preceding and 1 following) from AppUser o"));
+        assertEquals(ERR_EQL_INVALID_WINDOW_FRAME.getErrorCode(), e.getErrorCode());
     }
 }

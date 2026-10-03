@@ -236,6 +236,13 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitSqlTumbleTableSource_ex(EqlParser.SqlTumbleTableSource_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -251,6 +258,13 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -671,6 +685,55 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitSqlPartitionByItems_(EqlParser.SqlPartitionByItems_Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowFrame(EqlParser.SqlWindowFrameContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowFrameUnit_(EqlParser.SqlWindowFrameUnit_Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowFrameBound(EqlParser.SqlWindowFrameBoundContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowFrameBoundType_(EqlParser.SqlWindowFrameBoundType_Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowClause(EqlParser.SqlWindowClauseContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowDeclItems_(EqlParser.SqlWindowDeclItems_Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlWindowDecl(EqlParser.SqlWindowDeclContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

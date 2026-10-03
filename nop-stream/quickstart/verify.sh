@@ -51,5 +51,10 @@ fi
 echo "[verify] 在生成的工程上执行 mvn test ..."
 "$MVNW" -f "$DEST/pom.xml" test
 
-echo "[verify] OK — 脚手架端到端验证通过：生成 → mvn test → 3 拓扑全绿"
+# 4. SQL quickstart（WI23）：.sql 文件 → <sql> 模型 → 编译 → execute → sink
+echo "[verify] 运行 SQL quickstart（TestStreamSqlQuickstart，nop-stream-sql 模块）..."
+"$MVNW" -f "$REPO_ROOT/pom.xml" test -pl nop-stream/nop-stream-sql \
+    -Dtest='TestStreamSqlQuickstart' -Dsurefire.failIfNoSpecifiedTests=false
+
+echo "[verify] OK — 脚手架端到端验证通过：生成 → mvn test → 3 拓扑全绿 + SQL quickstart"
 echo "[verify] 生成工程保留在: $DEST"

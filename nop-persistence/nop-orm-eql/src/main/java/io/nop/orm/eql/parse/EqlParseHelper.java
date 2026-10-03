@@ -11,6 +11,9 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.orm.eql.ast.SqlIntervalExpr;
+import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.parse.antlr.EqlParser;
 import org.antlr.v4.runtime.Token;
@@ -19,6 +22,7 @@ import static io.nop.antlr4.common.ParseTreeHelper.loc;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_VALUE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_BIT_LITERAL;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_HEX_LITERAL;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_INTERVAL_VALUE;
 import static io.nop.xlang.XLangErrors.ARG_OP;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_UNSUPPORTED_OP;
 
@@ -49,6 +53,65 @@ public class EqlParseHelper {
         if (text.startsWith("X\'") || text.startsWith("x\'"))
             return text.substring(2, text.length() - 1);
         throw new NopException(ERR_EQL_INVALID_HEX_LITERAL).param(ARG_VALUE, text).loc(loc(node));
+    }
+
+    /**
+     * WI17: extracts a positive duration in milliseconds from an {@code INTERVAL
+     * <n> <unit>} literal (the TUMBLE pseudo-table function's window size). The
+     * value must be an integer literal and the unit must have a fixed millis
+     * duration: MICROSECOND is accepted only when the value is a whole number of
+     * millis; calendar units MONTH/QUARTER/YEAR have no fixed millis duration and
+     * fail fast (a stream window size can never depend on the calendar).
+     * Non-literal, non-integral, zero and negative values all fail fast with
+     * {@code nop.err.eql.invalid-interval-value} — never a silent approximation.
+     */
+    public static long intervalDurationMillis(SqlIntervalExpr expr) {
+        if (expr == null || !(expr.getExpr() instanceof SqlNumberLiteral))
+            throw invalidInterval(expr);
+        String text = ((SqlNumberLiteral) expr.getExpr()).getValue();
+        long value;
+        try {
+            value = Long.parseLong(text.trim());
+        } catch (NumberFormatException e) {
+            throw invalidInterval(expr);
+        }
+        if (value <= 0)
+            throw invalidInterval(expr);
+        SqlIntervalUnit unit = expr.getIntervalUnit();
+        if (unit == null)
+            throw invalidInterval(expr);
+        switch (unit) {
+            case MICROSECOND:
+                if (value % 1000 != 0)
+                    throw invalidInterval(expr);
+                return value / 1000;
+            case SECOND:
+                return value * 1000L;
+            case MINUTE:
+                return value * 60_000L;
+            case HOUR:
+                return value * 3_600_000L;
+            case DAY:
+                return value * 86_400_000L;
+            case WEEK:
+                return value * 604_800_000L;
+            default:
+                // MONTH / QUARTER / YEAR: calendar-dependent, no fixed duration
+                throw invalidInterval(expr);
+        }
+    }
+
+    static NopException invalidInterval(SqlIntervalExpr expr) {
+        String value;
+        if (expr == null) {
+            value = "null";
+        } else {
+            String num = expr.getExpr() instanceof SqlNumberLiteral
+                    ? ((SqlNumberLiteral) expr.getExpr()).getValue()
+                    : String.valueOf(expr.getExpr());
+            value = "INTERVAL " + num + " " + expr.getIntervalUnit();
+        }
+        return new NopException(ERR_EQL_INVALID_INTERVAL_VALUE).param(ARG_VALUE, value);
     }
 
     static NopException error(ErrorCode err, SourceLocation loc) {

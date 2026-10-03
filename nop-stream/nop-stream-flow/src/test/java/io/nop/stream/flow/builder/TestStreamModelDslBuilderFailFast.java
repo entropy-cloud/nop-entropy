@@ -53,8 +53,17 @@ public class TestStreamModelDslBuilderFailFast {
     }
 
     @Test
-    public void unionTransformThrowsUnsupportedOperationException() {
-        assertFailFast("<union id=\"u\"/>", "union");
+    public void unionTransformWithoutUpstreamFailsFast() {
+        // WI6: <union> now builds a real multi-input merge; an orphan union with no
+        // upstream edge still fails fast, but with ERR_STREAM_INVALID_ARG (not the
+        // former ERR_STREAM_NOT_IMPLEMENTED runtime-gap code).
+        StreamModel model = parseInline("<union id=\"u\"/>", "");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString(),
+                () -> "Orphan union must fail with ERR_STREAM_INVALID_ARG: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("union"),
+                "Exception should mention union: " + ex.getMessage());
     }
 
     @Test
@@ -83,10 +92,22 @@ public class TestStreamModelDslBuilderFailFast {
     }
 
     @Test
-    public void schemasRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast(
-                "<schemas><schema id=\"s1\"><fields><field name=\"a\" type=\"string\"/></fields></schema></schemas>",
-                "<schemas>");
+    public void schemasRegistryIsConsumedByBuilder() {
+        // WI8b: <schemas> 有消费者——合法受管类型名可 build，未知类型首错即抛
+        StreamModel model = parseInline("",
+                "<schemas><schema id=\"s1\"><fields>"
+                        + "<field name=\"a\" type=\"string\"/>"
+                        + "<field name=\"b\" type=\"bigint\" nullable=\"true\"/>"
+                        + "</fields></schema></schemas>");
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver());
+        builder.build();
+
+        StreamModel bad = parseInline("",
+                "<schemas><schema id=\"s1\"><fields><field name=\"a\" type=\"varchar2\"/></fields></schema></schemas>");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(bad, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString(),
+                () -> "Unknown managed type must fail with ERR_STREAM_INVALID_ARG: " + ex.getMessage());
     }
 
     @Test
