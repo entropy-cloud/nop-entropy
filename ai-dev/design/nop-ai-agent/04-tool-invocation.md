@@ -162,3 +162,9 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 **锁粒度裁定**：manager 实例级全局（跨 session 保守——同进程写同一文件本就应互斥）。与 callTools 面的 Semaphore 叠加语义：排队占 permit 至真实完成，同路径队列可耗尽 permit 预算推迟异路径调用（吞吐公平性，无死锁——permit 释放只依赖工具完成，单锁无嵌套）。
 
 **已知 residual**：路径键不规范化（a/b.txt 与 ./a/b.txt 视为不同键）；带 path 参数且同步等待嵌套同路径 callTool 的自定义工具自死锁（现网无此形态，登记为自定义工具契约限制）；提取失败（畸形输入）=不串行的文档化降级。
+
+## deferred 工具引入裁定（WI18，plan 2299）
+
+**裁定：移出（不做）。** pi-D7 建议1（工具结果声明 addedTools 下一轮激活）与前缀缓存稳定目标的冲突是结构性的：nop 每轮经 buildToolDefinitions 重算工具面（AgentPromptAssembly.java:277），provider 端有效 prompt 的 tools 段先于 system/messages（AnthropicDialect.java:260-275、OpenAiDialect.java:166），断点命中要求 tools 段逐字节一致——结果驱动的自动激活 = 定义面中途变化 = 其后全部断点失效，与 WI20/autonomous WI1 的缓存经济学正面冲突（长会话大定义面下净负）。用例已被既有 activeTags 运行时切换（plan 296 set-active-tags，用户或模型显式调用）覆盖——显式调用事件的低频失效作为被接受的显式成本，与 pi 式结果隐式声明的高频自动激活性质不同。append-only 激活的缓解力有限（追加仍使 system/messages 缓存键前缀失配，仅 tools 段内部断点幸存）；pi 实现依赖 Anthropic 原生 defer_loading（provider 专属 beta、五 dialect 不可移植）。pi-D7 维度总裁定"nop 领先"；建议2（路径串行）已由 WI17 落地，建议3（throw 表失败约定）属工具开发规范类，归 error-handling/开发规范通道另行处理（非本 roadmap 项）。
+
+**重启条件**：生产负载实测工具面常驻 token 为可测量问题 且 以下之一成立——(a) provider 对 tools block 追加的前缀缓存行为完成实测验证；(b) 评估 provider 原生 defer_loading 透传形态（接受 provider 专属与可移植性代价）。失效对齐激活（仅在 compaction/fork 等本就失效的边界激活）经评估属 activeTags 已覆盖的显式低频类，不构成独立重启理由。
