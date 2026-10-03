@@ -132,6 +132,20 @@ public class AgentCompactionCoordinator {
                 ctx.getMessages().clear();
                 ctx.getMessages().addAll(result.getCompactedMessages());
                 ctx.setTokensUsed(ctx.getTokensUsed() - (result.getTokensBefore() - result.getTokensAfter()));
+
+                // Plan 2296 (WI15): enrich THIS round's produced entry with the
+                // coordinator-owned dimensions (snapshotId of the archived
+                // original + shadowed count) by identity reference — never by
+                // scanning the history, where older already-enriched entries
+                // survive Micro/Layer2 rounds and a scan would mis-stamp them.
+                // Happens before the re-sync save below, so the entry is first
+                // persisted in its enriched form.
+                io.nop.ai.api.chat.messages.ChatCompactionMessage producedEntry = result.getProducedEntry();
+                if (producedEntry != null) {
+                    producedEntry.setSnapshotId(snapshotId);
+                    producedEntry.setShadowedTokenCount(result.getShadowedTokenCount());
+                }
+
                 LOG.info("Context compacted: tokens {} -> {}, messages {} -> {} (snapshotId={}) for session {}",
                         result.getTokensBefore(), result.getTokensAfter(),
                         result.getOriginalSize(), result.getCompactedSize(),

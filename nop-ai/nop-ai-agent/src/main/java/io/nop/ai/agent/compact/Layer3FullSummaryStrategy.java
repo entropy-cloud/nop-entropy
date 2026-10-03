@@ -5,6 +5,7 @@ import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.messages.ChatCompactionMessage;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
@@ -186,7 +187,16 @@ public class Layer3FullSummaryStrategy implements ICompressionStrategy {
         }
 
         String summaryContent = response.outputText().trim();
-        ChatUserMessage summaryMessage = new ChatUserMessage(SUMMARY_MARKER + "\n" + summaryContent);
+        // Plan 2296 (WI15): typed compaction entry replaces the former bare
+        // ChatUserMessage(SUMMARY_MARKER...) — the entry IS-A ChatUserMessage
+        // (dialects / summary detection unchanged) and additionally carries the
+        // compaction measurements as the in-history authoritative record. The
+        // coordinator enriches snapshotId/shadowedTokenCount on this exact
+        // instance (CompactionResult.producedEntry identity reference).
+        ChatCompactionMessage summaryMessage = new ChatCompactionMessage(SUMMARY_MARKER + "\n" + summaryContent);
+        summaryMessage.setTokensBefore(tokensBefore);
+        summaryMessage.setCompactionLayer(NAME);
+        summaryMessage.setCompactedAt(io.nop.api.core.time.CoreMetrics.currentTimeMillis());
 
         List<ChatMessage> result = new ArrayList<>();
         for (int i = 0; i < headEndIndex; i++) {
@@ -200,13 +210,22 @@ public class Layer3FullSummaryStrategy implements ICompressionStrategy {
         Layer2TurnPruningStrategy.assertBoundaryIntegrity(result);
 
         long tokensAfter = estimator.estimateTokens(result);
+        // Real history sizes (not the legacy constructor's retained-count
+        // proxy) so the authoritative entry never fixes the coordinator-log
+        // "messages N->N" distortion into the record.
+        summaryMessage.setOriginalSize((long) messages.size());
+        summaryMessage.setCompactedSize((long) result.size());
+        summaryMessage.setTokensAfter(tokensAfter);
+
         boolean incremental = previousSummary != null;
         LOG.info("Layer 3 {} summary produced: tokens {} -> {}, messages {} -> {}. session={}",
                 incremental ? "incremental" : "initial", tokensBefore, tokensAfter,
                 messages.size(), result.size(), ctx.getSessionId());
 
         return new CompactionResult(ctx.getSessionId(), tokensBefore, tokensAfter,
-                result.size(), null, result);
+                result.size(), null, result,
+                messages.size(), result.size(), Math.max(0, tokensBefore - tokensAfter),
+                summaryMessage);
     }
 
     static String findPreviousSummary(List<ChatMessage> messages) {

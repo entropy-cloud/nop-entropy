@@ -517,6 +517,16 @@ Session 加载
 | NopAiTodo | 中 | ~0.5 KB | ~2 KB |
 | NopAiEvent | 高（异步） | ~1 KB | ~50 KB |
 
+## 压缩产物条目化（WI15，plan 2296）
+
+**裁定**：新增 `ChatCompactionMessage extends ChatUserMessage`（nop-ai-api，`@JsonSubTypes` 注册名 `"compaction"`，`getRole()="compaction"` 对齐 ORM role=30 语义）作为 session 历史内压缩事实的**唯一权威记录**——summary 全文（仍带 `SUMMARY_MARKER` 前缀，Layer3 探测协议双形态兼容）+ tokensBefore/After（与 CompactionResult 同源同值）+ 真实 originalSize/compactedSize + shadowedTokenCount + snapshotId + 层名 + 时间。四方职责边界：条目=历史内事实；COMPACTION checkpoint=恢复水位（短计量串，不承载 summary 全文）；snapshot archive=压缩前原文（条目持 snapshotId 指针，原文单点存放）；COMPACTION 事件=瞬态通知——无双真相源。
+
+**形态**：继承 ChatUserMessage（非平级子类型）——压缩 summary 本质是"模型应看到的上下文内容"，子类化后 dialect 请求构建（全部只读 content，扩展字段不外发）、`instanceof ChatUserMessage` 分支、summary 探测零改动兼容。**覆写 copy()**（不覆写则任何 copy 路径静默降级为伪 user 消息）。pi-D9 建议2 部分吸收：只落 compaction 一个条目类型（唯一有真实消费缺口的），通用条目判别联合改造裁定不吸收。
+
+**富化协议**：Layer3 产出条目（snapshotId/shadowed 为 null）经 `CompactionResult.producedEntry` 身份引用携出，`PipelineCompactor` 末次构造透传（最后生效层中最新非 null 引用——条目在后续有效层的列表拷贝中存活），`AgentCompactionCoordinator` 在生效分支对 producedEntry 富化 snapshotId+shadowedTokenCount（re-sync save 之前，首次持久化即富化形态）。**禁止扫描式富化**：Micro/Layer2 生效轮历史旧条目存活，扫描必错挂本轮 snapshotId（round 1 审查 Blocker）。
+
+**迁移说明（additive）**：新构建读旧历史零破坏（marker user 消息照常探测）；旧构建读新条目抛 InvalidTypeIdException（`type:"compaction"` 未注册）——回滚需接受 load 失败或清理 session。已知语义漂移（非断言面）：LlmCompletionJudge/Layer3 中间窗渲染中条目标签 `[user]`→`[compaction]`。
+
 ## 工具执行 checkpoint 水位约定（WI6，plan 2287）
 
 相位化 TOOL_EXECUTION checkpoint 的 watermark 格式：`{sessionId}:tool:{callId}:{PHASE}:{execStartTime}:{seq}`（sessionId 为 null 时 `anon:` 前缀）。约束：checkpointSeq 是 per-ExecutionState（restore 后从 0 重计），跨执行唯一性靠 execStartTime 段；DB checkpoint 表以 watermark 为主键、append-only INSERT（重复主键上抛）。相位段（`[phase:DISPATCHED]`/`[phase:EXECUTING]`）为相位唯一权威载体；无相位段 = 终态。恢复侧消费见 `nop-ai-agent-reliability.md` 相位裁决节与 `nop-ai-agent-async-tool-execution.md` §三.2 不变量③（committed 集合仅计终态）。
