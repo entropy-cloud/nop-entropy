@@ -78,9 +78,9 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 三查询双路测试齐备且实跑绿（集相等/终态+D1 标注/T1 标注）
+- [x] 三查询双路测试齐备且实跑绿（集相等/终态+D1 标注/T1 标注）
 - [x] sql 模块全量零退化（78 绿）
-- [ ] docs-for-ai 标注落档
+- [x] docs-for-ai 标注落档
 - [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
 - [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/28-wi20-dual-target-consistency.md --strict` 退出码 0
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
