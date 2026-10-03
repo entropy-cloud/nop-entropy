@@ -13,14 +13,14 @@
 ## Current Baseline（2026-10-03 实测）
 
 - WI17 交付 StreamSqlCompiler（流路）+ `EqlASTParser.parse(...).toSQL()`（RDBMS 通道，orm-eql 既有 API；TUMBLE 表源 ORM 通道 table-source-not-resolved fail-fast——round-trip 不对称在案）；nop-stream-sql pom 已有 H2 test 依赖（WI17 加入）。
-- orders stub fixture 七记录定数（1000/a/1、2000/b/2、3000/a/null、4000/a/3、11000/b/4、12000/a/-5、17000/c/1）——含 NULL 与负数，三值逻辑天然对拍。
+- orders stub fixture 七记录定数（1000/a/1、2000/b/2、3000/a/null、4000/a/3、11000/b/4、12000/a/-5、17000/c/1）——含 NULL 与负数，三值逻辑天然对拍。三测试类拆分：一 execute 一类限制（plan 13 先例）——Consistency（聚合执行）/FilterConsistency（过滤执行）/TumbleStreamOnly（仅编译无 execute）。
 - WI17 E2E 已钉流路行为：过滤查询 [a=1,a=3,b=2,b=4,c=1]、持续聚合运行序列（a 三次 emit，D1 非 append-only 实证）、TUMBLE 窗口聚合。
 
 ## Goals
 
 - `TestDualTargetConsistency`（nop-stream-sql）三查询：
   1. **过滤投影查询**（SELECT item, amount FROM orders WHERE amount > 0）：流路 sink 结果集 == H2 实跑 toSQL() 结果集（含 NULL 三值逻辑对拍——NULL 行两侧都被排除）。
-  2. **持续聚合查询**（SELECT item, sum(amount) AS total FROM orders GROUP BY item）：H2 分组和（a=4,b=6,c=1）== 流路**终态** per-group 值；**D1 显式标注**——流路对 key a 发射多次运行值（非 append-only 实证断言：a 的 emit 次数 > 1），仅终态可比。
+  2. **持续聚合查询**（SELECT item, sum(amount) AS total FROM orders GROUP BY item，无 WHERE——全部七记录参与）：H2 分组和（终态 a=-1,b=6,c=1——含 -5 记录）== 流路**终态** per-group 值；**D1 显式标注**——流路对 key a 发射四次运行值（1,1,4,-1，null 记录重发运行值；非 append-only 实证断言：a 的 emit 次数 > 1），仅终态可比。
   3. **TUMBLE 查询**（W2）：流路编译+执行成功；RDBMS 目标按 §4c **T1 直通标注 stream-only**（无 H2 对照——外部数据库无原生等价，未在本仓库验证；文档标注义务）。
 - D15 口径：默认 H2 实跑；其余方言 opt-in 未跑——交付说明标注。
 

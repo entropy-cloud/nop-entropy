@@ -48,8 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </ul>
  *
  * <p><b>D1=(a) explicit semantic annotation (non-append-only)</b>: the stream
- * target emits the RUNNING aggregate value per record — key "a" is emitted three
- * times (1, then null-skip, then 4) while H2 returns only the final group sums.
+ * target emits the RUNNING aggregate value per record — key "a" is emitted four
+ * times (1, 1 on the null re-emit, 4, then -1 after the -5 record) while H2
+ * returns only the final group sums (a=-1: 1+3-5).
  * Only the FINAL value per group is comparable; this test asserts the multi-emit
  * (the non-append-only evidence) AND the final-state equality.
  *
