@@ -93,6 +93,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_FULL_JOIN;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
@@ -578,6 +579,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             boolean hasCondition = source.getCondition() != null;
             visitJoinLeft(tableScope, source);
+            // WI2 BUG-6: 门在左源解析后、右源遍历前触发。方言实例要到首个实体解析
+            // （addResolvedEntity → context.getDialectForQuerySpace）才确定，头部触发
+            // 时 dialect 尚为 null；左源（实体/嵌套 join/子查询）遍历完成后方言必然
+            // 就绪且与后续生成用同一实例。仍先于 visitJoinRight 的条件校验
+            // （ERR_EQL_JOIN_NO_CONDITION）与右侧任何解析错误；每个 join 节点恰过门一次
+            // （嵌套 join 经 visitJoinLeft 递归回本分支）。
+            checkJoinTypeFeature(source);
             visitJoinRight(tableScope, source);
 
             if (hasCondition) {
@@ -588,6 +596,19 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             }
             addTableFilterForJoin(source);
         }
+    }
+
+    /**
+     * WI2 BUG-6: `full [outer] join` 编译期能力门（裁定=独立私有方法，挂
+     * {@code visitTableSource} 的 SqlJoinTableSource 转换遍历点，仿
+     * {@link #checkWindowFrameFeature(SqlWindowFrame)} 的调用形态）。
+     * 不支持时响亮报错，绝不静默改写或丢弃 join 类型。
+     */
+    private void checkJoinTypeFeature(SqlJoinTableSource source) {
+        if (source.getJoinType() == SqlJoinType.FULL_JOIN && !dialect.isSupportFullJoin())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_FULL_JOIN);
     }
 
     void addTableFilterForJoin(SqlJoinTableSource source) {

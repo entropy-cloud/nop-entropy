@@ -101,6 +101,15 @@ public interface IDialect extends IComponentModel {
     boolean isSupportLateral();
 
     /**
+     * WI2 BUG-6: 是否支持 `full join`/`full outer join` 表源。已确认无 FULL JOIN 的
+     * 只有 MySQL/MariaDB（TDengine 自 3.3.0.0 起支持、MSSQL 支持 FULL OUTER JOIN，
+     * 继承 default 的 true）。未配置或配置为 false 时 EQL 编译期对含 full [outer] join
+     * 的查询报 `nop.err.eql.dialect-not-support-feature`
+     * （feature=supportFullJoin），而不是静默产出目标库不支持的 SQL。
+     */
+    boolean isSupportFullJoin();
+
+    /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *
      * @return

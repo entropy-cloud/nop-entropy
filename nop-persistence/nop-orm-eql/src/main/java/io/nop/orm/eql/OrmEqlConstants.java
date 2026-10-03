@@ -24,6 +24,8 @@ public interface OrmEqlConstants {
 
     String FEATURE_SUPPORT_RETURNING_FOR_UPDATE = "supportReturningForUpdate";
     String FEATURE_SUPPORT_LATERAL = "supportLateral";
+    // WI2 BUG-6: full [outer] join 编译期能力门
+    String FEATURE_SUPPORT_FULL_JOIN = "supportFullJoin";
     String FEATURE_SUPPORT_WINDOW_FRAME_ROWS = "supportWindowFrameRows";
     String FEATURE_SUPPORT_WINDOW_FRAME_RANGE = "supportWindowFrameRange";
     String FEATURE_SUPPORT_WINDOW_FRAME_GROUPS = "supportWindowFrameGroups";

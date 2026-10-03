@@ -127,7 +127,8 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | PostgreSQL 支持 |
 | `supportSequence` | 是否支持数据库序列 | Oracle 支持，MySQL 不支持 |
 | `supportReturningForUpdate` | UPDATE 是否支持 `RETURNING` 子句 | PostgreSQL 支持 |
-| `supportFullJoin` / `supportRightJoin` | 是否支持 FULL / RIGHT JOIN | 部分数据库不支持 |
+| `supportFullJoin` | 是否支持 `FULL JOIN`/`FULL OUTER JOIN` 表源 | MySQL/MariaDB 显式 `false`（已确认无 FULL JOIN，roadmap WI7b 证据）；TDengine ≥3.3.0.0、MSSQL、PG、H2 等继承 default 的 `true` `[文档]`。已接线编译期门（见下文 FULL JOIN 小节） |
+| `supportRightJoin` | 是否支持 RIGHT JOIN | 部分数据库不支持（该标志**尚未接线**，accessor 补齐与纠错归 WI3） |
 | `supportLateral` | 是否支持 `LATERAL` 子查询表源 | MySQL 8.0.14+/PG/DuckDB 支持；未配置 = 保守 false（编译期报错） |
 | `supportWithAsClause` | 是否支持 CTE（WITH AS） | MySQL 8.0+ 支持 |
 | `supportBatchUpdate` | 是否支持批量更新 | 大部分数据库支持 |
@@ -168,6 +169,25 @@ EQL 的 `expr like 'a!%' escape '!'` 会把 escape 字符解析进 AST 并在生
 - **字符串字面量**：回显维持 `escapeSql(value, false)` 的 `''` 双写形，与执行路径 `escapeSlash=false` 方言的 `getStringLiteral` 渲染一致。已知既有缺口（非回显缺陷）：EQL parse 层 `EqlParseHelper.stringLiteralValue` 只 unescape 反斜杠形态、不 un-double `''`（lexer 的 `STRING_` 规则接受 `''` 但值层不还原），故含引号值的回显文本重解析后值含字面 `''`——已登记 WI2 plan Non-Blocking Follow-up，修它属 parse 语义变更需另行立项。
 
 无方言门（roadmap BUG-4 明令"无需方言门"）。回归测试：`TestEqlSelectAllLimitEcho`（回显 7 例，含 round-trip）、`TestEqlSelectAllLimitCompile`（执行路径不变 + 单 LIMIT 断言）。
+
+### `FULL JOIN` 表源与 `supportFullJoin` 编译期门（2026-10-03 WI2 BUG-6）
+
+`full join` 与 `full outer join` 均可解析（文法 `fullJoin_: FULL OUTER? JOIN`，修复前 `full outer join` 解析失败）；回显路径无条件输出 `full join`（`SqlJoinType.FULL_JOIN.getText()`，OUTER 不回显——与 left/right outer join 的既有回显同族）。执行路径经编译期能力门：`EqlTransformVisitor.checkJoinTypeFeature` 在 join 表源转换遍历点消费 `dialect.isSupportFullJoin()`，`false` 时编译期报错 `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`）——**绝不静默改写或丢弃 join 类型**（该标志修复前是零消费死标志：文法不认 `OUTER`、accessor 不存在）。
+
+接线链：`mysql.dialect.xml`/`mariadb.dialect.xml` 显式 `supportFullJoin="false"`（两家已确认无 FULL JOIN，roadmap WI7b 证据；mariadb 显式化取自文档性，运行时值与继承相同）→ `DialectFeatures`（xdef 已声明、生成基类已有 getter，零生成）→ `IDialect.isSupportFullJoin()`/`DialectImpl`（`Boolean.TRUE.equals(...)`，照 window frame 先例）→ 编译期门。`default.dialect.xml` 的 `true` 不动：TDengine ≥3.3.0.0、MSSQL（`FULL OUTER JOIN`）等确认支持者继承它。
+
+能力矩阵（证据等级逐行标注）：
+
+| 方言 | `supportFullJoin` | 证据等级 |
+|------|-------------------|---------|
+| MySQL | `false`（显式） | `[文档]`（无 FULL JOIN 语法） |
+| MariaDB | `false`（显式） | `[文档]` |
+| TDengine | `true`（继承 default） | `[文档]`（3.3.0.0 起支持） |
+| MSSQL | `true`（继承 default） | `[文档]`（支持 `FULL OUTER JOIN`） |
+| PostgreSQL / H2 / DuckDB / Oracle | `true`（继承 default） | `[文档]` |
+| DB2 / DM8 | `true`（继承 default，未逐库复核 FULL JOIN 语法） | `[unverified]` |
+
+回归测试：`TestEqlFullJoinParse`（解析红→绿 + `full join` 既有形态守护）、`TestEqlFullJoinDialectGate`（负向错误码 + feature param、嵌套过门、flag 两值行为分叉=接线验证）、`TestDialectFullJoinFlag`（nop-dao，XML→accessor 链逐方言断言）。
 
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 
@@ -212,6 +232,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | 集合下标表达式 | `AstToEqlGenerator.visitSqlCollectionAccessExpr`（echo/执行同门） | 无 lowering 通路（语义不支持翻译） | `nop.err.eql.collection-access-not-support` | `TestEqlCollectionAccessError` |
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
+| FULL JOIN 表源 | `EqlTransformVisitor.checkJoinTypeFeature`（join 表源转换遍历点） | `supportFullJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`） | `TestEqlFullJoinDialectGate`、`TestDialectFullJoinFlag` |
 | ILIKE+ESCAPE 组合 | `AstToSqlGenerator.visitSqlLikeExpr` | 函数改写通路无挂载点（无方言门） | `nop.err.eql.dialect-not-support-feature`（`feature=ilike+escape`） | `TestEqlLikeEscapeSql.testIlikeWithEscapeExplicitlyRejected` |
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate` | `nop.err.eql.dialect-not-support-feature` | `TestEqlCompileSql.testUpdateReturningAllChecksDialect` |

@@ -144,29 +144,29 @@ Exit Criteria:
 
 ### Phase 2 - BUG-6 `full outer join` + `supportFullJoin` 全链接线（.g4，单独提交）
 
-Status: planned
+Status: completed（2026-10-03）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`fullJoin_` `:181-182`）、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/mysql.dialect.xml`（与 `mariadb.dialect.xml` 按 Phase 0 裁定）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java`（按 Phase 0 裁定的消费点）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/OrmEqlConstants.java`、`nop-orm-eql`/`nop-dao` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Fix`（`OUTER?` 解析缺口）、`Feature`（`supportFullJoin` 接线——存量死标志转活，非新增 flag）、`Decision`（消费点与 XML 值，Phase 0 已裁定）、`Proof`
 
-- [ ] 修复前红：`select … from a full outer join b on …` 断言可解析——修复前解析失败，断言红；`full join`（无 OUTER）既有行为守护：仍可解析且输出不变。
-- [ ] 文法补 `OUTER?`：`fullJoin_: FULL OUTER? JOIN`，与 `leftJoin_`/`rightJoin_`（`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4:184-188`）形态对齐；**不新增/删除任何 token**。文法改动**单独提交**，重生成产物随该提交。
-- [ ] `supportFullJoin` 接线：`IDialect.isSupportFullJoin()`（照 `IDialect.java:89-93` 先例）+ `DialectImpl` 实现（照 `DialectImpl.java:287-297` 的 `Boolean.TRUE.equals(dialectModel.getFeatures().getSupportFullJoin())` 形态）。**零生成**：不改 `dialect.xdef`、不改 retention 类、不改冻结的 `_DialectFeatures`。
-- [ ] 能力门消费（按 Phase 0 裁定的方法名与挂载点落地，默认照 `checkWindowFrameFeature` 先例）：`supportFullJoin=false` 的方言编译含 `full [outer] join` 的查询 → 编译期报错（`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `FEATURE_SUPPORT_FULL_JOIN` 常量，断言错误码与 param）；`true` 时正常输出 `full join` 文本（`SqlJoinType.FULL_JOIN.getText()` 经 `AstToEqlGenerator.java:630` 既有路径）。
-- [ ] 方言 XML 落位：`mysql.dialect.xml` 显式 `supportFullJoin="false"`（mariadb 按 Phase 0 裁定）；`default.dialect.xml:23` 的 `true` 不动（TDengine/MSSQL 等确认支持者继承它，roadmap WI7b 节证据）。
-- [ ] 接线验证（Minimum Rules #23）：同一查询在 `supportFullJoin` 两个取值下行为不同（XML 值 → features → accessor → 门行为，一个测试证明运行时连通，非仅 accessor 存在）。
-- [ ] owner doc：`eql-and-database-compatibility.md` 的 FULL JOIN 能力面登记（`supportFullJoin` 不再是零消费死标志；MySQL/MariaDB=false 的证据行标 `[文档]`），并核对 roadmap BUG-12 四处失真清单中 `:111` 行（`supportFullJoin`/`supportRightJoin` "部分数据库不支持"表述）与本 plan 改动的衔接——`:111` 行的完整纠错归 WI3，本 plan 只保证不引入新失真。
+- [x] 修复前红：`select … from a full outer join b on …` 断言可解析——修复前解析失败，断言红；`full join`（无 OUTER）既有行为守护：仍可解析且输出不变。（红证据实测：`TestEqlFullJoinParse` 2 错（`parse-fail expected=JOIN offendingToken=outer`，实体/裸表两形态）；`full join`/natural 守护 2 绿。）
+- [x] 文法补 `OUTER?`：`fullJoin_: FULL OUTER? JOIN`，与 `leftJoin_`/`rightJoin_`（`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4:184-188`）形态对齐；**不新增/删除任何 token**。文法改动**单独提交**，重生成产物随该提交。（重生成仅 `EqlParser.java`/`Eql.interp` ATN 状态，零 token 增删、`ast/_gen` 零 diff；OUTER/FULL 均关键字 token 无别名歧义。）
+- [x] `supportFullJoin` 接线：`IDialect.isSupportFullJoin()`（照 `IDialect.java:89-93` 先例）+ `DialectImpl` 实现（照 `DialectImpl.java:287-297` 的 `Boolean.TRUE.equals(dialectModel.getFeatures().getSupportFullJoin())` 形态）。**零生成**：不改 `dialect.xdef`、不改 retention 类、不改冻结的 `_DialectFeatures`。（实测零生成面成立。）
+- [x] 能力门消费（按 Phase 0 裁定的方法名与挂载点落地，默认照 `checkWindowFrameFeature` 先例）：`supportFullJoin=false` 的方言编译含 `full [outer] join` 的查询 → 编译期报错（`ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE` + `FEATURE_SUPPORT_FULL_JOIN` 常量，断言错误码与 param）；`true` 时正常输出 `full join` 文本（`SqlJoinType.FULL_JOIN.getText()` 经 `AstToEqlGenerator.java:630` 既有路径）。（门方法 `checkJoinTypeFeature(SqlJoinTableSource)` 按裁定定名；**挂载点执行期修订**=分支头部→`visitJoinLeft` 之后、`visitJoinRight` 之前：方言实例要到首个实体解析（`addResolvedEntity`）才确定，头部触发实测 NPE；保留每节点恰过门一次/先于右侧错误/方言与生成同实例三性质，已回写裁定文档 §三。）
+- [x] 方言 XML 落位：`mysql.dialect.xml` 显式 `supportFullJoin="false"`（mariadb 按 Phase 0 裁定）；`default.dialect.xml:23` 的 `true` 不动（TDengine/MSSQL 等确认支持者继承它，roadmap WI7b 节证据）。（mysql+mariadb 双显式 false（裁定 §五）；XML 为独立可 revert 提交。）
+- [x] 接线验证（Minimum Rules #23）：同一查询在 `supportFullJoin` 两个取值下行为不同（XML 值 → features → accessor → 门行为，一个测试证明运行时连通，非仅 accessor 存在）。（`TestEqlFullJoinDialectGate.testFlagValueReallyChangesCompileBehavior`（手构两值方言同查询分叉）+ `TestDialectFullJoinFlag`（nop-dao 真实 XML→accessor 链逐方言断言）合成完整链。）
+- [x] owner doc：`eql-and-database-compatibility.md` 的 FULL JOIN 能力面登记（`supportFullJoin` 不再是零消费死标志；MySQL/MariaDB=false 的证据行标 `[文档]`），并核对 roadmap BUG-12 四处失真清单中 `:111` 行（`supportFullJoin`/`supportRightJoin` "部分数据库不支持"表述）与本 plan 改动的衔接——`:111` 行的完整纠错归 WI3，本 plan 只保证不引入新失真。（特性表两标志行拆分：`supportFullJoin` 已接线+矩阵证据，`supportRightJoin` 显式标注未接线归 WI3；新增 FULL JOIN 小节 + 登记表行。）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体行为（`full outer join` 可解析；`full join` 输出不变；断言具体 SQL 文本）。
-- [ ] 负向用例：MySQL（或 mariadb）方言上 `full outer join` 编译期报错，断言具体错误码与 `ARG_FEATURE=supportFullJoin` param；无静默跳过（`false` 时不得静默改写或丢弃 join 类型）。
-- [ ] 接线验证测试通过（flag 值真实改变编译行为）。
-- [ ] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若快照口径覆盖 features 字段，同步 `mysql`/`mariadb` 的新值）。
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。
-- [ ] owner doc FULL JOIN 登记已落档。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体行为（`full outer join` 可解析；`full join` 输出不变；断言具体 SQL 文本）。
+- [x] 负向用例：MySQL（或 mariadb）方言上 `full outer join` 编译期报错，断言具体错误码与 `ARG_FEATURE=supportFullJoin` param；无静默跳过（`false` 时不得静默改写或丢弃 join 类型）。（手构 false 方言断言错误码+feature param；mysql/mariadb XML=false 值由 nop-dao 链测试钉死，两测试合成"真 mysql 配置值→门行为"连通证明。）
+- [x] 接线验证测试通过（flag 值真实改变编译行为）。
+- [x] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成后 `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。（文法 `feat(nop-orm-eql)` 单独提交；实测两模块 BUILD SUCCESS——nop-orm-eql 212、nop-dao 855。）
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若快照口径覆盖 features 字段，同步 `mysql`/`mariadb` 的新值）。（exit 0；快照 entry 键=extends/functions/loadable/pseudo 无 features 字段，无需同步——执行期核实。）
+- [x] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致。（`TestEqlCorpusBaseline` 随全量运行通过。）
+- [x] owner doc FULL JOIN 登记已落档。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - BUG-7 小写 `date '…'` CCE
 
