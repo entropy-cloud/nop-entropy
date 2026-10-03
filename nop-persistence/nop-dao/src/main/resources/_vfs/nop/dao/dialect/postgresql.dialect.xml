@@ -143,6 +143,8 @@
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+        <!-- WI9a: UUID 原生类型（postgresql.org/docs, 8.17 UUID Type）；postgis 继承本表 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
     <functions>
