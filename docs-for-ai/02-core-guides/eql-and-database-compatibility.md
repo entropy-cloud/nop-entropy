@@ -49,6 +49,25 @@ EQL 的语法可用性 = **grammar 接受度 ∩ 方言能力位 ∩ 方言继�
 
 **frame 能力开关（2026-10-02 WI2）**：frame 三单位分别对应方言能力位 `supportWindowFrameRows` / `supportWindowFrameRange` / `supportWindowFrameGroups`（dialect `<features>` 下发，default.dialect.xml 集中缺省 `false`）；翻译期未启用抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`。各方言启用值以 WI3 实跑矩阵产出为准，勿凭文档宣示开启。**已实测开启（2026-10-02 WI3 实跑矩阵，H2 2.4.240 与 PostgreSQL 16 七组全 PASS）**：h2 与 postgresql 三能力位全开；h2gis（经 h2）、postgis 与 duckdb（经 postgresql）经 x:extends 继承同为全开。 **未开启（frame 查询翻译期 fail-fast，断言覆盖）**：dm、mariadb、mssql、mysql、mysql5.7、oracle 共 6 个。
 
+### 语法溯源：BaseRule.g4 注释态规则（2026-10-03 WI0 核查）
+
+`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 中 4 条 SQL-92 标准函数规则（`positionFunction` / `substringFunction` / `extractFunction` / `trimFunction`，现位于 `:299-314` 注释块）**自首次提交 `aa1b310122`（2022-06-27 "增加antlr解析配置示例"）起即为注释态，从未在本仓库生效过**。git 证据（真实输出摘录）：
+
+```console
+$ git log -S positionFunction --all -- '*BaseRule.g4'
+commit aa1b3101220fe1f215a07a82faa5dd3de884fb96
+Author: canonical <canonical_entropy@163.com>
+Date:   Mon Jun 27 00:02:34 2022 +0800
+
+    增加antlr解析配置示例
+```
+
+`git log -G "positionFunction|trimFunction|extractFunction|convertFunction" --all -- '*BaseRule.g4'` 结果相同（仅命中该 commit，可排除"曾取消注释后又注释"的变体）。使用约束：
+
+- **不得把这 4 条规则当作"EQL 曾正确实现过"的先例** —— 不存在"曾做过又被回退"的历史。将来复活它们（`POSITION`/`SUBSTRING`/`EXTRACT`/`TRIM`）应按新语法设计（WI5 承接），不需要"避免重蹈覆辙"的额外论证。
+- 同一区间内 **`sqlExpr_special`（`:286-289`）是活规则**（`CAST` 语法的挂载点），只是其备选分支中的 `//| extractFunction` 被注释 —— 不要把整段 `:284-314` 当死代码。
+- `STRING` token **不可词法化**：`EqlLexer.java` 与 `EqlParser.java`（`nop-persistence/nop-orm-eql/.../parse/antlr/`）的 token 表在第 81 行分叉 —— parser 侧多出 `STRING=358`（lexer 以 `BIT_NUM_=357` 结束）。该 token 在词法器里不存在，因此引用它的 `characterSet_` 规则（`BaseRule.g4:384-385`）今天永久不可达（详细登记见 EQL 跨库兼容性 roadmap 的 Current Baseline 与 BUG-15 条目）。
+
 ### EQL 常见错误
 
 | 错误码 | 根因 | 修正 |
