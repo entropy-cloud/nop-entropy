@@ -17,6 +17,7 @@ roadmap 门控矩阵对 WI10b 的 Protected Area 判定：**plan-first**（xdef 
 ## Current Baseline
 
 > 所有锚点为**符号定位**（类#方法 / 常量名）。file:line 仅用于截至 commit `777e822ace` 实测时点的参考，WI1-WI4 实施后必然漂移——执行时以 Phase 0 的锚点复核为准（见 Phase 0 最后一项）。
+> **勘误记录（2026-10-04 执行时点）**：WI1-WI5 已全部收口后的 live 复核结论见裁定文档 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md` §0.2（漂移登记表）——含 accessor 现状更新（`isSupportFullJoin` 已由 WI2 落地，无 accessor 集合从 5 个变 4 个）与全部符号锚点的逐项复核结果；本节正文的 file:line 不再逐一维护，以裁定文档为准。
 
 ### 执行时点依赖状态（截至 commit `777e822ace`，2026-10-03 实测）
 
@@ -127,31 +128,31 @@ WI1-WI4 将在 WI10b 之前实施，以下文件会被它们先改过，WI10b �
 
 ### Phase 0 - 前置裁定（纯裁定，不改产品代码）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增一份裁定文档）；`ai-dev/logs/`
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] **死标志 owner 核对表**：对 14 个标志逐个核对 owner 落地状态——`supportFullJoin`（WI2 是否已实施并按其 plan 落 accessor + 门 + mysql/mariadb false）、`supportILike`（WI3 是否已收口 `ilike` **函数注册**——注意函数注册 ≠ 标志接线，该标志本身仍零消费者）、`supportNullsFirst`（WI7 是否已立项；WI3 的 `isDefaultNullsFirst` accessor 是否已落）、本 plan 自有的接线/档 2 标志以 Current Baseline 表为基线复核 live repo。核对表写入裁定文档；WI2/WI3 未实施时按「登记过的 successor 所有权移交」记录（WI3 plan 对 `defaultNullsFirst` 的先例措辞），不得因此阻塞本 plan。
-- [ ] **终裁 5 个"行为不存在/部分存在/无消费者"标志的处置**：`supportUpdateFromJoin`、`supportTruncateTable`（ledger 永久否决）、`supportDeleteFromJoin`、`supportRowValueConstructor`（含 `SqlMultiValueExpr` 与真 row value constructor 比较的可达性实测）、`supportILike`（accessor 有但零消费者、真实门在 `getFunction(ILIKE)` 函数表——终裁「新增标志消费点做真实接线」vs「改档/废弃」，登记理由；函数注册不构成接线，**不得在台账产生虚假"已接线"登记**）。每个标志给出：最终档位（接线 / 档 2 测试证明 / 软弃用）、若接线则点名目标 visitXxx 方法、若改档则写明理由。硬约束：不得为"凑接线数"伪造消费者（No Silent No-Op）。
-- [ ] **终裁 `supportRightJoin` 接线形态**：门落 `EqlTransformVisitor`（join 表源校验）+ 补 `IDialect.isSupportRightJoin`；负向载体裁定（合成方言 vs 某 XML 显式 false——后者需说明为何该真实方言应为 false，无一手证据则用合成方言）。
-- [ ] **终裁 `supportUpdateTableAlias`/`supportDeleteTableAlias` 接线形态**：⚠️ 裁定约束（审查 Major-4）：**打印器按 flag 输出**的形态下，"该方言不支持"表现为**静默抑制**（别名被丢弃、无任何报错）——既产生不了"编译期报错"负向用例，也不满足 Phase 2 Exit Criteria 对新增门/分支的「无静默跳过」要求 ⇒ 该形态对这两个标志**不成立**，实质裁定只有两向：**编译期门 + 迁移说明（BC 影响：全方言 false ⇒ 拒绝今天可解析的别名写法）** vs **改档**（软弃用或档 2，登记理由）。按此两向裁定并记录 BC 影响清单（含 `:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份语料是否含 update/delete 别名写法的实测结论）。
-- [ ] **终裁 `supportOutputForUpdate` 消费点**：候选 A（returning-被拒分支的 OUTPUT lowering——若裁定 v1 不做，写明触发升级的条件）vs 候选 B（补 accessor + 配置/语义测试证明）。裁定须与 roadmap 档 2 原文「补一个真实消费点**或**补测试证明」一致。
-- [ ] **终裁 EQL 路径门禁挂载点**：`EqlTransformVisitor#visitSqlInValuesExpr` 新覆写（方言上下文在、`checkWindowFrameFeature` 先例、与 returning 门同层）vs `EqlCompiler#compile` 后置遍历（WI4 改造后的链路形态一并考虑）。裁定须满足设计约束：检查在编译管线、不在打印器；缓存路径（`useCache=true`）下随首次编译执行一次，非缓存路径逐次确定性重查。
-- [ ] **终裁 `SqlBuilder` 路径挂载点**：按 WI10a 设计 §3.4 原文候选裁定——`SQL.SqlBuilder#spreadParams` **全局拦** vs `FilterBeanToSQLTransformer` **仅 filter 路径拦**；并登记第三个事实点：若只拦 `#paramCollection` 会漏掉 `CollectSqlOutput.java:52` 对 `#spreadParams` 的直调（`paramCollection`-only 不是完备选项）。⚠️ `spreadParams` 循环体对 `Object[]`/嵌套 `Collection` 元素按行分组展开——计数口径（顶层元素 vs 展开后 `?` 总数）须在裁定文档显式定义，并与 `supportRowValueConstructor` 的处置交互核对（row-group 是 `spreadParams` 的既有输出形态，两处置不得互相矛盾）。契约不变：不静默、错误码语义一致、默认阈值同一配置项。
-- [ ] **终裁错误码归属与命名**：EQL 路径 = `OrmEqlErrors` 新码（`nop.err.eql.*`），`SqlBuilder` 路径 = `CoreErrors` 新码（`nop.err.core.*`），不共用；param 集合至少含实际元素数、阈值、语句名（EQL 路径）、方言名（仅 EQL 路径）。错误消息英文（AGENTS.md 错误处理规约）。
-- [ ] **终裁配置载体**：`CoreConfigs` 新增项（`nop.core.*` 命名、`varRef` 模式、默认 1000、**无关闭取值**）；与 WI10a 设计 §3.1 的模块约束一致；执行不得超出这一个配置键扩面（`nop-core` 配置项是跨模块面，设计文档 2026-10-03 定稿即为该项的书面授权记录）。
-- [ ] **开工前置 + 锚点复核（排队约束，硬性）**：确认 `ai-dev/plans/03-`（WI1）、`19-`（WI2）、`20-`（WI3）、`21-`（WI4）四份 plan 的 Plan Status 均已 `completed`（含各自 closure audit）后，本 plan 才可开工 Phase 1——任一仍 active 则本 plan 停留在 Phase 0，不得在在途改动上叠加实施；同时逐符号核对本 plan 全部符号锚点在实施后的 live repo 仍成立（行号必漂移），漂移处以符号重定位并在本 plan 勘误记录。
+- [x] **死标志 owner 核对表**：对 14 个标志逐个核对 owner 落地状态——`supportFullJoin`（WI2 是否已实施并按其 plan 落 accessor + 门 + mysql/mariadb false）、`supportILike`（WI3 是否已收口 `ilike` **函数注册**——注意函数注册 ≠ 标志接线，该标志本身仍零消费者）、`supportNullsFirst`（WI7 是否已立项；WI3 的 `isDefaultNullsFirst` accessor 是否已落）、本 plan 自有的接线/档 2 标志以 Current Baseline 表为基线复核 live repo。核对表写入裁定文档；WI2/WI3 未实施时按「登记过的 successor 所有权移交」记录（WI3 plan 对 `defaultNullsFirst` 的先例措辞），不得因此阻塞本 plan。（裁定文档 §0.2/§1：WI2/WI3 均已收口，`isSupportFullJoin` accessor 已落、消费门在位；`supportILike` 函数注册已收口但标志仍零消费；WI7 `planned` 未实施、WI3 移交链在位）
+- [x] **终裁 5 个"行为不存在/部分存在/无消费者"标志的处置**（裁定文档 §2）：`supportUpdateFromJoin`→改档（档 2 契约登记 + 文法级测试证明 + 触发条件）；`supportTruncateTable`→改档（档 2 能力声明，ledger 永久否决 EQL 消费）；`supportDeleteFromJoin`→改档（档 2 契约登记 + 补 accessor）；`supportRowValueConstructor`→**接线**（`EqlTransformVisitor#visitSqlMultiValueExpr` 覆写门，三形态可达性文法实测）；`supportILike`→**改档（禁止接标志）**——决定性证据：postgresql 继承 `supportILike="false"` 但 WI3 已注册 ilike 函数且工作正常，接标志即破坏两个已收口方言；台账不得虚假登记"已接线"
+- [x] **终裁 `supportRightJoin` 接线形态**：门扩展 `EqlTransformVisitor#checkJoinTypeFeature`（WI2 已建）+ 补 `IDialect.isSupportRightJoin`；负向载体 = **合成方言**（全部 XML 继承 default true，RIGHT JOIN 为全支持标准能力，无任何真实方言应配 false 的一手证据，按裁定规则取合成方言，`TestEqlTranslationSemantics#buildDialect` 先例）
+- [x] **终裁 `supportUpdateTableAlias`/`supportDeleteTableAlias` 接线形态**：**改档（档 2）**——编译期门被否决（全方言 false ⇒ 门=拒绝全方言今天语义无损可解析的写法，纯 BC 破坏零收益；打印抑制是"接受并归一化"非静默错误）。BC 影响清单已盘点：三份 `-pl` 语料实测零 update/delete 别名写法，零语料影响
+- [x] **终裁 `supportOutputForUpdate` 消费点**：**候选 B**（补 accessor + mssql 配置断言 + 语义文档；v1 不做 OUTPUT lowering，升级触发条件已写入）；与 roadmap 档 2 原文一致；"运行时消费"接线验证的**显式豁免及理由已写入裁定文档 §2.7**（scan-hollow P5 未实现，豁免由 Phase 2 手工 gate 把关）
+- [x] **终裁 EQL 路径门禁挂载点**：`EqlTransformVisitor#visitSqlInValuesExpr` 新覆写（check-first；构造器 +name 传语句名，全仓唯一实例化点已实测）；缓存/非缓存路径行为一致性论证已记录；检查在编译管线、不在打印器
+- [x] **终裁 `SqlBuilder` 路径挂载点**：`SQL.SqlBuilder#spreadParams` **全局拦**（全仓调用面实测：paramCollection 链 + `CollectSqlOutput.java:52` 直调，paramCollection-only 与 filter-only 均不完备）；**计数口径 = Collection 顶层元素个数**（标量集合时==`?` 数；行组按 1 计，与 `supportRowValueConstructor` 处置正交核对完成）；空集合 `(NULL)` 行为不变
+- [x] **终裁错误码归属与命名**：EQL=`nop.err.eql.in-list-too-large`（param：itemCount/maxItems/stmtName/dialect）；SqlBuilder=`nop.err.core.sql.in-list-too-large`（param：itemCount/maxItems[/name]）；两码不共用。⚠️ 执行期偏差：消息语言取**中文**（偏离 plan 原文"英文"）——owner doc `error-handling.md:120` 现行裁定"存量中文模块新增码延续中文、同文件不中英混排"，WI1/WI2/WI3 新增码先例一致；已在裁定文档 §5 登记
+- [x] **终裁配置载体**：`CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE`（`nop.core.sql.in-list-max-size`，Integer 默认 1000）；无关闭取值（≤0 算术上=拒绝全部而非关闭）；单键两路径同读
+- [x] **开工前置 + 锚点复核（排队约束，硬性）**：`03-`(WI1)/`19-`(WI2)/`20-`(WI3)/`21-`(WI4) 四份 plan 的 Plan Status 均 `completed`（2026-10-04 逐一开文件核验，含各自 closure audit 证据）——开工门满足，Phase 1 放行；全部符号锚点 live 复核完成，漂移登记于裁定文档 §0.2（accessor 集合 5→4 为唯一实质漂移，系 WI2 合法落地）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：14 标志 owner 核对表（含 WI2/WI3/WI7 落地状态）、5 个"行为不存在/部分存在/无消费者"标志的终裁（每个有点名 visitXxx 或改档理由，含 `supportILike` 的"真实接线 vs 改档"结论）、两个挂载点终裁（EQL 侧 + SqlBuilder 侧，含计数口径与 `CollectSqlOutput` 直调事实）、错误码归属与命名、配置载体键名、`supportOutputForUpdate` 消费点终裁（若裁候选 B，同时写入对"运行时消费"接线验证的显式豁免及理由）、别名两标志的两向终裁与 BC 影响清单。
-- [ ] WI1-WI4 四份前置 plan 的 Plan Status 核验结论已记录（全部 `completed` 方可放行 Phase 1；否则本 plan 停留在 Phase 0 并登记阻塞原因）。
-- [ ] 每个 Phase 0 裁定都能回答"执行者照此能直接写代码吗"——无留给执行期再发明的设计开口（设计 §3.4/§3.5 移交本 plan 的两个开口——`spreadParams` vs `FilterBeanToSQLTransformer`、方法级落点——均已关闭）。
-- [ ] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：14 标志 owner 核对表（含 WI2/WI3/WI7 落地状态）、5 个"行为不存在/部分存在/无消费者"标志的终裁（每个有点名 visitXxx 或改档理由，含 `supportILike` 的"真实接线 vs 改档"结论）、两个挂载点终裁（EQL 侧 + SqlBuilder 侧，含计数口径与 `CollectSqlOutput` 直调事实）、错误码归属与命名、配置载体键名、`supportOutputForUpdate` 消费点终裁（若裁候选 B，同时写入对"运行时消费"接线验证的显式豁免及理由）、别名两标志的两向终裁与 BC 影响清单。（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md`，§0/§1/§2/§3/§4/§5/§6）
+- [x] WI1-WI4 四份前置 plan 的 Plan Status 核验结论已记录（全部 `completed` 方可放行 Phase 1；否则本 plan 停留在 Phase 0 并登记阻塞原因）。（裁定文档 §0.1：四份全 completed，Phase 1 放行）
+- [x] 每个 Phase 0 裁定都能回答"执行者照此能直接写代码吗"——无留给执行期再发明的设计开口（设计 §3.4/§3.5 移交本 plan 的两个开口——`spreadParams` vs `FilterBeanToSQLTransformer`、方法级落点——均已关闭）。（裁定文档 §7 执行要点汇总）
+- [x] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 1 - `IN` 列表长度门禁实现 + 五条测试
 
