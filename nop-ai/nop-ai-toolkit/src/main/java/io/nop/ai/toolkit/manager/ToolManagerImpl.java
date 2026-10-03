@@ -6,15 +6,30 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 public class ToolManagerImpl implements IToolManager {
+    private static final Logger LOG = LoggerFactory.getLogger(ToolManagerImpl.class);
+
     private IToolExecutorProvider executorProvider;
     private List<IToolCallInterceptor> interceptors = Collections.emptyList();
+
+    /**
+     * Plan 2298 (WI17): per-path serialization tails — manager-instance-global
+     * (cross-session conservative: same-process writes to the same file are
+     * mutually excluded regardless of session). Values are the tail futures of
+     * per-path queues; consumers normalize predecessor exceptions via handle.
+     */
+    private final ConcurrentHashMap<String, CompletableFuture<Void>> pathQueues =
+            new ConcurrentHashMap<>();
 
     public ToolManagerImpl() {
     }
@@ -50,13 +65,60 @@ public class ToolManagerImpl implements IToolManager {
             );
         }
 
-        return executor.executeAsync(call, context)
-                .thenApply(result -> {
-                    for (IToolCallInterceptor interceptor : interceptors) {
-                        interceptor.afterCall(toolName, call, context, result);
-                    }
-                    return result;
-                }).toCompletableFuture();
+        // The execution itself (not just its callbacks) must be lazy so a
+        // queued call does not start until its turn — see the queue below.
+        java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow = () ->
+                executor.executeAsync(call, context)
+                        .thenApply(result -> {
+                            for (IToolCallInterceptor interceptor : interceptors) {
+                                interceptor.afterCall(toolName, call, context, result);
+                            }
+                            return result;
+                        }).toCompletableFuture();
+
+        // Plan 2298 (WI17): per-path serialization for concurrency-unsafe
+        // tools. This is the process-wide chokepoint — the dispatcher's
+        // parallel fan-out calls callTool per call, so the queue here is what
+        // actually protects the ReAct write-same-file race (executeParallel
+        // has no production callers). Non-blocking future-chain: the caller
+        // thread is never blocked; same-path calls chain via thenCompose and
+        // the executor is invoked lazily on the caller's turn, different
+        // paths run in parallel. Unqueued: concurrency-safe tools and calls
+        // with no extractable path key.
+        if (!isConcurrencySafe(toolName)) {
+            String pathKey = ToolPathAffinity.extract(call);
+            if (pathKey != null) {
+                CompletableFuture<AiToolCallResult> result = new CompletableFuture<>();
+                pathQueues.compute(pathKey, (k, tail) -> {
+                    CompletableFuture<Void> trigger = (tail == null
+                            ? CompletableFuture.completedFuture(null)
+                            : tail).handle((v, e) -> null);
+                    return trigger.thenCompose(x -> executeNow.get()
+                            .whenComplete((r, err) -> {
+                                if (err != null) {
+                                    result.completeExceptionally(err);
+                                } else {
+                                    result.complete(r);
+                                }
+                            })
+                            .thenApply(r -> (Void) null));
+                });
+                return result;
+            }
+        }
+        return executeNow.get();
+    }
+
+    private boolean isConcurrencySafe(String toolName) {
+        try {
+            AiToolModel model = loadTool(toolName);
+            return model != null && model.isConcurrencySafe();
+        } catch (Exception e) {
+            // Safety lookup must never break tool dispatch — conservative
+            // fallback is "unsafe" (participates in path serialization).
+            LOG.debug("ToolManagerImpl: failed to load model for '{}' — treating as concurrency-unsafe", toolName, e);
+            return false;
+        }
     }
 
     @Override

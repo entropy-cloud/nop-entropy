@@ -43,4 +43,12 @@
          (prefix-cache stability, plan 2297 前缀缓存影响评估). -->
     <output-budget xdef:name="AiToolOutputBudgetModel" max-chars="int" spill="!boolean=true"/>
 
+    <!-- Plan 2298 (WI17): concurrency-safety declaration. Default false =
+         unsafe — the tool participates in per-path serialization when its
+         call arguments carry a reserved path key (path/file_path/filePath):
+         same-path calls queue, different paths stay parallel. Declare true
+         to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+         (conservative default). -->
+    <concurrency-safe>!boolean=false</concurrency-safe>
+
 </tool>

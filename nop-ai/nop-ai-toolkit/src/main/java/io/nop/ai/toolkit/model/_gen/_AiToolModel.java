@@ -25,6 +25,18 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: concurrency-safe
+     * Plan 2298 (WI17): concurrency-safety declaration. Default false =
+     * unsafe — the tool participates in per-path serialization when its
+     * call arguments carry a reserved path key (path/file_path/filePath):
+     * same-path calls queue, different paths stay parallel. Declare true
+     * to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+     * (conservative default).
+     */
+    private boolean _concurrencySafe ;
+    
+    /**
+     *  
      * xml name: description
      * description：工具的详细说明，支持纯文本或CDATA
      */
@@ -113,6 +125,30 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._className = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrency-safe
+     *  Plan 2298 (WI17): concurrency-safety declaration. Default false =
+     * unsafe — the tool participates in per-path serialization when its
+     * call arguments carry a reserved path key (path/file_path/filePath):
+     * same-path calls queue, different paths stay parallel. Declare true
+     * to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+     * (conservative default).
+     */
+    
+    public boolean isConcurrencySafe(){
+      return _concurrencySafe;
+    }
+
+    
+    public void setConcurrencySafe(boolean value){
+        checkAllowChange();
+        
+        this._concurrencySafe = value;
            
     }
 
@@ -346,6 +382,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         super.outputJson(out);
         
         out.putNotNull("className",this.getClassName());
+        out.putNotNull("concurrencySafe",this.isConcurrencySafe());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("examples",this.getExamples());
         out.putNotNull("meta",this.isMeta());
@@ -367,6 +404,7 @@ public abstract class _AiToolModel extends io.nop.core.resource.component.Abstra
         super.copyTo(instance);
         
         instance.setClassName(this.getClassName());
+        instance.setConcurrencySafe(this.isConcurrencySafe());
         instance.setDescription(this.getDescription());
         instance.setExamples(this.getExamples());
         instance.setMeta(this.isMeta());

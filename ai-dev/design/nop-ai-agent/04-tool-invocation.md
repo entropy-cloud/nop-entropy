@@ -154,3 +154,11 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 **前缀缓存裁定**：不向任何已发布工具 schema 自动注入预算参数——全部已发布工具 LLM 定义面字节不变；工具要向模型宣传该旋钮，自行在 `<schema>` 加可选参数（opt-in 才有定义面代价）。spill 指针协议不变（`[SPILL_REF id=...] Full result stored; use read-spill to retrieve.`）。
 
 **迁移说明**：tool.xdef 新增可选 `<output-budget xdef:name="AiToolOutputBudgetModel" .../>`——additive，不声明的工具零改动、运行时走默认；xdef 属平台级契约（nop-kernel/nop-xdefs），生成模型 `AiToolOutputBudgetModel` 随构建 precompile 自动再生。
+
+## 并发安全与路径串行（WI17，plan 2298）
+
+**契约**：工具以 `tool.xdef` 的 `<concurrency-safe>`（默认 false=不安全）声明并发安全；不安全工具的调用若携带保留路径键（`path`/`file_path`/`filePath`，以 `AiToolCall.getInput()` JSON 为准——dispatch 路径唯一数据源），在 `ToolManagerImpl.callTool`（全进程唯一 chokepoint：dispatcher 逐调用 fan-out、callTools、CLI、call-agent 子代理全经此）按路径串行：同路径排队（非阻塞未来链，执行体惰性——排队调用不占线程、不提前启动），异路径并行。默认 false 保守正确；只读工具显式声明 true 豁免。
+
+**锁粒度裁定**：manager 实例级全局（跨 session 保守——同进程写同一文件本就应互斥）。与 callTools 面的 Semaphore 叠加语义：排队占 permit 至真实完成，同路径队列可耗尽 permit 预算推迟异路径调用（吞吐公平性，无死锁——permit 释放只依赖工具完成，单锁无嵌套）。
+
+**已知 residual**：路径键不规范化（a/b.txt 与 ./a/b.txt 视为不同键）；带 path 参数且同步等待嵌套同路径 callTool 的自定义工具自死锁（现网无此形态，登记为自定义工具契约限制）；提取失败（畸形输入）=不串行的文档化降级。
