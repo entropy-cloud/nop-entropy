@@ -1,6 +1,6 @@
 # 30 WI23 示例与 quickstart
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI23 行）
 > Related: `ai-dev/plans/nop-stream-sql/26-wi18-sql-entry-and-docs.md`
@@ -61,30 +61,30 @@ Exit Criteria:
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: plan 与 roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）；证据落 ai-dev/audits/nop-stream-sql/wi23-closure-audit.md
-- [ ] audit 通过后 roadmap WI23 `todo` → `done`；解析器断言 items=31/milestones=7/WI23=done
-- [ ] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
+- [x] 独立子 agent closure audit（fresh session）：**PASS**（0 Blocker/0 Major/1 Minor MIN-1 fraud 裁定与 Closure 回填随收口落笔）；证据落 ai-dev/audits/nop-stream-sql/wi23-closure-audit.md——三向反事实判红全可判、verify.sh step 1 reactor 实跑证实涵盖 nop-stream-sql 子模块
+- [x] audit 通过后 roadmap WI23 `todo` → `done`；解析器断言成立：items=31/milestones=7/done=30/WI23=done
+- [x] Plan Status → `completed`；check-plan-checklist --strict 0；check-doc-links --strict 0
 
 Exit Criteria:
 
-- [ ] 独立 audit 证据落档两处
-- [ ] roadmap WI23 = done + 解析器断言成立
-- [ ] 双门禁退出码 0
+- [x] 独立 audit 证据落档两处
+- [x] roadmap WI23 = done + 解析器断言成立
+- [x] 双门禁退出码 0
 
 ## Closure Gates
 
-- [ ] TestStreamSqlQuickstart 齐备且实跑绿
-- [ ] verify.sh 纳入落档
-- [ ] fraud-example 裁定记录
+- [x] TestStreamSqlQuickstart 齐备且实跑绿
+- [x] verify.sh 纳入落档
+- [x] fraud-example 裁定记录
 - [x] sql 模块全量零退化（79 绿）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/30-wi23-quickstart.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据（不同 task_id）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-stream-sql/30-wi23-quickstart.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Current Baseline
 
