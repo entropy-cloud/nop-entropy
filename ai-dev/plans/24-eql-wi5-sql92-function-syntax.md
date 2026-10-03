@@ -170,32 +170,32 @@ Exit Criteria:
 
 ### Phase 1 - `POSITION(x IN y)` → `instr(y,x)`（调用点换序）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlExpr_special` 新增 position 备选分支）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、重生成产物、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-orm-eql` 测试
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`position(x in y)` 解析失败（parse error）——回归测试断言其可解析且 lowering 正确，修复前红。
-- [ ] 文法与归一化（按 Phase 0 裁定）：`POSITION LP_ expr IN expr RP_` 备选分支 + 构建期换序装入既有 `SqlRegularFunction`（name=`instr`，args=[y,x]）；`.g4` 改动单独提交，`ast/_gen/` 零 diff。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①）：h2 上 `position('b' in 'abc')` → `instr('abc', 'b')`（以 h2 实际注册的 instr 定义输出为准）；再取一个 realName 方言（duckdb `strpos` 或 pg）断言换名输出。
-- [ ] 负向用例（EC ②）：手构无 `instr` 的 `DialectModel`（先例 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/` 既有测试的 `buildDialect` 模式）或不可用方言，断言编译期报 `ERR_EQL_UNKNOWN_FUNCTION`（或 Phase 0 裁定的新码）；不允许静默按原文输出 `position(...)`。
-- [ ] 接线验证（Minimum Rules #23）：解析 → transform 解析函数 → 生成 lowering 的运行时连通测试（一个端到端用例覆盖三层，而非只测 parse 层）。
-- [ ] `POSITION` 既有逗号形态行为登记：`position(x,y)` 今天解析通过、编译报 unknown-function——放开后行为不变的守护用例。
-- [ ] 矩阵快照：核实 `instr` 14/14 零新增注册，`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③，零增量也要核实）。
-- [ ] owner doc（EC ④）：`eql-and-database-compatibility.md` 新增 POSITION 小节——per-dialect lowering 表（含 mssql template、duckdb/pg `strpos`）、`dm`/`tdengine` 标 `[未取证]`、能力点登记表行。
-- [ ] 真库证据（EC ⑥）：h2 经 `TestDialect.testFunctions` 对 `instr` 的既有执行保持全绿（本 Phase 预期零新注册；若 h2 的 instr 无 `<testSql>` 且执行覆盖不足，补 `<testSql>` 并以 `TestSQLFunction` 验证）；无法真库验证方言清单（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）+ 替代证据写入 owner doc。
-- [ ] 语料 BC（EC ⑦）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称 7 个全测。
+- [x] **开工前置复核**：`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md` 的 Plan Status = `completed`（硬前置，见顶部声明）——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`position(x in y)` 解析失败（parse error）——回归测试断言其可解析且 lowering 正确，修复前红。
+- [x] 文法与归一化（按 Phase 0 裁定）：`POSITION LP_ expr IN expr RP_` 备选分支 + 构建期换序装入既有 `SqlRegularFunction`（name=`instr`，args=[y,x]）；`.g4` 改动单独提交，`ast/_gen/` 零 diff。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①）：h2 上 `position('b' in 'abc')` → `instr('abc', 'b')`（以 h2 实际注册的 instr 定义输出为准）；再取一个 realName 方言（duckdb `strpos` 或 pg）断言换名输出。
+- [x] 负向用例（EC ②）：手构无 `instr` 的 `DialectModel`（先例 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/` 既有测试的 `buildDialect` 模式）或不可用方言，断言编译期报 `ERR_EQL_UNKNOWN_FUNCTION`（或 Phase 0 裁定的新码）；不允许静默按原文输出 `position(...)`。
+- [x] 接线验证（Minimum Rules #23）：解析 → transform 解析函数 → 生成 lowering 的运行时连通测试（一个端到端用例覆盖三层，而非只测 parse 层）。
+- [x] `POSITION` 既有逗号形态行为登记：`position(x,y)` 今天解析通过、编译报 unknown-function——放开后行为不变的守护用例。
+- [x] 矩阵快照：核实 `instr` 14/14 零新增注册，`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③，零增量也要核实）。
+- [x] owner doc（EC ④）：`eql-and-database-compatibility.md` 新增 POSITION 小节——per-dialect lowering 表（含 mssql template、duckdb/pg `strpos`）、`dm`/`tdengine` 标 `[未取证]`、能力点登记表行。
+- [x] 真库证据（EC ⑥）：h2 经 `TestDialect.testFunctions` 对 `instr` 的既有执行保持全绿（本 Phase 预期零新注册；若 h2 的 instr 无 `<testSql>` 且执行覆盖不足，补 `<testSql>` 并以 `TestSQLFunction` 验证）；无法真库验证方言清单（mysql/mariadb/mssql/oracle/postgresql/duckdb/dm/tdengine/db2）+ 替代证据写入 owner doc。
+- [x] 语料 BC（EC ⑦）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称 7 个全测。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（h2 `instr` 换序输出 + 一个 realName 方言输出）；修复前红留痕于提交说明或日志。
-- [ ] 负向用例断言具体错误码（未注册 lowering 目标方言）；无静默跳过（不允许 lowering 失败时回退原文输出）。
-- [ ] 接线验证用例通过（parse→transform→generate 三层连通）。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档（含 `[未取证]` 标注）。
-- [ ] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `.g4` 改动单独提交；重生成后 `ast/_gen/` 在 `git status` 中零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（h2 `instr` 换序输出 + 一个 realName 方言输出）；修复前红留痕于提交说明或日志。
+- [x] 负向用例断言具体错误码（未注册 lowering 目标方言）；无静默跳过（不允许 lowering 失败时回退原文输出）。
+- [x] 接线验证用例通过（parse→transform→generate 三层连通）。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档（含 `[未取证]` 标注）。
+- [x] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `.g4` 改动单独提交；重生成后 `ast/_gen/` 在 `git status` 中零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `SUBSTRING(x FROM a [FOR b])` → `substr(x,a[,b])`（2/3 元多态）
 

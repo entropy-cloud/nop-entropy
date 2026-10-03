@@ -17,6 +17,7 @@ import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlFunction;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.enums.SqlCompareRange;
@@ -31,6 +32,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import static io.nop.antlr4.common.ParseTreeHelper.isToken;
@@ -214,6 +217,32 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
             throw new NopEvalException(ERR_EQL_INVALID_INTERVAL_UNIT).loc(loc((ParserRuleContext) node))
                     .param(ARG_VALUE, text);
         return unit;
+    }
+
+    /**
+     * WI5 Phase 1: SQL-92 标准函数语法 {@code POSITION(x IN y)}（BaseRule.g4
+     * sqlExpr_special 的 {@code SqlRegularFunction_position} 备选分支）。构建期归一化
+     * 装入**既有** {@link SqlRegularFunction}（name=instr，args=[source, begin]——
+     * instr(str, substr) 参数序要求调用点换序），不新增 AST 节点、不改 EqlAST.xjava。
+     * 生成方法体只建空节点 + validate()（name 必填校验必失败），因此完全重写、不调 super。
+     * 方言未注册 instr 时由 EqlTransformVisitor 的既有 ERR_EQL_UNKNOWN_FUNCTION 路径响亮
+     * 报错。裁定：ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md §3。
+     */
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx) {
+        SqlExpr begin = (SqlExpr) visit(ctx.sqlExpr_bit());
+        SqlExpr source = (SqlExpr) visit(ctx.sqlExpr());
+
+        SqlRegularFunction ret = new SqlRegularFunction();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setName("instr");
+        List<SqlExpr> args = new ArrayList<>(2);
+        args.add(source);
+        args.add(begin);
+        ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
     }
 
     /**

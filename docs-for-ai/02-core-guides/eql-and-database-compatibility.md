@@ -322,6 +322,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | 窗口 frame ROWS/RANGE/GROUPS | `EqlTransformVisitor` | `supportWindowFrameRows/Range/Groups` | `nop.err.eql.dialect-not-support-feature` | `TestDialectWindowSqlSnapshot` |
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate`（仅指投影列表形式，WI3 纠错后 mysql/oracle/h2/mariadb/duckdb 均拒） | `nop.err.eql.dialect-not-support-feature`（`feature=supportReturningForUpdate`） | `TestEqlCompileSql.testUpdateReturningAllChecksDialect`、`TestEqlUpdateReturningDialectGate` |
 | INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
+| SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM 三段式，WI5） | 构建期归一化进 `SqlRegularFunction`（`EqlASTBuildVisitor.visitSqlRegularFunction_position/substring/extract/trim*`），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路 | 方言函数表注册（`dialect.getFunction(归一化名)`；TRIM 带 chars=trimChars/ltrimChars/rtrimChars 模板仅注册已验证方言） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlPositionFunctionDialect.testUnknownDialectThrowsLoudUnknownFunction`（SUBSTRING/EXTRACT/TRIM 各自同类） |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -343,6 +344,23 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 **旧参数使用边界（迁移说明）**：7-arg `compileSql` 的 `astTransformer` 参数**保留**（测试/工具 opt-in 路径在用）。**生产代码不应 per-call 传入 transformer**，统一走 factory 默认配置；显式传入视为测试/工具行为，且非默认实例不参与计划缓存。合同由 `ILoadedOrmModel.compileSql` javadoc 载明（原"调用方必须保证语义一致"的转嫁措辞已删除——缓存安全由代码强制，不再依赖调用方纪律）。
 
 **WI8 消费指引**：`IS DISTINCT FROM` 类方言展开放 `transformAfterAnalyze`（展开式只重排/包装既有操作数节点，满足参数保持条件），方言经已解析表源推导；引入新参数/实体的改写放 `transformBeforeAnalyze` 且必须方言无关。证明测试先例：`nop-persistence/nop-orm/src/test/java/io/nop/orm/TestEqlAstTransformerWiring.java`（factory 默认配置端到端 + 缓存绕过）。
+
+### SQL-92 标准函数语法（2026-10-04 WI5：POSITION/SUBSTRING/EXTRACT/TRIM + 遮蔽放开）
+
+EQL 接受四个 SQL-92 标准语法形态，构建期归一化为**普通函数调用**（复用既有 `SqlRegularFunction` + 方言函数表解析：未注册 lowering 目标的方言编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错，不允许静默按原文输出）。裁定与逐方言证据：`ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md`。覆盖标注口径：`[实测]`=CI 真库（H2 in-mem）执行证据；`[文档]`=一手文档引证；`[未取证]`=无一手文档，不计入覆盖率。
+
+#### POSITION(x IN y) → `instr(y, x)`
+
+调用点换序在构建期完成（`instr(str, substr)` 参数序：主串在前）；回显输出归一化形态 `instr(...)`。
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis / mysql / mariadb / mysql5.7 / oracle / oracle-reverse / dm / tdengine / es / db2 | `instr(o.name,'b')`（native） | `[实测]`（h2，`TestEqlPositionFunctionDialect.testH2LowersToInstrWithSwappedArgs` + `TestDialect.testFunctions` 既有执行）/ dm、tdengine、db2、es 标注 `[未取证]` |
+| duckdb / postgis | `strpos(o."name",'b')`（realName=strpos，同序） | `[文档]`（DuckDB strpos(haystack, needle)）/ `[实测]`（duckdb，testDuckDbLowersToStrposRealName） |
+| postgresql | `strpos(o.name,'b')`（realName=strpos） | `[文档]`（PG 15 string functions：strpos(string, substring)） |
+| mssql | `charindex('b',o.name)`（模板 `charindex({1},{0})`，模板内换序） | `[文档]`（MSSQL CHARINDEX(find, within)） |
+
+既有逗号形态 `position(x,y)` 行为不变：解析通过，函数表无 `position` 注册 → 编译期响亮报错。`position(a in (b,c))`（IN 列表竞争）固定按特殊语法解析（ANTLR 备选序取 `sqlExpr_special`）。
 
 ## 相关文档
 
