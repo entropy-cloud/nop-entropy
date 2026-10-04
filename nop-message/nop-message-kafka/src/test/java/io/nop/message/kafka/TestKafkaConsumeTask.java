@@ -657,6 +657,89 @@ class TestKafkaConsumeTask {
     }
 
     @Test
+    void consumeFailureAttemptsIncrementPerLocation() throws Exception {
+        // WI16: consecutive failures on the same record increment the attempt counter.
+        java.util.List<Integer> attempts = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                throw new IllegalStateException("boom");
+            }
+
+            @Override
+            public void onConsumeFailure(io.nop.api.core.message.ConsumeFailure failure) {
+                attempts.add(failure.getAttempt());
+                org.junit.jupiter.api.Assertions.assertNotNull(failure.getLocation());
+                org.junit.jupiter.api.Assertions.assertTrue(failure.getLocation().contains("test-topic-0@"));
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 0L, 50L);
+
+        ConsumerRecord<String, String> record = record(0, 3, "poison");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record)).thenReturn(
+                records(record)).thenThrow(new org.apache.kafka.common.errors.WakeupException());
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // third poll wakes the loop
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.Arrays.asList(1, 2), attempts,
+                "attempt must increment across consecutive failures of the same record");
+    }
+
+    @Test
+    void maxPollIntervalIsConfigurableAndManaged() {
+        // WI17 (F-10): the key is configurable and a managed key (extraProps cannot
+        // override it — see F-28 ordering).
+        KafkaMessageService svc = new KafkaMessageService();
+        svc.config = new KafkaClientConfig();
+        svc.config.setBootstrapServers("kafka-1:9092");
+        java.util.Map<String, String> extra = new java.util.LinkedHashMap<>();
+        extra.put("max.poll.interval.ms", "1");
+        svc.config.setExtraProps(extra);
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setMaxPollIntervalMs(450000);
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.Properties props = svc.buildConsumerProps("g");
+        org.junit.jupiter.api.Assertions.assertEquals(450000, props.get("max.poll.interval.ms"));
+    }
+
+    @Test
+    void slowHandlerCompletesBatchWithoutError() throws Exception {
+        // WI17 (F-10/F-11): a handler slower than the poll timeout completes the batch and
+        // commits without exceptions (wiring/tolerance smoke under mock semantics; the real
+        // broker kick timing is WI33's gated scope).
+        java.util.concurrent.atomic.AtomicInteger handled = new java.util.concurrent.atomic.AtomicInteger();
+        IMessageConsumer slowHandler = (topic, message, context) -> {
+            handled.incrementAndGet();
+            try {
+                Thread.sleep(100L); // > pollTimeoutMs (50)
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(slowHandler, options), 100L, 50L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 0, "slow"))).thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, handled.get());
+        verify(consumer).commitSync();
+    }
+
+
+    @Test
     void startAndStopToggleActive() throws Exception {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();

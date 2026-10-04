@@ -155,7 +155,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI14 Kafka 与 Pulsar 事务语义显式化: `done`（deps WI3；Item Type Fix；对应 MSG-F-13 与 MSG-F-52 与 MSG-F-57；完成判定 按 D11 裁定实现，同时修 Pulsar 每消息建事务的粒度问题；`ConsumeContext.commit/rollback` 的 no-op 在 javadoc 与设计文档中与 at-least-once 基线一并声明；测试断言所选形态）
 - WI15 MessageSendOptions 字段接线: `done`（deps WI4；Item Type Fix；对应 MSG-F-45 与 MSG-F-39；完成判定 `sendTimeout` 接入两后端发送路径并有超时测试；`cancelToken` 接入发送前检查与中断，或按 `RpcMessageSender` 已有语义对齐两后端；不得保留既不消费也不拒绝的字段）
 - WI16 消费失败回调与终止拒绝信号: `done`（deps WI3；Item Type Decision；对应 MSG-F-20；完成判定 按 D6 与 D5 的 b-prime 裁定新增带 topic 与 message 与 attempt 与 throwable 的失败回调，并以终止拒绝信号替换 `onException` 的空表达能力；默认实现按 error-handling.md 留证要求记录完整上下文 WARN；判定为 SPI 签名变更故须 plan-first）
-- WI17 max.poll.interval.ms 与 poll 语义修正: `todo`（deps WI4；Item Type Fix；对应 MSG-F-10 与 MSG-F-11；完成判定 `max.poll.interval.ms` 可配置且与 `max.poll.records` 和处理耗时自洽；`batchReceiveTimeout` 不再直连为 `poll` 时长或该语义被显式声明；新增慢 handler 不触发踢出的测试）
+- WI17 max.poll.interval.ms 与 poll 语义修正: `done`（deps WI4；Item Type Fix；对应 MSG-F-10 与 MSG-F-11；完成判定 `max.poll.interval.ms` 可配置且与 `max.poll.records` 和处理耗时自洽；`batchReceiveTimeout` 不再直连为 `poll` 时长或该语义被显式声明；新增慢 handler 不触发踢出的测试）
 - WI18 静默违约门禁化: `todo`（deps WI6；Item Type Feature；对应 MSG-F-01 与 MSG-F-03 与 MSG-F-46 与 MSG-F-53；完成判定 扩展 `ai-dev/tools/check-silent-wrong-result.mjs` 新增 message-options 规则族与 warn-once 规则族，沿用既有 baseline 与 invariant-ok 裁决协议；接入 `.github/workflows/` 既有 compliance 或 maven 工作流并登记到 `ai-dev/tools/package.json`；提供正反双向 self-test；实测能捕获 MSG-F-01 与 MSG-F-03 与 MSG-F-53 三类形态）
 - ★ **里程碑：M2 无静默违约**（解锁条件 WI6 至 WI18 全部 done）：`todo`
 
@@ -183,7 +183,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI30 消息指标暴露: `todo`（deps M2；Item Type Feature；对应 MSG-F-23；完成判定 发送与消费与失败三类计数器与计时器按 `351-repo-wide-core-metrics` 已确立的平台口径注册，不新建体系；consumer lag 单独评估 AdminClient 依赖与 broker 不可达时的失败语义后再决定是否纳入）
 - WI31 空壳模块处置与 BOM 补登: `todo`（deps WI3；Item Type Fix；对应 MSG-F-41 与 MSG-F-42；完成判定 按 D10 删除 `nop-message-model`；`nop-message-codec` 按 D10 结论删除或降级为 Follow-up；`nop-bom/pom.xml` 补登三个模块条目）
 - WI32 契约测试扩充至全矩阵: `todo`（deps WI4 WI6；Item Type Proof；对应 MSG-F-47；完成判定 WI4 骨架扩展覆盖 WI2 矩阵全部格；两后端各 extend 一次并全绿；11 个主源码实现逐个记录覆盖或显式豁免理由）
-- WI33 gated 真实 broker E2E: `todo`（deps M3；Item Type Proof；对应 MSG-F-44；完成判定 新增 gated 测试覆盖重启恢复与毒消息与 DLQ 投递与 seek 与请求-响应五类场景；门控属性名在测试类与文档中一致声明且默认跳过；不得以跳过态标记 done）
+- WI33 gated 真实 broker E2E: `todo`（deps M3；Item Type Proof；对应 MSG-F-44；charter 扩展（WI17）：增补慢 handler 踢出时序场景；完成判定 新增 gated 测试覆盖重启恢复与毒消息与 DLQ 投递与 seek 与请求-响应五类场景；门控属性名在测试类与文档中一致声明且默认跳过；不得以跳过态标记 done）
 - ★ **里程碑：M5 可运维**（解锁条件 WI30 至 WI33 全部 done）：`todo`
 
 ### Phase F — 文档与收口

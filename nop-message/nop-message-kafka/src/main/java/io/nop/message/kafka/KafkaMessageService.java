@@ -189,6 +189,8 @@ public class KafkaMessageService implements IMessageService {
             props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, defaultConsumerConfig.getSessionTimeoutMs());
             props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,
                     defaultConsumerConfig.getHeartbeatIntervalMs());
+            props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                    defaultConsumerConfig.getMaxPollIntervalMs());
         }
         return props;
     }
@@ -230,13 +232,25 @@ public class KafkaMessageService implements IMessageService {
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, null, key, value, headers);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        prod.send(record, (metadata, exception) -> {
-            if (exception != null) {
-                future.completeExceptionally(KafkaHelper.adapt(exception));
-            } else {
-                future.complete(null);
+        try {
+            prod.send(record, (metadata, exception) -> {
+                if (exception != null) {
+                    future.completeExceptionally(KafkaHelper.adapt(exception));
+                } else {
+                    future.complete(null);
+                }
+            });
+        } catch (Exception e) {
+            // F-39: synchronous send failures (producer closed, interrupted, unexpected
+            // runtime errors) must not escape sendAsync — the contract is a CompletionStage.
+            // Note: max.block.ms exhaustion is NOT this path (it routes through the callback).
+            // Kafka's InterruptException extends KafkaException (not JDK InterruptedException).
+            if (e instanceof InterruptedException
+                    || e instanceof org.apache.kafka.common.errors.InterruptException) {
+                Thread.currentThread().interrupt();
             }
-        });
+            future.completeExceptionally(KafkaHelper.adapt(e));
+        }
         // WI15 (F-45): upper bound on the returned future. Timeout leaves the underlying
         // send running (fire-and-forget) — the message may still be delivered. Bare
         // java.util.concurrent.TimeoutException is the contract (JDK orTimeout semantics).

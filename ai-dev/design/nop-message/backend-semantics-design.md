@@ -63,6 +63,12 @@
 - `nop-message-codec`：删除或降级为 Follow-up——裁定为降级 Follow-up：保留目录待 D2 契约落地后出现实证需求再实现或删除，期间其空壳状态在 BOM 与文档中显式声明（不注册任何 bean）。
 - `nop-bom/pom.xml` 补登缺失条目（nop-message-kafka 必补；model/codec 按上述裁定处理）。
 
+### 3.6.1 F-11 与 F-39 处置（WI17）
+
+- **F-11（batchReceiveTimeout）**：裁定为**显式声明而非解耦**——SPI javadoc 声明语义映射依后端而定，Kafka 侧写明「该值用作 poll 阻塞时长并与 max.poll.interval.ms 相互约束」。被拒方案：解耦 wiring（独立 poll 时长配置）——登记优化候选。
+- **F-11/F-10 与 max.poll.interval.ms**：`maxPollIntervalMs` 可配置（默认 300000），自洽指引（须覆盖单批处理耗时 + ConsumeLater defer sleep）。真 broker 踢出时序验证归 WI33（其 charter 扩展含慢 handler 踢出场景）。
+- **F-39 事实修正（WI17 审查）**：`max.block.ms` 耗尽时 KafkaProducer.send 走 callback（ApiException 族路由）而非同步抛；真实同步抛为 producer 已关闭/中断/未预期 runtime——已包装为失败 future，前置校验的同步 typed rejection 保持不变。
+
 ### 3.7 D11 事务语义
 
 - `transactional` / `transactionTimeout` 字段进入 D8 弃用期（字段保留 YAML 兼容、@Deprecated 标注），**行为已删除**：任何后端读到非默认值即一次性 WARN「deprecated and ignored by D11」并忽略（WI14）。Pulsar 每消息建事务（F-52）与 timeout=0 静默回落（F-57）的实现路径一并移除；Kafka 零处置（F-13）由 warn-once 显式化。

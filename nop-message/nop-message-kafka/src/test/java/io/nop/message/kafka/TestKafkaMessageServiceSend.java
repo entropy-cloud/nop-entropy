@@ -186,6 +186,23 @@ class TestKafkaMessageServiceSend {
     }
 
     @Test
+    void producerSendSyncExceptionBecomesFailedFuture() {
+        // WI17 (F-39, fact-corrected): synchronous producer.send exceptions (producer
+        // closed / interrupted / unexpected runtime) must not escape sendAsync — the
+        // contract is a CompletionStage. (max.block.ms exhaustion routes through the
+        // callback, not this path.)
+        org.mockito.Mockito.doThrow(new IllegalStateException("producer already closed"))
+                .when(producer).send(any(ProducerRecord.class), any(Callback.class));
+
+        CompletionStage<Void> stage = service.sendAsync("t-f39", "m", null);
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS));
+        // NopException.adapt passes RuntimeExceptions through unchanged.
+        assertTrue(e.getCause() instanceof IllegalStateException,
+                "cause must be the adapted original failure, was: " + e.getCause());
+    }
+
+    @Test
     void cancelledTokenRejectsWithoutDispatching() {
         // WI15 (F-45): pre-send cancellation check — rejected future, no producer.send.
         MessageSendOptions options = new MessageSendOptions();

@@ -39,7 +39,9 @@ public class MessageSubscribeOptions {
     private int batchReceiveCount;
 
     /**
-     * 如果大于0，表示当缓存中消息个数不到batchReceiveCount时，最多允许等待多少时间，单位为毫秒
+     * 如果大于0，表示当缓存中消息个数不到batchReceiveCount时，最多允许等待多少时间，单位为毫秒。
+     * 该值的语义映射依后端而定：可能与后端的拉取/长轮询阻塞时长绑定，并进入其活性/踢出预算
+     * （如 Kafka 将其用作 poll 阻塞时长并与 max.poll.interval.ms 相互约束）。具体见各后端配置类文档。
      */
     private int batchReceiveTimeout;
 
