@@ -150,11 +150,6 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
         });
     }
 
-    @Override
-    public void flushCollectionChange(ShardSelection shard, IOrmEntitySet collection, IOrmSessionImplementor session) {
-
-    }
-
     private IDialect getDialect(ShardSelection shard) {
         if (shard != null) {
             String querySpace = DaoHelper.normalizeQuerySpace(shard.getQuerySpace());

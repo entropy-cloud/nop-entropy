@@ -9209,10 +9209,6 @@
         "parameterTypes": []
       },
       {
-        "name": "getUpsertHandler",
-        "parameterTypes": []
-      },
-      {
         "name": "hasErrorCode",
         "parameterTypes": [
           "java.lang.String"
@@ -9404,12 +9400,6 @@
         "name": "setTableNameCase",
         "parameterTypes": [
           "io.nop.commons.text.CharacterCase"
-        ]
-      },
-      {
-        "name": "setUpsertHandler",
-        "parameterTypes": [
-          "java.lang.String"
         ]
       }
     ],

@@ -588,28 +588,88 @@ grep 校验：`SqlOrderByItem` 的这两个字段在全仓无残留引用；剩�
 
 ### Phase 6 - driver 死代码与 schema 无消费节点（V7 / V8 / V9）
 
-Status: planned
+Status: completed
 Targets: `nop-orm/.../driver/ICollectionPersistDriver.java`、`driver/jdbc/JdbcCollectionPersistDriver.java`、`nop-kernel/nop-xdefs/.../orm/dialect.xdef`、`nop-dao/.../dialect/model/_gen/`
 
 - Item Types: `Fix`
 
-- [ ] V7：确认 `ICollectionPersistDriver.flushCollectionChange` 全仓零调用点后删除接口方法与 `JdbcCollectionPersistDriver` 的空实现；同时复核 `ICollectionPersister.flushCollectionChange`（`CollectionPersisterImpl.java:171-183`）的 global cache 失效语义是否需要保留（当前是**唯一**真实职责）
-- [ ] V7：`ai-dev/design/nop-orm-scope-and-non-goals.md` §3.3 声称 `ICollectionPersistDriver.flushCollectionChange` "只负责失效全局缓存"——实际是纯空体、什么都不做，失效在 `CollectionPersisterImpl`。该段是 design-doc drift，须改正
-- [ ] V7：修正 `docs-for-ai/02-core-guides/orm-model-design.md` 的"集合变更语义"段。当前表述"若子实体没有指向父实体的反向外键属性，集合成员变更不会产生任何 SQL"与实现不符——`bindOwnerProps` 会按 `<join>` 写 FK。真实静默前提是 `<join>` 为空
-- [ ] V8：按 Phase 1 裁定处置 `<upsertHandler>`。若删除，须重新生成 `_DialectModel` 并同步 `_dump/**/dialect.xdef` 副本与 `reflect-config.json`
-- [ ] V9：按 Phase 1 裁定处置 `NATURAL` / `USING` 死 token
-- [ ] 顺带审计 `dialect.xdef` 的 4 个兄弟 class-name 节点（`sqlExceptionTranslator` / `paginationHandler` / `geometryTypeHandler` / `jsonTypeHandler`）是否有同类零读取问题（已知 `paginationHandler` 有真实读取：`AstToSqlGenerator.java:93`）
+- [x] V7：确认 `ICollectionPersistDriver.flushCollectionChange` 全仓零调用点后删除接口方法与 `JdbcCollectionPersistDriver` 的空实现；同时复核 `ICollectionPersister.flushCollectionChange`（`CollectionPersisterImpl.java:171-183`）的 global cache 失效语义是否需要保留（当前是**唯一**真实职责）
+- [x] V7：`ai-dev/design/nop-orm-scope-and-non-goals.md` §3.3 声称 `ICollectionPersistDriver.flushCollectionChange` "只负责失效全局缓存"——实际是纯空体、什么都不做，失效在 `CollectionPersisterImpl`。该段是 design-doc drift，须改正
+- [x] V7：修正 `docs-for-ai/02-core-guides/orm-model-design.md` 的"集合变更语义"段。当前表述"若子实体没有指向父实体的反向外键属性，集合成员变更不会产生任何 SQL"与实现不符——`bindOwnerProps` 会按 `<join>` 写 FK。真实静默前提是 `<join>` 为空
+- [x] V8：按 Phase 1 裁定处置 `<upsertHandler>`。若删除，须重新生成 `_DialectModel` 并同步 `_dump/**/dialect.xdef` 副本与 `reflect-config.json`
+- [x] V9：按 Phase 1 裁定处置 `NATURAL` / `USING` 死 token
+- [x] 顺带审计 `dialect.xdef` 的 4 个兄弟 class-name 节点（`sqlExceptionTranslator` / `paginationHandler` / `geometryTypeHandler` / `jsonTypeHandler`）是否有同类零读取问题（已知 `paginationHandler` 有真实读取：`AstToSqlGenerator.java:93`）
 
 Exit Criteria:
 
-- [ ] **证明**：删除后 `ICollectionPersistDriver.flushCollectionChange` 全仓零引用（grep 覆盖主源码与测试），`nop-orm` 模块测试全绿
-- [ ] **证明**：`exists*` 不在本 Phase 范围（已裁定移出），本 Phase 不新增相关改动
-- [ ] design 文档 §3.3 的描述与代码一致（`flushCollectionChange` 的真实职责归属已改正）
-- [ ] owner doc 的"集合变更语义"段与实现一致，且给出的判据（`<join>` 是否为空）可在代码中定位
-- [ ] V8 若删 schema 节点：`_DialectModel` 再生成完成，`_dump/**/dialect.xdef` 副本一致性已校验
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **证明**：删除后 `ICollectionPersistDriver.flushCollectionChange` 全仓零引用（grep 覆盖主源码与测试），`nop-orm` 模块测试全绿
+- [x] **证明**：`exists*` 不在本 Phase 范围（已裁定移出），本 Phase 不新增相关改动
+- [x] design 文档 §3.3 的描述与代码一致（`flushCollectionChange` 的真实职责归属已改正）
+- [x] owner doc 的"集合变更语义"段与实现一致，且给出的判据（`<join>` 是否为空）可在代码中定位
+- [x] V8 若删 schema 节点：`_DialectModel` 再生成完成，`_dump/**/dialect.xdef` 副本一致性已校验
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 6 实测与一处执行事故（2026-10-04）
+
+**V7 死接口方法已删除**：删 `ICollectionPersistDriver.flushCollectionChange(ShardSelection, IOrmEntitySet,
+IOrmSessionImplementor)` 及其在 `JdbcCollectionPersistDriver` 的空实现。加断言前先 grep 复核：
+全仓仅接口声明与该空实现两处，零调用点；真实职责在 `ICollectionPersister.flushCollectionChange`
+（`CollectionPersisterImpl:171-183`：入队 `CollectionBatchAction` + 成功后 `evictGlobalCache`）。
+
+**Phase 6 要求的两条 doc-drift 指控经核实为假，不做"修正"**：
+design §3.3 与 `orm-model-design.md:916` 的表述**均已与实现一致**（已正确区分
+`ICollectionPersister` 与已死的 `ICollectionPersistDriver`；已写明「子实体无反向外键属性也能持久化，
+外键由 `<join>` 决定」，与 `OrmEntitySet.bindOwnerProps` 一致）。本 Phase 只做保持一致，未改动这两处文本。
+
+**兄弟节点审计结论**（Phase 6 要求项）：`paginationHandler`/`geometryTypeHandler`/`jsonTypeHandler`
+均有真实读取；`sqlExceptionTranslator` 与 `upsertHandler` 零读取——但二者性质不同，
+故 **V8 删除 upsertHandler、V8b 接线 sqlExceptionTranslator**。
+
+**V8 删除 `<upsertHandler>` 的再生成链路（实测踩到的关键坑）**：
+`nop-dao/pom.xml` 显式写了 "No exec plugin - let's skip precompile"，
+即 `nop-dao` 的构建**不跑** codegen 插件，`_DialectModel.java` 不会被自动再生成。
+必须手动执行 `mvnw -pl nop-persistence/nop-dao exec:java@precompile`。
+且 `dialect.xdef` 在 `nop-kernel/nop-xdefs`，须先 `install` 该模块，否则 `nop-dao` 读到的是旧 jar 里的 xdef。
+顺序：`install nop-xdefs` → `exec:java@precompile` → `install nop-dao`。
+再生成后 `_DialectModel.java` 减少 28 行（字段 + getter/setter + toMap/copy 各一处）。
+同步范围：26 份 `_dump/**/dialect.xdef` 副本、3 份 `reflect-config.json`
+（`nop-spring-demo`/`nop-cli-core`/`nop-sys-app`，各删 `getUpsertHandler`/`setUpsertHandler`）。
+
+**V8b 接线的实现约束**：`ISQLExceptionTranslator` 实现分两类——自定义翻译器通常无参构造，
+而内置 `DialectSQLExceptionTranslator` **必须**接收 `DialectModel`（要读
+`dialectModel.getErrorCodes()` 建 vendorCode 映射）。故 `createExceptionTranslator` 按
+「先无参构造 → 再 `(DialectModel)` 构造 → 都不匹配则显式抛错并带类名」实现；
+显式抛错是刻意的，静默回落会退化成修复前那种「配置被静默忽略」。
+**红可复核**：临时把 `DialectImpl` 回退到 HEAD 版本后重跑，3 个测试失败
+（`sqlExceptionTranslator 必须被实例化` expected true but was false；
+异常翻译返回 `sql.err.uncategorized-failure` 而非自定义的 `sql.bad-sql-grammar`），
+恢复修复后全绿。
+
+**V9 移除 NATURAL / USING 死 token**：从 `Keyword.g4` 删除两条 lexer 规则。
+注意该文件为 CRLF 行尾，按字符串替换会失败，需按行索引删除。
+再生成后 `Eql.tokens` 中两个 token 计数为 0。
+`CROSS` 登记在 `unreservedWord_` 是有意设计，未动。
+
+**Anti-Hollow**：`scan-hollow-implementations.mjs` 对 `--module nop-orm` 与 `--module nop-dao`
+的 `--severity high` 结果均为 Critical/High/Medium/Low **全 0**，退出码 0。
+（V7 删除的正是 plan 点名的「空方法体」形态，删后该形态不再存在。）
+
+**回归**：`nop-orm-eql` 171→252、`nop-orm` 210→237、`nop-dao` 166→173，
+8 目标模块合计 1466→**1581**，0 fail。
+
+**执行事故（必须记录）：误用 `git checkout` 丢弃了他人的未提交改动。**
+在处理 `nop-spring-demo` 的 `reflect-config.json` 时，我先用它做了一次「原始格式探测」，
+发现 JSON round-trip 会产生 227 行 diff 后，用 `git checkout <file>` 回到 HEAD 再改。
+但该文件在**本次会话开始前就已被修改**（非我所改），`git checkout` 把那些未提交内容**永久丢弃**。
+经核查该文件由「dev profile 下运行应用、关闭时自动追加反射类」累积而成
+（见 `docs/dev-guide/graalvm/graalvm-compile.md:13`），**不是构建可再生产物**，
+故无法通过重跑构建恢复，只能由原改动者重跑应用或从编辑器本地历史找回。
+另两份 `reflect-config.json`（`nop-cli-core`、`nop-sys-app`）会话开始时**未被修改**，
+我的改动是纯净的 `-10` 行（0 插入），已逐行核对。
+教训：对工作区中**已有未提交改动**的文件，不得使用 `git checkout` / `git restore`；
+应改用 `git diff` 精确定位，或直接在原内容上做最小编辑。
 
 ### Phase 7 - owner doc 语法清单表格化
 
