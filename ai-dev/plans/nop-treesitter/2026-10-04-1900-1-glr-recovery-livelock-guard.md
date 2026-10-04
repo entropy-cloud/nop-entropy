@@ -183,9 +183,68 @@ That mechanism does not exist in the runtime today, and where it belongs
 ERROR-wrapped tree from the best partial stack) is a **design decision with
 different behaviour for all nine grammars**, not a mechanical repair.
 
-**Phase 2 is therefore blocked pending that decision**, and this plan is left
-`in progress` rather than closed with an unproven fix. See `Closure` for the
-decision that has to be made.
+### Why C does not hit this — investigated against the real C source
+
+The C runtime is available locally at `~/sources/treesitter/tree-sitter`
+(commit `f430449ab978c9c4abe021e3e7dff71a0c2447fa`), so this was read rather than
+assumed. The decisive structural fact:
+
+> **`ts_parser__recover` has no round counter and no backstop of any kind.**
+
+That reframes the whole problem. If C could re-enter recovery at an unchanged
+position it would never return — it would hang. It returns an ERROR tree, so C
+**never re-enters recovery at an unchanged position**. Our port's 100-round
+counter is therefore **not a safety net; it is a symptom handler** converting a
+real non-termination bug into an exception. Raising the cap, or converting the
+throw into a halt, cannot fix anything.
+
+**Hypotheses tested and disproven** (each implemented or instrumented, not
+reasoned about):
+
+| Hypothesis | Verdict | Evidence |
+|---|---|---|
+| It is a zero-width token loop (as the exception text says) | **disproven** | `push` moves 8 → 9 (or 10) within a round |
+| The fix is to skip the offending token, as C does | **disproven** | that already happens; recovery returns to 8 |
+| The fix is to drop the version instead of throwing | **disproven** | becomes `no stack version reached a complete tree` (`versions=1`) |
+| Missing `ts_parser__breakdown_lookahead` is the cause | **unproven** | it genuinely is missing, but the oscillating lookaheads all have `children=0`, and C's loop requires `child_count > 0`, so it is a no-op here |
+| Scanner state is not restored when the stack pops | **unproven** | structurally true (see below) but the scanner state is the constant `00000000` across all 101 rounds |
+
+**Where the rewind comes from.** It is not `reduce`, `condense`, or a bare pop —
+instrumenting all three logged no rewind. It is `recoverToState`'s pop, i.e.
+strategy 1 doing exactly what C documents: *"create a new stack version that is in
+that state again. This entails popping all of the subtrees that have been pushed
+onto the stack since that previous state, and wrapping them in an ERROR node."*
+So the pop itself is faithful, and `recoverToState` / `recoverFromError` match C
+structurally on inspection.
+
+**Three real port gaps found** (all in the recovery/external-scanner path, none
+proven to be this bug's cause):
+
+1. **`ts_parser__breakdown_lookahead` is entirely absent** from the port. C calls
+   it at `parser.c:1567`, `:1674`, `:1707`. Its stated purpose: *"Begin recovery
+   with the current lookahead node... This ensures that the tree accounts for the
+   current lookahead token's 'lookahead bytes' value."*
+2. **`did_recover && ts_subtree_has_external_scanner_state_change(lookahead)` →
+   halt** (`parser.c:1389`) has no counterpart — and
+   `has_external_scanner_state_change` is never computed anywhere in the port.
+3. **The external scanner state is stored per *version*, not per *subtree*.** C
+   attaches `ExternalScannerState` to each `Subtree` (`subtree.h:149`), so popping
+   the stack automatically restores the scanner state; the port keeps one slot on
+   `versions[version].externalScannerState`, updated at lex time and copied on
+   version split/merge, so a stack pop does **not** restore it. This is a genuine
+   structural divergence for any external-scanner grammar.
+
+Because the recovery bookkeeping matches C and the scanner state is stable, the
+remaining divergence is most likely in the **lexer's external-scanner invocation
+path during error mode** — `Lexer.nextForParse` versus C's `ts_parser__lex`.
+
+**Phase 2 is therefore blocked pending that last comparison**, and this plan is
+left `in progress` rather than closed with an unproven fix. The three
+self-invented strategies previously offered (A lexer primitive / B recovery-level
+advance / C synthesize from partial stack) are **withdrawn**: they would all be
+inventing a mechanism whose C counterpart probably already exists upstream, which
+is the wrong instinct for a port. The right next step is the `Lexer.nextForParse`
+vs `ts_parser__lex` comparison, then a faithful port of whatever it finds.
 
 ### Phase 2 - Fix
 
