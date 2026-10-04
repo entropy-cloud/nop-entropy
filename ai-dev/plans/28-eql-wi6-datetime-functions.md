@@ -167,27 +167,27 @@ Exit Criteria:
 
 ### Phase 2 - `weekofyear(d)` → ISO 周（归一化注册）
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 的方言 XML/文档/测试面
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
-- [ ] 修复前红：`weekofyear(o.createTime)` 今天在所有方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——回归测试先断言该基线（红），再断言落地后 lowering（绿）。
-- [ ] 按 Phase 0 cell 矩阵注册 ISO 周语义：mysql `WEEKOFYEAR({0})` 原生名命中；postgresql `EXTRACT(WEEK FROM {0})` 模板；oracle `TO_NUMBER(TO_CHAR({0},'IW'))` 模板；mssql `DATEPART(iso_week,{0})` 模板；duckdb 原生 `weekofyear` 命中；h2 按取证结论。不进 `default`；dm/tdengine/db2/es 响亮报错。
-- [ ] 正向用例（EC ①）：h2 文本 + 真库执行（含跨年边界输入，如 ISO 周 2025-12-29 属 2025-W01 类）+ 至少一个模板方言的渲染文本断言。
-- [ ] 负向用例（EC ②）：未注册方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向（1 参函数的 0/2 参调用报元数错误码）。
-- [ ] 接线验证（#23）+ 约束 4"不等价"登记：非 ISO 周 各库 `WEEK(d)` 默认 mode 差异（owner doc 差异行——本 plan 只落 ISO，不落"locale 周"）。
-- [ ] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
+- [x] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。（2026-10-04 复核无回退。）
+- [x] 修复前红：`weekofyear(o.createTime)` 今天在所有方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——回归测试先断言该基线（红），再断言落地后 lowering（绿）。（红证据 `_tmp/wi6/red-phase2.log`：7/8 fail。）
+- [x] 按 Phase 0 cell 矩阵注册 ISO 周语义：mysql `WEEKOFYEAR({0})` 原生名命中；postgresql `EXTRACT(WEEK FROM {0})` 模板；oracle `TO_NUMBER(TO_CHAR({0},'IW'))` 模板；mssql `DATEPART(iso_week,{0})` 模板；duckdb 原生 `weekofyear` 命中；h2 按取证结论。不进 `default`；dm/tdengine/db2/es 响亮报错。
+- [x] 正向用例（EC ①）：h2 文本 + 真库执行（含跨年边界输入，如 ISO 周 2025-12-29 属 2025-W01 类）+ 至少一个模板方言的渲染文本断言。
+- [x] 负向用例（EC ②）：未注册方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向（1 参函数的 0/2 参调用报元数错误码）。
+- [x] 接线验证（#23）+ 约束 4"不等价"登记：非 ISO 周 各库 `WEEK(d)` 默认 mode 差异（owner doc 差异行——本 plan 只落 ISO，不落"locale 周"）。
+- [x] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（h2 + 至少一个模板方言）与跨年边界语义。
-- [ ] 负向用例断言具体错误码（unknown-function + 元数）；无静默跳过。
-- [ ] 接线验证用例通过（parse→transform→generate 三层连通）。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档（含 `[未取证]` 标注）。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（h2 + 至少一个模板方言）与跨年边界语义。
+- [x] 负向用例断言具体错误码（unknown-function + 元数）；无静默跳过。
+- [x] 接线验证用例通过（parse→transform→generate 三层连通）。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档（含 `[未取证]` 标注）。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - `dayofweek(d)` → 规范计法（归一化注册）
 
