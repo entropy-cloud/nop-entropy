@@ -143,6 +143,32 @@ first-on-asc-last-on-desc / last-on-asc-first-on-desc 四种模式）。用单�
 **先判原生支持（原生则放行），仅在需要改写时才因窗口上下文显式失败**。
 无条件拒绝会剥夺 PostgreSQL / H2 用户本就合法可用的写法。
 
+#### bean 路径与聚合路径的接入裁定（plan 2309）
+
+EQL 通道落地后，另两条产出路径按各自形状接入同一契约，但**接法不同**：
+
+- **bean 路径**（`DaoQueryHelper` / `GenSqlHelper`）与 EQL 等价——按 `supportNullsFirst`
+  分流为原生 / `CASE WHEN` 改写，且**复用 EQL 的改写实现**（`NullsOrderRewriter`）。
+  约束是依赖方向：`nop-dao` → `nop-core` 单向，`nop-core` 的 `SQL.SqlBuilder` 编译期
+  无法引用 `IDialect`，故方言必须由 ORM 层显式向下传，`SqlBuilder` 保持方言盲的底层拼装器定位。
+- **聚合路径**（`AggregationHelper`）**不做改写**，改为三路分流。其排序键既有度量聚合表达式
+  （`SUM(x)`）也有维度纯列引用（`dims.get(i).column`），但聚合表达式不满足本节「改写只对纯列
+  引用允许」的前提，故统一走「原生 / mysql 省略或失败 / 其余失败」。这里曾有一个错误裁定：
+  误以为排序键恒为聚合表达式因而只能 fail-fast——实际维度键是纯列，且更关键的是
+  `IOrmTemplate extends ISqlExecutor` 早已暴露 `getDialectForQuerySpace`，方言本可取得，
+  fail-fast 会把 H2 / PostgreSQL 上正常工作的查询变成硬失败。
+
+**「取不到方言就失败」是契约的一部分**，不是临时兜底：无法校验方言时输出原生子句，
+等于把错误推迟到目标库，且在 MySQL 上必然是语法错误。宁可响亮失败。
+
+**明确不纳入的三处**（均已加 javadoc 危险标注，且都不在查询主链路上）：
+- `QueryBeanHelper.buildOrderBySql`（`nop-core`）：渲染裸 `nulls first` 文本，**零调用方**。
+  删除属 `nop-core` API 变更，按 Protected Area 须独立立项。
+- `OrderFieldBean.toString()`：同样渲染裸文本，仅调试输出，不可当 SQL 用。
+- `OrderFieldBean.shouldNullsFirst()`：单布尔推导空序，属**内存比较语义**
+  （供 `OrderByComparator` 等），恰是本节否决的反模式在内存场景的合法对应物，
+  但**不得**用于 SQL 产出。
+
 #### 推翻 `2026-08-06-1228-1:55` 的留痕
 
 该条曾以「EQL 侧不提供空序策略，请走已带方言门控的 bean 路径」为由把 EQL 的空序语法

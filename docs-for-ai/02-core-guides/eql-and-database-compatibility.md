@@ -140,14 +140,39 @@ CASE 键插在**紧邻其排序项**的位置，不改变键间优先级。
 **`ORDER BY ... COLLATE` 仍不支持**。注意区分：`CAST(x AS type COLLATE y)` 中的
 `COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
 
-**另一条通道（当前有缺陷，勿照搬本页描述）**：bean 路径
-`QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`（`DaoQueryHelper` / `SQL.SqlBuilder`）
-是**独立于 EQL 的另一套实现，完全没有方言门控**——`SQL.SqlBuilder` 全类 0 处 dialect 引用，
-空序修饰无条件拼接。因此**在 MySQL / MariaDB / DM / tdengine / SQL Server 上经该路径写
-`nullsFirst` 会产出语法错误的 SQL**。`nop-metadata` 的聚合查询路径（`AggregationHelper`）
-只对 `"MySQL"` 做了特判，其余方言同样无条件拼接。
-**在修复前，请只在 EQL 通道使用空序修饰**；若确需在 bean 路径表达空序，
-当前唯一安全做法是自己在 SQL 片段里显式写 `CASE WHEN` 或按目标库手工确认缺省行为。
+#### 另两条通道：bean 路径与聚合路径（2026-10-04 plan 2309 起与 EQL 同契约）
+
+`QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`（bean 路径）与 `nop-metadata`
+聚合查询（`AggregationHelper`）是**独立于 EQL 的产出路径**，但空序策略现与 EQL 一致，
+统一只依赖 `supportNullsFirst` 能力位。
+
+**bean 路径**（`DaoQueryHelper.appendOrderBy` / `GenSqlHelper`）：方言由 ORM 层显式传入
+（`ormTemplate.getSessionFactory().getDialectForQuerySpace(...)`），true → 原生输出，
+false → 同一份 `CASE WHEN` 改写（`NullsOrderRewriter`，与 EQL 共用实现，全仓仅一份）。
+改写按**排序项**逐个进行，多键时 CASE 键紧邻其排序项，不改变键间优先级。
+
+> 为什么方言要显式往下传：`SQL.SqlBuilder` 位于 `nop-core`，而依赖方向是
+> `nop-dao` → `nop-core`（单向），故 `nop-core` **编译期无法引用 `IDialect`**。
+> 这也解释了 `SQL.SqlBuilder.nullsFirst` 为何仍是方言盲的——它只是底层拼装器，门控在其调用方。
+
+**聚合路径**（`AggregationHelper.buildOrderByClause`）与前两者有一处**本质差异**：
+它的排序键是**度量聚合表达式**（`SUM(x)`）或**维度列**。按 design §3.8「改写只对纯列引用
+允许」，该路径**不做 CASE 改写**，而是：
+- 方言支持原生子句（h2 / postgresql / oracle / duckdb）→ 原生输出；
+- mysql 系列 → 与 MySQL 缺省一致的组合省略子句，无法表达的组合**响亮失败**；
+- 其余方言、或**取不到方言** → **响亮失败**（此前是无条件拼接，在 mariadb / dm /
+  tdengine / db2 上产出语法错误 SQL）。
+
+> 「取不到方言就失败」是刻意的：无法校验方言时产出原生子句，等于把错误推迟到目标库，
+> 且在 MySQL 上必然是语法错误。
+
+**仍需注意的两处方言盲点**（均已加 javadoc 警示，且都不在查询主链路上）：
+- `QueryBeanHelper.buildOrderBySql`（`nop-core`）：直接渲染 `" nulls first"` 文本，
+  **零调用方**，删除属 `nop-core` API 变更，已立项。
+- `OrderFieldBean.toString()`：同样渲染该文本，仅调试用，不可当 SQL 用。
+- `OrderFieldBean.shouldNullsFirst()`：用单布尔推导空序，是**内存比较语义**
+  （供 `OrderByComparator` 等内存排序），**不是 SQL 语义**——单布尔模型正是 §3.8 否决的
+  做法（见上文 DuckDB 警告），SQL 产出路径不得使用。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 

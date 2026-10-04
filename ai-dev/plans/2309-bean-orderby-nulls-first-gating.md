@@ -308,29 +308,33 @@ Exit Criteria:
 
 ### Phase 4 - 文档、守护与过时警告清除（Fix + Proof）
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/**`、`ai-dev/design/**`、`nop-orm*/src/test/**`
 
 - Item Types: `Fix`, `Proof`
 
-- [ ] **删除** `docs-for-ai/02-core-guides/eql-and-database-compatibility.md:143-150` 的
+- [x] **删除** `docs-for-ai/02-core-guides/eql-and-database-compatibility.md:143-150` 的
       「另一条通道（当前有缺陷，勿照搬本页描述）」警告——本计划落地后它即为**假声明**，
       且会误导用户回避一个已可用的特性
-- [ ] 在该页补 bean 路径与聚合路径的空序行为终态描述（与 EQL 通道的差异：聚合路径为 fail-fast）
-- [ ] design §3.8 追加 D3–D5 留痕：为何聚合路径不能改写、为何 `QueryBeanHelper` 不删、
+- [x] 在该页补 bean 路径与聚合路径的空序行为终态描述（与 EQL 通道的差异：聚合路径为 fail-fast）
+- [x] design §3.8 追加 D3–D5 留痕：为何聚合路径不能改写、为何 `QueryBeanHelper` 不删、
       为何 `toString()`/`shouldNullsFirst()` 不属 SQL 语义
-- [ ] 新增门控守护测试：断言「`supportNullsFirst=false` 的方言下 bean 通道产出 CASE 改写」
-- [ ] 变异验证：把方言取值改错 / 把门控短路掉，守护测试必须转红
+- [x] 新增门控守护测试：断言「`supportNullsFirst=false` 的方言下 bean 通道产出 CASE 改写」
+- [x] 变异验证：把方言取值改错 / 把门控短路掉，守护测试必须转红
 
 Exit Criteria:
 
-- [ ] **证明**：改错任一方言取值或移除门控会导致守护测试失败
-- [ ] owner doc 中不再有「该路径当前有缺陷」的过时声明（逐句核对）
-- [ ] design 与实际终态一致，无 "Proposed vs Current" 叙事
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata-service --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 本 plan 与所改 owner doc 自身 0 条 broken link
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **证明**：**三类变异全部被捕获**——① 门控短路为恒真 → `TestBeanNullsOrderMySql` 8/9 红；
+      ② `resolveDialectName` 改回 null → `TestEntityAggregationProcessorOrmDialectWiring` 4/5 红；
+      ③ mysql 方言取值改 true → `TestDefaultDialectNullsFirstFeatures`（2308）3 红。
+      注：③ 由 2308 的取值守护捕获而非本 Phase 新增的 `TestBeanNullsOrderGate`——后者用**合成方言**
+      隔离门控逻辑本身（合成方言不读 xml，故取值变更不影响它，这是刻意分层而非遗漏）
+- [x] owner doc 中不再有「该路径当前有缺陷」的过时声明（逐句核对）
+- [x] design 与实际终态一致，无 "Proposed vs Current" 叙事
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata-service --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 本 plan 与所改 owner doc 自身 0 条 broken link
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ## Closure Gates
 
