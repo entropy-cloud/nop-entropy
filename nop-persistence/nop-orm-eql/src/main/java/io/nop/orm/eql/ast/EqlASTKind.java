@@ -139,4 +139,6 @@ public enum EqlASTKind{
         
             SqlGroupingOp, // ordinal: 67
         
+            SqlValuesTableSource, // ordinal: 68
+        
 }

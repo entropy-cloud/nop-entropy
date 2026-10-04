@@ -426,6 +426,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -457,6 +469,42 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRowList_(EqlParser.SqlRowList_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRowList_(EqlParser.SqlRowList_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -509,6 +509,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlValuesTableSource visitSqlValuesTableSource_ex(SqlValuesTableSource_exContext ctx){
+           SqlValuesTableSourceContext node = ctx.sqlValuesTableSource();
+           return node == null ? null : visitSqlValuesTableSource(node);
+        }
+      
 public java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> buildCaseWhens_(CaseWhens_Context ctx){
     java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> list = new ArrayList<>();
     List<SqlCaseWhenItemContext> elms = ctx.sqlCaseWhenItem();
@@ -1330,6 +1335,17 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
           return ret;
       }
             
+public java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> buildSqlRowList_(SqlRowList_Context ctx){
+    java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> list = new ArrayList<>();
+    List<SqlMultiValueExprContext> elms = ctx.sqlMultiValueExpr();
+    if(elms != null){
+      for(SqlMultiValueExprContext elm: elms){
+         list.add(visitSqlMultiValueExpr(elm));
+      }
+    }
+    return list;
+}
+      
       public io.nop.orm.eql.ast.SqlSelect visitSqlSelect(SqlSelectContext ctx){
         
             return (io.nop.orm.eql.ast.SqlSelect)ctx.accept(this);
@@ -1588,6 +1604,24 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
                ret.setValues(Collections.emptyList());
             }
             
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlValuesTableSource visitSqlValuesTableSource(SqlValuesTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlValuesTableSource ret = new io.nop.orm.eql.ast.SqlValuesTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.rows != null){
+               ret.setRows((buildSqlRowList_(ctx.rows)));
+            }else{
+               ret.setRows(Collections.emptyList());
+            }
+            
+            if(ctx.alias != null){
+               ret.setAlias((visitSqlAlias(ctx.alias)));
+            }
             ret.normalize();
             ret.validate();
           return ret;

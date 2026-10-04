@@ -146,6 +146,7 @@ sqlTableSource:
     sqlSingleTableSource  #SqlSingleTableSource_ex
     | sqlSubqueryTableSource #SqlSubqueryTableSource_ex
     | sqlTumbleTableSource #SqlTumbleTableSource_ex
+    | sqlValuesTableSource #SqlValuesTableSource_ex
     | left=sqlTableSource  joinType=joinType_ right=sqlTableSource_joinRight  (ON condition=sqlExpr)? #SqlJoinTableSource
     ;
 
@@ -162,7 +163,30 @@ sqlTumbleTableSource:
     ;
 
 sqlSubqueryTableSource:
-   lateral=LATERAL? LP_  query=sqlSelect RP_ AS? alias=sqlAlias;
+   lateral=LATERAL? LP_  query=sqlSelect RP_ AS? alias=sqlAlias
+   ;
+
+// WI12 Phase 4（plan 38，裁定 ai-dev/design/eql-cross-db-compat/
+// 2026-10-05-wi12-phase0-adjudications.md §4）：FROM (VALUES (1,2),(3,4)) alias(c1,c2) 表源
+// （H2 官方文法 Table Expression `( query ) [ [AS] alias [(columnName,...)] ]`，query 含
+// tableValue）。rows 复用既有 SqlMultiValueExpr（LP_ expr (COMMA_ expr)* 行结构同构）；
+// alias 必填（EQL 相对 H2 收紧——作用域注册与 select * 展开锚点，登记 owner doc 不等价行）；
+// 列名清单缺省时元数据列名取 C1..Cn（H2 惯例）。零新 token（VALUES 已在 Keyword.g4）。
+sqlValuesTableSource
+    : LP_ VALUES rows=sqlRowList_ RP_ AS? alias=sqlAlias sqlColumnAliases__?
+    ;
+
+// 行列表 helper（sqlProjections_ 同构：e=X (COMMA_ e=X)* → 生成 buildSqlRowList_）
+sqlRowList_
+    : e=sqlMultiValueExpr (COMMA_ e=sqlMultiValueExpr)*
+    ;
+
+// 别名列清单内联规则（notInAst——`__` 后缀 = AstGrammarBuilder getInnerRule 跳过，
+// extractField__/trimDirection__ 先例）：元素文本经手写 visitSqlValuesTableSource 读取，
+// 不产生 AST 子节点。
+sqlColumnAliases__
+    : LP_ sqlIdentifier_ (COMMA_ sqlIdentifier_)* RP_
+    ;
 
 //sqlJoinTableSource
 //    : left=sqlSingleTableSource <indent> joinType=joinType_ right=sqlTableSource_joinRight <indent> (ON condition=sqlExpr)?

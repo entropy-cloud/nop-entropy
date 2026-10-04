@@ -222,6 +222,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -239,6 +246,24 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree

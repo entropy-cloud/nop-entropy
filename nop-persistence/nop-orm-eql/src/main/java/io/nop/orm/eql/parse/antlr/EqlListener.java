@@ -362,6 +362,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 */
@@ -391,6 +403,36 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree

@@ -590,4 +590,20 @@ class EqlAST {
 
         List<SqlExpr> args;
     }
+    // WI12 Phase 4（plan 38，裁定 §4）：FROM (VALUES ...) 表源（ⓒ 定价单新类，尾部追加
+    // ordinal=68；rows 复用 SqlMultiValueExpr 行结构）。resolvedTableMeta 的承载与
+    // getSourceSelect 在手写 SqlValuesTableSource（SqlSubqueryTableSource 同款分层）。
+    class SqlValuesTableSource extends SqlTableSource {
+        @PropMeta(mandatory = true)
+        List<SqlMultiValueExpr> rows;
+
+        @PropMeta(mandatory = true)
+        SqlAlias alias;
+
+        // 显式别名列清单（t(c1,c2)）；缺省 = 元数据列名取 C1..Cn（H2 惯例）。
+        // 由手写 visitSqlValuesTableSource 从 sqlColumnAliases__ 内联规则文本填充
+        // （List<String> 无 label→prop 自动映射通路）。
+        List<String> columns;
+    }
+
 }

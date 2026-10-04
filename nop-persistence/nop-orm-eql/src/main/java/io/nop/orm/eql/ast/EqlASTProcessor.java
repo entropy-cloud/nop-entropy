@@ -213,6 +213,9 @@ public class EqlASTProcessor<T,C>{
             case SqlGroupingOp:
                 return processSqlGroupingOp((SqlGroupingOp)node,context);
         
+            case SqlValuesTableSource:
+                return processSqlValuesTableSource((SqlValuesTableSource)node,context);
+        
           default:
              throw new IllegalArgumentException("invalid ast kind");
        }
@@ -488,6 +491,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlGroupingOp(SqlGroupingOp node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlValuesTableSource(SqlValuesTableSource node, C context){
         return defaultProcess(node, context);
 	}
     

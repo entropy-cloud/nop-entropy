@@ -214,6 +214,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlGroupingOp:
                 return optimizeSqlGroupingOp((SqlGroupingOp)node,context);
             
+                case SqlValuesTableSource:
+                return optimizeSqlValuesTableSource((SqlValuesTableSource)node,context);
+            
         default:
         throw new IllegalArgumentException("invalid ast kind");
         }
@@ -1998,6 +2001,46 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                 incChangeCount();
                                 if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlValuesTableSource(SqlValuesTableSource node, C context){
+        SqlValuesTableSource ret = node;
+
+        
+                    if(node.getDecorators() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
+                            if(decoratorsOpt != node.getDecorators()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
+                                ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getRows() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> rowsOpt = optimizeList(node.getRows(),true, context);
+                            if(rowsOpt != node.getRows()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(rowsOpt); ret = node.deepClone();}
+                                ret.setRows(rowsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getAlias() != null){
+                    
+                            io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
+                            if(aliasOpt != node.getAlias()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setAlias(aliasOpt);
                             }
                         
                     }

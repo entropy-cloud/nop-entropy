@@ -257,6 +257,13 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -272,6 +279,27 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlRowList_(EqlParser.SqlRowList_Context ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
