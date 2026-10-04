@@ -36,6 +36,16 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isFalse(SqlAndExpr_isFalseContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isTrue(SqlAndExpr_isTrueContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlBetweenExpr visitSqlBetweenExpr(SqlBetweenExprContext ctx){
           io.nop.orm.eql.ast.SqlBetweenExpr ret = new io.nop.orm.eql.ast.SqlBetweenExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -256,6 +266,21 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlIsNullExpr visitSqlIsNullExpr_isUnknown(SqlIsNullExpr_isUnknownContext ctx){
+          io.nop.orm.eql.ast.SqlIsNullExpr ret = new io.nop.orm.eql.ast.SqlIsNullExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr_primary(ctx.expr)));
+            }
+            if(ctx.not != null){
+               ret.setNot((SqlIsNullExpr_not(ctx.not)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlJoinTableSource visitSqlJoinTableSource(SqlJoinTableSourceContext ctx){
           io.nop.orm.eql.ast.SqlJoinTableSource ret = new io.nop.orm.eql.ast.SqlJoinTableSource();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -364,6 +389,16 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotFalse(SqlNotExpr_isNotFalseContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotTrue(SqlNotExpr_isNotTrueContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlOrExpr visitSqlOrExpr(SqlOrExprContext ctx){
           io.nop.orm.eql.ast.SqlOrExpr ret = new io.nop.orm.eql.ast.SqlOrExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1726,7 +1761,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract boolean SqlInValuesExpr_not(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: SqlIsNullExpr
+   * rules: SqlIsNullExpr,SqlIsNullExpr_isUnknown
    */
   public abstract boolean SqlIsNullExpr_not(org.antlr.v4.runtime.Token token);
 

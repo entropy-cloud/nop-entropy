@@ -776,6 +776,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlAndExpr(EqlParser.SqlAndExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlBinaryExpr_compare}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -812,6 +824,30 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlIsNullExpr(EqlParser.SqlIsNullExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlCompareWithQueryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -824,6 +860,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -835,6 +883,18 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.

@@ -165,6 +165,15 @@ sqlExpr_primary
     // DISTINCT/TRUE/FALSE/UNKNOWN 均为保留 token（Keyword.g4/SQL92Keyword.g4），不与 IDENTIFIER_ 竞争。
     | sqlExpr_primary IS NOT DISTINCT FROM sqlExpr_predicate # SqlBinaryExpr_isNotDistinctFrom
     | sqlExpr_primary IS DISTINCT FROM sqlExpr_predicate # SqlNotExpr_isDistinctFrom
+    // WI8 Phase 2（plan 27；裁定同上 §一.3/§九）：IS [NOT] TRUE/FALSE/UNKNOWN。
+    // isUnknown 保留 expr=/not= label（SqlIsNullExpr 两 prop 俱在，生成体即正确、零手写覆盖）；
+    // TRUE/FALSE 四备选走构建期真值表展开（安全词表，手写 visit 完全重写不调 super），
+    // 操作数无 label 规则引用（§九 9.2.5 codegen prop 校验机制）。
+    | expr=sqlExpr_primary IS not=NOT? UNKNOWN # SqlIsNullExpr_isUnknown
+    | sqlExpr_primary IS TRUE # SqlAndExpr_isTrue
+    | sqlExpr_primary IS NOT TRUE # SqlNotExpr_isNotTrue
+    | sqlExpr_primary IS FALSE # SqlAndExpr_isFalse
+    | sqlExpr_primary IS NOT FALSE # SqlNotExpr_isNotFalse
    // | booleanPrimary SAFE_EQ_ predicate
     | left=sqlExpr_primary operator=comparisonOperator_ right=sqlExpr_predicate # SqlBinaryExpr_compare
     | expr=sqlExpr_primary operator=comparisonOperator_ compareRange=(ALL | ANY | SOME) query=sqlSubQueryExpr # SqlCompareWithQueryExpr

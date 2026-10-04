@@ -906,6 +906,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlBinaryExpr_compare(EqlParser.SqlBinaryExpr_compareContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -942,6 +954,30 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -954,6 +990,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -961,6 +1009,18 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

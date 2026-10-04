@@ -469,6 +469,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlAndExpr(EqlParser.SqlAndExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlBinaryExpr_compare}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -490,6 +497,20 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlIsNullExpr(EqlParser.SqlIsNullExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlCompareWithQueryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -497,12 +518,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
