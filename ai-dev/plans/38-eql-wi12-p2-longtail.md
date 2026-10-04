@@ -201,21 +201,21 @@ Exit Criteria:
 
 ### Phase 3 - `SAVEPOINT` / `ROLLBACK TO` 终局裁定落地（交付 ③）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（裁定文档 Phase 3 节）、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（仅当裁定=移出：WI12 节原地注记 + ledger 行；**本 Phase 不改 roadmap 状态区**）
 
 - Item Types: `Decision`（+ 若裁定落地则含 `Feature`）
 
-- [ ] 依 Phase 0 终局裁定执行。**分支 A（预判，移出）**：① roadmap WI12 交付 3 加原地执行注记（不删原文，注明裁定依据 = 裁定文档五条证据链）+ 「明确延后项」ledger 新增一行（理由 / 重新评估触发条件 / successor = 单独 roadmap 立项）；② 本 plan Deferred But Adjudicated 段落登记；③ `supportSavePoint` 软弃用档位**零触碰**（`TestDialectDeadFlagDisposition` 回归确认未受扰）；④ 既有 `SqlCommit`/`SqlRollback` 打印 no-op 面登记为 watch-only 观察项（本 plan 不修）。**分支 B（落地）**：文法（`sqlRollback: ROLLBACK (TO savepointName=sqlIdentifier_)?` + `sqlSavepoint` 语句——`SAVEPOINT` token 已在 `Keyword.g4:349`）+ `SqlRollback` 既有类加字段（零 ordinal）或新类尾部追加（ⓒ 定价）+ 打印侧补文本（打破 no-op 需同步裁定 `SqlCommit`/`SqlRollback` 既有语句的打印补齐，否则 `SAVEPOINT` 有文本而 `COMMIT` 没有 = 新的不一致面）+ `supportSavePoint` 软弃用档位推翻（WI10b scope change 书面理由）+ 各方言响亮负向（JDBC API 场景为主的一手取证登记）。两分支都以裁定文档终局结论为准。
-- [ ] 分支 A 的裁定文档必须显式回答「为什么不是名义 owner」：ledger 行的触发条件、successor 路径、WI12 交付 3 的注记位置三处对齐。
-- [ ] 若分支 A：零产品代码改动——`No owner-doc update required`（owner doc 的锁/事务段若无 SAVEPOINT 内容则不新增；`eql-and-database-compatibility.md` 仅在裁定需要说明「事务语句为何不在 EQL」时加一小节，随本 Phase 落）。
-- [ ] `ai-dev/logs/` 条目（含裁定终局结论与 roadmap 回写位置）。
+- [x] 依 Phase 0 终局裁定执行。**分支 A（预判，移出）**：① roadmap WI12 交付 3 加原地执行注记（不删原文，注明裁定依据 = 裁定文档五条证据链）+ 「明确延后项」ledger 新增一行（理由 / 重新评估触发条件 / successor = 单独 roadmap 立项）；② 本 plan Deferred But Adjudicated 段落登记；③ `supportSavePoint` 软弃用档位**零触碰**（`TestDialectDeadFlagDisposition` 回归确认未受扰）；④ 既有 `SqlCommit`/`SqlRollback` 打印 no-op 面登记为 watch-only 观察项（本 plan 不修）。**分支 B（落地）**：文法（`sqlRollback: ROLLBACK (TO savepointName=sqlIdentifier_)?` + `sqlSavepoint` 语句——`SAVEPOINT` token 已在 `Keyword.g4:349`）+ `SqlRollback` 既有类加字段（零 ordinal）或新类尾部追加（ⓒ 定价）+ 打印侧补文本（打破 no-op 需同步裁定 `SqlCommit`/`SqlRollback` 既有语句的打印补齐，否则 `SAVEPOINT` 有文本而 `COMMIT` 没有 = 新的不一致面）+ `supportSavePoint` 软弃用档位推翻（WI10b scope change 书面理由）+ 各方言响亮负向（JDBC API 场景为主的一手取证登记）。两分支都以裁定文档终局结论为准。
+- [x] 分支 A 的裁定文档必须显式回答「为什么不是名义 owner」：ledger 行的触发条件、successor 路径、WI12 交付 3 的注记位置三处对齐。
+- [x] 若分支 A：零产品代码改动——`No owner-doc update required`（owner doc 的锁/事务段若无 SAVEPOINT 内容则不新增；`eql-and-database-compatibility.md` 仅在裁定需要说明「事务语句为何不在 EQL」时加一小节，随本 Phase 落）。
+- [x] `ai-dev/logs/` 条目（含裁定终局结论与 roadmap 回写位置）。
 
 Exit Criteria:
 
-- [ ] SAVEPOINT/ROLLBACK TO 落到「落地」或「移出+successor」两者之一，裁定证据链与 roadmap 回写措辞齐备；无第三状态。
-- [ ] 分支 A：roadmap 注记 + ledger 行已按先例格式落（执行者提交）；`TestDialectDeadFlagDisposition` 回归绿；产品代码零 diff。
-- [ ] 分支 B：按 Phase 2 同款红→绿 + 负向 + 真库证据纪律执行完毕（含 clean install 若触 ⓒ）。
+- [x] SAVEPOINT/ROLLBACK TO 落到「落地」或「移出+successor」两者之一，裁定证据链与 roadmap 回写措辞齐备；无第三状态。
+- [x] 分支 A：roadmap 注记 + ledger 行已按先例格式落（执行者提交）；`TestDialectDeadFlagDisposition` 回归绿；产品代码零 diff。
+- [x] ~~分支 B：按 Phase 2 同款红→绿 + 负向 + 真库证据纪律执行完毕（含 clean install 若触 ⓒ）。~~（**不适用**——Phase 3 走分支 A 移出，2026-10-04 落档；本项随分支互斥选择失效，处置已闭非未完成项）
 - [ ] `ai-dev/logs/` 条目已更新。
 
 ### Phase 4 - `FROM (VALUES …)`（交付 ⑤，按 Phase 0 定价）
@@ -308,12 +308,12 @@ Exit Criteria:
 
 > 预登记 Phase 0/3/4 的两类可能裁定结果；执行时按实际结论补全并勾选。
 
-### SAVEPOINT / ROLLBACK TO（若 Phase 3 裁定移出——预判结论）
+### SAVEPOINT / ROLLBACK TO（Phase 3 终局裁定 = 移出，2026-10-04 落地）
 
 - Classification: `moved to explicit successor ownership`
-- Why Not Blocking Closure: 现状响亮失败（无静默风险）；事务语句 owner 是 JDBC Connection API 与 Nop 事务管理器而非 SQL 文本编译层；`supportSavePoint` 已被 WI10b 软弃用（勿新增消费依赖）；既有事务语句层打印侧 no-op，扩展只会造新 hollow 面。五条证据链全文见裁定文档。
+- Why Not Blocking Closure: 现状响亮失败（无静默风险）；事务语句 owner 是 JDBC Connection API 与 Nop 事务管理器而非 SQL 文本编译层；`supportSavePoint` 已被 WI10b 软弃用（勿新增消费依赖）；既有事务语句层打印侧 no-op（`EqlASTVisitor` visitSqlCommit/visitSqlRollback 方法体仅 visitDecorators、双 generator 零 override——结构封闭探针，plan 预留的执行级一行探针判定不必要），扩展只会造新 hollow 面。五条证据链全文见裁定文档 §3。
 - Successor Required: `yes`
-- Successor Path: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`「明确延后项」新增行（触发条件 = 出现「sql-lib 声明事务语句」的产品需求；须同时解决打印侧、flag 恢复接线、事务管理器集成）。
+- Successor Path: roadmap「明确延后项」ledger 新增行 **已落**（2026-10-04，触发条件 = 出现「sql-lib 声明事务语句」的产品需求；须同时解决打印侧、flag 恢复接线、事务管理器集成）+ WI12 交付 3 原地注记 **已落**（两处对齐裁定文档 §3.1 措辞）。`supportSavePoint` 软弃用档位零触碰（`TestDialectDeadFlagDisposition` 回归绿，Phase 3 实跑）。
 
 ### `FROM (VALUES …)`（仅当 Phase 4 裁定移出时适用；预判为落地分支，本节仅在移出时激活）
 
