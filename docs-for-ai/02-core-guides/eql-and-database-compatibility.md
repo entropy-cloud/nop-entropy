@@ -563,6 +563,23 @@ EQL 归一化日期时间函数（普通 `SqlRegularFunction` 通道：函数名
 
 **语义差异登记（不等价类）**：pg `date_trunc` 对 `timestamptz` 输入按会话 TimeZone 截断（时变）；h2/duckdb 对无时区 timestamp 无此时变——timestamptz 场景跨库需自行显式时区处理。周起点：三方 week 截断均为 ISO 周一 `[实测]`（h2 2026-02-10 → 2026-02-09）。
 
+#### dateAdd(unit,n,d) / dateDiff(unit,d1,d2)（字符串单位；dateDiff 锚点 = 边界跨越）
+
+**dateDiff 归一化语义钉死"边界跨越"**（crossed unit boundaries——h2/duckdb 共有语义；例：`dateDiff('MONTH', 2026-01-31, 2026-03-10)` = 2，"完整单位数"语义下为 1）。
+
+| 函数 | 方言 | 输出 | 证据 |
+|------|------|------|------|
+| `dateadd` | h2 / h2gis | `DATEADD('MONTH',-1,d)`（**WI6 之前既有注册，行为不变**——守护用例逐字节锁定） | `[实测]`（h2 真库 `TestEqlDateAddDateDiffDialect.testH2RealDbAddDiffSemantics`） |
+| `datediff` | h2 / h2gis | `DATEDIFF('MONTH',d1,d2)`（既有注册，边界跨越明文） | `[实测]`（同上 + H2 functions.html "number of crossed unit boundaries"） |
+| `datediff` | duckdb | `date_diff('month',d1,d2)`（native realName=date_diff；`datediff` 为 DuckDB 官方别名） | `[文档]`（DuckDB："The number of part boundaries between starttimestamp and endtimestamp"——与锚点同语义同参序）/ DuckDB 嵌入式 scratch 实测=1 |
+| `dateadd`/`datediff` | mysql / mariadb / mysql5.7 | **未注册 → 编译期响亮报错** | `[文档]`（`DATE_ADD` unit 明文 keyword；`DATEDIFF` 仅天 2 参；`TIMESTAMPDIFF` 完整单位数+keyword unit——语义与语法双不可达） |
+| `dateadd`/`datediff` | postgresql / postgis | 同上（未注册 → 响亮） | `[文档]`（interval 算术/`date-date` 减法需运行时单位分支或仅天——fixed template 不可为） |
+| `dateadd`/`datediff` | oracle / oracle-reverse | 同上（未注册 → 响亮） | `[文档]`（DS/`NUMTODSINTERVAL` 与 YM/`NUMTOYMINTERVAL` 按单位域双函数分叉，无单模板无损表达） |
+| `dateadd`/`datediff` | mssql | 同上（未注册 → 响亮） | `[文档]`（datepart 明文拒绝引号字符串/无字符串接受证据） |
+| `dateadd`/`datediff` | dm / tdengine / db2 / es | 同上（未注册 → 响亮） | `[未取证]` |
+
+**语义差异登记（不等价类）**：`dateDiff` 三类语义分叉——边界跨越（h2/duckdb/mssql，归一化锚点）vs 完整单位数（mysql `TIMESTAMPDIFF`）vs 仅天（mysql `DATEDIFF` 2 参 / pg `date-date`）。`dateAdd` 的 interval 算术替代写法（`o.createTime + interval 1 day`）的逐方言模板 owner = WI7b（`sqlIntervalLiteral`）。
+
 ### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
 
 

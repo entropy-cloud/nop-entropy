@@ -290,12 +290,13 @@ Exit Criteria:
 
 ## Deferred But Adjudicated
 
-### 不可无损的 `dateAdd`/`dateDiff`/`dateTrunc` cell（裸关键字单位方言族等，Phase 5 逐 cell 确认后填实）
+### 不可无损的 `dateAdd`/`dateDiff`/`dateTrunc` cell（裸关键字单位方言族——Phase 5 已逐 cell 填实）
 
-- Classification: `out-of-scope improvement`（逐 cell 标注；若某 cell 属"已确认产品需求被拒"则升格并回 roadmap ledger）
+- 逐 cell 终局结论（2026-10-04，裁定文档 §4/§7）：`dateadd`/`datediff` 在 mysql/mariadb/mysql5.7（unit 明文 keyword + 语义分叉）、postgresql/postgis（无单位通路）、oracle/oracle-reverse（DS/YM 双函数分叉）、mssql（datepart 拒引号字符串/无证据）**全部不落** = 编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮；`datetrunc` 在 mysql/mariadb/mysql5.7（无原生非无损）、oracle/oracle-reverse（TRUNC fmt 词表）、mssql（无字符串接受证据）**不落**。落地实况 = `datediff` +duckdb、h2/h2gis 既有 `dateadd`/`datediff` 不变、`datetrunc` 五方言（h2/h2gis/pg/postgis/duckdb）。
+- Classification: `out-of-scope improvement`（若某 cell 属"已确认产品需求被拒"则升格并回 roadmap ledger）
 - Why Not Blocking Closure: roadmap 约束 3 明文"不满足能无损 lowering 的项一律不做"；这些 cell 的响亮报错（`ERR_EQL_UNKNOWN_FUNCTION`）保证无静默错误 SQL，supported baseline 在已落 cell 上成立。
-- Successor Required: `yes`（重新评估触发条件逐 cell 写明：如"产品出现 MySQL 裸关键字单位形态需求""mssql datepart 字符串接受性取证翻案"）
-- Successor Path: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`「明确延后项」ledger（新增行，格式照既有行）。
+- Successor Required: `yes`（重新评估触发条件已写入 roadmap ledger 行：① mssql datepart 字符串接受性一手取证翻案；② 产品出现"仅 MySQL 目标库"裸关键字单位需求（按单位拆函数名族=被拒备选，须先 scope change 修订 WI6 调用面）；③ oracle 单位白名单 TRUNC fmt 映射裁定）
+- Successor Path: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`「明确延后项」ledger 新增行"`dateAdd`/`dateDiff`/`dateTrunc` 的裸关键字单位方言 cell"（2026-10-04 已登记，理由/触发条件/successor 三要素齐备）。
 
 ### `WEEK` 关键字遮蔽 / `extractField__` 扩 `WEEK`（`EXTRACT(WEEK FROM d)`）
 
