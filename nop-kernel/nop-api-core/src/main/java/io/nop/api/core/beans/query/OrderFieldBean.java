@@ -32,6 +32,14 @@ public class OrderFieldBean implements Serializable, ICloneable {
     private boolean desc;
     private Boolean nullsFirst;
 
+    /**
+     * <b>⚠️ 仅供调试打印，勿把本方法的输出当作可执行 SQL。</b>
+     *
+     * <p>本方法会渲染 {@code " nulls first"} / {@code " nulls last"}，但<b>不询问目标方言
+     * 是否支持该语法</b>（{@code nop-api-core} 在依赖链最底层，无法引用 {@code IDialect}）。
+     * 在 MySQL 等库上按此拼 SQL 会报语法错误。可执行 SQL 请走 ORM 查询通道
+     * （按 plan 2309 接入 {@code supportNullsFirst} 能力位）。
+     */
     public String toString() {
         Boolean nullsFirst = getNullsFirst();
         return (owner == null ? "" : owner + ".") + name + " " + (desc ? "desc" : "asc") +
@@ -129,6 +137,14 @@ public class OrderFieldBean implements Serializable, ICloneable {
         return nullsFirst;
     }
 
+    /**
+     * <b>⚠️ 这是内存比较语义，不是 SQL 空序语义。</b>
+     *
+     * <p>本方法用单个布尔推导「升序时 null 在前」，是 <b>SQL 层被明确否决的反模式</b>
+     * （DuckDB 的 ASC 与 DESC 都不翻转缺省，单布尔无法表达真实空序模型）。
+     * 故其调用方限于内存排序比较器（{@code OrderByComparator} 等），
+     * <b>SQL 产出路径不得使用</b>。
+     */
     public boolean shouldNullsFirst() {
         if (nullsFirst != null)
             return nullsFirst;

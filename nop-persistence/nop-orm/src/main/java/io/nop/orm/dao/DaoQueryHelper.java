@@ -20,6 +20,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.sql.FilterBeanToSQLTransformer;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.IDialect;
+import io.nop.orm.sql.GenSqlHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IColumnModel;
@@ -73,7 +75,7 @@ public class DaoQueryHelper {
                 .collect(Collectors.toList());
     }
 
-    public static SQL queryToSelectObjectSql(String entityName, QueryBean query) {
+    public static SQL queryToSelectObjectSql(IDialect dialect, String entityName, QueryBean query) {
         SQL.SqlBuilder sb = newSQL(query);
         sb.append("select o from ").append(entityName).as("o");
         if (query.getLeftJoinProps() != null) {
@@ -85,7 +87,7 @@ public class DaoQueryHelper {
         if (query != null) {
             appendWhere(sb, "o", query.getFilter());
 
-            appendOrderBy(sb, "o", query.getOrderBy());
+            appendOrderBy(sb, dialect, "o", query.getOrderBy());
         }
         return sb.end();
     }
@@ -122,7 +124,7 @@ public class DaoQueryHelper {
             throw new NopException(ERR_ORM_INVALID_ENTITY_NAME).param(ARG_ENTITY_NAME, name);
     }
 
-    public static SQL.SqlBuilder queryToSelectFieldsSql(QueryBean query, String delFlagProp) {
+    public static SQL.SqlBuilder queryToSelectFieldsSql(IDialect dialect, QueryBean query, String delFlagProp) {
         if (query == null)
             throw new IllegalArgumentException("null query");
 
@@ -157,7 +159,7 @@ public class DaoQueryHelper {
 
         appendWhere(sb, "o", query.getFilter());
         appendGroupBy(sb, "o", query.getGroupBy());
-        appendOrderBy(sb, "o", query.getOrderBy());
+        appendOrderBy(sb, dialect, "o", query.getOrderBy());
 
         return sb;
     }
@@ -210,7 +212,16 @@ public class DaoQueryHelper {
         new FilterBeanToSQLTransformer(sb, true, defaultOwner).visitRoot(filter, DisabledEvalScope.INSTANCE);
     }
 
-    public static void appendOrderBy(SQL.SqlBuilder sb, String defaultOwner, List<OrderFieldBean> orderBy) {
+    /**
+     * Plan 2309 D1/D7：bean 通道的 ORDER BY 输出接入方言门控。
+     *
+     * <p>原实现走 {@code sb.orderField(...)}，而 {@code SQL.SqlBuilder} 位于 nop-core，
+     * 依赖方向上无法引用 {@code IDialect}（nop-dao 依赖 nop-core，单向），故空序修饰此前
+     * 只能无条件拼接——在 MySQL 等不支持该语法的库上产出语法错误 SQL。
+     * 现改为把方言显式传入，由 {@link GenSqlHelper#appendNullsOrder} 决定原生 / 改写。
+     */
+    public static void appendOrderBy(SQL.SqlBuilder sb, IDialect dialect, String defaultOwner,
+                                     List<OrderFieldBean> orderBy) {
         if (orderBy == null || orderBy.isEmpty())
             return;
 
@@ -221,11 +232,18 @@ public class DaoQueryHelper {
                 sb.append(',');
             checkOwnerName(orderField.getOwner());
             checkFieldName(orderField.getName());
-            sb.orderField(defaultOwner, orderField);
+            appendOrderByField(sb, dialect, defaultOwner, orderField, orderField.isDesc(),
+                    orderField.getNullsFirst());
         }
     }
 
-    public static void appendReverseOrderBy(SQL.SqlBuilder sb, String defaultOwner, List<OrderFieldBean> orderBy) {
+    /**
+     * 反转排序。与 {@code SQL.SqlBuilder.reverseOrderField} 保持一致：
+     * <b>同时</b>翻转 {@code isDesc} 与 {@code nullsFirst}，使 null 组的相对位置不变
+     * （plan 2309 D6）。CASE 键方向由 {@code asc} 推导，故翻转后的组合直接传入即可。
+     */
+    public static void appendReverseOrderBy(SQL.SqlBuilder sb, IDialect dialect, String defaultOwner,
+                                            List<OrderFieldBean> orderBy) {
         if (orderBy == null || orderBy.isEmpty())
             return;
 
@@ -236,8 +254,18 @@ public class DaoQueryHelper {
                 sb.append(',');
             checkOwnerName(orderField.getOwner());
             checkFieldName(orderField.getName());
-            sb.reverseOrderField(defaultOwner, orderField);
+            Boolean nullsFirst = orderField.getNullsFirst();
+            appendOrderByField(sb, dialect, defaultOwner, orderField, !orderField.isDesc(),
+                    nullsFirst == null ? null : !nullsFirst);
         }
+    }
+
+    /** 单个排序项：owner + 列名 + 方向 + 空序（空序门控在此收口） */
+    private static void appendOrderByField(SQL.SqlBuilder sb, IDialect dialect, String defaultOwner,
+                                           OrderFieldBean orderField, boolean desc, Boolean nullsFirst) {
+        String owner = defaultOwner == null ? orderField.getOwner() : defaultOwner;
+        String colSql = (owner == null ? "" : owner + ".") + orderField.getName();
+        GenSqlHelper.appendNullsOrder(sb, dialect, colSql, desc, nullsFirst);
     }
 
     public static SQL queryToCountSql(String entityName, QueryBean query) {
@@ -284,7 +312,7 @@ public class DaoQueryHelper {
         return sb.end();
     }
 
-    public static <T extends IOrmEntity> SQL queryToFindNextSql(IEntityModel entityModel, T lastEntity,
+    public static <T extends IOrmEntity> SQL queryToFindNextSql(IDialect dialect, IEntityModel entityModel, T lastEntity,
                                                                 ITreeBean filter, List<OrderFieldBean> orderBy, String delFlagProp) {
         List<OrderFieldBean> orderByPk = appendPkOrderBy(entityModel, orderBy);
 
@@ -300,11 +328,11 @@ public class DaoQueryHelper {
             appendCursorCondition(sb, entityModel, lastEntity, orderByPk, true);
         }
 
-        appendOrderBy(sb, "o", orderByPk);
+        appendOrderBy(sb, dialect, "o", orderByPk);
         return sb.end();
     }
 
-    public static <T extends IOrmEntity> SQL queryToFindPrevSql(IEntityModel entityModel, T cursorEntity,
+    public static <T extends IOrmEntity> SQL queryToFindPrevSql(IDialect dialect, IEntityModel entityModel, T cursorEntity,
                                                                 ITreeBean filter, List<OrderFieldBean> orderBy, String delFlagProp) {
         List<OrderFieldBean> orderByPk = appendPkOrderBy(entityModel, orderBy);
 
@@ -320,7 +348,7 @@ public class DaoQueryHelper {
             appendCursorCondition(sb, entityModel, cursorEntity, orderByPk, false);
         }
 
-        appendReverseOrderBy(sb, "o", orderByPk);
+        appendReverseOrderBy(sb, dialect, "o", orderByPk);
         return sb.end();
     }
 

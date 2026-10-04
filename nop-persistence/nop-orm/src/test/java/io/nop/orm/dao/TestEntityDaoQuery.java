@@ -16,6 +16,7 @@ import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.app.SimsCollege;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
 import io.nop.orm.OrmConstants;
@@ -75,11 +76,16 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         dao.countByQuery(query);
     }
 
+    /** plan 2309：ORDER BY 空序门控需要方言；此处只断言 SQL 文本构造，用测试库方言即可 */
+    private IDialect testDialect() {
+        return jdbcTemplate.getDialectForQuerySpace(null);
+    }
+
     @Test
     public void testPropGt() {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.propGt("f1", "f2"));
-        SQL sql = DaoQueryHelper.queryToSelectObjectSql("Test", query);
+        SQL sql = DaoQueryHelper.queryToSelectObjectSql(testDialect(), "Test", query);
         assertEquals("select o from Test as o \n" +
                 " where o.f1 > o.f2", sql.getText());
     }
@@ -93,13 +99,13 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         query.setSourceName("io.nop.app.SimsCollege");
         query.addField(QueryFieldBean.forField("bad field!"));
 
-        NopException err = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(query, null));
+        NopException err = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(testDialect(), query, null));
         assertEquals(OrmErrors.ERR_ORM_INVALID_FIELD_NAME.getErrorCode(), err.getErrorCode());
 
         QueryBean query2 = new QueryBean();
         query2.setSourceName("io.nop.app.SimsCollege");
         query2.addField(QueryFieldBean.subField("bad owner!", "collegeId"));
-        NopException err2 = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(query2, null));
+        NopException err2 = assertThrows(NopException.class, () -> DaoQueryHelper.queryToSelectFieldsSql(testDialect(), query2, null));
         assertEquals(OrmErrors.ERR_ORM_INVALID_OWNER_NAME.getErrorCode(), err2.getErrorCode());
     }
 

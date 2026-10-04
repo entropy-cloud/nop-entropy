@@ -20,6 +20,7 @@ import io.nop.commons.text.marker.Markers;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
+import io.nop.orm.eql.sql.NullsOrderRewriter;
 import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.core.lang.sql.TypedParamMarker;
 import io.nop.core.lang.sql.TypedValueMarker;
@@ -44,12 +45,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_PROP_NOT_UPDATABLE;
+import static io.nop.orm.OrmErrors.ARG_DIALECT;
+import static io.nop.orm.OrmErrors.ARG_REASON;
+import static io.nop.orm.OrmErrors.ERR_ORM_NULLS_ORDER_NOT_SUPPORTED;
 import static io.nop.orm.eql.utils.EqlHelper.appendCol;
+import static io.nop.orm.eql.utils.EqlHelper.replaceOwner;
 
 public class GenSqlHelper {
 
@@ -549,6 +555,53 @@ public class GenSqlHelper {
         }
     }
 
+
+    /**
+     * 渲染排序列的 SQL 文本（复刻 {@code EqlHelper.appendCol} 的两条分支：
+     * 计算列走 {@code sqlText}，普通列走 {@code owner.code}）。
+     *
+     * <p>改写需要把排序列写两遍，故必须先拿到文本；{@code appendCol} 只往 builder 里写，
+     * 不返回文本，故此处单独渲染。
+     */
+    public static String renderOrderByColumn(IDialect dialect, String owner, IColumnModel col) {
+        String sqlText = col.getSqlText();
+        if (sqlText != null)
+            return replaceOwner(owner, sqlText);
+        StringBuilder sb = new StringBuilder();
+        if (owner != null)
+            sb.append(owner).append('.');
+        return sb.append(dialect.normalizeColumnName(col.getCode())).toString();
+    }
+
+    /**
+     * Plan 2309 D1/D7：bean 通道的 ORDER BY 空序门控。
+     *
+     * <p>与 EQL 通道共用 {@link NullsOrderRewriter} 的改写实现（plan 2309 Phase 1），
+     * 全仓只有一份改写逻辑。调用方只负责按 {@code supportNullsFirst} 二选一：
+     * true → 原生直出；false → CASE 改写。
+     *
+     * <p>不做「请求等于方言缺省则省略子句」的优化（design §3.8）。
+     *
+     * @param columnSql 已渲染好的排序列 SQL（含 owner 前缀），改写时会被写两遍
+     * @param desc      是否降序；内部按 {@code asc = !desc} 传给改写单元
+     */
+    public static void appendNullsOrder(SQL.SqlBuilder sb, IDialect dialect, String columnSql,
+                                        boolean desc, Boolean nullsFirst) {
+        boolean asc = !desc;
+        if (nullsFirst == null || dialect.isSupportNullsFirst()) {
+            NullsOrderRewriter.appendNative(sb, out -> out.append(columnSql), asc, nullsFirst);
+            return;
+        }
+        Optional<String> blocker = NullsOrderRewriter.duplicationBlocker(columnSql);
+        if (blocker.isPresent()) {
+            // 不可复制就不产出改写后的 SQL——宁可响亮失败，也不给出语义可能错乱的语句
+            throw new NopException(ERR_ORM_NULLS_ORDER_NOT_SUPPORTED)
+                    .param(ARG_REASON, blocker.get())
+                    .param(ARG_DIALECT, dialect == null ? "unknown" : dialect.getName());
+        }
+        NullsOrderRewriter.appendCaseRewrite(sb, out -> out.append(columnSql), asc, nullsFirst);
+    }
+
     public static void genOrderBy(SQL.SqlBuilder sb, IDialect dialect, IEntityModel entityModel, String owner,
                                   List<OrderFieldBean> orderBy) {
         if (orderBy == null || orderBy.isEmpty())
@@ -562,9 +615,8 @@ public class GenSqlHelper {
             OrderFieldBean orderField = orderBy.get(i);
             // getColumn(name,false)对未知列名会抛出ERR_ORM_UNKNOWN_COLUMN，无需额外判空
             IColumnModel col = entityModel.getColumn(orderField.getName(), false);
-            appendCol(sb, dialect, owner, col);
-            sb.desc(orderField.isDesc());
-            sb.nullsFirst(orderField.getNullsFirst());
+            appendNullsOrder(sb, dialect, renderOrderByColumn(dialect, owner, col),
+                    orderField.isDesc(), orderField.getNullsFirst());
         }
     }
 
@@ -839,10 +891,8 @@ public class GenSqlHelper {
 
             // getColumn(name,false)对未知列名会抛出ERR_ORM_UNKNOWN_COLUMN，无需额外判空
             IColumnModel col = entityModel.getColumn(orderField.getName(), false);
-            sb.owner(owner);
-            sb.append(dialect.normalizeColumnName(col.getCode()));
-            sb.desc(orderField.isDesc());
-            sb.nullsFirst(orderField.getNullsFirst());
+            appendNullsOrder(sb, dialect, renderOrderByColumn(dialect, owner, col),
+                    orderField.isDesc(), orderField.getNullsFirst());
         }
     }
 

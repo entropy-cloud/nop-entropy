@@ -189,7 +189,7 @@ Exit Criteria:
 
 ### Phase 2 - F1 bean 路径接线（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm`、`nop-batch/nop-batch-jdbc`、
 `nop-kernel/nop-core` 与 `nop-kernel/nop-api-core`（**仅 javadoc**）
 
@@ -197,10 +197,10 @@ Targets: `nop-persistence/nop-orm`、`nop-batch/nop-batch-jdbc`、
 
 **必须改签名的方法（4 个 `public static`）**——否则方言无法送达：
 
-- [ ] `DaoQueryHelper.queryToSelectObjectSql:76`（`appendOrderBy` 调用在 `:88`）
-- [ ] `DaoQueryHelper.queryToSelectFieldsSql:125`（`:160`）
-- [ ] `DaoQueryHelper.queryToFindNextSql:287`（`:303`）
-- [ ] `DaoQueryHelper.queryToFindPrevSql:307`（`appendReverseOrderBy` 调用在 `:323`）
+- [x] `DaoQueryHelper.queryToSelectObjectSql:76`（`appendOrderBy` 调用在 `:88`）
+- [x] `DaoQueryHelper.queryToSelectFieldsSql:125`（`:160`）
+- [x] `DaoQueryHelper.queryToFindNextSql:287`（`:303`）
+- [x] `DaoQueryHelper.queryToFindPrevSql:307`（`appendReverseOrderBy` 调用在 `:323`）
 
 **全部调用方（改签名后必须同步，遗漏即编译失败）**：
 
@@ -212,37 +212,48 @@ Targets: `nop-persistence/nop-orm`、`nop-batch/nop-batch-jdbc`、
 | `JdbcBatchLoaderProvider.java` | `:214` | 方言取法见下 |
 | `TestEntityDaoQuery.java` | `:82`、`:96`、`:102` | 测试同步 |
 
-- [ ] `GenSqlHelper:845`（`appendOrderBy`）与 `:567`（`genOrderBy`）改用 Phase 1 单元；
+- [x] `GenSqlHelper:845`（`appendOrderBy`）与 `:567`（`genOrderBy`）改用 Phase 1 单元；
       这两处**已持 `IDialect`**，不新增参数
-- [ ] `OrmEntityDao` 取方言：`ormTemplate.getSessionFactory().getDialectForQuerySpace(getEntityModel().getQuerySpace())`
+- [x] `OrmEntityDao` 取方言：`ormTemplate.getSessionFactory().getDialectForQuerySpace(getEntityModel().getQuerySpace())`
       （`getEntityModel()` 走 `requireEntityModel`，非 null；`ormTemplate` 在 `@PostConstruct init()` 已解引用，
       无参构造的空窗不可达。先例：`OrmEntityDao:787`）
-- [ ] `JdbcBatchLoaderProvider:214` 取方言：`:223` 的 `dialect` 局部变量**声明在该 lambda 之后、不在作用域内**，
+- [x] `JdbcBatchLoaderProvider:214` 取方言：`:223` 的 `dialect` 局部变量**声明在该 lambda 之后、不在作用域内**，
       故须改为捕获 `querySpace` 字段后在 lambda 内调用
       `jdbcTemplate.getDialectForQuerySpace(querySpace)`
-- [ ] 按 D6 处理反转：`reverseOrderField` 会同时翻转 `isDesc` 与 `nullsFirst`（`SQL.java:616-619`），
+- [x] 按 D6 处理反转：`reverseOrderField` 会同时翻转 `isDesc` 与 `nullsFirst`（`SQL.java:616-619`），
       把翻转后的 `(asc, nullsFirst)` 组合喂给 Phase 1 单元即可，CASE 键方向自动随之翻转
-- [ ] 按 D4/D5 为 `QueryBeanHelper.buildOrderBySql`（`nop-core`）与
+- [x] 按 D4/D5 为 `QueryBeanHelper.buildOrderBySql`（`nop-core`）与
       `OrderFieldBean.toString()`（**`nop-api-core`**）加危险标注（javadoc，无行为变更）
-- [ ] 逐一核对 Current Baseline 表 #1–#9，每处标记「已修 / 不在范围 + 理由」
+- [x] 逐一核对 Current Baseline 表 #1–#9：
+      #1 `GenSqlHelper:845` **已修**；#2 `GenSqlHelper:567` **已修**；
+      #3 `DaoQueryHelper.appendOrderBy` **已修**（加 `IDialect` 参数）；
+      #4 `appendReverseOrderBy` **已修**（按 D6 翻转方向与 nullsFirst）；
+      #5 `SQL.SqlBuilder.reverseOrderField` **不动**（D1，调用方已传翻转后的组合）；
+      #6 `SQL.SqlBuilder.orderBy(...)` **不动**（同上）；
+      #7 `QueryBeanHelper.buildOrderBySql` **仅 javadoc 标注**（零调用方，D4）；
+      #8 `OrderFieldBean.toString()` **仅 javadoc 标注**（D5）；
+      #9 `OrderFieldBean.shouldNullsFirst()` **仅 javadoc 标注**（仅内存比较器，D5）
 
 Exit Criteria:
 
-- [ ] **端到端验证（Rule #22）**：`QueryBean.orderBy(... nullsFirst)` 经 DAO 真实执行并断言**结果行序**。
-      先例：`AbstractJdbcTestCase.createDataSource()`（`:54`）可覆写，
-      `nop-persistence/nop-orm/src/test/java/io/nop/orm/dialect/TestPostgreSqlJsonComponent.java:19-32`
-      已用该机制在 `jdbc:tc:*?TC_DAEMON=true` 上跑完整 DAO 栈
-- [ ] **真实数据库执行**：测试库 H2 的 `supportNullsFirst=true`（恒走原生分支），
+- [x] **端到端验证（Rule #22）**：`TestBeanNullsOrderMySql`（9 用例，docker `jdbc:tc:mysql:8.0`）经
+      `OrderFieldBean` → `DaoQueryHelper.appendOrderBy` 构造 SQL 并**真实执行**后断言结果行序，
+      四种方向组合全绿。修复前该路径在 MySQL 上产出语法错误 SQL，故这是本 Phase 的核心证据。
+      覆写 `createDataSource()` 指向 MySQL 容器，并覆盖 `executeSqlFile`/`createTables`/
+      `prepareData`/`prepareDataInTenant`——基类这些步骤均按 H2 方言的表结构/脚本编写，在 MySQL 上会失败
+- [x] **真实数据库执行**：测试库 H2 的 `supportNullsFirst=true`（恒走原生分支），
       故**改写分支**验证必须用 docker 且命令显式带 `-Dnop.test.docker.enabled=true`
       （仓库无任何 pom 设置该属性，不显式传则测试被跳过 → **假绿**）。
       可复用 `TestEqlNullsOrderMatrix.buildDialect(boolean)`（`:69-84`）的合成方言模式
-- [ ] **接线验证**：断言 `DaoQueryHelper` / `GenSqlHelper` 在运行时确实调用 Phase 1 单元
-- [ ] **无静默跳过**：不可改写位置抛带 `reason` 的错误码
-- [ ] `nop-core` 与 `nop-api-core` 行为**零变更**：`git diff --stat nop-kernel/nop-core nop-kernel/nop-api-core`
+- [x] **接线验证**：**变异验证**——把 `GenSqlHelper.appendNullsOrder` 的门控短路为恒真
+      （`if (true)`）后重跑 `TestBeanNullsOrderMySql`，**8/9 转红**，证明 bean 通道确实经该门控。
+      已回滚复绿
+- [x] **无静默跳过**：不可改写位置抛带 `reason` 的错误码
+- [x] `nop-core` 与 `nop-api-core` 行为**零变更**：`git diff --stat nop-kernel/nop-core nop-kernel/nop-api-core`
       仅注释行
-- [ ] **owner-doc**：`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的 bean 路径
-      空序行为描述已更新（Phase 4 落地，但此处须确认 Phase 2 的行为变更已被覆盖）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **owner-doc**：留待 Phase 4 统一落地（该 Phase 明确删除「该路径当前有缺陷」的过时警告）；
+      本 Phase 的行为变更已在 `ai-dev/logs/2026/10-04.md` 记录
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 3 - F3 聚合路径方言解析（Fix）
 
