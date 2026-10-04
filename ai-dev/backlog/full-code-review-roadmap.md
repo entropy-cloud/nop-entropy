@@ -51,7 +51,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 2.1 | nop-orm + nop-orm-model 深审（会话状态机/持久化上下文；check2 P1 复核） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 04/10/14/15） |
+| 2.1 | nop-orm + nop-orm-model 深审（会话状态机/持久化上下文；check2 P1 复核） | done（2026-10-04，plan 2318，closure audit 一次 PASS——P0=0/P1=2/P2=15/P3=41；detach 一缓契约混杂+DELETING 装配重置 P1×2 进 R1.0；check2 三 P1 全部 already-fixed；降级 1——useRevision 探针实证后 P1→P2） | `docs-for-ai/02-core-guides/model-first-development.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 04/10/14/15） |
 | 2.2 | nop-orm-eql 深审（EQL 编译器；集合操作符 join 放大 P0 复核） | todo | — | 0.3, 0.4 | `deep-audit-prompts.md`（维度 10/15/16） |
 | 2.3 | nop-dao + nop-db-migration + nop-dbtool 深审（migration 9/17 change CCE P0 复核） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 04/09/14） |
 | 2.4 | nop-nosql + nop-cdc 深审（RESP3 RateLimiter P0、PubSub 串投、codec 不对称复核） | todo | `ai-dev/design/nop-nosql/` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09/14/15） |
