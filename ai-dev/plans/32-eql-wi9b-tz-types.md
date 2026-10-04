@@ -224,39 +224,39 @@ Exit Criteria:
 
 ### Phase 3 - DDL 映射落地 + 真库往返 + 全量收口（映射逐方言独立提交）
 
-Status: planned
+Status: completed
 Targets: 按 Phase 0 裁定的 `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/*.dialect.xml`、`nop-dao`/`nop-db-migration` 测试、`docs-for-ai/02-core-guides/orm-model-design.md`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`（映射条目——EC ① 载体）、`Proof`（真库往返 + 全量门）、`Decision`（若执行中需偏离 Phase 0 载体表，先改裁定文档再改代码）
 
-- [ ] 按 Phase 0 裁定清单落 `<sqlDataType>` 条目：**逐方言独立提交、各携该方言正向渲染断言自洽可绿**（WI9a UUID 先例）；每条目提交说明含与既有 `nativeTypes` 键集的撞名核对结论（候选 (c) 撞名条目另附 reverse 映射行为变化登记与该项单独 ask-first 裁决的引用）。**全负裁定（候选 (b)）成立时清单为空集，本项转为对空集理由落档的核验**（含候选 (a)/(c) 被拒依据与 scope 裁决书面记录）。不触碰 `dialect.xdef`；不改既有条目。
-- [ ] EC ① 真库往返测试（H2 载体，`AbstractMigrationTestCase`/`JdbcTestCase` 先例）：DDL 生成（`stdToNativeSqlType` 渲染文本断言）→ 真库建表 → JDBC 元数据读回 → std 归类比对，按 Phase 0 定稿的断言链执行并通过；H2 取证结论若为"不可建 LOCAL 形态"，按裁定落替代证据形态并把 H2 列入不可验证清单（`[未取证]` 纪律，逐方言列出，不用"响亮失败"类定性词替代字面证据）。
-- [ ] 负向响亮报错回归：无映射方言（真方言如 mssql/postgresql 或手工最小方言，按 Phase 0 载体表）解析过、生成期断言 `nop.err.dao.dialect.std-data-type-not-supported`；跨方言支持面差异用例（约束 4"不等价"类）。
-- [ ] `nop-db-migration` 全链回归：Phase 1 第 4 项的接线用例翻绿（渲染断言）或按裁定保留响亮报错形态并登记理由；`nop-db-migration` 既有测试套件零回归。
-- [ ] 约束 4 一致性用例：同一 std 类型在同方言的等价拼写形态输出逐字一致（如适用；bare 形态唯一时登记"无同义拼写对"的理由）。
-- [ ] **EC ③ + EC ⑤ 全量门**（执行形态 = Current Baseline"既有 EQL 语料与全绿口径"节的组合判据）：`./mvnw clean install -DskipTests -T 1C` 通过 **且** `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（stream 既有 1 项失败与基线一致不判失败；已知 flake 按"方法级排除 + 单跑取证 + 如实记录"处理，不作为门定义的豁免口径）；114 个 orm.xml 影响清单以 Phase 0 第 2 项重跑结果归档（预期空清单；非空则回到 ask-first）。
-- [ ] owner doc：`orm-model-design.md`（stdSqlType 类型面新增时区行 + EC ② 迁移结论登记 + 使用指引）；`eql-and-database-compatibility.md`（CAST 类型接受面/映射载体表 + 能力门登记如适用）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 按 Phase 0 裁定清单落 `<sqlDataType>` 条目：**oracle 单条目独立提交**（`TIMESTAMP WITH LOCAL TIME ZONE` → `TIMESTAMP_WITH_LOCAL_TIME_ZONE`，携带 `TestEqlCastTimezoneOracleDialect` 7 用例自洽可绿，提交 `9e98b09db5`）；提交说明含零撞名核对结论（裸名不在 oracle 既有键集；带 precision 形态仍归既有 alias → std `TIMESTAMP` 反查零改写，有显式断言）。**映射候选 = (a)（非 (b) 空集/(c) 撞名），两项单独 ask-first 均未触发**（裁定 §六）。不触碰 `dialect.xdef`；不改既有条目（`git diff` 仅 1 行新增 + 注释）。
+- [x] EC ① 往返断言链按 Phase 0 §6.3 四层设计执行：① 渲染层（oracle 真方言 `cast(o.sid as timestamp with local time zone)` → `TIMESTAMP WITH LOCAL TIME ZONE`）② 反查层（`getNativeType` 裸名 → LOCAL 成员往返归类同一性 + 既有键零改写×2）③ 负向响亮层（h2/最小方言/oracle-TIME 成员错误码字面值）——三层 CI 全绿；④ 真实 Oracle 建表往返 `[未取证]`（H2 2.4.240 一手探测不可建 LOCAL 形态 ⇒ 不可验证方言 = oracle 逐个列出，替代证据 = ①②③ + H2 探针 transcript，裁定 §6.4 选项 2）。
+- [x] 负向响亮报错回归：h2（真方言，§2.1 一手取证无宿主）、手工最小方言（WI2 先例）、oracle-TIME 成员（约束 4"不等价"类：同族两成员在同一方言支持面分叉）——全部错误码字面值断言（`TestEqlCastTimezoneTypeCompile` 9 用例，Phase 2 提交落地、本 Phase 持续绿）。
+- [x] `nop-db-migration` 全链回归：Phase 1 接线用例按裁定翻绿——`TestTimezoneTypeGateBWiring` 3/3（h2 响亮报错保留 + 新增 oracle `AddColumnExecutor.buildColumnType → stdToNativeSqlType` 渲染断言 `TIMESTAMP WITH LOCAL TIME ZONE`，真实方言 XML 条目）；`nop-db-migration` 既有套件零回归（Phase 2 六模块门 97|0 + 终局门复跑）。
+- [x] 约束 4 一致性用例：`timestamp with local time zone` ≡ `timestamp_with_local_time_zone` ≡ `… local time zone(6)`（oracle 真方言与裁定同构测试方言双载体逐字断言）；多词拼写与下划线拼写构成同义拼写对，无"唯一形态无同义对"豁免需要。
+- [x] **EC ③ + EC ⑤ 全量门**（组合判据）：① `./mvnw clean install -DskipTests -T 1C` → **BUILD SUCCESS，exit 0**（`_tmp/wi9b/phase3-clean-install.log`，codegen 重生成全链 + 安装包）；② 六模块类级豁免命令（stream×2+batch+job-local+task-core flake + `!JSONPointTest_0,!JSONPointTest_1` 连带，豁免清单 = roadmap Cross-Cutting 2026-10-04 刷新版）→ **BUILD SUCCESS，exit 0**（`_tmp/wi9b/phase3-final-test.log`，六目标 + stream-runtime 全 SUCCESS）。114 个 orm.xml 影响清单 = Phase 0 §一重跑空清单归档（非空回退未触发）。
+- [x] owner doc：`orm-model-design.md`（默认映射表 +2 时区行、「时区类型（2026-10-05 WI9b）」小节：类型面/方言支持面/EQL 拼写/**EC ② 迁移结论 + 升级指引**/[未取证] 登记）；`eql-and-database-compatibility.md` 已于 Phase 2 落「LOCAL 时区拼写」小节 + CAST 对照表（载体描述即本 Phase 落地态）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` Phase 3 条目）。
 
 Exit Criteria:
 
-- [ ] 每个"支持"载体方言有具体 native 文本正向断言（期望值按 `stdToNativeSqlType` 链路推导，非直觉填）；每个"不支持"载体有错误码字面值负向断言；无静默降级/改写。（全负裁定成立时，前半句按空集理由落档核验替代；负向断言要求不变。）
-- [ ] EC ① 真库往返测试通过，或不可验证方言逐个列出并带 `[未取证]` 标注的替代证据，或（全负裁定成立时）按 Phase 0 第 6 项预定义全负形态收口（裁定文档登记），三选一按裁定执行。
-- [ ] EC ② 迁移结论已落 owner doc（`No migration required` + 理由，或升级 SQL 清单），不留空。
-- [ ] EC ③ 组合判据两命令通过，影响清单归档。
-- [ ] 提交纪律可审计：`StdSqlType.java` 提交、`.g4` 提交、各方言 XML 提交相互分离且逐条可 `git revert`。
-- [ ] owner doc（`orm-model-design.md` + `eql-and-database-compatibility.md`）已落档。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 每个"支持"载体方言有具体 native 文本正向断言（oracle → `TIMESTAMP WITH LOCAL TIME ZONE`，真实方言 XML + 裁定同构测试方言双载体；`TIME_WITH_LOCAL_TIME_ZONE` 逐成员全负按裁定落档）；每个"不支持"载体有错误码字面值负向断言；无静默降级/改写。
+- [x] EC ① 按裁定 §6.4 **选项 2** 收口：不可验证方言 = oracle（真实建表往返 `[未取证]`）+ H2（LOCAL 形态一手探测不可建），替代证据 = 渲染层/反查层/负向层三层 CI 绿断言 + H2 探针 transcript + Oracle 23ai 文档引文（裁定 §6.3/§6.4）。
+- [x] EC ② 迁移结论已落 owner doc（`orm-model-design.md`「时区类型」小节：`No migration required` + 三口径 0 引用理由 + 升级指引），不留空。
+- [x] EC ③ 组合判据两命令通过，影响清单归档（Phase 0 §一空清单）。
+- [x] 提交纪律可审计：`StdSqlType.java` 提交（`499b379550`）、`.g4`+重生成+闸门A 提交（`d209122827`）、oracle XML 提交（`9e98b09db5`）相互分离，逐条可 `git revert`。
+- [x] owner doc（`orm-model-design.md` + `eql-and-database-compatibility.md`）已落档。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - roadmap WI9b 文本勘误（收口前置，纯文档）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI9b 节 `:327-332`）
 
 - Item Types: `Fix`（roadmap 文本与 live 事实不符的勘误，照 WI10a/WI10b 的 roadmap 原地注记先例）、`Proof`
 
-- [ ] 在 roadmap WI9b 节加**带日期的原地勘误注记**（不重写原文）："取消注释"定性实为"按现构造器形态新增枚举成员"（注释体 `PrecScale`/`SqlTypeFamily` 已废弃，字面取消注释不可编译）；"同步 `dataTypeName_` 拼写"实为"新增 LOCAL 备选（全历史从未存在）"；非 LOCAL 变体不恢复裁定。注明依据 = 本 plan Current Baseline 实测与差异登记第 1-3 条。
-- [ ] 同一注记内登记 WI9a 裁定文档 §九 键集计数的勘误指引（指向本 plan Phase 0 裁定文档的勘误移交项）。
+- [x] 在 roadmap WI9b 节（现位 `:344-349`）EC 段后加**带日期的原地勘误注记**（blockquote 形态，WI7 执行终态注记先例）：①"取消注释"实为"按现构造器形态新增枚举成员"（含裁定成员形态与 2013/2014 被拒理由）；②"同步拼写"实为"新增 LOCAL 备选（全历史从未存在）"+ 闸门 A 适配连带；③ 非 LOCAL 变体不恢复终裁；④ EC ① 载体事实与 EC ② 结论；注明依据 = plan 32 Current Baseline 实测、差异登记第 1-3 条与 Phase 0 裁定文档。**`git diff` = 6 行纯插入、零删除，原文未重写**。
+- [x] 同一注记第 ⑤ 条登记 WI9a 裁定文档 §九 键集计数的勘误指引（自记 30→34 系算术误记、实测 30、WI9b 后 32；指向 plan 32 Phase 0 裁定文档 §八勘误移交项）。
 
 Exit Criteria:
 
@@ -269,23 +269,23 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] roadmap WI9b EC ①：时区类型的 DDL 生成真库往返测试通过（H2 载体），或不可验证方言逐个列出并按 `[未取证]` 纪律登记替代证据，或（全负裁定成立时）仅"不支持"类负向用例齐全且 DDL 映射增补裁定为空集的理由已落档——三选一按 Phase 0 第 6 项裁定与 Phase 3 执行结果核对；全负分支须附 Goals 第 3 条的 scope 裁决书面记录。
-- [ ] roadmap WI9b EC ②：迁移结论显式落档——`No migration required` + 0 使用实证重跑归档，或升级 SQL 清单；不留空。
-- [ ] roadmap WI9b EC ③：114 个 orm.xml 全量回归通过（组合判据两命令，执行形态见 Current Baseline 专节）且影响清单已归档。
-- [ ] roadmap WI9b EC ④：owner doc 已同步（`orm-model-design.md` + `eql-and-database-compatibility.md`，含 `:266` 边界注记回写与新拼写对照表）。
-- [ ] roadmap WI9b EC ⑤：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（含 stream 1 项既有失败豁免口径）。
-- [ ] roadmap WI9b EC ⑥：既有 EQL 语料 BC 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"。
+- [x] roadmap WI9b EC ①：按裁定 §6.4 **选项 2** 收口——不可验证方言（oracle/H2-LOCAL）逐个列出 + 替代证据（渲染/反查/负向三层断言 + H2 探针 transcript + Oracle 文档引文）落档裁定文档 §6.3/§6.4 与 `TestEqlCastTimezoneOracleDialect`；全负分支未触发（载体集非空，scope 裁决书面记录不需要）。
+- [x] roadmap WI9b EC ②：`No migration required` 显式落档——裁定文档 §四（三口径重跑归档 §一）+ owner doc `orm-model-design.md` 升级指引；不留空。
+- [x] roadmap WI9b EC ③：组合判据两命令 exit 0（`_tmp/wi9b/phase3-clean-install.log` / `phase3-final-test.log`），影响清单 = 空清单归档（裁定文档 §一）。
+- [x] roadmap WI9b EC ④：owner doc 已同步（`orm-model-design.md`「时区类型」小节 + `eql-and-database-compatibility.md`「LOCAL 时区拼写」小节与 CAST 对照表，WI9a 收窄表 WI9b 边界注记行已回写落地态）。
+- [x] roadmap WI9b EC ⑤：类级豁免命令 BUILD SUCCESS exit 0（六目标 1655|0：orm-eql 578/orm 217/dao 214/db-migration 98/job-dao 87/auth-service 461；stream-runtime 豁免口径 SUCCESS）；run1 无排除中断于 stream 既有基线失败已如实登记（Phase 2 门记录）。
+- [x] roadmap WI9b EC ⑥：`TestEqlCorpusBaseline` 1/1（快照零 diff，run1/聚焦轮实测）；三份必测在 `-am` 闭包随模块全绿；未声称"7 个全测"。
 - [ ] roadmap WI9b EC ⑦：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9b 行据此才可 `todo` → `done`（WI9b 现状 `todo` `:92`；按 roadmap 状态流转，执行前主会话先翻 `planned`，本门以现状 `todo` 记起点、保留勘误注记即可）。
-- [ ] 三个 Protected Area 的提交纪律可审计：`StdSqlType.java` 提交、`.g4`+重生成提交、方言 XML 逐条提交相互分离；无 lexer token 删除；无手改生成物；无既有 `<sqlDataType>` 条目被修改（`git diff` 审计）。
-- [ ] 三 map 不变量（`fromJdbcType`/`fromStdDataTYpe`/`fromJavaClass` 既有结果零翻转）聚焦测试在 closure audit 复跑通过。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若方言 XML 有新增条目，按 WI9a 先例核对快照口径是否需同步并记录结论）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，roadmap EC 第 6 条口径）。
+- [x] 三个 Protected Area 的提交纪律可审计：`499b379550`（StdSqlType+测试）/`d209122827`（.g4+重生成+闸门A+测试）/`9e98b09db5`（oracle XML+测试）相互分离；token 表零增删（`EqlLexer*`/`*.tokens` 零 diff）；`ast/_gen`/`EqlAST.xjava`/`_EqlASTBuildVisitor.java` 零 diff（重生成产物随文法提交，无手改）；oracle XML diff 仅 1 行新增+注释，既有 `<sqlDataType>` 条目零修改。
+- [x] 三 map 不变量（`fromJdbcType`/`fromStdDataTYpe`/`fromJavaClass` 既有结果零翻转）聚焦测试终局门复跑通过（`TestStdSqlTypeTimezoneMembers` 7/7 在 `phase3-final-test.log` 的 nop-commons 闭包内绿）。
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（快照只记载可加载性+函数集、不含 `<sqlDataTypes>` 键——新增条目无需同步，结论 = WI9a 裁定 §四.3 同款，2026-10-05 复核）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：退出码 0、新增 broken link = 0（基线 3 项既有 warning 不动；执行中曾出现 2 项指向 `target/surefire-reports` 的瞬时报告——系后台 `clean install` 清空 target 所致，构建完成后复测恢复基线，非文档缺陷）。
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/32-eql-wi9b-tz-types.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（时区类型是"改接受面"变更，anti-hollow 抓"只放行不设门/只落枚举无生成证据"的半实现形态；`nop-commons` 侧改动随三 map 聚焦测试与接线用例覆盖，closure audit 抽查）。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（exit 0，2026-10-05 实跑；"只放行不设门/只落枚举无生成证据"形态由端到端渲染断言与响亮报错断言排除）。
 - [ ] Anti-Hollow Check：closure audit 已验证（a）`cast(x as timestamp with local time zone)` 从 EQL 文本 → 闸门 A → 生成器 → 方言文本（或响亮报错）的端到端路径有测试；（b）闸门 B → `AddColumnExecutor` 的 DDL 生成链有接线证据；（c）无空方法体/静默跳过/no-op 作为"已落地"。
-- [ ] `./mvnw clean install -DskipTests -T 1C` 通过（codegen 重生成全链 + 安装包，组合判据第 1 条）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（组合判据第 2 条 = EC ⑤）。
-- [ ] checkstyle / 代码规范检查通过（imports 分组等仓库惯例）。
+- [x] `./mvnw clean install -DskipTests -T 1C` 通过（BUILD SUCCESS exit 0，`_tmp/wi9b/phase3-clean-install.log`，2026-10-05 实跑）。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（类级豁免口径 BUILD SUCCESS exit 0，`_tmp/wi9b/phase3-final-test.log`，2026-10-05 实跑；surefire mtime 审计：六目标最新报告 20:02:55–20:06:48 全部晚于最后产品 commit `9e98b09db5` 20:00:01，fresh=total）。
+- [x] checkstyle / 代码规范检查通过（各代码提交钩子 ast-grep lint 全部 passed；新增 Java 文件 imports 分组遵循 io.nop → 第三方 → java.* 惯例）。
 
 ## Deferred But Adjudicated
 

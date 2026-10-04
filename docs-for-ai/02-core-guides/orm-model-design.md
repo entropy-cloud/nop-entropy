@@ -48,6 +48,8 @@ Nop ORM 的列类型系统有两个独立维度：
 | TIME | time | LocalTime |
 | DATETIME | datetime | LocalDateTime |
 | TIMESTAMP | timestamp | Timestamp |
+| TIME_WITH_LOCAL_TIME_ZONE | time | LocalTime |
+| TIMESTAMP_WITH_LOCAL_TIME_ZONE | timestamp | Timestamp |
 | BINARY / VARBINARY / BLOB | bytes | ByteString |
 | GEOMETRY | geometry | GeometryObject |
 
@@ -68,6 +70,15 @@ Nop ORM 的列类型系统有两个独立维度：
 - `NUMBER` 的映射目标是 `DECIMAL`（2026-10-04 G-3 增补裁决：std NUMERIC 无任何方言映射且其 native 名已被 DECIMAL 条目占用，裁定见平台开发过程文档 design 目录的 WI9a Phase 0 裁定记录）。
 - `UUID` 是 2026-10-04 WI9a 新增的枚举成员（`stdDataType=string` 家族）。方言 DDL 映射：h2/postgresql/duckdb 原生 `UUID`、mssql `UNIQUEIDENTIFIER`；**无映射方言（mysql/oracle 等）生成 DDL/cast 时响亮报错**，不静默降级为 VARCHAR。
 - EQL `cast(x as text/number/bool/uuid)` 全链可用（解析 → 方言映射渲染）；方言渲染文本按 `stdToNativeSqlType` 链路推导（如 h2 上 `number` 渲染 `NUMERIC`、oracle 上渲染 `NUMBER`），详见 `eql-and-database-compatibility.md` 的「CAST 目标类型」节。
+
+### 时区类型（2026-10-05 WI9b）
+
+`StdSqlType` 新增两个活枚举成员 `TIME_WITH_LOCAL_TIME_ZONE` / `TIMESTAMP_WITH_LOCAL_TIME_ZONE`（本地时区语义：无偏移存储、按会话/数据库时区渲染；成员形态 `Types.OTHER` + `StdDataType.TIME`/`TIMESTAMP`，`fromJdbcType`/`fromStdDataTYpe`/`fromJavaClass` 既有反查结果零翻转——static 块循环后显式重钉）。`stdSqlType=` 属性合法取值集随之扩为 **32 键**（`getNames()` 实测 30 → 32），orm.xml 列定义与 migration.xml 的 `type`/`newType` 属性即可合法引用它们。
+
+- **方言 DDL 映射（支持面逐成员精确）**：`TIMESTAMP_WITH_LOCAL_TIME_ZONE` 唯一宿主 = **oracle**（原生 `TIMESTAMP WITH LOCAL TIME ZONE`，存储按数据库时区归一化、读取按会话时区；Oracle 23ai SQL Language Reference）。`TIME_WITH_LOCAL_TIME_ZONE` **全方言无宿主**（H2 2.x 实测不支持 LOCAL 形态建表、Oracle 无任何 TIME-only 类型），不落映射。**无映射方言生成 DDL/cast 时响亮报错**（`nop.err.dao.dialect.std-data-type-not-supported`），不静默降级。
+- **EQL 拼写**：`cast(x as timestamp with local time zone)` / 下划线拼写 `timestamp_with_local_time_zone` 全链可用（oracle 渲染 `TIMESTAMP WITH LOCAL TIME ZONE`）；非 LOCAL 的 `time/timestamp with time zone` 拼写维持删除态。详见 `eql-and-database-compatibility.md` 的「LOCAL 时区拼写」小节。
+- **迁移裁定（EC ②）：`No migration required`** —— 全仓 114 个 orm.xml 与资源对两个时区 std 类型 0 引用（2026-10-05 三口径实测），本次扩展纯增量、既有反查零翻转。**升级指引**：既有部署若以 `VARCHAR`/`TIMESTAMP` 近似存储时区数据，无需迁移；新部署在 oracle 上可用 `stdSqlType="TIMESTAMP_WITH_LOCAL_TIME_ZONE"` 获得原生 LOCAL 时区列，其余方言会生成期响亮报错（请先确认目标库有原生宿主）。
+- 真实 Oracle 引擎建表往返 `[未取证]`（CI 真库仅 H2）；替代证据 = 方言模型渲染/反查断言（`TestEqlCastTimezoneOracleDialect`）+ H2 不可建一手探测。
 
 ### ORM 常用 stdDataType 速查
 
