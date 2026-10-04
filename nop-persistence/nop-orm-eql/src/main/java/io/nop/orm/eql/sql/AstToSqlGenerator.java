@@ -121,9 +121,15 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
      * （WI1 裁定回显保持硬编码不动；矛盾 AST 是编程错误，执行路径已响亮）。
      */
     void checkLockOptions(SqlQuerySelect node) {
+        if (node.getNowait() && node.getSkipLocked())
+            throw new IllegalArgumentException(
+                    "eql lock options nowait and skipLocked are mutually exclusive");
         if (node.getNowait() && !node.getForUpdate())
             throw new IllegalArgumentException(
                     "eql lock option nowait requires forUpdate=true, but forUpdate=false");
+        if (node.getSkipLocked() && !node.getForUpdate())
+            throw new IllegalArgumentException(
+                    "eql lock option skipLocked requires forUpdate=true, but forUpdate=false");
     }
 
     class PrintSqlSelect extends SqlNodeWrapper {
@@ -379,6 +385,10 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         if (node.getNowait()) {
             lockSql = dialect.getForUpdateNowait();
             feature = "forUpdateNowait";
+        } else if (node.getSkipLocked()) {
+            // WI12 交付②（plan 38）：SKIP LOCKED 变体经 <forUpdateSkipLocked> 配置文本
+            lockSql = dialect.getForUpdateSkipLocked();
+            feature = "forUpdateSkipLocked";
         } else {
             lockSql = dialect.getForUpdateSql(null);
             feature = "forUpdate";

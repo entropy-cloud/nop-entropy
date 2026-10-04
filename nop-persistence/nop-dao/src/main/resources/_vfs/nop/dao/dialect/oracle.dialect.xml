@@ -171,6 +171,9 @@
              for_update_clause = FOR UPDATE [OF …] [ { NOWAIT | WAIT integer | SKIP LOCKED } ]。
              消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
         <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] Oracle 19c SQLRF
+             for_update_clause（NOWAIT | WAIT integer | SKIP LOCKED 三态单选）。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <functions>

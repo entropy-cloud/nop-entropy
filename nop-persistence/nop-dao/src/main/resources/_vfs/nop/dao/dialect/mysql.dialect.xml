@@ -156,6 +156,9 @@
              消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。
              ⚠️ mysql5.7（继承本文件）不支持——已显式空覆盖关断。 -->
         <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] MySQL 8.0
+             Locking Reads（SKIP LOCKED 与 FOR UPDATE 同用）。⚠️ mysql5.7 显式关断。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <functions>

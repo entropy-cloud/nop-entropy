@@ -131,6 +131,9 @@
              FOR lock_strength [ OF … ] [ NOWAIT | SKIP LOCKED ]（current docs）。
              消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
         <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] PG locking clause
+             [ NOWAIT | SKIP LOCKED ]（current docs）。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <sqlDataTypes>

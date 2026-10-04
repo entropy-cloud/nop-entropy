@@ -123,6 +123,10 @@
              Phase 2 真库探针。消费点 = AstToSqlGenerator.printForUpdate
              （SqlQuerySelect.nowait；未配置方言编译期报错 feature=forUpdateNowait）。 -->
         <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[实测-jar]
+             h2-2.4.240 ForUpdate javap（SKIP_LOCKED 常量 + getSQL 渲染串 " SKIP LOCKED"）+
+             Phase 2 真库探针。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
 
     </sqls>
 

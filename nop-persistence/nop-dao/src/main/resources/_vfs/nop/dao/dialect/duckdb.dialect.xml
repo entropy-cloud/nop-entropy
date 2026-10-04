@@ -45,6 +45,7 @@
         <!-- WI12（plan 38）：无锁 = NOWAIT 变体同样显式关断（继承自 postgresql 的
              forUpdateNowait 会被合并进来，加载后 = null = 未配置 → 编译期响亮）。 -->
         <forUpdateNowait x:override="replace"/>
+        <forUpdateSkipLocked x:override="replace"/>
         <lockHint x:override="replace"/>
     </sqls>
 

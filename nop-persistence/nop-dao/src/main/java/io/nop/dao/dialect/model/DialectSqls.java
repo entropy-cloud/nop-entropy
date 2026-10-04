@@ -37,6 +37,13 @@ public class DialectSqls extends _DialectSqls {
      */
     private String forUpdateNowait;
 
+    /**
+     * WI12 交付②（plan 38）：`FOR UPDATE SKIP LOCKED` 锁后缀模板（`<sqls>` 子元素）。
+     * 值面契约与 {@link #getForUpdateNowait() forUpdateNowait} 一致（presence = 能力 +
+     * 文本二合一；未配置 = 编译期响亮；继承链显式关断 = `x:override="replace"` 空覆盖）。
+     */
+    private String forUpdateSkipLocked;
+
     public DialectSqls() {
 
     }
@@ -47,6 +54,14 @@ public class DialectSqls extends _DialectSqls {
 
     public void setForUpdateNowait(String forUpdateNowait) {
         this.forUpdateNowait = forUpdateNowait;
+    }
+
+    public String getForUpdateSkipLocked() {
+        return forUpdateSkipLocked;
+    }
+
+    public void setForUpdateSkipLocked(String forUpdateSkipLocked) {
+        this.forUpdateSkipLocked = forUpdateSkipLocked;
     }
 
     public String getSqlIntervalLiteral() {

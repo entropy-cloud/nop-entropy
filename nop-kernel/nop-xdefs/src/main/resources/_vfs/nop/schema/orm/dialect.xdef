@@ -173,6 +173,13 @@
         -->
         <forUpdateNowait>string</forUpdateNowait>
         <!--
+        WI12（plan 38 交付②）：`FOR UPDATE SKIP LOCKED` 的锁后缀文本。值面契约与
+        `<forUpdateNowait>` 一致（presence = 能力 + 文本二合一；未配置 = 编译期报错
+        feature=forUpdateSkipLocked；继承链显式关断 = `x:override="replace"` 空覆盖）。
+        消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.skipLocked）。
+        -->
+        <forUpdateSkipLocked>string</forUpdateSkipLocked>
+        <!--
         在 `from table_name` 后面追加的关于锁的 SQL 语句，如
         `SELECT xxx FROM x WITH (TABLOCKX)` 中的 `WITH (TABLOCKX)`
         -->

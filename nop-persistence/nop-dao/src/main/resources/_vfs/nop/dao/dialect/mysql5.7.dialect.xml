@@ -34,5 +34,6 @@
              ——显式空覆盖关断继承自 mysql 的 forUpdateNowait（加载后 = null = 未配置，
              编译 nowait=true 查询时响亮报错，与 duckdb 空 <forUpdate> 同机制）。 -->
         <forUpdateNowait x:override="replace"/>
+        <forUpdateSkipLocked x:override="replace"/>
     </sqls>
 </dialect>

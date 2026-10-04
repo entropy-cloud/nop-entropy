@@ -364,6 +364,15 @@ public class DialectImpl implements IDialect {
         return dialectModel.getSqls().getForUpdateNowait();
     }
 
+    @Override
+    public String getForUpdateSkipLocked() {
+        // WI12 交付②（plan 38）：直读 <sqls> 的 forUpdateSkipLocked 配置文本，未配置为 null。
+        // 消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.skipLocked）。
+        if (dialectModel.getSqls() == null)
+            return null;
+        return dialectModel.getSqls().getForUpdateSkipLocked();
+    }
+
     /**
      * WI7b Phase 1（plan 37，裁定 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md`
      * §1）：`sqlIntervalLiteral` 模板只允许 `{value}`/`{unit}` 命名占位符，未知 marker（含未闭合

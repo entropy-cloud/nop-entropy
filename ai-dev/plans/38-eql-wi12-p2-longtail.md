@@ -176,28 +176,28 @@ Exit Criteria:
 
 ### Phase 2 - `FOR UPDATE NOWAIT` / `SKIP LOCKED` 语法（交付 ②）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`forUpdate_` 备选）、`nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 或 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4`（NOWAIT/SKIP/LOCKED token）、`nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`（`SqlQuerySelect` 加字段，视裁定）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、重生成产物、`nop-orm-eql` 测试
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置**：Phase 1 completed；LockOption 形态裁定已定（Phase 0）。
-- [ ] **修复前红**：`select … for update nowait` 与 `select … for update skip locked` 解析失败（parse error）——回归测试断言可解析且 lowering 正确，修复前红。
-- [ ] 文法组（**单独提交**）：`forUpdate_: FOR UPDATE ( NOWAIT | SKIP LOCKED )?` 备选；NOWAIT/SKIP/LOCKED token 追加（序号顺延**零删除**，NULLS/ROLLUP/CUBE 三件套先例）；`unreservedWord_` 双登记三词（作标识符可解析守护用例——WI7b `testRollupCubeAsIdentifiers` 先例）；`EqlAST.xjava` 按裁定加字段；全量重生成；**`EqlASTKind.java` 零新增行**（加字段不加类）。ⓘ **接线形态按 Phase 0 裁定落地**（二选一，见 Phase 0 LockOption 裁定项）：生成的 `SqlQuerySelect_forUpdate` 是 boolean 返回方法（`_EqlASTBuildVisitor` 经 `forUpdate=forUpdate_` label 调用），无法区分 NOWAIT/SKIP LOCKED 变体——(a) 变体区分上移到 `sqlQuerySelect` 层分离标签（生成 prop 赋值直达 SqlQuerySelect 字段）；或 (b) 保持 `forUpdate_` 子树备选 + **手写整体覆写聚合方法**（WI7b wrapper 先例：生成方法体只建空节点、手写完全重写不调 super），覆写体内判别变体并填充字段。
-- [ ] 逻辑组（单独提交）：按裁定形态填充 nowait/skipLocked 字段（生成方法体只建空节点 + validate 的先例约束）；生成器按字段取 `<forUpdateNowait>`/`<forUpdateSkipLocked>` 文本；NOWAIT 与 SKIP LOCKED 同时出现的输入在解析层天然互斥（文法备选），程序化构造的矛盾输入按 Phase 1 裁定处置。
-- [ ] 正向用例（EC ①）：h2 上 `for update nowait`/`for update skip locked` 各一条编译文本断言（与 h2 配置值一致；h2 原生语法 `[ FOR UPDATE [ NOWAIT | WAIT secondsNumeric | SKIP LOCKED ] ]` [实测-jar ForUpdate.class 常量/渲染串 + 真库探针]）；再取一条 pg 或 oracle 形态断言（Phase 0 矩阵内方言）。
-- [ ] **负向用例**（EC ②）：不支持方言（duckdb——`<forUpdate>` 空模板 + 无 NOWAIT 配置；mssql——无 FOR UPDATE 子句变体）各一条编译期报错，断言具体错误码；`nowait`/`skipLocked` 各自独立触发（不能只测组合）。
-- [ ] **真库证据**：h2 经 `JdbcTestCase` 真库执行 `select … for update nowait` 与 `… skip locked`（内存库 + 显式事务边界或 autocommit 探针，执行不抛错且结果集正确）；无法真库验证方言（oracle/pg/mysql/mariadb/mssql/db2/dm/tdengine）逐个列出 + 一手文档替代证据，`dm`/`tdengine` 标 `[未取证]`。
-- [ ] WI1 遗留回补：plan 03 `:325` LockOption 注记按 Phase 0 裁定回写结案（在本 plan Follow-up 或裁定文档注明「已回补」）。
-- [ ] 语料 BC：三份必测逐字一致；矩阵快照零增量核实（`<sqls>` 配置非函数表）exit 0；owner doc 覆盖表（逐方言 + 证据等级）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；文法/逻辑两段提交分离；`ai-dev/logs/` 条目。
+- [x] **开工前置**：Phase 1 completed；LockOption 形态裁定已定（Phase 0）。
+- [x] **修复前红**：`select … for update nowait` 与 `select … for update skip locked` 解析失败（parse error）——回归测试断言可解析且 lowering 正确，修复前红。
+- [x] 文法组（**单独提交**）：`forUpdate_: FOR UPDATE ( NOWAIT | SKIP LOCKED )?` 备选；NOWAIT/SKIP/LOCKED token 追加（序号顺延**零删除**，NULLS/ROLLUP/CUBE 三件套先例）；`unreservedWord_` 双登记三词（作标识符可解析守护用例——WI7b `testRollupCubeAsIdentifiers` 先例）；`EqlAST.xjava` 按裁定加字段；全量重生成；**`EqlASTKind.java` 零新增行**（加字段不加类）。ⓘ **接线形态按 Phase 0 裁定落地**（二选一，见 Phase 0 LockOption 裁定项）：生成的 `SqlQuerySelect_forUpdate` 是 boolean 返回方法（`_EqlASTBuildVisitor` 经 `forUpdate=forUpdate_` label 调用），无法区分 NOWAIT/SKIP LOCKED 变体——(a) 变体区分上移到 `sqlQuerySelect` 层分离标签（生成 prop 赋值直达 SqlQuerySelect 字段）；或 (b) 保持 `forUpdate_` 子树备选 + **手写整体覆写聚合方法**（WI7b wrapper 先例：生成方法体只建空节点、手写完全重写不调 super），覆写体内判别变体并填充字段。
+- [x] 逻辑组（单独提交）：按裁定形态填充 nowait/skipLocked 字段（生成方法体只建空节点 + validate 的先例约束）；生成器按字段取 `<forUpdateNowait>`/`<forUpdateSkipLocked>` 文本；NOWAIT 与 SKIP LOCKED 同时出现的输入在解析层天然互斥（文法备选），程序化构造的矛盾输入按 Phase 1 裁定处置。
+- [x] 正向用例（EC ①）：h2 上 `for update nowait`/`for update skip locked` 各一条编译文本断言（与 h2 配置值一致；h2 原生语法 `[ FOR UPDATE [ NOWAIT | WAIT secondsNumeric | SKIP LOCKED ] ]` [实测-jar ForUpdate.class 常量/渲染串 + 真库探针]）；再取一条 pg 或 oracle 形态断言（Phase 0 矩阵内方言）。
+- [x] **负向用例**（EC ②）：不支持方言（duckdb——`<forUpdate>` 空模板 + 无 NOWAIT 配置；mssql——无 FOR UPDATE 子句变体）各一条编译期报错，断言具体错误码；`nowait`/`skipLocked` 各自独立触发（不能只测组合）。
+- [x] **真库证据**：h2 经 `JdbcTestCase` 真库执行 `select … for update nowait` 与 `… skip locked`（内存库 + 显式事务边界或 autocommit 探针，执行不抛错且结果集正确）；无法真库验证方言（oracle/pg/mysql/mariadb/mssql/db2/dm/tdengine）逐个列出 + 一手文档替代证据，`dm`/`tdengine` 标 `[未取证]`。
+- [x] WI1 遗留回补：plan 03 `:325` LockOption 注记按 Phase 0 裁定回写结案（在本 plan Follow-up 或裁定文档注明「已回补」）。
+- [x] 语料 BC：三份必测逐字一致；矩阵快照零增量核实（`<sqls>` 配置非函数表）exit 0；owner doc 覆盖表（逐方言 + 证据等级）。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；文法/逻辑两段提交分离；`ai-dev/logs/` 条目。
 
 Exit Criteria:
 
-- [ ] 红→绿回归断言具体 SQL 文本（NOWAIT/SKIP LOCKED 两形态 × 两方言族）。
-- [ ] 负向用例断言具体错误码（至少 duckdb/mssql 两个不支持方言）；无静默降级（不支持时**不**回退裸 `for update`）。
-- [ ] h2 真库执行证据落地；`[未取证]` 方言未计入覆盖率。
-- [ ] token 追加零删除；`EqlASTKind.java` 零新增行；`TestEqlCorpusBaseline` 通过；全量命令绿；daily log 已更新。
+- [x] 红→绿回归断言具体 SQL 文本（NOWAIT/SKIP LOCKED 两形态 × 两方言族）。
+- [x] 负向用例断言具体错误码（至少 duckdb/mssql 两个不支持方言）；无静默降级（不支持时**不**回退裸 `for update`）。
+- [x] h2 真库执行证据落地；`[未取证]` 方言未计入覆盖率。
+- [x] token 追加零删除；`EqlASTKind.java` 零新增行；`TestEqlCorpusBaseline` 通过；全量命令绿；daily log 已更新。
 
 ### Phase 3 - `SAVEPOINT` / `ROLLBACK TO` 终局裁定落地（交付 ③）
 

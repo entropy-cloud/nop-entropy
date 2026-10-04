@@ -329,6 +329,13 @@ public interface IDialect extends IComponentModel {
     String getForUpdateNowait();
 
     /**
+     * WI12 交付②（plan 38）：`FOR UPDATE SKIP LOCKED` 锁后缀模板（`<sqls>` 的
+     * `forUpdateSkipLocked` 元素）。值面契约与 {@link #getForUpdateNowait()} 一致：
+     * 未配置返回 null（消费方编译期响亮，feature=forUpdateSkipLocked）。
+     */
+    String getForUpdateSkipLocked();
+
+    /**
      * 数据库中的数据类型与java程序中的数据类型可能不一致，由binder负责转换
      *
      * @param stdType java程序中的数据类型
