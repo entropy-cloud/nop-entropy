@@ -166,7 +166,15 @@ public class PulsarConsumeTask {
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
             pulsarConsumer.negativeAcknowledge(messages);
-            context.rollback();
+            try {
+                context.rollback();
+            } catch (Exception rollbackError) {
+                // A rollback failure must not mask the original consumer failure (WI10).
+                e.addSuppressed(rollbackError);
+            }
+            // MSG-F-05: propagate so the run-loop's backoff and onException failure
+            // callback are reachable for message-level failures (aligned with Kafka).
+            throw e;
         }
     }
 
@@ -207,7 +215,15 @@ public class PulsarConsumeTask {
             context.commit();
         } catch (Exception e) {
             fail(context, message, e);
-            context.rollback();
+            try {
+                context.rollback();
+            } catch (Exception rollbackError) {
+                // A rollback failure must not mask the original consumer failure (WI10).
+                e.addSuppressed(rollbackError);
+            }
+            // MSG-F-05: propagate so the run-loop's backoff and onException failure
+            // callback are reachable for message-level failures (aligned with Kafka).
+            throw e;
         }
     }
 

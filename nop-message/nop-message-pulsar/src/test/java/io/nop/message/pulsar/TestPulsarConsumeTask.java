@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -380,6 +381,86 @@ class TestPulsarConsumeTask {
         } finally {
             afterFirstDelivery.countDown();
             svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void consumeThrowsAfterNegativeAckForHandlerFailure() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.Message<Object> message =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(message.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(message.getTopicName()).thenReturn("persistent://public/default/t-fail");
+
+        org.apache.pulsar.client.api.Messages<Object> messages =
+                mock(org.apache.pulsar.client.api.Messages.class);
+        when(consumer.receive()).thenReturn(message);
+        IMessageConsumer failingConsumer = mock(IMessageConsumer.class);
+        doThrow(new IllegalStateException("handler-boom"))
+                .when(failingConsumer).onMessage(org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-fail", failingConsumer,
+                new MessageSubscribeOptions());
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+
+        // MSG-F-05: the message-level failure must escape consume() (previously swallowed).
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, task::consume);
+        verify(consumer).negativeAcknowledge(message.getMessageId());
+        executor.shutdown();
+    }
+
+    @Test
+    void runTaskInvokesOnExceptionAndBacksOffOnMessageFailure() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.Message<Object> message =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(message.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(message.getTopicName()).thenReturn("persistent://public/default/t-fail");
+
+        java.util.concurrent.CountDownLatch afterFailure = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicLong secondReceiveAt = new java.util.concurrent.atomic.AtomicLong();
+        when(consumer.receive()).thenReturn(message).thenAnswer(inv -> {
+            secondReceiveAt.set(System.nanoTime());
+            afterFailure.await();
+            return null;
+        });
+
+        RuntimeException boom = new IllegalStateException("handler-boom");
+        IMessageConsumer handler = mock(IMessageConsumer.class);
+        doThrow(boom).when(handler).onMessage(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-fail", handler,
+                new MessageSubscribeOptions());
+        long backoffMs = 50L;
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config, backoffMs);
+
+        long firstReceiveAt = System.nanoTime();
+        task.start();
+        try {
+            org.mockito.Mockito.verify(handler, org.mockito.Mockito.timeout(5000)).onException(boom);
+            // The loop must survive the failure and reach receive() again — after the
+            // configured backoff sleep (lower-bound assertion, CI-stable).
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    secondReceiveAt.get() != 0L
+                            || afterFailure.await(5, java.util.concurrent.TimeUnit.SECONDS) == false,
+                    "second receive never attempted");
+            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (secondReceiveAt.get() == 0L && System.nanoTime() < deadline) {
+                Thread.sleep(20L);
+            }
+            long gapMs = (secondReceiveAt.get() - firstReceiveAt) / 1_000_000L;
+            org.junit.jupiter.api.Assertions.assertTrue(gapMs >= backoffMs,
+                    "backoff sleep must delay the next receive attempt, gap=" + gapMs + "ms");
+        } finally {
+            afterFailure.countDown();
+            task.stop();
+            executor.shutdownNow();
         }
     }
 
