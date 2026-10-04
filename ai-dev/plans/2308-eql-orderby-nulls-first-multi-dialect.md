@@ -222,32 +222,114 @@ Exit Criteria:
 
 ### Phase 1 - 裁定：emission 算法与适用边界（Decision）
 
-Status: planned
+Status: completed
 Targets: 本 plan、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 
 - Item Types: `Decision`
 
-- [ ] 固化算法：**只读 `supportNullsFirst`**。true → 原生输出 `nulls first`/`nulls last`；false → CASE 改写。**不做缺省推导、不做省略优化**（DuckDB 证据），`defaultNullsFirst` 不使用
-- [ ] 裁定 CASE 改写的**适用条件**（保守）：排序表达式必须是「可安全复制」形态。已知三类**不可**复制：
+- [x] 固化算法：**只读 `supportNullsFirst`**。true → 原生输出 `nulls first`/`nulls last`；false → CASE 改写。**不做缺省推导、不做省略优化**（DuckDB 证据），`defaultNullsFirst` 不使用
+- [x] 裁定 CASE 改写的**适用条件**（保守）：排序表达式必须是「可安全复制」形态。已知三类**不可**复制：
       ① 含绑定参数标记（`sqlExpr_simple` 含 `sqlParameterMarker`，`BaseRule.g4:181`）——复制后 SQL 有两个 `?` 而 AST 只有一个 param 节点，参数错位；
       ② 顶层数字字面量（`sqlLiteral → sqlNumberLiteral`，同文件 `:28`）——`order by 1` 是序号定位，复制后排序失效；
       ③ 易变函数（`rand()`/`uuid()` 等）——表达式被求值两次，NULL 判定与实际排序值来自不同次求值。
       裁定采取哪一档保守度（建议：仅允许纯列引用 `SqlColumnName`，其余 fail-fast）
-- [ ] 裁定 `SELECT DISTINCT` 下的行为：改写会引入**新的** ORDER BY 表达式，PG 要求 DISTINCT 查询的 ORDER BY 表达式必须出现在 select 列表中。裁定为「DISTINCT 查询禁用改写，或要求排序列已在 select 列表」
-- [ ] 裁定窗口边界：`sqlOrderBy` 的 3 个使用点中，仅查询级支持改写；`OVER (...)` 与**命名窗口 `WINDOW w AS (...)`** 均 fail-fast（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:225` 与 `:270`）
-- [ ] 裁定 CASE 键的**插入位置**：必须是该排序项的**前置同级键**（紧邻其前），**不得** prepend 到整个 ORDER BY 列表头——后者会在多键场景把「先按 b 的 nullness、再按 a」写反，且不报错
-- [ ] 裁定错误码：新增一个 `NopException` 错误码覆盖「不可改写位置」，参数含方言、位置（窗口/非可复制表达式/DISTINCT）、原始 SQL
-- [ ] 裁定代码落点：**不**新增可配置扩展点（避免 `IPaginationHandler` 那套必须改 schema 的代价）；逻辑写在 `AstToSqlGenerator` 的 `visitSqlOrderByItem` **覆写**中，基类 `AstToEqlGenerator` 保持方言无关
-- [ ] 裁定 `NULLS` 是否登记为非保留字：无方言把 `nulls` 当保留字（已 grep 确认），登记后 `select nulls from t` 仍可解析，风险低；登记为**是**（对齐既有范式），但须补「`nulls` 作 ORDER BY 列名」的歧义回归测试
-- [ ] 裁定推翻 `2026-08-06-1228-1:55` 「不做 CASE 模拟」的适用范围（实测 MySQL 8 四组合全对；继续 fail-fast 会让 MySQL/MariaDB 无法表达常见的 `ASC + NULLS LAST`）
+- [x] 裁定 `SELECT DISTINCT` 下的行为：改写会引入**新的** ORDER BY 表达式，PG 要求 DISTINCT 查询的 ORDER BY 表达式必须出现在 select 列表中。裁定为「DISTINCT 查询禁用改写，或要求排序列已在 select 列表」
+- [x] 裁定窗口边界：`sqlOrderBy` 的 3 个使用点中，仅查询级支持改写；`OVER (...)` 与**命名窗口 `WINDOW w AS (...)`** 均 fail-fast（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:225` 与 `:270`）
+- [x] 裁定 CASE 键的**插入位置**：必须是该排序项的**前置同级键**（紧邻其前），**不得** prepend 到整个 ORDER BY 列表头——后者会在多键场景把「先按 b 的 nullness、再按 a」写反，且不报错
+- [x] 裁定错误码：新增一个 `NopException` 错误码覆盖「不可改写位置」，参数含方言、位置（窗口/非可复制表达式/DISTINCT）、原始 SQL
+- [x] 裁定代码落点：**不**新增可配置扩展点（避免 `IPaginationHandler` 那套必须改 schema 的代价）；逻辑写在 `AstToSqlGenerator` 的 `visitSqlOrderByItem` **覆写**中，基类 `AstToEqlGenerator` 保持方言无关
+- [x] 裁定 `NULLS` 是否登记为非保留字：无方言把 `nulls` 当保留字（已 grep 确认），登记后 `select nulls from t` 仍可解析，风险低；登记为**是**（对齐既有范式），但须补「`nulls` 作 ORDER BY 列名」的歧义回归测试
+- [x] 裁定推翻 `2026-08-06-1228-1:55` 「不做 CASE 模拟」的适用范围（实测 MySQL 8 四组合全对；继续 fail-fast 会让 MySQL/MariaDB 无法表达常见的 `ASC + NULLS LAST`）
+
+#### 裁定 → 下游 Phase 映射
+
+| 裁定 | 落地 Phase | 动作 |
+|---|---|---|
+| D1 emission 只读 `supportNullsFirst` | Phase 2 | `IDialect` 暴露该位；策略实现 |
+| D2 仅纯列引用可改写 | Phase 2 / 4 | 策略的适用性判定 + fail-fast |
+| D3 DISTINCT 要求排序列已投影 | Phase 4 | `visitSqlOrderBy` 内读 `distinct`/`projections` |
+| D4 窗口两处 fail-fast | Phase 4 | 向上遍历 `getASTParent()` 判 `SqlWindowExpr`/`SqlWindowDecl` |
+| D5 前置同级键 → 覆写 `visitSqlOrderBy` | Phase 4 | 列表级重写而非只覆写 item |
+| D6 新错误码 + 三种 reason | Phase 2 / 4 | `OrmEqlErrors` 新增；调用点填 reason |
+| D7 落点 `AstToSqlGenerator`，基类保持方言无关 | Phase 4 | 覆写 `visitSqlOrderBy`，不动基类 |
+| D8 `NULLS` 登记非保留字 | Phase 3 | `BaseRule.g4` 的 `unreservedWord_` |
+| D9 推翻 1228-1:55（仅 EQL 通道） | Phase 6 | design / owner doc 留痕 |
 
 Exit Criteria:
 
-- [ ] 每条裁定有结论、理由、连带影响清单，写入 design 文档
-- [ ] **无静默跳过**：所有不可改写位置均 fail-fast，错误码与参数明确，不静默忽略空序请求
-- [ ] 裁定映射表写入本 plan，Phase 2–4 的每个动作可追溯到一条裁定
-- [ ] 算法描述中**不含**任何需要推导 DESC 缺省的步骤
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] 每条裁定有结论、理由、连带影响清单，写入 design 文档
+- [x] **无静默跳过**：所有不可改写位置均 fail-fast，错误码与参数明确，不静默忽略空序请求
+- [x] 裁定映射表写入本 plan，Phase 2–4 的每个动作可追溯到一条裁定
+- [x] 算法描述中**不含**任何需要推导 DESC 缺省的步骤
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 1 裁定结论（2026-10-04）
+
+**D1 emission 算法**——只读 `supportNullsFirst` 一个能力位：
+
+```
+请求为 null（未写 NULLS）        → 不做任何额外处理（产出与今天逐字相同）
+supportNullsFirst == true        → 原生输出 " nulls first " / " nulls last "
+supportNullsFirst == false/null  → CASE 改写（见 D5 的插入位置）
+```
+
+**不做**「请求==方言缺省则省略」优化（Phase 0 实测 + DuckDB 文档已证单布尔无法推导 DESC 缺省）；
+因此 `defaultNullsFirst` 在本计划中**不被读取**，算法里不存在任何需要推导方言缺省的步骤。
+
+**D2 CASE 改写的适用条件（保守：仅纯列引用）**——CASE 改写要复制排序表达式，而
+`BaseRule.g4` 的 `sqlExpr_simple` 同时含 `sqlParameterMarker`（`:181`）与 `sqlNumberLiteral`（经 `sqlLiteral` `:28`），
+`sqlOrderByItem.expr` 又是完整 `sqlExpr`，因此下列三类**不可**复制：
+
+| 不可复制形态 | 例子 | 后果 |
+|---|---|---|
+| 含绑定参数标记 | `order by coalesce(a, ?) asc nulls last` | 复制后 SQL 出现两个 `?`，而 AST 只有一个 param 节点（参数靠遍历 AST 收集，不扫文本）→ 参数错位/未绑定 |
+| 顶层数字字面量（序号定位） | `order by 1 asc nulls last` | `case when 1 is null ...` 恒不命中 → 排序完全失效 |
+| 易变函数 | `order by rand() nulls last` | 表达式求值两次，NULL 判定与实际排序值来自不同次求值 |
+
+裁定：**仅当 `expr` 是纯列引用（`SqlColumnName`）时才允许 CASE 改写**，其余一律 fail-fast。
+保守档位是有意的——覆盖面换确定性；扩展到"无 marker 的任意表达式"留待后续（届时需要一个易变函数白名单，
+属易错设计，不宜首版就上）。
+
+**D3 `SELECT DISTINCT` 的行为**——改写会引入**新的** ORDER BY 表达式，而 PostgreSQL 对 DISTINCT 查询
+要求 ORDER BY 表达式必须出现在 select 列表中。裁定：
+- 原生路径（`supportNullsFirst=true`）：照常输出，不受 DISTINCT 影响；
+- CASE 路径：要求该排序列**已出现在 `SqlQuerySelect` 的投影列表中**（`distinct` 与 `projections` 字段已核实存在，
+  `EqlAST.xjava:153/156`），否则 fail-fast。
+
+**D4 窗口边界**——`sqlOrderBy` 有 **3 个使用点**，只有查询级可改写：
+- 查询级 `SqlQuerySelect.orderBy` → 支持
+- `SqlWindowExpr.orderBy`（`OVER ( ... orderBy ... )`，`EqlAST.xjava:481`）→ **fail-fast**
+- `SqlWindowDecl.orderBy`（命名窗口 `WINDOW w AS ( ... orderBy ... )`，`EqlAST.xjava:500`）→ **fail-fast**
+
+后两者的 `orderBy` 都经 `visitChild(...)` 路由到同一个 `visitSqlOrderBy`（`AstToEqlGenerator:980` 与 `:1035`），
+因此实现上通过**向上遍历 `getASTParent()` 判断是否处于 `SqlWindowExpr`/`SqlWindowDecl` 之下来区分**。
+
+**D5 CASE 键的插入位置**——必须是该排序项的**前置同级键**（紧邻其前、同一个 ORDER BY 列表内），
+**不得** prepend 到整个列表头。单键场景两者等价，多键场景 prepend 会把「先按 b 的 nullness、再按 a」
+写反且**不报错**。由此得出一个实现约束：覆写点必须是 `visitSqlOrderBy`（负责 `printList(items, ",")`
+的列表级拼接），**不能只覆写 `visitSqlOrderByItem`**——后者无法在逗号之间插入兄弟键。
+
+**D6 错误码**——新增 `ERR_EQL_NULLS_ORDER_NOT_SUPPORTED`，参数含 `reason` / `dialect` / `sqlText`，
+`reason` 取三个枚举值：`window-not-supported`（D4）、`expression-not-duplicable`（D2）、
+`distinct-column-not-projected`（D3）。三条都是**响亮失败**，不静默忽略空序请求。
+
+**D7 代码落点**——**不**新增可配置扩展点（`IPaginationHandler` 那套"xml 配类名"必须改 `dialect.xdef` schema，
+与本计划 Non-Goal 冲突）。裁定：`AstToSqlGenerator` **覆写 `visitSqlOrderBy`** 承载全部方言逻辑
+（列表遍历 + CASE 键插入 + 每项渲染），基类 `AstToEqlGenerator` 的
+`visitSqlOrderBy`/`visitSqlOrderByItem` **保持方言无关**，仅按字面输出 `nulls first/last` 以保证
+`toSqlString()` round-trip 无损。二者已是继承关系（`AstToSqlGenerator.java:69`），
+且 `AstToSqlGenerator` 当前**无任何 orderBy 覆写**（完全继承基类），故覆写不会与既有逻辑打架。
+
+**D8 `NULLS` 是否登记为非保留字**——裁定**登记**。已 grep 确认无任何方言把 `nulls` 列入
+`<reservedKeywords>`，登记后 `select nulls from t` 仍可解析，风险低；与 `TUMBLE`/`LATERAL`/`RANGE`/`WINDOW`
+既有范式一致。**但**必须补一条回归：把 `nulls` 用作 ORDER BY 列名时的歧义位置
+（`order by nulls asc` 在新增 `NULLS FIRST` 后是否仍按列名解析）。
+
+**D9 推翻 `2026-08-06-1228-1:55`**——该文「不做 MySQL 上 NULLS FIRST/LAST 的 CASE 表达式模拟
+（fail-fast 显式拒绝优于隐式改写）」在本计划的 **EQL 通道**范围内被推翻。理由：Phase 0 已实测
+CASE 模拟在 MySQL 8.0.46 上四种方向组合**全部正确**；继续 fail-fast 会让 MySQL/MariaDB 用户
+无法表达 `ASC + NULLS LAST` 这一常见需求。**推翻仅限 EQL 通道**，`nop-metadata` 的 `AggregationHelper`
+不在本计划范围（见 F3 移交），其 fail-fast 裁定保持原状。
 
 ### Phase 2 - 能力位接线（Feature）
 

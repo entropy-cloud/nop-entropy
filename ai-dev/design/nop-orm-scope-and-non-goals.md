@@ -93,6 +93,9 @@ EQL 通道的 `toSqlString()` 输出对应关键字使 round-trip 无损。
 并波及 `nop-metadata` 的两个消费方。保留 AST 节点 + 显式失败，可在不触碰公开签名的前提下
 消除原先「编译产物为空字符串且不报错」的静默无操作。
 
+其中 ORDER BY 项上的 `NULLS FIRST/LAST` 字段被删除只是**第一步**：它当时是悬挂字段（EQL 侧无语法入口）。
+空序能力的实际实现由 plan 2308 承接，其契约见 §3.8；`COLLATE` 则维持不支持。
+
 `cross` / `lateral` / `tumble` / `range` / `window` 等字面量**可**作标识符（登记为非保留字），
 这与主流 SQL 方言一致；`cross` 同时出现在 MySQL 方言的 `<reservedKeywords>` 中，二者不冲突。
 
@@ -103,6 +106,33 @@ EQL 通道的 `toSqlString()` 输出对应关键字使 round-trip 无损。
 
 据此：`<upsertHandler>` 因零消费方且无对应功能而**删除**；
 `<sqlExceptionTranslator>` 因实现被硬编码、配置被静默忽略而**接线**（改为读取模型字段，缺省回落默认实现）。
+
+同样的判据也适用于能力位：`<features>` 中的 `supportNullsFirst` 曾长期"声明即死"（见 §3.8）。
+
+### 3.8 排序空序策略：只依赖「是否支持原生语法」这一个能力位
+
+`ORDER BY` 的空序修饰（`NULLS FIRST` / `NULLS LAST`）在各方言上的落地只由**一件事**决定：
+目标数据库**是否接受原生语法**。
+
+- 接受 → 直接输出 `NULLS FIRST` / `NULLS LAST`；
+- 不接受 → 用 `CASE WHEN <col> IS NULL THEN ... END, <col> <dir>` 改写，该写法只用到 SQL 标准中
+  普遍支持的 `CASE WHEN` 与 `IS NULL`，因此对**任何**方言都语义正确。
+
+据此，**不使用** `dialect.defaultNullsFirst` 做「请求与方言缺省一致就省略子句」的优化。
+原因是一个布尔量无法表达真实的空序模型：H2 / PostgreSQL / MySQL 的缺省都随排序方向翻转
+（实测），而 DuckDB **不翻转**（其 `default_null_order` 有 always-first / always-last /
+first-on-asc-last-on-desc / last-on-asc-first-on-desc 四种模式）。用单布尔推导 DESC 缺省会让
+`ORDER BY x DESC NULLS FIRST` 在 DuckDB 上被误判为"缺省即满足"而省略子句，从而**静默返回相反行序**——
+查询成功、数据错乱、分页取到错数据。
+
+代价是产出略冗长（即使请求恰与方言缺省一致也显式输出）；收益是彻底消除「方言缺省推导」这一整类
+静默错误。这条取舍是本设计在"正确性优先于 SQL 简洁"上的明确选择。
+
+改写的**适用边界**同样是契约的一部分：改写需要复制排序表达式，因此只对**纯列引用**允许；
+含绑定参数标记、序号定位（`ORDER BY 1`）、易变函数的排序项一律显式失败而非产出错误结果。
+`SELECT DISTINCT` 查询在改写路径上还要求排序列已出现在投影列表中。
+窗口函数内（`OVER (...)` 与命名窗口 `WINDOW w AS (...)`）无法附加额外排序键，改写结构性不适用，
+故同样显式失败。
 
 ---
 
@@ -119,7 +149,8 @@ EQL 通道的 `toSqlString()` 输出对应关键字使 round-trip 无损。
 | Criteria API | EQL + `QueryBean`/`FilterBeans` 已覆盖动态查询场景；Criteria 会引入第二套查询抽象 |
 | 集合聚合访问语法 `coll[where].func(args)` | 无输出器、无语义分析，永不可能产出正确 SQL（见 §3.6）。需要集合聚合时应下推到 SQL 表达式或子查询，而不是在 EQL 层引入一套无输出路径的语法 |
 | EQL 层事务语句 `commit`/`rollback` | 事务边界归属 `ITransactionTemplate` / 连接层（见 §3.5）；EQL 编译器输出裸 `COMMIT` 不携带任何事务语义，且当前 DAO 层并不消费它。终态取「显式失败」而非删除，理由见 §3.6 |
-| EQL 层 `NULLS FIRST/LAST`、`COLLATE` on ORDER BY | 空序策略的方言门控实现已在 bean 路径（见 §3.6）；EQL 侧另建一套会产生第二个未门控实现。`COLLATE` 在 CAST 类型修饰（`SqlTypeExpr.collate`）上仍是活语法，仅 ORDER BY 项上的悬挂字段被移除 |
+| EQL 层 ORDER BY 上的 `COLLATE` | 需按库校验排序规则名字（MySQL `utf8mb4_general_ci` / PG collation 名 / Oracle `NLS_SORT` 各异），且 H2 实测在 ORDER BY 表达式上不接受 COLLATE 语法，设计面远大于一个布尔能力位。`CAST(x AS type COLLATE y)`（`SqlTypeExpr.collate`）仍是活语法 |
+| EQL 层「按方言缺省省略空序子句」 | 单个布尔无法表达各方言的真实空序模型（DuckDB 四种模式、不随方向翻转），推导错误会静默返回相反行序。见 §3.8 |
 
 ---
 
