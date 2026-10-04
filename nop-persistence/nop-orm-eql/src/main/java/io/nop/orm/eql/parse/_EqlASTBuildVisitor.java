@@ -262,6 +262,48 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_fetchFirst(SqlLimit_fetchFirstContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_limit(SqlLimit_limitContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            if(ctx.offset != null){
+               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_offsetFetch(SqlLimit_offsetFetchContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.offset != null){
+               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
+            }
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlNotExpr visitSqlNotExpr(SqlNotExprContext ctx){
           io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -954,18 +996,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
       }
             
       public io.nop.orm.eql.ast.SqlLimit visitSqlLimit(SqlLimitContext ctx){
-          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlLimit)ctx.accept(this);
           
-            if(ctx.limit != null){
-               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
-            }
-            if(ctx.offset != null){
-               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
       public io.nop.orm.eql.ast.SqlLiteral visitSqlLiteral(SqlLiteralContext ctx){

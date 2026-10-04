@@ -218,15 +218,20 @@ sqlHaving
 // 两形态归一化进既有 SqlLimit{limit, offset}（裁定=候选 A，ai-dev/design/eql-cross-db-compat/
 // 2026-10-04-wi7-phase0-adjudications.md §一/§二——buildPageExpr 无形态参数、输出形态由方言
 // paginationHandler 决定，不加"语法形态"字段；ast/_gen 零触碰）。三备选全 altLabel
-// （sqlIntervalExpr 先例）；新备选 prop 独立命名（duplicate-prop-label 约束）；FIRST 集
-// {LIMIT}/{FETCH}/{OFFSET} 两两不相交无 LL(*) 冲突。FETCH 备选的手写 visit 完全重写
-// （SqlLimit 无 mandatory 校验 ⇒ 生成空节点会静默通过 validate）。token 面零改动：
-// FETCH/FIRST/ONLY/ROW/ROWS（SQL92Keyword.g4）与 NEXT（Keyword.g4）已是保留 token，
-// 零 lexer 改动。OFFSET n ROWS（无 FETCH）不进本 WI（plan Deferred But Adjudicated）。
+// （sqlIntervalExpr 先例）；FIRST 集 {LIMIT}/{FETCH}/{OFFSET} 两两不相交无 LL(*) 冲突。
+// token 面零改动：FETCH/FIRST/ONLY/ROW/ROWS（SQL92Keyword.g4）与 NEXT（Keyword.g4）已是
+// 保留 token，零 lexer 改动。OFFSET n ROWS（无 FETCH）不进本 WI（plan Deferred）。
+// ⚠️ 执行期实测修订（plan 差异登记）：新备选 prop **复用** limit=/offset=——① antlr4-tool
+// codegen（AstGrammarBuilder.buildAstNode）每个 altLabel 独立 AstRule ⇒ duplicate-prop-label
+// 是备选内检查、跨备选复用合法；② /nop/templates/antlr/@init.xrun 的 initRuleReturnType 经
+// ast.getDefine(astNodeName).getProp(propName).type 解析 visit 返回类型，prop 名必须是 AST
+// 节点既有字段（rowCount=/offsetExpr=/limitExpr= 之类独立命名会 renderModel 失败：
+// get-prop-on-null-obj）——故 prop 复用不是自由选择而是 codegen 契约；生成 visitSqlLimit_*
+// 因此逐字段赋值正确（FETCH 备选 offset 恒缺省=字段不赋值），无需手写 override。
 sqlLimit
     : LIMIT limit=sqlExpr_limitRowCount (OFFSET offset=sqlExpr_limitOffset)? # SqlLimit_limit
-    | FETCH FIRST rowCount=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_fetchFirst
-    | OFFSET offsetExpr=sqlExpr_limitOffset ROWS FETCH NEXT limitExpr=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_offsetFetch
+    | FETCH FIRST limit=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_fetchFirst
+    | OFFSET offset=sqlExpr_limitOffset ROWS FETCH NEXT limit=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_offsetFetch
     ;
 
 sqlExpr_limitRowCount

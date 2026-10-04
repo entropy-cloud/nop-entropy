@@ -502,15 +502,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlHaving(EqlParser.SqlHavingContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Enter a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlLimit(EqlParser.SqlLimitContext ctx);
+	void enterSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Exit a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlLimit(EqlParser.SqlLimitContext ctx);
+	void exitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlExpr_limitRowCount}.
 	 * @param ctx the parse tree

@@ -594,13 +594,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlLimit(EqlParser.SqlLimitContext ctx) { }
+	@Override public void enterSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlLimit(EqlParser.SqlLimitContext ctx) { }
+	@Override public void exitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

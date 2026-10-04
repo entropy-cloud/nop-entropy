@@ -306,11 +306,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlHaving(EqlParser.SqlHavingContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Visit a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlLimit(EqlParser.SqlLimitContext ctx);
+	T visitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlExpr_limitRowCount}.
 	 * @param ctx the parse tree
