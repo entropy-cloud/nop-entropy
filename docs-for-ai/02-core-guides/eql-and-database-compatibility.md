@@ -407,6 +407,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM 三段式，WI5） | 构建期归一化进 `SqlRegularFunction`（`EqlASTBuildVisitor.visitSqlRegularFunction_position/substring/extract/trim*`），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路 | 方言函数表注册（`dialect.getFunction(归一化名)`；TRIM 带 chars=trimChars/ltrimChars/rtrimChars 模板仅注册已验证方言） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlPositionFunctionDialect.testUnknownDialectThrowsLoudUnknownFunction`（SUBSTRING/EXTRACT/TRIM 各自同类） |
 | 分页两标准形态 `FETCH FIRST`/`OFFSET..FETCH NEXT`（WI7） | 构建期归一化进既有 `SqlLimit{limit, offset}`（生成 visit 逐字段赋值），lowering 走 `AstToSqlGenerator.visitSqlQuerySelect` → `dialect.getPaginationHandler().buildPageExpr`（**无方言能力标志**——输出形态由方言 `paginationHandler` 配置决定） | `paginationHandler` 配置（LimitOffset 族 / OffsetFetch 族，见「分页两语法形态」小节矩阵） | 文法层解析错误（不完整形态，如 `OFFSET n ROWS` 无 FETCH）；lowering 无失败分支 | `TestEqlPaginationFetchParse`、`TestEqlPaginationFetchCompile` |
 | `ORDER BY … NULLS FIRST/LAST` 子句（WI7） | `AstToSqlGenerator.visitSqlOrderByItem`（执行路径唯一门；回显路径不设门） | `supportNullsFirst`（true=按请求打印）+ `defaultNullsFirst`（false 时缺省序推导，仅一手文档已证方言集允许"一致省略"） | `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`——冲突或方言缺省序无一手文档） | `TestEqlNullsFirstDialectGate`、`TestDefaultNullsFirstFlag`（accessor 双侧契约） |
+| 归一化日期时间函数族 `lastday/weekofyear/dayofweek/datetrunc/datediff`（WI6） | 构建期即普通函数调用（函数名小写化既有通路），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路（零文法/AST 改动） | 方言函数表注册（native 或 template；仅注册一手取证方言，不进 default——字符串单位约定下裸关键字方言 cell 不落） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlLastDayDialect.testUnregisteredDialectThrowsLoud`（其余函数各自同类） |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -500,7 +501,40 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 
 无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增五词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
 
+### 归一化日期时间函数族（2026-10-04 WI6：dayofweek/weekofyear/dateAdd/dateDiff/dateTrunc + lastDay）
+
+EQL 归一化日期时间函数（普通 `SqlRegularFunction` 通道：函数名构建期小写化，`lastDay(d)` 查表名 `lastday`；未注册方言编译期 `ERR_EQL_UNKNOWN_FUNCTION` 响亮报错，不静默降级）。裁定与逐 cell 一手引证归 ai-dev 设计域（WI6 Phase 0 裁定文档，2026-10-04）。覆盖标注口径与 WI5 相同：`[实测]`=CI 真库（H2 in-mem）执行证据；`[文档]`=一手文档引证；`[未取证]`=无一手文档（dm/tdengine/db2/es，不计入覆盖率）。
+
+**单位参数约定**：`dateTrunc(unit, d)` / `dateAdd(unit, n, d)` / `dateDiff(unit, d1, d2)` 的 unit 采用**字符串字面量**（如 `'month'`）。字符串单位可无损到达 pg/duckdb/h2；**裸关键字语法位方言不可达**（mysql `DATE_ADD` unit 明文为 keyword；mssql `DATEDIFF` 明文 "The datepart value can't be specified in a variable, nor as a quoted string like 'month'"，`DATEADD`/`DATETRUNC` 无字符串接受证据；oracle interval 单位/`TRUNC` fmt 词表无法经 fixed template 翻译）——这些 cell 一律不注册（响亮）。
+
+#### lastDay(d) → `lastday`（返回 d 所在月份最后一天的日期值）
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis | `LAST_DAY(d)`（native realName，`<testSql>LAST_DAY(DATE '2026-02-10')</testSql>` 真库执行） | `[实测]`（h2 `TestDialect.testFunctions` → 2026-02-28 + `TestEqlLastDayDialect.testH2RealDbExecution`）/ `[文档]`（H2 functions.html：返回 date） |
+| mysql / mariadb / mysql5.7 | `LAST_DAY(d)`（native） | `[文档]`（MySQL 8.0："returns the corresponding value for the last day of the month"） |
+| oracle / oracle-reverse | `LAST_DAY(d)`（native） | `[文档]`（Oracle 21c sqlrf LAST_DAY） |
+| postgresql / postgis / duckdb | `CAST(date_trunc('month', d) + INTERVAL '1 month' - INTERVAL '1 day' AS DATE)`（模板，精确算术） | `[文档]`（PG 15 date_trunc(text, ...)）+ DuckDB 嵌入式 scratch 同型表达式实跑 = 2026-02-28（一次性取证，非门禁面） |
+| mssql | `EOMONTH(d)`（模板） | `[文档]`（T-SQL EOMONTH；CI 无 MSSQL 真库，渲染文本断言为替代证据） |
+| dm / tdengine / db2 / es | **未注册 → 编译期响亮报错**（`ERR_EQL_UNKNOWN_FUNCTION(lastday)`，负向用例锁定） | `[未取证]` |
+
+**语义差异登记（不等价类）**：postgresql 模板对 `timestamptz` 输入按会话 TimeZone 截断（时变），原生 `LAST_DAY` 族（h2/mysql/oracle/mssql `EOMONTH`）无此时变——输入类型域钉死 DATE/TIMESTAMP（无时区）；跨库传 timestamptz 需先显式转无时区类型。
+
+#### weekofyear(d) → ISO-8601 周号（1-53）
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis | `ISO_WEEK(d)`（模板，`<testSql>` 真库执行） | `[实测]`（h2 `TestDialect.testFunctions` → 7 + `TestEqlWeekOfYearDialect`）/ `[文档]`（H2 functions.html ISO_WEEK ISO 定义）。⚠️ H2 无 `WEEKOFYEAR` 函数 `[实测]`；`WEEK(d)` 明文 "uses the current system locale"（弃用） |
+| mysql / mariadb / mysql5.7 | `WEEKOFYEAR(d)`（native 同名） | `[文档]`（MySQL 8.0：`equivalent to WEEK(date,3)`，mode 3 = ISO 8601） |
+| postgresql / postgis / duckdb | `extract(week from d)`（模板，继承面一体） | `[文档]`（PG 15："The number of the ISO 8601 week-numbering week"）/ DuckDB scratch `extract(week)`=7 |
+| oracle / oracle-reverse | `to_number(to_char(d,'IW'))`（模板） | `[文档]`（Oracle 21c 格式模型：`'IW'` = ISO 8601 周号，territory 无关） |
+| mssql | `DATEPART(iso_week,d)`（模板） | `[文档]`（T-SQL DATEPART；`iso_week` 不属 SET DATEFIRST 影响面——文档明文仅 week/weekday 受影响）。CI 无 MSSQL 真库 |
+| dm / tdengine / db2 / es | **未注册 → 编译期响亮报错**（`ERR_EQL_UNKNOWN_FUNCTION(weekofyear)`） | `[未取证]` |
+
+**语义差异登记（不等价类）**：各库**非 ISO 周**形态差异——mysql `WEEK(d)` 默认 mode 受 `default_week_format` 变量影响（会话依赖）、mssql `DATEPART(week,d)` 受 `SET DATEFIRST` 影响：本归一化**只落 ISO 周**（周一起点 + 含 1 月 4 日周为 W01），不落"locale 周"。跨年边界（12 月末/1 月初）行为见 ISO 定义（`TestEqlWeekOfYearDialect.testH2RealDbIsoWeekBoundaries`：2025-12-29 与 2026-01-01 同属 2026-W01）。
+
 ### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
+
 
 EQL 接受三种分页输入形态，解析期**归一化**进既有 `SqlLimit{limit, offset}`（`FETCH FIRST n ROWS ONLY` → `limit=n, offset=null`；`OFFSET n ROWS FETCH NEXT m ROWS ONLY` → `offset=n, limit=m`），**不保留输入形态**（AST 无"语法形态"字段——输出形态由方言 `paginationHandler` 配置决定，`IPaginationHandler.buildPageExpr(limit, offset, sql)` 无形态参数）。回显一律输出规范化 `limit x [offset y]` 文本（与 LIMIT 形态同口径，回显文本可重解析语义不变）。
 
