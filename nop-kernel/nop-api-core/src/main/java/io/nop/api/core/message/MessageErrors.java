@@ -17,6 +17,10 @@ public interface MessageErrors {
             ErrorCode.define(PREFIX + "subscribe-not-supported",
                     "Subscribe is not supported by this message service backend");
 
+    ErrorCode ERR_SEEK_MESSAGE_NOT_SUPPORTED =
+            ErrorCode.define(PREFIX + "seek-message-not-supported",
+                    "Seek by message id is not supported by this message service backend");
+
     ErrorCode ERR_PARTIAL_COMMIT_TRANSACTIONAL =
             ErrorCode.define(PREFIX + "partial-commit-transactional",
                     "PartialCommit signal is not supported inside a transactional consume session",

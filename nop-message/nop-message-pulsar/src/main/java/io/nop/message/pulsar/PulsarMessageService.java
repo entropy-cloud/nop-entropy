@@ -13,6 +13,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageCapability;
 import io.nop.api.core.message.MessageOptionsValidator;
+import io.nop.api.core.message.MessageErrors;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
@@ -51,15 +52,10 @@ import static io.nop.message.pulsar.PulsarErrors.ERR_SERVICE_URL_NOT_CONFIGURED;
 public class PulsarMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(PulsarMessageService.class);
 
-    /**
-     * SEEK is added to this declaration by WI8 together with the seek implementation; it is
-     * deliberately absent until the stub is replaced so the declaration never outruns
-     * behavior (D1: declared capability must hold).
-     */
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
-            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION, MessageCapability.ACK_REPLY,
-            MessageCapability.ENVELOPE_METADATA);
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION, MessageCapability.SEEK,
+            MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA);
 
     @Override
     public Set<MessageCapability> getCapabilities() {
@@ -209,6 +205,12 @@ public class PulsarMessageService implements IMessageService {
         if (options == null)
             options = new MessageSubscribeOptions();
         MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "pulsar");
+        // Validated on the caller's thread before any client/builder is touched: the typed
+        // rejection must reach the subscribe caller (MSG-F-03, aligned with the Kafka WI7 form).
+        if (options.getSeekToMessage() != null) {
+            throw new NopException(MessageErrors.ERR_SEEK_MESSAGE_NOT_SUPPORTED)
+                    .description("seekToMessage is not supported by the Pulsar backend");
+        }
 
         int concurrency = options.getConcurrency();
         if (concurrency <= 1) {
@@ -230,12 +232,17 @@ public class PulsarMessageService implements IMessageService {
         }
     }
 
+    /** Injection seam for tests (mirrors the Kafka createConsumer factory, WI7). */
+    protected ConsumerBuilder<?> newConsumerBuilder(Schema<?> schema) {
+        return client.newConsumer(schema);
+    }
+
     IMessageSubscription doSubscribe(MessageSubscriptionConfig subConfig) {
         Schema<?> schema = topicSchemas.get(subConfig.getTopic());
         if (schema == null) {
             schema = Schema.STRING;
         }
-        ConsumerBuilder<?> builder = client.newConsumer(schema);
+        ConsumerBuilder<?> builder = newConsumerBuilder(schema);
         builder.topic(subConfig.getTopic());
 
         MessageSubscribeOptions options = subConfig.getOptions();
@@ -246,6 +253,7 @@ public class PulsarMessageService implements IMessageService {
             if (options.getSubscriptionType() != null) {
                 builder.subscriptionType(toPulsarSubscriptionType(options.getSubscriptionType()));
             }
+            applyInitialPosition(builder, options.getSeekMode());
         }
 
         if (defaultConsumerConfig != null) {
@@ -258,9 +266,24 @@ public class PulsarMessageService implements IMessageService {
             }
         }
 
+        ExecutorService executor = null;
+        Consumer<?> consumer = null;
         try {
-            Consumer<?> consumer = builder.subscribe();
-            ExecutorService executor = Executors.newSingleThreadExecutor();
+            consumer = builder.subscribe();
+
+            // D3: ALWAYS_SEEK_TO_END and seekToTime resolve with a synchronous seek right
+            // after subscribe (the client is connected at this point). A seek failure tears
+            // down the freshly created consumer before the error reaches the caller.
+            if (options != null) {
+                if (options.getSeekMode() == io.nop.api.core.message.SeekMode.ALWAYS_SEEK_TO_END) {
+                    consumer.seek(org.apache.pulsar.client.api.MessageId.latest);
+                }
+                if (options.getSeekToTime() > 0) {
+                    consumer.seek(options.getSeekToTime());
+                }
+            }
+
+            executor = Executors.newSingleThreadExecutor();
             PulsarConsumeTask task = new PulsarConsumeTask(this, executor,
                     (Consumer<Object>) consumer, subConfig);
             task.start();
@@ -268,7 +291,34 @@ public class PulsarMessageService implements IMessageService {
             subscriptions.add(subscription);
             return subscription;
         } catch (Exception e) {
+            // The consumer (broker connection + buffered unacked messages) must not leak
+            // when subscribe or the post-subscribe seek fails (WI8 closure audit Major-1).
+            if (consumer != null) {
+                try {
+                    consumer.close();
+                } catch (Exception closeError) {
+                    e.addSuppressed(closeError);
+                }
+            }
+            if (executor != null) {
+                executor.shutdownNow();
+            }
             throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * D3: INIT_SEEK modes map to Pulsar's subscription initial position, which applies only
+     * when the subscription cursor does not exist yet — precisely the SeekMode javadoc
+     * ("first consumption from the beginning/end, afterwards resume from the last
+     * position") and symmetric with the Kafka committed-offset gate (WI7).
+     */
+    private void applyInitialPosition(ConsumerBuilder<?> builder,
+                                      io.nop.api.core.message.SeekMode mode) {
+        if (mode == io.nop.api.core.message.SeekMode.INIT_SEEK_TO_BEGIN) {
+            builder.subscriptionInitialPosition(org.apache.pulsar.client.api.SubscriptionInitialPosition.Earliest);
+        } else if (mode == io.nop.api.core.message.SeekMode.INIT_SEEK_TO_END) {
+            builder.subscriptionInitialPosition(org.apache.pulsar.client.api.SubscriptionInitialPosition.Latest);
         }
     }
 

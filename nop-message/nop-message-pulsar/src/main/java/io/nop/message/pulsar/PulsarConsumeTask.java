@@ -65,15 +65,7 @@ public class PulsarConsumeTask {
 
     public void start() {
         active = true;
-        executor.execute(() -> {
-            seekToPosition();
-            this.runTask();
-        });
-    }
-
-    // TODO: implement seekToPosition based on SeekMode/seekToMessage/seekToTime from MessageSubscribeOptions
-    private void seekToPosition() {
-
+        executor.execute(this::runTask);
     }
 
     public void schedule() {

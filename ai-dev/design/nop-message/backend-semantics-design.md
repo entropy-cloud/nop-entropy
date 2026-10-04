@@ -26,7 +26,7 @@
 ### 3.1 D3 seek 起点解析
 
 - Kafka：seek 起点解析逻辑挂在 rebalance listener 的 onPartitionsAssigned 回调内，每次分区分配（含首次与再平衡）后对**新分配的分区**执行；INIT 系仅首次生效（按消费组位移状态判断），ALWAYS_SEEK_TO_END 每次分配都 seekToEnd。seekToMessage（按消息 id 定位）Kafka 无对应语义，类型化拒绝（错误码已在位）。
-- Pulsar：SeekMode 映射到原生 seek（earliest/latest/timestamp），在 consumer 创建路径执行（Pulsar 无 rebalance 回调概念，等价于每次重连创建 consumer 时生效，天然满足 ALWAYS 语义）；seekToMessage 类型化拒绝。
+- Pulsar：INIT_SEEK 系经 `SubscriptionInitialPosition`（Earliest/Latest）精确兑现——该初始位仅当订阅光标不存在时生效，与 SeekMode javadoc「第一次从头/尾、以后从上次位置」逐字对应，并与 Kafka 的 committed 门控跨后端对称；ALWAYS_SEEK_TO_END 与 seekToTime 在 consumer 创建后同步 seek（Pulsar 无 rebalance 回调概念，解析于每次经 SPI subscribe 创建 consumer 时；客户端内部瞬断重连不会重新 seek）。seekToMessage 类型化拒绝。2.8 的 seek 不清空已缓冲 incoming 队列（真机窗口行为归 gated E2E）。
 - 消费任务启动期的 seek 抛错（如 seekToMessage）不得被消费线程吞掉，必须传播到 `subscribe` 调用方。
 
 ### 3.2 D5 返回协议与两个新信号

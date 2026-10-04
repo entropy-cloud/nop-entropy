@@ -16,6 +16,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class TestPulsarConsumeTask {
 
@@ -132,5 +134,124 @@ class TestPulsarConsumeTask {
         verify(consumer, never()).negativeAcknowledge(m0.getMessageId());
         verify(consumer, never()).negativeAcknowledge(m1.getMessageId());
         executor.shutdown();
+    }
+
+    // ------------------------------------------------------------------
+    // WI8/D3: seek resolution on the subscribe path (service-level, via the
+    // newConsumerBuilder seam — no real broker, no Mockito mock of the service).
+    // ------------------------------------------------------------------
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    static class TestPulsarService extends PulsarMessageService {
+        org.apache.pulsar.client.api.ConsumerBuilder builder;
+        org.apache.pulsar.client.api.Consumer<Object> consumer;
+        io.nop.api.core.message.IMessageSubscription subscription;
+
+        @Override
+        protected org.apache.pulsar.client.api.ConsumerBuilder newConsumerBuilder(
+                org.apache.pulsar.client.api.Schema<?> schema) {
+            return builder;
+        }
+    }
+
+    private TestPulsarService preparedService(MessageSubscribeOptions options) throws Exception {
+        return preparedService(options, new io.nop.api.core.message.MessageSubscriptionConfig("t-seek",
+                (t, m, c) -> null, options));
+    }
+
+    private TestPulsarService preparedService(MessageSubscribeOptions options,
+                                              io.nop.api.core.message.MessageSubscriptionConfig config) throws Exception {
+        TestPulsarService svc = new TestPulsarService();
+        svc.builder = mock(org.apache.pulsar.client.api.ConsumerBuilder.class);
+        svc.consumer = mock(org.apache.pulsar.client.api.Consumer.class);
+        when(svc.builder.subscribe()).thenReturn(svc.consumer);
+        when(svc.builder.topic(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        when(svc.builder.subscriptionName(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        when(svc.builder.subscriptionType(org.mockito.ArgumentMatchers.any())).thenReturn(svc.builder);
+        when(svc.builder.subscriptionInitialPosition(org.mockito.ArgumentMatchers.any())).thenReturn(svc.builder);
+        // receive() must block rather than spin: tests cancel the subscription (which stops
+        // the task) right after their assertions.
+        when(svc.consumer.receive()).thenAnswer(inv -> {
+            new java.util.concurrent.CountDownLatch(1).await();
+            return null;
+        });
+        svc.subscription = svc.doSubscribe(config);
+        return svc;
+    }
+
+    @Test
+    void initSeekToBeginUsesSubscriptionInitialPositionEarliest() throws Exception {
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-init-begin");
+        options.setSeekMode(io.nop.api.core.message.SeekMode.INIT_SEEK_TO_BEGIN);
+        TestPulsarService svc = preparedService(options);
+        try {
+            verify(svc.builder).subscriptionInitialPosition(
+                    org.apache.pulsar.client.api.SubscriptionInitialPosition.Earliest);
+            verify(svc.consumer, never()).seek(org.apache.pulsar.client.api.MessageId.earliest);
+        } finally {
+            svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void initSeekToEndUsesSubscriptionInitialPositionLatest() throws Exception {
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-init-end");
+        options.setSeekMode(io.nop.api.core.message.SeekMode.INIT_SEEK_TO_END);
+        TestPulsarService svc = preparedService(options);
+        try {
+            verify(svc.builder).subscriptionInitialPosition(
+                    org.apache.pulsar.client.api.SubscriptionInitialPosition.Latest);
+        } finally {
+            svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void alwaysSeekToEndSeeksSynchronouslyAfterSubscribe() throws Exception {
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-always-end");
+        options.setSeekMode(io.nop.api.core.message.SeekMode.ALWAYS_SEEK_TO_END);
+        TestPulsarService svc = preparedService(options);
+        try {
+            verify(svc.consumer).seek(org.apache.pulsar.client.api.MessageId.latest);
+            verify(svc.builder, never()).subscriptionInitialPosition(org.mockito.ArgumentMatchers.any());
+        } finally {
+            svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void seekToTimeSeeksSynchronouslyAfterSubscribe() throws Exception {
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-time");
+        options.setSeekToTime(1234567890L);
+        TestPulsarService svc = preparedService(options);
+        try {
+            verify(svc.consumer).seek(1234567890L);
+        } finally {
+            svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void seekToMessageRejectedSynchronouslyBeforeClientUse() {
+        PulsarMessageService svc = new PulsarMessageService(); // client == null on purpose
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-bad");
+        options.setSeekToMessage("some-msg-id");
+        io.nop.api.core.exceptions.NopException e = org.junit.jupiter.api.Assertions.assertThrows(
+                io.nop.api.core.exceptions.NopException.class,
+                () -> svc.subscribe("t-seek", (t, m, c) -> null, options));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                io.nop.api.core.message.MessageErrors.ERR_SEEK_MESSAGE_NOT_SUPPORTED.getErrorCode(),
+                e.getErrorCode());
+    }
+
+    @Test
+    void capabilitiesDeclareSeek() {
+        assertTrue(new PulsarMessageService().getCapabilities()
+                .contains(io.nop.api.core.message.MessageCapability.SEEK));
     }
 }
