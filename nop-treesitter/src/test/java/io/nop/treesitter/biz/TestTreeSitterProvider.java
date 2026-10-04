@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,12 +34,31 @@ class TestTreeSitterProvider {
 
     @Test
     void builtInGrammarsResolveFromTheirBlobs() {
-        for (String name : Set.of("json", "java", "javascript", "python", "typescript", "tsx")) {
+        for (String name : Set.of("bash", "json", "java", "javascript", "python", "typescript", "tsx")) {
             Language language = provider.getLanguage(name);
             assertNotNull(language, name);
         }
-        assertEquals(7, provider.languageNames().size(),
-                "six built-ins plus the test-classpath custom provider");
+        assertEquals(8, provider.languageNames().size(),
+                "seven built-ins plus the test-classpath custom provider");
+    }
+
+    /**
+     * The bash grammar is only useful with its external scanner attached: heredoc
+     * recognition is driven entirely by {@link io.nop.treesitter.scanner.BashScanner}.
+     * Parsing a heredoc script through the provider therefore distinguishes "the
+     * scanner factory is wired in {@code loadLanguage}" from "the blob merely
+     * loads" — without the factory the heredoc body collapses into ERROR nodes.
+     */
+    @Test
+    void bashHeredocParsesThroughTheProviderPath() {
+        Language bash = provider.getLanguage("bash");
+        assertNotNull(bash);
+        String tree = TSParser.parse(bash, "cat <<EOF\nhello\nEOF\n").toSexpString(false);
+        assertFalse(tree.contains("ERROR"), tree);
+        assertTrue(tree.contains("heredoc_redirect"), tree);
+        assertTrue(tree.contains("heredoc_start"), tree);
+        assertTrue(tree.contains("heredoc_body"), tree);
+        assertTrue(tree.contains("heredoc_end"), tree);
     }
 
     @Test
