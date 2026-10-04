@@ -296,6 +296,10 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
             return SqlJoinType.FULL_JOIN;
         if (ctx.rightJoin_() != null)
             return SqlJoinType.RIGHT_JOIN;
+        // Plan 2307 V2: 必须显式映射 crossJoin_，否则 CROSS JOIN 会被静默降级成普通 JOIN
+        // （CROSS 关键字随之从产物中消失，查询被静默改写）
+        if (ctx.crossJoin_() != null)
+            return SqlJoinType.CROSS_JOIN;
         return SqlJoinType.JOIN;
     }
 

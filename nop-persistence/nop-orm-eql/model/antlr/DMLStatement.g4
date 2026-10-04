@@ -170,7 +170,20 @@ sqlSubqueryTableSource:
 
 
 joinType_:
-    innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_;
+    innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_ | crossJoin_;
+
+// Plan 2307 V2: CROSS JOIN。
+//
+// 该规则只能覆盖「左表已带别名」的情形（如 `from AppUser u cross join AppRole r`）：
+// 此时 cross 不再可能被 sqlSingleTableSource 的可选 alias 吃掉，必须由本规则显式匹配。
+//
+// 而「左表未带别名」的情形（`from AppUser cross join AppRole r`）中，ANTLR 的 ALL(*)
+// 预测面对「alias=cross + 裸 JOIN」与「CROSS JOIN」两条都能完整解析的路径时会取最小备选号，
+// 即仍然先吃别名——实测加上本规则并不能改变该处的选择结果。
+// 该残余情形由 SqlJoinTableSource#normalize() 在建树时还原为 CROSS_JOIN，
+// 故本规则与 normalize() 两者缺一不可，不是冗余定义。
+crossJoin_:
+    CROSS JOIN;
 
 sqlTableSource_joinRight:
     sqlSingleTableSource | sqlSubqueryTableSource;

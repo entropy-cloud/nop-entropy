@@ -39,7 +39,34 @@ EQL 的语法可用性 = **grammar 接受度 ∩ 方言能力位 ∩ 方言继�
 
 语法层（grammar）现接受完整分析窗口形态：`OVER (PARTITION BY ...)` 单子句、`OVER ()` 空参、frame 三单位 `ROWS`/`RANGE`/`GROUPS`（含 `BETWEEN ... AND ...` 与单 bound 简写、`UNBOUNDED PRECEDING|FOLLOWING`、`CURRENT ROW`、`expr PRECEDING|FOLLOWING`）、命名窗口 `WINDOW w AS (...)` 子句与 `OVER w` 引用。**方言层可用性另算**：窗口函数能否翻译到目标数据库取决于方言函数登记与能力开关（翻译期不支撑时抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`），不以语法层接受度为准。
 
-**迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。
+**迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。`LATERAL` 亦已登记为非保留字（见下节）。
+
+#### LATERAL 关联子查询表源（2026-10-04 修复，plan 2307 V1）
+
+语法层接受 `FROM t1, LATERAL (SELECT ... WHERE ... = t1.col) alias` 形态（`sqlSubqueryTableSource` 的 `lateral=LATERAL?` 前缀，AST 字段 `SqlSubqueryTableSource.lateral`）。语义分析阶段该标记是**生效**的：写 `LATERAL` 时子查询可引用同层级 FROM 项（`EqlTransformVisitor` 在此情形把当前作用域换成同级 `tableScope`）；不写 `LATERAL` 时引用同级别名会报 `nop.err.eql.unknown-alias`。
+
+**修复前的缺陷**：输出器从不打印 `LATERAL` 关键字，导致 `from t1, lateral (...) x` 被编译成缺关键字的 `from t1, (...) x`——语义分析认了 LATERAL、输出没认的静默错误，在 PostgreSQL / MySQL 8 / Oracle 等库上直接语法报错。现已由 `AstToEqlGenerator#visitSqlSubqueryTableSource` 输出该关键字修复。
+
+**方言可用性**：本框架**不**为 LATERAL 设立专用能力位，因此不存在编译期门禁——产物在**不支持 LATERAL 的数据库上由数据库自身报错**（响亮失败，非静默错误）。已实测 **H2 2.3.232 完全不支持 `LATERAL` 关键字**（逗号连接与 `JOIN LATERAL` 两种写法均报 `Function "LATERAL" not found`），且逗号连接的派生表**不**支持隐式 lateral（报 `Column ... not found`）。⇒ **H2 上不要写 LATERAL**；需要关联子查询语义时，用相关标量子查询（`(SELECT ... WHERE ... = t1.col)`）或 `EXISTS`，二者在 H2 与 PostgreSQL 上均可执行且语义等价。
+
+**迁移说明**：`LATERAL` 关键字此前**未**登记为非保留字，即 `select lateral from t` 会解析失败。现已登记（与 `TUMBLE` / `RANGE` / `WINDOW` 同一范式），故 `lateral` 可正常用作列名 / 表别名，既有查询不受影响。
+
+#### CROSS JOIN 与 join 过滤条件（2026-10-04 修复，plan 2307 V2）
+
+语法层接受 `CROSS JOIN`：`from A a cross join B b`（等价于逗号连接的笛卡尔积）。CARTESIAN 语义在 EQL 中有两条等价写法——逗号连接与 `CROSS JOIN`——产出等价结果。
+
+**修复前的缺陷**：`CROSS` 登记为非保留字（允许 `cross` 作标识符）且表别名可选，导致 `from AppUser u cross join AppRole r` 被 ANTLR 误解析——`cross` 被吃成表别名（`from AppUser as cross join ...`），而 `cross join` 只剩下一个裸 `JOIN`。后果是源查询里对 `u` 的任何引用都报 `nop.err.eql.unknown-column-name`，一条本应合法的查询无法执行；多表链式写法还会额外产生幻觉别名（`a cross join b as cross join c`）。
+
+**CROSS JOIN 的过滤条件去向（重要语义）**：`CROSS JOIN` 不接受 `ON` 子句。租户 / 逻辑删除 / 实体固定过滤器因此**统一落到 `WHERE`**，而不是 `ON`——`cross join T on (...)` 是非法 SQL（实测 H2 / PostgreSQL 均拒绝）。最终产物形如：
+
+```sql
+select ... from SIMS_COLLEGE as c cross join SIMS_CLASS as s
+where (c.TENANT_ID = ?) and (s.TENANT_ID = ?)
+```
+
+这与「笛卡尔积后再过滤」等价，**租户隔离不因CROSS JOIN 而失效**。其余 join 类型（`JOIN` / `LEFT JOIN` / `RIGHT JOIN` / `FULL JOIN`）的缺省过滤仍然写在 `ON` 中，且**实体 join 漏写 `ON` 仍会报 `nop.err.eql.join-no-condition`**——CROSS JOIN 是该校验唯一豁免的 join 类型。
+
+**已知边界**：`from a cross join b on <cond>`（给 CROSS JOIN 写 `on`）被解释为「a 的别名是 `cross` + 带 `on` 的普通 join」，而非 CROSS JOIN。`CROSS JOIN ... ON ...` 本就不是标准 SQL 写法。链式 `a cross join b cross join c` 产出 `a cross join b join c`（末尾的无条件 `JOIN` 语义等价于 CROSS JOIN），不是逐字round-trip。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 

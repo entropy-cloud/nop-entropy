@@ -402,6 +402,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitJoinType_(EqlParser.JoinType_Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 */
+	void enterCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 */
+	void exitCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlTableSource_joinRight}.
 	 * @param ctx the parse tree
 	 */

@@ -474,6 +474,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlTableSource_joinRight(EqlParser.SqlTableSource_joinRightContext ctx) { }
 	/**
 	 * {@inheritDoc}

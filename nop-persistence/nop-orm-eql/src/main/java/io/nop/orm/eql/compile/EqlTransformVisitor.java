@@ -637,6 +637,17 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (table.isFilterAlreadyAdded())
             return;
 
+        // Plan 2307 V2b: CROSS JOIN 不接受 ON 子句，把缺省过滤条件（逻辑删除/租户/固定过滤器）
+        // 塞进 join.condition 会产出 `cross join T on (...)` 这种非法 SQL。
+        //
+        // 此处必须**在置 filterAlreadyAdded 之前**返回：若照常置位，SELECT 级的
+        // addEntityFilter(:486) 会认为该表源的缺省过滤「已处理」而整体跳过，
+        // 结果是 WHERE 子句里只剩 `1=1` 与空标记、租户条件彻底丢失（多租户数据泄漏）。
+        // 保持未置位即可让 addEntityFilter 把两侧条件收进 WHERE——语义等价
+        // （(A×B) 再过滤 == 过滤后的 A×B），且租户隔离不泄漏。
+        if (join.getJoinType() == SqlJoinType.CROSS_JOIN)
+            return;
+
         table.setFilterAlreadyAdded(true);
 
         collectDefaultEntityFilter(table, join::addConditionFilter);
@@ -724,7 +735,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             if (entityMeta != null) {
                 // 对应全类名或者简单类名
                 tableName.setResolvedTableMeta(entityMeta);
-                if (source.getCondition() == null) {
+                // Plan 2307 V2b: CROSS JOIN 按定义就是笛卡尔积，不带连接条件。
+                // 该检查原本拦截「实体 join 漏写 on」，对 CROSS JOIN 是误报——
+                // 若不放行，用户显式写的 CROSS JOIN 会在此被 ERR_EQL_JOIN_NO_CONDITION 拒绝，
+                // 使 V2 的修复无法端到端生效（能解析、不能编译）。
+                if (source.getCondition() == null && source.getJoinType() != SqlJoinType.CROSS_JOIN) {
                     throw new NopException(ERR_EQL_JOIN_NO_CONDITION).source(source).param(ARG_ENTITY_NAME, fullName);
                 }
             } else {

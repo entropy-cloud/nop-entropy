@@ -45,6 +45,7 @@ import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.enums.SqlCompareRange;
+import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
@@ -61,6 +62,7 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
 
@@ -266,6 +268,22 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     protected void printJoin(SqlJoinTableSource node) {
+        // Plan 2307 V2b: CROSS JOIN 按定义不带 ON 子句，租户/逻辑删除等过滤条件必须落到 WHERE。
+        // 若沿用普通 join 的 addJoinFilter，产物会是 `cross join T on (...)` —— 非法 SQL
+        // （H2/PostgreSQL/MySQL 均拒绝），使 CROSS JOIN 无法端到端执行。
+        // 这里刻意不调用 addJoinFilter：两侧表源因而仍不在 filteredSources 中，
+        // 由 printWhere 统一收集进 WHERE 子句（语义等价：笛卡尔积再过滤 = 过滤后的笛卡尔积）。
+        if (node.getJoinType() == SqlJoinType.CROSS_JOIN) {
+            // 不变式：CROSS_JOIN 只能由 grammar 的 crossJoin_（无 ON）或
+            // SqlJoinTableSource#normalize()（要求 condition==null）产生。
+            // 若将来出现带条件的 CROSS_JOIN，`cross join ... on ...` 是非法 SQL，
+            // 必须显式失败而不是静默丢弃条件。
+            if (node.getCondition() != null) {
+                throw new NopException(ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION).source(node);
+            }
+            return;
+        }
+
         if (node.getCondition() != null) {
             print(" on ");
             visit(node.getCondition());

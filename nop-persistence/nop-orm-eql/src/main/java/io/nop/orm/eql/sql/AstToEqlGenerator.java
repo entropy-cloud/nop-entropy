@@ -664,6 +664,13 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
+        // Plan 2307 V1: LATERAL 必须打印。此前 EqlTransformVisitor 会在 getLateral() 为真时
+        // 放开同级作用域引用（关联子查询），但输出器从不输出该关键字，导致编译出缺少 LATERAL 的
+        // SQL —— 语义分析认了、输出没认的静默错误。修复前基线：
+        // `select 1 from a, lateral (...) t` -> `from a, ( ... ) as t`
+        if (node.getLateral()) {
+            print("lateral ");
+        }
         print('(');
         beginBlock();
         visit(node.getQuery());

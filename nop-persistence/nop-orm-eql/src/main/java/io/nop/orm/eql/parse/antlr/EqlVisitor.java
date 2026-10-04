@@ -246,6 +246,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitJoinType_(EqlParser.JoinType_Context ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlTableSource_joinRight}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

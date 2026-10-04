@@ -99,6 +99,11 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_JOIN_NO_CONDITION = define("nop.err.eql.join-no-condition", "表关联没有指定连接条件");
 
+    // Plan 2307 V2b: CROSS JOIN 不接受 ON 子句。带条件的 CROSS JOIN 无法表达为合法 SQL，
+    // 必须显式失败而不是静默丢弃条件。
+    ErrorCode ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION = define("nop.err.eql.cross-join-not-allow-condition",
+            "cross join不能指定连接条件");
+
     ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
             ARG_ENTITY_NAME);
 
