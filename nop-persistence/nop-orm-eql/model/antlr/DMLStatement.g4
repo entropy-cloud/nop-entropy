@@ -214,8 +214,19 @@ sqlHaving
     : HAVING expr=sqlExpr
     ;
 
+// WI7（roadmap EC ①，ai-dev/plans/26-eql-wi7-pagination-and-nulls.md）：SQL 标准分页
+// 两形态归一化进既有 SqlLimit{limit, offset}（裁定=候选 A，ai-dev/design/eql-cross-db-compat/
+// 2026-10-04-wi7-phase0-adjudications.md §一/§二——buildPageExpr 无形态参数、输出形态由方言
+// paginationHandler 决定，不加"语法形态"字段；ast/_gen 零触碰）。三备选全 altLabel
+// （sqlIntervalExpr 先例）；新备选 prop 独立命名（duplicate-prop-label 约束）；FIRST 集
+// {LIMIT}/{FETCH}/{OFFSET} 两两不相交无 LL(*) 冲突。FETCH 备选的手写 visit 完全重写
+// （SqlLimit 无 mandatory 校验 ⇒ 生成空节点会静默通过 validate）。token 面零改动：
+// FETCH/FIRST/ONLY/ROW/ROWS（SQL92Keyword.g4）与 NEXT（Keyword.g4）已是保留 token，
+// 零 lexer 改动。OFFSET n ROWS（无 FETCH）不进本 WI（plan Deferred But Adjudicated）。
 sqlLimit
-    : LIMIT limit=sqlExpr_limitRowCount (OFFSET offset=sqlExpr_limitOffset)?
+    : LIMIT limit=sqlExpr_limitRowCount (OFFSET offset=sqlExpr_limitOffset)? # SqlLimit_limit
+    | FETCH FIRST rowCount=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_fetchFirst
+    | OFFSET offsetExpr=sqlExpr_limitOffset ROWS FETCH NEXT limitExpr=sqlExpr_limitRowCount ROWS ONLY # SqlLimit_offsetFetch
     ;
 
 sqlExpr_limitRowCount
