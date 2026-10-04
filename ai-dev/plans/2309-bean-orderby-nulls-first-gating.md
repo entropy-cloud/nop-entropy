@@ -156,38 +156,36 @@ EQL 通道已由 plan 2308 收口：`nullsFirst` tri-state，true → 原生子�
 
 ### Phase 1 - 提取并复用空序改写能力（Feature）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/`
 
 - Item Types: `Feature`
 
-- [ ] 按 D9 在 **`nop-orm-eql`**（`AstToSqlGenerator` 所在模块）提取方言无关的改写单元；
+- [x] 按 D9 在 **`nop-orm-eql`**（`AstToSqlGenerator` 所在模块）提取方言无关的改写单元；
       因 `nop-orm` 依赖 `nop-orm-eql`，单元放 `nop-orm` 会导致 EQL 通道无法复用
-- [ ] **迁移** `AstToSqlGenerator.printOrderByItemForSql` 的 CASE 逻辑到该单元，
+- [x] **迁移** `AstToSqlGenerator.printOrderByItemForSql` 的 CASE 逻辑到该单元，
       EQL 通道改为调用它——确保全仓**只有一份**改写实现
-- [ ] 单元契约（签名固定，避免执行者自行发明 API）：
+- [x] 单元契约（签名固定，避免执行者自行发明 API）：
       输入「排序列 SQL 片段 + asc + nullsFirst」，输出改写后的 ORDER BY 片段；
       `asc` 为翻转**之后**的排序方向。改写规则（与 2308 已验证实现逐字一致）：
       - CASE 键方向 = `asc` 的**相反**方向
       - `then` 值 = `nullsFirst == asc ? "1" : "0"`，`else` 值取反
       - 随后输出原排序列 + `asc` 方向
-- [ ] 提供「原生直出」与「改写」两个入口，调用方按 `IDialect.isSupportNullsFirst()` 二选一
-- [ ] 不可改写位置（表达式含 `?` 绑定标记 / 序号定位 / 非纯列引用）抛带 `reason` 的错误码。
+- [x] 提供「原生直出」与「改写」两个入口，调用方按 `IDialect.isSupportNullsFirst()` 二选一
+- [x] 不可改写位置（表达式含 `?` 绑定标记 / 序号定位 / 非纯列引用）抛带 `reason` 的错误码。
       注：窗口与 DISTINCT 判定依赖 AST，**bean 路径无 AST**，故这两个 reason 在 bean 路径
       不可判定——单元只暴露 `expression-not-duplicable` 与 `nulls-not-specified`，
       窗口/DISTINCT 的 fail-fast 仍留在 EQL 通道（那里才有 AST）
-- [ ] 四种方向组合的改写产物有单测断言（行序语义，非仅字符串）
+- [x] 四种方向组合的改写产物有单测断言（行序语义，非仅字符串）
 
 Exit Criteria:
 
-- [ ] 四种方向组合的改写产物有单测断言（行序语义，而非仅字符串）
-- [ ] **接线验证**：单测经 spy 证明 `AstToSqlGenerator`（迁移后）确实调用该单元；
-      并 grep 确认 `case when` 字面量在 main 代码中**只剩一处**
-- [ ] **无静默跳过**：不可改写位置抛带 `reason` 的错误码，不返回 null / 空串
-- [ ] **端到端验证**：`TestEqlNullsOrderMatrix`（docker，PG16 + MySQL8）与
-      `TestEqlNullsOrderEndToEnd`（H2）在迁移后仍全绿——复用既有测试而非新写
-- [ ] No owner-doc update required（纯内部重构，用户可见行为不变）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] 四种方向组合的改写产物有单测断言（行序语义，而非仅字符串）
+- [x] **接线验证**：**变异验证**——把 `NullsOrderRewriter` 的 CASE 键方向翻转后重跑 `TestEqlNullsOrderCompile`，**4 个用例转红**，证明 EQL 通道确实经该单元产出（而非绕过）。已回滚复绿。另 grep 确认 main 代码中 `case when` 字面量**只剩一处**（`NullsOrderRewriter:71`），满足"单一实现" gate
+- [x] **无静默跳过**：不可改写位置抛带 `reason` 的错误码，不返回 null / 空串
+- [x] **端到端验证**：迁移后 `TestEqlNullsOrderMatrix`（docker PG16 + MySQL8）5/5、`TestEqlNullsOrderEndToEnd`（H2）21/21、`nop-orm-eql` 全量 305 全绿——复用既有测试而非新写，证明重构行为等价
+- [x] No owner-doc update required（纯内部重构，用户可见行为不变）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 2 - F1 bean 路径接线（Fix）
 

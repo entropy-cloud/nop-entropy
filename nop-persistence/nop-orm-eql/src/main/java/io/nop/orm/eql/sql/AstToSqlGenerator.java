@@ -339,8 +339,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         }
 
         // D2：改写要复制排序表达式，只允许纯列引用
-        SqlExpr expr = item.getExpr();
-        if (!(expr instanceof SqlColumnName)) {
+        if (!(item.getExpr() instanceof SqlColumnName)) {
             throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
                     .source(item)
                     .param(ARG_REASON, "expression-not-duplicable")
@@ -360,20 +359,10 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         }
 
         // D5：CASE 键作为前置同级键（紧邻其排序项），而不是整个列表的表头。
-        // 语义：先按「是否为 NULL」分组，再按原列排序。
-        // CASE 键的方向与原方向相反（先分组再排），故 ASC 原向 -> CASE 用 DESC。
-        boolean asc = item.getAsc();
-        print("case when ");
-        visit(expr);
-        print(" is null then ");
-        print(nullsFirst == asc ? "1" : "0");
-        print(" else ");
-        print(nullsFirst == asc ? "0" : "1");
-        print(" end");
-        print(asc ? " desc" : " asc");
-        print(", ");
-        visit(expr);
-        print(asc ? " asc " : " desc ");
+        // 改写算法本身在 NullsOrderRewriter（plan 2309 Phase 1），与 bean 通道共用同一份实现。
+        SqlExpr expr = (SqlExpr) item.getExpr();
+        NullsOrderRewriter.appendCaseRewrite(getSql(), sb -> visit(expr),
+                item.getAsc(), nullsFirst);
     }
 
     /** D4：ORDER BY 项是否位于 OVER(...) 或命名窗口 {@code WINDOW w AS (...)} 内部 */
