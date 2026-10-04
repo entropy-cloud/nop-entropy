@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * `AstToSqlGenerator.visitSqlCastExpr` 绕过 SqlTypeExpr 渲染。字段一旦有值即被静默丢弃。
  *
  * <p>不可达性（今天的现状固化）：`characterSet_` 期望 `STRING` token——parser token 表
- * 有 `STRING=358` 而 lexer token 表止于 `BIT_NUM_=357`（token 分叉，机器可证），任何输入
+ * 有 `STRING=359` 而 lexer token 表止于 `BIT_NUM_=357`（token 分叉，机器可证；WI7 引入 NULLS=353 使 parser 侧隐式 token 顺延 +1），任何输入
  * 都词法不出 STRING ⇒ 分支永久不可匹配；`collateClause_` 期望 `STRING_`（带引号字面量），
  * unquoted 形态（`utf8`/`xx`）词法为 IDENTIFIER_ ⇒ 不可达；**quoted 形态
  * `collate 'xx'`（STRING_ 可词法化）今天可达**——修复前字段被写入后被静默丢弃（活的最小

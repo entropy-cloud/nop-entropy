@@ -1,6 +1,6 @@
 # 26 EQL WI7 — 分页两种语法形态（`FETCH FIRST` / `OFFSET..FETCH NEXT`）+ `NULLS FIRST/LAST` 接线（`nullsFirst` + `defaultNullsFirst` + `supportNullsFirst`）+ `ORDER BY … COLLATE` ledger 裁定
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI7 节 Exit Criteria ①-⑨ + 约束 1-4 + 门控矩阵 WI7 行 + 「明确延后项」`ORDER BY … COLLATE` 行 + Cross-Cutting 全部 + 关键约束与红线节，v7.2）；Current Baseline 全部代码事实于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat`（WI3 19 个提交落地后）逐文件实测核验，行号为当日实测参考值、执行时以 Phase 0 锚点复核为准
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 `completed`）、`ai-dev/plans/03-eql-wi1-class-a-defects.md`（硬前置，已 `completed`；altLabel 备选分支 + 构建期归一化的结构先例）、`ai-dev/plans/19-eql-wi2-class-b-defects.md`（硬前置，已 `completed`；BUG-4 LIMIT 回显与 `TestEqlSelectAllLimitEcho`/`TestEqlSelectAllLimitCompile` 回归先例）、`ai-dev/plans/20-eql-wi3-dialect-config-fixes.md`（硬前置，已 `completed`——独立 closure audit 于 2026-10-04 通过、roadmap WI3 行已翻 `done`，排队门已满足，见下方硬前置声明；`defaultNullsFirst` accessor + 8 方言断言测试 + 移交链 javadoc 是本 plan 直接消费的移交物）、`ai-dev/plans/24-eql-wi5-sql92-function-syntax.md`（结构先例：altLabel 三约束/每 Phase 开工前置复核/全绿口径直接复用）
@@ -289,11 +289,11 @@ Exit Criteria:
 - [x] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；每步重生成后 `git diff` 逐一检查；`ast/_gen/` 零 diff（候选 A 下）；无 lexer token 删除、`EqlASTKind` ordinal 未被持久化或比较。
 - [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（预期零增量，差异登记第 7 条）。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/26-eql-wi7-pagination-and-nulls.md --strict` 退出码 0。（终门留白：随独立 closure audit 后的 Closure Evidence 写入一并复跑）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/26-eql-wi7-pagination-and-nulls.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不门控/只打印不设门"正是半实现形态）。
 - [x] owner doc 已同步到 live baseline（`eql-and-database-compatibility.md` 标志表/分页小节/NULLS 小节/能力上限小节/COLLATE 小节/能力点登记表），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）两条端到端调用链真实连通：EQL 分页文本 → parse 归一化 → `visitSqlQuerySelect` → `paginationHandler.buildPageExpr` → 方言 SQL；`ORDER BY … NULLS` 文本 → parse 赋值 → transform → `visitSqlOrderByItem` 门/省略/打印决策 → 方言 SQL 或响亮报错（不只是文法分支/方法存在）；（b）无空方法体/静默跳过/no-op（不支持方言一律响亮报错或可证等价的省略，不允许回退原文静默输出）；（c）`nullsFirst == null` 路径输出逐字节不变。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI7 EC ⑨）；roadmap Work Item Status 的 WI7 行据此才可 `planned` → `done`（见 roadmap Status values）。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）两条端到端调用链真实连通：EQL 分页文本 → parse 归一化 → `visitSqlQuerySelect` → `paginationHandler.buildPageExpr` → 方言 SQL；`ORDER BY … NULLS` 文本 → parse 赋值 → transform → `visitSqlOrderByItem` 门/省略/打印决策 → 方言 SQL 或响亮报错（不只是文法分支/方法存在）；（b）无空方法体/静默跳过/no-op（不支持方言一律响亮报错或可证等价的省略，不允许回退原文静默输出）；（c）`nullsFirst == null` 路径输出逐字节不变。（独立审计：`TestEqlPaginationFetchCompile` 12|0 + `TestEqlNullsFirstSyntaxCompile` 9|0 + `DialectGate` 11|0 复跑绿；分支 0 逐字节 BC 在 DialectGate 测试锁定）
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI7 EC ⑨）；roadmap Work Item Status 的 WI7 行据此才可 `planned` → `done`（见 roadmap Status values）。
 
 ## Deferred But Adjudicated
 
@@ -327,16 +327,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-4 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——EC ①-⑨/C/D 全 PASS，**0 Blocker / 0 Major / 3 Minor**（①"仅其后 5 个 Literals token 顺延"表述欠精确——parser 侧隐式 token `STRING` 亦机械顺延 358→359，红线实质主张（Keyword/SQL92 零变化、零删除）经全量 diff 实证成立；② `TestEqlSqlTypeClauseGuard` javadoc 陈旧 token 号已随收口修正；③ run2 surefire mtime 被执行者终局 `clean install` 清理——fresh 证据以 `_tmp/wi7/final-run2.log`（五模块计数独立 grep 证实）+ 审计 10 测试类复跑替代成立，4 个方法级 flake 排除均与既档一致）。红线全过：`ast/_gen`+`model/ast/` 零 diff、EqlAST.xjava/EqlASTKind 零触碰、token 零删除、roadmap 四件套注记不删原文。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，须与执行者不同 task_id）
-- Audit Session: （session/task ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI7 closure audit（一次通过，结论"WI7 通过 closure audit——roadmap WI7 行可以翻 done"）
 - Evidence:
-  - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/26-eql-wi7-pagination-and-nulls.md --strict` 退出码
+  - A① PASS：审计员独立复跑 53 测全绿（PaginationFetchParse 12|0 + FetchCompile 12|0，跨族断言 h2→LIMIT / oracle→OFFSET..FETCH）
+  - A②③③b④ PASS：NULLS 两类方言+8 XML 消费路径+accessor 双侧+两档默认值三态（`TestDefaultNullsFirstFlag` 4|0 复跑、WI3 三测不弱化升级、flag 翻转因果手构方言双向）
+  - A⑤ PASS：DuckDB-vs-PG parity 用例（`testDuckdbPostgresqlDescNullsLastParity`）+ owner doc 差异表行（:325 引文在案）
+  - A⑥ PASS：run2 原始日志独立 grep 证实五模块 2505|0 + BUILD SUCCESS；审计另复跑 10 测试类全绿
+  - A⑦ PASS：COLLATE ledger 行原地注记（原理由保留+划线→已裁定显式移出+successor+触发条件）+ owner doc 逐库作用域差异表
+  - A⑧ PASS：棘轮 drift 恰 2 处均为 parse-error 诊断 +NULLS（解析结论与回显逐字不变，WI5 同型）；CorpusBaseline 复跑 1|0
+  - A9 四件套注记全部目验通过（门控矩阵 WI7 行/EC ⑥/WI7b·WI12 后继口径/ledger 行；roadmap WI7 行仍 planned 纪律正确）
+  - B1-B6 PASS：三备选全 altLabel+prop 复用；全区间 `ast/`+`model/ast/` 零 diff；`Eql.tokens` NULLS=353 精确审计（Keyword/SQL92 1-352 零变化零删除）；三分门与裁定 §三逐条一致（围栏集 DOCUMENTED_DIRECTIONAL_NULL_ORDER 四方言）；owner doc 五节；唯一下划线文件=合法重生成
+  - C PASS：四门禁全 exit 0（matrix 零增量/doc-links 0 error/hollow 0 命中/checklist active 语义）
+  - D PASS：4 Phase+17 勾 3 留白+daily log 六条目+3 偏差落档（裁定文档 §二/§八）
+  - Anti-Hollow：两条端到端链由审计独立确认（见 Anti-Hollow gate 行内注）
+  - Deferred 项分类检查：无 in-scope live defect 被降级；collate 字段零消费归属明示；WEEK 观察项在 owner doc
   - Anti-Hollow 检查结果（两条端到端调用链追踪 + `scan-hollow-implementations.mjs` 退出码）
   - Deferred 项分类检查（确认无 in-scope live defect 被降级）
 
