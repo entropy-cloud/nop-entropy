@@ -427,14 +427,17 @@ class TestPulsarConsumeTask {
     }
 
     @Test
-    void runTaskInvokesOnExceptionAndBacksOffOnMessageFailure() throws Exception {
+    void runTaskInvokesOnConsumeFailureWithFullContextAndBacksOff() throws Exception {
         PulsarMessageService service = mock(PulsarMessageService.class);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.MessageId messageId =
+                mock(org.apache.pulsar.client.api.MessageId.class);
         org.apache.pulsar.client.api.Message<Object> message =
                 mock(org.apache.pulsar.client.api.Message.class);
-        when(message.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(message.getMessageId()).thenReturn(messageId);
         when(message.getTopicName()).thenReturn("persistent://public/default/t-fail");
+        when(message.getValue()).thenReturn("payload");
 
         java.util.concurrent.CountDownLatch afterFailure = new java.util.concurrent.CountDownLatch(1);
         java.util.concurrent.atomic.AtomicLong secondReceiveAt = new java.util.concurrent.atomic.AtomicLong();
@@ -443,11 +446,24 @@ class TestPulsarConsumeTask {
             afterFailure.await();
             return null;
         });
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
 
         RuntimeException boom = new IllegalStateException("handler-boom");
-        IMessageConsumer handler = mock(IMessageConsumer.class);
-        doThrow(boom).when(handler).onMessage(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        // WI16: override the NEW callback; capture the full context.
+        java.util.List<io.nop.api.core.message.ConsumeFailure> failures =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object m, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                throw boom;
+            }
+
+            @Override
+            public void onConsumeFailure(io.nop.api.core.message.ConsumeFailure failure) {
+                failures.add(failure);
+            }
+        };
 
         MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-fail", handler,
                 new MessageSubscribeOptions());
@@ -457,15 +473,19 @@ class TestPulsarConsumeTask {
         long firstReceiveAt = System.nanoTime();
         task.start();
         try {
-            org.mockito.Mockito.verify(handler, org.mockito.Mockito.timeout(5000)).onException(boom);
-            // The loop must survive the failure and reach receive() again — after the
-            // configured backoff sleep (lower-bound assertion, CI-stable).
-            org.junit.jupiter.api.Assertions.assertTrue(
-                    secondReceiveAt.get() != 0L
-                            || afterFailure.await(5, java.util.concurrent.TimeUnit.SECONDS) == false,
-                    "second receive never attempted");
             long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-            while (secondReceiveAt.get() == 0L && System.nanoTime() < deadline) {
+            while (failures.isEmpty() && System.nanoTime() < deadline) {
+                Thread.sleep(20L);
+            }
+            org.junit.jupiter.api.Assertions.assertEquals(1, failures.size());
+            io.nop.api.core.message.ConsumeFailure failure = failures.get(0);
+            org.junit.jupiter.api.Assertions.assertSame(boom, failure.getThrowable());
+            org.junit.jupiter.api.Assertions.assertEquals(String.valueOf(messageId),
+                    failure.getLocation());
+            org.junit.jupiter.api.Assertions.assertEquals("payload", failure.getMessage());
+            org.junit.jupiter.api.Assertions.assertEquals(1, failure.getAttempt());
+            long deadline2 = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (secondReceiveAt.get() == 0L && System.nanoTime() < deadline2) {
                 Thread.sleep(20L);
             }
             long gapMs = (secondReceiveAt.get() - firstReceiveAt) / 1_000_000L;
