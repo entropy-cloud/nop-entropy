@@ -255,21 +255,21 @@ MySQL 数值真值分叉为约束 4「不等价」类登记（§七 ②）。**�
 
 ### 9.1 新备选清单（分 Phase 落地，各自单独提交）
 
-**Phase 1**（`sqlExpr_primary`，紧跟 `SqlIsNullExpr` 备选之后、`SqlBinaryExpr_compare` 之前插入）：
+**Phase 1**（`sqlExpr_primary`，紧跟 `SqlIsNullExpr` 备选之后、`SqlBinaryExpr_compare` 之前插入；⚠️ 执行期机制修订——操作数用**无 label 规则引用**，见 9.2.5）：
 
 ```antlr
-| left=sqlExpr_primary IS NOT DISTINCT FROM right=sqlExpr_predicate # SqlBinaryExpr_isNotDistinctFrom
-| left=sqlExpr_primary IS DISTINCT FROM right=sqlExpr_predicate     # SqlNotExpr_isDistinctFrom
+| sqlExpr_primary IS NOT DISTINCT FROM sqlExpr_predicate # SqlBinaryExpr_isNotDistinctFrom
+| sqlExpr_primary IS DISTINCT FROM sqlExpr_predicate # SqlNotExpr_isDistinctFrom
 ```
 
-**Phase 2**（同规则续插）：
+**Phase 2**（同规则续插；`isUnknown` 保留 `expr=`/`not=` label——SqlIsNullExpr 两 prop 俱在，生成体即正确零覆盖；TRUE/FALSE 四备选操作数无 label）：
 
 ```antlr
 | expr=sqlExpr_primary IS not=NOT? UNKNOWN # SqlIsNullExpr_isUnknown
-| expr=sqlExpr_primary IS TRUE             # SqlAndExpr_isTrue
-| expr=sqlExpr_primary IS NOT TRUE         # SqlNotExpr_isNotTrue
-| expr=sqlExpr_primary IS FALSE            # SqlAndExpr_isFalse
-| expr=sqlExpr_primary IS NOT FALSE        # SqlNotExpr_isNotFalse
+| sqlExpr_primary IS TRUE # SqlAndExpr_isTrue
+| sqlExpr_primary IS NOT TRUE # SqlNotExpr_isNotTrue
+| sqlExpr_primary IS FALSE # SqlAndExpr_isFalse
+| sqlExpr_primary IS NOT FALSE # SqlNotExpr_isNotFalse
 ```
 
 ### 9.2 altLabel 三约束逐条落实（WI1 interval / WI5 position / WI7b rollup 先例）
@@ -278,6 +278,7 @@ MySQL 数值真值分叉为约束 4「不等价」类登记（§七 ②）。**�
 2. **备选内 prop 赋值边界**：`IS NOT? TRUE/FALSE` 的 `NOT` **不带 prop**——`SqlBinaryExpr`/`SqlNotExpr`/`SqlAndExpr` 无 `not` prop 且方向已由备选拆分承载（`# SqlNotExpr_isNotTrue` vs `# SqlAndExpr_isTrue`），无需 ctx 访问器；`IS not=NOT? UNKNOWN` 保留 `not` prop（`SqlIsNullExpr` 有该 prop，生成体直接可用——**零手写覆盖**）。DISTINCT FROM 两备选同样不带 `not` prop（方向 = label）。
 3. **同规则既有备选 label 全显式化**：`sqlExpr_primary` 现有四备选（`SqlIsNullExpr`/`SqlBinaryExpr_compare`/`SqlCompareWithQueryExpr`/`SqlExpr_predicate2`）**已全部带 label**（实测 `BaseRule.g4:142-148`），无需补登记；新备选插入位置不改变既有备选次序。
 4. **手写 visit 覆盖范围**：Phase 1 两备选 + Phase 2 的 `SqlAndExpr_isTrue`/`SqlNotExpr_isNotTrue`/`SqlAndExpr_isFalse`/`SqlNotExpr_isNotFalse` 共 6 个方法**完全重写、不调 super**（生成体只建空节点 + validate 必失败——WI5 position javadoc 先例同款）；`SqlIsNullExpr_isUnknown` **零覆盖**（生成体即正确）。
+5. **⚠️ 执行期机制修订（2026-10-04 Phase 1 实测，gen 失败 `get-prop-on-null-obj`）**：codegen 的 `AstGrammar.initRuleReturnType`（`/nop/templates/antlr/@init.xrun:24-25`）对备选内**每个带 label 元素**做 `ast.getDefine(label前缀).getProp(label名)` 校验——`SqlNotExpr` 仅 `expr` prop，`left=`/`right=` 双 label 必炸。正确形态 = 操作数用**无 label 规则引用**（`ctx.sqlExpr_primary()`/`ctx.sqlExpr_predicate()` 访问器进手写 visit；先例 = `SqlGroupByItem_rollup` 的无 label `functionArgs_`）。本条取代上文 9.2 第 2 点对 DISTINCT FROM 两备选的 prop 形态描述（`SqlIsNullExpr_isUnknown` 的 `expr=`/`not=` label 因 prop 俱在而保留）。
 
 ### 9.3 ANTLR 歧义消解论证（登记）
 

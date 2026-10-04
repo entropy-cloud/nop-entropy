@@ -184,28 +184,28 @@ Exit Criteria:
 
 ### Phase 1 - 文法：`IS [NOT] DISTINCT FROM` 解析与规范 AST（红→绿）
 
-Status: planned
+Status: completed（2026-10-04；开工前置复核=plan 21 实测 `completed`（当日 head 确认），记录于 daily log；红证据 `_tmp/wi8/red-probe.log` 8/8 parse-fail、绿 `_tmp/wi8/phase1-run4.log` 26/26 + 全模块 519|0）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`（SAFE_EQ 渲染三分支覆写，必选件）、（按裁定）`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/enums/SqlOperator.java`、重生成产物、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-orm-eql` 测试
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`a is not distinct from b` 与 `a is distinct from b` 解析失败——回归测试断言可解析且规范 AST 形态正确（按 Phase 0 裁定：如 `SqlBinaryExpr(operator=SAFE_EQ)` 左右操作数保序 + `SqlNotExpr` 包装），修复前红留痕于日志/提交说明。
-- [ ] 文法与归一化（按 Phase 0 裁定）：`sqlExpr_primary` 新增备选 + 手写 visit 完全重写（不调 super）；`.g4` 改动**单独提交**；重生成后 `git status` 中 `ast/_gen/` 零 diff；无 token 删除（`Symbol.g4:38` `SAFE_EQ_` 原样保留）。
-- [ ] **SAFE_EQ 渲染三分支落地**（审查 Major-2，必选件）：`AstToSqlGenerator` 覆写 `visitSqlBinaryExpr`/`printOperator`，对 operator=`SAFE_EQ` 按方言三分支渲染——native 方言（PG/H2/DB2/DuckDB/MSSQL-2022/SQLite-3.39）→ `IS [NOT] DISTINCT FROM` 文本（`IS DISTINCT FROM` 方向按钉死式直出方向文本、不得输出 `not (a is not distinct from b)` 包装）；mysql 族 → `<=>`；**其余方言 → 响亮报错 `nop.err.eql.dialect-not-support-feature`**（无 transformer 时 oracle 亦落此分支 = 响亮，不静默）；回显路径不受影响的守护用例（`toSqlString()` 仍为归一化形态）。
-- [ ] 正向用例（roadmap EC ①的文本面 + EC ②的基础，**依赖上一项覆写方可达**）：h2 上断言 `IS NOT DISTINCT FROM` 与 `IS DISTINCT FROM` 两个方向的原生文本输出（方向文本正确、无 NOT 包装）；mysql 上断言 `<=>` 映射文本（`a IS NOT DISTINCT FROM b` → 含 `a <=> b` 的输出、NOT 变体的括号/取反形态按裁定断言）。
-- [ ] 守护用例：既有 `IS [NOT] NULL`（`SqlIsNullExpr` 路径）解析/渲染/回显逐字不变；`comparisonOperator_` 六成员行为不变。
-- [ ] 回显路径断言：`toSqlString()` 输出规范 AST 的确定形态（归一化回显如 `a <=> b` 属预期，登记进三态断言「输入→规范回显→方言输出」）；7 个语料文件 0 命中已证（Current Baseline），`TestEqlCorpusBaseline` 实测兜底。
-- [ ] 接线验证（Minimum Rules #23）：parse → 构建期归一化 → （无 transformer）方言渲染的运行时连通测试，一条用例覆盖全链。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；owner doc 小节骨架（`IS [NOT] DISTINCT FROM` 覆盖表，`[未取证]` 标注）已落。
+- [x] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`——未完成则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。（2026-10-04 实测 completed，roadmap WI4=done）
+- [x] 修复前红：`a is not distinct from b` 与 `a is distinct from b` 解析失败——回归测试断言可解析且规范 AST 形态正确（按 Phase 0 裁定：如 `SqlBinaryExpr(operator=SAFE_EQ)` 左右操作数保序 + `SqlNotExpr` 包装），修复前红留痕于日志/提交说明。（`_tmp/wi8/red-probe.log`：8 形态全 `nop.err.antlr.common.parse-fail`（expected=NULL, offendingToken=distinct/true/false/unknown）；回归测试=`TestEqlNullSafeDistinctParse` 7 测）
+- [x] 文法与归一化（按 Phase 0 裁定）：`sqlExpr_primary` 新增备选 + 手写 visit 完全重写（不调 super）；`.g4` 改动**单独提交**；重生成后 `git status` 中 `ast/_gen/` 零 diff；无 token 删除（`Symbol.g4:38` `SAFE_EQ_` 原样保留）。（commit `777e2ec494` 文法组：EqlParser 11558→11611、visitor 1936→1939、ast/_gen 78 文件零 diff、Eql.tokens 零 diff；⚠️ 执行期机制发现：codegen prop 校验只对带 label 元素做 ast.define 映射——操作数用无 label 规则引用（SqlGroupByItem_rollup 先例），裁定文档 §九已记）
+- [x] **SAFE_EQ 渲染三分支落地**（审查 Major-2，必选件）：`AstToSqlGenerator` 覆写 `visitSqlBinaryExpr`/`printOperator`，对 operator=`SAFE_EQ` 按方言三分支渲染——native 方言（PG/H2/DB2/DuckDB/MSSQL-2022/SQLite-3.39）→ `IS [NOT] DISTINCT FROM` 文本（`IS DISTINCT FROM` 方向按钉死式直出方向文本、不得输出 `not (a is not distinct from b)` 包装）；mysql 族 → `<=>`；**其余方言 → 响亮报错 `nop.err.eql.dialect-not-support-feature`**（无 transformer 时 oracle 亦落此分支 = 响亮，不静默）；回显路径不受影响的守护用例（`toSqlString()` 仍为归一化形态）。（落地=覆写 `visitSqlBinaryExpr`/`visitSqlNotExpr` + `printSafeEq`；native 集合按 Phase 0 裁定 §三=pg 系/h2 系/duckdb/mssql，db2/dm/tdengine/sqlite 落报错分支（unverified 纪律）；`SqlNotExpr(SAFE_EQ)` 识别使方向文本直出）
+- [x] 正向用例（roadmap EC ①的文本面 + EC ②的基础，**依赖上一项覆写方可达**）：h2 上断言 `IS NOT DISTINCT FROM` 与 `IS DISTINCT FROM` 两个方向的原生文本输出（方向文本正确、无 NOT 包装）；mysql 上断言 `<=>` 映射文本（`a IS NOT DISTINCT FROM b` → 含 `a <=> b` 的输出、NOT 变体的括号/取反形态按裁定断言）。（`TestEqlNullSafeDistinctDialect`：h2/postgresql/duckdb/mssql 双方向 8 测 + mysql/mysql5.7/mariadb 双方向 6 测）
+- [x] 守护用例：既有 `IS [NOT] NULL`（`SqlIsNullExpr` 路径）解析/渲染/回显逐字不变；`comparisonOperator_` 六成员行为不变。（`testExistingIsNullBehaviorUnchanged` + `testSafeEqBindsTighterThanOr`（EQ 对照）+ 全模块 519|0 回归）
+- [x] 回显路径断言：`toSqlString()` 输出规范 AST 的确定形态（归一化回显如 `a <=> b` 属预期，登记进三态断言「输入→规范回显→方言输出」）；7 个语料文件 0 命中已证（Current Baseline），`TestEqlCorpusBaseline` 实测兜底。（`testEchoCanonicalForm`/`testCanonicalEchoIndependentOfDialect` 断言 `a <=> b`/`not ( a <=> b )`；CorpusBaseline 1/1）
+- [x] 接线验证（Minimum Rules #23）：parse → 构建期归一化 → （无 transformer）方言渲染的运行时连通测试，一条用例覆盖全链。（`testH2NativeTextFullChain`：EqlCompiler 全链 h2 `u.SID is not distinct from u.NAME`）
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；owner doc 小节骨架（`IS [NOT] DISTINCT FROM` 覆盖表，`[未取证]` 标注）已落。（519|0 BUILD SUCCESS；owner doc 新增「NULL 三值语义谓词」小节 + 登记表行，db2/sqlite `[未取证]` 标注）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体规范 AST 形态与 h2/mysql 具体方言 SQL 文本；修复前红留痕。
-- [ ] SAFE_EQ 渲染三分支用例通过：h2 双方向原生文本、mysql `<=>`、其余方言（无 transformer，如手构模型）断言 `nop.err.eql.dialect-not-support-feature` 响亮报错——全仓不存在向不支持方言静默输出 `<=>` 的路径。
-- [ ] `.g4` 单独提交；`ast/_gen/` 零 diff；`SAFE_EQ_` token 未删（`git diff Symbol.g4` 为空）。
-- [ ] 既有 `IS NULL` / 比较算子行为逐字不变的守护用例通过；`TestEqlCorpusBaseline` 通过。
-- [ ] 接线验证用例通过；owner doc 覆盖表已落档；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体规范 AST 形态与 h2/mysql 具体方言 SQL 文本；修复前红留痕。（`_tmp/wi8/red-probe.log` + `TestEqlNullSafeDistinctParse` 7 测 + `TestEqlNullSafeDistinctDialect` 19 测）
+- [x] SAFE_EQ 渲染三分支用例通过：h2 双方向原生文本、mysql `<=>`、其余方言（无 transformer，如手构模型）断言 `nop.err.eql.dialect-not-support-feature` 响亮报错——全仓不存在向不支持方言静默输出 `<=>` 的路径。（`testUnsupportedConstructedDialectFailsLoud`（手构方言，断言 feature=`is[not] distinct from`）+ `testOracleWithoutTransformerFailsLoud`）
+- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；`SAFE_EQ_` token 未删（`git diff Symbol.g4` 为空）。（commit `777e2ec494` 文法组 / 逻辑组随本提交；`git status` `ast/` 零 diff、`Symbol.g4` 未触碰）
+- [x] 既有 `IS NULL` / 比较算子行为逐字不变的守护用例通过；`TestEqlCorpusBaseline` 通过。（1/1）
+- [x] 接线验证用例通过；owner doc 覆盖表已落档；`ai-dev/logs/` 对应日期条目已更新。（`testH2NativeTextFullChain` + owner doc「NULL 三值语义谓词」小节 + daily log）
 
 ### Phase 2 - 文法：`IS [NOT] TRUE/FALSE/UNKNOWN` 解析与规范 AST（真值表驱动，红→绿）
 

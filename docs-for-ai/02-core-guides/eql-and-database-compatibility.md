@@ -429,6 +429,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | INTERVAL 字面量执行输出（WI7b） | `AstToSqlGenerator.visitSqlIntervalExpr` | `sqlIntervalLiteral` 模板配置（`<sqls>` 子元素）；未配置 = 既有裸输出（BC，不报错）；已配置 + 非字面量 value = 编译期报错；坏 marker = 加载期报错 | 已配置+非字面量：`nop.err.eql.dialect-not-support-feature`（`feature=intervalNonLiteralValue`）；坏 marker：`nop.err.dao.dialect.invalid-interval-literal-template` | `TestEqlSqlIntervalTemplate` |
 | GROUP BY 分组操作符 ROLLUP/CUBE（WI7b） | `EqlTransformVisitor.visitSqlGroupingOp`（transform 门）+ `AstToEqlGenerator.visitSqlGroupingOp`（打印，identity lowering） | `supportRollup` / `supportCube`（分立两标志；仅 GROUP BY 位置合法，非 GROUP BY 位置走函数表兜底） | `nop.err.eql.dialect-not-support-feature`（`feature=rollup|cube`）；非 GROUP BY 位置 `nop.err.eql.unknown-function` | `TestEqlGroupingOpsDialect` |
 | `GROUPING()` 函数（WI7b） | `EqlTransformVisitor.visitSqlRegularFunction`（既有函数表通路，零新门） | 方言函数表注册（`<native name="grouping" realName="GROUPING">`，仅注册 ROLLUP/CUBE 能力集方言；元数 minArgCount/maxArgCount 按方言） | `nop.err.eql.unknown-function`（未注册方言）；`nop.err.eql.func-too-many/few-args`（元数越界） | `TestEqlGroupingOpsDialect` |
+| `IS [NOT] DISTINCT FROM` 谓词（WI8） | 构建期归一化进既有节点（`EqlASTBuildVisitor.visitSqlBinaryExpr_isNotDistinctFrom` → `SqlBinaryExpr(operator=SAFE_EQ)`；`visitSqlNotExpr_isDistinctFrom` → `SqlNotExpr` 包装），方言渲染走 `AstToSqlGenerator.printSafeEq` 三分支（**无方言能力标志**——名称集合，`DOCUMENTED_DIRECTIONAL_NULL_ORDER` 先例）；Oracle 三节点展开走 WI4 管线 `transformAfterAnalyze`（Phase 3 默认注入 transformer） | 名称集合：mysql 族（mysql/mysql5.7/mariadb）=`<=>`；native 集（postgresql/postgis/h2/h2gis/duckdb/mssql）=`IS [NOT] DISTINCT FROM` 方向文本直出；其余方言（oracle 无 transformer/db2/dm/tdengine/手构）=响亮报错 | `nop.err.eql.dialect-not-support-feature`（`feature=is[not] distinct from`） | `TestEqlNullSafeDistinctParse`、`TestEqlNullSafeDistinctDialect`（含手构方言负向 + oracle 无 transformer 负向） |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -656,6 +657,29 @@ EQL 接受三种分页输入形态，解析期**归一化**进既有 `SqlLimit{l
 | `OFFSET m ROWS FETCH NEXT n ROWS ONLY`（WI7 新增） | `LIMIT n OFFSET m` | `OFFSET m ROWS FETCH NEXT n ROWS ONLY` |
 
 `n`/`m` 均可为字面量或 `?` 参数 marker。证据等级：h2/oracle 双族输出矩阵 `[实测]`（`TestEqlPaginationFetchParse` 12 例 + `TestEqlPaginationFetchCompile` 12 例，含 marker 形态、同语义两形态一致性、跨族形态差异登记）；⚠️ `OFFSET n ROWS`（无 FETCH 的独立 offset 形态）**不接受**、`FETCH FIRST … WITH TIES` 不接受（roadmap 未登记，出现需求先登记 roadmap）；dm/tdengine 的输出继承 default（`LIMIT/OFFSET` 文本），该文本在两库的合法性 `[未取证]`（红线：不计入覆盖率）。h2 自身的 OffsetFetch 配置处于注释态（`h2.dialect.xml:20`，H2 REGULAR 模式两种输出都合法，是否切换属方言契约变更——登记为观察项，现状 = LimitOffset）。
+
+### NULL 三值语义谓词：`IS [NOT] DISTINCT FROM` / `IS [NOT] TRUE/FALSE/UNKNOWN`（2026-10-04 WI8）
+
+EQL 语义钉死 = **标准 SQL 严格三值**（裁定正文 = WI8 Phase 0 裁定文档（开发过程设计归档，2026-10-04）§二/§五；真值表即验收规格——`a IS NOT TRUE` 在 `a IS NULL` 时为 TRUE，**不得降级为二元比较** `a<>0`/`NOT a`，后者在 NULL 行为 NULL 丢语义）。解析期构建归一化，零新 AST 节点（`ast/_gen` 零 diff）：
+
+| EQL 输入 | 规范 AST | 回显（`toSqlString`） |
+|---|---|---|
+| `a IS NOT DISTINCT FROM b` | `SqlBinaryExpr(operator=SAFE_EQ)`（左右保序） | `a <=> b` |
+| `a IS DISTINCT FROM b` | `SqlNotExpr(SqlBinaryExpr(SAFE_EQ))` | `not ( a <=> b )` |
+| `a IS [NOT] UNKNOWN` | `SqlIsNullExpr`（`UNKNOWN ≡ NULL` 三值精确等价） | `a is [not] null` |
+| `a IS [NOT] TRUE/FALSE` | 安全词表展开式（`IS TRUE ≡ a IS NOT NULL AND a = TRUE` 等，Phase 2 落地） | 展开式 |
+
+**`IS [NOT] DISTINCT FROM` 逐方言输出矩阵**（`AstToSqlGenerator.printSafeEq` 渲染三分支，必选件——`printOperator` 全局无方言分支，不覆写则全方言输出 `<=>` 非法 SQL；裁定 §四.1）：
+
+| 方言 | `a IS NOT DISTINCT FROM b` 输出 | `a IS DISTINCT FROM b` 输出 | 证据 |
+|---|---|---|---|
+| mysql / mysql5.7 / mariadb | `a <=> b` | `not (a <=> b)`（`<=>` 恒二值，`NOT` 良定义） | `[实测]`（`TestEqlNullSafeDistinctDialect` 文本断言，MySQL 手册 `<=>` `[文档]`） |
+| postgresql / postgis / h2 / h2gis / duckdb / mssql | `a is not distinct from b` | `a is distinct from b`（**方向文本直出，无 NOT 包装**） | `[实测]`（文本断言；h2 真执行随 Phase 3 端到端补） |
+| oracle（**无** transformer 配置时） | 编译期响亮报错 | 同左 | `[实测]`（`testOracleWithoutTransformerFailsLoud`）；默认注入 transformer 后走三节点展开（Phase 3） |
+| oracle（Phase 3 transformer 后） | 三支全二值 guard 式展开 | 两支式展开（公式钉死见裁定 §二.1） | Phase 3 落地时更新 |
+| db2 / dm / tdengine / sqlite（手构载体）/ 无名方言 | 编译期响亮报错（unverified 纪律——db2 原生格 `[未取证]`（IBM 文档不可达），不计入覆盖率；sqlite 3.39 起原生支持 `[文档]`，EC ④ 版本门负向载体 = 手构 `DialectModel`） | 同左 | `[实测]`（`testUnsupportedConstructedDialectFailsLoud`） |
+
+⚠️ **三节点展开 vs `<=>` 的固有差异（约束 4「不等价」登记）**：`<=>` 恒二值（`NULL <=> NULL` = TRUE），标准谓词嵌套外层 NOT 时按三值逻辑；EQL 按方言钉死各自正确形态（mysql 直出 `not (a<=>b)`、oracle 展开式禁用 naive NOT 包装——`NOT((a=b) OR (a IS NULL AND b IS NULL))` 在单操作数 NULL 行产生 UNKNOWN 丢行，属禁止形态）。差异用例随 Phase 3 落地。
 
 ### `ORDER BY … COLLATE`：显式移出（2026-10-04 WI7 裁定，不落地）
 

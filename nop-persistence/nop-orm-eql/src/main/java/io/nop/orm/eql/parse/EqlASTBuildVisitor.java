@@ -24,6 +24,7 @@ import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlJoinType;
+import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.enums.SqlUnionType;
 import io.nop.orm.eql.enums.SqlWindowFrameBoundType;
 import io.nop.orm.eql.enums.SqlWindowFrameType;
@@ -250,6 +251,52 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         args.add(source);
         args.add(begin);
         ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
+     * WI8 Phase 1（plan 27；裁定 ai-dev/design/eql-cross-db-compat/
+     * 2026-10-04-wi8-phase0-adjudications.md §一.2/§九）：{@code a IS NOT DISTINCT FROM b}
+     * 的构建期归一化——装入既有 {@link SqlBinaryExpr}（operator=SAFE_EQ，左右操作数保序），
+     * 不新增 AST 节点、不改 EqlAST.xjava。生成方法体只建空节点 + validate()（left/operator/
+     * right 必填校验必失败），因此完全重写、不调 super（visitSqlRegularFunction_position
+     * 同款）。方言输出（h2 等 native / mysql 族 <=> / 其余响亮报错）由 AstToSqlGenerator
+     * 渲染三分支承担；Oracle 三节点展开由生产 IEqlAstTransformer 承担（Phase 3）。
+     */
+    @Override
+    public io.nop.orm.eql.ast.SqlBinaryExpr visitSqlBinaryExpr_isNotDistinctFrom(
+            EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx) {
+        io.nop.orm.eql.ast.SqlBinaryExpr ret = new io.nop.orm.eql.ast.SqlBinaryExpr();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setLeft((SqlExpr) visit(ctx.sqlExpr_primary()));
+        ret.setOperator(SqlOperator.SAFE_EQ);
+        ret.setRight((SqlExpr) visit(ctx.sqlExpr_predicate()));
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
+     * WI8 Phase 1：{@code a IS DISTINCT FROM b} 的构建期归一化——
+     * {@link SqlNotExpr} 包装 {@code SqlBinaryExpr(operator=SAFE_EQ)}（裁定 §一.2 规范形态；
+     * 否定方向文本由 AstToSqlGenerator 方言分支直出，不走 NOT 包装）。生成方法体只建
+     * 空节点 + validate()（expr 必填必失败），因此完全重写、不调 super。
+     */
+    @Override
+    public io.nop.orm.eql.ast.SqlNotExpr visitSqlNotExpr_isDistinctFrom(
+            EqlParser.SqlNotExpr_isDistinctFromContext ctx) {
+        io.nop.orm.eql.ast.SqlBinaryExpr eq = new io.nop.orm.eql.ast.SqlBinaryExpr();
+        eq.setLeft((SqlExpr) visit(ctx.sqlExpr_primary()));
+        eq.setOperator(SqlOperator.SAFE_EQ);
+        eq.setRight((SqlExpr) visit(ctx.sqlExpr_predicate()));
+        eq.normalize();
+        eq.validate();
+
+        io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setExpr(eq);
         ret.normalize();
         ret.validate();
         return ret;

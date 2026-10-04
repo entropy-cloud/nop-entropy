@@ -23,6 +23,7 @@ import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlAlias;
+import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
 import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
@@ -33,6 +34,7 @@ import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
+import io.nop.orm.eql.ast.SqlNotExpr;
 import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlProjection;
@@ -426,6 +428,74 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
             return null;
         boolean defaultFirst = dialect.isDefaultNullsFirst();
         return asc ? defaultFirst : !defaultFirst;
+    }
+
+    /**
+     * WI8（plan 27；裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi8-phase0-adjudications.md
+     * §三/§四.1）：{@code IS [NOT] DISTINCT FROM} 的 SAFE_EQ 渲染三分支名称集合（不新增方言
+     * 能力标志——名称集合先例 = {@link #DOCUMENTED_DIRECTIONAL_NULL_ORDER}；继承别名
+     * mysql5.7/mariadb/h2gis/postgis 显式列举）。db2/dm/tdengine/sqlite 无一手取证
+     * 或无方言文件，均不在集合内 ⇒ 落报错分支（unverified 纪律，不静默放行）。
+     */
+    private static final Set<String> SAFE_EQ_MYSQL_FAMILY = Set.of("mysql", "mysql5.7", "mariadb");
+
+    private static final Set<String> NATIVE_IS_DISTINCT_FROM =
+            Set.of("postgresql", "postgis", "h2", "h2gis", "duckdb", "mssql");
+
+    @Override
+    public void visitSqlBinaryExpr(SqlBinaryExpr node) {
+        if (node.getOperator() == SqlOperator.SAFE_EQ) {
+            // 渲染三分支必选件：printOperator 全局无方言分支，不覆写则全方言输出 <=>（静默非法 SQL）
+            printSafeEq(node, false);
+            return;
+        }
+        super.visitSqlBinaryExpr(node);
+    }
+
+    @Override
+    public void visitSqlNotExpr(SqlNotExpr node) {
+        if (node.getExpr() instanceof SqlBinaryExpr
+                && ((SqlBinaryExpr) node.getExpr()).getOperator() == SqlOperator.SAFE_EQ) {
+            // IS DISTINCT FROM（SqlNotExpr(SAFE_EQ) 规范形态）按方向文本直出，
+            // 禁止 not(a is not distinct from b) 包装（裁定 §四.1 分支 2）
+            printSafeEq((SqlBinaryExpr) node.getExpr(), true);
+            return;
+        }
+        super.visitSqlNotExpr(node);
+    }
+
+    /**
+     * SAFE_EQ 渲染三分支（裁定 §四.1）：mysql 族 → {@code a <=> b} / {@code not (a <=> b)}
+     * （{@code <=>} 恒二值，NOT 良定义）；native 集合 → {@code is [not] distinct from}
+     * 方向文本直出；其余方言 → 响亮 ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE——无 transformer
+     * 时 oracle 亦落此分支（Phase 3 默认注入 transformer 后由其展开，SAFE_EQ 不再到达生成器）。
+     * 全仓不存在向不支持方言静默输出 {@code <=>} 的路径（Minimum Rules #24）。
+     */
+    private void printSafeEq(SqlBinaryExpr node, boolean negated) {
+        String dialectName = dialect.getName();
+        boolean mysqlFamily = dialectName != null && SAFE_EQ_MYSQL_FAMILY.contains(dialectName);
+        if (mysqlFamily) {
+            if (negated) {
+                print("not (");
+                printBinaryExpr(node.getLeft(), SqlOperator.SAFE_EQ, node.getRight());
+                print(")");
+            } else {
+                printBinaryExpr(node.getLeft(), SqlOperator.SAFE_EQ, node.getRight());
+            }
+            return;
+        }
+
+        boolean nativeSupport = dialectName != null && NATIVE_IS_DISTINCT_FROM.contains(dialectName);
+        if (nativeSupport) {
+            printLeft(node.getLeft(), SqlOperator.IS);
+            print(negated ? " is distinct from " : " is not distinct from ");
+            visit(node.getRight());
+            return;
+        }
+
+        throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                .param(ARG_DIALECT, dialectName)
+                .param(ARG_FEATURE, "is[not] distinct from");
     }
 
     void appendPropJoins(SqlSingleTableSource node) {
