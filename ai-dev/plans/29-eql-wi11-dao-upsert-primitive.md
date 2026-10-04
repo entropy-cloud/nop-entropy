@@ -161,30 +161,30 @@
 
 ### Phase 0 - 前置裁定（纯裁定，不改产品代码）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增一份裁定文档，含裁决人注记小节）；`ai-dev/logs/`
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] **硬前置 + 门禁登记**：复核 WI10b plan `completed` 与 roadmap WI10b `done` 未回退；把差异登记第 2 条的 ask-first 授权依据（用户对 roadmap 的执行指令 + WI11 节证据链）以**裁决人注记**形态写入裁定文档（照 plan 25 差异登记第 2 条 + WI0 gate 裁决文档 G-4 门的形态：授权来源、AI 代拟、人可推翻、推翻即 revert 原语提交）。
-- [ ] **裁定接口形态与落点（三选一，书面记录被拒候选理由）**：(a) `io.nop.dao.jdbc` 新 public 接口（与 `IJdbcTemplate` 平行，实现挂 `JdbcTemplateImpl`）；(b) `IJdbcTemplate` 直接追加方法；(c) 恢复 dialect 模型 `upsertHandler` handler 挂载形态（String 字段 + 反射/装配——⚠️ 空壳前科 + `nop-dao` 无 codegen、装配通路不存在，原则上不利，Phase 0 须给书面否决理由或推翻该预判）。同时终裁语义点：批量方法签名语义（行批 + 列集 + 冲突键列集 + 更新列集）、方言名解析失败行为（**吞异常回落 GENERIC vs 响亮抛错**——两枚举分叉 ①）、key-only 空更新集是否入原语契约（分叉 ③）、标识符转义统一 `escapeSQLName`（分叉 ②）、GENERIC 两事务回落的归属（下沉 nop-dao vs 留 nop-stream）与**重复键判定口径的统一形态**（分叉 ④，差集双向见差异登记第 5 条——**候选必须含"翻译器优先 + SQLState-23505 兜底"形态**：翻译器按方言 XML vendorCode 精确归一化，未命中时以无条件 SQLState-23505 兜底判 duplicate，保住 oracle 方言模型 + H2 的 GENERIC 回落路径；无论采纳哪一候选，`TestJdbcCheckpointStorage#testGenericDialectFallbackSeparateTransactionUpsert` 均为回归锚，不得删除或削弱）。
-- [ ] **裁定两枚举迁移方案**：逐消费面点名（`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 三处同构调用；sink 的 `ensureKeyedColumns` 首批缓存形态——原语调用点从"建 SQL"移到"执行"，volatile 缓存语义如何保持）；既有 stream 测试（`TestJdbcCheckpointStorage` 四方言形态断言 / `TestJdbcTwoPhaseCommitSinkDml`）的迁移口径（断言迁移到原语测试，不得删除覆盖面）。
-- [ ] **裁定 H2 三类测试形态**：`JdbcTestCase` 载体 + 建表形态（含唯一键）+ 三类用例设计（插入/更新/冲突，冲突类断言 `ERR_SQL_DUPLICATE_KEY` 端到端）+ H2 载体 upsert 语法——**带入 `TestJdbcCheckpointStorage` javadoc（`:432-435`）已记录的已知坑：H2 2.3.232 对 PG 形态 `ON CONFLICT .. DO UPDATE SET col = EXCLUDED.col` 抛语法错误**；`MERGE INTO .. KEY` 在本仓解析的 H2 2.4.240 仍支持（该测试类 29/29 绿跑实证，含 H2 MERGE 真执行用例）。候选 = 沿用 `MERGE INTO .. KEY` 先例（有绿跑实证）vs `ON CONFLICT`（须先在本仓解析的 H2 版本上真执行验证 PG 形态不触发该语法坑，方可入选）；以 Phase 3 真执行为准记账。另裁定批量语义用例 + GENERIC 回落（若终裁下沉 nop-dao）是否可 H2 实测及其形态。
-- [ ] **裁定 DB2 `-803` 与方言矩阵证据口径**：结构证据形态（db2 方言模型 + 合成 `SQLException` 翻译链单测）采纳与否；逐方言证据等级表初稿（H2=真库实测 / PG·MySQL=文档+形态单测 / DB2·DM·TDengine·MSSQL·Oracle=[文档] 或 [未取证]，DM8/TDengine 按红线无一手文档）。
-- [ ] **裁定 `xdef:32` 残留处置**：候选 (a) javadoc 注记指向新原语（最小侵入，WI10b 软弃用先例）；(b) 硬删元素（plan-first + `_gen` 失配证据）；(c) 保持现状 + 理由。**倾向性推荐候选 (a)**——先例同文件在案（WI10b 已在同一 `dialect.xdef` javadoc 块落 3 行 `@deprecated` 与 5 条行为注记）、全仓零消费（`_DialectModel.getUpsertHandler` 零调用方）、零行为变化零回归面；推荐不预决，最终以 Phase 0 书面裁定为准。若 Phase 0 裁定接口落点为 (c) handler 挂载，则本项随挂载裁定一并定。
-- [ ] **裁定 `MERGE`/`UPDATE..FROM` ledger 行方向（EC ⑤b）**：EQL 语法层继续不做；行的处置 = 显式移出 + successor + 触发条件（候选：未来 EQL `MERGE` 语法 WI（plan-first，plan-first 理由 = `.g4` 生成管线）/ "语义由 DAO upsert 原语承载、语法层永久否决"登记）；`UPDATE..FROM` 半行与 WI10b 改档结论的衔接（不重开）。产出 ledger 回写文本草案（Phase 4 落档）。
-- [ ] **裁定 owner doc 落点**：候选 (a) `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 新节（本 roadmap 既有 owner doc，跨库契约同宿）；(b) 新建 DAO/JDBC 层 guide（需 `INDEX.md` 路由更新）。按"最小 owning doc"规则裁定。
-- [ ] **裁定提交切分**：stream 迁移 / 文档 各自独立提交，可单独 revert；**原语提交与 H2 三类真库集成测试提交捆绑交付（或三类测试并入原语同一提交）**——`IUpsertHandler` 删除注记"应连同集成测试重新引入"的 commit 粒度硬要求：**不允许出现"原语已提交、H2 集成测试未提交"的中间提交态**（执行形态：Phase 3 的 H2 三类测试与 Phase 2 原语同批完成则并一个提交；分批时原语提交推迟到三类测试就绪一并落）。接口被裁决人推翻时的回滚单位 = 原语+测试捆绑提交 + 迁移提交。
+- [x] **硬前置 + 门禁登记**：复核 WI10b plan `completed` 与 roadmap WI10b `done` 未回退；把差异登记第 2 条的 ask-first 授权依据（用户对 roadmap 的执行指令 + WI11 节证据链）以**裁决人注记**形态写入裁定文档（照 plan 25 差异登记第 2 条 + WI0 gate 裁决文档 G-4 门的形态：授权来源、AI 代拟、人可推翻、推翻即 revert 原语提交）。
+- [x] **裁定接口形态与落点（三选一，书面记录被拒候选理由）**：(a) `io.nop.dao.jdbc` 新 public 接口（与 `IJdbcTemplate` 平行，实现挂 `JdbcTemplateImpl`）；(b) `IJdbcTemplate` 直接追加方法；(c) 恢复 dialect 模型 `upsertHandler` handler 挂载形态（String 字段 + 反射/装配——⚠️ 空壳前科 + `nop-dao` 无 codegen、装配通路不存在，原则上不利，Phase 0 须给书面否决理由或推翻该预判）。同时终裁语义点：批量方法签名语义（行批 + 列集 + 冲突键列集 + 更新列集）、方言名解析失败行为（**吞异常回落 GENERIC vs 响亮抛错**——两枚举分叉 ①）、key-only 空更新集是否入原语契约（分叉 ③）、标识符转义统一 `escapeSQLName`（分叉 ②）、GENERIC 两事务回落的归属（下沉 nop-dao vs 留 nop-stream）与**重复键判定口径的统一形态**（分叉 ④，差集双向见差异登记第 5 条——**候选必须含"翻译器优先 + SQLState-23505 兜底"形态**：翻译器按方言 XML vendorCode 精确归一化，未命中时以无条件 SQLState-23505 兜底判 duplicate，保住 oracle 方言模型 + H2 的 GENERIC 回落路径；无论采纳哪一候选，`TestJdbcCheckpointStorage#testGenericDialectFallbackSeparateTransactionUpsert` 均为回归锚，不得删除或削弱）。
+- [x] **裁定两枚举迁移方案**：逐消费面点名（`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 三处同构调用；sink 的 `ensureKeyedColumns` 首批缓存形态——原语调用点从"建 SQL"移到"执行"，volatile 缓存语义如何保持）；既有 stream 测试（`TestJdbcCheckpointStorage` 四方言形态断言 / `TestJdbcTwoPhaseCommitSinkDml`）的迁移口径（断言迁移到原语测试，不得删除覆盖面）。
+- [x] **裁定 H2 三类测试形态**：`JdbcTestCase` 载体 + 建表形态（含唯一键）+ 三类用例设计（插入/更新/冲突，冲突类断言 `ERR_SQL_DUPLICATE_KEY` 端到端）+ H2 载体 upsert 语法——**带入 `TestJdbcCheckpointStorage` javadoc（`:432-435`）已记录的已知坑：H2 2.3.232 对 PG 形态 `ON CONFLICT .. DO UPDATE SET col = EXCLUDED.col` 抛语法错误**；`MERGE INTO .. KEY` 在本仓解析的 H2 2.4.240 仍支持（该测试类 29/29 绿跑实证，含 H2 MERGE 真执行用例）。候选 = 沿用 `MERGE INTO .. KEY` 先例（有绿跑实证）vs `ON CONFLICT`（须先在本仓解析的 H2 版本上真执行验证 PG 形态不触发该语法坑，方可入选）；以 Phase 3 真执行为准记账。另裁定批量语义用例 + GENERIC 回落（若终裁下沉 nop-dao）是否可 H2 实测及其形态。
+- [x] **裁定 DB2 `-803` 与方言矩阵证据口径**：结构证据形态（db2 方言模型 + 合成 `SQLException` 翻译链单测）采纳与否；逐方言证据等级表初稿（H2=真库实测 / PG·MySQL=文档+形态单测 / DB2·DM·TDengine·MSSQL·Oracle=[文档] 或 [未取证]，DM8/TDengine 按红线无一手文档）。
+- [x] **裁定 `xdef:32` 残留处置**：候选 (a) javadoc 注记指向新原语（最小侵入，WI10b 软弃用先例）；(b) 硬删元素（plan-first + `_gen` 失配证据）；(c) 保持现状 + 理由。**倾向性推荐候选 (a)**——先例同文件在案（WI10b 已在同一 `dialect.xdef` javadoc 块落 3 行 `@deprecated` 与 5 条行为注记）、全仓零消费（`_DialectModel.getUpsertHandler` 零调用方）、零行为变化零回归面；推荐不预决，最终以 Phase 0 书面裁定为准。若 Phase 0 裁定接口落点为 (c) handler 挂载，则本项随挂载裁定一并定。
+- [x] **裁定 `MERGE`/`UPDATE..FROM` ledger 行方向（EC ⑤b）**：EQL 语法层继续不做；行的处置 = 显式移出 + successor + 触发条件（候选：未来 EQL `MERGE` 语法 WI（plan-first，plan-first 理由 = `.g4` 生成管线）/ "语义由 DAO upsert 原语承载、语法层永久否决"登记）；`UPDATE..FROM` 半行与 WI10b 改档结论的衔接（不重开）。产出 ledger 回写文本草案（Phase 4 落档）。
+- [x] **裁定 owner doc 落点**：候选 (a) `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 新节（本 roadmap 既有 owner doc，跨库契约同宿）；(b) 新建 DAO/JDBC 层 guide（需 `INDEX.md` 路由更新）。按"最小 owning doc"规则裁定。
+- [x] **裁定提交切分**：stream 迁移 / 文档 各自独立提交，可单独 revert；**原语提交与 H2 三类真库集成测试提交捆绑交付（或三类测试并入原语同一提交）**——`IUpsertHandler` 删除注记"应连同集成测试重新引入"的 commit 粒度硬要求：**不允许出现"原语已提交、H2 集成测试未提交"的中间提交态**（执行形态：Phase 3 的 H2 三类测试与 Phase 2 原语同批完成则并一个提交；分批时原语提交推迟到三类测试就绪一并落）。接口被裁决人推翻时的回滚单位 = 原语+测试捆绑提交 + 迁移提交。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：ask-first 裁决人注记（授权依据 + 人可推翻 + 回滚方式）、接口形态三选一终裁（含被拒候选理由）、全部语义点终裁（分叉 ①-④ 逐项）、两枚举逐消费面迁移方案、H2 测试形态、DB2 `-803` 证据口径与逐方言证据等级表初稿、`xdef:32` 处置、ledger 行裁定方向与回写文本草案、owner doc 落点、提交切分。
-- [ ] 每个 Phase 2/3 执行点都能回答"执行者照此能直接写代码吗"——无留给执行期再发明的设计开口（接口语义、失败行为、回落归属、测试断言口径均已闭）。
-- [ ] 硬前置核验记录在案（WI10b 未回退）；roadmap WI11 状态行流转已登记（`todo`→`planned` 在本 plan draft review 通过后执行，Phase 4 落档）。
-- [ ] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：ask-first 裁决人注记（授权依据 + 人可推翻 + 回滚方式）、接口形态三选一终裁（含被拒候选理由）、全部语义点终裁（分叉 ①-④ 逐项）、两枚举逐消费面迁移方案、H2 测试形态、DB2 `-803` 证据口径与逐方言证据等级表初稿、`xdef:32` 处置、ledger 行裁定方向与回写文本草案、owner doc 落点、提交切分。
+- [x] 每个 Phase 2/3 执行点都能回答"执行者照此能直接写代码吗"——无留给执行期再发明的设计开口（接口语义、失败行为、回落归属、测试断言口径均已闭）。
+- [x] 硬前置核验记录在案（WI10b 未回退）；roadmap WI11 状态行流转已登记（`todo`→`planned` 在本 plan draft review 通过后执行，Phase 4 落档）。
+- [x] 本 Phase 纯裁定不改产品代码：`No owner-doc update required`（裁定文档本身即交付物）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 1 - 设计契约文档 + 独立审查
 
