@@ -238,7 +238,7 @@ Exit Criteria:
 
 ### Phase 3 - H2 真库集成测试 + DB2 `-803` 结构证据
 
-Status: in progress（H2 三类/批量/端到端/DB2/EC① 零改动已落地并随 C3 捆绑提交；唯一未勾项 = 消费方模块专项命令，按 mtime 纪律排在终局收口日实跑——surefire 证据必须晚于最后 commit）
+Status: completed
 Targets: `nop-persistence/nop-dao/src/test/java/io/nop/dao/`（`JdbcTestCase` 派生集成测试 + 翻译链单测）、`ai-dev/logs/`
 
 - Item Types: `Proof`（真库集成测试）、`Feature`（结构证据测试，若 Phase 0 裁定采纳）
@@ -247,7 +247,7 @@ Targets: `nop-persistence/nop-dao/src/test/java/io/nop/dao/`（`JdbcTestCase` �
 - [x] **批量语义真执行**：多行批（部分新键部分旧键）一次调用后库中行状态断言（新键插入、旧键更新、总行数正确）；批量原子性边界按设计契约的不保证项断言（`testUpsertBatchMixedNewAndOldKeys`——native 路径单事务批量，契约 §4.3 分档不夸大）。
 - [x] **端到端验证（Minimum Rules #22）**：上述测试从新原语 public 入口到 H2 库中行状态/异常错误码完整走通（无 mock、无手工构造中间态）；`JdbcCheckpointStorage`（经 `storeCheckPoint`）与 `JdbcTwoPhaseCommitSink`（keyed 路径）各自至少一条端到端在 Phase 2/3 测试中在位。
 - [x] **DB2 `-803` 结构证据**（按 Phase 0 裁定）：**测试落点先显式裁定（本项内完成，二选一并记录理由）——`TestDialect` 内新增用例 vs 独立测试文件**：前者与 roadmap EC ④ 字面"（TestDialect 的真库执行路径）"同文件对齐（倾向形态：真库执行路径与翻译链证据同宿）；后者须在 owner doc 注记与 EC ④ 字面的映射关系，不得留下"EC ④ 字面落空"的口径空窗。裁定后落地：db2 方言模型 + 合成 `SQLException(vendorCode=-803)` 经 `DialectSQLExceptionTranslator` 断言翻译出 `ERR_SQL_DUPLICATE_KEY`；DB2 真库执行 `[未取证]` 登记随测试 javadoc/owner doc 落档。**裁定 = `TestDialect` 内独立用例 `testDb2DuplicateKeyTranslationChain`**（Phase 0 §6.2 终裁；翻译链断言 + 统一谓词一致性断言，绿）。
-- [ ] **EC ① 回归复核**：11 个生产调用点 grep 复核零改动；消费方模块（nop-auth-service/nop-batch-dao/nop-retry-engine/nop-sys-dao）既有测试随 Phase 2/3 命令闭包或专项命令全绿（若不在 `-pl` 闭包内，补一次 `./mvnw test -pl :nop-auth-service,:nop-batch-dao,:nop-retry-engine,:nop-sys-dao -am -T 1C` 并留证）。**grep 零改动已完成（11/11 命中零 diff，Phase 0 §0 复核在案）；消费方四模块命令按 surefire mtime 纪律排在终局实跑留证**。
+- [x] **EC ① 回归复核**：11 个生产调用点 grep 复核零改动；消费方模块（nop-auth-service/nop-batch-dao/nop-retry-engine/nop-sys-dao）既有测试随 Phase 2/3 命令闭包或专项命令全绿（若不在 `-pl` 闭包内，补一次 `./mvnw test -pl :nop-auth-service,:nop-batch-dao,:nop-retry-engine,:nop-sys-dao -am -T 1C` 并留证）。**grep 零改动完成（11/11 命中零 diff）；消费方四模块收口日实跑绿**：run1 `final-consumers.log` 如实登记（`TestBatchTaskCheckpoint#testFailFastStopsSiblingThreads` 负载敏感 flake 触发 → 四目标模块被 SKIP）→ flake 单跑 PASS（`nop-batch-core` 1|0）→ run4 方法级豁免（两登记基线项 + JSONPoint 双排除 + `failIfNoSpecifiedTests=false`，照 WI9b 类级豁免先例）BUILD SUCCESS：auth-service 461|0、sys-dao 66|0、batch-dao（TestDaoBatchStateStore 7|0 + History 3|0）、retry-engine 绿，四模块 Reactor 全 SUCCESS（`_tmp/wi11/final-consumers-run4.log`）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
@@ -257,7 +257,7 @@ Exit Criteria:
 - [x] 三类测试齐且绿，断言具体结果（行状态/错误码 + param），无"没抛异常"式敷衍断言；冲突类端到端断言 `ERR_SQL_DUPLICATE_KEY` 在案。
 - [x] **端到端验证**（#22）：H2 真库从原语入口到行状态完整走通的测试在案；stream 两侧经新原语的端到端在案。
 - [x] DB2 `-803` 按 Phase 0 裁定口径处理完毕（结构证据测试绿 + 真库 `[未取证]` 登记；不伪造真库执行证据）。
-- [ ] EC ① 回归证据：11 调用点零改动（grep 输出）+ 消费方模块测试绿证据（消费方命令在终局收口日实跑后勾选）。
+- [x] EC ① 回归证据：11 调用点零改动（grep 输出）+ 消费方模块测试绿证据（见本 Phase 第 5 项 run4 证据）。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - owner doc + ledger 裁定落档 + 状态流转
@@ -289,22 +289,22 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] **roadmap WI11 EC ①**：`ERR_SQL_DUPLICATE_KEY` 的 8 文件 / 11 处生产调用点回归不受影响（grep 复核零改动 + 消费方模块测试绿证据）。
-- [ ] **roadmap WI11 EC ②**：两个 nop-stream 私有枚举已下线（两模块 main 源码 `UpsertDialect` grep 零命中；无重复实现——全仓 upsert 方言分叉实现仅新原语一处）。
-- [ ] **roadmap WI11 EC ③**：新原语有"插入 / 更新 / 冲突"三类**真库（H2）**集成测试且绿；冲突类端到端断言 `ERR_SQL_DUPLICATE_KEY`。
-- [ ] **roadmap WI11 EC ④**：DB2 `-803` 按 Phase 0 裁定口径处理（结构证据在案 + 真库 `[未取证]` 登记；`TestDialect` 真库执行路径 = H2 的实际验证不因 DB2 部分降级而缺失）。
-- [ ] **roadmap WI11 EC ⑤**：`./mvnw test -pl :nop-dao,:nop-orm,:nop-orm-eql -am -T 1C` 全绿（"全绿"口径见 roadmap Cross-Cutting；⚠️ 该命令闭包不含 stream 下游——stream 侧由 Phase 2 命令 `./mvnw test -pl :nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 覆盖，两条命令在收口日实跑留证；若收口日发现闭包实际包含 stream 模块，其既有失败按 roadmap Cross-Cutting 豁免口径处理，不预写结论）。
-- [ ] **roadmap WI11 EC ⑤b**：「明确延后项」`MERGE`/`UPDATE..FROM` 行已在本 WI 裁定并落档（显式移出 + successor + 触发条件；不允许名义 owner）。
-- [ ] **roadmap WI11 EC ⑥**：新原语 owner doc 已补，含 `IUpsertHandler` 删除（2026-08-22）→ 重引入的迁移说明。
-- [ ] **roadmap WI11 EC ⑦**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段。
-- [ ] 所有 in-scope 裁定（接口形态/枚举迁移/H2 形态/xdef 处置/ledger 方向/证据口径）全部落地且与裁定文档一致；不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。
-- [ ] 受影响的 owner docs 已同步到 live baseline（Phase 4 全勾）。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新原语被 stream 两侧组件在运行时真实调用（不只 import/类型存在），（b）端到端路径从原语入口到真库行状态/错误码完整连通，（c）无空方法体/静默跳过/no-op 作为正常实现（无原生方言行为显式化）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/29-eql-wi11-dao-upsert-primitive.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 退出码 0（`--module nop-stream-runtime`、`--module nop-stream-connector-jdbc` 同样为 0）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0。
-- [ ] 方言能力矩阵快照门禁不红（本 plan 方言 XML 零改值则记录"无需更新"；有改值则快照同步 + 门禁绿）。
-- [ ] 文本一致性核对：`Plan Status`、各 Phase `Status`、各 Phase `Exit Criteria`、本 `Closure Gates`、`ai-dev/logs/` 收口记录五处一致。
+- [x] **roadmap WI11 EC ①**：`ERR_SQL_DUPLICATE_KEY` 的 8 文件 / 11 处生产调用点回归不受影响（grep 复核零改动 + 消费方模块测试绿证据——Phase 3 第 5 项 run4 证据：auth-service 461|0、sys-dao 66|0、batch-dao/retry-engine 绿）。
+- [x] **roadmap WI11 EC ②**：两个 nop-stream 私有枚举已下线（两模块 main 源码 `UpsertDialect` grep 零命中；无重复实现——全仓 upsert 方言分叉实现仅新原语一处）。
+- [x] **roadmap WI11 EC ③**：新原语有"插入 / 更新 / 冲突"三类**真库（H2）**集成测试且绿；冲突类端到端断言 `ERR_SQL_DUPLICATE_KEY`（`TestUpsertPrimitiveH2` 9/9，两腿冲突）。
+- [x] **roadmap WI11 EC ④**：DB2 `-803` 按 Phase 0 裁定口径处理（结构证据在案 + 真库 `[未取证]` 登记；`TestDialect` 真库执行路径 = H2 的实际验证不因 DB2 部分降级而缺失——`TestDialect#testDb2DuplicateKeyTranslationChain` 绿 + `TestUpsertPrimitiveH2`/`TestJdbcCheckpointStorage` H2 真执行在案）。
+- [x] **roadmap WI11 EC ⑤**：`./mvnw test -pl :nop-dao,:nop-orm,:nop-orm-eql -am -T 1C` 全绿（**收口日实测 BUILD SUCCESS**：nop-dao 239|0、nop-orm-eql 217|0、nop-orm 578|0、上游 855|0，0 失败；`_tmp/wi11/final-ec5.log`。⚠️ 闭包不含 stream 下游——stream 侧由 `./mvnw test -pl :nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 收口日实跑覆盖：connector-jdbc 55|0、stream-runtime 1223 中唯一失败 = roadmap Cross-Cutting 逐字登记的基线 `TestStreamConnectorRegistryDiscovery#testCapabilityMatrixAlignedWithDesignAdjudication`（debezium-cdc SINGLE_INSTANCE 实为 PARALLEL），按豁免口径登记（`_tmp/wi11/final-stream.log`）。
+- [x] **roadmap WI11 EC ⑤b**：「明确延后项」`MERGE`/`UPDATE..FROM` 行已在本 WI 裁定并落档（显式移出 + successor + 触发条件；不允许名义 owner——roadmap ledger 原地注记 + Phase 0 §8 裁定正文 + owner doc 小节）。
+- [x] **roadmap WI11 EC ⑥**：新原语 owner doc 已补，含 `IUpsertHandler` 删除（2026-08-22）→ 重引入的迁移说明（「DAO 批量 upsert 原语」小节）。
+- [ ] **roadmap WI11 EC ⑦**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段。（**留白**：执行期独立委派机制不可用已登记（Phase 1 §8.1 偏差），本项待独立 closure audit 执行后由 audit 填写）
+- [x] 所有 in-scope 裁定（接口形态/枚举迁移/H2 形态/xdef 处置/ledger 方向/证据口径）全部落地且与裁定文档一致；不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。（执行期两处勘误——FALLBACK 方言解析失败改类型化错误、TestJdbcDuplicateKeyDetection 迁移——均已登记于 plan Phase 2 勘误注记 + daily log，非静默）
+- [x] 受影响的 owner docs 已同步到 live baseline（Phase 4 全勾）。
+- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新原语被 stream 两侧组件在运行时真实调用（不只 import/类型存在），（b）端到端路径从原语入口到真库行状态/错误码完整连通，（c）无空方法体/静默跳过/no-op 作为正常实现（无原生方言行为显式化）。（**留白待独立 audit**；执行侧在案证据 = 接线验证 #23（H2 真执行经 `storeCheckPoint`/`buildKeyedUpsertSql`）+ scan-hollow ×3 exit 0 + NATIVE_ONLY/回落显式行为测试）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/29-eql-wi11-dao-upsert-primitive.md --strict` 退出码 0。（**留白：终门待独立 closure audit**）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 退出码 0（`--module nop-stream-runtime`、`--module nop-stream-connector-jdbc` 同样为 0）。（收口日复核 exit 0×3）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0。（收口日复核 0 error / 3 warning = 基线）
+- [x] 方言能力矩阵快照门禁不红（本 plan 方言 XML 零改值则记录"无需更新"；有改值则快照同步 + 门禁绿）。（**零改值，无需更新**；`TestDialectCapabilityMatrix` 2/2 绿）
+- [x] 文本一致性核对：`Plan Status`、各 Phase `Status`、各 Phase `Exit Criteria`、本 `Closure Gates`、`ai-dev/logs/` 收口记录五处一致。（Plan Status 保持 active + 四 Phase completed + 本节仅 EC⑦/Anti-Hollow/check-plan-checklist 三项留白 + daily log 收口记录一致——留白与 active 状态互证，待独立 audit 收口后翻转）
 
 ## Deferred But Adjudicated
 
