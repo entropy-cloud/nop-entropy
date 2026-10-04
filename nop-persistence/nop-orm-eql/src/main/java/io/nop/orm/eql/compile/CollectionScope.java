@@ -37,6 +37,12 @@ public class CollectionScope {
 
     private SqlExpr clonedCondition;
 
+    /**
+     * 被 EXISTS 子查询吸收的外层 NOT 包装数量（仅根 scope 计算：colName 到 logicUnitNode 链上的 SqlNotExpr 计数）。
+     * 路径语法无法表达内层 NOT，子 scope 恒为 0。
+     */
+    private int absorbedNotParity;
+
     public CollectionScope(SqlCollectionOperator operator, String collectionProp) {
         this.operator = operator;
         this.collectionProp = collectionProp;
@@ -264,5 +270,13 @@ public class CollectionScope {
 
     public void setClonedCondition(SqlExpr clonedCondition) {
         this.clonedCondition = clonedCondition;
+    }
+
+    public int getAbsorbedNotParity() {
+        return absorbedNotParity;
+    }
+
+    public void setAbsorbedNotParity(int absorbedNotParity) {
+        this.absorbedNotParity = absorbedNotParity;
     }
 }

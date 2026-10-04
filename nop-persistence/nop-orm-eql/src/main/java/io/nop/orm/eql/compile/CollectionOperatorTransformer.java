@@ -291,7 +291,12 @@ public class CollectionOperatorTransformer {
     }
 
     private void transformCollectionScope(CollectionScope scope) {
-        
+
+        // 根 scope 在任何树变换前记录被 EXISTS 吸收的外层 NOT 包装数（子 scope 由路径语法构造，恒为 0）
+        if (scope.getParent() == null) {
+            scope.setAbsorbedNotParity(countAbsorbedNots(scope));
+        }
+
         makeAlias(scope);
         
         if (scope.hasChild()) {
@@ -385,7 +390,7 @@ public class CollectionOperatorTransformer {
             conditionExpr = scope.getClonedCondition();
         } else {
             SqlExpr originalCondition = (SqlExpr) scope.getLogicUnitNode();
-            conditionExpr = (SqlExpr) originalCondition.deepClone();
+            conditionExpr = unwrapNotChain((SqlExpr) originalCondition.deepClone());
             scope.setClonedCondition(conditionExpr);
         }
 
@@ -433,24 +438,51 @@ public class CollectionOperatorTransformer {
         return existsExpr;
     }
 
+    /**
+     * EXISTS-not 编码（见 _tmp/fcr-2320-truth-table.md）：
+     * EXISTS-not(scope_i) = (o_i==ALL) XOR (o_{i-1}==ALL) XOR (吸收 NOT 奇偶)；
+     * 叶子条件取反由 replaceLogicNode 按 (o_n==ALL) 独立处理，不受 NOT 影响。
+     */
     private boolean shouldNegateExists(CollectionScope scope) {
-        if (scope.hasChild()) {
-            return false;
+        boolean negate = scope.getOperator() == SqlCollectionOperator.ALL;
+
+        CollectionScope parent = scope.getParent();
+        if (parent != null && parent.getOperator() == SqlCollectionOperator.ALL) {
+            negate = !negate;
         }
-        int allCount = countAllAncestors(scope);
-        return (allCount % 2) == 1;
+
+        if (scope.getAbsorbedNotParity() % 2 == 1) {
+            negate = !negate;
+        }
+        return negate;
     }
 
-    private int countAllAncestors(CollectionScope scope) {
+    private int countAbsorbedNots(CollectionScope scope) {
         int count = 0;
-        CollectionScope current = scope;
-        while (current != null) {
-            if (current.getOperator() == SqlCollectionOperator.ALL) {
+        EqlASTNode node = scope.getColNameNode();
+        EqlASTNode unit = scope.getLogicUnitNode();
+        while (node != null) {
+            if (node instanceof SqlNotExpr) {
                 count++;
             }
-            current = current.getParent();
+            if (node == unit) {
+                break;
+            }
+            node = node.getASTParent();
         }
         return count;
+    }
+
+    /**
+     * 剥离 fresh clone 根部的 NOT 包装链（ absorbs 的 NOT 已由 shouldNegateExists 按 parity 编码进 EXISTS-not），
+     * 返回剥离后的条件根节点。仅对刚 deepClone 出的子树调用。
+     */
+    private SqlExpr unwrapNotChain(SqlExpr expr) {
+        while (expr instanceof SqlNotExpr) {
+            expr = ((SqlNotExpr) expr).getExpr();
+        }
+        expr.setASTParent(null);
+        return expr;
     }
 
     private String makeAlias(CollectionScope scope) {
@@ -514,8 +546,7 @@ public class CollectionOperatorTransformer {
             conditionExpr = scope.getClonedCondition();
             conditionExpr.setASTParent(null);
         } else {
-            conditionExpr = (SqlExpr) oldLogicNode.deepClone();
-            conditionExpr.setASTParent(null);
+            conditionExpr = unwrapNotChain((SqlExpr) oldLogicNode.deepClone());
         }
 
 
@@ -523,9 +554,9 @@ public class CollectionOperatorTransformer {
         String collectionPrefix = getFullCollectionPrefix(scope);
         updateColNameOwners(conditionExpr, alias, collectionPrefix);
 
+        // 叶子条件取反只由本 scope 自身的量词决定（∀P 编码为 NOT EXISTS(¬P)），与吸收的 NOT 无关
         if (!scope.hasChild()) {
-            int allCount = countAllAncestors(scope);
-            if (allCount % 2 == 1) {
+            if (scope.getOperator() == SqlCollectionOperator.ALL) {
                 conditionExpr = negateConditionForAll(conditionExpr);
             }
         }
@@ -623,9 +654,11 @@ public class CollectionOperatorTransformer {
             return andExpr;
         }
 
-        // NOT(NOT x) === x
+        // NOT(NOT x) === x（inner 必须 detach，否则 setExpr 时因残留 parent 抛 ast-node-not-allow-multiple-parent）
         if (expr instanceof SqlNotExpr) {
-            return ((SqlNotExpr) expr).getExpr();
+            SqlExpr inner = ((SqlNotExpr) expr).getExpr();
+            inner.setASTParent(null);
+            return inner;
         }
 
         if (expr instanceof SqlBetweenExpr) {

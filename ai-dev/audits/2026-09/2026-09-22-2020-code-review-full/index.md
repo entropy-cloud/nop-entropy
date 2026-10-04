@@ -69,9 +69,9 @@
 
 | Finding ID | 报告 | 描述（一句话） | 修复路径 | 修复状态 |
 |---|---|---|---|---|
-| P0-2.2-001 | `2.2-orm-eql-deep-audit.md` | `NOT (col._some P)` 语义反转（∃(¬P)≠¬∃(P)，文档 §5 明文契约） | plan 2320 簇A（异步注入） | open |
-| P0-2.2-002 | `2.2-orm-eql-deep-audit.md` | 嵌套 `_all` 量词静默翻转/丢失（`_all._some`≡`_some._all`；测试钉住错误期望） | plan 2320 簇A（逐层 XOR+修订测试） | open |
-| P0-2.2-003 | `2.2-orm-eql-deep-audit.md` | NOT+嵌套集合路径否定错位（¬∃∃P→∃∃¬P；与 001 同根） | plan 2320 簇A | open |
+| P0-2.2-001 | `2.2-orm-eql-deep-audit.md` | `NOT (col._some P)` 语义反转（∃(¬P)≠¬∃(P)，文档 §5 明文契约） | plan 2320 簇A（异步注入） | fixed（2026-10-04，findLogicUnit NOT 吸收+parity 编码，testNotSomeCondition 等回归） |
+| P0-2.2-002 | `2.2-orm-eql-deep-audit.md` | 嵌套 `_all` 量词静默翻转/丢失（`_all._some`≡`_some._all`；测试钉住错误期望） | plan 2320 簇A（逐层 XOR+修订测试） | fixed（2026-10-04，shouldNegateExists XOR 重写+testThreeLevelNestedOperators 期望修订+4 条嵌套矩阵回归） |
+| P0-2.2-003 | `2.2-orm-eql-deep-audit.md` | NOT+嵌套集合路径否定错位（¬∃∃P→∃∃¬P；与 001 同根） | plan 2320 簇A | fixed（2026-10-04，unwrapNotChain 剥离+P1-2.2-003 崩溃同步消除（negateConditionForAll detach），testNotNestedSomeSome/testNotNestedSomeAll 回归） |
 
 ## P1 发现汇总（待 R1.0 展开）
 

@@ -1,6 +1,6 @@
 # 2320 full-code-review 修复：nop-orm-eql 否定与量词编码簇（P0-2.2-001/002/003 + P1-2.2-003）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: 审计报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/2.2-orm-eql-deep-audit.md` P0 即时通道（异步注入）；roadmap 规则 #6
 > Related: plan 2319（2.2 深审，P0 发现来源）；契约基线 `docs/dev-guide/orm/eql-collection-operator.md`（§3/§5/嵌套量词语义）
@@ -52,70 +52,70 @@
 
 ### Phase 1 - 修复实现
 
-Status: planned
+Status: completed
 Targets: CollectionOperatorTransformer 否定/量词编码
 
 - Item Types: `Fix`
 
-- [ ] 实施前基线：`git status` 干净、`./mvnw test -pl nop-persistence/nop-orm-eql -am` 全绿（163）
-- [ ] **机制钉死（读法 B，唯一权威口径）**：逻辑单元=SqlNotExpr 本身（对直包 NOT 形态维持现状 unit 归属），条件克隆=`not(P)`；路径 NOT 奇偶**翻转有效操作符**（_some↔_all）进入编码；EXISTS-not 按 XOR 取「有效操作符」；条件级 NOT 由 negateConditionForAll 的 SqlNotExpr 分支吸收（detach 修复为 P0-2.2-001 的 load-bearing 依赖）。不采用「NOT 留外层」读法——该读法下 replaceLogicNode（:544-568）无 SqlNotExpr 分发分支会静默不挂链，且混合两读法在 `not(col._all P)` 上恰好双重取反
-- [ ] 修复否定编码为逐层 XOR 规则：**scope_i 的 EXISTS-not = (有效操作符为 ALL) XOR (父 scope 有效操作符为 ALL)，叶子条件取反 = 有效操作符为 ALL**；删除 shouldNegateExists（:436-454）的 hasChild 守卫依赖，**并改造 replaceLogicNode（:526-531）的 `!scope.hasChild()` 叶子取反门控以支持非叶子 scope 的条件级 NOT 剥离**（否则 `not(嵌套_some)` 双重取反静默错果）；全部形态（六纯量词形态 + NOT 形态矩阵：`not(_some P)`/`not(_all P)`/`not(嵌套_some)`/`not(嵌套_all)`/双 NOT/合并+NOT）期望 SQL 写入 `_tmp/fcr-2320-truth-table.md` 作为唯一权威口径
-- [ ] 修复 negateConditionForAll（:626-629）：SqlNotExpr 分支 detach 内层节点（ASTNode.detach :154-160 在位）+ 正确吸收语义（¬∀P≡∃(¬P)），消除 ast-node-not-allow-multiple-parent 崩溃且不落入反转
-- [ ] 连带影响面留痕：findLogicUnitNode 三个调用点（:104 buildLogicNodes/:154 mergeConditions/:324 findNestedLogicNode）共享同一函数——读法 B 下 findLogicUnitNode 本体不改、:154（簇C，范围外）零行为影响（仅需在 truth table 记录该判别）；:324 行为变化为 P0-2.2-003 预期修复路径
-- [ ] Owner doc 裁定：修复使实现对齐既有文档契约，`No owner-doc update required`（行为契约不变）
+- [x] 实施前基线：`git status` 干净、`./mvnw test -pl nop-persistence/nop-orm-eql -am` 全绿（163）
+- [x] **机制钉死（读法 B，唯一权威口径）**：逻辑单元=SqlNotExpr 本身（对直包 NOT 形态维持现状 unit 归属），条件克隆=`not(P)`；路径 NOT 奇偶**翻转有效操作符**（_some↔_all）进入编码；EXISTS-not 按 XOR 取「有效操作符」；条件级 NOT 由 negateConditionForAll 的 SqlNotExpr 分支吸收（detach 修复为 P0-2.2-001 的 load-bearing 依赖）。不采用「NOT 留外层」读法——该读法下 replaceLogicNode（:544-568）无 SqlNotExpr 分发分支会静默不挂链，且混合两读法在 `not(col._all P)` 上恰好双重取反
+- [x] 修复否定编码为逐层 XOR 规则：**scope_i 的 EXISTS-not = (有效操作符为 ALL) XOR (父 scope 有效操作符为 ALL)，叶子条件取反 = 有效操作符为 ALL**；删除 shouldNegateExists（:436-454）的 hasChild 守卫依赖，**并改造 replaceLogicNode（:526-531）的 `!scope.hasChild()` 叶子取反门控以支持非叶子 scope 的条件级 NOT 剥离**（否则 `not(嵌套_some)` 双重取反静默错果）；全部形态（六纯量词形态 + NOT 形态矩阵：`not(_some P)`/`not(_all P)`/`not(嵌套_some)`/`not(嵌套_all)`/双 NOT/合并+NOT）期望 SQL 写入 `_tmp/fcr-2320-truth-table.md` 作为唯一权威口径
+- [x] 修复 negateConditionForAll（:626-629）：SqlNotExpr 分支 detach 内层节点（ASTNode.detach :154-160 在位）+ 正确吸收语义（¬∀P≡∃(¬P)），消除 ast-node-not-allow-multiple-parent 崩溃且不落入反转
+- [x] 连带影响面留痕：findLogicUnitNode 三个调用点（:104 buildLogicNodes/:154 mergeConditions/:324 findNestedLogicNode）共享同一函数——读法 B 下 findLogicUnitNode 本体不改、:154（簇C，范围外）零行为影响（仅需在 truth table 记录该判别）；:324 行为变化为 P0-2.2-003 预期修复路径
+- [x] Owner doc 裁定：修复使实现对齐既有文档契约，`No owner-doc update required`（行为契约不变）
 
 Exit Criteria:
 
-- [ ] `_tmp/` 探针重放三 P0+崩溃形态全部输出正确语义 SQL（对照 dim10b 复核验算表）
-- [ ] 无静默跳过：修复不引入吞异常/no-op 路径；错误路径仍响亮失败
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] `_tmp/` 探针重放三 P0+崩溃形态全部输出正确语义 SQL（对照 dim10b 复核验算表）
+- [x] 无静默跳过：修复不引入吞异常/no-op 路径；错误路径仍响亮失败
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 回归测试与验证
 
-Status: planned
+Status: completed
 Targets: TestCollectionOperatorTransformer + 端到端测试
 
 - Item Types: `Fix` + `Proof`
 
-- [ ] 修订 testThreeLevelNestedOperators 期望为正确语义（注释注明修订依据=2.2 审计 P0-2.2-002）
-- [ ] 新增回归：NOT+_some（含无括号文档原形/合并形态/双 NOT）、NOT+_all（括号+原文形态）、嵌套矩阵（`_all._some`/`_some._all`/`_all._all`/三级链显式钉 `_all._some._some` 与 `_some._some._all` 两条）——断言完整 SQL 或量词结构，不只断言不崩溃
-- [ ] 空集三值行为断言（NOT _some 空集应命中、_all 空集语义与文档 §3 一致）——runtime 落点指名：扩展 nop-orm TestCollectionOperator 的 runtime 数据模式或仿 TestH2WindowFrameCompileEndToEnd 内存 H2 模式（TestEqlCompileSql 纯编译层断言不了 runtime 行为）
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 全绿（163+新增）；全量 `./mvnw test -pl nop-persistence/nop-orm,nop-persistence/nop-orm-eql -am`（消费方模块联动）
+- [x] 修订 testThreeLevelNestedOperators 期望为正确语义（注释注明修订依据=2.2 审计 P0-2.2-002）
+- [x] 新增回归：NOT+_some（含无括号文档原形/合并形态/双 NOT）、NOT+_all（括号+原文形态）、嵌套矩阵（`_all._some`/`_some._all`/`_all._all`/三级链显式钉 `_all._some._some` 与 `_some._some._all` 两条）——断言完整 SQL 或量词结构，不只断言不崩溃
+- [x] 空集三值行为断言（NOT _some 空集应命中、_all 空集语义与文档 §3 一致）——runtime 落点指名：扩展 nop-orm TestCollectionOperator 的 runtime 数据模式或仿 TestH2WindowFrameCompileEndToEnd 内存 H2 模式（TestEqlCompileSql 纯编译层断言不了 runtime 行为）
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 全绿（163+新增）；全量 `./mvnw test -pl nop-persistence/nop-orm,nop-persistence/nop-orm-eql -am`（消费方模块联动）
 
 Exit Criteria:
 
-- [ ] 新增测试 ≥8 条且逐条对齐三 P0+崩溃+嵌套矩阵形态
-- [ ] 除显式修订的 testThreeLevelNestedOperators 与零断言的 testDebugScopes 外，全部既有测试零修改零回退
-- [ ] `./mvnw test -pl nop-persistence/nop-orm,nop-persistence/nop-orm-eql -am` 全绿
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 新增测试 ≥8 条且逐条对齐三 P0+崩溃+嵌套矩阵形态
+- [x] 除显式修订的 testThreeLevelNestedOperators 与零断言的 testDebugScopes 外，全部既有测试零修改零回退
+- [x] `./mvnw test -pl nop-persistence/nop-orm,nop-persistence/nop-orm-eql -am` 全绿
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - Closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 本 plan + index + roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（验证：三 P0 形态探针/测试复现正确语义、无反转回归、163+新增全绿、修订测试的正当性）
-- [ ] index 回填：P0-2.2-001/002/003 修复状态→fixed（plan 2320）；log 收口记录
-- [ ] 双 --strict（check-doc-links + check-plan-checklist）；commit
+- [x] 独立子 agent closure audit（验证：三 P0 形态探针/测试复现正确语义、无反转回归、163+新增全绿、修订测试的正当性）
+- [x] index 回填：P0-2.2-001/002/003 修复状态→fixed（plan 2320）；log 收口记录
+- [x] 双 --strict（check-doc-links + check-plan-checklist）；commit
 
 Exit Criteria:
 
-- [ ] closure audit PASS 证据写入本 plan Closure 段
-- [ ] index「P0 发现追踪」三行状态更新
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] closure audit PASS 证据写入本 plan Closure 段
+- [x] index「P0 发现追踪」三行状态更新
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
-- [ ] 三 P0 + P1 崩溃形态全部修复且语义正确（探针/测试双证据）
-- [ ] 无「只修崩溃落入反转」回归（NOT 簇四形态矩阵全验）
-- [ ] 新增回归测试覆盖全部修复形态；既有测试零回退
-- [ ] 受影响模块测试全绿（nop-orm-eql + nop-orm 联动）
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
-- [ ] index/log 一致；双 --strict 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 三 P0 + P1 崩溃形态全部修复且语义正确（探针/测试双证据）
+- [x] 无「只修崩溃落入反转」回归（NOT 簇四形态矩阵全验）
+- [x] 新增回归测试覆盖全部修复形态；既有测试零回退
+- [x] 受影响模块测试全绿（nop-orm-eql + nop-orm 联动）
+- [x] 独立 closure audit PASS 并留痕
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
+- [x] index/log 一致；双 --strict 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -127,14 +127,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: P0 簇A 修复完成并关闭。三个 P0（P0-2.2-001/002/003）与连带 P1-2.2-003 崩溃全部修复：shouldNegateExists 重写为逐层 XOR（删 hasChild 守卫与 ALL 祖先奇偶）、CollectionScope.absorbedNotParity（仅根 scope）、unwrapNotChain 剥离吸收 NOT、叶子取反改自身量词、negateConditionForAll NOT 分支 detach。truth table（_tmp/fcr-2320-truth-table.md）18 形态经独立 closure audit 全链走查 18/18 PASS（其中两行初稿期望在实现验证中被可执行测试纠正）。回归：TestCollectionOperatorTransformer 32/32（19 既有零回退+13 新增）、nop-orm-eql 176 全绿、nop-orm 213(0F) 全绿——修复后直接进入 V.1 回归范围。index「P0 发现追踪」三行已标 fixed。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_78cca750-ff53-4f93-83e7-c70573938a35（fresh session，代码走查+实跑回归）
+- Evidence:
+  - 语义走查：truth table 18 形态全链走查（transform→createExistsExpr→shouldNegateExists→replaceLogicNode→negateConditionForAll）18/18 PASS；五项关键守卫（hasChild 删除/叶子自身量词取反/detach/unwrap 置空/parity 仅根）全部确认在位
+  - 首轮 closure audit Cannot Close（Blocking#1：checklist 声称的 `_some._some._all` 三级链测试缺失）→ 补 testThreeLevelSomeSomeAll（32/32 全绿）后解除
+  - 回归实跑：TestCollectionOperatorTransformer 32/32 exit 0；nop-orm-eql 全量 BUILD SUCCESS；nop-orm 213 run/0 Failures（6 skipped 既有）
+  - Anti-Hollow：修复为行为实现，无空壳/吞异常；错误路径保持响亮（canMergeSameBranch 抛错误码、negateConditionForAll 兜底 NOT 包装）；`scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
+  - 无「只修崩溃落入反转」：not+_all 测试断言完整正确语义 SQL（∃(¬P)）+ runtime count 双向钉死
+  - 范围纪律：diff 7 文件全部在 In Scope 或 plan 指名落点；未触及 findLogicUnitNode/mergeConditions（簇C 零影响承诺兑现）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2320-full-code-review-fix-2.2-p0-negation-quantifier.md --strict` 退出码 0
+  - index 三行 P0→fixed 与 diff 逐项吻合；log（10-04.md）与 diff 一致
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1-2.2-006/007 簇B/C 与 DML 族簇D/E 归 R1.0；契约文档迁移归 G.2；运行时 1:1 数据掩盖归 P2-2.2-001/6.4 通道）
