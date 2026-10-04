@@ -149,6 +149,7 @@
 | --- | --- | --- | --- | --- |
 | MSG-NEW-01 | watch-only | `PulsarConsumeTask.runTask` 对 `config.getOptions()` 无 null 守卫即调 `allowBatchConsume()`；Kafka 侧有守卫（`KafkaConsumeTask.java:180`）。当前不可达（两后端 `subscribe()` 均对 null options 兜底 new），但任何绕过 `subscribe` 直接构造 task 的新代码会 NPE | `PulsarConsumeTask.java:82` | WI29 或相关 plan 顺手加守卫 |
 | MSG-NEW-02 | watch-only | `KafkaMessageService.getProducer` 未初始化时抛 `ERR_KAFKA_PRODUCER_CREATE_FAILED`，错误码语义是「创建失败」而非「未初始化」，与 Pulsar 侧同场景（直接 NPE，F-30）均属错误报告失真 | `KafkaMessageService.java:173-178` | WI26 错误码清理时一并裁定 |
+| MSG-NEW-03 | confirmed（WI9 顺带修复） | `PulsarMessageService.buildProducer` 从不设置 topic（computeIfAbsent lambda 丢弃 topic key），Pulsar 2.8 真客户端 `ProducerBuilderImpl.create()` 必抛 IllegalArgumentException——即使 F-04 修复，reply 在真实 broker 上仍发不出去。roadmap 审查轮未发现，WI9 执行期对抗审查发现并顺带修复（buildProducer(topic, schema) + getProducer 按需创建 + defaultProducer 字段移除） | `PulsarMessageService.java`（WI9 前 :162-174） | 已由 WI9 修复 |
 
 两条均为 watch-only，不阻塞、不新增工作项；按 roadmap Rules 在相关 WI 的 plan 中顺手处置，处置结果回写本文档。
 

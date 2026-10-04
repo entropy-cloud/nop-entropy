@@ -68,7 +68,6 @@ public class PulsarMessageService implements IMessageService {
     private PulsarClient client;
     private Map<String, Schema<?>> topicSchemas = new ConcurrentHashMap<>();
     private Map<String, Producer<?>> producers = new ConcurrentHashMap<>();
-    private Producer<?> defaultProducer;
     private Queue<PulsarMessageSubscription> subscriptions = new ConcurrentLinkedQueue<>();
 
     public void setConfig(PulsarClientConfig config) {
@@ -97,8 +96,6 @@ public class PulsarMessageService implements IMessageService {
                 .serviceUrl(config.getServiceUrl())
                 .build();
 
-        defaultProducer = buildProducer(Schema.STRING);
-
         LOG.info("nop.message.pulsar.initialized:serviceUrl={}", config.getServiceUrl());
     }
 
@@ -111,15 +108,6 @@ public class PulsarMessageService implements IMessageService {
             }
         }
         producers.clear();
-
-        if (defaultProducer != null) {
-            try {
-                defaultProducer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.pulsar.close-default-producer-failed", e);
-            }
-            defaultProducer = null;
-        }
 
         for (PulsarMessageSubscription subscription : subscriptions) {
             try {
@@ -150,18 +138,16 @@ public class PulsarMessageService implements IMessageService {
         Producer<?> producer = producers.get(topic);
         if (producer != null)
             return producer;
-
-        Schema<?> schema = topicSchemas.get(topic);
-        if (schema != null) {
-            return producers.computeIfAbsent(topic, k -> buildProducer(schema));
-        } else {
-            return defaultProducer;
-        }
+        // MSG-NEW-03 (WI9): a topicless producer is invalid in Pulsar 2.8 — unknown topics
+        // get an on-demand producer with the default STRING schema instead of falling back
+        // to a shared topicless defaultProducer.
+        Schema<?> schema = topicSchemas.getOrDefault(topic, Schema.STRING);
+        return producers.computeIfAbsent(topic, k -> buildProducer(k, schema));
     }
 
-    Producer<?> buildProducer(Schema<?> schema) {
+    Producer<?> buildProducer(String topic, Schema<?> schema) {
         try {
-            ProducerBuilder<?> builder = client.newProducer(schema);
+            ProducerBuilder<?> builder = client.newProducer(schema).topic(topic);
             if (defaultProducerConfig != null) {
                 builder.enableBatching(defaultProducerConfig.isBatchingEnabled());
                 builder.batchingMaxMessages(defaultProducerConfig.getBatchMaxMessages());
@@ -171,6 +157,11 @@ public class PulsarMessageService implements IMessageService {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+    }
+
+    @Override
+    public String getAckTopic(String topic) {
+        return PulsarHelper.deriveAckTopic(topic);
     }
 
     Transaction newTransaction(long timeout) throws PulsarClientException {

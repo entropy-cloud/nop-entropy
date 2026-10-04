@@ -146,11 +146,23 @@ class TestPulsarConsumeTask {
         org.apache.pulsar.client.api.ConsumerBuilder builder;
         org.apache.pulsar.client.api.Consumer<Object> consumer;
         io.nop.api.core.message.IMessageSubscription subscription;
+        final java.util.List<String> producedTopics = new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
         protected org.apache.pulsar.client.api.ConsumerBuilder newConsumerBuilder(
                 org.apache.pulsar.client.api.Schema<?> schema) {
             return builder;
+        }
+
+        org.apache.pulsar.client.api.TypedMessageBuilder<Object> typedBuilder;
+
+        @Override
+        org.apache.pulsar.client.api.Producer<?> buildProducer(String topic,
+                                                               org.apache.pulsar.client.api.Schema<?> schema) {
+            producedTopics.add(topic);
+            org.apache.pulsar.client.api.Producer producer = mock(org.apache.pulsar.client.api.Producer.class);
+            when(producer.newMessage()).thenReturn((org.apache.pulsar.client.api.TypedMessageBuilder) typedBuilder);
+            return producer;
         }
     }
 
@@ -247,6 +259,128 @@ class TestPulsarConsumeTask {
         org.junit.jupiter.api.Assertions.assertEquals(
                 io.nop.api.core.message.MessageErrors.ERR_SEEK_MESSAGE_NOT_SUPPORTED.getErrorCode(),
                 e.getErrorCode());
+    }
+
+    @Test
+    void acknowledgeReplyLandsOnValidFqnAckTopicAndMessageIsAcked() throws Exception {
+        String requestTopic = "persistent://public/default/orders";
+        String ackTopic = io.nop.message.pulsar.PulsarHelper.deriveAckTopic(requestTopic);
+
+        org.apache.pulsar.client.api.Message<Object> request =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(request.getTopicName()).thenReturn(requestTopic);
+        when(request.getValue()).thenReturn("request-payload");
+        when(request.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+
+        java.util.concurrent.CountDownLatch afterFirstDelivery = new java.util.concurrent.CountDownLatch(1);
+        org.apache.pulsar.client.api.Consumer<Object> consumer =
+                mock(org.apache.pulsar.client.api.Consumer.class);
+        when(consumer.receive()).thenReturn(request).thenAnswer(inv -> {
+            afterFirstDelivery.await();
+            return null;
+        });
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        org.apache.pulsar.client.api.TypedMessageBuilder<Object> typedBuilder =
+                mock(org.apache.pulsar.client.api.TypedMessageBuilder.class);
+        when(typedBuilder.sendAsync())
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
+                        mock(org.apache.pulsar.client.api.MessageId.class)));
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-ack-e2e");
+        io.nop.api.core.message.MessageSubscriptionConfig config =
+                new io.nop.api.core.message.MessageSubscriptionConfig(requestTopic,
+                        (t, m, c) -> new io.nop.api.core.message.Acknowledge("reply-payload"), options);
+
+        TestPulsarService svc = new TestPulsarService();
+        svc.builder = mock(org.apache.pulsar.client.api.ConsumerBuilder.class);
+        svc.consumer = consumer;
+        svc.typedBuilder = typedBuilder;
+        when(svc.builder.subscribe()).thenReturn(consumer);
+        when(svc.builder.topic(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        when(svc.builder.subscriptionName(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        // Register the derived ack topic so getProducer routes to the overridden
+        // buildProducer — a wrong derivation would miss the map and NPE loudly.
+        svc.setTopicSchemas(java.util.Map.of(ackTopic,
+                org.apache.pulsar.client.api.Schema.STRING));
+        svc.subscription = svc.doSubscribe(config);
+        try {
+            org.mockito.Mockito.verify(typedBuilder, org.mockito.Mockito.timeout(5000))
+                    .value("reply-payload");
+            // The reply went to a producer created FOR the derived ack topic (real
+            // derivation, not a mocked getAckTopic).
+            org.mockito.Mockito.verify(typedBuilder, org.mockito.Mockito.timeout(5000)).sendAsync();
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    svc.producedTopics.contains(ackTopic),
+                    "reply producer must be created for the derived ack topic, got: "
+                            + svc.producedTopics);
+            org.mockito.Mockito.verify(consumer, org.mockito.Mockito.timeout(5000))
+                    .acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any());
+            org.mockito.Mockito.verify(consumer, org.mockito.Mockito.never())
+                    .negativeAcknowledge(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any());
+        } finally {
+            afterFirstDelivery.countDown();
+            svc.subscription.cancel();
+        }
+    }
+
+    @Test
+    void plainReplyLandsOnValidFqnAckTopicWithoutNegativeAck() throws Exception {
+        String requestTopic = "persistent://public/default/orders";
+        String ackTopic = io.nop.message.pulsar.PulsarHelper.deriveAckTopic(requestTopic);
+
+        org.apache.pulsar.client.api.Message<Object> request =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(request.getTopicName()).thenReturn(requestTopic);
+        when(request.getValue()).thenReturn("request-payload");
+        when(request.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+
+        java.util.concurrent.CountDownLatch afterFirstDelivery = new java.util.concurrent.CountDownLatch(1);
+        org.apache.pulsar.client.api.Consumer<Object> consumer =
+                mock(org.apache.pulsar.client.api.Consumer.class);
+        when(consumer.receive()).thenReturn(request).thenAnswer(inv -> {
+            afterFirstDelivery.await();
+            return null;
+        });
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        org.apache.pulsar.client.api.TypedMessageBuilder<Object> typedBuilder =
+                mock(org.apache.pulsar.client.api.TypedMessageBuilder.class);
+        when(typedBuilder.sendAsync())
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
+                        mock(org.apache.pulsar.client.api.MessageId.class)));
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-plain-e2e");
+        io.nop.api.core.message.MessageSubscriptionConfig config =
+                new io.nop.api.core.message.MessageSubscriptionConfig(requestTopic,
+                        (t, m, c) -> "plain-reply", options);
+
+        TestPulsarService svc = new TestPulsarService();
+        svc.builder = mock(org.apache.pulsar.client.api.ConsumerBuilder.class);
+        svc.consumer = consumer;
+        svc.typedBuilder = typedBuilder;
+        when(svc.builder.subscribe()).thenReturn(consumer);
+        when(svc.builder.topic(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        when(svc.builder.subscriptionName(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
+        svc.setTopicSchemas(java.util.Map.of(ackTopic,
+                org.apache.pulsar.client.api.Schema.STRING));
+        svc.subscription = svc.doSubscribe(config);
+        try {
+            org.mockito.Mockito.verify(typedBuilder, org.mockito.Mockito.timeout(5000))
+                    .value("plain-reply");
+            org.junit.jupiter.api.Assertions.assertTrue(svc.producedTopics.contains(ackTopic));
+            org.mockito.Mockito.verify(consumer, org.mockito.Mockito.timeout(5000))
+                    .acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any());
+            org.mockito.Mockito.verify(consumer, org.mockito.Mockito.never())
+                    .negativeAcknowledge(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any());
+        } finally {
+            afterFirstDelivery.countDown();
+            svc.subscription.cancel();
+        }
     }
 
     @Test

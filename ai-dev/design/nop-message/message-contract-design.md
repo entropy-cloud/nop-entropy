@@ -55,6 +55,10 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
 | 非 String payload | 与 Pulsar 一致的两态：String 直用；其余按 D2 统一编码规则（编码或类型化拒绝，二选一，两后端必须同态） | 同左 | 不适用 |
 | 框架头保护 | 框架元数据头**最后写入**，上游同名头不可覆盖 | 同左 | 同左 |
 
+### 3.2.1 ack topic 派生契约（WI9/MSG-F-04）
+
+`getAckTopic` 的契约：**返回值必须是目标 broker 上合法的 topic 名，且由请求 topic 派生而来（合法输入 → 合法派生）**。默认实现对裸短名加 `ack-` 前缀；命名含域名/命名空间的后端必须 override——Pulsar 的派生规则为保留 domain+namespace、仅对末段加前缀（`persistent://public/default/orders` → `persistent://public/default/ack-orders`）。reply 通道消费方按同派生规则定位 ack topic。
+
 ### 3.3 D4 SubscriptionType 中立化（加性）
 
 - 新增三值中立枚举：SINGLE_ACTIVE（同订阅名同时仅一个活跃消费者）、LOAD_BALANCED（同订阅名多消费者轮询分发、无顺序承诺）、ORDERED_BY_KEY（同 key 消息固定路由到同一消费者）。

@@ -99,6 +99,23 @@ public class PulsarHelper {
         builder.value(message.getData());
     }
 
+    /**
+     * Derives the reply (ack) topic for a request topic (MSG-F-04 fix). Fully-qualified
+     * Pulsar names keep their domain + namespace and only prefix the final segment:
+     * {@code persistent://public/default/orders} → {@code persistent://public/default/ack-orders}.
+     * Short names map to {@code ack-<topic>}. The contract guarantees a valid derived topic
+     * only for a valid input topic.
+     */
+    public static String deriveAckTopic(String topic) {
+        if (topic != null && (topic.startsWith("persistent://") || topic.startsWith("non-persistent://"))) {
+            int idx = topic.lastIndexOf('/');
+            if (idx >= 0) {
+                return topic.substring(0, idx + 1) + "ack-" + topic.substring(idx + 1);
+            }
+        }
+        return "ack-" + topic;
+    }
+
     static String encodeValue(Object value) {
         if (value == null)
             return null;
