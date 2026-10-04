@@ -262,28 +262,28 @@ Exit Criteria:
 
 ### Phase 4 - owner doc + ledger 裁定落档 + 状态流转
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/`（按 Phase 0 落点：owner doc 新节 + `INDEX.md`/`docs-for-ai/04-reference/source-anchors.md` 如路由/锚点变化）、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（ledger `:142` 行 + WI11 状态行 `:95`）、`ai-dev/logs/`
 
 - Item Types: `Fix`（owner doc 与 live baseline 对齐）、`Decision`（ledger 裁定落档）、`Proof`（doc-links 门禁）
 
-- [ ] owner doc 按 Phase 0 裁定落点写入新节：原语契约（语义/方言策略表含证据等级列/错误翻译复用/事务语义与不保证项）+ **迁移说明**（`IUpsertHandler` 2026-08-22 删除（commit `3f1111078d`，`ai-dev/audits/check/nop-dao.md:415`）→ 本 WI 重引入：为什么旧 handler 挂载形态不再采用（空壳前科 + 无装配通路）、新原语与旧接口的差异、升级影响 = 旧接口零既有消费者故零迁移面、无原生 upsert 方言的行为变化点）。错误码、方法名逐一可 grep 到 live code。
-- [ ] `xdef:32` 处置落地（按 Phase 0 裁定；若裁 javadoc 注记则该注记在本 Phase 与 owner doc 同批落地，元素/绑定零变化，配置加载回归证明）。
-- [ ] **roadmap 修订**（照 WI10a/WI10b 原地注记先例）：ledger `:142` `MERGE`/`UPDATE..FROM` 行按 Phase 0 裁定回写（显式移出 + successor + 触发条件，原地留 2026-10 修订注记）；WI11 状态行流转——`todo`→`planned` 在本 plan draft review 通过后即落，`planned`→`done` 在独立 closure audit 通过后落（**不得提前**）。
-- [ ] 若 `docs-for-ai/` 路由或实现锚点变化，同步 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（当前基线 3 项 pre-existing：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`；不顺手修无关文件，只比对新增量）。
-- [ ] 方言 XML 零改值时，矩阵快照门禁显式记录"无需更新"；若有改值（Phase 0/3 差异登记触发的例外），按棘轮规则同步快照并独立提交。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] owner doc 按 Phase 0 裁定落点写入新节：原语契约（语义/方言策略表含证据等级列/错误翻译复用/事务语义与不保证项）+ **迁移说明**（`IUpsertHandler` 2026-08-22 删除（commit `3f1111078d`，`ai-dev/audits/check/nop-dao.md:415`）→ 本 WI 重引入：为什么旧 handler 挂载形态不再采用（空壳前科 + 无装配通路）、新原语与旧接口的差异、升级影响 = 旧接口零既有消费者故零迁移面、无原生 upsert 方言的行为变化点）。错误码、方法名逐一可 grep 到 live code。（「DAO 批量 upsert 原语」+「MERGE/UPDATE..FROM：显式移出」两小节；唯一门禁修正：ai-dev 路径引用按 docs-for-ai 边界规则改为 commit 号表述，doc-links 0 error）
+- [x] `xdef:32` 处置落地（按 Phase 0 裁定；若裁 javadoc 注记则该注记在本 Phase 与 owner doc 同批落地，元素/绑定零变化，配置加载回归证明）。（XML 注记块落地，元素零变化；回归 = `TestDialectCapabilityMatrix` 2/2 + `TestDialectDeadFlagDisposition` 9/9 + `TestUpsertStatements` 10/10 绿——xdef 解析/方言加载/配置绑定全链）
+- [x] **roadmap 修订**（照 WI10a/WI10b 原地注记先例）：ledger `:142` `MERGE`/`UPDATE..FROM` 行按 Phase 0 裁定回写（显式移出 + successor + 触发条件，原地留 2026-10 修订注记）；WI11 状态行流转——`todo`→`planned` 在本 plan draft review 通过后即落，`planned`→`done` 在独立 closure audit 通过后落（**不得提前**）。（ledger 行现位 `:146`，HTML 注记回写；WI11 保持 `planned` 待独立 audit）
+- [x] 若 `docs-for-ai/` 路由或实现锚点变化，同步 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md`。（新增锚点行 `DB-005`；无新文档故 `INDEX.md` 零变化）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（当前基线 3 项 pre-existing：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`；不顺手修无关文件，只比对新增量）。（实测 0 error / 3 warning = 基线 3 项，新增 0；执行中拦截 1 项自造 BOUNDARY 错误并已修复）
+- [x] 方言 XML 零改值时，矩阵快照门禁显式记录"无需更新"；若有改值（Phase 0/3 差异登记触发的例外），按棘轮规则同步快照并独立提交。（**方言 XML 零改值，无需更新**；`TestDialectCapabilityMatrix` 2/2 绿为证）
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] owner doc 新节与 live code 逐项对账无差异（原语方法/错误码/方言策略行均可 grep 到）；迁移说明三要素（旧形态为何弃/新形态差异/升级影响）无留空。
-- [ ] roadmap ledger 行修订落地且与 Phase 0 裁定一致（原地注记可查）；WI11 状态行流转符合规则（closure audit 前保持 `planned`）。
-- [ ] `xdef:32` 处置落地且配置加载回归通过（若裁注记）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] owner doc 新节与 live code 逐项对账无差异（原语方法/错误码/方言策略行均可 grep 到）；迁移说明三要素（旧形态为何弃/新形态差异/升级影响）无留空。
+- [x] roadmap ledger 行修订落地且与 Phase 0 裁定一致（原地注记可查）；WI11 状态行流转符合规则（closure audit 前保持 `planned`）。
+- [x] `xdef:32` 处置落地且配置加载回归通过（若裁注记）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 

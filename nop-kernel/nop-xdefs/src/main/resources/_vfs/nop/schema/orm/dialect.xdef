@@ -29,6 +29,11 @@
 
     <jsonTypeHandler>class-name</jsonTypeHandler>
 
+    <!-- WI11 处置注记（2026-10-05）：死配置——全仓零消费者，_DialectModel.upsertHandler 为冻结 String 字段
+        （nop-dao 无 codegen，字段零调用方、无装配通路）。跨库 upsert 能力由 nop-dao 批量 upsert 原语承载
+        （IJdbcTemplate.upsertBatch + UpsertStatements），不经 dialect 模型 handler 挂载（空壳前科 + 装配通路
+        不存在，裁定见 ai-dev/design/eql-cross-db-compat/2026-10-05-wi11-phase0-adjudications.md §2/§7）。
+        元素保留仅为配置兼容（硬删 = schema 无元素而冻结模型有字段的失配），勿新增消费依赖。 -->
     <upsertHandler>class-name</upsertHandler>
 
     <!--

@@ -758,6 +758,50 @@ roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部�
 
 配置断言总入口：`TestDialectDeadFlagDisposition`（nop-dao，9 例——accessor 链 × 既有 XML 值逐一锁定，方言 XML 零改值）。
 
+### DAO 批量 upsert 原语（2026-10-05 WI11：`IJdbcTemplate.upsertBatch` + `UpsertStatements`）
+
+跨库 upsert 的正路是 **DAO 层原语**（roadmap「明确不做的事」：UPSERT 不进 EQL 语法层），不是各消费方私有实现，也不是"INSERT 撞键后补 UPDATE"的两段式。原语三件套（均在 `nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/`，可 grep）：
+
+| 面 | 载体 | 职责 |
+|---|---|---|
+| 执行面 | `IJdbcTemplate.upsertBatch(querySpace, sqlName, tableName, columns, conflictColumns, updateColumns, rows, policy)`（default 方法） | 按 querySpace 方言生成单语句原子 upsert 并执行；native 路径 = 单 REQUIRED 事务内逐行执行同一条语句文本（批级一致性 = 事务原子性）；无原生方言按 `policy` 显式分流 |
+| 静态面 | `UpsertStatements`（final 工具类） | ① `resolveUpsertStyle(IDialect)`：方言名三族前缀（`postgresql`/`pg`、`mysql`/`mariadb`、`h2`，大小写不敏感）→ `UpsertStyle`，无原生支持返回 **null = 显式契约信号**（调用方必须分支，有测试断言）；② `buildNativeUpsertSqlText(...)`：单语句 upsert 文本（key-only 空更新集三形态）；③ `isDuplicateKeyException(IDialect, Throwable)`：三段重复键判定（下文） |
+| 策略 | `UpsertPolicy`（枚举，**必填无默认值**） | `NATIVE_ONLY` = 无原生方言时抛 `nop.err.dao.sql.feature-not-supported`（响亮）；`FALLBACK_INSERT_UPDATE` = 逐行"INSERT 单独事务 → 判重 → UPDATE 新事务"回落 |
+
+方言策略矩阵（证据等级列）：
+
+| 方言（名前缀） | upsert 语句形态 | duplicate-key 登记（翻译面） | 证据等级 |
+|---|---|---|---|
+| PostgreSQL（`postgresql`/`pg`） | `INSERT .. ON CONFLICT (kcols) DO UPDATE SET c = EXCLUDED.c`；key-only → `DO NOTHING` | `23505` | 形态单测 `[实测]`；语法 `[文档]`；真库 `[未取证]` |
+| MySQL/MariaDB（`mysql`/`mariadb`） | `INSERT .. ON DUPLICATE KEY UPDATE c = VALUES(c)`；key-only → 首个冲突键自赋值 no-op | `1062` | 形态单测 `[实测]`；语法 `[文档]`；真库 `[未取证]` |
+| H2（`h2`） | `MERGE INTO t (cols) KEY (kcols) VALUES (..)`（2.4.240 真执行实证；PG 形态 `ON CONFLICT .. EXCLUDED` 在 H2 2.3.232 有语法错误坑，故不用） | `23001,23505` | **真库实测**（CI 载体，`TestUpsertPrimitiveH2`） |
+| 其余全部方言（mssql/oracle/db2/dm/tdengine/duckdb/…） | 无原生分支：`NATIVE_ONLY` 抛错 / `FALLBACK_INSERT_UPDATE` 两事务回落 | 逐方言 XML `<errorCodes>`（8 个方言登记） | DB2 `-803` = 结构证据 `[实测]`（`TestDialect#testDb2DuplicateKeyTranslationChain`，翻译链单测）+ 真库 `[未取证]`；DM/TDengine `[未取证]`（红线：无一手文档） |
+
+错误翻译复用契约（零新增错误码、零翻译注册改动）：
+
+- 冲突类异常的归一化仍走既有链：真执行 `SQLException` → `DialectSQLExceptionTranslator`（方言 XML `<errorCodes>` vendorCode/SQLState 查表）→ `nop.err.dao.sql.duplicate-key`。
+- 原语回落路径的判重谓词 = **三段判定**（`UpsertStatements.isDuplicateKeyException`）：① 翻译器优先（8 方言登记面精确归一化，含旧决策表漏判的 H2 `23001`、DB2 `-803`、DM、TDengine）；② **SQLState-23505 无条件兜底**（未登记方言；保住 oracle 方言模型 + H2 后端的碰撞路径——`TestJdbcCheckpointStorage#testGenericDialectFallbackSeparateTransactionUpsert` 回归锚）；③ SQLState-23000 + 已知 vendorCode ∈ {1062, 1022, 2627, 2601, 1}（方言模型缺 `<errorCodes>` 时不退化；**MySQL 1022 为旧决策表独有，显式保留**）。`getCause()` 链与 JDBC `getNextException()` 链都走。非 duplicate 一律原样上抛（false negative 方向失败 = 安全方向）。
+- 既有 8 文件 / 11 处"INSERT 撞键后判错误码"调用点（`DbLoginAttemptStore`/`DbSendCodeRateLimiter`/`DbEmailCodeStore`/`DbSmsCodeStore`/`DaoBatchStateStore`/`RetryEngineImpl`/`SysSequenceGenerator`/`SysDaoResourceLockManager`）**不受影响**，两段式模式仍是合法用法。
+
+事务语义与**不保证项**（显式化，勿夸大）：
+
+- native 路径批级原子（单事务逐行）；**FALLBACK 路径仅行级原子**（行粒度两事务——整批单事务回落会在混合批上静默丢新键行，禁）。
+- 回落 INSERT→UPDATE 两事务之间存在窗口（非原子），无原生方言上的能力上限；一致性硬需求用原生三族方言。
+- 冲突键列集须真实对应表上唯一约束（原语不校验 DDL；H2/PG 上无唯一键时 `MERGE`/`ON CONFLICT` 的行为差异属建表契约）。
+- 方言解析失败（querySpace 无方言）= 类型化错误 `nop.err.dao.unknown-query-space`（两种策略一致——`executeUpdate` 本身无条件解析方言，回落无意义）。
+
+迁移说明（`IUpsertHandler` 2026-08-22 删除 → WI11 重引入）：
+
+- **为什么旧 handler 挂载形态不再采用**：旧 `IUpsertHandler`/`MysqlUpsertHandler`（commit `3f1111078d`，2026-08-22 删除）唯一实现恒返回 null、全仓零调用方——空壳；且 `nop-dao` 无 codegen 管线、`_DialectModel.upsertHandler`（冻结 String 字段、全仓零消费者）无装配通路，handler 挂载形态无法复活为有行为的契约。`dialect.xdef` 的 `<upsertHandler>` 元素保留仅为配置兼容（同文件 javadoc 已注记，勿新增消费依赖）。
+- **新原语与旧接口的差异**：能力挂在 `IJdbcTemplate`（消费方已有引用即可用，default 方法零实现方破坏）而非 dialect 模型配置；策略显式必选；重复键判定复用翻译链而非独立决策表；连同真库集成测试一起交付（删除注记的硬要求）。
+- **升级影响**：旧接口零既有消费者 ⇒ 零迁移面；无原生 upsert 方言的行为变化点 = 原来各消费方私有的 GENERIC 回落/响亮拒绝语义现由 `UpsertPolicy` 显式表达（nop-stream 两私有枚举已下线迁移，`JdbcCheckpointStorage` 三使用点 = FALLBACK_INSERT_UPDATE 行为等价，`JdbcTwoPhaseCommitSink` keyed 路径 = 静态面文本 + 原响亮拒绝）。
+
+测试载体（全部真实执行，无 mock）：`TestUpsertStatements`（静态面 10 例：三方言形态/key-only/保留字转义/三段判定逐段隔离/双链遍历/结构化字段纪律）、`TestUpsertPrimitiveH2`（H2 真库 9 例：插入/更新/冲突两腿/混合批/NATIVE_ONLY 响亮/key-only 拒绝/check 约束不误判）、`TestDialect#testDb2DuplicateKeyTranslationChain`（DB2 `-803` 结构证据）。
+
+### `MERGE`/`UPDATE..FROM`：显式移出（2026-10-05 WI11 裁定，EQL 语法层不做）
+
+EQL 语法层**不做** `MERGE` 语句语法（与「明确不做的事」UPSERT 不进语法层同批裁定；跨库 upsert 语义由上文 DAO 批量 upsert 原语承载——那是 JDBC 语句文本生成，不经 EQL 文法，两者不矛盾）。successor = 未来 EQL `MERGE` 语法 WI（plan-first：`.g4` 生成管线）；触发条件 = 出现 EQL 层 `MERGE` 语义（条件 upsert / `WHEN MATCHED THEN DELETE` / `BY SOURCE`）的真实产品需求 + 最低版本门裁决（已知分叉：PG 15 `MERGE` 无 `BY SOURCE` 需 17；MSSQL `MERGE` 强制终止 `;`，error 10713；Oracle `WHEN MATCHED THEN DELETE` 三版文档确认存在）。`UPDATE..FROM` 半行维持 WI10b 改档结论（EQL 文法无此语法 = 解析响亮失败 + 契约登记，见「死标志台账」`supportUpdateFromJoin` 行），不重开。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

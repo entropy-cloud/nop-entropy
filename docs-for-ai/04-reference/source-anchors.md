@@ -161,6 +161,7 @@
 | `DB-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java` (`getStringBinder` / `jdbcSet`) | Dialect 层空字符串转 NULL、VARCHAR 超长自动提升 CLOB 的实现 |
 | `DB-003` | `nop-kernel/nop-dataset/src/main/java/io/nop/dataset/binder/DataParameterBinders.java` (`STRING_EX`) | 空字符串转 NULL 的参数绑定器实现 |
 | `DB-004` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` | Dialect 特性标志（useAsInFrom、supportNullsFirst 等） |
+| `DB-005` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/jdbc/UpsertStatements.java` + `UpsertPolicy.java` + `UpsertStyle.java` + `UpsertExecutors.java` + `IJdbcTemplate.java`（`upsertBatch` default 方法） | WI11 DAO 批量 upsert 原语：方言三族前缀样式解析、单语句 upsert 文本生成（key-only 三形态）、三段重复键判定（翻译器优先 + SQLState-23505 兜底 + 23000 交接带）、NATIVE_ONLY/FALLBACK_INSERT_UPDATE 双显式策略（owner doc：eql-and-database-compatibility.md「DAO 批量 upsert 原语」小节） |
 | `DQL-001` | `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/beans/query/QueryBean.java` | DQL 核心模型：sourceName/fields/owner/aggFunc/dimFields/filter/orderBy |
 | `DQL-002` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmTemplate.java:190-202` | DQL 执行入口：`findListByQuery(QueryBean)`、`findFirstByQuery()`、`existsByQuery()` |
 | `DQL-003` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/mdx/MdxQueryExecutor.java` | 主子表维度对齐执行引擎：split → 分别 execute → Hash Join merge |
