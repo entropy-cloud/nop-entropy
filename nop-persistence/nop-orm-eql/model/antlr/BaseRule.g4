@@ -92,7 +92,7 @@ unreservedWord_:
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP
     | BEGIN|END | CROSS
     | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
-    | TUMBLE | LATERAL
+    | TUMBLE | LATERAL | NULLS
     ;
 
 // variable
@@ -363,7 +363,22 @@ sqlOrderByItems_:
    e=sqlOrderByItem (COMMA_ e=sqlOrderByItem)*;
 
 sqlOrderByItem
-    : expr=sqlExpr asc=(ASC | DESC)?
+    // Plan 2308: NULLS FIRST / NULLS LAST 走**子规则**，label 名与 AST 属性名一致。
+    // 两层踩坑记录（都写在这里，避免后人重犯）：
+    //  1) 写成 nulls=(NULLS FIRST | NULLS LAST) 时 ANTLR 报
+    //     error(130): label nulls assigned to a block which is not a set
+    //     ——label 只能标注单 token 或 token 集合，(NULLS FIRST | NULLS LAST) 是两个
+    //     多 token 序列的备选。（与 2256 的坑方向相反：那次是同优先级备选没合并成 token-set。）
+    //  2) 拆成 (nulls=NULLS nullsOrder=(FIRST | LAST))? 后语法过了，但 AstGrammarBuilder 的
+    //     initRuleReturnType 失败——label 必须与 AST 属性名对应。
+    //  3) 最终形态对标既有 sqlWindowFrameBound 的 boundType 写法（同样是多 token 组合）：
+    //     抽子规则 + label 直接用属性名 nullsFirst。子规则整体可选，故未写时为 null（三态）。
+    : expr=sqlExpr asc=(ASC | DESC)? nullsFirst=sqlNullsOrder_?
+    ;
+
+sqlNullsOrder_
+    : NULLS FIRST
+    | NULLS LAST
     ;
 
 sqlGroupByItem

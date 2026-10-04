@@ -1262,6 +1262,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */

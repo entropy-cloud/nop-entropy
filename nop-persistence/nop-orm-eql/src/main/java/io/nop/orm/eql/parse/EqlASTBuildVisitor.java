@@ -136,6 +136,34 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * rules: sqlOrderByItem
+     *
+     * Plan 2308: {@code nullsFirst} 是**三态** Boolean，xgen 不会自动生成三态映射，
+     * 因此这里手写（形态对标同文件既有的 {@code SqlWindowFrameBound_boundType}）。
+     *
+     * <p>三态缺一不可：{@code null} = 未请求空序，与 {@code FALSE}(NULLS LAST) 语义不同。
+     * 若退化成 primitive boolean，未写 NULLS 的 ORDER BY 也会被无端加上空序语义，
+     * 且"未指定"与"NULLS LAST"无法区分。
+     *
+     * <p>入参是子规则 {@code sqlNullsOrder_}（{@code NULLS FIRST} / {@code NULLS LAST}）
+     * 的 ParseTree，取其文本末词判定。生成侧在 {@code ctx.nullsFirst != null} 时才调用本方法，
+     * 因此"未写 NULLS"不会走到这里，字段自然保持 null。
+     */
+    public Boolean SqlOrderByItem_nullsFirst(ParseTree node) {
+        if (node == null)
+            return null;
+        String text = text(node);
+        if (text == null)
+            return null;
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (lower.endsWith("first"))
+            return Boolean.TRUE;
+        if (lower.endsWith("last"))
+            return Boolean.FALSE;
+        return null;
+    }
+
+    /**
      * rules: sqlQuerySelect
      */
     public boolean SqlQuerySelect_distinct(ParseTree node) {

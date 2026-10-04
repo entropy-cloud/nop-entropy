@@ -475,6 +475,12 @@ LAST
     : L A S T
     ;
 
+// Plan 2308: NULLS 用于 ORDER BY 的空序修饰（NULLS FIRST / NULLS LAST）。
+// 与 FIRST(:406)/LAST(:474) 同处 SQL92Keyword.g4——它们本就是 SQL-92 关键字。
+NULLS
+    : N U L L S
+    ;
+
 LEADING
     : L E A D I N G
     ;

@@ -1470,6 +1470,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx) { }
 	/**
 	 * {@inheritDoc}

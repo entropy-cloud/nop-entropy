@@ -20,6 +20,8 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
     
     protected io.nop.orm.eql.ast.SqlExpr expr;
     
+    protected java.lang.Boolean nullsFirst;
+    
 
     public _SqlOrderByItem(){
     }
@@ -44,6 +46,16 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
         if(value != null) value.setASTParent(this);
         
         this.expr = value;
+    }
+    
+    public java.lang.Boolean getNullsFirst(){
+        return nullsFirst;
+    }
+
+    public void setNullsFirst(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this.nullsFirst = value;
     }
     
 
@@ -74,6 +86,12 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                 }
             
                 ret.setAsc(asc);
+            
+                if(nullsFirst != null){
+                  
+                          ret.setNullsFirst(nullsFirst);
+                      
+                }
             
        return ret;
     }
@@ -131,6 +149,10 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                    return false;
                 }
             
+                if(!isValueEquivalent(this.nullsFirst,other.getNullsFirst())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -148,6 +170,12 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                     }
                 
                    json.put("asc", asc);
+                
+                    if(nullsFirst != null){
+                      
+                              json.put("nullsFirst", nullsFirst);
+                          
+                    }
                 
     }
 

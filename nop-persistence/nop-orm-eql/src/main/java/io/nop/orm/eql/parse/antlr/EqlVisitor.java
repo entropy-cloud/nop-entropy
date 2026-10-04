@@ -759,6 +759,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

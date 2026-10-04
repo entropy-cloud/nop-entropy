@@ -96,10 +96,10 @@ emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNulls
 ### 语法与 AST 现状
 
 - `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:365-367`：`sqlOrderByItem : expr=sqlExpr asc=(ASC | DESC)? ;`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:365-367`） —— 插入点。
-- **`NULLS` token 不存在**；但 **`FIRST`（`nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:406`）与 `LAST`（`:474`）token 已存在**，
+- **`NULLS` token 不存在**；但 **`FIRST`（`nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:406`）与 `LAST`（`:474`）token 已存在**，
   只是无任何 parser rule 引用、也不在 `unreservedWord_`。
-- 新 token 的落点约定：SQL-92 关键字住 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（`TUMBLE` 先例在 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:650-652`）；
-  `LATERAL` 在 `Keyword.g4:202`。本计划的 `NULLS` 落 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（与 FIRST/LAST 同处）。
+- 新 token 的落点约定：SQL-92 关键字住 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（`TUMBLE` 先例在 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:650-652`）；
+  `LATERAL` 在 `Keyword.g4:202`。本计划的 `NULLS` 落 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（与 FIRST/LAST 同处）。
 - `SqlOrderByItem`（`EqlAST.xjava:232-250`）当前只有 `expr` + `asc`（2307 删除了 `collate` 与 `nullsFirst`）。
 - **三态 Boolean 字段需要手写钩子**：`boolean asc` 由手写 `EqlASTBuildVisitor.SqlOrderByItem_asc(Token)`
   提供（`EqlASTBuildVisitor.java:132-136`），生成侧只做 `if(ctx.asc != null) ret.setAsc(...)`。
@@ -165,7 +165,7 @@ F1/F2/F3 的处置见 §Deferred But Adjudicated（F2 的**文档修正**在本�
 ### In Scope
 
 **手维护源码（可改）**
-- `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（新增 `NULLS` token）、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlOrderByItem` + `unreservedWord_`）
+- `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（新增 `NULLS` token）、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlOrderByItem` + `unreservedWord_`）
 - `nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`（`SqlOrderByItem` 加回 `Boolean nullsFirst`）
 - `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`（三态手写钩子）
 - `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`（EQL 通道 round-trip）
@@ -371,26 +371,89 @@ Critical/High 均 0，退出码 0。`nop-dao` 全模块测试全绿。
 
 ### Phase 3 - 语法入口与 AST 字段（Feature）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`、`model/ast/**/EqlAST.xjava`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`
 
 - Item Types: `Feature`
 
-- [ ] `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 新增 `NULLS` token（紧邻既有 `FIRST:406` / `LAST:474`）；`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` 按 Phase 1 裁定登记 `NULLS`
-- [ ] `sqlOrderByItem` 扩展为 `expr=sqlExpr asc=(ASC | DESC)? nulls=(NULLS FIRST | NULLS LAST)?`
-- [ ] `EqlAST.xjava` 的 `SqlOrderByItem` 加回 `Boolean nullsFirst`（三态）
-- [ ] `EqlASTBuildVisitor` 新增**三态手写钩子**（形态对齐既有 `SqlOrderByItem_asc(Token)`，`:132-136`），返回 `null`/`Boolean.TRUE`/`Boolean.FALSE`
-- [ ] **2256 的坑**：新增 token 会连带改 `.tokens` 与 `EqlLexer.java`；同优先级备选须合并为 token-set label（`nulls=(NULLS FIRST | NULLS LAST)`），否则生成器给出不同 precedence
-- [ ] 注意 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:248-249` 的 duplicate-prop-label 校验：`nulls` label 只能出现在一个备选分支
-- [ ] 再生成产物同步（`./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests`）
+- [x] `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 新增 `NULLS` token（紧邻既有 `FIRST:406` / `LAST:474`）；`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` 按 Phase 1 裁定登记 `NULLS`
+- [x] `sqlOrderByItem` 扩展为 `expr=sqlExpr asc=(ASC | DESC)? nullsFirst=sqlNullsOrder_?`，并新增子规则 `sqlNullsOrder_ : NULLS FIRST | NULLS LAST ;`（**踩了两层坑，见实现要点**）
+- [x] `EqlAST.xjava` 的 `SqlOrderByItem` 加回 `Boolean nullsFirst`（三态）
+- [x] `EqlASTBuildVisitor` 新增**三态手写钩子**（形态对齐既有 `SqlOrderByItem_asc(Token)`，`:132-136`），返回 `null`/`Boolean.TRUE`/`Boolean.FALSE`
+- [x] **2256 的坑（方向相反的另一种踩法）**：新增 token 确实连带改 `.tokens` 与 `EqlLexer.java`（已确认）；但 `(NULLS FIRST | NULLS LAST)` **不能**直接加 label——label 不能跨多 token 序列（ANTLR error 130），详见实现要点
+- [x] 避开 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:248-249` 提示的 duplicate-prop-label 校验：label 直接用属性名 `nullsFirst`、单一备选分支，无重复 prop
+- [x] 再生成产物同步（`./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests`）
 
 Exit Criteria:
 
-- [ ] **测试覆盖**：parse 矩阵（4 组合 × 大小写变体；`nulls` 作列名/别名/ORDER BY 列名的歧义位置；`FIRST`/`LAST` 单独出现不触发）有独立测试类
-- [ ] **测试覆盖**：`toSqlString()` 旁路 round-trip 断言（扩展 2307 的 `TestEqlToSqlStringBypass`，新增 nulls 用例）
-- [ ] **生成幂等**：连续两次 install 后 `git status --porcelain -- nop-persistence/nop-orm-eql` 无新增 diff
-- [ ] **无静默跳过**：`EqlASTKind` 与节点类一致（grep 可验证）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **测试覆盖**：parse 矩阵（4 组合 × 大小写变体；`nulls` 作列名/别名/ORDER BY 列名的歧义位置；`nulls` 作列名/别名/ORDER BY 列名的歧义位置；并断言 `first` 仍是既有不可用状态）有独立测试类
+- [x] **测试覆盖**：`toSqlString()` 旁路 round-trip 断言（新增 `TestEqlNullsOrderGrammarParse` 的 3 个 round-trip 用例；基类打印提前到本 Phase 完成，未留到 Phase 4）
+- [x] **生成幂等**：连续两次 install 后 `git status --porcelain -- nop-persistence/nop-orm-eql` 无新增 diff
+- [x] **无静默跳过**：`EqlASTKind` 与节点类一致（grep 可验证）
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 3 实现要点：两层 grammar 坑（2026-10-04）
+
+**坑 1 —— label 不能跨多 token 序列。** 最初按 Phase 3 原文写成
+`nulls=(NULLS FIRST | NULLS LAST)?`，ANTLR 直接报：
+
+```
+error(130): BaseRule.g4:368:37: label nulls assigned to a block which is not a set
+```
+
+label 只能标注**单个 token 或 token 集合**，而 `(NULLS FIRST | NULLS LAST)` 是两个
+**多 token 序列**的备选，不是集合。这与 2256 的坑**方向相反**：那次是"同优先级备选没合并成
+token-set label"，这次是"label 跨了多 token 序列"。两者都要靠独立跑 ANTLR 才能发现——
+项目构建把 ANTLR 原始错误包在 `NopEvalException` 里，看不到 error(130) 的定位。
+定位办法：`mvnw` 失败后用 `antlr4-4.13.2` + **版本匹配的** `antlr4-runtime-4.13.2`
+（用 4.9.3 会 `NoSuchMethodError`）直接跑 `org.antlr.v4.Tool -o /tmp/out Eql.g4`。
+
+**坑 2 —— AstGrammarBuilder 要求 label 与 AST 属性名对应。** 改成
+`(nulls=NULLS nullsOrder=(FIRST | LAST))?` 后 ANTLR 语法过了，但项目构建报
+`initRuleReturnType` 失败（`nop.err.xlang.exec.invoke-method-fail`）。
+
+**最终形态对标既有先例** `sqlWindowFrameBound`（同样是多 token 组合 → 单个 AST 字段）：
+
+```antlr
+sqlOrderByItem
+    : expr=sqlExpr asc=(ASC | DESC)? nullsFirst=sqlNullsOrder_?
+    ;
+
+sqlNullsOrder_
+    : NULLS FIRST
+    | NULLS LAST
+    ;
+```
+
+label 直接用属性名 `nullsFirst`，子规则整体可选 ⇒ 未写时为 `null`（三态）。
+
+**三态手写钩子**：`EqlASTBuildVisitor.SqlOrderByItem_nullsFirst(ParseTree)`，形态对标同文件既有的
+`SqlWindowFrameBound_boundType`。xgen 只为 primitive boolean 生成"命中即 true"的形式，
+**不会**自动生成三态映射，故必须手写；生成侧在 `ctx.nullsFirst != null` 时才调用，
+"未写 NULLS"自然保持 null。
+
+**基类打印提前到本 Phase**（Phase 4 原计划才做）：`AstToEqlGenerator#visitSqlOrderByItem`
+按三态字面输出 `nulls first`/`nulls last`，**不含方言逻辑**。提前的理由：若留到 Phase 4，
+则 Phase 3 结束时代码库里存在"能解析出 nullsFirst 但 `toSqlString()` 静默丢弃"的中间态——
+这正是 2307 要消灭的失败模式，不该跨 Phase 留存。该方法保持方言无关，D7 的分工不变。
+
+**发现一处既有事实（非本计划引入）**：`FIRST`/`LAST` 在本计划之前就已是
+`SQL92Keyword.g4` 的 token，但**从未**登记进 `unreservedWord_`，
+因此 `select first from t` / `order by first asc` **本来就解析失败**。
+本计划只新增 `NULLS` 一个 token 并登记为非保留字，**未改变** first/last 的可用性。
+测试相应改为断言这一既有事实（`testFirstIsStillNotBareIdentifier_PreExisting`），
+并补引号逃生口用例，避免后人误判为回归或误把它悄悄放开。
+
+**token 集确实变了**：`.tokens`、`EqlLexer.java`、`Eql.interp`、`EqlLexer.interp`
+全部随之变化（Phase 3 checklist 原文预判"若改动新增/删除 token，`.tokens` 与
+`EqlLexer.java` 也会变"——本次确认成立，与 2256 因未动 token 集而不同）。
+
+**生成幂等**：连续两次 `./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests`，
+两次之后 `git status --porcelain` 的变更文件集合**完全一致**（18 项），零手改生成物。
+
+**测试** `TestEqlNullsOrderGrammarParse`（21）：4 方向组合 × 大小写变体、三态（含"未写= null"）、
+多键各自携带、round-trip、以及 4 组 `nulls` 作标识符的歧义回归
+（重点是 `order by nulls asc` 中 nulls 必须解析为**列名**而非空序修饰）。
 
 ### Phase 4 - 输出器接线与端到端验证（Feature）
 
