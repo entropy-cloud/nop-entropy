@@ -395,12 +395,14 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
-     * 展开型 NULL 谓词（IS [NOT] TRUE/FALSE 构建期展开；Phase 3 transformer 的 DISTINCT FROM
-     * guard 式同规则）的操作数守护：子树含 {@link io.nop.orm.eql.ast.SqlParameterMarker} 即响亮
-     * 报错（错误码见 {@link OrmEqlErrors#ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER}）。
-     * `IS [NOT] UNKNOWN` 归一化不复制操作数，无需本守护。
+     * 展开型 NULL 谓词（IS [NOT] TRUE/FALSE 构建期展开 + Phase 3 OracleEqlAstTransformer 的
+     * DISTINCT FROM guard 式）的操作数守护：子树含 {@link io.nop.orm.eql.ast.SqlParameterMarker}
+     * 即 true（调用方响亮报错，错误码
+     * {@link OrmEqlErrors#ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER}）。
+     * `IS [NOT] UNKNOWN` 归一化不复制操作数，无需本守护。public static 供 transformer 复用
+     * （单一事实来源）。
      */
-    static boolean containsParameterMarker(io.nop.orm.eql.ast.EqlASTNode node) {
+    public static boolean containsParameterMarker(io.nop.orm.eql.ast.EqlASTNode node) {
         if (node instanceof io.nop.orm.eql.ast.SqlParameterMarker)
             return true;
         boolean[] found = new boolean[1];

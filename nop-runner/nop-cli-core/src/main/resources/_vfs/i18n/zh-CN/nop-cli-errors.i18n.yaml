@@ -620,6 +620,7 @@ nop.err.eql.not-single-expr: 不是合法SQL表达式
 nop.err.eql.not-support-ilike-operator: 数据库不支持ilike运算符
 nop.err.eql.not-support-multi-join-on-alias: 表关联不支持多个别名字段关联条件
 nop.err.eql.not-support-multiple-statement: 一次调用只允许执行一条SQL语句
+nop.err.eql.null-predicate-operand-has-param-marker: NULL语义谓词[{expr}]的操作数包含参数标记(?)——lowering展开会复制操作数导致参数绑定错位，请改用列或实体属性作操作数
 nop.err.eql.only-support-single-table-source: 只支持实体表数据源
 nop.err.eql.owner-not-ref-to-entity: 属性表达式的owner必须是实体对象
 nop.err.eql.param-not-component: 参数[{paramIndex}]不是IOrmComponent类型[{expected}]

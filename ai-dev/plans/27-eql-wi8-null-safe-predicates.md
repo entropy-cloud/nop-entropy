@@ -203,7 +203,7 @@ Exit Criteria:
 
 - [x] 红→绿回归测试断言具体规范 AST 形态与 h2/mysql 具体方言 SQL 文本；修复前红留痕。（`_tmp/wi8/red-probe.log` + `TestEqlNullSafeDistinctParse` 7 测 + `TestEqlNullSafeDistinctDialect` 19 测）
 - [x] SAFE_EQ 渲染三分支用例通过：h2 双方向原生文本、mysql `<=>`、其余方言（无 transformer，如手构模型）断言 `nop.err.eql.dialect-not-support-feature` 响亮报错——全仓不存在向不支持方言静默输出 `<=>` 的路径。（`testUnsupportedConstructedDialectFailsLoud`（手构方言，断言 feature=`is[not] distinct from`）+ `testOracleWithoutTransformerFailsLoud`）
-- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；`SAFE_EQ_` token 未删（`git diff Symbol.g4` 为空）。（commit `777e2ec494` 文法组 / 逻辑组随本提交；`git status` `ast/` 零 diff、`Symbol.g4` 未触碰）
+- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；`SAFE_EQ_` token 未删（`git diff Symbol.g4` 为空）。（commit `777e2ec494` 文法组 / 逻辑组随本提交；`git status` `ast/` 零 diff、Symbol.g4（model/antlr/ 下）未触碰）
 - [x] 既有 `IS NULL` / 比较算子行为逐字不变的守护用例通过；`TestEqlCorpusBaseline` 通过。（1/1）
 - [x] 接线验证用例通过；owner doc 覆盖表已落档；`ai-dev/logs/` 对应日期条目已更新。（`testH2NativeTextFullChain` + owner doc「NULL 三值语义谓词」小节 + daily log）
 
@@ -227,34 +227,34 @@ Exit Criteria:
 
 - [x] 红→绿回归测试：六种形态可解析；真值表 6×4 逐案断言通过（含非布尔操作数行）；错误降级负向对照通过。（`TestEqlNullSafeBooleanPredParse` 12 + `TestEqlNullSafeBooleanPredDialect` 20；h2 执行 3 行 × 6 谓词；非布尔行 mysql 文本 + h2 响亮错误）
 - [x] `IS [NOT] UNKNOWN` 复用 `IS [NOT] NULL` 渲染的等价断言通过（零新渲染路径）。（`testIsUnknownReusesIsNullRendering` 逐字节一致）
-- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；无 token 删除。（commit `a2dab64b70`；`Symbol.g4` 未触碰）
+- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；无 token 删除。（commit `a2dab64b70`；Symbol.g4（model/antlr/ 下）未触碰）
 - [x] `TestEqlCorpusBaseline` 通过；owner doc 覆盖表 + 真值表已落档；`ai-dev/logs/` 对应日期条目已更新。（1/1；随本提交落档）
 
 ### Phase 3 - lowering：WI4 管线消费者（方言展开/映射）与全方言用例矩阵
 
-Status: planned
+Status: completed（2026-10-04；开工前置复核=plan 21 实测 `completed`；`TestEqlNullSafePredTransformerWiring` 5/5 + 既有 `TestEqlAstTransformerWiring` 2/2 不回退（缓存两向）+ `:nop-orm,:nop-orm-eql -am` 全绿；beans.xml 默认注入落地）
 Targets: `nop-persistence/nop-orm-eql`（生产 `IEqlAstTransformer` 实现 + 按裁定的生成器渲染分支）、`nop-persistence/nop-orm`（配置注入测试）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、全量回归
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`（同 Phase 1）。
-- [ ] 生产 `IEqlAstTransformer` 落地（按 Phase 0 裁定；**职责边界 = 仅方言展开，`<=>`/native 文本渲染归 Phase 1 的生成器覆写**）：Oracle `IS [NOT] DISTINCT FROM` 三节点展开——正反两方向按 Phase 0 钉死公式（正向三支式 / 否定方向两支式或等价全二值式，**禁止两个 naive NOT 包装形态**），展开式只重排/包装既有操作数 + 新增对同一操作数的 null 谓词（参数保持性论证引用 WI4 §二 2c）+ `IS NOT TRUE/FALSE` 在无原生支持方言上的补充展开（若 Phase 2 通用展开已覆盖则本项按裁定收敛）+ 原生方言直通不改写。放 `transformAfterAnalyze` 槽位，方言来源 = 与渲染侧同源的语句级 querySpace（主表源/写实体）→ `getDialectForQuerySpace`；联邦（多 querySpace）场景按 Phase 0 登记处置（响亮报错或逐案裁定，不静默）。
-- [ ] **默认注入链落地**：transformer 经 `SessionFactoryConfig.eqlAstTransformer` 配置（beans.xml 显式 `<bean>`，Nop IoC 规则）；**禁止 per-call 传入路径**（WI4 契约）；缓存绕过保护自动生效——回归断言：默认注入的 transformer 编译结果**参与**计划缓存且同键可复用（与 `TestEqlAstTransformerWiring` 的非默认绕过案例互为对照）。
-- [ ] **接线验证（Minimum Rules #23，roadmap WI8 对 WI4 的存在理由）**：端到端测试（#22）——factory 默认配置注入 → 不带 transformer 参数的编译入口 → 生成 SQL 含方言展开/映射结果（断言具体文本）+ 运行时调用断言（计数器/标志）；无 transformer 配置的对照路径断言输出规范安全形态（全方言可执行）且**不**含不支持方言的裸语法（无静默跳过，#24）。
-- [ ] **roadmap EC ①（不等价类）**：MySQL 三值逻辑下三节点展开 vs `<=>` 的差异用例落地（单操作数 NULL 时 `NOT(展开)` = NULL vs `NOT(a<=>b)` = TRUE；H2 真库可执行则执行断言，否则文本 + 真值表推导断言）。
-- [ ] **roadmap EC ②（Oracle 展开文本，按审查 Major-1 强化）**：`IS DISTINCT FROM` 与 `IS NOT DISTINCT FROM` **正反两方向**的 Oracle 三节点展开正确 SQL 文本用例，**按 Phase 0 钉死公式逐字断言**；并断言两方向在**单操作数 NULL 与双 NULL 行的展开式均为二值**（禁止形态负向对照：展开文本不属 naive NOT 包装形态、语义不产生 WHERE 丢行）；`IS [NOT] TRUE/FALSE` 的 Oracle 形态按 unverified 纪律：展开或显式报错（按 Phase 0 裁定，不允许既无展开也无报错的第三态）。
-- [ ] **roadmap EC ④（版本门负向）**：SQLite <3.39（手构 `DialectModel` 载体）编译期响亮报错，断言具体错误码；连同 Phase 0 矩阵中「判不支持」的其余方言负向用例（每格一个）。
-- [ ] 三份必测语料 BC（roadmap EC ⑥）：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 与 WI0 基线快照逐字一致；**不声称"7 个全测"**（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。
-- [ ] owner doc 收口：NULL 谓词小节完整版（逐方言覆盖表 + 能力点登记表行：generator/transformer 方法 + 触发标志 + 不支持时错误码 + 对应负向测试名）+ `IS NOT TRUE/FALSE` 禁止降级警告 + 三节点展开 vs `<=>` 差异说明；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化同步。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm -am -T 1C` 全绿；`ai-dev/logs/` 对应日期条目已更新。
+- [x] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`（同 Phase 1）。
+- [x] 生产 `IEqlAstTransformer` 落地（按 Phase 0 裁定；**职责边界 = 仅方言展开，`<=>`/native 文本渲染归 Phase 1 的生成器覆写**；落地=`OracleEqlAstTransformer`（oracle/oracle-reverse 名称集合展开；TRUE/FALSE 按 Phase 0 裁定收敛=无 transformer 职责；直通=非 oracle 族不改写；多 querySpace=防御性 `ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE` 响亮；⚠️ 执行期机制发现：生成 `EqlASTOptimizer` 默认 clone 模式（`shouldClone=!isInplaceUpdate`）丢弃返回值即静默丢改写——`setInplaceUpdate(true)` 原地替换 + 操作数先 optimize 递归再 deepClone 复制；参数标记操作数响亮拒绝=同 Phase 2 错误码）：Oracle `IS [NOT] DISTINCT FROM` 三节点展开——正反两方向按 Phase 0 钉死公式（正向三支式 / 否定方向两支式或等价全二值式，**禁止两个 naive NOT 包装形态**），展开式只重排/包装既有操作数 + 新增对同一操作数的 null 谓词（参数保持性论证引用 WI4 §二 2c）+ `IS NOT TRUE/FALSE` 在无原生支持方言上的补充展开（若 Phase 2 通用展开已覆盖则本项按裁定收敛）+ 原生方言直通不改写。放 `transformAfterAnalyze` 槽位，方言来源 = 与渲染侧同源的语句级 querySpace（主表源/写实体）→ `getDialectForQuerySpace`；联邦（多 querySpace）场景按 Phase 0 登记处置（响亮报错或逐案裁定，不静默）。
+- [x] **默认注入链落地**：transformer 经 `SessionFactoryConfig.eqlAstTransformer` 配置（beans.xml 显式 `<bean>`，Nop IoC 规则；`orm-defaults.beans.xml` 新增 `nopOracleEqlAstTransformer` bean + factory 注入 property，契约静态钉死于 `testBeansXmlDefaultInjectionContract`；缓存正向=`testDefaultInjectionParticipatesInQueryPlanCache` 同键同实例 assertSame + transformer 不重复调用；非默认绕过=既有 `TestEqlAstTransformerWiring` 2/2 不回退）；**禁止 per-call 传入路径**（WI4 契约）；缓存绕过保护自动生效——回归断言：默认注入的 transformer 编译结果**参与**计划缓存且同键可复用（与 `TestEqlAstTransformerWiring` 的非默认绕过案例互为对照）。
+- [x] **接线验证（Minimum Rules #23，roadmap WI8 对 WI4 的存在理由）**：端到端测试（#22）——factory 默认配置注入 → 不带 transformer 参数的编译入口 → 生成 SQL 含方言展开/映射结果（断言具体文本）+ 运行时调用断言（计数器/标志）；无 transformer 配置的对照路径断言输出规范安全形态（全方言可执行）且**不**含不支持方言的裸语法（无静默跳过，#24）。
+- [x] **roadmap EC ①（不等价类）**：MySQL 三值逻辑下三节点展开 vs `<=>` 的差异用例落地（`testMysqlFormDivergenceVsOraclePinnedForm` 文本对照 + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2` H2 真执行推导：禁止形态①单 NULL 行 0 行 vs 钉死式 1 行、两支式双 NULL 行=1）（单操作数 NULL 时 `NOT(展开)` = NULL vs `NOT(a<=>b)` = TRUE；H2 真库可执行则执行断言，否则文本 + 真值表推导断言）。
+- [x] **roadmap EC ②（Oracle 展开文本，按审查 Major-1 强化）**：`IS DISTINCT FROM` 与 `IS NOT DISTINCT FROM` **正反两方向**的 Oracle 三节点展开正确 SQL 文本用例，**按 Phase 0 钉死公式逐字断言**；并断言两方向在**单操作数 NULL 与双 NULL 行的展开式均为二值**（禁止形态负向对照：展开文本不属 naive NOT 包装形态、语义不产生 WHERE 丢行）；`IS [NOT] TRUE/FALSE` 的 Oracle 形态按 unverified 纪律：展开或显式报错（按 Phase 0 裁定，不允许既无展开也无报错的第三态）。
+- [x] **roadmap EC ④（版本门负向）**：SQLite <3.39（手构 `DialectModel` 载体）编译期响亮报错，断言具体错误码（载体=`TestEqlNullSafeDistinctDialect.testUnsupportedConstructedDialectFailsLoud` 断言 `nop.err.eql.dialect-not-support-feature`+feature=`is[not] distinct from`；db2/dm/tdengine 名称集合外同落第 3 支）；连同 Phase 0 矩阵中「判不支持」的其余方言负向用例（每格一个）。
+- [x] 三份必测语料 BC（roadmap EC ⑥）：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 与 WI0 基线快照逐字一致；**不声称"7 个全测"**（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）。
+- [x] owner doc 收口：NULL 谓词小节完整版（oracle 双态行/展开公式/transformer 说明/参数标记拒绝；INDEX.md 路由条目已补 NULL 谓词；source-anchors 无路由级变化=No update required）（逐方言覆盖表 + 能力点登记表行：generator/transformer 方法 + 触发标志 + 不支持时错误码 + 对应负向测试名）+ `IS NOT TRUE/FALSE` 禁止降级警告 + 三节点展开 vs `<=>` 差异说明；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化同步。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm -am -T 1C` 全绿；`ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
-- [ ] 端到端（#22）+ 接线（#23）测试通过：默认注入 → 无参编译入口 → 方言展开/映射文本 + 运行时调用断言；无 transformer 对照路径安全形态断言通过。
-- [ ] roadmap EC ①②③④ 用例全部落地且断言具体文本/错误码（①不等价差异、②Oracle 展开文本、③TRUE/FALSE NULL 逐案、④SQLite 版本门报错）。
-- [ ] 缓存行为回归：默认注入参与缓存、非默认绕过缓存（既有 `TestEqlAstTransformerWiring` 全绿不回退）。
-- [ ] 三份必测语料 BC 逐字一致；未声称"7 个全测"。
-- [ ] owner doc 小节 + 能力点登记表行 + INDEX/source-anchors 裁定已落；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 端到端（#22）+ 接线（#23）测试通过：默认注入 → 无参编译入口 → 方言展开/映射文本 + 运行时调用断言；无 transformer 对照路径安全形态断言通过。
+- [x] roadmap EC ①②③④ 用例全部落地且断言具体文本/错误码（①不等价差异、②Oracle 展开文本、③TRUE/FALSE NULL 逐案、④SQLite 版本门报错）。
+- [x] 缓存行为回归：默认注入参与缓存、非默认绕过缓存（既有 `TestEqlAstTransformerWiring` 全绿不回退）。
+- [x] 三份必测语料 BC 逐字一致；未声称"7 个全测"。
+- [x] owner doc 小节 + 能力点登记表行 + INDEX/source-anchors 裁定已落；`ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 

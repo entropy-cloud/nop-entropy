@@ -695,11 +695,13 @@ EQL 语义钉死 = **标准 SQL 严格三值**（裁定正文 = WI8 Phase 0 裁�
 |---|---|---|---|
 | mysql / mysql5.7 / mariadb | `a <=> b` | `not (a <=> b)`（`<=>` 恒二值，`NOT` 良定义） | `[实测]`（`TestEqlNullSafeDistinctDialect` 文本断言，MySQL 手册 `<=>` `[文档]`） |
 | postgresql / postgis / h2 / h2gis / duckdb / mssql | `a is not distinct from b` | `a is distinct from b`（**方向文本直出，无 NOT 包装**） | `[实测]`（文本断言；h2 真执行随 Phase 3 端到端补） |
-| oracle（**无** transformer 配置时） | 编译期响亮报错 | 同左 | `[实测]`（`testOracleWithoutTransformerFailsLoud`）；默认注入 transformer 后走三节点展开（Phase 3） |
-| oracle（Phase 3 transformer 后） | 三支全二值 guard 式展开 | 两支式展开（公式钉死见裁定 §二.1） | Phase 3 落地时更新 |
+| oracle（**无** transformer 配置时） | 编译期响亮报错 | 同左 | `[实测]`（`TestEqlNullSafeDistinctDialect.testOracleWithoutTransformerFailsLoud`）；生产 beans.xml 已默认注入 transformer，此分支仅存在于显式剔除配置的场景 |
+| oracle / oracle-reverse（生产默认 transformer） | **三支全二值 guard 式**展开：`(a IS NOT NULL AND b IS NOT NULL AND a<>b) OR (a IS NULL AND b IS NOT NULL) OR (a IS NOT NULL AND b IS NULL)` | **两支式**展开：`(a IS NULL AND b IS NULL) OR (a IS NOT NULL AND b IS NOT NULL AND a=b)`——**禁止 naive NOT 包装**（单/双 NULL 行 NOT(NULL)=UNKNOWN 丢行） | `[实测]`（`TestEqlNullSafePredTransformerWiring` 工厂默认注入端到端逐字断言 + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2` H2 执行推导）；公式 3VL 验算=验收不变式（裁定 §二.1） |
 | db2 / dm / tdengine / sqlite（手构载体）/ 无名方言 | 编译期响亮报错（unverified 纪律——db2 原生格 `[未取证]`（IBM 文档不可达），不计入覆盖率；sqlite 3.39 起原生支持 `[文档]`，EC ④ 版本门负向载体 = 手构 `DialectModel`） | 同左 | `[实测]`（`testUnsupportedConstructedDialectFailsLoud`） |
 
-⚠️ **三节点展开 vs `<=>` 的固有差异（约束 4「不等价」登记）**：`<=>` 恒二值（`NULL <=> NULL` = TRUE），标准谓词嵌套外层 NOT 时按三值逻辑；EQL 按方言钉死各自正确形态（mysql 直出 `not (a<=>b)`、oracle 展开式禁用 naive NOT 包装——`NOT((a=b) OR (a IS NULL AND b IS NULL))` 在单操作数 NULL 行产生 UNKNOWN 丢行，属禁止形态）。差异用例随 Phase 3 落地。
+⚠️ **三节点展开 vs `<=>` 的固有差异（约束 4「不等价」登记，`TestEqlNullSafePredTransformerWiring.testMysqlFormDivergenceVsOraclePinnedForm` + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2`）**：`<=>` 恒二值（`NULL <=> NULL` = TRUE），标准谓词嵌套外层 NOT 时按三值逻辑；EQL 按方言钉死各自正确形态（mysql 直出 `not (a<=>b)`；oracle 展开式禁用 naive NOT 包装——`NOT((a=b) OR (a IS NULL AND b IS NULL))` 在单操作数 NULL 行产生 UNKNOWN 丢行（H2 执行实测 0 行 vs 钉死式 1 行），属禁止形态①）。
+
+**Oracle 展开 transformer（WI4 管线第一个真实生产消费者）**：`io.nop.orm.eql.compile.OracleEqlAstTransformer`（`transformAfterAnalyze` 槽位；方言经已解析表源 → querySpace → `context.getDialectForQuerySpace` 推导，与渲染侧同源；EQL 管线单 querySpace 强制之外的多 querySpace 防御性响亮）。经 `orm-defaults.beans.xml` 默认注入 `SessionFactoryConfig.eqlAstTransformer`（缓存正向参与=`TestEqlNullSafePredTransformerWiring.testDefaultInjectionParticipatesInQueryPlanCache` 同键同实例 + transformer 不重复调用；非默认绕过方向=既有 `TestEqlAstTransformerWiring` 不回退）。展开复制操作数（guard 支独立实例）⇒ 操作数含参数标记 `?` 时响亮报错 `nop.err.eql.null-predicate-operand-has-param-marker`（与 IS TRUE/FALSE 构建期展开同一错误码）。`IS [NOT] TRUE/FALSE/UNKNOWN` 不经 transformer（构建期展开已全方言覆盖）。
 
 ### `ORDER BY … COLLATE`：显式移出（2026-10-04 WI7 裁定，不落地）
 

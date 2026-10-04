@@ -35,11 +35,19 @@
 
     <bean id="nopOrmColumnBinderEnhancer" class="io.nop.orm.factory.DefaultOrmColumnBinderEnhancer" ioc:default="true"/>
 
+    <!-- WI8（plan 27）：IS [NOT] DISTINCT FROM 的 Oracle 族三节点展开 transformer——
+         WI4 管线的第一个真实生产消费者。经 SessionFactoryConfig.eqlAstTransformer 默认注入
+         （init 一次性注入 SessionFactoryImpl.defaultAstTransformer），自动获得缓存参与语义
+         （非默认实例才绕过缓存）。无状态单例、确定性改写（缓存契约假设 3 满足）。 -->
+    <bean id="nopOracleEqlAstTransformer" class="io.nop.orm.eql.compile.OracleEqlAstTransformer"
+          ioc:default="true"/>
+
     <bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
           ioc:bean-method="getObject" ioc:default="true">
         <property name="name" value="app-orm"/>
         <property name="registerGlobalCache" value="true"/>
         <property name="sequenceGenerator" ref="nopSequenceGenerator" ioc:ignore-depends="true"/>
+        <property name="eqlAstTransformer" ref="nopOracleEqlAstTransformer"/>
 
         <property name="daoListeners">
             <ioc:collect-beans by-type="io.nop.orm.IOrmDaoListener" ioc:ignore-depends="true"/>
