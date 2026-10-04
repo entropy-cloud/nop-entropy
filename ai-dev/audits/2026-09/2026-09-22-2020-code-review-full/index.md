@@ -25,7 +25,7 @@
 | 2.3 | `2.3-dao-migration-dbtool-deep-audit.md` | 0 | **1** | 19 | 36 | done（裁决：通过无 P0 附 P1×1——callFunc 绑定偏移进 R1.0；**check2 点名 4 条全部 already-fixed**（migration 两 P0 双探针实测）；方言缺口族×5+事务簿记×4+recordMigration 翻倍等 P2×19；降级 5、驳回立案 1（dup≡P3-2.1-024）） | 独立子 agent（见 plan 2321 Closure 段） |
 | 2.4 | `2.4-nosql-cdc-deep-audit.md` | 0 | **1** | 12 | 25 | done（裁决：通过无 P0 附 P1×1——rate_limit.lua 集群 CROSSSLOT 进 R1.0；**check2 P0 复裁定 false-positive（三重独立复现）**、P1-2 already-fixed、**P1-3 still-live（MFA codec 类型不对称）进 R1.0 输入**；RESP3 逐原语矩阵 10 通道全兼容；降级 3、升级 1、跨维度去重 3） | 独立子 agent（见 plan 2322 Closure 段） |
 | 2.5 | `2.5-orm-model-compliance-scan.md` | 0 | **5** | 14 | 21 | done（裁决：通过无 P0 附 P1×5——UK/唯一索引零物化族×4（job/batch/retry 部署层防线缺失；a20 复核反转升格）+字段长度覆盖族×1（rule precision=50 静默覆盖 json-4k）；**平台级发现：DDL 生成器不物化 `<index>`**；维度 8 独立复算 67/51/16 逐文件证实；demo 3 条单列；降 1 改判 2 驳 0） | 独立子 agent（见 plan 2323 Closure 段） |
-| 2.6 | — | | | | | todo | |
+| 2.6 | `2.6-biz-graphql-deep-audit.md` | 0 | **7** | 14 | 12 | done（裁决：不通过附 P1×7 三族——GraphQL fragment 校验族×2+DataLoader 挂死、权限公开面族×3（approval-support/纯 xbiz 静默公开 16 项/@BizLoader 死注解）、后台直调零事务；**check2 九条点名全部 already-fixed**（两条语义级验证）；CrudBizModel 拆分评估交付（宽职责单管线/700 行可下沉/禁机械拆类）；fail-open 三处裁定交付；改判 2 驳 0） | 独立子 agent（见 plan 2324 Closure 段） |
 | 2.7 | — | | | | | todo | |
 | 3.1 | — | | | | | todo | |
 | 3.2 | — | | | | | todo | |
@@ -106,6 +106,13 @@
 | P1-2.5-004 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-retry 2 唯一索引改写 unique-key+constraint，datav 路径已验证） | open |
 | P1-2.5-005 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-rule outputs precision 改 4000 或删列级让 domain 生效+重生成） | open |
 | 平台工单-2.5 | `2.5-orm-model-compliance-scan.md` | R1.0 平台工单（DDL 生成器不物化 `<index>` 含 unique=true——auth 7/ai 4/retry 2/sys 2） | open |
+| P1-2.6-001 | `2.6-biz-graphql-deep-audit.md` | R1.0（action 级事务装饰器死配置修复——后台直调写动作零事务；连带 owner doc 事务语义修正） | open |
+| P1-2.6-002 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（fragment body 变量误拒——GraphQLSelectionResolver 三位点一次闭合+三回归用例） | open |
+| P1-2.6-003 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（spread 指令变量误拒——@Exclude 特性死胎） | open |
+| P1-2.6-004 | `2.6-biz-graphql-deep-audit.md` | R1.0 独立（DataLoader 调度点后移+终局兜底 dispatch+幂等+异步 op×批量 loader 回归） | open |
+| P1-2.6-005 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（approval-support 五 mutation 无 auth——先补 constraint 式逐文件验证合并终值） | open |
+| P1-2.6-006 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（纯 xbiz 静默公开 16 项清单——独立重扫已验证，移交执行） | open |
+| P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（@BizLoader 死注解——buildFetcherField setAuth+xdef 补 auth+测试升级运行时断言） | open |
 
 ## P2 裁决台账（例外通道）
 
