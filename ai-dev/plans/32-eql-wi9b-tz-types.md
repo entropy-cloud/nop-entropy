@@ -262,8 +262,8 @@ Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 勘误注记已落 roadmap WI9b 节且含日期与依据指引；原文未重写（`git diff` 仅注记增量）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 勘误注记已落 roadmap WI9b 节且含日期与依据指引；原文未重写（`git diff` = 6 行纯插入、零删除，提交 `0ac6226065`）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` Phase 3/4 条目）。
 
 ## Closure Gates
 
