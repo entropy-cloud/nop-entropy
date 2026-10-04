@@ -1,6 +1,6 @@
 # GLR error-recovery livelock guard: divergence from the C oracle on malformed input
 
-> Plan Status: draft
+> Plan Status: in progress
 > Last Reviewed: 2026-10-04
 > Source: discovered while executing `ai-dev/plans/nop-treesitter/2026-10-04-1430-1-bash-grammar-and-shell-analysis.md` Phase 1 (`BashScannerIdiomsTest`), recorded in `ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` § 10
 > Related: `docs-for-ai/03-modules/nop-treesitter.md` (Known Deviations)
@@ -47,11 +47,26 @@ parse state as C does. The scanner is therefore faithful; the divergence is in
 `GLRParser`.
 
 **Where the abort happens**: two guards in
-`io.nop.treesitter.parser.glr.GLRParser`, in `handleError` and in the skip-merge
-path, both of the form "same recovery position for more than 100 rounds → throw".
-These are a defensive backstop, not a translation of any C construct. C's
-`ts_parser__recover` always advances the position by skipping a token, so it
-cannot hit this state.
+`io.nop.treesitter.parser.glr.GLRParser:959` (`handleError`) and
+`GLRParser:1279` (skip-merge, inside `recoverFromError`), both of the form "same
+recovery position for more than 100 rounds → throw". These are a defensive
+backstop, not a translation of any C construct. C's `ts_parser__recover` always
+advances the position by skipping a token, so it cannot hit this state.
+
+**Corrected during Phase 1**: the two guards share one counter pair
+(`zeroProgressRecoveryRounds` / `lastRecoveryPosition`) across two different code
+paths, so interleaving them corrupts each other's count. Both must be addressed
+together or not at all.
+
+There are **four** entry points into recovery, and only the two guarded paths are
+covered — so "enumerate every no-progress entry" is not a formality:
+
+| Entry | Site | Guarded? |
+|---|---|---|
+| lexed token while already in `ERROR_STATE` | `GLRParser:204` | via `recoverFromError`'s guard |
+| `Language.Action.RECOVER` action | `GLRParser:245` | via `recoverFromError`'s guard |
+| end of `handleError` (C's unconditional `ts_parser__recover`) | `GLRParser:1012` | **both** guards |
+| parse loop's error branch | `GLRParser:1716` | via `handleError`'s guard |
 
 **Scope of the defect**: it is shared runtime code. bash is simply the first
 grammar whose external scanner produces a token the error state accepts but
@@ -97,26 +112,80 @@ been hit by their corpora.
 
 ### Phase 1 - Reproduce and characterize
 
-Status: planned
+Status: completed
 Targets: `src/test/java/io/nop/treesitter/parser/` (new regression test)
 
 - Item Types: `Proof`
 
-- [ ] Add a regression test covering the four `echo ${x!y*}` variants, asserting
+- [x] Add a regression test covering the four `echo ${x!y*}` variants, asserting
       the current throw (so the fix has a red-to-green signal) and recording the
-      CLI's expected trees as the target
-- [ ] Enumerate every code path in `handleError` and the skip-merge path that can
+      CLI's expected trees as the target →
+      `nop-treesitter/src/test/java/io/nop/treesitter/parser/BashGlrNoProgressRecoveryTest.java`
+      (3 tests, green; asserts only *that* a `TreeSitterException` is thrown and
+      never binds its message, so Phase 2 can invert it without rewriting)
+- [x] Enumerate every code path in `handleError` and the skip-merge path that can
       re-enter recovery at an unchanged position, and write down which C function
-      each corresponds to and where C's position advance lives
-- [ ] Determine empirically whether the position can be advanced by skipping the
-      offending token (C's behaviour) or whether the version must be dropped
-- [ ] `ai-dev/logs/2026/10-04.md` (or the then-current date) entry updated
+      each corresponds to and where C's position advance lives → the four-entry
+      table in `Current Baseline`; **finding: only two of the four are guarded**
+- [x] Determine empirically whether the position can be advanced by skipping the
+      offending token (C's behaviour) or whether the version must be dropped →
+      **both were tried; neither works. See "Phase 1 adjudication" below.**
+- [x] `ai-dev/logs/2026/10-04.md` entry updated
 
 Exit Criteria:
 
-- [ ] The failing set is enumerated, not just the four known inputs
-- [ ] The chosen advance strategy is justified against the C function it replaces
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` exits 0 with the new test red
+- [x] The failing set is enumerated, not just the four known inputs → four recovery
+      entry points mapped; two carry the guard, and the shared-counter defect found
+- [x] The chosen advance strategy is justified against the C function it replaces →
+      **Phase 2's drafted strategy is disproved and replaced by a recorded decision
+      point** (below). No strategy is silently adopted.
+- [x] `./mvnw test -pl nop-treesitter -am` exits 0; the new test is green and pins
+      the defect without asserting the throw's message
+
+## Phase 1 adjudication — the drafted fix premise is wrong
+
+The draft assumed recovery fails to advance because the offending token is
+zero-width, and that advancing past it (C's behaviour) would therefore fix it.
+Instrumented tracing of `echo ${x!y}` shows the opposite, and both candidate fixes
+were implemented and measured before this conclusion was recorded.
+
+**What actually happens.** At the backstop, for all four inputs:
+
+```
+skip-guard pos=8 rounds=101 lookaheadSym=165 lookaheadSpan=[9,1] state=0 versions=1
+```
+
+Instrumenting `push` on either side of the skip shows the position *does* move
+within a round — `8 → 9` (or `8 → 10` for the first input) — and is back at `8`
+on the next round. So this is **not** a zero-width token loop despite the
+exception text; it is a bounded **oscillation** between two positions:
+
+```
+recover at 8 → skip → position 9 → next error → pop back to 8 → recover at 8 → …
+```
+
+**Why the two drafted strategies both fail.**
+
+| Strategy | Result (measured) |
+|---|---|
+| Advance past the offending token (C's behaviour) | Already happens inside a round (`8 → 9`); the oscillation returns to `8`, so the guard still fires |
+| Drop the version (`halt` + return) instead of throwing | Converts the abort into a *different* abort: `parse error: no stack version reached a complete tree` |
+
+Dropping the version fails because the oscillator is the **only** live version
+(`versions=1`), so halting it leaves nothing to complete a tree.
+
+**Consequence for Phase 2.** The fix cannot be "make the skip advance" nor "drop
+the version". It needs a **net-progress** mechanism: when the recovery position
+repeats, force the parse past the oscillating byte and rebuild — reproducing the
+property that makes C's `ts_parser__recover` unable to reach this state at all.
+That mechanism does not exist in the runtime today, and where it belongs
+(lexer skip primitive vs. a recovery-level forced advance vs. synthesizing an
+ERROR-wrapped tree from the best partial stack) is a **design decision with
+different behaviour for all nine grammars**, not a mechanical repair.
+
+**Phase 2 is therefore blocked pending that decision**, and this plan is left
+`in progress` rather than closed with an unproven fix. See `Closure` for the
+decision that has to be made.
 
 ### Phase 2 - Fix
 
@@ -176,15 +245,42 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待填）
-Completed: （待填）
+Status Note: **Not closed.** Phase 1 is complete and delivered; Phase 2 is blocked
+on a design decision, not on effort. The draft's Phase 2 premise ("the offending
+token is zero-width, so advancing past it fixes recovery") was tested and
+**disproved**: the position already advances within a round and recovery
+oscillates 8→9→8 instead. Both drafted strategies were implemented and measured —
+advance-past-token still trips the backstop, and drop-the-version converts the
+abort into `no stack version reached a complete tree` because the oscillator is
+the only live version.
+
+Closing this plan now would mean shipping an unproven change to shared runtime
+code, so the honest state is `in progress` with a recorded decision point.
+
+Completed: （未完成 —— Phase 2 待设计裁定）
+
+### Open decision (blocks Phase 2)
+
+Where should net progress be forced when the recovery position repeats?
+
+| Option | Shape | Trade-off |
+|---|---|---|
+| A. Lexer skip primitive | teach the lexer / `GLRParser` to unconditionally consume one byte on a repeated recovery position, then resume | closest to C's invariant; touches the lex/scan path, so every grammar is affected |
+| B. Recovery-level forced advance | on a repeated position, rebuild the stack at `position + 1` with the prefix wrapped in `ERROR` | contained to `recoverFromError`; recovery tree shape becomes ours, not C's |
+| C. Synthesize from the best partial stack | when all versions halt without completing, wrap the unconsumed remainder in `ERROR` and return that tree | smallest behavioural blast radius and always satisfies the documented contract; furthest from C's shape |
+
+All three change behaviour for all nine grammars, so `parser/glr` stays a
+protected area per `AGENTS.md` and the choice needs an explicit decision before
+implementation.
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
+- Reviewer / Agent: （Phase 2 实施并收口时由独立子 agent 填写）
 - Audit Session: （待填）
-- Evidence: （待填）
+- Evidence: Phase 1 evidence is in the daily log entry for 2026-10-04; Phase 2 has
+  not started, so there is nothing to audit for closure yet.
 
 Follow-up:
 
-- （待填；或明确写 no remaining plan-owned work）
+- 决定 A / B / C 之后，本 plan 的 Phase 2 需要按选定方案重写——现有 Phase 2 的
+  checklist 描述的是已被证伪的策略，不能照做。
