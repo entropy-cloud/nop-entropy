@@ -59,7 +59,7 @@
 终裁：原语契约内置**显式策略参数**（枚举，无 default 值，编译期强迫调用方表态）：
 
 - **`NATIVE_ONLY`（响亮失败）**：方言名无法解析或不属于原生 upsert 支持集（postgresql/pg、mysql/mariadb、h2 三族前缀）→ 抛 `NopException(ERR_SQL_FEATURE_NOT_SUPPORTED)`（复用既有错误码 `nop.err.dao.sql.feature-not-supported`，**零新增错误码**）。
-- **`FALLBACK_INSERT_UPDATE`（显式回落）**：同场景不抛错，走"INSERT 单独事务 → 撞键判定 → UPDATE 新事务"两事务回落（语义见 3.4）；方言解析异常（如 querySpace 无方言注册）在回落策略下同样归入回落路径（debug 日志），**不吞不瞒**（日志 + 行为 = 显式契约的一部分，与 Minimum Rules #24 的"吞异常"禁令不冲突：吞的是"用哪种方言"的解析失败，行为是文档化的回落而非静默跳过）。
+- **`FALLBACK_INSERT_UPDATE`（显式回落）**：同场景不抛错，走"INSERT 单独事务 → 撞键判定 → UPDATE 新事务"两事务回落（语义见 3.4）。⚠️ **执行期勘误（2026-10-05，独立 closure audit 发现）**：方言解析异常（如 querySpace 无方言注册）的行为修订为**响亮抛类型化错误 `nop.err.dao.unknown-query-space`**（`JdbcTemplateImpl.executeUpdate:239` 无条件解析方言、解析失败后续执行必然失败，"回落"无意义；live 实现 `UpsertExecutors.java:48-55` 两策略均响亮）——"不吞不瞒"原则以更强的形态兑现。
 
 被拒备选：全局单一行为（只响亮或只回落）——必迫使某一消费方在原语之外保留私有分流（重复实现收不拢，违背 WI11 EC ②）；策略默认值——默认值即隐式行为，违反"不允许静默"。
 

@@ -1,6 +1,6 @@
 # 29 EQL WI11 — DAO 层批量 upsert 原语（`ERR_SQL_DUPLICATE_KEY` 复用 + nop-stream 两私有枚举迁移 + `MERGE` ledger 裁定）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md` WI11 节（`:357-362`）、Work Item Status WI11 行（`:95`）、依赖与门控矩阵 WI11 行（`:118`）、「明确延后项」`MERGE`/`UPDATE..FROM` 行（`:142`）、Cross-Cutting（`:380-390`）、关键约束与红线；`ai-dev/audits/check/nop-dao.md:393-415`（`IUpsertHandler` 删除先例）；Current Baseline 全部代码事实在本工作区（分支 `feat/eql-cross-db-compat`）逐文件实测
 > Related: `ai-dev/plans/23-eql-wi10b-in-list-gate-and-dead-flags.md`（硬前置，`completed`，Completed: 2026-10-04，closure audit 通过）；`ai-dev/plans/25-eql-wi9a-cast-type-aliases.md`（差异登记 + 裁决人注记形态先例）；`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（书面裁决授权模式先例）
@@ -213,7 +213,7 @@ Targets: `nop-persistence/nop-dao/src/main/java/io/nop/dao/`（按 Phase 0 落�
 
 - Item Types: `Feature`（新原语）、`Fix`（重复实现收拢）、`Proof`（单测红→绿 + 接线验证）
 
-> ⚠️ **执行期勘误（2026-10-05，两处，均已落 owner doc/契约）**：① FALLBACK 策略下方言解析失败的行为由"归入回落路径"修订为**类型化错误 `ERR_DAO_UNKNOWN_QUERY_SPACE`**——`JdbcTemplateImpl.executeUpdate` 无条件解析方言（`:239`），解析失败时后续执行必然失败，"回落"无意义；零新增错误码（既有码）。② plan §4.3 迁移表漏列 `TestJdbcDuplicateKeyDetection`（stream 侧经反射直测已删包私有 `isDuplicateKeyException(Exception)`）——三模块命令 run1 拦截（9 errors NoSuchMethod，`_tmp/wi11/phase2-tri-module.log`），断言面全量迁移至 nop-dao `TestUpsertStatements`（补 2601/1451/消息字样不判定/真错误组/localized 消息 5 组，9→10 用例）后删除该失效文件，覆盖面不减。
+> ⚠️ **执行期勘误（2026-10-05，两处，均已落 owner doc/契约）**：① FALLBACK 策略下方言解析失败的行为由"归入回落路径"修订为**类型化错误 `ERR_DAO_UNKNOWN_QUERY_SPACE`**——`JdbcTemplateImpl.executeUpdate` 无条件解析方言（`:239`），解析失败时后续执行必然失败，"回落"无意义；零新增错误码（既有码）。（⚠️ 独立审计勘误：本勘误原称"均已落 owner doc/契约"——owner doc 已落、**契约与 Phase 0 裁定两文档的同步注记系收口时补齐**。）② plan §4.3 迁移表漏列 `TestJdbcDuplicateKeyDetection`（stream 侧经反射直测已删包私有 `isDuplicateKeyException(Exception)`）——三模块命令 run1 拦截（9 errors NoSuchMethod，`_tmp/wi11/phase2-tri-module.log`），断言面全量迁移至 nop-dao `TestUpsertStatements`（补 2601/1451/消息字样不判定/真错误组/localized 消息 5 组，9→10 用例）后删除该失效文件，覆盖面不减。
 
 - [x] 新原语实现（按 Phase 0/1 终裁）：方言原生单语句 upsert 的生成（PG/MySQL/H2 三形态 + 转义统一 `escapeSQLName`）与执行、批量语义、无原生方言的显式行为（终裁：显式报错或显式回落，**禁静默**——Minimum Rules #24：不允许空方法体/吞异常/placeholder）；重复键判定口径按 Phase 1 契约统一。
 - [x] `JdbcCheckpointStorage` 切换：`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 三使用点改消费新原语；删除私有 `UpsertDialect`/`resolveUpsertDialect`/`buildNativeUpsert`/`buildNativeUpsertSqlText`/`runNativeUpsert`/`runInsertOrUpdateSeparateTxns`/`isDuplicateKeyException`/`isDuplicateVendorCode`（GENERIC 回落已终裁下沉 nop-dao，全部迁走删除）。
@@ -296,11 +296,11 @@ Exit Criteria:
 - [x] **roadmap WI11 EC ⑤**：`./mvnw test -pl :nop-dao,:nop-orm,:nop-orm-eql -am -T 1C` 全绿（**收口日实测 BUILD SUCCESS**：nop-dao 239|0、nop-orm-eql 217|0、nop-orm 578|0、上游 855|0，0 失败；`_tmp/wi11/final-ec5.log`。⚠️ 闭包不含 stream 下游——stream 侧由 `./mvnw test -pl :nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 收口日实跑覆盖：connector-jdbc 55|0、stream-runtime 1223 中唯一失败 = roadmap Cross-Cutting 逐字登记的基线 `TestStreamConnectorRegistryDiscovery#testCapabilityMatrixAlignedWithDesignAdjudication`（debezium-cdc SINGLE_INSTANCE 实为 PARALLEL），按豁免口径登记（`_tmp/wi11/final-stream.log`）。
 - [x] **roadmap WI11 EC ⑤b**：「明确延后项」`MERGE`/`UPDATE..FROM` 行已在本 WI 裁定并落档（显式移出 + successor + 触发条件；不允许名义 owner——roadmap ledger 原地注记 + Phase 0 §8 裁定正文 + owner doc 小节）。
 - [x] **roadmap WI11 EC ⑥**：新原语 owner doc 已补，含 `IUpsertHandler` 删除（2026-08-22）→ 重引入的迁移说明（「DAO 批量 upsert 原语」小节）。
-- [ ] **roadmap WI11 EC ⑦**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段。（**留白**：执行期独立委派机制不可用已登记（Phase 1 §8.1 偏差），本项待独立 closure audit 执行后由 audit 填写）
+- [x] **roadmap WI11 EC ⑦**：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan 的 `Closure` 段（guide #26/#27；roadmap WI11 EC ⑦）。（独立审计完成：A1-A7/B1-B5/C/D/E 全 PASS——**审计额外承担了 Phase 1 降级缺失的设计契约独立审查职责**（B1-B5），Phase 1 偏差的独立门由此兑现）
 - [x] 所有 in-scope 裁定（接口形态/枚举迁移/H2 形态/xdef 处置/ledger 方向/证据口径）全部落地且与裁定文档一致；不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift。（执行期两处勘误——FALLBACK 方言解析失败改类型化错误、TestJdbcDuplicateKeyDetection 迁移——均已登记于 plan Phase 2 勘误注记 + daily log，非静默）
 - [x] 受影响的 owner docs 已同步到 live baseline（Phase 4 全勾）。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新原语被 stream 两侧组件在运行时真实调用（不只 import/类型存在），（b）端到端路径从原语入口到真库行状态/错误码完整连通，（c）无空方法体/静默跳过/no-op 作为正常实现（无原生方言行为显式化）。（**留白待独立 audit**；执行侧在案证据 = 接线验证 #23（H2 真执行经 `storeCheckPoint`/`buildKeyedUpsertSql`）+ scan-hollow ×3 exit 0 + NATIVE_ONLY/回落显式行为测试）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/29-eql-wi11-dao-upsert-primitive.md --strict` 退出码 0。（**留白：终门待独立 closure audit**）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）新原语被 stream 两侧组件在运行时真实调用（不只 import/类型存在），（b）端到端路径从原语入口到真库行状态/错误码完整连通，（c）无空方法体/静默跳过/no-op 作为正常实现（无原生方言行为显式化）。（独立审计实证：`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest`→`upsertBatch` 运行时真实调用+H2 真执行非 mock+NATIVE_ONLY/key-only/解析失败三路显式化均有测试）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/29-eql-wi11-dao-upsert-primitive.md --strict` 退出码 0。（Closure Evidence 写入后主会话复跑 exit 0；审计在 active 语义下亦已实测 1/1 pass）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 退出码 0（`--module nop-stream-runtime`、`--module nop-stream-connector-jdbc` 同样为 0）。（收口日复核 exit 0×3）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0。（收口日复核 0 error / 3 warning = 基线）
 - [x] 方言能力矩阵快照门禁不红（本 plan 方言 XML 零改值则记录"无需更新"；有改值则快照同步 + 门禁绿）。（**零改值，无需更新**；`TestDialectCapabilityMatrix` 2/2 绿）
@@ -343,19 +343,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-4 全部 `completed`（6 commits）；独立 closure audit（fresh-session 子 agent）完成——A1-A7/B1-B5/C/D/E 全 PASS，**0 Blocker / 0 Major / 1 Major 级文档勘误（随收口修复）+ 2 Minor**。审计**额外承担了 Phase 1 降级缺失的设计契约独立审查**（执行期环境委派机制不可用已如实登记）：接口形态 (b) 合理性/三段判重碰撞实例独立推演（oracle 模型+H2 MODE=MySQL → 段2 兜底命中 → 判重保持绿）/FALLBACK 行粒度两事务语义如实评估（"仅行级原子"分档显式化不夸大）/两枚举迁移等价两场景逐行对比——全部 PASS。F-1 文档勘误（契约 §2.2+裁定 §3.2 未随执行期修订同步）已随收口补齐。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，不同 task_id）
-- Audit Session: （session ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-05
+- Audit Session: WI11 closure audit（结论"WI11 可通过 closure audit——roadmap WI11 可以翻 done，条件=F-1 文档勘误落地"——已落地）
 - Evidence:
-  - （每条 Exit Criterion 的验证结果 PASS/FAIL + live code path / test name）
-  - （每条 Closure Gate 的验证结果 + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/29-eql-wi11-dao-upsert-primitive.md --strict` 退出码
-  - Anti-Hollow 检查结果；`node ai-dev/tools/scan-hollow-implementations.mjs`（三模块）退出码
-  - Deferred 项分类检查（确认无 in-scope live defect 被降级）
+  - A1 PASS：11 调用点/8 文件 grep 精确命中；四消费方模块 main 零 diff；surefire mtime 抽查（auth 23:32/sys-dao 23:31）
+  - A2 PASS：`git grep UpsertDialect` 两 stream 模块 src/main 零命中；等价主张抽验（前缀集超集/三段判定纯超集/updateColumns 保序）
+  - A3 PASS：审计独立复跑 `TestUpsertPrimitiveH2` 9|9 + `TestUpsertStatements` 10|10（冲突腿真执行断言 ERR_SQL_DUPLICATE_KEY+sqlText param）
+  - A4 PASS：`TestDialect#testDb2DuplicateKeyTranslationChain` 1|0 复跑（合成 -803/23505→ERR_SQL_DUPLICATE_KEY）；真库 [未取证] 登记合规
+  - A5 PASS：`final-ec5.log` BUILD SUCCESS（dao 239/orm 578/orm-eql 217 与实测一致；上游 855 系 nop-xlang——WI3 教训已吸收，plan 数字按实测）
+  - A6 PASS：roadmap :147 原地注记（显式移出+successor+触发条件三要素）+Phase 0 §8+owner doc 小节互证
+  - B1-B5 PASS（**含替代缺失 Phase 1 审查的独立设计复核**）：接口形态 (b) default 方法+UpsertStatements 静态面分工自洽（实现方仅 JdbcTemplateImpl/JdbcFactory 零破坏；避开 IUpsertHandler 空壳前科）；三段判重碰撞实例独立推演正确（段2 兜底命中判重，两绿测试确认）；FALLBACK 行粒度"仅行级原子"显式登记不夸大；迁移等价两场景（GENERIC 两事务结构逐行同/sink key-only 三形态逐字等价）
+  - C PASS：doc-links 0 error 新增 0、scan-hollow ×3 0 命中、checklist exit 0（审计 active 语义 1/1 pass+evidence 写入后主会话复跑 exit 0）、matrix exit 0
+  - D PASS：5 Phase+3 留白（本收口按审计判定勾选）+daily log 五段+Phase 1 降级偏差三处如实登记（`_tmp/wi11/review-round*.md` 在案）
+  - E PASS：Terminal 排除串逐字核验（5 flake 清单+JSONPoint 双类连带规则符合 roadmap :411 登记）；run1 flake 如实登记+单跑取证；stream 命令未谎称 BUILD SUCCESS（唯一失败=基线项逐字一致）
+  - F-1 勘误：契约 §2.2+裁定 §3.2 补执行期修订注记（`UpsertExecutors.java:48-55` 两策略响亮抛 `ERR_DAO_UNKNOWN_QUERY_SPACE`）；plan 勘误块"落契约"表述同步更正
+  - Deferred 项分类检查：无 in-scope live defect 被降级；F-2（未命名 stmt param 观感）/F-3（javadoc 措辞）/F-4（行组计数证明力）为登记 follow-up
 
 Follow-up:
 

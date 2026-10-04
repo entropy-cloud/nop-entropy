@@ -36,7 +36,8 @@
 - 按 querySpace 解析方言 → 静态面生成语句文本 → REQUIRED 单事务执行（native 路径）；策略为回落且方言无原生支持时走 §4 回落形态。
 - **策略参数是显式枚举、无默认值**（编译期强迫调用方表态，Phase 0 §3.2 终裁）：
   - `NATIVE_ONLY`：方言名无法解析、或方言不在原生支持集（postgresql/pg、mysql/mariadb、h2 三族前缀，大小写不敏感）→ `NopException(ERR_SQL_FEATURE_NOT_SUPPORTED)`（既有错误码 `nop.err.dao.sql.feature-not-supported`，**零新增错误码**；param 携带方言名与 querySpace 供定位）。
-  - `FALLBACK_INSERT_UPDATE`：同场景转入 §4 回落形态；方言解析抛出的异常同样归入回落路径（debug 日志记录后回落——行为是文档化的回落契约，不是吞异常跳过）。
+  - `FALLBACK_INSERT_UPDATE`：同场景转入 §4 回落形态；~~方言解析抛出的异常同样归入回落路径~~。
+    ⚠️ **执行期勘误（2026-10-05，独立 closure audit 发现）**：方言解析失败的行为修订为**类型化错误 `nop.err.dao.unknown-query-space`（`ERR_DAO_UNKNOWN_QUERY_SPACE`）**——`JdbcTemplateImpl.executeUpdate`（`:239`）无条件解析方言，解析失败时后续执行必然失败，"回落"无意义；live 实现 `UpsertExecutors.java:48-55` 两策略下均响亮抛错（plan Phase 2 勘误注记 + owner doc 同步）。
 - **批量语义按路径分档（自查修订，闭环混合批正确性）**：
   - **native 路径**：一次调用处理 N 行 = 同一 REQUIRED 事务内逐行执行同一条 upsert 语句文本（每行一组参数值）。行级"插入或更新"由单语句原子性保证；批级一致性由单事务提交/回滚保证（混合批——部分新键部分旧键——一次提交全部生效）。
   - **FALLBACK 路径**：**行粒度**两事务回落——逐行走"INSERT 单独事务 → 判重 → UPDATE 新事务"。不做整批单事务回落：整批 INSERT 中任一行撞键即整批回滚，随后的整批 UPDATE 只能触达已存在行、新键行将静默丢失（行丢失 = 静默错误，禁）。行粒度化的代价是批级原子性不保证（§4.3）。
