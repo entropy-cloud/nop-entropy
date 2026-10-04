@@ -209,26 +209,26 @@ Exit Criteria:
 
 ### Phase 2 - 文法：`IS [NOT] TRUE/FALSE/UNKNOWN` 解析与规范 AST（真值表驱动，红→绿）
 
-Status: planned
+Status: completed（2026-10-04；开工前置复核=plan 21 实测 `completed`；红证据 `_tmp/wi8/red-probe.log`（true/false/unknown 六形态 parse-fail）、绿 `_tmp/wi8/phase2-run6.log` 32/32 + 全模块 551|0；文法 commit `a2dab64b70`、逻辑 commit `48abe710fb`）
 Targets: 同 Phase 1 的文法/归一化/文档/测试面
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`（同 Phase 1）。
-- [ ] 修复前红：`a is not true`/`a is true`/`a is false`/`a is unknown`（含 NOT 变体）解析失败——回归测试断言可解析，修复前红留痕。
-- [ ] 文法与归一化（按 Phase 0 裁定）：默认 = 构建期通用展开进既有节点，**逐谓词展开式必须满足 Current Baseline 真值表逐行等价且钉死在安全词表内**（禁止 truthy 裸条件形态，真值表即验收规格）；`IS [NOT] UNKNOWN` 归一化既有 `SqlIsNullExpr`（直用自带 `not` prop，预期精确等价）；`.g4` 改动**单独提交**（与 Phase 1 分开）；`ast/_gen/` 零 diff。
-- [ ] **NULL 语义逐案用例（roadmap EC ③，不得复用 DISTINCT FROM 展开模板）**：真值表 6 谓词 × 4 操作数行（TRUE/FALSE/NULL/**非布尔操作数 `2`**——审查 Major-3 追加行，各谓词期望值按钉死语义断言，MySQL 原生 truthy 分叉登记）逐行断言 lowering 文本或（H2 真库可执行时）执行结果；**错误降级负向对照**：断言 `IS NOT TRUE` 的展开**不是** `a<>0`/`NOT a`/truthy 裸条件形态（NULL 行语义守护，roadmap 警告的回归锁）。
-- [ ] 正向用例断言具体方言 SQL 文本：h2 展开/直出形态各一条；按 Phase 0 矩阵对原生方言（如 mysql `IS NOT TRUE` 原生算子）至少一条直出或展开对照断言。
-- [ ] 接线验证（#23）+ 「不等价」登记（约束 4 ②③项：MySQL 数值真值分叉、`IS NOT TRUE` NULL 行——用例或 owner doc 差异行）。
-- [ ] owner doc：`IS [NOT] TRUE/FALSE/UNKNOWN` 逐方言覆盖表（含 Phase 0 矩阵与 `[未取证]` 标注）；真值表规格一并落档。
-- [ ] 语料 BC（roadmap EC ⑥ 基础）：`TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交、`ast/_gen/` 零 diff；`ai-dev/logs/` 已更新。
+- [x] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`（同 Phase 1）。（2026-10-04 实测）
+- [x] 修复前红：`a is not true`/`a is true`/`a is false`/`a is unknown`（含 NOT 变体）解析失败——回归测试断言可解析，修复前红留痕。（`_tmp/wi8/red-probe.log` 六形态 parse-fail（offendingToken=true/false/unknown）；回归=`TestEqlNullSafeBooleanPredParse` 12 测）
+- [x] 文法与归一化（按 Phase 0 裁定）：默认 = 构建期通用展开进既有节点，**逐谓词展开式必须满足 Current Baseline 真值表逐行等价且钉死在安全词表内**（禁止 truthy 裸条件形态，真值表即验收规格）；`IS [NOT] UNKNOWN` 归一化既有 `SqlIsNullExpr`（直用自带 `not` prop，预期精确等价）；`.g4` 改动**单独提交**（与 Phase 1 分开）；`ast/_gen/` 零 diff。（commit `a2dab64b70` 文法组；展开式=裁定 §二.2 钉死式逐字落地；isUnknown 生成体即正确零覆盖；⚠️ 执行期两项机制发现已落裁定/提交说明：①TRUE/FALSE 四备选生成器缺省体=透明委托（静默丢谓词）——手写 visit 为语义唯一载体；②AST 双亲禁令 ⇒ 操作数上下文 visit 两次（独立实例），参数标记操作数展开复制会破坏参数绑定 ⇒ 新错误码 `nop.err.eql.null-predicate-operand-has-param-marker` 响亮拒绝（unknown 单引用不设门）；h2 探针实测：H2 原生 `2 IS TRUE`=TRUTHY 且 `2 = true` 类型错误 90110——裁定文档 h2 行已执行期修正）
+- [x] **NULL 语义逐案用例（roadmap EC ③，不得复用 DISTINCT FROM 展开模板）**：真值表 6 谓词 × 4 操作数行（TRUE/FALSE/NULL/**非布尔操作数 `2`**——审查 Major-3 追加行，各谓词期望值按钉死语义断言，MySQL 原生 truthy 分叉登记）逐行断言 lowering 文本或（H2 真库可执行时）执行结果；**错误降级负向对照**：断言 `IS NOT TRUE` 的展开**不是** `a<>0`/`NOT a`/truthy 裸条件形态（NULL 行语义守护，roadmap 警告的回归锁）。（`TestEqlNullSafeBooleanPredDialect`：h2 真库布尔操作数 3 行 × 6 谓词执行断言 + mysql/h2 逐谓词 pinned 文本 + 非布尔行 mysql `2=1` 恒 FALSE/h2 响亮类型错误 + `testNoBinaryComparisonDegradation` 三方言负向 + `testExpansionIsNotBinaryComparisonDegradation`/`testExpansionEchoEqualsHandWrittenEquivalent`）
+- [x] 正向用例断言具体方言 SQL 文本：h2 展开/直出形态各一条；按 Phase 0 矩阵对原生方言（如 mysql `IS NOT TRUE` 原生算子）至少一条直出或展开对照断言。（mysql/h2 双方言 × 4 TRUE/FALSE 谓词 pinned 文本（`1/0` vs `true/false` 字面量分叉断言）+ UNKNOWN 复用 IS NULL 逐字节）
+- [x] 接线验证（#23）+ 「不等价」登记（约束 4 ②③项：MySQL 数值真值分叉、`IS NOT TRUE` NULL 行——用例或 owner doc 差异行）。（全链 compile 测试即接线；②=h2 truthy 探针 + mysql `2=1` 语义对照；③=负向对照 + NULL 行 h2 执行断言 `is not true`命中 FALSE+NULL 两行）
+- [x] owner doc：`IS [NOT] TRUE/FALSE/UNKNOWN` 逐方言覆盖表（含 Phase 0 矩阵与 `[未取证]` 标注）；真值表规格一并落档。（随本提交落 owner doc NULL 谓词小节）
+- [x] 语料 BC（roadmap EC ⑥ 基础）：`TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿；`.g4` 单独提交、`ast/_gen/` 零 diff；`ai-dev/logs/` 已更新。（551|0 BUILD SUCCESS；CorpusBaseline 1/1；commit `a2dab64b70`/`48abe710fb` 分离）
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：六种形态可解析；真值表 6×4 逐案断言通过（含非布尔操作数行）；错误降级负向对照通过。
-- [ ] `IS [NOT] UNKNOWN` 复用 `IS [NOT] NULL` 渲染的等价断言通过（零新渲染路径）。
-- [ ] `.g4` 单独提交；`ast/_gen/` 零 diff；无 token 删除。
-- [ ] `TestEqlCorpusBaseline` 通过；owner doc 覆盖表 + 真值表已落档；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试：六种形态可解析；真值表 6×4 逐案断言通过（含非布尔操作数行）；错误降级负向对照通过。（`TestEqlNullSafeBooleanPredParse` 12 + `TestEqlNullSafeBooleanPredDialect` 20；h2 执行 3 行 × 6 谓词；非布尔行 mysql 文本 + h2 响亮错误）
+- [x] `IS [NOT] UNKNOWN` 复用 `IS [NOT] NULL` 渲染的等价断言通过（零新渲染路径）。（`testIsUnknownReusesIsNullRendering` 逐字节一致）
+- [x] `.g4` 单独提交；`ast/_gen/` 零 diff；无 token 删除。（commit `a2dab64b70`；`Symbol.g4` 未触碰）
+- [x] `TestEqlCorpusBaseline` 通过；owner doc 覆盖表 + 真值表已落档；`ai-dev/logs/` 对应日期条目已更新。（1/1；随本提交落档）
 
 ### Phase 3 - lowering：WI4 管线消费者（方言展开/映射）与全方言用例矩阵
 

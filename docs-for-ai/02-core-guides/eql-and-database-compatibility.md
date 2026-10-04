@@ -666,8 +666,28 @@ EQL 语义钉死 = **标准 SQL 严格三值**（裁定正文 = WI8 Phase 0 裁�
 |---|---|---|
 | `a IS NOT DISTINCT FROM b` | `SqlBinaryExpr(operator=SAFE_EQ)`（左右保序） | `a <=> b` |
 | `a IS DISTINCT FROM b` | `SqlNotExpr(SqlBinaryExpr(SAFE_EQ))` | `not ( a <=> b )` |
-| `a IS [NOT] UNKNOWN` | `SqlIsNullExpr`（`UNKNOWN ≡ NULL` 三值精确等价） | `a is [not] null` |
-| `a IS [NOT] TRUE/FALSE` | 安全词表展开式（`IS TRUE ≡ a IS NOT NULL AND a = TRUE` 等，Phase 2 落地） | 展开式 |
+| `a IS [NOT] UNKNOWN` | `SqlIsNullExpr`（`UNKNOWN ≡ NULL` 三值精确等价，直用 `not` prop） | `a is [not] null`（与手写 `IS [NOT] NULL` 逐字节一致） |
+| `a IS [NOT] TRUE/FALSE` | 安全词表展开式：`a IS TRUE ≡ a IS NOT NULL AND (a = TRUE)`；`a IS NOT TRUE ≡ NOT(...)`；FALSE 同构 | 展开式（与手写等价式回显逐字节一致） |
+
+**`IS [NOT] TRUE/FALSE/UNKNOWN` 真值表规格（EQL 语义 = 标准 SQL 严格三值，验收规格）**：
+
+| 操作数 a | `a IS TRUE` | `a IS NOT TRUE` | `a IS FALSE` | `a IS NOT FALSE` | `a IS UNKNOWN` | `a IS NOT UNKNOWN` | `a<>TRUE`（禁止降级） |
+|---|---|---|---|---|---|---|---|
+| TRUE | TRUE | FALSE | FALSE | TRUE | FALSE | TRUE | FALSE |
+| FALSE | FALSE | TRUE | TRUE | FALSE | FALSE | TRUE | TRUE |
+| NULL | FALSE | **TRUE** | FALSE | TRUE | TRUE | FALSE | **NULL**（失配行） |
+| 2（非布尔） | FALSE | TRUE | FALSE | TRUE | FALSE | TRUE | TRUE |
+
+⚠️ **`a IS NOT TRUE` 不得降级为二元比较**（`a<>0`/`NOT a`/truthy 裸条件）：`a IS NULL` 行展开式为 TRUE 而 `a<>0` 为 NULL。展开式复制操作数两份（guard 支 + 等值支）⇒ **操作数含参数标记 `?` 时编译期响亮报错** `nop.err.eql.null-predicate-operand-has-param-marker`（复制会改变参数契约；`IS [NOT] UNKNOWN` 单引用不设门）。
+
+**`IS [NOT] TRUE/FALSE/UNKNOWN` 逐方言矩阵**（展开式为全方言安全形态，无渲染门；证据等级：`[实测]`=`TestEqlNullSafeBooleanPredDialect`）：
+
+| 方言 | 输出 | 证据/分叉登记 |
+|---|---|---|
+| mysql / mysql5.7 / mariadb | 展开式，布尔字面量渲染 `1`/`0` | `[实测]`（文本）+ `[实测]`（h2 执行矩阵跨方言语义一致性）；⚠️ **MySQL 原生 `IS TRUE` 为数值真值语义**（`2 IS TRUE`=TRUE），EQL 展开式 `2 = 1` 恒 FALSE=钉死严格语义——固有分叉登记约束 4「不等价」 |
+| postgresql / postgis / h2 / h2gis / duckdb / mssql | 展开式，布尔字面量渲染 `true`/`false`（h2）/方言形态 | `[实测]`（h2 文本+真库执行）；⚠️ **H2 原生 `2 IS TRUE` 亦为 truthy**（探针实测返回 TRUE）且 `2 = true` 为类型错误（90110）⇒ EQL 展开式在 h2 对非布尔操作数 = **响亮类型错误**（既非原生 truthy 也非钉死 FALSE——响亮分叉登记） |
+| oracle / db2 / dm / tdengine | 同样输出展开式（`1`/`0` 形态，安全词表全方言可执行） | 展开式可执行是 EQL 构造事实 `[实测]`（文本面）；各方言原生 `IS TRUE` 行为 `[未取证]`（Oracle 23ai 简写 unverified、DB2/dm/tdengine 无一手文档）——**不主张原生等价**，unverified 纪律不计入覆盖率 |
+
 
 **`IS [NOT] DISTINCT FROM` 逐方言输出矩阵**（`AstToSqlGenerator.printSafeEq` 渲染三分支，必选件——`printOperator` 全局无方言分支，不覆写则全方言输出 `<=>` 非法 SQL；裁定 §四.1）：
 
