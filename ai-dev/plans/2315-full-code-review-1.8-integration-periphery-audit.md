@@ -48,72 +48,72 @@
 
 ### Phase 1 - 两维度深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: 7 组 + 2 归属裁定对象
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：`git status` 干净后开始
-- [ ] 机械基线：7 组模块边表（pom + import 双口径，以组 pom modules 为准、停用模块单列）、行数榜、**全部 main 入口枚举（manifest/mainClass/脚本包装：NopCliApplication、NopCliMainForJdk11、scripts/nop-cli.cmd、EmptyMain）**
-- [ ] 维度 01 子 agent（**规则适配**：deep-audit 维度 01 的业务骨架分层规则在本组显式替换——rule 10「框架特定依赖只出现在 app 模块」不适用（整组即框架集成层，starter 含 spring/quarkus 依赖非违规）；rule 2/3 dao/core 层规则无对象丢弃；保留归属/方向/纯净性骨架）：
+- [x] 动手前基线确认：`git status` 干净后开始
+- [x] 机械基线：7 组模块边表（pom + import 双口径，以组 pom modules 为准、停用模块单列）、行数榜、**全部 main 入口枚举（manifest/mainClass/脚本包装：NopCliApplication、NopCliMainForJdk11、scripts/nop-cli.cmd、EmptyMain）**
+- [x] 维度 01 子 agent（**规则适配**：deep-audit 维度 01 的业务骨架分层规则在本组显式替换——rule 10「框架特定依赖只出现在 app 模块」不适用（整组即框架集成层，starter 含 spring/quarkus 依赖非违规）；rule 2/3 dao/core 层规则无对象丢弃；保留归属/方向/纯净性骨架）：
   - 检查点 ①：starter 注册/装配面结构（AutoConfiguration.imports、`_vfs` beans、桥接类分布——spring vs quarkus 两组）
   - 检查点 ②：spring 与 quarkus starter 集合对等缺口（一方有一方无的 starter 清单）
   - 检查点 ③：红旗法——内核/业务组 pom 与 import 中出现 spring/quarkus/network/integration 工件的反向边扫描
   - 检查点 ④：疑似错位模块名单（如 nop-demo 内的 nop-spring-gateway/nop-spring-gateway-demo-service）
   - 检查点 ⑤：network/integration 边界（职责重叠甄别）；7 组归属与依赖方向（各组 pom 边 + import 实际）
-- [ ] 维度 02 子 agent：漏网模块归属裁定（根级非 Maven 资产全集逐项枚举归属——build.sh/export-*.sh/gen-dependency-tree.sh/tools/config/deploy/deepwiki/ai-tools/build-tools/tests/demo/missions/package.json/pmd-ruleset.xml/.githooks 等，其中 e2e/scripts 给具体归属建议）；EmptyMain 裁定（内容/引用/与 nop-cli 真入口关系）；CLI 双入口腐化评估（runner NopCli vs scripts/nop-cli.cmd 的分工与漂移风险）；demo 102 main 定性（模板/示例/活代码——被谁消费）；autotest 基建定位；漏网模块归属裁定（e2e/scripts 各给归属建议）；500–1500 watch 登记
-- [ ] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-1.8-dim{01,02}.md`
+- [x] 维度 02 子 agent：漏网模块归属裁定（根级非 Maven 资产全集逐项枚举归属——build.sh/export-*.sh/gen-dependency-tree.sh/tools/config/deploy/deepwiki/ai-tools/build-tools/tests/demo/missions/package.json/pmd-ruleset.xml/.githooks 等，其中 e2e/scripts 给具体归属建议）；EmptyMain 裁定（内容/引用/与 nop-cli 真入口关系）；CLI 双入口腐化评估（runner NopCli vs scripts/nop-cli.cmd 的分工与漂移风险）；demo 102 main 定性（模板/示例/活代码——被谁消费）；autotest 基建定位；漏网模块归属裁定（e2e/scripts 各给归属建议）；500–1500 watch 登记
+- [x] 深挖迭代：有发现的维度派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-1.8-dim{01,02}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读；e2e/scripts 归属裁定以 finding 形式进报告）
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读；e2e/scripts 归属裁定以 finding 形式进报告）
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 3.9/4.2/**4.5** 边界协调（network 行为深审/全仓测试面/CLI 工具链治理——本项结构性裁定与 4.5 深审的分界）
-- [ ] e2e/scripts 归属裁定收敛（进报告移交节，供 roadmap 侧参考）
+- [x] 每维度派独立维度复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 3.9/4.2/**4.5** 边界协调（network 行为深审/全仓测试面/CLI 工具链治理——本项结构性裁定与 4.5 深审的分界）
+- [x] e2e/scripts 归属裁定收敛（进报告移交节，供 roadmap 侧参考）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-1.8-dim{01,02}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-1.8-dim{01,02}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `1.8-integration-periphery-audit.md`；index 登记 1.8 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 独立子 agent closure audit；通过后 roadmap 1.8 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `1.8-integration-periphery-audit.md`；index 登记 1.8 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 独立子 agent closure audit；通过后 roadmap 1.8 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除构建验证；引用 2026-09-22 绿色基线。
 
-- [ ] 报告落盘且两维度 + 归属裁定全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 1.8 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且两维度 + 归属裁定全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 1.8 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -125,14 +125,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 1.8 两维度 + 归属裁定全部完成（P0=0/P1=1/P2=6/P3=20，降级 1 正文留痕）；closure audit 一次 PASS（1 Major 表级别名错位 + 4 Minor 全部顺手修复）；P1-1.8-001 进 R1.0；未改产品代码，无 P0。
+Completed: 2026-10-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: agent_bd769bb3-dec1-4eef-9c73-8606bf1c3c74（独立 fresh-session closure auditor，只读）
+- Evidence:
+  - 发现清单完整性：P1 表 1 行/P2 表 6 行/P3 表 20 行/降级 1（机械复核）；抽验 8 条 file:line 全实锤（含 c7ea7b6836/1d12af9dcb git 实证）
+  - severity 标定：P1-1.8-001 维持 P1 独立裁定成立（不以生产消费为前提+降 P2 触发条件在案）；P2×6 无漏升降；01-01 降级验证成立
+  - 4 项关键结论复测 + 附加 3 项：红旗法 0 反向边独立重采样、integration/network 正交、根级资产 5/5、e2e 五包、@QuarkusMain 18/16、81 pom 扇入精确
+  - index 对账 0/1/6/20 一致（P1 汇总表已回填）；roadmap 翻 done 前置成立
+  - 1 Major（P3 表别名错位+方向括注）+ 4 Minor 全部已修复
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs` 退出码 0
+  - Anti-Hollow（审计版）：红旗法正结论独立重采样证实
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1-1.8-001 命运裁决归 R1.0；e2e 独立审计域建议归 R1.0 对账登记；CLI 治理移交 4.5；watch×6 移交 4.3）
