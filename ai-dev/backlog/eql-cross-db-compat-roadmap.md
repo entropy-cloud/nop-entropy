@@ -495,5 +495,21 @@ flowchart TB
 
 ## Roadmap Closure（2026-10-05）
 
-> 本节由 roadmap 级收口填写。Exit Criteria（上文 9 条）逐条核验结论 + 最终独立 audit 证据在案后落笔：
-> 逐条核验状态：EC1（A 类零残留）/EC2（B 类零残留）/EC3（方言纠错 11 项）/EC4（能力门闭环登记）/EC5（无新增死标志+三档处置）/EC6（文档一致）/EC7（语料 BC 非目标语义一致，文法 token 集棘轮按 WI5/WI7/WI7b 规程）/EC8（跨模块终局验证）/EC9（最终独立 audit）——**待最终独立 audit 报告落档后填写终态**。
+> **终态：16/16 工作项 `done`；Exit Criteria 9 条全部 PASS；roadmap 收口完成。**
+>
+> **最终独立 audit**（fresh-session 子 agent，与全部 16 个 WI 执行者及 per-WI audit 均不同 task_id，2026-10-05）：EC1-EC9 逐条终验**全 PASS、0 Blocker / 0 Major / 2 Minor**（INDEX 路由关键词滞后——已随收口补齐 upsert/ROLLUP-CUBE/atTimeZone/VALUES/dateTrunc/FETCH FIRST 等词；已删除红探针的陈旧 surefire 报告残留——gitignored 构建产物，已清理）。门禁自跑全 exit 0（矩阵 18 登记/loadable 15；doc-links 0 error/3 既有；scan-hollow ×3 零命中；checklist ×3 抽查）。
+>
+> **逐条终验摘要**：
+> - **EC1 PASS**：A 类 6 缺陷回归测试独立复跑 25 tests 0 failures（断言精确 SQL 文本/错误码，非"没抛异常"式）。
+> - **EC2 PASS**：B 类 5 缺陷终局批次 29 tests 0 failures（BUG-15 守卫在列）。
+> - **EC3 PASS**：11 项逐项 live XML 命中（①②③ false/④保持/⑤ unverified 纪律/⑥ mariadb false+哨兵/⑦ mixin 已除/db2 修复）；矩阵 loadable 14→15。
+> - **EC4 PASS**：能力点登记表 ~28 行四列齐全；抽 3 行 live code+负向测试核对（supportValuesTableSource/supportRollup·Cube/forUpdateNowait·SkipLocked）。
+> - **EC5 PASS**：死标志台账三方一致（roadmap 终裁↔owner doc 14 行↔live code 抽样）；新增标志三要素齐备。
+> - **EC6 PASS**：grep 对账零差异抽 3 行吻合；doc-links 基线逐字一致新增 0；INDEX 路由更新 ≥4 次+收口补齐；source-anchors 按需增补无失守。
+> - **EC7 PASS**：语料棘轮机制正当（parse-error token 集合增量 NULLS/ROLLUP,CUBE/NOWAIT,SKIP_,LOCKED 证据链闭合，语句本体逐字不变）+ 独立复跑 1/1。
+> - **EC8 PASS**：十模块跨模块终局 BUILD SUCCESS（orm-eql 613/orm 217/dao 239/metadata 1340/duckdb 58/job-dao 87/auth 461/tdengine 14/db-migration 98/orm-demo 35）；首轮发现 duckdb atTimeZone 探针哑值 → postgresql 模板补 'UTC' testSql 修复（`8a5cce668f`）后重跑通过；排除清单与 Cross-Cutting 登记一致。
+> - **EC9 PASS**：本审计（scan-hollow ×3 零命中）。
+>
+> **跨 WI 一致性抽检 4/4 PASS**：Work Item Status 无虚翻（机器验证 16 全 done+抽样 plan completed+evidence 在案）；G-1..G-4 裁决与 Gate 表注记一致；「明确延后项」ledger 逐行扫过无名义 owner 残留（greatest/least 维持 open 为 G-2 合法开放）；Cross-Cutting 豁免清单完整（5 flake+jpath 双类+nop-lint 家族含 WI12 增补 lint-core 两类+nop-code-web）。
+>
+> **收口后顺手项**（均不阻塞，登记备查）：EC8 陈旧红探针 surefire 报告已清理；后继 clean install 自然消除其余构建产物噪音。
