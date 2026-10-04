@@ -1,6 +1,6 @@
 # 2321 full-code-review 2.3 nop-dao + nop-db-migration + nop-dbtool 深审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.3（MA2）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 04/09/14 + 共享前缀）
 > Related: plan 2314（1.7 已审 nop-persistence 分层边界）；plan 2318（2.1 orm 会话域，dim14-04 已登记 JdbcBatcher:185-189 成功路径回调无兜底 P3——本项 JdbcBatcher 复核的撞车对照）；plan 2319/2320（2.2 orm-eql，check2 orm-eql P0 already-fixed 先例）
@@ -54,71 +54,71 @@
 
 ### Phase 1 - 深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-dao + nop-db-migration + nop-dbtool
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：三模块 main/test 行数榜（豁免清单：dialect/model/_gen）、JdbcTemplate 公开方法清单、17 种 change executor↔xdef 声明对照表、@Disabled 清单
-- [ ] JDBC 执行子 agent（维度 04+09）：JdbcTemplateImpl/JdbcDataSet/DialectImpl/seq/shard/coderule + 错误处理两档策略（含 DbMigrationErrors 错误码契约域撞见即报）
-- [ ] 事务批量子 agent（维度 14）：txn 包 + JdbcBatcher（check2 P1×2 复核——负计数伪造/残留命令混合，实测或逐帧推演；与 2.1 dim14-04 撞车对照）+ metrics
-- [ ] 迁移子 agent（维度 09+14）：MigrationEngine 执行链 + 17 种 executor 逐个可达性（**check2 P0-1 实测**：构造 9 种 change XML 走解析→装配，确认 CCE live 状态）+ insert/update/delete `<column>`（**check2 P0-2 实测**）+ nop-dbtool core 7 文件 + web 空壳现状
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-2.3-{jdbc,txn,migration}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：三模块 main/test 行数榜（豁免清单：dialect/model/_gen）、JdbcTemplate 公开方法清单、17 种 change executor↔xdef 声明对照表、@Disabled 清单
+- [x] JDBC 执行子 agent（维度 04+09）：JdbcTemplateImpl/JdbcDataSet/DialectImpl/seq/shard/coderule + 错误处理两档策略（含 DbMigrationErrors 错误码契约域撞见即报）
+- [x] 事务批量子 agent（维度 14）：txn 包 + JdbcBatcher（check2 P1×2 复核——负计数伪造/残留命令混合，实测或逐帧推演；与 2.1 dim14-04 撞车对照）+ metrics
+- [x] 迁移子 agent（维度 09+14）：MigrationEngine 执行链 + 17 种 executor 逐个可达性（**check2 P0-1 实测**：构造 9 种 change XML 走解析→装配，确认 CCE live 状态）+ insert/update/delete `<column>`（**check2 P0-2 实测**）+ nop-dbtool core 7 文件 + web 空壳现状
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-2.3-{jdbc,txn,migration}.md`
 
 Exit Criteria:
 
-- [ ] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] check2 点名条目（P0×2 + P1×2）逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] check2 点名条目（P0×2 + P1×2）逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 2.1（JdbcBatcher dim14-04 撞车裁定）/2.2（DML 簇边界）协调；check2 重复发现归属
-- [ ] 迁移引擎正结论收敛（执行链连通性一条总评）
+- [x] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 2.1（JdbcBatcher dim14-04 撞车裁定）/2.2（DML 簇边界）协调；check2 重复发现归属
+- [x] 迁移引擎正结论收敛（执行链连通性一条总评）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.3-{jdbc,txn,migration}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.3-{jdbc,txn,migration}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.3-dao-migration-dbtool-deep-audit.md`；index 登记 2.3 行
-- [ ] 如有 P0（含 check2 P0 复核若 still-live）：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-db-migration,nop-persistence/nop-dbtool/nop-dbtool-core -am`（无条件执行；dbtool-core 有活跃测试 TestJdbcMetaDiscovery 以其通过为准；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.3 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.3-dao-migration-dbtool-deep-audit.md`；index 登记 2.3 行
+- [x] 如有 P0（含 check2 P0 复核若 still-live）：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-db-migration,nop-persistence/nop-dbtool/nop-dbtool-core -am`（无条件执行；dbtool-core 有活跃测试 TestJdbcMetaDiscovery 以其通过为准；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.3 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且三模块面全覆盖（jdbc/txn/migration/dbtool）
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.3 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且三模块面全覆盖（jdbc/txn/migration/dbtool）
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.3 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -130,14 +130,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `2.3-dao-migration-dbtool-deep-audit.md` 落盘：通过无 P0 附 P1×1（callFunc 绑定偏移，H2 驱动级探针实证，进 R1.0）；P2×19/P3×36（56 条唯一发现，降级 5、驳回独立立案 1——dim04-09 P1 后果链被 live 链驳回改判 dup≡P3-2.1-024）；**check2 点名 4 条全部 already-fixed**（migration 两 P0 双独立探针实测、JdbcBatcher 实跑绿）——无新增 P0，未触发即时通道。定向测试三模块全绿（nop-dao 166/0F/skip46 既有、db-migration 95/0F、dbtool-core 4/0F，2026-10-04 实跑）。closure audit 一次 PASS（2 条 advisory 已随手落实——P1 边界注记随迁、check2 H2 USERS 补记）。dim14-02 vs P3-2.1-028 对账移交 R2.0。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_f2e1fbb6-71f3-41cc-b01c-257eaf157e5c（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：P0=0/P1=1/P2=19/P3=36=56 ↔ 报告内实点 ↔ index 2.3 行 ↔ 三份复核保留数 18+13+25=56，零缺陷；候选链自洽（38−1+19=56）
+  - check2 台账：4 条 already-fixed 与三份 review 独立验证逐一吻合（54 断言日志 + TestJdbcBatcher 11+2 实测在场）；index「P0 发现追踪」无新增正确
+  - dup 台账：dim04-09≡dim14-04≡P3-2.1-024 三方一致；dim14-02 vs 028 移交三处一致；P3-2.1-024/028 在 2.1 报告存在且描述相容
+  - 锚点抽验 8/8 live 命中（含 ITransaction javadoc 契约实测在场）
+  - 条目质量：程序化校验 6 个过程文件全部条目 ≥9 行 + 人工精读 6 条完整格式
+  - 定向测试：三模块 surefire 实测聚合与报告一致（mtime 2026-10-04 23:26+）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2321-full-code-review-2.3-dao-migration-dbtool-audit.md --strict` 退出码 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以三模块定向 test 全绿 + 双探针工件为锚
+  - Deferred 项分类检查：无 deferred；P1×1 经 index「P1 发现汇总」进 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×1+P2×19+P3×36 修复归属 R1.0；check2 余量留 R1.0 裁决或 watch-only 归档；dim14-02 vs 2.1-028 归 R2.0 对账；G.2 移交两项在报告移交注记）
