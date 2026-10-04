@@ -396,6 +396,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | UPDATE RETURNING | `EqlTransformVisitor.visitSqlUpdate` | `supportReturningForUpdate`（仅指投影列表形式，WI3 纠错后 mysql/oracle/h2/mariadb/duckdb 均拒） | `nop.err.eql.dialect-not-support-feature`（`feature=supportReturningForUpdate`） | `TestEqlCompileSql.testUpdateReturningAllChecksDialect`、`TestEqlUpdateReturningDialectGate` |
 | INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
 | SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM 三段式，WI5） | 构建期归一化进 `SqlRegularFunction`（`EqlASTBuildVisitor.visitSqlRegularFunction_position/substring/extract/trim*`），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路 | 方言函数表注册（`dialect.getFunction(归一化名)`；TRIM 带 chars=trimChars/ltrimChars/rtrimChars 模板仅注册已验证方言） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlPositionFunctionDialect.testUnknownDialectThrowsLoudUnknownFunction`（SUBSTRING/EXTRACT/TRIM 各自同类） |
+| 分页两标准形态 `FETCH FIRST`/`OFFSET..FETCH NEXT`（WI7） | 构建期归一化进既有 `SqlLimit{limit, offset}`（生成 visit 逐字段赋值），lowering 走 `AstToSqlGenerator.visitSqlQuerySelect` → `dialect.getPaginationHandler().buildPageExpr`（**无方言能力标志**——输出形态由方言 `paginationHandler` 配置决定） | `paginationHandler` 配置（LimitOffset 族 / OffsetFetch 族，见「分页两语法形态」小节矩阵） | 文法层解析错误（不完整形态，如 `OFFSET n ROWS` 无 FETCH）；lowering 无失败分支 | `TestEqlPaginationFetchParse`、`TestEqlPaginationFetchCompile` |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -488,6 +489,18 @@ FOR 缺省 2 参、否则 3 参，复用方言函数表 `substr` 的 `minArgCoun
 | `interval 1 day` / `interval '3 hours'` | 可解析 | 逐字不变（`intervalUnit_` 上下文只有该规则可达，`TestEqlIntervalLiteralParse` 全量回归） |
 
 无参形态 `day()` 照常解析（`sqlRegularFunction` 的 args 可选，与所有函数一致），响亮失败发生在 transform 层（元数校验 `ERR_EQL_FUNC_TOO_FEW_ARGS` / 未注册 `ERR_EQL_UNKNOWN_FUNCTION`）。`day()` 等归一化日期函数族的注册 owner 是 WI6；`WEEK` 不在放开清单（roadmap WI5 只点名五词，观察项）。既有 7 个语料文件对这些词 0 命中；WI0 语料基线棘轮的唯一 drift 是 2 条 parse-error 诊断转储的 expected-token 集合新增五词（解析结论与回显文本逐字不变，快照已照棘轮规程重生成并复核）。
+
+### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
+
+EQL 接受三种分页输入形态，解析期**归一化**进既有 `SqlLimit{limit, offset}`（`FETCH FIRST n ROWS ONLY` → `limit=n, offset=null`；`OFFSET n ROWS FETCH NEXT m ROWS ONLY` → `offset=n, limit=m`），**不保留输入形态**（AST 无"语法形态"字段——输出形态由方言 `paginationHandler` 配置决定，`IPaginationHandler.buildPageExpr(limit, offset, sql)` 无形态参数）。回显一律输出规范化 `limit x [offset y]` 文本（与 LIMIT 形态同口径，回显文本可重解析语义不变）。
+
+| EQL 输入形态 | LimitOffset 族输出（default/es/h2/h2gis/mysql*/mariadb/dm/tdengine/db2/pg*/duckdb* 等继承） | OffsetFetch 族输出（oracle/oracle-reverse、mssql） |
+|------|------|------|
+| `limit n [offset m]`（既有） | `LIMIT n [OFFSET m]` | `OFFSET m ROWS FETCH NEXT n ROWS ONLY`（无 offset 时 `OFFSET 0 ROWS FETCH FIRST n ROWS ONLY`） |
+| `FETCH FIRST n ROWS ONLY`（WI7 新增） | `LIMIT n` | `OFFSET 0 ROWS FETCH FIRST n ROWS ONLY`（SQL 标准要求 FETCH 前置 OFFSET，handler 自动补桥接） |
+| `OFFSET m ROWS FETCH NEXT n ROWS ONLY`（WI7 新增） | `LIMIT n OFFSET m` | `OFFSET m ROWS FETCH NEXT n ROWS ONLY` |
+
+`n`/`m` 均可为字面量或 `?` 参数 marker。证据等级：h2/oracle 双族输出矩阵 `[实测]`（`TestEqlPaginationFetchParse` 12 例 + `TestEqlPaginationFetchCompile` 12 例，含 marker 形态、同语义两形态一致性、跨族形态差异登记）；⚠️ `OFFSET n ROWS`（无 FETCH 的独立 offset 形态）**不接受**、`FETCH FIRST … WITH TIES` 不接受（roadmap 未登记，出现需求先登记 roadmap）；dm/tdengine 的输出继承 default（`LIMIT/OFFSET` 文本），该文本在两库的合法性 `[未取证]`（红线：不计入覆盖率）。h2 自身的 OffsetFetch 配置处于注释态（`h2.dialect.xml:20`，H2 REGULAR 模式两种输出都合法，是否切换属方言契约变更——登记为观察项，现状 = LimitOffset）。
 
 ### 死标志台账：14 个存量方言能力标志的三档处置（2026-10-04 WI10b）
 

@@ -161,32 +161,32 @@ Exit Criteria:
 
 ### Phase 1 - 分页两形态文法 + 归一化 + 双族 lowering（EC ①）
 
-Status: planned
+Status: completed（2026-10-04）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`sqlLimit`）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、重生成产物、`nop-persistence/nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足，见顶部声明；复核为回退防护）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] 修复前红：`select * from t fetch first 5 rows only` 与 `select * from t offset 3 rows fetch next 10 rows only` 解析失败（parse error）——回归测试断言其可解析且 lowering 正确，修复前红留痕于提交说明或日志。
-- [ ] 文法与归一化（按 Phase 0 裁定）：`sqlLimit` 三备选化；`FETCH FIRST` 备选 → 手写 visit 装入 `limit=n`、`offset=null`；`OFFSET..FETCH NEXT` 备选 → `offset=n`、`limit=m`；`.g4` 改动单独提交，重生成后 `git diff` 检查（预期 `ast/_gen/` 零 diff、`EqlParser.java`/`_EqlASTBuildVisitor.java` 等有 diff）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①，两族 handler 各至少一方言）：h2（LimitOffset 族）`fetch first 5 rows only` → `LIMIT 5`、`offset 3 rows fetch next 10 rows only` → `LIMIT 10 OFFSET 3`；oracle 或 mssql（OffsetFetch 族，`oracle.dialect.xml:12`/`mssql.dialect.xml:11`）同输入 → `OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY` / `OFFSET 3 ROWS FETCH NEXT 10 ROWS ONLY`（以 handler 实际输出文本为准）；参数 marker 形态（`fetch first ? rows only`）至少一条。
-- [ ] 既有 LIMIT 形态逐字不变守护用例：`limit 10 offset 5`/`limit 3` 的解析、lowering、回显与改动前一致（`TestEqlSelectAllLimitEcho` + `TestEqlSelectAllLimitCompile` 全量回归 + 新增两族 handler 下的 LIMIT 输出断言）。
-- [ ] 回显规范化断言：两 FETCH 形态的 `toSqlString()` 输出为规范化 `limit x [offset y]` 文本（Phase 0 裁定的口径），且回显文本再喂回编译器语义不变（往返用例）。
-- [ ] 接线验证（Minimum Rules #23）：EQL 文本 → parse 归一化 → transform 遍历 → `visitSqlQuerySelect` 经 `dialect.getPaginationHandler().buildPageExpr` 输出的**端到端**用例（至少覆盖 OffsetFetch 族一条，证明 `:101` 消费链真实连通，而非只测 parse 层）。
-- [ ] owner doc（EC ④ 文档面）：`eql-and-database-compatibility.md` 新增分页小节——两种 EQL 形态 × 双族 handler 输出矩阵、h2 的 OffsetFetch 注释态现状（`h2.dialect.xml:20`）、`dm`/`tdengine` 分页形态 `[未取证]` 标注、能力点登记表行。
-- [ ] 矩阵快照核实零增量 + `check-eql-dialect-matrix-snapshot.mjs` exit 0（差异登记第 7 条）。
-- [ ] 语料 BC（EC ⑧）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称"7 个全测"。
-- [ ] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
+- [x] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足，见顶部声明；复核为回退防护）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] 修复前红：`select * from t fetch first 5 rows only` 与 `select * from t offset 3 rows fetch next 10 rows only` 解析失败（parse error）——回归测试断言其可解析且 lowering 正确，修复前红留痕于提交说明或日志。
+- [x] 文法与归一化（按 Phase 0 裁定）：`sqlLimit` 三备选化；`FETCH FIRST` 备选 → 手写 visit 装入 `limit=n`、`offset=null`；`OFFSET..FETCH NEXT` 备选 → `offset=n`、`limit=m`；`.g4` 改动单独提交，重生成后 `git diff` 检查（预期 `ast/_gen/` 零 diff、`EqlParser.java`/`_EqlASTBuildVisitor.java` 等有 diff）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①，两族 handler 各至少一方言）：h2（LimitOffset 族）`fetch first 5 rows only` → `LIMIT 5`、`offset 3 rows fetch next 10 rows only` → `LIMIT 10 OFFSET 3`；oracle 或 mssql（OffsetFetch 族，`oracle.dialect.xml:12`/`mssql.dialect.xml:11`）同输入 → `OFFSET 0 ROWS FETCH FIRST 5 ROWS ONLY` / `OFFSET 3 ROWS FETCH NEXT 10 ROWS ONLY`（以 handler 实际输出文本为准）；参数 marker 形态（`fetch first ? rows only`）至少一条。
+- [x] 既有 LIMIT 形态逐字不变守护用例：`limit 10 offset 5`/`limit 3` 的解析、lowering、回显与改动前一致（`TestEqlSelectAllLimitEcho` + `TestEqlSelectAllLimitCompile` 全量回归 + 新增两族 handler 下的 LIMIT 输出断言）。
+- [x] 回显规范化断言：两 FETCH 形态的 `toSqlString()` 输出为规范化 `limit x [offset y]` 文本（Phase 0 裁定的口径），且回显文本再喂回编译器语义不变（往返用例）。
+- [x] 接线验证（Minimum Rules #23）：EQL 文本 → parse 归一化 → transform 遍历 → `visitSqlQuerySelect` 经 `dialect.getPaginationHandler().buildPageExpr` 输出的**端到端**用例（至少覆盖 OffsetFetch 族一条，证明 `:101` 消费链真实连通，而非只测 parse 层）。
+- [x] owner doc（EC ④ 文档面）：`eql-and-database-compatibility.md` 新增分页小节——两种 EQL 形态 × 双族 handler 输出矩阵、h2 的 OffsetFetch 注释态现状（`h2.dialect.xml:20`）、`dm`/`tdengine` 分页形态 `[未取证]` 标注、能力点登记表行。
+- [x] 矩阵快照核实零增量 + `check-eql-dialect-matrix-snapshot.mjs` exit 0（差异登记第 7 条）。
+- [x] 语料 BC（EC ⑧）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称"7 个全测"。
+- [x] `./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（两形态 × 双族 handler + marker 形态）；修复前红留痕。
-- [ ] 既有 LIMIT 形态逐字不变守护用例通过；无静默跳过（归一化失败必须响亮，不允许空 `SqlLimit` 静默通过）。
-- [ ] 端到端接线用例通过（parse→transform→buildPageExpr 三层连通）。
-- [ ] owner doc 分页矩阵已落档（含 `[未取证]` 标注）；矩阵快照门禁 exit 0。
-- [ ] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
-- [ ] `.g4` 改动单独提交；重生成后 `git diff` 已逐一检查且 `ast/_gen/` 零 diff。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（两形态 × 双族 handler + marker 形态）；修复前红留痕。
+- [x] 既有 LIMIT 形态逐字不变守护用例通过；无静默跳过（归一化失败必须响亮，不允许空 `SqlLimit` 静默通过）。
+- [x] 端到端接线用例通过（parse→transform→buildPageExpr 三层连通）。
+- [x] owner doc 分页矩阵已落档（含 `[未取证]` 标注）；矩阵快照门禁 exit 0。
+- [x] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql -am -T 1C` 全绿。
+- [x] `.g4` 改动单独提交；重生成后 `git diff` 已逐一检查且 `ast/_gen/` 零 diff。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `supportNullsFirst` accessor + 生成器 NULLS 门与 `defaultNullsFirst` 消费（门先于文法落地，EC ③/③b）
 
