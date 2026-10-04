@@ -20,7 +20,6 @@ import io.nop.commons.text.marker.Markers;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
-import io.nop.orm.eql.sql.NullsOrderRewriter;
 import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.core.lang.sql.TypedParamMarker;
 import io.nop.core.lang.sql.TypedValueMarker;
@@ -32,6 +31,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.eql.OrmEqlConstants;
+import io.nop.orm.eql.sql.NullsOrderRewriter;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
@@ -597,7 +597,7 @@ public class GenSqlHelper {
             // 不可复制就不产出改写后的 SQL——宁可响亮失败，也不给出语义可能错乱的语句
             throw new NopException(ERR_ORM_NULLS_ORDER_NOT_SUPPORTED)
                     .param(ARG_REASON, blocker.get())
-                    .param(ARG_DIALECT, dialect == null ? "unknown" : dialect.getName());
+                    .param(ARG_DIALECT, dialect.getName());
         }
         NullsOrderRewriter.appendCaseRewrite(sb, out -> out.append(columnSql), asc, nullsFirst);
     }

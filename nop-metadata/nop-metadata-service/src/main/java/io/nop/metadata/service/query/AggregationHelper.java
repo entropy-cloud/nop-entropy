@@ -5,6 +5,8 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.dialect.DialectManager;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
@@ -326,37 +328,70 @@ public class AggregationHelper {
     }
 
     /**
-     * 构造 ORDER BY 子句。
+     * plan 2309 D8：判定是否 mysql 家族。
      *
-     * @param dialect 方言名（H2/MySQL/PostgreSQL；null = ORM 路径方言不可得，保持 H2 语义拼接 NULLS FIRST/LAST）
+     * <p>原实现只比对字面量 {@code "MySQL"}，而本方法的 {@code dialect} 形参在 ORM 路径下
+     * 是 {@code IDialect.getName()}（即方言资源文件名）：{@code mysql} 能匹配，但
+     * {@code mysql5.7} 与 {@code mariadb} <b>匹配不上</b>——两者同样没有 {@code NULLS} 子句语法，
+     * 漏判就会落进「原生直出」分支产出语法错误 SQL。
      */
+    private static boolean isMySqlFamily(String dialect) {
+        if (dialect == null)
+            return false;
+        String name = dialect.toLowerCase();
+        return name.equals("mysql") || name.startsWith("mysql") || name.equals("mariadb");
+    }
 
     /**
      * plan 2309 D3：该方言是否接受原生 {@code NULLS FIRST/LAST} 子句。
      *
-     * <p>这是平台 {@code supportNullsFirst=true} 的方言集合（h2 / h2gis / postgresql / postgis /
-     * duckdb / oracle），以名称匹配。之所以在此显式列举而不用 {@code IDialect}：
-     * {@code buildOrderByClause} 的 {@code dialect} 形参是 JDBC {@code databaseProductName}
-     * 字符串，JDBC 直连路径拿不到 {@code IDialect}。
+     * <p><b>按平台能力位判定，不按名字硬编码。</b>先经 {@link DialectManager} 按方言名解析出
+     * {@code IDialect} 再读 {@code isSupportNullsFirst()}。这样才能自动跟随
+     * {@code x:extends} 继承链——{@code h2gis} / {@code postgis} / {@code oracle-reverse}
+     * 本身不声明该位，但继承自 h2 / postgresql / oracle，若用名字白名单就会漏判，
+     * 把本来可执行的查询变成硬失败（本计划初版即犯此错）。
      *
-     * <p>取不到方言（{@code null}）时**不**视为支持——宁可响亮失败，
-     * 也不产出无法校验、可能在目标库上报语法错误的 SQL。
+     * <p>解析不到（名称既非方言名、也不在 JDBC productName 白名单中）时返回 false，
+     * 宁可响亮失败也不产出未校验的原生子句。
      */
     private static boolean supportsNativeNullsOrder(String dialect) {
-        if (dialect == null)
+        if (dialect == null || dialect.trim().isEmpty())
             return false;
-        for (String name : NATIVE_NULLS_ORDER_DIALECTS) {
+        try {
+            IDialect resolved = DialectManager.instance().getDialect(dialect.toLowerCase());
+            if (resolved != null)
+                return resolved.isSupportNullsFirst();
+        } catch (Exception ignore) {
+            // 该名称不是平台方言名（如某些驱动的自定义 productName），落入下方白名单
+        }
+        for (String name : NATIVE_NULLS_ORDER_PRODUCT_NAMES) {
             if (name.equalsIgnoreCase(dialect))
                 return true;
         }
         return false;
     }
 
-    /** 与平台 {@code supportNullsFirst=true} 的方言集合保持一致 */
-    private static final Set<String> NATIVE_NULLS_ORDER_DIALECTS =
-            Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
-                    "H2", "PostgreSQL", "DuckDB", "Oracle")));
+    /**
+     * 平台方言名解析失败时的兜底白名单，仅含 JDBC {@code databaseProductName}
+     * 与方言名不一致、且确实支持原生 NULLS 子句的取值。
+     *
+     * <p><b>不含 {@code DB2}</b>：DB2 本身支持 {@code NULLS FIRST/LAST}，但平台
+     * {@code db2.dialect.xml} 未声明 {@code supportNullsFirst}（2308 因无法实测而保守留 false）。
+     * 因此 DB2 走本白名单会得到「响亮失败」而非原生输出。这是一处**已知的行为收紧**：
+     * 修复前 {@code dialect == null} 会无条件拼接原生子句，在 DB2 上恰好可执行。
+     * 收紧后需在具备 DB2 环境时把 {@code supportNullsFirst} 置 true 才恢复原生路径。
+     */
+    private static final Set<String> NATIVE_NULLS_ORDER_PRODUCT_NAMES =
+            Set.of("h2", "h2gis", "postgresql", "postgis", "duckdb", "oracle", "oracle-reverse");
 
+    /**
+     * 构造 ORDER BY 子句。
+     *
+     * @param dialect 方言标识。JDBC 直连路径为 {@code databaseProductName}（{@code MySQL} /
+     *               {@code PostgreSQL} ...）；ORM 路径为 {@code IDialect.getName()}（方言资源文件名，
+     *               如 {@code h2} / {@code mysql} / {@code mysql5.7}）。
+     *               <b>不可为 null</b>——取不到方言时请求空序会响亮失败，不产出未校验的原生子句。
+     */
     public static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
                                              NopMetaEntity table, List<String> measureNames,
                                              List<String> dimensionNames, String clause, String dialect) {
@@ -387,7 +422,7 @@ public class AggregationHelper {
             sb.append(expr).append(f.isDesc() ? " DESC" : " ASC");
             Boolean nullsFirst = f.getNullsFirst();
             if (nullsFirst != null) {
-                if ("MySQL".equalsIgnoreCase(dialect)) {
+                if (isMySqlFamily(dialect)) {
                     // AR-20a：MySQL 无 NULLS FIRST/LAST 语法。MySQL 默认 NULL 在 ASC 中居前、DESC 中居后——
                     // 与默认一致时省略子句（语义不变）；MySQL 无法表达的组合（NULLS LAST in ASC /
                     // NULLS FIRST in DESC）显式 fail-fast（不做 CASE 表达式模拟，见 plan 2026-08-06-1228-1）。

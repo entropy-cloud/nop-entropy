@@ -59,13 +59,14 @@ public class TestEntityAggregationProcessorOrmDialectWiring {
         table.setTableName("T_AGG");
         table.setQuerySpace(querySpace);
 
-        IDialect dialect = stubDialect(dialectName, !"mysql".equals(dialectName));
+        IDialect dialect = stubDialect(dialectName);
 
         IOrmTemplate orm = mock(IOrmTemplate.class);
         when(orm.getDialectForQuerySpace(any())).thenReturn(dialect);
         ArgumentCaptor<SQL> sqlCaptor = ArgumentCaptor.forClass(SQL.class);
         when(orm.executeQuery(sqlCaptor.capture(), isNull(), any())).thenReturn(Collections.emptyList());
 
+        LAST_ORM.set(orm);
         MetaQueryContext ctx = mock(MetaQueryContext.class);
         when(ctx.orm()).thenReturn(orm);
         when(ctx.filterTranslator()).thenReturn(mock(FilterToSqlTranslator.class));
@@ -88,15 +89,15 @@ public class TestEntityAggregationProcessorOrmDialectWiring {
     }
 
     /**
-     * 轻量方言 mock：本测试只关心 ORM 路径真正读取的两个属性
-     * ——{@code getName()}（buildOrderByClause 的判据）与
-     * {@code isSupportNullsFirst()}。{@code DialectImpl.getName()} 由 resourcePath 推导、
-     * 不可设定，故此处直接 mock 接口。
+     * 轻量方言 mock。ORM 路径实际只读 {@code getName()}——{@code resolveDialectName} 返回
+     * {@code dialect.getName()}，{@code buildOrderByClause} 收的是字符串。
+     * {@code DialectImpl.getName()} 由 resourcePath 推导、不可设定，故直接 mock 接口。
+     * <p>注：<b>不</b> stub {@code isSupportNullsFirst()}——该位在本路径上从未被读取，
+     * stub 它只会让测试看起来比实际覆盖更宽（closure audit MAJOR-5）。
      */
-    private static IDialect stubDialect(String name, boolean nativeNulls) {
+    private static IDialect stubDialect(String name) {
         IDialect dialect = mock(IDialect.class);
         when(dialect.getName()).thenReturn(name);
-        when(dialect.isSupportNullsFirst()).thenReturn(nativeNulls);
         return dialect;
     }
 
@@ -111,6 +112,18 @@ public class TestEntityAggregationProcessorOrmDialectWiring {
     public void testViaEqlResolvesNullsLastToo() {
         String sql = capturedSql("postgresql", "qs-postgres");
         assertTrue(sql.contains("NULLS FIRST"), "postgresql 同样原生支持。实际 SQL: " + sql);
+    }
+
+    /**
+     * 经 {@code x:extends} 继承为 true、但自身不声明该位的派生方言。
+     * closure audit BLOCKER-1 正是因为缺少这类用例，白名单才漏判。
+     */
+    @Test
+    public void testViaEqlResolvesInheritingDialects() {
+        for (String dialect : new String[]{"h2gis", "postgis", "oracle-reverse"}) {
+            String sql = capturedSql(dialect, "qs-" + dialect);
+            assertTrue(sql.contains("NULLS FIRST"), dialect + " 应原生支持。实际 SQL: " + sql);
+        }
     }
 
     /**
@@ -136,11 +149,23 @@ public class TestEntityAggregationProcessorOrmDialectWiring {
         assertEquals("nop.err.metadata.aggr-order-by-nulls-unsupported", err.getErrorCode());
     }
 
-    /** querySpace 为空时回落默认空间，仍应解析成功而非传 null */
+    /**
+     * querySpace 为空时回落默认空间。<b>断言传给方言解析器的实参</b>——
+     * 否则本用例只能证明「非 null」，而原实现用的是 {@code any()} 匹配任何值。
+     */
     @Test
     public void testViaEqlFallsBackToDefaultQuerySpace() {
         String sql = capturedSql("h2", null);
+        org.mockito.Mockito.verify(lastOrm())
+                .getDialectForQuerySpace(DaoConstants.DEFAULT_QUERY_SPACE);
         assertTrue(sql.contains("NULLS FIRST"),
                 "querySpace 为空应回落 " + DaoConstants.DEFAULT_QUERY_SPACE + "。实际 SQL: " + sql);
+    }
+
+    /** 记录最近一次构造的 orm mock，供 verify 使用 */
+    private static final ThreadLocal<IOrmTemplate> LAST_ORM = new ThreadLocal<>();
+
+    private static IOrmTemplate lastOrm() {
+        return LAST_ORM.get();
     }
 }

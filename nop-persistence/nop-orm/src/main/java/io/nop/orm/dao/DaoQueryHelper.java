@@ -238,9 +238,12 @@ public class DaoQueryHelper {
     }
 
     /**
-     * 反转排序。与 {@code SQL.SqlBuilder.reverseOrderField} 保持一致：
-     * <b>同时</b>翻转 {@code isDesc} 与 {@code nullsFirst}，使 null 组的相对位置不变
-     * （plan 2309 D6）。CASE 键方向由 {@code asc} 推导，故翻转后的组合直接传入即可。
+     * 反转排序。与 {@code SQL.SqlBuilder.reverseOrderField} 保持一致：<b>同时</b>翻转
+     * {@code isDesc} 与 {@code nullsFirst}。结果是原序列的<b>严格逆序</b>——
+     * 例：ASC + NULLS FIRST 的 {@code [2(null),1(10),3(20)]} 反转后为 DESC + NULLS LAST 的
+     * {@code [3,1,2]}。这正是 {@code findNext} / {@code findPrev} 所依赖的性质。
+     * <p><b>注意</b>：反转<b>不是</b>「让 null 组位置保持不变」。CASE 键方向由翻转后的
+     * {@code asc} 推导，故把翻转后的组合直接传入即可（plan 2309 D6）。
      */
     public static void appendReverseOrderBy(SQL.SqlBuilder sb, IDialect dialect, String defaultOwner,
                                             List<OrderFieldBean> orderBy) {

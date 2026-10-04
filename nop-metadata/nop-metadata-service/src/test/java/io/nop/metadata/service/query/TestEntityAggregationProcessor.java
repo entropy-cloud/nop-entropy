@@ -237,7 +237,10 @@ public class TestEntityAggregationProcessor {
         Map<String, String> nameToExpr = new LinkedHashMap<>();
         nameToExpr.put("m1", "SUM(x)");
 
-        for (String dialect : new String[]{"H2", "h2", "PostgreSQL", "postgresql", "Oracle", "DuckDB"}) {
+        // 含 h2gis / postgis / oracle-reverse：三者本身不声明该位但经 x:extends 继承为 true，
+        // 若按名字白名单判定会漏判，把本来可执行的查询变成硬失败（closure audit BLOCKER-1）。
+        for (String dialect : new String[]{"H2", "h2", "PostgreSQL", "postgresql", "Oracle",
+                "DuckDB", "h2gis", "postgis", "oracle-reverse"}) {
             List<OrderFieldBean> ascNullsFirst = new ArrayList<>();
             OrderFieldBean f1 = OrderFieldBean.asc("m1");
             f1.setNullsFirst(true);
@@ -261,16 +264,59 @@ public class TestEntityAggregationProcessor {
     public void testBuildOrderByClauseUnsupportedDialectFailsFast() {
         Map<String, String> nameToExpr = new LinkedHashMap<>();
         nameToExpr.put("m1", "SUM(x)");
-        for (String dialect : new String[]{"MariaDB", "dm", "TDengine", "DB2", "SQLServer", "Oracle11"}) {
+        // 注：不含 DB2——DB2 本身**支持** NULLS FIRST/LAST，但平台 db2.dialect.xml 未声明
+        // supportNullsFirst（2308 因无法实测而保守留 false），故走响亮失败而非原生输出。
+        // 这是已知的行为收紧（修复前 dialect=null 会无条件拼接，在 DB2 上恰好可执行），
+        // 需在具备 DB2 环境时把该位置 true 才恢复原生路径。见 AggregationHelper 的 javadoc。
+        // 注：不含 mariadb / mysql5.7——它们与 mysql 同族、无 NULLS 子句语法，
+        // 由 isMySqlFamily 走 MySQL 分支（与缺省一致则省略、不一致则失败），见下方专门用例。
+        for (String dialect : new String[]{"dm", "TDengine", "SQLServer", "Oracle11"}) {
             List<OrderFieldBean> orderBy = new ArrayList<>();
             OrderFieldBean f = OrderFieldBean.asc("m1");
             f.setNullsFirst(true);
             orderBy.add(f);
             NopException err = assertThrows(NopException.class,
                     () -> buildOrderByClause(orderBy, nameToExpr, new NopMetaEntity(),
-                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect));
+                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect),
+                    dialect + " 应 fail-fast");
             assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(),
                     err.getErrorCode(), dialect + " 不支持原生 NULLS 子句，必须失败而非拼接");
+        }
+    }
+
+    /**
+     * plan 2309 D8：mysql 家族（mysql / mysql5.7 / mariadb）都无原生 NULLS 子句语法，
+     * 都应走 MySQL 分支——与缺省一致则省略子句，无法表达的组合则失败。
+     *
+     * <p>此前判据只比对字面量 {@code "MySQL"}，而 ORM 路径传入的是
+     * {@code IDialect.getName()}（即 {@code mysql5.7} / {@code mariadb}），匹配不上，
+     * 会落进「原生直出」分支产出语法错误 SQL。
+     */
+    @Test
+    public void testBuildOrderByClauseMysqlFamilyTakesMysqlBranch() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("m1", "SUM(x)");
+        for (String dialect : new String[]{"MySQL", "mysql", "mysql5.7", "MySQL5.7", "MariaDB", "mariadb"}) {
+            // ASC + NULLS FIRST 与 mysql 缺省一致 -> 省略子句，可执行
+            List<OrderFieldBean> matching = new ArrayList<>();
+            OrderFieldBean asc = OrderFieldBean.asc("m1");
+            asc.setNullsFirst(true);
+            matching.add(asc);
+            String clause = buildOrderByClause(matching, nameToExpr, new NopMetaEntity(),
+                    Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect);
+            assertFalse(clause.contains("NULLS"), dialect + " 应省略 NULLS 子句: " + clause);
+
+            // DESC + NULLS FIRST 与 mysql 缺省冲突 -> 响亮失败
+            List<OrderFieldBean> conflicting = new ArrayList<>();
+            OrderFieldBean desc = OrderFieldBean.desc("m1");
+            desc.setNullsFirst(true);
+            conflicting.add(desc);
+            NopException err = assertThrows(NopException.class,
+                    () -> buildOrderByClause(conflicting, nameToExpr, new NopMetaEntity(),
+                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect),
+                    dialect + " 的 DESC+NULLS FIRST 应 fail-fast");
+            assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(),
+                    err.getErrorCode());
         }
     }
 

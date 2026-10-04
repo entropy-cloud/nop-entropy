@@ -192,7 +192,7 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
         return specs;
     }
 
-    /** plan 2309 D8：取本实体所属 querySpace 的方言名（详见 EntityAggregationHelper 同名方法） */
+    /** plan 2309 D8：取本实体所属 querySpace 的方言名（详见 EntityAggregationProcessor 同名方法） */
     private static String resolveDialectName(MetaQueryContext ctx, NopMetaEntity table) {
         String querySpace = table.getQuerySpace();
         if (querySpace == null || querySpace.trim().isEmpty())

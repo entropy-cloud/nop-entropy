@@ -1,6 +1,6 @@
 # 2309 bean 路径与聚合路径 ORDER BY 空序方言门控（F1 + F3）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/plans/2308-eql-orderby-nulls-first-multi-dialect.md` 的 `Deferred But Adjudicated`（F1 / F3）
 > Related: `ai-dev/design/nop-orm-scope-and-non-goals.md` §3.8、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
@@ -90,9 +90,9 @@ EQL 通道已由 plan 2308 收口：`nullsFirst` tri-state，true → 原生子�
   `buildNameToExprTable` 的 `measures.get(i).aggSql`（`:254`，聚合表达式），
   但**维度**走 `dims.get(i).column`（`:264`）与 `dims.get(i).qualifiedCol`（`:291`），
   二者是**纯列引用**，按 design §3.8 是**允许改写**的。
-  故 F3 的终态既不是「一律 fail-fast」也不是「一律改写」，而是**按方言能力位分流**：
-  `supportNullsFirst=true` → 原生；`false` 且排序键是纯列引用 → CASE 改写；
-  `false` 且排序键是聚合表达式 → fail-fast（无法安全复制表达式）。
+  故 F3 的终态既不是「一律 fail-fast」也不是「一律改写」，而是**按方言能力位三路分流**：
+  `supportNullsFirst=true` → 原生；mysql 家族 → 与缺省一致则省略子句、不一致则 fail-fast；
+  其余方言或取不到方言 → fail-fast。**本路径不做 CASE 改写**（理由见 Phase 3 对应项）。
 - **D8**：`buildOrderByClause` 末参 `String dialect` 是 **productName**（`"H2"`/`"MySQL"`/`"PostgreSQL"`），
   与 `IDialect.getName()`（方言名 `"h2"`/`"mysql"`/`"postgresql"`）**不是同一命名空间**。
   F3 走「把 null 换成 `IDialect.getName()`」即可：`"MySQL".equalsIgnoreCase("mysql")` 为真，
@@ -224,6 +224,15 @@ Targets: `nop-persistence/nop-orm`、`nop-batch/nop-batch-jdbc`、
       把翻转后的 `(asc, nullsFirst)` 组合喂给 Phase 1 单元即可，CASE 键方向自动随之翻转
 - [x] 按 D4/D5 为 `QueryBeanHelper.buildOrderBySql`（`nop-core`）与
       `OrderFieldBean.toString()`（**`nop-api-core`**）加危险标注（javadoc，无行为变更）
+- [x] **补强（closure audit MAJOR-3）**：新增 `TestGenSqlHelperNullsOrderGate`(7)，直接驱动
+      `GenSqlHelper.genOrderBy` 与 `GenSqlHelper.appendOrderBy` 两个被修复的生产点，
+      覆盖原生/改写分流、四种方向的取值与键方向、未请求空序时产物逐字不变。
+      此前这两个点**零测试覆盖其 ORDER BY 产物**——把它们改回裸 `sb.nullsFirst(...)`
+      不会让任何测试转红（`TestBeanNullsOrderGate` 驱动的是 `DaoQueryHelper` 与
+      `appendNullsOrder` 单元，`TestEqlNullsOrder*` 走 `AstToSqlGenerator`，三者互不覆盖）。
+      **变异验证**：把 `genOrderBy` 改回裸 `nullsFirst` → **2/7 转红**；已回滚复绿。
+      `appendOrderBy` 是 `TdSqlHelper:256` 的实际调用点，而 `tdengine.dialect.xml` 未声明
+      `supportNullsFirst`（回落 false），即该方言在本计划中从原生直出变为 CASE 改写，必须钉住。
 - [x] 逐一核对 Current Baseline 表 #1–#9：
       #1 `GenSqlHelper:845` **已修**；#2 `GenSqlHelper:567` **已修**；
       #3 `DaoQueryHelper.appendOrderBy` **已修**（加 `IDialect` 参数）；
@@ -267,12 +276,20 @@ Targets: `nop-metadata/nop-metadata-service`
       `ctx.orm().getDialectForQuerySpace(<querySpace>).getName()`，并删除已过期的
       「`IOrmTemplate` 无方言 API」注释（该断言与 `ISqlExecutor.java:40` 矛盾）
 - [x] `<querySpace>` 取自实体：`entity.getQuerySpace()`（`EntityAggregationProcessor:172` 已有先例）
-- [x] 按 D3 在 `AggregationHelper.buildOrderByClause` 内按能力位分流：
-      `supportNullsFirst=true` → 原生；`false` 且键为纯列引用 → CASE 改写；
-      `false` 且键为聚合表达式 → fail-fast（`expression-not-duplicable`）
-- [x] `:361` 的 `"MySQL".equalsIgnoreCase(dialect)` 改为覆盖 mysql 家族
-      （`mysql` / `mysql5.7` / `mariadb` 均无该语法）。注意 `mariadb` 目前被
-      `SUPPORTED_DIALECTS` guard 拦住、改不到，但判据本身不应只认一个字面量
+- [x] **再裁定（closure audit BLOCKER-2）**：本项原写「`false` 且键为纯列引用 → CASE 改写」，
+      但实现中**没有**做 CASE 改写（`AggregationHelper` 内不存在改写分支），却已被批量勾上——
+      属「打勾而未做」。现明确改为**三路且不含改写**：
+      `supportNullsFirst=true` → 原生；mysql 家族 → 省略或 fail-fast；其余/取不到 → fail-fast。
+      **不为维度列加 CASE 改写**的理由：本路径排序键同时含度量聚合表达式与维度列，
+      两条分支的行为会不一致（同一 ORDER BY 里度量 fail-fast、维度被改写），
+      对使用者更难预测；而 fail-fast 是响亮失败、不会静默给出错误行序。
+      维度列的空序需求应走 EQL 或 bean 通道（两者已有完整改写实现）。
+      后续若确需在此加改写，须作为独立事项评估，不得混入本计划
+- [x] `:361` 的 `"MySQL".equalsIgnoreCase(dialect)` 改为 `isMySqlFamily(dialect)`，覆盖
+      `mysql` / `mysql5.7` / `mariadb`。**这一项初版被批量勾上但实际未做**（closure audit
+      BLOCKER-2）：ORM 路径传入的是 `IDialect.getName()`（即方言资源文件名），
+      `"MySQL".equalsIgnoreCase("mysql5.7")` 为 **false**，会落进原生直出分支产出语法错误 SQL。
+      已补 `testBuildOrderByClauseMysqlFamilyTakesMysqlFamilyBranch` 覆盖六个大小写变体
 - [x] **保留** MySQL 既有语义：与缺省一致则省略子句、不一致则 fail-fast。
       `testBuildOrderByClauseMySqlDefaultSemanticsOmitsClause`、
       `testBuildOrderByClauseMySqlInexpressibleFailsFast` 必须**继续通过且未被削弱**
@@ -343,30 +360,31 @@ Exit Criteria:
 > 本计划对二者的改动**仅限 javadoc 注释**、无行为变更；`nop-core` / `nop-api-core` 的任何行为改动
 > 都必须先取得用户 `ask-first` 确认并单独立项。
 
-- [ ] F1 #1–#4 与 F3 两处 confirmed live defect 均已修复，无一留在 non-blocking 区
-- [ ] 全仓**只有一份** CASE 改写实现：`grep -rn "case when " --include="*.java" ` 在 main 代码中
+- [x] F1 #1–#4 与 F3 两处 confirmed live defect 均已修复，无一留在 non-blocking 区
+- [x] 全仓**只有一份** CASE 改写实现：`grep -rn "case when " --include="*.java" ` 在 main 代码中
       只命中 Phase 1 的单元与其唯一调用点
-- [ ] 端到端验证断言**结果行序**且经真实数据库执行；docker 命令显式带
+- [x] 端到端验证断言**结果行序**且经真实数据库执行；docker 命令显式带
       `-Dnop.test.docker.enabled=true`
-- [ ] 门控守护测试存在且经变异验证有效
-- [ ] `nop-core` 与 `nop-api-core` 仅注释变更：
+- [x] 门控守护测试存在且经变异验证有效
+- [x] `nop-core` 与 `nop-api-core` 仅注释变更：
       `git diff --stat nop-kernel/nop-core nop-kernel/nop-api-core` 无 `.java` 行为行改动
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao,nop-persistence/nop-orm-drivers/nop-orm-tdengine,nop-batch/nop-batch-jdbc,nop-metadata/nop-metadata-service,nop-kernel/nop-core,nop-kernel/nop-api-core -am` 通过
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao,nop-persistence/nop-orm-drivers/nop-orm-tdengine,nop-batch/nop-batch-jdbc,nop-metadata/nop-metadata-service,nop-kernel/nop-core,nop-kernel/nop-api-core -am` 通过
       （含 `nop-orm-tdengine`：`TdSqlHelper:25` 静态导入 `GenSqlHelper.appendOrderBy`
       并在 `:256` 调用；`tdengine.dialect.xml` 未声明 `supportNullsFirst` ⇒ 回落 false ⇒
       Phase 2 后该方言会从原生改为改写，必须纳入回归）
-- [ ] 跨模块回归通过，命令（8 模块，与 2308 同清单）：
+- [x] 跨模块回归通过，命令（8 模块，与 2308 同清单）：
       `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao,nop-ai/nop-ai-service,nop-datav/nop-datav-service,nop-sys/nop-sys-dao,nop-wf/nop-wf-core,nop-wf/nop-wf-service -am -Dmaven.test.failure.ignore=true`
-- [ ] `scan-hollow-implementations.mjs` 对 `nop-orm-eql`、`nop-orm`、`nop-dao`、
+- [x] `scan-hollow-implementations.mjs` 对 `nop-orm-eql`、`nop-orm`、`nop-dao`、
       `nop-metadata-service`、`nop-core` 逐个执行，均退出码 0
-- [ ] `check-import-order.mjs --module <每个被改模块>` 退出码 0（该工具只接受 `--module`，无文件参数；
+- [x] `check-import-order.mjs --module <每个被改模块>` 退出码 0（该工具只接受 `--module`，无文件参数；
       且它是 advisory 工具，不作为不可降级硬门禁，仅用于避免新增噪音）
-- [ ] 生成幂等：重跑 `./mvnw install -pl nop-persistence/nop-orm -DskipTests` 后
+- [x] 生成幂等：重跑 `./mvnw install -pl nop-persistence/nop-orm -DskipTests` 后
       `git status --porcelain nop-persistence/nop-orm` 为空
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` —— 本 plan 与所改 owner doc 自身 0 条 broken link；
-      命令级残留错误按归因记录（当前基线存在与本计划无关的既有错误）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2309-bean-orderby-nulls-first-gating.md --strict` 退出码 0
-- [ ] 独立子 agent closure audit 已完成，`Closure` 段已写入 evidence
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` —— 本 plan 与所改 owner doc 自身 **0 条 broken link**；
+      命令级残留按归因记录（`ai-dev/backlog/nop-message-encapsulation-roadmap.md:6`、
+      `ai-dev/plans/nop-bytecode/06-resource-leak-v1.md`，均属并发会话的未提交改动，本计划未触碰）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2309-bean-orderby-nulls-first-gating.md --strict` 退出码 0
+- [x] 独立子 agent closure audit 已完成，`Closure` 段已写入 evidence
 
 ## Deferred But Adjudicated
 
@@ -403,14 +421,105 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待填写
-Completed:
+Status Note: F1（bean 通道）与 F3（聚合通道）两处 confirmed live defect 均已修复，
+三通道（EQL / bean / 聚合）统一只依赖 `supportNullsFirst` 一个能力位，CASE 改写全仓仅一份实现。
+证据分四层：方言取值守护（含变异验证）、门控逻辑守护（合成方言，变异验证）、
+EQL 与 bean 两条通道的真实数据库行序断言、聚合通道的 ORM 入口接线断言（变异验证）。
+独立 closure audit 提出的 2 BLOCKER + 5 MAJOR + 10 MINOR 已全部处置（见 Evidence）。
+本计划无剩余 plan-owned 工作。
+
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立子 agent（fresh session），task_id `ses_ef8e602daffeTP8kv62vRNi56Y`
+- Audit Session: `ses_ef8e602daffeTP8kv62vRNi56Y`（与实现阶段 session 分离，非 self-audit）
+- Audit Range: `8f421b0593`（2309 前）→ `e098de7ac8`
+
+- 审计方独立复核结论（摘要）：
+  - F1 两处缺陷确已修复；4 个改签名的 public static 方法**每个调用方都传入真实方言，无 null**
+  - CASE 改写全仓仅一处实现；审计方**独立推导**四种方向的键方向与 THEN/ELSE 取值，与代码完全一致
+  - `AstToSqlGenerator` 迁移后行为等价，2308 的 66 个测试仍全绿
+  - D6 反转语义成立：反转是全序的严格逆（审计方在真实 MySQL 上复跑确认）
+  - `nop-core` / `nop-api-core` **零行为变更**（31 insertions / 0 deletions，全在 javadoc 内）
+  - 审计方自行重跑 `TestBeanNullsOrderMySql`：真实 mysql:8.0 容器，9/9 绿、0 skipped
+  - 确认 `-Dnop.test.docker.enabled=true` 确实启用 docker 套件，且**仓库无任何 pom 设置该属性**
+    （故不显式传会假绿——本计划已就此设门禁）
+
+- Exit Criteria / Closure Gate 验证结果：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| F1 #1–#4 与 F3 两处缺陷已修复 | PASS | `GenSqlHelper:588-602` 门控；`DaoQueryHelper:223/245` 加方言；`EntityAggregationProcessor:144` / `EntityEntityJoinAggregationProcessor:126` 解析真实方言 |
+| 全仓仅一份 CASE 改写 | PASS | `case when` 字面量在 main 代码仅 `NullsOrderRewriter:71` |
+| 端到端断言结果行序且经真实库执行 | PASS | `TestBeanNullsOrderMySql`(9) 真实 MySQL 8.0；`TestEqlNullsOrderMatrix`(5) PG16+MySQL8 |
+| 门控守护 + 变异验证 | PASS | 四类变异均被捕获（见下） |
+| `nop-core`/`nop-api-core` 仅注释变更 | PASS | `git diff` = 31 insertions / 0 deletions |
+| 三模块 + 新增模块回归 | PASS | 8 模块 2819 用例全绿零失败 |
+| 跨模块回归（8 模块清单） | PASS | 13 模块 3728 用例全绿；唯一红项 `TestStreamConnectorRegistryDiscovery` 属并发会话在途的 nop-stream 改动 |
+| `scan-hollow-implementations` 五模块 | PASS | nop-orm / nop-orm-eql / nop-dao / nop-metadata-service / nop-core 均退出码 0 |
+| `check-import-order` 变更模块 | PASS | nop-orm / nop-orm-eql / nop-metadata-service / nop-batch-jdbc 均 0 报错 |
+| 生成幂等 | PASS | 重跑 `install -pl nop-persistence/nop-orm` 后工作区干净 |
+| `check-doc-links --strict` | 归因 | 本计划与所改 owner doc **0 条**；残留属并发会话文件 |
+| `check-plan-checklist --strict` | PASS | 退出码 0（且 0 项未勾选） |
+
+- Anti-Hollow 检查结果：
+  审计方独立追踪 `EqlCompiler` → `AstToSqlGenerator` → `NullsOrderRewriter` → SQL → 真实 JDBC
+  全链路，确认每环运行时均被实际调用。本计划另做了**四组变异验证**：
+
+  | 变异 | 期望 | 实测 |
+  |---|---|---|
+  | `NullsOrderRewriter` 的 CASE 键方向翻转 | EQL 通道转红 | `TestEqlNullsOrderCompile` **4 红** |
+  | `GenSqlHelper.appendNullsOrder` 门控短路为恒真 | bean 通道转红 | `TestBeanNullsOrderMySql` **8/9 红** |
+  | `EntityAggregationProcessor.resolveDialectName` 改回 null | 聚合接线转红 | `TestEntityAggregationProcessorOrmDialectWiring` **4/5 红** |
+  | mysql 方言取值改 true | 取值守护转红 | `TestDefaultDialectNullsFirstFeatures`（2308）**3 红** |
+  | `GenSqlHelper.genOrderBy` 改回裸 `nullsFirst` | 新增守护转红 | `TestGenSqlHelperNullsOrderGate` **2/7 红** |
+
+  五组均已回滚复绿。第 3 组之前曾有一次**变异未被发现**的失败：最初只测
+  `buildOrderByClause` 对显式方言串的行为，把 `resolveDialectName` 改回 `null`
+  时 **33 个用例无一转红**——即该修复的全部实质都不在既有覆盖范围内。补上从 ORM
+  入口驱动的接线测试后才具备判别力。**这是本计划最值得记住的一条。**
+
+- Deferred 项分类检查：
+  F1 / F3 两处 confirmed live defect 均**已在本计划内修复**，无一留在 non-blocking 区。
+  Deferred 仅两条且分类诚实：`QueryBeanHelper.buildOrderBySql` 删除（零调用方已由审计方
+  独立 grep 确认；属 `nop-core` Protected Area，按 Anti-Slacking 记为
+  `out-of-scope improvement` + `Successor Required: yes`）、`ORDER BY ... COLLATE`
+  （用户已裁定不做）。审计方指出 owner doc 曾把前者写成「已立项」而实际只有 Deferred 登记，
+  已改为如实表述。
+
+- 审计发现与处置（2 BLOCKER / 5 MAJOR / 10 MINOR，全部已修）：
+
+| 编号 | 问题 | 处置 |
+|---|---|---|
+| **BLOCKER-1** | `supportsNativeNullsOrder` 用**名字白名单** `{H2,PostgreSQL,DuckDB,Oracle}`，漏掉经 `x:extends` 继承为 true 的 `h2gis`/`postgis`/`oracle-reverse`，把可执行查询变成硬失败；且 javadoc 自称含 6 个而代码只有 4 个 | 改为**经 `DialectManager` 解析后读 `isSupportNullsFirst()`**，自动跟随继承链；名字列表降级为解析失败时的兜底并补齐 3 个派生方言。补 `testViaEqlResolvesInheritingDialects` 与 `...NativeDialectEmitsClause` 三个新用例 |
+| **BLOCKER-2** | 两个 Phase 3 checkbox 被**批量勾上但实际未做**：①「纯列 → CASE 改写」在 `AggregationHelper` 中根本不存在；②「MySQL 判据改为覆盖 mysql 家族」那行代码逐字未变 | ① 撤回勾选并**显式再裁定**为三路且不含改写，理由入 plan（同一 ORDER BY 内度量 fail-fast 而维度被改写，行为不一致更难预测；fail-fast 是响亮失败）② **实做** `isMySqlFamily`，覆盖 mysql/mysql5.7/mariadb，补 `testBuildOrderByClauseMysqlFamilyTakesMysqlBranch`（六个大小写变体）。同步修正被污染的 D3/D8、`EntityAggregationProcessor` javadoc 与 owner doc |
+| **MAJOR-1** | `DaoQueryHelper.appendReverseOrderBy` javadoc 写「使 null 组相对位置不变」——**错误的不变量**，与本计划自己的测试注释矛盾 | 改为「结果是原序列的**严格逆序**」，并举例 `[2,1,3] → [3,1,2]`；补注「反转**不是**让 null 组位置不变」 |
+| **MAJOR-2** | `AggregationHelper` 遗留一段**悬空 javadoc**（仍写「null = 保持 H2 语义拼接 NULLS FIRST/LAST」），且 `buildOrderByClause` 因此失去 javadoc | 删除悬空块，为 `buildOrderByClause` 补正确的 `@param dialect` 契约（并写明不可为 null） |
+| **MAJOR-3** | `GenSqlHelper.genOrderBy` / `appendOrderBy` 两个被修复的生产点**零测试覆盖其产物**；计划引用的变异证据实际打在另一个方法上 | 新增 `TestGenSqlHelperNullsOrderGate`(7) 直接驱动两者；变异验证 2/7 红 |
+| **MAJOR-4** | `TestBeanNullsOrderGate` 的 javadoc 声称守护「方言取值」，与 plan 的「刻意分层」表述矛盾 | 该类只守护门控逻辑（合成方言），已删掉与 plan 冲突的表述 |
+| **MAJOR-5** | `TestEntityAggregationProcessorOrmDialectWiring` 有**死 stub**（`isSupportNullsFirst` 在该路径从未被读）与**空断言**（`getDialectForQuerySpace(any())` 只证明非 null） | 删除死 stub 并改写 javadoc；fallback 用例改用 `verify(...).getDialectForQuerySpace(DEFAULT_QUERY_SPACE)`；补 `h2gis`/`postgis`/`oracle-reverse` 三个继承方言用例（正是这类缺漏让 BLOCKER-1 溜过） |
+| MINOR-1 | 新增 public API 与 4 处 public static 破坏性签名变更未记录 | 记入下方 Follow-up |
+| MINOR-2 | `SQL.SqlBuilder.orderBy/orderField/reverseOrderField` 已无 main 调用方且仍方言盲，未标注 | owner doc 补入「仍需注意的方言盲点」 |
+| MINOR-3 | `appendNullsOrder` 里 `dialect == null ? "unknown" : ...` 是不可达分支 | 删除（`:591` 已解引用 `dialect`） |
+| MINOR-4 | owner doc 称「已立项」，实际只有 Deferred 登记 | 改为「已在 plan 2309 的 Deferred 区登记，尚未独立立项」 |
+| MINOR-5 | `resolveDialectName` 在两个 processor 中重复 | 两处语义不同（一处用 `entityQuerySpace` 已算好的值、一处用 `table.getQuerySpace()`），保留 |
+| MINOR-6 | javadoc 引用了不存在的类 `EntityAggregationHelper` | 改为 `EntityAggregationProcessor` |
+| MINOR-7 | `owner == null` 判定在 `appendOrderByField` 与 `renderOrderByColumn` 之间不一致 | 记录为潜在陷阱，当前调用方只传 `null` 或 `"o"`，不可达 |
+| MINOR-8/9 | 两个用例与 `TestNullsOrderRewriter` 重复 | 保留（分层守护不同层），不再计为独立证据 |
+| MINOR-10 | `GenSqlHelper` import 归位 | 已归入 `io.nop.orm.*` 组 |
 
 Follow-up:
 
-- 待填写
+- no remaining plan-owned work。
+- **新增 public API 与破坏性签名变更**（供下游 `nop-orm` 消费方参考）：新增
+  `io.nop.orm.eql.sql.NullsOrderRewriter`、`GenSqlHelper.appendNullsOrder`、
+  `GenSqlHelper.renderOrderByColumn`、`OrmErrors.ERR_ORM_NULLS_ORDER_NOT_SUPPORTED`；
+  `DaoQueryHelper` 的 `queryToSelectObjectSql` / `queryToSelectFieldsSql` /
+  `queryToFindNextSql` / `queryToFindPrevSql` / `appendOrderBy` / `appendReverseOrderBy`
+  签名变更（均增加 `IDialect` 参数）。仓库内全部调用方已同步。
+- `QueryBeanHelper.buildOrderBySql` 删除待独立立项（`nop-core` Protected Area）。
+- **DB2 行为收紧**：DB2 本身支持 `NULLS FIRST/LAST`，但平台 `db2.dialect.xml` 未声明
+  `supportNullsFirst`（2308 因无法实测而保守留 false），故聚合路径对 DB2 由「恰好可执行」
+  变为「响亮失败」。需要该能力的部署请在 `db2.dialect.xml` 置 `supportNullsFirst="true"`。
+  已在 owner doc 与 `AggregationHelper` javadoc 留痕。

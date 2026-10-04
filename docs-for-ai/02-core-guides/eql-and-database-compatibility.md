@@ -158,21 +158,36 @@ false → 同一份 `CASE WHEN` 改写（`NullsOrderRewriter`，与 EQL 共用�
 **聚合路径**（`AggregationHelper.buildOrderByClause`）与前两者有一处**本质差异**：
 它的排序键是**度量聚合表达式**（`SUM(x)`）或**维度列**。按 design §3.8「改写只对纯列引用
 允许」，该路径**不做 CASE 改写**，而是：
-- 方言支持原生子句（h2 / postgresql / oracle / duckdb）→ 原生输出；
-- mysql 系列 → 与 MySQL 缺省一致的组合省略子句，无法表达的组合**响亮失败**；
+- 方言支持原生子句（按 `supportNullsFirst` 能力位：h2 / postgresql / oracle / duckdb
+  及其派生方言 h2gis / postgis / oracle-reverse）→ 原生输出；
+- **mysql 家族**（`mysql` / `mysql5.7` / `mariadb`）→ 与 MySQL 缺省一致的组合省略子句，
+  无法表达的组合**响亮失败**；
 - 其余方言、或**取不到方言** → **响亮失败**（此前是无条件拼接，在 mariadb / dm /
-  tdengine / db2 上产出语法错误 SQL）。
+  tdengine 上产出语法错误 SQL）。
+
+> **两处需要知道的边界**：
+> ① 原生支持与否**按平台能力位 `supportNullsFirst` 判定**（经 `DialectManager` 解析，自动跟随
+> `x:extends` 继承），不是按名字白名单——因此 `h2gis` / `postgis` / `oracle-reverse`
+> 这类自身不声明、经继承为 true 的派生方言不会被漏判。
+> ② **DB2 目前走「响亮失败」**：DB2 本身支持 `NULLS FIRST/LAST`，但平台 `db2.dialect.xml`
+> 未声明 `supportNullsFirst`（因无法实测而保守留 false）。这是一处**已知的行为收紧**——
+> 修复前该路径在 DB2 上恰好可执行。若你的 DB2 部署需要 ORDER BY 空序，请在
+> `db2.dialect.xml` 中把 `supportNullsFirst` 置 `true`。
 
 > 「取不到方言就失败」是刻意的：无法校验方言时产出原生子句，等于把错误推迟到目标库，
 > 且在 MySQL 上必然是语法错误。
 
 **仍需注意的两处方言盲点**（均已加 javadoc 警示，且都不在查询主链路上）：
 - `QueryBeanHelper.buildOrderBySql`（`nop-core`）：直接渲染 `" nulls first"` 文本，
-  **零调用方**，删除属 `nop-core` API 变更，已立项。
+  **零调用方**（全仓 grep 确认）。删除属 `nop-core` API 变更（Protected Area），
+  已在 plan 2309 的 Deferred 区登记，**尚未独立立项**。
 - `OrderFieldBean.toString()`：同样渲染该文本，仅调试用，不可当 SQL 用。
 - `OrderFieldBean.shouldNullsFirst()`：用单布尔推导空序，是**内存比较语义**
   （供 `OrderByComparator` 等内存排序），**不是 SQL 语义**——单布尔模型正是 §3.8 否决的
   做法（见上文 DuckDB 警告），SQL 产出路径不得使用。
+- `SQL.SqlBuilder.orderField` / `reverseOrderField` / `orderBy(String, List)` /
+  `orderBy(String, OrderFieldBean)`：本身仍是无条件拼接的底层拼装器，且现已无 main 调用方。
+  **不要直接调用它们**；走 `DaoQueryHelper.appendOrderBy` 或 `GenSqlHelper`（已接门控）。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 

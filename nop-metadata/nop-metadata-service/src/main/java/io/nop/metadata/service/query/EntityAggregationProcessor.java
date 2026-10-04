@@ -293,9 +293,10 @@ public class EntityAggregationProcessor implements AggregationProcessor {
     /**
      * plan 2309 D8：取本实体所属 querySpace 的方言名（形如 {@code h2} / {@code mysql}）。
      *
-     * <p>{@code "MySQL".equalsIgnoreCase("mysql")} 为真，故 mysql 系列仍命中 MySQL 分支，
-     * h2 / postgresql 命中原生分支——与既有三态语义完全一致，无需改
-     * {@code buildOrderByClause} 的签名。
+     * <p>取到的是<b>方言名</b>（{@code IDialect.getName()}，即方言资源文件名），
+     * 如 {@code h2} / {@code mysql} / {@code mysql5.7}；{@code buildOrderByClause} 按
+     * 方言能力位与 mysql 家族判定分流（见 {@code isMySqlFamily} / {@code supportsNativeNullsOrder}），
+     * 无需改其签名。
      */
     private static String resolveDialectName(MetaQueryContext ctx, NopMetaEntity table) {
         String querySpace = table.getQuerySpace();
