@@ -1,6 +1,6 @@
 # 2325 full-code-review 2.7 业务模块 BizModel/IoC 配置合规整域扫描
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.7（MA2）；Skill=`ai-dev/skills/configuration-audit-prompt.md`（配置四分类）+ `ai-dev/skills/deep-audit-prompts.md`（维度 08/11 + 共享前缀）
 > Related: plan 2314（1.7 service-framework 分层边界）；plan 2325 前序 2.1–2.6 已审 nop-orm/orm-eql/biz/graphql（IoC 消费端撞车对照）；owner doc `docs-for-ai/02-core-guides/ioc-and-config.md`
@@ -56,70 +56,70 @@
 
 ### Phase 1 - 整域扫描（三分片并行）
 
-Status: planned
+Status: completed
 Targets: 17 模块组
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：105 beans.xml 清单（手写 48+生成 vs _gen 分桶，17 组口径）、@BizModel 372 全量清单、442 xmeta 清单、@Inject/@InjectValue 全仓计数
-- [ ] 分片 A 子 agent（auth〔含 oauth 子模块〕/credential/sys/job）：维度 08 本分片 + 维度 11 本模块对账 + 配置键命名（全仓键命名一致性由 A 承担，口径=17 组 @cfg: 键）
-- [ ] 分片 B 子 agent（wf/task/tcc/retry/batch/report/dyn）：同上（dyn 调入 B 平衡 xmeta 量）
-- [ ] 分片 C 子 agent（rule/file/datav/metadata/ai/code）：同上
-- [ ] 交叉抽验：由 Phase 2 复核 agent 统一承担（维度 08 计数独立复算必查项取代分片互抽）
-- [ ] 产物 `_tmp/fcr-2.7-{a,b,c}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：105 beans.xml 清单（手写 48+生成 vs _gen 分桶，17 组口径）、@BizModel 372 全量清单、442 xmeta 清单、@Inject/@InjectValue 全仓计数
+- [x] 分片 A 子 agent（auth〔含 oauth 子模块〕/credential/sys/job）：维度 08 本分片 + 维度 11 本模块对账 + 配置键命名（全仓键命名一致性由 A 承担，口径=17 组 @cfg: 键）
+- [x] 分片 B 子 agent（wf/task/tcc/retry/batch/report/dyn）：同上（dyn 调入 B 平衡 xmeta 量）
+- [x] 分片 C 子 agent（rule/file/datav/metadata/ai/code）：同上
+- [x] 交叉抽验：由 Phase 2 复核 agent 统一承担（维度 08 计数独立复算必查项取代分片互抽）
+- [x] 产物 `_tmp/fcr-2.7-{a,b,c}.md`
 
 Exit Criteria:
 
-- [ ] 三份分片扫描报告落盘，每条发现 ≥9 行含 file:line + 修复方向
-- [ ] 维度 08 每个机械检查项有全仓可复现口径
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 三份分片扫描报告落盘，每条发现 ≥9 行含 file:line + 修复方向
+- [x] 维度 08 每个机械检查项有全仓可复现口径
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 汇总复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：三分片逐条 保留/降级/驳回 + 维度 08 计数独立复算（必查）+ 维度 11 双向对账独立复算
-- [ ] 主 agent 汇总：判级统一、与 2.5/2.6 既有发现撞车对照、xmeta 深度比对抽样清单定稿
-- [ ] 裁决收敛
+- [x] 独立复核子 agent（fresh session）：三分片逐条 保留/降级/驳回 + 维度 08 计数独立复算（必查）+ 维度 11 双向对账独立复算
+- [x] 主 agent 汇总：判级统一、与 2.5/2.6 既有发现撞车对照、xmeta 深度比对抽样清单定稿
+- [x] 裁决收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.7-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.7-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.7-bizmodel-ioc-compliance-scan.md`；index 登记 2.7 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 验证锚点：纯配置/XML/Java 声明面只读扫描——**免除构建/测试验证**（引用 2026-09-22 绿色基线；复核独立复算为锚）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.7 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.7-bizmodel-ioc-compliance-scan.md`；index 登记 2.7 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 验证锚点：纯配置/XML/Java 声明面只读扫描——**免除构建/测试验证**（引用 2026-09-22 绿色基线；复核独立复算为锚）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.7 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读声明面扫描计划，免除构建/测试验证（引用绿色基线；复核独立复算为锚）。
 
-- [ ] 报告落盘且 17 模块组 × 3 面全覆盖（beans/xmeta/配置键）
-- [ ] 每条发现 file:line 可复现；grep 口径可复现
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.7 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 17 模块组 × 3 面全覆盖（beans/xmeta/配置键）
+- [x] 每条发现 file:line 可复现；grep 口径可复现
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.7 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Non-Blocking Follow-ups
 
@@ -136,14 +136,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读扫描计划收口。报告 `2.7-bizmodel-ioc-compliance-scan.md` 落盘：通过无 P0/P1 附 P2×4（孤儿注册族×2——MakerChecker 三重失配⊕dim13-03 合并、DatasetAuth 完整生成仅注册断；_module 缺失×5 JAR；RetryScanner 同型先例未同步）+P3×20（含复核新增 i18n 缺失族群 447/3987）。**NopIoC 硬规则全仓 211 @Inject 文件零违规**（独立复算）；372 @BizModel↔442 xmeta 双向对账闭合。closure audit 首轮 FAIL（B1 候选池计数 40 为模板串写，权威口径 24）→ 按 auditor 最小修复方案改正两处+落实 A1/A2 advisory → 满足收口条件（auditor 明示修复后全部通过条件即满足）。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_51bf1e1c-512e-4eee-bd4c-de028ffed0b2（fresh session，只读 closure auditor）
+- Evidence:
+  - 终态四方勾稽全过：P0=0/P1=0/P2=4/P3=20=24 ↔ 报告内实点 ↔ index 2.7 行 ↔ 复核文件（40 为串写错误已按 auditor 处方改正为 24）
+  - 首轮 closure audit FAIL（B1 候选池计数）→ 修复后满足 auditor 明示的全部通过条件；A1（i18n 探针方差注记）/A2（日志归属注记）已落实
+  - 维度 08 三项计数复算全过：private 0 违规（211 文件，12 原始命中全误报逐一定性）、_module 5/35 精确复现+加载器机制核实、nop-auth/wf 缺失集一致
+  - P2 台账：4 行修复方向完整；a01⊕dim13-03 合并四处留痕（读 2.6 报告核实相容）；F4↔check2 job P1-1 同型姊妹 live 验证（JobTimeoutCheckerImpl javadoc+@Inject @Nullable 先例）
+  - 判级调和：F1 降级（substitution 现役链 live：auth-dao.beans.xml:9+NopAuthUserSubstitution）、b06 驳回实证（续行 47/60/73/122）、F-C-01 降 P3（备用通道）
+  - 锚点抽验 6/6 live+4 加验全过
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2325-full-code-review-2.7-bizmodel-ioc-scan.md --strict` 退出码 0
+  - Anti-Hollow：纯声明面只读扫描无新增实现（hollow 扫描对象为空，随 Closure Gates 豁免）；验证以独立复算为锚
+  - Deferred 项分类检查：configuration 四分类完整审计已按 Deferred But Adjudicated 登记（successor=5.1/5.2 或 R1.0；两条廉价 grep 已并入不留盲区）；P2×4 经报告移交 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×4+P3×20 修复归属 R1.0 分族批次；四分类完整审计 successor 已登记；G.2 移交两项（_module 配对规则示例/配置键禁驼峰）在报告移交注记）

@@ -26,7 +26,7 @@
 | 2.4 | `2.4-nosql-cdc-deep-audit.md` | 0 | **1** | 12 | 25 | done（裁决：通过无 P0 附 P1×1——rate_limit.lua 集群 CROSSSLOT 进 R1.0；**check2 P0 复裁定 false-positive（三重独立复现）**、P1-2 already-fixed、**P1-3 still-live（MFA codec 类型不对称）进 R1.0 输入**；RESP3 逐原语矩阵 10 通道全兼容；降级 3、升级 1、跨维度去重 3） | 独立子 agent（见 plan 2322 Closure 段） |
 | 2.5 | `2.5-orm-model-compliance-scan.md` | 0 | **5** | 14 | 21 | done（裁决：通过无 P0 附 P1×5——UK/唯一索引零物化族×4（job/batch/retry 部署层防线缺失；a20 复核反转升格）+字段长度覆盖族×1（rule precision=50 静默覆盖 json-4k）；**平台级发现：DDL 生成器不物化 `<index>`**；维度 8 独立复算 67/51/16 逐文件证实；demo 3 条单列；降 1 改判 2 驳 0） | 独立子 agent（见 plan 2323 Closure 段） |
 | 2.6 | `2.6-biz-graphql-deep-audit.md` | 0 | **7** | 14 | 12 | done（裁决：不通过附 P1×7 三族——GraphQL fragment 校验族×2+DataLoader 挂死、权限公开面族×3（approval-support/纯 xbiz 静默公开 16 项/@BizLoader 死注解）、后台直调零事务；**check2 九条点名全部 already-fixed**（两条语义级验证）；CrudBizModel 拆分评估交付（宽职责单管线/700 行可下沉/禁机械拆类）；fail-open 三处裁定交付；改判 2 驳 0） | 独立子 agent（见 plan 2324 Closure 段） |
-| 2.7 | — | | | | | todo | |
+| 2.7 | `2.7-bizmodel-ioc-compliance-scan.md` | 0 | 0 | **4** | 20 | done（裁决：通过无 P0/P1 附 P2×4——孤儿注册族×2（MakerChecker 三重失配⊕dim13-03 合并/DatasetAuth 完整生成仅注册断）+_module 缺失×5 JAR+RetryScanner 同型先例未同步；**NopIoC 硬规则全仓 211 文件零违规**（独立复算）；驳回 1 假阳性反向发现 i18n 缺失族群 447/3987；降 1 新增 1） | 独立子 agent（见 plan 2325 Closure 段） |
 | 3.1 | — | | | | | todo | |
 | 3.2 | — | | | | | todo | |
 | 3.3 | — | | | | | todo | |
