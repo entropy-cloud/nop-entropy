@@ -1,7 +1,7 @@
 # 32 EQL WI9b — CAST 类型系统·时区类型（`StdSqlType` LOCAL 时区成员落地 + `dataTypeName_` 拼写新增 + DDL 映射与迁移裁定）
 
 > Plan Status: active
-> Last Reviewed: 2026-10-04
+> Last Reviewed: 2026-10-05
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI9b 节 `:327-332`、门控矩阵 WI9b 行 `:115`、Work Item Status `:92`（`todo`）、共同约束 1-4 `:263-280`、Cross-Cutting 全部 `:380-390`、roadmap 级 Exit Criteria `:444-456`、关键约束与红线 `:458-468`）
 Related: `ai-dev/plans/25-eql-wi9a-cast-type-aliases.md`（硬前置，`completed`；本 plan 的结构先例与 WI9b 边界声明的出处）、`ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，`completed`）、`ai-dev/plans/19-eql-wi2-class-b-defects.md`（硬前置，`completed`；BOOLEAN 文法先例）、`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1/G-3 已裁决）、`ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md`（WI9a Phase 0 裁定；其 §五对照表含 WI9b 边界注记，本 plan 落地时须回写）
 
@@ -149,27 +149,27 @@ Phase 0 为前置纯裁定、不产产品代码（其各项是 Phase 1/2/3 的�
 
 ### Phase 0 - 前置裁定
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增裁定文档，含裁决人注记小节）、`ai-dev/audits/eql-wi0/eql-corpus-baseline.md` 与 `dialect-capability-matrix.json`（状态核验，只读）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 复核 WI0 两件产物状态未回退：语料基线快照（`TestEqlCorpusBaseline` 通过）与方言矩阵快照（`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0）——Phase 3 的 BC 判据与门禁依赖它们存在。
-- [ ] 重跑使用面 0 命中统计（三口径：114 个 orm.xml 的 `stdSqlType=` 时区值；全仓 `_vfs`/`xdef`/`xmeta`/`migration.xml` 的 `TIME_WITH_LOCAL_TIME_ZONE`/`TIMESTAMP_WITH_LOCAL_TIME_ZONE`/`WITH LOCAL TIME ZONE`；Java 生产代码引用），结果登记进裁定文档——这是 EC ② 迁移裁定的证据基座（起草时实证 = 全 0；若非 0，逐文件列清单并回到 ask-first 升级裁决）。
-- [ ] 裁定时区成员形态（本 plan 第一个 Decision 硬项）：`TIME_WITH_LOCAL_TIME_ZONE` / `TIMESTAMP_WITH_LOCAL_TIME_ZONE` 各自的 `jdbcType`（候选 (a) `Types.TIME_WITH_TIMEZONE=2013`/`Types.TIMESTAMP_WITH_TIMEZONE=2014`——键唯一零翻转；候选 (b) 沿用注释体 `Types.OTHER`——须同步裁定 `fromJdbcType(Types.OTHER)` 翻转的接受性或补偿策略）、`stdDataType`（候选按 `TIME`/`DATETIME`/`TIMESTAMP` 归族 + 循环后显式重钉保持既有 `fromStdDataTYpe` 结果；登记"新增 StdDataType 成员"为被拒候选及理由）、`allowPrecision`/`allowScale`（参照同族成员与注释体 `PrecScale.NO_NO | PrecScale.YES_NO` 的语义线索）。产出：两个成员的裁定取值 + 三 map 不变量保持策略 + 被拒候选记录。**裁决人注记落裁定文档**（ask-first 声明，人可推翻）。
-- [ ] 裁定 EC ② 迁移结论：基于第 2 项重跑证据，给出 `No migration required`（预期，理由 = 0 使用实证 + 影响面 (a)-(d) 逐条为纯增量或已被第 3 项裁定消除）或升级 SQL 清单；**不接受留空**。结论连同理由写入裁定文档专节，并在 owner doc（`orm-model-design.md`）登记一句升级指引。
-- [ ] 裁定拼写与文法形态：① 标准拼写名 = `TIME WITH LOCAL TIME ZONE` / `TIMESTAMP WITH LOCAL TIME ZONE`（Standard SQL 名称；gate A 对输入 `toUpperCase(Locale.ROOT)` 后匹配枚举名，小写书写自动放行——对照表登记）；② 文法备选形态 = bare 多词备选（接受 `sqlTypeExpr` 的 precision 位置限制并登记为已知能力边界，或裁定扩展形态并评估上浮成本）；③ **非 LOCAL 变体不恢复**的终裁（本 plan 倾向 = 不恢复，理由见 Current Baseline；推翻须记录 scope change 与补枚举/补映射连带成本）。产出对照表定稿列结构：每个新拼写一行"修复前行为（错误码字面值：`nop.err.antlr.*` 解析失败族）/ 修复后行为 / 等价或受边界限制的拼写形态 → 生成什么 SQL（载体方言文本）"，并含非 LOCAL 变体的"维持删除态"注记行（回写 WI9a 对照表 `:266` 行的 WI9b 边界注记）。
-- [ ] 裁定 DDL 映射载体与 EC ① 往返测试设计：① **H2 一手取证**——在 H2 测试载体（`AbstractMigrationTestCase.createH2DataSource()` 形态）上执行 `TIME WITH LOCAL TIME ZONE` / `TIMESTAMP WITH LOCAL TIME ZONE` 建表 DDL，取得可建/不可建的一手结论，替换本 plan 的 `[未取证]` 标注（不可建则按 WI5 EC ⑥ 纪律裁定替代证据形态）；② 按取证结果在**三个映射候选**中裁定：**候选 (a) 无撞名新键条目**——新条目 `name`/`alias` 与既有 `nativeTypes` 键集逐条核对不撞（oracle `:249` 的 alias 占位使其正查 native name 候选默认剔除或改形），期望渲染文本按 `stdToNativeSqlType` 链路推导（不按方言名直觉填，WI9a §六先例）；**候选 (b) 空集（全负裁定）**——若 (a) 无可行条目且负责人不接受候选 (c)，裁定零载体收口，EC ① 按"全负形态"满足（见下），空集理由落档，**该空集裁定本身单独 ask-first 落档**；**候选 (c) 接受定向撞名覆盖**——新增条目与既有 alias 键同名（如覆盖 oracle `:249` 的 `TIMESTAMP(6) WITH LOCAL TIME ZONE` alias 反查），须逐项登记 reverse 映射行为变化（该 native 名反查从归 std TIMESTAMP 改归时区 std）**且该项单独 ask-first**（书面裁决、人可推翻；不因本 plan 主裁决人注记而免问）；③ "不支持"载体清单（无映射真方言或手工最小方言，`TestEqlTranslationSemantics.buildDialect()` 先例）；④ G-1 版本门评估（各载体方言时区原生类型的引入版本对 G-1 已确认门的一致性；未取得一手引证的按 unverified 纪律登记，不计入覆盖率）；⑤ 往返测试形态定稿（DDL 生成 → 真库建表 → JDBC 元数据读回 → std 归类比对的断言链，载体 = H2；不可真库验证方言逐个列出）。**全负结果下 EC ① 的预定义满足形态**：候选 (b) 成立时，EC ① = 仅"不支持"类负向用例齐全（错误码字面值断言）+ DDL 映射增补裁定为空集的理由（含候选 (a)/(c) 被拒的具体依据）在裁定文档落档 + Goals 第 3 条的 scope 裁决前置已书面通过；真库往返与替代证据两项豁免并注明由空集裁定覆盖。
-- [ ] 裁定各 Phase 的提交切分：`StdSqlType.java` 单独提交（回滚单位）；`.g4` + 重生成产物单独提交；方言 XML 逐条独立提交（各携正向用例自洽可绿）——与本 plan Protected Areas 表一致，无新增裁定则记录"按默认"。
+- [x] 复核 WI0 两件产物状态未回退：语料基线快照（`TestEqlCorpusBaseline` 1/1 PASS，mtime 2026-10-04 18:46 晚于最后代码提交 `cb918dd3cc`；HEAD `8be89b0bc8` 为纯文档提交零代码 delta）与方言矩阵快照（`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0，2026-10-05 实跑）——裁定文档 §〇。
+- [x] 重跑使用面 0 命中统计（三口径），结果登记进裁定文档 §一——**全 0 复现**（114 orm.xml / 全仓 xdef/xmeta/xml / Java 生产代码均 0 命中；`WITH LOCAL TIME ZONE` 扩展口径 9 文件全为文档/注释/native 别名）。
+- [x] 裁定时区成员形态：**候选 (b) 补偿形态**——`Types.OTHER` + `StdDataType.TIME`/`TIMESTAMP` + `allowPrecision/allowScale=(false,false)` + 循环后三处显式重钉（`jdbcTypeMap.put(OTHER,OTHER)` + `stdTypeMap.put(TIME,TIME)` + `stdTypeMap.put(TIMESTAMP,TIMESTAMP)`）；候选 (a) 2013/2014 经 H2 一手探测**改判拒绝**（两标准码在真实驱动上表示非 LOCAL 保偏移类型，挂给 LOCAL 成员将静默误标 `JdbcHelper:164`/`JdbcMetaDiscovery:346` 读回归类）——裁定文档 §三（含三 map 不变量基线表、被拒候选、裁决人注记）。
+- [x] 裁定 EC ② 迁移结论：**`No migration required`**（0 使用三口径实证 + 影响面 (a)-(d) 逐条：纯增量或已被重钉裁定消除）；升级指引一句归 Phase 3 owner doc——裁定文档 §四。
+- [x] 裁定拼写与文法形态：① 标准拼写 = 两多词 LOCAL 名（大小写不敏感）；② 文法备选 = bare 多词备选，接受 precision 位置限制并登记（Deferred 段既有）；③ 非 LOCAL 不恢复**终裁**；④ **新增裁定项**：闸门 A 名称提取适配（`getText()` 无分隔符拼接会使多词备选复活 BUG-11 形态，裁定手写 `SqlTypeExpr_name` 多 token 重建归一化）——裁定文档 §五（含对照表定稿列结构 + 草表）。
+- [x] 裁定 DDL 映射载体与 EC ① 往返测试设计：① H2 一手取证完成——2.4.240 实测两种 LOCAL 形态**均不可建**（非 LOCAL 2013/2014 可建），`[未取证]` 已改判；② 映射候选三选一 = **候选 (a)**：oracle 单条目 `TIMESTAMP WITH LOCAL TIME ZONE`（零撞名核对 §2.4）；`TIME_WITH_LOCAL_TIME_ZONE` 逐成员全负登记（全方言无宿主，不造降级映射）；候选 (b)/(c) 不触发（各自 ask-first 无需启动）；③ 负向载体 = h2 + 手工最小方言 + oracle（TIME 变体）；④ G-1 评估 = 无版本门张力，dm/tdengine/db2 维持 unverified；⑤ 往返测试设计四层断言链 + EC ① 满足形态 = **选项 2**（不可验证方言 oracle 逐个列出 + 替代证据 + 真实 Oracle 往返 `[未取证]`）——裁定文档 §六。
+- [x] 裁定各 Phase 的提交切分：按默认（StdSqlType 单独 / .g4+重生成+闸门A适配单独 / oracle XML 单独 / 文档分离）——裁定文档 §七。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/`，含：裁决人注记（ask-first 声明）、使用面 0 命中重跑结果（三口径）、成员形态裁定（含三 map 不变量保持策略与被拒候选）、EC ② 迁移结论（`No migration required` 或升级 SQL，不接受留空）、拼写/文法形态裁定（含非 LOCAL 不恢复终裁与对照表列结构）、H2 一手取证结论（`[未取证]` 标注已消除或按纪律改判）、映射载体表（逐行方言 + 期望渲染文本 + 撞名核对；含 Phase 0 第 6 项映射候选 (a)/(b)/(c) 三选一结论，全负时附预定义全负形态裁定）、G-1 评估、往返测试设计、提交切分结论，以及**对 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md` §九 键集计数（自记 30→34，实测口径为活成员 26 + `INT`/`TEXT`/`NUMBER`/`BOOL` 四别名 = 30）的勘误移交项**（带日期注记落本裁定文档，不重写 WI9a 原文，照 G-3 增补裁决先例）。
-- [ ] WI0 两件产物状态核验结论已记录（`completed`/未回退，或显式声明等待并阻塞后续 Phase）。
-- [ ] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物；owner docs 归 Phase 1/2/3）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 裁定文档已落 `ai-dev/design/eql-cross-db-compat/2026-10-05-wi9b-phase0-adjudications.md`，含全部要求项（裁决人注记 §三.5、三口径重跑 §一、成员形态 + 三 map 保持策略 + 被拒候选 §三、EC ② 结论 §四、拼写/文法形态 + 非 LOCAL 终裁 + 对照表列结构 §五、H2 一手取证结论 `[未取证]` 已改判 §二.1、映射载体表 + 三选一结论 §六、G-1 评估 §6.2、往返测试设计 §6.3-6.4、提交切分 §七），以及 **WI9a §九 键集计数勘误移交项**（§八：自记 30→34 系算术误记，实测 30；不重写 WI9a 原文，照 G-3 增补裁决先例落本文档 + Phase 4 roadmap 注记指引）。
+- [x] WI0 两件产物状态核验结论已记录（均 `completed`/未回退，裁定文档 §〇）。
+- [x] 本 Phase 纯裁定，不改产品代码：`No owner-doc update required`（裁定文档本身即交付物；owner docs 归 Phase 1/2/3）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` 新建）。
 
 ### Phase 1 - `StdSqlType` 时区成员落活（模型层，单独提交）
 
@@ -202,7 +202,7 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`dataTypeName_`
 
 - Item Types: `Feature`（新拼写入口——LOCAL 变体从未存在，非 BUG-11 型缺陷修复）、`Proof`
 
-- [ ] 开工前置核验：确认无并行 WI 的 `.g4`→`EqlParser` 重生成债未清零（已知在途项：WI7 Phase 1 `09fa140ff5` 落地时其重生成产物显式欠账"随下一次提交"——若该债未清，先协调清账，或确认其将随本 plan 文法提交一并清偿并在重生成 diff 审计中分账登记；否则本 Phase 的重生成 diff 审计会把并行 WI 的欠账 diff 误记为本 plan 改动）。结论登记进提交说明或日志。
+- [x] 开工前置核验：确认无并行 WI 的 `.g4`→`EqlParser` 重生成债未清零（已知在途项：WI7 Phase 1 `09fa140ff5` 落地时其重生成产物显式欠账"随下一次提交"——若该债未清，先协调清账，或确认其将随本 plan 文法提交一并清偿并在重生成 diff 审计中分账登记；否则本 Phase 的重生成 diff 审计会把并行 WI 的欠账 diff 误记为本 plan 改动）。结论登记进提交说明或日志。**（2026-10-05 提前核验完成：债已清零——WI7b 重生成产物随 `7048cf1474` 提交、WI8 两个文法提交各自携带重生成产物、工作区无 `.g4`/`EqlParser` 未提交改动；裁定文档 §〇）**
 - [ ] 修复前红：`cast(x as time with local time zone)` / `cast(x as timestamp with local time zone)` 断言解析失败（错误码字面值：`nop.err.antlr.*` 族，Phase 0 裁定文档记录具体码与 offending token）——红证据留痕；同时断言非 LOCAL 拼写（`time with time zone`）维持 WI9a 收窄后形态不变（不复活）。
 - [ ] 按 Phase 0 裁定形态给 `dataTypeName_` 新增两备选（bare 多词形态为倾向）；**不删除任何 lexer token**、不触碰 `characterSet_`/`collateClause_`/`sqlDateTimeLiteral`/`sqlIntervalExpr` 等共用 token 规则；文法改动**单独提交**，重生成产物随该提交。
 - [ ] 重生成 diff 审计：确认仅 `EqlParser.java`/`Eql.interp` ATN 变化、token 表零增删（`WITH`/`LOCAL`/`ZONE` 均既有 token）、`ast/_gen`/`EqlLexer*`/`*.tokens`/`_EqlASTBuildVisitor.java` 零 diff（WI2/WI9a 同口径先例）；偏差即停，按生成管线 plan-first 重新裁定。
