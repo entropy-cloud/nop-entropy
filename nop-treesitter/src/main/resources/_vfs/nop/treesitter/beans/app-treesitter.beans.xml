@@ -9,4 +9,8 @@
     <bean id="io.nop.treesitter.biz.TreeSitterBizModel" ioc:type="@bean:id" ioc:default="true">
         <property name="languageProvider" ref="nopTreeSitterLanguageProvider"/>
     </bean>
+
+    <bean id="io.nop.treesitter.biz.ShellAnalysisBizModel" ioc:type="@bean:id" ioc:default="true">
+        <property name="languageProvider" ref="nopTreeSitterLanguageProvider"/>
+    </bean>
 </beans>

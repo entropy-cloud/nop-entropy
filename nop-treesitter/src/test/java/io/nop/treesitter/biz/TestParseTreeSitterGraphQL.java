@@ -84,13 +84,21 @@ class TestParseTreeSitterGraphQL {
      * Mirrors the nop-graphql-core engine test's schema loader: reflects the
      * {@code @BizModel} annotations of the given container bean.
      */
-    static class BizModelSchemaLoader implements IGraphQLSchemaLoader {
+    public static class BizModelSchemaLoader implements IGraphQLSchemaLoader {
         final GraphQLBizModels bizModels = new GraphQLBizModels();
         final Map<String, io.nop.graphql.core.ast.GraphQLObjectDefinition> defs = new HashMap<>();
+        final java.util.Set<String> bizModelNames = new java.util.LinkedHashSet<>();
 
-        BizModelSchemaLoader(Object... beans) {
+        public BizModelSchemaLoader(Object... beans) {
             TypeRegistry registry = new TypeRegistry();
             bizModels.build(registry, List.of(beans));
+            for (Object bean : beans) {
+                io.nop.api.core.annotations.biz.BizModel annotation =
+                        bean.getClass().getAnnotation(io.nop.api.core.annotations.biz.BizModel.class);
+                if (annotation != null) {
+                    bizModelNames.add(annotation.value());
+                }
+            }
         }
 
         @Override
@@ -139,7 +147,7 @@ class TestParseTreeSitterGraphQL {
 
         @Override
         public java.util.Set<String> getBizObjNames() {
-            return java.util.Set.of("TreeSitter");
+            return bizModelNames;
         }
 
         @Override
