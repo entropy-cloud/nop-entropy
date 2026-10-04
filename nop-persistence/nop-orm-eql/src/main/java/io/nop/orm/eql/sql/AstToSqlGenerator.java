@@ -347,11 +347,15 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                     .param(ARG_DIALECT, dialectName());
         }
 
-        // D3：DISTINCT 查询要求排序列出现在投影列表中（否则 PG 拒绝）
-        if (distinctWithoutProjectedColumn(item, (SqlColumnName) expr)) {
+        // D3：DISTINCT 查询在改写路径上一律 fail-fast。
+        // 实测 PostgreSQL 16：`select distinct v from t order by (case when v is null then 0 else 1 end), v`
+        // 即便 v 已在投影列表中，仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`
+        // ——因为注入的 CASE 是一个**新的** ORDER BY 表达式，不在 select list 里。
+        // 故「排序列已投影」只是必要条件，不足以让改写合法；只能整体拒绝。
+        if (inDistinctSelect(item)) {
             throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
                     .source(item)
-                    .param(ARG_REASON, "distinct-column-not-projected")
+                    .param(ARG_REASON, "distinct-not-supported")
                     .param(ARG_DIALECT, dialectName());
         }
 
@@ -381,23 +385,10 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         return false;
     }
 
-    /** D3：DISTINCT 查询中该排序列未出现在投影列表里 */
-    private boolean distinctWithoutProjectedColumn(SqlOrderByItem item, SqlColumnName sortCol) {
+    /** D3：该排序项是否位于 {@code SELECT DISTINCT} 查询内（改写路径此时结构上不合法） */
+    private boolean inDistinctSelect(SqlOrderByItem item) {
         SqlQuerySelect select = enclosingSelect(item);
-        if (select == null || !select.getDistinct())
-            return false;
-        List<SqlProjection> projections = select.getProjections();
-        if (projections == null || projections.isEmpty())
-            return true;
-        for (SqlProjection p : projections) {
-            if (p instanceof SqlExprProjection) {
-                SqlExpr e = ((SqlExprProjection) p).getExpr();
-                if (e instanceof SqlColumnName
-                        && ((SqlColumnName) e).getName().equalsIgnoreCase(sortCol.getName()))
-                    return false;
-            }
-        }
-        return true;
+        return select != null && select.getDistinct();
     }
 
     private SqlQuerySelect enclosingSelect(SqlOrderByItem item) {

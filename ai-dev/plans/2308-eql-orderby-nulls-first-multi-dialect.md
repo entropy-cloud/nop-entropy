@@ -81,6 +81,7 @@ emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNulls
 |---|---|---|
 | `mariadb`（及 `mysql5.7`） | 本机无 mariadb 镜像、docker pull 受限 → **未能实测** | `supportNullsFirst=false`（保守）。依据：MariaDB 与 MySQL 同源、无该语法。走 CASE 改写，**语义仍正确**，只影响 SQL 冗长度 |
 | `dm` | 无达梦环境 → 未能实测 | `supportNullsFirst=false`（保守）。DM 兼容 Oracle、很可能实际支持，但未实测不改为 true |
+| `mssql` | 无 SQL Server 环境 → 未能实测 | `supportNullsFirst=false`（保守）。T-SQL 系本无 `NULLS FIRST/LAST` 语法，取 false 与方言事实一致 |
 | `tdengine` | 无 TDengine 环境 → 未能实测 | `supportNullsFirst=false`（保守） |
 | `db2` / `oracle` / `es` | 无环境 | 不改现有取值；`es` 是占位桩（`driverClassName`/`dbProductNames` 均为 `xx`），不做核实 |
 | `h2` 的 `defaultNullsFirst` | 实测缺省为 NULLS FIRST，但该属性**本计划不使用** | **不补**（避免给死属性再加无谓配置） |
@@ -215,7 +216,7 @@ Targets: `nop-dao/.../dialect/{dm,tdengine}.dialect.xml`、`ai-dev/tools/`、`_t
 
 Exit Criteria:
 
-- [x] **证明**：每个方言的 `supportNullsFirst` 取值都有证据来源——三库为脚本实测输出，`mariadb`/`dm`/`tdengine`/`db2`/`oracle` 显式标注"未能实测 + 保守缺省"
+- [x] **证明**：每个方言的 `supportNullsFirst` 取值都有证据来源——三库为脚本实测输出，`mariadb`/`dm`/`tdengine`/`db2`/`mssql` 显式标注"未能实测 + 保守缺省"；`oracle` 单独标注为"官方文档依据 + 既有 true 声明（非本计划引入、非保守缺省）"
 - [x] **证明**：常驻脚本可复制执行（`bash ai-dev/tools/probe-nulls-order-matrix.sh`），输出与矩阵一致
 - [x] 矩阵与 Current Baseline 合并为**唯一一套** baseline，无并存（已删除重复的旧段落）
 - [x] `ai-dev/logs/` 当日条目已更新
@@ -247,7 +248,7 @@ Targets: 本 plan、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 |---|---|---|
 | D1 emission 只读 `supportNullsFirst` | Phase 2 | `IDialect` 暴露该位；策略实现 |
 | D2 仅纯列引用可改写 | Phase 2 / 4 | 策略的适用性判定 + fail-fast |
-| D3 DISTINCT 要求排序列已投影 | Phase 4 | `visitSqlOrderBy` 内读 `distinct`/`projections` |
+| D3 DISTINCT 在改写路径上一律 fail-fast | Phase 4 | `visitSqlOrderBy` 内读 `distinct`；Phase 4 实测后**收紧**（见 D3 修订） |
 | D4 窗口 fail-fast（仅改写路径） | Phase 4 | 向上遍历 `getASTParent()` 判 `SqlWindowExpr`/`SqlWindowDecl` |
 | D5 前置同级键 → 覆写 `visitSqlOrderBy` | Phase 4 | 列表级重写而非只覆写 item |
 | D6 新错误码 + 三种 reason | Phase 2 / 4 | `OrmEqlErrors` 新增；调用点填 reason |
@@ -293,8 +294,14 @@ supportNullsFirst == false/null  → CASE 改写（见 D5 的插入位置）
 **D3 `SELECT DISTINCT` 的行为**——改写会引入**新的** ORDER BY 表达式，而 PostgreSQL 对 DISTINCT 查询
 要求 ORDER BY 表达式必须出现在 select 列表中。裁定：
 - 原生路径（`supportNullsFirst=true`）：照常输出，不受 DISTINCT 影响；
-- CASE 路径：要求该排序列**已出现在 `SqlQuerySelect` 的投影列表中**（`distinct` 与 `projections` 字段已核实存在，
-  `EqlAST.xjava:153/156`），否则 fail-fast。
+- CASE 路径：**一律 fail-fast**，reason = `distinct-not-supported`。
+
+> **Phase 4 修订（原裁定为「排序列已投影即可」）**：closure audit 指出该条件只是**必要**而非
+> **充分**条件，并经真实 PostgreSQL 16 15 实测确认：
+> `select distinct v from t order by (case when v is null then 0 else 1 end), v` 即便 `v`
+> 已在投影列表中，仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`
+> ——注入的 `CASE` 是**新的** ORDER BY 表达式，不在 select list 中。
+> 故改写路径对 DISTINCT 整类拒绝。原生路径不受影响（DISTINCT + 原生 NULLS 在 PG 上可执行）。
 
 **D4 窗口边界**——`sqlOrderBy` 有 **3 个使用点**，只有查询级可改写：
 - 查询级 `SqlQuerySelect.orderBy` → 支持
@@ -568,7 +575,7 @@ Exit Criteria:
 - Classification: `moved to explicit successor ownership`
 - Why Not Blocking Closure: `AggregationHelper` 是 nop-metadata 聚合查询的 ORDER BY 构造，与 EQL ORDER BY 是两套产出路径。迁移它需要先解决「JDBC `databaseProductName` 字符串 → `IDialect`」的映射（`AggregationHelper.buildOrderByClause` 是**静态方法、无 Connection、无 IDialect**，两条 ORM 路径更直接传 `null`），属签名与调用链重设计。且其现状已在 `2026-08-06-1228-1` 的 Deferred 区有具名残余登记，不是新问题
 - Successor Required: `yes`
-- Successor Path: **`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`**（已建，Phase 2 承接 F3）。已核实为**confirmed live defect**：`AggregationHelper.java:376` 在**所有非 MySQL 方言**（含 `dialect == null`）无条件 append `NULLS FIRST/LAST`，mariadb / dm / tdengine / db2 上直接产出语法错误 SQL；`:365` 的单布尔缺省推导亦与 design §3.8 冲突
+- Successor Path: **`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`**（已建，Phase 2 承接 F3）。已核实为**confirmed live defect**：`AggregationHelper.java:375` 在**所有非 MySQL 方言**（含 `dialect == null`）无条件 append `NULLS FIRST/LAST`，mariadb / dm / tdengine / db2 上直接产出语法错误 SQL；`:365` 的单布尔缺省推导亦与 design §3.8 冲突
 
 ### `ORDER BY ... COLLATE`
 

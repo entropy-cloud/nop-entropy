@@ -103,11 +103,13 @@ EQL 的 `ORDER BY` 项现在接受空序修饰：`order by o.col [asc|desc] [nul
 |---|---|---|---|
 | h2 | `true` | 原生 | 实测：H2 2.3.232 真实执行四方向组合核对行序 |
 | postgresql（含 postgis） | `true` | 原生 | 实测：PostgreSQL 16.15 同上 |
-| duckdb | `true` | 原生 | 实测语法接受；**但 ASC/DESC 都不翻转缺省**（见下方警告） |
+| duckdb | `true` | 原生 | 官方文档 + 本仓库既有声明（**探针脚本未含 duckdb 分支，非本计划实测**）；**但 ASC/DESC 都不翻转缺省**（见下方警告） |
 | oracle（含 oracle-reverse） | `true` | 原生 | 官方文档明确支持；**本仓库未跑容器实测** |
 | mysql | `false` | CASE 改写 | 实测：MySQL 8.0.46 **不接受** `NULLS` 子句 |
 | mysql5.7 / mariadb | `false` | CASE 改写 | 保守缺省（未实测，继承/对齐 mysql） |
 | dm / tdengine / es | `false` | CASE 改写 | 保守缺省（无达梦/tdengine 环境，未实测） |
+| db2 | `false` | CASE 改写 | 保守缺省（未实测；DB2 T-SQL 系无 `NULLS` 子句） |
+| mssql | `false` | CASE 改写 | 保守缺省（未实测；SQL Server 无 `NULLS FIRST/LAST` 语法） |
 
 > **未实测为何仍安全**：`false` 走 CASE 改写在**任何**方言上都语义正确，只是 SQL 略冗长。
 > 这正是该能力位被设计成「支持/不支持」而非「四模型枚举」的原因——不确定时填 `false` 不会算错。
@@ -124,17 +126,28 @@ DuckDB 实际返回 NULLS LAST——静默给出错误行序。因此本框架**
 |---|---|
 | 改写路径遇到窗口上下文（`OVER (...)` / 命名窗口 `WINDOW w AS (...)` 内） | `window-not-supported` |
 | 改写路径遇到非纯列引用（函数、算术、`order by 1` 序号等无法安全复制的表达式） | `expression-not-duplicable` |
-| `SELECT DISTINCT` 的排序列未出现在投影列表中 | `distinct-column-not-projected` |
+| 改写路径遇到 `SELECT DISTINCT`（**无论排序列是否已投影**） | `distinct-not-supported` |
 
 原生方言下这三类均放行（数据库自身能处理，不需要改写）。多键 `ORDER BY` 时，
 CASE 键插在**紧邻其排序项**的位置，不改变键间优先级。
 
+> **为什么 `DISTINCT` 是整类拒绝而不是「排序列已投影即可」**：实测 PostgreSQL 16，
+> `select distinct v from t order by (case when v is null then 0 else 1 end), v` 即便 `v`
+> 已在投影列表中仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`
+> ——注入的 `CASE` 是一个**新的** ORDER BY 表达式，不在 select list 里。
+> 所以「排序列已投影」只是必要条件，不足以让改写合法。
+
 **`ORDER BY ... COLLATE` 仍不支持**。注意区分：`CAST(x AS type COLLATE y)` 中的
 `COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
 
-**另一条通道**：bean 路径 `QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`
-（`DaoQueryHelper` / `SQL.SqlBuilder`）是**独立于 EQL 的另一套实现**，不受本页描述约束；
-`order by 1` 这类序号定位会绕过表达式分析。
+**另一条通道（当前有缺陷，勿照搬本页描述）**：bean 路径
+`QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`（`DaoQueryHelper` / `SQL.SqlBuilder`）
+是**独立于 EQL 的另一套实现，完全没有方言门控**——`SQL.SqlBuilder` 全类 0 处 dialect 引用，
+空序修饰无条件拼接。因此**在 MySQL / MariaDB / DM / tdengine / SQL Server 上经该路径写
+`nullsFirst` 会产出语法错误的 SQL**。`nop-metadata` 的聚合查询路径（`AggregationHelper`）
+只对 `"MySQL"` 做了特判，其余方言同样无条件拼接。
+**在修复前，请只在 EQL 通道使用空序修饰。** 修复归属
+`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 

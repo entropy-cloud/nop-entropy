@@ -226,11 +226,16 @@ public class TestEqlNullsOrderEndToEnd extends AbstractOrmTestCase {
                 "DESC + NULLS LAST：NULL 行应在最后");
     }
 
+    /**
+     * 对照 H2 缺省行为。<b>这不是独立的正确性判据</b>——两侧走的是同一条代码路径，
+     * 它只能佐证 Phase 0 探针实测到的「H2 缺省 ASC 即 NULLS FIRST」这一事实，
+     * 真正的正确性判据是上面四个显式期望值的用例与两分支等价性用例。
+     */
     @Test
     public void testExplicitMatchesH2DefaultForAsc() {
-        // 对照：H2 缺省 ASC 为 NULLS FIRST（Phase 0 实测 2;1;3）
         assertEquals(sidsByEql("order by o.score asc"),
-                sidsByEql("order by o.score asc nulls first"));
+                sidsByEql("order by o.score asc nulls first"),
+                "显式 NULLS FIRST 应与 H2 缺省 ASC 一致（Phase 0 探针实测 2;1;3）");
     }
 
     // ================= CASE 改写分支：真实行序 =================

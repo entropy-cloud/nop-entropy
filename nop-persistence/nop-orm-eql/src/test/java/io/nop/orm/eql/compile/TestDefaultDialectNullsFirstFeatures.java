@@ -29,7 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>取值证据分级（每格必须可追溯到其中之一）：
  * <ul>
  *   <li><b>实测</b>——{@code ai-dev/tools/probe-nulls-order-matrix.sh} 在真实容器上执行过
- *       四个方向组合并核对行序。目前：h2 / postgresql / mysql / duckdb。</li>
+ *       四个方向组合并核对行序。该脚本的方言分发只含 {@code postgresql | mysql | h2}，
+ *       目前：<b>h2 / postgresql / mysql</b>。</li>
  *   <li><b>方言文档</b>——未跑容器，但该库官方文档明确写了支持
  *       {@code NULLS FIRST/LAST}。目前：oracle。</li>
  *   <li><b>保守缺省 false</b>——未实测且无文档依据，留 false。
@@ -81,8 +82,10 @@ public class TestDefaultDialectNullsFirstFeatures {
 
     @Test
     public void testDuckdbSupportsNativeNullsOrder() {
+        // 证据等级：官方文档 + 本仓库既有声明，**非本计划实测**（探针脚本不含 duckdb 分支）。
+        // 取值 true 是既有声明，非本计划引入。
         assertTrue(dialect("duckdb").isSupportNullsFirst(),
-                "DuckDB 接受 NULLS 子句。注意它 ASC/DESC 都不翻转缺省，"
+                "DuckDB 官方文档支持 NULLS 子句。注意它 ASC/DESC 都不翻转缺省，"
                         + "故省略子句的优化对本方言不安全——见 design §3.8");
     }
 

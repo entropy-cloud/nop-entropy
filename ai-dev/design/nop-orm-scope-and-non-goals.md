@@ -130,7 +130,13 @@ first-on-asc-last-on-desc / last-on-asc-first-on-desc 四种模式）。用单�
 
 改写的**适用边界**同样是契约的一部分：改写需要复制排序表达式，因此只对**纯列引用**允许；
 含绑定参数标记、序号定位（`ORDER BY 1`）、易变函数的排序项一律显式失败而非产出错误结果。
-`SELECT DISTINCT` 查询在改写路径上还要求排序列已出现在投影列表中。
+
+`SELECT DISTINCT` 查询在**改写路径上一律显式失败**。这不是保守取舍而是硬约束：
+注入的 `CASE` 是一个**新的 ORDER BY 表达式**，而 PostgreSQL / SQL Server 要求
+`SELECT DISTINCT` 的每个 ORDER BY 表达式都出现在 select list 中。实测 PostgreSQL 16：
+`select distinct v from t order by (case when v is null then 0 else 1 end), v` 即便 `v`
+已在投影列表中，仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`。
+故「排序列已投影」只是必要条件，不足以让改写合法。原生路径不受此限制。
 窗口函数内（`OVER (...)` 与命名窗口 `WINDOW w AS (...)`）无法附加额外排序键，**改写**结构性不适用。
 但这只约束改写路径，不约束原生路径：实测 H2 2.3.232 接受 `OVER (ORDER BY col NULLS LAST)`，
 即窗口内空序在支持原生语法的方言上是数据库自身能力。故契约是——

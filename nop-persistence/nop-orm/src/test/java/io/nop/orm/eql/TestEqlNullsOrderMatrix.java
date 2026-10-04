@@ -89,8 +89,8 @@ public class TestEqlNullsOrderMatrix {
         c.setName(name);
         c.setCode(code);
         c.setPropId(propId);
-        c.setStdSqlType(StdSqlType.INTEGER);
-        c.setStdDataType(StdDataType.INT);
+        c.setStdSqlType("grp".equals(name) ? StdSqlType.VARCHAR : StdSqlType.INTEGER);
+        c.setStdDataType("grp".equals(name) ? StdDataType.STRING : StdDataType.INT);
         c.setPrimary(primary);
         return c;
     }
@@ -146,7 +146,8 @@ public class TestEqlNullsOrderMatrix {
         m.setTableName("t_nulls_order");
         m.setQuerySpace("spaceA");
         m.setColumns(new ArrayList<>(List.of(
-                col("sid", "SID", 1, true), col("score", "SCORE", 2, false))));
+                col("sid", "SID", 1, true), col("score", "SCORE", 2, false),
+                col("grp", "GRP", 3, false))));
         m.init();
         return m;
     }
@@ -160,8 +161,8 @@ public class TestEqlNullsOrderMatrix {
             } catch (Exception ignore) {
                 // 表不存在
             }
-            st.execute("create table t_nulls_order (sid int primary key, score int)");
-            st.execute("insert into t_nulls_order values (1,10),(2,null),(3,20)");
+            st.execute("create table t_nulls_order (sid int primary key, score int, grp varchar(8))");
+            st.execute("insert into t_nulls_order(sid,score,grp) values (1,10,'A'),(2,null,'A'),(3,20,'B')");
         }
     }
 
@@ -252,17 +253,51 @@ public class TestEqlNullsOrderMatrix {
         }
     }
 
-    /** 多键键序：D5 的「CASE 键不得 prepend 到列表头」在真实库上的表现 */
+    /** 多键键序（D5 最简形态）：首键唯一，CASE 键若被提升到列表头则行序被打乱 */
     @Test
     public void testMultiKeyPrecedenceOnMySql() throws Exception {
         try (HikariDataSource ds = dataSource(MYSQL_URL); Connection con = ds.getConnection()) {
             setupTable(con);
             OrmEntityModel model = entityModel();
             IDialect dialect = buildDialect(false);
-            // sid 唯一，故结果必为 1,2,3 —— 若 CASE 键被提升到首键之前，行序会被打乱
             assertEquals(List.of(1, 2, 3),
                     sidsByEql(con, dialect, model, "order by o.sid asc, o.score asc nulls last"),
                     "首键唯一时空序键不得改变整体行序");
+        }
+    }
+
+    /**
+     * 多键键序（D5 计划 Exit Criteria 要求的形态）：**第一键有重复值** + 第二键含 NULL。
+     *
+     * <p>数据设计经过一轮返工——第一版数据在「紧邻」与「prepend 到列表头」两种实现下
+     * 结果恰好相同，测不出差别。判别条件是：<b>两键的空序分组必须在跨组处发生冲突</b>，
+     * 即存在「首键较小但次键为空」与「首键较大但次键非空」的两行。
+     * 数据：grp='A'(10) / 'B'(null) / 'A'(20) / 'B'(30)
+     * <ul>
+     *   <li>紧邻（正确）：先按 grp 分组 -> [1,3] 组 'A'，组内 score nulls first -> 1(10),3(20)；
+     *       [2,4] 组 'B'，组内 -> 2(null),4(30)。结果 [1,3,2,4]</li>
+     *   <li>prepend（反模式）：score 的 nullness 被提升到最前 -> 2(null) 先 -> [2,1,3,4]</li>
+     * </ul>
+     */
+    @Test
+    public void testMultiKeyWithDuplicateFirstKeyOnMySql() throws Exception {
+        try (HikariDataSource ds = dataSource(MYSQL_URL); Connection con = ds.getConnection()) {
+            setupTable(con);
+            try (Statement st = con.createStatement()) {
+                st.execute("delete from t_nulls_order");
+                st.execute("insert into t_nulls_order(sid,grp,score) values"
+                        + " (1,'A',10),(2,'B',null),(3,'A',20),(4,'B',30)");
+            }
+            OrmEntityModel model = entityModel();
+            IDialect dialect = buildDialect(false);
+            // 首键 grp 有重复值（两个 'A'、两个 'B'）但无 NULL，故其空序修饰为空操作，
+            // 排序完全由 grp 值决定；次键 score 含 NULL，空序修饰在此生效。
+            String eql = "select o.sid from NullsOrderEntity o"
+                    + " order by o.grp asc nulls last, o.score asc nulls first";
+            String sql = new EqlCompiler().compile("t", eql, new Ctx(dialect, model)).getSql().getText();
+            List<Integer> got = querySids(con, sql);
+            assertEquals(List.of(1, 3, 2, 4), got,
+                    "空序键只能在自己那一组内生效；若 CASE 键被 prepend 到列表头，结果会是 [2,1,3,4]，实际 " + got);
         }
     }
 

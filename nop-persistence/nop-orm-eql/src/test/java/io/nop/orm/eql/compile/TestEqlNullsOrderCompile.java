@@ -237,11 +237,15 @@ public class TestEqlNullsOrderCompile {
 
     @Test
     public void testOnlySecondItemRewrittenKeepsFirstItemFirst() {
-        // 第一个键不改写、第二个键改写：CASE 键必须出现在第二个键之前，不能跑到列表头
+        // 第一个键不改写、第二个键改写：CASE 键必须出现在第二个键之前，不能跑到列表头。
+        // 用「ORDER BY 段内首次出现 NAME」定位，而非全文 indexOf——投影里的 NAME 恒在
+        // ORDER BY 之前，用全文匹配会让本断言恒真（空断言）。
         String s = sql(caseDialect, "select o.name from AppUser o order by o.name, o.age nulls last");
-        int namePos = s.indexOf("NAME");
+        int orderByPos = s.indexOf("order by");
+        int namePos = s.indexOf("NAME", orderByPos);
         int casePos = s.indexOf("case when");
-        assertTrue(casePos > namePos, "CASE 键必须位于第二个排序项之后（不得 prepend 到列表头）: " + s);
+        assertTrue(namePos >= 0 && casePos > namePos,
+                "CASE 键必须位于第一个排序项 NAME 之后（不得 prepend 到列表头）: " + s);
     }
 
     @Test
@@ -304,14 +308,18 @@ public class TestEqlNullsOrderCompile {
         NopException e = assertThrows(NopException.class, () ->
                 sql(caseDialect, "select distinct o.name from AppUser o order by o.age nulls last"));
         assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
-        assertEquals("distinct-column-not-projected", e.getParam("reason"));
+        assertEquals("distinct-not-supported", e.getParam("reason"));
     }
 
     @Test
-    public void testDistinctWithProjectedSortColumnSucceeds() {
-        // 排序列已在投影列表中 -> 允许改写
-        String s = sql(caseDialect, "select distinct o.age from AppUser o order by o.age nulls last");
-        assertTrue(s.contains("case when"), s);
+    public void testDistinctWithProjectedSortColumnStillFailsFast() {
+        // 实测 PostgreSQL 16：即便排序列已在投影列表中，注入的 CASE 仍是新的 ORDER BY
+        // 表达式，PG 报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`。
+        // 故「排序列已投影」只是必要条件，改写路径对 DISTINCT 一律 fail-fast。
+        NopException e = assertThrows(NopException.class, () ->
+                sql(caseDialect, "select distinct o.age from AppUser o order by o.age nulls last"));
+        assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
+        assertEquals("distinct-not-supported", e.getParam("reason"));
     }
 
     @Test
