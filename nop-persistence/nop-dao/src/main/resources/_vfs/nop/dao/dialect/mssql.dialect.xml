@@ -244,6 +244,13 @@
         <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
             <source>TRIM(TRAILING {1} FROM {0})</source>
         </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化。MSSQL 原生 EOMONTH（T-SQL: "returns the last day
+             of the month containing a specified date"）。[文档] 证据上限：CI 无 MSSQL 真库。
+             不进 default（注册面纪律）。 -->
+        <template name="lastday" returnType="DATE" argTypes="TIMESTAMP">
+            <source>EOMONTH({0})</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

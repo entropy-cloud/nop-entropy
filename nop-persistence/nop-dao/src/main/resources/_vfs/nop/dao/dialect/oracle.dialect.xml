@@ -231,6 +231,11 @@
         <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
             <source>TRIM(TRAILING {1} FROM {0})</source>
         </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化。Oracle 原生 LAST_DAY（21c sqlrf: "LAST_DAY returns
+             the date of the last day of the month that contains date"）；oracle-reverse 继承。
+             不进 default（注册面纪律）。 -->
+        <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP"/>
     </functions>
 
     <sqlDataTypes>

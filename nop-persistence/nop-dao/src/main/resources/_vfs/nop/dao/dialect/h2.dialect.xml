@@ -192,6 +192,14 @@
             </testSql>
         </native>
 
+        <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。H2 原生
+             LAST_DAY（functions.html: "Returns the last day of the month that contains the
+             specified date-time value. This function returns a date."）；h2gis 继承。
+             未注册方言编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮（注册面纪律：不进 default）。 -->
+        <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP">
+            <testSql>LAST_DAY(DATE '2026-02-10')</testSql>
+        </native>
+
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
         </template>

@@ -212,6 +212,15 @@
         <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
             <source>TRIM(TRAILING {1} FROM {0})</source>
         </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。PG 无原生
+             LAST_DAY，用 date_trunc 精确算术（Phase 0 裁定 §6；duckdb/postgis 经 extends
+             postgresql 继承——pg 模板形态在 DuckDB scratch 实测通过）。
+             ⚠️ 输入类型域钉死 DATE/TIMESTAMP（无时区）：date_trunc 对 timestamptz 按会话
+             TimeZone 截断（时变），原生 LAST_DAY 族无此时变——owner doc 差异行。 -->
+        <template name="lastday" returnType="DATE" argTypes="TIMESTAMP">
+            <source>CAST(date_trunc('month', {0}) + INTERVAL '1 month' - INTERVAL '1 day' AS DATE)</source>
+        </template>
     </functions>
 
 </dialect>
