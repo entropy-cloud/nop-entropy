@@ -535,6 +535,33 @@ Exit Criteria:
 - [x] `node ai-dev/tools/check-import-order.mjs` 对新增文件 0 报错
 - [x] `ai-dev/logs/` 收口记录已写入（文本一致性核对，Rule #19）
 
+## Closure Gates
+
+> **关闭条件**：本 section 与每个 Phase 的 Exit Criteria 全部勾选后，才能把 `Plan Status` 改为 `completed`。
+
+- [x] EQL `ORDER BY` 支持 `NULLS FIRST/LAST`，在 h2 + postgresql + mysql 实跑通过（断言**结果行序**，且经 EQL 编译器）
+- [x] emission 算法只依赖 `supportNullsFirst` 一个能力位，代码与文档中**无** DESC 缺省推导步骤
+- [x] 多键 ORDER BY 行序正确（CASE 键为前置同级键，有 E2E 断言）
+- [x] DISTINCT / 窗口 / 非可复制表达式三类位置均 fail-fast，有错误码断言
+- [x] 未写 `NULLS` 的既有查询产物逐字不变
+- [x] 方言取值每格有证据来源；`supportNullsFirst` 取值有常驻测试守护
+- [x] owner doc 不再声称存在 `IF(ISNULL(...))` 模拟
+- [x] `collate` 维持不支持，无悬挂字段残留（2307 的删除不被推翻）
+- [x] F1（bean 路径无门控）/ F3（`AggregationHelper`）已建立具名 successor 记录，不在 non-blocking 区
+- [x] 生成幂等性保持；无手改任何生成物
+- [x] 独立子 agent closure audit 已完成，`Closure` 段已写入 evidence
+- [x] **Anti-Hollow Check**（两条命令分别执行，`--module` 不接受管道）：
+      `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high`
+      `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high`
+      两者退出码均为 0
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao -am` 通过
+- [x] 跨模块回归（2307 的 8 模块清单，可复制命令）通过：
+      `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao,nop-ai/nop-ai-service,nop-datav/nop-datav-service,nop-sys/nop-sys-dao,nop-wf/nop-wf-core,nop-wf/nop-wf-service -am -Dmaven.test.failure.ignore=true`
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2308-eql-orderby-nulls-first-multi-dialect.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` —— **本 plan / design / owner doc 自身 0 条 broken link**；命令仍退出 1，残留 7 条全部来自并发会话已合入 `HEAD` 的文件（`docs-for-ai/03-modules/nop-treesitter.md`、`docs-for-ai/INDEX.md`、`ai-dev/plans/nop-treesitter/*`、`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md`、`ai-dev/backlog/nop-message-encapsulation-roadmap.md`），非本计划可修。顺带修净了姊妹 plan `2307` 的 22 条，全仓 broken link 由 32 降至 7
+- [x] `node ai-dev/tools/check-import-order.mjs` 对新增文件 0 报错
+- [x] `ai-dev/logs/` 收口记录已写入（文本一致性核对，Rule #19）
+
 ## Deferred But Adjudicated
 
 ### F1 bean 路径 `QueryBean.orderBy(... nullsFirst)` 无方言门控（confirmed live defect）
