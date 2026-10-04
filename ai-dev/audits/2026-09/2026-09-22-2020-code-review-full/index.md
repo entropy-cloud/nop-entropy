@@ -16,7 +16,7 @@
 | 1.4 | `1.4-kernel-utils-codegen-xdefs-audit.md` | 0 | 0 | 6 | 34 | done（裁决：通过——模板链 16/16 抽样、xdef 114/114 闭合正结论；P2×6 工具巨类治理进 R1.0；docs 移交 4 项；驳回 1（LittleEndian 证伪）） | 独立子 agent（见 plan 2311 Closure 段） |
 | 1.5 | `1.5-xlang-backend-misc-audit.md` | 0 | 0 | 5 | 6 | done（裁决：通过——ExecToJavaTranslator 保留+monitor、truffle 差集 0 缺口、e2e 位置合理三项正结论；P2×5 测试缺口带修复精算进 R1.0；驳回 1；过程安全事件 1 起已登记） | 独立子 agent（见 plan 2312 Closure 段） |
 | 1.6 | `1.6-core-framework-structure-audit.md` | 0 | 0 | 3 | 9 | done（裁决：通过——组内无环/职责纯度全合格正结论；CORE-02 still-deferred、弱加密 WARN 现状、CORE-01 docs 闭环三项标定；P2×3 进 R1.0） | 独立子 agent（见 plan 2313 Closure 段） |
-| 1.7 | — | | | | | todo | |
+| 1.7 | `1.7-persistence-servicefw-boundary-audit.md` | 0 | 0 | 13 | 18 | done（裁决：通过——分层零违规/单桥/api 纯净正结论；P2×13 进 R1.0（AST 模板包死代码 3494 行 plan-first 工单队首）；降级 3——初审 P1×2 经复核降 P2） | 独立子 agent（见 plan 2314 Closure 段） |
 | 1.8 | — | | | | | todo | |
 | 2.1 | — | | | | | todo | |
 | 2.2 | — | | | | | todo | |
