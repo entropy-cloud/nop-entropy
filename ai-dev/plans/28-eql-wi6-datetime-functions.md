@@ -216,27 +216,27 @@ Exit Criteria:
 
 ### Phase 4 - `dateTrunc(unit, d)` → 单位字符串约定（无损 cell 注册）
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 的方言 XML/文档/测试面
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
-- [ ] 修复前红：`dateTrunc('month', o.createTime)` 今天全方言（除 h2 若取证确认有 `DATE_TRUNC`）编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言基线（红），再断言落地（绿）。
-- [ ] 按 Phase 0 cell 矩阵注册：pg/duckdb `date_trunc({0},{1})` 字符串单位模板（或原生命中）；h2 按取证结论；mssql 2022 `DATETRUNC`——**仅当**取证证明其接受字符串单位（或裁定等价模板）才落，否则不落 + 登记；MySQL/MariaDB 无原生且构造式非无损 ⇒ 不落 + ledger/差异行（约束 3）。
-- [ ] 正向用例（EC ①）：h2 文本 + 真库执行（`dateTrunc('month', ...)` 断言截断结果）+ 至少一个模板方言渲染文本。
-- [ ] 负向用例（EC ②）：不落 cell 的方言 `ERR_EQL_UNKNOWN_FUNCTION`（如 mysql）；元数负向。
-- [ ] 接线验证（#23）+ 约束 4"不等价"登记：单位词表分叉（各方言支持的 unit 集合不同——规范词表 = 裁定文档钉死的交集或并集 + 各 cell 实际支持范围，owner doc 差异行）。
-- [ ] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
+- [x] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
+- [x] 修复前红：`dateTrunc('month', o.createTime)` 今天全方言（除 h2 若取证确认有 `DATE_TRUNC`）编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言基线（红），再断言落地（绿）。
+- [x] 按 Phase 0 cell 矩阵注册：pg/duckdb `date_trunc({0},{1})` 字符串单位模板（或原生命中）；h2 按取证结论；mssql 2022 `DATETRUNC`——**仅当**取证证明其接受字符串单位（或裁定等价模板）才落，否则不落 + 登记；MySQL/MariaDB 无原生且构造式非无损 ⇒ 不落 + ledger/差异行（约束 3）。
+- [x] 正向用例（EC ①）：h2 文本 + 真库执行（`dateTrunc('month', ...)` 断言截断结果）+ 至少一个模板方言渲染文本。
+- [x] 负向用例（EC ②）：不落 cell 的方言 `ERR_EQL_UNKNOWN_FUNCTION`（如 mysql）；元数负向。
+- [x] 接线验证（#23）+ 约束 4"不等价"登记：单位词表分叉（各方言支持的 unit 集合不同——规范词表 = 裁定文档钉死的交集或并集 + 各 cell 实际支持范围，owner doc 差异行）。
+- [x] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本与截断语义；规范单位词表已钉死并写入 owner doc。
-- [ ] 负向用例断言具体错误码（mysql 等不落方言）；无静默跳过；无"部分单位正确"的模板被注册。
-- [ ] 接线验证用例通过。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本与截断语义；规范单位词表已钉死并写入 owner doc。
+- [x] 负向用例断言具体错误码（mysql 等不落方言）；无静默跳过；无"部分单位正确"的模板被注册。
+- [x] 接线验证用例通过。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 5 - `dateAdd` / `dateDiff` → 无损 cell 注册 + 约束 3 剩余面裁定（预期增量最小）
 
