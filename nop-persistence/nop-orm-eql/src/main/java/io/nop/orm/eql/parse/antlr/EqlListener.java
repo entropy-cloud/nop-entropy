@@ -824,6 +824,30 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#comparisonOperator_}.
 	 * @param ctx the parse tree
 	 */

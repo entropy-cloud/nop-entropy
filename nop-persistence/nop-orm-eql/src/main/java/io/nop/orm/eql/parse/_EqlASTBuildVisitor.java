@@ -93,6 +93,15 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlBinaryExpr visitSqlBinaryExpr_isNotDistinctFrom(SqlBinaryExpr_isNotDistinctFromContext ctx){
+          io.nop.orm.eql.ast.SqlBinaryExpr ret = new io.nop.orm.eql.ast.SqlBinaryExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
         public io.nop.orm.eql.ast.SqlCastExpr visitSqlCastExpr_cast(SqlCastExpr_castContext ctx){
            SqlCastExprContext node = ctx.sqlCastExpr();
            return node == null ? null : visitSqlCastExpr(node);
@@ -341,6 +350,15 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
             if(ctx.expr != null){
                ret.setExpr((visitSqlExpr(ctx.expr)));
             }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlNotExpr visitSqlNotExpr_isDistinctFrom(SqlNotExpr_isDistinctFromContext ctx){
+          io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
             ret.normalize();
             ret.validate();
           return ret;

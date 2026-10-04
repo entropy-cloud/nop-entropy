@@ -497,6 +497,20 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#comparisonOperator_}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

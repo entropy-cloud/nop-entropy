@@ -156,6 +156,15 @@ sqlExpr
 
 sqlExpr_primary
     : expr=sqlExpr_primary IS not=NOT? NULL # SqlIsNullExpr
+    // WI8 Phase 1（plan 27；裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi8-phase0-adjudications.md §九）：
+    // IS [NOT] DISTINCT FROM 两备选——label 前缀=目标 AST 类（SqlBinaryExpr/SqlNotExpr），
+    // NOT 方向由备选拆分承载（SqlBinaryExpr 无 not prop）；操作数用无 label 规则引用
+    //（codegen prop 校验只对带 label 元素做 ast.define 映射——SqlNotExpr 仅 expr prop，
+    // 双操作数形态照 SqlGroupByItem_rollup 先例全部经 ctx 访问器在手写 EqlASTBuildVisitor
+    // 完全重写不调 super，WI5 position 先例）。
+    // DISTINCT/TRUE/FALSE/UNKNOWN 均为保留 token（Keyword.g4/SQL92Keyword.g4），不与 IDENTIFIER_ 竞争。
+    | sqlExpr_primary IS NOT DISTINCT FROM sqlExpr_predicate # SqlBinaryExpr_isNotDistinctFrom
+    | sqlExpr_primary IS DISTINCT FROM sqlExpr_predicate # SqlNotExpr_isDistinctFrom
    // | booleanPrimary SAFE_EQ_ predicate
     | left=sqlExpr_primary operator=comparisonOperator_ right=sqlExpr_predicate # SqlBinaryExpr_compare
     | expr=sqlExpr_primary operator=comparisonOperator_ compareRange=(ALL | ANY | SOME) query=sqlSubQueryExpr # SqlCompareWithQueryExpr
