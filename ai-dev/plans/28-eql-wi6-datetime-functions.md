@@ -1,6 +1,6 @@
 # 28 EQL WI6 — 归一化日期时间函数族（`dayofweek`/`weekofyear`/`dateAdd`/`dateDiff`/`dateTrunc` + `lastDay` 裁定）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI6 节 + WI5 节的 EC ①-⑧ + 共同约束 1-4 + 「明确延后项」`lastDay(d)` 行 + 门控矩阵 WI6 行 + Cross-Cutting 全部 + 关键约束与红线，v7.2）；Current Baseline 全部代码事实于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验（矩阵快照、方言 XML、文法、语料 grep、两道 node 门禁实跑）
 > Related: `ai-dev/plans/24-eql-wi5-sql92-function-syntax.md`（**硬前置，已 `completed`**——2026-10-04 收口，独立 closure audit 全 PASS、0 Blocker/0 Major；roadmap WI5 行已 `done`。**排队门已满足，本 plan 全部 Phase 可开工**，见硬前置声明）、`ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md`（§1.3 字段函数注册设计、§9 差异登记，本 plan 直接消费）、`ai-dev/plans/27-eql-wi8-null-safe-predicates.md`（硬前置排队结构先例）、`ai-dev/plans/26-eql-wi7-pagination-and-nulls.md`（roadmap 行定价回写"独立交付物、原地留注记"机制先例，Phase 5 直接消费）
@@ -284,9 +284,9 @@ Exit Criteria:
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不 lowering/只打印不设门"正是半实现形态；本 plan 的对应风险 = 注册一个部分正确的模板当完整交付）。
 - [x] owner doc 已同步到 live baseline（见 EC ④ 条目），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
 - [x] **roadmap WI6 节文本回写已落地**（In Scope ③ / Phase 5 独立交付物：函数族清单 + EC"另加"遮蔽回归项的原地修订注记，含 WI5 落地证据指针 `b9a2576c3a`/`eb8b91ff40`+`5e4be493d9`；不删原文、历史可追溯）——本项是下方 roadmap 行状态流转的独立前置，不得遗漏。
-- [ ] roadmap Work Item Status 的 WI6 行状态流转已执行：draft review 通过 → `planned`；**独立 closure audit 通过后才 `done`**（不得提前；roadmap Status values 纪律）。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）每个落点函数从 EQL 文本 → parse → transform 函数解析 → 方言 SQL 输出/报错的端到端调用链真实连通（不只是 XML 行存在）；(b) 无空方法体/静默跳过/no-op（不落 cell 必须响亮报错，不允许回退原文输出或部分正确模板）；(c) WI5 已交付能力零静默行为变化。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI6 EC ⑧）。
+- [x] roadmap Work Item Status 的 WI6 行状态流转已执行：draft review 通过 → `planned`；**独立 closure audit 通过后 `done`**（roadmap Status values 纪律；主会话随收口翻转）。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）每个落点函数从 EQL 文本 → parse → transform 函数解析 → 方言 SQL 输出/报错的端到端调用链真实连通（不只是 XML 行存在）；(b) 无空方法体/静默跳过/no-op（不落 cell 必须响亮报错，不允许回退原文输出或部分正确模板）；(c) WI5 已交付能力零静默行为变化。（独立审计：5 测试类 35|0 + TestDialect testSql 9|0 端到端；负向精确错误码+funcName；Shadow 双测零触碰独立绿）
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI6 EC ⑧）。
 
 ## Deferred But Adjudicated
 
@@ -320,14 +320,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-5 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A1-A9/B1-B7/C/D 全 PASS，**0 Blocker / 0 Major / 3 Minor**（① 执行者单跑取证未持久化独立日志工件——审计独立复现两 flake 单跑全绿，证据卫生问题不拦截；② roadmap Cross-Cutting 豁免行 1 项 vs plan 5 项刷新——随本收口同步 roadmap 行；③ job-local 既档佐证为类级非方法级——plan/daily log 已如实标注"当日新见"）。dayofweek ISO-8601 五 lowering 族数学等价验算通过（无跨方言静默值漂移）；不落 cell 三层 ledger 覆盖；WI5 能力零回归。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，须与执行者不同 task_id）
-- Audit Session: （session/task ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI6 closure audit（一次通过，结论"WI6 通过 closure audit——roadmap WI6 行可以翻 done"）
 - Evidence:
+  - A1 PASS：审计员独立跑 5 测试类 35|0（LastDay/WeekOfYear/DayOfWeek/DateTrunc/DateAddDateDiff），mtime 11:38 fresh
+  - A2 PASS：每测试类含 `testUnregisteredDialectThrowsLoud`（dm）断言精确错误码+funcName；四方言 XML+快照零注册
+  - A3 PASS：mjs exit 0；JSON 抽查 lastday=11/weekofyear=11/dayofweek=11/datetrunc=5/datediff 新增=1（恰 +39）；dm/tdengine/db2 无泄漏
+  - A4 PASS：owner doc :504-581 逐 cell 覆盖表+:410 能力点登记+:521 时区登记
+  - A6 PASS：审计员独立复跑 TestDialect 9|0 + TestSQLFunction 1|0；四新函数 testSql 真库执行
+  - A7 PASS：18 commits 语料/快照零改动；CorpusBaseline 独立复跑 1|0
+  - A8 PASS：lastDay ledger 原行保留+:133 原地注记（11 方言/timestamptz 不等价/successor=无）
+  - B1-B7 PASS：lastDay 11 方言公式核对、weekofyear ISO 锚点、dayofweek ISO-8601 裁定（mssql 负模公式验算含 1900 前日期）、dateTrunc 参数序 [实测] 翻转澄清（引号接受性非参数序）、dateAdd/dateDiff 最小落面、roadmap 三处回写逐处目验、18 commits 零 .g4/_gen/src-main 改动
+  - C PASS：matrix 0 / doc-links 0 error 新增 0 / scan-hollow 0 命中 / checklist exit 0
+  - D PASS：6 Phase+15 勾 3 留白+daily log 七条目+5 偏差落档
+  - Anti-Hollow：审计 (a)(b)(c) 三项实证（见 Anti-Hollow gate 行内注）
+  - Deferred 项分类检查：不落 cell 全部三层 ledger 覆盖（roadmap 行+owner doc 逐 cell+裁定 §4/§7），无 in-scope live defect 被降级
   - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
   - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/28-eql-wi6-datetime-functions.md --strict` 退出码
   - Anti-Hollow 检查结果（端到端调用链追踪 + `scan-hollow-implementations.mjs` 退出码）
