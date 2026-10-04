@@ -645,6 +645,7 @@ nop.err.eql.unknown-query-space: sql语句使用了未知的querySpace[{querySpa
 nop.err.eql.unknown-window-name: 未声明的窗口名[{windowName}]
 nop.err.eql.unsupported-eval-expr: 不支持的表达式类型
 nop.err.eql.unsupported-op: 不支持的运算符:{op}
+nop.err.eql.values-row-arity-mismatch: VALUES 表源第{rowIndex}行的元素数量与第1行不一致
 nop.err.excel.export.invalid-config-name: 未定义的配置项名称:{name}
 nop.err.excel.import-sheet-with-duplicate-key-prop: 导入表格[{sheetName}]时[{keyProp}]的属性重复
 nop.err.excel.import.field-value-not-in-dict: 表格[{sheetName}]中的单元格[{cellPos}]的值不在字典表[{dictName}]中
