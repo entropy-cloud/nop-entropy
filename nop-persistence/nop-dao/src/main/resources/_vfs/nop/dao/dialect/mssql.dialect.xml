@@ -104,7 +104,8 @@
     <!-- WI7b（plan 37）：supportRollup/supportCube=true——MS Learn GROUP BY (Transact-SQL)
          确认 ROLLUP/CUBE；GROUPING ( <column_expression> ) 单参（多列用 GROUPING_ID，不注册）。 -->
     <features supportSequence="true" supportOutputForUpdate="true"
-              supportRollup="true" supportCube="true"/>
+              supportRollup="true" supportCube="true"
+              supportValuesTableSource="true"/>
 
     <sqls escapeSlash="false">
         <createSequence>

@@ -28,7 +28,7 @@
          h2 = 三函数负向载体方言。 -->
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
               supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="false"
-              supportWindowFrameRows="true" supportWindowFrameRange="true"
+              supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
               supportRollup="false" supportCube="false"
     />

@@ -14,6 +14,9 @@ public class DialectFeatures extends _DialectFeatures {
     private Boolean supportWindowFrameRange;
     private Boolean supportWindowFrameGroups;
     private Boolean supportLateral;
+
+    // WI12 交付⑤（plan 38）：FROM (VALUES …) 表源能力位（javadoc 见 getter）
+    private Boolean supportValuesTableSource;
     // WI7b（plan 37）：GROUP BY 位置 grouping 操作符 ROLLUP/CUBE 能力位——分立两标志，
     // mysql 函数式 ROLLUP（8.4.3+ 超基线）与 CUBE（永无）successor 触发条件不同（裁定文档 §3.2）。
     private Boolean supportRollup;
@@ -84,5 +87,20 @@ public class DialectFeatures extends _DialectFeatures {
 
     public void setSupportCube(Boolean supportCube) {
         this.supportCube = supportCube;
+    }
+
+    /**
+     * WI12 交付⑤（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §4）：
+     * {@code FROM (VALUES …)} 表源能力位（与 supportLateral 同款保留类手法——nop-dao
+     * precompile 生成管线未接线，xdef 绑定按属性名反射 setter）。未配置由
+     * {@code IDialect.isSupportValuesTableSource()} 归一为 false（保守缺省，编译期报错）。
+     */
+    public Boolean getSupportValuesTableSource() {
+        return supportValuesTableSource;
+    }
+
+    public void setSupportValuesTableSource(Boolean supportValuesTableSource) {
+        this.supportValuesTableSource = supportValuesTableSource;
     }
 }

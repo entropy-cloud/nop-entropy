@@ -70,6 +70,7 @@
         h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
     @useAsInFrom select xx from t as v 这种语句是否允许使用as，oracle不允许使用as
     -->
+    <!-- WI12（plan 38 交付⑤）：supportValuesTableSource = FROM (VALUES …) 表源能力位。缺省 false = 编译含 VALUES 表源的查询时编译期报错（feature=valuesTableSource）。h2(+h2gis)/postgresql(+postgis+duckdb)/mssql 配置 true [文档]；mysql 族/oracle 族/db2/dm/tdengine 不配置（响亮或未取证）。 -->
     <features xdef:name="DialectFeatures" xdef:mandatory="true"
               supportExecuteLargeUpdate="boolean" supportLargeMaxRows="boolean"
               supportTransaction="boolean" supportSavePoint="boolean"
@@ -85,6 +86,7 @@
               useAsInFrom="boolean"
               supportWindowFrameRows="boolean" supportWindowFrameRange="boolean" supportWindowFrameGroups="boolean"
               supportLateral="boolean"
+              supportValuesTableSource="boolean"
               supportRollup="boolean" supportCube="boolean"
     />
     <!-- WI7b（plan 37）：supportRollup/supportCube = GROUP BY 位置 grouping 操作符

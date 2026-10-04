@@ -18,6 +18,7 @@ import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlFunction;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlRegularFunction;
+import io.nop.orm.eql.ast.SqlValuesTableSource;
 import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.enums.SqlCompareRange;
@@ -54,6 +55,9 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PRECISION_NOT_POSITIVE_INT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SCALE_NOT_NON_NEGATIVE_INT;
 import static io.nop.orm.eql.parse.EqlParseHelper.operator;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ROW_INDEX;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_VALUES_ROW_ARITY_MISMATCH;
 
 @SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
 public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
@@ -842,6 +846,39 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     @Override
     public String SqlTumbleTableSource_timeColumn(ParseTree node) {
         return text(node);
+    }
+
+    /**
+     * WI12 Phase 4（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §4）：
+     * VALUES 表源构建——生成体只映射 rows/alias 两个 label prop；本覆写补充
+     * ① sqlColumnAliases__ 内联规则的别名列清单文本填充（List<String> 无 label→prop
+     * 自动映射通路），② ragged rows（行元数不一致）解析期响亮
+     * （{@link OrmEqlErrors#ERR_EQL_VALUES_ROW_ARITY_MISMATCH}，不允许静默）。
+     */
+    @Override
+    public SqlValuesTableSource visitSqlValuesTableSource(
+            EqlParser.SqlValuesTableSourceContext ctx) {
+        SqlValuesTableSource ret = super.visitSqlValuesTableSource(ctx);
+
+        EqlParser.SqlColumnAliases__Context cols = ctx.sqlColumnAliases__();
+        if (cols != null) {
+            List<String> names = new ArrayList<>(cols.sqlIdentifier_().size());
+            for (EqlParser.SqlIdentifier_Context id : cols.sqlIdentifier_())
+                names.add(text(id));
+            ret.setColumns(names);
+        }
+
+        int arity = ret.getRows().get(0).getValues().size();
+        for (int i = 1; i < ret.getRows().size(); i++) {
+            int rowArity = ret.getRows().get(i).getValues().size();
+            if (rowArity != arity)
+                throw new NopException(ERR_EQL_VALUES_ROW_ARITY_MISMATCH)
+                        .loc(ret.getRows().get(i).getLocation())
+                        .param(ARG_ROW_INDEX, i + 1)
+                        .param(ARG_ARG_COUNT, rowArity);
+        }
+        return ret;
     }
 
     @Override

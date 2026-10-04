@@ -427,6 +427,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | 集合下标表达式 | `AstToEqlGenerator.visitSqlCollectionAccessExpr`（echo/执行同门） | 无 lowering 通路（语义不支持翻译） | `nop.err.eql.collection-access-not-support` | `TestEqlCollectionAccessError` |
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | `for update nowait` / `for update skip locked` 锁后缀（WI12 交付①②） | `AstToSqlGenerator.printForUpdate`（消费 `SqlQuerySelect.nowait`/`skipLocked`；文法 `sqlQuerySelect` 分离标签 `nowait=NOWAIT \| skipLocked=skipLocked_`；回显路径硬编码不动） | `<sqls>` 的 `<forUpdateNowait>`/`<forUpdateSkipLocked>` 配置（presence = 能力 + 文本二合一；h2(+h2gis)/oracle(+oracle-reverse)/postgresql(+postgis)/mysql(+mariadb) 已配置 [实测-jar]/[文档]，mysql5.7/duckdb 继承链显式空覆盖关断，mssql/db2/dm/tdengine 未配置即响亮） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdateNowait`/`forUpdateSkipLocked`）；矛盾输入（nowait && skipLocked、或任一与 forUpdate=false 组合）= `IllegalArgumentException` | `TestEqlForUpdateLockVariants`、`TestH2ForUpdateLockVariants`（含 mssql/duckdb/mysql5.7 负向 + H2 真库执行）、`TestEqlNowaitWiring`、`TestEqlNowaitH2Dialect` |
+| `FROM (VALUES …)` 表源（WI12 交付⑤） | `AstToSqlGenerator.visitSqlValuesTableSource`（transform 期建列元数据 + 生成期能力门） | `supportValuesTableSource`（h2(+h2gis)/postgresql(+postgis+duckdb)/mssql 配置 true [文档]；mysql 族/oracle 族/db2/dm/tdengine 不配置） | `nop.err.eql.dialect-not-support-feature`（`feature=valuesTableSource`）；ragged rows = `nop.err.eql.values-row-arity-mismatch`（解析期） | `TestEqlValuesTableSource`（含 mysql 负向 + H2 真库执行 + ragged/alias 负向） |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | FULL JOIN 表源 | `EqlTransformVisitor.checkJoinTypeFeature`（join 表源转换遍历点） | `supportFullJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`） | `TestEqlFullJoinDialectGate`、`TestDialectFullJoinFlag` |
 | RIGHT JOIN 表源（WI10b） | `EqlTransformVisitor.checkJoinTypeFeature`（同方法 RIGHT_JOIN 分支） | `supportRightJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportRightJoin`） | `TestEqlRightJoinDialectGate` |
@@ -719,6 +720,21 @@ EQL 语义钉死 = **标准 SQL 严格三值**（裁定正文 = WI8 Phase 0 裁�
 ⚠️ **三节点展开 vs `<=>` 的固有差异（约束 4「不等价」登记，`TestEqlNullSafePredTransformerWiring.testMysqlFormDivergenceVsOraclePinnedForm` + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2`）**：`<=>` 恒二值（`NULL <=> NULL` = TRUE），标准谓词嵌套外层 NOT 时按三值逻辑；EQL 按方言钉死各自正确形态（mysql 直出 `not (a<=>b)`；oracle 展开式禁用 naive NOT 包装——`NOT((a=b) OR (a IS NULL AND b IS NULL))` 在单操作数 NULL 行产生 UNKNOWN 丢行（H2 执行实测 0 行 vs 钉死式 1 行），属禁止形态①）。
 
 **Oracle 展开 transformer（WI4 管线第一个真实生产消费者）**：`io.nop.orm.eql.compile.OracleEqlAstTransformer`（`transformAfterAnalyze` 槽位；方言经已解析表源 → querySpace → `context.getDialectForQuerySpace` 推导，与渲染侧同源；EQL 管线单 querySpace 强制之外的多 querySpace 防御性响亮）。经 `orm-defaults.beans.xml` 默认注入 `SessionFactoryConfig.eqlAstTransformer`（缓存正向参与=`TestEqlNullSafePredTransformerWiring.testOracleExpansionBothDirectionsViaDefaultFactoryConfig` 同键同实例 + transformer 不重复调用；非默认绕过方向=既有 `TestEqlAstTransformerWiring` 不回退）。展开复制操作数（guard 支独立实例）⇒ 操作数含参数标记 `?` 时响亮报错 `nop.err.eql.null-predicate-operand-has-param-marker`（与 IS TRUE/FALSE 构建期展开同一错误码）。`IS [NOT] TRUE/FALSE/UNKNOWN` 不经 transformer（构建期展开已全方言覆盖）。
+
+### `FROM (VALUES …)` 表源与 `supportValuesTableSource` 能力门（2026-10-04 WI12 交付⑤）
+
+文法：`sqlTableSource` 新备选 `LP_ VALUES rows RP_ AS? alias (LP_ colAliases RP_)?`（行结构复用 `SqlMultiValueExpr`；AST 类 `SqlValuesTableSource`，ordinal 尾部追加）。transform 期建列元数据（显式别名列清单优先，缺省 `C1..Cn` H2 惯例；类型 = 首行表达式 best-effort 解析）+ FROM 仅 VALUES 源时 querySpace 回落 default（decorator 可显式指定）；生成期经 `supportValuesTableSource` 能力门（LATERAL 门同款生成器落点），不支持方言编译期响亮。
+
+| 方言 | `FROM (VALUES …)` | 证据 |
+|---|---|---|
+| h2 / h2gis | 支持（`[ [AS] alias [(col,…)] ]`，Table Expression 文法 `( query )` + `query = tableValue`） | `[文档]`（grammar.html）+ `[实测]`（`TestEqlValuesTableSource.testH2TrueDbExecution` 真执行） |
+| postgresql / postgis / duckdb（继承） | 支持 | `[文档]`（PG VALUES list / Table Expression） |
+| mssql | 支持（列别名 `AS t(c1,c2)` 必带——与 EQL alias 必填约束同向） | `[文档]`（MS Learn FROM + FROM 子查询文档） |
+| mysql / mysql5.7 / mariadb | **不支持**——MySQL 行形态是 `VALUES ROW(…)`（8.0.19+），与标准 `(a,b)` 行构造硬分叉，不无损 | `[文档]`；编译期 `feature=valuesTableSource` 响亮 |
+| oracle | **不支持**（调研称 23ai+ 边界未一手取证；UNION ALL 链 lowering 为被拒备选——需 per-dialect dual 表体系） | `[未取证]` 红线，不计覆盖率 |
+| db2 / dm / tdengine / sqlite | 不配置（响亮 / `[未取证]` 红线 / 无方言） | — |
+
+**约束 4「不等价」登记**：① EQL 收紧 **alias 必填**（H2 允许无别名表源，缺省列名 C1..Cn——EQL 无别名即无作用域注册锚点，解析响亮失败）；② 列访问需**限定名** `t.c1`（非实体表源上的非限定列 = 既有 `ERR_EQL_UNKNOWN_COLUMN_NAME` 响亮，与子查询表源同形、不放宽既有守卫）；③ ragged rows（行元数不一致）解析期响亮 `nop.err.eql.values-row-arity-mismatch`（SQL 标准要求行元数一致，多数库执行期才报错——EQL 提前到解析期）；④ 列类型 = 首行表达式 best-effort（首行字面量决定列型，跨行异型不作联合类型推断）。
 
 ### `ORDER BY … COLLATE`：显式移出（2026-10-04 WI7 裁定，不落地）
 

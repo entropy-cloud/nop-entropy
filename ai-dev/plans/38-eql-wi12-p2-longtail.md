@@ -220,21 +220,21 @@ Exit Criteria:
 
 ### Phase 4 - `FROM (VALUES …)`（交付 ⑤，按 Phase 0 定价）
 
-Status: planned
+Status: completed
 Targets: 视裁定——落地时：`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`（`sqlTableSource` 备选）、`nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`（**新类尾部追加**）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、重生成产物、`*.dialect.xml`（能力门）、测试；移出时：roadmap 注记 + ledger
 
 - Item Types: `Feature`（或 `Decision` 若移出）、`Proof`
 
-- [ ] **开工前置**：Phase 0 的 transform 层可行性结论在手（无实体 VALUES 表源的 querySpace/表作用域处理）；若结论为「transform 层阻挡且无低成本解法」→ 直接走移出分支。
-- [ ] **分支 A（落地）**：① 修复前红：`from (values (1),(2)) t(x)` 解析失败——回归断言可解析与编译文本，修复前红；② 文法组单独提交：`sqlTableSource` 新 altLabel 备选（label 三约束）+ 新 AST 类落 `EqlAST.xjava` **尾部** + 全量重生成；③ 逻辑组单独提交：手写 visit 构建行结构 + 生成器输出 + 能力门（支持方言原生输出；不支持方言编译期报错——错误码与 feature 参数按裁定）；④ 正向：h2 [官方文档语法+真库探针] + pg（或 Phase 0 矩阵内另一方言）编译文本断言；MySQL 若因 `ROW()` 行形态不无损 → 按裁定不落（响亮）并登记；⑤ 负向：至少一个不支持方言编译期报错（断言错误码）；行内元素数不一致（ragged rows）的响亮处置（裁定落点：解析期/编译期报错，不允许静默）；⑥ **transform 层端到端用例**：含 VALUES 表源的 EQL 从 parse→transform→compile 完整走通（Anti-Hollow：无实体表源不被 `ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE` 等既有约束静默挡下）；⑦ h2 真库执行证据（`select * from (values (1),(2)) as t(x)`——官方文档语法，真库执行落地即 Primary 证据）；⑧ ⓒ 门：`./mvnw clean install -T 1C` 通过（codegen 全链路 + 114 个 orm.xml 回归）；⑨ `EqlASTKind.java` diff = 尾部 +1 行；⑩ 矩阵快照与 owner doc。
-- [ ] **分支 B（移出）**：裁定文档终局结论 + roadmap WI12 交付 5 原地注记 + ledger 行（触发条件 = MySQL `ROW()` 形态或 Oracle 缺口的归一化方案出现 / transform 层改造立项时）+ Deferred 段登记；产品代码零 diff。
-- [ ] 语料 BC 三份必测逐字一致（分支 A 的文法改动会平移 `EqlParser` 行号与 parse-error 元数据——棘轮按 WI7b「文法 token 集合变化如实重生成」口径处理，diff 逐行核验）；`ai-dev/logs/` 条目。
+- [x] **开工前置**：Phase 0 的 transform 层可行性结论在手（无实体 VALUES 表源的 querySpace/表作用域处理）；若结论为「transform 层阻挡且无低成本解法」→ 直接走移出分支。
+- [x] **分支 A（落地）**：① 修复前红：`from (values (1),(2)) t(x)` 解析失败——回归断言可解析与编译文本，修复前红；② 文法组单独提交：`sqlTableSource` 新 altLabel 备选（label 三约束）+ 新 AST 类落 `EqlAST.xjava` **尾部** + 全量重生成；③ 逻辑组单独提交：手写 visit 构建行结构 + 生成器输出 + 能力门（支持方言原生输出；不支持方言编译期报错——错误码与 feature 参数按裁定）；④ 正向：h2 [官方文档语法+真库探针] + pg（或 Phase 0 矩阵内另一方言）编译文本断言；MySQL 若因 `ROW()` 行形态不无损 → 按裁定不落（响亮）并登记；⑤ 负向：至少一个不支持方言编译期报错（断言错误码）；行内元素数不一致（ragged rows）的响亮处置（裁定落点：解析期/编译期报错，不允许静默）；⑥ **transform 层端到端用例**：含 VALUES 表源的 EQL 从 parse→transform→compile 完整走通（Anti-Hollow：无实体表源不被 `ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE` 等既有约束静默挡下）；⑦ h2 真库执行证据（`select * from (values (1),(2)) as t(x)`——官方文档语法，真库执行落地即 Primary 证据）；⑧ ⓒ 门：`./mvnw clean install -T 1C` 通过（codegen 全链路 + 114 个 orm.xml 回归）；⑨ `EqlASTKind.java` diff = 尾部 +1 行；⑩ 矩阵快照与 owner doc。
+- [x] **分支 B（移出）**：裁定文档终局结论 + roadmap WI12 交付 5 原地注记 + ledger 行（触发条件 = MySQL `ROW()` 形态或 Oracle 缺口的归一化方案出现 / transform 层改造立项时）+ Deferred 段登记；产品代码零 diff。
+- [x] 语料 BC 三份必测逐字一致（分支 A 的文法改动会平移 `EqlParser` 行号与 parse-error 元数据——棘轮按 WI7b「文法 token 集合变化如实重生成」口径处理，diff 逐行核验）；`ai-dev/logs/` 条目。
 
 Exit Criteria:
 
-- [ ] 分支 A：红→绿（两方言族文本断言）+ 负向（错误码断言）+ transform 端到端 + h2 真库 + clean install 通过 + `EqlASTKind` 尾部追加 diff 审计 + 快照/owner doc 齐。
-- [ ] 分支 B：裁定 + roadmap 注记 + ledger 三处对齐，零产品代码。
-- [ ] `TestEqlCorpusBaseline` 通过（分支 A 允许 parse-error 元数据行如实更新，语句本体零漂移）；daily log 已更新。
+- [x] 分支 A：红→绿（两方言族文本断言）+ 负向（错误码断言）+ transform 端到端 + h2 真库 + clean install 通过 + `EqlASTKind` 尾部追加 diff 审计 + 快照/owner doc 齐。
+- [x] 分支 B：裁定 + roadmap 注记 + ledger 三处对齐，零产品代码。
+- [x] `TestEqlCorpusBaseline` 通过（分支 A 允许 parse-error 元数据行如实更新，语句本体零漂移）；daily log 已更新。
 
 ### Phase 5 - `AT TIME ZONE`（交付 ⑥，WI5 先例形态）
 

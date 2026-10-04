@@ -265,6 +265,41 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     }
 
     /**
+     * WI12 交付⑤（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §4）：
+     * {@code FROM (VALUES …)} 表源执行路径——方言能力门
+     * （{@code isSupportValuesTableSource()}，不支持编译期响亮，feature=valuesTableSource，
+     * 不静默产出目标库不支持的文本）+ 原生输出 {@code (values (…),(…)) alias (c1,c2)}。
+     * 别名列清单缺省时不输出列清单（H2 缺省列名 C1..Cn）。UNION ALL 链 lowering 为
+     * 被拒备选（裁定 §4：需 per-dialect dual 表体系，不无损），不落。
+     */
+    @Override
+    public void visitSqlValuesTableSource(io.nop.orm.eql.ast.SqlValuesTableSource node) {
+        if (!dialect.isSupportValuesTableSource()) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "valuesTableSource");
+        }
+        print('(');
+        print("values ");
+        boolean first = true;
+        for (io.nop.orm.eql.ast.SqlMultiValueExpr row : node.getRows()) {
+            if (!first)
+                print(", ");
+            first = false;
+            visit(row);
+        }
+        print(')');
+        printAlias(node.getAlias());
+        List<String> columns = node.getColumns();
+        if (columns != null && !columns.isEmpty()) {
+            print('(');
+            print(StringHelper.join(columns, ","));
+            print(')');
+        }
+    }
+
+    /**
      * WI20 (W2/T1): the SQL channel renders the TUMBLE pseudo-table function
      * verbatim — the generated text is deliberately NOT valid RDBMS SQL (the
      * windowed form is stream-only, sql-subset-and-semantics §4c). Rendering it

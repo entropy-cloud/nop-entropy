@@ -101,6 +101,13 @@ public interface IDialect extends IComponentModel {
     boolean isSupportLateral();
 
     /**
+     * WI12 交付⑤（plan 38）：{@code FROM (VALUES …)} 表源能力位。false（缺省）= 编译含
+     * VALUES 表源的查询时编译期报错 {@code nop.err.eql.dialect-not-support-feature}
+     * （feature=valuesTableSource），不静默产出目标库不支持的文本。
+     */
+    boolean isSupportValuesTableSource();
+
+    /**
      * WI7b（plan 37，roadmap EC ①）：是否支持 GROUP BY 位置的函数式 {@code ROLLUP(...)}。
      * 未配置时返回 false（保守缺省）：EQL 编译期报 nop.err.eql.dialect-not-support-feature
      * （feature=rollup）。分立于 {@link #isSupportCube()}——mysql 函数式 ROLLUP 8.4.3+ 才有

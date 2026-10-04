@@ -38,6 +38,7 @@ import io.nop.orm.eql.ast.SqlGroupBy;
 import io.nop.orm.eql.ast.SqlInValuesExpr;
 import io.nop.orm.eql.ast.SqlInsert;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
+import io.nop.orm.eql.ast.SqlValuesTableSource;
 import io.nop.orm.eql.ast.SqlLiteral;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlMultiValueExpr;
@@ -87,6 +88,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -536,6 +538,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // WI17: TUMBLE 伪表函数是 stream-only 表源（D4/T1 裁定），ORM 编译通道
             // 不支持——显式 fail-fast 而非静默跳过作用域注册
             throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
+        } else if (table instanceof SqlValuesTableSource) {
+            // WI12 交付⑤：VALUES 表源按别名注册作用域（SqlSubqueryTableSource 分支同形；
+            // 文法层 alias 必填 = 注册锚点，裁定 §4）
+            SqlValuesTableSource source = (SqlValuesTableSource) table;
+            scope.addTable(source.getAlias().getAlias(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             addAliasToScope(scope, source.getLeft());
@@ -610,6 +617,22 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             } else {
                 visitSqlSubqueryTableSource(source);
             }
+            tableScope.addTable(source.getAliasName(), source);
+        } else if (table instanceof SqlValuesTableSource) {
+            // WI12 交付⑤（plan 38，裁定 §4.1）：VALUES 表源的 querySpace 实体无关回落——
+            // 实体现解析路径（resolveEntity → addResolvedEntity）对 VALUES 源不触发，
+            // FROM 只有 VALUES 源时 querySpace/dialect 会保持 null（下游 NPE 面）。
+            // 首个 VALUES 源遍历点回落（decorator 显式指定优先，否则 default query space，
+            // findQuerySpaceWhenNoFrom 同口径）；实体源解析会无条件覆盖（addResolvedEntity），
+            // 混合源（实体+VALUES）行为 = 实体 querySpace 胜出，与既有单 querySpace 约束一致。
+            if (this.querySpace == null) {
+                String qs = findQuerySpaceWhenNoFrom(getQuerySelect(table));
+                this.querySpace = qs;
+                this.dialect = context.getDialectForQuerySpace(qs);
+            }
+            SqlValuesTableSource source = (SqlValuesTableSource) table;
+            visitChildren(source.getRows());
+            source.setResolvedTableMeta(buildValuesTableMeta(source));
             tableScope.addTable(source.getAliasName(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
@@ -781,6 +804,27 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             fields.put(fieldName, proj.getExpr().getResolvedExprMeta());
         }
         select.setResolvedTableMeta(new SelectResultTableMeta(fields));
+    }
+
+    /**
+     * WI12 交付⑤（plan 38，裁定 §4.3）：VALUES 表源列元数据——列名 = 显式别名列清单
+     * 优先，缺省 C1..Cn（H2 惯例）；类型 = 首行表达式经 ExprTypeResolver best-effort
+     * 解析（字面量/列引用得精确类型；无法确定时由 resolver 兜底）。ragged rows 已在
+     * 构建期响亮（ERR_EQL_VALUES_ROW_ARITY_MISMATCH），此处行元数恒一致。
+     */
+    ISqlSelectionMeta buildValuesTableMeta(SqlValuesTableSource source) {
+        ExprTypeResolver typeResolver = new ExprTypeResolver(dialect);
+        List<SqlMultiValueExpr> rows = source.getRows();
+        int arity = rows.get(0).getValues().size();
+        List<String> names = source.getColumns();
+        Map<String, ISqlExprMeta> fields = new LinkedHashMap<>();
+        for (int i = 0; i < arity; i++) {
+            String name = (names != null && i < names.size()) ? names.get(i) : ("C" + (i + 1));
+            SqlExpr expr = rows.get(0).getValues().get(i);
+            typeResolver.resolveExprMeta(expr);
+            fields.put(name, expr.getResolvedExprMeta());
+        }
+        return new SelectResultTableMeta(fields);
     }
 
     // 将 UserInfo o left join o.dept 这种形式变换为 UserInfo o left join Department d on o.xx=d.xx
@@ -1352,6 +1396,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             SqlSubqueryTableSource query = (SqlSubqueryTableSource) source;
             resolveSelectFields(query.getQuery());
 
+            return buildSelectItems(source, false, true);
+        } else if (source instanceof SqlValuesTableSource) {
+            // WI12 交付⑤：select * 对 VALUES 源的展开（元数据由 visitTableSource 期
+            // buildValuesTableMeta 设置；onlyColumn=false 与子查询分支同口径——
+            // VALUES 列元数据是表达式元数据而非实体列，column-kind 过滤会清空投影）
             return buildSelectItems(source, false, true);
         } else if (source instanceof SqlJoinTableSource) {
             // select * 展开时对join源递归收集左右表的投影

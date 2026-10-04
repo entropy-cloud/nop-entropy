@@ -57,6 +57,8 @@ public interface OrmEqlErrors {
 
     String ARG_TABLE_SOURCE = "tableSource";
 
+    String ARG_ROW_INDEX = "rowIndex";
+
 
     String ARG_DECORATOR = "decorator";
     String ARG_EXPECTED_COUNT = "expectedCount";
@@ -156,6 +158,8 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_TABLE_SOURCE_NOT_RESOLVED = define("nop.err.eql.table-source-not-resolved",
             "tableSource没有被成功解析，无法确定它的具体来源");
 
+    ErrorCode ERR_EQL_VALUES_ROW_ARITY_MISMATCH = define("nop.err.eql.values-row-arity-mismatch",
+            "VALUES 表源第{rowIndex}行的元素数量与第1行不一致", ARG_ROW_INDEX, ARG_ARG_COUNT);
     ErrorCode ERR_EQL_PARAM_NOT_COMPONENT = define("nop.err.eql.param-not-component",
             "参数[{paramIndex}]不是IOrmComponent类型[{expected}]");
 

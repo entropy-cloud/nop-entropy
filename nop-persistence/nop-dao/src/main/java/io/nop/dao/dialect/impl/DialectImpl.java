@@ -334,6 +334,12 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportValuesTableSource() {
+        // WI12 交付⑤（plan 38）：缺省 false（保守缺省，编译期报错）
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportValuesTableSource());
+    }
+
+    @Override
     public boolean isSupportRollup() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportRollup());
     }

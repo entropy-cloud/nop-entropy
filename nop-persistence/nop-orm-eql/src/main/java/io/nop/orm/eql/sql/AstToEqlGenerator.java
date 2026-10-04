@@ -691,6 +691,30 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printAlias(node.getAlias());
     }
 
+    /**
+     * WI12 交付⑤（plan 38）：VALUES 表源回显路径——逐字打印（无方言门，
+     * 方言门在子类 AstToSqlGenerator；WI1 BUG-2 lateral 回显同款分层）。
+     */
+    public void visitSqlValuesTableSource(io.nop.orm.eql.ast.SqlValuesTableSource node) {
+        print('(');
+        print("values ");
+        boolean first = true;
+        for (io.nop.orm.eql.ast.SqlMultiValueExpr row : node.getRows()) {
+            if (!first)
+                print(", ");
+            first = false;
+            visit(row);
+        }
+        print(')');
+        printAlias(node.getAlias());
+        List<String> columns = node.getColumns();
+        if (columns != null && !columns.isEmpty()) {
+            print('(');
+            print(StringHelper.join(columns, ","));
+            print(')');
+        }
+    }
+
     protected void printJoin(SqlJoinTableSource node) {
         if (node.getCondition() != null) {
             print(" on ");

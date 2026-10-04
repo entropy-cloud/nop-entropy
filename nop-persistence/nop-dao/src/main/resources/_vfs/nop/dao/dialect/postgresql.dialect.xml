@@ -92,7 +92,7 @@
     </errorCodes>
 
     <features supportSequence="true" supportNullsFirst="true" supportReturningForUpdate="true"
-              supportWindowFrameRows="true" supportWindowFrameRange="true"
+              supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
               supportLateral="true"
               supportRollup="true" supportCube="true"
