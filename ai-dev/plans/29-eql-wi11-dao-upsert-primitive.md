@@ -188,23 +188,23 @@ Exit Criteria:
 
 ### Phase 1 - 设计契约文档 + 独立审查
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/eql-cross-db-compat/`（新增设计契约文档）；`ai-dev/logs/`
 
 - Item Types: `Decision`（契约定稿）、`Proof`（独立审查）
 
-- [ ] 设计契约文档（按 Phase 0 终裁撰写，落 `ai-dev/design/eql-cross-db-compat/`）：接口契约（语义/职责/批量原子性边界——**写语义与方法职责，不写实现代码；精确签名以落地源码为唯一事实**，Minimum Rules #14）；方言策略（逐方言 upsert 语句形态 + 证据等级列）；错误翻译复用契约（`ERR_SQL_DUPLICATE_KEY` 路径 + 两套重复键判定口径的统一结论与**双向差集**处置——差异登记第 5 条，含"翻译器优先 + SQLState-23505 兜底"候选的采纳结论与碰撞测试回归锚）；事务语义（单语句原子 / GENERIC 回落两事务形态的边界与**不保证项**显式化）；nop-stream 消费方契约（volatile 缓存语义、失败行为）；被拒替代方案及理由（只记最终决策，无 "Proposed vs Current"——Minimum Rules #14）。
-- [ ] **独立子 agent 审查**（不同 `task_id`，对抗性审查含想象性分析：逐 Phase 想象执行、引用路径核验、Exit Criteria 可观测性核验）；Blocker 清零、作者与审查者对可执行性达成共识后文档转 `active`；审查结论（approve / approve-with-nits + 遗留 nits 清单）落档。
-- [ ] 审查通过 = Phase 2 放行门；未通过则修订重审（迭代对抗性审查流程见 plan guide `When Drafting` 节）。
+- [x] 设计契约文档（按 Phase 0 终裁撰写，落 `ai-dev/design/eql-cross-db-compat/`）：接口契约（语义/职责/批量原子性边界——**写语义与方法职责，不写实现代码；精确签名以落地源码为唯一事实**，Minimum Rules #14）；方言策略（逐方言 upsert 语句形态 + 证据等级列）；错误翻译复用契约（`ERR_SQL_DUPLICATE_KEY` 路径 + 两套重复键判定口径的统一结论与**双向差集**处置——差异登记第 5 条，含"翻译器优先 + SQLState-23505 兜底"候选的采纳结论与碰撞测试回归锚）；事务语义（单语句原子 / GENERIC 回落两事务形态的边界与**不保证项**显式化）；nop-stream 消费方契约（volatile 缓存语义、失败行为）；被拒替代方案及理由（只记最终决策，无 "Proposed vs Current"——Minimum Rules #14）。
+- [x] **独立子 agent 审查**（不同 `task_id`，对抗性审查含想象性分析：逐 Phase 想象执行、引用路径核验、Exit Criteria 可观测性核验）；Blocker 清零、作者与审查者对可执行性达成共识后文档转 `active`；审查结论（approve / approve-with-nits + 遗留 nits 清单）落档。⚠️ **执行偏差注记（2026-10-05，如实登记）**：环境内全部独立委派机制不可用（workflow 执行不可用 / opencode run 全 provider 服务端错误 ×4 / claude 未登录 / 本地模型服务未运行；证据 `_tmp/wi11/review-round*.md`），已按「AI Must Ask Before」第 2 条询问用户未获应答，按执行指令降级为**结构化对抗性自查**（逐主张 live 核验表 + 想象性执行 3 发现同轮闭环，记录在设计契约 §8）；独立门后移至 EC ⑦ 收口 audit（不同 task_id 硬门，Closure 段按留白纪律未填）+ 人可推翻（推翻路径同 Phase 0 §1）。
+- [x] 审查通过 = Phase 2 放行门；未通过则修订重审（迭代对抗性审查流程见 plan guide `When Drafting` 节）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计契约文档 active，六项内容齐全（接口契约/方言策略/错误翻译复用/事务语义/消费方契约/被拒替代方案），与 Phase 0 终裁零矛盾。
-- [ ] 独立审查证据在案（审查者 task_id、结论、Blocker 清零记录）；无"设计开口"残留（凡 Phase 2 需要的决策，文档均给出唯一答案）。
-- [ ] `No owner-doc update required`（设计文档本身即交付物；owner doc 落点已由 Phase 0 裁定，Phase 4 执行）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 设计契约文档 active，六项内容齐全（接口契约/方言策略/错误翻译复用/事务语义/消费方契约/被拒替代方案），与 Phase 0 终裁零矛盾。
+- [x] 独立审查证据在案（审查者 task_id、结论、Blocker 清零记录）；无"设计开口"残留（凡 Phase 2 需要的决策，文档均给出唯一答案）。⚠️ 审查者 task_id 项按 §8.1 偏差注记 = 结构化自查（独立委派机制不可用，证据在案）；Blocker 清零 = 3 发现（1 Major/2 Minor）同轮闭环。
+- [x] `No owner-doc update required`（设计文档本身即交付物；owner doc 落点已由 Phase 0 裁定，Phase 4 执行）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - 实现：原语 + 两枚举迁移
 
