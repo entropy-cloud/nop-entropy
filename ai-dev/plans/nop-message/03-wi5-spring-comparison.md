@@ -1,6 +1,6 @@
 # 03 WI5 Spring 对照分析落档
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/nop-message-encapsulation-roadmap.md`（WI5，deps 无）、`ai-dev/analysis/2026-10/nop-message-audit-baseline.md`、`ai-dev/analysis/2026-10/nop-message-capability-matrix.md`
 > Related: WI3（D5 不引入 AckMode、D6 三层 DLQ 的裁定引用本分析）
@@ -67,12 +67,12 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 文档已产出、六维完整、三项不采纳成节
-- [ ] nop 侧事实独立 audit 抽查通过
-- [ ] 无产品代码变更（git 仅含本 plan 声明路径及本 plan 文件）
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/03-wi5-spring-comparison.md --strict` 退出码 0
-- [ ] 纯文档计划：构建验证不适用
+- [x] 文档已产出、六维完整、三项不采纳成节
+- [x] nop 侧事实独立 audit 抽查通过
+- [x] 无产品代码变更（git 仅含本 plan 声明路径及本 plan 文件）
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/03-wi5-spring-comparison.md --strict` 退出码 0
+- [x] 纯文档计划：构建验证不适用
 
 ## Deferred But Adjudicated
 
@@ -84,10 +84,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<待 closure audit 后填写>>
-Completed: <<待填写>>
+Status Note: WI5 为纯 Proof 项，交付物（Spring 对照分析）已产出并经独立子代理 closure audit：六维完整、三项不采纳成节且理由均落 SPI 结构事实、F-20/F-52/F-46 三处抽查与 WI1 基线及 live 代码一致、Spring 机制描述无误、防重新导入清单 10 个承载 WI 均实有且映射正确。audit 仅 1 Minor（WI5 文件被并行会话的 fix(orm) 提交捎带，提交卫生问题，内容无损）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立子代理 agent_527d4e8e-aff2-4b69-9115-f00a816781f0（fresh session）
+- Evidence:
+  - 六维完整 PASS：ack/错误处理/事务/容器生命周期/可观测性/测试支持各一节三段式
+  - 三项不采纳 PASS：各节理由引用 SPI 结构事实 + D5/D6 编号 + 被否决方案 + 强行导入后果
+  - nop 事实抽查 PASS：F-20（IMessageConsumer.java:41-42 空签名）、F-52（PulsarConsumeTask 每消息建事务）、F-46（TestKafkaConsumeTask.java:154-168）与 WI1 基线及 live 一致
+  - Spring 机制描述 PASS：AckMode 值集 / CommonErrorHandler 2.8 职责 / @RetryableTopic topic 跳跃 / KafkaTransactionManager exactly-once 组合均与公开机制一致
+  - 防重新导入清单 PASS：6 名词 → 10 个承载 WI 全部为 roadmap 实有项且映射正确
+  - 无产品代码变更 PASS（按 mission 范围口径：工作区其他脏文件属并行会话任务）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0（本 mission 文件 0 断链）；`check-plan-checklist.mjs --strict` 退出 0
+  - Deferred 分类检查：无 deferred
