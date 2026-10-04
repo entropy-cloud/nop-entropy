@@ -1,6 +1,6 @@
 # 13 WI13 resolveGroupId 身份模型修正
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/nop-message-encapsulation-roadmap.md`（WI13，deps WI4✓；对应 MSG-F-12 与 MSG-F-28）
 > Related: `ai-dev/design/nop-message/backend-semantics-design.md`（D7 裁定）
@@ -12,7 +12,7 @@
 ## Current Baseline
 
 - `KafkaMessageService.resolveGroupId`（实测 `:344-353`）：全局 `defaultConsumerConfig.getGroupId()` 非空即返回，静默遮蔽 `options.getSubscribeName()` → 同组异构订阅永久分区饥饿（F-12）。`buildConsumerProps`（`:162-187`）/`buildProducerProps`（`:140-160`）：extraProps 最后 putAll（F-28）。`ERR_GROUP_ID_NOT_CONFIGURED` 兜底 `:279-283`。
-- **破坏性影响面（审查 Major-1，grep 实证）**：D7 后无 subscribeName 的调用将 fail-fast——① `MessageRpcServer.doStart`（nop-rpc-core `:71`，2-arg subscribe、无 subscribeName 注入途径；装配于 stream-control-rpc.beans.xml）；② `GraphQLMessageSubscriptionRegistrar:78`（options 可 null）；③ `ReflectionMessageSubscriptionRegistrar:64-86`（@MessageListener 无 subscribeOptionsBean 时 null）；④ `DataPlaneMessageServiceAdapter:80-92`（仅 null options 合成 subscribeName，options 非空无名字仍拒）。配置面 grep `groupId` 全仓 0 命中——全局回退路径的仓内配置用户为零；两处 nopStreamMessageService 默认 bean 均为 Local，仓内测试回归面为零。
+- **破坏性影响面（审查 Major-1，grep 实证）**：D7 后无 subscribeName 的调用将 fail-fast——① `MessageRpcServer.doStart`（nop-rpc-core `:71`，2-arg subscribe、无 subscribeName 注入途径；装配于 stream-control-rpc.beans.xml）；② `GraphQLMessageSubscriptionRegistrar:78`（options 可 null）；③ `ReflectionMessageSubscriptionRegistrar:64-86`（@MessageListener 无 subscribeOptionsBean 时 null）；④ `DataPlaneMessageServiceAdapter:80-92`（仅 null options 合成 subscribeName，options 非空无名字仍拒）。配置面 grep `groupId` 全仓 0 命中——全局回退路径的仓内配置用户为零；control-rpc 默认 bean 为 Local、data-plane 默认 bean 为 SysDaoMessageService（均非 Kafka），仓内测试回归面为零。
 - **空档声明**：消费方代码迁移（控制面/rpc-core 注入 subscribeName）无 WI 承接（WI34 为纯文档项）——登记于 Non-Blocking Follow-ups。
 
 ## Goals
@@ -40,30 +40,30 @@
 
 ### Phase 1 - 身份模型与 props 顺序
 
-Status: in progress
+Status: completed
 Targets: `nop-message/nop-message-kafka`
 
 - Item Types: `Fix`
 
-- [ ] resolveGroupId 按 D7 重写 + javadoc（破坏性变更声明）
-- [ ] buildConsumerProps/buildProducerProps 顺序反转 + javadoc 契约（「被代码写入的键为管理键、不可被 extraProps 覆盖」；同步修正 KafkaClientConfig 「unless overridden」与 warnIfAutoCommit 两处失效 javadoc）
-- [ ] 测试 ①-⑤
+- [x] resolveGroupId 按 D7 重写 + javadoc（破坏性变更声明）
+- [x] buildConsumerProps/buildProducerProps 顺序反转 + javadoc 契约（「被代码写入的键为管理键、不可被 extraProps 覆盖」；同步修正 KafkaClientConfig 「unless overridden」与 warnIfAutoCommit 两处失效 javadoc）
+- [x] 测试 ①-⑤
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-message/nop-message-kafka` 退出 0 全绿
-- [ ] **无静默跳过**：缺 subscribeName 必显式失败（含全局配置场景）
-- [ ] **新功能必有测试**：①-⑤ 各有断言
-- [ ] mission 回归（kafka + core + rpc-core）退出 0
-- [ ] `ai-dev/logs/` 条目
-- [ ] Owner-doc：design backend-semantics 3.4（D7）已含裁定，补充「Kafka 实现口径」一行（前缀分隔符与缺失拒绝）
+- [x] `./mvnw test -pl nop-message/nop-message-kafka` 退出 0 全绿
+- [x] **无静默跳过**：缺 subscribeName 必显式失败（含全局配置场景）
+- [x] **新功能必有测试**：①-⑤ 各有断言
+- [x] mission 回归（kafka + core + rpc-core）退出 0
+- [x] `ai-dev/logs/` 条目
+- [x] Owner-doc：design backend-semantics 3.4（D7）已含裁定，补充「Kafka 实现口径」一行（前缀分隔符与缺失拒绝）
 
 ## Closure Gates
 
-- [ ] F-12/F-28 消除（测试证明）
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-message/nop-message-kafka -am` 退出 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/13-wi13-group-identity.md --strict` 退出码 0
+- [x] F-12/F-28 消除（测试证明）
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-message/nop-message-kafka -am` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/13-wi13-group-identity.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -72,14 +72,20 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - **空档登记**：消费方代码迁移（MessageRpcServer / GraphQLMessageSubscriptionRegistrar / ReflectionMessageSubscriptionRegistrar / DataPlaneMessageServiceAdapter 注入 subscribeName）无 WI 承接（WI34 仅文档）——按 roadmap Rules 应以 Follow-up Backlog 取号或随 WI34 owner doc 给出迁移模板；不阻塞本 plan（D7 裁定的破坏性变更 + 仓内默认 bean 均为 Local）。
-- doSubscribe 兜底守卫 description 重写（Minor-3：旧文案暗示全局可兜底）。
 
 ## Closure
 
-Status Note: <<待 closure audit 后填写>>
-Completed: <<待填写>>
+Status Note: WI13 经独立子代理 closure audit 七项全 PASS：D7 身份模型与 F-28 管理键契约落地且有 5 条真实测试（47/47）、三模块回归实跑全绿、影响面清单与空档登记齐备。audit 的 Minor（幽灵 Follow-up 已删、默认 bean 表述已修、Phase 状态已翻转）均在收口时处置。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<待填写>>
-- Evidence: <<待填写>>
+- Reviewer / Agent: 独立子代理 agent_24582d8e-9f8e-40ac-b543-e333e32f9833（fresh session，自行重跑测试）
+- Evidence:
+  - D7 PASS：resolveGroupId :357-369 三支路 + 守卫 description 重写
+  - F-28 PASS：extraProps 先合并 + 三处 javadoc 修正
+  - 测试 PASS：kafka 47/47（新增 5 条）、core 17/0fail/1skip、rpc-core 30/0
+  - design PASS：backend-semantics 3.4 Kafka 实现口径一行
+  - 影响面 PASS：4 调用点 grep 实证（data-plane 默认 bean 表述已修正为 SysDao）
+  - git 范围 PASS
+  - Deferred 分类检查：无新增 deferred；消费方迁移空档留 Follow-ups

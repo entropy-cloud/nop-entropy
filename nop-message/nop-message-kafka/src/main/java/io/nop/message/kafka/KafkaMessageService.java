@@ -139,6 +139,12 @@ public class KafkaMessageService implements IMessageService {
 
     Properties buildProducerProps() {
         Properties props = new Properties();
+        // F-28 (WI13): extraProps are applied FIRST — keys written by the code below are
+        // managed keys and cannot be overridden by extraProps; extraProps remain effective
+        // for keys the code does not manage (e.g. SASL/SSL).
+        if (config.getExtraProps() != null) {
+            props.putAll(config.getExtraProps());
+        }
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         if (config.getClientId() != null) {
             props.put(ProducerConfig.CLIENT_ID_CONFIG, config.getClientId());
@@ -153,14 +159,16 @@ public class KafkaMessageService implements IMessageService {
             props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, defaultProducerConfig.getBufferMemory());
             props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, defaultProducerConfig.getMaxBlockMs());
         }
-        if (config.getExtraProps() != null) {
-            props.putAll(config.getExtraProps());
-        }
         return props;
     }
 
     Properties buildConsumerProps(String groupId) {
         Properties props = new Properties();
+        // F-28 (WI13): extraProps are applied FIRST — the resolved consumer-group identity
+        // and all managed keys below cannot be overridden by extraProps.
+        if (config.getExtraProps() != null) {
+            props.putAll(config.getExtraProps());
+        }
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         if (config.getClientId() != null) {
@@ -179,9 +187,6 @@ public class KafkaMessageService implements IMessageService {
             props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, defaultConsumerConfig.getSessionTimeoutMs());
             props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,
                     defaultConsumerConfig.getHeartbeatIntervalMs());
-        }
-        if (config.getExtraProps() != null) {
-            props.putAll(config.getExtraProps());
         }
         return props;
     }
@@ -279,7 +284,7 @@ public class KafkaMessageService implements IMessageService {
         String groupId = resolveGroupId(options);
         if (groupId == null || groupId.isEmpty()) {
             throw error(ERR_GROUP_ID_NOT_CONFIGURED,
-                    "KafkaConsumerConfig.groupId / MessageSubscribeOptions.subscribeName is not configured");
+                    "MessageSubscribeOptions.subscribeName is required by the Kafka backend");
         }
         // Validated before any consumer is constructed: the typed rejection must reach the
         // subscribe caller on this thread, and creating a consumer first would leak its
@@ -318,7 +323,7 @@ public class KafkaMessageService implements IMessageService {
      * commits positions on its own schedule and does not respect this task's converged
      * commit boundaries — warn once per JVM. The user's explicit setting is respected, not
      * rewritten. Note: covers the config-bean path only; an extraProps override of
-     * enable.auto.commit is not detected here.
+     * enable.auto.commit is not detected here (and, since WI13, cannot override managed keys).
      */
     void warnIfAutoCommit() {
         if (defaultConsumerConfig != null && defaultConsumerConfig.isEnableAutoCommit()) {
@@ -341,15 +346,26 @@ public class KafkaMessageService implements IMessageService {
         return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
     }
 
+    /**
+     * D7 (WI13 / MSG-F-12): the subscribeName is the primary consumer-group identity. A
+     * globally configured groupId is demoted to a namespace prefix — the effective identity
+     * is {@code <groupId>.<subscribeName>} — so heterogeneous subscriptions can never share
+     * one assignment domain. A missing subscribeName is a typed rejection even when a
+     * global groupId exists (breaking by adjudication; previously the global silently
+     * masked the subscribeName). extraProps cannot override the resolved identity (F-28).
+     */
     String resolveGroupId(MessageSubscribeOptions options) {
-        if (defaultConsumerConfig != null && defaultConsumerConfig.getGroupId() != null
-                && !defaultConsumerConfig.getGroupId().isEmpty()) {
-            return defaultConsumerConfig.getGroupId();
+        String subscribeName = options != null ? options.getSubscribeName() : null;
+        if (subscribeName == null || subscribeName.isEmpty()) {
+            throw error(ERR_GROUP_ID_NOT_CONFIGURED,
+                    "MessageSubscribeOptions.subscribeName is required by the Kafka backend "
+                            + "(a global groupId only acts as a namespace prefix)");
         }
-        if (options != null && options.getSubscribeName() != null) {
-            return options.getSubscribeName();
+        String global = defaultConsumerConfig != null ? defaultConsumerConfig.getGroupId() : null;
+        if (global != null && !global.isEmpty()) {
+            return global + "." + subscribeName;
         }
-        return null;
+        return subscribeName;
     }
 
     NopException error(io.nop.api.core.exceptions.ErrorCode code, String message) {

@@ -524,6 +524,110 @@ class TestKafkaConsumeTask {
                 "batch ConsumeLater must honor the delay before returning, elapsed=" + elapsedMs + "ms");
     }
 
+    // ------------------------------------------------------------------
+    // WI13: D7 group identity + F-28 extraProps ordering
+    // ------------------------------------------------------------------
+
+    @Test
+    void resolveGroupIdPrefixesGlobalGroupIdWithSubscribeName() {
+        KafkaMessageService svc = new KafkaMessageService();
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("orders-sub");
+        org.junit.jupiter.api.Assertions.assertEquals("global-ns.orders-sub",
+                svc.resolveGroupId(options));
+    }
+
+    @Test
+    void subscribeNameIsTheEffectiveIdentityByDefault() {
+        KafkaMessageService svc = new KafkaMessageService();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("orders-sub");
+        org.junit.jupiter.api.Assertions.assertEquals("orders-sub", svc.resolveGroupId(options));
+    }
+
+    @Test
+    void missingSubscribeNameIsTypedRejectedEvenWithGlobalGroupId() {
+        KafkaMessageService svc = new KafkaMessageService();
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        io.nop.api.core.exceptions.NopException e =
+                org.junit.jupiter.api.Assertions.assertThrows(io.nop.api.core.exceptions.NopException.class,
+                        () -> svc.resolveGroupId(new MessageSubscribeOptions()));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                KafkaErrors.ERR_GROUP_ID_NOT_CONFIGURED.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    void extraPropsCannotOverrideManagedKeys() {
+        // F-28: group.id / bootstrap.servers / managed tuning keys win over extraProps.
+        KafkaMessageService svc = new KafkaMessageService();
+        svc.config = new KafkaClientConfig();
+        svc.config.setBootstrapServers("kafka-1:9092");
+        java.util.Map<String, String> extra = new java.util.LinkedHashMap<>();
+        extra.put("group.id", "injected-group");
+        extra.put("bootstrap.servers", "injected:9092");
+        extra.put("max.poll.records", "1");
+        extra.put("sasl.mechanism", "PLAIN");
+        svc.config.setExtraProps(extra);
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setMaxPollRecords(500);
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.Properties props = svc.buildConsumerProps("resolved-group");
+        org.junit.jupiter.api.Assertions.assertEquals("resolved-group", props.getProperty("group.id"));
+        org.junit.jupiter.api.Assertions.assertEquals("kafka-1:9092", props.getProperty("bootstrap.servers"));
+        org.junit.jupiter.api.Assertions.assertEquals(500, props.get("max.poll.records"));
+        // Unmanaged keys (e.g. SASL) remain the documented extraProps use case.
+        org.junit.jupiter.api.Assertions.assertEquals("PLAIN", props.getProperty("sasl.mechanism"));
+    }
+
+    @Test
+    void differentSubscribesDoNotShareAssignmentDomain() throws Exception {
+        // D7: heterogeneous subscriptions must land in disjoint consumer groups.
+        KafkaMessageService realService = new KafkaMessageService();
+        KafkaMessageService spyService = org.mockito.Mockito.spy(realService);
+        spyService.config = new KafkaClientConfig();
+        spyService.config.setBootstrapServers("localhost:9092");
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        spyService.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.List<String> groupIds = new java.util.concurrent.CopyOnWriteArrayList<>();
+        org.mockito.Mockito.doAnswer(inv -> {
+            java.util.Properties props = inv.getArgument(0);
+            groupIds.add(props.getProperty("group.id"));
+            return mock(Consumer.class);
+        }).when(spyService).createConsumer(
+                org.mockito.ArgumentMatchers.any(java.util.Properties.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class));
+        org.mockito.Mockito.doNothing().when(spyService).warnIfAutoCommit();
+
+        MessageSubscribeOptions optA = new MessageSubscribeOptions();
+        optA.setSubscribeName("topic-a-sub");
+        MessageSubscribeOptions optB = new MessageSubscribeOptions();
+        optB.setSubscribeName("topic-b-sub");
+        io.nop.api.core.message.IMessageSubscription subA = spyService.doSubscribe(
+                new MessageSubscriptionConfig("topic-a", (t, m, c) -> null, optA));
+        io.nop.api.core.message.IMessageSubscription subB = spyService.doSubscribe(
+                new MessageSubscriptionConfig("topic-b", (t, m, c) -> null, optB));
+        try {
+            org.junit.jupiter.api.Assertions.assertEquals(2, groupIds.size());
+            org.junit.jupiter.api.Assertions.assertEquals("global-ns.topic-a-sub", groupIds.get(0));
+            org.junit.jupiter.api.Assertions.assertEquals("global-ns.topic-b-sub", groupIds.get(1));
+            org.junit.jupiter.api.Assertions.assertNotEquals(groupIds.get(0), groupIds.get(1));
+        } finally {
+            subA.cancel();
+            subB.cancel();
+        }
+    }
+
     @Test
     void doSubscribeWarnsOnceWhenAutoCommitEnabled() throws Exception {
         KafkaMessageService realService = new KafkaMessageService();

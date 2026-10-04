@@ -48,6 +48,7 @@
 - 生效身份 = `${groupId}.${subscribeName}`（全局 groupId 配置时）；仅 subscribeName 时身份 = subscribeName；两者皆缺 = 类型化错误（ERR_GROUP_ID_NOT_CONFIGURED）。
 - 该模型保证不同订阅不共享分区分配域（消除同组异构订阅的永久分区饥饿），同时保留全局前缀作为部署级命名空间。
 - Pulsar 侧 subscribeName 缺失不再落随机订阅名，与 Kafka 同为类型化错误（消除重启丢游标）。
+- Kafka 实现口径（WI13）：前缀分隔符为 `.`（`<groupId>.<subscribeName>`）；subscribeName 缺失（含已配置全局 groupId 时）抛 `ERR_GROUP_ID_NOT_CONFIGURED`。消费方迁移（MessageRpcServer / GraphQL 与 Reflection 注册器 / DataPlane 适配器注入 subscribeName）随 owner doc 给出模板。
 
 ### 3.5 D9 错误码前缀
 
