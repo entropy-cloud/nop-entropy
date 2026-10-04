@@ -46,68 +46,68 @@
 
 ### Phase 1 - 两模块深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-jq + nop-refactor
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：`git status` 干净后开始
-- [ ] 机械基线：两模块行数榜、公开 API 清单（public 类/方法）、测试方法计数（jq 7 个测试文件的方法数、refactor 16 个）
-- [ ] jq 子 agent：结构边界（ast/runtime 分层单向性）；TestJqOfficial 覆盖面分析（@TestFactory 动态挂载；跳过面=JqOfficialCase.parse 的 isModuleDependent + %%FAIL IGNORE——447 块到 430 的差值；宽松点=数值宽松比较/NaN≡null/运行时错误仅比对期望前缀/%%FAIL 接受 OOM·SO）；错误路径行为（JqParser 解析失败、JqEngine 运行时错误的异常类型与信息质量）；部分求值行为（生成器/懒序列/短路语义抽查）；消费接缝（JqToolExecutor 输入信任）
-- [ ] refactor 子 agent：四段契约连通性全链追踪（check→plan→apply→verify 各段入口/出口 file:line；断链候选）；RefactorRuleGates 唯一实现验证与 cap 两键前置门（键名/默认值/生效路径）；apply 写面信任边界（写盘路径来源校验、路径逃逸面、GraphQL 面输入→FileEdit 的信任传递）；NopRefactorCli 参数与 GraphQL Input 的一致性
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-1.9-{jq,refactor}.md`
+- [x] 动手前基线确认：`git status` 干净后开始
+- [x] 机械基线：两模块行数榜、公开 API 清单（public 类/方法）、测试方法计数（jq 7 个测试文件的方法数、refactor 16 个）
+- [x] jq 子 agent：结构边界（ast/runtime 分层单向性）；TestJqOfficial 覆盖面分析（@TestFactory 动态挂载；跳过面=JqOfficialCase.parse 的 isModuleDependent + %%FAIL IGNORE——447 块到 430 的差值；宽松点=数值宽松比较/NaN≡null/运行时错误仅比对期望前缀/%%FAIL 接受 OOM·SO）；错误路径行为（JqParser 解析失败、JqEngine 运行时错误的异常类型与信息质量）；部分求值行为（生成器/懒序列/短路语义抽查）；消费接缝（JqToolExecutor 输入信任）
+- [x] refactor 子 agent：四段契约连通性全链追踪（check→plan→apply→verify 各段入口/出口 file:line；断链候选）；RefactorRuleGates 唯一实现验证与 cap 两键前置门（键名/默认值/生效路径）；apply 写面信任边界（写盘路径来源校验、路径逃逸面、GraphQL 面输入→FileEdit 的信任传递）；NopRefactorCli 参数与 GraphQL Input 的一致性
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-1.9-{jq,refactor}.md`
 
 Exit Criteria:
 
-- [ ] 两份初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
+- [x] 两份初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每模块派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 4.6（nop-lint）边界协调
-- [ ] 契约连通性结论收敛（jq 语义基线结论 + refactor 四段结论各一条总评）
+- [x] 每模块派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 4.6（nop-lint）边界协调
+- [x] 契约连通性结论收敛（jq 语义基线结论 + refactor 四段结论各一条总评）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-1.9-{jq,refactor}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-1.9-{jq,refactor}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/2026/10-03.md` 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `1.9-jq-refactor-first-audit.md`；index 登记 1.9 行（P0–P3 计数；P1 进汇总表）
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-jq,nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am`（TestJqOfficial 430/430 为预期基线）
-- [ ] 独立子 agent closure audit；通过后 roadmap 1.9 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `1.9-jq-refactor-first-audit.md`；index 登记 1.9 行（P0–P3 计数；P1 进汇总表）
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-jq,nop-refactor/nop-refactor-core,nop-refactor/nop-refactor-java,nop-refactor/nop-refactor-graphql -am`（TestJqOfficial 430/430 为预期基线）
+- [x] 独立子 agent closure audit；通过后 roadmap 1.9 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；2026-09-22 基线早于两模块现形态不作绿色证据——以 Phase 3 的定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且两模块面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应（P1 行同步进汇总表）
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 1.9 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且两模块面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应（P1 行同步进汇总表）
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 1.9 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -119,14 +119,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 1.9 两模块面全部完成（P0=0/P1=1/P2=9/P3=21，驳回 0/降级 0）；closure audit 两轮（第一轮 FAIL 纯收口机械件——index 缺行/定向测试未跑；修复后第二轮 PASS）；P1-1.9-001 进 R1.0；定向测试 jq 560+refactor 103 全绿；未改产品代码。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: agent_94909b80-a084-4f73-adf9-0d9bdc5de359（独立 fresh-session closure auditor，只读，两轮）
+- Evidence:
+  - 第一轮 FAIL→修复：index 缺 1.9 行（v6 时 index 表未扩展，一并补 1.10 占位）、refactor 定向测试未跑、3 Minor（P1 表错引/叙事计数/refactor-19 别名）
+  - 第二轮 PASS：index 1.9 行 0/1/9/21 精确对应；surefire 复算 jq 560/0、refactor 37/29/37 全绿；log 表述收敛；无回归确认
+  - severity 标定：P1-1.9-001 维持 P1 独立裁定成立（关键校勘：真实默认链 Default* 三件套两信任分支均自动批准，结论更强）；拒升 P0 正确（无数据损坏）；与 1.8-01-02（P1）/1.7-refactor-01（P2）判级谱系一致
+  - 31 条发现抽验 8 组 file:line 零虚构；正结论 3/3 独立复现
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs` 退出码 0
+  - Anti-Hollow（审计版）：430/430 与四段全通均有可复现实证
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1-1.9-001 修复精算在案归 R1.0；jq-02/jq-12 语义归属 R1.0 对账裁定移交 jq roadmap；EditPlanApplier 内部管线归 4.6；CLI 三项不对称归 4.5）
