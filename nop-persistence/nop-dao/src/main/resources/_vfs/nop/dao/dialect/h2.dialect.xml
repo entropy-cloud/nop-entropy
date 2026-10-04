@@ -209,6 +209,14 @@
             <testSql>ISO_WEEK(DATE '2026-02-10')</testSql>
         </template>
 
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法（1=Monday..7=Sunday）。ISO_DAY_OF_WEEK
+             官方钉死 "ISO day of the week (1 means Monday)"；DAY_OF_WEEK 明文 locale-specific
+             （会话漂移）弃用。h2gis 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>ISO_DAY_OF_WEEK({0})</source>
+            <testSql>ISO_DAY_OF_WEEK(DATE '2026-02-10')</testSql>
+        </template>
+
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
         </template>

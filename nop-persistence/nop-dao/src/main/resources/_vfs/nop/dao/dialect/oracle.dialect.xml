@@ -243,6 +243,14 @@
         <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>to_number(to_char({0},'IW'))</source>
         </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。TRUNC(d,'IW') = ISO 周一（'IW' ISO
+             8601，territory 无关；TRUNC(date) 官方示例含 'iw' "Start of Week"），DATE-DATE
+             减法 = 天数 0..6 ⇒ +1 = ISO 1..7。弃用 TO_CHAR 'D'（明文 NLS territory 依赖）。
+             oracle-reverse 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>TRUNC({0}) - TRUNC({0},'IW') + 1</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

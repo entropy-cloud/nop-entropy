@@ -258,6 +258,14 @@
         <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>DATEPART(iso_week,{0})</source>
         </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。DATEDIFF(DAY, 0, d)：0 = 1900-01-01
+             （星期一），DAY datepart 不属 SET DATEFIRST 影响面（文档明文仅 week/weekday 受
+             影响）；负模修正 +7)%7 保证 1900 前日期正确。弃用 DATEPART(weekday)（DATEFIRST
+             依赖）。[文档] 证据上限：CI 无 MSSQL 真库。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>((DATEDIFF(DAY, 0, {0}) % 7) + 7) % 7 + 1</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

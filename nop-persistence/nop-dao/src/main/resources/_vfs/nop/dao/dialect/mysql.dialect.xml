@@ -159,6 +159,14 @@
              mariadb/mysql5.7 继承。注意 WEEK(d) 默认 mode 受 default_week_format 变量影响，
              归一化只落 ISO 语义。 -->
         <native name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法（1=Monday..7=Sunday）。
+             WEEKDAY(d) 明文 "(0 = Monday, 1 = Tuesday, … 6 = Sunday)" ⇒ +1 = ISO。
+             弃用原生 DAYOFWEEK（ODBC 计法 1=Sunday，与规范计法分叉）。
+             mariadb/mysql5.7 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>(1 + WEEKDAY({0}))</source>
+        </template>
         <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
              ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。MySQL 8.0 TRIM([{BOTH|LEADING|TRAILING} [remstr] FROM] str)。mariadb/mysql5.7 继承。 -->
         <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">

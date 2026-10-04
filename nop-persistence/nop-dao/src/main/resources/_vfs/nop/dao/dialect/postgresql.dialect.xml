@@ -228,6 +228,13 @@
         <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>extract(week from {0})</source>
         </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。PG EXTRACT(ISODOW) = "The day of the
+             week as Monday (1) to Sunday (7)... matches the ISO 8601 day of the week
+             numbering"（15 文档）；duckdb/postgis 继承（DuckDB isodow 同值域）。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>extract(isodow from {0})</source>
+        </template>
     </functions>
 
 </dialect>
