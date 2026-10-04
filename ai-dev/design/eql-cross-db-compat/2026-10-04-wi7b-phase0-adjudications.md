@@ -19,7 +19,7 @@
 | `sqlIdentifier_agg_` | BaseRule.g4:283-285 | `:283`（MAX/MIN/SUM/COUNT/AVG 五聚合硬编码）✓ |
 | `sqlGroupByItem` | BaseRule.g4:426-428（单备选 `expr=sqlExpr`） | `:426-427` ✓ |
 | `unreservedWord_` 含 NULLS | BaseRule.g4:103-105 区 | `:72` 起，NULLS 成员在块内 `| NULLS` ✓ |
-| `Literals.g4` NULLS token | :29-31 | `:30`（定义于 `IDENTIFIER_` `:34` 之前）✓ |
+| `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` NULLS token | :29-31 | `:30`（定义于 `IDENTIFIER_` `:34` 之前）✓ |
 | `checkWindowFrameFeature` | :375-397 | `:375`（三门合并方法）✓；`visitSqlWindowExpr` 的窗口名校验 `:405` |
 | `visitSqlRegularFunction`（transform） | :1545-1572 | `:1545`；unknown-function 抛点 `:1548`；`onlyForWindowExpr` 放置门 `:1551-1556` ✓ |
 | `EqlParser.java` 行数 | 11423 | **11423** ✓（无并行 plan 平移） |
@@ -78,8 +78,8 @@
 
 - **新增 1 个 AST 类 `SqlGroupingOp`**（`extends SqlExpr`；`type: SqlGroupingOpType`（ROLLUP|CUBE）+ `args: List<SqlExpr>`）——GROUP BY 专用 grouping 操作节点。命名与 `grouping()` 函数区分：类名 `GroupingOp` 指 ROLLUP/CUBE 语法操作符本身。
 - **新增 1 个 enums 类 `SqlGroupingOpType`**（`io.nop.orm.eql.enums`，`ROLLUP, CUBE` 两值 + `fromText` 大小写不敏感工厂——`SqlWindowFrameType` 同款先例）。
-- **`Literals.g4` 新增 2 个 token**：`ROLLUP`、`CUBE`（fragment 组合大小写不敏感，NULLS 同款三件套：定义在 `IDENTIFIER_` **之前**（lexer 优先级=定义序）+ `unreservedWord_` 双登记（保住列名/别名 `rollup`/`cube` 可解析）+ 语料 0 命中 BC 论证（已实测 0 命中）。新增 2 token、其后 Literals token 序号顺延、**零删除**。
-- **`BaseRule.g4` `sqlGroupByItem` 备选改造**（label 三约束按 WI5 纪律）：
+- **`nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 新增 2 个 token**：`ROLLUP`、`CUBE`（fragment 组合大小写不敏感，NULLS 同款三件套：定义在 `IDENTIFIER_` **之前**（lexer 优先级=定义序）+ `unreservedWord_` 双登记（保住列名/别名 `rollup`/`cube` 可解析）+ 语料 0 命中 BC 论证（已实测 0 命中）。新增 2 token、其后 Literals token 序号顺延、**零删除**。
+- **`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` `sqlGroupByItem` 备选改造**（label 三约束按 WI5 纪律）：
   - 新备选**前置**：`ROLLUP LP_ functionArgs_? RP_ # SqlGroupByItem_rollup` 与 `CUBE LP_ functionArgs_? RP_ # SqlGroupByItem_cube`；
   - 既有备选补 label：`expr=sqlExpr # SqlGroupByItem_expr`（多备选规则全 label 是 ANTLR 硬要求；既有 `sqlExpr` 规则四 label 备选即同款活先例——label 类名可与规则名不同，生成 visit 方法返回 label 类）。
   - **生成物消费模式（实测先例）**：`# SqlGroupByItem_rollup` 生成 `_EqlASTBuildVisitor.visitSqlGroupByItem_rollup(...)`，手写 `EqlASTBuildVisitor` override 之，构建 `SqlGroupByItem`（既有类，`items` 列表类型零改动）其 `expr` = 新建 `SqlGroupingOp`（wrapper 模式——`visitSqlIntervalExpr_string` 同款：label 备选内零 prop 赋值、构建全部在手写 visit 完成）。`buildSqlGroupByItems_` 的 `visitSqlGroupByItem(elm)` 调用经 ANTLR `accept()` 多态分发到 label 方法——混合项 `GROUP BY a, ROLLUP(b,c)` 天然支持（同一 items 列表内逐项分发）。
@@ -188,6 +188,6 @@
 
 - `EqlASTKind` 新常量 `SqlGroupingOp` **尾部追加，ordinal = 67**（现 max = `SqlRollback` 66），既有 67 个 ordinal 零移动（红线"禁止持久化/比较 ordinal"原文不触）。
 - `ast/_gen/` 77 → **78 文件**（新增 `_SqlGroupingOp.java` + 既有 77 文件重生成 diff）。
-- `Literals.g4` +2 token（`ROLLUP`/`CUBE`，NULLS 区块后顺延新增），其后 Literals token 序号 +2 顺延；`EqlLexer`/`.tokens`/`Eql.interp` 同批重生成；零 token 删除。
+- `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` +2 token（`ROLLUP`/`CUBE`，NULLS 区块后顺延新增），其后 Literals token 序号 +2 顺延；`EqlLexer`/`.tokens`/`Eql.interp` 同批重生成；零 token 删除。
 - 新 enums 类 1 个（`SqlGroupingOpType`）。
 - `./mvnw clean install -T 1C` 必过（codegen 全链路 + 114 个 orm.xml 回归）。
