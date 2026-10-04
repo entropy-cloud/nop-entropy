@@ -23,8 +23,18 @@ public final class ShellPath {
     public enum Confidence {
         /** From a {@link ProvenCommandSequence}: the script is fully literal and this path is one it names. */
         PROVEN,
-        /** From a {@link LiteralHarvest}: this script has other constructs this layer could not read. */
-        HARVESTED
+        /**
+         * From a {@link LiteralHarvest} whose argv was read in full, on a script that has
+         * other constructs this layer could not read.
+         */
+        HARVESTED,
+        /**
+         * From a {@link LiteralHarvest} command marked partial: at least one argument could
+         * not be read literally, so the reported argv is known to be a <em>subset</em> and this
+         * path is a weaker claim than {@link #HARVESTED} — the command may well name more paths
+         * that are not in the list at all.
+         */
+        HARVESTED_PARTIAL
     }
 
     private final String path;

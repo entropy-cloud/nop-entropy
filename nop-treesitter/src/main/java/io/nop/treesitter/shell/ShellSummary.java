@@ -14,14 +14,20 @@ import java.util.List;
  */
 public final class ShellSummary {
 
-    /** The proof state of the analysed script. */
+    /**
+     * The proof state of the analysed script.
+     *
+     * <p>Two states, not three. A tree that cannot be produced at all is not a
+     * third analysis outcome — the parse raises, loudly, rather than returning a
+     * summary that says "unanalysable", because a caller that received such a
+     * summary would have to learn to distrust it, and a caller that received an
+     * exception cannot.</p>
+     */
     public enum ProofStatus {
         /** Every command was proven literal. */
         PROVEN,
         /** The script was refused, with {@link #unprovenReason()} naming the closed reason. */
-        NOT_PROVEN,
-        /** The tree could not be produced at all (see {@link #errorMessage()}). */
-        UNANALYZABLE
+        NOT_PROVEN
     }
 
     private final ProofStatus proofStatus;
@@ -31,12 +37,10 @@ public final class ShellSummary {
     private final boolean hasDynamicConstructs;
     private final List<DynamicConstruct.Kind> dynamicConstructKinds;
     private final List<ShellPath> paths;
-    private final String errorMessage;
 
     ShellSummary(ProofStatus proofStatus, String unprovenReason, List<String> commandNames,
                  List<String> connectors, boolean hasDynamicConstructs,
-                 List<DynamicConstruct.Kind> dynamicConstructKinds, List<ShellPath> paths,
-                 String errorMessage) {
+                 List<DynamicConstruct.Kind> dynamicConstructKinds, List<ShellPath> paths) {
         this.proofStatus = proofStatus;
         this.unprovenReason = unprovenReason == null ? "" : unprovenReason;
         this.commandNames = List.copyOf(commandNames);
@@ -44,7 +48,6 @@ public final class ShellSummary {
         this.hasDynamicConstructs = hasDynamicConstructs;
         this.dynamicConstructKinds = List.copyOf(dynamicConstructKinds);
         this.paths = List.copyOf(paths);
-        this.errorMessage = errorMessage == null ? "" : errorMessage;
     }
 
     public ProofStatus proofStatus() {
@@ -79,11 +82,6 @@ public final class ShellSummary {
 
     public List<ShellPath> paths() {
         return paths;
-    }
-
-    /** Non-empty only when the status is {@code UNANALYZABLE}. */
-    public String errorMessage() {
-        return errorMessage;
     }
 
     @Override

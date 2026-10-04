@@ -41,7 +41,7 @@ final class DynamicConstructMarker {
         if (tree == null) {
             return List.of();
         }
-        String source = ShellAnalysis.sourceText(tree);
+        ShellSource source = ShellAnalysis.sourceOf(tree);
         Map<DynamicConstruct.Kind, List<DynamicConstruct>> found =
                 new EnumMap<>(DynamicConstruct.Kind.class);
 

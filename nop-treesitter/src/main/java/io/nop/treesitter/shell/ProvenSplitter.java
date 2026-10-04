@@ -33,21 +33,33 @@ final class ProvenSplitter {
     }
 
     ProvenSplit split(String script) {
+        if (script == null || script.isBlank()) {
+            return UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
+                    "the script contains no command");
+        }
         TSTree tree = new ShellAnalysis(language).parse(script);
         if (tree == null) {
-            return UnprovenScript.at(UnprovenScript.Reason.UNSUPPORTED_LANGUAGE, 0, "",
-                    "the script is empty, so there is nothing to prove");
+            return UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
+                    "the script contains no command");
         }
         TSNode root = tree.rootNode();
         if (root.hasError()) {
             return UnprovenScript.at(UnprovenScript.Reason.SYNTAX_ERROR, root.startByte(), "ERROR",
                     "the tree contains an ERROR or MISSING node");
         }
-        Collector collector = new Collector(ShellAnalysis.sourceText(tree));
+        Collector collector = new Collector(ShellAnalysis.sourceOf(tree));
         collector.accept(root);
-        return collector.refusal != null
-                ? collector.refusal
-                : new ProvenCommandSequence(collector.commands);
+        if (collector.refusal != null) {
+            return collector.refusal;
+        }
+        if (collector.commands.isEmpty()) {
+            // A proven sequence of zero commands is indistinguishable, to a
+            // consumer, from "nothing was found" — the exact misreading the
+            // refusal type exists to prevent. Refuse instead.
+            return UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
+                    "the tree holds no command node");
+        }
+        return new ProvenCommandSequence(collector.commands);
     }
 
     /**
@@ -56,13 +68,13 @@ final class ProvenSplitter {
      */
     private static final class Collector {
 
-        private final String source;
+        private final ShellSource source;
         private final List<ProvenCommandSequence.Command> commands = new ArrayList<>();
         /** Connectors seen since the last emitted command, oldest first. */
         private final Deque<String> pendingConnectors = new ArrayDeque<>();
         private UnprovenScript refusal;
 
-        Collector(String source) {
+        Collector(ShellSource source) {
             this.source = source;
         }
 

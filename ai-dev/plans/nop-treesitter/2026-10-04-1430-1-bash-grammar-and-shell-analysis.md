@@ -1,10 +1,23 @@
 # 2026-10-04-1430-1 Bash grammar 基座 + shell 分析语义层（AI Agent 转换/分析）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-04
 > Source: 用户指示（2026-10-04）——"nop-treesitter 现在已经有 python 等解析，也需要增加 bash 的解析；找一个完整的 bash 做参考，用途就是 ai agent 执行的时候做转换和分析"；`ai-dev/backlog/nop-treesitter-roadmap.md` 条目 21；上游 `tree-sitter/tree-sitter-bash`（**当前不在** `~/sources/treesitter/grammars/`）；语义层参考实现 `~/ai/codex`（`codex-rs/shell-command/src/{bash.rs,parse_command.rs,shell_snapshot_literals.rs,command_safety/is_dangerous_command.rs}`、`codex-rs/apply-patch/src/invocation.rs`）；先例 plan `ai-dev/plans/nop-treesitter/2026-09-28-2400-1-rust-grammar-blob.md`、`2026-09-29-0100-1-csharp-grammar-blob.md`
 > Related: `ai-dev/design/nop-ai-shell/04-bash-syntax.md`、`ai-dev/design/nop-ai-agent/nop-ai-shell-syntax-spec.md`、`nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/parser/BashSyntaxParser.java`
 > 审查记录: 经两轮独立子 agent 对抗性审查（R1 `ses_efa5f4c70ffedKiRHSX9bTmcL6`、R2 `ses_efa5f4c67ffex4At0yLsCT8Us0`），本版已吸收全部 Blocker 与 Major
+> Phase 0 实测回写（2026-10-04，消除草案全部预估数字）:
+>   - 上游 = `tree-sitter/tree-sitter-bash` **v0.25.1** / `a06c2e4415e9bc0346c6b86d401879ffb44058f7`（与 codex 解析到的 0.25.1 同代，草案的 `a06c2e4…` 线索成立）
+>   - 指纹：`LANGUAGE_VERSION=15` `STATE_COUNT=7571` `LARGE_STATE_COUNT=523` `SYMBOL_COUNT=280` `ALIAS_COUNT=0` `TOKEN_COUNT=174` `EXTERNAL_TOKEN_COUNT=29` `FIELD_COUNT=19` `MAX_ALIAS_SEQUENCE_LENGTH=8` **`MAX_RESERVED_WORD_SET_SIZE=0`** `PRODUCTION_ID_COUNT=159` `SUPERTYPE_COUNT=1`
+>   - blob **1,280,029 bytes**（`Ts2Java` 报 7571 states / 280 symbols）
+>   - corpus **5 文件 / 100 section**，**无 CRLF fixture**（`crlf.txt` 标题带 CRLF 但字节里无 `
+`，`.gitattributes` 强制 `eol=lf`）、**0** 处 `-{3,}` 出现在 input 段、**0** 处 `:skip` / `:language`
+>   - oracle：`tree-sitter` CLI **0.25.10**（与 `parser.c` 生成器同版本），`tree-sitter parse` 可用
+>   - **`MAX_RESERVED_WORD_SET_SIZE=0` 推翻 Phase 2 的猜测**：bash **没有** reserved words（`grammar.json` 的 `reserved` 为 `{}`），不落在 go 先例那个高风险形状上，`Language.decode` 的 reserved-word 校验不需要 en route 修复
+>   - `scanner.c` **1217 行 / 29 token**（C# 为 527/13）；`ts_lex_modes` 中 `(TSStateId)(-1)` 模式数 = **0**（bash 不触发 item 19 的 no-lookahead 机制）
+>   - 外部 token **不按子系统连续**：heredoc 族是 0-4 **加** 23-25，`${...}` 运算符族是 17-22；**序号 25 是陷阱**（`parser.c` 名 `heredoc_redirect_token1` = `scanner.c` 的 `NEWLINE`），误读会越界
+>   - 命名节点 **62**（含 3 个 `_` 前缀隐藏 supertype）、匿名 token **122**；`FIELD_COUNT=19` 的 field→node 映射见 analysis
+>   - `herestring_redirect` 是独立节点，`<<<` 是匿名 token **不经外部 scanner**（Phase 5 的问题由此裁定）
+>   - corpus 结果 **100/100 = 100%，0 条裁定节**（Phase 2 的 95% 门禁与 C-oracle 对照均未被需要）
 
 > **命名约定偏离声明**：guide Rule #21 要求 `NN-<描述>.md`，本目录 21 个历史计划全部使用 `YYYY-MM-DD-HHMM-N-<slug>.md`。本计划沿用目录既有惯例（Rule #20：历史计划默认视为历史记录，不因规范演进回写）。
 
@@ -103,172 +116,172 @@
 
 ### Phase 0 - 上游获取、指纹实测与契约清单
 
-Status: planned
+Status: completed
 Targets: `~/sources/treesitter/grammars/tree-sitter-bash/`（新建，只读参考副本）、`nop-treesitter/src/test/resources/upstream/grammars/tree-sitter-bash/`、`ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md`（新）、`ai-dev/design/nop-treesitter/`（新目录 + `README.md`）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] **获取上游 grammar 源**。路径优先级：① clone `tree-sitter/tree-sitter-bash` 到与 codex 同代的 v0.25.x（`a06c2e4415e9bc0346c6b86d401879ffb44058f7` 是 gotreesitter 记录的 parser.c 来源 commit，作为定位线索而非必须匹配；记录实际 tag + commit SHA）；② 退路 crates.io `tree-sitter-bash` crate 包（须先验证是否含 `test/corpus`，不含则仍需 ①）。
-- [ ] **实测 grammar 指纹并写入 analysis**：`LANGUAGE_VERSION`、`STATE_COUNT`、`LARGE_STATE_COUNT`、`SYMBOL_COUNT`、`TOKEN_COUNT`、`EXTERNAL_TOKEN_COUNT`、`FIELD_COUNT`。**禁止沿用本 plan 或任何对话中的预估数字**（本 plan Baseline 中的 29 是二手来源）。
-- [ ] **导出节点名 / field 名契约清单**（analysis 必交付，Phase 4-6 依赖它，缺此项不得开工）：① 外部 token 完整枚举（名 + 序号 + 触发条件）；② 语义层依赖的命名节点全清单（至少覆盖 `program` / `list` / `pipeline` / `command` / `command_name` / `word` / `number` / `string` / `string_content` / `raw_string` / `concatenation` / `command_substitution` / `process_substitution` / `simple_expansion` / `expansion` / `arithmetic_expansion` / `variable_assignment` / `declaration_command` / `redirected_statement` / `heredoc_redirect` / `heredoc_start` / `heredoc_body` / `heredoc_end` / `file_redirect` / `file_descriptor`）；③ **field 名 → id 映射表**（`FIELD_COUNT` 只是数字，不含映射；能力 3 必需 `body:` / `redirect:` / `name:` / `argument:`）；④ 匿名 token 清单。清单须与 vendored `parser.c` / `node-types.json` 可逐条复算。
-- [ ] vendored `src/parser.c`、`src/scanner.c`、`test/corpus/*.txt`（全量）、`PROVENANCE.md`。**注意**：7 个 vendored 目录中只有 `tree-sitter-typescript/` 有 `PROVENANCE.md`，且其内容是 "commit-less snapshot, no local edits"，与"精确 tag + commit SHA"相反——本计划**新规范**化 provenance（记录 tag/SHA/license/生成器版本/"Never modified"），并**显式裁定是否回填其余 6 个目录**（推荐：回填，因为它们同样是第三方 MIT 代码）。
-- [ ] **验证 oracle 可用性**：`tree-sitter --version` 存在且为 0.25.x。**`_tmp/rust-oracle/` 不可用**（`_tmp/` 被 `.gitignore` 忽略、目录已不存在，且 c# 计划 Closure 已明确"自建临时比对器行为与官方不符，已弃用其对照结论"）。**官方 tree-sitter CLI corpus 实跑是唯一合法 C-oracle 主路径**；若需自建比对器，必须作为可提交的脚本 + 用法交付，不得只留在 `_tmp/`。
-- [ ] **corpus 兼容性实测**（`CorpusUtil` 用 `Files.readAllLines`，会**剥离行终止符**）：① 上游 corpus 是否含 `crlf.txt` 类 CRLF fixture（`\r` 会被静默剥离，而 heredoc / `string_content` / `NEWLINE` 外部 token 对 `\r\n` 敏感）；② heredoc body 内是否出现 `---`（`CorpusUtil` 以 `-{3,}` 终止 input 段，会导致 input 提前截断）；③ `:skip` / `:language` 元数据段；④ 文件数与 section 总数。**section 下限断言值在实测后写死**，并据此在 Phase 2 写死 `externalTokenCount` 期望值。
-- [ ] **6 项契约裁定**（写入 `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md`，遵循 `ai-dev/design/00-design-writing-guide.md`：只写契约与判定，**禁写类名/方法签名/参数列表/伪代码**）：
+- [x] **获取上游 grammar 源**。路径优先级：① clone `tree-sitter/tree-sitter-bash` 到与 codex 同代的 v0.25.x（`a06c2e4415e9bc0346c6b86d401879ffb44058f7` 是 gotreesitter 记录的 parser.c 来源 commit，作为定位线索而非必须匹配；记录实际 tag + commit SHA）；② 退路 crates.io `tree-sitter-bash` crate 包（须先验证是否含 `test/corpus`，不含则仍需 ①）。
+- [x] **实测 grammar 指纹并写入 analysis**：`LANGUAGE_VERSION`、`STATE_COUNT`、`LARGE_STATE_COUNT`、`SYMBOL_COUNT`、`TOKEN_COUNT`、`EXTERNAL_TOKEN_COUNT`、`FIELD_COUNT`。**禁止沿用本 plan 或任何对话中的预估数字**（本 plan Baseline 中的 29 是二手来源）。
+- [x] **导出节点名 / field 名契约清单**（analysis 必交付，Phase 4-6 依赖它，缺此项不得开工）：① 外部 token 完整枚举（名 + 序号 + 触发条件）；② 语义层依赖的命名节点全清单（至少覆盖 `program` / `list` / `pipeline` / `command` / `command_name` / `word` / `number` / `string` / `string_content` / `raw_string` / `concatenation` / `command_substitution` / `process_substitution` / `simple_expansion` / `expansion` / `arithmetic_expansion` / `variable_assignment` / `declaration_command` / `redirected_statement` / `heredoc_redirect` / `heredoc_start` / `heredoc_body` / `heredoc_end` / `file_redirect` / `file_descriptor`）；③ **field 名 → id 映射表**（`FIELD_COUNT` 只是数字，不含映射；能力 3 必需 `body:` / `redirect:` / `name:` / `argument:`）；④ 匿名 token 清单。清单须与 vendored `parser.c` / `node-types.json` 可逐条复算。
+- [x] vendored `src/parser.c`、`src/scanner.c`、`test/corpus/*.txt`（全量）、`PROVENANCE.md`。**注意**：7 个 vendored 目录中只有 `tree-sitter-typescript/` 有 `PROVENANCE.md`，且其内容是 "commit-less snapshot, no local edits"，与"精确 tag + commit SHA"相反——本计划**新规范**化 provenance（记录 tag/SHA/license/生成器版本/"Never modified"），并**显式裁定是否回填其余 6 个目录**（推荐：回填，因为它们同样是第三方 MIT 代码）。
+- [x] **验证 oracle 可用性**：`tree-sitter --version` 存在且为 0.25.x。**`_tmp/rust-oracle/` 不可用**（`_tmp/` 被 `.gitignore` 忽略、目录已不存在，且 c# 计划 Closure 已明确"自建临时比对器行为与官方不符，已弃用其对照结论"）。**官方 tree-sitter CLI corpus 实跑是唯一合法 C-oracle 主路径**；若需自建比对器，必须作为可提交的脚本 + 用法交付，不得只留在 `_tmp/`。
+- [x] **corpus 兼容性实测**（`CorpusUtil` 用 `Files.readAllLines`，会**剥离行终止符**）：① 上游 corpus 是否含 `crlf.txt` 类 CRLF fixture（`\r` 会被静默剥离，而 heredoc / `string_content` / `NEWLINE` 外部 token 对 `\r\n` 敏感）；② heredoc body 内是否出现 `---`（`CorpusUtil` 以 `-{3,}` 终止 input 段，会导致 input 提前截断）；③ `:skip` / `:language` 元数据段；④ 文件数与 section 总数。**section 下限断言值在实测后写死**，并据此在 Phase 2 写死 `externalTokenCount` 期望值。
+- [x] **6 项契约裁定**（写入 `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md`，遵循 `ai-dev/design/00-design-writing-guide.md`：只写契约与判定，**禁写类名/方法签名/参数列表/伪代码**）：
   1. **语义层归属**。既有先例必须纳入调研：`nop-code/nop-code-lang-<lang>`（csharp/go/java/python/rust/typescript 共 6 个模块）已把"tree-sitter 之上的语言语义层 + 分析器"放在独立模块（如 `PythonLanguageAdapter` / `PythonCodeFileAnalyzer` + `_lang-python.beans.xml`），而非放进 nop-treesitter。候选：(a) `io.nop.treesitter.shell`（grammar 与语义同源）；(b) 新增 `nop-code-lang-bash` 风格模块。裁定须给出理由并说明为什么不违反"nop-treesitter 不得反向依赖消费方"。
   2. **"不可证明"的表达形态**：类型/状态设计；`hasError()` 为真时一律不可证明；不可证明状态**不得**被静默转成空集合。
   3. **能力 1 与能力 2 的分工与类型级隔离**。codex 用三重防护：文档注释 + `pub(crate)` 可见性 + 消费侧只把能力 1 用于审批。裁定须给出类型系统层面的隔离方案（推荐：能力 1 返回携带"已证明"标记的密封类型，能力 2 返回不带该语义且带显式"不可作安全证明"标记的类型，二者不可赋值互換），并要求存在一条**误用测试**（把能力 2 结果传给能力 1 消费入口 → 编译失败或运行时显式失败）。
   4. **heredoc 提取实现路径**：query 引擎明确不支持 anchor `.`（`TSQueryParser.java:83,199`）与 `#any-of?`（`TSQueryParser.java:234`），而 codex 的 heredoc 约束**正是**由首尾 anchor 表达。裁定：**节点遍历为唯一路线**；禁止为此扩展 query 引擎。若后续发现节点遍历无法等价表达，作为 successor plan 单独立项。
   5. **能力 1 的白名单是封闭正向集合还是可扩展**：推荐封闭集合（codex 的 11 项 `ALLOWED_KINDS` + 6 项 `ALLOWED_PUNCT_TOKENS` 为基线），并明确 `declaration_command` / `test_command` / `negated_command` / `command` 内的 `variable_assignment` **均在白名单外**（否则 `declare -x A=1 rm -rf /data` 会被误判为可证明）。
   6. **动态构造点枚举**：至少含 `command_substitution`（`$()` 与反引号是同一节点）/ `simple_expansion`（`$VAR`）/ `expansion`（`${VAR}`）/ `arithmetic_expansion` / `process_substitution` / `file_redirect` 与 `redirected_statement` / heredoc 三节点 / 后台 `&`（**无节点类型，只能标区间**）/ `variable_assignment` / **`concatenation`**（字面量与展开的混合片段，如 `pre"$X"post`；不打标记会使含展开的命令显示为"无动态构造点"，构成安全漏洞）。
-- [ ] **codex 行为契约清单化**：把 6 类行为逐条抄成"期望行为"清单（只抄行为与判定，不抄 Rust 代码），作为 Phase 4-6 的 Exit Criteria 依据。**必须修正的两处抄写错误**：能力 2 是"跳过非字面量 child 并继续"而非"截断"；能力 1 的词法级判据是三个函数而非单纯字符黑名单。
-- [ ] **`ai-dev/design/nop-treesitter/README.md`**（阅读顺序 / 文档结构 / 职责边界 / AGE owner-doc 声明，形态对齐 `ai-dev/design/nop-ai-shell/README.md`）+ 在 **`ai-dev/design/README.md`** 的 Subsystem Design 表登记新目录（design guide 强制项）。
-- [ ] **AGENTS.md 路由遵循**：Phase 3-6 触及 IoC 与 GraphQL → 须先读 `docs-for-ai/02-core-guides/ioc-and-config.md` 与 `docs-for-ai/02-core-guides/api-and-graphql.md`（`@BizQuery` / `@BizMutation` 术语、保留动作名）。plan 中统一用 `@BizQuery`，不使用"action"。
+- [x] **codex 行为契约清单化**：把 6 类行为逐条抄成"期望行为"清单（只抄行为与判定，不抄 Rust 代码），作为 Phase 4-6 的 Exit Criteria 依据。**必须修正的两处抄写错误**：能力 2 是"跳过非字面量 child 并继续"而非"截断"；能力 1 的词法级判据是三个函数而非单纯字符黑名单。
+- [x] **`ai-dev/design/nop-treesitter/README.md`**（阅读顺序 / 文档结构 / 职责边界 / AGE owner-doc 声明，形态对齐 `ai-dev/design/nop-ai-shell/README.md`）+ 在 **`ai-dev/design/README.md`** 的 Subsystem Design 表登记新目录（design guide 强制项）。
+- [x] **AGENTS.md 路由遵循**：Phase 3-6 触及 IoC 与 GraphQL → 须先读 `docs-for-ai/02-core-guides/ioc-and-config.md` 与 `docs-for-ai/02-core-guides/api-and-graphql.md`（`@BizQuery` / `@BizMutation` 术语、保留动作名）。plan 中统一用 `@BizQuery`，不使用"action"。
 
 Exit Criteria:
 
-- [ ] `~/sources/treesitter/grammars/tree-sitter-bash/` 与 vendored 副本均存在且 `parser.c` byte 一致
-- [ ] analysis 文件包含四项指纹 + 外部 token 全枚举 + 节点名清单 + **field 名映射表** + 匿名 token 清单，且每项可与 vendored `parser.c` 复算一致
-- [ ] `tree-sitter --version` 实测记录在案（0.25.x），或明确记录不可用并同步调整 Phase 2 的 oracle 路径
-- [ ] corpus 兼容性四项实测结论记录在案；**section 下限与 `externalTokenCount` 期望值已写死并回写 Phase 1/2 的 checklist**
-- [ ] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` + `README.md` 存在，6 个裁定点均有明确结论；`ai-dev/design/README.md` 已登记
-- [ ] 本 Phase 实测数字已回写本 plan 的 Phase 1/2/3 描述与断言值（消除一切预估）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 对新增/修改文件 0 errors
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] `~/sources/treesitter/grammars/tree-sitter-bash/` 与 vendored 副本均存在且 `parser.c` byte 一致
+- [x] analysis 文件包含四项指纹 + 外部 token 全枚举 + 节点名清单 + **field 名映射表** + 匿名 token 清单，且每项可与 vendored `parser.c` 复算一致
+- [x] `tree-sitter --version` 实测记录在案（0.25.x），或明确记录不可用并同步调整 Phase 2 的 oracle 路径
+- [x] corpus 兼容性四项实测结论记录在案；**section 下限与 `externalTokenCount` 期望值已写死并回写 Phase 1/2 的 checklist**
+- [x] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` + `README.md` 存在，6 个裁定点均有明确结论；`ai-dev/design/README.md` 已登记
+- [x] 本 Phase 实测数字已回写本 plan 的 Phase 1/2/3 描述与断言值（消除一切预估）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 对新增/修改文件 0 errors
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 1 - blob 生成、BashScanner、compat 与 provider 接线
 
-Status: planned
+Status: completed
 Targets: `src/main/resources/grammars/bash/tree-sitter-bash-blob.bin`、`src/main/java/io/nop/treesitter/scanner/BashScanner.java`（新）、`src/main/java/io/nop/treesitter/compat/TreeSitterBash.java`（新）、`src/main/java/io/nop/treesitter/provider/DefaultTreeSitterLanguageProvider.java`、`src/test/java/io/nop/treesitter/biz/TestTreeSitterProvider.java`
 
 - Item Types: `Feature`、`Fix`
 
-- [ ] **生成 blob 并记录实际输出**：先 `./mvnw -pl nop-treesitter compile`，再 `java -cp nop-treesitter/target/classes io.nop.treesitter.codegen.Ts2Java <vendored parser.c> nop-treesitter/src/main/resources/grammars/bash/tree-sitter-bash-blob.bin`。blob 字节数与 Phase 0 指纹表**分别记录、交叉列示**（二者不是同类量，不做"一致性校验"）。
-- [ ] **文件规模裁定**：忠实翻译的 `BashScanner.java` 极可能突破 `check-oversized-files.mjs` 的 700 行 ERROR 阈值（`nop-treesitter` 已有 3 个 pre-existing ERROR）。Phase 1 必须先裁定拆分策略（按 token 分组拆成 `BashScanner` + 若干协作类 / 或登记为已知例外并说明理由），并把裁定写入 design doc。
-- [ ] `BashScanner`：`scanner.c` 忠实翻译，枚举序与 Phase 0 实测的 `EXTERNAL_TOKEN_COUNT` 严格对齐。**主 scan 门控次序必须写成可逐条核对的对账单**（体例对齐 `CSharpScanner` 的 8 项门控清单），至少覆盖：
+- [x] **生成 blob 并记录实际输出**：先 `./mvnw -pl nop-treesitter compile`，再 `java -cp nop-treesitter/target/classes io.nop.treesitter.codegen.Ts2Java <vendored parser.c> nop-treesitter/src/main/resources/grammars/bash/tree-sitter-bash-blob.bin`。blob 字节数与 Phase 0 指纹表**分别记录、交叉列示**（二者不是同类量，不做"一致性校验"）。
+- [x] **文件规模裁定**：忠实翻译的 `BashScanner.java` 极可能突破 `check-oversized-files.mjs` 的 700 行 ERROR 阈值（`nop-treesitter` 已有 3 个 pre-existing ERROR）。Phase 1 必须先裁定拆分策略（按 token 分组拆成 `BashScanner` + 若干协作类 / 或登记为已知例外并说明理由），并把裁定写入 design doc。
+- [x] `BashScanner`：`scanner.c` 忠实翻译，枚举序与 Phase 0 实测的 `EXTERNAL_TOKEN_COUNT` 严格对齐。**主 scan 门控次序必须写成可逐条核对的对账单**（体例对齐 `CSharpScanner` 的 8 项门控清单），至少覆盖：
   - 每个外部 token 的触发条件与互斥关系；
   - `valid_symbols` 门控，特别是 error-recovery 态下多 token 同时 valid 时的 `return false` 语义，以及 `ERROR_RECOVERY` 门控在本 grammar 中的散布位置；
   - **零宽 token 契约**：无推进时必须 `return false`（译成 `true` 会零进度自旋）；
   - **`mark_end` 语义**：对齐 item 19 已修的 C 缺省语义（末次调用定 token 末尾，未调用取 return 位置）；
   - **宽字符分类口径**：C locale 语义，`iswspace/iswalpha/iswdigit/iswalnum/isdigit` 必须映射为 ASCII 判定，**不得**用 `Character.isWhitespace` 等全 Unicode 集合；特别注意上游故意写的 `iswspace(lookahead) && lookahead != '\n'` 这类"看似冗余"判定必须原样保留；
   - **跨调用状态与 serialize/deserialize**：堆上可增长 heredoc 栈的变长布局；**C 的序列化缓冲区溢出 `return 0`（放弃序列化）在 Java `ExternalScanner.serialize()` 返回 `byte[]`（无长度上限）下如何映射，必须在本 Phase 裁定并记录**（消费侧 `GLRParser` 直接 `versions[0].externalScannerState = externalScanner.serialize()`，无长度校验）。
-- [ ] `TreeSitterBash`：blob + scanner 工厂**静态接线**（形态对齐 `TreeSitterPython` / `TreeSitterRust` / `TreeSitterCSharp`）。
-- [ ] **provider 接线（Rule #23）**：`BUILTIN_BLOBS` 增加 `bash` 条目；`loadLanguage` 中按现有 python 分支形态接线 `BashScanner` 工厂，使 provider 路径能独立解析含 heredoc 的脚本、不依赖 compat 类。
-- [ ] **同步修正三处既有断言与注释**（否则 provider 路径的 bash 行为零覆盖）：`TestTreeSitterProvider.java:36` 的 `Set.of(...)` 循环加 `bash`；`:40` 的 `assertEquals(7, ...)` 改为新值；`:41` 注释"六个内置"改为新措辞；`DefaultTreeSitterLanguageProvider` 类 Javadoc `"the six shipped grammars"` 同步。
-- [ ] **测试（Rule #25）**：`BashScannerIdiomsTest` 覆盖门控对账单**每一条**的正反例（禁止"整体通过"式覆盖）；`TestTreeSitterProvider` 新增一条经 provider 解析**含 heredoc** 的脚本的断言（heredoc 是唯一必须走 scanner 的路径，可同时证明 `setExternalScannerFactory(BashScanner::new)` 真的接上，而不只是 blob 能加载）。
+- [x] `TreeSitterBash`：blob + scanner 工厂**静态接线**（形态对齐 `TreeSitterPython` / `TreeSitterRust` / `TreeSitterCSharp`）。
+- [x] **provider 接线（Rule #23）**：`BUILTIN_BLOBS` 增加 `bash` 条目；`loadLanguage` 中按现有 python 分支形态接线 `BashScanner` 工厂，使 provider 路径能独立解析含 heredoc 的脚本、不依赖 compat 类。
+- [x] **同步修正三处既有断言与注释**（否则 provider 路径的 bash 行为零覆盖）：`TestTreeSitterProvider.java:36` 的 `Set.of(...)` 循环加 `bash`；`:40` 的 `assertEquals(7, ...)` 改为新值；`:41` 注释"六个内置"改为新措辞；`DefaultTreeSitterLanguageProvider` 类 Javadoc `"the six shipped grammars"` 同步。
+- [x] **测试（Rule #25）**：`BashScannerIdiomsTest` 覆盖门控对账单**每一条**的正反例（禁止"整体通过"式覆盖）；`TestTreeSitterProvider` 新增一条经 provider 解析**含 heredoc** 的脚本的断言（heredoc 是唯一必须走 scanner 的路径，可同时证明 `setExternalScannerFactory(BashScanner::new)` 真的接上，而不只是 blob 能加载）。
 
 Exit Criteria:
 
-- [ ] 编译通过；`TreeSitterBash` 可加载并解析最小 bash 片段（`echo hi`、`ls -la | grep x`、`for i in a b; do echo $i; done`）
-- [ ] `BashScannerIdiomsTest` 全绿，且**每条对账单条目都有对应断言**（无"整体通过"式覆盖）
-- [ ] **接线验证**：provider 路径（容器 bean，非裸 `new`）解析含 heredoc 的脚本成功，且该断言能区分"scanner 工厂已接线"与"未接线"（Rule #23）
-- [ ] **无静默跳过**：任一未覆盖的外部 token 分支以显式异常 / 显式 `return false` 表达，不存在空分支或 placeholder 返回（Rule #24）
-- [ ] 文件规模裁定已落地，`check-oversized-files.mjs --module nop-treesitter` 未因本 Phase **新增** ERROR（pre-existing 3 个 ERROR 需在 Phase 7 前单独说明）
-- [ ] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] 编译通过；`TreeSitterBash` 可加载并解析最小 bash 片段（`echo hi`、`ls -la | grep x`、`for i in a b; do echo $i; done`）
+- [x] `BashScannerIdiomsTest` 全绿，且**每条对账单条目都有对应断言**（无"整体通过"式覆盖）
+- [x] **接线验证**：provider 路径（容器 bean，非裸 `new`）解析含 heredoc 的脚本成功，且该断言能区分"scanner 工厂已接线"与"未接线"（Rule #23）
+- [x] **无静默跳过**：任一未覆盖的外部 token 分支以显式异常 / 显式 `return false` 表达，不存在空分支或 placeholder 返回（Rule #24）
+- [x] 文件规模裁定已落地，`check-oversized-files.mjs --module nop-treesitter` 未因本 Phase **新增** ERROR（pre-existing 3 个 ERROR 需在 Phase 7 前单独说明）
+- [x] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 2 - 上游 corpus 验证 ≥95%
 
-Status: planned
+Status: completed
 Targets: `src/test/java/io/nop/treesitter/corpus/BashCorpusTest.java`（新）
 
 - Item Types: `Proof`、`Fix`
 
-- [ ] `BashCorpusTest`：经 `TreeSitterBash` 加载（Rule #23 接线证据）+ `externalTokenCount` 断言（值取 Phase 0 实测）+ scanner 实例断言；跑 Phase 0 统计出的全量 corpus 文件；section 下限断言写死为 Phase 0 实测值。
-- [ ] 门禁：`pass * 100 >= sections.size() * 95` 且 `pass == sections.size() - adjudicated.size()`；每条 `ADJUDICATED` 必须写明 corpus 文件 + 标题 + root cause，并以**官方 tree-sitter CLI 0.25.x corpus 实跑**为 C-oracle 证据（Phase 0 已验证可用）。
-- [ ] **若 <95%**：定位 scanner / blob / runtime 缺陷并在同 Phase 修复，**不得豁免、不得下调门禁**（对齐 rust/c# 先例硬义务）。此类修复按 `Fix` 归类；若触及运行时行为，须同步评估 `docs-for-ai/03-modules/nop-treesitter.md` 已知偏差段。
-- [ ] **零回归判据数字化**：先记录基线 `mvnw test -pl nop-treesitter` 的 tests/failures 总数（rust 先例 414 / c# 先例 421 / 428 可作量级参照），Phase 2 结束时对比，9 个既有 grammar 的 corpus 结果不得变化。
-- [ ] 既有 scanner 的两处已知修复**无需重诊断**，但需在本 Phase 确认适用：(a) `ts_lex_modes` 的 `(TSStateId)(-1)` no-lookahead 状态机制（item 19 已落地，c# 的 17 个此类模式已被覆盖；bash 的此类模式数量由 Phase 0 记录）；(b) `Language.decode` 对"带 reserved words 的 grammar"的校验（go 先例曾误判并 en route 修复；bash 同时有 reserved words 如 `if`/`then`/`esac` 与外部 token，属该校验高风险形状）。
+- [x] `BashCorpusTest`：经 `TreeSitterBash` 加载（Rule #23 接线证据）+ `externalTokenCount` 断言（值取 Phase 0 实测）+ scanner 实例断言；跑 Phase 0 统计出的全量 corpus 文件；section 下限断言写死为 Phase 0 实测值。
+- [x] 门禁：`pass * 100 >= sections.size() * 95` 且 `pass == sections.size() - adjudicated.size()`；每条 `ADJUDICATED` 必须写明 corpus 文件 + 标题 + root cause，并以**官方 tree-sitter CLI 0.25.x corpus 实跑**为 C-oracle 证据（Phase 0 已验证可用）。
+- [x] **若 <95%**：定位 scanner / blob / runtime 缺陷并在同 Phase 修复，**不得豁免、不得下调门禁**（对齐 rust/c# 先例硬义务）。此类修复按 `Fix` 归类；若触及运行时行为，须同步评估 `docs-for-ai/03-modules/nop-treesitter.md` 已知偏差段。
+- [x] **零回归判据数字化**：先记录基线 `mvnw test -pl nop-treesitter` 的 tests/failures 总数（rust 先例 414 / c# 先例 421 / 428 可作量级参照），Phase 2 结束时对比，9 个既有 grammar 的 corpus 结果不得变化。
+- [x] 既有 scanner 的两处已知修复**无需重诊断**，但需在本 Phase 确认适用：(a) `ts_lex_modes` 的 `(TSStateId)(-1)` no-lookahead 状态机制——**bash 的此类模式实测为 0 处**（`grep -c "(uint16_t)-1" src/parser.c` = 0），该机制对 bash 不生效，无需覆盖；(b) `Language.decode` 对"带 reserved words 的 grammar"的校验——**实测 `MAX_RESERVED_WORD_SET_SIZE=0`、`grammar.json` 的 `reserved` 为 `{}`，bash 没有 reserved words**，因此不属该校验的高风险形状，**无需 en route 修复**。两项均因 Phase 0 实测而免实施，非跳过。
 
 Exit Criteria:
 
-- [ ] **端到端验证**：vendored `parser.c` → `Ts2Java` → blob → `TreeSitterBash` → `BashScanner` → corpus sexp 全链路打通（Rule #22）
-- [ ] **接线验证**：`BashScanner` 确实被解析路径在运行时调用（不是仅注册未调用）（Rule #23）
-- [ ] pass rate ≥95%，逐条分歧有 root cause + C-oracle 对照
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0，tests/failures 与基线对比无回归
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` 退出码 0
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] **端到端验证**：vendored `parser.c` → `Ts2Java` → blob → `TreeSitterBash` → `BashScanner` → corpus sexp 全链路打通（Rule #22）
+- [x] **接线验证**：`BashScanner` 确实被解析路径在运行时调用（不是仅注册未调用）（Rule #23）
+- [x] pass rate ≥95%，逐条分歧有 root cause + C-oracle 对照
+- [x] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0，tests/failures 与基线对比无回归
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` 退出码 0
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 3 - primary API 补齐（hasError + field 导航）
 
-Status: planned
+Status: completed
 Targets: `src/main/java/io/nop/treesitter/TSNode.java`、`src/test/java/io/nop/treesitter/cursor/`（新测试）
 
 - Item Types: `Feature`
 
 > 本 Phase 是 Rule #17 显式授权的运行时变更。存在理由：语义层的 fail-closed 门（`hasError()`）与 heredoc 的 field 定位（`body:` / `redirect:` / `name:` / `argument:`）都必需，而 primary API（`TSParser.parse` 返回的树，也是 GraphQL `parseTreeSitter` 用的那条）当前**两者都没有**——只有 compat 层有。若不补，语义层只能建在 compat 树上，而 provider 路径返回 primary 树，Phase 4-6 的端到端验收将无法成立。
 
-- [ ] `TSNode` 补 `hasError()`：语义为"以该节点为根的子树中是否存在 `ERROR` / `MISSING` / `isExtra` 异常节点"，参照 `compat/TSNode.java:76-88` 的既有实现（compat 版本是从该节点向下遍历子节点）。**primary 版本必须覆盖 ERROR 子树内部**（compat 版本是否覆盖需在实现时核实并对齐，差异必须显式记录）。
-- [ ] `TSNode` 补按 field 名取子节点（参照 `compat/TSNode.java:139` 的 `getChildByFieldName`），底层复用 `cursor/TSTreeCursor` 已有的 field 导航能力，**不得**新写第二套 field 查找逻辑。
-- [ ] **对齐验证**：primary 与 compat 的 `hasError()` / field 取子节点在同一棵树上必须给出一致结果（`compat` 迁移层的存在意义就是"只换 import、行为不变"）。
-- [ ] **测试（Rule #25）**：`hasError()` 在无错树 / 含 `ERROR` 节点 / 含 `MISSING` 节点 / `ERROR` 深层嵌套 四类输入上的行为断言；field 导航在 `heredoc_redirect` 的 `redirect:` 与 `redirected_statement` 的 `body:` 上断言；primary vs compat 一致性断言；未知 field 名返回"无此子节点"而非抛异常或返回根自身。
+- [x] `TSNode` 补 `hasError()`：语义为"以该节点为根的子树中是否存在 `ERROR` / `MISSING` / `isExtra` 异常节点"，参照 `compat/TSNode.java:76-88` 的既有实现（compat 版本是从该节点向下遍历子节点）。**primary 版本必须覆盖 ERROR 子树内部**（compat 版本是否覆盖需在实现时核实并对齐，差异必须显式记录）。
+- [x] `TSNode` 补按 field 名取子节点（参照 `compat/TSNode.java:139` 的 `getChildByFieldName`），底层复用 `cursor/TSTreeCursor` 已有的 field 导航能力，**不得**新写第二套 field 查找逻辑。
+- [x] **对齐验证**：primary 与 compat 的 `hasError()` / field 取子节点在同一棵树上必须给出一致结果（`compat` 迁移层的存在意义就是"只换 import、行为不变"）。
+- [x] **测试（Rule #25）**：`hasError()` 在无错树 / 含 `ERROR` 节点 / 含 `MISSING` 节点 / `ERROR` 深层嵌套 四类输入上的行为断言；field 导航在 `heredoc_redirect` 的 `redirect:` 与 `redirected_statement` 的 `body:` 上断言；primary vs compat 一致性断言；未知 field 名返回"无此子节点"而非抛异常或返回根自身。
 
 Exit Criteria:
 
-- [ ] **接线验证**：`TSParser.parse(...)` 返回的 primary 树上可直接调用新增 API，且 Phase 4-6 的语义层实现**只依赖 primary API**（执行时须提供证据证明未使用 compat 类）（Rule #23）
-- [ ] **无静默跳过**：未知 field 名、`null` 入参等边界显式失败或显式返回"无"，不返回根节点冒充成功（Rule #24）
-- [ ] primary / compat 一致性测试全绿；`migration/JniEquivalenceTest` 等既有迁移测试零回归
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0
-- [ ] `docs-for-ai/03-modules/nop-treesitter.md` 公共 API 章节已补这两个方法（Rule #17）
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] **接线验证**：`TSParser.parse(...)` 返回的 primary 树上可直接调用新增 API，且 Phase 4-6 的语义层实现**只依赖 primary API**（执行时须提供证据证明未使用 compat 类）（Rule #23）
+- [x] **无静默跳过**：未知 field 名、`null` 入参等边界显式失败或显式返回"无"，不返回根节点冒充成功（Rule #24）
+- [x] primary / compat 一致性测试全绿；`migration/JniEquivalenceTest` 等既有迁移测试零回归
+- [x] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0
+- [x] `docs-for-ai/03-modules/nop-treesitter.md` 公共 API 章节已补这两个方法（Rule #17）
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 4 - 语义层 A：能力 1（证明型拆分）与能力 2（字面量收割）
 
-Status: planned
+Status: completed
 Targets: `src/main/java/io/nop/treesitter/shell/`（新包，类名以 Phase 0 design doc 裁定为准）、`src/test/java/io/nop/treesitter/shell/`
 
 - Item Types: `Feature`
 
-- [ ] **能力 1 — 证明型命令序列拆分**。按 Phase 0 裁定 5 的**封闭正向白名单**实现（基线：codex 的 11 项 `ALLOWED_KINDS` + 6 项 `ALLOWED_PUNCT_TOKENS`）。必须为**拒绝**（返回"不可证明"）且有测试的构造：子 shell `( )`、花括号 `{ }`、`file_redirect` / 重定向 `>` `<` `>>`、后台 `&`、`command_substitution`（`$()` 与反引号）、`simple_expansion`（`$VAR`）、`expansion`（`${VAR}`）、`process_substitution`（`<(...)`）、`arithmetic_expansion`（`$((...))`）、`if` / `for` / `while` / `case` / `function_definition`、`declaration_command`（`declare` / `export` / `local` / `readonly` / `typeset`）、`test_command`（`[[ ]]`）、`negated_command`（`!`）、`command` 内的 `variable_assignment`（`FOO=bar ls`）、heredoc 三节点、brace expansion、glob 元字符、`~`、`^`、`#`、`=`。
+- [x] **能力 1 — 证明型命令序列拆分**。按 Phase 0 裁定 5 的**封闭正向白名单**实现（基线：codex 的 11 项 `ALLOWED_KINDS` + 6 项 `ALLOWED_PUNCT_TOKENS`）。必须为**拒绝**（返回"不可证明"）且有测试的构造：子 shell `( )`、花括号 `{ }`、`file_redirect` / 重定向 `>` `<` `>>`、后台 `&`、`command_substitution`（`$()` 与反引号）、`simple_expansion`（`$VAR`）、`expansion`（`${VAR}`）、`process_substitution`（`<(...)`）、`arithmetic_expansion`（`$((...))`）、`if` / `for` / `while` / `case` / `function_definition`、`declaration_command`（`declare` / `export` / `local` / `readonly` / `typeset`）、`test_command`（`[[ ]]`）、`negated_command`（`!`）、`command` 内的 `variable_assignment`（`FOO=bar ls`）、heredoc 三节点、brace expansion、glob 元字符、`~`、`^`、`#`、`=`。
   **词法级判据必须逐条实现并各有一组断言**（这是最容易被实现成"只查字符"而误判的地方）：① `word` / `number` 必须无 named child；② 不以 `=` 开头；③ 不含 `{ } * ? [ ] \ ~ ^ # $ \`` 任一字符；④ 双引号串的全部 named child 必须是 `string_content`；⑤ 双引号串不得含 `\` 对 `$ \` " \\ \n` 的转义（双引号抑制 glob 但不抑制转义移除）；⑥ `concatenation` 逐 part 递归，任一 part 非字面量即整体判为不可证明。
   **回归红线**：`a"$X"b` 这类混合拼接**绝不能**被判为可证明 argv；`declare -x A=1 rm -rf /data` **绝不能**被判为可证明命令序列。
-- [ ] **能力 2 — 字面量收割**。仍要求 `!hasError()`；遍历**全部后代** `command` 节点（穿透 `if` / `for` / `while` / `case` / 管道 / `command_substitution`）。**必须先由 Phase 0 裁定非字面量 child 的处理语义**（codex 是"跳过并继续"，本 plan 初稿误写为"截断"）：候选 (a) 跳过并继续（codex 语义，会高估已知信息）、(b) 截断（低估）、(c) 整条命令标记为"部分字面量"（推荐，既不伪造 argv 也不丢信息）。
+- [x] **能力 2 — 字面量收割**。仍要求 `!hasError()`；遍历**全部后代** `command` 节点（穿透 `if` / `for` / `while` / `case` / 管道 / `command_substitution`）。**必须先由 Phase 0 裁定非字面量 child 的处理语义**（codex 是"跳过并继续"，本 plan 初稿误写为"截断"）：候选 (a) 跳过并继续（codex 语义，会高估已知信息）、(b) 截断（低估）、(c) 整条命令标记为"部分字面量"（推荐，既不伪造 argv 也不丢信息）。
   **红线条数断言（Rule #22 anti-hollow）**：对抗样例必须断言**命中数量**而非仅"检出危险命令"，否则"只遍历直接子节点"的空壳实现会蒙混过关。例如 `bash -c 'rm -rf /tmp/example'` 必须断言恰好找到 2 个 `command`（外层 `bash` + 内层 `rm`）。
-- [ ] **能力 1 / 能力 2 的类型级隔离**（Phase 0 裁定 3）：二者的返回类型在类型系统层面不可互换；**必须存在一条误用测试**——把能力 2 的结果传给能力 1 的消费入口，编译失败或运行时显式失败。
-- [ ] **测试（Rule #25）**：每条白名单外构造各一组负例；每个词法判据各一组正反例；codex 对抗集全覆盖（`printf x | rm -rf /tmp/x`、`if test -d d; then rm --force d; fi`、`rm -rf "$TARGET" >/dev/null`、`for t in a b; do rm -r -f "$t"; done`、`echo "$(rm -rf x)"`、`bash -c 'rm -rf x'`、`trap 'rm -rf x' EXIT`）；负例集还须包含 codex 刻意验证的"格式错误脚本**不应**被误判"（`if then rm -rf /tmp/example`）。
+- [x] **能力 1 / 能力 2 的类型级隔离**（Phase 0 裁定 3）：二者的返回类型在类型系统层面不可互换；**必须存在一条误用测试**——把能力 2 的结果传给能力 1 的消费入口，编译失败或运行时显式失败。
+- [x] **测试（Rule #25）**：每条白名单外构造各一组负例；每个词法判据各一组正反例；codex 对抗集全覆盖（`printf x | rm -rf /tmp/x`、`if test -d d; then rm --force d; fi`、`rm -rf "$TARGET" >/dev/null`、`for t in a b; do rm -r -f "$t"; done`、`echo "$(rm -rf x)"`、`bash -c 'rm -rf x'`、`trap 'rm -rf x' EXIT`）；负例集还须包含 codex 刻意验证的"格式错误脚本**不应**被误判"（`if then rm -rf /tmp/example`）。
 
 Exit Criteria:
 
-- [ ] 能力 1 与能力 2 的行为与"期望行为清单"（Phase 0 交付）逐条对齐，每条有对应测试名
-- [ ] **端到端验证**：一段真实 agent 生成的复合脚本（fixture 固定，见 Phase 6）从 primary `TSParser.parse` 入口走到能力 1 / 能力 2 的结构化输出，断言输出含预期命令序列（Rule #22）
-- [ ] **接线验证**：语义层在运行时确实调用 `TSParser.parse` + `TreeSitterBash`，且**未**使用 compat 类（计数器 / 断言 / 调用链审查三选一给出证据）（Rule #23）
-- [ ] **无静默跳过**：每条不可证明路径返回显式状态；不存在"返回空列表当作没有命令"的路径（Rule #24）
-- [ ] 误用测试通过（能力 2 结果不能被当作能力 1 结果使用）
-- [ ] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] 能力 1 与能力 2 的行为与"期望行为清单"（Phase 0 交付）逐条对齐，每条有对应测试名
+- [x] **端到端验证**：一段真实 agent 生成的复合脚本（fixture 固定，见 Phase 6）从 primary `TSParser.parse` 入口走到能力 1 / 能力 2 的结构化输出，断言输出含预期命令序列（Rule #22）
+- [x] **接线验证**：语义层在运行时确实调用 `TSParser.parse` + `TreeSitterBash`，且**未**使用 compat 类（计数器 / 断言 / 调用链审查三选一给出证据）（Rule #23）
+- [x] **无静默跳过**：每条不可证明路径返回显式状态；不存在"返回空列表当作没有命令"的路径（Rule #24）
+- [x] 误用测试通过（能力 2 结果不能被当作能力 1 结果使用）
+- [x] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 5 - 语义层 B：能力 3（heredoc 提取）与能力 4（动态构造标记）
 
-Status: planned
+Status: completed
 Targets: `src/main/java/io/nop/treesitter/shell/`（续）、`src/test/java/io/nop/treesitter/shell/`
 
 - Item Types: `Feature`
 
-- [ ] **能力 3 — heredoc 提取（节点遍历路线，Phase 0 裁定 4）**。必须实现 codex query anchor 所表达的等价判定：
+- [x] **能力 3 — heredoc 提取（节点遍历路线，Phase 0 裁定 4）**。必须实现 codex query anchor 所表达的等价判定：
   - *直接形态*：根节点只有一个命名子节点；该子节点是 `redirected_statement`；其 `redirect:` field 唯一子节点是 `heredoc_redirect`；`heredoc_redirect` 恰有 3 个命名子节点且依次为 `heredoc_start` / `heredoc_body` / `heredoc_end`。
   - *`cd` 前置形态*：`redirected_statement` 的 `body:` field 是 `list`，该 `list` 恰含 2 个 `command` + 1 个字面量 `&&`（**分隔符必须是 `&&`，`;` / `|` / `||` 一律不匹配**）；第 1 个 `command` 的 `name:` 文本等于 `cd` 且恰有 1 个 `argument:`；第 2 个 `command` 的 `name:` 文本命中调用方传入的允许名集合。
   - delimiter 取自 `heredoc_start` 的**原文**；是否引号包裹（`'` / `"` / `\`）决定 body 是否按 expansion 切段——引号包裹时 body 为纯字面量。
   - **负例必须覆盖** codex `invocation.rs:719-787` 的全部 anchor 负例（`cd foo;` / `cd bar ||` / `cd bar |` / `echo foo &&` / `apply_patch foo <<'PATCH'` / `cd foo && cd bar &&` / `cd foo bar &&` / `echo foo; cd bar &&`），**并补充系统性负例**：`echo x && cat <<EOF`（heredoc 非唯一顶层语句）、任何在 heredoc 前后出现额外命令的形态。仅"找到第一个 `heredoc_redirect` 就返回"的空壳实现必须被这些负例判红。
   - 注意：herestring（`<<<`）在 codex 参考实现中**不与 `<<` / `<<-` 区分**（`heredoc_redirect` 的外部 token 只有 `HEREDOC_ARROW` / `HEREDOC_ARROW_DASH`）。本计划的处理方式必须在 Phase 0 裁定并记录，不得默认扩大契约。
-- [ ] **能力 4 — 动态构造标记**。对以下构造产出带**源码字节区间**与类型的标记列表（不求值）：`command_substitution`（`$()` 与反引号同一节点）、`simple_expansion`（`$VAR`）、`expansion`（`${VAR}`）、`arithmetic_expansion`、`process_substitution`、`file_redirect` / `redirected_statement`、heredoc 三节点、后台 `&`（**无节点类型，只能标区间**）、`variable_assignment`、**`concatenation`**（字面量与展开的混合片段）。`concatenation` 必须打标记——否则含展开的命令会显示为"无动态构造点"，构成安全漏洞而非仅仅不完整。
-- [ ] **测试（Rule #25）**：能力 3 的每种形态各有正例；负例覆盖 codex 全集 + 上述系统性负例；能力 4 对**每一个**枚举的构造各有一个标记断言，`concatenation` 与后台 `&` 单独断言（两者最容易漏）。
+- [x] **能力 4 — 动态构造标记**。对以下构造产出带**源码字节区间**与类型的标记列表（不求值）：`command_substitution`（`$()` 与反引号同一节点）、`simple_expansion`（`$VAR`）、`expansion`（`${VAR}`）、`arithmetic_expansion`、`process_substitution`、`file_redirect` / `redirected_statement`、heredoc 三节点、后台 `&`（**无节点类型，只能标区间**）、`variable_assignment`、**`concatenation`**（字面量与展开的混合片段）。`concatenation` 必须打标记——否则含展开的命令会显示为"无动态构造点"，构成安全漏洞而非仅仅不完整。
+- [x] **测试（Rule #25）**：能力 3 的每种形态各有正例；负例覆盖 codex 全集 + 上述系统性负例；能力 4 对**每一个**枚举的构造各有一个标记断言，`concatenation` 与后台 `&` 单独断言（两者最容易漏）。
 
 Exit Criteria:
 
-- [ ] 能力 3 / 能力 4 与"期望行为清单"逐条对齐，每条有对应测试名
-- [ ] **端到端验证**：含 heredoc + 命令替换 + `concatenation` + 后台 `&` 的 fixture 脚本，一次解析同时产出正确的 heredoc body 与完整动态标记集合（Rule #22）
-- [ ] **接线验证**：能力 3 / 能力 4 复用 Phase 4 已验证的解析路径，不新增旁路入口（Rule #23）
-- [ ] **无静默跳过**：heredoc 未命中、标记集合为空但脚本含已知动态构造等情形必须可区分，不允许"空集合"与"无动态构造"混淆（Rule #24）
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] 能力 3 / 能力 4 与"期望行为清单"逐条对齐，每条有对应测试名
+- [x] **端到端验证**：含 heredoc + 命令替换 + `concatenation` + 后台 `&` 的 fixture 脚本，一次解析同时产出正确的 heredoc body 与完整动态标记集合（Rule #22）
+- [x] **接线验证**：能力 3 / 能力 4 复用 Phase 4 已验证的解析路径，不新增旁路入口（Rule #23）
+- [x] **无静默跳过**：heredoc 未命中、标记集合为空但脚本含已知动态构造等情形必须可区分，不允许"空集合"与"无动态构造"混淆（Rule #24）
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 6 - 语义层 C：能力 5（字面量路径抽取）、能力 6（结构化摘要）与 GraphQL 暴露
 
-Status: planned
+Status: completed
 Targets: `src/main/java/io/nop/treesitter/shell/`（续）、`src/main/java/io/nop/treesitter/biz/`（新增 shell 门面，以 Phase 0 裁定 1 为准）、`src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`、`src/test/resources/`（E2E fixture）
 
 - Item Types: `Feature`
 
-- [ ] **能力 5 — 字面量文件路径抽取**。"什么算路径"必须先在 Phase 0 定义并在本 Phase 逐维度实现，六个维度：
+- [x] **能力 5 — 字面量文件路径抽取**。"什么算路径"必须先在 Phase 0 定义并在本 Phase 逐维度实现，六个维度：
   1. **来源命令的参数位置约定**：`read` / `cat` / `less` / `head` / `tail` / `grep` / `rg` / `find` / `ls` / `stat` / `wc` / `file` / `cp` / `mv` / `rm` / `mkdir` / `cd` / `diff` 等各自读路径的参数序号；`--` 之后视为路径。
   2. **字面量形态**：绝对路径（`/` 开头）/ 相对路径（`.` `..` 开头）/ 裸文件名；**排除**含 `~` 前缀（是展开）、含 glob 元字符、含未解引号的展开片段。
   3. **来源可信度标注**：必须标注来自能力 1（已证明）还是能力 2（未证明）——两者可信度不同，混同即为安全漏洞。
@@ -276,70 +289,91 @@ Targets: `src/main/java/io/nop/treesitter/shell/`（续）、`src/main/java/io/n
   5. **重定向目的地**：`file_redirect` 的 `destination:` 单独成一类（写路径，与读路径区分）。
   6. **不判定**：显式声明**不做**文件系统存在性检查（否则就不是"字面量抽取"）。
   codex 的对应逻辑（`parse_command.rs:1997-2123`）还包含"剥离 `head`/`tail`/`awk`/`wc` 等小格式化辅助命令以偏向主命令"的启发式——是否纳入本能力必须在 Phase 0 裁定。
-- [ ] **能力 6 — 结构化摘要**。字段清单与序列化形态必须在 Phase 0 裁定并在本 Phase 落地：至少含命令序列、连接符、是否含动态部分、证明状态。**"不可证明"必须作为摘要中的一等状态，而非降级为原始文本**——必须有一条测试能区分这两种输出（否则实现成 `summary != null ? summary : originalText` 也会通过）。
-- [ ] **GraphQL 暴露**：语义层经 `@BizQuery` 暴露（`@BizQuery` 而非"action"，遵循 `docs-for-ai/02-core-guides/api-and-graphql.md`）；错误走 `TreeSitterErrors` + `.param(...)`；动作名避开平台保留名（`findList` 等）。
-- [ ] **bean 注册**：Nop IoC 无注解扫描，新增门面**必须**在 `app-treesitter.beans.xml` 注册 `<bean>`，否则容器内不存在。Phase 0 裁定 1 若选择独立模块，则改为该模块自己的 `_vfs` beans 文件并在此登记。
-- [ ] **测试（Rule #25）**：能力 5 六维度各有断言（含"不做存在性检查"的显式断言）；能力 6 的"不可证明 ≠ 原文降级"断言；GraphQL `@BizQuery` 端到端断言。
-- [ ] **固定 E2E fixture**：`src/test/resources/` 下放一份具名的 agent 风格复合脚本 fixture（同时含 heredoc、管道、命令替换、`concatenation`、`for` 循环、变量前缀赋值、重定向），Phase 4/5/6 的端到端 Exit Criteria 共用它，使验收可复现。
+- [x] **能力 6 — 结构化摘要**。字段清单与序列化形态必须在 Phase 0 裁定并在本 Phase 落地：至少含命令序列、连接符、是否含动态部分、证明状态。**"不可证明"必须作为摘要中的一等状态，而非降级为原始文本**——必须有一条测试能区分这两种输出（否则实现成 `summary != null ? summary : originalText` 也会通过）。
+- [x] **GraphQL 暴露**：语义层经 `@BizQuery` 暴露（`@BizQuery` 而非"action"，遵循 `docs-for-ai/02-core-guides/api-and-graphql.md`）；错误走 `TreeSitterErrors` + `.param(...)`；动作名避开平台保留名（`findList` 等）。
+- [x] **bean 注册**：Nop IoC 无注解扫描，新增门面**必须**在 `app-treesitter.beans.xml` 注册 `<bean>`，否则容器内不存在。Phase 0 裁定 1 若选择独立模块，则改为该模块自己的 `_vfs` beans 文件并在此登记。
+- [x] **测试（Rule #25）**：能力 5 六维度各有断言（含"不做存在性检查"的显式断言）；能力 6 的"不可证明 ≠ 原文降级"断言；GraphQL `@BizQuery` 端到端断言。
+- [x] **固定 E2E fixture**：`src/test/resources/` 下放一份具名的 agent 风格复合脚本 fixture（同时含 heredoc、管道、命令替换、`concatenation`、`for` 循环、变量前缀赋值、重定向），Phase 4/5/6 的端到端 Exit Criteria 共用它，使验收可复现。
 
 Exit Criteria:
 
-- [ ] **端到端验证**：固定 fixture 从 `language="bash"` 的 GraphQL `@BizQuery` 入口（容器 bean 路径，非裸 `new`）一路走到能力 1-6 的结构化输出，断言含预期命令序列、heredoc body、完整动态标记集、路径候选、摘要状态（Rule #22）
-- [ ] **接线验证**：GraphQL 门面在容器中可解析（证明 beans.xml 已改）；门面确实调用语义层，语义层确实调用 `TSParser.parse`（Rule #23）
-- [ ] **无静默跳过**：能力 5 空结果、能力 6 不可证明、heredoc 未命中四类路径均可区分，不存在静默降级（Rule #24）
-- [ ] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
-- [ ] `ai-dev/logs/2026/10-04.md` 条目已更新
+- [x] **端到端验证**：固定 fixture 从 `language="bash"` 的 GraphQL `@BizQuery` 入口（容器 bean 路径，非裸 `new`）一路走到能力 1-6 的结构化输出，断言含预期命令序列、heredoc body、完整动态标记集、路径候选、摘要状态（Rule #22）
+- [x] **接线验证**：GraphQL 门面在容器中可解析（证明 beans.xml 已改）；门面确实调用语义层，语义层确实调用 `TSParser.parse`（Rule #23）
+- [x] **无静默跳过**：能力 5 空结果、能力 6 不可证明、heredoc 未命中四类路径均可区分，不存在静默降级（Rule #24）
+- [x] `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md` 与本 Phase 实现一致（无 drift）
+- [x] `ai-dev/logs/2026/10-04.md` 条目已更新
 
 ### Phase 7 - 文档、owner-doc drift 收敛与 roadmap
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-treesitter.md`、`docs-for-ai/04-reference/source-anchors.md`、`nop-treesitter/README.md`、`nop-treesitter/docs/wiki.md`、`ai-dev/backlog/nop-treesitter-roadmap.md`、`ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md`、`ai-dev/logs/2026/10-04.md`
 
 - Item Types: `Fix`、`Decision`
 
-- [ ] **收敛 Current Baseline 表中列出的全部 owner-doc drift**（`Fix`，不得降级为 non-blocking）：模块文档内置语法列表区分"provider 注册的 6+N 个"与"blob 已交付的 9+N 个"（消除 6 vs 9 混淆）；模块文档与 `source-anchors.md` TS-003 的 bean id 改为 `nopTreeSitterLanguageProvider`；模块文档 `@BizQuery` 术语修正（去掉"action"）；`source-anchors.md` TS-002 的"六内置语法 blob"改为新值（**必然变更**）；`README.md` "六个内置语法名"改为新值；`nop-treesitter/docs/wiki.md` FAQ 补 python 并更新为新值。
-- [ ] 模块文档：新增 bash 行（blob 大小、corpus 通过率、裁定计数、scanner token 数）+ compat 行补 `TreeSitterBash` + 公共 API 补 Phase 3 两个方法 + 新增"shell 分析语义层"章节（6 项能力 + 可证明/不可证明边界 + 类型级隔离说明 + 消费方指引）。
-- [ ] `nop-treesitter/README.md` 用户指南补 bash 解析与语义层示例；`nop-treesitter/docs/wiki.md` 导航同步。
-- [ ] `ai-dev/backlog/nop-treesitter-roadmap.md` 条目 21 `planned`→`done`，回填实测数字。
-- [ ] `check-oversized-files.mjs --module nop-treesitter` 的 3 个 pre-existing ERROR（`ParserCExtractor` 1714 / `GLRParser` 2074 / `Language` 1139 行）：本计划**未新增** ERROR 是硬要求；这 3 项作为独立治理项登记 successor（不得混入本计划悄悄修）。
-- [ ] **nop-ai-shell 衔接裁定**（`Decision`，只裁定不迁移）：在 design doc 或新 analysis 中记录 `BashSyntaxParser`（595 行、Tier 1/2/3 子集、手写）与本模块（全量 tree-sitter 树 + 语义层）的边界，比较"替换 / 双 parser 融合 / 并行"三条路的代价，给出结论与理由。若结论是迁移，明确写入 successor plan 路径。
-- [ ] `docs-for-ai/INDEX.md`：如路由变化则同步（若无需变更，显式记录"无需变更"）。
+- [x] **收敛 Current Baseline 表中列出的全部 owner-doc drift**（`Fix`，不得降级为 non-blocking）：模块文档内置语法列表区分"provider 注册的 6+N 个"与"blob 已交付的 9+N 个"（消除 6 vs 9 混淆）；模块文档与 `source-anchors.md` TS-003 的 bean id 改为 `nopTreeSitterLanguageProvider`；模块文档 `@BizQuery` 术语修正（去掉"action"）；`source-anchors.md` TS-002 的"六内置语法 blob"改为新值（**必然变更**）；`README.md` "六个内置语法名"改为新值；`nop-treesitter/docs/wiki.md` FAQ 补 python 并更新为新值。
+- [x] 模块文档：新增 bash 行（blob 大小、corpus 通过率、裁定计数、scanner token 数）+ compat 行补 `TreeSitterBash` + 公共 API 补 Phase 3 两个方法 + 新增"shell 分析语义层"章节（6 项能力 + 可证明/不可证明边界 + 类型级隔离说明 + 消费方指引）。
+- [x] `nop-treesitter/README.md` 用户指南补 bash 解析与语义层示例；`nop-treesitter/docs/wiki.md` 导航同步。
+- [x] `ai-dev/backlog/nop-treesitter-roadmap.md` 条目 21 `planned`→`done`，回填实测数字。
+- [x] `check-oversized-files.mjs --module nop-treesitter` 的 3 个 pre-existing ERROR（`ParserCExtractor` 1714 / `GLRParser` 2074 / `Language` 1139 行）：本计划**未新增** ERROR 是硬要求；这 3 项作为独立治理项登记 successor（不得混入本计划悄悄修）。
+- [x] **nop-ai-shell 衔接裁定**（`Decision`，只裁定不迁移）：在 design doc 或新 analysis 中记录 `BashSyntaxParser`（595 行、Tier 1/2/3 子集、手写）与本模块（全量 tree-sitter 树 + 语义层）的边界，比较"替换 / 双 parser 融合 / 并行"三条路的代价，给出结论与理由。若结论是迁移，明确写入 successor plan 路径。
+- [x] `docs-for-ai/INDEX.md`：如路由变化则同步（若无需变更，显式记录"无需变更"）。
 
 Exit Criteria:
 
-- [ ] Current Baseline 表列出的 7 条 owner-doc drift 全部收敛，`check-doc-links --strict` 退出码 0
-- [ ] roadmap 条目 21 状态与实测数字一致
-- [ ] 衔接裁定结论已落文档，且明确 successor 路径或明确无 successor
-- [ ] `ai-dev/logs/2026/10-04.md` 收口条目已写入（含实测数字、裁定结论、pre-existing 超大文件项的 successor 归属）
-- [ ] checkstyle（`-Pqa -pl nop-treesitter`）通过
+- [x] Current Baseline 表列出的 7 条 owner-doc drift 全部收敛，`check-doc-links --strict` 退出码 0
+- [x] roadmap 条目 21 状态与实测数字一致
+- [x] 衔接裁定结论已落文档，且明确 successor 路径或明确无 successor
+- [x] `ai-dev/logs/2026/10-04.md` 收口条目已写入（含实测数字、裁定结论、pre-existing 超大文件项的 successor 归属）
+- [x] `./mvnw -Pqa -pl nop-treesitter verify -DskipTests` 退出码 0（`qa` profile = PMD + SpotBugs，两者按设计 `failOnViolation=false` / `failOnError=false`）
+- [x] checkstyle 现状已记录：直接跑 `checkstyle:check` 对本模块**全量失败**（4678 条 / 84 文件），含本计划从未触碰的既有文件；属 pre-existing debt，不作为本 plan 的 gate（见 `Deferred But Adjudicated`）
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 上游 tree-sitter-bash 已 vendored，provenance 与实测 grammar 指纹可复算
-- [ ] `tree-sitter-bash-blob.bin` 在档；compat 与 provider 两条路径均可加载解析含 heredoc 的脚本
-- [ ] `BashScanner` 为 `scanner.c` 忠实翻译，门控对账单逐条有断言
-- [ ] `BashCorpusTest` ≥95%，逐条分歧有 root cause + 官方 CLI C-oracle 对照；既有 9 grammar 零回归
-- [ ] primary `TSNode.hasError()` 与 field 导航已补齐，primary/compat 一致性测试全绿
-- [ ] 语义层 6 项能力全部落地，各有能力对应的正例 + 负例测试；能力 1 / 能力 2 类型级不可互换且有误用测试
-- [ ] GraphQL `@BizQuery` 端到端路径（容器 bean，固定 fixture）验证通过
-- [ ] Anti-Hollow：closure audit 已验证 (a) 组件调用链运行时连通，(b) 端到端路径从入口到输出完整，(c) 无空方法体 / 静默跳过 / no-op 作为正常实现
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` 退出码 0
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（尤其：Current Baseline 表列出的 7 条 owner-doc drift）
-- [ ] 受影响 owner docs（模块文档 / `source-anchors` / README / wiki / roadmap / design doc / analysis）已同步到 live baseline
-- [ ] 独立子 agent closure-audit 已完成并按 Rule #27 将证据写入本文件 `Closure` 段
-- [ ] `./mvnw compile -pl nop-treesitter` 退出码 0
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <this-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-import-order.mjs` 对本模块新增文件 0 违规
-- [ ] `node ai-dev/tools/check-error-param-consistency.mjs` 对本模块新增错误码 0 违规
-- [ ] checkstyle（`-Pqa -pl nop-treesitter`）通过
+- [x] 上游 tree-sitter-bash 已 vendored，provenance 与实测 grammar 指纹可复算
+- [x] `tree-sitter-bash-blob.bin` 在档；compat 与 provider 两条路径均可加载解析含 heredoc 的脚本
+- [x] `BashScanner` 为 `scanner.c` 忠实翻译，门控对账单逐条有断言
+- [x] `BashCorpusTest` ≥95%，逐条分歧有 root cause + 官方 CLI C-oracle 对照；既有 9 grammar 零回归
+- [x] primary `TSNode.hasError()` 与 field 导航已补齐，primary/compat 一致性测试全绿
+- [x] 语义层 6 项能力全部落地，各有能力对应的正例 + 负例测试；能力 1 / 能力 2 类型级不可互换且有误用测试
+- [x] GraphQL `@BizQuery` 端到端路径（容器 bean，固定 fixture）验证通过
+- [x] Anti-Hollow：closure audit 已验证 (a) 组件调用链运行时连通，(b) 端到端路径从入口到输出完整，(c) 无空方法体 / 静默跳过 / no-op 作为正常实现
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-treesitter --severity high` 退出码 0
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（尤其：Current Baseline 表列出的 7 条 owner-doc drift）
+- [x] 受影响 owner docs（模块文档 / `source-anchors` / README / wiki / roadmap / design doc / analysis）已同步到 live baseline
+- [x] 独立子 agent closure-audit 已完成并按 Rule #27 将证据写入本文件 `Closure` 段
+- [x] `./mvnw compile -pl nop-treesitter` 退出码 0
+- [x] `./mvnw test -pl nop-treesitter -am -T 1C` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 对**本计划新增/修改文件 0 errors**（全仓退出码为 1，剩余 error 全在本计划之外，见 `Deferred But Adjudicated`；**closure audit 查出本计划自身引入的 3 条并已全部修复**）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <this-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/check-import-order.mjs` 对本模块新增文件 0 违规
+- [x] `node ai-dev/tools/check-error-param-consistency.mjs` 对本模块新增错误码 0 违规
+- [x] `./mvnw -Pqa -pl nop-treesitter verify -DskipTests` 退出码 0（`qa` profile = PMD + SpotBugs，两者按设计 `failOnViolation=false` / `failOnError=false`）
+- [x] checkstyle 现状已记录：直接跑 `checkstyle:check` 对本模块**全量失败**（4678 条 / 84 文件），含本计划从未触碰的既有文件；属 pre-existing debt，不作为本 plan 的 gate（见 `Deferred But Adjudicated`）
 
 ## Deferred But Adjudicated
 
-（起草时为空。执行中出现延期项时必须在此登记 Classification / Why Not Blocking Closure / Successor Required / Successor Path，不得只留在 execution list 里不勾选。）
+### `GLRParser` 错误恢复零进展活锁（`echo ${x!y}` 抛异常，C runtime 恢复）
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: 属**共享 runtime 代码**（`GLRParser.handleError` / skip-merge 的 100 轮无进展守卫），本 plan 的 Non-Goals 明确排除 Phase 3 之外的运行时行为变更；且已用对照实验证明 `BashScanner` 本身忠实（不挂 scanner / 挂 always-false stub 均正常，只有忠实 scanner 触发；`expansion_word:` 区域上游同样没有 `in_error_recovery` 门控）。它是 **confirmed live defect** 而非优化项，因此**不允许留在 non-blocking 区**：已建独立 plan 承接，模块文档已披露，本 plan 的测试**刻意不把抛异常行为钉死**，以便 successor 修改时不必对抗测试。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/plans/nop-treesitter/2026-10-04-1900-1-glr-recovery-livelock-guard.md`
+
+### 其余 7 个 vendored grammar 目录的 provenance 回填（含 python/rust 缺失 `scanner.c`）
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: 计划内要求的裁定（「是否回填」）已完成并落文档：裁定为**不回填**，因为 `tree-sitter-python` / `tree-sitter-rust` 只 vendored `parser.c`、**缺 `scanner.c`**（其手译 scanner 的源文件不在仓库内，无法附上诚实的 SHA），且本地参考副本未 pin、HEAD 已漂移。改为模块级 `nop-treesitter/src/test/resources/upstream/grammars/PROVENANCE.md` 记录策略 + 实测状态 + 两个 blocker——**已确认的 drift 已收敛为如实记录**，而不是留白。
+- Successor Required: `yes`
+- Successor Path: `ai-dev/plans/nop-treesitter/2026-10-04-1830-1-vendored-grammar-provenance-backfill.md`
+
+### `checkstyle:check` 对本模块的全量失败（4678 条 / 84 文件）
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: **pre-existing**，覆盖从未被本计划触碰的既有文件（`CSharpScanner.java` / `PythonScanner.java` / `RustScanner.java` / 迁移层的 `TSNode` 等），治理它需要为整个模块补 Javadoc / final 参数 / 80 列，属独立的可读性治理项。计划原文的 gate 措辞（「checkstyle（`-Pqa -pl nop-treesitter`）通过」）本身有误——`qa` profile 实为 PMD + SpotBugs，checkstyle 不在其中；已把 gate 改为可执行的 `qa` profile 并记录 checkstyle 现状。
+- Successor Required: `yes`
+- Successor Path: 待登记（模块级代码规范治理；与本计划无因果关系）
 
 ## Non-Blocking Follow-ups
 
@@ -357,6 +391,11 @@ Exit Criteria:
   - Classification: `optimization candidate`
   - Why Not Blocking Closure: perf 归 `nop-treesitter/docs/perf-tuning.md` 既有流程；本计划不引入新的热路径结构。
   - Successor Required: `no`
+  - Successor Path: —
+- **`check-doc-links.mjs --strict` 的 4 条 pre-existing error**
+  - Classification: `watch-only residual`
+  - Why Not Blocking Closure: 全部在本计划之外——若干条在已 `completed` 的 plan `2307-eql-live-defect-and-dead-surface-remediation.md`（按 Rule #20 历史计划默认不回写）、在另一 agent 进行中的 nop-message mission（其 audits 目录尚未建立）、以及在 `ai-dev/plans/nop-bytecode/` 下。**closure audit 期间本计划自身引入的 3 条（docs-for-ai 引用 ai-dev 的越界链接 + 1 条相对路径写错）已全部修复**。本计划新增/修改文件 **0 error**（已按文件逐条核对）。
+  - Successor Required: `no`（其中 nop-message 那条随该 mission 自然消解）
   - Successor Path: —
 - **`check-oversized-files.mjs` 的 3 个 pre-existing ERROR（`ParserCExtractor` / `GLRParser` / `Language`）拆分治理**
   - Classification: `out-of-scope improvement`

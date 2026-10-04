@@ -27,9 +27,12 @@ import java.util.Set;
  * never look alike. The other capabilities are explicitly incomplete and say so in
  * their own types.</p>
  *
- * <p>All six capabilities share one parse of the script, taken through the primary
- * {@link TSParser} API — never through the compat layer, so nothing here depends on
- * the migration shim.</p>
+ * <p>Every capability parses through the primary {@link TSParser} API — never
+ * through the compat layer, so nothing here depends on the migration shim. The
+ * capabilities do <b>not</b> share a single parse: each takes one of its own, so
+ * that a caller can ask one question without paying for five others. The cost is
+ * measured rather than assumed (six parses per {@link #summarize}); a shared parse
+ * is a caching change, not a correctness one.</p>
  *
  * <p>Instances are immutable and safe to share; the underlying
  * {@link io.nop.treesitter.language.Language} is shared and its external scanner
@@ -37,12 +40,20 @@ import java.util.Set;
  */
 public final class ShellAnalysis {
 
-    /** Commands whose argument positions are file paths, by index (0 = name, 1 = first argument). */
+    /**
+     * The 1-based positions (counted over non-flag arguments, name excluded) that
+     * name a file for a given command.
+     *
+     * <p>Positions differ per command in a way that matters: for {@code grep} the
+     * first argument is the <em>pattern</em>, not a file, so its paths start at 2.
+     * Getting that wrong reports the search term as a file the script reads.</p>
+     */
     static final Map<String, int[]> PATH_ARGUMENT_POSITIONS = buildPathPositions();
 
     /** Commands for which every non-flag argument is a path. */
     static final Set<String> ALL_ARGUMENTS_ARE_PATHS =
-            Set.of("cd", "chdir", "pushd", "popd", "ls", "stat", "wc", "file", "readlink", "realpath");
+            Set.of("cd", "chdir", "pushd", "popd", "ls", "stat", "wc", "file", "readlink",
+                    "realpath", "rm", "rmdir", "mkdir", "touch", "unlink");
 
     private final Language language;
 
@@ -144,9 +155,19 @@ public final class ShellAnalysis {
         return TSParser.parse(language, script.getBytes(StandardCharsets.UTF_8));
     }
 
-    static String sourceText(TSTree tree) {
+    /**
+     * The tree's own source bytes, wrapped so that byte offsets can be sliced
+     * correctly. See {@link ShellSource} for why this is not a plain
+     * {@code String}.
+     */
+    static ShellSource sourceOf(TSTree tree) {
         byte[] source = tree.source();
-        return source == null ? "" : new String(source, StandardCharsets.UTF_8);
+        return new ShellSource(source);
+    }
+
+    /** Kept for callers that need the whole script as text. */
+    static String sourceText(TSTree tree) {
+        return sourceOf(tree).text();
     }
 
     /**
@@ -208,11 +229,6 @@ public final class ShellAnalysis {
         boolean visit(TSNode node);
     }
 
-    /** The literal text of a node, or the empty string when its range is unusable. */
-    static String textOf(TSNode node, String source) {
-        return ShellLexical.text(node, source);
-    }
-
     private static Map<String, int[]> buildPathPositions() {
         Map<String, int[]> map = new java.util.LinkedHashMap<>();
         map.put("cat", new int[]{1});
@@ -220,28 +236,25 @@ public final class ShellAnalysis {
         map.put("more", new int[]{1});
         map.put("head", new int[]{1});
         map.put("tail", new int[]{1});
-        map.put("grep", new int[]{1});
-        map.put("egrep", new int[]{1});
-        map.put("fgrep", new int[]{1});
-        map.put("rg", new int[]{1});
+        // grep-family: position 1 is the pattern, so file operands start at 2
+        map.put("grep", new int[]{2});
+        map.put("egrep", new int[]{2});
+        map.put("fgrep", new int[]{2});
+        map.put("rg", new int[]{2});
         map.put("find", new int[]{1});
         map.put("stat", new int[]{1});
         map.put("wc", new int[]{1});
         map.put("file", new int[]{1});
         map.put("cp", new int[]{1, 2});
         map.put("mv", new int[]{1, 2});
-        map.put("rm", new int[]{1});
-        map.put("rmdir", new int[]{1});
-        map.put("mkdir", new int[]{1});
-        map.put("touch", new int[]{1});
         map.put("diff", new int[]{1, 2});
         map.put("ln", new int[]{1, 2});
         map.put("tee", new int[]{1});
         map.put("tr", new int[]{1});
         map.put("dd", new int[]{1});
         map.put("install", new int[]{1, 2});
-        map.put("chmod", new int[]{1});
-        map.put("chown", new int[]{1});
+        // `chmod` / `chown` are deliberately absent: their first argument is a mode
+        // or an owner, not a path, so a positional table would report `777`.
         map.put("tar", new int[]{1});
         return Map.copyOf(map);
     }

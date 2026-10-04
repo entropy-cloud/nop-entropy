@@ -16,7 +16,7 @@ execution engine. Those belong to the agent guardrail and to
 
 The measured grammar fingerprint, node inventory and field mapping this contract
 is written against are in
-`ai-dev/analysis/nop-treesitter-bash-contracts.md` — that file is the
+`ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` — that file is the
 recomputable source, this one is the decision source.
 
 ## 1. Grammar assembly contract
@@ -163,7 +163,13 @@ The reason set is closed and small: a syntax error is present in the subtree; a
 construct outside the whitelist was encountered; a dynamic construct is present;
 the lexical form is not a literal.
 
-Two invariants follow, and both are load-bearing:
+A third case exists for a script with no command in it — empty, or nothing but
+whitespace. It is a **refusal, not a proof of an empty sequence**: a proven
+sequence of zero commands is indistinguishable, to a consumer, from "nothing was
+found", which is the same dangerous misreading the refusal type exists to
+prevent. A proven sequence is therefore never empty.
+
+Two further invariants follow, and both are load-bearing:
 
 - **A syntax error anywhere in the subtree means not proven, with no exception.**
   The reference behaviour of the mature implementation this contract follows
@@ -356,13 +362,71 @@ Whether a path exists is a different question with a different cost and a
 different failure mode, and answering it here would make the capability
 non-deterministic.
 
+Three details in this dimension are easy to get wrong and each has an assertion:
+
+- **Positions count non-flag arguments, not argv slots.** Counting slots puts
+  `cat -n /etc/passwd`'s path at position 2 and drops it — losing the path
+  precisely when a flag is present. A token shaped like a flag's value (all
+  digits, or a `%` format specifier) is dropped from the positional list too, so
+  `head -n 5 /var/log/syslog` and `stat -c %s /etc/passwd` report the file and not
+  the count. The cost is that a genuinely numeric filename is also dropped; that
+  is the intended trade, because a missed path is recoverable and a path that is
+  not a path is not.
+- **A command's first argument is not automatically a path.** For the grep family
+  it is the *pattern*, so files start one position later. Commands whose first
+  argument is a mode or an owner are deliberately absent from the table.
+- **A wholly quoted path is unquoted before judgement.** `cat "/etc/passwd"` and
+  `cat /etc/passwd` name the same file, and dropping the quoted form would lose
+  exactly the paths a careful author writes. After unquoting, a path that still
+  contains an expansion or a glob character is still rejected.
+
 **Rejected**: the reference implementation's heuristic that strips small
 formatting helpers (`head`, `tail`, `awk`, `wc`) to bias toward the "main"
 command. It drops paths from exactly the commands whose paths a guardrail most
 needs to see, and it makes the output depend on a judgement about intent rather
 than on the text.
 
-### Decision 15 — the structured summary carries the proof status as a field
+### Decision 15 — coordinates are byte offsets, and the layer treats them as such
+
+The runtime's coordinates are byte offsets; Java strings are not. Slicing a
+decoded string with them is wrong for any script containing a multi-byte
+character, and wrong in the worst direction: the offsets overshoot, so a node's
+text runs past its end and swallows what follows. A script that puts an
+accented character before a destructive command then reports that command with a
+mangled name and an empty target — **while still claiming to be proven**.
+
+Every read of a node's text therefore goes through one byte-addressed view of the
+script, rather than through each caller decoding the source independently. The
+upstream corpus is pure ASCII, so a green corpus proves nothing about this; the
+guarantee is carried by non-ASCII assertions in each capability's tests.
+
+### Decision 16 — what a proof does and does not license
+
+A proof means **the syntax is entirely literal**. It does not mean the script is
+safe, and the difference is not academic: a fully literal line can still execute
+arbitrary nested text. `bash -c '<script>'`, `sh -c "<script>"`, `eval '<script>'`,
+`ssh host '<script>'`, `printf '<script>' | bash` and `trap '<script>' EXIT` are all
+proven, with no dynamic construct reported — because at the syntax level there is
+nothing dynamic. The mature reference implementation treats these same inputs as
+dangerous samples.
+
+The contract is therefore stated as what it is: capability 1 answers *"is there
+anything here computed at run time"*, not *"is this safe"*. Deciding whether a
+literal argument to `-c` is acceptable is a command-shape rule belonging to the
+agent's guardrail, one layer above this one. The layer does not implement it, and
+does not imply it.
+
+Two consequences of the same kind:
+
+- **The reported argv is source text, not the executed value.** `rm -rf "/data"`
+  reports the argument with its quotes, and `cat a'b'c` reports `a'b'c` where bash
+  passes `abc`. The lexical rules decide whether an argument is *literal*, not
+  what it *equals*; an exact-match consumer must strip quotes itself.
+- **A bash keyword prefix can be reported as the command name.** `time rm -rf /`
+  and `coproc rm -rf /` report `time` / `coproc` as a command name, with the real
+  command as a separate entry.
+
+### Decision 17 — the structured summary carries the proof status as a field
 
 Capability 6's summary includes the command sequence, the connectors, whether any
 dynamic part is present, and the proof status. The proof status is a

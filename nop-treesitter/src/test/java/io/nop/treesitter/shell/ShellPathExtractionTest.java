@@ -53,10 +53,18 @@ class ShellPathExtractionTest {
         assertEquals("/etc/a", path("mv /etc/a /tmp/b\n", "/etc/a").path());
     }
 
+    /**
+     * A command's own first argument is not automatically a path. For the grep
+     * family the first argument is the <em>pattern</em>, and for {@code echo} it is
+     * simply text.
+     */
     @Test
-    void aSecondArgumentIsNotAPathForSinglePathCommands() {
-        // `grep pattern file` — the pattern is at index 1 and is not a path.
-        assertFalse(pathsOf("echo x\n").stream().anyMatch(p -> p.path().equals("x")));
+    void aFirstArgumentThatIsNotAPathIsNotOne() {
+        assertFalse(pathsOf("grep secret /var/log\n").stream()
+                        .anyMatch(p -> p.path().equals("secret")),
+                "the grep family's first argument is the pattern, not a file");
+        assertFalse(pathsOf("echo x\n").stream().anyMatch(p -> p.path().equals("x")),
+                "echo does not read files");
     }
 
     @Test
@@ -127,6 +135,82 @@ class ShellPathExtractionTest {
                         "<<" + script + ">> reported the flag " + path);
             }
         }
+    }
+
+    /**
+     * A flag must not shift the argument positions. Counting argv slots instead of
+     * non-flag arguments put {@code /etc/passwd} at position 2 in
+     * {@code cat -n /etc/passwd} and dropped the path entirely — losing the path
+     * exactly when a flag is present, which is the common case.
+     */
+    @Test
+    void aFlagDoesNotShiftThePathPositions() {
+        assertEquals(List.of("/etc/passwd"),
+                pathsOf("cat -n /etc/passwd\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/var/log/syslog"),
+                pathsOf("head -n 5 /var/log/syslog\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/var/log"),
+                pathsOf("grep -r pattern /var/log\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/tmp/x"),
+                pathsOf("mkdir -p /tmp/x\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/tmp/a.tar"),
+                pathsOf("tar -xf /tmp/a.tar\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/data"),
+                pathsOf("rm -rf /data\n").stream().map(ShellPath::path).toList());
+    }
+
+    @Test
+    void bothArgumentsOfACopyAreFoundEvenWithAFlag() {
+        assertEquals(List.of("/etc/a", "/tmp/b"),
+                pathsOf("cp -a /etc/a /tmp/b\n").stream().map(ShellPath::path).toList());
+    }
+
+    /**
+     * An option's value is not a path. {@code chmod} is deliberately absent from
+     * the positional table (its first argument is a mode), and {@code stat -c %s}
+     * drops the format specifier, so neither reports one.
+     */
+    @Test
+    void anOptionValueIsNotAPath() {
+        assertTrue(pathsOf("chmod 777 /etc/shadow\n").isEmpty(),
+                "chmod's first argument is a mode, not a path");
+        assertEquals(List.of("/var/log"),
+                pathsOf("stat -c %s /var/log\n").stream().map(ShellPath::path).toList());
+    }
+
+    /** A carefully quoted path is still a path. */
+    @Test
+    void quotedPathsAreNotDropped() {
+        assertEquals(List.of("/etc/passwd"),
+                pathsOf("cat \"/etc/passwd\"\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/etc/passwd"),
+                pathsOf("cat '/etc/passwd'\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/data"),
+                pathsOf("rm \"/data\"\n").stream().map(ShellPath::path).toList());
+    }
+
+    /** A quoted path whose content is still expanded is not a literal. */
+    @Test
+    void aQuotedPathContainingAnExpansionIsStillNotALiteral() {
+        assertTrue(pathsOf("cat \"$HOME/x\"\n").isEmpty());
+        assertTrue(pathsOf("cat \"*.txt\"\n").isEmpty());
+    }
+
+    /** A partial argv is a subset, so its paths carry the weaker marker. */
+    @Test
+    void aPathFromAPartialArgvCarriesTheWeakerMarker() {
+        assertEquals(ShellPath.Confidence.HARVESTED,
+                path("if true; then cat /etc/passwd; fi\n", "/etc/passwd").confidence());
+        assertEquals(ShellPath.Confidence.HARVESTED_PARTIAL,
+                path("rm -rf $TARGET /data\n", "/data").confidence());
+    }
+
+    @Test
+    void nonAsciiPathsAreFound() {
+        assertEquals(List.of("/tmp/café"),
+                pathsOf("rm -rf /tmp/café\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/etc/passwd"),
+                pathsOf("echo é; cat /etc/passwd\n").stream().map(ShellPath::path).toList());
     }
 
     // ---- dimension 5: redirects are write paths ----------------------------

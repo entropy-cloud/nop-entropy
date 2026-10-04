@@ -23,6 +23,13 @@ public final class UnprovenScript implements ProvenSplit {
         DYNAMIC_CONSTRUCT,
         /** A whitelisted node whose text is not a literal (glob, tilde, brace, quote-affecting escape, mixed concatenation). */
         NON_LITERAL_LEXICAL_FORM,
+        /**
+         * The script has no command in it — empty, or nothing but whitespace. A
+         * proven sequence of zero commands would read as "this script does nothing",
+         * which is the same dangerous misreading as an empty result for a script
+         * that was never understood; both are refusals, not proofs.
+         */
+        NO_COMMAND,
         /** The grammar the tree came from is not the bash grammar this layer is defined against. */
         UNSUPPORTED_LANGUAGE
     }

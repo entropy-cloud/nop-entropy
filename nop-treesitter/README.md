@@ -78,6 +78,12 @@ String sexp = tree.toSExpression();   // (document\n  (object ...))
 输入有语法错误时不会抛异常——返回的树中包含 `(ERROR ...)` / `(MISSING "token")` 节点
 （对齐上游 C runtime 的恢复行为）。
 
+> **已知偏差**：错误恢复在极少数输入上会活锁并改为抛 `TreeSitterException`
+> （`error recovery made no progress`），已复现的最小输入是 `echo ${x!y}`——非法 bash，
+> 官方 C runtime 恢复为 `(ERROR ...)` 树。已用对照实验定位为 `GLRParser` 的恢复逻辑
+> （bash scanner 本身忠实），修复由仓库内部计划承接。行为是**响亮失败**而非静默返回
+> 错树。详见模块文档的「已知偏差」。
+
 ### NopIoC bean：语法提供者
 
 `app-treesitter.beans.xml`（随模块自动加载）注册了：
@@ -139,4 +145,16 @@ analysis.summarize("if then rm -rf /data").proofStatus();   // NOT_PROVEN
 ```
 
 能力 1 与能力 2 的返回类型**无公共父类型**、不可互换：只有前者可用于断定脚本安全。
+
+**三条必须知道的限制**（否则「已证明」会被误读为「安全」）：
+
+1. **「已证明字面量」≠「安全」。** `bash -c '<script>'` / `eval '<script>'` /
+   `ssh host '<script>'` / `printf '<script>' | bash` / `trap '<script>' EXIT` 全部
+   返回 **PROVEN** 且**无动态构造**——语法上确实没有动态值，但它们执行任意嵌套文本。
+   本层回答的是「这里有没有运行时才算得出的值」，**不是**「这安全吗」；后者的判定属于
+   agent guardrail，需要额外一层命令形状规则。
+2. **返回的 argv 是源码文本，不是执行时的值。** `rm -rf "/data"` 的参数带引号；
+   `cat a'b'c` 报 `a'b'c` 而 bash 传 `abc`。精确匹配的消费方需自己先剥引号。
+3. **bash 关键字前缀可能被报成命令名。** `time rm -rf /` 报出 `time`。
+
 契约全文见 `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md`。

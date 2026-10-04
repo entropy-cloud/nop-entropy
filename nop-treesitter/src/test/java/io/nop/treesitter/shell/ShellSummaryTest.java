@@ -93,8 +93,14 @@ class ShellSummaryTest {
 
     @Test
     void anEmptyScriptIsNotSummarizedAsProven() {
-        ShellSummary summary = analysis.summarize("");
-        assertNotEquals(ShellSummary.ProofStatus.PROVEN, summary.proofStatus());
+        // A whitespace-only script is as empty as an empty one; covering only ""
+        // would let a "proven, zero commands" summary through for " ".
+        for (String script : new String[]{"", " ", "\n", "   \n\t "}) {
+            ShellSummary summary = analysis.summarize(script);
+            assertNotEquals(ShellSummary.ProofStatus.PROVEN, summary.proofStatus(),
+                    "<<" + script.replace("\n", "\\n").replace("\t", "\\t") + ">>");
+            assertEquals("NO_COMMAND", summary.unprovenReason());
+        }
     }
 
     @Test

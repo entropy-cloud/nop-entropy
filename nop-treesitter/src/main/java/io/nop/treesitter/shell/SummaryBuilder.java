@@ -45,14 +45,14 @@ final class SummaryBuilder {
             }
             return new ShellSummary(ShellSummary.ProofStatus.PROVEN, "", names, connectors,
                     !kinds.isEmpty(), new ArrayList<>(kinds),
-                    analysis.extractPaths(script), "");
+                    analysis.extractPaths(script));
         }
 
         UnprovenScript unproven = (UnprovenScript) proven;
         LiteralHarvest harvest = analysis.harvestLiterals(script);
         return new ShellSummary(ShellSummary.ProofStatus.NOT_PROVEN, unproven.reason().name(),
                 harvest.commandNames(), List.of(), !kinds.isEmpty(), new ArrayList<>(kinds),
-                analysis.extractPaths(script), "");
+                analysis.extractPaths(script));
     }
 
 

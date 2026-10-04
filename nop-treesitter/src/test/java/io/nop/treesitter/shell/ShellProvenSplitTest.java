@@ -251,8 +251,56 @@ class ShellProvenSplitTest {
 
     @Test
     void anEmptyScriptIsNotAProofOfNothing() {
-        UnprovenScript refusal = ShellTestSupport.unproven(analysis, "");
-        assertEquals(UnprovenScript.Reason.UNSUPPORTED_LANGUAGE, refusal.reason());
+        assertEquals(UnprovenScript.Reason.NO_COMMAND,
+                ShellTestSupport.unproven(analysis, "").reason());
+    }
+
+    /**
+     * A whitespace-only script has no commands either. Refusing is the point: a
+     * <em>proven</em> sequence of zero commands is indistinguishable, to a
+     * consumer, from "nothing was found" — the exact misreading the refusal type
+     * exists to prevent.
+     */
+    @Test
+    void aWhitespaceOnlyScriptIsNotAProofOfNothing() {
+        for (String script : new String[]{" ", "\n", "   \n\t ", "\r\n"}) {
+            UnprovenScript refusal = ShellTestSupport.unproven(analysis, script);
+            assertEquals(UnprovenScript.Reason.NO_COMMAND, refusal.reason(),
+                    "<<" + script.replace("\n", "\\n").replace("\t", "\\t") + ">>");
+        }
+    }
+
+    @Test
+    void aProvenSequenceIsNeverEmpty() {
+        for (String script : new String[]{"", " ", "\n\n", "  \t \n"}) {
+            assertFalse(analysis.splitProven(script).isProven(),
+                    "<<" + script.replace("\n", "\\n").replace("\t", "\\t") + ">>");
+        }
+    }
+
+    /**
+     * Non-ASCII scripts. tree-sitter's coordinates are byte offsets; slicing a
+     * decoded string with them overshoots, so before the {@code ShellSource} fix
+     * {@code echo é; rm -rf /data} reported the destructive command as a command
+     * named {@code m} with an empty target — <b>while still claiming to be
+     * proven</b>. The upstream corpus is pure ASCII, so nothing else caught it.
+     */
+    @Test
+    void nonAsciiScriptsAreSlicedByByteOffset() {
+        ProvenCommandSequence sequence = ShellTestSupport.proven(analysis, "echo é; rm -rf /data\n");
+        assertEquals(List.of("echo", "rm"), sequence.commandNames(),
+                "the destructive command must keep its name");
+        assertEquals(List.of("-rf", "/data"),
+                sequence.commands().get(1).arguments(),
+                "and its arguments must not be shifted by the multi-byte character before it");
+    }
+
+    @Test
+    void nonAsciiArgumentsSurviveIntact() {
+        assertEquals(List.of("-rf", "/tmp/café"),
+                ShellTestSupport.proven(analysis, "rm -rf /tmp/café\n").commands().get(0).arguments());
+        assertEquals(List.of("中文"),
+                ShellTestSupport.proven(analysis, "echo 中文\n").commands().get(0).arguments());
     }
 
     @Test

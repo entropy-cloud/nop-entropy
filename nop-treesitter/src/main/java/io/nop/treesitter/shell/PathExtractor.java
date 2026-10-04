@@ -1,11 +1,11 @@
 package io.nop.treesitter.shell;
 
-import io.nop.treesitter.TSNode;
-import io.nop.treesitter.TSTree;
 import io.nop.treesitter.language.Language;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Capability 5: candidate literal file paths.
@@ -16,10 +16,9 @@ import java.util.List;
  * redirect destinations as a separate write class; and no filesystem check.</p>
  *
  * <p>The confidence annotation is the part that matters most. A path taken from a
- * {@link ShellAnalysis.ProvenSplitter} proof and a path taken from a
- * {@link LiteralHarvest} partial are different claims, and a consumer that cannot
- * tell them apart will treat "this script mentions /data somewhere" as "this
- * script provably touches /data".</p>
+ * proven script and a path taken from a harvest are different claims, and a
+ * consumer that cannot tell them apart will read "this script mentions /data
+ * somewhere" as "this script provably touches /data".</p>
  *
  * <p>No filesystem check is performed. This capability extracts literals; whether
  * a path exists is a different question, with a different cost and a different
@@ -42,12 +41,19 @@ final class PathExtractor {
         ProvenSplit proven = analysis.splitProven(script);
         if (proven instanceof ProvenCommandSequence sequence) {
             for (ProvenCommandSequence.Command command : sequence.commands()) {
-                addFromProof(command.name(), command.arguments(), paths);
+                collectFrom(command.name(), command.arguments(),
+                        ShellPath.Confidence.PROVEN, paths);
             }
         } else {
-            LiteralHarvest harvest = analysis.harvestLiterals(script);
-            for (LiteralHarvest.Command command : harvest.commands()) {
-                addFromHarvest(command.name(), command.arguments(), paths);
+            for (LiteralHarvest.Command command : analysis.harvestLiterals(script).commands()) {
+                collectFrom(command.name(), command.arguments(),
+                        // A partial argv is a subset, so a path taken from one is a
+                        // weaker claim than one taken from a complete argv. Both are
+                        // unproven, but they are not equally unproven.
+                        command.partial()
+                                ? ShellPath.Confidence.HARVESTED_PARTIAL
+                                : ShellPath.Confidence.HARVESTED,
+                        paths);
             }
         }
 
@@ -55,95 +61,156 @@ final class PathExtractor {
         return List.copyOf(paths);
     }
 
-    private void addFromProof(String name, List<String> arguments, List<ShellPath> paths) {
+    /**
+     * Selects the path arguments of one command.
+     *
+     * <p>Positions are counted over <b>non-flag</b> arguments, not over argv slots.
+     * Counting slots would put {@code /etc/passwd} at position 2 in
+     * {@code cat -n /etc/passwd} and therefore drop it entirely — losing the path
+     * exactly when a flag is present, which is the common case. It would also
+     * promote the <em>first</em> non-path argument to a path in commands that take
+     * an option value ({@code chmod 777 /etc/shadow} reporting {@code 777}).</p>
+     */
+    private void collectFrom(String name, List<String> arguments,
+                             ShellPath.Confidence confidence, List<ShellPath> paths) {
         int[] positions = ShellAnalysis.PATH_ARGUMENT_POSITIONS.get(name);
         boolean allArguments = ShellAnalysis.ALL_ARGUMENTS_ARE_PATHS.contains(name);
-        for (int i = 0; i < arguments.size(); i++) {
-            String argument = arguments.get(i);
-            if ("--".equals(argument)) {
-                for (int j = i + 1; j < arguments.size(); j++) {
-                    addIfPath(arguments.get(j), ShellPath.Access.READ, ShellPath.Confidence.PROVEN, paths);
-                }
-                return;
-            }
-            if (isFlag(argument)) {
-                continue;
-            }
-            boolean selected = allArguments || (positions != null && contains(positions, i + 1));
-            if (selected) {
-                addIfPath(argument, ShellPath.Access.READ, ShellPath.Confidence.PROVEN, paths);
-            }
-        }
-    }
 
-    private void addFromHarvest(String name, List<String> arguments, List<ShellPath> paths) {
-        int[] positions = ShellAnalysis.PATH_ARGUMENT_POSITIONS.get(name);
-        boolean allArguments = ShellAnalysis.ALL_ARGUMENTS_ARE_PATHS.contains(name);
+        // Build the list of true positional arguments: flags are dropped, and so is
+        // a token shaped like a flag's value. Dropping both is what keeps the
+        // positions aligned — keeping the value would leave a hole and push the
+        // real path one slot too far (`head -n 5 /var/log/syslog`).
+        List<String> positional = new ArrayList<>();
+        boolean afterDoubleDash = false;
         for (int i = 0; i < arguments.size(); i++) {
             String argument = arguments.get(i);
-            if ("--".equals(argument)) {
-                for (int j = i + 1; j < arguments.size(); j++) {
-                    addIfPath(arguments.get(j), ShellPath.Access.READ,
-                            ShellPath.Confidence.HARVESTED, paths);
-                }
-                return;
-            }
-            if (isFlag(argument)) {
+            if (!afterDoubleDash && "--".equals(argument)) {
+                afterDoubleDash = true;
                 continue;
             }
-            boolean selected = allArguments || (positions != null && contains(positions, i + 1));
+            if (afterDoubleDash) {
+                positional.add(argument);
+                continue;
+            }
+            if (isFlag(argument)) {
+                if (i + 1 < arguments.size() && looksLikeAFlagValue(arguments.get(i + 1))) {
+                    i++;
+                }
+                continue;
+            }
+            if (looksLikeAFlagValue(argument)) {
+                // A bare count or format specifier is never a path.
+                continue;
+            }
+            positional.add(argument);
+        }
+
+        for (int i = 0; i < positional.size(); i++) {
+            boolean selected = afterDoubleDash || allArguments
+                    || (positions != null && contains(positions, i + 1));
             if (selected) {
-                addIfPath(argument, ShellPath.Access.READ, ShellPath.Confidence.HARVESTED, paths);
+                addIfPath(positional.get(i), ShellPath.Access.READ, confidence, paths);
             }
         }
     }
 
     /**
      * Redirect destinations are always <b>write</b> paths, kept in their own class
-     * so a consumer can tell "this script writes here" from "this script reads
-     * here" without re-deriving it from the source.
+     * so a consumer can tell "this script writes here" from "this script reads here"
+     * without re-deriving it from the source.
      */
     private void addRedirectDestinations(String script, List<ShellPath> paths) {
-        TSTree tree = analysis.parse(script);
+        io.nop.treesitter.TSTree tree = analysis.parse(script);
         if (tree == null) {
             return;
         }
-        String source = ShellAnalysis.sourceText(tree);
+        boolean proven = !tree.rootNode().hasError();
+        ShellSource source = ShellAnalysis.sourceOf(tree);
         ShellAnalysis.walk(tree.rootNode(), node -> {
             if (!node.named() || !"file_redirect".equals(node.type())) {
                 return true;
             }
-            TSNode destination = node.childByFieldName("destination");
+            io.nop.treesitter.TSNode destination = node.childByFieldName("destination");
             if (destination == null) {
                 return true;
             }
-            String text = ShellLexical.text(destination, source);
-            addIfPath(text, ShellPath.Access.WRITE,
-                    tree.rootNode().hasError() ? ShellPath.Confidence.HARVESTED
-                            : ShellPath.Confidence.PROVEN, paths);
+            addIfPath(source.textOf(destination), ShellPath.Access.WRITE,
+                    proven ? ShellPath.Confidence.PROVEN : ShellPath.Confidence.HARVESTED, paths);
             return true;
         });
     }
 
     /**
-     * Whether a token is usable as a path literal.
+     * Whether a token names a path literally.
      *
-     * <p>Excluded: flags, tokens containing glob metacharacters, tokens starting
-     * with {@code ~} (a tilde is an expansion, not a name), and tokens containing
-     * any residual expansion character.</p>
+     * <p>A token may be wholly quoted ({@code "/etc/passwd"}), in which case the
+     * quotes are stripped and the inner text judged — dropping quoted paths would
+     * lose exactly the paths a careful script author writes. What is rejected: an
+     * empty result, a leading {@code ~} (a tilde is an expansion, not a name), and
+     * any glob or expansion character that survives unquoting.</p>
+     *
+     * <p>Flag exclusion is <b>not</b> applied here: it is a separate dimension,
+     * decided where arguments are selected, because everything after a
+     * {@code --} separator is a path even when it begins with a dash.</p>
      */
-    private static void addIfPath(String token, ShellPath.Access access,
-                                  ShellPath.Confidence confidence, List<ShellPath> paths) {
-        if (!isPathLiteral(token)) {
+    static void addIfPath(String token, ShellPath.Access access,
+                          ShellPath.Confidence confidence, List<ShellPath> paths) {
+        String path = unquote(token);
+        if (!isPathLiteral(path)) {
             return;
         }
         for (ShellPath existing : paths) {
-            if (existing.path().equals(token) && existing.access() == access
+            if (existing.path().equals(path) && existing.access() == access
                     && existing.confidence() == confidence) {
                 return;
             }
         }
-        paths.add(new ShellPath(token, access, confidence));
+        paths.add(new ShellPath(path, access, confidence));
+    }
+
+    /**
+     * Whether a token is shaped like an option's value rather than a filename: all
+     * digits (a count or a mode), or a {@code %} format specifier.
+     *
+     * <p>Telling a flag's value from a genuine positional argument needs per-command
+     * knowledge of which flags take values, which no bounded table can supply. The
+     * shapes below cover the realistic cases ({@code head -n 5}, {@code stat -c %s},
+     * {@code chmod 777}) at the cost of also dropping a genuinely numeric filename,
+     * which is the right trade: a missed path is recoverable, a path that is not a
+     * path is not.</p>
+     */
+    static boolean looksLikeAFlagValue(String token) {
+        if (token.isEmpty()) {
+            return false;
+        }
+        if (token.charAt(0) == '%') {
+            return true;
+        }
+        boolean allDigits = true;
+        for (int i = 0; i < token.length(); i++) {
+            if (!Character.isDigit(token.charAt(i))) {
+                allDigits = false;
+                break;
+            }
+        }
+        return allDigits;
+    }
+
+    /**
+     * Strips one wholly-quoting pair. Anything else is returned unchanged, so a
+     * fragment such as {@code pre"$X"} keeps its quotes and is then rejected by the
+     * expansion-character rule rather than being silently trimmed into a path.
+     */
+    static String unquote(String token) {
+        if (token == null || token.length() < 2) {
+            return token;
+        }
+        char first = token.charAt(0);
+        char last = token.charAt(token.length() - 1);
+        if ((first == '"' || first == '\'') && first == last) {
+            return token.substring(1, token.length() - 1);
+        }
+        return token;
     }
 
     static boolean isPathLiteral(String token) {

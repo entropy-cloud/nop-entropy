@@ -119,7 +119,7 @@ final class ShellLexical {
      * this rule the command would report no dynamic construction at all and look
      * fully literal.</p>
      */
-    static boolean isLiteralConcatenation(TSNode node, String source) {
+    static boolean isLiteralConcatenation(TSNode node, ShellSource source) {
         int childCount = node.childCount();
         for (int i = 0; i < childCount; i++) {
             TSNode part = ShellAnalysis.childOrFail(node, i);
@@ -147,7 +147,7 @@ final class ShellLexical {
      * {@code $TARGET} as a plain argument, because {@code simple_expansion} fell
      * through to "structural" and came back true.</p>
      */
-    static boolean isLiteralNode(TSNode node, String source) {
+    static boolean isLiteralNode(TSNode node, ShellSource source) {
         String type = node.type();
         switch (type) {
             case "word":
@@ -171,13 +171,8 @@ final class ShellLexical {
         }
     }
 
-    /** The node's own source text. */
-    static String text(TSNode node, String source) {
-        int start = node.startByte();
-        int end = node.endByte();
-        if (start < 0 || end > source.length() || start >= end) {
-            return "";
-        }
-        return source.substring(start, end);
+    /** The node's own source text, sliced by byte offset. */
+    static String text(TSNode node, ShellSource source) {
+        return source.textOf(node);
     }
 }

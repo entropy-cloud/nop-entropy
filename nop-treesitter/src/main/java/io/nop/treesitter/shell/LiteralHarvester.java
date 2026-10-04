@@ -42,13 +42,13 @@ final class LiteralHarvester {
             // returning a partial list here would look like "these are the commands".
             return new LiteralHarvest(List.of());
         }
-        String source = ShellAnalysis.sourceText(tree);
+        ShellSource source = ShellAnalysis.sourceOf(tree);
         List<LiteralHarvest.Command> commands = new ArrayList<>();
         collect(root, source, commands);
         return new LiteralHarvest(commands);
     }
 
-    private void collect(TSNode node, String source, List<LiteralHarvest.Command> commands) {
+    private void collect(TSNode node, ShellSource source, List<LiteralHarvest.Command> commands) {
         if ("command".equals(node.type())) {
             commands.add(readCommand(node, source));
         }
@@ -59,7 +59,7 @@ final class LiteralHarvester {
     }
 
     /** Whether every {@code value:} of the assignment is a literal. */
-    private static boolean isLiteralAssignment(TSNode assignment, String source) {
+    private static boolean isLiteralAssignment(TSNode assignment, ShellSource source) {
         TSNode value = assignment.childByFieldName("value");
         if (value == null) {
             // `A=` with no value at all is fully known.
@@ -68,7 +68,7 @@ final class LiteralHarvester {
         return ShellLexical.isLiteralNode(value, source);
     }
 
-    private LiteralHarvest.Command readCommand(TSNode node, String source) {
+    private LiteralHarvest.Command readCommand(TSNode node, ShellSource source) {
         String name = "";
         List<String> arguments = new ArrayList<>();
         boolean partial = false;

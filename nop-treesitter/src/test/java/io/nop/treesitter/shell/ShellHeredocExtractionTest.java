@@ -36,6 +36,16 @@ class ShellHeredocExtractionTest {
         assertEquals("apply_patch", found.commandName());
     }
 
+    /** A multi-byte body must be sliced by byte offset, not run past its end. */
+    @Test
+    void aNonAsciiBodyIsSlicedByByteOffset() {
+        HeredocScript.Lookup lookup =
+                analysis.extractHeredoc("cat <<EOF\ncafé\nEOF\n", Set.of());
+        assertTrue(lookup.isFound(), String.valueOf(lookup.reason()));
+        assertEquals("café\n", lookup.found().body(),
+                "the body must not overrun into the delimiter");
+    }
+
     @Test
     void unquotedDelimiterIsNotLiteral() {
         HeredocScript.Found found = analysis
@@ -103,6 +113,20 @@ class ShellHeredocExtractionTest {
     void refusesCommandsAfterTheHeredoc() {
         assertFalse(analysis.extractHeredoc(
                 "apply_patch <<'PATCH'\nbody\nPATCH\necho done\n", Set.of()).isFound());
+    }
+
+    /**
+     * A heredoc command that takes arguments has the same tree shape as one that
+     * does not — {@code apply_patch foo <<'PATCH'} and {@code apply_patch
+     * <<'PATCH'} differ only by a word. The reference implementation's anchor
+     * excludes the first, and so must this: the plan's own negative set names it.
+     */
+    @Test
+    void refusesAHeredocCommandThatTakesArguments() {
+        assertFalse(analysis.extractHeredoc(
+                "apply_patch foo <<'PATCH'\nbody\nPATCH\n", Set.of()).isFound());
+        assertFalse(analysis.extractHeredoc(
+                "cd /tmp && apply_patch foo <<'PATCH'\nbody\nPATCH\n", APPLY_PATCH).isFound());
     }
 
     @Test

@@ -50,7 +50,7 @@ final class HeredocExtractor {
         if (root.hasError()) {
             return HeredocScript.Absent.because("the tree contains an ERROR or MISSING node");
         }
-        String source = ShellAnalysis.sourceText(tree);
+        ShellSource source = ShellAnalysis.sourceOf(tree);
         if (root.namedChildCount() != 1) {
             return HeredocScript.Absent.because(
                     "the script has " + root.namedChildCount() + " top-level statements, not 1");
@@ -90,6 +90,13 @@ final class HeredocExtractor {
             if (commandName.isEmpty()) {
                 return HeredocScript.Absent.because("the heredoc command has no literal name");
             }
+            if (!ShellAnalysis.namedChildrenOfType(bodyNode, "word").isEmpty()) {
+                // `apply_patch foo <<'PATCH'` has the same tree shape as
+                // `apply_patch <<'PATCH'`; the reference implementation's anchor
+                // excludes it by requiring a bare command, and so does this.
+                return HeredocScript.Absent.because(
+                        "the heredoc command takes arguments, so the heredoc is not the whole command line");
+            }
         } else if ("list".equals(bodyNode.type())) {
             List<TSNode> commands = ShellAnalysis.namedChildrenOfType(bodyNode, "command");
             if (commands.size() != 2) {
@@ -100,14 +107,21 @@ final class HeredocExtractor {
                 return HeredocScript.Absent.because("the cd-prefix form requires && as its only separator");
             }
             TSNode first = commands.get(0);
-            if (!"cd".equals(commandNameOf(first, source)) || ShellAnalysis.namedChildrenOfType(first, "word").size() != 1) {
+            if (!"cd".equals(commandNameOf(first, source))
+                    || ShellAnalysis.namedChildrenOfType(first, "word").size() != 1) {
                 return HeredocScript.Absent.because("the first command must be `cd <one argument>`");
             }
-            String second = commandNameOf(commands.get(1), source);
+            TSNode secondCommand = commands.get(1);
+            String second = commandNameOf(secondCommand, source);
             if (allowedCommandNames == null || allowedCommandNames.isEmpty()
                     || !allowedCommandNames.contains(second)) {
                 return HeredocScript.Absent.because(
                         "`" + second + "` is not in the caller's allowed command set");
+            }
+            if (!ShellAnalysis.namedChildrenOfType(secondCommand, "word").isEmpty()) {
+                // same bare-command anchor as the direct form
+                return HeredocScript.Absent.because(
+                        "the heredoc command takes arguments, so the heredoc is not the whole command line");
             }
             commandName = second;
         } else {
@@ -123,7 +137,7 @@ final class HeredocExtractor {
     }
 
     /** The literal text of a command's {@code name:} field, or the empty string. */
-    private static String commandNameOf(TSNode command, String source) {
+    private static String commandNameOf(TSNode command, ShellSource source) {
         TSNode name = command.childByFieldName("name");
         return name == null ? "" : ShellLexical.text(name, source);
     }

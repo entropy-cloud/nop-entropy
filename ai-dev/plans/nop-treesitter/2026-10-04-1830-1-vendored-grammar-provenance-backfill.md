@@ -13,7 +13,7 @@ two gaps that currently make a record impossible to write honestly: the missing
 
 ## Current Baseline
 
-`tree-sitter-bash/PROVENANCE.md` now records tag + commit SHA + license +
+`nop-treesitter/src/test/resources/upstream/grammars/tree-sitter-bash/PROVENANCE.md` now records tag + commit SHA + license +
 generator version + "never modified" + a SHA-256 per vendored file. The other
 seven directories do not, and two of them *cannot* until this plan lands.
 
@@ -40,7 +40,7 @@ Two consequences:
   is not in the repository. Their fidelity is currently unverifiable from the
   vendored sources alone — which is a real reviewability gap, not just a
   bookkeeping one.
-- `tree-sitter-typescript/PROVENANCE.md`'s "commit-less snapshot, no local
+- `nop-treesitter/src/test/resources/upstream/grammars/tree-sitter-typescript/PROVENANCE.md`'s "commit-less snapshot, no local
   edits" wording conflicts with the normalized format, and the `dsl` scanner
   pipeline (`ScannerCompiler` / `ScannerVM`) has no recorded upstream source
   reference at all.
@@ -110,13 +110,13 @@ Exit Criteria:
 ### Phase 2 - Normalize the provenance records
 
 Status: planned
-Targets: the seven `PROVENANCE.md` files, `upstream/grammars/PROVENANCE.md`
+Targets: the seven `PROVENANCE.md` files, `nop-treesitter/src/test/resources/upstream/grammars/PROVENANCE.md`
 
 - Item Types: `Fix`
 
 - [ ] Write each directory's `PROVENANCE.md` in the `tree-sitter-bash` format,
       with every field verified (no inherited guesses)
-- [ ] Reduce `upstream/grammars/PROVENANCE.md` to policy + a pointer table, since
+- [ ] Reduce `nop-treesitter/src/test/resources/upstream/grammars/PROVENANCE.md` to policy + a pointer table, since
       the per-directory files now carry the facts
 - [ ] `nop-treesitter/README.md` links the provenance policy
 
