@@ -275,7 +275,13 @@
              GROUPING ( <column_expression> )，返回 tinyint（多列区分用 GROUPING_ID，
              roadmap Non-Goal 不注册）。 -->
         <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
-    </functions>
+    
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] MS Learn AT TIME ZONE (Transact-SQL)，2016+ 引入。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+        </template>
+</functions>
 
     <sqlDataTypes>
         <sqlDataType name="CHAR" precision="8000" stdSqlType="CHAR"/>

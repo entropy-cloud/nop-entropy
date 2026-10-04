@@ -253,6 +253,13 @@
             <source>date_trunc(DAY,{0})</source>
         </template>
 
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] H2 grammar「Time zone」= AT { TIME ZONE { intervalHourToMinute | intervalHourToSecond | string } | LOCAL }。
+             真库执行 = TestDialect.testFunctions（testSql 落地升 [实测]）。h2gis 继承。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+            <testSql>TIMESTAMP '2026-02-10 12:34:56' AT TIME ZONE 'UTC'</testSql>
+        </template>
         <!-- WI3 第 9 项：注册 ilike 函数（supportILike="true" 标志本就正确，缺的是函数表注册）。
              H2 文法原生 [NOT] ILIKE 算子（"ILIKE does a case-insensitive compare"），
              模板直出原生算子。先例：oracle.dialect.xml 的 regexp_like 形态。 -->

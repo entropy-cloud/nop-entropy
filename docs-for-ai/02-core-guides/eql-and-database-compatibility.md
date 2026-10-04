@@ -428,6 +428,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | `for update nowait` / `for update skip locked` 锁后缀（WI12 交付①②） | `AstToSqlGenerator.printForUpdate`（消费 `SqlQuerySelect.nowait`/`skipLocked`；文法 `sqlQuerySelect` 分离标签 `nowait=NOWAIT \| skipLocked=skipLocked_`；回显路径硬编码不动） | `<sqls>` 的 `<forUpdateNowait>`/`<forUpdateSkipLocked>` 配置（presence = 能力 + 文本二合一；h2(+h2gis)/oracle(+oracle-reverse)/postgresql(+postgis)/mysql(+mariadb) 已配置 [实测-jar]/[文档]，mysql5.7/duckdb 继承链显式空覆盖关断，mssql/db2/dm/tdengine 未配置即响亮） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdateNowait`/`forUpdateSkipLocked`）；矛盾输入（nowait && skipLocked、或任一与 forUpdate=false 组合）= `IllegalArgumentException` | `TestEqlForUpdateLockVariants`、`TestH2ForUpdateLockVariants`（含 mssql/duckdb/mysql5.7 负向 + H2 真库执行）、`TestEqlNowaitWiring`、`TestEqlNowaitH2Dialect` |
 | `FROM (VALUES …)` 表源（WI12 交付⑤） | `AstToSqlGenerator.visitSqlValuesTableSource`（transform 期建列元数据 + 生成期能力门） | `supportValuesTableSource`（h2(+h2gis)/postgresql(+postgis+duckdb)/mssql 配置 true [文档]；mysql 族/oracle 族/db2/dm/tdengine 不配置） | `nop.err.eql.dialect-not-support-feature`（`feature=valuesTableSource`）；ragged rows = `nop.err.eql.values-row-arity-mismatch`（解析期） | `TestEqlValuesTableSource`（含 mysql 负向 + H2 真库执行 + ragged/alias 负向） |
+| `atTimeZone(expr, tz)` 函数（WI12 交付⑥） | transform 函数表查注册（无注册 = unknown-function）；渲染 = 逐方言 `<template>` | `<template name="atTimeZone">`（h2(+h2gis)/postgresql(+postgis+duckdb)/oracle(+oracle-reverse)/mssql 已注册；mysql 族不注册=UTC-only CAST 不无损；db2 不可加载 stub 不注册=死配置） | `nop.err.eql.unknown-function`（`funcName=atTimeZone`） | `TestEqlAtTimeZone`（mysql/mariadb/mysql5.7 负向 + 三态断言）、`TestDialect.testFunctions`（H2 真库执行） |
 | LATERAL 子查询表源 | `AstToSqlGenerator.visitSqlSubqueryTableSource` | `supportLateral` | `nop.err.eql.dialect-not-support-feature` | `TestEqlLateralSubqueryTableSource.testUnsupportedDialectThrowsAtCompileTime` |
 | FULL JOIN 表源 | `EqlTransformVisitor.checkJoinTypeFeature`（join 表源转换遍历点） | `supportFullJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportFullJoin`） | `TestEqlFullJoinDialectGate`、`TestDialectFullJoinFlag` |
 | RIGHT JOIN 表源（WI10b） | `EqlTransformVisitor.checkJoinTypeFeature`（同方法 RIGHT_JOIN 分支） | `supportRightJoin` | `nop.err.eql.dialect-not-support-feature`（`feature=supportRightJoin`） | `TestEqlRightJoinDialectGate` |
@@ -720,6 +721,22 @@ EQL 语义钉死 = **标准 SQL 严格三值**（裁定正文 = WI8 Phase 0 裁�
 ⚠️ **三节点展开 vs `<=>` 的固有差异（约束 4「不等价」登记，`TestEqlNullSafePredTransformerWiring.testMysqlFormDivergenceVsOraclePinnedForm` + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2`）**：`<=>` 恒二值（`NULL <=> NULL` = TRUE），标准谓词嵌套外层 NOT 时按三值逻辑；EQL 按方言钉死各自正确形态（mysql 直出 `not (a<=>b)`；oracle 展开式禁用 naive NOT 包装——`NOT((a=b) OR (a IS NULL AND b IS NULL))` 在单操作数 NULL 行产生 UNKNOWN 丢行（H2 执行实测 0 行 vs 钉死式 1 行），属禁止形态①）。
 
 **Oracle 展开 transformer（WI4 管线第一个真实生产消费者）**：`io.nop.orm.eql.compile.OracleEqlAstTransformer`（`transformAfterAnalyze` 槽位；方言经已解析表源 → querySpace → `context.getDialectForQuerySpace` 推导，与渲染侧同源；EQL 管线单 querySpace 强制之外的多 querySpace 防御性响亮）。经 `orm-defaults.beans.xml` 默认注入 `SessionFactoryConfig.eqlAstTransformer`（缓存正向参与=`TestEqlNullSafePredTransformerWiring.testOracleExpansionBothDirectionsViaDefaultFactoryConfig` 同键同实例 + transformer 不重复调用；非默认绕过方向=既有 `TestEqlAstTransformerWiring` 不回退）。展开复制操作数（guard 支独立实例）⇒ 操作数含参数标记 `?` 时响亮报错 `nop.err.eql.null-predicate-operand-has-param-marker`（与 IS TRUE/FALSE 构建期展开同一错误码）。`IS [NOT] TRUE/FALSE/UNKNOWN` 不经 transformer（构建期展开已全方言覆盖）。
+
+### `AT TIME ZONE` 后缀语法：`atTimeZone(expr, tz)` 归一化（2026-10-04 WI12 交付⑥）
+
+文法：`sqlExpr_bit` 后缀备选 `expr AT TIME ZONE tz`（项级紧绑定，H2 Term 文法同位；`AT`/`TIME`/`ZONE` 三 token 词法层既有，零新 token、零新 AST 节点）。构建期归一化进既有 `SqlRegularFunction(name="atTimeZone", args=[expr, tz])`（WI5 同款，手写 visit 完全重写）——回显即函数形态 `atTimeZone(…)`；lowering = 逐方言 `<template name="atTimeZone"><source>{0} AT TIME ZONE {1}</source></template>`（`{0}`/`{1}` marker 顺序经 `TemplateSQLFunction` 加载期校验兜底）。
+
+| 方言 | `AT TIME ZONE` | 证据 |
+|---|---|---|
+| h2 / h2gis | `AT { TIME ZONE { interval \| string } \| LOCAL }`（EQL 取 string 形态） | `[文档]`（grammar.html）+ `[实测]`（`TestDialect.testFunctions` testSql 真执行） |
+| postgresql / postgis / duckdb（继承） | `timestamp AT TIME ZONE zone → timestamptz` | `[文档]` |
+| oracle / oracle-reverse | `timestamp AT TIME ZONE 'zone'`（session tz 缺省语义） | `[文档]`（19c SQLRF） |
+| mssql | `AT TIME ZONE`（2016+） | `[文档]`（MS Learn） |
+| mysql / mysql5.7 / mariadb | **不注册**——仅 UTC-only `CAST(ts AT TIME ZONE 'UTC' AS DATETIME)`（8.0.22+），不无损；编译期 `unknown-function(atTimeZone)` 响亮 | `[文档]` |
+| db2 | 不注册（方言文件为不可加载 stub，注册即死配置——裁定 §5 执行期细化） | `[未取证]` 红线 |
+| dm / tdengine / sqlite | 不配置（`[未取证]` 红线 / 无方言） | — |
+
+**约束 4「不等价」登记**：① MySQL 语义缺口（UTC-only CAST 形态、无通用双参形态）；② `AT LOCAL` 变体（H2/Oracle 23ai）不在范围；③ EQL tz 实参取 `sqlExpr_simple`（string 字面量/参数 marker），不支持 H2 的 interval 时区形态（`intervalHourToMinute`）。
 
 ### `FROM (VALUES …)` 表源与 `supportValuesTableSource` 能力门（2026-10-04 WI12 交付⑤）
 

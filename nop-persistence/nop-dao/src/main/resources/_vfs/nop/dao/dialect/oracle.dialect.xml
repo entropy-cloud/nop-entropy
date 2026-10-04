@@ -183,6 +183,13 @@
         <native name="now" realName="current_timestamp">
         </native>
 
+        
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] Oracle 19c SQLRF AT TIME ZONE（timestamp AT TIME ZONE 'zone' 合法，
+             session timezone 缺省语义）。oracle-reverse 继承。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+        </template>
         <template name="rand" x:override="replace">
             <source>DBMS_RANDOM.VALUE</source>
         </template>

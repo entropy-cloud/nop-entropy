@@ -176,6 +176,13 @@
         <native name="current_date" hasParenthesis="false" x:override="merge"/>
         <native name="current_timestamp" hasParenthesis="false" x:override="merge"/>
 
+        
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] PG timestamp AT TIME ZONE zone → timestamptz（current docs Table 9.33 用例原生形态）。
+             postgis 继承；duckdb（extends postgresql）继承 [文档]。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+        </template>
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
         </template>

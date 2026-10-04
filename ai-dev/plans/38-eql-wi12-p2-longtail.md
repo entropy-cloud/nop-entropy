@@ -238,26 +238,26 @@ Exit Criteria:
 
 ### Phase 5 - `AT TIME ZONE`（交付 ⑥，WI5 先例形态）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（归一化备选）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、`*.dialect.xml`（`<template>` 注册）、重生成产物、`nop-orm-eql`/`nop-dao` 测试
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **修复前红**：`ts at time zone 'UTC'` 解析失败——回归断言可解析与 lowering 正确，修复前红。
-- [ ] 文法组（单独提交）：altLabel 备选（label 以 `SqlRegularFunction` 为前缀，plan 24 三约束逐条落实）+ 手写 visit 归一化 `SqlRegularFunction(name="atTimeZone", args=[expr, tz])`（完全重写不调 super）；**零新 token、零 `EqlAST.xjava` 改动**（`ast/_gen/` 零 diff）。
-- [ ] 逻辑组（单独提交）：如归一化已完全由构建期承载则本组可能为空——若裁定需要元数校验/类型检查则按裁定落；**`{0}`/`{1}` marker 与实参顺序**经 `TemplateSQLFunction` 加载期校验兜底（WI0 交付 2）。
-- [ ] 正向用例（EC ①）：h2 `{0} AT TIME ZONE {1}` 渲染文本断言 + pg/oracle（Phase 0 矩阵内）至少一族；**三态断言**：输入文本 → 归一化回显（`atTimeZone(…)` 函数形态）→ 方言 lowering 文本。
-- [ ] 负向用例（EC ② 同款精神）：MySQL/MariaDB（不注册）编译期 `ERR_EQL_UNKNOWN_FUNCTION(atTimeZone)` 响亮断言；元数负向（TOO_FEW/TOO_MANY 既有通路）。
-- [ ] **真库证据**（WI5 EC ⑥ 同款）：`atTimeZone` 在 h2 经 `TestDialect.testFunctions` 真库执行全绿（补 `<testSql>`）；无法真库验证方言逐个列出 + 一手文档证据；`dm`/`tdengine` 标 `[未取证]`。
-- [ ] **矩阵快照真增量**：`<template>` 注册进方言函数表 → 同步 `dialect-capability-matrix.json`（重生成快照测试）+ 门禁 exit 0；owner doc「各库覆盖情况」表（MySQL UTC-only CAST 形态、SQLite 永无等差异登记 = 约束 4 的不等价类）。
-- [ ] 语料 BC 三份必测逐字一致；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；文法/逻辑提交分离；daily log 条目。
+- [x] **修复前红**：`ts at time zone 'UTC'` 解析失败——回归断言可解析与 lowering 正确，修复前红。
+- [x] 文法组（单独提交）：altLabel 备选（label 以 `SqlRegularFunction` 为前缀，plan 24 三约束逐条落实）+ 手写 visit 归一化 `SqlRegularFunction(name="atTimeZone", args=[expr, tz])`（完全重写不调 super）；**零新 token、零 `EqlAST.xjava` 改动**（`ast/_gen/` 零 diff）。
+- [x] 逻辑组（单独提交）：如归一化已完全由构建期承载则本组可能为空——若裁定需要元数校验/类型检查则按裁定落；**`{0}`/`{1}` marker 与实参顺序**经 `TemplateSQLFunction` 加载期校验兜底（WI0 交付 2）。
+- [x] 正向用例（EC ①）：h2 `{0} AT TIME ZONE {1}` 渲染文本断言 + pg/oracle（Phase 0 矩阵内）至少一族；**三态断言**：输入文本 → 归一化回显（`atTimeZone(…)` 函数形态）→ 方言 lowering 文本。
+- [x] 负向用例（EC ② 同款精神）：MySQL/MariaDB（不注册）编译期 `ERR_EQL_UNKNOWN_FUNCTION(atTimeZone)` 响亮断言；元数负向（TOO_FEW/TOO_MANY 既有通路）。
+- [x] **真库证据**（WI5 EC ⑥ 同款）：`atTimeZone` 在 h2 经 `TestDialect.testFunctions` 真库执行全绿（补 `<testSql>`）；无法真库验证方言逐个列出 + 一手文档证据；`dm`/`tdengine` 标 `[未取证]`。
+- [x] **矩阵快照真增量**：`<template>` 注册进方言函数表 → 同步 `dialect-capability-matrix.json`（重生成快照测试）+ 门禁 exit 0；owner doc「各库覆盖情况」表（MySQL UTC-only CAST 形态、SQLite 永无等差异登记 = 约束 4 的不等价类）。
+- [x] 语料 BC 三份必测逐字一致；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；文法/逻辑提交分离；daily log 条目。
 
 Exit Criteria:
 
-- [ ] 红→绿（h2 + 至少一族方言文本断言）+ 三态断言齐。
-- [ ] 负向断言具体错误码（不注册方言 unknown-function）；无静默降级。
-- [ ] h2 `TestDialect.testFunctions` 真库全绿；`[未取证]` 未计覆盖率。
-- [ ] 矩阵快照增量已同步 + 门禁 exit 0；owner doc 覆盖表含不等价差异行；`ast/_gen/` 零 diff；全量命令绿；daily log 已更新。
+- [x] 红→绿（h2 + 至少一族方言文本断言）+ 三态断言齐。
+- [x] 负向断言具体错误码（不注册方言 unknown-function）；无静默降级。
+- [x] h2 `TestDialect.testFunctions` 真库全绿；`[未取证]` 未计覆盖率。
+- [x] 矩阵快照增量已同步 + 门禁 exit 0；owner doc 覆盖表含不等价差异行；`ast/_gen/` 零 diff；全量命令绿；daily log 已更新。
 
 ### Phase 6 - 窗口命名 WINDOW 回归验证 + 全量收口（交付 ④ + roadmap EC ⑤⑥）
 
