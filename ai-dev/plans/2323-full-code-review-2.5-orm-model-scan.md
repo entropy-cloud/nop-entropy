@@ -1,6 +1,6 @@
 # 2323 full-code-review 2.5 全仓 orm.xml 模型合规扫描
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.5（MA2）；Skill=`ai-dev/skills/orm-model-audit-prompt.md`（9 维度机械扫描，severity 以 `deep-audit-prompts.md` 共享前缀 P0–P3 定义为权威判级（roadmap 通用约定），skill 的 blocker/major/minor 仅作对照参考——major 若涉 DDL/生成物契约漂移可构成 P1（如 UK 无 constraint、deploy/sql 物化漂移），个案裁定留痕）
 > Related: plan 2314（1.7 已审 orm-model 91 文件边界零泄漏——引擎侧）；本项审模型定义侧；owner doc `docs-for-ai/02-core-guides/orm-model-design.md`
@@ -59,69 +59,69 @@
 
 ### Phase 1 - 机械扫描（双 agent 分片并行）
 
-Status: planned
+Status: completed
 Targets: 21 个 orm.xml
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：21 文件清单+实体计数、全仓 grep 口径基线（unique-key/constraint、stdSqlType="INT"、dictName=、notGenCode、ext:dict）、demo 与业务模型分桶
-- [ ] 分片 A 子 agent（12 文件：auth/oauth/credential/sys/job/wf/task/tcc/retry/batch/file/metadata）：9 维度逐文件扫描，每维度给可复现口径
-- [ ] 分片 B 子 agent（9 文件：ai/ai-coder-demo/code/dyn/datav/report/rule/ddd-demo/kernel-cli-demo）：同上（metadata 调入 A 平衡实体数）
-- [ ] 交叉抽验：A/B 各抽对方 2 文件复核维度 1/4/8 计数（口径一致性验证）
-- [ ] 产物 `_tmp/fcr-2.5-{a,b}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：21 文件清单+实体计数、全仓 grep 口径基线（unique-key/constraint、stdSqlType="INT"、dictName=、notGenCode、ext:dict）、demo 与业务模型分桶
+- [x] 分片 A 子 agent（12 文件：auth/oauth/credential/sys/job/wf/task/tcc/retry/batch/file/metadata）：9 维度逐文件扫描，每维度给可复现口径
+- [x] 分片 B 子 agent（9 文件：ai/ai-coder-demo/code/dyn/datav/report/rule/ddd-demo/kernel-cli-demo）：同上（metadata 调入 A 平衡实体数）
+- [x] 交叉抽验：A/B 各抽对方 2 文件复核维度 1/4/8 计数（口径一致性验证）
+- [x] 产物 `_tmp/fcr-2.5-{a,b}.md`
 
 Exit Criteria:
 
-- [ ] 两份分片扫描报告落盘，每条发现 ≥9 行含 file:line + 修复方向
-- [ ] 9 维度每维度有全仓可复现汇总口径（grep 模式+计数）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份分片扫描报告落盘，每条发现 ≥9 行含 file:line + 修复方向
+- [x] 9 维度每维度有全仓可复现汇总口径（grep 模式+计数）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 汇总复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：两分片逐条 保留/降级/驳回 + 口径复算（维度 8 计数独立复算为必查项）
-- [ ] 主 agent 汇总：按共享前缀 P0–P3 独立判级（skill severity 仅对照；DDL/生成物契约漂移类 major 候选 P1）、demo 与业务模型分桶口径（**demo 模型发现默认 ≤P2 且单独清单不自动进 R1.0**）、与 1.7/2.1 既有发现的撞车对照
-- [ ] 裁决收敛
+- [x] 独立复核子 agent（fresh session）：两分片逐条 保留/降级/驳回 + 口径复算（维度 8 计数独立复算为必查项）
+- [x] 主 agent 汇总：按共享前缀 P0–P3 独立判级（skill severity 仅对照；DDL/生成物契约漂移类 major 候选 P1）、demo 与业务模型分桶口径（**demo 模型发现默认 ≤P2 且单独清单不自动进 R1.0**）、与 1.7/2.1 既有发现的撞车对照
+- [x] 裁决收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.5-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.5-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.5-orm-model-compliance-scan.md`；index 登记 2.5 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 验证锚点：纯 XML 只读扫描+grep 口径——**免除构建/测试验证**（无代码变更、无模型变更），以扫描口径可复现性为锚（复核 agent 独立复算计数）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.5 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.5-orm-model-compliance-scan.md`；index 登记 2.5 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 验证锚点：纯 XML 只读扫描+grep 口径——**免除构建/测试验证**（无代码变更、无模型变更），以扫描口径可复现性为锚（复核 agent 独立复算计数）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.5 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读 XML 扫描计划，免除构建/测试验证（引用 2026-09-22 绿色基线；复核 agent 独立复算计数为锚）。
 
-- [ ] 报告落盘且 21 文件 × 9 维度全覆盖（含 demo 分桶与 stream 零模型登记）
-- [ ] 每条发现 file:line 可复现；grep 口径可复现
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.5 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 21 文件 × 9 维度全覆盖（含 demo 分桶与 stream 零模型登记）
+- [x] 每条发现 file:line 可复现；grep 口径可复现
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.5 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -133,14 +133,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读扫描计划收口。报告 `2.5-orm-model-compliance-scan.md` 落盘：通过无 P0 附 P1×5（UK/唯一索引零物化族×4——job/batch/retry 部署层防线缺失+字段长度覆盖族×1——rule precision=50 静默覆盖 json-4k，全部进 R1.0）；**平台级发现：DDL 生成器不物化 `<index>`**（auth 7/ai 4/retry 2/sys 2，平台工单入 R1.0）；P2×14（业务 11+demo 单列 3）/P3×21（40 条全保留，改判 2——a20 反转升 P1/a07 按 P3、降级 1、驳回 0）。维度 8 独立复算 67/51/16 逐文件证实。纯 XML 只读扫描豁免构建/测试（引用 2026-09-22 绿色基线，复核独立复算为锚）。closure audit 一次 PASS（4 条 advisory 措辞类已随手落实 2 条——index 措辞精度、ext:dict 口径注记；其余 2 条可追溯不改）。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_026de6b2-c290-4f8b-a897-57fd2eab4f3f（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：P0=0/P1=5/P2=14/P3=21=40 ↔ 报告内实点 ↔ index 2.5 行 ↔ 复核保留 40/40，零缺陷；维度 8 独立 python 逐 tag 块复算 67/51/16 精确一致（逐文件分布吻合）
+  - P1 台账：5 行与 index 5 行+平台工单行一一对应；「先补 constraint 再重生成」顺序注记双在位
+  - a20 反转四处一致（报告/复核/index/log；git bee6b39ac7 vs 09998b7f70 恰 7.5h + deploy grep=0 实证）；a07 改判降级三处一致；6 处事实修正清单在复核文件
+  - 锚点抽验 6 必查+4 加分全 live 命中（含 03d05ed88c 提交信息、auth 5=5=5=5、datav 8/8/8、nop-code 9 缺失行号全中）
+  - 平台工单三处在位（报告专节/移交注记/index）；demo 分桶三处口径一致
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2323-full-code-review-2.5-orm-model-scan.md --strict` 退出码 0
+  - Anti-Hollow：纯 XML 只读扫描无新增实现（hollow 扫描对象为空，随 Closure Gates 声明豁免）；验证以独立复算+DDL/git 实证为锚
+  - Deferred 项分类检查：无 deferred；P1×5 经 index「P1 发现汇总」+平台工单进 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×5+P2×11+P3×21 修复归属 R1.0 模型批次；平台工单归 R1.0 nop-orm/codegen 侧；demo 3 条归各 demo roadmap；G.2 移交两项（UK constraint 规范注记/precision 静默覆盖机制注记）在报告移交注记）

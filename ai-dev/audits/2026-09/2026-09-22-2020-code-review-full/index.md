@@ -24,7 +24,7 @@
 | 2.2 | `2.2-orm-eql-deep-audit.md` | **3** | **11** | 17 | 29 | done（裁决：不通过附 P0×3——否定编码根因簇（NOT `_some` 反转/嵌套 `_all` 量词丢失/NOT+嵌套否定错位，测试钉住错误期望）触发即时通道→plan 2320；P1×11 含 DML 渲染缺口族+EQL DML 缺实体过滤器；check2 P0 join 放大 already-fixed 但 1:1 数据掩盖缺口坐实；60 条唯一发现全探针实证） | 独立子 agent（见 plan 2319 Closure 段） |
 | 2.3 | `2.3-dao-migration-dbtool-deep-audit.md` | 0 | **1** | 19 | 36 | done（裁决：通过无 P0 附 P1×1——callFunc 绑定偏移进 R1.0；**check2 点名 4 条全部 already-fixed**（migration 两 P0 双探针实测）；方言缺口族×5+事务簿记×4+recordMigration 翻倍等 P2×19；降级 5、驳回立案 1（dup≡P3-2.1-024）） | 独立子 agent（见 plan 2321 Closure 段） |
 | 2.4 | `2.4-nosql-cdc-deep-audit.md` | 0 | **1** | 12 | 25 | done（裁决：通过无 P0 附 P1×1——rate_limit.lua 集群 CROSSSLOT 进 R1.0；**check2 P0 复裁定 false-positive（三重独立复现）**、P1-2 already-fixed、**P1-3 still-live（MFA codec 类型不对称）进 R1.0 输入**；RESP3 逐原语矩阵 10 通道全兼容；降级 3、升级 1、跨维度去重 3） | 独立子 agent（见 plan 2322 Closure 段） |
-| 2.5 | — | | | | | todo | |
+| 2.5 | `2.5-orm-model-compliance-scan.md` | 0 | **5** | 14 | 21 | done（裁决：通过无 P0 附 P1×5——UK/唯一索引零物化族×4（job/batch/retry 部署层防线缺失；a20 复核反转升格）+字段长度覆盖族×1（rule precision=50 静默覆盖 json-4k）；**平台级发现：DDL 生成器不物化 `<index>`**；维度 8 独立复算 67/51/16 逐文件证实；demo 3 条单列；降 1 改判 2 驳 0） | 独立子 agent（见 plan 2323 Closure 段） |
 | 2.6 | — | | | | | todo | |
 | 2.7 | — | | | | | todo | |
 | 3.1 | — | | | | | todo | |
@@ -100,6 +100,12 @@
 | P1-2.3-001 | `2.3-dao-migration-dbtool-deep-audit.md` | R1.0（callFunc 绑定偏移+OUT 类型硬编码合并修复，补带参回归；响亮失败零调用方） | open |
 | P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | open |
 | P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | open |
+| P1-2.5-001 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-metadata 6 状态列补 precision+重生成三方言+迁移） | open |
+| P1-2.5-002 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-job 3 UK 补 constraint+重生成 DDL；先补属性否则重生成仍为空） | open |
+| P1-2.5-003 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-batch UK 同 002+补 upgrade 脚本） | open |
+| P1-2.5-004 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-retry 2 唯一索引改写 unique-key+constraint，datav 路径已验证） | open |
+| P1-2.5-005 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-rule outputs precision 改 4000 或删列级让 domain 生效+重生成） | open |
+| 平台工单-2.5 | `2.5-orm-model-compliance-scan.md` | R1.0 平台工单（DDL 生成器不物化 `<index>` 含 unique=true——auth 7/ai 4/retry 2/sys 2） | open |
 
 ## P2 裁决台账（例外通道）
 
