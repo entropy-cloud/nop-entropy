@@ -145,6 +145,15 @@
             <source>rtrim({0}, {1})</source>
         </template>
 
+        <!-- WI6 Phase 5: dateDiff(unit, d1, d2) → 边界跨越语义（Phase 0 裁定 §4 锚点）。
+             DuckDB date_diff(part, starttimestamp, endtimestamp) = "The number of part
+             boundaries between..."，unit 在前同序、字符串单位，datediff 为官方别名；
+             realName 用主名 date_diff。postgresql 无 datediff 注册 ⇒ 无继承冲突。
+             dateAdd 在 duckdb 不落（唯一 date_add 形态要求 INTERVAL 裸关键字单位）。
+             其余 lastday/weekofyear/dayofweek/datetrunc 经 extends postgresql 继承。
+             [文档] 证据上限 + DuckDB 嵌入式 scratch 佐证（datediff('month',...)=1）。 -->
+        <native name="datediff" realName="date_diff" returnType="BIGINT" argTypes="ANY,TIMESTAMP,TIMESTAMP"/>
+
 </functions>
 
     <!-- DuckDB 未定义错误码，只抛出了异常信息：

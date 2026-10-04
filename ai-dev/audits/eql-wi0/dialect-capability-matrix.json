@@ -194,6 +194,7 @@
         "current_date",
         "current_timestamp",
         "date",
+        "datediff",
         "datetrunc",
         "day",
         "dayofweek",
