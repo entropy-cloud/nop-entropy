@@ -1,0 +1,158 @@
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 18 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-232]
+
+#### VERSION=2.3.232 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-232]
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=Oracle
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 18 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY ROLLUP(g);
+(Update count: 0, 16 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "ROLLUP" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY ROLLUP(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT SUM(v) FROM t GROUP BY CUBE(g);
+(Update count: 0, 17 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "CUBE" not found; SQL statement:
+ SELECT SUM(v) FROM t GROUP BY CUBE(g) [90022-240]
+
+#### VERSION=2.4.240 MODE=MODE=PostgreSQL
+#### SQL: CREATE TABLE t(g INT, v INT); INSERT INTO t VALUES (1,10),(2,20); SELECT g, GROUPING(g) FROM t GROUP BY g;
+(Update count: 0, 18 ms)
+(Update count: 2, 0 ms)
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Function "GROUPING" not found; SQL statement:
+ SELECT g, GROUPING(g) FROM t GROUP BY g [90022-240]
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1' DAY;
+TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1' DAY
+2020-01-02 00:00:00
+(1 row, 27 ms)
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL 1 DAY;
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL [*]1 DAY"; expected "-, +, string"; SQL statement:
+SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL 1 DAY [42001-240]
+
+#### VERSION=2.4.240 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1 DAY';
+Error: org.h2.jdbc.JdbcSQLDataException: Cannot parse "INTERVAL" constant "1 DAY"; SQL statement:
+SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1 DAY' [22007-240]
+
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1' DAY;
+TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1' DAY
+2020-01-02 00:00:00
+(1 row, 25 ms)
+
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL 1 DAY;
+Error: org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL [*]1 DAY"; expected "-, +, string"; SQL statement:
+SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL 1 DAY [42001-232]
+
+#### VERSION=2.3.232 MODE=DEFAULT
+#### SQL: SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1 DAY';
+Error: org.h2.jdbc.JdbcSQLDataException: Cannot parse "INTERVAL" constant "1 DAY"; SQL statement:
+SELECT TIMESTAMP '2020-01-01 00:00:00' + INTERVAL '1 DAY' [22007-232]
+
