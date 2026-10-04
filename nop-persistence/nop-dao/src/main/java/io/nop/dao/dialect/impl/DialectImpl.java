@@ -364,12 +364,23 @@ public class DialectImpl implements IDialect {
 
     /**
      * WI3 第 10 项：defaultNullsFirst accessor（读 dialect 根属性，非 features）。
-     * 暂无生成器消费方——消费点唯一 owner = roadmap WI7（移交链见 IDialect javadoc 与
-     * plan 20），本 accessor + 配置断言即 WI3 交付面。
+     * WI7 已兑现移交链：消费点 = {@code AstToSqlGenerator.visitSqlOrderByItem} 的缺省序
+     * 推导（一手文档已证方言集内，裁定文档 §三）。
      */
     @Override
     public boolean isDefaultNullsFirst() {
         return Boolean.TRUE.equals(dialectModel.getDefaultNullsFirst());
+    }
+
+    /**
+     * WI7（roadmap EC ③b，WI3 移交链另一半收口）：supportNullsFirst accessor（读 features
+     * 标志，惯例同 {@link #isSupportFullJoin()} 等）。消费点 =
+     * {@code AstToSqlGenerator.visitSqlOrderByItem} 的子句输出唯一门；未配置 = 模型 null →
+     * false（保守缺省，与 {@code TestDefaultNullsFirstFlag} 双侧契约断言一致）。
+     */
+    @Override
+    public boolean isSupportNullsFirst() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportNullsFirst());
     }
 
     @Override

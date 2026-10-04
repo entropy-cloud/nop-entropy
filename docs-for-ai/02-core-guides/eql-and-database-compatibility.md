@@ -123,7 +123,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | 标志 | 含义 | 典型差异数据库 |
 |------|------|---------------|
 | `useAsInFrom` | `FROM t AS v` 是否允许 `AS` | Oracle 不允许 |
-| `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **尚未接线**：现无 accessor、无消费点（2026-10-04 实测），accessor 补齐与门控归 EQL 兼容 roadmap WI7。dialect.xdef javadoc 中「不支持时用 `order by if(isnull(f),0,1), f` 模拟」仅是设想，全仓无任何实现。与 `defaultNullsFirst`（缺省 NULL 序**事实**）正交，见下方「defaultNullsFirst」小节 |
+| `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **已接线**（2026-10-04 WI7）：accessor `IDialect.isSupportNullsFirst()` + 消费点 `AstToSqlGenerator.visitSqlOrderByItem`（子句输出唯一门）。现值：duckdb/h2/oracle/postgresql 显式 `true`；其余方言（含 mysql/tdengine 等未配置者）= 模型 null → accessor false（保守缺省）。门行为：true 按请求打印子句；false 时显式请求按缺省序推导"一致省略/冲突报错"（见「defaultNullsFirst」小节）。dialect.xdef javadoc 中「不支持时用 `order by if(isnull(f),0,1), f` 模拟」的设想**不落地**（不支持方言一律"一致省略或响亮报错"，无表达式注入）。与 `defaultNullsFirst`（缺省 NULL 序**事实**）正交，见下方「defaultNullsFirst」小节 |
 | `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | 全部方言 `false`（继承 default）。WI10b 行为契约：EQL **接受并归一化**别名（可解析、输出抑制、语义无损），标志为能力声明，勿按 flag 建打印分支或编译期拒绝门（见「UPDATE/DELETE 表别名」小节） |
 | `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | 同上（`supportDeleteTableAlias` 行） |
 | `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | H2 显式 `true`；PostgreSQL/DuckDB 继承 default 的 `false`（PG 原生支持 ILIKE，但该标志的现值是 false——消费方以 `ilike` **函数注册**为准，见「ilike 函数注册」小节；翻标志会引入假阴性）。WI10b 裁定：**勿将本标志接为第二道门**（PG 实证：flag=false 且 ilike 函数已注册可用，接标志即破坏两个已收口方言）；标志与注册互不强约束由 `TestDialectDeadFlagDisposition` 锁定 |
@@ -311,11 +311,19 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 
 `window-expr-support.dialect.xml` 的 10 个窗口函数（rank/dense_rank/row_number/lead/lag/first_value/last_value/nth_value/percent_rank/cume_dist）**mariadb 与 mysql 合法继承**（MariaDB 10.2+、MySQL 8.0+ 均有窗口函数），**mysql5.7 已内联逐个 `x:override="remove"`**（MySQL 5.7 无窗口函数；裁定=候选 B，泄漏由 `TestMysql57WindowFunctionsRemoved` 的动态守卫拒绝——mixin 未来新增函数会使守卫转红）。**不要"顺手修正" mariadb**。
 
-### `defaultNullsFirst` 与 `supportNullsFirst`：正交两标志（2026-10-04 EQL 兼容 roadmap WI3 第 10/11 项）
+### `defaultNullsFirst` 与 `supportNullsFirst`：正交两标志（2026-10-04 EQL 兼容 roadmap WI3 第 10/11 项；WI7 接线收口）
 
 - `defaultNullsFirst`（dialect 根属性）= 缺省升序下 NULL 是否排前的**事实**；`supportNullsFirst`（features 标志）= 是否原生接受 `NULLS FIRST/LAST` **子句**。两者正交、各司其职，不是重复标志（duckdb `defaultNullsFirst=false` + `supportNullsFirst=true` 同时成立且都正确）。
-- 现值（2026-10-04）：`defaultNullsFirst` 显式配置 mysql/mssql/dm/h2=`true`，tdengine/duckdb/postgresql/oracle=`false`；未配置（如 db2）= 模型 null → accessor false（保守缺省）。accessor `IDialect.isDefaultNullsFirst()` 已接线（WI3）；**生成器消费唯一 owner = EQL 兼容 roadmap WI7**（NULLS FIRST/LAST 文法接受 + supportNullsFirst 门 + 默认序行为）——今天 EQL 文法不接受 `NULLS FIRST/LAST`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlOrderByItem` 只有 `ASC|DESC`），`SqlOrderByItem.nullsFirst` 只能程序化构造，`AstToEqlGenerator` 会为其打印 `nulls first/last`。
-- ⚠️ 单个布尔不足以表达真实 NULL 序：H2 除方向相对的 `LOW`/`HIGH` 外还有方向无关的 `FIRST`/`LAST`（"sorted before other values, no matter if ascending or descending order is used"）；DuckDB（`NULLS LAST` 缺省）与 PG 在 DESC 下的行为分叉。WI7 设计时引用。
+- 现值（2026-10-04）：`defaultNullsFirst` 显式配置 mysql/mssql/dm/h2=`true`，tdengine/duckdb/postgresql/oracle=`false`；未配置（如 db2）= 模型 null → accessor false（保守缺省）。两个 accessor 均已接线：`IDialect.isDefaultNullsFirst()`（WI3）+ `IDialect.isSupportNullsFirst()`（WI7）。
+- **`NULLS FIRST/LAST` 门行为（2026-10-04 WI7，执行路径 `AstToSqlGenerator.visitSqlOrderByItem`；回显路径不做方言判断）**：
+  1. 未指定 `nullsFirst` → 输出与既有行为逐字节一致（缺省**不主动补子句**）；
+  2. `isSupportNullsFirst()=true`（duckdb/h2/oracle/postgresql）→ 按请求打印 `nulls first`/`nulls last`；
+  3. false 且显式请求 → 缺省序推导（ASC=`isDefaultNullsFirst()`，DESC=镜像）：请求与该方向缺省序**一致则省略子句**（行为等价）、**不一致则编译期报错** `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`）。
+- **一手文档准入集**：缺省序推导（"一致省略"）仅在方言缺省 NULL 序已有一手文档引证时成立——mysql/mysql5.7/mariadb（MySQL 手册"NULL values are presented first if you do ORDER BY ... ASC and last if you do ORDER BY ... DESC"）、mssql（NULL 视为最低值）、h2（`LOW`/`HIGH` 方向相对）。**dm/tdengine（XML 有配置但无一手文档，红线 `[未取证]`）与 db2（未配置 + 文档不可得）两方向显式请求一律报错**——配置值是登记事实但不作等价性主张（裁定正文 = EQL 兼容 roadmap WI7 的 Phase 0 裁定文档 §三，登记于设计裁定目录）。
+- ⚠️ **单个布尔不足以表达真实 NULL 序（能力上限，WI7 锁定证据、不解决）**：
+  - **DuckDB-vs-PG 的 DESC 缺省分叉**：DuckDB 官方文档明写 "DuckDB keeps `NULLS LAST` even for `DESC` ordering, whereas PostgreSQL places `NULL`s first on `DESC`"——两库 `defaultNullsFirst` 均 `false`（ASC 缺省相同），**DESC 缺省不同**，且单个布尔不可表达。两库 `supportNullsFirst` 均 `true`，显式子句可表达任一语义（parity 用例：`order by … desc nulls last` 双库都输出 `nulls last`）。
+  - **H2 的更强证据**：除方向相对的 `LOW`/`HIGH`（"NULL values are considered as smaller than other values **during sorting**"）外还有方向无关的 `FIRST`/`LAST` 设置（"sorted before other values, no matter if ascending or descending order is used"）。
+  - 表达力扩展（如 per-dialect 方向模型字段）是方言模型 schema 变更，未立项；出现 DESC 缺省序敏感的跨库一致性需求时先登记 roadmap。dm/tdengine 的 DESC 行为 `[未取证]`（红线：不计入覆盖率）。
 
 ### 集合算子与 RETURNING 版本门（2026-10-04 EQL 兼容 roadmap WI3 第 1/6 项 + 门形态）
 
@@ -397,6 +405,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
 | SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM 三段式，WI5） | 构建期归一化进 `SqlRegularFunction`（`EqlASTBuildVisitor.visitSqlRegularFunction_position/substring/extract/trim*`），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路 | 方言函数表注册（`dialect.getFunction(归一化名)`；TRIM 带 chars=trimChars/ltrimChars/rtrimChars 模板仅注册已验证方言） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlPositionFunctionDialect.testUnknownDialectThrowsLoudUnknownFunction`（SUBSTRING/EXTRACT/TRIM 各自同类） |
 | 分页两标准形态 `FETCH FIRST`/`OFFSET..FETCH NEXT`（WI7） | 构建期归一化进既有 `SqlLimit{limit, offset}`（生成 visit 逐字段赋值），lowering 走 `AstToSqlGenerator.visitSqlQuerySelect` → `dialect.getPaginationHandler().buildPageExpr`（**无方言能力标志**——输出形态由方言 `paginationHandler` 配置决定） | `paginationHandler` 配置（LimitOffset 族 / OffsetFetch 族，见「分页两语法形态」小节矩阵） | 文法层解析错误（不完整形态，如 `OFFSET n ROWS` 无 FETCH）；lowering 无失败分支 | `TestEqlPaginationFetchParse`、`TestEqlPaginationFetchCompile` |
+| `ORDER BY … NULLS FIRST/LAST` 子句（WI7） | `AstToSqlGenerator.visitSqlOrderByItem`（执行路径唯一门；回显路径不设门） | `supportNullsFirst`（true=按请求打印）+ `defaultNullsFirst`（false 时缺省序推导，仅一手文档已证方言集允许"一致省略"） | `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`——冲突或方言缺省序无一手文档） | `TestEqlNullsFirstDialectGate`、`TestDefaultNullsFirstFlag`（accessor 双侧契约） |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -521,7 +530,7 @@ roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部�
 | `supportSavePoint` | 软弃用 | 无消费点（xdef `@deprecated`：预留未接线、保留配置兼容、勿新增消费依赖） | `TestDialectDeadFlagDisposition.testSoftDeprecatedFlagsStillBind`（配置加载回归） |
 | `supportTransaction` | 软弃用 | 同上 | 同上 |
 | `supportSequence` | 软弃用 | `isSupportSequence` 唯一调用方为测试；序列 SQL 供给走 `getCreateSequenceSql`/`getSequenceNextValSql` | 同上 |
-| `supportNullsFirst` | successor-owned（WI7，未立项） | 无 accessor（刻意留给 WI7）；`defaultNullsFirst` accessor 已由 WI3 落地（javadoc 移交链）；WI10b 不补 accessor、不建消费点（无双 owner） | —（roadmap WI7 Exit Criteria ③b） |
+| `supportNullsFirst` | **接线**（2026-10-04 WI7，successor 移交兑现） | `IDialect.isSupportNullsFirst` + 消费点 `AstToSqlGenerator.visitSqlOrderByItem`（子句输出唯一门，三分形态：缺省不补/请求即打印/一致省略或冲突报错）；门行为与文档准入集见「defaultNullsFirst 与 supportNullsFirst」小节 | `TestEqlNullsFirstDialectGate`（行为矩阵）、`TestDefaultNullsFirstFlag`（accessor 双侧契约：true 侧 duckdb/h2/postgresql/oracle、false 侧 mysql/tdengine 未配置→null→false） |
 
 配置断言总入口：`TestDialectDeadFlagDisposition`（nop-dao，9 例——accessor 链 × 既有 XML 值逐一锁定，方言 XML 零改值）。
 

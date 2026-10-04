@@ -1,7 +1,7 @@
 # EQL 跨数据库兼容性：WI7 Phase 0 前置裁定
 
 **日期**：2026-10-04
-**范围**：`ai-dev/plans/26-eql-wi7-pagination-and-nulls.md`（plan Status: active）Phase 0 的四项裁定 + COLLATE ledger 二选一 + 约束 4 两类用例清单 + EC ⑤ 满足形态登记；涉及 `nop-persistence/nop-orm-eql`（`DMLStatement.g4` 的 `sqlLimit`、`BaseRule.g4` 的 `sqlOrderByItem`/`unreservedWord_`、`EqlASTBuildVisitor`、`AstToSqlGenerator`）与 `nop-persistence/nop-dao`（`IDialect`/`DialectImpl` 的 `isSupportNullsFirst()` accessor）
+**范围**：`ai-dev/plans/26-eql-wi7-pagination-and-nulls.md`（plan Status: active）Phase 0 的四项裁定 + COLLATE ledger 二选一 + 约束 4 两类用例清单 + EC ⑤ 满足形态登记；涉及 `nop-persistence/nop-orm-eql`（`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 的 `sqlLimit`、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlOrderByItem`/`unreservedWord_`、`EqlASTBuildVisitor`、`AstToSqlGenerator`）与 `nop-persistence/nop-dao`（`IDialect`/`DialectImpl` 的 `isSupportNullsFirst()` accessor）
 **状态**：active —— 全部裁定项已裁定；代码未动（本 Phase 纯裁定，零产品代码变更）
 **授权模式**：同 G-3/WI9a 模式（`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md` §裁决人注记）——平台负责人经 2026-10-04 对 WI7 plan 的执行指令授权、AI 基于证据链代拟、人可推翻；推翻时按各裁定项的"翻案条件"撤销并在本目录追加修订裁决。
 
@@ -14,7 +14,7 @@
 | 硬前置 plan 状态（roadmap 门控矩阵 WI7 行 = WI1、WI2、WI3、G-1） | **未回退**。plans 02（WI0）/03（WI1）/19（WI2）/20（WI3）均为 `completed`；G-1 已裁决（2026-10-03，承诺基线 Oracle 23ai / MySQL 8.0.31 / MariaDB 10.2 / PG 15 / MSSQL 2022 / SQLite 3.39） | 各 plan 文件头 `Plan Status`；`2026-10-03-wi0-gate-adjudications.md` |
 | WI0 产物 1：语料基线快照 | **未回退**。`TestEqlCorpusBaseline` 1/1 PASS（surefire `Tests run: 1, Failures: 0`，报告 mtime 2026-10-04 08:01，晚于 nop-orm-eql 最后 commit `41bfbcba56` 2026-10-04 07:38） | `nop-persistence/nop-orm-eql/target/surefire-reports/io.nop.orm.eql.parse.TestEqlCorpusBaseline.txt` |
 | WI0 产物 2：方言矩阵快照门禁 | **未回退**。`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（18 个 dialect XML、18 注册、15 可加载、3 不可加载：`default`/`geo-support`/`window-expr-support`） | 门禁输出与本节记录 |
-| 漂移锚点复核（符号定位为准） | 全部符号存在，行号相对 plan 起草值（2026-10-03）继续漂移（WI9a Phase 2 文法收窄重生成所致）：① `sqlOrderByItem` plan `:369-371` → 现 `BaseRule.g4:416-418`；② `collateClause_` plan `:396-397` → 现 `:452-454`；③ `unreservedWord_` plan `:72-96` → 现 `:72-100`（WI5 五日期词 + 窗口词扩展后）；④ `EqlParser.java` plan 10927 行 → 现 **11260** 行；⑤ `_EqlASTBuildVisitor.java` plan 1819 行 → 现 **1871** 行；⑥ `ast/_gen/` 仍 **77** 个文件；⑦ `AstToEqlGenerator.visitSqlOrderByItem` 仍 `:618-633`（未漂移）；⑧ `sqlLimit` 仍 `DMLStatement.g4:217-219`、`sqlSelect` 挂载仍 `:103`；⑨ 4 XML `supportNullsFirst`：`duckdb:21`/`h2:25`/`oracle:102`/`postgresql:94`（与 plan 一致）；⑩ 8 XML `defaultNullsFirst`：`mysql:7`/`mssql:5`/`dm:8`/`h2:7`=true，`tdengine:5`/`duckdb:9`/`postgresql:5`/`oracle:5`=false，`db2` 未配置（与 plan 一致）；⑪ `IDialect.isDefaultNullsFirst` javadoc（含对 `isSupportNullsFirst()` 的前向 `{@link}`）plan `:124-137` → 现 `:154-165`（WI10b 新增 3 个 accessor 使下移）；⑫ `DialectImpl.isDefaultNullsFirst` plan `:356-358` → 现 `:371`；⑬ `TestDefaultNullsFirstFlag` 三测完好（`testEightDialectAccessorContract`/`testInheritanceAndUnconfiguredDefault`/`testSupportNullsFirstUntouched`）。**本文件与执行一律以符号定位为准** | 逐符号 grep/sed 实测 |
+| 漂移锚点复核（符号定位为准） | 全部符号存在，行号相对 plan 起草值（2026-10-03）继续漂移（WI9a Phase 2 文法收窄重生成所致）：① `sqlOrderByItem` plan `:369-371` → 现 `BaseRule.g4:416-418`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`，下同）；② `collateClause_` plan `:396-397` → 现 `:452-454`；③ `unreservedWord_` plan `:72-96` → 现 `:72-100`（WI5 五日期词 + 窗口词扩展后）；④ `EqlParser.java` plan 10927 行 → 现 **11260** 行；⑤ `_EqlASTBuildVisitor.java` plan 1819 行 → 现 **1871** 行；⑥ `ast/_gen/` 仍 **77** 个文件；⑦ `AstToEqlGenerator.visitSqlOrderByItem` 仍 `:618-633`（未漂移）；⑧ `sqlLimit` 仍 `DMLStatement.g4:217-219`（`nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`，下同）、`sqlSelect` 挂载仍 `:103`；⑨ 4 XML `supportNullsFirst`：`duckdb:21`/`h2:25`/`oracle:102`/`postgresql:94`（与 plan 一致）；⑩ 8 XML `defaultNullsFirst`：`mysql:7`/`mssql:5`/`dm:8`/`h2:7`=true，`tdengine:5`/`duckdb:9`/`postgresql:5`/`oracle:5`=false，`db2` 未配置（与 plan 一致）；⑪ `IDialect.isDefaultNullsFirst` javadoc（含对 `isSupportNullsFirst()` 的前向 `{@link}`）plan `:124-137` → 现 `:154-165`（WI10b 新增 3 个 accessor 使下移）；⑫ `DialectImpl.isDefaultNullsFirst` plan `:356-358` → 现 `:371`；⑬ `TestDefaultNullsFirstFlag` 三测完好（`testEightDialectAccessorContract`/`testInheritanceAndUnconfiguredDefault`/`testSupportNullsFirstUntouched`）。**本文件与执行一律以符号定位为准** | 逐符号 grep/sed 实测 |
 
 WI4 无依赖声明复核：`IEqlAstTransformer`/`EqlCompiler` 接线面本 plan 零触碰（plan 硬前置声明维持）。
 
@@ -43,7 +43,7 @@ WI4 无依赖声明复核：`IEqlAstTransformer`/`EqlCompiler` 接线面本 plan
 
 **结论**：
 
-1. **三个备选全部显式 altLabel**（`sqlIntervalExpr` 双备选先例，`BaseRule.g4` `sqlIntervalExpr`：`# SqlIntervalExpr_unit` / `# SqlIntervalExpr_string`）：
+1. **三个备选全部显式 altLabel**（`sqlIntervalExpr` 双备选先例，`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlIntervalExpr`：`# SqlIntervalExpr_unit` / `# SqlIntervalExpr_string`）：
    - 备选 1（既有 LIMIT 形态）：label `# SqlLimit_limit`，prop 保持 `limit=`/`offset=` 不变——生成体（`visitSqlLimit_limit`）与今天的 `visitSqlLimit` 等价（逐字段赋值 + normalize/validate），**无需手写 override**，由既有 `TestEqlSelectAllLimitEcho`/`TestEqlSelectAllLimitCompile` 全量回归兜底。
    - 备选 2：`FETCH FIRST n ROWS ONLY` → label `# SqlLimit_fetchFirst`，prop 用独立名（如 `rowCount=`），**不复用** `limit=`/`offset=`（duplicate-prop-label 约束：同一 prop 不能出现在同一规则的不同备选）。
    - 备选 3：`OFFSET n ROWS FETCH NEXT m ROWS ONLY` → label `# SqlLimit_offsetFetch`，prop 用独立名（如 `offsetExpr=`/`limitExpr=`）。
@@ -54,7 +54,7 @@ WI4 无依赖声明复核：`IEqlAstTransformer`/`EqlCompiler` 接线面本 plan
    - 因此新备选**复用** `limit=`/`offset=`，生成 `visitSqlLimit_fetchFirst`（只设 limit）、`visitSqlLimit_offsetFetch`（设 offset+limit）、`visitSqlLimit_limit`（与旧 `visitSqlLimit` 逐字节等价）——**逐字段赋值由 codegen 契约保证**，"空节点静默通过 validate"的风险不成立（文法内 rule-ref 非可选，context 字段恒非空；生成体无条件走既有 `visitSqlExpr_limitRowCount`/`visitSqlExpr_limitOffset` 转换链）。基方法 `visitSqlLimit` 改为 `ctx.accept(this)` 分派（`visitSqlIntervalExpr` 同构先例）。plan Phase 1 checklist 的"手写 visit"项按此修订为"生成体逐字段赋值核验"，响亮失败性质不变：marker 之外的空归一化在文法层不可能出现。
    - 两个 FETCH 备选的 offset/limit 语义（`FETCH FIRST n` → limit=n/offset=null；`OFFSET n ROWS FETCH NEXT m` → offset=n/limit=m）由备选结构直接表达，无手写逻辑即无手写错误面。
 3. **备选间无 ANTLR LL(*) 冲突**：备选 1 首符集 = {`LIMIT`}、备选 2 = {`FETCH`}、备选 3 = {`OFFSET`}——FIRST 集两两不相交（备选 1 内的 `OFFSET` 仅出现在 `LIMIT expr` 之后，属备选内可选子句，不参与备选间预测竞争）。**保留 `limit 10 offset 5` 守护用例**锁定既有路径（防备选序调整引入回归）。
-4. **token 面零改动**：`LIMIT`/`OFFSET`/`NEXT`（`Keyword.g4`）与 `FETCH`/`FIRST`/`ONLY`/`ROW`/`ROWS`（`SQL92Keyword.g4`）全部已是保留 token ⇒ 分页半区**只改 parser 规则、零 lexer 改动**、不触 token 重编号红线。`sqlExpr_limitRowCount`/`sqlExpr_limitOffset` = `sqlNumberLiteral | sqlParameterMarker` 既有规则原样复用（`?` 参数 marker 天然可用）。
+4. **token 面零改动**：`LIMIT`/`OFFSET`/`NEXT`（`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4`）与 `FETCH`/`FIRST`/`ONLY`/`ROW`/`ROWS`（`nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`）全部已是保留 token ⇒ 分页半区**只改 parser 规则、零 lexer 改动**、不触 token 重编号红线。`sqlExpr_limitRowCount`/`sqlExpr_limitOffset` = `sqlNumberLiteral | sqlParameterMarker` 既有规则原样复用（`?` 参数 marker 天然可用）。
 5. **`OFFSET n ROWS`（无 FETCH 的独立 offset 形态）不进本 plan**——roadmap WI7 EC ① 只点名两形态；已登记 plan `Deferred But Adjudicated`（out-of-scope improvement，出现需求先登记 roadmap）。
 
 ---
@@ -115,8 +115,8 @@ WI4 无依赖声明复核：`IEqlAstTransformer`/`EqlCompiler` 接线面本 plan
 
 **裁定输入（2026-10-04 live 实测复核）**：
 - `SqlOrderByItem.collate` 字段已在冻结模型（`EqlAST.xjava` SqlOrderByItem 第二字段）但**全仓零生产读取**（`getCollate()` 生产读取方 0 处，roadmap"零生成器消费 AST 字段 7 项"之一）。
-- `sqlOrderByItem` 文法（`BaseRule.g4:416-418`）无 collate 赋值路径；`collateClause_`（`:452-454`）只被 `sqlTypeExpr`（`:425`）引用且是 WI2 BUG-15 登记的**永久不可达**分支（期望 `STRING_` 隐式 token，`utf8` 等词法为 `IDENTIFIER_`）。
-- `COLLATE` 保留 token 存在（`SQL92Keyword.g4`）。
+- `sqlOrderByItem` 文法（`BaseRule.g4:416-418`，全路径见 §〇①）无 collate 赋值路径；`collateClause_`（`:452-454`）只被 `sqlTypeExpr`（`:425`）引用且是 WI2 BUG-15 登记的**永久不可达**分支（期望 `STRING_` 隐式 token，`utf8` 等词法为 `IDENTIFIER_`）。
+- `COLLATE` 保留 token 存在（`nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`）。
 - ledger 行自身理由（roadmap「明确延后项」）：MySQL 子句位置不同 + MSSQL collation 是库级作用域而非表达式属性；Oracle 走 `NLSSORT` 体系——**跨 mysql/mssql/oracle/pg 无损归一不成立**。
 
 **裁定依据**：roadmap 约束 3（不满足"能无损 lowering"的项一律不做）+ 排序原则（P1 静默错误 > 响亮失败：接受语法却无法可靠 lowering = 制造 BUG-1 同型静默错误风险）。

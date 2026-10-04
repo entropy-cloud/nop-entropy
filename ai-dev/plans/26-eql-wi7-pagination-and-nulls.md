@@ -190,32 +190,32 @@ Exit Criteria:
 
 ### Phase 2 - `supportNullsFirst` accessor + 生成器 NULLS 门与 `defaultNullsFirst` 消费（门先于文法落地，EC ③/③b）
 
-Status: planned
+Status: completed（2026-10-04）
 Targets: `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/IDialect.java`、`nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`、`nop-persistence/nop-dao/src/test/java/io/nop/dao/dialect/TestDefaultNullsFirstFlag.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 > 本 Phase 落地时**尚无文法赋值路径**（Phase 3 才激活）：`nullsFirst` 只能程序化构造，因此行为断言用程序化 AST（`SqlOrderByItem.setNullsFirst(...)`）+ 手构/加载方言驱动；对既有查询（`nullsFirst == null`）输出逐字节不变（BC 硬约束）。门与消费先行，保证 Phase 3 文法落地当天即有门，不产生"无门打印"窗口。
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护，同 Phase 1）。
-- [ ] `IDialect.isSupportNullsFirst()` accessor + `DialectImpl` 实现（按 Phase 0 裁定；手写零生成，`IDialect.java:130` 前向 javadoc 转正）；不动 `dialect.xdef`、不动 `_DialectFeatures`（冻结生成类已有 getter）。
-- [ ] `AstToSqlGenerator` 新增 `visitSqlOrderByItem` override（按 Phase 0 裁定的三分形态）：`supportNullsFirst=true` → 打印请求子句；false → 一致省略 / 冲突报错；`nullsFirst == null` → 委托 super（逐字节不变）。错误复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`（或 Phase 0 裁定的新码），`.param` 带方言名与请求方向。
-- [ ] 接线验证（#23，EC ③ 的"消费路径断言"）：**8 方言 `defaultNullsFirst` 全部有消费路径断言**——同一程序化 `nullsFirst` 请求在"缺省序一致"与"不一致"两类方言上行为不同（省略 vs 报错），且翻转模型 flag 后行为随之翻转（手构 `DialectModel` 先例：`TestEqlTranslationSemantics.buildDialect` 模式或 `DialectManager` 加载方言）；**4 方言 `supportNullsFirst` 行为断言**（EC ③b）：duckdb/h2/oracle/postgresql（均 true）打印子句，mysql/tdengine（无此 features 配置 → false）走省略/报错分支。
-- [ ] 负向用例（EC ② 的报错半边 + 约束 4）：`dm`/`tdengine` 上显式 `nullsFirst` 请求**一律编译期报错**（红线 `[未取证]` 纪律），断言具体错误码；无静默跳过（不允许不支持方言静默丢请求）。
-- [ ] BC 守护：`nullsFirst == null` 的既有 `order by` 查询在 mysql/oracle 等代表方言上输出与改动前逐字节一致（守护用例 + `TestEqlCorpusBaseline` 兜底）。
-- [ ] `TestDefaultNullsFirstFlag` 升级：`testSupportNullsFirstUntouched` 改走新 accessor（原三测断言值不变、不弱化）；新增 accessor 契约断言**双侧**——true 侧：duckdb/h2/oracle/postgresql（4 方言显式 `true`）；**false 侧：mysql/tdengine（features 未配置 `supportNullsFirst` → 模型 null → accessor `false`，`Boolean.TRUE.equals` 保守缺省语义钉死）**，防止"缺配置被读成 true"或"缺配置走不进门控报错分支"的回归。
-- [ ] owner doc（EC ④⑤ 文档面）：标志表 `supportNullsFirst` 行翻转（`:126`"尚未接线"→ 已接线 + 消费点 + 错误码）；`defaultNullsFirst` 小节（`:246-249`）消费更新；**"单布尔无法表达方向相关 NULL 序"能力上限小节**（EC ⑤：DuckDB `NULLS LAST` even for DESC vs PG DESC nulls first 的引文 + H2 `LOW`/`HIGH` 方向相对 + dm/tdengine `[未取证]`）；能力点登记表行（generator 方法 + 触发标志 + 不支持时错误码，roadmap 级 EC 第 4 条格式）。
-- [ ] 矩阵快照核实零增量 + 门禁 exit 0；`./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
+- [x] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护，同 Phase 1）。
+- [x] `IDialect.isSupportNullsFirst()` accessor + `DialectImpl` 实现（按 Phase 0 裁定；手写零生成，`IDialect.java:130` 前向 javadoc 转正）；不动 `dialect.xdef`、不动 `_DialectFeatures`（冻结生成类已有 getter）。
+- [x] `AstToSqlGenerator` 新增 `visitSqlOrderByItem` override（按 Phase 0 裁定的三分形态）：`supportNullsFirst=true` → 打印请求子句；false → 一致省略 / 冲突报错；`nullsFirst == null` → 委托 super（逐字节不变）。错误复用 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`（或 Phase 0 裁定的新码），`.param` 带方言名与请求方向。
+- [x] 接线验证（#23，EC ③ 的"消费路径断言"）：**8 方言 `defaultNullsFirst` 全部有消费路径断言**——同一程序化 `nullsFirst` 请求在"缺省序一致"与"不一致"两类方言上行为不同（省略 vs 报错），且翻转模型 flag 后行为随之翻转（手构 `DialectModel` 先例：`TestEqlTranslationSemantics.buildDialect` 模式或 `DialectManager` 加载方言）；**4 方言 `supportNullsFirst` 行为断言**（EC ③b）：duckdb/h2/oracle/postgresql（均 true）打印子句，mysql/tdengine（无此 features 配置 → false）走省略/报错分支。
+- [x] 负向用例（EC ② 的报错半边 + 约束 4）：`dm`/`tdengine` 上显式 `nullsFirst` 请求**一律编译期报错**（红线 `[未取证]` 纪律），断言具体错误码；无静默跳过（不允许不支持方言静默丢请求）。
+- [x] BC 守护：`nullsFirst == null` 的既有 `order by` 查询在 mysql/oracle 等代表方言上输出与改动前逐字节一致（守护用例 + `TestEqlCorpusBaseline` 兜底）。
+- [x] `TestDefaultNullsFirstFlag` 升级：`testSupportNullsFirstUntouched` 改走新 accessor（原三测断言值不变、不弱化）；新增 accessor 契约断言**双侧**——true 侧：duckdb/h2/oracle/postgresql（4 方言显式 `true`）；**false 侧：mysql/tdengine（features 未配置 `supportNullsFirst` → 模型 null → accessor `false`，`Boolean.TRUE.equals` 保守缺省语义钉死）**，防止"缺配置被读成 true"或"缺配置走不进门控报错分支"的回归。
+- [x] owner doc（EC ④⑤ 文档面）：标志表 `supportNullsFirst` 行翻转（`:126`"尚未接线"→ 已接线 + 消费点 + 错误码）；`defaultNullsFirst` 小节（`:246-249`）消费更新；**"单布尔无法表达方向相关 NULL 序"能力上限小节**（EC ⑤：DuckDB `NULLS LAST` even for DESC vs PG DESC nulls first 的引文 + H2 `LOW`/`HIGH` 方向相对 + dm/tdengine `[未取证]`）；能力点登记表行（generator 方法 + 触发标志 + 不支持时错误码，roadmap 级 EC 第 4 条格式）。
+- [x] 矩阵快照核实零增量 + 门禁 exit 0；`./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿。
 
 Exit Criteria:
 
-- [ ] `IDialect.isSupportNullsFirst()` accessor 存在且有**双侧**契约断言：true 侧 4 方言（duckdb/h2/oracle/postgresql）+ false 侧 mysql/tdengine（未配置 → null → false 保守语义）（EC ③b accessor 半边）。
-- [ ] `AstToSqlGenerator` 消费点存在且被运行时验证（EC ③b 消费点半边 + EC ③ 8 方言消费路径断言；flag 翻转行为翻转的接线用例通过）。
-- [ ] `dm`/`tdengine` 一律报错负向用例断言具体错误码；无静默降级、无静默打印。
-- [ ] `nullsFirst == null` 逐字节 BC 守护用例 + `TestEqlCorpusBaseline` 通过。
-- [ ] owner doc 标志表/正交小节/能力上限小节/能力点登记表已落档。
-- [ ] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿；矩阵快照门禁 exit 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `IDialect.isSupportNullsFirst()` accessor 存在且有**双侧**契约断言：true 侧 4 方言（duckdb/h2/oracle/postgresql）+ false 侧 mysql/tdengine（未配置 → null → false 保守语义）（EC ③b accessor 半边）。
+- [x] `AstToSqlGenerator` 消费点存在且被运行时验证（EC ③b 消费点半边 + EC ③ 8 方言消费路径断言；flag 翻转行为翻转的接线用例通过）。
+- [x] `dm`/`tdengine` 一律报错负向用例断言具体错误码；无静默降级、无静默打印。
+- [x] `nullsFirst == null` 逐字节 BC 守护用例 + `TestEqlCorpusBaseline` 通过。
+- [x] owner doc 标志表/正交小节/能力上限小节/能力点登记表已落档。
+- [x] `./mvnw test -pl :nop-dao,:nop-orm-eql -am -T 1C` 全绿；矩阵快照门禁 exit 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - `ORDER BY … NULLS FIRST/LAST` 文法 + 构建赋值 + 回显（激活 Phase 2 管线，EC ②/④/⑤ 行为面）
 

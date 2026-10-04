@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>概念边界（正交，非重复标志）：`defaultNullsFirst` = 缺省升序下 NULL 排前与否的
  * <em>事实</em>；`supportNullsFirst` = 是否原生接受 `NULLS FIRST/LAST` <em>子句</em>。
- * 本测试同时锁定 supportNullsFirst 四处现配置未被触碰。
  *
- * <p>⚠️ 消费点唯一 owner = roadmap WI7（文法接受 NULLS FIRST/LAST + supportNullsFirst
- * accessor 与门控 + defaultNullsFirst 默认序消费）。WI3 交付止于 accessor + 配置正确性，
- * 「暂无生成器消费方」是登记过的 successor 移交（plan 20 专节 + Deferred But Adjudicated），
- * 不是静默 no-op。
+ * <p>WI7（roadmap EC ③b）已兑现移交链：`supportNullsFirst` accessor 落地
+ * （`IDialect.isSupportNullsFirst()`），消费点 = `AstToSqlGenerator.visitSqlOrderByItem`
+ * 的子句输出唯一门。本测试的 `testSupportNullsFirstUntouched` 自 WI7 Phase 2 起从模型层
+ * 断言升级为 accessor 双侧契约断言（true 侧 4 方言显式 true；false 侧 mysql/tdengine
+ * features 未配置 → 模型 null → accessor false，`Boolean.TRUE.equals` 保守缺省语义钉死）。
  */
 public class TestDefaultNullsFirstFlag {
 
@@ -81,16 +81,30 @@ public class TestDefaultNullsFirstFlag {
     }
 
     /**
-     * supportNullsFirst 四处现配置未被触碰（正交标志的防误伤断言）。注意：
-     * supportNullsFirst 的 accessor 归 WI7（WI3 不接），此处经模型层断言锁定 XML 现值。
+     * supportNullsFirst accessor 契约 true 侧（WI7 EC ③b）：duckdb/h2/postgresql/oracle
+     * 显式配置 true ⇒ accessor true（消费点 = AstToSqlGenerator 子句输出门按请求打印）。
+     * 原 WI3 版本为模型层断言，WI7 Phase 2 随 accessor 落地升级（断言值不变、不弱化）。
      */
     @Test
     public void testSupportNullsFirstUntouched() {
         for (String name : new String[]{"duckdb", "h2", "postgresql", "oracle"}) {
-            Boolean v = ((DialectImpl) dialectOf(name)).getDialectModel().getFeatures()
-                    .getSupportNullsFirst();
-            assertTrue(Boolean.TRUE.equals(v),
-                    () -> name + " supportNullsFirst=true stays (WI7 owns its accessor)");
+            assertTrue(dialectOf(name).isSupportNullsFirst(),
+                    () -> name + " supportNullsFirst=true accessor contract (WI7 EC ③b)");
+        }
+    }
+
+    /**
+     * supportNullsFirst accessor 契约 false 侧（WI7 EC ③b）：mysql/tdengine 的 features
+     * **未配置** supportNullsFirst ⇒ 模型 null → accessor false（`Boolean.TRUE.equals`
+     * 保守缺省语义钉死——防"缺配置被读成 true"或"缺配置走不进门控报错分支"回归；
+     * false 侧方言显式 nullsFirst 请求走省略/报错分支）。
+     */
+    @Test
+    public void testSupportNullsFirstFalseSideUnconfiguredDialects() {
+        for (String name : new String[]{"mysql", "tdengine"}) {
+            assertFalse(dialectOf(name).isSupportNullsFirst(),
+                    () -> name + " unconfigured supportNullsFirst → model null → accessor false"
+                            + " (conservative default, WI7 EC ③b false side)");
         }
     }
 }

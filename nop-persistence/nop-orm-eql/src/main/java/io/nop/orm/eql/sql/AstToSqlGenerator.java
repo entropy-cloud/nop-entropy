@@ -33,6 +33,7 @@ import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
+import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
@@ -292,6 +293,73 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         }
         println();
         print(lockSql);
+    }
+
+    /**
+     * WI7（roadmap EC ②/③/③b）：执行路径的 {@code NULLS FIRST/LAST} 方言门——替代继承自
+     * {@code AstToEqlGenerator} 的无门打印（"只打印不设门"在 MySQL 等不支持子句的方言上
+     * 就是净回归）。三分形态（裁定 = ai-dev/design/eql-cross-db-compat/
+     * 2026-10-04-wi7-phase0-adjudications.md §三）：
+     * <ol>
+     * <li>{@code nullsFirst == null}（未指定）→ 委托 super，输出与本 override 引入前
+     * 逐字节一致（BC 棘轮硬约束，缺省不主动补子句）；</li>
+     * <li>{@code dialect.isSupportNullsFirst()}（原生接受子句，duckdb/h2/oracle/postgresql）
+     * → 委托 super（继承行为 = 按请求打印 {@code nulls first}/{@code nulls last}）——请求即
+     * 语义，无需查缺省序，方向相关的缺省差异在此分支内自然消解；</li>
+     * <li>false 且显式请求 → 缺省序推导（仅一手文档已证方言集，见
+     * {@link #defaultNullsFirstForDirection(boolean)}）：请求与该方向缺省序一致则省略子句
+     * （行为等价、无损）；不一致或不可推导（dm/tdengine/db2 等无一手文档）编译期响亮报错，
+     * 不静默丢请求。</li>
+     * </ol>
+     * 回显路径（基类）不做方言判断，保持不动（与 lateral/forUpdate 门只设在执行路径的先例一致）。
+     */
+    @Override
+    public void visitSqlOrderByItem(SqlOrderByItem node) {
+        Boolean nullsFirst = node.getNullsFirst();
+        if (nullsFirst == null || dialect.isSupportNullsFirst()) {
+            super.visitSqlOrderByItem(node);
+            return;
+        }
+
+        Boolean defaultFirst = defaultNullsFirstForDirection(node.getAsc());
+        if (defaultFirst == null || !defaultFirst.equals(nullsFirst)) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "nullsFirst(" + (nullsFirst ? "first" : "last") + ")");
+        }
+
+        // 显式请求与缺省序一致 ⇒ 省略子句（行为等价），手打 expr + asc（不能委托 super：
+        // 继承实现会为非 null 的 nullsFirst 打印子句）
+        visit(node.getExpr());
+        print(node.getAsc() ? " asc " : " desc ");
+    }
+
+    /**
+     * 一手文档已证「缺省 NULL 序方向相对」的方言集（裁定文档 §三；不在集合内 = 缺省序不可
+     * 推导 ⇒ 显式请求一律报错，红线 [未取证] 纪律——配置值是登记事实但不作等价性主张）：
+     * <ul>
+     * <li>mysql/mysql5.7/mariadb（继承 mysql 的已证行为）：MySQL 手册 "NULL values are
+     * presented first if you do ORDER BY ... ASC and last if you do ORDER BY ... DESC"</li>
+     * <li>mssql：NULL 视为最低值（ASC 缺省 FIRST / DESC 缺省 LAST）</li>
+     * <li>h2：LOW/HIGH 方向相对（H2 文档 "considered as smaller than other values during
+     * sorting"，h2.dialect.xml 既有引文；h2 supportNullsFirst=true 实际不可达，登记为完备）</li>
+     * </ul>
+     * dm/tdengine（XML 有配置但无一手文档）与 db2（未配置 + 文档不可得）均不在集合内：
+     * 两方向显式请求一律报错，不得临时放行（裁定文档 §三 explicit 列名）。
+     */
+    private static final Set<String> DOCUMENTED_DIRECTIONAL_NULL_ORDER =
+            Set.of("mysql", "mysql5.7", "mariadb", "mssql", "h2");
+
+    /**
+     * @return 该方向缺省序是否 nulls first；null = 不可推导（方言不在一手文档已证集）。
+     *         ASC 方向 = {@code isDefaultNullsFirst()}；DESC 方向 = 镜像（nulls 最小 ⇒
+     *         ASC 在前 DESC 在后，反之亦然）。
+     */
+    private Boolean defaultNullsFirstForDirection(boolean asc) {
+        if (!DOCUMENTED_DIRECTIONAL_NULL_ORDER.contains(dialect.getName()))
+            return null;
+        boolean defaultFirst = dialect.isDefaultNullsFirst();
+        return asc ? defaultFirst : !defaultFirst;
     }
 
     void appendPropJoins(SqlSingleTableSource node) {
