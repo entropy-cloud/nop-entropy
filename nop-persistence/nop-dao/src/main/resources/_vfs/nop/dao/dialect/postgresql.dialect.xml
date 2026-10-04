@@ -235,6 +235,17 @@
         <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>extract(isodow from {0})</source>
         </template>
+
+        <!-- WI6 Phase 4: dateTrunc(unit, d)（unit=字符串字面量）。PG date_trunc(text,
+             timestamp)，示例 date_trunc('hour', ...)——引号字符串单位、unit 在前与归一化序
+             一致（15 文档）。duckdb/postgis 继承（DuckDB date_trunc(part, ...) 同序同形，
+             scratch 实测通过）。规范单位词表 = pg/duckdb/h2 交集：
+             year/quarter/month/week/day/hour/minute/second（pg 另有 decade/century/
+             millennium/millisecond 等超集词，不在规范词表）。mysql/oracle/mssql 不落
+             （Phase 0 裁定 §7）——编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮。 -->
+        <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
+            <source>date_trunc({0},{1})</source>
+        </template>
     </functions>
 
 </dialect>

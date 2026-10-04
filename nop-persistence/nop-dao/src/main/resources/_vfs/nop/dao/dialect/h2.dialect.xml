@@ -217,6 +217,16 @@
             <testSql>ISO_DAY_OF_WEEK(DATE '2026-02-10')</testSql>
         </template>
 
+        <!-- WI6 Phase 4: dateTrunc(unit, d)（unit=字符串字面量）。H2 DATE_TRUNC
+             (datetimeField, dateAndTime) 文档序=(unit, value) 与归一化序一致，且接受带引号
+             字符串单位（[实测] 'DAY'/'day' 均通过，反序 ERR 90008）——与 pg/duckdb 共享同一
+             模板形态。规范单位词表=pg/duckdb/h2 交集：year/quarter/month/week/day/hour/
+             minute/second。h2gis 继承。 -->
+        <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
+            <source>date_trunc({0},{1})</source>
+            <testSql>date_trunc('month', TIMESTAMP '2026-02-10 12:34:56')</testSql>
+        </template>
+
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
         </template>
