@@ -1,6 +1,6 @@
 # 2322 full-code-review 2.4 nop-nosql + nop-cdc 深审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.4（MA2）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 09/14/15 + 共享前缀）
 > Related: plan 2314（1.7 已裁定 cdc 双叶零依赖空壳——本项只标定现状）；owner doc `ai-dev/design/nop-nosql/`（README + architecture.md）；既有深审目录 `ai-dev/audits/2026-05-20-deep-audit-nop-nosql-post-plan23` 为历史资产不入输入
@@ -54,72 +54,72 @@
 
 ### Phase 1 - 深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-nosql + nop-cdc
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：两模块 main/test 清单、公开接口（INosql* 族）方法表、Lua 脚本清单、**确认模块层无协议覆盖配置（RedisConfig 零命中 protocol/RESP）+ 客户端默认 newestSupported()=RESP3（6.6.0.RELEASE 实证）**、@Disabled 清单（docker-gated 测试标注）
-- [ ] 限流与脚本子 agent（维度 09+15）：LettuceRateLimiter 全路径（**check2 P0-1 实测**——RESP3 场景或源码级推演+运行时验证）+ Lua 脚本原子性/错误路径 + Counter/Ranking 数值解析
-- [ ] PubSub 与连接子 agent（维度 14）：LettucePubSubService 分发/生命周期（**check2 P1-2 复核**）+ ConnectionProvider 生命周期/SSL + SessionStore
-- [ ] codec 与缓存子 agent（维度 15+09）：PrefixTextCodec 对称性与信任边界（**check2 P1-3 复核**——MFA markVerified/peek 链路：RedisMfaChallengeStore:98/:169/:118 定位，codec 侧标定即可，MFA 域归 3.10）+ NosqlCache ICache 契约 + KeyValue/Hash/List/Set/ZSet 原语对称性 + **RESP3 矩阵的原语输出通道核对（Lock/Counter/Ranking/SessionStore/KeyValue 五族）**
-- [ ] cdc 空壳现状标定（并入任一子 agent）
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-2.4-{ratelimit,pubsub,codec}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：两模块 main/test 清单、公开接口（INosql* 族）方法表、Lua 脚本清单、**确认模块层无协议覆盖配置（RedisConfig 零命中 protocol/RESP）+ 客户端默认 newestSupported()=RESP3（6.6.0.RELEASE 实证）**、@Disabled 清单（docker-gated 测试标注）
+- [x] 限流与脚本子 agent（维度 09+15）：LettuceRateLimiter 全路径（**check2 P0-1 实测**——RESP3 场景或源码级推演+运行时验证）+ Lua 脚本原子性/错误路径 + Counter/Ranking 数值解析
+- [x] PubSub 与连接子 agent（维度 14）：LettucePubSubService 分发/生命周期（**check2 P1-2 复核**）+ ConnectionProvider 生命周期/SSL + SessionStore
+- [x] codec 与缓存子 agent（维度 15+09）：PrefixTextCodec 对称性与信任边界（**check2 P1-3 复核**——MFA markVerified/peek 链路：RedisMfaChallengeStore:98/:169/:118 定位，codec 侧标定即可，MFA 域归 3.10）+ NosqlCache ICache 契约 + KeyValue/Hash/List/Set/ZSet 原语对称性 + **RESP3 矩阵的原语输出通道核对（Lock/Counter/Ranking/SessionStore/KeyValue 五族）**
+- [x] cdc 空壳现状标定（并入任一子 agent）
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-2.4-{ratelimit,pubsub,codec}.md`
 
 Exit Criteria:
 
-- [ ] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] check2 点名条目（P0×1+P1×2）逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 三份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] check2 点名条目（P0×1+P1×2）逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 3.10（nop-auth 安全域）/6.x 边界协调；check2 重复发现归属
-- [ ] 限流器与 PubSub 正结论收敛（RESP3 协商/分发语义各一条总评）
+- [x] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 3.10（nop-auth 安全域）/6.x 边界协调；check2 重复发现归属
+- [x] 限流器与 PubSub 正结论收敛（RESP3 协商/分发语义各一条总评）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.4-{ratelimit,pubsub,codec}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.4-{ratelimit,pubsub,codec}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.4-nosql-cdc-deep-audit.md`；index 登记 2.4 行
-- [ ] 如有 P0（含 check2 P0 复核若 still-live）：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-nosql/nop-nosql-core,nop-persistence/nop-nosql/nop-nosql-lettuce,nop-persistence/nop-cdc/nop-cdc-core,nop-persistence/nop-cdc/nop-cdc-debezium -am`（无条件执行；cdc 双叶零测试以构建通过为准；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.4 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.4-nosql-cdc-deep-audit.md`；index 登记 2.4 行
+- [x] 如有 P0（含 check2 P0 复核若 still-live）：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-nosql/nop-nosql-core,nop-persistence/nop-nosql/nop-nosql-lettuce,nop-persistence/nop-cdc/nop-cdc-core,nop-persistence/nop-cdc/nop-cdc-debezium -am`（无条件执行；cdc 双叶零测试以构建通过为准；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.4 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证与 scan-hollow-implementations 扫描（无新增实现，扫描对象为空）；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且三面全覆盖（限流脚本/PubSub 连接/codec 缓存）+ cdc 现状标定
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.4 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且三面全覆盖（限流脚本/PubSub 连接/codec 缓存）+ cdc 现状标定
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.4 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -131,14 +131,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `2.4-nosql-cdc-deep-audit.md` 落盘：通过无 P0 附 P1×1（rate_limit.lua 集群 CROSSSLOT 实测必炸，进 R1.0）；P2×12/P3×25（38 条唯一发现，41 候选去重 3、降级 3、升级 1、驳回 0）；**check2 三点名终判：P0 false-positive（三重独立复现背书——本系列首个复裁定非问题）、P1-2 already-fixed、P1-3 still-live（MFA codec 类型不对称，进 R1.0 输入）**。RESP3 逐原语矩阵 10 通道全兼容交付。定向测试四模块全绿（lettuce 76/0F，67 docker-gated 既有；cdc 构建通过）。closure audit 一次 PASS（5 条 advisory 不阻断；P1 用例计数勘正与 009 合并注记已随手落实）。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_983fa2c9-f6fd-419b-8202-ca244a603139（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：P0=0/P1=1/P2=12/P3=25=38 ↔ 报告内实点 ↔ index 2.4 行 ↔ 三份复核保留数（40 条目−2 条目级 dup=38）零缺陷
+  - check2 三终判与三份 review 一致；index 无 P0 新增正确；P1 双行（P1-2.4-001+P1-check2-nosql-67）在册
+  - 判级调和：dim15-01 P1→P2（四点理由+回升条件）、dim09-07 升 P2（同根同判）、dim14-01 降 P3（javap 证实无句柄累积）双侧一致
+  - 去重归属：dim15-11(1)→dim14-10 双侧一致；主 agent 新裁 2 处合并有据（advisory 4 注记不对称已补）
+  - 锚点抽验 6/6 live 命中；条目质量 8 条抽验（codec 12/13 为 8 内容行贴线——字段齐全+复核逐帧验证实质达标）
+  - 定向测试：surefire mtime 2026-10-05 01:01，core 2/0F、lettuce 76/0F/skip67（docker-gated 既有）、cdc 构建通过
+  - RESP3 矩阵 10 通道与复核抽验 4 通道一致（Ranking Double 唯一线上真差异通道专设兼容）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2322-full-code-review-2.4-nosql-cdc-audit.md --strict` 退出码 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + raw socket/docker/字节码探针为锚
+  - Deferred 项分类检查：无 deferred；P1×1 与 check2 P1-3 still-live 经 index「P1 发现汇总」进 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×1+check2 P1-3+P2×12+P3×25 修复归属 R1.0；MFA 域归 3.10；G.2 移交三项在报告移交注记；cdc 归属建议待 R1.0/运维裁定）

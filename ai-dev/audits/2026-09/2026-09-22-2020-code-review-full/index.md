@@ -23,7 +23,7 @@
 | 2.1 | `2.1-orm-ormmodel-deep-audit.md` | 0 | **2** | 15 | 41 | done（裁决：通过附 P1×2——detach 一缓契约混杂+DELETING 装配重置（会话状态机通道）进 R1.0；模型校验矩阵全绿/乐观锁闭环正结论；check2 三 P1 全部 already-fixed；降级 1——dim04-17 探针实证后 P1→P2） | 独立子 agent（见 plan 2318 Closure 段） |
 | 2.2 | `2.2-orm-eql-deep-audit.md` | **3** | **11** | 17 | 29 | done（裁决：不通过附 P0×3——否定编码根因簇（NOT `_some` 反转/嵌套 `_all` 量词丢失/NOT+嵌套否定错位，测试钉住错误期望）触发即时通道→plan 2320；P1×11 含 DML 渲染缺口族+EQL DML 缺实体过滤器；check2 P0 join 放大 already-fixed 但 1:1 数据掩盖缺口坐实；60 条唯一发现全探针实证） | 独立子 agent（见 plan 2319 Closure 段） |
 | 2.3 | `2.3-dao-migration-dbtool-deep-audit.md` | 0 | **1** | 19 | 36 | done（裁决：通过无 P0 附 P1×1——callFunc 绑定偏移进 R1.0；**check2 点名 4 条全部 already-fixed**（migration 两 P0 双探针实测）；方言缺口族×5+事务簿记×4+recordMigration 翻倍等 P2×19；降级 5、驳回立案 1（dup≡P3-2.1-024）） | 独立子 agent（见 plan 2321 Closure 段） |
-| 2.4 | — | | | | | todo | |
+| 2.4 | `2.4-nosql-cdc-deep-audit.md` | 0 | **1** | 12 | 25 | done（裁决：通过无 P0 附 P1×1——rate_limit.lua 集群 CROSSSLOT 进 R1.0；**check2 P0 复裁定 false-positive（三重独立复现）**、P1-2 already-fixed、**P1-3 still-live（MFA codec 类型不对称）进 R1.0 输入**；RESP3 逐原语矩阵 10 通道全兼容；降级 3、升级 1、跨维度去重 3） | 独立子 agent（见 plan 2322 Closure 段） |
 | 2.5 | — | | | | | todo | |
 | 2.6 | — | | | | | todo | |
 | 2.7 | — | | | | | todo | |
@@ -98,6 +98,8 @@
 | P1-2.2-010 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（相关子查询多段 owner 两层防线失效） | open |
 | P1-2.2-011 | `2.2-orm-eql-deep-audit.md` | R1.0（eval 转换器丢 not like/not in 否定，公开 jar 唯一 SQL→FilterBean 入口静默反转） | open |
 | P1-2.3-001 | `2.3-dao-migration-dbtool-deep-audit.md` | R1.0（callFunc 绑定偏移+OUT 类型硬编码合并修复，补带参回归；响亮失败零调用方） | open |
+| P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | open |
+| P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | open |
 
 ## P2 裁决台账（例外通道）
 
