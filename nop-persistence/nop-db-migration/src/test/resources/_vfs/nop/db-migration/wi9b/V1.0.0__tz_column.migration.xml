@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WI9b (plan 32 Phase 1): 闸门 B 连通用例载体——`type` 属性走 migration.xdef:166 的
+     `!std-sql-type` 域（SimpleStdDomainHandlers.StdSqlTypeType → StdSqlType.fromStdName）。
+     时区枚举成员落活前该文件解析抛 ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN（红锚），
+     落活后经闸门 B 放行进入 AddColumnExecutor 的 stdToNativeSqlType 调用链（接线验证，
+     Minimum Rules #23）。h2 无 LOCAL 映射：执行期响亮报
+     nop.err.dao.dialect.std-data-type-not-supported（Phase 3 落 oracle 映射后补渲染断言）。 -->
+<migration xmlns="/nop/schema/db-migration/migration.xdef"
+  version="1.0.0"
+  description="WI9b gate-B wiring carrier: timezone std type column"
+  author="wi9b">
+
+  <changeset>
+    <addColumn id="wi9b-tz-col" tableName="tz_wiring_table">
+      <columns>
+        <column name="tz_col" type="TIMESTAMP_WITH_LOCAL_TIME_ZONE" nullable="true"/>
+      </columns>
+    </addColumn>
+  </changeset>
+</migration>

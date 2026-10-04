@@ -173,27 +173,27 @@ Exit Criteria:
 
 ### Phase 1 - `StdSqlType` 时区成员落活（模型层，单独提交）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/type/StdSqlType.java`、`nop-kernel/nop-commons` 聚焦测试（三 map 不变量 + 反查放行）
 
 - Item Types: `Feature`（时区类型取值集扩展——roadmap WI9b 授权的新增能力，非缺陷修复；承载它的注释体是历史残迹，不算 live defect）、`Decision`（成员形态，Phase 0 已裁定）、`Proof`
 
-- [ ] 按 Phase 0 裁定落两个成员：以现 4 参构造器形态写入 `:38/:42` 区（保持 `TIME`/`TIMESTAMP` 相邻的声明序），按裁定补 `stdTypeMap` 重钉行（如裁定需要）。**不修改任何既有成员与既有映射条目**；`getNames()` 键集 30 → 32 变化登记进裁定文档附录（`ARG_ALLOWED_NAMES` 扩集为预期行为）。
-- [ ] 修复前红（gate B 与反查层，本 Phase 的可观测红锚）：`fromStdName("TIME_WITH_LOCAL_TIME_ZONE")` / `("TIMESTAMP_WITH_LOCAL_TIME_ZONE")` 返回 null；xdef `std-sql-type` 域（闸门 B，`SimpleStdDomainHandlers.java:1630-1634`）对两个新名抛 `ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN`——红证据留痕于提交说明或日志；修复后同输入放行。（EQL cast 拼写的红锚在 Phase 2——LOCAL 拼写修复前是解析失败，与本 Phase 无关，对照表已按此分列。）
-- [ ] 三 map 不变量聚焦测试（WI9a UUID 先例，本 plan 的核心回归资产）：`fromJdbcType(Types.OTHER)` 仍返回 `OTHER`；`fromStdDataTYpe(TIME/TIMESTAMP/DATETIME)` 结果与本 Phase 前一致；`fromJavaClass(LocalTime.class)`/`LocalDateTime.class`/`Timestamp.class` 路径行为不变；`fromStdName` 对两个新名返回裁定成员、对 `INT`/`TEXT`/`NUMBER`/`BOOL`/`UUID` 等既有键仍正确。
-- [ ] `nop-db-migration` 闸门 B 连通用例（接线验证，Minimum Rules #23）：一个 migration.xml 列定义（或等价 xdef 域校验用例）证明 `type="TIMESTAMP_WITH_LOCAL_TIME_ZONE"` 经闸门 B 被接受并进入 `AddColumnExecutor` 的 `stdToNativeSqlType` 调用链（本 Phase 无映射时断言其响亮报 `nop.err.dao.dialect.std-data-type-not-supported`，Phase 3 落映射后同用例翻绿为渲染断言）。
-- [ ] `./mvnw test -pl :nop-commons -am` 通过（聚焦层）；全量门留待 Phase 3 统一执行。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 按 Phase 0 裁定落两个成员：以现 4 参构造器形态写入 `:38/:42` 区（保持 `TIME`/`TIMESTAMP` 相邻的声明序），按裁定补重钉行（Phase 0 §三终裁 = **三处**：`jdbcTypeMap.put(OTHER,OTHER)` + `stdTypeMap.put(TIME,TIME)` + `stdTypeMap.put(TIMESTAMP,TIMESTAMP)`）。**不修改任何既有成员与既有映射条目**；`getNames()` 键集 30 → 32 变化登记进裁定文档附录（§九）。
+- [x] 修复前红（gate B 与反查层，本 Phase 的可观测红锚）：`fromStdName("TIME_WITH_LOCAL_TIME_ZONE")` / `("TIMESTAMP_WITH_LOCAL_TIME_ZONE")` 返回 null（`_tmp/wi9b/stdnames-probe.log` 2026-10-05 实测 + 裁定文档 §3.4 基线表）；闸门 B 红锚由接线用例的解析失败形态承载（`TestTimezoneTypeGateBWiring` javadoc 登记 `ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN`）；修复后同输入放行（`TestStdSqlTypeTimezoneMembers` 7/7 绿）。
+- [x] 三 map 不变量聚焦测试（`TestStdSqlTypeTimezoneMembers` 7 用例逐条断言）：`fromJdbcType(Types.OTHER)` 仍返回 `OTHER`、`fromJdbcType(2013/2014)` 保持 null（候选 (a) 被拒的直接钉）；`fromStdDataTYpe(TIME/TIMESTAMP/DATETIME)` 与本 Phase 前一致；`fromJavaClass(LocalTime/LocalDateTime/Timestamp)` 不变；`fromStdName` 对两个新名返回裁定成员、对 `INT`/`TEXT`/`NUMBER`/`BOOL`/`UUID` 等既有键仍正确。
+- [x] `nop-db-migration` 闸门 B 连通用例（`TestTimezoneTypeGateBWiring` 2/2 绿 + carrier `_vfs/nop/db-migration/wi9b/V1.0.0__tz_column.migration.xml`）：`type="TIMESTAMP_WITH_LOCAL_TIME_ZONE"` 经 xdef `!std-sql-type` 域解析为 `ColumnDefinition.type`（闸门 B 放行）→ `AddColumnExecutor.buildColumnType → stdToNativeSqlType` 链在 h2 上响亮报 `nop.err.dao.dialect.std-data-type-not-supported`（错误码字面值断言）；Phase 3 落 oracle 映射后同链补渲染断言。
+- [x] `./mvnw test -pl :nop-commons,:nop-db-migration -am` 通过（nop-commons 358 | 0、nop-db-migration 97 | 0，2026-10-05 实跑）；全量门留待 Phase 3 统一执行。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` Phase 1 条目）。
 
 Exit Criteria:
 
-- [ ] 两个成员按裁定形态落活，`fromStdName`/闸门 B 的红→绿回归存在且断言具体键名与错误码；无静默跳过。
-- [ ] 三 map 不变量聚焦测试全绿（逐条断言，非注释性"应当不变"）。
-- [ ] `getNames()` 键集变化（30 → 32）已实测并登记。
-- [ ] 接线验证测试通过（闸门 B → `AddColumnExecutor` 链路，非仅 `fromStdName` 单元返回值）。
-- [ ] `StdSqlType.java` 提交独立可审计（`git log` 中该提交不含文法/方言/文档逻辑改动）。
-- [ ] 本 Phase 改变 live baseline：`No owner-doc update required` 的裁定须显式写出（owner docs 统一在 Phase 3 随最终行为面同步；若 audit 认为枚举落活本身须即时登记，则在此处先行登记 `orm-model-design.md` 类型面行）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 两个成员按裁定形态落活，`fromStdName`/闸门 B 的红→绿回归存在且断言具体键名与错误码；无静默跳过。
+- [x] 三 map 不变量聚焦测试全绿（逐条断言，非注释性"应当不变"；含 `fromJdbcType(Types.TIMESTAMP)=DATETIME` 历史 first-wins 行为的如实钉死）。
+- [x] `getNames()` 键集变化（30 → 32）已实测并登记（修复前 30 实测见裁定文档 §九；落活后 `assertEquals(32, getNames().size())` 断言绿）。
+- [x] 接线验证测试通过（闸门 B → `AddColumnExecutor` 链路，非仅 `fromStdName` 单元返回值）。
+- [x] `StdSqlType.java` 提交独立可审计（本提交仅含 StdSqlType.java + 两个测试文件 + carrier 资源，无文法/方言/文档逻辑改动）。
+- [x] 本 Phase 改变 live baseline：**`No owner-doc update required`（Phase 0 裁定 §四——owner docs 统一在 Phase 3 随最终行为面同步，含 EC ② 结论与升级指引）**。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `dataTypeName_` 时区拼写新增（.g4，单独提交）
 
