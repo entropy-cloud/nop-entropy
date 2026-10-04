@@ -1068,6 +1068,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
             if(ctx.asc != null){
                ret.setAsc((SqlOrderByItem_asc(ctx.asc)));
             }
+            if(ctx.nullsFirst != null){
+               ret.setNullsFirst((SqlOrderByItem_nullsFirst(ctx.nullsFirst)));
+            }
             ret.normalize();
             ret.validate();
           return ret;
@@ -1794,6 +1797,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlWindowFrame
    */
   public abstract io.nop.orm.eql.enums.SqlWindowFrameType SqlWindowFrame_unit(ParseTree node);
+
+  /**
+   * rules: sqlOrderByItem
+   */
+  public abstract java.lang.Boolean SqlOrderByItem_nullsFirst(org.antlr.v4.runtime.Token token);
 
   /**
    * rules: sqlAggregateFunction

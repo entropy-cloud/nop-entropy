@@ -148,6 +148,16 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * rules: sqlOrderByItem（WI7 Phase 3：NULLS FIRST/LAST 文法激活，token→Boolean 三态
+     * 转换，同 {@link #SqlOrderByItem_asc(Token)} 先例——FIRST=true / LAST=false；缺省
+     * （无 NULLS 子句）由生成体的 ctx.nullsFirst null 检查保证不赋值、保持 Boolean null）。
+     * 消费侧门/缺省序推导见 {@code AstToSqlGenerator.visitSqlOrderByItem}（Phase 2 先行落地）。
+     */
+    public Boolean SqlOrderByItem_nullsFirst(org.antlr.v4.runtime.Token token) {
+        return isToken(token, EqlParser.FIRST);
+    }
+
+    /**
      * rules: sqlQuerySelect
      */
     public boolean SqlQuerySelect_distinct(ParseTree node) {
