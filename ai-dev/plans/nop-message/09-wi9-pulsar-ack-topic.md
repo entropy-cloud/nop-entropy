@@ -175,9 +175,9 @@ Exit Criteria:
 
 - [x] MSG-F-04 主症状消除：全名 topic 不再产生非法 ack topic（单元矩阵 + E2E 双证）
 - [x] 必答回归方（rpc-core/graphql-message）退出 0
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-message/nop-message-pulsar -am` 退出 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/09-wi9-pulsar-ack-topic.md --strict` 退出码 0
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-message/nop-message-pulsar -am` 退出 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-message/09-wi9-pulsar-ack-topic.md --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
