@@ -153,7 +153,9 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
                 try {
                     consumer.onMessage(channel, message, context);
                 } catch (Exception e) {
-                    consumer.onException(e instanceof Exception ? (Exception) e : new RuntimeException(e));
+                    // WI16: full-context failure callback (D6 layer one).
+                    consumer.onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                            channel, channel, message, 0, e));
                 }
             }
         }

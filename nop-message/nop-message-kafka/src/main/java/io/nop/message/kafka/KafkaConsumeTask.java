@@ -74,6 +74,11 @@ public class KafkaConsumeTask {
     private volatile boolean active = false;
     // Rebalance listener runs only on the poll thread; plain boolean suffices.
     private boolean seekToTimeApplied = false;
+    // WI16: message-level failure context, filled by the inner catches before rethrow.
+    private String lastFailureTopic;
+    private String lastFailureLocation;
+    private Object lastFailureMessage;
+    private final java.util.Map<String, Integer> failureAttempts = new java.util.HashMap<>();
 
 
     /** WI7: created before the executor exists; bindExecutor completes the wiring. */
@@ -222,7 +227,7 @@ public class KafkaConsumeTask {
                 break;
             } catch (Exception e) {
                 LOG.error("nop.err.message.kafka.consume-fail", e);
-                config.getConsumer().onException(e);
+                dispatchConsumeFailure(e);
                 if (active) {
                     try {
                         Thread.sleep(consumeErrorBackoffMs);
@@ -284,10 +289,17 @@ public class KafkaConsumeTask {
                     }
                 }
                 context.commit();
+                // WI16: success resets the consecutive-failure counter for this location.
+                failureAttempts.remove(record.topic() + "-" + record.partition() + "@"
+                        + record.offset());
             } catch (Exception e) {
                 LOG.error("nop.err.message.kafka.consume-record-fail:topic={},offset={}",
                         record.topic(), record.offset(), e);
                 context.rollback();
+                // WI16: carry the record context up to the run loop's failure dispatch.
+                lastFailureTopic = record.topic();
+                lastFailureLocation = record.topic() + "-" + record.partition() + "@" + record.offset();
+                lastFailureMessage = apiMessage;
                 // Re-seek to the failed record for at-least-once redelivery.
                 consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
                 throw e;
@@ -414,6 +426,14 @@ public class KafkaConsumeTask {
             commitConverged(committedBoundaries);
             rewindUndispatched(recordList, committedBoundaries);
         } catch (Exception e) {
+            // WI16: best-effort failure context from the progress pointer.
+            if (progress < recordList.size()) {
+                ConsumerRecord<String, String> failed = recordList.get(progress);
+                lastFailureTopic = failed.topic();
+                lastFailureLocation = failed.topic() + "-" + failed.partition() + "@"
+                        + failed.offset();
+                lastFailureMessage = list.get(progress).getMessage();
+            }
             rewindFrom(recordList, progress);
             try {
                 ctx.rollback();
@@ -421,6 +441,28 @@ public class KafkaConsumeTask {
                 e.addSuppressed(rollbackError);
             }
             throw e;
+        }
+    }
+
+    /**
+     * WI16: dispatches {@link IMessageConsumer#onConsumeFailure} with the context captured
+     * by the inner catches (framework-level failures get topic=null, attempt=0). The
+     * dispatch is guarded — a throwing user callback must not kill the consume thread.
+     */
+    private void dispatchConsumeFailure(Exception e) {
+        String location = lastFailureLocation;
+        Object message = lastFailureMessage;
+        lastFailureLocation = null;
+        lastFailureMessage = null;
+        int attempt = 0;
+        if (location != null) {
+            attempt = failureAttempts.merge(location, 1, Integer::sum);
+        }
+        try {
+            config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                    lastFailureTopic, location, message, attempt, e));
+        } catch (Exception callbackError) {
+            LOG.warn("nop.err.message.kafka.failure-callback-throw", callbackError);
         }
     }
 

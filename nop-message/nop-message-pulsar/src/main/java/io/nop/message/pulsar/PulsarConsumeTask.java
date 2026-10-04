@@ -44,6 +44,11 @@ public class PulsarConsumeTask {
     private final long consumeErrorBackoffMs;
 
     private volatile boolean active = false;
+    // WI16: message-level failure context, filled by the inner catches before rethrow.
+    private String lastFailureTopic;
+    private String lastFailureLocation;
+    private Object lastFailureMessage;
+    private final java.util.Map<String, Integer> failureAttempts = new java.util.HashMap<>();
 
     public PulsarConsumeTask(PulsarMessageService service, ExecutorService executor,
                              Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
@@ -79,7 +84,7 @@ public class PulsarConsumeTask {
                 }
             } catch (Exception e) {
                 LOG.error("nop.err.message.pulsar.consume-fail", e);
-                config.getConsumer().onException(e);
+                dispatchConsumeFailure(e);
                 if (active) {
                     try {
                         Thread.sleep(consumeErrorBackoffMs);
@@ -157,6 +162,8 @@ public class PulsarConsumeTask {
             context.commit();
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
+            lastFailureLocation = null;
+            lastFailureMessage = null;
             pulsarConsumer.negativeAcknowledge(messages);
             try {
                 context.rollback();
@@ -204,6 +211,8 @@ public class PulsarConsumeTask {
                 }
                 FutureHelper.syncGet(ackAsync(context, message));
             }
+            // WI16: success resets the consecutive-failure counter for this location.
+            failureAttempts.remove(String.valueOf(message.getMessageId()));
             context.commit();
         } catch (Exception e) {
             fail(context, message, e);
@@ -216,6 +225,28 @@ public class PulsarConsumeTask {
             // MSG-F-05: propagate so the run-loop's backoff and onException failure
             // callback are reachable for message-level failures (aligned with Kafka).
             throw e;
+        }
+    }
+
+    /**
+     * WI16: dispatches {@link IMessageConsumer#onConsumeFailure} with the context captured
+     * by fail()/batch (framework-level failures get topic=null, attempt=0). Guarded — a
+     * throwing user callback must not kill the consume thread.
+     */
+    private void dispatchConsumeFailure(Exception e) {
+        String location = lastFailureLocation;
+        Object message = lastFailureMessage;
+        lastFailureLocation = null;
+        lastFailureMessage = null;
+        int attempt = 0;
+        if (location != null) {
+            attempt = failureAttempts.merge(location, 1, Integer::sum);
+        }
+        try {
+            config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                    lastFailureTopic, location, message, attempt, e));
+        } catch (Exception callbackError) {
+            LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
         }
     }
 
@@ -236,6 +267,10 @@ public class PulsarConsumeTask {
     void fail(ConsumeContext context, Message<Object> message, Throwable exception) throws Exception {
         LOG.error("nop.err.message.pulsar.consume-fail:messageId={}", message.getMessageId(), exception);
         pulsarConsumer.negativeAcknowledge(message.getMessageId());
+        // WI16: carry the message context up to the run loop's failure dispatch.
+        lastFailureTopic = message.getTopicName();
+        lastFailureLocation = String.valueOf(message.getMessageId());
+        lastFailureMessage = message.getValue();
     }
 
     /**

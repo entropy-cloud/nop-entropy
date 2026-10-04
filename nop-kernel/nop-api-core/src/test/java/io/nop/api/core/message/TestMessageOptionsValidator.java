@@ -3,6 +3,8 @@ package io.nop.api.core.message;
 import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
+
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -136,6 +138,28 @@ public class TestMessageOptionsValidator {
         // warn-once path for a backend that declared the disposition
         Set<MessageCapability> warnOnce = EnumSet.of(MessageCapability.SEND_TIMEOUT);
         assertDoesNotThrow(() -> MessageOptionsValidator.validateSend(caps(), timeoutOptions, BACKEND, warnOnce));
+    }
+
+    @Test
+    void defaultOnConsumeFailureBridgesToDeprecatedOnException() {
+        // WI16: a consumer that only overrides the deprecated onException still receives
+        // the throwable via the default onConsumeFailure bridge.
+        java.util.List<Exception> bridged = new java.util.ArrayList<>();
+        IMessageConsumer legacy = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
+                return null;
+            }
+
+            @Override
+            public void onException(Exception e) {
+                bridged.add(e);
+            }
+        };
+        RuntimeException boom = new RuntimeException("bridge-me");
+        legacy.onConsumeFailure(new ConsumeFailure("t", "loc", "m", 1, boom));
+        assertEquals(1, bridged.size());
+        assertSame(boom, bridged.get(0));
     }
 
     @Test

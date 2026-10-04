@@ -38,6 +38,37 @@ public interface IMessageConsumer {
         return responses;
     }
 
+    /**
+     * Dispatched by the consume loop for every consumer failure, with full context
+     * (D6 layer one, WI16). The default implementation logs a WARN with the complete
+     * context (error-handling evidence rule) and then bridges to
+     * {@link #onException(Exception)} for legacy overrides.
+     *
+     * <p>Override semantics: overriding this method takes over completely — the default
+     * body (WARN + bridge) no longer runs and {@link #onException(Exception)} will not be
+     * called. {@code onException} is kept deprecated solely for subclasses written against
+     * the old signature; overriding both is not supported (this method wins).
+     */
+    default void onConsumeFailure(ConsumeFailure failure) {
+        Exception e = failure.getThrowable();
+        if (e instanceof java.lang.InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
+        org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(IMessageConsumer.class);
+        if (LOG.isWarnEnabled()) {
+            LOG.warn("nop.err.message.consume-failure:topic={},location={},attempt={}",
+                    failure.getTopic(), failure.getLocation(), failure.getAttempt(), e);
+        }
+        onException(e);
+    }
+
+    /**
+     * @deprecated WI16 (F-20): replaced by {@link #onConsumeFailure(ConsumeFailure)} which
+     * carries topic/location/message/attempt context. Kept as a bridge target for legacy
+     * overrides; the default implementation here is empty because the bridge caller has
+     * already logged the full context.
+     */
+    @Deprecated
     default void onException(Exception e){
 
     }

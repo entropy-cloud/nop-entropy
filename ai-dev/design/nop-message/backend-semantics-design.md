@@ -42,6 +42,7 @@
 - 第二层（后端原生）：Pulsar 接线 `deadLetterPolicy` + `maxDeliveries` 进 consumer 配置；Kafka 无原生 DLQ，提供应用级重发布（消费失败终点时向死信 topic 发布）按需启用。
 - 第三层（nop-retry）：`IRetryEngine` 桥消费第一层失败回调；重试策略统一由 nop-retry 承载，禁止消息层自建重试机制。
 - 无 DLQ substrate 的后端（Local/Redis/MQTT/TDengine/DB）：仅第一层回调，终止拒绝后消息丢弃（留证），不承担后端 DLQ 义务。
+- 实现口径（WI16）：`IMessageConsumer.onConsumeFailure(ConsumeFailure)` 为框架唯一派发点（ConsumeFailure=topic/location/message/attempt/throwable；location 为 `topic-partition@offset` 或 Pulsar messageId 串）；默认实现先 WARN 留证再桥接旧 `onException`（@Deprecated，兼容旧覆写）；派发处防护（用户回调抛异常不杀消费线程）；attempt 为同 location 连续失败计数（成功即清零；跨重启语义归 WI22）。
 
 ### 3.4 D7 消费组身份模型
 
