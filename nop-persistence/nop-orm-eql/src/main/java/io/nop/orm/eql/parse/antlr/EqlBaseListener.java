@@ -1614,13 +1614,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx) { }
+	@Override public void enterSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx) { }
+	@Override public void exitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

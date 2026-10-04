@@ -31,6 +31,20 @@ NULLS
     : N U L L S
     ;
 
+// WI7b Phase 2（plan 37；roadmap EC ①）：ROLLUP/CUBE 保留词（fragment 组合=大小写不敏感），
+// 供 sqlGroupByItem 的 grouping 操作符备选匹配（ⓒ-A 裁定：新增 AST 类 SqlGroupingOp +
+// sqlGroupByItem 新备选前置，ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md
+// §3）。NULLS 三件套先例：显式 token 定义在 IDENTIFIER_ 之前（无 lexer 规则的隐式 token 永不可达）+
+// BaseRule.g4 unreservedWord_ 双登记（保住列名/别名 rollup/cube 可解析）+ 三份必测语料 0 命中。
+// 新增 2 个 token、其后 Literals token 序号顺延 +2（零 token 删除——"不删除 lexer token"红线不触）。
+ROLLUP
+    : R O L L U P
+    ;
+
+CUBE
+    : C U B E
+    ;
+
 IDENTIFIER_
     : [A-Za-z_$][A-Za-z_$0-9]*
     |  DQ_ ~('\r'|'"'|'\n')+ DQ_

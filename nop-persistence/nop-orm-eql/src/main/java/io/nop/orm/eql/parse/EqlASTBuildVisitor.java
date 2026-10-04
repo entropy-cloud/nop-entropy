@@ -415,6 +415,44 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * WI7b（plan 37，roadmap EC ①；ⓒ-A 裁定文档 §3）：GROUP BY 位置 grouping 操作符
+     * {@code ROLLUP(args)} / {@code CUBE(args)}（BaseRule.g4 sqlGroupByItem 前置 label 备选）。
+     * 构建 wrapper：{@code SqlGroupByItem.expr = SqlGroupingOp(type, args)}——items 列表类型
+     * 零改动；生成方法体只建空节点 + validate()（expr 必填必失败），因此完全重写、不调 super
+     * （visitSqlIntervalExpr_string 同款）。备选前置使 GROUP BY 位置新节点胜出（守护用例 =
+     * TestEqlGroupingOpsDialect 在 h2 上断言 NOT_SUPPORT_FEATURE 而非 UNKNOWN_FUNCTION）。
+     */
+    @Override
+    public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_rollup(
+            EqlParser.SqlGroupByItem_rollupContext ctx) {
+        return buildGroupingOpItem(ctx, io.nop.orm.eql.enums.SqlGroupingOpType.ROLLUP, ctx.functionArgs_());
+    }
+
+    @Override
+    public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_cube(
+            EqlParser.SqlGroupByItem_cubeContext ctx) {
+        return buildGroupingOpItem(ctx, io.nop.orm.eql.enums.SqlGroupingOpType.CUBE, ctx.functionArgs_());
+    }
+
+    private io.nop.orm.eql.ast.SqlGroupByItem buildGroupingOpItem(ParserRuleContext ctx,
+            io.nop.orm.eql.enums.SqlGroupingOpType type, EqlParser.FunctionArgs_Context argsCtx) {
+        io.nop.orm.eql.ast.SqlGroupingOp op = new io.nop.orm.eql.ast.SqlGroupingOp();
+        op.setLocation(ParseTreeHelper.loc(ctx));
+        op.setType(type);
+        if (argsCtx != null)
+            op.setArgs(buildFunctionArgs_(argsCtx));
+        else
+            op.setArgs(java.util.Collections.emptyList());
+
+        io.nop.orm.eql.ast.SqlGroupByItem item = new io.nop.orm.eql.ast.SqlGroupByItem();
+        item.setLocation(ParseTreeHelper.loc(ctx));
+        item.setExpr(op);
+        item.normalize();
+        item.validate();
+        return item;
+    }
+
+    /**
      * rules: SqlBinaryExpr_compare
      */
     public io.nop.orm.eql.enums.SqlOperator SqlBinaryExpr_operator(ParseTree node) {

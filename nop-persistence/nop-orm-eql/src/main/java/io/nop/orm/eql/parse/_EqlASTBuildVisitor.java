@@ -139,6 +139,36 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlExpr_simple(node);
         }
       
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_cube(SqlGroupByItem_cubeContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_expr(SqlGroupByItem_exprContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr(ctx.expr)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_rollup(SqlGroupByItem_rollupContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlInQueryExpr visitSqlInQueryExpr(SqlInQueryExprContext ctx){
           io.nop.orm.eql.ast.SqlInQueryExpr ret = new io.nop.orm.eql.ast.SqlInQueryExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -902,15 +932,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlDecorator> buildSqlDecorators_(SqlDe
       }
             
       public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem(SqlGroupByItemContext ctx){
-          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlGroupByItem)ctx.accept(this);
           
-            if(ctx.expr != null){
-               ret.setExpr((visitSqlExpr(ctx.expr)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
 public java.util.List<io.nop.orm.eql.ast.SqlGroupByItem> buildSqlGroupByItems_(SqlGroupByItems_Context ctx){

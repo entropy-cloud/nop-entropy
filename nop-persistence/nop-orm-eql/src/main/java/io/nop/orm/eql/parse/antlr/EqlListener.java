@@ -1406,15 +1406,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	void enterSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	void exitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlTypeExpr}.
 	 * @param ctx the parse tree

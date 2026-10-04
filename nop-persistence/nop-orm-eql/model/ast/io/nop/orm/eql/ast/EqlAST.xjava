@@ -4,6 +4,7 @@ package io.nop.orm.eql.ast;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
+import io.nop.orm.eql.enums.SqlGroupingOpType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
@@ -228,6 +229,7 @@ class EqlAST {
         @PropMeta(mandatory = true)
         SqlExpr expr;
     }
+
 
     class SqlOrderByItem {
         @PropMeta(mandatory = true)
@@ -573,5 +575,16 @@ class EqlAST {
 
     class SqlRollback extends SqlTransactionStatement {
 
+    }
+
+    // WI7b（plan 37，roadmap EC ①，ⓒ-A 裁定）：GROUP BY 位置 grouping 操作符
+    // ROLLUP(args)/CUBE(args)。由 sqlGroupByItem 的 label 备选（SqlGroupByItem_rollup/_cube）
+    // 经手写 EqlASTBuildVisitor 构建并以 SqlGroupByItem.expr wrapper 挂载（items 列表类型
+    // 零改动）。ordinal 尾部追加 = 67（EqlASTKind，落点登记见裁定文档 §3.5/§10）。
+    class SqlGroupingOp extends SqlExpr {
+        @PropMeta(mandatory = true)
+        SqlGroupingOpType type;
+
+        List<SqlExpr> args;
     }
 }

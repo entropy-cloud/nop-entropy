@@ -843,11 +843,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	T visitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlTypeExpr}.
 	 * @param ctx the parse tree

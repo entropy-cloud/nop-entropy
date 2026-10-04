@@ -103,6 +103,11 @@ unreservedWord_:
     // WI7 Phase 3: NULLS 无保留 token（词法落 IDENTIFIER_），经 unreservedWord_ 进入
     // NULLS FIRST/LAST 子句位置与标识符位置（plan 26 Phase 3）
     | NULLS
+    // WI7b Phase 2: ROLLUP/CUBE 有 Literals.g4 显式 token（grouping 操作符），双登记
+    // unreservedWord_ 保住标识符位置（列名/别名 rollup/cube 仍可解析——plan 37，
+    // ⓒ-A 裁定文档 §3.1）。非 GROUP BY 位置的 rollup(x)/cube(x) 仍经 sqlIdentifier_func_
+    // 解析为 SqlRegularFunction，报错依赖函数表未注册（unknown-function）。
+    | ROLLUP | CUBE
     ;
 
 // variable
@@ -423,8 +428,20 @@ sqlOrderByItem
     : expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?
     ;
 
+// WI7b（roadmap EC ①，ai-dev/plans/37-eql-wi7b-analytic-features.md Phase 2）：GROUP BY 位置
+// grouping 操作符 ROLLUP(...)/CUBE(...)。ⓒ-A 裁定（ai-dev/design/eql-cross-db-compat/
+// 2026-10-04-wi7b-phase0-adjudications.md §3）：新备选必须**前置**——ROLLUP(a,b) 同时匹配
+// 既有 expr=sqlExpr 备选，ANTLR 歧义由备选顺序决定，排后即死代码；label 备选内零 prop 赋值，
+// 构建全部在手写 EqlASTBuildVisitor visitSqlGroupByItem_rollup/_cube 完成（wrapper 模式：
+// SqlGroupByItem.expr = SqlGroupingOp，visitSqlIntervalExpr_string 同款）；既有备选同步补
+// label（多备选规则全 label 是 ANTLR 硬要求，sqlExpr 规则四 label 先例）。
+// 非 GROUP BY 位置 rollup(x)/cube(x) 仍经 unreservedWord_ → sqlIdentifier_func_ 解析为
+// SqlRegularFunction，报错 = 函数表永不注册 → ERR_EQL_UNKNOWN_FUNCTION（放置排他来自
+// "GROUP BY 之外无注册"）。GROUPING SETS 永久否决（roadmap ledger），无第三备选。
 sqlGroupByItem
-    : expr=sqlExpr
+    : ROLLUP LP_ functionArgs_? RP_ # SqlGroupByItem_rollup
+    | CUBE LP_ functionArgs_? RP_ # SqlGroupByItem_cube
+    | expr=sqlExpr # SqlGroupByItem_expr
     ;
 
 sqlTypeExpr

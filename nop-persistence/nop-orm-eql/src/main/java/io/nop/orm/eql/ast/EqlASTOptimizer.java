@@ -211,6 +211,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlRollback:
                 return optimizeSqlRollback((SqlRollback)node,context);
             
+                case SqlGroupingOp:
+                return optimizeSqlGroupingOp((SqlGroupingOp)node,context);
+            
         default:
         throw new IllegalArgumentException("invalid ast kind");
         }
@@ -1977,6 +1980,24 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                 incChangeCount();
                                 if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlGroupingOp(SqlGroupingOp node, C context){
+        SqlGroupingOp ret = node;
+
+        
+                    if(node.getArgs() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlExpr> argsOpt = optimizeList(node.getArgs(),true, context);
+                            if(argsOpt != node.getArgs()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
+                                ret.setArgs(argsOpt);
                             }
                         
                     }
