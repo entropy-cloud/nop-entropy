@@ -236,6 +236,13 @@
              the date of the last day of the month that contains date"）；oracle-reverse 继承。
              不进 default（注册面纪律）。 -->
         <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号。TO_CHAR 'IW' = "Calendar week of
+             year (1-52 or 1-53), as defined by the ISO 8601 standard"（territory 无关，
+             镜像既有 quarter 模板的 to_number(to_char(...)) 房法）。oracle-reverse 继承。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>to_number(to_char({0},'IW'))</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

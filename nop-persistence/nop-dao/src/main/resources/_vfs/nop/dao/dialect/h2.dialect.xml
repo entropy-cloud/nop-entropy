@@ -200,6 +200,15 @@
             <testSql>LAST_DAY(DATE '2026-02-10')</testSql>
         </native>
 
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号（1-53）。H2 无 WEEKOFYEAR 函数
+             （[实测] 语法错误），ISO_WEEK 官方钉死 ISO 定义（"uses the ISO definition when
+             first week of year should have at least four days and week is started with
+             Monday"）；WEEK(d) locale 依赖弃用。h2gis 继承。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>ISO_WEEK({0})</source>
+            <testSql>ISO_WEEK(DATE '2026-02-10')</testSql>
+        </template>
+
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
         </template>

@@ -153,6 +153,12 @@
              value for the last day of the month"）；mariadb/mysql5.7 继承。
              不进 default（注册面纪律：未取证方言编译期响亮报错）。 -->
         <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号（1-53）。MySQL 原生 WEEKOFYEAR
+             （8.0 手册: "equivalent to WEEK(date,3)"，mode 3 = Monday 起点 + 4 天规则 = ISO）；
+             mariadb/mysql5.7 继承。注意 WEEK(d) 默认 mode 受 default_week_format 变量影响，
+             归一化只落 ISO 语义。 -->
+        <native name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP"/>
         <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
              ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。MySQL 8.0 TRIM([{BOTH|LEADING|TRAILING} [remstr] FROM] str)。mariadb/mysql5.7 继承。 -->
         <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">

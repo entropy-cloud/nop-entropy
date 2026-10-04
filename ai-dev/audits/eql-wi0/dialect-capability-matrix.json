@@ -249,6 +249,7 @@
         "upper",
         "uuid",
         "uuidv7",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -395,6 +396,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -501,6 +503,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -600,6 +603,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -667,6 +671,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -766,6 +771,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -855,6 +861,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -955,6 +962,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -1055,6 +1063,7 @@
         "trimChars",
         "upper",
         "uuid",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -1154,6 +1163,7 @@
         "trim",
         "trimChars",
         "upper",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
@@ -1253,6 +1263,7 @@
         "trim",
         "trimChars",
         "upper",
+        "weekofyear",
         "year"
       ],
       "loadable": true,
