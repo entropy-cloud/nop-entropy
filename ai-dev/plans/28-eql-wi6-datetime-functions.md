@@ -191,28 +191,28 @@ Exit Criteria:
 
 ### Phase 3 - `dayofweek(d)` → 规范计法（归一化注册）
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 的方言 XML/文档/测试面
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
-- [ ] 修复前红：`dayofweek(o.createTime)` 今天全方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言基线（红），再断言落地（绿）。
-- [ ] 按 Phase 0 规范计法 + cell 矩阵注册：模板算术换算 cell（如 postgresql `EXTRACT(ISODOW FROM {0})` 或 mysql 换算表达式）与原生命中 cell 产出**同一规范值域**——每方言一条"同输入同规范值"的一致性断言（约束 4"一致性"类，跨方言值等价是本函数的核心验收）。
-- [ ] `DATEFIRST`/NLS 依赖 cell（mssql `DATEPART(weekday)`、oracle `TO_CHAR 'D'`）：按 Phase 0 裁定——有确定性换算模板则落，否则不落 + 登记差异行；**不允许落一个值随会话设置漂移的 cell**。
-- [ ] 正向用例（EC ①）：h2 文本 + 真库执行 + 至少一个换算 cell 的渲染文本断言。
-- [ ] 负向用例（EC ②）：未注册方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向。
-- [ ] 接线验证（#23）+ 约束 4"不等价"登记：`dayofweek` 计法分叉（ODBC vs ISO 各库原生值对照表入 owner doc）。
-- [ ] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
+- [x] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
+- [x] 修复前红：`dayofweek(o.createTime)` 今天全方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言基线（红），再断言落地（绿）。
+- [x] 按 Phase 0 规范计法 + cell 矩阵注册：模板算术换算 cell（如 postgresql `EXTRACT(ISODOW FROM {0})` 或 mysql 换算表达式）与原生命中 cell 产出**同一规范值域**——每方言一条"同输入同规范值"的一致性断言（约束 4"一致性"类，跨方言值等价是本函数的核心验收）。
+- [x] `DATEFIRST`/NLS 依赖 cell（mssql `DATEPART(weekday)`、oracle `TO_CHAR 'D'`）：按 Phase 0 裁定——有确定性换算模板则落，否则不落 + 登记差异行；**不允许落一个值随会话设置漂移的 cell**。
+- [x] 正向用例（EC ①）：h2 文本 + 真库执行 + 至少一个换算 cell 的渲染文本断言。
+- [x] 负向用例（EC ②）：未注册方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向。
+- [x] 接线验证（#23）+ 约束 4"不等价"登记：`dayofweek` 计法分叉（ODBC vs ISO 各库原生值对照表入 owner doc）。
+- [x] 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本；跨方言"同输入同规范值"一致性用例通过。
-- [ ] 负向用例断言具体错误码；无静态值/无会话依赖 cell 被落地；无静默跳过。
-- [ ] 接线验证用例通过；计法分叉对照表已落 owner doc。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本；跨方言"同输入同规范值"一致性用例通过。
+- [x] 负向用例断言具体错误码；无静态值/无会话依赖 cell 被落地；无静默跳过。
+- [x] 接线验证用例通过；计法分叉对照表已落 owner doc。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - `dateTrunc(unit, d)` → 单位字符串约定（无损 cell 注册）
 
