@@ -89,7 +89,7 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 - **WI7b** 分析型：`sqlIntervalLiteral` 模板落地 + `rollup`/`cube`/`grouping` 注册 + 窗口 `OVER` 放宽与 frame + `count(*) FILTER` 文档引导: `todo`
 - **WI8** NULL 三值语义谓词 `IS [NOT] DISTINCT FROM` / `IS [NOT] TRUE/FALSE/UNKNOWN`: `planned`
 - **WI9a** CAST 类型系统·语法与别名（复用 WI2 已落地的 `BOOLEAN`；新增 `NUMBER`/`TEXT`/`BOOL` 别名 / `UUID` / 收窄 `dataTypeName_` 必拒项）: `done`
-- **WI9b** CAST 类型系统·时区类型（取消 `StdSqlType` 时区类型注释 + 同步语法拼写 + 迁移说明）: `todo`
+- **WI9b** CAST 类型系统·时区类型（取消 `StdSqlType` 时区类型注释 + 同步语法拼写 + 迁移说明）: `planned`
 - **WI10a** `IN` 列表长度上限策略设计（阈值来源 + 改写形态 + 事务语义，产出物落 `ai-dev/design/`）: `done`
 - **WI10b** 按策略实现 + BUG-13 死标志三档处置（原账面"接线 10 / 补消费者 1 / 标 deprecated 3"；⚠️ 2026-10-04 执行终裁修订：**接线 2 / 补 accessor+测试证明 1 / 改档登记 5 / 软弃用 3 / WI2 已处置 1 / WI7 successor-owned 1**——改档与台账见 Phase 0 裁定文档 §1-§3，owner doc「死标志台账」为 live 对账口径）: `done`
 - **WI11** DAO 层批量 upsert 原语（复用已归一化的 `ERR_SQL_DUPLICATE_KEY`，迁移 nop-stream 两个私有枚举）: `planned`
