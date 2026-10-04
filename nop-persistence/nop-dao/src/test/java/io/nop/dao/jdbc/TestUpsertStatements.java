@@ -177,7 +177,9 @@ public class TestUpsertStatements {
     /**
      * Stage 3 (SQLState-23000 + known vendor code carryover): MySQL 1022 is the
      * decision-table-exclusive code and must not be silently dropped; unknown vendor
-     * codes under 23000 are not duplicates.
+     * codes under 23000 are not duplicates. SQL Server 2601/2627 and Oracle 1 are the
+     * registered duplicate signatures; MySQL 1451 (foreign key) shares SQLState 23000
+     * with the duplicates and must stay separated by the vendor code.
      */
     @Test
     public void testDuplicateKeyVendorCodeCarryover() {
@@ -186,11 +188,51 @@ public class TestUpsertStatements {
         assertTrue(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
                 new SQLException("duplicate entry", "23000", 1062)));
         assertTrue(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
-                new SQLException("unique violation", "23000", 2627)));
+                new SQLException("Violation of UNIQUE KEY constraint", "23000", 2627)));
+        assertTrue(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Violation of UNIQUE KEY constraint", "23000", 2601)));
         assertTrue(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
                 new SQLException("ORA-00001", "23000", 1)));
         assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
                 new SQLException("some other integrity problem", "23000", 4242)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Cannot delete or update a parent row: a foreign key constraint fails", "23000", 1451)),
+                "a 23000 foreign-key violation must not be misread as a duplicate");
+    }
+
+    /**
+     * Structured-field decision discipline (R5-CON-08, carried over from the legacy
+     * decision table's test battery): genuine errors are never classified as
+     * duplicates, message text alone never decides, and localized (non-English)
+     * conflict messages are driver-locale independent via SQLState.
+     */
+    @Test
+    public void testStructuredFieldsOnlyDecisionDiscipline() {
+        // Genuine errors must not enter the UPDATE retry branch.
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Connection refused", "08001", 0)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Table not found in statement", "42S02", 0)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Syntax error in SQL statement", "42000", 0)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Data conversion failed", "HY000", 0)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("Login denied", null, 1045)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new RuntimeException("no sql exception at all")));
+
+        // Message sniffing is gone: "unique"/"primary key" words in a message with
+        // non-conflict structured fields must not decide.
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("The statement was rejected because it would update a unique index during validation",
+                        "08000", 0)));
+        assertFalse(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("connection dropped mid-primary key lookup", "08S01", 0)));
+
+        // Localized conflict message with the real SQLState is detected.
+        assertTrue(UpsertStatements.isDuplicateKeyException(dialect("oracle"),
+                new SQLException("主键冲突：记录已存在", "23505", 0)));
     }
 
     /**

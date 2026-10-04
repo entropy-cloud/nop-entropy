@@ -208,55 +208,57 @@ Exit Criteria:
 
 ### Phase 2 - 实现：原语 + 两枚举迁移
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-dao/src/main/java/io/nop/dao/`（按 Phase 0 落点）、`nop-stream/nop-stream-runtime/.../checkpoint/storage/JdbcCheckpointStorage.java`、`nop-stream/nop-stream-connector-jdbc/.../JdbcTwoPhaseCommitSink.java`、`nop-dao`/`nop-stream-runtime`/`nop-stream-connector-jdbc` 测试、`ai-dev/logs/`
 
 - Item Types: `Feature`（新原语）、`Fix`（重复实现收拢）、`Proof`（单测红→绿 + 接线验证）
 
-- [ ] 新原语实现（按 Phase 0/1 终裁）：方言原生单语句 upsert 的生成（PG/MySQL/H2 三形态 + 转义统一 `escapeSQLName`）与执行、批量语义、无原生方言的显式行为（终裁：显式报错或显式回落，**禁静默**——Minimum Rules #24：不允许空方法体/吞异常/placeholder）；重复键判定口径按 Phase 1 契约统一。
-- [ ] `JdbcCheckpointStorage` 切换：`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 三使用点改消费新原语；删除私有 `UpsertDialect`/`resolveUpsertDialect`/`buildNativeUpsertSqlText`（GENERIC 回落若终裁下沉 nop-dao 则 `runInsertOrUpdateSeparateTxns`/`isDuplicateKeyException` 一并迁走删除，否则保留并注明归属）。
-- [ ] `JdbcTwoPhaseCommitSink` 切换：keyed upsert 路径改消费新原语（`ensureKeyedColumns` 首批建立时确定策略，volatile 缓存语义按契约保持）；删除私有 `UpsertDialect`/`resolveUpsertDialect`/`buildUpsertSql`。
-- [ ] 单元测试红→绿：原语侧（三方言 SQL 形态断言——迁移自 `TestJdbcCheckpointStorage#testUpsertSqlShapePerDialect` 的断言面 + 新增 key-only 空更新集/转义/名称解析失败行为/key-only 在 PG `DO NOTHING` 与 MySQL 自赋值两形态的分支覆盖）；stream 侧既有测试迁移后全绿（覆盖面不减）。
-- [ ] **接线验证（Minimum Rules #23）**：stream 两侧组件在运行时**真实调用**新原语（迁移后的既有行为测试即证明——H2 真执行路径经新原语产出 upsert 并落库；不得只验证原语存在 + stream 存在）。
-- [ ] `./mvnw test -pl :nop-dao,:nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 全绿（stream 既有失败豁免口径见 Current Baseline 末节，以实跑为准）。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 零命中；`--module nop-stream-runtime`、`--module nop-stream-connector-jdbc` 同样零命中。
-- [ ] owner-doc 更新归 Phase 4 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 4`；`ai-dev/logs/` 对应日期条目已更新。
+> ⚠️ **执行期勘误（2026-10-05，两处，均已落 owner doc/契约）**：① FALLBACK 策略下方言解析失败的行为由"归入回落路径"修订为**类型化错误 `ERR_DAO_UNKNOWN_QUERY_SPACE`**——`JdbcTemplateImpl.executeUpdate` 无条件解析方言（`:239`），解析失败时后续执行必然失败，"回落"无意义；零新增错误码（既有码）。② plan §4.3 迁移表漏列 `TestJdbcDuplicateKeyDetection`（stream 侧经反射直测已删包私有 `isDuplicateKeyException(Exception)`）——三模块命令 run1 拦截（9 errors NoSuchMethod，`_tmp/wi11/phase2-tri-module.log`），断言面全量迁移至 nop-dao `TestUpsertStatements`（补 2601/1451/消息字样不判定/真错误组/localized 消息 5 组，9→10 用例）后删除该失效文件，覆盖面不减。
+
+- [x] 新原语实现（按 Phase 0/1 终裁）：方言原生单语句 upsert 的生成（PG/MySQL/H2 三形态 + 转义统一 `escapeSQLName`）与执行、批量语义、无原生方言的显式行为（终裁：显式报错或显式回落，**禁静默**——Minimum Rules #24：不允许空方法体/吞异常/placeholder）；重复键判定口径按 Phase 1 契约统一。
+- [x] `JdbcCheckpointStorage` 切换：`storeCheckPoint`/`storeSavepoint`/`storeEpochManifest` 三使用点改消费新原语；删除私有 `UpsertDialect`/`resolveUpsertDialect`/`buildNativeUpsert`/`buildNativeUpsertSqlText`/`runNativeUpsert`/`runInsertOrUpdateSeparateTxns`/`isDuplicateKeyException`/`isDuplicateVendorCode`（GENERIC 回落已终裁下沉 nop-dao，全部迁走删除）。
+- [x] `JdbcTwoPhaseCommitSink` 切换：keyed upsert 路径改消费新原语（`buildKeyedUpsertSql` 消费静态面，`ensureKeyedColumns` 首批建立时确定策略，volatile 缓存语义按契约保持——`keyedColumns`/`upsertSql` 缓存与漂移即 `ERR_STREAM_STATE_ERROR` 不变，`upsertDialect` 字段删除）；删除私有 `UpsertDialect`/`resolveUpsertDialect`/`buildUpsertSql`。
+- [x] 单元测试红→绿：原语侧（三方言 SQL 形态断言——迁移自 `TestJdbcCheckpointStorage#testUpsertSqlShapePerDialect` 的断言面 + 新增 key-only 空更新集/转义/名称解析失败行为/key-only 在 PG `DO NOTHING` 与 MySQL 自赋值两形态的分支覆盖）；stream 侧既有测试迁移后全绿（覆盖面不减）。
+- [x] **接线验证（Minimum Rules #23）**：stream 两侧组件在运行时**真实调用**新原语（迁移后的既有行为测试即证明——H2 真执行路径经新原语产出 upsert 并落库；不得只验证原语存在 + stream 存在）。
+- [x] `./mvnw test -pl :nop-dao,:nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 全绿（stream 既有失败豁免口径见 Current Baseline 末节，以实跑为准）。**run2 实测**：nop-dao 239|0、nop-stream-connector-jdbc 55|0、nop-stream-runtime 1223 中唯一失败 = `TestStreamConnectorRegistryDiscovery#testCapabilityMatrixAlignedWithDesignAdjudication`（debezium-cdc 期望 SINGLE_INSTANCE 实为 PARALLEL）——与 roadmap Cross-Cutting 登记的基线失败逐字一致，按口径豁免并登记（`_tmp/wi11/phase2-tri-module-run2.log`）。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 零命中；`--module nop-stream-runtime`、`--module nop-stream-connector-jdbc` 同样零命中（三模块 exit 0，日志 `_tmp/wi11/hollow-*.log`）。
+- [x] owner-doc 更新归 Phase 4 统一执行，本 Phase 标注 `owner-doc update deferred to Phase 4`；`ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 两枚举 grep 零残留：`grep -rn "UpsertDialect" --include="*.java"` 在 nop-stream 两模块 main 源码零命中（私有枚举与配套私有方法已删）；全仓无第二处 upsert 方言分叉实现。
-- [ ] 新原语单元测试落地且绿（三方言 SQL 形态/key-only/转义/解析失败行为），红证据在案（修复前跑失败的输出，`_tmp/` 留档）。
-- [ ] **接线验证**（#23）：`JdbcCheckpointStorage` 与 `JdbcTwoPhaseCommitSink` 的 H2 真执行测试经新原语完成 upsert（调用链从 stream 组件入口到原语到 JDBC，非 mock 断言）。
-- [ ] **无静默跳过**（#24）：无原生 upsert 方言在原语上显式失败或按终裁显式回落（有测试断言该行为）；新增每个公共方法/分支不存在空实现/吞异常/placeholder。
-- [ ] `./mvnw test -pl :nop-dao,:nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 全绿（BUILD SUCCESS，surefire 汇总在案；豁免项与基线一致时按口径登记，不静默）。
-- [ ] `scan-hollow-implementations.mjs` 三模块（nop-dao/nop-stream-runtime/nop-stream-connector-jdbc）`--severity high` 全部退出码 0。
-- [ ] owner-doc 更新 `deferred to Phase 4`；`ai-dev/logs/` 对应日期条目已更新。
+- [x] 两枚举 grep 零残留：`grep -rn "UpsertDialect" --include="*.java"` 在 nop-stream 两模块 main 源码零命中（私有枚举与配套私有方法已删）；全仓无第二处 upsert 方言分叉实现（test 侧唯一命中 = `TestJdbcCheckpointStorage` javadoc 迁移说明文字）。
+- [x] 新原语单元测试落地且绿（三方言 SQL 形态/key-only/转义/解析失败行为），红证据在案（修复前跑失败的输出，`_tmp/` 留档）——`_tmp/wi11/red-testcompile.log`（stash main 后测试编译"找不到符号"）。
+- [x] **接线验证**（#23）：`JdbcCheckpointStorage` 与 `JdbcTwoPhaseCommitSink` 的 H2 真执行测试经新原语完成 upsert（调用链从 stream 组件入口到原语到 JDBC，非 mock 断言）——`TestJdbcCheckpointStorage` 28/28（`testDuplicateKeyUpsertUpdatesData` H2 MERGE 真执行经 `storeCheckPoint`→`upsertBatch`；`testGenericDialectFallbackSeparateTransactionUpsert` 碰撞回归锚绿）+ `TestJdbcTwoPhaseCommitSinkDml` 8/8（keyed 真执行经 `buildKeyedUpsertSql`→静态面文本）。
+- [x] **无静默跳过**（#24）：无原生 upsert 方言在原语上显式失败或按终裁显式回落（有测试断言该行为——`testNativeOnlyFailsLoudlyOnUnsupportedDialect`/`testFallbackConsumesDuplicateAndUpdatesInFreshTransaction`/`testExecutionFaceRejectsKeyOnlyForm`）；新增每个公共方法/分支不存在空实现/吞异常/placeholder（scan-hollow ×3 exit 0 佐证）。
+- [x] `./mvnw test -pl :nop-dao,:nop-stream-runtime,:nop-stream-connector-jdbc -am -T 1C` 全绿（BUILD 口径：本 WI 模块全绿 + 唯一失败与 roadmap 登记基线逐字一致，豁免登记不静默；surefire 汇总在案）。
+- [x] `scan-hollow-implementations.mjs` 三模块（nop-dao/nop-stream-runtime/nop-stream-connector-jdbc）`--severity high` 全部退出码 0。
+- [x] owner-doc 更新 `deferred to Phase 4`；`ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - H2 真库集成测试 + DB2 `-803` 结构证据
 
-Status: planned
+Status: in progress（H2 三类/批量/端到端/DB2/EC① 零改动已落地并随 C3 捆绑提交；唯一未勾项 = 消费方模块专项命令，按 mtime 纪律排在终局收口日实跑——surefire 证据必须晚于最后 commit）
 Targets: `nop-persistence/nop-dao/src/test/java/io/nop/dao/`（`JdbcTestCase` 派生集成测试 + 翻译链单测）、`ai-dev/logs/`
 
 - Item Types: `Proof`（真库集成测试）、`Feature`（结构证据测试，若 Phase 0 裁定采纳）
 
-- [ ] **H2 三类真库集成测试**（`JdbcTestCase` 载体，按 Phase 0 形态）：插入（首次 upsert 落库、行数 +1、值正确）/ 更新（同键二次 upsert、值更新、行数不增）/ 冲突（真执行撞唯一键 → 翻译链 → 断言 `ERR_SQL_DUPLICATE_KEY` 与 param，而非裸 `SQLException`）。
-- [ ] **批量语义真执行**：多行批（部分新键部分旧键）一次调用后库中行状态断言（新键插入、旧键更新、总行数正确）；批量原子性边界按设计契约的不保证项断言（不夸大契约）。
-- [ ] **端到端验证（Minimum Rules #22）**：上述测试从新原语 public 入口到 H2 库中行状态/异常错误码完整走通（无 mock、无手工构造中间态）；`JdbcCheckpointStorage`（经 `storeCheckPoint`）与 `JdbcTwoPhaseCommitSink`（keyed 路径）各自至少一条端到端在 Phase 2/3 测试中在位。
-- [ ] **DB2 `-803` 结构证据**（按 Phase 0 裁定）：**测试落点先显式裁定（本项内完成，二选一并记录理由）——`TestDialect` 内新增用例 vs 独立测试文件**：前者与 roadmap EC ④ 字面"（TestDialect 的真库执行路径）"同文件对齐（倾向形态：真库执行路径与翻译链证据同宿）；后者须在 owner doc 注记与 EC ④ 字面的映射关系，不得留下"EC ④ 字面落空"的口径空窗。裁定后落地：db2 方言模型 + 合成 `SQLException(vendorCode=-803)` 经 `DialectSQLExceptionTranslator` 断言翻译出 `ERR_SQL_DUPLICATE_KEY`；DB2 真库执行 `[未取证]` 登记随测试 javadoc/owner doc 落档。
-- [ ] **EC ① 回归复核**：11 个生产调用点 grep 复核零改动；消费方模块（nop-auth-service/nop-batch-dao/nop-retry-engine/nop-sys-dao）既有测试随 Phase 2/3 命令闭包或专项命令全绿（若不在 `-pl` 闭包内，补一次 `./mvnw test -pl :nop-auth-service,:nop-batch-dao,:nop-retry-engine,:nop-sys-dao -am -T 1C` 并留证）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **H2 三类真库集成测试**（`JdbcTestCase` 载体，按 Phase 0 形态）：插入（首次 upsert 落库、行数 +1、值正确）/ 更新（同键二次 upsert、值更新、行数不增）/ 冲突（真执行撞唯一键 → 翻译链 → 断言 `ERR_SQL_DUPLICATE_KEY` 与 param，而非裸 `SQLException`）——`TestUpsertPrimitiveH2` 9/9（三类 + 回落两腿 + NATIVE_ONLY + key-only 拒绝 + check 约束不误判）。
+- [x] **批量语义真执行**：多行批（部分新键部分旧键）一次调用后库中行状态断言（新键插入、旧键更新、总行数正确）；批量原子性边界按设计契约的不保证项断言（`testUpsertBatchMixedNewAndOldKeys`——native 路径单事务批量，契约 §4.3 分档不夸大）。
+- [x] **端到端验证（Minimum Rules #22）**：上述测试从新原语 public 入口到 H2 库中行状态/异常错误码完整走通（无 mock、无手工构造中间态）；`JdbcCheckpointStorage`（经 `storeCheckPoint`）与 `JdbcTwoPhaseCommitSink`（keyed 路径）各自至少一条端到端在 Phase 2/3 测试中在位。
+- [x] **DB2 `-803` 结构证据**（按 Phase 0 裁定）：**测试落点先显式裁定（本项内完成，二选一并记录理由）——`TestDialect` 内新增用例 vs 独立测试文件**：前者与 roadmap EC ④ 字面"（TestDialect 的真库执行路径）"同文件对齐（倾向形态：真库执行路径与翻译链证据同宿）；后者须在 owner doc 注记与 EC ④ 字面的映射关系，不得留下"EC ④ 字面落空"的口径空窗。裁定后落地：db2 方言模型 + 合成 `SQLException(vendorCode=-803)` 经 `DialectSQLExceptionTranslator` 断言翻译出 `ERR_SQL_DUPLICATE_KEY`；DB2 真库执行 `[未取证]` 登记随测试 javadoc/owner doc 落档。**裁定 = `TestDialect` 内独立用例 `testDb2DuplicateKeyTranslationChain`**（Phase 0 §6.2 终裁；翻译链断言 + 统一谓词一致性断言，绿）。
+- [ ] **EC ① 回归复核**：11 个生产调用点 grep 复核零改动；消费方模块（nop-auth-service/nop-batch-dao/nop-retry-engine/nop-sys-dao）既有测试随 Phase 2/3 命令闭包或专项命令全绿（若不在 `-pl` 闭包内，补一次 `./mvnw test -pl :nop-auth-service,:nop-batch-dao,:nop-retry-engine,:nop-sys-dao -am -T 1C` 并留证）。**grep 零改动已完成（11/11 命中零 diff，Phase 0 §0 复核在案）；消费方四模块命令按 surefire mtime 纪律排在终局实跑留证**。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 三类测试齐且绿，断言具体结果（行状态/错误码 + param），无"没抛异常"式敷衍断言；冲突类端到端断言 `ERR_SQL_DUPLICATE_KEY` 在案。
-- [ ] **端到端验证**（#22）：H2 真库从原语入口到行状态完整走通的测试在案；stream 两侧经新原语的端到端在案。
-- [ ] DB2 `-803` 按 Phase 0 裁定口径处理完毕（结构证据测试绿 + 真库 `[未取证]` 登记；不伪造真库执行证据）。
-- [ ] EC ① 回归证据：11 调用点零改动（grep 输出）+ 消费方模块测试绿证据。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 三类测试齐且绿，断言具体结果（行状态/错误码 + param），无"没抛异常"式敷衍断言；冲突类端到端断言 `ERR_SQL_DUPLICATE_KEY` 在案。
+- [x] **端到端验证**（#22）：H2 真库从原语入口到行状态完整走通的测试在案；stream 两侧经新原语的端到端在案。
+- [x] DB2 `-803` 按 Phase 0 裁定口径处理完毕（结构证据测试绿 + 真库 `[未取证]` 登记；不伪造真库执行证据）。
+- [ ] EC ① 回归证据：11 调用点零改动（grep 输出）+ 消费方模块测试绿证据（消费方命令在终局收口日实跑后勾选）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - owner doc + ledger 裁定落档 + 状态流转
 

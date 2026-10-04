@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.jdbc.UpsertStatements;
 import io.nop.message.debezium.ChangeEvent;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
@@ -158,16 +159,6 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         }
     }
 
-    /**
-     * Upsert SQL style of the resolved dialect (mirrors the JdbcCheckpointStorage
-     * UpsertDialect precedent). Anything outside the built-in three is rejected for
-     * UPSERT modes: the built-in sync scope targets MySQL and PostgreSQL (cdc-design
-     * §3.2); H2 is recognized for tests.
-     */
-    private enum UpsertDialect {
-        MYSQL, POSTGRESQL, H2
-    }
-
     // ---- Configuration (final) ----
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
@@ -236,7 +227,6 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private transient volatile List<String> keyedColumns;
     private transient volatile String upsertSql;
     private transient volatile String deleteSql;
-    private transient volatile UpsertDialect upsertDialect;
     /**
      * volatile so the task thread (saveState on the barrier
      * path) and the commit thread (finishCommit notification) safely publish /
@@ -1001,8 +991,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         synchronized (this) {
             if (keyedColumns == null) {
                 keyedColumns = first;
-                upsertDialect = resolveUpsertDialect();
-                upsertSql = buildUpsertSql(dialect, upsertDialect, keyedColumns);
+                upsertSql = buildKeyedUpsertSql(keyedColumns);
                 deleteSql = buildDeleteSql(dialect);
             } else if (!keyedColumns.equals(first)) {
                 throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -1036,107 +1025,26 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         }
     }
 
-    private UpsertDialect resolveUpsertDialect() {
-        String name = dialect.getName() == null ? "" : dialect.getName().toLowerCase();
-        if (name.startsWith("postgresql") || name.startsWith("pg")) {
-            return UpsertDialect.POSTGRESQL;
-        }
-        if (name.startsWith("mysql") || name.startsWith("mariadb")) {
-            return UpsertDialect.MYSQL;
-        }
-        if (name.startsWith("h2")) {
-            return UpsertDialect.H2;
-        }
-        throw new StreamException(ERR_STREAM_STATE_ERROR)
-                .param(ARG_DETAIL, "dialect '" + dialect.getName()
-                        + "' has no keyed upsert support in the built-in sync scope"
-                        + " (supported: mysql/mariadb, postgresql; h2 for tests)");
-    }
-
     /**
-     * Keyed upsert statement for the resolved dialect (cdc-design.md §3.5):
-     * MySQL/MariaDB INSERT ... ON DUPLICATE KEY UPDATE, PostgreSQL INSERT ... ON CONFLICT
-     * DO UPDATE SET col = EXCLUDED.col, H2 MERGE INTO ... KEY (...) for tests.
+     * Keyed upsert statement via the WI11 DAO batch-upsert primitive's static face
+     * ({@link UpsertStatements#buildNativeUpsertSqlText}): dialect name resolution,
+     * identifier escaping, and the key-only (empty update set) forms are the
+     * primitive's contract now. The built-in sync scope still rejects anything outside
+     * MySQL/MariaDB and PostgreSQL for UPSERT modes (cdc-design §3.2); H2 is recognized
+     * for tests — the rejection keeps this sink's original loud-failure semantics.
      */
-    private String buildUpsertSql(IDialect d, UpsertDialect style, List<String> columns) {
-        StringBuilder columnList = new StringBuilder();
-        for (int i = 0; i < columns.size(); i++) {
-            if (i > 0) {
-                columnList.append(", ");
-            }
-            columnList.append(d.escapeSQLName(columns.get(i)));
+    private String buildKeyedUpsertSql(List<String> columns) {
+        List<String> updateColumns = new ArrayList<>(columns);
+        updateColumns.removeAll(keyColumns);
+        String sql = UpsertStatements.buildNativeUpsertSqlText(dialect, tableName, columns, keyColumns,
+                updateColumns);
+        if (sql == null) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "dialect '" + dialect.getName()
+                            + "' has no keyed upsert support in the built-in sync scope"
+                            + " (supported: mysql/mariadb, postgresql; h2 for tests)");
         }
-        StringBuilder placeholders = new StringBuilder();
-        for (int i = 0; i < columns.size(); i++) {
-            if (i > 0) {
-                placeholders.append(", ");
-            }
-            placeholders.append("?");
-        }
-        StringBuilder keyList = new StringBuilder();
-        for (int i = 0; i < keyColumns.size(); i++) {
-            if (i > 0) {
-                keyList.append(", ");
-            }
-            keyList.append(d.escapeSQLName(keyColumns.get(i)));
-        }
-
-        StringBuilder updateColumns = new StringBuilder();
-        for (String col : columns) {
-            if (keyColumns.contains(col)) {
-                continue;
-            }
-            if (updateColumns.length() > 0) {
-                updateColumns.append(", ");
-            }
-            updateColumns.append(d.escapeSQLName(col));
-        }
-
-        String insert = "INSERT INTO " + d.escapeSQLName(tableName)
-                + " (" + columnList + ") VALUES (" + placeholders + ")";
-        switch (style) {
-            case POSTGRESQL: {
-                if (updateColumns.length() == 0) {
-                    return insert + " ON CONFLICT (" + keyList + ") DO NOTHING";
-                }
-                StringBuilder set = new StringBuilder();
-                for (String col : columns) {
-                    if (keyColumns.contains(col)) {
-                        continue;
-                    }
-                    if (set.length() > 0) {
-                        set.append(", ");
-                    }
-                    set.append(d.escapeSQLName(col)).append(" = EXCLUDED.")
-                            .append(d.escapeSQLName(col));
-                }
-                return insert + " ON CONFLICT (" + keyList + ") DO UPDATE SET " + set;
-            }
-            case MYSQL: {
-                if (updateColumns.length() == 0) {
-                    String firstKey = d.escapeSQLName(keyColumns.get(0));
-                    return insert + " ON DUPLICATE KEY UPDATE " + firstKey + " = " + firstKey;
-                }
-                StringBuilder set = new StringBuilder();
-                for (String col : columns) {
-                    if (keyColumns.contains(col)) {
-                        continue;
-                    }
-                    if (set.length() > 0) {
-                        set.append(", ");
-                    }
-                    set.append(d.escapeSQLName(col)).append(" = VALUES(")
-                            .append(d.escapeSQLName(col)).append(")");
-                }
-                return insert + " ON DUPLICATE KEY UPDATE " + set;
-            }
-            case H2:
-                return "MERGE INTO " + d.escapeSQLName(tableName)
-                        + " (" + columnList + ") KEY (" + keyList + ") VALUES (" + placeholders + ")";
-            default:
-                throw new StreamException(ERR_STREAM_STATE_ERROR)
-                        .param(ARG_DETAIL, "unsupported upsert dialect style: " + style);
-        }
+        return sql;
     }
 
     /**

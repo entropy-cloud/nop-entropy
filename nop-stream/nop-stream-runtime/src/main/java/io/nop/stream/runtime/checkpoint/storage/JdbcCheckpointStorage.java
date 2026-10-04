@@ -22,6 +22,7 @@ import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.jdbc.UpsertPolicy;
 import io.nop.dataset.IDataRow;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;
@@ -88,26 +89,12 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                     checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
                     checkpoint.getCompletedTimestamp(), stateData};
 
-            UpsertDialect dialect = resolveUpsertDialect();
-            if (dialect == UpsertDialect.GENERIC) {
-                SQL insert = SQL.begin().name("storeCheckpoint").querySpace(querySpace)
-                        .sql("INSERT INTO " + TABLE_NAME +
-                                " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                                "completed_timestamp, state_data) VALUES (?,?,?,?,?,?,?,?)", values).end();
-                SQL update = SQL.begin().name("updateCheckpoint").querySpace(querySpace)
-                        .sql("UPDATE " + TABLE_NAME +
-                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
-                                checkpoint.getCompletedTimestamp(), stateData,
-                                checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId())
-                        .end();
-                runInsertOrUpdateSeparateTxns(insert, update, "storeCheckpoint");
-            } else {
-                SQL upsert = buildNativeUpsert(dialect, "storeCheckpoint", TABLE_NAME,
-                        columns, conflictColumns, updateColumns, values);
-                runNativeUpsert(upsert);
-            }
+            // WI11: the DAO batch-upsert primitive owns the dialect branching (native
+            // single-statement upsert, or the two-transaction INSERT→UPDATE fallback on
+            // dialects without one — the fallback behavior this storage always had).
+            jdbcTemplate.upsertBatch(querySpace, "storeCheckpoint", TABLE_NAME,
+                    Arrays.asList(columns), Arrays.asList(conflictColumns), Arrays.asList(updateColumns),
+                    Collections.singletonList(values), UpsertPolicy.FALLBACK_INSERT_UPDATE);
 
             return checkpoint.getJobId() + "_" + checkpoint.getCheckpointId();
         } catch (NopException e) {
@@ -316,27 +303,10 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
                     checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
                     checkpoint.getCompletedTimestamp(), stateData, targetPath};
 
-            UpsertDialect dialect = resolveUpsertDialect();
-            if (dialect == UpsertDialect.GENERIC) {
-                SQL insert = SQL.begin().name("storeSavepoint").querySpace(querySpace)
-                        .sql("INSERT INTO " + TABLE_NAME +
-                                " (sid, job_id, pipeline_id, checkpoint_id, checkpoint_type, trigger_timestamp, " +
-                                "completed_timestamp, state_data, savepoint_path) VALUES (?,?,?,?,?,?,?,?,?)", values)
-                        .end();
-                SQL update = SQL.begin().name("updateSavepoint").querySpace(querySpace)
-                        .sql("UPDATE " + TABLE_NAME +
-                                " SET checkpoint_type = ?, trigger_timestamp = ?, completed_timestamp = ?, state_data = ?, savepoint_path = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND checkpoint_id = ?",
-                                checkpoint.getCheckpointType().name(), checkpoint.getTriggerTimestamp(),
-                                checkpoint.getCompletedTimestamp(), stateData, targetPath,
-                                checkpoint.getJobId(), checkpoint.getPipelineId(), checkpoint.getCheckpointId())
-                        .end();
-                runInsertOrUpdateSeparateTxns(insert, update, "storeSavepoint");
-            } else {
-                SQL upsert = buildNativeUpsert(dialect, "storeSavepoint", TABLE_NAME,
-                        columns, conflictColumns, updateColumns, values);
-                runNativeUpsert(upsert);
-            }
+            // WI11: dialect branching owned by the DAO batch-upsert primitive (see storeCheckPoint).
+            jdbcTemplate.upsertBatch(querySpace, "storeSavepoint", TABLE_NAME,
+                    Arrays.asList(columns), Arrays.asList(conflictColumns), Arrays.asList(updateColumns),
+                    Collections.singletonList(values), UpsertPolicy.FALLBACK_INSERT_UPDATE);
 
             return targetPath;
         } catch (NopException e) {
@@ -517,25 +487,10 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
             Object[] values = {sid, manifest.getJobId(), manifest.getPipelineId(), manifest.getEpochId(),
                     checkpointType, state, manifest.getTimestamp(), stateData};
 
-            UpsertDialect dialect = resolveUpsertDialect();
-            if (dialect == UpsertDialect.GENERIC) {
-                SQL insert = SQL.begin().name("storeEpochManifest").querySpace(querySpace)
-                        .sql("INSERT INTO " + EPOCH_TABLE_NAME +
-                                " (sid, job_id, pipeline_id, epoch_id, checkpoint_type, state, timestamp, state_data) " +
-                                "VALUES (?,?,?,?,?,?,?,?)", values).end();
-                SQL update = SQL.begin().name("updateEpochManifest").querySpace(querySpace)
-                        .sql("UPDATE " + EPOCH_TABLE_NAME +
-                                " SET checkpoint_type = ?, state = ?, timestamp = ?, state_data = ?" +
-                                " WHERE job_id = ? AND pipeline_id = ? AND epoch_id = ?",
-                                checkpointType, state, manifest.getTimestamp(), stateData,
-                                manifest.getJobId(), manifest.getPipelineId(), manifest.getEpochId())
-                        .end();
-                runInsertOrUpdateSeparateTxns(insert, update, "storeEpochManifest");
-            } else {
-                SQL upsert = buildNativeUpsert(dialect, "storeEpochManifest", EPOCH_TABLE_NAME,
-                        columns, conflictColumns, updateColumns, values);
-                runNativeUpsert(upsert);
-            }
+            // WI11: dialect branching owned by the DAO batch-upsert primitive (see storeCheckPoint).
+            jdbcTemplate.upsertBatch(querySpace, "storeEpochManifest", EPOCH_TABLE_NAME,
+                    Arrays.asList(columns), Arrays.asList(conflictColumns), Arrays.asList(updateColumns),
+                    Collections.singletonList(values), UpsertPolicy.FALLBACK_INSERT_UPDATE);
 
             LOG.debug("Stored epoch manifest {} for job {}/{}", manifest.getEpochId(), jobId, pipelineId);
         } catch (NopException e) {
@@ -785,190 +740,5 @@ public class JdbcCheckpointStorage implements ICheckpointStorage {
 
     private static synchronized long nextSid() {
         return ++sidSequence;
-    }
-
-    /**
-     * Database upsert style supported by the resolved dialect. The checkpoint
-     * tables use a composite unique key (job_id, pipeline_id, checkpoint_id or
-     * epoch_id), and the older INSERT-then-UPDATE-in-one-transaction pattern is
-     * unsafe on PostgreSQL (any statement error aborts the whole transaction,
-     * so the UPDATE after a caught duplicate-key INSERT fails with "current
-     * transaction is aborted"). Each branch below uses a single atomic upsert
-     * statement when the dialect provides one; only the generic fallback splits
-     * into two separate transactions.
-     */
-    enum UpsertDialect {
-        /** PostgreSQL: INSERT ... ON CONFLICT (cols) DO UPDATE SET col = EXCLUDED.col. */
-        POSTGRESQL,
-        /** MySQL / MariaDB: INSERT ... ON DUPLICATE KEY UPDATE col = VALUES(col). */
-        MYSQL,
-        /** H2: MERGE INTO ... KEY (cols) VALUES (...). */
-        H2,
-        /** Any other DB: INSERT in one txn; on duplicate key, UPDATE in a fresh txn. */
-        GENERIC
-    }
-    private UpsertDialect resolveUpsertDialect() {
-        try {
-            String name = jdbcTemplate.getDialectForQuerySpace(querySpace).getName().toLowerCase();
-            if (name.startsWith("postgresql")) {
-                return UpsertDialect.POSTGRESQL;
-            }
-            if (name.startsWith("mysql") || name.startsWith("mariadb")) {
-                return UpsertDialect.MYSQL;
-            }
-            if (name.startsWith("h2")) {
-                return UpsertDialect.H2;
-            }
-        } catch (Exception e) {
-            LOG.debug("Failed to resolve dialect for upsert strategy, using generic fallback", e);
-        }
-        return UpsertDialect.GENERIC;
-    }
-
-    /** Execute a single atomic native-upsert statement inside one transaction. */
-    private void runNativeUpsert(SQL sql) {
-        jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-            jdbcTemplate.executeUpdate(sql);
-            return null;
-        });
-    }
-
-    /**
-     * Build a native-upsert {@link SQL} object for the given dialect. The values
-     * array must align positionally with {@code columns} (one value per column).
-     * Returns {@code null} for {@link UpsertDialect#GENERIC} — the caller must
-     * fall back to {@link #runInsertOrUpdateSeparateTxns(SQL, SQL, String)}.
-     */
-    private SQL buildNativeUpsert(
-            UpsertDialect dialect, String sqlName, String tableName,
-            String[] columns, String[] conflictColumns, String[] updateColumns,
-            Object[] values) {
-        String text = buildNativeUpsertSqlText(dialect, tableName, columns, conflictColumns, updateColumns);
-        if (text == null) {
-            return null;
-        }
-        return SQL.begin().name(sqlName).querySpace(querySpace).sql(text, values).end();
-    }
-
-    /**
-     * Produce the dialect-specific native-upsert SQL text. Each branch yields a
-     * single atomic statement, eliminating the unsafe "INSERT throws duplicate-key,
-     * then UPDATE in the same (now-aborted) transaction" pattern that breaks on
-     * PostgreSQL. Returns {@code null} for the generic fallback.
-     */
-    static String buildNativeUpsertSqlText(
-            UpsertDialect dialect, String tableName,
-            String[] columns, String[] conflictColumns, String[] updateColumns) {
-        String columnList = String.join(", ", columns);
-        String conflictList = String.join(", ", conflictColumns);
-        String placeholders = String.join(", ", Collections.nCopies(columns.length, "?"));
-
-        switch (dialect) {
-            case POSTGRESQL: {
-                String setClause = String.join(", ",
-                        Arrays.stream(updateColumns).map(c -> c + " = EXCLUDED." + c).toArray(String[]::new));
-                return "INSERT INTO " + tableName + " (" + columnList + ") VALUES (" + placeholders + ") "
-                        + "ON CONFLICT (" + conflictList + ") DO UPDATE SET " + setClause;
-            }
-            case MYSQL: {
-                String setClause = String.join(", ",
-                        Arrays.stream(updateColumns).map(c -> c + " = VALUES(" + c + ")").toArray(String[]::new));
-                return "INSERT INTO " + tableName + " (" + columnList + ") VALUES (" + placeholders + ") "
-                        + "ON DUPLICATE KEY UPDATE " + setClause;
-            }
-            case H2: {
-                return "MERGE INTO " + tableName + " (" + columnList + ") KEY (" + conflictList + ") VALUES ("
-                        + placeholders + ")";
-            }
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Generic fallback: try INSERT in its own transaction; if a duplicate key is
-     * detected, run UPDATE in a SEPARATE transaction. Splitting the transactions
-     * is essential for engines that abort the whole transaction on a failed
-     * statement (e.g. PostgreSQL): the INSERT failure only rolls back the first
-     * transaction, leaving the second (UPDATE) transaction in a clean state.
-     */
-    private void runInsertOrUpdateSeparateTxns(SQL insert, SQL update, String operation) {
-        try {
-            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-                jdbcTemplate.executeUpdate(insert);
-                return null;
-            });
-        } catch (Exception e) {
-            if (!isDuplicateKeyException(e)) {
-                throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
-            }
-            LOG.debug("{} INSERT failed (duplicate key), running UPDATE in a fresh transaction", operation, e);
-            jdbcTemplate.txn().runInTransaction(querySpace, TransactionPropagation.REQUIRED, txn -> {
-                jdbcTemplate.executeUpdate(update);
-                return null;
-            });
-        }
-    }
-
-    /**
-     * R5-CON-08: duplicate-key detection from the exception's STRUCTURED fields
-     * only — {@code SQLException.getSQLState()} plus the vendor error code.
-     * The previous implementation sniffed exception/class/message text, whose
-     * false positives downgraded genuine errors (any message mentioning
-     * "unique"/"primary key") into an UPDATE retry.
-     *
-     * <p>Decision table:
-     * <ul>
-     *   <li>SQLState {@code 23505} (unique violation, PostgreSQL/H2/Derby/...) — duplicate;</li>
-     *   <li>SQLState {@code 23000} (generic integrity violation, reported by
-     *       MySQL/SQL Server/Oracle for duplicates) AND a vendor code known to be
-     *       a duplicate-key error (MySQL 1062/1022, SQL Server 2627/2601,
-     *       Oracle 1 = ORA-00001) — duplicate;</li>
-     *   <li>anything else (including a 23000 foreign-key/check violation whose
-     *       vendor code is not a duplicate code) — NOT a duplicate, rethrown.</li>
-     * </ul>
-     *
-     * <p>A false negative (genuine duplicate not recognized) fails the write
-     * loudly — the safe direction; a false positive would mask a real error
-     * behind an UPDATE retry, which this decision table avoids.
-     *
-     * @return {@code true} only when the chain contains a duplicate-key violation
-     */
-    static boolean isDuplicateKeyException(Exception e) {
-        Throwable cause = e;
-        while (cause != null) {
-            if (cause instanceof java.sql.SQLException) {
-                java.sql.SQLException sqlEx = (java.sql.SQLException) cause;
-                String sqlState = sqlEx.getSQLState();
-                int vendorCode = sqlEx.getErrorCode();
-                if ("23505".equals(sqlState)) {
-                    return true;
-                }
-                if ("23000".equals(sqlState) && isDuplicateVendorCode(vendorCode)) {
-                    return true;
-                }
-                // SQLException chains next exceptions via getNextException()
-                // (e.g. JDBC batch drivers); walk that chain as well.
-                for (java.sql.SQLException next = sqlEx.getNextException();
-                     next != null; next = next.getNextException()) {
-                    String nextState = next.getSQLState();
-                    if ("23505".equals(nextState)
-                            || ("23000".equals(nextState) && isDuplicateVendorCode(next.getErrorCode()))) {
-                        return true;
-                    }
-                }
-            }
-            cause = cause.getCause();
-        }
-        return false;
-    }
-
-    private static boolean isDuplicateVendorCode(int vendorCode) {
-        // MySQL: 1062 duplicate entry, 1022 duplicate key;
-        // SQL Server: 2627/2601 unique/unique-index violation;
-        // Oracle: 1 (ORA-00001 unique constraint violated).
-        return vendorCode == 1062 || vendorCode == 1022
-                || vendorCode == 2627 || vendorCode == 2601
-                || vendorCode == 1;
     }
 }
