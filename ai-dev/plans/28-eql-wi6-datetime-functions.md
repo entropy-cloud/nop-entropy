@@ -142,28 +142,28 @@ Exit Criteria:
 
 ### Phase 1 - `lastDay(d)` 裁定执行（落地注册 或 移出 + ledger 回写）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/*.dialect.xml`（若裁定落地）、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（ledger 行回写）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`nop-dao`/`nop-orm-eql` 测试
 
 - Item Types: `Decision`（执行 Phase 0 结论）、`Feature`（若落地）、`Proof`
 
-- [ ] **开工前置回退防护**：硬前置 plan 24 已 `completed`（2026-10-04 收口、audit 全 PASS）、roadmap WI5 行已 `done`——**排队门已满足，本 Phase 可开工**；开工前快速复核 plan 24 的 Plan Status 未回退（若回退为 `active`，本 Phase 停工上报，daily log 记录）。
-- [ ] **裁定落地分支**：按 Phase 0 cell 清单注册（原生进 mysql/mariadb/oracle/duckdb 等有原生方言的 XML；mssql `EOMONTH({0})` 模板；postgresql `date_trunc` 精确算术模板；h2 按取证结论）——**不进 `default`**；h2 cell 带 `<testSql>` 供真库执行。语义断言以 Phase 0 钉死的口径为准。
-- [ ] **裁定移出分支**（仅当 Phase 0 结论为移出）：roadmap「明确延后项」`lastDay(d)` 行更新为终局结论（不再"待重新评估"）+ successor 写明；owner doc 补一段"为什么不做"的裁定记录；本 Phase 其余执行项标记 cancelled 并在 daily log 说明。
-- [ ] 落地分支的正向用例（EC ①）：h2 上 `lastDay(...)` 断言具体 SQL 文本与**真库执行结果**（如 `lastDay('2026-02-10')` → `2026-02-28`）；再取一个模板方言断言渲染文本。
-- [ ] 负向用例（EC ②）：未注册方言（dm 或手构无注册方言）编译期报 `ERR_EQL_UNKNOWN_FUNCTION`（funcName=`lastday`）；无静态默认返回/回退原文输出（无静默跳过）。
-- [ ] 接线验证（Minimum Rules #23）：`lastDay` 从 EQL 文本 → parse → transform → 生成/报错的端到端用例。
-- [ ] 约束 4"不等价"登记：原生 `LAST_DAY` 返回 DATE 与带时间戳输入方言的返回类型差异 + postgresql `date_trunc` 算术模板对 timestamptz 的会话 TimeZone 依赖（时变，原生族无此时变——输入类型域以 Phase 0 钉死口径为准；owner doc 差异行）。
-- [ ] 矩阵快照增量同步（EC ③，落地分支）：`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] roadmap ledger 行回写（两分支均要求）：`lastDay(d)` 行状态 + 依据 + （若落地）从"延后"翻为"已由 WI6 落地"；与裁定文档一致。
-- [ ] owner doc（EC ④）：`lastDay` 覆盖表（`[实测]`/`[文档]`/`[未取证]`）+ 能力点登记表行；真库证据（EC ⑥）与语料 BC（EC ⑦）按全 plan 统一口径落。
+- [x] **开工前置回退防护**：硬前置 plan 24 已 `completed`（2026-10-04 收口、audit 全 PASS）、roadmap WI5 行已 `done`——**排队门已满足，本 Phase 可开工**；开工前快速复核 plan 24 的 Plan Status 未回退（若回退为 `active`，本 Phase 停工上报，daily log 记录）。（2026-10-04 复核：plan 24 头部仍 `completed`，无回退。）
+- [x] **裁定落地分支**：按 Phase 0 cell 清单注册（原生进 mysql/mariadb/oracle/duckdb 等有原生方言的 XML；mssql `EOMONTH({0})` 模板；postgresql `date_trunc` 精确算术模板；h2 按取证结论）——**不进 `default`**；h2 cell 带 `<testSql>` 供真库执行。语义断言以 Phase 0 钉死的口径为准。
+- [x] **裁定移出分支**（仅当 Phase 0 结论为移出；Phase 0 结论=落地，本分支按其"仅当"条件不适用，checklist 保留为已裁定不触发）：roadmap「明确延后项」`lastDay(d)` 行更新为终局结论（不再"待重新评估"）+ successor 写明；owner doc 补一段"为什么不做"的裁定记录；本 Phase 其余执行项标记 cancelled 并在 daily log 说明。
+- [x] 落地分支的正向用例（EC ①）：h2 上 `lastDay(...)` 断言具体 SQL 文本与**真库执行结果**（如 `lastDay('2026-02-10')` → `2026-02-28`）；再取一个模板方言断言渲染文本。
+- [x] 负向用例（EC ②）：未注册方言（dm 或手构无注册方言）编译期报 `ERR_EQL_UNKNOWN_FUNCTION`（funcName=`lastday`）；无静态默认返回/回退原文输出（无静默跳过）。
+- [x] 接线验证（Minimum Rules #23）：`lastDay` 从 EQL 文本 → parse → transform → 生成/报错的端到端用例。
+- [x] 约束 4"不等价"登记：原生 `LAST_DAY` 返回 DATE 与带时间戳输入方言的返回类型差异 + postgresql `date_trunc` 算术模板对 timestamptz 的会话 TimeZone 依赖（时变，原生族无此时变——输入类型域以 Phase 0 钉死口径为准；owner doc 差异行）。
+- [x] 矩阵快照增量同步（EC ③，落地分支）：`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] roadmap ledger 行回写（两分支均要求）：`lastDay(d)` 行状态 + 依据 + （若落地）从"延后"翻为"已由 WI6 落地"；与裁定文档一致。
+- [x] owner doc（EC ④）：`lastDay` 覆盖表（`[实测]`/`[文档]`/`[未取证]`）+ 能力点登记表行；真库证据（EC ⑥）与语料 BC（EC ⑦）按全 plan 统一口径落。
 
 Exit Criteria:
 
-- [ ] `lastDay(d)` 有终局裁定且已执行：落地分支 = 注册面与 cell 清单一致 + 快照门禁 exit 0；移出分支 = ledger 行更新 + successor 明确。无第三种"挂着不动"状态。
-- [ ] 落地分支：红→绿正向用例断言具体 SQL 文本 + h2 真库执行；负向用例断言具体错误码；接线验证通过；无静默跳过。
-- [ ] roadmap ledger 行、裁定文档、owner doc 三处口径一致。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `lastDay(d)` 有终局裁定且已执行：落地分支 = 注册面与 cell 清单一致 + 快照门禁 exit 0；移出分支 = ledger 行更新 + successor 明确。无第三种"挂着不动"状态。
+- [x] 落地分支：红→绿正向用例断言具体 SQL 文本 + h2 真库执行；负向用例断言具体错误码；接线验证通过；无静默跳过。
+- [x] roadmap ledger 行、裁定文档、owner doc 三处口径一致。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `weekofyear(d)` → ISO 周（归一化注册）
 
