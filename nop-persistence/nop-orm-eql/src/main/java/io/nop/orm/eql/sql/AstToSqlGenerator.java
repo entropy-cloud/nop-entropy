@@ -100,6 +100,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlQuerySelect(SqlQuerySelect node) {
+        checkLockOptions(node);
         if (node.getLimit() != null) {
             SqlLimit limit = node.getLimit();
             SqlExprList exprs = dialect.getPaginationHandler().buildPageExpr(limit.getLimit(), limit.getOffset(),
@@ -108,6 +109,21 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         } else {
             printSelect(node);
         }
+    }
+
+    /**
+     * WI12 交付①（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §1.5）：
+     * 锁选项矛盾输入在生成器入口响亮。解析层文法备选天然互斥（NOWAIT | SKIP LOCKED 单选，
+     * 且必须跟在 for update 之后），矛盾组合仅程序化构造可达——不允许静默输出或静默忽略
+     * （Minimum Rules #24）。校验放在 printForUpdate 的 forUpdate 守卫之前，
+     * 覆盖 forUpdate=false 的矛盾组合。回显路径（AstToEqlGenerator）不加校验
+     * （WI1 裁定回显保持硬编码不动；矛盾 AST 是编程错误，执行路径已响亮）。
+     */
+    void checkLockOptions(SqlQuerySelect node) {
+        if (node.getNowait() && !node.getForUpdate())
+            throw new IllegalArgumentException(
+                    "eql lock option nowait requires forUpdate=true, but forUpdate=false");
     }
 
     class PrintSqlSelect extends SqlNodeWrapper {
@@ -350,14 +366,27 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
      * 硬编码输出 "for update"，在锁模板为空的方言（如 duckdb）上静默产出数据库不支持
      * 的 SQL。空模板时编译期显式报错；LockOption 暂传 null（AST 只有 boolean forUpdate，
      * NOWAIT/SKIP LOCKED 归 WI12）。回显路径（基类）保持不动。
+     *
+     * <p>WI12 交付①（plan 38，裁定 §1）：nowait=true 时锁文本改取
+     * {@code <sqls>} 的 {@code <forUpdateNowait>} 配置（presence = 能力 + 文本二合一）；
+     * 未配置方言编译期响亮 {@code ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE}
+     * （feature=forUpdateNowait）——不允许静默降级为裸 for update。
      */
     @Override
     protected void printForUpdate(SqlQuerySelect node) {
-        String lockSql = dialect.getForUpdateSql(null);
+        String lockSql;
+        String feature;
+        if (node.getNowait()) {
+            lockSql = dialect.getForUpdateNowait();
+            feature = "forUpdateNowait";
+        } else {
+            lockSql = dialect.getForUpdateSql(null);
+            feature = "forUpdate";
+        }
         if (StringHelper.isEmpty(lockSql)) {
             throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
                     .param(ARG_DIALECT, dialect.getName())
-                    .param(ARG_FEATURE, "forUpdate");
+                    .param(ARG_FEATURE, feature);
         }
         println();
         print(lockSql);

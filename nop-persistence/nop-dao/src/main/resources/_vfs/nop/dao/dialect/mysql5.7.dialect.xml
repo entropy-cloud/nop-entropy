@@ -29,5 +29,10 @@
     <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MySQL 8.0.31 起才有 INTERSECT/EXCEPT，
          5.7 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT 的查询时显式报错。
          mysql 本体（floor 8.0.31）不配置。≥8.0.31 的旧版本部署经 delta 方言显式覆盖。 -->
-    <sqls intersectKeyword="none" exceptKeyword="none"/>
+    <sqls intersectKeyword="none" exceptKeyword="none">
+        <!-- WI12（plan 38）：5.7 无 FOR UPDATE NOWAIT/SKIP LOCKED（MySQL 8.0.1 才引入）
+             ——显式空覆盖关断继承自 mysql 的 forUpdateNowait（加载后 = null = 未配置，
+             编译 nowait=true 查询时响亮报错，与 duckdb 空 <forUpdate> 同机制）。 -->
+        <forUpdateNowait x:override="replace"/>
+    </sqls>
 </dialect>

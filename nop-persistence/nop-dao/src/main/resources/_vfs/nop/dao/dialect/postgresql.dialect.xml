@@ -126,6 +126,11 @@
              INTERVAL '1' DAY（引号 value + 裸单位关键字，SQL 标准形态）。
              消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
         <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] PG locking clause =
+             FOR lock_strength [ OF … ] [ NOWAIT | SKIP LOCKED ]（current docs）。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
     </sqls>
 
     <sqlDataTypes>

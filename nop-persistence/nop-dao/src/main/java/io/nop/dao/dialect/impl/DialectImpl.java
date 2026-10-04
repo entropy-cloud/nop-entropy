@@ -353,6 +353,17 @@ public class DialectImpl implements IDialect {
         return dialectModel.getSqls().getSqlIntervalLiteral();
     }
 
+    @Override
+    public String getForUpdateNowait() {
+        // WI12 交付①（plan 38）：直读 <sqls> 的 forUpdateNowait 配置文本，未配置为 null。
+        // 消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait，裁定
+        // ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §1）；
+        // 对手构模型（无 <sqls>）补 null 容错（getSqlIntervalLiteral 同款）。
+        if (dialectModel.getSqls() == null)
+            return null;
+        return dialectModel.getSqls().getForUpdateNowait();
+    }
+
     /**
      * WI7b Phase 1（plan 37，裁定 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md`
      * §1）：`sqlIntervalLiteral` 模板只允许 `{value}`/`{unit}` 命名占位符，未知 marker（含未闭合

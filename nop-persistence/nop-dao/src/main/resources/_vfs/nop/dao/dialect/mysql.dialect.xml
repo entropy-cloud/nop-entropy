@@ -150,6 +150,12 @@
              INTERVAL expr unit——value 不加引号（与 h2/PG 相反，探针已证分叉真实存在）。
              消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
         <sqlIntervalLiteral>INTERVAL {value} {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] MySQL 8.0 Locking Reads：
+             NOWAIT/SKIP LOCKED 可与 SELECT … FOR UPDATE 同用（8.0.1+，承诺基线 8.0.31 之上）。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。
+             ⚠️ mysql5.7（继承本文件）不支持——已显式空覆盖关断。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
     </sqls>
 
     <functions>

@@ -152,27 +152,27 @@ Exit Criteria:
 
 ### Phase 1 - `SqlQuerySelect.nowait` 接线（交付 ①，零文法）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、`nop-persistence/nop-dao`（`dialect.xdef` `<sqls>` 新元素 + `DialectSqls` retention + `IDialect`/`DialectImpl` accessor 视裁定）、支持方言 `*.dialect.xml`、`nop-orm-eql` 测试
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **修复前红**：程序化构造 `SqlQuerySelect`（`forUpdate=true, nowait=true`）在已配置锁模板的方言上编译——断言产出含 nowait 语义的锁文本，修复前红（现状 `printForUpdate` 无视 nowait，输出裸 `<forUpdate>` 文本）。
-- [ ] 按 Phase 0 裁定实现：`printForUpdate` 消费 `nowait`（从 `<forUpdateNowait>` 配置取文本）；**未配置方言 + `nowait=true` → 编译期响亮报错**（断言具体错误码与 feature 参数；不允许静默降级为裸 `for update`——「只打印不设门 = 净回归」P1 禁令）。
-- [ ] 方言配置纯增量落地：h2 等支持方言 `<sqls>` 补 `<forUpdateNowait>`（值如 `for update nowait`）；duckdb/mssql 等不配置（负向载体）。
-- [ ] **接线独立正向用例**（roadmap EC ②）：`nowait=true` 的输出文本 ≠ `nowait=false` 的输出文本，且与方言配置值一致（防「恰好同形」假阳性——WI1 `testConfiguredTemplateIsConsumed` 的自定义模板先例）。
-- [ ] **负向用例**（roadmap EC ②）：不支持方言上 `nowait=true` 编译期报错；`forUpdate=false && nowait=true` 的矛盾输入有响亮处置（解析层到不了，程序化构造可及——裁定落点 = 编译期报错或忽略+登记，不允许静默）。
-- [ ] 接线验证（Minimum Rules #23）：程序化 AST → transform → 生成三层连通（h2 上端到端断言）。
-- [ ] 矩阵快照：`<sqls>` 配置非函数表 → **核实零增量** + 门禁 exit 0（WI7b interval 先例）；语料 BC：`TestEqlCorpusBaseline` 通过。
-- [ ] owner doc：能力点登记表 +1 行（generator 方法 + 触发配置 + 不支持时错误码）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；本 Phase **零 `.g4`/`EqlAST.xjava` 改动**（`ast/_gen/` 零 diff 为验收证据）；`ai-dev/logs/` 条目。
+- [x] **修复前红**：程序化构造 `SqlQuerySelect`（`forUpdate=true, nowait=true`）在已配置锁模板的方言上编译——断言产出含 nowait 语义的锁文本，修复前红（现状 `printForUpdate` 无视 nowait，输出裸 `<forUpdate>` 文本）。
+- [x] 按 Phase 0 裁定实现：`printForUpdate` 消费 `nowait`（从 `<forUpdateNowait>` 配置取文本）；**未配置方言 + `nowait=true` → 编译期响亮报错**（断言具体错误码与 feature 参数；不允许静默降级为裸 `for update`——「只打印不设门 = 净回归」P1 禁令）。
+- [x] 方言配置纯增量落地：h2 等支持方言 `<sqls>` 补 `<forUpdateNowait>`（值如 `for update nowait`）；duckdb/mssql 等不配置（负向载体）。
+- [x] **接线独立正向用例**（roadmap EC ②）：`nowait=true` 的输出文本 ≠ `nowait=false` 的输出文本，且与方言配置值一致（防「恰好同形」假阳性——WI1 `testConfiguredTemplateIsConsumed` 的自定义模板先例）。
+- [x] **负向用例**（roadmap EC ②）：不支持方言上 `nowait=true` 编译期报错；`forUpdate=false && nowait=true` 的矛盾输入有响亮处置（解析层到不了，程序化构造可及——裁定落点 = 编译期报错或忽略+登记，不允许静默）。
+- [x] 接线验证（Minimum Rules #23）：程序化 AST → transform → 生成三层连通（h2 上端到端断言）。
+- [x] 矩阵快照：`<sqls>` 配置非函数表 → **核实零增量** + 门禁 exit 0（WI7b interval 先例）；语料 BC：`TestEqlCorpusBaseline` 通过。
+- [x] owner doc：能力点登记表 +1 行（generator 方法 + 触发配置 + 不支持时错误码）。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿；本 Phase **零 `.g4`/`EqlAST.xjava` 改动**（`ast/_gen/` 零 diff 为验收证据）；`ai-dev/logs/` 条目。
 
 Exit Criteria:
 
-- [ ] 红→绿回归断言具体 SQL 文本（配置方言 nowait 文本 + 未配置方言裸 `for update` 不变）。
-- [ ] 负向用例断言具体错误码；矛盾输入有显式处置；无静默跳过。
-- [ ] 接线三层连通用例通过；矩阵快照零增量核实 exit 0；`TestEqlCorpusBaseline` 通过。
-- [ ] owner doc 登记行已落；`ast/_gen/` 零 diff；全量命令绿；daily log 已更新。
+- [x] 红→绿回归断言具体 SQL 文本（配置方言 nowait 文本 + 未配置方言裸 `for update` 不变）。
+- [x] 负向用例断言具体错误码；矛盾输入有显式处置；无静默跳过。
+- [x] 接线三层连通用例通过；矩阵快照零增量核实 exit 0；`TestEqlCorpusBaseline` 通过。
+- [x] owner doc 登记行已落；`ast/_gen/` 零 diff；全量命令绿；daily log 已更新。
 
 ### Phase 2 - `FOR UPDATE NOWAIT` / `SKIP LOCKED` 语法（交付 ②）
 

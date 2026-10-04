@@ -118,6 +118,12 @@
              消费点 = AstToSqlGenerator.visitSqlIntervalExpr（未配置方言维持既有裸输出）。 -->
         <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
 
+        <!-- WI12（plan 38，roadmap 交付①②）：FOR UPDATE NOWAIT 锁后缀。[实测-jar]
+             h2-2.4.240 ForUpdate javap（NOWAIT 常量 + getSQL 渲染串 " NOWAIT"）+
+             Phase 2 真库探针。消费点 = AstToSqlGenerator.printForUpdate
+             （SqlQuerySelect.nowait；未配置方言编译期报错 feature=forUpdateNowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
+
     </sqls>
 
     <!--

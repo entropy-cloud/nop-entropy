@@ -165,6 +165,14 @@
         -->
         <forUpdate>string</forUpdate>
         <!--
+        WI12（plan 38）：`FOR UPDATE NOWAIT` 的锁后缀文本（presence = 能力 + 文本二合一）。
+        已配置 = 方言支持 nowait 锁选项且输出该文本；未配置 = EQL 编译 nowait=true 的查询时
+        编译期报错（nop.err.eql.dialect-not-support-feature, feature=forUpdateNowait）。
+        消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。
+        继承链显式关断形态 = `<forUpdateNowait x:override="replace"/>`（空 = 未配置）。
+        -->
+        <forUpdateNowait>string</forUpdateNowait>
+        <!--
         在 `from table_name` 后面追加的关于锁的 SQL 语句，如
         `SELECT xxx FROM x WITH (TABLOCKX)` 中的 `WITH (TABLOCKX)`
         -->

@@ -27,8 +27,26 @@ public class DialectSqls extends _DialectSqls {
      */
     private String intersectKeyword;
 
+    /**
+     * WI12 交付①（plan 38）：`FOR UPDATE NOWAIT` 锁后缀模板（`<sqls>` 子元素，与
+     * `<forUpdate>` 同构）。presence = 能力 + 文本二合一：已配置 = 方言支持 nowait 锁选项
+     * 且生成器输出该文本（AstToSqlGenerator.printForUpdate 消费 SqlQuerySelect.nowait）；
+     * 未配置 = 编译期响亮报错。继承链显式关断 = `<forUpdateNowait x:override="replace"/>`
+     * （加载后为 null、与未配置同口径；mysql5.7 继承 mysql、duckdb 继承 postgresql 的
+     * 关断面即用此形态）。
+     */
+    private String forUpdateNowait;
+
     public DialectSqls() {
 
+    }
+
+    public String getForUpdateNowait() {
+        return forUpdateNowait;
+    }
+
+    public void setForUpdateNowait(String forUpdateNowait) {
+        this.forUpdateNowait = forUpdateNowait;
     }
 
     public String getSqlIntervalLiteral() {

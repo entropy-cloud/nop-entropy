@@ -319,6 +319,16 @@ public interface IDialect extends IComponentModel {
     String getSqlIntervalLiteral();
 
     /**
+     * WI12 交付①（plan 38）：`FOR UPDATE NOWAIT` 锁后缀模板（`<sqls>` 的
+     * `forUpdateNowait` 元素）。presence = 能力 + 文本二合一：返回已配置的锁文本，
+     * 未配置返回 null（消费方 AstToSqlGenerator.printForUpdate 对 null 编译期响亮
+     * {@code nop.err.eql.dialect-not-support-feature}，feature=forUpdateNowait——
+     * 不允许静默降级为裸 for update）。继承链显式关断形态 =
+     * {@code <forUpdateNowait x:override="replace"/>}（加载后为 null，同未配置口径）。
+     */
+    String getForUpdateNowait();
+
+    /**
      * 数据库中的数据类型与java程序中的数据类型可能不一致，由binder负责转换
      *
      * @param stdType java程序中的数据类型

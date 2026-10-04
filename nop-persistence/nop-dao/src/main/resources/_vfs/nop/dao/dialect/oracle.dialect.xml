@@ -166,6 +166,11 @@
              INTERVAL '1' DAY 形态（DAY TO SECOND 单域字面量，引号 value + 裸单位）。
              消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
         <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] Oracle 19c SQLRF SELECT
+             for_update_clause = FOR UPDATE [OF …] [ { NOWAIT | WAIT integer | SKIP LOCKED } ]。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
     </sqls>
 
     <functions>
