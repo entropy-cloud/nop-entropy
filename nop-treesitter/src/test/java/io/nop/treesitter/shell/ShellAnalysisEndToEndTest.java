@@ -1,6 +1,7 @@
 package io.nop.treesitter.shell;
 
 import io.nop.treesitter.TSNode;
+import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.TSParser;
 import io.nop.treesitter.TSTree;
 import io.nop.treesitter.language.Language;
@@ -14,6 +15,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -121,6 +123,41 @@ class ShellAnalysisEndToEndTest {
         ShellSummary summary = analysis.summarize(script);
         assertEquals(ShellSummary.ProofStatus.NOT_PROVEN, summary.proofStatus());
         assertEquals(List.of("apply_patch"), summary.commandNames());
+    }
+
+    /**
+     * A tree that cannot be produced at all makes the parse <b>raise</b>. There is
+     * deliberately no third summary state for it: a caller that received an
+     * "unanalysable" summary would have to learn not to trust it, while a caller
+     * that receives an exception cannot mistake it for an analysis.
+     *
+     * <p>The input is malformed bash that trips the runtime's error-recovery
+     * livelock (owned by successor plan
+     * {@code 2026-10-04-1900-1-glr-recovery-livelock-guard.md}; the official C
+     * runtime recovers). This test asserts the loud failure, not the specific
+     * message, so the successor can fix the livelock without fighting it — and it is
+     * written to stay correct if the successor lands.</p>
+     */
+    @Test
+    void aParseThatCannotProduceATreeRaisesRatherThanReturningASummary() {
+        ShellAnalysis analysis = ShellTestSupport.analysis();
+        String malformed = "echo ${x!y}";
+        assertThrows(TreeSitterException.class, () -> analysis.summarize(malformed));
+        assertThrows(TreeSitterException.class, () -> analysis.splitProven(malformed));
+    }
+
+    /**
+     * The summary's proof state is exactly two. A third "could not analyse" value
+     * would be a state no code path produces, and the GraphQL DTO advertises the
+     * contract to consumers outside the module.
+     */
+    @Test
+    void theProofStateHasExactlyTwoValues() {
+        assertEquals(2, ShellSummary.ProofStatus.values().length);
+        assertEquals(ShellSummary.ProofStatus.PROVEN,
+                ShellSummary.ProofStatus.valueOf("PROVEN"));
+        assertEquals(ShellSummary.ProofStatus.NOT_PROVEN,
+                ShellSummary.ProofStatus.valueOf("NOT_PROVEN"));
     }
 
     /**

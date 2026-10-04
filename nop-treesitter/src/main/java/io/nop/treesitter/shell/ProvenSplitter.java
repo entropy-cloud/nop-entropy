@@ -52,14 +52,14 @@ final class ProvenSplitter {
         if (collector.refusal != null) {
             return collector.refusal;
         }
-        if (collector.commands.isEmpty()) {
-            // A proven sequence of zero commands is indistinguishable, to a
-            // consumer, from "nothing was found" — the exact misreading the
-            // refusal type exists to prevent. Refuse instead.
-            return UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
-                    "the tree holds no command node");
-        }
-        return new ProvenCommandSequence(collector.commands);
+        // A proven sequence of zero commands is indistinguishable, to a consumer,
+        // from "nothing was found" — the exact misreading the refusal type exists
+        // to prevent. Every whitelisted leaf kind occurs only beneath a `command`,
+        // so an empty collection means the tree held no command at all.
+        return collector.commands.isEmpty()
+                ? UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
+                        "the tree holds no command node")
+                : new ProvenCommandSequence(collector.commands);
     }
 
     /**

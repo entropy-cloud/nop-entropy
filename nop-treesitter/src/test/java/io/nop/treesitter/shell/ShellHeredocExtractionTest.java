@@ -129,6 +129,27 @@ class ShellHeredocExtractionTest {
                 "cd /tmp && apply_patch foo <<'PATCH'\nbody\nPATCH\n", APPLY_PATCH).isFound());
     }
 
+    /**
+     * The anchor is "the command node has exactly one child", not "has no word
+     * child". These forms have no {@code word} child at all yet are not bare
+     * commands — and one of them is provably not even literal.
+     */
+    @Test
+    void refusesEveryOtherShapeOfCommandArgument() {
+        for (String script : new String[]{
+                "apply_patch \"foo\" <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch 'foo' <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch \"$X\" <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch pre\"$X\" <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch \"a b\" <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch 1 2 <<'PATCH'\nbody\nPATCH\n",
+                "apply_patch --verbose <<'PATCH'\nbody\nPATCH\n",
+                "FOO=bar apply_patch <<'PATCH'\nbody\nPATCH\n"}) {
+            assertFalse(analysis.extractHeredoc(script, Set.of()).isFound(),
+                    "<<" + script.split("\n")[0] + ">> must be declined");
+        }
+    }
+
     @Test
     void refusesCdWithTheWrongArity() {
         assertFalse(analysis.extractHeredoc(

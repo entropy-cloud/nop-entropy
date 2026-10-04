@@ -8,7 +8,6 @@ import io.nop.treesitter.language.Language;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,19 +40,31 @@ import java.util.Set;
 public final class ShellAnalysis {
 
     /**
-     * The 1-based positions (counted over non-flag arguments, name excluded) that
-     * name a file for a given command.
+     * Commands whose non-flag arguments are <b>all</b> file paths.
      *
-     * <p>Positions differ per command in a way that matters: for {@code grep} the
-     * first argument is the <em>pattern</em>, not a file, so its paths start at 2.
-     * Getting that wrong reports the search term as a file the script reads.</p>
+     * <p>Almost every command that touches files belongs here, because a
+     * positional table is the wrong shape for them: a table has to encode each
+     * command's argument positions, and one flag whose operand is itself a file
+     * ({@code grep -f <patterns>}) shifts every position after it. "All of them
+     * are paths" cannot be shifted by a flag.</p>
      */
-    static final Map<String, int[]> PATH_ARGUMENT_POSITIONS = buildPathPositions();
+    static final Set<String> ALL_ARGUMENTS_ARE_PATHS = Set.of(
+            "cat", "less", "more", "head", "tail", "find", "ls", "stat", "wc", "file",
+            "readlink", "realpath", "cd", "chdir", "pushd", "popd", "cp", "mv", "ln",
+            "diff", "rm", "rmdir", "mkdir", "touch", "unlink", "tee", "tr", "dd",
+            "install", "tar");
 
-    /** Commands for which every non-flag argument is a path. */
-    static final Set<String> ALL_ARGUMENTS_ARE_PATHS =
-            Set.of("cd", "chdir", "pushd", "popd", "ls", "stat", "wc", "file", "readlink",
-                    "realpath", "rm", "rmdir", "mkdir", "touch", "unlink");
+    /**
+     * Commands whose <b>first</b> non-flag operand is not a file: the grep family
+     * takes a pattern, {@code chmod} and {@code chown} take a mode or an owner.
+     *
+     * <p>A second, complementary rule applies to these — their operands must
+     * <em>look like</em> a path (see {@link PathExtractor#isPathLike}). A bare
+     * pattern like {@code secret} has no separator and is therefore not a file,
+     * whatever slot it happens to land in.</p>
+     */
+    static final Set<String> LEADING_NON_PATH_OPERAND = Set.of(
+            "grep", "egrep", "fgrep", "rg", "chmod", "chown");
 
     private final Language language;
 
@@ -145,8 +156,9 @@ public final class ShellAnalysis {
 
     /**
      * Parses a script, or returns null when the tree cannot be produced. Callers
-     * that must not silently continue treat null as {@code UNANALYZABLE} rather
-     * than as "nothing found".
+     * that must not silently continue treat null as "nothing found": the script
+     * had no command to parse. A parse that fails outright raises rather than
+     * returning null.
      */
     TSTree parse(String script) {
         if (script == null || script.isEmpty()) {
@@ -163,11 +175,6 @@ public final class ShellAnalysis {
     static ShellSource sourceOf(TSTree tree) {
         byte[] source = tree.source();
         return new ShellSource(source);
-    }
-
-    /** Kept for callers that need the whole script as text. */
-    static String sourceText(TSTree tree) {
-        return sourceOf(tree).text();
     }
 
     /**
@@ -229,33 +236,4 @@ public final class ShellAnalysis {
         boolean visit(TSNode node);
     }
 
-    private static Map<String, int[]> buildPathPositions() {
-        Map<String, int[]> map = new java.util.LinkedHashMap<>();
-        map.put("cat", new int[]{1});
-        map.put("less", new int[]{1});
-        map.put("more", new int[]{1});
-        map.put("head", new int[]{1});
-        map.put("tail", new int[]{1});
-        // grep-family: position 1 is the pattern, so file operands start at 2
-        map.put("grep", new int[]{2});
-        map.put("egrep", new int[]{2});
-        map.put("fgrep", new int[]{2});
-        map.put("rg", new int[]{2});
-        map.put("find", new int[]{1});
-        map.put("stat", new int[]{1});
-        map.put("wc", new int[]{1});
-        map.put("file", new int[]{1});
-        map.put("cp", new int[]{1, 2});
-        map.put("mv", new int[]{1, 2});
-        map.put("diff", new int[]{1, 2});
-        map.put("ln", new int[]{1, 2});
-        map.put("tee", new int[]{1});
-        map.put("tr", new int[]{1});
-        map.put("dd", new int[]{1});
-        map.put("install", new int[]{1, 2});
-        // `chmod` / `chown` are deliberately absent: their first argument is a mode
-        // or an owner, not a path, so a positional table would report `777`.
-        map.put("tar", new int[]{1});
-        return Map.copyOf(map);
-    }
 }

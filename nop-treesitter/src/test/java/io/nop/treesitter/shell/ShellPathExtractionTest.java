@@ -126,15 +126,21 @@ class ShellPathExtractionTest {
 
     // ---- dimension 4: flags are not paths ----------------------------------
 
+    /**
+     * Asserting only that no reported path starts with {@code -} passes on an
+     * <b>empty</b> list, which is the hollowness this test had before it was
+     * rewritten: the implementation could drop every path and still satisfy it.
+     * It therefore asserts the exact path set for each case, which fails both when
+     * a flag is reported and when a real path goes missing.
+     */
     @Test
     void flagsAreNotPaths() {
-        for (String script : new String[]{"cat -n /etc/passwd\n", "ls -la /var/log\n",
-                "grep -r pattern /var/log\n"}) {
-            for (ShellPath path : pathsOf(script)) {
-                assertFalse(path.path().startsWith("-"),
-                        "<<" + script + ">> reported the flag " + path);
-            }
-        }
+        assertEquals(List.of("/etc/passwd"),
+                pathsOf("cat -n /etc/passwd\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/var/log"),
+                pathsOf("ls -la /var/log\n").stream().map(ShellPath::path).toList());
+        assertEquals(List.of("/var/log"),
+                pathsOf("grep -r pattern /var/log\n").stream().map(ShellPath::path).toList());
     }
 
     /**
@@ -172,8 +178,9 @@ class ShellPathExtractionTest {
      */
     @Test
     void anOptionValueIsNotAPath() {
-        assertTrue(pathsOf("chmod 777 /etc/shadow\n").isEmpty(),
-                "chmod's first argument is a mode, not a path");
+        assertEquals(List.of("/etc/shadow"),
+                pathsOf("chmod 777 /etc/shadow\n").stream().map(ShellPath::path).toList(),
+                "the mode is dropped, the file is kept");
         assertEquals(List.of("/var/log"),
                 pathsOf("stat -c %s /var/log\n").stream().map(ShellPath::path).toList());
     }
@@ -217,9 +224,29 @@ class ShellPathExtractionTest {
 
     @Test
     void redirectDestinationsAreWritePaths() {
+        // A redirection is a dynamic construct, so this script is not provable and
+        // nothing in it may claim to be proven-sourced — including the destination.
         ShellPath destination = path("cat /etc/passwd > /tmp/out.txt\n", "/tmp/out.txt");
         assertEquals(ShellPath.Access.WRITE, destination.access());
-        assertEquals(ShellPath.Confidence.PROVEN, destination.confidence());
+        assertEquals(ShellPath.Confidence.HARVESTED, destination.confidence());
+    }
+
+    /**
+     * An input redirect only ever reads. What a command <em>argument</em> means is
+     * outside this capability — {@code tee /tmp/out} writes, {@code cat /tmp/out}
+     * reads, and the capability extracts literals rather than judging intent — so
+     * only the redirect's own direction is asserted here.
+     */
+    @Test
+    void inputRedirectsAreReadPaths() {
+        assertEquals(ShellPath.Access.READ, path("tee /tmp/out < /etc/in\n", "/etc/in").access());
+        assertEquals(ShellPath.Access.WRITE, path("cat a >> /tmp/out\n", "/tmp/out").access());
+    }
+
+    /** {@code 2>&1} names a descriptor, not a file. */
+    @Test
+    void aDescriptorRedirectIsNotAPath() {
+        assertTrue(pathsOf("cmd 2>&1\n").isEmpty());
     }
 
     @Test
@@ -228,6 +255,40 @@ class ShellPathExtractionTest {
         ShellPath write = path("cat /etc/passwd > /tmp/out.txt\n", "/tmp/out.txt");
         assertEquals(ShellPath.Access.READ, read.access());
         assertEquals(ShellPath.Access.WRITE, write.access());
+    }
+
+    /**
+     * A flag whose operand is itself a file must not shift the pattern out of the
+     * pattern slot. This is the case a positional table cannot express: with
+     * {@code grep -f <patterns>}, position 2 lands on the <em>pattern</em>.
+     */
+    @Test
+    void aFlagWithAFileOperandDoesNotPromoteThePattern() {
+        assertEquals(List.of("/etc/patterns", "/var/log"),
+                pathsOf("grep -f /etc/patterns pattern /var/log\n").stream()
+                        .map(ShellPath::path).toList(),
+                "the pattern must never be reported as a file the script reads");
+        // `-o -f` — the flag's operand is still a file, and `pat` is still not one.
+        assertEquals(List.of("/etc/p", "/var/log"),
+                pathsOf("grep -o -f /etc/p pat /var/log\n").stream()
+                        .map(ShellPath::path).toList());
+    }
+
+    /** A quoted flag is still a flag. */
+    @Test
+    void aQuotedFlagIsStillAFlag() {
+        assertTrue(pathsOf("rm \"-rf\"\n").isEmpty());
+        assertTrue(pathsOf("rm '-rf'\n").isEmpty());
+    }
+
+    /** A quoted token holding a command separator is not one path. */
+    @Test
+    void aQuotedTokenWithASeparatorIsNotAPath() {
+        assertTrue(pathsOf("cat '/a; rm -rf /b'\n").isEmpty());
+        assertTrue(pathsOf("cat \"/etc/a rm -rf /b\"\n").isEmpty());
+        assertTrue(pathsOf("rm \"/etc/x && rm -rf /\"\n").isEmpty());
+        assertTrue(pathsOf("cat '  /etc/passwd  '\n").isEmpty());
+        assertTrue(pathsOf("cat '--'\n").isEmpty());
     }
 
     // ---- dimension 6: no filesystem check -----------------------------------

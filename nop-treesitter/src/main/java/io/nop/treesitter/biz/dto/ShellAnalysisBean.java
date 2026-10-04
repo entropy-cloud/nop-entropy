@@ -24,7 +24,11 @@ public class ShellAnalysisBean {
     private List<ShellPathBean> paths;
     private List<ShellDynamicConstructBean> dynamicConstructs;
 
-    /** {@code PROVEN}, {@code NOT_PROVEN} or {@code UNANALYZABLE}. */
+    /**
+     * {@code PROVEN} or {@code NOT_PROVEN}. There is no third "could not analyse"
+     * state: a tree that cannot be produced at all makes the parse raise, so a
+     * summary that reaches a caller has always been computed.
+     */
     public String getProofStatus() {
         return proofStatus;
     }

@@ -90,10 +90,12 @@ final class HeredocExtractor {
             if (commandName.isEmpty()) {
                 return HeredocScript.Absent.because("the heredoc command has no literal name");
             }
-            if (!ShellAnalysis.namedChildrenOfType(bodyNode, "word").isEmpty()) {
-                // `apply_patch foo <<'PATCH'` has the same tree shape as
-                // `apply_patch <<'PATCH'`; the reference implementation's anchor
-                // excludes it by requiring a bare command, and so does this.
+            if (bodyNode.namedChildCount() != 1) {
+                // The reference implementation's anchor is "the command node has
+                // exactly one child", not "has no word child": `apply_patch "$X"`
+                // and `FOO=bar apply_patch` have the same `command` node with no
+                // `word` child at all, yet neither is a bare command, and the
+                // first is provably not even literal.
                 return HeredocScript.Absent.because(
                         "the heredoc command takes arguments, so the heredoc is not the whole command line");
             }
@@ -118,7 +120,7 @@ final class HeredocExtractor {
                 return HeredocScript.Absent.because(
                         "`" + second + "` is not in the caller's allowed command set");
             }
-            if (!ShellAnalysis.namedChildrenOfType(secondCommand, "word").isEmpty()) {
+            if (secondCommand.namedChildCount() != 1) {
                 // same bare-command anchor as the direct form
                 return HeredocScript.Absent.because(
                         "the heredoc command takes arguments, so the heredoc is not the whole command line");

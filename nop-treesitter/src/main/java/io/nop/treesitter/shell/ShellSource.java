@@ -52,12 +52,4 @@ final class ShellSource {
         return slice(node.startByte(), node.endByte());
     }
 
-    /** Whether the script contains nothing but whitespace. */
-    boolean isBlank() {
-        return text.isBlank();
-    }
-
-    int length() {
-        return bytes.length;
-    }
 }

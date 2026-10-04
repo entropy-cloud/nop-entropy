@@ -1,6 +1,6 @@
 # 2026-10-04-1430-1 Bash grammar 基座 + shell 分析语义层（AI Agent 转换/分析）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: 用户指示（2026-10-04）——"nop-treesitter 现在已经有 python 等解析，也需要增加 bash 的解析；找一个完整的 bash 做参考，用途就是 ai agent 执行的时候做转换和分析"；`ai-dev/backlog/nop-treesitter-roadmap.md` 条目 21；上游 `tree-sitter/tree-sitter-bash`（**当前不在** `~/sources/treesitter/grammars/`）；语义层参考实现 `~/ai/codex`（`codex-rs/shell-command/src/{bash.rs,parse_command.rs,shell_snapshot_literals.rs,command_safety/is_dangerous_command.rs}`、`codex-rs/apply-patch/src/invocation.rs`）；先例 plan `ai-dev/plans/nop-treesitter/2026-09-28-2400-1-rust-grammar-blob.md`、`2026-09-29-0100-1-csharp-grammar-blob.md`
 > Related: `ai-dev/design/nop-ai-shell/04-bash-syntax.md`、`ai-dev/design/nop-ai-agent/nop-ai-shell-syntax-spec.md`、`nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/parser/BashSyntaxParser.java`
@@ -419,18 +419,121 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待填）
-Completed: （待填）
+Status Note: 本计划经**两轮独立子 agent 对抗性 closure audit**，第一轮判定
+`NOT-COMPLETED` 并查出 1 个 CRITICAL + 2 个 HIGH + 3 个 MEDIUM + 若干 LOW 的**真实
+fail-open 缺陷类**（其中 CRITICAL 是"tree-sitter 的字节坐标被当作 Java 字符下标使用"，
+使含多字节字符的脚本可以把破坏性命令报成**乱名 + 空目标**且**仍标记为已证明**）；第二轮
+在整改后判定 `COMPLETED-WITH-FINDINGS`，13 项整改全部验证通过，但又在**同一批缺陷类**
+内查出 4 项残留（grep 位置表被自身是文件的 flag 操作数击穿、heredoc 裸命令锚点只挡
+`word`、重定向目标在被拒脚本上仍标 `PROVEN`、以及 item 8 自己在同一包内留下 4 处死代码）。
+第二轮残留已全部整改并补回归断言（见下"第二轮整改"）。grammar/scanner 半边两轮均判定
+成立且无法打破：上游 corpus 100/100、0 裁定节，既有 9 个语法零回归。
+
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Audit Session: （待填）
-- Evidence: （待填：逐条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + live code path / test name；`check-plan-checklist --strict`、`scan-hollow-implementations`、`check-doc-links --strict`、`check-import-order.mjs`、`check-error-param-consistency.mjs` 的退出码；Anti-Hollow 调用链追踪结果；Deferred 项分类检查）
+- Reviewer / Agent: 独立子 agent（R1 与 R2 均为**全新 session**，与实现 session 分离；
+  R1 在 Phase 1-6 全部落地、116 项全部勾选、`## Closure` 仍为 `（待填）` 时发起）
+- Audit Session:
+  - R1: `ses_ef95962c9ffe2ogmPSDJJ4Gk48` → verdict **`NOT-COMPLETED`**
+  - R2: `ses_ef93467c6ffeezHzgWdUbw1flX`（整改后） → verdict **`COMPLETED-WITH-FINDINGS`**
+- Evidence:
+
+**Phase 与 Exit Criteria 逐条**
+
+| Phase | 判定 | live 证据 |
+|---|---|---|
+| 0 上游获取/实测/契约清单 | PASS | 参考副本与 vendored `parser.c` SHA-256 同为 `5ad30bb1…77e7f`、`scanner.c` 同为 `7cc25d70…58a9`；analysis §1-§6 载有 29 项外部 token 全枚举 + 62 命名节点 + 122 匿名 token + **19 项 field→node 映射** |
+| 1 blob/scanner/接线 | PASS | blob 1,280,029 B；代理式计数探针实测**单次 heredoc 解析调用 `scan()` 11 次**，compat 与 provider 两条路径各 11 次；不挂 scanner 或挂 always-false stub 时同脚本退化为 `(program (ERROR …))`——因此 heredoc 断言无法空过 |
+| 2 corpus ≥95% | PASS | `BashCorpusTest` **100/100 sections, 0 adjudicated**；模块 623 tests / 0 failures |
+| 3 primary API | PASS | `TSNode.java` 的 `hasError()` / `childByFieldName(String)`；compat `TSNode` 委派；`TSNodeErrorAndFieldTest` 11 项全绿（含 primary/compat 同树一致性） |
+| 4 能力 1/2 | PASS | `ShellProvenSplitTest` 34 项、`ShellLiteralHarvestTest` 14 项；codex 对抗集**按命中数量**断言；`ShellTypeIsolationTest` 用 `javax.tools.JavaCompiler` **实编译**误用片段并断言编译失败 |
+| 5 能力 3/4 | PASS | `ShellHeredocExtractionTest` 19 项（负例含 codex anchor 全集 + 8 种非 `word` 参数形态）；`ShellDynamicConstructTest` 19 项（封闭枚举每项一个断言 + 后台 `&` + `concatenation` 单独断言） |
+| 6 能力 5/6 + GraphQL | PASS | `ShellPathExtractionTest` 28 项（六维度 + 三档置信度 + 重定向方向）；`ShellSummaryTest` 9 项；`TestShellAnalysisGraphQL` 9 项经 `BeanContainer` + `GraphQLEngine`，含固定 fixture 端到端 |
+| 7 文档/drift | PASS | 7 条 owner-doc drift 全部收敛；模块文档新增「公共 API：primary vs compat」「shell 分析语义层」「三条必须知道的限制」「byte offset 坐标」四节 |
+
+**Closure Gates 逐条**
+
+| Gate | 判定 | 证据 |
+|---|---|---|
+| 上游 vendored + provenance + 指纹可复算 | PASS | SHA-256 双份一致；`PROVENANCE.md` 记 tag/SHA/license/生成器版本/never-modified/每文件哈希 |
+| blob 在档 + 两路径解析 heredoc | PASS | 上述代理计数探针 + `TestTreeSitterProvider.bashHeredocParsesThroughTheProviderPath` |
+| scanner 忠实 + 门控对账单逐条断言 | PASS | `BashScannerIdiomsTest` 37 项，每项 `assertOracle(...)` 对照官方 CLI 0.25.10 导出的 sexp |
+| corpus ≥95% + 9 语法零回归 | PASS | 100/100 / 0 裁定；423 → 623 tests，0 failures |
+| primary `hasError()` + field 导航 + 一致性 | PASS | 委派实现 + 11 项一致性测试；`migration/JniEquivalenceTest` 零回归 |
+| 6 项能力 + 类型级隔离 + 误用测试 | PASS | `ProvenSplit` 为 `sealed permits` 两态；两结果类型无公共父类型；误用**实编译失败** |
+| GraphQL 端到端（容器 bean + 固定 fixture） | PASS | `TestShellAnalysisGraphQL` / `TestTreeSitterBeans` |
+| Anti-Hollow（调用链连通、无空壳） | PASS | `scan-hollow-implementations --severity high` critical/high/medium/low **全 0**；调用链：`TreeSitterShell`/provider → `BashScanner`（11 次 `scan()`）与 `ShellAnalysisBizModel`（容器 bean）→ `ShellAnalysis` → `TSParser.parse`；`shell/` 包 0 处 compat import |
+| 不存在被静默降级的 in-scope defect | PASS | R1/R2 查出的全部 live defect 均已修，**无一条**留在 deferred；三项 deferred 均**已确认非本计划 scope 或已有 successor** |
+| owner docs 同步到 live baseline | PASS | 模块文档 / source-anchors（新增 TS-005/TS-006）/ README / wiki / INDEX / design README / design / analysis / roadmap |
+| 独立子 agent closure audit 已完成并写入本段 | PASS | 本节即证据；两轮 session id 与 verdict 见上 |
+| `./mvnw compile -pl nop-treesitter` | PASS | 退出码 0 |
+| `./mvnw test -pl nop-treesitter -am -T 1C` | PASS | 退出码 0；**623 tests / 0 failures / 2 skipped** |
+| `check-doc-links.mjs --strict` | PASS（限定范围） | 本计划新增/修改文件 **0 error**；全仓退出码 1 的剩余 error 在他人文件（见 `Deferred But Adjudicated`）。**R2 查出本计划自身引入的 3 条（docs-for-ai→ai-dev 越界 2 条 + 相对路径写错 1 条）已全部修复** |
+| `check-plan-checklist.mjs <file> --strict` | PASS | 退出码 0 |
+| `check-import-order.mjs` | PASS | 本模块新增文件 **0 违规** |
+| `check-error-param-consistency.mjs` | PASS | 本模块新增错误码 **0 违规** |
+| `-Pqa -pl nop-treesitter verify` | PASS | 退出码 0（`qa` profile = PMD + SpotBugs，均按设计不 fail） |
+
+**Anti-Hollow 检查结果**
+
+- 调用链运行时连通：以动态代理包裹真实 `BashScanner` 计数，单次 heredoc 解析 `scan()`
+  **11 次**；同一脚本在「不挂 scanner」与「挂 always-false stub」两种情况下退化为
+  `(program (ERROR …))`，证明 heredoc 断言不是空过。
+- 端到端路径完整：固定 agent fixture 经 primary `TSParser.parse` → 六项能力
+  （`ShellAnalysisEndToEndTest`），并经容器 bean + `GraphQLEngine`
+  （`TestShellAnalysisGraphQL.theFixtureAnalysesEndToEndThroughGraphQl`）。
+- 无空方法体 / 静默跳过 / no-op：两轮 audit 各自独立复核；第二轮额外查出并已清除 4 处
+  死代码（`UNSUPPORTED_LANGUAGE` 常量、`ProvenSplitter` 的不可达分支、`ShellAnalysis.sourceText`、
+  `ShellSource.isBlank/length`）。
+
+**两轮 audit 查出的缺陷与整改（R1 13 项 + R2 15 项）**
+
+R1：① **CRITICAL** byte offset 当 char index（新增 `ShellSource` 按字节切片解码；三个
+测试类各补非 ASCII 回归）② 能力 5 有 flag 时整体丢路径 ③ 加引号路径不可见 ④ partial
+被丢弃（新增 `HARVESTED_PARTIAL`）⑤ heredoc `apply_patch foo <<'PATCH'` 负例未实现
+⑥ 空白脚本返回 `PROVEN` 且零命令（新增封闭原因 `NO_COMMAND`）⑦ 空脚本原因误标
+⑧ `ProofStatus.UNANALYZABLE` 死代码（删除，摘要收敛二态）⑨ `chmod`/`chown` 误当路径
+⑩ 两处空壳测试 ⑪ 3 条文档越界/断链 ⑫ 「已披露 GLR 偏差」声明不成立（模块文档与 README
+补已知偏差框）⑬ 「共享一次解析」javadoc 不实。
+
+R2：⑭ **HIGH** 位置表被自身是文件的 flag 操作数击穿（`grep -f <patterns>` 把**模式**报成
+脚本读取的文件）→ 改为**按参数角色**判定：绝大多数触碰文件的命令"非 flag 参数全是路径"，
+grep 族与 `chmod`/`chown` 额外要求"看起来像路径"（含分隔符或 `.` 开头）⑮ heredoc 裸命令
+锚点只挡 `word`（`apply_patch "$X"` / `FOO=bar apply_patch` 直接穿过）→ 改为
+**`command` 恰有一个命名子节点**，8 种非 `word` 参数形态各补断言 ⑯ 重定向目标在被拒脚本
+上仍标 `PROVEN` → 置信度改由整次抽取所用判定给出 ⑰ `<` 输入重定向被报成**写**路径 →
+方向改由重定向运算符判定，`2>&1` 的描述符跳过 ⑱ 四处死代码（R1 ⑨ 自己造成的孤儿常量等）
+⑲ 文档封闭原因集合漏 `NO_COMMAND`、多 `UNSUPPORTED_LANGUAGE` ⑳ GraphQL DTO 仍宣传
+已删除的状态、`ShellAnalysis` 注释仍引用它、响亮失败零测试覆盖 → 全部修正并补测试
+㉑ 模块文档表格「能断定安全」与同页「已证明≠安全」自相矛盾 → 表格改为"能否断定没有运行时
+才算得出的值"，安全判定明确归属 guardrail ㉒ `flagsAreNotPaths` 其实从未被改写（新增测试
+写在旁边）→ 就地改写为断言具体路径集合 ㉓ 剥引号后接受含空格/`;`/`|` 的垃圾路径 →
+`isPathLiteral` 增加空白与 shell 分隔符规则 ㉔ 引号 flag（`rm "-rf"`）被当路径 → flag 判定
+改在剥引号**之后** ㉕ 整改 commit 顺带引入 1 条新断链（`2309` 计划里的省略号路径）→ 已修
+㉖ 解析次数 javadoc 的数字依分支而异（4 / 6）→ 如实改写 ㉗ 内联全限定名与包内风格不一致
+→ 改回 import。
+
+**Deferred 项分类检查**
+
+三项 deferred 全部复核为**合法 non-blocking**，且无任何 in-scope live defect 被伪装进去：
+(a) `GLRParser` 错误恢复活锁——已确认是**共享 runtime 代码**的 confirmed live defect，本计划
+Non-Goals 明确排除 Phase 3 之外的运行时行为变更；R1/R2 均独立复现了它的对照实验
+（不挂 scanner / always-false stub 均正常），确认**不是**本计划的 scanner 缺陷；已建 successor
+并在模块文档「不抛异常」契约旁披露；**无任何测试把抛异常行为钉死**（新增的
+`aParseThatCannotProduceATreeRaisesRatherThanReturningASummary` 只断言"抛"，不绑消息，
+successor 修掉后无需对抗测试）。(b) 其余 7 个 vendored 目录的 provenance 回填——计划内
+要求的裁定已完成并落文档，回填工作归 successor。(c) 模块全量 `checkstyle:check` 失败——
+**pre-existing**，覆盖本计划从未触碰的既有文件；原 gate 措辞有误（`-Pqa` 实为 PMD+SpotBugs）
+已在 gate 处更正。
 
 Follow-up:
 
-- （待填；或明确写 no remaining plan-owned work）
+- **no remaining plan-owned work。** 三项 deferred 均已建 successor 或明确判定为
+  pre-existing 且不在本计划 scope：`2026-10-04-1900-1-glr-recovery-livelock-guard.md`、
+  `2026-10-04-1830-1-vendored-grammar-provenance-backfill.md`、（c）待登记为独立的模块代码规范
+  治理项。
 
 ## Problem
 

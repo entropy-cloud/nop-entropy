@@ -29,9 +29,7 @@ public final class UnprovenScript implements ProvenSplit {
          * which is the same dangerous misreading as an empty result for a script
          * that was never understood; both are refusals, not proofs.
          */
-        NO_COMMAND,
-        /** The grammar the tree came from is not the bash grammar this layer is defined against. */
-        UNSUPPORTED_LANGUAGE
+        NO_COMMAND
     }
 
     private final Reason reason;
