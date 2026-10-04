@@ -144,7 +144,7 @@ OR (a IS NOT NULL AND b IS NOT NULL AND a=b)
 | mariadb 10.2（继承 mysql） | 同 mysql | 同 mysql | 同 mysql | 继承别名随父 `[文档]` |
 | mysql5.7（继承 mysql） | 同 mysql | 同 mysql | 同 mysql | 继承别名随父 `[文档]` |
 | postgresql 15 / postgis（继承） | 原生 `IS [NOT] DISTINCT FROM` 直出 | 输出严格语义展开式（`a = true` 形态） | `IS [NOT] NULL` | PG 文档 `[文档]`（数据类型页 boolean 段 `IS TRUE`/谓词 `IS DISTINCT FROM`） |
-| h2（承诺矩阵内）/ h2gis（继承） | 原生直出（H2 文法 Distinct Predicate："null-safe … never evaluates to UNKNOWN"） | 输出严格语义展开式（`a = true` 形态）；非布尔操作数类型错误（响亮，与原生一致方向） | `IS [NOT] NULL` | roadmap 已引 H2 文法 `[文档]` + Phase 1/2 H2 真执行 `[实测]` |
+| h2（承诺矩阵内）/ h2gis（继承） | 原生直出（H2 文法 Distinct Predicate："null-safe … never evaluates to UNKNOWN"） | 输出严格语义展开式（`a = true` 形态）；⚠️ 执行期实测修正（H2 探针 `_tmp/wi8/h2probe.log`）：H2 原生 `2 IS TRUE` 返回 **TRUE**（H2 亦为数值真值语义）且 `2 = true` 是**类型错误**（90110，INTEGER vs BOOLEAN 不可比）⇒ EQL 展开式在 h2 上对非布尔操作数 = **响亮类型错误**（不是原生 truthy，也不是钉死 FALSE）——h2 上钉死语义不可达，登记约束 4「响亮分叉」 | `IS [NOT] NULL` | roadmap 已引 H2 文法 `[文档]` + Phase 1/2 H2 真执行 `[实测]` |
 | duckdb | 原生直出 | 输出严格语义展开式 | `IS [NOT] NULL` | DuckDB 文档 `[文档]`（roadmap WI8 矩阵） |
 | mssql 2022（承诺基线） | 原生直出（MSSQL `IS DISTINCT FROM` 2022 已 GA） | 输出严格语义展开式（`a = 1` 形态） | `IS [NOT] NULL` | G-1 承诺基线 `[文档]` |
 | oracle 23ai（承诺基线） | **三节点展开**（transformer，§四.2）——Oracle 无 `IS DISTINCT FROM` 谓词 | 输出严格语义展开式；**Oracle 原生 `IS TRUE/FALSE` 简写 unverified（G-1：23ai SELECT 页零 `IS TRUE`）**——不主张原生等价，输出展开式不依赖该边界 | `IS [NOT] NULL` | G-1 unverified 纪律 `[未取证]`（原生简写格）+ 展开式 `[实测]`（Phase 3 用例） |

@@ -42,12 +42,14 @@ import static io.nop.antlr4.common.ParseTreeHelper.loc;
 import static io.nop.antlr4.common.ParseTreeHelper.text;
 import static io.nop.antlr4.common.ParseTreeHelper.token;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALLOWED_NAMES;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_EXPR;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_SQL_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_VALUE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_DATETIME_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_INTERVAL_UNIT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_SQL_TYPE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_WINDOW_FRAME;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_PRECISION_NOT_POSITIVE_INT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_SCALE_NOT_NON_NEGATIVE_INT;
@@ -300,6 +302,121 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         ret.normalize();
         ret.validate();
         return ret;
+    }
+
+    /**
+     * WI8 Phase 2（plan 27；裁定 ai-dev/design/eql-cross-db-compat/
+     * 2026-10-04-wi8-phase0-adjudications.md §一.3/§二.2/§五）：{@code a IS TRUE} 的构建期
+     * 真值表展开——{@code a IS NOT NULL AND a = TRUE}（安全词表，只含既有节点，全方言安全，
+     * 规避 MySQL 原生 {@code IS TRUE} 的数值真值语义）。生成方法体是**透明委托**
+     * （返回操作数节点 = 静默丢谓词），因此完全重写、不调 super——本方法是谓词语义的
+     * 唯一载体，缺失即静默降级（Minimum Rules #24）。
+     */
+    @Override
+    public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx) {
+        return buildBooleanTruthExpansion(ctx.sqlExpr_primary(), true, true);
+    }
+
+    /** WI8 Phase 2：{@code a IS NOT TRUE} ⇒ {@code NOT (a IS NOT NULL AND a = TRUE)}——NULL 行为
+     * TRUE（roadmap 警告：不得降级为 {@code a<>0}/{@code NOT a}，后者 NULL 行为 NULL）。 */
+    @Override
+    public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx) {
+        return wrapNot(buildBooleanTruthExpansion(ctx.sqlExpr_primary(), true, true), ctx);
+    }
+
+    /** WI8 Phase 2：{@code a IS FALSE} ⇒ {@code a IS NOT NULL AND a = FALSE}。 */
+    @Override
+    public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx) {
+        return buildBooleanTruthExpansion(ctx.sqlExpr_primary(), false, true);
+    }
+
+    /** WI8 Phase 2：{@code a IS NOT FALSE} ⇒ {@code NOT (a IS NOT NULL AND a = FALSE)}——NULL 行为 TRUE。 */
+    @Override
+    public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx) {
+        return wrapNot(buildBooleanTruthExpansion(ctx.sqlExpr_primary(), false, true), ctx);
+    }
+
+    /**
+     * 真值表展开共用体：{@code (operand IS NOT NULL) AND (operand = <booleanLiteral>)}。
+     * 逐行验算见裁定 §二.2（TRUE/FALSE/NULL/非布尔操作数行全二值）；布尔字面量渲染经
+     * {@code dialect.getBooleanValueLiteral}（default 系=1/0，h2=true/false），数值操作数
+     * {@code 2 = 1} 恒 FALSE——天然规避 MySQL truthy 分叉。
+     *
+     * <p>⚠️ 操作数上下文 visit **两次**（两个独立子树实例）：AST 框架禁止节点双亲
+     * （{@code nop.err.core.lang.ast-node-not-allow-multiple-parent}），共享实例不可行；
+     * 两实例语义同源（同一 source 区间重复构建）。操作数含参数标记（?）时响亮拒绝
+     * （{@link OrmEqlErrors#ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER}）：双实例 =
+     * 标记节点复制 = 1 个 EQL 参数变 2 个 JDBC 参数，绑定错位——静默复制违反 Minimum
+     * Rules #24。`IS [NOT] UNKNOWN` 归一化单引用操作数，不受此限。</p>
+     */
+    private io.nop.orm.eql.ast.SqlExpr buildBooleanTruthExpansion(ParserRuleContext operandCtx,
+            boolean literalValue, boolean requireNotNull) {
+        SqlExpr notNullOperand = (SqlExpr) visit(operandCtx);
+        SqlExpr eqOperand = (SqlExpr) visit(operandCtx);
+        rejectParamMarkerOperand(notNullOperand, operandCtx);
+
+        io.nop.orm.eql.ast.SqlIsNullExpr notNull = new io.nop.orm.eql.ast.SqlIsNullExpr();
+        notNull.setLocation(ParseTreeHelper.loc(operandCtx));
+        notNull.setExpr(notNullOperand);
+        notNull.setNot(requireNotNull);
+        notNull.normalize();
+        notNull.validate();
+
+        io.nop.orm.eql.ast.SqlBooleanLiteral literal = new io.nop.orm.eql.ast.SqlBooleanLiteral();
+        literal.setLocation(ParseTreeHelper.loc(operandCtx));
+        literal.setValue(literalValue);
+        literal.normalize();
+        literal.validate();
+
+        io.nop.orm.eql.ast.SqlBinaryExpr eq = new io.nop.orm.eql.ast.SqlBinaryExpr();
+        eq.setLocation(ParseTreeHelper.loc(operandCtx));
+        eq.setLeft(eqOperand);
+        eq.setOperator(SqlOperator.EQ);
+        eq.setRight(literal);
+        eq.normalize();
+        eq.validate();
+
+        io.nop.orm.eql.ast.SqlAndExpr and = new io.nop.orm.eql.ast.SqlAndExpr();
+        and.setLocation(ParseTreeHelper.loc(operandCtx));
+        and.setLeft(notNull);
+        and.setRight(eq);
+        and.normalize();
+        and.validate();
+        return and;
+    }
+
+    private io.nop.orm.eql.ast.SqlExpr wrapNot(io.nop.orm.eql.ast.SqlExpr expr, ParserRuleContext ctx) {
+        io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setExpr(expr);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
+    /**
+     * 展开型 NULL 谓词（IS [NOT] TRUE/FALSE 构建期展开；Phase 3 transformer 的 DISTINCT FROM
+     * guard 式同规则）的操作数守护：子树含 {@link io.nop.orm.eql.ast.SqlParameterMarker} 即响亮
+     * 报错（错误码见 {@link OrmEqlErrors#ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER}）。
+     * `IS [NOT] UNKNOWN` 归一化不复制操作数，无需本守护。
+     */
+    static boolean containsParameterMarker(io.nop.orm.eql.ast.EqlASTNode node) {
+        if (node instanceof io.nop.orm.eql.ast.SqlParameterMarker)
+            return true;
+        boolean[] found = new boolean[1];
+        node.forEachChild(child -> {
+            if (!found[0] && containsParameterMarker(child))
+                found[0] = true;
+        });
+        return found[0];
+    }
+
+    private void rejectParamMarkerOperand(SqlExpr operand, ParserRuleContext ctx) {
+        if (containsParameterMarker(operand)) {
+            String echo = operand.toSqlString().replaceAll("\\s+", " ").trim();
+            throw new NopEvalException(ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER)
+                    .loc(loc(ctx)).param(ARG_EXPR, echo);
+        }
     }
 
     /**

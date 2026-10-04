@@ -213,6 +213,15 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT = define("nop.err.eql.sql-type-clause-not-support",
             "CAST类型表达式的[{value}]子句不支持翻译为SQL（无任何方言消费其语义），显式拒绝", ARG_VALUE);
 
+    // WI8（plan 27；裁定文档 §四.3 + Minimum Rules #24）：IS [NOT] TRUE/FALSE 的构建期展开与
+    // IS [NOT] DISTINCT FROM 的方言展开（transformer guard 式）会把操作数复制为多份。操作数含
+    // 参数标记（?）时复制改变调用方参数契约（1 个 EQL 参数 → N 个 JDBC 参数，绑定错位），
+    // 必须响亮拒绝而非静默复制；不含标记的操作数（列/实体属性/字面量表达式）不受影响
+    ErrorCode ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER = define(
+            "nop.err.eql.null-predicate-operand-has-param-marker",
+            "NULL语义谓词[{expr}]的操作数包含参数标记(?)——lowering展开会复制操作数导致参数绑定错位，请改用列或实体属性作操作数",
+            ARG_EXPR);
+
     ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
             define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
 
