@@ -18,10 +18,10 @@
 
 | 改动对象 | 生成入口 | 产物（签入仓库，禁手改） | 命令 |
 |---|---|---|---|
-| `model/antlr/*.g4` | `precompile/gen-eql-parser.xgen`（读 `model/AntlrParserConfig.json`，模板 `/nop/templates/antlr`） | `src/main/java/io/nop/orm/eql/parse/antlr/{EqlParser,EqlLexer,EqlVisitor,EqlListener,EqlBaseVisitor,EqlBaseListener}.java`、`*.tokens`、`*.interp`、`EqlASTBuildVisitor.java`、`_EqlASTBuildVisitor.java` | `./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests` |
+| `model/antlr/*.g4` | `precompile/gen-eql-parser.xgen`（读 `nop-persistence/nop-orm-eql/model/AntlrParserConfig.json`，模板 `/nop/templates/antlr`） | `src/main/java/io/nop/orm/eql/parse/antlr/{EqlParser,EqlLexer,EqlVisitor,EqlListener,EqlBaseVisitor,EqlBaseListener}.java`、`*.tokens`、`*.interp`、`EqlASTBuildVisitor.java`、`_EqlASTBuildVisitor.java` | `./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests` |
 | `model/ast/io/nop/orm/eql/ast/EqlAST.xjava` | `precompile/gen-eql-ast.xgen`（模板 `/nop/templates/ast`，位于 `nop-kernel/nop-codegen`） | `ast/{EqlASTKind,EqlASTNode,EqlASTVisitor,EqlASTProcessor,EqlASTOptimizer}.java`、`ast/_gen/_*.java` | 同上 |
 
-- 生命周期绑定在根 `pom.xml:310-333` 的 `pluginManagement`（execution id `precompile`，phase `generate-sources`），`nop-orm-eql/pom.xml` 只声明插件不声明 execution。
+- 生命周期绑定在根 `pom.xml:310-333` 的 `pluginManagement`（execution id `precompile`，phase `generate-sources`），`nop-persistence/nop-orm-eql/pom.xml` 只声明插件不声明 execution。
 - `XCodeGenerator.java:46` 语义：`_` 前缀文件、`_gen/` 下文件、带 `//__XGEN_FORCE_OVERRIDE__` 标记的文件**总是被覆盖**。因此 `ast/EqlASTVisitor/Optimizer/Processor/Kind` 与 `ast/_gen/*` 全是每次构建再生产物；改 AST 模型可行，**删这些文件无效**。
 - 两个输出器 `AstToEqlGenerator.java` / `AstToSqlGenerator.java` 无 XGEN 标记，是手维护文件，printer 改动落在这里。
 - **2256 的坑**：仅调整备选顺序不够——同优先级运算符必须合并为 token-set label（如 `operator=(PLUS_ | MINUS_)`），否则生成器给出不同 precedence。若改动新增/删除 token，`.tokens` 与 `EqlLexer.java` 也会变（2256 因 token 集未动而未变，本计划不同）。
@@ -99,9 +99,9 @@
 
 **手维护源码（可改）**
 - `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/{compile,sql,parse}/`
-- `nop-persistence/nop-orm-eql/model/antlr/*.g4`、`model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`model/AntlrParserConfig.json`
+- `nop-persistence/nop-orm-eql/model/antlr/*.g4`、`model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`nop-persistence/nop-orm-eql/model/AntlrParserConfig.json`
 - `nop-persistence/nop-orm-eql/precompile/*.xgen`（仅用于确认链路，不改逻辑）
-- `nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/ICollectionPersistDriver.java`、`driver/jdbc/JdbcCollectionPersistDriver.java`
+- `nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/ICollectionPersistDriver.java`、`nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcCollectionPersistDriver.java`
 - `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/orm/dialect.xdef`
 - `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/impl/DialectImpl.java`（Phase 1 的 V8b 裁定新增：让 `<sqlExceptionTranslator>` 配置真正生效）
 - `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/`（**仅再生产物，禁手改**）
@@ -224,7 +224,7 @@ Targets: `ai-dev/design/nop-orm-scope-and-non-goals.md`、本 plan
 - [x] V4 裁定：`SqlCommit`/`SqlRollback` 是删除 grammar、编译期 fail-fast、还是实现输出。必须同时处理 `SqlCommit.getStatementKind()` 流入 `compiledSql.statementKind` 的连带影响
 - [x] V5 裁定：`nullsFirst` 是接线（补语法 + 接 `supportNullsFirst` 能力位）还是从 AST 模型删除；`collate` 单独裁定（纯死字段，两个输出器都不打印）
 - [x] V8 裁定：`<upsertHandler>` 是删除 schema 节点、还是登记为 successor plan 的 schema 前置。若删除，须列出 `_DialectModel` 再生成与 `_dump/**/dialect.xdef` 副本、`reflect-config.json` 的同步范围
-- [x] V9 裁定：`NATURAL`/`USING` 两个死 token 是补最小语法、还是从 `Keyword.g4` 移除。`CROSS` 的非保留字登记**不在修复选项内**（有意设计，且 `mysql.dialect.xml:23` 已列入 `<reservedKeywords>`）
+- [x] V9 裁定：`NATURAL`/`USING` 两个死 token 是补最小语法、还是从 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 移除。`CROSS` 的非保留字登记**不在修复选项内**（有意设计，且 `mysql.dialect.xml:23` 已列入 `<reservedKeywords>`）
 - [x] 裁定结论写入 design 文档的对应段落，并建立"裁定结论 → 下游 Phase 选项"的显式映射表
 
 Exit Criteria:
@@ -247,7 +247,7 @@ Exit Criteria:
 | V5 `SqlOrderByItem.collate` | **从 AST 模型删除** | 字段消失 | 零 setter、零 getter（`SqlTypeExpr.collate` 是另一个活字段，不受影响） |
 | V8 `<upsertHandler>` | **删除 schema 节点** | 节点消失 | 零消费方 + 零方言 xml 配置 + 全仓无对应功能 |
 | **V8b `<sqlExceptionTranslator>`（本 Phase 新发现）** | **接线**（而非删除） | 配置被真正读取 | 功能是活的，但 XML 配置被静默忽略 = contract drift |
-| V9 `NATURAL`/`USING` | **从 `Keyword.g4` 移除** | token 消失 | 零语法引用，纯语法糖，EQL 不需要 |
+| V9 `NATURAL`/`USING` | **从 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 移除** | token 消失 | 零语法引用，纯语法糖，EQL 不需要 |
 
 **V3 的实测判据（修正了 plan 初版的「静默错误输出」定性）**：
 用含 `coll` 真实列的实体走**编译通道**实测三种位置（WHERE / 投影 / ORDER BY），
@@ -309,7 +309,7 @@ Phase 6 要求的「顺带审计 4 个兄弟 class-name 节点」结论如下—
 ### Phase 2 - LATERAL 正确输出（V1）
 
 Status: completed
-Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`、`src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`、`compile/EqlTransformVisitor.java`
+Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`、`src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java`
 
 - Item Types: `Fix`
 
@@ -321,7 +321,7 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`、`src/main/j
 Exit Criteria:
 
 - [x] **修复前红可独立复核**：新增测试断言 `select 1 from a, lateral (select 1 from b where b.id = a.id) t` 的编译 SQL 含 `LATERAL`；基线失败形态已记录为可复制的期望输出文本（当前为 `from a, ( ... where b.id = a.id ) as t`）
-- [x] **端到端验证**：编译产物在 H2 实跑通过（复用 `AbstractOrmTestCase` + `orm().getSessionFactory().compileSql(...)` + `orm().findLong(...)` 范式，见 `nop-orm/src/test/java/io/nop/orm/eql/TestEqlCompiler.java`）
+- [x] **端到端验证**：编译产物在 H2 实跑通过（复用 `AbstractOrmTestCase` + `orm().getSessionFactory().compileSql(...)` + `orm().findLong(...)` 范式，见 `nop-persistence/nop-orm/src/test/java/io/nop/orm/eql/TestEqlCompiler.java`）
 - [x] **端到端验证**：非 lateral 的普通关联子查询编译产物**不含** `LATERAL`（防止误伤，回归断言）
 - [x] **无静默跳过**：若目标方言不支持 lateral，编译期抛明确错误码而非输出必然失败的 SQL；该错误码有测试断言
 - [x] 再生成产物已同步：`git diff --stat src/main/java/io/nop/orm/eql/parse/antlr/` 非空且与 g4 改动一致
@@ -335,8 +335,8 @@ Exit Criteria:
 
 | 文件 | 改动 |
 |---|---|
-| `sql/AstToEqlGenerator.java` `visitSqlSubqueryTableSource` | `getLateral()` 为真时先 `print("lateral ")`。因 `AstToSqlGenerator extends AstToEqlGenerator`，**一处改动同时覆盖 SQL 与 EQL 两个通道** |
-| `model/antlr/BaseRule.g4` `unreservedWord_` | 追加 `LATERAL`，与 `TUMBLE` / `RANGE` / `WINDOW` 同一范式 |
+| `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java` `visitSqlSubqueryTableSource` | `getLateral()` 为真时先 `print("lateral ")`。因 `AstToSqlGenerator extends AstToEqlGenerator`，**一处改动同时覆盖 SQL 与 EQL 两个通道** |
+| `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` `unreservedWord_` | 追加 `LATERAL`，与 `TUMBLE` / `RANGE` / `WINDOW` 同一范式 |
 
 `EqlTransformVisitor` 的 lateral 作用域处理（`addAliasToScope` 及 `:527-531`）**无需改动**——
 实测其行为已正确（`lateral` 时放行同级别名、不写时报 `unknown-alias`），缺陷纯在输出侧。
@@ -415,10 +415,10 @@ Exit Criteria:
 
 | 层 | 文件 | 改动 | 覆盖情形 |
 |---|---|---|---|
-| grammar | `model/antlr/DMLStatement.g4` | `joinType_` 增 `crossJoin_: CROSS JOIN` | 左表**已带别名**：`AppUser u cross join AppRole r` |
-| AST 常量 | `enums/SqlJoinType.java` | 新增 `CROSS_JOIN("cross join")` | 输出侧关键字 |
-| 建树还原 | `ast/SqlJoinTableSource.java` 的 `normalize()` | 「别名恰为 cross + 无条件 JOIN」→ 复位别名并置 `CROSS_JOIN`；同时清理右操作数上残留的 `cross` 别名 | 左表**未带别名**：`AppUser cross join AppRole r`，ANTLR 仍会先吃 alias |
-| visitor 映射 | `parse/EqlASTBuildVisitor.java` 的 `SqlJoinTableSource_joinType` | 显式映射 `ctx.crossJoin_()` | 漏掉这行会让 CROSS JOIN **静默降级成普通 JOIN**（CROSS 关键字从产物中消失）——实测踩到 |
+| grammar | `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` | `joinType_` 增 `crossJoin_: CROSS JOIN` | 左表**已带别名**：`AppUser u cross join AppRole r` |
+| AST 常量 | `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/enums/SqlJoinType.java` | 新增 `CROSS_JOIN("cross join")` | 输出侧关键字 |
+| 建树还原 | `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/SqlJoinTableSource.java` 的 `normalize()` | 「别名恰为 cross + 无条件 JOIN」→ 复位别名并置 `CROSS_JOIN`；同时清理右操作数上残留的 `cross` 别名 | 左表**未带别名**：`AppUser cross join AppRole r`，ANTLR 仍会先吃 alias |
+| visitor 映射 | `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java` 的 `SqlJoinTableSource_joinType` | 显式映射 `ctx.crossJoin_()` | 漏掉这行会让 CROSS JOIN **静默降级成普通 JOIN**（CROSS 关键字从产物中消失）——实测踩到 |
 
 选 `normalize()` 而非 transform/printer 层的理由：`normalize()` 由生成的 build visitor
 在属性装配完成后立即调用，**早于任何作用域注册**；若等到 transform 才改，
@@ -470,7 +470,7 @@ Exit Criteria:
 
 - [x] **修复前红可独立复核**：基线失败形态已记录（当前 `where coll[x > 1].count() > 2` → `where collx > 1 > 2`；`commit` → 空产物）
 - [x] 若裁定为实现：新增测试断言输出 SQL 语义正确，且 Phase 1 的映射表描述的映射关系被测试覆盖
-- [x] 若裁定为删除：新增语法可达性测试断言这些语法现在**解析失败**（复用 `parse/TestEqlTumbleGrammarParse.java` 的 grammar 可达性测试范式）
+- [x] 若裁定为删除：新增语法可达性测试断言这些语法现在**解析失败**（复用 `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlTumbleGrammarParse.java` 的 grammar 可达性测试范式）
 - [x] **无静默跳过**：删除路径下无残留 printer 默认分支吞掉节点；`EqlASTKind` 与节点类、Visitor 方法三者一致（grep 可验证）
 - [x] `EqlASTNode.toSqlString()` 旁路未被误伤（复用 Phase 0 固化的基线测试）
 - [x] 跨模块回归（2256 清单）全绿
@@ -479,9 +479,9 @@ Exit Criteria:
 #### Phase 4 实测与 V4 裁定修订（2026-10-04）
 
 **V3 按裁定删除**（改法与 Phase 1 一致，无偏差）：
-删 `BaseRule.g4` 中 `sqlExpr_simple` 的 `| sqlCollectionAccessExpr` 备选与规则本体、
+删 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 中 `sqlExpr_simple` 的 `| sqlCollectionAccessExpr` 备选与规则本体、
 删 `EqlAST.xjava` 的 `SqlCollectionAccessExpr`、删手写的 `SqlCollectionAccessExpr.java`
-（`_gen/_SqlCollectionAccessExpr.java` 等再生产物由再生成自动清除）。
+（已删除的 `SqlCollectionAccessExpr` AST 节点（本计划移除，见 design §3.6） 等再生产物由再生成自动清除）。
 Phase 1 补记的实测结论在此得到验证：删除前该写法在编译通道**已经**是带错误码的
 `unknown-column-name`（`[...]` 内容被当列名解析），静默损坏只发生在 `toSqlString()` 旁路；
 删除后两个通道都变成干净的解析错误。
@@ -514,7 +514,7 @@ Phase 1 补记的实测结论在此得到验证：删除前该写法在编译通
 调试/打印 AST，不能留空产物。
 
 **再生成一致性**：`git diff --stat` 显示 `ast/{EqlASTKind,EqlASTVisitor,EqlASTProcessor,EqlASTOptimizer}.java`、
-`ast/_gen/_SqlCollectionAccessExpr.java`、`parse/antlr/*` 全部自动跟随模型变化，**零手改生成物**。
+已删除的 `SqlCollectionAccessExpr` AST 节点（本计划移除，见 design §3.6）、`parse/antlr/*` 全部自动跟随模型变化，**零手改生成物**。
 grep 校验：`CollectionAccess` 在 `*.java`/`*.g4`/`*.xjava` 中仅剩注释与测试方法名，无存活代码引用；
 `EqlASTKind` 的 66 个条目**全部**有对应节点类（`in Kind but no class: none`）。
 `EqlASTBuildVisitor` 中失效的 `SqlCollectionAccessExpr_collFuncName` override 已手工删除
@@ -553,7 +553,7 @@ Exit Criteria:
 
 **V5 按裁定删除两个死字段**：`EqlAST.xjava` 的 `SqlOrderByItem` 去掉 `String collate` 与
 `Boolean nullsFirst`，并删掉 `AstToEqlGenerator#visitSqlOrderByItem` 中按 `nullsFirst`
-打印 `nulls first/last` 的分支。`_gen/_SqlOrderByItem.java`（-56 行）由再生成自动跟随。
+打印 `nulls first/last` 的分支。`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/_gen/_SqlOrderByItem.java`（-56 行）由再生成自动跟随。
 grep 校验：`SqlOrderByItem` 的这两个字段在全仓无残留引用；剩余的 `getCollate`/`getNullsFirst`
 命中项分属**另外两个活字段**——`SqlTypeExpr.collate`（`CAST(x AS type COLLATE y)`）与
 `OrderFieldBean.nullsFirst`（bean 路径），均不受影响。
@@ -589,7 +589,7 @@ grep 校验：`SqlOrderByItem` 的这两个字段在全仓无残留引用；剩�
 ### Phase 6 - driver 死代码与 schema 无消费节点（V7 / V8 / V9）
 
 Status: completed
-Targets: `nop-orm/.../driver/ICollectionPersistDriver.java`、`driver/jdbc/JdbcCollectionPersistDriver.java`、`nop-kernel/nop-xdefs/.../orm/dialect.xdef`、`nop-dao/.../dialect/model/_gen/`
+Targets: `nop-orm/.../driver/ICollectionPersistDriver.java`、`nop-persistence/nop-orm/src/main/java/io/nop/orm/driver/jdbc/JdbcCollectionPersistDriver.java`、`nop-kernel/nop-xdefs/.../orm/dialect.xdef`、`nop-dao/.../dialect/model/_gen/`
 
 - Item Types: `Fix`
 
@@ -628,7 +628,7 @@ design §3.3 与 `orm-model-design.md:916` 的表述**均已与实现一致**（
 故 **V8 删除 upsertHandler、V8b 接线 sqlExceptionTranslator**。
 
 **V8 删除 `<upsertHandler>` 的再生成链路（实测踩到的关键坑）**：
-`nop-dao/pom.xml` 显式写了 "No exec plugin - let's skip precompile"，
+`nop-persistence/nop-dao/pom.xml` 显式写了 "No exec plugin - let's skip precompile"，
 即 `nop-dao` 的构建**不跑** codegen 插件，`_DialectModel.java` 不会被自动再生成。
 必须手动执行 `mvnw -pl nop-persistence/nop-dao exec:java@precompile`。
 且 `dialect.xdef` 在 `nop-kernel/nop-xdefs`，须先 `install` 该模块，否则 `nop-dao` 读到的是旧 jar 里的 xdef。
@@ -647,7 +647,7 @@ design §3.3 与 `orm-model-design.md:916` 的表述**均已与实现一致**（
 异常翻译返回 `sql.err.uncategorized-failure` 而非自定义的 `sql.bad-sql-grammar`），
 恢复修复后全绿。
 
-**V9 移除 NATURAL / USING 死 token**：从 `Keyword.g4` 删除两条 lexer 规则。
+**V9 移除 NATURAL / USING 死 token**：从 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 删除两条 lexer 规则。
 注意该文件为 CRLF 行尾，按字符串替换会失败，需按行索引删除。
 再生成后 `Eql.tokens` 中两个 token 计数为 0。
 `CROSS` 登记在 `unreservedWord_` 是有意设计，未动。

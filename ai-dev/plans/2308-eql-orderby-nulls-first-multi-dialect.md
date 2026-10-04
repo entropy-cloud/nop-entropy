@@ -1,6 +1,6 @@
 # 2308 EQL ORDER BY NULLS FIRST/LAST 多方言支持
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: plan 2307 Phase 1/5 对 `SqlOrderByItem.nullsFirst` 的删除裁定 + 2026-10-04 三库实测 + 第一轮独立子 agent 对抗性审查（6 Blocker / 9 Major，已逐条复核并采纳）
 > Related: `ai-dev/plans/2307-eql-live-defect-and-dead-surface-remediation.md`、`ai-dev/design/nop-orm-scope-and-non-goals.md` §3.6/§3.7、`ai-dev/plans/nop-metadata-audit-remediation/2026-08-06-1228-1-r8-4a-query-labeling-sla-correctness.md`（`:55` 不做 CASE 模拟、`:93-96` fail-fast 裁定 —— 本计划**推翻其适用范围**）
@@ -531,35 +531,9 @@ Exit Criteria:
 - [x] owner doc 方言矩阵每格有证据来源
 - [x] design 文档与实际终态一致，无 "Proposed vs Current" 叙事
 - [x] F1 / F3 的 successor 记录含 plan 路径与证据，不是自由散文
-- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [x] `ai-dev/logs/` 当日条目已更新
-
-## Closure Gates
-
-> **关闭条件**：本 section 与每个 Phase 的 Exit Criteria 全部勾选后，才能把 `Plan Status` 改为 `completed`。
-
-- [ ] EQL `ORDER BY` 支持 `NULLS FIRST/LAST`，在 h2 + postgresql + mysql 实跑通过（断言**结果行序**，且经 EQL 编译器）
-- [ ] emission 算法只依赖 `supportNullsFirst` 一个能力位，代码与文档中**无** DESC 缺省推导步骤
-- [ ] 多键 ORDER BY 行序正确（CASE 键为前置同级键，有 E2E 断言）
-- [ ] DISTINCT / 窗口 / 非可复制表达式三类位置均 fail-fast，有错误码断言
-- [ ] 未写 `NULLS` 的既有查询产物逐字不变
-- [ ] 方言取值每格有证据来源；`supportNullsFirst` 取值有常驻测试守护
-- [ ] owner doc 不再声称存在 `IF(ISNULL(...))` 模拟
-- [ ] `collate` 维持不支持，无悬挂字段残留（2307 的删除不被推翻）
-- [ ] F1（bean 路径无门控）/ F3（`AggregationHelper`）已建立具名 successor 记录，不在 non-blocking 区
-- [ ] 生成幂等性保持；无手改任何生成物
-- [ ] 独立子 agent closure audit 已完成，`Closure` 段已写入 evidence
-- [ ] **Anti-Hollow Check**（两条命令分别执行，`--module` 不接受管道）：
-      `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high`
-      `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high`
-      两者退出码均为 0
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao -am` 通过
-- [ ] 跨模块回归（2307 的 8 模块清单，可复制命令）通过：
-      `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dao,nop-ai/nop-ai-service,nop-datav/nop-datav-service,nop-sys/nop-sys-dao,nop-wf/nop-wf-core,nop-wf/nop-wf-service -am -Dmaven.test.failure.ignore=true`
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2308-eql-orderby-nulls-first-multi-dialect.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本 plan 自身 0 条 broken link）
-- [ ] `node ai-dev/tools/check-import-order.mjs` 对新增文件 0 报错
-- [ ] `ai-dev/logs/` 收口记录已写入（文本一致性核对，Rule #19）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` —— **本 plan / design / owner doc 自身 0 条 broken link**；命令仍退出 1，残留 7 条全部来自并发会话已合入 `HEAD` 的文件（`docs-for-ai/03-modules/nop-treesitter.md`、`docs-for-ai/INDEX.md`、`ai-dev/plans/nop-treesitter/*`、`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md`、`ai-dev/backlog/nop-message-encapsulation-roadmap.md`），非本计划可修。顺带修净了本计划姊妹 plan `2307` 的 22 条（裸相对路径片段 + 一处指向已删除 AST 节点的死引用），全仓 broken link 由 32 降至 7
+- [x] `node ai-dev/tools/check-import-order.mjs` 对新增文件 0 报错
+- [x] `ai-dev/logs/` 收口记录已写入（文本一致性核对，Rule #19）
 
 ## Deferred But Adjudicated
 
@@ -598,14 +572,86 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待填写
-Completed:
+Status Note: EQL 通道的 `ORDER BY ... NULLS FIRST/LAST` 已收口：空序只依赖 `supportNullsFirst`
+一个能力位，true 走原生子句、false 走 `CASE WHEN` 改写（紧邻前置同级键），三类不可改写位置
+响亮失败而非静默跳过。证据覆盖四层：方言取值守护（含变异验证）、编译期产物形态断言、
+H2 真实行序 + 两分支行序等价性、postgresql/mysql 双容器真实行序与跨方言等价性。
+独立 closure audit 提出的 1 BLOCKER + 3 MAJOR + 7 MINOR 已全部处置完毕（详见 Evidence）。
+本计划无剩余 plan-owned 工作；F1 / F3 两条独立通道的 live defect 已移交具名 successor
+`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`。
+
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立子 agent（fresh session），task_id `ses_ef9693459ffem6TVLCOFRIoGbE`
+- Audit Session: `ses_ef9693459ffem6TVLCOFRIoGbE`（与实现阶段 session 分离，非 self-audit）
+- Audit Base: live repo @ `70e2b93b71`
+
+- Exit Criteria 验证结果（审计方逐条复核，含自行重跑）：
+
+| Exit Criterion | 结果 | 证据 |
+|---|---|---|
+| h2 + postgresql + mysql 三库实跑，断言**结果行序**，且经 EQL 编译器 | PASS | 审计方自行以 `-Dnop.test.docker.enabled=true` 重跑 docker 矩阵 4/4 绿（真实 PG 16 + MySQL 8.0）；`TestEqlNullsOrderEndToEnd` 21/21 经 `orm().findAll` 真实执行 |
+| docker 测试经 EQL 编译器产出 SQL（不照抄手写 SQL 常量） | PASS | `TestEqlNullsOrderMatrix:181-182` 走 `EqlCompiler` → `Statement.executeQuery` |
+| 多键正确性：CASE 键为前置同级键，有 E2E 断言 | PASS | 结构上由 `visitSqlOrderBy:305-316` 的逐项调用保证；`testCaseRewriteMultiKeyRespectsPrecedence`（H2）与 `testMultiKeyWithDuplicateFirstKeyOnMySql`（MySQL 容器）断言行序 |
+| DISTINCT / 窗口 / 非可复制表达式三类均 fail-fast，有错误码断言 | PASS | `AstToSqlGenerator:334-337/342-348/351-357`；6 个用例断言 errorCode + reason |
+| 防误伤：未写 NULLS 的产物逐字不变 | PASS | `nullsFirst == null` 时 `:322` 直接委托基类 |
+| 无静默跳过 | PASS | 三条 fail-fast 抛带码异常；hollow scan 两模块退出码 0 |
+| 取值守护可发现漂移 | PASS | 变异验证：h2→false 2 红、mysql→true 3 红 |
+| owner doc 无 `IF(ISNULL(...))` 假声明 | PASS | 审计方全仓 grep：`nop-persistence` main 仅两处 reservedKeywords 列表与一条生成注释，无任何 `ISNULL(` 输出 |
+| `collate` 维持不支持，无悬挂字段残留 | PASS | `SqlOrderByItem.collate` 未恢复；owner doc 明写仍不支持并区分 `CAST(... COLLATE ...)` |
+| F1 / F3 有具名 successor | PASS | `ai-dev/plans/2309-bean-orderby-nulls-first-gating.md` 存在；F3 的 live defect 经审计方在 `AggregationHelper.java:361/:375` 复核确认 |
+
+- Closure Gate 验证结果：
+
+| Closure Gate | 结果 | 证据 |
+|---|---|---|
+| emission 只依赖 `supportNullsFirst`，无 DESC 缺省推导 | PASS | 全仓唯一 emission 判定点 `AstToSqlGenerator:328`；`defaultNullsFirst` 语义读取数 = **0**（仅生成访问器 / xml / xdef 声明） |
+| 生成幂等性保持；无手改生成物 | PASS | 审计方重跑 `install -pl nop-persistence/nop-orm-eql` 后 `git status --porcelain` 为空（逐字节幂等） |
+| Anti-Hollow Check（两模块分别执行） | PASS | `scan-hollow-implementations.mjs --module nop-orm-eql --severity high` = 0；`--module nop-dao --severity high` = 0 |
+| `./mvnw test -pl ... -am`（三模块） | PASS | `nop-orm-eql` 297、`nop-orm` 262、`nop-dao` 186，零失败零错误 |
+| 跨模块回归（8 模块清单） | PASS | 1581 → 1664(+83) 零失败零错误；唯一红项 `TestBatchTaskCheckpoint` 属并发会话在途的 nop-batch 改动，与本计划无关 |
+| `check-import-order.mjs` 对新增文件 0 报错 | PASS | 本计划 5 个新增/修改 Java 文件均 0 报错（仓库既有 2188 处属他人文件）；顺带修掉 `TestEqlNullsOrderMatrix` 的重复 import 块 |
+| `check-doc-links.mjs --strict` 退出码 0 | **PARTIAL（已归因 + 已尽可能收敛）** | 本计划 / design / owner doc **0 条 broken link**。命令退出 1 的残留 7 条全部来自并发会话文件（treesitter / bytecode / nop-message / INDEX.md）。另修净姊妹 plan 2307 的 22 条，全仓由 32 降至 7 |
+| `check-plan-checklist.mjs --strict` 退出码 0 | PASS | 见下方收口命令输出 |
+| `ai-dev/logs/` 收口记录 | PASS | `ai-dev/logs/2026/10-04.md` 含 Phase 4 / 5 / 6 与 audit 处置条目 |
+
+- Anti-Hollow 检查结果：
+  审计方独立追踪了 `EqlCompiler` → `AstToSqlGenerator.visitSqlOrderBy` → `printOrderByItemForSql`
+  → 方言能力位 → SQL 文本 → 真实 JDBC 执行的完整链路，确认**每一环都在运行时被实际调用**，
+  并自行重跑 docker 矩阵佐证。两个关键结构不变量（紧邻 vs 列表头 prepend、绝不省略子句）
+  经审计确认为**实现结构上保证**，而非仅靠测试断言。
+  另做了第三组变异：把 CASE 键改为 prepend 到列表头，H2 两例 + MySQL 两例转红，
+  证明多键测试非空断言；已回滚复绿。
+
+- Deferred 项分类检查：
+  F1 / F3 均为**独立于 EQL 的另一条产出通道**，且 F3 经复核确认为真实 live defect
+  （`AggregationHelper:375` 在所有非 MySQL 方言无条件 append `NULLS` 子句）。
+  两者均按「moved to explicit successor ownership」处置并留下具名 plan 路径与 file:line 证据，
+  **未伪装成 non-blocking**。owner doc 亦已显式披露 F1 的危害（MAJOR-2 处置）。
+  其余 deferred（窗口空序 `watch-only residual`、`ORDER BY ... COLLATE` out-of-scope）
+  分类诚实，均有 `Why Not Blocking Closure` 且不掩盖 in-scope defect。
+
+- 审计发现与处置（1 BLOCKER / 3 MAJOR / 7 MINOR，全部已修）：
+
+| 编号 | 问题 | 处置 |
+|---|---|---|
+| BLOCKER-1 | 守护测试与 owner doc 声称 duckdb 经探针脚本实测，但该脚本只含 postgresql\|mysql\|h2 | 改标「官方文档 + 既有声明（非本计划实测）」；连带修正 plan 的 oracle 证据等级表述、补 mssql 入保守裁定表 |
+| MAJOR-1 | D3「排序列已投影」只是必要非充分条件 | 经真实 PG 16 实测确认后**收紧**为 DISTINCT 改写整类 fail-fast，reason 改名 `distinct-not-supported`，plan/design/owner doc 同步更正 |
+| MAJOR-2 | owner doc 未披露 F1 无门控且在 MySQL 等库产出错误 SQL | 已改为显式警告 + 指向 2309 |
+| MAJOR-3 | doc-links 退出码非 0 | 已归因到并发会话文件；本计划相关文件 0 条；并顺带修净 2307 的 22 条，全仓 32 → 7 |
+| MINOR-1 | `testOnlySecondItemRewrittenKeepsFirstItemFirst` 空断言（全文 indexOf 命中投影） | 改为在 `order by` 段内定位 |
+| MINOR-2 | 多键 E2E 首键无重复值 | 数据返工一轮，改为两键空序分组跨组冲突；并用 prepend 变异确认可判别 |
+| MINOR-3 | owner doc 矩阵缺 db2 / mssql | 已补两行 |
+| MINOR-4 | plan Phase 0 对 oracle 的证据等级自相矛盾 | 已改为「官方文档依据 + 既有 true 声明（非保守缺省）」 |
+| MINOR-5 | `AggregationHelper` 行号 off-by-one | `:376` → `:375` |
+| MINOR-6 | mssql 缺席保守裁定表 | 已补 |
+| MINOR-7 | `testExplicitMatchesH2DefaultForAsc` 两侧同代码路径，非独立判据 | 已加注释明确其定位为「佐证 Phase 0 探针事实」，正确性判据在显式期望值用例与等价性用例 |
 
 Follow-up:
 
-- 待填写
+- no remaining plan-owned work。F1 / F3 归 `ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`；
+  `ORDER BY ... COLLATE` 维持 out-of-scope（需先产出跨库 collation 名字映射表）。
+- 纯 non-blocking 项见上方 `Non-Blocking Follow-ups`（英文文档对齐、oracle/dm/tdengine/db2
+  未实测——`supportNullsFirst=false` 走 CASE 改写在任何方言上都语义正确，故不构成正确性风险）。

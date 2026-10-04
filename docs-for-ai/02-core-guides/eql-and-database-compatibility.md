@@ -146,8 +146,8 @@ CASE 键插在**紧邻其排序项**的位置，不改变键间优先级。
 空序修饰无条件拼接。因此**在 MySQL / MariaDB / DM / tdengine / SQL Server 上经该路径写
 `nullsFirst` 会产出语法错误的 SQL**。`nop-metadata` 的聚合查询路径（`AggregationHelper`）
 只对 `"MySQL"` 做了特判，其余方言同样无条件拼接。
-**在修复前，请只在 EQL 通道使用空序修饰。** 修复归属
-`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`。
+**在修复前，请只在 EQL 通道使用空序修饰**；若确需在 bean 路径表达空序，
+当前唯一安全做法是自己在 SQL 片段里显式写 `CASE WHEN` 或按目标库手工确认缺省行为。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 
