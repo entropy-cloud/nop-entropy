@@ -533,6 +533,21 @@ EQL 归一化日期时间函数（普通 `SqlRegularFunction` 通道：函数名
 
 **语义差异登记（不等价类）**：各库**非 ISO 周**形态差异——mysql `WEEK(d)` 默认 mode 受 `default_week_format` 变量影响（会话依赖）、mssql `DATEPART(week,d)` 受 `SET DATEFIRST` 影响：本归一化**只落 ISO 周**（周一起点 + 含 1 月 4 日周为 W01），不落"locale 周"。跨年边界（12 月末/1 月初）行为见 ISO 定义（`TestEqlWeekOfYearDialect.testH2RealDbIsoWeekBoundaries`：2025-12-29 与 2026-01-01 同属 2026-W01）。
 
+#### dayofweek(d) → ISO-8601 星期几（1=Monday..7=Sunday）
+
+规范计法裁定 = **ISO-8601**（ODBC 计法被拒：h2 `DAY_OF_WEEK` 明文 locale-specific、oracle `TO_CHAR 'D'` 明文 NLS territory 依赖、mssql `DATEPART(weekday)` 受 `SET DATEFIRST` 影响——三个会话漂移点均一手文档明文）。
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis | `ISO_DAY_OF_WEEK(d)`（模板，`<testSql>` 真库执行） | `[实测]`（h2 `TestDialect.testFunctions` → 2 + `TestEqlDayOfWeekDialect.testH2RealDbIsoValuePoints`）/ `[文档]`（H2："ISO day of the week (1 means Monday)"） |
+| postgresql / postgis / duckdb | `extract(isodow from d)`（模板，继承面一体） | `[文档]`（PG 15："Monday (1) to Sunday (7)... matches the ISO 8601 day of the week numbering"）/ DuckDB scratch `isodow`/`extract(isodow)`=2 |
+| mysql / mariadb / mysql5.7 | `(1 + WEEKDAY(d))`（模板） | `[文档]`（MySQL 8.0：WEEKDAY "(0 = Monday, … 6 = Sunday)" ⇒ +1 = ISO）。原生 `DAYOFWEEK` = ODBC 1=Sunday，**值域与归一化分叉，不采用** |
+| oracle / oracle-reverse | `TRUNC(d) - TRUNC(d,'IW') + 1`（模板） | `[文档]`（'IW' = ISO 周一，territory 无关；TRUNC(date) 官方示例含 'iw'；DATE-DATE 减法=天数）。`TO_CHAR 'D'` = NLS territory 依赖，弃用 |
+| mssql | `((DATEDIFF(DAY, 0, d) % 7) + 7) % 7 + 1`（模板） | `[文档]`（0 = 1900-01-01 星期一；DAY datepart 不属 SET DATEFIRST 影响面；`+7)%7` 修正 1900 前负模）。`DATEPART(weekday)` DATEFIRST 依赖，弃用。CI 无 MSSQL 真库 |
+| dm / tdengine / db2 / es | **未注册 → 编译期响亮报错**（`ERR_EQL_UNKNOWN_FUNCTION(dayofweek)`） | `[未取证]` |
+
+**语义差异登记（不等价类，原生同名词值域对照）**：mysql `DAYOFWEEK`=ODBC（1=Sunday..7）、duckdb `dayofweek`=0=Sunday..6、pg `extract(dow)`=0=Sunday..6、H2 `DAY_OF_WEEK`=locale 依赖、oracle `TO_CHAR 'D'`=territory 依赖——**各方言原生 `dayofweek` 同名词≠同值**；EQL 归一化 `dayofweek` 钉死 ISO 值域（h2 真库三点：周一=1/周二=2/周日=7，`testH2RealDbIsoValuePoints`）。
+
 ### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
 
 
