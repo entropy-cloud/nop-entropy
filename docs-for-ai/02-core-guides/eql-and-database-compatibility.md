@@ -295,7 +295,23 @@ EQL 的 INTERVAL 现在接受两种语法形态，构建期归一化装入同一
 - **既有形态（deprecated，不禁止、不报错）**：`interval 1 day` —— `expr=sqlExpr + unit`，回显输出 `interval 1 DAY`（单位规范为 token 文本）。该形态不经方言模板直接输出，在 PostgreSQL 上非法，**标记 deprecated**；禁止它属破坏性变更，roadmap 明令不做，仅在本文档标注。
 - **PG 字符串形态（新增）**：`interval '1 day'` —— 文法 `sqlIntervalExpr` 的 `INTERVAL STRING_` 备选分支；构建期（手写 `EqlASTBuildVisitor.visitSqlIntervalExpr_string`）解析为 value+unit（单位大小写不敏感，接受复数形式 `'3 hours'` → HOUR）。多字段值（`'1-2'`）与非法单位在归一化层显式报错 `nop.err.eql.invalid-interval-unit`；文法层失败（`'1-2' year to month`，qualifier 无文法支持）走 antlr 错误码，两者不混同。
 
-**方言模板骨架**：`dialect.xdef` 的 `<sqls>` 新增 `sqlIntervalLiteral` 元素（与 `<dateLiteral>` 同构），retention 落 `DialectSqls`，accessor `IDialect.getSqlIntervalLiteral()`（未配置返回 null）。**WI1 不填任何逐方言模板内容、不消费模板改写 interval 输出——逐方言模板内容的唯一 owner 是 roadmap WI7b**（占位符形态、各方言正确输出用例均由 WI7b 裁定与交付）。
+**方言模板（2026-10-04 WI7b 收口，执行路径消费）**：执行 SQL 的 interval 输出由 `AstToSqlGenerator.visitSqlIntervalExpr` 按方言模板 `sqlIntervalLiteral`（`<sqls>` 子元素，retention `DialectSqls`，accessor `IDialect.getSqlIntervalLiteral()`）渲染——占位符契约 = 命名 marker `{value}`（接收 value 子表达式渲染文本，纯文本拼接不二次转义）+ `{unit}`（接收单位规范名如 `DAY`）。裁定正文 = WI7b Phase 0 裁定文档（开发过程设计归档）§1/§2。
+
+- **未配置模板的方言维持既有裸输出** ` interval <expr> <UNIT>`（deprecated 语义不变，BC）；**已配置方言上非字面量 value**（参数 marker、列引用等）**编译期显式报错** `nop.err.eql.dialect-not-support-feature`（`feature=intervalNonLiteralValue`）——回落裸输出会继续产出非法文本（"只打印不设门 = 净回归"）；模板含未知 marker 在方言加载期报错 `nop.err.dao.dialect.invalid-interval-literal-template`（`DialectImpl` 构造期校验）。
+- **H2/PG 裸输出非法的探针结论**：`INTERVAL '1' DAY` 执行成功 / 裸 `INTERVAL 1 DAY` 语法错（expected "-, +, string"）/ `INTERVAL '1 DAY'` 数据错 22007（H2 2.3.232 与 2.4.240 双版本；探针 transcript 完整归档于开发过程审计归档，可复跑脚本同批归档）。
+- **逐方言模板矩阵**：
+
+| 方言 | 模板 | 证据 |
+|---|---|---|
+| h2 / h2gis（继承） | `INTERVAL '{value}' {unit}` | `[实测]` 探针 |
+| postgresql / postgis（继承） | `INTERVAL '{value}' {unit}` | `[文档]` |
+| duckdb | `INTERVAL {value} {unit}`（显式覆盖继承的 pg 引号形态） | `[文档]` DuckDB 文档首形态 value 不加引号 |
+| mysql / mariadb / mysql5.7（继承） | `INTERVAL {value} {unit}` | `[文档]` `INTERVAL expr unit`，value 不加引号（与 h2/PG 相反） |
+| oracle / oracle-reverse（继承） | `INTERVAL '{value}' {unit}` | `[文档]` `INTERVAL '1' DAY` 形态 |
+| mssql | 不配置（T-SQL 无 INTERVAL 字面量） | `[文档]` |
+| dm / tdengine / db2 / es | 不配置 | `[未取证]` 红线 / 不可加载 / 伪方言 |
+
+- 端到端用例：`TestEqlSqlIntervalTemplate`（h2 真库执行 + 三形态文本断言 + BC/非字面量/坏 marker 负向）。TUMBLE 伪表函数渲染（`visitSqlTumbleTableSource`）刻意逐字输出、不经模板（owner = nop-stream-sql roadmap WI20）。
 
 ### 集合下标表达式：显式报错（2026-10-03 WI1 BUG-14）
 
@@ -408,6 +424,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | 分页两标准形态 `FETCH FIRST`/`OFFSET..FETCH NEXT`（WI7） | 构建期归一化进既有 `SqlLimit{limit, offset}`（生成 visit 逐字段赋值），lowering 走 `AstToSqlGenerator.visitSqlQuerySelect` → `dialect.getPaginationHandler().buildPageExpr`（**无方言能力标志**——输出形态由方言 `paginationHandler` 配置决定） | `paginationHandler` 配置（LimitOffset 族 / OffsetFetch 族，见「分页两语法形态」小节矩阵） | 文法层解析错误（不完整形态，如 `OFFSET n ROWS` 无 FETCH）；lowering 无失败分支 | `TestEqlPaginationFetchParse`、`TestEqlPaginationFetchCompile` |
 | `ORDER BY … NULLS FIRST/LAST` 子句（WI7） | `AstToSqlGenerator.visitSqlOrderByItem`（执行路径唯一门；回显路径不设门） | `supportNullsFirst`（true=按请求打印）+ `defaultNullsFirst`（false 时缺省序推导，仅一手文档已证方言集允许"一致省略"） | `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`——冲突或方言缺省序无一手文档） | `TestEqlNullsFirstDialectGate`、`TestDefaultNullsFirstFlag`（accessor 双侧契约） |
 | 归一化日期时间函数族 `lastday/weekofyear/dayofweek/datetrunc/datediff`（WI6） | 构建期即普通函数调用（函数名小写化既有通路），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路（零文法/AST 改动） | 方言函数表注册（native 或 template；仅注册一手取证方言，不进 default——字符串单位约定下裸关键字方言 cell 不落） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlLastDayDialect.testUnregisteredDialectThrowsLoud`（其余函数各自同类） |
+| INTERVAL 字面量执行输出（WI7b） | `AstToSqlGenerator.visitSqlIntervalExpr` | `sqlIntervalLiteral` 模板配置（`<sqls>` 子元素）；未配置 = 既有裸输出（BC，不报错）；已配置 + 非字面量 value = 编译期报错；坏 marker = 加载期报错 | 已配置+非字面量：`nop.err.eql.dialect-not-support-feature`（`feature=intervalNonLiteralValue`）；坏 marker：`nop.err.dao.dialect.invalid-interval-literal-template` | `TestEqlSqlIntervalTemplate` |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 

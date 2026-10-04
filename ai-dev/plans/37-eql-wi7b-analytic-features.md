@@ -187,34 +187,34 @@ Exit Criteria:
 
 ### Phase 1 - `sqlIntervalLiteral` 模板消费 + 逐方言配置 + h2 端到端（EC ③⑦）
 
-Status: planned
+Status: completed（2026-10-04）
 Targets: `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToSqlGenerator.java`、`nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/dialect/*.dialect.xml`、`TestDialectSqlIntervalLiteral`、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，硬前置已满足；照 plan 26 对 WI0-WI3 的复核先例降级）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] **修复前红**：h2 上 `select timestamp '2020-01-01' + interval '1 day'`（或等价 interval 查询）经 `AstToSqlGenerator` 输出 `interval 1 DAY` 形态、H2 真库执行报语法错（探针已证）——回归测试断言修复后输出模板渲染文本且 H2 执行通过，修复前红留痕于提交说明或日志。
-- [ ] 生成器消费点（按 Phase 0 裁定）：`AstToSqlGenerator` 新增 `visitSqlIntervalExpr` override——`dialect.getSqlIntervalLiteral()` 非 null → 模板渲染（value 子表达式先 visit 捕获文本、unit 取规范名）；null → 委托 super（既有裸输出逐字节不变，deprecated 语义与 owner doc `:295` 一致）；**TUMBLE 路径零触碰**（`visitSqlTumbleTableSource` 现状不动，守护用例锁定）。
-- [ ] 模板加载期校验（按 Phase 0 裁定）：未知 marker 方言加载期抛错 + 负向用例（WI0 marker 校验同纪律；无静默跳过——不允许坏 marker 静默按原文输出）。
-- [ ] 逐方言模板配置（按 Phase 0 矩阵）：PG/Oracle/MySQL 三方言 `*.dialect.xml` 配置（EC ③ 载体）+ h2 配置（CI 真库载体）；`dm`/`tdengine` 零配置（红线）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ③）：**PG/Oracle/MySQL 三形态各一条**输出断言（MySQL value 不加引号、PG/Oracle value 加引号——以各方言模板实际配置与探针/文档为准）；h2 一条编译输出断言 + **一条 H2 真库执行通过用例**（`JdbcTestCase` 基座，端到端：EQL 文本 → parse 归一化 → transform → 模板渲染 → H2 执行返回）。
-- [ ] 负向用例：模板未配置方言维持裸输出（BC 守护断言，不是报错——Phase 0 裁定登记）；坏 marker 方言加载期报错断言具体错误码；`dm`/`tdengine` 不配置的守护断言（零配置）。
-- [ ] 接线验证（Minimum Rules #23）：EQL interval 文本 → `SqlIntervalExpr` → `visitSqlIntervalExpr` override → `getSqlIntervalLiteral()` 模板的运行时连通（h2 端到端用例即载体，证明 accessor 从"有配置无消费"转为真实消费）。
-- [ ] 既有行为守护：`interval 1 day`/`interval '3 hours'` 两语法形态的解析与归一化不变（`TestEqlIntervalLiteralParse` 全量回归）；回显路径（`AstToEqlGenerator.visitSqlIntervalExpr:950-954`）输出逐字不变；未配置方言编译输出逐字节不变；TUMBLE 渲染不变。
-- [ ] 矩阵快照核实：`sqlIntervalLiteral` 是 `<sqls>` 配置非函数表成员——核实快照**零增量**（函数表视角）+ 门禁 exit 0；若 Phase 0 裁定改动影响函数表则同步快照。
-- [ ] owner doc（EC ③ 文档面）：INTERVAL 段（`:291-298`）更新——模板占位符契约、逐方言模板矩阵（`[实测]`/`[文档]`/`[未取证]`）、H2/PG 裸输出非法的探针结论、能力点登记表行（generator 方法 + 触发配置 + 未配置时行为）。
-- [ ] 语料 BC（EC ⑥）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称"7 个全测"。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，硬前置已满足；照 plan 26 对 WI0-WI3 的复核先例降级）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] **修复前红**：h2 上 `select timestamp '2020-01-01' + interval '1 day'`（或等价 interval 查询）经 `AstToSqlGenerator` 输出 `interval 1 DAY` 形态、H2 真库执行报语法错（探针已证）——回归测试断言修复后输出模板渲染文本且 H2 执行通过，修复前红留痕于提交说明或日志。
+- [x] 生成器消费点（按 Phase 0 裁定）：`AstToSqlGenerator` 新增 `visitSqlIntervalExpr` override——`dialect.getSqlIntervalLiteral()` 非 null → 模板渲染（value 子表达式先 visit 捕获文本、unit 取规范名）；null → 委托 super（既有裸输出逐字节不变，deprecated 语义与 owner doc `:295` 一致）；**TUMBLE 路径零触碰**（`visitSqlTumbleTableSource` 现状不动，守护用例锁定）。
+- [x] 模板加载期校验（按 Phase 0 裁定）：未知 marker 方言加载期抛错 + 负向用例（WI0 marker 校验同纪律；无静默跳过——不允许坏 marker 静默按原文输出）。
+- [x] 逐方言模板配置（按 Phase 0 矩阵）：PG/Oracle/MySQL 三方言 `*.dialect.xml` 配置（EC ③ 载体）+ h2 配置（CI 真库载体）；`dm`/`tdengine` 零配置（红线）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ③）：**PG/Oracle/MySQL 三形态各一条**输出断言（MySQL value 不加引号、PG/Oracle value 加引号——以各方言模板实际配置与探针/文档为准）；h2 一条编译输出断言 + **一条 H2 真库执行通过用例**（`JdbcTestCase` 基座，端到端：EQL 文本 → parse 归一化 → transform → 模板渲染 → H2 执行返回）。
+- [x] 负向用例：模板未配置方言维持裸输出（BC 守护断言，不是报错——Phase 0 裁定登记）；坏 marker 方言加载期报错断言具体错误码；`dm`/`tdengine` 不配置的守护断言（零配置）。
+- [x] 接线验证（Minimum Rules #23）：EQL interval 文本 → `SqlIntervalExpr` → `visitSqlIntervalExpr` override → `getSqlIntervalLiteral()` 模板的运行时连通（h2 端到端用例即载体，证明 accessor 从"有配置无消费"转为真实消费）。
+- [x] 既有行为守护：`interval 1 day`/`interval '3 hours'` 两语法形态的解析与归一化不变（`TestEqlIntervalLiteralParse` 全量回归）；回显路径（`AstToEqlGenerator.visitSqlIntervalExpr:950-954`）输出逐字不变；未配置方言编译输出逐字节不变；TUMBLE 渲染不变。
+- [x] 矩阵快照核实：`sqlIntervalLiteral` 是 `<sqls>` 配置非函数表成员——核实快照**零增量**（函数表视角）+ 门禁 exit 0；若 Phase 0 裁定改动影响函数表则同步快照。
+- [x] owner doc（EC ③ 文档面）：INTERVAL 段（`:291-298`）更新——模板占位符契约、逐方言模板矩阵（`[实测]`/`[文档]`/`[未取证]`）、H2/PG 裸输出非法的探针结论、能力点登记表行（generator 方法 + 触发配置 + 未配置时行为）。
+- [x] 语料 BC（EC ⑥）：`:nop-job-dao`/`:nop-auth-service`/`:nop-orm` 三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 随全量运行通过）；不声称"7 个全测"。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试：h2 interval 查询修复前真库报错、修复后模板渲染文本 + 真库执行通过；PG/Oracle/MySQL 三形态文本断言齐（EC ③）；修复前红留痕。
-- [ ] 模板加载期校验负向用例断言具体错误码；未配置方言 BC 守护通过；TUMBLE 路径不变守护通过；无静默跳过。
-- [ ] 端到端接线用例通过（parse → transform → 模板渲染 → H2 执行）。
-- [ ] `TestDialectSqlIntervalLiteral` 已按 h2 配置更新（原三测骨架不弱化）；owner doc INTERVAL 段更新落档；矩阵快照门禁 exit 0。
-- [ ] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] 本 Phase 无 `.g4`/`EqlAST.xjava` 改动（`ast/_gen/` 零 diff）——若实施中发现必须动文法，停下按 scope change 处理并记录。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试：h2 interval 查询修复前真库报错、修复后模板渲染文本 + 真库执行通过；PG/Oracle/MySQL 三形态文本断言齐（EC ③）；修复前红留痕。
+- [x] 模板加载期校验负向用例断言具体错误码；未配置方言 BC 守护通过；TUMBLE 路径不变守护通过；无静默跳过。
+- [x] 端到端接线用例通过（parse → transform → 模板渲染 → H2 执行）。
+- [x] `TestDialectSqlIntervalLiteral` 已按 h2 配置更新（原三测骨架不弱化）；owner doc INTERVAL 段更新落档；矩阵快照门禁 exit 0。
+- [x] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] 本 Phase 无 `.g4`/`EqlAST.xjava` 改动（`ast/_gen/` 零 diff）——若实施中发现必须动文法，停下按 scope change 处理并记录。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 2 - `rollup`/`cube`/`grouping` 注册（路径按 Phase 0 裁定 + 方言排除）（EC ①⑦）
 
