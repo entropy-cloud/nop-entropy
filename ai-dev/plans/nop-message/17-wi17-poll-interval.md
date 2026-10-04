@@ -49,7 +49,7 @@ Targets: `nop-message-kafka`、`nop-api-core`
 - Item Types: `Fix`
 
 - [x] maxPollIntervalMs 字段 + props 接线 + 双侧 javadoc（含 WI12 交互）
-- [ ] maxPollIntervalMs 字段 + props 接线 + 双侧 javadoc（含 WI12 交互）
+- [x] maxPollIntervalMs 字段 + props 接线 + 双侧 javadoc（含 WI12 交互）
 - [x] F-39：prod.send try/catch（InterruptException 恢复中断位）→ completeExceptionally
 - [x] 测试 ①②③（③用 IllegalStateException 措辞为「任意同步异常包装」，不声称复现 max.block.ms）
 
