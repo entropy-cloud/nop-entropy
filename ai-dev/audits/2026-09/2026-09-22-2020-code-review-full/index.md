@@ -21,7 +21,7 @@
 | 1.9 | `1.9-jq-refactor-first-audit.md` | 0 | **1** | 9 | 21 | done（裁决：通过附 P1×1——jq 工具接缝资源耗尽（OOM 双通路实证+默认链无门禁）进 R1.0；430/430 基线、refactor 四段全通正结论） | 独立子 agent（见 plan 2316 Closure 段） |
 | 1.10 | `1.10-bytecode-duckdb-first-audit.md` | 0 | **2** | 5 | 26 | done（裁决：通过附 P1×2——bytecode exit 1 契约缺口+ObligationToken 死循环（第 1 轮正结论被推翻并落账）进 R1.0；duckdb 契约与 doc 一致正结论） | 独立子 agent（见 plan 2317 Closure 段） |
 | 2.1 | `2.1-orm-ormmodel-deep-audit.md` | 0 | **2** | 15 | 41 | done（裁决：通过附 P1×2——detach 一缓契约混杂+DELETING 装配重置（会话状态机通道）进 R1.0；模型校验矩阵全绿/乐观锁闭环正结论；check2 三 P1 全部 already-fixed；降级 1——dim04-17 探针实证后 P1→P2） | 独立子 agent（见 plan 2318 Closure 段） |
-| 2.2 | — | | | | | todo | |
+| 2.2 | `2.2-orm-eql-deep-audit.md` | **3** | **11** | 17 | 29 | done（裁决：不通过附 P0×3——否定编码根因簇（NOT `_some` 反转/嵌套 `_all` 量词丢失/NOT+嵌套否定错位，测试钉住错误期望）触发即时通道→plan 2320；P1×11 含 DML 渲染缺口族+EQL DML 缺实体过滤器；check2 P0 join 放大 already-fixed 但 1:1 数据掩盖缺口坐实；60 条唯一发现全探针实证） | 独立子 agent（见 plan 2319 Closure 段） |
 | 2.3 | — | | | | | todo | |
 | 2.4 | — | | | | | todo | |
 | 2.5 | — | | | | | todo | |
@@ -69,6 +69,9 @@
 
 | Finding ID | 报告 | 描述（一句话） | 修复路径 | 修复状态 |
 |---|---|---|---|---|
+| P0-2.2-001 | `2.2-orm-eql-deep-audit.md` | `NOT (col._some P)` 语义反转（∃(¬P)≠¬∃(P)，文档 §5 明文契约） | plan 2320 簇A（异步注入） | open |
+| P0-2.2-002 | `2.2-orm-eql-deep-audit.md` | 嵌套 `_all` 量词静默翻转/丢失（`_all._some`≡`_some._all`；测试钉住错误期望） | plan 2320 簇A（逐层 XOR+修订测试） | open |
+| P0-2.2-003 | `2.2-orm-eql-deep-audit.md` | NOT+嵌套集合路径否定错位（¬∃∃P→∃∃¬P；与 001 同根） | plan 2320 簇A | open |
 
 ## P1 发现汇总（待 R1.0 展开）
 
@@ -83,6 +86,17 @@
 | P1-1.10-002 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（ObligationToken equals/hashCode ~10 行+虚假 javadoc 修正+CLI 防线） | open |
 | P1-2.1-001 | `2.1-orm-ormmodel-deep-audit.md` | R1.x（detach 对齐 evict 语义或文档契约+checkValid，补回归） | open |
 | P1-2.1-002 | `2.1-orm-ormmodel-deep-audit.md` | R1.x（装配路径对非 MANAGED 状态响亮失败/跳过，补 delete→select→flush 回归） | open |
+| P1-2.2-001 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（keyProp `_some` DML where 非法 SQL；nop-wf/nop-dyn 真实模型可达） | open |
+| P1-2.2-002 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（keyProp order/having 死 join 排序静默失效） | open |
+| P1-2.2-003 | `2.2-orm-eql-deep-audit.md` | plan 2320 簇A 连带（NOT `_all` 编译崩溃，dup dim10b-02/dim16-02；仅 detach 会落入反转须同设计） | open |
+| P1-2.2-004 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（keyProp 投影/窗口/分组位置矩阵死 join，伞条目） | open |
+| P1-2.2-005 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（UPDATE SET/RETURNING prop-join 渲染缺口，dup dim10c-15） | open |
+| P1-2.2-006 | `2.2-orm-eql-deep-audit.md` | R1.0 簇B（生成别名绕过 assignedAliases 查重→撞名恒真/自比，dup dim10a-02） | open |
+| P1-2.2-007 | `2.2-orm-eql-deep-audit.md` | R1.0 簇C（mergeConditions:154 覆盖 commonAnd→AND+OR 形态编译失败，=dim16-03） | open |
+| P1-2.2-008 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D canonical（DML where 属性路径 join 渲染缺口，编译成功执行期必败） | open |
+| P1-2.2-009 | `2.2-orm-eql-deep-audit.md` | R1.0 簇E（EQL DML 不注入实体级缺省过滤器/租户列，单表形态静默跨租户写） | open |
+| P1-2.2-010 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（相关子查询多段 owner 两层防线失效） | open |
+| P1-2.2-011 | `2.2-orm-eql-deep-audit.md` | R1.0（eval 转换器丢 not like/not in 否定，公开 jar 唯一 SQL→FilterBean 入口静默反转） | open |
 
 ## P2 裁决台账（例外通道）
 

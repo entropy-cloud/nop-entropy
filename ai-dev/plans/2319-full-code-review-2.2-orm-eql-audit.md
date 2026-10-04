@@ -1,6 +1,6 @@
 # 2319 full-code-review 2.2 nop-orm-eql 深审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.2（MA2）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 10/15/16 + 共享前缀）
 > Related: plan 2314（1.7 已裁定 EqlASTOptimizer+EqlASTProcessor 为 `__XGEN_FORCE_OVERRIDE__` 生成死代码——codegen 模板层 plan-first 工单队首，本项标「已裁定」不重复报告）；plan 2318（2.1 已审 nop-orm 会话域，check2 nop-orm 三 P1 already-fixed 先例——本项 check2 eql P0 复核同口径）
@@ -50,73 +50,73 @@
 
 ### Phase 1 - 深挖（deep-audit 迭代轮次，子 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-orm-eql
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：手写文件行数榜（排除生成物，给出豁免清单核验）、测试类↔编译链阶段映射表、方言分支清单（grep SqlDialect/ILIKE/returning/分页）
-- [ ] 编译正确性子 agent（维度 10 适配）：EqlTransformVisitor 全链 + CollectionTableSourceHelper + SqlTableScope 别名作用域 + addTableFilterForPropJoin（含 check2 P0 复核——live 标定 + 实测）
-- [ ] 集合操作符子 agent（维度 10 适配）：CollectionOperatorTransformer `_some`/`_all`/`_none` 改写语义（EXISTS/join/取反/三值逻辑）+ AstToSqlGenerator 方言路由/returning/参数标记 + AstToEqlGenerator 反向一致性
-- [ ] 编译编排与外围包子 agent（维度 10 适配）：EqlCompiler 编排链（decorator/IEqlAstTransformer 前后钩子/useTenantModel/paramBuilders/columnBinders/DataSetMeta 组装）+ parse 手写族（EqlASTBuildVisitor/EqlParseHelper 等——check2 P2 :103 事故点在域内）+ meta/ + eval/ + param/（TenantParamBuilder 租户参数注入面）+ binder/ + utils/
-- [ ] 类型与测试子 agent（维度 15+16）：AST 类型推断/转换热点 + 测试覆盖映射与缺口评估（方言矩阵/集合操作符三值逻辑/错误路径）
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-2.2-{transform,coll,orch,types-tests}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：手写文件行数榜（排除生成物，给出豁免清单核验）、测试类↔编译链阶段映射表、方言分支清单（grep SqlDialect/ILIKE/returning/分页）
+- [x] 编译正确性子 agent（维度 10 适配）：EqlTransformVisitor 全链 + CollectionTableSourceHelper + SqlTableScope 别名作用域 + addTableFilterForPropJoin（含 check2 P0 复核——live 标定 + 实测）
+- [x] 集合操作符子 agent（维度 10 适配）：CollectionOperatorTransformer `_some`/`_all`/`_none` 改写语义（EXISTS/join/取反/三值逻辑）+ AstToSqlGenerator 方言路由/returning/参数标记 + AstToEqlGenerator 反向一致性
+- [x] 编译编排与外围包子 agent（维度 10 适配）：EqlCompiler 编排链（decorator/IEqlAstTransformer 前后钩子/useTenantModel/paramBuilders/columnBinders/DataSetMeta 组装）+ parse 手写族（EqlASTBuildVisitor/EqlParseHelper 等——check2 P2 :103 事故点在域内）+ meta/ + eval/ + param/（TenantParamBuilder 租户参数注入面）+ binder/ + utils/
+- [x] 类型与测试子 agent（维度 15+16）：AST 类型推断/转换热点 + 测试覆盖映射与缺口评估（方言矩阵/集合操作符三值逻辑/错误路径）
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-2.2-{transform,coll,orch,types-tests}.md`
 
 Exit Criteria:
 
-- [ ] 四份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] check2 P0 逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据与生成 SQL 样本）
-- [ ] P0 对应回归测试缺口评估结论落盘（含测试数据基数 1:1 掩盖是否仍存在的显式判定）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 四份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] check2 P0 逐条标定结论落盘（still-live/already-fixed/false-positive/duplicated + 实测证据与生成 SQL 样本）
+- [x] P0 对应回归测试缺口评估结论落盘（含测试数据基数 1:1 掩盖是否仍存在的显式判定）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
-- [ ] 统一 severity 判级；与 2.1（会话域）/4.2（测试有效性全仓桶）边界协调；check2 重复发现的归属裁定
-- [ ] 集合操作符正结论收敛（改写语义/方言路由一条总评）
+- [x] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总（误报校准对照，只有复核通过条目进汇总）
+- [x] 统一 severity 判级；与 2.1（会话域）/4.2（测试有效性全仓桶）边界协调；check2 重复发现的归属裁定
+- [x] 集合操作符正结论收敛（改写语义/方言路由一条总评）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.2-{transform,coll,orch,types-tests}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.2-{transform,coll,orch,types-tests}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.2-orm-eql-deep-audit.md`；index 登记 2.2 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记（含 check2 P0 若 still-live 的即时通道处置）
-- [ ] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-orm-eql -am`（无条件执行；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.2 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.2-orm-eql-deep-audit.md`；index 登记 2.2 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记（含 check2 P0 若 still-live 的即时通道处置）
+- [x] 定向验证锚点：`./mvnw test -pl nop-persistence/nop-orm-eql -am`（无条件执行；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.2 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且编译链全阶段覆盖（parse 手写族+meta/编排（EqlCompiler）/transform/集合操作符/SQL 生成/别名作用域/param/binder/utils/类型/测试）
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且编译链全阶段覆盖（parse 手写族+meta/编排（EqlCompiler）/transform/集合操作符/SQL 生成/别名作用域/param/binder/utils/类型/测试）
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -128,14 +128,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `2.2-orm-eql-deep-audit.md` 落盘：**不通过附 P0×3**（否定编码根因簇：NOT `_some` 语义反转/嵌套 `_all` 量词丢失/NOT+嵌套否定错位——均探针实证，触发 P0 即时通道，异步注入 plan 2320）；P1×11/P2×17/P3×29（60 条唯一发现，66 候选中 6 条跨维度去重、降级 7、驳回 0，判级调和 7 处留痕）；check2 点名 P0 join 放大标定 already-fixed（removeIf 双路径+26/26 回归+探针正交复核），1:1 数据掩盖缺口坐实（P2-2.2-001）。定向测试 163/163 全绿（2026-10-04 实跑）。closure audit 一次 PASS；advisory（日志日期归属）已按建议归位于 10-04.md。审计工作项 done 不被 P0 阻断（修复由 plan 2320 独立承载，与 roadmap「审计=发现职责、修复=Wave 2 职责」一致）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_ed642f79-d570-4627-bdb3-57e73fa59cee（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：报告 P0=3/P1=11/P2=17/P3=29=60 ↔ 报告内实点（P0 表 3 + P1 表 11 + P2 逐数 17 + P3 逐数 29）↔ index 2.2 行 ↔ 四份复核文件 66−6=60，零缺陷
+  - 去重台账 6 条与复核文件归属建议一一对应；判级调和 7 处终判与四份 review「修订后口径」一致（dim10a 少数意见保留表述在案属实）
+  - P0 即时通道合规：index「P0 发现追踪」3 行=报告 P0 表，修复路径=plan 2320（已拟制、对抗审查 1 Blocker+5 Minor 全修、commit 97596184a5）；roadmap 规则 #4/横切关注点逐项合规
+  - 锚点抽验 8/8 命中 + 加验 2 处（AstToSqlGenerator:332/:354-368、git show f0fb70773f --stat 半修复回归实证）
+  - 定向测试：surefire 15 类 mtime 2026-10-04 19:57，163/0/0/0；TestEqlCompileSql 四个 check2 点名回归精确在位
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2319-full-code-review-2.2-orm-eql-audit.md --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0（只读审计无新增实现）
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以模块定向 test 全绿 + 探针工件（_tmp/probe/、_tmp/scratch/）为锚
+  - Deferred 项分类检查：无 deferred；P0×3 走即时通道（plan 2320 open）、P1×11 经 index「P1 发现汇总」进 R1.0 簇B/C/D/E，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P0 修复=plan 2320；P1×11+P2×17+P3×29 修复归属 R1.0 对应簇；契约文档迁移归 G.2——移交注记在案）
