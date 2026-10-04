@@ -182,6 +182,7 @@
              postgis 继承；duckdb（extends postgresql）继承 [文档]。 -->
         <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
             <source>{0} AT TIME ZONE {1}</source>
+            <testSql>TIMESTAMP '2026-02-10 12:34:56' AT TIME ZONE 'UTC'</testSql>
         </template>
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
