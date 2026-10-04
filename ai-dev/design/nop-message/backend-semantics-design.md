@@ -64,9 +64,9 @@
 
 ### 3.7 D11 事务语义
 
-- 删除 `transactional` / `transactionTimeout` 字段（含 Pulsar 每消息建事务的实现路径一并移除）。
-- `ConsumeContext.commit()/rollback()` 的现行 no-op 形态在 javadoc 与本文档一并声明为 at-least-once 基线：消息层 ack 语义由返回值协议承担，事务不作为消费语义的一部分。
-- 未来若引入事务：按 message-contract D1 的 `TRANSACTION` 能力声明逐后端实现，未声明后端类型化拒绝。
+- `transactional` / `transactionTimeout` 字段进入 D8 弃用期（字段保留 YAML 兼容、@Deprecated 标注），**行为已删除**：任何后端读到非默认值即一次性 WARN「deprecated and ignored by D11」并忽略（WI14）。Pulsar 每消息建事务（F-52）与 timeout=0 静默回落（F-57）的实现路径一并移除；Kafka 零处置（F-13）由 warn-once 显式化。
+- `ConsumeContext.commit()/rollback()` 为显式 no-op（at-least-once 基线）：消息层 ack 语义由返回值协议与各后端的 ack/提交机制承担，事务不作为消费语义的一部分。
+- 未来若引入事务：按 message-contract D1 的 `TRANSACTION` 能力声明逐后端实现（当前无后端声明）。
 
 ## 四、拒绝了什么
 

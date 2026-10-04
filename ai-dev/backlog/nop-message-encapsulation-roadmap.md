@@ -152,7 +152,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI11 Kafka 批量路径回退与提交边界: `done`（deps WI4；Item Type Fix；对应 MSG-F-06 与 MSG-F-07 与 MSG-F-08 与 MSG-F-58；完成判定 批量失败按首个未成功 record 回退 seek；`commitSync` 边界不越过未派发记录且按分区收敛；新增回归测试逐条覆盖四个编号）
 - WI12 Kafka ConsumeLater 延迟语义: `done`（deps WI4；Item Type Fix；对应 MSG-F-09；完成判定 `getDelay` 被真正 honored 而非丢弃，消除 CPU 自旋；新增测试断言延迟期间不发生立即重投）
 - WI13 resolveGroupId 身份模型修正: `done`（deps WI4；Item Type Fix；对应 MSG-F-12 与 MSG-F-28；完成判定 按 D7 裁定实现，且断言默认配置下 `subscribeName` 仍是生效的消费组身份；新增多 topic 隔离测试断言不同订阅不共享分区分配域，且断言 `subscribeName` 在默认配置下真实生效）
-- WI14 Kafka 与 Pulsar 事务语义显式化: `todo`（deps WI3；Item Type Fix；对应 MSG-F-13 与 MSG-F-52 与 MSG-F-57；完成判定 按 D11 裁定实现，同时修 Pulsar 每消息建事务的粒度问题；`ConsumeContext.commit/rollback` 的 no-op 在 javadoc 与设计文档中与 at-least-once 基线一并声明；测试断言所选形态）
+- WI14 Kafka 与 Pulsar 事务语义显式化: `done`（deps WI3；Item Type Fix；对应 MSG-F-13 与 MSG-F-52 与 MSG-F-57；完成判定 按 D11 裁定实现，同时修 Pulsar 每消息建事务的粒度问题；`ConsumeContext.commit/rollback` 的 no-op 在 javadoc 与设计文档中与 at-least-once 基线一并声明；测试断言所选形态）
 - WI15 MessageSendOptions 字段接线: `todo`（deps WI4；Item Type Fix；对应 MSG-F-45 与 MSG-F-39；完成判定 `sendTimeout` 接入两后端发送路径并有超时测试；`cancelToken` 接入发送前检查与中断，或按 `RpcMessageSender` 已有语义对齐两后端；不得保留既不消费也不拒绝的字段）
 - WI16 消费失败回调与终止拒绝信号: `todo`（deps WI3；Item Type Decision；对应 MSG-F-20；完成判定 按 D6 与 D5 的 b-prime 裁定新增带 topic 与 message 与 attempt 与 throwable 的失败回调，并以终止拒绝信号替换 `onException` 的空表达能力；默认实现按 error-handling.md 留证要求记录完整上下文 WARN；判定为 SPI 签名变更故须 plan-first）
 - WI17 max.poll.interval.ms 与 poll 语义修正: `todo`（deps WI4；Item Type Fix；对应 MSG-F-10 与 MSG-F-11；完成判定 `max.poll.interval.ms` 可配置且与 `max.poll.records` 和处理耗时自洽；`batchReceiveTimeout` 不再直连为 `poll` 时长或该语义被显式声明；新增慢 handler 不触发踢出的测试）

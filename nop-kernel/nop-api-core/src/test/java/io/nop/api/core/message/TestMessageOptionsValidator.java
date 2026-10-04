@@ -53,11 +53,13 @@ public class TestMessageOptionsValidator {
 
     @Test
     void subscribeFieldsMapToCapabilities() {
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setTransactional(true);
-        NopException e = assertThrows(NopException.class,
-                () -> MessageOptionsValidator.validateSubscribe(caps(), options, BACKEND));
-        assertEquals(MessageErrors.ERR_OPTION_NOT_SUPPORTED.getErrorCode(), e.getErrorCode());
+        // D11 (WI14): transactional is deprecated — warn-once + ignore, never a rejection.
+        MessageSubscribeOptions txOptions = new MessageSubscribeOptions();
+        txOptions.setTransactional(true);
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSubscribe(caps(), txOptions, BACKEND));
+        MessageSubscribeOptions timeoutOptions = new MessageSubscribeOptions();
+        timeoutOptions.setTransactionTimeout(1000L);
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSubscribe(caps(), timeoutOptions, BACKEND));
 
         MessageSubscribeOptions seekOptions = new MessageSubscribeOptions();
         seekOptions.setSeekMode(SeekMode.DEFAULT); // DEFAULT is treated as unset
@@ -85,11 +87,27 @@ public class TestMessageOptionsValidator {
         Set<MessageCapability> warnOnce = EnumSet.of(MessageCapability.DELAYED_SEND);
         assertDoesNotThrow(() -> MessageOptionsValidator.validateSend(caps,
                 sendOptions(100L), BACKEND, warnOnce));
-        // Declared-but-missing fields outside warnOnce still reject.
+        // D11 (WI14): transactional is warn-once everywhere (not capability-gated).
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         options.setTransactional(true);
-        assertThrows(NopException.class, () -> MessageOptionsValidator.validateSubscribe(caps,
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSubscribe(caps,
                 options, BACKEND, warnOnce));
+        // Declared-but-missing fields outside warnOnce still reject (seek here).
+        MessageSubscribeOptions seekOptions = new MessageSubscribeOptions();
+        seekOptions.setSeekMode(SeekMode.INIT_SEEK_TO_END);
+        assertThrows(NopException.class, () -> MessageOptionsValidator.validateSubscribe(caps,
+                seekOptions, BACKEND, warnOnce));
+    }
+
+    @Test
+    void transactionOptionsAreDeprecated() throws Exception {
+        // D11 form assertion: fields kept (YAML compatible) but flagged deprecated.
+        org.junit.jupiter.api.Assertions.assertTrue(
+                MessageSubscribeOptions.class.getMethod("setTransactional", boolean.class)
+                        .isAnnotationPresent(Deprecated.class));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                MessageSubscribeOptions.class.getMethod("getTransactionTimeout")
+                        .isAnnotationPresent(Deprecated.class));
     }
 
     private MessageSendOptions sendOptions(long delay) {

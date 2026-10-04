@@ -17,7 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * third disposition state of the silent-violation rule, never per-call).
  *
  * <p>Only non-default option values trigger validation, so passing a fresh default options
- * object (or null) never rejects or warns.
+ * object (or null) never rejects or warns. The deprecated transaction options
+ * (D11/WI14) are never capability-gated: any backend warns once and ignores them.
  */
 public final class MessageOptionsValidator {
     private static final Logger LOG = LoggerFactory.getLogger(MessageOptionsValidator.class);
@@ -53,9 +54,11 @@ public final class MessageOptionsValidator {
         if (options == null)
             return;
         if (options.isTransactional())
-            check(capabilities, MessageCapability.TRANSACTION, "transactional", backend, warnOnce);
+            warnOnce("message-spi", "transactional",
+                    "deprecated and ignored by D11 (at-least-once consumption baseline)");
         if (options.getTransactionTimeout() > 0)
-            check(capabilities, MessageCapability.TRANSACTION, "transactionTimeout", backend, warnOnce);
+            warnOnce("message-spi", "transactionTimeout",
+                    "deprecated and ignored by D11 (at-least-once consumption baseline)");
         if (options.getBatchReceiveCount() > 0) {
             check(capabilities, MessageCapability.BATCH_CONSUME, "batchReceiveCount", backend, warnOnce);
             if (options.getBatchReceiveTimeout() > 0)

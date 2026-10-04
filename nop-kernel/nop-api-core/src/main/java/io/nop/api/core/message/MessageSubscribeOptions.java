@@ -19,10 +19,18 @@ public class MessageSubscribeOptions {
     private String subscribeName;
 
     /**
-     * 消费消息时是否打开事务。
+     * @deprecated D11 (WI14): transaction semantics are removed from the message SPI —
+     * consumption follows the at-least-once baseline and the field is ignored (one-time
+     * warn on use). The field is kept for YAML compatibility during the D8 deprecation
+     * window. A future transaction capability would be declared per backend (D1).
      */
+    @Deprecated
     private boolean transactional;
 
+    /**
+     * @deprecated D11 (WI14): ignored together with {@link #transactional}.
+     */
+    @Deprecated
     private long transactionTimeout;
 
     /**
@@ -53,18 +61,28 @@ public class MessageSubscribeOptions {
         this.subscribeName = subscribeName;
     }
 
+    /**
+     * @deprecated D11 (WI14): ignored (one-time warn on use). See field javadoc.
+     */
+    @Deprecated
     public boolean isTransactional() {
         return transactional;
     }
 
+    /** @deprecated D11 (WI14): ignored. */
+    @Deprecated
     public void setTransactional(boolean transactional) {
         this.transactional = transactional;
     }
 
+    /** @deprecated D11 (WI14): ignored. */
+    @Deprecated
     public long getTransactionTimeout() {
         return transactionTimeout;
     }
 
+    /** @deprecated D11 (WI14): ignored. */
+    @Deprecated
     public void setTransactionTimeout(long transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
     }

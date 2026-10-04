@@ -41,7 +41,7 @@ public class LocalMessageService implements IMessageService {
      * (D1 disposition), never silently ignored.
      */
     private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
-            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION,
+            MessageCapability.DELAYED_SEND,
             MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
 
     @Override

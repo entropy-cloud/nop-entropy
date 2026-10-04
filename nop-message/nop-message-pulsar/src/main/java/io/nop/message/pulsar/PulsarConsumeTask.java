@@ -8,13 +8,11 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSendOptions;
-import io.nop.api.core.message.MessageErrors;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import io.nop.api.core.message.PartialCommit;
 import io.nop.api.core.message.TerminateConsume;
@@ -24,7 +22,6 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Messages;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,11 +127,6 @@ public class PulsarConsumeTask {
                     // signal (index k) and everything after it is negatively acknowledged
                     // (redelivered) — the boundary record itself must not be dropped.
                     FutureHelper.syncGet(FutureHelper.waitAll(futures));
-                    int committedCount = ((PartialCommit) response).getCommittedCount();
-                    if (context.getTransaction() != null) {
-                        throw new NopException(MessageErrors.ERR_PARTIAL_COMMIT_TRANSACTIONAL)
-                                .param("committedCount", committedCount);
-                    }
                     pulsarConsumer.negativeAcknowledge(message.getMessageId());
                     while (it.hasNext()) {
                         Message<Object> remaining = it.next();
@@ -231,21 +223,14 @@ public class PulsarConsumeTask {
         return service.getAckTopic(topic);
     }
 
-    ConsumeContext newConsumeContext() throws PulsarClientException {
-        Transaction txn = null;
-        if (config.getOptions().isTransactional()) {
-            txn = service.newTransaction(config.getOptions().getTransactionTimeout());
-        }
-        return new ConsumeContext(txn);
+    ConsumeContext newConsumeContext() {
+        // D11 (WI14): transaction semantics removed — at-least-once baseline; F-52's
+        // per-message broker transaction no longer exists.
+        return new ConsumeContext();
     }
 
-    CompletionStage<Void> ackAsync(ConsumeContext context, Message<Object> message) throws Exception {
-        Transaction transaction = context.getTransaction();
-        if (transaction != null) {
-            return pulsarConsumer.acknowledgeAsync(message.getMessageId(), transaction);
-        } else {
-            return pulsarConsumer.acknowledgeAsync(message);
-        }
+    CompletionStage<Void> ackAsync(ConsumeContext context, Message<Object> message) {
+        return pulsarConsumer.acknowledgeAsync(message);
     }
 
     void fail(ConsumeContext context, Message<Object> message, Throwable exception) throws Exception {
@@ -253,30 +238,31 @@ public class PulsarConsumeTask {
         pulsarConsumer.negativeAcknowledge(message.getMessageId());
     }
 
+    /**
+     * D11 (WI14): consumption follows the at-least-once baseline. {@code commit}/
+     * {@code rollback} are explicit no-ops — the ack/commit mechanics of each backend carry
+     * the delivery semantics (see backend-semantics-design.md 3.7); the deprecated
+     * transaction options are ignored with a one-time warn (see
+     * {@code MessageOptionsValidator}).
+     */
     protected class ConsumeContext implements IMessageConsumeContext {
-        private Transaction transaction;
-
-        public ConsumeContext(Transaction transaction) {
-            this.transaction = transaction;
-        }
-
-        public Transaction getTransaction() {
-            return transaction;
-        }
 
         @Override
         public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-            return service.sendAsync(transaction, topic, message, options);
+            return service.sendAsync(topic, message, options);
         }
 
+        /**
+         * At-least-once baseline (D11): no transaction boundary; batch paths perform their
+         * backend-native commits explicitly.
+         */
         public void commit() {
-            if (transaction != null)
-                FutureHelper.syncGet(transaction.commit());
+            // no-op by design (at-least-once baseline)
         }
 
+        /** At-least-once baseline (D11): see {@link #commit()}. */
         public void rollback() {
-            if (transaction != null)
-                FutureHelper.syncGet(transaction.abort());
+            // no-op by design (at-least-once baseline)
         }
     }
 }

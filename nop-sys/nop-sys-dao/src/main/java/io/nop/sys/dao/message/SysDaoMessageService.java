@@ -65,9 +65,9 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.DELAYED_SEND,
             MessageCapability.ACK_REPLY);
 
-    /** DB polling transport: transaction / batch / seek options are warn-once (D1). */
+    /** DB polling transport: batch / seek options are warn-once (D1). */
     private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
-            MessageCapability.TRANSACTION, MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+            MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
 
     @Override
     public Set<MessageCapability> getCapabilities() {

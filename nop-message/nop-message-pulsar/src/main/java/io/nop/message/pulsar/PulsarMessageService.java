@@ -28,8 +28,6 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
-import org.apache.pulsar.client.api.transaction.Transaction;
-import org.apache.pulsar.client.api.transaction.TransactionBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +52,7 @@ public class PulsarMessageService implements IMessageService {
 
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
-            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION, MessageCapability.SEEK,
+            MessageCapability.DELAYED_SEND, MessageCapability.SEEK,
             MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA);
 
     @Override
@@ -164,20 +162,9 @@ public class PulsarMessageService implements IMessageService {
         return PulsarHelper.deriveAckTopic(topic);
     }
 
-    Transaction newTransaction(long timeout) throws PulsarClientException {
-        TransactionBuilder builder = client.newTransaction();
-        if (timeout > 0)
-            builder.withTransactionTimeout(timeout, TimeUnit.MILLISECONDS);
-
-        return FutureHelper.syncGet(builder.build());
-    }
-
-    CompletableFuture<Void> sendAsync(Transaction txn,
-                                       String topic, Object message,
-                                       MessageSendOptions options) {
+    private CompletableFuture<Void> sendPulsarAsync(String topic, Object message, MessageSendOptions options) {
         Producer<?> producer = getProducer(topic);
-        TypedMessageBuilder<?> builder = txn == null ?
-                producer.newMessage() : producer.newMessage(txn);
+        TypedMessageBuilder<?> builder = producer.newMessage();
         PulsarHelper.buildPulsarMessage(builder, message, options);
 
         return builder.sendAsync().thenAccept(ret -> {
@@ -187,8 +174,7 @@ public class PulsarMessageService implements IMessageService {
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
         MessageOptionsValidator.validateSend(CAPABILITIES, options, "pulsar");
-        CompletableFuture<Void> future = sendAsync(null, topic, message, options);
-        return future;
+        return sendPulsarAsync(topic, message, options);
     }
 
     @Override
