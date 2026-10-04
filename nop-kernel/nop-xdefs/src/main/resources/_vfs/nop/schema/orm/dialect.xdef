@@ -80,7 +80,14 @@
               useAsInFrom="boolean"
               supportWindowFrameRows="boolean" supportWindowFrameRange="boolean" supportWindowFrameGroups="boolean"
               supportLateral="boolean"
+              supportRollup="boolean" supportCube="boolean"
     />
+    <!-- WI7b（plan 37）：supportRollup/supportCube = GROUP BY 位置 grouping 操作符
+         ROLLUP(...)/CUBE(...) 能力位（EqlTransformVisitor.visitSqlGroupingOp 消费）。
+         分立两标志：mysql 函数式 ROLLUP 8.4.3+ 才有（超 G-1 基线 8.0.31）而 CUBE 永无，
+         successor 触发条件不同。未配置归一为 false（编译期
+         nop.err.eql.dialect-not-support-feature，feature=rollup|cube）。 -->
+
 
     <!--
      保留的关键字。如果关键字成为列名，则需要用quote来回避

@@ -22,10 +22,15 @@
     <!-- WI3 第 3 项纠错：H2 完全没有 RETURNING 子句（h2database.com 的 grammar/commands/
          features/functions/changelog 五页零 RETURNING）⇒ supportReturningForUpdate=false
          （真实语义仅指 UPDATE 投影列表形式）。 -->
+    <!-- WI7b（plan 37）：supportRollup/supportCube=false——真库探针 [实测]
+         （ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）：H2 2.3.232/2.4.240 ×
+         DEFAULT/Oracle/PG 模式全部 Function "ROLLUP"/"CUBE"/"GROUPING" not found（90022）。
+         h2 = 三函数负向载体方言。 -->
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
               supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="false"
               supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
+              supportRollup="false" supportCube="false"
     />
 
     <reservedKeywords>

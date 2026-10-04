@@ -334,6 +334,16 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportRollup() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportRollup());
+    }
+
+    @Override
+    public boolean isSupportCube() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportCube());
+    }
+
+    @Override
     public String getSqlIntervalLiteral() {
         // WI1 BUG-5 骨架：直读 <sqls> 配置文本，未配置为 null。
         // WI7b Phase 1 起本 accessor 获得首个生产消费点（AstToSqlGenerator.visitSqlIntervalExpr），

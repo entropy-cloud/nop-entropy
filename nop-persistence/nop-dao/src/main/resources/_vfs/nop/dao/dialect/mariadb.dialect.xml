@@ -110,7 +110,10 @@
          独立成声明）。MariaDB 的 UPDATE … RETURNING 自 13.0 起可用（且仅单表），承诺下限
          10.2 无此能力 ⇒ 保守 false + 编译期报错；≥13.0 部署经 delta 方言显式开启
          （版本前提与升级路径见 owner doc，Phase 7 落档）。 -->
-    <features supportSequence="true" supportReturningForUpdate="false" supportLateral="false" supportFullJoin="false"/>
+    <!-- WI7b（plan 37）：supportRollup/supportCube=false——MariaDB 无函数式 ROLLUP/CUBE
+         （roadmap ledger 永久口径）；GROUPING 不注册（EQL 无 WITH ROLLUP 通路 ⇒ 死能力）。 -->
+    <features supportSequence="true" supportReturningForUpdate="false" supportLateral="false" supportFullJoin="false"
+              supportRollup="false" supportCube="false"/>
 
     <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MariaDB 10.3 起才有 INTERSECT/EXCEPT
          （MDEV-10141），承诺下限 10.2 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT

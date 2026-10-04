@@ -138,7 +138,12 @@
          "UPDATE 上返回投影列表（无 INTO）"，MySQL 不具备 ⇒ false。
          历史注释"mysql 8.0.14 和mariadb都支持returning语句"为该错误值的来源记录，已删。
          MariaDB 的 UPDATE … RETURNING 自 13.0 起才可用，由 mariadb.dialect.xml 自行声明。 -->
-    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"/>
+    <!-- WI7b（plan 37）：supportRollup=false——函数式 GROUP BY ROLLUP(...) 8.4.3 才有，
+         超 G-1 承诺基线 8.0.31（successor 触发 = 承诺基线上调需求先走 G-1 门再登记 roadmap）；
+         supportCube=false——MySQL 全版本无 CUBE（roadmap ledger 永久口径）。
+         GROUPING()：MySQL 8.0+ 有，但 EQL 无法为其生成 super-aggregate 行 ⇒ 死能力不注册。 -->
+    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"
+              supportRollup="false" supportCube="false"/>
 
     <sqls escapeSlash="true">
         <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] MySQL

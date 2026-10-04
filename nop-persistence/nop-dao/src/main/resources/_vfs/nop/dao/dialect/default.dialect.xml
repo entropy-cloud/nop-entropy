@@ -20,6 +20,7 @@
             supportRowValueConstructor="true" supportUpdateFromJoin="false"
             supportQueryTimeout="true" supportWithAsClause="true"
             supportDeleteFromJoin="false" supportILike="false"
+            supportRollup="false" supportCube="false"
             supportFullJoin="true" supportRightJoin="true" useAsInFrom="true"
             supportWindowFrameRows="false" supportWindowFrameRange="false"
             supportWindowFrameGroups="false"

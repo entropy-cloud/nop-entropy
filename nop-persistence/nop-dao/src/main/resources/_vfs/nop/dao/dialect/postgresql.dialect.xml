@@ -95,6 +95,7 @@
               supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
               supportLateral="true"
+              supportRollup="true" supportCube="true"
     />
 
     <sqls escapeSlash="false" trueString="true" falseString="false">
@@ -251,6 +252,12 @@
         <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
             <source>date_trunc({0},{1})</source>
         </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 位掩码多参——[文档] PG 15 文档
+             GROUPING ( group_by_expression(s) )，"Bits are assigned with the rightmost
+             argument corresponding to the least-significant bit"。上限 64 为配置边界
+             （实参须精确匹配 GROUP BY 列表）。postgis/duckdb 继承。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="64"/>
     </functions>
 
 </dialect>

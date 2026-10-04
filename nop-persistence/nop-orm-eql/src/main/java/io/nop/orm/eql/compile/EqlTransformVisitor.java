@@ -395,6 +395,22 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
+    // WI7b（plan 37，roadmap EC ①；ⓒ-A 裁定文档 §3.2）：GROUP BY 位置 grouping 操作符
+    // ROLLUP/CUBE 的方言能力门。supportRollup/supportCube 分立两标志——mysql 函数式 ROLLUP
+    //（8.4.3+，超 G-1 基线）与 CUBE（永无）successor 触发条件不同。先门后遍历（先例同上）；
+    // 错误码复用族不新起。非 GROUP BY 位置的 rollup(x)/cube(x) 解析为 SqlRegularFunction，
+    // 函数表永不注册 → ERR_EQL_UNKNOWN_FUNCTION（放置排他 = "GROUP BY 之外无注册"）。
+    @Override
+    public void visitSqlGroupingOp(io.nop.orm.eql.ast.SqlGroupingOp node) {
+        boolean rollup = node.getType() == io.nop.orm.eql.enums.SqlGroupingOpType.ROLLUP;
+        boolean support = rollup ? dialect.isSupportRollup() : dialect.isSupportCube();
+        if (!support)
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, rollup ? "rollup" : "cube");
+        visitChildren(node.getArgs());
+    }
+
     // WI2: over <name> 引用必须命中当前查询声明的窗口名；inline frame 按单位过能力门。
     // 先门后遍历：能力门/引用校验先于子节点解析（错误优先级高于子表达式的 unknown-function 等）
     @Override

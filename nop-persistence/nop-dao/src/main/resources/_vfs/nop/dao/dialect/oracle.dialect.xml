@@ -99,8 +99,12 @@
     <!-- WI3 第 2 项纠错：Oracle 的 UPDATE … returning_clause 只允许 INTO 宿主变量形式
          （data_item 为宿主/PL-SQL 变量），生成器的投影列表形式（无 INTO）在 Oracle 上非法
          ⇒ supportReturningForUpdate=false（真实语义仅指 UPDATE 投影列表形式）。 -->
+    <!-- WI7b（plan 37）：supportRollup/supportCube=true——Oracle 文档确认 ROLLUP/CUBE
+         （23ai SELECT 文法 CUBE/GROUPING SETS 多处出现）与 GROUPING(expr) 单参。
+         裁定矩阵见 ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md §5。 -->
     <features supportSequence="true" supportNullsFirst="true" useAsInFrom="false"
-              supportSomeSubQuery="true" supportReturningForUpdate="false" />
+              supportSomeSubQuery="true" supportReturningForUpdate="false"
+              supportRollup="true" supportCube="true" />
 
     <!--
     Oracle使用minus关键字代替SQL标准中的except
@@ -256,6 +260,11 @@
         <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>TRUNC({0}) - TRUNC({0},'IW') + 1</source>
         </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 单参——[文档] Oracle 23ai 文档
+             GROUPING(expr)（"The expr ... must match one of the expressions in the GROUP BY
+             clause"），返回 1/0（NUMBER）。oracle-reverse 继承。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
     </functions>
 
     <sqlDataTypes>

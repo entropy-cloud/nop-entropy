@@ -911,6 +911,20 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         print(')');
     }
 
+    /**
+     * WI7b（plan 37，roadmap EC ①）：GROUP BY 位置 grouping 操作符的 echo/执行打印
+     * （`ROLLUP(a,b)` / `CUBE(a,b)` 规范大写形态）。执行路径（AstToSqlGenerator）继承本实现
+     * ——identity lowering，合法性由 EqlTransformVisitor.visitSqlGroupingOp 的方言能力门保证
+     * （裁定文档 §3.2）。GROUPING SETS 永久否决，无第三形态。
+     */
+    @Override
+    public void visitSqlGroupingOp(io.nop.orm.eql.ast.SqlGroupingOp node) {
+        print(node.getType().name());
+        print('(');
+        printList(node.getArgs(), ",");
+        print(')');
+    }
+
     @Override
     public void visitSqlMultiValueExpr(SqlMultiValueExpr node) {
         print("(");

@@ -101,7 +101,10 @@
 
     </errorCodes>
 
-    <features supportSequence="true" supportOutputForUpdate="true"/>
+    <!-- WI7b（plan 37）：supportRollup/supportCube=true——MS Learn GROUP BY (Transact-SQL)
+         确认 ROLLUP/CUBE；GROUPING ( <column_expression> ) 单参（多列用 GROUPING_ID，不注册）。 -->
+    <features supportSequence="true" supportOutputForUpdate="true"
+              supportRollup="true" supportCube="true"/>
 
     <sqls escapeSlash="false">
         <createSequence>
@@ -266,6 +269,11 @@
         <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
             <source>((DATEDIFF(DAY, 0, {0}) % 7) + 7) % 7 + 1</source>
         </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 单参——[文档] MS Learn
+             GROUPING ( <column_expression> )，返回 tinyint（多列区分用 GROUPING_ID，
+             roadmap Non-Goal 不注册）。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
     </functions>
 
     <sqlDataTypes>

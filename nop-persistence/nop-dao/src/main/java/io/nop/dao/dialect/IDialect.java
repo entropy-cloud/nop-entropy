@@ -101,6 +101,22 @@ public interface IDialect extends IComponentModel {
     boolean isSupportLateral();
 
     /**
+     * WI7b（plan 37，roadmap EC ①）：是否支持 GROUP BY 位置的函数式 {@code ROLLUP(...)}。
+     * 未配置时返回 false（保守缺省）：EQL 编译期报 nop.err.eql.dialect-not-support-feature
+     * （feature=rollup）。分立于 {@link #isSupportCube()}——mysql 函数式 ROLLUP 8.4.3+ 才有
+     * （超 G-1 基线 8.0.31）而 CUBE 永无，successor 触发条件不同。非 GROUP BY 位置的
+     * rollup(x) 不经本门（函数表永不注册 → unknown-function）。
+     */
+    boolean isSupportRollup();
+
+    /**
+     * WI7b（plan 37，roadmap EC ①）：是否支持 GROUP BY 位置的 {@code CUBE(...)}。
+     * 未配置时返回 false（保守缺省）：EQL 编译期报 nop.err.eql.dialect-not-support-feature
+     * （feature=cube）。MySQL/MariaDB 全版本均无 CUBE（roadmap ledger 永久口径）。
+     */
+    boolean isSupportCube();
+
+    /**
      * WI2 BUG-6: 是否支持 `full join`/`full outer join` 表源。已确认无 FULL JOIN 的
      * 只有 MySQL/MariaDB（TDengine 自 3.3.0.0 起支持、MSSQL 支持 FULL OUTER JOIN，
      * 继承 default 的 true）。未配置或配置为 false 时 EQL 编译期对含 full [outer] join
