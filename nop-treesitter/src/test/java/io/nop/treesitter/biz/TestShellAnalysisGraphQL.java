@@ -22,6 +22,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -33,6 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>The path exercised is the one an agent actually uses, so nothing here
  * constructs the analyzer by hand.</p>
+ *
+ * <p>Assertions read the wire shape (a JSON-shaped map), which is what a real
+ * client receives. The typed contract is asserted separately, at the API boundary,
+ * in {@link TestTreeSitterBeans} against the {@code @DataBean} return types.</p>
  */
 class TestShellAnalysisGraphQL {
 
@@ -59,61 +64,60 @@ class TestShellAnalysisGraphQL {
         return request;
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> runQuery(String query, Map<String, Object> data) {
+    private static Map<String, Object> data(String source, String language) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("source", source);
+        data.put("language", language);
+        return data;
+    }
+
+    private static ApiResponse<?> run(String query, Map<String, Object> data) {
         IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query, query,
                 request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        return FutureHelper.syncGet(engine.executeRpcAsync(context));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> runOk(String query, Map<String, Object> data) {
+        ApiResponse<?> response = run(query, data);
         assertTrue(response.isOk(), String.valueOf(response));
         return (Map<String, Object>) response.get();
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> runListQuery(String query, Map<String, Object> data) {
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query, query,
-                request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+    private static List<Map<String, Object>> runListOk(String query, Map<String, Object> data) {
+        ApiResponse<?> response = run(query, data);
         assertTrue(response.isOk(), String.valueOf(response));
         return (List<Map<String, Object>>) response.get();
     }
 
     @Test
     void provenSplitReachesTheLayerThroughTheGraphQlEntry() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "cat /etc/passwd\n");
-        data.put("language", "bash");
-
-        Map<String, Object> result =
-                runQuery("TreeSitterShell__splitProvenShellCommands", data);
+        Map<String, Object> result = runOk("TreeSitterShell__splitProvenShellCommands",
+                data("cat /etc/passwd\n", "bash"));
         assertEquals(Boolean.TRUE, result.get("proven"));
         List<?> commands = (List<?>) result.get("commands");
         assertEquals(1, commands.size());
         @SuppressWarnings("unchecked")
         Map<String, Object> command = (Map<String, Object>) commands.get(0);
         assertEquals("cat", command.get("name"));
+        assertEquals(List.of("/etc/passwd"), command.get("arguments"));
     }
 
     @Test
     void anUnprovableScriptIsRefusedRatherThanReturnedEmpty() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "if then rm -rf /tmp/example\n");
-        data.put("language", "bash");
-
-        Map<String, Object> result =
-                runQuery("TreeSitterShell__splitProvenShellCommands", data);
+        Map<String, Object> result = runOk("TreeSitterShell__splitProvenShellCommands",
+                data("if then rm -rf /tmp/example\n", "bash"));
         assertEquals(Boolean.FALSE, result.get("proven"));
         assertEquals("SYNTAX_ERROR", result.get("reason"));
-        assertFalse(result.containsKey("commands"),
+        assertNull(result.get("commands"),
                 "a refusal must not carry a command list that reads as 'no commands'");
     }
 
     @Test
     void theSummaryCarriesTheProofStatusAsAField() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "echo hi; ls -la | grep x\n");
-        data.put("language", "bash");
-
-        Map<String, Object> result = runQuery("TreeSitterShell__analyzeShell", data);
+        Map<String, Object> result = runOk("TreeSitterShell__analyzeShell",
+                data("echo hi; ls -la | grep x\n", "bash"));
         assertEquals("PROVEN", result.get("proofStatus"));
         assertEquals(List.of("echo", "ls", "grep"), result.get("commandNames"));
         assertEquals(List.of(";", "|"), result.get("connectors"));
@@ -121,36 +125,40 @@ class TestShellAnalysisGraphQL {
 
     @Test
     void theLiteralHarvestIsNamedAndFlaggedAsIncomplete() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "echo \"$(rm -rf /tmp/x)\"\n");
-        data.put("language", "bash");
-
-        List<Map<String, Object>> rows = runListQuery("TreeSitterShell__listLiteralCommands", data);
+        List<Map<String, Object>> rows = runListOk("TreeSitterShell__listLiteralCommands",
+                data("echo \"$(rm -rf /tmp/x)\"\n", "bash"));
         assertEquals(2, rows.size(), "the command inside the substitution is a command too");
         assertEquals("echo", rows.get(0).get("name"));
         assertEquals("rm", rows.get(1).get("name"));
 
-        Map<String, Object> partialData = new HashMap<>();
-        partialData.put("source", "rm -rf $TARGET /data\n");
-        partialData.put("language", "bash");
-        List<Map<String, Object>> partial = runListQuery("TreeSitterShell__listLiteralCommands", partialData);
+        List<Map<String, Object>> partial = runListOk("TreeSitterShell__listLiteralCommands",
+                data("rm -rf $TARGET /data\n", "bash"));
         assertEquals(1, partial.size());
         assertEquals(Boolean.TRUE, partial.get(0).get("partial"),
                 "an incomplete argv must say so on the row itself");
+        assertEquals(List.of("-rf", "/data"), partial.get(0).get("arguments"));
     }
 
     @Test
     void heredocExtractionReachesTheLayer() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "apply_patch <<'PATCH'\nbody\nPATCH\n");
-        data.put("language", "bash");
-        data.put("allowedCommands", List.of());
-
-        Map<String, Object> result = runQuery("TreeSitterShell__extractShellHeredoc", data);
+        Map<String, Object> request = data("apply_patch <<'PATCH'\nbody\nPATCH\n", "bash");
+        request.put("allowedCommands", List.of());
+        Map<String, Object> result = runOk("TreeSitterShell__extractShellHeredoc", request);
         assertEquals(Boolean.TRUE, result.get("found"));
         assertEquals("'PATCH'", result.get("delimiter"));
         assertEquals("body\n", result.get("body"));
         assertEquals(Boolean.TRUE, result.get("bodyIsLiteral"));
+        assertEquals("apply_patch", result.get("commandName"));
+    }
+
+    @Test
+    void aDeclinedHeredocSaysWhyRatherThanReturningAnEmptyBody() {
+        Map<String, Object> request = data("echo x && cat <<EOF\nbody\nEOF\n", "bash");
+        request.put("allowedCommands", List.of());
+        Map<String, Object> result = runOk("TreeSitterShell__extractShellHeredoc", request);
+        assertEquals(Boolean.FALSE, result.get("found"));
+        assertNotNull(result.get("reason"), "a declined extraction must say why");
+        assertNull(result.get("body"), "no body, not an empty body");
     }
 
     /** The fixed agent-style fixture, end to end through every capability. */
@@ -158,11 +166,7 @@ class TestShellAnalysisGraphQL {
     void theFixtureAnalysesEndToEndThroughGraphQl() throws Exception {
         String fixture = Files.readString(Path.of("src/test/resources/shell/agent-composite.sh"),
                 StandardCharsets.UTF_8);
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", fixture);
-        data.put("language", "bash");
-
-        Map<String, Object> result = runQuery("TreeSitterShell__analyzeShell", data);
+        Map<String, Object> result = runOk("TreeSitterShell__analyzeShell", data(fixture, "bash"));
 
         assertEquals("NOT_PROVEN", result.get("proofStatus"));
         assertEquals(Boolean.TRUE, result.get("hasDynamicConstructs"));
@@ -187,13 +191,7 @@ class TestShellAnalysisGraphQL {
 
     @Test
     void anUnknownGrammarReturnsTheDefinedError() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "echo hi");
-        data.put("language", "no-such-grammar");
-
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "TreeSitterShell__analyzeShell", request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = run("TreeSitterShell__analyzeShell", data("echo hi", "no-such-grammar"));
         assertFalse(response.isOk());
         assertTrue(String.valueOf(response.getCode()).contains("unknown-language"),
                 String.valueOf(response.getCode()));
@@ -202,13 +200,7 @@ class TestShellAnalysisGraphQL {
     /** A grammar that resolves but is not bash must be refused, not analysed. */
     @Test
     void aNonBashGrammarIsRefused() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("source", "{\"a\": 1}");
-        data.put("language", "json");
-
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "TreeSitterShell__analyzeShell", request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = run("TreeSitterShell__analyzeShell", data("{\"a\": 1}", "json"));
         assertFalse(response.isOk(), "the layer's contract is written against the bash grammar");
         assertTrue(String.valueOf(response.getCode()).contains("unsupported-shell-language"),
                 String.valueOf(response.getCode()));

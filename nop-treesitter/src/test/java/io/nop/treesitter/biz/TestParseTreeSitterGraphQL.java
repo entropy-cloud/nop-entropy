@@ -88,9 +88,10 @@ class TestParseTreeSitterGraphQL {
         final GraphQLBizModels bizModels = new GraphQLBizModels();
         final Map<String, io.nop.graphql.core.ast.GraphQLObjectDefinition> defs = new HashMap<>();
         final java.util.Set<String> bizModelNames = new java.util.LinkedHashSet<>();
+        final TypeRegistry registry;
 
         public BizModelSchemaLoader(Object... beans) {
-            TypeRegistry registry = new TypeRegistry();
+            registry = new TypeRegistry();
             bizModels.build(registry, List.of(beans));
             for (Object bean : beans) {
                 io.nop.api.core.annotations.biz.BizModel annotation =
@@ -101,6 +102,7 @@ class TestParseTreeSitterGraphQL {
             }
         }
 
+
         @Override
         public io.nop.graphql.core.ast.GraphQLFieldDefinition getOperationDefinition(
                 GraphQLOperationType opType, String name) {
@@ -109,7 +111,15 @@ class TestParseTreeSitterGraphQL {
 
         @Override
         public io.nop.graphql.core.ast.GraphQLObjectDefinition getObjectTypeDefinition(String objName) {
-            return defs.get(objName);
+            io.nop.graphql.core.ast.GraphQLObjectDefinition def = defs.get(objName);
+            if (def != null) {
+                return def;
+            }
+            // The BizModel builder registers each operation's @DataBean return type in
+            // the TypeRegistry; the engine resolves a selection against that registry,
+            // so serving it here is what a real schema loader does.
+            io.nop.graphql.core.ast.GraphQLTypeDefinition registered = registry.getType(objName);
+            return registered instanceof io.nop.graphql.core.ast.GraphQLObjectDefinition objectDef ? objectDef : null;
         }
 
         @Override
@@ -121,7 +131,12 @@ class TestParseTreeSitterGraphQL {
         @Override
         public List<io.nop.graphql.core.ast.GraphQLFieldDefinition> getOperationDefinitions(
                 GraphQLOperationType opType) {
-            return Collections.emptyList();
+            List<io.nop.graphql.core.ast.GraphQLFieldDefinition> all = new ArrayList<>();
+            for (io.nop.graphql.core.reflection.GraphQLBizModel model : bizModels.getBizModels().values()) {
+                all.addAll(model.getQueryActions().values());
+                all.addAll(model.getMutationActions().values());
+            }
+            return all;
         }
 
         @Override
@@ -137,12 +152,15 @@ class TestParseTreeSitterGraphQL {
 
         @Override
         public io.nop.graphql.core.ast.GraphQLTypeDefinition getTypeDefinition(String objName) {
-            return defs.get(objName);
+            io.nop.graphql.core.ast.GraphQLTypeDefinition registered = registry.getType(objName);
+            return registered != null ? registered : defs.get(objName);
         }
 
         @Override
         public Collection<io.nop.graphql.core.ast.GraphQLTypeDefinition> getTypeDefinitions() {
-            return new ArrayList<>(defs.values());
+            List<io.nop.graphql.core.ast.GraphQLTypeDefinition> all = new ArrayList<>(defs.values());
+            all.addAll(registry.getTypes().values());
+            return all;
         }
 
         @Override

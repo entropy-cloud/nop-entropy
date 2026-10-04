@@ -8,12 +8,13 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.IResource;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.ioc.loader.AppBeanContainerLoader;
+import io.nop.treesitter.biz.dto.ShellAnalysisBean;
+import io.nop.treesitter.biz.dto.ShellLiteralCommandBean;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,14 +66,14 @@ class TestTreeSitterBeans {
     void containerResolvesTheShellAnalysisBizModel() {
         ShellAnalysisBizModel bizModel = (ShellAnalysisBizModel) container
                 .getBean("io.nop.treesitter.biz.ShellAnalysisBizModel");
-        Map<String, Object> result = bizModel.analyzeShell("cat /etc/passwd\n", "bash", null);
-        assertEquals("PROVEN", result.get("proofStatus"));
-        assertEquals(java.util.List.of("cat"), result.get("commandNames"));
+        ShellAnalysisBean analysis = bizModel.analyzeShell("cat /etc/passwd\n", "bash", null);
+        assertEquals("PROVEN", analysis.getProofStatus());
+        assertEquals(List.of("cat"), analysis.getCommandNames());
 
-        List<Map<String, Object>> literals =
+        List<ShellLiteralCommandBean> literals =
                 bizModel.listLiteralCommands("rm -rf $TARGET /data\n", "bash", null);
         assertEquals(1, literals.size());
-        assertEquals(Boolean.TRUE, literals.get(0).get("partial"));
+        assertTrue(literals.get(0).isPartial());
     }
 
     @Test
