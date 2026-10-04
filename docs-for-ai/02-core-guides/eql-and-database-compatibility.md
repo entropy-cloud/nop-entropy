@@ -512,6 +512,22 @@ EQL 接受三种分页输入形态，解析期**归一化**进既有 `SqlLimit{l
 
 `n`/`m` 均可为字面量或 `?` 参数 marker。证据等级：h2/oracle 双族输出矩阵 `[实测]`（`TestEqlPaginationFetchParse` 12 例 + `TestEqlPaginationFetchCompile` 12 例，含 marker 形态、同语义两形态一致性、跨族形态差异登记）；⚠️ `OFFSET n ROWS`（无 FETCH 的独立 offset 形态）**不接受**、`FETCH FIRST … WITH TIES` 不接受（roadmap 未登记，出现需求先登记 roadmap）；dm/tdengine 的输出继承 default（`LIMIT/OFFSET` 文本），该文本在两库的合法性 `[未取证]`（红线：不计入覆盖率）。h2 自身的 OffsetFetch 配置处于注释态（`h2.dialect.xml:20`，H2 REGULAR 模式两种输出都合法，是否切换属方言契约变更——登记为观察项，现状 = LimitOffset）。
 
+### `ORDER BY … COLLATE`：显式移出（2026-10-04 WI7 裁定，不落地）
+
+EQL **不接受** `ORDER BY … COLLATE`（文法无赋值路径；`collateClause_` 是 WI2 BUG-15 登记的永久不可达分支）。裁定 = 显式移出 + successor（裁定正文见 EQL 兼容 roadmap WI7 的 Phase 0 裁定文档 §五）：约束 3（不满足"能无损 lowering"的项一律不做）+ 排序原则（接受语法却无法可靠 lowering = BUG-1 同型静默错误风险）。`SqlOrderByItem.collate` 字段保留在冻结生成模型（删除属 `EqlAST.xjava` 变更且无行为收益），继续计入"零生成器消费 AST 字段"清单。
+
+各库 collation 作用域差异（为什么不做的证据面；逐行标证据等级）：
+
+| 库 | 表达式级 `COLLATE` | collation 作用域 | 证据等级 |
+|----|-------------------|-----------------|---------|
+| PostgreSQL | `expr COLLATE "collation"`（标准位置） | 表达式/列定义/库默认三层 | `[文档]` |
+| MySQL | 支持 `expr COLLATE collation`，但子句位置语义与标准不同（且 collation 与 charset 绑定） | 表达式/列/表/库四层 | `[文档]` |
+| MSSQL | 表达式级 COLLATE 与列/库级 collation 作用域纠缠（.cast. 场景行为受限） | 列定义/库级为主 | `[文档]`（作用域纠缠点 `[未取证]` 逐案核实） |
+| Oracle | 无表达式级 `COLLATE` 子句（12.2+ 有列级 collation）；排序定制走 `NLSSORT(expr, 'NLS_SORT=…')` 函数改写体系 | 列级（12.2+）/`NLSSORT` 函数 | `[文档]` |
+| DuckDB / H2 / DM8 / TDengine / DB2 | 未逐个取证 | — | `[未取证]`（红线：不计入覆盖率） |
+
+语义改写通路各库分叉（`NLSSORT` 函数 vs 子句 vs 表达式后缀）⇒ 跨库无损归一不成立。successor = roadmap 单独调研项（触发条件 = "按表达式 collation 排序"的真实产品需求）。
+
 ### 死标志台账：14 个存量方言能力标志的三档处置（2026-10-04 WI10b）
 
 roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部落到明确处置（裁定正文：EQL 兼容 roadmap WI10b 的 Phase 0 裁定文档；本表为 live 对账口径）：

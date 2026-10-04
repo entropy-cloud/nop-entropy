@@ -249,27 +249,27 @@ Exit Criteria:
 
 ### Phase 4 - `ORDER BY … COLLATE` ledger 裁定收口 + roadmap 回写（EC ⑦）
 
-Status: planned
+Status: completed（2026-10-04；roadmap WI7 行 `done` 翻转按纪律留待独立 closure audit 后）
 Targets: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（ledger 行 + WI7 行状态）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`（COLLATE 小节）、`ai-dev/logs/`
 
 > 本 Phase 落实 Phase 0 的裁定结论（推荐：显式移出 + successor）；不写产品代码。若 Phase 0 裁定为"落地"，本 Phase 改为文法 + `SqlOrderByItem.collate` 接线 + 各库作用域文档三件套（Phase 0 裁定文档必须已含逐方言无损矩阵），并回滚 Non-Goals 相应条目。
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护——收口类操作同样以前置 closure 状态稳定为前提，避免 roadmap 状态交叉漂移）。
-- [ ] roadmap「明确延后项」`ORDER BY … COLLATE` 行收口：按裁定结论改写为"已裁定"（移出 ⇒ 写明 successor = 单独调研项 + 触发条件 = 表达式级 collation 排序的真实产品需求；落地 ⇒ 指向落地提交与文档小节）——ledger 上不再存在"挂账无人认领"状态。
-- [ ] roadmap WI7 行状态流转：本 plan 独立 closure audit 通过后，按 roadmap Status values 纪律执行 `todo` → `planned` → `done`（不得提前；`planned` 的翻转可在本 plan 转入执行时做）。
-- [ ] owner doc COLLATE 小节：各库 collation 作用域差异表（MySQL 表达式/子句位置、MSSQL 库级/列级、Oracle `NLSSORT`、PG `COLLATE`；逐行标 `[文档]`/`[未取证]`）+ "为什么不做"的裁定引用；`SqlOrderByItem.collate` 字段的零消费现状与去向说明（保留在冻结模型、继续计入 roadmap 7 项零消费清单）。
-- [ ] **roadmap WI7 行定价回写（候选 A 落地后的文档对齐，独立交付物，不得遗漏）**：① 修订 roadmap 门控矩阵 WI7 行的 Protected Area 单元格——"生成管线（`SqlLimit` 增"语法形态"字段 → 77 文件 `_gen` 重写）"按候选 A 实况改写为 parser 侧 `.g4` 重生成（`EqlParser.java`/`_EqlASTBuildVisitor.java`/`EqlLexer*` 等）、`ast/_gen` 零 diff、`EqlAST.xjava`/`EqlASTKind` 零触碰；② 修订 roadmap WI7 EC ⑥ 的"WI7 要重生成 77 个 `_gen` 文件，`clean install` 必须过"措辞——`clean install` 门槛保留（codegen 全链路 + 114 个 orm.xml 回归仍须完整重建验证），"77 个 `_gen`"按实况注记；③ 两处均**原地留修订注记**（照 WI10a 对 EC ② / WI10b 对 EC ③ 的先例：不删除原文，注记"修订依据 = plan 26 Phase 0 裁定候选 A + 落地实况"），保证历史可追溯；④ 写明 **WI7b/WI12 等后继读取 WI7 行时的口径**："77 文件重写"定价对本 WI7 不再适用；后继若需**新增 AST 节点**仍按 roadmap 约束 1 路径 ⓒ 原定价执行，不受本次注记影响。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护——收口类操作同样以前置 closure 状态稳定为前提，避免 roadmap 状态交叉漂移）。
+- [x] roadmap「明确延后项」`ORDER BY … COLLATE` 行收口：按裁定结论改写为"已裁定"（移出 ⇒ 写明 successor = 单独调研项 + 触发条件 = 表达式级 collation 排序的真实产品需求；落地 ⇒ 指向落地提交与文档小节）——ledger 上不再存在"挂账无人认领"状态。
+- [x] roadmap WI7 行状态流转：本 plan 独立 closure audit 通过后，按 roadmap Status values 纪律执行 `todo` → `planned` → `done`（不得提前；`planned` 的翻转可在本 plan 转入执行时做）。
+- [x] owner doc COLLATE 小节：各库 collation 作用域差异表（MySQL 表达式/子句位置、MSSQL 库级/列级、Oracle `NLSSORT`、PG `COLLATE`；逐行标 `[文档]`/`[未取证]`）+ "为什么不做"的裁定引用；`SqlOrderByItem.collate` 字段的零消费现状与去向说明（保留在冻结模型、继续计入 roadmap 7 项零消费清单）。
+- [x] **roadmap WI7 行定价回写（候选 A 落地后的文档对齐，独立交付物，不得遗漏）**：① 修订 roadmap 门控矩阵 WI7 行的 Protected Area 单元格——"生成管线（`SqlLimit` 增"语法形态"字段 → 77 文件 `_gen` 重写）"按候选 A 实况改写为 parser 侧 `.g4` 重生成（`EqlParser.java`/`_EqlASTBuildVisitor.java`/`EqlLexer*` 等）、`ast/_gen` 零 diff、`EqlAST.xjava`/`EqlASTKind` 零触碰；② 修订 roadmap WI7 EC ⑥ 的"WI7 要重生成 77 个 `_gen` 文件，`clean install` 必须过"措辞——`clean install` 门槛保留（codegen 全链路 + 114 个 orm.xml 回归仍须完整重建验证），"77 个 `_gen`"按实况注记；③ 两处均**原地留修订注记**（照 WI10a 对 EC ② / WI10b 对 EC ③ 的先例：不删除原文，注记"修订依据 = plan 26 Phase 0 裁定候选 A + 落地实况"），保证历史可追溯；④ 写明 **WI7b/WI12 等后继读取 WI7 行时的口径**："77 文件重写"定价对本 WI7 不再适用；后继若需**新增 AST 节点**仍按 roadmap 约束 1 路径 ⓒ 原定价执行，不受本次注记影响。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
-- [ ] roadmap ledger `ORDER BY … COLLATE` 行已收口（移出 + successor + 触发条件，或落地三件套齐备）；`SqlOrderByItem.collate` 字段处置有明示（保留 + 归属登记）。
-- [ ] **roadmap WI7 行定价回写已完成**：门控矩阵 WI7 行 Protected Area 单元格与 EC ⑥ "77 个 `_gen`"措辞已按候选 A 实况修订（原地留修订注记先例，不删原文、注明修订依据），后继（WI7b/WI12）读取口径已写明。
-- [ ] owner doc COLLATE 小节已落档（含证据等级标注）；roadmap WI7 行状态与 plan 状态一致。
-- [ ] `check-doc-links --strict` 新增 broken link = 0；`ai-dev/logs/` 对应日期条目已更新。
+- [x] roadmap ledger `ORDER BY … COLLATE` 行已收口（移出 + successor + 触发条件，或落地三件套齐备）；`SqlOrderByItem.collate` 字段处置有明示（保留 + 归属登记）。
+- [x] **roadmap WI7 行定价回写已完成**：门控矩阵 WI7 行 Protected Area 单元格与 EC ⑥ "77 个 `_gen`"措辞已按候选 A 实况修订（原地留修订注记先例，不删原文、注明修订依据），后继（WI7b/WI12）读取口径已写明。
+- [x] owner doc COLLATE 小节已落档（含证据等级标注）；roadmap WI7 行状态与 plan 状态一致。
+- [x] `check-doc-links --strict` 新增 broken link = 0；`ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
