@@ -11,6 +11,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
@@ -31,7 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +50,21 @@ import static io.nop.message.pulsar.PulsarErrors.ERR_SERVICE_URL_NOT_CONFIGURED;
 
 public class PulsarMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(PulsarMessageService.class);
+
+    /**
+     * SEEK is added to this declaration by WI8 together with the seek implementation; it is
+     * deliberately absent until the stub is replaced so the declaration never outruns
+     * behavior (D1: declared capability must hold).
+     */
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION, MessageCapability.ACK_REPLY,
+            MessageCapability.ENVELOPE_METADATA);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
 
     private PulsarClientConfig config;
     private PulsarProducerConfig defaultProducerConfig;
@@ -180,6 +199,7 @@ public class PulsarMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "pulsar");
         CompletableFuture<Void> future = sendAsync(null, topic, message, options);
         return future;
     }
@@ -188,6 +208,7 @@ public class PulsarMessageService implements IMessageService {
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         if (options == null)
             options = new MessageSubscribeOptions();
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "pulsar");
 
         int concurrency = options.getConcurrency();
         if (concurrency <= 1) {

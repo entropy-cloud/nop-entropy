@@ -8,12 +8,16 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageErrors;
 import io.nop.api.core.message.MessageSubscriptionConfig;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.TopicMessage;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.pulsar.client.api.Consumer;
@@ -129,7 +133,30 @@ public class PulsarConsumeTask {
             for (Object response : responses) {
                 response = FutureHelper.getResult(response);
                 Message<Object> message = it.next();
-                if (response != null) {
+                if (response instanceof PartialCommit) {
+                    // D5(b-prime): ack records [0..k-1] only; the record carrying the
+                    // signal (index k) and everything after it is negatively acknowledged
+                    // (redelivered) — the boundary record itself must not be dropped.
+                    FutureHelper.syncGet(FutureHelper.waitAll(futures));
+                    int committedCount = ((PartialCommit) response).getCommittedCount();
+                    if (context.getTransaction() != null) {
+                        throw new NopException(MessageErrors.ERR_PARTIAL_COMMIT_TRANSACTIONAL)
+                                .param("committedCount", committedCount);
+                    }
+                    pulsarConsumer.negativeAcknowledge(message.getMessageId());
+                    while (it.hasNext()) {
+                        Message<Object> remaining = it.next();
+                        pulsarConsumer.negativeAcknowledge(remaining.getMessageId());
+                    }
+                    // Skip the normal commit: the boundary is expressed by the acks above.
+                    return;
+                }
+                if (response instanceof TerminateConsume) {
+                    // D5(b-prime): acknowledged, no redelivery, no reply.
+                    LOG.warn("nop.message.pulsar.terminate-consume:messageId={},reason={}",
+                            message.getMessageId(), ((TerminateConsume) response).getReason());
+                    futures.add(ackAsync(context, message));
+                } else if (response != null) {
                     if (response instanceof ConsumeLater) {
                         ConsumeLater later = (ConsumeLater) response;
                         CompletionStage<?> future = pulsarConsumer.reconsumeLaterAsync(message, later.getDelay(), TimeUnit.MILLISECONDS);
@@ -167,6 +194,15 @@ public class PulsarConsumeTask {
             if (response instanceof ConsumeLater) {
                 ConsumeLater later = (ConsumeLater) response;
                 pulsarConsumer.reconsumeLater(message, later.getDelay(), TimeUnit.MILLISECONDS);
+            } else if (response instanceof TerminateConsume) {
+                // D5(b-prime): acknowledged, no redelivery, no reply.
+                LOG.warn("nop.message.pulsar.terminate-consume:messageId={},reason={}",
+                        message.getMessageId(), ((TerminateConsume) response).getReason());
+                FutureHelper.syncGet(ackAsync(context, message));
+            } else if (response instanceof PartialCommit) {
+                // Single-message dispatch has no batch boundary; acknowledged as completion
+                // (declared in the WI6 plan).
+                FutureHelper.syncGet(ackAsync(context, message));
             } else if (response instanceof Acknowledge) {
                 context.send(getAckTopic(message.getTopicName()), ((Acknowledge) response).getReplyMessage());
                 FutureHelper.syncGet(ackAsync(context, message));

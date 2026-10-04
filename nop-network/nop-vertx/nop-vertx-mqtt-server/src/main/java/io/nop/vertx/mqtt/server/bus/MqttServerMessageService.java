@@ -9,6 +9,8 @@ package io.nop.vertx.mqtt.server.bus;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSendOptions;
@@ -26,6 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -37,6 +41,19 @@ import java.util.function.BiConsumer;
  * 契约见 ai-dev/design/nop-network/mqtt-messaging-design.md
  */
 public class MqttServerMessageService implements IMessageService {
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE);
+
+    /** MQTT bridge is fire-and-forget: non-basic options are warn-once (D1), never silent. */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION,
+            MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
+
     static final Logger LOG = LoggerFactory.getLogger(MqttServerMessageService.class);
 
     private VertxMqttServer mqttServer;
@@ -54,6 +71,7 @@ public class MqttServerMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "mqtt-server", WARN_ONCE);
         if (mqttServer == null)
             throw new NopException(io.nop.vertx.mqtt.server.MqttErrors.ERR_MQTT_PUBLISH_FAIL)
                     .param(io.nop.vertx.mqtt.server.MqttErrors.ARG_TOPIC, topic);
@@ -71,6 +89,7 @@ public class MqttServerMessageService implements IMessageService {
 
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "mqtt-server", WARN_ONCE);
         if (mqttServer != null && subscribers.isEmpty()) {
             // 首个订阅时挂载入站分发
             mqttServer.addPublishListener(dispatcher);

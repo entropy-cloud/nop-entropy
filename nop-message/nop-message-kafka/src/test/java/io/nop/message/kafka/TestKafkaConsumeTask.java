@@ -151,6 +151,64 @@ class TestKafkaConsumeTask {
     }
 
     @Test
+    void terminateConsumeCommitsWithoutReply() throws Exception {
+        IMessageConsumer msgConsumer = (topic, message, context) ->
+                new io.nop.api.core.message.TerminateConsume("poison");
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "poison")))
+                .thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+
+        // Acknowledged (committed) and never redelivered (no seek back).
+        verify(consumer).commitSync();
+        verify(consumer, never()).seek(any(TopicPartition.class), any(long.class));
+    }
+
+    @Test
+    void partialCommitInBatchCommitsBoundaryOnly() throws Exception {
+        AtomicInteger batchCalls = new AtomicInteger();
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                batchCalls.incrementAndGet();
+                List<Object> responses = new ArrayList<>();
+                responses.add(null); // record 0 committed
+                responses.add(null); // record 1 committed
+                // record 2 carries the boundary: [0..1] committed, 2 onward not
+                responses.add(new io.nop.api.core.message.PartialCommit(2));
+                return responses;
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")))
+                .thenReturn(ConsumerRecords.empty());
+
+        task.batchConsume();
+
+        assertEquals(1, batchCalls.get());
+        @SuppressWarnings("unchecked")
+        org.apache.kafka.clients.consumer.OffsetAndMetadata nextOffset =
+                new org.apache.kafka.clients.consumer.OffsetAndMetadata(12L); // record 1 (offset 11) + 1
+        verify(consumer).commitSync(Collections.singletonMap(new TopicPartition("test-topic", 0), nextOffset));
+    }
+
+    @Test
     void seekToBeginHonoredNotStubbed() {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();

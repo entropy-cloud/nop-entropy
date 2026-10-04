@@ -4,6 +4,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.time.IEstimatedClock;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -155,7 +156,13 @@ public class NonBroadcastEventProcessor {
                 return;
             }
 
-            if (ret instanceof ConsumeLater) {
+            if (ret instanceof TerminateConsume) {
+                // D5(b-prime) termination signal: poison message reaches its failure
+                // endpoint — the event is marked processed and never rescheduled (WI6).
+                event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_PROCESSED);
+                event.setLeaseOwner(null);
+                event.setLeaseExpireTime(null);
+            } else if (ret instanceof ConsumeLater) {
                 long delay = Math.max(minProcessDelay, ((ConsumeLater) ret).getDelay());
                 event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING);
                 event.setLeaseOwner(null);

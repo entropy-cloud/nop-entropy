@@ -32,7 +32,7 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
 | 后端 | 声明能力集 | 其余字段处置 |
 | --- | --- | --- |
 | Kafka | SEND, SUBSCRIBE, BATCH_CONSUME, SEEK, ACK_REPLY, ENVELOPE_METADATA | DELAYED_SEND warn-once；TRANSACTION 类型化拒绝（见 backend-semantics D11） |
-| Pulsar | SEND, SUBSCRIBE, BATCH_CONSUME, DELAYED_SEND, TRANSACTION, SEEK, ACK_REPLY, ENVELOPE_METADATA | DLQ 接线后增声明 |
+| Pulsar | SEND, SUBSCRIBE, BATCH_CONSUME, DELAYED_SEND, TRANSACTION, ACK_REPLY, ENVELOPE_METADATA（SEEK 待 WI8 实现落地时同批声明——声明不得跑在行为前） | DLQ 接线后增声明 |
 | Local | SEND, SUBSCRIBE, ACK_REPLY | 其余逐字段 warn-once |
 | SysDao | SEND, SUBSCRIBE, DELAYED_SEND, ACK_REPLY | 其余逐字段 warn-once |
 | Lettuce / MqttServer | SEND, SUBSCRIBE | 其余逐字段 warn-once（fire-and-forget 语义） |

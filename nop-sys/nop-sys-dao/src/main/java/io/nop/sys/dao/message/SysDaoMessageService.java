@@ -9,6 +9,10 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -46,6 +50,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +61,19 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class SysDaoMessageService extends LifeCycleSupport implements IMessageService {
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.DELAYED_SEND,
+            MessageCapability.ACK_REPLY);
+
+    /** DB polling transport: transaction / batch / seek options are warn-once (D1). */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.TRANSACTION, MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
+
     static final Logger LOG = LoggerFactory.getLogger(SysDaoMessageService.class);
 
     private IDaoProvider daoProvider;
@@ -387,6 +405,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "sysdao", WARN_ONCE);
         try {
             saveMessage(topic, message, options == null ? 0 : options.getDelay());
         } catch (Exception e) {
@@ -397,6 +416,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     @Override
     public CompletionStage<Void> sendMultiAsync(Collection<TopicMessage> messages, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "sysdao", WARN_ONCE);
         try {
             for (TopicMessage message : messages) {
                 saveMessage(message.getTopic(), message.getMessage(), options == null ? 0 : options.getDelay());
@@ -505,6 +525,10 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         if (ret instanceof CompletionStage) {
             ret = FutureHelper.syncGet((CompletionStage<Object>) ret);
         }
+        // D5(b-prime) signals must never be dispatched as ack-topic replies (WI6).
+        if (ret instanceof TerminateConsume || ret instanceof PartialCommit) {
+            return ret;
+        }
         if (!allowReply && ret instanceof Acknowledge) {
             Object reply = ((Acknowledge) ret).getReplyMessage();
             send(getAckTopic(topic), reply, options);
@@ -523,6 +547,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "sysdao", WARN_ONCE);
         SubscriptionState state = new SubscriptionState(topic, resolveSubscriberId(topic, options), listener, options);
         List<SubscriptionState> subscriptions = durableSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>());
         // 队列语义下非广播消费只投递subscriptions.get(0)：同topic第二个及以后的持久订阅者永远收不到消息，

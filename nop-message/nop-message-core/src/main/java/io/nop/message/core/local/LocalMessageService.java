@@ -2,6 +2,10 @@ package io.nop.message.core.local;
 
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -14,6 +18,7 @@ import io.nop.message.core.MessageCoreConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +32,22 @@ import java.util.concurrent.TimeUnit;
 
 public class LocalMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(LocalMessageService.class);
+
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.ACK_REPLY);
+
+    /**
+     * In-JVM broadcast bus: options that require unimplemented transports are warn-once
+     * (D1 disposition), never silently ignored.
+     */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION,
+            MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
     private final Map<String, List<Subscription>> consumers = new ConcurrentHashMap<>();
 
     public void clearConsumers() {
@@ -148,6 +169,7 @@ public class LocalMessageService implements IMessageService {
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         Guard.notEmpty(topic, "topic");
         Guard.notNull(listener, "listener");
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "local", WARN_ONCE);
 
         List<Subscription> subscriptions = consumers.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>());
         synchronized (subscriptions) {
@@ -162,6 +184,7 @@ public class LocalMessageService implements IMessageService {
 
     @Override
     public void send(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "local", WARN_ONCE);
         this.invokeMessageListener(topic, message, options);
     }
 
@@ -186,6 +209,11 @@ public class LocalMessageService implements IMessageService {
                     subscription.consumer.onMessage(subscription.topic, message, context));
             if (ret instanceof ConsumeLater) {
                 scheduleRedelivery(subscription, message, ((ConsumeLater) ret).getDelay());
+            } else if (ret instanceof TerminateConsume) {
+                // D5(b-prime): acknowledged, no redelivery, no reply.
+            } else if (ret instanceof PartialCommit) {
+                // Local has no batch consume path and no commit concept; single-message
+                // PartialCommit is treated as completion (declared in the WI6 plan).
             } else {
                 handleMessageResult(ret, subscription.topic, message, context);
             }
@@ -255,6 +283,7 @@ public class LocalMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "local", WARN_ONCE);
         return FutureHelper.futureRun(() -> send(topic, message, options));
     }
 }

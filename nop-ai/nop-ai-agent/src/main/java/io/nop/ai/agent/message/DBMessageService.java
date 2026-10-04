@@ -10,6 +10,8 @@ import io.nop.ai.agent.security.TenantSql;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSendOptions;
@@ -26,6 +28,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,6 +77,19 @@ import java.util.concurrent.TimeUnit;
  * {@code ai-dev/design/nop-ai-agent/store-layer-contract.md}。
  */
 public class DBMessageService implements IMessageService, AutoCloseable {
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
+            MessageCapability.ACK_REPLY);
+
+    /** DB queue transport: delay / transaction / seek options are warn-once (D1). */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
+
 
     private static final Logger LOG = LoggerFactory.getLogger(DBMessageService.class);
 
@@ -235,6 +252,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "db-agent", WARN_ONCE);
         Objects.requireNonNull(topic, "topic must not be null");
         Objects.requireNonNull(message, "message must not be null");
 
@@ -277,6 +295,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "db-agent", WARN_ONCE);
         if (topic == null || topic.isEmpty()) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "DBMessageService.subscribe: topic must not be null or empty");
         }

@@ -220,6 +220,37 @@ public abstract class AbstractMessageServiceContractTest {
         assertTrue(ackTopicMessages.isEmpty());
     }
 
+    @Test
+    void terminateConsumeAcknowledgesWithoutReplyOrRedelivery() {
+        List<Object> received = new CopyOnWriteArrayList<>();
+        List<Object> ackTopicMessages = new CopyOnWriteArrayList<>();
+        String topic = "t-terminate";
+        service.subscribe(topic, recordingConsumer(received,
+                () -> new io.nop.api.core.message.TerminateConsume("poison")));
+        service.subscribe(service.getAckTopic(topic), recordingConsumer(ackTopicMessages, null));
+
+        service.send(topic, "poison-msg", null);
+        service.send(topic, "poison-msg", null); // twice: must not be treated as redelivery
+
+        assertEquals(2, received.size(), "message must be delivered (and acked), not redelivered");
+        assertTrue(ackTopicMessages.isEmpty(),
+                "TerminateConsume must never be dispatched to the ack topic as a reply");
+    }
+
+    @Test
+    void partialCommitInSingleDispatchIsCompletion() {
+        List<Object> ackTopicMessages = new CopyOnWriteArrayList<>();
+        String topic = "t-partial";
+        service.subscribe(topic, recordingConsumer(new CopyOnWriteArrayList<>(),
+                () -> new io.nop.api.core.message.PartialCommit(1)));
+        service.subscribe(service.getAckTopic(topic), recordingConsumer(ackTopicMessages, null));
+
+        service.send(topic, "solo-msg", null);
+
+        assertTrue(ackTopicMessages.isEmpty(),
+                "PartialCommit is a transport signal, never a reply payload");
+    }
+
     // ============================================================
     // Dimension 3: batch arity (gated by declaration)
     // ============================================================

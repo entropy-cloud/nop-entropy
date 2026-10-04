@@ -12,12 +12,16 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.service.LifeCycleSupport;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,9 +33,23 @@ import java.util.concurrent.ConcurrentMap;
  * {@link #subscribe(String, IMessageConsumer, MessageSubscribeOptions)} 的 options
  * （subscribeName/transactional/subscriptionType 等）与
  * {@link #sendAsync(String, Object, MessageSendOptions)} 的 options
- * （delay/sendTimeout 等）在此实现中不生效，传入即被忽略。
+ * （delay/sendTimeout 等）在此实现中不生效：未声明能力对应的选项按 D1 warn-once
+ * 或类型化拒绝显式处置，绝不静默。
  */
 public class LettucePubSubService extends LifeCycleSupport implements IMessageService {
+
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE);
+
+    /** Fire-and-forget transport: non-basic options are warn-once (D1), never silent. */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.DELAYED_SEND, MessageCapability.TRANSACTION,
+            MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
 
     private final LettuceRedisConnectionProvider connectionProvider;
 
@@ -45,6 +63,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "lettuce", WARN_ONCE);
         return connectionProvider.getAsyncCommands().publish(topic, message)
                 .thenApply(ignored -> null);
     }
@@ -52,6 +71,7 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
     @Override
     public synchronized IMessageSubscription subscribe(String topic, IMessageConsumer listener,
                                                        MessageSubscribeOptions options) {
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "lettuce", WARN_ONCE);
         StatefulRedisPubSubConnection<String, Object> conn = getOrCreateConnection();
         SubscriptionEntry entry = subscriptions.get(topic);
         if (entry == null) {

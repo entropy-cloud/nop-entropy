@@ -12,6 +12,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
@@ -30,7 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +61,18 @@ import static io.nop.message.kafka.KafkaErrors.ERR_GROUP_ID_NOT_CONFIGURED;
  */
 public class KafkaMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(KafkaMessageService.class);
+
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
+            MessageCapability.SEEK, MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA);
+
+    /** Kafka has no native delayed delivery: warn once, then execute the declared ignore. */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(MessageCapability.DELAYED_SEND);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
 
     KafkaClientConfig config;
     private KafkaProducerConfig defaultProducerConfig;
@@ -180,6 +196,7 @@ public class KafkaMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "kafka", WARN_ONCE);
         KafkaProducer<String, String> prod = getProducer();
 
         String key;
@@ -194,13 +211,6 @@ public class KafkaMessageService implements IMessageService {
         } else {
             key = null;
             value = message == null ? null : message.toString();
-        }
-
-        if (KafkaHelper.resolveDelay(options) > 0) {
-            // Kafka has no native delayed delivery (unlike Pulsar deliverAfter). Warn so
-            // the caller knows the delay is ignored — NOT a silent skip (plan guide #24).
-            LOG.warn("nop.message.kafka.delay-ignored:topic={},delayMs={}", topic,
-                    KafkaHelper.resolveDelay(options));
         }
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, null, key, value, headers);
@@ -237,11 +247,13 @@ public class KafkaMessageService implements IMessageService {
         if (options == null) {
             options = new MessageSubscribeOptions();
         }
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "kafka", WARN_ONCE);
         if (options.getSubscriptionType() != null) {
             // Kafka has no direct equivalent of Pulsar's SubscriptionType (group-based
-            // partition assignment covers Shared/Failover). Warn rather than silently
-            // ignore (plan guide #24).
-            LOG.warn("nop.message.kafka.subscription-type-ignored:type={}", options.getSubscriptionType());
+            // partition assignment covers Shared/Failover). Warn once per JVM, never
+            // per call (F-53), and never silently.
+            MessageOptionsValidator.warnOnce("kafka", "subscriptionType",
+                    "subscriptionType " + options.getSubscriptionType() + " has no Kafka equivalent and is ignored");
         }
 
         int concurrency = options.getConcurrency();

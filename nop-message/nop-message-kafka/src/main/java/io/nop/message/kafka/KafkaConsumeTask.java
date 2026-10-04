@@ -15,6 +15,8 @@ import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import io.nop.api.core.message.SeekMode;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.TopicMessage;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -138,8 +140,9 @@ public class KafkaConsumeTask {
                 consumer.seekToEnd(partitions);
                 break;
             default:
-                // Future SeekMode values: warn rather than silently skip (plan guide #24).
-                LOG.warn("nop.message.kafka.unsupported-seek-mode:mode={}", mode);
+                // Future SeekMode values: warn once per JVM, never per poll loop (F-53).
+                io.nop.api.core.message.MessageOptionsValidator.warnOnce("kafka", "seekMode",
+                        "unsupported seek mode " + mode);
                 break;
         }
 
@@ -229,6 +232,14 @@ public class KafkaConsumeTask {
                     ConsumeLater later = (ConsumeLater) response;
                     LOG.debug("nop.message.kafka.consume-later:topic={},offset={},delayMs={}",
                             record.topic(), record.offset(), later.getDelay());
+                } else if (response instanceof TerminateConsume) {
+                    // D5(b-prime): poison message is acknowledged (committed), never
+                    // redelivered, and never dispatched to the ack topic.
+                    LOG.warn("nop.message.kafka.terminate-consume:topic={},offset={},reason={}",
+                            record.topic(), record.offset(), ((TerminateConsume) response).getReason());
+                } else if (response instanceof PartialCommit) {
+                    // Single-record dispatch has no batch boundary; treated as completion
+                    // (declared in the WI6 plan). Full batch semantics live in batchConsume.
                 } else if (response instanceof Acknowledge) {
                     // Acknowledge: send reply to ack topic, then commit.
                     context.send(service.getAckTopic(record.topic()),
@@ -283,10 +294,28 @@ public class KafkaConsumeTask {
         boolean anyConsumeLater = false;
         try {
             List<Object> responses = consumerFn.onMessageBatch(list, context);
+            Map<TopicPartition, Long> partialCommitOffsets = null;
             for (int i = 0; i < responses.size() && i < recordList.size(); i++) {
                 Object response = FutureHelper.getResult(responses.get(i));
                 ConsumerRecord<String, String> record = recordList.get(i);
-                if (response instanceof ConsumeLater) {
+                if (response instanceof PartialCommit) {
+                    // D5(b-prime): commit boundary — records [0..k-1] only. For each
+                    // partition, commit "next offset to read" = last committed + 1; the
+                    // record carrying the signal and everything after stays uncommitted.
+                    int k = ((PartialCommit) response).getCommittedCount();
+                    partialCommitOffsets = new HashMap<>();
+                    for (int j = 0; j < k && j < recordList.size(); j++) {
+                        ConsumerRecord<String, String> committed = recordList.get(j);
+                        partialCommitOffsets.merge(new TopicPartition(committed.topic(), committed.partition()),
+                                committed.offset() + 1, Math::max);
+                    }
+                    // commitSync(Map) expects "next offset to read" per partition.
+                    break;
+                } else if (response instanceof TerminateConsume) {
+                    // D5(b-prime): acknowledged, no redelivery, no reply.
+                    LOG.warn("nop.message.kafka.terminate-consume:topic={},offset={},reason={}",
+                            record.topic(), record.offset(), ((TerminateConsume) response).getReason());
+                } else if (response instanceof ConsumeLater) {
                     anyConsumeLater = true;
                     consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
                 } else if (response instanceof Acknowledge) {
@@ -297,6 +326,16 @@ public class KafkaConsumeTask {
                 }
             }
             context.commit();
+            if (partialCommitOffsets != null) {
+                Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> toCommit =
+                        new HashMap<>();
+                for (Map.Entry<TopicPartition, Long> entry : partialCommitOffsets.entrySet()) {
+                    toCommit.put(entry.getKey(),
+                            new org.apache.kafka.clients.consumer.OffsetAndMetadata(entry.getValue()));
+                }
+                consumer.commitSync(toCommit);
+                return;
+            }
         } catch (Exception e) {
             LOG.error("nop.err.message.kafka.batch-consume-fail", e);
             context.rollback();
