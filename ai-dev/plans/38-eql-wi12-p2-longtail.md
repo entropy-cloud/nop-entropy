@@ -216,7 +216,7 @@ Exit Criteria:
 - [x] SAVEPOINT/ROLLBACK TO 落到「落地」或「移出+successor」两者之一，裁定证据链与 roadmap 回写措辞齐备；无第三状态。
 - [x] 分支 A：roadmap 注记 + ledger 行已按先例格式落（执行者提交）；`TestDialectDeadFlagDisposition` 回归绿；产品代码零 diff。
 - [x] ~~分支 B：按 Phase 2 同款红→绿 + 负向 + 真库证据纪律执行完毕（含 clean install 若触 ⓒ）。~~（**不适用**——Phase 3 走分支 A 移出，2026-10-04 落档；本项随分支互斥选择失效，处置已闭非未完成项）
-- [ ] `ai-dev/logs/` 条目已更新。
+- [x] `ai-dev/logs/` 条目已更新。（Phase 2 daily log 条目见 ai-dev/logs/2026/10-04.md）
 
 ### Phase 4 - `FROM (VALUES …)`（交付 ⑤，按 Phase 0 定价）
 
@@ -284,23 +284,23 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] 交付 ①：`SqlQuerySelect.nowait` 接线落地——独立正向用例证明（roadmap WI12 EC ② 后半），不支持方言编译期报错负向用例存在（EC ② 前半）。
-- [ ] 交付 ②：`FOR UPDATE NOWAIT`/`SKIP LOCKED` 语法落地——每个语法正确 SQL 文本用例（EC ①）+ 不支持方言负向 + h2 真库证据；WI1 LockOption 遗留按裁定回补结案。
-- [ ] 交付 ③：SAVEPOINT/ROLLBACK TO 已裁定为「落地」或「移出+successor」之一，roadmap 回写完成（不允许名义 owner——Anti-Slacking Rule）。
-- [ ] 交付 ⑤：`FROM (VALUES …)` 已按裁定落地（含 ⓒ 定价门）或移出+ledger；两分支均有可审计证据。
-- [ ] 交付 ⑥：`AT TIME ZONE` 落地——归一化三态断言 + 逐方言 template + h2 真库（`TestDialect.testFunctions`）+ 未注册方言响亮负向。
-- [ ] 交付 ④：窗口命名 WINDOW 四层既有覆盖回归全绿并记录（roadmap WI12 交付 4 的「改为回归验证」落地）。
-- [ ] 若实施中新增 AST 节点（roadmap EC ③ 的条件式改写）：生成物已重生成且 `./mvnw clean install -T 1C` 通过、`EqlASTKind` ordinal diff 审计通过；若零新节点：`ast/_gen/` 相对起点零新增（加字段只改既有 `_Sql*.java`）已核实。
-- [ ] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步（roadmap EC ④）：新增能力点登记表行 + 各语法覆盖表（逐行 `[实测]`/`[文档]`/`[未取证]`）+ 移出项（如有）的归属说明。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap EC ⑤；豁免口径 = Current Baseline「全绿口径」小节，不得据此判本 plan 失败）。
-- [ ] **既有 EQL 语料 BC（roadmap EC ⑥）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称 7 个全测。
-- [ ] 方言能力矩阵快照增量已同步（`<template>` 真增量 / `<sqls>` 零增量核实）且 `check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] 约束 4 的「一致性 + 不等价」登记齐备：AT TIME ZONE（MySQL UTC-only / SQLite 永无）、VALUES（MySQL `ROW()` 形态 / Oracle 缺口）、NOWAIT/SKIP LOCKED（MSSQL 锁提示体系差异）至少各一项差异行落 owner doc。
-- [ ] 生成物纪律：每个 Phase 的 `.g4`/`EqlAST.xjava` 改动单独提交（文法/逻辑分离可审计）；无 lexer token 删除；`EqlASTKind/Visitor/Processor/Optimizer` 零手改。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
+- [x] 交付 ①：`SqlQuerySelect.nowait` 接线落地——独立正向用例证明（roadmap WI12 EC ② 后半），不支持方言编译期报错负向用例存在（EC ② 前半）。
+- [x] 交付 ②：`FOR UPDATE NOWAIT`/`SKIP LOCKED` 语法落地——每个语法正确 SQL 文本用例（EC ①）+ 不支持方言负向 + h2 真库证据；WI1 LockOption 遗留按裁定回补结案。
+- [x] 交付 ③：SAVEPOINT/ROLLBACK TO 已裁定为「落地」或「移出+successor」之一，roadmap 回写完成（不允许名义 owner——Anti-Slacking Rule）。
+- [x] 交付 ⑤：`FROM (VALUES …)` 已按裁定落地（含 ⓒ 定价门）或移出+ledger；两分支均有可审计证据。
+- [x] 交付 ⑥：`AT TIME ZONE` 落地——归一化三态断言 + 逐方言 template + h2 真库（`TestDialect.testFunctions`）+ 未注册方言响亮负向。
+- [x] 交付 ④：窗口命名 WINDOW 四层既有覆盖回归全绿并记录（roadmap WI12 交付 4 的「改为回归验证」落地）。
+- [x] 若实施中新增 AST 节点（roadmap EC ③ 的条件式改写）：生成物已重生成且 `./mvnw clean install -T 1C` 通过、`EqlASTKind` ordinal diff 审计通过；若零新节点：`ast/_gen/` 相对起点零新增（加字段只改既有 `_Sql*.java`）已核实。
+- [x] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步（roadmap EC ④）：新增能力点登记表行 + 各语法覆盖表（逐行 `[实测]`/`[文档]`/`[未取证]`）+ 移出项（如有）的归属说明。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap EC ⑤；豁免口径 = Current Baseline「全绿口径」小节，不得据此判本 plan 失败）。
+- [x] **既有 EQL 语料 BC（roadmap EC ⑥）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称 7 个全测。
+- [x] 方言能力矩阵快照增量已同步（`<template>` 真增量 / `<sqls>` 零增量核实）且 `check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] 约束 4 的「一致性 + 不等价」登记齐备：AT TIME ZONE（MySQL UTC-only / SQLite 永无）、VALUES（MySQL `ROW()` 形态 / Oracle 缺口）、NOWAIT/SKIP LOCKED（MSSQL 锁提示体系差异）至少各一项差异行落 owner doc。
+- [x] 生成物纪律：每个 Phase 的 `.g4`/`EqlAST.xjava` 改动单独提交（文法/逻辑分离可审计）；无 lexer token 删除；`EqlASTKind/Visitor/Processor/Optimizer` 零手改。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow：「只解析不 lowering/只打印不设门」正是半实现形态——Phase 3 分支 A 的「不触碰 no-op 层」裁定不得被误判为 hollow：该层是既有现状，本 plan 未在其上新增可解析面）。
-- [ ] owner doc 已同步到 live baseline；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow：「只解析不 lowering/只打印不设门」正是半实现形态——Phase 3 分支 A 的「不触碰 no-op 层」裁定不得被误判为 hollow：该层是既有现状，本 plan 未在其上新增可解析面）。
+- [x] owner doc 已同步到 live baseline；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
 - [ ] **Anti-Hollow Check**：closure audit 已验证（a）nowait/SKIP LOCKED/VALUES/AT TIME ZONE 从 EQL 文本（或程序化 AST）→ parse/transform → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op 作为**新增**实现（不支持路径全部响亮报错）；（c）Phase 3/4 若走移出分支，移出面无「新增的可解析但无产物」入口。
 - [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI12 EC ⑦）；roadmap Work Item Status 的 WI12 行据此才可 `planned` → `done`。
 
