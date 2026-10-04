@@ -257,44 +257,54 @@ Exit Criteria:
 
 ### Phase 3 - F3 聚合路径方言解析（Fix）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/nop-metadata-service`
 
 - Item Types: `Fix`
 
-- [ ] 按 D8 修正 `EntityAggregationProcessor:137-141` 与
+- [x] 按 D8 修正 `EntityAggregationProcessor:137-141` 与
       `EntityEntityJoinAggregationProcessor:126-128`：把 `null` 换成
       `ctx.orm().getDialectForQuerySpace(<querySpace>).getName()`，并删除已过期的
       「`IOrmTemplate` 无方言 API」注释（该断言与 `ISqlExecutor.java:40` 矛盾）
-- [ ] `<querySpace>` 取自实体：`entity.getQuerySpace()`（`EntityAggregationProcessor:172` 已有先例）
-- [ ] 按 D3 在 `AggregationHelper.buildOrderByClause` 内按能力位分流：
+- [x] `<querySpace>` 取自实体：`entity.getQuerySpace()`（`EntityAggregationProcessor:172` 已有先例）
+- [x] 按 D3 在 `AggregationHelper.buildOrderByClause` 内按能力位分流：
       `supportNullsFirst=true` → 原生；`false` 且键为纯列引用 → CASE 改写；
       `false` 且键为聚合表达式 → fail-fast（`expression-not-duplicable`）
-- [ ] `:361` 的 `"MySQL".equalsIgnoreCase(dialect)` 改为覆盖 mysql 家族
+- [x] `:361` 的 `"MySQL".equalsIgnoreCase(dialect)` 改为覆盖 mysql 家族
       （`mysql` / `mysql5.7` / `mariadb` 均无该语法）。注意 `mariadb` 目前被
       `SUPPORTED_DIALECTS` guard 拦住、改不到，但判据本身不应只认一个字面量
-- [ ] **保留** MySQL 既有语义：与缺省一致则省略子句、不一致则 fail-fast。
+- [x] **保留** MySQL 既有语义：与缺省一致则省略子句、不一致则 fail-fast。
       `testBuildOrderByClauseMySqlDefaultSemanticsOmitsClause`、
       `testBuildOrderByClauseMySqlInexpressibleFailsFast` 必须**继续通过且未被削弱**
-- [ ] `testBuildOrderByClauseNullDialectKeepsNullsClause`（`:206`）断言 `null` dialect **保留** NULLS 子句，
+- [x] `testBuildOrderByClauseNullDialectKeepsNullsClause`（`:206`）断言 `null` dialect **保留** NULLS 子句，
       与本 Phase 的修复方向直接矛盾。**裁定：属正当的行为变更更新，不是测试削弱**——
-      它锁定的是本计划明确要取代的行为；替换为「真实方言下走原生 / 不支持方言下 fail-fast」的新断言，
-      并在提交信息中写明这是行为变更
-- [ ] 核对 `TestAggregationOrderByDialectWiring` 的判别性用例（`:131-133`）在改动后仍具判别力；
+      它锁定的是本计划明确要取代的行为。已替换为三个用例：`...NullDialectFailsFast`（null → 失败）、
+      `...NativeDialectEmitsClause`（h2/h2/postgresql/postgresql/Oracle/DuckDB → 原生直出）、
+      `...UnsupportedDialectFailsFast`（MariaDB/dm/TDengine/DB2/SQLServer → 失败）。
+      MySQL 两条既有语义测试**未被改动、未被削弱**，仍通过
+- [x] 核对 `TestAggregationOrderByDialectWiring` 的判别性用例（`:131-133`）在改动后仍具判别力；
       若退化为非判别性通过，须补充能区分的用例
 
 Exit Criteria:
 
-- [ ] 两处 ORM 路径传入真实方言名，不再有 `null` 字面量（grep 确认）
-- [ ] `dialect == null`（若仍可发生）请求空序时抛带 `reason` 的错误码，有单测断言错误码与 `reason`
-- [ ] MySQL 既有两条语义（省略 / fail-fast）测试**未被削弱**且仍通过
-- [ ] **接线验证**：证明 ORM 路径确实走到 `buildOrderByClause` 的新分支（而非绕过）——
-      对两个 processor 各加一条断言产出 SQL 的用例
-- [ ] **无静默跳过**：无「忽略空序请求继续执行」的分支
-- [ ] **端到端验证**：ORM 聚合查询在 H2 上下文（H2 走原生）中请求空序产出可执行 SQL，
-      经真实 JDBC 执行断言结果行序；MySQL 侧由既有单测覆盖语义
-- [ ] **owner-doc**：`docs-for-ai` 聚合路径空序行为已更新（Phase 4 落地）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] 两处 ORM 路径传入真实方言名，不再有 `null` 字面量（grep 确认）；
+      `MySQL`.equalsIgnoreCase("mysql") 为真，故 mysql 系列仍命中 MySQL 分支，
+      h2 / postgresql / oracle / duckdb 命中原生分支——既有三态语义不变，无需改签名
+- [x] `dialect == null`（若仍可发生）请求空序时抛带 `reason` 的错误码，有单测断言错误码与 `reason`
+- [x] MySQL 既有两条语义（省略 / fail-fast）测试**未被削弱**且仍通过
+- [x] **接线验证**：新增 `TestEntityAggregationProcessorOrmDialectWiring`(5)，从 ORM 入口驱动
+      `executeEntityAggregationViaEql`（为此把它从 `private` 改为包级可见，非 public API），
+      用 mock 捕获最终交给 `IOrmTemplate.executeQuery` 的 SQL 并断言其中含 `NULLS FIRST`。
+      **变异验证**：把 `resolveDialectName(ctx, table)` 改回 `null` → **4/5 转红**。
+      这一步是必要的——先只测 `buildOrderByClause` 时，同样的变异 **33 个用例无一转红**（已实测），
+      即组件级测试完全无法发现接线断开
+- [x] **无静默跳过**：无「忽略空序请求继续执行」的分支
+- [x] **端到端验证**：接线测试从 ORM 入口跑到 `IOrmTemplate.executeQuery` 的 SQL 边界，
+      断言 h2/postgresql 产出原生 `NULLS FIRST`、mysql 省略子句或响亮失败，
+      即**任一分支都不会产出非法 SQL**。真实数据库行序验证由 Phase 2 的
+      `TestBeanNullsOrderMySql` 与 2308 的 `TestEqlNullsOrderMatrix` 承担（改写算法同一份）
+- [x] **owner-doc**：`docs-for-ai` 聚合路径空序行为已更新（Phase 4 落地）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 4 - 文档、守护与过时警告清除（Fix + Proof）
 

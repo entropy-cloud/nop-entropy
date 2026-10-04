@@ -5,6 +5,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoConstants;
 import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityDimension;
@@ -122,10 +123,11 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
                 params.addAll(hf.getParams());
             }
         }
-        // AR-20a：entity-entity JOIN 走 ORM 路径（orm().executeQuery），无方言 API——与 via-EQL 同裁定：
-        // 保持既有行为（dialect=null 走 AggregationHelper 默认分支），残余登记
-        // plan 2026-08-06-1228-1 Deferred But Adjudicated（ORM 背后接 MySQL 的部署场景）。
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY", null);
+        // plan 2309 D8：与 via-EQL 路径同裁定——解析真实方言，而非传 null。
+        // IOrmTemplate extends ISqlExecutor，getDialectForQuerySpace 可用。
+        String orderByDialect = resolveDialectName(ctx, table);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames,
+                "ORDER_BY", orderByDialect);
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -188,5 +190,13 @@ public class EntityEntityJoinAggregationProcessor implements AggregationProcesso
                     d.getDimensionType(), d.getGranularity()));
         }
         return specs;
+    }
+
+    /** plan 2309 D8：取本实体所属 querySpace 的方言名（详见 EntityAggregationHelper 同名方法） */
+    private static String resolveDialectName(MetaQueryContext ctx, NopMetaEntity table) {
+        String querySpace = table.getQuerySpace();
+        if (querySpace == null || querySpace.trim().isEmpty())
+            querySpace = DaoConstants.DEFAULT_QUERY_SPACE;
+        return ctx.orm().getDialectForQuerySpace(querySpace).getName();
     }
 }

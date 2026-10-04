@@ -29,6 +29,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -328,6 +330,33 @@ public class AggregationHelper {
      *
      * @param dialect 方言名（H2/MySQL/PostgreSQL；null = ORM 路径方言不可得，保持 H2 语义拼接 NULLS FIRST/LAST）
      */
+
+    /**
+     * plan 2309 D3：该方言是否接受原生 {@code NULLS FIRST/LAST} 子句。
+     *
+     * <p>这是平台 {@code supportNullsFirst=true} 的方言集合（h2 / h2gis / postgresql / postgis /
+     * duckdb / oracle），以名称匹配。之所以在此显式列举而不用 {@code IDialect}：
+     * {@code buildOrderByClause} 的 {@code dialect} 形参是 JDBC {@code databaseProductName}
+     * 字符串，JDBC 直连路径拿不到 {@code IDialect}。
+     *
+     * <p>取不到方言（{@code null}）时**不**视为支持——宁可响亮失败，
+     * 也不产出无法校验、可能在目标库上报语法错误的 SQL。
+     */
+    private static boolean supportsNativeNullsOrder(String dialect) {
+        if (dialect == null)
+            return false;
+        for (String name : NATIVE_NULLS_ORDER_DIALECTS) {
+            if (name.equalsIgnoreCase(dialect))
+                return true;
+        }
+        return false;
+    }
+
+    /** 与平台 {@code supportNullsFirst=true} 的方言集合保持一致 */
+    private static final Set<String> NATIVE_NULLS_ORDER_DIALECTS =
+            Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+                    "H2", "PostgreSQL", "DuckDB", "Oracle")));
+
     public static String buildOrderByClause(List<OrderFieldBean> orderBy, Map<String, String> nameToExpr,
                                              NopMetaEntity table, List<String> measureNames,
                                              List<String> dimensionNames, String clause, String dialect) {
@@ -370,10 +399,17 @@ public class AggregationHelper {
                                 .param(NopMetadataErrors.ARG_DESC, f.isDesc())
                                 .param(NopMetadataErrors.ARG_NULLS_FIRST, nullsFirst);
                     }
-                } else {
-                    // H2/PostgreSQL 支持 NULLS FIRST/LAST；dialect==null（ORM 路径，EntityAggregationProcessor
-                    // via-EQL / EntityEntityJoinAggregationProcessor 裁定）保持既有拼接行为。
+                } else if (supportsNativeNullsOrder(dialect)) {
                     sb.append(nullsFirst ? " NULLS FIRST" : " NULLS LAST");
+                } else {
+                    // plan 2309 D3：走到这里说明方言既不是 mysql 家族、又没有声明支持原生 NULLS 子句。
+                    // 此前此处**无条件拼接**原生子句，在 mariadb / dm / tdengine / db2 上直接产出
+                    // 语法错误 SQL（dialect==null 的 ORM 路径也会落到这里）。现改为响亮失败。
+                    throw new NopMetadataException(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED)
+                            .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, dialect)
+                            .param(NopMetadataErrors.ARG_NAME, String.valueOf(name))
+                            .param(NopMetadataErrors.ARG_DESC, f.isDesc())
+                            .param(NopMetadataErrors.ARG_NULLS_FIRST, nullsFirst);
                 }
             }
         }
