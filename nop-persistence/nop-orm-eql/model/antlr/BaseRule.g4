@@ -108,6 +108,7 @@ unreservedWord_:
     // ⓒ-A 裁定文档 §3.1）。非 GROUP BY 位置的 rollup(x)/cube(x) 仍经 sqlIdentifier_func_
     // 解析为 SqlRegularFunction，报错依赖函数表未注册（unknown-function）。
     | ROLLUP | CUBE
+    | NOWAIT | SKIP_ | LOCKED
     ;
 
 // variable

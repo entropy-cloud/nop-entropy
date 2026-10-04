@@ -578,6 +578,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitForUpdate_(EqlParser.ForUpdate_Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSkipLocked_(EqlParser.SkipLocked_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSkipLocked_(EqlParser.SkipLocked_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlParameterMarker}.
 	 * @param ctx the parse tree
 	 */

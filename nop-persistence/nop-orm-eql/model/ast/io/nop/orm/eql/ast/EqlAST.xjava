@@ -165,6 +165,9 @@ class EqlAST {
         SqlLimit limit;
         boolean forUpdate;
         boolean nowait;
+        // WI12 Phase 2（plan 38）：SKIP LOCKED 锁变体（既有类加字段，零 EqlASTKind ordinal
+        // 变动——roadmap WI7 收口注记口径；nowait 复用既有字段承载 NOWAIT 变体）
+        boolean skipLocked;
     }
 
     class SqlParameterMarker extends SqlExpr {

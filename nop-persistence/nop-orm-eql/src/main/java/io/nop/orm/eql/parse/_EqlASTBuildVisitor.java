@@ -1292,6 +1292,12 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
             if(ctx.forUpdate != null){
                ret.setForUpdate((SqlQuerySelect_forUpdate(ctx.forUpdate)));
             }
+            if(ctx.nowait != null){
+               ret.setNowait((SqlQuerySelect_nowait(ctx.nowait)));
+            }
+            if(ctx.skipLocked != null){
+               ret.setSkipLocked((SqlQuerySelect_skipLocked(ctx.skipLocked)));
+            }
             ret.normalize();
             ret.validate();
           return ret;
@@ -1793,7 +1799,17 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   /**
    * rules: sqlQuerySelect
    */
+  public abstract boolean SqlQuerySelect_nowait(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlQuerySelect
+   */
   public abstract boolean SqlQuerySelect_selectAll(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlQuerySelect
+   */
+  public abstract boolean SqlQuerySelect_skipLocked(ParseTree node);
 
   /**
    * rules: sqlSubqueryTableSource

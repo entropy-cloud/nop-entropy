@@ -101,7 +101,7 @@ sqlQuerySelect
         (<br> windowClause=sqlWindowClause)?
         (<br> orderBy=sqlOrderBy)?
         (<br> limit=sqlLimit)?
-        (<br> forUpdate=forUpdate_)?
+        (<br> forUpdate=forUpdate_ (nowait=NOWAIT | skipLocked=skipLocked_)?)?
     ;
 
 //selectSpecification
@@ -255,4 +255,8 @@ sqlSubQueryExpr
 
 forUpdate_
     : FOR UPDATE
+    ;
+
+skipLocked_
+    : SKIP_ LOCKED
     ;

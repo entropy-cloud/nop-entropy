@@ -45,6 +45,21 @@ CUBE
     : C U B E
     ;
 
+NOWAIT
+    : N O W A I T
+    ;
+
+// ⚠️ 执行期实测修订（plan 38 Phase 2）：裸 SKIP 触发 ANTLR error(159) "cannot declare a rule
+// with reserved name SKIP"（skip 是 lexer 命令保留名）。尾下划线形态（EQ_/ASTERISK_ 同族）
+// 绕开保留名；NOWAIT/LOCKED 非保留名、保持关键字裸名惯例。
+SKIP_
+    : S K I P
+    ;
+
+LOCKED
+    : L O C K E D
+    ;
+
 IDENTIFIER_
     : [A-Za-z_$][A-Za-z_$0-9]*
     |  DQ_ ~('\r'|'"'|'\n')+ DQ_

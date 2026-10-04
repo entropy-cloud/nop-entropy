@@ -36,6 +36,8 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
     
     protected boolean selectAll;
     
+    protected boolean skipLocked;
+    
     protected io.nop.orm.eql.ast.SqlWhere where;
     
     protected io.nop.orm.eql.ast.SqlWindowClause windowClause;
@@ -163,6 +165,16 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
         this.selectAll = value;
     }
     
+    public boolean getSkipLocked(){
+        return skipLocked;
+    }
+
+    public void setSkipLocked(boolean value){
+        checkAllowChange();
+        
+        this.skipLocked = value;
+    }
+    
     public io.nop.orm.eql.ast.SqlWhere getWhere(){
         return where;
     }
@@ -273,6 +285,8 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                 ret.setForUpdate(forUpdate);
             
                 ret.setNowait(nowait);
+            
+                ret.setSkipLocked(skipLocked);
             
        return ret;
     }
@@ -522,6 +536,10 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                    return false;
                 }
             
+                if(!isValueEquivalent(this.skipLocked,other.getSkipLocked())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -595,6 +613,8 @@ public abstract class _SqlQuerySelect extends io.nop.orm.eql.ast.SqlSelect {
                    json.put("forUpdate", forUpdate);
                 
                    json.put("nowait", nowait);
+                
+                   json.put("skipLocked", skipLocked);
                 
     }
 

@@ -678,6 +678,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSkipLocked_(EqlParser.SkipLocked_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSkipLocked_(EqlParser.SkipLocked_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlParameterMarker(EqlParser.SqlParameterMarkerContext ctx) { }
 	/**
 	 * {@inheritDoc}

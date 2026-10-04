@@ -175,6 +175,26 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * WI12 Phase 2（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §1.3）：
+     * {@code nowait=NOWAIT} token label → boolean 字段直达赋值
+     * （{@code SqlQuerySelect_selectAll(Token)} 同形先例）。
+     * rules: sqlQuerySelect
+     */
+    public boolean SqlQuerySelect_nowait(org.antlr.v4.runtime.Token token) {
+        return token != null;
+    }
+
+    /**
+     * WI12 Phase 2（plan 38，裁定 §1.3）：{@code skipLocked=skipLocked_} rule label →
+     * boolean 字段直达赋值（{@code SqlQuerySelect_forUpdate(ParseTree)} 同形先例）。
+     * rules: sqlQuerySelect
+     */
+    public boolean SqlQuerySelect_skipLocked(ParseTree node) {
+        return node != null;
+    }
+
+    /**
      * rules: sqlQuerySelect
      */
     public boolean SqlQuerySelect_selectAll(org.antlr.v4.runtime.Token token) {

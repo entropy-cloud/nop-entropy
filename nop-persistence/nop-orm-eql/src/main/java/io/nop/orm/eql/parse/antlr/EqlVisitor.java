@@ -351,6 +351,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitForUpdate_(EqlParser.ForUpdate_Context ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSkipLocked_(EqlParser.SkipLocked_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlParameterMarker}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
