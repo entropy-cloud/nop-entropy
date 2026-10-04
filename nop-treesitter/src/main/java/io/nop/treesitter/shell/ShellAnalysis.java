@@ -30,8 +30,10 @@ import java.util.Set;
  * through the compat layer, so nothing here depends on the migration shim. The
  * capabilities do <b>not</b> share a single parse: each takes one of its own, so
  * that a caller can ask one question without paying for five others. The cost is
- * measured rather than assumed (six parses per {@link #summarize}); a shared parse
- * is a caching change, not a correctness one.</p>
+ * depends on the branch — a provable script costs four parses per
+ * {@link #summarize}, an unprovable one six, because the unprovable branch also
+ * runs the harvest. A shared parse is a caching change, not a correctness
+ * one.</p>
  *
  * <p>Instances are immutable and safe to share; the underlying
  * {@link io.nop.treesitter.language.Language} is shared and its external scanner
@@ -49,10 +51,24 @@ public final class ShellAnalysis {
      * are paths" cannot be shifted by a flag.</p>
      */
     static final Set<String> ALL_ARGUMENTS_ARE_PATHS = Set.of(
-            "cat", "less", "more", "head", "tail", "find", "ls", "stat", "wc", "file",
+            "cat", "less", "more", "head", "tail", "ls", "stat", "wc", "file",
             "readlink", "realpath", "cd", "chdir", "pushd", "popd", "cp", "mv", "ln",
-            "diff", "rm", "rmdir", "mkdir", "touch", "unlink", "tee", "tr", "dd",
-            "install", "tar");
+            "diff", "rm", "rmdir", "mkdir", "touch", "unlink", "tee");
+
+    /*
+     * Deliberately absent, because "every non-flag argument is a path" is not true
+     * of them and the resulting reports are worse than no report:
+     *
+     *   find      `-type f` / `-name x.log` take operands that are not files, so
+     *             `f` and `x.log` would be reported as files the script reads.
+     *   dd        every operand is a `key=value` assignment (`if=`, `of=`, `bs=`),
+     *             so the assignment text is reported instead of the path in it.
+     *   tr        both operands are character sets.
+     *   tar       accepts dashless flag clusters (`tar czf ...`), which the flag
+     *             rule cannot see because there is no leading dash.
+     *
+     * Missing a path is recoverable; reporting something that is not a path is not.
+     */
 
     /**
      * Commands whose <b>first</b> non-flag operand is not a file: the grep family
@@ -138,7 +154,7 @@ public final class ShellAnalysis {
      * path exists is a different question with a different cost.</p>
      */
     public List<ShellPath> extractPaths(String script) {
-        return new PathExtractor(language, this).extract(script);
+        return new PathExtractor(this).extract(script);
     }
 
     // ---- capability 6: structured summary ----------------------------------

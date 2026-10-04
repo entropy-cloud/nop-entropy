@@ -159,8 +159,6 @@ class ShellPathExtractionTest {
                 pathsOf("grep -r pattern /var/log\n").stream().map(ShellPath::path).toList());
         assertEquals(List.of("/tmp/x"),
                 pathsOf("mkdir -p /tmp/x\n").stream().map(ShellPath::path).toList());
-        assertEquals(List.of("/tmp/a.tar"),
-                pathsOf("tar -xf /tmp/a.tar\n").stream().map(ShellPath::path).toList());
         assertEquals(List.of("/data"),
                 pathsOf("rm -rf /data\n").stream().map(ShellPath::path).toList());
     }
@@ -169,6 +167,24 @@ class ShellPathExtractionTest {
     void bothArgumentsOfACopyAreFoundEvenWithAFlag() {
         assertEquals(List.of("/etc/a", "/tmp/b"),
                 pathsOf("cp -a /etc/a /tmp/b\n").stream().map(ShellPath::path).toList());
+    }
+
+    /**
+     * Commands whose non-flag operands are not all paths are deliberately absent
+     * from the role table. Reporting their operands would report things that are
+     * not files: a missing path is recoverable, an invented one is not.
+     */
+    @Test
+    void commandsWithNonFileOperandsReportNothing() {
+        assertTrue(pathsOf("find /var -type f\n").isEmpty(),
+                "`find`'s `-type f` operand is a type, not a file");
+        assertTrue(pathsOf("dd if=/etc/passwd of=/tmp/x\n").isEmpty(),
+                "every `dd` operand is a key=value assignment, not a path");
+        assertTrue(pathsOf("tr a-z A-Z\n").isEmpty(), "`tr` operands are character sets");
+        assertTrue(pathsOf("tar czf /tmp/a.tgz /etc\n").isEmpty(),
+                "tar accepts dashless flag clusters the flag rule cannot see");
+        assertTrue(pathsOf("sed -i.bak s/a/b/ /etc/x\n").isEmpty(),
+                "sed is not in the table; its in-place write is invisible by omission");
     }
 
     /**
@@ -255,6 +271,21 @@ class ShellPathExtractionTest {
         ShellPath write = path("cat /etc/passwd > /tmp/out.txt\n", "/tmp/out.txt");
         assertEquals(ShellPath.Access.READ, read.access());
         assertEquals(ShellPath.Access.WRITE, write.access());
+    }
+
+    /**
+     * Accepted collateral, pinned so that it stays a decision: the grep family
+     * requires an operand to look like a path, so a <em>bare filename</em> is
+     * indistinguishable from a bare pattern and is not reported. The direction is
+     * safe — a missed path, never an invented one.
+     */
+    @Test
+    void aBareFilenameOfTheGrepFamilyIsNotReported() {
+        assertTrue(pathsOf("grep foo README.md\n").isEmpty(),
+                "a bare filename is indistinguishable from a bare pattern");
+        assertEquals(List.of("src/"),
+                pathsOf("grep foo src/\n").stream().map(ShellPath::path).toList(),
+                "a path with a separator is still reported");
     }
 
     /**

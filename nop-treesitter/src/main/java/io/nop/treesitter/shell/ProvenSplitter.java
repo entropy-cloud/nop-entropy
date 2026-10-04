@@ -33,7 +33,7 @@ final class ProvenSplitter {
     }
 
     ProvenSplit split(String script) {
-        if (script == null || script.isBlank()) {
+        if (isBlank(script)) {
             return UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
                     "the script contains no command");
         }
@@ -60,6 +60,29 @@ final class ProvenSplitter {
                 ? UnprovenScript.at(UnprovenScript.Reason.NO_COMMAND, 0, "",
                         "the tree holds no command node")
                 : new ProvenCommandSequence(collector.commands);
+    }
+
+    /**
+     * Whether a script holds nothing but whitespace.
+     *
+     * <p>Deliberately not {@link String#isBlank()}: that defers to
+     * {@link Character#isWhitespace}, which is {@code false} for several spaces a
+     * user can actually type or paste — U+00A0 no-break space, U+2007 figure space,
+     * U+202F narrow no-break space. A script of one of those is not an empty
+     * script, it is a word the grammar cannot read, and returning a proven sequence
+     * containing a bogus command is the worst of the three possible answers.</p>
+     */
+    private static boolean isBlank(String script) {
+        if (script == null || script.isEmpty()) {
+            return true;
+        }
+        for (int i = 0; i < script.length(); i++) {
+            char c = script.charAt(i);
+            if (!Character.isWhitespace(c) && !Character.isSpaceChar(c)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

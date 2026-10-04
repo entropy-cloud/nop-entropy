@@ -9,7 +9,16 @@ import java.util.List;
  */
 public final class ShellPath {
 
-    /** Read or write. Redirect destinations are always writes. */
+    /**
+     * Read or write.
+     *
+     * <p>For a redirect destination this is the redirect's own direction: {@code >}
+     * and {@code >>} write, {@code <} only ever reads. For a command <em>argument</em>
+     * it is a uniform {@link #READ}, because whether an argument is read or written
+     * is a property of the command's semantics, not of its text — {@code tee
+     * /tmp/out} writes and {@code cat /tmp/out} reads, and this capability extracts
+     * literals rather than judging intent.</p>
+     */
     public enum Access {
         READ,
         WRITE

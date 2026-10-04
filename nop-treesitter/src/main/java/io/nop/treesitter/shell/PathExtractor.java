@@ -2,11 +2,8 @@ package io.nop.treesitter.shell;
 
 import io.nop.treesitter.TSNode;
 import io.nop.treesitter.TSTree;
-import io.nop.treesitter.language.Language;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Capability 5: candidate literal file paths.
@@ -27,11 +24,9 @@ import java.util.Set;
  */
 final class PathExtractor {
 
-    private final Language language;
     private final ShellAnalysis analysis;
 
-    PathExtractor(Language language, ShellAnalysis analysis) {
-        this.language = language;
+    PathExtractor(ShellAnalysis analysis) {
         this.analysis = analysis;
     }
 
@@ -273,6 +268,23 @@ final class PathExtractor {
         return true;
     }
 
+    /**
+     * Whether a token has the shape of a filesystem path rather than a bare word.
+     *
+     * <p>Used only for the commands whose operands include a non-file (the grep
+     * family, {@code chmod}/{@code chown}), where "every non-flag argument is a
+     * path" is not true. Requiring a separator is the cheapest rule that rejects a
+     * search pattern regardless of which slot it lands in — which is what a
+     * positional table could not do, because a flag whose operand is itself a file
+     * shifts every slot after it.</p>
+     *
+     * <p><b>Accepted collateral:</b> a <em>bare filename</em> operand of these
+     * commands is not reported, because a bare filename is indistinguishable from a
+     * bare pattern. {@code grep foo README.md} therefore reports nothing while
+     * {@code grep foo src/} reports {@code src/}. The direction is safe — a
+     * missed path, not an invented one — and {@code ShellPathExtractionTest} pins
+     * it so that it stays a decision rather than an accident.</p>
+     */
     static boolean isPathLike(String token) {
         String bare = unquote(token);
         return bare.indexOf('/') >= 0 || bare.startsWith(".");

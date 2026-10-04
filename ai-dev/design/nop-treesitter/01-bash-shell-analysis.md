@@ -342,43 +342,68 @@ command substitution, no process substitution — the mature reference
 implementation marks them too, and evaluating a command substitution to "see what
 it would do" is itself an execution.
 
-### Decision 14 — path extraction annotates its own confidence, and checks nothing
+### Decision 14 — path extraction is a per-command role model, and it prefers a miss to an invention
 
-Capability 5 extracts candidate file paths along six dimensions, and every
-extraction is annotated with **which capability it came from** — proven or
-harvested. The two have different confidence and mixing them is a security hole:
-a path from a partial harvest is not a path the script provably touches.
+Six dimensions decide what counts as a path: the source command's **argument role**;
+the literal form; the confidence of the source; flag exclusion; the redirect's
+**direction**; and no filesystem check.
 
-The dimensions: the source command's argument-position convention (read, cat,
-grep, find, ls, cp, mv, rm, ... each with its own path positions, with everything
-after `--` treated as a path); the literal form (absolute, `.`/`..`-relative, or
-bare filename — excluding anything with a `~` prefix, a glob metacharacter, or an
-unresolved expansion); flag exclusion (`-`-leading tokens are not paths);
-redirect destinations as a separate **write**-path class; the confidence
-annotation; and no filesystem existence check.
+The role model, not a positional table. Almost every command that touches files
+takes only paths, so for those the rule is "every non-flag argument is a path". A
+positional table cannot express that safely: it has to encode each command's
+argument positions, and **one flag whose operand is itself a file shifts every
+position after it** — `grep -f <patterns> pattern <file>` then reports the
+*pattern* as a file the script reads. "All of them are paths" cannot be shifted.
 
-The last one is a contract, not an omission: this capability extracts literals.
-Whether a path exists is a different question with a different cost and a
-different failure mode, and answering it here would make the capability
-non-deterministic.
+Two adjustments on top:
 
-Three details in this dimension are easy to get wrong and each has an assertion:
+- Commands that take a leading operand which is not a file — the grep family
+  (a pattern), `chmod`/`chown` (a mode or an owner) — additionally require their
+  operands to **look like** a path: a separator, or a leading dot. That rejects a
+  bare pattern in whichever slot it lands. It also rejects a bare *filename* for
+  those commands, which is accepted collateral: `grep foo README.md` reports
+  nothing while `grep foo src/` reports `src/`.
+- A token shaped like an option's value (all digits, or a `%` specifier) is not a
+  path: `head -n 5 <file>` and `stat -c %s <file>` report the file, not the count.
+  The cost is that a genuinely numeric filename is dropped too.
 
-- **Positions count non-flag arguments, not argv slots.** Counting slots puts
-  `cat -n /etc/passwd`'s path at position 2 and drops it — losing the path
-  precisely when a flag is present. A token shaped like a flag's value (all
-  digits, or a `%` format specifier) is dropped from the positional list too, so
-  `head -n 5 /var/log/syslog` and `stat -c %s /etc/passwd` report the file and not
-  the count. The cost is that a genuinely numeric filename is also dropped; that
-  is the intended trade, because a missed path is recoverable and a path that is
-  not a path is not.
-- **A command's first argument is not automatically a path.** For the grep family
-  it is the *pattern*, so files start one position later. Commands whose first
-  argument is a mode or an owner are deliberately absent from the table.
-- **A wholly quoted path is unquoted before judgement.** `cat "/etc/passwd"` and
-  `cat /etc/passwd` name the same file, and dropping the quoted form would lose
-  exactly the paths a careful author writes. After unquoting, a path that still
-  contains an expansion or a glob character is still rejected.
+Commands whose non-flag operands are **not** all paths are deliberately absent:
+`find` (a `-type` / `-name` operand is not a file), `dd` (every operand is a
+`key=value` assignment), `tr` (character sets), `tar` (accepts dashless flag
+clusters like `czf` that no dash rule can see), and anything not listed at all.
+That is the governing trade of this capability: **a missed path is recoverable, an
+invented one is not.** `sed -i`, `curl -o`, `awk`, `du` and friends are therefore
+invisible here; a consumer needing them needs a command-semantics layer above.
+
+The literal form excludes a leading `~` (an expansion, not a name), glob and
+expansion characters, and whitespace or shell operators — the last because a
+quoted token is unquoted first, and `cat '/a; rm -rf /b'` is one argument whose
+text would otherwise become a "path" containing a command separator. A wholly
+quoted token is unquoted before judgement: `cat "/etc/passwd"` and
+`cat /etc/passwd` name the same file, and dropping the quoted form loses exactly
+the paths a careful author writes. A quoted **flag** is still a flag, so
+`rm "-rf"` reports nothing.
+
+The confidence annotation is the part that carries the most weight, and it comes
+from the same decision the whole extraction was based on — not from a weaker fact
+such as "the tree has no syntax errors". Three tiers, not interchangeable:
+
+- from a proof;
+- from a harvest whose argv was read in full, on a script that has other
+  constructs this layer could not read;
+- from a harvest command marked **partial**, whose argv is known to be a subset
+  and which may therefore name more paths than are listed.
+
+**Redirect direction is read from the redirect operator**, not from the node
+type: `>` and `>>` write, `<` only ever reads. The operator is an anonymous child
+of the redirect node, so the direction is available without re-parsing the text,
+and a destination that is a bare file descriptor (`2>&1`) is not a path at all.
+What a command *argument* means is outside this capability — `tee /tmp/out`
+writes, `cat /tmp/out` reads, and the capability extracts literals rather than
+judging intent — so command arguments are uniformly reported as reads.
+
+**No filesystem check**: this capability extracts literals, and whether a path
+exists is a different question with a different cost and a different failure mode.
 
 **Rejected**: the reference implementation's heuristic that strips small
 formatting helpers (`head`, `tail`, `awk`, `wc`) to bias toward the "main"

@@ -419,7 +419,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 本计划经**两轮独立子 agent 对抗性 closure audit**，第一轮判定
+Status Note: 本计划经**三轮独立子 agent 对抗性 closure audit**，第一轮判定
 `NOT-COMPLETED` 并查出 1 个 CRITICAL + 2 个 HIGH + 3 个 MEDIUM + 若干 LOW 的**真实
 fail-open 缺陷类**（其中 CRITICAL 是"tree-sitter 的字节坐标被当作 Java 字符下标使用"，
 使含多字节字符的脚本可以把破坏性命令报成**乱名 + 空目标**且**仍标记为已证明**）；第二轮
@@ -437,7 +437,9 @@ Closure Audit Evidence:
   R1 在 Phase 1-6 全部落地、116 项全部勾选、`## Closure` 仍为 `（待填）` 时发起）
 - Audit Session:
   - R1: `ses_ef95962c9ffe2ogmPSDJJ4Gk48` → verdict **`NOT-COMPLETED`**
-  - R2: `ses_ef93467c6ffeezHzgWdUbw1flX`（整改后） → verdict **`COMPLETED-WITH-FINDINGS`**
+  - R2: `ses_ef93467c6ffeezHzgWdUbw1flX`（R1 整改后） → verdict **`COMPLETED-WITH-FINDINGS`**
+  - R3: `ses_ef918d459ffetIJwte70gT8nBl`（R2 整改后，最终确认轮） → verdict
+    **`COMPLETED-WINDINGS`**（"WITH-FINDINGS" 指能力 5 的启发式盲区，已全部收口并披露）
 - Evidence:
 
 **Phase 与 Exit Criteria 逐条**
@@ -488,7 +490,7 @@ Closure Audit Evidence:
   死代码（`UNSUPPORTED_LANGUAGE` 常量、`ProvenSplitter` 的不可达分支、`ShellAnalysis.sourceText`、
   `ShellSource.isBlank/length`）。
 
-**两轮 audit 查出的缺陷与整改（R1 13 项 + R2 15 项）**
+**三轮 audit 查出的缺陷与整改（R1 13 项 + R2 14 项 + R3 收口）**
 
 R1：① **CRITICAL** byte offset 当 char index（新增 `ShellSource` 按字节切片解码；三个
 测试类各补非 ASCII 回归）② 能力 5 有 flag 时整体丢路径 ③ 加引号路径不可见 ④ partial
@@ -514,6 +516,30 @@ grep 族与 `chmod`/`chown` 额外要求"看起来像路径"（含分隔符或 `
 改在剥引号**之后** ㉕ 整改 commit 顺带引入 1 条新断链（`2309` 计划里的省略号路径）→ 已修
 ㉖ 解析次数 javadoc 的数字依分支而异（4 / 6）→ 如实改写 ㉗ 内联全限定名与包内风格不一致
 → 改回 import。
+
+R3（14 项整改全部验证通过后仍查出，已全部收口）：㉘ **HIGH** 能力 5 假报未止——`dd if=/etc/passwd
+of=/tmp/x`（每个操作数都是 `key=value` 赋值）、`find /var -type f`（`-type` 的操作数 `f` 是类型
+不是文件，**R2 的角色模型引入**）、`tr a-z A-Z`（字符集）、`tar czf`（无连字符 flag 簇）被报成
+文件——**与 R2 item 14 声称已消除的是同一类**。整改：`find` / `dd` / `tr` / `tar` 及一切未列出
+的命令**整体移出角色表**，并在代码里写明为什么漏报可恢复而伪造不可恢复。㉙ **R2 引入的漏报
+回归**：grep 族的**裸文件名**（`grep foo README.md`）因 `isPathLike` 要求含分隔符而被丢弃。
+整改方向确定为**接受并披露**（方向安全）并新增测试钉住，使其成为决定而非意外。㉚
+**`String.isBlank()` 对 U+00A0 / U+2007 / U+202F 返回 false**（`Character.isWhitespace` 不把
+它们算空白），导致**纯非 ASCII 空白的脚本返回 PROVEN 且带一条乱命名的命令**——正是
+"No-command 永远不被伪造"要防的形状。整改：改用 `isWhitespace || isSpaceChar` 判定，
+并补 4 个非 ASCII 空白输入的断言。㉛ 三处"重定向目的地恒为写"的过期契约（`ShellPath.Access`
+的公开 javadoc、模块文档、design doc）——`Access` 的 javadoc 重写为"重定向按方向、
+命令参数一律按读，因为参数方向是命令语义而非文本属性"。㉜ **normative design doc 未随 R2 的
+模型变更更新**（Decision 14 仍在描述已删除的位置表与"grep 从位置 2 起"）→ Decision 14 按
+角色模型重写。㉝ R3 残留死代码（`PathExtractor.language` 未读字段、未用 `Set` import、
+`isPathLike` 的孤儿 javadoc 骑在 `looksLikeAnOptionValue` 上）→ 全清。㉞ `ShellAnalysis`
+javadoc 的解析次数（第 26 项声称已改，实际未落地）→ 如实改为 **4（可证明）/ 6（不可证明）**。
+㉟ Closure 段"本计划测试刻意不把抛异常行为钉死"与实际不符（新增的
+`aParseThatCannotProduceATreeRaisesRatherThanReturningASummary` **确实**为 `echo ${x!y}` 钉住了
+"抛异常"）→ deferral 的理由改为**准确**的表述：该测试只断言"抛"，不绑定任何消息或恢复行为，
+因此 successor 修掉活锁后**无需删除或重写该测试**。㊱ 模块文档限制 3 对 `time rm -rf /` 的
+描述错误（`rm -rf /` 是 `time` 的**参数**而非另一条命令）→ 改对。㊲ `<>` 读写双向重定向在
+**错误恢复树上**方向判为写 → 作为限制披露（错误树上运算符子节点不可靠）。
 
 **Deferred 项分类检查**
 

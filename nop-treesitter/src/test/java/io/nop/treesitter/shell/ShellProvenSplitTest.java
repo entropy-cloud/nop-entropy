@@ -263,10 +263,15 @@ class ShellProvenSplitTest {
      */
     @Test
     void aWhitespaceOnlyScriptIsNotAProofOfNothing() {
-        for (String script : new String[]{" ", "\n", "   \n\t ", "\r\n"}) {
+        // Includes spaces that Java's Character.isWhitespace does not classify as
+        // whitespace: a script made only of a no-break space is not an empty
+        // script, and returning a proven command for it is the worst answer.
+        for (String script : new String[]{" ", "\n", "   \n\t ", "\r\n",
+                "\u00a0", "\u2007", "\u202f", "\u00a0\u00a0"}) {
             UnprovenScript refusal = ShellTestSupport.unproven(analysis, script);
             assertEquals(UnprovenScript.Reason.NO_COMMAND, refusal.reason(),
                     "<<" + script.replace("\n", "\\n").replace("\t", "\\t") + ">>");
+            assertEquals(0, refusal.nodeType().length());
         }
     }
 
