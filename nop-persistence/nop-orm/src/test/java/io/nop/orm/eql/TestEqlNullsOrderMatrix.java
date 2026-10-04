@@ -7,17 +7,10 @@
  */
 package io.nop.orm.eql;
 
-import io.nop.dao.dialect.IDialect;
-import io.nop.dao.dialect.impl.DialectImpl;
-import io.nop.dao.dialect.model.DialectFeatures;
-import io.nop.dao.dialect.model.DialectModel;
-import io.nop.dao.dialect.model.DialectSqls;
-import io.nop.dao.dialect.model.SqlNativeFunctionModel;
-
-import com.zaxxer.hikari.HikariDataSource;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.impl.DialectImpl;
 import io.nop.dao.dialect.model.DialectFeatures;
 import io.nop.dao.dialect.model.DialectModel;
@@ -32,6 +25,8 @@ import io.nop.orm.eql.sql.IAliasGenerator;
 import io.nop.orm.eql.sql.SeqAliasGenerator;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmEntityModel;
+
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Testcontainers;

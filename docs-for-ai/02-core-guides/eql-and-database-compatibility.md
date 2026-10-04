@@ -87,7 +87,54 @@ where o.roles._all.userId = 'x'
 
 **事务控制语句 `commit` / `rollback` 显式失败**。事务边界归属 `ITransactionTemplate` / 连接层，不属 EQL 编译器职责。编译这两条语句会抛 `nop.err.eql.not-support-transaction-statement`，错误信息指向正确 API。此前它们能解析但编译产物是**空字符串**且不报任何错误（静默无操作）。
 
-**ORDER BY 项上的 `NULLS FIRST/LAST` 与 `COLLATE` 不被支持**。EQL 的 `ORDER BY` 项只有「表达式 + asc/desc」，没有空序策略与排序规则修饰。空序策略请走 `QueryBean` / `OrderFieldBean.nullsFirst` 那条 bean 路径——它带方言门控（与数据库默认一致则省略子句、无法表达则 fail-fast）。注意 `CAST(x AS type COLLATE y)` 中的 `COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
+#### ORDER BY 空序 `NULLS FIRST/LAST`（2026-10-04 plan 2308 支持）
+
+EQL 的 `ORDER BY` 项现在接受空序修饰：`order by o.col [asc|desc] [nulls first|nulls last]`。
+省略子句时产物与从前逐字一致（不写即不输出）。
+
+**输出策略只看一个能力位 `supportNullsFirst`**，分两条路：
+
+- **true** → 原样输出 `NULLS FIRST` / `NULLS LAST` 子句。
+- **false** → 改写为「`CASE WHEN` 排序键 + 原排序列」的前置同级键。
+
+**⚠️ 方言矩阵（每格的证据来源不同，不要当成同质结论）**
+
+| 方言 | `supportNullsFirst` | 走哪条路 | 证据 |
+|---|---|---|---|
+| h2 | `true` | 原生 | 实测：H2 2.3.232 真实执行四方向组合核对行序 |
+| postgresql（含 postgis） | `true` | 原生 | 实测：PostgreSQL 16.15 同上 |
+| duckdb | `true` | 原生 | 实测语法接受；**但 ASC/DESC 都不翻转缺省**（见下方警告） |
+| oracle（含 oracle-reverse） | `true` | 原生 | 官方文档明确支持；**本仓库未跑容器实测** |
+| mysql | `false` | CASE 改写 | 实测：MySQL 8.0.46 **不接受** `NULLS` 子句 |
+| mysql5.7 / mariadb | `false` | CASE 改写 | 保守缺省（未实测，继承/对齐 mysql） |
+| dm / tdengine / es | `false` | CASE 改写 | 保守缺省（无达梦/tdengine 环境，未实测） |
+
+> **未实测为何仍安全**：`false` 走 CASE 改写在**任何**方言上都语义正确，只是 SQL 略冗长。
+> 这正是该能力位被设计成「支持/不支持」而非「四模型枚举」的原因——不确定时填 `false` 不会算错。
+
+**⚠️ 不要自己推断「请求值 == 方言缺省就省略子句」**。DuckDB 是反例：它 `ASC` 与 `DESC`
+**都不翻转**空序缺省（`ASC`/`DESC` 一律 NULLS LAST）。若按「DESC 默认 NULLS FIRST」这类
+单布尔模型去省略，`order by x desc nulls first` 会被判成「缺省即满足」而省略，
+DuckDB 实际返回 NULLS LAST——静默给出错误行序。因此本框架**不做省略优化**，
+`defaultNullsFirst` 这个历史属性全程不读。
+
+**三类位置会响亮失败**（抛 `nop.err.eql.nulls-order-not-supported`，不静默忽略）：
+
+| 场景 | `reason` |
+|---|---|
+| 改写路径遇到窗口上下文（`OVER (...)` / 命名窗口 `WINDOW w AS (...)` 内） | `window-not-supported` |
+| 改写路径遇到非纯列引用（函数、算术、`order by 1` 序号等无法安全复制的表达式） | `expression-not-duplicable` |
+| `SELECT DISTINCT` 的排序列未出现在投影列表中 | `distinct-column-not-projected` |
+
+原生方言下这三类均放行（数据库自身能处理，不需要改写）。多键 `ORDER BY` 时，
+CASE 键插在**紧邻其排序项**的位置，不改变键间优先级。
+
+**`ORDER BY ... COLLATE` 仍不支持**。注意区分：`CAST(x AS type COLLATE y)` 中的
+`COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
+
+**另一条通道**：bean 路径 `QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`
+（`DaoQueryHelper` / `SQL.SqlBuilder`）是**独立于 EQL 的另一套实现**，不受本页描述约束；
+`order by 1` 这类序号定位会绕过表达式分析。
 
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 
@@ -150,7 +197,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | 标志 | 含义 | 典型差异数据库 |
 |------|------|---------------|
 | `useAsInFrom` | `FROM t AS v` 是否允许 `AS` | Oracle 不允许 |
-| `supportNullsFirst` | 是否支持 `NULLS FIRST/LAST` | 不支持时 ORM 用 `IF(ISNULL(f),0,1)` 模拟 |
+| `supportNullsFirst` | 是否支持 `NULLS FIRST/LAST` | 支持则原样输出；不支持则改写成 `CASE WHEN` 排序键 |
 | `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | MySQL 不允许 |
 | `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | MySQL 不允许 |
 | `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | PostgreSQL 支持 |

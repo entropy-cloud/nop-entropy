@@ -489,43 +489,43 @@ Exit Criteria:
 
 ### Phase 5 - 聚焦回归与取值守护（Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-dao/src/test/**`、`nop-orm-eql/src/test/**`
 
 - Item Types: `Proof`
 
-- [ ] 新增测试直接断言 `*.dialect.xml` 中 `supportNullsFirst` 的取值（已有 `test-window-features.dialect.xml` fixture 先例），使取值漂移可被 CI 发现
-- [ ] 固化「`supportNullsFirst=null` 等价 false」的回落断言
-- [ ] 固化窗口位置 fail-fast 的错误码断言
+- [x] 新增测试直接断言 `*.dialect.xml` 中 `supportNullsFirst` 的取值，使取值漂移可被 CI 发现：`TestDefaultDialectNullsFirstFeatures`(9) + fixture `test-nulls-features.dialect.xml`（extends h2 后显式置 false，验证按属性合并）。实测发现 `db2`/`default` 因缺 mandatory `driverClassName` 无法作为具名方言单独加载，故不断言其取值，改由派生方言断言间接覆盖
+- [x] 固化「`supportNullsFirst=null` 等价 false」的回落断言
+- [x] 固化窗口位置 fail-fast 的错误码断言
 
 Exit Criteria:
 
-- [ ] **证明**：改错任一方言的 `supportNullsFirst` 取值会导致测试失败
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **证明**：改错任一方言的 `supportNullsFirst` 取值会导致测试失败——**已做变异验证**：h2 改 false → 2 红（`testH2SupportsNativeNullsOrder` + `testDerivedDialectsInheritFromBase`）；mysql 改 true → 3 红（含 `testAbsentAttributeFallsBackToFalse`、且 mysql5.7 经 extends 继承一并翻红）。两次变异均已回滚并重建 nop-dao 复绿
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 6 - 文档收口与 F2 假声明修正（Fix）
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 
 - Item Types: `Fix`
 
-- [ ] **修正 F2**：删除或改写 `eql-and-database-compatibility.md:153` 关于「ORM 用 `IF(ISNULL(f),0,1)` 模拟」的假声明（该模拟不存在）；改为指向本计划的 CASE 改写事实与其适用范围
-- [ ] 语法清单补 `NULLS FIRST/LAST` 条目 + **方言矩阵表**（每格标注实测 / 保守缺省）
-- [ ] 显式写明：`COLLATE` 不支持；「省略子句」优化不做及其原因（DuckDB 4 空序模型）
-- [ ] design §3.6 追加：2307 删除 V5 字段是「消除悬挂字段」的终态，本计划为继任实现；`collate` 维持不支持
-- [ ] 在 plan / design 留痕推翻 `2026-08-06-1228-1:55` 的理由与证据
-- [ ] 为 F1 / F3 建立具名 successor 记录（指向新 plan 路径），不留"后续再说"的空条
+- [x] **修正 F2**：删除或改写 `eql-and-database-compatibility.md:153` 关于「ORM 用 `IF(ISNULL(f),0,1)` 模拟」的假声明（该模拟不存在）；改为指向本计划的 CASE 改写事实与其适用范围
+- [x] 语法清单补 `NULLS FIRST/LAST` 条目 + **方言矩阵表**（每格标注实测 / 保守缺省）
+- [x] 显式写明：`COLLATE` 不支持；「省略子句」优化不做及其原因（DuckDB 4 空序模型）
+- [x] design §3.6 追加：2307 删除 V5 字段是「消除悬挂字段」的终态，本计划为继任实现；`collate` 维持不支持
+- [x] 在 plan / design 留痕推翻 `2026-08-06-1228-1:55` 的理由与证据
+- [x] 为 F1 / F3 建立具名 successor 记录（指向新 plan 路径），不留"后续再说"的空条
 
 Exit Criteria:
 
-- [ ] **证明**：owner doc 中不再有 live code 不存在的功能声明（逐句核对 `:153`）
-- [ ] owner doc 方言矩阵每格有证据来源
-- [ ] design 文档与实际终态一致，无 "Proposed vs Current" 叙事
-- [ ] F1 / F3 的 successor 记录含 plan 路径与证据，不是自由散文
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **证明**：owner doc 中不再有 live code 不存在的功能声明（逐句核对 `:153`）
+- [x] owner doc 方言矩阵每格有证据来源
+- [x] design 文档与实际终态一致，无 "Proposed vs Current" 叙事
+- [x] F1 / F3 的 successor 记录含 plan 路径与证据，不是自由散文
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ## Closure Gates
 
@@ -561,14 +561,14 @@ Exit Criteria:
 - Classification: `moved to explicit successor ownership`
 - Why Not Blocking Closure: 这是**独立于 EQL 的另一条查询通道**（`QueryBean` / `DaoQueryHelper` / `QueryBeanHelper` / `SQL.SqlBuilder`，位于 `nop-core` 与 `nop-orm`），其修复需要把 `IDialect` 打通进 `nop-core` 的 `SQL.SqlBuilder`（该类当前 0 处 dialect 引用）与 `DaoQueryHelper` 的静态签名，属跨模块 API 变更 + Protected Area（`nop-core`）。用户的请求范围是 **EQL ORDER BY**，把 `nop-core` 拖进本计划会使 scope 失控。**这不是"它不重要"，而是"它属于另一条通道、另一份 API 变更"**——按 Anti-Slacking Rule 的「moved to explicit successor ownership」处置，且必须留下具名记录
 - Successor Required: `yes`
-- Successor Path: 新建 plan（建议名 `bean-orderby-nulls-first-gating`），入口证据已在本 plan 的 Current Baseline「范围外但确认的 live defect」F1 段落完整给出，含 file:line
+- Successor Path: **`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`**（已建，Phase 3 承接 F1）
 
 ### F3 `nop-metadata` `AggregationHelper` 硬编码分支与两条 `dialect == null` ORM 路径
 
 - Classification: `moved to explicit successor ownership`
 - Why Not Blocking Closure: `AggregationHelper` 是 nop-metadata 聚合查询的 ORDER BY 构造，与 EQL ORDER BY 是两套产出路径。迁移它需要先解决「JDBC `databaseProductName` 字符串 → `IDialect`」的映射（`AggregationHelper.buildOrderByClause` 是**静态方法、无 Connection、无 IDialect**，两条 ORM 路径更直接传 `null`），属签名与调用链重设计。且其现状已在 `2026-08-06-1228-1` 的 Deferred 区有具名残余登记，不是新问题
 - Successor Required: `yes`
-- Successor Path: 建议并入 F1 的 successor plan（两者都需要「productName/连接 → IDialect」的映射能力），避免两个 plan 重复做同一件事
+- Successor Path: **`ai-dev/plans/2309-bean-orderby-nulls-first-gating.md`**（已建，Phase 2 承接 F3）。已核实为**confirmed live defect**：`AggregationHelper.java:376` 在**所有非 MySQL 方言**（含 `dialect == null`）无条件 append `NULLS FIRST/LAST`，mariadb / dm / tdengine / db2 上直接产出语法错误 SQL；`:365` 的单布尔缺省推导亦与 design §3.8 冲突
 
 ### `ORDER BY ... COLLATE`
 
