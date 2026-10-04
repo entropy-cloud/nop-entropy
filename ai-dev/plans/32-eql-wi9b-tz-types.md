@@ -1,6 +1,6 @@
 # 32 EQL WI9b — CAST 类型系统·时区类型（`StdSqlType` LOCAL 时区成员落地 + `dataTypeName_` 拼写新增 + DDL 映射与迁移裁定）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI9b 节 `:327-332`、门控矩阵 WI9b 行 `:115`、Work Item Status `:92`（`todo`）、共同约束 1-4 `:263-280`、Cross-Cutting 全部 `:380-390`、roadmap 级 Exit Criteria `:444-456`、关键约束与红线 `:458-468`）
 Related: `ai-dev/plans/25-eql-wi9a-cast-type-aliases.md`（硬前置，`completed`；本 plan 的结构先例与 WI9b 边界声明的出处）、`ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，`completed`）、`ai-dev/plans/19-eql-wi2-class-b-defects.md`（硬前置，`completed`；BOOLEAN 文法先例）、`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1/G-3 已裁决）、`ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md`（WI9a Phase 0 裁定；其 §五对照表含 WI9b 边界注记，本 plan 落地时须回写）
@@ -275,14 +275,14 @@ Exit Criteria:
 - [x] roadmap WI9b EC ④：owner doc 已同步（`orm-model-design.md`「时区类型」小节 + `eql-and-database-compatibility.md`「LOCAL 时区拼写」小节与 CAST 对照表，WI9a 收窄表 WI9b 边界注记行已回写落地态）。
 - [x] roadmap WI9b EC ⑤：类级豁免命令 BUILD SUCCESS exit 0（六目标 1655|0：orm-eql 578/orm 217/dao 214/db-migration 98/job-dao 87/auth-service 461；stream-runtime 豁免口径 SUCCESS）；run1 无排除中断于 stream 既有基线失败已如实登记（Phase 2 门记录）。
 - [x] roadmap WI9b EC ⑥：`TestEqlCorpusBaseline` 1/1（快照零 diff，run1/聚焦轮实测）；三份必测在 `-am` 闭包随模块全绿；未声称"7 个全测"。
-- [ ] roadmap WI9b EC ⑦：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9b 行据此才可 `todo` → `done`（WI9b 现状 `todo` `:92`；按 roadmap 状态流转，执行前主会话先翻 `planned`，本门以现状 `todo` 记起点、保留勘误注记即可）。
+- [x] roadmap WI9b EC ⑦：独立 closure audit 由**不同 `task_id`** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9b 行据此才可 `todo` → `done`（WI9b 现状 `todo` `:92`；按 roadmap 状态流转，执行前主会话先翻 `planned`，本门以现状 `todo` 记起点、保留勘误注记即可）。
 - [x] 三个 Protected Area 的提交纪律可审计：`499b379550`（StdSqlType+测试）/`d209122827`（.g4+重生成+闸门A+测试）/`9e98b09db5`（oracle XML+测试）相互分离；token 表零增删（`EqlLexer*`/`*.tokens` 零 diff）；`ast/_gen`/`EqlAST.xjava`/`_EqlASTBuildVisitor.java` 零 diff（重生成产物随文法提交，无手改）；oracle XML diff 仅 1 行新增+注释，既有 `<sqlDataType>` 条目零修改。
 - [x] 三 map 不变量（`fromJdbcType`/`fromStdDataTYpe`/`fromJavaClass` 既有结果零翻转）聚焦测试终局门复跑通过（`TestStdSqlTypeTimezoneMembers` 7/7 在 `phase3-final-test.log` 的 nop-commons 闭包内绿）。
 - [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（快照只记载可加载性+函数集、不含 `<sqlDataTypes>` 键——新增条目无需同步，结论 = WI9a 裁定 §四.3 同款，2026-10-05 复核）。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：退出码 0、新增 broken link = 0（基线 3 项既有 warning 不动；执行中曾出现 2 项指向 `target/surefire-reports` 的瞬时报告——系后台 `clean install` 清空 target 所致，构建完成后复测恢复基线，非文档缺陷）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/32-eql-wi9b-tz-types.md --strict` 退出码 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/32-eql-wi9b-tz-types.md --strict` 退出码 0。
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（exit 0，2026-10-05 实跑；"只放行不设门/只落枚举无生成证据"形态由端到端渲染断言与响亮报错断言排除）。
-- [ ] Anti-Hollow Check：closure audit 已验证（a）`cast(x as timestamp with local time zone)` 从 EQL 文本 → 闸门 A → 生成器 → 方言文本（或响亮报错）的端到端路径有测试；（b）闸门 B → `AddColumnExecutor` 的 DDL 生成链有接线证据；（c）无空方法体/静默跳过/no-op 作为"已落地"。
+- [x] Anti-Hollow Check：closure audit 已验证（a）`cast(x as timestamp with local time zone)` 从 EQL 文本 → 闸门 A → 生成器 → 方言文本（或响亮报错）的端到端路径有测试；（b）闸门 B → `AddColumnExecutor` 的 DDL 生成链有接线证据；（c）无空方法体/静默跳过/no-op 作为"已落地"。
 - [x] `./mvnw clean install -DskipTests -T 1C` 通过（BUILD SUCCESS exit 0，`_tmp/wi9b/phase3-clean-install.log`，2026-10-05 实跑）。
 - [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（类级豁免口径 BUILD SUCCESS exit 0，`_tmp/wi9b/phase3-final-test.log`，2026-10-05 实跑；surefire mtime 审计：六目标最新报告 20:02:55–20:06:48 全部晚于最后产品 commit `9e98b09db5` 20:00:01，fresh=total）。
 - [x] checkstyle / 代码规范检查通过（各代码提交钩子 ast-grep lint 全部 passed；新增 Java 文件 imports 分组遵循 io.nop → 第三方 → java.* 惯例）。
@@ -312,19 +312,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: <<YYYY-MM-DD>>
+Status Note: Phase 0-3（含 Phase 4 勘误交付）全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑦/B1-B6/C/D 全 PASS，**0 Blocker / 0 Major / 3 Minor**（EC⑤ mtime 窗口端点 13 秒偏差——实质判定不受影响；文档日期 2026-10-05 vs 提交 mtime 2026-10-04 跨日命名偏移——相对关系自洽；"altLabel 三约束"按可验证口径核验通过）。**四项特别警惕点全部由审计读代码确认防住**：Types.OTHER 槽位被 TZ 成员先占后由循环后 `put` 真实覆盖回 OTHER（有测试钉死）/闸门 A 多 token 重建对单 token 路径完全跳过（逐字节不变）/非 LOCAL 4 拼写 parse-fail 边界（g4 正文零非 LOCAL 备选）/`fromJdbcType(TIMESTAMP)=DATETIME` 历史行为测试钉死（基线漏列如实修正）。提交切分纪律：`499b379550`/`d209122827`/`9e98b09db5` 相互分离可独立 revert。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent（不同 task_id）>>
-- Audit Session: <<session ID>>
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-05
+- Audit Session: WI9b closure audit（一次通过，结论"WI9b 可通过 closure audit——roadmap WI9b 可翻 done"）
 - Evidence:
-  - <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应 live code path 或 test name）>>
-  - <<每条 Closure Gate 的验证结果>>
-  - <<`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/32-eql-wi9b-tz-types.md --strict` 退出码>>
-  - <<Anti-Hollow 检查结果 + `scan-hollow-implementations.mjs` 退出码>>
-  - <<Deferred 项分类检查：确认无 in-scope live defect 被降级>>
+  - A① PASS：`TestEqlCastTimezoneOracleDialect` 7/7 独立复跑（渲染字面/反查归类同一性/既有键零改写×2/负向错误码字面值）；真实 Oracle 建表往返 [未取证] 按裁定 §6.4 选项 2 合规收口
+  - A② PASS：`No migration required` 三处落档（裁定 §四/orm-model-design.md/roadmap 注记④）；三口径独立重验 0 命中（唯一命中=本 WI 自身产物）
+  - A③ PASS：`_tmp/wi9b/phase3-clean-install.log` BUILD SUCCESS
+  - A④ PASS：orm-model-design.md 默认映射 +2 行+时区小节；eql-and-database-compatibility.md :272 LOCAL 拼写小节+:268 对照表落地态+:257 34 键计数勘正
+  - A⑤ PASS：审计独立复核六模块 1655|0（578/217/214/98/87/461）；mtime 20:02:57-20:07:01 fresh=total；超额抽查 db-migration `TestTimezoneTypeGateBWiring` 3/3+orm-eql 底线 17 测
+  - A⑥ PASS：CorpusBaseline 1/1 独立复跑+快照零 diff；三份必测在 -am 闭包全绿；未声称 7 全测
+  - B1-B6 PASS：Types.OTHER 先占后重钉防翻转（containsKey 跳过+循环后 put 覆盖，代码序核实）；候选 (a) 2013/2014 被拒一手证据（H2 2.4.240 实测 DATA_TYPE=2013/2014→OffsetDateTime/OffsetTime 保偏移）；闸门 A 多 token span 重建+单 token 逐字节跳过；非 LOCAL 4 拼写 parse-fail 边界；勘误注记 6 行纯插入零删除（WI9a 裁定文档+plan 25 全范围零 diff）；oracle XML diff=1 行条目+6 行注释既有条目零改
+  - C PASS：matrix 0 / doc-links 0 error 新增 0 / scan-hollow 0 命中 / checklist exit 0
+  - D PASS：4 Phase+留白 3 项+daily log 10-05 五段条目+7 偏差落档
+  - Anti-Hollow：审计三项实证（真编译+TestTimezoneTypeGateBWiring 3/3+scan-hollow 0）
+  - Deferred 项分类检查：TIME_WITH_LOCAL_TIME_ZONE 逐成员全负（全方言无宿主，不造降级映射）；真实 Oracle 建表往返 [未取证] 不计覆盖——无 in-scope live defect 被降级
 
 Follow-up:
 
