@@ -240,30 +240,30 @@ Exit Criteria:
 
 ### Phase 5 - `dateAdd` / `dateDiff` → 无损 cell 注册 + 约束 3 剩余面裁定（预期增量最小）
 
-Status: planned
+Status: completed
 Targets: 同 Phase 1 的方言 XML/文档/测试面；`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（若 ledger 新增行）
 
 - Item Types: `Feature`、`Decision`（不落 cell 的 ledger 处置）、`Proof`
 
-- [ ] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
-- [ ] 修复前红：`dateAdd(unit,n,d)`/`dateDiff(unit,d1,d2)` 今天仅在 h2/h2gis 可用（既有注册命中），其余方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言该基线（红），再断言各落点（绿）。
-- [ ] 按 Phase 0 cell 矩阵注册可无损 cell：候选含 duckdb `date_diff`（字符串单位边界跨越，与 `datediff` 语义锚点一致则落）、pg interval 算术模板（若裁定无损）、oracle 按单位域裁定结果、mssql/mysql 取证结果。**h2 既有注册行为不变**（守护用例：`dateAdd('MONTH',-1,d)`/`dateDiff('MONTH',d1,d2)` 在 h2 的 lowering 与真库执行与基线逐字一致）。
-- [ ] **不可无损 cell 的 ledger 处置**（Decision）：逐 cell 写结论进裁定文档 + owner doc 差异表；属于"需产品需求才复议"的（如 mysql 的裸关键字单位形态）按 roadmap ledger 行格式登记（理由 / 重新评估触发条件 / successor）——不允许名义 owner。
-- [ ] 正向用例（EC ①）：每个落点 cell 在 h2（若落）或对应方言的文本断言；约束 4"一致性 + 不等价"两类用例（`dateDiff` 边界跨越 vs 完整单位数 vs 仅天至少各一例登记）。
-- [ ] 负向用例（EC ②）：不落方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向（3 参形态在 2 参方言上元数报错——若存在此类注册）。
-- [ ] 接线验证（#23）+ 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
-- [ ] **roadmap WI6 节文本回写（独立交付物，不得遗漏——照 plan 26 Phase 4"roadmap 行定价回写"机制，In Scope ③）**：对 roadmap WI6 节做**原地修订注记**（不删除原文，注记"修订依据 = plan 28 落地实况"）——① 函数族清单注记：六字段函数（`month`/`day`/`hour`/`minute`/`second`/`quarter`）已由 WI5 Phase 3/5 落地（证据指针 = plan 24 提交 `b9a2576c3a`/`eb8b91ff40`+`5e4be493d9` + plan 24 Closure 2026-10-04 audit 全 PASS），WI6 交付面收窄为 `dayofweek`/`weekofyear`/`dateAdd`/`dateDiff`/`dateTrunc` + `lastDay` 裁定；② EC"另加"遮蔽回归项注记归属：回归测试已由 WI5 Phase 5 交付（`TestEqlKeywordShadowReleaseParse`/`TestEqlKeywordShadowDialect`），WI6 守护不回归；③ 写明后继读取 WI6 行时的口径（六字段函数直接调用能力不再计入 WI6 验收）。注记与本 plan 五函数 + `lastDay` 的终局收口状态一致后方可勾选。
+- [x] **开工前置回退防护**：plan 24 已 `completed`（同上，排队门已满足）；快速复核其 Plan Status 未回退（回退为 `active` 即停工上报）。
+- [x] 修复前红：`dateAdd(unit,n,d)`/`dateDiff(unit,d1,d2)` 今天仅在 h2/h2gis 可用（既有注册命中），其余方言编译报 `ERR_EQL_UNKNOWN_FUNCTION`——先断言该基线（红），再断言各落点（绿）。
+- [x] 按 Phase 0 cell 矩阵注册可无损 cell：候选含 duckdb `date_diff`（字符串单位边界跨越，与 `datediff` 语义锚点一致则落）、pg interval 算术模板（若裁定无损）、oracle 按单位域裁定结果、mssql/mysql 取证结果。**h2 既有注册行为不变**（守护用例：`dateAdd('MONTH',-1,d)`/`dateDiff('MONTH',d1,d2)` 在 h2 的 lowering 与真库执行与基线逐字一致）。
+- [x] **不可无损 cell 的 ledger 处置**（Decision）：逐 cell 写结论进裁定文档 + owner doc 差异表；属于"需产品需求才复议"的（如 mysql 的裸关键字单位形态）按 roadmap ledger 行格式登记（理由 / 重新评估触发条件 / successor）——不允许名义 owner。
+- [x] 正向用例（EC ①）：每个落点 cell 在 h2（若落）或对应方言的文本断言；约束 4"一致性 + 不等价"两类用例（`dateDiff` 边界跨越 vs 完整单位数 vs 仅天至少各一例登记）。
+- [x] 负向用例（EC ②）：不落方言 `ERR_EQL_UNKNOWN_FUNCTION`；元数负向（3 参形态在 2 参方言上元数报错——若存在此类注册）。
+- [x] 接线验证（#23）+ 矩阵快照增量同步（EC ③）+ owner doc 覆盖表（EC ④）+ 真库证据（EC ⑥）+ 语料 BC（EC ⑦）。
+- [x] **roadmap WI6 节文本回写（独立交付物，不得遗漏——照 plan 26 Phase 4"roadmap 行定价回写"机制，In Scope ③）**：对 roadmap WI6 节做**原地修订注记**（不删除原文，注记"修订依据 = plan 28 落地实况"）——① 函数族清单注记：六字段函数（`month`/`day`/`hour`/`minute`/`second`/`quarter`）已由 WI5 Phase 3/5 落地（证据指针 = plan 24 提交 `b9a2576c3a`/`eb8b91ff40`+`5e4be493d9` + plan 24 Closure 2026-10-04 audit 全 PASS），WI6 交付面收窄为 `dayofweek`/`weekofyear`/`dateAdd`/`dateDiff`/`dateTrunc` + `lastDay` 裁定；② EC"另加"遮蔽回归项注记归属：回归测试已由 WI5 Phase 5 交付（`TestEqlKeywordShadowReleaseParse`/`TestEqlKeywordShadowDialect`），WI6 守护不回归；③ 写明后继读取 WI6 行时的口径（六字段函数直接调用能力不再计入 WI6 验收）。注记与本 plan 五函数 + `lastDay` 的终局收口状态一致后方可勾选。
 
 Exit Criteria:
 
-- [ ] `dateAdd`/`dateDiff` 的每个 cell 有终局结论：落地（注册 + 文本断言 + 证据等级）或不落（响亮报错 + ledger/差异登记）。无名义 owner。
-- [ ] **roadmap WI6 节文本的原地修订注记已落地**（In Scope ③ / Phase 5 独立交付物）：函数族清单注记（含 WI5 落地证据指针 `b9a2576c3a`/`eb8b91ff40`+`5e4be493d9`）+ EC"另加"项归属注记 + 后继读取口径，原文未删、历史可追溯，与裁定文档/owner doc/ledger 口径一致。
-- [ ] h2/h2gis 既有注册行为不变（守护用例通过）。
-- [ ] 负向用例断言具体错误码；无静默跳过；无"部分单位正确"的模板被注册。
-- [ ] 接线验证用例通过；`dateDiff` 语义分叉"不等价"登记已落 owner doc。
-- [ ] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
-- [ ] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] `dateAdd`/`dateDiff` 的每个 cell 有终局结论：落地（注册 + 文本断言 + 证据等级）或不落（响亮报错 + ledger/差异登记）。无名义 owner。
+- [x] **roadmap WI6 节文本的原地修订注记已落地**（In Scope ③ / Phase 5 独立交付物）：函数族清单注记（含 WI5 落地证据指针 `b9a2576c3a`/`eb8b91ff40`+`5e4be493d9`）+ EC"另加"项归属注记 + 后继读取口径，原文未删、历史可追溯，与裁定文档/owner doc/ledger 口径一致。
+- [x] h2/h2gis 既有注册行为不变（守护用例通过）。
+- [x] 负向用例断言具体错误码；无静默跳过；无"部分单位正确"的模板被注册。
+- [x] 接线验证用例通过；`dateDiff` 语义分叉"不等价"登记已落 owner doc。
+- [x] 矩阵快照门禁 exit 0；owner doc 覆盖表已落档。
+- [x] `TestEqlCorpusBaseline` 通过；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 
