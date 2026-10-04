@@ -120,6 +120,11 @@
                             and ({tableName} is null or table_name = {tableName})
                             and ({schemaName} is null or table_schema = {schemaName})
                 </foreignKeyExists>
+
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] PG 接受
+             INTERVAL '1' DAY（引号 value + 裸单位关键字，SQL 标准形态）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
     </sqls>
 
     <sqlDataTypes>

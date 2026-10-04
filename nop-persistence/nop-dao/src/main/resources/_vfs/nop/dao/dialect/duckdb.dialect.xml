@@ -34,6 +34,12 @@
         <dateTimeLiteral>TIMESTAMP_S '{value:yyyy-MM-dd HH:mm:ss}'</dateTimeLiteral>
         <timestampLiteral>TIMESTAMP_NS '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'</timestampLiteral>
 
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板——显式覆盖继承的 postgresql
+             引号形态。[文档] DuckDB 文档首形态 INTERVAL 1 YEAR（value 不加引号，单复数单位均见
+             文档）；不赌 duckdb 对引号 value+裸单位的接受度，落文档形态。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL {value} {unit}</sqlIntervalLiteral>
+
         <!-- Note: DuckDB 无锁支持 -->
         <forUpdate x:override="replace"/>
         <lockHint x:override="replace"/>

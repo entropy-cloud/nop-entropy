@@ -61,8 +61,11 @@ import java.util.Set;
 
 import static io.nop.dao.DaoConfigs.CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL;
 import static io.nop.dao.DaoErrors.ARG_ALLOWED_NAMES;
+import static io.nop.dao.DaoErrors.ARG_DIALECT;
 import static io.nop.dao.DaoErrors.ARG_NAME;
 import static io.nop.dao.DaoErrors.ARG_PARAM;
+import static io.nop.dao.DaoErrors.ARG_TEMPLATE_SOURCE;
+import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_INTERVAL_LITERAL_TEMPLATE;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_SQL_NAME;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_TPL_PARAM;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_TPL_PARAM_NO_ARG;
@@ -90,6 +93,10 @@ public class DialectImpl implements IDialect {
                 LimitOffsetPaginationHandler.INSTANCE);
         initFunctions();
         initDataTypes();
+        // WI7b Phase 1（plan 37）：sqlIntervalLiteral 模板占位符加载期校验——未知 marker
+        // 在方言构造期即抛错（消费点在 nop-orm-eql 的 AstToSqlGenerator.visitSqlIntervalExpr，
+        // 这里是"加载期设门"的唯一时机；坏模板静默留存会把非法 SQL 推迟到执行期）。
+        validateSqlIntervalLiteralTemplate();
         // 将reservedWords转换为大小写不敏感的集合。
         // WI3 第12项：reservedKeywords 允许为空集——xdef 只要求节点存在（mandatory），
         // 空内容经 xdef 绑定为 null（如 db2 暂不登记保留字），此处显式容错而非 NPE 断链
@@ -328,8 +335,37 @@ public class DialectImpl implements IDialect {
 
     @Override
     public String getSqlIntervalLiteral() {
-        // WI1 BUG-5 骨架：直读 <sqls> 配置文本，未配置为 null（模板内容由 WI7b 收口）
+        // WI1 BUG-5 骨架：直读 <sqls> 配置文本，未配置为 null。
+        // WI7b Phase 1 起本 accessor 获得首个生产消费点（AstToSqlGenerator.visitSqlIntervalExpr），
+        // 对手构模型（无 <sqls>）补 null 容错。
+        if (dialectModel.getSqls() == null)
+            return null;
         return dialectModel.getSqls().getSqlIntervalLiteral();
+    }
+
+    /**
+     * WI7b Phase 1（plan 37，裁定 `ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md`
+     * §1）：`sqlIntervalLiteral` 模板只允许 `{value}`/`{unit}` 命名占位符，未知 marker（含未闭合
+     * `{`）在方言加载期抛 `ERR_DIALECT_INVALID_INTERVAL_LITERAL_TEMPLATE`——WI0
+     * `TemplateSQLFunction` marker 越界校验同纪律（"只打印不设门 = 净回归"）。模板渲染为纯文本
+     * 拼接，本方法只做加载期设门，不做任何文本改写。
+     */
+    void validateSqlIntervalLiteralTemplate() {
+        String template = getSqlIntervalLiteral();
+        if (StringHelper.isEmpty(template))
+            return;
+        int pos = 0;
+        while (true) {
+            int p1 = template.indexOf('{', pos);
+            if (p1 < 0)
+                break;
+            int p2 = template.indexOf('}', p1);
+            String name = p2 < 0 ? null : template.substring(p1 + 1, p2);
+            if (!"value".equals(name) && !"unit".equals(name))
+                throw new NopException(ERR_DIALECT_INVALID_INTERVAL_LITERAL_TEMPLATE)
+                        .param(ARG_DIALECT, getName()).param(ARG_TEMPLATE_SOURCE, template);
+            pos = p2 + 1;
+        }
     }
 
     @Override

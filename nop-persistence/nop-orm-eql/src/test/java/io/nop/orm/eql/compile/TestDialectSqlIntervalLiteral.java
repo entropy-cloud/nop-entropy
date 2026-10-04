@@ -52,9 +52,14 @@ public class TestDialectSqlIntervalLiteral {
 
     @Test
     public void testUnconfiguredProductionDialectReturnsNull() {
-        // 生产方言（h2，未配置模板）→ null：WI1 不填模板内容
+        // WI7b Phase 1（plan 37）：h2 已配置 interval 模板（探针 [实测] INTERVAL '{value}' {unit}
+        // 形态合法，ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）——本断言从 WI1 的
+        // "h2 未配置返回 null" 更新为模板值断言（plan 明文的预期更新点；原三测骨架不弱化）。
         IDialect h2 = DialectManager.instance().getDialect("h2");
-        assertNull(h2.getSqlIntervalLiteral(), "WI1 must not configure interval templates");
+        assertEquals("INTERVAL '{value}' {unit}", h2.getSqlIntervalLiteral());
+        // h2 未配置的对照面转由 mssql 承载（T-SQL 无 INTERVAL 字面量，裁定 §2 不配置）
+        IDialect mssql = DialectManager.instance().getDialect("mssql");
+        assertNull(mssql.getSqlIntervalLiteral(), "mssql has no INTERVAL literal syntax: no template");
     }
 
     @Test

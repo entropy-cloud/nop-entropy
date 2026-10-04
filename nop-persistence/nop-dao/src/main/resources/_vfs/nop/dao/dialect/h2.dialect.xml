@@ -106,6 +106,13 @@
               and ({schemaName} is null or table_schema = {schemaName})
         </indexExists>
 
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。探针 [实测]
+             （ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）：H2 要求
+             INTERVAL 后跟字符串（INTERVAL '1' DAY 成功；裸 INTERVAL 1 DAY 语法错；
+             INTERVAL '1 DAY' 数据错 22007）=> value 带引号、unit 裸关键字。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr（未配置方言维持既有裸输出）。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
     </sqls>
 
     <!--

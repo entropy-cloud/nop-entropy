@@ -157,6 +157,11 @@
                         where view_name = {viewName}
                             and ({schemaName} is null or owner = {schemaName})
                 </viewExists>
+
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] Oracle 文档
+             INTERVAL '1' DAY 形态（DAY TO SECOND 单域字面量，引号 value + 裸单位）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
     </sqls>
 
     <functions>

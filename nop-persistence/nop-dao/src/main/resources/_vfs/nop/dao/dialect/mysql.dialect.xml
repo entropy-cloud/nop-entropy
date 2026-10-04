@@ -141,7 +141,10 @@
     <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"/>
 
     <sqls escapeSlash="true">
-
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] MySQL
+             INTERVAL expr unit——value 不加引号（与 h2/PG 相反，探针已证分叉真实存在）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL {value} {unit}</sqlIntervalLiteral>
     </sqls>
 
     <functions>

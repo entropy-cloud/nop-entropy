@@ -34,6 +34,7 @@ import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
 import io.nop.orm.eql.ast.SqlOrderByItem;
+import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
@@ -259,6 +260,71 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         print(node.getInterval().getIntervalUnit().name());
         print(")");
         printAlias(node.getAlias());
+    }
+
+    /**
+     * WI7b Phase 1（plan 37；roadmap EC ③，BUG-5 的另一半）：执行 SQL 的 interval 字面量按方言
+     * 模板 `sqlIntervalLiteral` 渲染。修复前所有方言都经基类裸输出 ` interval <expr> <UNIT>`，
+     * 探针已证该形态在 H2 与 PG 上非法（`ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt`）。
+     *
+     * <p>裁定（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md` §1/§2）：
+     * <ul>
+     * <li>模板未配置 → 委托 super（既有裸输出逐字节不变，BC；deprecated 语义见 owner doc）；</li>
+     * <li>已配置 → 命名 marker `{value}`/`{unit}` 纯文本拼接渲染（value 走真实渲染路径捕获），
+     * 不做二次转义；</li>
+     * <li>已配置方言上非字面量 value（参数 marker/列引用等）编译期显式报错（处置②）——回落裸输出
+     * 会继续产出已知非法文本，正中"只打印不设门 = 净回归"；</li>
+     * <li>TUMBLE 伪表函数渲染路径（{@link #visitSqlTumbleTableSource}）刻意逐字输出、不经模板——
+     * 其 owner 是 nop-stream-sql roadmap WI20，本方法零触碰。</li>
+     * </ul>
+     */
+    @Override
+    public void visitSqlIntervalExpr(io.nop.orm.eql.ast.SqlIntervalExpr node) {
+        String template = dialect.getSqlIntervalLiteral();
+        if (StringHelper.isEmpty(template)) {
+            super.visitSqlIntervalExpr(node);
+            return;
+        }
+
+        if (!(node.getExpr() instanceof SqlNumberLiteral)) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "intervalNonLiteralValue");
+        }
+
+        // value 经真实渲染路径捕获（接线证据：同一 visit 管线），再纯文本拼接进模板。
+        // 捕获文本 trim 外层空白（pretty 打印会在 token 间加空格），内部空白保留。
+        SQL.SqlBuilder buf = SQL.begin();
+        new AstToSqlGenerator(dialect, enableFilter, buf).visit(node.getExpr());
+        print(' ');
+        print(renderIntervalTemplate(template, buf.toString().trim(), node.getIntervalUnit().name()));
+    }
+
+    private String renderIntervalTemplate(String template, String valueText, String unit) {
+        StringBuilder sb = new StringBuilder(template.length() + valueText.length() + unit.length());
+        int pos = 0;
+        while (true) {
+            int p1 = template.indexOf('{', pos);
+            if (p1 < 0) {
+                sb.append(template, pos, template.length());
+                break;
+            }
+            int p2 = template.indexOf('}', p1);
+            // 加载期（DialectImpl 构造器）已拒绝坏 marker，此处仅为防御性兜底
+            if (p2 < 0) {
+                sb.append(template, pos, template.length());
+                break;
+            }
+            sb.append(template, pos, p1);
+            String name = template.substring(p1 + 1, p2);
+            if ("value".equals(name)) {
+                sb.append(valueText);
+            } else if ("unit".equals(name)) {
+                sb.append(unit);
+            }
+            pos = p2 + 1;
+        }
+        return sb.toString();
     }
 
     /**
