@@ -122,6 +122,12 @@ public interface OrmEqlErrors {
             "递归CTE的列名无法确定：投影[{astNode}]既没有别名也没有已解析的表达式元信息。"
                     + "请为递归CTE的每个投影显式指定别名");
 
+    // Plan 2308 D6：EQL ORDER BY 的空序修饰在当前形态下无法表达。
+    // reason 取值：window-not-supported / expression-not-duplicable / distinct-column-not-projected
+    ErrorCode ERR_EQL_NULLS_ORDER_NOT_SUPPORTED = define("nop.err.eql.nulls-order-not-supported",
+            "当前形态无法表达NULLS {reason}（方言{dialect}）。"
+                    + "请改写排序表达式、去掉DISTINCT，或在不支持空序修饰的窗口位置避免使用NULLS FIRST/LAST");
+
     ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
             ARG_ENTITY_NAME);
 

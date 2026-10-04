@@ -33,6 +33,10 @@ import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
+import io.nop.orm.eql.ast.SqlOrderBy;
+import io.nop.orm.eql.ast.SqlOrderByItem;
+import io.nop.orm.eql.ast.SqlWindowDecl;
+import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
@@ -62,10 +66,13 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_REASON;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NULLS_ORDER_NOT_SUPPORTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_PROJECTION_TYPE;
 
 public class AstToSqlGenerator extends AstToEqlGenerator {
@@ -277,6 +284,132 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                 appendPropJoins(propJoin.getRight());
             }
         }
+    }
+
+    /**
+     * Plan 2308 D5：ORDER BY 的方言化输出。
+     *
+     * <p>覆写 {@link AstToEqlGenerator#visitSqlOrderBy}（而非只覆写 item）的原因：
+     * 基类用 {@code printList(items, ",")} 做列表级拼接，而 CASE 兄弟键必须作为
+     * <b>紧邻其排序项的前置同级键</b>插入；只覆写 item 无法在逗号之间插键。
+     *
+     * <p>D1 算法：{@code supportNullsFirst} 为 true → 原生输出 NULLS 子句；
+     * 否则对可安全复制的表达式输出 CASE 改写。{@code defaultNullsFirst} 全程不读
+     * （单个布尔无法表达各方言真实空序模型，见 design §3.8）。
+     */
+    @Override
+    public void visitSqlOrderBy(SqlOrderBy node) {
+        print(" order by ");
+        beginBlock();
+        List<SqlOrderByItem> items = node.getItems();
+        if (items != null) {
+            for (int i = 0, n = items.size(); i < n; i++) {
+                if (i != 0) {
+                    print(",");
+                    if (isPretty())
+                        println();
+                }
+                printOrderByItemForSql(items.get(i));
+            }
+        }
+        endBlock();
+    }
+
+    private void printOrderByItemForSql(SqlOrderByItem item) {
+        Boolean nullsFirst = item.getNullsFirst();
+
+        // 未请求空序：与 2307 基线逐字一致，不做任何额外处理
+        if (nullsFirst == null) {
+            visit(item);
+            return;
+        }
+
+        // 原生支持：直接输出（基类已能按三态打印 nulls first/last）
+        if (dialect.isSupportNullsFirst()) {
+            visit(item);
+            return;
+        }
+
+        // D4：窗口上下文无法附加额外排序键，改写结构性不适用 -> 显式失败
+        if (inWindowContext(item)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "window-not-supported")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D2：改写要复制排序表达式，只允许纯列引用
+        SqlExpr expr = item.getExpr();
+        if (!(expr instanceof SqlColumnName)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "expression-not-duplicable")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D3：DISTINCT 查询要求排序列出现在投影列表中（否则 PG 拒绝）
+        if (distinctWithoutProjectedColumn(item, (SqlColumnName) expr)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "distinct-column-not-projected")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D5：CASE 键作为前置同级键（紧邻其排序项），而不是整个列表的表头。
+        // 语义：先按「是否为 NULL」分组，再按原列排序。
+        // CASE 键的方向与原方向相反（先分组再排），故 ASC 原向 -> CASE 用 DESC。
+        boolean asc = item.getAsc();
+        print("case when ");
+        visit(expr);
+        print(" is null then ");
+        print(nullsFirst == asc ? "1" : "0");
+        print(" else ");
+        print(nullsFirst == asc ? "0" : "1");
+        print(" end");
+        print(asc ? " desc" : " asc");
+        print(", ");
+        visit(expr);
+        print(asc ? " asc " : " desc ");
+    }
+
+    /** D4：ORDER BY 项是否位于 OVER(...) 或命名窗口 {@code WINDOW w AS (...)} 内部 */
+    private boolean inWindowContext(SqlOrderByItem item) {
+        for (EqlASTNode p = item.getASTParent(); p != null; p = p.getASTParent()) {
+            if (p instanceof SqlWindowExpr || p instanceof SqlWindowDecl)
+                return true;
+        }
+        return false;
+    }
+
+    /** D3：DISTINCT 查询中该排序列未出现在投影列表里 */
+    private boolean distinctWithoutProjectedColumn(SqlOrderByItem item, SqlColumnName sortCol) {
+        SqlQuerySelect select = enclosingSelect(item);
+        if (select == null || !select.getDistinct())
+            return false;
+        List<SqlProjection> projections = select.getProjections();
+        if (projections == null || projections.isEmpty())
+            return true;
+        for (SqlProjection p : projections) {
+            if (p instanceof SqlExprProjection) {
+                SqlExpr e = ((SqlExprProjection) p).getExpr();
+                if (e instanceof SqlColumnName
+                        && ((SqlColumnName) e).getName().equalsIgnoreCase(sortCol.getName()))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private SqlQuerySelect enclosingSelect(SqlOrderByItem item) {
+        for (EqlASTNode p = item.getASTParent(); p != null; p = p.getASTParent()) {
+            if (p instanceof SqlQuerySelect)
+                return (SqlQuerySelect) p;
+        }
+        return null;
+    }
+
+    private String dialectName() {
+        return dialect == null ? "unknown" : dialect.getClass().getSimpleName();
     }
 
     @Override

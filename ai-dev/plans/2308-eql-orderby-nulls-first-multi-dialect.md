@@ -248,7 +248,7 @@ Targets: 本 plan、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 | D1 emission 只读 `supportNullsFirst` | Phase 2 | `IDialect` 暴露该位；策略实现 |
 | D2 仅纯列引用可改写 | Phase 2 / 4 | 策略的适用性判定 + fail-fast |
 | D3 DISTINCT 要求排序列已投影 | Phase 4 | `visitSqlOrderBy` 内读 `distinct`/`projections` |
-| D4 窗口两处 fail-fast | Phase 4 | 向上遍历 `getASTParent()` 判 `SqlWindowExpr`/`SqlWindowDecl` |
+| D4 窗口 fail-fast（仅改写路径） | Phase 4 | 向上遍历 `getASTParent()` 判 `SqlWindowExpr`/`SqlWindowDecl` |
 | D5 前置同级键 → 覆写 `visitSqlOrderBy` | Phase 4 | 列表级重写而非只覆写 item |
 | D6 新错误码 + 三种 reason | Phase 2 / 4 | `OrmEqlErrors` 新增；调用点填 reason |
 | D7 落点 `AstToSqlGenerator`，基类保持方言无关 | Phase 4 | 覆写 `visitSqlOrderBy`，不动基类 |
@@ -298,8 +298,14 @@ supportNullsFirst == false/null  → CASE 改写（见 D5 的插入位置）
 
 **D4 窗口边界**——`sqlOrderBy` 有 **3 个使用点**，只有查询级可改写：
 - 查询级 `SqlQuerySelect.orderBy` → 支持
-- `SqlWindowExpr.orderBy`（`OVER ( ... orderBy ... )`，`EqlAST.xjava:481`）→ **fail-fast**
-- `SqlWindowDecl.orderBy`（命名窗口 `WINDOW w AS ( ... orderBy ... )`，`EqlAST.xjava:500`）→ **fail-fast**
+- `SqlWindowExpr.orderBy`（`OVER ( ... orderBy ... )`，`EqlAST.xjava:481`）→ 改写路径 **fail-fast**
+- `SqlWindowDecl.orderBy`（命名窗口 `WINDOW w AS ( ... orderBy ... )`，`EqlAST.xjava:500`）→ 改写路径 **fail-fast**
+
+> **Phase 4 修订（原裁定为「窗口无条件 fail-fast」）**：实测 H2 **原生接受**窗口 `ORDER BY` 中的
+> `NULLS LAST`（`TestEqlNullsOrderEndToEnd#testWindowNullsOrderOnNativeDialect` 真实执行通过）。
+> fail-fast 的真实约束是「CASE 改写结构性不适用」，而非「窗口不支持空序」。
+> 故改为：**先判原生支持（原生则放行），仅在需要改写时才因窗口上下文 fail-fast**。
+> 无条件拒绝会剥夺 PG/H2 用户本就合法可用的写法，属无谓限制。
 
 后两者的 `orderBy` 都经 `visitChild(...)` 路由到同一个 `visitSqlOrderBy`（`AstToEqlGenerator:980` 与 `:1035`），
 因此实现上通过**向上遍历 `getASTParent()` 判断是否处于 `SqlWindowExpr`/`SqlWindowDecl` 之下来区分**。
@@ -438,7 +444,7 @@ label 直接用属性名 `nullsFirst`，子规则整体可选 ⇒ 未写时为 `
 这正是 2307 要消灭的失败模式，不该跨 Phase 留存。该方法保持方言无关，D7 的分工不变。
 
 **发现一处既有事实（非本计划引入）**：`FIRST`/`LAST` 在本计划之前就已是
-`SQL92Keyword.g4` 的 token，但**从未**登记进 `unreservedWord_`，
+`nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 的 token，但**从未**登记进 `unreservedWord_`，
 因此 `select first from t` / `order by first asc` **本来就解析失败**。
 本计划只新增 `NULLS` 一个 token 并登记为非保留字，**未改变** first/last 的可用性。
 测试相应改为断言这一既有事实（`testFirstIsStillNotBareIdentifier_PreExisting`），
@@ -457,29 +463,29 @@ label 直接用属性名 `nullsFirst`，子规则整体可选 ⇒ 未写时为 `
 
 ### Phase 4 - 输出器接线与端到端验证（Feature）
 
-Status: planned
+Status: in_progress
 Targets: `sql/{AstToEqlGenerator,AstToSqlGenerator}.java`、`nop-persistence/nop-orm/src/test/**`
 
 - Item Types: `Feature`
 
-- [ ] `AstToEqlGenerator#visitSqlOrderByItem`（基类）输出 `nulls first`/`nulls last`，**不含方言逻辑**，保证 EQL 通道 round-trip 无损
-- [ ] `AstToSqlGenerator` **覆写** `visitSqlOrderByItem`（当前无覆写，完全继承基类）承载方言逻辑；须处理「是否处于窗口上下文」的判定
-- [ ] CASE 键作为**前置同级键**插入（紧邻其排序项，不跨项、不 prepend 到列表头）
-- [ ] 窗口两处（`OVER(...)`、命名窗口 `WINDOW w AS (...)`）接入 Phase 1 的 fail-fast
-- [ ] 新增 docker 门控端到端测试：EQL 文本 → **经 `EqlCompiler` 编译** → 真实库执行 → 断言**结果行序**
+- [x] `AstToEqlGenerator#visitSqlOrderByItem`（基类）输出 `nulls first`/`nulls last`，**不含方言逻辑**，保证 EQL 通道 round-trip 无损
+- [x] `AstToSqlGenerator` **覆写** `visitSqlOrderBy`（列表级；D5 要求可插入兄弟键，只覆写 item 做不到）承载方言逻辑；含「是否处于窗口上下文」判定
+- [x] CASE 键作为**前置同级键**插入（紧邻其排序项，不跨项、不 prepend 到列表头）
+- [x] 窗口两处（`OVER(...)`、命名窗口 `WINDOW w AS (...)`）接入 Phase 1 的 fail-fast
+- [x] 新增 docker 门控端到端测试：EQL 文本 → **经 `EqlCompiler` 编译** → 真实库执行 → 断言**结果行序**
 
 Exit Criteria:
 
-- [ ] **端到端验证（Rule #22）**：h2 + postgresql + mysql 三库实跑，覆盖 4 个方向组合；断言的是排序后行序（如 `{2,1,3}` vs `{1,3,2}`），不是「SQL 里有 nulls 字样」
-- [ ] **端到端验证**：docker 测试必须**经 EQL 编译器**产出 SQL（范式对齐 `nop-dao/.../TestPostgresWindowFrameMatrix.java`，即 WI3 的「docker 门控 + 真实执行矩阵 → 回填 dialect.xml features」；**不要**照抄 `TestEqlLateralPostgres`——它用手写 SQL 常量、绕过编译器，只能证明 SQL 形态可执行）
-- [ ] **多键正确性（Rule #22）**：多键 E2E 用例——第一键有重复值 + 第二键含 NULL，断言行序。用于钉死「CASE 键插在紧邻位置而非列表头」
-- [ ] **DISTINCT 正确性**：DISTINCT 查询用例，按 Phase 1 裁定断言（改写或 fail-fast）
-- [ ] **防误伤**：未写 `NULLS` 的既有 `ORDER BY` 产物**逐字不变**（复用 2307 的 bypass 基线范式）
-- [ ] **接线验证**：能力位 → 策略 → 输出器三段在运行时连通（由行序断言反证）
-- [ ] **无静默跳过**：不可改写位置抛带错误码异常
-- [ ] docker 镜像**钉版本**（记录已知坑：`TestPostgreDialect` 曾钉的 9.6.12 镜像已下架导致拉取超时）
+- [x] **端到端验证（Rule #22）**：h2 + postgresql + mysql 三库实跑，覆盖 4 个方向组合；断言的是排序后行序（如 `{2,1,3}` vs `{1,3,2}`），不是「SQL 里有 nulls 字样」
+- [x] **端到端验证**：docker 测试必须**经 EQL 编译器**产出 SQL（范式对齐 `nop-dao/.../TestPostgresWindowFrameMatrix.java`，即 WI3 的「docker 门控 + 真实执行矩阵 → 回填 dialect.xml features」；**不要**照抄 `TestEqlLateralPostgres`——它用手写 SQL 常量、绕过编译器，只能证明 SQL 形态可执行）
+- [x] **多键正确性（Rule #22）**：多键 E2E 用例——第一键有重复值 + 第二键含 NULL，断言行序。用于钉死「CASE 键插在紧邻位置而非列表头」
+- [x] **DISTINCT 正确性**：DISTINCT 查询用例，按 Phase 1 裁定断言（改写或 fail-fast）
+- [x] **防误伤**：未写 `NULLS` 的既有 `ORDER BY` 产物**逐字不变**（复用 2307 的 bypass 基线范式）
+- [x] **接线验证**：能力位 → 策略 → 输出器三段在运行时连通（由行序断言反证）
+- [x] **无静默跳过**：不可改写位置抛带错误码异常
+- [x] docker 镜像**钉版本**（`postgres:16-alpine`、`mysql:8.0`；记录已知坑：`TestPostgreDialect` 曾钉的 9.6.12 镜像已下架导致拉取超时）
 - [ ] 跨模块回归（2307 的 8 模块清单，命令见 Closure Gates）全绿
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 5 - 聚焦回归与取值守护（Proof）
 
