@@ -298,6 +298,8 @@ public class KafkaMessageService implements IMessageService {
         long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
                 ? options.getBatchReceiveTimeout() : 1000L;
 
+        warnIfAutoCommit();
+
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "kafka-consume-" + groupId);
             t.setDaemon(true);
@@ -309,6 +311,21 @@ public class KafkaMessageService implements IMessageService {
         KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
         subscriptions.add(subscription);
         return subscription;
+    }
+
+    /**
+     * F-58 disposition: with enable.auto.commit=true, the broker-side auto-committer
+     * commits positions on its own schedule and does not respect this task's converged
+     * commit boundaries — warn once per JVM. The user's explicit setting is respected, not
+     * rewritten. Note: covers the config-bean path only; an extraProps override of
+     * enable.auto.commit is not detected here.
+     */
+    void warnIfAutoCommit() {
+        if (defaultConsumerConfig != null && defaultConsumerConfig.isEnableAutoCommit()) {
+            io.nop.api.core.message.MessageOptionsValidator.warnOnce("kafka", "auto-commit",
+                    "enable.auto.commit=true bypasses the converged commit boundaries of the "
+                            + "manual-commit consume loop");
+        }
     }
 
     /** Task factory: kept separate so doSubscribe can register the rebalance listener before start. */

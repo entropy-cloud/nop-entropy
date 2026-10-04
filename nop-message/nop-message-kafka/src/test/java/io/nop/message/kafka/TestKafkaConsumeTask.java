@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -386,6 +387,104 @@ class TestKafkaConsumeTask {
                                                           StringDeserializer keyDeserializer,
                                                           StringDeserializer valueDeserializer) {
             throw new IllegalStateException("consumer must not be constructed: seekToMessage is validated earlier");
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // WI11: batch boundary semantics (F-06 / F-07 / F-08 / F-58)
+    // ------------------------------------------------------------------
+
+    @Test
+    void batchFailureRewindsEachPartitionToFirstIncompleteRecord() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        doThrow(new IllegalStateException("batch-boom")).when(msgConsumer).onMessageBatch(
+                org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.any());
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        ConsumerRecord<String, String> p0First = record(0, 10, "a");
+        ConsumerRecord<String, String> p1First = record(1, 5, "b");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(p0First, record(0, 11, "a2"), p1First));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, task::batchConsume);
+
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 10L);
+        verify(consumer).seek(new TopicPartition("test-topic", 1), 5L);
+        verify(consumer, never()).commitSync();
+        verify(consumer, never()).commitSync(org.mockito.ArgumentMatchers.anyMap());
+    }
+
+    @Test
+    void batchCommitNeverCrossesUndispatchedRecords() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        when(msgConsumer.onMessageBatch(org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new java.util.ArrayList<>(List.of("r0")));
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b")));
+
+        task.batchConsume();
+
+        org.apache.kafka.clients.consumer.OffsetAndMetadata nextOffset =
+                new org.apache.kafka.clients.consumer.OffsetAndMetadata(11L);
+        verify(consumer).commitSync(Collections.singletonMap(new TopicPartition("test-topic", 0), nextOffset));
+        verify(consumer, never()).commitSync();
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 11L);
+    }
+
+    @Test
+    void consumeLaterStopsBatchDispatchAndSkipsCommit() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        when(msgConsumer.onMessageBatch(org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new java.util.ArrayList<>(java.util.Arrays.asList(
+                null, new ConsumeLater(1000L), "late-reply")));
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")));
+
+        task.batchConsume();
+
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 11L);
+        verify(consumer, never()).commitSync();
+        verify(consumer, never()).commitSync(org.mockito.ArgumentMatchers.anyMap());
+    }
+
+    @Test
+    void doSubscribeWarnsOnceWhenAutoCommitEnabled() throws Exception {
+        KafkaMessageService realService = new KafkaMessageService();
+        KafkaMessageService spyService = org.mockito.Mockito.spy(realService);
+        spyService.config = new KafkaClientConfig();
+        spyService.config.setBootstrapServers("localhost:9092");
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setEnableAutoCommit(true);
+        spyService.setDefaultConsumerConfig(consumerConfig);
+
+        Consumer<String, String> mockConsumer = mock(Consumer.class);
+        org.mockito.Mockito.doReturn(mockConsumer).when(spyService).createConsumer(
+                org.mockito.ArgumentMatchers.any(java.util.Properties.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class));
+        org.mockito.Mockito.doNothing().when(spyService).warnIfAutoCommit();
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("test-group");
+        io.nop.api.core.message.IMessageSubscription subscription = spyService.doSubscribe(
+                new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, options));
+        try {
+            org.mockito.Mockito.verify(spyService).warnIfAutoCommit();
+        } finally {
+            subscription.cancel();
         }
     }
 

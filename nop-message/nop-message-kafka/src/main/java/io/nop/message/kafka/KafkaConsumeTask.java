@@ -306,6 +306,32 @@ public class KafkaConsumeTask {
      * {@link TopicMessage} list, invokes {@link IMessageConsumer#onMessageBatch}, then
      * dispatches per-record return semantics (mirrors PulsarConsumeTask.batchConsume).
      */
+    /**
+     * Batch consume path (WI11 boundary semantics).
+     *
+     * <p><strong>Commit boundary (F-07).</strong> Commits are partition-converged to the
+     * highest finalized record per partition ({@code offset+1}) — a no-arg commitSync would
+     * also commit partitions whose records were never dispatched (at-most-once loss).
+     * Partitions whose convergence boundary falls short of the batch tail are seeked back
+     * to the first un-dispatched offset so the records are re-polled in-process instead of
+     * waiting for a rebalance.
+     *
+     * <p><strong>ConsumeLater (F-08).</strong> A deferring response is a batch endpoint:
+     * dispatch stops there, the deferring record is re-seeked and nothing is committed.
+     * This eliminates the dispatch/reply of records after the break point (they would be
+     * re-delivered anyway). Records replied BEFORE the break point may still be re-delivered
+     * and re-replied after a restart or rebalance — the unavoidable at-least-once residue.
+     * Invariant: ConsumeLater ⇒ nothing in the batch is committed.
+     *
+     * <p><strong>Failure rewind (F-06).</strong> An exception rewinds each affected
+     * partition to its first not-finalized record of this batch (progress pointer), so the
+     * batch is re-polled instead of silently skipped. A null response list from the handler
+     * is treated as a full-batch failure and retried (mirrors the Pulsar batch negativeAck).
+     *
+     * <p>A PartialCommit response keeps its WI6 prefix-commit semantics. If the boundary
+     * commitSync itself throws, the failure falls into the rewind path below (already
+     * committed records may be re-delivered — safe, never lost).
+     */
     void batchConsume() throws Exception {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(pollTimeoutMs));
         if (records == null || records.isEmpty()) {
@@ -322,64 +348,112 @@ public class KafkaConsumeTask {
         }
 
         IMessageConsumer consumerFn = config.getConsumer();
-        ConsumeContext context = newConsumeContext();
-        boolean anyConsumeLater = false;
+        ConsumeContext ctx = newConsumeContext();
+        int progress = 0;
         try {
-            List<Object> responses = consumerFn.onMessageBatch(list, context);
-            Map<TopicPartition, Long> partialCommitOffsets = null;
+            List<Object> responses = consumerFn.onMessageBatch(list, ctx);
+            if (responses == null) {
+                throw new IllegalStateException("onMessageBatch returned null");
+            }
+            Map<TopicPartition, Long> committedBoundaries = new HashMap<>();
             for (int i = 0; i < responses.size() && i < recordList.size(); i++) {
+                progress = i;
                 Object response = FutureHelper.getResult(responses.get(i));
                 ConsumerRecord<String, String> record = recordList.get(i);
                 if (response instanceof PartialCommit) {
-                    // D5(b-prime): commit boundary — records [0..k-1] only. For each
-                    // partition, commit "next offset to read" = last committed + 1; the
-                    // record carrying the signal and everything after stays uncommitted.
-                    int k = ((PartialCommit) response).getCommittedCount();
-                    partialCommitOffsets = new HashMap<>();
-                    for (int j = 0; j < k && j < recordList.size(); j++) {
-                        ConsumerRecord<String, String> committed = recordList.get(j);
-                        partialCommitOffsets.merge(new TopicPartition(committed.topic(), committed.partition()),
-                                committed.offset() + 1, Math::max);
-                    }
-                    // commitSync(Map) expects "next offset to read" per partition.
-                    break;
+                    // WI6 prefix-commit semantics: records [0..k-1] only, then stop.
+                    commitConverged(boundariesAfter(committedBoundaries, recordList, i));
+                    return;
                 } else if (response instanceof TerminateConsume) {
-                    // D5(b-prime): acknowledged, no redelivery, no reply.
                     LOG.warn("nop.message.kafka.terminate-consume:topic={},offset={},reason={}",
                             record.topic(), record.offset(), ((TerminateConsume) response).getReason());
                 } else if (response instanceof ConsumeLater) {
-                    anyConsumeLater = true;
-                    consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
+                    // F-08 batch endpoint: nothing after this record is dispatched, nothing
+                    // in the batch is committed; re-seek so the deferring record redelivers.
+                    anyConsumeLaterSeek(record);
+                    return;
                 } else if (response instanceof Acknowledge) {
-                    context.send(service.getAckTopic(record.topic()),
+                    ctx.send(service.getAckTopic(record.topic()),
                             ((Acknowledge) response).getReplyMessage());
                 } else if (response != null) {
-                    context.send(service.getAckTopic(record.topic()), response);
+                    ctx.send(service.getAckTopic(record.topic()), response);
                 }
+                committedBoundaries.merge(new TopicPartition(record.topic(), record.partition()),
+                        record.offset() + 1, Math::max);
             }
-            context.commit();
-            if (partialCommitOffsets != null) {
-                Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> toCommit =
-                        new HashMap<>();
-                for (Map.Entry<TopicPartition, Long> entry : partialCommitOffsets.entrySet()) {
-                    toCommit.put(entry.getKey(),
-                            new org.apache.kafka.clients.consumer.OffsetAndMetadata(entry.getValue()));
-                }
-                consumer.commitSync(toCommit);
-                return;
-            }
+            ctx.commit();
+            commitConverged(committedBoundaries);
+            rewindUndispatched(recordList, committedBoundaries);
         } catch (Exception e) {
-            LOG.error("nop.err.message.kafka.batch-consume-fail", e);
-            context.rollback();
+            rewindFrom(recordList, progress);
+            try {
+                ctx.rollback();
+            } catch (Exception rollbackError) {
+                e.addSuppressed(rollbackError);
+            }
             throw e;
         }
+    }
 
-        if (!anyConsumeLater) {
-            try {
-                consumer.commitSync();
-            } catch (Exception e) {
-                LOG.error("nop.err.message.kafka.commit-fail", e);
+    private void anyConsumeLaterSeek(ConsumerRecord<String, String> record) {
+        consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
+    }
+
+    private Map<TopicPartition, Long> boundariesAfter(Map<TopicPartition, Long> boundaries,
+                                                      List<ConsumerRecord<String, String>> recordList,
+                                                      int upto) {
+        Map<TopicPartition, Long> result = new HashMap<>(boundaries);
+        for (int j = 0; j < upto && j < recordList.size(); j++) {
+            ConsumerRecord<String, String> record = recordList.get(j);
+            result.merge(new TopicPartition(record.topic(), record.partition()),
+                    record.offset() + 1, Math::max);
+        }
+        return result;
+    }
+
+    private void commitConverged(Map<TopicPartition, Long> boundaries) throws Exception {
+        if (boundaries.isEmpty()) {
+            return;
+        }
+        Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata> toCommit =
+                new HashMap<>();
+        for (Map.Entry<TopicPartition, Long> entry : boundaries.entrySet()) {
+            toCommit.put(entry.getKey(),
+                    new org.apache.kafka.clients.consumer.OffsetAndMetadata(entry.getValue()));
+        }
+        // Commit failure => not committed => redelivery; safe to surface as an exception
+        // (the success-path call site treats it via the rewind catch).
+        consumer.commitSync(toCommit);
+    }
+
+    /** Seeks partitions whose convergence boundary is short of the batch tail (F-07). */
+    private void rewindUndispatched(List<ConsumerRecord<String, String>> recordList,
+                                    Map<TopicPartition, Long> boundaries) {
+        Map<TopicPartition, Long> firstUndispatched = new HashMap<>();
+        for (ConsumerRecord<String, String> record : recordList) {
+            TopicPartition tp = new TopicPartition(record.topic(), record.partition());
+            // A record is un-dispatched when no boundary covers it (its partition had no
+            // finalized record) or it sits at/after the committed next-offset.
+            Long boundary = boundaries.get(tp);
+            if (boundary == null || record.offset() >= boundary) {
+                firstUndispatched.merge(tp, record.offset(), Math::min);
             }
+        }
+        for (Map.Entry<TopicPartition, Long> entry : firstUndispatched.entrySet()) {
+            consumer.seek(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /** Rewinds partitions to the first not-finalized record from the given progress (F-06). */
+    private void rewindFrom(List<ConsumerRecord<String, String>> recordList, int progress) {
+        Map<TopicPartition, Long> firstIncomplete = new HashMap<>();
+        for (int i = progress; i < recordList.size(); i++) {
+            ConsumerRecord<String, String> record = recordList.get(i);
+            firstIncomplete.merge(new TopicPartition(record.topic(), record.partition()),
+                    record.offset(), Math::min);
+        }
+        for (Map.Entry<TopicPartition, Long> entry : firstIncomplete.entrySet()) {
+            consumer.seek(entry.getKey(), entry.getValue());
         }
     }
 
