@@ -290,7 +290,7 @@ public class KafkaConsumeTask {
                 }
                 context.commit();
                 // WI16: success resets the consecutive-failure counter for this location.
-                failureAttempts.remove(record.topic() + "-" + record.partition() + "@"
+                failureAttempts.remove(record.topic() + "-" + record.partition() + "@" // invariant-ok: nop-message/18-wi18-gate-rules.md (intentional counting key; WI16)
                         + record.offset());
             } catch (Exception e) {
                 LOG.error("nop.err.message.kafka.consume-record-fail:topic={},offset={}",

@@ -156,8 +156,8 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI15 MessageSendOptions 字段接线: `done`（deps WI4；Item Type Fix；对应 MSG-F-45 与 MSG-F-39；完成判定 `sendTimeout` 接入两后端发送路径并有超时测试；`cancelToken` 接入发送前检查与中断，或按 `RpcMessageSender` 已有语义对齐两后端；不得保留既不消费也不拒绝的字段）
 - WI16 消费失败回调与终止拒绝信号: `done`（deps WI3；Item Type Decision；对应 MSG-F-20；完成判定 按 D6 与 D5 的 b-prime 裁定新增带 topic 与 message 与 attempt 与 throwable 的失败回调，并以终止拒绝信号替换 `onException` 的空表达能力；默认实现按 error-handling.md 留证要求记录完整上下文 WARN；判定为 SPI 签名变更故须 plan-first）
 - WI17 max.poll.interval.ms 与 poll 语义修正: `done`（deps WI4；Item Type Fix；对应 MSG-F-10 与 MSG-F-11；完成判定 `max.poll.interval.ms` 可配置且与 `max.poll.records` 和处理耗时自洽；`batchReceiveTimeout` 不再直连为 `poll` 时长或该语义被显式声明；新增慢 handler 不触发踢出的测试）
-- WI18 静默违约门禁化: `todo`（deps WI6；Item Type Feature；对应 MSG-F-01 与 MSG-F-03 与 MSG-F-46 与 MSG-F-53；完成判定 扩展 `ai-dev/tools/check-silent-wrong-result.mjs` 新增 message-options 规则族与 warn-once 规则族，沿用既有 baseline 与 invariant-ok 裁决协议；接入 `.github/workflows/` 既有 compliance 或 maven 工作流并登记到 `ai-dev/tools/package.json`；提供正反双向 self-test；实测能捕获 MSG-F-01 与 MSG-F-03 与 MSG-F-53 三类形态）
-- ★ **里程碑：M2 无静默违约**（解锁条件 WI6 至 WI18 全部 done）：`todo`
+- WI18 静默违约门禁化: `done`（deps WI6；Item Type Feature；对应 MSG-F-01 与 MSG-F-03 与 MSG-F-46 与 MSG-F-53；完成判定 扩展 `ai-dev/tools/check-silent-wrong-result.mjs` 新增 message-options 规则族与 warn-once 规则族，沿用既有 baseline 与 invariant-ok 裁决协议；接入 `.github/workflows/` 既有 compliance 或 maven 工作流并登记到 `ai-dev/tools/package.json`；提供正反双向 self-test；实测能捕获 MSG-F-01 与 MSG-F-03 与 MSG-F-53 三类形态）
+- ★ **里程碑：M2 无静默违约**（解锁条件 WI6 至 WI18 全部 done）：`done`
 
 ### Phase C — 生命周期与可靠性
 
