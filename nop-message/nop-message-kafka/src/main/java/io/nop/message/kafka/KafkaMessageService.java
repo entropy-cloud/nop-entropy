@@ -281,11 +281,19 @@ public class KafkaMessageService implements IMessageService {
             throw error(ERR_GROUP_ID_NOT_CONFIGURED,
                     "KafkaConsumerConfig.groupId / MessageSubscribeOptions.subscribeName is not configured");
         }
+        // Validated before any consumer is constructed: the typed rejection must reach the
+        // subscribe caller on this thread, and creating a consumer first would leak its
+        // network threads on the error path (MSG-F-02 seek facet, WI7).
+        if (options != null && options.getSeekToMessage() != null) {
+            throw error(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED,
+                    "seekToMessage is not supported by the Kafka backend");
+        }
 
-        KafkaConsumer<String, String> kConsumer = new KafkaConsumer<>(
+        Consumer<String, String> kConsumer = createConsumer(
                 buildConsumerProps(groupId), new StringDeserializer(), new StringDeserializer());
         java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
-        kConsumer.subscribe(topics);
+        KafkaConsumeTask task = newTask(kConsumer, subConfig);
+        kConsumer.subscribe(topics, task.rebalanceListener());
 
         long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
                 ? options.getBatchReceiveTimeout() : 1000L;
@@ -295,13 +303,25 @@ public class KafkaMessageService implements IMessageService {
             t.setDaemon(true);
             return t;
         });
-        KafkaConsumeTask task = new KafkaConsumeTask(this, executor, kConsumer, subConfig,
-                KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS, pollTimeout);
+        task.bindExecutor(executor, pollTimeout);
         task.start();
 
         KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
         subscriptions.add(subscription);
         return subscription;
+    }
+
+    /** Task factory: kept separate so doSubscribe can register the rebalance listener before start. */
+    private KafkaConsumeTask newTask(Consumer<String, String> consumer, MessageSubscriptionConfig subConfig) {
+        return new KafkaConsumeTask(this, consumer, subConfig,
+                KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+    }
+
+    /** Injection seam for tests: lets a test subclass supply a mock/fake consumer. */
+    protected Consumer<String, String> createConsumer(Properties props,
+                                                      StringDeserializer keyDeserializer,
+                                                      StringDeserializer valueDeserializer) {
+        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
     }
 
     String resolveGroupId(MessageSubscribeOptions options) {

@@ -14,6 +14,7 @@ import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
+import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.SeekMode;
 import io.nop.api.core.message.PartialCommit;
 import io.nop.api.core.message.TerminateConsume;
@@ -30,9 +31,12 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
@@ -44,13 +48,15 @@ import java.util.concurrent.ExecutorService;
  * semantics (null → commit, CompletionStage → await, ConsumeLater → seek no-commit,
  * Acknowledge → ack-topic reply + commit, other non-null → reply + commit).
  *
- * <p><strong>Seek policy (not a stub).</strong> Unlike {@code PulsarConsumeTask.seekToPosition}
- * (which is a TODO stub), this task honors {@link SeekMode} by mapping it to
- * {@link Consumer#seekToBeginning} / {@link Consumer#seekToEnd} /
- * {@link Consumer#seek(TopicPartition, long)} on every partition of the subscribed
- * topic, executed once before the poll loop starts. {@code seekToMessage} (offset-by-id)
- * is not supported and throws {@code ERR_KAFKA_SEEK_NOT_SUPPORTED} rather than being
- * silently skipped (plan guide #24 — no silent skip).
+ * <p><strong>Seek policy (adjudication D3).</strong> Seek origins are resolved inside the
+ * consumer group's rebalance callback ({@code onPartitionsAssigned}) for the freshly
+ * assigned partitions — never before the poll loop, where the assignment is always empty
+ * (MSG-F-01). INIT_SEEK modes apply only when the group has no committed offset for the
+ * partition (first-ever consumption; a restart resumes from the committed offset), and
+ * ALWAYS_SEEK_TO_END re-applies on every assignment. {@code seekToMessage} (offset-by-id)
+ * is not supported and is rejected synchronously at subscribe time with
+ * {@code ERR_KAFKA_SEEK_NOT_SUPPORTED} — the rejection reaches the caller instead of being
+ * swallowed by the consume thread (MSG-F-02 seek facet).
  */
 public class KafkaConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(KafkaConsumeTask.class);
@@ -59,19 +65,25 @@ public class KafkaConsumeTask {
     private static final long DEFAULT_POLL_TIMEOUT_MS = 1000L;
 
     private final KafkaMessageService service;
-    private final ExecutorService executor;
+    private ExecutorService executor;
     final Consumer<String, String> consumer;
     private final MessageSubscriptionConfig config;
     private final long consumeErrorBackoffMs;
-    private final long pollTimeoutMs;
+    private long pollTimeoutMs;
 
     private volatile boolean active = false;
+    // Rebalance listener runs only on the poll thread; plain boolean suffices.
+    private boolean seekToTimeApplied = false;
 
-    public KafkaConsumeTask(KafkaMessageService service, ExecutorService executor,
-                            Consumer<String, String> consumer,
-                            MessageSubscriptionConfig config) {
-        this(service, executor, consumer, config,
-                DEFAULT_CONSUME_ERROR_BACKOFF_MS, DEFAULT_POLL_TIMEOUT_MS);
+
+    /** WI7: created before the executor exists; bindExecutor completes the wiring. */
+    KafkaConsumeTask(KafkaMessageService service, Consumer<String, String> consumer,
+                     MessageSubscriptionConfig config, long consumeErrorBackoffMs) {
+        this.service = service;
+        this.consumer = consumer;
+        this.config = config;
+        this.consumeErrorBackoffMs = consumeErrorBackoffMs;
+        this.pollTimeoutMs = DEFAULT_POLL_TIMEOUT_MS;
     }
 
     public KafkaConsumeTask(KafkaMessageService service, ExecutorService executor,
@@ -86,67 +98,87 @@ public class KafkaConsumeTask {
         this.pollTimeoutMs = pollTimeoutMs;
     }
 
-    public void start() {
-        active = true;
-        executor.execute(() -> {
-            try {
-                seekToPosition();
-            } catch (Exception e) {
-                LOG.error("nop.err.message.kafka.seek-fail", e);
-                active = false;
-                return;
-            }
-            runTask();
-        });
+    /**
+     * Binds the consume executor and poll timeout when the task is constructed before the
+     * executor exists (WI7: the task is created ahead of {@code consumer.subscribe} so the
+     * rebalance listener can be registered with the subscription).
+     */
+    void bindExecutor(ExecutorService executor, long pollTimeoutMs) {
+        this.executor = executor;
+        this.pollTimeoutMs = pollTimeoutMs;
     }
 
     /**
-     * Honors {@link SeekMode} (NOT a stub). Called once before the poll loop begins, on
-     * the consume thread. Maps each {@link SeekMode} to the corresponding
-     * {@link Consumer} seek call on every assigned partition.
+     * The consumer-group rebalance listener backing the subscription (WI7/D3): seek origins
+     * are resolved per assignment. {@code onPartitionsRevoked} is intentionally empty —
+     * offsets are committed synchronously after every processed batch, so there is nothing
+     * to do on revocation; it is declared explicitly rather than left as a silent stub.
      */
-    void seekToPosition() {
-        io.nop.api.core.message.MessageSubscribeOptions options = config.getOptions();
-        if (options == null) {
-            return;
-        }
-
-        // seekToMessage (offset-by-message-id) is unsupported regardless of mode; fail
-        // loud rather than silently skip (plan guide #24). Checked before the mode
-        // early-return so DEFAULT mode still rejects it.
-        if (options.getSeekToMessage() != null) {
-            throw service.error(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED,
-                    "seekToMessage is not supported by the Kafka backend");
-        }
-
-        SeekMode mode = options.getSeekMode();
-        if (mode == null || mode == SeekMode.DEFAULT) {
-            // seekToTime without an explicit mode still applies.
-            if (options.getSeekToTime() > 0) {
-                seekByTime(options.getSeekToTime());
+    org.apache.kafka.clients.consumer.ConsumerRebalanceListener rebalanceListener() {
+        return new org.apache.kafka.clients.consumer.ConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+                // Intentional no-op: commits already happened after each processed batch.
             }
+
+            @Override
+            public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                KafkaConsumeTask.this.onPartitionsAssigned(partitions);
+            }
+        };
+    }
+
+    public void start() {
+        active = true;
+        executor.execute(this::runTask);
+    }
+
+    /** Test seam: drives the poll loop on the caller thread (WI7 poll-first assertions). */
+    void runTaskForTest() {
+        active = true;
+        runTask();
+    }
+
+    /**
+     * D3 seek-origin resolution, invoked from the consumer group's rebalance callback for
+     * the freshly assigned partitions. Runs on the poll (consume executor) thread only.
+     *
+     * <p>Gate: INIT_SEEK modes apply only when the consumer group has no committed offset
+     * for the partition — a restart must resume from the committed position, not rewind
+     * the whole log. ALWAYS_SEEK_TO_END re-applies on every assignment. seekToTime applies
+     * once per task instance (replaying it on every rebalance would repeatedly rewind to
+     * the same timestamp). A seek failure propagates out of {@code poll()} into the
+     * consume loop's backoff handling, and the next assignment retries it.
+     */
+    void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        if (partitions == null || partitions.isEmpty()) {
             return;
         }
+        io.nop.api.core.message.MessageSubscribeOptions options = config.getOptions();
 
-        Collection<TopicPartition> partitions = consumer.assignment();
-        switch (mode) {
-            case INIT_SEEK_TO_BEGIN:
-                consumer.seekToBeginning(partitions);
-                break;
-            case INIT_SEEK_TO_END:
-                consumer.seekToEnd(partitions);
-                break;
-            case ALWAYS_SEEK_TO_END:
-                consumer.seekToEnd(partitions);
-                break;
-            default:
-                // Future SeekMode values: warn once per JVM, never per poll loop (F-53).
-                io.nop.api.core.message.MessageOptionsValidator.warnOnce("kafka", "seekMode",
-                        "unsupported seek mode " + mode);
-                break;
+        SeekMode mode = options == null ? null : options.getSeekMode();
+        if (mode == SeekMode.ALWAYS_SEEK_TO_END) {
+            consumer.seekToEnd(partitions);
+        } else if (mode == SeekMode.INIT_SEEK_TO_BEGIN || mode == SeekMode.INIT_SEEK_TO_END) {
+            // D3 gate: only partitions the group has NEVER committed — a restart resumes
+            // from the committed offset instead of rewinding the whole log.
+            Set<TopicPartition> uncommitted = new HashSet<>();
+            for (TopicPartition tp : partitions) {
+                if (consumer.committed(Collections.singleton(tp)).get(tp) == null) {
+                    uncommitted.add(tp);
+                }
+            }
+            if (!uncommitted.isEmpty()) {
+                if (mode == SeekMode.INIT_SEEK_TO_BEGIN) {
+                    consumer.seekToBeginning(uncommitted);
+                } else {
+                    consumer.seekToEnd(uncommitted);
+                }
+            }
         }
 
-        if (options.getSeekToTime() > 0) {
+        if (options != null && options.getSeekToTime() > 0 && !seekToTimeApplied) {
+            seekToTimeApplied = true;
             seekByTime(options.getSeekToTime());
         }
     }

@@ -145,7 +145,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase B — 静默违约清零（P0）
 
 - WI6 能力声明机制与选项校验器: `done`（deps WI3 WI4；Item Type Feature；完成判定 按 D1 新增 `MessageCapability` 与 `IMessageService.getCapabilities`，门禁为挂在每个 `subscribe` 与 `sendAsync` 入口的 `MessageOptionsValidator` 而非空集默认；按 D2 落信封契约；按 D5 的 b-prime 落终止拒绝与部分提交信号；覆盖全部 11 个主源码实现的编译与回归）
-- WI7 Kafka seek 起点解析与失败可达调用方: `todo`（deps WI4；Item Type Fix；对应 MSG-F-01 与 MSG-F-02；完成判定 按 D3 裁定以 rebalance listener 逐次重解析起点，且 `seekToMessage` 拒绝必须到达 `subscribe` 调用方；`seekToMessage` 拒绝必须到达 `subscribe` 调用方而非被消费线程吞掉；删除或重写 `TestKafkaConsumeTask.seekToBeginHonoredNotStubbed`，改为非 mock 或 poll-first 断言）
+- WI7 Kafka seek 起点解析与失败可达调用方: `done`（deps WI4；Item Type Fix；对应 MSG-F-01 与 MSG-F-02；完成判定 按 D3 裁定以 rebalance listener 逐次重解析起点，且 `seekToMessage` 拒绝必须到达 `subscribe` 调用方；`seekToMessage` 拒绝必须到达 `subscribe` 调用方而非被消费线程吞掉；删除或重写 `TestKafkaConsumeTask.seekToBeginHonoredNotStubbed`，改为非 mock 或 poll-first 断言）
 - WI8 Pulsar seek 实现或类型化拒绝: `todo`（deps WI3 WI4；Item Type Fix；对应 MSG-F-03；完成判定 空方法体与 TODO 消除，按 D3 裁定实现 `SeekMode` 映射或对不支持字段抛 `PulsarErrors` 类型化错误码；两种形态均须有断言该行为的测试）
 - WI9 Pulsar 请求-响应通道修复: `todo`（deps WI4；Item Type Fix；对应 MSG-F-04；完成判定 ack topic 派生不再对全名 topic 做前缀拼接；新增覆盖 Acknowledge 与非 null reply 的端到端用例，断言 reply 落到合法 topic 且消费者可收到；同步修复 `getAckTopic` 默认实现的 javadoc 契约）
 - WI10 Pulsar 异常传播修复: `todo`（deps WI4；Item Type Fix；对应 MSG-F-05；完成判定 `consume` 与 `batchConsume` 的 catch 改为 rethrow 或走统一失败回调，使 `runTask` 的退避与 `onException` 对消息级失败可达；新增断言 handler 抛错时退避与失败回调均被触发的测试）

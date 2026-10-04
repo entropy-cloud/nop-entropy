@@ -18,6 +18,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -208,37 +209,184 @@ class TestKafkaConsumeTask {
         verify(consumer).commitSync(Collections.singletonMap(new TopicPartition("test-topic", 0), nextOffset));
     }
 
-    @Test
-    void seekToBeginHonoredNotStubbed() {
-        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
-        MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
-        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
-                config(msgConsumer, options), 100L, 100L);
+    // ------------------------------------------------------------------
+    // WI7/D3: seek origins resolved in the rebalance callback (MSG-F-01 fix).
+    // Main assertions use kafka-clients' own MockConsumer driven through a real
+    // poll() (rebalance inside poll triggers the listener) — no Mockito mocks.
+    // ------------------------------------------------------------------
 
-        Set<TopicPartition> assignment = new LinkedHashSet<>();
-        assignment.add(new TopicPartition("test-topic", 0));
-        when(consumer.assignment()).thenReturn(assignment);
-        doNothing().when(consumer).seekToBeginning(any());
+    private org.apache.kafka.clients.consumer.MockConsumer<String, String> newMockConsumer() {
+        return new org.apache.kafka.clients.consumer.MockConsumer<>(
+                org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST);
+    }
 
-        task.seekToPosition();
-
-        verify(consumer).seekToBeginning(assignment);
+    private KafkaConsumeTask taskOn(org.apache.kafka.clients.consumer.MockConsumer<String, String> mc,
+                                    MessageSubscribeOptions options) {
+        KafkaConsumeTask task = new KafkaConsumeTask(service, mc,
+                config((t, m, c) -> null, options), 100L);
+        // Wire the D3 rebalance listener the same way doSubscribe does.
+        mc.subscribe(Collections.singletonList("test-topic"), task.rebalanceListener());
+        return task;
     }
 
     @Test
-    void seekToMessageThrowsNotSilentlySkipped() {
+    void pollFirst_initSeekToBeginAppliesWhenNoCommittedOffset() throws Exception {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc = newMockConsumer();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        KafkaConsumeTask task = taskOn(mc, options);
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(new TopicPartition("test-topic", 0))));
+        mc.updateBeginningOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 7L));
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // second poll task wakes the loop
+        }
+
+        assertEquals(7L, mc.position(new TopicPartition("test-topic", 0)),
+                "INIT_SEEK_TO_BEGIN with no committed offset must rewind to the beginning offset");
+    }
+
+    @Test
+    void pollFirst_initSeekSkippedWhenCommittedOffsetExists() throws Exception {
+        // MockConsumer has no committed() setter: subclass overrides committed(Set) to
+        // simulate an existing group commit — the restart-resumes-from-committed contract.
+        // LATEST reset: a correct (gated) implementation leaves the position at the end
+        // offset; a buggy (ungated) one would rewind it to the beginning offset.
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc =
+                new org.apache.kafka.clients.consumer.MockConsumer<String, String>(
+                        org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST) {
+                    @Override
+                    public synchronized Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>
+                            committed(Set<TopicPartition> partitions) {
+                        return partitions.stream().collect(java.util.stream.Collectors.toMap(
+                                tp -> tp, tp -> new org.apache.kafka.clients.consumer.OffsetAndMetadata(42L)));
+                    }
+                };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        KafkaConsumeTask task = taskOn(mc, options);
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(new TopicPartition("test-topic", 0))));
+        mc.updateBeginningOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 7L));
+        mc.updateEndOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 100L));
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // wakeup ends the loop
+        }
+
+        // No rewind to the beginning offset (7): the group's committed offset (42) wins
+        // on restart, so INIT_SEEK must not apply (MockConsumer resolves the ungated
+        // default position to the end offset 100).
+        assertEquals(100L, mc.position(new TopicPartition("test-topic", 0)),
+                "INIT_SEEK must not rewind a partition that already has a committed offset");
+    }
+
+    @Test
+    void pollFirst_alwaysSeekToEndReappliesOnEveryAssignment() throws Exception {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc = newMockConsumer();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.ALWAYS_SEEK_TO_END);
+        KafkaConsumeTask task = taskOn(mc, options);
+        TopicPartition tp = new TopicPartition("test-topic", 0);
+        mc.updateEndOffsets(Collections.singletonMap(tp, 100L));
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(tp)));
+        mc.schedulePollTask(() -> {
+            // Simulate a second assignment (rebalance): shrink then grow again.
+            mc.rebalance(Collections.emptyList());
+            mc.rebalance(Collections.singletonList(tp));
+        });
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // wakeup ends the loop
+        }
+
+        assertEquals(100L, mc.position(tp),
+                "ALWAYS_SEEK_TO_END must re-apply seekToEnd on every assignment");
+    }
+
+    @Test
+    void listenerWiredThroughSubscribeCall() {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc =
+                org.mockito.Mockito.mock(org.apache.kafka.clients.consumer.MockConsumer.class);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+
+        class TestService extends KafkaMessageService {
+            @Override
+            protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                              StringDeserializer keyDeserializer,
+                                                              StringDeserializer valueDeserializer) {
+                return mc;
+            }
+        }
+        TestService testService = new TestService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions subOptions = new MessageSubscribeOptions();
+        subOptions.setSubscribeName("test-group");
+        subOptions.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        testService.doSubscribe(new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, subOptions));
+
+        org.mockito.ArgumentCaptor<org.apache.kafka.clients.consumer.ConsumerRebalanceListener> captor =
+                org.mockito.ArgumentCaptor.forClass(org.apache.kafka.clients.consumer.ConsumerRebalanceListener.class);
+        org.mockito.Mockito.verify(mc).subscribe(org.mockito.Mockito.anyCollection(), captor.capture());
+        org.junit.jupiter.api.Assertions.assertNotNull(captor.getValue(),
+                "doSubscribe must register the D3 rebalance listener with the subscription");
+    }
+
+    @Test
+    void seekToMessageRejectedSynchronouslyAtSubscribe() {
+        TestSeekService testService = new TestSeekService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("test-group");
+        options.setSeekToMessage("some-msg-id");
+
+        NopException e = assertThrows(NopException.class,
+                () -> testService.doSubscribe(new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, options)));
+        assertEquals(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    void seekToTimeAppliesOnlyOnFirstAssignment() {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSeekMode(SeekMode.DEFAULT);
-        options.setSeekToMessage("some-msg-id");
-        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
-                config(msgConsumer, options), 100L, 100L);
+        options.setSeekToTime(1234567890L);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, consumer,
+                config(msgConsumer, options), 100L);
+        Set<TopicPartition> parts = Collections.singleton(new TopicPartition("test-topic", 0));
+        when(consumer.assignment()).thenReturn(parts);
+        when(consumer.offsetsForTimes(org.mockito.ArgumentMatchers.<Map<TopicPartition, Long>>any()))
+                .thenReturn(Collections.emptyMap());
 
-        NopException real = new NopException(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED);
-        when(service.error(any(), any())).thenReturn(real);
+        task.onPartitionsAssigned(parts);
+        task.onPartitionsAssigned(parts);
 
-        assertThrows(NopException.class, task::seekToPosition);
+        // seekToTime replays would repeatedly rewind to the same timestamp: first
+        // assignment only (adjudication note in the WI7 plan).
+        verify(consumer, org.mockito.Mockito.times(1)).offsetsForTimes(
+                org.mockito.ArgumentMatchers.<Map<TopicPartition, Long>>any());
+    }
+
+    /** Service stub that skips real consumer creation for subscribe-path validation tests. */
+    static class TestSeekService extends KafkaMessageService {
+        @Override
+        protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                          StringDeserializer keyDeserializer,
+                                                          StringDeserializer valueDeserializer) {
+            throw new IllegalStateException("consumer must not be constructed: seekToMessage is validated earlier");
+        }
     }
 
     @Test
@@ -246,7 +394,7 @@ class TestKafkaConsumeTask {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
-                config(msgConsumer, options));
+                config(msgConsumer, options), 100L, 100L);
 
         when(consumer.assignment()).thenReturn(Collections.emptySet());
         when(consumer.poll(any(Duration.class))).thenReturn(ConsumerRecords.empty());
