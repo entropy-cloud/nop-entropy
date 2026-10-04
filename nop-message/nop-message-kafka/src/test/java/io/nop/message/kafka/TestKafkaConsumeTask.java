@@ -105,7 +105,7 @@ class TestKafkaConsumeTask {
 
     @Test
     void consumeLaterSeeksAndSkipsCommit() throws Exception {
-        IMessageConsumer msgConsumer = (topic, message, context) -> new ConsumeLater(1000L);
+        IMessageConsumer msgConsumer = (topic, message, context) -> new ConsumeLater(5L);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
                 config(msgConsumer, options), 100L, 100L);
@@ -444,7 +444,7 @@ class TestKafkaConsumeTask {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         when(msgConsumer.onMessageBatch(org.mockito.ArgumentMatchers.anyList(),
                 org.mockito.ArgumentMatchers.any())).thenReturn(new java.util.ArrayList<>(java.util.Arrays.asList(
-                null, new ConsumeLater(1000L), "late-reply")));
+                null, new ConsumeLater(5L), "late-reply")));
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         options.setBatchReceiveCount(10);
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
@@ -458,6 +458,70 @@ class TestKafkaConsumeTask {
         verify(consumer).seek(new TopicPartition("test-topic", 0), 11L);
         verify(consumer, never()).commitSync();
         verify(consumer, never()).commitSync(org.mockito.ArgumentMatchers.anyMap());
+    }
+
+    @Test
+    void consumeLaterDelayHonoredBeforeRedelivery() throws Exception {
+        // MSG-F-09 (WI12): the requested delay must elapse before the record is
+        // re-delivered — no immediate re-poll spin. Lower-bound assertion only (sleep
+        // guarantees at-least), CI-stable.
+        long delayMs = 200L;
+        java.util.List<Long> handledAt = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = (topic, message, context) -> {
+            handledAt.add(System.nanoTime());
+            return handledAt.size() == 1 ? new ConsumeLater(delayMs) : null;
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 100L, 50L);
+
+        ConsumerRecord<String, String> redelivered = record(0, 7, "deferred");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(redelivered)).thenReturn(
+                records(redelivered)).thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+        task.pollAndConsume();
+
+        org.junit.jupiter.api.Assertions.assertEquals(2, handledAt.size());
+        long gapMs = (handledAt.get(1) - handledAt.get(0)) / 1_000_000L;
+        org.junit.jupiter.api.Assertions.assertTrue(gapMs >= delayMs,
+                "redelivery must wait for the requested delay, gap=" + gapMs + "ms");
+    }
+
+    @Test
+    void batchConsumeLaterHonorsDelayBeforeReturn() throws Exception {
+        long delayMs = 150L;
+        java.util.List<Long> handledAt = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                handledAt.add(System.nanoTime());
+                return new java.util.ArrayList<>(java.util.Arrays.asList(
+                        null, new ConsumeLater(delayMs), "late-reply"));
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 100L, 50L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")));
+
+        long before = System.nanoTime();
+        task.batchConsume();
+        long after = System.nanoTime();
+
+        long elapsedMs = (after - before) / 1_000_000L;
+        org.junit.jupiter.api.Assertions.assertTrue(elapsedMs >= delayMs,
+                "batch ConsumeLater must honor the delay before returning, elapsed=" + elapsedMs + "ms");
     }
 
     @Test

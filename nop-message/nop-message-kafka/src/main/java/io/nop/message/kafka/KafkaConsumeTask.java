@@ -246,7 +246,6 @@ public class KafkaConsumeTask {
         }
 
         IMessageConsumer consumerFn = config.getConsumer();
-        boolean anyConsumeLater = false;
 
         for (ConsumerRecord<String, String> record : records) {
             ApiMessage apiMessage = KafkaHelper.buildApiMessage(record.topic(), record.partition(),
@@ -258,12 +257,15 @@ public class KafkaConsumeTask {
                 response = FutureHelper.getResult(response);
 
                 if (response instanceof ConsumeLater) {
-                    // Seek back to this record's offset so it is re-delivered; do NOT commit.
-                    anyConsumeLater = true;
+                    // MSG-F-09 (WI12): a deferring response is a batch endpoint, mirroring
+                    // the batch path (WI11). The partition commit boundary is monotonic —
+                    // committing "skip this record" is impossible, so records after the
+                    // deferral would be re-delivered anyway; dispatching them here only
+                    // duplicates side effects. Honor the requested delay (the loop sleeps
+                    // between polls) instead of re-polling immediately (CPU spin).
                     consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
-                    ConsumeLater later = (ConsumeLater) response;
-                    LOG.debug("nop.message.kafka.consume-later:topic={},offset={},delayMs={}",
-                            record.topic(), record.offset(), later.getDelay());
+                    deferAfterBatch(((ConsumeLater) response).getDelay());
+                    return;
                 } else if (response instanceof TerminateConsume) {
                     // D5(b-prime): poison message is acknowledged (committed), never
                     // redelivered, and never dispatched to the ack topic.
@@ -292,12 +294,37 @@ public class KafkaConsumeTask {
             }
         }
 
-        if (!anyConsumeLater) {
+        try {
+            consumer.commitSync();
+        } catch (Exception e) {
+            LOG.error("nop.err.message.kafka.commit-fail", e);
+        }
+    }
+
+    /**
+     * Sleeps for the caller-requested redelivery delay (MSG-F-09) so the deferring record
+     * is not re-polled immediately (100% CPU spin). Sliced at 500ms and responsive to
+     * thread interrupt: the cancel path's {@code shutdownNow()} interrupts the sleep, so
+     * a long delay does not delay cancellation — {@code wakeup()} alone does not interrupt
+     * {@code Thread.sleep}.
+     *
+     * <p>No cap: the caller's delay is honored as requested; capping/backoff policy belongs
+     * to WI22 and the {@code max.poll.interval.ms} configuration surface to WI17. If the
+     * delay exceeds the poll interval budget, the group kicks and rebalances (affecting all
+     * members) and the subsequent commit fails into the run loop's error handling — the
+     * redelivery can only ever be LATER than requested, never earlier.
+     */
+    private void deferAfterBatch(long delayMs) {
+        long remaining = Math.max(delayMs, 0L);
+        while (remaining > 0) {
+            long slice = Math.min(remaining, 500L);
             try {
-                consumer.commitSync();
-            } catch (Exception e) {
-                LOG.error("nop.err.message.kafka.commit-fail", e);
+                Thread.sleep(slice);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
             }
+            remaining -= slice;
         }
     }
 
@@ -371,6 +398,8 @@ public class KafkaConsumeTask {
                     // F-08 batch endpoint: nothing after this record is dispatched, nothing
                     // in the batch is committed; re-seek so the deferring record redelivers.
                     anyConsumeLaterSeek(record);
+                    // WI12: honor the delay (see deferAfterBatch) instead of spinning.
+                    deferAfterBatch(((ConsumeLater) response).getDelay());
                     return;
                 } else if (response instanceof Acknowledge) {
                     ctx.send(service.getAckTopic(record.topic()),
