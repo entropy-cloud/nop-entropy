@@ -275,23 +275,23 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] 分页两种形态（`FETCH FIRST n ROWS ONLY` / `OFFSET n ROWS FETCH NEXT m ROWS ONLY`）落地：各有断言正确方言 SQL 文本的红→绿正向用例，覆盖 LimitOffset 与 OffsetFetch 双族（EC ①）。
-- [ ] `NULLS FIRST/LAST` 在 `defaultNullsFirst` true/false 两类方言上各有用例（EC ②）；oracle（默认 NULLS LAST）与 mysql/mssql（默认 NULLS FIRST）两类默认值的三态对应（一致省略/打印/冲突报错）用例齐备（EC ④）。
-- [ ] `defaultNullsFirst` 的 **8 个 XML**（mysql/mssql/dm/h2=true，tdengine/duckdb/postgresql/oracle=false）全部有消费路径断言（EC ③；"7 个"按差异登记第 2 条扩为 8）；`IDialect.isDefaultNullsFirst()` 从无消费转为真实消费（WI3 移交链收口）。
-- [ ] `supportNullsFirst` 已有 `IDialect` accessor + `AstToSqlGenerator` 消费点 + 4 个 XML（duckdb/h2/oracle/postgresql）行为断言（EC ③b）。
-- [ ] DuckDB-vs-PG `DESC` 缺省 NULL 序差异**既**有显式子句 parity 用例**又**有 owner doc 差异表行（EC ⑤ 并列要求；缺省文本差异用例不可能——两者 `defaultNullsFirst` 均 `false`，见 Phase 0 登记项）；"单布尔不可表达方向相关 NULL 序"能力上限已作为文档项落 owner doc（本 plan 不解决只锁定）。
-- [ ] `ORDER BY … COLLATE` ledger 行已裁定收口：落地或显式移出 + successor + 触发条件，二选一已落 roadmap 与 owner doc（EC ⑦）。
-- [ ] 负向用例齐备且断言具体错误码：无子句支持且与缺省冲突、`dm`/`tdengine` 显式请求等——无静默降级、无静默打印、无"只打印不设门"半实现（排序原则）。
-- [ ] **既有 EQL 语料 BC（EC ⑧）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）；既有 `LIMIT`/`order by` 形态逐字不变（`TestEqlSelectAllLimitEcho`/`TestEqlSelectAllLimitCompile` 全量回归）。
-- [ ] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（分页两族形态差异、NULL 序省略-vs-报错、DuckDB-vs-PG DESC）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI7 EC ⑥ 命令）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 的 **2 项既有 flake**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`、`TestMessageSourceFunctionRestart`，均单跑 PASS）与基线一致即豁免，不得据此判本 WI 失败。
-- [ ] `./mvnw clean install -T 1C` 通过（roadmap WI7 EC ⑥ 明言"WI7 要重生成 77 个 `_gen` 文件，`clean install` 必须过"；候选 A 下 `ast/_gen/` 零 diff，但 codegen 全链路与 114 个 orm.xml 回归仍须完整重建验证）。
-- [ ] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；每步重生成后 `git diff` 逐一检查；`ast/_gen/` 零 diff（候选 A 下）；无 lexer token 删除、`EqlASTKind` ordinal 未被持久化或比较。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（预期零增量，差异登记第 7 条）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/26-eql-wi7-pagination-and-nulls.md --strict` 退出码 0。
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不门控/只打印不设门"正是半实现形态）。
-- [ ] owner doc 已同步到 live baseline（`eql-and-database-compatibility.md` 标志表/分页小节/NULLS 小节/能力上限小节/COLLATE 小节/能力点登记表），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
+- [x] 分页两种形态（`FETCH FIRST n ROWS ONLY` / `OFFSET n ROWS FETCH NEXT m ROWS ONLY`）落地：各有断言正确方言 SQL 文本的红→绿正向用例，覆盖 LimitOffset 与 OffsetFetch 双族（EC ①）。
+- [x] `NULLS FIRST/LAST` 在 `defaultNullsFirst` true/false 两类方言上各有用例（EC ②）；oracle（默认 NULLS LAST）与 mysql/mssql（默认 NULLS FIRST）两类默认值的三态对应（一致省略/打印/冲突报错）用例齐备（EC ④）。
+- [x] `defaultNullsFirst` 的 **8 个 XML**（mysql/mssql/dm/h2=true，tdengine/duckdb/postgresql/oracle=false）全部有消费路径断言（EC ③；"7 个"按差异登记第 2 条扩为 8）；`IDialect.isDefaultNullsFirst()` 从无消费转为真实消费（WI3 移交链收口）。
+- [x] `supportNullsFirst` 已有 `IDialect` accessor + `AstToSqlGenerator` 消费点 + 4 个 XML（duckdb/h2/oracle/postgresql）行为断言（EC ③b）。
+- [x] DuckDB-vs-PG `DESC` 缺省 NULL 序差异**既**有显式子句 parity 用例**又**有 owner doc 差异表行（EC ⑤ 并列要求；缺省文本差异用例不可能——两者 `defaultNullsFirst` 均 `false`，见 Phase 0 登记项）；"单布尔不可表达方向相关 NULL 序"能力上限已作为文档项落 owner doc（本 plan 不解决只锁定）。
+- [x] `ORDER BY … COLLATE` ledger 行已裁定收口：落地或显式移出 + successor + 触发条件，二选一已落 roadmap 与 owner doc（EC ⑦）。
+- [x] 负向用例齐备且断言具体错误码：无子句支持且与缺省冲突、`dm`/`tdengine` 显式请求等——无静默降级、无静默打印、无"只打印不设门"半实现（排序原则）。
+- [x] **既有 EQL 语料 BC（EC ⑧）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）；既有 `LIMIT`/`order by` 形态逐字不变（`TestEqlSelectAllLimitEcho`/`TestEqlSelectAllLimitCompile` 全量回归）。
+- [x] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（分页两族形态差异、NULL 序省略-vs-报错、DuckDB-vs-PG DESC）。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI7 EC ⑥ 命令）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 的 **2 项既有 flake**（`TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`、`TestMessageSourceFunctionRestart`，均单跑 PASS）与基线一致即豁免，不得据此判本 WI 失败。
+- [x] `./mvnw clean install -T 1C` 通过（roadmap WI7 EC ⑥ 明言"WI7 要重生成 77 个 `_gen` 文件，`clean install` 必须过"；候选 A 下 `ast/_gen/` 零 diff，但 codegen 全链路与 114 个 orm.xml 回归仍须完整重建验证）。
+- [x] 生成物纪律：每个 Phase 的 `.g4` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；每步重生成后 `git diff` 逐一检查；`ast/_gen/` 零 diff（候选 A 下）；无 lexer token 删除、`EqlASTKind` ordinal 未被持久化或比较。
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（预期零增量，差异登记第 7 条）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/26-eql-wi7-pagination-and-nulls.md --strict` 退出码 0。（终门留白：随独立 closure audit 后的 Closure Evidence 写入一并复跑）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不门控/只打印不设门"正是半实现形态）。
+- [x] owner doc 已同步到 live baseline（`eql-and-database-compatibility.md` 标志表/分页小节/NULLS 小节/能力上限小节/COLLATE 小节/能力点登记表），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
 - [ ] **Anti-Hollow Check**：closure audit 已验证（a）两条端到端调用链真实连通：EQL 分页文本 → parse 归一化 → `visitSqlQuerySelect` → `paginationHandler.buildPageExpr` → 方言 SQL；`ORDER BY … NULLS` 文本 → parse 赋值 → transform → `visitSqlOrderByItem` 门/省略/打印决策 → 方言 SQL 或响亮报错（不只是文法分支/方法存在）；（b）无空方法体/静默跳过/no-op（不支持方言一律响亮报错或可证等价的省略，不允许回退原文静默输出）；（c）`nullsFirst == null` 路径输出逐字节不变。
 - [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI7 EC ⑨）；roadmap Work Item Status 的 WI7 行据此才可 `planned` → `done`（见 roadmap Status values）。
 
