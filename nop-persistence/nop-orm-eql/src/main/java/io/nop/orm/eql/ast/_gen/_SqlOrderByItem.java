@@ -18,11 +18,7 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
     
     protected boolean asc;
     
-    protected java.lang.String collate;
-    
     protected io.nop.orm.eql.ast.SqlExpr expr;
-    
-    protected java.lang.Boolean nullsFirst;
     
 
     public _SqlOrderByItem(){
@@ -39,16 +35,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
         this.asc = value;
     }
     
-    public java.lang.String getCollate(){
-        return collate;
-    }
-
-    public void setCollate(java.lang.String value){
-        checkAllowChange();
-        
-        this.collate = value;
-    }
-    
     public io.nop.orm.eql.ast.SqlExpr getExpr(){
         return expr;
     }
@@ -58,16 +44,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
         if(value != null) value.setASTParent(this);
         
         this.expr = value;
-    }
-    
-    public java.lang.Boolean getNullsFirst(){
-        return nullsFirst;
-    }
-
-    public void setNullsFirst(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this.nullsFirst = value;
     }
     
 
@@ -97,19 +73,7 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                       
                 }
             
-                if(collate != null){
-                  
-                          ret.setCollate(collate);
-                      
-                }
-            
                 ret.setAsc(asc);
-            
-                if(nullsFirst != null){
-                  
-                          ret.setNullsFirst(nullsFirst);
-                      
-                }
             
        return ret;
     }
@@ -163,15 +127,7 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                return false;
             }
         
-                if(!isValueEquivalent(this.collate,other.getCollate())){
-                   return false;
-                }
-            
                 if(!isValueEquivalent(this.asc,other.getAsc())){
-                   return false;
-                }
-            
-                if(!isValueEquivalent(this.nullsFirst,other.getNullsFirst())){
                    return false;
                 }
             
@@ -191,19 +147,7 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                           
                     }
                 
-                    if(collate != null){
-                      
-                              json.put("collate", collate);
-                          
-                    }
-                
                    json.put("asc", asc);
-                
-                    if(nullsFirst != null){
-                      
-                              json.put("nullsFirst", nullsFirst);
-                          
-                    }
                 
     }
 

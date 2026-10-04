@@ -87,6 +87,8 @@ where o.roles._all.userId = 'x'
 
 **事务控制语句 `commit` / `rollback` 显式失败**。事务边界归属 `ITransactionTemplate` / 连接层，不属 EQL 编译器职责。编译这两条语句会抛 `nop.err.eql.not-support-transaction-statement`，错误信息指向正确 API。此前它们能解析但编译产物是**空字符串**且不报任何错误（静默无操作）。
 
+**ORDER BY 项上的 `NULLS FIRST/LAST` 与 `COLLATE` 不被支持**。EQL 的 `ORDER BY` 项只有「表达式 + asc/desc」，没有空序策略与排序规则修饰。空序策略请走 `QueryBean` / `OrderFieldBean.nullsFirst` 那条 bean 路径——它带方言门控（与数据库默认一致则省略子句、无法表达则 fail-fast）。注意 `CAST(x AS type COLLATE y)` 中的 `COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
+
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 
 语法层现接受 `TUMBLE(表名.时间列, INTERVAL <n> <单位>)` 作为 FROM 表源的一个变体（`sqlTumbleTableSource`，AST 类 `SqlTumbleTableSource`），固定单位 `SECOND`/`MINUTE`/`HOUR`/`DAY`/`WEEK`（`MICROSECOND` 仅整毫秒接受）。时间列以 bigint epoch-millis 承载。INTERVAL 字面量必须为正的固定时长——非字面量 / 非正数 / 日历单位（`MONTH`/`QUARTER`/`YEAR`）提取时长时 fail-fast（`nop.err.eql.invalid-interval-value`）。

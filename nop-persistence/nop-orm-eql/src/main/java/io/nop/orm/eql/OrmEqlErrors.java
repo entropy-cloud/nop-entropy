@@ -110,6 +110,18 @@ public interface OrmEqlErrors {
             define("nop.err.eql.not-support-transaction-statement",
                     "EQL不支持事务控制语句[{statementKind}]，请使用ITransactionTemplate或连接层API");
 
+    // Plan 2307 V6: WITH RECURSIVE 的 CTE 体为 UNION 时需要为 H2 生成 columns 段，
+    // 该段依赖左支 projection 的列名。若某个 projection 既无别名又无已解析的
+    // exprMeta，就无法确定列名——此前是无判空解引用，抛裸 NullPointerException。
+    // Plan 2307 V6: 顶层 SELECT / 投影查询路径上的投影类型与列元信息未解析时的显式失败，
+    // 取代原先的无条件强转（ClassCastException）与 Guard.notNull（无错误码）。
+    ErrorCode ERR_EQL_UNSUPPORTED_PROJECTION_TYPE = define("nop.err.eql.unsupported-projection-type",
+            "无法解析的投影类型[{astNode}]：投影既不是SqlExprProjection，其表达式也没有已解析的元信息");
+
+    ErrorCode ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED = define("nop.err.eql.cte-column-name-unresolved",
+            "递归CTE的列名无法确定：投影[{astNode}]既没有别名也没有已解析的表达式元信息。"
+                    + "请为递归CTE的每个投影显式指定别名");
+
     ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
             ARG_ENTITY_NAME);
 

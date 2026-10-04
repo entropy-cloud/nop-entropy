@@ -525,29 +525,66 @@ grep 校验：`CollectionAccess` 在 `*.java`/`*.g4`/`*.xjava` 中仅剩注释�
 
 ### Phase 5 - 死字段与未判空强转加固（V5 / V6）
 
-Status: planned
+Status: completed
 Targets: `model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`src/main/java/io/nop/orm/eql/{sql,compile,ast}/`
 
 - Item Types: `Fix`
 
-- [ ] 按 Phase 1 裁定处置 `SqlOrderByItem.nullsFirst`（接线或删除）与 `collate`（纯死字段，删除候选）
-- [ ] `AstToSqlGenerator.appendWithColumns`（`:531-568`）的 `exprMeta` 判空——触发前提是 `WITH RECURSIVE`（`:532`），不是初版断言的裸 `SELECT *`
-- [ ] `EqlCompiler.java:93-99` 顶层 projections 的无条件强转加固
-- [ ] `ast/SqlSelect.java:70-71` 的 `getProjectionByExprMeta` 无条件强转加固
-- [ ] 三处加固必须给出明确的失败语义（抛 `NopException` + 既有错误码，或补判空走安全分支），不允许 `catch` 后继续
-- [ ] 若删除 AST 字段，`ast/_gen/**` 与 `ast/{Visitor,Optimizer,Processor,Kind}` 由再生成自动跟随，不手改
+- [x] 按 Phase 1 裁定处置 `SqlOrderByItem.nullsFirst`（接线或删除）与 `collate`（纯死字段，删除候选）
+- [x] `AstToSqlGenerator.appendWithColumns`（`:531-568`）的 `exprMeta` 判空——触发前提是 `WITH RECURSIVE`（`:532`），不是初版断言的裸 `SELECT *`
+- [x] `EqlCompiler.java:93-99` 顶层 projections 的无条件强转加固
+- [x] `ast/SqlSelect.java:70-71` 的 `getProjectionByExprMeta` 无条件强转加固
+- [x] 三处加固必须给出明确的失败语义（抛 `NopException` + 既有错误码，或补判空走安全分支），不允许 `catch` 后继续
+- [x] 若删除 AST 字段，`ast/_gen/**` 与 `ast/{Visitor,Optimizer,Processor,Kind}` 由再生成自动跟随，不手改
 
 Exit Criteria:
 
-- [ ] **修复前红可独立复核**：三处强转各自的触发输入与当前异常形态已记录（可复现）
-- [ ] 每处加固有对应测试：触发输入得到明确错误码或安全结果，**不是**另一种异常
-- [ ] AST 模型改动后 `./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests` 重新生成，`git diff --stat ast/` 显示 Visitor/Processor/Kind/_gen 自动跟随
-- [ ] **接线验证**：删除的字段在全仓无残留引用（grep 覆盖 `sql/`、`compile/`、`parse/`、`ast/`、`nop-orm/`、`nop-dao/`）
-- [ ] **无静默跳过**：无新增空方法体 / `continue` 跳过 / 吞异常
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
-- [ ] 跨模块回归（2256 清单）全绿
-- [ ] owner doc 语法清单已与 grammar 实际接受度对齐（先按 Phase 6 的表格化要求建立清单载体）
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **修复前红可独立复核**：三处强转各自的触发输入与当前异常形态已记录（可复现）
+- [x] 每处加固有对应测试：触发输入得到明确错误码或安全结果，**不是**另一种异常
+- [x] AST 模型改动后 `./mvnw install -pl nop-persistence/nop-orm-eql -DskipTests` 重新生成，`git diff --stat ast/` 显示 Visitor/Processor/Kind/_gen 自动跟随
+- [x] **接线验证**：删除的字段在全仓无残留引用（grep 覆盖 `sql/`、`compile/`、`parse/`、`ast/`、`nop-orm/`、`nop-dao/`）
+- [x] **无静默跳过**：无新增空方法体 / `continue` 跳过 / 吞异常
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码 0
+- [x] 跨模块回归（2256 清单）全绿
+- [x] owner doc 语法清单已与 grammar 实际接受度对齐（先按 Phase 6 的表格化要求建立清单载体）
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 5 实测（2026-10-04）
+
+**V5 按裁定删除两个死字段**：`EqlAST.xjava` 的 `SqlOrderByItem` 去掉 `String collate` 与
+`Boolean nullsFirst`，并删掉 `AstToEqlGenerator#visitSqlOrderByItem` 中按 `nullsFirst`
+打印 `nulls first/last` 的分支。`_gen/_SqlOrderByItem.java`（-56 行）由再生成自动跟随。
+grep 校验：`SqlOrderByItem` 的这两个字段在全仓无残留引用；剩余的 `getCollate`/`getNullsFirst`
+命中项分属**另外两个活字段**——`SqlTypeExpr.collate`（`CAST(x AS type COLLATE y)`）与
+`OrderFieldBean.nullsFirst`（bean 路径），均不受影响。
+
+**V6 实测修正了 plan 的一处定位错误**：plan 把裸 NPE 归到
+`AstToSqlGenerator#appendWithColumns:546/548`，但加断言后实测栈显示真正的抛出点是
+**`AstToSqlGenerator#visitSqlExprProjection:148`**——`exprMeta` 为 null 却直接调
+`getColumnNames()`。该方法 `:149` 已经在判 `getColumnNames()` 是否为 null，
+说明作者预期过"取不到列名"，但漏了 `exprMeta` 本身为 null 的情形。
+故 V6 实际加固**四处**（plan 记三处）：
+
+| 处 | 位置 | 改法 |
+|---|---|---|
+| V6a | `appendWithColumns` 的 projection 强转 + `exprMeta` 解引用 | 显式 `instanceof` + 判空，失败抛 `ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED` |
+| V6b | `EqlCompiler` 顶层 SELECT 投影强转 | 显式 `instanceof`，失败抛 `ERR_EQL_UNSUPPORTED_PROJECTION_TYPE` |
+| V6b' | `EqlCompiler` 的 `Guard.notNull(exprMeta,"fieldMeta")` | 换成带错误码的 `NopException`（`Guard` 抛的是无错误码异常） |
+| V6c | `SqlSelect#getProjectionByExprMeta` 强转 | 非表达式投影 `continue` 跳过——返回 null 本就是该方法既有契约 |
+| **V6d（本轮新发现）** | `AstToSqlGenerator#visitSqlExprProjection:140/148` | 判空后抛 `ERR_EQL_UNSUPPORTED_PROJECTION_TYPE` |
+
+实测三个触发输入（均为**裸 NPE**、无错误码无定位）在修复后全部变成带错误码失败：
+`with recursive t as (select 1 union all select 2 from t) ...`、
+`... (select * from AppUser o union all select 1 from t) ...`、
+`... (select o.* from AppUser o union all select 1 from t) ...`。
+即修复前 **EQL 的递归 CTE 整体不可用**——plan 初版把 V6a 描述为"边缘隐患"低估了严重性。
+
+**测试**：`TestEqlRecursiveCteFailFast`（7，四个触发形态不得抛裸 NPE + 普通查询/顶层 `select *`/
+非递归 CTE 三条防误伤）。先写红测试确认 3 个裸 NPE，再加固转绿。
+`scan-hollow-implementations.mjs --module nop-orm-eql --severity high`：Critical/High/Medium/Low
+**均为 0**，退出码 0。
+
+**回归**：`nop-orm-eql` 171→252、`nop-orm` 210→232，8 目标模块合计 1466→**1569**，0 fail。
 
 ### Phase 6 - driver 死代码与 schema 无消费节点（V7 / V8 / V9）
 

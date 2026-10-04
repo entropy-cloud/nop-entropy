@@ -63,8 +63,10 @@ import java.util.Set;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_PROJECTION_TYPE;
 
 public class AstToSqlGenerator extends AstToEqlGenerator {
 
@@ -136,7 +138,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         SqlExpr expr = node.getExpr();
-        ISqlExprMeta exprMeta = expr.getResolvedExprMeta();
+        // Plan 2307 V6d: exprMeta 未解析时此处原先无判空即调 getColumnNames()，
+        // 抛裸 NullPointerException（无错误码、无定位）。实测触发路径：
+        //   with recursive t as (select 1 union all select 2 from t) select 1 from t
+        // 即 CTE 体内的投影没有 resolvedExprMeta。
+        // 下面 :149 已经在判 getColumnNames() 是否为 null，说明作者预期过"取不到列名"，
+        // 但漏了 exprMeta 本身为 null 的情形。改为带错误码的显式失败。
+        ISqlExprMeta exprMeta = expr != null ? expr.getResolvedExprMeta() : null;
+        if (exprMeta == null) {
+            throw new NopException(ERR_EQL_UNSUPPORTED_PROJECTION_TYPE)
+                    .source(node)
+                    .param(ARG_AST_NODE, String.valueOf(node.getASTKind()));
+        }
 
         SqlAlias alias = node.getAlias();
 
@@ -561,14 +574,30 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                     print(',');
                 }
 
+                // Plan 2307 V6: 投影类型与 exprMeta 都必须显式校验。
+                // 修复前两处是无条件强转 / 无判空解引用，实测
+                // `with recursive t as (select 1 union all select 2 from t) select 1 from t`
+                // 抛裸 NullPointerException（exprMeta 为 null 却直接调 getColumnNames()），
+                // 无错误码、无定位——EQL 的递归 CTE 因此整体不可用。
+                // 改为带错误码的显式失败，不 catch 后继续。
+                if (!(projection instanceof SqlExprProjection)) {
+                    throw new NopException(ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED)
+                            .source(projection)
+                            .param(ARG_AST_NODE, String.valueOf(projection.getASTKind()));
+                }
                 SqlExprProjection node = (SqlExprProjection) projection;
                 SqlExpr expr = node.getExpr();
-                ISqlExprMeta exprMeta = expr.getResolvedExprMeta();
+                ISqlExprMeta exprMeta = expr != null ? expr.getResolvedExprMeta() : null;
 
                 SqlAlias alias = node.getAlias();
                 if (alias != null) {
                     print(alias.getAlias());
                 } else {
+                    if (exprMeta == null) {
+                        throw new NopException(ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED)
+                                .source(node)
+                                .param(ARG_AST_NODE, String.valueOf(node.getASTKind()));
+                    }
                     List<String> colNames = exprMeta.getColumnNames();
                     for (int i = 0, n = exprMeta.getColumnCount(); i < n; i++) {
                         if (i != 0) {

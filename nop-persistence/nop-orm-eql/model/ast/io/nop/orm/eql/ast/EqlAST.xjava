@@ -232,9 +232,21 @@ class EqlAST {
     class SqlOrderByItem {
         @PropMeta(mandatory = true)
         SqlExpr expr;
-        String collate;
         boolean asc;
-        Boolean nullsFirst;
+
+        // Plan 2307 V5: 原先此处有 `String collate;` 与 `Boolean nullsFirst;`，一并移除。
+        //
+        // collate：EQL 侧两个输出器都不打印它，且除生成代码外全仓零 setter —— 纯死字段。
+        //   注意与 SqlTypeExpr.collate（`CAST(x AS type COLLATE y)`，活语法）区分，两者无关。
+        // nullsFirst：AstToEqlGenerator 会打印 `nulls first/last`，但 EQL grammar 没有
+        //   NULLS FIRST/LAST 入口，除生成代码外全仓零 setter —— 悬挂字段。
+        //
+        // 两者都选择删除而非接线：接线属"新增 EQL 表达能力"（本计划 Non-Goal），
+        // 且空序策略的方言门控实现已存在于 bean 路径
+        // （OrderFieldBean.nullsFirst -> SQL.SqlBuilder.nullsFirst，
+        //   nop-metadata 的 AggregationHelper 已做「与方言默认一致则省略、无法表达则 fail-fast」），
+        // 在 EQL 侧另建一套会产生第二个未门控的并行实现。
+        // 详见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.6。
     }
 
     class SqlLimit {

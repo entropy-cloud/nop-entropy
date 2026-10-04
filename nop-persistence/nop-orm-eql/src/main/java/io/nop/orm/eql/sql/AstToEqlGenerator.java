@@ -607,13 +607,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         } else {
             print(" desc ");
         }
-        if (node.getNullsFirst() != null) {
-            if (node.getNullsFirst()) {
-                print(" nulls first ");
-            } else {
-                print(" nulls last ");
-            }
-        }
+        // Plan 2307 V5: 原先此处会按 nullsFirst 打印 `nulls first/last`，
+        // 但 EQL grammar 没有 NULLS FIRST/LAST 入口，该字段除生成代码外零写入点，
+        // 属悬挂字段，已从 AST 模型移除。空序策略的方言门控实现位于 bean 路径
+        // （OrderFieldBean.nullsFirst），不在 EQL 侧重复实现。
     }
 
     @Override

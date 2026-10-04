@@ -8,7 +8,6 @@
 package io.nop.orm.eql.compile;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.impl.BaseDataFieldMeta;
@@ -35,9 +34,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_SQL;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTIPLE_STATEMENT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_PROJECTION_TYPE;
 
 public class EqlCompiler implements ISqlCompiler {
 
@@ -108,11 +109,27 @@ public class EqlCompiler implements ISqlCompiler {
             List<ISqlExprMeta> fieldMetas = new ArrayList<>(projections.size());
             List<BaseDataFieldMeta> fields = new ArrayList<>(projections.size());
             for (SqlProjection proj : projections) {
+                // Plan 2307 V6: 顶层 SELECT 的投影此前是无条件强转。实测常规路径
+                // （select * / owner.* / union）都会先被展开为 SqlExprProjection，
+                // 故该分支当前不可达；但作为公开编译入口，无条件强转一旦遇到未展开的
+                // 投影就会抛 ClassCastException（无错误码）。改为带错误码的显式失败。
+                if (!(proj instanceof SqlExprProjection)) {
+                    throw new NopException(ERR_EQL_UNSUPPORTED_PROJECTION_TYPE)
+                            .source(proj)
+                            .param(ARG_AST_NODE, String.valueOf(proj.getASTKind()));
+                }
                 SqlExprProjection exprProj = (SqlExprProjection) proj;
                 String fieldName = EqlHelper.getFieldName(exprProj);
 
-                ISqlExprMeta exprMeta = exprProj.getExpr().getResolvedExprMeta();
-                Guard.notNull(exprMeta, "fieldMeta");
+                ISqlExprMeta exprMeta = exprProj.getExpr() != null
+                        ? exprProj.getExpr().getResolvedExprMeta() : null;
+                if (exprMeta == null) {
+                    // Guard.notNull 抛的是无错误码的 IllegalStateException/CCE，
+                    // 这里换成带错误码的显式失败，便于上层定位到具体投影。
+                    throw new NopException(ERR_EQL_UNSUPPORTED_PROJECTION_TYPE)
+                            .source(exprProj)
+                            .param(ARG_AST_NODE, String.valueOf(exprProj.getASTKind()));
+                }
                 fieldMetas.add(exprMeta);
 
                 BaseDataFieldMeta field = getBaseDataFieldMeta(exprMeta, fieldName);
