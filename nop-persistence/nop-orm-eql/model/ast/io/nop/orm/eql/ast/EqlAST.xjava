@@ -550,19 +550,18 @@ class EqlAST {
         String collate;
     }
 
-    class SqlCollectionAccessExpr extends SqlExpr {
-        @PropMeta(mandatory = true)
-        SqlColumnName collection;
-
-        SqlExpr where;
-
-        SqlOrderBy orderBy;
-
-        String collFuncName;
-
-        List<SqlExpr> collFuncArgs;
-    }
-
+    // Plan 2307 V3: SqlCollectionAccessExpr 已移除（无输出器、无语义分析，永不可能产出
+    // 正确 SQL；聚合量词语义也无法降级映射到 _some/_all 的存在性量词）。
+    // 见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.6。
+    //
+    // Plan 2307 V4: SqlTransactionStatement / SqlCommit / SqlRollback **保留**，
+    // 但语义定为「显式失败」而非删除：EqlCompiler 对其 fail-fast（错误码
+    // nop.err.eql.not-support-transaction-statement），AstToEqlGenerator 输出对应关键字
+    // 使 EQL 通道 round-trip 无损。之所以不改用删除，是因为 xgen 的 list 规则按
+    // 「备选分支的最小公共父类」推导元素类型——删掉唯一的非 DML 分支后
+    // sqlStatements_ 的元素类型会从 SqlStatement 收窄为 SqlDmlStatement，
+    // 迫使 SqlProgram.statements 的公开签名变更并波及 nop-metadata。
+    // 详见 ai-dev/plans/2307-eql-live-defect-and-dead-surface-remediation.md Phase 4。
     abstract class SqlTransactionStatement extends SqlStatement {
 
     }

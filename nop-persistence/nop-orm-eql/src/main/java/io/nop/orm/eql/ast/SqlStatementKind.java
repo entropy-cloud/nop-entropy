@@ -8,5 +8,7 @@
 package io.nop.orm.eql.ast;
 
 public enum SqlStatementKind {
+    // Plan 2307 V4: COMMIT / ROLLBACK 保留在枚举中，但 EqlCompiler 对其 fail-fast
+    // （nop.err.eql.not-support-transaction-statement），不再是「编译出空字符串」的静默无操作。
     SELECT, INSERT, UPDATE, DELETE, DDL, COMMIT, ROLLBACK,
 }

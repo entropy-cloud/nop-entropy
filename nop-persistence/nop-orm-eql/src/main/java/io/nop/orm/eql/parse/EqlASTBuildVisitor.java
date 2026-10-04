@@ -468,9 +468,4 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         }
         return super.visitSqlWindowFrame(ctx);
     }
-
-    @Override
-    public String SqlCollectionAccessExpr_collFuncName(ParseTree node) {
-        return text(node).toLowerCase(Locale.ROOT);
-    }
 }

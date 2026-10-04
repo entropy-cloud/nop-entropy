@@ -82,8 +82,16 @@ EQL 的语法与 AST 存在一条硬约束：**一个语法构造要么有一条
 | 构造 | 移除理由 |
 |------|---------|
 | 集合聚合访问 `coll[where].func(args)` | 无输出器、无语义分析，永不可能产出正确 SQL；其语义是**聚合量词**（`count`/`sum`），与集合算子 `_some`/`_all` 的**存在性量词**不等价，降级映射会改变查询语义。集合上的存在性判断用 `_some`/`_all`，聚合值应下推到 SQL 表达式或子查询 |
-| 事务语句 `commit` / `rollback` | 事务边界不属 EQL→SQL 编译器职责（见 §3.5）。此前它们能解析但编译产物为空字符串，且不引发任何错误 |
 | ORDER BY 项上的 `NULLS FIRST/LAST` 与 `COLLATE` | EQL 侧无语法入口，字段悬挂。空序策略的**方言门控实现已存在**于 bean 路径（`OrderFieldBean.nullsFirst` → `SQL.SqlBuilder.nullsFirst`，并在 `nop-metadata` 的聚合查询中按方言判定省略或 fail-fast）；在 EQL 侧另建一套会产生第二个未门控的并行实现 |
+
+事务控制语句 `commit` / `rollback` 同样**不被支持**，但采用「显式失败」而非删除的终态：
+编译期抛 `nop.err.eql.not-support-transaction-statement`（错误信息指向 `ITransactionTemplate`），
+EQL 通道的 `toSqlString()` 输出对应关键字使 round-trip 无损。
+之所以不用删除，是因为 xgen 的 list 规则按「备选分支的最小公共父类」推导元素类型——
+`sqlStatements_` 的元素类型来自 `sqlStatement` 的备选分支，删掉唯一的非 DML 分支后
+它会从 `SqlStatement` 收窄为 `SqlDmlStatement`，迫使 `SqlProgram.statements` 的公开签名变更
+并波及 `nop-metadata` 的两个消费方。保留 AST 节点 + 显式失败，可在不触碰公开签名的前提下
+消除原先「编译产物为空字符串且不报错」的静默无操作。
 
 `cross` / `lateral` / `tumble` / `range` / `window` 等字面量**可**作标识符（登记为非保留字），
 这与主流 SQL 方言一致；`cross` 同时出现在 MySQL 方言的 `<reservedKeywords>` 中，二者不冲突。
@@ -110,7 +118,7 @@ EQL 的语法与 AST 存在一条硬约束：**一个语法构造要么有一条
 | XA / 2PC | 现代分布式数据库不提供；跨数据源按 best-effort 顺序提交，并在提交失败时回滚处理 |
 | Criteria API | EQL + `QueryBean`/`FilterBeans` 已覆盖动态查询场景；Criteria 会引入第二套查询抽象 |
 | 集合聚合访问语法 `coll[where].func(args)` | 无输出器、无语义分析，永不可能产出正确 SQL（见 §3.6）。需要集合聚合时应下推到 SQL 表达式或子查询，而不是在 EQL 层引入一套无输出路径的语法 |
-| EQL 层事务语句 `commit`/`rollback` | 事务边界归属 `ITransactionTemplate` / 连接层（见 §3.5）；EQL 编译器输出裸 `COMMIT` 不携带任何事务语义，且当前 DAO 层并不消费它 |
+| EQL 层事务语句 `commit`/`rollback` | 事务边界归属 `ITransactionTemplate` / 连接层（见 §3.5）；EQL 编译器输出裸 `COMMIT` 不携带任何事务语义，且当前 DAO 层并不消费它。终态取「显式失败」而非删除，理由见 §3.6 |
 | EQL 层 `NULLS FIRST/LAST`、`COLLATE` on ORDER BY | 空序策略的方言门控实现已在 bean 路径（见 §3.6）；EQL 侧另建一套会产生第二个未门控实现。`COLLATE` 在 CAST 类型修饰（`SqlTypeExpr.collate`）上仍是活语法，仅 ORDER BY 项上的悬挂字段被移除 |
 
 ---

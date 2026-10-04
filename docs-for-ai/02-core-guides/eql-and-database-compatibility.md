@@ -68,6 +68,25 @@ where (c.TENANT_ID = ?) and (s.TENANT_ID = ?)
 
 **已知边界**：`from a cross join b on <cond>`（给 CROSS JOIN 写 `on`）被解释为「a 的别名是 `cross` + 带 `on` 的普通 join」，而非 CROSS JOIN。`CROSS JOIN ... ON ...` 本就不是标准 SQL 写法。链式 `a cross join b cross join c` 产出 `a cross join b join c`（末尾的无条件 `JOIN` 语义等价于 CROSS JOIN），不是逐字round-trip。
 
+#### 不被支持的写法（2026-10-04，plan 2307 V3 / V4）
+
+EQL 的语法与 AST 有一条硬约束：**一个构造要么能被打印成正确的目标 SQL，要么必须在解析期被拒绝**。不允许"能解析、但不输出关键字 / 输出畸形标识符 / 编译产物为空"这种中间态——它把错误从编译期推迟到执行期，且往往以"看起来跑通了"的形态出现。
+
+**集合聚合访问 `coll[where orderBy].func(args)` 已从语法中移除**。该构造无输出器、无语义分析，解析成功后会被打印成 `where collx > 1 > 2`（`[...]`、`.func()` 与主节点全部丢失）。它的语义是**聚合量词**（`count`/`sum`），与集合算子 `_some`/`_all` 的**存在性量词**不等价，因此不能降级映射——`count(coll) > 2` 与 `exists(coll)` 语义不同。现在该写法是**解析错误**。
+
+需要集合上的存在性判断时用 `_some` / `_all`：
+
+```
+// 存在至少一个满足条件的成员
+where o.roles._some.userId = 'x'
+// 存在全部成员都满足条件（NOT EXISTS 反例）
+where o.roles._all.userId = 'x'
+```
+
+需要聚合值时，把聚合下推到 SQL 表达式或子查询，不要指望 `coll[...].count()`。
+
+**事务控制语句 `commit` / `rollback` 显式失败**。事务边界归属 `ITransactionTemplate` / 连接层，不属 EQL 编译器职责。编译这两条语句会抛 `nop.err.eql.not-support-transaction-statement`，错误信息指向正确 API。此前它们能解析但编译产物是**空字符串**且不报任何错误（静默无操作）。
+
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 
 语法层现接受 `TUMBLE(表名.时间列, INTERVAL <n> <单位>)` 作为 FROM 表源的一个变体（`sqlTumbleTableSource`，AST 类 `SqlTumbleTableSource`），固定单位 `SECOND`/`MINUTE`/`HOUR`/`DAY`/`WEEK`（`MICROSECOND` 仅整毫秒接受）。时间列以 bigint epoch-millis 承载。INTERVAL 字面量必须为正的固定时长——非字面量 / 非正数 / 日历单位（`MONTH`/`QUARTER`/`YEAR`）提取时长时 fail-fast（`nop.err.eql.invalid-interval-value`）。

@@ -28,6 +28,7 @@ import io.nop.orm.eql.ast.SqlCaseExpr;
 import io.nop.orm.eql.ast.SqlCaseWhenItem;
 import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlCommit;
 import io.nop.orm.eql.ast.SqlCompareWithQueryExpr;
 import io.nop.orm.eql.ast.SqlCteStatement;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
@@ -60,6 +61,7 @@ import io.nop.orm.eql.ast.SqlPartitionBy;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlQualifiedName;
 import io.nop.orm.eql.ast.SqlQuerySelect;
+import io.nop.orm.eql.ast.SqlRollback;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
@@ -399,6 +401,25 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlQuerySelect(SqlQuerySelect node) {
         printSelect(node);
+    }
+
+    /**
+     * Plan 2307 V4：事务控制语句的 EQL round-trip。
+     *
+     * <p>此前两个输出器都没有 commit/rollback 的 override，落到 Visitor 默认分支，
+     * 于是 {@code toEql=[]}——<strong>空字符串</strong>，节点被静默吞掉。
+     * 编译通道已由 {@code EqlCompiler} 对其 fail-fast（事务边界不属 EQL 编译器职责），
+     * 但 {@code toSqlString()} 旁路仍会被调用来调试/打印 AST，
+     * 因此这里补上关键字输出，使 round-trip 无损、不再出现空产物。
+     */
+    @Override
+    public void visitSqlCommit(SqlCommit node) {
+        print("commit");
+    }
+
+    @Override
+    public void visitSqlRollback(SqlRollback node) {
+        print("rollback");
     }
 
     @Override

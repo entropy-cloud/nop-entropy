@@ -192,13 +192,13 @@ sqlExpr_simple
 //    | matchExpression
     | sqlCaseExpr
     | sqlIntervalExpr
-    | sqlCollectionAccessExpr
     ;
 
-sqlCollectionAccessExpr
-    : collection=sqlColumnName '[' where=sqlExpr? (ORDER BY orderBy=sqlOrderBy)? ']'
-      DOT_ collFuncName=sqlIdentifier_ LP_ collFuncArgs=functionArgs_? RP_
-    ;
+// Plan 2307 V3: sqlCollectionAccessExpr（`coll[where orderBy].func(args)` 集合聚合访问）
+// 已从语法中移除。该构造无输出器、无语义分析，永远无法产出正确 SQL——解析成功后打印为
+// `collx > 1 > 2`（`[...]`、`.func()` 与主节点全部丢失）。且其语义是聚合量词，
+// 与集合算子 `_some`/`_all` 的存在性量词不等价，降级映射会改变查询语义。
+// 裁定与理由见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.6。
 
 sqlUnaryExpr:
     operator=(PLUS_ | MINUS_ | TILDE_ | NOT_) expr=sqlExpr_simple;

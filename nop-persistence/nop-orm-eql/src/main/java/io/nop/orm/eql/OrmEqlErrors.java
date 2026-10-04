@@ -104,6 +104,12 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION = define("nop.err.eql.cross-join-not-allow-condition",
             "cross join不能指定连接条件");
 
+    // Plan 2307 V4: 事务控制语句在 EQL 中显式失败。此前 commit/rollback 能解析但编译产物
+    // 是空字符串且不引发任何错误（静默无操作）。事务边界归属 ITransactionTemplate / 连接层。
+    ErrorCode ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT =
+            define("nop.err.eql.not-support-transaction-statement",
+                    "EQL不支持事务控制语句[{statementKind}]，请使用ITransactionTemplate或连接层API");
+
     ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
             ARG_ENTITY_NAME);
 

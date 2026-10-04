@@ -242,7 +242,7 @@ Exit Criteria:
 | 编号 | 裁定 | 终态 | 关键判据（实测/grep） |
 |---|---|---|---|
 | V3 `sqlCollectionAccessExpr` | **删除 grammar 规则 + AST 节点** | 语法解析失败 | 编译通道**已经**是响亮失败（见下），且永不可能产出正确 SQL |
-| V4 `SqlCommit`/`SqlRollback` | **删除 grammar + AST 节点 + 枚举值** | 语法解析失败 | 事务控制不属 EQL→SQL 编译器职责 |
+| V4 `SqlCommit`/`SqlRollback` | **显式失败**（Phase 4 依实测证据修订，原裁定为「删除」） | 编译期抛 `nop.err.eql.not-support-transaction-statement`；`toSqlString()` 输出关键字使 round-trip 无损 | 事务控制不属 EQL→SQL 编译器职责；删除会触发公开签名收窄 |
 | V5 `SqlOrderByItem.nullsFirst` | **从 AST 模型删除** | 字段消失 | 接线 = 新增 EQL 表达能力 = Non-Goal；bean 路径已有成熟方言门控实现 |
 | V5 `SqlOrderByItem.collate` | **从 AST 模型删除** | 字段消失 | 零 setter、零 getter（`SqlTypeExpr.collate` 是另一个活字段，不受影响） |
 | V8 `<upsertHandler>` | **删除 schema 节点** | 节点消失 | 零消费方 + 零方言 xml 配置 + 全仓无对应功能 |
@@ -297,7 +297,7 @@ Phase 6 要求的「顺带审计 4 个兄弟 class-name 节点」结论如下—
 | 裁定 | 落地 Phase | 具体动作 |
 |---|---|---|
 | V3 删除 | Phase 4 | 删 `BaseRule.g4:195` 的备选与 `:198-201` 的规则；删 `EqlAST.xjava:553-563` 的 `SqlCollectionAccessExpr`；重生成 |
-| V4 删除 | Phase 4 | 删 `Eql.g4:28-30` 的备选与 `:53-61` 的规则；删 `EqlAST.xjava` 的 `SqlTransactionStatement`/`SqlCommit`/`SqlRollback`；删 `SqlStatementKind` 的 `COMMIT`/`ROLLBACK` |
+| V4 显式失败 | Phase 4 | `EqlCompiler.compile` 在 transform 前判 `instanceof SqlTransactionStatement` 抛新错误码；`AstToEqlGenerator` 补 `visitSqlCommit`/`visitSqlRollback` 输出关键字；`EqlASTBuildVisitor` 删除失效的 `SqlCollectionAccessExpr_collFuncName` override |
 | V5 删除 | Phase 5 | 删 `EqlAST.xjava:235,237` 两字段；删 `AstToEqlGenerator:589-595` 的 `nullsFirst` 打印分支；重生成 |
 | V8 删除 | Phase 6 | 删 `dialect.xdef:32`；重生成 `_DialectModel`；同步 14 份 `_dump/**/dialect.xdef` 与 2 份 `reflect-config.json` |
 | V8b 接线 | Phase 6 | `DialectImpl:88` 改为读 `dialectModel.getSqlExceptionTranslator()`，缺省回落 `DialectSQLExceptionTranslator` |
@@ -457,24 +457,71 @@ Exit Criteria:
 
 ### Phase 4 - 无输出 / 畸形输出语句收敛（V3 / V4）
 
-Status: planned
+Status: completed
 Targets: 按 Phase 1 裁定，可能涉及 `model/antlr/*.g4`、`model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`src/main/java/io/nop/orm/eql/{compile,sql}/`
 
 - Item Types: `Fix`
 
-- [ ] 按 Phase 1 裁定处置 `sqlCollectionAccessExpr`（实现降级或删除语法 + AST 节点）
-- [ ] 按 Phase 1 裁定处置 `SqlCommit` / `SqlRollback`，含 `statementKind` 连带处理
-- [ ] 处置后 `git status` 中不得残留 `EqlASTKind` 枚举值与实际节点类不一致的情况
+- [x] 按 Phase 1 裁定处置 `sqlCollectionAccessExpr`（实现降级或删除语法 + AST 节点）
+- [x] 按 Phase 1 裁定处置 `SqlCommit` / `SqlRollback`，含 `statementKind` 连带处理
+- [x] 处置后 `git status` 中不得残留 `EqlASTKind` 枚举值与实际节点类不一致的情况
 
 Exit Criteria:
 
-- [ ] **修复前红可独立复核**：基线失败形态已记录（当前 `where coll[x > 1].count() > 2` → `where collx > 1 > 2`；`commit` → 空产物）
-- [ ] 若裁定为实现：新增测试断言输出 SQL 语义正确，且 Phase 1 的映射表描述的映射关系被测试覆盖
-- [ ] 若裁定为删除：新增语法可达性测试断言这些语法现在**解析失败**（复用 `parse/TestEqlTumbleGrammarParse.java` 的 grammar 可达性测试范式）
-- [ ] **无静默跳过**：删除路径下无残留 printer 默认分支吞掉节点；`EqlASTKind` 与节点类、Visitor 方法三者一致（grep 可验证）
-- [ ] `EqlASTNode.toSqlString()` 旁路未被误伤（复用 Phase 0 固化的基线测试）
-- [ ] 跨模块回归（2256 清单）全绿
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **修复前红可独立复核**：基线失败形态已记录（当前 `where coll[x > 1].count() > 2` → `where collx > 1 > 2`；`commit` → 空产物）
+- [x] 若裁定为实现：新增测试断言输出 SQL 语义正确，且 Phase 1 的映射表描述的映射关系被测试覆盖
+- [x] 若裁定为删除：新增语法可达性测试断言这些语法现在**解析失败**（复用 `parse/TestEqlTumbleGrammarParse.java` 的 grammar 可达性测试范式）
+- [x] **无静默跳过**：删除路径下无残留 printer 默认分支吞掉节点；`EqlASTKind` 与节点类、Visitor 方法三者一致（grep 可验证）
+- [x] `EqlASTNode.toSqlString()` 旁路未被误伤（复用 Phase 0 固化的基线测试）
+- [x] 跨模块回归（2256 清单）全绿
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 4 实测与 V4 裁定修订（2026-10-04）
+
+**V3 按裁定删除**（改法与 Phase 1 一致，无偏差）：
+删 `BaseRule.g4` 中 `sqlExpr_simple` 的 `| sqlCollectionAccessExpr` 备选与规则本体、
+删 `EqlAST.xjava` 的 `SqlCollectionAccessExpr`、删手写的 `SqlCollectionAccessExpr.java`
+（`_gen/_SqlCollectionAccessExpr.java` 等再生产物由再生成自动清除）。
+Phase 1 补记的实测结论在此得到验证：删除前该写法在编译通道**已经**是带错误码的
+`unknown-column-name`（`[...]` 内容被当列名解析），静默损坏只发生在 `toSqlString()` 旁路；
+删除后两个通道都变成干净的解析错误。
+
+**V4 裁定由「删除」修订为「显式失败」——附实测理由**：
+
+按原裁定删除 grammar 备选后**编译失败**，报错为
+`_EqlASTBuildVisitor.java:991: List<SqlDmlStatement> 无法转换为 List<SqlStatement>`。
+根因：xgen 的 list 规则按**备选分支的最小公共父类**推导元素类型——
+`sqlStatements_` 的元素类型取自 `sqlStatement` 的备选分支，原为
+`sqlDmlStatement | sqlTransactionStatement` → `SqlStatement`；
+删掉唯一的非 DML 分支后收窄为 `SqlDmlStatement`，而 `SqlProgram.statements` 声明为
+`List<SqlStatement>`，泛型不变性导致赋值失败。
+
+两条可选出路各有明确代价：
+- 收窄 `SqlProgram.statements` 为 `List<SqlDmlStatement>` ⇒ **变更公开 API 返回类型**，
+  并需改 `nop-metadata-service` 的 `SqlSelectFieldExtractor:79` 与
+  `SqlColumnLineageExtractor:135`（把本计划范围扩大到 nop-metadata）；
+- 保留一个不可匹配的 grammar 分支以凑出 LUB ⇒ 制造死语法（违反本计划自身目标）。
+
+故取 plan Goals 允许的第三种终态「显式失败」：AST 节点与 grammar 全部保留，
+在 `EqlCompiler.compile` 的 transform **之前**判 `instanceof SqlTransactionStatement` 抛
+`ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT`（错误信息指向 `ITransactionTemplate`）。
+这同样消除了「编译产物为空字符串且不报错」的静默无操作，且**不动任何公开签名**。
+修订已同步回 Phase 1 裁定表、映射表与 design 文档 §3.5/§3.6/§四。
+
+**顺带修掉的空产物路径**：`AstToEqlGenerator` 原先没有 `visitSqlCommit`/`visitSqlRollback`，
+落到 Visitor 默认分支被静默吞掉（`toEql=[]`）。补上两个 override 输出关键字后，
+`toSqlString()` 旁路的 round-trip 无损——编译通道已 fail-fast，但该旁路仍会被用于
+调试/打印 AST，不能留空产物。
+
+**再生成一致性**：`git diff --stat` 显示 `ast/{EqlASTKind,EqlASTVisitor,EqlASTProcessor,EqlASTOptimizer}.java`、
+`ast/_gen/_SqlCollectionAccessExpr.java`、`parse/antlr/*` 全部自动跟随模型变化，**零手改生成物**。
+grep 校验：`CollectionAccess` 在 `*.java`/`*.g4`/`*.xjava` 中仅剩注释与测试方法名，无存活代码引用；
+`EqlASTKind` 的 66 个条目**全部**有对应节点类（`in Kind but no class: none`）。
+`EqlASTBuildVisitor` 中失效的 `SqlCollectionAccessExpr_collFuncName` override 已手工删除
+（它是手维护文件，不随 grammar 自动清理，编译会报「不会覆盖或实现超类型中的方法」）。
+
+**测试**：`TestEqlRemovedGrammarUnreachable`（16，V3 删除可达性 + V4 round-trip 非空 + 防误伤）、
+`TestEqlTransactionStatementFailsFast`（10，V4 编译期错误码 + 错误信息指向 + 普通 DML 不受影响）。
 
 ### Phase 5 - 死字段与未判空强转加固（V5 / V6）
 

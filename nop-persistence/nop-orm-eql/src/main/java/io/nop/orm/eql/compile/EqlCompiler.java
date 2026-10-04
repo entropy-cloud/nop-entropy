@@ -22,6 +22,7 @@ import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlSelect;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlStatement;
+import io.nop.orm.eql.ast.SqlTransactionStatement;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.parse.EqlASTParser;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 
 import static io.nop.orm.eql.OrmEqlErrors.ARG_SQL;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_MULTIPLE_STATEMENT;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT;
 
 public class EqlCompiler implements ISqlCompiler {
 
@@ -46,6 +48,19 @@ public class EqlCompiler implements ISqlCompiler {
             throw new NopException(ERR_EQL_NOT_SUPPORT_MULTIPLE_STATEMENT).param(ARG_SQL, eql);
 
         SqlStatement stm = program.getStatements().get(0);
+
+        // Plan 2307 V4: 事务控制语句显式失败。
+        // 修复前 commit/rollback 能一路走到输出阶段，而两个输出器都没有它们的 printer，
+        // 于是产出**空字符串** SQL 且不报任何错误——一条静默无操作。
+        // 事务边界归属 ITransactionTemplate / 连接层（见 design §3.5），
+        // 让 EQL 编译器输出裸 COMMIT 也不携带任何事务语义，故在此处 fail-fast。
+        // 判定放在 transform 之前：尽早失败，且不产生任何半成品 SQL。
+        if (stm instanceof SqlTransactionStatement) {
+            throw new NopException(ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT)
+                    .source(stm)
+                    .param("statementKind", String.valueOf(stm.getStatementKind()));
+        }
+
         boolean dump = stm.hasDecorator(OrmEqlConstants.DECORATOR_DUMP);
         if (dump) {
             stm.dump("parsed_eql");
