@@ -1,6 +1,6 @@
 # 25 EQL WI9a — CAST 类型系统·语法与别名（NUMBER/TEXT/BOOL/UUID + `dataTypeName_` 必拒项收窄）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-03
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI9a 节 `:319-325`、门控矩阵 WI9a 行 `:114`、共同约束 1-4 `:263-280`、Cross-Cutting 全部 `:378-388`、关键约束与红线节 `:456-465`、roadmap 级 Exit Criteria 第 6/7/8 条 `:442-453`）
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，`completed`）、`ai-dev/plans/19-eql-wi2-class-b-defects.md`（硬前置，`completed`；本 plan 的结构先例与 BOOLEAN 基线）、`ai-dev/design/eql-cross-db-compat/2026-10-03-wi0-gate-adjudications.md`（G-1/G-3 已裁决 —— G-3 授权本 plan 的 `stdNameMap` 三别名与其 114 orm.xml 回归门）
@@ -248,10 +248,10 @@ Exit Criteria:
 - [x] 两个 Protected Area 的提交纪律可审计：`StdSqlType.java` 提交与 `.g4` 提交分离、方言 XML（若有）逐条独立提交；无 lexer token 删除；无手改生成物。（`5154661e75`（StdSqlType+测试）/ `8574a33371`+`462d60c459`+`e7d8ddeac9`+`0ca16cb4d0`（4 方言 XML 逐条，各携用例）/ `41bfbcba56`（.g4+重生成+测试）；重生成 diff 审计零 token 变化）
 - [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（若方言 XML 有新增条目，快照口径同步）。（exit 0；快照只记可加载性+functions，UUID 条目无需同步——裁定文档 §四.3）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本 plan 新增 broken link = 0（3 项既有 warning 基线不动：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，roadmap EC 第 6 条口径）。（exit 0、0 error、3 warning 为既有基线）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/25-eql-wi9a-cast-type-aliases.md --strict` 退出码 0。（**留白至 closure**：实测 exit 0（active 语义，三项留白不影响）；本项随独立 closure audit 通过后勾选）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/25-eql-wi9a-cast-type-aliases.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（别名/收窄都是"改接受面"，anti-hollow 抓的是"只放行不设门/只删文法不留证据"的半实现形态；`nop-commons` 侧改动随 G-3 落地门（组合判据 (a)）与接线验证用例覆盖，并在 closure audit 中抽查）。（exit 0）
-- [ ] Anti-Hollow Check：closure audit 已验证（a）别名从 EQL 文本 → 闸门 A → `AstToSqlGenerator` → 方言文本的端到端路径有测试；（b）收窄后"文法放行 ⇒ 语义必过或语义响亮拒"无静默路径；（c）无空方法体/静默跳过/no-op 作为"已落地"。（**留白**：待不同 task_id 独立 closure audit 执行；执行侧证据已备——端到端文本断言 + 34 键穷举用例 + hollow 扫描 exit 0）
-- [ ] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9a 行据此才可 `todo` → `done`。（**留白**）
+- [x] Anti-Hollow Check：closure audit 已验证（a）别名从 EQL 文本 → 闸门 A → `AstToSqlGenerator` → 方言文本的端到端路径有测试；（b）收窄后"文法放行 ⇒ 语义必过或语义响亮拒"无静默路径；（c）无空方法体/静默跳过/no-op 作为"已落地"。（独立审计复跑 8 测试类全绿含 34 键穷举 `TestEqlCastTypeNarrowingParse` 6|0 与 `nosuchtype` 守护 4|0）
+- [x] 独立 closure audit 已完成并由**不同 task_id** 的子 agent 执行，evidence 写入本 plan `Closure` 段（guide #26/#27）；roadmap Work Item Status 的 WI9a 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -273,14 +273,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: Phase 0/1/2 全部 `completed`；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑦/B1-B5/C/D 全 PASS，**0 Blocker / 0 Major / 2 Minor**（① clean install 门在 `_tmp/wi9a/` 无对应日志——`.nop/repository` 安装时间戳 07:05:55-07:06:50 晚于末次产品提交 + jar 内容含 WI9a 代码构成充分间接实证，不拦截；② G-3 增补裁决落新文档 §三而非 2026-10-03 原文追加——与该文档自带修订模式一致、原文本零改动，可接受载体偏差）。**mtime 审计（连续四次拦截过期报告后的关键复核点）由审计员独立抽查属实**：六模块 fresh=total（阈值 07:05:37）。G-3 增补裁决（NUMBER→DECIMAL）授权链完整：原裁决文本零改动、增补落新文档含人可推翻声明、roadmap 原地注记。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，不同 task_id）
-- Audit Session:
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI9a closure audit（一次通过，结论"WI9a 通过 closure audit——roadmap WI9a 可以翻 done"）
 - Evidence:
+  - A① PASS：4 组正/负载体齐全（TEXT/NUMBER/BOOL/UUID × h2/pg/duckdb/mssql 正向 vs mssql/minimal/mysql/oracle 负向）；`TestEqlCastTypeAliasCompile` 12|0 + `TestEqlCastUuidDialectCompile` 8|0；审计员复跑 8 测试类全绿（mtime 08:01 全新鲜）
+  - A② PASS：组合判据 (a) 两命令过（`.nop/repository` install 时间戳间接实证 + run3 六模块 2657|0 逐字一致）；mtime 审计 fresh=total（56/56、54/54、44/44、158/158、6/6、92/92）、孤儿报告 0；影响清单=空（双口径 0 命中归档）
+  - A③ PASS：收窄对照表 14 行终稿+owner doc 对照表；红证据单条汇总一次列全 14 项收窄前错误码；`TestEqlCastTypeNarrowingParse` 34 键穷举 6|0；WI2 nosuchtype 断言原文在位 4|0
+  - A④ PASS：`orm-model-design.md:56-70` 新节（别名表+G-3 增补注记+UUID 映射）；`eql-and-database-compatibility.md:236-272` 渲染表/收窄表/守护锚+能力门登记 :393
+  - A⑤ PASS：终局 `-T 1C` BUILD SUCCESS + 2451|0（212/351/1340/87/461）mtime 全晚于 5f9bc6a5ba
+  - A⑥ PASS：`TestEqlCorpusBaseline` 1|0（审计员独立复跑确认）
+  - B1 PASS：`5154661e75` 3 别名 put+UUID 枚举（GEOMETRY 后追加不动 ordinal）+三 map 不变量；WI9b 边界=时区区域 0 触碰（git diff 实证）
+  - B2 PASS：G-3 增补裁决授权链（原文零改动+增补小节四要素+roadmap 原地注记）；UUID ask-first 级裁决人注记单独声明
+  - B3 PASS：4 方言 UUID 独立提交逐条可 revert；mysql/oracle/minimal 负向真实报 `nop.err.dao.dialect.std-data-type-not-supported`
+  - B4 PASS：`41bfbcba56` 仅 4 文件；文法现态 12 活备选+BOOLEAN+兜底（候选 A）；`ast/_gen`/Lexer/tokens/_EqlASTBuildVisitor 零 diff
+  - B5 PASS：执行期 6 偏差全部落档
+  - C PASS：matrix 0 / doc-links 0 error 新增 0 / scan-hollow 0 命中 / checklist exit 0
+  - D PASS：3 Phase+55 勾 3 留白+daily log 三条目+8 commit 一一对应
+  - Deferred 项分类检查：无 in-scope live defect 被降级；DOUBLE 拼写缺口与 task-core 异步 flake 均 Non-Blocking Follow-ups（执行前已存在/零代码关联）
 
 Follow-up:
 
