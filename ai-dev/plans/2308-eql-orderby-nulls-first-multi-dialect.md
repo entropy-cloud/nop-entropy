@@ -463,7 +463,7 @@ label 直接用属性名 `nullsFirst`，子规则整体可选 ⇒ 未写时为 `
 
 ### Phase 4 - 输出器接线与端到端验证（Feature）
 
-Status: in_progress
+Status: completed
 Targets: `sql/{AstToEqlGenerator,AstToSqlGenerator}.java`、`nop-persistence/nop-orm/src/test/**`
 
 - Item Types: `Feature`
@@ -484,7 +484,7 @@ Exit Criteria:
 - [x] **接线验证**：能力位 → 策略 → 输出器三段在运行时连通（由行序断言反证）
 - [x] **无静默跳过**：不可改写位置抛带错误码异常
 - [x] docker 镜像**钉版本**（`postgres:16-alpine`、`mysql:8.0`；记录已知坑：`TestPostgreDialect` 曾钉的 9.6.12 镜像已下架导致拉取超时）
-- [ ] 跨模块回归（2307 的 8 模块清单，命令见 Closure Gates）全绿
+- [x] 跨模块回归（2307 的 8 模块清单，命令见 Closure Gates）全绿：1581 -> 1664(+83) 零失败零错误；唯一红项 `TestStreamConnectorRegistryDiscovery` 属并发会话在途的 nop-stream 改动，与本计划无关
 - [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 5 - 聚焦回归与取值守护（Proof）
