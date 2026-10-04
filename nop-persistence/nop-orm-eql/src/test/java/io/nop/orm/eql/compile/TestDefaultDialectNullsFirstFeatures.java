@@ -8,6 +8,8 @@
 package io.nop.orm.eql.compile;
 
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import org.junit.jupiter.api.AfterAll;
@@ -100,6 +102,35 @@ public class TestDefaultDialectNullsFirstFeatures {
     }
 
     // ---------- 派生方言继承（x:extends 后该位一并继承） ----------
+
+    /**
+     * DB2 LUW 原生支持 ORDER BY ... NULLS FIRST/LAST。
+     *
+     * <p>依据：IBM 官方文档 DB2 11.5.x「order-by-clause」明确列出
+     * 「NULLS FIRST — When ordering rows in ascending or descending order, list null
+     * values before all other values」「NULLS LAST — ... list null values after all
+     * other values」。本仓库 db2.dialect.xml 的 {@code dbProductNames} 为 DB2，
+     * 且 errorCodes 用 LUW 风格 SQLCODE（-104 / -911），故按 LUW 判定。
+     *
+     * <p>此前该位缺省为 false（2308 因无 DB2 环境未能实测而保守留 false），
+     * 导致 DB2 上的 ORDER BY 空序走 CASE 改写——语义虽正确，但属无谓的 SQL 冗余，
+     * 且聚合查询路径会直接 fail-fast。经用户指出后改为 true。
+     *
+     * <p>注：DB2 LUW 的缺省空序与 PostgreSQL 相反（文档：null 值高于所有其他值，
+     * 故 ASC 缺省为 NULLS LAST、DESC 为 NULLS FIRST）。这正是本框架**不做省略优化**的原因
+     * ——见 design §3.8 关于 DuckDB 的说明。单布尔无法表达这类模型。
+     */
+    @Test
+    public void testDb2SupportsNativeNullsOrder() throws Exception {
+        // db2.dialect.xml 缺少 mandatory 的 driverClassName，无法作为具名方言经
+        // DialectManager 单独加载（与 default.dialect.xml 同款限制），故直接断言 xml 取值。
+        // 守护目标不变：取值被改错时本用例转红。
+        String xml = ResourceHelper.readText(
+                VirtualFileSystem.instance().getResource("/nop/dao/dialect/db2.dialect.xml"))
+                .replaceAll("\\s+", " ");
+        assertTrue(xml.contains("supportNullsFirst=\"true\""),
+                "DB2 LUW 官方文档明确支持 ORDER BY ... NULLS FIRST/LAST，取值应为 true: " + xml);
+    }
 
     @Test
     public void testDerivedDialectsInheritFromBase() {

@@ -80,8 +80,10 @@ emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNulls
 | 方言 | 环境限制 | 裁定 |
 |---|---|---|
 | `mariadb`（及 `mysql5.7`） | 本机无 mariadb 镜像、docker pull 受限 → **未能实测** | `supportNullsFirst=false`（保守）。依据：MariaDB 与 MySQL 同源、无该语法。走 CASE 改写，**语义仍正确**，只影响 SQL 冗长度 |
-| `dm` | 无达梦环境 → 未能实测 | `supportNullsFirst=false`（保守）。DM 兼容 Oracle、很可能实际支持，但未实测不改为 true |
-| `mssql` | 无 SQL Server 环境 → 未能实测 | `supportNullsFirst=false`（保守）。T-SQL 系本无 `NULLS FIRST/LAST` 语法，取 false 与方言事实一致 |
+| `dm` | 无达梦环境 → 未能实测 | `supportNullsFirst=false`（保守）。查证达梦官方文档只找到 `ORDER_BY_NULLS_FLAG`（控制**缺省** NULL 位置，会话级参数），**未见** `NULLS FIRST/LAST` 关键字的文档依据，故维持 false（false 在任何方言上都语义正确，只是 SQL 略冗长） |
+| `mssql` | 无 SQL Server 环境 → 未能实测 | `supportNullsFirst=false`。T-SQL 不实现该语法（升序隐含 NULLS FIRST、降序隐含 NULLS LAST），取 false 与方言事实一致 |
+| `db2` | 无 DB2 环境 → 未能实跑，但**有官方文档依据**（2026-10-04 补查） | `supportNullsFirst=true`。IBM 官方文档 DB2 11.5.x「order-by-clause」明确列出 `NULLS FIRST` / `NULLS LAST`。此前因无法实跑而保守留 false，属**取值错误**（非仅冗余），已更正 |
+| `mariadb` / `mysql5.7` | 无环境 → 未实测 | `supportNullsFirst=false`。与 mysql 同源，MySQL 8.0.46 实测不接受该语法 |
 | `tdengine` | 无 TDengine 环境 → 未能实测 | `supportNullsFirst=false`（保守） |
 | `db2` / `oracle` / `es` | 无环境 | 不改现有取值；`es` 是占位桩（`driverClassName`/`dbProductNames` 均为 `xx`），不做核实 |
 | `h2` 的 `defaultNullsFirst` | 实测缺省为 NULLS FIRST，但该属性**本计划不使用** | **不补**（避免给死属性再加无谓配置） |

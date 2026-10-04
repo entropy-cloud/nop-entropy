@@ -4,6 +4,8 @@
          xmlns:x="/nop/schema/xdsl.xdef">
     <dbProductNames>DB2</dbProductNames>
 
+    <features supportNullsFirst="true"/>
+
     <errorCodes>
         <errorCode name="nop.err.dao.sql.bad-sql-grammar">
             -007,-029,-097,-104,-109,-115,-128,-199,-204,-206,-301,-408,-441,-491

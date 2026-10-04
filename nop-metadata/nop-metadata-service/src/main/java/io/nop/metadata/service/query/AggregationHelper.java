@@ -375,14 +375,9 @@ public class AggregationHelper {
      * 平台方言名解析失败时的兜底白名单，仅含 JDBC {@code databaseProductName}
      * 与方言名不一致、且确实支持原生 NULLS 子句的取值。
      *
-     * <p><b>不含 {@code DB2}</b>：DB2 本身支持 {@code NULLS FIRST/LAST}，但平台
-     * {@code db2.dialect.xml} 未声明 {@code supportNullsFirst}（2308 因无法实测而保守留 false）。
-     * 因此 DB2 走本白名单会得到「响亮失败」而非原生输出。这是一处**已知的行为收紧**：
-     * 修复前 {@code dialect == null} 会无条件拼接原生子句，在 DB2 上恰好可执行。
-     * 收紧后需在具备 DB2 环境时把 {@code supportNullsFirst} 置 true 才恢复原生路径。
      */
     private static final Set<String> NATIVE_NULLS_ORDER_PRODUCT_NAMES =
-            Set.of("h2", "h2gis", "postgresql", "postgis", "duckdb", "oracle", "oracle-reverse");
+            Set.of("h2", "h2gis", "postgresql", "postgis", "duckdb", "oracle", "oracle-reverse", "db2");
 
     /**
      * 构造 ORDER BY 子句。

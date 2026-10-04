@@ -105,6 +105,7 @@ EQL 的 `ORDER BY` 项现在接受空序修饰：`order by o.col [asc|desc] [nul
 | postgresql（含 postgis） | `true` | 原生 | 实测：PostgreSQL 16.15 同上 |
 | duckdb | `true` | 原生 | 官方文档 + 本仓库既有声明（**探针脚本未含 duckdb 分支，非本计划实测**）；**但 ASC/DESC 都不翻转缺省**（见下方警告） |
 | oracle（含 oracle-reverse） | `true` | 原生 | 官方文档明确支持；**本仓库未跑容器实测** |
+| db2 | `true` | 原生 | IBM 官方文档 DB2 11.5.x「order-by-clause」明确列出 `NULLS FIRST` / `NULLS LAST`；**本仓库未跑容器实测** |
 | mysql | `false` | CASE 改写 | 实测：MySQL 8.0.46 **不接受** `NULLS` 子句 |
 | mysql5.7 / mariadb | `false` | CASE 改写 | 保守缺省（未实测，继承/对齐 mysql） |
 | dm / tdengine / es | `false` | CASE 改写 | 保守缺省（无达梦/tdengine 环境，未实测） |
@@ -158,21 +159,16 @@ false → 同一份 `CASE WHEN` 改写（`NullsOrderRewriter`，与 EQL 共用�
 **聚合路径**（`AggregationHelper.buildOrderByClause`）与前两者有一处**本质差异**：
 它的排序键是**度量聚合表达式**（`SUM(x)`）或**维度列**。按 design §3.8「改写只对纯列引用
 允许」，该路径**不做 CASE 改写**，而是：
-- 方言支持原生子句（按 `supportNullsFirst` 能力位：h2 / postgresql / oracle / duckdb
-  及其派生方言 h2gis / postgis / oracle-reverse）→ 原生输出；
+- 方言支持原生子句（按 `supportNullsFirst` 能力位：h2 / postgresql / oracle / duckdb /
+  db2 及其派生方言 h2gis / postgis / oracle-reverse）→ 原生输出；
 - **mysql 家族**（`mysql` / `mysql5.7` / `mariadb`）→ 与 MySQL 缺省一致的组合省略子句，
   无法表达的组合**响亮失败**；
 - 其余方言、或**取不到方言** → **响亮失败**（此前是无条件拼接，在 mariadb / dm /
   tdengine 上产出语法错误 SQL）。
 
-> **两处需要知道的边界**：
-> ① 原生支持与否**按平台能力位 `supportNullsFirst` 判定**（经 `DialectManager` 解析，自动跟随
-> `x:extends` 继承），不是按名字白名单——因此 `h2gis` / `postgis` / `oracle-reverse`
-> 这类自身不声明、经继承为 true 的派生方言不会被漏判。
-> ② **DB2 目前走「响亮失败」**：DB2 本身支持 `NULLS FIRST/LAST`，但平台 `db2.dialect.xml`
-> 未声明 `supportNullsFirst`（因无法实测而保守留 false）。这是一处**已知的行为收紧**——
-> 修复前该路径在 DB2 上恰好可执行。若你的 DB2 部署需要 ORDER BY 空序，请在
-> `db2.dialect.xml` 中把 `supportNullsFirst` 置 `true`。
+> **判定方式**：原生支持与否**按平台能力位 `supportNullsFirst` 判定**（经 `DialectManager`
+> 解析，自动跟随 `x:extends` 继承），不是按名字白名单——因此 `h2gis` / `postgis` /
+> `oracle-reverse` 这类自身不声明、经继承为 true 的派生方言不会被漏判。
 
 > 「取不到方言就失败」是刻意的：无法校验方言时产出原生子句，等于把错误推迟到目标库，
 > 且在 MySQL 上必然是语法错误。

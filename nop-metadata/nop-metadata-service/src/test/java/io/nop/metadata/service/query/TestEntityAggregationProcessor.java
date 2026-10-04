@@ -240,7 +240,7 @@ public class TestEntityAggregationProcessor {
         // 含 h2gis / postgis / oracle-reverse：三者本身不声明该位但经 x:extends 继承为 true，
         // 若按名字白名单判定会漏判，把本来可执行的查询变成硬失败（closure audit BLOCKER-1）。
         for (String dialect : new String[]{"H2", "h2", "PostgreSQL", "postgresql", "Oracle",
-                "DuckDB", "h2gis", "postgis", "oracle-reverse"}) {
+                "DuckDB", "h2gis", "postgis", "oracle-reverse", "db2", "DB2"}) {
             List<OrderFieldBean> ascNullsFirst = new ArrayList<>();
             OrderFieldBean f1 = OrderFieldBean.asc("m1");
             f1.setNullsFirst(true);
@@ -264,10 +264,6 @@ public class TestEntityAggregationProcessor {
     public void testBuildOrderByClauseUnsupportedDialectFailsFast() {
         Map<String, String> nameToExpr = new LinkedHashMap<>();
         nameToExpr.put("m1", "SUM(x)");
-        // 注：不含 DB2——DB2 本身**支持** NULLS FIRST/LAST，但平台 db2.dialect.xml 未声明
-        // supportNullsFirst（2308 因无法实测而保守留 false），故走响亮失败而非原生输出。
-        // 这是已知的行为收紧（修复前 dialect=null 会无条件拼接，在 DB2 上恰好可执行），
-        // 需在具备 DB2 环境时把该位置 true 才恢复原生路径。见 AggregationHelper 的 javadoc。
         // 注：不含 mariadb / mysql5.7——它们与 mysql 同族、无 NULLS 子句语法，
         // 由 isMySqlFamily 走 MySQL 分支（与缺省一致则省略、不一致则失败），见下方专门用例。
         for (String dialect : new String[]{"dm", "TDengine", "SQLServer", "Oracle11"}) {
