@@ -100,6 +100,45 @@ public class TestMessageOptionsValidator {
     }
 
     @Test
+    void sendTimeoutAndCancelTokenRequireSendTimeoutCapability() {
+        // WI15: unmanaged backends (no SEND_TIMEOUT) warn-once; Kafka/Pulsar (declared) pass.
+        MessageSendOptions timeoutOptions = new MessageSendOptions();
+        timeoutOptions.setSendTimeout(100L);
+        assertThrows(NopException.class,
+                () -> MessageOptionsValidator.validateSend(caps(), timeoutOptions, BACKEND));
+        MessageSendOptions cancelOptions = new MessageSendOptions();
+        cancelOptions.setCancelToken(new io.nop.api.core.util.ICancelToken() {
+            @Override
+            public boolean isCancelled() {
+                return true;
+            }
+
+            @Override
+            public void appendOnCancel(java.util.function.Consumer<String> task) {
+            }
+
+            @Override
+            public void removeOnCancel(java.util.function.Consumer<String> task) {
+            }
+
+            @Override
+            public String getCancelReason() {
+                return "test-cancelled";
+            }
+        });
+        assertThrows(NopException.class,
+                () -> MessageOptionsValidator.validateSend(caps(), cancelOptions, BACKEND));
+
+        Set<MessageCapability> declared = caps(MessageCapability.SEND_TIMEOUT);
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSend(declared, timeoutOptions, BACKEND));
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSend(declared, cancelOptions, BACKEND));
+
+        // warn-once path for a backend that declared the disposition
+        Set<MessageCapability> warnOnce = EnumSet.of(MessageCapability.SEND_TIMEOUT);
+        assertDoesNotThrow(() -> MessageOptionsValidator.validateSend(caps(), timeoutOptions, BACKEND, warnOnce));
+    }
+
+    @Test
     void transactionOptionsAreDeprecated() throws Exception {
         // D11 form assertion: fields kept (YAML compatible) but flagged deprecated.
         org.junit.jupiter.api.Assertions.assertTrue(

@@ -2,10 +2,15 @@ package io.nop.message.pulsar;
 
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSubscribeOptions;
+import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.Producer;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -147,7 +152,16 @@ class TestPulsarConsumeTask {
         org.apache.pulsar.client.api.ConsumerBuilder builder;
         org.apache.pulsar.client.api.Consumer<Object> consumer;
         io.nop.api.core.message.IMessageSubscription subscription;
+        org.apache.pulsar.client.api.Producer<?> producerForTest;
         final java.util.List<String> producedTopics = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        @Override
+        Producer<?> getProducer(String topic) {
+            if (producerForTest != null) {
+                return producerForTest;
+            }
+            return super.getProducer(topic);
+        }
 
         @Override
         protected org.apache.pulsar.client.api.ConsumerBuilder newConsumerBuilder(
@@ -462,6 +476,52 @@ class TestPulsarConsumeTask {
             task.stop();
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void cancelledTokenRejectsWithoutSending() throws Exception {
+        TestPulsarService svc = new TestPulsarService();
+        svc.builder = mock(org.apache.pulsar.client.api.ConsumerBuilder.class);
+        svc.typedBuilder = mock(org.apache.pulsar.client.api.TypedMessageBuilder.class);
+        when(svc.typedBuilder.sendAsync())
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        MessageSendOptions options = new MessageSendOptions();
+        io.nop.api.core.util.ICancelToken token = mock(io.nop.api.core.util.ICancelToken.class);
+        when(token.isCancelled()).thenReturn(true);
+        options.setCancelToken(token);
+
+        CompletionStage<Void> stage = svc.sendAsync("t-cancel", "m", options);
+        ExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                io.nop.api.core.message.MessageErrors.ERR_SEND_CANCELLED.getErrorCode(),
+                io.nop.api.core.exceptions.NopException.class.cast(e.getCause()).getErrorCode());
+        // The producer path was never reached (no message builder interaction).
+        verify(svc.typedBuilder, never()).sendAsync();
+    }
+
+    @Test
+    void sendTimeoutBoundsPulsarFuture() throws Exception {
+        TestPulsarService svc = new TestPulsarService();
+        svc.builder = mock(org.apache.pulsar.client.api.ConsumerBuilder.class);
+        svc.typedBuilder = mock(org.apache.pulsar.client.api.TypedMessageBuilder.class);
+        // sendAsync never completes: the per-message bound must fire.
+        when(svc.typedBuilder.sendAsync())
+                .thenReturn(new java.util.concurrent.CompletableFuture<>());
+        svc.producerForTest = mock(org.apache.pulsar.client.api.Producer.class);
+        when(svc.producerForTest.newMessage()).thenReturn(
+                (org.apache.pulsar.client.api.TypedMessageBuilder) svc.typedBuilder);
+
+        MessageSendOptions options = new MessageSendOptions();
+        options.setSendTimeout(50L);
+        CompletionStage<Void> stage = svc.sendAsync("t-timeout", "m", options);
+
+        ExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(5, TimeUnit.SECONDS));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                e.getCause() instanceof java.util.concurrent.TimeoutException,
+                "cause must be the orTimeout TimeoutException, was: " + e.getCause());
     }
 
     @Test

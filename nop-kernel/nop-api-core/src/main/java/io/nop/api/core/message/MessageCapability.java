@@ -12,6 +12,13 @@ public enum MessageCapability {
     /** Basic fire-and-forget send. */
     SEND,
 
+    /**
+     * MessageSendOptions.sendTimeout and cancelToken are wired into the send path
+     * (timeout upper bound on the returned future; pre-send cancellation check). Bundles
+     * both send-option fields — a backend declaring this capability must implement both.
+     */
+    SEND_TIMEOUT,
+
     /** Basic subscription; subscribeName / concurrency / subscriptionType fields. */
     SUBSCRIBE,
 

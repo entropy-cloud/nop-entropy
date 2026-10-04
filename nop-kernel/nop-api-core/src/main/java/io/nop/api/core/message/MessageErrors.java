@@ -17,6 +17,10 @@ public interface MessageErrors {
             ErrorCode.define(PREFIX + "subscribe-not-supported",
                     "Subscribe is not supported by this message service backend");
 
+    ErrorCode ERR_SEND_CANCELLED =
+            ErrorCode.define(PREFIX + "send-cancelled",
+                    "Message send was cancelled via the cancel token before dispatch");
+
     ErrorCode ERR_SEEK_MESSAGE_NOT_SUPPORTED =
             ErrorCode.define(PREFIX + "seek-message-not-supported",
                     "Seek by message id is not supported by this message service backend");

@@ -83,7 +83,7 @@ public class DBMessageService implements IMessageService, AutoCloseable {
 
     /** DB queue transport: delay / seek options are warn-once (D1). */
     private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
-            MessageCapability.DELAYED_SEND, MessageCapability.SEEK);
+            MessageCapability.DELAYED_SEND, MessageCapability.SEND_TIMEOUT, MessageCapability.SEEK);
 
     @Override
     public Set<MessageCapability> getCapabilities() {

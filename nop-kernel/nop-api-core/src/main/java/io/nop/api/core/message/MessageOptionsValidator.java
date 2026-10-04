@@ -40,7 +40,10 @@ public final class MessageOptionsValidator {
             return;
         if (options.getDelay() > 0)
             check(capabilities, MessageCapability.DELAYED_SEND, "delay", backend, warnOnce);
-        // sendTimeout / cancelToken: mapped to SEND; their wiring is adjudicated to WI15.
+        if (options.getSendTimeout() > 0)
+            check(capabilities, MessageCapability.SEND_TIMEOUT, "sendTimeout", backend, warnOnce);
+        if (options.getCancelToken() != null)
+            check(capabilities, MessageCapability.SEND_TIMEOUT, "cancelToken", backend, warnOnce);
     }
 
     public static void validateSubscribe(Set<MessageCapability> capabilities,

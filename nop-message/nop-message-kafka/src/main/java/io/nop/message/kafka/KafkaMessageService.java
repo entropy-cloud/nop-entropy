@@ -13,6 +13,7 @@ import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageErrors;
 import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
@@ -64,7 +65,8 @@ public class KafkaMessageService implements IMessageService {
 
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
-            MessageCapability.SEEK, MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA);
+            MessageCapability.SEEK, MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA,
+            MessageCapability.SEND_TIMEOUT);
 
     /** Kafka has no native delayed delivery: warn once, then execute the declared ignore. */
     private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(MessageCapability.DELAYED_SEND);
@@ -202,6 +204,14 @@ public class KafkaMessageService implements IMessageService {
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
         MessageOptionsValidator.validateSend(CAPABILITIES, options, "kafka", WARN_ONCE);
+        if (options != null && options.getCancelToken() != null && options.getCancelToken().isCancelled()) {
+            // WI15 (F-45): pre-send cancellation check; rejected future per the
+            // MessageRpcClient.callAsync precedent (never a synchronous throw).
+            java.util.concurrent.CompletableFuture<Void> rejected = new java.util.concurrent.CompletableFuture<>();
+            rejected.completeExceptionally(new NopException(MessageErrors.ERR_SEND_CANCELLED)
+                    .description("send cancelled before dispatch:topic=" + topic));
+            return rejected;
+        }
         KafkaProducer<String, String> prod = getProducer();
 
         String key;
@@ -227,7 +237,24 @@ public class KafkaMessageService implements IMessageService {
                 future.complete(null);
             }
         });
+        // WI15 (F-45): upper bound on the returned future. Timeout leaves the underlying
+        // send running (fire-and-forget) — the message may still be delivered. Bare
+        // java.util.concurrent.TimeoutException is the contract (JDK orTimeout semantics).
+        long sendTimeoutMs = resolveSendTimeoutMs(options);
+        if (sendTimeoutMs > 0) {
+            future.orTimeout(sendTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
         return future;
+    }
+
+    private long resolveSendTimeoutMs(MessageSendOptions options) {
+        if (options != null && options.getSendTimeout() > 0) {
+            return options.getSendTimeout();
+        }
+        if (defaultProducerConfig != null) {
+            return defaultProducerConfig.getSendTimeoutMs();
+        }
+        return 0L; // no configured bound
     }
 
     /**

@@ -24,15 +24,15 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
 
 ### 3.1 D1 能力声明与入口门禁
 
-- `MessageCapability` 为枚举能力集，建议值域：SEND / SUBSCRIBE / BATCH_CONSUME / DELAYED_SEND / TRANSACTION / SEEK / ACK_REPLY / ENVELOPE_METADATA / DLQ。值域随实现演进可增，但新增后端必须显式声明全集。
+- `MessageCapability` 为枚举能力集，值域：SEND / SUBSCRIBE / SEND_TIMEOUT / BATCH_CONSUME / DELAYED_SEND / TRANSACTION / SEEK / ACK_REPLY / ENVELOPE_METADATA / DLQ。值域随实现演进可增，但新增后端必须显式声明全集。
 - `getCapabilities()` 以接口 default 方法新增（不改变极简骨架形态）；返回空集的语义是「该实现拒绝一切选项字段」——validator 对任何非空选项抛类型化错误，而非静默放行。
 - `MessageOptionsValidator` 在每个 `subscribe` 与 `sendAsync` 入口调用（不是 init）：校验「选项字段所需要的能力 ∈ 实现声明的能力集」，缺失即抛错误码；支持的字段放行，不支持的已声明字段按逐后端三态处置（生效 / 类型化错误 / 一次性 WARN）。
 - 逐后端能力声明表（裁定生效版；test/bench 桩不注册 validator）：
 
 | 后端 | 声明能力集 | 其余字段处置 |
 | --- | --- | --- |
-| Kafka | SEND, SUBSCRIBE, BATCH_CONSUME, SEEK, ACK_REPLY, ENVELOPE_METADATA | DELAYED_SEND warn-once；TRANSACTION 类型化拒绝（见 backend-semantics D11） |
-| Pulsar | SEND, SUBSCRIBE, BATCH_CONSUME, DELAYED_SEND, TRANSACTION, SEEK, ACK_REPLY, ENVELOPE_METADATA | DLQ 接线后增声明 |
+| Kafka | SEND, SUBSCRIBE, SEND_TIMEOUT, BATCH_CONSUME, SEEK, ACK_REPLY, ENVELOPE_METADATA | DELAYED_SEND warn-once；TRANSACTION 已随 D11 弃用（warn-once 忽略） |
+| Pulsar | SEND, SUBSCRIBE, SEND_TIMEOUT, BATCH_CONSUME, DELAYED_SEND, SEEK, ACK_REPLY, ENVELOPE_METADATA | DLQ 接线后增声明；TRANSACTION 已随 D11 弃用 |
 | Local | SEND, SUBSCRIBE, ACK_REPLY | 其余逐字段 warn-once |
 | SysDao | SEND, SUBSCRIBE, DELAYED_SEND, ACK_REPLY | 其余逐字段 warn-once |
 | Lettuce / MqttServer | SEND, SUBSCRIBE | 其余逐字段 warn-once（fire-and-forget 语义） |
@@ -71,7 +71,7 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
   - 新增字段：允许，缺省值必须等价于「未配置」语义。
   - 改名/删除：给一个弃用期（旧键继续可读 + 启动期一次性 WARN 指向新键），弃用期后移除；迁移说明写入 owner doc。
   - 禁止在无弃用期的情况下直接重命名或删除已发布字段（`transactional`/`transactionTimeout` 的删除按 D11 执行并遵守本条）。
-- 已知的历史实例：`cancelToken` 是接口类型字段却作为可写 YAML 键暴露而无后端兑现——按「声明了但从不读」处理（WI15 接线或 D8 规则移除，二选一以 WI15 裁定为准）。
+- 已知的历史实例（WI15 已收口）：`cancelToken` 与 `sendTimeout` 曾是无后端兑现的可写 YAML 键——已按 WI15 裁定采用接线消除：经 `SEND_TIMEOUT` 能力在 Kafka/Pulsar 生效，其余后端 warn-once，TdEngine 空集类型化拒绝；无需 D8 规则移除。
 
 ## 四、拒绝了什么
 

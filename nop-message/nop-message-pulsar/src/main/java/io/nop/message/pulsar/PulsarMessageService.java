@@ -53,7 +53,8 @@ public class PulsarMessageService implements IMessageService {
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
             MessageCapability.DELAYED_SEND, MessageCapability.SEEK,
-            MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA);
+            MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA,
+            MessageCapability.SEND_TIMEOUT);
 
     @Override
     public Set<MessageCapability> getCapabilities() {
@@ -132,6 +133,11 @@ public class PulsarMessageService implements IMessageService {
         return client;
     }
 
+    // Test seam (WI15): aligns with the Kafka package-private producer injection convention.
+    java.util.Map<String, Producer<?>> producersForTest() {
+        return producers;
+    }
+
     Producer<?> getProducer(String topic) {
         Producer<?> producer = producers.get(topic);
         if (producer != null)
@@ -163,12 +169,37 @@ public class PulsarMessageService implements IMessageService {
     }
 
     private CompletableFuture<Void> sendPulsarAsync(String topic, Object message, MessageSendOptions options) {
+        if (options != null && options.getCancelToken() != null && options.getCancelToken().isCancelled()) {
+            // WI15 (F-45): pre-send cancellation check; rejected future per the
+            // MessageRpcClient.callAsync precedent (never a synchronous throw).
+            java.util.concurrent.CompletableFuture<Void> rejected = new java.util.concurrent.CompletableFuture<>();
+            rejected.completeExceptionally(new NopException(MessageErrors.ERR_SEND_CANCELLED)
+                    .description("send cancelled before dispatch:topic=" + topic));
+            return rejected;
+        }
         Producer<?> producer = getProducer(topic);
         TypedMessageBuilder<?> builder = producer.newMessage();
         PulsarHelper.buildPulsarMessage(builder, message, options);
 
-        return builder.sendAsync().thenAccept(ret -> {
+        CompletableFuture<Void> future = builder.sendAsync().thenAccept(ret -> {
         });
+        // WI15 (F-45): per-message upper bound (the Pulsar builder-level sendTimeout is a
+        // second, lower layer). Fire-and-forget: timeout leaves the send running.
+        long sendTimeoutMs = resolveSendTimeoutMs(options);
+        if (sendTimeoutMs > 0) {
+            future.orTimeout(sendTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+        return future;
+    }
+
+    private long resolveSendTimeoutMs(MessageSendOptions options) {
+        if (options != null && options.getSendTimeout() > 0) {
+            return options.getSendTimeout();
+        }
+        if (defaultProducerConfig != null) {
+            return defaultProducerConfig.getSendTimeout();
+        }
+        return 0L;
     }
 
     @Override
