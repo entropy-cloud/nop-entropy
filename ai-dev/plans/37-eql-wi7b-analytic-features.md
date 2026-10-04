@@ -218,77 +218,77 @@ Exit Criteria:
 
 ### Phase 2 - `rollup`/`cube`/`grouping` 注册（路径按 Phase 0 裁定 + 方言排除）（EC ①⑦）
 
-Status: planned
+Status: completed（2026-10-04；clean install 门以 run3 双旗标排除记录为准）
 Targets: 按 Phase 0 裁定路径——ⓒ-A：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlGroupByItem` 备选 + `unreservedWord_`）、`nop-persistence/nop-orm-eql/model/antlr/Literals.g4`（`ROLLUP`/`CUBE` token）、`EqlAST.xjava`（1 个新 AST 类）+ `ast/_gen/` 重生成、`EqlASTBuildVisitor.java`、`EqlTransformVisitor.java`（能力门）、`AstToSqlGenerator.java`/`AstToEqlGenerator.java`（打印）；ⓓ：`EqlTransformVisitor.java` 或 transformer；`*.dialect.xml`（注册落点）；`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`；`nop-orm-eql`/`nop-dao` 测试
 
 - Item Types: `Feature`、`Decision`（若实施中需偏离 Phase 0 裁定的局部形态）、`Proof`
 
-- [ ] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，硬前置已满足）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
-- [ ] **修复前红**：`select sum(v) from t group by rollup(g)` 解析通过但编译报 `ERR_EQL_UNKNOWN_FUNCTION`（现状实测）——回归测试断言修复后 lowering/门控行为，修复前红留痕；`cube`/`grouping` 同。
-- [ ] 文法与 AST（按 Phase 0 裁定路径）：ⓒ-A 则 `ROLLUP`/`CUBE` token（`nop-persistence/nop-orm-eql/model/antlr/Literals.g4`，定义在 `IDENTIFIER_` 之前，NULLS 先例）+ `unreservedWord_` 双登记 + `sqlGroupByItem` 新备选**前置**（altLabel 三约束；备选顺序与胜者钉死按 Phase 0 裁定，排后即死代码）+ 新 AST 类（`EqlAST.xjava` → `ast/_gen` 重生成；ordinal 尾部追加/插中段落点登记）+ 新 enums 类（`ROLLUP|CUBE`）+ 手写 visit；**`grouping` 零文法改动**——`*.dialect.xml` 函数表注册（`<native name="grouping">` 形态，现全方言函数表 0 注册）+ `EqlTransformVisitor.visitSqlRegularFunction` 按函数名门控（`onlyForWindowExpr` 先例 `:1551-1556` 同款）；ⓓ 则 transformer 路线（零文法、零 `ast/_gen`）。`.g4`/`EqlAST.xjava` 改动单独提交。
-- [ ] **transform 能力门与放置校验**（按 Phase 0 裁定）：rollup/cube 仅 GROUP BY 位置合法——**ⓒ-A 下非 GROUP BY 位置的报错机制 = 落 `SqlRegularFunction` → 函数表未注册 → `ERR_EQL_UNKNOWN_FUNCTION`（或 Phase 0 裁定的显式门），断言值随裁定口径**；grouping 的语义级放置校验（仅引用 GROUP BY 项）为**可选裁定项**（未注册方言已被 unknown-function 编译期报错兜底——Phase 0 裁定不做须登记理由，防范围蠕动）；方言矩阵逐格执行（Phase 0 结论）：`CUBE` 在 **MySQL/MariaDB 显式编译期报错**（EC ① 硬性用例）、mysql 函数式 `rollup` 超承诺基线报错（successor 触发条件登记）、`dm`/`tdengine` 一律报错（红线）、h2 三函数报错（探针 `[实测]` 无 → 负向载体用例，断言具体错误码并注明 `ai-dev/audits/eql-wi0/` 探针归档依据）。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ①）：每个"注册并 lowering"格至少一条文本断言（如 postgresql/duckdb/oracle 的 `group by rollup(g)` → `group by ROLLUP(g)` 形态、`group by cube(a,b)`、`select grouping(g) … having grouping(g) = 0` 形态——以各方言实际 lowering 输出为准；identity 输出也要显式断言）；混合项形态（若裁定支持）至少一条。
-- [ ] 负向用例（EC ①⑦）：`CUBE` 在 mysql 与 mariadb 编译期报错（EC ① 硬性，两方言各一条）；h2 三函数各一条报错（含 `ai-dev/audits/eql-wi0/` 探针归档依据引注）；`grouping(a)` 在未注册方言报错（既有 `ERR_EQL_UNKNOWN_FUNCTION` 路径不回退的守护）；放置错误（`select rollup(a) from t` 非 GROUP BY 位置）编译期报错（机制随 Phase 0 口径——ⓒ-A 下默认函数表未注册 → unknown-function）——**无静默降级、无静默跳过**（不允许 rollup 不支持时静默按普通函数输出原文）。
-- [ ] 接线验证（Minimum Rules #23）：`GROUP BY ROLLUP(...)` 文本 → parse（新备选/transformer）→ transform 门 → 打印的端到端用例（至少一条覆盖 postgresql 或 duckdb 文本输出 + 一条 mysql/mariadb 报错分支）。
-- [ ] 约束 4 用例：同一 `rollup` 查询在支持方言（输出原文形态）与不支持方言（编译期报错）的"一致性/不等价"对照（Phase 0 清单落实）。
-- [ ] 矩阵快照**预期有增量**：grouping 函数表注册是**确定的真实增量**（现全 18 个方言 XML 函数表 0 注册，2026-10-04 实测）；rollup/cube 的快照口径随 Phase 0 裁定（ⓒ-A 下 GROUP BY 语义走新 AST 门控、可能不进函数表——登记口径以裁定为准）。重生成 `TestDialectCapabilityMatrix` 快照 + `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③ 同款机制）；增量内容与 Phase 0 矩阵逐格一致。
-- [ ] 真库证据分派（EC ⑦，差异登记第 2 条口径）：h2 = 负向载体（探针 `[实测]` 记录归档）；oracle/postgresql/duckdb/mysql(grouping)/mssql（若取证支持）= 一手文档引证 + 文本断言替代证据，逐方言列清单；`dm`/`tdengine` = `[未取证]`，不计覆盖率。
-- [ ] owner doc（EC ① 文档面）：`eql-and-database-compatibility.md` 新增 rollup/cube/grouping 小节——逐方言覆盖矩阵（三态 + 证据等级）、放置规则、错误码、`GROUPING SETS` 永久否决引用、能力点登记表行；roadmap ledger `CUBE/ROLLUP(...)/GROUPING()` 行收口标注。
-- [ ] 语料 BC（EC ⑥）：三份必测逐字一致（Phase 0 已证 0 命中，棘轮实测兜底）；`sqlGroupByItem` 既有形态 `group by a, b` 输出逐字不变守护用例。
-- [ ] 若 ⓒ-A：`./mvnw clean install -T 1C` 通过（`ast/_gen` 重写后 codegen 全链路 + 114 个 orm.xml 回归，roadmap WI7 收口注记口径）；若 ⓓ：`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，硬前置已满足）——若发现回退则本 Phase 不得开工、保持 `planned` 并在 daily log 记录排队。
+- [x] **修复前红**：`select sum(v) from t group by rollup(g)` 解析通过但编译报 `ERR_EQL_UNKNOWN_FUNCTION`（现状实测）——回归测试断言修复后 lowering/门控行为，修复前红留痕；`cube`/`grouping` 同。
+- [x] 文法与 AST（按 Phase 0 裁定路径）：ⓒ-A 则 `ROLLUP`/`CUBE` token（`nop-persistence/nop-orm-eql/model/antlr/Literals.g4`，定义在 `IDENTIFIER_` 之前，NULLS 先例）+ `unreservedWord_` 双登记 + `sqlGroupByItem` 新备选**前置**（altLabel 三约束；备选顺序与胜者钉死按 Phase 0 裁定，排后即死代码）+ 新 AST 类（`EqlAST.xjava` → `ast/_gen` 重生成；ordinal 尾部追加/插中段落点登记）+ 新 enums 类（`ROLLUP|CUBE`）+ 手写 visit；**`grouping` 零文法改动**——`*.dialect.xml` 函数表注册（`<native name="grouping">` 形态，现全方言函数表 0 注册）+ `EqlTransformVisitor.visitSqlRegularFunction` 按函数名门控（`onlyForWindowExpr` 先例 `:1551-1556` 同款）；ⓓ 则 transformer 路线（零文法、零 `ast/_gen`）。`.g4`/`EqlAST.xjava` 改动单独提交。
+- [x] **transform 能力门与放置校验**（按 Phase 0 裁定）：rollup/cube 仅 GROUP BY 位置合法——**ⓒ-A 下非 GROUP BY 位置的报错机制 = 落 `SqlRegularFunction` → 函数表未注册 → `ERR_EQL_UNKNOWN_FUNCTION`（或 Phase 0 裁定的显式门），断言值随裁定口径**；grouping 的语义级放置校验（仅引用 GROUP BY 项）为**可选裁定项**（未注册方言已被 unknown-function 编译期报错兜底——Phase 0 裁定不做须登记理由，防范围蠕动）；方言矩阵逐格执行（Phase 0 结论）：`CUBE` 在 **MySQL/MariaDB 显式编译期报错**（EC ① 硬性用例）、mysql 函数式 `rollup` 超承诺基线报错（successor 触发条件登记）、`dm`/`tdengine` 一律报错（红线）、h2 三函数报错（探针 `[实测]` 无 → 负向载体用例，断言具体错误码并注明 `ai-dev/audits/eql-wi0/` 探针归档依据）。
+- [x] 正向用例断言具体方言 SQL 文本（EC ①）：每个"注册并 lowering"格至少一条文本断言（如 postgresql/duckdb/oracle 的 `group by rollup(g)` → `group by ROLLUP(g)` 形态、`group by cube(a,b)`、`select grouping(g) … having grouping(g) = 0` 形态——以各方言实际 lowering 输出为准；identity 输出也要显式断言）；混合项形态（若裁定支持）至少一条。
+- [x] 负向用例（EC ①⑦）：`CUBE` 在 mysql 与 mariadb 编译期报错（EC ① 硬性，两方言各一条）；h2 三函数各一条报错（含 `ai-dev/audits/eql-wi0/` 探针归档依据引注）；`grouping(a)` 在未注册方言报错（既有 `ERR_EQL_UNKNOWN_FUNCTION` 路径不回退的守护）；放置错误（`select rollup(a) from t` 非 GROUP BY 位置）编译期报错（机制随 Phase 0 口径——ⓒ-A 下默认函数表未注册 → unknown-function）——**无静默降级、无静默跳过**（不允许 rollup 不支持时静默按普通函数输出原文）。
+- [x] 接线验证（Minimum Rules #23）：`GROUP BY ROLLUP(...)` 文本 → parse（新备选/transformer）→ transform 门 → 打印的端到端用例（至少一条覆盖 postgresql 或 duckdb 文本输出 + 一条 mysql/mariadb 报错分支）。
+- [x] 约束 4 用例：同一 `rollup` 查询在支持方言（输出原文形态）与不支持方言（编译期报错）的"一致性/不等价"对照（Phase 0 清单落实）。
+- [x] 矩阵快照**预期有增量**：grouping 函数表注册是**确定的真实增量**（现全 18 个方言 XML 函数表 0 注册，2026-10-04 实测）；rollup/cube 的快照口径随 Phase 0 裁定（ⓒ-A 下 GROUP BY 语义走新 AST 门控、可能不进函数表——登记口径以裁定为准）。重生成 `TestDialectCapabilityMatrix` 快照 + `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（EC ③ 同款机制）；增量内容与 Phase 0 矩阵逐格一致。
+- [x] 真库证据分派（EC ⑦，差异登记第 2 条口径）：h2 = 负向载体（探针 `[实测]` 记录归档）；oracle/postgresql/duckdb/mysql(grouping)/mssql（若取证支持）= 一手文档引证 + 文本断言替代证据，逐方言列清单；`dm`/`tdengine` = `[未取证]`，不计覆盖率。
+- [x] owner doc（EC ① 文档面）：`eql-and-database-compatibility.md` 新增 rollup/cube/grouping 小节——逐方言覆盖矩阵（三态 + 证据等级）、放置规则、错误码、`GROUPING SETS` 永久否决引用、能力点登记表行；roadmap ledger `CUBE/ROLLUP(...)/GROUPING()` 行收口标注。
+- [x] 语料 BC（EC ⑥）：三份必测逐字一致（Phase 0 已证 0 命中，棘轮实测兜底）；`sqlGroupByItem` 既有形态 `group by a, b` 输出逐字不变守护用例。
+- [x] 若 ⓒ-A：`./mvnw clean install -T 1C` 通过（`ast/_gen` 重写后 codegen 全链路 + 114 个 orm.xml 回归，roadmap WI7 收口注记口径）；若 ⓓ：`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本/错误码：每"注册并 lowering"格正向文本用例 + `CUBE` 在 mysql/mariadb 显式报错（EC ①）+ h2 三函数负向 + 放置错误报错；修复前红留痕。
-- [ ] 无静默跳过：不支持方言一律编译期响亮报错，不允许回退原文输出或空实现（Minimum Rules #24）。
-- [ ] 端到端接线用例通过（parse → 门 → 打印/报错）；`group by a, b` 既有形态逐字不变。
-- [ ] 矩阵快照增量与 Phase 0 矩阵逐格一致 + 门禁 exit 0；真库证据分派清单已落 owner doc（含 `[未取证]` 标注，未计入覆盖率）。
-- [ ] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
-- [ ] 生成物纪律：`.g4`/`EqlAST.xjava` 改动单独提交；重生成后 `git diff` 逐一检查且与裁定路径一致（ⓓ 下 `ast/_gen/` 零 diff）；无 lexer token 删除；若 ⓒ-A 则 `./mvnw clean install -T 1C` 通过。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本/错误码：每"注册并 lowering"格正向文本用例 + `CUBE` 在 mysql/mariadb 显式报错（EC ①）+ h2 三函数负向 + 放置错误报错；修复前红留痕。
+- [x] 无静默跳过：不支持方言一律编译期响亮报错，不允许回退原文输出或空实现（Minimum Rules #24）。
+- [x] 端到端接线用例通过（parse → 门 → 打印/报错）；`group by a, b` 既有形态逐字不变。
+- [x] 矩阵快照增量与 Phase 0 矩阵逐格一致 + 门禁 exit 0；真库证据分派清单已落 owner doc（含 `[未取证]` 标注，未计入覆盖率）。
+- [x] `TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
+- [x] 生成物纪律：`.g4`/`EqlAST.xjava` 改动单独提交；重生成后 `git diff` 逐一检查且与裁定路径一致（ⓓ 下 `ast/_gen/` 零 diff）；无 lexer token 删除；若 ⓒ-A 则 `./mvnw clean install -T 1C` 通过。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - 窗口 OVER/frame 现状核验收口 + roadmap WI7b 行回写（EC ②）
 
-Status: planned
+Status: completed（2026-10-04）
 Targets: `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlWindowGrammarParse.java`（补缺口用例，若有）、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI7b 行 + 门控矩阵单元格）、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`（窗口段交叉引用）、`ai-dev/logs/`
 
 - Item Types: `Proof`、`Follow-up`（回写为文档对齐，非缺陷修复）
 
-- [ ] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`；本 Phase 含 roadmap 文件改动，以前置 closure 状态稳定为前提，避免状态交叉漂移）。
-- [ ] **EC ② 逐项对照审计**：窗口 `OVER` 两种形态（带/不带 partition）+ frame 的"正确 SQL 文本用例"——逐项核对 `TestEqlWindowGrammarParse`（parse 断言）、`__snapshot/{dialect}.window.sql`（10 方言文本 golden）、`TestH2WindowFrameMatrix`/`TestH2WindowFrameCompileEndToEnd`（真库）现状，产出"已满足/缺口"结论并记录；缺口（预判在边角形态，如"不带 partition 仅 frame""不带 partition 仅 order by 的文本断言"）在本 Phase 补齐用例（**不改动产品代码**——若审计发现产品行为缺口则停下登记 scope change）。
-- [ ] **roadmap WI7b 行定价回写**（照 plan 26 Phase 4 对 WI7 行的原地注记先例，不删原文、注明修订依据 = 本 plan Phase 0 实测）：① WI7b 节"窗口 `OVER` 放宽（今天 `over(order by …)` 不带 partition 就失败）+ frame（需 `SqlWindowExpr` 增字段）"加执行终态注记——实测已由 `add-stream-sql` 带入（五 AST 节点 + 文法全备选 + 三道 frame 门 + 10 方言 golden + H2 真库测试），本 plan 只做核验收口；② 门控矩阵 WI7b 行 Protected Area 单元格"生成管线（`SqlWindowExpr` 增字段）"加注记——窗口半区零 `.g4`/`EqlAST.xjava` 触碰，实际生成管线触碰面以 Phase 2 裁定路径为准（ⓒ 才触）；③ 写明后继（WI12）读取口径。
-- [ ] owner doc 交叉引用：`eql-and-database-compatibility.md` 窗口段（`:38-52`）补一行与本 plan 裁定文档的互链（防两 roadmap 编号空间混用的既有注记 `:40` 保持不变）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`；本 Phase 含 roadmap 文件改动，以前置 closure 状态稳定为前提，避免状态交叉漂移）。
+- [x] **EC ② 逐项对照审计**：窗口 `OVER` 两种形态（带/不带 partition）+ frame 的"正确 SQL 文本用例"——逐项核对 `TestEqlWindowGrammarParse`（parse 断言）、`__snapshot/{dialect}.window.sql`（10 方言文本 golden）、`TestH2WindowFrameMatrix`/`TestH2WindowFrameCompileEndToEnd`（真库）现状，产出"已满足/缺口"结论并记录；缺口（预判在边角形态，如"不带 partition 仅 frame""不带 partition 仅 order by 的文本断言"）在本 Phase 补齐用例（**不改动产品代码**——若审计发现产品行为缺口则停下登记 scope change）。
+- [x] **roadmap WI7b 行定价回写**（照 plan 26 Phase 4 对 WI7 行的原地注记先例，不删原文、注明修订依据 = 本 plan Phase 0 实测）：① WI7b 节"窗口 `OVER` 放宽（今天 `over(order by …)` 不带 partition 就失败）+ frame（需 `SqlWindowExpr` 增字段）"加执行终态注记——实测已由 `add-stream-sql` 带入（五 AST 节点 + 文法全备选 + 三道 frame 门 + 10 方言 golden + H2 真库测试），本 plan 只做核验收口；② 门控矩阵 WI7b 行 Protected Area 单元格"生成管线（`SqlWindowExpr` 增字段）"加注记——窗口半区零 `.g4`/`EqlAST.xjava` 触碰，实际生成管线触碰面以 Phase 2 裁定路径为准（ⓒ 才触）；③ 写明后继（WI12）读取口径。
+- [x] owner doc 交叉引用：`eql-and-database-compatibility.md` 窗口段（`:38-52`）补一行与本 plan 裁定文档的互链（防两 roadmap 编号空间混用的既有注记 `:40` 保持不变）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
-- [ ] EC ② 逐项对照结论已记录（已满足项给出现有测试名/golden 文件；缺口项已补齐用例）；无产品代码改动（或已按 scope change 处理并登记）。
-- [ ] roadmap WI7b 行与门控矩阵单元格回写完成（原地注记先例、后继读取口径写明）。
-- [ ] owner doc 交叉引用落档；`check-doc-links --strict` 新增 broken link = 0。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] EC ② 逐项对照结论已记录（已满足项给出现有测试名/golden 文件；缺口项已补齐用例）；无产品代码改动（或已按 scope change 处理并登记）。
+- [x] roadmap WI7b 行与门控矩阵单元格回写完成（原地注记先例、后继读取口径写明）。
+- [x] owner doc 交叉引用落档；`check-doc-links --strict` 新增 broken link = 0。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - `count(*) FILTER` 文档引导 + roadmap ledger 收口（EC ④）
 
-Status: planned
+Status: completed（2026-10-04）
 Targets: `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`（FILTER 引导小节）、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`（ledger `count(*) FILTER` 行收口 + WI7b 行状态流转）、`ai-dev/logs/`
 
 > 本 Phase 纯文档：`./mvnw test` 等构建验证不适用（按 guide"纯文档计划"条款在本 Phase 内豁免，Closure Gates 的构建门禁由 Phase 1/2 的命令承担）。
 
 - Item Types: `Feature`（文档交付）、`Proof`
 
-- [ ] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，同 Phase 3）。
-- [ ] owner doc 新增 `count(*) FILTER` 引导小节（EC ④，按 Phase 0 大纲）：① 引导写法 `sum(case when p then 1 else 0 end)`；② **空分组提醒**：无行满足条件时 `sum(...)` 返回 NULL 而 `count(*) FILTER` 语义返回 0——需要 0 语义时套 `coalesce(sum(...), 0)`；③ 有/无/未取证矩阵——已确认有：PG/DuckDB/SQLite；已确认无：MySQL/MariaDB/MSSQL/Oracle（其 3 处 `FILTER` 均为 analytic view 的 `FILTER FACT`）；未取证：DB2（IBM 文档 403/JS 门禁）、TDengine（红线无一手文档）、H2（h2database.com 五页零 `FILTER`，仅 `h2.dialect.xml:45` 保留 FILTER 关键字 + 本 plan 探针旁证记录）；④ "为什么不进语法"的约束 3 引用（无法跨多数方言无损 lowering）。
-- [ ] roadmap ledger `count(*) FILTER` 行收口：标注"文档引导已由 WI7b 交付"并指向 owner doc 小节（照 ledger 其他行收口先例，不删原文）。
-- [ ] roadmap WI7b 行状态流转：本 plan 独立 closure audit 通过后，按 roadmap Status values 纪律执行 `todo` → `planned` → `done`（不得提前；`planned` 的翻转可在本 plan 转入执行时做）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning 不顺手修、只比对新增量）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] **开工前置复核（回退防护）**：plan 03 与 plan 26 的 `Plan Status` 未回退（现均 `completed`，同 Phase 3）。
+- [x] owner doc 新增 `count(*) FILTER` 引导小节（EC ④，按 Phase 0 大纲）：① 引导写法 `sum(case when p then 1 else 0 end)`；② **空分组提醒**：无行满足条件时 `sum(...)` 返回 NULL 而 `count(*) FILTER` 语义返回 0——需要 0 语义时套 `coalesce(sum(...), 0)`；③ 有/无/未取证矩阵——已确认有：PG/DuckDB/SQLite；已确认无：MySQL/MariaDB/MSSQL/Oracle（其 3 处 `FILTER` 均为 analytic view 的 `FILTER FACT`）；未取证：DB2（IBM 文档 403/JS 门禁）、TDengine（红线无一手文档）、H2（h2database.com 五页零 `FILTER`，仅 `h2.dialect.xml:45` 保留 FILTER 关键字 + 本 plan 探针旁证记录）；④ "为什么不进语法"的约束 3 引用（无法跨多数方言无损 lowering）。
+- [x] roadmap ledger `count(*) FILTER` 行收口：标注"文档引导已由 WI7b 交付"并指向 owner doc 小节（照 ledger 其他行收口先例，不删原文）。
+- [x] roadmap WI7b 行状态流转：本 plan 独立 closure audit 通过后，按 roadmap Status values 纪律执行 `todo` → `planned` → `done`（不得提前；`planned` 的翻转可在本 plan 转入执行时做）。
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning 不顺手修、只比对新增量）。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 Exit Criteria:
 
-- [ ] owner doc FILTER 引导小节已落档：引导写法 + 空分组 NULL-vs-0 提醒 + 三态矩阵（EC ④ 全要素）。
-- [ ] roadmap ledger 行已收口标注；WI7b 行状态与 plan 状态一致。
-- [ ] `check-doc-links --strict` 新增 broken link = 0；`ai-dev/logs/` 对应日期条目已更新。
+- [x] owner doc FILTER 引导小节已落档：引导写法 + 空分组 NULL-vs-0 提醒 + 三态矩阵（EC ④ 全要素）。
+- [x] roadmap ledger 行已收口标注；WI7b 行状态与 plan 状态一致。
+- [x] `check-doc-links --strict` 新增 broken link = 0；`ai-dev/logs/` 对应日期条目已更新。
 
 ## Closure Gates
 

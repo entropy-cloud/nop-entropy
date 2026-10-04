@@ -117,6 +117,16 @@ public class TestEqlGroupingOpsDialect {
         assertEquals(SqlGroupingOpType.ROLLUP, op.getType());
     }
 
+    /** unreservedWord_ 双登记守护：rollup/cube 作标识符（列名/别名）仍可解析。 */
+    @Test
+    public void testRollupCubeAsIdentifiers() {
+        SqlProgram program = new EqlASTParser().parseFromText(null,
+                "select rollup, cube from T t order by rollup");
+        assertNotNull(program);
+        String echo = normalized(program.toSqlString());
+        assertTrue(echo.contains("rollup") && echo.contains("cube"), echo);
+    }
+
     /** 既有 group by 形态逐字不变守护（回显路径）。 */
     @Test
     public void testPlainGroupByEchoUnchanged() {
