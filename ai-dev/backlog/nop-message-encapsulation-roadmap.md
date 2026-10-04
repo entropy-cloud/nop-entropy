@@ -136,7 +136,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase A — 基线、裁定与防线
 
 - WI1 nop-message 四模块与 SPI 全量审计基线: `done`（deps 无；Item Type Proof；完成判定 产出 ai-dev/analysis/2026-10/nop-message-audit-baseline.md，每条 finding 编号 `MSG-F-nn` 并给三态裁定 confirmed / already-correct / watch-only，confirmed 逐条给 file:line；本项不含代码变更）
-- WI2 SPI 字段乘后端能力矩阵: `todo`（deps WI1；Item Type Proof；完成判定 产出矩阵覆盖 MessageSendOptions 与 MessageSubscribeOptions 与 SeekMode 与 SubscriptionType 与 onMessage 五种返回值语义与信封元数据，每格三态标注 support / typed-reject / warn-once；矩阵作为 D1 至 D10 裁定与 WI6 的输入）
+- WI2 SPI 字段乘后端能力矩阵: `done`（deps WI1；Item Type Proof；完成判定 产出矩阵覆盖 MessageSendOptions 与 MessageSubscribeOptions 与 SeekMode 与 SubscriptionType 与 onMessage 五种返回值语义与信封元数据，每格三态标注 support / typed-reject / warn-once；矩阵作为 D1 至 D10 裁定与 WI6 的输入）
 - WI3 D1 至 D11 前置裁定落档: `todo`（deps WI2 WI5；Item Type Decision；完成判定 十一条裁定各落 ai-dev/design/nop-message/ 下对应设计文档，含负责人与日期；未落档并注明负责人与日期的视为未裁，对应 WI 不得起草）
 - WI4 共享契约测试骨架: `todo`（deps WI2；Item Type Proof；对应 MSG-F-49 与 MSG-F-46；完成判定 新增 broker 无关的 `AbstractMessageServiceContractTest`，覆盖 send 与五种 onMessage 返回值语义与 ConsumeLater 与 batch arity 与 suspend-resume-cancel 与 destroy 幂等；`LocalMessageService` 作为首个 extend 者全绿；骨架成为 WI6 至 WI28 每项的必跑回归面）
 - WI5 Spring 对照分析落档: `todo`（deps 无；Item Type Proof；完成判定 产出 ai-dev/analysis/2026-10/nop-message-spring-comparison.md，六维度含 ack 与错误处理与事务与容器生命周期与可观测性与测试支持；必须显式记录 AckMode 与 RetryTopic 与 CommonErrorHandler 三项为不采纳并给出理由，防止后续 agent 重新导入）
