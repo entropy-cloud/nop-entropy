@@ -171,10 +171,10 @@ stdTypeMap.put(StdDataType.TIMESTAMP, StdSqlType.TIMESTAMP); // 同上
 
 草表（Phase 2 实测后终稿化；修复前行为按当前 live 形态）：
 
-| 新增拼写 | 修复前行为 | 修复后行为 | 等价/受限拼写 → 生成 SQL | 备注 |
+| 新增拼写 | 修复前行为 | 修复后行为 | 等价/受限拼写 → 生成 SQL（载体方言文本） | 备注 |
 |---|---|---|---|---|
-| `time with local time zone` | 解析失败，`nop.err.antlr.*` 族（`sqlIdentifier_` 单词兜底承载不了多词；Phase 2 红锚实测具体码与 offending token） | 解析过 → 闸门 A 放行 → oracle 渲染 `TIME WITH LOCAL TIME ZONE`（宿主方言）；无宿主方言（含 h2）生成期响亮报 `nop.err.dao.dialect.std-data-type-not-supported` | `time_with_local_time_zone`（下划线，单 token）→ 同一渲染链；`time with local time zone(6)` / `time(6) with local time zone` → 解析失败（precision 位置限制，Deferred 登记） | **该 std 类型支持方言空集**（§2.3）——h2/oracle 均为负向载体，无正向渲染方言 |
-| `timestamp with local time zone` | 同上 | 解析过 → oracle 渲染 `TIMESTAMP WITH LOCAL TIME ZONE`；h2 等无宿主方言响亮报同错误码 | `timestamp_with_local_time_zone` → 同链；`timestamp(6) with local time zone` → 解析失败（同上限制） | 唯一宿主 = oracle（§2.2/§六载体表） |
+| `time with local time zone` | 解析失败，`nop.err.antlr.*` 族（`sqlIdentifier_` 单词兜底承载不了多词；Phase 2 红锚实测具体码与 offending token） | 解析失败，offending=with（Phase 2 红探针实测）→ 修复后解析过、AST 名 `TIME_WITH_LOCAL_TIME_ZONE`；**支持方言空集**（§2.3），全方言生成期响亮报 `nop.err.dao.dialect.std-data-type-not-supported` | `time_with_local_time_zone`（下划线，单 token）→ 同链同输出；`time(3) with local time zone`（precision 前置）→ 解析失败（Deferred 登记） | **该 std 类型支持方言空集**（§2.3）——h2/oracle 均为负向载体，无正向渲染方言 |
+| `timestamp with local time zone` | 同上 | 解析过 → AST 名 `TIMESTAMP_WITH_LOCAL_TIME_ZONE`；oracle 渲染 `TIMESTAMP WITH LOCAL TIME ZONE`（Phase 3 条目）；h2 等无宿主方言响亮报同错误码 | `timestamp_with_local_time_zone` → 同链同输出；`timestamp(6) with local time zone`（precision 前置）→ 解析失败；**precision 后置形态 `… local time zone(6)` 实测可解析**——`(precision[,scale])` 组匹配多词备选之后的 `(6)`，precision 入 AST 但按成员 `(false,false)` 不渲染（与既有 `date(3)`/`boolean(6)` 非精度 std 类型同型行为，非本 plan 引入的回归；2026-10-05 Phase 2 实测对"两种插入位置都不可解析"草表预期的修正） | 唯一宿主 = oracle（§2.2/§六载体表） |
 | （非 LOCAL 变体注记行）`time with time zone` / `timestamp with time zone` | 解析失败（WI9a 收窄后形态，`nop.err.antlr.common.parse-fail`，offending=with——WI9a §五对照表行 13/14 实测终稿） | **维持删除态不变**（§5.2 终裁；Phase 2 显式断言不复活） | 无（std 闭集无非 LOCAL 时区成员） | 回写 WI9a 裁定文档 §五对照表 `:152-153` 行的 WI9b 边界注记为落地态 |
 
 ## 六、裁定 4：DDL 映射载体——**候选 (a)，oracle 单条目**；`TIME_WITH_LOCAL_TIME_ZONE` 逐成员全负登记

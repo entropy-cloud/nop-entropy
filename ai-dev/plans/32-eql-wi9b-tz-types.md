@@ -181,7 +181,7 @@ Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/type/StdSqlType.ja
 - [x] 按 Phase 0 裁定落两个成员：以现 4 参构造器形态写入 `:38/:42` 区（保持 `TIME`/`TIMESTAMP` 相邻的声明序），按裁定补重钉行（Phase 0 §三终裁 = **三处**：`jdbcTypeMap.put(OTHER,OTHER)` + `stdTypeMap.put(TIME,TIME)` + `stdTypeMap.put(TIMESTAMP,TIMESTAMP)`）。**不修改任何既有成员与既有映射条目**；`getNames()` 键集 30 → 32 变化登记进裁定文档附录（§九）。
 - [x] 修复前红（gate B 与反查层，本 Phase 的可观测红锚）：`fromStdName("TIME_WITH_LOCAL_TIME_ZONE")` / `("TIMESTAMP_WITH_LOCAL_TIME_ZONE")` 返回 null（`_tmp/wi9b/stdnames-probe.log` 2026-10-05 实测 + 裁定文档 §3.4 基线表）；闸门 B 红锚由接线用例的解析失败形态承载（`TestTimezoneTypeGateBWiring` javadoc 登记 `ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN`）；修复后同输入放行（`TestStdSqlTypeTimezoneMembers` 7/7 绿）。
 - [x] 三 map 不变量聚焦测试（`TestStdSqlTypeTimezoneMembers` 7 用例逐条断言）：`fromJdbcType(Types.OTHER)` 仍返回 `OTHER`、`fromJdbcType(2013/2014)` 保持 null（候选 (a) 被拒的直接钉）；`fromStdDataTYpe(TIME/TIMESTAMP/DATETIME)` 与本 Phase 前一致；`fromJavaClass(LocalTime/LocalDateTime/Timestamp)` 不变；`fromStdName` 对两个新名返回裁定成员、对 `INT`/`TEXT`/`NUMBER`/`BOOL`/`UUID` 等既有键仍正确。
-- [x] `nop-db-migration` 闸门 B 连通用例（`TestTimezoneTypeGateBWiring` 2/2 绿 + carrier `_vfs/nop/db-migration/wi9b/V1.0.0__tz_column.migration.xml`）：`type="TIMESTAMP_WITH_LOCAL_TIME_ZONE"` 经 xdef `!std-sql-type` 域解析为 `ColumnDefinition.type`（闸门 B 放行）→ `AddColumnExecutor.buildColumnType → stdToNativeSqlType` 链在 h2 上响亮报 `nop.err.dao.dialect.std-data-type-not-supported`（错误码字面值断言）；Phase 3 落 oracle 映射后同链补渲染断言。
+- [x] `nop-db-migration` 闸门 B 连通用例（`TestTimezoneTypeGateBWiring` 2/2 绿 + carrier 资源，位于 nop-persistence/nop-db-migration 测试资源的 `_vfs/nop/db-migration/wi9b/` 目录、文件名 `V1.0.0__tz_column.migration.xml`）：`type="TIMESTAMP_WITH_LOCAL_TIME_ZONE"` 经 xdef `!std-sql-type` 域解析为 `ColumnDefinition.type`（闸门 B 放行）→ `AddColumnExecutor.buildColumnType → stdToNativeSqlType` 链在 h2 上响亮报 `nop.err.dao.dialect.std-data-type-not-supported`（错误码字面值断言）；Phase 3 落 oracle 映射后同链补渲染断言。
 - [x] `./mvnw test -pl :nop-commons,:nop-db-migration -am` 通过（nop-commons 358 | 0、nop-db-migration 97 | 0，2026-10-05 实跑）；全量门留待 Phase 3 统一执行。
 - [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` Phase 1 条目）。
 
@@ -197,30 +197,30 @@ Exit Criteria:
 
 ### Phase 2 - `dataTypeName_` 时区拼写新增（.g4，单独提交）
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`dataTypeName_` `:438-446`）→ 重生成产物、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`（新拼写入口——LOCAL 变体从未存在，非 BUG-11 型缺陷修复）、`Proof`
 
 - [x] 开工前置核验：确认无并行 WI 的 `.g4`→`EqlParser` 重生成债未清零（已知在途项：WI7 Phase 1 `09fa140ff5` 落地时其重生成产物显式欠账"随下一次提交"——若该债未清，先协调清账，或确认其将随本 plan 文法提交一并清偿并在重生成 diff 审计中分账登记；否则本 Phase 的重生成 diff 审计会把并行 WI 的欠账 diff 误记为本 plan 改动）。结论登记进提交说明或日志。**（2026-10-05 提前核验完成：债已清零——WI7b 重生成产物随 `7048cf1474` 提交、WI8 两个文法提交各自携带重生成产物、工作区无 `.g4`/`EqlParser` 未提交改动；裁定文档 §〇）**
-- [ ] 修复前红：`cast(x as time with local time zone)` / `cast(x as timestamp with local time zone)` 断言解析失败（错误码字面值：`nop.err.antlr.*` 族，Phase 0 裁定文档记录具体码与 offending token）——红证据留痕；同时断言非 LOCAL 拼写（`time with time zone`）维持 WI9a 收窄后形态不变（不复活）。
-- [ ] 按 Phase 0 裁定形态给 `dataTypeName_` 新增两备选（bare 多词形态为倾向）；**不删除任何 lexer token**、不触碰 `characterSet_`/`collateClause_`/`sqlDateTimeLiteral`/`sqlIntervalExpr` 等共用 token 规则；文法改动**单独提交**，重生成产物随该提交。
-- [ ] 重生成 diff 审计：确认仅 `EqlParser.java`/`Eql.interp` ATN 变化、token 表零增删（`WITH`/`LOCAL`/`ZONE` 均既有 token）、`ast/_gen`/`EqlLexer*`/`*.tokens`/`_EqlASTBuildVisitor.java` 零 diff（WI2/WI9a 同口径先例）；偏差即停，按生成管线 plan-first 重新裁定。
-- [ ] 修复后绿（端到端，Anti-Hollow 主证据）：两个 LOCAL 拼写在裁定映射方言上解析 → 闸门 A → 生成器 → 断言具体方言情 native 文本（期望文本按 Phase 0 载体表取值）；无映射方言解析过、生成期响亮报 `nop.err.dao.dialect.std-data-type-not-supported`（错误码字面值断言）；`nosuchtype` 语义拒绝与 `ARG_ALLOWED_NAMES` 含新键断言存活。
-- [ ] WI2/WI9a 回归底线存活的显式断言：`TestEqlCastBooleanParse`（`nosuchtype` + BOOLEAN 文本）、`TestEqlSqlTypeClauseGuard` 全部用例不改动且通过；`TestEqlCastTypeNarrowingParse` 的 stdNameMap 穷举式用例随键集 30 → 32 扩展（"文法放行 ⇒ 语义必过或语义响亮拒"证明覆盖新成员）。
-- [ ] 对照表定稿并落档（Phase 0 第 5 项定稿列结构的实测终稿）：新增拼写行 + 非 LOCAL 维持删除态注记行 + precision 位置限制注记；回写 `eql-and-database-compatibility.md:266` 的 WI9b 边界注记为落地态。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 修复前红：`cast(x as time with local time zone)` / `cast(x as timestamp with local time zone)` 断言解析失败——红探针实测（`_tmp/wi9b/red-phase2.log`）：`nop.err.antlr.common.parse-fail`、offendingToken=with（与 WI9a §五行 13/14 形态一致）；非 LOCAL 拼写维持删除态断言同文件（`TestEqlCastTimezoneTypeParse.testNonLocalSpellingsRemainDeleted`）。
+- [x] 按 Phase 0 裁定形态给 `dataTypeName_` 新增两备选（bare 多词形态）；**不删除任何 lexer token**、不触碰 `characterSet_`/`collateClause_`/`sqlDateTimeLiteral`/`sqlIntervalExpr` 等共用 token 规则；文法改动**单独提交**，重生成产物随该提交。**执行期新增裁定项（Phase 0 §5.3）**：手写闸门 A `EqlASTBuildVisitor.SqlTypeExpr_name` 多 token 名称归一化（`getText()` 无分隔符拼接使多词备选以 "TIMEWITHLOCALTIMEZONE" 必拒 = BUG-11 同型；token span 重建含空白原文 + 空白转 `_`；单 token 路径逐字节不变）。
+- [x] 重生成 diff 审计：实测 `git status` 仅 `EqlParser.java`/`Eql.interp` 变化（`./mvnw generate-sources -pl :nop-orm-eql -am`）；token 表零增删——`EqlLexer*`/`*.tokens`/`ast/_gen`/`EqlAST.xjava`/`_EqlASTBuildVisitor.java` 全部零 diff（`WITH`/`LOCAL`/`ZONE` 均既有 token），与 WI2/WI9a 同口径。
+- [x] 修复后绿（端到端，Anti-Hollow 主证据）：`TestEqlCastTimezoneTypeCompile` 9/9——**裁定同构测试方言**（native 名 `TIMESTAMP WITH LOCAL TIME ZONE` 与 Phase 0 oracle 条目逐字同形；真实 oracle XML 按 plan 依赖声明 Phase 3 依赖 Phase 1 逐方言独立提交落地）断言 `cast(o.SID as TIMESTAMP WITH LOCAL TIME ZONE)` 全链渲染；h2（真方言）/最小方言/oracle-TIME 成员负向响亮报错误码字面值（`nop.err.dao.dialect.std-data-type-not-supported`）；下划线/多词/bare/precision 后置形态一致性逐字断言；`nosuchtype` 语义拒绝 + `ARG_ALLOWED_NAMES` 含新键且 32 键断言存活（parse 层）。
+- [x] WI2/WI9a 回归底线存活的显式断言：`TestEqlCastBooleanParse` 4/4、`TestEqlSqlTypeClauseGuard` 7/7（零改动）；`TestEqlCastTypeNarrowingParse` 6/6——stdNameMap 穷举式用例动态迭代 `getNames()` 随键集 30 → 32 自动扩并证明"文法放行 ⇒ 语义必过或语义响亮拒"覆盖新成员（DOUBLE/ARRAY/ANY 已知不可拼写组不变）。
+- [x] 对照表定稿并落档（Phase 0 裁定文档 §5.4 实测终稿，2026-10-05 按 Phase 2 实测修订：precision 后置形态可解析、前置形态解析失败）：新增拼写行 + 非 LOCAL 维持删除态注记行 + precision 两形态注记；owner doc 新增「`dataTypeName_` LOCAL 时区拼写与 `StdSqlType` 时区成员（2026-10-05 WI9b）」小节并回写 WI9a 收窄表 WI9b 边界注记行为落地态（`eql-and-database-compatibility.md`，现位 `:268` 行——顺带勘正该文件沿袭 WI9a §九 的"34 键"计数为实测口径）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-05.md` Phase 2 条目）。
 
 Exit Criteria:
 
-- [ ] 红→绿断言按裁定落地：修复前 `nop.err.antlr.*` 解析失败、修复后端到端可用；错误形态迁移逐项在对照表登记（错误码字面值级）。
-- [ ] 新增后文法接受集 = `stdNameMap` 键集 ∪ `sqlIdentifier_` 兜底，且 32 键穷举式证明"文法放行 ⇒ 语义必过或语义响亮拒"，无"文法放行 + 静默错误 SQL"路径。
-- [ ] 非 LOCAL 变体维持删除态有显式断言；WI2/WI9a 底线全部存活。
-- [ ] `.g4` 提交独立可审计（`git log` 中文法提交不含逻辑改动）；重生成 diff 符合本 Phase 第 4 项口径（token 零增删）。
-- [ ] 对照表定稿落档（owner doc + 裁定文档），含 `:266` 行回写。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径见 Current Baseline"既有 EQL 语料与全绿口径"节，stream 既有 1 项失败豁免）。
-- [ ] 既有 EQL 语料 BC：三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 通过）；不声称"7 个全测"。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿断言按裁定落地：修复前 `nop.err.antlr.common.parse-fail`（offending=with）、修复后端到端可用；错误形态迁移逐项在对照表登记（错误码字面值级）。
+- [x] 新增后文法接受集 = `stdNameMap` 键集 ∪ `sqlIdentifier_` 兜底，且 32 键穷举式证明"文法放行 ⇒ 语义必过或语义响亮拒"，无"文法放行 + 静默错误 SQL"路径（`TestEqlCastTimezoneTypeParse.testEveryRegisteredStdNameGrammarAcceptable` + Narrowing 穷举双保险）。
+- [x] 非 LOCAL 变体维持删除态有显式断言；WI2/WI9a 底线全部存活。
+- [x] `.g4` 提交独立可审计（本提交仅 .g4 + 重生成产物 + 手写闸门 A 适配 + parse/compile 测试，无方言/模型层改动）；重生成 diff 符合本 Phase 第 4 项口径（token 零增删）。
+- [x] 对照表定稿落档（owner doc + 裁定文档），含 WI9a 收窄表边界注记行回写。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-db-migration,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（口径见 Current Baseline"既有 EQL 语料与全绿口径"节，stream 既有 1 项失败豁免）。（**执行记录 2026-10-05，两段式如实登记**：run1 无排除实跑（`_tmp/wi9b/phase2-pl-run.log`）中断于 stream-runtime 既有基线失败 `TestStreamConnectorRegistryDiscovery`（debezium-cdc SINGLE_INSTANCE/PARALLEL，与 WI0 基线症状一致；`:nop-auth-service` 被 reactor 跳过——WI10b F-1 同型情形，run1 不作为 auth-service 证据）；run2 类级排除豁免清单（`!TestStreamConnectorRegistryDiscovery,!TestMessageSourceFunctionRestart,!TestBatchTaskCheckpoint,!TestLocalJobScheduler,!TestExecutorTaskStepWrapperAsyncBranch,!JSONPointTest_0,!JSONPointTest_1` 连带，`_tmp/wi9b/phase2-pl-exempt-run.log`）→ **BUILD SUCCESS，MVN_EXIT=0**，六个目标模块 + stream-runtime 全 SUCCESS（auth-service 本轮真实执行 31.4s）。）
+- [x] 既有 EQL 语料 BC：三份必测载体在 `-am` 闭包内随模块全绿 + `TestEqlCorpusBaseline` 1/1（run1 实测，快照零 diff）；不声称"7 个全测"。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 3 - DDL 映射落地 + 真库往返 + 全量收口（映射逐方言独立提交）
 

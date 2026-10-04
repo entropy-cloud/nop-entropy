@@ -254,7 +254,7 @@ CAST 类型表达式的 `character set`/`collate` 子句（文法 `characterSet_
 
 **拒绝面（不弱化）**：未知拼写（如 `nosuchtype`）仍响亮报 `nop.err.eql.invalid-sql-type` 且 `allowedNames` 含全部新键；别名已放行但方言无映射时**生成期响亮报错**（不静默降级/改写）。回归：`TestEqlCastTypeAliasParse`（解析层）、`TestEqlCastTypeAliasCompile`（别名全链 + 一致性/不等价两类用例）、`TestEqlCastUuidDialectCompile`（UUID 四正三负载体）、`TestEqlCastBooleanParse`/`TestEqlCastBooleanCompile`（WI2 BOOLEAN 底线）。
 
-**文法收窄（2026-10-04 WI9a BUG-11，候选 A）**：`dataTypeName_` 删除 14 个"解析可过、AST 必拒"的死备选——错误形态从"解析过 + `nop.err.eql.invalid-sql-type`"迁移为"解析失败 + `nop.err.antlr.common.parse-fail`"（同为响亮失败）。收窄后文法接受集 = 12 个活显式备选 ∪ `sqlIdentifier_` 单词兜底；`stdNameMap` 34 键中仅 `DOUBLE`/`ARRAY`/`ANY` 三者为关键字 token 且无显式备选（无拼写入口，收窄前即如此）。14 项对照（完整版见 WI9a Phase 0 裁定文档 §五）：
+**文法收窄（2026-10-04 WI9a BUG-11，候选 A）**：`dataTypeName_` 删除 14 个"解析可过、AST 必拒"的死备选——错误形态从"解析过 + `nop.err.eql.invalid-sql-type`"迁移为"解析失败 + `nop.err.antlr.common.parse-fail`"（同为响亮失败）。收窄后文法接受集 = 12 个活显式备选 ∪ `sqlIdentifier_` 单词兜底；`stdNameMap` 仅 `DOUBLE`/`ARRAY`/`ANY` 三者为关键字 token 且无显式备选（无拼写入口，收窄前即如此；键集口径：WI9a 时点 30 键，WI9b 后 32 键——WI9a 裁定文档 §九曾自记"34"系算术误记，2026-10-05 实测勘误）。14 项对照（完整版见 WI9a Phase 0 裁定文档 §五）：
 
 | 被移除拼写 | 收窄前 | 收窄后 | 语义等价拼写 |
 |-----------|--------|--------|------------|
@@ -265,9 +265,25 @@ CAST 类型表达式的 `character set`/`collate` 子句（文法 `characterSet_
 | `dec` | 同上 | 同上 | `decimal`（或别名 `number`） |
 | `double precision` | 同上 | 同上 | 无（`DOUBLE` 为关键字 token 且不在 `unreservedWord_`——拼写缺口收窄前已存在，follow-up 登记） |
 | `interval` | 同上 | 同上 | 无（INTERVAL 走 interval 字面量语法） |
-| `time with time zone` / `timestamp with time zone` | 同上 | 同上 | 无（`WITH LOCAL TIME ZONE` 拼写归 WI9b，两个名字集互不替） |
+| `time with time zone` / `timestamp with time zone` | 同上 | 同上 | 无（非 LOCAL 变体维持删除态；`WITH LOCAL TIME ZONE` 拼写已由 WI9b 落地，见下节） |
 
-守护测试：`TestEqlCastTypeNarrowingParse`（红绿锚 + 兜底/活备选不变组 + `stdNameMap` 34 键穷举式"文法放行 ⇒ 语义必过或响亮拒"证明）；`TestEqlSqlTypeClauseGuard`（`characterSet_`/`collateClause_` 守卫不受收窄影响）。
+守护测试：`TestEqlCastTypeNarrowingParse`（红绿锚 + 兜底/活备选不变组 + `stdNameMap` 穷举式"文法放行 ⇒ 语义必过或响亮拒"证明）；`TestEqlSqlTypeClauseGuard`（`characterSet_`/`collateClause_` 守卫不受收窄影响）。
+
+### `dataTypeName_` LOCAL 时区拼写与 `StdSqlType` 时区成员（2026-10-05 WI9b）
+
+`dataTypeName_` 新增两个多词备选 `TIME WITH LOCAL TIME ZONE` / `TIMESTAMP WITH LOCAL TIME ZONE`（标准 SQL:1999 拼写；全历史首次存在——与 WI9a 删除的非 LOCAL 备选是两个名字集，非 LOCAL 维持删除态）。`StdSqlType` 的 `TIME_WITH_LOCAL_TIME_ZONE` / `TIMESTAMP_WITH_LOCAL_TIME_ZONE` 落活：键集 **30 → 32**；成员形态 = `Types.OTHER` + `StdDataType.TIME/TIMESTAMP` + `(false,false)`，static 块循环后三处显式重钉（`fromJdbcType(OTHER)`、`fromStdDataTYpe(TIME/TIMESTAMP)`、`fromJavaClass` 既有结果零翻转；`fromJdbcType(2013/2014)` 保持 null——两标准码在真实驱动上表示保偏移类型，不挂给 LOCAL 成员）。
+
+- **闸门 A 多词名称归一化**：手写 `EqlASTBuildVisitor.SqlTypeExpr_name` 对跨多 token 的名称从 token span 重建含空白原文、空白串转 `_` 后查表（ANTLR `getText()` 无分隔符拼接，不适配则多词备选会"解析过 + 语义必拒"）；AST `SqlTypeExpr.name` 存归一化枚举名；单 token 名称行为逐字节不变。
+- **CAST 对照表（2026-10-05 实测终稿，裁定文档 §5.4）**：
+
+| 新增拼写 | 修复前 | 修复后 | 受限/等价拼写 → 生成 SQL |
+|---|---|---|---|
+| `time with local time zone` | 解析失败 `nop.err.antlr.common.parse-fail`（offending=with） | 解析过 → AST 名 `TIME_WITH_LOCAL_TIME_ZONE`；**支持方言空集**（全方言无原生宿主），生成期响亮报 `nop.err.dao.dialect.std-data-type-not-supported` | `time_with_local_time_zone` 同链同输出；`time(3) with local time zone`（precision 前置）解析失败 |
+| `timestamp with local time zone` | 同上 | 解析过 → AST 名 `TIMESTAMP_WITH_LOCAL_TIME_ZONE`；oracle 渲染 `TIMESTAMP WITH LOCAL TIME ZONE`；h2 等无宿主方言响亮报同错误码 | `timestamp_with_local_time_zone` 同链同输出；`timestamp(6) with local time zone`（precision 前置）解析失败；后置 `… local time zone(6)` 可解析、precision 入 AST 但按 `(false,false)` 不渲染（与 `date(3)`/`boolean(6)` 同型既有行为） |
+| （非 LOCAL 注记行）`time with time zone` / `timestamp with time zone` | 维持 WI9a 收窄后删除态 | 不变（不复活 BUG-11 死备选） | 无 |
+
+- **载体矩阵**（裁定文档 §六）：`TIMESTAMP_WITH_LOCAL_TIME_ZONE` "支持"载体 = oracle（`<sqlDataType name="TIMESTAMP WITH LOCAL TIME ZONE" stdSqlType="TIMESTAMP_WITH_LOCAL_TIME_ZONE"/>`，零撞名纯新增键）；真实 Oracle 建表往返 `[未取证]`（CI 真库仅 H2，H2 2.4.240 实测不支持 LOCAL 形态建表——替代证据 = 方言模型渲染/反查断言）。EC ② 迁移结论 = **`No migration required`**（全仓 114 个 orm.xml 与资源对两个时区 std 类型 0 引用，三口径实测）。
+- 守护测试：`TestEqlCastTimezoneTypeParse`（红绿锚 + 非 LOCAL 不复活 + precision 两形态 + `ARG_ALLOWED_NAMES` 32 键）、`TestEqlCastTimezoneTypeCompile`（端到端渲染/响亮报错 + 一致性）、`TestStdSqlTypeTimezoneMembers`（三 map 不变量）、`TestTimezoneTypeGateBWiring`（闸门 B → `AddColumnExecutor` 接线）。
 
 ### `LATERAL` 子查询表源与 `supportLateral`（2026-10-03 WI1 BUG-2）
 
