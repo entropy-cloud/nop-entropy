@@ -548,6 +548,21 @@ EQL 归一化日期时间函数（普通 `SqlRegularFunction` 通道：函数名
 
 **语义差异登记（不等价类，原生同名词值域对照）**：mysql `DAYOFWEEK`=ODBC（1=Sunday..7）、duckdb `dayofweek`=0=Sunday..6、pg `extract(dow)`=0=Sunday..6、H2 `DAY_OF_WEEK`=locale 依赖、oracle `TO_CHAR 'D'`=territory 依赖——**各方言原生 `dayofweek` 同名词≠同值**；EQL 归一化 `dayofweek` 钉死 ISO 值域（h2 真库三点：周一=1/周二=2/周日=7，`testH2RealDbIsoValuePoints`）。
 
+#### dateTrunc(unit, d) → `datetrunc`（unit = 字符串字面量）
+
+**规范单位词表 = pg/duckdb/h2 交集**：`year/quarter/month/week/day/hour/minute/second`（大小写不敏感 `[实测]`）。pg 另有 decade/century/millennium/millisecond 等超集词，**不在规范词表**（规范词表钉死交集，超集按方言实际支持范围登记）。
+
+| 方言 | 输出 | 证据 |
+|------|------|------|
+| h2 / h2gis | `date_trunc('month', d)`（模板 `date_trunc({0},{1})`，`<testSql>` 真库执行） | `[实测]`（h2 `TestDialect.testFunctions` + `TestEqlDateTruncDialect.testH2RealDbTruncationSemantics`：month→2026-02-01、week→2026-02-09 周一）/ `[文档]`（H2 DATE_TRUNC(datetimeField, dateAndTime)——**带引号字符串单位被接受** `[实测]`，参数序 (unit, value) 与 pg 一致） |
+| postgresql / postgis / duckdb | `date_trunc({0},{1})`（同一模板形态，继承面一体） | `[文档]`（PG 15：`date_trunc ( text , timestamp )`，示例引号字符串）/ DuckDB scratch `date_trunc('month', ...)` 通过 |
+| mysql / mariadb / mysql5.7 | **未注册 → 编译期响亮报错**（`ERR_EQL_UNKNOWN_FUNCTION(datetrunc)`，负向用例锁定） | `[文档]`（无原生 date_trunc；DATE_FORMAT/MAKEDATE 构造式非无损等价——约束 3 不落） |
+| oracle / oracle-reverse | 同上（未注册 → 响亮） | `[文档]`（TRUNC fmt 词表 'MM'/'IW'/'Q' 与归一化词表不同，fixed template 无法按运行时单位值翻译） |
+| mssql | 同上（未注册 → 响亮） | `[文档]`（DATETRUNC SQL Server 2022 起存在但 datepart 无字符串接受证据；DATEDIFF 明文拒绝引号字符串 datepart） |
+| dm / tdengine / db2 / es | 同上（未注册 → 响亮） | `[未取证]` |
+
+**语义差异登记（不等价类）**：pg `date_trunc` 对 `timestamptz` 输入按会话 TimeZone 截断（时变）；h2/duckdb 对无时区 timestamp 无此时变——timestamptz 场景跨库需自行显式时区处理。周起点：三方 week 截断均为 ISO 周一 `[实测]`（h2 2026-02-10 → 2026-02-09）。
+
 ### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
 
 
