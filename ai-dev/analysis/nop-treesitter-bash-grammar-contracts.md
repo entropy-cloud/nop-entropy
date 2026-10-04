@@ -287,12 +287,42 @@ only oracle path this plan accepts.
 | Serialization | variable-length; C returns `0` (abandon) on `>= TREE_SITTER_SERIALIZATION_BUFFER_SIZE` (1024) |
 | Dead struct fields | `ext_was_in_double_quote`, `ext_saw_outside_quote` — serialized but never read or written |
 
-For scale: c-sharp is 527 lines / 13 tokens, rust 366 / 11, python 348 / 12.
+For scale: c-sharp is 529 lines / 13 tokens, rust 368 / 11, python 348 / 12.
+(Labels corrected 2026-10-04: those are **Java** `*Scanner.java` line counts
+(`wc -l` on the current files; the c-sharp and rust figures rose by 2 lines each
+when their javadoc stopped claiming a nonexistent generator version),
+sitting in a comparison against `scanner.c` sizes. The upstream C sources are now
+vendored — c-sharp 640, rust 403, python 437 — so the C comparison reads
+c-sharp 640 / 13 tokens, rust 403 / 11, python 437 / 12. Token counts 13/11/12
+were and remain correct.)
 Bash at 1217 lines / 29 tokens is roughly 2.3× c-sharp's token count, which is
 why the Java translation is split across seven files (see
 `ai-dev/design/nop-treesitter/01-bash-shell-analysis.md`, Decision 8).
 
 ## 9. Provenance backfill adjudication
+
+> **Superseded 2026-10-04** by `ai-dev/plans/nop-treesitter/2026-10-04-1830-1-vendored-grammar-provenance-backfill.md`,
+> which executed the successor this section called for. Both blockers below were
+> resolved, and the second was not a blocker at all. The corrected facts:
+>
+> - All **nine** directories now carry a verified per-directory `PROVENANCE.md`
+>   in the normalized format.
+> - The missing `scanner.c` files **are** now vendored: python from
+>   `26855eabccb1` (437 lines), rust from `77a3747266f4` / `v0.24.2` (403 lines).
+>   Their external-token ordinals and serialize layouts were checked against
+>   `PythonScanner` / `RustScanner` and match exactly.
+> - The claim that the reference copies "have moved past the vendored bytes" was
+>   **false**. Every vendored file is byte-identical to its reference copy's
+>   `HEAD` (verified by git blob hash); the clones are shallow, which is why the
+>   error looked plausible.
+> - The `.dsl` files for typescript/javascript have **no upstream source** —
+>   upstream ships no `.dsl` at the pinned commits. They are locally authored
+>   inputs to this repository's `ScannerCompiler` / `ScannerVM`, recorded as a
+>   standing exception to the "never modified" policy rather than as a gap.
+>
+> The reasoning below is retained as the record of why an unverified SHA was
+> refused at the time. The conclusion ("only record a SHA you have verified")
+> held; one of the two stated reasons for not having one did not.
 
 The plan asked whether the other seven vendored grammar directories should get
 per-directory `PROVENANCE.md` files with tag + SHA. **Not backfilled**, and the
@@ -302,8 +332,9 @@ reason is a measurement, not a preference:
   hand-translated scanners (`PythonScanner`, `RustScanner`) were written against
   a `scanner.c` that is not in the repository, so no SHA can be attached to the
   scanner source that produced them.
-- The local reference copies are not pinned and have moved past the vendored
-  bytes, so their current `HEAD` describes the reference copy, not the fixture.
+- ~~The local reference copies are not pinned and have moved past the vendored
+  bytes, so their current `HEAD` describes the reference copy, not the fixture.~~
+  **This was wrong** — see the supersession note above.
 
 Writing an unverified SHA would create exactly the owner-doc drift this exercise
 is meant to eliminate. Instead, a **module-level** policy file
@@ -313,9 +344,9 @@ rules, the measured per-directory state, and the two blockers; and
 license + generator version + "never modified" + SHA-256 of each vendored file)
 for all future vendoring.
 
-**Successor Required: yes** — vendoring the missing `scanner.c` for python and
-rust, and pinning the reference copies, is real work that is out of this plan's
-scope. Tracked in `ai-dev/plans/nop-treesitter/2026-10-04-1830-1-vendored-grammar-provenance-backfill.md`.
+**Successor Required: yes** — resolved 2026-10-04; the successor plan is
+`ai-dev/plans/nop-treesitter/2026-10-04-1830-1-vendored-grammar-provenance-backfill.md`
+and is the authority for the current provenance state.
 
 ## 10. Known divergence found while building the scanner idioms test
 

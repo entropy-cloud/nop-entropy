@@ -5,54 +5,60 @@ sources. They are test fixtures and codegen inputs — **never modified**.
 
 ## Per-directory provenance
 
-| Directory | Per-directory `PROVENANCE.md` | Precise tag + SHA recorded |
+Every directory now carries its own verified `PROVENANCE.md` in the normalized
+format (documented in `tree-sitter-bash/PROVENANCE.md`). This file holds policy
+only; the measured facts live per directory.
+
+| Directory | Upstream commit | Tagged | `scanner.c` vendored | Corpus files |
+|---|---|---|---|---|
+| `tree-sitter-bash/` | `a06c2e4415e9bc0346c6b86d401879ffb44058f7` | `v0.25.1` | yes | 5 |
+| `tree-sitter-c-sharp/` | `9150f7d56bb47f1a809fa23623f1ba1413e93fa9` | no | yes | 19 |
+| `tree-sitter-go/` | `2346a3ab1bb3857b48b29d779a1ef9799a248cd7` | no | n/a (no external tokens) | 7 |
+| `tree-sitter-java/` | `e10607b45ff745f5f876bfa3e94fbcc6b44bdc11` | no | n/a (no external tokens) | 6 |
+| `tree-sitter-javascript/` | `58404d8cf191d69f2674a8fd507bd5776f46cb11` | no | yes | 6 |
+| `tree-sitter-json/` | `254c42a6476413b776221e03982ac8ae159eeb72` | no | n/a (no external tokens) | 1 |
+| `tree-sitter-python/` | `26855eabccb19c6abf499fbc5b8dc7cc9ab8bc64` | no | yes (vendored 2026-10-04) | 5 |
+| `tree-sitter-rust/` | `77a3747266f4d621d0757825e6b11edcbf991ca5` | `v0.24.2` | yes (vendored 2026-10-04) | 9 |
+| `tree-sitter-typescript/` | `75b3874edb2dc714fb1fd77a32013d0f8699989f` | no | split: `common/scanner.h` + two C shims | 4 |
+
+Seven of the nine commits carry **no upstream tag** (all but `bash` and `rust`);
+their provenance is the raw commit SHA, and no tag is asserted for them. Each
+negative was verified against upstream tag refs, not inferred from a shallow clone
+lacking tags.
+
+## The exception to "never modified": four `.dsl` files
+
+Four vendored files are **locally authored** rather than upstream copies. All
+four are `*.dsl` — inputs to this repository's own scanner-DSL pipeline
+(`ScannerCompiler` / `ScannerVM`), which compiles them into the Java scanners.
+Upstream ships **no** `.dsl` file for either grammar.
+
+| File | Lines | Origin |
 |---|---|---|
-| `tree-sitter-bash/` | yes | yes — `v0.25.1` / `a06c2e4415e9bc0346c6b86d401879ffb44058f7` |
-| `tree-sitter-typescript/` | yes | no — historical "commit-less snapshot" wording |
-| `tree-sitter-json/`, `-java/`, `-javascript/`, `-python/`, `-go/`, `-rust/`, `-c-sharp/` | no | no |
+| `tree-sitter-typescript/common/scanner.dsl` | 538 | locally authored |
+| `tree-sitter-typescript/typescript/src/scanner.dsl` | 538 | locally authored (copy of `common/scanner.dsl`) |
+| `tree-sitter-typescript/tsx/src/scanner.dsl` | 538 | locally authored (copy of `common/scanner.dsl`) |
+| `tree-sitter-javascript/src/scanner.dsl` | 657 | locally authored hand translation of upstream `src/scanner.c` |
 
-## Why the other seven are not backfilled with tag + SHA
+The three typescript copies are byte-identical to each other (same SHA-256). The
+javascript one is a different, larger translation. See each directory's
+`PROVENANCE.md`.
 
-Backfilling a tag + commit SHA is only honest if the **vendored bytes** are
-verified to come from that commit. Measured on 2026-10-04:
-
-Measured on 2026-10-04 (`shasum -a 256` against
-`~/sources/treesitter/grammars/*`):
-
-| Directory | vendored `src/parser.c` == local reference copy | vendored `src/scanner.c` | upstream has `scanner.c` |
-|---|---|---|---|
-| `tree-sitter-json` | yes | absent | no (no external tokens) |
-| `tree-sitter-java` | yes | absent | no (no external tokens) |
-| `tree-sitter-go` | yes | absent | no (no external tokens) |
-| `tree-sitter-javascript` | yes | present, matches | yes |
-| `tree-sitter-c-sharp` | yes | present, matches | yes |
-| `tree-sitter-python` | yes | **absent** | yes (437 lines) |
-| `tree-sitter-rust` | yes | **absent** | yes (403 lines) |
-| `tree-sitter-typescript` | n/a — split `typescript/src/parser.c` + `tsx/src/parser.c` | `common/scanner.h` + `common/scanner.dsl` (DSL, not C) | n/a |
-
-Two blockers make a blanket backfill an *invented* record rather than a
-verified one:
-
-1. `tree-sitter-python` and `tree-sitter-rust` vendor **only** `parser.c`.
-   Their hand-translated scanners (`PythonScanner`, `RustScanner`) were written
-   against a `scanner.c` that is not in the repository, so no SHA can be
-   attached to the scanner source that produced them. Vendoring the missing
-   `scanner.c` for those two grammars is itself a separate change.
-2. The local reference copies (`~/sources/treesitter/grammars/*`) are not
-   pinned — they track `master` and have moved past the vendored bytes.
-   Attaching their current `HEAD` would describe the reference copy, not the
-   vendored fixture.
-
-Recording an unverified SHA would introduce exactly the owner-doc drift this
-directory policy exists to prevent. New vendoring must use the normalized
-per-directory format documented in `tree-sitter-bash/PROVENANCE.md`.
+**Every other file in this directory is an unmodified upstream copy.** Note that
+nothing machine-checks these four translations against the upstream `scanner.c`
+/ `scanner.h` they were derived from — they are the one place where the
+"byte-identical to upstream" guarantee does not apply, and where drift could go
+unnoticed.
 
 ## Rules
 
 - Vendored `parser.c` / `scanner.c` / `test/corpus/*` are **byte-identical**
-  copies of an upstream tag. No patches, no re-generation, no formatting.
+  copies of an upstream commit. No patches, no re-generation, no formatting.
 - Shipped grammar blobs under `src/main/resources/grammars/<name>/` are
   regenerated from these sources via `Ts2Java`; never hand-edited.
 - A vendored-directory update is a separate change from any code change: it
-  re-copies the sources, re-verifies the corpus, and updates
+  re-copies the sources, re-verifies the corpus, and updates the per-directory
   `PROVENANCE.md` in the same commit.
+- Record a commit SHA **only** after verifying the vendored bytes against it.
+  An unverified SHA is worse than no SHA, because it reads as verified.
+- Where the upstream commit carries no tag, say so. Do not record a nearby tag.

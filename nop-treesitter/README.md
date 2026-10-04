@@ -33,6 +33,18 @@ io.nop.treesitter.shell      shell 分析语义层（6 项能力：证明型拆�
                               heredoc 提取 / 动态构造标记 / 路径抽取 / 结构化摘要）
 ```
 
+## 上游语法来源
+
+vendored 上游 grammar 的来源记录在 `src/test/resources/upstream/grammars/` 下：
+每个目录一份 `PROVENANCE.md`（upstream commit SHA、tag、license、generator
+版本、逐文件 SHA-256、"never modified" 声明），目录级策略见
+`src/test/resources/upstream/grammars/PROVENANCE.md`。
+
+唯一的例外是四个 `*.dsl` 文件——typescript 的三个（`common/` 与两个 split grammar
+各一份，内容相同）和 javascript 的一个。它们**不是**上游副本（上游根本不提供
+`.dsl`），而是本仓库 scanner-DSL 管线（`ScannerCompiler` / `ScannerVM`）自己的输入。
+详见对应目录的 `PROVENANCE.md`。
+
 ## 路线图与执行
 
 - Roadmap: `ai-dev/backlog/nop-treesitter-roadmap.md`
