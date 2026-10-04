@@ -1,6 +1,7 @@
 package io.nop.message.core.local;
 
 import io.nop.api.core.message.Acknowledge;
+import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -20,6 +21,9 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class LocalMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(LocalMessageService.class);
@@ -168,19 +172,77 @@ public class LocalMessageService implements IMessageService {
             for (Subscription subscription : subscriptions) {
                 if (subscription.suspended)
                     continue;
-                IMessageConsumer consumer = subscription.consumer;
-                try {
-                    Object ret = FutureHelper.getResult(consumer.onMessage(topic, message, context));
-                    handleMessageResult(ret, topic, message, context);
-                } catch (Exception e) {
-                    LOG.error("nop.message.consumer-failed:topic={},message={}", topic, message, e);
-                }
+                invokeSubscription(subscription, message);
             }
         } else {
             LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
         }
     }
 
+    private void invokeSubscription(Subscription subscription, Object message) {
+        ConsumeContext context = new ConsumeContext(subscription.topic);
+        try {
+            Object ret = FutureHelper.getResult(
+                    subscription.consumer.onMessage(subscription.topic, message, context));
+            if (ret instanceof ConsumeLater) {
+                scheduleRedelivery(subscription, message, ((ConsumeLater) ret).getDelay());
+            } else {
+                handleMessageResult(ret, subscription.topic, message, context);
+            }
+        } catch (Exception e) {
+            LOG.error("nop.message.consumer-failed:topic={},message={}", subscription.topic, message, e);
+        }
+    }
+
+    /**
+     * Schedules a delayed redelivery of the message to the subscription that returned
+     * {@link ConsumeLater} (F-14 minimal fix). Adjudicated semantics (WI4 plan):
+     *
+     * <p><strong>Per-subscription scope</strong> — only the subscriber that deferred is
+     * re-invoked; a topic-wide redelivery would re-send to already-acknowledged
+     * subscribers. WI23 must keep this semantics when aligning F-15.
+     *
+     * <p><strong>Fire-time state re-check</strong> — when the scheduled task fires, the
+     * subscription's cancelled/suspended flags and its presence in the consumers map are
+     * re-checked; a cancelled subscription or a cleared service abandons the pending
+     * redelivery. Abandoning on cancellation is contract behavior, not a swallowed error.
+     */
+    private void scheduleRedelivery(Subscription subscription, Object message, long delayMs) {
+        long delay = Math.max(delayMs, 0L);
+        redeliveryScheduler().schedule(() -> {
+            if (subscription.cancelled || subscription.suspended)
+                return;
+            List<Subscription> subscriptions = consumers.get(subscription.topic);
+            if (subscriptions == null || findSubscription(subscriptions, subscription.consumer) == null)
+                return;
+            invokeSubscription(subscription, message);
+        }, delay, TimeUnit.MILLISECONDS);
+    }
+
+    private volatile ScheduledExecutorService redeliveryExecutor;
+
+    private ScheduledExecutorService redeliveryScheduler() {
+        ScheduledExecutorService executor = redeliveryExecutor;
+        if (executor == null) {
+            synchronized (this) {
+                if (redeliveryExecutor == null) {
+                    redeliveryExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+                        Thread t = new Thread(r, "nop-local-message-redelivery");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                }
+                executor = redeliveryExecutor;
+            }
+        }
+        return executor;
+    }
+
+    /**
+     * Dispatches a processed result. {@link ConsumeLater} must never reach this method:
+     * it is intercepted upstream by {@link #invokeSubscription} and turned into a delayed
+     * per-subscription redelivery (it is not a reply — F-14).
+     */
     protected void handleMessageResult(Object ret, String topic, Object message, IMessageConsumeContext context) {
         if (ret instanceof Acknowledge) {
             send(getAckTopic(topic), ((Acknowledge) ret).getReplyMessage());
