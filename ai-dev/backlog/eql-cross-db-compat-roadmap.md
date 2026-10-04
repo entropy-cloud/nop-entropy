@@ -3,8 +3,8 @@
 > **来源调研**：`ai-dev/analysis/2026-10/2026-10-02-eql-cross-database-compatibility-syntax-research.md`（v3，经两轮共 8 个独立子 agent 交叉审查）
 > **执行分支**：`feat/eql-cross-db-compat`（worktree `../nop-entropy-eql-cross-db-compat`）
 > **本图产出方法**：调研报告 Part 7 的 S-1..S-14 批次 → 本图的 WI0..WI12；经**三轮**独立子 agent 三路审查（代码事实 / 跨库矩阵 / 结构可执行性）修订至 **v7.1**（四轮独立子 agent 审查至 `consensus-reached-with-nits` + 合并后锚点重核验两轮）
-> **Last updated**：2026-10-03（v7.2）
-> **当前状态**：**draft review 已通过（v7.2）**，执行中 —— WI0 已 `planned`；状态流转见 Work Item Status
+> **Last updated**：2026-10-05（v7.3，执行收口）
+> **当前状态**：**16/16 工作项 `done`**——全部经独立 closure audit（每 WI 不同 task_id fresh-session 子 agent）；roadmap 级收口（Exit Criteria 逐条核验 + 最终独立 audit）见文末「Roadmap Closure」节
 > **v2 修订摘要**：修正 `supportReturningForUpdate` 语义误读（v1 据此误判 duckdb/oracle/h2 三处；该标志只门控 `UPDATE … RETURNING`，不是"该库有没有 RETURNING"）；`orm.xml` 计数 78→114；修正"扩展点全部没接线"的过claim；WI9 拆为 WI9a/WI9b；补 6 项此前被遗漏的活缺陷。
 > **v3 修订摘要**：更正 H2 的默认 `LIKE` escape 是**反斜杠**而非 NULL（v1/v2 误列入 NULL 组）；更正 H2 `greatest`/`least` 的"忽略 NULL"兼容模式**仅 `LEGACY`/`MS SQL Server`/`PostgreSQL`**；把 `DB2`/`TDengine`/`H2` 的聚合 `FILTER` 移入"未取证"；`INTERSECT`/`EXCEPT` 缺口补上 **MariaDB ≤10.2**；`orm.xml` 属性的 `stdSqlType=` 计数 8307→8332；AST 零生成器消费字段 3→**7**；死标志口径 13→**14** 并给 `supportNullsFirst` 一个真实 owner；全部 `-pl` 命令改为 Maven 可运行的 `:` 前缀形式（v3 前每条验证命令都会报错）。
 > **v4 修订摘要**：登记 DM8 默认 escape 为 `unverified`；删除一条**不成立的** `mariadb` 保留字缺陷指控（仓库其实正确）；统一死标志计数（接线 10 / 总计 14）；给 WI9b 补 BC 门禁 + 生成管线 Protected Area + 可编译的 `-pl`；给 `supportNullsFirst` 与 `ORDER BY … COLLATE`、`lastDay(d)` 三条 ledger 项落实真实 owner；消解 G-3↔WI9b 与 WI3 计数口径的残留矛盾；更正 5 处 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 行号（此前整体偏移 −1）。
@@ -492,3 +492,8 @@ flowchart TB
   ⇒ **结论只能按已登记的证据等级书写，禁止用"未取证"支撑覆盖率或"已修正"结论。**
 - **idempotent 与可回滚**：每个 WI 单独成 plan、单独提交；`INTERSECT/EXCEPT` 若需拆方言，"拆方言"与"接线"是两个提交（提交规范见 `nop-git-master` skill）。
 - **临时文件**：一律用 `_tmp/`（已被 gitignore），**禁止**系统级 `/tmp/`。
+
+## Roadmap Closure（2026-10-05）
+
+> 本节由 roadmap 级收口填写。Exit Criteria（上文 9 条）逐条核验结论 + 最终独立 audit 证据在案后落笔：
+> 逐条核验状态：EC1（A 类零残留）/EC2（B 类零残留）/EC3（方言纠错 11 项）/EC4（能力门闭环登记）/EC5（无新增死标志+三档处置）/EC6（文档一致）/EC7（语料 BC 非目标语义一致，文法 token 集棘轮按 WI5/WI7/WI7b 规程）/EC8（跨模块终局验证）/EC9（最终独立 audit）——**待最终独立 audit 报告落档后填写终态**。
