@@ -233,6 +233,15 @@
 6. 不要把固定调试 URL 当作平台不变量；优先按 DevDoc / DevTool 的 GraphQL 能力理解。
 7. 不要把 ORM 模块级 TOPM icon 的来源误写成 `/{moduleId}/orm/app.orm.xml`；当前默认链路是 `model/*.orm.xml` 根 `<orm ext:icon>` -> `*-meta/module-meta.json` -> `*-web`。
 
+## ORM 动态实体锚点
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `ORM-DYN-001` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/support/DynamicOrmEntity.java` | 免代码生成实体的实现；`values: MapOfInt<Object>`（按 propId 索引）为动态字段存储，`refProps` 管关系/组件 |
+| `ORM-DYN-002` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/factory/SessionFactoryImpl.java` | `getEntityClassModel()`：`className` 为空则回退用实体 `name` 当 FQCN；不显式指定 `DynamicOrmEntity` 即 `ClassNotFoundException` |
+| `ORM-DYN-003` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java` | `init()` 中 **eager** 调用 `getEntityConstructor`，故未查询的实体类缺失也会让 SessionFactory 初始化失败 |
+| `ORM-DYN-004` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntity.java` | `_t` 字段仅为临时/缓存属性（`orm_unload()` 清空），**不是**扩展字段存储 |
+
 ## nop-stream 锚点
 
 | 规则 ID | 锚点 | 说明 |
