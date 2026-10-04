@@ -19,7 +19,7 @@
 | 1.7 | `1.7-persistence-servicefw-boundary-audit.md` | 0 | 0 | 13 | 18 | done（裁决：通过——分层零违规/单桥/api 纯净正结论；P2×13 进 R1.0（AST 模板包死代码 3494 行 plan-first 工单队首）；降级 3——初审 P1×2 经复核降 P2） | 独立子 agent（见 plan 2314 Closure 段） |
 | 1.8 | `1.8-integration-periphery-audit.md` | 0 | **1** | 6 | 20 | done（裁决：通过附 P1×1——file/credential-app 半拆进 R1.0；红旗法 0 反向边正结论；根级资产 47 项归属裁定 3 条；降级 1） | 独立子 agent（见 plan 2315 Closure 段） |
 | 1.9 | `1.9-jq-refactor-first-audit.md` | 0 | **1** | 9 | 21 | done（裁决：通过附 P1×1——jq 工具接缝资源耗尽（OOM 双通路实证+默认链无门禁）进 R1.0；430/430 基线、refactor 四段全通正结论） | 独立子 agent（见 plan 2316 Closure 段） |
-| 1.10 | — | | | | | todo | |
+| 1.10 | `1.10-bytecode-duckdb-first-audit.md` | 0 | **2** | 5 | 26 | done（裁决：通过附 P1×2——bytecode exit 1 契约缺口+ObligationToken 死循环（第 1 轮正结论被推翻并落账）进 R1.0；duckdb 契约与 doc 一致正结论） | 独立子 agent（见 plan 2317 Closure 段） |
 | 2.1 | — | | | | | todo | |
 | 2.2 | — | | | | | todo | |
 | 2.3 | — | | | | | todo | |
@@ -79,6 +79,8 @@
 | P1-1.2-001 | `1.2-xlang-structure-pipeline-audit.md` | R1.x（包级 SCC 三档治理，expr→compile 单边割离性价比最高） | open |
 | P1-1.8-001 | `1.8-integration-periphery-audit.md` | R1.0（file/credential-app 半拆命运裁决：恢复 start()+web-orm-starter 或正式休眠+文档声明） | open |
 | P1-1.9-001 | `1.9-jq-refactor-first-audit.md` | R1.0（jq 工具接缝资源耗尽：4 叶节点预算+cancelToken 接线+env-supplier，精算在案） | open |
+| P1-1.10-001 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（bytecode 分析层异常收口+CLI 兜底 ~17 行；CI 接线前必修） | open |
+| P1-1.10-002 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（ObligationToken equals/hashCode ~10 行+虚假 javadoc 修正+CLI 防线） | open |
 
 ## P2 裁决台账（例外通道）
 

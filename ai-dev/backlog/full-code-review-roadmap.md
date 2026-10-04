@@ -45,7 +45,7 @@
 | 1.7 | nop-persistence + nop-service-framework 分层与边界合规审计 | done（2026-10-03，plan 2314，closure audit 一次 PASS——P0=0/P1=0/P2=13/P3=18；分层零违规正结论；AST 模板包死代码 3494 行 P2 队首；初审 P1×2 复核降 P2） | `docs-for-ai/02-core-guides/service-layer.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 01/06） |
 | 1.8 | 集成与外围结构审计（spring/quarkus/network/integration/runner/autotest/demo + 漏网模块归属裁定） | done（2026-10-03，plan 2315，closure audit 一次 PASS——P0=0/P1=1/P2=6/P3=20；file/credential-app 半拆 P1 进 R1.0；红旗法 0 反向边；归属裁定 3 条） | `docs-for-ai/01-repo-map/module-groups.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 01/02） |
 | 1.9 | 新增模块组首审 a（v6）：nop-jq（引擎求值语义与官方 1.7.1 套件基线一致性、错误路径）+ nop-refactor（operation 四段契约、Refactor__ GraphQL 契约面 gates 与 EditPlanApplier 信任边界） | done（2026-10-04，plan 2316，closure audit 两轮 PASS——P0=0/P1=1/P2=9/P3=21；jq 工具接缝资源耗尽 P1 进 R1.0；430/430 基线与 refactor 四段全通正结论） | `docs-for-ai/01-repo-map/module-groups.md` + `docs-for-ai/03-modules/nop-refactor.md` | 0.3, 0.4, 0.5 | `deep-audit-prompts.md`（维度 01/05/13） |
-| 1.10 | 新增模块组首审 b（v6）：nop-bytecode（class 采集层、字节码分析通道架构、ASM 依赖面与 class file 版本支持门槛）+ nop-duckdb（engine 三配置键与单写者约束、文件读写面、native 包装） | todo | `docs-for-ai/03-modules/nop-bytecode.md` + `docs-for-ai/03-modules/nop-duckdb.md` | 0.3, 0.4, 0.5 | `deep-audit-prompts.md`（维度 01/02/09） |
+| 1.10 | 新增模块组首审 b（v6）：nop-bytecode（class 采集层、字节码分析通道架构、ASM 依赖面与 class file 版本支持门槛）+ nop-duckdb（engine 三配置键与单写者约束、文件读写面、native 包装） | done（2026-10-04，plan 2317，closure audit 两轮 FAIL→PASS——P0=0/P1=2/P2=5/P3=26；bytecode exit 1 契约缺口+ObligationToken 死循环 P1×2 进 R1.0；duckdb 契约与 doc 一致正结论） | `docs-for-ai/03-modules/nop-bytecode.md` + `docs-for-ai/03-modules/nop-duckdb.md` | 0.3, 0.4, 0.5 | `deep-audit-prompts.md`（维度 01/02/09） |
 
 ### MA2 — 模型与服务层审计（Wave 1）
 
