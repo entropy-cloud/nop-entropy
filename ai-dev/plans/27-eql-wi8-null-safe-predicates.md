@@ -1,6 +1,6 @@
 # 27 EQL WI8 — NULL 三值语义谓词（`IS [NOT] DISTINCT FROM` / `IS [NOT] TRUE/FALSE/UNKNOWN`）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI8 节 + 共同约束 1-4 + 门控矩阵 WI8 行 + Cross-Cutting 全部 + 关键约束与红线「`SAFE_EQ_` 必须保留」，v7.2）；Current Baseline 全部代码事实于 2026-10-04 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验；2026-10-04 按独立审查（3 Major + 5 Minor）修订：Major-1 展开公式钉死（含禁止形态）、Major-2 SAFE_EQ 渲染三分支升格必选件（归属 Phase 1）、Major-3 操作数类型域 + 安全词表、Minor 行号/枚举边界/载体/方言来源/`:nop-dao` 修正
 > Related: `ai-dev/plans/20-eql-wi3-dialect-config-fixes.md`（硬前置，已 `completed`）、`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md`（**硬前置——产品面已于 2026-10-04 全部落地，但 plan 21 状态仍为 `active`（独立 closure audit 待执行）、roadmap WI4 行仍为 `planned`；本 plan Phase 0 可开工，Phase 1 起的代码 Phase 在 plan 21 变为 `completed` 前不得开工，见硬前置声明**）、`ai-dev/design/eql-cross-db-compat/2026-10-04-wi4-phase0-adjudications.md`（§二 2c 槽位/方言来源契约，本 plan 直接消费）、`ai-dev/plans/24-eql-wi5-sql92-function-syntax.md`（文法备选分支 + 构建期归一化的结构先例）
@@ -239,7 +239,7 @@ Targets: `nop-persistence/nop-orm-eql`（生产 `IEqlAstTransformer` 实现 + �
 
 - [x] **开工前置复核**：plan 21（WI4）`Plan Status` = `completed`（同 Phase 1）。
 - [x] 生产 `IEqlAstTransformer` 落地（按 Phase 0 裁定；**职责边界 = 仅方言展开，`<=>`/native 文本渲染归 Phase 1 的生成器覆写**；落地=`OracleEqlAstTransformer`（oracle/oracle-reverse 名称集合展开；TRUE/FALSE 按 Phase 0 裁定收敛=无 transformer 职责；直通=非 oracle 族不改写；多 querySpace=防御性 `ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE` 响亮；⚠️ 执行期机制发现：生成 `EqlASTOptimizer` 默认 clone 模式（`shouldClone=!isInplaceUpdate`）丢弃返回值即静默丢改写——`setInplaceUpdate(true)` 原地替换 + 操作数先 optimize 递归再 deepClone 复制；参数标记操作数响亮拒绝=同 Phase 2 错误码）：Oracle `IS [NOT] DISTINCT FROM` 三节点展开——正反两方向按 Phase 0 钉死公式（正向三支式 / 否定方向两支式或等价全二值式，**禁止两个 naive NOT 包装形态**），展开式只重排/包装既有操作数 + 新增对同一操作数的 null 谓词（参数保持性论证引用 WI4 §二 2c）+ `IS NOT TRUE/FALSE` 在无原生支持方言上的补充展开（若 Phase 2 通用展开已覆盖则本项按裁定收敛）+ 原生方言直通不改写。放 `transformAfterAnalyze` 槽位，方言来源 = 与渲染侧同源的语句级 querySpace（主表源/写实体）→ `getDialectForQuerySpace`；联邦（多 querySpace）场景按 Phase 0 登记处置（响亮报错或逐案裁定，不静默）。
-- [x] **默认注入链落地**：transformer 经 `SessionFactoryConfig.eqlAstTransformer` 配置（beans.xml 显式 `<bean>`，Nop IoC 规则；`orm-defaults.beans.xml` 新增 `nopOracleEqlAstTransformer` bean + factory 注入 property，契约静态钉死于 `testBeansXmlDefaultInjectionContract`；缓存正向=`testDefaultInjectionParticipatesInQueryPlanCache` 同键同实例 assertSame + transformer 不重复调用；非默认绕过=既有 `TestEqlAstTransformerWiring` 2/2 不回退）；**禁止 per-call 传入路径**（WI4 契约）；缓存绕过保护自动生效——回归断言：默认注入的 transformer 编译结果**参与**计划缓存且同键可复用（与 `TestEqlAstTransformerWiring` 的非默认绕过案例互为对照）。
+- [x] **默认注入链落地**：transformer 经 `SessionFactoryConfig.eqlAstTransformer` 配置（beans.xml 显式 `<bean>`，Nop IoC 规则；`orm-defaults.beans.xml` 新增 `nopOracleEqlAstTransformer` bean + factory 注入 property，契约静态钉死于 `testBeansXmlDefaultInjectionContract`；缓存正向=`testOracleExpansionBothDirectionsViaDefaultFactoryConfig` 同键同实例 assertSame + transformer 不重复调用（⚠️ 勘误：审计发现原名 `testDefaultInjectionParticipatesInQueryPlanCache` 系"一测试一工厂"重构后未同步的幽灵名）；非默认绕过=既有 `TestEqlAstTransformerWiring` 2/2 不回退）；**禁止 per-call 传入路径**（WI4 契约）；缓存绕过保护自动生效——回归断言：默认注入的 transformer 编译结果**参与**计划缓存且同键可复用（与 `TestEqlAstTransformerWiring` 的非默认绕过案例互为对照）。
 - [x] **接线验证（Minimum Rules #23，roadmap WI8 对 WI4 的存在理由）**：端到端测试（#22）——factory 默认配置注入 → 不带 transformer 参数的编译入口 → 生成 SQL 含方言展开/映射结果（断言具体文本）+ 运行时调用断言（计数器/标志）；无 transformer 配置的对照路径断言输出规范安全形态（全方言可执行）且**不**含不支持方言的裸语法（无静默跳过，#24）。
 - [x] **roadmap EC ①（不等价类）**：MySQL 三值逻辑下三节点展开 vs `<=>` 的差异用例落地（`testMysqlFormDivergenceVsOraclePinnedForm` 文本对照 + `testForbiddenNaiveWrapperLosesRowsExecutedOnH2` H2 真执行推导：禁止形态①单 NULL 行 0 行 vs 钉死式 1 行、两支式双 NULL 行=1）（单操作数 NULL 时 `NOT(展开)` = NULL vs `NOT(a<=>b)` = TRUE；H2 真库可执行则执行断言，否则文本 + 真值表推导断言）。
 - [x] **roadmap EC ②（Oracle 展开文本，按审查 Major-1 强化）**：`IS DISTINCT FROM` 与 `IS NOT DISTINCT FROM` **正反两方向**的 Oracle 三节点展开正确 SQL 文本用例，**按 Phase 0 钉死公式逐字断言**；并断言两方向在**单操作数 NULL 与双 NULL 行的展开式均为二值**（禁止形态负向对照：展开文本不属 naive NOT 包装形态、语义不产生 WHERE 丢行）；`IS [NOT] TRUE/FALSE` 的 Oracle 形态按 unverified 纪律：展开或显式报错（按 Phase 0 裁定，不允许既无展开也无报错的第三态）。
@@ -265,14 +265,14 @@ Exit Criteria:
 - [x] **`IS NOT TRUE`/`IS NOT FALSE` NULL 语义逐案用例（EC ③）**：真值表 6×4 逐行覆盖（h2 真库执行布尔操作数 3 行 × 6 谓词 + 非布尔行 mysql 文本/h2 响亮错误），含"不得降级二元比较/truthy 裸条件"的负向对照（`testNoBinaryComparisonDegradation`/`testExpansionIsNotBinaryComparisonDegradation`）；未复用 `IS DISTINCT FROM` 展开模板（EQ 非 SAFE_EQ 断言 + `<>`/`<=>` 零出现）。
 - [x] **Oracle 展开文本用例（EC ②）** 与 **SQLite <3.39 编译期报错负向用例（EC ④，受 G-1）** 落地；unverified 格（Oracle `IS TRUE/FALSE`、DB2、dm、tdengine）未计入覆盖率且已标注（owner doc 矩阵 `[未取证]` 栏 + 手构方言负向 `testUnsupportedConstructedDialectFailsLoud`）。
 - [x] 生成物纪律：Phase 1/2 的 `.g4` 改动各自单独提交（`777e2ec494`/`a2dab64b70` 文法提交与 `29754d29b4`/`48abe710fb` 逻辑提交分离可审计）；`ast/_gen/` 零 diff（78 文件不增不删，ⓒ 案未裁）；无任何 lexer token 删除（Eql.tokens/Symbol.g4 零 diff）；**`Symbol.g4:38` `SAFE_EQ_` 保留**（渲染三分支 mysql 族输出目标）。
-- [x] WI4 管线消费契约成立：生产 transformer 经 `SessionFactoryConfig.eqlAstTransformer` 默认注入（`orm-defaults.beans.xml` 显式 bean）、走 `transformAfterAnalyze` 槽位 + 已解析表源方言推导；默认注入参与缓存（`testDefaultInjectionParticipatesInQueryPlanCache` 同键同实例）、非默认绕过缓存两向回归全绿（`TestEqlAstTransformerWiring` 2/2 不回退）；未 per-call 传入（生产路径 3-arg 无参入口断言）。
+- [x] WI4 管线消费契约成立：生产 transformer 经 `SessionFactoryConfig.eqlAstTransformer` 默认注入（`orm-defaults.beans.xml` 显式 bean）、走 `transformAfterAnalyze` 槽位 + 已解析表源方言推导；默认注入参与缓存（`testOracleExpansionBothDirectionsViaDefaultFactoryConfig` 同键同实例）、非默认绕过缓存两向回归全绿（`TestEqlAstTransformerWiring` 2/2 不回退）；未 per-call 传入（生产路径 3-arg 无参入口断言）。
 - [x] 无 transformer 配置的默认路径全方言安全（规范形态可执行或响亮报错），无静默输出不支持方言裸语法的路径（TRUE/FALSE/UNKNOWN 展开式全方言可执行；SAFE_EQ 三分支第 3 支响亮=`testUnsupportedConstructedDialectFailsLoud`+`testOracleWithoutTransformerFailsLoud`；h2 native 可执行=`testH2NativeEndToEndWithDefaultTransformer`）。
 - [x] 既有 EQL 语料 BC（EC ⑥）：三份必测与 WI0 基线快照逐字一致（`TestEqlCorpusBaseline` 1/1，每代码 Phase 实测）；未声称"7 个全测"（终局六模块命令覆盖 `:nop-job-dao`/`:nop-auth-service`/`:nop-orm`）。
 - [x] owner doc `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` NULL 谓词小节已同步 live baseline（逐方言覆盖表 + 证据等级 + 能力点登记表行 + 禁止降级警告 + transformer 说明）；`docs-for-ai/INDEX.md` 已更新（路由条目补 NULL 谓词）；`04-reference/source-anchors.md` `No update required`（无新路由级锚点——实现锚点已在该文档既有条目覆盖面内）。
 - [x] `./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（终局实测 BUILD SUCCESS：orm-eql 554|0、orm 217|0(6 skip 既有)、dao 214|0(46 skip 既有)、metadata-service 1340|0、job-dao 87|0、auth-service 461|0(4 skip 既有)；`_tmp/wi8/final-6modules.log`；stream 豁免清单按 roadmap Cross-Cutting 类级排除+`!JSONPointTest_0,!JSONPointTest_1` 连带）——**"全绿"口径**：本 WI 相关模块全绿 + `nop-stream-runtime` 既有失败与基线一致即豁免。
-- [x] **四门禁**（2026-10-04 终局实测）：① `check-plan-checklist.mjs --strict` exit 0（active 语义 1/1 pass）；② `scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 与 `--module nop-orm --severity high` 均 0 命中 exit 0；③ `check-doc-links.mjs --strict` exit 0（0 error + 3 warning = 既有基线 `nop-bytecode/06-resource-leak-v1.md:54,83,91`，本次新增 = 0——执行中新增的 2 项 `Symbol.g4` 引用 warning 已当场修复回落基线）；④ 方言矩阵快照：Phase 0 裁定零增量，`check-eql-dialect-matrix-snapshot.mjs` exit 0。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）从 EQL 文本 → parse 归一化 → transformer/生成器方言 lowering → SQL 输出/报错的端到端调用链真实连通（运行时断言证据，不只是文法分支存在）；（b）无空方法体/静默跳过/no-op（lowering 不可用时响亮报错，不允许回退原文或静默丢谓词）；（c）真值表语义与实现一致（逐案抽查 `IS NOT TRUE` NULL 行 **+ `IS [NOT] DISTINCT FROM` 单操作数 NULL 行与双 NULL 行均为二值、展开非禁止形态**——审查 Major-1 增补）。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI8 EC ⑦）；roadmap Work Item Status 的 WI8 行据此才可 `todo` → `planned`（draft review 通过时）→ `done`（audit 通过后，见 roadmap Status values）。
+- [x] **四门禁**（2026-10-04 终局实测）：① `check-plan-checklist.mjs --strict` exit 0（active 语义 1/1 pass）；② `scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 与 `--module nop-orm --severity high` 均 0 命中 exit 0；③ `check-doc-links.mjs --strict` exit 0（0 error + warning 基线 = 既有 `nop-bytecode/06-resource-leak-v1.md:54,83,91`，本次新增 = 0——执行中新增的 `Symbol.g4` 简写引用 warning 已当场改全路径回落基线；⚠️ 独立审计勘误：本行原有的简写 `Symbol.g4` 引用本身即第 4 条 warning，已随收口改全路径 `nop-persistence/nop-orm-eql/model/antlr/Symbol.g4` 复归基线）；④ 方言矩阵快照：Phase 0 裁定零增量，`check-eql-dialect-matrix-snapshot.mjs` exit 0。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）从 EQL 文本 → parse 归一化 → transformer/生成器方言 lowering → SQL 输出/报错的端到端调用链真实连通（运行时断言证据，不只是文法分支存在）；（b）无空方法体/静默跳过/no-op（lowering 不可用时响亮报错，不允许回退原文或静默丢谓词）；（c）真值表语义与实现一致（逐案抽查 `IS NOT TRUE` NULL 行 **+ `IS [NOT] DISTINCT FROM` 单操作数 NULL 行与双 NULL 行均为二值、展开非禁止形态**——审查 Major-1 增补）。（独立审计 Anti-Hollow 三项实证：58/58 复跑+H2 真执行 0/1 行对照+`not (` 零出现+4/2 支计数））
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI8 EC ⑦）；roadmap Work Item Status 的 WI8 行据此才可 `planned` → `done`（audit 通过后，见 roadmap Status values）。
 
 ## Deferred But Adjudicated
 
@@ -305,14 +305,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-3 全部 `completed`（8 commits）；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑦/B1-B6/C/D 全 PASS，**0 Blocker / 0 Major / 4 Minor**（① plan Gate ③ 自身简写 `Symbol.g4` 引用即第 4 条 warning——随收口改全路径复归基线；② 幽灵测试方法名 `testDefaultInjectionParticipatesInQueryPlanCache`（一测试一工厂重构后未同步）——plan 两处+owner doc 一处随收口勘误为真实方法名 `testOracleExpansionBothDirectionsViaDefaultFactoryConfig`；③ mtime 记录窗口两轮均晚于产品 commit 方向成立；④ wiring 测试无害死代码+.rels EOL 噪声登记）。**四项特别警惕点全部由审计排除**：缓存两向回归真实（assertSame+计数冻结 vs marker 防串）/oracle 方言判定与渲染侧同源（同一 `getDialectForQuerySpace(querySpace)` 调用）/MySQL 数值真值泄漏被展开式构造性排除（`2=1` 恒 FALSE+三方言负向）/否定方向为两支 guard 式整节点替换非 naive NOT（H2 真执行 0/1 行对照+`not (` 零出现）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，须与执行者不同 task_id）
-- Audit Session: （session/task ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-04
+- Audit Session: WI8 closure audit（一次通过，结论"WI8 可通过 closure audit——roadmap WI8 行可翻 done"）
 - Evidence:
+  - A① PASS：审计员独立复跑 6 测试类 58/58（DistinctParse 7/DistinctDialect 19/BooleanPredParse 12/BooleanPredDialect 20 等）
+  - A② PASS：H2 真执行禁止形态①单 NULL 行 0 行 vs 钉死三支式 1 行；`not (` 零出现双断言+guard 支计数 4/2
+  - A③ PASS：h2 真库真值表 6 谓词×3 布尔行（NULL 行 `is not true`=2 命中）+mysql 非布尔恒 FALSE+h2 响亮 90110（探针 `_tmp/wi8/h2probe.log` 在档）+降级负向 3 方言×4 谓词
+  - A④ PASS：手构无名 DialectModel 载体 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`（裁定 §八允许形态）
+  - A⑤ PASS：六模块求和逐字吻合（554/217/214/1340/87/461）+mtime dao 18:30、orm 18:31、job-dao 18:31、metadata 18:33、auth 18:35 均晚于 `cb918dd3cc` 18:21:24
+  - A⑥ PASS：CorpusBaseline final log 1/1+审计独立复跑 1/1
+  - B1-B6 PASS：`printSafeEq:474-499` 三分支（native 集与 WI7 先例逐字一致）、`OracleEqlAstTransformer:166-203` 与裁定逐字一致整节点替换零 NOT 包装、安全词表构造性排除 truthy（EQ 非 SAFE_EQ）、transformAfterAnalyze+同源 dialect+beans 默认注入+缓存两向（正向 assertSame+计数冻结/反向 WI8 零触碰 2/2）、三项机制发现+新错误码+i18n 追平、提交/生成物纪律（文法纯 antlr 再生无 ast/_gen 无 Eql.tokens）
+  - C PASS：matrix 0 / scan-hollow 双模块 0 / checklist exit 0（active 语义）/ doc-links 0 error（Minor-1 已随收口修复复归基线）
+  - D PASS：4 Phase+11 勾 2 留白+daily log 四条目+4 偏差落档
+  - Anti-Hollow：审计三项实证（见 Anti-Hollow gate 行内注）
+  - Deferred 项分类检查：无 in-scope live defect 被降级；AT TIME ZONE/WINDOW 归 WI12（按 roadmap 划分）
   - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
   - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/27-eql-wi8-null-safe-predicates.md --strict` 退出码
   - Anti-Hollow 检查结果（端到端调用链追踪 + `scan-hollow-implementations.mjs` 退出码）
