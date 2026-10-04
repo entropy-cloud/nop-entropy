@@ -1,6 +1,6 @@
 # 37 EQL WI7b — 分析型四件套：`sqlIntervalLiteral` 模板落地 + `rollup`/`cube`/`grouping` 注册 + 窗口 OVER/frame 现状核验收口 + `count(*) FILTER` 文档引导
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI7b 节 Exit Criteria ①-⑧ + 共同约束 1-4 + 门控矩阵 WI7b 行 + WI7 行的 2026-10-04 收口注记 + 「明确延后项」`GROUPING SETS`/`CUBE`/`ROLLUP(...)`/`GROUPING()`/`count(*) FILTER` 三行 + Cross-Cutting 全部 + 关键约束与红线节，v7.2）；Current Baseline 全部代码事实于 2026-10-03 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验，H2 行为经真库执行探针取证（`_tmp/h2probe`，H2 2.3.232 与 2.4.240 双版本）；行号为当日实测参考值、执行时以 Phase 0 锚点复核为准
 > Related: `ai-dev/plans/02-eql-wi0-verification-skeleton-and-gates.md`（硬前置，已 `completed`；矩阵快照棘轮 + 语料基线棘轮直接消费）、`ai-dev/plans/03-eql-wi1-class-a-defects.md`（硬前置，已 `completed`；`sqlIntervalLiteral` 骨架的移交 owner——本 plan 是"填内容"的另一半）、`ai-dev/plans/26-eql-wi7-pagination-and-nulls.md`（硬前置，**已于 2026-10-04 `completed`**——独立 closure audit 一次通过、roadmap Work Item Status 的 WI7 行已翻 `done`，排队门已满足；NULLS token 执行期修订是本 plan 文法方案的关键先例）、`ai-dev/plans/24-eql-wi5-sql92-function-syntax.md`（结构先例：altLabel 三约束 / 真库证据分派 / 矩阵快照增量模式 / 每 Phase 开工前置复核）、`ai-dev/plans/21-eql-wi4-ast-transformer-wiring.md`（已 `completed`——路径 ⓓ 管线可用性的证据来源）
@@ -218,7 +218,7 @@ Exit Criteria:
 
 ### Phase 2 - `rollup`/`cube`/`grouping` 注册（路径按 Phase 0 裁定 + 方言排除）（EC ①⑦）
 
-Status: completed（2026-10-04；clean install 门以 run3 双旗标排除记录为准）
+Status: completed（2026-10-04；⚠️ 勘误：clean install 门的终局权威记录为 run8 串行 `-T 1`（全 lint 不排除，BUILD SUCCESS，晚于全部产品 commit，日志 `_tmp/wi7b/clean-install-run8-serial.log`）；run3 为当时双旗标排除记录，同样通过）
 Targets: 按 Phase 0 裁定路径——ⓒ-A：`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlGroupByItem` 备选 + `unreservedWord_`）、`nop-persistence/nop-orm-eql/model/antlr/Literals.g4`（`ROLLUP`/`CUBE` token）、`EqlAST.xjava`（1 个新 AST 类）+ `ast/_gen/` 重生成、`EqlASTBuildVisitor.java`、`EqlTransformVisitor.java`（能力门）、`AstToSqlGenerator.java`/`AstToEqlGenerator.java`（打印）；ⓓ：`EqlTransformVisitor.java` 或 transformer；`*.dialect.xml`（注册落点）；`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`；`nop-orm-eql`/`nop-dao` 测试
 
 - Item Types: `Feature`、`Decision`（若实施中需偏离 Phase 0 裁定的局部形态）、`Proof`
@@ -294,23 +294,23 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程见 `ai-dev/plans/00-plan-authoring-and-execution-guide.md` 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] `sqlIntervalLiteral` 模板落地（EC ③）：占位符契约 + 加载期校验 + PG/Oracle/MySQL 三形态正确输出用例 + h2 端到端真库执行 + 未配置方言 BC 守护——全部有断言具体文本/错误码的红→绿用例。
-- [ ] `rollup`/`cube`/`grouping` 注册（EC ①）：覆盖矩阵**按方言名列全**（三态 + 证据等级，无比例表述）；`CUBE` 在 MySQL/MariaDB 显式报错用例存在；`GROUPING SETS` 未注册（永久否决维持）。
-- [ ] 窗口 `OVER` 两种形态（带/不带 partition）+ frame 各有正确 SQL 文本用例（EC ②）——既有测试对照审计结论 + 缺口补齐记录在案。
-- [ ] `count(*) FILTER` 文档引导小节已写入 `eql-and-database-compatibility.md`，含"空分组下 `sum` 返回 NULL 而 `count` 返回 0"提醒（EC ④）。
-- [ ] **真库证据分派（EC ⑦，差异登记第 2 条口径）**：**h2 探针 transcript 已持久化于 `ai-dev/audits/eql-wi0/`**（摘要：三函数 × H2 2.3.232/2.4.240 × `MODE=Oracle`/`MODE=PostgreSQL` 全部 `Function "ROLLUP"/"CUBE"/"GROUPING" not found`（90022）；`INTERVAL '1' DAY` 执行成功 / 裸 `INTERVAL 1 DAY` 语法错（expected "-, +, string"）/ `INTERVAL '1 DAY'` 数据错（22007）——以 Phase 0 重跑的归档为准）+ h2 负向载体用例 + 不可真库验证方言逐个列出并给替代证据（`[实测]`/`[文档]`/`[未取证]` 逐行标注）；`dm`/`tdengine` 未计入覆盖率；interval 半区有 h2 端到端执行证据。
-- [ ] **既有 EQL 语料 BC（EC ⑥）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）；interval 语法/回显、`group by a, b`、既有窗口查询形态逐字不变守护用例通过。
-- [ ] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（interval 逐方言形态、rollup 支持/报错对照、FILTER 引导语义差异至少各一项）。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI7b EC ⑤ 命令）——**"全绿"口径**：本 plan 相关模块全绿 + `nop-stream-runtime` 既有 flake 与收口日实跑基线一致即豁免（单跑 PASS 复现，豁免清单记入 Closure Evidence），不得据此判本 plan 失败。
-- [ ] 若 Phase 2 裁定 ⓒ（触 `ast/_gen`）：`./mvnw clean install -T 1C` 通过（codegen 全链路 + 114 个 orm.xml 回归，roadmap WI7 收口注记口径）；若 ⓓ：本门以 Phase 2 的 `-pl` 全绿替代并记录。
-- [ ] 生成物纪律：每个 Phase 的 `.g4`/`EqlAST.xjava` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；每步重生成后 `git diff` 逐一检查；`ast/_gen/` 的 diff 与裁定路径一致（ⓐ/ⓑ/ⓓ 下零 diff）；无 lexer token 删除、`EqlASTKind` ordinal 未被持久化或比较。
-- [ ] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（Phase 2 预期真增量已同步；Phase 1 零增量已核实）。
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/37-eql-wi7b-analytic-features.md --strict` 退出码 0。（终门留白：随独立 closure audit 后的 Closure Evidence 写入一并复跑）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不门控/只打印不消费模板/放置不校验"正是半实现形态）。
-- [ ] owner doc 已同步到 live baseline（INTERVAL 段收口、rollup/cube/grouping 矩阵段、FILTER 引导小节、窗口段交叉引用、能力点登记表行），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）两条端到端调用链真实连通：interval 文本 → parse 归一化 → `visitSqlIntervalExpr` → `getSqlIntervalLiteral()` 模板渲染 → h2 真库执行；`GROUP BY ROLLUP(...)`/`GROUPING()` 文本 → parse（rollup/cube 新备选或 transformer；grouping 既有 `SqlRegularFunction` 通路）→ 函数表/放置/方言门 → 方言 SQL 输出或响亮报错（不只是文法分支/模板配置存在）；（b）无空方法体/静默跳过/no-op（模板坏 marker 加载期抛错、不支持方言编译期报错、放置错误响亮失败）；（c）未配置模板方言与既有 `group by`/窗口查询输出逐字节不变。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI7b EC ⑧）；roadmap Work Item Status 的 WI7b 行据此才可 `planned` → `done`（见 roadmap Status values）。
+- [x] `sqlIntervalLiteral` 模板落地（EC ③）：占位符契约 + 加载期校验 + PG/Oracle/MySQL 三形态正确输出用例 + h2 端到端真库执行 + 未配置方言 BC 守护——全部有断言具体文本/错误码的红→绿用例。（审计 Gate1 可勾：9 测复跑绿+加载期校验负向+h2 e2e）
+- [x] `rollup`/`cube`/`grouping` 注册（EC ①）：覆盖矩阵**按方言名列全**（三态 + 证据等级，无比例表述）；`CUBE` 在 MySQL/MariaDB 显式报错用例存在；`GROUPING SETS` 未注册（永久否决维持）。（审计 Gate2 可勾：41 测复跑绿+owner doc 矩阵）
+- [x] 窗口 `OVER` 两种形态（带/不带 partition）+ frame 各有正确 SQL 文本用例（EC ②）——既有测试对照审计结论 + 缺口补齐记录在案。（审计 Gate3 可勾：`testOverWithoutPartitionText` 缺口补齐）
+- [x] `count(*) FILTER` 文档引导小节已写入 `eql-and-database-compatibility.md`，含"空分组下 `sum` 返回 NULL 而 `count` 返回 0"提醒（EC ④）。（审计 Gate4 可勾：L627-643 全要素）
+- [x] **真库证据分派（EC ⑦，差异登记第 2 条口径）**：**h2 探针 transcript 已持久化于 `ai-dev/audits/eql-wi0/`**（摘要：三函数 × H2 2.3.232/2.4.240 × `MODE=Oracle`/`MODE=PostgreSQL` 全部 `Function "ROLLUP"/"CUBE"/"GROUPING" not found`（90022）；`INTERVAL '1' DAY` 执行成功 / 裸 `INTERVAL 1 DAY` 语法错（expected "-, +, string"）/ `INTERVAL '1 DAY'` 数据错（22007）——以 Phase 0 重跑的归档为准）+ h2 负向载体用例 + 不可真库验证方言逐个列出并给替代证据（`[实测]`/`[文档]`/`[未取证]` 逐行标注）；`dm`/`tdengine` 未计入覆盖率；interval 半区有 h2 端到端执行证据。
+- [x] **既有 EQL 语料 BC（EC ⑥）**：`:nop-job-dao`(NopJobTask)、`:nop-auth-service`(test)、`:nop-orm`(test) 三份必测与 WI0 基线快照逐字一致；未声称"7 个全测"（`:nop-orm-demo` 三份与 `nop-spring-simple-demo` 一份由 roadmap 级 EC 第 8 条 + WI0 静态快照覆盖）；interval 语法/回显、`group by a, b`、既有窗口查询形态逐字不变守护用例通过。
+- [x] 约束 4 的"一致性 + 不等价"两类用例/差异登记齐备（interval 逐方言形态、rollup 支持/报错对照、FILTER 引导语义差异至少各一项）。（审计 Gate7 可勾）
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C` 全绿（roadmap WI7b EC ⑤ 命令）——**"全绿"口径**：本 plan 相关模块全绿 + `nop-stream-runtime` 既有 flake 与收口日实跑基线一致即豁免（单跑 PASS 复现，豁免清单记入 Closure Evidence），不得据此判本 plan 失败。（审计 Gate8 可勾：五模块计数/mtime 精确吻合 493/214/1340/87/461）
+- [x] 若 Phase 2 裁定 ⓒ（触 `ast/_gen`）：`./mvnw clean install -T 1C` 通过（codegen 全链路 + 114 个 orm.xml 回归，roadmap WI7 收口注记口径）。（审计 Gate9 可勾：run8 串行 BUILD SUCCESS 为终局权威记录）若 ⓓ：本门以 Phase 2 的 `-pl` 全绿替代并记录。
+- [x] 生成物纪律：每个 Phase 的 `.g4`/`EqlAST.xjava` 改动单独提交（`git log` 文法提交与逻辑提交分离可审计）；每步重生成后 `git diff` 逐一检查；`ast/_gen/` 的 diff 与裁定路径一致（ⓐ/ⓑ/ⓓ 下零 diff）；无 lexer token 删除、`EqlASTKind` ordinal 未被持久化或比较。（审计 Gate10 可勾：Eql.tokens +2 零删除/ordinal 尾部追加既有零移动/ordinal() 持久化 grep 0）
+- [x] `node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（Phase 2 预期真增量已同步；Phase 1 零增量已核实）。（审计 Gate11 可勾）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。（审计 Gate12 可勾：0 error）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/37-eql-wi7b-analytic-features.md --strict` 退出码 0。（Closure Evidence 写入后主会话复跑 exit 0）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow："只解析不门控/只打印不消费模板/放置不校验"正是半实现形态）。（审计自跑 exit 0）
+- [x] owner doc 已同步到 live baseline（INTERVAL 段收口、rollup/cube/grouping 矩阵段、FILTER 引导小节、窗口段交叉引用、能力点登记表行），`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。（审计 Gate15 可勾：五处落档；WI7b 范围内 INDEX/source-anchors 零 diff 条件满足）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）两条端到端调用链真实连通：interval 文本 → parse 归一化 → `visitSqlIntervalExpr` → `getSqlIntervalLiteral()` 模板渲染 → h2 真库执行；`GROUP BY ROLLUP(...)`/`GROUPING()` 文本 → parse（rollup/cube 新备选；grouping 既有 `SqlRegularFunction` 通路）→ 函数表/放置/方言门 → 方言 SQL 输出或响亮报错；（b）无空方法体/静默跳过/no-op（模板坏 marker 加载期抛错、不支持方言编译期报错、放置错误响亮失败）；（c）未配置模板方言与既有 `group by`/窗口查询输出逐字节不变。（独立审计 Anti-Hollow 三项实证：h2 真库执行断言结果值/构造期 marker 校验+编译期能力门/回显路径不变）
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI7b EC ⑧）；roadmap Work Item Status 的 WI7b 行据此才可 `planned` → `done`（见 roadmap Status values）。
 
 ## Deferred But Adjudicated
 
@@ -351,17 +351,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed: （YYYY-MM-DD）
+Status Note: Phase 0-4 全部 `completed`（两段执行：主执行者 Phase 0-4 实施因用量限额中断，接手执行者完成守护测试+终局验证+提交 `8b4d4da35e`）；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑧/B1-B6/C/D 全 PASS，**0 Blocker / 0 Major / 2 Minor**（① daily log"三项留白其余已勾"措辞与文件 17 项全未勾状态不符——随收口勘误；② Phase 2 状态行 clean install 引用 run3，终局权威记录为 run8 串行——已随收口勘误）。**Closure Gates 17 项由审计逐项判定"可勾"**（Gate13 随 evidence 写入复跑后勾、Gate16 审计实证、Gate17 随本节写入勾）。红线全过：`ast/_gen` 77→78（+1 新类）、EqlASTKind 仅 +2 行（ordinal 67 尾部追加既有零移动）、Eql.tokens +2 零删除、语料棘轮恰 2 行 expected-token-set 增 ROLLUP,CUBE（语句本体零漂移）。
+Completed: 2026-10-04
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，须与执行者不同 task_id）
-- Audit Session: （session/task ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与两段执行者均不同 task_id），2026-10-04
+- Audit Session: WI7b closure audit（一次通过，结论"WI7b 通过 closure audit——roadmap WI7b 行可以翻 done"；含 17 项 Closure Gates 逐项判定）
 - Evidence:
-  - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/37-eql-wi7b-analytic-features.md --strict` 退出码
-  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码
+  - A① PASS：审计员独立复跑 `TestEqlGroupingOpsDialect` 41|0；cube mysql+mariadb 硬性用例；h2 负向载体探针归档（`2026-10-04-h2-probe-transcript.txt` 90 组：三函数×2 版本×3 模式全 90022）
+  - A② PASS：窗口三层覆盖+缺口补齐（`testOverWithoutPartitionText`）+10+5 方言 golden+H2 真库
+  - A③ PASS：`TestEqlSqlIntervalTemplate` 9|0 独立复跑（PG/Oracle 引号+MySQL 裸值三形态+约束 4 同渲染一致性）
+  - A④ PASS：owner doc FILTER 引导 L627-643 全要素
+  - A⑤ PASS：五模块终局门计数精确吻合（493/214/1340/87/461）+ mtime 16:32-16:37 晚于 `316d1b3af1` 13:06:31
+  - A⑥ PASS：棘轮 diff 恰 2 行目验（NULLS 后增 ROLLUP, CUBE；source 逐字节零漂移）+ live 棘轮 1|0
+  - A⑦ PASS：真库证据分派清单（h2 负向载体/oracle·pg·duckdb·mssql=[文档]+文本断言/dm·tdengine=[未取证] 不计覆盖）
+  - B1-B6 PASS：ⓒ-A 全要素（EqlASTKind 仅 +2 行/新备选前置胜者/token +2 零删除/ast/_gen 78 文件/守护用例三件）、方言门四层+7 方言配置、grouping 零文法+注册 +6、interval 模板消费+构造期校验+h2 真库执行、窗口半区零产品代码+roadmap 注记、生成物纪律
+  - C PASS：matrix 0 / doc-links 0 error 新增 0 / scan-hollow 0 命中 / checklist exit 0（active 语义）
+  - D PASS：5 Phase+17 项 Gates 逐项判定+daily log 条目+偏差落档
+  - Anti-Hollow：审计三项实证（h2 真库执行断言结果值/构造期 marker 校验+编译期能力门/未配置方言逐字节不变）
+  - Deferred 项分类检查：窗口定价 stale 由 add-stream-sql 越过（roadmap 注记）；GROUPING SETS 永久否决维持；无 in-scope live defect 被降级
+  - `check-plan-checklist.mjs --strict` 退出码：0（evidence 写入后复跑）
+  - `scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 退出码：0
   - Anti-Hollow 检查结果（两条端到端调用链追踪）
   - Deferred 项分类检查（确认无 in-scope live defect 被降级）
 
