@@ -93,6 +93,22 @@ public interface IDialect extends IComponentModel {
     boolean isSupportWindowFrameGroups();
 
     /**
+     * Plan 2308 D1：数据库是否接受原生 {@code ORDER BY ... NULLS FIRST/LAST} 语法。
+     *
+     * <p>这是空序 emission 的<b>唯一</b>判据：true → 直接输出 NULLS 子句；
+     * false → 用 {@code CASE WHEN col IS NULL THEN ... END, col <dir>} 改写，
+     * 该写法对任何方言都语义正确。
+     *
+     * <p>未声明（{@code null}）一律视为 false——这是安全的保守缺省：
+     * false 只是让 SQL 多一个 CASE 键，不会产出错误结果。
+     *
+     * <p><b>不</b>提供"方言缺省空序"查询接口：单个布尔无法表达各方言的真实空序模型
+     * （H2/PG/MySQL 随方向翻转，DuckDB 不翻转且有 4 种模式），
+     * 用它推导 DESC 缺省会静默返回相反行序。详见 design §3.8。
+     */
+    boolean isSupportNullsFirst();
+
+    /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *
      * @return

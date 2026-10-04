@@ -336,6 +336,13 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportNullsFirst() {
+        // Plan 2308 D1：未声明（null）视为 false。false 时 EQL 侧走 CASE 改写，
+        // 该写法在任何方言上都语义正确，因此保守缺省不构成正确性风险。
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportNullsFirst());
+    }
+
+    @Override
     public boolean isSupportUpdateFromJoin() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpdateFromJoin());
     }

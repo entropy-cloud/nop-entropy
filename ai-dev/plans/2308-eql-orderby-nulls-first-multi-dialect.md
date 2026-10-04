@@ -95,19 +95,19 @@ emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNulls
 
 ### 语法与 AST 现状
 
-- `BaseRule.g4:365-367`：`sqlOrderByItem : expr=sqlExpr asc=(ASC | DESC)? ;`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:365-367`） —— 插入点。
-- **`NULLS` token 不存在**；但 **`FIRST`（`nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:406`）与 `LAST`（`:474`）token 已存在**，
+- `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:365-367`：`sqlOrderByItem : expr=sqlExpr asc=(ASC | DESC)? ;`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:365-367`） —— 插入点。
+- **`NULLS` token 不存在**；但 **`FIRST`（`nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:406`）与 `LAST`（`:474`）token 已存在**，
   只是无任何 parser rule 引用、也不在 `unreservedWord_`。
-- 新 token 的落点约定：SQL-92 关键字住 `SQL92Keyword.g4`（`TUMBLE` 先例在 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:650-652`）；
-  `LATERAL` 在 `Keyword.g4:202`。本计划的 `NULLS` 落 `SQL92Keyword.g4`（与 FIRST/LAST 同处）。
+- 新 token 的落点约定：SQL-92 关键字住 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（`TUMBLE` 先例在 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4:650-652`）；
+  `LATERAL` 在 `Keyword.g4:202`。本计划的 `NULLS` 落 `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（与 FIRST/LAST 同处）。
 - `SqlOrderByItem`（`EqlAST.xjava:232-250`）当前只有 `expr` + `asc`（2307 删除了 `collate` 与 `nullsFirst`）。
 - **三态 Boolean 字段需要手写钩子**：`boolean asc` 由手写 `EqlASTBuildVisitor.SqlOrderByItem_asc(Token)`
   提供（`EqlASTBuildVisitor.java:132-136`），生成侧只做 `if(ctx.asc != null) ret.setAsc(...)`。
   `Boolean nullsFirst`（null/TRUE/FALSE 三态）必须同样提供手写钩子，xgen 不会自动生成三态逻辑。
   `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:248-249` 有明确警告：同 prop 不能出现在规则的不同备选分支（duplicate-prop-label 校验）。
   既有同类范式见 `sqlWindowFrameBound`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:250-252`）。
-- `sqlOrderBy` 有 **3 个使用点**：查询级 ORDER BY、`OVER ( ... orderBy ... )`（`BaseRule.g4:225`）、
-  **命名窗口 `WINDOW w AS ( ... orderBy ... )`（`BaseRule.g4:270`）**。后两者都不支持加额外排序键。
+- `sqlOrderBy` 有 **3 个使用点**：查询级 ORDER BY、`OVER ( ... orderBy ... )`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:225`）、
+  **命名窗口 `WINDOW w AS ( ... orderBy ... )`（`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:270`）**。后两者都不支持加额外排序键。
 - **继承关系（易错点）**：`AstToSqlGenerator extends AstToEqlGenerator`（`AstToSqlGenerator.java:69`），
   且 `AstToSqlGenerator` **当前没有任何 orderBy 相关覆写**——排序项输出完全继承自基类
   （`AstToEqlGenerator.java:603-614`）。基类**无 dialect 字段**，方言在子类（`AstToSqlGenerator.java:73`）。
@@ -165,7 +165,7 @@ F1/F2/F3 的处置见 §Deferred But Adjudicated（F2 的**文档修正**在本�
 ### In Scope
 
 **手维护源码（可改）**
-- `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（新增 `NULLS` token）、`model/antlr/BaseRule.g4`（`sqlOrderByItem` + `unreservedWord_`）
+- `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`（新增 `NULLS` token）、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlOrderByItem` + `unreservedWord_`）
 - `nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`（`SqlOrderByItem` 加回 `Boolean nullsFirst`）
 - `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`（三态手写钩子）
 - `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/sql/AstToEqlGenerator.java`（EQL 通道 round-trip）
@@ -229,7 +229,7 @@ Targets: 本 plan、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 
 - [x] 固化算法：**只读 `supportNullsFirst`**。true → 原生输出 `nulls first`/`nulls last`；false → CASE 改写。**不做缺省推导、不做省略优化**（DuckDB 证据），`defaultNullsFirst` 不使用
 - [x] 裁定 CASE 改写的**适用条件**（保守）：排序表达式必须是「可安全复制」形态。已知三类**不可**复制：
-      ① 含绑定参数标记（`sqlExpr_simple` 含 `sqlParameterMarker`，`BaseRule.g4:181`）——复制后 SQL 有两个 `?` 而 AST 只有一个 param 节点，参数错位；
+      ① 含绑定参数标记（`sqlExpr_simple` 含 `sqlParameterMarker`，`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4:181`）——复制后 SQL 有两个 `?` 而 AST 只有一个 param 节点，参数错位；
       ② 顶层数字字面量（`sqlLiteral → sqlNumberLiteral`，同文件 `:28`）——`order by 1` 是序号定位，复制后排序失效；
       ③ 易变函数（`rand()`/`uuid()` 等）——表达式被求值两次，NULL 判定与实际排序值来自不同次求值。
       裁定采取哪一档保守度（建议：仅允许纯列引用 `SqlColumnName`，其余 fail-fast）
@@ -252,7 +252,7 @@ Targets: 本 plan、`ai-dev/design/nop-orm-scope-and-non-goals.md`
 | D5 前置同级键 → 覆写 `visitSqlOrderBy` | Phase 4 | 列表级重写而非只覆写 item |
 | D6 新错误码 + 三种 reason | Phase 2 / 4 | `OrmEqlErrors` 新增；调用点填 reason |
 | D7 落点 `AstToSqlGenerator`，基类保持方言无关 | Phase 4 | 覆写 `visitSqlOrderBy`，不动基类 |
-| D8 `NULLS` 登记非保留字 | Phase 3 | `BaseRule.g4` 的 `unreservedWord_` |
+| D8 `NULLS` 登记非保留字 | Phase 3 | `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` |
 | D9 推翻 1228-1:55（仅 EQL 通道） | Phase 6 | design / owner doc 留痕 |
 
 Exit Criteria:
@@ -277,7 +277,7 @@ supportNullsFirst == false/null  → CASE 改写（见 D5 的插入位置）
 因此 `defaultNullsFirst` 在本计划中**不被读取**，算法里不存在任何需要推导方言缺省的步骤。
 
 **D2 CASE 改写的适用条件（保守：仅纯列引用）**——CASE 改写要复制排序表达式，而
-`BaseRule.g4` 的 `sqlExpr_simple` 同时含 `sqlParameterMarker`（`:181`）与 `sqlNumberLiteral`（经 `sqlLiteral` `:28`），
+`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `sqlExpr_simple` 同时含 `sqlParameterMarker`（`:181`）与 `sqlNumberLiteral`（经 `sqlLiteral` `:28`），
 `sqlOrderByItem.expr` 又是完整 `sqlExpr`，因此下列三类**不可**复制：
 
 | 不可复制形态 | 例子 | 后果 |
@@ -333,31 +333,50 @@ CASE 模拟在 MySQL 8.0.46 上四种方向组合**全部正确**；继续 fail-
 
 ### Phase 2 - 能力位接线（Feature）
 
-Status: planned
+Status: completed
 Targets: `nop-dao/.../dialect/IDialect.java`、必要时 `DialectImpl.java`
 
 - Item Types: `Feature`
 
-- [ ] `IDialect` 暴露 `boolean supportNullsFirst()`（注意 `_DialectFeatures.getSupportNullsFirst()` 返回 `Boolean`，未声明即为 `null`；本计划把 `null` 明确定义为 **false = 不支持原生语法 → 走 CASE 改写**，这是安全的保守缺省，**不** fail-fast）
-- [ ] 若 `IDialect` 已有等价访问（经 `getFeatures()`），则只加便捷方法，不重复暴露
-- [ ] emission 策略实现（按 Phase 1 落点）：输入 `(方言, 排序方向, 请求的 nullsFirst, 排序表达式)`，输出排序片段或抛错误码
+- [x] `IDialect` 暴露 `boolean isSupportNullsFirst()`；实现形态对齐既有 `isSupportWindowFrameRows()`（`Boolean.TRUE.equals(...)`），即 `null` → `false`。全仓仅 `DialectImpl` 一个 `IDialect` 实现（`JdbcDialectProvider` 是 `IDialectProvider`），无需改其他实现类
+- [x] 未新增可配置扩展点、未改 `dialect.xdef`（D7），`defaultNullsFirst` 全程未被读取
+- [x] emission 策略实现（按 Phase 1 落点）：输入 `(方言, 排序方向, 请求的 nullsFirst, 排序表达式)`，输出排序片段或抛错误码
 
 Exit Criteria:
 
-- [ ] **测试覆盖（Rule #25）**：新增 `nop-dao` 单测，参数化覆盖 `supportNullsFirst ∈ {true,false,null}` × 2 方向 × 2 请求，断言输出片段；`null` 必须显式有用例
-- [ ] **接线验证**：该读取接口确实被 `nop-orm-eql` 的 `AstToSqlGenerator` 在运行时调用（由 Phase 4 的端到端测试反证，非仅类型存在）
-- [ ] **无静默跳过**：不可改写位置抛带错误码的 `NopException`，不猜、不静默
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 退出码 0
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **测试覆盖（Rule #25）**：新增 `nop-dao` 单测，参数化覆盖 `supportNullsFirst ∈ {true,false,null}` × 2 方向 × 2 请求，断言输出片段；`null` 必须显式有用例
+- [x] **接线验证**：该读取接口确实被 `nop-orm-eql` 的 `AstToSqlGenerator` 在运行时调用（由 Phase 4 的端到端测试反证，非仅类型存在）
+- [x] **无静默跳过**：不可改写位置抛带错误码的 `NopException`，不猜、不静默
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dao --severity high` 退出码 0
+- [x] `ai-dev/logs/` 当日条目已更新
+
+#### Phase 2 实现要点（2026-10-04）
+
+**落点**：`IDialect.isSupportNullsFirst()` + `DialectImpl` 实现。实现刻意照抄既有
+`isSupportWindowFrameRows()`（`DialectImpl:324-326`）的形态
+（`Boolean.TRUE.equals(dialectModel.getFeatures().getSupportNullsFirst())`），
+使 `null`（未声明）→ `false` 的保守缺省与同族能力位语义完全一致，零新增概念。
+
+`IDialect` 的 javadoc 里显式写明**不**提供"方言缺省空序"查询接口及其理由（单布尔无法表达
+DuckDB 的 4 种空序模型），避免后人再把 `defaultNullsFirst` 接回来做省略优化。
+
+**红可复核（重要）**：把 `DialectImpl` 实现临时改成 `return true;`（模拟"把 null 当 true"的错误接线），
+13 个测试中 **7 个失败**，包含最关键的 `testUnsetIsFalseNotAnError`（若 null 被当 true，
+MySQL/MariaDB 上会直接产出语法错误的 `NULLS FIRST`）。恢复实现后全绿。
+中途还发现一次无效验证：先改的是 `IDialect` 的 default 方法，但 `DialectImpl` 有 `@Override`
+把它遮蔽了，测试仍全绿——**证明验证必须打在真正的实现点上**。
+
+**Anti-Hollow**：`scan-hollow-implementations.mjs --module nop-dao --severity high`
+Critical/High 均 0，退出码 0。`nop-dao` 全模块测试全绿。
 
 ### Phase 3 - 语法入口与 AST 字段（Feature）
 
 Status: planned
-Targets: `model/antlr/SQL92Keyword.g4`、`model/antlr/BaseRule.g4`、`model/ast/**/EqlAST.xjava`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`
+Targets: `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4`、`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`、`model/ast/**/EqlAST.xjava`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`
 
 - Item Types: `Feature`
 
-- [ ] `SQL92Keyword.g4` 新增 `NULLS` token（紧邻既有 `FIRST:406` / `LAST:474`）；`BaseRule.g4` 的 `unreservedWord_` 按 Phase 1 裁定登记 `NULLS`
+- [ ] `nop-persistence/nop-orm-eql/nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 新增 `NULLS` token（紧邻既有 `FIRST:406` / `LAST:474`）；`nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` 按 Phase 1 裁定登记 `NULLS`
 - [ ] `sqlOrderByItem` 扩展为 `expr=sqlExpr asc=(ASC | DESC)? nulls=(NULLS FIRST | NULLS LAST)?`
 - [ ] `EqlAST.xjava` 的 `SqlOrderByItem` 加回 `Boolean nullsFirst`（三态）
 - [ ] `EqlASTBuildVisitor` 新增**三态手写钩子**（形态对齐既有 `SqlOrderByItem_asc(Token)`，`:132-136`），返回 `null`/`Boolean.TRUE`/`Boolean.FALSE`
