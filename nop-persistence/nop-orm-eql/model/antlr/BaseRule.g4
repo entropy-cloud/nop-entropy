@@ -100,6 +100,9 @@ unreservedWord_:
     | BEGIN|END | CROSS
     | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
     | TUMBLE
+    // WI7 Phase 3: NULLS 无保留 token（词法落 IDENTIFIER_），经 unreservedWord_ 进入
+    // NULLS FIRST/LAST 子句位置与标识符位置（plan 26 Phase 3）
+    | NULLS
     ;
 
 // variable
@@ -413,8 +416,11 @@ sqlOrderBy
 sqlOrderByItems_:
    e=sqlOrderByItem (COMMA_ e=sqlOrderByItem)*;
 
+// WI7（roadmap EC ②，ai-dev/plans/26-eql-wi7-pagination-and-nulls.md Phase 3）：接受
+// ORDER BY … NULLS FIRST/LAST，赋值既有 SqlOrderByItem.nullsFirst（Boolean 三态）。
+// 门与消费已先于文法落地（Phase 2 AstToSqlGenerator 三分门）；不删除任何 token。
 sqlOrderByItem
-    : expr=sqlExpr asc=(ASC | DESC)?
+    : expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?
     ;
 
 sqlGroupByItem
