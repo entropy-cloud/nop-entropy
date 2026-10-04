@@ -261,24 +261,24 @@ Exit Criteria:
 
 ### Phase 6 - 窗口命名 WINDOW 回归验证 + 全量收口（交付 ④ + roadmap EC ⑤⑥）
 
-Status: planned
+Status: completed
 Targets: 既有测试面复核（零产品代码）、owner doc 终局对账、`ai-dev/logs/`
 
 - Item Types: `Proof`
 
-- [ ] **窗口回归验证**（roadmap WI12 交付 4 注记的落地证据）：`TestEqlWindowGrammarParse`（含 `testOverNamedWindowRef`/`testWindowClause`）、`TestDialectWindowSqlSnapshot`（10+5 方言 golden + `testOverWithoutPartitionText`）、`TestH2WindowFrameMatrix`、`TestH2WindowFrameCompileEndToEnd` 在本 plan 全部生成物重生成完成后**全量重跑全绿**；记录「已由 add-stream-sql 建成、本 plan 仅回归收口」的结论于 daily log（roadmap 回写素材）。
-- [ ] **全量测试门**（roadmap EC ⑤）：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C`——按 Current Baseline 全绿口径执行（5 项负载敏感 flake 类级排除 + `!JSONPointTest_0,!JSONPointTest_1` 连带排除；若有 clean install 触发点则该门在 Phase 2/4 已跑，此处核实未回退）。
-- [ ] **语料 BC 终局**（roadmap EC ⑥）：三份必测逐字一致；**不声称 7 个全测**。
-- [ ] **owner doc 终局对账**：`eql-and-database-compatibility.md` 与实际 dialect XML 逐项对账无差异（本 plan 新增面 + 既有面）；能力点登记表含本 plan 全部新输出点行。
-- [ ] **四门禁**：矩阵快照 exit 0；`node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0（既有基线 3 项 warning 不顺手修）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码 0（收口轮）。
-- [ ] `ai-dev/logs/` 终局条目。
+- [x] **窗口回归验证**（roadmap WI12 交付 4 注记的落地证据）：`TestEqlWindowGrammarParse`（含 `testOverNamedWindowRef`/`testWindowClause`）、`TestDialectWindowSqlSnapshot`（10+5 方言 golden + `testOverWithoutPartitionText`）、`TestH2WindowFrameMatrix`、`TestH2WindowFrameCompileEndToEnd` 在本 plan 全部生成物重生成完成后**全量重跑全绿**；记录「已由 add-stream-sql 建成、本 plan 仅回归收口」的结论于 daily log（roadmap 回写素材）。
+- [x] **全量测试门**（roadmap EC ⑤）：`./mvnw test -pl :nop-orm-eql,:nop-orm,:nop-metadata-service,:nop-job-dao,:nop-auth-service -am -T 1C`——按 Current Baseline 全绿口径执行（5 项负载敏感 flake 类级排除 + `!JSONPointTest_0,!JSONPointTest_1` 连带排除；若有 clean install 触发点则该门在 Phase 2/4 已跑，此处核实未回退）。
+- [x] **语料 BC 终局**（roadmap EC ⑥）：三份必测逐字一致；**不声称 7 个全测**。
+- [x] **owner doc 终局对账**：`eql-and-database-compatibility.md` 与实际 dialect XML 逐项对账无差异（本 plan 新增面 + 既有面）；能力点登记表含本 plan 全部新输出点行。
+- [x] **四门禁**：矩阵快照 exit 0；`node ai-dev/tools/check-doc-links.mjs --strict` 新增 broken link = 0（既有基线 3 项 warning 不顺手修）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码 0（收口轮）。
+- [x] `ai-dev/logs/` 终局条目。
 
 Exit Criteria:
 
-- [ ] 窗口四层测试全绿且记录在案；全量测试门 BUILD SUCCESS（豁免口径如实记录）。
-- [ ] 三份必测 BC 逐字一致；owner doc 对账无差异。
-- [ ] 四门禁全过（doc-links 新增 0）。
-- [ ] daily log 终局条目已更新。
+- [x] 窗口四层测试全绿且记录在案；全量测试门 BUILD SUCCESS（豁免口径如实记录）。
+- [x] 三份必测 BC 逐字一致；owner doc 对账无差异。
+- [x] 四门禁全过（doc-links 新增 0）。
+- [x] daily log 终局条目已更新。
 
 ## Closure Gates
 

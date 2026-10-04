@@ -145,6 +145,13 @@
 - **三态断言设计**：① 输入 `ts at time zone 'UTC'` 可解析；② 归一化回显 = `atTimeZone(ts, 'UTC')` 函数形态（`toSqlString()`；7 语料 0 命中已证无 BC 风险，断言仍须落）；③ 方言 lowering = `{0} AT TIME ZONE {1}` 渲染文本（h2 实测 + 至少一族 [文档] 方言）。**`{0}`/`{1}` marker 与实参顺序经 `TemplateSQLFunction` 加载期越界校验兜底（WI0 交付 2，nop-dao function 包 :56-64 实测）。**
 - **真库证据**：`atTimeZone` 在 h2 经 `TestDialect.testFunctions` 真库执行全绿（补 `<testSql>`）；其余注册方言逐个列 [文档] 证据；dm/tdengine 标 `[未取证]`。
 
+## 5b. 执行期细化注记（2026-10-04 Phase 2/5 实施轮，原地补记不改正文结论）
+
+- **§5 AT TIME ZONE 挂载点修正**：正文预判的 `sqlExpr_special` 挂载实测构成**间接左递归**（`sqlExpr_special ⇒ sqlExpr_simple ⇒ sqlExpr_functionCall ⇒ sqlExpr_special`，ANTLR 拒绝生成）——改挂 **`sqlExpr_bit` 层后缀备选**（`sqlExpr_predicate` 的 LIKE 备选同构；与 `#SqlExpr_simple2` 共享前缀由 ALL(*) 前瞻消解）。落地形态仍为 §5 的归一化契约（SqlRegularFunction/atTimeZone/双参）。
+- **§5 操作数无 label**（WI8 机制发现复现）：codegen `initRuleReturnType` 对 label 做 `getDefine(前缀).getProp(label)` 校验，SqlRegularFunction 无 `left`/`zone` prop 必炸 `get-prop-on-null-obj`——备选操作数**不带 label**（`SqlGroupByItem_rollup` 同款先例），经 `ctx.sqlExpr_simple(0)/(1)` 访问。
+- **§5 方言矩阵 db2 细化**：db2.dialect.xml 为**不可加载 stub**（roadmap WI0 可加载性实测 4/18 不可加载口径），其 `<functions>` 注册即死配置——**db2 不注册**（从「注册集」移入「不配置」列，证据等级 [未取证] 红线不变）。最终注册集 = h2(+h2gis)/postgresql(+postgis+duckdb)/oracle(+oracle-reverse)/mssql。
+- **§4 文法执行期核对**：`sqlColumnAliases__`（notInAst 内联规则）+ `sqlRowList_` helper（`buildSqlRowList_` 生成）按 §4 定价落地；`SqlValuesTableSource` 经 codegen 生成 ast/ 骨架 wrapper 后手写补齐（resolvedTableMeta 承载 + getSourceSelect=null）。
+
 ## 6. 窗口命名 WINDOW 回归验证面清单（Proof，Phase 6 输入）
 
 四层载体全部实测存在于当前树（§0 表）：
