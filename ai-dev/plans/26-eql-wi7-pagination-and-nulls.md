@@ -219,33 +219,33 @@ Exit Criteria:
 
 ### Phase 3 - `ORDER BY … NULLS FIRST/LAST` 文法 + 构建赋值 + 回显（激活 Phase 2 管线，EC ②/④/⑤ 行为面）
 
-Status: planned
+Status: completed（2026-10-04；NULLS 需显式 token 的执行期修订见裁定文档 §八）
 Targets: `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4`（`sqlOrderByItem`、`unreservedWord_`）、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTBuildVisitor.java`、重生成产物、`nop-orm-eql` 测试、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`
 
 - Item Types: `Feature`、`Proof`
 
-- [ ] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护，同 Phase 1）；**并复核 Phase 2 已 `completed`**（门必须先于本 Phase 的文法落地）。
-- [ ] 修复前红：`select a from t order by a desc nulls last` 与 `order by a nulls first` 解析失败——回归测试断言可解析，修复前红留痕。
-- [ ] 文法（按 Phase 0 裁定）：`sqlOrderByItem` 单备选内扩展为 `expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?`（同构 `asc=` 的 token→Boolean 抽象转换方法先例，`_EqlASTBuildVisitor.java` 的 `SqlOrderByItem_asc` 同款手写转换）；`NULLS` 加入 `unreservedWord_`（`BaseRule.g4:72-96`，WI5 遮蔽放开同款，零 lexer 改动）；不删除任何 token。`.g4` 改动单独提交，重生成后 `git diff` 检查。
-- [ ] 正向用例断言具体方言 SQL 文本（EC ②，`defaultNullsFirst` true/false 两类方言各至少一例）：postgresql/duckdb/h2/oracle（`supportNullsFirst=true`）显式请求 → 输出 `nulls first`/`nulls last` 文本；mysql（true、无子句支持）`asc nulls first` → 一致省略（输出无子句、行为等价）（EC ④ 的 mysql 侧）。
-- [ ] EC ④ 另一半：oracle（默认 NULLS LAST，`oracle:5`）`asc nulls first` → 打印子句（与缺省不一致但有子句支持）；oracle `asc nulls last` 与 mysql `desc nulls last`（若 DESC 镜像经一手文档证实）→ 一致省略——两类默认值的"一致省略/打印/报错"三态对应用例齐备。
-- [ ] 负向用例（EC ②④）：mysql `asc nulls last`（无子句支持 + 与缺省冲突）编译期报错断言具体错误码；`dm`/`tdengine` 显式请求报错；无静默降级。
-- [ ] EC ⑤ 差异用例（两件，roadmap 并列要求）：**DuckDB-vs-PG 在 `DESC` 下的缺省 NULL 序**——① 显式子句 parity 用例：`order by … desc nulls last` 在 duckdb 与 pg 上**都**输出 `nulls last` 子句（两者 `defaultNullsFirst` 均 `false` ⇒ 缺省文本差异用例不可能，以显式子句形态满足，见 Phase 0 登记）；② owner doc 差异表行：记录"缺省时两库行为不同（DuckDB keeps NULLS LAST even for DESC vs PG places NULLs first on DESC）且单布尔不可表达"。
-- [ ] 回显断言：`order by a desc nulls first` 的 `toSqlString()` 含 `nulls first`（继承打印路径首次被文法激活的守护）；`order by a`（无 NULLS）回显逐字不变。
-- [ ] 接线验证（#23）：EQL 文本 → parse 赋值 `nullsFirst` → transform → 生成侧门/省略/打印决策的端到端用例（mysql 冲突报错一条 + postgresql 打印一条）。
-- [ ] 既有行为守护：`order by a asc`/`order by a desc` 输出逐字不变；`unreservedWord_` 加 `NULLS` 不影响标识符/别名使用 `nulls` 的场景（若语料或测试存在）与 interval 形态（`TestEqlIntervalLiteralParse` 全量回归兜底）。
-- [ ] owner doc（EC ②④⑤ 收口）：NULLS 语法小节（支持矩阵 + 省略/报错决策表 + dm/tdengine `[未取证]`）并入 Phase 2 小节；矩阵快照核实零增量 + 门禁 exit 0；语料 BC（EC ⑧）三份必测逐字一致。
-- [ ] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] **开工前置复核**：WI0-WI3 四个前置 plan 的 `Plan Status` 仍为 `completed`（硬前置已满足；复核为回退防护，同 Phase 1）；**并复核 Phase 2 已 `completed`**（门必须先于本 Phase 的文法落地）。
+- [x] 修复前红：`select a from t order by a desc nulls last` 与 `order by a nulls first` 解析失败——回归测试断言可解析，修复前红留痕。
+- [x] 文法（按 Phase 0 裁定）：`sqlOrderByItem` 单备选内扩展为 `expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?`（同构 `asc=` 的 token→Boolean 抽象转换方法先例，`_EqlASTBuildVisitor.java` 的 `SqlOrderByItem_asc` 同款手写转换）；`NULLS` 加入 `unreservedWord_`（`BaseRule.g4:72-96`，WI5 遮蔽放开同款，零 lexer 改动）；不删除任何 token。`.g4` 改动单独提交，重生成后 `git diff` 检查。
+- [x] 正向用例断言具体方言 SQL 文本（EC ②，`defaultNullsFirst` true/false 两类方言各至少一例）：postgresql/duckdb/h2/oracle（`supportNullsFirst=true`）显式请求 → 输出 `nulls first`/`nulls last` 文本；mysql（true、无子句支持）`asc nulls first` → 一致省略（输出无子句、行为等价）（EC ④ 的 mysql 侧）。
+- [x] EC ④ 另一半：oracle（默认 NULLS LAST，`oracle:5`）`asc nulls first` → 打印子句（与缺省不一致但有子句支持）；oracle `asc nulls last` 与 mysql `desc nulls last`（若 DESC 镜像经一手文档证实）→ 一致省略——两类默认值的"一致省略/打印/报错"三态对应用例齐备。
+- [x] 负向用例（EC ②④）：mysql `asc nulls last`（无子句支持 + 与缺省冲突）编译期报错断言具体错误码；`dm`/`tdengine` 显式请求报错；无静默降级。
+- [x] EC ⑤ 差异用例（两件，roadmap 并列要求）：**DuckDB-vs-PG 在 `DESC` 下的缺省 NULL 序**——① 显式子句 parity 用例：`order by … desc nulls last` 在 duckdb 与 pg 上**都**输出 `nulls last` 子句（两者 `defaultNullsFirst` 均 `false` ⇒ 缺省文本差异用例不可能，以显式子句形态满足，见 Phase 0 登记）；② owner doc 差异表行：记录"缺省时两库行为不同（DuckDB keeps NULLS LAST even for DESC vs PG places NULLs first on DESC）且单布尔不可表达"。
+- [x] 回显断言：`order by a desc nulls first` 的 `toSqlString()` 含 `nulls first`（继承打印路径首次被文法激活的守护）；`order by a`（无 NULLS）回显逐字不变。
+- [x] 接线验证（#23）：EQL 文本 → parse 赋值 `nullsFirst` → transform → 生成侧门/省略/打印决策的端到端用例（mysql 冲突报错一条 + postgresql 打印一条）。
+- [x] 既有行为守护：`order by a asc`/`order by a desc` 输出逐字不变；`unreservedWord_` 加 `NULLS` 不影响标识符/别名使用 `nulls` 的场景（若语料或测试存在）与 interval 形态（`TestEqlIntervalLiteralParse` 全量回归兜底）。
+- [x] owner doc（EC ②④⑤ 收口）：NULLS 语法小节（支持矩阵 + 省略/报错决策表 + dm/tdengine `[未取证]`）并入 Phase 2 小节；矩阵快照核实零增量 + 门禁 exit 0；语料 BC（EC ⑧）三份必测逐字一致。
+- [x] `./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
 
 Exit Criteria:
 
-- [ ] 红→绿回归测试断言具体 SQL 文本（true/false 两类方言 + EC ④ 三态对应 + EC ⑤ DuckDB-vs-PG DESC 登记）。
-- [ ] 负向用例断言具体错误码（冲突报错 + dm/tdengine 一律报错）；无静默跳过。
-- [ ] 端到端接线用例通过（parse 赋值 → 门/省略/打印决策）。
-- [ ] 既有 `order by` 形态与回显逐字不变；`TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
-- [ ] owner doc NULLS 小节收口；矩阵快照门禁 exit 0。
-- [ ] `.g4` 改动单独提交；重生成后 `git diff` 已逐一检查且 `ast/_gen/` 零 diff；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 红→绿回归测试断言具体 SQL 文本（true/false 两类方言 + EC ④ 三态对应 + EC ⑤ DuckDB-vs-PG DESC 登记）。
+- [x] 负向用例断言具体错误码（冲突报错 + dm/tdengine 一律报错）；无静默跳过。
+- [x] 端到端接线用例通过（parse 赋值 → 门/省略/打印决策）。
+- [x] 既有 `order by` 形态与回显逐字不变；`TestEqlCorpusBaseline` 通过（三份必测逐字一致）。
+- [x] owner doc NULLS 小节收口；矩阵快照门禁 exit 0。
+- [x] `.g4` 改动单独提交；重生成后 `git diff` 已逐一检查且 `ast/_gen/` 零 diff；`./mvnw test -pl :nop-orm-eql,:nop-dao -am -T 1C` 全绿。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 - `ORDER BY … COLLATE` ledger 裁定收口 + roadmap 回写（EC ⑦）
 

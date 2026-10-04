@@ -157,3 +157,16 @@ DuckDB 与 PG 的 `defaultNullsFirst` 均 `false`（`duckdb.dialect.xml:9`/`post
 | 裁定 4（accessor） | Phase 2 `IDialect`/`DialectImpl` + `TestDefaultNullsFirstFlag` 升级 |
 | 裁定 5（COLLATE 移出） | Phase 4 roadmap ledger 行收口 + owner doc COLLATE 小节 |
 | §6 用例清单 | Phase 1/2/3 的用例设计与断言文本 |
+
+---
+
+## 八、Phase 3 执行期实测修订：NULLS 必须是显式大小写不敏感 lexer token（2026-10-04）
+
+plan 起草时"NULLS 走 `unreservedWord_` 加词 = WI5 遮蔽放开同款 = 零 lexer 改动"的前提**被实测推翻**：
+
+1. **WI5 五词（DAY/HOUR/MINUTE/SECOND/QUARTER）全部是 `nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 既有保留 token**——"遮蔽放开"只是把既有 token 收进 `unreservedWord_`（标识符位置可匹配）。`NULLS` 在全部 9 个 antlr `.g4` 文件中**零 token**，往 `unreservedWord_` 里写 `NULLS` 只会创建**隐式 token**（antlr warning 125，同 `characterSet_` 的 `STRING`）。
+2. **隐式 token 无 lexer 规则可产生 ⇒ 永不可达**（BUG-15 登记的 "`STRING` 永久不可匹配" 同形态实测）：red-phase 文法落地后小写/大写 `nulls` 文本仍解析失败（`nop.err.antlr.not-end-properly`，offendingToken=nulls）。
+3. **修正 = `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 显式新增 `NULLS : N U L L S;`**（fragment 组合 = 大小写不敏感，Keyword 惯例）：定义在 `IDENTIFIER_` 之前（lexer 优先级 = 定义序，否则 `nulls` 文本被 `IDENTIFIER_` 抢走）；`Literals` 是最后 import 的 lexer grammar ⇒ `NULLS=353`，仅其后 5 个 Literals token（`IDENTIFIER_`/`STRING_`/`NUMBER_`/`HEX_DIGIT_`/`BIT_NUM_`）序号顺延 +1，**Keyword/SQL92Keyword 全部 352 个 token 序号零变化、零 token 删除**（"不删除任何 lexer token"红线不触；token 均按名引用，`.tokens`/`EqlLexer`/`Eql.interp` 同批重生成）。
+4. `unreservedWord_` 收编 `NULLS` **仍然必要且保留**（plan 该半句成立）：真实 NULLS token 产生后，`nulls` 作列名/别名等标识符位置须经 `sqlIdentifier_ = IDENTIFIER_ | unreservedWord_` 匹配（守护用例 `TestEqlNullsFirstSyntax.testNullsAsIdentifierStillParses`/`testNullsAsAliasStillParses`）。
+5. `sqlOrderByItem` 扩展为 `expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?`，生成体新增 `SqlOrderByItem_nullsFirst(Token)` 抽象转换方法（Boolean 三态，`SqlOrderByItem_asc` 同构），手写实现 `return isToken(token, EqlParser.FIRST)`；无 NULLS 子句时生成体 null 检查保证不赋值（保持 Boolean null 三态）。
+6. **语料基线棘轮**：WI0 快照唯一 drift = 2 条 parse-error 诊断转储的 expected-token 集合新增 `NULLS`（解析结论与回显文本逐字不变，WI5 Phase 5 同型），快照已照棘轮规程重生成并复核。

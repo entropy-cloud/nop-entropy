@@ -315,6 +315,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 
 - `defaultNullsFirst`（dialect 根属性）= 缺省升序下 NULL 是否排前的**事实**；`supportNullsFirst`（features 标志）= 是否原生接受 `NULLS FIRST/LAST` **子句**。两者正交、各司其职，不是重复标志（duckdb `defaultNullsFirst=false` + `supportNullsFirst=true` 同时成立且都正确）。
 - 现值（2026-10-04）：`defaultNullsFirst` 显式配置 mysql/mssql/dm/h2=`true`，tdengine/duckdb/postgresql/oracle=`false`；未配置（如 db2）= 模型 null → accessor false（保守缺省）。两个 accessor 均已接线：`IDialect.isDefaultNullsFirst()`（WI3）+ `IDialect.isSupportNullsFirst()`（WI7）。
+- **语法接受（2026-10-04 WI7 Phase 3）**：`order by <expr> [asc|desc] [nulls first|nulls last]` 可解析（`sqlOrderByItem` 单备选内扩展；`NULLS` 为显式大小写不敏感 token——执行期实测修订：plan 设想的"unreservedWord_ 加词零 lexer 改动"产生的是无 lexer 规则的隐式 token=永不可达，同 BUG-15 `STRING` 形态；修正=Literals.g4 显式 `NULLS : N U L L S;`，`NULLS=353` 仅其后 5 个 Literals token 序号顺延 +1、零 token 删除）。`nulls` 收编 `unreservedWord_` 后仍可作列名/别名（`sqlIdentifier_` 通路）。回显打印 `nulls first`/`nulls last`（继承路径，随文法激活首次可达）。
 - **`NULLS FIRST/LAST` 门行为（2026-10-04 WI7，执行路径 `AstToSqlGenerator.visitSqlOrderByItem`；回显路径不做方言判断）**：
   1. 未指定 `nullsFirst` → 输出与既有行为逐字节一致（缺省**不主动补子句**）；
   2. `isSupportNullsFirst()=true`（duckdb/h2/oracle/postgresql）→ 按请求打印 `nulls first`/`nulls last`；
