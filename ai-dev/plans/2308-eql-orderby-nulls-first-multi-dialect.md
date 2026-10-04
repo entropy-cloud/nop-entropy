@@ -1,6 +1,6 @@
 # 2308 EQL ORDER BY NULLS FIRST/LAST 多方言支持
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-04
 > Source: plan 2307 Phase 1/5 对 `SqlOrderByItem.nullsFirst` 的删除裁定 + 2026-10-04 三库实测 + 第一轮独立子 agent 对抗性审查（6 Blocker / 9 Major，已逐条复核并采纳）
 > Related: `ai-dev/plans/2307-eql-live-defect-and-dead-surface-remediation.md`、`ai-dev/design/nop-orm-scope-and-non-goals.md` §3.6/§3.7、`ai-dev/plans/nop-metadata-audit-remediation/2026-08-06-1228-1-r8-4a-query-labeling-sla-correctness.md`（`:55` 不做 CASE 模拟、`:93-96` fail-fast 裁定 —— 本计划**推翻其适用范围**）
@@ -32,57 +32,61 @@
 
 ⇒ 真实缺陷是「能力位无人读取」，**不是缺能力位**。本计划**不需要改 `dialect.xdef` schema**。
 
-### 已实测事实（2026-10-04，docker / 本地 jar 实跑）
+### 已实测事实（2026-10-04，探针 `ai-dev/tools/probe-nulls-order-matrix.sh` 可复制复跑）
 
-数据 `T(id,v) = (1,10),(2,NULL),(3,20)`：
+数据 `T(id,v) = (1,10),(2,NULL),(3,20)`；`默认 ASC`/`默认 DESC` 列为实测行序，括注 NULL 所处位置。
 
-| 库 | 版本 | 原生 `NULLS FIRST/LAST` | 缺省 ASC | 缺省 DESC | `CASE WHEN` 模拟 |
-|---|---|---|---|---|---|
-| H2 | 2.3.232 | **支持**（4 组合全 OK） | `2;1;3;` ⇒ NULLS **FIRST** | — | n/a |
-| PostgreSQL | 16.15 | **支持**（4 组合全 OK） | `1;3;2;` ⇒ NULLS LAST | `2;3;1;` ⇒ NULLS **FIRST**（翻转） | 可用 |
-| MySQL | 8.0.46 | **不支持**（`You have an error ... near 'nulls first'`） | `2;1;3;` ⇒ NULLS **FIRST** | — | **可用**（4 组合全对） |
+| 库 | 版本 | 默认 ASC | 默认 DESC | 缺省是否随方向翻转 | 原生 `NULLS FIRST/LAST` | `CASE` 模拟 |
+|---|---|---|---|---|---|---|
+| H2 | 2.3.232 | `2;1;3;`（NULL **FIRST**） | `3;1;2;`（NULL LAST） | **翻转** | **支持**（4/4 OK） | 4/4 正确 |
+| PostgreSQL | 16.15 | `1;3;2;`（NULL LAST） | `2;3;1;`（NULL **FIRST**） | **翻转** | **支持**（4/4 OK） | 4/4 正确 |
+| MySQL | 8.0.46 | `2;1;3;`（NULL **FIRST**） | `3;1;2;`（NULL LAST） | **翻转** | **不支持**（4/4 `SQLSTATE 42000`） | 4/4 正确 |
+| DuckDB | — | NULLS LAST | NULLS LAST | **不翻转**（官方文档） | 支持（已声明 true） | — |
 
 已声明取值与实测一致：`supportNullsFirst` h2/postgresql=true（实测支持）、mysql 未设=false（实测不支持）；
 `defaultNullsFirst` mysql=true、postgresql=false 均与实测吻合。
 
-**`CASE WHEN` 模拟四组合（MySQL 8.0.46 实测，本计划 emission 算法的依据）**：
+**`CASE WHEN` 模拟四组合（三库实测全部 PASS，本计划 emission 算法的依据）**：
 
-| 目标 | 改写 | 实测 |
+| 目标 | 改写 | 期望行序 |
 |---|---|---|
-| ASC + NULLS FIRST | `case when v is null then 0 else 1 end, v asc` | `2;1;3;` ✓ |
-| ASC + NULLS LAST | `case when v is null then 1 else 0 end, v asc` | `1;3;2;` ✓ |
-| DESC + NULLS FIRST | `case when v is null then 1 else 0 end desc, v desc` | `2;3;1;` ✓ |
-| DESC + NULLS LAST | `case when v is null then 0 else 1 end desc, v desc` | `3;1;2;` ✓ |
+| ASC + NULLS FIRST | `case when v is null then 0 else 1 end, v asc` | `2;1;3;` |
+| ASC + NULLS LAST | `case when v is null then 1 else 0 end, v asc` | `1;3;2;` |
+| DESC + NULLS FIRST | `case when v is null then 1 else 0 end desc, v desc` | `2;3;1;` |
+| DESC + NULLS LAST | `case when v is null then 0 else 1 end desc, v desc` | `3;1;2;` |
 
-### 已实测推翻的一个设计前提：不能用「请求==缺省则省略」优化
+### 结论：不能用「请求==缺省则省略」优化
 
-DuckDB 官方文档（`duckdb.org/docs/current/sql/query_syntax/orderby`）逐字：
+上表实测显示 H2 / PostgreSQL / MySQL **三家都随方向翻转**（只是翻转后的取向相反），
+而 DuckDB 官方文档明确其**不翻转**：
 
-> "By default, DuckDB sorts ASC and NULLS LAST... For the default ASC direction this matches PostgreSQL.
-> Note, however, that **DuckDB keeps NULLS LAST even for DESC ordering, whereas PostgreSQL places NULLs
-> first on DESC**. To match PostgreSQL in both directions, set `default_null_order = 'NULLS_LAST_ON_ASC_FIRST_ON_DESC'`."
+> "By default, DuckDB sorts ASC and NULLS LAST... **DuckDB keeps NULLS LAST even for DESC ordering,
+> whereas PostgreSQL places NULLs first on DESC**. To match PostgreSQL in both directions, set
+> `default_null_order = 'NULLS_LAST_ON_ASC_FIRST_ON_DESC'`."
 
 DuckDB 的空序模型有 **4 种**（`NULLS_FIRST` / `NULLS_LAST` / `NULLS_FIRST_ON_ASC_LAST_ON_DESC` /
-`NULLS_LAST_ON_ASC_FIRST_ON_DESC`），而 `defaultNullsFirst` 只有 **1 个布尔**。
-实测 PostgreSQL 确实在 DESC 翻转（`2;3;1;`），但 DuckDB 不翻转。
+`NULLS_LAST_ON_ASC_FIRST_ON_DESC`），而 `defaultNullsFirst` 只有 **1 个布尔**，无法表达"不翻转"。
 
-⇒ **单布尔无法推导 DESC 缺省**。若沿用它做「省略子句」判定：
-`duckdb + ORDER BY x DESC NULLS FIRST` 会被判为「DESC 缺省就是 NULLS FIRST」→ 省略子句
-→ DuckDB 实际返回 NULLS LAST。**查询成功、行序错、分页取到错数据**——正是本计划要消灭的失败模式。
+⇒ **单布尔不能可靠推导 DESC 缺省**。若用它做省略判定：`duckdb + ORDER BY x DESC NULLS FIRST`
+会被判为"缺省即满足"→ 省略子句 → DuckDB 实际返回 NULLS LAST。
+**查询成功、行序错、分页取到错数据**——正是本计划要消灭的失败模式。
 
 **裁定（Phase 1 固化）：放弃「请求==方言缺省则省略」优化，永远显式输出。**
-这样 emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNullsFirst` 在本计划中**不使用**。
-代价是产出略冗长（即使请求恰与缺省一致也显式输出）；收益是彻底消除「缺省推导」这一整类静默错序风险。
+emission 算法**只依赖 `supportNullsFirst` 一个能力位**，`defaultNullsFirst` 在本计划中**不使用**。
+代价是产出略冗长；收益是彻底消除「缺省推导」这一整类静默错序风险。
 
-### 取值缺口
+### 未实测方言的保守裁定
 
-| 方言 | 缺口 | 处置 |
+| 方言 | 环境限制 | 裁定 |
 |---|---|---|
-| `h2` | 未声明 `defaultNullsFirst`（实测缺省 NULLS FIRST） | 本计划不使用该属性，**无需补**；但 Phase 0 仍记录实测值 |
-| `db2` / `es` | 两属性均未声明 | 同上；`es` 本身是占位桩（`driverClassName`/`dbProductNames` 均为 `xx`），不做核实 |
-| `dm` | `supportNullsFirst` 未设（=false），但 DM 兼容 Oracle，很可能实际支持 | Phase 0 核实；未核实前按 false（走 CASE 改写，**语义仍正确**） |
-| `tdengine` | `supportNullsFirst` 未设 | 同上 |
-| `mariadb`/`mysql5.7`/`postgis`/`oracle-reverse`/`h2gis` | 继承父方言 | 无需设值 |
+| `mariadb`（及 `mysql5.7`） | 本机无 mariadb 镜像、docker pull 受限 → **未能实测** | `supportNullsFirst=false`（保守）。依据：MariaDB 与 MySQL 同源、无该语法。走 CASE 改写，**语义仍正确**，只影响 SQL 冗长度 |
+| `dm` | 无达梦环境 → 未能实测 | `supportNullsFirst=false`（保守）。DM 兼容 Oracle、很可能实际支持，但未实测不改为 true |
+| `tdengine` | 无 TDengine 环境 → 未能实测 | `supportNullsFirst=false`（保守） |
+| `db2` / `oracle` / `es` | 无环境 | 不改现有取值；`es` 是占位桩（`driverClassName`/`dbProductNames` 均为 `xx`），不做核实 |
+| `h2` 的 `defaultNullsFirst` | 实测缺省为 NULLS FIRST，但该属性**本计划不使用** | **不补**（避免给死属性再加无谓配置） |
+
+保守取值不构成正确性风险：`supportNullsFirst=false` 时一律走 CASE 改写，而 CASE 改写已在三个库上
+实测语义正确，且它只用到 SQL 标准中普遍支持的 `CASE WHEN` 与 `IS NULL`。
 
 方言继承树（已核实）：`default` → {`postgresql` → {`duckdb`, `postgis`}, `mysql` → {`mariadb`, `mysql5.7`},
 `oracle` → {`oracle-reverse`}, `h2` → {`h2gis`}, `db2`, `dm`, `mssql`, `tdengine`, `es`}；
@@ -197,23 +201,24 @@ F1/F2/F3 的处置见 §Deferred But Adjudicated（F2 的**文档修正**在本�
 
 ### Phase 0 - 方言矩阵实测与取值缺口裁定（Proof）
 
-Status: planned
+Status: completed
 Targets: `nop-dao/.../dialect/{dm,tdengine}.dialect.xml`、`ai-dev/tools/`、`_tmp/nulls/`（临时探针，收口前删除）
 
 - Item Types: `Proof`
 
-- [ ] 把 `_tmp/nulls/` 已有的 `H2Nulls.java`（原生支持 + DESC 缺省）、`DbNulls.java`（三库四组合）、`Sim.java`（CASE 四组合）**转成常驻脚本**（`ai-dev/tools/`），记录命令与期望输出；不重复写探针
-- [ ] 补 `mariadb` 实测（docker `mariadb:*`）：确认不支持原生语法 ⇒ 佐证 F3 的白名单现状与本计划 CASE 路径的必要性
-- [ ] 核实 2 个方言的 `supportNullsFirst`：`dm`（疑似应为 true，DM 兼容 Oracle）、`tdengine`。无法实测则按 false（保守，CASE 路径语义仍正确）
-- [ ] **不**为 `h2`/`db2`/`es` 补 `defaultNullsFirst`（本计划不使用该属性），但把 h2 的实测缺省值记入矩阵
-- [ ] 矩阵落进本 plan 的 Current Baseline，**扩列**现有三库实测表而非新增第二套 baseline（Rule #7）
+- [x] 把方言矩阵探针落成常驻脚本 `ai-dev/tools/probe-nulls-order-matrix.sh`（H2 本地 jar + PostgreSQL/MySQL docker，JDBC 层重试；镜像钉版本）
+- [x] 取得三库完整实测：原生支持、缺省 ASC、缺省 DESC、CASE 四组合，全部 PASS（脚本输出即证据）
+- [x] `mariadb` 实测：**环境受限未能完成**（本机无 mariadb 镜像，`docker pull` 受限）⇒ 按 `supportNullsFirst=false` 保守裁定，依据"MariaDB 与 MySQL 同源、无该语法"
+- [x] `dm` / `tdengine` 实测：**无对应数据库环境** ⇒ 均按 `false` 保守裁定；已在 Current Baseline 显式标注"未能实测"
+- [x] **不**为 `h2`/`db2`/`es` 补 `defaultNullsFirst`（本计划不使用该属性，避免给死属性加无谓配置）；h2 的实测缺省值（NULLS FIRST）已记入矩阵
+- [x] 矩阵合并进 Current Baseline 的**唯一一套**实测表（扩列 + 新增"未实测方言的保守裁定"表），旧的重复段落已删除
 
 Exit Criteria:
 
-- [ ] **证明**：每个方言的 `supportNullsFirst` 取值都有证据来源（实测输出 / 官方文档 / 保守缺省标注）
-- [ ] **证明**：常驻脚本可复制执行，输出与矩阵一致
-- [ ] 矩阵与 Current Baseline 合并为**唯一一套** baseline，无并存
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] **证明**：每个方言的 `supportNullsFirst` 取值都有证据来源——三库为脚本实测输出，`mariadb`/`dm`/`tdengine`/`db2`/`oracle` 显式标注"未能实测 + 保守缺省"
+- [x] **证明**：常驻脚本可复制执行（`bash ai-dev/tools/probe-nulls-order-matrix.sh`），输出与矩阵一致
+- [x] 矩阵与 Current Baseline 合并为**唯一一套** baseline，无并存（已删除重复的旧段落）
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase 1 - 裁定：emission 算法与适用边界（Decision）
 
