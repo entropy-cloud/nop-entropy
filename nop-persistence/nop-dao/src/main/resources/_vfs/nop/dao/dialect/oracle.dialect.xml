@@ -281,6 +281,13 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="DATE" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP" alias="TIMESTAMP(6) WITH LOCAL TIME ZONE"/>
+        <!-- WI9b（plan 32 Phase 3，ai-dev/design/eql-cross-db-compat/2026-10-05-wi9b-phase0-adjudications.md
+             §六）：std TIMESTAMP_WITH_LOCAL_TIME_ZONE 的唯一"支持"载体——Oracle 原生 TIMESTAMP WITH
+             LOCAL TIME ZONE（存 DB 时区/读会话时区，Oracle 23ai SQL Language Reference 一手文档）。
+             裸名为纯新增键（零撞名：既有 LOCAL 形键只有带 precision 的 alias，反查行为不变）；
+             带 precision 形态仍归上方 alias → std TIMESTAMP。TIME_WITH_LOCAL_TIME_ZONE 全方言
+             无原生宿主（Oracle 无任何 TIME-only 类型），不落映射、响亮报错。 -->
+        <sqlDataType name="TIMESTAMP WITH LOCAL TIME ZONE" stdSqlType="TIMESTAMP_WITH_LOCAL_TIME_ZONE"/>
         <sqlDataType name="BINARY_FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="BINARY_DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMBER" stdSqlType="DECIMAL"/>

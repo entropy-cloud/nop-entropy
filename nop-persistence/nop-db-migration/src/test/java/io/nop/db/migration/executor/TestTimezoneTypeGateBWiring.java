@@ -128,6 +128,26 @@ public class TestTimezoneTypeGateBWiring {
         assertEquals(ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * Phase 3 翻绿（裁定 §6.3 第 1/2 层）：闸门 B 放行的列定义进入 AddColumnExecutor 的
+     * buildColumnType → stdToNativeSqlType 链后，oracle（WI9b 唯一"支持"载体方言）渲染
+     * 裁定 native 文本 `TIMESTAMP WITH LOCAL TIME ZONE`（真实方言 XML 条目，非测试方言）。
+     * 期望文本按 stdToNativeSqlType 链路推导（成员 (false,false) ⇒ 无 precision 渲染）。
+     * 真实 Oracle 引擎建表往返 [未取证]（CI 真库仅 H2，裁定 §6.4）。
+     */
+    @Test
+    public void testExecutorChainRendersAdjudicatedNativeTextOnOracle() {
+        DbMigrationModel model = loadModel();
+        AddColumnChange change = (AddColumnChange) model.getChangeset().get(0);
+        ColumnDefinition col = change.getColumns().get(0);
+
+        IDialect oracle = DialectManager.instance().getDialect("oracle");
+        assertNotNull(oracle);
+
+        String rendered = AddColumnExecutor.buildColumnType(col, oracle);
+        assertEquals("TIMESTAMP WITH LOCAL TIME ZONE", rendered);
+    }
+
     private HikariDataSource createH2DataSource() {
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl("jdbc:h2:mem:" + StringHelper.generateUUID() + ";DB_CLOSE_DELAY=-1");
