@@ -167,6 +167,37 @@ public class TestDialectWindowSqlSnapshot {
         }
     }
 
+    /**
+     * WI7b Phase 3（plan 37，roadmap EC ② 覆盖审计缺口补齐，2026-10-04）：不带 partition 的
+     * OVER 形态此前只有 parse 层断言（TestEqlWindowGrammarParse.testOverOrderByOnly），无
+     * 编译 SQL 文本断言。本用例补齐两种文本形态——仅 order by（无 partition 无 frame）与
+     * 边角组合"不带 partition 仅 order by + frame"。产品行为零改动（五 AST 节点 + 文法全备选
+     * + 三道 frame 门已由 add-stream-sql 合并带入，audit 结论见 plan 37 Phase 3）。
+     */
+    @ParameterizedTest
+    @MethodSource("frameDialects")
+    public void testOverWithoutPartitionText(String dialectName) {
+        IDialect dialect = DialectManager.instance().getDialect(dialectName);
+        assertNotNull(dialect);
+        TestCompileContext ctx = newContext(dialect);
+
+        // 形态 1：不带 partition、仅 order by（无 frame）
+        String noPartition = new EqlCompiler().compile("test",
+                "select o.id, sum(o.id) over (order by o.id) as s from AppUser o",
+                ctx).getSql().getText().toLowerCase().replaceAll("\\s+", " ");
+        assertTrue(noPartition.contains("over("), dialectName + " " + noPartition);
+        assertTrue(noPartition.contains("order by"), dialectName + " " + noPartition);
+        assertTrue(noPartition.contains("o.sid asc"), dialectName + " " + noPartition);
+
+        // 形态 2（边角）：不带 partition、仅 order by + rows frame
+        String noPartitionFrame = new EqlCompiler().compile("test",
+                "select o.id, sum(o.id) over (order by o.id "
+                        + "rows between unbounded preceding and current row) as s from AppUser o",
+                ctx).getSql().getText().toLowerCase().replaceAll("\\s+", " ");
+        assertTrue(noPartitionFrame.contains("rows between unbounded preceding and current row"),
+                dialectName + " " + noPartitionFrame);
+    }
+
     @ParameterizedTest
     @MethodSource("frameClosedDialects")
     public void testWindowFrameFailFast(String dialectName) {

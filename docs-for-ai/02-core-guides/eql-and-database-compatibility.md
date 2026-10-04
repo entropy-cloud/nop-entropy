@@ -43,6 +43,8 @@ EQL 的语法可用性 = **grammar 接受度 ∩ 方言能力位 ∩ 方言继�
 
 **迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。
 
+**覆盖审计（2026-10-04 EQL 兼容 roadmap WI7b，窗口半区核验收口）**：`OVER` 带/不带 partition 与 frame 的语法层、方言 SQL 文本（window/frames golden，10+5 方言）与 H2 真库执行三层覆盖均已就位；WI7b 补齐"不带 partition 仅 order by（± frame）"的编译文本断言（`TestDialectWindowSqlSnapshot.testOverWithoutPartitionText`），产品行为零改动。裁定与审计结论见 WI7b Phase 0 裁定文档（开发过程设计归档）§7。
+
 #### TUMBLE 时间切片伪表函数（2026-10-03 WI17 扩展，stream-only）
 
 语法层现接受 `TUMBLE(表名.时间列, INTERVAL <n> <单位>)` 作为 FROM 表源的一个变体（`sqlTumbleTableSource`，AST 类 `SqlTumbleTableSource`），固定单位 `SECOND`/`MINUTE`/`HOUR`/`DAY`/`WEEK`（`MICROSECOND` 仅整毫秒接受）。时间列以 bigint epoch-millis 承载。INTERVAL 字面量必须为正的固定时长——非字面量 / 非正数 / 日历单位（`MONTH`/`QUARTER`/`YEAR`）提取时长时 fail-fast（`nop.err.eql.invalid-interval-value`）。
@@ -425,6 +427,8 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | `ORDER BY … NULLS FIRST/LAST` 子句（WI7） | `AstToSqlGenerator.visitSqlOrderByItem`（执行路径唯一门；回显路径不设门） | `supportNullsFirst`（true=按请求打印）+ `defaultNullsFirst`（false 时缺省序推导，仅一手文档已证方言集允许"一致省略"） | `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`——冲突或方言缺省序无一手文档） | `TestEqlNullsFirstDialectGate`、`TestDefaultNullsFirstFlag`（accessor 双侧契约） |
 | 归一化日期时间函数族 `lastday/weekofyear/dayofweek/datetrunc/datediff`（WI6） | 构建期即普通函数调用（函数名小写化既有通路），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路（零文法/AST 改动） | 方言函数表注册（native 或 template；仅注册一手取证方言，不进 default——字符串单位约定下裸关键字方言 cell 不落） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlLastDayDialect.testUnregisteredDialectThrowsLoud`（其余函数各自同类） |
 | INTERVAL 字面量执行输出（WI7b） | `AstToSqlGenerator.visitSqlIntervalExpr` | `sqlIntervalLiteral` 模板配置（`<sqls>` 子元素）；未配置 = 既有裸输出（BC，不报错）；已配置 + 非字面量 value = 编译期报错；坏 marker = 加载期报错 | 已配置+非字面量：`nop.err.eql.dialect-not-support-feature`（`feature=intervalNonLiteralValue`）；坏 marker：`nop.err.dao.dialect.invalid-interval-literal-template` | `TestEqlSqlIntervalTemplate` |
+| GROUP BY 分组操作符 ROLLUP/CUBE（WI7b） | `EqlTransformVisitor.visitSqlGroupingOp`（transform 门）+ `AstToEqlGenerator.visitSqlGroupingOp`（打印，identity lowering） | `supportRollup` / `supportCube`（分立两标志；仅 GROUP BY 位置合法，非 GROUP BY 位置走函数表兜底） | `nop.err.eql.dialect-not-support-feature`（`feature=rollup|cube`）；非 GROUP BY 位置 `nop.err.eql.unknown-function` | `TestEqlGroupingOpsDialect` |
+| `GROUPING()` 函数（WI7b） | `EqlTransformVisitor.visitSqlRegularFunction`（既有函数表通路，零新门） | 方言函数表注册（`<native name="grouping" realName="GROUPING">`，仅注册 ROLLUP/CUBE 能力集方言；元数 minArgCount/maxArgCount 按方言） | `nop.err.eql.unknown-function`（未注册方言）；`nop.err.eql.func-too-many/few-args`（元数越界） | `TestEqlGroupingOpsDialect` |
 
 ### AST 改写管线（`IEqlAstTransformer`，2026-10-04 WI4 接线）
 
@@ -596,6 +600,49 @@ EQL 归一化日期时间函数（普通 `SqlRegularFunction` 通道：函数名
 | `dateadd`/`datediff` | dm / tdengine / db2 / es | 同上（未注册 → 响亮） | `[未取证]` |
 
 **语义差异登记（不等价类）**：`dateDiff` 三类语义分叉——边界跨越（h2/duckdb/mssql，归一化锚点）vs 完整单位数（mysql `TIMESTAMPDIFF`）vs 仅天（mysql `DATEDIFF` 2 参 / pg `date-date`）。`dateAdd` 的 interval 算术替代写法（`o.createTime + interval 1 day`）的逐方言模板 owner = WI7b（`sqlIntervalLiteral`）。
+
+### GROUP BY 分组操作符 `ROLLUP(...)`/`CUBE(...)` 与函数 `GROUPING()`（2026-10-04 WI7b）
+
+**语法位**：`group by rollup(a,b)` / `group by cube(a,b)`，支持与普通项混排（`group by a, rollup(b,c)`）。落地形态 = 新 AST 节点 `SqlGroupingOp`（`type: ROLLUP|CUBE` + `args`，`EqlASTKind` ordinal 67 尾部追加）+ `sqlGroupByItem` 前置 label 备选（Literals.g4 词表显式 `ROLLUP`/`CUBE` token + `unreservedWord_` 双登记——标识符位置 `rollup`/`cube` 仍可解析）。`GROUPING SETS` 为**永久否决**（roadmap ledger：MySQL/MariaDB 全版本均无），不注册、无第三语法位。
+
+**放置规则**：ROLLUP/CUBE **仅 GROUP BY 位置合法**——非 GROUP BY 位置的 `rollup(x)`/`cube(x)` 经函数名通路解析为 `SqlRegularFunction`，而三词**永不进入函数表** ⇒ 编译期 `nop.err.eql.unknown-function` 响亮（放置排他 = "GROUP BY 之外无注册"）。
+
+**方言能力门**：`supportRollup` / `supportCube` 两个正交标志（mysql 函数式 ROLLUP 8.4.3+ 与 CUBE 永无的 successor 触发条件不同，故不分立为不合一）；消费点 `EqlTransformVisitor.visitSqlGroupingOp`，不支持时编译期报 `nop.err.eql.dialect-not-support-feature`（`feature=rollup|cube`）。
+
+| 方言 | ROLLUP(...) | CUBE(...) | GROUPING() | 证据 |
+|---|---|---|---|---|
+| postgresql / postgis / duckdb（继承） | 支持 | 支持 | 支持（1..64 位掩码多参） | `[文档]` |
+| oracle / oracle-reverse（继承） | 支持 | 支持 | 支持（1..1 单参） | `[文档]`（23ai） |
+| mssql | 支持 | 支持 | 支持（1..1 单参；多列区分用 GROUPING_ID——不注册） | `[文档]`（MS Learn `GROUPING ( <column_expression> )`） |
+| h2 / h2gis | 编译期报错 | 编译期报错 | 未注册 → 报错 | `[实测]`（真库探针：H2 2.3.232/2.4.240 × DEFAULT/Oracle/PG 模式全部 `Function "ROLLUP"/"CUBE"/"GROUPING" not found` 90022；transcript 完整归档于开发过程审计归档） |
+| mysql / mysql5.7 | 编译期报错（函数式 ROLLUP 8.4.3 才有，超 G-1 基线 8.0.31；successor = 基线上调需求先走 G-1 门） | 编译期报错（全版本无 CUBE，永久口径） | 未注册 → 报错（8.0+ 有 GROUPING，但 EQL 无法为其生成 super-aggregate 行 ⇒ 死能力不注册） | `[文档]` |
+| mariadb | 编译期报错（无函数式 ROLLUP） | 编译期报错（无 CUBE，永久口径） | 未注册 → 报错（死能力不注册） | `[文档]` |
+| dm / tdengine | 编译期报错 | 编译期报错 | 未注册 → 报错 | `[未取证]` 红线（继承 default=false） |
+| db2 | 不可加载（无函数表 → unknown-function） | 同 | 同 | WI3 另案 |
+
+**`grouping()` 注册面**（零文法——函数表 + 既有元数通路 `nop.err.eql.func-too-many/few-args`）：`<native name="grouping" realName="GROUPING">` 落 postgresql/oracle/mssql 三处 + 继承展开共 6 方言；元数按方言分档（pg 系 1..64 位掩码、oracle/mssql 1..1）。**真库证据分派（roadmap EC ⑦）**：h2 = 负向载体（探针 `[实测]` + 负向用例）；oracle/postgresql/duckdb/mssql = 一手文档引证 + 文本断言替代证据（`TestEqlGroupingOpsDialect`）；dm/tdengine `[未取证]` 不计覆盖率。`grouping` 语义级放置校验（参数须引用 GROUP BY 项）**裁定不做**（unknown-function + 元数双闸已兜底；表达式等价比较成本高、防范围蠕动——裁定文档 §4）。
+
+**端到端用例**：`TestEqlGroupingOpsDialect`（parse AST 断言 + 4 方言文本 + 胜者守护 + 全负向 + 约束 4 对照）。
+
+### `count(*) FILTER (WHERE p)`：文档引导替代写法（2026-10-04 WI7b，不做语法）
+
+**引导写法**：需要"按条件计数"时，用条件聚合替代 FILTER 语法——
+
+```
+sum(case when <predicate> then 1 else 0 end)
+```
+
+**空分组提醒（语义差异，不等价类）**：分组内无行满足 `<predicate>` 时，`sum(...)` 返回 **NULL**（空集求和），而 `count(*) FILTER` 语义返回 **0**——需要 0 语义时套 `coalesce(sum(case when p then 1 else 0 end), 0)`。
+
+**方言支持矩阵**（roadmap ledger 三态；H2 旁证 = WI7b 探针 + `h2.dialect.xml` 保留字表仅存 `FILTER` 关键字）：
+
+| 三态 | 方言 | 证据 |
+|---|---|---|
+| 已确认有 | PostgreSQL / DuckDB / SQLite | `[文档]` |
+| 已确认无 | MySQL / MariaDB / MSSQL / Oracle（其 3 处 `FILTER` 均为 analytic view 的 `FILTER FACT`） | `[文档]` |
+| 未取证 | DB2（IBM 文档 403/JS 门禁）、TDengine（无一手文档，红线）、H2（h2database.com 五页零 `FILTER`） | `[未取证]`（不计入"已确认"） |
+
+**为什么不进 EQL 语法**：跨多数方言无损 lowering 不成立（roadmap 约束 3——MySQL/MariaDB/MSSQL/Oracle 全部确认无，做了就是把多数用户推向编译期报错的语法糖）；roadmap WI7b EC ④ 明文"只做文档引导"。写法引导在全方言可编译可执行（普通 `case` 聚合，无方言门）。
 
 ### 分页两语法形态：`FETCH FIRST` / `OFFSET..FETCH NEXT`（2026-10-04 WI7）
 
