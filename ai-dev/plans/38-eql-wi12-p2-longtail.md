@@ -1,6 +1,6 @@
 # 38 EQL WI12 — P2 长尾（nowait 接线 / FOR UPDATE NOWAIT·SKIP LOCKED / SAVEPOINT·ROLLBACK TO 裁定 / FROM (VALUES…) / AT TIME ZONE / 窗口命名 WINDOW 回归）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/eql-cross-db-compat-roadmap.md`（WI12 节 + 共同约束 1-4 + 门控矩阵 WI12 行 + Cross-Cutting 全部 + 关键约束与红线节，v7.2）；Current Baseline 全部代码事实于 2026-10-04 在本工作区分支 `feat/eql-cross-db-compat` 逐文件实测核验（H2 支持度：`FOR UPDATE NOWAIT/SKIP LOCKED` 经本地 m2 仓库 h2-2.4.240 jar 的 `ForUpdate.class` javap 实证；VALUES/AT TIME ZONE 以 H2 官方文档为出处、真库探针于 Phase 4/5 落地——非转引调研报告）
 > Related: `ai-dev/plans/03-eql-wi1-class-a-defects.md`（硬前置，已 `completed`；BUG-3 锁模板接线 + LockOption 边界注记先例）、`ai-dev/plans/37-eql-wi7b-analytic-features.md`（硬前置，已 `completed` 2026-10-04；altLabel+构建期归一化与 ⓒ 尾部追加 ordinal 纪律先例）、`ai-dev/plans/24-eql-wi5-sql92-function-syntax.md`（结构先例：altLabel 备选 + 归一化 + 逐方言 template + 真库证据面）
@@ -298,11 +298,11 @@ Exit Criteria:
 - [x] 约束 4 的「一致性 + 不等价」登记齐备：AT TIME ZONE（MySQL UTC-only / SQLite 永无）、VALUES（MySQL `ROW()` 形态 / Oracle 缺口）、NOWAIT/SKIP LOCKED（MSSQL 锁提示体系差异）至少各一项差异行落 owner doc。
 - [x] 生成物纪律：每个 Phase 的 `.g4`/`EqlAST.xjava` 改动单独提交（文法/逻辑分离可审计）；无 lexer token 删除；`EqlASTKind/Visitor/Processor/Optimizer` 零手改。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：本次改动新增 broken link = 0（既有基线 3 项 warning：`ai-dev/plans/nop-bytecode/06-resource-leak-v1.md:54,83,91`，不顺手修、只比对新增量）。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码 0。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码 0。（closure audit 后主会话复跑 exit 0）
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm-eql --severity high` 零命中（anti-hollow：「只解析不 lowering/只打印不设门」正是半实现形态——Phase 3 分支 A 的「不触碰 no-op 层」裁定不得被误判为 hollow：该层是既有现状，本 plan 未在其上新增可解析面）。
 - [x] owner doc 已同步到 live baseline；`docs-for-ai/INDEX.md` 与 `04-reference/source-anchors.md` 若路由/锚点变化已更新。
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）nowait/SKIP LOCKED/VALUES/AT TIME ZONE 从 EQL 文本（或程序化 AST）→ parse/transform → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op 作为**新增**实现（不支持路径全部响亮报错）；（c）Phase 3/4 若走移出分支，移出面无「新增的可解析但无产物」入口。
-- [ ] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI12 EC ⑦）；roadmap Work Item Status 的 WI12 行据此才可 `planned` → `done`。
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）nowait/SKIP LOCKED/VALUES/AT TIME ZONE 从 EQL 文本（或程序化 AST）→ parse/transform → 方言 SQL 输出/报错的端到端调用链真实连通（不只是文法分支存在）；（b）无空方法体/静默跳过/no-op 作为**新增**实现（不支持路径全部响亮报错）；（c）Phase 3/4 若走移出分支，移出面无「新增的可解析但无产物」入口。（独立审计四项端到端实证：nowait 差分断言+H2 真库事务内两变体执行/VALUES H2 真库 2 行+四点 transform 承载/AT TIME ZONE H2 testFunctions 真执行/移出面三处对齐无名义 owner）
+- [x] **独立 closure audit 已完成并由不同 `task_id` 的子 agent 执行**，evidence 写入本 plan `Closure` 段（guide #26/#27；roadmap WI12 EC ⑦）；roadmap Work Item Status 的 WI12 行据此才可 `planned` → `done`。
 
 ## Deferred But Adjudicated
 
@@ -332,18 +332,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写：为什么这个 plan 可以关闭）
-Completed:
+Status Note: Phase 0-6 全部 `completed`（12 commits）；独立 closure audit（fresh-session 子 agent）一次通过——A①-⑦/B1-B7/C/D 全 PASS，**0 Blocker / 0 Major / 3 Minor**（① run3 clean install 的 nop-lint-core 两类不在 lint flake 清单逐字范围——同型"家族性并行 flake"（串行通过），随收口在 roadmap Cross-Cutting 豁免清单原地注记补记；② run2 否定式缺 `failIfNoSpecifiedTests` 过程性失败——WI7b 已登记同族语义坑；③ 任务输入的 daily log 日期归属口径差异）。交付①②③⑤⑥端到端真实落地（接线差分/负向响亮/真库执行/transform 承载齐备），SAVEPOINT 移出三处对齐无名义 owner，WINDOW 回归四层全绿。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent 的 session ID / task ID）
-- Audit Session: （如用子 agent，记录 session ID）
+- Reviewer / Agent: fresh-session 独立子 agent（与执行者不同 task_id），2026-10-05
+- Audit Session: WI12 closure audit（一次通过，结论"WI12 通过 closure audit——roadmap WI12 可翻 done"）
 - Evidence:
-  - （每条 Exit Criterion 与 Closure Gate 的验证结果 PASS/FAIL + live code path / test name）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/38-eql-wi12-p2-longtail.md --strict` 退出码
-  - Anti-Hollow 检查结果（端到端调用链追踪 + `scan-hollow-implementations.mjs` 退出码）
-  - Deferred 项分类检查（确认无 in-scope live defect 被降级）
+  - A① PASS：审计独立复跑 4 测试类 27|0（NowaitWiring 4/LockVariants 8/ValuesTableSource 11/AtTimeZone 4）
+  - A② PASS：负向 ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE+feature 参数（duckdb/mssql/mysql5.7）+H2 真库事务内两变体执行 6|6+nowait 差分断言（接线真实非纸面）
+  - A③ PASS：`git show 9a9ca824e5` EqlASTKind 仅尾部 +1 行（SqlValuesTableSource ordinal 68）；ast/_gen 79 文件含新类；clean install 三段留痕核实（run4 `-rf :nop-lint-core -T 1` 串行 BUILD SUCCESS）
+  - A④ PASS：owner doc :429-431 登记表三行+:725-775 两小节含约束 4 不等价行；方言 XML 逐项对账一致
+  - A⑤ PASS：surefire mtime 全晚于 `23bf594bb5`；抽查 orm 217|0/job-dao 87|0 独立统计吻合
+  - A⑥ PASS：CorpusBaseline 1|1 独立复跑；快照 diff 恰 2 行（NOWAIT, SKIP_, LOCKED expected 集合，语句本体零漂移）
+  - B1-B7 PASS：nowait 全链 population 零→有；LockOption 四层（xdef:172-183→DialectSqls→IDialect:336/:343→DialectImpl:363/:374→checkLockOptions 互斥）；SAVEPOINT 五证据链+roadmap :399/:148 双回写+DeadFlagDisposition 9|9；VALUES transform 四点实测+ragged 响亮+mysql ROW() 不注册+H2 真库 2 行；AT TIME ZONE sqlExpr_bit 挂载（间接左递归修正留痕）+四族 template +8 纯增量+testFunctions 10|10；token 纪律（NOWAIT=356/SKIP_=357/LOCKED=358 尾部追加顺延 +3 零删除；SKIP 保留名改名归档）
+  - C PASS：matrix 0 / doc-links 0 error 新增 0 / scan-hollow 0 命中 / checklist exit 0（active 语义）
+  - D PASS：6 Phase+3 留白+daily log 七条目+8 偏差落档
+  - Anti-Hollow：审计四项端到端实证（见 Anti-Hollow gate 行内注）
+  - Deferred 项分类检查：SAVEPOINT 移出三处对齐（roadmap :399/:148/plan Deferred）；无新增可解析无产物入口；无 in-scope live defect 被降级
 
 Follow-up:
 
