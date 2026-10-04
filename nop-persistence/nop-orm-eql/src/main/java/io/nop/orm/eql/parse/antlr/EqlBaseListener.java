@@ -1182,6 +1182,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlBinaryExpr(EqlParser.SqlBinaryExprContext ctx) { }
 	/**
 	 * {@inheritDoc}

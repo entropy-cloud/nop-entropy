@@ -419,6 +419,15 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlQuerySelect(node);
         }
       
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_atTimeZone(SqlRegularFunction_atTimeZoneContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
         public io.nop.orm.eql.ast.SqlExpr visitSqlRegularFunction_extract(SqlRegularFunction_extractContext ctx){
            SqlExprContext node = ctx.sqlExpr();
            return node == null ? null : visitSqlExpr(node);

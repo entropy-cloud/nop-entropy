@@ -1040,6 +1040,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlInValues_(EqlParser.SqlInValues_Context ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlBinaryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
 	 * @param ctx the parse tree

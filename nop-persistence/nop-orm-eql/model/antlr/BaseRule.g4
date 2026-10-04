@@ -206,6 +206,20 @@ sqlExpr_bit
     | left=sqlExpr_bit operator=VERTICAL_BAR_ right=sqlExpr_bit  # SqlBinaryExpr
 //    | left=bitExpr PLUS_ right=sqlIntervalExpr  # SqlPlusIntervalExpr_plus
 //    | left=bitExpr MINUS_ right=sqlIntervalExpr # SqlPlusIntervalExpr_minus
+    // WI12 Phase 5（plan 38，裁定 ai-dev/design/eql-cross-db-compat/
+    // 2026-10-05-wi12-phase0-adjudications.md §5）：`expr AT TIME ZONE tz` 后缀备选
+    // （项级紧绑定，H2 Term 文法同位）。WI5 同款构建期归一化进**既有**
+    // SqlRegularFunction（name=atTimeZone, args=[expr, tz]）——零新 AST 节点、零新 token
+    // （AT/TIME/ZONE 三 token 词法层齐备：SQL92Keyword:238/Keyword:381/SQL92Keyword:724）。
+    // ⚠️ 挂载点执行期修正：plan 预判的 sqlExpr_special 挂载构成间接左递归
+    // （sqlExpr_special⇒sqlExpr_simple⇒sqlExpr_functionCall⇒sqlExpr_special，ANTLR 拒绝），
+    // 改挂 sqlExpr_bit 层（sqlExpr_predicate 的 LIKE 备选同构；与 #SqlExpr_simple2
+    // 共享前缀由 ALL(*) 前瞻消解——AT 当前零规则引用，AT_（decorator @）是不同 token）。
+    // 操作数不带 label（WI8 执行期机制发现：codegen initRuleReturnType 对 label 做
+    // ast.getDefine(前缀).getProp(label) 校验，SqlRegularFunction 无 left/zone prop 必炸
+    // get-prop-on-null-obj——SqlGroupByItem_rollup 无 label 操作数同款先例），
+    // 经 ctx.sqlExpr_simple(0)/sqlExpr_simple(1) 访问（SqlRegularFunction_substring 同形）。
+    | sqlExpr_simple AT TIME ZONE sqlExpr_simple # SqlRegularFunction_atTimeZone
     | sqlExpr_simple  # SqlExpr_simple2
     ;
 

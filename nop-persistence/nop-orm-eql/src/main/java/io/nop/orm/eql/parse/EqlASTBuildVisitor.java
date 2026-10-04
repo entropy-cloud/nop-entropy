@@ -265,6 +265,34 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
      * 方言未注册 instr 时由 EqlTransformVisitor 的既有 ERR_EQL_UNKNOWN_FUNCTION 路径响亮
      * 报错。裁定：ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md §3。
      */
+    /**
+     * WI12 Phase 5（plan 38，裁定 ai-dev/design/eql-cross-db-compat/
+     * 2026-10-05-wi12-phase0-adjudications.md §5）：{@code expr AT TIME ZONE tz}（BaseRule.g4
+     * sqlExpr_bit 的 SqlRegularFunction_atTimeZone 后缀备选，项级紧绑定）构建期归一化装入
+     * **既有** {@link SqlRegularFunction}（name=atTimeZone, args=[expr, tz]）——零新 AST
+     * 节点、零新 token。生成方法体只建空节点 + validate()（name 必填校验必失败），完全重写、
+     * 不调 super（WI5 position/substring 同款）。方言未注册 atTimeZone 时由
+     * EqlTransformVisitor 既有 ERR_EQL_UNKNOWN_FUNCTION 路径响亮报错；模板渲染
+     * {@code {0} AT TIME ZONE {1}}（marker 顺序经 TemplateSQLFunction 加载期校验兜底）。
+     */
+    @Override
+    public SqlRegularFunction visitSqlRegularFunction_atTimeZone(
+            EqlParser.SqlRegularFunction_atTimeZoneContext ctx) {
+        SqlExpr expr = (SqlExpr) visit(ctx.sqlExpr_simple(0));
+        SqlExpr zone = (SqlExpr) visit(ctx.sqlExpr_simple(1));
+
+        SqlRegularFunction ret = new SqlRegularFunction();
+        ret.setLocation(ParseTreeHelper.loc(ctx));
+        ret.setName("atTimeZone");
+        List<SqlExpr> args = new ArrayList<>(2);
+        args.add(expr);
+        args.add(zone);
+        ret.setArgs(args);
+        ret.normalize();
+        ret.validate();
+        return ret;
+    }
+
     @Override
     public SqlRegularFunction visitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx) {
         SqlExpr begin = (SqlExpr) visit(ctx.sqlExpr_bit());

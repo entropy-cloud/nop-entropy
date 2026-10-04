@@ -624,6 +624,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlInValues_(EqlParser.SqlInValues_Context ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlBinaryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
 	 * @param ctx the parse tree
