@@ -483,6 +483,14 @@ dataTypeName_
     // 救不了它）。语义链已就绪：SqlTypeExpr_name 的 toUpperCase + StdSqlType.fromStdName
     // 校验放行 StdSqlType.BOOLEAN，生成侧经 dialect.stdToNativeSqlType 产方言映射
     | BOOLEAN
+    // WI9b（ai-dev/plans/32-eql-wi9b-tz-types.md Phase 2）：LOCAL 时区两多词备选（标准
+    // SQL:1999 拼写，全历史首次新增——与 WI9a 删除的非 LOCAL 备选是两个名字集，互不替）。
+    // bare 形态：sqlTypeExpr 的 (precision[,scale]) 紧跟 dataTypeName_ 整体，多词备选不接
+    // precision（已知能力边界，plan Deferred 登记）。闸门 A 的多 token 名称归一化在手写
+    // EqlASTBuildVisitor.SqlTypeExpr_name（getText() 无分隔符拼接必须重建，裁定文档 §5.3）。
+    // AST SqlTypeExpr 复用既有 name 字段（存归一化枚举名），零新节点零新字段。
+    | TIME WITH LOCAL TIME ZONE
+    | TIMESTAMP WITH LOCAL TIME ZONE
     | sqlIdentifier_
     ;
 

@@ -48,8 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * `cast(o.id as boolean)` → 生成 {@code cast(o.SID as BOOLEAN)}。
  *
  * <p>方言边界声明：无 BOOLEAN 映射的方言（手构最小 dialect，空 dataTypes 映射——
- * {@code TestEqlTranslationSemantics.buildDialect()} 先例；禁用 es 伪方言红线/db2
- * 不可实例化）在 {@code stdToNativeSqlType} 处响亮报
+ * {@code TestEqlTranslationSemantics.buildDialect()} 先例；禁用 es 伪方言红线；db2 自
+ * WI3 补 mandatory 子节点后可加载但无 sqlDataTypes 段且无一手文档，按 WI9a 裁定
+ * §2.1 不入载体）在 {@code stdToNativeSqlType} 处响亮报
  * {@code ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED}——此类方言状态是"解析已过、
  * 生成期显式报错"，不属"可生成"缺陷回归，不做 lowering（G-1 已采纳 Oracle 23ai
  * 为承诺基线，无版本门代码）。
@@ -153,7 +154,8 @@ public class TestEqlCastBooleanCompile {
 
     /**
      * 手工最小 dialect：无任何 sqlDataType 映射（TestEqlTranslationSemantics.buildDialect()
-     * 先例、空 dataTypes 映射）。不得用 es（伪方言红线）/db2（不可实例化）。
+     * 先例、空 dataTypes 映射）。不得用 es（伪方言红线）；db2 可加载但无
+     * sqlDataTypes 段且无一手文档，不入载体（WI9a 裁定 §2.1，勘正原"不可实例化"表述）。
      */
     static IDialect minimalDialectWithoutBooleanMapping() {
         DialectModel model = new DialectModel();

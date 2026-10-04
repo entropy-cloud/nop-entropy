@@ -683,6 +683,22 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
      */
     public java.lang.String SqlTypeExpr_name(ParseTree node) {
         String name = text(node).toUpperCase(Locale.ROOT);
+        // WI9b: 多词类型名（TIME/TIMESTAMP WITH LOCAL TIME ZONE）的 token 文本经
+        // ParseTreeHelper.text = RuleContext.getText() 无分隔符拼接（空白 token 被 lexer 跳过），
+        // 需从 token span 重建含空白原文并归一化为枚举名，否则多词备选会"解析过 + 语义必拒"
+        // （BUG-11 同型；裁定 ai-dev/design/eql-cross-db-compat/2026-10-05-wi9b-phase0-adjudications.md §5.3）。
+        // 单 token 名称（既有全部键与 sqlIdentifier_ 兜底）走原路径，行为逐字节不变。
+        if (node instanceof ParserRuleContext) {
+            ParserRuleContext ctx = (ParserRuleContext) node;
+            if (ctx.getStart() != null && ctx.getStop() != null
+                    && ctx.getStart().getTokenIndex() != ctx.getStop().getTokenIndex()) {
+                String spaced = ctx.getStart().getInputStream()
+                        .getText(org.antlr.v4.runtime.misc.Interval.of(
+                                ctx.getStart().getStartIndex(), ctx.getStop().getStopIndex()));
+                if (spaced != null)
+                    name = spaced.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+            }
+        }
         if (StdSqlType.fromStdName(name) == null)
             throw new NopException(ERR_EQL_INVALID_SQL_TYPE).loc(ParseTreeHelper.loc(node)).param(ARG_SQL_TYPE, name)
                     .param(ARG_ALLOWED_NAMES, StdSqlType.getNames());
