@@ -77,9 +77,22 @@ public interface DaoConfigs {
 
     @Description("分片策略配置（plan 2320），JSON对象文本。结构：{strategies:{<策略名>:{type:mod|hash-mod|range|interval|inline,"
             + "shard-count,ranges,interval-step,datetime-lower,datetime-upper,format,algorithm-expression,"
-            + "table-pattern(缺省'{table}_{shard}'),query-space-pattern,missing-shard-policy(fail|default-shard,缺省fail),"
+            + "table-pattern(缺省'{table}_{shard}'),query-space-pattern,missing-shard-policy(fail|default-shard|fanout,缺省fail),"
             + "default-shard,shard-names,entities:[实体名列表]}},default-strategy(可选全局回落策略名)}。"
-            + "实体绑定用显式实体名列表（设计拒绝通配符）。未配置时分片行为零变更")
+            + "实体绑定用显式实体名列表（设计拒绝通配符）。missing-shard-policy=fanout（plan 2321）声明该策略绑定实体的"
+            + "缺分片值SELECT查询按分片全集展开执行（需nop.orm.shard.fanout-enabled=true）。未配置时分片行为零变更")
     IConfigReference<String> CFG_ORM_SHARD = varRef(s_loc,
             "nop.orm.shard", String.class, null);
+
+    @Description("分片执行引擎全局开关（plan 2321）。缺省false：missing-shard-policy=fanout的策略在运行期退化为fail"
+            + "（抛ERR_ORM_SHARD_CONDITION_MISSING，不静默降级单分片），启动期记WARN；true时缺分片值的SELECT查询"
+            + "按分片全集串行执行并归并")
+    IConfigReference<Boolean> CFG_ORM_SHARD_FANOUT_ENABLED = varRef(s_loc,
+            "nop.orm.shard.fanout-enabled", Boolean.class, false);
+
+    @Description("分片执行引擎归并行数上限（plan 2321），缺省10000。逐分片增量计数：每拉回一个分片立即累计，"
+            + "超过上限立即中断后续分片、不返回部分结果，抛ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED。"
+            + "配置为非正数启动即抛ERR_DAO_SHARD_CONFIG_INVALID")
+    IConfigReference<Integer> CFG_ORM_SHARD_FANOUT_MAX_ROWS = varRef(s_loc,
+            "nop.orm.shard.fanout-max-rows", Integer.class, 10000);
 }

@@ -15,14 +15,23 @@ import io.nop.dataset.impl.BaseDataSetMeta;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.OrmEqlConstants;
+import io.nop.orm.eql.SqlOrderByOrdinal;
+import io.nop.orm.eql.ast.SqlAggregateFunction;
+import io.nop.orm.eql.ast.SqlCompareWithQueryExpr;
+import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
+import io.nop.orm.eql.ast.SqlInQueryExpr;
+import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlProjection;
+import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlSelect;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlStatement;
 import io.nop.orm.eql.ast.SqlTransactionStatement;
 import io.nop.orm.eql.ast.SqlStatementKind;
+import io.nop.orm.eql.ast.SqlSubQueryExpr;
+import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.orm.eql.sql.AstToSqlGenerator;
@@ -31,6 +40,7 @@ import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmDataType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -110,6 +120,20 @@ public class EqlCompiler implements ISqlCompiler {
 
         if (stm.getStatementKind() == SqlStatementKind.SELECT) {
             SqlSelect select = stm instanceof SqlSelectWithCte ? ((SqlSelectWithCte) stm).getSelect() : (SqlSelect) stm;
+
+            // plan 2321：编译期结构信息填充（设计 §3.1）。AST 在此完整可得，填充是纯静态投影，
+            // 不改变任何既有编译产物语义；标志为编译产物静态属性，随 SQL 文本一起进 QueryPlanCache。
+            compiledSql.setHasSetOp(select instanceof SqlUnionSelect);
+            SqlQuerySelect querySelect = select instanceof SqlUnionSelect
+                    ? ((SqlUnionSelect) select).getFirstSelect()
+                    : (select instanceof SqlQuerySelect ? (SqlQuerySelect) select : null);
+            if (querySelect != null) {
+                compiledSql.setHasGroupBy(querySelect.getGroupBy() != null);
+                compiledSql.setHasHaving(querySelect.getHaving() != null);
+                compiledSql.setHasDistinct(querySelect.getDistinct());
+                compiledSql.setHasForUpdate(querySelect.getForUpdate());
+            }
+
             List<SqlProjection> projections = select.getProjections();
             List<ISqlExprMeta> fieldMetas = new ArrayList<>(projections.size());
             List<BaseDataFieldMeta> fields = new ArrayList<>(projections.size());
@@ -144,8 +168,99 @@ public class EqlCompiler implements ISqlCompiler {
             compiledSql.setDataSetMeta(meta);
             compiledSql.setColumnBinders(collectColumnBinders(fieldMetas));
             compiledSql.setFieldMetas(fieldMetas);
+
+            // plan 2321：裸 count 判定与 orderBy→投影序数映射（依赖上方投影循环建立的序数对齐）
+            compiledSql.setBareCount(isBareCountProjection(projections, compiledSql.hasGroupBy(),
+                    compiledSql.hasHaving()));
+            compiledSql.setHasAggregate(hasAggregateProjection(projections));
+            compiledSql.setOrderByOrdinals(buildOrderByOrdinals(querySelect, projections));
         }
         return compiledSql;
+    }
+
+    /**
+     * 投影是否包含聚合函数（plan 2321 实施期补充标志）：顶层投影表达式树深度优先检测
+     * SqlAggregateFunction；不进入子查询表达式（子查询聚合在每分片内独立求值，不属顶层
+     * 聚合投影）。窗口表达式内聚合一并视为聚合投影（跨分片拼接不可归并）。
+     */
+    static boolean hasAggregateProjection(List<SqlProjection> projections) {
+        if (projections == null)
+            return false;
+        for (SqlProjection proj : projections) {
+            if (!(proj instanceof SqlExprProjection))
+                continue;
+            if (containsAggregate(((SqlExprProjection) proj).getExpr()))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean containsAggregate(SqlExpr expr) {
+        if (expr == null)
+            return false;
+        if (expr instanceof SqlAggregateFunction)
+            return true;
+        // 子查询内的聚合独立于顶层投影求值，停止下探
+        if (expr instanceof SqlSubQueryExpr || expr instanceof SqlCompareWithQueryExpr
+                || expr instanceof SqlInQueryExpr)
+            return false;
+        boolean[] found = new boolean[1];
+        expr.forEachChild(child -> {
+            if (!found[0] && child instanceof SqlExpr && containsAggregate((SqlExpr) child))
+                found[0] = true;
+        });
+        return found[0];
+    }
+
+    /**
+     * 裸 count 判定（plan 2321，设计 §3.4）：单投影 count(*)/count(expr) 且无 GROUP BY/HAVING。
+     * count(distinct x) 不算裸 count（各分片求和不等于全局去重数）。
+     */
+    static boolean isBareCountProjection(List<SqlProjection> projections, boolean hasGroupBy, boolean hasHaving) {
+        if (hasGroupBy || hasHaving || projections == null || projections.size() != 1)
+            return false;
+        if (!(projections.get(0) instanceof SqlExprProjection))
+            return false;
+        SqlExpr expr = ((SqlExprProjection) projections.get(0)).getExpr();
+        if (!(expr instanceof SqlAggregateFunction))
+            return false;
+        SqlAggregateFunction agg = (SqlAggregateFunction) expr;
+        return "count".equalsIgnoreCase(agg.getName()) && !agg.getDistinct();
+    }
+
+    /**
+     * orderBy→投影序数映射（plan 2321，设计 §3.1）：每个顶层排序项对应一个条目；
+     * 排序键未投影（含别名不可解析形态）的条目序数为 {@link SqlOrderByOrdinal#ORDINAL_NOT_PROJECTED}。
+     * 序数与 fieldMetas 下标对齐（同一投影循环建立）。别名引用经 resolveSelectExpr 解析后
+     * 与投影表达式共享同一 resolvedExprMeta 实例，identity 匹配成立。
+     */
+    static List<SqlOrderByOrdinal> buildOrderByOrdinals(SqlQuerySelect querySelect, List<SqlProjection> projections) {
+        if (querySelect == null || querySelect.getOrderBy() == null)
+            return Collections.emptyList();
+        List<SqlOrderByItem> items = querySelect.getOrderBy().getItems();
+        List<SqlOrderByOrdinal> ret = new ArrayList<>(items.size());
+        for (SqlOrderByItem item : items) {
+            ret.add(new SqlOrderByOrdinal(resolveProjectionOrdinal(item, projections), item.getAsc(),
+                    item.getNullsFirst()));
+        }
+        return ret;
+    }
+
+    private static int resolveProjectionOrdinal(SqlOrderByItem item, List<SqlProjection> projections) {
+        if (item.getExpr() == null)
+            return SqlOrderByOrdinal.ORDINAL_NOT_PROJECTED;
+        ISqlExprMeta orderMeta = item.getExpr().getResolvedExprMeta();
+        if (orderMeta == null)
+            return SqlOrderByOrdinal.ORDINAL_NOT_PROJECTED;
+        for (int i = 0, n = projections.size(); i < n; i++) {
+            SqlProjection proj = projections.get(i);
+            if (proj instanceof SqlExprProjection) {
+                SqlExpr projExpr = ((SqlExprProjection) proj).getExpr();
+                if (projExpr != null && projExpr.getResolvedExprMeta() == orderMeta)
+                    return i;
+            }
+        }
+        return SqlOrderByOrdinal.ORDINAL_NOT_PROJECTED;
     }
 
     private static BaseDataFieldMeta getBaseDataFieldMeta(ISqlExprMeta exprMeta, String fieldName) {

@@ -44,8 +44,21 @@ public class JdbcQueryExecutor implements IQueryExecutor {
 
     private final IPersistEnv env;
 
+    /**
+     * plan 2321：分片执行引擎（fanout 资格判定在 transform 之前，三入口共用）
+     */
+    private final ShardFanoutEngine fanoutEngine;
+
     public JdbcQueryExecutor(IPersistEnv env) {
         this.env = env;
+        this.fanoutEngine = new ShardFanoutEngine(this);
+    }
+
+    /**
+     * plan 2321：引擎访问宿主环境的包内通道
+     */
+    IPersistEnv env() {
+        return env;
     }
 
     IJdbcTemplate jdbc() {
@@ -64,7 +77,11 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                  @Nonnull List<Object> markerValues) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(session, compiled, markerValues);
+        List<Object> params = compiled.buildParams(markerValues);
+        // plan 2321：fanout 判定在 transform 之前——非查询入口命中 fanout 形态一律显式失败
+        fanoutEngine.assertNotFanout(compiled, params);
+
+        SQL sql = transformEQL(session, compiled, params);
         return jdbc().executeUpdate(sql);
     }
 
@@ -85,7 +102,15 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                  @Nonnull Function<? super IDataSet, T> callback) {
         invokeListener(compiled);
 
-        SQL sql = transformEQL(session, compiled, markerValues);
+        List<Object> params = compiled.buildParams(markerValues);
+        // plan 2321：fanout 接管（判定发生在 transform 之前，设计 §3.2）——命中 fanout 资格的
+        // SELECT 按分片全集串行执行 N 份物理 SQL 并归并；非 fanout 查询走既有路径零变更
+        FanoutQueryPlan fanoutPlan = fanoutEngine.planQuery(compiled, params);
+        if (fanoutPlan != null) {
+            return fanoutEngine.executeQuery(session, compiled, fanoutPlan, params, range, callback);
+        }
+
+        SQL sql = transformEQL(session, compiled, params);
         // 读写分离（plan 2319）：SELECT语句携带只读意图，无事务时由ReadWriteRoutingDataSource路由到从库。
         // 只传播意图，不参与路由决策。写语句/DDL等保持缺省（fail-safe主库）。
         if (compiled.getStatementKind() == SqlStatementKind.SELECT) {
@@ -113,7 +138,12 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                                      @Nonnull List<Object> markerValues, LongRangeBean range,
                                      @Nonnull Function<IComplexDataSet, T> callback, ICancelToken cancelToken) {
         invokeListener(compiled);
-        SQL sql = transformEQL(session, compiled, markerValues);
+
+        List<Object> params = compiled.buildParams(markerValues);
+        // plan 2321：fanout 判定在 transform 之前——非查询入口命中 fanout 形态一律显式失败
+        fanoutEngine.assertNotFanout(compiled, params);
+
+        SQL sql = transformEQL(session, compiled, params);
         return jdbc().executeStatement(sql, range, ds -> {
             ds = new TransformedComplexDataSet(ds, compiled.getDataSetMeta(),
                     rs -> transformRow(rs, compiled, session));
@@ -150,8 +180,7 @@ public class JdbcQueryExecutor implements IQueryExecutor {
         }
     }
 
-    private SQL transformEQL(IOrmSession session, ICompiledSql compiled, List<Object> markerValues) {
-        List<Object> params = compiled.buildParams(markerValues);
+    private SQL transformEQL(IOrmSession session, ICompiledSql compiled, List<Object> params) {
         return new GenSqlTransformer(env.getShardSelector(), env.getOrmModel(), env, session.getLoadedOrmModel(),
                 this.env.getEntityFilterProvider())
                 .transform(compiled.getSql(), params).end();

@@ -79,6 +79,20 @@ public interface IShardSelector {
     }
 
     /**
+     * fanout 实体的分片全集落点（plan 2321，执行引擎设计 §3.8 m1）：每个分片的完整
+     * {@link ShardSelection}（分片名 + querySpace 二元组）。querySpace 由策略的
+     * query-space-pattern 推导，该知识在策略实现内部，调用方无法从分片名自行组装。
+     *
+     * <p>接口 default 返回<b>空列表</b>，语义 =「该选择器不提供分片全集」——接口层无法
+     * 接触 query-space-pattern。配置轨 {@link ConfigShardSelector} 覆盖返回真实全集
+     * （与 {@link #getShardNames(String)} 同源）；自定义轨 selector 不覆盖本方法时
+     * fanout 不可用（消费方以空全集显式失败，禁止静默空结果）。</p>
+     */
+    default List<ShardSelection> selectAllShards(String entityName) {
+        return Collections.emptyList();
+    }
+
+    /**
      * 分片物理表名规则。缺省为{@code {基表名}_{分片名}}。
      */
     default String getShardTableName(String entityName, String baseTableName, String shardName) {

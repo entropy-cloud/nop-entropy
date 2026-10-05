@@ -82,7 +82,7 @@
 | 理解逻辑删除（`deleted` / `delVersion` / 恢复 / 唯一键冲突处理） | `02-core-guides/logical-deletion.md` |
 | 理解多租户机制（自动过滤、自动填充、临时切换、跨租户保护） | `02-core-guides/tenant-model.md` |
 | **配置读写分离（一写多读从库负载均衡/故障冷却）**、理解读写判定矩阵与一致性契约、sql-lib `readOnly` 标注 | `02-core-guides/datasource-and-readwrite-splitting.md` |
-| **配置 ORM 分片（useShard 实体单分片路由：内置算法/缺分片键 fail-fast/DDL N 表展开）**、理解绑定校验与 fan-out 边界 | `02-core-guides/orm-sharding.md` |
+| **配置 ORM 分片（useShard 实体分片路由：内置算法/缺分片键 fail-fast/DDL N 表展开）**、理解绑定校验、fan-out 执行引擎（`missing-shard-policy: fanout` 全局开关/资格边界/归并语义分级/一致性契约） | `02-core-guides/orm-sharding.md` |
 | 理解模块系统（`_module` 文件、moduleId/moduleName 规则、发现生命周期、app.module.yaml 格式、启禁用配置） | `02-core-guides/vfs-and-resource-resolution.md`（"模块发现与注册"章节） |
 | 理解外部应用从 design 到模型、生成、BizModel、测试、联调的默认顺序 | `02-core-guides/application-development-workflow.md` |
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |

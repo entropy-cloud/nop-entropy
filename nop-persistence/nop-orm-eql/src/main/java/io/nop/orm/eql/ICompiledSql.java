@@ -61,4 +61,58 @@ public interface ICompiledSql {
      * 根据EQL语句的参数转化得到SQL语句的参数
      */
     List<Object> buildParams(List<Object> input);
+
+    // ---------- 编译期结构信息（plan 2321，设计文档 §3.1）----------
+    // 以下访问器均为编译产物静态属性，随 SQL 文本一起进 QueryPlanCache，缓存安全模型不变。
+    // 非 SELECT 语句全部为确定缺省值（false / 空列表），无 null 歧义。
+
+    /**
+     * SELECT 是否携带 GROUP BY 子句。
+     */
+    boolean hasGroupBy();
+
+    /**
+     * SELECT 是否携带 HAVING 子句。
+     */
+    boolean hasHaving();
+
+    /**
+     * SELECT 是否为 DISTINCT 查询。
+     */
+    boolean hasDistinct();
+
+    /**
+     * 是否为 UNION 等集合操作查询（SqlUnionSelect）。
+     */
+    boolean hasSetOp();
+
+    /**
+     * SELECT 是否携带 FOR UPDATE。
+     */
+    boolean hasForUpdate();
+
+    /**
+     * 是否为无分组的裸 count 聚合查询（单投影 count(*)/count(expr)，无 GROUP BY/HAVING）。
+     * 归并语义为各分片 count 求和。
+     */
+    boolean isBareCount();
+
+    /**
+     * 投影是否包含聚合函数（SqlAggregateFunction，不含子查询内部的聚合——子查询聚合在每分片
+     * 内独立求值，不属顶层聚合投影）。
+     *
+     * <p>plan 2321 Phase 1 裁定的六个构造标志之外的实施期补充：无 GROUP BY 的 SUM/AVG 等
+     * 聚合投影在六标志下与普通投影不可区分，而执行引擎要求"非 count 聚合显式失败"
+     * （设计 §3.4），故以本标志闭合判定面。与 {@link #isBareCount()} 组合消费：
+     * hasAggregate 且非裸 count → 显式失败。</p>
+     */
+    boolean hasAggregate();
+
+    /**
+     * 顶层 ORDER BY 排序项到投影列的序数映射，条目数与排序项数一致。
+     * 排序键未投影的条目 {@link SqlOrderByOrdinal#getOrdinal()} 为
+     * {@link SqlOrderByOrdinal#ORDINAL_NOT_PROJECTED}（无有效映射项，消费方须显式失败）。
+     * 无 ORDER BY 或非 SELECT 语句返回空列表。
+     */
+    List<SqlOrderByOrdinal> getOrderByOrdinals();
 }

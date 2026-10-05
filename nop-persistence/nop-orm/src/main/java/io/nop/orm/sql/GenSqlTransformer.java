@@ -28,11 +28,14 @@ import java.util.Map;
 import static io.nop.orm.OrmErrors.ARG_COUNT;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_EXPECTED;
+import static io.nop.orm.OrmErrors.ARG_POLICY;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ARG_QUERY_SPACE;
+import static io.nop.orm.OrmErrors.ARG_REASON;
 import static io.nop.orm.OrmErrors.ARG_SQL;
 import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SUPPORT_MULTIPLE_QUERY_SPACE_IN_ONE_SQL;
 import static io.nop.orm.OrmErrors.ERR_ORM_SHARD_CONDITION_MISSING;
+import static io.nop.orm.OrmErrors.ERR_ORM_SHARD_FANOUT_NOT_SUPPORT;
 import static io.nop.orm.OrmErrors.ERR_ORM_SQL_PARAM_COUNT_MISMATCH;
 
 public class GenSqlTransformer {
@@ -101,12 +104,14 @@ public class GenSqlTransformer {
     }
 
     /**
-     * plan 2320 Phase 2（取值语义重定义）：CompiledSql经QueryPlanCache跨执行共享，TABLE marker
+     * plan 2320（取值语义重定义）：CompiledSql经QueryPlanCache跨执行共享，TABLE marker
      * 只携带静态信息——shardParamIndex为执行期paramValues的下标（ShardMarkerInjector编译期写入），
      * shardValue仅承载编译期字面量。执行期值一律从paramValues/marker现场取得，不落缓存。
      *
      * <p>缺分片值时按绑定策略的missing-shard-policy裁决：fail（缺省）抛
-     * ERR_ORM_SHARD_CONDITION_MISSING；default-shard回落；NONE（实体未绑定策略，未配置
+     * ERR_ORM_SHARD_CONDITION_MISSING；default-shard回落；fanout（plan 2321）本应被执行引擎
+     * 在transform之前接管，泄漏到此处说明引擎未接线——兜底显式失败而非与NONE同款静默
+     * fall-through基表执行（§3.2纵深防御，唯一transform增量）；NONE（实体未绑定策略，未配置
      * 分片体系）维持既有fall-through语义——未配置部署零行为变更。</p>
      */
     private void collectShardSelections(SQL sql, List<Object> paramValues) {
@@ -141,6 +146,7 @@ public class GenSqlTransformer {
                                 throw new OrmException(ERR_ORM_SHARD_CONDITION_MISSING)
                                         .param(ARG_ENTITY_NAME, entityModel.getName())
                                         .param(ARG_PROP_NAME, shardProp)
+                                        .param(ARG_POLICY, MissingShardPolicy.FAIL.name().toLowerCase())
                                         .param(ARG_SQL, sql);
                             } else if (policy == MissingShardPolicy.DEFAULT_SHARD) {
                                 ShardSelection shard = shardSelector.selectShardWhenMissing(entityModel.getName(),
@@ -154,7 +160,15 @@ public class GenSqlTransformer {
                                 throw new OrmException(ERR_ORM_SHARD_CONDITION_MISSING)
                                         .param(ARG_ENTITY_NAME, entityModel.getName())
                                         .param(ARG_PROP_NAME, shardProp)
+                                        .param(ARG_POLICY, MissingShardPolicy.DEFAULT_SHARD.name().toLowerCase())
                                         .param(ARG_SQL, sql);
+                            } else if (policy == MissingShardPolicy.FANOUT) {
+                                // plan 2321 纵深防御（设计 §3.2）：fanout策略命中但执行引擎未接管。
+                                // 若静默fall-through将复活plan 2320消灭的"扫基表"陷阱，故响亮失败
+                                throw new OrmException(ERR_ORM_SHARD_FANOUT_NOT_SUPPORT)
+                                        .param(ARG_ENTITY_NAME, entityModel.getName())
+                                        .param(ARG_REASON, "fanout policy hit but execution engine did not"
+                                                + " take over this query (fallback in GenSqlTransformer)");
                             }
                             // NONE：实体未绑定策略，维持既有fall-through
                         }

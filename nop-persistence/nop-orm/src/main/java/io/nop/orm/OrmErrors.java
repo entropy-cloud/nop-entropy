@@ -68,6 +68,13 @@ public interface OrmErrors {
     String ARG_SQL = "sql";
     String ARG_PARAM_POS = "paramPos";
 
+    // ---- plan 2321：分片执行引擎 ----
+    String ARG_POLICY = "policy";
+    String ARG_CONSTRUCT = "construct";
+    String ARG_ORDER_KEY = "orderKey";
+    String ARG_LIMIT = "limit";
+    String ARG_REASON = "reason";
+
     String ARG_PART = "part";
     String ARG_SRC_TYPE = ApiErrors.ARG_SRC_TYPE;
     String ARG_TARGET_TYPE = ApiErrors.ARG_TARGET_TYPE;
@@ -325,10 +332,32 @@ public interface OrmErrors {
     /**
      * 分片（plan 2320）：绑定策略为fail（缺省）的useShard实体，SQL不含分片键等值条件
      * （或条件值为null）时显式失败，取代现状静默落回基表名执行的陷阱行为。
+     * plan 2321（执行引擎设计 §3.8 m2）：补 {policy}/{reason} arg——该错误码同时用于
+     * 全局开关关闭时fanout策略的运行期退化，携带实际policy值与退化原因，避免误导排障。
      */
     ErrorCode ERR_ORM_SHARD_CONDITION_MISSING = define("nop.err.orm.shard-condition-missing",
-            "分片实体[{entityName}]的SQL缺少分片键[{propName}]的等值条件，无法路由到分片（missing-shard-policy=fail）",
-            ARG_ENTITY_NAME, ARG_PROP_NAME);
+            "分片实体[{entityName}]的SQL缺少分片键[{propName}]的等值条件，无法路由到分片（missing-shard-policy={policy}{reason}）",
+            ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_POLICY, ARG_REASON);
+
+    /**
+     * 分片（plan 2321，执行引擎设计 §3.8）：统一收口——不支持的跨分片构造（GROUP BY/HAVING/
+     * DISTINCT/非count聚合/FOR UPDATE/UNION，arg=构造名）、排序键未投影（arg=排序键）、
+     * fanout资格越界（多实体/与带值实体混用/非SELECT/空分片全集，arg=实体名与原因）、
+     * fanout策略泄漏进transform的兜底失败（§3.2纵深防御）。
+     */
+    ErrorCode ERR_ORM_SHARD_FANOUT_NOT_SUPPORT = define("nop.err.orm.shard.fanout-not-support",
+            "SQL语句包含分片执行引擎（missing-shard-policy=fanout）不支持跨分片归并的构造或资格越界形态："
+                    + "实体[{entityName}]，构造[{construct}]，排序键[{orderKey}]，原因：{reason}",
+            ARG_ENTITY_NAME, ARG_CONSTRUCT, ARG_ORDER_KEY, ARG_REASON);
+
+    /**
+     * 分片（plan 2321，执行引擎设计 §3.2/§3.4）：归并行数超过 nop.orm.shard.fanout-max-rows
+     * （逐分片增量计数触发：每拉回一个分片立即累计，达限立即中断后续分片、无部分结果、异常传播）。
+     */
+    ErrorCode ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED = define("nop.err.orm.shard.fanout-row-limit-exceeded",
+            "分片归并行数[{count}]超过上限[{limit}]（nop.orm.shard.fanout-max-rows，逐分片增量计数），"
+                    + "已中断后续分片且不返回部分结果",
+            ARG_COUNT, ARG_LIMIT);
 
     /**
      * 分片（plan 2320）：启动期绑定校验——存在全局分片策略配置时，useShard实体未绑定
@@ -444,8 +473,6 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_ENC_HELPER_COLUMN_READONLY = define("nop.err.orm.enc-helper-column-readonly",
             "加密辅助列[{propName}]由框架自动维护，不允许业务代码直接赋值");
-
-    String ARG_REASON = "reason";
 
     ErrorCode ERR_ORM_ENC_COLUMN_NOT_SEARCHABLE = define("nop.err.orm.enc-column-not-searchable",
             "加密列[{entityName}.{propName}]不支持该检索谓词[{reason}]，只支持等值(=/!=)/IN/LIKE(不含escape)改写到辅助列；"

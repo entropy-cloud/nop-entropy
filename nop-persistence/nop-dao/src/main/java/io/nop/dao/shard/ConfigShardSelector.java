@@ -64,6 +64,9 @@ public class ConfigShardSelector implements IShardSelector {
      * 不允许静默跳过（Minimum Rules #24）。
      */
     public void init() {
+        // plan 2321：fanout 全局配置校验先于分片配置早退——配置错误不因未配置分片体系而静默
+        validateFanoutGlobalConfig();
+
         String config = DaoConfigs.CFG_ORM_SHARD.get();
         if (config == null || config.isEmpty()) {
             LOG.debug("nop.orm.shard.no-config:skip-initialization");
@@ -87,8 +90,42 @@ public class ConfigShardSelector implements IShardSelector {
         this.entityBindings = Collections.unmodifiableMap(bindings);
         this.hasConfig = true;
 
+        // plan 2321：启动期 WARN——fanout 策略已声明但全局开关关闭，运行期缺分片值查询退化为 fail。
+        // 保留"一键关闭"应急刹车属性且不产生配置矛盾（执行引擎设计 §3.8）
+        if (!isFanoutEnabled() && parsed.values().stream()
+                .anyMatch(s -> s.getMissingShardPolicy() == MissingShardPolicy.FANOUT)) {
+            LOG.warn("nop.orm.shard.fanout-strategy-declared-but-disabled:存在missing-shard-policy=fanout的策略"
+                    + "，但全局开关nop.orm.shard.fanout-enabled=false，缺分片值查询将在运行期显式失败");
+        }
+
         LOG.info("nop.orm.shard.init:strategies={},default-strategy={},entities={}", parsed.keySet(),
                 defaultStrategyName, bindings.keySet());
+    }
+
+    /**
+     * fanout 全局配置校验（plan 2321）：fanout-max-rows 非正数启动即抛
+     * ERR_DAO_SHARD_CONFIG_INVALID（对齐 2320 配置错误启动即抛先例），
+     * 且不因 nop.orm.shard 未配置而跳过。
+     */
+    private void validateFanoutGlobalConfig() {
+        int maxRows = DaoConfigs.CFG_ORM_SHARD_FANOUT_MAX_ROWS.get();
+        if (maxRows <= 0)
+            throw new NopException(ERR_DAO_SHARD_CONFIG_INVALID).param(ARG_REASON,
+                    "nop.orm.shard.fanout-max-rows must be positive, got: " + maxRows);
+    }
+
+    /**
+     * fanout 全局开关。引擎（nop-orm）运行期读取同一配置做门控。
+     */
+    public static boolean isFanoutEnabled() {
+        return Boolean.TRUE.equals(DaoConfigs.CFG_ORM_SHARD_FANOUT_ENABLED.get());
+    }
+
+    /**
+     * 归并行数上限（逐分片增量计数）。引擎（nop-orm）运行期读取同一配置。
+     */
+    public static int getFanoutMaxRows() {
+        return DaoConfigs.CFG_ORM_SHARD_FANOUT_MAX_ROWS.get();
     }
 
     private Map<String, Object> parseConfig(String text) {
@@ -173,6 +210,19 @@ public class ConfigShardSelector implements IShardSelector {
             return Collections.emptyList();
         ShardStrategy strategy = strategyFor(entityName);
         return strategy == null ? Collections.emptyList() : strategy.shardNames();
+    }
+
+    /**
+     * plan 2321：fanout 分片全集落点。与 {@link #getShardNames(String)} 同源——
+     * 同一 {@link ShardStrategy#shardNames()} 序列，querySpace 由同策略
+     * query-space-pattern 推导（设计 §3.8 m1 同源断言落点）。
+     */
+    @Override
+    public List<ShardSelection> selectAllShards(String entityName) {
+        if (!hasConfig)
+            return Collections.emptyList();
+        ShardStrategy strategy = strategyFor(entityName);
+        return strategy == null ? Collections.emptyList() : strategy.shardSelections();
     }
 
     @Override

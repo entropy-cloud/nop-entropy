@@ -105,6 +105,21 @@ public class ShardStrategy {
     }
 
     /**
+     * 分片全集落点（plan 2321，执行引擎设计 §3.8 m1）：{@link #shardNames()} 每项推导为
+     * {@link ShardSelection}（querySpace 由本策略 query-space-pattern 同源推导）。
+     * 与 {@link #shardNames()} 严格同源（同一分片名序列），消费方为
+     * {@link ConfigShardSelector#selectAllShards}。
+     */
+    public List<ShardSelection> shardSelections() {
+        List<String> names = shardNames();
+        List<ShardSelection> ret = new ArrayList<>(names.size());
+        for (String shardName : names) {
+            ret.add(buildSelection(shardName));
+        }
+        return ret;
+    }
+
+    /**
      * 物理表名规则。缺省 {@code {table}_{shard}}。
      */
     public String buildTableName(String baseTableName, String shardName) {
@@ -113,7 +128,7 @@ public class ShardStrategy {
         return tablePattern.replace("{table}", baseTableName).replace("{shard}", shardName);
     }
 
-    private ShardSelection buildSelection(String shardName) {
+    ShardSelection buildSelection(String shardName) {
         String querySpace = querySpacePattern == null ? null
                 : querySpacePattern.replace("{shard}", shardName);
         return new ShardSelection(querySpace, shardName);

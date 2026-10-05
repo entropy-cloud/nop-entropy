@@ -46,7 +46,7 @@
 
 | 暴露信息 | 内容 | 消费方 |
 |---|---|---|
-| 构造标志（construct flags） | `hasGroupBy` / `hasHaving` / `hasDistinct` / `hasSetOp`（UNION 等集合操作）/ `hasForUpdate` / `isBareCount`（投影为裸 count(*)） | fanout 资格判定（§3.4 显式失败集）与归并方式选择（count 求和） |
+| 构造标志（construct flags） | `hasGroupBy` / `hasHaving` / `hasDistinct` / `hasSetOp`（UNION 等集合操作）/ `hasForUpdate` / `isBareCount`（投影为裸 count(*)）/ `hasAggregate`（投影含聚合函数，实施期补充：无 GROUP BY 的 SUM/AVG 等聚合投影在六标志下与普通投影不可区分，而"非 count 聚合显式失败"要求闭合该判定面；不含子查询内部的聚合） | fanout 资格判定（§3.4 显式失败集）与归并方式选择（count 求和） |
 | orderBy 投影序数映射 | 每个顶层排序项 → `fieldMetas` 序数；**排序键未投影的查询无映射项** | ORDER BY 归并的取值列（§3.4）；映射缺失即"排序键未投影"，v1 显式失败 |
 
 **理由**：(a) 构造判定与排序归并都只有编译期信息可用，"静态结构进编译期、值路由进执行期"与 `ShardMarkerInjector` 的 marker 静态信息是同一分野的既有先例；(b) 标志是编译产物静态属性，随 SQL 文本一起进 `QueryPlanCache`，缓存安全模型不变；(c) AST 字段现成（§2.2），填充是纯静态投影，无行为改动。
@@ -81,7 +81,7 @@ executeFanoutQuery(compiled, params, range):
     return callback(merge(collected))                      # 按支持集归并（§3.4），合并数据集走既有行组装
 ```
 
-   **接口 default 语义（WI8 计划 2321 审查补裁定）**：`IShardSelector.selectAllShards` 的接口 default 返回**空列表**（语义=「该选择器不提供分片全集」——接口层无法接触 query-space-pattern 这一策略内部知识）；`ConfigShardSelector` 覆盖返回真实全集并与 `getShardNames` 同源；自定义轨不覆盖时 fanout 不可用（引擎以空全集显式失败，禁止静默空结果）。
+   **接口 default 语义（计划 2321 审查裁定）**：`IShardSelector.selectAllShards` 的接口 default 返回**空列表**（语义=「该选择器不提供分片全集」——接口层无法接触 query-space-pattern 这一策略内部知识）；`ConfigShardSelector` 覆盖返回真实全集并与 `getShardNames` 同源；自定义轨不覆盖时 fanout 不可用（引擎以空全集显式失败，禁止静默空结果）。
 
 **行数上限的中断语义（评审 M4）**：计数是**逐分片增量**的——每拉回一个分片立即累计，达限立即中断（不再向剩余分片发起物理 SQL），已拉回数据直接丢弃，不返回截断集，异常向调用方传播。上限是内存兜底的正确性边界，不是截断语义；全分片拉回后才校验的形态起不到兜底作用，被拒。
 
@@ -108,7 +108,7 @@ executeFanoutQuery(compiled, params, range):
 | GROUP BY / HAVING / DISTINCT / 非 count 聚合（SUM/AVG 等） | **显式失败**（构造标志判定，`ERR_ORM_SHARD_FANOUT_NOT_SUPPORT`） | 正确归并需两阶段聚合（AVG 须分解为 sum/count 对、DISTINCT 须全量去重、HAVING 依赖分组结果），是执行引擎深水区且 v1 无业务拉动；判定依赖 §3.1 构造标志——对 SQL 文本正则不可靠，此即 §3.1 存在的理由。出路：带分片键单分片聚合（既有）、或 nop-metadata 应用层联邦（roadmap baseline 已有 BI 场景覆盖） |
 | FOR UPDATE / UNION 等集合操作 / DDL / 存储过程 | **显式失败** | FOR UPDATE 跨分片锁无法协调（构造标志判定）；集合操作与 §3.2 资格收口叠加后无合法 fanout 形态 |
 
-分级原则：**正确性能完整保住的显式做（内存上限兜底），正确性需要深水区机制的显式拒**。上限语义统一为"逐分片增量累计行数超过 `nop.orm.shard.fanout-max-rows` 即抛 `ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED` 并中断"，缺省值（建议 10000）由 WI8 承载 plan 裁定。
+分级原则：**正确性能完整保住的显式做（内存上限兜底），正确性需要深水区机制的显式拒**。上限语义统一为"逐分片增量累计行数超过 `nop.orm.shard.fanout-max-rows` 即抛 `ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED` 并中断"，缺省值 **10000**（已由 WI8 plan 2321 裁定并落地为 `nop.orm.shard.fanout-max-rows` 缺省配置，非正数启动即抛 `ERR_DAO_SHARD_CONFIG_INVALID`）。
 
 ### 3.5 跨分片 JOIN 边界【评审 B2】
 
@@ -158,9 +158,9 @@ executeFanoutQuery(compiled, params, range):
 |---|---|---|
 | `missing-shard-policy: fanout` | 策略级 | 声明该策略绑定实体的缺分片值查询按分片全集展开；`MissingShardPolicy` 增加**第四取值** `FANOUT`（既有 NONE/FAIL/DEFAULT_SHARD，评审 M2 勘误：此前误写"第三取值"）。资格仅限 SELECT 且满足 §3.2 收口，越界一律 `ERR_ORM_SHARD_FANOUT_NOT_SUPPORT` |
 | `nop.orm.shard.fanout-enabled` | 全局，缺省 false | 总开关。关闭时 fanout 策略**运行期退化为 fail**（不静默降级单分片），启动期 WARN——保留"一键关闭"的应急刹车属性且不产生配置矛盾 |
-| `nop.orm.shard.fanout-max-rows` | 全局 | 归并行数上限（逐分片增量计数，§3.2），超限抛 `ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED`；缺省值由 WI8 plan 裁定 |
+| `nop.orm.shard.fanout-max-rows` | 全局 | 归并行数上限（逐分片增量计数，§3.2），超限抛 `ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED`；缺省 **10000**（WI8 plan 2321 裁定落地） |
 
-**SPI 扩展（评审 m1）**：`IShardSelector` 新增 `selectAllShards(entityName)` 返回 `List<ShardSelection>`（分片名 + querySpace 二元组全集）。与既有 `getShardNames`（`IShardSelector.java:77`，仅分片名、消费方是 DDL 展开）的差异：fanout 执行需要每个分片的完整落点，querySpace 由 `query-space-pattern` 推导而该知识在策略内部，调用方无法从分片名自行组装。default 实现按 `getShardNames` + 策略 pattern 推导，`ConfigShardSelector` 原生实现；二者必须同源（同一分片全集），WI8 以断言固化。
+**SPI 扩展（评审 m1）**：`IShardSelector` 新增 `selectAllShards(entityName)` 返回 `List<ShardSelection>`（分片名 + querySpace 二元组全集）。与既有 `getShardNames`（`IShardSelector.java:77`，仅分片名、消费方是 DDL 展开）的差异：fanout 执行需要每个分片的完整落点，querySpace 由 `query-space-pattern` 推导而该知识在策略内部，调用方无法从分片名自行组装。接口 default 返回**空列表**（语义=「该选择器不提供分片全集」，接口层无法接触 query-space-pattern）；`ConfigShardSelector` 覆盖返回真实全集并与 `getShardNames` 同源——同源断言已落地（`TestShardFanoutPolicy.testConfigSelectorSelectAllShardsSameSourceAsShardNames`：同一 `ShardStrategy.shardNames()` 序列逐一比对）；自定义轨不覆盖时 fanout 不可用（引擎以空全集显式失败，禁止静默空结果）。
 
 **错误码清单**：
 
@@ -168,7 +168,7 @@ executeFanoutQuery(compiled, params, range):
 |---|---|---|
 | `ERR_ORM_SHARD_FANOUT_NOT_SUPPORT` | OrmErrors（新增） | 统一收口（评审 M1）：不支持的跨分片构造（分组聚合/FOR UPDATE/UNION，arg=构造名）、排序键未投影（arg=排序键）、fanout 资格越界（多实体/混用/非 SELECT，arg=实体名与原因）、fanout 策略泄漏进 transform 的兜底失败（§3.2 纵深防御） |
 | `ERR_ORM_SHARD_FANOUT_ROW_LIMIT_EXCEEDED` | OrmErrors（新增） | 归并行数超 `fanout-max-rows`（逐分片增量计数触发）；arg 携带实际行数与上限 |
-| `ERR_ORM_SHARD_CONDITION_MISSING` | OrmErrors（复用，`:329`） | 仅用于全局开关关闭时 fanout 策略的运行期退化。**WI8 注记（评审 m2）**：该错误码现行文案硬编码"missing-shard-policy=fail"语义，用于开关关闭退化场景文案不贴切——实施时需为该错误补 arg（如 policy 实际值/关闭原因）或调文案，避免误导排障 |
+| `ERR_ORM_SHARD_CONDITION_MISSING` | OrmErrors（复用，`:329`） | 仅用于全局开关关闭时 fanout 策略的运行期退化。**m2 已消解（plan 2321 落地）**：文案由硬编码"missing-shard-policy=fail"改为模板 `{policy}{reason}`，新增 ARG_POLICY（实际 policy 值）与 ARG_REASON（退化原因，如"全局开关nop.orm.shard.fanout-enabled=false，fanout策略运行期退化为fail"）；既有 FAIL/default-shard 抛点补传 policy arg，文案语义保持 |
 | `ERR_DAO_SHARD_CONFIG_INVALID` | DaoErrors（复用，`:83`） | 配置解析错误（如 fanout 声明在未绑定实体上） |
 
 **可观测性**：每分片物理 SQL 的执行明细由既有日志与指标覆盖——`nop.jdbc.run` 日志逐条打印 querySpace 与耗时（`JdbcTemplateImpl.java:175`），`IDaoMetrics` 逐物理 SQL 计量。引擎层新增汇总契约：日志 `nop.orm.shard.fanout`（逻辑 SQL 名、分片数、归并行数、归并耗时、是否达限中断）；指标 `nop.orm.shard.fanout.query`（计数/耗时）与 `nop.orm.shard.fanout.rows`（归并行数分布），失败按错误码维度计数。命名对齐平台小数点分层惯例。
@@ -196,5 +196,5 @@ executeFanoutQuery(compiled, params, range):
 - **`nop-orm-sharding-strategy-design.md`（前置契约）**：本设计是对其 §四 fan-out 拒绝的重新立项，落地后其 §3.4 路由判定伪代码的 missing-shard-policy 分支增加 fanout 取值、§3.6 执行期路由原则被本设计沿用并扩展为"静态结构进编译期（§3.1）/ 值路由进执行期"；`ShardSelection` 二元组、策略注册表、绑定校验、DDL N 表展开全部原样复用，SPI 仅增 `selectAllShards`（与 `getShardNames` 同源，§3.8 m1）。两篇文档在本文转 active 时同步修订。
 - **`nop-orm-scope-and-non-goals.md`**：不触碰任何既有裁定；§一.6 XA non-goal 与 best-effort 顺序提交是 §3.3 事务裁定的上位依据；§3.5"连接级资源归 DataSource 层"与归并器不碰连接池的边界一致。
 - **`nop-dao-readwrite-splitting-design.md`**：正交叠加（§3.7）；"事务内一律主库"契约被 fan-out 读继承（各分片事务内连接均为该分片主库）。
-- **`docs-for-ai/02-core-guides/concurrency-and-transactions.md`**：事务组顺序提交语义、ORM 一级缓存规则（fan-out 组装不覆盖已初始化字段）在跨分片场景下继续成立；实施后该 guide 需补"跨分片读无统一快照"与"多主组部署的分片入组契约"（§3.3，WI8 owner doc 项）。
-- **roadmap 定位**：本设计承载 WI7（Decision），实施归 WI8（Feature：归并正确性测试矩阵 + E2E；含 §3.8 的两处 WI8 注记）；WI9 搬迁管道是广播表重审的再评估前提（§3.6）。
+- **`docs-for-ai/02-core-guides/concurrency-and-transactions.md`**：事务组顺序提交语义、ORM 一级缓存规则（fan-out 组装不覆盖已初始化字段）在跨分片场景下继续成立；"跨分片读无统一快照"与"多主组部署的分片入组契约"（§3.3）已随 plan 2321 写入 owner doc `orm-sharding.md` 执行引擎章节。
+- **roadmap 定位**：本设计承载 WI7（Decision），实施归 WI8（Feature：归并正确性测试矩阵 + E2E，plan 2321 已落地；§3.8 的两处 WI8 注记与 fanout-max-rows 缺省值已消解为最终契约表述）；WI9 搬迁管道是广播表重审的再评估前提（§3.6）。

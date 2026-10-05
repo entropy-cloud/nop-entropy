@@ -90,7 +90,7 @@
 
 ### 3.4 缺分片键策略
 
-路由判定语义（伪代码，语义契约）：
+路由判定语义（伪代码，语义契约；fanout 分支由执行引擎设计 `nop-orm-sharding-execution-engine-design.md` §3.2/§3.4 承载，plan 2321 落地）：
 
 ```
 对 SQL 中每个 useShard 实体的 TABLE marker：
@@ -100,6 +100,9 @@
     按 missing-shard-policy：
       fail（缺省）→ 抛 ERR_ORM_SHARD_CONDITION_MISSING（携带实体名与分片键列名）
       default-shard → 路由到 default-shard 指定的分片（显式声明低频数据落 default 分片的场景）
+      fanout → 交由执行引擎按分片全集串行执行 N 份物理 SQL 并归并
+        （仅 SELECT 且满足引擎资格收口；全局开关 nop.orm.shard.fanout-enabled=false 时
+         运行期退化为 fail；策略泄漏进 transform 由 GenSqlTransformer 兜底显式失败）
 ```
 
 fail-fast 取代现状静默 fall-through 是**行为变更**：现状依赖"基表存在"才能工作的存量用法不存在（无内置算法意味着无人用过该 fall-through），变更无兼容负担。
@@ -112,6 +115,8 @@ fail-fast 取代现状静默 fall-through 是**行为变更**：现状依赖"基
 ### 3.6 路由时机与查询计划缓存
 
 路由保持执行期：`GenSqlTransformer` 在每次执行 transform 时以当次参数值计算分片，改写表名后按最终 SQL 文本复用 PreparedStatement 缓存（N 个分片 → N 个缓存条目，天然正确）。分片路由**不进** EQL 编译期——与可检索加密的辅助列改写（编译期，因列名是静态元数据）构成对照：列改写是静态决策进编译期，值路由是动态决策进执行期。
+
+**分野表述扩展（执行引擎设计 §3.1，plan 2321 落地）**：静态结构进编译期、值路由进执行期——fan-out 资格判定与归并所需的查询结构信息（GROUP BY/HAVING/DISTINCT/集合操作/FOR UPDATE/裸 count/聚合投影标志与 orderBy→投影序数映射）是编译产物静态属性，由 `CompiledSql` 编译期填充并随 SQL 文本进 `QueryPlanCache`；分片值路由与每分片强制落点仍是执行期动态决策。同一分野的两个应用面。
 
 ## 四、拒绝了什么
 
