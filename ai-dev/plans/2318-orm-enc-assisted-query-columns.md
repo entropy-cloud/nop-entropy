@@ -1,6 +1,6 @@
 # 2318 nop-orm 可检索加密：enc 列的辅助查询列（assisted/like）
 
-> Plan Status: active（2026-10-05 独立 plan audit APPROVE，4 Minor 已修正，见 Draft Review Evidence）
+> Plan Status: completed（2026-10-06；两轮审查 + 五 Phase landed + 独立 closure audit APPROVE，证据见 Draft Review Evidence 与 Closure 段）
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/analysis/2026-10/2026-10-05-shardingsphere-vs-nop-orm-gap-analysis.md`（缺口清单 P2 #6）+ 用户需求：通过 ORM 元数据扩展属性声明加密列关联的确定性字段与分列字段，自动实现 ShardingSphere encrypt 的 assistedQuery/likeQuery 三列机制
 > Related: `ai-dev/design/nop-orm-scope-and-non-goals.md`、`ai-dev/plans/2307-eql-live-defect-and-dead-surface-remediation.md`
@@ -226,8 +226,8 @@ Exit Criteria:
 - [x] 所有 in-scope 配置错误与不可检索谓词均显式失败，无静默跳过/静默错误结果（scope 边界：bulk UPDATE SET 限制见 Deferred But Adjudicated 裁定与 owner doc 声明）
 - [x] 既有 enc 行为（v1 密文格式、读写解密、`TestColumnEnhancer` 既有断言）无回归
 - [x] owner docs（orm-model-design.md、eql-and-database-compatibility.md）与 live baseline 一致
-- [ ] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow 检查：派生挂点与查询改写在运行链路真实连通）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2318-orm-enc-assisted-query-columns.md --strict` 退出码 0
+- [x] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow 检查：派生挂点与查询改写在运行链路真实连通）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2318-orm-enc-assisted-query-columns.md --strict` 退出码 0
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0
 - [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-orm-model -am` 通过
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
@@ -256,5 +256,22 @@ Completed:
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: fresh-closure-audit-2026-10-05（独立 closure auditor，fresh session，与实现会话无关；全程回看 live repo，不信任实现记录）
+- Audit Session: fresh-closure-audit-2026-10-05
 - Evidence:
+  - **Phase 0 Exit Criteria（3/3 PASS）**：design 文档 `ai-dev/design/nop-orm-enc-assisted-columns.md` 落盘（§3.2 含被拒替代与理由、§四被拒方案表；无类签名/伪代码/演进叙事）；`check-doc-links.mjs --strict` 退出码 0（本次实测）；`ai-dev/logs/2026/10-05.md` 有 2318 收口条目，提交链 9ce76dd(P1)→4ec59be(P2)→fa699b4(P3)→14c3a58(P4+5)。
+  - **Phase 1 Exit Criteria（4/4 PASS）**：TestEncAssistedModelValidation 10 测试本次实测全绿（合法声明 + 8 类错误码逐断言：not-enc / unknown-column / tag-mismatch / primary-key / not-varchar / chained / self-reference→chained / tag-orphan / duplicate）；校验挂模型 init 流（OrmModelInitializer.java:131 → checkEncAssisted:419+，启动即报错）；nop-orm-model 全量 56/56 绿。
+  - **Phase 2 Exit Criteria（5/5 PASS）**：TestEncAssistedDerivedColumns 4 测试全绿——testDerivedOnSave 裸 SQL 断言 DB 值 EXAM_NAME_ASSISTED/EXAM_NAME_LIKE = 契约摘要（含 64 hex 定长、like 长度=width×len 形状断言）；testDerivedOnUpdateAndNull 覆盖 update 与置 null 路径；testUserAssignmentRejectedOnSave/OnUpdate 断言 ERR_ORM_ENC_HELPER_COLUMN_READONLY。接线验证：EntityPersisterImpl.queueSave:458 / queueUpdate:475 真实调用 EncAssistedHelper.onSave/onUpdate（live code 指认）。
+  - **Phase 3 Exit Criteria（6/6 PASS）**：TestEncAssistedEqlRewrite 25 测试全绿——编译级改写（eq/!=/IN → EXAM_NAME_ASSISTED + 摘要参数/字面量；LIKE/NOT LIKE/ILIKE → EXAM_NAME_LIKE + pattern 契约）、不可检索谓词逐类显式失败（ERR_ORM_ENC_COLUMN_NOT_SEARCHABLE）、H2 端到端命中+解密回归、缓存命中路径不同参数各自正确摘要 2 例、QueryBean 继承、非 enc 零影响、bulk SET 边界。接线验证：testDefaultAstTransformerIsEncComposite + EqlCompiler.java:72-83 消费 transformBeforeAnalyze（live code 指认）；nop-orm-eql 全量 777/777 绿（本次实测）。
+  - **Phase 4 Exit Criteria（4/4 PASS）**：TestEncAssistedGenSqlRewrite 11 测试全绿——findByExample（SQL 文本+摘要参数断言 + 端到端命中/解密）、countByExample、updateByExample WHERE 改写、固定 filter（genCollectionFilterEx + genLoadSql→addFixedFilter 装载命中/不可见断言）；显式失败 4 类（like-only eq / enc 主键 / rev findLatest / example orderBy）；非 enc 零影响。
+  - **Phase 5 Exit Criteria（4/4 PASS）**：TestEncAssistedAutoUpgrade 2 测试全绿（旧库自动 ADD COLUMN 双辅助列 + no-change 不产 DDL + 存量密文不受升级影响）；TestEncAssistedBackfill 6 测试全绿（v1/legacy/无前缀明文存量 → backfillAll → EQL eq/LIKE 命中；幂等断言 testBackfillIdempotent；批大小 2 分页断言；null 主列跳过；按实体回填）；owner docs 收口核对一致（见 Closure Gates ④）；`ai-dev/logs/` 已更新。
+  - **Closure Gates（9 条逐条核对）**：①三列机制端到端可用 PASS（Anti-Hollow 四链全连通）；②显式失败无静默 PASS（transformer 11 种 reason、helper 只读守护、GenSqlHelper 4 类显式失败全部指认为显式抛错，无空方法体/吞异常）；③既有 enc 行为无回归 PASS（TestColumnEnhancer 2/2 绿，v1 密文格式 + per-message IV 断言原样保留）；④owner docs 与 live baseline 一致 PASS（orm-model-design.md「可检索加密」小节 :930+ 含声明语法/错误码表/GenSqlHelper 改写覆盖/bulk 限制 :966/固定 filter 分区语义；eql-and-database-compatibility.md :981+ 改写矩阵、限制清单（LIKE 大小写收缩 :1000、bulk UPDATE SET :1004）、GenSqlHelper 直拼 :1011、存量回填 :1024——逐项与 live 行为相符）；⑤独立 closure audit = 本审计，已勾选；⑥`check-plan-checklist.mjs --strict` 退出码 0（本次实测；当时剩余 2 条未勾选为非 completed plan 的预期 warning——本条与 checklist 工具条目，checklist 终跑留主会话）；⑦`scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0（0 发现，本次实测）；⑧三模块全量测试 BUILD SUCCESS（本次实测：model 56/56、eql 777/777、orm 346 tests / 0 失败 / 25 skipped 既有容器矩阵）；⑨`check-doc-links.mjs --strict` 退出码 0（0 errors / 6 warnings）。
+  - **Anti-Hollow 四链追踪（全部连通）**：a) 写路径：save/update → EntityPersisterImpl.queueSave/queueUpdate(:458/:475) → EncAssistedHelper.onSave/onUpdate → derive → orm_propValue，测试以裸 SQL DB 值变化证明真实调用（TestEncAssistedDerivedColumns）；b) EQL 读路径：SessionFactoryImpl.setDefaultAstTransformer 统一组合包装(:134) → compileSql(:340/:346) → EqlCompiler.transformBeforeAnalyze(:72-75) → DigestParamBuilder 经 SqlParamTypeResolver marker-first 分流(:71-72) 执行期摘要，端到端命中断言 TestEncAssistedEqlRewrite#testEndToEndEqAndLikeHitWithDecrypt；c) GenSqlHelper 路径：appendFilterEq(:786-799) 被 genCollectionFilterEx(:471)/addFixedFilter(:715)/appendExampleFilter(:957) 真实调用，SQL 文本+摘要参数+装载命中断言 TestEncAssistedGenSqlRewrite；d) 回填：EncAssistedBackfiller（283 行真实实现：分页/批更新/批大小配置显式失败/空 SET 显式失败）端到端 存量密文→backfillAll→eq/LIKE 命中（TestEncAssistedBackfill#testBackfillLegacyCiphertextThenQueryHits）。无空方法体/静默跳过/no-op 作为正常实现；EncAssistedEqlAstTransformer 与 EncAssistedHelper 的失败路径均显式抛 NopException。
+  - **Phase 4 顺带修复核对**：GenSqlHelper.java:911（update 关键字补尾随空格）与 :934（SET 侧由无值 appendEqMarker 改为带值 appendEq 绑定）均在 live code；testUpdateByExampleWhereRewritten 以 session.updateByExample 端到端覆盖（命中 1 行 + 裸 SQL DB 值断言 + SET 未触碰辅助列断言）。
+  - **Deferred/Follow-up 分类检查**：Deferred But Adjudicated（bulk UPDATE SET）为显式用户裁定 + owner doc :966/:1004 声明在案，分类诚实；Non-Blocking Follow-ups 两项（算法注册 SPI 化/脱敏另立项）经逐条核对确为 non-blocking 泛化，无 in-scope live defect 被降级；Follow-up 核对说明所述「genUpdateByExample 两处既有缺陷当场修复」与 live code 相符。
+  - **Minor（非阻断）**：①plan :217 测试模型路径省略 `nop-persistence/` 前缀（doc-links warning 级非 error，文件实际存在于 nop-persistence/nop-dbtool/nop-dbtool-core/src/test/resources/_vfs/nop/dbtool/test/enc-upgrade.orm.xml）；②Phase 5 注记记录 orm 全量 343 绿 vs 本次实测 346 total（0 失败）——差异来自共享工作区其他 plan 并行新增测试，非本 plan 漂移。
+- Final Verdict: **APPROVE closure**（主会话完成 checklist 工具终跑并填写 Status Note/Completed 后，可将 Plan Status 置为 completed）
+
+Follow-up:
+
+- no remaining plan-owned work（两项登记见上方 Non-Blocking Follow-ups，本次审计逐条核对均为 non-blocking）
