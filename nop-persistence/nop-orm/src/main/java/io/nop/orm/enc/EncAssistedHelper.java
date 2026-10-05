@@ -23,6 +23,7 @@ import io.nop.orm.model.OrmModelConstants;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENC_HELPER_COLUMN_READONLY;
@@ -33,6 +34,13 @@ import static io.nop.orm.OrmErrors.ERR_ORM_ENC_HELPER_COLUMN_READONLY;
  * assisted 列 = hex(HMAC-SHA256(key, normalize(plain)))，定长 64；
  * like 列 = 逐字符 hex(width)(HMAC-SHA256(key, salt || c)) 拼接，长度 = width * len(plain)。
  * 主列在内存中为明文（加密发生在 binder 层），派生始终基于明文。
+ *
+ * <p>plan 2318 Phase 3 契约澄清（2026-10-05）：like 列的规范化为 trim + 小写折叠，
+ * 即 like 列检索为<b>大小写不敏感</b>（LIKE 与 ILIKE 同语义，见
+ * {@link #likeDigestChar(char)} 与 {@link #likePatternDigest(String)}）。
+ * 单一 like 列无法同时承载大小写敏感与不敏感两种摘要，而 ILIKE（设计矩阵明确支持）
+ * 要求两侧小写规范化——故统一折叠大小写，LIKE 的大小写敏感性作为已声明收缩写入
+ * owner doc（docs-for-ai/02-core-guides/eql-and-database-compatibility.md）。</p>
  */
 public class EncAssistedHelper {
     private static final Logger LOG = LoggerFactory.getLogger(EncAssistedHelper.class);
@@ -146,23 +154,75 @@ public class EncAssistedHelper {
 
     /**
      * 模糊摘要：逐字符 hex(width) 摘要拼接，长度 = width * len(plain)。
+     * 规范化为 trim + 小写折叠（大小写不敏感检索契约，见类注释）。
      */
     public String likeDigest(String plain) {
-        String normalized = normalize(plain);
-        int width = likeDigestWidth();
+        String normalized = normalizeForLike(plain);
+        if (normalized == null)
+            return null;
         byte[] key = key();
-        String salt = StringHelper.toString(CommonConfigs.CFG_CRYPT_DEFAULT_SALT.get(), "");
+        String salt = salt();
+        int width = likeDigestWidth();
         StringBuilder sb = new StringBuilder(width * normalized.length());
         for (int i = 0; i < normalized.length(); i++) {
-            byte[] input = (salt + normalized.charAt(i)).getBytes(StandardCharsets.UTF_8);
-            byte[] mac = HashHelper.hmacSha256(input, key);
-            sb.append(Bytes.toHex(mac), 0, width);
+            appendCharDigest(sb, normalized.charAt(i), key, salt, width);
         }
         return sb.toString();
     }
 
+    /**
+     * 单个字符的 like 摘要 chunk（hex(width)），与 {@link #likeDigest(String)} 的逐字符
+     * 输出完全一致：输入先做小写折叠（大小写不敏感检索契约）。查询侧 LIKE pattern 的
+     * 字面字符经此方法变换后可与存储侧 like 列逐 chunk 匹配。
+     */
+    public String likeDigestChar(char c) {
+        return appendCharDigest(new StringBuilder(likeDigestWidth()), c, key(), salt(),
+                likeDigestWidth()).toString();
+    }
+
+    /**
+     * LIKE pattern 摘要变换（查询侧契约）：{@code %}→{@code %}、{@code _}→{@code _}
+     * 通配语义精确保留，其余字面字符逐字符摘要（小写折叠）。含 escape 的 LIKE 不走此
+     * 通道（编译期显式失败）。
+     */
+    public String likePatternDigest(String pattern) {
+        if (pattern == null)
+            return null;
+        StringBuilder sb = new StringBuilder(pattern.length() * likeDigestWidth());
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            if (c == '%' || c == '_') {
+                sb.append(c);
+            } else {
+                appendCharDigest(sb, c, key(), salt(), likeDigestWidth());
+            }
+        }
+        return sb.toString();
+    }
+
+    private StringBuilder appendCharDigest(StringBuilder sb, char c, byte[] key, String salt, int width) {
+        byte[] input = (salt + Character.toLowerCase(c)).getBytes(StandardCharsets.UTF_8);
+        byte[] mac = HashHelper.hmacSha256(input, key);
+        sb.append(Bytes.toHex(mac), 0, width);
+        return sb;
+    }
+
     private String normalize(String plain) {
         return plain == null ? null : plain.trim();
+    }
+
+    /**
+     * like 侧规范化：trim + 小写折叠（大小写不敏感检索契约，见类注释）。
+     * assisted 侧规范化保持 trim-only，两者不得混用。
+     */
+    private String normalizeForLike(String plain) {
+        if (plain == null)
+            return null;
+        return plain.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String salt() {
+        return StringHelper.toString(CommonConfigs.CFG_CRYPT_DEFAULT_SALT.get(), "");
     }
 
     private byte[] key() {

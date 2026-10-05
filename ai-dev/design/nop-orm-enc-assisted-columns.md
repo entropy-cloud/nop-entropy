@@ -48,6 +48,8 @@
 
 长度泄漏是 like 列的已知代价（列长 ∝ 明文长），文档向使用者声明；不愿泄露长度的场景只用 assisted（放弃模糊检索）。
 
+> **Phase 3 契约澄清（2026-10-05，实施裁定）**：like 列规范化统一为 **trim + 小写折叠**（LIKE 检索大小写不敏感，与 ILIKE 同语义）。理由：单一 like 列无法同时承载大小写敏感与不敏感两种摘要，而 ILIKE（上表明确支持）要求两侧小写规范化——若存储侧仅 trim（Phase 2 初版实现），ILIKE 的小写 pattern 摘要会静默不命中，违反"无静默错误结果"。被拒替代：ILIKE 显式失败（收缩设计矩阵支持面、用户显式要求 ILIKE 语义）；存双列（v1 固定 1 assisted + 1 like 的 Non-Goal 约束）。代价 = LIKE 不再区分大小写（跨库 LIKE 本就因 collation 分叉，MySQL ci collation 亦不区分），已在 owner doc 限制清单声明。
+
 ### 3.3 查询改写语义
 
 编译期完成列替换（EQL 路径经 before-analyze AST transformer，含谓词形态识别与参数 marker 注入；GenSqlHelper 路径在 SQL 构建点直接替换列与参数值），执行期完成参数摘要（自定义 param builder / 构建期摘要）。

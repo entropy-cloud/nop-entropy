@@ -136,25 +136,33 @@ Exit Criteria:
 
 ### Phase 3 - 查询改写：EQL/QueryBean 路径
 
-Status: planned
+Status: completed（2026-10-05）
 Targets: `nop-persistence/nop-orm-eql`（compile-time AST transformer，经 `IEqlAstTransformer` 注入）、`nop-persistence/nop-orm`（注入与执行接线）
 
 - Item Types: `Feature` + `Decision`
 
-- [ ] 等值/IN 谓词改写：enc 主列上的 `=`/`IN` → assisted 列 + 参数按契约摘要变换。**接入缝约束（Baseline #5 时序）**：改写须经 before-analyze 阶段完成（AST 列替换 + `SqlParameterMarker` 注入自定义 param builder，执行期由参数解析优先消费）；`transformAfterAnalyze` 阶段参数列表已固化，不得作为接入点
-- [ ] LIKE/ILIKE 谓词改写按 Phase 0 契约；`NOT LIKE`/`escape`/不支持的谓词形态按 Phase 0 矩阵显式失败。注意 H2 内存库无 ILIKE 函数（编译期即抛 `ERR_EQL_NOT_SUPPORT_ILIKE`）：若契约含 ILIKE，其命中行为以编译级改写断言 + 方言语义等价测试覆盖，e2e 命中断言限于 H2 可执行的形态
-- [ ] **Decision**：改写与 EQL 查询计划缓存的交互——验证改写只依赖静态元数据、不受参数影响。验收形式：同一 EQL 文本两次编译（第二次命中缓存）后，不同参数值的摘要变换仍各自正确（缓存命中路径的参数变换断言）
-- [ ] QueryBean 过滤路径回归验证（该路径编译为 EQL，应自动继承改写）
-- [ ] 查询结果实体加载的解密路径回归（`transformRow` 解密仍正确）
+- [x] 等值/IN 谓词改写：enc 主列上的 `=`/`IN` → assisted 列 + 参数按契约摘要变换。**接入缝约束（Baseline #5 时序）**：改写须经 before-analyze 阶段完成（AST 列替换 + `SqlParameterMarker` 注入自定义 param builder，执行期由参数解析优先消费）；`transformAfterAnalyze` 阶段参数列表已固化，不得作为接入点
+- [x] LIKE/ILIKE 谓词改写按 Phase 0 契约；`NOT LIKE`/`escape`/不支持的谓词形态按 Phase 0 矩阵显式失败。注意 H2 内存库无 ILIKE 函数（编译期即抛 `ERR_EQL_NOT_SUPPORT_ILIKE`）：若契约含 ILIKE，其命中行为以编译级改写断言 + 方言语义等价测试覆盖，e2e 命中断言限于 H2 可执行的形态
+- [x] **Decision**：改写与 EQL 查询计划缓存的交互——验证改写只依赖静态元数据、不受参数影响。验收形式：同一 EQL 文本两次编译（第二次命中缓存）后，不同参数值的摘要变换仍各自正确（缓存命中路径的参数变换断言）
+- [x] QueryBean 过滤路径回归验证（该路径编译为 EQL，应自动继承改写）
+- [x] 查询结果实体加载的解密路径回归（`transformRow` 解密仍正确）
 
 Exit Criteria:
 
-- [ ] EQL 编译级测试：`o.examName = ?` 与 `LIKE` 谓词编译产物含辅助列、参数为契约摘要
-- [ ] **端到端验证**（Minimum Rules #22）：`AbstractOrmTestCase` H2 上 保存 → EQL 等值查询命中 → LIKE 查询命中 → 不支持的谓词抛对应错误码，全链路单测通过
-- [ ] **接线验证**（Minimum Rules #23）：测试证明 transformer 经编译链真实消费（如注入标志/计数断言），非仅注册存在
-- [ ] 既有 EQL 回归（含 plan 2307 固化的跨模块回归清单中 persistence 相关模块）全部通过
-- [ ] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 补充改写语义与限制清单
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] EQL 编译级测试：`o.examName = ?` 与 `LIKE` 谓词编译产物含辅助列、参数为契约摘要
+- [x] **端到端验证**（Minimum Rules #22）：`AbstractOrmTestCase` H2 上 保存 → EQL 等值查询命中 → LIKE 查询命中 → 不支持的谓词抛对应错误码，全链路单测通过
+- [x] **接线验证**（Minimum Rules #23）：测试证明 transformer 经编译链真实消费（如注入标志/计数断言），非仅注册存在
+- [x] 既有 EQL 回归（含 plan 2307 固化的跨模块回归清单中 persistence 相关模块）全部通过
+- [x] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 补充改写语义与限制清单
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+实现注记（2026-10-05）：
+
+1. 生产 transformer 为 `nop-orm` 模块 `io.nop.orm.enc.EncAssistedEqlAstTransformer`（eql 扩展点首次生产实现）；别名→实体映射由 transformer 自行维护（含包名限定实体名、无别名表名缺省、单表源裸列缺省、to-one 关系链路径、作用域链相关子查询回溯），实体解析走 `ISqlCompileContext.resolveEntityTableMeta`（与语义分析同源，含 allowUnderscoreName）。**判定次序坑**：`from io.nop.app.SimsExam o` 的表名 owner 是包名限定符而非别名引用，必须先按实体名解析、失败才按属性路径表源解释（首版误判导致别名表为空的缺陷已修，回归被 testEqParamRewrittenToAssistedColumn 钉住）。
+2. 接线：`SessionFactoryImpl.setDefaultAstTransformer` 统一包装为 enc 组合 transformer（先 enc 后用户 delegate）；组合实例为 per-factory 常量，`LoadedOrmModel` 的"非默认 transformer 绕过缓存"判定语义不变（`TestEqlAstTransformerWiring` 两测试回归通过）。未采用"改写后移到 EqlTransformVisitor"的实现变体（任务 F 预案）——before-analyze 自建别名映射已可靠覆盖改写面，未触发断层预案。
+3. 不可检索谓词（范围/ORDER BY/GROUP BY/JOIN ON/函数参数/IS NULL/BETWEEN/IN 子查询/含 escape 的 LIKE/等值另一侧为列或表达式/经 to-many 路径引用）一律 `ERR_ORM_ENC_COLUMN_NOT_SEARCHABLE`（OrmErrors 新增，消息含实体.列名与 reason）；未声明辅助列的 enc 列与非 enc 列零影响（维持现状）。
+4. **契约澄清（Phase 0 预声明回写规则的执行）**：like 列规范化从 trim-only 收紧为 **trim + 小写折叠**（`EncAssistedHelper.likeDigest`），like 检索大小写不敏感（LIKE 与 ILIKE 同语义）。理由：单一 like 列无法同时承载两种大小写摘要，ILIKE 要求两侧小写规范化，存储侧不折叠则 ILIKE 静默不命中（违反无静默错误原则）；新增 `likeDigestChar(char)`/`likePatternDigest(String)` 公共方法供查询侧逐字符摘要。design 文档 §3.2 已加 dated 澄清，owner doc 限制清单已声明"LIKE 大小写敏感性收缩"。Phase 2 既有断言（helper 输出对 DB 值）不受影响，TestEncAssistedDerivedColumns 4 测试回归通过。
+5. 测试：`TestEncAssistedEqlRewrite` 25 例（编译级改写 8 + 不可检索谓词逐类报错 6 + H2 端到端命中/解密/QueryBean/删除 4 + 缓存交互 2 + 非 enc 零影响/接线验证/摘要契约/UPDATE SET 边界 4 + LIKE 契约 1）。验证：`-Dtest='TestEql*,TestEncAssisted*'` 15 类 134/134 绿；nop-orm 全量 326/326 绿（25 skipped 为既有容器矩阵）；nop-orm-eql 全量 775/775 绿。
 
 ### Phase 4 - 查询改写：GenSqlHelper 路径
 

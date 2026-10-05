@@ -31,6 +31,7 @@ import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.driver.jdbc.JdbcCollectionPersistDriver;
 import io.nop.orm.driver.jdbc.JdbcEntityPersistDriver;
+import io.nop.orm.enc.EncAssistedEqlAstTransformer;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
@@ -125,7 +126,12 @@ public class SessionFactoryImpl implements IPersistEnv {
     }
 
     public void setDefaultAstTransformer(IEqlAstTransformer defaultAstTransformer) {
-        this.defaultAstTransformer = defaultAstTransformer;
+        // plan 2318 Phase 3：default transformer 统一组合为 enc 改写 transformer（链式组合，
+        // 先 enc 改写再委托用户 transformer；无用户配置时 delegate 为 null）。
+        // 缓存语义不变：组合实例是 per-factory 常量，LoadedOrmModel 的"默认 transformer 才进缓存"
+        // 判定（astTransformer != env.getDefaultAstTransformer()）仍然成立——显式传入其他
+        // transformer 的编译照旧绕过缓存。
+        this.defaultAstTransformer = new EncAssistedEqlAstTransformer(defaultAstTransformer);
     }
 
     public IEqlAstTransformer getDefaultAstTransformer() {

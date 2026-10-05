@@ -978,6 +978,36 @@ roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部�
 
 EQL 语法层**不做** `MERGE` 语句语法（与「明确不做的事」UPSERT 不进语法层同批裁定；跨库 upsert 语义由上文 DAO 批量 upsert 原语承载——那是 JDBC 语句文本生成，不经 EQL 文法，两者不矛盾）。successor = 未来 EQL `MERGE` 语法 WI（plan-first：`.g4` 生成管线）；触发条件 = 出现 EQL 层 `MERGE` 语义（条件 upsert / `WHEN MATCHED THEN DELETE` / `BY SOURCE`）的真实产品需求 + 最低版本门裁决（已知分叉：PG 15 `MERGE` 无 `BY SOURCE` 需 17；MSSQL `MERGE` 强制终止 `;`，error 10713；Oracle `WHEN MATCHED THEN DELETE` 三版文档确认存在）。`UPDATE..FROM` 半行维持 WI10b 改档结论（EQL 文法无此语法 = 解析响亮失败 + 契约登记，见「死标志台账」`supportUpdateFromJoin` 行），不重开。
 
+### 可检索加密改写（plan 2318，2026-10-05 Phase 3 落地）
+
+`tagSet="enc"` 且声明了辅助列的加密列，在 EQL 编译期自动把可检索谓词改写到辅助列上：存储保持强加密（随机 IV），等值/模糊检索经确定性摘要列完成。声明语法（`ext:enc-assisted`/`ext:enc-like` + 角色标签）与模型校验见 `orm-model-design.md` 的「可检索加密声明」小节。
+
+**接入点与接线**：生产 transformer `EncAssistedEqlAstTransformer`（`io.nop.orm.enc`）在 before-analyze 阶段改写（参数收集固化之前）；`SessionFactoryImpl.setDefaultAstTransformer` 把默认 transformer 统一包装为「enc 组合 transformer」（先 enc 改写，后委托用户配置的 transformer，无用户配置时即完整默认实现）。缓存语义不变：组合实例是 per-factory 常量，「非默认 transformer 绕过查询计划缓存」的判定照旧成立；改写产物（参数摘要 builder）无状态，同一缓存计划对不同参数值各自正确摘要（`TestEncAssistedEqlRewrite#testCachedPlanDigestsDistinctParamsCorrectly`）。
+
+**改写矩阵**（WHERE / HAVING / UPDATE·DELETE 的 WHERE；列引用支持 `alias.prop`、包名限定实体、to-one 关系链路径，别名沿作用域链解析）：
+
+| 主列上的谓词 | 改写结果 |
+|---|---|
+| `x = ?` / `x != ?` | `assisted = ?` / `assisted != ?`，参数经执行期摘要（marker 注入 `ISqlParamBuilder`） |
+| `x = 'lit'` / `x = 123` | `assisted = '<digest>'`，字面量编译期替换为摘要字面量 |
+| `x = NULL` | 仅改列（主列置 null 时辅助列同步派生为 null，语义等价） |
+| `x IN (?, 'lit', ...)` | `assisted IN (...)`，值列表逐项摘要（参数注入 builder / 字面量替换） |
+| `x LIKE / NOT LIKE / ILIKE 'p'` | `likeCol LIKE digestPattern(p)`；pattern 契约：`%`/`_` 精确保留，字面字符逐字符摘要；ILIKE 折叠为普通 LIKE + 小写规范化摘要（不依赖方言 ILIKE 函数注册） |
+| `x IN (子查询)`、含 `escape` 的 LIKE、等值另一侧为列引用/表达式、范围比较（`< > <= >= BETWEEN`）、`IS [NOT] NULL`、函数参数、JOIN ON、ORDER BY、GROUP BY、经 to-many 关系路径引用 | `nop.err.orm.enc-column-not-searchable` 显式失败（消息含实体.列名与原因），无静默错误结果 |
+
+**限制清单（使用者必读）**：
+
+- **like 列检索为大小写不敏感**（LIKE 与 ILIKE 同语义）：单一 like 列无法同时承载大小写敏感/不敏感两种摘要，而 ILIKE（设计矩阵支持项）要求两侧小写规范化——故 like 列统一按 trim + 小写折叠摘要。需要大小写敏感匹配的场景不可用（可用 assisted 等值替代）。
+- **未声明辅助列的 enc 列行为完全不变**：等值查询维持现状（随机 IV 下命中不了，不报错）；声明了辅助列的 enc 列在不可服务谓词上显式报错。
+- **裸 SQL / sql-lib `<sql>` 文本不经改写**（原生 SQL 不经 ORM 元数据）；QueryBean 过滤路径编译为 EQL，自动继承改写。
+- **无法静态解析的列引用不做改写**：子查询/CTE/VALUES 表源的列、外部作用域无法回溯的引用、投影别名引用（ORDER BY 别名）等交由既有语义处理——经这些形态触达 enc 列时退化为既有密文比较行为（等值不命中），不报错。
+- **bulk UPDATE SET 不维护辅助列**（2026-10-05 用户裁定归业务层校验）：`update ... set examName = ?` 直接写主列（加密 binder 照常），辅助列不重算；WHERE 子句中的改写照常生效。框架侧义务 = 本限制清单声明。
+- **集合操作符路径（`_some`/`_all`）触达 enc 列**：宽松检测命中时显式报错；CollectionOperatorTransformer 深克隆条件与 marker builder 兼容（clone 携带 builder），但「enc 过滤 + 集合操作符合并」同谓词树的组合未纳入 Phase 3 测试面。
+- **投影（select x）放行**：读取 enc 列是行加载语义，解密在 transformRow 完成，不受改写影响。
+- 摘要函数与密钥来源见 `EncAssistedHelper`（`nop.crypt.enc-assisted-key` → `nop.crypt.default-enc-key` → 内建缺省一次性告警）。
+
+测试载体：`TestEncAssistedEqlRewrite`（25 例：等值/!=/IN 编译级改写、LIKE/NOT LIKE/ILIKE、不可检索谓词逐类报错、H2 端到端命中+解密回归、缓存交互、QueryBean 继承、非 enc 零影响、删除 WHERE 改写、bulk SET 边界）、`TestEqlAstTransformerWiring`（transformer 注入与缓存绕过既有契约，回归通过）。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

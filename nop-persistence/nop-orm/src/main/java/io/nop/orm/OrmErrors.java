@@ -431,4 +431,9 @@ public interface OrmErrors {
 
     String ARG_REASON = "reason";
 
+    ErrorCode ERR_ORM_ENC_COLUMN_NOT_SEARCHABLE = define("nop.err.orm.enc-column-not-searchable",
+            "加密列[{entityName}.{propName}]不支持该检索谓词[{reason}]，只支持等值(=/!=)/IN/LIKE(不含escape)改写到辅助列；"
+                    + "范围比较、ORDER BY、GROUP BY、JOIN ON 等涉及加密列一律拒绝（避免全表解密扫描）",
+            ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_REASON);
+
 }
