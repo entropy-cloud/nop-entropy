@@ -927,6 +927,42 @@ select o, o.extFldA, o.extFldB*2 + 3
 - alias 只认 `<alias>` 声明的属性（`OrmEntityModel.getAliasPropPath` 仅接受 `IEntityAliasModel`）；`<compute>` 属性没有对应列，不能当列名用在 EQL 里。
 - 别把 alias 当本地列拼裸 SQL——它背后可能是 JOIN 或另一张表，跨表语义只有 EQL / DAO 层会正确处理。
 
+## 可检索加密：`enc` 列的辅助查询列（assisted / like）
+
+**何时需要**：列已标记 `enc`（透明加密存储），但仍需按该列做等值或模糊查询。随机 IV 加密的密文不可检索，需要额外的确定性辅助列承载查询。
+
+**声明语法**（扩展属性 + 角色标签，契约见 `ai-dev/design/nop-orm-enc-assisted-columns.md`）：
+
+```xml
+<!-- 主列：tagSet 含 enc，ext 属性指向辅助列 -->
+<column name="email" tagSet="enc"
+        ext:enc-assisted="emailAssisted" ext:enc-like="emailLike"
+        stdSqlType="VARCHAR" precision="256"/>
+<!-- 辅助列：普通模型列（参与建表与 diff 升级），角色由标签标记 -->
+<column name="emailAssisted" tagSet="enc-assisted" stdSqlType="VARCHAR" precision="64"/>
+<column name="emailLike" tagSet="enc-like" stdSqlType="VARCHAR" precision="2048"/>
+```
+
+- `emailAssisted` 存 `HMAC-SHA256` 十六进制摘要（定长 64，密钥 `nop.crypt.enc-assisted-key`，空则回落 `nop.crypt.default-enc-key`），承载等值/IN/不等值检索。
+- `emailLike` 存逐字符定宽摘要拼接（宽度 `nop.orm.enc-like-digest-width` 缺省 8），承载 `LIKE / NOT LIKE / ILIKE` 检索；列长与明文长度成正比（已知泄露面，不接受则只用 assisted）。
+- 两个辅助列都可以只声明其一；辅助列值由框架在保存时自动派生，业务代码对辅助列赋值会报错。
+
+**模型加载期校验**（配置错误启动即失败，不推迟到首次查询）：
+
+| 校验 | 错误码 |
+|---|---|
+| 声明 ext 引用的列未标记 `enc` | `nop.err.orm.model.enc-assisted-not-enc` |
+| ext 引用指向不存在的列 | `nop.err.orm.model.enc-helper-unknown-column` |
+| 辅助列缺少对应角色标签（或标签与引用类型不符） | `nop.err.orm.model.enc-helper-tag-mismatch` |
+| 辅助列为主键列 / 非 VARCHAR | `nop.err.orm.model.enc-helper-primary-key` / `enc-helper-not-varchar` |
+| 辅助列再声明辅助引用（含自引用） | `nop.err.orm.model.enc-helper-chained` |
+| 角色标签孤立（未被任何主列引用） | `nop.err.orm.model.enc-helper-tag-orphan` |
+| 同一辅助列被多个主列引用 | `nop.err.orm.model.enc-helper-duplicate` |
+
+**查询语义**：主列上的 `= / IN / != / NOT IN` 自动改写到 assisted 列，`LIKE / NOT LIKE / ILIKE` 自动改写到 like 列（`%`/`_` 通配语义保持；ILIKE 两侧小写规范化后摘要，不依赖方言 ILIKE 函数）。范围谓词（`< > BETWEEN`）、`ORDER BY / GROUP BY / JOIN ON` 涉及加密主列、含 `escape` 的 LIKE、正则字符类均显式报错（`nop.err.orm.enc-column-not-searchable`），不做静默全表解密。
+
+**限制（重要）**：`updateByExample` 等 bulk UPDATE 直接 SET 加密列时，框架**不**维护辅助列（既定裁定：归业务层校验）——加密列的批量变更请走逐实体保存，或在业务层同步维护辅助列。未声明辅助列的 `enc` 列维持纯加密存储行为（等值查询检索不到，属预期）。
+
 ## 免代码生成：动态实体 `DynamicOrmEntity`
 
 **何时需要**：想在 ORM 模型里声明实体（能写 EQL、能建表、能 CRUD），但**不生成** Java 实体类。

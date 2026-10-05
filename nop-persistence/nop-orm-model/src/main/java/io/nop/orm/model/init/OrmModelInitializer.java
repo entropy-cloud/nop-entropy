@@ -11,6 +11,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntHashMap;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.graph.TopoEntry;
@@ -53,6 +54,15 @@ import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_LOC;
 import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_TAG;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_ASSISTED_NOT_ENC;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_CHAINED;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_DUPLICATE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_NOT_VARCHAR;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_PRIMARY_KEY;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_TAG_MISMATCH;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_TAG_ORPHAN;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_ENC_HELPER_UNKNOWN_COLUMN;
 import static io.nop.orm.model.OrmModelErrors.ARG_REF_ENTITY_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_COL_DATA_TYPE_NOT_MATCH_DOMAIN_DEFINITION;
@@ -118,6 +128,7 @@ public class OrmModelInitializer {
                 syncDomains(entityModel);
 
             entityModel.init();
+            checkEncAssisted(entityModel);
             entityModelByTableMap.put(entityModel.getTableName(), entityModel);
 
             entityMap.put(entityModel.getName(), entityModel);
@@ -398,6 +409,89 @@ public class OrmModelInitializer {
             relRef.setSingleColumnJoin(refJoins.get(0));
         }
         return relRef;
+    }
+
+    /**
+     * 可检索加密声明校验（契约见 ai-dev/design/nop-orm-enc-assisted-columns.md）：
+     * 主列（tagSet含enc）通过 ext:enc-assisted / ext:enc-like 指向同实体内的辅助列，
+     * 辅助列以 enc-assisted / enc-like 角色标签标记。配置错误在模型加载期显式失败。
+     */
+    void checkEncAssisted(OrmEntityModel entityModel) {
+        Map<String, IColumnModel> referencedHelpers = new HashMap<>();
+        String entityName = entityModel.getName();
+
+        for (IColumnModel col : entityModel.getColumns()) {
+            String assistedName = getExtRefName(col, OrmModelConstants.EXT_ENC_ASSISTED);
+            String likeName = getExtRefName(col, OrmModelConstants.EXT_ENC_LIKE);
+            if (assistedName == null && likeName == null)
+                continue;
+
+            if (!col.containsTag(OrmModelConstants.TAG_ENC))
+                throw new NopException(ERR_ORM_ENC_ASSISTED_NOT_ENC).source(col)
+                        .param(ARG_ENTITY_NAME, entityName).param(ARG_PROP_NAME, col.getName());
+
+            checkEncHelperRef(entityModel, col, assistedName, OrmModelConstants.TAG_ENC_ASSISTED,
+                    OrmModelConstants.EXT_ENC_ASSISTED, referencedHelpers);
+            checkEncHelperRef(entityModel, col, likeName, OrmModelConstants.TAG_ENC_LIKE,
+                    OrmModelConstants.EXT_ENC_LIKE, referencedHelpers);
+        }
+
+        for (IColumnModel col : entityModel.getColumns()) {
+            checkEncHelperTagReferenced(entityModel, col, OrmModelConstants.TAG_ENC_ASSISTED, referencedHelpers);
+            checkEncHelperTagReferenced(entityModel, col, OrmModelConstants.TAG_ENC_LIKE, referencedHelpers);
+        }
+    }
+
+    private void checkEncHelperRef(OrmEntityModel entityModel, IColumnModel master, String helperName,
+                                   String expectedTag, String extName, Map<String, IColumnModel> referencedHelpers) {
+        if (helperName == null)
+            return;
+
+        String entityName = entityModel.getName();
+        IColumnModel helper = entityModel.getColumn(helperName, true);
+        if (helper == null)
+            throw new NopException(ERR_ORM_ENC_HELPER_UNKNOWN_COLUMN).source(master)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+
+        if (helper == master)
+            throw new NopException(ERR_ORM_ENC_HELPER_CHAINED).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+
+        if (!helper.containsTag(expectedTag))
+            throw new NopException(ERR_ORM_ENC_HELPER_TAG_MISMATCH).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName).param(ARG_TAG, expectedTag);
+
+        if (helper.isPrimary())
+            throw new NopException(ERR_ORM_ENC_HELPER_PRIMARY_KEY).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+
+        if (helper.getStdSqlType() != StdSqlType.VARCHAR)
+            throw new NopException(ERR_ORM_ENC_HELPER_NOT_VARCHAR).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+
+        if (getExtRefName(helper, OrmModelConstants.EXT_ENC_ASSISTED) != null
+                || getExtRefName(helper, OrmModelConstants.EXT_ENC_LIKE) != null)
+            throw new NopException(ERR_ORM_ENC_HELPER_CHAINED).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+
+        if (referencedHelpers.put(helperName, helper) != null)
+            throw new NopException(ERR_ORM_ENC_HELPER_DUPLICATE).source(helper)
+                    .param(ARG_ENTITY_NAME, entityName).param(ARG_COL_NAME, helperName);
+    }
+
+    private void checkEncHelperTagReferenced(OrmEntityModel entityModel, IColumnModel col, String tag,
+                                             Map<String, IColumnModel> referencedHelpers) {
+        if (!col.containsTag(tag))
+            return;
+        if (!referencedHelpers.containsKey(col.getName()))
+            throw new NopException(ERR_ORM_ENC_HELPER_TAG_ORPHAN).source(col)
+                    .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, col.getName())
+                    .param(ARG_TAG, tag);
+    }
+
+    private String getExtRefName(IColumnModel col, String extName) {
+        Object value = col.prop_get(extName);
+        return value == null ? null : value.toString();
     }
 
     void checkRefProp(OrmToManyReferenceModel ref) {

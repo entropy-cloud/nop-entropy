@@ -124,8 +124,14 @@
                 -->
                 <column name="examScoreScale" propId="20" code="EXAM_SCORE_SCALE" stdSqlType="TINYINT"/>
 
-                <!-- 标记字段需要加密存储 -->
-                <column name="examName" tagSet="enc"/>
+                <!-- 标记字段需要加密存储。可检索加密声明：ext:enc-assisted/ext:enc-like 指向辅助列（契约见 ai-dev/design/nop-orm-enc-assisted-columns.md） -->
+                <column name="examName" tagSet="enc" ext:enc-assisted="examNameAssisted" ext:enc-like="examNameLike"/>
+
+                <!-- 可检索加密辅助列：等值检索（确定性 HMAC 摘要，定长 64） -->
+                <column name="examNameAssisted" code="EXAM_NAME_ASSISTED" tagSet="enc-assisted" stdSqlType="VARCHAR" precision="64"/>
+
+                <!-- 可检索加密辅助列：模糊检索（逐字符定宽摘要） -->
+                <column name="examNameLike" code="EXAM_NAME_LIKE" tagSet="enc-like" stdSqlType="VARCHAR" precision="2048"/>
 
                 <!-- 不生成java实体代码 -->
                 <column name="extField" propId="21" code="EXT_FIELD" stdSqlType="INTEGER" notGenCode="true"/>

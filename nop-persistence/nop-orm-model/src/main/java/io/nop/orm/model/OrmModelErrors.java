@@ -64,6 +64,32 @@ public interface OrmModelErrors {
     ErrorCode ERR_ORM_MODEL_DUPLICATE_PROP = define("nop.err.orm.model.duplicate-prop",
             "对象模型[{entityName}]的属性[{propName}]重复", ARG_ENTITY_NAME, ARG_PROP_NAME);
 
+    ErrorCode ERR_ORM_ENC_ASSISTED_NOT_ENC = define("nop.err.orm.model.enc-assisted-not-enc",
+            "对象模型[{entityName}]的列[{propName}]声明了加密辅助列引用，但未标记enc标签", ARG_ENTITY_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_ORM_ENC_HELPER_UNKNOWN_COLUMN = define("nop.err.orm.model.enc-helper-unknown-column",
+            "对象模型[{entityName}]的加密辅助列引用指向不存在的列[{colName}]", ARG_ENTITY_NAME, ARG_COL_NAME);
+
+    ErrorCode ERR_ORM_ENC_HELPER_TAG_MISMATCH = define("nop.err.orm.model.enc-helper-tag-mismatch",
+            "对象模型[{entityName}]的列[{colName}]被加密主列引用为辅助列，但缺少对应的角色标签[{tag}]",
+            ARG_ENTITY_NAME, ARG_COL_NAME, ARG_TAG);
+
+    ErrorCode ERR_ORM_ENC_HELPER_PRIMARY_KEY = define("nop.err.orm.model.enc-helper-primary-key",
+            "对象模型[{entityName}]的加密辅助列[{colName}]不允许为主键列", ARG_ENTITY_NAME, ARG_COL_NAME);
+
+    ErrorCode ERR_ORM_ENC_HELPER_NOT_VARCHAR = define("nop.err.orm.model.enc-helper-not-varchar",
+            "对象模型[{entityName}]的加密辅助列[{colName}]必须为VARCHAR类型", ARG_ENTITY_NAME, ARG_COL_NAME);
+
+    ErrorCode ERR_ORM_ENC_HELPER_CHAINED = define("nop.err.orm.model.enc-helper-chained",
+            "对象模型[{entityName}]的加密辅助列[{colName}]不允许再声明加密辅助列引用", ARG_ENTITY_NAME, ARG_COL_NAME);
+
+    ErrorCode ERR_ORM_ENC_HELPER_TAG_ORPHAN = define("nop.err.orm.model.enc-helper-tag-orphan",
+            "对象模型[{entityName}]的列[{colName}]标记了角色标签[{tag}]，但未被任何加密主列引用",
+            ARG_ENTITY_NAME, ARG_COL_NAME, ARG_TAG);
+
+    ErrorCode ERR_ORM_ENC_HELPER_DUPLICATE = define("nop.err.orm.model.enc-helper-duplicate",
+            "对象模型[{entityName}]的加密辅助列[{colName}]被多个加密主列引用", ARG_ENTITY_NAME, ARG_COL_NAME);
+
     ErrorCode ERR_ORM_PROP_ID_IS_RESERVED = define("nop.err.orm.prop-id-is-reserved",
             "对象模型[{entityName}]的属性名不能为id，id为系统保留名称");
 

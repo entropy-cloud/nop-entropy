@@ -40,6 +40,31 @@ public interface OrmModelConstants {
      */
     String TAG_MASKED = "masked";
 
+    /**
+     * 标记字段需要加密存储（io.nop.orm.OrmConstants.TAG_ENC 的模型层常量）
+     */
+    String TAG_ENC = "enc";
+
+    /**
+     * 可检索加密：确定性等值查询辅助列的角色标签。声明契约见 ai-dev/design/nop-orm-enc-assisted-columns.md
+     */
+    String TAG_ENC_ASSISTED = "enc-assisted";
+
+    /**
+     * 可检索加密：模糊查询辅助列的角色标签
+     */
+    String TAG_ENC_LIKE = "enc-like";
+
+    /**
+     * 可检索加密：加密主列指向等值辅助列的扩展属性（属性值为辅助列属性名）
+     */
+    String EXT_ENC_ASSISTED = "ext:enc-assisted";
+
+    /**
+     * 可检索加密：加密主列指向模糊辅助列的扩展属性（属性值为辅助列属性名）
+     */
+    String EXT_ENC_LIKE = "ext:enc-like";
+
     String TAG_NOT_GEN = "not-gen";
 
     String TAG_NOT_PUB = "not-pub";
