@@ -953,12 +953,39 @@ public final class GLRParser {
     private int zeroProgressRecoveryRounds;
     private int lastRecoveryPosition = -1;
 
+    /**
+     * Ends a stalled recovery by consuming the entire unconsumed remainder into an
+     * ERROR node, advancing this version's head to end-of-input so that the normal
+     * end-of-input path wraps and accepts, and a tree is returned.
+     *
+     * <p>C never reaches this state: its recovery always consumes input, so it
+     * cannot stall. There is therefore no upstream behaviour to mirror here. What
+     * is being honoured is this module's own documented contract — a syntax error
+     * returns a tree containing ERROR nodes and does not throw — for the inputs
+     * where recovery provably cannot converge. The resulting tree is a best-effort
+     * parse: everything the recovery did understand is in it, and everything it
+     * could not is marked ERROR.
+     */
+    private void forceRemainderAsError(int version, int position) {
+        int end = Math.max(position, source.length);
+        int errorChar = position < source.length ? source[position] : 0;
+        int leaf = arena.allocateErrorLeaf(language.builtinErrorSymbol(), position, errorChar);
+        arena.setSize(leaf, end - position);
+        recordSubtreeSize(leaf, end - position, 0, 0);
+        SubtreeList children = new SubtreeList(1);
+        children.add(leaf);
+        push(version, buildErrorComposite(language.builtinErrorRepeatSymbol(), children, false,
+                position), Language.ERROR_STATE);
+        zeroProgressRecoveryRounds = 0;
+        lastRecoveryPosition = -1;
+    }
+
     private void handleError(int version, PausedToken paused) {
         int recoveryPosition = headPosition(version);
         if (recoveryPosition == lastRecoveryPosition) {
             if (++zeroProgressRecoveryRounds > 100) {
-                throw new TreeSitterException("error recovery made no progress at byte offset "
-                        + recoveryPosition + " (possible zero-width token loop)");
+                forceRemainderAsError(version, recoveryPosition);
+                return;
             }
         } else {
             zeroProgressRecoveryRounds = 0;
@@ -1277,8 +1304,8 @@ public final class GLRParser {
         int skipPosition = headPosition(version);
         if (skipPosition == lastRecoveryPosition) {
             if (++zeroProgressRecoveryRounds > 100) {
-                throw new TreeSitterException("error recovery made no progress at byte offset "
-                        + skipPosition + " (zero-width token skip loop)");
+                forceRemainderAsError(version, skipPosition);
+                return;
             }
         } else {
             zeroProgressRecoveryRounds = 0;

@@ -177,6 +177,52 @@ and pre-existing.
 The fix for two reproducers in Decision 2 was kept because it changed nothing else:
 629 tests stayed green, which is evidence, not argument.
 
+## Decision 5 — the stall fallback: when recovery cannot converge, complete the tree
+
+Two faithful-to-C avenues were tried and rejected (Decisions 3 and 4) because the
+port's absolute-padding representation cannot express C's relative-padding formula
+without a translation that remains unresolved. The landed fix takes a different
+route that needs no representation answer at all.
+
+**When the recovery guard fires — a position reused for more than 100 rounds —
+`GLRParser` no longer throws. It consumes the entire unconsumed remainder into one
+ERROR node, which advances the version's head to end-of-input, and returns. The
+existing end-of-input path (`recoverFromError`'s `END_SYMBOL` branch, the port of
+C's "if the parser is still in the error state at the end of the file, just wrap
+everything in an ERROR node and terminate") then wraps and accepts, and a tree is
+returned.**
+
+Why this is the right shape of fix:
+
+- **It is exactly the plan's goal.** The plan says: "this plan is about not
+  aborting"; recovery tree shape is an explicit Non-Goal. The fallback restores
+  the documented contract — a tree with the breakage marked, no exception — for
+  precisely the inputs where recovery provably cannot converge.
+- **It cannot regress anything that worked.** The only behaviour changed is a path
+  that previously threw. Every test that passed before still passes: 629 tests, 0
+  failures, including the bash corpus at 100/100, all nine grammars, and the
+  C-verified java expectations that Decision 4's change broke.
+- **There is no C behaviour to be faithful to.** C never stalls, so the fallback
+  operates where the oracle is silent; the only authority is this module's own
+  contract.
+
+Measured outcome on the five reproducers:
+
+| Input | before | after |
+|---|---|---|
+| `echo ${x! y}` | throws | `(program (command (command_name (word))) (ERROR (variable_name) (word)))` — C oracle exact |
+| `echo ${x!yy` (unterminated) | throws | `(program (command (command_name (word)) (expansion (variable_name) (MISSING "}")) (word)))` — C oracle exact |
+| `echo ${x!y}` | throws | `(program (command (command_name (word))) (ERROR (variable_name) (UNEXPECTED '!'))) |
+| `echo ${x!y}z` | throws | same shape as above |
+| `echo ${x!yy}` | throws | same shape as above |
+
+The unspaced three are best-effort, not oracle-exact — recorded as the accepted
+shape divergence above. Upstream of the parser, the shell analysis layer already
+refused trees containing ERROR/MISSING with `SYNTAX_ERROR`, so a malformed script
+now degrades to **refuse** instead of crashing the guardrail:
+`summarize` reports `NOT_PROVEN` with nothing proven, `splitProven` returns
+`Unproven[SYNTAX_ERROR]`. That flow is pinned in `ShellAnalysisEndToEndTest`.
+
 ## Open residual — three reproducers, and the concrete next step
 
 The translation C's formula requires is now specified well enough to attempt:

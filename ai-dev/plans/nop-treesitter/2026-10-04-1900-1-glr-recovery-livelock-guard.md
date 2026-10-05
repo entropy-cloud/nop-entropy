@@ -1,6 +1,6 @@
 # GLR error-recovery livelock guard: divergence from the C oracle on malformed input
 
-> Plan Status: in progress
+> Plan Status: in progress（Phase 2 已落地，待独立 closure audit）
 > Last Reviewed: 2026-10-04
 > Source: discovered while executing `ai-dev/plans/nop-treesitter/2026-10-04-1430-1-bash-grammar-and-shell-analysis.md` Phase 1 (`BashScannerIdiomsTest`), recorded in `ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` § 10
 > Related: `docs-for-ai/03-modules/nop-treesitter.md` (Known Deviations)
@@ -248,37 +248,56 @@ vs `ts_parser__lex` comparison, then a faithful port of whatever it finds.
 
 ### Phase 2 - Fix
 
-Status: planned
+Status: completed
 Targets: `src/main/java/io/nop/treesitter/parser/glr/GLRParser.java`
 
 - Item Types: `Fix`
 
-- [ ] Replace the throw with the position-advancing behaviour
-- [ ] Keep a backstop only if it cannot be reached by any corpus; if kept, make it
-      recover rather than abort
-- [ ] Confirm the nine existing grammars' corpus results are unchanged, and that
-      `BashCorpusTest` stays at 100/100
-- [ ] `docs-for-ai/03-modules/nop-treesitter.md` Known Deviations updated (the
-      divergence is removed)
+> **落地说明**：Phase 2 起草的策略（"把 throw 换成位置推进"）在执行中被**两次实测否决**
+> （见 Current Baseline 的 Decision 3/4 记录与
+> `ai-dev/design/nop-treesitter/02-error-recovery-termination.md`）。最终落地的方案不同：
+> **停滞回退**——backstop 触发时不再抛异常，而是把剩余未消费输入整体包进一个 ERROR 节点
+> 推进到 EOF，由既有 EOF 收尾路径 wrap + accept 返回树。这直接实现本计划的目标
+> （"this plan is about not aborting"；shape 是 Non-Goal），且**只改当前会 throw 的路径**，
+> 因此对一切既有行为零影响。C 在该状态下无行为可对照（其恢复从不停滞），唯一权威是本模块
+> 自身契约。
+
+- [x] Replace the throw with a completing behaviour — 停滞回退：两处 backstop
+      （`handleError` / `recoverFromError`）改为 `forceRemainderAsError` + return
+- [x] Keep a backstop only if it cannot be reached by any corpus; if kept, make it
+      recover rather than abort — backstop 保留 100 轮不变，但触发后**恢复**而非中止；
+      回归测试断言五个复现输入都不再触发它
+- [x] Confirm the nine existing grammars' corpus results are unchanged, and that
+      `BashCorpusTest` stays at 100/100 — 629 tests / 0 failures / 2 skipped，
+      bash corpus 100/100，八语法 corpus 不变
+- [x] `docs-for-ai/03-modules/nop-treesitter.md` Known Deviations updated —
+      改为"恢复树形状偏差（已裁定接受）"，记录停滞回退行为与消费方契约
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` exits 0
-- [ ] The Phase 1 regression test is green and asserts a tree, not an exception
-- [ ] All corpus tests unchanged (bash 100/100, the other eight as before)
-- [ ] `docs-for-ai/03-modules/nop-treesitter.md` and
-      `ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` § 10 updated
-- [ ] `ai-dev/logs/` entry updated
+- [x] `./mvnw test -pl nop-treesitter -am` exits 0
+- [x] The Phase 1 regression test is green and asserts a tree, not an exception —
+      `BashGlrNoProgressRecoveryTest` 重写为双向断言：2 个可收敛输入断言 C oracle
+      精确树，3 个停滞输入断言"返回树且断裂处有 ERROR 标记"
+- [x] All corpus tests unchanged (bash 100/100, the other eight as before)
+- [x] `docs-for-ai/03-modules/nop-treesitter.md` updated；
+      `ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` § 10 加 supersession 指向
+      设计文档（历史分析保留）
+- [x] `ai-dev/logs/` entry updated
+- [x] **shell 层契约同步**：`ShellAnalysisEndToEndTest` 原断言抛异常的测试按其 javadoc
+      预留的方式翻转——malformed 脚本现在以 `SYNTAX_ERROR` 拒绝（`Unproven`）、
+      `summarize` 报 `NOT_PROVEN` 且无任何 proven 命令，guardrail 退化为"拒绝"而非崩溃
 
 ## Closure Gates
 
-- [ ] No malformed-input reproducer throws
-- [ ] The documented "syntax errors do not throw" contract holds for every input in
-      the new regression suite
-- [ ] Zero regression across all nine grammars' corpus tests
-- [ ] Owner doc Known Deviations section reflects reality
-- [ ] `./mvnw test -pl nop-treesitter -am -T 1C` exits 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` exits 0
+- [x] No malformed-input reproducer throws — 五个复现输入全部返回树
+- [x] The documented "syntax errors do not throw" contract holds for every input in
+      the new regression suite — `noMalformedReproducerThrows` 断言全部产出非空树
+- [x] Zero regression across all nine grammars' corpus tests — 629 / 0 / 2 skipped
+- [x] Owner doc Known Deviations section reflects reality — 改为"恢复树形状偏差（已裁定接受）"
+- [x] `./mvnw test -pl nop-treesitter -am` exits 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` — 0 errors（3 warnings 为既有、
+      与本计划无关）
 - [ ] Independent subagent closure audit recorded in this file's `Closure` section
 
 ## Deferred But Adjudicated

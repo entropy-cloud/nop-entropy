@@ -1,14 +1,12 @@
 package io.nop.treesitter.parser;
 
 import io.nop.treesitter.TSParser;
-import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.compat.TreeSitterBash;
 import io.nop.treesitter.language.Language;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -50,8 +48,9 @@ class BashGlrNoProgressRecoveryTest {
     }
 
     /**
-     * The reproducers fixed by porting C's summary hand-off. Both now satisfy the
-     * documented contract, and both trees were verified against the C oracle.
+     * The reproducers fixed by porting C's summary hand-off in
+     * {@code ts_stack_renumber_version}: recovery converges before the stall
+     * guard, and the trees match the C oracle byte for byte.
      */
     @Test
     void spacedAndUnterminatedMalformedExpansionRecover() {
@@ -63,18 +62,28 @@ class BashGlrNoProgressRecoveryTest {
     }
 
     /**
-     * The unspaced {@code !y} forms, still outstanding. Recovery is armed but no
-     * summary entry admits the lookahead, and the merged {@code ERROR_REPEAT} does
-     * not grow, so the parser oscillates between two byte positions.
-     *
-     * <p>Pins the current behaviour so the defect stays reproducible, and
-     * deliberately does not bind the exception message.
+     * The unspaced {@code !y} forms: recovery cannot converge, so the stall
+     * fallback consumes the unconsumed remainder into an ERROR node and the parse
+     * completes. The trees are a best-effort parse, not the C oracle's — the
+     * remainder is marked {@code (UNEXPECTED '!')} where C produces a
+     * {@code (word)} — the shape divergence the plan accepts as a non-goal. The
+     * contract under test is that nothing throws and the breakage is marked.
      */
     @Test
-    void unspacedMalformedExpansionStillAborts() {
+    void unspacedMalformedExpansionReturnsATreeWithTheBreakageMarked() {
         for (String source : new String[]{"echo ${x!y}", "echo ${x!y}z", "echo ${x!yy}"}) {
-            assertThrows(TreeSitterException.class, () -> TSParser.parse(bash(), source),
-                    "known outstanding defect for <<" + source + ">>");
+            String tree = TSParser.parse(bash(), source).toSexpString(false);
+            assertTrue(tree.contains("ERROR"), "<< " + source + " >> must mark the breakage");
+        }
+    }
+
+    /** Every malformed reproducer produces a tree; none throws. */
+    @Test
+    void noMalformedReproducerThrows() {
+        for (String source : new String[]{"echo ${x!y}", "echo ${x!y}z", "echo ${x! y}",
+                "echo ${x!yy", "echo ${x!yy}"}) {
+            assertFalse(TSParser.parse(bash(), source).toSexpString(false).isEmpty(),
+                    "<< " + source + " >> must still produce a tree");
         }
     }
 

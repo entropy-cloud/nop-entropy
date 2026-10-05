@@ -350,6 +350,14 @@ and is the authority for the current provenance state.
 
 ## 10. Known divergence found while building the scanner idioms test
 
+> **Resolved 2026-10-05** by
+> `ai-dev/plans/nop-treesitter/2026-10-04-1900-1-glr-recovery-livelock-guard.md`:
+> the runtime no longer throws on any of these inputs, and the recovery-state
+> analysis (stack-summary lifetime, the rejected extent changes, the landed stall
+> fallback) is recorded in
+> `ai-dev/design/nop-treesitter/02-error-recovery-termination.md`. The text below
+> is retained as the original discovery record.
+
 `echo ${x!y}` — malformed bash, the official CLI recovers to
 `(program (command name: (command_name (word))) (ERROR (variable_name) (word)))`
 while this runtime throws `TreeSitterException: error recovery made no progress

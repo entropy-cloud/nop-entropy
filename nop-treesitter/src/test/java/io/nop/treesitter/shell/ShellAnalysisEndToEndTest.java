@@ -126,24 +126,28 @@ class ShellAnalysisEndToEndTest {
     }
 
     /**
-     * A tree that cannot be produced at all makes the parse <b>raise</b>. There is
-     * deliberately no third summary state for it: a caller that received an
-     * "unanalysable" summary would have to learn not to trust it, while a caller
-     * that receives an exception cannot mistake it for an analysis.
+     * Malformed bash that once aborted the parse now flows through the normal
+     * refusal path: the runtime returns a tree containing ERROR nodes, the
+     * splitter sees them and refuses with {@code SYNTAX_ERROR}, and the summary
+     * reports {@code NOT_PROVEN} with nothing proven. A guardrail therefore
+     * degrades to "refuse" on unparseable input instead of crashing on it.
      *
-     * <p>The input is malformed bash that trips the runtime's error-recovery
-     * livelock (owned by successor plan
-     * {@code 2026-10-04-1900-1-glr-recovery-livelock-guard.md}; the official C
-     * runtime recovers). This test asserts the loud failure, not the specific
-     * message, so the successor can fix the livelock without fighting it — and it is
-     * written to stay correct if the successor lands.</p>
+     * <p>This assertion replaced one that pinned the abort itself (owned by
+     * successor plan {@code 2026-10-04-1900-1-glr-recovery-livelock-guard.md}, now
+     * landed). The earlier test asserted only that an exception was raised, never
+     * its message, so the successor could land without fighting it — and did.
      */
     @Test
-    void aParseThatCannotProduceATreeRaisesRatherThanReturningASummary() {
+    void aMalformedScriptIsRefusedAsSyntaxErrorRatherThanAbortingTheParse() {
         ShellAnalysis analysis = ShellTestSupport.analysis();
         String malformed = "echo ${x!y}";
-        assertThrows(TreeSitterException.class, () -> analysis.summarize(malformed));
-        assertThrows(TreeSitterException.class, () -> analysis.splitProven(malformed));
+        assertEquals(UnprovenScript.Reason.SYNTAX_ERROR,
+                ShellTestSupport.unproven(analysis, malformed).reason(),
+                "a malformed script must be refused as SYNTAX_ERROR");
+        ShellSummary summary = analysis.summarize(malformed);
+        assertEquals(ShellSummary.ProofStatus.NOT_PROVEN, summary.proofStatus());
+        assertTrue(summary.commandNames().isEmpty(),
+                "nothing may be reported as proven for a malformed script");
     }
 
     /**
