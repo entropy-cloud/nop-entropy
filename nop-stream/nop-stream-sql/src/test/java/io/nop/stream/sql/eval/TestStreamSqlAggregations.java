@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 /**
  * WI9: the five built-in aggregate ids (sum/count/avg/min/max) accumulate over stream
@@ -115,6 +117,78 @@ public class TestStreamSqlAggregations {
         assertEquals(3L, sum.getResult(sum.merge(left, right)));
     }
 
+// ========== plan 2327（P0-2.8-001 混型累加修复 + dim10-10 BigDecimal/BigInteger）回归钉 ==========
+
+    @Test
+    public void sumMixedIntegralAndFloatingKeepsIntegralPart() {
+        // P0-2.8-001 probe ①: old behavior silently dropped integral part (3.5)
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object r = run(sum, row("amount", 1), row("amount", 2), row("amount", 3.5));
+        assertEquals(6.5, r);
+        assertTrue(r instanceof Double);
+    }
+
+    @Test
+    public void sumMixedOrdersAllAgree() {
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        assertEquals(3.5, run(sum, row("amount", 0.5), row("amount", 1), row("amount", 2)));
+        assertEquals(6.0, run(sum, row("amount", 3), row("amount", 4), row("amount", 5),
+                row("amount", -6.0)));
+        assertEquals(2.5, run(sum, row("amount", 1.5), row("amount", -1.0), row("amount", 2)));
+    }
+
+    @Test
+    public void sumFloatingCollapseEliminated() {
+        // P0-2.8-001 probe ⑤: 1.5 + (-1.5) + 2 must stay Double (flag monotonic, no 0.0 collapse)
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object r = run(sum, row("amount", 1.5), row("amount", -1.5), row("amount", 2));
+        assertEquals(2.0, r);
+        assertTrue(r instanceof Double, "floating input must pin result to Double, got "
+                + r.getClass());
+    }
+
+    @Test
+    public void sumBigDecimalStreamIsExact() {
+        // dim10-10: old behavior truncated every record via longValue() (1.5+2.25 -> 3)
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object r = run(sum, row("amount", new BigDecimal("1.5")),
+                row("amount", new BigDecimal("2.25")));
+        assertEquals(new BigDecimal("3.75"), r);
+    }
+
+    @Test
+    public void sumBigIntegerDoesNotRewind() {
+        // dim10-10: old behavior wound 2^70 back to 0 via longValue()
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object r = run(sum, row("amount", BigInteger.TWO.pow(70)));
+        // ladder: sawDecimal -> BigDecimal (exact, no rewind); type is BigDecimal by contract
+        assertEquals(new BigDecimal(BigInteger.TWO.pow(70)), r);
+    }
+
+    @Test
+    public void sumLongPlusBigDecimalMixRuling() {
+        // design fork ②: long + BigDecimal mixes -> BigDecimal channel (sawDecimal wins)
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object r = run(sum, row("amount", 1), row("amount", new BigDecimal("2.25")));
+        assertEquals(new BigDecimal("3.25"), r);
+    }
+
+    @Test
+    public void sumMixedMergeCombinesAllSlotsAndFlags() {
+        // merge regression pin: three slots + monotonic flag OR
+        AggregateFunction<Object, Object, Object> sum = agg("sum", "amount");
+        Object left = sum.createAccumulator();
+        left = sum.add(row("amount", 1), left);
+        left = sum.add(row("amount", 2.5), left);
+        Object right = sum.createAccumulator();
+        right = sum.add(row("amount", new BigDecimal("0.25")), right);
+        right = sum.add(row("amount", null), right);
+        Object merged = sum.merge(left, right);
+        Object r = sum.getResult(merged);
+        // sawDecimal wins the ladder: 1 + 2.5 + 0.25 = 3.75 as BigDecimal
+        assertEquals(new BigDecimal("3.75"), r);
+    }
+
     @Test
     public void distinctFailsFast() {
         StreamSqlAggregation spec = StreamSqlAggregations.resolve("sum");
@@ -157,6 +231,31 @@ public class TestStreamSqlAggregations {
             Object accCopy = ois.readObject();
             assertEquals(2L, copy.getResult(accCopy),
                     "aggregation + accumulator must survive Java serialization (operator copy contract)");
+        }
+    }
+
+    @Test
+    public void serializationPreservesMixedTypeAccumulator() throws Exception {
+        // plan 2327 advisory: BigDecimal-carrying accumulator must survive Java serialization
+        AggregateFunction<Object, Object, Object> fn = agg("sum", "amount");
+        Object acc = fn.createAccumulator();
+        acc = fn.add(row("amount", 1), acc);
+        acc = fn.add(row("amount", new BigDecimal("2.5")), acc);
+        byte[] bytes;
+        try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+             java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos)) {
+            oos.writeObject(fn);
+            oos.writeObject(acc);
+            bytes = baos.toByteArray();
+        }
+        try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes))) {
+            AggregateFunction<Object, Object, Object> copy =
+                    (AggregateFunction<Object, Object, Object>) ois.readObject();
+            Object accCopy = ois.readObject();
+            Object r = copy.getResult(accCopy);
+            assertEquals(new BigDecimal("3.5"), r,
+                    "mixed-type accumulator must survive Java serialization with exact decimal sum");
+            assertTrue(r instanceof BigDecimal, "ladder must stay on BigDecimal channel after round-trip");
         }
     }
 }

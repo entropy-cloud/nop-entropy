@@ -27,6 +27,7 @@
 | 2.5 | `2.5-orm-model-compliance-scan.md` | 0 | **5** | 14 | 21 | done（裁决：通过无 P0 附 P1×5——UK/唯一索引零物化族×4（job/batch/retry 部署层防线缺失；a20 复核反转升格）+字段长度覆盖族×1（rule precision=50 静默覆盖 json-4k）；**平台级发现：DDL 生成器不物化 `<index>`**；维度 8 独立复算 67/51/16 逐文件证实；demo 3 条单列；降 1 改判 2 驳 0） | 独立子 agent（见 plan 2323 Closure 段） |
 | 2.6 | `2.6-biz-graphql-deep-audit.md` | 0 | **7** | 14 | 12 | done（裁决：不通过附 P1×7 三族——GraphQL fragment 校验族×2+DataLoader 挂死、权限公开面族×3（approval-support/纯 xbiz 静默公开 16 项/@BizLoader 死注解）、后台直调零事务；**check2 九条点名全部 already-fixed**（两条语义级验证）；CrudBizModel 拆分评估交付（宽职责单管线/700 行可下沉/禁机械拆类）；fail-open 三处裁定交付；改判 2 驳 0） | 独立子 agent（见 plan 2324 Closure 段） |
 | 2.7 | `2.7-bizmodel-ioc-compliance-scan.md` | 0 | 0 | **4** | 20 | done（裁决：通过无 P0/P1 附 P2×4——孤儿注册族×2（MakerChecker 三重失配⊕dim13-03 合并/DatasetAuth 完整生成仅注册断）+_module 缺失×5 JAR+RetryScanner 同型先例未同步；**NopIoC 硬规则全仓 211 文件零违规**（独立复算）；驳回 1 假阳性反向发现 i18n 缺失族群 447/3987；降 1 新增 1） | 独立子 agent（见 plan 2325 Closure 段） |
+| 2.8 | `2.8-stream-sql-first-audit.md` | **1** | **3** | 12 | 14 | done（裁决：不通过附 P0×1——SumAgg 混型累加静默错值（探针实测三例错值一例塌缩）触发即时通道→plan 2327 已修复（三通道精确累加器+双单调旗标，86/86 全绿）；P1×3（null 键误配/putAll seq 丢失/completeUnmatched 双发）；**prior art 零推翻**（WI12/WI13/WI17 已修项 live 复核成立）、2.2 不波及 stream SQL 路径；30 条全保留、降 1 驳 1；定向测试排除 2 个预存失败后三模块全绿） | 独立子 agent（见 plan 2326 Closure 段） |
 | 3.1 | — | | | | | todo | |
 | 3.2 | — | | | | | todo | |
 | 3.3 | — | | | | | todo | |
@@ -72,6 +73,7 @@
 | P0-2.2-001 | `2.2-orm-eql-deep-audit.md` | `NOT (col._some P)` 语义反转（∃(¬P)≠¬∃(P)，文档 §5 明文契约） | plan 2320 簇A（异步注入） | fixed（2026-10-04，findLogicUnit NOT 吸收+parity 编码，testNotSomeCondition 等回归） |
 | P0-2.2-002 | `2.2-orm-eql-deep-audit.md` | 嵌套 `_all` 量词静默翻转/丢失（`_all._some`≡`_some._all`；测试钉住错误期望） | plan 2320 簇A（逐层 XOR+修订测试） | fixed（2026-10-04，shouldNegateExists XOR 重写+testThreeLevelNestedOperators 期望修订+4 条嵌套矩阵回归） |
 | P0-2.2-003 | `2.2-orm-eql-deep-audit.md` | NOT+嵌套集合路径否定错位（¬∃∃P→∃∃¬P；与 001 同根） | plan 2320 簇A | fixed（2026-10-04，unwrapNotChain 剥离+P1-2.2-003 崩溃同步消除（negateConditionForAll detach），testNotNestedSomeSome/testNotNestedSomeAll 回归） |
+| P0-2.8-001 | `2.8-stream-sql-first-audit.md` | SumAgg 混型累加静默错值（整数部分丢弃+类型塌缩，连带 dim10-10 BigDecimal 截断/回绕；探针实测） | plan 2327 | fixed（2026-10-05，三通道精确累加器+双单调旗标+merge 同步，探针七行全过+7 回归钉，86/86 与三模块 BUILD SUCCESS） |
 
 ## P1 发现汇总（待 R1.0 展开）
 
@@ -112,7 +114,10 @@
 | P1-2.6-004 | `2.6-biz-graphql-deep-audit.md` | R1.0 独立（DataLoader 调度点后移+终局兜底 dispatch+幂等+异步 op×批量 loader 回归） | open |
 | P1-2.6-005 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（approval-support 五 mutation 无 auth——先补 constraint 式逐文件验证合并终值） | open |
 | P1-2.6-006 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（纯 xbiz 静默公开 16 项清单——独立重扫已验证，移交执行） | open |
-| P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（@BizLoader 死注解——buildFetcherField setAuth+xdef 补 auth+测试升级运行时断言） | open |
+| P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（@BizLoader 死注解——buildFetcherField setAuth+xdef 补 auth+测试升级运行时断言） | open || P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.0（EquiJoinOperator null 等值键误配——修复需覆盖 OUTER 补齐 matched 语义） | open |
+| P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.0（PerKeyOrderedBuffer.putAll 不搬 insertionSeq——restore 后 seq 对位碰撞静默丢失，探针双面实证） | open |
+| P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
+
 
 ## P2 裁决台账（例外通道）
 

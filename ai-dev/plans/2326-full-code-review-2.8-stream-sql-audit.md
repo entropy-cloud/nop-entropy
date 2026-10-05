@@ -1,6 +1,6 @@
 # 2326 full-code-review 2.8 nop-stream-sql 首审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 2.8（MA2，v6 新增）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 05/10/14/15 + 共享前缀）
 > Related: 自身 roadmap `ai-dev/backlog/nop-stream-sql-roadmap.md`（31 WI 逐项 closure audit 为既有覆盖——本项为独立深审，不重复其结论）；nop-stream 40+ 轮既有审计（7.2 增量域）；2.2（EQL 编译器已审——SQL 编译先例对照）
@@ -47,71 +47,71 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-stream-sql + 点名算子
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：14 main 文件清单与职责表、TUMBLE/`<sql>` xdef 与 SPI 装配点、点名算子的状态字段清单、18 test 覆盖映射
-- [ ] **prior art 盘点（防重复审计/防无据推翻）**：读自身 roadmap 31 WI 的审计结论与 FU 台账（FU-3 coders fail-fast/FU-8 accumulationMode/FU-9 union E2E 等 recorded residuals），对点名面（OverWindowOperator WI12/EquiJoinOperator WI13/StreamSqlCompiler WI17）建 prior-art 对照表；后续每条发现标注与既有裁定的关系：新增 / 推翻-须给新证据 / 重复-驳回
-- [ ] 编译面子 agent（维度 05+10）：StreamSqlCompiler 全链 + TUMBLE grammar/xdef/SPI（生成管线完整性——xdef 声明↔解析↔装配闭合）+ StreamSqlExprCompiler/SqlScalarXplPrinter 往返 + **2.2 P0/P1 波及面显式核对**（StreamSqlExprCompiler 消费同一 EqlASTParser/AST——2.2 的否定编码族 P0 是否波及 stream SQL 表达式路径，逐条对照结论入报告）
-- [ ] 窗口 join 子 agent（维度 14+15）：OverWindowOperator keyed MapState 持久化/跨 key 清理/水位交互 + EquiJoinOperator/PerKeyOrderedBuffer join 语义（顺序/缓冲清理/迟到事件）+ StreamSqlAggregation
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-2.8-{compile,window}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：14 main 文件清单与职责表、TUMBLE/`<sql>` xdef 与 SPI 装配点、点名算子的状态字段清单、18 test 覆盖映射
+- [x] **prior art 盘点（防重复审计/防无据推翻）**：读自身 roadmap 31 WI 的审计结论与 FU 台账（FU-3 coders fail-fast/FU-8 accumulationMode/FU-9 union E2E 等 recorded residuals），对点名面（OverWindowOperator WI12/EquiJoinOperator WI13/StreamSqlCompiler WI17）建 prior-art 对照表；后续每条发现标注与既有裁定的关系：新增 / 推翻-须给新证据 / 重复-驳回
+- [x] 编译面子 agent（维度 05+10）：StreamSqlCompiler 全链 + TUMBLE grammar/xdef/SPI（生成管线完整性——xdef 声明↔解析↔装配闭合）+ StreamSqlExprCompiler/SqlScalarXplPrinter 往返 + **2.2 P0/P1 波及面显式核对**（StreamSqlExprCompiler 消费同一 EqlASTParser/AST——2.2 的否定编码族 P0 是否波及 stream SQL 表达式路径，逐条对照结论入报告）
+- [x] 窗口 join 子 agent（维度 14+15）：OverWindowOperator keyed MapState 持久化/跨 key 清理/水位交互 + EquiJoinOperator/PerKeyOrderedBuffer join 语义（顺序/缓冲清理/迟到事件）+ StreamSqlAggregation
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-2.8-{compile,window}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总
-- [ ] 统一 severity 判级；与 7.2（nop-stream 增量域）边界协调
-- [ ] 编译链正结论收敛（一条总评）
+- [x] 每维度派独立复核子 agent（fresh session）：逐条 保留/降级/驳回；主 agent 汇总
+- [x] 统一 severity 判级；与 7.2（nop-stream 增量域）边界协调
+- [x] 编译链正结论收敛（一条总评）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-2.8-{compile,window}-review.md`；保留发现判级理由 + 证据可复现
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-2.8-{compile,window}-review.md`；保留发现判级理由 + 证据可复现
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `2.8-stream-sql-first-audit.md`；index 登记 2.8 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-stream/nop-stream-sql,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`（无条件执行——验证按受影响模块扩展；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 2.8 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `2.8-stream-sql-first-audit.md`；index 登记 2.8 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-stream/nop-stream-sql,nop-stream/nop-stream-core,nop-stream/nop-stream-runtime -am`（无条件执行——验证按受影响模块扩展；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 2.8 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因为预存失败并在报告/log 登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且编译面+窗口 join 面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 2.8 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且编译面+窗口 join 面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 2.8 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -123,14 +123,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `2.8-stream-sql-first-audit.md` 落盘：不通过附 P0×1（SumAgg 混型累加静默错值——复核探针三例错值一例塌缩实测维持 P0）触发即时通道；P0 修复由 plan 2327 承载（三通道精确累加器，closure audit Can Close，P0-2.8-001 已标 fixed）；P1×3/P2×12/P3×14（30 条全保留，降 1 驳 1）。**prior art 零推翻**（WI12/WI13/WI17 已修项 live 复核成立；WI12 javadoc 推翻由 dim14-03 承载）；2.2 波及面显式核对=不波及。定向测试三模块全绿（排除 TestBatchTaskCheckpoint flaky+TestStreamConnectorRegistryDiscovery 两个预存失败——归因登记报告）。closure audit 首轮 FAIL（B1-B3 三处登记缺失+报告 P3 别名错位）→按处方全部修正（index 2.8 行/P1 三行/daily log/报告 P3 段）→满足收口条件（auditor 明示无需第二轮）。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_60bca386-2ae4-498d-b76a-69f9b22c909d（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：P0=1/P1=3/P2=12/P3=14=30 ↔ 报告内实点 ↔ 复核保留数 compile 20+window 10=30（候选 31=30+1 驳回 自洽）；index 2.8 行按处方补登后一致
+  - P0 即时通道：index P0-2.8-001 fixed + plan 2327（completed，agent_fa90b0f6 Can Close）双在位
+  - prior art 台账 5 行与过程产物逐项一致；「零推翻已修项」自洽
+  - 判级调和：dim10-01 维持 P0（探针实测）/dim14-01 降 P2（零生产接线）/dim14-08 驳回（不变量证明）三处一致
+  - 2.2 波及面「不波及」与 compile.md 四点论证+compile-review 抽验一致
+  - 锚点抽验 6/6 live 命中（含 SumAgg 修复后代码——P0 fixed 状态 live 佐证）
+  - 定向测试：stream-test2/test3.log BUILD SUCCESS，排除口径与报告登记一致；两预存失败归因登记
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2326-full-code-review-2.8-stream-sql-audit.md --strict` 退出码 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + 探针为锚
+  - Deferred 项分类检查：无 deferred；P0×1 已修复（plan 2327 fixed）、P1×3 经 index「P1 发现汇总」进 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×3+P2×12+P3×14 修复归属 R1.0 修复耦合组；dim10-09 独立条目留 R1.x；WI12 javadoc 修正随 dim14-03 归 R1.x/G.2；预存失败观察：batch flaky 归 3.4 域、connector 发现归 7.2 域）
