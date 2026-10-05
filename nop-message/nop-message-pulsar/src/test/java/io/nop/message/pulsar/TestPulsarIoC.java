@@ -28,7 +28,6 @@ class TestPulsarIoC extends JunitBaseTestCase {
     void testConfigBeansInjected() {
         assertNotNull(clientConfig);
         assertEquals("pulsar://localhost:6650", clientConfig.getServiceUrl());
-        assertFalse(clientConfig.isEnableTransaction());
         assertNotNull(producerConfig);
         assertNotNull(consumerConfig);
     }

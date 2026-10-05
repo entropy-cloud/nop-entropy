@@ -5,6 +5,7 @@ import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.junit.jupiter.api.Test;
@@ -161,6 +162,13 @@ class TestPulsarConsumeTask {
         final java.util.List<String> producedTopics = new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
+        protected void doStart() {
+            // WI29: doSubscribe now calls checkIsActive — go through the real lifecycle
+            // but skip actual client creation (mock suffices for the resolver tests).
+            client = mock(PulsarClient.class);
+        }
+
+        @Override
         Producer<?> getProducer(String topic) {
             if (producerForTest != null) {
                 return producerForTest;
@@ -209,6 +217,7 @@ class TestPulsarConsumeTask {
             new java.util.concurrent.CountDownLatch(1).await();
             return null;
         });
+        svc.init();
         svc.subscription = svc.doSubscribe(config);
         return svc;
     }
@@ -328,6 +337,7 @@ class TestPulsarConsumeTask {
         // buildProducer — a wrong derivation would miss the map and NPE loudly.
         svc.setTopicSchemas(java.util.Map.of(ackTopic,
                 org.apache.pulsar.client.api.Schema.STRING));
+        svc.init();
         svc.subscription = svc.doSubscribe(config);
         try {
             org.mockito.Mockito.verify(typedBuilder, org.mockito.Mockito.timeout(5000))
@@ -392,6 +402,7 @@ class TestPulsarConsumeTask {
         when(svc.builder.subscriptionName(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
         svc.setTopicSchemas(java.util.Map.of(ackTopic,
                 org.apache.pulsar.client.api.Schema.STRING));
+        svc.init();
         svc.subscription = svc.doSubscribe(config);
         try {
             org.mockito.Mockito.verify(typedBuilder, org.mockito.Mockito.timeout(5000))

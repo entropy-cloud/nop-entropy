@@ -12,7 +12,6 @@ import io.nop.api.core.annotations.data.DataBean;
 @DataBean
 public class PulsarClientConfig {
     private String serviceUrl;
-    private boolean enableTransaction;
 
     public String getServiceUrl() {
         return serviceUrl;
@@ -22,11 +21,4 @@ public class PulsarClientConfig {
         this.serviceUrl = serviceUrl;
     }
 
-    public boolean isEnableTransaction() {
-        return enableTransaction;
-    }
-
-    public void setEnableTransaction(boolean enableTransaction) {
-        this.enableTransaction = enableTransaction;
-    }
 }

@@ -353,17 +353,27 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
             return doSubscribe(new MessageSubscriptionConfig(topic, listener, options));
         }
         List<IMessageSubscription> subs = new ArrayList<>(concurrency);
-        MultiMessageSubscription ret = new MultiMessageSubscription(subs);
         MessageSubscriptionConfig cfg = new MessageSubscriptionConfig(topic, listener, options);
+        // WI29 (F-37): fill-then-construct — the old shape passed a mutable empty list to
+        // the Multi constructor and populated it after, so the constructor's immutable
+        // snapshot would be empty and cancel() would be a no-op.
+        RuntimeException first = null;
         try {
             for (int i = 0; i < concurrency; i++) {
                 subs.add(doSubscribe(cfg));
             }
-        } catch (Exception e) {
-            ret.cancel();
-            throw NopException.adapt(e);
+        } catch (RuntimeException e) {
+            first = e;
+            for (IMessageSubscription sub : subs) {
+                try {
+                    sub.cancel();
+                } catch (RuntimeException cancelError) {
+                    first.addSuppressed(cancelError);
+                }
+            }
+            throw first;
         }
-        return ret;
+        return new MultiMessageSubscription(subs);
     }
 
     IMessageSubscription doSubscribe(MessageSubscriptionConfig subConfig) {

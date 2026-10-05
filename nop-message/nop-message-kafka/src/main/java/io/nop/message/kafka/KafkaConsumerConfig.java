@@ -11,7 +11,7 @@ import io.nop.api.core.annotations.data.DataBean;
 
 /**
  * Kafka consumer tuning (mirrors {@code PulsarConsumerConfig}). {@code groupId} is the
- * Kafka consumer-group id (validated non-empty in {@code KafkaMessageService.init} when
+ * Kafka consumer-group id (validated non-empty in {@code KafkaMessageService.doSubscribe} when
  * subscription is intended). Other fields map to standard {@code KafkaConsumer} config
  * keys.
  */

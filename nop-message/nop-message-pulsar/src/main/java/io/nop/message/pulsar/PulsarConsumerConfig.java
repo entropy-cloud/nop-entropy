@@ -13,7 +13,6 @@ import io.nop.api.core.annotations.data.DataBean;
 public class PulsarConsumerConfig {
     private int ackTimeout;
     private int negativeAckRedeliveryDelay;
-    private int maxTotalReceiverQueueSizeAcrossPartitions;
 
     /**
      * WI21 (D6 layer two): max redeliveries before the client diverts a message to the
@@ -68,13 +67,6 @@ public class PulsarConsumerConfig {
         this.negativeAckRedeliveryDelay = negativeAckRedeliveryDelay;
     }
 
-    public int getMaxTotalReceiverQueueSizeAcrossPartitions() {
-        return maxTotalReceiverQueueSizeAcrossPartitions;
-    }
-
-    public void setMaxTotalReceiverQueueSizeAcrossPartitions(int maxTotalReceiverQueueSizeAcrossPartitions) {
-        this.maxTotalReceiverQueueSizeAcrossPartitions = maxTotalReceiverQueueSizeAcrossPartitions;
-    }
 
     public int getDeadLetterMaxRedeliverCount() {
         return deadLetterMaxRedeliverCount;

@@ -97,10 +97,6 @@ public class PulsarConsumeTask {
         executor.execute(this::runTask);
     }
 
-    public void schedule() {
-        executor.execute(this::runTask);
-    }
-
     private void runTask() {
         // WI22 (F-21): escalating error backoff — n counts CONSECUTIVE error rounds
         // (0-based); resets only on a round that dispatched at least one message (an empty

@@ -399,11 +399,26 @@ class TestPulsarServiceLifecycle {
     }
 
     @Test
+    void subscribeNameRequiredTypedRejection() {
+        LifecycleTestService service = configuredTestService();
+        service.init();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        // No subscribeName set — must reject typed, not fall through to a random Pulsar
+        // subscription name (WI29 / F-29).
+        NopException e = org.junit.jupiter.api.Assertions.assertThrows(NopException.class,
+                () -> service.subscribe("t-noname", (t, m, c) -> null, options));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                PulsarErrors.ERR_PULSAR_SUBSCRIBE_NAME_NOT_CONFIGURED.getErrorCode(), e.getErrorCode());
+        service.destroy();
+    }
+
+    @Test
     void batchReceivePolicyWiredWithClientDefaultFloor() throws Exception {
         LifecycleTestService service = configuredService();
         service.init();
 
         MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-batch");
         options.setBatchReceiveCount(25);
         io.nop.api.core.message.IMessageSubscription subscription =
                 service.subscribe("t-batch", (t, m, c) -> null, options);
@@ -429,6 +444,7 @@ class TestPulsarServiceLifecycle {
         service.init();
 
         MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-nobatch");
         io.nop.api.core.message.IMessageSubscription subscription =
                 service.subscribe("t-nobatch", (t, m, c) -> null, options);
         try {

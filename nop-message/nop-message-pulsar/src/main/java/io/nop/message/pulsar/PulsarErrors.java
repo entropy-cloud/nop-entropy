@@ -26,4 +26,8 @@ public interface PulsarErrors {
 
     ErrorCode ERR_PULSAR_SERVICE_NOT_ACTIVE =
             ErrorCode.define(PREFIX + "service-not-active", "PulsarMessageService is not initialized (or already destroyed)");
+
+    ErrorCode ERR_PULSAR_SUBSCRIBE_NAME_NOT_CONFIGURED =
+            ErrorCode.define(PREFIX + "subscribe-name-not-configured",
+                    "MessageSubscribeOptions.subscribeName is required by the Pulsar backend");
 }

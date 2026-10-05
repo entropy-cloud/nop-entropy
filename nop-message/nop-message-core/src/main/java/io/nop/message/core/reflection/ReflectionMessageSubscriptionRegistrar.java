@@ -47,9 +47,22 @@ public class ReflectionMessageSubscriptionRegistrar {
     public void register() {
         if (messageBeans != null) {
             this.subscriptions = new ArrayList<>();
-
-            for (Object bean : messageBeans) {
-                registerSubscriptionBean(bean);
+            try {
+                for (Object bean : messageBeans) {
+                    registerSubscriptionBean(bean);
+                }
+            } catch (Exception e) {
+                // WI29 (F-38): a failed registration must not leak already-created
+                // subscriptions — cancel each one before rethrowing.
+                for (IMessageSubscription sub : subscriptions) {
+                    try {
+                        sub.cancel();
+                    } catch (Exception cancelError) {
+                        // best-effort cleanup; the original error takes precedence
+                    }
+                }
+                subscriptions = null;
+                throw e;
             }
         }
     }

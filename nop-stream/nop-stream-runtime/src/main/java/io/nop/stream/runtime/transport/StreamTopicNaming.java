@@ -52,7 +52,6 @@ public final class StreamTopicNaming {
      * Kafka's legal topic charset: {@code [a-zA-Z0-9._-]}, length 1..249
      * (Pulsar's free-form names accept anything legal for Kafka).
      */
-    static final Pattern LEGAL_TOPIC_PATTERN = Pattern.compile("[a-zA-Z0-9._-]{1,249}");
     private static final Pattern LEGAL_SEGMENT_PATTERN = Pattern.compile("[a-zA-Z0-9._-]+");
     private static final int MAX_TOPIC_LENGTH = 249;
 

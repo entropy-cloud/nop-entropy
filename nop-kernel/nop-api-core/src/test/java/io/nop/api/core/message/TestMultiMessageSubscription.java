@@ -92,10 +92,12 @@ public class TestMultiMessageSubscription {
     }
 
     @Test
-    public void testEmptySubscriptionIsVacuouslyTrue() {
-        MultiMessageSubscription multi = new MultiMessageSubscription(Collections.emptyList());
-        assertTrue(multi.isSuspended());
-        assertTrue(multi.isCancelled());
+    public void testEmptySubscriptionReturnsFalse() {
+        // WI29 (F-37): empty list returns false — the old allMatch vacuous-true was a
+        // semantic trap that the WI2 test accidentally固化.
+        MultiMessageSubscription multi = new MultiMessageSubscription(new java.util.ArrayList<>());
+        org.junit.jupiter.api.Assertions.assertFalse(multi.isSuspended());
+        org.junit.jupiter.api.Assertions.assertFalse(multi.isCancelled());
     }
 
     @Test

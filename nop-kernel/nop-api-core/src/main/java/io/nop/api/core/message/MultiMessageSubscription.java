@@ -13,17 +13,33 @@ public class MultiMessageSubscription implements IMessageSubscription {
     private final List<IMessageSubscription> subscriptions;
 
     public MultiMessageSubscription(List<IMessageSubscription> subscriptions) {
-        this.subscriptions = subscriptions;
+        // WI29 (F-37): immutable snapshot — the fan-out callers used to pass a shared
+        // mutable list that was populated AFTER this constructor returned.
+        this.subscriptions = List.copyOf(subscriptions);
     }
 
     @Override
     public boolean isSuspended() {
-        return subscriptions.stream().allMatch(IMessageSubscription::isSuspended);
+        // WI29 (F-37): empty list returns false (the old allMatch returned true — a
+        // vacuous-truth semantic trap that the WI2 test accidentally固化).
+        boolean result = false;
+        for (IMessageSubscription sub : subscriptions) {
+            if (!sub.isSuspended())
+                return false;
+            result = true;
+        }
+        return result;
     }
 
     @Override
     public boolean isCancelled() {
-        return subscriptions.stream().allMatch(IMessageSubscription::isCancelled);
+        boolean result = false;
+        for (IMessageSubscription sub : subscriptions) {
+            if (!sub.isCancelled())
+                return false;
+            result = true;
+        }
+        return result;
     }
 
     @Override

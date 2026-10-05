@@ -73,7 +73,8 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
     private PulsarClientConfig config;
     private PulsarProducerConfig defaultProducerConfig;
     private PulsarConsumerConfig defaultConsumerConfig;
-    private PulsarClient client;
+    // WI29: package-private for the test subclass access (TestPulsarService.doStart).
+    PulsarClient client;
     private Map<String, Schema<?>> topicSchemas = new ConcurrentHashMap<>();
     private Map<String, Producer<?>> producers = new ConcurrentHashMap<>();
     private Queue<PulsarMessageSubscription> subscriptions = new ConcurrentLinkedQueue<>();
@@ -303,6 +304,13 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         boolean defaultShared = options.getSubscriptionMode() == null
                 && options.getSubscriptionType() == null
                 && options.getConcurrency() > 1;
+        // WI29 (F-29): subscribeName is required — a missing value previously let Pulsar
+        // generate a random subscription name, producing a new cursor on every restart.
+        if (options.getSubscribeName() == null || options.getSubscribeName().isEmpty()) {
+            throw new NopException(PulsarErrors.ERR_PULSAR_SUBSCRIBE_NAME_NOT_CONFIGURED)
+                    .description("MessageSubscribeOptions.subscribeName is required by the Pulsar backend");
+        }
+
         int concurrency = options.getConcurrency();
         if (concurrency <= 1) {
             return doSubscribe(new MessageSubscriptionConfig(topic, listener, options));
@@ -319,19 +327,28 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                             + "the subscription runs as Shared (the previous behavior failed "
                             + "outright on the exclusive default)");
         }
+        // WI29 (F-37): fill-then-construct — the old shape passed a mutable empty list to
+        // the Multi constructor and populated it after, so the constructor's immutable
+        // snapshot would be empty and cancel() would be a no-op.
         List<IMessageSubscription> subs = new ArrayList<>(concurrency);
-        MultiMessageSubscription ret = new MultiMessageSubscription(subs);
         MessageSubscriptionConfig cfg = new MessageSubscriptionConfig(topic, listener, options);
-
+        RuntimeException first = null;
         try {
             for (int i = 0; i < concurrency; i++) {
                 subs.add(doSubscribe(cfg));
             }
-        } catch (Exception e) {
-            ret.cancel();
-            throw NopException.adapt(e);
+        } catch (RuntimeException e) {
+            first = e;
+            for (IMessageSubscription sub : subs) {
+                try {
+                    sub.cancel();
+                } catch (RuntimeException cancelError) {
+                    first.addSuppressed(cancelError);
+                }
+            }
+            throw first;
         }
-        return ret;
+        return new MultiMessageSubscription(subs);
     }
 
     /**
@@ -393,6 +410,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         ConsumerBuilder<?> builder = newConsumerBuilder(schema);
         builder.topic(subConfig.getTopic());
 
+        checkIsActive(); // WI29: destroy-then-subscribe surfaces typed, not NPE (F-30 subscribe path)
         MessageSubscribeOptions options = subConfig.getOptions();
         if (options != null) {
             if (options.getSubscribeName() != null) {
@@ -482,8 +500,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
             // (fallback: topic — a missing subscribeName being accepted at all is F-29/WI29);
             // NamedThreadFactory's per-instance pool suffix keeps fan-out and multi-subscribe
             // threads distinguishable (no more pool-N-thread-1).
-            String identity = options != null && options.getSubscribeName() != null
-                    ? options.getSubscribeName() : String.valueOf(subConfig.getTopic());
+            String identity = options.getSubscribeName();
             executor = Executors.newSingleThreadExecutor(
                     new NamedThreadFactory("nop-msg-pulsar-consume-" + identity, true));
             // WI22: the backoff base comes from the consumer config (0-safe fallback above).
