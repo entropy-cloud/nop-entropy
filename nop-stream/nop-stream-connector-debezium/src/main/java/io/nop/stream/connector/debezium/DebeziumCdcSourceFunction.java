@@ -667,14 +667,17 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                     + instance + "-" + p.getFileName());
         }
         String table = config.getSchemaHistoryJdbcTable();
+        // R5 REG-3: suffix with the FULL sanitized instance name — the previous
+        // lastSegment(instance) collapsed "cdcA-2" and "cdcB-2" to the same "2",
+        // so two connectors sharing one database collided on the same history
+        // table and recovery dead-locked.
         config.setSchemaHistoryJdbcTable(
                 (table == null || table.isEmpty() ? "nop_cdc_schema_history" : table)
-                        + "_" + lastSegment(instance));
+                        + "_" + sanitizeIdentifier(instance));
     }
 
-    private static String lastSegment(String instance) {
-        int dash = instance.lastIndexOf('-');
-        return dash >= 0 ? instance.substring(dash + 1) : instance;
+    private static String sanitizeIdentifier(String instance) {
+        return instance.replaceAll("[^A-Za-z0-9]", "_");
     }
 
     private String resolveBaseName() {

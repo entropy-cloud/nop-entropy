@@ -188,6 +188,32 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
+     * R5 CON-08: derive a per-run identity (jobId|vertexId) so temp/final file
+     * names and manifest keys of DIFFERENT runs sharing one outputDir never
+     * collide — the pre-fix keys were (epoch, subtaskIndex) only, and a new run
+     * reusing the directory saw the old run's manifest guard silently swallow
+     * its writes. Subtask-0 runs keep the legacy unsuffixed shape only when no
+     * identity is available (local OperatorChain.deepCopy(int) path).
+     */
+    @Override
+    public FileTwoPhaseCommitSink<IN> copyForSubtask(io.nop.stream.core.checkpoint.TaskLocation location) {
+        FileTwoPhaseCommitSink<IN> copy = copyForSubtask(location.getTaskIndex());
+        copy.runNamespace = location.getJobId() + "|" + location.getVertexId();
+        return copy;
+    }
+
+    /** R5 CON-08: per-run discriminator folded into file/manifest keys when set. */
+    private transient String runNamespace;
+
+    private String runKeyComponent() {
+        // Fold the identity into the subtask suffix component: subtask 0 of a
+        // namespaced run gets a deterministic discriminator instead of the
+        // legacy bare name.
+        return runNamespace == null ? subtaskSuffix(subtaskIndex)
+                : subtaskSuffix(subtaskIndex) + ".run-" + Integer.toHexString(runNamespace.hashCode());
+    }
+
+    /**
      * Item 14: resolves the (transient) charset from the serializable name —
      * double-checked so concurrent first uses after deserialization share one
      * resolution. An unknown charset name fails fast (never silently falls back).
@@ -241,6 +267,11 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             if (count > 0) {
                 Path tempPath = tempPath(epochId);
                 writeLines(tempPath, currentBuffer);
+                // R5 CON-04: make the epoch data file durable BEFORE the
+                // checkpoint is acknowledged — the commit-time fsync in
+                // doCommitLocked ran after the checkpoint durable marker, so an
+                // OS crash inside that window could commit a truncated file.
+                forcePath(tempPath);
                 getPendingCommits().put(epochId,
                         new FilePendingCommit(tempPath.toString(), count, subtaskIndex));
                 currentBuffer.clear();
@@ -288,6 +319,10 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
         // Idempotent guard: manifest already records this epoch → skip (recover-safe re-commit)
         if (manifest.containsKey(manifestEntryKey)) {
+            // R5 CON-08: the guard hit is normal for recover-safe re-commits but
+            // silent swallowing is how cross-run collisions hid — log it.
+            LOG.warn("File 2PC commit skipped: manifest already records epoch {} at key {} (recover-safe re-commit or run collision)",
+                    checkpointId, manifestEntryKey);
             getPendingCommits().remove(checkpointId);
             return;
         }
@@ -295,10 +330,31 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         if (Files.exists(finalPath)) {
             // Edge case: rename succeeded on a prior attempt but manifest write did not.
             // Repair the manifest (add entry, skip rename) — data is already durable.
+            // R5 CON-08: logged loudly — if another run wrote this file the repair
+            // would adopt foreign data as our own.
+            LOG.warn("File 2PC final file already exists for epoch {} at {} — repairing manifest entry {} (recover-safe or run collision)",
+                    checkpointId, finalPath, manifestEntryKey);
             manifest.setProperty(manifestEntryKey, finalPath.toString());
             updateManifestAtomically(manifest);
             getPendingCommits().remove(checkpointId);
             return;
+        }
+
+        // R5 CON-04: self-check the serialized recordCount against the actual
+        // temp file line count — a short file (truncated write, full disk) becomes
+        // a loud typed failure instead of a silently committed truncated epoch.
+        try {
+            long actualLines = Files.lines(tempPath).count();
+            if (pending.getRecordCount() >= 0 && actualLines != pending.getRecordCount()) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                        .param(ARG_EPOCH_ID, checkpointId)
+                        .param(ARG_DETAIL, "epoch temp file line count " + actualLines
+                                + " != pending recordCount " + pending.getRecordCount()
+                                + " at " + tempPath + " — refusing to commit a truncated file (R5 CON-04)");
+            }
+        } catch (IOException e) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_EPOCH_ID, checkpointId);
         }
 
         // Flush the temp data file to stable storage BEFORE the
@@ -507,7 +563,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     private void updateManifestAtomically(Properties manifest) throws IOException {
         Path tempManifest = outputDirPath.resolve(
-                MANIFEST_FILE + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX);
+                MANIFEST_FILE + runKeyComponent() + TEMP_SUFFIX);
         Path finalManifest = outputDirPath.resolve(MANIFEST_FILE);
         // Sort keys for deterministic output
         TreeMap<String, String> sorted = new TreeMap<>();
@@ -569,6 +625,9 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     String manifestKey(long epochId) {
+        if (runNamespace != null) {
+            return epochId + runKeyComponent();
+        }
         return manifestKey(subtaskIndex, epochId);
     }
 
@@ -604,12 +663,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         return outputDirPath.resolve("epoch-" + epochId + subtaskSuffix(subtaskIndex) + ".txt");
     }
 
+    private Path finalPathNamespaced(int subtaskIndex, long epochId) {
+        return outputDirPath.resolve("epoch-" + epochId + runKeyComponent() + ".txt");
+    }
+
     final Path finalPath(int subtaskIndex, long epochId) {
+        if (runNamespace != null) {
+            return finalPathNamespaced(subtaskIndex, epochId);
+        }
         return finalPath(subtaskIndex, epochId, outputDirPath);
     }
 
     Path tempPath(long epochId) {
-        return outputDirPath.resolve(".epoch-" + epochId + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX);
+        return outputDirPath.resolve(".epoch-" + epochId + runKeyComponent() + TEMP_SUFFIX);
     }
 
     private void writeLines(Path path, List<String> lines) throws IOException {

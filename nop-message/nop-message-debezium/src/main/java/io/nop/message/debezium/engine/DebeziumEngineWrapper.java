@@ -95,6 +95,9 @@ public class DebeziumEngineWrapper {
 
     private DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engine;
     private final AtomicBoolean running = new AtomicBoolean(false);
+
+    /** R5 CON-02: set synchronously in start(); stop() gates on this, not on the worker-observed flag. */
+    private final AtomicBoolean startRequested = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer) {
@@ -130,10 +133,14 @@ public class DebeziumEngineWrapper {
      * 启动引擎
      */
     public synchronized void start() {
-        if (running.get()) {
+        if (running.get() || startRequested.get()) {
             LOG.warn("Debezium engine is already running");
             return;
         }
+        // R5 CON-02: mark the start request synchronously so a stop() arriving
+        // inside the async startup window (worker lambda queued but not yet
+        // past running.set(true)) does not early-exit and leak the engine.
+        startRequested.set(true);
 
         try {
             // 构建配置
@@ -186,7 +193,11 @@ public class DebeziumEngineWrapper {
      * 停止引擎
      */
     public synchronized void stop() {
-        if (!running.get() || stopped.getAndSet(true)) {
+        // R5 CON-02: gate on the start REQUEST (not the worker-observed
+        // running flag) — during the async startup window running is still
+        // false while the engine is about to run; early-exiting here leaked
+        // the binlog connection and the global worker thread.
+        if (!startRequested.get() || stopped.getAndSet(true)) {
             return;
         }
 

@@ -134,9 +134,11 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.debezium.DebeziumCdcSourceFunction",
                 "REPLAYABLE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "config");
+        // R5 CON-06: batch-loader is a single-writer source (ParallelismCheckable
+        // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL
         assertDescriptor(ConnectorDirection.SOURCE, "batch-loader",
                 "io.nop.stream.connector.batch.BatchLoaderSourceFunction",
-                "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
+                "AT_LEAST_ONCE", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "loaderProvider");
         assertDescriptor(ConnectorDirection.SINK, "file",
                 "io.nop.stream.connector.file.FileTwoPhaseCommitSink",

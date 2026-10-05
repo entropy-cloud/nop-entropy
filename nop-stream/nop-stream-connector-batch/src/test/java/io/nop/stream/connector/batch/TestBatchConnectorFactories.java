@@ -58,7 +58,8 @@ public class TestBatchConnectorFactories {
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("batch-loader", d.getTypeName());
         assertEquals(d.getSourceConsistency(), source.getSourceConsistency());
-        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
+        // R5 CON-06: aligned with the runtime single-writer gate + owner-doc 单写入者裁定
+        assertEquals(ConnectorParallelism.SINGLE_INSTANCE, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.OFFSET_CHECKPOINT, d.getRecoverySemantic());
     }
 

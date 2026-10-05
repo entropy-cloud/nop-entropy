@@ -140,6 +140,19 @@ public class DebeziumEngineConfig {
         }
         props.setProperty("record.processing.threads", "1");
 
+        // R5 SEC-01: the same pin-set discipline extends to the two declared
+        // invariants the extraProperties merge could otherwise override —
+        // connector.type (connectorType whitelist) and the schema history store
+        // (no silent in-memory history). Merge order below puts extraProperties
+        // LAST, so without these guards both invariants were overridable.
+        for (String pinned : new String[] {"connector.class", "schema.history.internal"}) {
+            if (config.getExtraProperties().containsKey(pinned)) {
+                throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                        .param("detail", pinned + " is managed by nop (connectorType whitelist / "
+                                + "schemaHistoryStore装配); override via extraProperties is not allowed");
+            }
+        }
+
         // 心跳配置
         props.setProperty("heartbeat.interval.ms", String.valueOf(config.getHeartbeatInterval().toMillis()));
         // 额外属性

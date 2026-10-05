@@ -87,12 +87,15 @@ public class TestNopStreamOffsetBackingStore {
         assertEquals("o1", new String(read.get(bb("p1")).array()));
         assertEquals("o2", new String(read.get(bb("p2")).array()));
 
-        // setOffsets is additive (merge), does not clear existing
+        // R5 CON-03: setOffsets is REPLACE — the nop checkpoint is the single
+        // source of truth, so a restore must not let registry entries absent
+        // from the checkpoint (newer partition keys) survive.
         Map<ByteBuffer, ByteBuffer> more = new LinkedHashMap<>();
         more.put(bb("p3"), bb("o3"));
         store.setOffsets(more);
 
-        assertEquals(3, store.getOffsets().size());
+        assertEquals(1, store.getOffsets().size(), "replace semantics: only p3 remains");
+        assertEquals("o3", new String(store.getOffsets().get(bb("p3")).array()));
     }
 
     @Test

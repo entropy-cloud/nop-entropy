@@ -34,7 +34,11 @@ public final class BatchLoaderSourceConnectorFactory implements IStreamSourceFun
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
             .source(TYPE_NAME, BatchLoaderSourceFunction.class.getName())
             .sourceConsistency(SourceConsistencyCapability.AT_LEAST_ONCE)
-            .parallelism(ConnectorParallelism.PARALLEL)
+            // R5 CON-06: align the declared capability with the runtime
+            // single-writer gate (ParallelismCheckable rejects parallelism > 1)
+            // and the owner-doc 单写入者 adjudication — the previous PARALLEL
+            // declaration was the outlier of the three sources of truth.
+            .parallelism(ConnectorParallelism.SINGLE_INSTANCE)
             .recoverySemantic(ConnectorRecoverySemantic.OFFSET_CHECKPOINT)
             .params(List.of(
                     ConnectorParamDescriptor.required("loaderProvider", OBJECT,

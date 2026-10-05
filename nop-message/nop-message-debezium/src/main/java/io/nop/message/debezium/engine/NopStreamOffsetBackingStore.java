@@ -191,6 +191,12 @@ public class NopStreamOffsetBackingStore implements OffsetBackingStore {
         if (offsets == null) {
             return;
         }
+        // R5 CON-03: REPLACE semantics — the nop checkpoint is the single source
+        // of truth for the restored offset map. The previous put-merge let
+        // registry entries from partitions absent in the checkpoint (newer
+        //分区 keys surviving a same-JVM restore from an OLDER checkpoint)
+        // silently win, skipping reads past the checkpoint position.
+        data.clear();
         for (Map.Entry<ByteBuffer, ByteBuffer> entry : offsets.entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
                 data.put(copy(entry.getKey()), copy(entry.getValue()));
