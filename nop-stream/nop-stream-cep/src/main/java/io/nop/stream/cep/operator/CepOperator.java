@@ -52,6 +52,7 @@ import io.nop.stream.cep.nfa.compiler.NFACompiler;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBuffer;
 import io.nop.stream.cep.nfa.sharedbuffer.SharedBufferAccessor;
 import io.nop.stream.cep.time.TimerService;
+import io.nop.stream.core.util.SnapshotCopyUtil;
 import io.nop.stream.core.common.state.KeyedStateStore;
 import io.nop.stream.core.common.state.MapState;
 import io.nop.stream.core.common.state.MapStateDescriptor;
@@ -685,7 +686,9 @@ public class CepOperator<IN, KEY, OUT>
                 Map<String, Object> form = new LinkedHashMap<>();
                 Object ledgerKey = entry.getKey();
                 form.put("keyClass", ledgerKey != null ? ledgerKey.getClass().getName() : null);
-                form.put("key", ledgerKey);
+                // R5 ST-13: freeze the ledger key (typedCopy keeps the class so
+                // the restore-side keyClass rematerialization stays consistent).
+                form.put("key", SnapshotCopyUtil.typedCopy(ledgerKey));
                 form.put("timers", new ArrayList<>(entry.getValue()));
                 timersForm.add(form);
             }

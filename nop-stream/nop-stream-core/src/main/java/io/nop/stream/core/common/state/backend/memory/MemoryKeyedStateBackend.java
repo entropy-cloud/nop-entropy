@@ -7,6 +7,9 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -83,7 +86,15 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
      */
     public static final long DEFAULT_TTL_SWEEP_INTERVAL_MILLIS = 60_000L;
 
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryKeyedStateBackend.class);
+
     private final Class<K> keyType;
+
+    /** R5 ST-02: runtime key class captured on first setCurrentKey for Object-declared backends. */
+    private transient Class<?> effectiveKeyType;
+
+    /** R5 ST-02: one-shot flag for the heterogeneous key warning. */
+    private transient boolean heterogeneousKeyWarned;
 
     /**
      * Stage 34: job-global key-group upper bound. Replaces the legacy
@@ -171,7 +182,41 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
     @Override
     public void setCurrentKey(K key) {
         this.currentKey = key;
+        captureEffectiveKeyType(key);
         maybeSweepExpiredEntries();
+    }
+
+    /**
+     * R5 ST-02: operators created against a generic backend declare
+     * {@code Object.class} (EquiJoin/OverWindow/ProcessOperator have no
+     * build-time key class). The first observed key's runtime class is the
+     * effective key type: it feeds the snapshot {@code keyType} header so the
+     * restore side can re-materialize keys with real equals/hashCode semantics
+     * instead of degrading to identity. First capture wins; a later key of a
+     * different class is warned once (heterogeneous key classes were never
+     * routable to begin with).
+     */
+    private void captureEffectiveKeyType(K key) {
+        if (key == null || keyType != Object.class) {
+            return;
+        }
+        if (effectiveKeyType == null) {
+            effectiveKeyType = key.getClass();
+        } else if (!heterogeneousKeyWarned && key.getClass() != effectiveKeyType) {
+            heterogeneousKeyWarned = true;
+            LOG.warn("nop.stream.keyed-backend-heterogeneous-keys: declared=java.lang.Object,"
+                    + " firstKeyClass={}, otherKeyClass={} — key-group routing and state lookups"
+                    + " require a homogeneous key type", effectiveKeyType.getName(), key.getClass().getName());
+        }
+    }
+
+    /**
+     * R5 ST-02: the effective key type — the runtime class captured from the
+     * first key when the declared type is {@code Object.class}, otherwise the
+     * declared type.
+     */
+    public Class<?> getEffectiveKeyType() {
+        return effectiveKeyType != null ? effectiveKeyType : keyType;
     }
 
     /**
@@ -492,6 +537,11 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
 
     public Class<K> getKeyType() {
         return keyType;
+    }
+
+    /** R5 ST-02: wire the snapshot header source (see {@link #getEffectiveKeyType()}). */
+    public Class<?> getSnapshotKeyType() {
+        return getEffectiveKeyType();
     }
 
     int getShardCount() {

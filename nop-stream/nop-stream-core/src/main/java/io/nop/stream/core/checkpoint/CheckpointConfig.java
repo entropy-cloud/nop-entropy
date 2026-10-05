@@ -33,6 +33,14 @@ public class CheckpointConfig implements Serializable {
     public static final int DEFAULT_MAX_RETAINED_CHECKPOINTS = 5;
     public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
     public static final int DEFAULT_MAX_RESTARTS_PER_REGION = 3;
+    /**
+     * R5 ST-01 contract: with async snapshot enabled and the memory state
+     * backend, keyed state values/keys are defensively copied on the task
+     * thread inside snapshotState, so operator mutations after the barrier do
+     * not leak into the persisted snapshot. The copy cost is paid on the task
+     * thread (same order as a synchronous snapshot); large-state jobs should
+     * prefer the RocksDB backend, whose snapshots read from immutable SSTs.
+     */
     public static final boolean DEFAULT_ASYNC_SNAPSHOT_ENABLED = true;
     public static final int DEFAULT_ASYNC_SNAPSHOT_THREAD_POOL_SIZE = 1;
     public static final boolean DEFAULT_UNALIGNED_CHECKPOINT_ENABLED = true;

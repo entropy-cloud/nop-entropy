@@ -38,6 +38,7 @@ import io.nop.stream.core.common.state.shard.ShardPrefixedKey;
 import io.nop.stream.core.common.state.shard.StateKeyRematerializer;
 import io.nop.stream.core.common.typeutils.IStreamSerializer;
 import io.nop.stream.core.common.typeutils.JsonToolSerializer;
+import io.nop.stream.core.util.SnapshotCopyUtil;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.util.ClassNameValidator;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
@@ -84,9 +85,18 @@ class MemoryStateSerDe {
     private final Class<?> keyType;
     private final int shardCount;
 
+    /**
+     * R5 ST-02: the key type used for snapshot-header writing and restore-side
+     * key re-materialization. Declared at construction; a restore snapshot
+     * carrying a concrete {@code keyType} header overrides it (header wins, see
+     * {@link #restoreState}) so Object-declared backends restore real keys.
+     */
+    private Class<?> effectiveKeyType;
+
     MemoryStateSerDe(MemoryKeyedStateBackend<?> backend) {
         this.backend = backend;
         this.keyType = backend.getKeyType();
+        this.effectiveKeyType = backend.getSnapshotKeyType();
         this.shardCount = backend.getShardCount();
     }
 
@@ -106,7 +116,9 @@ class MemoryStateSerDe {
         }
 
         Map<String, Object> stateData = new LinkedHashMap<>();
-        stateData.put("keyType", keyType.getName());
+        // R5 ST-02: record the effective key type (first-key capture for
+        // Object-declared backends) so restore can re-materialize real keys.
+        stateData.put("keyType", effectiveKeyType.getName());
 
         Map<String, Object> statesMap = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : states.entrySet()) {
@@ -124,7 +136,7 @@ class MemoryStateSerDe {
         if (stateObj instanceof MemoryValueState) {
             MemoryValueState<?> s = (MemoryValueState<?>) stateObj;
             return snapshotKeyedState(STATE_TYPE_VALUE, s.descriptor, null, s.ttl, s.storage,
-                    (entry, v, ser) -> entry.put("value", serializeWithSerializer(v, ser)));
+                    (entry, v, ser) -> entry.put("value", freezeRawValue(v, ser)));
         }
         if (stateObj instanceof MemoryMapState) {
             MemoryMapState<?, ?> s = (MemoryMapState<?, ?>) stateObj;
@@ -147,9 +159,11 @@ class MemoryStateSerDe {
             Map<String, Object> headers = new LinkedHashMap<>();
             headers.put("accumulatorType", s.descriptor.getAccumulatorType().getName());
             // The appending payload is the raw accumulator-local value (never routed
-            // through the custom value serializer) with the List defensive copy.
+            // through the custom value serializer). R5 ST-01: the earlier shallow
+            // ArrayList copy left element references live; elements are now frozen
+            // individually.
             return snapshotKeyedState(STATE_TYPE_APPENDING, s.descriptor, headers, s.ttl, s.storage,
-                    (entry, v, ser) -> entry.put("value", v instanceof List ? new ArrayList<>((List<?>) v) : v));
+                    (entry, v, ser) -> entry.put("value", copyAppendingPayload(v)));
         }
         if (stateObj instanceof MemoryInternalAggregatingState) {
             MemoryInternalAggregatingState<?, ?, ?, ?, ?> s = (MemoryInternalAggregatingState<?, ?, ?, ?, ?>) stateObj;
@@ -162,7 +176,7 @@ class MemoryStateSerDe {
             headers.put("accumulatorType", s.descriptor.getAccumulatorType().getName());
             return snapshotKeyedState(STATE_TYPE_REDUCING, s.descriptor, headers, s.ttl, s.storage,
                     (entry, v, ser) -> entry.put("value",
-                            serializeWithSerializer(((SimpleAccumulator<?>) v).getLocalValue(), ser)));
+                            freezeRawValue(((SimpleAccumulator<?>) v).getLocalValue(), ser)));
         }
         if (stateObj instanceof MemoryAggregatingState) {
             MemoryAggregatingState<?, ?, ?> s = (MemoryAggregatingState<?, ?, ?>) stateObj;
@@ -179,9 +193,38 @@ class MemoryStateSerDe {
         return headers;
     }
 
+    // R5 ST-01: appending elements bypass the custom value serializer by
+    // contract, so freezing them needs the explicit copy here.
+    private static Object copyAppendingPayload(Object v) {
+        if (v instanceof List) {
+            List<Object> copy = new ArrayList<>(((List<?>) v).size());
+            for (Object e : (List<?>) v) {
+                copy.add(SnapshotCopyUtil.defensiveCopy(e));
+            }
+            return copy;
+        }
+        return SnapshotCopyUtil.defensiveCopy(v);
+    }
+
     private static void writeSerializedValue(Map<String, Object> entry, Object storedValue,
                                              IStreamSerializer<Object> valueSer) {
-        entry.put("value", serializeWithSerializer(storedValue, valueSer));
+        entry.put("value", freezeRawValue(storedValue, valueSer));
+    }
+
+    /**
+     * R5 ST-01: raw scalar/bean values handed straight to the snapshot entry
+     * ("value" family) must be frozen on the task thread — post-barrier ACC
+     * mutation otherwise leaks into the asynchronously persisted JSON. With a
+     * custom serializer the byte[] marker path is already snapshot-safe. Unlike
+     * {@link #serializeWithSerializer}, this must NOT be used for list/map
+     * payload elements: those go through ContainerValueCodec, which needs the
+     * live runtime type to record element type info.
+     */
+    private static Object freezeRawValue(Object value, IStreamSerializer<Object> valueSer) {
+        if (valueSer != null) {
+            return serializeWithSerializer(value, valueSer);
+        }
+        return SnapshotCopyUtil.defensiveCopy(value);
     }
 
     private static void writeListPayload(Map<String, Object> entry, Object storedValue,
@@ -199,7 +242,9 @@ class MemoryStateSerDe {
         List<List<Object>> mapEntries = new ArrayList<>();
         for (Map.Entry<?, ?> me : ((Map<?, ?>) storedValue).entrySet()) {
             List<Object> pair = new ArrayList<>();
-            pair.add(me.getKey());
+            // R5 ST-01: map keys bypass the value serializer path; freeze them
+            // like any other live value.
+            pair.add(SnapshotCopyUtil.defensiveCopy(me.getKey()));
             // P1-21-01: container values (List/Map, nested) are wrapped with per-level
             // element type info so the JSON storage layer can restore inner element
             // types (the raw List.class declared type carries no element type, and the
@@ -267,17 +312,36 @@ class MemoryStateSerDe {
             return;
         }
 
+        // R5 ST-02: the snapshot header records the EFFECTIVE key type (first-key
+        // capture for Object-declared backends). A concrete header overrides the
+        // declaration ONLY when the backend was declared Object.class — that is
+        // the ST-02 gap this closes. Concrete-vs-concrete conflicts keep the
+        // declared type (and its fail-fast rematerialization) as the guard
+        // against foreign/corrupt snapshots (TestMemoryStateSerDeNumericKeyRestore).
+        Class<?> declared = keyType;
+        Object headerType = stateData.get("keyType");
+        Class<?> header = resolveHeaderKeyType(headerType);
+        if (declared == Object.class && header != null && header != Object.class) {
+            LOG.info("nop.stream.restore-keytype-override: snapshotKeyType={} overrides declaredKeyType=java.lang.Object"
+                    + " — using the snapshot header for key re-materialization", header.getName());
+            this.effectiveKeyType = header;
+        }
+        // otherwise effectiveKeyType stays as constructed (declared/effective capture)
+        if (effectiveKeyType == Object.class) {
+            warnForeignNativeKeys(statesMap);
+        }
+
         // Stage 35: per-subtask partial restore. When the backend carries a
         // target KeyGroupRange, reduce each state's entries to those whose key
         // is owned by the range before re-routing. This is the in-memory
         // equivalent of the RocksDB SST range scan (Stage 31 deferred item).
-        // ST-02: the filter must re-materialize each raw key to the declared
+        // ST-02: the filter must re-materialize each raw key to the effective
         // keyType BEFORE computing its group, or non-primitive keys (Date,
         // bean, ...) are filtered by a hash that differs from the live
         // routeKey decision.
         KeyGroupRange range = backend.getTargetKeyGroupRange();
         if (range != null) {
-            statesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(statesMap, range, backend.getMaxParallelism(), keyType);
+            statesMap = KeyGroupRangeRestoreFilter.filterKeyedStates(statesMap, range, backend.getMaxParallelism(), effectiveKeyType);
             if (statesMap.isEmpty()) {
                 return;
             }
@@ -347,6 +411,61 @@ class MemoryStateSerDe {
             name = (String) stateInfo.get(fallback);
         }
         return name;
+    }
+
+    /**
+     * R5 ST-02: parse the snapshot header keyType; "java.lang.Object" and a
+     * missing header leave the decision to the declared type.
+     */
+    private static Class<?> resolveHeaderKeyType(Object headerType) {
+        if (!(headerType instanceof String) || ((String) headerType).isEmpty()) {
+            return null;
+        }
+        String name = (String) headerType;
+        if (Object.class.getName().equals(name)) {
+            return Object.class;
+        }
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            LOG.warn("nop.stream.restore-keytype-unknown: snapshot header keyType={} not loadable;"
+                    + " falling back to the declared backend key type", name);
+            return null;
+        }
+    }
+
+    /**
+     * R5 ST-02: an Object-effective key type means restore cannot re-materialize
+     * keys; non-JDK-native stored keys would silently lose equals/hashCode
+     * semantics. Warn once per restore — loud, but not a hard failure (raw
+     * JSON-native keys still work).
+     */
+    private void warnForeignNativeKeys(Map<String, Object> statesMap) {
+        for (Object stateObj : statesMap.values()) {
+            if (!(stateObj instanceof Map)) {
+                continue;
+            }
+            Object entriesObj = ((Map<?, ?>) stateObj).get("entries");
+            if (!(entriesObj instanceof List) || ((List<?>) entriesObj).isEmpty()) {
+                continue;
+            }
+            Object firstEntry = ((List<?>) entriesObj).get(0);
+            if (firstEntry instanceof Map) {
+                Object key = ((Map<?, ?>) firstEntry).get("key");
+                if (key != null && !isJdkNativeKey(key.getClass())) {
+                    LOG.warn("nop.stream.restore-object-keytype: snapshot keyType=java.lang.Object but stored"
+                            + " keys are of class {} — key re-materialization is identity and non-native keys may"
+                            + " not match after restore; declare the key class at the backend", key.getClass().getName());
+                    return;
+                }
+            }
+        }
+    }
+
+    private static boolean isJdkNativeKey(Class<?> clazz) {
+        return clazz == String.class || clazz == Integer.class || clazz == Long.class
+                || clazz == Double.class || clazz == Float.class || clazz == Boolean.class
+                || clazz == Short.class || clazz == Byte.class;
     }
 
     @SuppressWarnings("unchecked")
@@ -603,7 +722,12 @@ class MemoryStateSerDe {
         if (namespace instanceof GlobalWindow) {
             return "GlobalWindow";
         }
-        return namespace;
+        if (namespace instanceof io.nop.stream.core.common.state.VoidNamespace) {
+            return namespace;
+        }
+        // R5 ST-01: built-in namespaces are immutable or singleton and handled
+        // above; unknown custom namespaces freeze like any other live value.
+        return SnapshotCopyUtil.defensiveCopy(namespace);
     }
 
     /**
@@ -648,7 +772,9 @@ class MemoryStateSerDe {
     }
 
     private Object serializeKey(Object key) {
-        return key;
+        // R5 ST-01: keys share the live graph with storage; a mutable POJO key
+        // mutated after snapshotState must not leak into the persisted snapshot.
+        return SnapshotCopyUtil.defensiveCopy(key);
     }
 
     /**
@@ -673,7 +799,7 @@ class MemoryStateSerDe {
      * instead of returning the original object.
      */
     private Object deserializeKey(Object obj) throws Exception {
-        return StateKeyRematerializer.rematerializeKey(obj, keyType);
+        return StateKeyRematerializer.rematerializeKey(obj, effectiveKeyType);
     }
 
     @SuppressWarnings("unchecked")
@@ -688,7 +814,14 @@ class MemoryStateSerDe {
 
     @SuppressWarnings("unchecked")
     private static <T> Object serializeWithSerializer(Object value, IStreamSerializer<T> serializer) {
-        if (serializer == null || value == null) {
+        if (value == null) {
+            return null;
+        }
+        if (serializer == null) {
+            // R5 ST-01: raw-value writers freeze via freezeRawValue instead.
+            // This method is also the per-element path for list/map payloads,
+            // where ContainerValueCodec.encode needs the live runtime type to
+            // record element type info — copying here would erase it.
             return value;
         }
         try {

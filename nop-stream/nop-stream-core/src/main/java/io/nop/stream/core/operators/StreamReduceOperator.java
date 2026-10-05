@@ -23,8 +23,11 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.core.lang.json.JsonTool;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
+import io.nop.stream.core.util.ClassNameValidator;
+import io.nop.stream.core.util.SnapshotCopyUtil;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamRecord;
@@ -119,10 +122,18 @@ public class StreamReduceOperator<T>
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Map.Entry<Object, T> e : values.entrySet()) {
             Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("key", e.getKey());
-            entry.put("value", e.getValue());
-            if (e.getValue() != null) {
-                entry.put("valueTypeName", e.getValue().getClass().getName());
+            Object key = e.getKey();
+            // R5 ST-13: freeze the live entry so post-snapshot processing cannot
+            // leak into the snapshot. typedCopy keeps the runtime class, so the
+            // in-memory restore path (which matches concrete types) is unchanged.
+            entry.put("key", SnapshotCopyUtil.typedCopy(key));
+            if (key != null) {
+                entry.put("keyTypeName", key.getClass().getName());
+            }
+            Object value = e.getValue();
+            entry.put("value", SnapshotCopyUtil.typedCopy(value));
+            if (value != null) {
+                entry.put("valueTypeName", value.getClass().getName());
             }
             entries.add(entry);
         }
@@ -150,6 +161,10 @@ public class StreamReduceOperator<T>
                         LOG.warn("Skipping restore entry with null key or value: key={}, value={}", key, value);
                         continue;
                     }
+                    // R5 ST-13: after a JSON persist/restore round trip a frozen
+                    // key arrives in its JSON-native shape; rebuild the recorded
+                    // type so lookups against live keys keep matching.
+                    key = rematerializeIfNeeded(key, (String) entry.get("keyTypeName"));
                     String expectedType = (String) entry.get("valueTypeName");
                     if (expectedType != null && !expectedType.equals(value.getClass().getName())) {
                         throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
@@ -160,5 +175,19 @@ public class StreamReduceOperator<T>
                 }
             }
         }
+    }
+
+    /**
+     * R5 ST-13: rebuild the recorded type when a restored entry's runtime class
+     * no longer matches (JSON round trip degrades beans to maps). Same-class
+     * values pass through unchanged.
+     */
+    private static Object rematerializeIfNeeded(Object value, String typeName) throws Exception {
+        if (value == null || typeName == null || typeName.equals(value.getClass().getName())) {
+            return value;
+        }
+        ClassNameValidator.validateClassName(typeName);
+        Class<?> clazz = Class.forName(typeName);
+        return JsonTool.parseBeanFromText(JsonTool.serialize(value, false), clazz);
     }
 }

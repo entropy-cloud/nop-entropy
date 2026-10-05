@@ -386,7 +386,10 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
                 // Store the per-split cursor list; the actual split serializer is invoked
                 // by the runtime storage layer. For v1 LOCAL mode we store the in-memory
                 // list (JSON-serialized downstream by CheckpointSerDe via JsonTool).
-                result.putOperatorState(READER_SPLITS_KEY, splits);
+                // R5 ST-13: container-level freeze — the reader keeps mutating its
+                // live split list after the barrier; split impls carry final fields,
+                // so a shallow container copy gives a point-in-time view.
+                result.putOperatorState(READER_SPLITS_KEY, new ArrayList<>(splits));
             }
         }
         return result;

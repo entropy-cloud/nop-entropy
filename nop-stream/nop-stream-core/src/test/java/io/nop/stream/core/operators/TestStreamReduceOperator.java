@@ -286,4 +286,66 @@ public class TestStreamReduceOperator {
         assertEquals(1, restoredOutput.getRecords().size());
         assertEquals(50, restoredOutput.getRecords().get(0).getValue());
     }
+
+    @Test
+    void testSnapshotIsolatesPostSnapshotMutation() throws Exception {
+        ReduceFunction<MutableSum> mergeInPlace = (a, b) -> {
+            a.setV(a.getV() + b.getV());
+            return a;
+        };
+        StreamReduceOperator<MutableSum> op = new StreamReduceOperator<>(mergeInPlace);
+        TestOutput<MutableSum> testOut = new TestOutput<>();
+        op.setOutput((Output) testOut);
+        op.open();
+
+        op.setCurrentKey(1);
+        op.processElement(new StreamRecord<>(new MutableSum(10), 0));
+        op.processElement(new StreamRecord<>(new MutableSum(20), 0));
+
+        OperatorSnapshotResult snapshot =
+                op.snapshotState(new StateSnapshotContext(1L, System.currentTimeMillis()));
+        List<Map<String, Object>> entries =
+                (List<Map<String, Object>>) (List<?>) snapshot.getOperatorState("reduce-state");
+        assertNotNull(entries);
+        String before = JsonTool.serialize(entries, false);
+
+        // Post-barrier: the in-place reduce function mutates the SAME live object
+        op.setCurrentKey(1);
+        op.processElement(new StreamRecord<>(new MutableSum(5), 0));
+
+        String after = JsonTool.serialize(entries, false);
+        assertEquals(before, after, "post-snapshot reduce value mutation leaked into the snapshot");
+
+        // In-memory restore keeps typed values and continues correctly
+        StreamReduceOperator<MutableSum> restored = new StreamReduceOperator<>(mergeInPlace);
+        TestOutput<MutableSum> restoredOut = new TestOutput<>();
+        restored.setOutput((Output) restoredOut);
+        restored.open();
+        restored.restoreState(snapshot);
+        restored.setCurrentKey(1);
+        restored.processElement(new StreamRecord<>(new MutableSum(100), 0));
+        assertEquals(1, restoredOut.getRecords().size());
+        // frozen value was 30; in-place reduce adds 100 -> 130
+        assertEquals(130, ((MutableSum) restoredOut.getRecords().get(0).getValue()).getV());
+    }
+
+    @io.nop.api.core.annotations.data.DataBean
+    public static class MutableSum {
+        private int v;
+
+        public MutableSum() {
+        }
+
+        public MutableSum(int v) {
+            this.v = v;
+        }
+
+        public int getV() {
+            return v;
+        }
+
+        public void setV(int v) {
+            this.v = v;
+        }
+    }
 }
