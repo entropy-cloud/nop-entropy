@@ -10,7 +10,7 @@ package io.nop.message.pulsar;
 import io.nop.api.core.exceptions.ErrorCode;
 
 public interface PulsarErrors {
-    String PREFIX = "nop.message.pulsar.";
+    String PREFIX = "nop.err.message.pulsar.";
 
     ErrorCode ERR_SERVICE_URL_NOT_CONFIGURED =
             ErrorCode.define(PREFIX + "service-url-not-configured", "Pulsar serviceUrl is not configured");

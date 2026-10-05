@@ -13,7 +13,7 @@
 2. **D5（AckMode）**：不引入容器级 ack 模式常量；`onMessage` 返回值协议是 ack 抽象且按消息粒度优。但协议缺两个信号，必须补齐（SPI 收窄式新增，plan-first）：**终止拒绝信号**（「这条是毒消息，不要重投」）与**部分提交信号**（「批量只提交到第 k 条」）。
 3. **D6（DLQ 归属）**：三层——SPI 层只加终止拒绝信号与带上下文（topic/message/attempt/throwable）的失败回调；后端原生能力层（Pulsar `deadLetterPolicy`/`maxDeliveries`、Kafka 应用级重发布）；`nop-retry` 桥消费失败回调。SPI 配置不出现 `deadLetterTopic`/`maxRetries` 字段。
 4. **D7（身份模型）**：全局 `groupId` 不再静默遮蔽 `subscribeName`；全局配置降级为命名空间前缀，生效消费组身份为 `${groupId}.${subscribeName}`；`subscribeName` 缺失时与 Kafka 现行为一致抛类型化错误（Pulsar 不再生成随机订阅名）。
-5. **D9（错误码前缀）**：迁移至 `nop.err.message.kafka.*` / `nop.err.message.pulsar.*`，与平台 `nop.err.[模块].[子域].[错误]` 规范一致；旧前缀无任何 i18n/properties 引用，直接迁移（加性体现在：迁移提交内同步核对零引用，不做双前缀共存期）。
+5. **D9（错误码前缀，WI26 实现态）**：迁移完成——`nop.err.message.kafka.*` / `nop.err.message.pulsar.*` / `nop.err.message.core.*`，常量名零改名；旧前缀全仓零引用（i18n/properties/字面量断言均无）。六码处置：五码接线（Kafka consumer-create / send 失败双路径 [callback+同步 catch]、Pulsar client-create / producer-create / consumer-create[窄包，subscribe 失败与 seek 失败分离]）；`ERR_KAFKA_SERIALIZATION_FAILED` 删除（无自然挂点：encode 委托共享 codec 携带自身错误，单边接线制造跨后端不对称）。`MessageCoreErrors` 填充 `ERR_LOCAL_REDELIVERY_SCHEDULE_FAILED`（日志语句必须引用常量 getErrorCode——防新码沦为 dead-define）。包装惯例：调用点包装（Pulsar client-create 的 wrap 在 doStart 调用处——方法体内包装会被覆写绕过）+ cause 链保留。
 6. **D10（空壳模块）**：立即删除 `nop-message-model`（两个空类，无任何依赖方）；`nop-message-codec` 降级为 Follow-up（待 D2 信封契约落地后出现非 String payload 实证需求再议）；`nop-bom/pom.xml` 补登模块条目随 WI31 执行。
 7. **D11（事务语义）**：删除 `MessageSubscribeOptions.transactional` 与 `transactionTimeout` 两字段（SPI 破坏性变更，plan-first 承载于 WI14，遵守 message-contract D8 的弃用期规则）。理由：Kafka 侧零处置、Pulsar 侧每消息建事务（粒度错误 + 每消息 broker 往返），保留即违反「不得声明却从不读（或从未正确兑现）」约束。
 

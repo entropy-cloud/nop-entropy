@@ -13,7 +13,7 @@ import io.nop.api.core.exceptions.ErrorCode;
  * Error codes for {@code KafkaMessageService} (mirrors {@code PulsarErrors}).
  */
 public interface KafkaErrors {
-    String PREFIX = "nop.message.kafka.";
+    String PREFIX = "nop.err.message.kafka.";
 
     ErrorCode ERR_BOOTSTRAP_SERVERS_NOT_CONFIGURED =
             ErrorCode.define(PREFIX + "bootstrap-servers-not-configured",
@@ -30,10 +30,6 @@ public interface KafkaErrors {
     ErrorCode ERR_KAFKA_CONSUMER_CREATE_FAILED =
             ErrorCode.define(PREFIX + "consumer-create-failed",
                     "Failed to create Kafka consumer");
-
-    ErrorCode ERR_KAFKA_SERIALIZATION_FAILED =
-            ErrorCode.define(PREFIX + "serialization-failed",
-                    "Kafka serialization failed");
 
     ErrorCode ERR_KAFKA_SEEK_NOT_SUPPORTED =
             ErrorCode.define(PREFIX + "seek-not-supported",

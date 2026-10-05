@@ -264,7 +264,16 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         try {
             prod.send(record, (metadata, exception) -> {
                 if (exception != null) {
-                    future.completeExceptionally(KafkaHelper.adapt(exception));
+                    // WI26 (F-55): wrap non-NopException broker failures with the send code
+                    // (NopException passes through unchanged, preserving its own code).
+                    if (exception instanceof NopException) {
+                        future.completeExceptionally(KafkaHelper.adapt(exception));
+                    } else {
+                        // the cause carries the broker's full detail/stack
+                        future.completeExceptionally(new NopException(KafkaErrors.ERR_KAFKA_SEND_FAILED)
+                                .description("Kafka producer send failed")
+                                .cause(exception));
+                    }
                 } else {
                     future.complete(null);
                 }
@@ -278,7 +287,14 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
                     || e instanceof org.apache.kafka.common.errors.InterruptException) {
                 Thread.currentThread().interrupt();
             }
-            future.completeExceptionally(KafkaHelper.adapt(e));
+            if (e instanceof NopException) {
+                future.completeExceptionally((NopException) e);
+            } else {
+                // the cause carries the full detail/stack
+                future.completeExceptionally(new NopException(KafkaErrors.ERR_KAFKA_SEND_FAILED)
+                        .description("Kafka producer send failed")
+                        .cause(e));
+            }
         }
         // WI15 (F-45): upper bound on the returned future. Timeout leaves the underlying
         // send running (fire-and-forget) — the message may still be delivered. Bare
@@ -357,8 +373,16 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
                     "seekToMessage is not supported by the Kafka backend");
         }
 
-        Consumer<String, String> kConsumer = createConsumer(
-                buildConsumerProps(groupId, options), new StringDeserializer(), new StringDeserializer());
+        Consumer<String, String> kConsumer;
+        try {
+            kConsumer = createConsumer(
+                    buildConsumerProps(groupId, options), new StringDeserializer(), new StringDeserializer());
+        } catch (Exception e) {
+            // WI26 (F-55): wire the previously dead code — consumer construction failures
+            // (bad config, class errors) surface typed instead of adapted-raw.
+            throw error(KafkaErrors.ERR_KAFKA_CONSUMER_CREATE_FAILED,
+                    "Failed to create Kafka consumer").cause(e);
+        }
         java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
         KafkaConsumeTask task = newTask(kConsumer, subConfig);
         kConsumer.subscribe(topics, task.rebalanceListener());

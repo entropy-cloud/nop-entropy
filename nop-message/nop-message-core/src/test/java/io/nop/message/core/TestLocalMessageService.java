@@ -98,4 +98,25 @@ public class TestLocalMessageService extends JunitBaseTestCase {
         org.junit.jupiter.api.Assertions.assertNotNull(sub);
         sub.cancel();
     }
+
+    @Test
+    public void testRedeliveryScheduleRejectionIsWarnedNotThrown() {
+        LocalMessageService service = new LocalMessageService();
+        // WI26 (F-40): a shut-down scheduler rejects the redelivery task — the rejection is
+        // WARNed with the typed MessageCoreErrors code and must NOT propagate.
+        java.util.concurrent.ScheduledExecutorService dead =
+                java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        dead.shutdownNow();
+        service.setRedeliveryExecutorForTest(dead);
+
+        LocalMessageService.Subscription subscription =
+                service.new Subscription("t-ree", (t, m, c) -> new io.nop.api.core.message.ConsumeLater(0));
+        java.util.List<LocalMessageService.Subscription> list =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        list.add(subscription);
+        service.getConsumers().put("t-ree", list);
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
+                service.send("t-ree", "deferred-msg", null));
+    }
 }

@@ -15,6 +15,7 @@ import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.message.core.MessageCoreConstants;
+import io.nop.message.core.MessageCoreErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -248,19 +249,33 @@ public class LocalMessageService implements IMessageService {
      */
     private void scheduleRedelivery(Subscription subscription, Object message, long delayMs) {
         long delay = Math.max(delayMs, 0L);
-        redeliveryScheduler().schedule(() -> {
-            if (subscription.cancelled || subscription.suspended)
-                return;
-            List<Subscription> subscriptions = consumers.get(subscription.topic);
-            // WI23: instance identity — a sibling subscription of the same listener must
-            // not satisfy THIS subscription's presence check.
-            if (subscriptions == null || !subscriptions.contains(subscription))
-                return;
-            invokeSubscription(subscription, message);
-        }, delay, TimeUnit.MILLISECONDS);
+        try {
+            redeliveryScheduler().schedule(() -> {
+                if (subscription.cancelled || subscription.suspended)
+                    return;
+                List<Subscription> subscriptions = consumers.get(subscription.topic);
+                // WI23: instance identity — a sibling subscription of the same listener must
+                // not satisfy THIS subscription's presence check.
+                if (subscriptions == null || !subscriptions.contains(subscription))
+                    return;
+                invokeSubscription(subscription, message);
+            }, delay, TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // WI26 (F-40): scheduler shutdown during teardown — the deferred redelivery is
+            // abandoned with a typed WARN (proving the previously-empty MessageCoreErrors).
+            LOG.warn("nop.message.local.redelivery-schedule-failed:code={},topic={},delay={}",
+                    MessageCoreErrors.ERR_LOCAL_REDELIVERY_SCHEDULE_FAILED.getErrorCode(),
+                    subscription.topic, delay, e);
+        }
     }
 
-    private volatile ScheduledExecutorService redeliveryExecutor;
+    // WI26: test seam so tests can inject a shut-down scheduler (public: consumers of the
+    // class live in io.nop.message.core, one package up).
+    volatile ScheduledExecutorService redeliveryExecutor;
+
+    public void setRedeliveryExecutorForTest(ScheduledExecutorService executor) {
+        this.redeliveryExecutor = executor;
+    }
 
     private ScheduledExecutorService redeliveryScheduler() {
         ScheduledExecutorService executor = redeliveryExecutor;

@@ -217,6 +217,69 @@ class TestPulsarServiceLifecycle {
     }
 
     @Test
+    void pulsarCreationFailuresCarryTypedCodes() throws Exception {
+        // Client-creation failure → typed ERR_PULSAR_CLIENT_CREATE_FAILED (WI26/F-55).
+        // The wrap lives at the doStart call site, so a createClient override that throws
+        // IS wrapped (call-site wrap cannot be bypassed by overrides).
+        LifecycleTestService failing = new LifecycleTestService() {
+            @Override
+            protected PulsarClient createClient() {
+                throw new IllegalStateException("client-down");
+            }
+        };
+        PulsarClientConfig config = new PulsarClientConfig();
+        config.setServiceUrl("pulsar://localhost:6650");
+        failing.setConfig(config);
+        NopException initError = org.junit.jupiter.api.Assertions.assertThrows(NopException.class,
+                failing::init);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                PulsarErrors.ERR_PULSAR_CLIENT_CREATE_FAILED.getErrorCode(),
+                initError.getErrorCode());
+        org.junit.jupiter.api.Assertions.assertNotNull(initError.getCause(),
+                "the underlying client-creation failure must be preserved as cause");
+
+        // Producer-creation failure → typed ERR_PULSAR_PRODUCER_CREATE_FAILED.
+        LifecycleTestService producerService = new LifecycleTestService();
+        PulsarClientConfig producerConfig = new PulsarClientConfig();
+        producerConfig.setServiceUrl("pulsar://localhost:6650");
+        producerService.setConfig(producerConfig);
+        org.apache.pulsar.client.api.PulsarClient producerClient =
+                mock(org.apache.pulsar.client.api.PulsarClient.class);
+        producerService.clientForTest = producerClient;
+        // init() first: the not-active guard (F-30) fires before newProducer otherwise.
+        producerService.init();
+        when(producerClient.newProducer(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Schema<?>>any()))
+                .thenThrow(new IllegalStateException("producer-down"));
+        NopException producerError = org.junit.jupiter.api.Assertions.assertThrows(NopException.class,
+                () -> producerService.buildProducer("t-typed",
+                        org.apache.pulsar.client.api.Schema.STRING));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED.getErrorCode(),
+                producerError.getErrorCode());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                producerError.getCause() instanceof IllegalStateException,
+                "cause chain must be preserved");
+        producerService.destroy();
+    }
+
+    @Test
+    void subscribeFailureCarriesTypedConsumerCreateCode() throws Exception {
+        LifecycleTestService service = configuredService();
+        service.init();
+        // WI26 (F-55): subscribe() failure → typed consumer-create code (narrow wrap).
+        when(service.builder.subscribe()).thenThrow(
+                new org.apache.pulsar.client.api.PulsarClientException("subscribe-down"));
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-typed");
+        NopException e = org.junit.jupiter.api.Assertions.assertThrows(NopException.class,
+                () -> service.subscribe("t-typed", (t, m, c) -> null, options));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                PulsarErrors.ERR_PULSAR_CONSUMER_CREATE_FAILED.getErrorCode(), e.getErrorCode());
+        service.destroy();
+    }
+
+    @Test
     void batchReceivePolicyWiredWithClientDefaultFloor() throws Exception {
         LifecycleTestService service = configuredService();
         service.init();

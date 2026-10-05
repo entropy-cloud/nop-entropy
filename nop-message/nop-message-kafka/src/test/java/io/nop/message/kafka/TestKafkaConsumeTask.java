@@ -270,6 +270,27 @@ class TestKafkaConsumeTask {
     }
 
     @Test
+    void consumerCreateFailureCarriesTypedCode() {
+        class FailingConsumerService extends KafkaMessageService {
+            @Override
+            protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                              StringDeserializer keyDeserializer,
+                                                              StringDeserializer valueDeserializer) {
+                throw new IllegalArgumentException("bad-config");
+            }
+        }
+        FailingConsumerService testService = new FailingConsumerService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-typed");
+        NopException e = assertThrows(NopException.class,
+                () -> testService.doSubscribe(new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, options)));
+        assertEquals(KafkaErrors.ERR_KAFKA_CONSUMER_CREATE_FAILED.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
     void computeBackoffEscalatesAndCaps() {
         assertEquals(1000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 0));
         assertEquals(2000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 1));

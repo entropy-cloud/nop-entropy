@@ -113,7 +113,16 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         if (config == null || config.getServiceUrl() == null) {
             throw new NopException(ERR_SERVICE_URL_NOT_CONFIGURED);
         }
-        client = createClient();
+        // WI26 (F-55): the typed wrap lives at the CALL SITE — a createClient override
+        // cannot bypass it (a wrap inside the method body would be replaced by the
+        // overriding body).
+        try {
+            client = createClient();
+        } catch (Exception e) {
+            throw new NopException(PulsarErrors.ERR_PULSAR_CLIENT_CREATE_FAILED)
+                    .description("Failed to create Pulsar client")
+                    .cause(e);
+        }
 
         LOG.info("nop.message.pulsar.initialized:serviceUrl={}", config.getServiceUrl());
     }
@@ -209,7 +218,10 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
             }
             return builder.create();
         } catch (Exception e) {
-            throw NopException.adapt(e);
+            // WI26 (F-55): wire the previously dead code for producer creation failures.
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Failed to create Pulsar producer")
+                    .cause(e);
         }
     }
 
@@ -381,7 +393,16 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         ExecutorService executor = null;
         Consumer<?> consumer = null;
         try {
-            consumer = builder.subscribe();
+            // WI26 (F-55): narrow wrap — subscription creation failures carry the consumer-
+            // create code; the outer catch keeps its resource-cleanup + adapt semantics
+            // (post-create failures like the seek must not be mislabeled).
+            try {
+                consumer = builder.subscribe();
+            } catch (PulsarClientException e) {
+                throw new NopException(PulsarErrors.ERR_PULSAR_CONSUMER_CREATE_FAILED)
+                        .description("Failed to create Pulsar consumer")
+                        .cause(e);
+            }
 
             // D3: ALWAYS_SEEK_TO_END and seekToTime resolve with a synchronous seek right
             // after subscribe (the client is connected at this point). A seek failure tears

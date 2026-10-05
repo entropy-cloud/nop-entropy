@@ -187,19 +187,21 @@ class TestKafkaMessageServiceSend {
 
     @Test
     void producerSendSyncExceptionBecomesFailedFuture() {
-        // WI17 (F-39, fact-corrected): synchronous producer.send exceptions (producer
-        // closed / interrupted / unexpected runtime) must not escape sendAsync — the
-        // contract is a CompletionStage. (max.block.ms exhaustion routes through the
-        // callback, not this path.)
+        // WI17 (F-39, fact-corrected) + WI26 (F-55): synchronous producer.send exceptions
+        // carry the typed ERR_KAFKA_SEND_FAILED code with the cause chain preserved — the
+        // contract is still a CompletionStage (never a synchronous throw).
         org.mockito.Mockito.doThrow(new IllegalStateException("producer already closed"))
                 .when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         CompletionStage<Void> stage = service.sendAsync("t-f39", "m", null);
         ExecutionException e = assertThrows(ExecutionException.class,
                 () -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS));
-        // NopException.adapt passes RuntimeExceptions through unchanged.
-        assertTrue(e.getCause() instanceof IllegalStateException,
-                "cause must be the adapted original failure, was: " + e.getCause());
+        assertTrue(e.getCause() instanceof NopException,
+                "cause must be the typed NopException, was: " + e.getCause());
+        assertEquals(KafkaErrors.ERR_KAFKA_SEND_FAILED.getErrorCode(),
+                ((NopException) e.getCause()).getErrorCode());
+        assertTrue(e.getCause().getCause() instanceof IllegalStateException,
+                "cause chain must be preserved, was: " + e.getCause().getCause());
     }
 
     @Test
@@ -218,5 +220,25 @@ class TestKafkaMessageServiceSend {
                 NopException.class.cast(e.getCause()).getErrorCode());
         org.mockito.Mockito.verify(producer, org.mockito.Mockito.never())
                 .send(any(ProducerRecord.class), any(Callback.class));
+    }
+
+    // ------------------------------------------------------------------
+    // WI26 (F-55): typed error-code wiring
+    // ------------------------------------------------------------------
+
+    @Test
+    void sendCallbackFailureCarriesTypedSendFailedCode() throws Exception {
+        org.mockito.Mockito.when(producer.send(org.mockito.ArgumentMatchers.any(ProducerRecord.class),
+                org.mockito.ArgumentMatchers.any(Callback.class)))
+                .thenAnswer(inv -> {
+                    ((Callback) inv.getArgument(1)).onCompletion(null,
+                            new org.apache.kafka.common.errors.TimeoutException("broker-down"));
+                    return null;
+                });
+        ExecutionException e = assertThrows(ExecutionException.class, () ->
+                service.sendAsync("t-typed", "m", null).toCompletableFuture().get(2, TimeUnit.SECONDS));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                KafkaErrors.ERR_KAFKA_SEND_FAILED.getErrorCode(),
+                ((NopException) e.getCause()).getErrorCode());
     }
 }
