@@ -5,7 +5,7 @@
 > Source: `ai-dev/design/nop-orm-sharding-execution-engine-design.md`（active，本 plan 唯一语义规格——§3.1 编译期结构信息、§3.2 执行模型与事务、§3.3 连接与事务边界、§3.4 归并分级、§3.5 跨分片 JOIN 边界、§3.8 使用契约与错误码、每分片强制 selector 机制）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI8（执行引擎实施）
 > Related: `ai-dev/plans/2320-orm-sharding-strategy.md`（completed，前置契约：策略注册表/ConfigShardSelector/MissingShardPolicy/绑定校验/GenSqlTransformer 路由/DDL N 表展开——本 plan 建在其上）；`ai-dev/design/nop-orm-sharding-strategy-design.md`（§3.4/§3.6 由本 plan 同步修订）；`ai-dev/plans/2318-orm-enc-assisted-query-columns.md`（同 roadmap 前序 plan，Phase 结构与 Exit Criteria 风格参照）
 
-> 起草说明（guide "Before & After Drafting"）：本计划为 draft。转入 active 前须经独立子 agent 对抗性审查（想象性分析 + 引用准确性 + Exit Criteria 可观测性），审查证据届时补入本节；Blocker 清零后方可进入执行。
+> Draft Review Evidence（2026-10-06）：独立 fresh session 审查——13 条 Baseline 行号级零误差、缓存安全（QueryPlanCacheKey 为编译输入确定函数）与 orderBy→投影序数映射（getProjection identity 匹配先例）两大可行性问题均有现成机制支撑；REJECT 1 Blocker（selectAllShards default"按 pattern 推导"不可实现 + 空全集静默）+ 4 Minor，已全部修订（B1 裁定=default 返回空列表语义 + 空全集显式失败 + ConfigShardSelector 同源断言），设计文档 §3.8 已同步；审查判定修复后无需整轮复审。
 
 ## Purpose
 
