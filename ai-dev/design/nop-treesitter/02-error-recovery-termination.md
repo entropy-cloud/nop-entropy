@@ -136,18 +136,66 @@ verified against the C oracle** — `JsonErrorRecoveryTest`
 `RecoveryTerminationTest`. Meanwhile `ShellAnalysisEndToEndTest`'s existing
 malformed-input assertion also flipped.
 
-**Why this is recorded rather than pursued**: the arithmetic favours the change and
-the measurement against it. Both cannot be right, which means the model of this
-port's representation is incomplete — `buildErrorComposite`'s `bottomPosition` does
-not mean what its name suggests in every call site. Until that is understood, the
-C-verified goldens outrank a derivation: they were checked against the real C
-runtime, and five of them agree with the code as it stands. Changing them to match
-a new derivation would replace verified evidence with a guess.
+**Settled against the real C runtime, not against the goldens.** An oracle was
+built from the local C source (`cc` over `lib/src/lib.c` plus each vendored
+grammar's `parser.c`) and the disputed cases compared directly:
+
+| Case | C runtime | code as it stands |
+|---|---|---|
+| `class A { int f; void m() { return } }` | `(block (ERROR))` | matches |
+| `class A { void m() { int x = ; } }` | `… (variable_declarator … (ERROR))` | matches |
+
+So the two java expectations are genuinely C-verified, and the change is genuinely
+wrong for them. Instrumenting that case explains why:
+
+```
+stalePos=36 postPop=34 firstStart=35 lastEnd=38 sizeStale=2 sizePostPop=4 kids=2
+```
+
+The lookahead is **zero-width**. C's advance is the *sum of each child's
+contribution* — `padding = first child's padding`, `size = first child's size + Σ(padding
++ size)` — which here is 2, not `lastEnd − postPop` = 4, because a zero-width last
+child contributes nothing while still contributing its offset. The earlier
+derivation assumed the merged node spans contiguously to `lastEnd`; it does not.
+
+This is the representation mismatch stated concretely: this port stores `padding`
+as an **absolute** offset and `subtreeSize` as an **advance from the pushing
+position**, whereas C stores `padding` as a **length relative to the parent**.
+C's formula is therefore not directly transplantable into `buildErrorComposite`
+without translating it, and the translation is the unresolved work — not a
+one-line change of `bottomPosition`.
+
+**One caveat found while doing this**: `JsonErrorRecoveryTest`'s
+`multiRoundRecoveryMatchesTheCOracleByteExact` does not live up to its name. For
+`[1 2,` the C runtime produces `(document (ERROR (number) (ERROR (number))))`, while
+the test expects `(document (ERROR (ERROR (number)) (number)))`. The runtime's own
+output agrees with the test, so **both** the expectation and this runtime diverge
+from C here; the test's name and javadoc nonetheless claim byte-exact agreement.
+That claim should not be relied on as oracle evidence, and the divergence is real
+and pre-existing.
 
 The fix for two reproducers in Decision 2 was kept because it changed nothing else:
 629 tests stayed green, which is evidence, not argument.
 
-## Open residual — three reproducers remain
+## Open residual — three reproducers, and the concrete next step
+
+The translation C's formula requires is now specified well enough to attempt:
+`buildErrorComposite` must derive a merged node's advance as the sum of its
+children's contributions — for the first child its `padding` plus `size`, and for
+every later child the full `padding + size` — rather than as `lastEnd − bottom`.
+In this port that means summing each child's `subtreeSize[]` (already an advance
+from its own pushing position) and dropping the `bottomPosition` parameter
+entirely, which also removes the staleness that made the merge path
+order-dependent.
+
+That is a real change to a shared hot path and is **not** attempted here: it cannot
+be validated against five currently-green C-verified expectations plus a bash
+corpus at 100/100 without first establishing which of those expectations the change
+would move, and one of them (`JsonErrorRecoveryTest`, above) has already been shown
+not to be C-verified. Attempting it against a partly-unverified baseline is how the
+rejected change above happened.
+
+### Open residual — three reproducers remain
 
 `echo ${x!y}`, `echo ${x!y}z` and `echo ${x!yy}` still abort. What is established
 about them, so the next attempt does not start over:
