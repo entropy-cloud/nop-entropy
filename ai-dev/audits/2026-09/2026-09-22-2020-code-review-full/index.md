@@ -33,7 +33,7 @@
 | 3.3 | `3.3-batch-deep-audit-a.md` | 0 | **3** | 11 | 14 | done（裁决：不通过附 P1×3——orm-reader 节点解析未接线静默全表加载/processor order 声明失效/allOf 掩蔽 fail-fast 根因终态误持久化 KILLED 不可重启〔TestBatchTaskCheckpoint flaky 收编升级为真产品缺陷〕进 R1.0；**check2 五条 P1 标定全部 already-fixed**（:19/:50/:75/:125 修复+测试复跑绿、:101 归 3.4 对照一致）；28 条全保留降 0 驳 0） | 独立子 agent（见 plan 2330 Closure 段） |
 | 3.4 | `3.4-batch-deep-audit-b.md` | 0 | **2** | 9 | 16 | done（裁决：不通过附 P1×2——snapshotBuilder restore 空列表静默丢弃 chunk/historyStore mandatory 三列 dead-on-arrival 进 R1.0；**check2 七条 3.4 域条目标定全覆盖**（:101 深审维持已修复/:125 修复不可落地由 P1-3.4-002 承载/:153/:180/:205/:231/:249 已修验证）；27 条全保留降 0 驳 0） | 独立子 agent（见 plan 2331 Closure 段） |
 | 3.5 | `3.5-sys-deep-audit.md` | 0 | **1** | 11 | 13 | done（裁决：通过附 P1×1——owner doc 分布式锁入口 ILockService 全仓不存在（文档→API→装配三层断裂，与死装配族 P2-3.5-008/009 同批修复互引）进 R1.0；**check2 13 条标定全部落定**（9 already-fixed + :261 still-live 维持〔DSL 调用点实证〕+ :285 partially fixed + :217 false-positive〔runbook 已文档化 audit/audit-save 分工〕）；**check 锁 P0 反向 already-fixed** 与 6.4 一致（附 14-09 测试证据收窄注记：生产谓词在全部锁测试中零执行，变异全绿）；编译断裂归因钉死 plan 2306 bc9c444cf3 单文件 import 写错（一行修正归 R1.x）；25 条全保留降 0 驳 0；A 面 2 轮 12 条/B 面 5 轮 13 条） | 独立子 agent（见 plan 2332 Closure 段） |
-| 3.6 | — | | | | | todo | |
+| 3.6 | `3.6-report-deep-audit.md` | 0 | **2** | 5 | 12 | done（裁决：通过附 P1×2——①removeCell 展开区域起点减号〔check:103 从未处置仍 live，offset≠0 删错行列〕②角色级报表/数据源权限表全套配置面全仓零消费、引擎取数无角色校验〔契约断裂，nop-datav 下游双轨已成现实〕）进 R1.0；P2×5 含两条挂死（TableExpander 跨维度父格调度死循环/uniqueName `X(1)` 后缀×sheet 循环死循环，独立复现实证）置队首；**check2 26 条标定零虚假申报**（:19 COUNTIF/SUMIF P0 已修复〔复核 8/8 测试确认〕、14+ already-fixed 附修复点、:298 维持暂缓转 R1.0 设计决策项、:508 文件删除核实）；撞车合并 12-05≡13-02 单条目双位点；净 19 条降 0 驳 0；A/B 面各 3 轮深挖） | 独立子 agent（见 plan 2333 Closure 段） |
 | 3.7 | — | | | | | todo | |
 | 3.8 | — | | | | | todo | |
 | 3.9 | — | | | | | todo | |
@@ -125,6 +125,8 @@
 | P1-3.4-001 | `3.4-batch-deep-audit-b.md` | R1.0（OrmBatchRecordSnapshotBuilder.restore 补 ret.add+`"orm-entity"` 魔法值文档） | open |
 | P1-3.4-002 | `3.4-batch-deep-audit-b.md` | R1.0（historyStore mandatory 三列补默认值或显式赋值+钉定测试升级真 IEntityDao flush 校验） | open |
 | P1-3.5-001 | `3.5-sys-deep-audit.md` | R1.0（nop-sys.md 分布式锁入口 ILockService 幻影——改为 IResourceLockManager 真实契约；与 P2-3.5-008/009 死装配族同批修复互引） | open |
+| P1-3.6-001 | `3.6-report-deep-audit.md` | R1.0（CellRowExpander/CellColExpander.removeCell 展开区域起点减号——offset≠0 删错行列；补 offset≠0 回归〔P2-3.6-004 测试缺口同批〕） | open |
+| P1-3.6-002 | `3.6-report-deep-audit.md` | R1.0（NopReportDefinitionAuth/DatasourceAuth/DatasetAuth 权限表零消费——引擎取数接入角色校验或显式休眠+文档勘正；nop-datav 双轨对账） | open |
 
 
 ## P2 裁决台账（例外通道）
