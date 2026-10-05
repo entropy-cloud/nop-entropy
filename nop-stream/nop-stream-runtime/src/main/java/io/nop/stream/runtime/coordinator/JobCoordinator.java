@@ -795,6 +795,15 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } catch (Exception e) {
             LOG.warn("Failed to shut down failure detector during failJob", e);
         }
+        // R5 CC-01: a FAILED job is terminal — tear down assigned tasks exactly
+        // like the symmetric stop()/terminateCancel paths (pre-fix failJob
+        // skipped the cancel fan-out, orphaning remote tasks: running sources,
+        // occupied slot permits, 2PC state, forever). running=false closes the
+        // residual window where a concurrent assignTasks could re-deploy after
+        // the cancel. Best effort per task; never blocks the terminal
+        // transition.
+        this.running = false;
+        cancelAllAssignedTasks("job failed");
     }
 
     // ==================== Task Assignment ====================
@@ -2125,6 +2134,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         List<AssignmentPlanner.AssignmentDispatch> dispatches;
         recoveryLock.lock();
         try {
+            // R5 CC-02: mark active inside the lock after the rotation step so
+            // the internal assignment materialization (prepareAssignmentsLocked)
+            // observes the active state AND a rotation failure rolls back before
+            // anything observes active=true.
+            this.active = true;
             // On leadership grant, rebuild the latestCompletedCheckpoint view
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
@@ -2139,6 +2153,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             dispatches = assignmentPlanner.prepareAssignmentsLocked(
                     remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
             markEverAssigned(dispatches);
+        } catch (RuntimeException e) {
+            // R5 CC-02: on rebuild failure roll back to a clean inactive state
+            // (same discipline as the seed path's deactivation) so a same-epoch
+            // re-grant can retry the FULL rebuild instead of being
+            // short-circuited by the duplicate-activation guard.
+            this.active = false;
+            throw e;
         } finally {
             recoveryLock.unlock();
         }

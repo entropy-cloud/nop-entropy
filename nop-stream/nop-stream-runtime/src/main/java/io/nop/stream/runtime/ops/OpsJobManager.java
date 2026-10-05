@@ -346,6 +346,19 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
      * removes terminal job records past the job-record retention window.
      */
     public synchronized int governanceSweep() {
+        // R5 CC-07: periodic-task containment — an unexpected sweep exception
+        // must not kill the scheduleAtFixedRate task permanently (the executor
+        // silently suppresses subsequent runs after an uncaught throw, unlike
+        // the heartbeat/detector tasks which guard per-run).
+        try {
+            return sweepOnce();
+        } catch (Exception e) {
+            LOG.warn("governance sweep failed unexpectedly — sweep stays scheduled", e);
+            return 0;
+        }
+    }
+
+    private int sweepOnce() {
         long now = CoreMetrics.currentTimeMillis();
         long historyCutoff = now - TimeUnit.MINUTES.toMillis(
                 governanceConfig.getCheckpointHistoryRetentionMinutes());

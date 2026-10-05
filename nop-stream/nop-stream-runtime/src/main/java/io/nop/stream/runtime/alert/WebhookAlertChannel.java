@@ -136,16 +136,23 @@ public class WebhookAlertChannel implements IAlertChannel {
     }
 
     private void drainLoop() {
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
+        // R5 CC-06: per-event exception containment — one bad event (a throwing
+        // stringify/transport edge case) must not kill the single delivery
+        // thread and silently disable the webhook channel for the process
+        // lifetime. Interruption remains the only loop exit.
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
                 AlertEvent event = pending.poll(1, TimeUnit.SECONDS);
                 if (event == null) {
                     continue;
                 }
                 deliverWithRetries(event);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                LOG.warn("webhook alert delivery failed unexpectedly — channel keeps running", e);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
     }
 
