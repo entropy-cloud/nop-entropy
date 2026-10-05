@@ -72,7 +72,11 @@ public class LocalMessageService implements IMessageService {
         @Override
         public void cancel() {
             cancelled = true;
-            removeConsumer(topic, consumer);
+            // WI23 (MSG-F-15): remove by SUBSCRIPTION identity — the old consumer-identity
+            // lookup removed the FIRST matching entry, so with two subscriptions of the
+            // same listener ([A, B]) cancelling B deleted A and left the cancelled B in
+            // place (still receiving, holder A silently unsubscribed).
+            consumers.get(topic).remove(this);
         }
 
         @Override
@@ -127,24 +131,6 @@ public class LocalMessageService implements IMessageService {
         }
     }
 
-    private void removeConsumer(String topic, IMessageConsumer consumer) {
-        List<Subscription> subscriptions = consumers.get(topic);
-        if (subscriptions != null) {
-            Subscription subscription = findSubscription(subscriptions, consumer);
-            if (subscription != null) {
-                subscriptions.remove(subscription);
-            }
-        }
-    }
-
-    private Subscription findSubscription(List<Subscription> subscriptions, IMessageConsumer consumer) {
-        for (Subscription subscription : subscriptions) {
-            if (subscription.consumer == consumer)
-                return subscription;
-        }
-        return null;
-    }
-
     public Set<String> getBroadcastTopics() {
         Set<String> ret = new TreeSet<>();
         for (String topic : consumers.keySet()) {
@@ -165,21 +151,42 @@ public class LocalMessageService implements IMessageService {
         return ret;
     }
 
+    /**
+     * Creates an INDEPENDENT subscription per call (WI23 / MSG-F-15): subscribing the same
+     * listener twice yields two subscriptions that each receive every message, and
+     * cancelling one never affects the other — mirroring the per-subscribe semantics of the
+     * broker backends. The pre-WI23 identity-dedup shape made the second holder share the
+     * first one's Subscription object, so either cancel silently unsubscribed both.
+     */
     @Override
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         Guard.notEmpty(topic, "topic");
         Guard.notNull(listener, "listener");
         MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "local", WARN_ONCE);
+        // WI23 (F-56 residual, D1 matrix Local row): subscribeName / concurrency /
+        // subscriptionType pass the validator (they only require SUBSCRIBE), but the
+        // in-JVM broadcast has no such concepts — declared disposition is warn-once, never
+        // a silent ignore.
+        if (options != null) {
+            if (options.getSubscribeName() != null) {
+                MessageOptionsValidator.warnOnce("local", "subscribeName",
+                        "subscribeName has no meaning for the in-JVM broadcast bus and is ignored");
+            }
+            if (options.getConcurrency() > 1) {
+                MessageOptionsValidator.warnOnce("local", "concurrency",
+                        "concurrency has no meaning for the in-JVM broadcast bus and is ignored");
+            }
+            if (options.getSubscriptionType() != null) {
+                MessageOptionsValidator.warnOnce("local", "subscriptionType",
+                        "subscriptionType " + options.getSubscriptionType()
+                                + " has no meaning for the in-JVM broadcast bus and is ignored");
+            }
+        }
 
         List<Subscription> subscriptions = consumers.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>());
-        synchronized (subscriptions) {
-            Subscription subscription = findSubscription(subscriptions, listener);
-            if (subscription == null) {
-                subscription = new Subscription(topic, listener);
-                subscriptions.add(subscription);
-            }
-            return subscription;
-        }
+        Subscription subscription = new Subscription(topic, listener);
+        subscriptions.add(subscription);
+        return subscription;
     }
 
     @Override
@@ -210,7 +217,11 @@ public class LocalMessageService implements IMessageService {
             if (ret instanceof ConsumeLater) {
                 scheduleRedelivery(subscription, message, ((ConsumeLater) ret).getDelay());
             } else if (ret instanceof TerminateConsume) {
-                // D5(b-prime): acknowledged, no redelivery, no reply.
+                // D5(b-prime): acknowledged, no redelivery, no reply. Local has no DLQ
+                // substrate — the message is dropped with this proof-by-WARN (WI23,
+                // aligned with the broker backends' terminate logging).
+                LOG.warn("nop.message.local.terminate-consume:topic={},reason={}",
+                        subscription.topic, ((TerminateConsume) ret).getReason());
             } else if (ret instanceof PartialCommit) {
                 // Local has no batch consume path and no commit concept; single-message
                 // PartialCommit is treated as completion (declared in the WI6 plan).
@@ -241,7 +252,9 @@ public class LocalMessageService implements IMessageService {
             if (subscription.cancelled || subscription.suspended)
                 return;
             List<Subscription> subscriptions = consumers.get(subscription.topic);
-            if (subscriptions == null || findSubscription(subscriptions, subscription.consumer) == null)
+            // WI23: instance identity — a sibling subscription of the same listener must
+            // not satisfy THIS subscription's presence check.
+            if (subscriptions == null || !subscriptions.contains(subscription))
                 return;
             invokeSubscription(subscription, message);
         }, delay, TimeUnit.MILLISECONDS);

@@ -109,6 +109,15 @@
 - **suspend/resume（F-26 同族）**：Kafka 侧采用**消费线程状态重断言**——期望态（`volatile suspended`）由订阅线程置位；消费线程每轮循环头对全量 assignment 施 pause/resume（差异驱动），`onPartitionsAssigned` 对新分配分区重放挂起态（覆盖首分配前挂起与 rebalance 后挂起）。拒绝单槽令牌方案（suspend→resume 紧邻会丢 resume 致静默停流）。Pulsar 客户端 API 线程安全，pause/resume 直调保持。任务已停止时期望态不再施放（显式语义）。
 - **getProducer 未激活守卫（F-30）**：守卫位于 `buildProducer` 真实实现内（`client == null` → `ERR_PULSAR_SERVICE_NOT_ACTIVE`）——放 `getProducer` 会破坏「override buildProducer 不 init」的测试注入形态。destroy 中途 producers 已 clear 而 client 尚未置空的窄窗内，底层 client 错误经 adapt 面世（非 NPE）。`init/destroy` 重入由 LifeCycleSupport 承担（allowRestart 默认 true）。
 
+### 3.9 Local 后端语义（WI23）
+
+- **投递模型**：in-JVM 广播——`send` 逐订阅同步调用（区别于 Kafka 组内竞争消费与 Pulsar 订阅模式）；同一 listener 重复订阅同一 topic = 两条独立订阅、各自收到一次投递（WI23 裁定：与 broker「每次 subscribe 一个独立订阅」对齐；`ReflectionMessageSubscriptionRegistrar` 同 listener 订多 topic 不受影响，同 topic 重复声明从静默去重变为重复投递——显式订阅的诚实结果）。
+- **订阅独立化（F-15）**：每次 subscribe 新建 `Subscription` 实例；cancel 按实例身份移除（`remove(this)`）；scheduleRedelivery 的存在性检查用实例 `contains`。禁令：不得回退到按 consumer 身份查找（[A,B] 取消 B 误删 A 的 F-15 换形态复发）。
+- **ConsumeLater**：定时器 per-subscription 延迟重投（非 broker 重投队列）；fire-time 重查 cancelled/suspended/实例在位；ack topic 永不收到 ConsumeLater（F-14，契约测试 `consumeLaterDefersRedeliveryWithoutAckReply` 钉定）。
+- **suspend/cancel**：内存标志/注销，无 broker 状态；cancel 后 pending 重投放弃（契约行为非吞错）。
+- **选项字段三态表**：SEND/SUBSCRIBE/ACK_REPLY 生效；DELAYED_SEND/SEND_TIMEOUT/BATCH_CONSUME/SEEK warn-once 忽略（Local 无对应传输）；transactional/transactionTimeout warn-once（D11）；subscribeName/concurrency/subscriptionType warn-once 忽略（WI23 残面收口——in-JVM 广播无此概念，对齐 D1 矩阵 Local 行；validator 因 SUBSCRIBE 能力放行、由后端 in-place warn-once 兜底）。
+- **无 substrate 面**：DLQ/seek/batch/事务均无；TerminateConsume = WARN 留证后丢弃（`nop.message.local.terminate-consume`，对齐 broker 格式）；重试上限（WI22）不适用 Local（无 broker 重投循环，ConsumeLater 即显式延迟重投）。
+
 ## 四、拒绝了什么
 
 - **D9 拒绝 (a) 保留 `nop.message.kafka.*` / `nop.message.pulsar.*` 前缀**：违反平台 `nop.err.[模块].[子域].[错误]` 规范（error-handling.md）；实测旧前缀无任何 i18n / properties 引用，迁移无兼容成本，双前缀共存期无收益。
