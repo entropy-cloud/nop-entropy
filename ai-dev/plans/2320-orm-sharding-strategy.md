@@ -1,6 +1,6 @@
 # 2320 nop-orm 分片策略配置与单分片路由落地
 
-> Plan Status: active（2026-10-05 两轮独立对抗审查：第 1 轮 REJECT——2 Blocker + 5 Major 修复；第 2 轮 fresh session 复审唯一残留 N1 已修，裁定修复后即可 active、无需再开整轮复审；证据见 Draft Review Evidence）
+> Plan Status: completed（2026-10-06；两轮审查 + 四 Phase landed + 独立 closure audit APPROVE，证据见 Draft Review Evidence 与 Closure 段）
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/design/nop-orm-sharding-strategy-design.md`（目标设计，承载本 plan）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI2/WI6
 
@@ -149,8 +149,8 @@ Exit Criteria:
 - [x] 5 内置算法 + 绑定校验 + N 表 DDL 各有 focused 测试；未配置时既有行为零变更
 - [x] `selectShards`/`isSupportShard` 死面已移除且全仓编译/测试无断裂（含 nop-auth MockShardSelector 适配）
 - [x] owner docs 与设计文档（转 active）一致
-- [ ] 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：路由在读写两条链路真实生效）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2320-orm-sharding-strategy.md --strict` 退出码 0
+- [x] 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：路由在读写两条链路真实生效）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2320-orm-sharding-strategy.md --strict` 退出码 0
 - [x] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dbtool/nop-dbtool-core,nop-autotest/nop-autotest-core -am` 通过
 - [x] 全仓编译门禁：`./mvnw clean install -DskipTests -T 1C` 通过（覆盖 nop-auth-service 等 -pl 集合外的模块，证明死面移除无断编译）
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
@@ -171,5 +171,16 @@ Completed:
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: fresh-closure-audit-2026-10-06（独立 fresh session closure auditor，与实现无关；审计基线=live repo 回看 + 实现提交 60d6591529，不信任实现记录；定向测试本人重跑）
 - Evidence:
+  - **Phase 1 Exit Criteria：5/5 PASS**。TestShardStrategy 审计重跑绿（nop-dao exit 0；18 用例：5 算法边界/负数(-1L→"3")/非整数/null 分片键显式错误、注册表解析、重复绑定/未知 default-strategy/坏 JSON/未知类型拒绝、default-shard 策略两规则、testEmptySelectorUnchanged）；无配置零变更=ConfigShardSelector 无配置路径 return null/NONE + orm-defaults.beans.xml 以 ioc:default 换装 ConfigShardSelector + AbstractOrmTestCase.shardSelector() 缺省 null；Decision 已回写设计文档 §6.1；logs 已更新。
+  - **Phase 2 Exit Criteria：5/5 PASS**。读/写/绑定表/失败矩阵 focused 断言在 TestOrmShardRouting（审计重跑 8/8 绿）；接线验证（#23）=RecordingSelector.callCount/calls 断言（`test.entity.TestOrmShardTable:nopShard:1`）+ 物理表落点可观察（TEST_ORM_SHARD_TABLE_0/_1 各 1 行、基表 0 行）；无静默跳过=缺键 FAIL 抛 ERR_ORM_SHARD_CONDITION_MISSING（断言 errorCode+实体名+分片键列名；覆盖无条件/范围/OR 分支/null 值）、DEFAULT_SHARD 无法解析回落亦显式抛错（GenSqlTransformer.java:145-157）。
+  - **Phase 3 Exit Criteria：4/4 PASS**。三调用点：①DataBaseSchemaInitializer（TestShardDdlExpansion：展开全集/显式表名 DDL 重定向/逐表建表/加列重定向；既有 TestDataBaseSchemaInitializer 回归绿）；②OrmDbDiffer/DataBaseUpgrader（TestShardAutoUpgrade 真 H2：旧库仅 T_SHARD_UPG_0/1 缺 NOTE 列 → upgrade 后两表各含 NOTE、逻辑基表不建出、存量数据保留）；③AutoTestCaseDataBaseInitializer（TestAutoTestShardTableInit：绑定建 N 表/未绑定建单表）。未绑定零变更=ShardDdlHelper.shardTableNames 空列表语义。注（非阻塞）：调用点①测试为镜像循环形态而非直接 invoke init()，机制与显式表名入口已覆盖，init() 循环经提交 diff 代码审查确认。
+  - **Phase 4 Exit Criteria：3/3 PASS**。端到端 testSaveWritesToShardTableAndQueryByShardKeyHitsSameTable（配置→写路由→读路由→fail-fast 全链）；owner doc orm-sharding.md 与 live 一致 + INDEX.md:85 路由存在；doc-links 收口时点 exit 0（logs 10-06 记录）；本审计时点重跑 exit=1，但 2 error 均位于范围外文件（eql-cross-db-compat 两份 adjudications 引用易失 target/surefire-reports 路径），plan 2320 自身仅 2 条 warning（L112/L116 Targets 行代码路径引用，与 2319/nop-bytecode plan 既存同模式）——当前失败不归因本 plan，记为范围外既存 doc-hygiene 问题。
+  - **Closure Gates**：G1-G5、G8-G10 PASS（G8/G9 为 logs 记录的全量回归/全仓 install BUILD SUCCESS + 本审计定向重跑绿佐证）；G6=本条审计；G7 待证据写入后主会话复跑确认。
+  - **工具输出（审计本人执行）**：check-plan-checklist --strict 退出码 0（2 未勾=audit/checklist 两条 gate 属分工预期，非 completed plan 仅 warning）；scan-hollow-implementations --severity high：nop-dao exit 0（122 文件 0 发现）、nop-orm exit 0（149 文件 0 发现）；定向测试：TestShardStrategy 绿、TestOrmShardRouting+TestShardBindingValidation+TestShardReadWriteCombined 共 12 绿（nop-orm BUILD SUCCESS）。
+  - **Anti-Hollow 链追踪（全部真实连通）**：(a) 查询路由=EQL shardProp 等值→ShardMarkerInjector（EqlCompiler 生成完成后调用，7 参构造器替换 TABLE marker，只携参数序数/字面量静态信息）→GenSqlTransformer.collectShardSelections(sql,paramValues)（resolveShardValue 按 marker 序数从 paramValues 现取）→selectShard→transformTable 表名 `_N` 改写；证据=RecordingSelector 接线断言+物理表 countRows 断言。(b) 写路由=EntityPersisterImpl.getShardSelection（live :264-281 既有直取）→env.getShardSelector()；GenSqlHelper.transformShard 未动；证据=testSaveRoutesToShardPhysicalTableNotBase+端到端基表 0 行断言。(c) 缺分片键=fail/default 两态测试在（testMissingShardKeyFailsFast/testDefaultShardPolicyFallsBack）；绑定校验两态=有配置 fail-fast（testUnboundShardEntityFailsFastWhenConfigExists）/无配置零校验（testNoConfigMeansNoValidation）；既有 useShard 实体零变更=提交 60d6591529 未改任何 orm 模型（仅新增 2 个测试资源 shard-upgrade.orm.xml；base.orm.xml 的 useShard 实体 TestOrmShardTable/TestOrmTable 均为既有实体）。(d) DDL=三调用点测试+auto-upgrade N 表列 diff。(e) 组合 E2E=TestShardReadWriteCombined 真实叠加 plan 2319 ReadWriteRoutingDataSource（query-space-pattern=ds_{shard}；save 落主库分片表、无事务 SELECT 从库计数器+1、default querySpace 对照不触碰路由 DS）；2319 已落地（closure 提交 a3a6e2df2f）。
+  - **执行约束核查**：(1) nop-core 零改动=`git show 60d6591529 --name-only` 无 nop-kernel/nop-core 路径（grep exit 1），且 `35e40f53ba..HEAD` 无 nop-core 提交；(2) marker 只携静态信息=ShardMarkerInjector.replaceTableMarkers 仅写入 paramValueOrdinal/literal，执行期值一律由 GenSqlTransformer 从 paramValues 现取（CompiledSql 缓存安全）；(3) 写路径三处（EntityPersisterImpl/GenSqlHelper/CollectionPersisterImpl）不在提交文件清单（grep exit 1）。
+  - **Deferred/Follow-up 分类检查**：Deferred But Adjudicated 留空成立（组合 E2E 前置 2319 已落地，条件性移入未触发）；两条 Non-Blocking Follow-ups（分库完整 E2E 矩阵=v1 Non-Goals 明示 focused 即可；interval 时区细化=v1 定义为本地日期）均为 optimization candidate；无 in-scope live defect/contract drift 被降级。
+  - **次要观察（非阻塞）**：①doc-links 当前 2 error 位于范围外 eql-cross-db-compat 文档（target/ 下易失路径），建议后续单独清理；②nop-auth MockShardSelector 适配为编译面（仅留 selectShard，live 文件在），与 Out-of-Scope 裁定一致。
+  - **裁定：APPROVE closure**——Phase 1-4 Exit Criteria 全部 live 证据 PASS；Anti-Hollow 读写两链+DDL+组合 E2E 真实连通；三条执行约束 git/代码层核实无违反；无 in-scope 项被静默降级。

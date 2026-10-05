@@ -11,7 +11,7 @@
 
 | 复核项 | 结论 | 证据 |
 |---|---|---|
-| WI0 产物 1：语料基线快照 | **未回退**。`TestEqlCorpusBaseline` 1/1 PASS（surefire 报告 `Tests run: 1, Failures: 0`，mtime 2026-10-04 18:46；HEAD `8be89b0bc8`（2026-10-04 18:54）为**纯文档提交**（4 个 ai-dev/docs 文件，`git diff --stat` 实证零代码 delta），最后一次代码提交 `cb918dd3cc`（WI8 Phase 3）早于报告 mtime ⇒ 报告反映当前代码态）。Phase 3 终局门按组合判据复跑 | `nop-persistence/nop-orm-eql/target/surefire-reports/io.nop.orm.eql.parse.TestEqlCorpusBaseline.txt` + git diff 实测 |
+| WI0 产物 1：语料基线快照 | **未回退**。`TestEqlCorpusBaseline` 1/1 PASS（surefire 报告 `Tests run: 1, Failures: 0`，mtime 2026-10-04 18:46；HEAD `8be89b0bc8`（2026-10-04 18:54）为**纯文档提交**（4 个 ai-dev/docs 文件，`git diff --stat` 实证零代码 delta），最后一次代码提交 `cb918dd3cc`（WI8 Phase 3）早于报告 mtime ⇒ 报告反映当前代码态）。Phase 3 终局门按组合判据复跑 | nop-orm-eql 模块构建产物目录（target/surefire-reports，易失不入库）下的 io.nop.orm.eql.parse.TestEqlCorpusBaseline.txt + git diff 实测 |
 | WI0 产物 2：方言矩阵快照门禁 | **未回退**。`node ai-dev/tools/check-eql-dialect-matrix-snapshot.mjs` exit 0（18 个 dialect XML、18 注册、15 可加载、3 不可加载） | 门禁输出与本节记录 |
 | 硬前置 plan 状态 | WI9a `completed`（closure 2026-10-04；提交链 `5154661e75`/`41bfbcba56` 经 `git cat-file -t` 实证在 history）、WI0/WI2 `completed`、G-1/G-3 已裁决（2026-10-03）——与 plan Current Baseline 一致，无排队门 | `git log` + 各 plan 文件 |
 | roadmap WI9b 行状态 | `planned`（`:92`，执行前流转已发生）——依赖图 `WI9a --> WI9b` 已解锁 | roadmap Work Item Status |
