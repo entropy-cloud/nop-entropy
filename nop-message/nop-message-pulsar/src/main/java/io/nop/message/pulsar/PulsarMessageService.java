@@ -19,7 +19,9 @@ import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import io.nop.api.core.message.MultiMessageSubscription;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.commons.service.LifeCycleSupport;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.Producer;
@@ -47,7 +49,14 @@ import java.util.concurrent.TimeUnit;
 
 import static io.nop.message.pulsar.PulsarErrors.ERR_SERVICE_URL_NOT_CONFIGURED;
 
-public class PulsarMessageService implements IMessageService {
+/**
+ * Pulsar backend for {@link IMessageService}. Lifecycle runs on the platform
+ * {@link LifeCycleSupport} state machine (WI19): the public {@link #init()} /
+ * {@link #destroy()} pair required by the beans wiring delegates to {@code start()} /
+ * {@code stop()}, so IoC callers, tests and lifecycle tooling share one idempotent state
+ * machine.
+ */
+public class PulsarMessageService extends LifeCycleSupport implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(PulsarMessageService.class);
 
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
@@ -87,18 +96,50 @@ public class PulsarMessageService implements IMessageService {
         }
     }
 
-    public void init() throws PulsarClientException {
+    /**
+     * Beans-wiring entry point ({@code init-method="init"}), delegating to the
+     * {@link LifeCycleSupport} state machine. Failure semantics: a missing serviceUrl
+     * rejects with {@code ERR_SERVICE_URL_NOT_CONFIGURED}; a failed broker client creation
+     * surfaces as {@code NopException.adapt(cause)} — the pre-WI19 checked
+     * {@code throws PulsarClientException} no longer exists because
+     * {@code LifeCycleSupport.doStart()} cannot declare checked exceptions.
+     */
+    public void init() {
+        start();
+    }
+
+    @Override
+    protected void doStart() {
         if (config == null || config.getServiceUrl() == null) {
             throw new NopException(ERR_SERVICE_URL_NOT_CONFIGURED);
         }
-        client = PulsarClient.builder()
-                .serviceUrl(config.getServiceUrl())
-                .build();
+        client = createClient();
 
         LOG.info("nop.message.pulsar.initialized:serviceUrl={}", config.getServiceUrl());
     }
 
+    /** Injection seam for tests (mirrors the Kafka createConsumer factory): lets a test
+     * subclass supply a mock {@link PulsarClient} so lifecycle tests need no broker. */
+    protected PulsarClient createClient() {
+        try {
+            return PulsarClient.builder()
+                    .serviceUrl(config.getServiceUrl())
+                    .build();
+        } catch (PulsarClientException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /** Beans-wiring entry point ({@code destroy-method="destroy"}). */
     public void destroy() {
+        stop();
+    }
+
+    @Override
+    protected void doStop() {
+        // F-27: this closes producers BEFORE subscriptions today. The adjudicated order is
+        // subscriptions first (in-flight sends during shutdown must not hit a closed
+        // producer); the reorder is WI20's exit criterion and intentionally untouched here.
         for (Producer<?> producer : producers.values()) {
             try {
                 producer.close();
@@ -291,7 +332,14 @@ public class PulsarMessageService implements IMessageService {
                 }
             }
 
-            executor = Executors.newSingleThreadExecutor();
+            // F-24 (WI19): consume threads are daemon and named. identity = subscribeName
+            // (fallback: topic — a missing subscribeName being accepted at all is F-29/WI29);
+            // NamedThreadFactory's per-instance pool suffix keeps fan-out and multi-subscribe
+            // threads distinguishable (no more pool-N-thread-1).
+            String identity = options != null && options.getSubscribeName() != null
+                    ? options.getSubscribeName() : String.valueOf(subConfig.getTopic());
+            executor = Executors.newSingleThreadExecutor(
+                    new NamedThreadFactory("nop-msg-pulsar-consume-" + identity, true));
             PulsarConsumeTask task = new PulsarConsumeTask(this, executor,
                     (Consumer<Object>) consumer, subConfig);
             task.start();

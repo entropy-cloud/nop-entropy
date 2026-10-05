@@ -28,20 +28,35 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class PulsarConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(PulsarConsumeTask.class);
 
     private static final long DEFAULT_CONSUME_ERROR_BACKOFF_MS = 1000;
 
+    /**
+     * Bounded wait per receive round (MSG-F-54, WI19): the run loop re-checks
+     * {@code active} at least once per timeout even when no message arrives, so
+     * {@link #stop()} terminates the task in bounded time WITHOUT depending on
+     * {@code consumer.close()} to unblock it (previously the loop blocked in the no-timeout
+     * {@code receive()} until close threw AlreadyClosedException). Mirrors the Kafka poll
+     * timeout default. Deliberately a constant, not an SPI option field: an option no
+     * backend reads would violate the no-dead-options constraint.
+     */
+    static final long DEFAULT_RECEIVE_TIMEOUT_MS = 1000L;
+
     private final ExecutorService executor;
     private final Consumer<Object> pulsarConsumer;
     private final PulsarMessageService service;
     private final MessageSubscriptionConfig config;
     private final long consumeErrorBackoffMs;
+    private long receiveTimeoutMs = DEFAULT_RECEIVE_TIMEOUT_MS;
 
     private volatile boolean active = false;
     // WI16: message-level failure context, filled by the inner catches before rethrow.
@@ -49,6 +64,16 @@ public class PulsarConsumeTask {
     private String lastFailureLocation;
     private Object lastFailureMessage;
     private final java.util.Map<String, Integer> failureAttempts = new java.util.HashMap<>();
+
+    /**
+     * Pending {@link Consumer#batchReceiveAsync()} future, retained across receive-timeout
+     * rounds (WI19). Pulsar 2.8 has no batchReceive(timeout) overload; re-issuing a new
+     * batchReceiveAsync after every timeout would accumulate abandoned pending requests
+     * inside the client whose messages could never be acked, so the SAME future is awaited
+     * again. Confined to the single task thread (like the other loop state); {@code active}
+     * is the only cross-thread flag.
+     */
+    private CompletableFuture<Messages<Object>> pendingBatch;
 
     public PulsarConsumeTask(PulsarMessageService service, ExecutorService executor,
                              Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
@@ -101,12 +126,70 @@ public class PulsarConsumeTask {
         active = false;
     }
 
+    /**
+     * Bounded stop (MSG-F-54, WI19): the run loop waits on receive / batchReceiveAsync with
+     * a finite timeout ({@link #DEFAULT_RECEIVE_TIMEOUT_MS}), so it observes
+     * {@code active == false} within one timeout round even when no message ever arrives.
+     * It never wakes or closes the consumer — closing remains the subscription-cancel
+     * path's job (its ordering is WI20) — and loop exit never depends on close-induced
+     * exceptions.
+     */
     public boolean isActive() {
         return active;
     }
 
+    /** Test seam (mirrors the Kafka pollTimeoutMs wiring): shrinks the bounded-wait round. */
+    void setReceiveTimeoutMs(long receiveTimeoutMs) {
+        this.receiveTimeoutMs = receiveTimeoutMs;
+    }
+
+    /**
+     * Bounded batch receive (MSG-F-54, WI19). Pulsar 2.8 has no batchReceive(timeout)
+     * overload, so the task awaits {@link Consumer#batchReceiveAsync()} with a finite
+     * timeout while RETAINING the pending future:
+     * <ul>
+     * <li>Timeout with {@code active} still set → the SAME future is awaited again (never
+     * re-issued — an abandoned pending request would accumulate in the client and strand
+     * its messages unacked).</li>
+     * <li>Timeout with stop requested → returns null; the run loop re-checks
+     * {@code active} and exits bounded. Any message that later completes the abandoned
+     * future stays unacked and is redelivered by Pulsar when the consumer closes — the only
+     * production caller of stop() is the cancel path, which closes the consumer right
+     * after.</li>
+     * <li>Exceptional completion (consumer closed, broker disconnected) → the pending
+     * future is cleared and the cause rethrown so the run loop's backoff path takes over;
+     * retaining a dead future would turn every round into an immediate error loop.</li>
+     * <li>Interrupt (forced shutdown) → the interrupt flag is restored and null returned;
+     * the loop's active check decides exit (standard interruption protocol, not a silent
+     * skip).</li>
+     * </ul>
+     */
+    private Messages<Object> receiveBatchBounded() throws Exception {
+        if (pendingBatch == null) {
+            pendingBatch = pulsarConsumer.batchReceiveAsync();
+        }
+        try {
+            Messages<Object> messages = pendingBatch.get(receiveTimeoutMs, TimeUnit.MILLISECONDS);
+            pendingBatch = null;
+            return messages;
+        } catch (TimeoutException e) {
+            // Keep pendingBatch; empty round — the loop re-checks active (bounded stop).
+            return null;
+        } catch (ExecutionException e) {
+            pendingBatch = null;
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception) {
+                throw (Exception) cause;
+            }
+            throw new IllegalStateException("batchReceiveAsync failed", cause);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+    }
+
     void batchConsume() throws Exception {
-        Messages<Object> messages = pulsarConsumer.batchReceive();
+        Messages<Object> messages = receiveBatchBounded();
         if (messages == null)
             return;
 
@@ -178,7 +261,10 @@ public class PulsarConsumeTask {
     }
 
     void consume() throws Exception {
-        Message<Object> message = pulsarConsumer.receive();
+        // MSG-F-54 (WI19): bounded receive — null on timeout — so the loop re-checks
+        // active at least once per DEFAULT_RECEIVE_TIMEOUT_MS instead of blocking until
+        // the next message or a close-induced exception.
+        Message<Object> message = pulsarConsumer.receive((int) receiveTimeoutMs, TimeUnit.MILLISECONDS);
         if (message == null)
             return;
 

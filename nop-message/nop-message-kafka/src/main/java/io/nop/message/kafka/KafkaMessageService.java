@@ -19,6 +19,8 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import io.nop.api.core.message.MultiMessageSubscription;
+import io.nop.commons.concurrent.thread.NamedThreadFactory;
+import io.nop.commons.service.LifeCycleSupport;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -57,10 +59,11 @@ import static io.nop.message.kafka.KafkaErrors.ERR_GROUP_ID_NOT_CONFIGURED;
  * {@link KafkaConsumer} poll loop driven by {@link KafkaConsumeTask}, which handles the
  * 5 documented {@code IMessageConsumer.onMessage} return-value semantics.
  *
- * <p>Lifecycle methods are {@code init()} / {@code destroy()} (NOT close), matching
- * {@code PulsarMessageService}.
+ * <p>Lifecycle runs on the platform {@link LifeCycleSupport} state machine (WI19): the
+ * public {@code init()} / {@code destroy()} pair required by the beans wiring delegates to
+ * {@code start()} / {@code stop()}, matching {@code PulsarMessageService}.
  */
-public class KafkaMessageService implements IMessageService {
+public class KafkaMessageService extends LifeCycleSupport implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(KafkaMessageService.class);
 
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
@@ -97,10 +100,17 @@ public class KafkaMessageService implements IMessageService {
     }
 
     /**
-     * Validates {@code bootstrapServers} non-empty and initializes the producer. Throws
-     * {@link NopException} (not a bare RuntimeException) when misconfigured.
+     * Beans-wiring entry point ({@code init-method="init"}), delegating to the
+     * {@link LifeCycleSupport} state machine. A missing bootstrapServers rejects with
+     * {@code ERR_BOOTSTRAP_SERVERS_NOT_CONFIGURED} exactly as before (NopException passes
+     * through {@code LifeCycleSupport.start()}'s rethrow unchanged).
      */
     public void init() {
+        start();
+    }
+
+    @Override
+    protected void doStart() {
         if (config == null || config.getBootstrapServers() == null || config.getBootstrapServers().isEmpty()) {
             throw error(ERR_BOOTSTRAP_SERVERS_NOT_CONFIGURED,
                     "KafkaClientConfig.bootstrapServers is not configured");
@@ -110,12 +120,18 @@ public class KafkaMessageService implements IMessageService {
         LOG.info("nop.message.kafka.initialized:bootstrapServers={}", config.getBootstrapServers());
     }
 
+    /** Beans-wiring entry point ({@code destroy-method="destroy"}). */
+    public void destroy() {
+        stop();
+    }
+
     /**
      * Graceful shutdown: cancels every subscription (stops poll threads + closes
-     * consumers), then closes the producer. Method name is {@code destroy} (NOT close),
-     * matching {@code PulsarMessageService.destroy}.
+     * consumers), then closes the producer. Idempotent via the
+     * {@link LifeCycleSupport} stop state machine.
      */
-    public void destroy() {
+    @Override
+    protected void doStop() {
         for (KafkaMessageSubscription subscription : subscriptions) {
             try {
                 subscription.cancel();
@@ -346,17 +362,27 @@ public class KafkaMessageService implements IMessageService {
 
         warnIfAutoCommit();
 
-        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "kafka-consume-" + groupId);
-            t.setDaemon(true);
-            return t;
-        });
+        // F-24 (WI19): consume threads are daemon and named; NamedThreadFactory's
+        // per-subscription pool suffix makes fan-out members of the same group
+        // distinguishable (the previous inline factory named all of them identically).
+        NamedThreadFactory threadFactory = consumeThreadFactory(groupId);
+        ExecutorService executor = Executors.newSingleThreadExecutor(threadFactory);
         task.bindExecutor(executor, pollTimeout);
         task.start();
 
         KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
         subscriptions.add(subscription);
         return subscription;
+    }
+
+    /**
+     * F-24 (WI19): consume-thread factory for one subscription — daemon, name prefix
+     * {@code nop-msg-kafka-consume-<groupId>}, with NamedThreadFactory's
+     * {@code -<pool>-<thread>} suffix distinguishing fan-out members. Package-private for
+     * the naming tests.
+     */
+    NamedThreadFactory consumeThreadFactory(String groupId) {
+        return new NamedThreadFactory("nop-msg-kafka-consume-" + groupId, true);
     }
 
     /**

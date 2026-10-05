@@ -75,6 +75,13 @@
 - `ConsumeContext.commit()/rollback()` 为显式 no-op（at-least-once 基线）：消息层 ack 语义由返回值协议与各后端的 ack/提交机制承担，事务不作为消费语义的一部分。
 - 未来若引入事务：按 message-contract D1 的 `TRANSACTION` 能力声明逐后端实现（当前无后端声明）。
 
+### 3.8 线程模型与有界关闭（WI19）
+
+- **线程命名与 daemon**：两后端消费线程统一经 `NamedThreadFactory(prefix, daemon=true)` 创建。Kafka prefix `nop-msg-kafka-consume-<groupId>`；Pulsar prefix `nop-msg-pulsar-consume-<subscribeName>`（缺失时 fallback topic 名——缺失本身可被接受是 F-29/WI29 的缺陷，非本契约承诺）。factory 的 `-<poolNumber>-<threadNumber>` 后缀（JVM 级计数器）保证 fan-out 与多订阅线程互异；名称断言只允许前缀匹配，不允许断言完整名。禁止无 ThreadFactory 的 `Executors.newSingleThreadExecutor()`。
+- **有界停止**：消费循环每轮等待有界（Kafka `poll(pollTimeoutMs)` + wakeup；Pulsar 单条 `receive(1s)`、批量 `batchReceiveAsync().get(1s)`）。`stop()` 只翻转 `active`；退出上界 = 一个等待轮 + 单批处理耗时，**不依赖 `consumer.close()` 抛异常解阻**。接收超时为常量 1000ms（对齐 Kafka poll 默认值），不是 SPI 选项字段——不可再引入「声明了但从不读」的配置键。
+- **Pulsar 批量保留模式**：2.8 无 `batchReceive(timeout)` 重载，任务持有同一个 `batchReceiveAsync()` future 跨轮复等；禁止每轮超时后重新发起请求（会在客户端积压无人 ack 的弃请求）。future 异常完成（close/断连）时清空并上抛交 runTask 退避路径；中断时恢复中断标志后按 active 决定退出。stop 时遗留的未完成 future 其消息由 Pulsar close/重连未确认重投语义兜底（生产 stop 仅发生于 cancel 路径，其后必跟 close）。
+- **LifeCycleSupport 统一**：两后端 service `extends LifeCycleSupport`，公开 `init()/destroy()`（beans.xml `init-method/destroy-method` 契约不变）一行委托 `start()/stop()`；真实逻辑在 `doStart()/doStop()`。Pulsar 的 `init()` 不再声明 `throws PulsarClientException`（doStart 无受检异常面）——client 创建失败经 `NopException.adapt` 包装为 `NopWrapException` 抛出（全仓无调用方依赖原受检类型）；`PulsarClient` 经 `createClient()` protected seam 注入（对齐 Kafka `createConsumer` 先例）。destroy 顺序（F-27）与 cancel 幂等（F-25/F-26/F-30）归 WI20，不在本契约内。
+
 ## 四、拒绝了什么
 
 - **D9 拒绝 (a) 保留 `nop.message.kafka.*` / `nop.message.pulsar.*` 前缀**：违反平台 `nop.err.[模块].[子域].[错误]` 规范（error-handling.md）；实测旧前缀无任何 i18n / properties 引用，迁移无兼容成本，双前缀共存期无收益。

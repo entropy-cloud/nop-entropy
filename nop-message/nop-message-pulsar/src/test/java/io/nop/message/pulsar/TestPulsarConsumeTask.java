@@ -106,7 +106,10 @@ class TestPulsarConsumeTask {
         when(m1.getMessageId()).thenReturn(id1);
         when(m2.getMessageId()).thenReturn(id2);
         when(m3.getMessageId()).thenReturn(id3);
-        when(consumer.batchReceive()).thenReturn(messages, (org.apache.pulsar.client.api.Messages<Object>) null);
+        // WI19: batchConsume now awaits batchReceiveAsync with a bounded timeout (retention
+        // pattern) — the stub returns an already-completed future.
+        when(consumer.batchReceiveAsync()).thenReturn(
+                java.util.concurrent.CompletableFuture.completedFuture(messages));
         when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any()))
                 .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
         when(service.getAckTopic(org.mockito.ArgumentMatchers.anyString())).thenReturn("ack-t-partial");
@@ -196,9 +199,11 @@ class TestPulsarConsumeTask {
         when(svc.builder.subscriptionName(org.mockito.ArgumentMatchers.anyString())).thenReturn(svc.builder);
         when(svc.builder.subscriptionType(org.mockito.ArgumentMatchers.any())).thenReturn(svc.builder);
         when(svc.builder.subscriptionInitialPosition(org.mockito.ArgumentMatchers.any())).thenReturn(svc.builder);
-        // receive() must block rather than spin: tests cancel the subscription (which stops
-        // the task) right after their assertions.
-        when(svc.consumer.receive()).thenAnswer(inv -> {
+        // receive(timeout, unit) must block rather than spin: tests cancel the subscription
+        // (which stops the task) right after their assertions. WI19 migrated the stub from
+        // the no-arg receive() to the bounded form (anyInt — Pulsar 2.8 takes an int).
+        when(svc.consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
             new java.util.concurrent.CountDownLatch(1).await();
             return null;
         });
@@ -290,7 +295,8 @@ class TestPulsarConsumeTask {
         java.util.concurrent.CountDownLatch afterFirstDelivery = new java.util.concurrent.CountDownLatch(1);
         org.apache.pulsar.client.api.Consumer<Object> consumer =
                 mock(org.apache.pulsar.client.api.Consumer.class);
-        when(consumer.receive()).thenReturn(request).thenAnswer(inv -> {
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(request).thenAnswer(inv -> {
             afterFirstDelivery.await();
             return null;
         });
@@ -355,7 +361,8 @@ class TestPulsarConsumeTask {
         java.util.concurrent.CountDownLatch afterFirstDelivery = new java.util.concurrent.CountDownLatch(1);
         org.apache.pulsar.client.api.Consumer<Object> consumer =
                 mock(org.apache.pulsar.client.api.Consumer.class);
-        when(consumer.receive()).thenReturn(request).thenAnswer(inv -> {
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(request).thenAnswer(inv -> {
             afterFirstDelivery.await();
             return null;
         });
@@ -410,7 +417,8 @@ class TestPulsarConsumeTask {
 
         org.apache.pulsar.client.api.Messages<Object> messages =
                 mock(org.apache.pulsar.client.api.Messages.class);
-        when(consumer.receive()).thenReturn(message);
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(message);
         IMessageConsumer failingConsumer = mock(IMessageConsumer.class);
         doThrow(new IllegalStateException("handler-boom"))
                 .when(failingConsumer).onMessage(org.mockito.ArgumentMatchers.anyString(),
@@ -441,7 +449,8 @@ class TestPulsarConsumeTask {
 
         java.util.concurrent.CountDownLatch afterFailure = new java.util.concurrent.CountDownLatch(1);
         java.util.concurrent.atomic.AtomicLong secondReceiveAt = new java.util.concurrent.atomic.AtomicLong();
-        when(consumer.receive()).thenReturn(message).thenAnswer(inv -> {
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(message).thenAnswer(inv -> {
             secondReceiveAt.set(System.nanoTime());
             afterFailure.await();
             return null;
@@ -548,5 +557,158 @@ class TestPulsarConsumeTask {
     void capabilitiesDeclareSeek() {
         assertTrue(new PulsarMessageService().getCapabilities()
                 .contains(io.nop.api.core.message.MessageCapability.SEEK));
+    }
+
+    // ------------------------------------------------------------------
+    // WI19: thread model (F-24) and bounded shutdown (F-54)
+    // ------------------------------------------------------------------
+
+    /** Daemon-thread executor so a test failure cannot leak a non-daemon thread into CI. */
+    private static ExecutorService daemonExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "pulsar-task-test");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    @Test
+    void stopExitsBoundedlyWithoutCloseWhenNoMessageArrives() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        // Behave like the real idle API: sleep the FULL requested timeout, then null.
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
+                    Thread.sleep(Math.max(1, inv.getArgument(0, Integer.class)));
+                    return null;
+                });
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-stop",
+                (t, m, c) -> null, new MessageSubscribeOptions());
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(100);
+
+        task.start();
+        Thread.sleep(50); // the task is now inside a receive round with no message in sight
+        task.stop();
+        executor.shutdown(); // no new submissions; the RUNNING task must still finish itself
+
+        // Bounded exit: within one receive round + slack, WITHOUT close() unblocking it.
+        assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS),
+                "stop must terminate the loop within one receive timeout");
+        verify(consumer, never()).close();
+    }
+
+    @Test
+    void stopExitsBoundedlyInBatchModeAndRetainsSinglePendingRequest() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        // A batch request that never completes: the loop can only exit via the timeout
+        // round noticing active == false.
+        when(consumer.batchReceiveAsync())
+                .thenReturn(new java.util.concurrent.CompletableFuture<>());
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10); // allowBatchConsume() == true
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-stop-batch",
+                (t, m, c) -> null, options);
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(100);
+
+        task.start();
+        Thread.sleep(50);
+        task.stop();
+        executor.shutdown();
+
+        assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS),
+                "stop must terminate the batch loop within one receive timeout");
+        // Retention: exactly ONE batchReceiveAsync was issued — no re-issue storm per
+        // timeout round (an abandoned pending request would strand unacked messages).
+        verify(consumer, org.mockito.Mockito.times(1)).batchReceiveAsync();
+        verify(consumer, never()).close();
+    }
+
+    @Test
+    void batchReceiveFailureClearsPendingBatchAndPropagates() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        java.util.concurrent.CompletableFuture<org.apache.pulsar.client.api.Messages<Object>> failed =
+                new java.util.concurrent.CompletableFuture<>();
+        failed.completeExceptionally(
+                new org.apache.pulsar.client.api.PulsarClientException.AlreadyClosedException("closed"));
+        when(consumer.batchReceiveAsync()).thenReturn(failed);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-batch-fail",
+                (t, m, c) -> null, options);
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(100);
+
+        // The cause is unwrapped and rethrown so the run loop's backoff path takes over
+        // (retaining a dead future would loop on immediate errors forever).
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.apache.pulsar.client.api.PulsarClientException.class, task::batchConsume);
+        // The dead future was cleared: the next round issues a NEW request (which fails the
+        // same way here — the mock always fails) instead of hitting the SAME dead future.
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.apache.pulsar.client.api.PulsarClientException.class, task::batchConsume);
+        verify(consumer, org.mockito.Mockito.times(2)).batchReceiveAsync();
+        executor.shutdownNow();
+    }
+
+    @Test
+    void batchReceiveTimeoutRetainsSamePendingFutureAcrossRounds() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        java.util.concurrent.CompletableFuture<org.apache.pulsar.client.api.Messages<Object>> pending =
+                new java.util.concurrent.CompletableFuture<>();
+        when(consumer.batchReceiveAsync()).thenReturn(pending);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-batch-hold",
+                (t, m, c) -> null, options);
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(50);
+
+        // Two empty rounds (timeouts) must NOT re-issue the request.
+        task.batchConsume();
+        task.batchConsume();
+        verify(consumer, org.mockito.Mockito.times(1)).batchReceiveAsync();
+
+        // Completing the retained future is consumed by the next round (empty batch).
+        org.apache.pulsar.client.api.Messages<Object> empty =
+                mock(org.apache.pulsar.client.api.Messages.class);
+        when(empty.size()).thenReturn(0);
+        when(empty.iterator()).thenReturn(java.util.Collections.emptyIterator());
+        pending.complete(empty);
+        task.batchConsume();
+        verify(consumer, org.mockito.Mockito.times(1)).batchReceiveAsync();
+        executor.shutdownNow();
+    }
+
+    @Test
+    void doSubscribeRunsOnNamedDaemonConsumeThread() throws Exception {
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-thread-model");
+        TestPulsarService svc = preparedService(options);
+        try {
+            String prefix = "nop-msg-pulsar-consume-sub-thread-model-";
+            long deadline = System.currentTimeMillis() + 5000;
+            Thread consumeThread = null;
+            while (consumeThread == null && System.currentTimeMillis() < deadline) {
+                consumeThread = Thread.getAllStackTraces().keySet().stream()
+                        .filter(t -> t.getName().startsWith(prefix))
+                        .findFirst().orElse(null);
+                if (consumeThread == null)
+                    Thread.sleep(20);
+            }
+            org.junit.jupiter.api.Assertions.assertNotNull(consumeThread,
+                    "doSubscribe must start a named consume thread with prefix " + prefix);
+            assertTrue(consumeThread.isDaemon(), "consume thread must be daemon (F-24)");
+        } finally {
+            svc.subscription.cancel();
+        }
     }
 }

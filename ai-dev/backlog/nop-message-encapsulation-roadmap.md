@@ -161,7 +161,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase C — 生命周期与可靠性
 
-- WI19 线程模型与有界关闭: `todo`（deps M2；Item Type Fix；对应 MSG-F-24 与 MSG-F-54；完成判定 消费线程统一 daemon 且命名且 fan-out 可区分，且 `stop` 在无新消息时仍能有界退出；关闭路径有界不依赖 `close` 隐式解阻；两后端统一采用 `LifeCycleSupport`；新增关闭时序测试）
+- WI19 线程模型与有界关闭: `done`（deps M2；Item Type Fix；对应 MSG-F-24 与 MSG-F-54；完成判定 消费线程统一 daemon 且命名且 fan-out 可区分，且 `stop` 在无新消息时仍能有界退出；关闭路径有界不依赖 `close` 隐式解阻；两后端统一采用 `LifeCycleSupport`；新增关闭时序测试；承载 plan `ai-dev/plans/nop-message/19-wi19-thread-model-bounded-shutdown.md`）
 - WI20 destroy 顺序与并发幂等: `todo`（deps WI19；Item Type Fix；对应 MSG-F-25 与 MSG-F-26 与 MSG-F-27 与 MSG-F-30；完成判定 两后端 destroy 顺序统一为订阅先于 producer；`cancel` 与 `Cancellable` 共同改为原子幂等；消除跨线程 `consumer.close` 与 `poll` 竞态；新增并发 cancel 与关闭期在途发送测试）
 - WI21 分层 DLQ 与失败终点: `todo`（deps WI16；Item Type Feature；对应 MSG-F-22 与 MSG-F-53；完成判定 按 D6 三层裁定交付：Pulsar 原生 `deadLetterPolicy` 与 `maxDeliveries` 接线进 `PulsarConsumerConfig`；Kafka 应用级重发布按需启用；`nop-retry` 桥消费 WI16 的失败回调；不新增无法实现的后端 DLQ 义务）
 - WI22 失败重试计数与退避策略: `todo`（deps WI16 WI21；Item Type Feature；对应 MSG-F-21；完成判定 每消息 attempt 计数可查询且跨重启语义明确；消费错误退避改为可配置且有上限；毒消息到达上限后进入失败终点而不再空转；跨重启 attempt 语义在设计文档中显式声明）
@@ -183,7 +183,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI30 消息指标暴露: `todo`（deps M2；Item Type Feature；对应 MSG-F-23；完成判定 发送与消费与失败三类计数器与计时器按 `351-repo-wide-core-metrics` 已确立的平台口径注册，不新建体系；consumer lag 单独评估 AdminClient 依赖与 broker 不可达时的失败语义后再决定是否纳入）
 - WI31 空壳模块处置与 BOM 补登: `todo`（deps WI3；Item Type Fix；对应 MSG-F-41 与 MSG-F-42；完成判定 按 D10 删除 `nop-message-model`；`nop-message-codec` 按 D10 结论删除或降级为 Follow-up；`nop-bom/pom.xml` 补登三个模块条目）
 - WI32 契约测试扩充至全矩阵: `todo`（deps WI4 WI6；Item Type Proof；对应 MSG-F-47；完成判定 WI4 骨架扩展覆盖 WI2 矩阵全部格；两后端各 extend 一次并全绿；11 个主源码实现逐个记录覆盖或显式豁免理由）
-- WI33 gated 真实 broker E2E: `todo`（deps M3；Item Type Proof；对应 MSG-F-44；charter 扩展（WI17）：增补慢 handler 踢出时序场景；完成判定 新增 gated 测试覆盖重启恢复与毒消息与 DLQ 投递与 seek 与请求-响应五类场景；门控属性名在测试类与文档中一致声明且默认跳过；不得以跳过态标记 done）
+- WI33 gated 真实 broker E2E: `todo`（deps M3；Item Type Proof；对应 MSG-F-44；charter 扩展承接 WI17：增补慢 handler 踢出时序场景；完成判定 新增 gated 测试覆盖重启恢复与毒消息与 DLQ 投递与 seek 与请求-响应五类场景；门控属性名在测试类与文档中一致声明且默认跳过；不得以跳过态标记 done）
 - ★ **里程碑：M5 可运维**（解锁条件 WI30 至 WI33 全部 done）：`todo`
 
 ### Phase F — 文档与收口
