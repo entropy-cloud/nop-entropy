@@ -1,7 +1,7 @@
 # 2321 nop-orm 分片执行引擎（fan-out 与归并）实施
 
-> Plan Status: draft
-> Last Reviewed: 2026-10-05
+> Plan Status: active（2026-10-06 首轮对抗审查 REJECT——1 Blocker（selectAllShards default 语义不可实现/空全集静默）+ 4 Minor 已修订；审查确认 13 条 baseline 行号零误差、缓存安全与 orderBy 映射可行性成立，判定修复后无需整轮复审）
+> Last Reviewed: 2026-10-06
 > Source: `ai-dev/design/nop-orm-sharding-execution-engine-design.md`（active，本 plan 唯一语义规格——§3.1 编译期结构信息、§3.2 执行模型与事务、§3.3 连接与事务边界、§3.4 归并分级、§3.5 跨分片 JOIN 边界、§3.8 使用契约与错误码、每分片强制 selector 机制）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI8（执行引擎实施）
 > Related: `ai-dev/plans/2320-orm-sharding-strategy.md`（completed，前置契约：策略注册表/ConfigShardSelector/MissingShardPolicy/绑定校验/GenSqlTransformer 路由/DDL N 表展开——本 plan 建在其上）；`ai-dev/design/nop-orm-sharding-strategy-design.md`（§3.4/§3.6 由本 plan 同步修订）；`ai-dev/plans/2318-orm-enc-assisted-query-columns.md`（同 roadmap 前序 plan，Phase 结构与 Exit Criteria 风格参照）
 
@@ -23,7 +23,7 @@
 以下事实均经 2026-10-05 live code 逐条核实：
 
 1. **ICompiledSql 无任何结构信息（归并信息面缺口）**：`ICompiledSql`（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ICompiledSql.java:21-63`）只暴露 name/useTenantModel/querySpace/statementKind/dataSetMeta/readEntityNames/writeEntityName/columnBinders/fieldMetas/sql/buildParams——没有 GROUP BY/DISTINCT/HAVING/聚合投影/FOR UPDATE/UNION 的结构标志，也没有 ORDER BY 信息。执行层今天无法可靠判定"不可归并构造"，也无法为归并定位排序键。具体实现 `compile/CompiledSql.java`（:22-33）为纯字段袋，新增只读结构信息是加字段 + getter 的最小增量。
-2. **编译期填充点现成**：`EqlCompiler.compile`（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlCompiler.java:101`）构造 `CompiledSql`，SELECT 分支（:111-147）已遍历投影构建 fieldMetas——填充是纯静态投影。AST 侧结构完整可得：`_SqlQuerySelect`（`ast/_gen/_SqlQuerySelect.java:19-33`）携带 distinct(:19)/forUpdate(:21)/groupBy(:25)/having(:27)/limit(:29)/orderBy(:33)；集合操作有独立节点 `SqlUnionSelect`（extends SqlSelect，编译入口 `stm` 可直接 instanceof 判定）；聚合投影为 `SqlAggregateFunction` 节点。CompiledSql 经 QueryPlanCache（`SessionFactoryImpl.java:74`，key=SQL 文本）跨执行共享——结构标志是编译产物静态属性，随文本缓存，缓存安全模型不变。
+2. **编译期填充点现成**：`EqlCompiler.compile`（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlCompiler.java:101`）构造 `CompiledSql`，SELECT 分支（:111-147）已遍历投影构建 fieldMetas——填充是纯静态投影。AST 侧结构完整可得：`_SqlQuerySelect`（`ast/_gen/_SqlQuerySelect.java:19-33`）携带 distinct(:19)/forUpdate(:21)/groupBy(:25)/having(:27)/limit(:29)/orderBy(:33)；集合操作有独立节点 `SqlUnionSelect`（extends SqlSelect，编译入口 `stm` 可直接 instanceof 判定）；聚合投影为 `SqlAggregateFunction` 节点。CompiledSql 经 QueryPlanCache（`SessionFactoryImpl.java:74`，key=编译输入五元组（QueryPlanCacheKey：name+sqlText+disableLogicalDelete+allowUnderscoreName+enableFilter））跨执行共享——结构标志是编译产物静态属性，随文本缓存，缓存安全模型不变。
 3. **transform 缺分片值分支现状（FANOUT 骑点）**：`GenSqlTransformer.collectShardSelections`（`nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlTransformer.java:112-167`）：`policy==FAIL` 抛 `ERR_ORM_SHARD_CONDITION_MISSING`（:140-144）；`DEFAULT_SHARD` 分支（:145-152）经 `selectShardWhenMissing` → addShardSelection + setQuerySpace + return——**这是每分片强制 selector 要骑的既有分支**；`NONE` 与无分支命中静默 fall-through 基表执行（:159/:162）。**`FANOUT` 取值今天不存在、也不命中任何分支**：若声明后引擎不接管而泄漏进 transform，将与 NONE 同款静默 fall-through 基表执行（plan 2320 消灭的陷阱借新策略值复活）——因此 `policy==FANOUT` 的兜底显式失败分支是 transform 的唯一增量。`transform(SQL, List<Object>)`（:74）是唯一入口，不存在外部注入 ShardSelection 的通道；dialect 在尾部按 querySpace 解析（:166）。
 4. **执行漏斗与只读意图现状**：`JdbcQueryExecutor`（`nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java`）三入口 `executeUpdateSql`(:63-69)/`executeQuerySql`(:82-99)/`executeStatementSql`(:112-122) 都以 `transformEQL`（:153-158，每次执行新建 `GenSqlTransformer`，:155）为第一步；`executeQuerySql` 在 transform **之后**对单条 SELECT SQL 设置 readOnly(true)（:91-93，plan 2319 读写分离只读意图）——引擎产出的 N 份物理 SQL 必须逐份显式重复该规则，不存在"标记自然传播到多份 SQL"的机制。装配锚点：`OrmSessionFactoryBean.java:124` `setDefaultQueryExecutor(new JdbcQueryExecutor(impl))`；消费链 `OrmSessionImpl.java:1421/1428/1436` → `SessionFactoryImpl.getQueryExecutor`（:377-383，per-querySpace map + default 回落）——设计裁定 `IQueryExecutor` 契约不变。
 5. **MissingShardPolicy 三值现状**：`nop-persistence/nop-dao/src/main/java/io/nop/dao/shard/MissingShardPolicy.java:25` 枚举 `NONE/FAIL/DEFAULT_SHARD`；parse（:27-39）仅接受 fail/default-shard（空值回落 FAIL），未知取值抛 IllegalArgumentException，文案 "expected: fail | default-shard"——第四取值落地时须同步。`ShardStrategy.parseStrategies`（`shard/ShardStrategy.java:167-181`）消费 parse，且 DEFAULT_SHARD 必须配 default-shard 值（:180-181）。`DaoConfigs.CFG_ORM_SHARD`（`nop-persistence/nop-dao/src/main/java/io/nop/dao/DaoConfigs.java:83`）描述文本枚举 "missing-shard-policy(fail|default-shard,缺省fail)"——第四取值落地时须同步。
@@ -42,7 +42,7 @@
 - CompiledSql 编译期结构信息暴露：六个构造标志（hasGroupBy/hasHaving/hasDistinct/hasSetOp/hasForUpdate/isBareCount）+ orderBy→投影序数映射（排序键未投影无映射项）。
 - 执行引擎：fanout 资格收口（仅 SELECT、单 fanout 实体、不与带分片值实体混用）→ 每分片强制 selector 骑既有 default-shard 分支产出 N 份物理 SQL → v1 串行执行 → 归并分级（设计 §3.4）→ 逐分片增量行数兜底。不可归并/越界形态一律 `ERR_ORM_SHARD_FANOUT_NOT_SUPPORT` 显式失败。
 - 开关关闭运行期退化为 fail（`ERR_ORM_SHARD_CONDITION_MISSING` 补 policy/原因 arg）+ 启动期 WARN；未配置 fanout 的部署行为零变更。
-- 端到端（H2 双分片）：无序/count/ORDER BY 真序/浅分页/超限中断/资格收口各形态显式失败/开关关闭退化，全矩阵可断言。
+- 端到端（H2 双分片）：无序/count/ORDER BY 真序/浅分页/超限中断/资格收口各形态显式失败（含自定义 selector 未覆盖 selectAllShards 的空全集形态）/开关关闭退化，全矩阵可断言。
 - owner doc（orm-sharding.md 执行引擎章节）、策略设计 §3.4/§3.6 同步、执行引擎设计 WI8 注记消解。
 
 ## Non-Goals
@@ -81,7 +81,7 @@ Targets: `nop-persistence/nop-orm-eql`（`ICompiledSql`、`compile/CompiledSql.j
 - [ ] 构造标志暴露：SELECT 编译产物携带 hasGroupBy/hasHaving/hasDistinct/hasSetOp/hasForUpdate/isBareCount 六个只读标志（来源为 `_SqlQuerySelect` 字段与投影节点形态，编译期填充；UNION 经 `SqlUnionSelect` instanceof 判定；非 SELECT 语句标志为确定缺省值且不填充映射）
 - [ ] orderBy→投影序数映射暴露：每个顶层排序项 → fieldMetas 序数 + 排序方向；**排序键未投影的查询无映射项**（设计 §3.1 边界：映射缺失即"排序键未投影"，消费方据此显式失败，arg=排序键）
 - [ ] 填充挂在 EqlCompiler SELECT 分支（Baseline #2 填充点），与 fieldMetas 构建同处；缓存安全：标志/映射为编译产物静态属性，随 SQL 文本进 QueryPlanCache（设计 §3.1 理由 b）
-- [ ] focused 测试：每标志正/反断言（group by/having/distinct/union/for update/裸 count 各构造真实 EQL 编译断言）；orderBy 映射（排序键已投影→序数与方向正确；未投影→无映射项；多排序项；排序键含表达式别名形态）；非 SELECT 语句缺省值
+- [ ] focused 测试：每标志正/反断言（group by/having/distinct/union/for update/裸 count 各构造真实 EQL 编译断言）；orderBy 映射（排序键已投影→序数与方向正确；未投影→无映射项；多排序项；排序键别名引用形态（映射成功断言）与裸表达式重复形态（允许无映射项→显式失败断言，两态都测））；非 SELECT 语句缺省值
 - [ ] 缓存交互测试：同一 EQL 文本两次编译（第二次命中 QueryPlanCache）后标志与映射保持正确（对齐 2318 缓存交互测试先例）
 
 Exit Criteria:
@@ -103,7 +103,7 @@ Targets: `nop-persistence/nop-dao`（`MissingShardPolicy`、`IShardSelector`、`
 - Item Types: `Feature` + `Decision`
 
 - [ ] `MissingShardPolicy.FANOUT` 第四取值：parse 接受 "fanout"，未知取值错误文案同步更新；`ShardStrategy.parseStrategies` 适配（FANOUT 不要求 default-shard 配置）；`DaoConfigs.CFG_ORM_SHARD` 描述文本补 fanout 取值（Baseline #5）
-- [ ] `IShardSelector.selectAllShards(entityName)` SPI：返回 `List<ShardSelection>`（分片名 + querySpace 二元组全集，设计 §3.8 m1）；default 实现按 getShardNames + 策略 pattern 推导，`ConfigShardSelector` 原生实现；**同源断言**：selectAllShards 与 getShardNames 对同一实体返回同一分片全集（WI8 注记 m1 固化）
+- [ ] `IShardSelector.selectAllShards(entityName)` SPI 新增：**接口 default 返回空列表，语义 =「该选择器不提供分片全集」**（接口 default 无法接触 query-space-pattern——那是 ConfigShardSelector/ShardStrategy 内部知识）；`ConfigShardSelector` 覆盖实现真实全集（与 getShardNames 同源，focused 断言同源）；同源断言落点为 ConfigShardSelector；**自定义轨 selector 不覆盖 selectAllShards 则 fanout 不可用（显式失败）**
 - [ ] 全局配置两项登记（DaoConfigs，对齐 CFG_ORM_SHARD 声明先例）：`nop.orm.shard.fanout-enabled`（缺省 false）/ `nop.orm.shard.fanout-max-rows`（缺省 **10000**——**Decision**：WI8 承载的缺省值裁定，采纳设计建议值；非正数配置启动即抛 `ERR_DAO_SHARD_CONFIG_INVALID`，对齐 2320 配置错误启动即抛先例）
 - [ ] `ERR_ORM_SHARD_CONDITION_MISSING` 文案/arg 补充（设计 §3.8 m2）：新增携带实际 policy 值（或退化原因）的 arg，消除硬编码 "（missing-shard-policy=fail）" 文案对开关关闭退化场景（Phase 3 消费）的误导；既有 FAIL 抛点的 entityName/propName args 与文案语义保持
 - [ ] **transform 兜底显式失败分支（唯一 transform 增量，设计 §3.2 纵深防御）**：`collectShardSelections` 为 `policy==FANOUT` 新增分支抛 `ERR_ORM_SHARD_FANOUT_NOT_SUPPORT`（arg=实体名），语义为"fanout 策略命中但引擎未接管"；NONE/FAIL/DEFAULT_SHARD 三既有分支行为零变更
@@ -167,7 +167,7 @@ Targets: 测试（nop-orm/nop-dao/nop-orm-eql）、`docs-for-ai/02-core-guides/o
 
 - Item Types: `Proof`
 
-- [ ] 端到端矩阵（H2 双分片）：无序拼接 / 裸 count 求和 / ORDER BY 真序 / 浅分页（offset+limit）/ 超限中断（无部分结果）/ 资格收口各形态显式失败 / 开关关闭退化 fail / 开关开启前后对照——全部断言
+- [ ] 端到端矩阵（H2 双分片）：无序拼接 / 裸 count 求和 / ORDER BY 真序 / 浅分页（offset+limit）/ 超限中断（无部分结果）/ 资格收口各形态显式失败（含自定义 selector 未覆盖 selectAllShards 的空全集形态） / 开关关闭退化 fail / 开关开启前后对照——全部断言
 - [ ] 既有分片行为全量回归：2320 全部 shard 测试（TestShardStrategy/TestOrmShardRouting/TestShardBindingValidation/TestShardDdlExpansion/TestShardReadWriteCombined）+ 未配置 fanout 部署零变更
 - [ ] owner doc：`orm-sharding.md` 新增执行引擎章节（策略级 fanout 声明、全局开关与行数上限配置、资格边界与显式失败清单、归并语义分级、"跨分片读无统一快照"与"多主组部署分片入组契约"声明（设计 §3.3）、ORM 一级缓存分布式 ID 前置约束（设计 §3.7））；INDEX.md 路由核对
 - [ ] 设计文档同步：策略设计 §3.4（missing-shard-policy 分支补 fanout 取值）与 §3.6（分野表述扩展为"静态结构进编译期/值路由进执行期"）；执行引擎设计两处 WI8 注记（m1 同源断言、m2 错误码 arg）与 fanout-max-rows 缺省值消解为最终契约表述（Minimum Rules #14：终稿化，不写演进叙事）

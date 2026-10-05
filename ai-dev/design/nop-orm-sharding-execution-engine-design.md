@@ -81,6 +81,8 @@ executeFanoutQuery(compiled, params, range):
     return callback(merge(collected))                      # 按支持集归并（§3.4），合并数据集走既有行组装
 ```
 
+   **接口 default 语义（WI8 计划 2321 审查补裁定）**：`IShardSelector.selectAllShards` 的接口 default 返回**空列表**（语义=「该选择器不提供分片全集」——接口层无法接触 query-space-pattern 这一策略内部知识）；`ConfigShardSelector` 覆盖返回真实全集并与 `getShardNames` 同源；自定义轨不覆盖时 fanout 不可用（引擎以空全集显式失败，禁止静默空结果）。
+
 **行数上限的中断语义（评审 M4）**：计数是**逐分片增量**的——每拉回一个分片立即累计，达限立即中断（不再向剩余分片发起物理 SQL），已拉回数据直接丢弃，不返回截断集，异常向调用方传播。上限是内存兜底的正确性边界，不是截断语义；全分片拉回后才校验的形态起不到兜底作用，被拒。
 
 **执行形态：v1 串行**。三个依据：(a) 事务注册表是 ThreadLocal 域（§2.2），并行分片线程拿不到调用方已注册事务，事务内的并行分片连接将退化成各自的非事务连接——同一语句各分片读到不同隔离级别的数据，正确性不可推理；(b) 并行使连接占用放大 N 倍，OLTP 请求路径上对连接池是隐式背压；(c) 常见分片数（4–64）下串行归并的延迟可接受。与既有执行风格的关系：仓库无 ExecutorEngine 框架，nop 的异步组合子是 `CompletionStage` + `GlobalExecutors`；若未来需要并行，正确形态是先解决事务上下文跨线程传播（`IContext` 快照复制），再以 `runInTransactionAsync` 同族风格实现，v1 不预埋。
