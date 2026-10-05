@@ -128,6 +128,7 @@
 | **接入 java 生成类后端（构建任务 `XlangJavaGenTask` + 双清单产物 + `_gen/` 落盘 + 漏跑诊断 `require-manifest` + truffle 镜像排除/native 部署）** | **`02-core-guides/xlang-and-xpl-basics.md`**（「构建集成与新模块接入（java 生成类后端）」章节） |
 | 使用 / 修改 `io.nop.xlang.xpath` XPath 选择器或 `io.nop.xlang.xt` XT Transform（xpath 语法与 `$xxx` operator、xt 规则指令、import/inherits、错误码清单） | `02-core-guides/xpath-and-xtransform.md` |
 | 定制 index.html 扩展注入 | `02-core-guides/index-html-extensions.md` |
+| **使用/扩展 `io.nop.commons.cache`（`ICache` 原子性契约、5 类实现矩阵、`JavaxCache.getConfig()==null` 能力判定、`LocalCacheProvider` 热刷新、`IConfigRefreshable` 驱动链与守卫判定坑）** | **`03-modules/nop-commons-cache-contract.md`** |
 | 编写测试 | `02-core-guides/testing.md` |
 | **运行 nop-metadata 不变式门禁（silent-swallow / unique-key / sensitive-literal / limit / silent-wrong-result 五条硬门禁 + CI 接入 + baseline 对账棘轮）** | **`02-core-guides/invariant-guards.md`** |
 | 编写 E2E 测试 | `02-core-guides/e2e-testing.md` |
