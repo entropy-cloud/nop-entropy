@@ -52,6 +52,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MISSING_VERTEX_IDS;
@@ -1294,6 +1295,12 @@ public class GraphModelCheckpointExecutor {
         // intersection instead of a strict 1:1 TaskLocation lookup.
         Map<String, List<TaskLocation>> oldSubtasksByVertex = groupCheckpointSubtasksByVertex(checkpointLocations);
         int maxParallelism = resolveMaxParallelism(execPlan, checkpointPlan);
+        // R5 KR-2: the stamped ownership metadata is no longer write-only —
+        // when a checkpoint records its (P, M) binding, restore must match the
+        // live routing bound or keyed state lands under a different owner
+        // formula (silent misplacement). Savepoints that never stamped
+        // (legacy shape) skip the check.
+        assertStampedMaxParallelismConsistency(checkpointLocations, stateLookup, maxParallelism);
 
         for (String vertexId : execPlan.getSortedVertexIds()) {
             List<Subtask> newSubtasks = execPlan.getSubtasks(vertexId);
@@ -1416,6 +1423,33 @@ public class GraphModelCheckpointExecutor {
      * no keyed backend is reachable from the execution plan.
      */
     // Package-private: invoked by RescaleStateAssembler (max-parallelism resolution stays on the host).
+    /**
+     * R5 KR-2: restore-side consistency check over the stamped (P, M) ownership
+     * metadata. A checkpoint stamped with a different key-group bound than the
+     * live routing bound would misplace keyed state silently; legacy snapshots
+     * (never stamped) skip the check. Extracted package-private for the focused
+     * regression pin.
+     */
+    static void assertStampedMaxParallelismConsistency(
+            Set<TaskLocation> checkpointLocations, TaskStateLookup stateLookup, int maxParallelism) throws Exception {
+        for (TaskLocation oldLoc : checkpointLocations) {
+            TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
+            if (oldState instanceof TaskEpochSnapshot) {
+                TaskEpochSnapshot epoch = (TaskEpochSnapshot) oldState;
+                if (epoch.isKeyGroupOwnershipMaterialized()
+                        && epoch.getMaxParallelism() > 0
+                        && epoch.getMaxParallelism() != maxParallelism) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "checkpoint maxParallelism " + epoch.getMaxParallelism()
+                                    + " != live routing maxParallelism " + maxParallelism
+                                    + " at " + oldLoc
+                                    + " — reroute the checkpoint via MaxParallelismReshardMigration"
+                                    + " before restoring (R5 KR-2)");
+                }
+            }
+        }
+    }
+
     static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan) {
         for (String vertexId : execPlan.getSortedVertexIds()) {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {

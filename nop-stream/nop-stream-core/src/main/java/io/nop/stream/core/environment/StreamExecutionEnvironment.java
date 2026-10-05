@@ -50,6 +50,10 @@ import io.nop.stream.core.source.SourceSplit;
 import io.nop.stream.core.transformation.SinkTransformation;
 import io.nop.stream.core.transformation.SourceApiTransformation;
 import io.nop.stream.core.transformation.SourceTransformation;
+import io.nop.commons.partition.IPartitioner;
+import io.nop.stream.core.common.state.shard.KeyGroup;
+import io.nop.stream.core.datastream.DataStreamImpl;
+import io.nop.stream.core.transformation.PartitionTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -439,7 +443,43 @@ public class StreamExecutionEnvironment {
      * checkpoint storage jobId (via PartitionedPlanGenerator) so distinct
      * jobs get distinct storage namespaces.
      */
+    /**
+     * R5 KR-3a/REG-7: deployment-time guard for the AR-01 parity contract.
+     * Every keyBy partitioner freezes maxParallelism at graph time; this check
+     * re-derives the bound from the CURRENTLY configured backend and fails
+     * loudly on drift (e.g. setStateBackend called after keyBy, or a backend
+     * swapped between graph build and execute) and on parallelism exceeding
+     * the bound (previously a first-record data-plane failure).
+     */
+    private void validateKeyedRoutingParity() {
+        CheckpointConfig checkpointConfig = getCheckpointConfig();
+        IStateBackend backend = checkpointConfig != null ? checkpointConfig.getStateBackend() : null;
+        int configuredMaxParallelism = backend != null ? backend.getMaxParallelism() : KeyGroup.DEFAULT_MAX_PARALLELISM;
+        for (Transformation<?> t : getTransformations()) {
+            if (t instanceof PartitionTransformation) {
+                IPartitioner<?> partitioner = ((PartitionTransformation<?>) t).getPartitioner();
+                if (partitioner instanceof DataStreamImpl.KeySelectorPartitioner) {
+                    int graphMaxParallelism = ((DataStreamImpl.KeySelectorPartitioner<?>) partitioner).getMaxParallelism();
+                    if (graphMaxParallelism != configuredMaxParallelism) {
+                        throw new StreamException(ERR_STREAM_INVALID_ARG)
+                                .param(ARG_DETAIL, "keyBy maxParallelism drift: graph-frozen "
+                                        + graphMaxParallelism + " != configured backend " + configuredMaxParallelism
+                                        + " (R5 KR-3: configure the state backend before keyBy,"
+                                        + " or rebuild the graph)");
+                    }
+                    if (t.getParallelism() > graphMaxParallelism) {
+                        throw new StreamException(ERR_STREAM_INVALID_ARG)
+                                .param(ARG_DETAIL, "parallelism " + t.getParallelism()
+                                        + " exceeds keyBy maxParallelism " + graphMaxParallelism
+                                        + " (R5 REG-7)");
+                    }
+                }
+            }
+        }
+    }
+
     private JobGraph compilePlans(String jobName, List<SinkTransformation<?>> sinks) {
+        validateKeyedRoutingParity();
         StreamGraphGenerator graphGenerator = new StreamGraphGenerator();
         @SuppressWarnings("unchecked")
         List<Transformation<?>> sinkList = (List<Transformation<?>>) (List<?>) sinks;
@@ -737,6 +777,7 @@ public class StreamExecutionEnvironment {
      * @return the JobGraph (with the populated StreamModel attached)
      */
     public JobGraph buildJobGraph(String jobName) {
+        validateKeyedRoutingParity();
         List<SinkTransformation<?>> sinks = findSinkTransformations();
         if (sinks.isEmpty()) {
             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL, "No sinks found in the streaming job");

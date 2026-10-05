@@ -299,7 +299,19 @@ public class DataStreamImpl<T> implements DataStream<T> {
         // must use the same key-group ownership formula as the keyed state
         // backends (AR-01), so records always land on the subtask that owns
         // (or will own, after a rescale restore) their keyed state.
-        IPartitioner<T> partitioner = new KeySelectorPartitioner<>(key, resolveKeyGroupMaxParallelism());
+        int keyByMaxParallelism = resolveKeyGroupMaxParallelism();
+        // R5 KR-3b/REG-7: fail at graph time when the declared parallelism
+        // already exceeds the key-group bound (the runtime would otherwise
+        // fail on the first record, far from the misconfiguration).
+        int declaredParallelism = environment.getParallelism();
+        if (declaredParallelism > keyByMaxParallelism) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "parallelism " + declaredParallelism
+                            + " exceeds keyBy maxParallelism " + keyByMaxParallelism
+                            + " (R5 KR-3/REG-7: raise maxParallelism on the state backend"
+                            + " or lower the job parallelism)");
+        }
+        IPartitioner<T> partitioner = new KeySelectorPartitioner<>(key, keyByMaxParallelism);
         
         PartitionTransformation<T> partitionTransform = new PartitionTransformation<>(
             this.transformation,
@@ -465,6 +477,11 @@ public class DataStreamImpl<T> implements DataStream<T> {
         public KeySelectorPartitioner(KeySelector<T, ?> keySelector, int maxParallelism) {
             this.keySelector = keySelector;
             this.maxParallelism = maxParallelism;
+        }
+
+        /** R5 KR-3/KR-1: the graph-frozen key-group bound, for deployment-time parity checks. */
+        public int getMaxParallelism() {
+            return maxParallelism;
         }
 
         @Override

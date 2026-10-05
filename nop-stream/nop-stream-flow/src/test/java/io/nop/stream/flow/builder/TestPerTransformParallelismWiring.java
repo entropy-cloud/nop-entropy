@@ -2,6 +2,7 @@ package io.nop.stream.flow.builder;
 
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,8 +72,12 @@ public class TestPerTransformParallelismWiring {
 
         model.setTransforms(Arrays.asList(src, map, sink));
 
-        // HASH edge into the wider map target: the implicit partition vertex must
-        // take the target's declared parallelism (4), spreading across subtasks.
+        // HASH edge into the keyed target: R5 FLOW-5 requires the keyed-stage
+        // parallelism to equal its upstream routing parallelism, so the wiring
+        // assertions below run at stream-level parallelism 4 (all stages equal);
+        // the mismatch shape is now a build-time typed failure (see the
+        // keyedStageMismatchFailsFast pin).
+        model.setParallelism(4);
         StreamEdgeModel e0 = new StreamEdgeModel();
         e0.setId("e0");
         e0.setFrom("src");
@@ -111,7 +117,7 @@ public class TestPerTransformParallelismWiring {
                 sawWideVertex = true;
             }
         }
-        assertEquals(1, sourceP, "undeclared source inherits the stream-level parallelism");
+        assertEquals(4, sourceP, "undeclared source inherits the stream-level parallelism");
         assertEquals(4, partitionP,
                 "implicit partition vertex on a HASH edge must take the target's declared "
                         + "parallelism (4) — not the stream-level value — so the hash spreads "
@@ -124,7 +130,10 @@ public class TestPerTransformParallelismWiring {
         StreamModel model = new StreamModel();
         model.setName("keyby-parallel");
         model.setVersion(1L);
-        model.setParallelism(1);
+        // R5 FLOW-5: keyed-stage parallelism must equal its upstream routing
+        // parallelism — wiring asserted at the equal-4 shape; the mismatch
+        // shape is a build-time typed failure (keyedStageMismatchFailsFast).
+        model.setParallelism(4);
 
         StreamSourceModel src = new StreamSourceModel();
         src.setId("src");
@@ -212,5 +221,50 @@ public class TestPerTransformParallelismWiring {
         e.setFrom(from);
         e.setTo(to);
         return e;
+    }
+
+    @Test
+    public void keyedStageMismatchFailsFast() {
+        // R5 FLOW-5: keyed stage wider than its upstream routing parallelism is
+        // rejected at build time (FORWARD channel-0 concentration + rescale
+        // state/traffic split).
+        StreamModel model = new StreamModel();
+        model.setName("keyby-mismatch");
+        model.setVersion(1L);
+        model.setParallelism(1);
+
+        StreamSourceModel src = new StreamSourceModel();
+        src.setId("src");
+        src.setBean("srcBean");
+
+        StreamKeyByModel keyBy = new StreamKeyByModel();
+        keyBy.setId("kb");
+        keyBy.setKeyExpr(constantKeyExpr());
+        keyBy.setParallelism(4);
+
+        StreamMapModel map = new StreamMapModel();
+        map.setId("enrich");
+        map.setBean("mapBean");
+        map.setParallelism(4);
+
+        StreamSinkModel sink = new StreamSinkModel();
+        sink.setId("out");
+        sink.setBean("sinkBean");
+        sink.setParallelism(4);
+
+        model.setTransforms(Arrays.asList(src, keyBy, map, sink));
+        model.setEdges(Arrays.asList(edge("e0", "src", "kb"), edge("e1", "kb", "enrich"),
+                edge("e2", "enrich", "out")));
+
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model,
+                        new InMemoryBeanFunctionResolver()
+                                .register("srcBean", new TestSourceFunction())
+                                .register("mapBean", (io.nop.stream.core.common.functions.MapFunction<Object, Object>) v -> v)
+                                .register("sinkBean", new CollectingSinkFunction<>())).build());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                String.valueOf(ex.getParam("detail")).contains("R5 FLOW-5"),
+                () -> "keyed-stage parallelism mismatch must fail with the FLOW-5 guidance: "
+                        + ex.getParam("detail"));
     }
 }

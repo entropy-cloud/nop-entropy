@@ -63,6 +63,7 @@ import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.datastream.DataStream;
+import io.nop.stream.core.datastream.DataStreamImpl;
 import io.nop.stream.core.datastream.KeyedStream;
 import io.nop.stream.core.datastream.SingleOutputStreamOperator;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
@@ -1052,6 +1053,20 @@ public final class StreamModelDslBuilder {
         KeyedStream keyed = ((DataStream<Object>) in).keyBy(
                 (KeySelector) new EvalActionKeySelector<>(edge.getKeyExpr()));
         if (targetParallelism != null && targetParallelism > 0) {
+            // R5 FLOW-5: a keyed stage sized differently from its upstream
+            // routing parallelism rides FORWARD edges (channel-0 concentration)
+            // and splits from the key-group ownership after a rescale. Typed
+            // reject at build time instead of a silent false-green.
+            if (targetParallelism != ((DataStreamImpl) keyed).getTransformation().getParallelism()) {
+                throw new StreamException(ERR_STREAM_EDGE_PARTITION_UNSUPPORTED)
+                        .param(ARG_EDGE_ID, edge.getId())
+                        .param(ARG_DETAIL, "keyed-stage parallelism " + targetParallelism
+                                + " differs from the upstream routing parallelism "
+                                + ((DataStreamImpl) keyed).getTransformation().getParallelism()
+                                + " — FORWARD routing would concentrate all records on subtask 0"
+                                + " and rescale would split state from traffic (R5 FLOW-5;"
+                                + " declare equal parallelism, or a HASH edge)");
+            }
             keyed.setParallelism(targetParallelism);
         }
         return keyed;
@@ -1067,6 +1082,20 @@ public final class StreamModelDslBuilder {
      */
     static <S extends DataStream<?>> S applyDeclaredParallelism(S stream, StreamTransformModel t) {
         if (t.getParallelism() != null && t.getParallelism() > 0) {
+            // R5 FLOW-5: same guard as applyEdgePartition — a keyed stage may
+            // not be resized away from its upstream routing parallelism.
+            if (stream instanceof DataStreamImpl
+                    && stream instanceof KeyedStream
+                    && t.getParallelism() != ((DataStreamImpl) stream).getTransformation().getParallelism()) {
+                throw new StreamException(ERR_STREAM_EDGE_PARTITION_UNSUPPORTED)
+                        .param(ARG_TRANSFORM_ID, t.getId())
+                        .param(ARG_DETAIL, "keyed-stage parallelism " + t.getParallelism()
+                                + " differs from the upstream routing parallelism "
+                                + ((DataStreamImpl) stream).getTransformation().getParallelism()
+                                + " — FORWARD routing would concentrate all records on subtask 0"
+                                + " and rescale would split state from traffic (R5 FLOW-5;"
+                                + " declare equal parallelism)");
+            }
             stream.setParallelism(t.getParallelism());
         }
         return stream;

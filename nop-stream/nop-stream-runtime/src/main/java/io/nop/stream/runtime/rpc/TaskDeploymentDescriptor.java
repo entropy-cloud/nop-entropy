@@ -104,6 +104,25 @@ public class TaskDeploymentDescriptor implements Serializable {
      */
     private RemotePipelineSpec pipelineSpec;
 
+    /**
+     * R5 KR-1/AR-12: the graph-frozen keyBy maxParallelism (KeySelectorPartitioner
+     * bound) filled by the coordinator so the TaskManager provisions a state
+     * backend with the SAME bound — routing parity holds in the DISTRIBUTED
+     * form (a descriptor without the value, legacy senders, falls back to the
+     * platform default). Backend TYPE threading stays under the existing
+     * owner adjudication (remote non-memory backends are a documented
+     * divergence): only the M scalar rides the descriptor.
+     */
+    private int maxParallelism = -1;
+
+    public int getMaxParallelism() {
+        return maxParallelism;
+    }
+
+    public void setMaxParallelism(int maxParallelism) {
+        this.maxParallelism = maxParallelism;
+    }
+
     public TaskDeploymentDescriptor() {
     }
 

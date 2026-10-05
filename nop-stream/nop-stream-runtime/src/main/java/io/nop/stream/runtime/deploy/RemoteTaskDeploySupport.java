@@ -104,7 +104,7 @@ public final class RemoteTaskDeploySupport {
 
         // 1. Provision state backends (before the checkpoint plan build so the
         //    mappings detect keyed state — the rescale-routing marker).
-        provisionStateBackends(invokable);
+        provisionStateBackends(invokable, descriptor.getMaxParallelism());
 
         // 2. Build the checkpoint plan from the full local plan.
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(localPlan, jobId, pipelineId);
@@ -165,15 +165,23 @@ public final class RemoteTaskDeploySupport {
      * path has no access to the job's CheckpointConfig. Consequence: a job
      * explicitly configured with a non-memory backend (e.g. RocksDB) that runs
      * through remote deploy gets a memory backend on its operators. Unifying
-     * this is a semantic change (backend threading through the deployment
-     * descriptor) — pending owner adjudication, not silently "fixed" here.
+     * the backend TYPE is a semantic change — still under owner adjudication.
+     * R5 KR-1/AR-12: the maxParallelism SCALAR no longer diverges — the
+     * coordinator ships the graph-frozen keyBy bound in the descriptor and the
+     * backend is provisioned with it, so routing/ownership parity holds in the
+     * DISTRIBUTED form. Spec-mode note: when the TM rebuilds the graph from a
+     * {@code RemotePipelineSpec}, keyBy resolves M from the TM-side default
+     * (no DSL backend declaration exists yet, so both sides are 128 — if DSL
+     * backend declaration lands, coordinator and TM M must share one source).
      */
-    private static void provisionStateBackends(StreamTaskInvokable invokable) {
+    private static void provisionStateBackends(StreamTaskInvokable invokable, int maxParallelism) {
         for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
             if (op instanceof AbstractStreamOperator) {
                 AbstractStreamOperator<?> abstractOp = (AbstractStreamOperator<?>) op;
                 if (abstractOp.getStateBackend() == null) {
-                    IStateBackend backend = new MemoryStateBackend();
+                    IStateBackend backend = maxParallelism >= 1
+                            ? new MemoryStateBackend(maxParallelism)
+                            : new MemoryStateBackend();
                     abstractOp.setStateBackend(backend);
                 }
             }

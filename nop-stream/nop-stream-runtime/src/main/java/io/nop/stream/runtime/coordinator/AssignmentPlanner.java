@@ -187,6 +187,11 @@ class AssignmentPlanner {
                                 attemptId, attemptNumber, epoch,
                                 pipelineSpec != null ? null : jobGraph, deploymentPlan, checkpointStoragePath);
                         descriptor.setPipelineSpec(pipelineSpec);
+                        // R5 KR-1/AR-12: ship the graph-frozen keyBy maxParallelism
+                        // so the TM provisions a backend with the SAME bound
+                        // (routing parity in the DISTRIBUTED form).
+                        descriptor.setMaxParallelism(
+                                pipelineSpec != null ? -1 : extractKeyGroupMaxParallelism(jobGraph));
                     }
                     dispatches.add(new AssignmentDispatch(epoch, rpc, taskAssignment, descriptor));
 
@@ -303,5 +308,26 @@ class AssignmentPlanner {
             this.taskAssignment = taskAssignment;
             this.descriptor = descriptor;
         }
+    }
+
+    /**
+     * R5 KR-1: the keyBy key-group bound frozen into the graph's
+     * {@code KeySelectorPartitioner}s (single source for routing parity); -1
+     * when the graph carries no keyed partitioner.
+     */
+    static int extractKeyGroupMaxParallelism(io.nop.stream.core.jobgraph.JobGraph jobGraph) {
+        if (jobGraph == null) {
+            return -1;
+        }
+        if (jobGraph.getEdges() == null) {
+            return -1;
+        }
+        for (io.nop.stream.core.jobgraph.JobEdge edge : jobGraph.getEdges()) {
+            if (edge.getPartitioner() instanceof io.nop.stream.core.datastream.DataStreamImpl.KeySelectorPartitioner) {
+                return ((io.nop.stream.core.datastream.DataStreamImpl.KeySelectorPartitioner<?>) edge.getPartitioner())
+                        .getMaxParallelism();
+            }
+        }
+        return -1;
     }
 }

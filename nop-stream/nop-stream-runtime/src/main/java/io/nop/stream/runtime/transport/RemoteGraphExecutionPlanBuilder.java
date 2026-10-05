@@ -283,9 +283,12 @@ public class RemoteGraphExecutionPlanBuilder {
                 // (StreamTopicNaming.buildTopic uses jobGraph.getJobName() as jobId).
                 TaskLocation taskLocation = new TaskLocation(
                         jobGraph.getJobName(), "pipeline-0", vertexId, taskIndex);
-                OperatorChain chain = taskIndex == 0
-                        ? original.getOperatorChains().get(0)
-                        : original.getOperatorChains().get(0).deepCopy(taskLocation);
+                // R5 REG-1: taskIndex==0 gets the SAME per-subtask identity
+                // copy as every other subtask — reusing the original chain left
+                // the 2PC ledger namespace unset on subtask-0 (guard fell back
+                // to the table name and silently skipped writes when two jobs
+                // shared a database/table).
+                OperatorChain chain = original.getOperatorChains().get(0).deepCopy(taskLocation);
 
                 RemoteWriters writers = buildRemoteOutputWriters(
                         outEdges, taskIndex, transport.partitionMatrix(), deploymentPlan);

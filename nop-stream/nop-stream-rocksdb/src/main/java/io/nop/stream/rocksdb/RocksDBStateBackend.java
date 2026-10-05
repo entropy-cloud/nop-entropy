@@ -66,13 +66,19 @@ public class RocksDBStateBackend implements IStateBackend, Serializable {
     }
 
     /**
-     * Default constructor: {@code maxParallelism = 1} (single key-group). Used
-     * by existing tests/operators that construct with only a path; new keyed
-     * jobs should pass {@link KeyGroup#DEFAULT_MAX_PARALLELISM} explicitly to
-     * gain rescale capacity.
+     * Convenience constructor. R5 KR-3c: defaults to the platform key-group
+     * bound ({@link KeyGroup#DEFAULT_MAX_PARALLELISM}) — the previous M=1
+     * default made any parallelism&gt;1 keyBy illegal with a first-record
+     * failure far from the misconfiguration. Keyed jobs may still pass an
+     * explicit M.
      */
     public RocksDBStateBackend(String dbPath) {
-        this(dbPath, 1, null);
+        // R5 KR-3c: default to the platform-wide key-group bound so keyBy
+        // jobs constructed with this convenience constructor get rescale
+        // capacity instead of a first-record failure (M=1 makes any
+        // parallelism > 1 keyBy illegal). Existing non-keyed users are
+        // unaffected; keyed jobs should still pass M explicitly.
+        this(dbPath, io.nop.stream.core.common.state.shard.KeyGroup.DEFAULT_MAX_PARALLELISM, null);
     }
 
     @Override
