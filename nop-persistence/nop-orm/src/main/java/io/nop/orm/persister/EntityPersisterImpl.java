@@ -30,6 +30,7 @@ import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.driver.IEntityPersistDriver;
+import io.nop.orm.enc.EncAssistedHelper;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.id.IEntityIdGenerator;
 import io.nop.orm.model.IColumnModel;
@@ -454,6 +455,7 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     protected void queueSave(IOrmEntity entity, IOrmSessionImplementor session) {
         OrmTimestampHelper.instance().onCreate(entityModel, entity);
+        EncAssistedHelper.instance().onSave(entityModel, entity);
 
         this.checkColumnValueWhenSave(entity);
 
@@ -470,6 +472,7 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     protected void queueUpdate(IOrmEntity entity, final IOrmSessionImplementor session) {
         OrmTimestampHelper.instance().onUpdate(entityModel, entity);
+        EncAssistedHelper.instance().onUpdate(entityModel, entity);
 
         if (CFG_ORM_CHECK_MANDATORY_WHEN_UPDATE.get()) {
             this.checkMandatoryWhenUpdate(entity);

@@ -97,4 +97,11 @@ public interface OrmConfigs {
     IConfigReference<Boolean> CFG_ORM_USE_ASSIGNED_USER_TIMESTAMP =
             varRef(s_loc, "nop.orm.use-assigned-user-timestamp", Boolean.class, false);
 
+    @Description("可检索加密：等值辅助列（assisted）HMAC 摘要密钥。为空时回落到 nop.crypt.default-enc-key")
+    IConfigReference<String> CFG_ORM_ENC_ASSISTED_KEY = varRef(s_loc, "nop.orm.enc-assisted-key", String.class, "");
+
+    @Description("可检索加密：模糊辅助列（like）逐字符摘要的十六进制宽度（4-16，缺省 8）")
+    IConfigReference<Integer> CFG_ORM_ENC_LIKE_DIGEST_WIDTH =
+            varRef(s_loc, "nop.orm.enc-like-digest-width", Integer.class, 8);
+
 }

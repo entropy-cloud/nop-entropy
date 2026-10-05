@@ -424,6 +424,11 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_NULLS_ORDER_NOT_SUPPORTED =
             define("nop.err.orm.nulls-order-not-supported", "当前方言无法表达请求的排序空序");
 
+    // ---- plan 2318：可检索加密辅助列 ----
+
+    ErrorCode ERR_ORM_ENC_HELPER_COLUMN_READONLY = define("nop.err.orm.enc-helper-column-readonly",
+            "加密辅助列[{propName}]由框架自动维护，不允许业务代码直接赋值");
+
     String ARG_REASON = "reason";
 
 }

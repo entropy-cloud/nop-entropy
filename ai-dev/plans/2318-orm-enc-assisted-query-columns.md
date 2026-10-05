@@ -114,23 +114,25 @@ Exit Criteria:
 
 ### Phase 2 - 写路径派生值
 
-Status: planned
+Status: completed（2026-10-05）
 Targets: `nop-persistence/nop-orm` 持久化 flush 链路（Baseline #4 挂点）
 
 - Item Types: `Feature`
 
-- [ ] 在 Baseline #4 的统一挂点按 Phase 0 契约为辅助列赋值：主列有值 → 派生；主列置 null → 辅助列 null；主列更新 → 辅助列同步重算
-- [ ] 辅助列用户直接赋值时按 design 裁定显式失败（错误码），不允许静默覆盖或静默忽略
-- [ ] 测试：insert/update/置 null/清空 四路径下，裸 SQL 读 DB 辅助列值与契约摘要一致（扩展 `TestColumnEnhancer` 或新增测试类）
-- [ ] 加密兼容回归：enc 主列读写与 v1 密文格式行为不变（`TestColumnEnhancer` 全部既有断言保持通过）
+- [x] 在 Baseline #4 的统一挂点按 Phase 0 契约为辅助列赋值：主列有值 → 派生；主列置 null → 辅助列 null；主列更新 → 辅助列同步重算
+- [x] 辅助列用户直接赋值时按 design 裁定显式失败（错误码），不允许静默覆盖或静默忽略
+- [x] 测试：insert/update/置 null/清空 四路径下，裸 SQL 读 DB 辅助列值与契约摘要一致（扩展 `TestColumnEnhancer` 或新增测试类）
+- [x] 加密兼容回归：enc 主列读写与 v1 密文格式行为不变（`TestColumnEnhancer` 全部既有断言保持通过）
 
 Exit Criteria:
 
-- [ ] H2 上 save → 裸 SQL 断言辅助列 DB 值 = 契约摘要；update/null 路径同
-- [ ] **接线验证**（Minimum Rules #23）：端到端测试断言派生逻辑在 flush 链路被真实调用（辅助列 DB 值变化），而非仅方法存在
-- [ ] 无静默跳过（Minimum Rules #24）
-- [ ] owner-doc 裁定：写路径派生语义并入 `docs-for-ai/02-core-guides/orm-model-design.md` 的"可检索加密声明"小节，归 Phase 5 收口统一核对（本 Phase 无独立文档交付）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] H2 上 save → 裸 SQL 断言辅助列 DB 值 = 契约摘要；update/null 路径同（TestEncAssistedDerivedColumns 4 测试）
+- [x] **接线验证**（Minimum Rules #23）：端到端测试断言派生逻辑在 flush 链路被真实调用（辅助列 DB 值变化），而非仅方法存在
+- [x] 无静默跳过（Minimum Rules #24）
+- [x] owner-doc 裁定：写路径派生语义并入 `docs-for-ai/02-core-guides/orm-model-design.md` 的"可检索加密声明"小节，归 Phase 5 收口统一核对（本 Phase 无独立文档交付）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+实现注记：守护规则按实体状态拆分——insert 路径（新实体属性赋值不进 dirty 集合，`orm_dirtyPropIds` 返回 oldValues 键集）用 `orm_propInited` 判定；update 路径用 dirty 判定。派生经 `orm_propValue` 写入使辅助列进入 UPDATE 变更列集合。密钥回退链 `nop.orm.enc-assisted-key` → `nop.crypt.default-enc-key` → 内建缺省（一次性告警）。
 
 ### Phase 3 - 查询改写：EQL/QueryBean 路径
 

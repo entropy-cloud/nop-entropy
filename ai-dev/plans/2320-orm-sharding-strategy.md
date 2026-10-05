@@ -17,7 +17,7 @@
 2. **Selector 装配链现成**：`orm-defaults.beans.xml:31-32` 缺省 `EmptyShardSelector.INSTANCE`；`SessionFactoryConfig.setShardSelector`（:213-218）→ `JdbcQueryExecutor:149` 构造 transformer。写路径消费点两处（EntityPersisterImpl :264-281、CollectionPersisterImpl :159-170）。
 3. **模型侧**：`useShard`/`shardProp` 为 entity.xdef 一级属性（entity.xdef:49）；`OrmEntityModelInitializer:405-417`——useShard 未声明 shardProp 时自动补 `nopShard` VARCHAR(32) 列，声明了但列不存在抛 `ERR_ORM_UNKNOWN_COLUMN`。
 4. **既有测试现状**：`TestOrmTemplate.testJoinWithValue`（:226-247）只断言列值回读，无任何物理表名/路由断言；测试跑在 `EmptyShardSelector` 上。唯一自定义实现是 nop-auth 测试的 `MockShardSelector`（按实体名查 Map，与分片值无关）。
-5. **DDL 建表三调用点**：`DataBaseSchemaInitializer.init`（`initialize/DataBaseSchemaInitializer.java:56-72`，逐实体循环 `createTable`）、auto-upgrade `OrmDbDiffer.createEntityDiffDdls`（`nop-dbtool-core/.../diff/OrmDbDiffer.java:357-370`，add→createTable / 列 diff）、autotest `AutoTestCaseDataBaseInitializer`（:111-121）。**无现成"表名替换"API**——createTable 表名取自 `entityModel.getTableName()`，N 表展开需实体模型包装/克隆或新入口。
+5. **DDL 建表三调用点**：`DataBaseSchemaInitializer.init`（`initialize/DataBaseSchemaInitializer.java:56-72`，逐实体循环 `createTable`）、auto-upgrade `OrmDbDiffer.createEntityDiffDdls`（`nop-dbtool-core/.../diff/OrmDbDiffer.java:360-374`，add→createTable / 列 diff；注意 ddl.xlib 加列模板引用 `col.ownerEntityModel.tableName`——仅包装实体模型对加列路径无效，「显式表名入口」选项更干净）、autotest `AutoTestCaseDataBaseInitializer`（:111-121）。**无现成"表名替换"API**——createTable 表名取自 `entityModel.getTableName()`，N 表展开需实体模型包装/克隆或新入口。
 6. **配置先例**：Map 型平面配置 `StringHelper.parseStringMap(text,'=',',')`（`DaoHelper.java:33-42`）；XScript 表达式配置先例 `DefaultDataAuthChecker.whenConfig`（编译配置字符串为谓词 + `setLocalValue` 绑定求值）；策略 bean 收集可对齐 `ioc:collect-beans name-prefix` 模式（同 nopDataSource_）。
 7. **错误码**：`DaoErrors.java`/`OrmErrors.java` 接口静态字段模式（`ErrorCode.define`）。
 8. **死面**：`IShardSelector.selectShards` main 零调用方（仅接口与两个实现自身）。
@@ -27,7 +27,7 @@
 
 - 内置算法 5 个（mod/hash-mod/range/interval/inline-XScript）+ 自定义 SPI（`IShardSelector` 覆盖注册表）双轨；策略经配置声明、绑定实体列表（显式列举，无通配符）。
 - 查询路径打通：EQL/QueryBean 查询中 shardProp 等值条件 → 分片值进入 TABLE marker → 表名后缀 + querySpace 改写（与写路径同语义）。
-- 缺分片键 fail-fast：`missing-shard-policy: fail`（缺省）抛 `ERR_DAO_SHARD_CONDITION_MISSING`；`default-shard` 显式回落。启动期校验：useShard 实体必须绑定策略（显式或 default-strategy），否则 fail-fast。
+- 缺分片键 fail-fast：`missing-shard-policy: fail`（缺省）抛 `ERR_ORM_SHARD_CONDITION_MISSING`；`default-shard` 显式回落。启动期校验：useShard 实体必须绑定策略（显式或 default-strategy），否则 fail-fast。
 - DDL N 表展开覆盖三个建表调用点；auto-upgrade 对 N 表逐一 diff；`selectShards` 死面删除。
 - 端到端：配置策略 → 保存（写路径路由）→ 按分片键查询（读路径路由命中同一物理表）→ 无分片键查询按策略失败/回落。
 
@@ -42,15 +42,18 @@
 
 ### In Scope
 
-- `nop-persistence/nop-dao`：策略 SPI/注册表、内置算法、`DaoErrors` 新错误码、`IShardSelector.selectShards` 移除、配置。
-- `nop-persistence/nop-orm`：查询侧分片值写入、`GenSqlTransformer` fail-fast 与策略接入、DDL 展开三调用点、测试。
+- `nop-persistence/nop-dao`：策略 SPI/注册表、内置算法、`DaoErrors` 新错误码、`IShardSelector` 死面移除（selectShards + isSupportShard）、配置。
+- `nop-persistence/nop-orm-eql`：查询侧分片值写入的编译链路改动（EqlCompiler/AstToSqlGenerator 所在模块）。
+- `nop-persistence/nop-orm`：`GenSqlTransformer` fail-fast 与策略接入、启动期绑定校验、DDL 展开调用点、测试。
 - `nop-persistence/nop-dbtool`：auto-upgrade 对 N 表的 diff 适配。
+- `nop-autotest/nop-autotest-core`：第三建表调用点的 N 表展开适配。
+- `nop-auth/nop-auth-service`（仅测试代码适配）：`MockShardSelector` 随接口死面移除的编译适配。
 - 文档：设计文档转 active、owner docs。
 
 ### Out Of Scope
 
 - xdef 变更（useShard/shardProp 已存在；策略配置不进模型——设计裁定）。
-- nop-auth `MockShardSelector` 测试的迁移（其语义与策略注册表不冲突，验证不回归即可）。
+- nop-auth `MockShardSelector` 的路由**语义**验证迁移（其按实体名查 Map 的语义与策略注册表不冲突；但接口死面移除引发的**编译适配在本 plan scope 内**，见 In Scope）。
 
 ## Execution Plan
 
@@ -61,30 +64,37 @@ Targets: `nop-persistence/nop-dao/src/main/java/io/nop/dao/shard/`（扩展）�
 
 - Item Types: `Feature` + `Decision`
 
-- [ ] 策略接口（输入：实体名 + 分片值 → `ShardSelection`）与注册表；**Decision**：配置承载形态裁定——IoC collect-beans 策略 bean（对齐 nopDataSource_ 模式）vs JSON 配置串解析；裁定记录到设计文档（两者均符合"部署属性不进模型"裁定）
+- [ ] 策略接口与注册表：接口必须同时承载 (a) 分片值→`ShardSelection` 解析，(b) **缺分片值解析契约**（按 missing-shard-policy 输出 fail 或 default 分片——消费方为 nop-orm 的 `GenSqlTransformer`，若 Phase 1 无法定义完整契约则显式声明注册表旁路方法及其消费方）；该 SPI 属 nop-dao 模块内扩展点，不属 `nop-*-api` 公共 API；**Decision**：配置承载形态裁定——IoC collect-beans 策略 bean（对齐 `IOrmDaoListener` by-type 收集先例）vs JSON 配置串解析；裁定记录到设计文档（两者均符合「部署属性不进模型」裁定）
 - [ ] 内置算法 5 个：mod / hash-mod（稳定 hash，跨方言一致）/ range（显式边界映射）/ interval（时间步长）/ inline（XScript 表达式，对齐 `DefaultDataAuthChecker` 求值先例）；每个算法独立单测（边界值、负数、非整数分片键、null 分片键→显式错误）
 - [ ] 实体绑定配置（显式实体名列表 + 可选 default-strategy）与启动期校验：useShard 实体未绑定策略 → 启动 fail-fast（`ERR_DAO_SHARD_STRATEGY_MISSING`）；错误码登记 `DaoErrors`
-- [ ] `selectShards` 从 `IShardSelector` 移除（接口 + `EmptyShardSelector` 同步收缩）；全仓编译回归证明无生产调用方断裂
+- [ ] 死面移除：`IShardSelector.selectShards` 与 `isSupportShard`（两者 main 均零调用方）从接口与 `EmptyShardSelector` 收缩；**同步删除 nop-auth-service 测试 `MockShardSelector` 的对应 @Override 实现（编译适配，In Scope）**；全仓编译回归证明无断裂
 - [ ] 单测：注册表解析、5 算法、绑定校验、缺省 Empty 行为不变（未配置策略的既有用例全绿）
 
 Exit Criteria:
 
-- [ ] 上述测试全部通过（Minimum Rules #25）；`EmptyShardSelector` 缺省行为零变更（回归）
+- [ ] 上述测试全部通过（Minimum Rules #25）；**无任何分片配置时既有行为零变更**（回归，含 base.orm.xml 的 useShard 测试实体全绿）
 - [ ] 无静默跳过：所有配置错误启动即抛（Minimum Rules #24）
 - [ ] Decision 结论已回写设计文档
+- [ ] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 查询侧分片值写入与缺分片键策略
 
 Status: planned
-Targets: `nop-persistence/nop-orm`（EQL 编译链路 / `GenSqlTransformer`）、`SyntaxMarker` 写入面
+Targets: `nop-persistence/nop-orm-eql`（编译链路）、`nop-persistence/nop-orm`（`GenSqlTransformer` 接线 + 启动校验）
 
 - Item Types: `Feature`
 
-- [ ] 查询分片值提取：useShard 实体的 EQL/QueryBean 查询中，shardProp 列的**等值条件**（参数或字面量）→ 分片值写入对应 TABLE marker（`shardParamIndex` 或 `shardValue`）；实现挂点在编译链路（列-实体归属在语义分析期可知；具体注入点实现时按 `SyntaxMarker` final 字段约束选择：构造期传入或标记传递），不解析 SQL 文本
-- [ ] `GenSqlTransformer`：分片值存在 → 现有 `selectShard` 路由（表名后缀 + querySpace）不变；缺失时按绑定策略的 `missing-shard-policy`——fail（缺省）抛 `ERR_DAO_SHARD_CONDITION_MISSING`（携带实体名与分片键列名）/ default-shard 路由到指定分片
+**执行约束（审查核定，实现前必读）**：
+1. **时序**：`AstToEqlGenerator` 按 select→from→where 单遍输出，FROM 期 `markTable` 执行时 WHERE 参数 marker 尚未产生——「构造期传入」不可行；注入点应为**生成完成后基于已解析 AST 定位分片等值条件，用现有 7 参构造器新建 `SyntaxMarker` 替换 builder marker 列表中的 TABLE marker**（final 字段不改），或 CompiledSql 侧信道（entityName→参数序号）——二选一，实现时裁定。
+2. **缓存安全**：`CompiledSql` 经 QueryPlanCache 跨执行共享，marker 只能承载静态信息（参数序号/字面量）；执行期值从 `paramValues` 取——`collectShardSelections` 需接收 paramValues（签名变更），现有 `sql.getMarker(shardParamIndex)` 取 Marker 对象的取值语义是坏的，须重定义（列入改动面，非「不变」）。
+3. **Protected Area**：优先完全不改 nop-core（`SyntaxMarker` 现有 7 参构造器已足够）；若实施证明必须改 nop-core，按 AGENTS.md Protected Area 先补本 plan 修订与回归测试证据，不得顺手下改。
+
+- [ ] 查询分片值提取：useShard 实体的 EQL/QueryBean 查询中，shardProp 列的**等值条件**（参数或字面量）→ 按上述约束写入 TABLE marker
+- [ ] `GenSqlTransformer`：分片值存在 → `selectShard` 路由（表名后缀 + querySpace，取值语义按约束 2 重定义）；缺失时按绑定策略的 `missing-shard-policy`——fail（缺省）抛 `ERR_ORM_SHARD_CONDITION_MISSING`（OrmErrors，携带实体名与分片键列名）/ default-shard 路由到指定分片
+- [ ] **启动期绑定校验**（从 Phase 1 移入，校验点在 nop-orm 层——nop-dao 不依赖 nop-orm-model）：**全局策略配置存在时**，useShard 实体未绑定策略且无 default-strategy → 启动 fail-fast（`ERR_ORM_SHARD_STRATEGY_MISSING`）；**无任何分片配置时不校验**（显式裁定：配置驱动的严格性，未配置分片体系的部署维持既有 Empty 行为，保证既有 useShard 测试实体零变更）
 - [ ] 写路径回归：`EntityPersisterImpl`/`CollectionPersisterImpl` 既有直取行为不变；`GenSqlHelper.transformShard` 不变
-- [ ] 单测：等值条件（参数形态/字面量形态）路由正确；范围条件/无条件按策略失败或回落；join 中同策略两表同分片值落同 querySpace（绑定表语义）+ 跨 querySpace 仍报既有错误
+- [ ] 单测：等值条件（参数形态/字面量形态）路由正确；范围条件/无条件按策略失败或回落；join 中同策略两表同分片值落同 querySpace（绑定表语义）+ 跨 querySpace 仍报既有错误；绑定校验两态（有配置/无配置）
 
 Exit Criteria:
 
@@ -97,7 +107,7 @@ Exit Criteria:
 ### Phase 3 - DDL N 表展开
 
 Status: planned
-Targets: `nop-orm/initialize/DataBaseSchemaInitializer.java`、`nop-dbtool-core/.../diff/OrmDbDiffer.java`、`nop-autotest-core/.../AutoTestCaseDataBaseInitializer.java`
+Targets: `nop-persistence/nop-orm/initialize/DataBaseSchemaInitializer.java`、`nop-persistence/nop-dbtool/nop-dbtool-core/src/main/java/io/nop/dbtool/core/diff/OrmDbDiffer.java`、`nop-autotest/nop-autotest-core/src/main/java/io/nop/autotest/core/execute/AutoTestCaseDataBaseInitializer.java`
 
 - Item Types: `Feature`
 
@@ -109,6 +119,7 @@ Exit Criteria:
 
 - [ ] 三个调用点各有 focused 测试（Minimum Rules #25）
 - [ ] 既有非分片建表/升级全量回归通过
+- [ ] owner-doc 裁定：DDL N 表展开语义归 Phase 4 的分片 owner doc 章节统一核对（本 Phase 无独立文档交付）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 端到端与文档收口
@@ -119,9 +130,9 @@ Targets: 测试、owner docs、设计文档状态
 - Item Types: `Proof`
 
 - [ ] 端到端（H2 + 策略配置）：保存（写路由到 `_N` 表）→ 按分片键 EQL 查询命中同表 → 无分片键查询按策略失败/default 回落 → querySpace 分片形态 focused 测试
-- [ ] 组合验证（若 plan 2319 已落）：分库分表 × 读写分离叠加（querySpace 指向路由 DS）
+- [ ] 组合验证：分库分表 × 读写分离叠加（querySpace 指向路由 DS）——**若执行到此时 plan 2319 尚未落地，本项移入 Deferred But Adjudicated**（classification: out-of-scope improvement；successor: 2319 落地后补组合 E2E），不得留空勾
 - [ ] 设计文档转 active（含 Phase 1 Decision 结论）；owner doc：`docs-for-ai/02-core-guides/` 分片章节（声明、配置、fail-fast 契约、与 fan-out 边界）+ `docs-for-ai/INDEX.md` 路由
-- [ ] 全量回归：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm,nop-persistence/nop-dbtool/nop-dbtool-core -am`
+- [ ] 全量回归：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dbtool/nop-dbtool-core,nop-autotest/nop-autotest-core -am`
 
 Exit Criteria:
 
@@ -134,11 +145,12 @@ Exit Criteria:
 - [ ] 配置即用端到端可用：策略声明 → 写路由 → 按分片键读路由 → 缺分片键 fail-fast/default 回落
 - [ ] 查询侧分片值写入接线已验证（不只读侧改造，`hasShardParam` 不再恒 false）
 - [ ] 5 内置算法 + 绑定校验 + N 表 DDL 各有 focused 测试；未配置时既有行为零变更
-- [ ] `selectShards` 死面已移除且全仓编译/测试无断裂
+- [ ] `selectShards`/`isSupportShard` 死面已移除且全仓编译/测试无断裂（含 nop-auth MockShardSelector 适配）
 - [ ] owner docs 与设计文档（转 active）一致
 - [ ] 独立子 agent closure audit 已完成并记录证据（Anti-Hollow：路由在读写两条链路真实生效）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2320-orm-sharding-strategy.md --strict` 退出码 0
-- [ ] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm,nop-persistence/nop-dbtool/nop-dbtool-core -am` 通过
+- [ ] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-dbtool/nop-dbtool-core,nop-autotest/nop-autotest-core -am` 通过
+- [ ] 全仓编译门禁：`./mvnw clean install -DskipTests -T 1C` 通过（覆盖 nop-auth-service 等 -pl 集合外的模块，证明死面移除无断编译）
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
