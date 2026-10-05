@@ -26,7 +26,7 @@
 | F-API4-1 | API-04 | /px/ full header passthrough (client-steerable routing, cross-boundary cookies) | successor-deferred (allowlist design) |
 | F-WF-01-1 | WF-01 | dead-code delegation anchor; live source = auth-side substitution (mapping break) | successor-deferred (cleanup + doc) |
 | F-WF-01-2 | WF-01 | check-start-auth defined but never invoked | successor-deferred (feature activation decision) |
-| F-WF-01-3 | WF-01 | notifySubFlowEndAsync no caller authz + unvalidated result injection | successor-deferred (API contract change) |
+| F-WF-01-3 | WF-01 | notifySubFlowEndAsync no caller authz + unvalidated result injection — **mitigation verified 2026-10-06 (full-code-review 3.11, plan 2338)**: anti-forgery triple check in place at `WorkflowServiceImpl.java:114-125` (subWfId reject + ended/status reject); literal gap remains (`request.getResults()` unvalidated passthrough :126 → engine `WorkflowEngineImpl.java:1143`) | successor-deferred (API contract change; mitigation logged, residual → P2 adjudication ledger) |
 | F-WF-02-1 | WF-02 | task state plaintext + persist default true | successor-deferred (behavior/data change) |
 | F-WF-03-1 | WF-03 | reportTaskLog unauthenticated (forged log injection) | open → **batch 4** (auth gate, small) |
 | F-AI1-1 | AI-01 | auth-header accumulation on account switch | successor-deferred (cross-account semantics) |

@@ -38,7 +38,7 @@
 | 3.8 | `3.8-tcc-retry-file-deep-audit.md` | 0 | **5** | 5 | 14 | done（裁决：通过附 P1×5 三族——文件权限面族×2（NopFileRecord 零 auth 任意读取链/attachFile 劫持物理删除链）+引擎执行表零 auth 平台代调提权（:290 处置前提被 live 证伪升级，P1-2.6-006 延伸，终裁 P1）+状态机恢复族×2（CANCELLING 崩溃恢复死锁 100 轮遗弃/TccContext 缺失静默 fork）进 R1.0；**check 18 条标定全覆盖**（10 already-fixed + :154/:175 partially〔处置记录过期非回归，残余 P2-3.8-004 承载〕+ 5 still-live 与处置一致 + :290 升级）；**:27 P0 already-fixed**〔TestTccRunner 10/10〕+**:61 交叉 plan 2282 通过**〔TestRetryEngineImpl 30/30〕；B 面 1 驳回（13-26 __TEMP__ 短路证伪）、A 面撞车索引 1 不计数；净 24 条降 0 升 1 驳 1；A 面 3 轮/B 面 2 轮） | 独立子 agent（见 plan 2335 Closure 段） |
 | 3.9 | `3.9-gateway-network-deep-audit.md` | 0 | 0 | **9** | 20 | done（裁决：通过无 P0/P1 新发现附 P2×9 进 R1.0 输入池——**AiAuth 鉴权失败语义终裁 fail-closed**〔warn 脱敏后 throw 401〕；**86 条标定全覆盖零虚假申报**〔50 already-fixed + 9 partially 台账行 + 1 adjudicated〔:83 按 plan 2283〕+ 26 still-live + 0 FP〕；**check2 两 P0 already-fixed**〔:19/:43，107+115 测试实测〕+ check :23 AF；**NET 族 P0 三条 already-fixed 实测**〔:21/:45/:70 三组测试亲跑绿〕；**check :49/:86 两条 P1 确认维持**〔live 缺陷亲核在位〕进 R1.0；A 面 1 降级（12-03 不可达证伪）；净 29 条新发现降 1 驳 0；A/B 面各 3 轮） | 独立子 agent（见 plan 2336 Closure 段） |
 | 3.10 | `3.10-auth-credential-incremental-audit.md` | 0 | **1** | 1 | 4 | done（裁决：通过附 P1×2 进 R1.0——①P1-3.10-001 CRED-01 no-finding 全称假命题与 live 矛盾〔安全台账链虚假保证，已实际误导一轮 :172 零处置，复核升格〕②P1-check-mcc-172 主密钥 passphrase 泄漏标定维持〔双文件域 9 throw 点亲读在位，修复与 P1-check2-nosql-67 同批〕；**29 条 auth 标定全覆盖零冲突**（check2 9 AF+6 deferred 维持/check 13 AF+1 partially——复核勘误）+:44/:19 两 P1 already-fixed 零漂移 + check :23 P0 already-fixed 双确认（P0 不变量在拆分 diff 逐字保持）；MFA codec 消费点侧取证闭环（Redis 后端功能性失效 fail-closed）；diff 四 commit 全部通过；CRED ledger 一致态零漂移；净 6 条新发现（A 面 1 驳回〔13-04 前提不成立〕、B 面 1 升格）；A 面 2 轮/B 面轻量 2 轮） | 独立子 agent（见 plan 2337 Closure 段） |
-| 3.11 | — | | | | | todo | |
+| 3.11 | `3.11-security-crosscut-recheck.md` | 0 | 0 | **1** | 1 | done（裁决：通过无 P0/P1 新发现附 P2×1/P3×1——**item 14 全 14 条标定完成：0 已修/12 仍 live/2 缓解生效**（复核 14/14 亲读确认、判级抽验 P2 全成立、零驳回零改判）；F-F2-1 升 P1 合并 3.8 P1-3.8-001/002 族 + F-WF-02-1 带修复裁定直入 R1.0；**P2 裁决例外 12 条转 R1.0**（P2 裁决台账登记）；grep 复扫三模式 123 处全量核实、口径重放全一致、撞车去重 7 项；新发现 P2-3.11-001 JWT 主密钥族 22 文件（含 nop-batch-app 键漂移死配置）+ P3-3.11-001 SSO client-secret 第 4 实例；A/B 面各 2 轮） | 独立子 agent（见 plan 2338 Closure 段） |
 | 4.1 | — | | | | | todo | |
 | 4.2 | — | | | | | todo | |
 | 4.3 | — | | | | | todo | |
@@ -145,6 +145,18 @@
 
 | Finding ID | 报告 | 描述 | 裁决结果 | Successor |
 |---|---|---|---|---|
+| F-WF-01-1 | `3.11-security-crosscut-recheck.md`（item14 承载） | 委托死代码锚点：nop_wf_user_delegate 孤儿零注册，live 走 auth 侧 substitution | 待 R1.0 裁决（cleanup+doc；与 P2-3.1-001 同批） | R1.0 |
+| F-WF-01-2 | 同上 | wf.xdef check-start-auth 承诺引擎零消费，start 无补偿鉴权 | 待 R1.0 裁决（wire 或 remove 二选一；与 P2-3.1-003 同批） | R1.0 |
+| F-WF-01-3 残余 | 同上 | 缓解在位后残余：notifySubFlowEndAsync 无 caller authz + results 未验注入 | 待 R1.0 裁决（API contract change）；缓解登记并行 | R1.0 |
+| F-API1-1 | 同上 | error-message-public-for-no-mapping 默认 true，无映射错误公开 | 待 R1.0 裁决（缺省翻转 vs 部署 checklist 二选一） | R1.0 |
+| F-API4-1 | 同上 | /px/ 全 header 透传无 outbound allowlist（可操纵路由）；缺省 inert | 待 R1.0 裁决（allowlist 设计） | R1.0 |
+| F-AI1-1 | 同上 | LLM 网关 failover 账号切换 auth-header 累积 | 待 R1.0 裁决（sink 前移除或接受现状） | R1.0 |
+| F-AI2-2 | 同上 | 双沙箱接缝未接线（Docker 沙箱不隔离 bash） | 待 R1.0 裁决（wiring 或文档裁定 SPI 边界） | R1.0 |
+| F-N1-1 | 同上 | Apache 变体 followRedirects knob 静默 no-op（重定向全 header 转发）；变体零消费者 | 待 R1.0 裁决（disableRedirectHandling 接线；升级触发=变体进默认装配） | R1.0 |
+| F-N2-2 | 同上 | MQTT 无 topic 级 ACL 模型且无 seam | 待 R1.0 裁决（ACL 新特性 or 信任边界文档化强制项） | R1.0 |
+| F-N3-2 | 同上 | 流控制面 RPC 无鉴权（默认单 JVM 休眠，多 JVM 暴露） | 待 R1.0 裁决（文档化 ACL 姿态 or auth seam；升级触发=多 JVM 受支持拓扑） | R1.0 |
+| F-D1-1 | 同上 | NopMetaEntity 物理浏览全列返回绕过 xmeta 字级可见性 | 待 R1.0 裁决（published/sensitive 过滤 or 文档化+默认收紧） | R1.0 |
+| P2-3.11-001 | `3.11-security-crosscut-recheck.md` | 22 文件出厂 application.yaml 硬编码 JWT 签名主密钥族 + nop-batch-app 键漂移死配置 | 待 R1.0 裁决（空默认+已知默认值 fail-loud+与 check/demo-migration P2 同批；升级触发=enc-key 硬编码为生产主流路径） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 
