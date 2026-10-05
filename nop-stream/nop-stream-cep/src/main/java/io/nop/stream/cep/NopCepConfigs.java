@@ -20,10 +20,10 @@ public interface NopCepConfigs {
 
     String COMMON_HINT =
             "And it could accelerate the CEP operate process "
-                    + "speed and limit the capacity of cache in pure memory. Note: It's only effective to "
-                    + "limit usage of memory when 'state.backend' was set as 'rocksdb', which would "
-                    + "transport the elements exceeded the number of the cache into the rocksdb state "
-                    + "storage instead of memory state storage.";
+                    + "speed and limit the capacity of cache in pure memory. Note: the CEP "
+                    + "operator currently only supports the Memory state backend — 'rocksdb' is "
+                    + "NOT supported for CEP (SharedBuffer Lockable is not JSON-serializable; the "
+                    + "combination fails fast at deployment, R5 CEP-1).";
 
     @Description("The Config option to set the maximum element number the "
             + "eventsBufferCache of SharedBuffer could hold. "

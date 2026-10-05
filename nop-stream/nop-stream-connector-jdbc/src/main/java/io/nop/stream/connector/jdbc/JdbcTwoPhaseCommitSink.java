@@ -416,8 +416,24 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * branches that write different tables).
      */
     private String effectiveLedgerNamespace() {
-        return ledgerNamespace != null ? ledgerNamespace : tableName;
+        if (ledgerNamespace != null) {
+            return ledgerNamespace;
+        }
+        // R5 CON-05: the table-name fallback keeps direct-construction usable
+        // but retains a cross-job collision face (guard silently skips writes
+        // when two jobs share the table). Loud, once per instance, so the
+        // deployment sets ledgerNamespace explicitly.
+        if (!fallbackWarned) {
+            fallbackWarned = true;
+            LOG.warn("JDBC 2PC ledger namespace not set — falling back to tableName '{}'."
+                    + " Two jobs sharing this table collide on ledger rows and silently skip"
+                    + " writes; set ledgerNamespace (deployment injects jobId|vertexId)", tableName);
+        }
+        return tableName;
     }
+
+    /** R5 CON-05: one-shot flag for the fallback warning. */
+    private transient volatile boolean fallbackWarned;
 
     // ---- Lifecycle ----
 

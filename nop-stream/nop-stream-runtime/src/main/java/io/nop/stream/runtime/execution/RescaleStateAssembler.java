@@ -134,11 +134,45 @@ static void assertNoChannelStateOnRescale(
  * @throws StreamException ({@code ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED})
  *         if any old subtask snapshot carries a non-empty operator state
  */
+private static boolean isPerKeyAuxiliaryOperatorState(String stateKey) {
+    return stateKey.equals("internal-timers") || stateKey.equals("cep-event-time-timers")
+            || stateKey.equals("trigger-accumulators") || stateKey.equals("pane-tracking")
+            || stateKey.equals("reduce-state");
+}
+
 static void assertNoOperatorStateOnScaleUp(
         String vertexId, List<TaskLocation> oldSubtasks,
         int newParallelism, int oldParallelism, GraphModelCheckpointExecutor.TaskStateLookup stateLookup) throws Exception {
-    if (newParallelism <= oldParallelism) {
-        // Scale-down / same-parallelism: 1:1 by index serves every kept subtask.
+    if (newParallelism < oldParallelism) {
+        // R5 WIN-2/WIN-4 (Phase 1 fail-fast): scale-down with per-key auxiliary
+        // operator state (window timers / pane tracking / trigger accumulators /
+        // CEP ledger / reduce values) silently splits timer/pane state (1:1 copy)
+        // from window contents (key-group range) — fired windows find null
+        // contents and are skipped without a log, dropping output forever. Loud
+        // rejection until per-key-group redistribution lands (Phase 2).
+        for (int s = 0; s < oldParallelism; s++) {
+            TaskStateSnapshot oldState = stateLookup.lookup(oldSubtasks.get(s));
+            if (oldState == null || oldState.getOperatorStates() == null) {
+                continue;
+            }
+            for (String key : oldState.getOperatorStates().keySet()) {
+                if (isPerKeyAuxiliaryOperatorState(key)) {
+                    throw new StreamException(ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED)
+                            .param(ARG_VERTEX_ID, vertexId)
+                            .param(ARG_OLD_PARALLELISM, oldParallelism)
+                            .param(ARG_NEW_PARALLELISM, newParallelism)
+                            .param(ARG_DETAIL, "Old subtask " + s + " carries per-key auxiliary"
+                                    + " operator state [" + key + "] (window timers / pane tracking"
+                                    + " / trigger accumulators / CEP ledger); scale-down would split"
+                                    + " it from the key-group-redistributed window contents and"
+                                    + " silently drop fired windows (R5 WIN-2/WIN-4 Phase 1 guard)");
+                }
+            }
+        }
+        return;
+    }
+    if (newParallelism == oldParallelism) {
+        // Same-parallelism: 1:1 by index serves every kept subtask.
         return;
     }
     for (int s = 0; s < oldParallelism; s++) {

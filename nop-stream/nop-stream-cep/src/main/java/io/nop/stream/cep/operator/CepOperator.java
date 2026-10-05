@@ -403,6 +403,27 @@ public class CepOperator<IN, KEY, OUT>
 
         internalTimerService = createTimerService();
 
+        // R5 CEP-7: processing-time mode must re-arm wall-clock timers from the
+        // restored ledger — the ledger survives the checkpoint but the wall-clock
+        // registrations do not, and without re-arm a quiet key's window timeout
+        // never fires (in-flight matches lost + state leak). Only the earliest
+        // pending timestamp per key gets a wall-clock registration: the fire
+        // callback drains the full due set for that key (audit-sanctioned shape).
+        // Event-time mode self-heals via watermark + ledger and is untouched.
+        if (isProcessingTime && registeredEventTimeTimersByKey != null
+                && getProcessingTimeService() != null) {
+            for (Map.Entry<Object, java.util.TreeSet<Long>> entry : registeredEventTimeTimersByKey.entrySet()) {
+                Object key = entry.getKey();
+                if (key == null || entry.getValue().isEmpty()) {
+                    continue;
+                }
+                setCurrentKey(key);
+                internalTimerService.registerProcessingTimeTimer(
+                        io.nop.stream.core.common.state.VoidNamespace.INSTANCE,
+                        entry.getValue().first() + 1);
+            }
+        }
+
         initNfa();
 
         context = new ContextFunctionImpl();
@@ -448,6 +469,17 @@ public class CepOperator<IN, KEY, OUT>
             // in-memory; the first live key's class is captured and persisted so the
             // NEXT restore resolves it).
             Class<?> effectiveKeyClass = resolveEffectiveKeyClass();
+            // R5 CEP-1: the RocksDB backend ignores the JavaStreamSerializer
+            // contract the CEP descriptors rely on (SharedBuffer Lockable is not
+            // JSON-serializable) — the known-unusable combination is pinned as a
+            // deployment-time typed error instead of silent first-read corruption.
+            if (this.stateBackend.getClass().getName().contains("RocksDB")) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "CEP operators do not support the RocksDB state"
+                                + " backend (SharedBuffer Lockable is not JSON-serializable and"
+                                + " the RocksDB backend ignores the JavaStreamSerializer"
+                                + " contract) — use the Memory state backend (R5 CEP-1)");
+            }
             this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(effectiveKeyClass);
             // Apply deferred state restore (from checkpoint recovery before open())
             applyPendingRestoreState();

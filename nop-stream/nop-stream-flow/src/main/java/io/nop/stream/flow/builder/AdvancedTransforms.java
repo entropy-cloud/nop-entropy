@@ -101,6 +101,9 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  */
 final class AdvancedTransforms {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(AdvancedTransforms.class);
+
     private static final long XDEF_DEFAULT_ALLOWED_LATENESS = 0L;
 
     private AdvancedTransforms() {
@@ -748,6 +751,18 @@ final class AdvancedTransforms {
     private static <T, K, R> SingleOutputStreamOperator<R> buildCep(
             StreamModelDslBuilder owner, StreamTransformModel t, Set<String> upstreamIds,
             Map<String, Object> streamRegistry, StreamCepModel m) {
+        // R5 CEP-2: event-time CEP requires an upstream watermark supply. Scan
+        // the model for a <timestampsAndWatermarks> node; without one the
+        // pipeline never emits watermarks and every in-flight match stays
+        // buffered forever (silent no-output + unbounded state). Build-time
+        // WARN per the audit's 起步 ruling; typed rejection is the end state.
+        boolean hasWatermarkSupply = owner.model().getTransforms() != null && owner.model().getTransforms().stream()
+                .anyMatch(x -> x instanceof io.nop.stream.flow.model.StreamTimestampsAndWatermarksModel);
+        if (!hasWatermarkSupply) {
+            LOG.warn("CEP pattern [{}] runs in event-time mode but the pipeline declares no"
+                    + " <timestampsAndWatermarks> node — no watermark will ever fire and"
+                    + " matches will never complete (R5 CEP-2)", m.getId());
+        }
         Object in = requireSingleInput(upstreamIds, streamRegistry, owner, t);
         if (!(in instanceof KeyedStream)) {
             throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
@@ -818,6 +833,19 @@ final class AdvancedTransforms {
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
                     .param(ARG_EXPECTED_STREAM_TYPE, "DataStream")
                     .param(ARG_ACTUAL_STREAM_TYPE, in == null ? "null" : in.getClass().getName())
+                    .loc(t.getLocation());
+        }
+        // R5 FLOW-4: three-source-all-missing guard — an all-empty declaration
+        // assembles a NoOp pass-through operator that never emits a watermark,
+        // silently starving every downstream event-time consumer (windows/CEP).
+        if (m.getWatermarkStrategyBean() == null && m.getTimestampAssigner() == null
+                && m.getWatermarkGenerator() == null) {
+            throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REQUIRED_BODY)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_ELEMENT,
+                            "timestampsAndWatermarks[" + t.getId() + "]")
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "at least one of watermarkStrategyBean / timestampAssigner /"
+                            + " watermarkGenerator must be declared (R5 FLOW-4)")
                     .loc(t.getLocation());
         }
         WatermarkStrategy<T> strategy;

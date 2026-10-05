@@ -96,3 +96,8 @@ Closure Audit Evidence:
   - 全量：_tmp/plan2315-full2.log 四模块 BUILD SUCCESS
   - `check-plan-checklist.mjs --strict` 退出码 0；`scan-hollow-implementations.mjs` 退出码 0
 - Follow-up: CON-07/09/10/11、SEC-02（P3 长尾）
+
+## Addendum (2026-10-05, plan 2316 closure audit)
+
+- **CON-04/CON-08 部分回退**：2316 执行期间发现本计划的 CON-08 键折叠（runNamespace 折入 temp/final/manifest 键）与 CON-04 recordCount 行数校验在恢复混键场景引入 exactly-once 回归（TestStreamConnectorRegistryE2E 40→39 行），已在 2316 worktree 回退。live code 现状 = 保留 CON-04 的 writeLines 后 forcePath 与 guard/final-exists WARN（行为保持），行数校验与键折叠移入 2316 Deferred（successor：独立连接器身份传递计划）。CON-04 的 fsync 增量与 CON-08 的可观测性增量仍然有效；完整修复需恢复路径身份传递设计。
+- **CON-05 归属更正**：fallback WARN 实际落地于 2316 worktree（本提交 c79be63506 未含），归属随 2316 提交。

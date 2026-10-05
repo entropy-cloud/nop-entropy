@@ -32,6 +32,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_EDGE_HASH
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_EDGE_KEY_EXPR_WITHOUT_HASH;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_EDGE_PARTITION_UNSUPPORTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NOT_IMPLEMENTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_REF_UNKNOWN;
@@ -496,7 +497,69 @@ public final class StreamModelDslBuilder {
         }
         validateEdgeDeclarations(edges, byId);
         validateJoinDeclarations(edges, upstreams);
+        validateSinkReachability(edges, byId);
         return edges;
+    }
+
+    /**
+     * R5 FLOW-2: reverse reachability — every transform must be able to reach a
+     * sink. The DAG compile only takes the sink-reachable subgraph, so a
+     * misspelled id silently drops the disconnected subtree while build()
+     * reports success (zero-output pipeline). Fail fast at build time with the
+     * full list of unreachable transforms.
+     */
+    private void validateSinkReachability(List<StreamEdgeModel> edges,
+            Map<String, StreamTransformModel> byId) {
+        // Gate: only models that declare at least one sink are checked. Models
+        // without any sink are partial-wiring shapes used by contract tests and
+        // validators (the empty-compiled-pipeline hazard is covered by the
+        // existing build path, not this guard).
+        boolean hasSink = false;
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (t instanceof io.nop.stream.flow.model.StreamSinkModel) {
+                hasSink = true;
+                break;
+            }
+        }
+        if (!hasSink) {
+            return;
+        }
+        Set<String> reachable = new HashSet<>();
+        Deque<String> queue = new ArrayDeque<>();
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (t instanceof io.nop.stream.flow.model.StreamSinkModel) {
+                if (reachable.add(t.getId())) {
+                    queue.add(t.getId());
+                }
+            }
+        }
+        Map<String, Set<String>> incoming = new HashMap<>();
+        for (String id : byId.keySet()) {
+            incoming.put(id, new HashSet<>());
+        }
+        for (StreamEdgeModel e : edges) {
+            incoming.get(e.getTo()).add(e.getFrom());
+        }
+        while (!queue.isEmpty()) {
+            String cur = queue.poll();
+            for (String prev : incoming.getOrDefault(cur, Collections.emptySet())) {
+                if (reachable.add(prev)) {
+                    queue.add(prev);
+                }
+            }
+        }
+        List<String> unreachable = new ArrayList<>();
+        for (String id : byId.keySet()) {
+            if (!reachable.contains(id)) {
+                unreachable.add(id);
+            }
+        }
+        if (!unreachable.isEmpty()) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "transforms not reachable from any sink: " + unreachable
+                            + " — a misspelled edge id silently drops this subtree from the"
+                            + " compiled pipeline (R5 FLOW-2)");
+        }
     }
 
     /**
