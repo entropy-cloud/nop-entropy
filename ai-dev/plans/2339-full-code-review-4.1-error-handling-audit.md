@@ -51,13 +51,13 @@
 
 ### Phase 1 - 扫描与抽样（双 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 全仓 src/main
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（**若不干净：登记在途变更清单并核对本 plan 扫描域是否被触及；触及则待其提交后再开始，未触及则登记豁免继续**）
-- [ ] 机械基线：扫描口径写死（三类模式+排除项+窗口）、历次深审已立案错误处理发现撞车清单、owner doc 两档策略要点提取
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（**若不干净：登记在途变更清单并核对本 plan 扫描域是否被触及；触及则待其提交后再开始，未触及则登记豁免继续**）
+- [ ] 机械基线（口径写死基线：bare RT src/main throw 语句 5-6 处〔8 处含注释与 lint corpus〕、IAE ~496/ISE ~353）：扫描口径写死（三类模式+排除项+窗口）、历次深审已立案错误处理发现撞车清单、owner doc 两档策略要点提取
 - [ ] 裸抛与策略面子 agent：bare RuntimeException 全量裁定（8 处）+ IAE/ISE 台账式一行一裁定（~840 处，违规项展开）+ 两档策略合规抽样（**公共 API 面识别=BizModel 抛出点 + nop-*-api 模块 throw；抽样率=每模块组 ≥10 个抛出点或全量（<10 时），分母=该面 throw 总数**；核对 ErrorCode 模式合规/命名规范/.param()/cause 保留）+ 中文消息 grep（**口径：throw 语句字符串字面量含 CJK 字符，排除 i18n 资源/注释/测试**）+ 撞车去重
 - [ ] 吞异常横切子 agent：空 catch/仅 LOG catch 横切计数 + 高危抽样（吞掉影响正确性的场景）+ 与 6.2 边界登记
 - [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
