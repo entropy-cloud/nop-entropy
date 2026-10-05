@@ -11,7 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.json.JSON;
+import io.nop.api.core.message.MessageValueCodec;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.util.ApiHeaders;
 import org.apache.kafka.common.header.Header;
@@ -49,6 +49,19 @@ public final class KafkaHelper {
         ApiRequest<Object> request = new ApiRequest<>();
         request.setData(value);
 
+        // WI24 (F-33): upstream headers are copied FIRST — framework metadata headers are
+        // written last so an upstream same-name header can never override the real
+        // topic/partition/offset/eventTime/bizKey (bizKey moved after the copy too: the
+        // record key is the authoritative biz key).
+        if (headers != null) {
+            for (Header header : headers) {
+                String decoded = decodeValue(header.value());
+                if (decoded != null) {
+                    request.setHeader(header.key(), decoded);
+                }
+            }
+        }
+
         if (key != null) {
             ApiHeaders.setBizKey(request, key);
         }
@@ -61,13 +74,11 @@ public final class KafkaHelper {
             request.setHeader(ApiConstants.HEADER_EVENT_TIME, timestamp);
         }
 
-        if (headers != null) {
-            for (Header header : headers) {
-                String decoded = decodeValue(header.value());
-                if (decoded != null) {
-                    request.setHeader(header.key(), decoded);
-                }
-            }
+        // WI24 (F-48 / D2): fill-if-absent — a producer-supplied nop-id (e.g. the message
+        // RPC client's correlation UUID) must survive; only an absent id is filled with the
+        // derived location. Write-last would break reply correlation silently.
+        if (!request.hasHeader(ApiConstants.HEADER_ID)) {
+            request.setHeader(ApiConstants.HEADER_ID, topic + "-" + partition + "@" + offset);
         }
         return request;
     }
@@ -127,16 +138,7 @@ public final class KafkaHelper {
      * literally; complex objects are JSON-serialized.
      */
     public static String encodeValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String) {
-            return (String) value;
-        }
-        if (value instanceof Number || value instanceof Boolean) {
-            return value.toString();
-        }
-        return JSON.stringify(value);
+        return MessageValueCodec.encodeValue(value);
     }
 
     /**
@@ -144,10 +146,7 @@ public final class KafkaHelper {
      * header map. Returns {@code null} for null/empty input.
      */
     public static String decodeValue(byte[] raw) {
-        if (raw == null || raw.length == 0) {
-            return null;
-        }
-        return new String(raw, StandardCharsets.UTF_8);
+        return MessageValueCodec.decodeValue(raw);
     }
 
     /**

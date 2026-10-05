@@ -18,6 +18,7 @@ import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
+import io.nop.api.core.message.MessageValueCodec;
 import io.nop.api.core.message.MultiMessageSubscription;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.service.LifeCycleSupport;
@@ -294,14 +295,7 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
      * JSON-encoded (so a non-String data does not crash the StringSerializer).
      */
     static String toWireValue(ApiMessage message) {
-        Object data = message.getData();
-        if (data == null) {
-            return null;
-        }
-        if (data instanceof String) {
-            return (String) data;
-        }
-        return KafkaHelper.encodeValue(data);
+        return MessageValueCodec.encodeValue(message.getData());
     }
 
     @Override

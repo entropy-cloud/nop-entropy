@@ -53,7 +53,11 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
 | topic / eventTime / key | 原生映射（record key → bizKey，timestamp → eventTime） | 原生映射（key/eventTime/publishTime/sequenceId 全量） | SysDao 已映射；无信封的后端声明 warn-once |
 | headers | 全量 UTF-8 往返 | properties 全量往返 | JSON round-trip（SysDao）或 warn-once |
 | 非 String payload | 与 Pulsar 一致的两态：String 直用；其余按 D2 统一编码规则（编码或类型化拒绝，二选一，两后端必须同态） | 同左 | 不适用 |
-| 框架头保护 | 框架元数据头**最后写入**，上游同名头不可覆盖 | 同左 | 同左 |
+| 框架头保护 | 框架元数据头**最后写入**（topic/eventTime/bizKey/partition/offset）；`nop-id` **fill-if-absent**——消息 RPC 的应答关联依赖消费侧存活的客户端 nop-id，框架不得覆盖（WI24/B1 裁定，Pulsar 同规则） | 同左（nop-id fill-if-absent，其余最后写入） | 同左 |
+| 实现态（WI24 落地） | HEADER_ID 缺失时派生 `topic-partition@offset`（与 ConsumeFailure location 同格式）；publish-time/sequence-id 为 Pulsar 专有、Kafka 无对应概念不伪造（显式登记非遗漏） | 原生 messageId/publishTime/sequenceId 全量 | — |
+| 非 String payload | `MessageValueCodec.encodeValue`（nop-api-core 共享）：String 直用/Number·Boolean toString/其余 JSON.stringify——双端 wire 一致（F-31 收口） | 同左 | 不适用 |
+| TopicMessage（F-59） | 字段值 equals/hashCode（载荷相等性取决于载荷类型自身 equals——ApiMessage 基类无 equals，引用相等残差如实登记）；无参 ctor 满足 @DataBean 反射 | — | — |
+| cancelToken YAML 键 | WI15 已接线消除（SEND_TIMEOUT 能力门 + 前置取消检查）——**无需改名**（D8 加性合规结论） | 同左 | — |
 
 ### 3.2.1 ack topic 派生契约（WI9/MSG-F-04）
 

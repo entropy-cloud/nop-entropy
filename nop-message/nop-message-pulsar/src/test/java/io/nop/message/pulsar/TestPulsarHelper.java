@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @NopTestConfig(testBeansFile = "/nop/message/pulsar/beans/test.beans.xml")
 class TestPulsarHelper extends JunitBaseTestCase {
@@ -113,5 +115,95 @@ class TestPulsarHelper extends JunitBaseTestCase {
         // the exact failure mode of MSG-F-04.
         org.apache.pulsar.common.naming.TopicName.get(
                 PulsarHelper.deriveAckTopic("persistent://public/default/orders"));
+    }
+
+    // ------------------------------------------------------------------
+    // WI24: header protection (F-33/F-48) and wire-value encoding (F-31)
+    // ------------------------------------------------------------------
+
+    @Test
+    void buildApiMessageFrameworkHeadersBeatUpstreamProperties() {
+        org.apache.pulsar.client.api.Message<Object> message =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(message.getValue()).thenReturn("payload");
+        when(message.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(message.getTopicName()).thenReturn("persistent://public/default/real-topic");
+        when(message.getKey()).thenReturn("real-key");
+        when(message.getEventTime()).thenReturn(12345L);
+        java.util.Map<String, String> properties = new java.util.HashMap<>();
+        properties.put("nop-id", "spoofed-id");
+        properties.put(io.nop.api.core.ApiConstants.HEADER_TOPIC, "spoofed-topic");
+        properties.put("nop-biz-key", "spoofed-key");
+        when(message.getProperties()).thenReturn(properties);
+
+        io.nop.api.core.beans.ApiMessage apiMessage = PulsarHelper.buildApiMessage(message);
+
+        // F-33: framework metadata wins over upstream same-name properties.
+        org.junit.jupiter.api.Assertions.assertEquals("persistent://public/default/real-topic",
+                apiMessage.getHeader(io.nop.api.core.ApiConstants.HEADER_TOPIC));
+        org.junit.jupiter.api.Assertions.assertEquals("real-key",
+                io.nop.api.core.util.ApiHeaders.getBizKey(apiMessage));
+        // F-48/B1: the producer-supplied nop-id SURVIVES fill-if-absent.
+        org.junit.jupiter.api.Assertions.assertEquals("spoofed-id",
+                apiMessage.getHeader(io.nop.api.core.ApiConstants.HEADER_ID));
+
+        // F-48 (audit condition): with NO upstream nop-id, the Pulsar-native messageId
+        // fills in (symmetric with the Kafka derived location).
+        org.apache.pulsar.client.api.Message<Object> noIdMessage =
+                mock(org.apache.pulsar.client.api.Message.class);
+        org.apache.pulsar.client.api.MessageId msgId =
+                mock(org.apache.pulsar.client.api.MessageId.class);
+        when(noIdMessage.getValue()).thenReturn("payload");
+        when(noIdMessage.getMessageId()).thenReturn(msgId);
+        when(noIdMessage.getTopicName()).thenReturn("persistent://public/default/real-topic");
+        when(noIdMessage.getProperties()).thenReturn(java.util.Collections.emptyMap());
+        io.nop.api.core.beans.ApiMessage noId = PulsarHelper.buildApiMessage(noIdMessage);
+        org.junit.jupiter.api.Assertions.assertEquals(String.valueOf(msgId),
+                noId.getHeader(io.nop.api.core.ApiConstants.HEADER_ID));
+    }
+
+    @Test
+    void wireValueEncodesNonStringPayloadsLikeKafka() {
+        org.apache.pulsar.client.api.TypedMessageBuilder<Object> builder =
+                mock(org.apache.pulsar.client.api.TypedMessageBuilder.class);
+        io.nop.api.core.beans.ApiRequest<Object> message = new io.nop.api.core.beans.ApiRequest<>();
+        Point point = new Point();
+        point.x = 1;
+        point.y = 2;
+        message.setData(point);
+
+        PulsarHelper.buildPulsarMessage(builder, message, null);
+
+        org.mockito.ArgumentCaptor<Object> value = org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(builder).value(value.capture());
+        String encoded = (String) value.getValue();
+        org.junit.jupiter.api.Assertions.assertTrue(
+                encoded.contains("\"x\"") && encoded.contains("\"y\""),
+                "non-String payload must be JSON-encoded (same codec as Kafka), got: " + encoded);
+        // Parity anchor: identical output from the shared codec.
+        org.junit.jupiter.api.Assertions.assertEquals(
+                io.nop.api.core.message.MessageValueCodec.encodeValue(point), encoded);
+    }
+
+    @io.nop.api.core.annotations.data.DataBean
+    static class Point {
+        public int x;
+        public int y;
+
+        public int getX() {
+            return x;
+        }
+
+        public void setX(int x) {
+            this.x = x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
+        }
     }
 }

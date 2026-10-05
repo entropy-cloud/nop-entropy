@@ -10,7 +10,7 @@ package io.nop.message.pulsar;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.json.JSON;
+import io.nop.api.core.message.MessageValueCodec;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.util.ApiHeaders;
 import org.apache.pulsar.client.api.Message;
@@ -25,13 +25,30 @@ public class PulsarHelper {
         ApiRequest<Object> apiMessage = new ApiRequest<>();
         apiMessage.setData(value);
 
+        // WI24 (F-33): upstream properties are copied FIRST — framework metadata headers
+        // are written last so an upstream same-name property can never override the real
+        // topic/eventTime/publishTime/sequenceId (bizKey moved after the copy too: the
+        // Pulsar message key is the authoritative biz key).
+        Map<String, String> properties = message.getProperties();
+        if (properties != null) {
+            for (Map.Entry<String, String> entry : properties.entrySet()) {
+                apiMessage.setHeader(entry.getKey(), entry.getValue());
+            }
+        }
+
         String key = message.getKey();
         if (key != null) {
             ApiHeaders.setBizKey(apiMessage, key);
         }
 
+        // WI24 (F-48/B1): fill-if-absent — a producer-supplied nop-id (the message RPC
+        // client's correlation UUID rides Pulsar properties exactly like Kafka headers)
+        // must survive for reply correlation; only an absent id is filled with the
+        // Pulsar-native messageId.
         String msgId = String.valueOf(message.getMessageId());
-        apiMessage.setHeader(ApiConstants.HEADER_ID, msgId);
+        if (!apiMessage.hasHeader(ApiConstants.HEADER_ID)) {
+            apiMessage.setHeader(ApiConstants.HEADER_ID, msgId);
+        }
 
         String topicName = message.getTopicName();
         if (topicName != null) {
@@ -51,13 +68,6 @@ public class PulsarHelper {
         Long sequenceId = message.getSequenceId();
         if (sequenceId != null) {
             apiMessage.setHeader("nop-sequence-id", sequenceId);
-        }
-
-        Map<String, String> properties = message.getProperties();
-        if (properties != null) {
-            for (Map.Entry<String, String> entry : properties.entrySet()) {
-                apiMessage.setHeader(entry.getKey(), entry.getValue());
-            }
         }
 
         return apiMessage;
@@ -96,7 +106,10 @@ public class PulsarHelper {
             builder.key(bizKey);
         }
 
-        builder.value(message.getData());
+        // WI24 (F-31): STRING-schema producer — encode non-String payloads exactly like the
+        // Kafka backend (shared codec), instead of handing a raw object to the String
+        // schema serializer (send-time serialization failure).
+        builder.value(encodeValue(message.getData()));
     }
 
     /**
@@ -117,15 +130,6 @@ public class PulsarHelper {
     }
 
     static String encodeValue(Object value) {
-        if (value == null)
-            return null;
-
-        if (value instanceof String)
-            return (String) value;
-
-        if (value instanceof Number || value instanceof Boolean)
-            return value.toString();
-
-        return JSON.stringify(value);
+        return MessageValueCodec.encodeValue(value);
     }
 }

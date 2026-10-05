@@ -116,4 +116,80 @@ class TestKafkaHelper extends JunitBaseTestCase {
         opts.setDelay(-1L);
         assertEquals(0L, KafkaHelper.resolveDelay(opts));
     }
+
+    // ------------------------------------------------------------------
+    // WI24: shared codec delegation (F-31) and header protection (F-33/F-48)
+    // ------------------------------------------------------------------
+
+    @io.nop.api.core.annotations.data.DataBean
+    static class Point {
+        public int x;
+        public int y;
+
+        public int getX() {
+            return x;
+        }
+
+        public void setX(int x) {
+            this.x = x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
+        }
+    }
+
+    @Test
+    void encodeValueDelegatesToSharedCodecIncludingPojoJson() {
+        assertEquals("text", KafkaHelper.encodeValue("text"));
+        assertEquals("42", KafkaHelper.encodeValue(42));
+        // nop-core's JSON provider is initialized under JunitBaseTestCase.
+        Point point = new Point();
+        point.x = 1;
+        point.y = 2;
+        String encoded = KafkaHelper.encodeValue(point);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                encoded.contains("\"x\"") && encoded.contains("\"y\""),
+                "POJO must be JSON-stringified, got: " + encoded);
+    }
+
+    @Test
+    void buildApiMessageFrameworkHeadersBeatUpstreamHeaders() {
+        org.apache.kafka.common.header.internals.RecordHeaders upstream =
+                new org.apache.kafka.common.header.internals.RecordHeaders();
+        upstream.add("nop-id", "spoofed-id".getBytes());
+        upstream.add(io.nop.api.core.ApiConstants.HEADER_TOPIC, "spoofed-topic".getBytes());
+        upstream.add(io.nop.api.core.ApiConstants.HEADER_EVENT_TIME, "-1".getBytes());
+        upstream.add("nop-biz-key", "spoofed-key".getBytes());
+
+        io.nop.api.core.beans.ApiMessage message = KafkaHelper.buildApiMessage(
+                "real-topic", 2, 7L, 12345L, "real-key", "payload", upstream);
+
+        // F-33: framework metadata wins over upstream same-name headers.
+        org.junit.jupiter.api.Assertions.assertEquals("real-topic",
+                message.getHeader(io.nop.api.core.ApiConstants.HEADER_TOPIC));
+        org.junit.jupiter.api.Assertions.assertEquals("real-key",
+                io.nop.api.core.util.ApiHeaders.getBizKey(message));
+        org.junit.jupiter.api.Assertions.assertEquals(12345L,
+                message.getHeader(io.nop.api.core.ApiConstants.HEADER_EVENT_TIME));
+        // Type guards (auditor m5): numeric framework values, not upstream strings.
+        org.junit.jupiter.api.Assertions.assertEquals(Integer.class,
+                message.getHeader(KafkaHelper.HEADER_KAFKA_PARTITION).getClass());
+        org.junit.jupiter.api.Assertions.assertEquals(Long.class,
+                message.getHeader(KafkaHelper.HEADER_KAFKA_OFFSET).getClass());
+        // F-48/B1: the producer-supplied nop-id (RPC correlation) SURVIVES fill-if-absent.
+        org.junit.jupiter.api.Assertions.assertEquals("spoofed-id",
+                message.getHeader(io.nop.api.core.ApiConstants.HEADER_ID));
+
+        // F-48: with NO upstream nop-id, the derived location fills in.
+        io.nop.api.core.beans.ApiMessage noId = KafkaHelper.buildApiMessage(
+                "real-topic", 2, 7L, 12345L, "real-key", "payload", null);
+        org.junit.jupiter.api.Assertions.assertEquals("real-topic-2@7",
+                noId.getHeader(io.nop.api.core.ApiConstants.HEADER_ID));
+    }
+
 }

@@ -12,8 +12,8 @@
     <artifactId>nop-message-kafka</artifactId>
 
     <dependencies>
-        <!-- ApiMessage/ApiRequest/ApiHeaders live in nop-core (NOT nop-api-core),
-             matching the PulsarMessageService wiring. -->
+        <!-- nop-core (transitively nop-api-core + nop-commons) carries the message SPI
+             types (ApiMessage/ApiRequest/ApiHeaders) and the shared wire codec. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-core</artifactId>
