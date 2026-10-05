@@ -28,7 +28,7 @@
 | 2.6 | `2.6-biz-graphql-deep-audit.md` | 0 | **7** | 14 | 12 | done（裁决：不通过附 P1×7 三族——GraphQL fragment 校验族×2+DataLoader 挂死、权限公开面族×3（approval-support/纯 xbiz 静默公开 16 项/@BizLoader 死注解）、后台直调零事务；**check2 九条点名全部 already-fixed**（两条语义级验证）；CrudBizModel 拆分评估交付（宽职责单管线/700 行可下沉/禁机械拆类）；fail-open 三处裁定交付；改判 2 驳 0） | 独立子 agent（见 plan 2324 Closure 段） |
 | 2.7 | `2.7-bizmodel-ioc-compliance-scan.md` | 0 | 0 | **4** | 20 | done（裁决：通过无 P0/P1 附 P2×4——孤儿注册族×2（MakerChecker 三重失配⊕dim13-03 合并/DatasetAuth 完整生成仅注册断）+_module 缺失×5 JAR+RetryScanner 同型先例未同步；**NopIoC 硬规则全仓 211 文件零违规**（独立复算）；驳回 1 假阳性反向发现 i18n 缺失族群 447/3987；降 1 新增 1） | 独立子 agent（见 plan 2325 Closure 段） |
 | 2.8 | `2.8-stream-sql-first-audit.md` | **1** | **3** | 12 | 14 | done（裁决：不通过附 P0×1——SumAgg 混型累加静默错值（探针实测三例错值一例塌缩）触发即时通道→plan 2327 已修复（三通道精确累加器+双单调旗标，86/86 全绿）；P1×3（null 键误配/putAll seq 丢失/completeUnmatched 双发）；**prior art 零推翻**（WI12/WI13/WI17 已修项 live 复核成立）、2.2 不波及 stream SQL 路径；30 条全保留、降 1 驳 1；定向测试排除 2 个预存失败后三模块全绿） | 独立子 agent（见 plan 2326 Closure 段） |
-| 3.1 | — | | | | | todo | |
+| 3.1 | `3.1-wf-deep-audit.md` | 0 | **2** | 11 | 10 | done（裁决：通过无 P0 附 P1×2——approval-support 绕引擎双事实源（与 P1-2.6-005 分立互补同批修复）+超时 dueAction 通道被 allowCallByUser 阻断（与 job bean 失配叠加同批）；**check2 12 条点名零虚假申报**（P1×4 零推翻+P2×8 含 2 still-live）；WF-01/02/03 六条全标定（F-WF-02-1 回灌 3.2）；维度 22 引擎侧适配交付；降 0 驳 0） | 独立子 agent（见 plan 2328 Closure 段） |
 | 3.2 | — | | | | | todo | |
 | 3.3 | — | | | | | todo | |
 | 3.4 | — | | | | | todo | |
@@ -117,6 +117,8 @@
 | P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（@BizLoader 死注解——buildFetcherField setAuth+xdef 补 auth+测试升级运行时断言） | open || P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.0（EquiJoinOperator null 等值键误配——修复需覆盖 OUTER 补齐 matched 语义） | open |
 | P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.0（PerKeyOrderedBuffer.putAll 不搬 insertionSeq——restore 后 seq 对位碰撞静默丢失，探针双面实证） | open |
 | P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
+| P1-3.1-001 | `3.1-wf-deep-audit.md` | R1.0（approval-support 绕引擎双事实源——wf 活跃时拒绝直改+受派人校验；与 P1-2.6-005 分立互补同批修复互引） | open |
+| P1-3.1-002 | `3.1-wf-deep-audit.md` | R1.0（超时 dueAction 通道 allowCallByUser 阻断——系统身份旁路或契约修订；与 P2-3.1 bean 失配/remind 链同批） | open |
 
 
 ## P2 裁决台账（例外通道）

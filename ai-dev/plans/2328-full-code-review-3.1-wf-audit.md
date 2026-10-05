@@ -1,6 +1,6 @@
 # 2328 full-code-review 3.1 nop-wf 深审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 3.1（MA3）；Skill=`ai-dev/skills/state-machine-business-review-prompt.md` + `ai-dev/skills/deep-audit-prompts.md`（维度 13/14 + 共享前缀）
 > Related: owner doc `docs-for-ai/02-core-guides/workflow-configuration.md`（513 行）；security-audit WF-01/02/03 现状（security-audit-roadmap item 14：F-WF-01-*/F-WF-02-1/F-WF-03-1 中仅 F-WF-03-1 已修，其余 successor-deferred 至 MA3.11——本项点名现状标定）；plan 2325（2.7 已审 nop-wf beans/xmeta 声明面——本项审行为语义不重复）；check2 点名（nop-wf.md 15 条：P1×4 :19/:43/:69/:89 + P2×7 :112-261 + P3 余量；全部带 fix-ai-check 处置块，以 live code 为准标定）
@@ -48,70 +48,70 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-wf core/service
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：WorkflowEngineImpl 方法清单与状态转移表、check2 15 条处置块状态盘点、WF-01/02/03 security-audit 台账原文
-- [ ] 状态机子 agent（state-machine skill）：全转移验证 + check2 P1×4 实测标定（探针优先）+ 审批动作语义
-- [ ] 权限调度子 agent（维度 13+14）：引擎操作鉴权/**check2 P2×8 逐条标定（:112-:261 全覆盖，验收锚=8 条标定结论落盘）**/WF-01/02/03 现状标定
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-3.1-{statemachine,auth}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：WorkflowEngineImpl 方法清单与状态转移表、check2 15 条处置块状态盘点、WF-01/02/03 security-audit 台账原文
+- [x] 状态机子 agent（state-machine skill）：全转移验证 + check2 P1×4 实测标定（探针优先）+ 审批动作语义
+- [x] 权限调度子 agent（维度 13+14）：引擎操作鉴权/**check2 P2×8 逐条标定（:112-:261 全覆盖，验收锚=8 条标定结论落盘）**/WF-01/02/03 现状标定
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-3.1-{statemachine,auth}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] check2 P1×4 + P2×8 + WF-01/02/03 标定结论落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] check2 P1×4 + P2×8 + WF-01/02/03 标定结论落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + check2 标定独立验证
-- [ ] 主 agent 汇总：判级统一、与 2.6 dim13-01（approval-support）/3.10 边界协调
-- [ ] 状态机正结论收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + check2 标定独立验证
+- [x] 主 agent 汇总：判级统一、与 2.6 dim13-01（approval-support）/3.10 边界协调
+- [x] 状态机正结论收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-3.1-{statemachine,auth}-review.md`
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-3.1-{statemachine,auth}-review.md`
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `3.1-wf-deep-audit.md`；index 登记 3.1 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-wf/nop-wf-core,nop-wf/nop-wf-service -am`（如涉及 scheduler 域发现则加 `nop-wf/nop-wf-scheduler`；H2 mem 无外部 DB；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 3.1 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `3.1-wf-deep-audit.md`；index 登记 3.1 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-wf/nop-wf-core,nop-wf/nop-wf-service -am`（如涉及 scheduler 域发现则加 `nop-wf/nop-wf-scheduler`；H2 mem 无外部 DB；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 3.1 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且状态机+权限调度面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 3.1 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且状态机+权限调度面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 3.1 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -123,14 +123,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `3.1-wf-deep-audit.md` 落盘：通过无 P0 附 P1×2（approval-support 绕引擎双事实源——与 P1-2.6-005 分立互补同批互引；超时 dueAction 通道被 allowCallByUser 阻断——与 job bean 失配叠加同批）+P2×11/P3×10（23 条唯一发现，降 0 驳 0）。**check2 12 条点名零虚假申报**（P1×4 零推翻深验 2 条、P2×8 六修二 live）；WF-01/02/03 六条全标定（F-WF-02-1 回灌 3.2、F-WF-01-3 建议 ledger 补记、MA3.11 剩余清单减单）；维度 22 引擎侧适配交付（checkEnd 无一等结束原因=双故障纵深缺口 P2）。closure audit 一次 PASS；advisory 1（scheduler 测试未入实跑）已补跑闭合——nop-wf-scheduler 测试通过。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_3cb464b9-5a2d-4b99-9f41-5b17a03efb00（fresh session，只读 closure auditor）
+- Evidence:
+  - 计数四方勾稽：P0=0/P1=2/P2=11/P3=10=23 ↔ 报告内实点 ↔ index 3.1 行 ↔ 复核保留数（SM 14+AU 10 独立+1 附注+1 dup=25 候选−2 去重=23）零缺陷
+  - P1 台账：2 行与 index 一致；分立互补裁定经 2.6 报告 P1-2.6-005 原文核实相容；修复耦合组三族在位
+  - check2 台账：P1×4 零推翻（SM-review 深验 :19+:89）+P2×8 全覆盖与 auth-review 一致；「P0 发现追踪」无 3.1 条目正确
+  - WF-01/02/03：六条 F 条目溯源 ledger 原文一致；F-WF-02-1 回灌 3.2 双处在位
+  - 判级调和：安全类总裁据应用一致（P2-3.1-02 双故障缺口 P2 不升）；dim13-01 撞车裁定+教训入档 G.1 双侧一致
+  - 锚点抽验 6/6 live 命中
+  - 定向测试：wf-test.log BUILD SUCCESS 138/0F/skip1 逐字吻合；**advisory 1 已闭合——nop-wf-scheduler 测试补跑通过**（TestWfTaskScanner 4 用例）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2328-full-code-review-3.1-wf-audit.md --strict` 退出码 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + 静态溯源为锚
+  - Deferred 项分类检查：无 deferred；P1×2 经 index「P1 发现汇总」进 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×2+P2×11+P3×10 修复归属 R1.0 三耦合族；F-WF-02-1 回灌 3.2；WF-01/02 标定减单 MA3.11；G.1 撞车教训、G.2 移交两项在报告移交注记）
