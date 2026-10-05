@@ -14,6 +14,7 @@ import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.shard.IShardSelector;
+import io.nop.dao.shard.MissingShardPolicy;
 import io.nop.dao.shard.ShardSelection;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.orm.exceptions.OrmException;
@@ -25,10 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.orm.OrmErrors.ARG_COUNT;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_EXPECTED;
+import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ARG_QUERY_SPACE;
 import static io.nop.orm.OrmErrors.ARG_SQL;
 import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SUPPORT_MULTIPLE_QUERY_SPACE_IN_ONE_SQL;
+import static io.nop.orm.OrmErrors.ERR_ORM_SHARD_CONDITION_MISSING;
 import static io.nop.orm.OrmErrors.ERR_ORM_SQL_PARAM_COUNT_MISMATCH;
 
 public class GenSqlTransformer {
@@ -69,12 +73,13 @@ public class GenSqlTransformer {
      */
     public SQL.SqlBuilder transform(SQL sql, List<Object> paramValues) {
 
-        collectShardSelections(sql);
+        validateParamCount(sql, paramValues);
+
+        // plan 2320：分片值提取依赖paramValues（marker只携静态信息），须在校验后收集
+        collectShardSelections(sql, paramValues);
 
         final SQL.SqlBuilder sb = SQL.begin();
         sb.name(sql.getName()).append(sql);
-
-        this.validateParamCount(sql, paramValues);
 
         sb.changeMarkerValues(paramValues);
 
@@ -95,7 +100,16 @@ public class GenSqlTransformer {
         return sb;
     }
 
-    private void collectShardSelections(SQL sql) {
+    /**
+     * plan 2320 Phase 2（取值语义重定义）：CompiledSql经QueryPlanCache跨执行共享，TABLE marker
+     * 只携带静态信息——shardParamIndex为执行期paramValues的下标（ShardMarkerInjector编译期写入），
+     * shardValue仅承载编译期字面量。执行期值一律从paramValues/marker现场取得，不落缓存。
+     *
+     * <p>缺分片值时按绑定策略的missing-shard-policy裁决：fail（缺省）抛
+     * ERR_ORM_SHARD_CONDITION_MISSING；default-shard回落；NONE（实体未绑定策略，未配置
+     * 分片体系）维持既有fall-through语义——未配置部署零行为变更。</p>
+     */
+    private void collectShardSelections(SQL sql, List<Object> paramValues) {
         sql.getMarkers().forEach(marker -> {
             if (marker instanceof SyntaxMarker) {
                 SyntaxMarker syntaxMarker = (SyntaxMarker) marker;
@@ -106,14 +120,10 @@ public class GenSqlTransformer {
 
                     IEntityModel entityModel = getEntityModel(syntaxMarker);
                     if (entityModel.isUseShard() && entityModel.getShardColumn() != null) {
-                        if (syntaxMarker.hasShardParam()) {
-                            Object shardValue;
-                            if (syntaxMarker.getShardParamIndex() > 0) {
-                                shardValue = sql.getMarker(syntaxMarker.getShardParamIndex());
-                            } else {
-                                shardValue = syntaxMarker.getShardValue();
-                            }
-                            String shardProp = entityModel.getShardColumn().getName();
+                        String shardProp = entityModel.getShardColumn().getName();
+                        Object shardValue = resolveShardValue(syntaxMarker, paramValues);
+
+                        if (shardValue != null) {
                             ShardSelection shard = shardSelector.selectShard(entityModel.getName(), shardProp,
                                     shardValue);
 
@@ -122,6 +132,31 @@ public class GenSqlTransformer {
                                 setQuerySpace(shard.getQuerySpace(), sql);
                                 return;
                             }
+                            // selector返回null：该实体未绑定策略（如EmptyShardSelector），
+                            // 维持既有基表名执行语义（零变更）
+                        } else {
+                            // 缺分片值：按绑定策略裁决
+                            MissingShardPolicy policy = shardSelector.getMissingShardPolicy(entityModel.getName());
+                            if (policy == MissingShardPolicy.FAIL) {
+                                throw new OrmException(ERR_ORM_SHARD_CONDITION_MISSING)
+                                        .param(ARG_ENTITY_NAME, entityModel.getName())
+                                        .param(ARG_PROP_NAME, shardProp)
+                                        .param(ARG_SQL, sql);
+                            } else if (policy == MissingShardPolicy.DEFAULT_SHARD) {
+                                ShardSelection shard = shardSelector.selectShardWhenMissing(entityModel.getName(),
+                                        shardProp);
+                                if (shard != null) {
+                                    addShardSelection(syntaxMarker, shard);
+                                    setQuerySpace(shard.getQuerySpace(), sql);
+                                    return;
+                                }
+                                // 声明了default-shard策略但无法解析回落分片：显式失败而非静默跳过
+                                throw new OrmException(ERR_ORM_SHARD_CONDITION_MISSING)
+                                        .param(ARG_ENTITY_NAME, entityModel.getName())
+                                        .param(ARG_PROP_NAME, shardProp)
+                                        .param(ARG_SQL, sql);
+                            }
+                            // NONE：实体未绑定策略，维持既有fall-through
                         }
                     }
                     setQuerySpace(entityModel.getQuerySpace(), sql);
@@ -129,6 +164,19 @@ public class GenSqlTransformer {
             }
         });
         this.dialect = dialectProvider.getDialectForQuerySpace(querySpace);
+    }
+
+    /**
+     * 从marker静态信息与执行期paramValues解析分片值。旧实现从marker列表按下标取Marker对象的
+     * 语义是坏的（marker下标不是参数下标，且跨执行缓存下值不可缓存），已重定义。
+     */
+    private Object resolveShardValue(SyntaxMarker syntaxMarker, List<Object> paramValues) {
+        if (syntaxMarker.getShardValue() != null)
+            return syntaxMarker.getShardValue();
+        int index = syntaxMarker.getShardParamIndex();
+        if (index >= 0 && paramValues != null && index < paramValues.size())
+            return paramValues.get(index);
+        return null;
     }
 
     void addShardSelection(SyntaxMarker marker, ShardSelection shard) {
@@ -158,32 +206,6 @@ public class GenSqlTransformer {
             return MarkedString.EMPTY;
         return filterProvider.getEntityFilter(marker, sql, sqlCompiler);
     }
-
-    //
-    // private IMarkedString transformFilter(SyntaxMarker marker, SQL sql) {
-    // IEntityModel entityModel = getEntityModel(marker);
-    // SQL.SqlBuilder sb = null;
-    // if (entityModel.isUseTenant()) {
-    // if (sb == null) {
-    // sb = SQL.begin();
-    // }
-    //
-    // IColumnModel col = entityModel.getColumnByPropId(entityModel.getTenantPropId(), true);
-    // sb.and();
-    // GenSqlHelper.appendEq(sb, dialect, marker.getAlias(), col, null, ContextProvider.currentTenantId());
-    // }
-    //
-    // if (entityModel.isUseRevision()) {
-    // if (sb == null) {
-    // sb = SQL.begin();
-    // }
-    //
-    // IColumnModel col = entityModel.getColumnByPropId(entityModel.getNopRevEndVarPropId(), true);
-    // sb.and();
-    // GenSqlHelper.appendEq(sb, dialect, marker.getAlias(), col, null, OrmConstants.NOP_VER_MAX_VALUE);
-    // }
-    // return sb;
-    // }
 
     private IEntityModel getEntityModel(SyntaxMarker marker) {
         return ormModel.requireEntityModel(marker.getEntityName());

@@ -8,6 +8,9 @@
 package io.nop.dbtool.core;
 
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,18 +86,46 @@ public class DataBaseUpgrader {
         // Note：由于自动处理的情况无法确定表的匹配模式，故而，只能将库内的表都查出来再做过滤
         DataBaseMeta oldDbMeta = discovery.discover(null, null, "%");
 
-        Set<String> newEntityTableNames = newEntities.stream()
-                                                     // 表名大小写与逆向出的 ORM 模型需保持一致
-                                                     .map(entity -> discovery.normalizeTableName(entity.getTableName()))
-                                                     .collect(Collectors.toSet());
-        List<IEntityModel> oldEntities = oldDbMeta.getOrmModel()
-                                                  .getEntities()
-                                                  .stream()
-                                                  // 仅做表更新或新增，不做表删除
-                                                  .filter(entity -> newEntityTableNames.contains(entity.getTableName()))
-                                                  .collect(Collectors.toList());
+        io.nop.dao.shard.IShardSelector shardSelector = ormSessionFactory.getShardSelector();
+
+        // plan 2320：分片物理表名 → 逻辑实体（diff按tableName匹配实体，物理表须归一到逻辑名）
+        Map<String, IEntityModel> shardTableToEntity = new HashMap<>();
+        Set<String> newEntityTableNames = new HashSet<>();
+        for (IEntityModel entity : newEntities) {
+            newEntityTableNames.add(discovery.normalizeTableName(entity.getTableName()));
+            for (String shardTable : io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector, entity)) {
+                String normalized = discovery.normalizeTableName(shardTable);
+                newEntityTableNames.add(normalized);
+                shardTableToEntity.put(normalized, entity);
+            }
+        }
+
+        List<IEntityModel> oldEntities = new ArrayList<>();
+        // plan 2320：同一逻辑实体的多张分片物理表结构一致，diff归一时仅取先发现的一张
+        Set<String> seenLogicalTableNames = new HashSet<>();
+        oldDbMeta.getOrmModel()
+                 .getEntities()
+                 .stream()
+                 // 仅做表更新或新增，不做表删除
+                 .filter(entity -> newEntityTableNames.contains(entity.getTableName()))
+                 .forEach(entity -> {
+                     // plan 2320：发现的分片物理表（如T_0/T_1）归一到逻辑表名T，使diff按逻辑实体
+                     // 匹配出新旧列差异（N张物理表结构一致，取先发现者作为代表，其余跳过）
+                     IEntityModel logicalEntity = shardTableToEntity.get(entity.getTableName());
+                     if (logicalEntity != null) {
+                         if (!seenLogicalTableNames.add(logicalEntity.getTableName())) {
+                             return;
+                         }
+                         if (entity instanceof io.nop.orm.model.OrmEntityModel
+                                 && !entity.getTableName().equals(logicalEntity.getTableName())) {
+                             ((io.nop.orm.model.OrmEntityModel) entity).setTableName(logicalEntity.getTableName());
+                         }
+                     }
+                     oldEntities.add(entity);
+                 });
 
         List<OrmDbDiffer.DiffDdl> diffDdlList = OrmDbDiffer.forDialect(discovery.getDialect())
+                                                           .shardSelector(shardSelector)
                                                            .genDiffDdl(oldEntities, newEntities)
                                                            .stream()
                                                            // 过滤掉对字段的删除，因为其可能是重命名，而当前无法识别重命名变更

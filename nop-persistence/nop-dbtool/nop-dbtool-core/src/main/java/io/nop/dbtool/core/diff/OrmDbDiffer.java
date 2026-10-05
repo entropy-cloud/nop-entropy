@@ -8,6 +8,7 @@
 package io.nop.dbtool.core.diff;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +57,9 @@ public class OrmDbDiffer {
     private final IDialect dialect;
     private final DdlSqlCreator ddlSqlCreator;
 
+    /** plan 2320：分片策略选择器（可选）。为null时保持既有非分片diff行为（零变更） */
+    private io.nop.dao.shard.IShardSelector shardSelector;
+
     public static OrmDbDiffer forDialect(String dialectName) {
         return forDialect(DialectManager.instance().getDialect(dialectName));
     }
@@ -67,6 +71,15 @@ public class OrmDbDiffer {
     private OrmDbDiffer(IDialect dialect) {
         this.dialect = dialect;
         this.ddlSqlCreator = DdlSqlCreator.forDialect(dialect);
+    }
+
+    /**
+     * plan 2320：注入分片策略选择器，启用绑定策略useShard实体的N表展开diff
+     * （add建N表、列/唯一键/索引diff对N张物理表逐一生成DDL）。
+     */
+    public OrmDbDiffer shardSelector(io.nop.dao.shard.IShardSelector shardSelector) {
+        this.shardSelector = shardSelector;
+        return this;
     }
 
     /**
@@ -302,6 +315,17 @@ public class OrmDbDiffer {
         return resultsMap;
     }
 
+    /**
+     * plan 2320：diff DDL的物理表名列表。绑定分片策略的useShard实体返回N张物理表名；
+     * 否则返回逻辑表名本身（单表，既有行为）。
+     */
+    private List<String> ddlTableNames(IEntityModel newEntityModel) {
+        List<String> shardTables = io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector, newEntityModel);
+        if (shardTables.isEmpty())
+            return Collections.singletonList(newEntityModel.getTableName());
+        return shardTables;
+    }
+
     private IDiffValue getPropDiff(IDiffValue diff, String prop) {
         Map<String, ? extends IDiffValue> propDiffs = diff.getPropDiffs();
 
@@ -361,6 +385,16 @@ public class OrmDbDiffer {
         switch (diffType) {
             // 对表的新增
             case add: {
+                // plan 2320：绑定分片策略的useShard实体按分片名全集展开为N张物理表（不加基表）
+                List<String> shardTables = io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector, newEntity);
+                if (!shardTables.isEmpty()) {
+                    DiffDdl[] results = new DiffDdl[shardTables.size()];
+                    for (int i = 0, n = shardTables.size(); i < n; i++) {
+                        String sql = ddlSqlCreator.createTable(newEntity, false, shardTables.get(i));
+                        results[i] = new DiffDdl(newEntity, diffType, sql);
+                    }
+                    return results;
+                }
                 String sql = ddlSqlCreator.createTable(newEntity);
                 return new DiffDdl[] { new DiffDdl(newEntity, diffType, sql) };
             }
@@ -377,19 +411,45 @@ public class OrmDbDiffer {
             IEntityModel newEntityModel, DiffType diffType, //
             IColumnModel oldColumn, IColumnModel newColumn
     ) {
+        // plan 2320：绑定分片策略的useShard实体对N张物理表逐一diff，不加列到不存在的基表
+        List<String> shardTables = io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector, newEntityModel);
         switch (diffType) {
             // 对字段的新增
             case add: {
+                if (!shardTables.isEmpty()) {
+                    DiffDdl[] results = new DiffDdl[shardTables.size()];
+                    for (int i = 0, n = shardTables.size(); i < n; i++) {
+                        String sql = ddlSqlCreator.addColumn(newColumn, shardTables.get(i));
+                        results[i] = new DiffDdl(newEntityModel, diffType, newColumn, sql);
+                    }
+                    return results;
+                }
                 String sql = ddlSqlCreator.addColumn(newColumn);
                 return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, newColumn, sql) };
             }
             // 对字段的删除
             case remove: {
+                if (!shardTables.isEmpty()) {
+                    DiffDdl[] results = new DiffDdl[shardTables.size()];
+                    for (int i = 0, n = shardTables.size(); i < n; i++) {
+                        String sql = ddlSqlCreator.dropColumn(oldColumn, shardTables.get(i));
+                        results[i] = new DiffDdl(newEntityModel, diffType, oldColumn, sql);
+                    }
+                    return results;
+                }
                 String sql = ddlSqlCreator.dropColumn(oldColumn);
                 return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, oldColumn, sql) };
             }
             // 对字段的修改
             case update: {
+                if (!shardTables.isEmpty()) {
+                    DiffDdl[] results = new DiffDdl[shardTables.size()];
+                    for (int i = 0, n = shardTables.size(); i < n; i++) {
+                        String sql = ddlSqlCreator.modifyColumn(newColumn, oldColumn, shardTables.get(i));
+                        results[i] = new DiffDdl(newEntityModel, diffType, newColumn, sql);
+                    }
+                    return results;
+                }
                 String sql = ddlSqlCreator.modifyColumn(newColumn, oldColumn);
                 return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, newColumn, sql) };
             }
@@ -408,8 +468,14 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                String sql = ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey);
-                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, newUniqueKey, sql) };
+                // plan 2320：对N张物理表逐一addUniqueKey
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size()];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    String sql = ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey, tableNames.get(i));
+                    results[i] = new DiffDdl(newEntityModel, diffType, newUniqueKey, sql);
+                }
+                return results;
             }
             // 对唯一键的删除
             case remove: {
@@ -417,8 +483,13 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                String sql = ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey);
-                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, oldUniqueKey, sql) };
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size()];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    String sql = ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey, tableNames.get(i));
+                    results[i] = new DiffDdl(newEntityModel, diffType, oldUniqueKey, sql);
+                }
+                return results;
             }
             // 唯一键不支持修改，只能先删后增
             case update: {
@@ -427,16 +498,19 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                return new DiffDdl[] {
-                        new DiffDdl(newEntityModel,
-                                DiffType.remove,
-                                oldUniqueKey,
-                                ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey)),
-                        new DiffDdl(newEntityModel,
-                                DiffType.add,
-                                newUniqueKey,
-                                ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey))
-                };
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size() * 2];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    results[i * 2] = new DiffDdl(newEntityModel,
+                            DiffType.remove,
+                            oldUniqueKey,
+                            ddlSqlCreator.dropUniqueKey(newEntityModel, oldUniqueKey, tableNames.get(i)));
+                    results[i * 2 + 1] = new DiffDdl(newEntityModel,
+                            DiffType.add,
+                            newUniqueKey,
+                            ddlSqlCreator.addUniqueKey(newEntityModel, newUniqueKey, tableNames.get(i)));
+                }
+                return results;
             }
         }
         return new DiffDdl[0];
@@ -453,8 +527,14 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                String sql = ddlSqlCreator.addIndex(newEntityModel, newIndex);
-                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, newIndex, sql) };
+                // plan 2320：对N张物理表逐一addIndex
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size()];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    String sql = ddlSqlCreator.addIndex(newEntityModel, newIndex, tableNames.get(i));
+                    results[i] = new DiffDdl(newEntityModel, diffType, newIndex, sql);
+                }
+                return results;
             }
             // 对索引的删除
             case remove: {
@@ -462,8 +542,13 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                String sql = ddlSqlCreator.dropIndex(newEntityModel, oldIndex);
-                return new DiffDdl[] { new DiffDdl(newEntityModel, diffType, oldIndex, sql) };
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size()];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    String sql = ddlSqlCreator.dropIndex(newEntityModel, oldIndex, tableNames.get(i));
+                    results[i] = new DiffDdl(newEntityModel, diffType, oldIndex, sql);
+                }
+                return results;
             }
             // 索引不支持修改，只能先删后增
             case update: {
@@ -472,16 +557,19 @@ public class OrmDbDiffer {
                     break;
                 }
 
-                return new DiffDdl[] {
-                        new DiffDdl(newEntityModel,
-                                DiffType.remove,
-                                oldIndex,
-                                ddlSqlCreator.dropIndex(newEntityModel, oldIndex)),
-                        new DiffDdl(newEntityModel,
-                                DiffType.add,
-                                newIndex,
-                                ddlSqlCreator.addIndex(newEntityModel, newIndex))
-                };
+                List<String> tableNames = ddlTableNames(newEntityModel);
+                DiffDdl[] results = new DiffDdl[tableNames.size() * 2];
+                for (int i = 0, n = tableNames.size(); i < n; i++) {
+                    results[i * 2] = new DiffDdl(newEntityModel,
+                            DiffType.remove,
+                            oldIndex,
+                            ddlSqlCreator.dropIndex(newEntityModel, oldIndex, tableNames.get(i)));
+                    results[i * 2 + 1] = new DiffDdl(newEntityModel,
+                            DiffType.add,
+                            newIndex,
+                            ddlSqlCreator.addIndex(newEntityModel, newIndex, tableNames.get(i)));
+                }
+                return results;
             }
         }
         return new DiffDdl[0];

@@ -322,6 +322,22 @@ public interface OrmErrors {
             "nop.err.orm.not-support-multiple-query-space-in-one-sql", "一条SQL语句只允许访问一个数据源:sql={sql},querySpace={querySpace}",
             ARG_SQL, ARG_QUERY_SPACE);
 
+    /**
+     * 分片（plan 2320）：绑定策略为fail（缺省）的useShard实体，SQL不含分片键等值条件
+     * （或条件值为null）时显式失败，取代现状静默落回基表名执行的陷阱行为。
+     */
+    ErrorCode ERR_ORM_SHARD_CONDITION_MISSING = define("nop.err.orm.shard-condition-missing",
+            "分片实体[{entityName}]的SQL缺少分片键[{propName}]的等值条件，无法路由到分片（missing-shard-policy=fail）",
+            ARG_ENTITY_NAME, ARG_PROP_NAME);
+
+    /**
+     * 分片（plan 2320）：启动期绑定校验——存在全局分片策略配置时，useShard实体未绑定
+     * 任何策略（显式或default-strategy）则fail-fast。无任何分片配置时不校验（零变更）。
+     */
+    ErrorCode ERR_ORM_SHARD_STRATEGY_MISSING = define("nop.err.orm.shard-strategy-missing",
+            "分片实体[{entityName}]未绑定任何分片策略（存在全局分片配置，须显式绑定策略或default-strategy）",
+            ARG_ENTITY_NAME);
+
 
     ErrorCode ERR_ORM_UNSUPPORTED_DATA_TYPE = define("nop.err.orm.unsupported-data-type", "不支持的数据类型:{dataType}",
             ARG_DATA_TYPE);

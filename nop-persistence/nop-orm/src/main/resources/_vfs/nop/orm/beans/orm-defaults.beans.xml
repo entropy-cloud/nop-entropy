@@ -28,8 +28,12 @@
         <constructor-arg index="1" ref="nopOrmGlobalCacheConfig"/>
     </bean>
 
-    <util:constant id="nopShardSelector" static-field="io.nop.dao.shard.EmptyShardSelector.INSTANCE"
-                   ioc:default="true"/>
+    <!-- plan 2320：分片策略注册表。读取nop.orm.shard JSON配置构建内置算法注册表；
+         未配置时行为与EmptyShardSelector一致（零行为变更）。自定义SPI经同名bean覆盖
+         （nop-auth app-test.beans.xml的MockShardSelector先例），SessionFactoryConfig的
+         shardSelector属性经IoC by-type自动装配到该bean -->
+    <bean id="nopShardSelector" class="io.nop.dao.shard.ConfigShardSelector" init-method="init"
+          ioc:default="true"/>
 
     <bean id="nopSequenceGenerator" class="io.nop.dao.seq.UuidSequenceGenerator" ioc:default="true"/>
 

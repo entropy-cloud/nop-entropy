@@ -74,4 +74,12 @@ public interface DaoConfigs {
             + "未配置的querySpace行为不变。物理数据源bean名前缀建议nopReadWriteDs_，避免被nopDataSource_的collect-beans误收集")
     IConfigReference<String> CFG_DAO_READWRITE = varRef(s_loc,
             "nop.dao.readwrite", String.class, null);
+
+    @Description("分片策略配置（plan 2320），JSON对象文本。结构：{strategies:{<策略名>:{type:mod|hash-mod|range|interval|inline,"
+            + "shard-count,ranges,interval-step,datetime-lower,datetime-upper,format,algorithm-expression,"
+            + "table-pattern(缺省'{table}_{shard}'),query-space-pattern,missing-shard-policy(fail|default-shard,缺省fail),"
+            + "default-shard,shard-names,entities:[实体名列表]}},default-strategy(可选全局回落策略名)}。"
+            + "实体绑定用显式实体名列表（设计拒绝通配符）。未配置时分片行为零变更")
+    IConfigReference<String> CFG_ORM_SHARD = varRef(s_loc,
+            "nop.orm.shard", String.class, null);
 }

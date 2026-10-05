@@ -21,6 +21,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * DDL生成器。plan 2320新增<b>显式物理表名入口</b>：带{@code physicalTableName}参数的重载
+ * 将DDL定向到指定物理表（分片N表展开用），模板经{@code shardTableName ?? table.tableName}
+ * 回退——不传时输出与既有方法<b>逐字节一致</b>（DdlSqlCreator公共语义不变）。
+ */
 public class DdlSqlCreator {
     private final String dmlLibPath;
     private final IDialect dialect;
@@ -73,6 +78,19 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("dialect", dialect);
         args.put("allNullable", allNullable);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "CreateTable").generateText(XLang.newEvalScope(args));
+    }
+
+    /**
+     * plan 2320：DDL定向到指定分片物理表（模板经shardTableName回退访问模型表名之外的名字）。
+     */
+    public String createTable(IEntityModel table, boolean allNullable, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("dialect", dialect);
+        args.put("allNullable", allNullable);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "CreateTable").generateText(XLang.newEvalScope(args));
     }
 
@@ -83,6 +101,7 @@ public class DdlSqlCreator {
         args.put("dialect", dialect);
         args.put("allNullable", allNullable);
         args.put("includeComments", includeComments);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "CreateTables").generateText(XLang.newEvalScope(args));
     }
 
@@ -91,6 +110,7 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("dialect", dialect);
         args.put("ifExists", ifExists);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "DropTable").generateText(XLang.newEvalScope(args));
     }
 
@@ -99,6 +119,7 @@ public class DdlSqlCreator {
         args.put("tables", tables);
         args.put("dialect", dialect);
         args.put("ifExists", ifExists);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "DropTables").generateText(XLang.newEvalScope(args));
     }
 
@@ -106,6 +127,7 @@ public class DdlSqlCreator {
         Map<String, Object> args = new HashMap<>();
         args.put("tables", tables);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "AddTenantIdForTables").generateText(XLang.newEvalScope(args));
     }
 
@@ -114,6 +136,7 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("dialect", dialect);
         args.put("addToPk", addToPk);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "AddTenantIdForTable").generateText(XLang.newEvalScope(args));
     }
 
@@ -121,6 +144,7 @@ public class DdlSqlCreator {
         Map<String, Object> args = new HashMap<>();
         args.put("table", table);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
         return XLang.getTagAction(dmlLibPath, "AddTenantIdToPrimaryKey").generateText(XLang.newEvalScope(args));
     }
 
@@ -128,6 +152,19 @@ public class DdlSqlCreator {
         Map<String, Object> args = new HashMap<>();
         args.put("col", col);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "AddColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    /**
+     * plan 2320：加列DDL定向到指定分片物理表（模板引用col.ownerEntityModel.tableName处
+     * 经shardTableName回退重定向）。
+     */
+    public String addColumn(IColumnModel col, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "AddColumn").generateText(XLang.newEvalScope(args));
     }
 
@@ -135,6 +172,15 @@ public class DdlSqlCreator {
         Map<String, Object> args = new HashMap<>();
         args.put("col", col);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "DropColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropColumn(IColumnModel col, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "DropColumn").generateText(XLang.newEvalScope(args));
     }
 
@@ -143,6 +189,16 @@ public class DdlSqlCreator {
         args.put("col", col);
         args.put("oldCol", oldCol);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "ModifyColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    public String modifyColumn(IColumnModel col, IColumnModel oldCol, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("oldCol", oldCol);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "ModifyColumn").generateText(XLang.newEvalScope(args));
     }
 
@@ -151,6 +207,16 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("uniqueKey", uniqueKey);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "AddUniqueKey").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addUniqueKey(IEntityModel table, OrmUniqueKeyModel uniqueKey, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("uniqueKey", uniqueKey);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "AddUniqueKey").generateText(XLang.newEvalScope(args));
     }
 
@@ -159,6 +225,16 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("uniqueKey", uniqueKey);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "DropUniqueKey").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropUniqueKey(IEntityModel table, OrmUniqueKeyModel uniqueKey, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("uniqueKey", uniqueKey);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "DropUniqueKey").generateText(XLang.newEvalScope(args));
     }
 
@@ -167,6 +243,16 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("index", index);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "AddIndex").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addIndex(IEntityModel table, OrmIndexModel index, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("index", index);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "AddIndex").generateText(XLang.newEvalScope(args));
     }
 
@@ -175,6 +261,16 @@ public class DdlSqlCreator {
         args.put("table", table);
         args.put("index", index);
         args.put("dialect", dialect);
+        args.put("shardTableName", null);
+        return XLang.getTagAction(dmlLibPath, "DropIndex").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropIndex(IEntityModel table, OrmIndexModel index, String physicalTableName) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("index", index);
+        args.put("dialect", dialect);
+        args.put("shardTableName", physicalTableName);
         return XLang.getTagAction(dmlLibPath, "DropIndex").generateText(XLang.newEvalScope(args));
     }
 }

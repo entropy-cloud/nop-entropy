@@ -76,6 +76,19 @@ public interface DaoErrors {
     ErrorCode ERR_DAO_READWRITE_CONFIG_INVALID = define("nop.err.dao.readwrite.config-invalid",
             "Invalid readwrite-splitting config: {reason}", ARG_REASON);
 
+    /**
+     * 分片（plan 2320）：nop.orm.shard 配置解析/校验类错误（配置归属nop-dao模块内扩展点，
+     * 配置错误启动即抛，不允许静默跳过）。
+     */
+    ErrorCode ERR_DAO_SHARD_CONFIG_INVALID = define("nop.err.dao.shard.config-invalid",
+            "Invalid sharding config: {reason}", ARG_REASON);
+
+    /**
+     * 分片（plan 2320）：算法对分片值计算分片名失败（null/类型不兼容/超出配置范围）。
+     */
+    ErrorCode ERR_DAO_SHARD_ALGORITHM_FAIL = define("nop.err.dao.shard.algorithm-fail",
+            "Shard algorithm failed: {reason}", ARG_REASON);
+
     ErrorCode ERR_TXN_NOT_IN_TRANSACTION = define("nop.err.dao.txn.not-in-transaction",
             "要求上下文环境必须存在已经启动的事务:{querySpace}", ARG_QUERY_SPACE);
 

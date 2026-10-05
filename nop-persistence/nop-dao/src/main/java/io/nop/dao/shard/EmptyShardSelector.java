@@ -7,25 +7,17 @@
  */
 package io.nop.dao.shard;
 
-import java.util.Collections;
-import java.util.List;
-
+/**
+ * 未配置分片体系时的缺省实现：所有实体均不做分片路由（selectShard返回null，
+ * 消费方维持既有基表名执行语义），缺失值策略为NONE（不校验、不fail-fast）。
+ *
+ * <p>plan 2320 死面移除：随接口删除了 {@code isSupportShard} / {@code selectShards}。</p>
+ */
 public class EmptyShardSelector implements IShardSelector {
     public static final EmptyShardSelector INSTANCE = new EmptyShardSelector();
 
     @Override
-    public boolean isSupportShard(String entityName) {
-        return false;
-    }
-
-    @Override
     public ShardSelection selectShard(String entityName, String shardColumn, Object shardValue) {
         return null;
-    }
-
-    @Override
-    public List<ShardSelection> selectShards(String entityName, String shardColumn, Object beginValue,
-                                             Object endValue) {
-        return Collections.emptyList();
     }
 }

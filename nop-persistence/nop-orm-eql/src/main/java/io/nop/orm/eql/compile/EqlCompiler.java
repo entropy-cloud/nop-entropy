@@ -90,6 +90,11 @@ public class EqlCompiler implements ISqlCompiler {
         genSql.setPretty(true);
         genSql.visit(stm);
 
+        // plan 2320 Phase 2：SQL生成完成后基于已解析AST定位shardProp等值条件，
+        // 用7参SyntaxMarker构造器替换TABLE marker（静态信息：参数序号/字面量），
+        // 执行期由GenSqlTransformer从paramValues取值并路由
+        ShardMarkerInjector.inject(genSql, stm);
+
         String querySpace = transformer.getQuerySpace();
         SQL sql = genSql.getSql().querySpace(querySpace).name("jdbc:" + name).end();
 

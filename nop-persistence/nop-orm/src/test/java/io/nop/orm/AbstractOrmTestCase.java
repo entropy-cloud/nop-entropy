@@ -52,6 +52,12 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         factoryBean.setSequenceGenerator(new UuidSequenceGenerator());
         factoryBean.setColumnBinderEnhancer(new DefaultOrmColumnBinderEnhancer());
 
+        // plan 2320：分片路由测试的注入钩子。返回null（缺省）时保持EmptyShardSelector缺省，
+        // 既有测试零行为变更
+        io.nop.dao.shard.IShardSelector shardSelector = shardSelector();
+        if (shardSelector != null)
+            factoryBean.setShardSelector(shardSelector);
+
         factoryBean.init();
 
         this.sessionFactoryBean = factoryBean;
@@ -86,6 +92,14 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         Collection<? extends IEntityModel> tables = sessionFactory.getOrmModel().getEntityModelsInTopoOrder();
         String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(null)).createTables(tables, false);
         jdbcTemplate.executeMultiSql(new SQL(createSql));
+    }
+
+    /**
+     * plan 2320：分片路由测试可覆盖此钩子提供自定义IShardSelector。缺省返回null
+     * （保持SessionFactoryConfig的EmptyShardSelector缺省）。
+     */
+    protected io.nop.dao.shard.IShardSelector shardSelector() {
+        return null;
     }
 
     protected void prepareData() {

@@ -42,6 +42,10 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         Map<String, IEntityPersister> entityPersisters = builder.getEntityPersisters();
         Map<String, ICollectionPersister> collectionPersisters = builder.getCollectionPersisters();
 
+        // plan 2320：启动期分片绑定校验。仅当存在全局分片策略配置时校验
+        // （useShard实体未绑定策略fail-fast）；无任何分片配置时零校验零变更。
+        ShardBindingValidator.validate(env.getShardSelector(), ormModel);
+
         SqlExprMetaCache sqlExprMetaCache = new SqlExprMetaCache(env.getColumnBinderEnhancer(),
                 env.getDialectProvider(), ormModel);
 

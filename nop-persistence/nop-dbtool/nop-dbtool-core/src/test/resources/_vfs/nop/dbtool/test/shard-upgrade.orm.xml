@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- plan 2320 Phase 3：auto-upgrade 验证模型——useShard 实体（shardProp=tenantId）。
+     旧库只有 N 张分片物理表（缺新增列），DataBaseUpgrader/OrmDbDiffer 应对每张
+     分片表逐一 ADD COLUMN，且不加列到逻辑基表 -->
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <entity name="test.shardupg.ShardUpgEntity" tableName="T_SHARD_UPG"
+                className="io.nop.orm.support.DynamicOrmEntity"
+                useShard="true" shardProp="tenantId">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="tenantId" code="TENANT_ID" stdSqlType="VARCHAR" precision="32" propId="2"/>
+                <column name="examName" code="EXAM_NAME" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="note" code="NOTE" stdSqlType="VARCHAR" precision="200" propId="4"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

@@ -102,26 +102,45 @@ public class AutoTestCaseDataBaseInitializer {
                 IOrmTemplate orm = ormEntityDao.getOrmTemplate();
                 IDialect dialect = orm.getDialectForQuerySpace(entityModel.getQuerySpace());
                 if (dialect != null) {
-                    createTable(dialect, entityModel);
+                    io.nop.dao.shard.IShardSelector shardSelector = orm.getSessionFactory() == null ? null
+                            : orm.getSessionFactory().getShardSelector();
+                    createTable(dialect, entityModel, shardSelector);
                 }
             }
         }
     }
 
-    void createTable(IDialect dialect, IEntityModel entityModel) {
+    void createTable(IDialect dialect, IEntityModel entityModel, io.nop.dao.shard.IShardSelector shardSelector) {
         DdlSqlCreator creator = DdlSqlCreator.forDialect(dialect.getName());
-        String sql = creator.createTable(entityModel, true);
+
+        // plan 2320 Phase 3：绑定分片策略的useShard实体按分片名全集展开建N张物理表；
+        // 未绑定策略的实体维持既有单表建表行为（零变更）
+        java.util.List<String> shardTables = io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector,
+                entityModel);
+        if (shardTables.isEmpty()) {
+            createSingleTable(creator, entityModel, entityModel.getTableName());
+        } else {
+            for (String physicalTableName : shardTables) {
+                createSingleTable(creator, entityModel, physicalTableName);
+            }
+        }
+    }
+
+    void createSingleTable(DdlSqlCreator creator, IEntityModel entityModel, String physicalTableName) {
+        String sql = physicalTableName.equals(entityModel.getTableName())
+                ? creator.createTable(entityModel, true)
+                : creator.createTable(entityModel, true, physicalTableName);
         try {
             jdbcTemplate.executeUpdate(new SQL(sql));
         } catch (NopException e) {
-            if (jdbcTemplate.existsTable(null, entityModel.getTableName()))
+            if (jdbcTemplate.existsTable(null, physicalTableName))
                 return;
 
             if (e.getErrorCode().equals(DaoErrors.ERR_SQL_BAD_SQL_GRAMMAR.getErrorCode())) {
-                LOG.debug("nop.create-table-fail:{}", entityModel.getTableName(), e);
+                LOG.debug("nop.create-table-fail:{}", physicalTableName, e);
                 return;
             }
-            LOG.error("nop.create-table-fail:{}", entityModel.getTableName(), e);
+            LOG.error("nop.create-table-fail:{}", physicalTableName, e);
         }
     }
 

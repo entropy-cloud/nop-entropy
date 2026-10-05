@@ -56,17 +56,33 @@ public class DataBaseSchemaInitializer {
     @PostConstruct
     public void init() {
         IOrmModel ormModel = ormSessionFactory.getOrmModel();
+        io.nop.dao.shard.IShardSelector shardSelector = ormSessionFactory.getShardSelector();
         Collection<? extends IEntityModel> tables = ormModel.getEntityModelsInTopoOrder();
         for (IEntityModel table : tables) {
             if (table.isTableView())
                 continue;
 
             String querySpace = table.getQuerySpace();
-            String createSql = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(querySpace)).createTable(table, false);
+            DdlSqlCreator creator = new DdlSqlCreator(jdbcTemplate.getDialectForQuerySpace(querySpace));
 
-            // 每个querySpace都对应一个不同的数据库
-            if (!jdbcTemplate.existsTable(querySpace, table.getTableName())) {
-                jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace).name("create:" + table.getTableName()).sql(createSql).end());
+            // plan 2320 Phase 3：绑定分片策略的useShard实体按分片名全集展开为N张物理表；
+            // 未绑定策略的实体维持既有单表建表行为（零变更）
+            List<String> shardTables = io.nop.orm.ddl.ShardDdlHelper.shardTableNames(shardSelector, table);
+            if (shardTables.isEmpty()) {
+                String createSql = creator.createTable(table, false);
+                // 每个querySpace都对应一个不同的数据库
+                if (!jdbcTemplate.existsTable(querySpace, table.getTableName())) {
+                    jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
+                            .name("create:" + table.getTableName()).sql(createSql).end());
+                }
+            } else {
+                for (String physicalTableName : shardTables) {
+                    if (jdbcTemplate.existsTable(querySpace, physicalTableName))
+                        continue;
+                    String createSql = creator.createTable(table, false, physicalTableName);
+                    jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
+                            .name("create:" + physicalTableName).sql(createSql).end());
+                }
             }
         }
     }
