@@ -34,6 +34,8 @@
 
 **注册资格集**：仅端点组件（上表 8 个）。`FileSourceReader`（由 `FileSource.createReader()` 内部构造）、`JdbcTwoPhaseCommitSinkBuilder`（fluent builder，产物已注册）等非端点组件显式不注册（不注册理由：非独立实例化端点 / 非端点辅助物）。
 
+**维护规则（R5-CON-01 防复发）**：描述符能力值（consistency/parallelism/recoverySemantic）翻转的提交，必须在同一提交内同步更新能力矩阵钉定测试 `TestStreamConnectorRegistryDiscovery.testCapabilityMatrixAlignedWithDesignAdjudication`，并核对其验证面覆盖该描述符的宿主模块（runtime 测试依赖 connector 模块，仅跑 core+connector 不够）。钉定测试对齐的是最新用户裁定，不是历史矩阵快照。
+
 **单一事实源**：能力描述符的交付语义声明必须等于端点实例的 `getSourceConsistency()`/`getSinkConsistency()`；`TwoPhaseCommitSinkFunction` 端点必须声明 `PARALLEL`（CONN-01 successor 后的不变式——per-subtask 隔离为已落地能力；历史「`PLANNING_GATE_PARALLELISM_1` ⟺ 2PC 实例（与规划期门禁同键）」已随门禁解除废弃）。由发现测试与 catalog 探测运行期双重钉定。
 
 **维护/探测工具入口**（`StreamConnectorCatalog`，落 core）：装配 + 枚举 + 探测用法：
