@@ -2,7 +2,7 @@
 
 **日期**：2026-10-05（更新于 2026-10-06，评审修订 v2：B1 位点时序契约 / M1 多 sink 拓扑前置项 / M2 切换收敛门 / M3 写停止关 / M4 密钥一致约束 / m1-m6）
 **范围**：搬迁编排层（新设计，随 roadmap WI9 实施）；数据面复用 `nop-batch`、`nop-stream/nop-stream-connector-debezium`、`nop-stream/nop-stream-connector-jdbc`；路由面依赖 `nop-dao`/`nop-orm` 分片配置（plan 2320 已落地）
-**状态**：草案（roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI9；Deliverable = 本设计，作业实现由 WI9 承载 plan 定义）
+**状态**：active（roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI9 设计面；首轮评审 REJECT（1 Blocker + 4 Major + 6 Minor）已按必改清单修订——B1 选 P0 钉定 + 全序重放、M2 选收敛门、M3 新增写停止关原语、M4 v1 同密钥约束、编排器落新子模块 nop-orm-migration；实施归后续 plan）（roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI9；Deliverable = 本设计，作业实现由 WI9 承载 plan 定义）
 **灵感来源**：Apache ShardingSphere kernel/data-pipeline 作业形态（InventoryTaskSplitter / IncrementalTask / DataMatch ConsistencyChecker / RateLimitAlgorithm——仅理念对标，不照抄其分布式作业协议）
 
 ---
