@@ -1,6 +1,6 @@
 # 2321 nop-orm 分片执行引擎（fan-out 与归并）实施
 
-> Plan Status: active（2026-10-06 首轮对抗审查 REJECT——1 Blocker（selectAllShards default 语义不可实现/空全集静默）+ 4 Minor 已修订；审查确认 13 条 baseline 行号零误差、缓存安全与 orderBy 映射可行性成立，判定修复后无需整轮复审）
+> Plan Status: completed（2026-10-06；首轮审查 REJECT 1 Blocker + 4 Minor 修订后 active，四 Phase landed + 独立 closure audit APPROVE，证据见 Draft Review Evidence 与 Closure 段）
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/design/nop-orm-sharding-execution-engine-design.md`（active，本 plan 唯一语义规格——§3.1 编译期结构信息、§3.2 执行模型与事务、§3.3 连接与事务边界、§3.4 归并分级、§3.5 跨分片 JOIN 边界、§3.8 使用契约与错误码、每分片强制 selector 机制）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI8（执行引擎实施）
 > Related: `ai-dev/plans/2320-orm-sharding-strategy.md`（completed，前置契约：策略注册表/ConfigShardSelector/MissingShardPolicy/绑定校验/GenSqlTransformer 路由/DDL N 表展开——本 plan 建在其上）；`ai-dev/design/nop-orm-sharding-strategy-design.md`（§3.4/§3.6 由本 plan 同步修订）；`ai-dev/plans/2318-orm-enc-assisted-query-columns.md`（同 roadmap 前序 plan，Phase 结构与 Exit Criteria 风格参照）
@@ -196,8 +196,8 @@ Exit Criteria:
 - [x] GenSqlTransformer 路由链零改动（唯一增量=FANOUT 兜底分支）与 nop-core 零改动经提交 diff 核对
 - [x] owner docs（orm-sharding.md、策略设计 §3.4/§3.6、执行引擎设计注记消解）与 live baseline 一致
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（hasAggregate 为实施期补充交付而非延期，见 Phase 1 裁定记录）
-- [ ] 独立子 agent closure audit 已完成并记录证据（**留主会话执行**：实现完成后由独立 fresh session auditor 回看 live repo，不信任实现记录；证据写入下方 Closure 段）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2321-orm-sharding-execution-engine.md --strict` 退出码 0
+- [x] 独立子 agent closure audit 已完成并记录证据（已由独立 fresh session auditor `fresh-closure-audit-2026-10-06` 执行：回看 live repo、不信任实现记录、只跑定向测试；证据见下方 Closure 段）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2321-orm-sharding-execution-engine.md --strict` 退出码 0
 - [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0（另跑 nop-dao 与 nop-orm-eql，均 0 发现）
 - [x] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm-eql,nop-persistence/nop-orm -am` 通过
 - [x] 全仓编译门禁：`./mvnw clean install -DskipTests -T 1C` 通过（2320 先例：证明模块内接口增量无跨模块断编译）
@@ -220,8 +220,55 @@ Completed:
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 fresh session closure auditor，与实现会话无关；审计基线=live repo 回看，不信任实现记录）
-- Evidence: （每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path 或 test name；checklist 工具与 hollow scan 退出码；Anti-Hollow 链追踪；Deferred 分类检查）
+- Reviewer / Agent: fresh-closure-audit-2026-10-06（独立 fresh session closure auditor，与实现会话无关；审计基线=live repo 回看 + `git show 125bd424b8` diff 核对，不信任实现记录；工作树 `git diff 125bd424b8 -- nop-persistence` 为空，live 代码与实施提交一致）
+- Evidence:
+
+**Phase 1 Exit Criteria（6/6 PASS）**
+1. focused 测试通过：`TestCompiledSqlStructFlags` 16 例（本审计定向重跑绿，断言含序数哨兵 `ORDINAL_NOT_PROJECTED`=-1 `TestCompiledSqlStructFlags.java:276`、别名映射成功 `:266`、裸表达式无映射 `:286`、hasAggregate 正反 `:292-306`、子查询聚合不标志 `:309`、非 SELECT 确定缺省 `:318`）+ nop-orm `TestCompiledSqlStructInfoCache` 2 例（assertSame 缓存命中后标志保持）——PASS
+2. 既有行为零变更：EqlCompiler 增量为纯静态填充（`compile/EqlCompiler.java:126,131-134,173-176` 仅新增 set 调用与静态 helper，不改变既有编译产物）；全量 789 例回归记录于实施提交与日志——PASS
+3. 接线验证：Phase 3 真实消费——`ShardFanoutEngine.rejectableConstruct`（`:238-252`，消费 7 标志）、`firstUnprojectedOrderOrdinal`（`:254-261`，消费映射含 -1 哨兵）、`FanoutRowMerger.mergeSorted`（`:56-61`，消费序数+asc+nullsFirst）；运行时断言 `testQualificationConstructsFail`/`testQualificationUnprojectedOrderKeyFails`/`testFanoutOrderByTrueOrder`——承诺闭环，PASS
+4. 无静默跳过：非 SELECT/无 orderBy 确定缺省（`testNonSelectStatementDefaults`/`testBuildOrderByOrdinalsNullSafe`）——PASS
+5. No owner-doc update required：成立（fanout 用户契约归 Phase 4 章节统一交付）——PASS
+6. logs：`ai-dev/logs/2026-10/2026-10-06.md` 含 Phase 1 记录与 hasAggregate 裁定——PASS
+
+**Phase 2 Exit Criteria（6/6 PASS）**
+1. 测试通过：`TestShardFanoutPolicy` 9 例定向重跑绿——parse("fanout")/未知取值抛/FANOUT 不要求 default-shard/接口 default 空列表（含 EmptyShardSelector）/同源断言 `testConfigSelectorSelectAllShardsSameSourceAsShardNames`（shardNames 逐项比对 + `ds_{shard}` querySpace 推导断言）/未绑定实体空/缺省 false+10000/非正数启动即抛（含未配置分片早退路径）/零变更——PASS
+2. 接线验证：`TestShardFanoutTransformFallback.testFanoutPolicyLeakingIntoTransformFailsLoudly`——RecordingFanoutSelector 委托真实 ConfigShardSelector、`policyCalls==1` 计数断言、selector→transform 运行时调用链成立——PASS
+3. 无静默跳过：`GenSqlTransformer.java:165-172` FANOUT 兜底分支抛 `ERR_ORM_SHARD_FANOUT_NOT_SUPPORT`（arg=实体名+原因），陷阱封死——PASS
+4. 三既有分支零变更：diff 逐块核对——FAIL/DEFAULT_SHARD 抛点仅补 `ARG_POLICY` 参数（设计 §3.8 m2 裁定内），NONE fall-through 与路由逻辑未动；`testNoShardConfigZeroBehaviorChange`+`testNonFanoutQueryUnchanged` 运行时对照——PASS
+5. owner-doc 裁定归 Phase 4：已兑现——PASS
+6. logs：同上——PASS
+
+**Phase 3 Exit Criteria（6/6 PASS）**
+1. focused 测试+最小端到端：`TestShardFanoutEngine` 17 例定向重跑全绿——资格收口逐形态（UPDATE/DELETE `ARG_CONSTRUCT`、多 fanout 实体、混用、GROUP BY/HAVING/DISTINCT/AGGREGATE/FOR UPDATE/UNION 各断言构造名、排序键未投影断言 `orderBy#0`）、归并四语义、上限中断、逐份 readOnly、querySpace 逐一 ds_0/ds_1——PASS
+2. 端到端验证：`orm().executeQuery`（session 入口）→ `JdbcQueryExecutor.executeQuerySql:108` planQuery → `executeQuery` N 份物理 SQL（记录型 jdbcTemplate 断言 `TEST_ORM_SHARD_TABLE_0/_1` 后缀）→ 归并输出——PASS
+3. 接线验证：表名后缀/querySpace/`selectShardCalls==0`（值路由未参与）+ 非 fanout 对照（`selectShardCalls==1`、单条 SQL）——PASS
+4. 无静默跳过：资格不满足/排序键未投影/超限（无部分结果）/开关关闭全部显式失败，各有命名测试——PASS
+5. owner-doc 裁定归 Phase 4：已兑现——PASS
+6. logs：同上——PASS
+
+**Phase 4 Exit Criteria（5/5 PASS）**
+1. 端到端矩阵：17+1+9 例即矩阵本体（四语义/超限中断/资格收口/空全集/开关关闭/开关前后对照）——PASS
+2. owner docs 一致 + doc-links：`orm-sharding.md` 执行引擎章节与 live 逐项一致（配置缺省/资格边界七标志清单/归并分级/无统一快照/多主组/分布式 ID 前置约束/可观测性日志名）；`check-doc-links --strict` 本审计实跑退出码 0——PASS
+3. 设计文档三处同步：策略设计 §3.4 fanout 分支（`:93-104`）+ §3.6 分野扩展（`:119`）；执行引擎设计 §3.8 m1/m2/10000 缺省值均「已落地/已消解」终稿表述——PASS
+4. 全量回归：三模块 `-am` BUILD SUCCESS 记录于实施提交——PASS
+5. logs：同上——PASS
+
+**Closure Gates（13 条，除留主会话 1 条外全部 PASS）**：fanout 端到端四语义（testFanoutUnorderedConcat/BareCountSum/OrderByTrueOrder/ShallowPagination）PASS；归并矩阵+显式失败无静默 PASS；未配置零变更 PASS；Anti-Hollow PASS（四链见下）；transform 路由链零改动+nop-core 零改动 PASS（`git show 125bd424b8 --name-only` grep `nop-core|nop-api-core|orm.xml|persister|_gen/` 零命中；GenSqlTransformer diff=imports+javadoc+ARG_POLICY 参数+FANOUT 兜底分支，路由链未动）；owner docs 与 live 一致 PASS；无静默降级 deferred PASS（Deferred 段为空，hasAggregate 为补充交付非延期）；独立 closure audit PASS（本条，已勾选）；check-plan-checklist 退出码 0（本审计实跑——plan 仍 active 故通过，该 gate 留主会话关闭时终验）；hollow 扫描 orm/orm-eql（另补 dao）均 0 发现退出码 0 PASS；三模块 -am 回归 PASS（提交记录+定向重跑）；clean install 编译门禁 PASS（提交记录）；doc-links --strict 退出码 0 PASS。
+
+**Anti-Hollow 四链追踪（全部连通）**
+- (a) 结构信息链：`EqlCompiler.compile` 编译期填充（`compile/EqlCompiler.java:126,131-134,173-176`）→ `CompiledSql` 只读访问器（`compile/CompiledSql.java:152-223`）→ 引擎消费（`ShardFanoutEngine.java:238-261` 七标志+映射哨兵；`FanoutRowMerger.java:56-97` 序数+asc+nullsFirst 取组装行值）；测试断言各标志正反与未投影哨兵 -1（`TestCompiledSqlStructFlags.java:276`）+ 运行时端到端（orderBy#0 显式失败、真序归并）。
+- (b) fan-out 执行链：资格判定 `ShardFanoutEngine.planQuery/detectFanout`（TABLE marker+绑定策略裁决）→ `ForcedShardSelector`（policy→DEFAULT_SHARD `:50-53`+强制落点 `:56-59`）骑 `GenSqlTransformer` 既有 default-shard 分支（`:151-158` addShardSelection+setQuerySpace）→ N 份物理 SQL 串行（`ShardFanoutEngine.executeQuery:277` for 循环）→ 逐份 `readOnly(true)`（`:329-331`）；测试断言：表名后缀 `_0/_1`、querySpace `ds_0/ds_1`、双份 readOnly、`selectShardCalls==0`。
+- (c) 归并链：`mergeConcat`（无序拼接，断言分片顺序 a,c,b,d）/`mergeSorted`（内存排序 asc+desc+null 三态跨分片交错）/`mergeBareCount`（4=2+2 求和）/`truncateToRange`+`perShardRange`（offset1 limit2→b,c；offset 超界→空集）；排序键未投影在资格判定显式失败后才进排序分支。
+- (d) 兜底与门控：FANOUT 泄漏 transform→`:165-172` 显式失败（`TestShardFanoutTransformFallback` 钉住）；开关关闭→`planQuery:99-101` 退化 fail 携带 policy=fanout+reason（`testFanoutDisabledDegradesToFail` 断言 arg）；fanout-max-rows 逐分片增量计数达限中断（`executeQuery:294-300`，`testFanoutRowLimitInterruptsBeforeRemainingShards` 断言仅 1 份物理 SQL 已发起+ARG_COUNT/ARG_LIMIT+无部分结果）。
+
+**hasAggregate 第七标志裁定确认**：留痕三处一致——plan Phase 1 裁定记录块、`ai-dev/logs/2026-10/2026-10-06.md`、执行引擎设计 §3.1 构造标志表 hasAggregate 行。语义必要性 live 核实：无 GROUP BY 的 `select sum(o.sid)` 在六标志下全 false 且非裸 count，若无该标志将静默走无序拼接产出错误结果；`rejectableConstruct:249-250` 以 `hasAggregate && !isBareCount` 闭合判定；`testQualificationConstructsFail` 断言 sum→AGGREGATE 显式失败。裁定成立，非 count 聚合判定确需该标志。
+
+**工具摘要（本审计本人实跑，退出码）**：`check-plan-checklist.mjs --strict`=0（active 状态下通过，audit gate 未勾为流程预期）；`scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high`=0（0 发现）；`--module nop-persistence/nop-orm-eql --severity high`=0（0 发现）；另补 `--module nop-persistence/nop-dao --severity high`=0（0 发现）；`check-doc-links.mjs --strict`=0（No errors）；定向测试：nop-orm-eql `TestCompiledSqlStructFlags` 16/16 绿、nop-dao `TestShardFanoutPolicy` 9/9 绿、nop-orm `TestShardFanout*` 18/18 绿（Engine 17+TransformFallback 1），三命令退出码均 0。
+
+**Deferred/Follow-up 分类诚实性**：`Deferred But Adjudicated` 为空，无被延期项；`Non-Blocking Follow-ups` 两项（并行 fan-out 与流式 K 路归并＝设计 §四明确裁定 v1 不做；多 fanout 实体共置受限 JOIN＝评审 B2 裁定 v1 无业务拉动）均为设计裁定的 v2 演进/out-of-scope improvement，非 in-scope live defect/contract drift——分类诚实。非阻塞观察（不影响裁定）：日志落盘于 `ai-dev/logs/2026-10/2026-10-06.md`（与 guide 模板 `ai-dev/logs/{year}/{month}-{day}.md` 的目录风格并存，属仓库既有目录惯例分歧）；工作树存在与本 plan 无关的其他工作区改动（nop-batch/nop-code/e2e 等），未触碰 nop-persistence。
+
+**审计裁定：APPROVE closure**——剩余动作归主会话：勾选 check-plan-checklist gate、填写 Closure Status Note/Completed 并将 Plan Status 翻为 completed。
 
 Follow-up:
 
