@@ -967,6 +967,23 @@ select o, o.extFldA, o.extFldB*2 + 3
 
 **存量数据回填**（辅助列是后加声明、存量行辅助列为空时使用）：`EncAssistedBackfiller`（`io.nop.orm.enc`，构造注入 `IOrmSessionFactory`）提供 `backfillAll()` 与 `backfillEntity(entityName)`：按主键排序分批读 id+主列密文 → 解密 → 重算辅助列 → 仅批量更新辅助列。解密与读路径语义一致（`@enc:` 前缀剥离后经 `ITextCipher.decrypt` 识别 v1/legacy 格式；未带前缀的存量值按明文处理）。幂等（重复执行重算覆盖，结果一致）；主列为 null 的行跳过；自定义密码器时须与 `DefaultOrmColumnBinderEnhancer` 的密码器一致。分批大小配置 `nop.orm.enc-backfill-batch-size`（缺省 500）。辅助列声明加入已有模型后，既有 auto-upgrade（`nop.orm.db-differ.auto-upgrade-database`，需引入 `nop-dbtool-core`）会自动对存量库 `ALTER TABLE ADD COLUMN`，再执行回填即可完成存量迁移。
 
+## 脱敏展示字段：masked 值的派生模式
+
+**定位（设计裁定）**：脱敏是 **meta/xmeta 层的发布控制概念**，不是 ORM 存储层职责——ORM 层静默改写读出的值会使 masked 值经实体写回成为脏数据。`TAG_MASKED` 在 ORM 侧的既有语义是 **SQL 日志打印脱敏**；查询结果的对外脱敏采用「脱敏展示字段」模式：
+
+- **真正的敏感字段**：以 xmeta 的 `not-pub` 等发布控制默认不暴露（不发布到 GraphQL）。
+- **脱敏展示字段**：`<compute>` 计算属性，对敏感值调用 `io.nop.commons.util.MaskHelper` 派生 masked 展示形态，日常查询与页面一律使用它。
+
+```xml
+<!-- 敏感列：不发布 -->
+<column name="phone" tagSet="masked,not-pub" stdSqlType="VARCHAR" precision="20"/>
+<!-- 脱敏展示：138****5678（MaskHelper.keepFirstNLastM） -->
+<compute name="phoneMasked" displayName="手机号" type="String"
+         computeExpr=" MaskHelper.keepFirstNLastM(entity.phone,3,4) "/>
+```
+
+`MaskHelper`（nop-commons）提供常用遮盖函数：`keepFirstNLastM`（保前 n 后 m）、`maskFirstNLastM`（遮前 n 后 m）、`maskFromXToY`（区间遮盖）、`maskAll`（全遮保长）、`maskFixed`（全遮定长，不泄露原长度）。空值原样返回；`keepFirstNLastM` 在 n+m 覆盖全长时原样返回（过短值不遮，是否全遮由调用方用 `maskAll/maskFixed` 显式表达）。
+
 ## 免代码生成：动态实体 `DynamicOrmEntity`
 
 **何时需要**：想在 ORM 模型里声明实体（能写 EQL、能建表、能 CRUD），但**不生成** Java 实体类。
