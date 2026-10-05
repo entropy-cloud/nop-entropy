@@ -108,7 +108,9 @@ Deliverables（每条都是必须有明确结论的裁定，不允许留白）:
 
 1. **金等价协议**：(a) 等价基准——结构类（LogicalExpr/PipelineExpr/SimpleCommand 等）无
    `equals`（Redirect/EnvVar 有），定义**自有格式的规范化 dump 通道**用于 diff，不依赖
-   `Operator.precedence()`（优先级裁定变更会改变既有 toString 括号化形状）；(b) **偏差
+   `Operator.precedence()`（优先级裁定变更会改变既有 toString 括号化形状）；**dump 的 word
+   投影恒为 B 阶段展平函数**——item 6 落地后 `SimpleCommand.args` 保留为 segments 的派生
+   扁平视图，dump 形状跨 item 6 不变（否则 F1 断言碎裂，制造"改测试让门禁通过"的压力）；(b) **偏差
    白名单**——旧行为与 bash/新设计冲突的用例逐条列出并裁定以谁为准，已知成员：断言
    `ParseException` 的错误路径用例（改断言为结构化拒绝，**但空/空白输入除外**——单独裁定
    为"空 program → 成功空结果"，bash 语义即 exit 0 no-op，不得拒绝）、`VAR= | echo`
@@ -137,7 +139,8 @@ Deliverables（每条都是必须有明确结论的裁定，不允许留白）:
    out-of-scope；**循环变量**（`for f in ...` 的 `f`）的存储位置（会话 exportedEnv 还是
    循环局部绑定表）、生命周期（循环结束后是否可见）、与 subshell/group 快照恢复的交互。
 9. **双上下文命名与分工**：新**会话级**上下文对象（构造期协调环境：registry / executor
-   线程池 / checker / fs / env / cwd / io / backgroundJobSink / 限制；会话可变状态归属）
+   线程池 / checker / fs / env / cwd / io / backgroundJobSink / lastExitCode（`$?` 语义，
+   现代码仅 pipeline 局部变量）/ 限制；会话可变状态归属）
    与既有**命令级** `IShellCommandExecutionContext`（每条命令的 io/env/cwd 视图）的名字、
    字段分工与转换点——禁止第三种重叠上下文。
 10. **CST 映射表与拒绝清单**：映射表须覆盖双挂载点（`command` 内联 `file_redirect` /
@@ -148,7 +151,9 @@ Deliverables（每条都是必须有明确结论的裁定，不允许留白）:
     `continue`、函数外 `return` 的行为（拒绝或 no-op）；拒绝清单显式含 `>|`（clobber）、
     `<<-`、`!` 取反（无 `negated_statement` 节点，`! cmd` 会解析成名为 `!` 的普通命令）、
     函数定义、进程替换、`${x//pat/rep}`、`$(( ))`、brace expansion、extglob、
-    `c-style for`（item 12 可升级部分项）。
+    `c-style for`（item 12 可升级部分项）；**compound / redirected_statement 作 pipeline
+    stage**（`cmd | while read x; do…done`——旧 parser 产不出、旧 executor 运行期以裸消息
+    拒绝）→ 结构化拒绝；**默认兜底规则：未列入映射表的节点一律结构化拒绝**。
 11. **文档更新**：`nop-ai-shell-syntax-spec.md`（Tier 矩阵改写 + §3.4"&& 比 || 绑定更紧、
     与 bash 一致"的错误表述一并改正 + 第十节拒绝控制流裁定推翻补记——补记须说明控制流属
     "手写 parser 不支持且报错拒绝"的信号范畴，虽不在信号清单原文字样内）；
@@ -197,9 +202,10 @@ Deliverables: 薄接口实现（单入口方法 + 按 Stage A 裁定的上下文
 sink 携带项）；`ShellCommandExecutor` 装配迁移；`nop-ai-agent` 的 test-scoped 适配器
 （`BackgroundRegistryJobSink`）与相关测试迁移。**执行约束**：(a) 须待 Stage A 的 D4/D9
 裁定冻结；(b) 与 item 5 对 `ShellCommandExecutor` 的改动**串行化**（同文件：visitor +
-会话状态 vs 装配构造）；(c) 本阶段起 mission CHECK 命令须扩为
-`./mvnw -pl nop-ai/nop-ai-shell,nop-ai/nop-ai-agent -am test -T 1C`（`-am` 只向上游构建，
-不含 nop-ai-agent 时下游破坏不可见）。
+会话状态 vs 装配构造）；(c) mission CHECK 命令已自始为
+`./mvnw -pl nop-ai/nop-ai-shell,nop-ai/nop-ai-agent -am test -T 1C`（超集，成本已知）——
+关键是**任何 touching `ShellCommandExecutor` 装配/构造的 plan 都不得收窄它**：`-am` 只向
+上游构建，不含 nop-ai-agent 时下游破坏不可见。
 
 Out of scope: 语法覆盖扩展。
 
@@ -222,8 +228,10 @@ Module area: `nop-ai/nop-ai-shell`、`docs-for-ai/03-modules/`。
 ```mermaid
 graph TD
     A[Stage A 契约与设计] --> B1[item 2 解析接线]
+    A --> D0[item 10 薄接口<br/>待 A 的 D4/D9 冻结<br/>与 item 5 串行化]
     B1 --> B2[item 3 翻译器核心]
     B2 --> F1[★ F1 现有语法金等价]
+    B1 --> D0
     B2 --> C1[item 4 控制流模型与翻译]
     B2 --> C0[item 6 结构化 word]
     C1 --> C2[item 5 求值与信号机制]
