@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICacheManagement;
+import io.nop.commons.cache.ICacheProvider;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.cache.LocalCacheProvider;
 import io.nop.commons.metrics.GlobalMeterRegistry;
@@ -57,11 +58,21 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         queryPlanCache.getConfig().setMaximumSize(CFG_QUERY_PLAN_CACHE_SIZE.get());
         queryPlanCache.refreshConfig();
 
-        if (getGlobalCache() == null) {
-            LocalCacheProvider globalCacheProvider = (LocalCacheProvider) sessionFactory.getGlobalCache();
+        // 必须以sessionFactory内部的globalCache为判据。不能用本bean的getGlobalCache()字段判断：
+        // IoC装配下@Bean字段经@Inject setter注入恒非null，而refreshConfig的旧实现以
+        // getGlobalCache()==null为守卫，导致该分支在所有IoC部署中永不执行，
+        // nop.orm.entity-global-cache.size/timeout的配置热刷新静默失效。
+        ICacheProvider globalCache = sessionFactory.getGlobalCache();
+        if (globalCache instanceof LocalCacheProvider) {
+            LocalCacheProvider globalCacheProvider = (LocalCacheProvider) globalCache;
             globalCacheProvider.getConfig().setMaximumSize(CFG_ENTITY_GLOBAL_CACHE_SIZE.get());
             globalCacheProvider.getConfig().setExpireAfterWrite(CFG_ENTITY_GLOBAL_CACHE_TIMEOUT.get());
             globalCacheProvider.refreshConfig();
+        } else if (globalCache != null) {
+            // 非LocalCacheProvider（如Hazelcast/JCache实现）的容量/过期由底层缓存自身管理，
+            // nop侧CacheConfig不适用，显式告警而非静默跳过
+            LOG.warn("nop.orm.global-cache-config-refresh-not-supported:provider={}",
+                    globalCache.getClass().getName());
         }
     }
 
