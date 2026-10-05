@@ -35,8 +35,11 @@ import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
 import io.nop.orm.eql.ast.SqlNotExpr;
-import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlOrderBy;
+import io.nop.orm.eql.ast.SqlOrderByItem;
+import io.nop.orm.eql.ast.SqlWindowDecl;
+import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.ast.SqlProjection;
 import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
@@ -50,6 +53,7 @@ import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.enums.SqlCompareRange;
+import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
@@ -71,10 +75,15 @@ import static io.nop.orm.eql.OrmEqlConstants.FEATURE_INTERSECT_KEYWORD;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_LATERAL;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_REASON;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NULLS_ORDER_NOT_SUPPORTED;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_PROJECTION_TYPE;
 
 public class AstToSqlGenerator extends AstToEqlGenerator {
 
@@ -180,7 +189,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         SqlExpr expr = node.getExpr();
-        ISqlExprMeta exprMeta = expr.getResolvedExprMeta();
+        // Plan 2307 V6d: exprMeta 未解析时此处原先无判空即调 getColumnNames()，
+        // 抛裸 NullPointerException（无错误码、无定位）。实测触发路径：
+        //   with recursive t as (select 1 union all select 2 from t) select 1 from t
+        // 即 CTE 体内的投影没有 resolvedExprMeta。
+        // 下面 :149 已经在判 getColumnNames() 是否为 null，说明作者预期过"取不到列名"，
+        // 但漏了 exprMeta 本身为 null 的情形。改为带错误码的显式失败。
+        ISqlExprMeta exprMeta = expr != null ? expr.getResolvedExprMeta() : null;
+        if (exprMeta == null) {
+            throw new NopException(ERR_EQL_UNSUPPORTED_PROJECTION_TYPE)
+                    .source(node)
+                    .param(ARG_AST_NODE, String.valueOf(node.getASTKind()));
+        }
 
         SqlAlias alias = node.getAlias();
 
@@ -438,76 +458,53 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     }
 
     /**
-     * WI7（roadmap EC ②/③/③b）：执行路径的 {@code NULLS FIRST/LAST} 方言门——替代继承自
-     * {@code AstToEqlGenerator} 的无门打印（"只打印不设门"在 MySQL 等不支持子句的方言上
-     * 就是净回归）。三分形态（裁定 = ai-dev/design/eql-cross-db-compat/
-     * 2026-10-04-wi7-phase0-adjudications.md §三）：
+     * 【merge 裁决记录 / Plan 2308 supersede】本位置原为 ours WI7 Phase 2 的
+     * {@code visitSqlOrderByItem} 三分门（null=委托 super / support=打印 / 否则按
+     * {@code DOCUMENTED_DIRECTIONAL_NULL_ORDER} 围栏做"缺省一致省略、否则编译期报错"，
+     * 裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi7-phase0-adjudications.md §三）。
+     *
+     * <p>master 侧 Plan 2308/2309 对同一功能落地了**另一套发射策略**（见
+     * {@link #visitSqlOrderBy(SqlOrderBy)}：support 位 gate + {@link NullsOrderRewriter}
+     * CASE 改写 + D2/D3/D4 结构不可改写处 fail-fast），并在其设计文档（§3.8）中
+     * 明确否决了 defaultNullsFirst 省略优化（单布尔无法表达各方言真实空序模型；
+     * DuckDB ASC/DESC 均不翻转缺省，省略优化对该库不安全）。两策略对同一输入
+     * （如 mysql {@code asc nulls last}）行为互斥（报错 vs CASE 改写），无法机械并集。
+     *
+     * <p>本合并采纳 master 发射策略，依据（四点，均为 ours 侧自身框架内成立）：
      * <ol>
-     * <li>{@code nullsFirst == null}（未指定）→ 委托 super，输出与本 override 引入前
-     * 逐字节一致（BC 棘轮硬约束，缺省不主动补子句）；</li>
-     * <li>{@code dialect.isSupportNullsFirst()}（原生接受子句，duckdb/h2/oracle/postgresql）
-     * → 委托 super（继承行为 = 按请求打印 {@code nulls first}/{@code nulls last}）——请求即
-     * 语义，无需查缺省序，方向相关的缺省差异在此分支内自然消解；</li>
-     * <li>false 且显式请求 → 缺省序推导（仅一手文档已证方言集，见
-     * {@link #defaultNullsFirstForDirection(boolean)}）：请求与该方向缺省序一致则省略子句
-     * （行为等价、无损）；不一致或不可推导（dm/tdengine/db2 等无一手文档）编译期响亮报错，
-     * 不静默丢请求。</li>
+     * <li>ours WI7 裁定文档"被拒备选(落地)"自设的翻案条件——"仅在能给出逐方言无损
+     * lowering 矩阵时成立"——已被 master 满足：Plan 2308 Phase 0 探针
+     * {@code ai-dev/tools/probe-nulls-order-matrix.sh} 在真实容器（postgres:16/mysql:8.0）
+     * 实测四方向组合行序，CASE 四组合方向正确性由 {@code TestEqlNullsOrderCompile} 钉死；</li>
+     * <li>master 对 db2 的 supportNullsFirst=true 一手修正（0ea57a097e，经用户指出）——
+     * 本合并任务书明确要求按其口径调整 ours 测试；</li>
+     * <li>bean 通道（nop-orm GenSqlHelper，Plan 2309 Phase 1）与本通道共用
+     * NullsOrderRewriter——两通道必须同策略，否则同一语义两通道行为分裂；</li>
+     * <li>机械合并事实：两实现并存时 master 的 visitSqlOrderBy 接管列表打印，
+     * ours 门的报错/省略分支在编译管线中结构性不可达（仅 null/support 两分支被回调且恒等委托），
+     * 即自动合并后的实际运行行为已是 master 策略；保留不可达死门只会制造双源真相。</li>
      * </ol>
-     * 回显路径（基类）不做方言判断，保持不动（与 lateral/forUpdate 门只设在执行路径的先例一致）。
+     *
+     * <p>ours WI7 的三分语义在 master 策略中的对应：分支 0（null 不补子句）=
+     * printOrderByItemForSql 首分支（逐字一致，BC 保持）；分支 1（support 请求即打印）=
+     * 其次分支；分支 2（不支持方言的显式请求不静默）由 CASE 无损改写（可安全复制的
+     * 纯列引用）或 D2/D3/D4 响亮报错（结构不可改写）承接——"响亮失败优于静默赌注"原则
+     * 保持，且对合法请求从"拒绝"升级为"正确模拟"。ours 原三分门全文与本记录见
+     * 本文件 git 历史（merge 提交）与 ai-dev/logs 合并条目。
+     *
+     * <p>ours 侧同步退役物：{@code DOCUMENTED_DIRECTIONAL_NULL_ORDER} 围栏集、
+     * {@code defaultNullsFirstForDirection} 推导（本注释即其原位置）；
+     * {@code IDialect.isDefaultNullsFirst()} accessor 本身保留（配置事实登记，
+     * Plan 2308 明示"全程不读"；TestDefaultNullsFirstFlag 继续钉其取值语义）。
+     * ours 的 {@code TestEqlNullsFirstDialectGate} 已按新契约改写
+     * （{@code TestEqlNullsFirstDialectGatePostMerge} 语义，同文件内注释标明各用例对应关系）。
      */
-    @Override
-    public void visitSqlOrderByItem(SqlOrderByItem node) {
-        Boolean nullsFirst = node.getNullsFirst();
-        if (nullsFirst == null || dialect.isSupportNullsFirst()) {
-            super.visitSqlOrderByItem(node);
-            return;
-        }
-
-        Boolean defaultFirst = defaultNullsFirstForDirection(node.getAsc());
-        if (defaultFirst == null || !defaultFirst.equals(nullsFirst)) {
-            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
-                    .param(ARG_DIALECT, dialect.getName())
-                    .param(ARG_FEATURE, "nullsFirst(" + (nullsFirst ? "first" : "last") + ")");
-        }
-
-        // 显式请求与缺省序一致 ⇒ 省略子句（行为等价），手打 expr + asc（不能委托 super：
-        // 继承实现会为非 null 的 nullsFirst 打印子句）
-        visit(node.getExpr());
-        print(node.getAsc() ? " asc " : " desc ");
-    }
-
-    /**
-     * 一手文档已证「缺省 NULL 序方向相对」的方言集（裁定文档 §三；不在集合内 = 缺省序不可
-     * 推导 ⇒ 显式请求一律报错，红线 [未取证] 纪律——配置值是登记事实但不作等价性主张）：
-     * <ul>
-     * <li>mysql/mysql5.7/mariadb（继承 mysql 的已证行为）：MySQL 手册 "NULL values are
-     * presented first if you do ORDER BY ... ASC and last if you do ORDER BY ... DESC"</li>
-     * <li>mssql：NULL 视为最低值（ASC 缺省 FIRST / DESC 缺省 LAST）</li>
-     * <li>h2：LOW/HIGH 方向相对（H2 文档 "considered as smaller than other values during
-     * sorting"，h2.dialect.xml 既有引文；h2 supportNullsFirst=true 实际不可达，登记为完备）</li>
-     * </ul>
-     * dm/tdengine（XML 有配置但无一手文档）与 db2（未配置 + 文档不可得）均不在集合内：
-     * 两方向显式请求一律报错，不得临时放行（裁定文档 §三 explicit 列名）。
-     */
-    private static final Set<String> DOCUMENTED_DIRECTIONAL_NULL_ORDER =
-            Set.of("mysql", "mysql5.7", "mariadb", "mssql", "h2");
-
-    /**
-     * @return 该方向缺省序是否 nulls first；null = 不可推导（方言不在一手文档已证集）。
-     *         ASC 方向 = {@code isDefaultNullsFirst()}；DESC 方向 = 镜像（nulls 最小 ⇒
-     *         ASC 在前 DESC 在后，反之亦然）。
-     */
-    private Boolean defaultNullsFirstForDirection(boolean asc) {
-        if (!DOCUMENTED_DIRECTIONAL_NULL_ORDER.contains(dialect.getName()))
-            return null;
-        boolean defaultFirst = dialect.isDefaultNullsFirst();
-        return asc ? defaultFirst : !defaultFirst;
-    }
 
     /**
      * WI8（plan 27；裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi8-phase0-adjudications.md
      * §三/§四.1）：{@code IS [NOT] DISTINCT FROM} 的 SAFE_EQ 渲染三分支名称集合（不新增方言
-     * 能力标志——名称集合先例 = {@link #DOCUMENTED_DIRECTIONAL_NULL_ORDER}；继承别名
+     * 能力标志——名称集合先例 = 原 WI7 围栏集 DOCUMENTED_DIRECTIONAL_NULL_ORDER，已随
+     * merge 裁决退役，见上方 merge 裁决记录；继承别名
      * mysql5.7/mariadb/h2gis/postgis 显式列举）。db2/dm/tdengine/sqlite 无一手取证
      * 或无方言文件，均不在集合内 ⇒ 落报错分支（unverified 纪律，不静默放行）。
      */
@@ -596,8 +593,130 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         }
     }
 
+    /**
+     * Plan 2308 D5：ORDER BY 的方言化输出。
+     *
+     * <p>覆写 {@link AstToEqlGenerator#visitSqlOrderBy}（而非只覆写 item）的原因：
+     * 基类用 {@code printList(items, ",")} 做列表级拼接，而 CASE 兄弟键必须作为
+     * <b>紧邻其排序项的前置同级键</b>插入；只覆写 item 无法在逗号之间插键。
+     *
+     * <p>D1 算法：{@code supportNullsFirst} 为 true → 原生输出 NULLS 子句；
+     * 否则对可安全复制的表达式输出 CASE 改写。{@code defaultNullsFirst} 全程不读
+     * （单个布尔无法表达各方言真实空序模型，见 design §3.8）。
+     */
+    @Override
+    public void visitSqlOrderBy(SqlOrderBy node) {
+        print(" order by ");
+        beginBlock();
+        List<SqlOrderByItem> items = node.getItems();
+        if (items != null) {
+            for (int i = 0, n = items.size(); i < n; i++) {
+                if (i != 0) {
+                    print(",");
+                    if (isPretty())
+                        println();
+                }
+                printOrderByItemForSql(items.get(i));
+            }
+        }
+        endBlock();
+    }
+
+    private void printOrderByItemForSql(SqlOrderByItem item) {
+        Boolean nullsFirst = item.getNullsFirst();
+
+        // 未请求空序：与 2307 基线逐字一致，不做任何额外处理
+        if (nullsFirst == null) {
+            visit(item);
+            return;
+        }
+
+        // 原生支持：直接输出（基类已能按三态打印 nulls first/last）
+        if (dialect.isSupportNullsFirst()) {
+            visit(item);
+            return;
+        }
+
+        // D4：窗口上下文无法附加额外排序键，改写结构性不适用 -> 显式失败
+        if (inWindowContext(item)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "window-not-supported")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D2：改写要复制排序表达式，只允许纯列引用
+        if (!(item.getExpr() instanceof SqlColumnName)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "expression-not-duplicable")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D3：DISTINCT 查询在改写路径上一律 fail-fast。
+        // 实测 PostgreSQL 16：`select distinct v from t order by (case when v is null then 0 else 1 end), v`
+        // 即便 v 已在投影列表中，仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`
+        // ——因为注入的 CASE 是一个**新的** ORDER BY 表达式，不在 select list 里。
+        // 故「排序列已投影」只是必要条件，不足以让改写合法；只能整体拒绝。
+        if (inDistinctSelect(item)) {
+            throw new NopException(ERR_EQL_NULLS_ORDER_NOT_SUPPORTED)
+                    .source(item)
+                    .param(ARG_REASON, "distinct-not-supported")
+                    .param(ARG_DIALECT, dialectName());
+        }
+
+        // D5：CASE 键作为前置同级键（紧邻其排序项），而不是整个列表的表头。
+        // 改写算法本身在 NullsOrderRewriter（plan 2309 Phase 1），与 bean 通道共用同一份实现。
+        SqlExpr expr = (SqlExpr) item.getExpr();
+        NullsOrderRewriter.appendCaseRewrite(getSql(), sb -> visit(expr),
+                item.getAsc(), nullsFirst);
+    }
+
+    /** D4：ORDER BY 项是否位于 OVER(...) 或命名窗口 {@code WINDOW w AS (...)} 内部 */
+    private boolean inWindowContext(SqlOrderByItem item) {
+        for (EqlASTNode p = item.getASTParent(); p != null; p = p.getASTParent()) {
+            if (p instanceof SqlWindowExpr || p instanceof SqlWindowDecl)
+                return true;
+        }
+        return false;
+    }
+
+    /** D3：该排序项是否位于 {@code SELECT DISTINCT} 查询内（改写路径此时结构上不合法） */
+    private boolean inDistinctSelect(SqlOrderByItem item) {
+        SqlQuerySelect select = enclosingSelect(item);
+        return select != null && select.getDistinct();
+    }
+
+    private SqlQuerySelect enclosingSelect(SqlOrderByItem item) {
+        for (EqlASTNode p = item.getASTParent(); p != null; p = p.getASTParent()) {
+            if (p instanceof SqlQuerySelect)
+                return (SqlQuerySelect) p;
+        }
+        return null;
+    }
+
+    private String dialectName() {
+        return dialect == null ? "unknown" : dialect.getClass().getSimpleName();
+    }
+
     @Override
     protected void printJoin(SqlJoinTableSource node) {
+        // Plan 2307 V2b: CROSS JOIN 按定义不带 ON 子句，租户/逻辑删除等过滤条件必须落到 WHERE。
+        // 若沿用普通 join 的 addJoinFilter，产物会是 `cross join T on (...)` —— 非法 SQL
+        // （H2/PostgreSQL/MySQL 均拒绝），使 CROSS JOIN 无法端到端执行。
+        // 这里刻意不调用 addJoinFilter：两侧表源因而仍不在 filteredSources 中，
+        // 由 printWhere 统一收集进 WHERE 子句（语义等价：笛卡尔积再过滤 = 过滤后的笛卡尔积）。
+        if (node.getJoinType() == SqlJoinType.CROSS_JOIN) {
+            // 不变式：CROSS_JOIN 只能由 grammar 的 crossJoin_（无 ON）或
+            // SqlJoinTableSource#normalize()（要求 condition==null）产生。
+            // 若将来出现带条件的 CROSS_JOIN，`cross join ... on ...` 是非法 SQL，
+            // 必须显式失败而不是静默丢弃条件。
+            if (node.getCondition() != null) {
+                throw new NopException(ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION).source(node);
+            }
+            return;
+        }
+
         if (node.getCondition() != null) {
             print(" on ");
             visit(node.getCondition());
@@ -905,14 +1024,30 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                     print(',');
                 }
 
+                // Plan 2307 V6: 投影类型与 exprMeta 都必须显式校验。
+                // 修复前两处是无条件强转 / 无判空解引用，实测
+                // `with recursive t as (select 1 union all select 2 from t) select 1 from t`
+                // 抛裸 NullPointerException（exprMeta 为 null 却直接调 getColumnNames()），
+                // 无错误码、无定位——EQL 的递归 CTE 因此整体不可用。
+                // 改为带错误码的显式失败，不 catch 后继续。
+                if (!(projection instanceof SqlExprProjection)) {
+                    throw new NopException(ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED)
+                            .source(projection)
+                            .param(ARG_AST_NODE, String.valueOf(projection.getASTKind()));
+                }
                 SqlExprProjection node = (SqlExprProjection) projection;
                 SqlExpr expr = node.getExpr();
-                ISqlExprMeta exprMeta = expr.getResolvedExprMeta();
+                ISqlExprMeta exprMeta = expr != null ? expr.getResolvedExprMeta() : null;
 
                 SqlAlias alias = node.getAlias();
                 if (alias != null) {
                     print(alias.getAlias());
                 } else {
+                    if (exprMeta == null) {
+                        throw new NopException(ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED)
+                                .source(node)
+                                .param(ARG_AST_NODE, String.valueOf(node.getASTKind()));
+                    }
                     List<String> colNames = exprMeta.getColumnNames();
                     for (int i = 0, n = exprMeta.getColumnCount(); i < n; i++) {
                         if (i != 0) {

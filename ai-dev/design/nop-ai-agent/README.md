@@ -71,6 +71,8 @@ Layer 1: Core Interfaces (核心接口层)
 
 - `nop-ai-agent-react-engine.md`
   - 单 Agent ReAct 执行引擎详细设计
+- `nop-ai-agent-async-tool-execution.md`
+  - 异步工具执行模型：等待期唤醒轮语义、占位协议三不变量、超时分层与心跳兜底、runInBackground 后台模式（M1 实施契约权威）
 - `nop-ai-agent-hook-skill-engine.md`
   - Hook / Skill 的引擎层组织方式
 - `nop-ai-agent-session-engine.md`

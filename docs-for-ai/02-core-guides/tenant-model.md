@@ -58,6 +58,19 @@ Nop 平台的多租户支持是**框架内置的薄层**，不是业务功能。
 
 `EqlTransformVisitor` 在编译 EQL 时，对 `useTenant="true"` 的实体对应的表自动追加 `tenantCol = ?` 到 WHERE 子句。运行时通过 `TenantParamBuilder` 从 `ContextProvider.currentTenantId()` 获取当前租户 ID。
 
+覆盖 select / update / delete 三类语句，以及 join（含 prop-path 隐式关联）的 ON 条件：
+
+| 语句 | 注入位置 |
+|------|---------|
+| `select` | `addTableFilter` → `addEntityFilter` → where 段 |
+| `select` 的 join | join 的 ON 条件（主表缺省过滤仍写在 where 段） |
+| `update` | `addWriteTenantFilter` → where 段 |
+| `delete` | `addWriteTenantFilter` → where 段 |
+
+`update` / `delete` 的注入发生在访问 where **之前**，与 select 一致，使注入的条件与用户书写的条件一起经过 `SqlParamTypeResolver` 参数解析。语句没有 where 子句时会新建 `SqlWhere`，因此 `delete from X`（无 where）也会被限制在当前租户内。
+
+> 未启用 `useTenant` 的实体不会被注入，默认配置下（无任何实体启用租户）该逻辑完全惰性。
+
 ### SQL 生成
 
 `GenSqlHelper` 在生成以下 SQL 时自动追加租户条件：
@@ -66,9 +79,10 @@ Nop 平台的多租户支持是**框架内置的薄层**，不是业务功能。
 |------|------|
 | 按 ID 加载 | `genEntityFilter()` → `genEntityTenantFilter()` |
 | 批量加载 | `appendBatchLoadEq()` |
-| DELETE/UPDATE | `genDeleteForUpdateSql()` |
-| 默认查询 | `addDefaultFilter()` |
-| findByExample | `appendExampleFilter()` |
+| 集合（子表）加载 | `genCollectionFilterEx()` |
+| UPDATE / DELETE（按主键） | `genEntityFilter()` |
+| findLatest | `genFindLatestSql()` 内联注入 |
+| findByExample / countByExample / deleteByExample / updateByExample | `appendExampleFilter()` |
 
 ### ORM DAO
 
@@ -80,10 +94,18 @@ Nop 平台的多租户支持是**框架内置的薄层**，不是业务功能。
 // EQL——自动加租户过滤
 List<MyEntity> list = dao().findAllByQuery("select o from MyEntity o where o.status = ?", 1);
 
+// EQL 写语句同样自动加租户过滤
+dao().executeUpdate("update MyEntity o set o.status = ? where o.id = ?", 2, id);
+dao().executeUpdate("delete from MyEntity o where o.id = ?", id);
+
 // 唯一需要注意：原生 SQL 需要手动包含租户列
 // session.executeUpdate(SQL.begin().sql("...").end()) 等原生 SQL 入口
 // （IOrmSession.executeUpdate/executeQuery/executeStatement）不经过 EQL 编译，不会自动过滤
 ```
+
+> 例外：`IEntityDao.deleteByQuery` / `updateByQuery` 由 `DaoQueryHelper` 用 `SQL.SqlBuilder` 直接拼装
+> （不经 EQL 编译），因此**不会**自动追加租户条件。需要按租户收敛时请先用 `findList` 取出实体再逐条删改，
+> 或在 filter 中显式带上租户字段。
 
 ### 数据权限（data-auth.xml）与租户过滤的区别
 

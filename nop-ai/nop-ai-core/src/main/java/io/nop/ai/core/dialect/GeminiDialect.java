@@ -426,9 +426,10 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
                 ? responseConfig.getStatusPath() : "candidates.0.finishReason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // 解析 Usage（使用基类通用方法）
+        // 解析 Usage（使用基类通用方法；plan 2303/WI21 缓存观测默认路径）
         response.setUsage(parseUsage(responseMap, responseConfig,
-                "usageMetadata.promptTokenCount", "usageMetadata.candidatesTokenCount", "usageMetadata.totalTokenCount"));
+                "usageMetadata.promptTokenCount", "usageMetadata.candidatesTokenCount", "usageMetadata.totalTokenCount",
+                "usageMetadata.cachedContentTokenCount", null, "usageMetadata"));
 
         return response;
     }

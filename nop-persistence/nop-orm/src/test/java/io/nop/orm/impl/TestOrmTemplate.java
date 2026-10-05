@@ -56,10 +56,15 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "update io.nop.app.SimsClass o set o.className='x'", false);
 
+        // 该测试栈的 app.orm.xml 通过 pdman:GenOrm 的 tenantCol="TENANT_ID" 声明了租户列，
+        // 所有实体的 useTenant 为 true（见 pdman.xlib useTenant="${colCodeMap[tenantCol] ? true : null}"），
+        // 因此 update/delete 与 select 一样必须自动追加缺省租户条件。
         assertEquals("update\n" +
                 "  SIMS_CLASS\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n" +
+                "where \n" +
+                "  TENANT_ID = ?\n", sql.getSql().getText());
     }
 
     @Test
@@ -68,10 +73,15 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "update io.nop.app.SimsClass set className='x'", false);
 
+        // 该测试栈的 app.orm.xml 通过 pdman:GenOrm 的 tenantCol="TENANT_ID" 声明了租户列，
+        // 所有实体的 useTenant 为 true（见 pdman.xlib useTenant="${colCodeMap[tenantCol] ? true : null}"），
+        // 因此 update/delete 与 select 一样必须自动追加缺省租户条件。
         assertEquals("update\n" +
                 "  SIMS_CLASS\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n" +
+                "where \n" +
+                "  TENANT_ID = ?\n", sql.getSql().getText());
     }
 
     @Test
@@ -84,7 +94,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  SIMS_CLASS\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
+                "  (CLASS_NAME =  'x' ) and (TENANT_ID = ?)\n", sql.getSql().getText());
     }
 
     @Test
@@ -97,7 +107,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  SIMS_CLASS\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
+                "  (CLASS_NAME =  'x' ) and (TENANT_ID = ?)\n", sql.getSql().getText());
     }
 
     @Test

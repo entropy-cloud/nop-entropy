@@ -1,6 +1,9 @@
 package io.nop.treesitter;
 
 import io.nop.treesitter.cursor.TSTreeCursor;
+import io.nop.treesitter.language.Language;
+import io.nop.treesitter.subtree.Subtree;
+import io.nop.treesitter.subtree.SubtreeArena;
 
 /**
  * Immutable value handle for a single parse-tree node: an owning {@link TSTree}
@@ -201,7 +204,7 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
         }
     }
 
-    /**
+/**
      * The {@code index}-th named child, or null when out of range.
      */
     public TSNode namedChild(int index) {
@@ -211,5 +214,67 @@ public record TSNode(TSTree tree, int id, int aliasSymbol) {
         } finally {
             releaseScratch();
         }
+    }
+
+    /**
+     * Whether this subtree contains a syntax error anywhere (C
+     * {@code ts_node_has_error}).
+     *
+     * <p>"Error" means an {@code ERROR} or {@code _ERROR} node, or a
+     * zero-width {@code MISSING} node, at any depth — including inside another
+     * {@code ERROR} subtree, which is why the walk goes through the arena's child
+     * list rather than the visible-node navigation above: an error can be hidden
+     * inside a subtree that renders as a single well-formed node.</p>
+     *
+     * <p>This is the fail-closed predicate: a consumer that cannot show a
+     * subtree is error-free must not treat it as understood.</p>
+     */
+    public boolean hasError() {
+        return subtreeHasError(tree.arena(), tree.language(), id);
+    }
+
+    /**
+     * The first child occupying the given field slot of this node's production
+     * (C {@code ts_node_child_by_field_name}), or null when this node has no such
+     * child.
+     *
+     * <p>An unknown field name, a null name, and a node without that field are
+     * all "no such child" (null) rather than an error: field names are grammar
+     * data, and a caller must not be able to crash a parse by asking for a field
+     * the grammar does not define. Field lookup reuses the cursor's field
+     * navigation — there is exactly one field-walk implementation in the
+     * runtime.</p>
+     */
+    public TSNode childByFieldName(String fieldName) {
+        if (fieldName == null) {
+            return null;
+        }
+        int fieldId = tree.language().fieldId(fieldName);
+        if (fieldId == 0) {
+            return null;
+        }
+        TSTreeCursor cursor = borrowScratch();
+        try {
+            return cursor.gotoChildByFieldId(fieldId) ? cursor.currentNode() : null;
+        } finally {
+            releaseScratch();
+        }
+    }
+
+    private static boolean subtreeHasError(SubtreeArena arena, Language language, int id) {
+        if (arena.isMissing(id)) {
+            return true;
+        }
+        Subtree subtree = arena.get(id);
+        int symbol = subtree.symbol();
+        if (symbol == language.builtinErrorSymbol() || symbol == language.builtinErrorRepeatSymbol()) {
+            return true;
+        }
+        for (int i = 0, n = subtree.childCount(); i < n; i++) {
+            if (subtreeHasError(arena, language, subtree.child(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

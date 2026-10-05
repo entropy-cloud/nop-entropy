@@ -1,0 +1,166 @@
+#Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+.flattened-pom.xml
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+.nop/repository/
+.nop/log/
+
+# IntelliJ
+.idea
+*.ipr
+*.iml
+*.iws
+
+# NetBeans
+nb-configuration.xml
+
+# Visual Studio Code
+.vscode
+.factorypath
+
+# OSX
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+
+# patch
+*.orig
+*.rej
+
+# Local environment
+.env
+
+*.debug.md
+
+# Plugin directory
+/.quarkus/cli/plugins/
+
+/nop-kernel/nop-antlr4/nop-antlr4-playground/gen
+/nop-kernel/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/.antlr
+/nop-kernel/nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/gen
+/nop-kernel/nop-xlang/gen/antlr
+/nop-kernel/nop-xlang/gen
+/nop-kernel/nop-antlr4/nop-antlr4-tool/gen/antlr4/xlang
+/nop-dev-tools/nop-idea-plugin/.gradle/7.2
+/nop-dev-tools/nop-idea-plugin/build
+/nop-dev-tools/nop-idea-plugin/.gradle
+/nop-dev-tools/nop-idea-plugin/nop-idea-plugin.jar
+.antlr
+/nop-dev-tools/nop-idea-plugin/bin
+/log
+_dump
+/db
+/nop-kernel/nop-antlr4/gen
+/nop-kernel/nop-antlr4/nop-antlr4-xlang/src/main/antlr4/imports/gen
+/nop-kernel/nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen
+
+package-lock.json
+node_modules/
+
+# KnoSys sites
+/.knosys/sites/default/source/_data/knosys/
+/.knosys/sites/default/source/_data/local/repos.yml
+/.knosys/sites/default/source/knosys/
+/.knosys/sites/default/source/_posts/*
+!/.knosys/sites/default/source/_posts/hello-world.md
+/.knosys/sites/default/themes/
+/.knosys/sites/default/public/
+/.knosys/sites/default/.deploy*/
+/.knosys/sites/default/_multiconfig.yml
+/.knosys/sites/default/Thumbs.db
+/.knosys/sites/default/db.json
+/.knosys/sites/default/package.json
+
+/nop-runner/nop-cli-jdk11/dependency-reduced-pom.xml
+.claude.worktree-branch
+.worktree-base
+.worktree-branch
+.worktree-base
+.worktree-branch
+.worktree-base
+/nop-network/nop-http/nop-http-client-apache/src/test/java/io/nop/http/apache/TestLiteLlmStreaming.java
+.mvn/maven.config
+
+
+# Maven shade plugin generated
+dependency-reduced-pom.xml
+
+# Generated sample files
+/nop-format/nop-ooxml/nop-ooxml-xlsx/samples/generated-*/
+
+# Log directories
+**/log/
+# 但测试源码目录不忽略（如 io/nop/sys/dao/log 包目录恰名为 log，WI7 审计发现）
+!**/src/*/java/**/log/
+!**/src/*/java/**/log/**
+.sisyphus/
+/nop-task.md
+/nul
+
+# Graphify tool output
+graphify-out/
+.graphifyignore
+
+# Test results
+test-results/
+
+# Audit evidence: generated raw benchmark/test output (raw goes to _tmp/, evidence keeps distilled tables only)
+ai-dev/audits/evidence/**/*-raw.txt
+ai-dev/audits/evidence/**/*.jfr
+
+# AI temp files (scratch output, logs, analysis dumps)
+_tmp/
+# Stray root-level temp logs (evidence logs belong under _tmp/ with a filename kept)
+/_tmp-*.log
+
+# CodeGraph index database
+.codegraph/
+
+# Qoder
+.qoder/
+
+# mvnq per-worktree maven repository and build lock
+/.m2-repo*/
+/.mvn/build.lock
+nop-task/nop-task-app/db/
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+bower_components/
+jspm_packages/
+__pycache__/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）

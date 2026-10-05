@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -134,5 +135,88 @@ class TestKafkaMessageServiceSend {
 
     private static class Capture<T> {
         T value;
+    }
+
+    @Test
+    void sendTimeoutBoundsTheReturnedFuture() throws Exception {
+        // WI15 (F-45): options.sendTimeout applies an upper bound; a producer whose
+        // callback never fires produces a future that fails with TimeoutException.
+        MessageSendOptions options = new MessageSendOptions();
+        options.setSendTimeout(50L);
+
+        CompletableFuture<CompletionStage<Void>> result = new CompletableFuture<>();
+        org.mockito.Mockito.when(producer.send(any(ProducerRecord.class), any(Callback.class)))
+                .thenAnswer(inv -> {
+                    // callback never invoked: send hangs
+                    result.complete(null);
+                    return null;
+                });
+
+        CompletionStage<Void> stage = service.sendAsync("t-timeout", "m", options);
+        // ensure the send was dispatched first, then wait for the timeout to fire
+        result.get(2, TimeUnit.SECONDS);
+        long start = System.nanoTime();
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(5, TimeUnit.SECONDS));
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
+        assertTrue(e.getCause() instanceof java.util.concurrent.TimeoutException,
+                "cause must be the orTimeout TimeoutException, was: " + e.getCause());
+        assertTrue(elapsedMs >= 40L, "timeout must honor the configured bound, elapsed=" + elapsedMs);
+    }
+
+    @Test
+    void producerLevelSendTimeoutUsedWhenOptionAbsent() throws Exception {
+        // WI15: options.sendTimeout<=0 falls back to the producer-level config.
+        KafkaProducerConfig producerConfig = new KafkaProducerConfig();
+        producerConfig.setSendTimeoutMs(60L);
+        service.setDefaultProducerConfig(producerConfig);
+
+        CompletableFuture<CompletionStage<Void>> dispatched = new CompletableFuture<>();
+        org.mockito.Mockito.when(producer.send(any(ProducerRecord.class), any(Callback.class)))
+                .thenAnswer(inv -> {
+                    dispatched.complete(null);
+                    return null;
+                });
+
+        CompletionStage<Void> stage = service.sendAsync("t-fallback", "m", null);
+        dispatched.get(2, TimeUnit.SECONDS);
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(5, TimeUnit.SECONDS));
+        assertTrue(e.getCause() instanceof java.util.concurrent.TimeoutException);
+    }
+
+    @Test
+    void producerSendSyncExceptionBecomesFailedFuture() {
+        // WI17 (F-39, fact-corrected): synchronous producer.send exceptions (producer
+        // closed / interrupted / unexpected runtime) must not escape sendAsync — the
+        // contract is a CompletionStage. (max.block.ms exhaustion routes through the
+        // callback, not this path.)
+        org.mockito.Mockito.doThrow(new IllegalStateException("producer already closed"))
+                .when(producer).send(any(ProducerRecord.class), any(Callback.class));
+
+        CompletionStage<Void> stage = service.sendAsync("t-f39", "m", null);
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS));
+        // NopException.adapt passes RuntimeExceptions through unchanged.
+        assertTrue(e.getCause() instanceof IllegalStateException,
+                "cause must be the adapted original failure, was: " + e.getCause());
+    }
+
+    @Test
+    void cancelledTokenRejectsWithoutDispatching() {
+        // WI15 (F-45): pre-send cancellation check — rejected future, no producer.send.
+        MessageSendOptions options = new MessageSendOptions();
+        io.nop.api.core.util.ICancelToken token = mock(io.nop.api.core.util.ICancelToken.class);
+        org.mockito.Mockito.when(token.isCancelled()).thenReturn(true);
+        options.setCancelToken(token);
+
+        CompletionStage<Void> stage = service.sendAsync("t-cancel", "m", options);
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> stage.toCompletableFuture().get(2, TimeUnit.SECONDS));
+        assertTrue(e.getCause() instanceof NopException);
+        assertEquals(io.nop.api.core.message.MessageErrors.ERR_SEND_CANCELLED.getErrorCode(),
+                NopException.class.cast(e.getCause()).getErrorCode());
+        org.mockito.Mockito.verify(producer, org.mockito.Mockito.never())
+                .send(any(ProducerRecord.class), any(Callback.class));
     }
 }

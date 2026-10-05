@@ -1,0 +1,20 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="task-stop">
+    <meta>true</meta>
+    <schema>
+        <task-stop taskId="!string">
+        </task-stop>
+    </schema>
+
+    <description><![CDATA[Stops (cancels) a running background task started with runInBackground=true.
+
+**Parameters**:
+- `taskId`: the id from the `[BACKGROUND_TASK started taskId=...]` confirmation.
+
+**Semantics**:
+- Cancels the task: the sandboxed process is killed via the progress-tracker channel when available, otherwise the fork future is cancelled.
+- Idempotent: stopping an already-finished task reports its terminal status without state change.
+- An unknown taskId returns an explicit error. Tasks from another session are refused.
+- Not subject to activeTags filtering (meta tool).]]></description>
+
+</tool>

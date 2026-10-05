@@ -11,6 +11,8 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.Acknowledge;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.DelegateMessageSender;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
@@ -108,6 +110,12 @@ public class RpcMessageSubscriber implements IMessageSubscriber, IRpcService {
     }
 
     protected void handleResponse(Object ret, ApiRequest<?> request, CompletableFuture<ApiResponse<?>> future) {
+        // D5(b-prime) signals are transport-level, never RPC reply payloads (WI6).
+        if (ret instanceof TerminateConsume || ret instanceof PartialCommit) {
+            future.complete(ApiResponse.success(null));
+            return;
+        }
+
         Object message = ret;
         if (ret instanceof Acknowledge) {
             message = ((Acknowledge) ret).getReplyMessage();

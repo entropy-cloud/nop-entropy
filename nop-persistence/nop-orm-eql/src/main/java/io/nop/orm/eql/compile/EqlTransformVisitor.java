@@ -453,6 +453,39 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
+    /**
+     * 为 update/delete 语句的 where 子句补齐缺省租户过滤条件。
+     *
+     * select 语句的缺省过滤由 {@link #addTableFilter} 注入，但 update/delete 走
+     * {@link #visitSqlUpdate} 与 {@link #visitSqlDelete}，此前只设置 useTenantModel
+     * 这个「查询计划缓存标记」，并不生成 SQL 条件，导致
+     * `delete from X where id = ?` / `update X set ... where ...` 完全绕过租户隔离
+     * （GenSqlHelper 只覆盖按主键与 example 的入口，EQL 写语句不经由它）。
+     *
+     * 注入时机与 select 对齐：都在访问 where 之前追加，使新条件与用户书写的条件
+     * 一起经过后续的 SqlParamTypeResolver 参数解析。
+     *
+     * 只补租户条件，不补逻辑删除条件。给 update/delete 注入逻辑删除条件会改变
+     * 「硬删除一条已逻辑删除的行」的既有语义，属独立决策，不在本次修复范围内。
+     *
+     * @param where        语句当前的 where，可能为 null
+     * @param source       目标实体的表源，用于生成带别名的列名
+     * @param tableMeta    目标实体的元数据
+     * @param whereSetter  where 为 null 时用于回填新建的 SqlWhere
+     */
+    void addWriteTenantFilter(SqlWhere where, SqlSingleTableSource source, ISqlTableMeta tableMeta,
+            Consumer<SqlWhere> whereSetter) {
+        if (!tableMeta.getEntityModel().isUseTenant())
+            return;
+
+        SqlWhere target = where;
+        if (target == null) {
+            target = new SqlWhere();
+            whereSetter.accept(target);
+        }
+        target.appendFilter(newTenantExpr(source, tableMeta));
+    }
+
     SqlBinaryExpr newTenantExpr(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
         IEntityModel entityModel = tableMeta.getEntityModel();
         SqlBinaryExpr expr = new SqlBinaryExpr();
@@ -734,6 +767,17 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (table.isFilterAlreadyAdded())
             return;
 
+        // Plan 2307 V2b: CROSS JOIN 不接受 ON 子句，把缺省过滤条件（逻辑删除/租户/固定过滤器）
+        // 塞进 join.condition 会产出 `cross join T on (...)` 这种非法 SQL。
+        //
+        // 此处必须**在置 filterAlreadyAdded 之前**返回：若照常置位，SELECT 级的
+        // addEntityFilter(:486) 会认为该表源的缺省过滤「已处理」而整体跳过，
+        // 结果是 WHERE 子句里只剩 `1=1` 与空标记、租户条件彻底丢失（多租户数据泄漏）。
+        // 保持未置位即可让 addEntityFilter 把两侧条件收进 WHERE——语义等价
+        // （(A×B) 再过滤 == 过滤后的 A×B），且租户隔离不泄漏。
+        if (join.getJoinType() == SqlJoinType.CROSS_JOIN)
+            return;
+
         table.setFilterAlreadyAdded(true);
 
         collectDefaultEntityFilter(table, join::addConditionFilter);
@@ -842,7 +886,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             if (entityMeta != null) {
                 // 对应全类名或者简单类名
                 tableName.setResolvedTableMeta(entityMeta);
-                if (source.getCondition() == null) {
+                // Plan 2307 V2b: CROSS JOIN 按定义就是笛卡尔积，不带连接条件。
+                // 该检查原本拦截「实体 join 漏写 on」，对 CROSS JOIN 是误报——
+                // 若不放行，用户显式写的 CROSS JOIN 会在此被 ERR_EQL_JOIN_NO_CONDITION 拒绝，
+                // 使 V2 的修复无法端到端生效（能解析、不能编译）。
+                if (source.getCondition() == null && source.getJoinType() != SqlJoinType.CROSS_JOIN) {
                     throw new NopException(ERR_EQL_JOIN_NO_CONDITION).source(source).param(ARG_ENTITY_NAME, fullName);
                 }
             } else {
@@ -1708,6 +1756,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (tableMeta.getEntityModel().isTenantModel())
             this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
+        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
+
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
 
@@ -1766,6 +1816,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
+
+        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
 
         this.visitChild(node.getWhere());
 

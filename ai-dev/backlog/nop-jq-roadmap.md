@@ -1,6 +1,6 @@
 # nop-jq Roadmap — 自研 JSON 查询引擎
 
-> Last updated: 2026-09-18
+> Last updated: 2026-10-03（账本对账：items 1–10 已由 plan 01 / 361 / 2280 / 2281 交付并收口（多项经设计再裁定，形态变化见各行括注），据实翻 done；items 11/12 未做，保持 todo。对账前账本自 2026-09-18 起未回填，与 master 现实脱节）
 > Sources: `ai-dev/design/nop-jq/00-vision.md` (primary),
 > `ai-dev/design/nop-jq/01-architecture-baseline.md` (architecture baseline)
 
@@ -16,27 +16,27 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 1: 基础设施
 
-- 1. 模块脚手架 + 基础设施（JsonValue, JsonAccessor, NopJsonPath 门面）: `todo`
-- 2. JsonPath 解析器 + 执行器（递归下降, Segment[], Filter 体系）: `todo`
-- 3. JsonPath API 兼容层（兼容 fastjson JSONPath 全部公开 API）: `todo`
+- 1. 模块脚手架 + 基础设施（JsonValue, JsonAccessor, NopJsonPath 门面）: `done`（2026-09-20 plan 01 收口——nop-jq 入根 pom modules；JsonPath 实现按 plan 2280 拆分至 nop-kernel/nop-jpath 模块，NopJsonPath 门面在档）
+- 2. JsonPath 解析器 + 执行器（递归下降, Segment[], Filter 体系）: `done`（nop-jpath：JsonPathParser + Segment 体系 + SegmentOptimizer/Filter；nop-jq：JqLexer/JqParser/JqEngine + ast/runtime——plan 01 对齐 jq 1.7.1 语义）
+- 3. JsonPath API 兼容层（兼容 fastjson JSONPath 全部公开 API）: `done`（NopJsonPath javadoc 明示 API names and signatures follow fastjson's JSONPath to ease migration；TestJsonPathApi/TestJsonPathComprehensive 在档）
 
 ### Wave 2: 测试移植 + 功能完善
 
-- 4. 移植 fastjson JsonPath 单元测试（118 个测试文件）: `todo`
-- 5. jq→XLang 翻译器 + jq 核心语法支持: `todo`
-- 6. 移植 jq 核心测试用例（Tier 1 + Tier 2，约 400 个用例）: `todo`
+- 4. 移植 fastjson JsonPath 单元测试（118 个测试文件）: `done`（形态变更：以合并套件形态移植——nop-jpath 12 个测试类（TestJsonPathApi/TestJsonPathEngine/TestJsonPathComprehensive 等），非逐文件 118 形态；plan 361/2280 completed）
+- 5. jq→XLang 翻译器 + jq 核心语法支持: `done`（设计裁定改 AST 直接执行——JqDirectQuery/JqExecutor（design 02 架构），未走 XLang 翻译形态；jq 核心语法对齐 jq 1.7.1，TestJqOfficial 430/430）
+- 6. 移植 jq 核心测试用例（Tier 1 + Tier 2，约 400 个用例）: `done`（vendor jq 1.7.1 官方 jq.test 447 块 + TestJqOfficial 官方 runner，430/430 全通过——plan 01 收口）
 
 ### Wave 3: 性能优化
 
-- 7. JMH 基准测试框架搭建 + 基线测量: `todo`
-- 8. 性能热点优化（属性访问、Segment 融合、缓存策略）: `todo`
-- 9. JFR 分析 + 高级优化（减少分配、向量化、锁竞争）: `todo`
+- 7. JMH 基准测试框架搭建 + 基线测量: `done`（JqEngineBenchmark 九场景（编译/字段访问/select/map+add/插值/递归下降/tojson/fromjson/解构），jmh-core 接线）
+- 8. 性能热点优化（属性访问、Segment 融合、缓存策略）: `done`（JFR 归因驱动：JqPrinter.appendQuoted 批量转义/JqObject.ofFresh 免拷贝/JqEnvironment.fork 写时复制；tojson ~11-25% 提升；剩余热点（Java↔JqValue 边界）记 Deferred——需流式 API 契约变更）
+- 9. JFR 分析 + 高级优化（减少分配、向量化、锁竞争）: `done`（JFR 归因完成：LinkedHashMap ~47%/dispatch 28%/打印 ~8%/JqValue.of 7.7%；ThreadLocal 复用 dispatch 负结果 A/B 后回退；按 plan 01 停止判据「边际收益低于测量噪声」收口）
 
 ### Wave 4: 集成 + 收尾
 
-- 10. nop-core JPath 迁移（标记 @Deprecated, 切换到 nop-jq）: `todo`
-- 11. 全局函数注册（XLang/XSQL/XDef 中可用 jq/jsonPath）: `todo`
-- 12. 性能对比报告（nop-jq vs fastjson vs Jayway, 含 JMH 结果）: `todo`
+- 10. nop-core JPath 迁移（标记 @Deprecated, 切换到 nop-jq）: `done`（形态变更：以 plan 361 JPath SPI 桥接 + plan 2280 nop-jpath 模块拆分替代 @Deprecated 原位切换——nop-core JPath 保留为可注入 evaluator 的薄门面（ERR_JPATH_NO_EVALUATOR），实现迁 nop-jpath/nop-jq）
+- 11. 全局函数注册（XLang/XSQL/XDef 中可用 jq/jsonPath）: `todo`（2026-10-03 对账复核：GlobalFunctions 无 jq/jsonPath 注册，未做）
+- 12. 性能对比报告（nop-jq vs fastjson vs Jayway, 含 JMH 结果）: `todo`（2026-10-03 对账复核：有 JMH 场景基准与 JFR 归因（见 items 7-9 注），无三方对比报告）
 
 ★ **Milestone: nop-jq 1.0**（unlocks when 1-11 all done）: `todo`
 

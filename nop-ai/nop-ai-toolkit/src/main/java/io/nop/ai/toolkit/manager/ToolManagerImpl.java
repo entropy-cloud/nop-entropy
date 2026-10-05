@@ -6,15 +6,31 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 public class ToolManagerImpl implements IToolManager {
+    private static final Logger LOG = LoggerFactory.getLogger(ToolManagerImpl.class);
+
     private IToolExecutorProvider executorProvider;
     private List<IToolCallInterceptor> interceptors = Collections.emptyList();
+
+    /**
+     * Plan 2298 (WI17): per-path serialization tails — manager-instance-global
+     * (cross-session conservative: same-process writes to the same file are
+     * mutually excluded regardless of session). Values are the tail futures of
+     * per-path queues; consumers normalize predecessor exceptions via handle.
+     */
+    private final ConcurrentHashMap<String, CompletableFuture<Void>> pathQueues =
+            new ConcurrentHashMap<>();
 
     public ToolManagerImpl() {
     }
@@ -50,13 +66,116 @@ public class ToolManagerImpl implements IToolManager {
             );
         }
 
-        return executor.executeAsync(call, context)
-                .thenApply(result -> {
-                    for (IToolCallInterceptor interceptor : interceptors) {
-                        interceptor.afterCall(toolName, call, context, result);
-                    }
-                    return result;
-                }).toCompletableFuture();
+        // Plan 2301 (WI25): runInBackground is a reserved argument — only
+        // background-capable tools may carry it. A non-capable tool fails
+        // loud instead of silently running in the foreground (the model must
+        // learn the flag is not a no-op on this tool). Dual-source read: the
+        // engine dispatch path carries arguments as input JSON with a null
+        // node (ToolPathAffinity precedent).
+        if (runInBackgroundRequested(call) && !isBackgroundCapable(toolName)) {
+            return CompletableFuture.completedFuture(buildErrorResult(call,
+                    "Tool '" + toolName + "' does not support runInBackground "
+                            + "(not declared <background-capable>)"));
+        }
+
+        // The execution itself (not just its callbacks) must be lazy so a
+        // queued call does not start until its turn — see the queue below.
+        java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow = () ->
+                executor.executeAsync(call, context)
+                        .thenApply(result -> {
+                            for (IToolCallInterceptor interceptor : interceptors) {
+                                interceptor.afterCall(toolName, call, context, result);
+                            }
+                            return result;
+                        }).toCompletableFuture();
+
+        // Plan 2298 (WI17): per-path serialization for concurrency-unsafe
+        // tools. This is the process-wide chokepoint — the dispatcher's
+        // parallel fan-out calls callTool per call, so the queue here is what
+        // actually protects the ReAct write-same-file race (executeParallel
+        // has no production callers). Non-blocking future-chain: the caller
+        // thread is never blocked; same-path calls chain via thenCompose and
+        // the executor is invoked lazily on the caller's turn, different
+        // paths run in parallel. Unqueued: concurrency-safe tools and calls
+        // with no extractable path key.
+        if (!isConcurrencySafe(toolName)) {
+            String pathKey = ToolPathAffinity.extract(call);
+            if (pathKey != null) {
+                CompletableFuture<AiToolCallResult> result = new CompletableFuture<>();
+                pathQueues.compute(pathKey, (k, tail) -> {
+                    CompletableFuture<Void> trigger = (tail == null
+                            ? CompletableFuture.completedFuture(null)
+                            : tail).handle((v, e) -> null);
+                    return trigger.thenCompose(x -> executeNow.get()
+                            .whenComplete((r, err) -> {
+                                if (err != null) {
+                                    result.completeExceptionally(err);
+                                } else {
+                                    result.complete(r);
+                                }
+                            })
+                            .thenApply(r -> (Void) null));
+                });
+                return result;
+            }
+        }
+        return executeNow.get();
+    }
+
+    private boolean isConcurrencySafe(String toolName) {
+        try {
+            AiToolModel model = loadTool(toolName);
+            return model != null && model.isConcurrencySafe();
+        } catch (Exception e) {
+            // Safety lookup must never break tool dispatch — conservative
+            // fallback is "unsafe" (participates in path serialization).
+            LOG.debug("ToolManagerImpl: failed to load model for '{}' — treating as concurrency-unsafe", toolName, e);
+            return false;
+        }
+    }
+
+    private boolean isBackgroundCapable(String toolName) {
+        try {
+            AiToolModel model = loadTool(toolName);
+            return model != null && model.isBackgroundCapable();
+        } catch (Exception e) {
+            // Model lookup failure must not turn into a silent foreground
+            // run — conservative fallback is "not capable" (the call is
+            // rejected with an explicit error).
+            LOG.debug("ToolManagerImpl: failed to load model for '{}' — treating as not background-capable", toolName, e);
+            return false;
+        }
+    }
+
+    /**
+     * Plan 2301 (WI25): dual-source {@code runInBackground} read — node
+     * attribute first (XML DSL path), then the input JSON (engine dispatch
+     * path; ToolPathAffinity precedent). Malformed JSON yields {@code false}
+     * — the reserved-flag read is never a failure surface.
+     */
+    static boolean runInBackgroundRequested(AiToolCall call) {
+        if (call.attrBoolean("runInBackground", false)) {
+            return true;
+        }
+        String input = call.getInput();
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+        try {
+            Object parsed = io.nop.core.lang.json.JsonTool.parseNonStrict(input);
+            if (parsed instanceof Map<?, ?> map) {
+                Object value = map.get("runInBackground");
+                if (value instanceof Boolean b) {
+                    return b;
+                }
+                if (value instanceof String s) {
+                    return Boolean.parseBoolean(s);
+                }
+            }
+        } catch (Exception e) {
+            LOG.debug("ToolManagerImpl: input is not JSON — no runInBackground flag");
+        }
+        return false;
     }
 
     @Override

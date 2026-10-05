@@ -106,6 +106,35 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_JOIN_NO_CONDITION = define("nop.err.eql.join-no-condition", "表关联没有指定连接条件");
 
+    // Plan 2307 V2b: CROSS JOIN 不接受 ON 子句。带条件的 CROSS JOIN 无法表达为合法 SQL，
+    // 必须显式失败而不是静默丢弃条件。
+    ErrorCode ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION = define("nop.err.eql.cross-join-not-allow-condition",
+            "cross join不能指定连接条件");
+
+    // Plan 2307 V4: 事务控制语句在 EQL 中显式失败。此前 commit/rollback 能解析但编译产物
+    // 是空字符串且不引发任何错误（静默无操作）。事务边界归属 ITransactionTemplate / 连接层。
+    ErrorCode ERR_EQL_NOT_SUPPORT_TRANSACTION_STATEMENT =
+            define("nop.err.eql.not-support-transaction-statement",
+                    "EQL不支持事务控制语句[{statementKind}]，请使用ITransactionTemplate或连接层API");
+
+    // Plan 2307 V6: WITH RECURSIVE 的 CTE 体为 UNION 时需要为 H2 生成 columns 段，
+    // 该段依赖左支 projection 的列名。若某个 projection 既无别名又无已解析的
+    // exprMeta，就无法确定列名——此前是无判空解引用，抛裸 NullPointerException。
+    // Plan 2307 V6: 顶层 SELECT / 投影查询路径上的投影类型与列元信息未解析时的显式失败，
+    // 取代原先的无条件强转（ClassCastException）与 Guard.notNull（无错误码）。
+    ErrorCode ERR_EQL_UNSUPPORTED_PROJECTION_TYPE = define("nop.err.eql.unsupported-projection-type",
+            "无法解析的投影类型[{astNode}]：投影既不是SqlExprProjection，其表达式也没有已解析的元信息");
+
+    ErrorCode ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED = define("nop.err.eql.cte-column-name-unresolved",
+            "递归CTE的列名无法确定：投影[{astNode}]既没有别名也没有已解析的表达式元信息。"
+                    + "请为递归CTE的每个投影显式指定别名");
+
+    // Plan 2308 D6：EQL ORDER BY 的空序修饰在当前形态下无法表达。
+    // reason 取值：window-not-supported / expression-not-duplicable / distinct-column-not-projected
+    ErrorCode ERR_EQL_NULLS_ORDER_NOT_SUPPORTED = define("nop.err.eql.nulls-order-not-supported",
+            "当前形态无法表达NULLS {reason}（方言{dialect}）。"
+                    + "请改写排序表达式、去掉DISTINCT，或在不支持空序修饰的窗口位置避免使用NULLS FIRST/LAST");
+
     ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
             ARG_ENTITY_NAME);
 
@@ -205,10 +234,11 @@ public interface OrmEqlErrors {
             define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",
                     ARG_DIALECT, ARG_FEATURE);
 
-    // WI1 BUG-14（裁定=候选B 显式报错）：SqlCollectionAccessExpr 的 [..] 是集合过滤语义，
-    // 编译管线无 lowering，机械回显没有正确输出目标 ⇒ 生成器显式失败而非静默产出垃圾 SQL
-    ErrorCode ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT = define("nop.err.eql.collection-access-not-support",
-            "集合下标表达式[{expr}]不支持翻译为SQL，请改写为关联属性join或集合操作符(_some/_all)", ARG_EXPR);
+    // 【merge 退役 / Plan 2307 V3】ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT（WI1 BUG-14，
+    // 裁定=候选B 编译期显式报错）已随 master 侧 sqlCollectionAccessExpr 文法与
+    // SqlCollectionAccessExpr AST 类的整体移除而退役：该构造现在 parse 期即响亮失败
+    // （nop.err.antlr.*，TestEqlRemovedGrammarUnreachable 钉死），错误码不再可达。
+    // 退役理由与 ours 裁定的关系见 AstToEqlGenerator 内 merge note。
 
     // WI2 BUG-15（裁定=候选A 解析期拒绝，裁定文档 §六）：SqlTypeExpr 的 characterSet/collate
     // 零消费点（AstToEqlGenerator 只打印 name/precision/scale，AstToSqlGenerator.visitSqlCastExpr

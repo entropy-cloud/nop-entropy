@@ -12,6 +12,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageErrors;
+import io.nop.api.core.message.MessageOptionsValidator;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
@@ -30,7 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +62,19 @@ import static io.nop.message.kafka.KafkaErrors.ERR_GROUP_ID_NOT_CONFIGURED;
  */
 public class KafkaMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(KafkaMessageService.class);
+
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.BATCH_CONSUME,
+            MessageCapability.SEEK, MessageCapability.ACK_REPLY, MessageCapability.ENVELOPE_METADATA,
+            MessageCapability.SEND_TIMEOUT);
+
+    /** Kafka has no native delayed delivery: warn once, then execute the declared ignore. */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(MessageCapability.DELAYED_SEND);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
 
     KafkaClientConfig config;
     private KafkaProducerConfig defaultProducerConfig;
@@ -123,6 +141,12 @@ public class KafkaMessageService implements IMessageService {
 
     Properties buildProducerProps() {
         Properties props = new Properties();
+        // F-28 (WI13): extraProps are applied FIRST — keys written by the code below are
+        // managed keys and cannot be overridden by extraProps; extraProps remain effective
+        // for keys the code does not manage (e.g. SASL/SSL).
+        if (config.getExtraProps() != null) {
+            props.putAll(config.getExtraProps());
+        }
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         if (config.getClientId() != null) {
             props.put(ProducerConfig.CLIENT_ID_CONFIG, config.getClientId());
@@ -137,14 +161,16 @@ public class KafkaMessageService implements IMessageService {
             props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, defaultProducerConfig.getBufferMemory());
             props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, defaultProducerConfig.getMaxBlockMs());
         }
-        if (config.getExtraProps() != null) {
-            props.putAll(config.getExtraProps());
-        }
         return props;
     }
 
     Properties buildConsumerProps(String groupId) {
         Properties props = new Properties();
+        // F-28 (WI13): extraProps are applied FIRST — the resolved consumer-group identity
+        // and all managed keys below cannot be overridden by extraProps.
+        if (config.getExtraProps() != null) {
+            props.putAll(config.getExtraProps());
+        }
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         if (config.getClientId() != null) {
@@ -163,9 +189,8 @@ public class KafkaMessageService implements IMessageService {
             props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, defaultConsumerConfig.getSessionTimeoutMs());
             props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG,
                     defaultConsumerConfig.getHeartbeatIntervalMs());
-        }
-        if (config.getExtraProps() != null) {
-            props.putAll(config.getExtraProps());
+            props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
+                    defaultConsumerConfig.getMaxPollIntervalMs());
         }
         return props;
     }
@@ -180,6 +205,15 @@ public class KafkaMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "kafka", WARN_ONCE);
+        if (options != null && options.getCancelToken() != null && options.getCancelToken().isCancelled()) {
+            // WI15 (F-45): pre-send cancellation check; rejected future per the
+            // MessageRpcClient.callAsync precedent (never a synchronous throw).
+            java.util.concurrent.CompletableFuture<Void> rejected = new java.util.concurrent.CompletableFuture<>();
+            rejected.completeExceptionally(new NopException(MessageErrors.ERR_SEND_CANCELLED)
+                    .description("send cancelled before dispatch:topic=" + topic));
+            return rejected;
+        }
         KafkaProducer<String, String> prod = getProducer();
 
         String key;
@@ -196,23 +230,45 @@ public class KafkaMessageService implements IMessageService {
             value = message == null ? null : message.toString();
         }
 
-        if (KafkaHelper.resolveDelay(options) > 0) {
-            // Kafka has no native delayed delivery (unlike Pulsar deliverAfter). Warn so
-            // the caller knows the delay is ignored — NOT a silent skip (plan guide #24).
-            LOG.warn("nop.message.kafka.delay-ignored:topic={},delayMs={}", topic,
-                    KafkaHelper.resolveDelay(options));
-        }
-
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, null, key, value, headers);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        prod.send(record, (metadata, exception) -> {
-            if (exception != null) {
-                future.completeExceptionally(KafkaHelper.adapt(exception));
-            } else {
-                future.complete(null);
+        try {
+            prod.send(record, (metadata, exception) -> {
+                if (exception != null) {
+                    future.completeExceptionally(KafkaHelper.adapt(exception));
+                } else {
+                    future.complete(null);
+                }
+            });
+        } catch (Exception e) {
+            // F-39: synchronous send failures (producer closed, interrupted, unexpected
+            // runtime errors) must not escape sendAsync — the contract is a CompletionStage.
+            // Note: max.block.ms exhaustion is NOT this path (it routes through the callback).
+            // Kafka's InterruptException extends KafkaException (not JDK InterruptedException).
+            if (e instanceof InterruptedException
+                    || e instanceof org.apache.kafka.common.errors.InterruptException) {
+                Thread.currentThread().interrupt();
             }
-        });
+            future.completeExceptionally(KafkaHelper.adapt(e));
+        }
+        // WI15 (F-45): upper bound on the returned future. Timeout leaves the underlying
+        // send running (fire-and-forget) — the message may still be delivered. Bare
+        // java.util.concurrent.TimeoutException is the contract (JDK orTimeout semantics).
+        long sendTimeoutMs = resolveSendTimeoutMs(options);
+        if (sendTimeoutMs > 0) {
+            future.orTimeout(sendTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
         return future;
+    }
+
+    private long resolveSendTimeoutMs(MessageSendOptions options) {
+        if (options != null && options.getSendTimeout() > 0) {
+            return options.getSendTimeout();
+        }
+        if (defaultProducerConfig != null) {
+            return defaultProducerConfig.getSendTimeoutMs();
+        }
+        return 0L; // no configured bound
     }
 
     /**
@@ -237,11 +293,13 @@ public class KafkaMessageService implements IMessageService {
         if (options == null) {
             options = new MessageSubscribeOptions();
         }
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "kafka", WARN_ONCE);
         if (options.getSubscriptionType() != null) {
             // Kafka has no direct equivalent of Pulsar's SubscriptionType (group-based
-            // partition assignment covers Shared/Failover). Warn rather than silently
-            // ignore (plan guide #24).
-            LOG.warn("nop.message.kafka.subscription-type-ignored:type={}", options.getSubscriptionType());
+            // partition assignment covers Shared/Failover). Warn once per JVM, never
+            // per call (F-53), and never silently.
+            MessageOptionsValidator.warnOnce("kafka", "subscriptionType",
+                    "subscriptionType " + options.getSubscriptionType() + " has no Kafka equivalent and is ignored");
         }
 
         int concurrency = options.getConcurrency();
@@ -267,24 +325,33 @@ public class KafkaMessageService implements IMessageService {
         String groupId = resolveGroupId(options);
         if (groupId == null || groupId.isEmpty()) {
             throw error(ERR_GROUP_ID_NOT_CONFIGURED,
-                    "KafkaConsumerConfig.groupId / MessageSubscribeOptions.subscribeName is not configured");
+                    "MessageSubscribeOptions.subscribeName is required by the Kafka backend");
+        }
+        // Validated before any consumer is constructed: the typed rejection must reach the
+        // subscribe caller on this thread, and creating a consumer first would leak its
+        // network threads on the error path (MSG-F-02 seek facet, WI7).
+        if (options != null && options.getSeekToMessage() != null) {
+            throw error(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED,
+                    "seekToMessage is not supported by the Kafka backend");
         }
 
-        KafkaConsumer<String, String> kConsumer = new KafkaConsumer<>(
+        Consumer<String, String> kConsumer = createConsumer(
                 buildConsumerProps(groupId), new StringDeserializer(), new StringDeserializer());
         java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
-        kConsumer.subscribe(topics);
+        KafkaConsumeTask task = newTask(kConsumer, subConfig);
+        kConsumer.subscribe(topics, task.rebalanceListener());
 
         long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
                 ? options.getBatchReceiveTimeout() : 1000L;
+
+        warnIfAutoCommit();
 
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "kafka-consume-" + groupId);
             t.setDaemon(true);
             return t;
         });
-        KafkaConsumeTask task = new KafkaConsumeTask(this, executor, kConsumer, subConfig,
-                KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS, pollTimeout);
+        task.bindExecutor(executor, pollTimeout);
         task.start();
 
         KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
@@ -292,15 +359,54 @@ public class KafkaMessageService implements IMessageService {
         return subscription;
     }
 
+    /**
+     * F-58 disposition: with enable.auto.commit=true, the broker-side auto-committer
+     * commits positions on its own schedule and does not respect this task's converged
+     * commit boundaries — warn once per JVM. The user's explicit setting is respected, not
+     * rewritten. Note: covers the config-bean path only; an extraProps override of
+     * enable.auto.commit is not detected here (and, since WI13, cannot override managed keys).
+     */
+    void warnIfAutoCommit() {
+        if (defaultConsumerConfig != null && defaultConsumerConfig.isEnableAutoCommit()) {
+            io.nop.api.core.message.MessageOptionsValidator.warnOnce("kafka", "auto-commit",
+                    "enable.auto.commit=true bypasses the converged commit boundaries of the "
+                            + "manual-commit consume loop");
+        }
+    }
+
+    /** Task factory: kept separate so doSubscribe can register the rebalance listener before start. */
+    private KafkaConsumeTask newTask(Consumer<String, String> consumer, MessageSubscriptionConfig subConfig) {
+        return new KafkaConsumeTask(this, consumer, subConfig,
+                KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+    }
+
+    /** Injection seam for tests: lets a test subclass supply a mock/fake consumer. */
+    protected Consumer<String, String> createConsumer(Properties props,
+                                                      StringDeserializer keyDeserializer,
+                                                      StringDeserializer valueDeserializer) {
+        return new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+    }
+
+    /**
+     * D7 (WI13 / MSG-F-12): the subscribeName is the primary consumer-group identity. A
+     * globally configured groupId is demoted to a namespace prefix — the effective identity
+     * is {@code <groupId>.<subscribeName>} — so heterogeneous subscriptions can never share
+     * one assignment domain. A missing subscribeName is a typed rejection even when a
+     * global groupId exists (breaking by adjudication; previously the global silently
+     * masked the subscribeName). extraProps cannot override the resolved identity (F-28).
+     */
     String resolveGroupId(MessageSubscribeOptions options) {
-        if (defaultConsumerConfig != null && defaultConsumerConfig.getGroupId() != null
-                && !defaultConsumerConfig.getGroupId().isEmpty()) {
-            return defaultConsumerConfig.getGroupId();
+        String subscribeName = options != null ? options.getSubscribeName() : null;
+        if (subscribeName == null || subscribeName.isEmpty()) {
+            throw error(ERR_GROUP_ID_NOT_CONFIGURED,
+                    "MessageSubscribeOptions.subscribeName is required by the Kafka backend "
+                            + "(a global groupId only acts as a namespace prefix)");
         }
-        if (options != null && options.getSubscribeName() != null) {
-            return options.getSubscribeName();
+        String global = defaultConsumerConfig != null ? defaultConsumerConfig.getGroupId() : null;
+        if (global != null && !global.isEmpty()) {
+            return global + "." + subscribeName;
         }
-        return null;
+        return subscribeName;
     }
 
     NopException error(io.nop.api.core.exceptions.ErrorCode code, String message) {

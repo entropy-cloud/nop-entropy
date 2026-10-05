@@ -328,4 +328,77 @@ public class TestDeferredAckMailbox {
         assertEquals(0, mb.pendingCount());
         assertEquals(0, mb.inFlightCount());
     }
+
+
+    // ===== Plan 2288 (WI7): correlationId dedup index =====
+
+    private AgentMessageEnvelope envWithKey(String correlationId) {
+        return new AgentMessageEnvelope("s", "agent.t.inbox", correlationId,
+                AgentMessageKind.ASYNC, "payload");
+    }
+
+    @org.junit.jupiter.api.Test
+    void duplicateOfferWithStableKeyIsSingleEntry() {
+        DeferredAckMailbox mb = new DeferredAckMailbox(10, 3);
+        assertTrue(mb.offer(envWithKey("key-1")));
+        assertTrue(mb.offer(envWithKey("key-1")),
+                "duplicate offer must be an acknowledged no-op (returns true)");
+        assertEquals(1, mb.pendingCount(), "duplicate offer == single entry");
+
+        // distinct keys both enter
+        assertTrue(mb.offer(envWithKey("key-2")));
+        assertEquals(2, mb.pendingCount());
+    }
+
+    @Test
+    void ackReleasesTheKeyForLaterLegitimateOffer() {
+        DeferredAckMailbox mb = new DeferredAckMailbox(10, 3);
+        assertTrue(mb.offer(envWithKey("key-1")));
+        MailboxEntry entry = mb.poll();
+        assertNotNull(entry);
+        assertTrue(mb.ack(entry.getDeliveryId()));
+        // after ack the same key may be legitimately offered again
+        assertTrue(mb.offer(envWithKey("key-1")));
+        assertEquals(1, mb.pendingCount());
+    }
+
+    @Test
+    void nackRequeueRetainsDedupIndexButDeadLetterAndDiscardReleaseIt() {
+        DeferredAckMailbox mb = new DeferredAckMailbox(10, 3);
+        assertTrue(mb.offer(envWithKey("key-r")));
+        MailboxEntry entry = mb.poll();
+        // requeue=true: still in flight logically — index retained
+        assertTrue(mb.nack(entry.getDeliveryId(), true));
+        assertTrue(mb.offer(envWithKey("key-r")),
+                "requeued envelope's key must still dedupe offers");
+        assertEquals(1, mb.pendingCount(), "requeued entry exists; duplicate offer not added");
+
+        // poll → nack(requeue=false): discarded → key released
+        MailboxEntry rePolled = mb.poll();
+        assertTrue(mb.nack(rePolled.getDeliveryId(), false));
+        assertTrue(mb.offer(envWithKey("key-r")),
+                "discarded entry releases the key for later legitimate offers");
+        assertEquals(1, mb.pendingCount());
+    }
+
+    @Test
+    void blankCorrelationIdNeverDedupes() {
+        DeferredAckMailbox mb = new DeferredAckMailbox(10, 3);
+        assertTrue(mb.offer(envWithKey(null)));
+        assertTrue(mb.offer(envWithKey(null)));
+        assertTrue(mb.offer(envWithKey("")));
+        assertEquals(3, mb.pendingCount(), "blank keys never dedupe");
+    }
+
+    @Test
+    void duplicateOfferSucceedsEvenWhenBoxIsFull() {
+        DeferredAckMailbox mb = new DeferredAckMailbox(1, 3);
+        assertTrue(mb.offer(envWithKey("full-1")));
+        // box now full; a DIFFERENT key is rejected
+        assertFalse(mb.offer(envWithKey("full-2")));
+        // but the duplicate of the resident key is a no-op success (dedup
+        // check precedes the capacity check)
+        assertTrue(mb.offer(envWithKey("full-1")));
+        assertEquals(1, mb.pendingCount());
+    }
 }

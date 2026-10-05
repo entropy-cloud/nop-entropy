@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Plan 2308 Phase 5：supportNullsFirst 取值守护 fixture。
+h2 实测原生支持 NULLS 子句（true），本 fixture 显式关掉以验证
+「按属性覆盖、非整块替换」的 extends 合并语义，并让该位走 CASE 改写分支。
+-->
+<dialect x:extends="h2.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <features supportNullsFirst="false"/>
+</dialect>

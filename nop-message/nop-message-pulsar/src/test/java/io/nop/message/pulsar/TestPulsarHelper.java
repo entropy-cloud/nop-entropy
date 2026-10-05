@@ -93,4 +93,25 @@ class TestPulsarHelper extends JunitBaseTestCase {
         assertNotNull(result);
         assertEquals("{\"key\":\"value\"}", result);
     }
+
+    @Test
+    void deriveAckTopicKeepsDomainAndNamespaceForFqn() {
+        assertEquals("persistent://public/default/ack-orders",
+                PulsarHelper.deriveAckTopic("persistent://public/default/orders"));
+        assertEquals("non-persistent://tenant/ns/ack-orders",
+                PulsarHelper.deriveAckTopic("non-persistent://tenant/ns/orders"));
+    }
+
+    @Test
+    void deriveAckTopicPrefixesShortNames() {
+        assertEquals("ack-orders", PulsarHelper.deriveAckTopic("orders"));
+    }
+
+    @Test
+    void deriveAckTopicContractHoldsForRealPulsarTopicNameParsing() {
+        // The derived topic must be parseable by the broker-side TopicName grammar —
+        // the exact failure mode of MSG-F-04.
+        org.apache.pulsar.common.naming.TopicName.get(
+                PulsarHelper.deriveAckTopic("persistent://public/default/orders"));
+    }
 }

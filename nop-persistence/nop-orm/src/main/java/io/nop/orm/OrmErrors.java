@@ -418,4 +418,12 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_CURSOR_SORT_VALUE_NULL =
             define("nop.err.orm.cursor-sort-value-null",
                     "游标分页的排序字段[{propName}]在游标实体上的值为null，无法比较", ARG_PROP_NAME, ARG_ENTITY_NAME);
+
+    // ---- plan 2309：ORDER BY 空序在 bean 通道的门控失败 ----
+
+    ErrorCode ERR_ORM_NULLS_ORDER_NOT_SUPPORTED =
+            define("nop.err.orm.nulls-order-not-supported", "当前方言无法表达请求的排序空序");
+
+    String ARG_REASON = "reason";
+
 }

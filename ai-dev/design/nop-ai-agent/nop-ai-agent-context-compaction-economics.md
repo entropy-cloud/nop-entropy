@@ -104,6 +104,10 @@
 6. **`ISpillStore` 放 nop-ai-toolkit**：无 toolkit 消费方（read-spill 工具 nop-ai-agent 内部注册），放 toolkit 是过早抽象；遵循"消费方所在模块定义接口"原则（context-model §8.2 裁定 B 同款逻辑）。
 7. **spill 与引用式归档合一**：spillId（执行时生成、会话态）与 content hash（压缩时生成、内容寻址）寻址模型不同，合一造成双重语义；本设计保持两套独立。
 
+## 四点五、与缓存键放置框架的关系（plan 2302/WI20 指针）
+
+决策 1（KV 前缀保持的摘要调用）追求摘要请求与真实对话请求的**最长连续前缀**；`nop-ai-agent-llm-layer.md` §八点五的缓存键放置框架（plan 2302/WI20）是其在 provider 侧的互补面——按 provider 放置缓存键（Anthropic content-block 断点 / OpenAI prompt_cache_key / 会话亲和 header）让连续前缀真正命中。辅助摘要调用路径**不 stamp sessionId**（WI20 Non-Goals 裁定），与自动隔离语义一致。
+
 ## 五、与已有设计的关系
 
 | 既有文档/实现 | 关系 |

@@ -166,6 +166,27 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: supportWindowFrameGroups
+     * 
+     */
+    private java.lang.Boolean _supportWindowFrameGroups ;
+    
+    /**
+     *  
+     * xml name: supportWindowFrameRange
+     * 
+     */
+    private java.lang.Boolean _supportWindowFrameRange ;
+    
+    /**
+     *  
+     * xml name: supportWindowFrameRows
+     * 
+     */
+    private java.lang.Boolean _supportWindowFrameRows ;
+    
+    /**
+     *  
      * xml name: supportWithAsClause
      * 
      */
@@ -588,6 +609,63 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: supportWindowFrameGroups
+     *  
+     */
+    
+    public java.lang.Boolean getSupportWindowFrameGroups(){
+      return _supportWindowFrameGroups;
+    }
+
+    
+    public void setSupportWindowFrameGroups(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportWindowFrameGroups = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: supportWindowFrameRange
+     *  
+     */
+    
+    public java.lang.Boolean getSupportWindowFrameRange(){
+      return _supportWindowFrameRange;
+    }
+
+    
+    public void setSupportWindowFrameRange(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportWindowFrameRange = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: supportWindowFrameRows
+     *  
+     */
+    
+    public java.lang.Boolean getSupportWindowFrameRows(){
+      return _supportWindowFrameRows;
+    }
+
+    
+    public void setSupportWindowFrameRows(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._supportWindowFrameRows = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: supportWithAsClause
      *  
      */
@@ -680,6 +758,9 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         out.putNotNull("supportTruncateTable",this.getSupportTruncateTable());
         out.putNotNull("supportUpdateFromJoin",this.getSupportUpdateFromJoin());
         out.putNotNull("supportUpdateTableAlias",this.getSupportUpdateTableAlias());
+        out.putNotNull("supportWindowFrameGroups",this.getSupportWindowFrameGroups());
+        out.putNotNull("supportWindowFrameRange",this.getSupportWindowFrameRange());
+        out.putNotNull("supportWindowFrameRows",this.getSupportWindowFrameRows());
         out.putNotNull("supportWithAsClause",this.getSupportWithAsClause());
         out.putNotNull("useAsInFrom",this.getUseAsInFrom());
         out.putNotNull("useGetStringForDate",this.getUseGetStringForDate());
@@ -715,6 +796,9 @@ public abstract class _DialectFeatures extends io.nop.core.resource.component.Ab
         instance.setSupportTruncateTable(this.getSupportTruncateTable());
         instance.setSupportUpdateFromJoin(this.getSupportUpdateFromJoin());
         instance.setSupportUpdateTableAlias(this.getSupportUpdateTableAlias());
+        instance.setSupportWindowFrameGroups(this.getSupportWindowFrameGroups());
+        instance.setSupportWindowFrameRange(this.getSupportWindowFrameRange());
+        instance.setSupportWindowFrameRows(this.getSupportWindowFrameRows());
         instance.setSupportWithAsClause(this.getSupportWithAsClause());
         instance.setUseAsInFrom(this.getUseAsInFrom());
         instance.setUseGetStringForDate(this.getUseGetStringForDate());

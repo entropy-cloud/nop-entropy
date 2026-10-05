@@ -28,7 +28,8 @@
     <models xdef:body-type="list" xdef:key-attr="name">
         <model name="!string" xdef:name="LlmModelModel" maxTokensLimit="int" defaultMaxTokens="int" contextLength="int"
                enableThinkingPrompt="string" disableThinkingPrompt="string"
-               thinkStartMarker="string" thinkEndMarker="string" supportToolCalls="boolean"/>
+               thinkStartMarker="string" thinkEndMarker="string" supportToolCalls="boolean"
+               cacheBreakpoints="int" cacheBreakpointTtl="string" promptCacheKey="boolean" cacheKeyHeader="string"/>
     </models>
 
     <!--

@@ -18,7 +18,8 @@ import java.util.Map;
  *
  * <p>{@code bootstrapServers} is the only required field (validated non-empty in
  * {@code KafkaMessageService.init}). {@code clientId} is applied to both producer and
- * consumer unless overridden. {@code extraProps} carries arbitrary Kafka client
+ * consumer. Since WI13, extraProps are merged FIRST: keys the code writes (bootstrap
+ * servers, client id, group id, managed tuning keys) cannot be overridden via extraProps. {@code extraProps} carries arbitrary Kafka client
  * properties (e.g. SASL/SSL) that are merged into both producer and consumer configs.
  */
 @DataBean

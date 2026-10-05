@@ -2,6 +2,7 @@ package io.nop.treesitter.provider;
 
 import io.nop.treesitter.TreeSitterException;
 import io.nop.treesitter.language.Language;
+import io.nop.treesitter.scanner.BashScanner;
 import io.nop.treesitter.scanner.PythonScanner;
 
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The module's built-in grammar provider: the six shipped grammars loaded
+ * The module's built-in grammar provider: the seven shipped grammars loaded
  * from their classpath blobs (cached after first use), extended by third-party
  * providers discovered through {@code ServiceLoader}. A custom provider's
  * grammar name shadows the built-in of the same name.
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguageProvider {
 
     private static final Map<String, String> BUILTIN_BLOBS = Map.of(
+            "bash", "/grammars/bash/tree-sitter-bash-blob.bin",
             "json", "/grammars/json/tree-sitter-json-blob.bin",
             "java", "/grammars/java/tree-sitter-java-blob.bin",
             "javascript", "/grammars/javascript/tree-sitter-javascript-blob.bin",
@@ -71,6 +73,9 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
         Language language = Language.fromClasspath(blobPath);
         if ("python".equals(name)) {
             language.setExternalScannerFactory(PythonScanner::new);
+        }
+        if ("bash".equals(name)) {
+            language.setExternalScannerFactory(BashScanner::new);
         }
         return language;
     }

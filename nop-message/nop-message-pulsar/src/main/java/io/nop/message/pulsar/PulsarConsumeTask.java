@@ -14,13 +14,14 @@ import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.TopicMessage;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Messages;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,11 @@ public class PulsarConsumeTask {
     private final long consumeErrorBackoffMs;
 
     private volatile boolean active = false;
+    // WI16: message-level failure context, filled by the inner catches before rethrow.
+    private String lastFailureTopic;
+    private String lastFailureLocation;
+    private Object lastFailureMessage;
+    private final java.util.Map<String, Integer> failureAttempts = new java.util.HashMap<>();
 
     public PulsarConsumeTask(PulsarMessageService service, ExecutorService executor,
                              Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
@@ -61,15 +67,7 @@ public class PulsarConsumeTask {
 
     public void start() {
         active = true;
-        executor.execute(() -> {
-            seekToPosition();
-            this.runTask();
-        });
-    }
-
-    // TODO: implement seekToPosition based on SeekMode/seekToMessage/seekToTime from MessageSubscribeOptions
-    private void seekToPosition() {
-
+        executor.execute(this::runTask);
     }
 
     public void schedule() {
@@ -86,7 +84,7 @@ public class PulsarConsumeTask {
                 }
             } catch (Exception e) {
                 LOG.error("nop.err.message.pulsar.consume-fail", e);
-                config.getConsumer().onException(e);
+                dispatchConsumeFailure(e);
                 if (active) {
                     try {
                         Thread.sleep(consumeErrorBackoffMs);
@@ -129,7 +127,25 @@ public class PulsarConsumeTask {
             for (Object response : responses) {
                 response = FutureHelper.getResult(response);
                 Message<Object> message = it.next();
-                if (response != null) {
+                if (response instanceof PartialCommit) {
+                    // D5(b-prime): ack records [0..k-1] only; the record carrying the
+                    // signal (index k) and everything after it is negatively acknowledged
+                    // (redelivered) — the boundary record itself must not be dropped.
+                    FutureHelper.syncGet(FutureHelper.waitAll(futures));
+                    pulsarConsumer.negativeAcknowledge(message.getMessageId());
+                    while (it.hasNext()) {
+                        Message<Object> remaining = it.next();
+                        pulsarConsumer.negativeAcknowledge(remaining.getMessageId());
+                    }
+                    // Skip the normal commit: the boundary is expressed by the acks above.
+                    return;
+                }
+                if (response instanceof TerminateConsume) {
+                    // D5(b-prime): acknowledged, no redelivery, no reply.
+                    LOG.warn("nop.message.pulsar.terminate-consume:messageId={},reason={}",
+                            message.getMessageId(), ((TerminateConsume) response).getReason());
+                    futures.add(ackAsync(context, message));
+                } else if (response != null) {
                     if (response instanceof ConsumeLater) {
                         ConsumeLater later = (ConsumeLater) response;
                         CompletionStage<?> future = pulsarConsumer.reconsumeLaterAsync(message, later.getDelay(), TimeUnit.MILLISECONDS);
@@ -146,8 +162,18 @@ public class PulsarConsumeTask {
             context.commit();
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
+            lastFailureLocation = null;
+            lastFailureMessage = null;
             pulsarConsumer.negativeAcknowledge(messages);
-            context.rollback();
+            try {
+                context.rollback();
+            } catch (Exception rollbackError) {
+                // A rollback failure must not mask the original consumer failure (WI10).
+                e.addSuppressed(rollbackError);
+            }
+            // MSG-F-05: propagate so the run-loop's backoff and onException failure
+            // callback are reachable for message-level failures (aligned with Kafka).
+            throw e;
         }
     }
 
@@ -167,6 +193,15 @@ public class PulsarConsumeTask {
             if (response instanceof ConsumeLater) {
                 ConsumeLater later = (ConsumeLater) response;
                 pulsarConsumer.reconsumeLater(message, later.getDelay(), TimeUnit.MILLISECONDS);
+            } else if (response instanceof TerminateConsume) {
+                // D5(b-prime): acknowledged, no redelivery, no reply.
+                LOG.warn("nop.message.pulsar.terminate-consume:messageId={},reason={}",
+                        message.getMessageId(), ((TerminateConsume) response).getReason());
+                FutureHelper.syncGet(ackAsync(context, message));
+            } else if (response instanceof PartialCommit) {
+                // Single-message dispatch has no batch boundary; acknowledged as completion
+                // (declared in the WI6 plan).
+                FutureHelper.syncGet(ackAsync(context, message));
             } else if (response instanceof Acknowledge) {
                 context.send(getAckTopic(message.getTopicName()), ((Acknowledge) response).getReplyMessage());
                 FutureHelper.syncGet(ackAsync(context, message));
@@ -176,10 +211,42 @@ public class PulsarConsumeTask {
                 }
                 FutureHelper.syncGet(ackAsync(context, message));
             }
+            // WI16: success resets the consecutive-failure counter for this location.
+            failureAttempts.remove(String.valueOf(message.getMessageId()));
             context.commit();
         } catch (Exception e) {
             fail(context, message, e);
-            context.rollback();
+            try {
+                context.rollback();
+            } catch (Exception rollbackError) {
+                // A rollback failure must not mask the original consumer failure (WI10).
+                e.addSuppressed(rollbackError);
+            }
+            // MSG-F-05: propagate so the run-loop's backoff and onException failure
+            // callback are reachable for message-level failures (aligned with Kafka).
+            throw e;
+        }
+    }
+
+    /**
+     * WI16: dispatches {@link IMessageConsumer#onConsumeFailure} with the context captured
+     * by fail()/batch (framework-level failures get topic=null, attempt=0). Guarded — a
+     * throwing user callback must not kill the consume thread.
+     */
+    private void dispatchConsumeFailure(Exception e) {
+        String location = lastFailureLocation;
+        Object message = lastFailureMessage;
+        lastFailureLocation = null;
+        lastFailureMessage = null;
+        int attempt = 0;
+        if (location != null) {
+            attempt = failureAttempts.merge(location, 1, Integer::sum);
+        }
+        try {
+            config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                    lastFailureTopic, location, message, attempt, e));
+        } catch (Exception callbackError) {
+            LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
         }
     }
 
@@ -187,52 +254,50 @@ public class PulsarConsumeTask {
         return service.getAckTopic(topic);
     }
 
-    ConsumeContext newConsumeContext() throws PulsarClientException {
-        Transaction txn = null;
-        if (config.getOptions().isTransactional()) {
-            txn = service.newTransaction(config.getOptions().getTransactionTimeout());
-        }
-        return new ConsumeContext(txn);
+    ConsumeContext newConsumeContext() {
+        // D11 (WI14): transaction semantics removed — at-least-once baseline; F-52's
+        // per-message broker transaction no longer exists.
+        return new ConsumeContext();
     }
 
-    CompletionStage<Void> ackAsync(ConsumeContext context, Message<Object> message) throws Exception {
-        Transaction transaction = context.getTransaction();
-        if (transaction != null) {
-            return pulsarConsumer.acknowledgeAsync(message.getMessageId(), transaction);
-        } else {
-            return pulsarConsumer.acknowledgeAsync(message);
-        }
+    CompletionStage<Void> ackAsync(ConsumeContext context, Message<Object> message) {
+        return pulsarConsumer.acknowledgeAsync(message);
     }
 
     void fail(ConsumeContext context, Message<Object> message, Throwable exception) throws Exception {
         LOG.error("nop.err.message.pulsar.consume-fail:messageId={}", message.getMessageId(), exception);
         pulsarConsumer.negativeAcknowledge(message.getMessageId());
+        // WI16: carry the message context up to the run loop's failure dispatch.
+        lastFailureTopic = message.getTopicName();
+        lastFailureLocation = String.valueOf(message.getMessageId());
+        lastFailureMessage = message.getValue();
     }
 
+    /**
+     * D11 (WI14): consumption follows the at-least-once baseline. {@code commit}/
+     * {@code rollback} are explicit no-ops — the ack/commit mechanics of each backend carry
+     * the delivery semantics (see backend-semantics-design.md 3.7); the deprecated
+     * transaction options are ignored with a one-time warn (see
+     * {@code MessageOptionsValidator}).
+     */
     protected class ConsumeContext implements IMessageConsumeContext {
-        private Transaction transaction;
-
-        public ConsumeContext(Transaction transaction) {
-            this.transaction = transaction;
-        }
-
-        public Transaction getTransaction() {
-            return transaction;
-        }
 
         @Override
         public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-            return service.sendAsync(transaction, topic, message, options);
+            return service.sendAsync(topic, message, options);
         }
 
+        /**
+         * At-least-once baseline (D11): no transaction boundary; batch paths perform their
+         * backend-native commits explicitly.
+         */
         public void commit() {
-            if (transaction != null)
-                FutureHelper.syncGet(transaction.commit());
+            // no-op by design (at-least-once baseline)
         }
 
+        /** At-least-once baseline (D11): see {@link #commit()}. */
         public void rollback() {
-            if (transaction != null)
-                FutureHelper.syncGet(transaction.abort());
+            // no-op by design (at-least-once baseline)
         }
     }
 }

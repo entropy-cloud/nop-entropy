@@ -23,6 +23,14 @@ public final class BashSandboxRequest {
     private final File workingDirectory;
     private final Map<String, String> environmentVariables;
     private final BashSandboxConfig config;
+    /**
+     * Plan 2285 (WI4): caller-addressable execution id (the tool call's id).
+     * When present, the sandbox implementation registers the in-flight
+     * execution under this key so heartbeat progress snapshots and
+     * abandon-time process cancellation can find it; null keeps the legacy
+     * untracked behaviour.
+     */
+    private final String callId;
 
     private BashSandboxRequest(Builder b) {
         this.command = List.copyOf(Objects.requireNonNull(b.command, "command list must not be null"));
@@ -37,6 +45,7 @@ public final class BashSandboxRequest {
                 ? Map.copyOf(b.environmentVariables)
                 : Collections.emptyMap();
         this.config = Objects.requireNonNull(b.config, "BashSandboxConfig must not be null");
+        this.callId = b.callId;
     }
 
     public List<String> getCommand() {
@@ -55,6 +64,10 @@ public final class BashSandboxRequest {
         return config;
     }
 
+    public String getCallId() {
+        return callId;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -64,6 +77,7 @@ public final class BashSandboxRequest {
         private File workingDirectory;
         private Map<String, String> environmentVariables;
         private BashSandboxConfig config = BashSandboxConfig.defaults();
+        private String callId;
 
         public Builder command(List<String> command) {
             this.command = command;
@@ -82,6 +96,11 @@ public final class BashSandboxRequest {
 
         public Builder config(BashSandboxConfig config) {
             this.config = config;
+            return this;
+        }
+
+        public Builder callId(String callId) {
+            this.callId = callId;
             return this;
         }
 

@@ -256,14 +256,23 @@ public class TestCheckpointDispatchPathWiring {
 
         List<Checkpoint> toolCps = all.stream()
                 .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                // WI6: terminal (phase-less) checkpoints only — each tool now
+                // also writes a DISPATCHED phase checkpoint before execution
+                .filter(c -> io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(c.getWatermark()) == null)
                 .collect(java.util.stream.Collectors.toList());
-        assertEquals(2, toolCps.size(), "Two TOOL_EXECUTION checkpoints (echo, ls) must be recorded");
+        assertEquals(2, toolCps.size(), "Two TERMINAL TOOL_EXECUTION checkpoints (echo, ls) must be recorded");
 
         // First tool checkpoint is "echo", second is "ls".
         assertEquals("echo", toolCps.get(0).getToolName());
         assertEquals("call_m1", toolCps.get(0).getCallId());
         assertEquals("ls", toolCps.get(1).getToolName());
         assertEquals("call_m2", toolCps.get(1).getCallId());
+        // the DISPATCHED phase checkpoints are present too (2 tools × 2)
+        long dispatched = all.stream()
+                .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .filter(c -> io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(c.getWatermark()) != null)
+                .count();
+        assertEquals(2, dispatched, "one DISPATCHED phase checkpoint per tool");
 
         // seq must monotonically increase across ALL checkpoint types.
         for (int i = 1; i < all.size(); i++) {
@@ -331,10 +340,13 @@ public class TestCheckpointDispatchPathWiring {
         List<Checkpoint> all = mgr.getCheckpoints(sessionId);
         assertFalse(all.isEmpty(),
                 "engine.execute -> dispatch loop -> saveCheckpoint must record checkpoints (end-to-end Anti-Hollow)");
+        // WI6: the TERMINAL (phase-less) checkpoint carries the tool payload —
+        // the DISPATCHED phase checkpoint precedes it with a marker payload
         Checkpoint toolCp = all.stream()
                 .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .filter(c -> io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(c.getWatermark()) == null)
                 .findFirst().orElse(null);
-        assertNotNull(toolCp, "A TOOL_EXECUTION checkpoint must be recorded for the echo tool");
+        assertNotNull(toolCp, "A terminal TOOL_EXECUTION checkpoint must be recorded for the echo tool");
         assertEquals("echo", toolCp.getToolName());
         assertEquals("call_e2e", toolCp.getCallId());
         assertEquals("tool-output-echo", toolCp.getOutputSummary(),

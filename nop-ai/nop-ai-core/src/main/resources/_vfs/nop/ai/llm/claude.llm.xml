@@ -54,9 +54,13 @@
         <!-- 请求错误：不重试 -->
         <errorMapping id="anthropic-non-transient" classification="NON_TRANSIENT" httpStatus="400,404,413"
                       errorTypes="invalid_request_error,not_found_error,request_too_large"/>
-        <!-- 服务端错误/超时/过载：瞬时，重试 -->
-        <errorMapping id="anthropic-transient" classification="TRANSIENT" httpStatus="500,504,529"
-                      errorTypes="api_error,timeout_error,overloaded_error"/>
+        <!-- 服务端错误/超时：瞬时，重试 -->
+        <errorMapping id="anthropic-transient" classification="TRANSIENT" httpStatus="500,504"
+                      errorTypes="api_error,timeout_error"/>
+        <!-- 过载（plan 2304/WI22）：529 overloaded_error 独立分类——独立长退避曲线
+             （StandardRetryPolicy.computeOverloadedDelay 10s→60s），gateway failover 可切换 -->
+        <errorMapping id="anthropic-overloaded" classification="OVERLOADED" httpStatus="529"
+                      errorTypes="overloaded_error"/>
         <!-- 状态冲突：瞬时（重试可解决） -->
         <errorMapping id="anthropic-conflict" classification="TRANSIENT" httpStatus="409"
                       errorTypes="conflict_error"/>

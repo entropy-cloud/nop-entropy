@@ -18,6 +18,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -103,7 +105,7 @@ class TestKafkaConsumeTask {
 
     @Test
     void consumeLaterSeeksAndSkipsCommit() throws Exception {
-        IMessageConsumer msgConsumer = (topic, message, context) -> new ConsumeLater(1000L);
+        IMessageConsumer msgConsumer = (topic, message, context) -> new ConsumeLater(5L);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
                 config(msgConsumer, options), 100L, 100L);
@@ -151,44 +153,598 @@ class TestKafkaConsumeTask {
     }
 
     @Test
-    void seekToBeginHonoredNotStubbed() {
-        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+    void terminateConsumeCommitsWithoutReply() throws Exception {
+        IMessageConsumer msgConsumer = (topic, message, context) ->
+                new io.nop.api.core.message.TerminateConsume("poison");
         MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
                 config(msgConsumer, options), 100L, 100L);
 
-        Set<TopicPartition> assignment = new LinkedHashSet<>();
-        assignment.add(new TopicPartition("test-topic", 0));
-        when(consumer.assignment()).thenReturn(assignment);
-        doNothing().when(consumer).seekToBeginning(any());
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "poison")))
+                .thenReturn(ConsumerRecords.empty());
 
-        task.seekToPosition();
+        task.pollAndConsume();
 
-        verify(consumer).seekToBeginning(assignment);
+        // Acknowledged (committed) and never redelivered (no seek back).
+        verify(consumer).commitSync();
+        verify(consumer, never()).seek(any(TopicPartition.class), any(long.class));
     }
 
     @Test
-    void seekToMessageThrowsNotSilentlySkipped() {
-        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+    void partialCommitInBatchCommitsBoundaryOnly() throws Exception {
+        AtomicInteger batchCalls = new AtomicInteger();
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                batchCalls.incrementAndGet();
+                List<Object> responses = new ArrayList<>();
+                responses.add(null); // record 0 committed
+                responses.add(null); // record 1 committed
+                // record 2 carries the boundary: [0..1] committed, 2 onward not
+                responses.add(new io.nop.api.core.message.PartialCommit(2));
+                return responses;
+            }
+        };
         MessageSubscribeOptions options = new MessageSubscribeOptions();
-        options.setSeekMode(SeekMode.DEFAULT);
-        options.setSeekToMessage("some-msg-id");
+        options.setBatchReceiveCount(10);
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
                 config(msgConsumer, options), 100L, 100L);
 
-        NopException real = new NopException(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED);
-        when(service.error(any(), any())).thenReturn(real);
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")))
+                .thenReturn(ConsumerRecords.empty());
 
-        assertThrows(NopException.class, task::seekToPosition);
+        task.batchConsume();
+
+        assertEquals(1, batchCalls.get());
+        @SuppressWarnings("unchecked")
+        org.apache.kafka.clients.consumer.OffsetAndMetadata nextOffset =
+                new org.apache.kafka.clients.consumer.OffsetAndMetadata(12L); // record 1 (offset 11) + 1
+        verify(consumer).commitSync(Collections.singletonMap(new TopicPartition("test-topic", 0), nextOffset));
     }
+
+    // ------------------------------------------------------------------
+    // WI7/D3: seek origins resolved in the rebalance callback (MSG-F-01 fix).
+    // Main assertions use kafka-clients' own MockConsumer driven through a real
+    // poll() (rebalance inside poll triggers the listener) — no Mockito mocks.
+    // ------------------------------------------------------------------
+
+    private org.apache.kafka.clients.consumer.MockConsumer<String, String> newMockConsumer() {
+        return new org.apache.kafka.clients.consumer.MockConsumer<>(
+                org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST);
+    }
+
+    private KafkaConsumeTask taskOn(org.apache.kafka.clients.consumer.MockConsumer<String, String> mc,
+                                    MessageSubscribeOptions options) {
+        KafkaConsumeTask task = new KafkaConsumeTask(service, mc,
+                config((t, m, c) -> null, options), 100L);
+        // Wire the D3 rebalance listener the same way doSubscribe does.
+        mc.subscribe(Collections.singletonList("test-topic"), task.rebalanceListener());
+        return task;
+    }
+
+    @Test
+    void pollFirst_initSeekToBeginAppliesWhenNoCommittedOffset() throws Exception {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc = newMockConsumer();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        KafkaConsumeTask task = taskOn(mc, options);
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(new TopicPartition("test-topic", 0))));
+        mc.updateBeginningOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 7L));
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // second poll task wakes the loop
+        }
+
+        assertEquals(7L, mc.position(new TopicPartition("test-topic", 0)),
+                "INIT_SEEK_TO_BEGIN with no committed offset must rewind to the beginning offset");
+    }
+
+    @Test
+    void pollFirst_initSeekSkippedWhenCommittedOffsetExists() throws Exception {
+        // MockConsumer has no committed() setter: subclass overrides committed(Set) to
+        // simulate an existing group commit — the restart-resumes-from-committed contract.
+        // LATEST reset: a correct (gated) implementation leaves the position at the end
+        // offset; a buggy (ungated) one would rewind it to the beginning offset.
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc =
+                new org.apache.kafka.clients.consumer.MockConsumer<String, String>(
+                        org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST) {
+                    @Override
+                    public synchronized Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>
+                            committed(Set<TopicPartition> partitions) {
+                        return partitions.stream().collect(java.util.stream.Collectors.toMap(
+                                tp -> tp, tp -> new org.apache.kafka.clients.consumer.OffsetAndMetadata(42L)));
+                    }
+                };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        KafkaConsumeTask task = taskOn(mc, options);
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(new TopicPartition("test-topic", 0))));
+        mc.updateBeginningOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 7L));
+        mc.updateEndOffsets(Collections.singletonMap(new TopicPartition("test-topic", 0), 100L));
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // wakeup ends the loop
+        }
+
+        // No rewind to the beginning offset (7): the group's committed offset (42) wins
+        // on restart, so INIT_SEEK must not apply (MockConsumer resolves the ungated
+        // default position to the end offset 100).
+        assertEquals(100L, mc.position(new TopicPartition("test-topic", 0)),
+                "INIT_SEEK must not rewind a partition that already has a committed offset");
+    }
+
+    @Test
+    void pollFirst_alwaysSeekToEndReappliesOnEveryAssignment() throws Exception {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc = newMockConsumer();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.ALWAYS_SEEK_TO_END);
+        KafkaConsumeTask task = taskOn(mc, options);
+        TopicPartition tp = new TopicPartition("test-topic", 0);
+        mc.updateEndOffsets(Collections.singletonMap(tp, 100L));
+        mc.schedulePollTask(() -> mc.rebalance(Collections.singletonList(tp)));
+        mc.schedulePollTask(() -> {
+            // Simulate a second assignment (rebalance): shrink then grow again.
+            mc.rebalance(Collections.emptyList());
+            mc.rebalance(Collections.singletonList(tp));
+        });
+        mc.schedulePollTask(mc::wakeup);
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // wakeup ends the loop
+        }
+
+        assertEquals(100L, mc.position(tp),
+                "ALWAYS_SEEK_TO_END must re-apply seekToEnd on every assignment");
+    }
+
+    @Test
+    void listenerWiredThroughSubscribeCall() {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc =
+                org.mockito.Mockito.mock(org.apache.kafka.clients.consumer.MockConsumer.class);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+
+        class TestService extends KafkaMessageService {
+            @Override
+            protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                              StringDeserializer keyDeserializer,
+                                                              StringDeserializer valueDeserializer) {
+                return mc;
+            }
+        }
+        TestService testService = new TestService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions subOptions = new MessageSubscribeOptions();
+        subOptions.setSubscribeName("test-group");
+        subOptions.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
+        testService.doSubscribe(new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, subOptions));
+
+        org.mockito.ArgumentCaptor<org.apache.kafka.clients.consumer.ConsumerRebalanceListener> captor =
+                org.mockito.ArgumentCaptor.forClass(org.apache.kafka.clients.consumer.ConsumerRebalanceListener.class);
+        org.mockito.Mockito.verify(mc).subscribe(org.mockito.Mockito.anyCollection(), captor.capture());
+        org.junit.jupiter.api.Assertions.assertNotNull(captor.getValue(),
+                "doSubscribe must register the D3 rebalance listener with the subscription");
+    }
+
+    @Test
+    void seekToMessageRejectedSynchronouslyAtSubscribe() {
+        TestSeekService testService = new TestSeekService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("test-group");
+        options.setSeekToMessage("some-msg-id");
+
+        NopException e = assertThrows(NopException.class,
+                () -> testService.doSubscribe(new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, options)));
+        assertEquals(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    void seekToTimeAppliesOnlyOnFirstAssignment() {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekToTime(1234567890L);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, consumer,
+                config(msgConsumer, options), 100L);
+        Set<TopicPartition> parts = Collections.singleton(new TopicPartition("test-topic", 0));
+        when(consumer.assignment()).thenReturn(parts);
+        when(consumer.offsetsForTimes(org.mockito.ArgumentMatchers.<Map<TopicPartition, Long>>any()))
+                .thenReturn(Collections.emptyMap());
+
+        task.onPartitionsAssigned(parts);
+        task.onPartitionsAssigned(parts);
+
+        // seekToTime replays would repeatedly rewind to the same timestamp: first
+        // assignment only (adjudication note in the WI7 plan).
+        verify(consumer, org.mockito.Mockito.times(1)).offsetsForTimes(
+                org.mockito.ArgumentMatchers.<Map<TopicPartition, Long>>any());
+    }
+
+    /** Service stub that skips real consumer creation for subscribe-path validation tests. */
+    static class TestSeekService extends KafkaMessageService {
+        @Override
+        protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                          StringDeserializer keyDeserializer,
+                                                          StringDeserializer valueDeserializer) {
+            throw new IllegalStateException("consumer must not be constructed: seekToMessage is validated earlier");
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // WI11: batch boundary semantics (F-06 / F-07 / F-08 / F-58)
+    // ------------------------------------------------------------------
+
+    @Test
+    void batchFailureRewindsEachPartitionToFirstIncompleteRecord() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        doThrow(new IllegalStateException("batch-boom")).when(msgConsumer).onMessageBatch(
+                org.mockito.ArgumentMatchers.anyList(), org.mockito.ArgumentMatchers.any());
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        ConsumerRecord<String, String> p0First = record(0, 10, "a");
+        ConsumerRecord<String, String> p1First = record(1, 5, "b");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(p0First, record(0, 11, "a2"), p1First));
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, task::batchConsume);
+
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 10L);
+        verify(consumer).seek(new TopicPartition("test-topic", 1), 5L);
+        verify(consumer, never()).commitSync();
+        verify(consumer, never()).commitSync(org.mockito.ArgumentMatchers.anyMap());
+    }
+
+    @Test
+    void batchCommitNeverCrossesUndispatchedRecords() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        when(msgConsumer.onMessageBatch(org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new java.util.ArrayList<>(List.of("r0")));
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b")));
+
+        task.batchConsume();
+
+        org.apache.kafka.clients.consumer.OffsetAndMetadata nextOffset =
+                new org.apache.kafka.clients.consumer.OffsetAndMetadata(11L);
+        verify(consumer).commitSync(Collections.singletonMap(new TopicPartition("test-topic", 0), nextOffset));
+        verify(consumer, never()).commitSync();
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 11L);
+    }
+
+    @Test
+    void consumeLaterStopsBatchDispatchAndSkipsCommit() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        when(msgConsumer.onMessageBatch(org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new java.util.ArrayList<>(java.util.Arrays.asList(
+                null, new ConsumeLater(5L), "late-reply")));
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")));
+
+        task.batchConsume();
+
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 11L);
+        verify(consumer, never()).commitSync();
+        verify(consumer, never()).commitSync(org.mockito.ArgumentMatchers.anyMap());
+    }
+
+    @Test
+    void consumeLaterDelayHonoredBeforeRedelivery() throws Exception {
+        // MSG-F-09 (WI12): the requested delay must elapse before the record is
+        // re-delivered — no immediate re-poll spin. Lower-bound assertion only (sleep
+        // guarantees at-least), CI-stable.
+        long delayMs = 200L;
+        java.util.List<Long> handledAt = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = (topic, message, context) -> {
+            handledAt.add(System.nanoTime());
+            return handledAt.size() == 1 ? new ConsumeLater(delayMs) : null;
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 100L, 50L);
+
+        ConsumerRecord<String, String> redelivered = record(0, 7, "deferred");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(redelivered)).thenReturn(
+                records(redelivered)).thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+        task.pollAndConsume();
+
+        org.junit.jupiter.api.Assertions.assertEquals(2, handledAt.size());
+        long gapMs = (handledAt.get(1) - handledAt.get(0)) / 1_000_000L;
+        org.junit.jupiter.api.Assertions.assertTrue(gapMs >= delayMs,
+                "redelivery must wait for the requested delay, gap=" + gapMs + "ms");
+    }
+
+    @Test
+    void batchConsumeLaterHonorsDelayBeforeReturn() throws Exception {
+        long delayMs = 150L;
+        java.util.List<Long> handledAt = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                handledAt.add(System.nanoTime());
+                return new java.util.ArrayList<>(java.util.Arrays.asList(
+                        null, new ConsumeLater(delayMs), "late-reply"));
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 100L, 50L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 10, "a"), record(0, 11, "b"), record(0, 12, "c")));
+
+        long before = System.nanoTime();
+        task.batchConsume();
+        long after = System.nanoTime();
+
+        long elapsedMs = (after - before) / 1_000_000L;
+        org.junit.jupiter.api.Assertions.assertTrue(elapsedMs >= delayMs,
+                "batch ConsumeLater must honor the delay before returning, elapsed=" + elapsedMs + "ms");
+    }
+
+    // ------------------------------------------------------------------
+    // WI13: D7 group identity + F-28 extraProps ordering
+    // ------------------------------------------------------------------
+
+    @Test
+    void resolveGroupIdPrefixesGlobalGroupIdWithSubscribeName() {
+        KafkaMessageService svc = new KafkaMessageService();
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("orders-sub");
+        org.junit.jupiter.api.Assertions.assertEquals("global-ns.orders-sub",
+                svc.resolveGroupId(options));
+    }
+
+    @Test
+    void subscribeNameIsTheEffectiveIdentityByDefault() {
+        KafkaMessageService svc = new KafkaMessageService();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("orders-sub");
+        org.junit.jupiter.api.Assertions.assertEquals("orders-sub", svc.resolveGroupId(options));
+    }
+
+    @Test
+    void missingSubscribeNameIsTypedRejectedEvenWithGlobalGroupId() {
+        KafkaMessageService svc = new KafkaMessageService();
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        io.nop.api.core.exceptions.NopException e =
+                org.junit.jupiter.api.Assertions.assertThrows(io.nop.api.core.exceptions.NopException.class,
+                        () -> svc.resolveGroupId(new MessageSubscribeOptions()));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                KafkaErrors.ERR_GROUP_ID_NOT_CONFIGURED.getErrorCode(), e.getErrorCode());
+    }
+
+    @Test
+    void extraPropsCannotOverrideManagedKeys() {
+        // F-28: group.id / bootstrap.servers / managed tuning keys win over extraProps.
+        KafkaMessageService svc = new KafkaMessageService();
+        svc.config = new KafkaClientConfig();
+        svc.config.setBootstrapServers("kafka-1:9092");
+        java.util.Map<String, String> extra = new java.util.LinkedHashMap<>();
+        extra.put("group.id", "injected-group");
+        extra.put("bootstrap.servers", "injected:9092");
+        extra.put("max.poll.records", "1");
+        extra.put("sasl.mechanism", "PLAIN");
+        svc.config.setExtraProps(extra);
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setMaxPollRecords(500);
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.Properties props = svc.buildConsumerProps("resolved-group");
+        org.junit.jupiter.api.Assertions.assertEquals("resolved-group", props.getProperty("group.id"));
+        org.junit.jupiter.api.Assertions.assertEquals("kafka-1:9092", props.getProperty("bootstrap.servers"));
+        org.junit.jupiter.api.Assertions.assertEquals(500, props.get("max.poll.records"));
+        // Unmanaged keys (e.g. SASL) remain the documented extraProps use case.
+        org.junit.jupiter.api.Assertions.assertEquals("PLAIN", props.getProperty("sasl.mechanism"));
+    }
+
+    @Test
+    void differentSubscribesDoNotShareAssignmentDomain() throws Exception {
+        // D7: heterogeneous subscriptions must land in disjoint consumer groups.
+        KafkaMessageService realService = new KafkaMessageService();
+        KafkaMessageService spyService = org.mockito.Mockito.spy(realService);
+        spyService.config = new KafkaClientConfig();
+        spyService.config.setBootstrapServers("localhost:9092");
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setGroupId("global-ns");
+        spyService.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.List<String> groupIds = new java.util.concurrent.CopyOnWriteArrayList<>();
+        org.mockito.Mockito.doAnswer(inv -> {
+            java.util.Properties props = inv.getArgument(0);
+            groupIds.add(props.getProperty("group.id"));
+            return mock(Consumer.class);
+        }).when(spyService).createConsumer(
+                org.mockito.ArgumentMatchers.any(java.util.Properties.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class));
+        org.mockito.Mockito.doNothing().when(spyService).warnIfAutoCommit();
+
+        MessageSubscribeOptions optA = new MessageSubscribeOptions();
+        optA.setSubscribeName("topic-a-sub");
+        MessageSubscribeOptions optB = new MessageSubscribeOptions();
+        optB.setSubscribeName("topic-b-sub");
+        io.nop.api.core.message.IMessageSubscription subA = spyService.doSubscribe(
+                new MessageSubscriptionConfig("topic-a", (t, m, c) -> null, optA));
+        io.nop.api.core.message.IMessageSubscription subB = spyService.doSubscribe(
+                new MessageSubscriptionConfig("topic-b", (t, m, c) -> null, optB));
+        try {
+            org.junit.jupiter.api.Assertions.assertEquals(2, groupIds.size());
+            org.junit.jupiter.api.Assertions.assertEquals("global-ns.topic-a-sub", groupIds.get(0));
+            org.junit.jupiter.api.Assertions.assertEquals("global-ns.topic-b-sub", groupIds.get(1));
+            org.junit.jupiter.api.Assertions.assertNotEquals(groupIds.get(0), groupIds.get(1));
+        } finally {
+            subA.cancel();
+            subB.cancel();
+        }
+    }
+
+    @Test
+    void doSubscribeWarnsOnceWhenAutoCommitEnabled() throws Exception {
+        KafkaMessageService realService = new KafkaMessageService();
+        KafkaMessageService spyService = org.mockito.Mockito.spy(realService);
+        spyService.config = new KafkaClientConfig();
+        spyService.config.setBootstrapServers("localhost:9092");
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setEnableAutoCommit(true);
+        spyService.setDefaultConsumerConfig(consumerConfig);
+
+        Consumer<String, String> mockConsumer = mock(Consumer.class);
+        org.mockito.Mockito.doReturn(mockConsumer).when(spyService).createConsumer(
+                org.mockito.ArgumentMatchers.any(java.util.Properties.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class),
+                org.mockito.ArgumentMatchers.any(StringDeserializer.class));
+        org.mockito.Mockito.doNothing().when(spyService).warnIfAutoCommit();
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("test-group");
+        io.nop.api.core.message.IMessageSubscription subscription = spyService.doSubscribe(
+                new MessageSubscriptionConfig("test-topic", (t, m, c) -> null, options));
+        try {
+            org.mockito.Mockito.verify(spyService).warnIfAutoCommit();
+        } finally {
+            subscription.cancel();
+        }
+    }
+
+    @Test
+    void consumeFailureAttemptsIncrementPerLocation() throws Exception {
+        // WI16: consecutive failures on the same record increment the attempt counter.
+        java.util.List<Integer> attempts = new java.util.concurrent.CopyOnWriteArrayList<>();
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                throw new IllegalStateException("boom");
+            }
+
+            @Override
+            public void onConsumeFailure(io.nop.api.core.message.ConsumeFailure failure) {
+                attempts.add(failure.getAttempt());
+                org.junit.jupiter.api.Assertions.assertNotNull(failure.getLocation());
+                org.junit.jupiter.api.Assertions.assertTrue(failure.getLocation().contains("test-topic-0@"));
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 0L, 50L);
+
+        ConsumerRecord<String, String> record = record(0, 3, "poison");
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record)).thenReturn(
+                records(record)).thenThrow(new org.apache.kafka.common.errors.WakeupException());
+
+        try {
+            task.runTaskForTest();
+        } catch (org.apache.kafka.common.errors.WakeupException ignored) {
+            // third poll wakes the loop
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.Arrays.asList(1, 2), attempts,
+                "attempt must increment across consecutive failures of the same record");
+    }
+
+    @Test
+    void maxPollIntervalIsConfigurableAndManaged() {
+        // WI17 (F-10): the key is configurable and a managed key (extraProps cannot
+        // override it — see F-28 ordering).
+        KafkaMessageService svc = new KafkaMessageService();
+        svc.config = new KafkaClientConfig();
+        svc.config.setBootstrapServers("kafka-1:9092");
+        java.util.Map<String, String> extra = new java.util.LinkedHashMap<>();
+        extra.put("max.poll.interval.ms", "1");
+        svc.config.setExtraProps(extra);
+        KafkaConsumerConfig consumerConfig = new KafkaConsumerConfig();
+        consumerConfig.setMaxPollIntervalMs(450000);
+        svc.setDefaultConsumerConfig(consumerConfig);
+
+        java.util.Properties props = svc.buildConsumerProps("g");
+        org.junit.jupiter.api.Assertions.assertEquals(450000, props.get("max.poll.interval.ms"));
+    }
+
+    @Test
+    void slowHandlerCompletesBatchWithoutError() throws Exception {
+        // WI17 (F-10/F-11): a handler slower than the poll timeout completes the batch and
+        // commits without exceptions (wiring/tolerance smoke under mock semantics; the real
+        // broker kick timing is WI33's gated scope).
+        java.util.concurrent.atomic.AtomicInteger handled = new java.util.concurrent.atomic.AtomicInteger();
+        IMessageConsumer slowHandler = (topic, message, context) -> {
+            handled.incrementAndGet();
+            try {
+                Thread.sleep(100L); // > pollTimeoutMs (50)
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(slowHandler, options), 100L, 50L);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(
+                records(record(0, 0, "slow"))).thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, handled.get());
+        verify(consumer).commitSync();
+    }
+
 
     @Test
     void startAndStopToggleActive() throws Exception {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
-                config(msgConsumer, options));
+                config(msgConsumer, options), 100L, 100L);
 
         when(consumer.assignment()).thenReturn(Collections.emptySet());
         when(consumer.poll(any(Duration.class))).thenReturn(ConsumerRecords.empty());

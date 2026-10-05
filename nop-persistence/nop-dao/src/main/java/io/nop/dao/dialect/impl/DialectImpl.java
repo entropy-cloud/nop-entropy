@@ -19,6 +19,8 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.dao.dialect.IDataTypeHandler;
 import io.nop.dao.dialect.IDialect;
@@ -88,7 +90,11 @@ public class DialectImpl implements IDialect {
 
     public DialectImpl(DialectModel dialectModel) {
         this.dialectModel = dialectModel;
-        this.exceptionTranslator = new DialectSQLExceptionTranslator(dialectModel);
+        // Plan 2307 V8b: 原先此处硬编码 new DialectSQLExceptionTranslator(dialectModel)，
+        // 从不读 dialectModel.getSqlExceptionTranslator()——而 default.dialect.xml:9 又配置了
+        // 该 class-name。结果是使用者在自有 dialect xml 中覆盖它会被**静默忽略**（contract drift）。
+        // 改为经 createExceptionTranslator 读取模型字段，未配置时回落内置实现。
+        this.exceptionTranslator = createExceptionTranslator(dialectModel);
         this.paginationHandler = newInstance(dialectModel.getPaginationHandler(),
                 LimitOffsetPaginationHandler.INSTANCE);
         initFunctions();
@@ -132,6 +138,37 @@ public class DialectImpl implements IDialect {
             return defaultImpl;
 
         return (T) ReflectionManager.instance().loadClassModel(className).getBeanModel().newInstance();
+    }
+
+    /**
+     * Plan 2307 V8b：按方言模型配置创建异常翻译器。
+     *
+     * <p>支持两种构造形态，因为翻译器实现分两类：
+     * <ul>
+     *   <li><b>无参构造</b>：自定义翻译器通常不需要方言上下文；</li>
+     *   <li><b>{@code (DialectModel)} 构造</b>：内置
+     *       {@link DialectSQLExceptionTranslator} 需要读取方言的错误码表
+     *       （{@code dialectModel.getErrorCodes()}）才能建立 vendorCode 映射。</li>
+     * </ul>
+     * 未配置时回落内置实现，保证行为与接线前完全一致。
+     *
+     * <p>两种形态都不匹配时**显式抛错**并带上类名——不能静默回落，
+     * 否则「配置了但没生效」会退化成修复前那种静默忽略。
+     */
+    static ISQLExceptionTranslator createExceptionTranslator(DialectModel dialectModel) {
+        String className = dialectModel.getSqlExceptionTranslator();
+        if (StringHelper.isEmpty(className))
+            return new DialectSQLExceptionTranslator(dialectModel);
+
+        IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
+        if (classModel.hasConstructorWithArgCount(0))
+            return (ISQLExceptionTranslator) classModel.getConstructor(0).call0(null, DisabledEvalScope.INSTANCE);
+
+        if (classModel.hasConstructorWithArgCount(1))
+            return (ISQLExceptionTranslator) classModel.getConstructor(1).call1(null, dialectModel, DisabledEvalScope.INSTANCE);
+
+        throw new IllegalStateException("sqlExceptionTranslator[" + className
+                + "]必须具有无参构造或接受DialectModel的构造");
     }
 
     void initFunctions() {
@@ -404,6 +441,18 @@ public class DialectImpl implements IDialect {
         }
     }
 
+    /**
+     * Plan 2308 D1（merge 采纳为 emission 唯一判据）：supportNullsFirst accessor（读 features
+     * 标志，惯例同 {@link #isSupportFullJoin()} 等）。未配置 = 模型 null →
+     * false（保守缺省，与 {@code TestDefaultNullsFirstFlag} 双侧契约断言一致）；false 时
+     * EQL 侧走 CASE 改写（对任何方言语义正确，保守缺省不构成正确性风险）。
+     * 【merge note】ours 原声明在本文件更靠后位置，已合并至此（去重）。
+     */
+    @Override
+    public boolean isSupportNullsFirst() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportNullsFirst());
+    }
+
     @Override
     public boolean isSupportUpdateFromJoin() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpdateFromJoin());
@@ -444,16 +493,8 @@ public class DialectImpl implements IDialect {
         return Boolean.TRUE.equals(dialectModel.getDefaultNullsFirst());
     }
 
-    /**
-     * WI7（roadmap EC ③b，WI3 移交链另一半收口）：supportNullsFirst accessor（读 features
-     * 标志，惯例同 {@link #isSupportFullJoin()} 等）。消费点 =
-     * {@code AstToSqlGenerator.visitSqlOrderByItem} 的子句输出唯一门；未配置 = 模型 null →
-     * false（保守缺省，与 {@code TestDefaultNullsFirstFlag} 双侧契约断言一致）。
-     */
-    @Override
-    public boolean isSupportNullsFirst() {
-        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportNullsFirst());
-    }
+    // 【merge note】isSupportNullsFirst 实现合并至上方 ours 新 accessor 块之后（Plan 2308 D1
+    // javadoc 版本），此处 ours 原重复实现已移除。
 
     @Override
     public boolean isUseGetStringForDate() {

@@ -1,0 +1,21 @@
+<tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      name="task-output">
+    <meta>true</meta>
+    <schema>
+        <task-output taskId="!string">
+        </task-output>
+    </schema>
+
+    <description><![CDATA[Reads the status and captured output (tail) of a background task started with runInBackground=true.
+
+**Parameters**:
+- `taskId`: the id from the `[BACKGROUND_TASK started taskId=...]` confirmation.
+
+**Semantics**:
+- Returns the task status (RUNNING / COMPLETED / FAILED / TIMEOUT), total byte count, and the captured output tail (last 8KB).
+- Idempotent and repeatable — reading never consumes the result; the completion notification is separate and arrives exactly once.
+- An unknown taskId returns an explicit error (in-memory registry; ids do not survive a process restart).
+- Tasks submitted by another session are refused (same-session default).
+- Not subject to activeTags filtering (meta tool).]]></description>
+
+</tool>

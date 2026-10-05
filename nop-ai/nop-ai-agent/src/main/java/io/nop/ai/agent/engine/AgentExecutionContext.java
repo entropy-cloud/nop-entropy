@@ -81,7 +81,17 @@ public class AgentExecutionContext {
     // the context goes away). With the shipped NoOpActorRuntime default no
     // Actor consumption loop runs, so this queue is always empty and the ReAct
     // loop's drain is a no-op (one isEmpty/poll check).
-    private final Queue<ChatMessage> steeringQueue = new ConcurrentLinkedQueue<>();
+    // Plan 2289 (WI8): injection queue entries carry their semantics so the
+    // wait-phase probe wakes only for STEER and the boundary routes
+    // FOLLOWUP/INJECT consumption.
+    private final Queue<InjectionEntry> steeringQueue = new ConcurrentLinkedQueue<>();
+    /**
+     * Plan 2289 (WI8): nullable event publisher bridge for injection-queue
+     * visibility (INJECTION_QUEUE_UPDATED on enqueue). Null = silent (direct
+     * ctx construction in tests); wired from buildBaseExecutionContext.
+     */
+    private transient IAgentEventPublisher injectionEventPublisher;
+    private transient String injectionEventAgentName;
 
     public AgentExecutionContext(AgentModel agentModel) {
         this.agentModel = agentModel;
@@ -282,7 +292,7 @@ public class AgentExecutionContext {
      *
      * @return the live steering queue (never null)
      */
-    public Queue<ChatMessage> getSteeringQueue() {
+    public Queue<InjectionEntry> getSteeringQueue() {
         return steeringQueue;
     }
 
@@ -296,11 +306,50 @@ public class AgentExecutionContext {
      * @param message the steering message to enqueue (must not be null)
      */
     public void enqueueSteering(ChatMessage message) {
+        enqueueSteering(message, InjectionSemantics.STEER);
+    }
+
+    /**
+     * Plan 2289 (WI8): enqueue an injection with explicit semantics and
+     * publish INJECTION_QUEUE_UPDATED (when a publisher is bridged).
+     */
+    public void enqueueSteering(ChatMessage message, InjectionSemantics semantics) {
         if (message == null) {
             throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
                     .param(NopAiCoreErrors.ARG_MSG, "enqueueSteering: message must not be null");
         }
-        steeringQueue.add(message);
+        steeringQueue.add(new InjectionEntry(semantics, message));
+        publishInjectionEvent("enqueued", semantics);
+    }
+
+    private void publishInjectionEvent(String action, InjectionSemantics semantics) {
+        if (injectionEventPublisher == null) {
+            return;
+        }
+        Map<String, Object> payload = new HashMap<>();
+        payload.put(AgentEventPayloads.SEMANTICS, semantics.name());
+        payload.put(AgentEventPayloads.ACTION, action);
+        payload.put(AgentEventPayloads.PENDING_COUNT, steeringQueue.size());
+        injectionEventPublisher.publish(AgentEvent.create(
+                AgentEventType.INJECTION_QUEUE_UPDATED, sessionId, injectionEventAgentName, payload));
+    }
+
+    /**
+     * Plan 2289 (WI8): semantic wakeup probe — true when at least one queued
+     * entry carries one of the given semantics (empty varargs = any).
+     */
+    public boolean hasQueuedInjection(InjectionSemantics... semantics) {
+        for (InjectionEntry entry : steeringQueue) {
+            if (semantics == null || semantics.length == 0) {
+                return true;
+            }
+            for (InjectionSemantics wanted : semantics) {
+                if (entry.getSemantics() == wanted) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -318,11 +367,80 @@ public class AgentExecutionContext {
      */
     public List<ChatMessage> drainSteering() {
         List<ChatMessage> drained = new ArrayList<>();
-        ChatMessage msg;
-        while ((msg = steeringQueue.poll()) != null) {
-            drained.add(msg);
+        InjectionSemantics firstSemantics = null;
+        InjectionEntry entry;
+        while ((entry = steeringQueue.poll()) != null) {
+            drained.add(entry.getMessage());
+            if (firstSemantics == null) {
+                firstSemantics = entry.getSemantics();
+            }
+        }
+        if (!drained.isEmpty()) {
+            // semantics of the first drained entry (mixed batches report the
+            // dominant/first consumer's semantics)
+            publishInjectionEvent("drained",
+                    firstSemantics != null ? firstSemantics : InjectionSemantics.STEER);
         }
         return drained;
+    }
+
+    /**
+     * Plan 2289 (WI8): semantic drain — only entries carrying the given
+     * semantics leave the queue (others remain for their own consumer).
+     */
+    public List<InjectionEntry> drainSteeringBySemantics(InjectionSemantics... semantics) {
+        List<InjectionEntry> drained = new ArrayList<>();
+        java.util.Iterator<InjectionEntry> it = steeringQueue.iterator();
+        while (it.hasNext()) {
+            InjectionEntry entry = it.next();
+            boolean match = semantics == null || semantics.length == 0;
+            if (!match) {
+                for (InjectionSemantics wanted : semantics) {
+                    if (entry.getSemantics() == wanted) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            if (match) {
+                it.remove();
+                drained.add(entry);
+            }
+        }
+        if (!drained.isEmpty()) {
+            publishInjectionEvent("drained", drained.get(0).getSemantics());
+        }
+        return drained;
+    }
+
+    /**
+     * Plan 2289 (WI8): non-destructive semantic snapshot — entries carrying
+     * the given semantics WITHOUT removing them (the destructive drain happens
+     * only after a successful wakeup LLM call).
+     */
+    public List<InjectionEntry> snapshotSteeringBySemantics(InjectionSemantics... semantics) {
+        List<InjectionEntry> matched = new ArrayList<>();
+        for (InjectionEntry entry : steeringQueue) {
+            boolean match = semantics == null || semantics.length == 0;
+            if (!match) {
+                for (InjectionSemantics wanted : semantics) {
+                    if (entry.getSemantics() == wanted) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+            if (match) {
+                matched.add(entry);
+            }
+        }
+        return matched;
+    }
+
+    /** Plan 2289 (WI8): bridges the injection event publisher (nullable). */
+    public void setInjectionEventPublisher(IAgentEventPublisher publisher, String agentName) {
+        this.injectionEventPublisher = publisher;
+        this.injectionEventAgentName = agentName;
     }
 
     /**

@@ -175,9 +175,11 @@ FROM
     : F R O M
     ;
 
-NATURAL
-    : N A T U R A L
-    ;
+// Plan 2307 V9: NATURAL / USING 两个 token 已移除——全仓 g4 无任何语法规则引用它们
+// （唯一提及是 BaseRule.g4 里一条与 ORDER BY 无关的注释），二者是纯死 token。
+// 它们本身是 JOIN 的语法糖（NATURAL JOIN / ... USING (cols)），EQL 用普通 JOIN + ON
+// 表达即可，不值得为语法糖引入不可达 token。
+// 注意 CROSS 登记在 unreservedWord_ 是**有意设计**（允许 cross 作标识符），不在移除范围。
 
 JOIN
     : J O I N
@@ -208,10 +210,6 @@ RIGHT
 
 CROSS
     : C R O S S
-    ;
-
-USING
-    : U S I N G
     ;
 
 WHERE

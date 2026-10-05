@@ -255,12 +255,45 @@ public class TestStandardRetryPolicy {
     }
 
     @Test
-    void transientIsNotAffectedByRetryAfter() {
-        // TRANSIENT 仍用纯 full-jitter，retryAfterMs 不影响它（delay 可远低于 retryAfterMs）。
+    void transientHonoursRetryAfterAsFloor() {
+        // Plan 2304 (WI22) floor 补强（原"TRANSIENT 忽略 retryAfterMs"契约由本 plan 改写，
+        // 非 regression）：TRANSIENT 携带服务器 retryAfterMs 时以之为下限——
+        // delay = max(full-jitter, retryAfterMs)。
         StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
         long delay = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.TRANSIENT, 10_000L)).getDelayMs();
+        assertTrue(delay >= 10_000L,
+                "TRANSIENT delay must honour the retryAfterMs floor: " + delay);
+    }
+
+    @Test
+    void transientWithoutRetryAfterStaysPureFullJitter() {
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        long delay = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.TRANSIENT, 0L)).getDelayMs();
         assertTrue(delay >= 0L && delay <= 100L,
-                "TRANSIENT delay must stay in [0, baseDelay=100], ignoring retryAfterMs: " + delay);
+                "no server hint → unchanged pure full-jitter: " + delay);
+    }
+
+    @Test
+    void overloadedRetryIsOnTheLongCurve() {
+        StandardRetryPolicy p = new StandardRetryPolicy(5, 100L, 1000L);
+        RetryOutcome r = p.shouldRetry(ctx(0, ErrorClassification.OVERLOADED));
+        assertTrue(r.isRetry(), "OVERLOADED must RETRY");
+        // attempt 0: step 10s ± 20% → [8s, 12s]
+        assertTrue(r.getDelayMs() >= 8_000L && r.getDelayMs() <= 12_000L,
+                "OVERLOADED attempt 0 rides the 10s ±20% curve: " + r.getDelayMs());
+    }
+
+    @Test
+    void overloadedCurveCapsAt60sAndHonoursRetryAfterFloor() {
+        StandardRetryPolicy p = new StandardRetryPolicy(99, 100L, 1000L);
+        // deep attempt: step capped at 60s ±20% → [48s, 72s]
+        long deep = p.shouldRetry(ctxRetryAfter(10, ErrorClassification.OVERLOADED, 0L)).getDelayMs();
+        assertTrue(deep >= 48_000L && deep <= 72_000L,
+                "OVERLOADED deep attempt stays inside the 60s ±20% envelope: " + deep);
+        // server hint above the curve → floor wins
+        long floored = p.shouldRetry(ctxRetryAfter(0, ErrorClassification.OVERLOADED, 120_000L)).getDelayMs();
+        assertTrue(floored >= 120_000L,
+                "OVERLOADED retryAfterMs floor overrides the curve: " + floored);
     }
 
     @Test

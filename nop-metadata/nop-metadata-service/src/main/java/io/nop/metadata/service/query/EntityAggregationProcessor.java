@@ -88,7 +88,9 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                 limit, offset, nameToExpr, measureNames, dimensionNames, propToCol, ctx);
     }
 
-    private List<Map<String, Object>> executeEntityAggregationViaEql(NopMetaEntity table, String physicalTable,
+    // plan 2309：改为包级可见，使 TestEntityAggregationProcessorOrmDialectWiring 能直接驱动本方法，
+    // 断言其确实把解析出的方言传给 buildOrderByClause（接线验证）。非 public API，无外部可见性变化。
+    List<Map<String, Object>> executeEntityAggregationViaEql(NopMetaEntity table, String physicalTable,
                                                                       List<MeasureSpec> measures, List<DimensionSpec> dims,
                                                                       TreeBean filter, TreeBean having,
                                                                       List<OrderFieldBean> orderBy, Long limit,
@@ -135,10 +137,13 @@ public class EntityAggregationProcessor implements AggregationProcessor {
                 params.addAll(hf.getParams());
             }
         }
-        // AR-20a：via-EQL 路径经 orm().executeQuery，IOrmTemplate 无方言 API——显式裁定保持既有行为
-        // （H2 语义拼接 NULLS FIRST/LAST，dialect=null 走 AggregationHelper 默认分支），残余登记
-        // plan 2026-08-06-1228-1 Deferred But Adjudicated（ORM 背后接 MySQL 的部署场景）。
-        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames, "ORDER_BY", null);
+        // plan 2309 D8：解析真实方言。此前此处传 null，注释称「IOrmTemplate 无方言 API」——
+        // 该断言已过期：IOrmTemplate extends ISqlExecutor，而 ISqlExecutor:40 就声明了
+        // getDialectForQuerySpace。传 null 会让 AggregationHelper 落到「既非 mysql 家族又无
+        // 原生支持」的分支，在底层为 MySQL 的部署上产出语法错误 SQL。
+        String orderByDialect = resolveDialectName(ctx, table);
+        String orderByClause = buildOrderByClause(orderBy, nameToExpr, table, measureNames, dimensionNames,
+                "ORDER_BY", orderByDialect);
         if (!orderByClause.isEmpty()) {
             sql.append(" ORDER BY ").append(orderByClause);
         }
@@ -283,5 +288,20 @@ public class EntityAggregationProcessor implements AggregationProcessor {
             specs.add(new DimensionSpec(safeAlias(d.getDimensionName()), column, d.getDimensionType(), d.getGranularity()));
         }
         return specs;
+    }
+
+    /**
+     * plan 2309 D8：取本实体所属 querySpace 的方言名（形如 {@code h2} / {@code mysql}）。
+     *
+     * <p>取到的是<b>方言名</b>（{@code IDialect.getName()}，即方言资源文件名），
+     * 如 {@code h2} / {@code mysql} / {@code mysql5.7}；{@code buildOrderByClause} 按
+     * 方言能力位与 mysql 家族判定分流（见 {@code isMySqlFamily} / {@code supportsNativeNullsOrder}），
+     * 无需改其签名。
+     */
+    private static String resolveDialectName(MetaQueryContext ctx, NopMetaEntity table) {
+        String querySpace = table.getQuerySpace();
+        if (querySpace == null || querySpace.trim().isEmpty())
+            querySpace = DaoConstants.DEFAULT_QUERY_SPACE;
+        return ctx.orm().getDialectForQuerySpace(querySpace).getName();
     }
 }

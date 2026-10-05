@@ -1,5 +1,10 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      x:extends="default.llm.xml">
+    <!-- Plan 2303 (WI21): DeepSeek 缓存字段为顶层 usage.prompt_cache_hit_tokens
+         （非 OpenAI prompt_tokens_details 形态），显式配置胜出 dialect 默认。
+         DeepSeek 无 cache-write 计费概念，creation 不配置。 -->
+    <response promptCacheHitTokensPath="usage.prompt_cache_hit_tokens"/>
+
 
     <baseUrl>https://api.deepseek.com</baseUrl>
     <chatUrl>/chat/completions</chatUrl>

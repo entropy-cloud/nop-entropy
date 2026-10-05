@@ -18,8 +18,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
     
     protected boolean asc;
     
-    protected java.lang.String collate;
-    
     protected io.nop.orm.eql.ast.SqlExpr expr;
     
     protected java.lang.Boolean nullsFirst;
@@ -37,16 +35,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
         checkAllowChange();
         
         this.asc = value;
-    }
-    
-    public java.lang.String getCollate(){
-        return collate;
-    }
-
-    public void setCollate(java.lang.String value){
-        checkAllowChange();
-        
-        this.collate = value;
     }
     
     public io.nop.orm.eql.ast.SqlExpr getExpr(){
@@ -94,12 +82,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                 if(expr != null){
                   
                           ret.setExpr(expr.deepClone());
-                      
-                }
-            
-                if(collate != null){
-                  
-                          ret.setCollate(collate);
                       
                 }
             
@@ -163,10 +145,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                return false;
             }
         
-                if(!isValueEquivalent(this.collate,other.getCollate())){
-                   return false;
-                }
-            
                 if(!isValueEquivalent(this.asc,other.getAsc())){
                    return false;
                 }
@@ -188,12 +166,6 @@ public abstract class _SqlOrderByItem extends EqlASTNode {
                     if(expr != null){
                       
                               json.put("expr", expr);
-                          
-                    }
-                
-                    if(collate != null){
-                      
-                              json.put("collate", collate);
                           
                     }
                 

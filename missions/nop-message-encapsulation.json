@@ -1,0 +1,22 @@
+{
+  "name": "nop-message-encapsulation",
+  "description": "Audit and fix the Kafka / Pulsar implementations of the nop-message abstraction. The SPI (IMessageService) is sound and must not be rewritten; the defects are in the two broker backends, where SPI option fields are silently ignored or diverge in semantics. Phase A establishes the audit baseline, the field-by-backend capability matrix, eleven pre-adjudicated design decisions (D1-D11), and a shared broker-neutral contract test. Phase B clears all silent violations (P0), including the Pulsar request-reply channel being entirely broken because getAckTopic prefixes Pulsar fully-qualified topic names, and Kafka SeekMode being a no-op before the first poll. Phase C fixes lifecycle and reliability (threads, bounded shutdown, destroy ordering, cancel idempotency, layered DLQ). Phase D aligns the envelope/metadata contract, batch arity, concurrency semantics, and error-code prefixes. Phase E adds observability and gated real-broker E2E. Phase F writes the owner doc and runs an independent closure audit. NOTE: commands.lint is scoped to nop-message because check-silent-wrong-result.mjs and check-import-order.mjs currently exit 1 on pre-existing repo-wide debt; WI18 of the roadmap is responsible for adding baseline or module scoping so those gates become usable. commands.typecheck currently exits 1 on pre-existing broken links outside nop-message.",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-message-encapsulation-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-message",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-message",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-message",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-message/nop-message-core,nop-message/nop-message-kafka,nop-message/nop-message-pulsar,nop-message/nop-message-debezium,nop-stream/nop-stream-runtime,nop-kernel/nop-api-core,nop-network/nop-rpc/nop-rpc-core,nop-service-framework/nop-graphql/nop-graphql-message -am -T 1C",
+    "build": "./mvnw clean install -pl nop-message/nop-message-core,nop-message/nop-message-kafka,nop-message/nop-message-pulsar,nop-message/nop-message-debezium -am -T 1C -DskipTests",
+    "lint": "node ai-dev/tools/scan-hollow-implementations.mjs --module nop-message --severity high",
+    "typecheck": "node ai-dev/tools/check-doc-links.mjs --strict"
+  },
+  "commitFormat": "fix(nop-message): <description>"
+}

@@ -68,6 +68,12 @@ public abstract class SqlSelect extends _SqlSelect implements ISqlExpr, ISqlSele
 
     public SqlExprProjection getProjectionByExprMeta(ISqlExprMeta exprMeta) {
         for (SqlProjection proj : getProjections()) {
+            // Plan 2307 V6: 此前是无条件强转，理论不可达（transform 阶段所有投影都会
+            // 展开为 SqlExprProjection），但作为公开 API，无条件强转遇到未展开投影会抛
+            // ClassCastException（无错误码、无定位）。改为跳过非表达式投影——返回 null
+            // 表示「没找到」，正是本方法的既有契约（末尾已有 return null）。
+            if (!(proj instanceof SqlExprProjection))
+                continue;
             SqlExprProjection exprProj = (SqlExprProjection) proj;
             if (exprProj.getExpr().getResolvedExprMeta() == exprMeta)
                 return exprProj;

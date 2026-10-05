@@ -6,7 +6,15 @@
  * Invariant gate for the silent-wrong-result failure family
  * (plan 2026-08-15-0820-1, Cycle 2 / I1').
  *
- * One scanner x 5 rules, each rule tagged with its sub-family:
+ * One scanner x 8 rules, each rule tagged with its sub-family:
+ *
+ *   msg-pre-poll-seek INV-MSG-PRE-POLL-SEEK  seek invoked inside start() of a polling
+ *                                            consumer class outside a rebalance listener
+ *                                            (WI18; MSG-F-01 shape)
+ *   msg-stub          INV-MSG-STUB           empty method body with TODO/FIXME in the
+ *                                            signature neighborhood (WI18; MSG-F-03 shape)
+ *   msg-warn-per-call INV-MSG-WARN-PER-CALL  LOG.warn in a hot consume/send path without
+ *                                            warn-once routing (WI18; MSG-F-53 shape)
  *
  *   locale            INV-LOCALE            no-arg .toLowerCase()/.toUpperCase()
  *                                             (default-locale case mapping; AR-12 family)
@@ -65,7 +73,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const RULES = ['locale', 'narrowing-cast', 'contains-classify', 'delim-key', 'bigdec-precision'];
+const RULES = ['locale', 'narrowing-cast', 'contains-classify', 'delim-key', 'bigdec-precision', 'msg-pre-poll-seek', 'msg-stub', 'msg-warn-per-call'];
 
 const INV_BY_RULE = {
     'locale': 'INV-LOCALE',
@@ -73,7 +81,15 @@ const INV_BY_RULE = {
     'contains-classify': 'INV-CONTAINS-CLASSIFY',
     'delim-key': 'INV-DELIM-KEY',
     'bigdec-precision': 'INV-BIGDEC',
+    'msg-pre-poll-seek': 'INV-MSG-PRE-POLL-SEEK',
+    'msg-stub': 'INV-MSG-STUB',
+    'msg-warn-per-call': 'INV-MSG-WARN-PER-CALL',
 };
+
+// WI18: message-domain rules apply only to nop-message sources (and their fixtures).
+function isMessageDomainPath(relPath) {
+    return relPath.includes('nop-message') || relPath.startsWith('fixture/nop-message/');
+}
 
 const KEY_METHODS = [
     'get', 'put', 'add', 'contains', 'computeIfAbsent', 'putIfAbsent',
@@ -571,6 +587,125 @@ function scanFile(filePath) {
     hits.push(...scanContainsClassify(masked, raw, relPath));
     hits.push(...scanDelimKey(stripped, raw, relPath));
     hits.push(...scanBigdec(masked, raw, relPath));
+    if (isMessageDomainPath(relPath)) {
+        hits.push(...scanMsgPrePollSeek(masked, relPath));
+        hits.push(...scanMsgStub(masked, raw, relPath));
+        hits.push(...scanMsgWarnPerCall(raw, relPath));
+    }
+    return hits;
+}
+
+// ============================================================
+// Rule 6: msg-pre-poll-seek — seek invoked inside start() of a class
+//         that has a poll/receive loop (WI18; MSG-F-01 shape). The seek
+//         would run before the first poll when the assignment is empty.
+// ============================================================
+
+function findMethodSpan(text, methodName) {
+    const sig = text.indexOf(methodName + '(');
+    if (sig < 0) return null;
+    const open = text.indexOf('{', sig);
+    if (open < 0) return null;
+    let depth = 0;
+    for (let i = open; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') {
+            depth--;
+            if (depth === 0) return { start: open, end: i };
+        }
+    }
+    return null;
+}
+
+function scanMsgPrePollSeek(masked, relPath) {
+    const hits = [];
+    if (!masked.includes('.poll(') && !masked.includes('.receive()')) return hits;
+    const span = findMethodSpan(masked, 'start');
+    if (!span) return hits;
+    const body = masked.slice(span.start, span.end);
+    const seekRe = /\bseek\w*\s*\(/g;
+    let m;
+    while ((m = seekRe.exec(body)) !== null) {
+        // A seek inside a nested rebalance-listener method is the D3-correct form
+        // (per-assignment resolution) — exempt it.
+        const prefix = body.slice(0, m.index);
+        if (prefix.includes('onPartitionsAssigned(')) continue;
+        const line = masked.slice(0, span.start + m.index).split('\n').length;
+        hits.push({
+            file: relPath, line, family: 'msg-pre-poll-seek',
+            snippet: 'start() invokes seek before the poll loop',
+            rule: 'seek invoked inside start() of a polling consumer class outside a rebalance listener (INV-MSG-PRE-POLL-SEEK; assignment is empty before the first poll)',
+        });
+    }
+    return hits;
+}
+
+// ============================================================
+// Rule 7: msg-stub — empty method body with a TODO/FIXME marker in the
+//         signature neighborhood (WI18; MSG-F-03 shape).
+// ============================================================
+
+function scanMsgStub(masked, rawText, relPath) {
+    const hits = [];
+    const rawLines = rawText.split('\n');
+    const maskedLines = masked.split('\n');
+    for (let i = 0; i < maskedLines.length; i++) {
+        const sig = maskedLines[i];
+        if (!/\b(?:private|public|protected)\s+[\w<>\[\],\s]+\s+\w+\s*\([^)]*\)\s*(?:throws\s+[\w.,\s]+)?\{\s*$/.test(sig))
+            continue;
+        // empty body: next non-blank masked line is the closing brace
+        let j = i + 1;
+        while (j < maskedLines.length && maskedLines[j].trim() === '') j++;
+        if (j >= maskedLines.length || maskedLines[j].trim() !== '}') continue;
+        // TODO/FIXME in: 3 lines above signature / between sig and close / 3 lines below
+        const from = Math.max(0, i - 3);
+        const to = Math.min(rawLines.length, j + 4);
+        const neighborhood = rawLines.slice(from, to).join('\n');
+        if (/\/\/\s*(?:TODO|FIXME)/.test(neighborhood)) {
+            hits.push({
+                file: relPath, line: i + 1, family: 'msg-stub',
+                snippet: snippetAt(rawText, i + 1),
+                rule: 'empty method body with TODO/FIXME marker (INV-MSG-STUB; declared-but-not-implemented)',
+            });
+        }
+    }
+    return hits;
+}
+
+// ============================================================
+// Rule 8: msg-warn-per-call — LOG.warn inside per-call methods without a
+//         warnOnce association (WI18; MSG-F-53 shape). Raw text match:
+//         masked text blanks the message string.
+// ============================================================
+
+const MSG_WARN_METHODS = ['sendAsync', 'subscribe', 'consume', 'batchConsume', 'pollAndConsume', 'runTask'];
+const MSG_WARN_ALLOW_MARKERS = ['terminate-consume', 'failure-callback-throw'];
+
+function scanMsgWarnPerCall(rawText, relPath) {
+    const hits = [];
+    const lines = rawText.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        if (!lines[i].includes('LOG.warn(')) continue;
+        // enclosing method: nearest method-like declaration above (identifier before the
+        // first '(' whose statement opens a block); control-flow keywords excluded.
+        const CTRL = new Set(['if', 'for', 'while', 'switch', 'catch', 'synchronized', 'return', 'new']);
+        let method = null;
+        for (let k = i - 1; k >= 0; k--) {
+            const m = lines[k].match(/([A-Za-z_$][\w$]*)\s*\([^;{]*\)\s*\{\s*$/);
+            if (m && !CTRL.has(m[1])) { method = m[1]; break; }
+        }
+        if (!method || !MSG_WARN_METHODS.includes(method)) continue;
+        const line = lines[i];
+        if (line.includes('warnOnce')) continue;
+        const prev2 = (lines[i - 1] || '') + '\n' + (lines[i - 2] || '');
+        if (prev2.includes('warnOnce')) continue;
+        if (MSG_WARN_ALLOW_MARKERS.some((marker) => line.includes(marker))) continue;
+        hits.push({
+            file: relPath, line: i + 1, family: 'msg-warn-per-call',
+            snippet: line.trim(),
+            rule: 'per-call LOG.warn in a hot consume/send path without warn-once routing (INV-MSG-WARN-PER-CALL)',
+        });
+    }
     return hits;
 }
 
@@ -683,7 +818,7 @@ function buildBaselineJson(violations) {
 
 function generateSummary(violations, allowed, perFamily, baselineResult) {
     const lines = [];
-    lines.push('# Silent Wrong Result Scan Report (INV-LOCALE / INV-NARROW / INV-CONTAINS-CLASSIFY / INV-DELIM-KEY / INV-BIGDEC)');
+    lines.push('# Silent Wrong Result Scan Report (INV-LOCALE / INV-NARROW / INV-CONTAINS-CLASSIFY / INV-DELIM-KEY / INV-BIGDEC / INV-MSG-PRE-POLL-SEEK / INV-MSG-STUB / INV-MSG-WARN-PER-CALL)');
     lines.push(`Generated: ${new Date().toISOString().split('T')[0]}`);
     lines.push('');
     lines.push('Hits per family:');
@@ -882,6 +1017,11 @@ function fixtureDetect(label, sample, expectedFamilies) {
     hits.push(...scanContainsClassify(masked, sample, relPath));
     hits.push(...scanDelimKey(stripped, sample, relPath));
     hits.push(...scanBigdec(masked, sample, relPath));
+    if (isMessageDomainPath(relPath)) {
+        hits.push(...scanMsgPrePollSeek(masked, relPath));
+        hits.push(...scanMsgStub(masked, sample, relPath));
+        hits.push(...scanMsgWarnPerCall(sample, relPath));
+    }
     const famCount = {};
     for (const h of hits) famCount[h.family] = (famCount[h.family] || 0) + 1;
     let pass = true;
@@ -895,6 +1035,78 @@ function fixtureDetect(label, sample, expectedFamilies) {
     }
     return { sample: label, famCount, expectedFamilies, pass };
 }
+
+FX.msgPrePollSeekViolation = `
+class FxPrePollSeek {
+    void start() {
+        active = true;
+        executor.execute(() -> {
+            seekToPosition();
+            runTask();
+        });
+    }
+    void runTask() {
+        while (active) {
+            consumer.poll(java.time.Duration.ofSeconds(1));
+        }
+    }
+}
+`;
+FX.msgPrePollSeekCompliant = `
+class FxPrePollSeekCompliant {
+    void start() {
+        active = true;
+        consumer.subscribe(topics, new ConsumerRebalanceListener() {
+            public void onPartitionsAssigned(Collection<TopicPartition> parts) {
+                consumer.seekToBeginning(parts);
+            }
+            public void onPartitionsRevoked(Collection<TopicPartition> parts) {
+            }
+        });
+        executor.execute(this::runTask);
+    }
+    void runTask() {
+        while (active) {
+            consumer.poll(java.time.Duration.ofSeconds(1));
+        }
+    }
+}
+`;
+FX.msgStubViolation = `
+class FxMsgStub {
+    // TODO: implement seekToPosition based on SeekMode
+    private void seekToPosition() {
+
+    }
+}
+`;
+FX.msgStubCompliant = `
+class FxMsgStubCompliant {
+    private void seekToPosition() {
+        consumer.seek(org.apache.pulsar.client.api.MessageId.earliest);
+    }
+}
+`;
+FX.msgWarnPerCallViolation = `
+class FxWarnPerCall {
+    CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        if (options.getDelay() > 0) {
+            LOG.warn("nop.message.kafka.delay-ignored:topic={}", topic);
+        }
+        return producer.sendAsync(topic, message);
+    }
+}
+`;
+FX.msgWarnPerCallCompliant = `
+class FxWarnPerCallCompliant {
+    CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        if (options.getDelay() > 0) {
+            LOG.warn("nop.err.message.terminate-consume:topic={}", topic);
+        }
+        return producer.sendAsync(topic, message);
+    }
+}
+`;
 
 function runFixture() {
     const results = [];
@@ -914,6 +1126,12 @@ function runFixture() {
     results.push(fixtureDetect('bigdec-violation', FX.bigdecViolation, { 'bigdec-precision': 1 }));
     results.push(fixtureDetect('bigdec-protected-routed', FX.bigdecProtected, {}));
     results.push(fixtureDetect('bigdec-new-violation', FX.bigdecNewViolation, { 'bigdec-precision': 1 }));
+    results.push(fixtureDetect('nop-message/pre-poll-seek-violation', FX.msgPrePollSeekViolation, { 'msg-pre-poll-seek': 1 }));
+    results.push(fixtureDetect('nop-message/pre-poll-seek-compliant', FX.msgPrePollSeekCompliant, {}));
+    results.push(fixtureDetect('nop-message/stub-violation', FX.msgStubViolation, { 'msg-stub': 1 }));
+    results.push(fixtureDetect('nop-message/stub-compliant', FX.msgStubCompliant, {}));
+    results.push(fixtureDetect('nop-message/warn-per-call-violation', FX.msgWarnPerCallViolation, { 'msg-warn-per-call': 1 }));
+    results.push(fixtureDetect('nop-message/warn-per-call-compliant', FX.msgWarnPerCallCompliant, {}));
 
     // Allowed-comment mechanism: a hit on a line with `// invariant-ok:` moves
     // out of the violation set and out of baseline input, but stays visible.

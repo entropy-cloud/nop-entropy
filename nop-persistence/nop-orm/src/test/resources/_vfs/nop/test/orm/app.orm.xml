@@ -306,5 +306,24 @@
         </entity>
 
 
+        <!--
+        Plan 2308：ORDER BY NULLS FIRST/LAST 端到端测试的可控数据源。
+        score 列刻意 nullable 且非 mandatory，以便构造确定的 NULL 分布；
+        seq 列提供唯一的稳定次级排序键，用于多键场景断言。
+
+        className 指向 DynamicOrmEntity：**无需生成实体类代码**。
+        SessionFactoryImpl.getEntityClassModel 在模型加载期即对每个实体解析 className，
+        若不指定则回退用实体 name 当 FQCN 去 loadClassModel，直接 ClassNotFoundException。
+        该实体所有字段均以动态属性存取（DynamicOrmEntity.values，MapOfInt 按 propId 索引），
+        故这里刻意不给任何列生成 getter/setter。
+        -->
+        <entity name="test.entity.TestNullsOrderEntity" tableName="TEST_NULLS_ORDER"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
+                <column name="score" code="SCORE" stdSqlType="INTEGER" propId="2"/>
+                <column name="seq" code="SEQ_COL" stdSqlType="INTEGER" propId="3" mandatory="true"/>
+            </columns>
+        </entity>
     </entities>
 </orm>

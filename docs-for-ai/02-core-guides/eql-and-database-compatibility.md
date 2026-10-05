@@ -41,7 +41,150 @@ EQL 的语法可用性 = **grammar 接受度 ∩ 方言能力位 ∩ 方言继�
 
 语法层（grammar）现接受完整分析窗口形态：`OVER (PARTITION BY ...)` 单子句、`OVER ()` 空参、frame 三单位 `ROWS`/`RANGE`/`GROUPS`（含 `BETWEEN ... AND ...` 与单 bound 简写、`UNBOUNDED PRECEDING|FOLLOWING`、`CURRENT ROW`、`expr PRECEDING|FOLLOWING`）、命名窗口 `WINDOW w AS (...)` 子句与 `OVER w` 引用。**方言层可用性另算**：窗口函数能否翻译到目标数据库取决于方言函数登记与能力开关（翻译期不支撑时抛 `ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE`），不以语法层接受度为准。
 
-**迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。
+**迁移说明（新关键字）**：`RANGE` / `WINDOW` / `GROUPS` / `ROW` / `PRECEDING` / `FOLLOWING` / `UNBOUNDED` 已新增为关键字，并同时登记为非保留字（unreserved word）——既有查询把它们用作列名 / 别名的写法不受影响；但 framed 窗口表达式中应避免以这些词做标识符。`LATERAL` 亦已登记为非保留字（见下节）。
+
+#### LATERAL 关联子查询表源（2026-10-04 修复，plan 2307 V1）
+
+语法层接受 `FROM t1, LATERAL (SELECT ... WHERE ... = t1.col) alias` 形态（`sqlSubqueryTableSource` 的 `lateral=LATERAL?` 前缀，AST 字段 `SqlSubqueryTableSource.lateral`）。语义分析阶段该标记是**生效**的：写 `LATERAL` 时子查询可引用同层级 FROM 项（`EqlTransformVisitor` 在此情形把当前作用域换成同级 `tableScope`）；不写 `LATERAL` 时引用同级别名会报 `nop.err.eql.unknown-alias`。
+
+**修复前的缺陷**：输出器从不打印 `LATERAL` 关键字，导致 `from t1, lateral (...) x` 被编译成缺关键字的 `from t1, (...) x`——语义分析认了 LATERAL、输出没认的静默错误，在 PostgreSQL / MySQL 8 / Oracle 等库上直接语法报错。现已由 `AstToEqlGenerator#visitSqlSubqueryTableSource` 输出该关键字修复。
+
+**方言可用性（merge 并集：master 打印/作用域修复 + ours WI1 能力位与编译期门）**：master 原 V1 节曾述"不为 LATERAL 设立专用能力位、由数据库自身报错"；merge 后本框架**有**专用能力位 `supportLateral`（ours WI1 BUG-2，详见下文「`LATERAL` 子查询表源与 `supportLateral`」节）：`supportLateral=false`（或未配置——保守缺省 = 不支持）时**编译期报错** `nop.err.eql.dialect-not-support-feature`（`feature=supportLateral`），`true` 时输出 `lateral`。仍需注意：已实测 **H2 2.3.232 完全不支持 `LATERAL` 关键字**（逗号连接与 `JOIN LATERAL` 两种写法均报 `Function "LATERAL" not found`），且逗号连接的派生表**不**支持隐式 lateral（报 `Column ... not found`）⇒ **H2 上不要写 LATERAL**；需要关联子查询语义时，用相关标量子查询（`(SELECT ... WHERE ... = t1.col)`）或 `EXISTS`，二者在 H2 与 PostgreSQL 上均可执行且语义等价。
+
+**迁移说明**：`LATERAL` 关键字此前**未**登记为非保留字，即 `select lateral from t` 会解析失败。现已登记（与 `TUMBLE` / `RANGE` / `WINDOW` 同一范式），故 `lateral` 可正常用作列名 / 表别名，既有查询不受影响。
+
+#### CROSS JOIN 与 join 过滤条件（2026-10-04 修复，plan 2307 V2）
+
+语法层接受 `CROSS JOIN`：`from A a cross join B b`（等价于逗号连接的笛卡尔积）。CARTESIAN 语义在 EQL 中有两条等价写法——逗号连接与 `CROSS JOIN`——产出等价结果。
+
+**修复前的缺陷**：`CROSS` 登记为非保留字（允许 `cross` 作标识符）且表别名可选，导致 `from AppUser u cross join AppRole r` 被 ANTLR 误解析——`cross` 被吃成表别名（`from AppUser as cross join ...`），而 `cross join` 只剩下一个裸 `JOIN`。后果是源查询里对 `u` 的任何引用都报 `nop.err.eql.unknown-column-name`，一条本应合法的查询无法执行；多表链式写法还会额外产生幻觉别名（`a cross join b as cross join c`）。
+
+**CROSS JOIN 的过滤条件去向（重要语义）**：`CROSS JOIN` 不接受 `ON` 子句。租户 / 逻辑删除 / 实体固定过滤器因此**统一落到 `WHERE`**，而不是 `ON`——`cross join T on (...)` 是非法 SQL（实测 H2 / PostgreSQL 均拒绝）。最终产物形如：
+
+```sql
+select ... from SIMS_COLLEGE as c cross join SIMS_CLASS as s
+where (c.TENANT_ID = ?) and (s.TENANT_ID = ?)
+```
+
+这与「笛卡尔积后再过滤」等价，**租户隔离不因CROSS JOIN 而失效**。其余 join 类型（`JOIN` / `LEFT JOIN` / `RIGHT JOIN` / `FULL JOIN`）的缺省过滤仍然写在 `ON` 中，且**实体 join 漏写 `ON` 仍会报 `nop.err.eql.join-no-condition`**——CROSS JOIN 是该校验唯一豁免的 join 类型。
+
+**已知边界**：`from a cross join b on <cond>`（给 CROSS JOIN 写 `on`）被解释为「a 的别名是 `cross` + 带 `on` 的普通 join」，而非 CROSS JOIN。`CROSS JOIN ... ON ...` 本就不是标准 SQL 写法。链式 `a cross join b cross join c` 产出 `a cross join b join c`（末尾的无条件 `JOIN` 语义等价于 CROSS JOIN），不是逐字round-trip。
+
+#### 不被支持的写法（2026-10-04，plan 2307 V3 / V4）
+
+EQL 的语法与 AST 有一条硬约束：**一个构造要么能被打印成正确的目标 SQL，要么必须在解析期被拒绝**。不允许"能解析、但不输出关键字 / 输出畸形标识符 / 编译产物为空"这种中间态——它把错误从编译期推迟到执行期，且往往以"看起来跑通了"的形态出现。
+
+**集合聚合访问 `coll[where orderBy].func(args)` 已从语法中移除**。该构造无输出器、无语义分析，解析成功后会被打印成 `where collx > 1 > 2`（`[...]`、`.func()` 与主节点全部丢失）。它的语义是**聚合量词**（`count`/`sum`），与集合算子 `_some`/`_all` 的**存在性量词**不等价，因此不能降级映射——`count(coll) > 2` 与 `exists(coll)` 语义不同。现在该写法是**解析错误**。
+
+需要集合上的存在性判断时用 `_some` / `_all`：
+
+```
+// 存在至少一个满足条件的成员
+where o.roles._some.userId = 'x'
+// 存在全部成员都满足条件（NOT EXISTS 反例）
+where o.roles._all.userId = 'x'
+```
+
+需要聚合值时，把聚合下推到 SQL 表达式或子查询，不要指望 `coll[...].count()`。
+
+**事务控制语句 `commit` / `rollback` 显式失败**。事务边界归属 `ITransactionTemplate` / 连接层，不属 EQL 编译器职责。编译这两条语句会抛 `nop.err.eql.not-support-transaction-statement`，错误信息指向正确 API。此前它们能解析但编译产物是**空字符串**且不报任何错误（静默无操作）。
+
+#### ORDER BY 空序 `NULLS FIRST/LAST`（2026-10-04 plan 2308 支持）
+
+EQL 的 `ORDER BY` 项现在接受空序修饰：`order by o.col [asc|desc] [nulls first|nulls last]`。
+省略子句时产物与从前逐字一致（不写即不输出）。
+
+**输出策略只看一个能力位 `supportNullsFirst`**，分两条路：
+
+- **true** → 原样输出 `NULLS FIRST` / `NULLS LAST` 子句。
+- **false** → 改写为「`CASE WHEN` 排序键 + 原排序列」的前置同级键。
+
+**⚠️ 方言矩阵（每格的证据来源不同，不要当成同质结论）**
+
+| 方言 | `supportNullsFirst` | 走哪条路 | 证据 |
+|---|---|---|---|
+| h2 | `true` | 原生 | 实测：H2 2.3.232 真实执行四方向组合核对行序 |
+| postgresql（含 postgis） | `true` | 原生 | 实测：PostgreSQL 16.15 同上 |
+| duckdb | `true` | 原生 | 官方文档 + 本仓库既有声明（**探针脚本未含 duckdb 分支，非本计划实测**）；**但 ASC/DESC 都不翻转缺省**（见下方警告） |
+| oracle（含 oracle-reverse） | `true` | 原生 | 官方文档明确支持；**本仓库未跑容器实测** |
+| db2 | `true` | 原生 | IBM 官方文档 DB2 11.5.x「order-by-clause」明确列出 `NULLS FIRST` / `NULLS LAST`；**本仓库未跑容器实测** |
+| mysql | `false` | CASE 改写 | 实测：MySQL 8.0.46 **不接受** `NULLS` 子句 |
+| mysql5.7 / mariadb | `false` | CASE 改写 | 保守缺省（未实测，继承/对齐 mysql） |
+| dm / tdengine / es | `false` | CASE 改写 | 保守缺省（无达梦/tdengine 环境，未实测） |
+| mssql | `false` | CASE 改写 | 保守缺省（未实测；SQL Server 无 `NULLS FIRST/LAST` 语法） |
+
+> **未实测为何仍安全**：`false` 走 CASE 改写在**任何**方言上都语义正确，只是 SQL 略冗长。
+> 这正是该能力位被设计成「支持/不支持」而非「四模型枚举」的原因——不确定时填 `false` 不会算错。
+
+**⚠️ 不要自己推断「请求值 == 方言缺省就省略子句」**。DuckDB 是反例：它 `ASC` 与 `DESC`
+**都不翻转**空序缺省（`ASC`/`DESC` 一律 NULLS LAST）。若按「DESC 默认 NULLS FIRST」这类
+单布尔模型去省略，`order by x desc nulls first` 会被判成「缺省即满足」而省略，
+DuckDB 实际返回 NULLS LAST——静默给出错误行序。因此本框架**不做省略优化**，
+`defaultNullsFirst` 这个历史属性全程不读。
+
+**三类位置会响亮失败**（抛 `nop.err.eql.nulls-order-not-supported`，不静默忽略）：
+
+| 场景 | `reason` |
+|---|---|
+| 改写路径遇到窗口上下文（`OVER (...)` / 命名窗口 `WINDOW w AS (...)` 内） | `window-not-supported` |
+| 改写路径遇到非纯列引用（函数、算术、`order by 1` 序号等无法安全复制的表达式） | `expression-not-duplicable` |
+| 改写路径遇到 `SELECT DISTINCT`（**无论排序列是否已投影**） | `distinct-not-supported` |
+
+原生方言下这三类均放行（数据库自身能处理，不需要改写）。多键 `ORDER BY` 时，
+CASE 键插在**紧邻其排序项**的位置，不改变键间优先级。
+
+> **为什么 `DISTINCT` 是整类拒绝而不是「排序列已投影即可」**：实测 PostgreSQL 16，
+> `select distinct v from t order by (case when v is null then 0 else 1 end), v` 即便 `v`
+> 已在投影列表中仍报 `for SELECT DISTINCT, ORDER BY expressions must appear in select list`
+> ——注入的 `CASE` 是一个**新的** ORDER BY 表达式，不在 select list 里。
+> 所以「排序列已投影」只是必要条件，不足以让改写合法。
+
+**`ORDER BY ... COLLATE` 仍不支持**。注意区分：`CAST(x AS type COLLATE y)` 中的
+`COLLATE` 是**支持的**，它属于类型修饰而非排序规则。
+
+#### 另两条通道：bean 路径与聚合路径（2026-10-04 plan 2309 起与 EQL 同契约）
+
+`QueryBean.orderBy(...)` / `OrderFieldBean.nullsFirst`（bean 路径）与 `nop-metadata`
+聚合查询（`AggregationHelper`）是**独立于 EQL 的产出路径**，但空序策略现与 EQL 一致，
+统一只依赖 `supportNullsFirst` 能力位。
+
+**bean 路径**（`DaoQueryHelper.appendOrderBy` / `GenSqlHelper`）：方言由 ORM 层显式传入
+（`ormTemplate.getSessionFactory().getDialectForQuerySpace(...)`），true → 原生输出，
+false → 同一份 `CASE WHEN` 改写（`NullsOrderRewriter`，与 EQL 共用实现，全仓仅一份）。
+改写按**排序项**逐个进行，多键时 CASE 键紧邻其排序项，不改变键间优先级。
+
+> 为什么方言要显式往下传：`SQL.SqlBuilder` 位于 `nop-core`，而依赖方向是
+> `nop-dao` → `nop-core`（单向），故 `nop-core` **编译期无法引用 `IDialect`**。
+> 这也解释了 `SQL.SqlBuilder.nullsFirst` 为何仍是方言盲的——它只是底层拼装器，门控在其调用方。
+
+**聚合路径**（`AggregationHelper.buildOrderByClause`）与前两者有一处**本质差异**：
+它的排序键是**度量聚合表达式**（`SUM(x)`）或**维度列**。按 design §3.8「改写只对纯列引用
+允许」，该路径**不做 CASE 改写**，而是：
+- 方言支持原生子句（按 `supportNullsFirst` 能力位：h2 / postgresql / oracle / duckdb /
+  db2 及其派生方言 h2gis / postgis / oracle-reverse）→ 原生输出；
+- **mysql 家族**（`mysql` / `mysql5.7` / `mariadb`）→ 与 MySQL 缺省一致的组合省略子句，
+  无法表达的组合**响亮失败**；
+- 其余方言、或**取不到方言** → **响亮失败**（此前是无条件拼接，在 mariadb / dm /
+  tdengine 上产出语法错误 SQL）。
+
+> **判定方式**：原生支持与否**按平台能力位 `supportNullsFirst` 判定**（经 `DialectManager`
+> 解析，自动跟随 `x:extends` 继承），不是按名字白名单——因此 `h2gis` / `postgis` /
+> `oracle-reverse` 这类自身不声明、经继承为 true 的派生方言不会被漏判。
+
+> 「取不到方言就失败」是刻意的：无法校验方言时产出原生子句，等于把错误推迟到目标库，
+> 且在 MySQL 上必然是语法错误。
+
+**仍需注意的两处方言盲点**（均已加 javadoc 警示，且都不在查询主链路上）：
+- `QueryBeanHelper.buildOrderBySql`（`nop-core`）：直接渲染 `" nulls first"` 文本，
+  **零调用方**（全仓 grep 确认）。删除属 `nop-core` API 变更（Protected Area），
+  已在 plan 2309 的 Deferred 区登记，**尚未独立立项**。
+- `OrderFieldBean.toString()`：同样渲染该文本，仅调试用，不可当 SQL 用。
+- `OrderFieldBean.shouldNullsFirst()`：用单布尔推导空序，是**内存比较语义**
+  （供 `OrderByComparator` 等内存排序），**不是 SQL 语义**——单布尔模型正是 §3.8 否决的
+  做法（见上文 DuckDB 警告），SQL 产出路径不得使用。
+- `SQL.SqlBuilder.orderField` / `reverseOrderField` / `orderBy(String, List)` /
+  `orderBy(String, OrderFieldBean)`：本身仍是无条件拼接的底层拼装器，且现已无 main 调用方。
+  **不要直接调用它们**；走 `DaoQueryHelper.appendOrderBy` 或 `GenSqlHelper`（已接门控）。
 
 **覆盖审计（2026-10-04 EQL 兼容 roadmap WI7b，窗口半区核验收口）**：`OVER` 带/不带 partition 与 frame 的语法层、方言 SQL 文本（window/frames golden，10+5 方言）与 H2 真库执行三层覆盖均已就位；WI7b 补齐"不带 partition 仅 order by（± frame）"的编译文本断言（`TestDialectWindowSqlSnapshot.testOverWithoutPartitionText`），产品行为零改动。裁定与审计结论见 WI7b Phase 0 裁定文档（开发过程设计归档）§7。
 
@@ -125,7 +268,7 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | 标志 | 含义 | 典型差异数据库 |
 |------|------|---------------|
 | `useAsInFrom` | `FROM t AS v` 是否允许 `AS` | Oracle 不允许 |
-| `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **已接线**（2026-10-04 WI7）：accessor `IDialect.isSupportNullsFirst()` + 消费点 `AstToSqlGenerator.visitSqlOrderByItem`（子句输出唯一门）。现值：duckdb/h2/oracle/postgresql 显式 `true`；其余方言（含 mysql/tdengine 等未配置者）= 模型 null → accessor false（保守缺省）。门行为：true 按请求打印子句；false 时显式请求按缺省序推导"一致省略/冲突报错"（见「defaultNullsFirst」小节）。dialect.xdef javadoc 中「不支持时用 `order by if(isnull(f),0,1), f` 模拟」的设想**不落地**（不支持方言一律"一致省略或响亮报错"，无表达式注入）。与 `defaultNullsFirst`（缺省 NULL 序**事实**）正交，见下方「defaultNullsFirst」小节 |
+| `supportNullsFirst` | 是否原生接受 `NULLS FIRST/LAST` 子句 | **已接线**（merge 裁决 = master Plan 2308 emission）：发射唯一判据 `IDialect.isSupportNullsFirst()`——true 按请求原生打印；false 走 `NullsOrderRewriter` CASE 改写（`CASE WHEN col IS NULL THEN … END, col <dir>`，任何方言语义正确），结构不可改写处（非列引用/SELECT DISTINCT/窗口内）编译期报 `nop.err.eql.nulls-order-not-supported`。现值：h2/postgresql/duckdb/oracle/db2（0ea57a097e 一手修正）显式 `true`；其余（含 mysql/mssql/dm/tdengine 等未配置者）= 模型 null → false（保守缺省，仅多一个 CASE 键，不影响正确性）。`defaultNullsFirst`（缺省 NULL 序事实）**发射全程不读**（单布尔无法表达各方言真实空序模型，master design §3.8），两标志正交。ours WI7 的"缺省序推导围栏（一致省略/报错）"方案已随 merge 裁决退役 |
 | `supportDeleteTableAlias` | DELETE 语句是否允许表别名 | 全部方言 `false`（继承 default）。WI10b 行为契约：EQL **接受并归一化**别名（可解析、输出抑制、语义无损），标志为能力声明，勿按 flag 建打印分支或编译期拒绝门（见「UPDATE/DELETE 表别名」小节） |
 | `supportUpdateTableAlias` | UPDATE 语句是否允许表别名 | 同上（`supportDeleteTableAlias` 行） |
 | `supportILike` | 是否支持 `ILIKE` 大小写不敏感匹配 | H2 显式 `true`；PostgreSQL/DuckDB 继承 default 的 `false`（PG 原生支持 ILIKE，但该标志的现值是 false——消费方以 `ilike` **函数注册**为准，见「ilike 函数注册」小节；翻标志会引入假阴性）。WI10b 裁定：**勿将本标志接为第二道门**（PG 实证：flag=false 且 ilike 函数已注册可用，接标志即破坏两个已收口方言）；标志与注册互不强约束由 `TestDialectDeadFlagDisposition` 锁定 |
@@ -331,9 +474,11 @@ EQL 的 INTERVAL 现在接受两种语法形态，构建期归一化装入同一
 
 - 端到端用例：`TestEqlSqlIntervalTemplate`（h2 真库执行 + 三形态文本断言 + BC/非字面量/坏 marker 负向）。TUMBLE 伪表函数渲染（`visitSqlTumbleTableSource`）刻意逐字输出、不经模板（owner = nop-stream-sql roadmap WI20）。
 
-### 集合下标表达式：显式报错（2026-10-03 WI1 BUG-14）
+### 集合下标表达式：文法移除、解析期拒绝（2026-10-03 WI1 BUG-14；merge 后由 Plan 2307 V3 收严）
 
-EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）在生成器中**显式报错** `nop.err.eql.collection-access-not-support`（echo 与执行路径同门），不再静默产出垃圾 SQL。裁定依据：该文法的方括号内容是**集合过滤语义**（`where` + `order by`，非下标取值），编译管线对该节点没有 lowering，"机械回显"没有任何数据库能接受；显式失败遵循"静默降级会改变语义必须显式报错"的平台原则。写作替代：集合语义请改写为关联属性 join 或集合操作符（`_some`/`_all` 走另一条 AST 路径，不受影响）。今天文法层即失败的输入（`o.roles[]`、`o.roles[order by a].x()`）保持解析期响亮失败。
+`sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）的方括号内容是**集合过滤语义**（`where` + `order by`，非下标取值），编译管线对该节点没有任何 lowering，"机械回显"没有任何数据库能接受。
+**merge 裁决（Plan 2307 V3 supersede）**：ours WI1 曾保留文法、在生成器显式报错 `nop.err.eql.collection-access-not-support`（echo 与执行同门）；master Plan 2307 V3 将该构造**从文法与 AST 模型中整体移除**（`SqlCollectionAccessExpr` 类删除），该输入现在 **parse 期即响亮失败**（`nop.err.antlr.*`，`TestEqlRemovedGrammarUnreachable` 钉死）——比编译期报错更早、同为响亮失败，与本平台"静默降级会改变语义必须显式报错"原则一致，错误码 `collection-access-not-support` 同步退役。
+写作替代不变：集合语义请改写为关联属性 join 或集合操作符（`_some`/`_all` 走另一条 AST 路径，不受影响）。
 
 ### `ilike` 函数注册与消费（2026-10-04 EQL 兼容 roadmap WI3 第 9 项）
 
@@ -349,12 +494,9 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 
 - `defaultNullsFirst`（dialect 根属性）= 缺省升序下 NULL 是否排前的**事实**；`supportNullsFirst`（features 标志）= 是否原生接受 `NULLS FIRST/LAST` **子句**。两者正交、各司其职，不是重复标志（duckdb `defaultNullsFirst=false` + `supportNullsFirst=true` 同时成立且都正确）。
 - 现值（2026-10-04）：`defaultNullsFirst` 显式配置 mysql/mssql/dm/h2=`true`，tdengine/duckdb/postgresql/oracle=`false`；未配置（如 db2）= 模型 null → accessor false（保守缺省）。两个 accessor 均已接线：`IDialect.isDefaultNullsFirst()`（WI3）+ `IDialect.isSupportNullsFirst()`（WI7）。
-- **语法接受（2026-10-04 WI7 Phase 3）**：`order by <expr> [asc|desc] [nulls first|nulls last]` 可解析（`sqlOrderByItem` 单备选内扩展；`NULLS` 为显式大小写不敏感 token——执行期实测修订：plan 设想的"unreservedWord_ 加词零 lexer 改动"产生的是无 lexer 规则的隐式 token=永不可达，同 BUG-15 `STRING` 形态；修正=Literals.g4 显式 `NULLS : N U L L S;`，`NULLS=353` 仅其后 5 个 Literals token 序号顺延 +1、零 token 删除）。`nulls` 收编 `unreservedWord_` 后仍可作列名/别名（`sqlIdentifier_` 通路）。回显打印 `nulls first`/`nulls last`（继承路径，随文法激活首次可达）。
-- **`NULLS FIRST/LAST` 门行为（2026-10-04 WI7，执行路径 `AstToSqlGenerator.visitSqlOrderByItem`；回显路径不做方言判断）**：
-  1. 未指定 `nullsFirst` → 输出与既有行为逐字节一致（缺省**不主动补子句**）；
-  2. `isSupportNullsFirst()=true`（duckdb/h2/oracle/postgresql）→ 按请求打印 `nulls first`/`nulls last`；
-  3. false 且显式请求 → 缺省序推导（ASC=`isDefaultNullsFirst()`，DESC=镜像）：请求与该方向缺省序**一致则省略子句**（行为等价）、**不一致则编译期报错** `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`）。
-- **一手文档准入集**：缺省序推导（"一致省略"）仅在方言缺省 NULL 序已有一手文档引证时成立——mysql/mysql5.7/mariadb（MySQL 手册"NULL values are presented first if you do ORDER BY ... ASC and last if you do ORDER BY ... DESC"）、mssql（NULL 视为最低值）、h2（`LOW`/`HIGH` 方向相对）。**dm/tdengine（XML 有配置但无一手文档，红线 `[未取证]`）与 db2（未配置 + 文档不可得）两方向显式请求一律报错**——配置值是登记事实但不作等价性主张（裁定正文 = EQL 兼容 roadmap WI7 的 Phase 0 裁定文档 §三，登记于设计裁定目录）。
+- **语法接受（2026-10-04 WI7 Phase 3）**：`order by <expr> [asc|desc] [nulls first|nulls last]` 可解析（`sqlOrderByItem` 单备选内扩展；`NULLS` 为显式大小写不敏感 token——执行期实测修订：plan 设想的"unreservedWord_ 加词零 lexer 改动"产生的是无 lexer 规则的隐式 token=永不可达，同 BUG-15 `STRING` 形态；修正=Literals.g4 显式 `NULLS : N U L L S;`）。`nulls` 收编 `unreservedWord_` 后仍可作列名/别名（`sqlIdentifier_` 通路）。回显打印 `nulls first`/`nulls last`（继承路径，随文法激活首次可达）。
+- **【merge 裁决 / Plan 2308 supersede】执行路径发射行为**：ours WI7 的三分门（"缺省序推导：一致省略 / 冲突或集合外报错"）已退役，现行契约 = 上文「ORDER BY 空序」节（plan 2308）：发射只看 `supportNullsFirst` 能力位——true 原生直出（含 db2，0ea57a097e 一手修正）；false 走 `NullsOrderRewriter` CASE 改写（对任何方言语义正确），结构不可改写处（窗口/非列引用/DISTINCT）报 `nop.err.eql.nulls-order-not-supported` + reason。
+- **ours 围栏集口径退役理由（留档）**：原方案要求"一手文档准入集"（mysql/mssql/h2）并对其余方言一律报错；master 方案以"false 走 CASE 改写在任何方言上都语义正确"消除了对缺省序取证的依赖（只有 SQL 冗长度差异，无正确性风险），且 ours 裁定文档自设的翻案条件（"仅在能给出逐方言无损 lowering 矩阵时成立"）已被 Plan 2308 Phase 0 真实容器探针满足。
 - ⚠️ **单个布尔不足以表达真实 NULL 序（能力上限，WI7 锁定证据、不解决）**：
   - **DuckDB-vs-PG 的 DESC 缺省分叉**：DuckDB 官方文档明写 "DuckDB keeps `NULLS LAST` even for `DESC` ordering, whereas PostgreSQL places `NULL`s first on `DESC`"——两库 `defaultNullsFirst` 均 `false`（ASC 缺省相同），**DESC 缺省不同**，且单个布尔不可表达。两库 `supportNullsFirst` 均 `true`，显式子句可表达任一语义（parity 用例：`order by … desc nulls last` 双库都输出 `nulls last`）。
   - **H2 的更强证据**：除方向相对的 `LOW`/`HIGH`（"NULL values are considered as smaller than other values **during sorting**"）外还有方向无关的 `FIRST`/`LAST` 设置（"sorted before other values, no matter if ascending or descending order is used"）。
@@ -424,7 +566,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 
 | 输出点 | 位置 | 能力标志 / 通路 | 不支持时错误码 | 负向测试 |
 |--------|------|----------------|---------------|---------|
-| 集合下标表达式 | `AstToEqlGenerator.visitSqlCollectionAccessExpr`（echo/执行同门） | 无 lowering 通路（语义不支持翻译） | `nop.err.eql.collection-access-not-support` | `TestEqlCollectionAccessError` |
+| 集合下标表达式 | （merge 后）文法与 AST 类已移除（Plan 2307 V3），parse 期拒绝 | 无 lowering 通路（语义不支持翻译） | `nop.err.antlr.*`（解析失败） | `TestEqlRemovedGrammarUnreachable` |
 | `for update` 锁文本 | `AstToSqlGenerator.printForUpdate`（回显路径 `AstToEqlGenerator` 硬编码不动） | `getForUpdateSql` 空模板即不支持（如 duckdb `<forUpdate x:override="replace"/>`） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdate`） | `TestDuckDbDialect.testForUpdateEqlPathFailsLoudly`、`TestEqlForUpdateDialectGate` |
 | `for update nowait` / `for update skip locked` 锁后缀（WI12 交付①②） | `AstToSqlGenerator.printForUpdate`（消费 `SqlQuerySelect.nowait`/`skipLocked`；文法 `sqlQuerySelect` 分离标签 `nowait=NOWAIT \| skipLocked=skipLocked_`；回显路径硬编码不动） | `<sqls>` 的 `<forUpdateNowait>`/`<forUpdateSkipLocked>` 配置（presence = 能力 + 文本二合一；h2(+h2gis)/oracle(+oracle-reverse)/postgresql(+postgis)/mysql(+mariadb) 已配置 [实测-jar]/[文档]，mysql5.7/duckdb 继承链显式空覆盖关断，mssql/db2/dm/tdengine 未配置即响亮） | `nop.err.eql.dialect-not-support-feature`（`feature=forUpdateNowait`/`forUpdateSkipLocked`）；矛盾输入（nowait && skipLocked、或任一与 forUpdate=false 组合）= `IllegalArgumentException` | `TestEqlForUpdateLockVariants`、`TestH2ForUpdateLockVariants`（含 mssql/duckdb/mysql5.7 负向 + H2 真库执行）、`TestEqlNowaitWiring`、`TestEqlNowaitH2Dialect` |
 | `FROM (VALUES …)` 表源（WI12 交付⑤） | `AstToSqlGenerator.visitSqlValuesTableSource`（transform 期建列元数据 + 生成期能力门） | `supportValuesTableSource`（h2(+h2gis)/postgresql(+postgis+duckdb)/mssql 配置 true [文档]；mysql 族/oracle 族/db2/dm/tdengine 不配置） | `nop.err.eql.dialect-not-support-feature`（`feature=valuesTableSource`）；ragged rows = `nop.err.eql.values-row-arity-mismatch`（解析期） | `TestEqlValuesTableSource`（含 mysql 负向 + H2 真库执行 + ragged/alias 负向） |
@@ -443,7 +585,7 @@ EQL 文法 `sqlCollectionAccessExpr`（`select o.roles[1].x()` 一类输入）�
 | INTERSECT/EXCEPT 集合算子 | `AstToSqlGenerator.getIntercectKeyword/getExceptKeyword`（哨兵 `none` 门） | `intersectKeyword`/`exceptKeyword` 配置（`none` = 无该算子） | `nop.err.eql.dialect-not-support-feature`（`feature=intersectKeyword/exceptKeyword`） | `TestEqlSetOperatorDialectGate`、`TestDialectSetOperatorKeywords` |
 | SQL-92 函数语法（POSITION/SUBSTRING/EXTRACT/TRIM 三段式，WI5） | 构建期归一化进 `SqlRegularFunction`（`EqlASTBuildVisitor.visitSqlRegularFunction_position/substring/extract/trim*`），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路 | 方言函数表注册（`dialect.getFunction(归一化名)`；TRIM 带 chars=trimChars/ltrimChars/rtrimChars 模板仅注册已验证方言） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlPositionFunctionDialect.testUnknownDialectThrowsLoudUnknownFunction`（SUBSTRING/EXTRACT/TRIM 各自同类） |
 | 分页两标准形态 `FETCH FIRST`/`OFFSET..FETCH NEXT`（WI7） | 构建期归一化进既有 `SqlLimit{limit, offset}`（生成 visit 逐字段赋值），lowering 走 `AstToSqlGenerator.visitSqlQuerySelect` → `dialect.getPaginationHandler().buildPageExpr`（**无方言能力标志**——输出形态由方言 `paginationHandler` 配置决定） | `paginationHandler` 配置（LimitOffset 族 / OffsetFetch 族，见「分页两语法形态」小节矩阵） | 文法层解析错误（不完整形态，如 `OFFSET n ROWS` 无 FETCH）；lowering 无失败分支 | `TestEqlPaginationFetchParse`、`TestEqlPaginationFetchCompile` |
-| `ORDER BY … NULLS FIRST/LAST` 子句（WI7） | `AstToSqlGenerator.visitSqlOrderByItem`（执行路径唯一门；回显路径不设门） | `supportNullsFirst`（true=按请求打印）+ `defaultNullsFirst`（false 时缺省序推导，仅一手文档已证方言集允许"一致省略"） | `nop.err.eql.dialect-not-support-feature`（`feature=nullsFirst(first|last)`——冲突或方言缺省序无一手文档） | `TestEqlNullsFirstDialectGate`、`TestDefaultNullsFirstFlag`（accessor 双侧契约） |
+| `ORDER BY … NULLS FIRST/LAST` 子句 | （merge 裁决 = Plan 2308 emission）`AstToSqlGenerator.visitSqlOrderBy` + `NullsOrderRewriter`（回显路径不设门） | `supportNullsFirst`（true=原生直出；false=CASE 改写，唯一判据）；`defaultNullsFirst` 发射全程不读 | `nop.err.eql.nulls-order-not-supported`（`reason=window-not-supported`/`expression-not-duplicable`/`distinct-not-supported`——仅改写路径结构不可行处） | `TestEqlNullsOrderCompile`、`TestEqlNullsFirstDialectGate`（改写后矩阵）、`TestDefaultDialectNullsFirstFeatures`（取值守护）、`TestDefaultNullsFirstFlag`（accessor 契约） |
 | 归一化日期时间函数族 `lastday/weekofyear/dayofweek/datetrunc/datediff`（WI6） | 构建期即普通函数调用（函数名小写化既有通路），方言解析走 `EqlTransformVisitor.visitSqlRegularFunction` 函数表通路（零文法/AST 改动） | 方言函数表注册（native 或 template；仅注册一手取证方言，不进 default——字符串单位约定下裸关键字方言 cell 不落） | `nop.err.eql.unknown-function`（funcName=归一化名） | `TestEqlLastDayDialect.testUnregisteredDialectThrowsLoud`（其余函数各自同类） |
 | INTERVAL 字面量执行输出（WI7b） | `AstToSqlGenerator.visitSqlIntervalExpr` | `sqlIntervalLiteral` 模板配置（`<sqls>` 子元素）；未配置 = 既有裸输出（BC，不报错）；已配置 + 非字面量 value = 编译期报错；坏 marker = 加载期报错 | 已配置+非字面量：`nop.err.eql.dialect-not-support-feature`（`feature=intervalNonLiteralValue`）；坏 marker：`nop.err.dao.dialect.invalid-interval-literal-template` | `TestEqlSqlIntervalTemplate` |
 | GROUP BY 分组操作符 ROLLUP/CUBE（WI7b） | `EqlTransformVisitor.visitSqlGroupingOp`（transform 门）+ `AstToEqlGenerator.visitSqlGroupingOp`（打印，identity lowering） | `supportRollup` / `supportCube`（分立两标志；仅 GROUP BY 位置合法，非 GROUP BY 位置走函数表兜底） | `nop.err.eql.dialect-not-support-feature`（`feature=rollup|cube`）；非 GROUP BY 位置 `nop.err.eql.unknown-function` | `TestEqlGroupingOpsDialect` |

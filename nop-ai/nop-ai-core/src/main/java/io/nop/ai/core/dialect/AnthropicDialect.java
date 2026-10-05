@@ -27,6 +27,9 @@ import io.nop.http.api.client.HttpRequest;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +61,8 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_INVALID_RESPONSE;
  * </pre>
  */
 public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect {
+    private static final Logger LOG = LoggerFactory.getLogger(AnthropicDialect.class);
+
 
     @Override
     public String getName() {
@@ -262,26 +267,130 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             }
         }
 
-        // 分离 system 消息到单独字段
+        // 分离 system 消息到单独字段；相邻同角色消息合并为单一轮（plan 2284
+        // 请求侧形态修正：Anthropic 轮以 role 交替承载——assistant 轮收纳 text+
+        // tool_use 块、user 轮收纳 tool_result+后续文本块，块序保持消息序）。
         List<Map<String, Object>> messages = new ArrayList<>();
         ChatMessage lastMessage = request.getLastMessage();
+        Map<String, Object> currentTurn = null;
+        String currentRole = null;
+        Map<String, Object> turnWithLastMessage = null;
         for (ChatMessage msg : request.getMessages()) {
             if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
                 body.put("system", msg.getContent());
-            } else {
-                Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
-                if (msg == lastMessage && modelConfig != null) {
-                    applyThinkingToContentBlocks(msgMap, modelConfig, options);
-                }
-                messages.add(msgMap);
+                continue;
             }
+            String role = getRole(msg);
+            if (currentTurn == null || !role.equals(currentRole)) {
+                currentTurn = new LinkedHashMap<>();
+                currentTurn.put("role", role);
+                currentTurn.put("content", new ArrayList<Map<String, Object>>());
+                messages.add(currentTurn);
+                currentRole = role;
+                turnWithLastMessage = null;
+            }
+            if (msg == lastMessage) {
+                turnWithLastMessage = currentTurn;
+            }
+            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
+            ((List<Map<String, Object>>) currentTurn.get("content")).addAll(
+                    (List<Map<String, Object>>) msgMap.get("content"));
+            // Plan 2302 (WI20): the merged-turn top-level cache_control
+            // retention (former providerHints passthrough) was removed —
+            // breakpoints are engine-placed at the content-block level
+            // (applyCacheBreakpoints), never as a turn-level key.
         }
+
+        if (turnWithLastMessage != null && modelConfig != null) {
+            applyThinkingToContentBlocks(turnWithLastMessage, modelConfig, options);
+        }
+
+        // Plan 2302 (WI20): request-side cache breakpoint engine — replaces
+        // the providerHints cache_control passthrough (removed below, the
+        // autonomous-WI8 top-level placement defect). Config-gated: zero
+        // breakpoints = byte-identical request shape.
+        applyCacheBreakpoints(body, messages, modelConfig);
 
         if (!messages.isEmpty()) {
             body.put("messages", messages);
         }
 
         return body;
+    }
+
+    /**
+     * Plan 2302 (WI20): deterministic cache breakpoint placement at the
+     * content-block level (the only position Anthropic accepts).
+     *
+     * <ul>
+     *   <li>system: the string form becomes a single-element block array with
+     *       the breakpoint on that block (skipped when no system key is
+     *       present);</li>
+     *   <li>messages: the last {@code cacheBreakpoints} non-empty turns each
+     *       get the breakpoint on their last cache-control-carryable block
+     *       (thinking blocks are skipped — the Anthropic contract forbids
+     *       cache_control on thinking; a turn with only thinking blocks is
+     *       skipped and does not count toward N).</li>
+     * </ul>
+     *
+     * <p>Negative configuration equals off (debug log — the knob is never a
+     * failure surface). Same message sequence → same breakpoint positions
+     * (serialization determinism, llm-layer §3.2).
+     */
+    @SuppressWarnings("unchecked")
+    private void applyCacheBreakpoints(Map<String, Object> body,
+                                       List<Map<String, Object>> turns,
+                                       LlmModelModel modelConfig) {
+        int breakpoints = modelConfig != null && modelConfig.getCacheBreakpoints() != null
+                ? modelConfig.getCacheBreakpoints() : 0;
+        if (breakpoints <= 0) {
+            if (breakpoints < 0) {
+                LOG.debug("AnthropicDialect: negative cacheBreakpoints={} treated as off", breakpoints);
+            }
+            return;
+        }
+
+        Object systemObj = body.get("system");
+        if (systemObj instanceof String && !((String) systemObj).isEmpty()) {
+            Map<String, Object> systemBlock = new LinkedHashMap<>();
+            systemBlock.put("type", "text");
+            systemBlock.put("text", systemObj);
+            systemBlock.put("cache_control", cacheControlValue(modelConfig));
+            List<Map<String, Object>> systemBlocks = new ArrayList<>(1);
+            systemBlocks.add(systemBlock);
+            body.put("system", systemBlocks);
+        }
+
+        int placed = 0;
+        for (int i = turns.size() - 1; i >= 0 && placed < breakpoints; i--) {
+            List<Map<String, Object>> blocks = (List<Map<String, Object>>) turns.get(i).get("content");
+            if (blocks == null || blocks.isEmpty()) {
+                continue; // empty turn — skipped, does not count toward N
+            }
+            Map<String, Object> target = null;
+            for (int b = blocks.size() - 1; b >= 0; b--) {
+                Map<String, Object> block = blocks.get(b);
+                if (!"thinking".equals(block.get("type"))) {
+                    target = block;
+                    break;
+                }
+            }
+            if (target == null) {
+                continue; // only thinking blocks — skipped, does not count
+            }
+            target.put("cache_control", cacheControlValue(modelConfig));
+            placed++;
+        }
+    }
+
+    private Map<String, Object> cacheControlValue(LlmModelModel modelConfig) {
+        Map<String, Object> cacheControl = new LinkedHashMap<>();
+        cacheControl.put("type", "ephemeral");
+        String ttl = modelConfig.getCacheBreakpointTtl();
+        if (ttl != null && !ttl.isEmpty()) {
+            cacheControl.put("ttl", ttl);
+        }
+        return cacheControl;
     }
 
     @Override
@@ -361,9 +470,10 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 ? responseConfig.getStatusPath() : "stop_reason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // 解析 Usage（使用基类通用方法，支持缓存 token）
+        // 解析 Usage（使用基类通用方法，支持缓存 token；plan 2303/WI21 补
+        // rawUsage 保留——hit/creation 由下方 Anthropic 专用字段映射承载）
         ChatUsage usage = parseUsage(responseMap, responseConfig,
-                "usage.input_tokens", "usage.output_tokens", null);
+                "usage.input_tokens", "usage.output_tokens", null, null, null, "usage");
 
         // Anthropic Prompt Caching 专用字段
         // cache_creation_input_tokens: 创建缓存时消耗的 token
@@ -561,27 +671,25 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
                                                ChatOptions options) {
         Map<String, Object> msgMap = new LinkedHashMap<>();
-        
+
         msgMap.put("role", getRole(message));
 
         List<Map<String, Object>> contentBlocks = new ArrayList<>();
 
-        String textContent = message.getContent();
-        if (textContent != null && !textContent.isEmpty()) {
-            Map<String, Object> textBlock = new LinkedHashMap<>();
-            textBlock.put("type", "text");
-            textBlock.put("text", textContent);
-            contentBlocks.add(textBlock);
-        }
-
-        if (message instanceof ChatReasoningMessage) {
-            Map<String, Object> thinkingBlock = new LinkedHashMap<>();
-            thinkingBlock.put("type", "thinking");
-            thinkingBlock.put("thinking", message.getContent());
-            contentBlocks.add(thinkingBlock);
-        }
-
-        if (message instanceof ChatToolCallMessage) {
+        if (message instanceof ChatToolResponseMessage) {
+            // plan 2284 请求侧形态修正：tool_result 块先于同轮文本块（Anthropic
+            // 契约要求 tool_result 位于 user 轮前部）；工具输出内容仅承载于
+            // tool_result 块——不再重复产出携带同一文本的 text 块（旧形态双份内容）。
+            ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
+            Map<String, Object> toolResultBlock = new LinkedHashMap<>();
+            toolResultBlock.put("type", "tool_result");
+            toolResultBlock.put("tool_use_id", toolMsg.getCallId());
+            toolResultBlock.put("content", toolMsg.getContent());
+            contentBlocks.add(toolResultBlock);
+        } else if (message instanceof ChatToolCallMessage) {
+            // plan 2284：仅产出 tool_use 块——getContent()（arguments JSON）是
+            // 寄居伪影，参数已由 tool_use.input 承载，不再重复产出 text 块
+            // （旧伪影在 parse 侧已有等值丢弃兜底，此处源头清除保证合并轮 roundtrip 等价）。
             ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
             Map<String, Object> toolBlock = new LinkedHashMap<>();
             toolBlock.put("type", "tool_use");
@@ -589,21 +697,28 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             toolBlock.put("name", toolCallMsg.getName());
             toolBlock.put("input", toolCallMsg.getArguments());
             contentBlocks.add(toolBlock);
+        } else {
+            String textContent = message.getContent();
+            if (textContent != null && !textContent.isEmpty()) {
+                Map<String, Object> textBlock = new LinkedHashMap<>();
+                textBlock.put("type", "text");
+                textBlock.put("text", textContent);
+                contentBlocks.add(textBlock);
+            }
+
+            if (message instanceof ChatReasoningMessage) {
+                Map<String, Object> thinkingBlock = new LinkedHashMap<>();
+                thinkingBlock.put("type", "thinking");
+                thinkingBlock.put("thinking", message.getContent());
+                contentBlocks.add(thinkingBlock);
+            }
         }
 
-        if (message instanceof ChatToolResponseMessage) {
-            ChatToolResponseMessage toolMsg = (ChatToolResponseMessage) message;
-            Map<String, Object> toolResultBlock = new LinkedHashMap<>();
-            toolResultBlock.put("type", "tool_result");
-            toolResultBlock.put("tool_use_id", toolMsg.getCallId());
-            toolResultBlock.put("content", toolMsg.getContent());
-            contentBlocks.add(toolResultBlock);
-        }
-
-        if (message.getProviderHints() != null && message.getProviderHints().containsKey("cache_control")) {
-            msgMap.put("cache_control", message.getProviderHints().get("cache_control"));
-        }
-
+        // Plan 2302 (WI20): the providerHints cache_control passthrough was
+        // removed — a top-level message-map key is not a position Anthropic
+        // accepts (the autonomous-WI8 placement defect). Cache breakpoints
+        // are engine-constructed at the content-block level
+        // (applyCacheBreakpoints, model-config gated).
         msgMap.put("content", contentBlocks);
         return msgMap;
     }
@@ -625,6 +740,11 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
 
     @Override
     public String getRole(ChatMessage message) {
+        if (message instanceof ChatToolResponseMessage) {
+            // Anthropic Messages API 只接受 user/assistant 两种角色：tool_result
+            // 搭载于 tool_use 之后紧跟的 user 轮（plan 2284 请求侧形态修正）
+            return "user";
+        }
         String role = getBaseRole(message);
         // Claude 使用 model 而不是 assistant
         return "assistant".equals(role) ? "model" : role;

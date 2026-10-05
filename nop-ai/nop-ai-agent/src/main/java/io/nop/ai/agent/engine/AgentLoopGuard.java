@@ -49,8 +49,8 @@ public class AgentLoopGuard {
         ctx.setStatus(AgentExecStatus.paused);
         int count = denialLedger.getDenialCount(sessionId);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("denialCount", count);
-        payload.put("reason", "denial threshold exceeded (prior iteration)");
+        payload.put(AgentEventPayloads.DENIAL_COUNT, count);
+        payload.put(AgentEventPayloads.REASON, "denial threshold exceeded (prior iteration)");
         hookInvoker.publishEvent(AgentEventType.SESSION_PAUSED, sessionId, agentName, payload);
         LOG.warn("Session paused by denial ledger: session={}, denialCount={}", sessionId, count);
     }
@@ -74,8 +74,8 @@ public class AgentLoopGuard {
                 + ", iteration=" + ctx.getCurrentIteration();
         ctx.setLastError(reason);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", "goal tracker STUCK assessment");
-        payload.put("iteration", ctx.getCurrentIteration());
+        payload.put(AgentEventPayloads.REASON, "goal tracker STUCK assessment");
+        payload.put(AgentEventPayloads.ITERATION, ctx.getCurrentIteration());
         hookInvoker.publishEvent(AgentEventType.SESSION_ESCALATED, sessionId, agentName, payload);
         LOG.warn("Session aborted by goal tracker (stuck/looping): session={}, iteration={}",
                 sessionId, ctx.getCurrentIteration());
@@ -114,10 +114,10 @@ public class AgentLoopGuard {
 
         ctx.setStatus(AgentExecStatus.forced_stopped);
         Map<String, Object> payload = new HashMap<>();
-        payload.put("reason", "context-window-overflow");
-        payload.put("estimatedTokens", estimate);
-        payload.put("maxContextTokens", maxContextTokens);
-        payload.put("forcedStopPercent", CompactConfig.defaults().getForcedStopPercent());
+        payload.put(AgentEventPayloads.REASON, "context-window-overflow");
+        payload.put(AgentEventPayloads.ESTIMATED_TOKENS, estimate);
+        payload.put(AgentEventPayloads.MAX_CONTEXT_TOKENS, maxContextTokens);
+        payload.put(AgentEventPayloads.FORCED_STOP_PERCENT, CompactConfig.defaults().getForcedStopPercent());
         hookInvoker.publishEvent(AgentEventType.FORCED_STOP, sessionId, agentName, payload);
     }
 }

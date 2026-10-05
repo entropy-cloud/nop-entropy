@@ -9,6 +9,7 @@ import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
@@ -354,5 +355,60 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         AnthropicDialect dialect = new AnthropicDialect();
 
         assertThrows(NopException.class, () -> dialect.parseStreamChunk("{bad json"));
+    }
+
+    /**
+     * Plan 2284（WI3 占位协议 / WI2 必裁①）：等待期唤醒请求形态——
+     * tool_calls + 占位 tool_result + steering 文本经 buildBody 转换后满足
+     * Anthropic 契约：assistant 轮（text+tool_use 块）→ user 轮（tool_result
+     * 块在前、steering 文本块在后），同角色相邻轮合并为单一轮。
+     */
+    @Test
+    public void testWakeupRequestFormToolResultBeforeText() {
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatSystemMessage("You are a helpful assistant."));
+        messages.add(new ChatUserMessage("run the build"));
+        messages.add(new ChatAssistantMessage(""));
+        messages.add(new ChatToolCallMessage("call_1", "bash", Map.of("cmd", "mvn install")));
+        messages.add(new ChatToolCallMessage("call_2", "read-file", Map.of("path", "a.txt")));
+        // WI3 派生态占位（请求构造期渲染，未入史）——running 工具的占位 tool_result
+        messages.add(new ChatToolResponseMessage("call_1", "bash", "Tool \"bash\" is still running."));
+        messages.add(new ChatToolResponseMessage("call_2", "read-file", "Tool \"read-file\" is still running."));
+        // steering 唤醒输入（user 文本，同 user 轮合并、后置于 tool_result）
+        messages.add(new ChatUserMessage("[steering] switch to plan B"));
+
+        ChatRequest request = new ChatRequest(messages);
+        request.setOptions(new ChatOptions());
+
+        LlmModel config = new LlmModel();
+        config.setApiStyle(ApiStyle.anthropic);
+
+        Map<String, Object> body = dialect.buildBody(request, config, null, "claude-3-5-sonnet-20241022", false);
+
+        List<Map<String, Object>> turnList = (List<Map<String, Object>>) body.get("messages");
+        // system 提为 body.system；其余合并为 3 轮：user → model → user
+        assertEquals(3, turnList.size());
+        assertEquals("user", turnList.get(0).get("role"));
+        assertEquals("model", turnList.get(1).get("role"));
+        assertEquals("user", turnList.get(2).get("role"));
+
+        List<Map<String, Object>> assistantBlocks = (List<Map<String, Object>>) turnList.get(1).get("content");
+        assertEquals(2, assistantBlocks.size());
+        assertEquals("tool_use", assistantBlocks.get(0).get("type"));
+        assertEquals("call_1", assistantBlocks.get(0).get("id"));
+        assertEquals("tool_use", assistantBlocks.get(1).get("type"));
+        assertEquals("call_2", assistantBlocks.get(1).get("id"));
+
+        // user 轮：占位 tool_result 块在前（callId 对应），steering 文本块最后
+        List<Map<String, Object>> userBlocks = (List<Map<String, Object>>) turnList.get(2).get("content");
+        assertEquals(3, userBlocks.size());
+        assertEquals("tool_result", userBlocks.get(0).get("type"));
+        assertEquals("call_1", userBlocks.get(0).get("tool_use_id"));
+        assertEquals("tool_result", userBlocks.get(1).get("type"));
+        assertEquals("call_2", userBlocks.get(1).get("tool_use_id"));
+        assertEquals("text", userBlocks.get(2).get("type"));
+        assertEquals("[steering] switch to plan B", userBlocks.get(2).get("text"));
     }
 }

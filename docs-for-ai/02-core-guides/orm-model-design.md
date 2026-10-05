@@ -866,6 +866,151 @@ AMIS 列: name="partner.name"           ← 自动映射，显示 "五金件" �
 
 实践中，每个引用主数据实体的模块都需要在桩的 `name`（或 `code`）列上加 `tagSet="disp"`。这是重复的手工步骤，但一次配置永久自动，远优于手动维护 `@BizLoader` 方法。对于大量跨模块引用场景的方案选择，见 `cross-module-entity-reference.md` 中的"显示名解析策略对比"。
 
+## 跨表属性：`<alias>` 与扩展属性表（`kvTable`）
+
+实体需要把属性放在主表以外的物理表时，**用 alias，不要用 JPA 的二级表**（Nop 不支持 `@SecondaryTable` 那种"按列把实体摊到多表、运行期决定字段来源"的形态）。
+
+### 三类 alias
+
+| 形态 | 模型声明 | 用途 |
+|------|---------|------|
+| **关联表列投影** | `<alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>` | 把 to-one 关联表上的列投影成本地属性 |
+| **纵表扩展属性投影** | 扩展表实体声明 `kvTable="true"`；本实体 `<alias name="extFldA" propPath="ext.fldA.string" type="String"/>` | 动态扩展属性存独立扩展表 |
+| **组件内路径投影** | `<alias name="examScoreNormalized" propPath="examScoreDecimal.normalizedValue" type="BigDecimal"/>` | 组件字段投影为顶层属性 |
+
+**alias 是可读可写的属性路径投影**，不是只读视图。生成代码的 getter/setter 落到 `internalGetAliasValue/internalSetAliasValue`，后者对整条 `propPath` 做 `BeanTool.getComplexProperty/setComplexProperty`；写入沿路径进行——关联投影写的是关联实体、组件路径写的是组件字段、纵表路径写的是扩展表行——并由该路径自身的持久化机制落库。
+
+`<alias>` 的 `propPath` 是属性路径（可含 `.` 下钻），`type` 是 Java 泛型类型（`<column>` 上没有 `type`，这是与列模型的关键区别）。alias 不是列：`getColumns()` 为空、`hasLazyLoadColumn()` 为 false、不参与 INSERT/UPDATE 的列清单。因此排序/过滤走 alias 时是按属性路径定位的，别把它当成本地列写 SQL 片段。
+
+### 纵表扩展属性表（`kvTable`）
+
+```xml
+<!-- 全局通用扩展表：主键 (entityName, entityId, fieldName) -->
+<entity name="io.nop.app.SimsExtField" tableName="SIMS_EXT_FIELD" kvTable="true" useTenant="true">
+    <columns>
+        <column name="entityName" code="ENTITY_NAME" primary="true" propId="1" .../>
+        <column name="entityId"   code="ENTITY_ID"   primary="true" propId="2" .../>
+        <column name="fieldName"  code="FIELD_NAME"  primary="true" propId="3" .../>
+        <column name="fieldType"  code="FIELD_TYPE"  propId="4" .../>   <!-- StdDataType.ordinal -->
+        <column name="decimalValue"  code="DECIMAL_VALUE"  propId="5" .../>
+        <column name="dateValue"     code="DATE_VALUE"     propId="6" .../>
+        <column name="timestampValue" code="TIMESTAMP_VALUE" propId="7" .../>
+        <column name="stringValue"  code="STRING_VALUE"  propId="8" .../>
+    </columns>
+</entity>
+```
+
+- `kvTable="true"` 的实体实现 `IOrmKeyValueTable`（"支持纵表存储"），按 `fieldType` 分列存放不同数据类型，主键三元组定位一行。
+- 主实体侧通过 `<to-many>` 关联它，得到 `entity.getExt()`，元素是 `IOrmKeyValueTable`；`prop_get(fieldName)` / `prop_set(fieldName, value)` 按字段名读写。
+- 实体类上有 `ext` 集合属性与 `getExtFldA()` 之类的**类型化快捷属性**（由 alias 生成）。`TestExtFields` 覆盖了完整用法：`BeanTool.setComplexProperty(entity, "ext.测试参数2.double", 2.0)` 写、`entity.getExtFldA()` 读、`dao.batchLoadProps(list, "ext")` 批量预取、以扩展字段值作为关联条件。
+- 该机制在 `nop-sys`、`nop-wf`、`nop-dyn` 均已使用（见各模块 `_delta/.../app.orm.xml`），是给平台实体加动态字段的既定路径。
+- **注意**：`TestExtFields` 演示的"模型中定义但未生成 get/set 的字段"（`entity.prop_set("extField", 5)`）
+  用的是**已生成并签入的** 实体基类 `io.nop.app._SimsExam`（位于 nop-orm 测试树的 `io/nop/app/_gen/` 目录下；该测试类头注释也写明"修改了 app.orm.xml 需重新运行 OrmCodeGen"）。
+  也就是说**实体类本身仍然是必需的**，只是个别字段不需要访问器。
+  若要连实体类一并免掉，见下方「免代码生成：动态实体 `DynamicOrmEntity`」。
+
+### 在 EQL 中使用 alias
+
+alias 名在 EQL 里就是普通列名，**出现在任何列位置都可以**：SELECT 投影、WHERE、GROUP BY、ORDER BY，也可参与算术表达式（`o.extFldB*2 + 3`）。
+
+```sql
+select o, o.extFldA, o.extFldB*2 + 3
+  from io.nop.app.SimsExam o
+ where o.extFldB = 1 and o.extFldA = 'x'
+ order by o.extFldA
+```
+
+编译器解析列名时先查真实字段，查不到就回落到 alias 的 `propPath`（`EqlTransformVisitor.resolveColName` 的 `getAliasPropPath` 分支），再交给与手写属性路径**完全相同**的 `resolvePropPath` 隐式 JOIN 逻辑。所以：
+
+- `select o.collegeName`（alias）与 `select o.simsCollege.collegeName`（显式路径）编译产物等价，无需二选一。
+- ORDER BY 中引用可空 to-one 的 alias 会被隐式转成 LEFT JOIN（与其他属性路径同一启发式），排序不会因 NULL 被过滤掉。
+- alias 只认 `<alias>` 声明的属性（`OrmEntityModel.getAliasPropPath` 仅接受 `IEntityAliasModel`）；`<compute>` 属性没有对应列，不能当列名用在 EQL 里。
+- 别把 alias 当本地列拼裸 SQL——它背后可能是 JOIN 或另一张表，跨表语义只有 EQL / DAO 层会正确处理。
+
+## 免代码生成：动态实体 `DynamicOrmEntity`
+
+**何时需要**：想在 ORM 模型里声明实体（能写 EQL、能建表、能 CRUD），但**不生成** Java 实体类。
+
+**怎么做**：在 `<entity>` 上指定 `className="io.nop.orm.support.DynamicOrmEntity"`。
+
+```xml
+<!-- app.orm.xml -->
+<entity name="test.entity.SimsRevision" tableName="TEST_SIMS_REVISION" useRevision="true"
+        className="io.nop.orm.support.DynamicOrmEntity">
+    <columns>
+        <column name="id" code="ID" stdSqlType="BIGINT" primary="true" propId="1"/>
+        <column name="extField" code="EXT_FIELD" stdSqlType="INTEGER" propId="2"/>
+    </columns>
+</entity>
+```
+
+这样**不需要跑 OrmCodeGen**，也不需要任何 retention 子类：表由 `createTables()` 自动建出，
+实体实例由 `DynamicOrmEntity` 直接构造。
+
+**为什么必须显式写 `className`**：`SessionFactoryImpl.getEntityClassModel`
+（`SessionFactoryImpl.java:412-423`）在**模型加载期**就对**每个**实体解析实体类，
+且 `EntityPersisterImpl.init`（`EntityPersisterImpl.java:100`）是**eager** 调用——
+即便该实体从未被查询，类不存在也会让整个 `SessionFactory` 初始化失败。
+解析规则是：`className` 为空则**回退用实体 `name` 当全限定类名**去 `loadClassModel`，
+于是 `ClassNotFoundException` 从 `PersistEnvBuilder.java:124-127` 抛出，
+堆栈里带一行 `createEntityPersistDriver:{entityName}` 看似是别的问题，实为实体类缺失。
+
+**动态字段怎么存的**：`DynamicOrmEntity` 内部有 `private MapOfInt<Object> values`
+（`DynamicOrmEntity.java:36`，按 **propId** 索引的 int-keyed map，不是按字段名的 `Map<String,Object>`）。
+模型里声明了 `propId` 但类上没有对应 getter/setter 的列，经
+`IPropGetMissingHook` / `IPropSetMissingHook` 落到这里，存取用：
+
+```java
+entity.prop_get("extField");
+entity.prop_set("extField", 5);
+// 或
+BeanTool.setProperty(entity, "extField", 5);
+```
+
+注意 `OrmEntity` 自己**没有**这个 Map——它只有一个 `_t`（`OrmEntity.java:93`），
+javadoc 明确写"保存一些**临时**属性，实现类似缓存的作用"，且 `orm_unload()` / `orm_reset()` 会清空，
+**不参与持久化**。别把 `_t` 当扩展字段存储用。
+
+**三种免生成方式的区别**：
+
+| 方式 | 写法 | 粒度 | 说明 |
+|---|---|---|---|
+| 动态实体 | `<entity className="io.nop.orm.support.DynamicOrmEntity">` | 单个实体 | 推荐；测试与只读投影实体常用 |
+| 整模动态 | `<orm orm:forceDynamicEntity="true">` | 整个模型 | codegen 时把所有实体 `className` 改写为 `DynamicOrmEntity`（`kv-table` 标签的改为 `DynamicOrmKeyValueTable`，见 `orm-gen.xlib:64-73`）；**仅 codegen 期属性**，`orm.xdef` 里没有声明 |
+| 动态实体名单 | `SessionFactoryImpl.setDynamicEntityNames(names)` | 按名字集合 | 代码级开关；**全仓库无调用方**，属未验证 API，勿优先使用 |
+
+**与 `notGenCode="true"` 的区别（易混）**：两者都"运行时有效但不生成代码"，但层次不同——
+`notGenCode` 是**字段/关系/alias 级**（该字段不生成 get/set，落到动态属性）；
+`className=DynamicOrmEntity` 是**实体级**（整个实体类都不存在）。
+`notGenCode` 仍然要求实体类存在，只是那个类缺某些字段的访问器。
+
+**已知限制**：`DynamicOrmEntity` 需要**公开无参构造**（`SessionFactoryImpl.java:405` 调用
+`beanModel.newInstance()`）；`kvTable="true"` 的实体要动态化必须用
+`DynamicOrmKeyValueTable`，直接写 `DynamicOrmEntity` 不满足 `IOrmKeyValueTable` 约束。
+
+## 明确不支持的映射特性（设计裁定）
+
+以下能力在 Nop ORM 中是**设计层面明确不实现**的，不是待办项也不是缺陷。看到需求时不要按 JPA 直觉建模：
+
+| 特性 | 裁定 | 正确做法 |
+|------|------|---------|
+| **对象继承映射**（JOINED / TABLE_PER_CLASS / 单表判别符） | 不支持，且不应该实现 | 拆为独立实体，用 `<to-one>` 关联；共享属性用 `<component>` 或抽为独立实体 |
+| **二级表**（一个实体映射多张物理表） | 不支持 | 拆为独立实体互相 `<to-one>`；只读聚合用视图实体（`noPrimaryKey`） |
+| **多对多连接表自动持久化** | 不支持 | 显式声明连接实体（带两个外键的普通实体），由平台按普通实体能力处理 |
+| **Savepoint** | 不支持 | 用补偿逻辑或业务级幂等替代 |
+| **ORM 层 PreparedStatement 缓冲** | 不做 | 由 DataSource / 连接池层解决 |
+| **XA / 2PC** | 不支持 | 跨数据源按 best-effort 顺序提交；关键流程用 TCC / 对账 |
+
+**为什么继承不被支持**：Nop 实体是 codegen 产物，形态在编译期完全确定，运行期不做字节码增强、不建代理。继承映射需要在运行期决定实体真实类型并延迟实例化，而 L1 实体缓存的身份键是 `(entityName, id)`——同一行数据对应多个候选实体类时键无法唯一定位已加载实例，代理替换与批量加载语义一并失效。
+
+**为什么 m2m 必须在实体层处理**：关联表本质是"带两个外键的普通表"，在 Nop 中它就是普通实体。显式建模后字典、租户隔离、逻辑删除、审计字段、数据权限、审批流、GraphQL CRUD、前端关联渲染全部可直接复用；隐式 m2m 表则完全拿不到这些能力。
+
+**集合变更语义**：`to-many` 集合中新增/删除元素时，持久化由**子实体自身的保存/删除**表达。父实体 flush 不产生连接表 INSERT/DELETE——集合成员的新增走 `bindOwnerProps`（按 `<join>` 声明把外键列写入子实体）后保存子实体，移除走 orphan 判定后删除子实体。因此**子实体没有反向外键属性（`refProp`）也能正常持久化**，外键由 `<join>` 的 `leftProp/rightProp` 决定。
+
+真正会"改了集合但无 SQL"的形态只有一个：`<to-many>` 的 `<join>` 为空集（既无 `leftProp` 也无 `rightProp`），此时无从确定写入哪个外键列，框架不做任何事且不报错。这类结构必须补全 `<join>`，或建模为显式连接实体自己管理写入。
+
+以上裁定为框架设计层面的确定性决策，变更需先修改设计决策本身，不可按 JPA 直觉直接引入。
+
 ## 相关文档
 
 - `code-style.md` — ORM 命名规范（表名、列名、实体名格式）

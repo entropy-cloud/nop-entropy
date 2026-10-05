@@ -202,8 +202,11 @@ public class TestDBCheckpointManagerEngineWiring {
         // LLM_TURN checkpoints are emitted too, so find the TOOL_EXECUTION one.
         List<Checkpoint> all = ckptMgr.getCheckpoints("db-ckpt-session");
         assertFalse(all.isEmpty());
+        // WI6: pick the TERMINAL (phase-less) TOOL_EXECUTION checkpoint —
+        // phase-tagged DISPATCHED checkpoints precede it in the journal
         Checkpoint toolCp = all.stream()
                 .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .filter(c -> io.nop.ai.agent.engine.ToolExecutionPhase.fromWatermark(c.getWatermark()) == null)
                 .findFirst().orElse(null);
         assertNotNull(toolCp);
         assertEquals("test-tool", toolCp.getToolName());

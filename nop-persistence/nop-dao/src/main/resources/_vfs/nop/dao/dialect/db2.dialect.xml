@@ -15,6 +15,13 @@
          保留字；补全保留字表需 DB2 一手文档取证，超出 WI3 范围（follow-up 登记）。 -->
     <reservedKeywords></reservedKeywords>
 
+    <!-- 0ea57a097e（master 一手修正，merge 并集保留）：DB2 LUW 原生支持
+         ORDER BY ... NULLS FIRST/LAST（IBM 官方文档 order-by-clause）。true 使 db2 的
+         显式空序请求走「原生直出」分支而非 CASE 改写——本分支 WI7 裁定当时将 db2 归入
+         [未取证] 报错口径，被此一手修正取代（ours 的 NULLS 门测试中 db2 用例已按
+         支持口径同步调整，见 merge 提交说明）。 -->
+    <features supportNullsFirst="true"/>
+
     <errorCodes>
         <errorCode name="nop.err.dao.sql.bad-sql-grammar">
             -007,-029,-097,-104,-109,-115,-128,-199,-204,-206,-301,-408,-441,-491

@@ -7,14 +7,11 @@
  */
 package io.nop.orm.eql.parse;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.eql.ast.SqlProgram;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * WI2 BUG-6：`full outer join` 解析失败。
@@ -54,14 +51,14 @@ public class TestEqlFullJoinParse extends BaseTestCase {
     }
 
     @Test
-    public void testNaturalJoinStillFailsLoudly() {
-        // natural join 未获 roadmap 授权，保持解析期响亮失败（行为不变）
-        try {
-            echo("select 1 from a natural full outer join b");
-            fail("natural full outer join must keep failing at parse time");
-        } catch (NopException e) {
-            assertTrue(e.getErrorCode().startsWith("nop.err.antlr"),
-                    "expected antlr parse error, got: " + e.getErrorCode());
-        }
+    public void testNaturalJoinNotAuthorized() {
+        // 【merge note / Plan 2307 V9】master 移除死 token NATURAL/USING（全仓 g4 零规则
+        // 引用；EQL 以普通 JOIN + ON 表达），`natural` 现按普通标识符进入别名路径——
+        // ours 原断言"解析期响亮失败"随之退役。`a natural full outer join b` 解析为
+        // 「别名 natural + full outer join b」（OUTER 回显丢弃为既有行为），
+        // natural join 语义仍未获授权；本断言钉住该降级形态，
+        // 防未来文法变更无意引入 NATURAL 语法糖。
+        String out = echo("select 1 from a natural full outer join b");
+        assertTrue(out.contains("as natural full join b"), out);
     }
 }

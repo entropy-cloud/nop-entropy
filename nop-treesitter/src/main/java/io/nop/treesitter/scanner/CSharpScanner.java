@@ -5,7 +5,9 @@ import java.util.List;
 
 /**
  * Faithful Java translation of tree-sitter-c-sharp's {@code scanner.c}
- * (tree-sitter v0.25.8; external tokens: OPT_SEMI, INTERPOLATION_REGULAR_START,
+ * (grammar version 0.23.5 per upstream `Cargo.toml`; neither this file nor the
+ * vendored `scanner.c` carries a tree-sitter generator version — see
+ * `tree-sitter-c-sharp/PROVENANCE.md`. External tokens: OPT_SEMI, INTERPOLATION_REGULAR_START,
  * INTERPOLATION_VERBATIM_START, INTERPOLATION_RAW_START, INTERPOLATION_START_QUOTE,
  * INTERPOLATION_END_QUOTE, INTERPOLATION_OPEN_BRACE, INTERPOLATION_CLOSE_BRACE,
  * INTERPOLATION_STRING_CONTENT, RAW_STRING_START, RAW_STRING_END,

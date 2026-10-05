@@ -211,7 +211,8 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
 
             QueryBean fixedQuery = query;
             sqlGenerator = ctx -> {
-                SQL.SqlBuilder sb = DaoQueryHelper.queryToSelectFieldsSql(fixedQuery, null);
+                SQL.SqlBuilder sb = DaoQueryHelper.queryToSelectFieldsSql(
+                        jdbcTemplate.getDialectForQuerySpace(querySpace), fixedQuery, null);
                 return sb.end();
             };
         }

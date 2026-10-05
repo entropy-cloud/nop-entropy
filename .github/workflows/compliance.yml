@@ -45,3 +45,19 @@ jobs:
             -not -path "*/docs/*" -not -path "*/docs-en/*")
           java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
             $FILES --rules nop-bean-naming --max-warnings 0
+
+  message-silent-wrong-result:
+    name: Message silent-wrong-result rules (nop-message)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # WI18: message-domain rule families (msg-pre-poll-seek / msg-stub /
+      # msg-warn-per-call) — positive/negative self-test first, then the module scan.
+      - name: Fixture self-test (all rules, both directions)
+        run: node ai-dev/tools/check-silent-wrong-result.mjs --fixture
+      - name: Scan nop-message (exit 0 required)
+        run: node ai-dev/tools/check-silent-wrong-result.mjs --module nop-message

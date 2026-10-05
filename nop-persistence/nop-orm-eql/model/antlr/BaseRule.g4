@@ -103,6 +103,9 @@ unreservedWord_:
     // WI7 Phase 3: NULLS 无保留 token（词法落 IDENTIFIER_），经 unreservedWord_ 进入
     // NULLS FIRST/LAST 子句位置与标识符位置（plan 26 Phase 3）
     | NULLS
+    // Plan 2307（merge 并集）：LATERAL 放开关键字遮蔽，进入标识符/函数名位置；
+    // 执行路径的方言门见 AstToSqlGenerator lateral supportLateral 门（WI1）。
+    | LATERAL
     // WI7b Phase 2: ROLLUP/CUBE 有 Literals.g4 显式 token（grouping 操作符），双登记
     // unreservedWord_ 保住标识符位置（列名/别名 rollup/cube 仍可解析——plan 37，
     // ⓒ-A 裁定文档 §3.1）。非 GROUP BY 位置的 rollup(x)/cube(x) 仍经 sqlIdentifier_func_
@@ -240,13 +243,13 @@ sqlExpr_simple
 //    | matchExpression
     | sqlCaseExpr
     | sqlIntervalExpr
-    | sqlCollectionAccessExpr
     ;
 
-sqlCollectionAccessExpr
-    : collection=sqlColumnName '[' where=sqlExpr? (ORDER BY orderBy=sqlOrderBy)? ']'
-      DOT_ collFuncName=sqlIdentifier_ LP_ collFuncArgs=functionArgs_? RP_
-    ;
+// Plan 2307 V3: sqlCollectionAccessExpr（`coll[where orderBy].func(args)` 集合聚合访问）
+// 已从语法中移除。该构造无输出器、无语义分析，永远无法产出正确 SQL——解析成功后打印为
+// `collx > 1 > 2`（`[...]`、`.func()` 与主节点全部丢失）。且其语义是聚合量词，
+// 与集合算子 `_some`/`_all` 的存在性量词不等价，降级映射会改变查询语义。
+// 裁定与理由见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.6。
 
 sqlUnaryExpr:
     operator=(PLUS_ | MINUS_ | TILDE_ | NOT_) expr=sqlExpr_simple;
@@ -458,6 +461,23 @@ sqlOrderByItems_:
 // ORDER BY … NULLS FIRST/LAST，赋值既有 SqlOrderByItem.nullsFirst（Boolean 三态）。
 // 门与消费已先于文法落地（Phase 2 AstToSqlGenerator 三分门）；不删除任何 token。
 sqlOrderByItem
+    // WI7（roadmap EC ②，ai-dev/plans/26-eql-wi7-pagination-and-nulls.md Phase 3）：接受
+    // ORDER BY … NULLS FIRST/LAST，赋值既有 SqlOrderByItem.nullsFirst（Boolean 三态）。
+    // 门与消费已先于文法落地（Phase 2 AstToSqlGenerator 三分门）；不删除任何 token。
+    //
+    // 【merge note / Plan 2308 同功能并档】master 侧 Plan 2308 曾以**子规则**形态实现同一
+    // 文法（`: expr=sqlExpr asc=(ASC|DESC)? nullsFirst=sqlNullsOrder_?` + 子规则
+    // `sqlNullsOrder_ : NULLS FIRST | NULLS LAST;`，配手写
+    // SqlOrderByItem_nullsFirst(ParseTree) 转换）。两形态接受面完全相同、产出同一三态
+    // Boolean，本合并取 ours 内联 token 形态（本分支语料快照与生成物基线一致）。
+    // Plan 2308 的 label 踩坑记录仍有复用价值，留档：
+    //  1) 写成 nulls=(NULLS FIRST | NULLS LAST) 时 ANTLR 报 error(130): label 只能标注
+    //     单 token 或 token 集合，不能标注多 token 序列备选块；
+    //  2) 拆 (nulls=NULLS nullsOrder=(FIRST|LAST))? 后 AstGrammarBuilder 的
+    //     initRuleReturnType 失败——label 必须与 AST 属性名对应；
+    //  3) 若未来改为子规则形态，对标 sqlWindowFrameBound 的 boundType 写法。
+    // ⚠️ NULLS 的**方言化发射策略**（ours WI7 三分门 vs master Plan 2308 CASE 改写）在
+    // AstToSqlGenerator 处仍是待裁决冲突，与本文法形态无关（两形态均可对接任一策略）。
     : expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?
     ;
 

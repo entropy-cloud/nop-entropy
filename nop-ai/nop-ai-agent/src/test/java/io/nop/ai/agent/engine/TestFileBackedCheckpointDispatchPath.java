@@ -247,8 +247,11 @@ public class TestFileBackedCheckpointDispatchPath {
         List<Checkpoint> reloadedAll = mgr2.getCheckpoints(sessionId);
         assertFalse(reloadedAll.isEmpty(),
                 "After cross-instance reload, checkpoints must be retrievable from journal.md (end-to-end Anti-Hollow)");
+        // WI6: phase-tagged DISPATCHED checkpoints precede the terminal one —
+        // the payload assertion targets the TERMINAL (phase-less) checkpoint
         Checkpoint reloaded = reloadedAll.stream()
                 .filter(c -> c.getType() == CheckpointType.TOOL_EXECUTION)
+                .filter(c -> ToolExecutionPhase.fromWatermark(c.getWatermark()) == null)
                 .findFirst().orElse(null);
         assertNotNull(reloaded,
                 "A TOOL_EXECUTION checkpoint must be reloaded after cross-instance restart");

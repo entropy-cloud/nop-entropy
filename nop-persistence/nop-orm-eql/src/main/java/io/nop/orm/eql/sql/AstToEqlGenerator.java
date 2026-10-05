@@ -7,13 +7,11 @@
  */
 package io.nop.orm.eql.sql;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
 import io.nop.core.lang.sql.StringSqlExpr;
-import io.nop.orm.eql.OrmEqlErrors;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
@@ -30,6 +28,7 @@ import io.nop.orm.eql.ast.SqlCaseExpr;
 import io.nop.orm.eql.ast.SqlCaseWhenItem;
 import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlCommit;
 import io.nop.orm.eql.ast.SqlCompareWithQueryExpr;
 import io.nop.orm.eql.ast.SqlCteStatement;
 import io.nop.orm.eql.ast.SqlDateTimeLiteral;
@@ -62,6 +61,7 @@ import io.nop.orm.eql.ast.SqlPartitionBy;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlQualifiedName;
 import io.nop.orm.eql.ast.SqlQuerySelect;
+import io.nop.orm.eql.ast.SqlRollback;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
@@ -403,6 +403,25 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printSelect(node);
     }
 
+    /**
+     * Plan 2307 V4：事务控制语句的 EQL round-trip。
+     *
+     * <p>此前两个输出器都没有 commit/rollback 的 override，落到 Visitor 默认分支，
+     * 于是 {@code toEql=[]}——<strong>空字符串</strong>，节点被静默吞掉。
+     * 编译通道已由 {@code EqlCompiler} 对其 fail-fast（事务边界不属 EQL 编译器职责），
+     * 但 {@code toSqlString()} 旁路仍会被调用来调试/打印 AST，
+     * 因此这里补上关键字输出，使 round-trip 无损、不再出现空产物。
+     */
+    @Override
+    public void visitSqlCommit(SqlCommit node) {
+        print("commit");
+    }
+
+    @Override
+    public void visitSqlRollback(SqlRollback node) {
+        print("rollback");
+    }
+
     @Override
     public void visitSqlSelectWithCte(SqlSelectWithCte node) {
         List<SqlCteStatement> withCtes = node.getWithCtes();
@@ -622,6 +641,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         } else {
             print(" desc ");
         }
+        // Plan 2308: 三态 nullsFirst —— null=未请求（不输出任何东西），
+        // TRUE/FALSE 分别为 NULLS FIRST / NULLS LAST。
+        // 本方法保持**方言无关**：EQL 通道只做字面 round-trip，
+        // 方言判定与 CASE 改写全部在 AstToSqlGenerator 的覆写里（见 design §3.8）。
         if (node.getNullsFirst() != null) {
             if (node.getNullsFirst()) {
                 print(" nulls first ");
@@ -726,8 +749,14 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
         // WI1 BUG-2: 回显路径无损打印 lateral 关键字（修复前 lateral (sub) 与 (sub)
         // 输出字节相同）。回显无方言开关——方言门在子类 AstToSqlGenerator。
-        if (node.getLateral())
+        // Plan 2307 V1（merge 并集，两分支同缺陷同修复）：LATERAL 必须打印。此前
+        // EqlTransformVisitor 会在 getLateral() 为真时放开同级作用域引用（关联子查询），
+        // 但输出器从不输出该关键字，导致编译出缺少 LATERAL 的 SQL —— 语义分析认了、
+        // 输出没认的静默错误。修复前基线：
+        // `select 1 from a, lateral (...) t` -> `from a, ( ... ) as t`
+        if (node.getLateral()) {
             print("lateral ");
+        }
         print('(');
         beginBlock();
         visit(node.getQuery());
@@ -965,24 +994,12 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         visit(node.getQuery());
     }
 
-    /**
-     * WI1 BUG-14（裁定 = 候选 B 显式报错，见
-     * ai-dev/design/eql-cross-db-compat/2026-10-03-wi1-class-a-adjudications.md §2）：
-     * {@code SqlCollectionAccessExpr}（如 {@code o.roles[1].x()}）的方括号文法是集合
-     * 过滤语义（where + order by），非下标取值；编译管线对该节点没有任何 lowering，
-     * {@code collFuncName} 全仓零读取——修复前两个生成器零处理，静默产出
-     * {@code select o.roles 1 from t as o} 一类垃圾 SQL。机械回显没有正确的输出目标，
-     * 因此 echo 与执行路径同门显式报错（基类 override 即两条路径同时生效）；今天已
-     * 失败的输入（{@code o.roles[]} 等）保持文法层响亮失败，集合操作符 _some/_all
-     * 走另一条 AST 路径不受影响。
-     */
-    @Override
-    public void visitSqlCollectionAccessExpr(io.nop.orm.eql.ast.SqlCollectionAccessExpr node) {
-        String text = node.getCollection().getFullName() + "[" + node.getCollFuncName() + "]";
-        throw new NopException(OrmEqlErrors.ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT)
-                .loc(node.getLocation())
-                .param(OrmEqlErrors.ARG_EXPR, text);
-    }
+    // 【merge note / Plan 2307 V3】WI1 BUG-14 的 visitSqlCollectionAccessExpr 显式报错
+    // override 已随 master 侧文法删除一并退役：sqlCollectionAccessExpr 规则与
+    // SqlCollectionAccessExpr AST 类已移除（无输出器、无语义分析，永不可能产出正确 SQL），
+    // 该构造现在于 parse 期即响亮失败（TestEqlRemovedGrammarUnreachable）——比 ours 的
+    // 编译期报错更早、同为响亮失败，与本分支排序原则（P1）一致。错误码
+    // nop.err.eql.collection-access-not-support 同步退役。
 
     @Override
     public void visitSqlIntervalExpr(SqlIntervalExpr node) {

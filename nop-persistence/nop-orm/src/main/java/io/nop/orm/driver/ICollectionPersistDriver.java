@@ -30,5 +30,12 @@ public interface ICollectionPersistDriver {
     CompletionStage<Void> batchLoadCollectionAsync(ShardSelection shard, Collection<IOrmEntitySet> collections,
                                                    IntArray propIds, FieldSelectionBean selection, IOrmSessionImplementor session);
 
-    void flushCollectionChange(ShardSelection shard, IOrmEntitySet collection, IOrmSessionImplementor session);
+    // Plan 2307 V7: 原先此处有 flushCollectionChange(ShardSelection, IOrmEntitySet,
+    // IOrmSessionImplementor)，全仓零调用点；其 JDBC 实现是纯空方法体（什么都不做）。
+    // 已删除。真实的集合变更 flush 走另一条同名的、活的路：
+    //   OrmSessionImpl#flushCollectionChange(IOrmEntitySet)
+    //     -> ICollectionPersister#flushCollectionChange(IOrmEntitySet, IOrmSessionImplementor)
+    //        -> CollectionPersisterImpl: 入队 CollectionBatchAction，
+    //           在变更成功后回调 evictGlobalCache（即全局缓存失效的真实职责所在）。
+    // 见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.3。
 }

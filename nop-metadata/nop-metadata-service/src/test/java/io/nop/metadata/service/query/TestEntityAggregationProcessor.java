@@ -201,29 +201,119 @@ public class TestEntityAggregationProcessor {
 
     // ===== AR-20a（plan 2026-08-06-1228-1 Phase 1）：NULLS FIRST/LAST 方言感知 =====
 
-    /** ORM 路径裁定（dialect=null，via-EQL / entity-entity JOIN）：保持既有 H2 语义拼接子句。 */
+    /**
+     * plan 2309 D3/D8：<b>取不到方言时不再无条件拼接原生 NULLS 子句，改为响亮失败。</b>
+     *
+     * <p><b>这是行为变更，不是测试削弱。</b>原断言要求「dialect=null 也保留 NULLS 子句」，
+     * 锁定的正是本计划要取代的行为——在底层为 MySQL 的 ORM 部署上它会产出语法错误 SQL。
+     * 替换后的断言覆盖两件事：
+     * <ol>
+     *   <li>{@code dialect=null} → fail-fast（无法判定方言就不产出未校验的 SQL）</li>
+     *   <li>真实方言名（h2 / postgresql / oracle / duckdb）→ 原生直出，取代原先
+     *       「靠 null 走 else 分支」的隐式行为——现在 ORM 路径传的是真实方言名</li>
+     * </ol>
+     */
     @Test
-    public void testBuildOrderByClauseNullDialectKeepsNullsClause() {
+    public void testBuildOrderByClauseNullDialectFailsFast() {
         Map<String, String> nameToExpr = new LinkedHashMap<>();
         nameToExpr.put("m1", "SUM(x)");
 
-        List<OrderFieldBean> ascNullsFirst = new ArrayList<>();
-        OrderFieldBean f1 = OrderFieldBean.asc("m1");
-        f1.setNullsFirst(true);
-        ascNullsFirst.add(f1);
-        String clause = buildOrderByClause(ascNullsFirst, nameToExpr,
-                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
-        assertTrue(clause.contains("NULLS FIRST"),
-                "dialect=null (ORM path) must keep NULLS FIRST clause: " + clause);
+        for (boolean desc : new boolean[]{false, true}) {
+            List<OrderFieldBean> orderBy = new ArrayList<>();
+            OrderFieldBean f = desc ? OrderFieldBean.desc("m1") : OrderFieldBean.asc("m1");
+            f.setNullsFirst(true);
+            orderBy.add(f);
+            NopException err = assertThrows(NopException.class,
+                    () -> buildOrderByClause(orderBy, nameToExpr, new NopMetaEntity(),
+                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null));
+            assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(),
+                    err.getErrorCode());
+        }
+    }
 
-        List<OrderFieldBean> descNullsLast = new ArrayList<>();
-        OrderFieldBean f2 = OrderFieldBean.desc("m1");
-        f2.setNullsFirst(false);
-        descNullsLast.add(f2);
-        String clause2 = buildOrderByClause(descNullsLast, nameToExpr,
-                new NopMetaEntity(), Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", null);
-        assertTrue(clause2.contains("NULLS LAST"),
-                "dialect=null (ORM path) must keep NULLS LAST clause: " + clause2);
+    /** plan 2309 D8：ORM 路径现在传真实方言名；支持原生 NULLS 子句的方言直出。 */
+    @Test
+    public void testBuildOrderByClauseNativeDialectEmitsClause() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("m1", "SUM(x)");
+
+        // 含 h2gis / postgis / oracle-reverse：三者本身不声明该位但经 x:extends 继承为 true，
+        // 若按名字白名单判定会漏判，把本来可执行的查询变成硬失败（closure audit BLOCKER-1）。
+        for (String dialect : new String[]{"H2", "h2", "PostgreSQL", "postgresql", "Oracle",
+                "DuckDB", "h2gis", "postgis", "oracle-reverse", "db2", "DB2"}) {
+            List<OrderFieldBean> ascNullsFirst = new ArrayList<>();
+            OrderFieldBean f1 = OrderFieldBean.asc("m1");
+            f1.setNullsFirst(true);
+            ascNullsFirst.add(f1);
+            String clause = buildOrderByClause(ascNullsFirst, nameToExpr, new NopMetaEntity(),
+                    Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect);
+            assertTrue(clause.contains("NULLS FIRST"), dialect + " 应原生输出 NULLS FIRST: " + clause);
+
+            List<OrderFieldBean> descNullsLast = new ArrayList<>();
+            OrderFieldBean f2 = OrderFieldBean.desc("m1");
+            f2.setNullsFirst(false);
+            descNullsLast.add(f2);
+            String clause2 = buildOrderByClause(descNullsLast, nameToExpr, new NopMetaEntity(),
+                    Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect);
+            assertTrue(clause2.contains("NULLS LAST"), dialect + " 应原生输出 NULLS LAST: " + clause2);
+        }
+    }
+
+    /** plan 2309 D3：既非 mysql 家族、又未声明支持原生子句的方言 -> fail-fast，不得拼接非法 SQL。 */
+    @Test
+    public void testBuildOrderByClauseUnsupportedDialectFailsFast() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("m1", "SUM(x)");
+        // 注：不含 mariadb / mysql5.7——它们与 mysql 同族、无 NULLS 子句语法，
+        // 由 isMySqlFamily 走 MySQL 分支（与缺省一致则省略、不一致则失败），见下方专门用例。
+        for (String dialect : new String[]{"dm", "TDengine", "SQLServer", "Oracle11"}) {
+            List<OrderFieldBean> orderBy = new ArrayList<>();
+            OrderFieldBean f = OrderFieldBean.asc("m1");
+            f.setNullsFirst(true);
+            orderBy.add(f);
+            NopException err = assertThrows(NopException.class,
+                    () -> buildOrderByClause(orderBy, nameToExpr, new NopMetaEntity(),
+                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect),
+                    dialect + " 应 fail-fast");
+            assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(),
+                    err.getErrorCode(), dialect + " 不支持原生 NULLS 子句，必须失败而非拼接");
+        }
+    }
+
+    /**
+     * plan 2309 D8：mysql 家族（mysql / mysql5.7 / mariadb）都无原生 NULLS 子句语法，
+     * 都应走 MySQL 分支——与缺省一致则省略子句，无法表达的组合则失败。
+     *
+     * <p>此前判据只比对字面量 {@code "MySQL"}，而 ORM 路径传入的是
+     * {@code IDialect.getName()}（即 {@code mysql5.7} / {@code mariadb}），匹配不上，
+     * 会落进「原生直出」分支产出语法错误 SQL。
+     */
+    @Test
+    public void testBuildOrderByClauseMysqlFamilyTakesMysqlBranch() {
+        Map<String, String> nameToExpr = new LinkedHashMap<>();
+        nameToExpr.put("m1", "SUM(x)");
+        for (String dialect : new String[]{"MySQL", "mysql", "mysql5.7", "MySQL5.7", "MariaDB", "mariadb"}) {
+            // ASC + NULLS FIRST 与 mysql 缺省一致 -> 省略子句，可执行
+            List<OrderFieldBean> matching = new ArrayList<>();
+            OrderFieldBean asc = OrderFieldBean.asc("m1");
+            asc.setNullsFirst(true);
+            matching.add(asc);
+            String clause = buildOrderByClause(matching, nameToExpr, new NopMetaEntity(),
+                    Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect);
+            assertFalse(clause.contains("NULLS"), dialect + " 应省略 NULLS 子句: " + clause);
+
+            // DESC + NULLS FIRST 与 mysql 缺省冲突 -> 响亮失败
+            List<OrderFieldBean> conflicting = new ArrayList<>();
+            OrderFieldBean desc = OrderFieldBean.desc("m1");
+            desc.setNullsFirst(true);
+            conflicting.add(desc);
+            NopException err = assertThrows(NopException.class,
+                    () -> buildOrderByClause(conflicting, nameToExpr, new NopMetaEntity(),
+                            Arrays.asList("m1"), Collections.emptyList(), "ORDER_BY", dialect),
+                    dialect + " 的 DESC+NULLS FIRST 应 fail-fast");
+            assertEquals(NopMetadataErrors.ERR_AGGR_ORDER_BY_NULLS_UNSUPPORTED.getErrorCode(),
+                    err.getErrorCode());
+        }
     }
 
     /** MySQL + nullsFirst 与 MySQL 默认排序一致（ASC 默认 NULL 在前 / DESC 默认 NULL 在后）→ 省略子句（语义不变）。 */

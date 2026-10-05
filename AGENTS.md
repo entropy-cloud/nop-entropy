@@ -145,6 +145,7 @@ After completing any significant **CODE CHANGE**, you MUST:
 | 权限/认证模型（`nop-auth`） | ask-first | owner doc + test |
 | 生成管线（`_gen/`、`_*.xml`、codegen 模板） | plan-first | 理解生成链路 |
 | 框架核心引擎（`nop-core`/`nop-xlang`/`nop-xdef` 内部） | plan-first | 设计文档 + 回归测试 |
+| `nop-api-core`（`io.nop.api.core.*` 全平台公共 API） | plan-first | owner doc + 回归测试（SPI 变更须列全部实现为回归面） |
 
 ### AI Must Ask Before
 

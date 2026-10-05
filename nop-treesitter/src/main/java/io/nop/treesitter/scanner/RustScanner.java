@@ -2,7 +2,9 @@ package io.nop.treesitter.scanner;
 
 /**
  * Faithful Java translation of tree-sitter-rust's {@code scanner.c}
- * (tree-sitter v0.25.8; external tokens: STRING_CONTENT, STRING_CLOSE,
+ * (grammar version 0.24.2, the vendored tag; neither this file nor the vendored
+ * `scanner.c` carries a tree-sitter generator version — see
+ * `tree-sitter-rust/PROVENANCE.md`. External tokens: STRING_CONTENT, STRING_CLOSE,
  * RAW_STRING_LITERAL_START, RAW_STRING_LITERAL_CONTENT, RAW_STRING_LITERAL_END,
  * FLOAT_LITERAL, BLOCK_OUTER_DOC_MARKER, BLOCK_INNER_DOC_MARKER,
  * BLOCK_COMMENT_CONTENT, LINE_DOC_CONTENT, ERROR_SENTINEL) including the

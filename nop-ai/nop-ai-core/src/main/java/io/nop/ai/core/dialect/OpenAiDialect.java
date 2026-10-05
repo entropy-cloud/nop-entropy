@@ -162,6 +162,15 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
             addOptionIfNotNull(body, "top_k", options.getTopK());
             addOptionIfNotNull(body, "stop", options.getStop());
 
+            // Plan 2302 (WI20): per-provider cache-key placement — the
+            // OpenAI field form. Config-gated and session-keyed; missing
+            // session id skips the placement (optimization semantics,
+            // llm-layer cache-key placement section).
+            if (modelConfig != null && Boolean.TRUE.equals(modelConfig.getPromptCacheKey())
+                    && options.getSessionId() != null && !options.getSessionId().isEmpty()) {
+                body.put("prompt_cache_key", options.getSessionId());
+            }
+
             if (options.getTools() != null && !options.getTools().isEmpty()) {
                 body.put("tools", convertToolDefinitions(options.getTools()));
             }
@@ -222,9 +231,11 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
                 : "choices.0.finish_reason";
         response.setFinishReason(normalizeFinishReason(getStringByPath(responseMap, statusPath)));
 
-        // 解析 Usage（使用基类通用方法）
+        // 解析 Usage（使用基类通用方法；plan 2303/WI21 缓存观测默认路径——
+        // OpenAI 无 cache-write 计费概念，creation 无默认）
         response.setUsage(parseUsage(responseMap, responseConfig,
-                "usage.prompt_tokens", "usage.completion_tokens", "usage.total_tokens"));
+                "usage.prompt_tokens", "usage.completion_tokens", "usage.total_tokens",
+                "usage.prompt_tokens_details.cached_tokens", null, "usage"));
 
         return response;
     }

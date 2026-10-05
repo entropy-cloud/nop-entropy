@@ -87,7 +87,11 @@ class TestFeishuConnector {
     }
 
     private FeishuInboundMessage dmMessage(String chatId, String senderId, String text) {
-        return message(chatId, senderId, text, "p2p", null);
+        return dmMessage(chatId, senderId, text, null);
+    }
+
+    private FeishuInboundMessage dmMessage(String chatId, String senderId, String text, String messageId) {
+        return message(chatId, senderId, text, "p2p", null, messageId);
     }
 
     private FeishuInboundMessage groupMessage(String chatId, String senderId, String text,
@@ -97,6 +101,11 @@ class TestFeishuConnector {
 
     private FeishuInboundMessage message(String chatId, String senderId, String text,
                                          String chatType, String mentionsJson) {
+        return message(chatId, senderId, text, chatType, mentionsJson, null);
+    }
+
+    private FeishuInboundMessage message(String chatId, String senderId, String text,
+                                         String chatType, String mentionsJson, String messageId) {
         FeishuInboundMessage m = new FeishuInboundMessage();
         m.setReceiveIdType("chat_id");
         m.setReceiveId(chatId);
@@ -105,10 +114,34 @@ class TestFeishuConnector {
         m.setSenderId(senderId);
         m.setChatType(chatType);
         String raw = "{\"event\":{\"message\":{\"chat_id\":\"" + chatId + "\""
+                + (messageId != null ? ",\"message_id\":\"" + messageId + "\"" : "")
                 + (mentionsJson != null ? ",\"mentions\":" + mentionsJson : "")
                 + "}}}";
         m.setRawPayload(raw.getBytes(StandardCharsets.UTF_8));
         return m;
+    }
+
+    @Test
+    void messageIdExtractedIntoIdempotencyKey() {
+        connector.start(ctx());
+        connector.onMessage(dmMessage("oc_mid", "ou_s", "你好", "om_123"));
+
+        assertNotNull(engine.lastRequest, "engine.execute was called");
+        assertEquals("om_123", engine.lastRequest.getIdempotencyKey(),
+                "message_id must flow into the request idempotency key");
+    }
+
+    @Test
+    void duplicateInputIsSilentlyIgnoredNoErrorReply() {
+        connector.start(ctx());
+        // engine.execute throws the duplicate-input error synchronously
+        engine.executeException = new io.nop.ai.agent.engine.NopAiAgentException(
+                io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT)
+                .param(io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL, "idempotencyKey=om_dup");
+        connector.onMessage(dmMessage("oc_dup", "ou_s", "你好", "om_dup"));
+
+        assertEquals(0, feishuClient.sendMessageCount,
+                "duplicate input must not produce an error reply");
     }
 
     @Test
@@ -564,6 +597,8 @@ class TestFeishuConnector {
         int sendMessageCount;
         AgentMessageRequest lastRequest;
         CompletableFuture<AgentExecutionResult> lastFuture;
+        /** Plan 2288 (WI7): when set, execute() throws this synchronously. */
+        RuntimeException executeException;
 
         @Override
         public AgentMessageAck sendMessage(AgentMessageRequest request) {
@@ -575,6 +610,9 @@ class TestFeishuConnector {
         public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) {
             executeCount++;
             lastRequest = request;
+            if (executeException != null) {
+                throw executeException;
+            }
             lastFuture = new CompletableFuture<>();
             return lastFuture;
         }

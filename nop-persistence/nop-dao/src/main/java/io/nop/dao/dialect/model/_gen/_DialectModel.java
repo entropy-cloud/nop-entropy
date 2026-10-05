@@ -192,13 +192,6 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     private io.nop.commons.text.CharacterCase _tableNameCase ;
     
     /**
-     *  
-     * xml name: upsertHandler
-     * 
-     */
-    private java.lang.String _upsertHandler ;
-    
-    /**
      * 
      * xml name: allSchemaPattern
      *  
@@ -737,25 +730,6 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     }
 
     
-    /**
-     * 
-     * xml name: upsertHandler
-     *  
-     */
-    
-    public java.lang.String getUpsertHandler(){
-      return _upsertHandler;
-    }
-
-    
-    public void setUpsertHandler(java.lang.String value){
-        checkAllowChange();
-        
-        this._upsertHandler = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -808,7 +782,6 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("sqls",this.getSqls());
         out.putNotNull("streamingFetchSize",this.getStreamingFetchSize());
         out.putNotNull("tableNameCase",this.getTableNameCase());
-        out.putNotNull("upsertHandler",this.getUpsertHandler());
     }
 
     public DialectModel cloneInstance(){
@@ -845,7 +818,6 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         instance.setSqls(this.getSqls());
         instance.setStreamingFetchSize(this.getStreamingFetchSize());
         instance.setTableNameCase(this.getTableNameCase());
-        instance.setUpsertHandler(this.getUpsertHandler());
     }
 
     protected DialectModel newInstance(){

@@ -237,9 +237,33 @@ class EqlAST {
     class SqlOrderByItem {
         @PropMeta(mandatory = true)
         SqlExpr expr;
-        String collate;
         boolean asc;
+
+        // Plan 2308: 重新引入 nullsFirst（2307 曾作为悬挂字段删除，见本文件下方 2307 注释）。
+        //
+        // **三态**，缺一不可：
+        //   null   = 未请求空序（ORDER BY 没写 NULLS ...）——输出必须与今天逐字相同
+        //   TRUE   = NULLS FIRST
+        //   FALSE  = NULLS LAST
+        // 用 primitive boolean 会把「未指定」与「NULLS LAST」混同，导致所有 ORDER BY 项
+        // 都被无端加上空序语义。
+        //
+        // 方言落地规则见 design §3.8：只依赖 IDialect.isSupportNullsFirst()，
+        // 支持则原样输出，否则 CASE WHEN 改写。**不使用** dialect.defaultNullsFirst。
         Boolean nullsFirst;
+
+        // Plan 2307 V5: 原先此处有 `String collate;` 与 `Boolean nullsFirst;`，一并移除。
+        //
+        // collate：EQL 侧两个输出器都不打印它，且除生成代码外全仓零 setter —— 纯死字段。
+        //   注意与 SqlTypeExpr.collate（`CAST(x AS type COLLATE y)`，活语法）区分，两者无关。
+        // nullsFirst：当时判定为悬挂字段（grammar 无 NULLS FIRST/LAST 入口，除生成代码外
+        //   零 setter）。plan 2308 已补上 grammar 入口并重新引入该字段，故上方重新声明。
+        //   接线方案亦不选「补 supportNullsFirst 能力位」当时不存在的问题——该能力位其实
+        //   早已在 dialect.xdef 声明，只是零读取方，2308 让它变成活的。
+        //
+        // 两者都曾被考虑接线而非删除，但「接线属新增 EQL 表达能力」超出 2307 范围；
+        // 且空序策略的方言门控实现在 bean 路径（OrderFieldBean.nullsFirst）是硬编码
+        // MySQL 分支、并非可复用的方言能力。详见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.8。
     }
 
     class SqlLimit {
@@ -555,19 +579,18 @@ class EqlAST {
         String collate;
     }
 
-    class SqlCollectionAccessExpr extends SqlExpr {
-        @PropMeta(mandatory = true)
-        SqlColumnName collection;
-
-        SqlExpr where;
-
-        SqlOrderBy orderBy;
-
-        String collFuncName;
-
-        List<SqlExpr> collFuncArgs;
-    }
-
+    // Plan 2307 V3: SqlCollectionAccessExpr 已移除（无输出器、无语义分析，永不可能产出
+    // 正确 SQL；聚合量词语义也无法降级映射到 _some/_all 的存在性量词）。
+    // 见 ai-dev/design/nop-orm-scope-and-non-goals.md §3.6。
+    //
+    // Plan 2307 V4: SqlTransactionStatement / SqlCommit / SqlRollback **保留**，
+    // 但语义定为「显式失败」而非删除：EqlCompiler 对其 fail-fast（错误码
+    // nop.err.eql.not-support-transaction-statement），AstToEqlGenerator 输出对应关键字
+    // 使 EQL 通道 round-trip 无损。之所以不改用删除，是因为 xgen 的 list 规则按
+    // 「备选分支的最小公共父类」推导元素类型——删掉唯一的非 DML 分支后
+    // sqlStatements_ 的元素类型会从 SqlStatement 收窄为 SqlDmlStatement，
+    // 迫使 SqlProgram.statements 的公开签名变更并波及 nop-metadata。
+    // 详见 ai-dev/plans/2307-eql-live-defect-and-dead-surface-remediation.md Phase 4。
     abstract class SqlTransactionStatement extends SqlStatement {
 
     }

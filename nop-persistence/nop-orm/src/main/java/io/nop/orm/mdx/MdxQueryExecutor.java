@@ -17,6 +17,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.type.StdDataType;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.impl.BaseDataFieldMeta;
@@ -42,6 +43,11 @@ public class MdxQueryExecutor {
 
     private final IOrmTemplate ormTemplate;
 
+    /** Plan 2309 D1：ORDER BY 空序门控需要方言（见 DaoQueryHelper.appendOrderBy） */
+    private IDialect dialectOf(IEntityModel entityModel) {
+        return ormTemplate.getDialectForQuerySpace(entityModel.getQuerySpace());
+    }
+
     public MdxQueryExecutor(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
     }
@@ -62,7 +68,7 @@ public class MdxQueryExecutor {
         List<MdxQueryBean> queries = splitter.split(query, entityModel);
 
         QueryBean mainQuery = queries.get(0);
-        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(mainQuery, entityModel.getDeleteFlagProp()).timeout(timeout)
+        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(dialectOf(entityModel), mainQuery, entityModel.getDeleteFlagProp()).timeout(timeout)
                 .end();
         return ormTemplate.exists(sql);
     }
@@ -95,7 +101,7 @@ public class MdxQueryExecutor {
         QueryBean mainQuery = queries.get(0);
         Map<Object, Map<String, Object>> dimIndex = new HashMap<>();
 
-        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(mainQuery, entityModel.getDeleteFlagProp()).timeout(timeout)
+        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(dialectOf(entityModel), mainQuery, entityModel.getDeleteFlagProp()).timeout(timeout)
                 .end();
         IRowMapper<Map<String, Object>> rowMapper = mainMapper(queries, dimIndex);
 
@@ -181,7 +187,7 @@ public class MdxQueryExecutor {
 
         IEntityModel entityModel = ormTemplate.getOrmModel().requireEntityModel(query.getSourceName());
 
-        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(query, entityModel.getDeleteFlagProp()).timeout(timeout).end();
+        SQL sql = DaoQueryHelper.queryToSelectFieldsSql(dialectOf(entityModel), query, entityModel.getDeleteFlagProp()).timeout(timeout).end();
 
         IRowMapper<Void> rowMapper = (row, rowNumber, colMapper) -> {
             Object[] values = row.getFieldValues();

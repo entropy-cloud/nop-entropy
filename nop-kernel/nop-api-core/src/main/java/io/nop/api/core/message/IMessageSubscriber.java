@@ -11,6 +11,11 @@ public interface IMessageSubscriber {
     /**
      * 响应消息发送到一个相关的topic上
      *
+     * <p>契约：返回值必须是目标 broker 上合法的 topic 名。默认实现对「裸短名」topic
+     * 加 {@code ack-} 前缀；broker 命名含域名/命名空间（如 Pulsar 全名
+     * {@code persistent://tenant/ns/name}）的后端必须 override，保证对合法输入 topic
+     * 派生出合法的 ack topic（MSG-F-04）。
+     *
      * @param topic 请求消息所属的topic
      * @return reply消息所对应的队列
      */

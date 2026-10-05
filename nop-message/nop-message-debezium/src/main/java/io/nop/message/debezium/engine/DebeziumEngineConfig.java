@@ -71,7 +71,7 @@ public class DebeziumEngineConfig {
         props.setProperty("topic.prefix", serverName);
 
         // 根据连接器类型设置特定属性（白名单见 getConnectorClass）
-        switch (config.getConnectorType().toLowerCase()) {
+        switch (config.getConnectorType().toLowerCase(java.util.Locale.ROOT)) {
             case "mysql":
                 configureMySqlConnector(props, config, serverName);
                 break;
@@ -156,7 +156,7 @@ public class DebeziumEngineConfig {
      */
     private static void applySchemaHistory(Properties props, DebeziumConfig config) {
         String mode = config.getSchemaHistoryStore() == null ? "jdbc"
-                : config.getSchemaHistoryStore().trim().toLowerCase();
+                : config.getSchemaHistoryStore().trim().toLowerCase(java.util.Locale.ROOT);
         switch (mode) {
             case "jdbc": {
                 String url = config.getSchemaHistoryJdbcUrl();
@@ -218,7 +218,7 @@ public class DebeziumEngineConfig {
         props.setProperty("plugin.name", "pgoutput");
     }
     private static String getConnectorClass(String connectorType) {
-        switch (connectorType.toLowerCase()) {
+        switch (connectorType.toLowerCase(java.util.Locale.ROOT)) {
             case "mysql":
                 return "io.debezium.connector.mysql.MySqlConnector";
             case "postgres":

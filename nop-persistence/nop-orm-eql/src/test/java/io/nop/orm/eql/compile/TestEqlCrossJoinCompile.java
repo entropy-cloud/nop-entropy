@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Blog:   https://www.zhihu.com/people/canonical_entropy
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
@@ -12,6 +12,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.impl.DialectImpl;
+import io.nop.dao.dialect.model.DialectFeatures;
 import io.nop.dao.dialect.model.DialectModel;
 import io.nop.dao.dialect.model.SqlNativeFunctionModel;
 import io.nop.orm.eql.ICompiledSql;
@@ -31,39 +32,57 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_JOIN_NO_CONDITION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * WI1 BUG-10：`cross join` 的实体编译路径（非纯 parse+echo 层）。
+ * {@code CROSS JOIN} 的编译通道行为（add/add 合并：ours WI1 BUG-10 与 master Plan 2307
+ * Phase 3/V2 对同一缺陷的双侧测试并集，harness 取 master 侧增强版并补 ours 实体集）。
  *
- * <p>覆盖 `EqlTransformVisitor.markMainSource`（仅对 LEFT/RIGHT/FULL 分派）对
- * CROSS_JOIN 的行为：走 no-op 分支不崩溃，主源标记不误标。右侧为子查询表源
- * （实体间无 ON 条件的 join 在既有 transform 语义下响亮拒绝——与 join 类型无关的
- * 既有行为，见 {@link #testEntityJoinWithoutConditionStillRejected}）。
+ * <p>缺陷背景（两分支各自独立认定）：<code>cross</code> 被吃成左表别名后，源查询里对原
+ * 别名的引用会报 <code>unknown-column-name</code>；且 EqlTransformVisitor.markMainSource
+ * 仅对 LEFT/RIGHT/FULL 分派，CROSS_JOIN 需走 no-op 分支不崩溃。本类断言
+ * 「cross join 之后仍可用原别名引用左表」——这正是修复前会失败的点（危害高于语法拒绝）。
+ *
+ * <p>【merge note】ours 原用例 {@code testEntityJoinWithoutConditionStillRejected} 断言
+ * 实体间 {@code cross join} 无 ON 时报 ERR_EQL_JOIN_NO_CONDITION——那是修复前的既有行为；
+ * master Plan 2307 V2b 已将该检查对 CROSS_JOIN 显式豁免（"实体 join 漏写 on"拦截对
+ * 按定义无连接条件的 CROSS JOIN 是误报，EqlTransformVisitor 内注释为准），本合并按
+ * 新契约改写为 {@code testEntityCrossJoinWithoutConditionAllowed}。
+ *
+ * <p>自带最小 harness 而非继承 {@link TestEqlCompileSql}：继承具体测试类会让父类全部
+ * {@code @Test} 在子类名下重跑，测试数虚增、失败定位变模糊。
  */
 public class TestEqlCrossJoinCompile {
+
     static IDialect dialect;
 
     @BeforeAll
     public static void init() {
-        dialect = buildDialect();
+        DialectModel model = new DialectModel();
+        DialectFeatures features = new DialectFeatures();
+        features.setSupportReturningForUpdate(true);
+        model.setFeatures(features);
+        model.setReservedKeywords(Collections.emptySet());
+        model.setSqls(new io.nop.dao.dialect.model.DialectSqls());
+        model.setSqlDataTypes(Collections.emptyList());
+        // DialectImpl 构造时即调用 buildFunctionSql("current_timestamp")，
+        // 故 current_timestamp 必须登记，否则 dialect 构造本身就 NPE
+        model.setFunctions(Arrays.asList(
+                nativeFunc("current_timestamp", false, StdSqlType.TIMESTAMP),
+                nativeFunc("upper", true, StdSqlType.VARCHAR)));
+        dialect = new DialectImpl(model);
     }
 
-    static IDialect buildDialect() {
-        DialectModel model = new DialectModel();
-        model.setReservedKeywords(Collections.emptySet());
-        io.nop.dao.dialect.model.DialectSqls sqls = new io.nop.dao.dialect.model.DialectSqls();
-        model.setSqls(sqls);
-        model.setSqlDataTypes(Collections.emptyList());
-        model.setFeatures(new io.nop.dao.dialect.model.DialectFeatures());
-        SqlNativeFunctionModel currentTimestamp = new SqlNativeFunctionModel();
-        currentTimestamp.setName("current_timestamp");
-        currentTimestamp.setHasParenthesis(false);
-        model.setFunctions(Collections.singletonList(currentTimestamp));
-        return new DialectImpl(model);
+    static io.nop.dao.dialect.model.SqlNativeFunctionModel nativeFunc(String name, boolean hasParenthesis,
+                                                                      StdSqlType returnType) {
+        io.nop.dao.dialect.model.SqlNativeFunctionModel fn =
+                new io.nop.dao.dialect.model.SqlNativeFunctionModel();
+        fn.setName(name);
+        fn.setHasParenthesis(hasParenthesis);
+        fn.setReturnType(returnType);
+        return fn;
     }
 
     static OrmColumnModel col(String name, String code, int propId, boolean primary) {
@@ -87,29 +106,25 @@ public class TestEqlCrossJoinCompile {
         return m;
     }
 
-    static TestCompileContext baseContext() {
-        TestCompileContext ctx = new TestCompileContext();
-        ctx.entities.put("AppDept", entity("AppDept", "APP_DEPT",
+    static TestCompileContext ctx() {
+        TestCompileContext c = new TestCompileContext();
+        // ours 用例集需要 AppDept（子查询右源用例）；master 用例集需要 AppUser/AppRole
+        c.entities.put("AppDept", entity("AppDept", "APP_DEPT",
                 col("id", "SID", 1, true), col("name", "NAME", 2, false)));
-        ctx.entities.put("AppRole", entity("AppRole", "APP_ROLE",
+        c.entities.put("AppUser", entity("AppUser", "APP_USER",
+                col("id", "SID", 1, true), col("name", "NAME", 2, false)));
+        c.entities.put("AppRole", entity("AppRole", "APP_ROLE",
                 col("id", "SID", 1, true), col("userId", "USER_ID", 2, false)));
-        return ctx;
+        return c;
     }
 
-    static String sqlOf(String eql) {
-        TestCompileContext ctx = baseContext();
-        ICompiledSql compiled = new EqlCompiler().compile("test", eql, ctx);
-        return compiled.getSql().getText().replaceAll("\\s+", " ");
+    static String sql(String eql) {
+        return new EqlCompiler().compile("test", eql, ctx()).getSql().getText()
+                .replaceAll("\\s+", " ").trim();
     }
 
     static class TestCompileContext implements ISqlCompileContext {
         final Map<String, OrmEntityModel> entities = new HashMap<>();
-        IDialect effectiveDialect;
-        boolean enableFilter;
-
-        TestCompileContext() {
-            this.effectiveDialect = dialect;
-        }
 
         @Override
         public boolean isDisableLogicalDelete() {
@@ -123,7 +138,7 @@ public class TestEqlCrossJoinCompile {
 
         @Override
         public boolean isEnableFilter() {
-            return enableFilter;
+            return false;
         }
 
         @Override
@@ -133,15 +148,13 @@ public class TestEqlCrossJoinCompile {
 
         @Override
         public IDialect getDialectForQuerySpace(String querySpace) {
-            return effectiveDialect;
+            return dialect;
         }
 
         @Override
         public ISqlTableMeta resolveEntityTableMeta(String entityName) {
             OrmEntityModel m = entities.get(entityName);
-            if (m == null)
-                return null;
-            return new EntityTableMeta(m, null, getDialectForQuerySpace(m.getQuerySpace()));
+            return m == null ? null : new EntityTableMeta(m, null, dialect);
         }
 
         @Override
@@ -150,21 +163,99 @@ public class TestEqlCrossJoinCompile {
         }
     }
 
+    // ---- ours WI1 BUG-10：实体编译路径 + 子查询右源 ----
+
     @Test
     public void testCrossJoinEntityCompilePathProducesSql() {
         // EqlCompiler 全链路：markMainSource 对 CROSS_JOIN 走 no-op 不崩溃，
         // 产出 SQL 文本含 cross join（右侧为子查询表源）
-        String sql = sqlOf("select d.id from AppDept d cross join (select r.id from AppRole r) x");
+        String sql = sql("select d.id from AppDept d cross join (select r.id from AppRole r) x");
         assertTrue(sql.contains("cross join"), sql);
         assertTrue(sql.contains("APP_DEPT"), sql);
     }
 
+    /**
+     * 【merge 改写】原 ours 用例断言本形态报 ERR_EQL_JOIN_NO_CONDITION（修复前行为）；
+     * master Plan 2307 V2b 对 CROSS_JOIN 豁免该检查（按定义即笛卡尔积、无连接条件），
+     * 改为断言编译成功且产物含 cross join。租户/逻辑删除过滤改落 WHERE
+     * （AstToSqlGenerator.printJoin 的 CROSS_JOIN 分支），不再产 `cross join ... on ...`。
+     */
     @Test
-    public void testEntityJoinWithoutConditionStillRejected() {
-        // 既有语义保持响亮：实体间无 ON 条件的 join（含 cross join）在 transform 层
-        // 报 ERR_EQL_JOIN_NO_CONDITION——文法放开后不产生"静默错误 SQL"路径
-        NopException e = assertThrows(NopException.class,
-                () -> sqlOf("select d.id from AppDept d cross join AppRole r"));
-        assertEquals(ERR_EQL_JOIN_NO_CONDITION.getErrorCode(), e.getErrorCode());
+    public void testEntityCrossJoinWithoutConditionAllowed() {
+        String s = sql("select d.name from AppDept d cross join AppRole r");
+        assertTrue(s.contains("cross join"), s);
+        assertFalse(s.contains("cross join APP_ROLE on"), "CROSS JOIN 不得带 ON: " + s);
+    }
+
+    // ---- master Plan 2307 Phase 3/V2：核心别名存活断言 ----
+
+    @Test
+    public void testCrossJoinKeepsLeftAliasUsableInWhere() {
+        // 修复前：cross 被吃成 a 的别名，此处的 u 会报 unknown-column-name
+        String s = sql("select u.name from AppUser u cross join AppRole r where u.id = r.userId");
+        assertTrue(s.contains("cross join"), "应输出 CROSS JOIN: " + s);
+        assertTrue(s.contains("SID"), s);
+    }
+
+    @Test
+    public void testCrossJoinLeftAliasResolvesInProjection() {
+        String s = sql("select u.name from AppUser u cross join AppRole r");
+        assertTrue(s.contains("cross join"), s);
+        assertTrue(s.contains("NAME"), "左表投影必须解析成功: " + s);
+    }
+
+    @Test
+    public void testCrossJoinEmitsNoPhantomAlias() {
+        // 修复前输出 `from APP_USER as cross` —— cross 不该成为别名
+        String s = sql("select u.name from AppUser u cross join AppRole r");
+        assertFalse(s.contains("as cross"), "不得输出幻觉别名 as cross: " + s);
+    }
+
+    @Test
+    public void testCrossJoinIsCaseInsensitiveInSource() {
+        for (String kw : new String[]{"cross join", "CROSS JOIN", "Cross Join"}) {
+            String s = sql("select u.name from AppUser u " + kw + " AppRole r");
+            assertTrue(s.contains("cross join"), kw + " -> " + s);
+            assertFalse(s.contains("as cross"), kw + " -> " + s);
+        }
+    }
+
+    @Test
+    public void testCrossJoinInSqlOutput() {
+        String s = sql("select u.name from AppUser u, AppRole r cross join AppRole r2");
+        assertTrue(s.contains("cross join"), s);
+    }
+
+    // ---- 防误伤 ----
+
+    @Test
+    public void testPlainJoinOutputUnchanged() {
+        // 普通 join 的产物形态不得被 CROSS_JOIN 修复波及
+        assertEquals("select u.NAME as c1 from APP_USER u join APP_ROLE r on u.SID = r.USER_ID",
+                sql("select u.name from AppUser u join AppRole r on u.id = r.userId"));
+    }
+
+    @Test
+    public void testLeftJoinOutputUnchanged() {
+        assertEquals("select u.NAME as c1 from APP_USER u left join APP_ROLE r on u.SID = r.USER_ID",
+                sql("select u.name from AppUser u left join AppRole r on u.id = r.userId"));
+    }
+
+    @Test
+    public void testCrossAsColumnNameStillCompilable() {
+        // cross 登记为非保留字，故名为 cross 的列应可被引用（此处断言不因词法而失败）
+        TestCompileContext c = new TestCompileContext();
+        OrmEntityModel e = entity("CrossEntity", "CROSS_ENTITY", col("cross", "CROSS_VAL", 1, true));
+        c.entities.put("CrossEntity", e);
+        String s = new EqlCompiler().compile("test", "select o.cross from CrossEntity o", c)
+                .getSql().getText().replaceAll("\\s+", " ").trim();
+        assertTrue(s.contains("CROSS_VAL"), s);
+    }
+
+    @Test
+    public void testCrossAsTableAliasStillCompilable() {
+        // 无 join 时 cross 仍可作表别名
+        String s = sql("select cross.name from AppUser cross");
+        assertTrue(s.contains("NAME"), s);
     }
 }

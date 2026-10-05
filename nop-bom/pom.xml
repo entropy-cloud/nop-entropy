@@ -1403,6 +1403,15 @@
             </dependency>
 
             <dependency>
+                <!-- Plan 2301 (WI25): test-scoped sink SPI consumer
+                     (BackgroundRegistryJobSink lives in the agent test
+                     sources; nop-ai-shell has no production consumer) -->
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-ai-shell</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ai-agent</artifactId>
                 <version>${nop-entropy.version}</version>

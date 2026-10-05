@@ -187,8 +187,9 @@
 | 理解服务接口的异步调用（CompletionStage 变体） | `04-reference/async-service-guide.md` |
 | **选择可复用业务模块** | **`03-modules/reusable-modules-overview.md`**（总览 + 场景→模块路由） |
 | 理解 nop-treesitter（纯 Java tree-sitter 运行时：架构 / 恢复语义 / 性能） | `03-modules/nop-treesitter.md` |
+| **分析一段 shell 命令（AI Agent 执行前：证明型拆分 / 字面量收割 / heredoc 提取 / 动态构造标记 / 路径抽取 / 结构化摘要）** | **`03-modules/nop-treesitter.md`**（"shell 分析语义层"一节，含可证明/不可证明边界与三条使用限制） |
 | 理解 nop-refactor（纯 Java tree-sitter 运行时：架构 / 恢复语义 / 性能） | `03-modules/nop-refactor.md` |
-| **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL action / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-treesitter/README.md`（用户指南） |
+| **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL @BizQuery / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-treesitter/README.md`（用户指南） |
 | 理解 nop-bytecode（字节码分析通道：架构 / 内核 / 性能基线） | `03-modules/nop-bytecode.md` |
 | **使用字节码发现流 CLI（report-only 诊断 / JSON 输出 / 退出码语义）** | **`03-modules/nop-bytecode.md`**（快速开始）+ `nop-bytecode/README.md`（模块指南） |
 | 理解 nop-duckdb（数据文件与本地库的进程内分析执行层：配置 / 执行层 API / task step / 单写者与内存约束 / 分析侧接入） | `03-modules/nop-duckdb.md` |

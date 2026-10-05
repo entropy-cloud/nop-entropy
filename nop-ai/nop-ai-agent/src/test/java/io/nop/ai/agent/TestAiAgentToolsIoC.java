@@ -55,7 +55,9 @@ public class TestAiAgentToolsIoC {
             "team-task-update",
             "team-execute-flow",
             "set-active-tags",
-            "read-spill"
+            "read-spill",
+            "task-output",
+            "task-stop"
     ));
 
     private static final Set<String> EXPECTED_BEAN_IDS = new HashSet<>(Arrays.asList(
@@ -70,7 +72,9 @@ public class TestAiAgentToolsIoC {
             "ai-agent-tools:team-task-update",
             "ai-agent-tools:team-execute-flow",
             "ai-agent-tools:set-active-tags",
-            "ai-agent-tools:read-spill"
+            "ai-agent-tools:read-spill",
+            "ai-agent-tools:task-output",
+            "ai-agent-tools:task-stop"
     ));
 
     @BeforeAll

@@ -33,4 +33,33 @@
         </example>
     </examples>
 
+    <!-- Plan 2297 (WI16): model-tunable output budget declaration. Optional —
+         absent = runtime defaults (8000 chars, spill allowed). max-chars is
+         the per-tool default budget; the model may override per call with the
+         reserved `maxOutputChars` argument (clamped to this declared value,
+         then to the global hard cap). spill=false disables the full-text
+         spill path for this tool (truncation-only degradation). Opt-in
+         metadata: NOT auto-injected into any tool's LLM-facing schema
+         (prefix-cache stability, plan 2297 前缀缓存影响评估). -->
+    <output-budget xdef:name="AiToolOutputBudgetModel" max-chars="int" spill="!boolean=true"/>
+
+    <!-- Plan 2298 (WI17): concurrency-safety declaration. Default false =
+         unsafe — the tool participates in per-path serialization when its
+         call arguments carry a reserved path key (path/file_path/filePath):
+         same-path calls queue, different paths stay parallel. Declare true
+         to exempt a tool (e.g. read-only tools). Additive — absent = unsafe
+         (conservative default). -->
+    <concurrency-safe>!boolean=false</concurrency-safe>
+
+    <!-- Plan 2301 (WI25): background-execution capability declaration.
+         Default false — a call carrying the reserved `runInBackground=true`
+         argument is rejected (fail-loud, never a silent foreground fallback).
+         Declare true on bash/shell-class long tools to allow
+         runInBackground=true (immediate taskId confirmation; the real result
+         arrives as a completion notification through the session input
+         channel). Deliberately NOT a tag — tags are the visibility-filter
+         mechanism (plan 296); a `background` tag would hide the tool from
+         agents whose activeTags do not include it. -->
+    <background-capable>!boolean=false</background-capable>
+
 </tool>

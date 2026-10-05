@@ -21,6 +21,9 @@
     "scan:hollow:all": "node scan-hollow-implementations.mjs --include-tests",
     "scan:hollow:json": "node scan-hollow-implementations.mjs --format json",
     "check:ai-tool-boundary": "node check-ai-tool-executor-boundary.mjs",
+    "check:silent-wrong-result": "node check-silent-wrong-result.mjs",
+    "check:silent-wrong-result:module": "node check-silent-wrong-result.mjs --module",
+    "check:silent-wrong-result:fixture": "node check-silent-wrong-result.mjs --fixture",
     "check:fix-commit-diff": "node check-fix-commit-diff.mjs",
     "check:ai-invariants": "node check-ai-tool-executor-boundary.mjs --self-test && node check-fix-commit-diff.mjs --self-test && node check-ai-tool-executor-boundary.mjs && node check-fix-commit-diff.mjs"
   },

@@ -160,6 +160,26 @@ public interface IDialect extends IComponentModel {
     boolean isSupportOutputForUpdate();
 
     /**
+     * Plan 2308 D1（merge 采纳为 NULLS emission 唯一判据，见
+     * {@code AstToSqlGenerator} merge 裁决记录）：数据库是否接受原生
+     * {@code ORDER BY ... NULLS FIRST/LAST} 语法。
+     *
+     * <p>true → 直接输出 NULLS 子句；false → 用 {@code CASE WHEN col IS NULL THEN ... END,
+     * col <dir>} 改写，该写法对任何方言都语义正确。
+     *
+     * <p>未声明（{@code null}）一律视为 false——这是安全的保守缺省：
+     * false 只是让 SQL 多一个 CASE 键，不会产出错误结果。
+     *
+     * <p>【merge note】ours WI7 曾以本标志为"打印 vs 缺省序推导围栏"的门（裁定文档 §三），
+     * 该门已随 merge 裁决退役（master Plan 2308 emission 接管，理由见生成器 merge 记录）。
+     * <b>不</b>提供"方言缺省空序"查询接口作为发射判据：单个布尔无法表达各方言的真实空序模型
+     * （H2/PG/MySQL 随方向翻转，DuckDB 不翻转且有 4 种模式），
+     * 用它推导 DESC 缺省会静默返回相反行序。详见 master design §3.8；
+     * {@link #isDefaultNullsFirst()} 保留为配置事实登记（发射不读）。
+     */
+    boolean isSupportNullsFirst();
+
+    /**
      * sqlserver 和mysql 支持 update t set x = xx from t , t2语法
      *
      * @return
@@ -178,28 +198,22 @@ public interface IDialect extends IComponentModel {
      * 默认 NULL 排序事实：缺省升序排序时 NULL 是否排在非 NULL 之前。
      *
      * <p>与 {@link #isSupportNullsFirst()}（是否原生接受 <code>NULLS FIRST/LAST</code> 子句，
-     * accessor 归 WI7）正交，各司其职：本标志描述方言的缺省行为事实，后者描述子句接受度。
+     * accessor 归 WI7/Plan 2308）正交，各司其职：本标志描述方言的缺省行为事实，后者描述子句接受度。
      * 未配置时返回 false（保守缺省）。
      *
      * <p>⚠️ 消费点唯一 owner = roadmap WI7（NULLS FIRST/LAST 文法接受 + 门控 + 默认序行为）；
      * WI3 交付止于 accessor + 配置正确性断言，生成器消费不得在 WI3 声称完成
-     * （plan 20「defaultNullsFirst 消费点调研结论」的移交链）。**WI7 已兑现**：消费点 =
-     * {@code AstToSqlGenerator.visitSqlOrderByItem} 缺省序推导（一手文档准入集，裁定文档 §三）。
+     * （plan 20「defaultNullsFirst 消费点调研结论」的移交链）。
+     * 【merge note / Plan 2308 supersede】WI7 曾在 {@code AstToSqlGenerator} 内以本标志做
+     * "缺省序一致省略"推导（已随 merge 裁决退役）；master Plan 2308 明示发射"全程不读"
+     * 本标志（单布尔无法表达各方言真实空序模型，其 design §3.8）。本 accessor 保留为
+     * 方言缺省空序的**配置事实登记**（TestDefaultNullsFirstFlag 继续钉取值语义），
+     * 供未来方言空序模型调研复用，发射路径不得重新消费。
      */
     boolean isDefaultNullsFirst();
 
-    /**
-     * WI7（roadmap EC ③b，WI3 移交链另一半收口）：是否原生接受 <code>NULLS FIRST/LAST</code>
-     * 子句。与 {@link #isDefaultNullsFirst()}（缺省 NULL 序事实）正交，各司其职：
-     * 本标志描述子句接受度，后者描述缺省行为。未配置时返回 false（保守缺省）。
-     *
-     * <p>消费点 = {@code AstToSqlGenerator.visitSqlOrderByItem} 的子句输出唯一门：
-     * true 时按请求打印子句；false 时仅当显式请求与该方向缺省序一致（且方言缺省序已有一手
-     * 文档准入，见 WI7 裁定文档 §三）才省略子句，否则编译期报
-     * {@code nop.err.eql.dialect-not-support-feature}（feature=nullsFirst(first|last)），
-     * 不静默丢请求。
-     */
-    boolean isSupportNullsFirst();
+    // 【merge note】isSupportNullsFirst 声明合并至 ours 新 accessor 块之后（Plan 2308 D1
+    // javadoc 版本），此处 ours 原重复声明已移除。
 
     /**
      * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取

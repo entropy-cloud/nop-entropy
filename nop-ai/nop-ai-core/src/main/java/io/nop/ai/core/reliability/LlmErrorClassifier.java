@@ -82,7 +82,14 @@ public final class LlmErrorClassifier {
         // level to reach the actual timeout marker or NopException carrying
         // ARG_HTTP_STATUS.
         Throwable e = error;
+        // Plan 2304 (WI22): first non-null message seen on the chain — the
+        // loop variable is null after the walk, so the message classifier's
+        // input must be captured here.
+        String firstMessage = null;
         while (e != null) {
+            if (firstMessage == null && e.getMessage() != null && !e.getMessage().isEmpty()) {
+                firstMessage = e.getMessage();
+            }
             // Explicit timeout → transient.
             if (e instanceof NopTimeoutException) {
                 return ErrorClassification.TRANSIENT;
@@ -110,6 +117,17 @@ public final class LlmErrorClassifier {
 
             e = e.getCause();
         }
+        // Plan 2304 (WI22): regex classifier on the exception message — the
+        // dsh-D4 ⑥-建议3 complement to the cause-chain walk above (no
+        // timeout/status signal reached a classification). Fail-open: an
+        // unknown message keeps the existing TRANSIENT fallback. No status
+        // known → the QUOTA/AUTH <500 gate is treated as satisfied
+        // (round 2 N2 ruling).
+        ErrorClassification fromMessage = ErrorMessageClassifier.classify(firstMessage, true);
+        if (fromMessage != null) {
+            return fromMessage;
+        }
+
 
         // Unknown failure on a network call → assume transient.
         return ErrorClassification.TRANSIENT;

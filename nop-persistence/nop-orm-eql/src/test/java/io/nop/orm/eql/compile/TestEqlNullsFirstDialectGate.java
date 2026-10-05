@@ -1,14 +1,13 @@
 /**
  * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
  * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Blog:   https://www.zhihu.com/people/canonical_entropy
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 package io.nop.orm.eql.compile;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.initialize.CoreInitialization;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,28 +35,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * WI7（roadmap EC ②/③/③b）：{@code NULLS FIRST/LAST} 的方言门与 {@code defaultNullsFirst}
- * 默认序消费——三分形态的行为矩阵（裁定 =
- * {@code ai-dev/design/eql-cross-db-compat/2026-10-04-wi7-phase0-adjudications.md} §三）。
+ * {@code NULLS FIRST/LAST} 执行路径方言化发射的行为矩阵（真实方言绑定 + 手构方言
+ * flag 因果）。
  *
- * <p>本 Phase（Phase 2）落地时**尚无文法赋值路径**（Phase 3 才激活）：{@code nullsFirst}
- * 以程序化 AST 构造（parse 文本 → {@code SqlOrderByItem.setNullsFirst(...)} → transform →
- * generate，复刻 {@code EqlCompiler} 管线核心），端到端文法激活用例见
- * {@code TestEqlNullsFirstSyntax}（Phase 3）。
- *
- * <p>行为矩阵：
+ * <p>【merge note / Plan 2308 supersede】本类原为 ours WI7 Phase 2 三分门矩阵
+ * （support 打印 / 缺省一致省略 / 冲突或集合外报错，裁定 wi7-phase0-adjudications §三）。
+ * merge 裁决采纳 master Plan 2308 emission（support 位 gate + CASE 改写 + D2/D3/D4
+ * fail-fast；翻案四点依据见 AstToSqlGenerator merge 裁决记录），矩阵按下表改写：
  * <ul>
- * <li>分支 1（{@code isSupportNullsFirst()=true}，duckdb/h2/oracle/postgresql）：请求即打印；</li>
- * <li>分支 0（{@code nullsFirst == null}）：输出与未注入时逐字节一致（BC 硬约束，
- * 缺省不补子句）；</li>
- * <li>分支 2（false + 显式请求）：缺省序推导**仅一手文档已证方言集**（mysql 系/mssql/h2）
- * 允许"一致省略"，不一致或集合外（dm/tdengine/db2 无一手文档，红线 [未取证]）一律编译期
- * 报 {@code ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE}（feature=nullsFirst(first|last)）。</li>
+ * <li>support=true（h2/postgresql/duckdb/oracle + db2 一手修正 0ea57a097e）：请求即原生
+ * 打印；</li>
+ * <li>{@code nullsFirst == null}：输出与未注入逐字节一致（BC 硬约束，分支 0 两侧一致）；</li>
+ * <li>support 缺省 false（mysql/mssql/dm/tdengine/手构无名方言）：纯列引用显式请求走
+ * NullsOrderRewriter CASE 改写（方向正确性四组合）；原「缺省一致省略 / 否则
+ * ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE」口径退役；</li>
+ * <li>结构不可改写（非列引用 / SELECT DISTINCT）⇒ nop.err.eql.nulls-order-not-supported
+ * + reason（响亮失败原则保持）；</li>
+ * <li>{@code defaultNullsFirst} 全程不读（Plan 2308 design §3.8：单布尔无法表达各方言
+ * 真实空序模型）——flag 翻转不改变发射行为，本矩阵新增该不变式断言。</li>
  * </ul>
- * 8 方言 {@code defaultNullsFirst} 消费路径断言（EC ③）：mysql/mssql 走省略/报错推导；
- * duckdb/postgresql/oracle/h2 走 support=true 打印分支（defaultNullsFirst 结构性不可达——
- * 打印严格优于查缺省）；dm/tdengine/db2 走"集合外一律报错"（其 defaultNullsFirst 配置
- * 按红线不作等价性主张）。flag 翻转因果用手构方言证明（同名 mysql 翻 flag 行为翻转）。
+ * 与 master 侧 {@code TestEqlNullsOrderCompile}（手构方言 + EqlCompiler 全链路）互补：
+ * 本类负责真实方言装载矩阵与程序化 AST 注入路径。
  */
 public class TestEqlNullsFirstDialectGate {
 
@@ -83,7 +80,8 @@ public class TestEqlNullsFirstDialectGate {
 
     /**
      * 手构方言：name 经 resourcePath 派生（{@code DialectImpl.getName()} 读模型 location
-     * path 的 fileFullName），须指向已证方言集成员名才能进入缺省序推导分支。
+     * path 的 fileFullName）。merge 后发射判据只有 supportNullsFirst；defaultNullsFirst
+     * 仅为配置事实登记（发射不读，见 {@link #testFlippingDefaultNullsFirstDoesNotChangeEmission}）。
      */
     static IDialect handDialect(String name, Boolean defaultNullsFirst, Boolean supportNullsFirst) {
         DialectModel model = new DialectModel();
@@ -108,7 +106,7 @@ public class TestEqlNullsFirstDialectGate {
 
     /**
      * 程序化 nullsFirst 注入 + 完整 compile 管线（parse → setNullsFirst → transform →
-     * generate），复刻 {@code EqlCompiler.compile} 核心（Phase 2 无文法赋值路径的替代载体）。
+     * generate），复刻 {@code EqlCompiler.compile} 核心。
      */
     static String sqlOf(IDialect dialect, String eql, Boolean nullsFirst) {
         SqlProgram program = new EqlASTParser().parseFromText(null, eql);
@@ -128,11 +126,11 @@ public class TestEqlNullsFirstDialectGate {
         return gen.getSql().getText().replaceAll("\\s+", " ");
     }
 
-    static NopException featureError(IDialect dialect, String eql, boolean nullsFirst) {
+    static NopException emitError(IDialect dialect, String eql, boolean nullsFirst) {
         return assertThrows(NopException.class, () -> sqlOf(dialect, eql, nullsFirst));
     }
 
-    // ---- 分支 1：supportNullsFirst=true（真实方言 4 个）请求即打印 ----
+    // ---- supportNullsFirst=true（真实方言 5 个，含 db2 一手修正）请求即原生打印 ----
 
     @Test
     public void testOraclePrintsRequestedNullsOrder() {
@@ -160,6 +158,16 @@ public class TestEqlNullsFirstDialectGate {
         assertTrue(sqlOf(dialectOf("h2"), EQL_DESC, false).contains("nulls last"));
     }
 
+    @Test
+    public void testDb2PrintsRequestedNullsOrderAfterFirstHandFix() {
+        // 0ea57a097e（master 一手修正，merge 联动）：db2 supportNullsFirst=true ⇒ 请求即原生
+        // 直出（ours 原 [未取证] 报错口径退役——合并任务书明确指令项）
+        assertTrue(sqlOf(dialectOf("db2"), EQL_ASC, true).contains("nulls first"));
+        assertTrue(sqlOf(dialectOf("db2"), EQL_ASC, false).contains("nulls last"));
+        assertTrue(sqlOf(dialectOf("db2"), EQL_DESC, true).contains("nulls first"));
+        assertTrue(sqlOf(dialectOf("db2"), EQL_DESC, false).contains("nulls last"));
+    }
+
     // ---- 分支 0：nullsFirst == null 逐字节不变（BC 硬约束，代表方言） ----
 
     @Test
@@ -168,89 +176,102 @@ public class TestEqlNullsFirstDialectGate {
             IDialect dialect = dialectOf(name);
             String baselineAsc = sqlOf(dialect, EQL_ASC, null);
             assertFalse(baselineAsc.contains("nulls"), name + ": " + baselineAsc);
-            // 门控分支 0 = 委托 super ⇒ 与未经过门控的输出逐字节一致（同输入两次生成恒等）
+            // 分支 0 = 与未注入时的输出逐字节一致（同输入两次生成恒等）
             assertEquals(baselineAsc, sqlOf(dialect, EQL_ASC, null), name);
         }
     }
 
-    // ---- 分支 2：mysql/mssql（defaultNullsFirst=true + 一手文档）省略/报错三态（EC ④） ----
+    // ---- support 缺省 false 方言：纯列引用显式请求走 CASE 改写（方向正确性四组合） ----
 
     @Test
-    public void testMysqlConsistentRequestOmittedConflictThrows() {
+    public void testMysqlCaseRewriteDirectionMatrix() {
         IDialect mysql = dialectOf("mysql");
-        // asc nulls first = 缺省序一致 ⇒ 省略（与未注入输出逐字节一致）
-        String baseline = sqlOf(mysql, EQL_ASC, null);
-        assertEquals(baseline, sqlOf(mysql, EQL_ASC, true), "mysql asc nulls first == default ⇒ omit");
-        // asc nulls last 与缺省冲突 ⇒ 编译期响亮报错
-        NopException e = featureError(mysql, EQL_ASC, false);
-        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
-        assertEquals("nullsFirst(last)", e.getParam("feature"));
-        // desc nulls last = DESC 缺省序（镜像）一致 ⇒ 省略
-        String baselineDesc = sqlOf(mysql, EQL_DESC, null);
-        assertEquals(baselineDesc, sqlOf(mysql, EQL_DESC, false), "mysql desc nulls last == default ⇒ omit");
-        // desc nulls first 与 DESC 缺省冲突 ⇒ 报错
-        NopException e2 = featureError(mysql, EQL_DESC, true);
-        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e2.getErrorCode());
-        assertEquals("nullsFirst(first)", e2.getParam("feature"));
+        String ascFirst = sqlOf(mysql, EQL_ASC, true);
+        assertTrue(ascFirst.matches("(?s).*SID is null then 1 else 0 end desc.*"), ascFirst);
+        assertTrue(ascFirst.contains("SID asc"), ascFirst);
+        assertFalse(ascFirst.contains("nulls"), ascFirst);
+
+        String ascLast = sqlOf(mysql, EQL_ASC, false);
+        assertTrue(ascLast.matches("(?s).*SID is null then 0 else 1 end desc.*"), ascLast);
+
+        String descFirst = sqlOf(mysql, EQL_DESC, true);
+        assertTrue(descFirst.matches("(?s).*SID is null then 0 else 1 end asc.*"), descFirst);
+        assertTrue(descFirst.contains("SID desc"), descFirst);
+
+        String descLast = sqlOf(mysql, EQL_DESC, false);
+        assertTrue(descLast.matches("(?s).*SID is null then 1 else 0 end asc.*"), descLast);
     }
 
     @Test
-    public void testMssqlConsistentRequestOmittedConflictThrows() {
-        IDialect mssql = dialectOf("mssql");
-        assertEquals(sqlOf(mssql, EQL_ASC, null), sqlOf(mssql, EQL_ASC, true), "mssql asc nulls first ⇒ omit");
-        assertEquals("nullsFirst(last)", featureError(mssql, EQL_ASC, false).getParam("feature"));
-        assertEquals(sqlOf(mssql, EQL_DESC, null), sqlOf(mssql, EQL_DESC, false), "mssql desc nulls last ⇒ omit");
-        assertEquals("nullsFirst(first)", featureError(mssql, EQL_DESC, true).getParam("feature"));
-    }
-
-    // ---- 分支 2 集合外：dm/tdengine/db2 无一手文档 ⇒ 两方向一律报错（红线 [未取证]） ----
-
-    @Test
-    public void testUndocumentedDialectsAlwaysThrowOnExplicitRequest() {
-        for (String name : new String[]{"dm", "tdengine", "db2"}) {
+    public void testUndocumentedDialectsCaseRewriteOnExplicitRequest() {
+        // 原「集合外一律报错」口径退役：mssql/dm/tdengine 纯列引用显式请求 CASE 无损模拟
+        for (String name : new String[]{"mssql", "dm", "tdengine"}) {
             IDialect dialect = dialectOf(name);
-            assertEquals("nullsFirst(first)", featureError(dialect, EQL_ASC, true).getParam("feature"),
-                    name + " asc nulls first must throw (undocumented default)");
-            assertEquals("nullsFirst(last)", featureError(dialect, EQL_ASC, false).getParam("feature"),
-                    name + " asc nulls last must throw (undocumented default)");
-            assertEquals("nullsFirst(first)", featureError(dialect, EQL_DESC, true).getParam("feature"),
-                    name + " desc nulls first must throw (undocumented default)");
-            assertEquals("nullsFirst(last)", featureError(dialect, EQL_DESC, false).getParam("feature"),
-                    name + " desc nulls last must throw (undocumented default)");
+            String ascFirst = sqlOf(dialect, EQL_ASC, true);
+            assertTrue(ascFirst.matches("(?s).*SID is null then 1 else 0 end desc.*"),
+                    name + " asc nulls first must case-rewrite: " + ascFirst);
+            String descLast = sqlOf(dialect, EQL_DESC, false);
+            assertTrue(descLast.matches("(?s).*SID is null then 1 else 0 end asc.*"),
+                    name + " desc nulls last must case-rewrite: " + descLast);
         }
     }
 
-    // ---- flag 翻转因果（EC ③ 接线验证 #23：翻 flag 行为随之翻转，手构方言） ----
+    // ---- 结构不可改写处 fail-fast（真实方言端到端：非列引用 / DISTINCT） ----
 
     @Test
-    public void testFlippingDefaultNullsFirstFlipsGateOutcome() {
-        // mysql 形（true）：asc first 一致省略
+    public void testNonColumnExpressionFailsFast() {
+        NopException e = emitError(dialectOf("mysql"),
+                "select o.name from AppDept o order by upper(o.name) nulls last", false);
+        assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
+        assertEquals("expression-not-duplicable", e.getParam("reason"));
+    }
+
+    @Test
+    public void testDistinctSelectFailsFast() {
+        NopException e = emitError(dialectOf("mysql"),
+                "select distinct o.name from AppDept o order by o.id nulls last", false);
+        assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
+        assertEquals("distinct-not-supported", e.getParam("reason"));
+    }
+
+    @Test
+    public void testFunctionExpressionAllowedOnNativeDialect() {
+        // support=true 方言不需要复制表达式，函数排序项 + 显式空序合法（D2 只约束改写路径）
+        assertTrue(sqlOf(dialectOf("postgresql"),
+                "select o.name from AppDept o order by upper(o.name) nulls last", false)
+                .contains("nulls last"));
+    }
+
+    // ---- flag 因果（手构方言）：support 翻转切换发射分支；defaultNullsFirst 不再被读 ----
+
+    @Test
+    public void testFlippingSupportNullsFirstSwitchesEmission() {
+        // 手构 mysql 形方言：support 缺省（false）⇒ CASE 改写；翻 true ⇒ 原生打印
+        IDialect rewriteDialect = handDialect("mysql", true, null);
+        assertTrue(sqlOf(rewriteDialect, EQL_ASC, false)
+                .matches("(?s).*SID is null then 0 else 1 end desc.*"));
+        IDialect nativeDialect = handDialect("mysql", true, true);
+        assertTrue(nativeDialect.isSupportNullsFirst());
+        assertTrue(sqlOf(nativeDialect, EQL_ASC, false).contains("nulls last"));
+    }
+
+    @Test
+    public void testFlippingDefaultNullsFirstDoesNotChangeEmission() {
+        // Plan 2308 design §3.8：发射全程不读 defaultNullsFirst（单布尔无法表达各方言
+        // 真实空序模型）——翻 flag 发射产物不变（ours 原"缺省一致省略随 flag 翻转"口径退役）
         IDialect firstDialect = handDialect("mysql", true, null);
-        assertEquals(sqlOf(firstDialect, EQL_ASC, null), sqlOf(firstDialect, EQL_ASC, true));
-        // 翻转为 false：asc first 变为冲突报错、asc last 变为一致省略——行为随 flag 翻转
         IDialect lastDialect = handDialect("mysql", false, null);
-        assertEquals("nullsFirst(first)", featureError(lastDialect, EQL_ASC, true).getParam("feature"));
-        assertEquals(sqlOf(lastDialect, EQL_ASC, null), sqlOf(lastDialect, EQL_ASC, false));
-        // DESC 镜像随翻转：false ⇒ DESC 缺省 first（desc nulls first 省略、desc nulls last 报错）
-        assertEquals(sqlOf(lastDialect, EQL_DESC, null), sqlOf(lastDialect, EQL_DESC, true));
-        assertEquals("nullsFirst(last)", featureError(lastDialect, EQL_DESC, false).getParam("feature"));
+        assertEquals(sqlOf(firstDialect, EQL_ASC, true), sqlOf(lastDialect, EQL_ASC, true));
+        assertEquals(sqlOf(firstDialect, EQL_ASC, false), sqlOf(lastDialect, EQL_ASC, false));
     }
 
-    @Test
-    public void testFlippingSupportNullsFirstSwitchesToPrintBranch() {
-        // 手构 mysql（defaultNullsFirst=true）+ supportNullsFirst=true：asc nulls last 从报错
-        // 变为打印子句——support 分支优先于缺省序推导（正交两标志各司其职）
-        IDialect dialect = handDialect("mysql", true, true);
-        assertTrue(dialect.isSupportNullsFirst());
-        assertTrue(sqlOf(dialect, EQL_ASC, false).contains("nulls last"));
-        assertTrue(sqlOf(dialect, EQL_DESC, true).contains("nulls first"));
-    }
-
-    // ---- 集合外手构方言（name 不在已证集）⇒ 不可推导一律报错（未来新方言同纪律） ----
+    // ---- 集合外手构方言（name 不在任何已证集）⇒ 同一 support 判据，无名字特殊门 ----
 
     @Test
-    public void testUnknownDialectNameAlwaysThrows() {
+    public void testUnknownDialectNameCaseRewritesOnColumnRef() {
+        // 原「未知方言名一律报错」口径退役：发射判据只有 support 位，与方言名无关
         IDialect dialect = handDialect("minimal", true, null);
-        assertEquals("nullsFirst(first)", featureError(dialect, EQL_ASC, true).getParam("feature"));
+        assertTrue(sqlOf(dialect, EQL_ASC, true)
+                .matches("(?s).*SID is null then 1 else 0 end desc.*"));
     }
 }

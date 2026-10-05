@@ -7,14 +7,11 @@
  */
 package io.nop.orm.eql.parse;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.eql.ast.SqlProgram;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * WI1 BUG-10：`cross join` 静默误解析。
@@ -26,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * <p>修复后：文法新增 `crossJoin_: CROSS JOIN` 并入 `joinType_`，`SqlJoinType`
  * 新增 CROSS_JOIN，生成器经既有 `getJoinType().getText()` 输出 `cross join`。
  * `CROSS` 不移出 `unreservedWord_` 与 7 个方言 reservedKeywords（roadmap 明令）；
- * `natural join` 不在授权范围，保持响亮失败。
+ * `natural join` 不在授权范围（merge 后按 Plan 2307 V9 死 token 移除口径降级为别名，见 testNaturalJoinNotAuthorized）。
  */
 public class TestEqlCrossJoinParse extends BaseTestCase {
 
@@ -61,15 +58,15 @@ public class TestEqlCrossJoinParse extends BaseTestCase {
     }
 
     @Test
-    public void testNaturalJoinStillFailsLoudly() {
-        // natural join 未获 roadmap 授权，保持解析期响亮失败（行为不变）
-        try {
-            echo("select 1 from a natural join b");
-            fail("natural join must keep failing at parse time");
-        } catch (NopException e) {
-            assertTrue(e.getErrorCode().startsWith("nop.err.antlr"),
-                    "expected antlr parse error, got: " + e.getErrorCode());
-        }
+    public void testNaturalJoinNotAuthorized() {
+        // 【merge note / Plan 2307 V9】master 移除死 token NATURAL/USING（全仓 g4 零规则
+        // 引用；EQL 以普通 JOIN + ON 表达），`natural` 现按普通标识符进入别名路径——
+        // ours 原断言"解析期响亮失败"随之退役。natural join 语义仍未获授权：
+        // 实体表形态 `from AppDept d natural join AppRole r` 在 transform 层被
+        // ERR_EQL_JOIN_NO_CONDITION 响亮拒绝（普通 join 漏 ON 校验对别名路径同样生效）；
+        // 本断言钉住"natural 不再是关键字、按别名解析"的新契约。
+        String out = echo("select 1 from a natural join b");
+        assertTrue(out.contains("a as natural join b"), out);
     }
 
     @Test

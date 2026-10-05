@@ -50,6 +50,21 @@ public class QueryBeanHelper {
         return new OrderBySqlParser().parseFromText(loc, sql);
     }
 
+    /**
+     * <b>⚠️ 方言盲，勿用于需要空序的查询。</b>
+     *
+     * <p>本方法把 {@code OrderFieldBean.nullsFirst} 直接渲染成 {@code nulls first/last} 文本，
+     * <b>不询问目标方言是否支持该语法</b>。原因是依赖方向所致：
+     * {@code nop-dao} 依赖 {@code nop-core}（单向），本类无法引用 {@code IDialect}。
+     * 因此在 MySQL / MariaDB / DM / tdengine / SQL Server 等不支持该语法的库上，
+     * 本方法会产出<b>语法错误</b> SQL。
+     *
+     * <p>正确做法：走 ORM 查询通道（{@code OrmEntityDao} / {@code GenSqlHelper}），
+     * 它们按 plan 2309 接入 {@code supportNullsFirst} 能力位，原生 / 改写自动分流。
+     *
+     * <p>本方法当前<b>零调用方</b>，删除属 {@code nop-core} API 变更，已在
+     * {@code ai-dev/plans/2309-bean-orderby-nulls-first-gating.md} 的 Deferred 区登记。
+     */
     public static String buildOrderBySql(List<OrderFieldBean> orderBy) {
         if (orderBy == null)
             return null;

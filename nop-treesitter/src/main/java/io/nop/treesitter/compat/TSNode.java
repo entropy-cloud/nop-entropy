@@ -72,24 +72,16 @@ public final class TSNode {
     /**
      * True when the subtree contains an ERROR / MISSING node anywhere
      * (C {@code ts_node_has_error}).
+     *
+     * <p>Delegates to the primary {@link io.nop.treesitter.TSNode#hasError()} so
+     * the two API surfaces cannot drift: this class exists so migrating off the
+     * JNI bindings is an import change, not a behaviour change. The shared
+     * implementation also counts zero-width MISSING nodes, which the previous
+     * local copy here did not — a missing token is a syntax error in the C
+     * runtime's accounting, and the fail-closed reading is the correct one.</p>
      */
     public boolean hasError() {
-        return hasError(node.id());
-    }
-
-    private boolean hasError(int id) {
-        Subtree subtree = tree.arena().get(id);
-        int symbol = subtree.symbol();
-        Language language = tree.language();
-        if (symbol == language.builtinErrorSymbol() || symbol == language.builtinErrorRepeatSymbol()) {
-            return true;
-        }
-        for (int i = 0; i < subtree.childCount(); i++) {
-            if (hasError(subtree.child(i))) {
-                return true;
-            }
-        }
-        return false;
+        return node.hasError();
     }
 
     public int getStartByte() {
@@ -135,21 +127,16 @@ public final class TSNode {
     /**
      * The first child sitting in the given field slot of this node's production
      * (C {@code ts_node_child_by_field_name}), or {@link #NULL}.
+     *
+     * <p>Delegates to the primary
+     * {@link io.nop.treesitter.TSNode#childByFieldName(String)} for the same
+     * no-drift reason as {@link #hasError()}.</p>
      */
     public TSNode getChildByFieldName(String fieldName) {
-        if (node == null || fieldName == null) {
+        if (node == null) {
             return NULL;
         }
-        Language language = tree.language();
-        int fieldId = language.fieldId(fieldName);
-        if (fieldId == 0) {
-            return NULL;
-        }
-        io.nop.treesitter.cursor.TSTreeCursor cursor = new io.nop.treesitter.cursor.TSTreeCursor(node);
-        if (cursor.gotoChildByFieldId(fieldId)) {
-            return wrapOrNull(cursor.currentNode());
-        }
-        return NULL;
+        return wrapOrNull(node.childByFieldName(fieldName));
     }
 
     /**

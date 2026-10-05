@@ -1,5 +1,6 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.api.chat.messages.ChatCompactionMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.List;
@@ -36,6 +37,17 @@ public class CompactionResult {
      * tokensAfter)}); not an independently audited measure.
      */
     private final long shadowedTokenCount;
+    /**
+     * Plan 2296 (WI15): reference to the {@link ChatCompactionMessage} produced
+     * by the effective summary layer this round (Layer3 only; null for
+     * Layer2/Micro/Reference/no-reduction paths). The coordinator enriches
+     * this exact instance with snapshotId/shadowedTokenCount by IDENTITY —
+     * never by scanning the history, where older already-enriched entries from
+     * previous rounds survive Micro/Layer2 rounds and a scan would mis-stamp
+     * them. Transport-only reference: deliberately excluded from
+     * equals/hashCode (value equality stays history-shape based).
+     */
+    private final ChatCompactionMessage producedEntry;
 
     public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
                             int retainedMessageCount, String snapshotId) {
@@ -87,6 +99,24 @@ public class CompactionResult {
                             List<ChatMessage> compactedMessages,
                             int originalSize, int compactedSize,
                             long shadowedTokenCount) {
+        this(sessionId, tokensBefore, tokensAfter, retainedMessageCount, snapshotId,
+                compactedMessages, originalSize, compactedSize, shadowedTokenCount, null);
+    }
+
+    /**
+     * Plan 2296 (WI15): deepest constructor carrying the produced summary
+     * entry reference. Only {@code Layer3FullSummaryStrategy} (entry producer)
+     * and {@code PipelineCompactor} (final re-construction, which must pass
+     * the surviving entry through or the coordinator enrichment never fires
+     * on the production assembly) use it; every legacy constructor delegates
+     * with {@code producedEntry == null}.
+     */
+    public CompactionResult(String sessionId, long tokensBefore, long tokensAfter,
+                            int retainedMessageCount, String snapshotId,
+                            List<ChatMessage> compactedMessages,
+                            int originalSize, int compactedSize,
+                            long shadowedTokenCount,
+                            ChatCompactionMessage producedEntry) {
         this.sessionId = sessionId;
         this.tokensBefore = tokensBefore;
         this.tokensAfter = tokensAfter;
@@ -96,6 +126,7 @@ public class CompactionResult {
         this.originalSize = originalSize;
         this.compactedSize = compactedSize;
         this.shadowedTokenCount = shadowedTokenCount;
+        this.producedEntry = producedEntry;
     }
 
     public String getSessionId() {
@@ -146,6 +177,15 @@ public class CompactionResult {
         return shadowedTokenCount;
     }
 
+    /**
+     * @return the {@link ChatCompactionMessage} produced by the effective
+     *         summary layer this round, or {@code null} when no summary entry
+     *         was produced (Layer2/Micro/Reference/no-reduction paths)
+     */
+    public ChatCompactionMessage getProducedEntry() {
+        return producedEntry;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -180,6 +220,7 @@ public class CompactionResult {
                 ", shadowedTokenCount=" + shadowedTokenCount +
                 ", snapshotId='" + snapshotId + '\'' +
                 ", compactedMessages=" + (compactedMessages != null ? compactedMessages.size() + " messages" : "null") +
+                ", producedEntry=" + (producedEntry != null) +
                 '}';
     }
 }

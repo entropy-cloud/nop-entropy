@@ -151,8 +151,7 @@ sqlTableSource:
     ;
 
 sqlSingleTableSource:
-    tableName=sqlTableName AS? ({_input.LA(1) != CROSS || _input.LA(2) != JOIN}?
-      alias=sqlAlias)? decorators=sqlDecorators_?;
+    tableName=sqlTableName AS? alias=sqlAlias? decorators=sqlDecorators_?;
 
 // WI17: TUMBLE(t, INTERVAL) 流时间切片伪表函数（D4 裁定，stream-only 目标）。
 // t 为限定的时间列（表名.列名，bigint epoch-millis），INTERVAL 为窗口时长；
@@ -195,7 +194,7 @@ sqlColumnAliases__
 
 
 joinType_:
-    crossJoin_ | innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_;
+    innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_ | crossJoin_;
 
 sqlTableSource_joinRight:
     sqlSingleTableSource | sqlSubqueryTableSource;
@@ -216,8 +215,27 @@ rightJoin_:
 
 // WI1 BUG-10: cross join 此前被误解析（cross 经 unreservedWord_ 消费为别名）。
 // CROSS 不移出 unreservedWord_ 与各方言 reservedKeywords（roadmap 明令）
+// Plan 2307 V2（merge 并集）：CROSS JOIN。
+//
+// 该规则只能覆盖「左表已带别名」的情形（如 `from AppUser u cross join AppRole r`）：
+// 此时 cross 不再可能被 sqlSingleTableSource 的可选 alias 吃掉，必须由本规则显式匹配。
+//
+// 而「左表未带别名」的情形（`from AppUser cross join AppRole r`）中，ANTLR 的 ALL(*)
+// 预测面对「alias=cross + 裸 JOIN」与「CROSS JOIN」两条都能完整解析的路径时会取最小备选号，
+// 即仍然先吃别名——实测加上本规则并不能改变该处的选择结果。
+// 该残余情形由 SqlJoinTableSource#normalize() 在建树时还原为 CROSS_JOIN，
+// 故本规则与 normalize() 两者缺一不可，不是冗余定义。
+// 【merge note】备选顺序取 master（crossJoin_ 置尾）：master 的
+// sqlSingleTableSource 语义谓词（CROSS+JOIN 相邻时不吃别名）已独立保证核心修复，
+// 而置尾使 `from a cross join b on <cond>` 按既定边界解析为「别名 cross + 带 ON 普通 join」
+// （TestEqlCrossJoinGrammarParse 钉死）；ours 原前置序会令该形态解析为 CROSS_JOIN，
+// 与 AstToSqlGenerator 对带条件 CROSS_JOIN 的显式报错口径冲突。
 crossJoin_:
     CROSS JOIN;
+// 【merge note 2】别名谓词消歧（本分支 WI1 原有 {_input.LA(1) != CROSS || _input.LA(2) != JOIN}?）
+// 已移除：与 master 的 normalize() 还原层语义冲突（谓词强制 CROSS_JOIN，吞掉 `cross join b on cond`
+// 的别名解读）。合并语义 = master 的「plain alias + normalize 兜底」；本分支 WI1 的 CROSS_JOIN
+// 断言经 normalize 后 AST 等价保持（TestEqlCrossJoinParse/Compile 双向验证）。
 
 sqlWhere
     : WHERE expr=sqlExpr

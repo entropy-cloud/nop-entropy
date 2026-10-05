@@ -81,6 +81,12 @@ public class PipelineCompactor implements IContextCompactor {
 
         List<ChatMessage> current = new ArrayList<>(messages);
         long currentTokens = tokensBefore;
+        // Plan 2296 (WI15): the summary entry produced by an effective summary
+        // layer (Layer3) must survive the final re-construction below, or the
+        // coordinator enrichment never fires on the production assembly. Later
+        // effective layers keep the entry in their copied lists, so the latest
+        // NON-null producedEntry among effective layers is the surviving one.
+        io.nop.ai.api.chat.messages.ChatCompactionMessage producedEntry = null;
 
         for (ICompressionStrategy strategy : strategies) {
             if (isRelieved(currentTokens, current.size(), tokenThreshold, messageThreshold)) {
@@ -110,6 +116,9 @@ public class PipelineCompactor implements IContextCompactor {
                     && layerResult.getTokensAfter() < currentTokens) {
                 current = new ArrayList<>(layerResult.getCompactedMessages());
                 currentTokens = estimator.estimateTokens(current);
+                if (layerResult.getProducedEntry() != null) {
+                    producedEntry = layerResult.getProducedEntry();
+                }
                 LOG.info("Layer {} reduced tokens {} -> {}, messages {} for session {}",
                         strategy.name(), tokensBefore, currentTokens, current.size(), ctx.getSessionId());
             } else {
@@ -126,7 +135,8 @@ public class PipelineCompactor implements IContextCompactor {
             // history before compaction, compactedSize = the reduced list).
             return new CompactionResult(ctx.getSessionId(), tokensBefore, currentTokens,
                     current.size(), ctx.getSnapshotId(), current,
-                    messages.size(), current.size());
+                    messages.size(), current.size(), Math.max(0, tokensBefore - currentTokens),
+                    producedEntry);
         }
         // No reduction: both message-count dimensions equal the original size
         // (compaction attempted but nothing was relieved). snapshotId is still

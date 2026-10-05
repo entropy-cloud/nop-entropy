@@ -33,9 +33,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>Stateless after construction — safe for concurrent use.
  */
 public final class HostBashSandbox implements IBashSandbox {
+    /** Plan 2285 (WI4): incremental-progress publish cadence (time-based). */
+    private static final long PUBLISH_INTERVAL_NS = 50_000_000L;
+
 
     private final BashSandboxConfig defaultConfig;
     private final List<Path> allowedBaseDirs;
+    /** Plan 2285 (WI4): callId-addressed in-flight registry for progress/cancel. */
+    private final BashExecutionTracker tracker = new BashExecutionTracker();
 
     public HostBashSandbox() {
         this(BashSandboxConfig.defaults(), List.of());
@@ -89,6 +94,24 @@ public final class HostBashSandbox implements IBashSandbox {
         reader.setDaemon(true);
         reader.start();
 
+        // Plan 2285 (WI4): register in-flight under the caller's callId so
+        // heartbeat progress snapshots and abandon-time cancellation can
+        // address this process; unregistered in every exit path.
+        String callId = request.getCallId();
+        if (callId != null) {
+            tracker.register(callId, process, capturedRef, null);
+        }
+        try {
+            return doExecute(config, process, reader, capturedRef);
+        } finally {
+            if (callId != null) {
+                tracker.unregister(callId);
+            }
+        }
+    }
+
+    private BashSandboxResult doExecute(BashSandboxConfig config, Process process, Thread reader,
+                                        AtomicReference<StringBuilder> capturedRef) {
         boolean timedOut;
         try {
             timedOut = !process.waitFor(config.getWallSeconds(), TimeUnit.SECONDS);
@@ -108,10 +131,26 @@ public final class HostBashSandbox implements IBashSandbox {
         return new BashSandboxResult(exitCode, capturedToString(capturedRef), "", false);
     }
 
+    @Override
+    public BashProgressSnapshot progressSnapshot(String callId) {
+        return tracker.progressSnapshot(callId);
+    }
+
+    @Override
+    public boolean cancelExecution(String callId) {
+        return tracker.cancelExecution(callId);
+    }
+
     private static void drainStream(InputStream in, int maxBytes, AtomicReference<StringBuilder> capturedRef) {
         StringBuilder captured = new StringBuilder(Math.min(maxBytes, 8192));
         byte[] buf = new byte[4096];
         boolean truncated = false;
+        // Plan 2285 (WI4): publish an immutable copy periodically so the
+        // in-flight progress registry sees incremental output during the run
+        // (previously the buffer was only published in the finally block).
+        // Time-based rate limit (first chunk publishes immediately); a copy
+        // per chunk would be quadratic for max-bytes outputs.
+        long lastPublishNs = 0L;
         try {
             int n;
             while ((n = in.read(buf)) != -1) {
@@ -127,6 +166,11 @@ public final class HostBashSandbox implements IBashSandbox {
                 captured.append(new String(buf, 0, take, StandardCharsets.UTF_8));
                 if (take < n) {
                     truncated = true;
+                }
+                long nowNs = System.nanoTime();
+                if (nowNs - lastPublishNs >= PUBLISH_INTERVAL_NS) {
+                    lastPublishNs = nowNs;
+                    capturedRef.set(new StringBuilder(captured));
                 }
             }
         } catch (IOException ignored) {

@@ -15,7 +15,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,15 +24,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * WI7（roadmap EC ②/④/⑤）：{@code ORDER BY … NULLS FIRST/LAST} 文本输入的**端到端**
  * 行为面——EQL 文本 → parse 赋值 {@code nullsFirst}（Phase 3 文法激活）→ transform →
- * {@code AstToSqlGenerator.visitSqlOrderByItem} 三分门（Phase 2 落地）→ 方言 SQL 或响亮报错
- * （接线验证 Minimum Rules #23：mysql 冲突报错一条 + postgresql 打印一条即本文件）。
+ * {@code AstToSqlGenerator} 的方言化发射 → 方言 SQL 或结构不可改写处响亮报错。
  *
- * <p>裁定 = {@code ai-dev/design/eql-cross-db-compat/2026-10-04-wi7-phase0-adjudications.md}
- * §三/§六。EC ⑤ 满足形态（登记项）：DuckDB 与 PG 的 {@code defaultNullsFirst} 均 false 且
- * 缺省不补子句 ⇒ 缺省文本差异编译期用例不可能存在；以**显式子句 parity 用例**
- * （{@code desc nulls last} 双库都输出 {@code nulls last}——本文件
- * {@code testDuckdbPostgresqlDescNullsLastParity}）+ owner doc 差异表行（已落
- * 「defaultNullsFirst 与 supportNullsFirst」小节）两件满足。
+ * <p>【merge note / Plan 2308 supersede】本类原基于 ours WI7 三分门（"缺省一致省略 /
+ * 冲突或集合外报错"，裁定 wi7-phase0-adjudications §三）编写；merge 裁决采纳 master
+ * Plan 2308 emission（support 位 gate + NullsOrderRewriter CASE 改写 + D2/D3/D4
+ * fail-fast，翻案依据见 AstToSqlGenerator merge 裁决记录），分支 2 用例按下表改写：
+ * <ul>
+ * <li>mysql「缺省一致 ⇒ 省略」→ 改为断言 CASE 改写成功且方向正确（不再做省略优化）；</li>
+ * <li>mysql/dm/tdengine「冲突/集合外 ⇒ ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE」→ 改为
+ * 断言 CASE 改写成功（纯列引用可无损模拟）；</li>
+ * <li>db2 由 [未取证] 报错口径改为原生直出（0ea57a097e supportNullsFirst=true 一手修正）；</li>
+ * <li>fail-fast（非列引用/DISTINCT）改断言 nop.err.eql.nulls-order-not-supported + reason。</li>
+ * </ul>
+ * EC ⑤ 满足形态（登记项）：DuckDB 与 PG 的缺省文本差异编译期用例不可能存在；以
+ * **显式子句 parity 用例**（{@code desc nulls last} 双库都输出 {@code nulls last}——
+ * {@code testDuckdbPostgresqlDescNullsLastParity}）+ owner doc 差异表行两件满足。
  */
 public class TestEqlNullsFirstSyntaxCompile {
 
@@ -60,7 +66,7 @@ public class TestEqlNullsFirstSyntaxCompile {
         return TestEqlCastTypeAliasCompile.sqlOf(dialect, eql);
     }
 
-    // ---- 分支 1：supportNullsFirst=true 方言文本输入打印子句 ----
+    // ---- supportNullsFirst=true 方言文本输入打印子句（含 db2 一手修正后入组） ----
 
     @Test
     public void testPostgresqlPrintsNullsClauseFromText() {
@@ -71,9 +77,19 @@ public class TestEqlNullsFirstSyntaxCompile {
     @Test
     public void testOraclePrintsNullsClauseFromText() {
         // oracle 缺省 ASC nulls last（defaultNullsFirst=false）：显式 nulls first 与缺省不一致，
-        // 但 support=true ⇒ 打印（分支 1 请求即打印，无需查缺省序）——EC ④ oracle 侧
+        // 但 support=true ⇒ 打印（请求即语义，无需查缺省序）——EC ④ oracle 侧
         String sql = sqlOf(dialectOf("oracle"), "select o.name from AppDept o order by o.id asc nulls first");
         assertTrue(sql.contains("nulls first"), sql);
+    }
+
+    @Test
+    public void testDb2PrintsNullsClauseFromText() {
+        // 0ea57a097e（master 一手修正）：DB2 LUW 原生支持 NULLS FIRST/LAST，显式请求原生直出
+        //（merge 前 ours 口径为 [未取证] 报错，已按任务书联动指令调整）
+        String asc = sqlOf(dialectOf("db2"), "select o.name from AppDept o order by o.id asc nulls first");
+        assertTrue(asc.contains("nulls first"), asc);
+        String desc = sqlOf(dialectOf("db2"), "select o.name from AppDept o order by o.id desc nulls last");
+        assertTrue(desc.contains("nulls last"), desc);
     }
 
     @Test
@@ -96,51 +112,73 @@ public class TestEqlNullsFirstSyntaxCompile {
         assertTrue(sql.contains("nulls last"), sql);
     }
 
-    // ---- 分支 2：mysql（defaultNullsFirst=true + 一手文档）三态（EC ④ mysql 侧） ----
+    // ---- support=false 方言：CASE 改写（NullsOrderRewriter，方向正确性四组合） ----
 
     @Test
-    public void testMysqlAscNullsFirstOmittedAsConsistent() {
-        String baseline = sqlOf(dialectOf("mysql"), EQL_ASC);
-        String withClause = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id asc nulls first");
-        assertFalse(withClause.contains("nulls"), withClause);
-        assertEquals(baseline, withClause, "asc nulls first == mysql 缺省序 ⇒ 省略子句、输出逐字节一致");
+    public void testMysqlCaseRewriteAscNullsFirst() {
+        String sql = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id asc nulls first");
+        // null 在前：nullness 键（null→1）DESC 在前，原列保持 asc 在后；不再出现原生子句
+        assertTrue(sql.matches("(?s).*SID is null then 1 else 0 end desc.*"), sql);
+        assertTrue(sql.contains("SID asc"), sql);
+        assertFalse(sql.contains("nulls"), sql);
     }
 
     @Test
-    public void testMysqlDescNullsLastOmittedAsConsistent() {
-        // DESC 镜像（一手文档：MySQL DESC 时 NULL 排后）经文法激活后验证
-        String baseline = sqlOf(dialectOf("mysql"), EQL_DESC);
-        String withClause = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id desc nulls last");
-        assertFalse(withClause.contains("nulls"), withClause);
-        assertEquals(baseline, withClause, "desc nulls last == mysql DESC 缺省序 ⇒ 省略子句");
+    public void testMysqlCaseRewriteAscNullsLast() {
+        // 原「冲突报错」用例改写：asc nulls last 经 CASE 无损模拟（null→0 组后置）
+        String sql = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id asc nulls last");
+        assertTrue(sql.matches("(?s).*SID is null then 0 else 1 end desc.*"), sql);
+        assertTrue(sql.contains("SID asc"), sql);
+        assertFalse(sql.contains("nulls"), sql);
     }
 
     @Test
-    public void testMysqlAscNullsLastConflictFailsLoudly() {
-        NopException e = assertThrows(NopException.class,
-                () -> sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id asc nulls last"));
-        assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode());
-        assertEquals("nullsFirst(last)", e.getParam("feature"));
+    public void testMysqlCaseRewriteDescCombinations() {
+        String first = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id desc nulls first");
+        assertTrue(first.matches("(?s).*SID is null then 0 else 1 end asc.*"), first);
+        assertTrue(first.contains("SID desc"), first);
+        String last = sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by o.id desc nulls last");
+        assertTrue(last.matches("(?s).*SID is null then 1 else 0 end asc.*"), last);
+        assertTrue(last.contains("SID desc"), last);
+        assertFalse(last.contains("nulls"), last);
     }
 
-    // ---- 分支 2 集合外：dm/tdengine 文本显式请求一律报错（红线，端到端） ----
-
     @Test
-    public void testDmAndTdengineExplicitRequestFailsLoudlyFromText() {
+    public void testUndocumentedDialectsCaseRewriteFromText() {
+        // 原「集合外一律报错」用例改写：dm/tdengine 纯列引用显式请求走 CASE 改写
         for (String name : new String[]{"dm", "tdengine"}) {
-            NopException e = assertThrows(NopException.class,
-                    () -> sqlOf(dialectOf(name), "select o.name from AppDept o order by o.id asc nulls first"),
-                    name + " explicit nulls first must throw");
-            assertEquals(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE.getErrorCode(), e.getErrorCode(), name);
-            assertEquals("nullsFirst(first)", e.getParam("feature"), name);
+            String sql = sqlOf(dialectOf(name), "select o.name from AppDept o order by o.id asc nulls first");
+            assertTrue(sql.matches("(?s).*SID is null then 1 else 0 end desc.*"),
+                    name + " must case-rewrite: " + sql);
+            assertFalse(sql.contains("nulls"), name + ": " + sql);
         }
+    }
+
+    // ---- 结构不可改写处 fail-fast（D2/D3，真实方言端到端） ----
+
+    @Test
+    public void testNonColumnExpressionFailsFastFromText() {
+        // 表达式不可安全复制 ⇒ 响亮拒绝（不再按缺省序推导放行/报 nullsFirst feature）
+        NopException e = assertThrows(NopException.class,
+                () -> sqlOf(dialectOf("mysql"), "select o.name from AppDept o order by upper(o.name) nulls last"));
+        assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
+        assertEquals("expression-not-duplicable", e.getParam("reason"));
+    }
+
+    @Test
+    public void testDistinctSelectFailsFastFromText() {
+        NopException e = assertThrows(NopException.class,
+                () -> sqlOf(dialectOf("mysql"),
+                        "select distinct o.name from AppDept o order by o.id nulls last"));
+        assertEquals("nop.err.eql.nulls-order-not-supported", e.getErrorCode());
+        assertEquals("distinct-not-supported", e.getParam("reason"));
     }
 
     // ---- BC：无 NULLS 文本的既有 order by 输出逐字不变 ----
 
     @Test
     public void testPlainOrderByOutputUnchanged() {
-        for (String name : new String[]{"mysql", "oracle", "h2", "postgresql"}) {
+        for (String name : new String[]{"mysql", "oracle", "h2", "postgresql", "db2"}) {
             String asc = sqlOf(dialectOf(name), EQL_ASC);
             assertFalse(asc.contains("nulls"), name + ": " + asc);
             String desc = sqlOf(dialectOf(name), EQL_DESC);

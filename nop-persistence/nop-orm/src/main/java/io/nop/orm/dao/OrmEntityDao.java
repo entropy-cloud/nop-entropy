@@ -20,6 +20,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.ListFunctions;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.IDialect;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -522,8 +523,19 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
         });
     }
 
+    /**
+     * Plan 2309 D1：取本实体所属 querySpace 的方言，供 ORDER BY 空序门控使用。
+     *
+     * <p>{@code nop-core} 的 {@code SQL.SqlBuilder} 无法引用 {@code IDialect}（依赖单向），
+     * 故方言必须由 ORM 层显式向下传递。取法与 {@code :787} 的
+     * {@code orm().getDbEstimatedClock(getEntityModel().getQuerySpace())} 一致。
+     */
+    IDialect dialectOf() {
+        return ormTemplate.getSessionFactory().getDialectForQuerySpace(getEntityModel().getQuerySpace());
+    }
+
     SQL queryToSelectSql(QueryBean query) {
-        return DaoQueryHelper.queryToSelectObjectSql(getEntityName(), query);
+        return DaoQueryHelper.queryToSelectObjectSql(dialectOf(), getEntityName(), query);
     }
 
     SQL queryToCountSql(QueryBean query) {
@@ -539,12 +551,12 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     SQL queryToFindNextSql(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy) {
-        return DaoQueryHelper.queryToFindNextSql(getEntityModel(), lastEntity, filter, orderBy,
+        return DaoQueryHelper.queryToFindNextSql(dialectOf(), getEntityModel(), lastEntity, filter, orderBy,
                 getEntityModel().getDeleteFlagProp());
     }
 
     SQL queryToFindPrevSql(T cursorEntity, ITreeBean filter, List<OrderFieldBean> orderBy) {
-        return DaoQueryHelper.queryToFindPrevSql(getEntityModel(), cursorEntity, filter, orderBy,
+        return DaoQueryHelper.queryToFindPrevSql(dialectOf(), getEntityModel(), cursorEntity, filter, orderBy,
                 getEntityModel().getDeleteFlagProp());
     }
 

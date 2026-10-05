@@ -36,6 +36,30 @@ public class TestLlmDialectErrorResponse extends JunitBaseTestCase {
     }
 
     @Test
+    void claude529OverloadedMapsToOverloadedNotTransient() {
+        // Plan 2304 (WI22): the anthropic-transient mapping no longer covers
+        // 529/overloaded_error — the dedicated anthropic-overloaded mapping
+        // classifies them as OVERLOADED (independent long-backoff curve)
+        ILlmDialect dialect = LlmDialectFactory.getDialect(
+                LlmConfigHelper.loadConfig("claude").getApiStyle());
+        LlmModel config = LlmConfigHelper.loadConfig("claude");
+
+        ChatResponse r529 = dialect.parseErrorResponse(
+                "{\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}", 529, null, config);
+        assertEquals(ErrorClassification.OVERLOADED, r529.getErrorClassification(),
+                "529 overloaded_error → OVERLOADED via the dedicated mapping");
+
+        ChatResponse r500 = dialect.parseErrorResponse(
+                "{\"error\":{\"type\":\"api_error\",\"message\":\"Internal error\"}}", 500, null, config);
+        assertEquals(ErrorClassification.TRANSIENT, r500.getErrorClassification(),
+                "500 api_error stays TRANSIENT (split mapping, zero regression)");
+        ChatResponse r504timeout = dialect.parseErrorResponse(
+                "{\"error\":{\"type\":\"timeout_error\",\"message\":\"timed out\"}}", 504, null, config);
+        assertEquals(ErrorClassification.TRANSIENT, r504timeout.getErrorClassification(),
+                "504 timeout_error stays TRANSIENT");
+    }
+
+    @Test
     void openAiInsufficientQuotaClassifiedAsQuotaExceeded() {
         ILlmDialect dialect = LlmDialectFactory.getDialect(
                 LlmConfigHelper.loadConfig("deepseek").getApiStyle());

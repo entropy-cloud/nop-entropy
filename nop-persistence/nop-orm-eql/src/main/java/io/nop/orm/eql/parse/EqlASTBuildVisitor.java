@@ -159,6 +159,10 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
      * 转换，同 {@link #SqlOrderByItem_asc(Token)} 先例——FIRST=true / LAST=false；缺省
      * （无 NULLS 子句）由生成体的 ctx.nullsFirst null 检查保证不赋值、保持 Boolean null）。
      * 消费侧门/缺省序推导见 {@code AstToSqlGenerator.visitSqlOrderByItem}（Phase 2 先行落地）。
+     *
+     * <p>【merge note / Plan 2308】master 侧曾以子规则 sqlNullsOrder_ + ParseTree 形态实现
+     * 同一转换（取子规则文本末词判定）；本合并文法取 ours 内联 token 形态，转换同取 ours
+     * Token 签名。三态语义两侧一致：null=未请求，TRUE=NULLS FIRST，FALSE=NULLS LAST。
      */
     public Boolean SqlOrderByItem_nullsFirst(org.antlr.v4.runtime.Token token) {
         return isToken(token, EqlParser.FIRST);
@@ -782,6 +786,10 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
             return SqlJoinType.FULL_JOIN;
         if (ctx.rightJoin_() != null)
             return SqlJoinType.RIGHT_JOIN;
+        // Plan 2307 V2: 必须显式映射 crossJoin_，否则 CROSS JOIN 会被静默降级成普通 JOIN
+        // （CROSS 关键字随之从产物中消失，查询被静默改写）
+        if (ctx.crossJoin_() != null)
+            return SqlJoinType.CROSS_JOIN;
         return SqlJoinType.JOIN;
     }
 
@@ -997,10 +1005,5 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
                     .param(ARG_VALUE, "BETWEEN 后必须有 AND 第二边界");
         }
         return super.visitSqlWindowFrame(ctx);
-    }
-
-    @Override
-    public String SqlCollectionAccessExpr_collFuncName(ParseTree node) {
-        return text(node).toLowerCase(Locale.ROOT);
     }
 }

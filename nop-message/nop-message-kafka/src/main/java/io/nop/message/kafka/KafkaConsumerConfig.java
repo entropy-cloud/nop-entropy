@@ -44,6 +44,15 @@ public class KafkaConsumerConfig {
     /** {@code heartbeat.interval.ms}. */
     private int heartbeatIntervalMs = 3000;
 
+    /**
+     * {@code max.poll.interval.ms}. Must exceed the worst-case processing time of one
+     * polled batch (bounded by {@code max.poll.records} and the handler itself, plus any
+     * ConsumeLater defer sleep — see {@code KafkaConsumeTask.deferAfterBatch}). If the
+     * interval is exceeded the group rebalances (affecting all members) and the next
+     * commit fails — at-least-once redelivery, never loss.
+     */
+    private int maxPollIntervalMs = 300000;
+
     public String getGroupId() {
         return groupId;
     }
@@ -98,6 +107,14 @@ public class KafkaConsumerConfig {
 
     public void setSessionTimeoutMs(int sessionTimeoutMs) {
         this.sessionTimeoutMs = sessionTimeoutMs;
+    }
+
+    public int getMaxPollIntervalMs() {
+        return maxPollIntervalMs;
+    }
+
+    public void setMaxPollIntervalMs(int maxPollIntervalMs) {
+        this.maxPollIntervalMs = maxPollIntervalMs;
     }
 
     public int getHeartbeatIntervalMs() {

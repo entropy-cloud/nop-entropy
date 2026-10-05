@@ -1,6 +1,11 @@
 package io.nop.message.core.local;
 
 import io.nop.api.core.message.Acknowledge;
+import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.message.MessageCapability;
+import io.nop.api.core.message.MessageOptionsValidator;
+import io.nop.api.core.message.PartialCommit;
+import io.nop.api.core.message.TerminateConsume;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -13,6 +18,7 @@ import io.nop.message.core.MessageCoreConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,9 +26,28 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class LocalMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(LocalMessageService.class);
+
+    private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
+            MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.ACK_REPLY);
+
+    /**
+     * In-JVM broadcast bus: options that require unimplemented transports are warn-once
+     * (D1 disposition), never silently ignored.
+     */
+    private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(
+            MessageCapability.DELAYED_SEND, MessageCapability.SEND_TIMEOUT,
+            MessageCapability.BATCH_CONSUME, MessageCapability.SEEK);
+
+    @Override
+    public Set<MessageCapability> getCapabilities() {
+        return CAPABILITIES;
+    }
     private final Map<String, List<Subscription>> consumers = new ConcurrentHashMap<>();
 
     public void clearConsumers() {
@@ -144,6 +169,7 @@ public class LocalMessageService implements IMessageService {
     public IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options) {
         Guard.notEmpty(topic, "topic");
         Guard.notNull(listener, "listener");
+        MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "local", WARN_ONCE);
 
         List<Subscription> subscriptions = consumers.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>());
         synchronized (subscriptions) {
@@ -158,6 +184,7 @@ public class LocalMessageService implements IMessageService {
 
     @Override
     public void send(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "local", WARN_ONCE);
         this.invokeMessageListener(topic, message, options);
     }
 
@@ -168,19 +195,82 @@ public class LocalMessageService implements IMessageService {
             for (Subscription subscription : subscriptions) {
                 if (subscription.suspended)
                     continue;
-                IMessageConsumer consumer = subscription.consumer;
-                try {
-                    Object ret = FutureHelper.getResult(consumer.onMessage(topic, message, context));
-                    handleMessageResult(ret, topic, message, context);
-                } catch (Exception e) {
-                    LOG.error("nop.message.consumer-failed:topic={},message={}", topic, message, e);
-                }
+                invokeSubscription(subscription, message);
             }
         } else {
             LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
         }
     }
 
+    private void invokeSubscription(Subscription subscription, Object message) {
+        ConsumeContext context = new ConsumeContext(subscription.topic);
+        try {
+            Object ret = FutureHelper.getResult(
+                    subscription.consumer.onMessage(subscription.topic, message, context));
+            if (ret instanceof ConsumeLater) {
+                scheduleRedelivery(subscription, message, ((ConsumeLater) ret).getDelay());
+            } else if (ret instanceof TerminateConsume) {
+                // D5(b-prime): acknowledged, no redelivery, no reply.
+            } else if (ret instanceof PartialCommit) {
+                // Local has no batch consume path and no commit concept; single-message
+                // PartialCommit is treated as completion (declared in the WI6 plan).
+            } else {
+                handleMessageResult(ret, subscription.topic, message, context);
+            }
+        } catch (Exception e) {
+            LOG.error("nop.message.consumer-failed:topic={},message={}", subscription.topic, message, e);
+        }
+    }
+
+    /**
+     * Schedules a delayed redelivery of the message to the subscription that returned
+     * {@link ConsumeLater} (F-14 minimal fix). Adjudicated semantics (WI4 plan):
+     *
+     * <p><strong>Per-subscription scope</strong> — only the subscriber that deferred is
+     * re-invoked; a topic-wide redelivery would re-send to already-acknowledged
+     * subscribers. WI23 must keep this semantics when aligning F-15.
+     *
+     * <p><strong>Fire-time state re-check</strong> — when the scheduled task fires, the
+     * subscription's cancelled/suspended flags and its presence in the consumers map are
+     * re-checked; a cancelled subscription or a cleared service abandons the pending
+     * redelivery. Abandoning on cancellation is contract behavior, not a swallowed error.
+     */
+    private void scheduleRedelivery(Subscription subscription, Object message, long delayMs) {
+        long delay = Math.max(delayMs, 0L);
+        redeliveryScheduler().schedule(() -> {
+            if (subscription.cancelled || subscription.suspended)
+                return;
+            List<Subscription> subscriptions = consumers.get(subscription.topic);
+            if (subscriptions == null || findSubscription(subscriptions, subscription.consumer) == null)
+                return;
+            invokeSubscription(subscription, message);
+        }, delay, TimeUnit.MILLISECONDS);
+    }
+
+    private volatile ScheduledExecutorService redeliveryExecutor;
+
+    private ScheduledExecutorService redeliveryScheduler() {
+        ScheduledExecutorService executor = redeliveryExecutor;
+        if (executor == null) {
+            synchronized (this) {
+                if (redeliveryExecutor == null) {
+                    redeliveryExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+                        Thread t = new Thread(r, "nop-local-message-redelivery");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                }
+                executor = redeliveryExecutor;
+            }
+        }
+        return executor;
+    }
+
+    /**
+     * Dispatches a processed result. {@link ConsumeLater} must never reach this method:
+     * it is intercepted upstream by {@link #invokeSubscription} and turned into a delayed
+     * per-subscription redelivery (it is not a reply — F-14).
+     */
     protected void handleMessageResult(Object ret, String topic, Object message, IMessageConsumeContext context) {
         if (ret instanceof Acknowledge) {
             send(getAckTopic(topic), ((Acknowledge) ret).getReplyMessage());
@@ -193,6 +283,7 @@ public class LocalMessageService implements IMessageService {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
+        MessageOptionsValidator.validateSend(CAPABILITIES, options, "local", WARN_ONCE);
         return FutureHelper.futureRun(() -> send(topic, message, options));
     }
 }

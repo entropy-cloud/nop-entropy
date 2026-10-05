@@ -132,6 +132,20 @@ public class AgentCompactionCoordinator {
                 ctx.getMessages().clear();
                 ctx.getMessages().addAll(result.getCompactedMessages());
                 ctx.setTokensUsed(ctx.getTokensUsed() - (result.getTokensBefore() - result.getTokensAfter()));
+
+                // Plan 2296 (WI15): enrich THIS round's produced entry with the
+                // coordinator-owned dimensions (snapshotId of the archived
+                // original + shadowed count) by identity reference — never by
+                // scanning the history, where older already-enriched entries
+                // survive Micro/Layer2 rounds and a scan would mis-stamp them.
+                // Happens before the re-sync save below, so the entry is first
+                // persisted in its enriched form.
+                io.nop.ai.api.chat.messages.ChatCompactionMessage producedEntry = result.getProducedEntry();
+                if (producedEntry != null) {
+                    producedEntry.setSnapshotId(snapshotId);
+                    producedEntry.setShadowedTokenCount(result.getShadowedTokenCount());
+                }
+
                 LOG.info("Context compacted: tokens {} -> {}, messages {} -> {} (snapshotId={}) for session {}",
                         result.getTokensBefore(), result.getTokensAfter(),
                         result.getOriginalSize(), result.getCompactedSize(),
@@ -183,10 +197,10 @@ public class AgentCompactionCoordinator {
                 // compactSummary (tokensBefore/tokensAfter/shadowedTokenCount/
                 // snapshotId). Emitted only on real compaction success.
                 Map<String, Object> compactionPayload = new HashMap<>();
-                compactionPayload.put("tokensBefore", result.getTokensBefore());
-                compactionPayload.put("tokensAfter", result.getTokensAfter());
-                compactionPayload.put("shadowedTokenCount", result.getShadowedTokenCount());
-                compactionPayload.put("snapshotId", snapshotId);
+                compactionPayload.put(AgentEventPayloads.TOKENS_BEFORE, result.getTokensBefore());
+                compactionPayload.put(AgentEventPayloads.TOKENS_AFTER, result.getTokensAfter());
+                compactionPayload.put(AgentEventPayloads.SHADOWED_TOKEN_COUNT, result.getShadowedTokenCount());
+                compactionPayload.put(AgentEventPayloads.SNAPSHOT_ID, snapshotId);
                 hookInvoker.publishEvent(AgentEventType.COMPACTION,
                         compactionSessionId, agentName, compactionPayload);
 

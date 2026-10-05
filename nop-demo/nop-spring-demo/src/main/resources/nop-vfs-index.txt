@@ -80,6 +80,10 @@
 /nop/auth/model/NopAuthGroupUser/NopAuthGroupUser.xmeta
 /nop/auth/model/NopAuthGroupUser/_NopAuthGroupUser.xbiz
 /nop/auth/model/NopAuthGroupUser/_NopAuthGroupUser.xmeta
+/nop/auth/model/NopAuthLoginAttempt/NopAuthLoginAttempt.xbiz
+/nop/auth/model/NopAuthLoginAttempt/NopAuthLoginAttempt.xmeta
+/nop/auth/model/NopAuthLoginAttempt/_NopAuthLoginAttempt.xbiz
+/nop/auth/model/NopAuthLoginAttempt/_NopAuthLoginAttempt.xmeta
 /nop/auth/model/NopAuthMfaChallenge/NopAuthMfaChallenge.xbiz
 /nop/auth/model/NopAuthMfaChallenge/NopAuthMfaChallenge.xmeta
 /nop/auth/model/NopAuthMfaChallenge/_NopAuthMfaChallenge.xbiz
@@ -108,6 +112,10 @@
 /nop/auth/model/NopAuthPosition/NopAuthPosition.xmeta
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xbiz
 /nop/auth/model/NopAuthPosition/_NopAuthPosition.xmeta
+/nop/auth/model/NopAuthRateLimitCounter/NopAuthRateLimitCounter.xbiz
+/nop/auth/model/NopAuthRateLimitCounter/NopAuthRateLimitCounter.xmeta
+/nop/auth/model/NopAuthRateLimitCounter/_NopAuthRateLimitCounter.xbiz
+/nop/auth/model/NopAuthRateLimitCounter/_NopAuthRateLimitCounter.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource.xbiz
 /nop/auth/model/NopAuthResource/NopAuthResource.xmeta
 /nop/auth/model/NopAuthResource/NopAuthResource_main.xmeta
@@ -198,6 +206,11 @@
 /nop/auth/pages/NopAuthGroup/_gen/_NopAuthGroup.view.xml
 /nop/auth/pages/NopAuthGroup/main.page.yaml
 /nop/auth/pages/NopAuthGroup/picker.page.yaml
+/nop/auth/pages/NopAuthLoginAttempt/NopAuthLoginAttempt.lib.xjs
+/nop/auth/pages/NopAuthLoginAttempt/NopAuthLoginAttempt.view.xml
+/nop/auth/pages/NopAuthLoginAttempt/_gen/_NopAuthLoginAttempt.view.xml
+/nop/auth/pages/NopAuthLoginAttempt/main.page.yaml
+/nop/auth/pages/NopAuthLoginAttempt/picker.page.yaml
 /nop/auth/pages/NopAuthMfaChallenge/NopAuthMfaChallenge.lib.xjs
 /nop/auth/pages/NopAuthMfaChallenge/NopAuthMfaChallenge.view.xml
 /nop/auth/pages/NopAuthMfaChallenge/_gen/_NopAuthMfaChallenge.view.xml
@@ -235,6 +248,11 @@
 /nop/auth/pages/NopAuthPosition/_gen/_NopAuthPosition.view.xml
 /nop/auth/pages/NopAuthPosition/main.page.yaml
 /nop/auth/pages/NopAuthPosition/picker.page.yaml
+/nop/auth/pages/NopAuthRateLimitCounter/NopAuthRateLimitCounter.lib.xjs
+/nop/auth/pages/NopAuthRateLimitCounter/NopAuthRateLimitCounter.view.xml
+/nop/auth/pages/NopAuthRateLimitCounter/_gen/_NopAuthRateLimitCounter.view.xml
+/nop/auth/pages/NopAuthRateLimitCounter/main.page.yaml
+/nop/auth/pages/NopAuthRateLimitCounter/picker.page.yaml
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.js
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.xjs
 /nop/auth/pages/NopAuthResource/NopAuthResource.view.xml

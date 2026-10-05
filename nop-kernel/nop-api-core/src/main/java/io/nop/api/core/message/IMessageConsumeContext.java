@@ -18,7 +18,8 @@ public interface IMessageConsumeContext extends IMessageSender {
     }
 
     /**
-     * 如果Subscribe时指定了使用事务模式，则发送和接收处在一个事务当中
+     * 消费会话内的发送（reply）。D11 (WI14) 起，消息消费遵循 at-least-once 基线：
+     * commit/rollback 语义由后端的 ack/提交机制承担，本接口不再承诺事务边界。
      */
     CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options);
 }

@@ -376,18 +376,16 @@ public class TestBailInReActLoop {
     }
 
     @Test
-    void postReasoningVetoAtPostStillIgnoredForBailDimension() {
-        // Per design §5.4 裁定 F: the executor only consumes isBail() at POST
-        // points; isVeto()/isReenter() at POST points remain in their pre-W5-3
-        // state (returned value previously discarded). A hook returning Veto
-        // at POST_REASONING must not trigger the BAIL branch (isBail()=false).
+    void postReasoningVetoFailsLoudAsContractViolation() {
+        // Plan 2292 (WI11): the pre-W5-3 "Veto at POST is ignored" state is
+        // replaced by the veto contract narrowing — VetoResult at POST
+        // points is a contract violation and fails loud (it must NOT be
+        // misinterpreted as BAIL, which this test also still verifies: the
+        // failure is the veto contract error, not a bail reason).
         AtomicInteger postReasoningFires = new AtomicInteger(0);
         DefaultHookRegistry registry = new DefaultHookRegistry();
         registry.register(AgentLifecyclePoint.POST_REASONING, ctx -> {
             postReasoningFires.incrementAndGet();
-            // Return Veto at POST — historically the return value was
-            // discarded. W5-3 only checks isBail(), so Veto at POST must
-            // NOT be misinterpreted as BAIL (zero-regression for Veto).
             return new HookResult.VetoResult("post-veto");
         });
 
@@ -399,13 +397,15 @@ public class TestBailInReActLoop {
 
         AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
 
-        // POST_REASONING fired, but Veto at POST is NOT consumed as BAIL —
-        // the execution completes normally (Veto's POST consumption is a
-        // separate independent issue per Non-Goals).
-        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // Plan 2292 (WI11): Veto at POST_REASONING now fails loud as a
+        // contract violation — it is NOT consumed as BAIL (bailReason stays
+        // null) and the execution does not complete normally
+        assertEquals(AgentExecStatus.failed, result.getStatus());
         assertEquals(1, postReasoningFires.get());
         assertNull(result.getBailReason(),
-                "Veto at POST must not be consumed as BAIL (裁定 F zero-regression)");
-        assertNotEquals("post-veto", result.getBailReason());
+                "Veto at POST must not be consumed as BAIL");
+        assertTrue(result.getError() != null
+                && result.getError().contains("VetoResult is only valid at PRE lifecycle points"),
+                "contract violation error: " + result.getError());
     }
 }

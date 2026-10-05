@@ -1,8 +1,11 @@
 <tool x:schema="/nop/schema/ai/tool/tool.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       name="bash">
 
+    <background-capable>true</background-capable>
+
     <schema>
-        <bash id="!int" explanation="!string" timeoutMs="int" workingDir="full-path">
+        <bash id="!int" explanation="!string" timeoutMs="int" workingDir="full-path"
+              runInBackground="boolean" backgroundTaskTimeoutMs="int">
             <command>!string</command>
             <envs xdef:body-type="list" xdef:key-attr="name">
                 <env name="!string" value="string" />
@@ -14,7 +17,9 @@
 - workingDir：工作目录（可选，默认当前目录）
 - env：环境变量列表（可选），每个包含 name 和 value
 - command：要执行的命令内容（支持多行）
-成功时返回 stdout 作为 output，exitCode 为 0；失败时（exitCode ≠ 0）将命令输出（stdout/stderr 合并）放入 error，status 设为 failure，并提供具体退出码。沙箱/基础设施故障（后端不可达、容器启动失败等）时 error 为 "Sandbox refused execution [原因]"。工具默认 fail-closed：未显式装配 sandbox 后端时拒绝执行（安全默认），装配指引见 docs-for-ai/03-modules/nop-ai.md。
+- runInBackground：置 true 时后台执行（可选，默认 false）。调用立即返回启动确认（taskId），命令真实结束后会有完成通知作为新消息到达；期间用 task-output 工具凭 taskId 读取输出（tail）或用 task-stop 停止。适用于构建/测试类长任务（数十分钟级）
+- backgroundTaskTimeoutMs：后台任务的墙钟超时（毫秒，可选，仅 runInBackground=true 时生效，默认 3600000=1 小时，上限 1 小时；前台任务忽略此参数、用 timeoutMs）
+成功时返回 stdout 作为 output，exitCode 为 0；失败时（exitCode ≠ 0）将命令输出（stdout/stderr 合并）放入 error，status 设为 failure，并提供具体退出码。后台模式下启动确认即为成功结果，命令自身的退出码在完成通知与 task-output 读取中呈现。沙箱/基础设施故障（后端不可达、容器启动失败等）时 error 为 "Sandbox refused execution [原因]"。工具默认 fail-closed：未显式装配 sandbox 后端时拒绝执行（安全默认），装配指引见 docs-for-ai/03-modules/nop-ai.md。
 适用于系统操作、脚本执行等场景。]]></description>
 
     <examples>

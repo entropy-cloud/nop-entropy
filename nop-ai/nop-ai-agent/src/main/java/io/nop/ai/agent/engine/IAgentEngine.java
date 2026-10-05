@@ -5,12 +5,28 @@ import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.ai.toolkit.api.IBackgroundTaskRegistry;
+
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INJECT_INPUT_NOT_SUPPORTED;
 
 import java.util.concurrent.CompletableFuture;
 
 public interface IAgentEngine extends AutoCloseable {
 
     AgentMessageAck sendMessage(AgentMessageRequest request);
+
+    /**
+     * Plan 2289 (WI8): inject an input into a session with explicit
+     * semantics. Session running → queued and routed by semantics (STEER
+     * wakes the wait phase; FOLLOWUP/INJECT wait for the round boundary).
+     * Session not running → staged in the session (persisted) and merged
+     * into the next execution's queue.
+     */
+    default void injectInput(String sessionId, io.nop.ai.api.chat.messages.ChatMessage message,
+                             InjectionSemantics semantics) {
+        throw new NopAiAgentException(ERR_AGENT_INJECT_INPUT_NOT_SUPPORTED).param(ARG_DETAIL,
+                "injectInput is not supported by this engine implementation");
+    }
 
     CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request);
 
@@ -238,5 +254,14 @@ public interface IAgentEngine extends AutoCloseable {
      */
     @Override
     default void close() throws Exception {
+    }
+
+    /**
+     * Plan 2301 (WI25): the engine-owned background task registry
+     * (Builder-wired). {@code null} when this engine has no background
+     * support (runInBackground callers fail loud).
+     */
+    default IBackgroundTaskRegistry getBackgroundTaskRegistry() {
+        return null;
     }
 }
