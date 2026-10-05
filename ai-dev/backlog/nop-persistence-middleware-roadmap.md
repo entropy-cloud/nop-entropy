@@ -54,7 +54,7 @@
 
 ### M3 — 分片执行引擎（分片域收口）
 
-- [ ] WI7 执行引擎设计：多 querySpace 单 SQL 执行、连接与事务边界（与 best-effort 事务组的关系）、归并语义（排序/分组/聚合/分页）、跨分片 JOIN 边界、广播表重审（新 design 文档，拒绝项须含"是否维持不做"的再裁定）（Deliverable: design 文档过评审；deps: WI6；Item Type: Decision）
+- [x] WI7 执行引擎设计：多 querySpace 单 SQL 执行、连接与事务边界（与 best-effort 事务组的关系）、归并语义（排序/分组/聚合/分页）、跨分片 JOIN 边界、广播表重审（新 design 文档，拒绝项须含"是否维持不做"的再裁定）（Deliverable: design 文档过评审；deps: WI6；Item Type: Decision）——2026-10-06 完成：ai-dev/design/nop-orm-sharding-execution-engine-design.md，首轮评审 REJECT（B1 归并信息面/B2 多实体 fanout 静默缺行 + 5 Major）已按必改清单修订，设计转 active（串行 v1、写 fan-out 推迟 v2、归并分级含排序键未投影显式失败、跨分片 JOIN 显式失败、广播表维持拒绝并留 WI9 重审通道）
 - [ ] WI8 执行引擎实施 plan 起草 + 实施：承载 WI7 设计（Deliverable: plan + 代码 + 归并正确性测试矩阵 + E2E；deps: WI7；Item Type: Feature）
 
 ### M4 — 数据搬迁管道

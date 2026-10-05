@@ -2,7 +2,7 @@
 
 **日期**：2026-10-05（同日按首轮评审修订：2 Blocker + 5 Major + 3 Minor 全部处理，见各节【评审 B1】等标注）
 **范围**：`nop-persistence/nop-orm`（查询执行漏斗、结果归并）、`nop-persistence/nop-dao`（shard SPI 扩展与配置契约）、`nop-persistence/nop-orm-eql`（**允许最小增量**：`CompiledSql` 只读结构信息字段，裁定见 §3.1）
-**状态**：草案（roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI7；Deliverable = 本设计过评审，实施归 WI8。首轮评审 REJECT（2 Blocker + 5 Major + 3 Minor）已按必改清单修订，待复审）
+**状态**：active（roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI7；首轮评审 REJECT（2 Blocker + 5 Major + 3 Minor）已按必改清单逐项修订——B1 裁定暴露编译期结构信息（CompiledSql 构造标志 + orderBy 投影序数映射，nop-orm-eql 最小增量）、B2 采纳禁多实体/混用、M1-M5/m1-m3 全部落实；实施归 WI8）
 **灵感来源**：Apache ShardingSphere sharding 执行引擎面对比；对 `nop-orm-sharding-strategy-design.md` §四"跨分片 fan-out 拒绝"的重新立项
 
 ---
