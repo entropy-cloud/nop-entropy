@@ -135,4 +135,8 @@ public enum EqlASTKind{
         
             SqlRollback, // ordinal: 65
         
+            SqlGroupingOp, // ordinal: 66
+        
+            SqlValuesTableSource, // ordinal: 67
+        
 }

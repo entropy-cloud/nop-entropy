@@ -23,6 +23,7 @@ import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.SqlAlias;
+import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
 import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
@@ -33,6 +34,8 @@ import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLikeExpr;
 import io.nop.orm.eql.ast.SqlLimit;
+import io.nop.orm.eql.ast.SqlNotExpr;
+import io.nop.orm.eql.ast.SqlNumberLiteral;
 import io.nop.orm.eql.ast.SqlOrderBy;
 import io.nop.orm.eql.ast.SqlOrderByItem;
 import io.nop.orm.eql.ast.SqlWindowDecl;
@@ -42,6 +45,7 @@ import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
+import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlTypeExpr;
@@ -65,12 +69,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static io.nop.orm.eql.OrmEqlConstants.DIALECT_KEYWORD_NONE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_EXCEPT_KEYWORD;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_INTERSECT_KEYWORD;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_LATERAL;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_AST_NODE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_DIALECT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_REASON;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NULLS_ORDER_NOT_SUPPORTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_PROJECTION_TYPE;
@@ -99,6 +109,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlQuerySelect(SqlQuerySelect node) {
+        checkLockOptions(node);
         if (node.getLimit() != null) {
             SqlLimit limit = node.getLimit();
             SqlExprList exprs = dialect.getPaginationHandler().buildPageExpr(limit.getLimit(), limit.getOffset(),
@@ -107,6 +118,27 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         } else {
             printSelect(node);
         }
+    }
+
+    /**
+     * WI12 交付①（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §1.5）：
+     * 锁选项矛盾输入在生成器入口响亮。解析层文法备选天然互斥（NOWAIT | SKIP LOCKED 单选，
+     * 且必须跟在 for update 之后），矛盾组合仅程序化构造可达——不允许静默输出或静默忽略
+     * （Minimum Rules #24）。校验放在 printForUpdate 的 forUpdate 守卫之前，
+     * 覆盖 forUpdate=false 的矛盾组合。回显路径（AstToEqlGenerator）不加校验
+     * （WI1 裁定回显保持硬编码不动；矛盾 AST 是编程错误，执行路径已响亮）。
+     */
+    void checkLockOptions(SqlQuerySelect node) {
+        if (node.getNowait() && node.getSkipLocked())
+            throw new IllegalArgumentException(
+                    "eql lock options nowait and skipLocked are mutually exclusive");
+        if (node.getNowait() && !node.getForUpdate())
+            throw new IllegalArgumentException(
+                    "eql lock option nowait requires forUpdate=true, but forUpdate=false");
+        if (node.getSkipLocked() && !node.getForUpdate())
+            throw new IllegalArgumentException(
+                    "eql lock option skipLocked requires forUpdate=true, but forUpdate=false");
     }
 
     class PrintSqlSelect extends SqlNodeWrapper {
@@ -140,6 +172,18 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         } else {
             super.printSelect(node);
         }
+    }
+
+    /**
+     * WI2 BUG-4: 执行路径的 limit 已由 {@link #visitSqlQuerySelect(SqlQuerySelect)} 经
+     * {@code dialect.getPaginationHandler().buildPageExpr(...)} 消费（分页文本在外层
+     * 追加），printSelect 内不再打印——否则经 printWrappedNode→printSelect 的分页内嵌
+     * 渲染路径会与外层 LIMIT/OFFSET 文本重复。基类钩子仅服务回显路径（AstToEqlGenerator）。
+     */
+    @Override
+    protected void printLimit(SqlQuerySelect node) {
+        // limit 在 visitSqlQuerySelect 的分页分支消费，此处刻意不输出（非静默跳过：
+        // 消费点在 buildPageExpr，行为由 TestEqlSelectAllLimitCompile 的单 LIMIT 断言钉死）
     }
 
     @Override
@@ -241,6 +285,41 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     }
 
     /**
+     * WI12 交付⑤（plan 38，裁定
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §4）：
+     * {@code FROM (VALUES …)} 表源执行路径——方言能力门
+     * （{@code isSupportValuesTableSource()}，不支持编译期响亮，feature=valuesTableSource，
+     * 不静默产出目标库不支持的文本）+ 原生输出 {@code (values (…),(…)) alias (c1,c2)}。
+     * 别名列清单缺省时不输出列清单（H2 缺省列名 C1..Cn）。UNION ALL 链 lowering 为
+     * 被拒备选（裁定 §4：需 per-dialect dual 表体系，不无损），不落。
+     */
+    @Override
+    public void visitSqlValuesTableSource(io.nop.orm.eql.ast.SqlValuesTableSource node) {
+        if (!dialect.isSupportValuesTableSource()) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "valuesTableSource");
+        }
+        print('(');
+        print("values ");
+        boolean first = true;
+        for (io.nop.orm.eql.ast.SqlMultiValueExpr row : node.getRows()) {
+            if (!first)
+                print(", ");
+            first = false;
+            visit(row);
+        }
+        print(')');
+        printAlias(node.getAlias());
+        List<String> columns = node.getColumns();
+        if (columns != null && !columns.isEmpty()) {
+            print('(');
+            print(StringHelper.join(columns, ","));
+            print(')');
+        }
+    }
+
+    /**
      * WI20 (W2/T1): the SQL channel renders the TUMBLE pseudo-table function
      * verbatim — the generated text is deliberately NOT valid RDBMS SQL (the
      * windowed form is stream-only, sql-subset-and-semantics §4c). Rendering it
@@ -260,6 +339,234 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         print(node.getInterval().getIntervalUnit().name());
         print(")");
         printAlias(node.getAlias());
+    }
+
+    /**
+     * WI7b Phase 1（plan 37；roadmap EC ③，BUG-5 的另一半）：执行 SQL 的 interval 字面量按方言
+     * 模板 `sqlIntervalLiteral` 渲染。修复前所有方言都经基类裸输出 ` interval <expr> <UNIT>`，
+     * 探针已证该形态在 H2 与 PG 上非法（`ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt`）。
+     *
+     * <p>裁定（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md` §1/§2）：
+     * <ul>
+     * <li>模板未配置 → 委托 super（既有裸输出逐字节不变，BC；deprecated 语义见 owner doc）；</li>
+     * <li>已配置 → 命名 marker `{value}`/`{unit}` 纯文本拼接渲染（value 走真实渲染路径捕获），
+     * 不做二次转义；</li>
+     * <li>已配置方言上非字面量 value（参数 marker/列引用等）编译期显式报错（处置②）——回落裸输出
+     * 会继续产出已知非法文本，正中"只打印不设门 = 净回归"；</li>
+     * <li>TUMBLE 伪表函数渲染路径（{@link #visitSqlTumbleTableSource}）刻意逐字输出、不经模板——
+     * 其 owner 是 nop-stream-sql roadmap WI20，本方法零触碰。</li>
+     * </ul>
+     */
+    @Override
+    public void visitSqlIntervalExpr(io.nop.orm.eql.ast.SqlIntervalExpr node) {
+        String template = dialect.getSqlIntervalLiteral();
+        if (StringHelper.isEmpty(template)) {
+            super.visitSqlIntervalExpr(node);
+            return;
+        }
+
+        if (!(node.getExpr() instanceof SqlNumberLiteral)) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "intervalNonLiteralValue");
+        }
+
+        // value 经真实渲染路径捕获（接线证据：同一 visit 管线），再纯文本拼接进模板。
+        // 捕获文本 trim 外层空白（pretty 打印会在 token 间加空格），内部空白保留。
+        SQL.SqlBuilder buf = SQL.begin();
+        new AstToSqlGenerator(dialect, enableFilter, buf).visit(node.getExpr());
+        print(' ');
+        print(renderIntervalTemplate(template, buf.toString().trim(), node.getIntervalUnit().name()));
+    }
+
+    private String renderIntervalTemplate(String template, String valueText, String unit) {
+        StringBuilder sb = new StringBuilder(template.length() + valueText.length() + unit.length());
+        int pos = 0;
+        while (true) {
+            int p1 = template.indexOf('{', pos);
+            if (p1 < 0) {
+                sb.append(template, pos, template.length());
+                break;
+            }
+            int p2 = template.indexOf('}', p1);
+            // 加载期（DialectImpl 构造器）已拒绝坏 marker，此处仅为防御性兜底
+            if (p2 < 0) {
+                sb.append(template, pos, template.length());
+                break;
+            }
+            sb.append(template, pos, p1);
+            String name = template.substring(p1 + 1, p2);
+            if ("value".equals(name)) {
+                sb.append(valueText);
+            } else if ("unit".equals(name)) {
+                sb.append(unit);
+            }
+            pos = p2 + 1;
+        }
+        return sb.toString();
+    }
+
+    /**
+     * WI1 BUG-2: 执行路径按方言门控 LATERAL 子查询表源。修复前 lateral 关键字被静默
+     * 丢弃（`lateral (sub)` 与 `(sub)` 输出字节相同），退化为不相关子查询——现在
+     * `supportLateral=false`（含未配置的保守缺省）时编译期显式报错，`true` 时由基类
+     * 无损打印。回显路径不受方言开关影响（走基类实现）。
+     */
+    @Override
+    public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
+        if (node.getLateral() && !dialect.isSupportLateral()) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_LATERAL);
+        }
+        super.visitSqlSubqueryTableSource(node);
+    }
+
+    /**
+     * WI1 BUG-3: 执行路径消费方言锁模板 `IDialect.getForUpdateSql`。修复前 EQL 路径
+     * 硬编码输出 "for update"，在锁模板为空的方言（如 duckdb）上静默产出数据库不支持
+     * 的 SQL。空模板时编译期显式报错；LockOption 暂传 null（AST 只有 boolean forUpdate，
+     * NOWAIT/SKIP LOCKED 归 WI12）。回显路径（基类）保持不动。
+     *
+     * <p>WI12 交付①（plan 38，裁定 §1）：nowait=true 时锁文本改取
+     * {@code <sqls>} 的 {@code <forUpdateNowait>} 配置（presence = 能力 + 文本二合一）；
+     * 未配置方言编译期响亮 {@code ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE}
+     * （feature=forUpdateNowait）——不允许静默降级为裸 for update。
+     */
+    @Override
+    protected void printForUpdate(SqlQuerySelect node) {
+        String lockSql;
+        String feature;
+        if (node.getNowait()) {
+            lockSql = dialect.getForUpdateNowait();
+            feature = "forUpdateNowait";
+        } else if (node.getSkipLocked()) {
+            // WI12 交付②（plan 38）：SKIP LOCKED 变体经 <forUpdateSkipLocked> 配置文本
+            lockSql = dialect.getForUpdateSkipLocked();
+            feature = "forUpdateSkipLocked";
+        } else {
+            lockSql = dialect.getForUpdateSql(null);
+            feature = "forUpdate";
+        }
+        if (StringHelper.isEmpty(lockSql)) {
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, feature);
+        }
+        println();
+        print(lockSql);
+    }
+
+    /**
+     * 【merge 裁决记录 / Plan 2308 supersede】本位置原为 ours WI7 Phase 2 的
+     * {@code visitSqlOrderByItem} 三分门（null=委托 super / support=打印 / 否则按
+     * {@code DOCUMENTED_DIRECTIONAL_NULL_ORDER} 围栏做"缺省一致省略、否则编译期报错"，
+     * 裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi7-phase0-adjudications.md §三）。
+     *
+     * <p>master 侧 Plan 2308/2309 对同一功能落地了**另一套发射策略**（见
+     * {@link #visitSqlOrderBy(SqlOrderBy)}：support 位 gate + {@link NullsOrderRewriter}
+     * CASE 改写 + D2/D3/D4 结构不可改写处 fail-fast），并在其设计文档（§3.8）中
+     * 明确否决了 defaultNullsFirst 省略优化（单布尔无法表达各方言真实空序模型；
+     * DuckDB ASC/DESC 均不翻转缺省，省略优化对该库不安全）。两策略对同一输入
+     * （如 mysql {@code asc nulls last}）行为互斥（报错 vs CASE 改写），无法机械并集。
+     *
+     * <p>本合并采纳 master 发射策略，依据（四点，均为 ours 侧自身框架内成立）：
+     * <ol>
+     * <li>ours WI7 裁定文档"被拒备选(落地)"自设的翻案条件——"仅在能给出逐方言无损
+     * lowering 矩阵时成立"——已被 master 满足：Plan 2308 Phase 0 探针
+     * {@code ai-dev/tools/probe-nulls-order-matrix.sh} 在真实容器（postgres:16/mysql:8.0）
+     * 实测四方向组合行序，CASE 四组合方向正确性由 {@code TestEqlNullsOrderCompile} 钉死；</li>
+     * <li>master 对 db2 的 supportNullsFirst=true 一手修正（0ea57a097e，经用户指出）——
+     * 本合并任务书明确要求按其口径调整 ours 测试；</li>
+     * <li>bean 通道（nop-orm GenSqlHelper，Plan 2309 Phase 1）与本通道共用
+     * NullsOrderRewriter——两通道必须同策略，否则同一语义两通道行为分裂；</li>
+     * <li>机械合并事实：两实现并存时 master 的 visitSqlOrderBy 接管列表打印，
+     * ours 门的报错/省略分支在编译管线中结构性不可达（仅 null/support 两分支被回调且恒等委托），
+     * 即自动合并后的实际运行行为已是 master 策略；保留不可达死门只会制造双源真相。</li>
+     * </ol>
+     *
+     * <p>ours WI7 的三分语义在 master 策略中的对应：分支 0（null 不补子句）=
+     * printOrderByItemForSql 首分支（逐字一致，BC 保持）；分支 1（support 请求即打印）=
+     * 其次分支；分支 2（不支持方言的显式请求不静默）由 CASE 无损改写（可安全复制的
+     * 纯列引用）或 D2/D3/D4 响亮报错（结构不可改写）承接——"响亮失败优于静默赌注"原则
+     * 保持，且对合法请求从"拒绝"升级为"正确模拟"。ours 原三分门全文与本记录见
+     * 本文件 git 历史（merge 提交）与 ai-dev/logs 合并条目。
+     *
+     * <p>ours 侧同步退役物：{@code DOCUMENTED_DIRECTIONAL_NULL_ORDER} 围栏集、
+     * {@code defaultNullsFirstForDirection} 推导（本注释即其原位置）；
+     * {@code IDialect.isDefaultNullsFirst()} accessor 本身保留（配置事实登记，
+     * Plan 2308 明示"全程不读"；TestDefaultNullsFirstFlag 继续钉其取值语义）。
+     * ours 的 {@code TestEqlNullsFirstDialectGate} 已按新契约改写
+     * （{@code TestEqlNullsFirstDialectGatePostMerge} 语义，同文件内注释标明各用例对应关系）。
+     */
+
+    /**
+     * WI8（plan 27；裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi8-phase0-adjudications.md
+     * §三/§四.1）：{@code IS [NOT] DISTINCT FROM} 的 SAFE_EQ 渲染三分支名称集合（不新增方言
+     * 能力标志——名称集合先例 = 原 WI7 围栏集 DOCUMENTED_DIRECTIONAL_NULL_ORDER，已随
+     * merge 裁决退役，见上方 merge 裁决记录；继承别名
+     * mysql5.7/mariadb/h2gis/postgis 显式列举）。db2/dm/tdengine/sqlite 无一手取证
+     * 或无方言文件，均不在集合内 ⇒ 落报错分支（unverified 纪律，不静默放行）。
+     */
+    private static final Set<String> SAFE_EQ_MYSQL_FAMILY = Set.of("mysql", "mysql5.7", "mariadb");
+
+    private static final Set<String> NATIVE_IS_DISTINCT_FROM =
+            Set.of("postgresql", "postgis", "h2", "h2gis", "duckdb", "mssql");
+
+    @Override
+    public void visitSqlBinaryExpr(SqlBinaryExpr node) {
+        if (node.getOperator() == SqlOperator.SAFE_EQ) {
+            // 渲染三分支必选件：printOperator 全局无方言分支，不覆写则全方言输出 <=>（静默非法 SQL）
+            printSafeEq(node, false);
+            return;
+        }
+        super.visitSqlBinaryExpr(node);
+    }
+
+    @Override
+    public void visitSqlNotExpr(SqlNotExpr node) {
+        if (node.getExpr() instanceof SqlBinaryExpr
+                && ((SqlBinaryExpr) node.getExpr()).getOperator() == SqlOperator.SAFE_EQ) {
+            // IS DISTINCT FROM（SqlNotExpr(SAFE_EQ) 规范形态）按方向文本直出，
+            // 禁止 not(a is not distinct from b) 包装（裁定 §四.1 分支 2）
+            printSafeEq((SqlBinaryExpr) node.getExpr(), true);
+            return;
+        }
+        super.visitSqlNotExpr(node);
+    }
+
+    /**
+     * SAFE_EQ 渲染三分支（裁定 §四.1）：mysql 族 → {@code a <=> b} / {@code not (a <=> b)}
+     * （{@code <=>} 恒二值，NOT 良定义）；native 集合 → {@code is [not] distinct from}
+     * 方向文本直出；其余方言 → 响亮 ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE——无 transformer
+     * 时 oracle 亦落此分支（Phase 3 默认注入 transformer 后由其展开，SAFE_EQ 不再到达生成器）。
+     * 全仓不存在向不支持方言静默输出 {@code <=>} 的路径（Minimum Rules #24）。
+     */
+    private void printSafeEq(SqlBinaryExpr node, boolean negated) {
+        String dialectName = dialect.getName();
+        boolean mysqlFamily = dialectName != null && SAFE_EQ_MYSQL_FAMILY.contains(dialectName);
+        if (mysqlFamily) {
+            if (negated) {
+                print("not (");
+                printBinaryExpr(node.getLeft(), SqlOperator.SAFE_EQ, node.getRight());
+                print(")");
+            } else {
+                printBinaryExpr(node.getLeft(), SqlOperator.SAFE_EQ, node.getRight());
+            }
+            return;
+        }
+
+        boolean nativeSupport = dialectName != null && NATIVE_IS_DISTINCT_FROM.contains(dialectName);
+        if (nativeSupport) {
+            printLeft(node.getLeft(), SqlOperator.IS);
+            print(negated ? " is distinct from " : " is not distinct from ");
+            visit(node.getRight());
+            return;
+        }
+
+        throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                .param(ARG_DIALECT, dialectName)
+                .param(ARG_FEATURE, "is[not] distinct from");
     }
 
     void appendPropJoins(SqlSingleTableSource node) {
@@ -620,8 +927,24 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlLikeExpr(SqlLikeExpr node) {
+        SqlExpr escape = node.getEscape();
+        if (node.getIgnoreCase() && escape != null) {
+            // WI1 BUG-1: ilike 经方言函数改写（如 regexp_like）后 ESCAPE 子句没有挂载点，
+            // 静默丢弃会改变匹配语义，必须显式报错（裁定: ai-dev/design/eql-cross-db-compat/
+            // 2026-10-03-wi1-class-a-adjudications.md §5）
+            throw newError(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE, node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, "ilike+escape");
+        }
+
         if (!node.getIgnoreCase()) {
             super.visitSqlLikeExpr(node);
+            // WI1 BUG-1: escape 字段此前被静默丢弃。默认 escape 字符随方言分叉
+            // （{Oracle,DB2}=NULL / {H2,PG}=backslash），必须显式输出用户指定的 escape。
+            if (escape != null) {
+                print(" escape");
+                visit(escape);
+            }
             return;
         }
 
@@ -644,17 +967,31 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
     @Override
     protected String getIntercectKeyword() {
         String keyword = dialect.getIntersectKeyword();
-        if (!StringHelper.isEmpty(keyword))
-            return keyword;
+        if (StringHelper.isEmpty(keyword))
+            return super.getIntercectKeyword();
 
-        return super.getIntercectKeyword();
+        // WI3 版本门：哨兵 none = 方言声明无 INTERSECT 算子（MySQL 5.7 / MariaDB 10.2 落地
+        // 配置）。编译期响亮报错，不静默输出目标库不支持的算子。空串经 xdef 绑定实测被
+        // 规范化为 null、与未配置不可区分，故用显式哨兵（裁定文档 §二）
+        if (DIALECT_KEYWORD_NONE.equals(keyword))
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_INTERSECT_KEYWORD);
+
+        return keyword;
     }
 
     @Override
     protected String getExceptKeyword() {
         String keyword = dialect.getExceptKeyword();
-        if (!StringHelper.isEmpty(keyword))
+        if (!StringHelper.isEmpty(keyword)) {
+            // WI3 版本门：EXCEPT 复用既有 exceptKeyword 属性、走同一条哨兵门规则
+            if (DIALECT_KEYWORD_NONE.equals(keyword))
+                throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                        .param(ARG_DIALECT, dialect.getName())
+                        .param(ARG_FEATURE, FEATURE_EXCEPT_KEYWORD);
             return keyword;
+        }
         return super.getExceptKeyword();
     }
 

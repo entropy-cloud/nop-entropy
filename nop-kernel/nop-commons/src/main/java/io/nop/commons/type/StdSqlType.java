@@ -35,12 +35,26 @@ public enum StdSqlType implements ISqlDataType {
 
     // TIME(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIME,
     // SqlTypeFamily.TIME),
-    // TIME_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-    // SqlTypeFamily.TIME),
+
+    /**
+     * WI9b: 本地时区时间（无偏移存储、按会话时区渲染；Standard SQL:1999 类型）。
+     * JDBC 无 LOCAL 时区标准码，按注释体原始选择落在 {@link Types#OTHER}
+     * （JDBC 4.2 的 TIME_WITH_TIMEZONE=2013 在真实驱动上表示保偏移的
+     * TIME WITH TIME ZONE，见裁定文档 §2.1 一手探测，不挂给本成员）。
+     * DDL 方向由方言 {@code <sqlDataType>} 决定（当前全部方言无原生宿主，
+     * 无映射方言经 stdToNativeSqlType 响亮报错）。取值裁定见
+     * ai-dev/design/eql-cross-db-compat/2026-10-05-wi9b-phase0-adjudications.md §三。
+     */
+    TIME_WITH_LOCAL_TIME_ZONE(false, false, Types.OTHER, StdDataType.TIME),
+
     TIMESTAMP(false, false, Types.TIMESTAMP, StdDataType.TIMESTAMP),
 
-    // TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-    // SqlTypeFamily.TIMESTAMP),
+    /**
+     * WI9b: 本地时区时间戳（Oracle TIMESTAMP WITH LOCAL TIME ZONE 同名语义：
+     * 存储、读取分别按数据库/会话时区归一化）。jdbcType/stdDataType 取值与
+     * {@link #TIME_WITH_LOCAL_TIME_ZONE} 同理，见裁定文档 §三。
+     */
+    TIMESTAMP_WITH_LOCAL_TIME_ZONE(false, false, Types.OTHER, StdDataType.TIMESTAMP),
     // INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
     // SqlTypeFamily.INTERVAL_YEAR_MONTH),
     // INTERVAL_YEAR_MONTH(PrecScale.NO_NO, false, Types.OTHER,
@@ -105,7 +119,16 @@ public enum StdSqlType implements ISqlDataType {
     /**
      * Spatial type. Though not standard, it is common to several DBs, so we do not flag it 'special' (internal).
      */
-    GEOMETRY(false, false, 2015, StdDataType.GEOMETRY);
+    GEOMETRY(false, false, 2015, StdDataType.GEOMETRY),
+
+    /**
+     * WI9a: UUID（通用唯一标识符）。JDBC 无标准 UUID 类型，按 {@link #JSON} 同例落在
+     * VARCHAR/STRING 家族（StdDataType 无独立 UUID 成员）。DDL 方向由方言
+     * {@code <sqlDataType>} 决定（h2/postgresql/duckdb 原生 UUID、mssql UNIQUEIDENTIFIER，
+     * 无映射方言经 stdToNativeSqlType 响亮报错）。取值裁定见
+     * ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §四。
+     */
+    UUID(false, false, Types.VARCHAR, StdDataType.STRING);
 
     private final boolean allowPrecision;
     private final boolean allowScale;
@@ -151,6 +174,14 @@ public enum StdSqlType implements ISqlDataType {
     static {
         stdNameMap.put("INT", INTEGER);
 
+        // WI9a: CAST 类型别名 —— 仅扩展解析接受集（stdNameMap 键集），不修改任何既有映射条目
+        // （G-3 裁决 TEXT→CLOB / BOOL→BOOLEAN；NUMBER 目标由 NUMERIC 修订为 DECIMAL，
+        // 见 ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §三）。
+        // UUID 为枚举常量，经下方 values() 循环自动入表，无需显式 put。
+        stdNameMap.put("TEXT", CLOB);
+        stdNameMap.put("NUMBER", DECIMAL);
+        stdNameMap.put("BOOL", BOOLEAN);
+
         for (StdSqlType type : StdSqlType.values()) {
             stdNameMap.put(type.getName(), type);
 
@@ -161,6 +192,14 @@ public enum StdSqlType implements ISqlDataType {
         }
         stdTypeMap.put(StdDataType.STRING, StdSqlType.VARCHAR);
         stdTypeMap.put(StdDataType.BYTES, StdSqlType.VARBINARY);
+
+        // WI9b: 时区两成员的声明序先于 OTHER（jdbcTypeMap 先到先得键）、晚于 TIME/TIMESTAMP
+        // （stdTypeMap last-wins 键）——按 STRING/BYTES 重钉先例显式重钉，保持既有反查零翻转
+        // （裁定文档 §三：fromJdbcType(OTHER)=OTHER、fromStdDataTYpe(TIME/TIMESTAMP) 不变；
+        // fromJdbcType(Types.TIME_WITH_TIMEZONE/TIMESTAMP_WITH_TIMEZONE) 保持 null，不改读回归类）
+        jdbcTypeMap.put(Types.OTHER, StdSqlType.OTHER);
+        stdTypeMap.put(StdDataType.TIME, StdSqlType.TIME);
+        stdTypeMap.put(StdDataType.TIMESTAMP, StdSqlType.TIMESTAMP);
     }
 
     public boolean isCompatibleWith(StdSqlType type) {

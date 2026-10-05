@@ -163,6 +163,9 @@ public interface CoreErrors {
     String ARG_MIN_ITEMS = "minItems";
     String ARG_MAX_ITEMS = "maxItems";
 
+    // WI10b: IN 列表长度门禁（SqlBuilder 集合展开路径）；maxItems/name 复用上方既有常量
+    String ARG_ITEM_COUNT = "itemCount";
+
     String ARG_SERVICE_NAME = "serviceName";
     String ARG_SERVICE_METHOD = "serviceMethod";
 
@@ -966,4 +969,12 @@ public interface CoreErrors {
     ErrorCode ERR_JPATH_NO_EVALUATOR =
             define("nop.err.core.jpath.no-evaluator",
                     "JPath求值功能未启用：classpath中缺少nop-jq模块，未注册JPathEvaluator:{path}", ARG_PATH);
+
+    // WI10b（WI10a 设计定稿）：SqlBuilder 集合展开路径的 IN 列表长度门禁。与 EQL 编译路径
+    // 的 nop.err.eql.in-list-too-large 契约一致但不共用错误码（模块边界决定归属）；
+    // 阈值同源 nop.core.sql.in-list-max-size，超限显式报错，不截断、不自动改写
+    ErrorCode ERR_CORE_SQL_IN_LIST_TOO_LARGE =
+            define("nop.err.core.sql.in-list-too-large",
+                    "IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{name}],请分批查询或调高配置nop.core.sql.in-list-max-size",
+                    ARG_ITEM_COUNT, ARG_MAX_ITEMS, ARG_NAME);
 }

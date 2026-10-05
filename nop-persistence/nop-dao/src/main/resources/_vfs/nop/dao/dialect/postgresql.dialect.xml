@@ -92,8 +92,10 @@
     </errorCodes>
 
     <features supportSequence="true" supportNullsFirst="true" supportReturningForUpdate="true"
-              supportWindowFrameRows="true" supportWindowFrameRange="true"
+              supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
+              supportLateral="true"
+              supportRollup="true" supportCube="true"
     />
 
     <sqls escapeSlash="false" trueString="true" falseString="false">
@@ -119,6 +121,19 @@
                             and ({tableName} is null or table_name = {tableName})
                             and ({schemaName} is null or table_schema = {schemaName})
                 </foreignKeyExists>
+
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] PG 接受
+             INTERVAL '1' DAY（引号 value + 裸单位关键字，SQL 标准形态）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] PG locking clause =
+             FOR lock_strength [ OF … ] [ NOWAIT | SKIP LOCKED ]（current docs）。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] PG locking clause
+             [ NOWAIT | SKIP LOCKED ]（current docs）。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <sqlDataTypes>
@@ -142,6 +157,8 @@
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+        <!-- WI9a: UUID 原生类型（postgresql.org/docs, 8.17 UUID Type）；postgis 继承本表 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
     <functions>
@@ -159,9 +176,104 @@
         <native name="current_date" hasParenthesis="false" x:override="merge"/>
         <native name="current_timestamp" hasParenthesis="false" x:override="merge"/>
 
+        
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] PG timestamp AT TIME ZONE zone → timestamptz（current docs Table 9.33 用例原生形态）。
+             postgis 继承；duckdb（extends postgresql）继承 [文档]。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+            <testSql>TIMESTAMP '2026-02-10 12:34:56' AT TIME ZONE 'UTC'</testSql>
+        </template>
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
         </template>
+
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 PG 覆盖（PG 无 month(d) 函数形态，
+             统一走原生 EXTRACT；duckdb/postgis 经继承获得——DuckDB/PG 原生支持 EXTRACT）。 -->
+        <template name="month" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(month from {0})</source>
+        </template>
+
+        <template name="day" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(day from {0})</source>
+        </template>
+
+        <template name="hour" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(hour from {0})</source>
+        </template>
+
+        <template name="minute" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(minute from {0})</source>
+        </template>
+
+        <template name="second" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(second from {0})</source>
+        </template>
+
+        <template name="quarter" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(quarter from {0})</source>
+        </template>
+
+        <!-- WI3 第 9 项：注册 ilike 函数（PG 原生 ILIKE 算子——"The key word ILIKE can be
+             used instead of LIKE to make the match case-insensitive"。default 继承的
+             supportILike="false" 标志不动：缺的是函数表注册，不是标志翻转，翻标志会引入
+             假阴性。duckdb 经 extends postgresql 传递获得）。 -->
+        <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
+            <source>{0} ilike {1}</source>
+        </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。PG 15 TRIM([LEADING|TRAILING|BOTH] [characters] FROM string)。postgis 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+        </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。PG 无原生
+             LAST_DAY，用 date_trunc 精确算术（Phase 0 裁定 §6；duckdb/postgis 经 extends
+             postgresql 继承——pg 模板形态在 DuckDB scratch 实测通过）。
+             ⚠️ 输入类型域钉死 DATE/TIMESTAMP（无时区）：date_trunc 对 timestamptz 按会话
+             TimeZone 截断（时变），原生 LAST_DAY 族无此时变——owner doc 差异行。 -->
+        <template name="lastday" returnType="DATE" argTypes="TIMESTAMP">
+            <source>CAST(date_trunc('month', {0}) + INTERVAL '1 month' - INTERVAL '1 day' AS DATE)</source>
+        </template>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号。PG EXTRACT(WEEK) = "The number of
+             the ISO 8601 week-numbering week of the year"（15 文档）；duckdb/postgis 继承
+             （DuckDB extract(week) 同为 ISO）。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>extract(week from {0})</source>
+        </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。PG EXTRACT(ISODOW) = "The day of the
+             week as Monday (1) to Sunday (7)... matches the ISO 8601 day of the week
+             numbering"（15 文档）；duckdb/postgis 继承（DuckDB isodow 同值域）。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>extract(isodow from {0})</source>
+        </template>
+
+        <!-- WI6 Phase 4: dateTrunc(unit, d)（unit=字符串字面量）。PG date_trunc(text,
+             timestamp)，示例 date_trunc('hour', ...)——引号字符串单位、unit 在前与归一化序
+             一致（15 文档）。duckdb/postgis 继承（DuckDB date_trunc(part, ...) 同序同形，
+             scratch 实测通过）。规范单位词表 = pg/duckdb/h2 交集：
+             year/quarter/month/week/day/hour/minute/second（pg 另有 decade/century/
+             millennium/millisecond 等超集词，不在规范词表）。mysql/oracle/mssql 不落
+             （Phase 0 裁定 §7）——编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮。 -->
+        <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
+            <source>date_trunc({0},{1})</source>
+        </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 位掩码多参——[文档] PG 15 文档
+             GROUPING ( group_by_expression(s) )，"Bits are assigned with the rightmost
+             argument corresponding to the least-significant bit"。上限 64 为配置边界
+             （实参须精确匹配 GROUP BY 列表）。postgis/duckdb 继承。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="64"/>
     </functions>
 
 </dialect>

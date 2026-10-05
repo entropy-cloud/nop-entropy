@@ -362,6 +362,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 */
@@ -392,6 +404,36 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree
 	 */
@@ -401,16 +443,6 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitJoinType_(EqlParser.JoinType_Context ctx);
-	/**
-	 * Enter a parse tree produced by {@link EqlParser#crossJoin_}.
-	 * @param ctx the parse tree
-	 */
-	void enterCrossJoin_(EqlParser.CrossJoin_Context ctx);
-	/**
-	 * Exit a parse tree produced by {@link EqlParser#crossJoin_}.
-	 * @param ctx the parse tree
-	 */
-	void exitCrossJoin_(EqlParser.CrossJoin_Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlTableSource_joinRight}.
 	 * @param ctx the parse tree
@@ -462,6 +494,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitRightJoin_(EqlParser.RightJoin_Context ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 */
+	void enterCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 */
+	void exitCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlWhere}.
 	 * @param ctx the parse tree
 	 */
@@ -502,15 +544,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlHaving(EqlParser.SqlHavingContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Enter a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlLimit(EqlParser.SqlLimitContext ctx);
+	void enterSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Exit a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlLimit(EqlParser.SqlLimitContext ctx);
+	void exitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlExpr_limitRowCount}.
 	 * @param ctx the parse tree
@@ -551,6 +619,16 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitForUpdate_(EqlParser.ForUpdate_Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 */
+	void enterSkipLocked_(EqlParser.SkipLocked_Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 */
+	void exitSkipLocked_(EqlParser.SkipLocked_Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlParameterMarker}.
 	 * @param ctx the parse tree
@@ -750,6 +828,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlAndExpr(EqlParser.SqlAndExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlBinaryExpr_compare}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -786,6 +876,30 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlIsNullExpr(EqlParser.SqlIsNullExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlCompareWithQueryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -797,6 +911,54 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#comparisonOperator_}.
 	 * @param ctx the parse tree
@@ -877,6 +1039,18 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlInValues_(EqlParser.SqlInValues_Context ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code SqlBinaryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
@@ -1112,15 +1286,109 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitFunctionArgs_(EqlParser.FunctionArgs_Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Enter a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	void enterSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Exit a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	void exitSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_substring}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_substring}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 */
+	void enterTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 */
+	void exitTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 */
+	void enterExtractField__(EqlParser.ExtractField__Context ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 */
+	void exitExtractField__(EqlParser.ExtractField__Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree
@@ -1212,15 +1480,29 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlCaseWhenItem(EqlParser.SqlCaseWhenItemContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Enter a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	void enterSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Exit a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	void exitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#intervalUnit_}.
 	 * @param ctx the parse tree
@@ -1262,25 +1544,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	void enterSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	void exitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	void enterSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	void exitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlTypeExpr}.
 	 * @param ctx the parse tree

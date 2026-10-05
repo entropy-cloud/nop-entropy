@@ -87,12 +87,31 @@ unreservedWord_:
     | UNCOMMITTED | UNNAMED
     | VALUE | POSITION | ORDER
     | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
+    // WI5 Phase 5: 放开五个日期词的关键字遮蔽（roadmap WI5——month()/year() 能解析而
+    // day()/hour()/minute()/second()/quarter() 不能，纯属遮蔽不一致）。词法 token 不动
+    // （Keyword.g4 保留 token 不删不改）；五词经 sqlIdentifier_ 进入函数名/标识符位置。
+    // interval 1 day 等既有形态不受影响（intervalUnit_ 上下文只有该规则可达）；
+    // 7 个语料文件对这些词 0 命中（WI0 基线棘轮兜底）。day() 等的归一化日期函数注册
+    // 属 WI6（EXTRACT 字段函数已随 WI5 Phase 3 注册的方言上可正常 lowering）。
+    | DAY | HOUR | MINUTE | SECOND | QUARTER
     | LOWER | UPPER | ZONE |WORK
     | RECURSIVE | CURRENT_USER | USER | DATE | OCTET_LENGTH
     | CURRENT_DATE | BIT_LENGTH |GROUP |TIMESTAMP
     | BEGIN|END | CROSS
     | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
-    | TUMBLE | LATERAL | NULLS
+    | TUMBLE
+    // WI7 Phase 3: NULLS 无保留 token（词法落 IDENTIFIER_），经 unreservedWord_ 进入
+    // NULLS FIRST/LAST 子句位置与标识符位置（plan 26 Phase 3）
+    | NULLS
+    // Plan 2307（merge 并集）：LATERAL 放开关键字遮蔽，进入标识符/函数名位置；
+    // 执行路径的方言门见 AstToSqlGenerator lateral supportLateral 门（WI1）。
+    | LATERAL
+    // WI7b Phase 2: ROLLUP/CUBE 有 Literals.g4 显式 token（grouping 操作符），双登记
+    // unreservedWord_ 保住标识符位置（列名/别名 rollup/cube 仍可解析——plan 37，
+    // ⓒ-A 裁定文档 §3.1）。非 GROUP BY 位置的 rollup(x)/cube(x) 仍经 sqlIdentifier_func_
+    // 解析为 SqlRegularFunction，报错依赖函数表未注册（unknown-function）。
+    | ROLLUP | CUBE
+    | NOWAIT | SKIP_ | LOCKED
     ;
 
 // variable
@@ -141,6 +160,24 @@ sqlExpr
 
 sqlExpr_primary
     : expr=sqlExpr_primary IS not=NOT? NULL # SqlIsNullExpr
+    // WI8 Phase 1（plan 27；裁定 ai-dev/design/eql-cross-db-compat/2026-10-04-wi8-phase0-adjudications.md §九）：
+    // IS [NOT] DISTINCT FROM 两备选——label 前缀=目标 AST 类（SqlBinaryExpr/SqlNotExpr），
+    // NOT 方向由备选拆分承载（SqlBinaryExpr 无 not prop）；操作数用无 label 规则引用
+    //（codegen prop 校验只对带 label 元素做 ast.define 映射——SqlNotExpr 仅 expr prop，
+    // 双操作数形态照 SqlGroupByItem_rollup 先例全部经 ctx 访问器在手写 EqlASTBuildVisitor
+    // 完全重写不调 super，WI5 position 先例）。
+    // DISTINCT/TRUE/FALSE/UNKNOWN 均为保留 token（Keyword.g4/SQL92Keyword.g4），不与 IDENTIFIER_ 竞争。
+    | sqlExpr_primary IS NOT DISTINCT FROM sqlExpr_predicate # SqlBinaryExpr_isNotDistinctFrom
+    | sqlExpr_primary IS DISTINCT FROM sqlExpr_predicate # SqlNotExpr_isDistinctFrom
+    // WI8 Phase 2（plan 27；裁定同上 §一.3/§九）：IS [NOT] TRUE/FALSE/UNKNOWN。
+    // isUnknown 保留 expr=/not= label（SqlIsNullExpr 两 prop 俱在，生成体即正确、零手写覆盖）；
+    // TRUE/FALSE 四备选走构建期真值表展开（安全词表，手写 visit 完全重写不调 super），
+    // 操作数无 label 规则引用（§九 9.2.5 codegen prop 校验机制）。
+    | expr=sqlExpr_primary IS not=NOT? UNKNOWN # SqlIsNullExpr_isUnknown
+    | sqlExpr_primary IS TRUE # SqlAndExpr_isTrue
+    | sqlExpr_primary IS NOT TRUE # SqlNotExpr_isNotTrue
+    | sqlExpr_primary IS FALSE # SqlAndExpr_isFalse
+    | sqlExpr_primary IS NOT FALSE # SqlNotExpr_isNotFalse
    // | booleanPrimary SAFE_EQ_ predicate
     | left=sqlExpr_primary operator=comparisonOperator_ right=sqlExpr_predicate # SqlBinaryExpr_compare
     | expr=sqlExpr_primary operator=comparisonOperator_ compareRange=(ALL | ANY | SOME) query=sqlSubQueryExpr # SqlCompareWithQueryExpr
@@ -172,6 +209,20 @@ sqlExpr_bit
     | left=sqlExpr_bit operator=VERTICAL_BAR_ right=sqlExpr_bit  # SqlBinaryExpr
 //    | left=bitExpr PLUS_ right=sqlIntervalExpr  # SqlPlusIntervalExpr_plus
 //    | left=bitExpr MINUS_ right=sqlIntervalExpr # SqlPlusIntervalExpr_minus
+    // WI12 Phase 5（plan 38，裁定 ai-dev/design/eql-cross-db-compat/
+    // 2026-10-05-wi12-phase0-adjudications.md §5）：`expr AT TIME ZONE tz` 后缀备选
+    // （项级紧绑定，H2 Term 文法同位）。WI5 同款构建期归一化进**既有**
+    // SqlRegularFunction（name=atTimeZone, args=[expr, tz]）——零新 AST 节点、零新 token
+    // （AT/TIME/ZONE 三 token 词法层齐备：SQL92Keyword:238/Keyword:381/SQL92Keyword:724）。
+    // ⚠️ 挂载点执行期修正：plan 预判的 sqlExpr_special 挂载构成间接左递归
+    // （sqlExpr_special⇒sqlExpr_simple⇒sqlExpr_functionCall⇒sqlExpr_special，ANTLR 拒绝），
+    // 改挂 sqlExpr_bit 层（sqlExpr_predicate 的 LIKE 备选同构；与 #SqlExpr_simple2
+    // 共享前缀由 ALL(*) 前瞻消解——AT 当前零规则引用，AT_（decorator @）是不同 token）。
+    // 操作数不带 label（WI8 执行期机制发现：codegen initRuleReturnType 对 label 做
+    // ast.getDefine(前缀).getProp(label) 校验，SqlRegularFunction 无 left/zone prop 必炸
+    // get-prop-on-null-obj——SqlGroupByItem_rollup 无 label 操作数同款先例），
+    // 经 ctx.sqlExpr_simple(0)/sqlExpr_simple(1) 访问（SqlRegularFunction_substring 同形）。
+    | sqlExpr_simple AT TIME ZONE sqlExpr_simple # SqlRegularFunction_atTimeZone
     | sqlExpr_simple  # SqlExpr_simple2
     ;
 
@@ -283,9 +334,49 @@ functionArgs_:
 
 // EXTRACT(unit FROM date)
 // extract函数在mysql中可以用date(value), time(value)等函数代替
+// WI5: altLabel 三约束（ai-dev/design/eql-cross-db-compat/2026-10-04-wi5-phase0-adjudications.md §3）：
+// ① label 以目标 AST 类名为前缀（getAstNodeName 取首段下划线前缀）；② 备选内不写 prop 赋值
+// （prop 名必须命中 AST 类真实属性，否则 AstGrammarBuilder 报 ERR_GRAMMAR_INVALID_AST_PROP；
+// 生成体只建空节点+validate 必失败，归一化全部在手写 EqlASTBuildVisitor 完全重写、不调 super，
+// WI1 visitSqlIntervalExpr_string 同款）；③ 既有 sqlCastExpr 备选同步补 label——全部备选
+// label 化后规则级生成 ctx.accept 分派，无 label 备选推导出的 SqlExpr 与子节点类型冲突。
 sqlExpr_special
 //    : castFunction | convertFunction | positionFunction | substringFunction | extractFunction | trimFunction
-    : sqlCastExpr //| extractFunction
+    : sqlCastExpr # SqlCastExpr_cast
+    // WI5 Phase 1: POSITION(x IN y) → instr(y, x)，调用点换序在构建期完成（instr(str, substr) 参数序）。
+    // 首 arg 限定 sqlExpr_bit：IN 是 sqlExpr_predicate 层算子，首参解析不会吞掉分隔符 IN。
+    | POSITION LP_ sqlExpr_bit IN sqlExpr RP_ # SqlRegularFunction_position
+    // WI5 Phase 2: SUBSTRING(x FROM a [FOR b]) → substr(x, a[, b])，复用方言函数表
+    // substr 的 minArgCount=2/maxArgCount=3 两元多态。首/中/尾 arg 限定 sqlExpr_bit：
+    // FROM/FOR 不是 sqlExpr_bit 层算子，参数解析不会吞掉分隔关键字。
+    | SUBSTRING LP_ sqlExpr_bit FROM sqlExpr_bit (FOR sqlExpr_bit)? RP_ # SqlRegularFunction_substring
+    // WI5 Phase 3: EXTRACT(f FROM d) → 逐字段函数 year(d)/month(d)/...（默认形态已钉死）。
+    // 字段用独立 extractField_ 规则（intervalUnit_ 同款先例）：只放行有 lowering 目标的
+    // 七个字段，WEEK/MICROSECOND 等文法层即拒绝；字段位置只认这七个 token，与遮蔽放开
+    // （unreservedWord_）解耦。
+    | EXTRACT LP_ extractField__ FROM sqlExpr RP_ # SqlRegularFunction_extract
+    // WI5 Phase 4: TRIM 标准三段式两档——无 chars 形态按方向归一化 trim/ltrim/rtrim
+    // （单参已注册）；带 chars 形态归一化 trimChars/ltrimChars/rtrimChars 三件套（逐方言
+    // <template> 注册，无模板方言编译期响亮报错，禁止静默丢 chars/降级单参）。
+    // 单参 trim(x) 不在此列——仍走 sqlRegularFunction，不新增第二个可解析入口。
+    | TRIM LP_ trimDirection__ FROM sqlExpr RP_ # SqlRegularFunction_trimDirection
+    | TRIM LP_ trimDirection__ sqlExpr_simple FROM sqlExpr RP_ # SqlRegularFunction_trimDirectionChars
+    | TRIM LP_ sqlExpr_simple FROM sqlExpr RP_ # SqlRegularFunction_trimChars
+    ;
+
+// WI5: TRIM 方向关键字（SQL92Keyword LEADING/BOTH/TRAILING），仅 TRIM 特殊备选可达。
+// 规则名带双下划线后缀 = AstGrammarBuilder notInAst 约定（getInnerRule 跳过，同 extractField__）。
+trimDirection__
+    : LEADING | BOTH | TRAILING
+    ;
+
+// WI5: EXTRACT 允许的 datetime 字段——与归一化目标函数（year/month/day/hour/minute/
+// second/quarter，见 default.dialect.xml 及各方言模板）一一同名；扩展字段须先注册函数。
+// 规则名带双下划线后缀 = AstGrammarBuilder 的"不属抽象语法树"约定（notInAst）：
+// 单下划线规则会被生成器的 getInnerRule 误选为备选 innerRule 且无返回类型（public null 编译错），
+// 双下划线被 getInnerRule 显式跳过，备选 innerRule 落到 sqlExpr（生成体被手写 visit 完全重写）。
+extractField__
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | QUARTER
     ;
 
 sqlCastExpr
@@ -344,7 +435,11 @@ sqlCaseWhenItem
     ;
 
 sqlIntervalExpr
-    : INTERVAL expr=sqlExpr intervalUnit=intervalUnit_
+    : INTERVAL expr=sqlExpr intervalUnit=intervalUnit_ # SqlIntervalExpr_unit
+    // WI1 BUG-5: PG 形态 `interval '1 day'`。字符串字面量在手写 EqlASTBuildVisitor
+    // 的 visitSqlIntervalExpr_string 构建处归一化为 value+unit 装入既有 SqlIntervalExpr
+    // （不新增 AST 节点；label 后缀按 astNodeName 规则截断后同为 SqlIntervalExpr）
+    | INTERVAL STRING_ # SqlIntervalExpr_string
     ;
 
 intervalUnit_
@@ -362,37 +457,75 @@ sqlOrderBy
 sqlOrderByItems_:
    e=sqlOrderByItem (COMMA_ e=sqlOrderByItem)*;
 
+// WI7（roadmap EC ②，ai-dev/plans/26-eql-wi7-pagination-and-nulls.md Phase 3）：接受
+// ORDER BY … NULLS FIRST/LAST，赋值既有 SqlOrderByItem.nullsFirst（Boolean 三态）。
+// 门与消费已先于文法落地（Phase 2 AstToSqlGenerator 三分门）；不删除任何 token。
 sqlOrderByItem
-    // Plan 2308: NULLS FIRST / NULLS LAST 走**子规则**，label 名与 AST 属性名一致。
-    // 两层踩坑记录（都写在这里，避免后人重犯）：
-    //  1) 写成 nulls=(NULLS FIRST | NULLS LAST) 时 ANTLR 报
-    //     error(130): label nulls assigned to a block which is not a set
-    //     ——label 只能标注单 token 或 token 集合，(NULLS FIRST | NULLS LAST) 是两个
-    //     多 token 序列的备选。（与 2256 的坑方向相反：那次是同优先级备选没合并成 token-set。）
-    //  2) 拆成 (nulls=NULLS nullsOrder=(FIRST | LAST))? 后语法过了，但 AstGrammarBuilder 的
-    //     initRuleReturnType 失败——label 必须与 AST 属性名对应。
-    //  3) 最终形态对标既有 sqlWindowFrameBound 的 boundType 写法（同样是多 token 组合）：
-    //     抽子规则 + label 直接用属性名 nullsFirst。子规则整体可选，故未写时为 null（三态）。
-    : expr=sqlExpr asc=(ASC | DESC)? nullsFirst=sqlNullsOrder_?
+    // WI7（roadmap EC ②，ai-dev/plans/26-eql-wi7-pagination-and-nulls.md Phase 3）：接受
+    // ORDER BY … NULLS FIRST/LAST，赋值既有 SqlOrderByItem.nullsFirst（Boolean 三态）。
+    // 门与消费已先于文法落地（Phase 2 AstToSqlGenerator 三分门）；不删除任何 token。
+    //
+    // 【merge note / Plan 2308 同功能并档】master 侧 Plan 2308 曾以**子规则**形态实现同一
+    // 文法（`: expr=sqlExpr asc=(ASC|DESC)? nullsFirst=sqlNullsOrder_?` + 子规则
+    // `sqlNullsOrder_ : NULLS FIRST | NULLS LAST;`，配手写
+    // SqlOrderByItem_nullsFirst(ParseTree) 转换）。两形态接受面完全相同、产出同一三态
+    // Boolean，本合并取 ours 内联 token 形态（本分支语料快照与生成物基线一致）。
+    // Plan 2308 的 label 踩坑记录仍有复用价值，留档：
+    //  1) 写成 nulls=(NULLS FIRST | NULLS LAST) 时 ANTLR 报 error(130): label 只能标注
+    //     单 token 或 token 集合，不能标注多 token 序列备选块；
+    //  2) 拆 (nulls=NULLS nullsOrder=(FIRST|LAST))? 后 AstGrammarBuilder 的
+    //     initRuleReturnType 失败——label 必须与 AST 属性名对应；
+    //  3) 若未来改为子规则形态，对标 sqlWindowFrameBound 的 boundType 写法。
+    // ⚠️ NULLS 的**方言化发射策略**（ours WI7 三分门 vs master Plan 2308 CASE 改写）在
+    // AstToSqlGenerator 处仍是待裁决冲突，与本文法形态无关（两形态均可对接任一策略）。
+    : expr=sqlExpr asc=(ASC | DESC)? (NULLS nullsFirst=(FIRST | LAST))?
     ;
 
-sqlNullsOrder_
-    : NULLS FIRST
-    | NULLS LAST
-    ;
-
+// WI7b（roadmap EC ①，ai-dev/plans/37-eql-wi7b-analytic-features.md Phase 2）：GROUP BY 位置
+// grouping 操作符 ROLLUP(...)/CUBE(...)。ⓒ-A 裁定（ai-dev/design/eql-cross-db-compat/
+// 2026-10-04-wi7b-phase0-adjudications.md §3）：新备选必须**前置**——ROLLUP(a,b) 同时匹配
+// 既有 expr=sqlExpr 备选，ANTLR 歧义由备选顺序决定，排后即死代码；label 备选内零 prop 赋值，
+// 构建全部在手写 EqlASTBuildVisitor visitSqlGroupByItem_rollup/_cube 完成（wrapper 模式：
+// SqlGroupByItem.expr = SqlGroupingOp，visitSqlIntervalExpr_string 同款）；既有备选同步补
+// label（多备选规则全 label 是 ANTLR 硬要求，sqlExpr 规则四 label 先例）。
+// 非 GROUP BY 位置 rollup(x)/cube(x) 仍经 unreservedWord_ → sqlIdentifier_func_ 解析为
+// SqlRegularFunction，报错 = 函数表永不注册 → ERR_EQL_UNKNOWN_FUNCTION（放置排他来自
+// "GROUP BY 之外无注册"）。GROUPING SETS 永久否决（roadmap ledger），无第三备选。
 sqlGroupByItem
-    : expr=sqlExpr
+    : ROLLUP LP_ functionArgs_? RP_ # SqlGroupByItem_rollup
+    | CUBE LP_ functionArgs_? RP_ # SqlGroupByItem_cube
+    | expr=sqlExpr # SqlGroupByItem_expr
     ;
 
 sqlTypeExpr
     : name=dataTypeName_ ( LP_ precision=NUMBER_ (COMMA_ scale=NUMBER_)? RP_)? characterSet=characterSet_? collate=collateClause_?
     ;
 
+// WI9a BUG-11（ai-dev/plans/25-eql-wi9a-cast-type-aliases.md）：删除 14 个"解析可过、
+// SqlTypeExpr_name 必拒"的死文法备选——CHARACTER / CHARACTER VARYING / NATIONAL CHARACTER /
+// NATIONAL CHARACTER VARYING / NCHAR / NATIONAL CHAR / NATIONAL CHAR VARYING / BIT / BIT VARYING /
+// DEC / DOUBLE PRECISION / INTERVAL / TIME WITH TIME ZONE / TIMESTAMP WITH TIME ZONE——文法接受面
+// 不再承诺注定被 AST 拒绝的拼写。收窄边界=候选 A（保留 sqlIdentifier_ 单词兜底，未知拼写仍走
+// nop.err.eql.invalid-sql-type 语义拒绝，WI2 nosuchtype 断言不破）；错误形态迁移：上述 14 拼写从
+// "解析过 + nop.err.eql.invalid-sql-type"变为"解析失败（nop.err.antlr.*）"，同为响亮失败。
+// EC ③ 对照表：ai-dev/design/eql-cross-db-compat/2026-10-04-wi9a-phase0-adjudications.md §五。
+// 不删除任何 lexer token（无重编号）；不触碰 characterSet_/collateClause_（WI2 BUG-15 守卫）；
+// TIME/TIMESTAMP WITH LOCAL TIME ZONE 拼写归 WI9b（两个名字集，互不替）。
 dataTypeName_
-    : CHARACTER | CHARACTER VARYING | NATIONAL CHARACTER | NATIONAL CHARACTER VARYING | CHAR | VARCHAR | NCHAR
-    | NATIONAL CHAR | NATIONAL CHAR VARYING | BIT | BIT VARYING | NUMERIC | DECIMAL | DEC | INTEGER | SMALLINT
-    | FLOAT | REAL | DOUBLE PRECISION | DATE | TIME | TIMESTAMP | INTERVAL | TIME WITH TIME ZONE | TIMESTAMP WITH TIME ZONE
+    : CHAR | VARCHAR | NUMERIC | DECIMAL | INTEGER | SMALLINT
+    | FLOAT | REAL | DATE | TIME | TIMESTAMP
+    // WI2 BUG-8: BOOLEAN 是独立关键字 token（不在 unreservedWord_，sqlIdentifier_ 备选
+    // 救不了它）。语义链已就绪：SqlTypeExpr_name 的 toUpperCase + StdSqlType.fromStdName
+    // 校验放行 StdSqlType.BOOLEAN，生成侧经 dialect.stdToNativeSqlType 产方言映射
+    | BOOLEAN
+    // WI9b（ai-dev/plans/32-eql-wi9b-tz-types.md Phase 2）：LOCAL 时区两多词备选（标准
+    // SQL:1999 拼写，全历史首次新增——与 WI9a 删除的非 LOCAL 备选是两个名字集，互不替）。
+    // bare 形态：sqlTypeExpr 的 (precision[,scale]) 紧跟 dataTypeName_ 整体，多词备选不接
+    // precision（已知能力边界，plan Deferred 登记）。闸门 A 的多 token 名称归一化在手写
+    // EqlASTBuildVisitor.SqlTypeExpr_name（getText() 无分隔符拼接必须重建，裁定文档 §5.3）。
+    // AST SqlTypeExpr 复用既有 name 字段（存归一化枚举名），零新节点零新字段。
+    | TIME WITH LOCAL TIME ZONE
+    | TIMESTAMP WITH LOCAL TIME ZONE
     | sqlIdentifier_
     ;
 

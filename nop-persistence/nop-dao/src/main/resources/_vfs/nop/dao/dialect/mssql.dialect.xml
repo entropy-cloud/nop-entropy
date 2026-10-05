@@ -101,7 +101,11 @@
 
     </errorCodes>
 
-    <features supportSequence="true" supportOutputForUpdate="true"/>
+    <!-- WI7b（plan 37）：supportRollup/supportCube=true——MS Learn GROUP BY (Transact-SQL)
+         确认 ROLLUP/CUBE；GROUPING ( <column_expression> ) 单参（多列用 GROUPING_ID，不注册）。 -->
+    <features supportSequence="true" supportOutputForUpdate="true"
+              supportRollup="true" supportCube="true"
+              supportValuesTableSource="true"/>
 
     <sqls escapeSlash="false">
         <createSequence>
@@ -205,7 +209,79 @@
             <source>datepart(year,{0})</source>
         </template>
 
-    </functions>
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 MSSQL 覆盖（MSSQL 无 month(d) 全族
+             函数，统一走 DATEPART）。 -->
+        <template name="month" x:override="merge">
+            <source>datepart(month,{0})</source>
+        </template>
+
+        <template name="day" x:override="merge">
+            <source>datepart(day,{0})</source>
+        </template>
+
+        <template name="hour" x:override="merge">
+            <source>datepart(hour,{0})</source>
+        </template>
+
+        <template name="minute" x:override="merge">
+            <source>datepart(minute,{0})</source>
+        </template>
+
+        <template name="second" x:override="merge">
+            <source>datepart(second,{0})</source>
+        </template>
+
+        <template name="quarter" x:override="merge">
+            <source>datepart(quarter,{0})</source>
+        </template>
+
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。SQL Server 2022 起 TRIM([LEADING|TRAILING|BOTH] [characters FROM] string)（G-1 承诺基线=MSSQL 2022）。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+        </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化。MSSQL 原生 EOMONTH（T-SQL: "returns the last day
+             of the month containing a specified date"）。[文档] 证据上限：CI 无 MSSQL 真库。
+             不进 default（注册面纪律）。 -->
+        <template name="lastday" returnType="DATE" argTypes="TIMESTAMP">
+            <source>EOMONTH({0})</source>
+        </template>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号。DATEPART(iso_week,d)（ISO 8601，
+             不属 SET DATEFIRST 影响面——文档明文仅 week/weekday datepart 受影响）。
+             [文档] 证据上限：CI 无 MSSQL 真库。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>DATEPART(iso_week,{0})</source>
+        </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。DATEDIFF(DAY, 0, d)：0 = 1900-01-01
+             （星期一），DAY datepart 不属 SET DATEFIRST 影响面（文档明文仅 week/weekday 受
+             影响）；负模修正 +7)%7 保证 1900 前日期正确。弃用 DATEPART(weekday)（DATEFIRST
+             依赖）。[文档] 证据上限：CI 无 MSSQL 真库。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>((DATEDIFF(DAY, 0, {0}) % 7) + 7) % 7 + 1</source>
+        </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 单参——[文档] MS Learn
+             GROUPING ( <column_expression> )，返回 tinyint（多列区分用 GROUPING_ID，
+             roadmap Non-Goal 不注册）。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
+    
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] MS Learn AT TIME ZONE (Transact-SQL)，2016+ 引入。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+        </template>
+</functions>
 
     <sqlDataTypes>
         <sqlDataType name="CHAR" precision="8000" stdSqlType="CHAR"/>
@@ -228,6 +304,9 @@
         <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="IMAGE" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <!-- WI9a: MSSQL 原生类型为 uniqueidentifier（learn.microsoft.com T-SQL 数据类型），
+             std 键名 UUID、code 渲染 UNIQUEIDENTIFIER -->
+        <sqlDataType name="UUID" code="UNIQUEIDENTIFIER" stdSqlType="UUID"/>
     </sqlDataTypes>
 
 </dialect>

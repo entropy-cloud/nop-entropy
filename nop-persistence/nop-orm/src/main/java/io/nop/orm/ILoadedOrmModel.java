@@ -66,8 +66,10 @@ public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
 
     /**
      * 编译EQL语句。useCache=true时以QueryPlanCacheKey作为语句缓存键。
-     * 注意：astTransformer不参与缓存键，调用方必须保证同一session factory内使用语义一致的transformer
-     * （null表示使用env的默认实例），否则不同transformer的编译结果会被错误复用
+     * astTransformer不参与缓存键，因此缓存中只存在默认transformer（或无transformer）编译的计划：
+     * astTransformer为null时使用env.getDefaultAstTransformer()；显式传入与默认实例不同的transformer时，
+     * useCache按false处理（不读不写查询计划缓存），始终返回该transformer的完整编译结果。
+     * 生产代码不应per-call传入transformer，统一通过SessionFactoryConfig.eqlAstTransformer配置factory级默认实例。
      */
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete,
                             IEqlAstTransformer astTransformer, boolean useCache,

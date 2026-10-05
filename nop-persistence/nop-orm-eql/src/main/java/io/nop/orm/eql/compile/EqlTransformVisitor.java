@@ -12,6 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
+import io.nop.core.CoreConfigs;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
@@ -34,10 +35,13 @@ import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
 import io.nop.orm.eql.ast.SqlGroupBy;
+import io.nop.orm.eql.ast.SqlInValuesExpr;
 import io.nop.orm.eql.ast.SqlInsert;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
+import io.nop.orm.eql.ast.SqlValuesTableSource;
 import io.nop.orm.eql.ast.SqlLiteral;
 import io.nop.orm.eql.ast.SqlNumberLiteral;
+import io.nop.orm.eql.ast.SqlMultiValueExpr;
 import io.nop.orm.eql.ast.SqlOrderBy;
 import io.nop.orm.eql.ast.SqlParameterMarker;
 import io.nop.orm.eql.ast.SqlProgram;
@@ -84,6 +88,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +98,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_FULL_JOIN;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RIGHT_JOIN;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
@@ -118,9 +126,13 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_QUERY_SPACE_MAP;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_ITEM_COUNT;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_MAX_ITEMS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_STMT_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_IN_LIST_TOO_LARGE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
@@ -152,6 +164,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     private IDialect dialect;
 
+    // WI10b: 语句名（IN 列表超长错误定位用），由 EqlCompiler 传入；可为 null
+    private final String stmtName;
+
     // 预先收集所有明确指定的alias，自动生成的alias需要避免和它们冲突
     private final Set<String> assignedAliases = new HashSet<>();
 
@@ -179,7 +194,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     private CollectionOperatorTransformer collectionOperatorTransformer;
 
     public EqlTransformVisitor(ISqlCompileContext context) {
+        this(context, null);
+    }
+
+    /**
+     * WI10b：stmtName 仅用于 IN 列表超长错误的定位 param（`EqlCompiler#compile` 传入语句名）。
+     */
+    public EqlTransformVisitor(ISqlCompileContext context, String stmtName) {
         this.context = context;
+        this.stmtName = stmtName;
         this.aliasGenerator = context.getAliasGenerator();
         this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator);
     }
@@ -374,6 +397,22 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
+    // WI7b（plan 37，roadmap EC ①；ⓒ-A 裁定文档 §3.2）：GROUP BY 位置 grouping 操作符
+    // ROLLUP/CUBE 的方言能力门。supportRollup/supportCube 分立两标志——mysql 函数式 ROLLUP
+    //（8.4.3+，超 G-1 基线）与 CUBE（永无）successor 触发条件不同。先门后遍历（先例同上）；
+    // 错误码复用族不新起。非 GROUP BY 位置的 rollup(x)/cube(x) 解析为 SqlRegularFunction，
+    // 函数表永不注册 → ERR_EQL_UNKNOWN_FUNCTION（放置排他 = "GROUP BY 之外无注册"）。
+    @Override
+    public void visitSqlGroupingOp(io.nop.orm.eql.ast.SqlGroupingOp node) {
+        boolean rollup = node.getType() == io.nop.orm.eql.enums.SqlGroupingOpType.ROLLUP;
+        boolean support = rollup ? dialect.isSupportRollup() : dialect.isSupportCube();
+        if (!support)
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, rollup ? "rollup" : "cube");
+        visitChildren(node.getArgs());
+    }
+
     // WI2: over <name> 引用必须命中当前查询声明的窗口名；inline frame 按单位过能力门。
     // 先门后遍历：能力门/引用校验先于子节点解析（错误优先级高于子表达式的 unknown-function 等）
     @Override
@@ -532,6 +571,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // WI17: TUMBLE 伪表函数是 stream-only 表源（D4/T1 裁定），ORM 编译通道
             // 不支持——显式 fail-fast 而非静默跳过作用域注册
             throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
+        } else if (table instanceof SqlValuesTableSource) {
+            // WI12 交付⑤：VALUES 表源按别名注册作用域（SqlSubqueryTableSource 分支同形；
+            // 文法层 alias 必填 = 注册锚点，裁定 §4）
+            SqlValuesTableSource source = (SqlValuesTableSource) table;
+            scope.addTable(source.getAlias().getAlias(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             addAliasToScope(scope, source.getLeft());
@@ -607,10 +651,33 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 visitSqlSubqueryTableSource(source);
             }
             tableScope.addTable(source.getAliasName(), source);
+        } else if (table instanceof SqlValuesTableSource) {
+            // WI12 交付⑤（plan 38，裁定 §4.1）：VALUES 表源的 querySpace 实体无关回落——
+            // 实体现解析路径（resolveEntity → addResolvedEntity）对 VALUES 源不触发，
+            // FROM 只有 VALUES 源时 querySpace/dialect 会保持 null（下游 NPE 面）。
+            // 首个 VALUES 源遍历点回落（decorator 显式指定优先，否则 default query space，
+            // findQuerySpaceWhenNoFrom 同口径）；实体源解析会无条件覆盖（addResolvedEntity），
+            // 混合源（实体+VALUES）行为 = 实体 querySpace 胜出，与既有单 querySpace 约束一致。
+            if (this.querySpace == null) {
+                String qs = findQuerySpaceWhenNoFrom(getQuerySelect(table));
+                this.querySpace = qs;
+                this.dialect = context.getDialectForQuerySpace(qs);
+            }
+            SqlValuesTableSource source = (SqlValuesTableSource) table;
+            visitChildren(source.getRows());
+            source.setResolvedTableMeta(buildValuesTableMeta(source));
+            tableScope.addTable(source.getAliasName(), source);
         } else if (table instanceof SqlJoinTableSource) {
             SqlJoinTableSource source = (SqlJoinTableSource) table;
             boolean hasCondition = source.getCondition() != null;
             visitJoinLeft(tableScope, source);
+            // WI2 BUG-6: 门在左源解析后、右源遍历前触发。方言实例要到首个实体解析
+            // （addResolvedEntity → context.getDialectForQuerySpace）才确定，头部触发
+            // 时 dialect 尚为 null；左源（实体/嵌套 join/子查询）遍历完成后方言必然
+            // 就绪且与后续生成用同一实例。仍先于 visitJoinRight 的条件校验
+            // （ERR_EQL_JOIN_NO_CONDITION）与右侧任何解析错误；每个 join 节点恰过门一次
+            // （嵌套 join 经 visitJoinLeft 递归回本分支）。
+            checkJoinTypeFeature(source);
             visitJoinRight(tableScope, source);
 
             if (hasCondition) {
@@ -621,6 +688,69 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             }
             addTableFilterForJoin(source);
         }
+    }
+
+    /**
+     * WI2 BUG-6: `full [outer] join` 编译期能力门（裁定=独立私有方法，挂
+     * {@code visitTableSource} 的 SqlJoinTableSource 转换遍历点，仿
+     * {@link #checkWindowFrameFeature(SqlWindowFrame)} 的调用形态）。
+     * 不支持时响亮报错，绝不静默改写或丢弃 join 类型。
+     */
+    private void checkJoinTypeFeature(SqlJoinTableSource source) {
+        if (source.getJoinType() == SqlJoinType.FULL_JOIN && !dialect.isSupportFullJoin())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_FULL_JOIN);
+        // WI10b（Phase 0 §2.5 终裁）：right join 与 full join 同门同层，不支持时响亮报错
+        if (source.getJoinType() == SqlJoinType.RIGHT_JOIN && !dialect.isSupportRightJoin())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(source)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_RIGHT_JOIN);
+    }
+
+    /**
+     * WI10b（Phase 0 §2.6 终裁）：行值构造器 `(a,b)` 能力门。SqlMultiValueExpr 三形态
+     * 文法可达且无条件打印——`(a,b)` 独立值表达式、`(a,b) = (1,2)` 真行值比较、
+     * `(a,b) IN ((1,2))`（IN 列表元素本身是行组）——门在 transform 遍历点统一拦截，
+     * 覆盖三形态全集；不在打印器设门（回显忠实转储零变化）。
+     *
+     * <p>与 IN 列表长度门正交：SqlMultiValueExpr 不是 SqlInValuesExpr，本门不计数、
+     * IN 门不管行组语义。全部既有方言 XML 继承 default 的 true ⇒ 真实方言零 BC；
+     * 负向载体 = 合成方言 false（无任何真实方言应配 false 的一手证据）。
+     */
+    @Override
+    public void visitSqlMultiValueExpr(SqlMultiValueExpr node) {
+        if (dialect != null && !dialect.isSupportRowValueConstructor())
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE).source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR);
+        super.visitSqlMultiValueExpr(node);
+    }
+
+    /**
+     * WI10b（WI10a 设计定稿 2026-10-03）：IN 列表长度门禁。统一阈值 1000（唯一硬依据
+     * Oracle ORA-01795），经 {@link CoreConfigs#CFG_CORE_SQL_IN_LIST_MAX_SIZE} 可调高、
+     * 无关闭取值；门禁方言无关、超限显式报错（{@link OrmEqlErrors#ERR_EQL_IN_LIST_TOO_LARGE}）、
+     * 不做任何改写。`NOT IN` 与 `IN` 同为 SqlInValuesExpr 节点，本门天然覆盖两者。
+     *
+     * <p>挂载点裁定（`ai-dev/design/eql-cross-db-compat/2026-10-04-wi10b-phase0-adjudications.md`
+     * §4.1）：检查在编译管线（transform 遍历点，与 {@link #checkJoinTypeFeature(SqlJoinTableSource)}
+     * / returning 门同层），不在打印器——回显路径 `EqlASTNode#toSqlString()` 保持忠实转储零变化。
+     * 缓存路径（useCache=true）下检查随首次编译执行一次，非缓存路径逐次确定性重查。
+     * 字面量与 marker 统一计数（对 values.size() 计数，不逐元素分型）。
+     */
+    @Override
+    public void visitSqlInValuesExpr(SqlInValuesExpr node) {
+        int max = CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE.get();
+        int count = node.getValues() == null ? 0 : node.getValues().size();
+        if (count > max) {
+            throw new NopException(ERR_EQL_IN_LIST_TOO_LARGE).source(node)
+                    .param(ARG_ITEM_COUNT, count)
+                    .param(ARG_MAX_ITEMS, max)
+                    .param(ARG_STMT_NAME, stmtName)
+                    .param(ARG_DIALECT, dialect == null ? null : dialect.getName());
+        }
+        super.visitSqlInValuesExpr(node);
     }
 
     void addTableFilterForJoin(SqlJoinTableSource source) {
@@ -718,6 +848,27 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             fields.put(fieldName, proj.getExpr().getResolvedExprMeta());
         }
         select.setResolvedTableMeta(new SelectResultTableMeta(fields));
+    }
+
+    /**
+     * WI12 交付⑤（plan 38，裁定 §4.3）：VALUES 表源列元数据——列名 = 显式别名列清单
+     * 优先，缺省 C1..Cn（H2 惯例）；类型 = 首行表达式经 ExprTypeResolver best-effort
+     * 解析（字面量/列引用得精确类型；无法确定时由 resolver 兜底）。ragged rows 已在
+     * 构建期响亮（ERR_EQL_VALUES_ROW_ARITY_MISMATCH），此处行元数恒一致。
+     */
+    ISqlSelectionMeta buildValuesTableMeta(SqlValuesTableSource source) {
+        ExprTypeResolver typeResolver = new ExprTypeResolver(dialect);
+        List<SqlMultiValueExpr> rows = source.getRows();
+        int arity = rows.get(0).getValues().size();
+        List<String> names = source.getColumns();
+        Map<String, ISqlExprMeta> fields = new LinkedHashMap<>();
+        for (int i = 0; i < arity; i++) {
+            String name = (names != null && i < names.size()) ? names.get(i) : ("C" + (i + 1));
+            SqlExpr expr = rows.get(0).getValues().get(i);
+            typeResolver.resolveExprMeta(expr);
+            fields.put(name, expr.getResolvedExprMeta());
+        }
+        return new SelectResultTableMeta(fields);
     }
 
     // 将 UserInfo o left join o.dept 这种形式变换为 UserInfo o left join Department d on o.xx=d.xx
@@ -1293,6 +1444,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             SqlSubqueryTableSource query = (SqlSubqueryTableSource) source;
             resolveSelectFields(query.getQuery());
 
+            return buildSelectItems(source, false, true);
+        } else if (source instanceof SqlValuesTableSource) {
+            // WI12 交付⑤：select * 对 VALUES 源的展开（元数据由 visitTableSource 期
+            // buildValuesTableMeta 设置；onlyColumn=false 与子查询分支同口径——
+            // VALUES 列元数据是表达式元数据而非实体列，column-kind 过滤会清空投影）
             return buildSelectItems(source, false, true);
         } else if (source instanceof SqlJoinTableSource) {
             // select * 展开时对join源递归收集左右表的投影

@@ -93,18 +93,89 @@ public interface IDialect extends IComponentModel {
     boolean isSupportWindowFrameGroups();
 
     /**
-     * Plan 2308 D1：数据库是否接受原生 {@code ORDER BY ... NULLS FIRST/LAST} 语法。
+     * WI1 BUG-2: 是否支持 `from (select ...) x lateral (select ...) y` 形式的 LATERAL
+     * 子查询表源。未配置时返回 false（保守缺省）：EQL 编译期对含 lateral 的查询报
+     * `nop.err.eql.dialect-not-support-feature`，而不是静默丢弃 lateral 关键字
+     * （那会退化为不相关的子查询，语义改变）。
+     */
+    boolean isSupportLateral();
+
+    /**
+     * WI12 交付⑤（plan 38）：{@code FROM (VALUES …)} 表源能力位。false（缺省）= 编译含
+     * VALUES 表源的查询时编译期报错 {@code nop.err.eql.dialect-not-support-feature}
+     * （feature=valuesTableSource），不静默产出目标库不支持的文本。
+     */
+    boolean isSupportValuesTableSource();
+
+    /**
+     * WI7b（plan 37，roadmap EC ①）：是否支持 GROUP BY 位置的函数式 {@code ROLLUP(...)}。
+     * 未配置时返回 false（保守缺省）：EQL 编译期报 nop.err.eql.dialect-not-support-feature
+     * （feature=rollup）。分立于 {@link #isSupportCube()}——mysql 函数式 ROLLUP 8.4.3+ 才有
+     * （超 G-1 基线 8.0.31）而 CUBE 永无，successor 触发条件不同。非 GROUP BY 位置的
+     * rollup(x) 不经本门（函数表永不注册 → unknown-function）。
+     */
+    boolean isSupportRollup();
+
+    /**
+     * WI7b（plan 37，roadmap EC ①）：是否支持 GROUP BY 位置的 {@code CUBE(...)}。
+     * 未配置时返回 false（保守缺省）：EQL 编译期报 nop.err.eql.dialect-not-support-feature
+     * （feature=cube）。MySQL/MariaDB 全版本均无 CUBE（roadmap ledger 永久口径）。
+     */
+    boolean isSupportCube();
+
+    /**
+     * WI2 BUG-6: 是否支持 `full join`/`full outer join` 表源。已确认无 FULL JOIN 的
+     * 只有 MySQL/MariaDB（TDengine 自 3.3.0.0 起支持、MSSQL 支持 FULL OUTER JOIN，
+     * 继承 default 的 true）。未配置或配置为 false 时 EQL 编译期对含 full [outer] join
+     * 的查询报 `nop.err.eql.dialect-not-support-feature`
+     * （feature=supportFullJoin），而不是静默产出目标库不支持的 SQL。
+     */
+    boolean isSupportFullJoin();
+
+    /**
+     * WI10b（Phase 0 §2.5 终裁）：是否支持 `right join`/`right outer join` 表源。
+     * 全部既有方言 XML 继承 default 的 true（RIGHT JOIN 为 MySQL 8.0.31/PG/H2/MSSQL/
+     * Oracle/DuckDB 等全支持的标准能力）。配置为 false 时 EQL 编译期对含 right [outer]
+     * join 的查询报 `nop.err.eql.dialect-not-support-feature`
+     * （feature=supportRightJoin），而不是静默产出目标库不支持的 SQL。
+     */
+    boolean isSupportRightJoin();
+
+    /**
+     * WI10b（Phase 0 §2.4 终裁）：是否支持多表 DELETE（`DELETE t1 FROM t1 JOIN t2 …` /
+     * `DELETE FROM t1 USING t2 …`）。EQL 文法当前为单表 DELETE（多表形式解析失败=响亮），
+     * 本标志为方言能力声明：未来 DELETE 多表文法 WI 立项（plan-first）时必须接线本标志。
+     * 配置断言见 `TestDialectDeadFlagDisposition`。
+     */
+    boolean isSupportDeleteFromJoin();
+
+    /**
+     * WI10b（Phase 0 §2.7 终裁=候选 B）：是否支持 `UPDATE … OUTPUT inserted./deleted. …`
+     * 子句（MSSQL 形态，唯一 XML 载体 mssql 配 true）。v1 无运行时消费点——EQL 无任何
+     * 语句产出 OUTPUT 子句，本标志为能力声明；升级触发条件：EQL 立项 MSSQL OUTPUT
+     * 语义（文法 WI，plan-first）时必须消费本标志。注意与
+     * {@link #isSupportReturningForUpdate()} 正交：mssql 上 `update..returning` 仍被后者
+     * 拒绝（mssql 未配 returning）。
+     */
+    boolean isSupportOutputForUpdate();
+
+    /**
+     * Plan 2308 D1（merge 采纳为 NULLS emission 唯一判据，见
+     * {@code AstToSqlGenerator} merge 裁决记录）：数据库是否接受原生
+     * {@code ORDER BY ... NULLS FIRST/LAST} 语法。
      *
-     * <p>这是空序 emission 的<b>唯一</b>判据：true → 直接输出 NULLS 子句；
-     * false → 用 {@code CASE WHEN col IS NULL THEN ... END, col <dir>} 改写，
-     * 该写法对任何方言都语义正确。
+     * <p>true → 直接输出 NULLS 子句；false → 用 {@code CASE WHEN col IS NULL THEN ... END,
+     * col <dir>} 改写，该写法对任何方言都语义正确。
      *
      * <p>未声明（{@code null}）一律视为 false——这是安全的保守缺省：
      * false 只是让 SQL 多一个 CASE 键，不会产出错误结果。
      *
-     * <p><b>不</b>提供"方言缺省空序"查询接口：单个布尔无法表达各方言的真实空序模型
+     * <p>【merge note】ours WI7 曾以本标志为"打印 vs 缺省序推导围栏"的门（裁定文档 §三），
+     * 该门已随 merge 裁决退役（master Plan 2308 emission 接管，理由见生成器 merge 记录）。
+     * <b>不</b>提供"方言缺省空序"查询接口作为发射判据：单个布尔无法表达各方言的真实空序模型
      * （H2/PG/MySQL 随方向翻转，DuckDB 不翻转且有 4 种模式），
-     * 用它推导 DESC 缺省会静默返回相反行序。详见 design §3.8。
+     * 用它推导 DESC 缺省会静默返回相反行序。详见 master design §3.8；
+     * {@link #isDefaultNullsFirst()} 保留为配置事实登记（发射不读）。
      */
     boolean isSupportNullsFirst();
 
@@ -122,6 +193,27 @@ public interface IDialect extends IComponentModel {
     boolean isSupportSomeSubQuery();
 
     boolean isSupportReturningForUpdate();
+
+    /**
+     * 默认 NULL 排序事实：缺省升序排序时 NULL 是否排在非 NULL 之前。
+     *
+     * <p>与 {@link #isSupportNullsFirst()}（是否原生接受 <code>NULLS FIRST/LAST</code> 子句，
+     * accessor 归 WI7/Plan 2308）正交，各司其职：本标志描述方言的缺省行为事实，后者描述子句接受度。
+     * 未配置时返回 false（保守缺省）。
+     *
+     * <p>⚠️ 消费点唯一 owner = roadmap WI7（NULLS FIRST/LAST 文法接受 + 门控 + 默认序行为）；
+     * WI3 交付止于 accessor + 配置正确性断言，生成器消费不得在 WI3 声称完成
+     * （plan 20「defaultNullsFirst 消费点调研结论」的移交链）。
+     * 【merge note / Plan 2308 supersede】WI7 曾在 {@code AstToSqlGenerator} 内以本标志做
+     * "缺省序一致省略"推导（已随 merge 裁决退役）；master Plan 2308 明示发射"全程不读"
+     * 本标志（单布尔无法表达各方言真实空序模型，其 design §3.8）。本 accessor 保留为
+     * 方言缺省空序的**配置事实登记**（TestDefaultNullsFirstFlag 继续钉取值语义），
+     * 供未来方言空序模型调研复用，发射路径不得重新消费。
+     */
+    boolean isDefaultNullsFirst();
+
+    // 【merge note】isSupportNullsFirst 声明合并至 ours 新 accessor 块之后（Plan 2308 D1
+    // javadoc 版本），此处 ours 原重复声明已移除。
 
     /**
      * h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
@@ -164,10 +256,20 @@ public interface IDialect extends IComponentModel {
         return "update";
     }
 
+    /**
+     * INTERSECT 集合算子的输出关键字。值面契约（WI3 版本门，实现类读
+     * {@code <sqls>} 的 intersectKeyword 配置）：null = 未配置（回落缺省 "intersect"）；
+     * "none" = 方言无 INTERSECT 算子（EQL 编译含 INTERSECT [ ALL] 的查询时显式报错，
+     * 不会静默输出目标库不支持的算子）；其他非空值 = 直接用作关键字。
+     */
     default String getIntersectKeyword() {
         return "intersect";
     }
 
+    /**
+     * EXCEPT 集合算子的输出关键字。值面契约与 {@link #getIntersectKeyword()} 一致
+     * （null 回落 "except"；"none" = 方言无该算子，编译期报错；如 Oracle 配置 minus）。
+     */
     default String getExceptKeyword() {
         return "except";
     }
@@ -228,6 +330,31 @@ public interface IDialect extends IComponentModel {
     String getStringLiteral(String value);
 
     String getValueLiteral(Object value);
+
+    /**
+     * WI1 BUG-5 骨架：INTERVAL 字面量的数据库层输出模板（`<sqls>` 的
+     * `sqlIntervalLiteral` 元素）。返回已配置的模板文本，未配置返回 null。
+     * ⚠️ 占位符形态与逐方言模板内容由 WI7b 收口（唯一 owner）；WI1 只承接配置
+     * 通路，不消费模板改写 interval 输出。
+     */
+    String getSqlIntervalLiteral();
+
+    /**
+     * WI12 交付①（plan 38）：`FOR UPDATE NOWAIT` 锁后缀模板（`<sqls>` 的
+     * `forUpdateNowait` 元素）。presence = 能力 + 文本二合一：返回已配置的锁文本，
+     * 未配置返回 null（消费方 AstToSqlGenerator.printForUpdate 对 null 编译期响亮
+     * {@code nop.err.eql.dialect-not-support-feature}，feature=forUpdateNowait——
+     * 不允许静默降级为裸 for update）。继承链显式关断形态 =
+     * {@code <forUpdateNowait x:override="replace"/>}（加载后为 null，同未配置口径）。
+     */
+    String getForUpdateNowait();
+
+    /**
+     * WI12 交付②（plan 38）：`FOR UPDATE SKIP LOCKED` 锁后缀模板（`<sqls>` 的
+     * `forUpdateSkipLocked` 元素）。值面契约与 {@link #getForUpdateNowait()} 一致：
+     * 未配置返回 null（消费方编译期响亮，feature=forUpdateSkipLocked）。
+     */
+    String getForUpdateSkipLocked();
 
     /**
      * 数据库中的数据类型与java程序中的数据类型可能不一致，由binder负责转换

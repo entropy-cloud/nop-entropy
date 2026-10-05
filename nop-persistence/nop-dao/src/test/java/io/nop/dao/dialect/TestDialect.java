@@ -21,6 +21,7 @@ import io.nop.core.lang.sql.SqlExprList;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
 import io.nop.dao.dialect.function.NativeSQLFunction;
+import io.nop.dao.dialect.impl.DialectSQLExceptionTranslator;
 import io.nop.dao.dialect.model.SqlNativeFunctionModel;
 import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.binder.IDataParameterBinder;
@@ -275,6 +276,38 @@ public class TestDialect extends JdbcTestCase {
 
         jdbc().findAll(new SQL("select c from test_tbl"), new SingleBinderRowMapper(DataParameterBinders.STRING));
         safeDropTable("test_tbl");
+    }
+
+    /**
+     * WI11 roadmap EC ④: DB2 duplicate-key registration + translation-chain structural
+     * evidence. The repository's real-database CI is H2 only (JdbcTestCase hard-codes
+     * the H2 driver), so the DB2 -803 mapping is proven structurally: the db2 dialect
+     * model (loadable since the WI3 item-12 selector/mandatory-children fix) fed into
+     * DialectSQLExceptionTranslator must classify a synthesized
+     * SQLException(vendorCode=-803, sqlState=23505) as ERR_SQL_DUPLICATE_KEY.
+     * Real-DB2 execution remains [未取证] (evidence-grade discipline: never presented
+     * as real-database coverage; registered in the WI11 owner doc).
+     */
+    @DisplayName("DB2 -803 重复键登记与翻译链结构证据（真库执行[未取证]）")
+    @Test
+    public void testDb2DuplicateKeyTranslationChain() {
+        IDialect db2Dialect = DialectManager.instance().getDialect("db2");
+        DialectModel db2Model = ((io.nop.dao.dialect.impl.DialectImpl) db2Dialect).getDialectModel();
+        assertNotNull(db2Model, "db2 dialect model must load (WI3 item-12 fix)");
+
+        DialectSQLExceptionTranslator translator = new DialectSQLExceptionTranslator(db2Model);
+
+        // DB2 reports SQLCODE -803 with SQLSTATE 23505; both registration and
+        // translator-type fallback must yield the duplicate-key error code.
+        java.sql.SQLException db2Duplicate = new java.sql.SQLException(
+                "DB2 SQL Error: SQLCODE=-803, SQLSTATE=23505", "23505", -803);
+        NopException translated = translator.translate("wi11-db2-duplicate-key-evidence", db2Duplicate);
+        assertEquals(io.nop.dao.DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode(), translated.getErrorCode(),
+                "db2 -803 must translate to ERR_SQL_DUPLICATE_KEY (structural evidence)");
+
+        // The unified WI11 predicate agrees (translator-first stage).
+        assertTrue(io.nop.dao.jdbc.UpsertStatements.isDuplicateKeyException(db2Dialect, db2Duplicate),
+                "unified duplicate-key predicate classifies db2 -803 as duplicate");
     }
 
     @DisplayName("测试Blob")

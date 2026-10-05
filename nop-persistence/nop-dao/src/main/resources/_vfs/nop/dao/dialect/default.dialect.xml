@@ -20,6 +20,7 @@
             supportRowValueConstructor="true" supportUpdateFromJoin="false"
             supportQueryTimeout="true" supportWithAsClause="true"
             supportDeleteFromJoin="false" supportILike="false"
+            supportRollup="false" supportCube="false"
             supportFullJoin="true" supportRightJoin="true" useAsInFrom="true"
             supportWindowFrameRows="false" supportWindowFrameRange="false"
             supportWindowFrameGroups="false"
@@ -256,6 +257,38 @@
 
         <native name="year" returnType="INTEGER" argTypes="TIMESTAMP">
             <description>取得时间戳的年份部分</description>
+        </native>
+
+        <!-- WI5 Phase 3: EXTRACT(f FROM d) 归一化的逐字段目标函数（镜像 year 的落位）。
+             无对应原生函数的方言在本方言用模板覆盖（mssql=datepart、oracle/postgresql=extract）。 -->
+        <native name="month" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的月份部分（1-12）</description>
+            <testSql>MONTH(CURRENT_TIMESTAMP)</testSql>
+        </native>
+
+        <native name="day" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的日部分（1-31）</description>
+            <testSql>DAY(CURRENT_TIMESTAMP)</testSql>
+        </native>
+
+        <native name="hour" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的小时部分（0-23）</description>
+            <testSql>HOUR(CURRENT_TIMESTAMP)</testSql>
+        </native>
+
+        <native name="minute" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的分钟部分（0-59）</description>
+            <testSql>MINUTE(CURRENT_TIMESTAMP)</testSql>
+        </native>
+
+        <native name="second" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的秒部分（0-59）</description>
+            <testSql>SECOND(CURRENT_TIMESTAMP)</testSql>
+        </native>
+
+        <native name="quarter" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的季度部分（1-4）</description>
+            <testSql>QUARTER(CURRENT_TIMESTAMP)</testSql>
         </native>
 
     </functions>

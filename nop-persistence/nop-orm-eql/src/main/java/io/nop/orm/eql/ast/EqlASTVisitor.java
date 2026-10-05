@@ -274,6 +274,14 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlRollback((SqlRollback)node);
                     return;
             
+                case SqlGroupingOp:
+                    visitSqlGroupingOp((SqlGroupingOp)node);
+                    return;
+            
+                case SqlValuesTableSource:
+                    visitSqlValuesTableSource((SqlValuesTableSource)node);
+                    return;
+            
         default:
         throw new IllegalArgumentException("invalid ast kind");
         }
@@ -656,6 +664,18 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             public void visitSqlRollback(SqlRollback node){
             
                     this.visitChildren(node.getDecorators());         
+            }
+        
+            public void visitSqlGroupingOp(SqlGroupingOp node){
+            
+                    this.visitChildren(node.getArgs());         
+            }
+        
+            public void visitSqlValuesTableSource(SqlValuesTableSource node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChildren(node.getRows());         
+                    this.visitChild(node.getAlias());
             }
         
 }

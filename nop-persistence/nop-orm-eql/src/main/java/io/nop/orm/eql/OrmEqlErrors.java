@@ -57,6 +57,8 @@ public interface OrmEqlErrors {
 
     String ARG_TABLE_SOURCE = "tableSource";
 
+    String ARG_ROW_INDEX = "rowIndex";
+
 
     String ARG_DECORATOR = "decorator";
     String ARG_EXPECTED_COUNT = "expectedCount";
@@ -75,6 +77,11 @@ public interface OrmEqlErrors {
     String ARG_COLLECTION1 = "collection1";
     String ARG_COLLECTION2 = "collection2";
     String ARG_REASON = "reason";
+
+    // WI10b: IN 列表长度门禁（EQL 编译路径）；dialect 复用上方 ARG_DIALECT
+    String ARG_ITEM_COUNT = "itemCount";
+    String ARG_MAX_ITEMS = "maxItems";
+    String ARG_STMT_NAME = "stmtName";
 
     ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
             "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口",
@@ -180,6 +187,8 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_TABLE_SOURCE_NOT_RESOLVED = define("nop.err.eql.table-source-not-resolved",
             "tableSource没有被成功解析，无法确定它的具体来源");
 
+    ErrorCode ERR_EQL_VALUES_ROW_ARITY_MISMATCH = define("nop.err.eql.values-row-arity-mismatch",
+            "VALUES 表源第{rowIndex}行的元素数量与第1行不一致", ARG_ROW_INDEX, ARG_ARG_COUNT);
     ErrorCode ERR_EQL_PARAM_NOT_COMPONENT = define("nop.err.eql.param-not-component",
             "参数[{paramIndex}]不是IOrmComponent类型[{expected}]");
 
@@ -225,6 +234,28 @@ public interface OrmEqlErrors {
             define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",
                     ARG_DIALECT, ARG_FEATURE);
 
+    // 【merge 退役 / Plan 2307 V3】ERR_EQL_COLLECTION_ACCESS_NOT_SUPPORT（WI1 BUG-14，
+    // 裁定=候选B 编译期显式报错）已随 master 侧 sqlCollectionAccessExpr 文法与
+    // SqlCollectionAccessExpr AST 类的整体移除而退役：该构造现在 parse 期即响亮失败
+    // （nop.err.antlr.*，TestEqlRemovedGrammarUnreachable 钉死），错误码不再可达。
+    // 退役理由与 ours 裁定的关系见 AstToEqlGenerator 内 merge note。
+
+    // WI2 BUG-15（裁定=候选A 解析期拒绝，裁定文档 §六）：SqlTypeExpr 的 characterSet/collate
+    // 零消费点（AstToEqlGenerator 只打印 name/precision/scale，AstToSqlGenerator.visitSqlCastExpr
+    // 绕过 SqlTypeExpr），字段有值即静默丢弃。手写访问器被调用 = 分支可达 = 显式拒绝，
+    // 防止未来文法修复后退化为 BUG-1 同型静默丢弃
+    ErrorCode ERR_EQL_SQL_TYPE_CLAUSE_NOT_SUPPORT = define("nop.err.eql.sql-type-clause-not-support",
+            "CAST类型表达式的[{value}]子句不支持翻译为SQL（无任何方言消费其语义），显式拒绝", ARG_VALUE);
+
+    // WI8（plan 27；裁定文档 §四.3 + Minimum Rules #24）：IS [NOT] TRUE/FALSE 的构建期展开与
+    // IS [NOT] DISTINCT FROM 的方言展开（transformer guard 式）会把操作数复制为多份。操作数含
+    // 参数标记（?）时复制改变调用方参数契约（1 个 EQL 参数 → N 个 JDBC 参数，绑定错位），
+    // 必须响亮拒绝而非静默复制；不含标记的操作数（列/实体属性/字面量表达式）不受影响
+    ErrorCode ERR_EQL_NULL_PREDICATE_OPERAND_HAS_PARAM_MARKER = define(
+            "nop.err.eql.null-predicate-operand-has-param-marker",
+            "NULL语义谓词[{expr}]的操作数包含参数标记(?)——lowering展开会复制操作数导致参数绑定错位，请改用列或实体属性作操作数",
+            ARG_EXPR);
+
     ErrorCode ERR_EQL_UNSUPPORTED_EVAL_EXPR =
             define("nop.err.eql.unsupported-eval-expr", "不支持的表达式类型", ARG_EXPR);
 
@@ -259,4 +290,13 @@ public interface OrmEqlErrors {
     // MONTH/QUARTER/YEAR 无固定毫秒时长，进 fail-fast）
     ErrorCode ERR_EQL_INVALID_INTERVAL_VALUE = define("nop.err.eql.invalid-interval-value",
             "非法的INTERVAL时长定义:{value}", ARG_VALUE);
+
+    // WI10b（WI10a 设计定稿 2026-10-03）：EQL 编译路径的 IN 列表长度门禁。统一阈值 1000
+    // （唯一硬依据 Oracle ORA-01795），经 CoreConfigs.CFG_CORE_SQL_IN_LIST_MAX_SIZE 可调高、
+    // 无关闭取值；门禁方言无关、超限显式报错、不做改写；NOT IN 与 IN 同为 SqlInValuesExpr
+    // 节点同受本门。回显路径（EqlASTNode#toSqlString）不设门，保持忠实转储。
+    // 与 nop-core 侧 nop.err.core.sql.in-list-too-large 契约一致但不共用错误码
+    ErrorCode ERR_EQL_IN_LIST_TOO_LARGE = define("nop.err.eql.in-list-too-large",
+            "IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{stmtName}],方言[{dialect}],请分批查询或调高配置nop.core.sql.in-list-max-size",
+            ARG_ITEM_COUNT, ARG_MAX_ITEMS, ARG_STMT_NAME, ARG_DIALECT);
 }

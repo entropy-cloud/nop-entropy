@@ -434,12 +434,23 @@ function generateMarkdown(findings, args) {
 async function main() {
   const args = parseArgs(process.argv);
 
+  // 路径存在性校验：防止 --module 拼错时静默扫 0 个文件导致门禁恒过（见 backlog orm-defect-audit-followups 遗留项 4）
+  for (const scanPath of args.paths) {
+    if (!fs.existsSync(scanPath)) {
+      console.error(`[scan-hollow] scan path does not exist: ${scanPath}`);
+      process.exit(2);
+    }
+  }
+
   const minSev = severityRank(args.severity);
 
   const javaFiles = [];
   for (const scanPath of args.paths) {
     javaFiles.push(...walkJavaFiles(scanPath, args.srcOnly));
   }
+
+  // 扫描文件数必须进入输出：门禁据此判断"确实扫到了文件"，Total=0 不再与"路径错误"不可区分
+  console.error(`[scan-hollow] scanned ${javaFiles.length} java files under ${args.paths.join(', ')}`);
 
   const allFindings = [];
   for (const f of javaFiles) {

@@ -133,16 +133,70 @@
         </errorCode>
     </errorCodes>
 
-    <!-- mysql 8.0.14 和mariadb都支持returning语句 -->
-    <features supportSequence="false" supportReturningForUpdate="true"/>
+    <!-- WI3 第 1 项纠错：MySQL 8.4 的 SELECT/INSERT/UPDATE 文法均无 RETURNING 子句
+         （mysql5.7.dialect.xml 早已显式 false）。supportReturningForUpdate 的真实语义是
+         "UPDATE 上返回投影列表（无 INTO）"，MySQL 不具备 ⇒ false。
+         历史注释"mysql 8.0.14 和mariadb都支持returning语句"为该错误值的来源记录，已删。
+         MariaDB 的 UPDATE … RETURNING 自 13.0 起才可用，由 mariadb.dialect.xml 自行声明。 -->
+    <!-- WI7b（plan 37）：supportRollup=false——函数式 GROUP BY ROLLUP(...) 8.4.3 才有，
+         超 G-1 承诺基线 8.0.31（successor 触发 = 承诺基线上调需求先走 G-1 门再登记 roadmap）；
+         supportCube=false——MySQL 全版本无 CUBE（roadmap ledger 永久口径）。
+         GROUPING()：MySQL 8.0+ 有，但 EQL 无法为其生成 super-aggregate 行 ⇒ 死能力不注册。 -->
+    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"
+              supportRollup="false" supportCube="false"/>
 
     <sqls escapeSlash="true">
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] MySQL
+             INTERVAL expr unit——value 不加引号（与 h2/PG 相反，探针已证分叉真实存在）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL {value} {unit}</sqlIntervalLiteral>
 
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] MySQL 8.0 Locking Reads：
+             NOWAIT/SKIP LOCKED 可与 SELECT … FOR UPDATE 同用（8.0.1+，承诺基线 8.0.31 之上）。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。
+             ⚠️ mysql5.7（继承本文件）不支持——已显式空覆盖关断。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] MySQL 8.0
+             Locking Reads（SKIP LOCKED 与 FOR UPDATE 同用）。⚠️ mysql5.7 显式关断。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <functions>
         <native name="cosh" x:override="remove"/>
         <native name="sinh" x:override="remove"/>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。MySQL 原生
+             LAST_DAY（8.0 手册: "Takes a date or datetime value and returns the corresponding
+             value for the last day of the month"）；mariadb/mysql5.7 继承。
+             不进 default（注册面纪律：未取证方言编译期响亮报错）。 -->
+        <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号（1-53）。MySQL 原生 WEEKOFYEAR
+             （8.0 手册: "equivalent to WEEK(date,3)"，mode 3 = Monday 起点 + 4 天规则 = ISO）；
+             mariadb/mysql5.7 继承。注意 WEEK(d) 默认 mode 受 default_week_format 变量影响，
+             归一化只落 ISO 语义。 -->
+        <native name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法（1=Monday..7=Sunday）。
+             WEEKDAY(d) 明文 "(0 = Monday, 1 = Tuesday, … 6 = Sunday)" ⇒ +1 = ISO。
+             弃用原生 DAYOFWEEK（ODBC 计法 1=Sunday，与规范计法分叉）。
+             mariadb/mysql5.7 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>(1 + WEEKDAY({0}))</source>
+        </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。MySQL 8.0 TRIM([{BOTH|LEADING|TRAILING} [remstr] FROM] str)。mariadb/mysql5.7 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+        </template>
     </functions>
 
     <sqlDataTypes>

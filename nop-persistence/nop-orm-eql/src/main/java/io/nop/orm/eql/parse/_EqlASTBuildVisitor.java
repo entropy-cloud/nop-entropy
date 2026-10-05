@@ -36,6 +36,16 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isFalse(SqlAndExpr_isFalseContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlExpr visitSqlAndExpr_isTrue(SqlAndExpr_isTrueContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlBetweenExpr visitSqlBetweenExpr(SqlBetweenExprContext ctx){
           io.nop.orm.eql.ast.SqlBetweenExpr ret = new io.nop.orm.eql.ast.SqlBetweenExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -93,6 +103,20 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlBinaryExpr visitSqlBinaryExpr_isNotDistinctFrom(SqlBinaryExpr_isNotDistinctFromContext ctx){
+          io.nop.orm.eql.ast.SqlBinaryExpr ret = new io.nop.orm.eql.ast.SqlBinaryExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+        public io.nop.orm.eql.ast.SqlCastExpr visitSqlCastExpr_cast(SqlCastExpr_castContext ctx){
+           SqlCastExprContext node = ctx.sqlCastExpr();
+           return node == null ? null : visitSqlCastExpr(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlCompareWithQueryExpr visitSqlCompareWithQueryExpr(SqlCompareWithQueryExprContext ctx){
           io.nop.orm.eql.ast.SqlCompareWithQueryExpr ret = new io.nop.orm.eql.ast.SqlCompareWithQueryExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -134,6 +158,36 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlExpr_simple(node);
         }
       
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_cube(SqlGroupByItem_cubeContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_expr(SqlGroupByItem_exprContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr(ctx.expr)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem_rollup(SqlGroupByItem_rollupContext ctx){
+          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlInQueryExpr visitSqlInQueryExpr(SqlInQueryExprContext ctx){
           io.nop.orm.eql.ast.SqlInQueryExpr ret = new io.nop.orm.eql.ast.SqlInQueryExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -173,7 +227,46 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr_string(SqlIntervalExpr_stringContext ctx){
+          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr_unit(SqlIntervalExpr_unitContext ctx){
+          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr(ctx.expr)));
+            }
+            if(ctx.intervalUnit != null){
+               ret.setIntervalUnit((SqlIntervalExpr_intervalUnit(ctx.intervalUnit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlIsNullExpr visitSqlIsNullExpr(SqlIsNullExprContext ctx){
+          io.nop.orm.eql.ast.SqlIsNullExpr ret = new io.nop.orm.eql.ast.SqlIsNullExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.expr != null){
+               ret.setExpr((visitSqlExpr_primary(ctx.expr)));
+            }
+            if(ctx.not != null){
+               ret.setNot((SqlIsNullExpr_not(ctx.not)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlIsNullExpr visitSqlIsNullExpr_isUnknown(SqlIsNullExpr_isUnknownContext ctx){
           io.nop.orm.eql.ast.SqlIsNullExpr ret = new io.nop.orm.eql.ast.SqlIsNullExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
           
@@ -233,6 +326,48 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_fetchFirst(SqlLimit_fetchFirstContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_limit(SqlLimit_limitContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            if(ctx.offset != null){
+               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlLimit visitSqlLimit_offsetFetch(SqlLimit_offsetFetchContext ctx){
+          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.offset != null){
+               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
+            }
+            if(ctx.limit != null){
+               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlNotExpr visitSqlNotExpr(SqlNotExprContext ctx){
           io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -245,6 +380,25 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlNotExpr visitSqlNotExpr_isDistinctFrom(SqlNotExpr_isDistinctFromContext ctx){
+          io.nop.orm.eql.ast.SqlNotExpr ret = new io.nop.orm.eql.ast.SqlNotExpr();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+        public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotFalse(SqlNotExpr_isNotFalseContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlExpr visitSqlNotExpr_isNotTrue(SqlNotExpr_isNotTrueContext ctx){
+           SqlExpr_primaryContext node = ctx.sqlExpr_primary();
+           return node == null ? null : visitSqlExpr_primary(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlOrExpr visitSqlOrExpr(SqlOrExprContext ctx){
           io.nop.orm.eql.ast.SqlOrExpr ret = new io.nop.orm.eql.ast.SqlOrExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -265,6 +419,61 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlQuerySelect(node);
         }
       
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_atTimeZone(SqlRegularFunction_atTimeZoneContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+        public io.nop.orm.eql.ast.SqlExpr visitSqlRegularFunction_extract(SqlRegularFunction_extractContext ctx){
+           SqlExprContext node = ctx.sqlExpr();
+           return node == null ? null : visitSqlExpr(node);
+        }
+      
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_position(SqlRegularFunction_positionContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_substring(SqlRegularFunction_substringContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_trimChars(SqlRegularFunction_trimCharsContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+        public io.nop.orm.eql.ast.SqlExpr visitSqlRegularFunction_trimDirection(SqlRegularFunction_trimDirectionContext ctx){
+           SqlExprContext node = ctx.sqlExpr();
+           return node == null ? null : visitSqlExpr(node);
+        }
+      
+      public io.nop.orm.eql.ast.SqlRegularFunction visitSqlRegularFunction_trimDirectionChars(SqlRegularFunction_trimDirectionCharsContext ctx){
+          io.nop.orm.eql.ast.SqlRegularFunction ret = new io.nop.orm.eql.ast.SqlRegularFunction();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
         public io.nop.orm.eql.ast.SqlSelect visitSqlSelect_ex(SqlSelect_exContext ctx){
            SqlSelectContext node = ctx.sqlSelect();
            return node == null ? null : visitSqlSelect(node);
@@ -309,6 +518,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlValuesTableSource visitSqlValuesTableSource_ex(SqlValuesTableSource_exContext ctx){
+           SqlValuesTableSourceContext node = ctx.sqlValuesTableSource();
+           return node == null ? null : visitSqlValuesTableSource(node);
+        }
+      
 public java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> buildCaseWhens_(CaseWhens_Context ctx){
     java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> list = new ArrayList<>();
     List<SqlCaseWhenItemContext> elms = ctx.sqlCaseWhenItem();
@@ -715,11 +929,12 @@ public java.util.List<io.nop.orm.eql.ast.SqlDecorator> buildSqlDecorators_(SqlDe
           
       }
             
-        public io.nop.orm.eql.ast.SqlCastExpr visitSqlExpr_special(SqlExpr_specialContext ctx){
-           SqlCastExprContext node = ctx.sqlCastExpr();
-           return node == null ? null : visitSqlCastExpr(node);
-        }
-      
+      public io.nop.orm.eql.ast.SqlExpr visitSqlExpr_special(SqlExpr_specialContext ctx){
+        
+            return (io.nop.orm.eql.ast.SqlExpr)ctx.accept(this);
+          
+      }
+            
       public io.nop.orm.eql.ast.SqlFrom visitSqlFrom(SqlFromContext ctx){
           io.nop.orm.eql.ast.SqlFrom ret = new io.nop.orm.eql.ast.SqlFrom();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -757,15 +972,9 @@ public java.util.List<io.nop.orm.eql.ast.SqlDecorator> buildSqlDecorators_(SqlDe
       }
             
       public io.nop.orm.eql.ast.SqlGroupByItem visitSqlGroupByItem(SqlGroupByItemContext ctx){
-          io.nop.orm.eql.ast.SqlGroupByItem ret = new io.nop.orm.eql.ast.SqlGroupByItem();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlGroupByItem)ctx.accept(this);
           
-            if(ctx.expr != null){
-               ret.setExpr((visitSqlExpr(ctx.expr)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
 public java.util.List<io.nop.orm.eql.ast.SqlGroupByItem> buildSqlGroupByItems_(SqlGroupByItems_Context ctx){
@@ -845,33 +1054,15 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
       }
             
       public io.nop.orm.eql.ast.SqlIntervalExpr visitSqlIntervalExpr(SqlIntervalExprContext ctx){
-          io.nop.orm.eql.ast.SqlIntervalExpr ret = new io.nop.orm.eql.ast.SqlIntervalExpr();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlIntervalExpr)ctx.accept(this);
           
-            if(ctx.expr != null){
-               ret.setExpr((visitSqlExpr(ctx.expr)));
-            }
-            if(ctx.intervalUnit != null){
-               ret.setIntervalUnit((SqlIntervalExpr_intervalUnit(ctx.intervalUnit)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
       public io.nop.orm.eql.ast.SqlLimit visitSqlLimit(SqlLimitContext ctx){
-          io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
+        
+            return (io.nop.orm.eql.ast.SqlLimit)ctx.accept(this);
           
-            if(ctx.limit != null){
-               ret.setLimit((visitSqlExpr_limitRowCount(ctx.limit)));
-            }
-            if(ctx.offset != null){
-               ret.setOffset((visitSqlExpr_limitOffset(ctx.offset)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
       }
             
       public io.nop.orm.eql.ast.SqlLiteral visitSqlLiteral(SqlLiteralContext ctx){
@@ -1088,6 +1279,12 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
             if(ctx.forUpdate != null){
                ret.setForUpdate((SqlQuerySelect_forUpdate(ctx.forUpdate)));
             }
+            if(ctx.nowait != null){
+               ret.setNowait((SqlQuerySelect_nowait(ctx.nowait)));
+            }
+            if(ctx.skipLocked != null){
+               ret.setSkipLocked((SqlQuerySelect_skipLocked(ctx.skipLocked)));
+            }
             ret.normalize();
             ret.validate();
           return ret;
@@ -1120,6 +1317,17 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
           return ret;
       }
             
+public java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> buildSqlRowList_(SqlRowList_Context ctx){
+    java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> list = new ArrayList<>();
+    List<SqlMultiValueExprContext> elms = ctx.sqlMultiValueExpr();
+    if(elms != null){
+      for(SqlMultiValueExprContext elm: elms){
+         list.add(visitSqlMultiValueExpr(elm));
+      }
+    }
+    return list;
+}
+      
       public io.nop.orm.eql.ast.SqlSelect visitSqlSelect(SqlSelectContext ctx){
         
             return (io.nop.orm.eql.ast.SqlSelect)ctx.accept(this);
@@ -1383,6 +1591,24 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlValuesTableSource visitSqlValuesTableSource(SqlValuesTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlValuesTableSource ret = new io.nop.orm.eql.ast.SqlValuesTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.rows != null){
+               ret.setRows((buildSqlRowList_(ctx.rows)));
+            }else{
+               ret.setRows(Collections.emptyList());
+            }
+            
+            if(ctx.alias != null){
+               ret.setAlias((visitSqlAlias(ctx.alias)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
 public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlValues_(SqlValues_Context ctx){
     java.util.List<io.nop.orm.eql.ast.SqlExpr> list = new ArrayList<>();
     List<SqlExprContext> elms = ctx.sqlExpr();
@@ -1557,7 +1783,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract boolean SqlInValuesExpr_not(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: SqlIsNullExpr
+   * rules: SqlIsNullExpr,SqlIsNullExpr_isUnknown
    */
   public abstract boolean SqlIsNullExpr_not(org.antlr.v4.runtime.Token token);
 
@@ -1589,7 +1815,17 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   /**
    * rules: sqlQuerySelect
    */
+  public abstract boolean SqlQuerySelect_nowait(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlQuerySelect
+   */
   public abstract boolean SqlQuerySelect_selectAll(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlQuerySelect
+   */
+  public abstract boolean SqlQuerySelect_skipLocked(ParseTree node);
 
   /**
    * rules: sqlSubqueryTableSource
@@ -1627,7 +1863,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlDateTimeType SqlDateTimeLiteral_type(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: sqlIntervalExpr
+   * rules: SqlIntervalExpr_unit
    */
   public abstract io.nop.orm.eql.enums.SqlIntervalUnit SqlIntervalExpr_intervalUnit(ParseTree node);
 
@@ -1674,7 +1910,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   /**
    * rules: sqlOrderByItem
    */
-  public abstract java.lang.Boolean SqlOrderByItem_nullsFirst(ParseTree node);
+  public abstract java.lang.Boolean SqlOrderByItem_nullsFirst(org.antlr.v4.runtime.Token token);
 
   /**
    * rules: sqlAggregateFunction

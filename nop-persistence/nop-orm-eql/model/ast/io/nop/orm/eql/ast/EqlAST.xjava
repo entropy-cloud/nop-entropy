@@ -4,6 +4,7 @@ package io.nop.orm.eql.ast;
 import io.nop.api.core.annotations.meta.PropMeta;
 import io.nop.orm.eql.enums.SqlCompareRange;
 import io.nop.orm.eql.enums.SqlDateTimeType;
+import io.nop.orm.eql.enums.SqlGroupingOpType;
 import io.nop.orm.eql.enums.SqlIntervalUnit;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
@@ -164,6 +165,9 @@ class EqlAST {
         SqlLimit limit;
         boolean forUpdate;
         boolean nowait;
+        // WI12 Phase 2（plan 38）：SKIP LOCKED 锁变体（既有类加字段，零 EqlASTKind ordinal
+        // 变动——roadmap WI7 收口注记口径；nowait 复用既有字段承载 NOWAIT 变体）
+        boolean skipLocked;
     }
 
     class SqlParameterMarker extends SqlExpr {
@@ -228,6 +232,7 @@ class EqlAST {
         @PropMeta(mandatory = true)
         SqlExpr expr;
     }
+
 
     class SqlOrderByItem {
         @PropMeta(mandatory = true)
@@ -597,4 +602,31 @@ class EqlAST {
     class SqlRollback extends SqlTransactionStatement {
 
     }
+
+    // WI7b（plan 37，roadmap EC ①，ⓒ-A 裁定）：GROUP BY 位置 grouping 操作符
+    // ROLLUP(args)/CUBE(args)。由 sqlGroupByItem 的 label 备选（SqlGroupByItem_rollup/_cube）
+    // 经手写 EqlASTBuildVisitor 构建并以 SqlGroupByItem.expr wrapper 挂载（items 列表类型
+    // 零改动）。ordinal 尾部追加 = 67（EqlASTKind，落点登记见裁定文档 §3.5/§10）。
+    class SqlGroupingOp extends SqlExpr {
+        @PropMeta(mandatory = true)
+        SqlGroupingOpType type;
+
+        List<SqlExpr> args;
+    }
+    // WI12 Phase 4（plan 38，裁定 §4）：FROM (VALUES ...) 表源（ⓒ 定价单新类，尾部追加
+    // ordinal=68；rows 复用 SqlMultiValueExpr 行结构）。resolvedTableMeta 的承载与
+    // getSourceSelect 在手写 SqlValuesTableSource（SqlSubqueryTableSource 同款分层）。
+    class SqlValuesTableSource extends SqlTableSource {
+        @PropMeta(mandatory = true)
+        List<SqlMultiValueExpr> rows;
+
+        @PropMeta(mandatory = true)
+        SqlAlias alias;
+
+        // 显式别名列清单（t(c1,c2)）；缺省 = 元数据列名取 C1..Cn（H2 惯例）。
+        // 由手写 visitSqlValuesTableSource 从 sqlColumnAliases__ 内联规则文本填充
+        // （List<String> 无 label→prop 自动映射通路）。
+        List<String> columns;
+    }
+
 }

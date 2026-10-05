@@ -25,7 +25,10 @@ import java.util.List;
 
 import static io.nop.dao.DaoErrors.ARG_ARG_COUNT;
 import static io.nop.dao.DaoErrors.ARG_FUNC_NAME;
+import static io.nop.dao.DaoErrors.ARG_MARKER_INDEX;
+import static io.nop.dao.DaoErrors.ARG_TEMPLATE_SOURCE;
 import static io.nop.dao.DaoErrors.ERR_DAO_FUNC_INVALID_ARG_COUNT;
+import static io.nop.dao.DaoErrors.ERR_DAO_FUNC_TEMPLATE_MARKER_OUT_OF_RANGE;
 
 public class TemplateSQLFunction implements ISQLFunction {
     private final SqlTemplateModel funcModel;
@@ -50,6 +53,12 @@ public class TemplateSQLFunction implements ISQLFunction {
 
             String name = source.substring(pos1 + 1, pos2);
             if (StringHelper.isAllDigit(name)) {
+                // WI0：越界的全数字 marker 在方言加载期报错，而不是查询期静默产出 " null "
+                int index = ConvertHelper.stringToInt(name, NopException::new);
+                if (index >= argTypes.size())
+                    throw new NopException(ERR_DAO_FUNC_TEMPLATE_MARKER_OUT_OF_RANGE)
+                            .param(ARG_FUNC_NAME, funcModel.getName()).param(ARG_MARKER_INDEX, index)
+                            .param(ARG_TEMPLATE_SOURCE, source);
                 markers.add(new Markers.NameMarker(pos1, pos2 + 1, name));
             }
             pos = pos2;
@@ -115,12 +124,9 @@ public class TemplateSQLFunction implements ISQLFunction {
             if (begin > pos) {
                 ret.add(StringSqlExpr.makeExpr(source.substring(pos, begin)));
             }
-            int index = ConvertHelper.stringToInt(marker.getName(), NopException::new);
-            if (index >= argExprs.size()) {
-                ret.add(StringSqlExpr.makeExpr(" null "));
-            } else {
-                ret.add(argExprs.get(index));
-            }
+            // 构造期已保证每个全数字 marker 的 index < argTypes.size()，且上方校验过
+            // argExprs.size() == argTypes.size()，因此这里必然越界安全（原“越界补 null"分支不可达，已删）
+            ret.add(argExprs.get(ConvertHelper.stringToInt(marker.getName(), NopException::new)));
             pos = marker.getEnd();
         }
 

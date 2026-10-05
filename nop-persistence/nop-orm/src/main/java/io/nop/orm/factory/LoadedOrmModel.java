@@ -92,6 +92,13 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         if (astTransformer == null)
             astTransformer = env.getDefaultAstTransformer();
 
+        // astTransformer不参与QueryPlanCacheKey。缓存中只允许存在"默认transformer（或无transformer）"编译的
+        // 计划——默认transformer是per-session-factory常量（init时注入一次），此时键不含transformer即无歧义。
+        // 显式传入与默认实例不同的transformer时强制绕过缓存（不读不写），仍完整编译并返回正确结果。
+        // 裁定依据: ai-dev/design/eql-cross-db-compat/2026-10-04-wi4-phase0-adjudications.md 裁定3（候选B）
+        if (useCache && astTransformer != env.getDefaultAstTransformer())
+            useCache = false;
+
         if (useCache) {
             QueryPlanCacheKey key = new QueryPlanCacheKey(name, sqlText, disableLogicalDelete, allowUnderscoreName,
                     enableFilter);

@@ -461,7 +461,15 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getDistinct()) {
             print("distinct ");
         }
-        printList(node.getProjections(), ",");
+        // WI2 BUG-4: selectAll（select *）此前不回显任何投影文本（`select * from t` 变
+        // `select from t`）。仅在解析层形态（selectAll 且 projections 为空）打印 *；
+        // transform 展开后的 AST（selectAll 为真且 projections 非空，如分页内嵌渲染）
+        // 必须继续打印展开投影，否则裸 * 文本会破坏实体列展开语义。
+        if (node.getSelectAll() && node.getProjections().isEmpty()) {
+            print("*");
+        } else {
+            printList(node.getProjections(), ",");
+        }
         endBlock();
 
         if (node.getFrom() != null) {
@@ -486,10 +494,36 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             visitSqlOrderBy(node.getOrderBy());
         }
 
+        printLimit(node);
+
         if (node.getForUpdate()) {
-            println();
-            print("for update");
+            printForUpdate(node);
         }
+    }
+
+    /**
+     * WI2 BUG-4: 回显路径补齐 LIMIT/OFFSET（此前 printSelect 手写遍历从不 visit limit，
+     * 回显静默丢弃分页子句）。复用既有 {@code visitSqlLimit}（不删除——
+     * {@code _SqlQuerySelect} 的 child 遍历链仍依赖它）。执行路径的 limit 在
+     * {@code AstToSqlGenerator.visitSqlQuerySelect} 经
+     * {@code dialect.getPaginationHandler().buildPageExpr(...)} 消费并在外层追加分页
+     * 文本，子类 override 本方法置空以避免双份 LIMIT/OFFSET。
+     */
+    protected void printLimit(SqlQuerySelect node) {
+        if (node.getLimit() != null) {
+            println();
+            visitSqlLimit(node.getLimit());
+        }
+    }
+
+    /**
+     * WI1 BUG-3: 回显路径保持硬编码 "for update"（WI0 语料基线只比对 toSqlString()
+     * 回显，7 个语料文件均不含 for update，回显治理归 WI2 BUG-4 批次）。执行路径的
+     * 方言锁模板消费在子类 AstToSqlGenerator 的 override 中。
+     */
+    protected void printForUpdate(SqlQuerySelect node) {
+        println();
+        print("for update");
     }
 
     protected void printWhere(SqlQuerySelect node) {
@@ -680,6 +714,30 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printAlias(node.getAlias());
     }
 
+    /**
+     * WI12 交付⑤（plan 38）：VALUES 表源回显路径——逐字打印（无方言门，
+     * 方言门在子类 AstToSqlGenerator；WI1 BUG-2 lateral 回显同款分层）。
+     */
+    public void visitSqlValuesTableSource(io.nop.orm.eql.ast.SqlValuesTableSource node) {
+        print('(');
+        print("values ");
+        boolean first = true;
+        for (io.nop.orm.eql.ast.SqlMultiValueExpr row : node.getRows()) {
+            if (!first)
+                print(", ");
+            first = false;
+            visit(row);
+        }
+        print(')');
+        printAlias(node.getAlias());
+        List<String> columns = node.getColumns();
+        if (columns != null && !columns.isEmpty()) {
+            print('(');
+            print(StringHelper.join(columns, ","));
+            print(')');
+        }
+    }
+
     protected void printJoin(SqlJoinTableSource node) {
         if (node.getCondition() != null) {
             print(" on ");
@@ -689,9 +747,12 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
-        // Plan 2307 V1: LATERAL 必须打印。此前 EqlTransformVisitor 会在 getLateral() 为真时
-        // 放开同级作用域引用（关联子查询），但输出器从不输出该关键字，导致编译出缺少 LATERAL 的
-        // SQL —— 语义分析认了、输出没认的静默错误。修复前基线：
+        // WI1 BUG-2: 回显路径无损打印 lateral 关键字（修复前 lateral (sub) 与 (sub)
+        // 输出字节相同）。回显无方言开关——方言门在子类 AstToSqlGenerator。
+        // Plan 2307 V1（merge 并集，两分支同缺陷同修复）：LATERAL 必须打印。此前
+        // EqlTransformVisitor 会在 getLateral() 为真时放开同级作用域引用（关联子查询），
+        // 但输出器从不输出该关键字，导致编译出缺少 LATERAL 的 SQL —— 语义分析认了、
+        // 输出没认的静默错误。修复前基线：
         // `select 1 from a, lateral (...) t` -> `from a, ( ... ) as t`
         if (node.getLateral()) {
             print("lateral ");
@@ -780,7 +841,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlBooleanLiteral(SqlBooleanLiteral node) {
-        print(node.getValue() ? " 1 " : " 0 ");
+        // WI2 BUG-4 字面量一致化（裁定=候选 A）：回显输出 EQL 关键字形态。此前硬编码
+        // " 1 "/" 0 "——重解析为 NUMBER 字面量，boolean→integer 类型语义分歧；
+        // true/false 经 sqlBooleanLiteral 文法重解析回 SqlBooleanLiteral 同值。
+        // 执行路径（AstToSqlGenerator）继续走 dialect.getBooleanValueLiteral 方言形态。
+        print(node.getValue() ? " true " : " false ");
     }
 
     @Override
@@ -899,6 +964,20 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         print(')');
     }
 
+    /**
+     * WI7b（plan 37，roadmap EC ①）：GROUP BY 位置 grouping 操作符的 echo/执行打印
+     * （`ROLLUP(a,b)` / `CUBE(a,b)` 规范大写形态）。执行路径（AstToSqlGenerator）继承本实现
+     * ——identity lowering，合法性由 EqlTransformVisitor.visitSqlGroupingOp 的方言能力门保证
+     * （裁定文档 §3.2）。GROUPING SETS 永久否决，无第三形态。
+     */
+    @Override
+    public void visitSqlGroupingOp(io.nop.orm.eql.ast.SqlGroupingOp node) {
+        print(node.getType().name());
+        print('(');
+        printList(node.getArgs(), ",");
+        print(')');
+    }
+
     @Override
     public void visitSqlMultiValueExpr(SqlMultiValueExpr node) {
         print("(");
@@ -914,6 +993,13 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         print(" exists ");
         visit(node.getQuery());
     }
+
+    // 【merge note / Plan 2307 V3】WI1 BUG-14 的 visitSqlCollectionAccessExpr 显式报错
+    // override 已随 master 侧文法删除一并退役：sqlCollectionAccessExpr 规则与
+    // SqlCollectionAccessExpr AST 类已移除（无输出器、无语义分析，永不可能产出正确 SQL），
+    // 该构造现在于 parse 期即响亮失败（TestEqlRemovedGrammarUnreachable）——比 ours 的
+    // 编译期报错更早、同为响亮失败，与本分支排序原则（P1）一致。错误码
+    // nop.err.eql.collection-access-not-support 同步退役。
 
     @Override
     public void visitSqlIntervalExpr(SqlIntervalExpr node) {

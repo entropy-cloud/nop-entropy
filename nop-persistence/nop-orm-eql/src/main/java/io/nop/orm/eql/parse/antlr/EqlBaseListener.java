@@ -426,6 +426,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -462,6 +474,42 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRowList_(EqlParser.SqlRowList_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRowList_(EqlParser.SqlRowList_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterJoinType_(EqlParser.JoinType_Context ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -469,18 +517,6 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitJoinType_(EqlParser.JoinType_Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -546,6 +582,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCrossJoin_(EqlParser.CrossJoin_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlWhere(EqlParser.SqlWhereContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -594,13 +642,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlLimit(EqlParser.SqlLimitContext ctx) { }
+	@Override public void enterSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlLimit(EqlParser.SqlLimitContext ctx) { }
+	@Override public void exitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -649,6 +721,18 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitForUpdate_(EqlParser.ForUpdate_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSkipLocked_(EqlParser.SkipLocked_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSkipLocked_(EqlParser.SkipLocked_Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -882,6 +966,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlBinaryExpr_compare(EqlParser.SqlBinaryExpr_compareContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -918,6 +1014,30 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -925,6 +1045,54 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1009,6 +1177,18 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlInValues_(EqlParser.SqlInValues_Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1290,13 +1470,109 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlExpr_special(EqlParser.SqlExpr_specialContext ctx) { }
+	@Override public void enterSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlExpr_special(EqlParser.SqlExpr_specialContext ctx) { }
+	@Override public void exitSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTrimDirection__(EqlParser.TrimDirection__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTrimDirection__(EqlParser.TrimDirection__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExtractField__(EqlParser.ExtractField__Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExtractField__(EqlParser.ExtractField__Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1410,13 +1686,25 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx) { }
+	@Override public void enterSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx) { }
+	@Override public void exitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1470,25 +1758,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx) { }
+	@Override public void enterSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx) { }
+	@Override public void exitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx) { }
+	@Override public void enterSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx) { }
+	@Override public void exitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

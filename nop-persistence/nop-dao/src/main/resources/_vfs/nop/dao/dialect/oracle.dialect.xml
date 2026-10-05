@@ -96,8 +96,15 @@
         </errorCode>
     </errorCodes>
 
+    <!-- WI3 第 2 项纠错：Oracle 的 UPDATE … returning_clause 只允许 INTO 宿主变量形式
+         （data_item 为宿主/PL-SQL 变量），生成器的投影列表形式（无 INTO）在 Oracle 上非法
+         ⇒ supportReturningForUpdate=false（真实语义仅指 UPDATE 投影列表形式）。 -->
+    <!-- WI7b（plan 37）：supportRollup/supportCube=true——Oracle 文档确认 ROLLUP/CUBE
+         （23ai SELECT 文法 CUBE/GROUPING SETS 多处出现）与 GROUPING(expr) 单参。
+         裁定矩阵见 ai-dev/design/eql-cross-db-compat/2026-10-04-wi7b-phase0-adjudications.md §5。 -->
     <features supportSequence="true" supportNullsFirst="true" useAsInFrom="false"
-              supportSomeSubQuery="true" supportReturningForUpdate="true" />
+              supportSomeSubQuery="true" supportReturningForUpdate="false"
+              supportRollup="true" supportCube="true" />
 
     <!--
     Oracle使用minus关键字代替SQL标准中的except
@@ -154,6 +161,19 @@
                         where view_name = {viewName}
                             and ({schemaName} is null or owner = {schemaName})
                 </viewExists>
+
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] Oracle 文档
+             INTERVAL '1' DAY 形态（DAY TO SECOND 单域字面量，引号 value + 裸单位）。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38）：FOR UPDATE NOWAIT 锁后缀。[文档] Oracle 19c SQLRF SELECT
+             for_update_clause = FOR UPDATE [OF …] [ { NOWAIT | WAIT integer | SKIP LOCKED } ]。
+             消费点 = AstToSqlGenerator.printForUpdate（SqlQuerySelect.nowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[文档] Oracle 19c SQLRF
+             for_update_clause（NOWAIT | WAIT integer | SKIP LOCKED 三态单选）。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
     </sqls>
 
     <functions>
@@ -163,6 +183,13 @@
         <native name="now" realName="current_timestamp">
         </native>
 
+        
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] Oracle 19c SQLRF AT TIME ZONE（timestamp AT TIME ZONE 'zone' 合法，
+             session timezone 缺省语义）。oracle-reverse 继承。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+        </template>
         <template name="rand" x:override="replace">
             <source>DBMS_RANDOM.VALUE</source>
         </template>
@@ -188,6 +215,71 @@
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>
         </template>
+
+        <!-- WI5 Phase 3: EXTRACT 逐字段目标函数的 Oracle 覆盖（镜像 year 模板；
+             注意 EXTRACT(SECOND) 含小数秒，与 MySQL second() 0-59 语义不同——owner doc 差异表）。 -->
+        <template name="month" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(MONTH from {0})</source>
+        </template>
+
+        <template name="day" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(DAY from {0})</source>
+        </template>
+
+        <template name="hour" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(HOUR from {0})</source>
+        </template>
+
+        <template name="minute" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(MINUTE from {0})</source>
+        </template>
+
+        <template name="second" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(SECOND from {0})</source>
+        </template>
+
+        <!-- Oracle EXTRACT 不支持 QUARTER 字段，用 TO_CHAR 的 'Q' 格式替代。 -->
+        <template name="quarter" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>to_number(to_char({0},'Q'))</source>
+        </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。Oracle TRIM(LEADING|TRAILING|BOTH trim_character FROM trim_source)。oracle-reverse 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+        </template>
+
+        <!-- WI6 Phase 1: lastDay(d) 归一化。Oracle 原生 LAST_DAY（21c sqlrf: "LAST_DAY returns
+             the date of the last day of the month that contains date"）；oracle-reverse 继承。
+             不进 default（注册面纪律）。 -->
+        <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP"/>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号。TO_CHAR 'IW' = "Calendar week of
+             year (1-52 or 1-53), as defined by the ISO 8601 standard"（territory 无关，
+             镜像既有 quarter 模板的 to_number(to_char(...)) 房法）。oracle-reverse 继承。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>to_number(to_char({0},'IW'))</source>
+        </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法。TRUNC(d,'IW') = ISO 周一（'IW' ISO
+             8601，territory 无关；TRUNC(date) 官方示例含 'iw' "Start of Week"），DATE-DATE
+             减法 = 天数 0..6 ⇒ +1 = ISO 1..7。弃用 TO_CHAR 'D'（明文 NLS territory 依赖）。
+             oracle-reverse 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>TRUNC({0}) - TRUNC({0},'IW') + 1</source>
+        </template>
+
+        <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 单参——[文档] Oracle 23ai 文档
+             GROUPING(expr)（"The expr ... must match one of the expressions in the GROUP BY
+             clause"），返回 1/0（NUMBER）。oracle-reverse 继承。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
     </functions>
 
     <sqlDataTypes>
@@ -204,6 +296,13 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="DATE" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP" alias="TIMESTAMP(6) WITH LOCAL TIME ZONE"/>
+        <!-- WI9b（plan 32 Phase 3，ai-dev/design/eql-cross-db-compat/2026-10-05-wi9b-phase0-adjudications.md
+             §六）：std TIMESTAMP_WITH_LOCAL_TIME_ZONE 的唯一"支持"载体——Oracle 原生 TIMESTAMP WITH
+             LOCAL TIME ZONE（存 DB 时区/读会话时区，Oracle 23ai SQL Language Reference 一手文档）。
+             裸名为纯新增键（零撞名：既有 LOCAL 形键只有带 precision 的 alias，反查行为不变）；
+             带 precision 形态仍归上方 alias → std TIMESTAMP。TIME_WITH_LOCAL_TIME_ZONE 全方言
+             无原生宿主（Oracle 无任何 TIME-only 类型），不落映射、响亮报错。 -->
+        <sqlDataType name="TIMESTAMP WITH LOCAL TIME ZONE" stdSqlType="TIMESTAMP_WITH_LOCAL_TIME_ZONE"/>
         <sqlDataType name="BINARY_FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="BINARY_DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMBER" stdSqlType="DECIMAL"/>

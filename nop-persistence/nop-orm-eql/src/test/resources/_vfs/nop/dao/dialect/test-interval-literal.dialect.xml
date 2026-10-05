@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- WI1 BUG-5 骨架接线 fixture：验证 sqlIntervalLiteral 元素经 xdef 按元素名反射
+     setter 装入 DialectSqls retention 字段、并被 IDialect.getSqlIntervalLiteral() 读出。
+     模板值仅为测试占位——逐方言模板内容归 WI7b（唯一 owner），不进任何生产方言 XML -->
+<dialect x:extends="h2.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <sqls>
+        <sqlIntervalLiteral>interval {value} {unit}</sqlIntervalLiteral>
+    </sqls>
+</dialect>

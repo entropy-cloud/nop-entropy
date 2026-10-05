@@ -19,6 +19,7 @@ import jakarta.annotation.Nonnull;
 
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.function.Function;
 
 public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
@@ -82,4 +83,34 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
     boolean isQuerySpaceDefined(String querySpace);
 
     IDataSetMeta getTableMeta(String querySpace, String tableName);
+
+    /**
+     * WI11 批量 upsert 原语（执行面）：按 querySpace 的方言生成单语句原子 upsert 并执行。
+     *
+     * <p>方言有原生 upsert（postgresql/pg、mysql/mariadb、h2 三族名前缀）时，在同一个
+     * REQUIRED 事务内逐行执行同一条 upsert 语句文本（行级原子由单语句保证，批级一致性
+     * 由事务保证）。方言无原生 upsert 时按 {@code policy} 显式分流——
+     * {@link UpsertPolicy#NATIVE_ONLY} 抛 {@code nop.err.dao.sql.feature-not-supported}；
+     * {@link UpsertPolicy#FALLBACK_INSERT_UPDATE} 逐行走"INSERT 单独事务 → 重复键判定 →
+     * UPDATE 新事务"回落（批级仅行级原子，见设计契约不保证项）。
+     *
+     * <p>标识符统一经 {@link IDialect#escapeSQLName(String)} 转义；重复键判定复用既有
+     * {@code ERR_SQL_DUPLICATE_KEY} 翻译链（见 {@link UpsertStatements#isDuplicateKeyException}）。
+     *
+     * @param querySpace      目标数据源
+     * @param sqlName         SQL 名（可观测性；回落 UPDATE 语句名为 sqlName + "Update"）
+     * @param tableName       目标表名
+     * @param columns         有序列集（占位符顺序）
+     * @param conflictColumns 冲突键列集（非空，须对应表上唯一约束，⊆ columns）
+     * @param updateColumns   撞键时被覆写的列（⊆ columns；执行面要求非空——空集是
+     *                        {@link UpsertStatements#buildNativeUpsertSqlText} 静态面的 key-only 形态）
+     * @param rows            行批数据，每行按 columns 对齐
+     * @param policy          无原生 upsert 时的显式行为（必填，无默认值）
+     */
+    default void upsertBatch(String querySpace, String sqlName, String tableName,
+                             List<String> columns, List<String> conflictColumns, List<String> updateColumns,
+                             List<Object[]> rows, UpsertPolicy policy) {
+        UpsertExecutors.upsertBatch(this, querySpace, sqlName, tableName, columns, conflictColumns, updateColumns,
+                rows, policy);
+    }
 }

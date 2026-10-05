@@ -59,6 +59,10 @@ public class TestEqlLateralCompile {
         DialectModel model = new DialectModel();
         DialectFeatures features = new DialectFeatures();
         features.setSupportReturningForUpdate(true);
+        // merge（WI1 supportLateral 方言门）：本类断言 LATERAL 关键字输出，需经
+        // EqlTransformVisitor 的 supportLateral 门——最小方言显式开启（mariadb=false 的
+        // 负向口径由 TestEqlLateralSubqueryTableSource 承载）。
+        features.setSupportLateral(true);
         model.setFeatures(features);
         model.setReservedKeywords(Collections.emptySet());
         model.setSqls(new io.nop.dao.dialect.model.DialectSqls());

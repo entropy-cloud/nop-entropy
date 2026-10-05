@@ -99,7 +99,7 @@ public class TestCollectionOperatorTransformer {
 
         new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
 
-        String expected = "where not exists (select 1 from o.roles as t1 where ((t1.status <> 1) or (t1.deleted <> 0)))";
+        String expected = "where not exists (select 1 from o.roles as t1 where ((t1.status <> 1) or (t1.deleted <> false)))";
         assertEquals(normalize(expected), normalize(where.toSqlString()));
     }
 
@@ -111,7 +111,7 @@ public class TestCollectionOperatorTransformer {
 
         new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
 
-        String expected = "where (not exists (select 1 from o.roles as t1 where t1.status <> 1) or not exists (select 1 from o.roles as t2 where t2.deleted <> 0))";
+        String expected = "where (not exists (select 1 from o.roles as t1 where t1.status <> 1) or not exists (select 1 from o.roles as t2 where t2.deleted <> false))";
         assertEquals(normalize(expected), normalize(where.toSqlString()));
     }
 
@@ -148,7 +148,7 @@ public class TestCollectionOperatorTransformer {
 
         new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
 
-        String expected = "where exists (select 1 from o.roles as t1 where t1.name = 'admin') and not exists (select 1 from o.roles as t2 where t2.deleted <> 0)";
+        String expected = "where exists (select 1 from o.roles as t1 where t1.name = 'admin') and not exists (select 1 from o.roles as t2 where t2.deleted <> false)";
         assertEquals(normalize(expected), normalize(where.toSqlString()));
     }
 
@@ -205,7 +205,7 @@ public class TestCollectionOperatorTransformer {
 
         new CollectionOperatorTransformer(new TestAliasGenerator()).transform(where);
 
-        String expected = "where exists (select 1 from o.roles as t1 where not exists (select 1 from t1.depts as t2 where ((t2.status <> 1) or (t2.active <> 1))))";
+        String expected = "where exists (select 1 from o.roles as t1 where not exists (select 1 from t1.depts as t2 where ((t2.status <> 1) or (t2.active <> true))))";
         assertEquals(normalize(expected), normalize(where.toSqlString()));
     }
 

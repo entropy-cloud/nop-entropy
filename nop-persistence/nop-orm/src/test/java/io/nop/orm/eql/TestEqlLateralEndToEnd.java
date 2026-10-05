@@ -8,7 +8,10 @@
 package io.nop.orm.eql;
 
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.dialect.DialectManager;
+import io.nop.dao.dialect.IDialectProvider;
 import io.nop.orm.AbstractOrmTestCase;
+import io.nop.orm.factory.SessionFactoryImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -31,6 +34,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 本类负责「编译产物是标准 LATERAL 语法」与「语义等价于可执行的非 lateral 写法」两件事。
  */
 public class TestEqlLateralEndToEnd extends AbstractOrmTestCase {
+
+    // 【merge 调和（WI1 supportLateral 门 vs 本类编译契约）】：H2 2.4.240 实测不可执行
+    // LATERAL（90022，两种写法，探针在案）⇒ WI1 的 h2 supportLateral=false fail-closed 门正确；
+    // 本类的编译契约断言（标准 LATERAL 语法输出）改经 pg 方言上下文承载（pg supportLateral=true），
+    // 执行类断言（标量子查询/非 lateral 路径）为方言中性 SQL、H2 数据源不受影响。@AfterAll 恢复，
+    // 不向同 JVM 的其他测试类泄漏方言覆盖。
+    static IDialectProvider prevDialectProvider;
+    static SessionFactoryImpl sessionFactoryImpl;
+
+    @org.junit.jupiter.api.BeforeEach
+    public void overrideDialectForLateralCompile() {
+        sessionFactoryImpl = (SessionFactoryImpl) orm().getSessionFactory();
+        if (prevDialectProvider == null)
+            prevDialectProvider = sessionFactoryImpl.getDialectProvider();
+        sessionFactoryImpl.setDialectProvider(qs -> DialectManager.instance().getDialect("postgresql"));
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    public static void restoreDialectProvider() {
+        if (sessionFactoryImpl != null && prevDialectProvider != null)
+            sessionFactoryImpl.setDialectProvider(prevDialectProvider);
+    }
 
     SQL compile(String sql) {
         return orm().getSessionFactory()

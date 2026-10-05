@@ -4,7 +4,12 @@
          xmlns:x="/nop/schema/xdsl.xdef"
          maxStringSize="1048576" maxBytesSize="1048576"
          tableNameCase="upper"
+         defaultNullsFirst="true"
 >
+    <!-- WI3 第 11 项补配：H2 原生 SET DEFAULT_NULL_ORDERING 的默认是 LOW
+         （"NULL values are considered as smaller than other values during sorting"）
+         ⇒ ASC 时 NULL 在前 = defaultNullsFirst=true。与 supportNullsFirst="true"
+         （是否原生接受 NULLS FIRST/LAST 子句）正交，两者各司其职。 -->
     <driverClassName>org.h2.Driver</driverClassName>
     <dbProductNames>H2</dbProductNames>
     <jdbcUrlPattern>jdbc:h2:{filePath}</jdbcUrlPattern>
@@ -14,10 +19,18 @@
 
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
+    <!-- WI3 第 3 项纠错：H2 完全没有 RETURNING 子句（h2database.com 的 grammar/commands/
+         features/functions/changelog 五页零 RETURNING）⇒ supportReturningForUpdate=false
+         （真实语义仅指 UPDATE 投影列表形式）。 -->
+    <!-- WI7b（plan 37）：supportRollup/supportCube=false——真库探针 [实测]
+         （ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）：H2 2.3.232/2.4.240 ×
+         DEFAULT/Oracle/PG 模式全部 Function "ROLLUP"/"CUBE"/"GROUPING" not found（90022）。
+         h2 = 三函数负向载体方言。 -->
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
-              supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="true"
-              supportWindowFrameRows="true" supportWindowFrameRange="true"
+              supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="false"
+              supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
+              supportRollup="false" supportCube="false"
     />
 
     <reservedKeywords>
@@ -97,6 +110,23 @@
               and index_name = {indexName}
               and ({schemaName} is null or table_schema = {schemaName})
         </indexExists>
+
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。探针 [实测]
+             （ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）：H2 要求
+             INTERVAL 后跟字符串（INTERVAL '1' DAY 成功；裸 INTERVAL 1 DAY 语法错；
+             INTERVAL '1 DAY' 数据错 22007）=> value 带引号、unit 裸关键字。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr（未配置方言维持既有裸输出）。 -->
+        <sqlIntervalLiteral>INTERVAL '{value}' {unit}</sqlIntervalLiteral>
+
+        <!-- WI12（plan 38，roadmap 交付①②）：FOR UPDATE NOWAIT 锁后缀。[实测-jar]
+             h2-2.4.240 ForUpdate javap（NOWAIT 常量 + getSQL 渲染串 " NOWAIT"）+
+             Phase 2 真库探针。消费点 = AstToSqlGenerator.printForUpdate
+             （SqlQuerySelect.nowait；未配置方言编译期报错 feature=forUpdateNowait）。 -->
+        <forUpdateNowait>for update nowait</forUpdateNowait>
+        <!-- WI12（plan 38 交付②）：FOR UPDATE SKIP LOCKED 锁后缀。[实测-jar]
+             h2-2.4.240 ForUpdate javap（SKIP_LOCKED 常量 + getSQL 渲染串 " SKIP LOCKED"）+
+             Phase 2 真库探针。 -->
+        <forUpdateSkipLocked>for update skip locked</forUpdateSkipLocked>
 
     </sqls>
 
@@ -184,8 +214,73 @@
             </testSql>
         </native>
 
+        <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。H2 原生
+             LAST_DAY（functions.html: "Returns the last day of the month that contains the
+             specified date-time value. This function returns a date."）；h2gis 继承。
+             未注册方言编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮（注册面纪律：不进 default）。 -->
+        <native name="lastday" realName="LAST_DAY" returnType="DATE" argTypes="TIMESTAMP">
+            <testSql>LAST_DAY(DATE '2026-02-10')</testSql>
+        </native>
+
+        <!-- WI6 Phase 2: weekofyear(d) → ISO-8601 周号（1-53）。H2 无 WEEKOFYEAR 函数
+             （[实测] 语法错误），ISO_WEEK 官方钉死 ISO 定义（"uses the ISO definition when
+             first week of year should have at least four days and week is started with
+             Monday"）；WEEK(d) locale 依赖弃用。h2gis 继承。 -->
+        <template name="weekofyear" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>ISO_WEEK({0})</source>
+            <testSql>ISO_WEEK(DATE '2026-02-10')</testSql>
+        </template>
+
+        <!-- WI6 Phase 3: dayofweek(d) → ISO-8601 计法（1=Monday..7=Sunday）。ISO_DAY_OF_WEEK
+             官方钉死 "ISO day of the week (1 means Monday)"；DAY_OF_WEEK 明文 locale-specific
+             （会话漂移）弃用。h2gis 继承。 -->
+        <template name="dayofweek" returnType="INTEGER" argTypes="TIMESTAMP">
+            <source>ISO_DAY_OF_WEEK({0})</source>
+            <testSql>ISO_DAY_OF_WEEK(DATE '2026-02-10')</testSql>
+        </template>
+
+        <!-- WI6 Phase 4: dateTrunc(unit, d)（unit=字符串字面量）。H2 DATE_TRUNC
+             (datetimeField, dateAndTime) 文档序=(unit, value) 与归一化序一致，且接受带引号
+             字符串单位（[实测] 'DAY'/'day' 均通过，反序 ERR 90008）——与 pg/duckdb 共享同一
+             模板形态。规范单位词表=pg/duckdb/h2 交集：year/quarter/month/week/day/hour/
+             minute/second。h2gis 继承。 -->
+        <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
+            <source>date_trunc({0},{1})</source>
+            <testSql>date_trunc('month', TIMESTAMP '2026-02-10 12:34:56')</testSql>
+        </template>
+
         <template name="date" x:override="merge">
             <source>date_trunc(DAY,{0})</source>
+        </template>
+
+        <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
+             [文档] H2 grammar「Time zone」= AT { TIME ZONE { intervalHourToMinute | intervalHourToSecond | string } | LOCAL }。
+             真库执行 = TestDialect.testFunctions（testSql 落地升 [实测]）。h2gis 继承。 -->
+        <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
+            <source>{0} AT TIME ZONE {1}</source>
+            <testSql>TIMESTAMP '2026-02-10 12:34:56' AT TIME ZONE 'UTC'</testSql>
+        </template>
+        <!-- WI3 第 9 项：注册 ilike 函数（supportILike="true" 标志本就正确，缺的是函数表注册）。
+             H2 文法原生 [NOT] ILIKE 算子（"ILIKE does a case-insensitive compare"），
+             模板直出原生算子。先例：oracle.dialect.xml 的 regexp_like 形态。 -->
+        <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
+            <source>{0} ilike {1}</source>
+        </template>
+        <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars；无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参）。H2 TRIM 支持标准全形态（[LEADING|TRAILING|BOTH] [chars] FROM str）。h2gis 继承。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(BOTH {1} FROM {0})</source>
+            <testSql>TRIM(BOTH 'x' FROM 'xxabcxx')</testSql>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(LEADING {1} FROM {0})</source>
+            <testSql>TRIM(LEADING 'x' FROM 'xxabcxx')</testSql>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>TRIM(TRAILING {1} FROM {0})</source>
+            <testSql>TRIM(TRAILING 'x' FROM 'xxabcxx')</testSql>
         </template>
     </functions>
 
@@ -217,6 +312,8 @@
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <!-- WI9a: UUID 原生类型（h2database.com/html/datatypes.html）；h2gis 继承本表 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
 </dialect>

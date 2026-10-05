@@ -47,6 +47,10 @@ public interface DaoErrors {
     String ARG_MAX_ARG_COUNT = "maxArgCount";
     String ARG_ARG_COUNT = "argCount";
 
+    String ARG_TEMPLATE_SOURCE = "templateSource";
+    String ARG_MARKER_INDEX = "markerIndex";
+    String ARG_DIALECT = "dialect";
+
     String ARG_DATA_TYPE = "dataType";
     String ARG_ALLOWED_TYPES = "allowedTypes";
     String ARG_PRECISION = "precision";
@@ -118,6 +122,17 @@ public interface DaoErrors {
 
     ErrorCode ERR_DAO_FUNC_INVALID_ARG_COUNT = define("nop.err.dao.func-invalid-arg-count",
             "函数[{funcName}]的参数个数必须为{argCount}", ARG_FUNC_NAME, ARG_ARG_COUNT);
+
+    ErrorCode ERR_DAO_FUNC_TEMPLATE_MARKER_OUT_OF_RANGE = define("nop.err.dao.func-template-marker-out-of-range",
+            "函数[{funcName}]的模板中数字参数索引{markerIndex}超过参数个数范围:{templateSource}", ARG_FUNC_NAME,
+            ARG_MARKER_INDEX, ARG_TEMPLATE_SOURCE);
+
+    // WI7b Phase 1（plan 37）：sqlIntervalLiteral 模板只允许 {value}/{unit} 命名占位符，
+    // 未知 marker 在方言加载期（DialectImpl 构造期）抛错——与 TemplateSQLFunction 的
+    // marker 越界校验同一纪律（"只打印不设门 = 净回归"）。
+    ErrorCode ERR_DIALECT_INVALID_INTERVAL_LITERAL_TEMPLATE = define("nop.err.dao.dialect.invalid-interval-literal-template",
+            "方言[{dialect}]的sqlIntervalLiteral模板包含未知占位符,仅允许{value}和{unit}:{templateSource}", ARG_DIALECT,
+            ARG_TEMPLATE_SOURCE);
 
     ErrorCode ERR_SQL_BAD_SQL_GRAMMAR = define("nop.err.dao.sql.bad-sql-grammar", "SQL语法错误或者数据库对象不存在", ARG_SQL_TEXT);
 

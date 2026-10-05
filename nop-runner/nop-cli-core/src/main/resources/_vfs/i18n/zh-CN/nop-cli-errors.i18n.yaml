@@ -465,6 +465,7 @@ nop.err.core.resource.write-to-stream-fail: 保存资源文件[{src}]到数据�
 nop.err.core.resource.zip.unzip-to-dir-fail: 解压缩到目录[{dir}]失败
 nop.err.core.rpc.prev-call-not-completed: 此前发起的RPC调用尚未完成，无法再发起新的调用
 nop.err.core.selection.invalid-arg-name: 参数名[{name}]不合法，它必须满足Java语法规范且不能以$为前缀
+nop.err.core.sql.in-list-too-large: IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{name}],请分批查询或调高配置nop.core.sql.in-list-max-size
 nop.err.core.sql.like-invalid-escape-char: LIKE/SIMILAR匹配中的转义字符必须是单个字符:{escapeChar}
 nop.err.core.sql.like-invalid-escape-sequence: LIKE/SIMILAR匹配中的转义序列不合法:{pattern}，位置:{pos}
 nop.err.core.sql.similar-invalid-regex: SIMILAR匹配模式不是合法的正则表达式:{pattern}
@@ -541,11 +542,13 @@ nop.err.core.xml.unknown-xml-entity: 未知的XML entity
 nop.err.dao.dataset.is-read-only: 只读数据集不允许修改
 nop.err.dao.dataset.unknown-column: 未知的数据列:{colName}
 nop.err.dao.dialect.data-type-not-supported: 不支持的数据类型:{dataType},允许的数据类型为:{allowedTypes}
+nop.err.dao.dialect.invalid-interval-literal-template: 方言[{dialect}]的sqlIntervalLiteral模板包含未知占位符,仅允许{value}和{unit}:{templateSource}
 nop.err.dao.dialect.invalid-sql-name: SQL名称不允许为空:{name}
 nop.err.dao.dialect.invalid-tpl-param: 非法的模板变量:{name},允许的变量为:{allowedNames}
 nop.err.dao.dialect.std-data-type-not-supported: 不支持的标准数据类型:{dataType},允许的数据类型为:{allowedTypes}
 nop.err.dao.dialect.tpl-param-no-arg: 模板变量的格式必须为name:arg
 nop.err.dao.func-invalid-arg-count: 函数[{funcName}]的参数个数必须为{argCount}
+nop.err.dao.func-template-marker-out-of-range: 函数[{funcName}]的模板中数字参数索引{markerIndex}超过参数个数范围:{templateSource}
 nop.err.dao.func-too-few-args: 函数[{funcName}]的参数个数少于最小值{minArgCount}
 nop.err.dao.func-too-many-args: 函数[{funcName}]的参数个数超过最大值{maxArgCount}
 nop.err.dao.invalid-snowflake-timestamp: 非法的时间戳，系统时钟不允许回拨；ts={ts},lastTs={lastTs}
@@ -585,6 +588,7 @@ nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
 nop.err.doc.convert-unsupported-text-output: 目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}
 nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
   operator2={operator2}'
+nop.err.eql.collection-access-not-support: 集合下标表达式[{expr}]不支持翻译为SQL，请改写为关联属性join或集合操作符(_some/_all)
 nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
   scope2=[{collectionPrefix2}]'
 nop.err.eql.decorator-arg-count-is-not-expected: 注解[{decorator}]的参数必须为{expectedCount}
@@ -596,12 +600,15 @@ nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
 nop.err.eql.func-only-allow-in-window-expr: 函数[{funcName}]只允许在窗口表达式中使用
 nop.err.eql.func-too-few-args: 函数[{funcName}]的参数个数不足
 nop.err.eql.func-too-many-args: 函数[{funcName}]的参数个数过多
+nop.err.eql.in-list-too-large: IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{stmtName}],方言[{dialect}],请分批查询或调高配置nop.core.sql.in-list-max-size
 nop.err.eql.invalid-bit-literal: 非法的二进制字面量:{value}
 nop.err.eql.invalid-collection-operator-path: 集合操作符路径不合法:{propPath}
 nop.err.eql.invalid-datetime-type: 时间日期类型只能是t,s,或者ts
 nop.err.eql.invalid-hex-literal: 非法的十六进制字面量:{value}
 nop.err.eql.invalid-interval-unit: 时间区间类型只能是MICROSECOND/SECOND/MINUTE/HOUR/DAY/WEEK/MONTH/QUARTER/YEAR
+nop.err.eql.invalid-interval-value: 非法的INTERVAL时长定义:{value}
 nop.err.eql.invalid-sql-type: 未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}
+nop.err.eql.invalid-window-frame: 非法的窗口frame定义:{value}
 nop.err.eql.join-no-condition: 表关联没有指定连接条件
 nop.err.eql.join-prop-path-is-duplicated: 同一关联属性表达式[{propPath}]不能在join语句中多次定义
 nop.err.eql.join-right-source-must-be-prop-path-of-left-source: 关联关系的右侧如果不是实体对象，则必须是左侧对象的关联属性，例如UserInfo
@@ -613,6 +620,7 @@ nop.err.eql.not-single-expr: 不是合法SQL表达式
 nop.err.eql.not-support-ilike-operator: 数据库不支持ilike运算符
 nop.err.eql.not-support-multi-join-on-alias: 表关联不支持多个别名字段关联条件
 nop.err.eql.not-support-multiple-statement: 一次调用只允许执行一条SQL语句
+nop.err.eql.null-predicate-operand-has-param-marker: NULL语义谓词[{expr}]的操作数包含参数标记(?)——lowering展开会复制操作数导致参数绑定错位，请改用列或实体属性作操作数
 nop.err.eql.only-support-single-table-source: 只支持实体表数据源
 nop.err.eql.owner-not-ref-to-entity: 属性表达式的owner必须是实体对象
 nop.err.eql.param-not-component: 参数[{paramIndex}]不是IOrmComponent类型[{expected}]
@@ -624,6 +632,7 @@ nop.err.eql.query-no-from-clause: sql语句缺乏from子句
 nop.err.eql.returning-no-projections: returning语句没有指定选择字段列表
 nop.err.eql.scale-not-non-negative-int: 数据小数位数的值[{value}]不是非负整数
 nop.err.eql.select-no-projections: select语句没有指定选择字段列表
+nop.err.eql.sql-type-clause-not-support: CAST类型表达式的[{value}]子句不支持翻译为SQL（无任何方言消费其语义），显式拒绝
 nop.err.eql.table-source-must-has-alias: 数据源必须具有别名
 nop.err.eql.table-source-not-resolved: tableSource没有被成功解析，无法确定它的具体来源
 nop.err.eql.unknown-alias: 未知的实体别名[{alias}]
@@ -633,8 +642,10 @@ nop.err.eql.unknown-field-in-entity: 实体[{entityName}]上没有属性:{propNa
 nop.err.eql.unknown-field-in-selection: 字段选择列表中没有属性:{propName}
 nop.err.eql.unknown-function: 未知的函数[{funcName}]
 nop.err.eql.unknown-query-space: sql语句使用了未知的querySpace[{querySpace}]
+nop.err.eql.unknown-window-name: 未声明的窗口名[{windowName}]
 nop.err.eql.unsupported-eval-expr: 不支持的表达式类型
 nop.err.eql.unsupported-op: 不支持的运算符:{op}
+nop.err.eql.values-row-arity-mismatch: VALUES 表源第{rowIndex}行的元素数量与第1行不一致
 nop.err.excel.export.invalid-config-name: 未定义的配置项名称:{name}
 nop.err.excel.import-sheet-with-duplicate-key-prop: 导入表格[{sheetName}]时[{keyProp}]的属性重复
 nop.err.excel.import.field-value-not-in-dict: 表格[{sheetName}]中的单元格[{cellPos}]的值不在字典表[{dictName}]中

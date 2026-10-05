@@ -602,6 +602,10 @@ public final class StreamSqlCompiler {
                 return "RIGHT";
             case FULL_JOIN:
                 return "FULL";
+            // WI1 BUG-10: 文法放开 cross join 后枚举新增值。stream 侧对 joinType 只做
+            // 透传登记（不修跨语法语义），不能让新增枚举值落回 default 抛错路径
+            case CROSS_JOIN:
+                return "CROSS";
             default:
                 throw CompileErrors.invalidArg("unsupported join type " + joinType);
         }

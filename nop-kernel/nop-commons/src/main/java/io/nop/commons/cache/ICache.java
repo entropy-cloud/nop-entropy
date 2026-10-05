@@ -31,18 +31,30 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V>, IConfi
 
     V getIfPresent(K key);
 
+    /**
+     * 若缓存中不存在该key，则通过mappingFunction计算值并写入。
+     * <p>
+     * 写入采用putIfAbsent的原子语义：并发竞争时只有一个线程计算出的值会被写入，
+     * 其余线程返回先写入者的值。并发下mappingFunction可能被多个线程执行，
+     * 但仅有一个结果生效。mappingFunction返回null时不写入，返回null。
+     * <p>
+     * 注意：本默认实现通过与putIfAbsent相同的锁保证插入原子性，
+     * 性能敏感的实现应自行覆写（如LocalCache委托Caffeine）。
+     */
     default V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
         Objects.requireNonNull(mappingFunction);
-        V v;
-        if ((v = get(key)) == null) {
-            V newValue;
-            if ((newValue = mappingFunction.apply(key)) != null) {
-                put(key, newValue);
-                return newValue;
-            }
-        }
+        V v = get(key);
+        if (v != null)
+            return v;
 
-        return v;
+        V newValue = mappingFunction.apply(key);
+        if (newValue == null)
+            return null;
+
+        if (putIfAbsent(key, newValue))
+            return newValue;
+        // 并发竞争失败：返回先写入者的值
+        return get(key);
     }
 
     default Map<K, V> getAll(Collection<? extends K> keys) {
@@ -66,13 +78,18 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V>, IConfi
     /**
      * 仅当key不存在时才插入。实现方应保证check-then-act的原子性：
      * 并发对同一key调用时，只有一个调用返回true。
+     * <p>
+     * 本默认实现通过synchronized保证上述原子性契约。性能敏感的实现应自行覆写
+     * （如LocalCache委托Caffeine的asMap().putIfAbsent）。
      */
     default boolean putIfAbsent(K key, V value) {
-        if (containsKey(key))
-            return false;
+        synchronized (this) {
+            if (containsKey(key))
+                return false;
 
-        put(key, value);
-        return true;
+            put(key, value);
+            return true;
+        }
     }
 
     default V getAndSet(K key, V value) {

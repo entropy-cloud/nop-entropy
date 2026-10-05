@@ -222,6 +222,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlValuesTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -240,17 +247,29 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlValuesTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlValuesTableSource(EqlParser.SqlValuesTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlRowList_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRowList_(EqlParser.SqlRowList_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlColumnAliases__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlColumnAliases__(EqlParser.SqlColumnAliases__Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitJoinType_(EqlParser.JoinType_Context ctx);
-	/**
-	 * Visit a parse tree produced by {@link EqlParser#crossJoin_}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitCrossJoin_(EqlParser.CrossJoin_Context ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlTableSource_joinRight}.
 	 * @param ctx the parse tree
@@ -282,6 +301,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitRightJoin_(EqlParser.RightJoin_Context ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#crossJoin_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCrossJoin_(EqlParser.CrossJoin_Context ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlWhere}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -306,11 +331,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlHaving(EqlParser.SqlHavingContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlLimit}.
+	 * Visit a parse tree produced by the {@code SqlLimit_limit}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlLimit(EqlParser.SqlLimitContext ctx);
+	T visitSqlLimit_limit(EqlParser.SqlLimit_limitContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlLimit_fetchFirst}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlLimit_fetchFirst(EqlParser.SqlLimit_fetchFirstContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlLimit_offsetFetch}
+	 * labeled alternative in {@link EqlParser#sqlLimit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlLimit_offsetFetch(EqlParser.SqlLimit_offsetFetchContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlExpr_limitRowCount}.
 	 * @param ctx the parse tree
@@ -335,6 +375,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitForUpdate_(EqlParser.ForUpdate_Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#skipLocked_}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSkipLocked_(EqlParser.SkipLocked_Context ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlParameterMarker}.
 	 * @param ctx the parse tree
@@ -454,6 +500,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlAndExpr(EqlParser.SqlAndExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlAndExpr_isTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlAndExpr_isTrue(EqlParser.SqlAndExpr_isTrueContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlBinaryExpr_compare}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
@@ -475,12 +528,54 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlIsNullExpr(EqlParser.SqlIsNullExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isNotFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isNotFalse(EqlParser.SqlNotExpr_isNotFalseContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlIsNullExpr_isUnknown}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlIsNullExpr_isUnknown(EqlParser.SqlIsNullExpr_isUnknownContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlCompareWithQueryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitSqlCompareWithQueryExpr(EqlParser.SqlCompareWithQueryExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlAndExpr_isFalse}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlAndExpr_isFalse(EqlParser.SqlAndExpr_isFalseContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlBinaryExpr_isNotDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlBinaryExpr_isNotDistinctFrom(EqlParser.SqlBinaryExpr_isNotDistinctFromContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isNotTrue}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isNotTrue(EqlParser.SqlNotExpr_isNotTrueContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlNotExpr_isDistinctFrom}
+	 * labeled alternative in {@link EqlParser#sqlExpr_primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlNotExpr_isDistinctFrom(EqlParser.SqlNotExpr_isDistinctFromContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#comparisonOperator_}.
 	 * @param ctx the parse tree
@@ -528,6 +623,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSqlInValues_(EqlParser.SqlInValues_Context ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_atTimeZone}
+	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_atTimeZone(EqlParser.SqlRegularFunction_atTimeZoneContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code SqlBinaryExpr}
 	 * labeled alternative in {@link EqlParser#sqlExpr_bit}.
@@ -669,11 +771,66 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionArgs_(EqlParser.FunctionArgs_Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlExpr_special}.
+	 * Visit a parse tree produced by the {@code SqlCastExpr_cast}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlExpr_special(EqlParser.SqlExpr_specialContext ctx);
+	T visitSqlCastExpr_cast(EqlParser.SqlCastExpr_castContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_position}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_position(EqlParser.SqlRegularFunction_positionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_substring}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_substring(EqlParser.SqlRegularFunction_substringContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_extract}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_extract(EqlParser.SqlRegularFunction_extractContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimDirection}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimDirection(EqlParser.SqlRegularFunction_trimDirectionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimDirectionChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimDirectionChars(EqlParser.SqlRegularFunction_trimDirectionCharsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlRegularFunction_trimChars}
+	 * labeled alternative in {@link EqlParser#sqlExpr_special}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlRegularFunction_trimChars(EqlParser.SqlRegularFunction_trimCharsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#trimDirection__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTrimDirection__(EqlParser.TrimDirection__Context ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#extractField__}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExtractField__(EqlParser.ExtractField__Context ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlCastExpr}.
 	 * @param ctx the parse tree
@@ -729,11 +886,19 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlCaseWhenItem(EqlParser.SqlCaseWhenItemContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlIntervalExpr}.
+	 * Visit a parse tree produced by the {@code SqlIntervalExpr_unit}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlIntervalExpr(EqlParser.SqlIntervalExprContext ctx);
+	T visitSqlIntervalExpr_unit(EqlParser.SqlIntervalExpr_unitContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlIntervalExpr_string}
+	 * labeled alternative in {@link EqlParser#sqlIntervalExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlIntervalExpr_string(EqlParser.SqlIntervalExpr_stringContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#intervalUnit_}.
 	 * @param ctx the parse tree
@@ -759,17 +924,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlOrderByItem(EqlParser.SqlOrderByItemContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlNullsOrder_}.
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_rollup}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlNullsOrder_(EqlParser.SqlNullsOrder_Context ctx);
+	T visitSqlGroupByItem_rollup(EqlParser.SqlGroupByItem_rollupContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlGroupByItem}.
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_cube}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlGroupByItem(EqlParser.SqlGroupByItemContext ctx);
+	T visitSqlGroupByItem_cube(EqlParser.SqlGroupByItem_cubeContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlGroupByItem_expr}
+	 * labeled alternative in {@link EqlParser#sqlGroupByItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlGroupByItem_expr(EqlParser.SqlGroupByItem_exprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlTypeExpr}.
 	 * @param ctx the parse tree

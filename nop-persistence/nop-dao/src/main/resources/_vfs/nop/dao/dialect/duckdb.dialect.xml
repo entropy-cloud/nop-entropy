@@ -18,7 +18,7 @@
     > - 支持 `NULLS FIRST` 和 `NULLS LAST`: https://duckdb.org/docs/stable/sql/query_syntax/orderby#syntax
     > - 支持事务管理：https://duckdb.org/docs/stable/sql/statements/transactions
     -->
-    <features supportNullsFirst="true" supportReturningForUpdate="false"/>
+    <features supportNullsFirst="true" supportReturningForUpdate="false" supportLateral="true"/>
 
     <!-- https://duckdb.org/docs/stable/core_extensions/spatial/overview -->
     <geometryTypeHandler>io.nop.orm.geo.dialect.postgis.PostgisGeometryTypeHandler</geometryTypeHandler>
@@ -34,8 +34,18 @@
         <dateTimeLiteral>TIMESTAMP_S '{value:yyyy-MM-dd HH:mm:ss}'</dateTimeLiteral>
         <timestampLiteral>TIMESTAMP_NS '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'</timestampLiteral>
 
+        <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板——显式覆盖继承的 postgresql
+             引号形态。[文档] DuckDB 文档首形态 INTERVAL 1 YEAR（value 不加引号，单复数单位均见
+             文档）；不赌 duckdb 对引号 value+裸单位的接受度，落文档形态。
+             消费点 = AstToSqlGenerator.visitSqlIntervalExpr。 -->
+        <sqlIntervalLiteral>INTERVAL {value} {unit}</sqlIntervalLiteral>
+
         <!-- Note: DuckDB 无锁支持 -->
         <forUpdate x:override="replace"/>
+        <!-- WI12（plan 38）：无锁 = NOWAIT 变体同样显式关断（继承自 postgresql 的
+             forUpdateNowait 会被合并进来，加载后 = null = 未配置 → 编译期响亮）。 -->
+        <forUpdateNowait x:override="replace"/>
+        <forUpdateSkipLocked x:override="replace"/>
         <lockHint x:override="replace"/>
     </sqls>
 
@@ -62,6 +72,9 @@
 
         <sqlDataType name="JSON" stdSqlType="JSON"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+        <!-- WI9a: UUID 原生类型（duckdb.org/docs/sql/data_types/uuid）；本表 x:override="replace"
+             不继承 postgresql，须自有条目 -->
+        <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
 
     <!-- https://duckdb.org/docs/stable/sql/functions/overview
@@ -126,7 +139,32 @@
         <native name="st_dwithin" x:override="remove"/>
         <native name="st_transform" x:override="remove"/>
         <native name="st_extent" x:override="remove"/>
-    </functions>
+                <!-- WI5 Phase 4: TRIM 带 chars 形态模板（{0}=str, {1}=chars）。DuckDB 无
+             TRIM(BOTH x FROM y) 关键字形态，用函数形态 trim/ltrim/rtrim(string, characters)——
+             必须显式覆盖，否则继承 postgresql 的关键字模板产出非法 SQL。无模板方言编译期
+             ERR_EQL_UNKNOWN_FUNCTION 响亮报错，禁止静默丢 chars/降级单参。 -->
+        <template name="trimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>trim({0}, {1})</source>
+        </template>
+
+        <template name="ltrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>ltrim({0}, {1})</source>
+        </template>
+
+        <template name="rtrimChars" argTypes="VARCHAR,VARCHAR" returnType="VARCHAR">
+            <source>rtrim({0}, {1})</source>
+        </template>
+
+        <!-- WI6 Phase 5: dateDiff(unit, d1, d2) → 边界跨越语义（Phase 0 裁定 §4 锚点）。
+             DuckDB date_diff(part, starttimestamp, endtimestamp) = "The number of part
+             boundaries between..."，unit 在前同序、字符串单位，datediff 为官方别名；
+             realName 用主名 date_diff。postgresql 无 datediff 注册 ⇒ 无继承冲突。
+             dateAdd 在 duckdb 不落（唯一 date_add 形态要求 INTERVAL 裸关键字单位）。
+             其余 lastday/weekofyear/dayofweek/datetrunc 经 extends postgresql 继承。
+             [文档] 证据上限 + DuckDB 嵌入式 scratch 佐证（datediff('month',...)=1）。 -->
+        <native name="datediff" realName="date_diff" returnType="BIGINT" argTypes="ANY,TIMESTAMP,TIMESTAMP"/>
+
+</functions>
 
     <!-- DuckDB 未定义错误码，只抛出了异常信息：
     https://github.com/duckdb/duckdb-java/blob/c7cb0f252dd0047f4ec4acbe70269db45bdfae4c/src/jni/duckdb_java.cpp#L34

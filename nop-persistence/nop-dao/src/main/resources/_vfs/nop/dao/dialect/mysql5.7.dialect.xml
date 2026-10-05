@@ -2,5 +2,38 @@
 
 <dialect x:extends="mysql.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef">
-    <features supportSequence="false" supportReturningForUpdate="false"/>
+    <!-- WI1 BUG-2: LATERAL 需 MySQL 8.0.14+，5.7 不支持；显式 false 覆盖从 mysql
+         继承的 supportLateral="true" -->
+    <features supportSequence="false" supportReturningForUpdate="false" supportLateral="false"/>
+
+    <!-- WI3 第 7 项纠错（裁定=候选 B 内联移除，见
+         ai-dev/design/eql-cross-db-compat/2026-10-04-wi3-phase0-adjudications.md §三）：
+         mysql 经 window-expr-support.dialect.xml mixin 继承的 10 个窗口函数（rank/
+         dense_rank/row_number/lead/lag/first_value/last_value/nth_value/percent_rank/
+         cume_dist）在 MySQL 5.7 上不存在（窗口函数自 8.0 引入），逐个 remove。
+         泄漏防护：TestMysql57WindowFunctionsRemoved 动态守卫——mixin 新增函数会立即使
+         测试转红，强迫显式补 remove 或重新裁定。 -->
+    <functions>
+        <native name="rank" x:override="remove"/>
+        <native name="dense_rank" x:override="remove"/>
+        <native name="row_number" x:override="remove"/>
+        <native name="lead" x:override="remove"/>
+        <native name="lag" x:override="remove"/>
+        <native name="first_value" x:override="remove"/>
+        <native name="last_value" x:override="remove"/>
+        <native name="nth_value" x:override="remove"/>
+        <native name="percent_rank" x:override="remove"/>
+        <native name="cume_dist" x:override="remove"/>
+    </functions>
+
+    <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MySQL 8.0.31 起才有 INTERSECT/EXCEPT，
+         5.7 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT 的查询时显式报错。
+         mysql 本体（floor 8.0.31）不配置。≥8.0.31 的旧版本部署经 delta 方言显式覆盖。 -->
+    <sqls intersectKeyword="none" exceptKeyword="none">
+        <!-- WI12（plan 38）：5.7 无 FOR UPDATE NOWAIT/SKIP LOCKED（MySQL 8.0.1 才引入）
+             ——显式空覆盖关断继承自 mysql 的 forUpdateNowait（加载后 = null = 未配置，
+             编译 nowait=true 查询时响亮报错，与 duckdb 空 <forUpdate> 同机制）。 -->
+        <forUpdateNowait x:override="replace"/>
+        <forUpdateSkipLocked x:override="replace"/>
+    </sqls>
 </dialect>
