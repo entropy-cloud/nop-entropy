@@ -1,0 +1,19 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+        <!-- plan 2319：readOnly显式标注的sql-lib原生项，经SQL只读标志参与读写分离判定 -->
+        <sql name="findAllReadOnly" readOnly="true">
+            <source>
+                select id from my_entity where 1=1
+            </source>
+        </sql>
+
+        <!-- 未标注readOnly：缺省false，语义未知fail-safe走主库 -->
+        <sql name="findAllDefault">
+            <source>
+                select id from my_entity where 1=1
+            </source>
+        </sql>
+    </sqls>
+
+</sql-lib>

@@ -21,6 +21,7 @@ import io.nop.dataset.impl.TransformedDataSet;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.eql.ICompiledSql;
+import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.persister.IPersistEnv;
@@ -85,6 +86,11 @@ public class JdbcQueryExecutor implements IQueryExecutor {
         invokeListener(compiled);
 
         SQL sql = transformEQL(session, compiled, markerValues);
+        // 读写分离（plan 2319）：SELECT语句携带只读意图，无事务时由ReadWriteRoutingDataSource路由到从库。
+        // 只传播意图，不参与路由决策。写语句/DDL等保持缺省（fail-safe主库）。
+        if (compiled.getStatementKind() == SqlStatementKind.SELECT) {
+            sql = SQL.begin(sql).readOnly(true).end();
+        }
 
         return jdbc().executeQuery(sql, range, ds -> {
             ds = new TransformedDataSet(ds, compiled.getDataSetMeta(), rs -> transformRow(rs, compiled, session));

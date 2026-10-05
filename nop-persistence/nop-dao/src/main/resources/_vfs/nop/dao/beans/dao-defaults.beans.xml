@@ -23,6 +23,20 @@
         <property name="transactionMetrics" ref="nopDaoMetrics"/>
     </bean>
 
+    <!--
+    读写分离（plan 2319）：读取nop.dao.readwrite JSON配置，将nopReadWriteDs_前缀的物理数据源bean
+    装配为ReadWriteRoutingDataSource并注册到事务管理器。前缀刻意区别于nopDataSource_，
+    避免被上面的collect-beans误收集为幻影querySpace。未配置时零行为变更
+    -->
+    <bean id="nopReadWriteDataSourceInitializer" ioc:default="true"
+          class="io.nop.dao.jdbc.datasource.ReadWriteDataSourceInitializer"
+          init-method="init">
+        <property name="transactionManager" ref="nopTransactionManager"/>
+        <property name="dataSources">
+            <ioc:collect-beans only-concrete-classes="true" as-map="true" name-prefix="nopReadWriteDs_"/>
+        </property>
+    </bean>
+
     <bean id="nopTransactionFactory" ioc:default="true" feature:off="nop.dao.use-parent-transaction-factory"
           class="io.nop.dao.jdbc.txn.JdbcTransactionFactory">
         <constructor-arg index="0" ref="nopDataSource"/>

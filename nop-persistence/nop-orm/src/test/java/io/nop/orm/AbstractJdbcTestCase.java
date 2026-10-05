@@ -26,10 +26,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.sql.SQLException;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 public abstract class AbstractJdbcTestCase extends BaseTestCase {
-    protected HikariDataSource dataSource;
+    // plan 2319：类型放宽为DataSource，允许子类覆写createDataSource()返回路由DataSource等装饰器
+    protected DataSource dataSource;
     protected IJdbcTemplate jdbcTemplate;
     protected SqlLibManager sqlLibManager;
     protected IOrmTemplate ormTemplate;
@@ -72,12 +76,18 @@ public abstract class AbstractJdbcTestCase extends BaseTestCase {
         if(dictLoader != null)
             dictLoader.destroy();
 
-        if (dataSource != null) {
-            dataSource.close();
+        // plan 2319：dataSource可能为非AutoCloseable的装饰器DataSource（如路由DataSource），
+        // 物理连接池由测试子类自行管理；可关闭的实现（HikariDataSource等）在此统一关闭
+        if (dataSource instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) dataSource).close();
+            } catch (Exception e) {
+                throw new IllegalStateException("close test dataSource failed:" + dataSource, e);
+            }
         }
     }
 
-    protected HikariDataSource createDataSource() {
+    protected DataSource createDataSource() {
         HikariDataSource ds = new HikariDataSource();
         ds.setMetricRegistry(GlobalMeterRegistry.instance());
         ds.setDriverClassName("org.h2.Driver");

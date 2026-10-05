@@ -30,6 +30,7 @@ import io.nop.dao.exceptions.JdbcException;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.dataset.JdbcComplexDataSet;
 import io.nop.dao.jdbc.dataset.JdbcDataSet;
+import io.nop.dao.jdbc.datasource.ReadWriteHint;
 import io.nop.dao.jdbc.txn.IJdbcTransaction;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransaction;
@@ -168,7 +169,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         // 实际调用ITransaction.open()操作才会打开事务，从而将非事务状态下的Connection统一到Transaction概念下。
         //
         // supports级别的事务是仅仅创建transaction对象，但并没有要求一定调用open来打开事务
-        T ret = withTxn(querySpace, callback);
+        T ret = withTxnForSql(querySpace, sql, callback);
 
         long diff = CoreMetrics.currentTimeMillis() - beginTime;
         JdbcHelper.SQL_LOG.info("nop.jdbc.run:usedTime={},querySpace={},range={},name={},sql={}", diff, querySpace, range,
@@ -187,6 +188,28 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             return callback.apply(((IJdbcTransaction) txn).getConnection());
         });
         return ret;
+    }
+
+    /**
+     * 读写分离（plan 2319）桥接点。withTxn本身不带SQL参数、无法感知语句语义，因此包裹上移到
+     * runWithConnection的withTxn调用处：当语句携带只读意图（sql.readOnly）、当前线程无显式PRIMARY
+     * hint、且该querySpace没有已打开的事务时，以REPLICA作用域包裹整个withTxn执行，使
+     * ReadWriteRoutingDataSource在该作用域内的连接获取（IJdbcTransaction.getConnection()懒取路径）
+     * 路由到从库。作用域精确覆盖本次连接获取，退出后恢复原状。
+     *
+     * <p>显式hint优先级更高：PRIMARY时不设置REPLICA作用域（用户强制主库）；REPLICA时作用域已由
+     * 调用方建立，无需重复包裹。已打开事务的连接在事务open时缓存自主库、复用即可保证事务内一致性
+     * （设计文档一致性契约"活动事务内一律主库"），同样不设置REPLICA作用域。</p>
+     */
+    private <T> T withTxnForSql(String querySpace, SQL sql, Function<Connection, T> callback) {
+        if (sql == null || !sql.isReadOnly() || ReadWriteHint.currentHint() == ReadWriteHint.Hint.PRIMARY)
+            return withTxn(querySpace, callback);
+
+        ITransaction txn = transactionTemplate.getRegisteredTransaction(useDynamicQuerySpace(querySpace));
+        if (txn != null && txn.isTransactionOpened())
+            return withTxn(querySpace, callback);
+
+        return ReadWriteHint.runWithReplica(() -> withTxn(querySpace, callback));
     }
 
     private String useDynamicQuerySpace(String querySpace) {

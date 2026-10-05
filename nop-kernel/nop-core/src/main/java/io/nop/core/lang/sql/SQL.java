@@ -64,12 +64,25 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
     private final boolean enableFilter;
 
+    /**
+     * 只读意图标志（plan 2319）：表示该语句为只读查询，读写分离场景下无事务时允许路由到从库。
+     * 缺省为false（fail-safe主库）。该标志仅表达意图，不参与任何路由决策。
+     */
+    private final boolean readOnly;
+
     public SQL(String text) {
         this(null, text, null, -1, null, -1, null, false, false, false, null);
     }
 
     public SQL(String name, String text, List<Marker> markers, int timeout, CacheRef cacheRef, int fetchSize,
                String querySpace, boolean disableLogicalDelete, boolean allowUnderscoreName, boolean enableFilter, SourceLocation loc) {
+        this(name, text, markers, timeout, cacheRef, fetchSize, querySpace, disableLogicalDelete, allowUnderscoreName,
+                enableFilter, false, loc);
+    }
+
+    public SQL(String name, String text, List<Marker> markers, int timeout, CacheRef cacheRef, int fetchSize,
+               String querySpace, boolean disableLogicalDelete, boolean allowUnderscoreName, boolean enableFilter,
+               boolean readOnly, SourceLocation loc) {
         super(text, markers);
         this.loc = loc;
         this.name = name;
@@ -80,6 +93,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.disableLogicalDelete = disableLogicalDelete;
         this.allowUnderscoreName = allowUnderscoreName;
         this.enableFilter = enableFilter;
+        this.readOnly = readOnly;
     }
 
     public SQL(String name, String text, List<Marker> markers) {
@@ -97,6 +111,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.disableLogicalDelete = false;
         this.allowUnderscoreName = false;
         this.enableFilter = false;
+        this.readOnly = false;
     }
 
     private SQL(SqlBuilder sb) {
@@ -110,6 +125,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         this.disableLogicalDelete = sb.disableLogicalDelete;
         this.allowUnderscoreName = sb.allowUnderscoreName;
         this.enableFilter = sb.enableFilter;
+        this.readOnly = sb.readOnly;
     }
 
     public boolean isDisableLogicalDelete() {
@@ -122,6 +138,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
     public boolean isEnableFilter() {
         return enableFilter;
+    }
+
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override
@@ -203,7 +223,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
     public static SqlBuilder begin(SQL sql) {
         return begin().name(sql.getName()).querySpace(sql.getQuerySpace()).fetchSize(sql.getFetchSize())
                 .timeout(sql.getTimeout()).cacheRef(sql.getCacheRef())
-                .disableLogicalDelete(sql.isDisableLogicalDelete()).append(sql);
+                .disableLogicalDelete(sql.isDisableLogicalDelete()).readOnly(sql.isReadOnly()).append(sql);
     }
 
     public static class SqlBuilder extends MarkedStringBuilderT<SqlBuilder> {
@@ -218,6 +238,8 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         private boolean allowUnderscoreName;
 
         private boolean enableFilter;
+
+        private boolean readOnly;
 
         public SqlBuilder() {
         }
@@ -245,6 +267,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             sb.fetchSize = fetchSize;
             sb.disableLogicalDelete = disableLogicalDelete;
             sb.allowUnderscoreName = allowUnderscoreName;
+            // enableFilter/readOnly属于语句级语义标志，复制时必须保留。
+            // enableFilter漏拷是在案先例（读写分离readOnly复用同一修复，plan 2319）
+            sb.enableFilter = enableFilter;
+            sb.readOnly = readOnly;
             return sb;
         }
 
@@ -274,6 +300,15 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public SqlBuilder enableFilter(boolean b) {
             this.enableFilter = b;
+            return this;
+        }
+
+        public SqlBuilder readOnly() {
+            return readOnly(true);
+        }
+
+        public SqlBuilder readOnly(boolean b) {
+            this.readOnly = b;
             return this;
         }
 
@@ -396,6 +431,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public boolean isEnableFilter() {
             return enableFilter;
+        }
+
+        public boolean isReadOnly() {
+            return readOnly;
         }
 
         public SqlBuilder sqlWithParams(String text, List<Object> obj) {

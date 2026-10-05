@@ -65,4 +65,13 @@ public interface DaoConfigs {
     @Description("查询空间和数据库方言之间的映射关系")
     IConfigReference<String> CFG_QUERY_SPACE_TO_DIALECT = varRef(s_loc,
             "nop.dao.config.query-space-to-dialect", String.class, null);
+
+    @Description("读写分离配置（plan 2319），JSON对象文本，key为querySpace名。value对象字段："
+            + "write-ds（写库DataSource bean名）、read-ds（从库DataSource bean名数组）、"
+            + "load-balancer（round-robin|random|weight，缺省round-robin）、weights（从库bean名到权重，weight算法用，缺省等权）、"
+            + "replica-fail-threshold（连续失败次数阈值，达到后进入冷却，缺省3）、"
+            + "replica-cooldown-seconds（冷却时长秒数，期满半开探测，缺省30）。"
+            + "未配置的querySpace行为不变。物理数据源bean名前缀建议nopReadWriteDs_，避免被nopDataSource_的collect-beans误收集")
+    IConfigReference<String> CFG_DAO_READWRITE = varRef(s_loc,
+            "nop.dao.readwrite", String.class, null);
 }

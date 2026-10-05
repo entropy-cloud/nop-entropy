@@ -2,14 +2,27 @@
 
 **日期**：2026-10-05
 **范围**：`nop-persistence/nop-dao`（DataSource 层、事务模板连接获取）、装配（`dao-defaults.beans.xml`）
-**状态**：草案（目标设计，未实现；实施立项时转 active）
+**状态**：active（2026-10-06 经 plan 2319 实施，端到端可用；使用契约见 `docs-for-ai/02-core-guides/datasource-and-readwrite-splitting.md`）
 **灵感来源**：Apache ShardingSphere readwrite-splitting 功能面对比确认的缺口（生产诉求最普遍、移植成本最低的核心项）
+
+---
+
+## 〇、实施裁定（Decision，plan 2319 Phase 3 落档）
+
+| 裁定点 | 结论 | 理由 |
+|---|---|---|
+| default querySpace 路由替换时机 | **初始化器 bean 生命周期**（`nopReadWriteDataSourceInitializer` 的 `init`，容器装配期执行），不设显式配置开关 | "开关"语义已由配置本身承担：配置存在即启用、为空即零行为变更（不注册任何东西）。独立开关只增加一种中间状态（配置了但未启用），无使用场景 |
+| 物理数据源 bean 命名前缀 | **`nopReadWriteDs_`** | `DefaultTransactionManager` 以 `ioc:collect-beans name-prefix="nopDataSource_"` 收集数据源为 querySpace；读写分离物理库沿用该前缀会被误收集为幻影 querySpace。专用前缀天然隔离两个 collect-beans 面 |
+| hint 承载形态 | nop-dao 本地 ThreadLocal（`ReadWriteHint`，对齐 `DynamicDataSource.runWith`/`QuerySpaceEnv.runWithQuerySpace` 先例），不进 `IContext` | 与 §3.4 裁定一致：作用域原语 try/finally 恢复，避免 proxy 上下文依赖 |
+| 只读意图桥接点 | `JdbcTemplateImpl.runWithConnection` 的 `withTxn` 调用处（`withTxnForSql`），以 REPLICA 作用域包裹整个 `withTxn` 执行 | `withTxn` 无 SQL 参数无法感知语句语义；连接获取点（`JdbcTransaction.getConnection()` 懒取）在该作用域内，语义等价。显式 PRIMARY hint 与已打开事务不被覆盖 |
+| ORM 只读标记范围 | 仅 `JdbcQueryExecutor` 对 `statementKind==SELECT` 的 transform 后 SQL（§五"ORM 侧唯一允许的改动"） | ORM 层不引入任何路由逻辑；`findPage` 等分页路径经 `SQL.begin(sql)` 重建，标志经复制面保留 |
+| 配置承载形态 | `nop.dao.readwrite` 字符串/JSON 配置引用（`DaoConfigs.CFG_DAO_READWRITE`），事后解析 | 对齐 `nop.dao.config.query-space-to-dialect` String 配置先例，键名与 §3.2 一致 |
 
 ---
 
 ## 一、设计结论
 
-1. **路由器是 DataSource 层的装饰器**：`ReadWriteRoutingDataSource`（实现 `javax.sql.DataSource`，包装一写多读物理库）以 `nopDataSource_<querySpace>` 的名义注册进既有 collect-beans 装配。事务管理器、`ITransactionTemplate`、ORM 会话对它完全无感知——这是 `nop-orm-scope-and-non-goals.md` §3.5"读写分离路由归 DataSource 层、策略单点"裁定的直接落地。
+1. **路由器是 DataSource 层的装饰器**：`ReadWriteRoutingDataSource`（实现 `javax.sql.DataSource`，包装一写多读物理库）由装配初始化器注册进事务管理器（default querySpace 替换 `defaultFactory`，非 default querySpace 经 `addQuerySpace`）。事务管理器、`ITransactionTemplate`、ORM 会话对它完全无感知——这是 `nop-orm-scope-and-non-goals.md` §3.5"读写分离路由归 DataSource 层、策略单点"裁定的直接落地。
 2. **读写判定三级输入**：显式 hint（`forcePrimary`/`forceReplica`，与 `DynamicDataSource.runWith` 同族的 ThreadLocal 原语）> 事务上下文（活动事务内一律主库）> 语句语义（无事务 + 只读语句 → 从库；写语句或语义未知 → 主库 fail-safe）。语句语义来自既有元数据（EQL 编译产物 `statementKind`、ORM 各操作的已知类型），**不做任何运行期 SQL 解析**。
 3. **意图传播与路由执行分离**：DAO/ORM 执行层只传播"只读意图"（上下文标志，随 `ITransactionTemplate.openConnection(querySpace)` 这条统一连接获取路径传递），不参与路由决策；负载均衡、故障剔除、事务内策略全部收敛在路由 DataSource 内。
 4. **一致性契约显式化**：事务内读 = 主库（对齐 ShardingSphere `TransactionalReadQueryStrategy.PRIMARY` 缺省语义）；不做隐式写后读粘滞（write-then-read sticky）——需要强一致读的业务用事务或显式 hint，不引入时序上难以推理的隐式语义。
@@ -57,22 +70,26 @@ getConnection():
       主库                       # 写语句或语义未知，fail-safe
 ```
 
-### 3.2 配置契约（yaml）
+### 3.2 配置契约（`nop.dao.readwrite`，JSON 文本）
 
-```yaml
-nop.dao.readwrite:
-  default:                        # key = querySpace 名
-    write-ds: nopDataSource_default_write    # 物理 DataSource bean 名
-    read-ds:                      # 从库 bean 名列表
-      - nopDataSource_default_read1
-      - nopDataSource_default_read2
-    load-balancer: round-robin    # round-robin | random | weight
-    # weights: { nopDataSource_default_read1: 8, ... }   # weight 算法用
-    replica-fail-threshold: 3     # 连续失败次数 → 进入冷却
-    replica-cooldown-seconds: 30  # 冷却时长，期满半开探测
+```json
+{
+  "nop.dao.readwrite": {
+    "default": {
+      "write-ds": "nopReadWriteDs_default_write",
+      "read-ds": ["nopReadWriteDs_default_read1", "nopReadWriteDs_default_read2"],
+      "load-balancer": "round-robin",
+      "weights": { "nopReadWriteDs_default_read1": 8 },
+      "replica-fail-threshold": 3,
+      "replica-cooldown-seconds": 30
+    }
+  }
+}
 ```
 
-物理库仍是普通 DataSource bean（HikariDataSourceFactory 既有体系），路由 bean 读取本配置组装并以逻辑名参与 `nopDataSource_<querySpace>` 装配。未配置读写分离的 querySpace 行为不变（直连既有单库 bean）。
+顶层 key = querySpace 名（default querySpace 用 `"default"`）。承载形态为字符串/JSON 配置引用（`DaoConfigs.CFG_DAO_READWRITE`），与 `nop.dao.config.query-space-to-dialect` 的"String 配置事后解析"先例一致；yaml 场景下即 `nop.dao.readwrite` 键下的嵌套对象。
+
+物理库仍是普通 DataSource bean（HikariDataSourceFactory 既有体系），**bean 名前缀 `nopReadWriteDs_`**（实施裁定见 §〇，避免与 `nopDataSource_` 的 collect-beans 碰撞产生幻影 querySpace）。装配初始化器解析本配置组装 `ReadWriteRoutingDataSource` 并注册进事务管理器。未配置读写分离的 querySpace 行为不变（直连既有单库 bean）；配置为空时初始化器不注册任何东西。
 
 ### 3.3 一致性契约
 

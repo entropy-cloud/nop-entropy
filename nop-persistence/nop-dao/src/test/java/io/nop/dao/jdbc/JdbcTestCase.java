@@ -25,12 +25,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class JdbcTestCase extends BaseTestCase {
-    private HikariDataSource dataSource;
+    // plan 2319：类型放宽为DataSource，允许子类覆写createDataSource()返回路由DataSource等装饰器
+    private DataSource dataSource;
     private IJdbcTemplate jdbcTemplate;
     private ITransactionTemplate transactionTemplate;
     protected int maxPoolSize = 4;
@@ -57,12 +59,23 @@ public abstract class JdbcTestCase extends BaseTestCase {
         return transactionTemplate;
     }
 
+    /**
+     * 活跃连接数。dataSource为装饰器（如读写分离路由DataSource）时经unwrap取写库连接池指标
+     */
     public int getActiveConnections() {
-        return dataSource.getHikariPoolMXBean().getActiveConnections();
+        return unwrapHikari().getHikariPoolMXBean().getActiveConnections();
     }
 
     public void checkNoActive() {
         assertTrue(getActiveConnections() == 0);
+    }
+
+    protected HikariDataSource unwrapHikari() {
+        try {
+            return dataSource.unwrap(HikariDataSource.class);
+        } catch (SQLException e) {
+            throw new IllegalStateException("cannot unwrap HikariDataSource from test dataSource:" + dataSource, e);
+        }
     }
 
     @BeforeEach
@@ -101,12 +114,26 @@ public abstract class JdbcTestCase extends BaseTestCase {
 
     @AfterEach
     public void tearDown() {
-        if (dataSource != null) {
-            dataSource.close();
+        closeDataSource(dataSource);
+    }
+
+    /**
+     * plan 2319：dataSource可能为非AutoCloseable的装饰器DataSource（如路由DataSource），
+     * 物理连接池由测试子类自行管理；可关闭的实现（HikariDataSource等）在此统一关闭
+     */
+    protected void closeDataSource(DataSource ds) {
+        if (ds == null)
+            return;
+        if (ds instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) ds).close();
+            } catch (Exception e) {
+                throw new IllegalStateException("close test dataSource failed:" + ds, e);
+            }
         }
     }
 
-    protected HikariDataSource createDataSource() {
+    protected DataSource createDataSource() {
         HikariDataSource ds = new HikariDataSource();
         ds.setMetricRegistry(GlobalMeterRegistry.instance());
         ds.setDriverClassName("org.h2.Driver");

@@ -1,7 +1,7 @@
 # 2319 nop-dao 读写分离（DataSource 层路由装饰器）
 
-> Plan Status: active（2026-10-05 两轮独立对抗审查：第 1 轮 REJECT——1 Blocker（分页重建丢 readOnly）+ 2 Major（sql-lib 生成链/测试基类类型）已修；第 2 轮（fresh session）APPROVE，残留 2 处 baseline 表述已修正，证据见 Draft Review Evidence）
-> Last Reviewed: 2026-10-05
+> Plan Status: active（2026-10-05 两轮独立对抗审查：第 1 轮 REJECT——1 Blocker（分页重建丢 readOnly）+ 2 Major（sql-lib 生成链/测试基类类型）已修；第 2 轮（fresh session）APPROVE，残留 2 处 baseline 表述已修正，证据见 Draft Review Evidence。2026-10-06 全部 4 Phase 实施落地，待独立 closure audit）
+> Last Reviewed: 2026-10-06
 > Source: `ai-dev/design/nop-dao-readwrite-splitting-design.md`（目标设计，承载本 plan）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI1/WI4
 
 > Draft Review Evidence（WI1，2026-10-05）：第 1 轮独立审查对 live code 全量锚点核实（withTxn 桥接链、FakeDataSource 桩、addQuerySpace 先例等全部命中），发现分页 handler 经 `SQL.begin(sql)` 重建会丢弃 readOnly 标志（findPage 静默回落主库）、sql-lib 属性属 `_SqlItemModel` 生成物须走 regen、测试基类 `createDataSource()` 为具体类无法协变覆写——均已修入计划；第 2 轮换 fresh session 复审判定 APPROVE 可执行，另提示 `SqlBuilder.copy()` 同类漏拷先例与基类 Hikari 具体 API 的 tearDown 依赖（编译器强制暴露，非静默），已同步入计划文本。
@@ -61,96 +61,96 @@
 
 ### Phase 1 - 只读意图传播管道
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-core/src/main/java/io/nop/core/lang/sql/SQL.java`、`nop-persistence/nop-dao/.../jdbc/datasource/ReadWriteHint.java`（新）、`nop-persistence/nop-dao/.../jdbc/impl/JdbcTemplateImpl.java`、`nop-persistence/nop-orm/.../loader/JdbcQueryExecutor.java`
 
 - Item Types: `Feature`
 
-- [ ] `SQL` 增加只读标志（字段 + `SqlBuilder` 链式方法 + 缺省 false），不改变任何既有语义
-- [ ] **readOnly 传播完整性**：`SQL.begin(SQL)` 现状只拷 name/querySpace/fetchSize/timeout/cacheRef/disableLogicalDelete——分页 handler（`LimitOffsetPaginationHandler`/`OffsetFetchPaginationHandler`）正以 `SQL.begin(sql)` 重建 paged SQL 且 `JdbcTemplateImpl.executeQuery` 桥接读到的就是 pagedSql，不处理则 findPage 全量静默回落主库；标志必须经重建/复制路径保留（含 `SqlBuilder.copy()`——它现状已漏拷 enableFilter，是同类丢失的在案先例），并配 focused 断言
-- [ ] 新建 `ReadWriteHint`：ThreadLocal 三态（PRIMARY/REPLICA/UNSET），`runWithPrimary/runWithReplica/runWithReadOnly` try/finally 作用域原语（对齐 `QuerySpaceEnv`/`DynamicDataSource.runWith` 先例；静态字段，javadoc 警告线程池复用须用 runWith 形式）
-- [ ] `JdbcQueryExecutor`：`executeQuery/executeQuerySql`（`getStatementKind()==SELECT`）对 transform 后的 SQL 标记只读
-- [ ] `JdbcTemplateImpl` 桥接：`withTxn` 无 SQL 参数，包裹上移到 `runWithConnection` 的 `withTxn(...)` 调用处（SQL 在该作用域，语义等价）——`sql.readOnly && hint==UNSET && 非已 open 事务` 时以 REPLICA 作用域包裹连接获取；显式 hint 与已 open 事务（连接缓存复用，本就要求主库）不被覆盖
-- [ ] 单测（`FakeDataSource.lastResolved` 桩模式）：readOnly→REPLICA、无标志→主库、显式 hint 优先、事务 open 时→主库、hint 作用域退出后恢复 UNSET、分页（带 range）SQL 标志不丢失
+- [x] `SQL` 增加只读标志（字段 + `SqlBuilder` 链式方法 + 缺省 false），不改变任何既有语义
+- [x] **readOnly 传播完整性**：`SQL.begin(SQL)` 现状只拷 name/querySpace/fetchSize/timeout/cacheRef/disableLogicalDelete——分页 handler（`LimitOffsetPaginationHandler`/`OffsetFetchPaginationHandler`）正以 `SQL.begin(sql)` 重建 paged SQL 且 `JdbcTemplateImpl.executeQuery` 桥接读到的就是 pagedSql，不处理则 findPage 全量静默回落主库；标志必须经重建/复制路径保留（含 `SqlBuilder.copy()`——它现状已漏拷 enableFilter，是同类丢失的在案先例），并配 focused 断言
+- [x] 新建 `ReadWriteHint`：ThreadLocal 三态（PRIMARY/REPLICA/UNSET），`runWithPrimary/runWithReplica/runWithReadOnly` try/finally 作用域原语（对齐 `QuerySpaceEnv`/`DynamicDataSource.runWith` 先例；静态字段，javadoc 警告线程池复用须用 runWith 形式）
+- [x] `JdbcQueryExecutor`：`executeQuery/executeQuerySql`（`getStatementKind()==SELECT`）对 transform 后的 SQL 标记只读
+- [x] `JdbcTemplateImpl` 桥接：`withTxn` 无 SQL 参数，包裹上移到 `runWithConnection` 的 `withTxn(...)` 调用处（SQL 在该作用域，语义等价）——`sql.readOnly && hint==UNSET && 非已 open 事务` 时以 REPLICA 作用域包裹连接获取；显式 hint 与已 open 事务（连接缓存复用，本就要求主库）不被覆盖
+- [x] 单测（`FakeDataSource.lastResolved` 桩模式）：readOnly→REPLICA、无标志→主库、显式 hint 优先、事务 open 时→主库、hint 作用域退出后恢复 UNSET、分页（带 range）SQL 标志不丢失
 
 Exit Criteria:
 
-- [ ] 上述行为组各有 focused 断言且通过，**含分页重建路径（range 查询 readOnly→REPLICA）**（Minimum Rules #25）
-- [ ] 既有 `TestDynamicDataSource`/`JdbcTestCase` 全量回归通过
-- [ ] 无静默跳过：桥接不吞异常、hint 未生效路径可观察（Minimum Rules #24）
-- [ ] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 上述行为组各有 focused 断言且通过，**含分页重建路径（range 查询 readOnly→REPLICA）**（Minimum Rules #25）
+- [x] 既有 `TestDynamicDataSource`/`JdbcTestCase` 全量回归通过
+- [x] 无静默跳过：桥接不吞异常、hint 未生效路径可观察（Minimum Rules #24）
+- [x] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - ReadWriteRoutingDataSource 与负载均衡/故障冷却
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-dao/.../jdbc/datasource/ReadWriteRoutingDataSource.java`（新）、负载均衡实现、`DaoConfigs`
 
 - Item Types: `Feature`
 
-- [ ] `ReadWriteRoutingDataSource`：write + reads 物理 DataSource；`getConnection()` 判定序 = 显式 hint PRIMARY→write / REPLICA→read 池（空池或全冷却→模块错误码，英文文案） / UNSET→write
-- [ ] 负载均衡三实现（round-robin/random/weight，weight 缺省等权），选择前过滤冷却中从库
-- [ ] 故障状态机：获取连接异常→立即试下一台（按 LB 顺序）；连续失败达阈值→冷却；冷却期满→半开（放一台探测）；全部不可用→报错携带各从库失败摘要（不回退主库）
-- [ ] `DaoConfigs` 增加 `nop.dao.readwrite.*` 配置引用（querySpace→{write-ds, read-ds[], load-balancer, weights, replica-fail-threshold, replica-cooldown-seconds}，键名与设计文档 §3.2 一致；承载形态为字符串/JSON 配置引用——`query-space-to-dialect` 先例是 String 配置事后解析，非 Map 型引用）
-- [ ] 单测：路由判定矩阵；round-robin 轮转序列与 weight 配比断言；失败→冷却→半开恢复时序；全从库不可用→显式错误；连接归还（`checkNoActive`）
+- [x] `ReadWriteRoutingDataSource`：write + reads 物理 DataSource；`getConnection()` 判定序 = 显式 hint PRIMARY→write / REPLICA→read 池（空池或全冷却→模块错误码，英文文案） / UNSET→write
+- [x] 负载均衡三实现（round-robin/random/weight，weight 缺省等权），选择前过滤冷却中从库
+- [x] 故障状态机：获取连接异常→立即试下一台（按 LB 顺序）；连续失败达阈值→冷却；冷却期满→半开（放一台探测）；全部不可用→报错携带各从库失败摘要（不回退主库）
+- [x] `DaoConfigs` 增加 `nop.dao.readwrite.*` 配置引用（querySpace→{write-ds, read-ds[], load-balancer, weights, replica-fail-threshold, replica-cooldown-seconds}，键名与设计文档 §3.2 一致；承载形态为字符串/JSON 配置引用——`query-space-to-dialect` 先例是 String 配置事后解析，非 Map 型引用）
+- [x] 单测：路由判定矩阵；round-robin 轮转序列与 weight 配比断言；失败→冷却→半开恢复时序；全从库不可用→显式错误；连接归还（`checkNoActive`，在 Phase 4 双 H2 集成 `TestReadWriteSplittingIntegration.testConnectionsReturnedToPools` 落地）
 
 Exit Criteria:
 
-- [ ] 路由矩阵/负载均衡/故障时序各有 focused 测试且通过
-- [ ] 无静默跳过：任何故障路径显式抛模块异常（NopException + 错误码 + 英文 message），无吞异常
-- [ ] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 路由矩阵/负载均衡/故障时序各有 focused 测试且通过
+- [x] 无静默跳过：任何故障路径显式抛模块异常（NopException + 错误码 + 英文 message），无吞异常
+- [x] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 装配接线与 sql-lib 只读标注
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-dao/src/main/resources/_vfs/nop/dao/beans/dao-defaults.beans.xml`、`nop-kernel/nop-xdefs/.../orm/sql-lib.xdef`、`nop-persistence/nop-orm/.../sql_lib/SqlItemModel.java`
 
 - Item Types: `Feature` + `Decision`
 
-- [ ] 装配初始化器（ioc:default bean，`@PostConstruct`）：读 `nop.dao.readwrite.*` 配置，解析 write/read 物理 DataSource（bean 名引用自 IoC 容器），构造 `ReadWriteRoutingDataSource`；非 default querySpace 经 `transactionManager.addQuerySpace` 注册，default querySpace 经 `setDefaultFactory(new JdbcTransactionFactory(routingDS, dialect))` 替换（setter 已核实存在）
-- [ ] **Decision**：default querySpace 的路由替换时机（初始化器 bean 生命周期 vs 显式配置开关）——实现时裁定并记录到设计文档；配置为空时零行为变更（不注册任何东西）；物理数据源 bean 命名前缀一并裁定（避免与 `nopDataSource_` collect-beans 前缀碰撞产生幻影 querySpace，建议 `nopReadWriteDs_`）
-- [ ] sql-lib `readOnly` 属性走生成链：编辑 `sql-lib.xdef`（非生成物，git 历史为人工编辑）→ 构建期 regen 更新 `_gen/_SqlItemModel`（**禁止手改 `_gen/` 任何文件**——AGENTS.md Generated Files Hard Stop）→ 手写 `SqlItemModel.buildSql` 将标志传入 `SQL`
-- [ ] 测试：初始化器装配（双 H2 + 配置）生效且未配置时行为不变；sql-lib 原生 `<sql readOnly="true">` 项走从库、未标注走主库
+- [x] 装配初始化器（ioc:default bean，`@PostConstruct`）：读 `nop.dao.readwrite.*` 配置，解析 write/read 物理 DataSource（bean 名引用自 IoC 容器），构造 `ReadWriteRoutingDataSource`；非 default querySpace 经 `transactionManager.addQuerySpace` 注册，default querySpace 经 `setDefaultFactory(new JdbcTransactionFactory(routingDS, dialect))` 替换（setter 已核实存在）
+- [x] **Decision**：default querySpace 的路由替换时机（初始化器 bean 生命周期 vs 显式配置开关）——实现时裁定并记录到设计文档；配置为空时零行为变更（不注册任何东西）；物理数据源 bean 命名前缀一并裁定（避免与 `nopDataSource_` collect-beans 前缀碰撞产生幻影 querySpace，建议 `nopReadWriteDs_`）（裁定：初始化器生命周期启用、`nopReadWriteDs_` 前缀、配置空即零行为变更——已落档设计文档 §〇 实施裁定表）
+- [x] sql-lib `readOnly` 属性走生成链：编辑 `sql-lib.xdef`（非生成物，git 历史为人工编辑）→ 构建期 regen 更新 `_gen/_SqlItemModel`（**禁止手改 `_gen/` 任何文件**——AGENTS.md Generated Files Hard Stop）→ 手写 `SqlItemModel.buildSql` 将标志传入 `SQL`
+- [x] 测试：初始化器装配（双 H2 + 配置）生效且未配置时行为不变；sql-lib 原生 `<sql readOnly="true">` 项走从库、未标注走主库（初始化器两态 `TestReadWriteDataSourceInitializer`；sql-lib 标注路由命中 `TestReadWriteSplittingOrmE2E.testSqlLibReadOnlyAnnotationRouting`）
 
 Exit Criteria:
 
-- [ ] 装配/未装配两态 + sql-lib 标注各有 focused 测试且通过
-- [ ] **接线验证**（Minimum Rules #23）：初始化器构造的路由 DS 被 `DefaultTransactionManager` 真实使用（经事务模板执行的 SQL 路由可观察）
-- [ ] xdef 变更后构建期 regen 执行（`./mvnw compile -pl nop-persistence/nop-orm -am -DskipTests`），`git diff` 核对 `_gen/` 仅含预期字段漂移、无手改痕迹
-- [ ] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 装配/未装配两态 + sql-lib 标注各有 focused 测试且通过
+- [x] **接线验证**（Minimum Rules #23）：初始化器构造的路由 DS 被 `DefaultTransactionManager` 真实使用（经事务模板执行的 SQL 路由可观察）
+- [x] xdef 变更后构建期 regen 执行（`./mvnw compile -pl nop-persistence/nop-orm -am -DskipTests`），`git diff` 核对 `_gen/` 仅含预期字段漂移、无手改痕迹
+- [x] owner-doc 更新延至 Phase 4 统一执行（本 Phase 无独立文档交付）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 端到端与文档收口
 
-Status: planned
+Status: completed
 Targets: 测试（nop-dao 双 H2 集成、nop-orm E2E、测试基类类型放宽）、owner docs、设计文档状态
 
 - Item Types: `Proof`
 
-- [ ] 测试基类类型放宽：`JdbcTestCase`（nop-dao）与 `AbstractJdbcTestCase`（nop-orm）的 `createDataSource()` 返回类型与 `dataSource` 字段由 `HikariDataSource` 放宽为 `DataSource`（协变覆写前提；`IJdbcTemplateFactory.newTransactionTemplate(DataSource)` 已就绪，既有子类不受影响）
-- [ ] 双 H2 集成（`TestDefaultTransactionManager.addQuerySpace` 先例）：primary 建表插数、replica 独立空库——无事务 EQL 查询命中从库（观察到从库数据）、事务内查询命中主库（观察到主库数据）、`runWithPrimary` 强制主库
-- [ ] ORM 级 E2E：`AbstractJdbcTestCase` 覆写 `createDataSource()` 返回路由 DS——`findPage`（QueryBean→EQL，分页路径）无事务走从库、写操作与事务内读走主库
-- [ ] 设计文档 `nop-dao-readwrite-splitting-design.md` 状态 草案→active（含 Phase 3 Decision 结论落档）
-- [ ] owner doc：`docs-for-ai/02-core-guides/` 新增"数据源与读写分离"章节（配置契约、判定矩阵、一致性契约、fail-safe 边界）+ `docs-for-ai/INDEX.md` 路由
-- [ ] 全量回归：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm -am`
+- [x] 测试基类类型放宽：`JdbcTestCase`（nop-dao）与 `AbstractJdbcTestCase`（nop-orm）的 `createDataSource()` 返回类型与 `dataSource` 字段由 `HikariDataSource` 放宽为 `DataSource`（协变覆写前提；`IJdbcTemplateFactory.newTransactionTemplate(DataSource)` 已就绪，既有子类不受影响）
+- [x] 双 H2 集成（`TestDefaultTransactionManager.addQuerySpace` 先例）：primary 建表插数、replica 独立空库——无事务 EQL 查询命中从库（观察到从库数据）、事务内查询命中主库（观察到主库数据）、`runWithPrimary` 强制主库
+- [x] ORM 级 E2E：`AbstractJdbcTestCase` 覆写 `createDataSource()` 返回路由 DS——`findPage`（QueryBean→EQL，分页路径）无事务走从库、写操作与事务内读走主库
+- [x] 设计文档 `nop-dao-readwrite-splitting-design.md` 状态 草案→active（含 Phase 3 Decision 结论落档）
+- [x] owner doc：`docs-for-ai/02-core-guides/` 新增"数据源与读写分离"章节（配置契约、判定矩阵、一致性契约、fail-safe 边界）+ `docs-for-ai/INDEX.md` 路由
+- [x] 全量回归：`./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm -am`
 
 Exit Criteria:
 
-- [ ] **端到端验证**（Minimum Rules #22）：从配置装配到主从分流的完整路径双方向（从库命中/主库命中）均有断言
-- [ ] owner docs 与 INDEX 更新完成；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **端到端验证**（Minimum Rules #22）：从配置装配到主从分流的完整路径双方向（从库命中/主库命中）均有断言
+- [x] owner docs 与 INDEX 更新完成；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 三级判定矩阵（hint/事务/readOnly）+ 负载均衡 + 故障冷却 + 装配两态 + sql-lib 标注全部有 focused/E2E 测试
-- [ ] 全从库不可用显式报错、hint 作用域恢复、无吞异常——无静默跳过
-- [ ] 未配置读写分离时全部既有行为零变更（回归证明）
-- [ ] owner docs 与设计文档（转 active）与 live baseline 一致
-- [ ] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow：路由 DS 在事务模板真实调用链上）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2319-dao-readwrite-splitting.md --strict` 退出码 0
-- [ ] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm -am` 通过
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 三级判定矩阵（hint/事务/readOnly）+ 负载均衡 + 故障冷却 + 装配两态 + sql-lib 标注全部有 focused/E2E 测试
+- [x] 全从库不可用显式报错、hint 作用域恢复、无吞异常——无静默跳过
+- [x] 未配置读写分离时全部既有行为零变更（回归证明：`TestReadWriteDataSourceInitializer.testUnconfiguredMeansZeroBehaviorChange` + 全量回归绿）
+- [x] owner docs 与设计文档（转 active）与 live baseline 一致
+- [ ] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow：路由 DS 在事务模板真实调用链上）（留主会话执行）
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2319-dao-readwrite-splitting.md --strict` 退出码 0（留主会话执行）
+- [x] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm -am` 通过
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 

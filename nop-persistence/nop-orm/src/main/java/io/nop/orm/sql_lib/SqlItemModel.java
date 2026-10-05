@@ -83,8 +83,9 @@ public abstract class SqlItemModel extends _SqlItemModel {
             Object cacheKey = getCacheKeyExpr().invoke(context);
             cacheRef = new CacheRef(getCacheName(), (Serializable) cacheKey);
         }
+        // readOnly（plan 2319）：sql-lib原生<sql>项的显式只读标注，经SQL只读标志参与读写分离判定
         return new SQL(getName(), sql.getText(), sql.getMarkers(), timeout, cacheRef, fetchSize, getQuerySpace(),
-                isDisableLogicalDelete(), isAllowUnderscoreName(), isEnableFilter(), getLocation());
+                isDisableLogicalDelete(), isAllowUnderscoreName(), isEnableFilter(), isReadOnly(), getLocation());
     }
 
     void checkArgs(IEvalContext context) {

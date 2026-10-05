@@ -131,6 +131,14 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: readOnly
+     * 标记此sql项为只读查询（plan 2319）。读写分离场景下，无事务时允许路由到从库。
+     * 缺省为false（语义未知fail-safe走主库）。仅对查询语义明确的sql项标注
+     */
+    private boolean _readOnly  = false;
+    
+    /**
+     *  
      * xml name: rowType
      * 可以指定返回结果对应的包装类名称。会按照字段别名映射到对象的属性上，
      */
@@ -523,6 +531,26 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: readOnly
+     *  标记此sql项为只读查询（plan 2319）。读写分离场景下，无事务时允许路由到从库。
+     * 缺省为false（语义未知fail-safe走主库）。仅对查询语义明确的sql项标注
+     */
+    
+    public boolean isReadOnly(){
+      return _readOnly;
+    }
+
+    
+    public void setReadOnly(boolean value){
+        checkAllowChange();
+        
+        this._readOnly = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: rowType
      *  可以指定返回结果对应的包装类名称。会按照字段别名映射到对象的属性上，
      */
@@ -653,6 +681,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("name",this.getName());
         out.putNotNull("ormEntityRefreshBehavior",this.getOrmEntityRefreshBehavior());
         out.putNotNull("querySpace",this.getQuerySpace());
+        out.putNotNull("readOnly",this.isReadOnly());
         out.putNotNull("rowType",this.getRowType());
         out.putNotNull("sqlMethod",this.getSqlMethod());
         out.putNotNull("timeout",this.getTimeout());
@@ -685,6 +714,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         instance.setName(this.getName());
         instance.setOrmEntityRefreshBehavior(this.getOrmEntityRefreshBehavior());
         instance.setQuerySpace(this.getQuerySpace());
+        instance.setReadOnly(this.isReadOnly());
         instance.setRowType(this.getRowType());
         instance.setSqlMethod(this.getSqlMethod());
         instance.setTimeout(this.getTimeout());

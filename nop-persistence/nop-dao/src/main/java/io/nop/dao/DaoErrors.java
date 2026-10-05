@@ -63,6 +63,19 @@ public interface DaoErrors {
 
     String ARG_SQL_DATA_TYPE = "sqlDataType";
 
+    String ARG_REASON = "reason";
+    String ARG_SUMMARY = "summary";
+
+    /**
+     * 读写分离（plan 2319）：从库池为空、全部冷却或本次获取全部失败时的显式失败。
+     * 按设计裁定不静默回退主库（否则从库故障静默演变为全量主库压力）。
+     */
+    ErrorCode ERR_DAO_NO_REPLICA_AVAILABLE = define("nop.err.dao.readwrite.no-replica-available",
+            "No replica available for querySpace [{querySpace}]. Replica status: {summary}", ARG_QUERY_SPACE, ARG_SUMMARY);
+
+    ErrorCode ERR_DAO_READWRITE_CONFIG_INVALID = define("nop.err.dao.readwrite.config-invalid",
+            "Invalid readwrite-splitting config: {reason}", ARG_REASON);
+
     ErrorCode ERR_TXN_NOT_IN_TRANSACTION = define("nop.err.dao.txn.not-in-transaction",
             "要求上下文环境必须存在已经启动的事务:{querySpace}", ARG_QUERY_SPACE);
 
