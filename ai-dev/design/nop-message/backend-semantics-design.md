@@ -51,6 +51,18 @@
 - **nop-retry 桥（第三层）**：`nop-message-core.MessageConsumeFailureBridge`——「失败事件 → 部署声明的重放入口」的**转发器**，非消息重放机制、零重试策略（policyId 仅部署显式提供时设置，否则引擎默认）。`IRetryEngine` 与重放目标（serviceName/serviceMethod）任一缺失 → WARN（`nop.err.message.bridge.not-configured`）零行为；payload 映射：`ApiRequest.data` = 失败 ApiMessage 原样，topic/location/attempt 经 request headers（`nop-msg-*`），idempotentId=location、groupId=topic；提交失败仅 LOG 不抛（辅助运维通道，不反噬消费）。模块图：`nop-message-core` 新增 `nop-retry-api` 依赖（api-only，无 engine 传递；BOM 登记归 WI31）。部署用法：消费者覆写 `onConsumeFailure` 调 `bridge.submit(failure)`——仅对具备消息重放 service 的部署有意义。
 - **存量交互记录（不修，本计划登记）**：Pulsar 2.8 客户端 `doReconsumeLater` 无条件解引用 `deadLetterPolicy.getRetryLetterTopic()`——未配置 DLQ 时 `ConsumeLater` → `reconsumeLaterAsync` 每次触发客户端内部 NPE→ERROR 日志噪音→原地重投（at-least-once 语义不受影响）；配置 `deadLetterMaxRedeliverCount` 后噪音以 topic:null 形态延续。处置归 Pulsar 升级或 retryLetterTopic 语义实现（roadmap Follow-up）。
 
+### 3.3.2 重试上限与退避（WI22）
+
+- **attempt 查询面与计数点**：`ConsumeFailure.getAttempt()` 是唯一查询面。计数自增在已知 location 的失败点（Kafka 单条内层 catch / 批量外层 catch 的 progress 记录；Pulsar 单条 catch），`dispatchConsumeFailure` 只读取（peek）不再自增。批量归因收紧：progress 以 -1 起始——`onMessageBatch` 本身抛出/返回 null 属框架级失败，不 bump 不归属记录 0；仅响应处理期失败按 progress 记录计数。cap 作用域：仅消息级失败（有 location，含处理期 ack-topic 发送失败）；框架级失败（poll/commit）永不计数永不终点。
+- **失败终点（上限驱动）**：`maxConsumeAttempts` 计重试次数，终点在第 **cap+1** 次失败触发（`>` 比较符；与 Pulsar 原生 `redeliveryCount >= maxRedeliverCount` 入表条件等值配置时精确衔接——本地 cap 命中的 ack 恰使计数入表、原生分流接管，无双写）。默认 **10**。**默认值取舍（显式裁定）**：有限预算保护暂态故障；超出预算（默认升级退避下约数分钟）的持续故障期间未提交消息被终点丢弃（DLQ off 时）——spring-kafka `DefaultErrorHandler`「有界重试后跳过」同款权衡；零丢失诉求设 `0`（unlimited，WI22 前行为）或配 DLQ。
+  - Kafka 单条：DLQ 重发布（WI21 机制）成功 → WARN 留证 + 回调派发（attempt=封顶实际值）+ 清计数清上下文 → 不 seek 继续批内后续、随本轮 commit；**发布失败回退 seek+rethrow 正常失败路径**（无静默丢弃）。
+  - Kafka 批量：终点记录**先 publish（可重试部分）成功后 `commitConverged`**（含终点 offset+1，catch 路径显式提交——否则 rebalance/重启后终点复活）；发布失败回退 `rewindFrom(progress)` 正常路径（**不提交**——commit 先行会让发布失败时 boundary 已持久化、回退失去意义，WI22 审计证据测试实测纠出）；成功则 `rewindFrom(progress+1)` + rethrow（尾部仍重投）。commit 丢失时的重启重投为 at-least-once 残留（如实声明）。批量终点轮因 rethrow 会产生**两次** onConsumeFailure 派发（终点级 attempt=cap 值 + run-loop 级 topic=null/attempt=0）——系「rethrow + 清上下文」裁定的必然后果，单条终点无此双重派发。
+  - Pulsar 单条：有效 attempt = max(本地计数, `message.getRedeliveryCount()`)；终点 = 永久 ack（原生 policy 在该 ack 时分流）——**不做应用级 DLQ 重发布**（与原生分流双写）；ack 失败 WARN 不抛（broker 未 ack 重投兜底）。**Pulsar 批量不设应用级终点**（整批 nack 无逐条归因；原生 policy 覆盖 Shared 场景）——显式边界。
+- **跨重启 attempt 语义（显式声明）**：attempt 为消费任务实例内的同 location 连续失败计数（内存态，重启/rebalance 归零）。Pulsar 的 cap 判定并入 broker redeliveryCount——**跨重启有效性仅 Shared/Key_Shared 订阅成立**（2.8 非 Shared 计数恒 0，退化为本地预算，与 Kafka 同款）；Kafka 无 broker 计数，重启后毒消息重获完整本地预算。不宣称 Kafka 侧跨重启预算。
+- **退避（F-21）**：`consumeErrorBackoffMs`（默认 1000）/`consumeErrorBackoffMaxMs`（默认 30000）模块级可配置；循环退避 = `min(base × 2^n, max)`，**n 从 0 起（首错睡 base，与旧常量行为兼容）**；清零条件 = 本轮**成功派发至少一条消息**（空 poll/receive 超时轮中性——否则 Pulsar nack 重投间隙的空轮把升级打回 base，F-21 原样复发）；ConsumeLater 轮算派发成功轮。`computeBackoffMs` 纯函数两后端各留私有静态副本（两后端无共享模块，故意复制）。
+- **注入通道**：backoff base 经构造参数（doSubscribe 读 config 传入）；`maxConsumeAttempts`/`consumeErrorBackoffMaxMs` 经 service 包私有访问器读 config，`defaultConsumerConfig == null` 时回落模块默认常量（**非 0**——直构服务保持生产语义；mock 服务 int 默认 0=off 使既有测试自然保持无限重投行为）。
+- **既有不对称（记录现状，不本计划修）**：Pulsar 的 ConsumeLater 轮清 per-location 计数而 Kafka 不清——cap 语义下两后端对「延迟重投是否重置预算」回答不同；owner doc（WI34）与 3.3.2 同时声明。
+
 ### 3.4 D7 消费组身份模型
 
 - 生效身份 = `${groupId}.${subscribeName}`（全局 groupId 配置时）；仅 subscribeName 时身份 = subscribeName；两者皆缺 = 类型化错误（ERR_GROUP_ID_NOT_CONFIGURED）。

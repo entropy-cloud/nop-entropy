@@ -62,6 +62,8 @@ public class KafkaConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(KafkaConsumeTask.class);
 
     static final long DEFAULT_CONSUME_ERROR_BACKOFF_MS = 1000L;
+    static final long DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS = 30000L;
+    static final int DEFAULT_MAX_CONSUME_ATTEMPTS = 10;
     private static final long DEFAULT_POLL_TIMEOUT_MS = 1000L;
 
     private final KafkaMessageService service;
@@ -122,6 +124,11 @@ public class KafkaConsumeTask {
     void bindExecutor(ExecutorService executor, long pollTimeoutMs) {
         this.executor = executor;
         this.pollTimeoutMs = pollTimeoutMs;
+    }
+
+    /** WI22: the resolved backoff base (package-private for the wiring test). */
+    long consumeErrorBackoffMs() {
+        return consumeErrorBackoffMs;
     }
 
     /**
@@ -272,25 +279,36 @@ public class KafkaConsumeTask {
     }
 
     private void runTask() {
+        // WI22 (F-21): escalating error backoff — n counts CONSECUTIVE error rounds (0-based,
+        // the first error sleeps the base). The counter resets only on a round that dispatched
+        // at least one message; an empty poll is neutral (otherwise broker redelivery gaps
+        // would keep resetting the escalation).
+        int consecutiveErrors = 0;
         while (active) {
             // WI20 (F-26): suspend/resume are applied HERE — on the consume thread, between
             // rounds — never from the subscribing thread.
             applySuspendState();
             try {
+                boolean dispatched;
                 if (config.getOptions() != null && config.getOptions().allowBatchConsume()) {
-                    batchConsume();
+                    dispatched = batchConsume();
                 } else {
-                    pollAndConsume();
+                    dispatched = pollAndConsume();
+                }
+                if (dispatched) {
+                    consecutiveErrors = 0;
                 }
             } catch (WakeupException we) {
                 // stop() woke the consumer — exit gracefully.
                 break;
             } catch (Exception e) {
+                consecutiveErrors++;
                 LOG.error("nop.err.message.kafka.consume-fail", e);
                 dispatchConsumeFailure(e);
                 if (active) {
                     try {
-                        Thread.sleep(consumeErrorBackoffMs);
+                        Thread.sleep(computeBackoffMs(consumeErrorBackoffMs,
+                                service.consumeErrorBackoffMaxMs(), consecutiveErrors - 1));
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         break;
@@ -301,16 +319,32 @@ public class KafkaConsumeTask {
     }
 
     /**
+     * WI22 (F-21): escalating backoff — {@code baseMs * 2^n}, capped at {@code maxMs};
+     * {@code n} is 0-based so the first error sleeps exactly the base (compatible with the
+     * pre-WI22 constant behavior when unconfigured).
+     */
+    static long computeBackoffMs(long baseMs, long maxMs, long n) {
+        long backoff = baseMs;
+        for (long i = 0; i < n && backoff < maxMs; i++) {
+            backoff = Math.min(backoff * 2, maxMs);
+        }
+        return backoff;
+    }
+
+    /**
      * Single-record consume path: polls, then for each record invokes the consumer and
      * dispatches the 5 return-value semantics individually (commit per record group).
+     * Returns whether at least one record was dispatched (WI22: the run loop's backoff
+     * escalation resets only on dispatched rounds).
      */
-    void pollAndConsume() throws Exception {
+    boolean pollAndConsume() throws Exception {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(pollTimeoutMs));
         if (records == null || records.isEmpty()) {
-            return;
+            return false;
         }
 
         IMessageConsumer consumerFn = config.getConsumer();
+        boolean dispatched = false;
 
         for (ConsumerRecord<String, String> record : records) {
             ApiMessage apiMessage = KafkaHelper.buildApiMessage(record.topic(), record.partition(),
@@ -320,6 +354,7 @@ public class KafkaConsumeTask {
             try {
                 Object response = consumerFn.onMessage(record.topic(), apiMessage, context);
                 response = FutureHelper.getResult(response);
+                dispatched = true;
 
                 if (response instanceof ConsumeLater) {
                     // MSG-F-09 (WI12): a deferring response is a batch endpoint, mirroring
@@ -330,7 +365,7 @@ public class KafkaConsumeTask {
                     // between polls) instead of re-polling immediately (CPU spin).
                     consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
                     deferAfterBatch(((ConsumeLater) response).getDelay());
-                    return;
+                    return dispatched;
                 } else if (response instanceof TerminateConsume) {
                     // D5(b-prime): poison message is acknowledged (committed), never
                     // redelivered, and never dispatched to the ack topic. WI21 (D6 layer
@@ -365,6 +400,16 @@ public class KafkaConsumeTask {
                 lastFailureTopic = record.topic();
                 lastFailureLocation = record.topic() + "-" + record.partition() + "@" + record.offset();
                 lastFailureMessage = apiMessage;
+                String location = lastFailureLocation;
+                int attempt = bumpFailureAttempt(location);
+                if (isPoisoned(attempt)) {
+                    // WI22 failure endpoint: this record leaves the redelivery loop. The DLQ
+                    // publish must succeed first — a failed publish falls back to the normal
+                    // failure path (seek + rethrow), never a silent drop.
+                    if (runFailureEndpoint(record.topic(), apiMessage, location, attempt, e)) {
+                        continue;
+                    }
+                }
                 // Re-seek to the failed record for at-least-once redelivery.
                 consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
                 throw e;
@@ -376,6 +421,7 @@ public class KafkaConsumeTask {
         } catch (Exception e) {
             LOG.error("nop.err.message.kafka.commit-fail", e);
         }
+        return dispatched;
     }
 
     /**
@@ -436,10 +482,10 @@ public class KafkaConsumeTask {
      * commitSync itself throws, the failure falls into the rewind path below (already
      * committed records may be re-delivered — safe, never lost).
      */
-    void batchConsume() throws Exception {
+    boolean batchConsume() throws Exception {
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(pollTimeoutMs));
         if (records == null || records.isEmpty()) {
-            return;
+            return false;
         }
 
         List<TopicMessage> list = new ArrayList<>(records.count());
@@ -453,7 +499,10 @@ public class KafkaConsumeTask {
 
         IMessageConsumer consumerFn = config.getConsumer();
         ConsumeContext ctx = newConsumeContext();
-        int progress = 0;
+        // WI22: -1 = nothing dispatched yet (an onMessageBatch-level failure is then
+        // framework-grade — no attempt bump, no endpoint attribution to record 0).
+        int progress = -1;
+        boolean dispatched = false;
         try {
             List<Object> responses = consumerFn.onMessageBatch(list, ctx);
             if (responses == null) {
@@ -463,11 +512,12 @@ public class KafkaConsumeTask {
             for (int i = 0; i < responses.size() && i < recordList.size(); i++) {
                 progress = i;
                 Object response = FutureHelper.getResult(responses.get(i));
+                dispatched = true;
                 ConsumerRecord<String, String> record = recordList.get(i);
                 if (response instanceof PartialCommit) {
                     // WI6 prefix-commit semantics: records [0..k-1] only, then stop.
                     commitConverged(boundariesAfter(committedBoundaries, recordList, i));
-                    return;
+                    return dispatched;
                 } else if (response instanceof TerminateConsume) {
                     // D5(b-prime) + WI21: DLQ republish before the boundary merge — a failed
                     // publish throws into the batch catch, whose rewind re-polls this record.
@@ -480,7 +530,7 @@ public class KafkaConsumeTask {
                     anyConsumeLaterSeek(record);
                     // WI12: honor the delay (see deferAfterBatch) instead of spinning.
                     deferAfterBatch(((ConsumeLater) response).getDelay());
-                    return;
+                    return dispatched;
                 } else if (response instanceof Acknowledge) {
                     ctx.send(service.getAckTopic(record.topic()),
                             ((Acknowledge) response).getReplyMessage());
@@ -493,16 +543,47 @@ public class KafkaConsumeTask {
             ctx.commit();
             commitConverged(committedBoundaries);
             rewindUndispatched(recordList, committedBoundaries);
+            return dispatched;
         } catch (Exception e) {
-            // WI16: best-effort failure context from the progress pointer.
-            if (progress < recordList.size()) {
+            // WI16/WI22: failure context from the progress pointer — only when a record was
+            // actually being dispatched (progress >= 0); an onMessageBatch-level failure is
+            // framework-grade and must not poison record 0's attempt budget.
+            if (progress >= 0 && progress < recordList.size()) {
                 ConsumerRecord<String, String> failed = recordList.get(progress);
                 lastFailureTopic = failed.topic();
                 lastFailureLocation = failed.topic() + "-" + failed.partition() + "@"
                         + failed.offset();
                 lastFailureMessage = list.get(progress).getMessage();
+                String location = lastFailureLocation;
+                int attempt = bumpFailureAttempt(location);
+                if (isPoisoned(attempt)) {
+                    // WI22 batch endpoint. Order matters: the DLQ publish (retryable) must
+                    // succeed BEFORE the boundary commit — a commit-first ordering would
+                    // persist the endpoint even when the publish fails and the record must
+                    // redeliver (found by the WI22 audit evidence test).
+                    if (runFailureEndpoint(failed.topic(), list.get(progress).getMessage(),
+                            location, attempt, e)) {
+                        try {
+                            // Persist the endpoint + head records (the catch path has no
+                            // other commit); if this commit is lost the endpoint record
+                            // redelivers after a restart with a reset budget (at-least-once
+                            // residue, declared in backend-semantics-design.md 3.3.2).
+                            commitConverged(boundariesAfter(new HashMap<>(), recordList, progress + 1));
+                        } catch (Exception commitError) {
+                            LOG.warn("nop.err.message.kafka.endpoint-commit-fail:location={}",
+                                    location, commitError);
+                        }
+                        rewindFrom(recordList, progress + 1);
+                        try {
+                            ctx.rollback();
+                        } catch (Exception rollbackError) {
+                            e.addSuppressed(rollbackError);
+                        }
+                        throw e;
+                    }
+                }
             }
-            rewindFrom(recordList, progress);
+            rewindFrom(recordList, Math.max(progress, 0));
             try {
                 ctx.rollback();
             } catch (Exception rollbackError) {
@@ -526,16 +607,61 @@ public class KafkaConsumeTask {
         lastFailureTopic = null;
         lastFailureLocation = null;
         lastFailureMessage = null;
-        int attempt = 0;
-        if (location != null) {
-            attempt = failureAttempts.merge(location, 1, Integer::sum);
-        }
+        // WI22: the attempt was already bumped at the failure point; this dispatch reads it.
+        int attempt = peekFailureAttempt(location);
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
                     topic, location, message, attempt, e));
         } catch (Exception callbackError) {
             LOG.warn("nop.err.message.kafka.failure-callback-throw", callbackError);
         }
+    }
+
+    /** WI22: consecutive-failure counter for one location (0 when absent). */
+    private int bumpFailureAttempt(String location) {
+        return location == null ? 0 : failureAttempts.merge(location, 1, Integer::sum);
+    }
+
+    private int peekFailureAttempt(String location) {
+        Integer attempt = location == null ? null : failureAttempts.get(location);
+        return attempt == null ? 0 : attempt;
+    }
+
+    /** WI22: the failure endpoint fires on failure number cap+1 ({@code 0} = unlimited). */
+    private boolean isPoisoned(int attempt) {
+        int cap = service.maxConsumeAttempts();
+        return cap > 0 && attempt > cap;
+    }
+
+    /**
+     * WI22: the failure endpoint for an exhausted message — republish to the configured
+     * DLQ (WI21) or drop with a loud WARN, dispatch the failure callback once at the capped
+     * attempt, clear the attempt budget and the failure context. Returns {@code true} when
+     * the endpoint completed (the caller must NOT seek/rethrow); {@code false} when the DLQ
+     * publish failed — the caller falls back to the normal redelivery path (never a silent
+     * drop).
+     */
+    private boolean runFailureEndpoint(String topic, Object message, String location,
+                                       int attempt, Exception e) {
+        try {
+            publishToDeadLetterIfConfigured(topic, message);
+        } catch (Exception publishError) {
+            LOG.warn("nop.err.message.kafka.endpoint-publish-fail:location={}", location, publishError);
+            return false;
+        }
+        LOG.warn("nop.message.kafka.consume-attempt-exhausted:topic={},location={},attempts={} "
+                + "- failure endpoint, leaving the redelivery loop", topic, location, attempt);
+        try {
+            config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                    topic, location, message, attempt, e));
+        } catch (Exception callbackError) {
+            LOG.warn("nop.err.message.kafka.failure-callback-throw", callbackError);
+        }
+        failureAttempts.remove(location);
+        lastFailureTopic = null;
+        lastFailureLocation = null;
+        lastFailureMessage = null;
+        return true;
     }
 
     /**

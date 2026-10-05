@@ -202,6 +202,21 @@ class TestPulsarServiceLifecycle {
     }
 
     @Test
+    void wi22AccessorsFallBackToDefaultsAndReadConfig() {
+        PulsarMessageService service = new PulsarMessageService();
+        assertEquals(PulsarConsumeTask.DEFAULT_MAX_CONSUME_ATTEMPTS, service.maxConsumeAttempts());
+        assertEquals(PulsarConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS,
+                service.consumeErrorBackoffMaxMs());
+
+        PulsarConsumerConfig config = new PulsarConsumerConfig();
+        config.setMaxConsumeAttempts(4);
+        config.setConsumeErrorBackoffMaxMs(999L);
+        service.setDefaultConsumerConfig(config);
+        assertEquals(4, service.maxConsumeAttempts());
+        assertEquals(999L, service.consumeErrorBackoffMaxMs());
+    }
+
+    @Test
     void sendAfterDestroyIsTypedRejectedNotNpe() throws Exception {
         LifecycleTestService service = configuredService();
         service.init();

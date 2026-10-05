@@ -278,6 +278,35 @@ class TestKafkaServiceLifecycle {
     }
 
     /**
+     * WI22: the backoff base is read from the consumer config in newTask, and the
+     * cap/backoffMax accessors fall back to the module defaults (never 0) when no config
+     * is set.
+     */
+    @Test
+    void newTaskUsesConfiguredBackoffAndAccessorsFallBackToDefaults() {
+        KafkaMessageService service = new KafkaMessageService();
+        // No config: production defaults (not 0) so a directly constructed service keeps
+        // production semantics.
+        assertEquals(KafkaConsumeTask.DEFAULT_MAX_CONSUME_ATTEMPTS, service.maxConsumeAttempts());
+        assertEquals(KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS,
+                service.consumeErrorBackoffMaxMs());
+
+        KafkaConsumerConfig config = new KafkaConsumerConfig();
+        config.setConsumeErrorBackoffMs(777L);
+        config.setConsumeErrorBackoffMaxMs(888L);
+        config.setMaxConsumeAttempts(3);
+        service.setDefaultConsumerConfig(config);
+        assertEquals(3, service.maxConsumeAttempts());
+        assertEquals(888L, service.consumeErrorBackoffMaxMs());
+
+        org.apache.kafka.clients.consumer.Consumer<String, String> mockConsumer =
+                mock(Consumer.class);
+        KafkaConsumeTask task = service.newTask(mockConsumer,
+                new MessageSubscriptionConfig("t", (t, m, c) -> null, new MessageSubscribeOptions()));
+        assertEquals(777L, task.consumeErrorBackoffMs(), "newTask must pass the config base");
+    }
+
+    /**
      * WI20/F-26: a suspend issued before any partition was assigned (or before a
      * rebalance) holds for the freshly assigned partitions.
      */

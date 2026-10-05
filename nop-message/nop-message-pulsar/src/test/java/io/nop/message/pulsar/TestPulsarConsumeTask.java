@@ -15,11 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -686,6 +688,80 @@ class TestPulsarConsumeTask {
         task.batchConsume();
         verify(consumer, org.mockito.Mockito.times(1)).batchReceiveAsync();
         executor.shutdownNow();
+    }
+
+    // ------------------------------------------------------------------
+    // WI22: retry cap (failure endpoint) and escalating backoff
+    // ------------------------------------------------------------------
+
+    @Test
+    void consumeAttemptCapAcksPermanentlyInsteadOfNacking() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        when(service.maxConsumeAttempts()).thenReturn(1);
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.MessageId messageId =
+                mock(org.apache.pulsar.client.api.MessageId.class);
+        org.apache.pulsar.client.api.Message<Object> message =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(message.getMessageId()).thenReturn(messageId);
+        when(message.getTopicName()).thenReturn("persistent://public/default/t-cap");
+        when(message.getValue()).thenReturn("payload");
+        when(message.getRedeliveryCount()).thenReturn(0);
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(message);
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+        IMessageConsumer failing = mock(IMessageConsumer.class);
+        doThrow(new IllegalStateException("handler-boom")).when(failing).onMessage(
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-cap", failing,
+                new MessageSubscribeOptions());
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+
+        // Round 1: local attempt 1 (not > cap 1) → normal nack + rethrow.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, task::consume);
+        verify(consumer).negativeAcknowledge(messageId);
+
+        // Round 2: attempt 2 > cap 1 → failure endpoint: permanent ack, no rethrow.
+        task.consume();
+        verify(consumer).acknowledgeAsync(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Message<Object>>any());
+        verify(consumer, times(1)).negativeAcknowledge(messageId);
+
+        // Broker-side redelivery count participates (a fresh message with redeliveryCount 5
+        // hits the endpoint on its FIRST local failure), AND the endpoint ack failure is
+        // WARN-only — the endpoint never throws (broker unacked redelivery takes over).
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture
+                        .failedFuture(new org.apache.pulsar.client.api.PulsarClientException
+                                .AlreadyClosedException("closed")));
+        org.apache.pulsar.client.api.Message<Object> redelivered =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(redelivered.getMessageId())
+                .thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(redelivered.getTopicName()).thenReturn("persistent://public/default/t-cap");
+        when(redelivered.getValue()).thenReturn("payload");
+        when(redelivered.getRedeliveryCount()).thenReturn(5);
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(redelivered);
+        // max(local 1, broker 5) = 5 > cap 1 → endpoint on the first local failure; the
+        // failing ack must not escape consume().
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(task::consume);
+        verify(consumer, times(2)).acknowledgeAsync(
+                org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.Message<Object>>any());
+        verify(consumer, times(1)).negativeAcknowledge(messageId);
+        executor.shutdownNow();
+    }
+
+    @Test
+    void computeBackoffEscalatesAndCaps() {
+        assertEquals(1000L, PulsarConsumeTask.computeBackoffMs(1000, 30000, 0));
+        assertEquals(2000L, PulsarConsumeTask.computeBackoffMs(1000, 30000, 1));
+        assertEquals(30000L, PulsarConsumeTask.computeBackoffMs(1000, 30000, 50));
     }
 
     @Test

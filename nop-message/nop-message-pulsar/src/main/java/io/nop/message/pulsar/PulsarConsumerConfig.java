@@ -31,6 +31,27 @@ public class PulsarConsumerConfig {
     /** WI21: explicit dead-letter topic; {@code null} lets the client derive {@code <topic>-<sub>-DLQ}. */
     private String deadLetterTopic;
 
+    /**
+     * WI22: base backoff for the consume error loop (first error sleeps this long; see
+     * {@code PulsarConsumeTask#computeBackoffMs} for the escalating form).
+     */
+    private long consumeErrorBackoffMs = 1000L;
+
+    /** WI22: upper bound of the escalating consume error backoff. */
+    private long consumeErrorBackoffMaxMs = 30000L;
+
+    /**
+     * WI22: retry budget per message before the failure endpoint fires (the endpoint
+     * triggers on failure number {@code maxConsumeAttempts + 1} — this counts RETRIES).
+     * On Pulsar the effective attempt is max(local counter, broker redeliveryCount), so
+     * for Shared/Key_Shared subscriptions the budget holds across restarts. When the
+     * endpoint fires the message is ACKED permanently — the native
+     * {@code deadLetterMaxRedeliverCount} policy (if configured) diverts it to the DLQ at
+     * that ack; without the policy the message is dropped with a loud WARN. Set {@code 0}
+     * for unlimited negative-ack redelivery (the pre-WI22 behavior).
+     */
+    private int maxConsumeAttempts = 10;
+
     public int getAckTimeout() {
         return ackTimeout;
     }
@@ -69,5 +90,29 @@ public class PulsarConsumerConfig {
 
     public void setDeadLetterTopic(String deadLetterTopic) {
         this.deadLetterTopic = deadLetterTopic;
+    }
+
+    public long getConsumeErrorBackoffMs() {
+        return consumeErrorBackoffMs;
+    }
+
+    public void setConsumeErrorBackoffMs(long consumeErrorBackoffMs) {
+        this.consumeErrorBackoffMs = consumeErrorBackoffMs;
+    }
+
+    public long getConsumeErrorBackoffMaxMs() {
+        return consumeErrorBackoffMaxMs;
+    }
+
+    public void setConsumeErrorBackoffMaxMs(long consumeErrorBackoffMaxMs) {
+        this.consumeErrorBackoffMaxMs = consumeErrorBackoffMaxMs;
+    }
+
+    public int getMaxConsumeAttempts() {
+        return maxConsumeAttempts;
+    }
+
+    public void setMaxConsumeAttempts(int maxConsumeAttempts) {
+        this.maxConsumeAttempts = maxConsumeAttempts;
     }
 }

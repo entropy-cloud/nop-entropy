@@ -44,6 +44,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -226,6 +227,222 @@ class TestKafkaConsumeTask {
         org.junit.jupiter.api.Assertions.assertThrows(Exception.class, task::pollAndConsume);
         verify(consumer, never()).commitSync();
         verify(consumer).seek(new TopicPartition("test-topic", 0), 3L);
+    }
+
+    // ------------------------------------------------------------------
+    // WI22: retry cap (failure endpoint) and escalating backoff
+    // ------------------------------------------------------------------
+
+    @Test
+    void computeBackoffEscalatesAndCaps() {
+        assertEquals(1000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 0));
+        assertEquals(2000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 1));
+        assertEquals(4000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 2));
+        assertEquals(30000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 5));
+        assertEquals(30000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 50));
+    }
+
+    @Test
+    void consumeAttemptCapTriggersFailureEndpoint() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(2); // DLQ off: resolveDeadLetterTopic → null
+        java.util.List<Integer> endpointAttempts = new java.util.concurrent.CopyOnWriteArrayList<>();
+        RuntimeException boom = new IllegalStateException("handler-boom");
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                throw boom;
+            }
+
+            @Override
+            public void onConsumeFailure(io.nop.api.core.message.ConsumeFailure failure) {
+                endpointAttempts.add(failure.getAttempt());
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(handler, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class))).thenReturn(records(record(0, 3, "poison")));
+
+        // Rounds 1-2: within the budget — seek back and rethrow (normal redelivery).
+        for (int i = 0; i < 2; i++) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    task::pollAndConsume);
+        }
+        verify(consumer, times(2)).seek(new TopicPartition("test-topic", 0), 3L);
+        verify(consumer, never()).commitSync();
+
+        // Round 3: attempt 3 > cap 2 → failure endpoint: no throw, no seek, the record
+        // leaves the loop and is committed with the round; the callback sees attempt=3.
+        task.pollAndConsume();
+        verify(consumer, times(2)).seek(new TopicPartition("test-topic", 0), 3L);
+        verify(consumer).commitSync();
+        assertEquals(java.util.Collections.singletonList(3), endpointAttempts);
+
+        // Budget cleared: the next failure starts fresh (attempt 1 would retry, not endpoint).
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::pollAndConsume);
+        verify(consumer, times(3)).seek(new TopicPartition("test-topic", 0), 3L);
+    }
+
+    @Test
+    void batchAttemptCapEndpointsFailedRecordAndCommitsBoundary() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(1);
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                List<Object> responses = new ArrayList<>();
+                // Record 0's response fails → progress=0, attempt bumps each round.
+                responses.add(java.util.concurrent.CompletableFuture
+                        .failedFuture(new IllegalStateException("handler-boom")));
+                responses.add(null);
+                return responses;
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "a"), record(0, 4, "b")));
+
+        // Round 1: attempt 1 (not > cap 1) → normal rewind to the failed record.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::batchConsume);
+        verify(consumer, times(1)).seek(new TopicPartition("test-topic", 0), 3L);
+
+        // Round 2: attempt 2 > cap 1 → endpoint: the boundary (record0 offset+1 = 4) is
+        // committed explicitly, then the TAIL is rewound (record1 offset 4), never record 0.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::batchConsume);
+        org.mockito.ArgumentCaptor<Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>> committed =
+                org.mockito.ArgumentCaptor.forClass(Map.class);
+        verify(consumer).commitSync(committed.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(4L,
+                committed.getValue().get(new TopicPartition("test-topic", 0)).offset());
+        verify(consumer, times(1)).seek(new TopicPartition("test-topic", 0), 3L); // unchanged
+        verify(consumer, times(1)).seek(new TopicPartition("test-topic", 0), 4L);
+    }
+
+    @Test
+    void batchEndpointPublishFailureFallsBackToFullRewind() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(1);
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("dlq-down")));
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                List<Object> responses = new ArrayList<>();
+                // Record 0's response fails → progress=0 (dispatched) → the attempt bumps
+                // and the endpoint branch is reachable (a handler throw inside
+                // onMessageBatch would be framework-grade with progress=-1 instead).
+                responses.add(java.util.concurrent.CompletableFuture
+                        .failedFuture(new IllegalStateException("handler-boom")));
+                responses.add(null);
+                return responses;
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "a"), record(0, 4, "b")));
+
+        // Round 1: attempt 1 (not > cap 1) → normal rewind to the failed record.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::batchConsume);
+        verify(consumer, times(1)).seek(new TopicPartition("test-topic", 0), 3L);
+        // Round 2: attempt 2 > cap 1 → the endpoint tries the DLQ publish, which FAILS →
+        // fall back to the normal rewind(progress) path (never a silent drop, never a
+        // boundary commit).
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::batchConsume);
+        verify(consumer, times(2)).seek(new TopicPartition("test-topic", 0), 3L);
+        verify(consumer, never()).commitSync(any(java.util.Map.class));
+    }
+
+    @Test
+    void singleEndpointRepublishesToDeadLetterWhenConfigured() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(1);
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        IMessageConsumer msgConsumer = (topic, message, context) -> {
+            throw new IllegalStateException("handler-boom");
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class))).thenReturn(records(record(0, 3, "poison")));
+
+        // Round 1: attempt 1 (not > cap 1) → normal redelivery.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::pollAndConsume);
+        // Round 2: attempt 2 > cap 1 → the endpoint republishes to the DLQ topic (the WI21
+        // mechanism is reused, not reimplemented) and commits the round. Round 1's single
+        // redelivery seek is the only seek — the endpoint record is NOT re-seeked.
+        task.pollAndConsume();
+        verify(service).sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any());
+        verify(consumer).commitSync();
+        verify(consumer, times(1)).seek(new TopicPartition("test-topic", 0), 3L);
+    }
+
+    @Test
+    void singleEndpointPublishFailureFallsBackToSeekAndRethrow() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(1);
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("dlq-down")));
+        IMessageConsumer msgConsumer = (topic, message, context) -> {
+            throw new IllegalStateException("handler-boom");
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class))).thenReturn(records(record(0, 3, "poison")));
+
+        // Round 1: within budget → seek + rethrow.
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::pollAndConsume);
+        // Round 2: poisoned but the DLQ publish fails → seek + rethrow (at-least-once, the
+        // record is NOT silently dropped by the failed endpoint).
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                task::pollAndConsume);
+        verify(consumer, times(2)).seek(new TopicPartition("test-topic", 0), 3L);
+        verify(consumer, never()).commitSync();
+    }
+
+    @Test
+    void consumeAttemptCapZeroMeansUnlimitedRedelivery() throws Exception {
+        when(service.maxConsumeAttempts()).thenReturn(0); // unlimited (pre-WI22 behavior)
+        IMessageConsumer msgConsumer = (topic, message, context) -> {
+            throw new IllegalStateException("handler-boom");
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class))).thenReturn(records(record(0, 3, "poison")));
+
+        for (int i = 0; i < 3; i++) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    task::pollAndConsume);
+        }
+        // Every round took the redelivery path — no endpoint, no commit.
+        verify(consumer, times(3)).seek(new TopicPartition("test-topic", 0), 3L);
+        verify(consumer, never()).commitSync();
     }
 
     @Test

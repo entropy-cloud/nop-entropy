@@ -62,6 +62,28 @@ public class KafkaConsumerConfig {
      */
     private String deadLetterTopic;
 
+    /**
+     * WI22: base backoff for the consume error loop (first error sleeps this long; see
+     * {@code KafkaConsumeTask#computeBackoffMs} for the escalating form).
+     */
+    private long consumeErrorBackoffMs = 1000L;
+
+    /** WI22: upper bound of the escalating consume error backoff. */
+    private long consumeErrorBackoffMaxMs = 30000L;
+
+    /**
+     * WI22: retry budget per message location before the failure endpoint fires (the
+     * endpoint triggers on failure number {@code maxConsumeAttempts + 1} — this counts
+     * RETRIES). The endpoint republishes to the {@link #deadLetterTopic} when configured,
+     * otherwise DROPS the message with a loud WARN: a poison message no longer spins
+     * forever, but a persistent outage longer than the retry budget loses uncommitted
+     * messages by default (the spring-kafka DefaultErrorHandler "bounded retries then skip"
+     * trade-off). Set {@code 0} for unlimited redelivery (the pre-WI22 behavior, zero
+     * loss). The counter is per consume-task instance and resets on restart; on Pulsar the
+     * broker redelivery count augments it (see backend-semantics-design.md 3.3.2).
+     */
+    private int maxConsumeAttempts = 10;
+
     public String getGroupId() {
         return groupId;
     }
@@ -132,6 +154,30 @@ public class KafkaConsumerConfig {
 
     public void setDeadLetterTopic(String deadLetterTopic) {
         this.deadLetterTopic = deadLetterTopic;
+    }
+
+    public long getConsumeErrorBackoffMs() {
+        return consumeErrorBackoffMs;
+    }
+
+    public void setConsumeErrorBackoffMs(long consumeErrorBackoffMs) {
+        this.consumeErrorBackoffMs = consumeErrorBackoffMs;
+    }
+
+    public long getConsumeErrorBackoffMaxMs() {
+        return consumeErrorBackoffMaxMs;
+    }
+
+    public void setConsumeErrorBackoffMaxMs(long consumeErrorBackoffMaxMs) {
+        this.consumeErrorBackoffMaxMs = consumeErrorBackoffMaxMs;
+    }
+
+    public int getMaxConsumeAttempts() {
+        return maxConsumeAttempts;
+    }
+
+    public void setMaxConsumeAttempts(int maxConsumeAttempts) {
+        this.maxConsumeAttempts = maxConsumeAttempts;
     }
 
     public int getHeartbeatIntervalMs() {

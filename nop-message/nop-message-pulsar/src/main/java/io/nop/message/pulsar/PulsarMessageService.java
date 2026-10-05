@@ -295,6 +295,24 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         return client.newConsumer(schema);
     }
 
+    /**
+     * WI22: retry budget before the failure endpoint ({@code 0} = unlimited). Falls back to
+     * the module default — never to 0 — so a directly constructed service keeps production
+     * semantics.
+     */
+    int maxConsumeAttempts() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getMaxConsumeAttempts()
+                : PulsarConsumeTask.DEFAULT_MAX_CONSUME_ATTEMPTS;
+    }
+
+    /** WI22: upper bound of the escalating error backoff. */
+    long consumeErrorBackoffMaxMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeErrorBackoffMaxMs()
+                : PulsarConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS;
+    }
+
     IMessageSubscription doSubscribe(MessageSubscriptionConfig subConfig) {
         Schema<?> schema = topicSchemas.get(subConfig.getTopic());
         if (schema == null) {
@@ -372,8 +390,12 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                     ? options.getSubscribeName() : String.valueOf(subConfig.getTopic());
             executor = Executors.newSingleThreadExecutor(
                     new NamedThreadFactory("nop-msg-pulsar-consume-" + identity, true));
+            // WI22: the backoff base comes from the consumer config (0-safe fallback above).
+            long backoffMs = defaultConsumerConfig != null
+                    ? defaultConsumerConfig.getConsumeErrorBackoffMs()
+                    : PulsarConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS;
             PulsarConsumeTask task = new PulsarConsumeTask(this, executor,
-                    (Consumer<Object>) consumer, subConfig);
+                    (Consumer<Object>) consumer, subConfig, backoffMs);
             task.start();
             PulsarMessageSubscription subscription = new PulsarMessageSubscription(consumer, executor, task);
             subscriptions.add(subscription);

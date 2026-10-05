@@ -38,7 +38,9 @@ import java.util.concurrent.TimeoutException;
 public class PulsarConsumeTask {
     static final Logger LOG = LoggerFactory.getLogger(PulsarConsumeTask.class);
 
-    private static final long DEFAULT_CONSUME_ERROR_BACKOFF_MS = 1000;
+    static final long DEFAULT_CONSUME_ERROR_BACKOFF_MS = 1000;
+    static final long DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS = 30000L;
+    static final int DEFAULT_MAX_CONSUME_ATTEMPTS = 10;
 
     /**
      * Bounded wait per receive round (MSG-F-54, WI19): the run loop re-checks
@@ -100,19 +102,30 @@ public class PulsarConsumeTask {
     }
 
     private void runTask() {
+        // WI22 (F-21): escalating error backoff — n counts CONSECUTIVE error rounds
+        // (0-based); resets only on a round that dispatched at least one message (an empty
+        // receive timeout is neutral, otherwise broker redelivery gaps would keep resetting
+        // the escalation).
+        int consecutiveErrors = 0;
         do {
             try {
+                boolean dispatched;
                 if (config.getOptions().allowBatchConsume()) {
-                    batchConsume();
+                    dispatched = batchConsume();
                 } else {
-                    consume();
+                    dispatched = consume();
+                }
+                if (dispatched) {
+                    consecutiveErrors = 0;
                 }
             } catch (Exception e) {
+                consecutiveErrors++;
                 LOG.error("nop.err.message.pulsar.consume-fail", e);
                 dispatchConsumeFailure(e);
                 if (active) {
                     try {
-                        Thread.sleep(consumeErrorBackoffMs);
+                        Thread.sleep(computeBackoffMs(consumeErrorBackoffMs,
+                                service.consumeErrorBackoffMaxMs(), consecutiveErrors - 1));
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         break;
@@ -120,6 +133,19 @@ public class PulsarConsumeTask {
                 }
             }
         } while (active);
+    }
+
+    /**
+     * WI22 (F-21): escalating backoff — {@code baseMs * 2^n}, capped at {@code maxMs};
+     * {@code n} is 0-based so the first error sleeps exactly the base. Mirrors the Kafka
+     * task (the two backends share no module, hence the deliberate copy).
+     */
+    static long computeBackoffMs(long baseMs, long maxMs, long n) {
+        long backoff = baseMs;
+        for (long i = 0; i < n && backoff < maxMs; i++) {
+            backoff = Math.min(backoff * 2, maxMs);
+        }
+        return backoff;
     }
 
     public void stop() {
@@ -188,10 +214,17 @@ public class PulsarConsumeTask {
         }
     }
 
-    void batchConsume() throws Exception {
+    /**
+     * Batch consume path. WI22 boundary: no application-level failure endpoint here — a
+     * failed batch is negatively acknowledged as a whole with no per-message attribution,
+     * so the retry cap cannot be applied per record; the native
+     * {@code deadLetterMaxRedeliverCount} policy covers Shared/Key_Shared subscriptions
+     * (backend-semantics-design.md 3.3.2).
+     */
+    boolean batchConsume() throws Exception {
         Messages<Object> messages = receiveBatchBounded();
         if (messages == null)
-            return;
+            return false;
 
         List<TopicMessage> list = new ArrayList<>(messages.size());
         for (Message<Object> message : messages) {
@@ -202,6 +235,7 @@ public class PulsarConsumeTask {
         IMessageConsumer consumer = config.getConsumer();
 
         ConsumeContext context = newConsumeContext();
+        boolean dispatched = false;
         try {
             List<Object> responses = consumer.onMessageBatch(list, context);
             Iterator<Message<Object>> it = messages.iterator();
@@ -209,6 +243,7 @@ public class PulsarConsumeTask {
 
             for (Object response : responses) {
                 response = FutureHelper.getResult(response);
+                dispatched = true;
                 Message<Object> message = it.next();
                 if (response instanceof PartialCommit) {
                     // D5(b-prime): ack records [0..k-1] only; the record carrying the
@@ -221,7 +256,7 @@ public class PulsarConsumeTask {
                         pulsarConsumer.negativeAcknowledge(remaining.getMessageId());
                     }
                     // Skip the normal commit: the boundary is expressed by the acks above.
-                    return;
+                    return dispatched;
                 }
                 if (response instanceof TerminateConsume) {
                     // D5(b-prime): acknowledged, no redelivery, no reply.
@@ -243,6 +278,7 @@ public class PulsarConsumeTask {
             }
             FutureHelper.syncGet(FutureHelper.waitAll(futures));
             context.commit();
+            return true;
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
             lastFailureLocation = null;
@@ -260,13 +296,13 @@ public class PulsarConsumeTask {
         }
     }
 
-    void consume() throws Exception {
+    boolean consume() throws Exception {
         // MSG-F-54 (WI19): bounded receive — null on timeout — so the loop re-checks
         // active at least once per DEFAULT_RECEIVE_TIMEOUT_MS instead of blocking until
         // the next message or a close-induced exception.
         Message<Object> message = pulsarConsumer.receive((int) receiveTimeoutMs, TimeUnit.MILLISECONDS);
         if (message == null)
-            return;
+            return false;
 
         IMessageConsumer consumer = config.getConsumer();
 
@@ -300,7 +336,16 @@ public class PulsarConsumeTask {
             // WI16: success resets the consecutive-failure counter for this location.
             failureAttempts.remove(String.valueOf(message.getMessageId()));
             context.commit();
+            return true;
         } catch (Exception e) {
+            String location = String.valueOf(message.getMessageId());
+            // WI22: effective attempt = local consecutive counter vs the broker redelivery
+            // count (cross-restart where Pulsar tracks it — Shared/Key_Shared subscriptions).
+            int attempt = Math.max(bumpFailureAttempt(location), message.getRedeliveryCount());
+            if (isPoisoned(attempt)) {
+                runFailureEndpoint(context, message, location, attempt, e);
+                return true; // endpoint consumed the message; the loop continues
+            }
             fail(context, message, e);
             try {
                 context.rollback();
@@ -312,6 +357,50 @@ public class PulsarConsumeTask {
             // callback are reachable for message-level failures (aligned with Kafka).
             throw e;
         }
+    }
+
+    /**
+     * WI22: the failure endpoint for an exhausted message — permanent ack (the native
+     * {@code deadLetterMaxRedeliverCount} policy, when configured, diverts the message to
+     * the DLQ at exactly this ack; without the policy the message is dropped with a loud
+     * WARN). No application-level DLQ republish here — that would double-write with the
+     * native diversion. The endpoint never throws: an ack failure is WARNed and the
+     * broker's unacked-redelivery semantics take over.
+     */
+    private void runFailureEndpoint(ConsumeContext context, Message<Object> message,
+                                    String location, int attempt, Exception e) {
+        try {
+            FutureHelper.syncGet(ackAsync(context, message));
+        } catch (Exception ackError) {
+            LOG.warn("nop.err.message.pulsar.endpoint-ack-fail:messageId={}", location, ackError);
+        }
+        LOG.warn("nop.message.pulsar.consume-attempt-exhausted:messageId={},attempts={} "
+                + "- failure endpoint, leaving the redelivery loop", location, attempt);
+        try {
+            config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
+                    message.getTopicName(), location, message.getValue(), attempt, e));
+        } catch (Exception callbackError) {
+            LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
+        }
+        failureAttempts.remove(location);
+        lastFailureTopic = null;
+        lastFailureLocation = null;
+        lastFailureMessage = null;
+    }
+
+    private int bumpFailureAttempt(String location) {
+        return failureAttempts.merge(location, 1, Integer::sum);
+    }
+
+    private int peekFailureAttempt(String location) {
+        Integer attempt = failureAttempts.get(location);
+        return attempt == null ? 0 : attempt;
+    }
+
+    /** WI22: the failure endpoint fires on failure number cap+1 ({@code 0} = unlimited). */
+    private boolean isPoisoned(int attempt) {
+        int cap = service.maxConsumeAttempts();
+        return cap > 0 && attempt > cap;
     }
 
     /**
@@ -328,10 +417,8 @@ public class PulsarConsumeTask {
         lastFailureTopic = null;
         lastFailureLocation = null;
         lastFailureMessage = null;
-        int attempt = 0;
-        if (location != null) {
-            attempt = failureAttempts.merge(location, 1, Integer::sum);
-        }
+        // WI22: the attempt was already bumped at the failure point; this dispatch reads it.
+        int attempt = peekFailureAttempt(location);
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
                     topic, location, message, attempt, e));

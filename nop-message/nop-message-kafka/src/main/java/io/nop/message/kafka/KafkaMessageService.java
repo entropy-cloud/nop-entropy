@@ -400,10 +400,35 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         }
     }
 
-    /** Task factory: kept separate so doSubscribe can register the rebalance listener before start. */
-    private KafkaConsumeTask newTask(Consumer<String, String> consumer, MessageSubscriptionConfig subConfig) {
-        return new KafkaConsumeTask(this, consumer, subConfig,
-                KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+    /**
+     * Task factory: kept separate so doSubscribe can register the rebalance listener before
+     * start. WI22: the backoff base comes from the consumer config (protected so tests can
+     * observe the wiring); maxConsumeAttempts/backoffMax are read per-failure through the
+     * package-private accessors below.
+     */
+    protected KafkaConsumeTask newTask(Consumer<String, String> consumer, MessageSubscriptionConfig subConfig) {
+        long backoffMs = defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeErrorBackoffMs()
+                : KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS;
+        return new KafkaConsumeTask(this, consumer, subConfig, backoffMs);
+    }
+
+    /**
+     * WI22: retry budget before the failure endpoint ({@code 0} = unlimited). Falls back to
+     * the module default — never to 0 — so a directly constructed service keeps production
+     * semantics.
+     */
+    int maxConsumeAttempts() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getMaxConsumeAttempts()
+                : KafkaConsumeTask.DEFAULT_MAX_CONSUME_ATTEMPTS;
+    }
+
+    /** WI22: upper bound of the escalating error backoff. */
+    long consumeErrorBackoffMaxMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeErrorBackoffMaxMs()
+                : KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS;
     }
 
     /** Injection seam for tests: lets a test subclass supply a mock/fake consumer. */
