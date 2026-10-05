@@ -428,6 +428,7 @@ Follow-up:
 5. 如果某个项决定延期，先把它移到 `Deferred But Adjudicated` 或 `Non-Blocking Follow-ups`，并写清 `Why Not Blocking Closure`；不能只在 execution list 里放着不勾选。
 6. 执行当前 active plan 时，如果读到的是已 `completed` 的旧计划，默认把它当作历史证据而不是待修正文档；除非用户明确要求，否则不要顺手按新模板回写历史计划。
 7. **禁止写空壳代码**（见 Minimum Rules #24）。如果某个功能确实需要暂缓，抛出 `UnsupportedOperationException`，不要写空方法体或 `continue` 跳过。空壳代码会让后续开发者误以为功能已实现，增加调试成本。
+8. **变异探针纪律（R5 教训，2026-10-05 增补）**：用「注释/删除目标行 → 跑钉子 → 恢复 → 再跑」验证回退必红时，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入（只恢复注释、丢可执行行）造成假绿——R5 plan 2314 曾因此记录了一次不成立的探针结果。凡是触碰恢复路径、键形状或序列化格式的改动，收口前必须运行含完整恢复流程的端到端测试，不能只凭组件级单测宣布绿——R5 plan 2315 的键折叠改动曾因缺少恢复 E2E 而把 exactly-once 回归带进提交、在 2316 才被 E2E 抓住回退。
 
 ### When Closing The Plan
 

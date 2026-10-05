@@ -243,6 +243,44 @@ void testEmptyInput() {
 
 **什么时候空输入测试有价值：** 当空输入可能引发 NPE、无限循环或意外行为时。如果空输入→空输出是显然的，这个测试价值低。
 
+### P-9. 测试用被测公式构造输入（R5 新增）
+
+```java
+// ❌ 输入由被测公式本身推导生成
+// 被测契约：key 的路由子任务 = f(key)，keyed 状态属主 = f(key)（必须是同一公式）
+@Test
+void testRescaleRestore() {
+    // 用属主公式手工构造 savepoint，再验证 restore 后的归属
+    int owner = KeyGroupAssignment.assignKeyGroupToSubtask(gid, MAX_P, oldP);
+    savepoint.setState(owner, ...);      // 输入与实现共用同一公式
+    runRestoreAndAssertRouting(savepoint); // 必然自洽——测不出公式分裂
+}
+```
+
+**为什么不好：** 输入与实现共享同一推导时，测试验证的是「公式自洽」而不是「公式正确」。真实作业的输入不经过被测公式生成——路由公式与属主公式分裂、声明并行度与实际并行度错位这类缺陷（R5 AR-01 缺陷族、FLOW-5），在全绿测试套件下静默存在。同类变体：用与被测代码相同的序列化器手工构造持久化字节、用被测 DSL 的 builder 生成被解析的模型再断言解析结果。
+
+**替代做法：**
+
+- 至少一条测试使用**真实链路产出**的输入：真实作业运行后落盘的 savepoint/文件、经真实 RPC/JSON 序列化-反序列化往返的字节（含只-data-bean 等生产守卫默认值），而不是内存对象直通
+- 期望值用**独立来源**推导：手算、硬编码字面量、golden 文件——不复用被测代码
+- 无法走真路径时，在测试注释里显式声明「本测试不覆盖 X 真实形态」，并把真路径钉子列入后续计划
+
+```java
+// ✅ 真实路径 + 独立期望值（R5 ST-11 钉子形态）
+@Test
+void testTimerSurvivesJsonCheckpointRestore() {
+    op.processElement(...);
+    snapshot = op.snapshotState(...);
+    // 走真实 CheckpointSerDe + JsonTool 序列化/反序列化（storageType=local 同款路径）
+    restored = CheckpointSerDe.deserializeTaskStateSnapshot(
+            JsonTool.parseMap(JsonTool.serialize(
+                    CheckpointSerDe.serializeTaskStateSnapshot(taskState), false)), LOC);
+    // 断言键的运行时类与时间戳（独立硬编码期望，不经被测代码推导）
+    assertTrue(restoredKey instanceof Long);
+    assertEquals(100L, restoredTimestamp);
+}
+```
+
 ---
 
 ## 写测试前的检查清单
@@ -253,6 +291,7 @@ void testEmptyInput() {
 |------|---------|
 | 把核心逻辑改成错的，这个测试会失败吗？ | **删掉它** |
 | 这个测试和实现说的是同一件事吗？ | **重写为基于输入/输出的测试** |
+| 这个测试的输入/期望值是否复用了被测代码的推导？ | **改用真实链路产出或独立推导（见 P-9）** |
 | 换一个开发者看这个测试名，能理解预期行为吗？ | **重命名** |
 | 单独运行这个测试能通过吗？ | **修复依赖** |
 | 这个测试覆盖了一个真实可能的 bug 吗？ | **如果只是"不会出错"的场景，降低优先级** |
