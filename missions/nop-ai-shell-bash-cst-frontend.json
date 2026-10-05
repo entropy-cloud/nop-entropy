@@ -1,6 +1,6 @@
 {
   "name": "nop-ai-shell-bash-cst-frontend",
-  "description": "Replace the hand-written BashLexer/BashSyntaxParser front-end in nop-ai-shell with a tree-sitter CST translator (nop-treesitter bash blob, corpus 100/100). Deliver a thin external interface (single entry point) whose coordination environment (command registry, checkers, fs, env, cwd, io, limits) is passed via a context object; extend the CommandExpression hierarchy with control flow (if/elif/else, while/until, for-in, break/continue/return) and condition semantics (exit-code conditions, test/[[ ]] builtins, $( ) recursion). Cover only the most common syntax; out-of-subset constructs are structurally rejected (node kind + source text + byte offset) instead of fail-fast ParseException. Terminal state: single bash syntax authority — hand-written lexer/parser deleted, golden-equivalence tests migrated. Roadmap: ai-dev/backlog/nop-ai-shell-bash-cst-frontend-roadmap.md. Constraint: only the parsing front-end changes; the io.nop.treesitter.shell analysis layer (never evaluates) stays untouched.",
+  "description": "Replace the hand-written BashLexer/BashSyntaxParser front-end in nop-ai-shell with a tree-sitter CST translator (nop-treesitter bash blob, corpus 100/100). Deliver a thin external interface (single entry point) whose coordination environment (command registry, checkers, fs, env, cwd, io, executor thread pool, background job sink, recursion/iteration limits) is passed via a session-level context object. Extend the CommandExpression hierarchy with control flow (if/elif/else, while/until, for-in, break/continue/return via command_name recognition) with loop termination safety (per-iteration cancel check, max iterations/timeout), condition semantics (exit-code conditions, test/[[ ]] builtins), $( ) command substitution with subshell snapshot isolation and recursion depth limit, structured word segments (literal/quoted/expansion/subst) enabling $VAR/$? expansion with single-quote suppression. Cover only the most common syntax; out-of-subset constructs are structurally rejected (node kind + source text + byte offset). Golden-equivalence protocol with deviation whitelist gates the cutover (old parser tests re-based: ParseException cases become structured rejections, empty input becomes success no-op, VAR=| echo becomes legal pipeline, &&/|| precedence follows bash). Terminal state: single bash syntax authority - hand-written lexer/parser deleted. Roadmap: ai-dev/backlog/nop-ai-shell-bash-cst-frontend-roadmap.md. Constraints: only the parsing front-end changes (io.nop.treesitter.shell analysis layer untouched); when a plan touches ShellCommandExecutor assembly, the check command must include nop-ai/nop-ai-agent (-am builds upstream only).",
   "agent": "build",
   "model": "opencode-go/deepseek-v4-flash",
   "variant": "max",
@@ -15,7 +15,7 @@
     "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commands": {
-    "test": "./mvnw -pl nop-ai/nop-ai-shell -am test -T 1C",
+    "test": "./mvnw -pl nop-ai/nop-ai-shell,nop-ai/nop-ai-agent -am test -T 1C",
     "build": "./mvnw -pl nop-ai/nop-ai-shell -am clean package -DskipTests -T 1C",
     "typecheck": "./mvnw -pl nop-ai/nop-ai-shell -am test-compile -T 1C",
     "lint": "./mvnw -pl nop-ai/nop-ai-shell -am checkstyle:check -q 2>/dev/null || echo 'lint not configured'"
