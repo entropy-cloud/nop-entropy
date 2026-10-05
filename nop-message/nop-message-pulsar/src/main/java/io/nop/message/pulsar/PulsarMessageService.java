@@ -137,18 +137,9 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
 
     @Override
     protected void doStop() {
-        // F-27: this closes producers BEFORE subscriptions today. The adjudicated order is
-        // subscriptions first (in-flight sends during shutdown must not hit a closed
-        // producer); the reorder is WI20's exit criterion and intentionally untouched here.
-        for (Producer<?> producer : producers.values()) {
-            try {
-                producer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.pulsar.close-producer-failed", e);
-            }
-        }
-        producers.clear();
-
+        // F-27 (WI20 final order, aligned with Kafka): subscriptions are cancelled BEFORE
+        // producers — in-flight sends during shutdown keep a live producer, and the
+        // subscription cancel awaits its consume thread (close-after-termination).
         for (PulsarMessageSubscription subscription : subscriptions) {
             try {
                 subscription.cancel();
@@ -157,6 +148,15 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
             }
         }
         subscriptions.clear();
+
+        for (Producer<?> producer : producers.values()) {
+            try {
+                producer.close();
+            } catch (Exception e) {
+                LOG.error("nop.message.pulsar.close-producer-failed", e);
+            }
+        }
+        producers.clear();
 
         if (client != null) {
             try {
@@ -191,6 +191,15 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     Producer<?> buildProducer(String topic, Schema<?> schema) {
+        // F-30 (WI20): a destroyed (or never-initialized) service must fail with a typed
+        // error, not an NPE from client.newProducer. Checked here (not in getProducer) so
+        // the on-demand creation path carries the guard; during the narrow destroy window
+        // where producers are already cleared but the client is closing, the underlying
+        // client error surfaces adapted instead.
+        if (client == null) {
+            throw new NopException(PulsarErrors.ERR_PULSAR_SERVICE_NOT_ACTIVE)
+                    .description("PulsarMessageService is not active; cannot create producer for topic " + topic);
+        }
         try {
             ProducerBuilder<?> builder = client.newProducer(schema).topic(topic);
             if (defaultProducerConfig != null) {
@@ -407,19 +416,26 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
 
         private void doOnCancel(String reason) {
             task.stop();
-            try {
-                consumer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.pulsar.cancel-close-consumer-failed", e);
-            }
             executor.shutdown();
             try {
                 if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                     executor.shutdownNow();
+                    if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                        LOG.warn("nop.message.pulsar.cancel-consume-thread-stuck");
+                    }
                 }
             } catch (InterruptedException e) {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+            }
+            // F-26 (WI20): close strictly AFTER the consume thread terminated (or was
+            // force-interrupted) — close can no longer race receive/batch processing. A
+            // thread stuck in a blocking client call beyond the budget degrades to a
+            // best-effort WARN'd close (residual window: backend-semantics-design.md 3.8.1).
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                LOG.error("nop.message.pulsar.cancel-close-consumer-failed", e);
             }
             subscriptions.remove(this);
         }

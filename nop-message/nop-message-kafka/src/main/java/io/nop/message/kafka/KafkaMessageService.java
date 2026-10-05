@@ -448,8 +448,10 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         private final Consumer<String, String> consumer;
         private final ExecutorService executor;
         private final KafkaConsumeTask task;
+        // WI20 (F-25): atomic guard — concurrent cancels must run the cleanup body once.
+        private final java.util.concurrent.atomic.AtomicBoolean cancelled =
+                new java.util.concurrent.atomic.AtomicBoolean();
         private volatile boolean suspended;
-        private volatile boolean cancelled;
 
         public KafkaMessageSubscription(Consumer<String, String> consumer,
                                         ExecutorService executor, KafkaConsumeTask task) {
@@ -458,26 +460,36 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
             this.task = task;
         }
 
+        /**
+         * WI20 (F-26): the consume task is stopped first, the executor is then awaited to
+         * termination (5s; on timeout forced via shutdownNow and awaited once more for 1s),
+         * and only AFTER the poll thread has exited is the consumer closed — close can no
+         * longer race poll/commit on the consume thread. If the thread is still stuck in a
+         * blocking consumer call beyond that budget, the close degrades to a best-effort
+         * WARN'd fallback (residual window declared in backend-semantics-design.md 3.8.1).
+         */
         @Override
         public void cancel() {
-            if (cancelled) {
+            if (!cancelled.compareAndSet(false, true)) {
                 return;
             }
-            cancelled = true;
             task.stop();
-            try {
-                consumer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.cancel-close-consumer-failed", e);
-            }
             executor.shutdown();
             try {
                 if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                     executor.shutdownNow();
+                    if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
+                        LOG.warn("nop.message.kafka.cancel-consume-thread-stuck");
+                    }
                 }
             } catch (InterruptedException e) {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+            }
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                LOG.error("nop.message.kafka.cancel-close-consumer-failed", e);
             }
             subscriptions.remove(this);
         }
@@ -489,26 +501,23 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
 
         @Override
         public boolean isCancelled() {
-            return cancelled;
+            return cancelled.get();
         }
 
+        /**
+         * WI20 (F-26): only records the desired state — the consume thread applies
+         * {@code pause} at the top of the next poll round (and re-applies it to freshly
+         * assigned partitions), so the call never touches the consumer cross-thread.
+         */
         @Override
         public void suspend() {
             suspended = true;
-            try {
-                consumer.pause(consumer.assignment());
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.suspend-failed", e);
-            }
+            task.setSuspended(true);
         }
 
         @Override
         public void resume() {
-            try {
-                consumer.resume(consumer.assignment());
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.resume-failed", e);
-            }
+            task.setSuspended(false);
             suspended = false;
         }
     }

@@ -8,9 +8,12 @@
 package io.nop.message.kafka;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.MessageSubscribeOptions;
+import io.nop.api.core.message.MessageSubscriptionConfig;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +21,8 @@ import java.time.Duration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -153,5 +158,124 @@ class TestKafkaServiceLifecycle {
                 Thread.sleep(20);
         }
         assertEquals(0, remaining, "cancel must terminate the fan-out consume threads");
+    }
+
+    /** No real producer in doStart (offline test); consumer creation injected. */
+    static class DestroyOrderService extends KafkaMessageService {
+        Consumer<String, String> consumerForTest;
+
+        @Override
+        protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                          StringDeserializer keyDeserializer,
+                                                          StringDeserializer valueDeserializer) {
+            return consumerForTest;
+        }
+
+        @Override
+        protected void doStart() {
+            initialized = true; // skip the real KafkaProducer; destroy closes the mock below
+        }
+    }
+
+    /**
+     * WI20/F-27: destroy must cancel subscriptions (consumer closed) BEFORE closing the
+     * producer — locked with a cross-mock InOrder verification.
+     */
+    @Test
+    void destroyCancelsSubscriptionsBeforeClosingProducer() throws Exception {
+        DestroyOrderService service = new DestroyOrderService();
+        service.config = new KafkaClientConfig();
+        service.config.setBootstrapServers("localhost:9092");
+        Consumer<String, String> mockConsumer = mock(Consumer.class);
+        service.consumerForTest = mockConsumer;
+        when(mockConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
+            Thread.sleep(50);
+            return ConsumerRecords.EMPTY;
+        });
+        when(mockConsumer.assignment()).thenReturn(java.util.Collections.emptySet());
+
+        org.apache.kafka.clients.producer.KafkaProducer<String, String> mockProducer =
+                mock(org.apache.kafka.clients.producer.KafkaProducer.class);
+
+        service.init(); // ACTIVE — destroy must run the real doStop
+        service.producer = mockProducer;
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-destroy-order");
+        io.nop.api.core.message.IMessageSubscription subscription =
+                service.subscribe("t-order", (t, m, c) -> null, options);
+
+        service.destroy();
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(mockConsumer, mockProducer);
+        inOrder.verify(mockConsumer).close();
+        inOrder.verify(mockProducer).close(any(java.time.Duration.class));
+        assertFalse(service.isActive());
+        assertTrue(subscription.isCancelled());
+    }
+
+    /**
+     * WI20/F-26: suspend/resume are applied by the consume thread at the loop head — the
+     * desired state is re-asserted every round (pause while suspended, resume after).
+     */
+    @Test
+    void suspendStateAppliedByConsumeThreadAndReversedOnResume() throws Exception {
+        Consumer<String, String> mockConsumer = mock(Consumer.class);
+        Set<TopicPartition> assignment = java.util.Collections.singleton(
+                new TopicPartition("t-suspend", 0));
+        when(mockConsumer.assignment()).thenReturn(assignment);
+        when(mockConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
+            Thread.sleep(20);
+            return ConsumerRecords.EMPTY;
+        });
+
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        MessageSubscriptionConfig config =
+                new MessageSubscriptionConfig("t-suspend", msgConsumer, new MessageSubscribeOptions());
+        KafkaConsumeTask task = new KafkaConsumeTask(new KafkaMessageService(), mockConsumer,
+                config, KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "test-suspend-apply");
+            t.setDaemon(true);
+            return t;
+        });
+        task.bindExecutor(executor, 100);
+
+        task.setSuspended(true);
+        task.start();
+        try {
+            org.mockito.Mockito.verify(mockConsumer, org.mockito.Mockito.timeout(2000))
+                    .pause(assignment);
+
+            task.setSuspended(false);
+            org.mockito.Mockito.verify(mockConsumer, org.mockito.Mockito.timeout(2000))
+                    .resume(assignment);
+        } finally {
+            task.stop();
+            executor.shutdown();
+        }
+    }
+
+    /**
+     * WI20/F-26: a suspend issued before any partition was assigned (or before a
+     * rebalance) holds for the freshly assigned partitions.
+     */
+    @Test
+    void onPartitionsAssignedReappliesPauseWhenSuspended() {
+        Consumer<String, String> mockConsumer = mock(Consumer.class);
+        Set<TopicPartition> assignment = java.util.Collections.singleton(
+                new TopicPartition("t-suspend", 0));
+        when(mockConsumer.assignment()).thenReturn(assignment);
+
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        MessageSubscriptionConfig config =
+                new MessageSubscriptionConfig("t-suspend", msgConsumer, new MessageSubscribeOptions());
+        KafkaConsumeTask task = new KafkaConsumeTask(new KafkaMessageService(), mockConsumer,
+                config, KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS);
+
+        task.setSuspended(true);
+        task.onPartitionsAssigned(assignment);
+
+        org.mockito.Mockito.verify(mockConsumer).pause(assignment);
     }
 }

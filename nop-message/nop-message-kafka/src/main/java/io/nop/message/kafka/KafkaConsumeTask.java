@@ -72,6 +72,17 @@ public class KafkaConsumeTask {
     private long pollTimeoutMs;
 
     private volatile boolean active = false;
+    /**
+     * WI20 (F-26): desired suspend state, set from the subscribing threads. The consume
+     * thread re-asserts it every loop round (and after every partition assignment), which
+     * serializes pause/resume with poll on the consumer's own thread — a cross-thread
+     * {@code consumer.pause()} call would race the poll loop ({@code KafkaConsumer} is not
+     * thread-safe). Survives rebalances and covers a suspend issued before any partition
+     * was assigned.
+     */
+    private volatile boolean suspended = false;
+    // Consume-thread confined: the last suspend state actually applied to the consumer.
+    private boolean suspendedApplied = false;
     // Rebalance listener runs only on the poll thread; plain boolean suffices.
     private boolean seekToTimeApplied = false;
     // WI16: message-level failure context, filled by the inner catches before rethrow.
@@ -159,6 +170,16 @@ public class KafkaConsumeTask {
         if (partitions == null || partitions.isEmpty()) {
             return;
         }
+        // WI20 (F-26): a suspend issued before this assignment (or before a rebalance) must
+        // hold for the freshly assigned partitions too.
+        if (suspended) {
+            try {
+                consumer.pause(partitions);
+                suspendedApplied = true;
+            } catch (Exception e) {
+                LOG.error("nop.err.message.kafka.suspend-apply-fail", e);
+            }
+        }
         io.nop.api.core.message.MessageSubscribeOptions options = config.getOptions();
 
         SeekMode mode = options == null ? null : options.getSeekMode();
@@ -210,12 +231,51 @@ public class KafkaConsumeTask {
         consumer.wakeup();
     }
 
+    /**
+     * WI20 (F-26): sets the desired suspend state. The consume thread applies pause/resume
+     * at the top of the next poll round (and re-applies pause to freshly assigned
+     * partitions in the rebalance callback) — never from the caller's thread, which would
+     * race the poll loop. Applying is best-effort: if the task has already stopped, the
+     * flag is recorded but no state is applied.
+     */
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    /**
+     * Consume-thread only: re-asserts the desired suspend state against the full current
+     * assignment. Diff-based (desired vs applied) so a suspend→resume pair issued between
+     * two rounds is honored correctly and repeated rounds are no-ops.
+     */
+    private void applySuspendState() {
+        if (suspended == suspendedApplied) {
+            return;
+        }
+        suspendedApplied = suspended;
+        try {
+            if (suspended) {
+                consumer.pause(consumer.assignment());
+            } else {
+                consumer.resume(consumer.assignment());
+            }
+        } catch (Exception e) {
+            LOG.error("nop.err.message.kafka.suspend-apply-fail", e);
+        }
+    }
+
     public boolean isActive() {
         return active;
     }
 
     private void runTask() {
         while (active) {
+            // WI20 (F-26): suspend/resume are applied HERE — on the consume thread, between
+            // rounds — never from the subscribing thread.
+            applySuspendState();
             try {
                 if (config.getOptions() != null && config.getOptions().allowBatchConsume()) {
                     batchConsume();

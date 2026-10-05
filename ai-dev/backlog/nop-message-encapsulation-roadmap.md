@@ -162,7 +162,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase C — 生命周期与可靠性
 
 - WI19 线程模型与有界关闭: `done`（deps M2；Item Type Fix；对应 MSG-F-24 与 MSG-F-54；完成判定 消费线程统一 daemon 且命名且 fan-out 可区分，且 `stop` 在无新消息时仍能有界退出；关闭路径有界不依赖 `close` 隐式解阻；两后端统一采用 `LifeCycleSupport`；新增关闭时序测试；承载 plan `ai-dev/plans/nop-message/19-wi19-thread-model-bounded-shutdown.md`）
-- WI20 destroy 顺序与并发幂等: `todo`（deps WI19；Item Type Fix；对应 MSG-F-25 与 MSG-F-26 与 MSG-F-27 与 MSG-F-30；完成判定 两后端 destroy 顺序统一为订阅先于 producer；`cancel` 与 `Cancellable` 共同改为原子幂等；消除跨线程 `consumer.close` 与 `poll` 竞态；新增并发 cancel 与关闭期在途发送测试）
+- WI20 destroy 顺序与并发幂等: `done`（deps WI19；Item Type Fix；对应 MSG-F-25 与 MSG-F-26 与 MSG-F-27 与 MSG-F-30；完成判定 两后端 destroy 顺序统一为订阅先于 producer；`cancel` 与 `Cancellable` 共同改为原子幂等；消除跨线程 `consumer.close` 与 `poll` 竞态；新增并发 cancel 与关闭期在途发送测试；承载 plan `ai-dev/plans/nop-message/20-wi20-destroy-order-cancel-idempotency.md`）
 - WI21 分层 DLQ 与失败终点: `todo`（deps WI16；Item Type Feature；对应 MSG-F-22 与 MSG-F-53；完成判定 按 D6 三层裁定交付：Pulsar 原生 `deadLetterPolicy` 与 `maxDeliveries` 接线进 `PulsarConsumerConfig`；Kafka 应用级重发布按需启用；`nop-retry` 桥消费 WI16 的失败回调；不新增无法实现的后端 DLQ 义务）
 - WI22 失败重试计数与退避策略: `todo`（deps WI16 WI21；Item Type Feature；对应 MSG-F-21；完成判定 每消息 attempt 计数可查询且跨重启语义明确；消费错误退避改为可配置且有上限；毒消息到达上限后进入失败终点而不再空转；跨重启 attempt 语义在设计文档中显式声明）
 - WI23 LocalMessageService 语义对齐: `todo`（deps WI4；Item Type Fix；对应 MSG-F-14 与 MSG-F-15 与 MSG-F-56；完成判定 `ConsumeLater` 不再被发到 ack topic；重复订阅的取消不再交叉影响另一持有者；`subscribe` 对每个选项字段给出显式处置；与两后端语义差异在设计文档中显式登记）

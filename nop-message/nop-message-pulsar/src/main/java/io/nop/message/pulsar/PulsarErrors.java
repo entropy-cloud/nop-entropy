@@ -23,4 +23,7 @@ public interface PulsarErrors {
 
     ErrorCode ERR_PULSAR_CONSUMER_CREATE_FAILED =
             ErrorCode.define(PREFIX + "consumer-create-failed", "Failed to create Pulsar consumer");
+
+    ErrorCode ERR_PULSAR_SERVICE_NOT_ACTIVE =
+            ErrorCode.define(PREFIX + "service-not-active", "PulsarMessageService is not initialized (or already destroyed)");
 }

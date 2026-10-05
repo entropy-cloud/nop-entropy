@@ -38,10 +38,15 @@ public class Cancellable implements ICancellable {
     }
 
     public void cancel(String cancelReason) {
-        if (cancelled)
-            return;
-        this.cancelReason = cancelReason;
-        this.cancelled = true;
+        // Atomic check-and-set (WI20 / MSG-F-25): concurrent cancels must have exactly one
+        // winner so the cancelReason attribution is deterministic. Callbacks still run
+        // outside the lock (unchanged structure, no new deadlock surface).
+        synchronized (this) {
+            if (cancelled)
+                return;
+            this.cancelReason = cancelReason;
+            this.cancelled = true;
+        }
         tryRunCallbacks();
     }
 
