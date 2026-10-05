@@ -1008,6 +1008,23 @@ EQL 语法层**不做** `MERGE` 语句语法（与「明确不做的事」UPSERT
 
 测试载体：`TestEncAssistedEqlRewrite`（25 例：等值/!=/IN 编译级改写、LIKE/NOT LIKE/ILIKE、不可检索谓词逐类报错、H2 端到端命中+解密回归、缓存交互、QueryBean 继承、非 enc 零影响、删除 WHERE 改写、bulk SET 边界）、`TestEqlAstTransformerWiring`（transformer 注入与缓存绕过既有契约，回归通过）。
 
+### 可检索加密：GenSqlHelper 直拼路径（plan 2318 Phase 4 落地）
+
+example 查询（`findAllByExample / findFirstByExample / findPageByExample / countByExample / deleteByExample / updateByExample` 的 WHERE 侧）与模型固定 filter（`<filters>`，作用于 load/lock/delete/collection load 的 SQL 生成）不经 EQL 编译，在 `GenSqlHelper` 的 SQL 构建点改写：过滤值构建期已知，enc 主列直接替换为 assisted 列并摘要绑定（不经 marker builder）。`TestEncAssistedGenSqlRewrite` 覆盖（11 例）。
+
+**该路径的显式失败与限制**：
+
+- 只声明 like 辅助列的加密列做等值过滤：显式报错（`eq-needs-enc-assisted-helper`），不静默退化为密文比较。
+- 声明了辅助列的加密主列出现在按主键比对（load/lock/delete/update 的 `genIdEq`）或 `useRevision` 实体 findLatest 的全列状态比对：显式报错——随机 IV 下密文比对恒不命中、摘要无法表达这些比对（session factory 启动即失败）；未声明辅助列的 enc 主键/rev 列维持既有 limitation 行为。
+- example 查询的 `orderBy` 触及声明了辅助列的加密主列：显式报错（按密文排序属静默错误结果）。
+- 该路径不产出 LIKE 谓词，无 like 列改写面；租户列/版本列/revision 常量列为框架系统列，不可能为 enc 场景。
+- `updateByExample` 的 SET 侧为 bulk UPDATE 写路径：加密列直接经加密 binder 写入、辅助列不维护（既定裁定，见上文限制清单）。
+- 固定 filter（`<filters>`）是分区语义：保存时 persister 把 filter 列强制写为 filter 值（`bindFilter`），filter 指向加密主列时经 ORM 保存的行均满足 filter；不满足 filter 的存量行经 ORM 按主键装载不可见。
+
+### 可检索加密：存量回填（plan 2318 Phase 5 落地）
+
+辅助列声明后加入模型的存量库：先经既有 auto-upgrade（`nop.orm.db-differ.auto-upgrade-database`）自动 `ALTER TABLE ADD COLUMN`（`TestEncAssistedAutoUpgrade`，nop-dbtool-core），再执行 `EncAssistedBackfiller`（`io.nop.orm.enc`）回填——按主键排序分批（`nop.orm.enc-backfill-batch-size` 缺省 500）读 id+主列密文 → 解密（`@enc:` 前缀剥离 + v1/legacy 格式识别；未带前缀按明文）→ 重算摘要 → 仅批量更新辅助列；幂等、主列为 null 跳过（`TestEncAssistedBackfill` 6 例，含回填后等值/LIKE 命中端到端）。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

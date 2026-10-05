@@ -166,56 +166,71 @@ Exit Criteria:
 
 ### Phase 4 - 查询改写：GenSqlHelper 路径
 
-Status: planned
+Status: completed（2026-10-05）
 Targets: `nop-persistence/nop-orm` `GenSqlHelper` 及其调用方（findByExample/updateByExample/实体固定 filter）
 
 - Item Types: `Feature`
 
-- [ ] 该路径的等值过滤在 enc 主列上改写到 assisted 列（当前 eq 参数走增强 binder 的隐式行为由显式改写取代，语义与 Phase 3 矩阵一致）；核对以 Baseline #5 的 16 处 `binders[...]` 完整清单为准（含租户列、join 列变体）
-- [ ] 不支持的过滤形态按同一错误码矩阵显式失败
-- [ ] 测试：example 查询/固定 filter 按 assisted 列命中（裸 SQL 断言生成 SQL + 结果断言）
+- [x] 该路径的等值过滤在 enc 主列上改写到 assisted 列（当前 eq 参数走增强 binder 的隐式行为由显式改写取代，语义与 Phase 3 矩阵一致）；核对以 Baseline #5 的 16 处 `binders[...]` 完整清单为准（含租户列、join 列变体）
+- [x] 不支持的过滤形态按同一错误码矩阵显式失败
+- [x] 测试：example 查询/固定 filter 按 assisted 列命中（裸 SQL 断言生成 SQL + 结果断言）
 
 Exit Criteria:
 
-- [ ] 覆盖 findByExample 与实体固定 filter 各至少一个 focused 测试
-- [ ] 无静默跳过（Minimum Rules #24）
-- [ ] owner-doc 裁定：GenSqlHelper 路径改写语义并入 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的限制清单，归 Phase 5 收口统一核对（本 Phase 无独立文档交付）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 覆盖 findByExample 与实体固定 filter 各至少一个 focused 测试
+- [x] 无静默跳过（Minimum Rules #24）
+- [x] owner-doc 裁定：GenSqlHelper 路径改写语义并入 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的限制清单，归 Phase 5 收口统一核对（本 Phase 无独立文档交付）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+实现注记（2026-10-05）：
+
+1. 改写点：`appendFilterEq` 通道接管 16 处 `binders[...]` 清单中值构建期已知的等值过滤三处——`genCollectionFilterEx`（集合固定 filter）、`addFixedFilter`（load/lock/delete/update 的固定 filter）、`appendExampleFilter`（example 逐列 eq，含 updateByExample 的 WHERE 侧）：enc 主列替换为 assisted 列 + 构建期摘要绑定 + binder 换用辅助列自身 binder。逐处判定不改写的引用点（租户/版本/revision 常量列=框架系统列、join 列=FK 关联、INSERT/UPDATE SET=写路径）在 GenSqlHelper 源码注释留痕，完整映射见 `TestEncAssistedGenSqlRewrite` 类注释。该路径不产出 LIKE 谓词，无 like 改写面。
+2. 新增显式失败（同错误码矩阵，仅命中"声明了辅助列的 enc 主列"新式声明，未声明辅助列的 enc 列维持既有 limitation 行为）：like-only 列等值（`eq-needs-enc-assisted-helper`）；enc 主键列按主键比对（`primary-key-not-searchable`，启动期 fail-fast）；`useRevision` 实体 findLatest 全列状态比对（`rev-find-latest-all-columns-not-searchable`）；example orderBy / 集合 sort 触及该类主列（`order-by-or-group-by-not-searchable`，按密文排序属静默错误结果）。
+3. 顺带修复两处阻塞本 Phase 端到端验证的 updateByExample 既有 live defect：① update 关键字与表名间缺空格（生成 `updateSIMS_EXAM as o` 非法 SQL）；② SET 侧误用无值 `appendEqMarker`，而 driver 直接 `end()` 执行该 builder、不经 transform 填充——SET 参数从未绑定，updateByExample 此前在任何方言上都不可用。修复后 SET 经带值 `appendEq` 绑定（值构建期已知）。
+4. 平台语义事实（测试钉住）：固定 filter 是分区语义——persister `bindFilter` 在保存时把 filter 列强制写为 filter 值，故"不满足固定 filter 的行"只能经裸 SQL 预置（TestEncAssistedGenSqlRewrite#testFixedFilterLoadHitsOnlyMatchingRows）。
+5. 测试：`TestEncAssistedGenSqlRewrite` 11 例（findByExample 编译级 SQL+摘要参数断言 2、countByExample 1、updateByExample WHERE 改写+端到端 1、固定 filter SQL+装载命中/不可见 2、显式失败 4、非 enc 零影响 1）。
 
 ### Phase 5 - DDL、回填与文档收口
 
-Status: planned
+Status: completed（2026-10-05）
 Targets: `nop-persistence/nop-orm`（回填工具）、`nop-dbtool-core`（验证面）、owner docs
 
 - Item Types: `Feature` + `Proof`
 
-- [ ] 验证 auto-upgrade：模型新增辅助列后 `DataBaseUpgrader` 自动 ADD COLUMN（focused 测试证明）
-- [ ] 回填工具：存量行解密 cipher 列 → 按契约重算辅助列，幂等可重复执行，批大小可配
-- [ ] 回填端到端：预置存量密文行 → 回填 → 等值/LIKE 查询命中
-- [ ] owner docs 收口：`orm-model-design.md`、`eql-and-database-compatibility.md` 与最终行为一致性核对；design 文档从 draft 转终稿（去掉演进叙事，Minimum Rules #14）
-- [ ] owner doc 显式声明 bulk update 限制：enc 列**不支持**经 `updateByExample` 等 bulk UPDATE 更新（辅助列不维护，归业务层校验）——2026-10-05 用户裁定的文档化义务
-- [ ] 全量回归：`./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-orm-model -am`，并按 plan 2307 固化的跨模块回归清单覆盖 EQL 下游消费模块
+- [x] 验证 auto-upgrade：模型新增辅助列后 `DataBaseUpgrader` 自动 ADD COLUMN（focused 测试证明）
+- [x] 回填工具：存量行解密 cipher 列 → 按契约重算辅助列，幂等可重复执行，批大小可配
+- [x] 回填端到端：预置存量密文行 → 回填 → 等值/LIKE 查询命中
+- [x] owner docs 收口：`orm-model-design.md`、`eql-and-database-compatibility.md` 与最终行为一致性核对；design 文档从 draft 转终稿（去掉演进叙事，Minimum Rules #14）
+- [x] owner doc 显式声明 bulk update 限制：enc 列**不支持**经 `updateByExample` 等 bulk UPDATE 更新（辅助列不维护，归业务层校验）——2026-10-05 用户裁定的文档化义务
+- [x] 全量回归：`./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-orm-model -am`，并按 plan 2307 固化的跨模块回归清单覆盖 EQL 下游消费模块
 
 Exit Criteria:
 
-- [ ] auto-upgrade 与回填各有 focused 测试；回填幂等（重复执行结果一致）有断言
-- [ ] **端到端验证**（Minimum Rules #22）：存量密文 → 回填 → 查询命中全链路通过
-- [ ] owner docs 更新完成且链接检查退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] auto-upgrade 与回填各有 focused 测试；回填幂等（重复执行结果一致）有断言
+- [x] **端到端验证**（Minimum Rules #22）：存量密文 → 回填 → 查询命中全链路通过
+- [x] owner docs 更新完成且链接检查退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+实现注记（2026-10-05）：
+
+1. 回填组件 `io.nop.orm.enc.EncAssistedBackfiller`：构造注入 `IOrmSessionFactory`（jdbc/dialect/模型均取自 factory），`backfillAll()` / `backfillEntity(entityName|model)`。按主键排序 offset 分页读 id+主列（`nop.orm.enc-backfill-batch-size` 缺省 500，`OrmConfigs.CFG_ORM_ENC_BACKFILL_BATCH_SIZE` 登记，配置 <1 显式失败）；按"非空主列绑定掩码"分组使同组行共享 SQL 文本并经 `JdbcBatcher` 批量更新；仅辅助列入 SET（不触碰主列）；主列为 null 的行跳过（辅助列保持原值）；解密复用 `EncodedDataParameterBinder` 读语义（`@enc:` 前缀剥离 → `ITextCipher.decrypt` 自识别 v1/legacy；无前缀存量值原样按明文）；幂等（重算覆盖）。直接走 JDBC 不经 ORM session——只读守护与派生逻辑不触发、不影响实体缓存。自定义密码器须与 `DefaultOrmColumnBinderEnhancer` 一致（缺省同为 `AESTextCipher`）；分片实体仅回填缺省 querySpace（类 javadoc 声明）。
+2. auto-upgrade focused 测试落在 `nop-dbtool-core`（依赖方向 dbtool→orm，不可放 nop-orm）：`TestEncAssistedAutoUpgrade` 经显式资源加载模型 + 静态 `IOrmModelProvider` 注入（不依赖模块注册），验证 ADD COLUMN（assisted/like 两列）+ no-change 不产 DDL + 存量密文行不受升级影响。测试模型 `nop-dbtool-core/src/test/resources/_vfs/nop/dbtool/test/enc-upgrade.orm.xml`。
+3. 文档收口：design 文档 like 列规范化契约合入 §3.2 正文、删除 Phase 3 dated 澄清引文（终稿化，Minimum Rules #14）；`orm-model-design.md` 可检索加密小节补 GenSqlHelper 路径改写语义、显式失败清单、固定 filter 分区语义与回填/auto-upgrade 用法；`eql-and-database-compatibility.md` 新增"GenSqlHelper 直拼路径"与"存量回填"小节（Phase 4 的 owner-doc 裁定项在此兑现）。bulk update 限制声明此前已在 owner doc 存在，本轮核对一致。
+4. 验证（2026-10-05 实测）：nop-orm-model 56/56 绿；nop-orm-eql 全量 777 绿；nop-orm 全量 343 绿（25 skipped 为既有容器矩阵，含新增 GenSql 11 + 回填 6）；nop-dbtool-core 全量 6/6 绿（含既有 TestJdbcMetaDiscovery 回归）；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（5 条 warning 为 2320/nop-bytecode 等无关 plan 的既有告警）。
 
 ## Closure Gates
 
 > 关闭前逐条勾选；流程见 guide 的 When Closing The Plan 与 Closure Audit Rule。
 
-- [ ] 三列机制端到端可用：声明 → 保存（辅助列自动派生）→ EQL/QueryBean 等值查询 → LIKE 查询 → 加列回填 → 再查询
-- [ ] 所有 in-scope 配置错误与不可检索谓词均显式失败，无静默跳过/静默错误结果（scope 边界：bulk UPDATE SET 限制见 Deferred But Adjudicated 裁定与 owner doc 声明）
-- [ ] 既有 enc 行为（v1 密文格式、读写解密、`TestColumnEnhancer` 既有断言）无回归
-- [ ] owner docs（orm-model-design.md、eql-and-database-compatibility.md）与 live baseline 一致
+- [x] 三列机制端到端可用：声明 → 保存（辅助列自动派生）→ EQL/QueryBean 等值查询 → LIKE 查询 → 加列回填 → 再查询
+- [x] 所有 in-scope 配置错误与不可检索谓词均显式失败，无静默跳过/静默错误结果（scope 边界：bulk UPDATE SET 限制见 Deferred But Adjudicated 裁定与 owner doc 声明）
+- [x] 既有 enc 行为（v1 密文格式、读写解密、`TestColumnEnhancer` 既有断言）无回归
+- [x] owner docs（orm-model-design.md、eql-and-database-compatibility.md）与 live baseline 一致
 - [ ] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow 检查：派生挂点与查询改写在运行链路真实连通）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2318-orm-enc-assisted-query-columns.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-orm-model -am` 通过
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm,nop-persistence/nop-orm-model -am` 通过
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -231,6 +246,8 @@ Exit Criteria:
 
 - 辅助列值函数的算法注册 SPI 化、多辅助列支持（第一版固定契约之外的泛化）
 - 脱敏/mask 引擎（另立项，见 gap analysis P1 #3）
+
+> **Follow-up 核对说明（2026-10-05，Phase 4/5 执行后）**：逐条核对以上登记项——两项仍为 non-blocking 泛化/另立项，Phase 4/5 未发现新增 in-scope live defect 或 contract drift。执行中发现并**当场修复**的 `genUpdateByExample` 两处既有缺陷（update 关键字缺空格、SET 参数从未绑定）属 Phase 4 交付面（见 Phase 4 实现注记 #3），不构成 follow-up；分片实体的多 querySpace 回填、回填与在线写入的并发一致性为已声明的 v1 边界（`EncAssistedBackfiller` javadoc 与 owner doc），不属于 live defect。
 
 ## Closure
 

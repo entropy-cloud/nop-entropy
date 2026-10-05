@@ -961,7 +961,11 @@ select o, o.extFldA, o.extFldB*2 + 3
 
 **查询语义**：主列上的 `= / IN / != / NOT IN` 自动改写到 assisted 列，`LIKE / NOT LIKE / ILIKE` 自动改写到 like 列（`%`/`_` 通配语义保持；ILIKE 两侧小写规范化后摘要，不依赖方言 ILIKE 函数）。范围谓词（`< > BETWEEN`）、`ORDER BY / GROUP BY / JOIN ON` 涉及加密主列、含 `escape` 的 LIKE、正则字符类均显式报错（`nop.err.orm.enc-column-not-searchable`），不做静默全表解密。
 
-**限制（重要）**：`updateByExample` 等 bulk UPDATE 直接 SET 加密列时，框架**不**维护辅助列（既定裁定：归业务层校验）——加密列的批量变更请走逐实体保存，或在业务层同步维护辅助列。未声明辅助列的 `enc` 列维持纯加密存储行为（等值查询检索不到，属预期）。
+改写覆盖两条产出路径：EQL/QueryBean（编译期 AST 改写，参数经执行期摘要，详见 `eql-and-database-compatibility.md`）与 **GenSqlHelper 直拼路径**——`findAllByExample / findFirstByExample / findPageByExample / countByExample / deleteByExample / updateByExample` 的逐列等值 WHERE，以及模型 `<filters>` 固定 filter（load/lock/delete/collection load）。该路径过滤值在 SQL 构建期已知，直接摘要后绑定；只声明 like 辅助列的加密列做等值过滤时显式报错（`eq-needs-enc-assisted-helper`）。声明了辅助列的加密主列出现在按主键比对（`genIdEq`）或 `useRevision` 实体 findLatest 的全列比对中同样显式报错（随机 IV 密文比对恒不命中，摘要无法表达这些比对）；example 查询的 `orderBy` 触及加密主列亦显式报错。
+
+**限制（重要）**：`updateByExample` 等 bulk UPDATE 直接 SET 加密列时，框架**不**维护辅助列（既定裁定：归业务层校验）——加密列的批量变更请走逐实体保存，或在业务层同步维护辅助列。未声明辅助列的 `enc` 列维持纯加密存储行为（等值查询检索不到，属预期）。固定 filter（`<filters>`）是分区语义：保存时 persister 会把 filter 列强制写为 filter 值（`bindFilter`），filter 指向加密主列时所有经 ORM 保存的行都满足 filter。
+
+**存量数据回填**（辅助列是后加声明、存量行辅助列为空时使用）：`EncAssistedBackfiller`（`io.nop.orm.enc`，构造注入 `IOrmSessionFactory`）提供 `backfillAll()` 与 `backfillEntity(entityName)`：按主键排序分批读 id+主列密文 → 解密 → 重算辅助列 → 仅批量更新辅助列。解密与读路径语义一致（`@enc:` 前缀剥离后经 `ITextCipher.decrypt` 识别 v1/legacy 格式；未带前缀的存量值按明文处理）。幂等（重复执行重算覆盖，结果一致）；主列为 null 的行跳过；自定义密码器时须与 `DefaultOrmColumnBinderEnhancer` 的密码器一致。分批大小配置 `nop.orm.enc-backfill-batch-size`（缺省 500）。辅助列声明加入已有模型后，既有 auto-upgrade（`nop.orm.db-differ.auto-upgrade-database`，需引入 `nop-dbtool-core`）会自动对存量库 `ALTER TABLE ADD COLUMN`，再执行回填即可完成存量迁移。
 
 ## 免代码生成：动态实体 `DynamicOrmEntity`
 

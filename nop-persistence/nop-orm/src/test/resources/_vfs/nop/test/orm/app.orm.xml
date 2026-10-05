@@ -179,6 +179,34 @@
             </relations>
         </entity>
 
+        <!-- plan 2318 Phase 4：固定 filter 命中声明了 assisted 辅助列的 enc 主列。
+             动态实体（无需生成 Java 类），经 session.newEntity/orm_propValue 访问 -->
+        <entity name="test.entity.TestEncFilterEntity" tableName="TEST_ENC_FILTER_ENTITY"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="examName" code="EXAM_NAME" stdSqlType="VARCHAR" precision="100" propId="2"
+                        tagSet="enc" ext:enc-assisted="nameAssisted"/>
+                <column name="nameAssisted" code="NAME_ASSISTED" stdSqlType="VARCHAR" precision="64" propId="3"
+                        tagSet="enc-assisted"/>
+            </columns>
+            <filters>
+                <filter name="examName" value="OpenExam"/>
+            </filters>
+        </entity>
+
+        <!-- plan 2318 Phase 4：enc 主列只声明 like 辅助列——等值不可服务场景的显式失败验证 -->
+        <entity name="test.entity.TestEncLikeOnlyEntity" tableName="TEST_ENC_LIKE_ONLY_ENTITY"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="2"
+                        tagSet="enc" ext:enc-like="nameLike"/>
+                <column name="nameLike" code="NAME_LIKE" stdSqlType="VARCHAR" precision="2048" propId="3"
+                        tagSet="enc-like"/>
+            </columns>
+        </entity>
+
         <!--
         针对所有实体的扩展字段表
         -->

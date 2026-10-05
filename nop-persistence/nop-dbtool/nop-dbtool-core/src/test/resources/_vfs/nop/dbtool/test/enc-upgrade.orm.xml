@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- plan 2318 Phase 5：auto-upgrade 验证模型——声明了 assisted/like 辅助列的 enc 主列。
+     旧库只有主表列，DataBaseUpgrader/OrmDbDiffer 应自动 ADD COLUMN 两个辅助列 -->
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <entity name="test.encupg.EncUpgEntity" tableName="T_ENC_UPG"
+                className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="BIGINT" primary="true" propId="1" mandatory="true"/>
+                <column name="examName" code="EXAM_NAME" stdSqlType="VARCHAR" precision="100" propId="2"
+                        tagSet="enc" ext:enc-assisted="nameAssisted" ext:enc-like="nameLike"/>
+                <column name="nameAssisted" code="EXAM_NAME_ASSISTED" stdSqlType="VARCHAR" precision="64"
+                        propId="3" tagSet="enc-assisted"/>
+                <column name="nameLike" code="EXAM_NAME_LIKE" stdSqlType="VARCHAR" precision="2048"
+                        propId="4" tagSet="enc-like"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

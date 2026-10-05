@@ -104,4 +104,8 @@ public interface OrmConfigs {
     IConfigReference<Integer> CFG_ORM_ENC_LIKE_DIGEST_WIDTH =
             varRef(s_loc, "nop.orm.enc-like-digest-width", Integer.class, 8);
 
+    @Description("可检索加密：辅助列回填工具按主键排序的分批大小（读+更新，缺省 500）")
+    IConfigReference<Integer> CFG_ORM_ENC_BACKFILL_BATCH_SIZE =
+            varRef(s_loc, "nop.orm.enc-backfill-batch-size", Integer.class, 500);
+
 }
