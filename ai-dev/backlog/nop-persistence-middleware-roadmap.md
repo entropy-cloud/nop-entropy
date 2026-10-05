@@ -46,7 +46,7 @@
 
 - [x] WI3 plan 2318 实施：Phase 0–5 按计划执行（契约裁定落 design → 元数据校验 fail-fast → 写路径派生（queueSave/queueUpdate 挂点）→ EQL/QueryBean 编译期改写（before-analyze + SqlParameterMarker param builder）→ GenSqlHelper 路径改写 → DDL/回填/文档收口）（Deliverable: 代码 + focused/E2E 测试 + owner doc；deps: WI0；Item Type: Feature）——2026-10-06 完成：五 Phase landed（约 60 个新测试全绿，三模块全量回归绿），独立 closure audit APPROVE，plan 标 completed；顺带修复 updateByExample 两处既有 live defect
 - [x] WI4 读写分离实施：ReadWriteRoutingDataSource 装饰器（nopDataSource_ querySpace 装配）+ 三级判定（hint > 事务内主库 > 只读意图从库）+ 负载均衡/故障冷却 + 只读意图传播（openConnection 路径、JdbcQueryExecutor 只读语句）+ 配置面与 sql-lib 只读标注（Deliverable: 代码 + 测试 + owner doc；deps: WI1；Item Type: Feature）——2026-10-06 完成：commit 35e40f53ba，约 60 新测试全绿（nop-dao 296/nop-orm 508 回归绿），独立 closure audit APPROVE（16/16 PASS、五链连通、_gen 纯 regen），plan 标 completed
-- [ ] WI5 脱敏惯例辅助：meta 层裁定残余——常用 mask 工具函数（keep-first/last-n、特殊字符遮盖等，SS 算法清单仅作参考）+ xmeta 脱敏展示字段 + not-pub 发布控制的 owner doc 文档化（Deliverable: 工具函数 + 文档；deps: 无；Item Type: Feature + Proof）
+- [x] WI5 脱敏惯例辅助：meta 层裁定残余——常用 mask 工具函数（keep-first/last-n、特殊字符遮盖等，SS 算法清单仅作参考）+ xmeta 脱敏展示字段 + not-pub 发布控制的 owner doc 文档化（Deliverable: 工具函数 + 文档；deps: 无；Item Type: Feature + Proof）——2026-10-06 完成：MaskHelper（nop-commons，5 函数 5 测试）+ orm-model-design.md「脱敏展示字段」小节（compute 属性派生模式示例）
 
 ### M2 — 分片单分片路由
 
