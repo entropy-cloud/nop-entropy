@@ -97,7 +97,7 @@ Goal: 把用户裁定落成可执行的规格，修正裁定文档。
 Deliverables: 薄接口与上下文对象的契约设计（单入口、上下文携带项清单：命令注册表 /
 checker / fs / env / cwd / io 流 / 递归深度与超时限制）；控制流表达式节点清单及其求值
 语义；CST 节点 → 表达式的映射表与子集外拒绝清单（node kind 分级：映射 / 拒绝）；
-`bash-shell-interaction.md` 补记"触发信号 #1 已命中"及本路线取代"并行"裁定的范围
+`../analysis/nop-treesitter-bash-shell-interaction.md` 补记"触发信号 #1 已命中"及本路线取代"并行"裁定的范围
 （仅解析前端，分析层契约不变）；`04-bash-syntax.md` Tier 矩阵按新覆盖更新。
 
 Out of scope: 具体实现代码。
