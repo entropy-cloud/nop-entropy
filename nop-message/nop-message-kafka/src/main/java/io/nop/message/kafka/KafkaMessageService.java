@@ -332,12 +332,20 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
             options = new MessageSubscribeOptions();
         }
         MessageOptionsValidator.validateSubscribe(CAPABILITIES, options, "kafka", WARN_ONCE);
+        // WI27 (D4): the legacy Pulsar-vocabulary field is in its deprecation window.
         if (options.getSubscriptionType() != null) {
-            // Kafka has no direct equivalent of Pulsar's SubscriptionType (group-based
-            // partition assignment covers Shared/Failover). Warn once per JVM, never
-            // per call (F-53), and never silently.
-            MessageOptionsValidator.warnOnce("kafka", "subscriptionType",
-                    "subscriptionType " + options.getSubscriptionType() + " has no Kafka equivalent and is ignored");
+            MessageOptionsValidator.warnOnce("kafka", "legacy-subscription-type",
+                    "subscriptionType is deprecated; use subscriptionMode (D4 deprecation window). "
+                            + "Kafka has no native subscription types — the value remains ignored "
+                            + "(group-based partition assignment approximates LOAD_BALANCED)");
+        }
+        // WI27 (D4): the neutral modes have no Kafka equivalent either — group-based
+        // partition assignment approximates LOAD_BALANCED only.
+        if (options.getSubscriptionMode() != null) {
+            MessageOptionsValidator.warnOnce("kafka", "subscriptionMode",
+                    "subscriptionMode " + options.getSubscriptionMode()
+                            + " has no Kafka equivalent and is ignored (group semantics approximate "
+                            + "LOAD_BALANCED)");
         }
 
         int concurrency = options.getConcurrency();

@@ -270,6 +270,35 @@ class TestKafkaConsumeTask {
     }
 
     @Test
+    void subscriptionModeKafkaWarnOnceDoesNotThrow() {
+        org.apache.kafka.clients.consumer.MockConsumer<String, String> mc =
+                org.mockito.Mockito.mock(org.apache.kafka.clients.consumer.MockConsumer.class);
+        class TestService extends KafkaMessageService {
+            @Override
+            protected Consumer<String, String> createConsumer(java.util.Properties props,
+                                                              StringDeserializer keyDeserializer,
+                                                              StringDeserializer valueDeserializer) {
+                return mc;
+            }
+        }
+        TestService testService = new TestService();
+        testService.config = new KafkaClientConfig();
+        testService.config.setBootstrapServers("localhost:9092");
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-mode-kafka");
+        options.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.LOAD_BALANCED);
+        options.setSubscriptionType(io.nop.api.core.message.SubscriptionType.Shared);
+
+        // WI27: both fields warn-once — the subscribe must not throw and must produce a
+        // working subscription.
+        io.nop.api.core.message.IMessageSubscription subscription =
+                testService.subscribe("test-topic", (t, m, c) -> null, options);
+        org.junit.jupiter.api.Assertions.assertNotNull(subscription);
+        subscription.cancel();
+    }
+
+    @Test
     void consumerCreateFailureCarriesTypedCode() {
         class FailingConsumerService extends KafkaMessageService {
             @Override

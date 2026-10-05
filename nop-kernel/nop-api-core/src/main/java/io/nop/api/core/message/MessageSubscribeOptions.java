@@ -46,11 +46,21 @@ public class MessageSubscribeOptions {
     private int batchReceiveTimeout;
 
     /**
-     * 启动多少个Consumer并行消费。exclusive模式下会忽略这个参数
+     * 启动多少个Consumer并行消费。Pulsar：SINGLE_ACTIVE 语义（Exclusive/Failover，含
+     * 未配置型）下该参数被忽略（warn-once）；LOAD_BALANCED/ORDERED_BY_KEY 语义下照常启动
+     * N 个 consumer；均未配置且 concurrency>1 时按 Shared 处理（warn-once）。Kafka：启动
+     * N 个独立 consumer（组语义）。
      */
     private int concurrency;
 
     private SubscriptionType subscriptionType;
+
+    /**
+     * WI27 (D4): broker-neutral subscription semantics — preferred over the deprecated
+     * {@code subscriptionType}. {@code null} (default) = not configured. Takes precedence
+     * over {@code subscriptionType} when both are set (a conflict is warned once).
+     */
+    private SubscriptionMode subscriptionMode;
     private SeekMode seekMode;
     private String seekToMessage;
     private long seekToTime;
@@ -95,6 +105,14 @@ public class MessageSubscribeOptions {
 
     public void setSubscriptionType(SubscriptionType subscriptionType) {
         this.subscriptionType = subscriptionType;
+    }
+
+    public SubscriptionMode getSubscriptionMode() {
+        return subscriptionMode;
+    }
+
+    public void setSubscriptionMode(SubscriptionMode subscriptionMode) {
+        this.subscriptionMode = subscriptionMode;
     }
 
     public SeekMode getSeekMode() {

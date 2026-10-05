@@ -279,6 +279,125 @@ class TestPulsarServiceLifecycle {
         service.destroy();
     }
 
+    // ------------------------------------------------------------------
+    // WI27 (D4/F-32): neutral mode mapping and concurrency determinism
+    // ------------------------------------------------------------------
+
+    private static LifecycleTestService configuredTestService() {
+        LifecycleTestService service = new LifecycleTestService();
+        PulsarClientConfig config = new PulsarClientConfig();
+        config.setServiceUrl("pulsar://localhost:6650");
+        service.setConfig(config);
+        return service;
+    }
+
+    @Test
+    void subscriptionModeMapsToPulsarTypes() {
+        MessageSubscribeOptions single = new MessageSubscribeOptions();
+        single.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.SINGLE_ACTIVE);
+        MessageSubscribeOptions balanced = new MessageSubscribeOptions();
+        balanced.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.LOAD_BALANCED);
+        balanced.setConcurrency(2);
+        MessageSubscribeOptions keyed = new MessageSubscribeOptions();
+        keyed.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.ORDERED_BY_KEY);
+        keyed.setConcurrency(2);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.apache.pulsar.client.api.SubscriptionType.Exclusive,
+                PulsarMessageService.resolveEffectivePulsarType(single));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.apache.pulsar.client.api.SubscriptionType.Shared,
+                PulsarMessageService.resolveEffectivePulsarType(balanced));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                org.apache.pulsar.client.api.SubscriptionType.Key_Shared,
+                PulsarMessageService.resolveEffectivePulsarType(keyed));
+    }
+
+    @Test
+    void singleActiveClampsConcurrencyToOne() throws Exception {
+        LifecycleTestService service = configuredTestService();
+        service.init();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-clamp");
+        options.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.SINGLE_ACTIVE);
+        options.setConcurrency(3);
+        io.nop.api.core.message.IMessageSubscription sub =
+                service.subscribe("t-clamp", (t, m, c) -> null, options);
+        sub.cancel();
+        // F-32: exactly ONE consumer — the previous behavior failed the whole subscribe.
+        verify(service.builder, times(1)).subscribe();
+    }
+
+    @Test
+    void unconfiguredTypeWithConcurrencyRunsShared() throws Exception {
+        LifecycleTestService service = configuredTestService();
+        service.init();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-defshared");
+        options.setConcurrency(2);
+        io.nop.api.core.message.IMessageSubscription sub =
+                service.subscribe("t-defshared", (t, m, c) -> null, options);
+        try {
+            org.mockito.ArgumentCaptor<org.apache.pulsar.client.api.SubscriptionType> captor =
+                    org.mockito.ArgumentCaptor.forClass(org.apache.pulsar.client.api.SubscriptionType.class);
+            // concurrency=2 → doSubscribe runs twice; every consumer gets Shared.
+            verify(service.builder, times(2)).subscriptionType(captor.capture());
+            org.junit.jupiter.api.Assertions.assertEquals(
+                    org.apache.pulsar.client.api.SubscriptionType.Shared, captor.getValue(),
+                    "unconfigured type + concurrency>1 must run Shared, not the exclusive default");
+            // MultiMessageSubscription wraps both consumers — the times(2) wiring
+            // assertion above is the consumer-count proof.
+        } finally {
+            sub.cancel();
+        }
+    }
+
+    @Test
+    void modeTypeConflictPrefersMode() throws Exception {
+        LifecycleTestService service = configuredTestService();
+        service.init();
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-conflict");
+        options.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.LOAD_BALANCED);
+        options.setSubscriptionType(io.nop.api.core.message.SubscriptionType.Exclusive);
+        io.nop.api.core.message.IMessageSubscription sub =
+                service.subscribe("t-conflict", (t, m, c) -> null, options);
+        try {
+            org.mockito.ArgumentCaptor<org.apache.pulsar.client.api.SubscriptionType> captor =
+                    org.mockito.ArgumentCaptor.forClass(org.apache.pulsar.client.api.SubscriptionType.class);
+            verify(service.builder).subscriptionType(captor.capture());
+            org.junit.jupiter.api.Assertions.assertEquals(
+                    org.apache.pulsar.client.api.SubscriptionType.Shared, captor.getValue(),
+                    "mode must take precedence over the deprecated legacy type");
+        } finally {
+            sub.cancel();
+        }
+    }
+
+    @Test
+    void loadBalancedModeWithDlqGetsSharedTypeNotFalseWarning() throws Exception {
+        LifecycleTestService service = configuredTestService();
+        PulsarConsumerConfig consumerConfig = new PulsarConsumerConfig();
+        consumerConfig.setDeadLetterMaxRedeliverCount(5);
+        service.setDefaultConsumerConfig(consumerConfig);
+        service.init();
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSubscribeName("sub-dlq-mode");
+        options.setSubscriptionMode(io.nop.api.core.message.SubscriptionMode.LOAD_BALANCED);
+        io.nop.api.core.message.IMessageSubscription subscription =
+                service.subscribe("t-dlq-mode", (t, m, c) -> null, options);
+        try {
+            // M1 regression nail: the resolver single-source feeds the DLQ check — the
+            // effective type IS Shared, so the "will not trigger" warn-once must NOT have
+            // fired for this subscription.
+            verify(service.builder).subscriptionType(
+                    org.apache.pulsar.client.api.SubscriptionType.Shared);
+        } finally {
+            subscription.cancel();
+        }
+    }
+
     @Test
     void batchReceivePolicyWiredWithClientDefaultFloor() throws Exception {
         LifecycleTestService service = configuredService();

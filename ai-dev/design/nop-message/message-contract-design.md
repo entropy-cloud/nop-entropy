@@ -67,7 +67,7 @@ SPI 公分母策略（一套 `IMessageService` + beans 覆盖切换）的前提�
 
 - 新增三值中立枚举：SINGLE_ACTIVE（同订阅名同时仅一个活跃消费者）、LOAD_BALANCED（同订阅名多消费者轮询分发、无顺序承诺）、ORDERED_BY_KEY（同 key 消息固定路由到同一消费者）。
 - 旧四值枚举（Exclusive/Shared/Failover/Key_Shared）保留并与新枚举双向映射：Exclusive↔SINGLE_ACTIVE、Shared↔LOAD_BALANCED、Failover↔SINGLE_ACTIVE（failover 语义注记）、Key_Shared↔ORDERED_BY_KEY。旧值进入弃用期，弃用期内使用打一次性 WARN。
-- Pulsar 直通映射原生四型；Kafka 无原生订阅型，三值全部 warn-once（组语义近似 LOAD_BALANCED，不承诺排他）。
+- **实现态（WI27 落地）**：`SubscriptionMode` 枚举 + `MessageSubscribeOptions.subscriptionMode` 字段（mode > legacy type 优先级，冲突 warn-once `mode-type-conflict`）；Pulsar 单一解析源 `resolveEffectivePulsarType` 同时服务订阅接线与 DLQ warn-once 判定（修 M1 误报）；**F-32 组合确定化**：SINGLE_ACTIVE 语义 concurrency 钳制 1（warn-once）、LOAD_BALANCED/ORDERED_BY_KEY 照常 N consumer、均未配置 + concurrency>1 → Shared（warn-once `concurrency-default-shared`——原行为是硬失败无兼容用户）；Kafka 三值 + legacy 均 warn-once 忽略。Failover 仅经 legacy type 可达。`SubscriptionMode` 与 Pulsar 客户端 SubscriptionMode(Durable/NonDurable) 撞名，同文件引用须全限定。
 
 ### 3.4 D8 选项字段演进规则
 

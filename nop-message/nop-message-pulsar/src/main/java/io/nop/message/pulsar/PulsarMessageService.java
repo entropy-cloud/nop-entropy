@@ -282,24 +282,84 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                     .description("seekToMessage is not supported by the Pulsar backend");
         }
 
+        // WI27 (D4/F-32): resolve the effective Pulsar type once (mode > legacy type >
+        // default), deprecate the legacy field, and make concurrency×type deterministic —
+        // SINGLE_ACTIVE semantics clamp concurrency to 1 (the javadoc promise, previously
+        // broken by a broker rejection), LOAD_BALANCED/ORDERED_BY_KEY honor N, and the
+        // previously hard-failing unconfigured+N combination now runs Shared.
+        if (options.getSubscriptionMode() != null && options.getSubscriptionType() != null) {
+            MessageOptionsValidator.warnOnce("pulsar", "mode-type-conflict",
+                    "subscriptionMode " + options.getSubscriptionMode()
+                            + " takes precedence; the deprecated subscriptionType is ignored");
+        }
+        if (options.getSubscriptionType() != null) {
+            MessageOptionsValidator.warnOnce("pulsar", "legacy-subscription-type",
+                    "subscriptionType is deprecated; use subscriptionMode (D4 deprecation window)");
+        }
+
+        org.apache.pulsar.client.api.SubscriptionType effective = resolveEffectivePulsarType(options);
+        boolean singleActive = effective == org.apache.pulsar.client.api.SubscriptionType.Exclusive
+                || effective == org.apache.pulsar.client.api.SubscriptionType.Failover;
+        boolean defaultShared = options.getSubscriptionMode() == null
+                && options.getSubscriptionType() == null
+                && options.getConcurrency() > 1;
         int concurrency = options.getConcurrency();
         if (concurrency <= 1) {
             return doSubscribe(new MessageSubscriptionConfig(topic, listener, options));
-        } else {
-            List<IMessageSubscription> subs = new ArrayList<>(concurrency);
-            MultiMessageSubscription ret = new MultiMessageSubscription(subs);
-            MessageSubscriptionConfig cfg = new MessageSubscriptionConfig(topic, listener, options);
-
-            try {
-                for (int i = 0; i < concurrency; i++) {
-                    subs.add(doSubscribe(cfg));
-                }
-            } catch (Exception e) {
-                ret.cancel();
-                throw NopException.adapt(e);
-            }
-            return ret;
         }
+        if (singleActive) {
+            MessageOptionsValidator.warnOnce("pulsar", "concurrency-ignored-single-active",
+                    "concurrency > 1 is ignored for SINGLE_ACTIVE semantics (effective type: "
+                            + effective + "); one consumer is started");
+            return doSubscribe(new MessageSubscriptionConfig(topic, listener, options));
+        }
+        if (defaultShared) {
+            MessageOptionsValidator.warnOnce("pulsar", "concurrency-default-shared",
+                    "no subscriptionType/subscriptionMode configured with concurrency > 1: "
+                            + "the subscription runs as Shared (the previous behavior failed "
+                            + "outright on the exclusive default)");
+        }
+        List<IMessageSubscription> subs = new ArrayList<>(concurrency);
+        MultiMessageSubscription ret = new MultiMessageSubscription(subs);
+        MessageSubscriptionConfig cfg = new MessageSubscriptionConfig(topic, listener, options);
+
+        try {
+            for (int i = 0; i < concurrency; i++) {
+                subs.add(doSubscribe(cfg));
+            }
+        } catch (Exception e) {
+            ret.cancel();
+            throw NopException.adapt(e);
+        }
+        return ret;
+    }
+
+    /**
+     * WI27 (D4/F-32): single source of the effective Pulsar subscription type — serves the
+     * builder wiring AND the DLQ warn-once check (a mode-only configuration used to be
+     * misdiagnosed there). Precedence: subscriptionMode > legacy subscriptionType >
+     * default Shared when concurrency > 1, else Pulsar default (Exclusive).
+     */
+    static org.apache.pulsar.client.api.SubscriptionType resolveEffectivePulsarType(
+            MessageSubscribeOptions options) {
+        if (options.getSubscriptionMode() != null) {
+            switch (options.getSubscriptionMode()) {
+                case LOAD_BALANCED:
+                    return org.apache.pulsar.client.api.SubscriptionType.Shared;
+                case ORDERED_BY_KEY:
+                    return org.apache.pulsar.client.api.SubscriptionType.Key_Shared;
+                case SINGLE_ACTIVE:
+                default:
+                    return org.apache.pulsar.client.api.SubscriptionType.Exclusive;
+            }
+        }
+        if (options.getSubscriptionType() != null) {
+            return toPulsarSubscriptionType(options.getSubscriptionType());
+        }
+        if (options.getConcurrency() > 1) {
+            return org.apache.pulsar.client.api.SubscriptionType.Shared;
+        }
+        return org.apache.pulsar.client.api.SubscriptionType.Exclusive;
     }
 
     /** Injection seam for tests (mirrors the Kafka createConsumer factory, WI7). */
@@ -338,9 +398,9 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
             if (options.getSubscribeName() != null) {
                 builder.subscriptionName(options.getSubscribeName());
             }
-            if (options.getSubscriptionType() != null) {
-                builder.subscriptionType(toPulsarSubscriptionType(options.getSubscriptionType()));
-            }
+            // WI27 (D4): the resolver is the single source — mode > legacy type >
+            // (default Shared when concurrency > 1, else Pulsar default Exclusive).
+            builder.subscriptionType(resolveEffectivePulsarType(options));
             applyInitialPosition(builder, options.getSeekMode());
         }
 
@@ -377,9 +437,11 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                     policy.deadLetterTopic(defaultConsumerConfig.getDeadLetterTopic());
                 }
                 builder.deadLetterPolicy(policy.build());
+                // WI27: the resolver is the single source — a mode-only LOAD_BALANCED/
+                // ORDERED_BY_KEY configuration is correctly diagnosed as Shared/Key_Shared
+                // (no false "will not trigger" warning).
                 org.apache.pulsar.client.api.SubscriptionType type = options != null
-                        && options.getSubscriptionType() != null
-                        ? toPulsarSubscriptionType(options.getSubscriptionType()) : null;
+                        ? resolveEffectivePulsarType(options) : null;
                 if (type != org.apache.pulsar.client.api.SubscriptionType.Shared
                         && type != org.apache.pulsar.client.api.SubscriptionType.Key_Shared) {
                     io.nop.api.core.message.MessageOptionsValidator.warnOnce("pulsar", "dlq-subscription-type",
