@@ -188,7 +188,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Phase F — 文档与收口
 
-- WI34 owner doc 与文档收口: `todo`（deps M4 M5；Item Type Proof；对应 MSG-F-43；完成判定 新建 docs-for-ai/03-modules/nop-message.md，含 broker 切换写法与配置 bean 全字段语义表与每字段三态矩阵与 DLQ 与事务与 seek 能力边界与多 JVM 语义；登记 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 并分配独立锚点 ID 前缀；对齐既有 4 处顺带提及；须新增 owner doc 并使本 roadmap 引用零断链；存量断链以不增加为判据）
+- WI34 owner doc 与文档收口: `done`（deps M4 [M5 偏离：WI33 deferred pending broker infra——owner doc 覆盖面不依赖 broker 执行结果]；Item Type Proof；对应 MSG-F-43；完成判定 新建 docs-for-ai/03-modules/nop-message.md，含 broker 切换写法与配置 bean 全字段语义表与每字段三态矩阵与 DLQ 与事务与 seek 能力边界与多 JVM 语义；登记 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 并分配独立锚点 ID 前缀；对齐既有 4 处顺带提及；须新增 owner doc 并使本 roadmap 引用零断链；存量断链以不增加为判据）
 - WI35 独立收口审计: `todo`（deps WI34；Item Type Proof；完成判定 由独立子代理以不同 task_id 逐项核验 WI1 至 WI34 的退出条件并对照 58 条缺陷逐条给出 closed / open / ruled-out 结论，产出 ai-dev/audits/nop-message/ 下的验收报告）
 - ★ **里程碑：M6 产品化达标**（解锁条件 M4 与 M5 与 WI34 与 WI35 全部 done）：`todo`
 
