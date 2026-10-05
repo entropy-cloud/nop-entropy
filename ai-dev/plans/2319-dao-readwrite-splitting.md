@@ -147,8 +147,8 @@ Exit Criteria:
 - [x] 全从库不可用显式报错、hint 作用域恢复、无吞异常——无静默跳过
 - [x] 未配置读写分离时全部既有行为零变更（回归证明：`TestReadWriteDataSourceInitializer.testUnconfiguredMeansZeroBehaviorChange` + 全量回归绿）
 - [x] owner docs 与设计文档（转 active）与 live baseline 一致
-- [ ] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow：路由 DS 在事务模板真实调用链上）（留主会话执行）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2319-dao-readwrite-splitting.md --strict` 退出码 0（留主会话执行）
+- [x] 独立子 agent closure audit 已完成并记录证据（含 Anti-Hollow：路由 DS 在事务模板真实调用链上）（fresh-closure-audit-2026-10-06，证据见 Closure Audit Evidence）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2319-dao-readwrite-splitting.md --strict` 退出码 0（留主会话执行）
 - [x] `./mvnw test -pl nop-persistence/nop-dao,nop-persistence/nop-orm -am` 通过
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
@@ -164,10 +164,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-Completed:
+Status Note: （最终关闭由主会话执行：本轮独立 closure audit 结论为 **APPROVE closure**——4 Phase Exit Criteria 全 PASS、Anti-Hollow 五链全通、3 项工具 gate 退出码 0、契约一致、无必改项；主会话完成 checklist 复核后将 Plan Status 改为 completed 即可）
+
+Completed: （主会话 closure 时填写）
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: fresh-closure-audit-2026-10-06（独立 fresh session 子 agent，与实现会话无关；回看 live repo，不信任实现记录）
 - Evidence:
+  - **Phase 1 Exit Criteria（5/5 PASS）**：① `SQL.readOnly` 标志（`nop-core/.../sql/SQL.java:71,96,306-311`，缺省 false）＋传播完整性：`SQL.begin(sql)` 重建保留（SQL.java:226）、`SqlBuilder.copy()` 补拷 readOnly+enableFilter（SQL.java:270-273，在案先例修复）→ `TestSqlReadOnlyFlag` 5/5；② `ReadWriteHint` 三态 ThreadLocal runWith try/finally（`jdbc/datasource/ReadWriteHint.java`）→ `TestReadWriteHint` 6/6；③ SELECT 自动标记 `JdbcQueryExecutor.java:91-93`；④ 桥接 `JdbcTemplateImpl.withTxnForSql:204-213` → `TestJdbcReadOnlyBridge` 7/7（readOnly→REPLICA、无标志→UNSET、显式 PRIMARY 不覆盖、已 open 事务 UNSET、hint 退出恢复 UNSET）；⑤ 分页重建路径：`testPagedSqlKeepsReadOnlyFlag`（LimitOffset/OffsetFetch 重建 + 带 range 执行端到端 REPLICA 可观测）。
+  - **Phase 2 Exit Criteria（3/3 PASS）**：路由矩阵/负载均衡/故障时序 focused 测试 `TestReadWriteRoutingDataSource` 12/12——`testUnsetHintGoesToWrite`/`testPrimaryHintGoesToWrite`/`testReplicaHintGoesToRead`/`testReplicaPoolEmptyFailsExplicitlyWithoutWriteFallback`/`testRoundRobinRotationSequence`/`testWeightDistribution`/`testFailureSwitchesToNextReplica`/`testConsecutiveFailuresTriggerCooldown`/`testAllCoolingFailsExplicitlyWithSummary`（ERR_DAO_NO_REPLICA_AVAILABLE + summary + 不回退主库 write.calls==0）/`testHalfOpenProbeAndRecovery`（半开探测失败重新冷却、成功完全恢复）；无静默跳过：错误码英文文案（`DaoErrors.java:73-77` "No replica available for querySpace..."、"Invalid readwrite-splitting config..."）。
+  - **Phase 3 Exit Criteria（5/5 PASS）**：装配两态 `TestReadWriteDataSourceInitializer` 7/7（含 `testUnconfiguredMeansZeroBehaviorChange`：无 querySpace 注册、defaultFactory 不动；4 个 fail-fast 用例均 ERR_DAO_READWRITE_CONFIG_INVALID）；**接线验证（Rules #23）**`testWiredThroughTransactionTemplateObservable`——初始化器构造路由 DS（default 经 `setDefaultFactory`、qs2 经 `addQuerySpace`）注册进 `DefaultTransactionManager`，经 `TransactionTemplateImpl`+`JdbcTemplateImpl` 执行只读 SQL 命中从库 bean r3、无标志命中 w2；sql-lib 生成链：`sql-lib.xdef:22,29` readOnly 属性 → `_gen/_SqlItemModel` 纯 regen 字段 → `SqlItemModel.buildSql:86-88` 传播 → `TestSqlLibReadOnlyFlag` 1/1；`git show 35e40f53ba` 该提交 `_gen/` 仅 `_SqlItemModel.java` 一个文件，diff 形状为字段+getter/setter+putNotNull+clone 纯 regen 产物，无手改痕迹。
+  - **Phase 4 Exit Criteria（3/3 PASS）**：端到端双方向 `TestReadWriteSplittingIntegration` 5/5（primary 1 行/replica 空表判别：无事务只读→replica 0 行、对照无标志→primary 1 行、事务内→primary、runWithPrimary→primary、写→primary 且 replica 不受影响、`testConnectionsReturnedToPools` 写库 checkNoActive+replica MXBean==0）＋ `TestReadWriteSplittingOrmE2E` 7/7（`testOrmFindPagePaginationPathHitsReplica` 分页重建路径回归钉、事务内/写/runWithPrimary 走主库、`testSqlLibReadOnlyAnnotationRouting` 双向路由）；owner doc `docs-for-ai/02-core-guides/datasource-and-readwrite-splitting.md` 与 INDEX.md:84 路由存在；测试基类放宽（`JdbcTestCase.java:35-36,90` 与 `AbstractJdbcTestCase.java:35-36,90` 均 `DataSource`）。全量回归（nop-dao 296/nop-orm 508）为提交 35e40f53ba 记录 + 本轮定向重跑全绿（见下）。
+  - **Anti-Hollow 五链（全 PASS）**：a) 只读意图：JdbcQueryExecutor SELECT 标记 → withTxnForSql REPLICA 作用域 → 路由 DS 从库通道——断言链 `TestJdbcReadOnlyBridge.testReadOnlySqlAcquiresInReplicaScope`（HintRecordingDataSource 在 getConnection() 点观测）→ `TestReadWriteDataSourceInitializer.testWiredThroughTransactionTemplateObservable` → `TestReadWriteSplittingIntegration.testNoTxnReadOnlyQueryHitsReplica`；b) 三级判定：显式 hint 覆盖（`testExplicitPrimaryHintNotOverridden`/`testRunWithPrimaryForcesPrimary`×2）、事务内主库（`testOpenTransactionStaysPrimary`/`testQueryInOpenTransactionHitsPrimary`/`testOrmQueryInOpenTransactionHitsPrimary`）、只读从库（`testNoTxnReadOnlyQueryHitsReplica`）；c) 故障冷却：换台（testFailureSwitchesToNextReplica）→冷却（testConsecutiveFailuresTriggerCooldown）→半开→恢复（testHalfOpenProbeAndRecovery）/全挂报错带摘要不回退主库（testAllCoolingFailsExplicitlyWithSummary）；d) 装配接线：testWiredThroughTransactionTemplateObservable（setDefaultFactory 替换 + addQuerySpace 两路）＋分页不断裂（`TestSqlReadOnlyFlag.testBeginFromSqlKeepsReadOnly`+`testPagedSqlKeepsReadOnlyFlag`+`testOrmFindPagePaginationPathHitsReplica`）；e) sql-lib readOnly 双向：`TestSqlLibReadOnlyFlag`（标志级 true/false）+`testSqlLibReadOnlyAnnotationRouting`（路由级 true→replica 0 行、未标注→primary 1 行）。
+  - **工具 gate（本轮实测）**：`check-plan-checklist.mjs --strict` 退出码 0（非 completed 计划仅警告：2 条未勾——本条 audit gate 已由本轮补勾、checklist 复核条留主会话执行；Evidence 短于 50 字符的提示随本段写入消除）；`scan-hollow-implementations.mjs --module nop-persistence/nop-dao --severity high` 退出码 0（117 文件 0 发现）；`check-doc-links.mjs --strict` 退出码 0（0 errors，5 条 warning 均位于 `2320-orm-sharding-strategy.md` 与 `nop-bytecode/06-resource-leak-v1.md`，与本 plan 无关）。
+  - **定向测试（本轮独立实跑，surefire 时间戳 2026-10-06 01:31-01:32，全部 0 失败）**：nop-dao `TestReadWrite*` = TestReadWriteHint 6 + TestReadWriteRoutingDataSource 12 + TestReadWriteDataSourceInitializer 7 + TestReadWriteSplittingIntegration 5；补跑 TestJdbcReadOnlyBridge 7；nop-orm TestReadWriteSplittingOrmE2E 7 + TestSqlLibReadOnlyFlag 1；回归抽查 TestDynamicDataSource 3、nop-core TestSqlReadOnlyFlag 5。合计 53 例全绿。
+  - **契约一致性**：设计文档 `ai-dev/design/nop-dao-readwrite-splitting-design.md` 状态 active（2026-10-06）＋ §〇 实施裁定表（初始化器生命周期 / `nopReadWriteDs_` 前缀 / 配置空零行为变更 / 桥接点 / ORM 标记范围 / String 配置形态）与 live 代码逐项吻合；owner doc 判定矩阵、配置契约（键名/缺省值）、装配行为、bean 前缀与 `ReadWriteRoutingDataSource`/`ReadWriteDataSourceInitializer`/`DaoConfigs.CFG_DAO_READWRITE` 实际行为一致；INDEX.md:84 路由存在。
+  - **_gen/ 手改检查**：提交 35e40f53ba 全部 `_gen/` 变更仅 `_SqlItemModel.java`，diff 为 xdef 属性驱动的标准 regen 形状（字段注释逐字来自 xdef `@readOnly` 文档），PASS。
+  - **Deferred/Follow-up 分类检查**：GenSqlHelper 物理路径只读标记（v1 fail-safe 主库，设计文档 Non-Goals 明确）、quarkus 侧装配验证（Out of Scope）、权重运行期调整——均为 optimization/out-of-scope 性质，无 in-scope live defect 或 contract drift 被降级，PASS。
+  - 备注：工作区未提交的 `ai-dev/design/nop-orm-scope-and-non-goals.md` 修改与 `nop-orm-sharding-strategy-design.md` 新文件属 plan 2320（脱敏/sharding）工作面，与本 plan closure 无关。
