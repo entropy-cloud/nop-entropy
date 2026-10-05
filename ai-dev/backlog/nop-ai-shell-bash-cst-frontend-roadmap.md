@@ -35,7 +35,7 @@ by its execution plan.
 > AI takes the first `todo` item, drafts/executes plans (humans don't review individual
 > plans), and writes the item back to `done` when closure audit passes.
 
-- 1. 设计收口：金等价协议（等价基准 + 偏差白名单）、word 表示裁定、换行策略、控制流信号机制与边界捕获规则、循环终止安全、`$( )` 隔离级别、变量展开范围、双上下文命名与分工、优先级裁定；更新 `nop-ai-shell-syntax-spec.md`（Tier 矩阵 + 推翻控制流拒绝裁定）、`04-bash-syntax.md`（模型章节）、bash-shell-interaction 裁定（触发信号补记）：`todo`
+- 1. 设计收口：金等价协议（等价基准 + 偏差白名单）、word 表示裁定、换行策略、控制流信号机制与边界捕获规则、循环终止安全、`$( )` 隔离级别、变量展开范围、双上下文命名与分工、优先级裁定；更新 `nop-ai-shell-syntax-spec.md`（Tier 矩阵 + 推翻控制流拒绝裁定）、`04-bash-syntax.md`（模型章节）、`../analysis/nop-treesitter-bash-shell-interaction.md` 裁定（触发信号补记）：`todo`
 - 2. 解析接线：nop-ai-shell 增加 nop-treesitter 依赖（仅核心运行时 API）；CST 解析入口；结构化拒绝类型（语法错误：首 ERROR/MISSING 节点位置；子集外构造：node kind + 源文本 + 偏移）: `todo`
 - 3. 翻译器核心：CST → 现有 CommandExpression 子集（序列/Logical/Pipeline/Simple/Redirect/Background/Subshell/Group、前缀赋值、重定向双挂载点分流、word 按裁定展平）；金等价按 item 1 协议执行（非白名单用例全一致 + 白名单逐条评审记录）: `todo`
 - ★ **Milestone F1：现有语法金等价**（unlocks when 2 + 3 done，按 item 1 协议验收）：`todo`
@@ -134,7 +134,7 @@ Deliverables（每条都是必须有明确结论的裁定，不允许留白）:
     `c-style for`（item 10 可升级部分项）。
 11. **文档更新**：`nop-ai-shell-syntax-spec.md`（Tier 矩阵改写 + 第十节拒绝控制流裁定推翻
     补记——补记须说明控制流属"手写 parser 不支持且报错拒绝"的信号范畴，虽不在信号清单
-    原文字样内）；`04-bash-syntax.md` 模型章节（新节点）；`bash-shell-interaction.md`
+    原文字样内）；`04-bash-syntax.md` 模型章节（新节点）；`../analysis/nop-treesitter-bash-shell-interaction.md`
     触发信号补记 + 修正其"EMPTY_VALUE 为手写 parser 外部 token"的错误记载（实为
     nop-treesitter `BashScanner` 的 token，旧 parser 对纯赋值命令是抛异常）。
 
