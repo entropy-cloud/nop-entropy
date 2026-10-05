@@ -860,6 +860,13 @@ public class CheckpointSerDe {
                 result.put(entry.getKey(),
                         ((io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) value)
                                 .toSerializableForm());
+            } else if (value instanceof io.nop.stream.core.common.buffer.PerKeyOrderedBuffer) {
+                // R5 KR-7: the join/over-window working views ride the
+                // operator-state transport as a self-describing form; without
+                // this branch the durable (only-data-bean) default throws at
+                // persist and a degraded config silently restores an empty view.
+                result.put(entry.getKey(),
+                        ((io.nop.stream.core.common.buffer.PerKeyOrderedBuffer<?, ?>) value).toSerializableForm());
             } else if (isAccumulatorMap(value)) {
                 Map<String, Object> accMap = (Map<String, Object>) value;
                 Map<String, Object> accForms = new LinkedHashMap<>();
@@ -908,6 +915,9 @@ public class CheckpointSerDe {
         }
         if ("PaneTrackingSnapshot".equals(type)) {
             return io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot.fromSerializableForm(form);
+        }
+        if ("PerKeyOrderedBuffer".equals(type)) {
+            return io.nop.stream.core.common.buffer.PerKeyOrderedBuffer.fromSerializableForm(form);
         }
         if (isAccumulatorFormMap(form)) {
             Map<String, Object> accMap = new LinkedHashMap<>();

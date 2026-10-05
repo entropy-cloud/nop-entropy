@@ -22,6 +22,9 @@ public final class TimerStateKeys {
     /** CepOperator's per-key event-time timer ledger key. */
     public static final String CEP_EVENT_TIME_TIMERS = "cep-event-time-timers";
 
+    /** ProcessOperator's internal-timer snapshot key (R5 ST-11). */
+    public static final String PROCESS_INTERNAL_TIMERS = "process-internal-timers";
+
     private TimerStateKeys() {
     }
 }

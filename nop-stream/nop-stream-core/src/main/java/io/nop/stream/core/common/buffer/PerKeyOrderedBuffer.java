@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -52,11 +53,135 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
         }
     }
 
-    /** merge another buffer's entries into this one (restore path). */
+    /**
+     * merge another buffer's entries into this one (restore path).
+     * R5 CC-11: insertionSeq advances past the largest merged entry seq, so
+     * post-merge {@link #add} allocations can never collide with (and silently
+     * overwrite) a merged (ts, seq) key.
+     */
     public void putAll(PerKeyOrderedBuffer<K, V> other) {
+        long maxMergedSeq = -1L;
         for (Map.Entry<K, TreeMap<long[], V>> e : other.buffers.entrySet()) {
             TreeMap<long[], V> tree = buffers.computeIfAbsent(e.getKey(), k -> new TreeMap<>(TsSeqComparator.INSTANCE));
             tree.putAll(e.getValue());
+            if (!e.getValue().isEmpty()) {
+                maxMergedSeq = Math.max(maxMergedSeq, e.getValue().lastKey()[1]);
+            }
+        }
+        if (maxMergedSeq >= 0) {
+            insertionSeq = Math.max(insertionSeq, maxMergedSeq + 1);
+        }
+    }
+
+    /**
+     * R5 KR-7: JSON-safe serializable form (the operator-state transport for
+     * the join/over-window working views). Keys and values carry their class
+     * names; {@link #fromSerializableForm} re-hydrates them so no JSON-native
+     * drift survives the round trip (CepOperator ledger keyClass precedent).
+     */
+    public Map<String, Object> toSerializableForm() {
+        Map<String, Object> form = new LinkedHashMap<>();
+        form.put("@type", "PerKeyOrderedBuffer");
+        form.put("insertionSeq", insertionSeq);
+        List<Map<String, Object>> keyEntries = new ArrayList<>();
+        for (Map.Entry<K, TreeMap<long[], V>> e : buffers.entrySet()) {
+            Map<String, Object> ke = new LinkedHashMap<>();
+            ke.put("key", e.getKey());
+            ke.put("keyClassName", e.getKey() != null ? e.getKey().getClass().getName() : null);
+            String valueClassName = null;
+            List<List<Object>> items = new ArrayList<>();
+            for (Map.Entry<long[], V> te : e.getValue().entrySet()) {
+                if (valueClassName == null && te.getValue() != null) {
+                    valueClassName = te.getValue().getClass().getName();
+                }
+                items.add(java.util.Arrays.asList(te.getKey()[0], te.getKey()[1], te.getValue()));
+            }
+            ke.put("valueClassName", valueClassName);
+            ke.put("items", items);
+            keyEntries.add(ke);
+        }
+        form.put("keys", keyEntries);
+        return form;
+    }
+
+    /**
+     * R5 KR-7: rebuild a live buffer from {@link #toSerializableForm()}. Keys
+     * and values whose runtime class drifted to their JSON-native shape are
+     * re-hydrated via the recorded class names. Malformed forms fail fast with
+     * a typed error (a deliberate deviation from the TimerSnapshot null-return
+     * precedent — silence here would hide a corrupt working view).
+     */
+    @SuppressWarnings("unchecked")
+    public static PerKeyOrderedBuffer<?, ?> fromSerializableForm(Map<String, Object> form) {
+        if (form == null || !"PerKeyOrderedBuffer".equals(form.get("@type"))) {
+            throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "PerKeyOrderedBuffer form is missing @type=PerKeyOrderedBuffer; snapshot is corrupt or foreign");
+        }
+        PerKeyOrderedBuffer<Object, Object> buffer = new PerKeyOrderedBuffer<>();
+        Object seqObj = form.get("insertionSeq");
+        if (seqObj instanceof Number) {
+            buffer.insertionSeq = ((Number) seqObj).longValue();
+        }
+        Object keysObj = form.get("keys");
+        if (!(keysObj instanceof List)) {
+            throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "PerKeyOrderedBuffer form has no keys list; snapshot is corrupt or foreign");
+        }
+        long maxItemSeq = -1L;
+        for (Object keObj : (List<Object>) keysObj) {
+            if (!(keObj instanceof Map)) {
+                throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                "PerKeyOrderedBuffer form key entry is not a map; snapshot is corrupt or foreign");
+            }
+            Map<String, Object> ke = (Map<String, Object>) keObj;
+            Object key = rehydrate(ke.get("key"), (String) ke.get("keyClassName"));
+            String valueClassName = (String) ke.get("valueClassName");
+            TreeMap<long[], Object> tree = buffer.buffers.computeIfAbsent(key, k -> new TreeMap<>(TsSeqComparator.INSTANCE));
+            Object itemsObj = ke.get("items");
+            if (!(itemsObj instanceof List)) {
+                throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                "PerKeyOrderedBuffer form key entry has no items list; snapshot is corrupt or foreign");
+            }
+            for (Object itemObj : (List<Object>) itemsObj) {
+                if (!(itemObj instanceof List) || ((List<Object>) itemObj).size() != 3) {
+                    throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR)
+                            .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                    "PerKeyOrderedBuffer form item must be [ts, seq, value]; snapshot is corrupt or foreign");
+                }
+                List<Object> item = (List<Object>) itemObj;
+                long ts = ((Number) item.get(0)).longValue();
+                long seq = ((Number) item.get(1)).longValue();
+                Object value = rehydrate(item.get(2), valueClassName);
+                tree.put(new long[] {ts, seq}, value);
+                maxItemSeq = Math.max(maxItemSeq, seq);
+            }
+        }
+        buffer.insertionSeq = Math.max(buffer.insertionSeq, maxItemSeq + 1);
+        return buffer;
+    }
+
+    private static Object rehydrate(Object value, String className) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String || value instanceof Number || value instanceof Boolean) {
+            return value;
+        }
+        String target = className != null ? className : value.getClass().getName();
+        if (target.equals(value.getClass().getName())) {
+            return value;
+        }
+        try {
+            return io.nop.core.lang.json.JsonTool.parseBeanFromText(
+                    io.nop.core.lang.json.JsonTool.serialize(value, false), Class.forName(target));
+        } catch (ClassNotFoundException e) {
+            throw new io.nop.stream.core.exceptions.StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR, e)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "PerKeyOrderedBuffer form references unknown class " + target);
         }
     }
 

@@ -206,6 +206,7 @@ static TaskStateSnapshot buildRescaledTaskState(
     // hash differently in their JSON-native form).
     Map<String, List<Map<String, Object>>> mergedKeyedByName = new LinkedHashMap<>();
     Map<String, Class<?>> keyTypeByName = new LinkedHashMap<>();
+    Map<String, String> keyTypeHeaderByName = new LinkedHashMap<>();
     for (TaskLocation oldLoc : oldSubtasks) {
         TaskStateSnapshot oldState = stateLookup.lookup(oldLoc);
         if (oldState == null || oldState.getKeyedStates() == null) continue;
@@ -220,6 +221,10 @@ static TaskStateSnapshot buildRescaledTaskState(
             bucket.add(statesMap);
             if (!keyTypeByName.containsKey(ke.getKey())) {
                 keyTypeByName.put(ke.getKey(), StateKeyRematerializer.resolveSnapshotKeyType(dataMap, null));
+                // R5 ST-03: remember the raw header name so the merged envelope
+                // preserves it for a second rescale/reshard pass.
+                keyTypeHeaderByName.put(ke.getKey(),
+                        dataMap.get("keyType") instanceof String ? (String) dataMap.get("keyType") : null);
             }
         }
     }
@@ -230,6 +235,14 @@ static TaskStateSnapshot buildRescaledTaskState(
         if (mergedStates.isEmpty()) continue;
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("states", mergedStates);
+        // R5 ST-03: preserve the source snapshot's keyType header on the
+        // rescaled envelope — a second rescale/reshard pass over this product
+        // must still re-materialize keys (otherwise misrouted entries are
+        // silently dropped by the range filter).
+        String keyTypeHeader = keyTypeHeaderByName.get(entry.getKey());
+        if (keyTypeHeader != null) {
+            data.put("keyType", keyTypeHeader);
+        }
         merged.putKeyedState(entry.getKey(), new StateSnapshot(data));
     }
 

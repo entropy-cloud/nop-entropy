@@ -43,8 +43,10 @@ import java.util.Map;
  * <p>State design: a {@link PerKeyOrderedBuffer} is the in-memory working view for
  * frame computation; every buffered element is ALSO persisted into keyed MapState
  * (one entry per element), so the durable copy flows through the keyed-state
- * backend lineage. On restore the working view is rebuilt from keyed state
- * ({@link #rebuildViewFromKeyedState()}). The keyed backend is self-provisioned in
+ * backend lineage. On restore the working view comes back through the
+ * operator-state transport (the buffer's self-describing serializable form,
+ * R5 KR-7); {@link #rebuildViewFromKeyedState()} remains a legacy fallback for
+ * snapshots predating that transport. The keyed backend is self-provisioned in
  * {@link #open()} per the ProcessOperator precedent.
  */
 public class OverWindowOperator extends AbstractStreamOperator<String>
@@ -53,6 +55,9 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
     private static final long serialVersionUID = 1L;
 
     private static final String BUFFER_STATE = "over-window-buffer";
+
+    /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
+    private transient PerKeyOrderedBuffer<String, String> restoredBuffer;
 
     public enum FrameKind {
         /** row_number() OVER (...) — emits "rn=&lt;n&gt; val=&lt;v&gt;" per buffered element */
@@ -108,6 +113,11 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
             applyPendingRestoreState();
         }
         buffer = new PerKeyOrderedBuffer<>();
+        // R5 KR-7/CC-11: apply the buffer captured by restoreState (deferred).
+        if (restoredBuffer != null) {
+            buffer.putAll(restoredBuffer);
+            restoredBuffer = null;
+        }
         if (keyedStateBackend != null) {
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor<>(BUFFER_STATE, String.class, String.class));
@@ -140,9 +150,18 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
                     new MapStateDescriptor<>(BUFFER_STATE, String.class, String.class));
         }
         if (snapshotResult != null) {
+            // R5 KR-7/CC-11: restoreState runs before open() where the working
+            // buffer is created — capture only, apply deferredly in open()
+            // (WindowOperator discipline; the previous in-place putAll here
+            // NPE'd on the null transient buffer in the memory path).
             Object restored = snapshotResult.getOperatorState(BUFFER_STATE);
             if (restored instanceof PerKeyOrderedBuffer) {
-                buffer.putAll((PerKeyOrderedBuffer<String, String>) restored);
+                PerKeyOrderedBuffer<String, String> typed = (PerKeyOrderedBuffer<String, String>) restored;
+                if (buffer != null) {
+                    buffer.putAll(typed);
+                } else {
+                    this.restoredBuffer = typed;
+                }
             }
         }
     }
@@ -158,8 +177,8 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         long[] tsKey = buffer.add(key, ts, value);
         // durable copy into keyed state (one entry per element; the entry key is the
         // exact key\u0000ts\u0000seq returned by add — same-ts inserts get distinct
-        // seqs so the keyed mirror never collides; the view is rebuilt from these
-        // entries on restore)
+        // seqs so the keyed mirror never collides; restore rides the operator-state
+        // transport, this mirror is the durable lineage + legacy rebuild source)
         if (bufferState != null) {
             try {
                 bufferState.put(key + "\u0000" + ts + "\u0000" + tsKey[1], value);

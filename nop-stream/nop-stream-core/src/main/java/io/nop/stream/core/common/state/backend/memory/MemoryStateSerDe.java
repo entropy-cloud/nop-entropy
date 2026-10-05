@@ -325,6 +325,9 @@ class MemoryStateSerDe {
             LOG.info("nop.stream.restore-keytype-override: snapshotKeyType={} overrides declaredKeyType=java.lang.Object"
                     + " — using the snapshot header for key re-materialization", header.getName());
             this.effectiveKeyType = header;
+            // R5 ST-11: let the backend report the restored concrete key type at
+            // open() time (timer service setKeyType source).
+            backend.noteRestoredKeyType(header);
         }
         // otherwise effectiveKeyType stays as constructed (declared/effective capture)
         if (effectiveKeyType == Object.class) {

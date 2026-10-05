@@ -26,18 +26,39 @@ import java.io.Serializable;
  * <p>Serializable and in the {@code io.nop.stream.} package prefix so tagged
  * records survive the transport layer's class-name whitelist.
  */
+@io.nop.api.core.annotations.data.DataBean
 public class JoinSideRecord<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final boolean left;
-    private final Object equiKey;
-    private final T payload;
+    private boolean left;
+    private Object equiKey;
+    private T payload;
     private boolean matched;
+
+    /**
+     * R5 KR-7: no-arg constructor + setters so the buffer's serializable form
+     * can re-hydrate values after a JSON round trip (parseBeanFromText
+     * contract); the canonical constructor remains the primary entry point.
+     */
+    public JoinSideRecord() {
+    }
 
     public JoinSideRecord(boolean left, Object equiKey, T payload) {
         this.left = left;
         this.equiKey = equiKey;
+        this.payload = payload;
+    }
+
+    public void setLeft(boolean left) {
+        this.left = left;
+    }
+
+    public void setEquiKey(Object equiKey) {
+        this.equiKey = equiKey;
+    }
+
+    public void setPayload(T payload) {
         this.payload = payload;
     }
 

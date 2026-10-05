@@ -88,6 +88,8 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
 
     /** working view: bufferKey → ordered entries (restored through the operator-state transport). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
+    /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
+    private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> restoredBuffer;
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, JoinSideRecord<Object>> bufferState;
 
@@ -127,6 +129,12 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             applyPendingRestoreState();
         }
         buffer = new PerKeyOrderedBuffer<>();
+        // R5 KR-7/CC-11: apply the buffer captured by restoreState (deferred —
+        // restoreState runs before open() creates the working buffer).
+        if (restoredBuffer != null) {
+            buffer.putAll(restoredBuffer);
+            restoredBuffer = null;
+        }
         if (keyedStateBackend != null) {
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor(BUFFER_STATE, String.class, JoinSideRecord.class));
@@ -159,12 +167,22 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
                     new MapStateDescriptor(BUFFER_STATE, String.class, JoinSideRecord.class));
         }
         if (snapshotResult != null) {
+            // R5 KR-7/CC-11: engine order is restore-before-open (buffer null —
+            // capture for deferred application in open()); direct-call order
+            // (open then restore, e.g. operator-level tests) applies immediately.
             Object restored = snapshotResult.getOperatorState(BUFFER_STATE);
             if (restored instanceof PerKeyOrderedBuffer) {
-                buffer.putAll((PerKeyOrderedBuffer<String, JoinSideRecord<Object>>) restored);
+                PerKeyOrderedBuffer<String, JoinSideRecord<Object>> typed =
+                        (PerKeyOrderedBuffer<String, JoinSideRecord<Object>>) restored;
+                if (buffer != null) {
+                    buffer.putAll(typed);
+                } else {
+                    this.restoredBuffer = typed;
+                }
             }
         }
     }
+
 
     @Override
     public void processElement(StreamRecord<JoinSideRecord<Object>> element) throws Exception {

@@ -544,6 +544,13 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             if (namespace instanceof io.nop.stream.core.windowing.windows.GlobalWindow) {
                 return FORM_GLOBAL_WINDOW;
             }
+            // R5 ST-11: VoidNamespace rides the JSON channel as its string form
+            // (mirrors GlobalWindow) — the singleton itself is not a DataBean
+            // and would trip the only-data-bean serialization gate; the
+            // deserialize side restores the INSTANCE.
+            if (namespace instanceof io.nop.stream.core.common.state.VoidNamespace) {
+                return "VoidNamespace";
+            }
             return namespace;
         }
 
@@ -559,6 +566,13 @@ public class HeapInternalTimerService<K, N> implements InternalTimerService<N> {
             }
             if (FORM_GLOBAL_WINDOW.equals(obj)) {
                 return io.nop.stream.core.windowing.windows.GlobalWindow.get();
+            }
+            // R5 ST-11: VoidNamespace degrades to a plain string through the
+            // JSON channel; without this branch restored timers would not
+            // deduplicate against newly registered VoidNamespace.INSTANCE
+            // timers (double-fire / delete-miss).
+            if ("VoidNamespace".equals(obj)) {
+                return io.nop.stream.core.common.state.VoidNamespace.INSTANCE;
             }
             return obj;
         }

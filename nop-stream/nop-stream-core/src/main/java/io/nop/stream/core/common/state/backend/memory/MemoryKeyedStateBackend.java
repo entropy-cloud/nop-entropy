@@ -544,6 +544,23 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         return getEffectiveKeyType();
     }
 
+    /**
+     * R5 ST-11: feed the restored snapshot's concrete key type back into the
+     * capture slot. Restore-time state population does not flow through
+     * {@link #setCurrentKey}, so without this an Object-declared backend would
+     * still report Object at open() time and timer/state key
+     * re-materialization would degrade to identity. Only concrete classes are
+     * accepted, and only for Object-declared backends (the ST-02 override
+     * scope).
+     */
+    void noteRestoredKeyType(Class<?> restoredKeyType) {
+        if (restoredKeyType != null && restoredKeyType != Object.class && keyType == Object.class) {
+            if (effectiveKeyType == null) {
+                effectiveKeyType = restoredKeyType;
+            }
+        }
+    }
+
     int getShardCount() {
         return maxParallelism;
     }
