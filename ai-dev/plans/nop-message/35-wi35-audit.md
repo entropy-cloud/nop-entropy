@@ -1,6 +1,6 @@
 # 35 WI35 独立收口审计
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-05
 > Source: roadmap（WI35，deps WI34✓）
 
@@ -12,7 +12,7 @@
 
 ### Phase 1
 
-Status: in progress
+Status: completed
 Targets: ai-dev/audits/nop-message/
 
 - Item Types: `Proof`
@@ -20,5 +20,5 @@ Targets: ai-dev/audits/nop-message/
 
 ## Closure
 
-Status Note: <<填写>>
-Completed:
+Status Note: WI35 收口：独立审计 agent_f1308721 PASS（57/58 closed + F-44 deferred；门禁族亲跑全 0；审计条件 D-1/D-2/D-3 全部整改完毕）。
+Completed: 2026-10-05
