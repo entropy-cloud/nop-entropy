@@ -11,6 +11,7 @@
 | 文件 | 层级 | 职责 |
 |------|------|------|
 | `01-bash-shell-analysis.md` | Subsystem | bash grammar 装配契约 + shell 分析语义层的六项能力、证明边界与类型级隔离 |
+| `02-error-recovery-termination.md` | Subsystem | GLRParser 错误恢复必须终止：stack summary 的生命周期是恢复的关键状态、backstop 只是症状处理器、三个仍未修复的复现输入 |
 
 ## 职责边界
 
