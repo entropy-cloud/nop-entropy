@@ -1,6 +1,6 @@
 # nop-orm 缺陷审计遗留项 Backlog
 
-> Status: open
+> Status: partially resolved（遗留项 1/2/4 已处理，见各项标注；3/5 维持待定）
 > Date: 2026-10-05
 > Source: `ai-dev/analysis/2026-10/2026-10-05-orm-query-optimizer-landscape-vs-nop-orm.md` 及三轮计划审计的核实结论
 > 已落地部分: 见 `ai-dev/plans/39-orm-cache-contract-remediation.md`
@@ -24,26 +24,26 @@
 
 ## 待做（按优先级，均未立项）
 
-### 1. EQL 长条件链栈深度测量（原 plan 42 主题）
+### 1. EQL 长条件链栈深度测量 —— ✅ 已处理（2026-10-05，结论：watch-only）
 
-- 事实：`BaseRule.g4:155` 左递归使解析期即产出左深树；`AbstractVisitor:22-25` 递归深度 = 树深。
-- 未证实：N 项 AND 链在真实栈配置下首次 `StackOverflowError` 的 N 值。**先测量再决定是否修**——若 N 远超实际业务条件数，降级为 watch-only。
-- 若需修：落点候选为 `EqlTransformVisitor` 解析后归一化（打印器无 parent 引用，不适合）。
+- **实测结果**（`TestEqlAndChainDepth`，1MB 栈线程）：2000 项 AND 链编译成功，**4000 项首次溢出**。
+- 判定：阈值远超现实业务谓词数量（通常 <100），按预案**降级为 watch-only**，不做树平衡改写（改写会变更 SQL 文本与参数顺序，风险大于收益）。
+- 保留物：`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestEqlAndChainDepth.java`（确定性下限断言 1000/2000 + 阈值观测打印），若未来出现真实长链场景可据此重启。
 
-### 2. `nop-orm-model` 测试补齐（原 plan 44 主题）
+### 2. `nop-orm-model` 测试补齐 —— ✅ 部分完成（2026-10-05）
 
-- 事实：91 main / 6 test（34 `@Test`），`OrmEntityModelInitializer`（730 行）是 ORM 语义核心。
-- ⚠️ propId 稳定性测试必须走 `.orm.xml` 加载路径；`SchemaToOrmModel:66-68` 的 `resetPropId` 是 codegen 路径的顺序重排，属固有语义非缺陷。
+- **已落地**：`TestOrmEntityModelInitializerBasics` 12 个测试（34 → 46），覆盖：propId 稳定性（删列后不复用空洞，`entity.xdef:86-89` 承诺）、隐式 propId 顺序分配、重复/超限 propId 报错、**deleteFlagProp 自动同化（方案 A 锁定测试，防再被误判为缺陷）**、domain 未知/类型冲突/精度继承/显式优先、stdSqlType 必填或继承、stdDataType 推导、列反向引用。
+- **未覆盖**（后续）：关系拓扑排序、alias/component/compute 派生、`minPropId` delta 场景。
 
 ### 3. 方言能力位 `Context` 维度（原 plan 43 主题，纯增强）
 
 - 无正确性后果。仅当出现真实的"按场景区分"需求（如 values-list 的 QUERY vs INSERT）再立项。
 - 前置：须实跑 `DslModelParser` 判定 `<features>` 能否同时承载属性与子节点。
 
-### 4. 工具缺陷：`scan-hollow-implementations.mjs` 零路径区分能力
+### 4. 工具缺陷：`scan-hollow-implementations.mjs` —— ✅ 已修复（2026-10-05）
 
-- 实测：正确路径与 `--module __不存在__` 报告逐字相同、退出码均 0（退出码只看 `highCount`，脚本 `:472`）。
-- 修复方向：校验路径存在 + 报告实际扫描文件数。修复后可恢复为 Closure Gate。
+- 修复：main() 入口增加路径存在性校验（不存在 → stderr 报错 + exit 2）；每次运行输出 `[scan-hollow] scanned N java files`。
+- 验证：`--module __不存在__` → exit 2；`--module nop-kernel/nop-commons` → "scanned 403 java files" + 按 highCount 决定退出码。**可恢复为 Closure Gate**（判据=exit 0 且 stderr 的 scanned 数 > 0）。
 
 ### 5. L2 实体缓存"开启即强制全属性加载"
 
