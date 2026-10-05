@@ -1,6 +1,6 @@
 # 2336 full-code-review 3.9 nop-gateway + nop-network 深审
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 3.9（MA3）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 12/13/14 + 共享前缀）
 > Related: owner doc `docs-for-ai/03-modules/nop-network.md` + `docs-for-ai/03-modules/nop-ai-gateway.md`；审计输入四份——check2/gateway-bizauth.md **18 条**（P0×2 :19 AiAuth 混合大小写 key + :43 AiRateLimit X-Forwarded-For 塌缩 + P1×4 :66/:84/:110/:129 + P2×5 :153/:170/:191/:210/:233 + P3×7 :255/:272/:291/:311/:331/:354/:373，18 个 fix-ai-check 处置块）；check/gateway-bizauth.md **24 条**（P0×1 :23 测试 API Key 硬编码 + P1×5 + P2×9 + P3×9，仅 1 处置块）；check/net-misc.md **24 条**（P0×3 :21 GZip 解压失效/:45 SocketServer key 不一致/:70 MQTT accept + P1×7 + P2×7 + P3×7，仅 3 处置块）；check/net-http-rpc.md 20 条（P1×4 + P2×11 + P3×5，0 处置块）。**NET 族 P0（:21/:45/:70）处置记录在 check/SUMMARY.md :98**（2026-08-22 剩余 32 P0 清零波次「流处理/失效类 9 条全部修复」）。
@@ -50,72 +50,72 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-gateway + nop-network（nop-ai-gateway exclude→7.1）
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：**组内全部子模块逐一计数**（含标定例外模块，深审范围外标注 exclude 理由）、四份 check/check2 报告逐条清点（构成勘正）、处置块状态盘点、**三组 2026-09-22 后 git log 产品代码变更登记**（已知线索：93d47833f0 触及 OkHttp trust-all〔net-http-rpc :83 域〕、d149b645df 增 gateway/auth-core 测试）、测试资产 find 实测
-- [ ] 网关面子 agent（维度 13+12）：nop-gateway + nop-ai-gateway——AiAuth 鉴权失败语义（warn 后拒绝？深标定）+ AiRateLimit/AiFailover + BizAuth AuthFilter/GatewayHttpFilter/拦截器链 + check2 18 条与 check 24 条撞车合并标定（42 条）
-- [ ] 网络面子 agent（维度 12+14）：nop-network——NET 族 P0 三条复核（:21/:45/:70 实测）+ HTTP 三客户端错误路径 + SSE 双实现 + RPC model 面 + net-misc 24 条与 net-http-rpc 20 条标定（44 条）
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-3.9-{gw,net}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：**组内全部子模块逐一计数**（含标定例外模块，深审范围外标注 exclude 理由）、四份 check/check2 报告逐条清点（构成勘正）、处置块状态盘点、**三组 2026-09-22 后 git log 产品代码变更登记**（已知线索：93d47833f0 触及 OkHttp trust-all〔net-http-rpc :83 域〕、d149b645df 增 gateway/auth-core 测试）、测试资产 find 实测
+- [x] 网关面子 agent（维度 13+12）：nop-gateway + nop-ai-gateway——AiAuth 鉴权失败语义（warn 后拒绝？深标定）+ AiRateLimit/AiFailover + BizAuth AuthFilter/GatewayHttpFilter/拦截器链 + check2 18 条与 check 24 条撞车合并标定（42 条）
+- [x] 网络面子 agent（维度 12+14）：nop-network——NET 族 P0 三条复核（:21/:45/:70 实测）+ HTTP 三客户端错误路径 + SSE 双实现 + RPC model 面 + net-misc 24 条与 net-http-rpc 20 条标定（44 条）
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-3.9-{gw,net}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] 四份报告 86 条标定结论落盘（18+24+24+20；占位——执行时按实际勾选）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] 四份报告 86 条标定结论落盘（18+24+24+20）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证
-- [ ] 主 agent 汇总：判级统一、与 3.8（file 上传跳过鉴权 :283 撞车）/3.10（nop-auth 增量安全审计边界）/7.1（nop-ai 增量）划界、安全类判级按 2.6 总裁据
-- [ ] 两面正结论收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证（29 候选：A 11 保留+1 降级〔12-03 不可达证伪〕、B 17 全保留带 2 修正；标定抽验零虚假申报）
+- [x] 主 agent 汇总：判级统一、与 3.8（file 上传跳过鉴权 :283 撞车）/3.10（nop-auth 增量安全审计边界）/7.1（nop-ai 增量）划界、安全类判级按 2.6 总裁据（check :49/:86 P1 确认维持登记 R1.0）
+- [x] 两面正结论收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-3.9-{gw,net}-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-3.9-{gw,net}-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `3.9-gateway-network-deep-audit.md`；index 登记 3.9 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl <审计域有测试资产的模块列表，Phase 1 实测后填写>`（**对通用约定 -am 的显式偏离裁定**：-am 会拉入 nop-stream-runtime TestStreamConnectorRegistryDiscovery 与 nop-sys-dao 编译断裂两个已归因预存失败〔2.8/3.5 域〕阻断验证；去 -am 须确认快照新鲜；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 3.9 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `3.9-gateway-network-deep-audit.md`；index 登记 3.9 行 + P1-check-gw-49/86 汇总行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记（本项零 P0——check2 :19/:43 与 NET 族 :21/:45/:70 五条 P0 全部 already-fixed 实测确认，未触发即时通道）
+- [x] 定向验证锚点：`./mvnw test -pl <8 审计域模块>` BUILD SUCCESS（gateway 107/http-api 38/jdk 9/apache 9/okhttp 9/netty 12/socket 9/codec 9 全绿）
+- [x] 独立子 agent closure audit；通过后 roadmap 3.9 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且网关鉴权限流/HTTP 客户端错误路径/NET 族 P0 复核/权限横切面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 3.9 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且网关鉴权限流/HTTP 客户端错误路径/NET 族 P0 复核/权限横切面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 3.9 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -127,14 +127,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `3.9-gateway-network-deep-audit.md` 落盘：通过无 P0/P1 新发现附 P2×9/P3×20（净 29 条；A 面 11 保留+1 降级〔12-03 不可达证伪〕、B 面 17 全保留带 2 修正〔14-09 范围 3→2、14-13 论据〕）。**86 条标定全覆盖零虚假申报**（50 AF + 9 PF 台账行 + 1 adjudicated + 26 still-live + 0 FP）。**AiAuth 鉴权失败语义终裁 fail-closed**（warn 脱敏后 throw 401 三层证据）。**五条 P0 全部 already-fixed 实测**（check2 :19/:43 + check :23 + NET 族 :21/:45/:70，测试亲跑绿）。check :49/:86 两条 P1 确认维持登记 R1.0（P1-check-gw-49/86）。定向验证 8 模块全绿。closure audit 一次 PASS（处方为 log/plan 补记类机械项，已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_26868bb3-e2fb-4c12-85f9-c220ec4f4840（fresh session，只读 closure auditor；一次 PASS 附机械处方）
+- Evidence:
+  - 计数勾稽：净 P0=0/P1=0/P2=9/P3=20=29 ↔ 报告实点（机械 grep 9+20 标题）↔ index 3.9 行（0/0/9/20）↔ 映射表 29 行 ↔ 复核净账（A 12 + B 17）
+  - P1 台账：P1-check-gw-49/86 两行在案且「非转正——check 原文即 P1」性质记载明确；「P0 发现追踪」无 3.9 新增正确
+  - 标定台账 86 条四节机械点数吻合；重点亲读五条 P0 修复点 + AiAuth fail-closed 三层证据 + :83 adjudicated 与 plan 2283 三方交叉一致
+  - 锚点抽验 6/6 亲读命中（AuthHttpServerFilter:344-370 + flushTasks 捕获/JwtHelper ARG_TOKEN 13 处实测/416 Range JDK 无 else-remove + Apache 对照/OkHttp download catch :223-225 范围修正准确/UOE 分支 :61-64 + RouteExecutor 分流先于 proceedInvoke/parseEnumRest 丢弃 + ProtoApiModelLoader 生产委托）
+  - 格式：抽查 6 条 11 要素完整
+  - 12-03 降级与 14-09 范围修正六处如实记载
+  - 定向验证：8 模块 192 例全绿（auditor 核对记录）；`check-doc-links.mjs --strict` exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + closure auditor 亲读 live code 锚点抽验为锚
+  - Deferred 项分类检查：无 deferred；P2×9 进 R1.0 输入池；still-live 26 条归属 R1.0 输入池/watch-only；check :49/:86 P1 登记 R1.0，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×9 修复归属 R1.0 分族；P3×20 watch-only/R1.0 低优先池；still-live 26 条按报告裁决段归属；check :49/:86 已登记 P1-check-gw-49/86 进 R1.0）

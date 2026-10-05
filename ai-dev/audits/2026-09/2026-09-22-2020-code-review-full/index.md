@@ -36,7 +36,7 @@
 | 3.6 | `3.6-report-deep-audit.md` | 0 | **2** | 5 | 12 | done（裁决：通过附 P1×2——①removeCell 展开区域起点减号〔check:103 从未处置仍 live，offset≠0 删错行列〕②角色级报表/数据源权限表全套配置面全仓零消费、引擎取数无角色校验〔契约断裂，nop-datav 下游双轨已成现实〕）进 R1.0；P2×5 含两条挂死（TableExpander 跨维度父格调度死循环/uniqueName `X(1)` 后缀×sheet 循环死循环，独立复现实证）置队首；**check2 26 条标定零虚假申报**（:19 COUNTIF/SUMIF P0 已修复〔复核 8/8 测试确认〕、14+ already-fixed 附修复点、:298 维持暂缓转 R1.0 设计决策项、:508 文件删除核实）；撞车合并 12-05≡13-02 单条目双位点；净 19 条降 0 驳 0；A/B 面各 3 轮深挖） | 独立子 agent（见 plan 2333 Closure 段） |
 | 3.7 | `3.7-rule-dyn-deep-audit.md` | 0 | **1** | 10 | 11 | done（裁决：通过附 P1×1——动态模块 moduleName 可取静态平台模块名遮蔽 VFS 第一优先层〔口令哈希直读 published="false" 静默击穿+静态对象重写+ORM 替换，主 agent 终裁 P1〕进 R1.0；P2×10 含 multiMatch 双存储分叉/缓存失效双缺口/@DataBean 缺失 RPC 必败/IEvalScope 锁外写；**check2 31 条零升级零虚假申报**（28 already-fixed + :168 false-positive 维持 + :204 平台级维持暂缓 + :310 日志落库转 R1.0 backlog）；**DYN-01 三处 runWithoutTenantId 维持 JUSTIFIED** 无新逃逸点；13-01 降级 P3（escapeSQLName 反证）、10-08 duplicated 并入 P1-2.5-005；净 22 条降 1 升 1 驳 0；A/B 面各 4 轮深挖） | 独立子 agent（见 plan 2334 Closure 段） |
 | 3.8 | `3.8-tcc-retry-file-deep-audit.md` | 0 | **5** | 5 | 14 | done（裁决：通过附 P1×5 三族——文件权限面族×2（NopFileRecord 零 auth 任意读取链/attachFile 劫持物理删除链）+引擎执行表零 auth 平台代调提权（:290 处置前提被 live 证伪升级，P1-2.6-006 延伸，终裁 P1）+状态机恢复族×2（CANCELLING 崩溃恢复死锁 100 轮遗弃/TccContext 缺失静默 fork）进 R1.0；**check 18 条标定全覆盖**（10 already-fixed + :154/:175 partially〔处置记录过期非回归，残余 P2-3.8-004 承载〕+ 5 still-live 与处置一致 + :290 升级）；**:27 P0 already-fixed**〔TestTccRunner 10/10〕+**:61 交叉 plan 2282 通过**〔TestRetryEngineImpl 30/30〕；B 面 1 驳回（13-26 __TEMP__ 短路证伪）、A 面撞车索引 1 不计数；净 24 条降 0 升 1 驳 1；A 面 3 轮/B 面 2 轮） | 独立子 agent（见 plan 2335 Closure 段） |
-| 3.9 | — | | | | | todo | |
+| 3.9 | `3.9-gateway-network-deep-audit.md` | 0 | 0 | **9** | 20 | done（裁决：通过无 P0/P1 新发现附 P2×9 进 R1.0 输入池——**AiAuth 鉴权失败语义终裁 fail-closed**〔warn 脱敏后 throw 401〕；**86 条标定全覆盖零虚假申报**〔50 already-fixed + 9 partially 台账行 + 1 adjudicated〔:83 按 plan 2283〕+ 26 still-live + 0 FP〕；**check2 两 P0 already-fixed**〔:19/:43，107+115 测试实测〕+ check :23 AF；**NET 族 P0 三条 already-fixed 实测**〔:21/:45/:70 三组测试亲跑绿〕；**check :49/:86 两条 P1 确认维持**〔live 缺陷亲核在位〕进 R1.0；A 面 1 降级（12-03 不可达证伪）；净 29 条新发现降 1 驳 0；A/B 面各 3 轮） | 独立子 agent（见 plan 2336 Closure 段） |
 | 3.10 | — | | | | | todo | |
 | 3.11 | — | | | | | todo | |
 | 4.1 | — | | | | | todo | |
@@ -133,6 +133,8 @@
 | P1-3.8-003 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（TCC/Retry 引擎执行表 CRUD 零 auth——动作 auth 补齐或引擎表退出公开 CRUD；P1-2.6-006 延伸项同批） | open |
 | P1-3.8-004 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（TCC CANCELLING 崩溃恢复死锁——endAsync cancel 半区对称路由+遗弃防线；镜像 confirm 半区已修在案） | open |
 | P1-3.8-005 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（参与方 inbound TccContext 桥接——TccContextInvoker 接线或显式声明单跳约束；与 SM 静默 fork 同批） | open |
+| P1-check-gw-49 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :49 标定确认） | R1.0（GatewayHttpFilter 路由匹配前全量严格 JSON 解析——解析后置到路由命中或按路由 content-type 分流；缓解 http-filter.enabled opt-in） | open |
+| P1-check-gw-86 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :86 标定确认） | R1.0（OAuth code+redirect 分支不下发 auth cookie/不初始化用户上下文——SSO 回调登录循环；与 auth-core 登录链同批） | open |
 
 
 ## P2 裁决台账（例外通道）
