@@ -241,14 +241,22 @@ public class PulsarConsumeTask {
             Iterator<Message<Object>> it = messages.iterator();
             List<CompletionStage<?>> futures = new ArrayList<>(responses.size());
 
-            for (Object response : responses) {
-                response = FutureHelper.getResult(response);
+            // WI25 (F-16): PAIRWISE iteration — response i adjudicates message i. The old
+            // shape iterated responses and pulled it.next() unconditionally: more responses
+            // than messages threw NoSuchElementException (whole batch nacked INCLUDING
+            // already-replied records); more messages than responses left the tail
+            // permanently unacked.
+            int n = Math.min(responses.size(), messages.size());
+            for (int i = 0; i < n; i++) {
+                Object response = FutureHelper.getResult(responses.get(i));
                 dispatched = true;
                 Message<Object> message = it.next();
                 if (response instanceof PartialCommit) {
                     // D5(b-prime): ack records [0..k-1] only; the record carrying the
                     // signal (index k) and everything after it is negatively acknowledged
-                    // (redelivered) — the boundary record itself must not be dropped.
+                    // (redelivered) — the boundary record itself must not be dropped. This
+                    // is an EXPLICIT contract early-exit: it owns its own boundary+tail
+                    // nacks and is exempt from the post-loop arity handling below.
                     FutureHelper.syncGet(FutureHelper.waitAll(futures));
                     pulsarConsumer.negativeAcknowledge(message.getMessageId());
                     while (it.hasNext()) {
@@ -278,7 +286,22 @@ public class PulsarConsumeTask {
             }
             FutureHelper.syncGet(FutureHelper.waitAll(futures));
             context.commit();
-            return true;
+            // WI25 (F-16): deterministic arity-mismatch handling — the early-exit above is
+            // exempt; a handler-contract breach is surfaced with a per-occurrence WARN and
+            // at-least-once-safe fallbacks (extras dropped, unhandled tail nacked).
+            if (responses.size() > n) {
+                LOG.warn("nop.message.pulsar.batch-arity-extra-responses:responses={},messages={}",
+                        responses.size(), messages.size());
+            }
+            if (it.hasNext()) {
+                LOG.warn("nop.message.pulsar.batch-arity-unhandled-tail:messages={},responses={}",
+                        messages.size(), responses.size());
+                while (it.hasNext()) {
+                    Message<Object> remaining = it.next();
+                    pulsarConsumer.negativeAcknowledge(remaining.getMessageId());
+                }
+            }
+            return dispatched;
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
             lastFailureLocation = null;

@@ -694,6 +694,116 @@ class TestPulsarConsumeTask {
     // WI22: retry cap (failure endpoint) and escalating backoff
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // WI25 (F-16): batch arity deterministic behavior
+    // ------------------------------------------------------------------
+
+    private org.apache.pulsar.client.api.Message<Object> batchMessage(String topic) {
+        org.apache.pulsar.client.api.Message<Object> m =
+                mock(org.apache.pulsar.client.api.Message.class);
+        when(m.getMessageId()).thenReturn(mock(org.apache.pulsar.client.api.MessageId.class));
+        when(m.getTopicName()).thenReturn(topic);
+        return m;
+    }
+
+    private void stubMessages(org.apache.pulsar.client.api.Consumer<Object> consumer,
+                              org.apache.pulsar.client.api.Message<Object>... msgs) {
+        org.apache.pulsar.client.api.Messages<Object> messages =
+                mock(org.apache.pulsar.client.api.Messages.class);
+        when(messages.size()).thenReturn(msgs.length);
+        // Fresh iterator per call: batchConsume iterates the messages twice (list build +
+        // dispatch) and real Pulsar Messages yield independent iterators.
+        when(messages.iterator())
+                .thenAnswer(inv -> java.util.Arrays.asList(msgs).iterator());
+        when(consumer.batchReceiveAsync()).thenReturn(
+                java.util.concurrent.CompletableFuture.completedFuture(messages));
+        when(consumer.acknowledgeAsync(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Message<Object>>any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+    }
+
+    @Test
+    void batchExtraResponsesAreWarnedAndIgnoredWithoutNack() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        when(service.getAckTopic(org.mockito.ArgumentMatchers.anyString())).thenReturn("ack-t");
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.Message<Object> m0 = batchMessage("t-arity");
+        stubMessages(consumer, m0);
+        when(service.sendAsync(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+
+        // 1 message, 2 responses: the extra response must be ignored (no
+        // NoSuchElementException), the paired record acked.
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public java.util.List<Object> onMessageBatch(java.util.List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                java.util.List<Object> responses = new java.util.ArrayList<>();
+                responses.add("reply");
+                responses.add("extra");
+                return responses;
+            }
+        };
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-arity", handler,
+                new MessageSubscribeOptions());
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(50);
+
+        task.batchConsume(); // must NOT throw NoSuchElementException
+
+        verify(consumer).acknowledgeAsync(org.mockito.ArgumentMatchers
+                .<org.apache.pulsar.client.api.Message<Object>>any());
+        verify(consumer, never()).negativeAcknowledge(
+                org.mockito.ArgumentMatchers.<org.apache.pulsar.client.api.MessageId>any());
+        verify(service).sendAsync(org.mockito.ArgumentMatchers.eq("ack-t"),
+                org.mockito.ArgumentMatchers.eq("reply"), org.mockito.ArgumentMatchers.any());
+        executor.shutdownNow();
+    }
+
+    @Test
+    void batchUnhandledTailIsNackedForRedelivery() throws Exception {
+        PulsarMessageService service = mock(PulsarMessageService.class);
+        when(service.getAckTopic(org.mockito.ArgumentMatchers.anyString())).thenReturn("ack-t");
+        ExecutorService executor = daemonExecutor();
+        Consumer<Object> consumer = mock(Consumer.class);
+        org.apache.pulsar.client.api.Message<Object> m0 = batchMessage("t-arity-tail");
+        org.apache.pulsar.client.api.Message<Object> m1 = batchMessage("t-arity-tail");
+        stubMessages(consumer, m0, m1);
+
+        // 2 messages, 1 response: m0 acked, m1 (unhandled tail) nacked for redelivery.
+        IMessageConsumer handler = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public java.util.List<Object> onMessageBatch(java.util.List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                java.util.List<Object> responses = new java.util.ArrayList<>();
+                responses.add(null);
+                return responses;
+            }
+        };
+        MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-arity-tail", handler,
+                new MessageSubscribeOptions());
+        PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
+        task.setReceiveTimeoutMs(50);
+
+        task.batchConsume();
+
+        verify(consumer).acknowledgeAsync(org.mockito.ArgumentMatchers.eq(m0));
+        verify(consumer).negativeAcknowledge(m1.getMessageId());
+        executor.shutdownNow();
+    }
+
     @Test
     void consumeAttemptCapAcksPermanentlyInsteadOfNacking() throws Exception {
         PulsarMessageService service = mock(PulsarMessageService.class);

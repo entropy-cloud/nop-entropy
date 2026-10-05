@@ -217,6 +217,47 @@ class TestPulsarServiceLifecycle {
     }
 
     @Test
+    void batchReceivePolicyWiredWithClientDefaultFloor() throws Exception {
+        LifecycleTestService service = configuredService();
+        service.init();
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(25);
+        io.nop.api.core.message.IMessageSubscription subscription =
+                service.subscribe("t-batch", (t, m, c) -> null, options);
+        try {
+            org.mockito.ArgumentCaptor<org.apache.pulsar.client.api.BatchReceivePolicy> captor =
+                    org.mockito.ArgumentCaptor.forClass(org.apache.pulsar.client.api.BatchReceivePolicy.class);
+            verify(service.builder).batchReceivePolicy(captor.capture());
+            org.apache.pulsar.client.api.BatchReceivePolicy policy = captor.getValue();
+            assertEquals(25, policy.getMaxNumMessages());
+            // WI25 (audit B-1): the client-default latency floor is preserved — a
+            // maxNumMessages-only gate would make low-traffic topics wait unboundedly.
+            assertEquals(org.apache.pulsar.client.api.BatchReceivePolicy.DEFAULT_POLICY.getMaxNumBytes(),
+                    policy.getMaxNumBytes());
+            assertEquals(100L, policy.getTimeoutMs());
+        } finally {
+            subscription.cancel();
+        }
+    }
+
+    @Test
+    void batchReceivePolicyNotWiredWhenUnconfigured() throws Exception {
+        LifecycleTestService service = configuredService();
+        service.init();
+
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        io.nop.api.core.message.IMessageSubscription subscription =
+                service.subscribe("t-nobatch", (t, m, c) -> null, options);
+        try {
+            verify(service.builder, never()).batchReceivePolicy(
+                    org.mockito.ArgumentMatchers.any());
+        } finally {
+            subscription.cancel();
+        }
+    }
+
+    @Test
     void sendAfterDestroyIsTypedRejectedNotNpe() throws Exception {
         LifecycleTestService service = configuredService();
         service.init();

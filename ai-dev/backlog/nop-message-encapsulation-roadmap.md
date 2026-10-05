@@ -171,7 +171,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Phase D — 契约一致性
 
 - WI24 信封元数据与 payload 契约: `done`（deps WI6；Item Type Fix；对应 MSG-F-33 与 MSG-F-31 与 MSG-F-48 与 MSG-F-59；完成判定 按 D8 裁定，本项所有选项字段与信封字段的改动一律加性引入并给弃用期，不得直接重命名 `@DataBean` 字段；按 D2 契约补齐两后端信封元数据对称性；上游同名头不可覆盖框架元数据头；非 String payload 两后端行为一致；`encodeValue` 重复实现去重；承载 plan `ai-dev/plans/nop-message/24-wi24-envelope-contract.md`）
-- WI25 批量消费契约与 arity 对齐: `todo`（deps WI4；Item Type Decision；对应 MSG-F-16 与 MSG-F-17；完成判定 按 D5 的 b-prime 裁定部分提交信号，裁定 `onMessageBatch` 是全批成败还是按记录；两后端响应列表与记录列表 arity 不匹配均有确定行为；`batchReceiveCount` 两后端接线；逐条回归测试）
+- WI25 批量消费契约与 arity 对齐: `done`（deps WI4；Item Type Decision；对应 MSG-F-16 与 MSG-F-17；完成判定 按 D5 的 b-prime 裁定部分提交信号，裁定 `onMessageBatch` 是全批成败还是按记录；两后端响应列表与记录列表 arity 不匹配均有确定行为；`batchReceiveCount` 两后端接线；逐条回归测试；承载 plan `ai-dev/plans/nop-message/25-wi25-batch-contract.md`）
 - WI26 错误码前缀对齐: `todo`（deps WI3；Item Type Fix；对应 MSG-F-40 与 MSG-F-55；完成判定 按 D9 裁定迁移至 `nop.err.message.*`；六个从未引用的错误码删除或接线；`MessageCoreErrors` 填充非空；确认无 i18n 与 properties 引用旧前缀；错误码一致性门禁通过）
 - WI27 concurrency 与 subscriptionType 交互契约: `todo`（deps WI6；Item Type Fix；对应 MSG-F-32 与 D4 与 D5；完成判定 `concurrency` 与 `SubscriptionType` 的组合行为两后端确定且不再硬失败；按 D4 裁定加性引入中立枚举与映射表并对旧枚举给出弃用路径；javadoc 与实现一致）
 - WI28 多 JVM 与 concurrency 语义契约: `todo`（deps WI2；Item Type Decision；对应 MSG-F-50；完成判定 设计文档显式声明 `concurrency` 在四类后端的语义差异；`nop-cluster` 部署下的行为边界写入 owner doc 输入；`MessageSubscribeOptions` javadoc 与实现一致）

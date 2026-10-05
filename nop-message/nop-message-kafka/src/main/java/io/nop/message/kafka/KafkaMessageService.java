@@ -182,6 +182,15 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
     }
 
     Properties buildConsumerProps(String groupId) {
+        return buildConsumerProps(groupId, null);
+    }
+
+    /**
+     * WI25 (F-17): a per-subscribe {@code batchReceiveCount > 0} overrides the global
+     * {@code maxPollRecords} — precedence chain: extraProps &lt; managed keys &lt;
+     * per-subscribe option. {@code null} options keeps the global default.
+     */
+    Properties buildConsumerProps(String groupId, MessageSubscribeOptions options) {
         Properties props = new Properties();
         // F-28 (WI13): extraProps are applied FIRST — the resolved consumer-group identity
         // and all managed keys below cannot be overridden by extraProps.
@@ -208,6 +217,9 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
                     defaultConsumerConfig.getHeartbeatIntervalMs());
             props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
                     defaultConsumerConfig.getMaxPollIntervalMs());
+        }
+        if (options != null && options.getBatchReceiveCount() > 0) {
+            props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, options.getBatchReceiveCount());
         }
         return props;
     }
@@ -346,7 +358,7 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         }
 
         Consumer<String, String> kConsumer = createConsumer(
-                buildConsumerProps(groupId), new StringDeserializer(), new StringDeserializer());
+                buildConsumerProps(groupId, options), new StringDeserializer(), new StringDeserializer());
         java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
         KafkaConsumeTask task = newTask(kConsumer, subConfig);
         kConsumer.subscribe(topics, task.rebalanceListener());

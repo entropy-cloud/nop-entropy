@@ -307,6 +307,31 @@ class TestKafkaServiceLifecycle {
     }
 
     /**
+     * WI25 (F-17): per-subscribe batchReceiveCount overrides the global maxPollRecords;
+     * null options keeps the global default.
+     */
+    @Test
+    void batchReceiveCountOverridesMaxPollRecordsPerSubscribe() {
+        KafkaMessageService service = new KafkaMessageService();
+        KafkaClientConfig clientConfig = new KafkaClientConfig();
+        clientConfig.setBootstrapServers("localhost:9092");
+        service.setConfig(clientConfig);
+        KafkaConsumerConfig config = new KafkaConsumerConfig();
+        config.setMaxPollRecords(500);
+        service.setDefaultConsumerConfig(config);
+
+        MessageSubscribeOptions withCount = new MessageSubscribeOptions();
+        withCount.setBatchReceiveCount(25);
+        java.util.Properties props = service.buildConsumerProps("g", withCount);
+        assertEquals(25, props.get(org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG),
+                "per-subscribe batchReceiveCount must override maxPollRecords");
+
+        props = service.buildConsumerProps("g", null);
+        assertEquals(500, props.get(org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG),
+                "null options keeps the global default");
+    }
+
+    /**
      * WI20/F-26: a suspend issued before any partition was assigned (or before a
      * rebalance) holds for the freshly assigned partitions.
      */

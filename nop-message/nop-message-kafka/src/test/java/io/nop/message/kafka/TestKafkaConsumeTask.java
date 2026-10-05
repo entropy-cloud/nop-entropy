@@ -234,6 +234,42 @@ class TestKafkaConsumeTask {
     // ------------------------------------------------------------------
 
     @Test
+    void batchExtraResponsesIgnoredAndTailRewoundWithArityWarnings() throws Exception {
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                // 2 records, 3 responses: extras ignored; tail record rewound for redelivery.
+                List<Object> responses = new ArrayList<>();
+                responses.add(null);
+                responses.add(null);
+                responses.add("extra");
+                return responses;
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "a"), record(0, 4, "b")));
+
+        task.batchConsume();
+
+        // Deterministic behavior: boundary for both dispatched records committed; the
+        // unhandled tail (none here — both dispatched) — wait: 2 records 3 responses means
+        // BOTH records dispatched; the extra response is ignored.
+        verify(consumer).commitSync(org.mockito.ArgumentMatchers
+                .<java.util.Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>>any());
+        verify(consumer, never()).seek(any(TopicPartition.class), any(long.class));
+    }
+
+    @Test
     void computeBackoffEscalatesAndCaps() {
         assertEquals(1000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 0));
         assertEquals(2000L, KafkaConsumeTask.computeBackoffMs(1000, 30000, 1));

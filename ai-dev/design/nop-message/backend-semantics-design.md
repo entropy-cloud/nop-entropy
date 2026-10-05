@@ -118,6 +118,13 @@
 - **选项字段三态表**：SEND/SUBSCRIBE/ACK_REPLY 生效；DELAYED_SEND/SEND_TIMEOUT/BATCH_CONSUME/SEEK warn-once 忽略（Local 无对应传输）；transactional/transactionTimeout warn-once（D11）；subscribeName/concurrency/subscriptionType warn-once 忽略（WI23 残面收口——in-JVM 广播无此概念，对齐 D1 矩阵 Local 行；validator 因 SUBSCRIBE 能力放行、由后端 in-place warn-once 兜底）。
 - **无 substrate 面**：DLQ/seek/batch/事务均无；TerminateConsume = WARN 留证后丢弃（`nop.message.local.terminate-consume`，对齐 broker 格式）；重试上限（WI22）不适用 Local（无 broker 重投循环，ConsumeLater 即显式延迟重投）。
 
+### 3.10 批量消费契约（WI25）
+
+- **onMessageBatch 为按记录语义（D5 b-prime 裁定落档）**：返回 List 与记录一一对应——第 i 个响应裁定第 i 条记录（null=ack、Acknowledge/非 null=ack+reply、ConsumeLater=延迟重投、TerminateConsume=终结、PartialCommit=前缀提交信号）；**非全批成败**（handler 抛异常走既有失败路径：Kafka rewind / Pulsar 整批 nack）。
+- **arity 确定行为（F-16 消除）**：成对迭代 `n = min(responses, messages)`。responses 多于 messages → 多余响应 WARN 忽略（`batch-arity-extra-responses`，逐次；extras 中的信号类型不扫描——无记录可施加即无语义）；messages 多于 responses → 尾部 at-least-once 兜底（Pulsar：逐条 negativeAcknowledge；Kafka：rewindUndispatched 重投）+ WARN（`batch-arity-unhandled-tail`）。**豁免规则**：`PartialCommit`/`ConsumeLater` 早退分支是显式契约信号，自带边界/终点处理并豁免 arity WARN（Kafka 早退 return；Pulsar PartialCommit return 且不得改 break 共享尾部处理）。WARN 一律 post-loop 计算。既有差异登记：Pulsar 批量的 ConsumeLater 非早退（reconsumeLater 后继续循环），与 Kafka 的批终点语义不同义。
+- **batchReceiveCount 接线（F-17）**：Kafka = `max.poll.records` 的 per-subscribe 覆盖（优先级链 extraProps < managed keys < per-subscribe option；纯上限，无延迟效应）；Pulsar = `BatchReceivePolicy(maxNumMessages=count, maxNumBytes/timeout=客户端默认保底)`——**gate + 100ms 兜底**（maxNumMessages-only 会让低吞吐 topic 攒满 count 才完成，延迟无界——审查 B-1 实测裁定）。两后端口径不对称（Kafka=cap / Pulsar=gate+兜底）为显式登记。`batchReceiveTimeout` 的 Pulsar policy 接线不做（WI17 F-11 裁定保持）。
+- **11 主源码实现评估**：`onMessageBatch` 仅 SPI 默认实现（恒等长响应、永不触发 arity 分支）+ 两个 broker ConsumeTask 调用点，无其他覆写——本契约零波及。
+
 ## 四、拒绝了什么
 
 - **D9 拒绝 (a) 保留 `nop.message.kafka.*` / `nop.message.pulsar.*` 前缀**：违反平台 `nop.err.[模块].[子域].[错误]` 规范（error-handling.md）；实测旧前缀无任何 i18n / properties 引用，迁移无兼容成本，双前缀共存期无收益。

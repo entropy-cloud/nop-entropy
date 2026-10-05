@@ -332,6 +332,19 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
             applyInitialPosition(builder, options.getSeekMode());
         }
 
+        // WI25 (F-17): batchReceiveCount wires the client batch gate. The client-default
+        // timeout/maxNumBytes are preserved (NOT a maxNumMessages-only policy): a gate-only
+        // policy would make a low-traffic topic wait unboundedly for `count` messages
+        // (the ≤100ms client-default completion bound is the pre-WI25 latency envelope).
+        // Kafka's max.poll.records is a pure cap — the asymmetry is declared in design 3.10.
+        if (options != null && options.getBatchReceiveCount() > 0) {
+            builder.batchReceivePolicy(org.apache.pulsar.client.api.BatchReceivePolicy.builder()
+                    .maxNumMessages(options.getBatchReceiveCount())
+                    .maxNumBytes(org.apache.pulsar.client.api.BatchReceivePolicy.DEFAULT_POLICY.getMaxNumBytes())
+                    .timeout(100, TimeUnit.MILLISECONDS)
+                    .build());
+        }
+
         if (defaultConsumerConfig != null) {
             if (defaultConsumerConfig.getAckTimeout() > 0) {
                 builder.ackTimeout(defaultConsumerConfig.getAckTimeout(), TimeUnit.MILLISECONDS);

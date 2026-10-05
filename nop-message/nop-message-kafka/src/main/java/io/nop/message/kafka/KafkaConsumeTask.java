@@ -543,6 +543,17 @@ public class KafkaConsumeTask {
             ctx.commit();
             commitConverged(committedBoundaries);
             rewindUndispatched(recordList, committedBoundaries);
+            // WI25 (F-16): arity-mismatch WARNs after normal completion (the PartialCommit /
+            // ConsumeLater early-exits above are explicit contract signals and exempt). The
+            // unhandled tail is already re-polled by rewindUndispatched (at-least-once).
+            if (responses.size() > recordList.size()) {
+                LOG.warn("nop.message.kafka.batch-arity-extra-responses:responses={},records={}",
+                        responses.size(), recordList.size());
+            }
+            if (recordList.size() > responses.size()) {
+                LOG.warn("nop.message.kafka.batch-arity-unhandled-tail:records={},responses={}",
+                        recordList.size(), responses.size());
+            }
             return dispatched;
         } catch (Exception e) {
             // WI16/WI22: failure context from the progress pointer — only when a record was
