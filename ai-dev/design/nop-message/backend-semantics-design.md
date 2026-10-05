@@ -125,6 +125,20 @@
 - **batchReceiveCount 接线（F-17）**：Kafka = `max.poll.records` 的 per-subscribe 覆盖（优先级链 extraProps < managed keys < per-subscribe option；纯上限，无延迟效应）；Pulsar = `BatchReceivePolicy(maxNumMessages=count, maxNumBytes/timeout=客户端默认保底)`——**gate + 100ms 兜底**（maxNumMessages-only 会让低吞吐 topic 攒满 count 才完成，延迟无界——审查 B-1 实测裁定）。两后端口径不对称（Kafka=cap / Pulsar=gate+兜底）为显式登记。`batchReceiveTimeout` 的 Pulsar policy 接线不做（WI17 F-11 裁定保持）。
 - **11 主源码实现评估**：`onMessageBatch` 仅 SPI 默认实现（恒等长响应、永不触发 arity 分支）+ 两个 broker ConsumeTask 调用点，无其他覆写——本契约零波及。
 
+### 3.11 concurrency 语义与多 JVM 部署边界（WI28）
+
+- **四类后端 concurrency 语义矩阵**：
+
+| 后端 | concurrency 语义 | 多 JVM 行为 |
+| --- | --- | --- |
+| Kafka | N 个独立 consumer 同消费组（分区级并行；N > 分区数时超出者空闲） | 消费组自动分区分摊（concurrency×JVM 数 ≤ 分区数为最优） |
+| Pulsar | SINGLE_ACTIVE 钳制 1（WI27）；LOAD_BALANCED/ORDERED_BY_KEY N 个同订阅名 consumer（broker 分发）；均未配置+并发>1 → Shared（WI27） | Shared/Key_Shared 由 broker 跨 JVM 分发；Exclusive 全局仅 1 活跃 |
+| Local | warn-once 忽略（in-JVM 广播到全部订阅者，无并行概念） | 仅单 JVM——广播不跨网络 |
+| SysDao | 忽略（DB 轮询模型无多 consumer 概念） | **每 JVM 独立轮询**（天然多活，由 DB 行锁/状态机去重） |
+
+- **nop-cluster 部署边界（owner doc 输入）**：多 JVM 部署时 Kafka 消费组自动分摊（无需 nop-cluster 协调）；Pulsar Shared 由 broker 原生分发；SysDao 每 JVM 独立轮询 + DB 状态机去重（不依赖 nop-cluster 选主）；Local 仅限单 JVM 或作为默认实现不可用于集群。广播 topic（`broadcast:` 前缀）在 Local 模型下仅达本 JVM 订阅者；跨 JVM 广播须使用 SysDao broadcast 或 broker 后端。
+- **与 WI23/WI25/WI27 的关系**：Local warn-once（WI23/F-56）、Pulsar 钳制/映射/默认 Shared（WI27/F-32）、Kafka N consumer 行为不变（WI27）——本节为集中声明而非新行为。
+
 ## 四、拒绝了什么
 
 - **D9 拒绝 (a) 保留 `nop.message.kafka.*` / `nop.message.pulsar.*` 前缀**：违反平台 `nop.err.[模块].[子域].[错误]` 规范（error-handling.md）；实测旧前缀无任何 i18n / properties 引用，迁移无兼容成本，双前缀共存期无收益。

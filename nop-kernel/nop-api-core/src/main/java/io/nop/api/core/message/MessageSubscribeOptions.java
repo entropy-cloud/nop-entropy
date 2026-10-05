@@ -49,7 +49,9 @@ public class MessageSubscribeOptions {
      * 启动多少个Consumer并行消费。Pulsar：SINGLE_ACTIVE 语义（Exclusive/Failover，含
      * 未配置型）下该参数被忽略（warn-once）；LOAD_BALANCED/ORDERED_BY_KEY 语义下照常启动
      * N 个 consumer；均未配置且 concurrency>1 时按 Shared 处理（warn-once）。Kafka：启动
-     * N 个独立 consumer（组语义）。
+     * N 个独立 consumer（组语义）。SysDao（DB 轮询模型）与多 JVM 部署边界见
+     * backend-semantics-design.md 3.11——SysDao 忽略此参数（每 JVM 独立轮询）；Kafka
+     * 多 JVM 部署由消费组自动分区分摊。
      */
     private int concurrency;
 
