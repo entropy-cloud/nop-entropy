@@ -355,6 +355,7 @@ public class KafkaConsumeTask {
                 Object response = consumerFn.onMessage(record.topic(), apiMessage, context);
                 response = FutureHelper.getResult(response);
                 dispatched = true;
+                if (service.metrics != null) service.metrics.incrementConsumed();
 
                 if (response instanceof ConsumeLater) {
                     // MSG-F-09 (WI12): a deferring response is a batch endpoint, mirroring
@@ -395,6 +396,7 @@ public class KafkaConsumeTask {
             } catch (Exception e) {
                 LOG.error("nop.err.message.kafka.consume-record-fail:topic={},offset={}",
                         record.topic(), record.offset(), e);
+                if (service.metrics != null) service.metrics.incrementFailed();
                 context.rollback();
                 // WI16: carry the record context up to the run loop's failure dispatch.
                 lastFailureTopic = record.topic();

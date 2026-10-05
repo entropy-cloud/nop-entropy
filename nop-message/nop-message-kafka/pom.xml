@@ -19,6 +19,12 @@
             <artifactId>nop-core</artifactId>
         </dependency>
 
+        <!-- WI30: shared MessageMetrics (module graph change explicitly declared per roadmap Hard constraint). -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-message-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
@@ -27,6 +33,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- WI30: Micrometer metrics (resolved transitively via nop-core/spring-boot). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
         </dependency>
 
         <dependency>

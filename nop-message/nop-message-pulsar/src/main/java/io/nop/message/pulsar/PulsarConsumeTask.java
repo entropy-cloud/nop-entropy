@@ -330,6 +330,7 @@ public class PulsarConsumeTask {
         try {
             Object response = consumer.onMessage(message.getTopicName(), apiMessage, context);
             response = FutureHelper.getResult(response);
+            if (service.metrics != null) service.metrics.incrementConsumed();
 
             if (response instanceof ConsumeLater) {
                 ConsumeLater later = (ConsumeLater) response;
@@ -365,6 +366,7 @@ public class PulsarConsumeTask {
                 runFailureEndpoint(context, message, location, attempt, e);
                 return true; // endpoint consumed the message; the loop continues
             }
+            if (service.metrics != null) service.metrics.incrementFailed();
             fail(context, message, e);
             try {
                 context.rollback();

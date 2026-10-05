@@ -19,6 +19,7 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.message.MessageSubscriptionConfig;
 import io.nop.api.core.message.MessageValueCodec;
+import io.nop.message.core.MessageMetrics;
 import io.nop.api.core.message.MultiMessageSubscription;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.service.LifeCycleSupport;
@@ -74,6 +75,13 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
 
     /** Kafka has no native delayed delivery: warn once, then execute the declared ignore. */
     private static final Set<MessageCapability> WARN_ONCE = EnumSet.of(MessageCapability.DELAYED_SEND);
+
+    // WI30 (MSG-F-23): metrics — null registry = no-op (zero overhead when not enabled).
+    volatile io.nop.message.core.MessageMetrics metrics = io.nop.message.core.MessageMetrics.noop();
+
+    public void setMetricRegistry(io.micrometer.core.instrument.MeterRegistry registry) {
+        this.metrics = io.nop.message.core.MessageMetrics.create(registry, "kafka");
+    }
 
     @Override
     public Set<MessageCapability> getCapabilities() {
@@ -261,6 +269,7 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, null, key, value, headers);
         CompletableFuture<Void> future = new CompletableFuture<>();
+        long sendStartNanos = System.nanoTime();
         try {
             prod.send(record, (metadata, exception) -> {
                 if (exception != null) {
@@ -303,6 +312,8 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         if (sendTimeoutMs > 0) {
             future.orTimeout(sendTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
+        metrics.incrementSent();
+        metrics.recordSendDuration(System.nanoTime() - sendStartNanos);
         return future;
     }
 

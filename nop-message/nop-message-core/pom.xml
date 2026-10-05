@@ -29,6 +29,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- WI30: Micrometer metrics (version managed by nop-bom/nop-dependencies). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

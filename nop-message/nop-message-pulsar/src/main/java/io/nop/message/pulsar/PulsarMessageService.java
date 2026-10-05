@@ -22,6 +22,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.service.LifeCycleSupport;
+import io.nop.message.core.MessageMetrics;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.Producer;
@@ -75,6 +76,13 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
     private PulsarConsumerConfig defaultConsumerConfig;
     // WI29: package-private for the test subclass access (TestPulsarService.doStart).
     PulsarClient client;
+
+    // WI30 (MSG-F-23): metrics — null registry = no-op.
+    volatile MessageMetrics metrics = MessageMetrics.noop();
+
+    public void setMetricRegistry(io.micrometer.core.instrument.MeterRegistry registry) {
+        this.metrics = MessageMetrics.create(registry, "pulsar");
+    }
     private Map<String, Schema<?>> topicSchemas = new ConcurrentHashMap<>();
     private Map<String, Producer<?>> producers = new ConcurrentHashMap<>();
     private Queue<PulsarMessageSubscription> subscriptions = new ConcurrentLinkedQueue<>();
@@ -232,6 +240,8 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
     }
 
     private CompletableFuture<Void> sendPulsarAsync(String topic, Object message, MessageSendOptions options) {
+        long sendStartNanos = System.nanoTime();
+        metrics.incrementSent();
         if (options != null && options.getCancelToken() != null && options.getCancelToken().isCancelled()) {
             // WI15 (F-45): pre-send cancellation check; rejected future per the
             // MessageRpcClient.callAsync precedent (never a synchronous throw).
@@ -252,6 +262,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         if (sendTimeoutMs > 0) {
             future.orTimeout(sendTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
+        metrics.recordSendDuration(System.nanoTime() - sendStartNanos);
         return future;
     }
 
