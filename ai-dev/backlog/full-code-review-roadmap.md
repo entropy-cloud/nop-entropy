@@ -65,7 +65,7 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | 3.1 | nop-wf 深审（WorkflowEngineImpl 1941 行、WF-01..03 MEDIUM 现状、审批状态机） | done（2026-10-05，plan 2328，closure audit 一次 PASS——通过无 P0 附 P1×2（approval-support 绕引擎双事实源与 P1-2.6-005 分立互补同批互引+超时 dueAction 通道被 allowCallByUser 阻断与 job bean 失配叠加同批）；**check2 12 条点名零虚假申报**（P1×4 零推翻+P2×8 六修二 live）；WF-01/02/03 六条全标定（F-WF-02-1 回灌 3.2、F-WF-01-3 建议 ledger 补记）；维度 22 引擎侧适配交付；撞车教训入档 G.1；23 条唯一发现降 0 驳 0） | `docs-for-ai/02-core-guides/workflow-configuration.md` | 0.3, 0.4 | `state-machine-business-review-prompt.md` + `deep-audit-prompts.md`（维度 13/14） |
-| 3.2 | nop-task 深审（DaoTaskStateStore、continuation-skip P0 复核、可靠性装饰器） | todo | `docs-for-ai/03-modules/nop-task.md` | 0.3, 0.4 | `state-machine-business-review-prompt.md` |
+| 3.2 | nop-task 深审（DaoTaskStateStore、continuation-skip P0 复核、可靠性装饰器） | done（2026-10-05，plan 2329，closure audit FAIL→B1 补录 2 条 P2→聚焦复审满足收口条件——通过无 P0/P1 附 P2×10：恢复完整性族×5（persist 死契约〔P1 降级高位〕/taskInputs 死代码/ACTIVE resume/迭代边界顶替/outputs 重放洞）+装配契约族×2+错误列残留+**F-WF-02-1 深审维持 still-live 修复裁定交付**；continuation-skip P0 复核 already-fixed 与 6.4 一致维持；check 系列 14 条盘点零遗漏；DaoTaskStateStore 实测 902 行） | `docs-for-ai/03-modules/nop-task.md` | 0.3, 0.4 | `state-machine-business-review-prompt.md` |
 | 3.3 | nop-batch 深审 a（S 级零专项审计首审）：DSL 任务模型→执行链、集群分区一致性 | todo | `docs-for-ai/03-modules/nop-batch.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 04/07/14） |
 | 3.4 | nop-batch 深审 b（首审续）：JDBC 读写事务、导入导出路径、批任务记录 | todo | `docs-for-ai/03-modules/nop-batch.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 12/14/16） |
 | 3.5 | nop-sys 深审（锁过期判断反向 P0 复核、Maker-Checker、事件广播可靠性） | todo | `docs-for-ai/03-modules/nop-sys.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 08/13/14） |

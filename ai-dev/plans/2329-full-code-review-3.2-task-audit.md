@@ -1,6 +1,6 @@
 # 2329 full-code-review 3.2 nop-task 深审
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 3.2（MA3）；Skill=`ai-dev/skills/state-machine-business-review-prompt.md`（任务状态机）+ deep-audit 维度 14（调度可靠性）
 > Related: owner doc `docs-for-ai/03-modules/nop-task.md`；**F-WF-02-1 回灌接收**（3.1 已标定：DaoTaskStateStore isSupportPersist=true+JsonTool.serialize 明文 JSON 多点落库仍 live——本项深审该面并给修复裁定）；check2 撞车对照（nop-task 相关条目）；plan 2306 批次残留（check2 [P1-1] JobTimeoutCheckerImpl 修复先例在案）
@@ -47,70 +47,70 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-task
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：模块结构清单（聚合 pom+10 子模块）、DaoTaskStateStore 方法清单、continuation-skip P0 原文核对（check/nop-task.md:26/:60）、**三份先审计资产盘点（check 14 条/09-25 深审/09-05 模块分析——在案发现与裁定清单）**、可靠性装饰器清单
-- [ ] 状态机子 agent：DaoTaskStateStore 全转移验证 + continuation-skip P0 复核（实测优先）+ 任务状态语义
-- [ ] 可靠性子 agent（维度 14）：装饰器栈语义 + F-WF-02-1 明文序列化深审（数据流+修复裁定）+ JobTimeoutChecker 同族扫描
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-3.2-{statemachine,reliability}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：模块结构清单（聚合 pom+10 子模块）、DaoTaskStateStore 方法清单、continuation-skip P0 原文核对（check/nop-task.md:26/:60）、**三份先审计资产盘点（check 14 条/09-25 深审/09-05 模块分析——在案发现与裁定清单）**、可靠性装饰器清单
+- [x] 状态机子 agent：DaoTaskStateStore 全转移验证 + continuation-skip P0 复核（实测优先）+ 任务状态语义
+- [x] 可靠性子 agent（维度 14）：装饰器栈语义 + F-WF-02-1 明文序列化深审（数据流+修复裁定）+ JobTimeoutChecker 同族扫描
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
+- [x] 产物 `_tmp/fcr-3.2-{statemachine,reliability}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] continuation-skip P0 + F-WF-02-1 标定/深审结论落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] continuation-skip P0 + F-WF-02-1 标定/深审结论落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + P0/F-WF-02-1 独立验证
-- [ ] 主 agent 汇总：判级统一、跨 agent 去重（DaoTaskStateStore 双 agent 深读重叠——2.4 先例）、与 3.1（F-WF-02-1 来源）/3.3/3.4 边界协调
-- [ ] 状态机正结论收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + P0/F-WF-02-1 独立验证
+- [x] 主 agent 汇总：判级统一、跨 agent 去重（DaoTaskStateStore 双 agent 深读重叠——2.4 先例）、与 3.1（F-WF-02-1 来源）/3.3/3.4 边界协调
+- [x] 状态机正结论收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-3.2-{statemachine,reliability}-review.md`
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-3.2-{statemachine,reliability}-review.md`
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `3.2-task-deep-audit.md`；index 登记 3.2 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl nop-task -am`（按机械基线确认实际模块路径；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 3.2 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `3.2-task-deep-audit.md`；index 登记 3.2 行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
+- [x] 定向验证锚点：`./mvnw test -pl nop-task -am`（按机械基线确认实际模块路径；如遇失败归因预存并登记）
+- [x] 独立子 agent closure audit；通过后 roadmap 3.2 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且状态机+可靠性面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 3.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且状态机+可靠性面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 3.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -122,14 +122,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 只读审计计划收口。报告 `3.2-task-deep-audit.md` 落盘：通过无 P0/P1 附 P2×10（恢复完整性族×5——persist 死契约〔P1 降级高位〕/taskInputs 端到端死代码/ACTIVE resume 跳过 initInputs/迭代边界顶替/outputs 重放洞 +装配契约族×2+错误列残留+合并指引）+P3×13。**F-WF-02-1 深审维持 still-live P2 修复裁定交付**（脱敏契约为主+文档补全；request 休眠化修正）；continuation-skip P0 复核 already-fixed 与 6.4 一致维持；check 系列 14 条盘点零遗漏；在案「一次性设计定案」裁定已被 plan 349/364 遵循。定向测试：首轮 -am 失败均在上游预存（stream connector 发现〔2.8 已登记〕/nop-sys-dao 编译断裂〔归 3.5〕），归因登记后直跑 core+dao **163/0F BUILD SUCCESS**。closure audit 首轮 FAIL（B1：两条复核保留 P2 静默丢失+映射注矛盾）→ 补录 P2-3.2-010/011+映射勘正 → 聚焦复审指出 3 处残留（:21/:51 编号、合并集 011→010）→ 全部修正 → 满足收口条件（auditor 明示改后即满足）。
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_8c87d9b9-a149-4e5a-a37d-32beac30da08（首轮 FAIL，B1 补录 2 条 P2）+ agent_5b843813-d7e9-4dcd-ac6d-c3074645a785（聚焦复审，处方残留 3 处已修正后满足收口条件）
+- Evidence:
+  - B1 修复验证（聚焦复审逐项）：①映射注 001=RL P1-3.2-01 降级+010/011 新增 ✓；②两条补录内容与两份 scratch 逐点一致+源码双抽验坐实（TaskStepExecution:237-250 replayPersistedOutputs 嵌套、DaoTaskStateStore:508 裸写 vs :222-226 先例）✓；④R1.0 族①含 010 ✓
+  - 聚焦复审处方残留 3 处修正：:21/:51 「P2-3.2-10」→「P2-3.2-010」、:38 合并集 011→010、:13 族① 5 条口径对齐
+  - 计数闭合：P0=0/P1=0/P2=10/P3=13=23 ↔ 报告实点 ↔ index 3.2 行（0/0/10/13）↔ 复核保留（SM 13+RL 10=23 候选，终态 23 唯一+F-WF-02-1 专节单列）
+  - continuation-skip 标定：独立抽验通过（门控+三用例双通道+resume 守卫），P2-3.2-010 为 resume 侧新增非复活
+  - F-WF-02-1：五处锚点逐行一致+persist 死契约独立证实+request 休眠化修正+维持 still-live P2 裁定同意
+  - 定向测试：直跑 core+dao 163/0F BUILD SUCCESS（surefire mtime 与直跑时序吻合）；首轮 -am 失败双预存归因核实
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2329-full-code-review-3.2-task-audit.md --strict` 退出码 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + 逐行核对为锚
+  - Deferred 项分类检查：无 deferred；P2×10+P3×13 经报告移交 R1.0 分族，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×10+P3×13 修复归属 R1.0 分族；F-WF-02-1 修复工单归 R1.0；G.2 移交三项（装配前提/persist 契约/residual-risk 扩列）在报告移交注记）
