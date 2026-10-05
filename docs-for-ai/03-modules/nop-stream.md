@@ -14,6 +14,7 @@
 | `nop-stream-rocksdb` | RocksDB 状态后端 |
 | `nop-stream-connector{,-batch,-jdbc,-debezium}` | 连接器族 |
 | `nop-stream-flow` | XDSL 流程集成 |
+| `nop-stream-sql` | 声明式 SQL 窄范围接口（`.stream.xml` 顶层 `<sql>` 元素编译宿主；使用文档 `03-modules/nop-stream-sql.md`） |
 | `nop-stream-fraud-example` | 复合场景示例（S1/S2 + 分布式演练） |
 
 ## 可观测性与运维面

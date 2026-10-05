@@ -52,6 +52,7 @@
 - **信心水平**: 确定
 - **误报排除**: 已确认不是「接口有但 impl 抛异常」——DataStreamImpl.union 为真实实现（UnionTransformation 进执行图），TestUnionPipelineE2E 存在于 flow 模块测试目录；getSideOutput 在 SingleOutputStreamOperatorImpl 有实现体。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-2] flow 侧 `<sideOutput>` fail-fast 文案与 core 现实脱节（声称 getSideOutput「尚未实现」）
 - **文件**: `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/AdvancedTransforms.java:787-800 ↔ nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/datastream/SingleOutputStreamOperatorImpl.java:72`（跨模块：flow ↔ core 契约面）
@@ -79,6 +80,7 @@
 - **信心水平**: 确定
 - **误报排除**: 已确认 `<sideOutput>` 在 buildUnion 同文件确实仍抛错（非本审计误读）；fail-fast 行为本身不判错，判错的是其引用的「API 不存在」事实。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-3] connectors 文档 SPI 表被「Source API 冻结政策」章节从中间截断，sink 4 行成孤儿行
 - **文件**: `docs-for-ai/03-modules/nop-stream-connectors.md:27-33`
@@ -99,6 +101,7 @@
 - **信心水平**: 确定
 - **误报排除**: 非 markdown 渲染器差异——源文件层面表行与 `##` 标题交错即是结构错误；8 个工厂类本体均已逐一验证存在（本审计全部命中）。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-4] connectors 文档「基类默认抛 UnsupportedOperationException」与实际抛出的 StreamException 不符
 - **文件**: `docs-for-ai/03-modules/nop-stream-connectors.md:96 ↔ nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/functions/sink/TwoPhaseCommitSinkFunction.java:128-136`
@@ -124,6 +127,7 @@
 - **信心水平**: 确定
 - **误报排除**: 全文件 grep 确认类体内无任何 `throw new UnsupportedOperationException`；文档所谓异常类型仅存于 Javadoc 描述层。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-5] nop-stream/README.md 声称「独立进程入口 JobCoordinatorMain/TaskManagerMain」已实现于 runtime——与 owner doc/user guide 的 test-scope 诚实化（F-11）矛盾
 - **文件**: `nop-stream/README.md:7 ↔ docs-for-ai/03-modules/nop-stream.md:242` + `docs-for-ai/03-modules/nop-stream-user-guide.md:187` + `nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/launch/JobCoordinatorMain.java`
@@ -147,6 +151,7 @@
 - **信心水平**: 确定
 - **误报排除**: 不是措辞歧义——README 明写「独立进程入口…已实现于 nop-stream-runtime」并列在「已实现」清单中；类路径事实以 main/test 目录布局为准。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-6] nop-stream/README.md 与 INDEX.md 的「子模块共 10 个」过时——pom.xml 实为 11 个（nop-stream-sql 缺席两处清单）
 - **文件**: `nop-stream/README.md:24 + docs-for-ai/INDEX.md:249 ↔ nop-stream/pom.xml:17-27 + docs-for-ai/01-repo-map/module-groups.md:23`
@@ -161,6 +166,7 @@
 - **信心水平**: 确定
 - **误报排除**: `grep -c "<module>" nop-stream/pom.xml` = 11（可复现）；module-groups.md 与 INDEX 两文档同仓不同值，非渲染问题。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-7] owner doc「模块路由」表缺 `nop-stream-sql` 行
 - **文件**: `docs-for-ai/03-modules/nop-stream.md:9-17 ↔ nop-stream/pom.xml:25`
@@ -184,6 +190,7 @@
 - **信心水平**: 确定
 - **误报排除**: 表格其余 7 行职责描述经抽查（core/runtime/cep/rocksdb/connector 族）与实际包结构一致，问题仅在缺行。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-8] user-guide「可用 transform 类型」清单缺 `join` 与 `union`——两者均已落地可执行
 - **文件**: `docs-for-ai/03-modules/nop-stream-user-guide.md:116 ↔ nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/stream/stream.xdef:202,227` + `nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/AdvancedTransforms.java`（buildJoin/buildUnion）
@@ -207,6 +214,7 @@
 - **信心水平**: 确定
 - **误报排除**: join/union 非「声明了但会 fail-fast」的半成品——buildJoin/buildUnion 均为真实构建路径且有专项 E2E 测试。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-9] distributed-runbook §7「已知边界」两条已过时：manifest checksum/version 已落地；队列水位 gauge 已落地（与本文件 §6.1 自相矛盾）
 - **文件**: `ai-dev/design/nop-stream/distributed-runbook.md:158-159 ↔ nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/storage/CheckpointSerDe.java:70-73` + `同 runbook:120`（`nop_stream_io_channel_queue_size`）
@@ -231,6 +239,7 @@
 - **信心水平**: 确定
 - **误报排除**: checksum/gauge 交付有代码与测试双重证据（`TestCheckpointBodyChecksum`、`TestTaskManagerOpsEndpoint`）；§6.1 与 §7 同文件矛盾排除了「两处指不同对象」的可能。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-10] stream-dsl-design 的 `<union>` 行仍是「runtime-API-gap 未实现」旧口径（无落地更新标记）
 - **文件**: `ai-dev/design/nop-stream/stream-dsl-design.md:130 ↔ nop-stream/nop-stream-flow/src/main/java/io/nop/stream/flow/builder/AdvancedTransforms.java:629-682`
@@ -249,6 +258,7 @@
 - **信心水平**: 确定
 - **误报排除**: 未把「设计文档允许滞后」当发现——判据是该目录自身的更新惯例（core-design 同期已更新同类条目）与三个可验证事实全错。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-11] CDC cookbook 的 `TestDebeziumEngineProperties` 锚点模块归属错位（在 nop-message-debezium，非 connector-debezium）
 - **文件**: `docs-for-ai/03-modules/nop-stream-cdc-cookbook.md:9-23 ↔ nop-message/nop-message-debezium/src/test/java/io/nop/message/debezium/TestDebeziumEngineProperties.java`
@@ -262,6 +272,7 @@
 - **信心水平**: 确定
 - **误报排除**: 全仓 find 确认该测试类唯一；ERR_DEBEZIUM_* 错误码定义与抛出点均在 nop-message-debezium（DebeziumErrors.java:24-39、DebeziumEngineConfig.java:83,129,137,164,185,193），cookbook 故障表的错误码本身全部真实可达（未判错）。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-12] user-guide XDSL 示例代码块内嵌两段 markdown 正文，示例原样不可解析
 - **文件**: `docs-for-ai/03-modules/nop-stream-user-guide.md:89-114`（markdown 正文位于 :97-99）
@@ -284,6 +295,7 @@
 - **信心水平**: 确定
 - **误报排除**: 逐行核对确认 ``` 围栏起于 :89 止于 :114，两段正文确在其间；非渲染器容错问题。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-13] user-guide 声称 Trigger 家族目录「10 文件」——实际 11 文件（新增抽象基类 ContinuousIntervalTrigger）
 - **文件**: `docs-for-ai/03-modules/nop-stream-user-guide.md:213 ↔ nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/windowing/triggers/`（11 个 .java）
@@ -297,6 +309,7 @@
 - **信心水平**: 确定
 - **误报排除**: 连 `target/` 在外的 main 目录实测 11 文件；ContinuousIntervalTrigger 为包私有 abstract，不影响公开类型计数（故未升级 P2）。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [DC-14] user-guide 称窗口算子工厂「ServiceLoader 风格发现」——实际为硬编码 Class.forName 反射
 - **文件**: `docs-for-ai/03-modules/nop-stream-user-guide.md:71 ↔ nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/datastream/WindowedStreamImpl.java:198-215`
@@ -315,6 +328,7 @@
 - **信心水平**: 确定
 - **误报排除**: runtime/core 的 META-INF/services 均已列举，无 IWindowOperatorFactory 条目；`setDefaultFactory` 显式 setter 通路存在但不改变默认发现的实现方式。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ---
 

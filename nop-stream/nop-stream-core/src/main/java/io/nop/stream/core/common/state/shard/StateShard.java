@@ -110,10 +110,13 @@ public class StateShard implements Serializable {
 
     /**
      * Stable, cross-JVM-deterministic hash for {@code key}. Delegates to
-     * {@link KeyGroupAssignment#stableHash(Object)} since Stage 34. For
-     * built-in value types (String/Long/Integer/...) this is identical to the
-     * legacy {@code key.hashCode()}, preserving routing parity; for POJO keys
-     * it is now Murmur3 over canonical JSON bytes (G38).
+     * {@link KeyGroupAssignment#stableHash(Object)} since Stage 34. Since
+     * plan 2306 the hash is uniformly Murmur3 over canonical JSON bytes for
+     * all value types (enum keys hash by {@code name()}); no legacy
+     * {@code key.hashCode()} parity is preserved, and pre-2306 checkpoint
+     * keyed state layouts are incompatible (adjudicated acceptable for
+     * 2.0.0-SNAPSHOT). Routing and state ownership still share this same
+     * function, so the AR-01 routing/ownership parity is retained.
      */
     public static int stableHash(Object key) {
         return KeyGroupAssignment.stableHash(key);

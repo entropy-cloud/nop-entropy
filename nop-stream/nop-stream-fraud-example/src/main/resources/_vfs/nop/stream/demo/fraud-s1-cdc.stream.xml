@@ -9,7 +9,8 @@
   - keyBy 内联 keyExpr；不使用任何 build 期 fail-fast 声明面
     （params/outputType/maxParallelism/非默认 consistencyCapability/per-transform parallelism）
   - 地理异常模式通过富化字段 prevCity 表达为纯谓词（keyed state 在富化层维护）
-  - 由于 flow DSL 的 <cep> 每次引用一个 patternRef 且 <union> 为 build 期 fail-fast，
+  - flow DSL 的 <cep> 每次引用一个 patternRef（<union> 已支持，但本场景 4 个模式
+    需各自的 keyBy/window/aggregate 状态与独立 ledger 表），
     4 个欺诈模式各自串联一条 cep -> keyBy -> window -> aggregate -> sink 链，
     共享 source/watermark/decode/keyBy/enrich 前缀；4 个 sink 写同一张
     fraud_alerts_summary 数据表，各用独立的 per-chain ledger 表

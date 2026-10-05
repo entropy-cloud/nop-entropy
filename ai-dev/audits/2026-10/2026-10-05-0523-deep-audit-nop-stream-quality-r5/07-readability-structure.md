@@ -192,6 +192,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
 - **信心水平**: 确定
 - **误报排除**: 无——pom、import、javadoc 三方文本互相矛盾是事实层面。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [RD-7] RemotePipelineResolver SPI 全仓唯一实现位于 fraud-example 的 src/test
 - **文件**: `nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/ScenarioXdslPipelineResolver.java`（注册文件 `nop-stream-fraud-example/src/test/resources/META-INF/services/io.nop.stream.runtime.rpc.RemotePipelineResolver`）

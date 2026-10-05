@@ -2,7 +2,7 @@
 
 > 定位：Debezium CDC source（`DebeziumCdcSourceFunction`，`nop-stream-connector-debezium`）与 CDC 落库（`jdbc-2pc` dmlMode）的生产操作手册。
 > 设计基线：Debezium 3.7 嵌入式引擎、两层单机并行（A 层引擎内 chunk 快照并行 + B 层 subtask 表路由）、connectorType 白名单 mysql/postgres、schema history 无静默默认、offset 真相源钉定；连接器能力矩阵见 `03-modules/nop-stream-connectors.md`；checkpoint 机制总览见 owner doc `03-modules/nop-stream.md`。
-> 本文关键声称带 live 行为核对锚点（测试名），均可通过模块测试复现；真实数据库行为由 gated 集成测试钉定（`TestDebeziumRealMysqlCdc` / `TestDebeziumRealPostgresCdc` / `TestDebeziumRealMysqlParallel`（A 层并行快照 + B 层双实例路由）/ `TestDebeziumCrossDbSyncPipeline`（pg→MySQL 跨库单管线），docker 不可达时显式 SKIP）。
+> 本文关键声称带 live 行为核对锚点（测试名），均可通过模块测试复现；其中**引擎面锚点 `TestDebeziumEngineProperties` 位于 `nop-message/nop-message-debezium`**（引擎属性白名单/守卫的强制点 `DebeziumEngineConfig` 也在该模块，stream 侧经 `DebeziumEngineWrapper` 间接受益），不在 `nop-stream-connector-debezium` 下；真实数据库行为由 gated 集成测试钉定（`TestDebeziumRealMysqlCdc` / `TestDebeziumRealPostgresCdc` / `TestDebeziumRealMysqlParallel`（A 层并行快照 + B 层双实例路由）/ `TestDebeziumCrossDbSyncPipeline`（pg→MySQL 跨库单管线），docker 不可达时显式 SKIP）。
 
 ## 机制总览（先读）
 

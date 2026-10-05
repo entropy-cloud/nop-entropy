@@ -97,8 +97,9 @@ public final class SubtaskPlanBuilder {
      * identical graph locally — stable transformation ids guarantee identity).
      *
      * <p>Spec resolution goes through {@link RemotePipelineResolver} discovered via
-     * {@link java.util.ServiceLoader}; the runtime module cannot depend on the
-     * flow/XDSL modules that own the declaration format. A spec without a
+     * {@link java.util.ServiceLoader}: the declaration format (XDSL) is owned by the
+     * flow / scenario modules, and the runtime deployment path stays decoupled from
+     * any specific declaration syntax. A spec without a
      * registered resolver fails fast (no silent fallback to an empty graph).
      */
     public DeployedSubtaskPlan buildSubtaskPlan(TaskDeploymentDescriptor descriptor) {

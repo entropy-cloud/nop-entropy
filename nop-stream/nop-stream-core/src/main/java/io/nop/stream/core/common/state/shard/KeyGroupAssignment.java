@@ -20,16 +20,17 @@ import org.slf4j.LoggerFactory;
 /**
  * Stable hash function and key&#8594;key-group assignment for keyed state.
  *
- * <p><b>Stability contract (G38).</b> The hash returned for a key depends only
- * on the key's <i>value</i>, never on JVM identity, {@code System.identityHashCode},
- * or POJO {@code hashCode()} implementations that may vary across JVM
- * instances. For JDK value types whose {@code hashCode()} is contractually
- * stable and value-derived (String, primitive wrappers, BigDecimal/BigInteger,
- * UUID, Date), {@code hashCode()} is reused directly. Enum keys hash by
- * {@code name()} because {@code Enum.hashCode()} is an identity hash. For every
- * other type (user POJOs, windows, tuples) the hash is Murmur3 over the
- * canonical JSON bytes, which is deterministic across JVMs and process
- * restarts.
+ * <p><b>Stability contract (G38, updated by plan 2306).</b> The hash returned for
+ * a key depends only on the key's <i>value</i>, never on JVM identity,
+ * {@code System.identityHashCode}, or POJO {@code hashCode()} implementations
+ * that may vary across JVM instances. All value types hash uniformly as Murmur3
+ * over the canonical JSON bytes; enum keys hash by {@code name()} because
+ * {@code Enum.hashCode()} is an identity hash. The earlier fast path that
+ * reused {@code hashCode()} for JDK value types (String, primitive wrappers,
+ * BigDecimal/BigInteger, UUID, Date) was removed by plan 2306 — no legacy
+ * {@code hashCode()} parity is preserved, and pre-2306 checkpoint keyed state
+ * layouts are incompatible (adjudicated acceptable for 2.0.0-SNAPSHOT;
+ * see the {@link #stableHash(Object)} implementation note).
  *
  * <p><b>Routing/ownership parity (AR-01).</b> Record routing (the keyBy
  * partitioner) and keyed-state ownership must use this same hash: routing goes

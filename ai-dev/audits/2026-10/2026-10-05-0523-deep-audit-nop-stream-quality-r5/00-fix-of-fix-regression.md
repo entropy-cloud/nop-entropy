@@ -203,6 +203,7 @@ private void applyTtl(Object stateObj, StateDescriptor<?> descriptor) {
 - **信心水平**: 确定
 - **误报排除**: 不是重审已裁定的兼容性破坏（裁定与守卫测试均在）；本条仅针对修复未同步的**周边契约文档**与不准确的根因叙述，是可复现的 grep 级漂移（`identical to the legacy` 于 StateShard.java:113）。
 - **复核状态**: 未复核
+  → 已修复：plan 2317（ai-dev/plans/2317-nop-stream-r5-doc-contract-batch.md Phase 1，commit 待填，2026-10-05）
 
 ### [REG-7] keyBy 路由的 maxParallelism 在建图期一次性钉定——后配/换用 state backend 时路由与属主静默失配；parallelism>maxParallelism 的失败点深藏在首条记录
 

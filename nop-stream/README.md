@@ -5,6 +5,8 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 核心模型是 StreamModel（可序列化的算子图及其组件注册表），可由 XDSL 声明式定义、Java DataStream API 编程构造、或 Delta 定制合成。三种入口最终生成同一套 canonical StreamModel，经统一的执行管线（StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan）编译执行（原叙述中的第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担）。
 
 > **注:** LOCAL 模式经 `GraphExecutionPlan` + `TaskExecutor` 直接执行；DISTRIBUTED 模式经 `IStreamExecutionDispatcher` 调度，已实现于 `nop-stream-runtime`：`EmbeddedDistributedExecutor` / `RpcDistributedExecutor`（控制面经 `IMessageService` 走真实 RPC、coordinator↔task RPC proxy）、`JdbcClusterRegistry`/`JdbcLeaderElector`（DB 集群注册/选主）、`StreamNodeAutoRegistration`、`remoteDeployMode`（`deployTask` RPC 远端重建 invokable）、跨 JVM 数据面（`DataPlaneMessageServiceAdapter` + `SysDaoWireCodec`/`PulsarStringWireCodec`），并有独立进程入口 `JobCoordinatorMain`/`TaskManagerMain` 与多 JVM 测试 `TestMultiJvmExactlyOnceRecovery`。尚未实现的是 K8s/YARN 集群部署编排与 HPA 弹性伸缩。
+>
+> **⚠ 入口类作用域限制（F-11 诚实化）**：`JobCoordinatorMain` / `TaskManagerMain` 位于 `nop-stream-runtime` 的 **test scope**（`src/test/java/.../launch/`，经 test-jar 导出）——**发布 runtime jar 的类路径上没有这两个入口类**，不能按上面「独立进程入口」直接 `java ...JobCoordinatorMain` 启动发布 jar（会 `ClassNotFoundException`）；多 JVM 形态当前经 test-jar 供 gated 测试消费。详见 owner doc `docs-for-ai/03-modules/nop-stream.md`「运维手册」首注与 user-guide「入口类现状」节。
 
 ## 模块
 
@@ -19,9 +21,10 @@ Nop 平台的流处理引擎，定位为**声明式图模型驱动的可分布�
 | `nop-stream-connector-debezium` | 活跃 | Debezium CDC source 连接器（`debezium-cdc`） |
 | `nop-stream-rocksdb` | 活跃 | RocksDB off-heap 增量状态后端（注意：CEP 算子 × RocksDB 后端组合当前不可用，CEP 限 Memory 后端） |
 | `nop-stream-flow` | 活跃 | XDSL 声明式流编排（`stream.xdef` → StreamModel，支持 Delta 定制），依赖 core + cep（`CepPatternModel`）+ `nop-xdefs` |
+| `nop-stream-sql` | 活跃 | 声明式 SQL 窄范围接口（`.stream.xml` 顶层 `<sql>` 元素的 SQL 编译宿主，SELECT/WHERE/GROUP BY/聚合/TUMBLE/join/UNION ALL 子集） |
 | `nop-stream-fraud-example` | 活跃 | 欺诈检测端到端示例 |
 
-子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 10 个）；逐连接器能力矩阵见 `docs-for-ai/03-modules/nop-stream-connectors.md`。
+子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 11 个）；逐连接器能力矩阵见 `docs-for-ai/03-modules/nop-stream-connectors.md`。
 
 ## 设计文档
 

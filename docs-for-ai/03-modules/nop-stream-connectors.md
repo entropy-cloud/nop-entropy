@@ -23,10 +23,6 @@
 | source | `message` | `MessageSourceFunction` | `io.nop.stream.connector.MessageSourceConnectorFactory` | `connector-message.beans.xml` |
 | source | `debezium-cdc` | `DebeziumCdcSourceFunction` | `io.nop.stream.connector.debezium.DebeziumCdcSourceConnectorFactory` | `connector-debezium.beans.xml` |
 | source | `batch-loader` | `BatchLoaderSourceFunction` | `io.nop.stream.connector.batch.BatchLoaderSourceConnectorFactory` | `connector-batch.beans.xml` |
-
-## Source API 冻结政策（plan 369 Phase 5）
-
-`SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），原则上**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。**已裁定例外**：`debezium-cdc` 的 B 层表路由并行（`SubtaskShardedSourceFunction`，2026-10-02 用户裁定）在 legacy 代上落并行能力。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
 | sink | `file` | `FileTwoPhaseCommitSink` | `io.nop.stream.connector.file.FileTwoPhaseCommitSinkConnectorFactory` | `connector-file.beans.xml` |
 | sink | `message` | `MessageSinkFunction` | `io.nop.stream.connector.MessageSinkConnectorFactory` | `connector-message.beans.xml` |
 | sink | `jdbc-2pc` | `JdbcTwoPhaseCommitSink` | `io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSinkConnectorFactory` | `connector-jdbc.beans.xml` |
@@ -58,6 +54,10 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 ```
 
 未知类型名 / 方向错配 = fail-fast typed error（含已注册清单）；字段级 conf 校验**不在**此处（item 20 conf-validate 边界：`StreamConfValidator.validateConnector` 在此之上叠加描述符参数字段级校验 + 可选连通性探测 `catalog.probeConnectivity`）。XDSL 声明形态（bean 引用 + 内联 xpl）本期不变，类型化声明暂未引入（引入时将一并裁定 `bean`/类型名冲突与 params 消费语义）。
+
+## Source API 冻结政策（plan 369 Phase 5）
+
+`SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），原则上**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。**已裁定例外**：`debezium-cdc` 的 B 层表路由并行（`SubtaskShardedSourceFunction`，2026-10-02 用户裁定）在 legacy 代上落并行能力。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
 
 ## 提交前探测能力（dry-run，item 20 / P-REQ-13）
 
@@ -95,7 +95,7 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 2PC sink（file/jdbc 内建）支持任意有效并行度，exactly-once 在 P=N 成立（CONN-01 successor 已落地，原规划期并行度门禁 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED` 已随门禁移除删除）：
 
 - **机制**：`TwoPhaseCommitSinkFunction.copyForSubtask(int)` 逐 subtask 独立拷贝（独立 buffer/pendingCommits）；JDBC 台账复合键 `(epoch_id, subtask_id)`、File 输出 `.sK` 后缀——subtask 身份进入提交键
-- **第三方子类契约**：未 override `copyForSubtask(int)` 的用户子类在 P>1 部署期构建 subtask 拷贝时 **fail-fast**（基类默认抛 `UnsupportedOperationException`，No-Silent-No-Op；规划期不做 opt-in 声明，见 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §6.4.3）
+- **第三方子类契约**：未 override `copyForSubtask(int)` 的用户子类在 P>1 部署期构建 subtask 拷贝时 **fail-fast**（基类默认抛 typed `StreamException(ERR_STREAM_UNSUPPORTED)`，No-Silent-No-Op；规划期不做 opt-in 声明，见 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §6.4.3）
 - **跨并行度恢复**：2PC sink 顶点恢复时并行度与快照不一致被 typed 拒绝（`ERR_STREAM_2PC_SINK_PARALLELISM_CHANGE_UNSUPPORTED`，D1 裁定 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §8.5.2）；same-parallelism kill/recover 为支持路径
 - **钉定测试**：`TestStreamGraphGenerator.testTwoPhaseCommitSinkAtParallelism2BuildsAndSplitsIntoIndependentSubtaskCopies`（P=2 全管线 + per-subtask 拆分）/ `testTwoPhaseCommitSinkRaisedToParallelism3ViaSetParallelismBuildsPerSubtaskCopies`（P=3）；运行时 D1 拒绝 `TestTwoPhaseCommitSinkParallelismChangeRestoreE2E`（runtime）+ `TestParallel2PcJdbcE2E`（场景级）；子类 fail-fast 契约 `TestOperatorSubtaskIsolation`
 

@@ -136,6 +136,8 @@ stream.xdef (根)
 | `<edge partition="HASH">` | `.keyBy()` 隐式或显式 `PartitionTransformation` | — | FORWARD = 默认链式 |
 | `<checkpoint interval="..."/>` | `env.enableCheckpointing(interval)` + `env.getCheckpointConfig().setXxx(...)` | — | `<checkpoint>` 子元素逐项翻译 |
 
+> 更新（2026-10-05 落地收敛）：上表 `<union>` 与 `<sideOutput>` 两行的「runtime-API-gap 未实现」表述已过时，历史表述保留备查，现状如下——① `<union>`（WI6）已实现：Java API `DataStream.union(DataStream...)` 真实构建 `UnionTransformation` 进执行图，XDSL `<union>` 经 `AdvancedTransforms.buildUnion` 做多入边合并；拒绝路径仅剩「HASH 边直入 union」与「零入边」，均抛 typed `StreamException(ERR_STREAM_*)`（非 `UnsupportedOperationException`）。锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`（nop-stream-flow）。② 侧输出提取 API 已交付（plan 369 Phase 2）：`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream`，可经 `sink(...)`/`print()`/`collect(...)` 消费；残余边界 = XDSL `<sideOutput>` 变换与 side-output 视图上的下游 graph 级 transform 仍 build 期 fail-fast（side-output 边暂无图级路由；`ERR_STREAM_NOT_IMPLEMENTED`/`ERR_STREAM_UNSUPPORTED`，`SideOutputDataStream` javadoc 与 `TestAdvancedTransforms.sideOutputTransformThrowsWithRuntimeGapMessage` 钉定）。
+
 **关键约束**：
 - `reduce` / `window` / `aggregate` 出现在 `KeyedStream` 或 `WindowedStream` 上，**不是** `DataStream`：`reduce(fn)` 同时存在于 `KeyedStream` 和 `WindowedStream`；`window(assigner)` 在 `KeyedStream` 上；`aggregate(fn)` 在 `WindowedStream` 上。builder 跟踪当前流的类型状态以正确分发。
 - 两种函数指定方式（`bean` 属性 + 内联 `<source>xpl</source>`）在所有支持内联函数的节点上等价；`aggregate` 是例外——xdef 第 156 行 `xdef:ref="StreamTransformModel"` 继承 `bean` 属性但未声明 `<source>` 子元素，因此 AggregateFunction **只能经 `bean` 属性**提供。

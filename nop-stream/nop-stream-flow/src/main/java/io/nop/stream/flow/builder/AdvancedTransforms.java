@@ -86,11 +86,13 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  *
  * <p>Every branch is either a real DataStream-API call or fails fast with a
  * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. The
- * {@code <union>} transform (WI6) now builds a real multi-input merge over the declared
- * edges; {@code <sideOutput>} still fails fast because the underlying
- * {@code nop-stream-core} runtime does not yet expose
- * {@code SingleOutputStreamOperator.getSideOutput}; that is tracked as a runtime-API-gap
- * follow-up in the plan.
+ * {@code <union>} transform (WI6) builds a real multi-input merge over the declared
+ * edges. {@code <sideOutput>} still fails fast: the side-output extraction API
+ * ({@code SingleOutputStreamOperator.getSideOutput} / {@code SideOutputDataStream})
+ * already exists in {@code nop-stream-core}, but an XDSL {@code <sideOutput>} node would
+ * need a graph-level side-output edge, and side-output edges have no routing in the
+ * execution graph yet — side-output views are consumable only via
+ * {@code sink/print/collect}.
  *
  * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
  * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
@@ -784,18 +786,21 @@ final class AdvancedTransforms {
     }
 
     // ----------------------------------------------------------------
-    // sideOutput — runtime API gap (SingleOutputStreamOperator.getSideOutput
-    // does not exist; ProcessFunction.Context.output exists for emitting but
-    // there's no way to retrieve the side-output stream)
+    // sideOutput — XDSL <sideOutput> nodes are not buildable: the core
+    // extraction API (SingleOutputStreamOperator.getSideOutput) exists,
+    // but a side-output edge has no graph-level routing yet, so the
+    // declared transform cannot become a deployable downstream vertex
     // ----------------------------------------------------------------
 
     private static Object buildSideOutput(StreamSideOutputModel m) {
         throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
                 .param(ARG_DETAIL, "Stream DSL <sideOutput id='" + m.getId() + "' tag='" + m.getTag()
-                        + "'> requires SingleOutputStreamOperator.getSideOutput(OutputTag) which is "
-                        + "not yet implemented in nop-stream-core runtime. ProcessFunction can emit to "
-                        + "an OutputTag but there is no API to retrieve the emitted stream. Tracked as "
-                        + "a runtime-API-gap follow-up.")
+                        + "'> is not supported yet: the side-output extraction API "
+                        + "(SingleOutputStreamOperator.getSideOutput) is already available in "
+                        + "nop-stream-core, but a side-output edge has no graph-level routing, "
+                        + "so the <sideOutput> transform cannot be deployed as a downstream "
+                        + "vertex. Consume side outputs from Java API views via "
+                        + "sink(...)/print()/collect(...) instead.")
                 .loc(m.getLocation());
     }
 

@@ -68,9 +68,9 @@ StreamExecutionResult result = env.execute("simple-pipeline");
 
 `KeyedStream<T,K>`：`timeWindow(size[, slide])`（事件时间滚动/滑动窗）、`countWindow(size[, slide])`（计数窗，默认接线见触发语义矩阵）、`window(WindowAssigner)`（自定义 assigner）、`reduce(ReduceFunction)`、`process(KeyedProcessFunction)`、`sum/min/max(int|String 字段名)`。
 
-`WindowedStream<T,K,W>`：`apply(WindowFunction)` / `aggregate(AggregateFunction)` / `reduce(ReduceFunction)` / `process(ProcessWindowFunction)` / `trigger(Trigger)` / `evictor(Evictor)`。**窗口算子执行需要 `nop-stream-runtime` 在 classpath**（缺失时 fail-fast 报 "WindowOperator requires nop-stream-runtime on classpath"，由 ServiceLoader 风格发现的 `IWindowOperatorFactory` 接线）。
+`WindowedStream<T,K,W>`：`apply(WindowFunction)` / `aggregate(AggregateFunction)` / `reduce(ReduceFunction)` / `process(ProcessWindowFunction)` / `trigger(Trigger)` / `evictor(Evictor)`。**窗口算子执行需要 `nop-stream-runtime` 在 classpath**（缺失时 fail-fast 报 "WindowOperator requires nop-stream-runtime on classpath"，由**固定 FQCN 反射**发现的 `WindowOperatorFactoryImpl` 接线——写死类名的 `Class.forName` 反射而非 ServiceLoader，无 services 文件；第三方不能以 services 文件替换默认实现，需经 `setDefaultFactory` 显式注入。上文 checkpoint 执行器工厂才是真 `ServiceLoader` 发现，两者机制不同）。
 
-能力边界（build 期 fail-fast，不静默降级）：`union`/`connect`/侧输出提取的运行时 API 尚未提供——XDSL 中 `<union>`/`<sideOutput>` 元素在 build 期显式报错，Java API 无对应方法。
+能力边界（build 期 fail-fast，不静默降级）——三分口径：① `union` 全支持：Java API `DataStream.union(DataStream...)`（WI6，`UnionTransformation` 进执行图）与 XDSL `<union>` 元素均已落地（锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`）；② 侧输出**提取 API** 已支持：`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 视图，经 `sink(...)`/`print()`/`collect(...)` 消费；③ 残余边界：XDSL `<sideOutput>` 变换与 side-output 视图上的下游 graph 级 transform（`map`/`filter`/`keyBy` 等）仍在 build 期 fail-fast（`ERR_STREAM_UNSUPPORTED`——side-output 边暂无图级路由；锚点 `TestAdvancedTransforms.sideOutputTransformThrowsWithRuntimeGapMessage` 与 `SideOutputDataStream` javadoc）。
 
 ### 状态与计时器心智模型
 
@@ -92,11 +92,8 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
              storageType="local"/>
   <windowingStrategies>
     <strategy strategyId="tx-window" windowFnId="txWindowAssigner"/>
+    <!-- 参数化窗口（WI10）：<strategy strategyId="tx2" windowFnId="tumbling-event-time" duration="2s"/> -->
   </windowingStrategies>
-
-**参数化窗口声明（WI10）**：`windowFnId="tumbling-event-time"` 搭配 `duration` 属性声明任意时长的 tumbling event-time 窗口（如 `duration="2s"`、`duration="500ms"`）。旧白名单 id（`tumbling-event-time-1s`/`-5s`）继续兼容但不能与 `duration` 同时声明。
-
-**allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
   <transforms>
     <source id="src" bean="mySource"/>
     <map id="upper"><source>return event.toString().toUpperCase();</source></map>
@@ -113,7 +110,11 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 </stream>
 ```
 
-可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`cep`（`patternRef`）、`sink`、`custom`（customType）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
+**参数化窗口声明（WI10）**：`windowFnId="tumbling-event-time"` 搭配 `duration` 属性声明任意时长的 tumbling event-time 窗口（如 `duration="2s"`、`duration="500ms"`）。旧白名单 id（`tumbling-event-time-1s`/`-5s`）继续兼容但不能与 `duration` 同时声明。
+
+**allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
+
+可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
 
 ### bean / xpl 双函数形态
 
@@ -210,7 +211,7 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 
 ### 窗口级 Trigger / Evictor 家族（live 全量）
 
-`io.nop.stream.core.windowing.triggers`（10 文件）+ `evictors` + `operators/Triggerable`：
+`io.nop.stream.core.windowing.triggers`（11 文件，含包私有抽象基类 `ContinuousIntervalTrigger`）+ `evictors` + `operators/Triggerable`：
 
 | 类 | 语义 | 单测锚点 |
 |---|---|---|

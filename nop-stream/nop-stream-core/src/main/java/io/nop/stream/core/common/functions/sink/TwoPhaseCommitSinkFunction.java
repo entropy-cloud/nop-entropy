@@ -115,15 +115,16 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
      *
      * <p><strong>Default behavior:</strong> returns {@code this} for subtask 0 (the
      * template instance is never shared with another subtask in that case) and throws
-     * {@link UnsupportedOperationException} for {@code subtaskIndex > 0} — No-Silent-No-Op:
+     * {@link StreamException} with {@code ERR_STREAM_UNSUPPORTED} for
+     * {@code subtaskIndex > 0} — No-Silent-No-Op:
      * a subclass that would be silently shared across subtasks fails loudly instead
      * (mirroring {@code StreamOperator#copyForSubtask()}).
      *
      * @param subtaskIndex the runtime subtask/task index (0..parallelism-1)
      * @return the sink instance for the given subtask (independent copy for subclasses
      *         with per-subtask state)
-     * @throws UnsupportedOperationException if {@code subtaskIndex > 0} and the subclass
-     *         did not override this method
+     * @throws StreamException ({@code ERR_STREAM_UNSUPPORTED}) if {@code subtaskIndex > 0}
+     *         and the subclass did not override this method
      */
     public TwoPhaseCommitSinkFunction<IN> copyForSubtask(int subtaskIndex) {
         if (subtaskIndex > 0) {
