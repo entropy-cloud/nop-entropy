@@ -31,7 +31,7 @@
 | 3.1 | `3.1-wf-deep-audit.md` | 0 | **2** | 11 | 10 | done（裁决：通过无 P0 附 P1×2——approval-support 绕引擎双事实源（与 P1-2.6-005 分立互补同批修复）+超时 dueAction 通道被 allowCallByUser 阻断（与 job bean 失配叠加同批）；**check2 12 条点名零虚假申报**（P1×4 零推翻+P2×8 含 2 still-live）；WF-01/02/03 六条全标定（F-WF-02-1 回灌 3.2）；维度 22 引擎侧适配交付；降 0 驳 0） | 独立子 agent（见 plan 2328 Closure 段） |
 | 3.2 | `3.2-task-deep-audit.md` | 0 | 0 | **10** | 13 | done（裁决：通过无 P0/P1 附 P2×9——恢复完整性族×4（persist 死契约〔P1 降级高位〕/taskInputs 死代码/ACTIVE resume 跳过 initInputs/迭代边界顶替）+装配契约族×2（store 无生产装配/CallTaskStep 绕过门控）+错误列残留+**F-WF-02-1 深审维持 still-live 修复裁定交付**；continuation-skip P0 复核 already-fixed 与 6.4 一致维持；check 系列 14 条盘点零遗漏；降 1 驳 0） | 独立子 agent（见 plan 2329 Closure 段） |
 | 3.3 | `3.3-batch-deep-audit-a.md` | 0 | **3** | 11 | 14 | done（裁决：不通过附 P1×3——orm-reader 节点解析未接线静默全表加载/processor order 声明失效/allOf 掩蔽 fail-fast 根因终态误持久化 KILLED 不可重启〔TestBatchTaskCheckpoint flaky 收编升级为真产品缺陷〕进 R1.0；**check2 五条 P1 标定全部 already-fixed**（:19/:50/:75/:125 修复+测试复跑绿、:101 归 3.4 对照一致）；28 条全保留降 0 驳 0） | 独立子 agent（见 plan 2330 Closure 段） |
-| 3.4 | — | | | | | todo | |
+| 3.4 | `3.4-batch-deep-audit-b.md` | 0 | **2** | 9 | 16 | done（裁决：不通过附 P1×2——snapshotBuilder restore 空列表静默丢弃 chunk/historyStore mandatory 三列 dead-on-arrival 进 R1.0；**check2 七条 3.4 域条目标定全覆盖**（:101 深审维持已修复/:125 修复不可落地由 P1-3.4-002 承载/:153/:180/:205/:231/:249 已修验证）；27 条全保留降 0 驳 0） | 独立子 agent（见 plan 2331 Closure 段） |
 | 3.5 | — | | | | | todo | |
 | 3.6 | — | | | | | todo | |
 | 3.7 | — | | | | | todo | |
@@ -122,6 +122,8 @@
 | P1-3.3-001 | `3.3-batch-deep-audit-a.md` | R1.0（orm-reader `<eql>` 接线或移除节点+Guard 覆盖 new 直构实例——静默全表加载） | open |
 | P1-3.3-002 | `3.3-batch-deep-audit-a.md` | R1.0（processor order 排序接线+batch-dsl.md 勘正——参照 consumer :275 对照） | open |
 | P1-3.3-003 | `3.3-batch-deep-audit-a.md` | R1.0（allOf AtomicReference CAS 收集首个非取消异常——终态误分类 KILLED 不可重启） | open |
+| P1-3.4-001 | `3.4-batch-deep-audit-b.md` | R1.0（OrmBatchRecordSnapshotBuilder.restore 补 ret.add+`"orm-entity"` 魔法值文档） | open |
+| P1-3.4-002 | `3.4-batch-deep-audit-b.md` | R1.0（historyStore mandatory 三列补默认值或显式赋值+钉定测试升级真 IEntityDao flush 校验） | open |
 
 
 ## P2 裁决台账（例外通道）
