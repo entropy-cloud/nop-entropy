@@ -1615,6 +1615,16 @@ public final class GLRParser {
         if (target > source) {
             throw new IllegalStateException("renumberVersion requires target < source");
         }
+        // C's ts_stack_renumber_version hands the target's stack summary over to
+        // the source head *before* overwriting the target with the source. Without
+        // this the target inherits the source's null summary, and since the
+        // summary is what enables recovery strategy 1, a renumber performed by
+        // strategy 2's merge silently disables strategy 1 for the rest of the
+        // parse.
+        if (versions[target].summary != null && versions[source].summary == null) {
+            versions[source].summary = versions[target].summary;
+            versions[target].summary = null;
+        }
         versions[target] = versions[source];
         removeVersion(source);
     }

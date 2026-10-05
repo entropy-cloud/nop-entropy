@@ -6,6 +6,7 @@ import io.nop.treesitter.compat.TreeSitterBash;
 import io.nop.treesitter.language.Language;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * runtime violates that contract, and the official C runtime (tree-sitter CLI
  * 0.25.10) does not.
  *
- * <p><b>Why this test asserts the throw.</b> It pins the current behavior so the
- * defect is reproducible, <b>not</b> because the throw is desired. Phase 2 of
+ * <p><b>Status.</b> One of the four reproducers is fixed (see
+ * {@link #aSpacedMalformedExpansionRecoversWithAnErrorNode()}); the other three are
+ * outstanding. The remaining tests pin the throw so the defect stays
+ * reproducible, <b>not</b> because the throw is desired. Phase 2 of
  * {@code ai-dev/plans/nop-treesitter/2026-10-04-1900-1-glr-recovery-livelock-guard.md}
  * will invert these assertions to "returns a tree containing ERROR/MISSING". The
  * assertions deliberately check only that a {@link TreeSitterException} is thrown
@@ -37,15 +40,37 @@ class BashGlrNoProgressRecoveryTest {
     }
 
     /**
-     * The four known reproducers. Looped rather than parameterized because this
-     * module does not depend on {@code junit-jupiter-params}.
+     * The reproducers fixed by porting C's summary hand-off in
+     * {@code ts_stack_renumber_version} (see the plan's "Root cause" section).
+     * Both now satisfy the documented contract: a tree containing an ERROR or
+     * MISSING node, and no exception. The expected trees are the ones the C
+     * oracle produces.
      */
     @Test
-    void malformedExpansionAbortsTheParse() {
-        String[] sources = {"echo ${x!y}", "echo ${x!y}z", "echo ${x! y}", "echo ${x!yy}"};
-        for (String source : sources) {
+    void theReproducersFixedByPortingTheSummaryHandoffRecover() {
+        // A spaced `!` and an unterminated expansion both recover now.
+        assertEquals("(program (command (command_name (word))) (ERROR (variable_name) (word)))",
+                TSParser.parse(bash(), "echo ${x! y}").toSexpString(false));
+        assertEquals("(program (command (command_name (word)) (expansion (variable_name) "
+                        + "(MISSING \"}\")) (word)))",
+                TSParser.parse(bash(), "echo ${x!yy").toSexpString(false));
+    }
+
+    /**
+     * The reproducers still outstanding: the unspaced `!y` forms, with or without
+     * a trailing suffix and with the expansion closed. Recovery reaches the same
+     * stalled state but loses the stack summary by a different route, so strategy
+     * 1 stays disabled. Tracked in
+     * {@code ai-dev/plans/nop-treesitter/2026-10-04-1900-1-glr-recovery-livelock-guard.md}.
+     *
+     * <p>These assert the current behaviour so the defect stays reproducible; they
+     * deliberately do not bind the exception message.
+     */
+    @Test
+    void unspacedMalformedExpansionStillAborts() {
+        for (String source : new String[]{"echo ${x!y}", "echo ${x!y}z", "echo ${x!yy}"}) {
             assertThrows(TreeSitterException.class, () -> TSParser.parse(bash(), source),
-                    "known defect: recovery oscillates and the no-progress backstop aborts <<" + source + ">>");
+                    "known outstanding defect for <<" + source + ">>");
         }
     }
 
@@ -53,6 +78,8 @@ class BashGlrNoProgressRecoveryTest {
     void theAbortIsTheNoProgressBackstopNotALexerFailure() {
         TreeSitterException failure =
                 assertThrows(TreeSitterException.class, () -> TSParser.parse(bash(), "echo ${x!y}"));
+        // The backstop, not a lexer failure: a syntax error must never surface as
+        // anything else.
         assertTrue(String.valueOf(failure.getMessage()).contains("no progress"),
                 "expected the no-progress backstop, got: " + failure.getMessage());
     }
