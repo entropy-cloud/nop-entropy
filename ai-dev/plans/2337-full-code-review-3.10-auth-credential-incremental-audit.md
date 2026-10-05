@@ -1,6 +1,6 @@
 # 2337 full-code-review 3.10 nop-auth + nop-credential 增量安全审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 3.10（MA3）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 13 + 共享前缀）
 > Related: owner doc `docs-for-ai/03-modules/nop-auth.md` + `docs-for-ai/03-modules/nop-credential.md`；**本项为增量安全审计**（roadmap Details：「两次 security 审计之间 nop-auth/nop-credential 的 diff 面〔含新增 NopAuthLoginAttempt/RateLimitCounter API〕；限流存储一致性」）。审计输入四组：
@@ -54,72 +54,72 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: completed
 Targets: nop-auth + nop-credential
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 机械基线：两组手写文件与行数清单、**git log 2026-09-19 后两组产品代码变更全量清单（逐 commit 列表——diff 审计核心输入）**、四组输入逐条清点（构成勘正）、处置块状态盘点、测试资产 find 实测
-- [ ] auth 增量子 agent（维度 13）：diff 面逐 commit 审阅（97c40d6419/8ffc551cd7/98563a870d/2798c23b8f 四 commit；**含 sso diff**）+ NopAuthLoginAttempt/RateLimitCounter 新 API 安全语义深审 + 限流存储一致性横切（check2 :44 + check :163/:181 + RateLimitCounter）+ MFA codec 消费点对照（mfa/store 两文件）+ check2 15 条与 check 14 条撞车合并标定（**分面轮次上限：diff 面 2 轮 + 标定面 2 轮**）
-- [ ] credential 增量子 agent（维度 13）：**credential diff 面为零 commit 空集（已登记，不派深审）**——CRED-01~04 ledger 状态 diff 检测 + :172 双文件域标定 + :355 countUsage 标定 + msg-cluster-cred credential 条目处置块核对（轻量面，1-2 轮）
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-3.10-{auth,cred}.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 机械基线：两组手写文件与行数清单、**git log 2026-09-19 后两组产品代码变更全量清单（逐 commit 列表——diff 审计核心输入）**、四组输入逐条清点（构成勘正）、处置块状态盘点、测试资产 find 实测
+- [x] auth 增量子 agent（维度 13）：diff 面逐 commit 审阅（97c40d6419/8ffc551cd7/98563a870d/2798c23b8f 四 commit；**含 sso diff**）+ NopAuthLoginAttempt/RateLimitCounter 新 API 安全语义深审 + 限流存储一致性横切（check2 :44 + check :163/:181 + RateLimitCounter）+ MFA codec 消费点对照（mfa/store 两文件）+ check2 15 条与 check 14 条撞车合并标定（**分面轮次上限：diff 面 2 轮 + 标定面 2 轮**）
+- [x] credential 增量子 agent（维度 13）：**credential diff 面为零 commit 空集（已登记，不派深审）**——CRED-01~04 ledger 状态 diff 检测 + :172 双文件域标定 + :355 countUsage 标定 + msg-cluster-cred credential 条目处置块核对（轻量面，1-2 轮）
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限（A/B 面均第 2 轮收敛）
+- [x] 产物 `_tmp/fcr-3.10-{auth,cred}.md`
 
 Exit Criteria:
 
-- [ ] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
-- [ ] 四组输入标定结论落盘（check2 15 + check 14 + CRED ledger diff + credential 条目）+ diff 清单落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份维度初稿落盘（含深挖追加节），每条发现 ≥9 行含 file:line
+- [x] 四组输入标定结论落盘（check2 15 + check 14 + CRED ledger diff + credential 条目）+ diff 清单落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证
-- [ ] 主 agent 汇总：判级统一、与 3.9（gateway auth 面）/3.11（item 14 边界）/2.4（MFA codec P1 移交承接）协调、安全类判级按 2.6 总裁据
-- [ ] 两面结论收敛（复核推翻 Phase 1 标定时升级主 agent 终裁并落盘分歧）
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证（7 候选：A 5 保留 + 1 驳回〔13-04 会话共享前提不成立〕、B 1 升格 P2→P1；标定抽验零推翻；check 小结勘误 13 AF）
+- [x] 主 agent 汇总：判级统一、与 3.9（gateway auth 面）/3.11（item 14 边界）/2.4（MFA codec P1 移交承接）协调、安全类判级按 2.6 总裁据
+- [x] 两面结论收敛（无分歧升级；13-20 升格由复核直接裁定并四理由落盘）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-3.10-{auth,cred}-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-3.10-{auth,cred}-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `3.10-auth-credential-incremental-audit.md`；index 登记 3.10 行
-- [ ] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl <审计域有测试资产的模块列表，Phase 1 实测后填写>`（不带 -am——对通用约定的显式偏离裁定：-am 拉入两个已归因预存失败〔2.8/3.5 域〕；**快照新鲜判定：定向测试前若编译报 NoSuchMethodError/ClassNotFound 等陈旧签名错误，先 `./mvnw install -Dmaven.test.skip=true -pl <上游>` 刷新后重跑**；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit；通过后 roadmap 3.10 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `3.10-auth-credential-incremental-audit.md`；index 登记 3.10 行 + P1-3.10-001/P1-check-mcc-172 两行
+- [x] 如有 P0：异步注入修复 plan + 「P0 发现追踪」登记（本项零 P0——check :23 P0 already-fixed 双确认，未触发即时通道）
+- [x] 定向验证锚点：`./mvnw test -pl <4 审计域模块>` BUILD SUCCESS（215 例全绿；初审另 15 例标定抽样全绿）
+- [x] 独立子 agent closure audit；通过后 roadmap 3.10 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且 diff 面/限流一致性/标定/MFA 移交承接面全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 3.10 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 diff 面/限流一致性/标定/MFA 移交承接面全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 3.10 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -131,14 +131,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 增量安全审计计划收口。报告 `3.10-auth-credential-incremental-audit.md` 落盘：通过附 P1×2 进 R1.0（P1-3.10-001 CRED-01 no-finding 台账虚假保证〔复核升格〕+ P1-check-mcc-172 passphrase 泄漏标定维持〔与 P1-check2-nosql-67 同批〕）+P2×1+P3×4（净 6 条新发现；A 面 1 驳回〔13-04 前提不成立〕）。**29 条 auth 标定全覆盖零冲突**（check2 9 AF+6 deferred、check 13 AF+1 partially——复核勘误）：**:44/:19 两 P1 already-fixed 零行号漂移**、**check :23 P0 already-fixed 双确认**（P0 不变量在 779 行拆分 diff 逐字保持）。MFA codec 消费点侧取证闭环（Redis 后端功能性失效 fail-closed 无旁路）。diff 四 commit 全部通过。CRED ledger 一致态零漂移。定向验证 215 例全绿。closure audit 一次通过（九项全 PASS，处方为 log/plan 补记类机械项，已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_3d96c4a4-bb46-4ca8-a41e-7a7d169fd285（fresh session，只读 closure auditor；一次通过附机械处方）
+- Evidence:
+  - 计数勾稽：净 P0=0/P1=1/P2=1/P3=4=6 ↔ 报告实点 ↔ index 3.10 行（0/1/1/4）↔ 映射表 8 行（6 净+驳回+标定 P1）↔ 复核净账（A 5 + B 1）
+  - P1/P0 台账：两行在案一致；「P0 发现追踪」无 3.10 新增正确
+  - 标定亲读四重点全命中零漂移：check2 :44（DbLoginAttemptStore:96 条件 UPDATE + :119-125 + Redis :71-73 INCRBY）/:19（DaoLoginSessionStore:44 setLogoutType）/check :23（LoginServiceImpl:373-374 解耦不变量逐字注释）/:172 双文件域（Default L114-135 五点 + Vault L254-273 四点 + 修复样板 L268-269 属实 + NopException.getMessage :383-389 通道在位）
+  - 锚点抽验 5/5 亲读命中（CRED-01:36-37 全称量词 + CredentialCipher truncateCiphertext 恰 4 应用点/两 BizModel 裸 CRUD + edit 表单/DbSendCodeRateLimiter:88 天界后缀机制/7 处漂移逐一命中含 AbstractUserContextCache:33 斜杠形态/OrmTemplateImpl:204-231 会话生命周期支持 13-04 驳回）
+  - MFA 取证链全链亲核（PrefixEncodeHelper 不对称 + peek:118 唯一 instanceof + 两消费点门控 → fail-closed 成立）
+  - 格式：抽查 5 条 10-11 要素完整
+  - 13-04 驳回与 13-20 升格如实记载（含锚点勘误 :35→:36-37）
+  - 定向验证：4 模块 215 例全绿；`check-doc-links.mjs --strict` exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以定向 test 全绿 + closure auditor 亲读 live code 锚点抽验为锚
+  - Deferred 项分类检查：无 deferred；P1×2 经 index「P1 发现汇总」进 R1.0；6 条 deferred 维持标定均有锚点原位确认，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×2+P2×1 修复归属 R1.0 分族；P3×4 watch-only/R1.0 低优先池〔003+004 同批按 7 处清单修〕；范围外转交观察 MfaLoginPolicyServiceImpl 多租户解析已按报告裁决段移交注记登记）
