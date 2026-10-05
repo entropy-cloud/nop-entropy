@@ -113,6 +113,40 @@ failing to advance.
 
 **Rejected**: any fix confined to the recovery site. It treats the symptom.
 
+## Decision 4 — measuring the merged ERROR from the post-pop head: rejected
+
+The remaining three reproducers stall because the merged `ERROR_REPEAT` does not
+grow. `buildErrorComposite` takes a `bottomPosition`, and strategy 2's merge passes
+`position` — captured at the *top* of `recoverFromError`, before the merge's own
+pop. C has no such parameter: `ts_subtree_new_node` reaches
+`ts_subtree_summarize_children`, which sets `padding = first child's padding` and
+`size = first child's size + Σ(padding + size)` over the rest, deriving the extent
+from the children alone.
+
+Measured on the json multi-round case: `stalePos=6 postPop=4 firstStart=5 lastEnd=7`,
+so `size` is 1 measured from the stale position and 3 measured from the post-pop
+head. Only the latter puts the head at `lastEnd`, and it is the one that makes the
+three bash reproducers recover — they then return the C oracle's tree for
+`echo ${x!y}` exactly.
+
+**It was implemented and rejected: it regresses five tests whose expectations were
+verified against the C oracle** — `JsonErrorRecoveryTest`
+(`(document (ERROR …))` becomes `(ERROR …)`, losing the grammar's root),
+`CrossLanguageErrorRecoveryTest` ×2, `CursorReuseEquivalenceTest`, and
+`RecoveryTerminationTest`. Meanwhile `ShellAnalysisEndToEndTest`'s existing
+malformed-input assertion also flipped.
+
+**Why this is recorded rather than pursued**: the arithmetic favours the change and
+the measurement against it. Both cannot be right, which means the model of this
+port's representation is incomplete — `buildErrorComposite`'s `bottomPosition` does
+not mean what its name suggests in every call site. Until that is understood, the
+C-verified goldens outrank a derivation: they were checked against the real C
+runtime, and five of them agree with the code as it stands. Changing them to match
+a new derivation would replace verified evidence with a guess.
+
+The fix for two reproducers in Decision 2 was kept because it changed nothing else:
+629 tests stayed green, which is evidence, not argument.
+
 ## Open residual — three reproducers remain
 
 `echo ${x!y}`, `echo ${x!y}z` and `echo ${x!yy}` still abort. What is established
