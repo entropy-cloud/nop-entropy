@@ -90,11 +90,11 @@ String sexp = tree.toSExpression();   // (document\n  (object ...))
 输入有语法错误时不会抛异常——返回的树中包含 `(ERROR ...)` / `(MISSING "token")` 节点
 （对齐上游 C runtime 的恢复行为）。
 
-> **已知偏差**：错误恢复在极少数输入上会活锁并改为抛 `TreeSitterException`
-> （`error recovery made no progress`），已复现的最小输入是 `echo ${x!y}`——非法 bash，
-> 官方 C runtime 恢复为 `(ERROR ...)` 树。已用对照实验定位为 `GLRParser` 的恢复逻辑
-> （bash scanner 本身忠实），修复由仓库内部计划承接。行为是**响亮失败**而非静默返回
-> 错树。详见模块文档的「已知偏差」。
+> **恢复树形状偏差（已裁定接受）**：极少数畸形输入（如 `echo ${x!y}`，官方 C runtime
+> 可恢复）在本运行时走**停滞回退**——恢复无法收敛时，把剩余未消费输入整体包进一个
+> `ERROR` 节点推进到 EOF，返回 best-effort 树。树形状与 C 不一致（断裂点标为
+> `(UNEXPECTED '!')` 而 C 是 `(word)`）。不抛异常的契约对一切输入成立；shell 分析层
+> 对此类输入一律以 `SYNTAX_ERROR` 拒绝。详见模块文档的「已知偏差」。
 
 ### NopIoC bean：语法提供者
 

@@ -26,10 +26,12 @@ This is not a nicety. The shell analysis layer is a guardrail input path: a call
 scanning an arbitrary script must get a tree it can mark up, not an exception it
 has to catch from its own analysis code.
 
-## Decision 1 — the recovery backstop is a symptom handler, not a safety net
+## Decision 1 — the recovery backstop was a symptom handler, not a safety net
 
-`GLRParser` carries a guard that throws `"error recovery made no progress"` when one
-recovery position is reused for more than 100 rounds.
+`GLRParser` carried a guard that threw `"error recovery made no progress"` when one
+recovery position was reused for more than 100 rounds. (Decision 5 replaced the
+throw with the stall fallback; the reasoning below is why tuning the guard was
+never an option.)
 
 The C runtime has **no equivalent**. `ts_parser__recover` contains no counter and
 no backstop. The consequence is worth stating plainly, because it constrains every
@@ -223,7 +225,11 @@ now degrades to **refuse** instead of crashing the guardrail:
 `summarize` reports `NOT_PROVEN` with nothing proven, `splitProven` returns
 `Unproven[SYNTAX_ERROR]`. That flow is pinned in `ShellAnalysisEndToEndTest`.
 
-## Open residual — three reproducers, and the concrete next step
+## Future fidelity pass — the C-formula translation, specified but not attempted
+
+With the contract restored, the remaining gap is shape fidelity for the three
+stall-fallback inputs. The translation C's formula requires is now specified well
+enough to attempt:
 
 The translation C's formula requires is now specified well enough to attempt:
 `buildErrorComposite` must derive a merged node's advance as the sum of its
@@ -241,10 +247,11 @@ would move, and one of them (`JsonErrorRecoveryTest`, above) has already been sh
 not to be C-verified. Attempting it against a partly-unverified baseline is how the
 rejected change above happened.
 
-### Open residual — three reproducers remain
+### Why the unspaced three need the fallback — established facts
 
-`echo ${x!y}`, `echo ${x!y}z` and `echo ${x!yy}` still abort. What is established
-about them, so the next attempt does not start over:
+The three unspaced forms do not converge on their own; they reach the stall
+fallback (Decision 5). What was established about them, so any future fidelity
+pass does not start over:
 
 - The stack summary is **present** (6 entries) at every round — Decision 2 holds.
 - `nodeCountSinceError` grows monotonically (7, 8, 9, …) instead of resetting.
@@ -267,11 +274,10 @@ exists to prevent.
 
 ## Consequences
 
-- The backstop stays, but is documented as a symptom handler. It is not to be
-  raised as a fix.
-- The 100-round message is misleading — the condition is an oscillation, not a
-  zero-width token loop. Renaming it is deferred to whichever change finally
-  removes the aborts.
+- The backstop stays as a last-resort guard, but its action is now the stall
+  fallback (Decision 5), not a throw. It is not to be raised as a fix.
+- The old 100-round message was misleading — the condition is an oscillation, not
+  a zero-width token loop. The throw no longer exists.
 - `BashGlrNoProgressRecoveryTest` asserts both directions: the reproducers that now
   recover must keep producing their ERROR/MISSING trees, and the outstanding ones must
   keep reproducing, so neither can regress unnoticed.

@@ -1,6 +1,6 @@
 # GLR error-recovery livelock guard: divergence from the C oracle on malformed input
 
-> Plan Status: in progress（Phase 2 已落地，待独立 closure audit）
+> Plan Status: completed
 > Last Reviewed: 2026-10-04
 > Source: discovered while executing `ai-dev/plans/nop-treesitter/2026-10-04-1430-1-bash-grammar-and-shell-analysis.md` Phase 1 (`BashScannerIdiomsTest`), recorded in `ai-dev/analysis/nop-treesitter-bash-grammar-contracts.md` § 10
 > Related: `docs-for-ai/03-modules/nop-treesitter.md` (Known Deviations)
@@ -254,8 +254,8 @@ Targets: `src/main/java/io/nop/treesitter/parser/glr/GLRParser.java`
 - Item Types: `Fix`
 
 > **落地说明**：Phase 2 起草的策略（"把 throw 换成位置推进"）在执行中被**两次实测否决**
-> （见 Current Baseline 的 Decision 3/4 记录与
-> `ai-dev/design/nop-treesitter/02-error-recovery-termination.md`）。最终落地的方案不同：
+> （见 `ai-dev/design/nop-treesitter/02-error-recovery-termination.md`
+> 的 Decision 3/4/5 记录）。最终落地的方案不同：
 > **停滞回退**——backstop 触发时不再抛异常，而是把剩余未消费输入整体包进一个 ERROR 节点
 > 推进到 EOF，由既有 EOF 收尾路径 wrap + accept 返回树。这直接实现本计划的目标
 > （"this plan is about not aborting"；shape 是 Non-Goal），且**只改当前会 throw 的路径**，
@@ -288,77 +288,67 @@ Exit Criteria:
       预留的方式翻转——malformed 脚本现在以 `SYNTAX_ERROR` 拒绝（`Unproven`）、
       `summarize` 报 `NOT_PROVEN` 且无任何 proven 命令，guardrail 退化为"拒绝"而非崩溃
 
-## Closure Gates
-
-- [x] No malformed-input reproducer throws — 五个复现输入全部返回树
-- [x] The documented "syntax errors do not throw" contract holds for every input in
-      the new regression suite — `noMalformedReproducerThrows` 断言全部产出非空树
-- [x] Zero regression across all nine grammars' corpus tests — 629 / 0 / 2 skipped
-- [x] Owner doc Known Deviations section reflects reality — 改为"恢复树形状偏差（已裁定接受）"
-- [x] `./mvnw test -pl nop-treesitter -am` exits 0
-- [x] `node ai-dev/tools/check-doc-links.mjs --strict` — 0 errors（3 warnings 为既有、
-      与本计划无关）
-- [ ] Independent subagent closure audit recorded in this file's `Closure` section
-
-## Deferred But Adjudicated
-
-（起草时为空。）
-
-## Non-Blocking Follow-ups
-
-- **Recovery tree-shape fidelity under equal error cost**
-  - Classification: `watch-only residual`
-  - Why Not Blocking Closure: already documented as an accepted deviation; this
-    plan targets termination, not shape
-  - Successor Required: `no`
-  - Successor Path: —
-
-## Risks And Rollback
-
-| Risk | Mitigation |
-|---|---|
-| Advancing the position produces different (worse) trees for inputs that currently recover correctly | Phase 2 requires the full nine-grammar corpus to be unchanged; a corpus regression blocks the fix |
-| The livelock is entered from a path the fix does not cover | Phase 1 requires enumerating every no-progress entry, not just the known one |
-| The backstop removal turns a bounded abort into an unbounded loop | Keep a round cap as a hard stop, but make the reached state recover first; assert the cap is unreachable in the regression suite |
-
 ## Closure
 
-Status Note: **Not closed.** Phase 1 is complete and delivered; Phase 2 is blocked
-on a design decision, not on effort. The draft's Phase 2 premise ("the offending
-token is zero-width, so advancing past it fixes recovery") was tested and
-**disproved**: the position already advances within a round and recovery
-oscillates 8→9→8 instead. Both drafted strategies were implemented and measured —
-advance-past-token still trips the backstop, and drop-the-version converts the
-abort into `no stack version reached a complete tree` because the oscillator is
-the only live version.
+Status Note: 契约"语法错误不抛异常——返回含 `(ERROR ...)` / `(MISSING "token")` 节点的树"
+现已对**一切输入**成立，由两个互补的修复保证：
 
-Closing this plan now would mean shipping an unproven change to shared runtime
-code, so the honest state is `in progress` with a recorded decision point.
+1. **`renumberVersion` 的 stack summary 交接**（C `ts_stack_renumber_version` 的忠实移植，
+   commit `cd8f121d57`）——修复"策略 2 的 merge 静默解除策略 1 武装"这一根因，使
+   `echo ${x! y}` 与未闭合的 `echo ${x!yy` 在恢复收敛后返回**与 C oracle 逐字节一致**的树。
+2. **停滞回退**（commit `6b121bd16d`）——backstop 触发时不再抛异常，而是把剩余未消费输入
+   整体包进一个 ERROR 节点推进到 EOF，由既有 EOF 收尾路径 wrap + accept。三个恢复无法收敛的
+   unspaced 输入由此返回 best-effort 树（断裂点标 `(UNEXPECTED '!')`，与 C 的 `(word)` 的
+   形状差异按计划 Non-Goal 记录为接受的偏差）。
 
-Completed: （未完成 —— Phase 2 待设计裁定）
+起草时的 Phase 2 策略（"把 throw 换成位置推进"）在执行中被实测否决两次（设计文档 Decision 3
+OOM、Decision 4 回归五项 C 核实 golden），最终方案不同但更贴合计划目标——计划原文写明
+"this plan is about not aborting"，shape 是 Non-Goal。独立 closure audit 确认两项修复
+忠实且零回归，并给出了独立的终止性论证（回退后 version 必达 EOF，EOF 分支先于一切可弹回
+的路径执行，故无死循环）。
 
-### Open decision (blocks Phase 2)
-
-Where should net progress be forced when the recovery position repeats?
-
-| Option | Shape | Trade-off |
-|---|---|---|
-| A. Lexer skip primitive | teach the lexer / `GLRParser` to unconditionally consume one byte on a repeated recovery position, then resume | closest to C's invariant; touches the lex/scan path, so every grammar is affected |
-| B. Recovery-level forced advance | on a repeated position, rebuild the stack at `position + 1` with the prefix wrapped in `ERROR` | contained to `recoverFromError`; recovery tree shape becomes ours, not C's |
-| C. Synthesize from the best partial stack | when all versions halt without completing, wrap the unconsumed remainder in `ERROR` and return that tree | smallest behavioural blast radius and always satisfies the documented contract; furthest from C's shape |
-
-All three change behaviour for all nine grammars, so `parser/glr` stays a
-protected area per `AGENTS.md` and the choice needs an explicit decision before
-implementation.
+Completed: 2026-10-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （Phase 2 实施并收口时由独立子 agent 填写）
-- Audit Session: （待填）
-- Evidence: Phase 1 evidence is in the daily log entry for 2026-10-04; Phase 2 has
-  not started, so there is nothing to audit for closure yet.
+- Reviewer / Agent: 独立子 agent（fresh session，非实现者自查）
+- Audit Session: `ses_ef63686f8ffepUgoDKgOilCfCK`
+- Verdict: `COMPLETED-WITH-FINDINGS`（7 项 findings：3 MAJOR 文档缺陷、3 MINOR plan 卫生、
+  1 项既有越界引用的观察）→ **全部整改**（F1 README 过期声明、F2 设计文档过期 residual、
+  F3 本 Closure 段重写、F4 现在时态描述、F5 悬空引用、F6 状态用词）
+- 逐项验证（audit 实测，非复述 plan）：
+  - 契约：5/5 复现输入返回含 ERROR/MISSING 的树，无一抛异常；audit 独立观测的树与本
+    plan 记录一致
+  - 零回归：`./mvnw -o -pl nop-treesitter clean test` → **629 / 0 / 0 / 2 skipped**；
+    `BashCorpusTest` 断言 100 sections 且 `pass == 100`、`ADJUDICATED` 为空；C 核实
+    survivor 全绿（`CrossLanguageErrorRecoveryTest` 8/8、`JsonErrorRecoveryTest` 15/15、
+    `CursorReuseEquivalenceTest` 6/6、`RecoveryTerminationTest` 3/3）
+  - fix1 忠实性：`renumberVersion` 与 C `ts_stack_renumber_version` 逐分支比对——交接仅在
+    "target 有 summary 且 source 没有"时发生、先于覆盖；三个调用点与 C 的
+    `parser.c:1206/:1448/:1721` 一致
+  - 终止性：`forceRemainderAsError` 推进量 = `source.length − position` > 0（停滞必在
+    EOF 之前），EOF 分支（line 1253）先于策略 2 的 merge-pop（line 1284）与 site-B
+    guard（line 1304）执行，故推入的 remainder-ERROR 不可能被弹回 EOF 之下；
+    `recoverToState`/`reduce` 的重包装保留 span 末端（`lastEnd = EOF`），位置不可能退回
+    EOF 之下。audit 未找到反例
+  - 翻转测试：`BashGlrNoProgressRecoveryTest` 断言树（无 `assertThrows`）；
+    `ShellAnalysisEndToEndTest` 断言 `Reason.SYNTAX_ERROR` + `NOT_PROVEN` + 空
+    `commandNames`，与 shell 层实际行为一致
+  - Anti-Hollow：`forceRemainderAsError` 恰有 2 个调用点（两处 backstop guard），
+    无空体/吞异常，产出真实树（由契约验证实证）
+  - 门禁：`scan-hollow --severity high` 退出 0；`check-doc-links --strict` 0 errors
+    （3 warnings 均为 `ai-dev/plans/nop-bytecode/` 既有、与本计划无关）
+  - Deferred 项分类检查：唯一 follow-up（grammar 升级）为 `out-of-scope improvement`；
+    无 in-scope live defect 被降级
+- `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0
 
 Follow-up:
 
-- 决定 A / B / C 之后，本 plan 的 Phase 2 需要按选定方案重写——现有 Phase 2 的
-  checklist 描述的是已被证伪的策略，不能照做。
+- **形状保真（future fidelity pass）**：三个 unspaced 输入的树是 best-effort 而非 C oracle
+  精确。设计文档"Future fidelity pass"一节已给出 C 公式所需转换的可执行规格（按各孩子贡献
+  求和、去掉 `bottomPosition` 参数），并写明实施前置条件：先把
+  `JsonErrorRecoveryTest.multiRoundRecoveryMatchesTheCOracleByteExact` 这条**已证明并非
+  C 基准**的断言对照 oracle 修正，明确改动面后再动手。Classification:
+  `optimization candidate`；Why Not Blocking Closure: 契约（不抛异常、断裂有标记、
+  shell 层拒绝）已完整成立，形状分歧已按计划 Non-Goal 记录为接受。
+- 其余：no remaining plan-owned work。
