@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -209,5 +210,38 @@ class TestPulsarServiceLifecycle {
         NopException e = assertThrows(NopException.class,
                 () -> service.sendAsync("t-after", "m", null));
         assertEquals(PulsarErrors.ERR_PULSAR_SERVICE_NOT_ACTIVE.getErrorCode(), e.getErrorCode());
+    }
+
+    // ------------------------------------------------------------------
+    // WI21 (D6 layer two): native dead-letter policy wiring
+    // ------------------------------------------------------------------
+
+    @Test
+    void deadLetterPolicyWiredWhenConfigured() throws Exception {
+        LifecycleTestService service = configuredService();
+        PulsarConsumerConfig consumerConfig = new PulsarConsumerConfig();
+        consumerConfig.setDeadLetterMaxRedeliverCount(5);
+        consumerConfig.setDeadLetterTopic("persistent://public/default/t-dlq-DLQ");
+        service.setDefaultConsumerConfig(consumerConfig);
+        service.init();
+
+        subscribeOne(service, "t-dlq", "sub-dlq");
+
+        org.mockito.ArgumentCaptor<org.apache.pulsar.client.api.DeadLetterPolicy> captor =
+                org.mockito.ArgumentCaptor.forClass(org.apache.pulsar.client.api.DeadLetterPolicy.class);
+        verify(service.builder).deadLetterPolicy(captor.capture());
+        assertEquals(5, captor.getValue().getMaxRedeliverCount());
+        assertEquals("persistent://public/default/t-dlq-DLQ", captor.getValue().getDeadLetterTopic());
+    }
+
+    @Test
+    void deadLetterPolicyNotWiredWhenUnconfigured() throws Exception {
+        LifecycleTestService service = configuredService();
+        service.init();
+
+        subscribeOne(service, "t-nodlq", "sub-nodlq");
+
+        verify(service.builder, never()).deadLetterPolicy(
+                org.mockito.ArgumentMatchers.any());
     }
 }

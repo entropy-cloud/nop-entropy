@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -169,6 +170,98 @@ class TestKafkaConsumeTask {
         // Acknowledged (committed) and never redelivered (no seek back).
         verify(consumer).commitSync();
         verify(consumer, never()).seek(any(TopicPartition.class), any(long.class));
+        // DLQ off (mock service resolves null): no republish attempt.
+        verify(service, never()).sendAsync(any(), any(), any());
+    }
+
+    // ------------------------------------------------------------------
+    // WI21 (D6 layer two): application-level dead-letter republish
+    // ------------------------------------------------------------------
+
+    @Test
+    void terminateConsumeRepublishesToDeadLetterWhenConfigured() throws Exception {
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        IMessageConsumer msgConsumer = (topic, message, context) ->
+                new io.nop.api.core.message.TerminateConsume("poison");
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "poison")))
+                .thenReturn(ConsumerRecords.empty());
+
+        task.pollAndConsume();
+
+        // The message was republished to the DLQ topic with its payload intact...
+        org.mockito.ArgumentCaptor<Object> payload =
+                org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(service).sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"),
+                payload.capture(), any());
+        org.junit.jupiter.api.Assertions.assertEquals("poison",
+                ((io.nop.api.core.beans.ApiMessage) payload.getValue()).getData());
+        // ...and the terminate semantics still hold: committed, never re-seeked.
+        verify(consumer).commitSync();
+        verify(consumer, never()).seek(any(TopicPartition.class), any(long.class));
+    }
+
+    @Test
+    void deadLetterPublishFailureTakesTheRedeliveryPath() throws Exception {
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("dlq-broker-down")));
+        IMessageConsumer msgConsumer = (topic, message, context) ->
+                new io.nop.api.core.message.TerminateConsume("poison");
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "poison")));
+
+        // At-least-once: a failed DLQ publish must NOT commit — the record is re-seeked and
+        // the failure escapes to the run loop.
+        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, task::pollAndConsume);
+        verify(consumer, never()).commitSync();
+        verify(consumer).seek(new TopicPartition("test-topic", 0), 3L);
+    }
+
+    @Test
+    void batchTerminateConsumeRepublishesToDeadLetterWhenConfigured() throws Exception {
+        when(service.resolveDeadLetterTopic("test-topic")).thenReturn("dlq-topic");
+        when(service.sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        IMessageConsumer msgConsumer = new IMessageConsumer() {
+            @Override
+            public Object onMessage(String topic, Object message, io.nop.api.core.message.IMessageConsumeContext ctx) {
+                return null;
+            }
+
+            @Override
+            public List<Object> onMessageBatch(List<io.nop.api.core.message.TopicMessage> msgList,
+                                               io.nop.api.core.message.IMessageConsumeContext ctx) {
+                List<Object> responses = new ArrayList<>();
+                responses.add(null);
+                responses.add(new io.nop.api.core.message.TerminateConsume("poison"));
+                return responses;
+            }
+        };
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setBatchReceiveCount(10);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(records(record(0, 3, "a"), record(0, 4, "poison")));
+
+        task.batchConsume();
+
+        // Record 0 committed; the terminated record 1 republished to the DLQ topic...
+        verify(service).sendAsync(org.mockito.ArgumentMatchers.eq("dlq-topic"), any(), any());
+        // ...and the batch still commits through the converged boundary.
+        verify(consumer).commitSync(org.mockito.ArgumentMatchers.<java.util.Map<org.apache.kafka.common.TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>>any());
     }
 
     @Test

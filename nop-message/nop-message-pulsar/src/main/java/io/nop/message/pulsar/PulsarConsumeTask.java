@@ -320,8 +320,12 @@ public class PulsarConsumeTask {
      * throwing user callback must not kill the consume thread.
      */
     private void dispatchConsumeFailure(Exception e) {
+        // WI21: clear ALL context fields together — a stale topic from a previous record
+        // failure must not leak into a framework-level failure report.
+        String topic = lastFailureTopic;
         String location = lastFailureLocation;
         Object message = lastFailureMessage;
+        lastFailureTopic = null;
         lastFailureLocation = null;
         lastFailureMessage = null;
         int attempt = 0;
@@ -330,7 +334,7 @@ public class PulsarConsumeTask {
         }
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
-                    lastFailureTopic, location, message, attempt, e));
+                    topic, location, message, attempt, e));
         } catch (Exception callbackError) {
             LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
         }

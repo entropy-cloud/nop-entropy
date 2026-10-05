@@ -322,6 +322,29 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                 builder.negativeAckRedeliveryDelay(defaultConsumerConfig.getNegativeAckRedeliveryDelay(),
                         TimeUnit.MILLISECONDS);
             }
+            // WI21 (D6 layer two): native dead-letter policy. See
+            // PulsarConsumerConfig.deadLetterMaxRedeliverCount for the 2.8 semantics —
+            // diversion is ack-triggered and Shared-subscription-scoped, so an incompatible
+            // subscription type gets a one-time warning instead of a silent no-op.
+            if (defaultConsumerConfig.getDeadLetterMaxRedeliverCount() > 0) {
+                org.apache.pulsar.client.api.DeadLetterPolicy.DeadLetterPolicyBuilder policy =
+                        org.apache.pulsar.client.api.DeadLetterPolicy.builder()
+                                .maxRedeliverCount(defaultConsumerConfig.getDeadLetterMaxRedeliverCount());
+                if (defaultConsumerConfig.getDeadLetterTopic() != null) {
+                    policy.deadLetterTopic(defaultConsumerConfig.getDeadLetterTopic());
+                }
+                builder.deadLetterPolicy(policy.build());
+                org.apache.pulsar.client.api.SubscriptionType type = options != null
+                        && options.getSubscriptionType() != null
+                        ? toPulsarSubscriptionType(options.getSubscriptionType()) : null;
+                if (type != org.apache.pulsar.client.api.SubscriptionType.Shared
+                        && type != org.apache.pulsar.client.api.SubscriptionType.Key_Shared) {
+                    io.nop.api.core.message.MessageOptionsValidator.warnOnce("pulsar", "dlq-subscription-type",
+                            "deadLetterMaxRedeliverCount is configured but Pulsar 2.8 tracks redelivery "
+                                    + "counts only for Shared/Key_Shared subscriptions (got: " + type
+                                    + "); the dead-letter policy will not trigger");
+                }
+            }
         }
 
         ExecutorService executor = null;

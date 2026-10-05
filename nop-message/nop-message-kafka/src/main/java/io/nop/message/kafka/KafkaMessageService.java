@@ -435,6 +435,28 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         return subscribeName;
     }
 
+    /**
+     * WI21 (D6 layer two): resolves the application-level dead-letter topic for a consume
+     * topic. {@code null} = DLQ republish disabled (TerminateConsume drops with WARN).
+     * Package-private: the consume task reads it through its service reference.
+     */
+    String resolveDeadLetterTopic(String topic) {
+        if (defaultConsumerConfig == null) {
+            return null;
+        }
+        String dlq = defaultConsumerConfig.getDeadLetterTopic();
+        // Self-loop guard: republishing a topic into its own dead-letter topic would make a
+        // TerminateConsume redeliver forever (the DLQ copy is itself a live message). The
+        // config error is surfaced once; the terminate semantics degrade to drop-with-WARN.
+        if (dlq != null && dlq.equals(topic)) {
+            io.nop.api.core.message.MessageOptionsValidator.warnOnce("kafka", "dlq-self-loop",
+                    "KafkaConsumerConfig.deadLetterTopic must differ from the consumed topic '" + topic
+                            + "'; TerminateConsume messages would loop forever and are dropped instead");
+            return null;
+        }
+        return dlq;
+    }
+
     NopException error(io.nop.api.core.exceptions.ErrorCode code, String message) {
         return new NopException(code).description(message);
     }

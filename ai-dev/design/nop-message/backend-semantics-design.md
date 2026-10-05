@@ -44,6 +44,13 @@
 - 无 DLQ substrate 的后端（Local/Redis/MQTT/TDengine/DB）：仅第一层回调，终止拒绝后消息丢弃（留证），不承担后端 DLQ 义务。
 - 实现口径（WI16）：`IMessageConsumer.onConsumeFailure(ConsumeFailure)` 为框架唯一派发点（ConsumeFailure=topic/location/message/attempt/throwable；location 为 `topic-partition@offset` 或 Pulsar messageId 串）；默认实现先 WARN 留证再桥接旧 `onException`（@Deprecated，兼容旧覆写）；派发处防护（用户回调抛异常不杀消费线程）；attempt 为同 location 连续失败计数（成功即清零；跨重启语义归 WI22）。
 
+### 3.3.1 DLQ substrate 实现口径（WI21）
+
+- **Pulsar 原生层（第二层）**：`PulsarConsumerConfig.deadLetterMaxRedeliverCount`（0=off）+ `deadLetterTopic`（null=客户端派生 `<topic>-<sub>-DLQ`）→ `ConsumerBuilder.deadLetterPolicy(...)`。**2.8 语义如实声明（2.8.0 ConsumerImpl 反编译裁定）**：重投计数在接收侧追踪、分流发生在消息被 ack 时（`doAcknowledge` 查追踪表改道）；`redeliverUnacknowledgedMessages` 仅 Shared/Key_Shared 携带计数。**推论**：(a) 只 nack 的毒消息不触发 DLQ——Pulsar DLQ 的实际生效依赖 WI22 的 attempt 上限与终结 ack 语义；(b) 非 Shared 订阅配置 DLQ 时一次性 WARN（`dlq-subscription-type`），效果为 no-op；(c) 真机投递验证归 WI33 gated E2E。
+- **Kafka 应用级重发布（第二层，按需启用）**：`KafkaConsumerConfig.deadLetterTopic`（null=off）经包私有 `resolveDeadLetterTopic(topic)` 读取（内含自环守卫：dlq==topic 时一次性 WARN 并按 off 处理，防 terminate 无限自环）。`TerminateConsume` 失败终点在 commit 前经 `sendAsync(dlq, apiMessage, null)` + `FutureHelper.syncGet` 同步重发布——DLQ 写 durable 先于提交；发送失败透传 adapted 异常走既有失败路径重投（不加新错误码）；批量路径失败由 WI11 的 progress 回退重投。逐条 sync 发送计入 `max.poll.interval.ms` 预算；DLQ 发送持续失败的消费停摆属 at-least-once 语义，由 WI22 上限治理（当前无界，显式声明）。已知残留：DLQ 已写但后续 `commitSync` 失败 → DLQ 重复（at-least-once，可接受）。Pulsar 的 `TerminateConsume` 不做重发布（分轨裁定：其 DLQ 走原生 deadLetterPolicy 路径——nack 重投循环在接收侧累积计数、终结 ack 时分流；terminate 直接 ack 计数未超限，故进不了 DLQ）。
+- **nop-retry 桥（第三层）**：`nop-message-core.MessageConsumeFailureBridge`——「失败事件 → 部署声明的重放入口」的**转发器**，非消息重放机制、零重试策略（policyId 仅部署显式提供时设置，否则引擎默认）。`IRetryEngine` 与重放目标（serviceName/serviceMethod）任一缺失 → WARN（`nop.err.message.bridge.not-configured`）零行为；payload 映射：`ApiRequest.data` = 失败 ApiMessage 原样，topic/location/attempt 经 request headers（`nop-msg-*`），idempotentId=location、groupId=topic；提交失败仅 LOG 不抛（辅助运维通道，不反噬消费）。模块图：`nop-message-core` 新增 `nop-retry-api` 依赖（api-only，无 engine 传递；BOM 登记归 WI31）。部署用法：消费者覆写 `onConsumeFailure` 调 `bridge.submit(failure)`——仅对具备消息重放 service 的部署有意义。
+- **存量交互记录（不修，本计划登记）**：Pulsar 2.8 客户端 `doReconsumeLater` 无条件解引用 `deadLetterPolicy.getRetryLetterTopic()`——未配置 DLQ 时 `ConsumeLater` → `reconsumeLaterAsync` 每次触发客户端内部 NPE→ERROR 日志噪音→原地重投（at-least-once 语义不受影响）；配置 `deadLetterMaxRedeliverCount` 后噪音以 topic:null 形态延续。处置归 Pulsar 升级或 retryLetterTopic 语义实现（roadmap Follow-up）。
+
 ### 3.4 D7 消费组身份模型
 
 - 生效身份 = `${groupId}.${subscribeName}`（全局 groupId 配置时）；仅 subscribeName 时身份 = subscribeName；两者皆缺 = 类型化错误（ERR_GROUP_ID_NOT_CONFIGURED）。

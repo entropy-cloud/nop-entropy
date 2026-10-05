@@ -333,7 +333,12 @@ public class KafkaConsumeTask {
                     return;
                 } else if (response instanceof TerminateConsume) {
                     // D5(b-prime): poison message is acknowledged (committed), never
-                    // redelivered, and never dispatched to the ack topic.
+                    // redelivered, and never dispatched to the ack topic. WI21 (D6 layer
+                    // two): with a dead-letter topic configured, the message is republished
+                    // there FIRST (synchronously — the DLQ write must be durable before the
+                    // commit); a failed publish propagates and takes the normal failure
+                    // path (seek back + redelivery), preserving at-least-once.
+                    publishToDeadLetterIfConfigured(record.topic(), apiMessage);
                     LOG.warn("nop.message.kafka.terminate-consume:topic={},offset={},reason={}",
                             record.topic(), record.offset(), ((TerminateConsume) response).getReason());
                 } else if (response instanceof PartialCommit) {
@@ -464,6 +469,9 @@ public class KafkaConsumeTask {
                     commitConverged(boundariesAfter(committedBoundaries, recordList, i));
                     return;
                 } else if (response instanceof TerminateConsume) {
+                    // D5(b-prime) + WI21: DLQ republish before the boundary merge — a failed
+                    // publish throws into the batch catch, whose rewind re-polls this record.
+                    publishToDeadLetterIfConfigured(record.topic(), list.get(i).getMessage());
                     LOG.warn("nop.message.kafka.terminate-consume:topic={},offset={},reason={}",
                             record.topic(), record.offset(), ((TerminateConsume) response).getReason());
                 } else if (response instanceof ConsumeLater) {
@@ -510,8 +518,12 @@ public class KafkaConsumeTask {
      * dispatch is guarded — a throwing user callback must not kill the consume thread.
      */
     private void dispatchConsumeFailure(Exception e) {
+        String topic = lastFailureTopic;
         String location = lastFailureLocation;
         Object message = lastFailureMessage;
+        // WI21: clear ALL context fields together — a stale topic from a previous record
+        // failure must not leak into a framework-level failure report.
+        lastFailureTopic = null;
         lastFailureLocation = null;
         lastFailureMessage = null;
         int attempt = 0;
@@ -520,10 +532,27 @@ public class KafkaConsumeTask {
         }
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
-                    lastFailureTopic, location, message, attempt, e));
+                    topic, location, message, attempt, e));
         } catch (Exception callbackError) {
             LOG.warn("nop.err.message.kafka.failure-callback-throw", callbackError);
         }
+    }
+
+    /**
+     * WI21 (D6 layer two): republishes a {@link TerminateConsume} failure endpoint to the
+     * configured dead-letter topic. Synchronous on purpose — the DLQ write must be durable
+     * before the caller commits; a failed publish throws into the caller's failure path and
+     * the message is redelivered (at-least-once). No-op when no DLQ is configured or the
+     * configured topic would self-loop (guarded in
+     * {@link KafkaMessageService#resolveDeadLetterTopic}). Each sync publish counts against
+     * the max.poll.interval.ms budget.
+     */
+    private void publishToDeadLetterIfConfigured(String topic, Object message) {
+        String dlqTopic = service.resolveDeadLetterTopic(topic);
+        if (dlqTopic == null) {
+            return;
+        }
+        FutureHelper.syncGet(service.sendAsync(dlqTopic, message, null));
     }
 
     private void anyConsumeLaterSeek(ConsumerRecord<String, String> record) {

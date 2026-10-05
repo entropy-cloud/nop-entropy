@@ -53,6 +53,15 @@ public class KafkaConsumerConfig {
      */
     private int maxPollIntervalMs = 300000;
 
+    /**
+     * WI21 (D6 layer two): optional application-level dead-letter topic. When set, a
+     * {@code TerminateConsume} failure endpoint republishes the message here (synchronously,
+     * before the commit) instead of dropping it after the WARN. {@code null} (default)
+     * keeps the drop-and-prove-by-WARN semantics. Note: each per-record sync DLQ publish
+     * counts against the {@link #maxPollIntervalMs} budget.
+     */
+    private String deadLetterTopic;
+
     public String getGroupId() {
         return groupId;
     }
@@ -115,6 +124,14 @@ public class KafkaConsumerConfig {
 
     public void setMaxPollIntervalMs(int maxPollIntervalMs) {
         this.maxPollIntervalMs = maxPollIntervalMs;
+    }
+
+    public String getDeadLetterTopic() {
+        return deadLetterTopic;
+    }
+
+    public void setDeadLetterTopic(String deadLetterTopic) {
+        this.deadLetterTopic = deadLetterTopic;
     }
 
     public int getHeartbeatIntervalMs() {

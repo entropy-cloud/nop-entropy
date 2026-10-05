@@ -27,7 +27,9 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -83,6 +85,25 @@ class TestKafkaServiceLifecycle {
         KafkaMessageService service = new KafkaMessageService();
         service.destroy(); // ServiceStatus.CREATED disallows stop — must not throw / NPE
         assertFalse(service.isActive());
+    }
+
+    /**
+     * WI21: the DLQ self-loop guard — a dead-letter topic equal to the consumed topic is
+     * disabled (null) instead of republishing a terminate into its own live topic forever.
+     */
+    @Test
+    void resolveDeadLetterTopicDisablesSelfLoopAndUnconfiguredIsNull() {
+        KafkaMessageService service = new KafkaMessageService();
+        assertNull(service.resolveDeadLetterTopic("t"), "no consumer config → DLQ off");
+
+        KafkaConsumerConfig config = new KafkaConsumerConfig();
+        config.setDeadLetterTopic("dlq-topic");
+        service.setDefaultConsumerConfig(config);
+        assertEquals("dlq-topic", service.resolveDeadLetterTopic("t"));
+
+        config.setDeadLetterTopic("t"); // self-loop
+        assertNull(service.resolveDeadLetterTopic("t"),
+                "dlq == consumed topic must degrade to off, never loop");
     }
 
     @Test
