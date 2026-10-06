@@ -97,16 +97,25 @@ public final class ScenarioTestSupport {
      * Builds and executes a scenario pipeline. Parallelism and state backend are
      * overridden through the parsed model / env checkpoint config (temp-dir storage
      * cannot be expressed in the repo XDSL file).
+     *
+     * <p>R6 plan 2322: a non-null backend is injected PRE-BUILD via
+     * {@link StreamModelDslBuilder#withPreBuildEnvironment} so keyBy freezes its
+     * key-group maxParallelism from that backend — the KR-3 sanctioned
+     * "configure the state backend before keyBy" path. Post-build setStateBackend
+     * with a diverging maxParallelism would fail loudly in
+     * {@code validateKeyedRoutingParity}.
      */
     public static StreamExecutionEnvironment buildEnv(StreamModel model,
                                                       InMemoryBeanFunctionResolver resolver,
                                                       String storagePath,
                                                       io.nop.stream.core.common.state.backend.IStateBackend backend) {
-        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver).build();
-        env.getCheckpointConfig().setStorageProperty("path", storagePath);
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
         if (backend != null) {
-            env.getCheckpointConfig().setStateBackend(backend);
+            builder = builder.withPreBuildEnvironment(
+                    env -> env.getCheckpointConfig().setStateBackend(backend));
         }
+        StreamExecutionEnvironment env = builder.build();
+        env.getCheckpointConfig().setStorageProperty("path", storagePath);
         return env;
     }
 

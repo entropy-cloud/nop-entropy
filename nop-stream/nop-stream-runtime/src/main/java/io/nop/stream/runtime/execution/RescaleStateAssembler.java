@@ -443,7 +443,8 @@ static void validateReverseVertexDifferential(
 static void restoreTaskStatesFromCheckpoint(
         GraphExecutionPlan execPlan,
         CheckpointPlan checkpointPlan,
-        CompletedCheckpoint checkpoint) throws Exception {
+        CompletedCheckpoint checkpoint,
+        io.nop.stream.core.common.state.backend.IStateBackend configuredBackend) throws Exception {
     // Pass the checkpoint's TaskLocation set so the shared restore
     // path can perform the reverse-direction vertex differential check.
     Set<TaskLocation> checkpointLocations = checkpoint.getTaskStates().keySet();
@@ -461,7 +462,7 @@ static void restoreTaskStatesFromCheckpoint(
                             .param(ARG_DETAIL, "Available keys: " + checkpoint.getTaskStates().keySet());
                 }
                 return state;
-            });
+            }, configuredBackend);
 }
 
 /**

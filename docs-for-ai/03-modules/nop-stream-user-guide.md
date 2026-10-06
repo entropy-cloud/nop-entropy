@@ -138,6 +138,23 @@ env.execute("job-name");   // 或 buildJobGraph(jobName) 供分布式 launch
 
 `StreamModelDslBuilder` 按 `<edges>` 拓扑遍历 `<transforms>`，产出与手写 Java API 完全一致的 Transformation DAG（fraud-example `TestS2FileAggregationE2E.s2JavaVariantMatchesXdslOutput` 断言两种入口输出逐行一致）。
 
+### 跨 maxParallelism 离线 reshard 恢复（合法路径）
+
+keyBy 在**建图期**从当时配置的状态后端冻结 key-group maxParallelism（未配置时默认 128）。执行期守卫 `StreamExecutionEnvironment.validateKeyedRoutingParity` 要求图内冻结值与当前后端一致——**后置 `setStateBackend` 且 maxParallelism 不同会被响亮拒绝**（`R5 KR-3`），这是防"路由与属主公式分裂"的预期行为，不是缺陷。
+
+若确实要跨 maxParallelism 恢复（例如用 `MaxParallelismReshardMigration` 把旧 checkpoint 128→256 重排后从产物恢复），必须走**建图前配置**入口，让 keyBy 冻结目标值：
+
+```java
+StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
+        .withPreBuildEnvironment(e -> e.getCheckpointConfig()
+                .setStateBackend(new RocksDBStateBackend(dir, 256)))  // 在 keyBy 冻结前注入
+        .build();
+```
+
+- 恢复侧的属主一致性校验（`R5 KR-2`）会以该后端的 maxParallelism 为 live routing 基准比对 checkpoint 戳，迁移产物（已按 256 重排）可正常通过。
+- `withPreBuildEnvironment` 可多次调用（按序组合），钩子在模型遍历开始前、`applyCheckpointConfig` 之前执行。
+- 端到端样例：fraud-example `TestS2OfflineReshardE2E`（真实 checkpoint → 离线迁移 128→256 → 从迁移产物恢复 → 全输入 exactly-once 断言）。
+
 ### Delta 定制
 
 `.stream.xml` 支持平台标准 Delta 机制（`x:support-extends="true"`）：

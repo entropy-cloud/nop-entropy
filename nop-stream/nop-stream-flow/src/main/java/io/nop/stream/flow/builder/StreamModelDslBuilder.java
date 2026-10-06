@@ -51,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.nop.api.core.exceptions.NopException;
@@ -138,6 +139,8 @@ public final class StreamModelDslBuilder {
 
     private StreamSchemaRegistry schemaRegistry;
 
+    private Consumer<StreamExecutionEnvironment> preBuildEnvironmentConfigurer;
+
     private final Map<String, Object> streamRegistry = new LinkedHashMap<>();
 
     private StreamModelDslBuilder(StreamModel model, BeanFunctionResolver beanResolver) {
@@ -157,6 +160,28 @@ public final class StreamModelDslBuilder {
     }
 
     /**
+     * R6 plan 2322: registers a configurer applied to the freshly created
+     * environment BEFORE the model walk starts — i.e. before any {@code keyBy}
+     * freezes the key-group maxParallelism via the state backend then configured.
+     * This is the sanctioned "configure the state backend before keyBy" path the
+     * KR-3 drift guard points at: callers that intend to restore under a
+     * non-default maxParallelism (for example from a
+     * {@code MaxParallelismReshardMigration} product) must inject their backend
+     * here. Setting a backend AFTER {@link #build()} still fails loudly in
+     * {@code StreamExecutionEnvironment#validateKeyedRoutingParity}.
+     */
+    public StreamModelDslBuilder withPreBuildEnvironment(
+            Consumer<StreamExecutionEnvironment> configurer) {
+        if (configurer == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "configurer");
+        }
+        Consumer<StreamExecutionEnvironment> existing = this.preBuildEnvironmentConfigurer;
+        this.preBuildEnvironmentConfigurer =
+                existing == null ? configurer : existing.andThen(configurer);
+        return this;
+    }
+
+    /**
      * WI8b: query the resolved {@code <schemas>} registry. Must be called after
      * {@link #build()} — the registry is populated during the build walk.
      */
@@ -173,6 +198,12 @@ public final class StreamModelDslBuilder {
     public StreamExecutionEnvironment build() {
         expandSqlModel();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
+        if (preBuildEnvironmentConfigurer != null) {
+            // R6 plan 2322: runs before applyCheckpointConfig/buildTransforms so a
+            // state backend configured here is the one keyBy freezes its key-group
+            // maxParallelism from (KR-3 sanctioned pre-build path).
+            preBuildEnvironmentConfigurer.accept(env);
+        }
         if (model.getParallelism() > 0) {
             env.setParallelism(model.getParallelism());
         }
@@ -1116,20 +1147,16 @@ public final class StreamModelDslBuilder {
         KeyedStream keyed = ((DataStream<Object>) in).keyBy(
                 (KeySelector) new EvalActionKeySelector<>(edge.getKeyExpr()));
         if (targetParallelism != null && targetParallelism > 0) {
-            // R5 FLOW-5: a keyed stage sized differently from its upstream
-            // routing parallelism rides FORWARD edges (channel-0 concentration)
-            // and splits from the key-group ownership after a rescale. Typed
-            // reject at build time instead of a silent false-green.
-            if (targetParallelism != ((DataStreamImpl) keyed).getTransformation().getParallelism()) {
-                throw new StreamException(ERR_STREAM_EDGE_PARTITION_UNSUPPORTED)
-                        .param(ARG_EDGE_ID, edge.getId())
-                        .param(ARG_DETAIL, "keyed-stage parallelism " + targetParallelism
-                                + " differs from the upstream routing parallelism "
-                                + ((DataStreamImpl) keyed).getTransformation().getParallelism()
-                                + " — FORWARD routing would concentrate all records on subtask 0"
-                                + " and rescale would split state from traffic (R5 FLOW-5;"
-                                + " declare equal parallelism, or a HASH edge)");
-            }
+            // R6 plan 2322 (supersedes the R5 FLOW-5 reject here): a HASH edge is a
+            // partition boundary, so the keyed stage may be wider or narrower than
+            // its upstream. The implicit partition vertex takes the target's value
+            // (per this method's contract above) and the edge's HashPartitionRouter
+            // spreads records across every target partition, so no channel-0
+            // concentration is possible on this branch. The reject previously thrown
+            // here contradicted the design contract, the "or a HASH edge" advice in
+            // its own message, and the user guide — and blocked the per-transform
+            // parallelism E2E scenarios. The FORWARD-side mismatch guard lives in
+            // {@link #applyDeclaredParallelism} and stays fail-fast.
             keyed.setParallelism(targetParallelism);
         }
         return keyed;

@@ -24,14 +24,16 @@
 
 初审/深挖原始条目 105（不含 BG），独立复核驳回 2、降级 3；独立合并裁定吸收 9 项重复/子集、升格 1 项（TE-03→P0 族）。
 
-## 实测 HEAD 红灯（主 agent 确诊，本轮最高优先级）
+## 实测 HEAD 红灯（主 agent 确诊，本轮最高优先级）——定性已按 plan 2322 Adjudication 修订
 
-4 个 fraud-example E2E Error，根因全部为 **R5 守卫批次落地未同步消费面**（fix-of-fix 连锁，非守卫本身错误）：
+4 个 fraud-example E2E Error，根因为 **R5 守卫语义偏离其设计契约与 owner doc**（plan 2322 Adjudication 裁定，推翻本汇总最初"守卫行为正确、改 fixture"的方向；三重证据：守卫 javadoc 明文"partition vertex 取目标值"、守卫文案自建议 "or a HASH edge" 而抛出点正在 HASH 分支内、user-guide :126 已写 resize 语义）：
 
-| 测试 | 根因 |
-|------|------|
-| TestPerTransformParallelismE2E / TestParallel2PcFileE2E / TestParallel2PcJdbcE2E | `nop.err.stream.edge-partition-unsupported`：FLOW-5 守卫（R5 plan 2313/2316）拒绝 DSL `partition=` 声明 + keyed-stage 并行度≠上游；fixture 未随守卫更新 |
-| TestS2OfflineReshardE2E | `nop.err.stream.invalid-arg` "keyBy maxParallelism drift: graph-frozen 128 != configured backend 256 (R5 KR-3)"：KR-3 等值守卫拒绝合法 128→256 离线 reshard 迁移路径（仓内 MaxParallelismReshardMigration 存在但入口不被守卫识别） |
+| 测试 | 根因 | 修复归属 |
+|------|------|---------|
+| TestPerTransformParallelismE2E / TestParallel2PcFileE2E / TestParallel2PcJdbcE2E | `nop.err.stream.edge-partition-unsupported`：FLOW-5 守卫在 HASH 边分支错误拒绝 keyed 阶段并行度≠上游（HASH 是分区边界，本应 resize；执行面 HashPartitionRouter 本就支持跨并行度散列）。fixture 声明是平台能力的合法验证，不改 | **2322 Phase 1**：HASH 分支改 resize；`<keyBy>` 变换分支保留拒绝（防下游宽度静默丢失） |
+| TestS2OfflineReshardE2E | `nop.err.stream.invalid-arg` "keyBy maxParallelism drift (R5 KR-3)"：守卫文案承诺的合法路径 "configure the state backend before keyBy" 在 DSL 入口不可达；修复后第二层 KR-2 守卫又因 restore 期 keyed 后端未创建回落默认 128 产生幻影失配 | **2322 Phase 2**：DSL `withPreBuildEnvironment` pre-build 后端入口 + restore 侧 `resolveMaxParallelism` 回落链读配置后端 M |
+
+修复验证：plan 2322 Phase 3 全量回归 `./mvnw test -pl <11 模块>` 全绿（含 4 个转绿 E2E 的分布/exactly-once 断言）。
 
 ## 跨报告合并裁定（独立裁定代理）
 
