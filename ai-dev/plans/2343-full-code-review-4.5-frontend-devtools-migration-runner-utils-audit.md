@@ -1,6 +1,6 @@
 # 2343 full-code-review 4.5 nop-frontend-support + nop-dev-tools + nop-migration + nop-runner + nop-utils 深审
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 4.5（MA4）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 02/16/17 + 共享前缀）
 > Related: Roadmap Details：「CLI 双入口腐化风险；dev-tools/idea-plugin 质量；utils 依赖卫生」。
@@ -48,72 +48,72 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 五组 in-scope 模块
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
-- [ ] 机械基线：五组手写文件清单、check 25 条处置块盘点、git log 2026-09-22 后五组产品代码变更登记、测试资产 find 实测
-- [ ] dev-tools 子 agent（维度 02+16）：check/dev-tools.md 25 条标定（P1×2+P2×14+P3×9；debugger 并发族重点；**idea-plugin 域以标定为主不深审**——IDE 宿主 131 文件）+ CLI 双入口差异面裁定 + 调试器 RPC 域 + **6.8 preempt 登记**（dev-tools 属批次 d，25 条标定完成后 6.8 引用本报告）
-- [ ] utils+frontend+migration/runner 子 agent（维度 02+17）：utils 依赖卫生（**pom 级机械面：允许集 nop-api-core/nop-commons/nop-core 及三方库；违规候选带 nop-xlang 及以上逐个裁定；注意 nop-java-parser 的 nop-biz 依赖已注释勿误报**/工具类重复度 + nop-utils.md 23 条标定〔P0×2 不得重复上报〕）+ frontend-support **收窄口径（frontend-benchmark.md 19 条为 prior art——增量 diff〔基线后仅 1 commit〕+ 3.5 撞车域 nop-web/page 聚焦 + 抽样，不盲目全量）** + migration/runner 启动链 + **runner-cli.md 17 条标定**
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-4.5-{dev,utils}.md`
+- [x] 机械基线：五组手写文件清单、check 25 条处置块盘点、git log 2026-09-22 后五组产品代码变更登记、测试资产 find 实测
+- [x] dev-tools 子 agent（维度 02+16）：check/dev-tools.md 25 条标定（P1×2+P2×14+P3×9；debugger 并发族重点；**idea-plugin 域以标定为主不深审**——IDE 宿主 131 文件）+ CLI 双入口差异面裁定 + 调试器 RPC 域 + **6.8 preempt 登记**（dev-tools 属批次 d，25 条标定完成后 6.8 引用本报告）
+- [x] utils+frontend+migration/runner 子 agent（维度 02+17）：utils 依赖卫生（**pom 级机械面：允许集 nop-api-core/nop-commons/nop-core 及三方库；违规候选带 nop-xlang 及以上逐个裁定；注意 nop-java-parser 的 nop-biz 依赖已注释勿误报**/工具类重复度 + nop-utils.md 23 条标定〔P0×2 不得重复上报〕）+ frontend-support **收窄口径（frontend-benchmark.md 19 条为 prior art——增量 diff〔基线后仅 1 commit〕+ 3.5 撞车域 nop-web/page 聚焦 + 抽样，不盲目全量）** + migration/runner 启动链 + **runner-cli.md 17 条标定**
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限（两面均以复核收敛替代——零驳回）
+- [x] 产物 `_tmp/fcr-4.5-{dev,utils}.md`
 
 Exit Criteria:
 
-- [ ] 两份初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] check 25 条标定结论落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] check 标定结论落盘（dev-tools 25 + nop-utils 23 + runner-cli 17 + frontend-benchmark 19 + migration 4 = 88 条）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证
-- [ ] 主 agent 汇总：判级统一、与 4.2（utils 零测试）/1.4（StringHelper）/3.5（ResourceWithHistoryProvider）协调
-- [ ] 两面正结论收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 标定独立验证（8 条新发现全保留零驳回；标定抽验 A 6/6 + B 14/14 全一致）
+- [x] 主 agent 汇总：判级统一、与 4.2（nop-fsm 零测试未修复维持）/1.4（StringHelper 未拆维持）/3.5（P2-3.5-008 未修复三点复现）协调
+- [x] 两面正结论收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-4.5-{dev,utils}-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-4.5-{dev,utils}-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `4.5-frontend-devtools-migration-runner-utils-audit.md`；index 登记 4.5 行（如有 P2 走「P2 裁决台账」通道）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl <审计域有测试资产的模块列表，Phase 1 实测后填写>`（不带 -am——显式偏离裁定：**-am 拉入两个已归因预存失败〔nop-stream-runtime TestStreamConnectorRegistryDiscovery、nop-sys-dao 测试编译断裂，2.8/3.5 域登记〕**；Phase 1 填写列表时同步登记两预存失败 module#test；如遇失败归因预存并登记；idea-plugin IDE 宿主测试不可运行的注明）
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 4.5 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `4.5-frontend-devtools-migration-runner-utils-audit.md`；index 登记 4.5 行（P2×1 进 R1.0 输入池）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0——nop-utils P0×2 已修标定）
+- [x] 定向验证锚点：复核员复跑 xlang-debugger 6/6 + maven-shaded-plugin 2/2（离线 -o）+ closure auditor 独立复跑同结果；idea-plugin IDE 宿主测试不可运行以 live 逐行核实为准（已注明）；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——八项核验全过）；通过后 roadmap 4.5 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且五面全覆盖——覆盖度量：dev-tools=25/25 标定台账 + CLI 差异面裁定表；utils=pom 依赖矩阵 + 重复度清单 + 巨型类现状 + 23 条标定；frontend=撞车域结论 + 抽样清单；runner=启动链结论 + 17 条标定；migration=3 文件结论（占位——执行时按实际勾选）
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 4.5 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且五面全覆盖——覆盖度量：dev-tools=25/25 标定台账 + CLI 差异面裁定表；utils=pom 依赖矩阵 + 重复度清单 + 巨型类现状 + 23 条标定；frontend=撞车域结论 + 抽样清单；runner=启动链结论 + 17 条标定；migration=3 文件结论
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 4.5 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -125,14 +125,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 五组工具链深审计划收口。报告 `4.5-frontend-devtools-migration-runner-utils-audit.md` 落盘：通过无 P0/P1 附 P2×1/P3×7（净 8 条，零驳回）。**标定台账 88 条零翻案**：dev-tools 25（17 闭环+6 成立+2 补位）/ nop-utils 23/23 已修（P0×2 重点核对）/ runner-cli 17/17 未修 / frontend-benchmark 19/19 未修 / migration 4/4 未修（移交 demo-migration 域）。**CLI 双入口三模块两真入口一死占位裁定**（EmptyMain 死占位/NopCliApplication 真 main/jdk11 漂移 3 项）；依赖卫生十模块 1 项 P3 违规（nop-java-parser 三跳传递）+ 2 项裁定不报；debugger 并发族 6 处修复全部到位；6.8 preempt 声明（dev-tools 25 条标定已完成）。closure audit 八项核验全过一次 PASS（处方 log/plan 补记已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_4b8b2236-c97a-44c0-962e-a22fc689668f（fresh session，只读 closure auditor；一次 PASS 附补记处方）
+- Evidence:
+  - 计数勾稽：P0=0/P1=0/P2=1/P3=7=8 ↔ 报告实点 ↔ index 4.5 行（0/0/1/7）↔ 映射表 8 行 ↔ 复核净账（A 6 + B 2）五处闭合
+  - P1/P0 台账：两表无 4.5 新增正确
+  - 标定亲读五点全命中：DebugValueHelper:45 Array.getLength/XLangStackFrame:76-88 兜底+零 reportError/UnifiedDiffLine:32-34 Guard.notNull+双测行号/ShellCommand:76-81 sh -c/NopCliMainForJdk11 裸 main 未修确认
+  - 判级抽查 4/4 亲读闭环（TestXdslResourceTransformer:31-41 零断言+processXDef 唯一调用点 :73/NopCliApplication:35-38/nop-java-parser pom+2 import+三跳链/WebPageExporter:60-92 无恢复+零生产调用方 grep 复跑）
+  - 格式：抽 4 条 9 要素完整
+  - special 交付物：CLI 裁定 7/7 事实点独立复验全过（EmptyMain 零引用/quarkus main-class/jdk11 exclude/MainCommand 17 子命令亲数）；依赖卫生十模块矩阵齐
+  - 验证：doc-links exit 0；auditor 独立复跑 xlang-debugger 6/6 + maven-shaded 2/2
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员复跑 + closure auditor 独立复跑为锚
+  - Deferred 项分类检查：无 deferred；P2×1 进 R1.0 输入池；P3×7 watch-only；撞车未修复项（P2-3.5-008/P1-4.2-005/P2-1.4-001/demo-migration 4 条）维持原台账归属，无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×1 修复归属 R1.0 分族；P3×7 watch-only；runner-cli 17 条/frontend-benchmark 19 条未修标定归原 check 台账 R1.0 汇聚；demo-migration 4/4 未修复移交该域；6.8 preempt——dev-tools 25 条引用本报告）
