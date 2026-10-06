@@ -54,7 +54,7 @@
 
 ### Phase 1 - 机械全量与深审抽样（3+1 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 26 个 `-api` 模块 + git 历史 + CHANGELOG.md
 
 - Item Types: `Proof`
