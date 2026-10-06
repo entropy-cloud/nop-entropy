@@ -1,6 +1,6 @@
 # nop 数据访问层中间件能力 Roadmap（ShardingSphere 对标收敛）
 
-> Last updated: 2026-10-05（v1：立项。基于 2026-10-05 ShardingSphere master（5.5.4-SNAPSHOT）对比分析核定缺口，及当日三份产出——plan 2318（可检索加密，draft）、分片策略配置设计（草案）、读写分离设计（草案）——组织为依赖有序的开发序列）
+> Last updated: 2026-10-06（v2：**roadmap 完成**——WI0-WI9 全部 done，四个实施 plan（2318 可检索加密/2319 读写分离/2320 分片策略/2321 执行引擎）与 2322 搬迁管道全部经独立 closure audit APPROVE 标 completed；WI10 影子库正式裁定 deferred 移 Follow-up Backlog；WI11 收口完成（三能力组合 E2E 3/3 绿、五 owner docs 一致性核对、roadmap 级独立 closure audit APPROVE——Purpose 五目标全 MET）。v1 历史：2026-10-05 立项，基于当日 ShardingSphere master（5.5.4-SNAPSHOT）对比分析核定缺口与三份产出组织为依赖有序开发序列）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-05-shardingsphere-vs-nop-orm-gap-analysis.md`（缺口核定 primary；SS master 裁剪事实与既有裁定清单）
@@ -63,7 +63,7 @@
 
 ### M5 — 按需与收口
 
-- [ ] WI11 roadmap 收口：组合 E2E（分片 + 读写分离 + 可检索加密三能力叠加的端到端测试）、docs-for-ai 全面一致性核对（orm-model-design / eql-and-database-compatibility / 服务层数据访问文档）、独立 closure audit（Deliverable: 收口证据 + 文档核对；deps: WI3 + WI4 + WI5 + WI6（WI8/WI9/WI10 完成或显式按需/延期裁定）；Item Type: Proof）
+- [x] WI11 roadmap 收口：组合 E2E（分片 + 读写分离 + 可检索加密三能力叠加的端到端测试）、docs-for-ai 全面一致性核对（orm-model-design / eql-and-database-compatibility / 服务层数据访问文档）、独立 closure audit（Deliverable: 收口证据 + 文档核对；deps: WI3 + WI4 + WI5 + WI6（WI8/WI9/WI10 完成或显式按需/延期裁定）；Item Type: Proof）——2026-10-06 完成：TestTripleComboShardReadwriteEnc 3/3 绿（写落主库分片表带密文+派生辅助列、无事务 EQL 经 replica+assisted 改写命中解密、gate=closed 显式失败）；五 owner docs + INDEX 路由核验（修正 enc 密钥键两处漂移 nop.crypt.enc-assisted-key→nop.orm.enc-assisted-key）；roadmap 级独立 closure audit APPROVE（Purpose 五目标全 MET、10 WI 证据逐项核验、工具终验全 0）
 
 ## Follow-up Backlog
 

@@ -1,6 +1,6 @@
 # 2319 nop-dao 读写分离（DataSource 层路由装饰器）
 
-> Plan Status: active（2026-10-05 两轮独立对抗审查：第 1 轮 REJECT——1 Blocker（分页重建丢 readOnly）+ 2 Major（sql-lib 生成链/测试基类类型）已修；第 2 轮（fresh session）APPROVE，残留 2 处 baseline 表述已修正，证据见 Draft Review Evidence。2026-10-06 全部 4 Phase 实施落地，待独立 closure audit）
+> Plan Status: completed（2026-10-06；两轮审查 + 四 Phase landed + 独立 closure audit APPROVE（16/16 PASS、Anti-Hollow 五链连通、53 例定向测试全绿、_gen 纯 regen 核查），证据见 Draft Review Evidence 与 Closure 段）
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/design/nop-dao-readwrite-splitting-design.md`（目标设计，承载本 plan）；roadmap `ai-dev/backlog/nop-persistence-middleware-roadmap.md` WI1/WI4
 

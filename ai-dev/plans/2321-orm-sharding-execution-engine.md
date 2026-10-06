@@ -214,9 +214,8 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （关闭时填写）
-
-Completed:
+Status Note: 四个 Phase 全部 landed——执行引擎端到端可用（CompiledSql 结构信息 → fanout 资格收口 → 强制 selector 串行 N 份 → 四语义归并 → 行数上限兜底），全部不可支持形态显式失败，既有分片/读写分离行为零回归，nop-core 零改动。独立 closure audit APPROVE 后标 completed。实施期裁定 hasAggregate 第七标志已三处留痕并经 audit 确认必要。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
