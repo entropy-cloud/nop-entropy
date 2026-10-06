@@ -7,15 +7,33 @@ import { TypeHierarchyPO } from './page-objects/type-hierarchy.po.js';
 const INDEX_ID = 'nop-code-e2e';
 const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../../nop-code/nop-code-service');
 
+// dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
+async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
+  const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+    indexId: INDEX_ID, offset: 0, limit: 1,
+  });
+  if (existing.ok && (existing.data?.total ?? 0) > 0) return;
+
+  const build = await rpc(request, 'NopCodeIndex__triggerFullIndex', {
+    indexId: INDEX_ID,
+    projectPath: TEST_PROJECT_DIR,
+  });
+  if (!build.ok) {
+    throw new Error(`triggerFullIndex failed: ${JSON.stringify(build.errors)}`);
+  }
+
+  const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+    indexId: INDEX_ID, offset: 0, limit: 1,
+  });
+  if (!prepared.ok || (prepared.data?.total ?? 0) === 0) {
+    throw new Error(`Index still empty after triggerFullIndex: ${JSON.stringify(prepared.errors)}`);
+  }
+}
+
 test.describe('类型层级查询', () => {
   test.beforeAll(async ({ request }) => {
     await loginRpc(request);
-
-    const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
-      indexId: INDEX_ID, offset: 0, limit: 1,
-    });
-    if (existing.ok && (existing.data?.total ?? 0) > 0) return;
-    throw new Error('Index not prepared. Run indexDirectory first.');
+    await ensureIndexPrepared(request);
   });
 
   test('RPC: 查询 super 方向类型层级', async ({ request }) => {

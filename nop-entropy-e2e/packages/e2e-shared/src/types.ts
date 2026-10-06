@@ -1,5 +1,9 @@
 import type { Locator, Page } from '@playwright/test';
 
+export const DEFAULT_LIST_TIMEOUT = 15_000;
+export const DEFAULT_DIALOG_TIMEOUT = 15_000;
+export const DEFAULT_NAV_TIMEOUT = 30_000;
+
 export type EngineType = 'amis' | 'flux';
 
 export interface EngineAdapter {

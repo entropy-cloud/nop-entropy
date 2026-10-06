@@ -43,6 +43,8 @@ export {
   dumpFluxDebug,
   dumpFluxDebugFor,
   formatFluxDebug,
+  dumpPageSchemaToFile,
+  dumpInnerHTMLToFile,
 } from './debug';
 export type {
   EnvDump,
@@ -59,4 +61,6 @@ export type {
   DiagnosticReport,
   FluxDebugEntryDump,
   FluxDebugDump,
+  PageSchemaDump,
+  InnerHTMLDump,
 } from './debug';

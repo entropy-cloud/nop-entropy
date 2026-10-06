@@ -50,7 +50,8 @@ export class CrudListPage extends BasePage {
   }
 
   async navigate(): Promise<void> {
-    await this.goto(this.config.entityRoute);
+    // entityRoute 为实体名（如 'NopAuthUser'），拼接 -main 得到主页面 hash 路由
+    await this.goto(`/${this.config.entityRoute}-main`);
     await this.waitForList();
   }
 

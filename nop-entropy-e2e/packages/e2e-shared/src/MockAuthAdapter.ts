@@ -459,11 +459,24 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<Log
 
   await page.addInitScript(() => {
     const persistedLanguage = window.localStorage.getItem('nop-language:v1');
+    const persistedAuthSession = window.sessionStorage.getItem('auth:v2');
+    const persistedAuthLocal = window.localStorage.getItem('auth:v2');
     window.localStorage.clear();
     window.sessionStorage.clear();
 
-    if (persistedLanguage) {
-      window.localStorage.setItem('nop-language:v1', persistedLanguage);
+    // Default e2e sessions to en-US so text assertions stay stable regardless
+    // of the host machine locale (the app itself defaults to zh-CN since the
+    // navigator detection was removed). Tests that seed a language first (e.g.
+    // i18n-persistence) keep their seeded value.
+    window.localStorage.setItem('nop-language:v1', persistedLanguage ?? 'en-US');
+    // The extension harbor login page seeds the persisted auth state and
+    // reloads; clearing auth:v2 on every navigation would wipe the session
+    // before the host bootstrap can restore it.
+    if (persistedAuthSession) {
+      window.sessionStorage.setItem('auth:v2', persistedAuthSession);
+    }
+    if (persistedAuthLocal) {
+      window.localStorage.setItem('auth:v2', persistedAuthLocal);
     }
   });
 
