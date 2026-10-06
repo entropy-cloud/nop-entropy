@@ -183,14 +183,14 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - WI30 消息指标暴露: `done`（deps M2；Item Type Feature；对应 MSG-F-23；完成判定 发送与消费与失败三类计数器与计时器按 `351-repo-wide-core-metrics` 已确立的平台口径注册，不新建体系；consumer lag 单独评估 AdminClient 依赖与 broker 不可达时的失败语义后再决定是否纳入）
 - WI31 空壳模块处置与 BOM 补登: `done`（deps WI3；Item Type Fix；对应 MSG-F-41 与 MSG-F-42；完成判定 按 D10 删除 `nop-message-model`；`nop-message-codec` 按 D10 结论删除或降级为 Follow-up；`nop-bom/pom.xml` 补登三个模块条目）
 - WI32 契约测试扩充至全矩阵: `done`（deps WI4 WI6；Item Type Proof；对应 MSG-F-47；完成判定 WI4 骨架扩展覆盖 WI2 矩阵全部格；两后端各 extend 一次并全绿；11 个主源码实现逐个记录覆盖或显式豁免理由）
-- WI33 gated 真实 broker E2E: `todo`（deps M3；**deferred**：当前环境无 broker 基础设施，gated E2E 脚手架就位待启用；Item Type Proof；对应 MSG-F-44；charter 扩展承接 WI17：增补慢 handler 踢出时序场景；完成判定 新增 gated 测试覆盖重启恢复与毒消息与 DLQ 投递与 seek 与请求-响应五类场景；门控属性名在测试类与文档中一致声明且默认跳过；不得以跳过态标记 done）
-- ★ **里程碑：M5 可运维**（解锁条件 WI30 至 WI33 全部 done）：`todo`
+- WI33 真实 broker Testcontainers E2E: `done`（deps M3；Item Type Proof + Fix；对应 MSG-F-44；charter 扩展承接 WI17 慢 handler 踢出场景；完成判定 Kafka 六场景与 Pulsar 五场景经 Testcontainers 真实 broker 执行全绿且非跳过态；门控语义改为 Docker 可达主门 + 退出口属性 + 镜像前缀属性并在测试类与 design 3.12 与 owner doc 三处一致声明；执行期修复 F-DLQ live defect——Pulsar 2.8 DLQ 分流在 nack 时触发而非 ack 时，失败终点改走 negativeAcknowledge——并将 nop-dependencies 的 pulsar-common 族对齐至 2.8.0；证据 ai-dev/plans/nop-message/33-wi33-gated-e2e.md 与 daily log 2026-10-06）
+- ★ **里程碑：M5 可运维**（解锁条件 WI30 至 WI33 全部 done）：`done`
 
 ### Phase F — 文档与收口
 
 - WI34 owner doc 与文档收口: `done`（deps M4 [M5 偏离：WI33 deferred pending broker infra——owner doc 覆盖面不依赖 broker 执行结果]；Item Type Proof；对应 MSG-F-43；完成判定 新建 docs-for-ai/03-modules/nop-message.md，含 broker 切换写法与配置 bean 全字段语义表与每字段三态矩阵与 DLQ 与事务与 seek 能力边界与多 JVM 语义；登记 `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 并分配独立锚点 ID 前缀；对齐既有 4 处顺带提及；须新增 owner doc 并使本 roadmap 引用零断链；存量断链以不增加为判据）
 - WI35 独立收口审计: `done`（deps WI34；Item Type Proof；完成判定 由独立子代理以不同 task_id 逐项核验 WI1 至 WI34 的退出条件并对照 58 条缺陷逐条给出 closed / open / ruled-out 结论，产出 ai-dev/audits/nop-message/ 下的验收报告）
-- ★ **里程碑：M6 产品化达标**（解锁条件 M4 与 M5 与 WI34 与 WI35 全部 done）：`todo`
+- ★ **里程碑：M6 产品化达标**（解锁条件 M4 与 M5 与 WI34 与 WI35 全部 done）：`done`
 
 ## Status values
 

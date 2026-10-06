@@ -17,13 +17,16 @@ public class PulsarConsumerConfig {
     /**
      * WI21 (D6 layer two): max redeliveries before the client diverts a message to the
      * dead-letter topic. {@code 0} (default) = dead-letter policy disabled. Pulsar 2.8
-     * semantics (verified against the 2.8.0 client): the redelivery count is tracked on the
-     * receive side and the diversion happens when the message is finally ACKED — a poison
-     * message that is only ever negatively acknowledged stays in the redelivery loop, so
-     * the DLQ takes effect together with the retry-limit/terminal-ack semantics (WI22).
-     * Also note: only Shared/Key_Shared subscriptions carry a redelivery count in 2.8 —
-     * enabling this with another subscription type logs a one-time warning and has no
-     * effect. Real-broker diversion behavior is verified by the WI33 gated E2E.
+     * semantics <em>as verified by the WI33 real-broker E2E (F-DLQ, superseding the WI21
+     * static adjudication)</em>: a message received at {@code redeliveryCount >=
+     * maxRedeliverCount} is registered client-side, and the diversion fires when that
+     * message is NEGATIVELY acknowledged — the client intercepts the redelivery request,
+     * publishes the DLQ copy, and acks the original itself. A plain ack never diverts, so
+     * the WI22 attempt-cap failure endpoint hands exhausted messages to a negative ack
+     * when this policy is configured ( Shared/Key_Shared subscriptions only carry the
+     * redelivery count in 2.8 — other subscription types log a one-time warning and the
+     * policy has no effect). Keep {@code maxConsumeAttempts == deadLetterMaxRedeliverCount}
+     * so the endpoint's first firing coincides with the diversion threshold.
      */
     private int deadLetterMaxRedeliverCount;
 
@@ -44,10 +47,11 @@ public class PulsarConsumerConfig {
      * triggers on failure number {@code maxConsumeAttempts + 1} — this counts RETRIES).
      * On Pulsar the effective attempt is max(local counter, broker redeliveryCount), so
      * for Shared/Key_Shared subscriptions the budget holds across restarts. When the
-     * endpoint fires the message is ACKED permanently — the native
-     * {@code deadLetterMaxRedeliverCount} policy (if configured) diverts it to the DLQ at
-     * that ack; without the policy the message is dropped with a loud WARN. Set {@code 0}
-     * for unlimited negative-ack redelivery (the pre-WI22 behavior).
+     * endpoint fires with the native {@code deadLetterMaxRedeliverCount} policy configured
+     * and its threshold met, the message is handed to a negative ack so the client's
+     * diversion publishes the DLQ copy (WI33 F-DLQ); otherwise it is ACKED permanently and
+     * dropped with a loud WARN. Set {@code 0} for unlimited negative-ack redelivery (the
+     * pre-WI22 behavior).
      */
     private int maxConsumeAttempts = 10;
 

@@ -273,6 +273,32 @@
                 <version>${pulsar.version}</version>
             </dependency>
 
+            <!--
+                WI33 实测裁定：quarkus-bom 导入把 pulsar-common / pulsar-transaction-common /
+                pulsar-client-admin-api 管到 4.0.9，而 pulsar-client-original 固定 2.8.0，
+                混版栈在构造真实 PulsarClient 时抛 NoSuchMethodError
+                （PulsarByteBufAllocator → bookkeeper allocator API 漂移）。mock 单测从未
+                构造真实 client，故潜伏至今。全仓唯一 pulsar 消费方是 nop-message-pulsar，
+                此处对齐为与 client 同版本，无其他模块受影响。
+            -->
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-common</artifactId>
+                <version>${pulsar.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-transaction-common</artifactId>
+                <version>${pulsar.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-client-admin-api</artifactId>
+                <version>${pulsar.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>

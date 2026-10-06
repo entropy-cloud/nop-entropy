@@ -99,6 +99,16 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         this.defaultConsumerConfig = defaultConsumerConfig;
     }
 
+    /**
+     * WI33 (F-DLQ): package-private read-through of the service-level consumer config for
+     * the consume task's failure endpoint (same pattern as the Kafka task reading
+     * {@code resolveDeadLetterTopic} through its service reference). {@code null} = not
+     * configured.
+     */
+    PulsarConsumerConfig defaultConsumerConfig() {
+        return defaultConsumerConfig;
+    }
+
     public void setTopicSchemas(Map<String, Schema<?>> topicSchemas) {
         if (topicSchemas != null) {
             this.topicSchemas.putAll(topicSchemas);

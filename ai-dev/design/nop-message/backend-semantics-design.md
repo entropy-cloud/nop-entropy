@@ -26,7 +26,7 @@
 ### 3.1 D3 seek 起点解析
 
 - Kafka：seek 起点解析逻辑挂在 rebalance listener 的 onPartitionsAssigned 回调内，每次分区分配（含首次与再平衡）后对**新分配的分区**执行；INIT 系仅首次生效（按消费组位移状态判断），ALWAYS_SEEK_TO_END 每次分配都 seekToEnd。seekToMessage（按消息 id 定位）Kafka 无对应语义，类型化拒绝（错误码已在位）。
-- Pulsar：INIT_SEEK 系经 `SubscriptionInitialPosition`（Earliest/Latest）精确兑现——该初始位仅当订阅光标不存在时生效，与 SeekMode javadoc「第一次从头/尾、以后从上次位置」逐字对应，并与 Kafka 的 committed 门控跨后端对称；ALWAYS_SEEK_TO_END 与 seekToTime 在 consumer 创建后同步 seek（Pulsar 无 rebalance 回调概念，解析于每次经 SPI subscribe 创建 consumer 时；客户端内部瞬断重连不会重新 seek）。seekToMessage 类型化拒绝。2.8 的 seek 不清空已缓冲 incoming 队列（真机窗口行为归 gated E2E）。
+- Pulsar：INIT_SEEK 系经 `SubscriptionInitialPosition`（Earliest/Latest）精确兑现——该初始位仅当订阅光标不存在时生效，与 SeekMode javadoc「第一次从头/尾、以后从上次位置」逐字对应，并与 Kafka 的 committed 门控跨后端对称；ALWAYS_SEEK_TO_END 与 seekToTime 在 consumer 创建后同步 seek（Pulsar 无 rebalance 回调概念，解析于每次经 SPI subscribe 创建 consumer 时；客户端内部瞬断重连不会重新 seek）。seekToMessage 类型化拒绝。**WI33 真机实证**：INIT_SEEK_TO_BEGIN（新订阅名在存量 backlog 上从头收）与 ALWAYS_SEEK_TO_END（跳过订阅前 backlog、只收增量）均经 Testcontainers E2E 验证；「2.8 的 seek 不清空已缓冲 incoming 队列」的微观窗口观测改归 follow-up（时序窗口非确定性，不改用户契约，见 plan 33 Deferred But Adjudicated）。
 - 消费任务启动期的 seek 抛错（如 seekToMessage）不得被消费线程吞掉，必须传播到 `subscribe` 调用方。
 
 ### 3.2 D5 返回协议与两个新信号
@@ -46,8 +46,8 @@
 
 ### 3.3.1 DLQ substrate 实现口径（WI21）
 
-- **Pulsar 原生层（第二层）**：`PulsarConsumerConfig.deadLetterMaxRedeliverCount`（0=off）+ `deadLetterTopic`（null=客户端派生 `<topic>-<sub>-DLQ`）→ `ConsumerBuilder.deadLetterPolicy(...)`。**2.8 语义如实声明（2.8.0 ConsumerImpl 反编译裁定）**：重投计数在接收侧追踪、分流发生在消息被 ack 时（`doAcknowledge` 查追踪表改道）；`redeliverUnacknowledgedMessages` 仅 Shared/Key_Shared 携带计数。**推论**：(a) 只 nack 的毒消息不触发 DLQ——Pulsar DLQ 的实际生效依赖 WI22 的 attempt 上限与终结 ack 语义；(b) 非 Shared 订阅配置 DLQ 时一次性 WARN（`dlq-subscription-type`），效果为 no-op；(c) 真机投递验证归 WI33 gated E2E。
-- **Kafka 应用级重发布（第二层，按需启用）**：`KafkaConsumerConfig.deadLetterTopic`（null=off）经包私有 `resolveDeadLetterTopic(topic)` 读取（内含自环守卫：dlq==topic 时一次性 WARN 并按 off 处理，防 terminate 无限自环）。`TerminateConsume` 失败终点在 commit 前经 `sendAsync(dlq, apiMessage, null)` + `FutureHelper.syncGet` 同步重发布——DLQ 写 durable 先于提交；发送失败透传 adapted 异常走既有失败路径重投（不加新错误码）；批量路径失败由 WI11 的 progress 回退重投。逐条 sync 发送计入 `max.poll.interval.ms` 预算；DLQ 发送持续失败的消费停摆属 at-least-once 语义，由 WI22 上限治理（当前无界，显式声明）。已知残留：DLQ 已写但后续 `commitSync` 失败 → DLQ 重复（at-least-once，可接受）。Pulsar 的 `TerminateConsume` 不做重发布（分轨裁定：其 DLQ 走原生 deadLetterPolicy 路径——nack 重投循环在接收侧累积计数、终结 ack 时分流；terminate 直接 ack 计数未超限，故进不了 DLQ）。
+- **Pulsar 原生层（第二层）**：`PulsarConsumerConfig.deadLetterMaxRedeliverCount`（0=off）+ `deadLetterTopic`（null=客户端派生 `<topic>-<sub>-DLQ`）→ `ConsumerBuilder.deadLetterPolicy(...)`。**2.8 语义（WI33 真机实证更正，取代原 2.8.0 反编译裁定）**：重投计数在接收侧追踪；消息以 `redeliveryCount >= maxRedeliverCount` 被接收时客户端登记入 DLQ 追踪表，**分流发生在该消息随后被 negative-acknowledge 时**——客户端在 `getRedeliveryMessageIdData` 管道拦截重投请求，改道发布 DLQ 副本并代为 ack 原消息；**plain ack 永不改道**。`redeliverUnacknowledgedMessages` 仅 Shared/Key_Shared 携带计数。**推论**：(a) WI22 失败终点在策略已配置且阈值达位时改走 nack（`PulsarConsumeTask.runFailureEndpoint`，WI33 F-DLQ——终结 ack 会使策略成为静默 no-op，为真机 E2E 抓出的 live defect）；配置 `maxConsumeAttempts == deadLetterMaxRedeliverCount` 使终点首次触发即达分流阈值；(b) 非 Shared 订阅配置 DLQ 时一次性 WARN（`dlq-subscription-type`），效果为 no-op；(c) 真机投递已由 WI33 Testcontainers E2E 实证（Shared 订阅 + nack 链路，DLQ topic 收到原文）。
+- **Kafka 应用级重发布（第二层，按需启用）**：`KafkaConsumerConfig.deadLetterTopic`（null=off）经包私有 `resolveDeadLetterTopic(topic)` 读取（内含自环守卫：dlq==topic 时一次性 WARN 并按 off 处理，防 terminate 无限自环）。`TerminateConsume` 失败终点在 commit 前经 `sendAsync(dlq, apiMessage, null)` + `FutureHelper.syncGet` 同步重发布——DLQ 写 durable 先于提交；发送失败透传 adapted 异常走既有失败路径重投（不加新错误码）；批量路径失败由 WI11 的 progress 回退重投。逐条 sync 发送计入 `max.poll.interval.ms` 预算；DLQ 发送持续失败的消费停摆属 at-least-once 语义，由 WI22 上限治理（当前无界，显式声明）。已知残留：DLQ 已写但后续 `commitSync` 失败 → DLQ 重复（at-least-once，可接受）。Pulsar 的 `TerminateConsume` 不做重发布（分轨裁定：其 DLQ 走原生 deadLetterPolicy 路径——分流在 nack 达阈值时触发（WI33 F-DLQ 更正）；terminate 直接 ack 计数未超限，故进不了 DLQ）。
 - **nop-retry 桥（第三层）**：`nop-message-core.MessageConsumeFailureBridge`——「失败事件 → 部署声明的重放入口」的**转发器**，非消息重放机制、零重试策略（policyId 仅部署显式提供时设置，否则引擎默认）。`IRetryEngine` 与重放目标（serviceName/serviceMethod）任一缺失 → WARN（`nop.err.message.bridge.not-configured`）零行为；payload 映射：`ApiRequest.data` = 失败 ApiMessage 原样，topic/location/attempt 经 request headers（`nop-msg-*`），idempotentId=location、groupId=topic；提交失败仅 LOG 不抛（辅助运维通道，不反噬消费）。模块图：`nop-message-core` 新增 `nop-retry-api` 依赖（api-only，无 engine 传递；BOM 登记归 WI31）。部署用法：消费者覆写 `onConsumeFailure` 调 `bridge.submit(failure)`——仅对具备消息重放 service 的部署有意义。
 - **存量交互记录（不修，本计划登记）**：Pulsar 2.8 客户端 `doReconsumeLater` 无条件解引用 `deadLetterPolicy.getRetryLetterTopic()`——未配置 DLQ 时 `ConsumeLater` → `reconsumeLaterAsync` 每次触发客户端内部 NPE→ERROR 日志噪音→原地重投（at-least-once 语义不受影响）；配置 `deadLetterMaxRedeliverCount` 后噪音以 topic:null 形态延续。处置归 Pulsar 升级或 retryLetterTopic 语义实现（roadmap Follow-up）。
 
@@ -85,7 +85,7 @@
 ### 3.6.1 F-11 与 F-39 处置（WI17）
 
 - **F-11（batchReceiveTimeout）**：裁定为**显式声明而非解耦**——SPI javadoc 声明语义映射依后端而定，Kafka 侧写明「该值用作 poll 阻塞时长并与 max.poll.interval.ms 相互约束」。被拒方案：解耦 wiring（独立 poll 时长配置）——登记优化候选。
-- **F-11/F-10 与 max.poll.interval.ms**：`maxPollIntervalMs` 可配置（默认 300000），自洽指引（须覆盖单批处理耗时 + ConsumeLater defer sleep）。真 broker 踢出时序验证归 WI33（其 charter 扩展含慢 handler 踢出场景）。
+- **F-11/F-10 与 max.poll.interval.ms**：`maxPollIntervalMs` 可配置（默认 300000），自洽指引（须覆盖单批处理耗时 + ConsumeLater defer sleep）。**WI33 真机实证**：慢 handler 踢出时序经 Testcontainers E2E 验证——handler 阻塞超过 `maxPollIntervalMs` 后客户端心跳线程主动 LeaveGroup，单条路径 commit 失败被吞（log only，无显式 seek rewind），该消息因 offset 未提交而按 `auto.offset.reset=earliest` 重投、消费组自愈续投。踢出预算须 > 空闲轮 poll 时长（pollTimeoutMs 默认 1000）。
 - **F-39 事实修正（WI17 审查）**：`max.block.ms` 耗尽时 KafkaProducer.send 走 callback（ApiException 族路由）而非同步抛；真实同步抛为 producer 已关闭/中断/未预期 runtime——已包装为失败 future，前置校验的同步 typed rejection 保持不变。
 
 ### 3.7 D11 事务语义
@@ -138,6 +138,11 @@
 
 - **nop-cluster 部署边界（owner doc 输入）**：多 JVM 部署时 Kafka 消费组自动分摊（无需 nop-cluster 协调）；Pulsar Shared 由 broker 原生分发；SysDao 每 JVM 独立轮询 + DB 状态机去重（不依赖 nop-cluster 选主）；Local 仅限单 JVM 或作为默认实现不可用于集群。广播 topic（`broadcast:` 前缀）在 Local 模型下仅达本 JVM 订阅者；跨 JVM 广播须使用 SysDao broadcast 或 broker 后端。
 - **与 WI23/WI25/WI27 的关系**：Local warn-once（WI23/F-56）、Pulsar 钳制/映射/默认 Shared（WI27/F-32）、Kafka N consumer 行为不变（WI27）——本节为集中声明而非新行为。
+
+### 3.12 真实 broker E2E 门控（WI33）
+
+- **门控语义**（属性名三处一致声明：本节、owner doc `docs-for-ai/03-modules/nop-message.md`、两测试类 javadoc）：主门 = Docker daemon 可达（`DockerClientFactory.isDockerAvailable()`，不可达时 assume 可见 SKIP，不伪造通过）；退出口 = `-Dnop.test.message.e2e.kafka=false` / `-Dnop.test.message.e2e.pulsar=false` 强制跳过；镜像前缀 = `-Dnop.test.message.e2e.registry`（默认 `docker.m.daocloud.io/`，直连 Hub 环境设空串）。broker 镜像：`apache/kafka:3.7.0`（KRaft）/ `apachepulsar/pulsar:3.0.11`（standalone；2.8.0 客户端跨大版本连通经 WI33 实证）。版本经 `testcontainers-bom` 2.0.5 单点（先例：nop-stream-connector-debezium）。
+- **平台依赖裁定（WI33 执行期发现）**：quarkus-bom 导入把 `pulsar-common`/`pulsar-transaction-common`/`pulsar-client-admin-api` 管到 4.0.9，与 `pulsar-client-original` 2.8.0 混版在构造真实 PulsarClient 时即 `NoSuchMethodError`——已在 nop-dependencies 显式对齐至 `${pulsar.version}`。真实 client 构造路径只有 WI33 E2E 覆盖，mock 单测无法暴露此类混版缺陷。
 
 ## 四、拒绝了什么
 

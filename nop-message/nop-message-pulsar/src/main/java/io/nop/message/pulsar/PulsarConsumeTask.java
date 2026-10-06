@@ -381,22 +381,37 @@ public class PulsarConsumeTask {
     }
 
     /**
-     * WI22: the failure endpoint for an exhausted message — permanent ack (the native
-     * {@code deadLetterMaxRedeliverCount} policy, when configured, diverts the message to
-     * the DLQ at exactly this ack; without the policy the message is dropped with a loud
-     * WARN). No application-level DLQ republish here — that would double-write with the
-     * native diversion. The endpoint never throws: an ack failure is WARNed and the
-     * broker's unacked-redelivery semantics take over.
+     * WI22: the failure endpoint for an exhausted message. WI33 (F-DLQ) correction of the
+     * WI21 adjudication — the 2.8 client's dead-letter diversion does NOT fire on a plain
+     * ack: it intercepts the NEGATIVE-ack redelivery request for a message that was
+     * received at {@code redeliveryCount >= maxRedeliverCount} (verified in the
+     * {@code getRedeliveryMessageIdData} pipeline and by the WI33 raw-client probe). When
+     * the native policy is configured and the threshold is met, the endpoint therefore
+     * hands the message to that mechanism (the client publishes the DLQ copy and acks the
+     * original itself — at-least-once preserved); otherwise the message is acked
+     * permanently and dropped with a loud WARN. The ConsumeFailure callback dispatches in
+     * both branches. The endpoint never throws.
      */
     private void runFailureEndpoint(ConsumeContext context, Message<Object> message,
                                     String location, int attempt, Exception e) {
-        try {
-            FutureHelper.syncGet(ackAsync(context, message));
-        } catch (Exception ackError) {
-            LOG.warn("nop.err.message.pulsar.endpoint-ack-fail:messageId={}", location, ackError);
+        PulsarConsumerConfig consumerConfig = service.defaultConsumerConfig();
+        int dlqMaxRedelivers = consumerConfig != null
+                ? consumerConfig.getDeadLetterMaxRedeliverCount() : 0;
+        if (dlqMaxRedelivers > 0 && message.getRedeliveryCount() >= dlqMaxRedelivers) {
+            pulsarConsumer.negativeAcknowledge(message.getMessageId());
+            LOG.warn("nop.message.pulsar.consume-attempt-exhausted:messageId={},attempts={} "
+                            + "- failure endpoint, native dead-letter diversion takes over"
+                            + " (nack at redeliveryCount={}, maxRedeliverCount={})",
+                    location, attempt, message.getRedeliveryCount(), dlqMaxRedelivers);
+        } else {
+            try {
+                FutureHelper.syncGet(ackAsync(context, message));
+            } catch (Exception ackError) {
+                LOG.warn("nop.err.message.pulsar.endpoint-ack-fail:messageId={}", location, ackError);
+            }
+            LOG.warn("nop.message.pulsar.consume-attempt-exhausted:messageId={},attempts={} "
+                    + "- failure endpoint, leaving the redelivery loop", location, attempt);
         }
-        LOG.warn("nop.message.pulsar.consume-attempt-exhausted:messageId={},attempts={} "
-                + "- failure endpoint, leaving the redelivery loop", location, attempt);
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
                     message.getTopicName(), location, message.getValue(), attempt, e));

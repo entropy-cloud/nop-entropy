@@ -11,6 +11,23 @@
 
     <artifactId>nop-message-pulsar</artifactId>
 
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                WI33（nop-message-encapsulation-roadmap）：真实 Pulsar broker E2E（gated——
+                docker 不可达时 assume 跳过并可见，不伪造通过）。版本经 testcontainers-bom 单点，
+                与 nop-stream-connector-debezium / nop-message-kafka 先例一致。
+            -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>2.0.5</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -52,6 +69,25 @@
             <artifactId>nop-message-core</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WI33: real-broker E2E (Docker-gated). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-pulsar</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
