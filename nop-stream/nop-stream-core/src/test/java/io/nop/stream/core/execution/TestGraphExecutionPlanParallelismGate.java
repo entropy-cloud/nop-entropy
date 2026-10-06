@@ -67,6 +67,51 @@ class TestGraphExecutionPlanParallelismGate {
         return graph;
     }
 
+    /**
+     * R6 CON-03 (plan 2326): the gate extends to SINK functions — a sink UDF
+     * implementing {@link ParallelismCheckable} (the batch-consumer shared-buffer
+     * shape: the UDF itself carries the single-consumer contract) must be
+     * consulted at plan build for the sink vertex's effective parallelism.
+     * Reverting the sink-side branch in {@code validateSourceParallelism} turns
+     * this red (nothing thrown).
+     */
+    static class GatedSinkFunction implements io.nop.stream.core.common.functions.SinkFunction<String>,
+            ParallelismCheckable {
+        int reportedParallelism = -1;
+
+        @Override
+        public void consume(String value) {
+        }
+
+        @Override
+        public void validateParallelism(int parallelism) {
+            reportedParallelism = parallelism;
+            if (parallelism > 1) {
+                throw new StreamException("single-consumer sink does not support parallelism "
+                        + parallelism);
+            }
+        }
+    }
+
+    @Test
+    void testPlanBuildConsultsSinkSideParallelismGate() {
+        GatedSinkFunction sinkUdf = new GatedSinkFunction();
+        OperatorChain chain = new OperatorChain(
+                Collections.singletonList(new io.nop.stream.core.operators.StreamSinkOperator<>(sinkUdf)));
+        JobVertex vertex = new JobVertex("sink", "sink", 2,
+                Collections.singletonList(chain), (Invokable<Void>) () -> {
+                });
+        JobGraph graph = new JobGraph("parallelism-gate-sink-test");
+        graph.addVertex(vertex);
+
+        StreamException e = assertThrows(StreamException.class, () -> GraphExecutionPlan.build(graph),
+                "plan build must fail fast for a sink that rejects parallelism > 1 (R6 CON-03)");
+        assertTrue(String.valueOf(e.getMessage()).contains("single-consumer sink"),
+                "failure must name the offending sink constraint");
+        assertEquals(2, sinkUdf.reportedParallelism,
+                "the gate must be consulted with the sink vertex's effective parallelism");
+    }
+
     @Test
     void testPlanBuildRejectsParallelismAboveOne() {
         SingleWriterSource source = new SingleWriterSource();

@@ -188,4 +188,38 @@ public class TestDebeziumEngineProperties {
         assertEquals("1",
                 DebeziumEngineConfig.buildProperties(ok, true).getProperty("record.processing.threads"));
     }
+
+    // ------------------------------------------------------------------
+    // R6 REG-03 (plan 2326): the schema.history.internal.* /
+    // offset.storage.* PREFIX families are nop-managed — extraProperties
+    // entries under these prefixes are typed-rejected (previously only the
+    // exact keys schema.history.internal / offset.storage were guarded, so
+    // suffixed overrides like schema.history.internal.jdbc.password could
+    // bypass the R5 SEC-01 guard via last-write-wins). Reverting the prefix
+    // sweep in DebeziumEngineConfig.buildProperties turns these tests red.
+    // ------------------------------------------------------------------
+
+    @Test
+    void schemaHistoryPrefixFamilyOverrideFailsLoud() {
+        DebeziumConfig config = newConfig("mysql");
+        config.setSchemaHistoryStore("file");
+        config.setSchemaHistoryPath("/tmp/cdc-reg03/schema-history.dat");
+        config.getExtraProperties().put("schema.history.internal.jdbc.password", "attacker");
+
+        NopException e = assertThrows(NopException.class,
+                () -> DebeziumEngineConfig.buildProperties(config));
+        assertTrue(String.valueOf(e.getParam("detail")).contains("nop-managed prefix"),
+                () -> "prefix-family override must fail loud: " + e.getParam("detail"));
+    }
+
+    @Test
+    void offsetStoragePrefixFamilyOverrideFailsLoud() {
+        DebeziumConfig config = newConfig("mysql");
+        config.getExtraProperties().put("offset.storage.file.filename", "/tmp/evil-offsets");
+
+        NopException e = assertThrows(NopException.class,
+                () -> DebeziumEngineConfig.buildProperties(config));
+        assertTrue(String.valueOf(e.getParam("detail")).contains("nop-managed prefix"),
+                () -> "prefix-family override must fail loud: " + e.getParam("detail"));
+    }
 }

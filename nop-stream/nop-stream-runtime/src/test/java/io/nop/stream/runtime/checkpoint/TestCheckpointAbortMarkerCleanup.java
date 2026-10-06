@@ -13,6 +13,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,9 +79,14 @@ class TestCheckpointAbortMarkerCleanup {
 
         coordinator.abortPendingCheckpoint(checkpoint, "test-abort");
 
+        // R6 CC-01 (plan 2326): abort fan-out is async — await delivery.
+        TestAwait.until("abort notifies participants with finishCommit",
+                () -> participant.finishCommits.containsKey(checkpointId));
         assertTrue(participant.finishCommits.containsKey(checkpointId),
                 "abort notifies participants with finishCommit");
         assertFalse(participant.finishCommits.get(checkpointId), "abort replays finishCommit(false)");
+        TestAwait.until("marker dropped after abort fan-out with no failing participants",
+                () -> !coordinator.checkpointSuccessMap.containsKey(checkpointId));
         assertFalse(coordinator.checkpointSuccessMap.containsKey(checkpointId),
                 "aborted epoch must not linger in checkpointSuccessMap (pre-fix: entry "
                         + "stayed forever on aborts with no failing participants)");
@@ -100,6 +106,10 @@ class TestCheckpointAbortMarkerCleanup {
 
         coordinator.abortPendingCheckpoint(checkpoint, "test-abort");
 
+        // R6 CC-01 (plan 2326): await the async fan-out; the failing participant
+        // lands in the retry cycle inside the fan-out task.
+        TestAwait.until("failing participant registered for retry cycle",
+                () -> coordinator.failedCommitParticipants.containsKey(checkpointId));
         assertTrue(coordinator.checkpointSuccessMap.containsKey(checkpointId),
                 "marker must stay while failed-commit retries may still replay it "
                         + "(pre-fix removal would make the retry default to success=true)");
@@ -187,8 +197,10 @@ class TestCheckpointAbortMarkerCleanup {
                     TaskStateSnapshot.empty(
                             new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID + "-a2", "pipeline-0", "v0", 0)));
 
-            assertTrue(participant.finishCommits.containsKey(checkpointId),
-                    "persist failure notifies participants with finishCommit(false)");
+            // R6 CC-01 (plan 2326): participant fan-out is async (off-monitor);
+            // await the fan-out executor's delivery instead of asserting inline.
+            TestAwait.until("persist failure notifies participants with finishCommit(false)",
+                    () -> participant.finishCommits.containsKey(checkpointId));
             assertFalse(failingCoordinator.checkpointSuccessMap.containsKey(checkpointId),
                     "persist-failed epoch must not linger in checkpointSuccessMap (A2': fail path "
                             + "missed the abort-path cleanup)");

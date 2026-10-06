@@ -34,7 +34,7 @@ public final class BatchConsumerSinkConnectorFactory implements IStreamSinkFacto
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
             .sink(TYPE_NAME, BatchConsumerSinkFunction.class.getName())
             .sinkConsistency(SinkConsistencyCapability.IDEMPOTENT)
-            .parallelism(ConnectorParallelism.PARALLEL)
+            .parallelism(ConnectorParallelism.SINGLE_INSTANCE)
             .recoverySemantic(ConnectorRecoverySemantic.BUFFERED_RETRY)
             .params(List.of(
                     ConnectorParamDescriptor.required("consumerProvider", OBJECT,

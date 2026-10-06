@@ -21,6 +21,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterAll;
@@ -202,7 +203,16 @@ class TestE2EJdbcTwoPhaseCommitSink {
         // Acknowledge the task → coordinator completes → finishCommit
         coordinator.acknowledgeTask(LOC_0, cpId, taskSnapshot);
 
-        // The coordinator should have called finishCommit synchronously (async disabled).
+        // R6 CC-01 (plan 2326): coordinator→participant commit fan-out is async
+        // (off-monitor) — await the JDBC commit landing instead of asserting inline.
+        TestAwait.until("coordinator finishCommit drives the JDBC commit (5 rows)",
+                () -> {
+                    try {
+                        return countRows("target_data") == 5;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                });
         // Verify data was written to JDBC via the coordinator → finishCommit → commit path.
         assertEquals(5, countRows("target_data"),
                 "Coordinator finishCommit should have driven the JDBC commit — 5 rows written (wiring verification)");

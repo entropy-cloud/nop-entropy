@@ -1712,6 +1712,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     "restart-" + (totalBefore + 1)));
             List<AssignmentPlanner.AssignmentDispatch> dispatches = Collections.emptyList();
             recoveryLock.lock();
+            String abortReasonForFanout = "global recovery (fencing epoch unknown)";
             try {
                 // Global restart strategy. The counter is incremented only here.
                 //
@@ -1756,27 +1757,31 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 long leaderEpochValue = leadership != null ? leadership.getEpoch() : 0L;
                 long newGen = recoveryGen.incrementAndGet();
                 long newEpoch = deriveHaFencingEpoch(leaderEpochValue, newGen);
+                // R6 CC-01: captured for the abort fan-out that runs in the
+                // finally (outside the lock) — see the comment there.
+                abortReasonForFanout = "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")";
 
                 // Same-leader recovery does NOT rebuild from storage — the in-memory
                 // latestCompletedCheckpoint survives within the same JVM. Only the
                 // leadership-grant path (activateAsLeader) rebuilds from storage.
                 rotateFencingEpochCoreLocked(newEpoch, FencingRotationCause.SAME_LEADER_RECOVERY);
 
-                // Abort every checkpoint that
-                // is still pending under the dead generation. Its barrier/in-flight
-                // registrations live on task attempts this recovery is about to replace,
-                // so at least some ACKs will never arrive and the pending would stall the
-                // checkpoint loop (maxConcurrent=1) for a full timeout after recovery —
-                // starving post-recovery commits in bounded runs. Aborted epochs keep
-                // their TM-side prepared transactions for subsuming (2PC semantics).
-                checkpointCoordinator.abortAllPendingCheckpoints(
-                        "global recovery #" + newCount + " (fencing epoch " + newEpoch + ")");
-
                 // Materialize the assignment under the lock; fan-out after release.
                 dispatches = assignmentPlanner.prepareAssignmentsLocked(
                         remoteDeployMode, jobGraph, pipelineSpec, checkpointStoragePath);
                 markEverAssigned(dispatches);
             } finally {
+                recoveryLock.unlock();
+                // R6 CC-01 (plan 2326): the pending-checkpoint abort fan-out
+                // (participant abort notifications) runs AFTER the recoveryLock is
+                // released — it is coordinator-side I/O that previously serialized
+                // global recovery behind slow participants (CC-01 family).
+                // Constraint: this stays INSIDE the suppression window
+                // (recoveryPending stays armed until the outer finally), so
+                // triggerCheckpoint remains rejected and no new pending can be
+                // created between the unlock and the abort (abort is CAS-idempotent
+                // regardless).
+                checkpointCoordinator.abortAllPendingCheckpoints(abortReasonForFanout);
                 // This finally only releases the lock. The dedup flag is NOT
                 // cleared here — it stays armed through the assignment fan-out,
                 // the health callback and the RECOVERY_COMPLETED event, and is
@@ -1784,7 +1789,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 // after all of those complete. See the notes at the fan-out and
                 // at the outer finally for why the suppression window extends
                 // past the locked section.
-                recoveryLock.unlock();
             }
 
             // The dedup/suppression flag stays armed THROUGH the assignment
@@ -2119,12 +2123,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         LOG.info("JobCoordinator {} became LEADER for job {} (leaderId={}, epoch={})",
                 coordinatorId, jobId, epoch.getLeaderId(), epoch.getEpoch());
 
-        this.currentLeadership = epoch;
-        this.recoveryGen.set(0);
-        // Mark active BEFORE rebuilding so the internal assignment materialization
-        // (prepareAssignmentsLocked) observes the active state.
-        this.active = true;
-
         long token = deriveHaFencingEpoch(epoch.getEpoch(), 0);
 
         // Leadership-grant rebuild runs under the same recovery lock as
@@ -2134,10 +2132,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         List<AssignmentPlanner.AssignmentDispatch> dispatches;
         recoveryLock.lock();
         try {
-            // R5 CC-02: mark active inside the lock after the rotation step so
-            // the internal assignment materialization (prepareAssignmentsLocked)
-            // observes the active state AND a rotation failure rolls back before
-            // anything observes active=true.
+            // R6 CC-03 (plan 2326): the three activation writes happen INSIDE the
+            // recovery lock, before the epoch rotation. The previous pre-lock
+            // writes raced a concurrent globalRecovery: recoveryGen was reset to 0
+            // outside the lock while recovery's own fencing-epoch derivation read
+            // currentLeadership/recoveryGen under the same lock — the interleave
+            // let a recovery-rotated epoch be clobbered back (fencing regression).
+            // The pre-lock duplicate-activation guard above still reads the
+            // fields benignly: a race there only costs one redundant rebuild,
+            // identical to the pre-fix behaviour.
+            this.currentLeadership = epoch;
+            this.recoveryGen.set(0);
+            // Mark active BEFORE rebuilding so the internal assignment materialization
+            // (prepareAssignmentsLocked) observes the active state.
             this.active = true;
             // On leadership grant, rebuild the latestCompletedCheckpoint view
             // from durable storage (failover-safe). A new coordinator JVM has a null
@@ -2266,8 +2273,17 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         }
         LOG.info("JobCoordinator {} became FOLLOWER/STANDBY for job {} (leaderEpoch={})",
                 coordinatorId, jobId, epoch == null ? "null" : (epoch.getLeaderId() + "@" + epoch.getEpoch()));
-        this.active = false;
-        this.currentLeadership = epoch;
+        // R6 CC-03 (plan 2326): same-family lock-outside write as the activation
+        // path — flip the leadership fields under the recovery lock so a concurrent
+        // globalRecovery cannot interleave between the flag flip and the epoch
+        // update.
+        recoveryLock.lock();
+        try {
+            this.active = false;
+            this.currentLeadership = epoch;
+        } finally {
+            recoveryLock.unlock();
+        }
         // In-flight checkpoints will not commit: collectAck is gated on active,
         // so further ACKs are rejected and the pending checkpoint times out /
         // is aborted by the new leader. We intentionally do NOT touch the

@@ -11,6 +11,8 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
+
+import java.util.Map;
 import io.nop.stream.core.exceptions.StreamException;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +70,34 @@ class TestWriteSideClassValidation {
                         + "instead of producing an unrestorable checkpoint");
         assertTrue(String.valueOf(e.getParam("className")).contains("javax.management"),
                 () -> "the rejection must name the offending class: " + e.getParam("className"));
+    }
+
+    /**
+     * R6 ST-07 (plan 2326): the RESTORE side keyType header also routes through
+     * the allowlist — a snapshot whose keyType header carries a non-allowlisted
+     * class must fail loud on restore (previously a raw Class.forName with only
+     * a WARN fallback). Simulated by feeding a crafted StateSnapshot into
+     * restoreState. Reverting resolveHeaderKeyType's validateClassName call
+     * turns this red (the restore would WARN and fall back).
+     */
+    @Test
+    void restoreSideDisallowedKeyTypeFailsLoud() throws Exception {
+        MemoryKeyedStateBackend<String> backend = new MemoryKeyedStateBackend<>(String.class);
+        ValueStateDescriptor<AllowedValue> desc = new ValueStateDescriptor<>("ok", AllowedValue.class);
+        backend.setCurrentKey("key1");
+        backend.getState(desc).update(new AllowedValue());
+        StateSnapshot snapshot = backend.snapshotState();
+
+        // Forge the header: swap the allowlisted keyType for a disallowed one
+        Map<String, Object> data = snapshot.getStateData();
+        assertTrue(data.replace("keyType", "javax.management.MBeanServer") != null,
+                "keyType header must be present to forge");
+        assertTrue(data.containsKey("keyType"));
+
+        MemoryKeyedStateBackend<String> restored = new MemoryKeyedStateBackend<>(String.class);
+        StreamException e = assertThrows(StreamException.class, () -> restored.restoreState(snapshot));
+        assertTrue(String.valueOf(e.getParam("className")).contains("javax.management"),
+                () -> "restore-side keyType gate must reject: " + e.getParam("className"));
     }
 
     @Test

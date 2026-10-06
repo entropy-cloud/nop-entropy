@@ -1610,6 +1610,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (paneTracking != null) {
             paneTracking.remove(paneKey);
         }
+        // R6 WIN-05 (plan 2326): the element-timestamps side store (evictor paths)
+        // shares the window's lifecycle — previously it was only cleared in the
+        // MapState fallback branch, so appending/list-state evictor windows leaked
+        // their timestamps unboundedly and stale timestamps polluted the evictor's
+        //驱逐判定 when the same namespace was reused. Promoted to a common tail.
+        clearElementTimestamps(key, stateWindow);
+
         if (newAppendingWindowState != null) {
             IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
             typedBackend.setCurrentKey(key);
@@ -1630,9 +1637,21 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         typedBackend.setCurrentKey(key);
         typedBackend.setCurrentNamespace(windowNamespace(stateWindow));
         windowContentsState.remove(WINDOW_VALUE_KEY);
-        if (elementTimestampsState != null) {
-            elementTimestampsState.remove(ELEMENT_TIMESTAMPS_KEY);
+    }
+
+    /**
+     * R6 WIN-05 (plan 2326): clears the evictor element-timestamps side store for
+     * the given state window. Null-safe: elementTimestampsState exists only when
+     * an evictor is configured.
+     */
+    private void clearElementTimestamps(K key, W stateWindow) {
+        if (elementTimestampsState == null) {
+            return;
         }
+        IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(stateWindow));
+        elementTimestampsState.remove(ELEMENT_TIMESTAMPS_KEY);
     }
 
     /**
@@ -1686,6 +1705,45 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     private void mergeWindowContents(K key, W targetWindow, Collection<W> sourceWindows) throws Exception {
         if (sourceWindows == null || sourceWindows.isEmpty()) {
             return;
+        }
+
+        // R6 WIN-05 (plan 2326): merge the evictor element-timestamps side store —
+        // source windows' timestamps concatenate onto the target (in source order,
+        // matching element order below) and the source entries are cleared. Before
+        // this, merged-away windows left their timestamps orphaned (unbounded
+        // growth) and the target's evictor judged freshness from a partial list.
+        if (elementTimestampsState != null) {
+            IKeyedStateBackend<K> typedBackend = this.getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            typedBackend.setCurrentNamespace(windowNamespace(targetWindow));
+            List<Long> mergedTimestamps = new ArrayList<>();
+            try {
+                Iterable<Long> existing = elementTimestampsState.get(ELEMENT_TIMESTAMPS_KEY);
+                if (existing != null) {
+                    existing.forEach(mergedTimestamps::add);
+                }
+            } catch (Exception e) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_DETAIL, "Failed to read target element timestamps during merge");
+            }
+            for (W sourceWindow : sourceWindows) {
+                if (sourceWindow == null || sourceWindow.equals(targetWindow)) {
+                    continue;
+                }
+                typedBackend.setCurrentNamespace(windowNamespace(sourceWindow));
+                try {
+                    Iterable<Long> sourceTimestamps = elementTimestampsState.get(ELEMENT_TIMESTAMPS_KEY);
+                    if (sourceTimestamps != null) {
+                        sourceTimestamps.forEach(mergedTimestamps::add);
+                    }
+                } catch (Exception e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Failed to read source element timestamps during merge");
+                }
+                elementTimestampsState.remove(ELEMENT_TIMESTAMPS_KEY);
+            }
+            typedBackend.setCurrentNamespace(windowNamespace(targetWindow));
+            elementTimestampsState.put(ELEMENT_TIMESTAMPS_KEY, mergedTimestamps);
         }
 
         if (newAppendingWindowState != null && mergeFunction != null) {

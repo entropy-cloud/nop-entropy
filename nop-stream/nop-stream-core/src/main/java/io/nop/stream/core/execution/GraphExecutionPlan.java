@@ -42,6 +42,7 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.region.RegionDecomposition;
 import io.nop.stream.core.jobgraph.region.RegionId;
+import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 
@@ -525,6 +526,16 @@ public class GraphExecutionPlan {
                 SourceFunction<?> sourceFunction = ((StreamSourceOperator<?>) op).getSourceFunction();
                 if (sourceFunction instanceof ParallelismCheckable) {
                     ((ParallelismCheckable) sourceFunction).validateParallelism(parallelism);
+                }
+            }
+            // R6 CON-03 (plan 2326): sink-side gate — a sink function that cannot
+            // run multi-subtask (e.g. the batch-consumer shared in-memory buffer)
+            // rejects PARALLEL deployment here instead of corrupting data at
+            // runtime. Mirrors the source-side gate above.
+            else if (op instanceof AbstractUdfStreamOperator) {
+                Object udf = ((AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof ParallelismCheckable) {
+                    ((ParallelismCheckable) udf).validateParallelism(parallelism);
                 }
             }
         }

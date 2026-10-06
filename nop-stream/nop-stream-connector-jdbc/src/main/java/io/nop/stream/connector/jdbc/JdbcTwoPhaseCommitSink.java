@@ -1031,6 +1031,17 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             throws SQLException {
         int index = 1;
         for (String col : columns) {
+            // R6 CON-02 (plan 2326): a MISSING column is a schema drift within the
+            // batch — silently writing NULL corrupts exactly-once data (only the
+            // FIRST row was pinned as the column contract). Distinguish containsKey
+            // (explicit null is legal → setNull) from absence (typed reject).
+            if (!row.containsKey(col)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Row is missing pinned column '" + col
+                                + "' (batch schema drift within keyed upsert; first row pinned "
+                                + "columns=" + columns + "); offending row keys=" + row.keySet()
+                                + " (R6 CON-02)");
+            }
             Object value = row.get(col);
             if (value == null) {
                 ps.setNull(index, Types.NULL);

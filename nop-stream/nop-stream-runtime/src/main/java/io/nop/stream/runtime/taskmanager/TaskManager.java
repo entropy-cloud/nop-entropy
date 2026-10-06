@@ -646,12 +646,46 @@ public class TaskManager implements IStreamTaskRpcService {
                 descriptor.getFencingEpoch(),
                 descriptor.getAttemptId(),
                 descriptor.getAttemptNumber());
-        RunningTask existing = runningTasks.put(taskKey, runningTask);
-        if (existing != null) {
-            LOG.warn("Slot {} already occupied (attempt={}); fencing old before redeploy",
-                    taskKey, existing.attemptId);
-            existing.cancel();
-            if (existing.semaphoreReleased.compareAndSet(false, true)) {
+        // R6 CC-02 (plan 2326): the displace decision happens INSIDE the per-key
+        // compute, atomically against a concurrent newer-generation deploy of the
+        // same slot. The previous put-then-inspect window let a LATE stale-epoch
+        // deploy displace a healthy newer task (its cancel was already underway
+        // and a post-hoc rollback could not undo it, nor race a third deploy's
+        // put). Now: an older-or-equal epoch displaces as before; a NEWER epoch
+        // already in the slot wins — this stale deploy is rejected WITHOUT
+        // touching the slot, and reports FAILED with its own (old) epoch, which
+        // the coordinator's stale-report filter drops.
+        // compute returns the NEW mapping (unlike put, which returns the OLD
+        // value) — so the displaced incumbent is captured INSIDE the lambda; a
+        // stale deploy keeps the incumbent untouched and flags the rejection.
+        RunningTask[] displacedOld = new RunningTask[1];
+        boolean[] staleRejected = new boolean[1];
+        RunningTask incumbentForError = runningTasks.compute(taskKey, (k, current) -> {
+            // R6 CC-02 (plan 2326): the decision is delegated to the pinned
+            // package-private helper (selectDisplacedTask) so the production
+            // path and the unit pin cannot drift apart.
+            RunningTask winner = selectDisplacedTask(current, runningTask);
+            displacedOld[0] = current != null && winner == runningTask ? current : null;
+            staleRejected[0] = current != null && winner == current;
+            return winner;
+        });
+        if (staleRejected[0]) {
+            // newer generation owns the slot: release this deployment's permit
+            // (same conservation rule as the reject path below) and fail loud
+            capacitySemaphore.release();
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, incumbentForError.getFencingEpoch())
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch)
+                    .param(ARG_DETAIL, "deployTask stale generation: slot " + taskKey
+                            + " already runs fencing epoch " + incumbentForError.getFencingEpoch()
+                            + " (newer than this deploy's " + fencingEpoch
+                            + "); the stale deploy is rejected and the healthy task is untouched (R6 CC-02)"));
+        }
+        if (displacedOld[0] != null) {
+            LOG.warn("Slot {} displaced older task (attempt={}); fencing old before redeploy",
+                    taskKey, displacedOld[0].attemptId);
+            displacedOld[0].cancel();
+            if (displacedOld[0].semaphoreReleased.compareAndSet(false, true)) {
                 capacitySemaphore.release();
             }
         }
@@ -1009,6 +1043,22 @@ public class TaskManager implements IStreamTaskRpcService {
     private String taskKey(TaskAssignment assignment) {
         return taskKey(assignment.getJobId(), assignment.getVertexId(), assignment.getSubtaskIndex());
     }
+
+    /**
+     * R6 CC-02 (plan 2326): the slot-displace decision, extracted package-private
+     * for the deterministic unit pin. The candidate displaces the incumbent when
+     * the slot is empty or the incumbent's generation is older-or-equal; a NEWER
+     * incumbent stays untouched (the stale candidate is rejected by the caller —
+     * its cancel would kill a healthy task and a post-hoc rollback could neither
+     * undo the cancel nor win the race against a third deploy's put).
+     *
+     * @return the task that should occupy the slot after this deploy attempt
+     */
+    static RunningTask selectDisplacedTask(RunningTask incumbent, RunningTask candidate) {
+        boolean displace = incumbent == null || incumbent.getFencingEpoch() <= candidate.getFencingEpoch();
+        return displace ? candidate : incumbent;
+    }
+
 
     static String taskKey(String jobId, String vertexId, int subtaskIndex) {
         return jobId + "/" + vertexId + "/" + subtaskIndex;

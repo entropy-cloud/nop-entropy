@@ -214,7 +214,17 @@ public class CheckpointCoordinator {
      * and {@link RejectedExecutionException} submitted after shutdown is handled inline.
      */
     private ExecutorService persistExecutor;
-    private volatile boolean isShutdown = false;
+
+    /**
+     * R6 CC-01 (plan 2326): single-thread executor for participant commit/abort
+     * fan-out (sink finishCommit file/JDBC I/O, distributed RPC) and failed-commit
+     * retries — previously run inline UNDER the coordinator monitor, serializing
+     * the whole control plane behind slow sinks/nodes. Serial (single thread)
+     * preserves the retry→current-epoch commit order and the cross-epoch ordering
+     * of the queue; bounded queue + CallerRuns mirror the tm-commit-* precedent
+     * (TaskManager commit executor).
+     */
+    private ExecutorService commitFanoutExecutor;    private volatile boolean isShutdown = false;
 
     /**
      * Dedicated single-thread executor for
@@ -981,16 +991,28 @@ public class CheckpointCoordinator {
             retentionCleaner.cleanupOldCheckpoints();
         }
 
-        // Retry previously failed commits before processing current epoch
-        retryFailedCommits();
+        // R6 CC-01 (plan 2326): participant commit fan-out (sink finishCommit
+        // file/JDBC I/O, distributed RPC) and failed-commit retries run on the
+        // dedicated commit-fanout executor — NOT under this monitor. Serial
+        // execution preserves retry→current-epoch order; the epoch's success
+        // marker is recorded before scheduling and removed in the task after
+        // notify (the abort-path gating reads failedCommitParticipants, which the
+        // task itself may populate).
+        final long fanoutCheckpointId = checkpointId;
+        getOrCreateCommitFanoutExecutor().execute(() -> {
+            try {
+                retryFailedCommits();
 
-        // Notify participants first: finishCommit in reverse topology order.
-        // §12 invariant 5: commit happens only after manifest is durable (forceComplete above).
-        notifyParticipantsFinishCommit(checkpointId, true);
+                // §12 invariant 5: commit happens only after manifest is durable (forceComplete above).
+                notifyParticipantsFinishCommit(fanoutCheckpointId, true);
+
+                checkpointSuccessMap.remove(fanoutCheckpointId);
+            } catch (Exception e) {
+                LOG.error("Commit fan-out for checkpoint {} failed", fanoutCheckpointId, e);
+            }
+        });
 
         notifyCheckpointCompleted(checkpointId);
-
-        checkpointSuccessMap.remove(checkpointId);
 
         consecutiveTriggerFailures.set(0);
 
@@ -1030,17 +1052,24 @@ public class CheckpointCoordinator {
                 pending.getTriggerTimestamp(), 0L, 0L, failMessage, CoreMetrics.currentTimeMillis()));
         pendingCheckpoints.remove(checkpointId, pending);
         decrementPendingCheckpointCount();
-        notifyParticipantsFinishCommit(checkpointId, false);
-        // A2' (plan 366): a persist-failed epoch is terminal, same as an aborted
-        // one — nothing will ever complete it, so the terminal marker
-        // notifyParticipantsFinishCommit just recorded must not linger in
-        // checkpointSuccessMap. Keep it only while failed-commit retries still
-        // need it (they replay finishCommit for this epoch using the recorded
-        // flag; removing it early would default the replay to success=true and
-        // subsume a failed epoch as committed). Mirrors the abort-path cleanup.
-        if (!failedCommitParticipants.containsKey(checkpointId)) {
-            checkpointSuccessMap.remove(checkpointId);
-        }
+        // R6 CC-01 (plan 2326): abort fan-out off the monitor (mirrors the success
+        // path). The terminal-marker removal rides in the task AFTER notify (the
+        // task may populate failedCommitParticipants).
+        final long fanoutAbortId = checkpointId;
+        getOrCreateCommitFanoutExecutor().execute(() -> {
+            try {
+                notifyParticipantsFinishCommit(fanoutAbortId, false);
+                // A2' (plan 366): a persist-failed epoch is terminal, same as an
+                // aborted one — the terminal marker must not linger in
+                // checkpointSuccessMap once failed-commit retries no longer need
+                // it (removing it early would default the replay to success=true).
+                if (!failedCommitParticipants.containsKey(fanoutAbortId)) {
+                    checkpointSuccessMap.remove(fanoutAbortId);
+                }
+            } catch (Exception e) {
+                LOG.error("Abort fan-out for checkpoint {} failed", fanoutAbortId, e);
+            }
+        });
         notifyCheckpointAborted(checkpointId);
         pending.forceFail(failMessage, cause);
     }
@@ -1051,6 +1080,18 @@ public class CheckpointCoordinator {
             persistExecutor = createPersistExecutor();
         }
         return persistExecutor;
+    }
+
+    /** R6 CC-01 (plan 2326): lazy single-thread fan-out executor (tm-commit shape). */
+    private ExecutorService getOrCreateCommitFanoutExecutor() {
+        if (commitFanoutExecutor == null) {
+            commitFanoutExecutor = new java.util.concurrent.ThreadPoolExecutor(1, 1,
+                    0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                    new java.util.concurrent.LinkedBlockingQueue<>(1000),
+                    NopStreamThreadFactory.named("checkpoint-commit-fwd-" + jobId),
+                    new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        }
+        return commitFanoutExecutor;
     }
 
     private ExecutorService createPersistExecutor() {
@@ -1087,18 +1128,29 @@ public class CheckpointCoordinator {
                 checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
                 pending.getTriggerTimestamp(), 0L, 0L, reason, CoreMetrics.currentTimeMillis()));
 
-        // Notify participants about abort: finishCommit(false) keeps prepared transactions for subsuming
-        notifyParticipantsFinishCommit(checkpointId, false);
+        // Notify participants about abort: finishCommit(false) keeps prepared
+        // transactions for subsuming.
+        // R6 CC-01 (plan 2326, closure audit M1b): the participant abort fan-out
+        // (sink abort I/O) runs on the commit-fanout executor, NOT under this
+        // monitor.
+        final long fanoutAbortCheckpointId = checkpointId;
+        getOrCreateCommitFanoutExecutor().execute(() -> {
+            try {
+                notifyParticipantsFinishCommit(fanoutAbortCheckpointId, false);
 
-        // An aborted epoch is terminal — nothing will
-        // ever complete it, so the terminal marker notifyParticipantsFinishCommit
-        // just recorded must not linger. Drop it unless failed-commit retries
-        // still need it (they replay finishCommit for this epoch using the
-        // recorded flag; removing it early would make getOrDefault default the
-        // replay to success=true, subsuming an aborted epoch as committed).
-        if (!failedCommitParticipants.containsKey(checkpointId)) {
-            checkpointSuccessMap.remove(checkpointId);
-        }
+                // An aborted epoch is terminal — nothing will ever complete it,
+                // so the terminal marker must not linger. Drop it unless
+                // failed-commit retries still need it (they replay finishCommit
+                // for this epoch using the recorded flag; removing it early would
+                // make getOrDefault default the replay to success=true,
+                // subsuming an aborted epoch as committed).
+                if (!failedCommitParticipants.containsKey(fanoutAbortCheckpointId)) {
+                    checkpointSuccessMap.remove(fanoutAbortCheckpointId);
+                }
+            } catch (Exception e) {
+                LOG.error("Abort fan-out for checkpoint {} failed", fanoutAbortCheckpointId, e);
+            }
+        });
 
         notifyCheckpointAborted(checkpointId);
 
@@ -1537,6 +1589,22 @@ public class CheckpointCoordinator {
                 }
             } catch (InterruptedException e) {
                 pe.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // R6 CC-01 (plan 2326): participant commit/abort fan-out executor shares
+        // the terminal-only lifecycle (grace window drains queued fan-outs so a
+        // shutdown racing a completion still delivers the epoch's commits).
+        ExecutorService fe = commitFanoutExecutor;
+        if (fe != null) {
+            fe.shutdown();
+            try {
+                if (!fe.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+                    fe.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                fe.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }

@@ -347,6 +347,14 @@ public class RemoteGraphExecutionPlanBuilder {
                             .validateParallelism(parallelism);
                 }
             }
+            // R6 CON-03 (plan 2326): sink-side gate — mirrors the embedded builder.
+            else if (op instanceof io.nop.stream.core.operators.AbstractUdfStreamOperator) {
+                Object udf = ((io.nop.stream.core.operators.AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
+                if (udf instanceof io.nop.stream.core.common.functions.source.ParallelismCheckable) {
+                    ((io.nop.stream.core.common.functions.source.ParallelismCheckable) udf)
+                            .validateParallelism(parallelism);
+                }
+            }
         }
     }
 

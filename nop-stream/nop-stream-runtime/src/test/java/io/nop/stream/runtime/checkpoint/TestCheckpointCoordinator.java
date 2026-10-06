@@ -415,7 +415,10 @@ class TestCheckpointCoordinator {
 
         pending.getCompletableFuture().get();
 
-        assertNotNull(lastSuccessValue.get(), "finishCommit should have been called");
+        // R6 CC-01 (plan 2326): participant fan-out is async (off-monitor) —
+        // await the fan-out executor's delivery instead of asserting inline.
+        TestAwait.until("finishCommit should have been called",
+                () -> lastSuccessValue.get() != null);
         assertTrue(lastSuccessValue.get(), "First commit should use success=true");
     }
 
@@ -506,6 +509,9 @@ class TestCheckpointCoordinator {
 
         pending.getCompletableFuture().get();
 
+        // R6 CC-01 (plan 2326): await the async fan-out delivery.
+        TestAwait.until("finishCommit should be called exactly once with no tight retry loop",
+                () -> callCount.get() == 1);
         assertEquals(1, callCount.get(), "finishCommit should be called exactly once with no tight retry loop");
     }
 

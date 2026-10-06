@@ -1089,6 +1089,17 @@ public class CepOperator<IN, KEY, OUT>
             TreeSet<Long> timers = registeredEventTimeTimersByKey.get(key);
             if (timers != null) {
                 timers.removeIf(timer -> timer <= time);
+                // R6 CEP-01 (plan 2326): chain-re-arm the NEXT pending timer for
+                // this key. The drain consumed everything due at `time`, but the
+                // ledger may still hold LATER buckets whose wall-clock registration
+                // was consumed by the previous fire — without this re-arm they
+                // never trigger (R5 CEP-7 fixed the restore side; this closes the
+                // fire side of the same chain). Mirrors the open() re-arm shape.
+                if (isProcessingTime && !timers.isEmpty() && getProcessingTimeService() != null) {
+                    internalTimerService.registerProcessingTimeTimer(
+                            io.nop.stream.core.common.state.VoidNamespace.INSTANCE,
+                            timers.first() + 1);
+                }
                 if (timers.isEmpty()) {
                     registeredEventTimeTimersByKey.remove(key);
                 }
@@ -1125,6 +1136,17 @@ public class CepOperator<IN, KEY, OUT>
             TreeSet<Long> timers = registeredEventTimeTimersByKey.get(key);
             if (timers != null) {
                 timers.removeIf(timer -> timer <= time);
+                // R6 CEP-01 (plan 2326): chain-re-arm the NEXT pending timer for
+                // this key. The drain consumed everything due at `time`, but the
+                // ledger may still hold LATER buckets whose wall-clock registration
+                // was consumed by the previous fire — without this re-arm they
+                // never trigger (R5 CEP-7 fixed the restore side; this closes the
+                // fire side of the same chain). Mirrors the open() re-arm shape.
+                if (isProcessingTime && !timers.isEmpty() && getProcessingTimeService() != null) {
+                    internalTimerService.registerProcessingTimeTimer(
+                            io.nop.stream.core.common.state.VoidNamespace.INSTANCE,
+                            timers.first() + 1);
+                }
                 if (timers.isEmpty()) {
                     registeredEventTimeTimersByKey.remove(key);
                 }

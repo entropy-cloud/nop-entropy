@@ -172,6 +172,19 @@ public class RunningTask implements Runnable {
                 owner.capacitySemaphore.release();
             }
 
+            // R6 CC-04 (plan 2326, bounded face): when the LAST task of a source
+            // vertex leaves this JVM (no other running task shares the vertex),
+            // release its LOCAL source-coordinator registry entry — the registry
+            // is JVM-static and previously had NO distributed unregister path, so
+            // SplitEnumerators leaked per (vertexId x redeploy) and cross-JOB
+            // same-JVM redeploys could read a foreign coordinator. Generation
+            // guard: only sweep when no live/retained entry for the same vertex
+            // remains (redeployment and post-finish commit retention above keep
+            // their entries). The (jobId, vertexId) key upgrade itself requires
+            // jobId at operator-creation time (recorded deviation — successor:
+            // distributed source wiring).
+            maybeReleaseSourceCoordinatorRegistryEntry();
+
             // Per-task terminal-state report to the coordinator. Only
             // COMPLETED / FAILED are reported (CANCELED is initiated by the
             // coordinator itself, no need to echo back). #24 — failure to
@@ -334,4 +347,52 @@ public class RunningTask implements Runnable {
     public String getVertexId() { return vertexId; }
     public int getSubtaskIndex() { return subtaskIndex; }
     public TaskLocation getTaskLocation() { return taskLocation; }
+
+    /**
+     * R6 CC-04 (plan 2326): sweeps this task's LOCAL source-coordinator registry
+     * entry when no other task for the same vertexId remains in this JVM. The
+     * registry is JVM-static ({@code SourceCoordinatorRegistry}) and the
+     * distributed deploy path never unregistered — every (vertexId x redeploy)
+     * leaked a SplitEnumerator, and a same-JVM different-job redeploy of the
+     * same vertexId would adopt the foreign coordinator.
+     */
+    private void maybeReleaseSourceCoordinatorRegistryEntry() {
+        boolean vertexStillPresent = owner.runningTasks.values().stream()
+                .anyMatch(t -> t != this && vertexId.equals(t.vertexId));
+        if (vertexStillPresent) {
+            return;
+        }
+        int numericVertexId = parseNumericVertexId(vertexId);
+        if (numericVertexId < 0) {
+            // not a "vertex-<id>" source vertex (or non-standard naming) — the
+            // registry has no entry under any key we could safely derive
+            return;
+        }
+        try {
+            io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry.unregister(numericVertexId);
+        } catch (Exception e) {
+            TaskManager.LOG.warn("Failed to release source coordinator registry entry for vertex {}",
+                    vertexId, e);
+        }
+    }
+
+    /**
+     * The registry is keyed by Integer transformation id (see the recorded
+     * deviation in plan 2326 — the (jobId, vertexId) key upgrade is successor
+     * work that needs jobId at operator-creation time). The sweep only fires for
+     * the exact "vertex-<id>" naming (parsed back to the same Integer the
+     * SourceReaderOperator registered under) AND when no other running task
+     * shares the vertex — concurrent same-vertex multi-job in one JVM remains
+     * the documented v1 limitation.
+     */
+    private static int parseNumericVertexId(String vertexId) {
+        if (vertexId == null || !vertexId.startsWith("vertex-")) {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(vertexId.substring("vertex-".length()));
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
 }

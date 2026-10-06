@@ -156,8 +156,22 @@ public class DebeziumEngineConfig {
         // 心跳配置
         props.setProperty("heartbeat.interval.ms", String.valueOf(config.getHeartbeatInterval().toMillis()));
         // 额外属性
+        // R6 REG-03 (plan 2326): 整前缀族拒绝——R5 SEC-01 只钉了精确键
+        // schema.history.internal/offset.storage，但这两个 Debezium 前缀下的全部子键
+        // （如 schema.history.internal.jdbc.url/user/password/table.name、
+        // offset.storage.file.filename）同样由 nop 装配/信任域管理，last-write-wins
+        // 合并让前缀形态全部可旁路。按前缀整族拒绝与 WI7 信任域纪律一致，
+        // 且天然覆盖 Debezium 未来新增子键。
         for (Map.Entry<String, String> entry : config.getExtraProperties().entrySet()) {
-            props.setProperty(entry.getKey(), entry.getValue());
+            String key = entry.getKey();
+            if (key != null && (key.startsWith("schema.history.internal.")
+                    || key.startsWith("offset.storage."))) {
+                throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                        .param("detail", "extraProperties key '" + key + "' falls under a nop-managed "
+                                + "prefix (schema.history.internal.* / offset.storage.* are assembled by "
+                                + "nop or pinned to the trust domain); override is not allowed (R6 REG-03)");
+            }
+            props.setProperty(key, entry.getValue());
         }
         return props;
     }

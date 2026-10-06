@@ -20,6 +20,7 @@ import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.execution.GraphModelCheckpointExecutor;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -100,6 +101,9 @@ class TestExactlyOnceCorrectnessFixes {
         coordinator.acknowledgeTask(loc, pending2.getCheckpointId(), new TaskStateSnapshot(loc));
         pending2.getCompletableFuture().get();
 
+        // R6 CC-01 (plan 2326): retry cycle runs on the async fan-out — await it.
+        TestAwait.until("deferred retry succeeds",
+                () -> commitSuccesses.get() >= 1);
         assertTrue(commitSuccesses.get() >= 1,
                 "commit should succeed after deferred retry, attempts=" + commitAttempts.get());
 
@@ -167,6 +171,9 @@ class TestExactlyOnceCorrectnessFixes {
         CompletedCheckpoint completed2 = (CompletedCheckpoint) pending2.getCompletableFuture().get();
         assertNotNull(completed2);
 
+        // R6 CC-01 (plan 2326): retry runs on the async fan-out — await it.
+        TestAwait.until("previously failed epoch retried",
+                () -> committedEpochs.contains(pending1.getCheckpointId()));
         assertTrue(committedEpochs.contains(pending1.getCheckpointId()),
                 "Previously failed epoch should be retried on next checkpoint");
 

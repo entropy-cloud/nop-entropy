@@ -45,7 +45,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * unsynchronized. If a future execution model introduces concurrency,
  * synchronization must be added here.</p>
  */
-public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, ConnectivityCheckable, AutoCloseable {
+public class BatchConsumerSinkFunction<R>
+        implements SinkFunction<R>, ConnectivityCheckable, AutoCloseable,
+        io.nop.stream.core.common.functions.source.ParallelismCheckable {
 
     private static final Logger LOG = LoggerFactory.getLogger(BatchConsumerSinkFunction.class);
     private static final long serialVersionUID = 1L;
@@ -58,6 +60,25 @@ public class BatchConsumerSinkFunction<R> implements SinkFunction<R>, Connectivi
     private final List<R> buffer;
     private final IBatchTaskContext taskContext;
     private transient boolean flushed = false;
+
+    /**
+     * R6 CON-03 (plan 2326): the buffer is a shared non-synchronized in-memory
+     * list with a documented single-consumer contract — PARALLEL deployment would
+     * corrupt records. Declared via the capability descriptor (SINGLE_INSTANCE)
+     * AND enforced here at plan-build time (the descriptor alone has no
+     * deployment-time consumer).
+     */
+    @Override
+    public void validateParallelism(int parallelism) {
+        if (parallelism > 1) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE)
+                    .param("detail", "batch-consumer sink supports SINGLE_INSTANCE deployment only: "
+                            + "its buffer is a shared non-synchronized in-memory list with a "
+                            + "single-consumer contract (parallelism=" + parallelism
+                            + " requested). R6 CON-03");
+        }
+    }
 
     public BatchConsumerSinkFunction(IBatchConsumerProvider<R> consumerProvider) {
         this(consumerProvider, 100);

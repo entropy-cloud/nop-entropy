@@ -92,6 +92,7 @@
 - **2325**: AR-01 + CON-01 + ST-03 + TE-01（fail-closed 错误路径与测试保护族）。**已完成**（AR-01 错误优先级 + tracker 边界钉；CON-01 来源判别守卫——恢复条目 recover-safe/本 run 撞键 fail-fast，双面钉 + 2 既有测试迁移诚实入口；ST-03 Memory+RocksDB 写侧同规则校验（closure audit M2 整改后三入口全闭合含 keyType 头 + rocksdb 钉）；TE-01 真驱动终止派发 + 盘上类型断言，变异探针实测；TE-02 诚实化改名）。
 
 其余 P2×28 / P3×49 / BG×8 按治理批次惯例进入后续轮次（R5 先例）；驳回项（CEP-02、BG-5、REG-04 降级裁定等）不再重开。
+- **2326**（治理批次一）：可达 P2 正确性 11 条已闭合——CC-03/CC-02/CC-04泄漏面/CC-01/FLOW-01/FLOW-02/CEP-01/CON-02/CON-03/WIN-05/REG-03/ST-07。Commit 待回填；ST-04/05/06、AR-04 前半（特性门控）与 RD/PF/TE-04/ST-08/REG-07 残留（治理二）按 Deferred 裁定留后续。
 
 ## 本次审核盲区自评
 

@@ -35,6 +35,7 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -171,6 +172,9 @@ class TestCheckpointParticipantIntegration {
         assertNotNull(completed);
 
         // Verify finishCommit was called with success=true
+        // R6 CC-01 (plan 2326): fan-out is async — await delivery.
+        TestAwait.until("finishCommit(true) called on checkpoint completion",
+                () -> participantActions.contains("finishCommit:" + cpId + ":true"));
         assertTrue(participantActions.contains("finishCommit:" + cpId + ":true"),
                 "finishCommit(true) should be called on checkpoint completion. Actions: " + participantActions);
         assertEquals(1, finishCommitCount.get());
@@ -208,6 +212,9 @@ class TestCheckpointParticipantIntegration {
         // Abort the checkpoint
         coordinator.abortPendingCheckpoint(pending, "test abort");
 
+        // R6 CC-01 (plan 2326): await the async abort fan-out.
+        TestAwait.until("finishCommit(false) called on checkpoint abort",
+                () -> participantActions.contains("finishCommit:" + cpId + ":false"));
         assertTrue(participantActions.contains("finishCommit:" + cpId + ":false"),
                 "finishCommit(false) should be called on checkpoint abort. Actions: " + participantActions);
     }
@@ -238,6 +245,9 @@ class TestCheckpointParticipantIntegration {
         CompletedCheckpoint completed = pending.getCompletableFuture().get(5, TimeUnit.SECONDS);
         assertNotNull(completed);
 
+        // R6 CC-01 (plan 2326): await the async fan-out (reverse order preserved
+        // by the serial executor).
+        TestAwait.until("All 3 participants called", () -> finishOrder.size() == 3);
         assertEquals(3, finishOrder.size(), "All 3 participants should be called");
         // Reverse order: p3 first, then p2, then p1
         assertEquals("p3", finishOrder.get(0), "p3 should be called first (reverse order)");

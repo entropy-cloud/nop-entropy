@@ -473,6 +473,14 @@ class MemoryStateSerDe {
         if (Object.class.getName().equals(name)) {
             return Object.class;
         }
+        // R6 ST-07 (plan 2326): route through the restore allowlist instead of a
+        // raw Class.forName — the header is attacker-influenced durable input and
+        // must satisfy the same class gate as every other restore-side load
+        // (loadClass/loadAccumulatorClass). Compatibility: snapshots written
+        // before plan 2325 with a non-allowlisted keyType previously degraded to
+        // a WARN + declared-type fallback; they now fail loud (intended
+        // tightening — such snapshots were never restorable to a typed key).
+        ClassNameValidator.validateClassName(name);
         try {
             return Class.forName(name);
         } catch (ClassNotFoundException e) {

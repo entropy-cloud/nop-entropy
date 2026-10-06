@@ -164,6 +164,16 @@ public class CepPatternBuilder {
 
     @SuppressWarnings("rawtypes")
     private Pattern addQualifier(Pattern pattern, CepPatternPartModel partModel) {
+        // R6 FLOW-01 (plan 2326): windowTime is only consumed by the quantifier
+        // branches below — a declaration without one was silently dropped (the
+        // within window never applied). Typed reject instead (no-silent-drop).
+        if (partModel.getWindowTime() != null && !partModel.isOneOrMore()
+                && partModel.getTimes() == null && partModel.getTimesOrMore() == null) {
+            throw new MalformedPatternException(ERR_CEP_MALFORMED_PATTERN)
+                    .param(ARG_PATTERN_DETAIL, "part declares windowTime but no quantifier "
+                            + "(oneOrMore/times/timesOrMore) — the within window has nothing to "
+                            + "apply to; add a quantifier or remove windowTime (R6 FLOW-01)");
+        }
         if (partModel.getSubType() != null) {
             try {
                 pattern.subtype(ClassHelper.safeLoadClass(partModel.getSubType()));

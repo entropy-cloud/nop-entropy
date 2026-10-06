@@ -471,6 +471,22 @@ public final class StreamModelDslBuilder {
 
         List<StreamTransformModel> ordered = topologicalOrderTransforms(byId, upstreams, edges);
 
+        // R6 FLOW-02 (plan 2326): an edge INTO a source was previously accepted
+        // and then silently ignored by buildSource (which never consumes
+        // upstreamIds) — the declared dependency vanished. Typed reject, run
+        // AFTER the cycle check so a cyclic graph still reports its dedicated
+        // ERR_STREAM_CYCLIC_JOB_GRAPH (the cycle tests pin that code).
+        for (StreamEdgeModel e : edges) {
+            if (byId.get(e.getTo()) instanceof StreamSourceModel) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_ELEMENT, "edge '" + e.getId() + "'")
+                        .param(ARG_DETAIL, "edge '" + e.getId() + "' targets source transform '"
+                                + e.getTo() + "'; sources consume no upstream input — declare the "
+                                + "edge from the source instead (R6 FLOW-02)")
+                        .loc(e.getLocation());
+            }
+        }
+
         for (StreamTransformModel t : ordered) {
             Object built = buildTransform(env, t, upstreams.get(t.getId()));
             streamRegistry.put(t.getId(), built);
