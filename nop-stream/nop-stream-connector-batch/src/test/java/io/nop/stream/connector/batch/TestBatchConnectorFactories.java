@@ -92,7 +92,10 @@ public class TestBatchConnectorFactories {
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("batch-consumer", d.getTypeName());
         assertEquals(d.getSinkConsistency(), sink.getSinkConsistency());
-        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
+        // R6 CON-03 (plan 2326): SINGLE_INSTANCE — the shared non-synchronized
+        // buffer has a single-consumer contract; PARALLEL deployment is rejected
+        // at plan-build time by BatchConsumerSinkFunction#validateParallelism.
+        assertEquals(ConnectorParallelism.SINGLE_INSTANCE, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.BUFFERED_RETRY, d.getRecoverySemantic());
     }
 

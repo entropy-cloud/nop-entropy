@@ -155,9 +155,13 @@ public class TestStreamConnectorRegistryDiscovery {
                 "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
                 "jdbcTemplate", "tableName");
+        // R6 CON-03 (plan 2326): batch-consumer is SINGLE_INSTANCE — the shared
+        // non-synchronized buffer has a single-consumer contract; PARALLEL
+        // deployment is rejected at plan-build time by
+        // BatchConsumerSinkFunction#validateParallelism
         assertDescriptor(ConnectorDirection.SINK, "batch-consumer",
                 "io.nop.stream.connector.batch.BatchConsumerSinkFunction",
-                "IDEMPOTENT", ConnectorParallelism.PARALLEL,
+                "IDEMPOTENT", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.BUFFERED_RETRY, "consumerProvider");
     }
 
