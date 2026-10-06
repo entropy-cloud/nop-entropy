@@ -7,8 +7,20 @@
  */
 package io.nop.stream.cep;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.util.Objects;
 
+/**
+ * R6 plan 2323 follow-up: this fixture enters checkpointed keyed state in the
+ * CEP checkpoint/restore E2Es, so it must satisfy the platform serialization
+ * contract — only {@code @DataBean} classes participate in JSON checkpointing
+ * (the same rule the R5 freezeRawValue and the R6 payload-leaf freeze enforce
+ * at snapshot time). Without the annotation the snapshot-time defensive copy
+ * fails fast with only-data-bean (previously these in-memory E2Es never
+ * triggered the JSON persist path, so the gap stayed invisible).
+ */
+@DataBean
 public class Event {
     private int id;
     private String name;
