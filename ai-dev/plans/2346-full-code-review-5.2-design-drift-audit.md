@@ -43,12 +43,12 @@
 
 ### Phase 1 - 扫描与抽样（双 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: ai-dev/design
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
 - [ ] 机械基线：274 文件清单、草稿态 grep 模式写死、抽样表选取（≥10 子系统）、历次深审 drift 对照清单
 - [ ] 草稿态扫描 agent：机械全量 grep + 命中逐个裁定
 - [ ] drift 抽样 agent：≥10 子系统抽 1-2 篇核心设计文档对照 live（每篇 ≥3 条核对声明）
