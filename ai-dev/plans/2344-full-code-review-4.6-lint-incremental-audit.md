@@ -47,12 +47,12 @@
 
 ### Phase 1 - 深挖（单 agent 分批）
 
-Status: planned
+Status: in progress
 Targets: 三个新子模块 + core 残留面
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
 - [ ] 机械基线：三新子模块文件清单、core 残留面账本对账清单、git log 变更登记、测试资产 find 实测
 - [ ] 深审 agent：三新子模块深审（js 适配表/CLI 扩展 + maven-plugin check goal 管线复用验证 + graphql 规则面）+ 路径三分法/白名单 fail-closed 语义横切核对 + core 残留面账本复核
 - [ ] 裁定复核迭代：初稿完成后主 agent 抽查质量（以「三个新子模块全深审 + fail-closed 语义有结论 + 残留面有对账」为完成判据）
