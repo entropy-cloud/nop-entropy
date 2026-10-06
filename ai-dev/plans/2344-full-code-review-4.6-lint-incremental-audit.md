@@ -1,6 +1,6 @@
 # 2344 full-code-review 4.6 nop-lint 增量首审（v6）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 4.6（MA4，v6 增补）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 02/09/16 + 共享前缀）
 > Related: Roadmap Details：「nop-lint 三个新子模块（js 2026-09-22 / maven-plugin 2026-09-24 / graphql 2026-09-25 入库）：语言适配表与 CLI 扩展、maven 插件 check goal 零新管线语义、路径三分法与规则白名单 fail-closed 语义；tool-replacement roadmap 收口（2026-10-03 账本对账）后的残留裁定面复核」。
@@ -47,72 +47,72 @@
 
 ### Phase 1 - 深挖（单 agent 分批）
 
-Status: in progress
+Status: completed
 Targets: 三个新子模块 + core 残留面
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
-- [ ] 机械基线：三新子模块文件清单、core 残留面账本对账清单、git log 变更登记、测试资产 find 实测
-- [ ] 深审 agent：三新子模块深审（js 适配表/CLI 扩展 + maven-plugin check goal 管线复用验证 + graphql 规则面）+ 路径三分法/白名单 fail-closed 语义横切核对 + core 残留面账本复核
-- [ ] 裁定复核迭代：初稿完成后主 agent 抽查质量（以「三个新子模块全深审 + fail-closed 语义有结论 + 残留面有对账」为完成判据）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-4.6-lint.md`
+- [x] 机械基线：三新子模块文件清单、core 残留面账本对账清单、git log 变更登记、测试资产 find 实测
+- [x] 深审 agent：三新子模块深审（js 适配表/CLI 扩展 + maven-plugin check goal 管线复用验证 + graphql 规则面）+ 路径三分法/白名单 fail-closed 语义横切核对 + core 残留面账本复核
+- [x] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据达成：三子模块全深审 + fail-closed 10 项有结论 + 残留面三层对账）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-4.6-lint.md`
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] fail-closed 语义核对结论 + 残留面对账结论落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] fail-closed 语义核对结论 + 残留面对账结论落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 账本对账独立验证
-- [ ] 主 agent 汇总：判级统一、与 tool-replacement roadmap（successor 域）协调
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 账本对账独立验证（11/11 保留原判级；09-01 JDK 26 独立复现；fail-closed 抽 4/10 亲核）
+- [x] 主 agent 汇总：判级统一、与 tool-replacement roadmap（successor 域）协调（3 项账本漂移交该 roadmap 维护）
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-4.6-lint-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-4.6-lint-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `4.6-lint-incremental-audit.md`；index 登记 4.6 行（如有 P2 走「P2 裁决台账」通道）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：`./mvnw test -pl <审计域有测试资产的模块列表，Phase 1 实测后填写>`（不带 -am——**显式偏离裁定：-am 拉入两个已归因预存失败〔nop-stream-runtime TestStreamConnectorRegistryDiscovery、nop-sys-dao 测试编译断裂，2.8/3.5 域登记，同 plan 2339-2343 先例〕**；如遇失败归因预存并登记）
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 4.6 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `4.6-lint-incremental-audit.md`；index 登记 4.6 行（P2×4 进 R1.0 输入池）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 定向验证锚点：复核员独立复现 NPE（JDK 26.0.1）+ fail-closed 抽 4/10 亲核 + 三层账本逐字对照；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——七项核验全过）；通过后 roadmap 4.6 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 定向测试 PASS，或失败已归因预存并登记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 定向测试 PASS，或失败已归因预存并登记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以定向 test 运行为验证锚点。
 
-- [ ] 报告落盘且三新子模块/fail-closed 语义/残留面对账全覆盖——覆盖度量：js/maven-plugin/graphql 各自深审结论 + fail-closed 语义核对表 + 残留面对账表
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 4.6 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且三新子模块/fail-closed 语义/残留面对账全覆盖——覆盖度量：js/maven-plugin/graphql 各自深审结论 + fail-closed 语义核对表 + 残留面对账表
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 4.6 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -124,14 +124,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: nop-lint 增量首审计划收口。报告 `4.6-lint-incremental-audit.md` 落盘：通过无 P0/P1 附 P2×4/P3×7（净 11 条，零驳回）。**maven-plugin「零新管线语义」成立**（代码追踪 7 行逐点同型 CLI）；**fail-closed 10 项语义点全部成立**（namespace 既住裁定复核准确）；三层账本对账残余项现状一致、重估触发均未到；js 适配面合格。复核加强三项（09-01 JDK 26 独立复现/09-02 FakeTscPeer 不建模/02-01 未接线校准）+ 账本漂移 3 项（纪律面移交 tool-replacement 维护）透明记载。closure audit 七项核验全过一次 PASS（处方 R1 index 行/R2 log 补记已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_3b17e96b-1dc6-4d41-a208-7af3a08c5dcc（fresh session，只读 closure auditor；一次 PASS 附 R1/R2/R3 补记处方）
+- Evidence:
+  - 计数勾稽：P0=0/P1=0/P2=4/P3=7=11 ↔ 报告实点 ↔ index 4.6 行（0/0/4/7——R1 落实）↔ 映射表 11 行 ↔ 复核净账 11/11 保留
+  - P1/P0 台账：两表无 4.6 新增正确
+  - 关键判定亲读 4/4：NopLintBizModel.checkFile:128-132 触发链五环 + auditor 独立复现 NPE（JDK 26.0.1）/CheckMojo:58 threadSafe + 未接线 grep 复证/select():307-329 silent-empty/FileNamespaceHandler 含 store/ 段实存 + 默认放行亲核
+  - 格式：抽 4 条 9/9 要素齐备
+  - special 交付物 3/3 齐备（maven-plugin 7 行逐点表/fail-closed 10 行/三层账本对账 + 漂移 3 项）
+  - 验证：doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员独立复现 + closure auditor 亲读为锚
+  - Deferred 项分类检查：无 deferred；P2×4 进 R1.0 输入池（09-01 排期最优先建议/16-01 升级触发条款）；P3×7 watch-only；账本漂移 3 项移交 tool-replacement roadmap 维护，无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×4 修复归属 R1.0 分族〔09-01 排期最优先/16-01 升级触发条款/02-01 对采用者触发〕；P3×7 watch-only；账本纪律漂移 3 项移交 tool-replacement roadmap 维护）
