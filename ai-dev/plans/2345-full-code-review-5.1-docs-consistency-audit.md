@@ -45,12 +45,12 @@
 
 ### Phase 1 - 抽样对照（双 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: docs-for-ai 02/03 + INDEX
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
 - [ ] 机械基线：02-core-guides 与 03-modules 文件清单（抽样表选取）、已知 drift 撞车清单（3.5/3.8 等）
 - [ ] core-guides 抽样 agent：≥6 篇逐篇对照（**每篇最低验证密度：≥5 条已核对声明、逐条 doc:line + code file:line 锚**）+ 已知 drift 撞车核对
 - [ ] modules+INDEX 抽样 agent：03-modules ≥6 篇逐篇对照（同密度）+ 已知 drift 撞车核对 + INDEX 路由抽查（**含「默认规则」节 :31 8 条逐条核验——与 P1-2.6-001 同族「@BizMutation 自动进事务」表述**）+ source-anchors.md 锚点有效性核对
