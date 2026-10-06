@@ -112,6 +112,18 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
     private transient NopStreamOffsetBackingStore offsetStore;
 
     /**
+     * WI9 data-migration contract (ai-dev/design/nop-orm-data-migration-pipeline-design.md §4.2):
+     * first-run CDC offset seeding. When non-null and the job has NO prior checkpoint
+     * ({@code state == null}), the offset store is seeded with these entries AFTER the AR-03
+     * stale-registry clear, so the engine resumes from the orchestrator-pinned position P0
+     * (with {@code snapshot.mode=never}) instead of starting fresh. Serialized form is
+     * {@code NopStreamOffsetBackingStore.toSerializable} (base64 key/value), which survives
+     * Java serialization of this function. On recovery paths ({@code state != null}) the seed
+     * is ignored — the checkpoint remains the single source of truth.
+     */
+    private Map<String, String> initialOffsets;
+
+    /**
      * B-layer sharding identity (cdc-design.md §3.3): this copy's subtask index and the
      * total parallelism recorded at {@link #validateParallelism(int)} time. Defaults to the
      * single-instance identity (0, 1) — every pre-existing single-instance behavior is the
@@ -172,6 +184,20 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      */
     public NopStreamOffsetBackingStore getOffsetStore() {
         return offsetStore;
+    }
+
+    /**
+     * WI9 first-run offset seeding (data-migration pipeline, design §4.2). The serialized map
+     * is injected before deployment; it only takes effect on the true first run (no prior
+     * checkpoint), keeping the AR-03 no-stale-inheritance semantics intact.
+     */
+    public void setInitialOffsets(Map<String, String> initialOffsets) {
+        this.initialOffsets = initialOffsets;
+    }
+
+    /** Test visibility: the persistent first-run seed (may be null). */
+    Map<String, String> getInitialOffsetsForTest() {
+        return initialOffsets;
     }
 
     /**
@@ -372,6 +398,10 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             // previous run in the same JVM (crashed run / redeploy / another pipeline reusing
             // the connector name), then create an empty store so the engine starts fresh.
             this.offsetStore = newFreshOffsetStore();
+            // WI9 data-migration seeding (design §4.2): after the AR-03 stale clear, seed the
+            // orchestrator-pinned position P0 so the engine resumes from P0 (snapshot.mode=never)
+            // instead of starting fresh. Only the "no CDC offset truth" runs consume the seed.
+            seedOffsetStoreIfPresent();
             return;
         }
 
@@ -381,6 +411,10 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             // silently dropping the offset: clear stale static-registry offsets and bind an
             // empty store.
             this.offsetStore = newFreshOffsetStore();
+            // WI9 seeding applies here too: the core runtime's first-run path passes a NON-null
+            // empty TaskStateSnapshot (StreamSourceOperator builds one when no prior checkpoint
+            // exists), so the seed must be honored on every "no CDC offset truth" path.
+            seedOffsetStoreIfPresent();
             return;
         }
 
@@ -407,6 +441,21 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         String name = resolveConnectorName();
         NopStreamOffsetBackingStore.clearConnector(name);
         return NopStreamOffsetBackingStore.forConnector(name);
+    }
+
+    /**
+     * WI9 data-migration seeding (design §4.2 contract): apply the injected P0 seed to the
+     * freshly-cleared first-run store. {@code NopStreamOffsetBackingStore.setOffsets} has REPLACE
+     * semantics, so the seed deterministically supersedes any stale same-JVM registry leftovers.
+     * Restore paths with a real checkpoint offset never reach this (seed ignored there — the
+     * checkpoint is the single source of truth).
+     */
+    private void seedOffsetStoreIfPresent() {
+        if (initialOffsets == null || initialOffsets.isEmpty())
+            return;
+        this.offsetStore.setOffsets(NopStreamOffsetBackingStore.fromSerializable(initialOffsets));
+        LOG.info("cdc.offset-seeded-on-first-run:connector={},entries={}", resolveConnectorName(),
+                initialOffsets.size());
     }
 
     private String resolveConnectorName() {

@@ -108,4 +108,10 @@ public interface OrmConfigs {
     IConfigReference<Integer> CFG_ORM_ENC_BACKFILL_BATCH_SIZE =
             varRef(s_loc, "nop.orm.enc-backfill-batch-size", Integer.class, 500);
 
+    @Description("数据搬迁写停止关（WI9）。closed 时 ORM DML 提交入口显式 fail-fast"
+            + "（ERR_ORM_MIGRATION_WRITE_GATE_CLOSED，携带实体与操作），读路径不受影响。"
+            + "运行期由搬迁编排器经 ConfigProvider 动态翻转；open 为缺省值，零行为变更")
+    IConfigReference<String> CFG_ORM_MIGRATION_WRITE_GATE = varRef(s_loc,
+            "nop.orm.migration.write-gate", String.class, "open");
+
 }

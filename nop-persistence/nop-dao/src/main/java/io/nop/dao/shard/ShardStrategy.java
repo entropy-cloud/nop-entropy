@@ -310,8 +310,10 @@ public class ShardStrategy {
 
     /**
      * 解析整个 nop.orm.shard 配置对象为策略表。供 ConfigShardSelector 与测试共用。
+     * WI9：放宽为 public——数据搬迁编排器（nop-orm-migration）需要按切换后的新策略配置
+     * 独立解析 ShardStrategy 以计算目标物理表，不触碰运行期路由（编排器只读解析，不 init）。
      */
-    static Map<String, ShardStrategy> parseStrategies(Map<String, Object> strategiesMap) {
+    public static Map<String, ShardStrategy> parseStrategies(Map<String, Object> strategiesMap) {
         Map<String, ShardStrategy> ret = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : strategiesMap.entrySet()) {
             String name = entry.getKey();

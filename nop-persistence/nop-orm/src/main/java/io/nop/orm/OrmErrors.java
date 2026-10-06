@@ -74,6 +74,7 @@ public interface OrmErrors {
     String ARG_ORDER_KEY = "orderKey";
     String ARG_LIMIT = "limit";
     String ARG_REASON = "reason";
+    String ARG_OPERATION = "operation";
 
     String ARG_PART = "part";
     String ARG_SRC_TYPE = ApiErrors.ARG_SRC_TYPE;
@@ -478,5 +479,12 @@ public interface OrmErrors {
             "加密列[{entityName}.{propName}]不支持该检索谓词[{reason}]，只支持等值(=/!=)/IN/LIKE(不含escape)改写到辅助列；"
                     + "范围比较、ORDER BY、GROUP BY、JOIN ON 等涉及加密列一律拒绝（避免全表解密扫描）",
             ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_REASON);
+
+    // ---- WI9：数据搬迁写停止关（检查点随所在层登记，编排配置见 nop-orm-migration 模块） ----
+
+    ErrorCode ERR_ORM_MIGRATION_WRITE_GATE_CLOSED = define("nop.err.orm.migration-write-gate-closed",
+            "数据搬迁写停止关已关闭(nop.orm.migration.write-gate=closed)，禁止DML提交："
+                    + "entity={entityName},operation={operation}。读路径不受影响",
+            ARG_ENTITY_NAME, ARG_OPERATION);
 
 }

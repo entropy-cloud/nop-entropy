@@ -197,6 +197,9 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
         }
 
+        // WI9 数据搬迁写停止关：DML 提交入口显式 fail-fast（读路径已在上方 dirty 检查前不受影响）
+        OrmMigrationWriteGate.checkWriteAllowed(null, "flush");
+
         env.getOrmMetrics().onFlush();
 
         interceptPreFlush();
@@ -999,6 +1002,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     void flushImmediately(IOrmEntity entity) {
+        // WI9 数据搬迁写停止关：无状态会话的立即持久化也是 DML 提交入口
+        OrmMigrationWriteGate.checkWriteAllowed(entity.orm_entityName(), "save");
         boolean createExecutor = false;
         if (this.flusher == null) {
             this.flusher = new CascadeFlusher(this, cache);
@@ -1018,6 +1023,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void flushSave(IOrmEntity entity) {
+        OrmMigrationWriteGate.checkWriteAllowed(entity.orm_entityName(), "save");
         if (interceptPreSave(entity) == ProcessResult.STOP) {
             LOG.debug("session.preSave_VETO:entity={}", entity);
             return;
@@ -1032,6 +1038,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void flushUpdate(IOrmEntity entity) {
+        OrmMigrationWriteGate.checkWriteAllowed(entity.orm_entityName(), "update");
         if (interceptPreUpdate(entity) == ProcessResult.STOP) {
             LOG.debug("session.preUpdate_VETO:entity={}", entity);
             return;
@@ -1046,6 +1053,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void flushDelete(IOrmEntity entity) {
+        OrmMigrationWriteGate.checkWriteAllowed(entity.orm_entityName(), "delete");
         if (interceptPreDelete(entity) == ProcessResult.STOP) {
             LOG.debug("session.preDelete_VETO:entity={}", entity);
             return;
