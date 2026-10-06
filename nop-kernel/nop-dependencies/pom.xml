@@ -43,15 +43,22 @@
         <janino.version>3.1.12</janino.version>
         <!--        <junit-jupiter.version>5.7.0</junit-jupiter.version>-->
 
-        <pulsar.version>2.8.0</pulsar.version>
+        <!-- plan 36（2026-10-06）：对齐 Pulsar 4.0 LTS 线最新补丁（active support 至
+             2026-10-21，security support 至 2027-10-21；非 LTS 的 4.1/4.2 不取）。
+             2.8.0 → 4.0.14 的消费语义差异由 plan 33 的 Testcontainers E2E 实证裁定，
+             见 ai-dev/design/nop-message/backend-semantics-design.md 3.3.1/3.12。 -->
+        <pulsar.version>4.0.14</pulsar.version>
 
         <!-- kafka-clients: production stream data-plane backend (nop-message-kafka)
-             + Debezium 3.7 嵌入式引擎（nop-message-debezium 的 connect-* 3.9.2 依赖面）。
-             3.9.2 要求 JDK 11+（nop-entropy baseline 为 JDK 17）；client API 对
-             nop-message-kafka 的 3.5 用法向后兼容，且 BrokerSecurityConfigs.SSL_CLIENT_AUTH
-             等 connect-runtime 需要的内部字段在 3.8+ 才存在（3.5.0 会致引擎启动即
-             NoSuchFieldError）。 -->
-        <kafka.version>3.9.2</kafka.version>
+             + Debezium 3.7 嵌入式引擎（nop-message-debezium 传递解析面，该模块未 import
+             debezium-bom，故被本属性管理）。plan 36（2026-10-06）：3.9.2 → 4.3.1 对齐
+             Kafka 支持线（4.1/4.2/4.3）最新补丁，同时与 Debezium 3.7.0.Final 自身构建
+             版本一致（debezium-build-parent version.kafka=4.3.1）——旧注释所述 3.9.2 对
+             connect-runtime 3.9.2 的对齐关系随 Debezium 构建版本升级自然消解。
+             历史教训保留：connect-runtime 需要的 BrokerSecurityConfigs.SSL_CLIENT_AUTH
+             等内部字段曾在 3.5.0 客户端上致引擎启动即 NoSuchFieldError——客户端版本必须
+             ≥ Debezium 构建版本，降级前须核对。 -->
+        <kafka.version>4.3.1</kafka.version>
 
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 

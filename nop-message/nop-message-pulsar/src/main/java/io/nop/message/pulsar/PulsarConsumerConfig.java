@@ -16,16 +16,21 @@ public class PulsarConsumerConfig {
 
     /**
      * WI21 (D6 layer two): max redeliveries before the client diverts a message to the
-     * dead-letter topic. {@code 0} (default) = dead-letter policy disabled. Pulsar 2.8
-     * semantics <em>as verified by the WI33 real-broker E2E (F-DLQ, superseding the WI21
-     * static adjudication)</em>: a message received at {@code redeliveryCount >=
-     * maxRedeliverCount} is registered client-side, and the diversion fires when that
-     * message is NEGATIVELY acknowledged — the client intercepts the redelivery request,
-     * publishes the DLQ copy, and acks the original itself. A plain ack never diverts, so
-     * the WI22 attempt-cap failure endpoint hands exhausted messages to a negative ack
-     * when this policy is configured ( Shared/Key_Shared subscriptions only carry the
-     * redelivery count in 2.8 — other subscription types log a one-time warning and the
-     * policy has no effect). Keep {@code maxConsumeAttempts == deadLetterMaxRedeliverCount}
+     * dead-letter topic. {@code 0} (default) = dead-letter policy disabled. Diversion
+     * semantics <em>as verified by the real-broker E2E on 2.8.0 (WI33) and 4.0.14
+     * (plan 36), superseding the WI21 static adjudication</em>: a message received at
+     * {@code redeliveryCount >= maxRedeliverCount} is registered client-side, and the
+     * diversion fires when that message is NEGATIVELY acknowledged — the client
+     * intercepts the redelivery request, publishes the DLQ copy, and acks the original
+     * itself. A plain ack never diverts, so the WI22 attempt-cap failure endpoint hands
+     * exhausted messages to a negative ack when this policy is configured (Shared/
+     * Key_Shared subscriptions are the ones the broker tracks redelivery counts for —
+     * other subscription types log a one-time warning and the policy has no effect).
+     * 4.0 boundary note: a message received with {@code redeliveryCount > maxRedeliverCount}
+     * (strictly greater — e.g. after ack timeouts or reconnects while this policy is
+     * configured) is bounced back to the broker instead of being delivered to the handler
+     * and is not diverted until a nack; keep {@code maxConsumeAttempts ==
+     * deadLetterMaxRedeliverCount} so the endpoint nacks at the threshold.
      * so the endpoint's first firing coincides with the diversion threshold.
      */
     private int deadLetterMaxRedeliverCount;

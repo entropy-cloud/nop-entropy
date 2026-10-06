@@ -44,9 +44,12 @@
         </dependency>
 
         <!--
-            Kafka 客户端版本由 nop-dependencies 统一管理（kafka.version=3.9.2，与
-            Debezium 3.7 的 connect-* 3.9.2 依赖面对齐；旧 3.5.0 缺
-            BrokerSecurityConfigs.SSL_CLIENT_AUTH，引擎启动即 NoSuchFieldError）。
+            Kafka 客户端版本由 nop-dependencies 统一管理（kafka.version=4.3.1，与
+            Debezium 3.7.0.Final 自身构建版本一致——debezium-build-parent
+            version.kafka=4.3.1；本模块未 import debezium-bom，传递解析被 nop-dependencies
+            管理项抬版本。历史教训：旧 3.5.0 客户端缺
+            BrokerSecurityConfigs.SSL_CLIENT_AUTH，引擎启动即 NoSuchFieldError——客户端
+            版本不得低于 Debezium 构建版本）。
         -->
 
         <!-- Debezium MySQL Connector (optional) -->

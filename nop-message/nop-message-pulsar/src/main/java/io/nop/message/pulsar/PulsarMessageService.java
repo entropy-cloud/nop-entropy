@@ -211,7 +211,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         Producer<?> producer = producers.get(topic);
         if (producer != null)
             return producer;
-        // MSG-NEW-03 (WI9): a topicless producer is invalid in Pulsar 2.8 — unknown topics
+        // MSG-NEW-03 (WI9): a topicless producer is invalid in Pulsar — unknown topics
         // get an on-demand producer with the default STRING schema instead of falling back
         // to a shared topicless defaultProducer.
         Schema<?> schema = topicSchemas.getOrDefault(topic, Schema.STRING);
@@ -465,7 +465,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                         TimeUnit.MILLISECONDS);
             }
             // WI21 (D6 layer two): native dead-letter policy. See
-            // PulsarConsumerConfig.deadLetterMaxRedeliverCount for the 2.8 semantics —
+            // PulsarConsumerConfig.deadLetterMaxRedeliverCount for the diversion semantics —
             // diversion is ack-triggered and Shared-subscription-scoped, so an incompatible
             // subscription type gets a one-time warning instead of a silent no-op.
             if (defaultConsumerConfig.getDeadLetterMaxRedeliverCount() > 0) {
@@ -484,7 +484,7 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                 if (type != org.apache.pulsar.client.api.SubscriptionType.Shared
                         && type != org.apache.pulsar.client.api.SubscriptionType.Key_Shared) {
                     io.nop.api.core.message.MessageOptionsValidator.warnOnce("pulsar", "dlq-subscription-type",
-                            "deadLetterMaxRedeliverCount is configured but Pulsar 2.8 tracks redelivery "
+                            "deadLetterMaxRedeliverCount is configured but the broker tracks redelivery "
                                     + "counts only for Shared/Key_Shared subscriptions (got: " + type
                                     + "); the dead-letter policy will not trigger");
                 }

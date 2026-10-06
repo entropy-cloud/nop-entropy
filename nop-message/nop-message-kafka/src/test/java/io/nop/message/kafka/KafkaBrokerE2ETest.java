@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * WI33 (nop-message-encapsulation-roadmap): real-broker E2E against a KRaft Kafka container.
+ * WI33 (nop-message-encapsulation-roadmap): real-broker E2E against a KRaft Kafka container (plan 36: kafka 4.3.1 broker, kafka-clients 4.3.1).
  *
  * <p><b>Gating semantics (declared consistently in the owner doc and
  * {@code ai-dev/design/nop-message/backend-semantics-design.md})</b>:
@@ -78,7 +78,7 @@ class KafkaBrokerE2ETest {
         assumeTrue(DOCKER_AVAILABLE,
                 "docker unavailable: real-Kafka E2E gated off (SKIP is visible by design)");
         kafka = new KafkaContainer(DockerImageName
-                .parse(REGISTRY_PREFIX + "apache/kafka:3.7.0")
+                .parse(REGISTRY_PREFIX + "apache/kafka:4.3.1")
                 .asCompatibleSubstituteFor("apache/kafka"));
         kafka.start();
     }

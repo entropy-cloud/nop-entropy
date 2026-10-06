@@ -211,7 +211,7 @@ class TestPulsarConsumeTask {
         when(svc.builder.subscriptionInitialPosition(org.mockito.ArgumentMatchers.any())).thenReturn(svc.builder);
         // receive(timeout, unit) must block rather than spin: tests cancel the subscription
         // (which stops the task) right after their assertions. WI19 migrated the stub from
-        // the no-arg receive() to the bounded form (anyInt — Pulsar 2.8 takes an int).
+        // the no-arg receive() to the bounded form (anyInt — the client takes an int).
         when(svc.consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
             new java.util.concurrent.CountDownLatch(1).await();

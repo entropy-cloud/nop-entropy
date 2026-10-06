@@ -83,12 +83,12 @@ Micrometer 口径：`nop.message.{backend}.sent/consumed/failed` + `nop.message.
 
 ## 真实 broker E2E（WI33）
 
-`KafkaBrokerE2ETest` / `PulsarBrokerE2ETest` 经 **Testcontainers 自起真实 broker**（`apache/kafka:3.7.0` KRaft、`apachepulsar/pulsar:3.0.11` standalone），门控语义：
+`KafkaBrokerE2ETest` / `PulsarBrokerE2ETest` 经 **Testcontainers 自起真实 broker**（`apache/kafka:4.3.1` KRaft + kafka-clients 4.3.1、`apachepulsar/pulsar:4.0.14` standalone + pulsar-client 4.0.14——Pulsar 跟随 4.0 LTS 补丁线，Kafka 跟随支持线最新），门控语义：
 
 - **主门**：Docker daemon 可达即执行（`DockerClientFactory.isDockerAvailable()` assume——不可达时可见 SKIP，不伪造通过）。
 - **退出口**：`-Dnop.test.message.e2e.kafka=false` / `-Dnop.test.message.e2e.pulsar=false` 强制跳过（无 Docker 预算的 CI 场景）。
 - **镜像仓库前缀**：`-Dnop.test.message.e2e.registry=<prefix>`，默认 `docker.m.daocloud.io/`（Docker Hub 直连超时的环境）；可直连 Hub 的环境设为空串。
 - **Kafka 注意**：服务以 `KafkaConsumerConfig` 显式配置时才落 `auto.offset.reset` 等托管键；不配置则按 kafka-clients 默认（`latest`——订阅首次分配前发送的消息会被跳过）。E2E 显式传 `new KafkaConsumerConfig()`（默认 `earliest`）。
-- **Pulsar 注意**：重投类场景必须调小 `negativeAckRedeliveryDelay`（2.8 客户端默认 60s）并使 `maxConsumeAttempts == deadLetterMaxRedeliverCount`（分流在 nack 时触发，见 design 3.3.1）。
+- **Pulsar 注意**：重投类场景必须显式调小 `negativeAckRedeliveryDelay`（旧客户端默认 60s；跨版本一律显式配置）并使 `maxConsumeAttempts == deadLetterMaxRedeliverCount`（分流在 nack 时触发，见 design 3.3.1）。`redeliveryCount` 严格超过 `deadLetterMaxRedeliverCount` 的消息不再投递给 handler（4.0 客户端行为）——两 cap 相等可避开。
 
 场景矩阵（11 测试）：Kafka 六场景（重启恢复/毒消息/DLQ/seek/请求-响应/慢 handler `maxPollIntervalMs` 踢出自愈）+ Pulsar 五场景（重启恢复/毒消息/DLQ/真 seek（INIT_SEEK_TO_BEGIN + ALWAYS_SEEK_TO_END）/请求-响应）。

@@ -31,8 +31,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * WI33 (nop-message-encapsulation-roadmap): real-broker E2E against a standalone Pulsar
- * container (pulsar:3.0.11 arm64, protocol-compatible with the 2.8.0 client; if the very
- * first connect fails the plan's fallback is the 2.11.4 image under emulation).
+ * container (pulsar:4.0.14 arm64 LTS, pulsar-client 4.0.14 — plan 36 LTS alignment).
  *
  * <p><b>Gating semantics (declared consistently in the owner doc and
  * {@code ai-dev/design/nop-message/backend-semantics-design.md})</b>:
@@ -45,8 +44,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *       prefix (default {@code docker.m.daocloud.io/}; empty string for direct Hub).</li>
  * </ul>
  *
- * <p><b>Redelivery tuning is a hard precondition</b>: the 2.8.0 client defaults
- * {@code negativeAckRedeliveryDelay} to 60s and {@code maxConsumeAttempts} to 10 — without
+ * <p><b>Redelivery tuning is a hard precondition</b>: pre-4.0 clients defaulted
+ * {@code negativeAckRedeliveryDelay} to 60s (the 4.0 default differs but the explicit
+ * tuning is kept as the version-independent hard precondition) and {@code maxConsumeAttempts} to 10 — without
  * the sub-second tuning below every redelivery-driven assertion would time out.
  *
  * <p>Scenario set (roadmap WI33): restart recovery (cursor persistence), poison
@@ -87,7 +87,7 @@ class PulsarBrokerE2ETest {
         assumeTrue(DOCKER_AVAILABLE,
                 "docker unavailable: real-Pulsar E2E gated off (SKIP is visible by design)");
         pulsar = new PulsarContainer(DockerImageName
-                .parse(REGISTRY_PREFIX + "apachepulsar/pulsar:3.0.11")
+                .parse(REGISTRY_PREFIX + "apachepulsar/pulsar:4.0.14")
                 .asCompatibleSubstituteFor("apachepulsar/pulsar"));
         pulsar.start();
     }

@@ -69,7 +69,8 @@ public class PulsarConsumeTask {
 
     /**
      * Pending {@link Consumer#batchReceiveAsync()} future, retained across receive-timeout
-     * rounds (WI19). Pulsar 2.8 has no batchReceive(timeout) overload; re-issuing a new
+     * rounds (WI19). Pulsar (2.8 through 4.0, re-verified) has no batchReceive(timeout)
+ * overload; re-issuing a new
      * batchReceiveAsync after every timeout would accumulate abandoned pending requests
      * inside the client whose messages could never be acked, so the SAME future is awaited
      * again. Confined to the single task thread (like the other loop state); {@code active}
@@ -166,7 +167,7 @@ public class PulsarConsumeTask {
     }
 
     /**
-     * Bounded batch receive (MSG-F-54, WI19). Pulsar 2.8 has no batchReceive(timeout)
+     * Bounded batch receive (MSG-F-54, WI19). Pulsar (2.8 through 4.0) has no batchReceive(timeout)
      * overload, so the task awaits {@link Consumer#batchReceiveAsync()} with a finite
      * timeout while RETAINING the pending future:
      * <ul>
@@ -382,7 +383,8 @@ public class PulsarConsumeTask {
 
     /**
      * WI22: the failure endpoint for an exhausted message. WI33 (F-DLQ) correction of the
-     * WI21 adjudication — the 2.8 client's dead-letter diversion does NOT fire on a plain
+     * WI21 adjudication — the client's dead-letter diversion (verified on 2.8.0 and
+     * re-verified on 4.0.14 by the WI33/plan-36 real-broker E2E) does NOT fire on a plain
      * ack: it intercepts the NEGATIVE-ack redelivery request for a message that was
      * received at {@code redeliveryCount >= maxRedeliverCount} (verified in the
      * {@code getRedeliveryMessageIdData} pipeline and by the WI33 raw-client probe). When
