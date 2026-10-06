@@ -45,6 +45,7 @@
 | 4.4 | `4.4-format-search-message-cluster-audit.md` | 0 | 0 | **7** | 11 | done（裁决：通过无 P0/P1 新发现附 P2×7 进 R1.0 输入池（09-20 partial-dup 与 P2-4.1-001 同批）+ P3×11 watch；**标定 50 条全落定**——format 16〔12 AF+2 partially+1 wontfix+1 still-live：条目 5 生成器-文法对齐探针 0/13 往返实证〕/ search 19〔1 驳回 P0 已修 3 测试复跑绿 + 18 保留 P1×5 live〕/ msg-cluster 15 全成立〔P1×4 全确认〕；mermaid 三 P1 plan 2306 修复验证通过；LuceneSearchEngine 有条件拆分裁定〔6 簇拆 2 保 4 先修 5 P1〕；TODO 35 处三类评定（真缺陷 2/文档化 33）；kafka 生命周期 5 点裁决移交 7.7；6.8 preempt 声明（search 标定已完成引用本报告）；三面各 1-2 轮 + 三独立复核，零驳回） | 独立子 agent（见 plan 2342 Closure 段） |
 | 4.5 | `4.5-frontend-devtools-migration-runner-utils-audit.md` | 0 | 0 | **1** | 7 | done（裁决：通过无 P0/P1 附 P2×1 进 R1.0 输入池（TestXdslResourceTransformer 零断言——复核加强 processXDef 不可达）+ P3×7 watch；**标定台账 88 条零翻案**：dev-tools 25〔17 闭环+6 成立+2 补位〕/ nop-utils 23/23 已修〔P0×2 重点核对〕/ runner-cli 17/17 未修 / frontend-benchmark 19/19 未修 / migration 4/4 未修移交 demo-migration；**CLI 双入口三模块两真入口一死占位裁定**（EmptyMain 死占位/NopCliApplication 真 main/jdk11 漂移 3 项）；依赖卫生十模块 1 项 P3 违规（nop-java-parser 三跳传递）+ utils 重复度仅 2 同名+1 组跨模块复制；debugger 并发族 6 处修复全部到位；两面各 1 轮 + 双独立复核，零驳回） | 独立子 agent（见 plan 2343 Closure 段） |
 | 4.6 | `4.6-lint-incremental-audit.md` | 0 | 0 | **4** | 7 | done（裁决：通过无 P0/P1 附 P2×4 进 R1.0 输入池（09-01 checkFile 表外扩展名 NPE 击穿错误面〔复核 JDK 26 独立复现〕/09-02 tsc 桥重启不重绑 project〔FakeTscPeer 不建模 NO_PROJECT 补强〕/02-01 Mojo threadSafe 并行竞态〔对采用者触发——Mojo 未接线 grep 复证〕/16-01 白名单 silent-empty〔升级触发=GraphQL 面成主通道〕）+ P3×7 watch；**maven-plugin「零新管线语义」成立**（代码追踪同型 CLI 7 行逐点表）；**fail-closed 10 项语义点全部成立**（namespace 既住裁定复核准确——FileNamespaceHandler 默认放行亲核）；三层账本对账残余项现状一致、重估触发均未到 + 3 项账本漂移（纪律面移交 tool-replacement 维护）；js 适配面合格；单 agent + 复核，零驳回） | 独立子 agent（见 plan 2344 Closure 段） |
+| 5.1 | `5.1-docs-consistency-audit.md` | 0 | **3** | 5 | 7 | done（裁决：通过附 P1×3 进 R1.0——①事务默认表述族（18-01+18-20 分立立案互引 P1-2.6-001：service-layer/api-and-graphql/INDEX 默认规则/runbook/nop-task×3/TXN-001 共 6+ 文件，统一入口双矩阵）②@IocBean 幻影教程（nop-job.md，与 P1-3.5-001 同批互引）③P1-3.5-001 ILockService 标定维持；P2×5 进 R1.0 输入池 + P3×7 watch；**136 条核对声明一致率 ≈89%**；复核 15/15 全保留零驳回；撞车 7/7 未修复维持；12 篇抽样 + INDEX 路由 + source-anchors 全覆盖） | 独立子 agent（见 plan 2345 Closure 段） |
 | 5.1 | — | | | | | todo | |
 | 5.2 | — | | | | | todo | |
 | 5.3 | — | | | | | todo | |
@@ -144,6 +145,9 @@
 | P1-4.2-004 | `4.2-test-effectiveness-audit.md` | R1.0（nop-cluster-sentinel 限流 entry/exit 配对与降级映射测试补齐） | open |
 | P1-4.2-005 | `4.2-test-effectiveness-audit.md` | R1.0（nop-fsm 状态机引擎转移语义直接测试补齐） | open |
 | P1-4.2-006 | `4.2-test-effectiveness-audit.md` | R1.0（TestStringHelper 重写：删/改 5 个不触 SUT 方法+testUUID 补断言+isWhitespace pinning——与 P2-4.2-009 合并执行） | open |
+| P1-5.1-001 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——service-layer.md:66/:277 + api-and-graphql.md:174 事务入口双矩阵改写） | open |
+| P1-5.1-002 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——INDEX:38 + transaction-boundaries.md + nop-task.md×3 + TXN-001；文档修复不受代码修复阻塞） | open |
+| P1-5.1-003 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-3.5-001 同批互引——nop-job.md:246-262 @IocBean 幻影改 beans.xml 注册教程） | open |
 
 
 ## P2 裁决台账（例外通道）

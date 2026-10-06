@@ -1,6 +1,6 @@
 # 2345 full-code-review 5.1 docs-for-ai 与 live 代码一致性审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 5.1（MA5）；Skill=`ai-dev/skills/documentation-routing-audit-prompt.md`
 > Related: owner doc `docs-for-ai/INDEX.md`；Roadmap Details：「docs-for-ai 抽样与 live 代码对照（路由表、命令、默认规则是否与实现一致）」。
@@ -45,74 +45,74 @@
 
 ### Phase 1 - 抽样对照（双 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: docs-for-ai 02/03 + INDEX
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
-- [ ] 机械基线：02-core-guides 与 03-modules 文件清单（抽样表选取）、已知 drift 撞车清单（3.5/3.8 等）
-- [ ] core-guides 抽样 agent：≥6 篇逐篇对照（**每篇最低验证密度：≥5 条已核对声明、逐条 doc:line + code file:line 锚**）+ 已知 drift 撞车核对
-- [ ] modules+INDEX 抽样 agent：03-modules ≥6 篇逐篇对照（同密度）+ 已知 drift 撞车核对 + INDEX 路由抽查（**含「默认规则」节 :31 8 条逐条核验——与 P1-2.6-001 同族「@BizMutation 自动进事务」表述**）+ source-anchors.md 锚点有效性核对
-- [ ] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据：≥12 篇逐篇结论 + 每篇 ≥5 条核对声明）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-5.1-docs.md`
+- [x] 机械基线：02-core-guides 与 03-modules 文件清单（抽样表选取）、已知 drift 撞车清单（3.5/3.8 等）
+- [x] core-guides 抽样 agent：≥6 篇逐篇对照（**每篇最低验证密度：≥5 条已核对声明、逐条 doc:line + code file:line 锚**）+ 已知 drift 撞车核对
+- [x] modules+INDEX 抽样 agent：03-modules ≥6 篇逐篇对照（同密度）+ 已知 drift 撞车核对 + INDEX 路由抽查（**含「默认规则」节 :31 8 条逐条核验——与 P1-2.6-001 同族「@BizMutation 自动进事务」表述**）+ source-anchors.md 锚点有效性核对
+- [x] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据达成：12 篇逐篇结论 + 每篇 ≥5 条核对声明，总量 136 条）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-5.1-docs.md`
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] 抽样台账（≥12 篇逐篇结论）落盘
-- [ ] No owner-doc update required（只读——发现归 R1.0 修复）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] 抽样台账（12 篇逐篇结论 + INDEX 8 条 + source-anchors 9 锚）落盘
+- [x] No owner-doc update required（只读——发现归 R1.0 修复）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
-### Phase 2 - 独立复核与判级收敛
+### Phase 2 - 独立维度复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 抽样独立验证
-- [ ] 主 agent 汇总：判级统一（文档 drift 判级按「误导性文档=P1；过时=P2/P3」总裁据）、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 抽样独立验证（15 条全保留零驳回；声明抽验 A 11+ / B 13 全吻合；撞车 7/7 未修复维持）
+- [x] 主 agent 汇总：判级统一（文档 drift 判级按「误导性文档=P1；过时=P2/P3」总裁据）、撞车去重终裁
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-5.1-docs-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-5.1-docs-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `5.1-docs-consistency-audit.md`；index 登记 5.1 行（如有 P2 走「P2 裁决台账」通道）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：抽样台账由复核员独立抽验 + doc-links exit 0
-- [ ] **No owner-doc update required（只读——docs 修复发现归 R1.0）**
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 5.1 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `5.1-docs-consistency-audit.md`；index 登记 5.1 行 + P1 汇总 3 行（P2×5 进 R1.0 输入池，无裁决例外）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 定向验证锚点：抽样台账由复核员独立抽验（A 11+ / B 13 全吻合）+ doc-links exit 0
+- [x] **No owner-doc update required（只读——docs 修复发现归 R1.0）**
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——实质全过，处方 R1 index P1 行/R2 行号勘正已落实）；通过后 roadmap 5.1 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 抽样台账可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 抽样台账可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立抽验为验证锚点。
 
-- [ ] 报告落盘且抽样面全覆盖（**抽样制：≥12 篇逐篇结论，非 47+30 全量**）+ 路由抽查表
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 5.1 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且抽样面全覆盖（**抽样制：12 篇逐篇结论，非 47+30 全量**）+ 路由抽查表
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 5.1 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -124,14 +124,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: docs 一致性审计计划收口。报告 `5.1-docs-consistency-audit.md` 落盘：通过附 P1×3/P2×5/P3×7（净 15 条，零驳回）。**136 条核对声明一致率 ≈89%**；三大 P1：事务默认表述族（18-01+18-20 分立立案互引 P1-2.6-001，文件面 6+ 处，双入口矩阵）/@IocBean 幻影教程（nop-job.md）/ILockService 幻影标定维持（P1-3.5-001 原 ID）。撞车 7/7 未修复维持。closure audit 实质全过（处方 R1 index P1 汇总 3 行/R2 行号勘正已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_c319d764-0826-4e78-bcf2-905e95fefc36（fresh session，只读 closure auditor；FAIL→处方 R1/R2 落实后转 PASS）
+- Evidence:
+  - 计数勾稽：P0=0/P1=3/P2=5/P3=7=15 ↔ 报告实点 ↔ index 5.1 行（0/3/5/7）↔ 映射表 15 行 ↔ 复核净账（A 9 + B 6）五处闭合
+  - P1 台账：报告口径清晰（15 条全占新编号/ILockService 维持原 ID）；处方 R1 落实后 index P1 汇总含 P1-5.1-001/002/003 三行
+  - 关键判定亲读 4/4：TransactionActionDecoratorCollector 零注册 + DefaultExecutionFunctionInvoker + BizActionInvoker:48/:70 逐字/@IocBean 三重亲核（annotations/ioc 恰 4 注解）/nop-sys.md :48/:72 仍 live/三类名幻影 grep 证实
+  - 格式：抽 4 条 9-11 要素完整
+  - 验证：doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员独立抽验 + closure auditor 机械亲证为锚
+  - Deferred 项分类检查：无 deferred；P1×3+P2×5 进 R1.0；P3×7 watch-only；撞车 7 项维持原台账归属，无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×3+P2×5 修复归属 R1.0 分族〔事务族与 P1-2.6-001 同批/代码侧修复不受文档修复阻塞〕；P3×7 watch-only；撞车 7 项维持原台账归属）

@@ -91,7 +91,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 5.1 | docs-for-ai 与 live 代码一致性审计（02-core-guides + 03-modules 抽样） | todo | `docs-for-ai/INDEX.md` | 0.3, 0.4 | `documentation-routing-audit-prompt.md` |
+| 5.1 | docs-for-ai 与 live 代码一致性审计（02-core-guides + 03-modules 抽样） | done（2026-10-06，plan 2345，closure audit 实质全过（处方 R1 index P1 行/R2 行号勘正已落实）——通过附 P1×3 进 R1.0（①事务默认表述族〔18-01+18-20 分立立案互引 P1-2.6-001：service-layer/api-and-graphql/INDEX 默认规则/runbook/nop-task×3/TXN-001 共 6+ 文件，统一入口双矩阵〕②@IocBean 幻影教程〔nop-job.md，与 P1-3.5-001 同批互引〕③P1-3.5-001 ILockService 标定维持；P2×5 进 R1.0 输入池 + P3×7 watch；**136 条核对声明一致率 ≈89%**；复核 15/15 全保留零驳回；撞车 7/7 未修复维持；12 篇抽样 + INDEX 路由 + source-anchors 全覆盖） | `docs-for-ai/INDEX.md` | 0.3, 0.4 | `documentation-routing-audit-prompt.md` |
 | 5.2 | ai-dev/design 各子系统设计文档 drift 审计（对照 live 代码） | todo | `ai-dev/design/README.md` | 0.3, 0.4 | `design-doc-audit-prompt.md` |
 | 5.3 | 跨模块公共 API（nop-*-api）契约一致性与版本健康审计 | todo | `docs-for-ai/01-repo-map/module-groups.md` | 0.3, 0.4 | `cross-module-dependency-audit-prompt.md` + `deep-audit-prompts.md`（维度 20） |
 
