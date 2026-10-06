@@ -48,12 +48,12 @@
 
 ### Phase 1 - 深挖（双 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 五组 in-scope 模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
 - [ ] 机械基线：五组手写文件清单、check 25 条处置块盘点、git log 2026-09-22 后五组产品代码变更登记、测试资产 find 实测
 - [ ] dev-tools 子 agent（维度 02+16）：check/dev-tools.md 25 条标定（P1×2+P2×14+P3×9；debugger 并发族重点；**idea-plugin 域以标定为主不深审**——IDE 宿主 131 文件）+ CLI 双入口差异面裁定 + 调试器 RPC 域 + **6.8 preempt 登记**（dev-tools 属批次 d，25 条标定完成后 6.8 引用本报告）
 - [ ] utils+frontend+migration/runner 子 agent（维度 02+17）：utils 依赖卫生（**pom 级机械面：允许集 nop-api-core/nop-commons/nop-core 及三方库；违规候选带 nop-xlang 及以上逐个裁定；注意 nop-java-parser 的 nop-biz 依赖已注释勿误报**/工具类重复度 + nop-utils.md 23 条标定〔P0×2 不得重复上报〕）+ frontend-support **收窄口径（frontend-benchmark.md 19 条为 prior art——增量 diff〔基线后仅 1 commit〕+ 3.5 撞车域 nop-web/page 聚焦 + 抽样，不盲目全量）** + migration/runner 启动链 + **runner-cli.md 17 条标定**
