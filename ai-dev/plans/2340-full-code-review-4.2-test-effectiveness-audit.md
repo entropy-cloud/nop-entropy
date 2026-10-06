@@ -47,12 +47,12 @@
 
 ### Phase 1 - 清单与抽查（双 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 全仓 src/test
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理：登记在途变更，触及扫描域则等待）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理：登记在途变更，触及扫描域则等待）
 - [ ] 机械基线：zero-test 全量清单（**口径写死：pom 模块有 src/main 且无 src/test/java 目录 = zero-test**；仅 test 资源无 java 亦计入并标注）、@Disabled 57 文件清单、反模式抽样表（按写死抽样框）
 - [ ] zero-test 清单子 agent A：~120 模块逐模块裁定（**分批预案：按顶层模块组分 3-4 批派发**）+ 点名 6 模块深裁（biz-auth-api 2 test 内容核实）
 - [ ] @Disabled 标定子 agent B：57 文件逐个标定（理由/环境门控/应否恢复）——与 A 分离避免单会话超载
