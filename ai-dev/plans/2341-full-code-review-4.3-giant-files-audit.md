@@ -1,6 +1,6 @@
 # 2341 full-code-review 4.3 巨型手写文件与复杂度热点审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 4.3（MA4）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 02/15 + 共享前缀）
 > Related: Roadmap Details：「>1500 行手写文件全仓盘点（区分生成物），逐个给出拆分/保留/monitor 裁定建议（**供 R1.0 参考，不强制拆分**）」。
@@ -46,71 +46,71 @@
 
 ### Phase 1 - 盘点与裁定（单 agent 分批）
 
-Status: in progress
+Status: completed
 Targets: 全仓 src/main >1500 行文件
 
 - Item Types: `Proof` + `Decision`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免）；**基线漂移处理：执行日重放 38 处清单，与快照差异逐个归因（新过线文件补入台账/monitor 触发线越过登记）**
 - [ ] 机械基线：38 处清单（LOC 排序）、antlr 生成物甄别（构建标记/源模板）、历次深审裁定撞车索引（XNode/ExecToJavaTranslator/CrudBizModel/WorkflowEngineImpl/XLangASTOptimizer/JobCoordinator 等的 finding ID）
-- [ ] 盘点裁定 agent（**分批表：批 1 = kernel/persistence 组〔13 个待裁定的 5 个〕+ 生成物甄别；批 2 = stream/ai/wf/jq 组〔6 个〕；批 3 = 其余〔2 个〕+ 撞车对照 11 个；单批输出上限：拆分建议条目每批 ≤3 条防压缩**）：生成物甄别节 + 全量台账 + 13 个待裁定文件逐个三选一裁定（拆分建议 ≥9 行条目；保留/monitor 台账行）+ 撞车对照 11 个核对
-- [ ] 裁定复核迭代：初稿完成后由主 agent 抽查裁定质量（非发现型深挖——10 轮上限不适用；以「13 个待裁定文件全部有裁定且拆分建议有职责簇分析」为完成判据）
-- [ ] 产物 `_tmp/fcr-4.3-inventory.md`
+- [x] 盘点裁定 agent（**分批表：批 1 = kernel/persistence 组〔13 个待裁定的 5 个〕+ 生成物甄别；批 2 = stream/ai/wf/jq 组〔6 个〕；批 3 = 其余〔2 个〕+ 撞车对照 11 个；单批输出上限：拆分建议条目每批 ≤3 条防压缩**）：生成物甄别节 + 全量台账 + 13 个待裁定文件逐个三选一裁定（拆分建议 ≥9 行条目；保留/monitor 台账行）+ 撞车对照 11 个核对
+- [x] 裁定复核迭代：初稿完成后由主 agent 抽查裁定质量（完成判据达成：13/13 全裁定 + 拆分建议均有职责簇行号分析）
+- [x] 产物 `_tmp/fcr-4.3-inventory.md`
 
 Exit Criteria:
 
-- [ ] 初稿落盘，拆分建议条目 ≥9 行含修复方向
-- [ ] 全量台账（33 处排除后逐个一行）落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，拆分建议条目 ≥9 行含修复方向（4 条）
+- [x] 全量台账（33 处排除后逐个一行）落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与裁定收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 清单口径重放
-- [ ] 主 agent 汇总：判级统一（拆分建议 P2 上限）、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 清单口径重放（基线零漂移第三重确认、拆分 4/4 维持、抽验 7 项全维持、撞车 8/8 一致、4 处非实质勘误）
+- [x] 主 agent 汇总：判级统一（拆分建议 P2 上限）、撞车去重终裁（11/11 无漂移）
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-4.3-inventory-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-4.3-inventory-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `4.3-giant-files-audit.md`；index 登记 4.3 行（拆分建议如有 P2 走「P2 裁决台账」通道）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：盘点清单口径重放由复核员独立执行；doc-links exit 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 4.3 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `4.3-giant-files-audit.md`；index 登记 4.3 行 + P2 裁决台账 4 行
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0——零附带行为发现）
+- [x] 定向验证锚点：盘点清单口径重放由复核员独立执行（零漂移）+ closure auditor 第三重重放（逐文件 LOC 全等）；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——八项核验全过）；通过后 roadmap 4.3 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 盘点口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 盘点口径可复现（复核员重放一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且生成物甄别/全量台账/裁定清单全覆盖
-- [ ] 每条拆分建议 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 4.3 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且生成物甄别/全量台账/裁定清单全覆盖
+- [x] 每条拆分建议 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 4.3 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -122,14 +122,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 巨型文件盘点审计计划收口。报告 `4.3-giant-files-audit.md` 落盘：通过附 P2×4 拆分建议（CodeIndexService 六域/JobCoordinator 七域两簇/ReActAgentExecutor 心跳块/GraphModelCheckpointExecutor 恢复族——**004 队首**静态无互锁）走 P2 裁决台账转 R1.0；保留 6/monitor 3 台账登记（触发条件量化）。**基线重放三重独立确认零漂移**（33=9 生成物+11 已裁定+13 待裁定）；撞车 11/11 无漂移；1.3 转交 3 项登记闭环；零附带行为发现；复核勘误 4 处透明记载。closure audit 八项核验全过一次通过。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_4022536f-83b5-456e-8ec6-184102596c2b（fresh session，只读 closure auditor；一次通过）
+- Evidence:
+  - 计数勾稽：P0=0/P1=0/P2=4/P3=0=4 ↔ 报告实点 ↔ index 4.3 行（0/0/4/0）↔ P2 裁决台账 4 行 ↔ 映射表 ↔ 复核维持数 4/4；保留 6/monitor 3 四方一致
+  - P1/P0 台账：两表无 4.3 新增正确
+  - 关键判定亲读 3/3：GraphModelCheckpointExecutor:950 restoreFromCheckpoint + 恢复族 22 static/0 非静态/0 实例字段 + 5 委托桩行号/CodeIndexService:1674 签名逐字 + ~335 行跨度/monitor M-4.3-2 触发条件可观测（wf-core test 恰 9 文件实测）
+  - 撞车抽验 3/3：XNode 2829<3500/1.3 :22 原文、StringHelper 4932 未拆/1.4 :42 P2-1.4-001、CrudBizModel 2283/2.6 :15 禁机械拆类原文
+  - 格式：4 条 11 要素完整
+  - P2 裁决例外：报告显式开辟节 + index 台账一致
+  - 验证：基线三重重放零漂移（auditor 独立第三重）；doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员独立重放 + closure auditor 第三重重放为锚
+  - Deferred 项分类检查：无 deferred；P2×4 经 P2 裁决台账转 R1.0 裁决（roadmap 规则 #3 合规），无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P2×4 拆分建议经 P2 裁决台账转 R1.0 逐项裁决；monitor 3 触发条件已量化登记；1.3 转交 watch×2 维持）

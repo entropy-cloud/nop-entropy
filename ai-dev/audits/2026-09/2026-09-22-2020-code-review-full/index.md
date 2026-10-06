@@ -41,7 +41,7 @@
 | 3.11 | `3.11-security-crosscut-recheck.md` | 0 | 0 | **1** | 1 | done（裁决：通过无 P0/P1 新发现附 P2×1/P3×1——**item 14 全 14 条标定完成：0 已修/12 仍 live/2 缓解生效**（复核 14/14 亲读确认、判级抽验 P2 全成立、零驳回零改判）；F-F2-1 升 P1 合并 3.8 P1-3.8-001/002 族 + F-WF-02-1 带修复裁定直入 R1.0；**P2 裁决例外 12 条转 R1.0**（P2 裁决台账登记）；grep 复扫三模式 123 处全量核实、口径重放全一致、撞车去重 7 项；新发现 P2-3.11-001 JWT 主密钥族 22 文件（含 nop-batch-app 键漂移死配置）+ P3-3.11-001 SSO client-secret 第 4 实例；A/B 面各 2 轮） | 独立子 agent（见 plan 2338 Closure 段） |
 | 4.1 | `4.1-error-handling-audit.md` | 0 | 0 | **3** | 3 | done（裁决：通过无 P0/P1 附 P2×3 进 R1.0 输入池——**bare RT 全仓仅 5-6 处仅 1 违规 P3**、BizModel 面 ErrorCode 为主合规率 84.3%（复核修正后口径）+ .param() 91.3%、api 面校准后零违规、3348 catch 合规留证+rethrow 64.0% 正结论；P2×3：错误码字符串伪装系统族 65 处/40 文件/14 模块组 + RangeSplitUtils 中文消息 + ToolSchemaConverter 吞异常降级无参工具（复核加重：null 系全部真实工具常态路径；升级触发=agent 切原生 tool-calling）；复核修正透明记载（合规率 88.7→84.3 口径修正、09-04 处数 9→28）；P3×3 watch；零驳回；6.2 移交 catches.tsv 清单已备；A/B 面各 2 轮 + 复核） | 独立子 agent（见 plan 2339 Closure 段） |
 | 4.2 | `4.2-test-effectiveness-audit.md` | 0 | **6** | 9 | 0 | done（裁决：通过附 P1×6/P2×9 进 R1.0——**zero-test 120 模块（占 374 的 32%）口径重放 SET-MATCH-EXACT**：93 合理/25 缺口/2 移交〔quarkus-web/spring-web-starter 两大 HTTP 适配层零测试 P1，spring 形态无 e2e 缓解〕；**@Disabled 57→真禁用 53**（51 合理+2 OS 门控）+升格 2（reconciler 唯一收敛测试被禁 8 周无 successor/TestXplTask 裸禁 9 个月）+误报 2；反模式抽检 28 行仅 2 命中、变异推演 14 个发现侧全「改错仍绿」（TestStringHelper 复核扩充至 5 不触 SUT+1 零断言 P1/StringHelper.isWhitespace 双语义并存 P2）；**biz-auth-api 2 test 有效约束移出清单**（roadmap 点名模块裁定）；零驳回；A/B 两面各 2 轮 + 独立复核） | 独立子 agent（见 plan 2340 Closure 段） |
-| 4.3 | — | | | | | todo | |
+| 4.3 | `4.3-giant-files-audit.md` | 0 | 0 | **4** | 0 | done（裁决：通过附 P2×4 拆分建议走 P2 裁决台账转 R1.0（CodeIndexService 六域混载/JobCoordinator 七域两簇/ReActAgentExecutor 心跳块/GraphModelCheckpointExecutor 恢复族——队首 004 静态无互锁）；**基线重放零漂移**（33=9 生成物+11 已裁定+13 待新裁定）；保留 6/monitor 3 台账登记（含触发条件：EqlTransformVisitor >2000/WorkflowEngineImpl >2500+测试扩容前置/UserMfaSelfService >2000+ask-first）；撞车 11/11 无漂移（XNode 未越 3500 线/CrudBizModel 禁机械拆类维持/StringHelper P2-1.4-001 未实施）；1.3 转交 3 项登记闭环；零附带行为发现；复核勘误 4 处透明记载；单盘点 agent 分批 3 批 + 复核） | 独立子 agent（见 plan 2341 Closure 段） |
 | 4.4 | — | | | | | todo | |
 | 4.5 | — | | | | | todo | |
 | 5.1 | — | | | | | todo | |
@@ -163,6 +163,10 @@
 | F-N3-2 | 同上 | 流控制面 RPC 无鉴权（默认单 JVM 休眠，多 JVM 暴露） | 待 R1.0 裁决（文档化 ACL 姿态 or auth seam；升级触发=多 JVM 受支持拓扑） | R1.0 |
 | F-D1-1 | 同上 | NopMetaEntity 物理浏览全列返回绕过 xmeta 字级可见性 | 待 R1.0 裁决（published/sensitive 过滤 or 文档化+默认收紧） | R1.0 |
 | P2-3.11-001 | `3.11-security-crosscut-recheck.md` | 22 文件出厂 application.yaml 硬编码 JWT 签名主密钥族 + nop-batch-app 键漂移死配置 | 待 R1.0 裁决（空默认+已知默认值 fail-loud+与 check/demo-migration P2 同批；升级触发=enc-key 硬编码为生产主流路径） | R1.0 |
+| P2-4.3-001 | `4.3-giant-files-audit.md` | CodeIndexService 六域混载 2991 行（拆分：持久化/git/增量三簇） | 待 R1.0 裁决（成本整体搬迁型） | R1.0 |
+| P2-4.3-002 | `4.3-giant-files-audit.md` | JobCoordinator 七域混载 2845 行（拆分：LeaderEpochController+liveness；高成本，禁动锁结构，TestJobCoordinatorRecoveryConcurrency 放大为前置） | 待 R1.0 裁决 | R1.0 |
+| P2-4.3-003 | `4.3-giant-files-audit.md` | ReActAgentExecutor 心跳/steering 块 ~410 行未随抽取波走完（1935 行） | 待 R1.0 裁决（与既有 *Coordinator 抽取波同构，中成本） | R1.0 |
+| P2-4.3-004 | `4.3-giant-files-audit.md` | GraphModelCheckpointExecutor 恢复/状态重组族 ~640 行混载（1591 行；静态无互锁+委托桩在位） | 待 R1.0 裁决（**队首**——成本最低） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 
