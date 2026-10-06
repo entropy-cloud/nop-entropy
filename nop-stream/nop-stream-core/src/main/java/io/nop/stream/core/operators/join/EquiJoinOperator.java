@@ -147,9 +147,14 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     @Override
     public OperatorSnapshotResult snapshotState(io.nop.stream.core.checkpoint.StateSnapshotContext context) throws Exception {
         // super carries the keyed-state lineage (§十 durable channel); the
-        // operator-state entry is the working-view restore transport (WI12 pattern)
+        // operator-state entry is the working-view restore transport (WI12 pattern).
+        // R6 ST-02 (plan 2323): the entry carries a point-in-time frozen copy —
+        // the async persist thread serializes it after processBarrier returns, so
+        // handing out the live buffer let post-barrier emitMatches mutations
+        // (in-place matched flags / new buffered rows) tear the durable snapshot
+        // and resurface as duplicated buffer entries after restore.
         OperatorSnapshotResult result = super.snapshotState(context);
-        result.putOperatorState(BUFFER_STATE, buffer);
+        result.putOperatorState(BUFFER_STATE, buffer == null ? null : buffer.freeze());
         return result;
     }
 

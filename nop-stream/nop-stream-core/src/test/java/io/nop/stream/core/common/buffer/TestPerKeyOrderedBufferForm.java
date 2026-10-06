@@ -98,4 +98,35 @@ class TestPerKeyOrderedBufferForm {
                 io.nop.stream.core.exceptions.StreamException.class,
                 () -> PerKeyOrderedBuffer.fromSerializableForm(Map.of("insertionSeq", 1)));
     }
+
+    /**
+     * R6 REG-01 (plan 2323): OUT-OF-ORDER event timestamps. putAll must consume the
+     * source buffer's exact insertionSeq counter — the previous lastKey()[1]
+     * estimate read the seq of the largest-TIMESTAMP entry (TsSeqComparator orders
+     * by ts first), under-counted, and let a post-restore add(ts=5) collide with
+     * (and silently overwrite) the merged (5, 1) entry. Reverting putAll to the
+     * estimate turns this test red (size 3 -> 2).
+     */
+    @Test
+    void testPutAllConsumesExactSeqUnderOutOfOrderTimestamps() {
+        PerKeyOrderedBuffer<String, String> source = new PerKeyOrderedBuffer<>();
+        source.add("k", 10L, "late-ts-high-seq0");
+        source.add("k", 5L, "early-ts-seq1"); // ts 5 < ts 10 but seq 1 > seq 0
+
+        PerKeyOrderedBuffer<String, String> restored = new PerKeyOrderedBuffer<>();
+        restored.putAll(source);
+
+        // Post-restore add at the EARLIER timestamp: with the exact counter the new
+        // entry gets seq 2; with the lastKey estimate it would reuse seq 1 and
+        // silently overwrite the merged (5, 1) row.
+        restored.add("k", 5L, "post-restore");
+
+        java.util.List<String> values = new java.util.ArrayList<>();
+        restored.sortedView("k").forEach(values::add);
+        assertEquals(3, values.size(),
+                "out-of-order post-restore add must not overwrite a merged entry");
+        assertTrue(values.contains("early-ts-seq1"),
+                "the merged (ts=5, seq=1) row must survive the post-restore add");
+        assertTrue(values.contains("post-restore"));
+    }
 }

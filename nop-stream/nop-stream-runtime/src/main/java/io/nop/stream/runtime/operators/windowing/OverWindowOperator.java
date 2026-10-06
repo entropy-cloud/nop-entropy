@@ -132,8 +132,12 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         // super carries the keyed-state lineage (§十 durable channel — the keyed
         // MapState written per element at processElement); the operator-state entry
         // is the working-view restore transport.
+        // R6 ST-02 (plan 2323): point-in-time frozen copy — the async persist
+        // thread serializes the entry after processBarrier returns, so the live
+        // buffer reference let post-barrier rows leak into the durable snapshot
+        // and resurface as duplicated buffer entries after restore.
         OperatorSnapshotResult result = super.snapshotState(context);
-        result.putOperatorState(BUFFER_STATE, buffer);
+        result.putOperatorState(BUFFER_STATE, buffer == null ? null : buffer.freeze());
         return result;
     }
 

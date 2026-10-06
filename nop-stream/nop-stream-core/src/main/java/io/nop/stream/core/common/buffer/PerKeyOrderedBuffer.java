@@ -58,19 +58,33 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
      * R5 CC-11: insertionSeq advances past the largest merged entry seq, so
      * post-merge {@link #add} allocations can never collide with (and silently
      * overwrite) a merged (ts, seq) key.
+     *
+     * <p>R6 REG-01 (plan 2323): the advance consumes the other buffer's exact
+     * {@code insertionSeq} counter. The previous {@code lastKey()[1]} estimate read
+     * the seq of the largest-TIMESTAMP entry, not the largest seq — with out-of-order
+     * event timestamps ({@code TsSeqComparator} orders by ts first) the estimate
+     * under-counted and a post-restore {@link #add} could collide with (and silently
+     * overwrite) a merged key.
      */
     public void putAll(PerKeyOrderedBuffer<K, V> other) {
-        long maxMergedSeq = -1L;
         for (Map.Entry<K, TreeMap<long[], V>> e : other.buffers.entrySet()) {
             TreeMap<long[], V> tree = buffers.computeIfAbsent(e.getKey(), k -> new TreeMap<>(TsSeqComparator.INSTANCE));
             tree.putAll(e.getValue());
-            if (!e.getValue().isEmpty()) {
-                maxMergedSeq = Math.max(maxMergedSeq, e.getValue().lastKey()[1]);
-            }
         }
-        if (maxMergedSeq >= 0) {
-            insertionSeq = Math.max(insertionSeq, maxMergedSeq + 1);
-        }
+        insertionSeq = Math.max(insertionSeq, other.insertionSeq);
+    }
+
+    /**
+     * R6 ST-02 (plan 2323): point-in-time frozen copy for operator-state snapshots.
+     * Round-trips through the serializable form so post-snapshot mutations of the
+     * live buffer cannot leak into the state handed to the async persist thread.
+     * The copy is a full {@code PerKeyOrderedBuffer}, so in-memory restore paths
+     * that match on the concrete type keep working (WindowOperator
+     * clone-accumulator discipline; the JSON format is unchanged).
+     */
+    @SuppressWarnings("unchecked")
+    public PerKeyOrderedBuffer<K, V> freeze() {
+        return (PerKeyOrderedBuffer<K, V>) fromSerializableForm(toSerializableForm());
     }
 
     /**
@@ -86,7 +100,14 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
         List<Map<String, Object>> keyEntries = new ArrayList<>();
         for (Map.Entry<K, TreeMap<long[], V>> e : buffers.entrySet()) {
             Map<String, Object> ke = new LinkedHashMap<>();
-            ke.put("key", e.getKey());
+            // R6 plan 2323: the form must be SELF-CONTAINED — keys and values are
+            // defensively copied at form-build time. Callers freeze the form at
+            // snapshot time (EquiJoin/OverWindow snapshotState -> freeze()) and the
+            // async persist thread serializes it later; live leaf references would
+            // let post-barrier mutations (in-place matched flags) tear the durable
+            // payload. The copy is JSON-native, so the persisted bytes are
+            // unchanged (this is exactly the shape JSON serialization produced).
+            ke.put("key", io.nop.stream.core.util.SnapshotCopyUtil.defensiveCopy(e.getKey()));
             ke.put("keyClassName", e.getKey() != null ? e.getKey().getClass().getName() : null);
             String valueClassName = null;
             List<List<Object>> items = new ArrayList<>();
@@ -94,7 +115,8 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
                 if (valueClassName == null && te.getValue() != null) {
                     valueClassName = te.getValue().getClass().getName();
                 }
-                items.add(java.util.Arrays.asList(te.getKey()[0], te.getKey()[1], te.getValue()));
+                items.add(java.util.Arrays.asList(te.getKey()[0], te.getKey()[1],
+                        io.nop.stream.core.util.SnapshotCopyUtil.defensiveCopy(te.getValue())));
             }
             ke.put("valueClassName", valueClassName);
             ke.put("items", items);

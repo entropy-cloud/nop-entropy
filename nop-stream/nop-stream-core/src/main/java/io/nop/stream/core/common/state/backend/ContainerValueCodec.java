@@ -122,6 +122,59 @@ public final class ContainerValueCodec {
     }
 
     /**
+     * R6 ST-01 (plan 2323): two-segment frozen variant of {@link #encode} for the
+     * async-persist window — the wrapper TYPE fields still read from the LIVE object
+     * graph's first-element runtime classes, while the wrapper CONTENT (keys, leaves)
+     * is defensively copied so post-barrier mutations cannot tear the snapshot.
+     * Callers must NOT compose {@code encode(defensiveCopy(v))}: a defensive copy of a
+     * bean is a JSON-native LinkedHashMap, which {@code encode} would misread as a Map
+     * container and wrap a second time. The persisted JSON of {@code encodeFrozen(v)}
+     * is identical to {@code encode(v)} by construction ({@code defensiveCopy} freezes
+     * into the exact JSON-native shape the persist thread would have produced).
+     */
+    @SuppressWarnings("unchecked")
+    public static Object encodeFrozen(Object value) {
+        if (value instanceof Map) {
+            Map<Object, Object> map = (Map<Object, Object>) value;
+            Map<String, Object> wrapper = new LinkedHashMap<>();
+            wrapper.put(CONTAINER_TYPE_KEY, MAP_CONTAINER);
+            List<Object> entries = new ArrayList<>(map.size());
+            for (Map.Entry<Object, Object> e : map.entrySet()) {
+                List<Object> pair = new ArrayList<>(2);
+                pair.add(io.nop.stream.core.util.SnapshotCopyUtil.defensiveCopy(e.getKey()));
+                pair.add(encodeFrozen(e.getValue()));
+                entries.add(pair);
+            }
+            if (!entries.isEmpty()) {
+                Map.Entry<Object, Object> first = map.entrySet().iterator().next();
+                if (first.getKey() != null) {
+                    wrapper.put(KEY_ELEMENT_TYPE_KEY, first.getKey().getClass().getName());
+                }
+                if (first.getValue() != null) {
+                    wrapper.put(VALUE_ELEMENT_TYPE_KEY, first.getValue().getClass().getName());
+                }
+            }
+            wrapper.put(ENTRIES_KEY, entries);
+            return wrapper;
+        }
+        if (value instanceof List) {
+            List<Object> list = (List<Object>) value;
+            Map<String, Object> wrapper = new LinkedHashMap<>();
+            wrapper.put(CONTAINER_TYPE_KEY, LIST_CONTAINER);
+            List<Object> items = new ArrayList<>(list.size());
+            for (Object item : list) {
+                items.add(encodeFrozen(item));
+            }
+            if (!items.isEmpty()) {
+                wrapper.put(ELEMENT_TYPE_KEY, list.get(0).getClass().getName());
+            }
+            wrapper.put(ITEMS_KEY, items);
+            return wrapper;
+        }
+        return io.nop.stream.core.util.SnapshotCopyUtil.defensiveCopy(value);
+    }
+
+    /**
      * Decodes a container value into its typed form. Wrapped values (produced by
      * {@link #encode}) are re-materialized recursively from the recorded element
      * types; unwrapped legacy containers carry no element type info and degrade with

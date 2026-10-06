@@ -86,8 +86,8 @@
 
 ## 修复归属（建议）
 
-- **2322**: P0-E2E-RED（fixture×3 + KR-3×迁移入口 + FLOW-03 文案）——恢复全绿底线。
-- **2323**: ST-01 + ST-02 + REG-01（快照冻结协议族，含回归钉子）。
+- **2322**: P0-E2E-RED（fixture×3 + KR-3×迁移入口 + FLOW-03 文案）——恢复全绿底线。**已完成**（commit 753e187742）。
+- **2323**: ST-01 + ST-02 + REG-01（快照冻结协议族，含回归钉子）。**已完成**（payload 叶子冻结 + buffer freeze 设计 B + toSerializableForm payload 自包含 + putAll 精确 seq；钉子捕获并根修 V 叶子活引用残余）。
 - **2324**: KR-06 + KR-07 + KR-08 + KR-09（键控恢复/路由族；KR-09 守卫名单必须与 KR-06 同批落地）。
 - **2325**: AR-01 + CON-01 + ST-03 + TE-01（fail-closed 错误路径与测试保护族）。
 

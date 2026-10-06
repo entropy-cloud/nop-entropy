@@ -35,10 +35,35 @@ public class MemoryOperatorStateBackend implements IOperatorStateBackend {
 
     @Override
     public OperatorSnapshotResult snapshotState(long checkpointId) throws Exception {
+        // R6 plan 2323 (ST-01 family hardening): the raw-state channel (putRawState,
+        // e.g. MemoryArrayListState) already copies the CONTAINER but shares the
+        // ELEMENTS with the live list — post-barrier element mutations would leak
+        // into the snapshot handed to the async persist thread. Freeze List-typed
+        // raw values element-wise with the type-preserving copy so in-memory
+        // restore keeps working. Non-List raw values pass through untouched: this
+        // channel currently has no other producer, and blanket-copying unknown
+        // shapes (e.g. accumulator maps) would flatten their typed entries into
+        // JSON-native maps and break downstream type dispatch.
+        Map<String, Object> frozen = new HashMap<>(operatorStates.size());
+        for (Map.Entry<String, Object> e : operatorStates.entrySet()) {
+            frozen.put(e.getKey(), freezeRawStateValue(e.getValue()));
+        }
         return new OperatorSnapshotResult(
-                new HashMap<>(operatorStates),
+                frozen,
                 Collections.emptyMap(),
                 Collections.emptyMap());
+    }
+
+    private static Object freezeRawStateValue(Object value) {
+        if (!(value instanceof List)) {
+            return value;
+        }
+        List<?> list = (List<?>) value;
+        List<Object> copy = new ArrayList<>(list.size());
+        for (Object element : list) {
+            copy.add(io.nop.stream.core.util.SnapshotCopyUtil.typedCopy(element));
+        }
+        return copy;
     }
 
     @Override

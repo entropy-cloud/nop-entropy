@@ -231,7 +231,14 @@ class MemoryStateSerDe {
                                          IStreamSerializer<Object> valueSer) {
         List<Object> serializedList = new ArrayList<>();
         for (Object v : (List<?>) storedValue) {
-            serializedList.add(serializeWithSerializer(v, valueSer));
+            // R6 ST-01 (plan 2323): without a custom serializer the element would
+            // otherwise be handed to the async persist thread as a live reference —
+            // post-barrier mutations (e.g. an in-place matched-flag on a payload
+            // bean) tear the snapshot. Freeze into the JSON-native shape; with a
+            // custom serializer the byte[] marker contract is kept unchanged.
+            serializedList.add(valueSer == null
+                    ? SnapshotCopyUtil.defensiveCopy(v)
+                    : serializeWithSerializer(v, valueSer));
         }
         entry.put("listValue", serializedList);
     }
@@ -251,8 +258,13 @@ class MemoryStateSerDe {
             // JSON round trip would turn them into LinkedHashMaps). Only the JSON path
             // (no custom serializer) is wrapped — a custom IStreamSerializer keeps its
             // own byte[] contract (P2-09-02c tracks its silent degradation separately).
+            // R6 ST-01 (plan 2323): the JSON path freezes via encodeFrozen — wrapper
+            // TYPE fields still read the live first-element runtime classes, wrapper
+            // CONTENT is defensively copied, so the async persist window can no longer
+            // observe post-barrier mutations. encode(defensiveCopy(v)) is forbidden
+            // here: the copy's JSON-native Map shape would be misread as a container.
             Object value = serializeWithSerializer(me.getValue(), valueSer);
-            pair.add(valueSer == null ? ContainerValueCodec.encode(value) : value);
+            pair.add(valueSer == null ? ContainerValueCodec.encodeFrozen(value) : value);
             mapEntries.add(pair);
         }
         entry.put("mapValue", mapEntries);
