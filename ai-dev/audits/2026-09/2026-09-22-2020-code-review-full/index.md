@@ -46,6 +46,7 @@
 | 4.5 | `4.5-frontend-devtools-migration-runner-utils-audit.md` | 0 | 0 | **1** | 7 | done（裁决：通过无 P0/P1 附 P2×1 进 R1.0 输入池（TestXdslResourceTransformer 零断言——复核加强 processXDef 不可达）+ P3×7 watch；**标定台账 88 条零翻案**：dev-tools 25〔17 闭环+6 成立+2 补位〕/ nop-utils 23/23 已修〔P0×2 重点核对〕/ runner-cli 17/17 未修 / frontend-benchmark 19/19 未修 / migration 4/4 未修移交 demo-migration；**CLI 双入口三模块两真入口一死占位裁定**（EmptyMain 死占位/NopCliApplication 真 main/jdk11 漂移 3 项）；依赖卫生十模块 1 项 P3 违规（nop-java-parser 三跳传递）+ utils 重复度仅 2 同名+1 组跨模块复制；debugger 并发族 6 处修复全部到位；两面各 1 轮 + 双独立复核，零驳回） | 独立子 agent（见 plan 2343 Closure 段） |
 | 4.6 | `4.6-lint-incremental-audit.md` | 0 | 0 | **4** | 7 | done（裁决：通过无 P0/P1 附 P2×4 进 R1.0 输入池（09-01 checkFile 表外扩展名 NPE 击穿错误面〔复核 JDK 26 独立复现〕/09-02 tsc 桥重启不重绑 project〔FakeTscPeer 不建模 NO_PROJECT 补强〕/02-01 Mojo threadSafe 并行竞态〔对采用者触发——Mojo 未接线 grep 复证〕/16-01 白名单 silent-empty〔升级触发=GraphQL 面成主通道〕）+ P3×7 watch；**maven-plugin「零新管线语义」成立**（代码追踪同型 CLI 7 行逐点表）；**fail-closed 10 项语义点全部成立**（namespace 既住裁定复核准确——FileNamespaceHandler 默认放行亲核）；三层账本对账残余项现状一致、重估触发均未到 + 3 项账本漂移（纪律面移交 tool-replacement 维护）；js 适配面合格；单 agent + 复核，零驳回） | 独立子 agent（见 plan 2344 Closure 段） |
 | 5.1 | `5.1-docs-consistency-audit.md` | 0 | **3** | 5 | 7 | done（裁决：通过附 P1×3 进 R1.0——①事务默认表述族（18-01+18-20 分立立案互引 P1-2.6-001：service-layer/api-and-graphql/INDEX 默认规则/runbook/nop-task×3/TXN-001 共 6+ 文件，统一入口双矩阵）②@IocBean 幻影教程（nop-job.md，与 P1-3.5-001 同批互引）③P1-3.5-001 ILockService 标定维持；P2×5 进 R1.0 输入池 + P3×7 watch；**136 条核对声明一致率 ≈89%**；复核 15/15 全保留零驳回；撞车 7/7 未修复维持；12 篇抽样 + INDEX 路由 + source-anchors 全覆盖） | 独立子 agent（见 plan 2345 Closure 段） |
+| 5.2 | `5.2-design-drift-audit.md` | 0 | **1** | 3 | 3 | done（裁决：通过附 P1×1 进 R1.0（maker-checker/03 现在时描述完全未实现的待审锁/guard/TTL 机制〔orm 表 23 列无锁列亲读、错误码零命中〕）+ P2×3 进 R1.0 输入池 + P3×3 watch；**草稿态违规 39 处整体立案 P2-5.2-001 走 P2 裁决台账**〔P1×30+P2×9/29 篇，编制勘正复核沿记的 19 篇口径——初审台账逐篇 head 亲核〕；口径重放 5/5 精确；②类 1 处改判透明记载（xdef-declarative-validation ②→①——执行器实存、文档定稿后未更新）；7/12 篇零 drift 正结论） | 独立子 agent（见 plan 2346 Closure 段） |
 | 5.1 | — | | | | | todo | |
 | 5.2 | — | | | | | todo | |
 | 5.3 | — | | | | | todo | |
@@ -148,6 +149,7 @@
 | P1-5.1-001 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——service-layer.md:66/:277 + api-and-graphql.md:174 事务入口双矩阵改写） | open |
 | P1-5.1-002 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——INDEX:38 + transaction-boundaries.md + nop-task.md×3 + TXN-001；文档修复不受代码修复阻塞） | open |
 | P1-5.1-003 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-3.5-001 同批互引——nop-job.md:246-262 @IocBean 幻影改 beans.xml 注册教程） | open |
+| P1-5.2-001 | `5.2-design-drift-audit.md` | R1.0（maker-checker/03 头部与各节「目标架构（未落地）」标注+删现在时机制陈述；与 P2-2.7-001 同批互引；文档修复不受代码修复阻塞） | open |
 
 
 ## P2 裁决台账（例外通道）
@@ -172,6 +174,7 @@
 | P2-4.3-002 | `4.3-giant-files-audit.md` | JobCoordinator 七域混载 2845 行（拆分：LeaderEpochController+liveness；高成本，禁动锁结构，TestJobCoordinatorRecoveryConcurrency 放大为前置） | 待 R1.0 裁决 | R1.0 |
 | P2-4.3-003 | `4.3-giant-files-audit.md` | ReActAgentExecutor 心跳/steering 块 ~410 行未随抽取波走完（1935 行） | 待 R1.0 裁决（与既有 *Coordinator 抽取波同构，中成本） | R1.0 |
 | P2-4.3-004 | `4.3-giant-files-audit.md` | GraphModelCheckpointExecutor 恢复/状态重组族 ~640 行混载（1591 行；静态无互锁+委托桩在位） | 待 R1.0 裁决（**队首**——成本最低） | R1.0 |
+| P2-5.2-001 | `5.2-design-drift-audit.md` | 草稿态违规整体立案 39 处/29 篇（实现已落地仍标草案/Draft——nop-lint 13 篇族/nop-wf extensions/nop-refactor/nop-graph/usage-and-billing/metadata 03-04-12 等） | 待 R1.0 裁决（Rule #14 重写波次 + 索引同步） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 

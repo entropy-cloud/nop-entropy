@@ -1,6 +1,6 @@
 # 2346 full-code-review 5.2 ai-dev/design 设计文档 drift 审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-06
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 5.2（MA5）；Skill=`ai-dev/skills/design-doc-audit-prompt.md`
 > Related: owner doc `ai-dev/design/README.md`；Roadmap Details：「design/ 各子系统设计文档是否残留 "Proposed vs Current" 草稿态、与 live 基线 drift」。
@@ -43,73 +43,73 @@
 
 ### Phase 1 - 扫描与抽样（双 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: ai-dev/design
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
-- [ ] 机械基线：274 文件清单、草稿态 grep 模式写死、抽样表选取（≥10 子系统）、历次深审 drift 对照清单
-- [ ] 草稿态扫描 agent：机械全量 grep + 命中逐个裁定
-- [ ] drift 抽样 agent：≥10 子系统抽 1-2 篇核心设计文档对照 live（每篇 ≥3 条核对声明）
-- [ ] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据：草稿态全量扫描 + ≥10 子系统 drift 对照）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-5.2-design.md`
+- [x] 机械基线：274 文件清单、草稿态 grep 模式写死、抽样表选取（≥10 子系统）、历次深审 drift 对照清单
+- [x] 草稿态扫描 agent：机械全量 grep + 命中逐个裁定
+- [x] drift 抽样 agent：≥10 子系统抽 1-2 篇核心设计文档对照 live（每篇 ≥3 条核对声明）
+- [x] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据达成：草稿态全量 150 命中/61 文件 + 12 篇子系统 drift 对照）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-5.2-design.md`
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] 草稿态全量台账 + drift 抽样台账落盘
-- [ ] No owner-doc update required（只读——发现归 R1.0 修复）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] 草稿态全量台账 + drift 抽样台账落盘
+- [x] No owner-doc update required（只读——发现归 R1.0 修复）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 扫描口径重放
-- [ ] 主 agent 汇总：判级统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 扫描口径重放（§A 口径重放 5/5 精确、①类抽 8 全成立、②类 1 处改判〔xdef-declarative-validation ②→①〕、调和后 ①39/②15；§B drift 6 条全保留、声明抽验 8/8）
+- [x] 主 agent 汇总：判级统一、撞车去重终裁（4.6/2.7/5.1 撞车 5/5 零重复）
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-5.2-design-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-5.2-design-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `5.2-design-drift-audit.md`；index 登记 5.2 行（如有 P2 走「P2 裁决台账」通道）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：扫描口径重放由复核员独立执行；doc-links exit 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 5.2 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `5.2-design-drift-audit.md`；index 登记 5.2 行 + P2 裁决台账 P2-5.2-001 行 + P1 汇总 P1-5.2-001 行
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 定向验证锚点：扫描口径重放由复核员独立执行（5/5 精确）；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——实质全过，处方 R1 台账两行/R2 log/R3 plan 补记已落实）；通过后 roadmap 5.2 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 扫描口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 扫描口径可复现（复核员重放一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且草稿态全量扫描/drift 抽样全覆盖——覆盖度量：274 文件 grep 台账 + ≥10 子系统 drift 对照
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 5.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且草稿态全量扫描/drift 抽样全覆盖——覆盖度量：274 文件 grep 台账 + 12 篇/10 子系统 drift 对照
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 5.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -121,14 +121,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: design drift 审计计划收口。报告 `5.2-design-drift-audit.md` 落盘：草稿态违规 39 处/29 篇整体立案 P2-5.2-001 走 P2 裁决台账 + drift 抽样新发现 7 条（P1×1/P2×3/P3×3——P1-5.2-001 进 index P1 汇总）。**口径重放三重独立确认 5/5 精确**；②类 1 处改判透明记载（xdef-declarative-validation ②→①——执行器实存、文档定稿后未更新）；7/12 篇零 drift 正结论。closure audit 实质全过（处方 R1 index 台账两行/R2 log/R3 plan 补记已落实）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_4ce74c6d-f559-4270-8c8d-a36ae65b5295（fresh session，只读 closure auditor；FAIL→处方 R1 台账两行落实后转 PASS）
+- Evidence:
+  - 计数勾稽：finding 7 条（0/1/3/3）+ P2-5.2-001 整体立案 39 处/29 篇 ↔ 报告实点 ↔ index 5.2 行（0/1/3/3）↔ P2 台账行 ↔ P1 汇总行 ↔ 映射表 ↔ 复核净账六处闭合；39 处逐单元实点 30+9 吻合
+  - P1/P0 台账：P1-5.2-001 已登记（R1 落实）；「P0 发现追踪」无 5.2 新增正确
+  - 关键判定亲读 4/4：NopSysCheckerRecord 23 列逐列实数无锁列/nop-stream pom 11 模块 vs 文档 10/XDefConstraintValidator.java:51 实存 + plan 2270 completed + 文档 :5 未更新/nop-lint 528 java + roadmap done 53 + 00-nop-lint-design:4 原文
+  - 格式：抽 4 条 9-10 要素完整
+  - 验证：doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员口径重放 + closure auditor 亲读为锚
+  - Deferred 项分类检查：无 deferred；P1-5.2-001 进 index P1 汇总；P2×3 进 R1.0 输入池；P2-5.2-001 经 P2 裁决台账转 R1.0 裁决；P3×3 watch-only，无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1-5.2-001/P2×3 修复归属 R1.0 分族；P2-5.2-001 经 P2 裁决台账转 R1.0 裁决〔Rule #14 重写波次〕；P3×3 watch-only；账本纪律漂移交 tool-replacement roadmap 维护）
