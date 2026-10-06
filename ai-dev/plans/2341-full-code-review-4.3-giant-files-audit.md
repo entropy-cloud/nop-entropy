@@ -52,7 +52,7 @@ Targets: 全仓 src/main >1500 行文件
 - Item Types: `Proof` + `Decision`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免）；**基线漂移处理：执行日重放 38 处清单，与快照差异逐个归因（新过线文件补入台账/monitor 触发线越过登记）**
-- [ ] 机械基线：38 处清单（LOC 排序）、antlr 生成物甄别（构建标记/源模板）、历次深审裁定撞车索引（XNode/ExecToJavaTranslator/CrudBizModel/WorkflowEngineImpl/XLangASTOptimizer/JobCoordinator 等的 finding ID）
+- [x] 机械基线：38 处清单（LOC 排序；_tmp/snap 5 处排除）、antlr/XGEN 生成物甄别（头标记 + .g4/.xgen 源实测：9 个生成物排除）、历次深审裁定撞车索引（实测重建：11 个已有裁定 + 13 个待新裁定，见 Current Baseline）
 - [x] 盘点裁定 agent（**分批表：批 1 = kernel/persistence 组〔13 个待裁定的 5 个〕+ 生成物甄别；批 2 = stream/ai/wf/jq 组〔6 个〕；批 3 = 其余〔2 个〕+ 撞车对照 11 个；单批输出上限：拆分建议条目每批 ≤3 条防压缩**）：生成物甄别节 + 全量台账 + 13 个待裁定文件逐个三选一裁定（拆分建议 ≥9 行条目；保留/monitor 台账行）+ 撞车对照 11 个核对
 - [x] 裁定复核迭代：初稿完成后由主 agent 抽查裁定质量（完成判据达成：13/13 全裁定 + 拆分建议均有职责簇行号分析）
 - [x] 产物 `_tmp/fcr-4.3-inventory.md`
