@@ -10,7 +10,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 |------|---------|------|
 | 基础内核 | `nop-kernel/` | 代码生成、XLang、核心 API、基础工具。JSON 查询支持面由 `nop-kernel/nop-jpath` 承担（fastjson 兼容 JSONPath `NopJsonPath` + nop-core `JPath` 门面的 SPI 求值桥接） |
 | 核心框架 | `nop-core-framework/` | IoC、Config、Boot、Plugin、Security、Log。Plugin 子模块组：`nop-plugin-api`（插件实现者契约 `IPlugin`/`IPluginScope`/`IPluginActivator` + 单层六态 `PluginState` + `plugin.xdef`，零依赖）、`nop-plugin-manager`（双轨加载 + 单激活生命周期编排 + 插件级 coeffect/reconcile + HMR + `HttpPluginResourceResolver` artifact 下载与 SHA256 校验）、`nop-plugin-support`（`AbstractPlugin` jar 轨兼容基类）。使用文档见 `03-modules/nop-plugin.md` |
-| 持久化 | `nop-persistence/` | DAO、ORM、DB Migration、DBTool |
+| 持久化 | `nop-persistence/` | DAO、ORM、DB Migration、DBTool、数据搬迁编排（`nop-orm-migration`：分片扩容 N→M 与同构机房迁移的五状态机编排器——P0 位点钉定/全量委托 nop-batch/增量委托 debezium-cdc→jdbc-2pc/三级校验/写停止关；使用文档 `02-core-guides/data-migration.md`） |
 | 服务框架 | `nop-service-framework/` | BizModel、GraphQL、Gateway |
 | 典型业务模块 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` | 最标准的业务骨架样板 |
 | 可复用业务模块 | `nop-sys/`、`nop-report/`、`nop-rule/`、`nop-batch/`、`nop-dyn/`、`nop-file/`、`nop-retry/`、`nop-tcc/`、`nop-metadata/` | 系统管理、报表、规则、批处理、动态表单、文件、重试、分布式事务、联邦式元数据。详见 `03-modules/` |
