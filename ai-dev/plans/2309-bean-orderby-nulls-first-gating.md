@@ -519,7 +519,3 @@ Follow-up:
   `queryToFindNextSql` / `queryToFindPrevSql` / `appendOrderBy` / `appendReverseOrderBy`
   签名变更（均增加 `IDialect` 参数）。仓库内全部调用方已同步。
 - `QueryBeanHelper.buildOrderBySql` 删除待独立立项（`nop-core` Protected Area）。
-- **DB2 行为收紧**：DB2 本身支持 `NULLS FIRST/LAST`，但平台 `db2.dialect.xml` 未声明
-  `supportNullsFirst`（2308 因无法实测而保守留 false），故聚合路径对 DB2 由「恰好可执行」
-  变为「响亮失败」。需要该能力的部署请在 `db2.dialect.xml` 置 `supportNullsFirst="true"`。
-  已在 owner doc 与 `AggregationHelper` javadoc 留痕。

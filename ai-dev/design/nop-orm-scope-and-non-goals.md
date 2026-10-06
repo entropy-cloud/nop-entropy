@@ -201,6 +201,7 @@ EQL 通道落地后，另两条产出路径按各自形状接入同一契约，�
 | EQL 层事务语句 `commit`/`rollback` | 事务边界归属 `ITransactionTemplate` / 连接层（见 §3.5）；EQL 编译器输出裸 `COMMIT` 不携带任何事务语义，且当前 DAO 层并不消费它。终态取「显式失败」而非删除，理由见 §3.6 |
 | EQL 层 ORDER BY 上的 `COLLATE` | 需按库校验排序规则名字（MySQL `utf8mb4_general_ci` / PG collation 名 / Oracle `NLS_SORT` 各异），且 H2 实测在 ORDER BY 表达式上不接受 COLLATE 语法，设计面远大于一个布尔能力位。`CAST(x AS type COLLATE y)`（`SqlTypeExpr.collate`）仍是活语法 |
 | EQL 层「按方言缺省省略空序子句」 | 单个布尔无法表达各方言的真实空序模型（DuckDB 四种模式、不随方向翻转），推导错误会静默返回相反行序。见 §3.8 |
+| ORM 层脱敏引擎（列级 mask 改写，ShardingSphere mask 形态） | 脱敏是数据**发布/展示**层概念，属 xmeta（meta 层）职责，不是存储层职责；ORM 层静默改写读出的值会使持久化语义二义——masked 值一旦经实体写回即脏数据。实际模式（2026-10-05 用户裁定）：实体/xmeta 上提供**脱敏展示字段**（计算属性，日常查询与页面使用它），真正的敏感字段以 `not-pub` 等发布控制默认不暴露、仅特定权限场景显式使用。ORM 侧 `TAG_MASKED` 维持既有定位：SQL 日志打印脱敏 |
 
 ---
 
