@@ -63,12 +63,13 @@
 
 ### M5 — 按需与收口
 
-- [ ] WI10 影子库（按需启动）：触发条件 = 全链路压测需求出现，未满足前不启动；实施形态复用 WI4 的路由/hint 基建（DataSource 层影子库对 + 匹配规则）（Deliverable: 待触发时另立 plan；deps: WI4；Item Type: Feature）
 - [ ] WI11 roadmap 收口：组合 E2E（分片 + 读写分离 + 可检索加密三能力叠加的端到端测试）、docs-for-ai 全面一致性核对（orm-model-design / eql-and-database-compatibility / 服务层数据访问文档）、独立 closure audit（Deliverable: 收口证据 + 文档核对；deps: WI3 + WI4 + WI5 + WI6（WI8/WI9/WI10 完成或显式按需/延期裁定）；Item Type: Proof）
 
 ## Follow-up Backlog
 
 > 次级事项登记，不计入进度分母，不参与完成判定。晋级为正式 WI 时从 WI12 起顺延取号。
+
+- **WI10 影子库（2026-10-06 正式裁定：deferred——按需条件项移出 Work Item Status）**：触发条件 = 全链路压测需求真实出现；未满足前不立项、不计入完成判定。实施形态预案 = 复用 WI4 的 ReadWriteRoutingDataSource/hint 基建（影子库对 + SQL Hint/列值匹配规则，DataSource 层）。触发时另立 plan（Deliverable: 待触发时另立 plan；deps: WI4；Item Type: Feature）。Why Not Blocking Closure：影子库无既有生产诉求（roadmap 立项时即定义为按需项，设计对照面 SS shadow 亦非当前用户场景）； WI4 的路由/hint 基建已落地，触发后实施成本不随时间上升。Successor Required: no（触发时按预案另立）。
 
 - 广播表：随 WI7 执行引擎设计重审（现裁定拒绝：超出单 querySpace 事务模型）。
 - OLTP 跨库联邦（Calcite 式下推）：不立项——BI 场景已由 nop-metadata 应用层聚合覆盖，OLTP 随机跨库查询场景出现时重估。
