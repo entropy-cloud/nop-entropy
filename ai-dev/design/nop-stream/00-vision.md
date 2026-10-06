@@ -110,6 +110,10 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 如未来出现 demonstrated production user need（broadcast state 特有能力无法被上述替代覆盖），可重启 vision 决策流程（Stage 37 先例）。裁定证据见 plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`。
 
+**#WI0 — 五引擎对比缺口裁定（WI0 门，2026-10-07）**
+
+裁定：**§四 Non-Goals 六行与 #G36 边界维持不变、零解除。** 五引擎对比（Flink/TDengine/Hazelcast/SeaTunnel）核定的缺口经逐条 go/defer/exclude 裁定后，由 `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI1..WI19 承载；其中两条涉及本 vision 边界的事项裁定如下：(a) per-record 异步 lookup 算子**维持排除**（§四「异步算子」不变）——维表 lookup 增量以「复用既有同步 lookup join 路径 + 本地物化 + 后台有界并发刷新」形态落地，异步性收敛在物化刷新层，不进入算子线程模型；(b) broadcast state **维持 #G36 永久排除**。cdc-design schema evolution defer 与 productization K8s defer 均维持。全部裁定方向与 roadmap 既有文本预设方向一致，零推翻、零解禁、零 defer 撤销。裁定全文见 `multi-engine-gap-adjudication.md`。
+
 ## 八、设计不变量
 
 以下不变量不可违反：
