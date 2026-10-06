@@ -44,9 +44,13 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  * <ol>
  *   <li><b>State backend provisioning</b> — operators with managed keyed state
  *       get a {@link MemoryStateBackend} (the LOCAL default when the checkpoint
- *       config carries none). This runs BEFORE the checkpoint plan is built so
- *       the plan's operator mappings detect keyed state (the KeyGroupRange-aware
- *       rescale routing on restore depends on that marker).</li>
+ *       config carries none), sized with the descriptor's key-group bound so
+ *       routing/ownership parity holds. R6 plan 2324 correction: provisioning
+ *       sets the operator's state-backend FACTORY, not a created keyed backend
+ *       (keyed backends only materialize in open()); the restore-side rescale
+ *       detection therefore does NOT depend on any plan-time keyed marker — it
+ *       is driven by the checkpoint payload itself
+ *       ({@code GraphModelCheckpointExecutor.snapshotHasKeyedState}).</li>
  *   <li><b>Barrier tracker + ACK wiring</b> — a tracker is attached to the
  *       invokable whose completion callback sends the
  *       {@code io.nop.stream.runtime.taskmanager.CheckpointAckMessage} back to
@@ -137,9 +141,13 @@ public final class RemoteTaskDeploySupport {
                 StreamModelFingerprint fingerprint = deployedGraph.getStreamModel() != null
                         ? deployedGraph.getStreamModel().computeFingerprint()
                         : null;
+                // R6 plan 2324: thread the descriptor's key-group bound so the
+                // restore-side maxParallelism resolution falls back to the job's
+                // real value instead of the engine default (KR-2 phantom mismatch).
                 long restoredEpoch = GraphModelCheckpointExecutor.restoreDeployedSubtaskFromStorage(
                         localPlan, checkpointPlan, descriptor.getCheckpointRestorePath(),
-                        jobId, pipelineId, vertexId, subtaskIndex, fingerprint);
+                        jobId, pipelineId, vertexId, subtaskIndex, fingerprint,
+                        descriptor.getMaxParallelism());
                 if (restoredEpoch >= 0) {
                     LOG.info("Deployed subtask {}/{} of job {} restored from durable epoch {}",
                             vertexId, subtaskIndex, jobId, restoredEpoch);

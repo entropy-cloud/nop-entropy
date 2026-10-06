@@ -256,8 +256,16 @@ public class CheckpointBarrierTracker {
                 snap.putKeyedState(keyedKey + "-" + entry.getKey(), entry.getValue());
             }
         } else if (snapshot.getKeyedStates() != null) {
+            // R6 KR-07 (plan 2324): namespace under the operator prefix instead of
+            // the raw key. The raw key ("keyed-state" from
+            // AbstractStreamOperator.snapshotState) is IDENTICAL for every keyed
+            // operator in the chain — process->process, cep->process and
+            // join->process chains all have more than one, and putKeyedState would
+            // let the last writer erase every earlier operator's keyed snapshot.
+            // The restore side (RescaleStateAssembler.buildSnapshotFromTaskState)
+            // reads this prefix first and falls back to the raw key for old epochs.
             for (Map.Entry<String, Object> entry : snapshot.getKeyedStates().entrySet()) {
-                snap.putKeyedState(entry.getKey(), entry.getValue());
+                snap.putKeyedState(opStateKey + "-keyed-" + entry.getKey(), entry.getValue());
             }
         }
     }

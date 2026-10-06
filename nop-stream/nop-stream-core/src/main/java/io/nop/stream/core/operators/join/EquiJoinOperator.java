@@ -77,7 +77,9 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
 
     private static final long serialVersionUID = 1L;
 
-    private static final String BUFFER_STATE = "equi-join-buffer";
+    // R6 plan 2324: the literal lives in TimerStateKeys so the rescale guard and
+    // the operator cannot drift apart.
+    private static final String BUFFER_STATE = io.nop.stream.core.operators.TimerStateKeys.EQUI_JOIN_BUFFER;
     private static final char SEP = '\u0000';
     private static final String LEFT_TAG = "L";
     private static final String RIGHT_TAG = "R";

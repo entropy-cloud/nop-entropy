@@ -68,4 +68,77 @@ class TestScaleDownPerKeyStateGuard {
         assertTrue(String.valueOf(e.getParam("detail")).contains("R5 WIN-2/WIN-4"),
                 () -> "scale-down guard must carry WIN guidance: " + e.getParam("detail"));
     }
+
+    // ------------------------------------------------------------------
+    // R6 KR-09 (plan 2324): production-shape pins. The ONLY production writer
+    // of operator-state keys is CheckpointBarrierTracker, which namespaces
+    // every key as "operator-{i}-<name>". The bare-name equals previously
+    // never matched a production snapshot — the guard was dead code on live
+    // data while these fixtures fed bare keys (hollow green). Reverting
+    // RescaleStateAssembler.isPerKeyAuxiliaryOperatorState to bare equals (or
+    // dropping the three keys added in 2324) turns these tests red.
+    // ------------------------------------------------------------------
+
+    private static TaskStateSnapshot snapshotWithOperatorStates(long checkpointId, int taskIndex,
+                                                                String... stateKeys) {
+        TaskStateSnapshot snap = new TaskStateSnapshot(loc(taskIndex), checkpointId);
+        for (String key : stateKeys) {
+            snap.putOperatorState(key, "payload-of-subtask-" + taskIndex);
+        }
+        return snap;
+    }
+
+    private static void assertScaleDownRejected(Map<TaskLocation, TaskStateSnapshot> states,
+                                                String expectedFragment) {
+        io.nop.stream.core.common.state.shard.KeyGroupRange newRange =
+                io.nop.stream.core.common.state.shard.KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(2, 1, 0);
+        StreamException e = assertThrows(StreamException.class, () ->
+                RescaleStateAssembler.buildRescaledTaskState(VERTEX, 0, newRange,
+                        java.util.Arrays.asList(loc(0), loc(1)), 1, 2, 4, lookupOf(states),
+                        planOf(loc(0), loc(1))));
+        assertTrue(String.valueOf(e.getParam("detail")).contains(expectedFragment),
+                () -> "scale-down guard must fire on production-shape keys: " + e.getParam("detail"));
+    }
+
+    @Test
+    void productionPrefixedWindowTimersFailFast() {
+        Map<TaskLocation, TaskStateSnapshot> states = new LinkedHashMap<>();
+        states.put(loc(0), snapshotWithOperatorStates(7L, 0, "operator-0-internal-timers"));
+        states.put(loc(1), snapshotWithOperatorStates(7L, 1, "operator-1-internal-timers"));
+        assertScaleDownRejected(states, "R5 WIN-2/WIN-4");
+    }
+
+    @Test
+    void processInternalTimersKeyFailsFast() {
+        Map<TaskLocation, TaskStateSnapshot> states = new LinkedHashMap<>();
+        // 2312 added this key AFTER the R5 guard list was written — the original
+        // KR-09/REG-05 miss.
+        states.put(loc(0), snapshotWithOperatorStates(7L, 0, "operator-0-process-internal-timers"));
+        states.put(loc(1), snapshotWithOperatorStates(7L, 1, "operator-1-process-internal-timers"));
+        assertScaleDownRejected(states, "R5 WIN-2/WIN-4");
+    }
+
+    @Test
+    void equiJoinAndOverWindowBufferKeysFailFast() {
+        Map<TaskLocation, TaskStateSnapshot> states = new LinkedHashMap<>();
+        states.put(loc(0), snapshotWithOperatorStates(7L, 0,
+                "operator-0-equi-join-buffer", "operator-0-over-window-buffer"));
+        states.put(loc(1), snapshotWithOperatorStates(7L, 1,
+                "operator-1-equi-join-buffer", "operator-1-over-window-buffer"));
+        assertScaleDownRejected(states, "R5 WIN-2/WIN-4");
+    }
+
+    @Test
+    void nonAuxiliaryPrefixedStateDoesNotTripGuard() throws Exception {
+        Map<TaskLocation, TaskStateSnapshot> states = new LinkedHashMap<>();
+        states.put(loc(0), snapshotWithOperatorStates(7L, 0, "operator-0-window-contents"));
+        states.put(loc(1), snapshotWithOperatorStates(7L, 1, "operator-1-window-contents"));
+        // must NOT throw: non-auxiliary operator state on scale-down keeps the
+        // trimmed-subtask semantics (guard is scoped to per-key auxiliary state)
+        io.nop.stream.core.common.state.shard.KeyGroupRange newRange =
+                io.nop.stream.core.common.state.shard.KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(2, 1, 0);
+        RescaleStateAssembler.buildRescaledTaskState(VERTEX, 0, newRange,
+                java.util.Arrays.asList(loc(0), loc(1)), 1, 2, 4, lookupOf(states),
+                planOf(loc(0), loc(1)));
+    }
 }

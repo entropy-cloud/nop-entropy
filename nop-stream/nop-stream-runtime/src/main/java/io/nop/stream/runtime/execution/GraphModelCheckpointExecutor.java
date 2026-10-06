@@ -246,7 +246,7 @@ public class GraphModelCheckpointExecutor {
         // auto-restore; the default machine-level directory always starts fresh.
         if (hasExplicitStoragePath(checkpointConfig)) {
             restoreFromCheckpoint(execPlan, coordinator, checkpointPlan, streamModel,
-                    configuredBackend(checkpointConfig));
+                    backendMaxParallelism(configuredBackend(checkpointConfig)));
         } else {
             LOG.warn("Job {} uses the DEFAULT checkpoint storage directory (no 'path' storage"
                     + " property configured). Automatic restore is DISABLED for the default"
@@ -369,7 +369,7 @@ public class GraphModelCheckpointExecutor {
 
         if (restoreSavepointPath != null && !restoreSavepointPath.isEmpty()) {
             restoreFromSavepointPath(execPlan, storage, checkpointPlan, restoreSavepointPath,
-                    configuredBackend(checkpointConfig));
+                    backendMaxParallelism(configuredBackend(checkpointConfig)));
         }
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
@@ -955,7 +955,7 @@ public class GraphModelCheckpointExecutor {
             CheckpointCoordinator coordinator,
             CheckpointPlan checkpointPlan,
             StreamModel streamModel,
-            IStateBackend configuredBackend) throws Exception {
+            int configuredMaxParallelism) throws Exception {
 
         EpochManifest epochManifest = coordinator.restoreLatestEpochManifest();
         if (epochManifest != null) {
@@ -987,7 +987,7 @@ public class GraphModelCheckpointExecutor {
                                     .param(ARG_DETAIL, "Available keys: " + epochManifest.getTaskSnapshots().keySet());
                         }
                         return state;
-                    }, configuredBackend);
+                    }, configuredMaxParallelism);
             return;
         }
 
@@ -1000,7 +1000,7 @@ public class GraphModelCheckpointExecutor {
         LOG.info("Recovering from checkpoint {} (jobId={})",
                 latestCheckpoint.getCheckpointId(), latestCheckpoint.getJobId());
 
-        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint, configuredBackend);
+        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint, configuredMaxParallelism);
     }
 
     /**
@@ -1065,7 +1065,7 @@ public class GraphModelCheckpointExecutor {
             ICheckpointStorage defaultStorage,
             CheckpointPlan checkpointPlan,
             String savepointPath,
-            IStateBackend configuredBackend) throws Exception {
+            int configuredMaxParallelism) throws Exception {
 
         ICheckpointStorage savepointStorage = new LocalFileCheckpointStorage(savepointPath);
         String jobId = checkpointPlan.getJobId();
@@ -1106,7 +1106,7 @@ public class GraphModelCheckpointExecutor {
         LOG.info("Recovering from savepoint {} (jobId={})",
                 savepointCheckpoint.getCheckpointId(), savepointCheckpoint.getJobId());
 
-        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, savepointCheckpoint, configuredBackend);
+        restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, savepointCheckpoint, configuredMaxParallelism);
     }
 
     @FunctionalInterface
@@ -1151,7 +1151,8 @@ public class GraphModelCheckpointExecutor {
             String pipelineId,
             String vertexId,
             int subtaskIndex,
-            StreamModelFingerprint currentFingerprint) throws Exception {
+            StreamModelFingerprint currentFingerprint,
+            int configuredMaxParallelism) throws Exception {
         if (checkpointBaseDir == null || checkpointBaseDir.isBlank()) {
             LOG.info("deployTask restore: no checkpointRestorePath for {}/{} — fresh start", vertexId, subtaskIndex);
             freshInitializeSubtaskOperators(execPlan, vertexId, subtaskIndex);
@@ -1180,11 +1181,7 @@ public class GraphModelCheckpointExecutor {
                         }
                         return state;
                     },
-                    vertexId, subtaskIndex,
-                    // Remote TM path: job config is not threaded here yet; the
-                    // wiring-side provisioning resolves M when the task starts.
-                    // Threading it is KR-06-family scope (R6 plan 2324).
-                    null);
+                    vertexId, subtaskIndex, configuredMaxParallelism);
             return manifest.getEpochId();
         }
 
@@ -1214,9 +1211,7 @@ public class GraphModelCheckpointExecutor {
                     }
                     return state;
                 },
-                vertexId, subtaskIndex,
-                // Remote TM path: see the manifest-branch note above.
-                null);
+                vertexId, subtaskIndex, configuredMaxParallelism);
         return latest.getCheckpointId();
     }
 
@@ -1270,7 +1265,24 @@ public class GraphModelCheckpointExecutor {
             TaskStateLookup stateLookup,
             IStateBackend configuredBackend) throws Exception {
         restoreTaskStatesFromSource(execPlan, checkpointPlan, epochId, checkpointLocations,
-                stateLookup, null, -1, configuredBackend);
+                stateLookup, null, -1, backendMaxParallelism(configuredBackend));
+    }
+
+    /** R6 plan 2324: the job's key-group bound from the configured backend, or 0. */
+    private static int backendMaxParallelism(IStateBackend backend) {
+        return backend != null && backend.getMaxParallelism() > 0 ? backend.getMaxParallelism() : 0;
+    }
+
+    /** R6 plan 2324: int-bound variant for the RescaleStateAssembler entry. */
+    static void restoreTaskStatesFromSource(
+            GraphExecutionPlan execPlan,
+            CheckpointPlan checkpointPlan,
+            long epochId,
+            Set<TaskLocation> checkpointLocations,
+            TaskStateLookup stateLookup,
+            int configuredMaxParallelism) throws Exception {
+        restoreTaskStatesFromSource(execPlan, checkpointPlan, epochId, checkpointLocations,
+                stateLookup, null, -1, configuredMaxParallelism);
     }
 
     /**
@@ -1291,7 +1303,7 @@ public class GraphModelCheckpointExecutor {
             TaskStateLookup stateLookup,
             String targetVertexId,
             int targetSubtaskIndex,
-            IStateBackend configuredBackend) throws Exception {
+            int configuredMaxParallelism) throws Exception {
 
         // Reverse-direction vertex differential check. The forward
         // direction (current vertex absent from checkpoint) is already rejected
@@ -1306,7 +1318,7 @@ public class GraphModelCheckpointExecutor {
         // (parallelism change) can route keyed state by KeyGroupRange
         // intersection instead of a strict 1:1 TaskLocation lookup.
         Map<String, List<TaskLocation>> oldSubtasksByVertex = groupCheckpointSubtasksByVertex(checkpointLocations);
-        int maxParallelism = resolveMaxParallelism(execPlan, checkpointPlan, configuredBackend);
+        int maxParallelism = resolveMaxParallelism(execPlan, checkpointPlan, configuredMaxParallelism);
         // R5 KR-2: the stamped ownership metadata is no longer write-only —
         // when a checkpoint records its (P, M) binding, restore must match the
         // live routing bound or keyed state lands under a different owner
@@ -1319,7 +1331,24 @@ public class GraphModelCheckpointExecutor {
             int newParallelism = newSubtasks.size();
             List<TaskLocation> oldSubtasks = oldSubtasksByVertex.getOrDefault(vertexId, java.util.Collections.emptyList());
             int oldParallelism = oldSubtasks.size();
-            boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks);
+            boolean vertexKeyed = isVertexKeyed(checkpointPlan, vertexId, oldSubtasks)
+                    // R6 KR-06 (plan 2324): the plan-time keyed marker is dead at
+                    // every restore entry point — CheckpointPlanBuilder derives it
+                    // from getKeyedStateBackend(), which is only created in open(),
+                    // after restore. The checkpoint payload is the authoritative
+                    // signal: if any old snapshot carries keyed states, this vertex
+                    // owns keyed state and a parallelism change must rescale.
+                    // Mutation-probe verified (plan 2324 closure): commenting the
+                    // line below turns all three TestKeyedRescaleRestoreE2E
+                    // scenarios red (scale-down drops subtask-1 keys; scale-up
+                    // hits the raw 1:1 lookup with a missing subtask location).
+                    // Mutation-probe verified (plan 2324 closure): disabling this
+                    // line (production-shaped fixture, backend created in open())
+                    // turns all three TestKeyedRescaleRestoreE2E scenarios red —
+                    // scale-down restores only subtask-0's keys (silent loss),
+                    // scale-up hits the raw 1:1 lookup with a missing subtask
+                    // location (ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED).
+                    || snapshotHasKeyedState(oldSubtasks, stateLookup);
             boolean rescale = vertexKeyed && oldParallelism > 0 && oldParallelism != newParallelism;
 
             // (checkpoint-design.md §8.5.2): a 2PC sink vertex
@@ -1463,7 +1492,7 @@ public class GraphModelCheckpointExecutor {
     }
 
     static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan) {
-        return resolveMaxParallelism(execPlan, checkpointPlan, null);
+        return resolveMaxParallelism(execPlan, checkpointPlan, null, 0);
     }
 
     /**
@@ -1480,6 +1509,21 @@ public class GraphModelCheckpointExecutor {
      */
     static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan,
                                      IStateBackend configuredBackend) {
+        return resolveMaxParallelism(execPlan, checkpointPlan, configuredBackend, 0);
+    }
+
+    /**
+     * R6 plan 2324: int-fallback overload for the remote TM restore path, where
+     * no {@code IStateBackend} instance is threaded but the deployment descriptor
+     * carries the job's key-group bound.
+     */
+    static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan,
+                                     int configuredMaxParallelismFallback) {
+        return resolveMaxParallelism(execPlan, checkpointPlan, null, configuredMaxParallelismFallback);
+    }
+
+    private static int resolveMaxParallelism(GraphExecutionPlan execPlan, CheckpointPlan checkpointPlan,
+                                             IStateBackend configuredBackend, int maxParallelismFallback) {
         for (String vertexId : execPlan.getSortedVertexIds()) {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
@@ -1499,6 +1543,9 @@ public class GraphModelCheckpointExecutor {
         }
         if (configuredBackend != null && configuredBackend.getMaxParallelism() > 0) {
             return configuredBackend.getMaxParallelism();
+        }
+        if (maxParallelismFallback > 0) {
+            return maxParallelismFallback;
         }
         return KeyGroup.DEFAULT_MAX_PARALLELISM;
     }
@@ -1542,6 +1589,23 @@ public class GraphModelCheckpointExecutor {
         return false;
     }
 
+    /**
+     * R6 KR-06 (plan 2324): whether any old subtask snapshot of this vertex
+     * actually carries keyed state. This is the rescale detection source of truth
+     * (see the restoreTaskStatesFromSource comment) — format-independent,
+     * marker-independent, and true to what the durable checkpoint holds.
+     */
+    private static boolean snapshotHasKeyedState(List<TaskLocation> oldSubtasks,
+                                                 TaskStateLookup stateLookup) throws Exception {
+        for (TaskLocation loc : oldSubtasks) {
+            TaskStateSnapshot snap = stateLookup.lookup(loc);
+            if (snap != null && snap.getKeyedStates() != null && !snap.getKeyedStates().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ------------------------------------------------------------------
     // Delegates to RescaleStateAssembler (extracted collaborator).
     // Package-private delegates keep the SupervisionLoop / focused-test
@@ -1580,9 +1644,9 @@ public class GraphModelCheckpointExecutor {
             GraphExecutionPlan execPlan,
             CheckpointPlan checkpointPlan,
             CompletedCheckpoint checkpoint,
-            IStateBackend configuredBackend) throws Exception {
+            int configuredMaxParallelism) throws Exception {
         RescaleStateAssembler.restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, checkpoint,
-                configuredBackend);
+                configuredMaxParallelism);
     }
 
     /** R6 plan 2322: the backend the KR-3 pre-build path configured, if any. */

@@ -63,6 +63,14 @@ public class WatermarksWithIdleness<T> implements WatermarkGenerator<T> {
     public void onEvent(T event, long eventTimestamp, WatermarkOutput output) {
         watermarks.onEvent(event, eventTimestamp, output);
         idlenessTimer.activity();
+        // R6 KR-08 (plan 2324, Flink parity): activity must also emit the ACTIVE
+        // transition — markIdle() announced idleness downstream, so the first
+        // event after an idle episode must announce recovery through the same
+        // channel. The transition guard in the output implementation makes the
+        // call a no-op when not idle.
+        if (isIdleNow) {
+            output.markActive();
+        }
         isIdleNow = false;
     }
 

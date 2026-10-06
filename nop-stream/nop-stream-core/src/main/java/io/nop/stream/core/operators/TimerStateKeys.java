@@ -25,6 +25,12 @@ public final class TimerStateKeys {
     /** ProcessOperator's internal-timer snapshot key (R5 ST-11). */
     public static final String PROCESS_INTERNAL_TIMERS = "process-internal-timers";
 
+    /** EquiJoinOperator's per-key working-buffer operator-state key (R6 plan 2324). */
+    public static final String EQUI_JOIN_BUFFER = "equi-join-buffer";
+
+    /** OverWindowOperator's per-key working-buffer operator-state key (R6 plan 2324). */
+    public static final String OVER_WINDOW_BUFFER = "over-window-buffer";
+
     private TimerStateKeys() {
     }
 }

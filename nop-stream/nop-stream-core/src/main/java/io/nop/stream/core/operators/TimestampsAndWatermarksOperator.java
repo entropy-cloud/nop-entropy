@@ -95,7 +95,15 @@ public class TimestampsAndWatermarksOperator<T>
 
     @Override
     public void processElement(StreamRecord<T> element) throws Exception {
-        this.idle = false;
+        // R6 KR-08 (plan 2324): deactivate through markActive, never a bare flag
+        // flip. markActive's transition guard emits WatermarkStatus.ACTIVE so a
+        // downstream InputGate that evicted this channel from watermark merging
+        // (after one idle episode) resumes; a bare `this.idle = false` left the
+        // channel silently muted forever because markActive's `if (idle)` guard
+        // then saw false and never re-emitted.
+        if (idle) {
+            new OperatorWatermarkOutput().markActive();
+        }
         long recordTimestamp = element.hasTimestamp() ? element.getTimestamp() : TimestampAssigner.NO_TIMESTAMP;
         long extractedTs = timestampAssigner.extractTimestamp(element.getValue(), recordTimestamp);
         element.setTimestamp(extractedTs);

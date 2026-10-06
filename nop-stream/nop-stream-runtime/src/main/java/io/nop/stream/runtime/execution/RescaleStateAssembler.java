@@ -117,11 +117,15 @@ static void assertNoChannelStateOnRescale(
  * a non-empty operator (non-keyed) state, throw
  * {@code ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED} — the 1:1-by-index
  * copy below cannot serve the added subtasks and no redistribution is wired,
- * so proceeding would silently start them with empty state. Scale-down
- * (newParallelism &lt; oldParallelism) never trips this guard: every kept
- * subtask index still maps to an old subtask (trimmed subtasks are the AR-03
- * concern of the maxParallelism reshard migration, which already refuses
- * lossy operator-state scale-downs).
+ * so proceeding would silently start them with empty state. The scale-down
+ * direction (newParallelism &lt; oldParallelism) trips the per-key auxiliary
+ * guard below (R5 WIN-2/WIN-4 Phase 1): shrinking a vertex whose snapshots
+ * carry window/CEP/process timers, pane tracking, trigger accumulators or a
+ * per-key working buffer would split that state (1:1 copy) from the
+ * key-group-redistributed window contents. Non-auxiliary operator state on
+ * scale-down keeps the trimmed-subtask semantics (AR-03 / maxParallelism
+ * reshard migration territory). R6 plan 2324: key matching is prefix-aware —
+ * see {@link #isPerKeyAuxiliaryOperatorState}.
  *
  * <p>Package-private so the focused unit test can exercise the check directly
  * (same pattern as {@link #assertNoChannelStateOnRescale}).
@@ -134,11 +138,29 @@ static void assertNoChannelStateOnRescale(
  * @throws StreamException ({@code ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED})
  *         if any old subtask snapshot carries a non-empty operator state
  */
-private static boolean isPerKeyAuxiliaryOperatorState(String stateKey) {
-    return stateKey.equals("internal-timers") || stateKey.equals("cep-event-time-timers")
-            || stateKey.equals("trigger-accumulators") || stateKey.equals("pane-tracking")
-            || stateKey.equals("reduce-state");
-}
+    /**
+     * R6 KR-09 (plan 2324): matches a per-key auxiliary operator-state key on BOTH
+     * shapes it can appear in a durable snapshot — the bare literal (legacy /
+     * direct-constructed snapshots) and the production namespace form
+     * {@code operator-{i}-<name>} written by CheckpointBarrierTracker. The bare-name
+     * equals previously never matched a production snapshot, so the scale-down
+     * guard below was dead code on live data (test fixtures fed bare keys — a
+     * hollow green). TimerStateKeys is the shared literal home so the guard and
+     * the operators cannot drift apart.
+     */
+    static boolean isPerKeyAuxiliaryOperatorState(String stateKey) {
+        if (stateKey == null) {
+            return false;
+        }
+        String bare = stateKey.replaceFirst("^operator-\\d+-", "");
+        return bare.equals(io.nop.stream.core.operators.TimerStateKeys.WINDOW_INTERNAL_TIMERS)
+                || bare.equals(io.nop.stream.core.operators.TimerStateKeys.CEP_EVENT_TIME_TIMERS)
+                || bare.equals(io.nop.stream.core.operators.TimerStateKeys.PROCESS_INTERNAL_TIMERS)
+                || bare.equals(io.nop.stream.core.operators.TimerStateKeys.EQUI_JOIN_BUFFER)
+                || bare.equals(io.nop.stream.core.operators.TimerStateKeys.OVER_WINDOW_BUFFER)
+                || bare.equals("trigger-accumulators") || bare.equals("pane-tracking")
+                || bare.equals("reduce-state");
+    }
 
 static void assertNoOperatorStateOnScaleUp(
         String vertexId, List<TaskLocation> oldSubtasks,
@@ -444,7 +466,7 @@ static void restoreTaskStatesFromCheckpoint(
         GraphExecutionPlan execPlan,
         CheckpointPlan checkpointPlan,
         CompletedCheckpoint checkpoint,
-        io.nop.stream.core.common.state.backend.IStateBackend configuredBackend) throws Exception {
+        int configuredMaxParallelism) throws Exception {
     // Pass the checkpoint's TaskLocation set so the shared restore
     // path can perform the reverse-direction vertex differential check.
     Set<TaskLocation> checkpointLocations = checkpoint.getTaskStates().keySet();
@@ -462,7 +484,7 @@ static void restoreTaskStatesFromCheckpoint(
                             .param(ARG_DETAIL, "Available keys: " + checkpoint.getTaskStates().keySet());
                 }
                 return state;
-            }, configuredBackend);
+            }, configuredMaxParallelism);
 }
 
 /**
@@ -565,21 +587,35 @@ static OperatorSnapshotResult buildSnapshotFromTaskState(
                 } else {
                     // CheckpointPlanBuilder marks keyed state only when the
                     // operator's keyedStateBackend exists AT PLAN-BUILD TIME
-                    // (pre-open → always null), so the tracker ACK writes the
-                    // operator's keyed snapshot under the RAW key
-                    // ("keyed-state", the key AbstractStreamOperator.
-                    // snapshotState uses) instead of a per-operator prefix.
-                    // This fallback reads that raw key; without it keyed
-                    // state would be silently dropped
-                    // on restore (opResult empty → restore skipped) and every
-                    // keyed operator would resume from empty state. A chain has at
-                    // most one keyed-state-bearing operator by construction
-                    // (the raw key would otherwise overwrite on the ACK side).
-                    Object rawKeyed = taskState.getKeyedState("keyed-state");
-                    if (rawKeyed != null) {
-                        builder.putKeyedState("keyed-state", rawKeyed);
-                        found = true;
+                    // (pre-open → always null). R6 KR-07 (plan 2324): the tracker
+                    // ACK namespaces the keyed snapshot under
+                    // {@code operator-{i}-keyed-<rawKey>} so chained keyed
+                    // operators (process->process, cep->process, join->process)
+                    // cannot overwrite each other — read that prefix FIRST, then
+                    // fall back to the raw key for old epochs written before the
+                    // namespace existed (without some read here, keyed state would
+                    // be silently dropped on restore and every keyed operator
+                    // would resume from empty state).
+                    String keyedRawPrefix = opStateKey + "-keyed-";
+                    boolean keyedFound = false;
+                    for (Map.Entry<String, Object> entry : taskState.getKeyedStates().entrySet()) {
+                        if (entry.getKey().startsWith(keyedRawPrefix)) {
+                            builder.putKeyedState(entry.getKey().substring(keyedRawPrefix.length()),
+                                    entry.getValue());
+                            keyedFound = true;
+                        }
                     }
+                    if (!keyedFound) {
+                        // legacy fallback: keyed-state decision must be independent
+                        // of the operator-state `found` flag (an operator can carry
+                        // operator state and a legacy raw keyed entry at once).
+                        Object rawKeyed = taskState.getKeyedState("keyed-state");
+                        if (rawKeyed != null) {
+                            builder.putKeyedState("keyed-state", rawKeyed);
+                            keyedFound = true;
+                        }
+                    }
+                    found = found || keyedFound;
                 }
                 break;
             }
