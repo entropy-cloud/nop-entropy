@@ -46,12 +46,12 @@
 
 ### Phase 1 - 盘点与裁定（单 agent 分批）
 
-Status: planned
+Status: in progress
 Targets: 全仓 src/main >1500 行文件
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免）；**基线漂移处理：执行日重放 38 处清单，与快照差异逐个归因（新过线文件补入台账/monitor 触发线越过登记）**
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免）；**基线漂移处理：执行日重放 38 处清单，与快照差异逐个归因（新过线文件补入台账/monitor 触发线越过登记）**
 - [ ] 机械基线：38 处清单（LOC 排序）、antlr 生成物甄别（构建标记/源模板）、历次深审裁定撞车索引（XNode/ExecToJavaTranslator/CrudBizModel/WorkflowEngineImpl/XLangASTOptimizer/JobCoordinator 等的 finding ID）
 - [ ] 盘点裁定 agent（**分批表：批 1 = kernel/persistence 组〔13 个待裁定的 5 个〕+ 生成物甄别；批 2 = stream/ai/wf/jq 组〔6 个〕；批 3 = 其余〔2 个〕+ 撞车对照 11 个；单批输出上限：拆分建议条目每批 ≤3 条防压缩**）：生成物甄别节 + 全量台账 + 13 个待裁定文件逐个三选一裁定（拆分建议 ≥9 行条目；保留/monitor 台账行）+ 撞车对照 11 个核对
 - [ ] 裁定复核迭代：初稿完成后由主 agent 抽查裁定质量（非发现型深挖——10 轮上限不适用；以「13 个待裁定文件全部有裁定且拆分建议有职责簇分析」为完成判据）
