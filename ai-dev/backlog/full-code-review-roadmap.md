@@ -80,7 +80,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 4.1 | 错误处理与错误码一致性审计（全仓 ErrorCode/NopException 两层策略落地） | todo | `docs-for-ai/02-core-guides/error-handling.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09）+ `nop-platform-conformance-audit-prompt.md` |
+| 4.1 | 错误处理与错误码一致性审计（全仓 ErrorCode/NopException 两层策略落地） | done（2026-10-06，plan 2339，closure audit 一次 PASS——通过无 P0/P1 附 P2×3 进 R1.0 输入池（错误码字符串伪装系统族 65 处/40 文件/14 模块组 + RangeSplitUtils 中文消息 + ToolSchemaConverter 吞异常降级无参工具〔复核加重：null 系全部真实工具常态路径〕）；**bare RT 全仓仅 5 处仅 1 违规 P3**、BizModel 面 ErrorCode 为主合规率 84.3%（复核修正后）+ .param() 91.3%、api 面校准后零违规、3348 catch 合规 64.0% 正结论；复核修正透明记载（合规率口径/09-04 处数/09-20 加重）；P3×3 watch；零驳回；6.2 移交 3348 行 catches.tsv；A/B 面各 2 轮） | `docs-for-ai/02-core-guides/error-handling.md` | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09）+ `nop-platform-conformance-audit-prompt.md` |
 | 4.2 | 测试有效性审计（zero-test 模块清单、@Disabled 清单、反模式抽查） | todo | `docs-for-ai/02-core-guides/testing.md` | 0.3, 0.4 | `unit-test-antipatterns.md` |
 | 4.3 | 巨型手写文件与复杂度热点审计（>1500 行全仓盘点 + 拆分/保留裁定清单） | todo | — | 0.3, 0.4 | `deep-audit-prompts.md`（维度 02/15） |
 | 4.4 | nop-format + nop-search + nop-message（非 pulsar）+ nop-cluster 深审 | todo | — | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09/14/16） |
