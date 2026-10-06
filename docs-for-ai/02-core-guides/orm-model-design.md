@@ -984,6 +984,14 @@ select o, o.extFldA, o.extFldB*2 + 3
 
 `MaskHelper`（nop-commons）提供常用遮盖函数：`keepFirstNLastM`（保前 n 后 m）、`maskFirstNLastM`（遮前 n 后 m）、`maskFromXToY`（区间遮盖）、`maskAll`（全遮保长）、`maskFixed`（全遮定长，不泄露原长度）。空值原样返回；`keepFirstNLastM` 在 n+m 覆盖全长时原样返回（过短值不遮，是否全遮由调用方用 `maskAll/maskFixed` 显式表达）。
 
+## 模型扩展校验：`IOrmModelValidator`
+
+模型内核初始化（`OrmModel.init()`）只保留通用结构约束；**语义级扩展校验**（如可检索加密声明、分片绑定等基于标签/扩展属性的跨列校验）通过可配置的扩展校验机制接入，不硬编码在内核初始化中：
+
+- 实现 `io.nop.orm.model.IOrmModelValidator`（`void validate(OrmModel model)`），校验失败抛 `NopException`（携带 source 定位与上下文参数）——启动即失败，不推迟到首次查询。
+- 注册：META-INF/services 声明（跨模块自动发现）或 `OrmModelValidatorRegistry.register/unregister` 显式注册（IoC bean / 测试）。注册表为空时零行为变更。
+- 内置参考实现：`OrmEncAssistedModelValidator`（可检索加密声明校验，见上文）。
+
 ## 免代码生成：动态实体 `DynamicOrmEntity`
 
 **何时需要**：想在 ORM 模型里声明实体（能写 EQL、能建表、能 CRUD），但**不生成** Java 实体类。
