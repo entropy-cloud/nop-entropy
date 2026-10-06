@@ -1,6 +1,6 @@
 # 2340 full-code-review 4.2 测试有效性审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-05
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 4.2（MA4）；Skill=`ai-dev/skills/unit-test-antipatterns.md`（P-1~P-8 反模式清单——**维度 21 的核心审计基线，执行前必须完整阅读**）+ `ai-dev/skills/deep-audit-prompts.md`（维度 21 正文 + 共享前缀）
 > Related: owner doc `docs-for-ai/02-core-guides/testing.md`；Roadmap Details：「zero-test 模块清单核定（nop-code-api/dao、nop-spring、nop-autotest、nop-benchmark、nop-biz-auth-api 等）；@Disabled 全清单及理由标定；测试反模式抽查」。
@@ -47,73 +47,73 @@
 
 ### Phase 1 - 清单与抽查（双 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 全仓 src/test
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理：登记在途变更，触及扫描域则等待）
-- [ ] 机械基线：zero-test 全量清单（**口径写死：pom 模块有 src/main 且无 src/test/java 目录 = zero-test**；仅 test 资源无 java 亦计入并标注）、@Disabled 57 文件清单、反模式抽样表（按写死抽样框）
-- [ ] zero-test 清单子 agent A：~120 模块逐模块裁定（**分批预案：按顶层模块组分 3-4 批派发**）+ 点名 6 模块深裁（biz-auth-api 2 test 内容核实）
-- [ ] @Disabled 标定子 agent B：57 文件逐个标定（理由/环境门控/应否恢复）——与 A 分离避免单会话超载
-- [ ] 反模式抽查子 agent：完整阅读 unit-test-antipatterns.md 后按**写死抽样框**执行——模块组=roadmap 顶层组排除已多轮深审域（nop-stream/nop-ai-agent/nop-auth/nop-credential/nop-wf/nop-task/nop-batch/nop-report/nop-sys/nop-rule/nop-dyn/nop-metadata/nop-code——撞车对照即可）与非 Java 测试组；major 组=矩阵 §1 S/A 级组；每 major 组 ≥3 测试类逐方法检查；变异推演样本量 ≥10（优先命中 P-1/P-3 的测试）+ 历次深审撞车对照（精确锚点见 baseline）
-- [ ] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限
-- [ ] 产物 `_tmp/fcr-4.2-{zero,anti}.md`
+- [x] 机械基线：zero-test 全量清单（**口径写死：pom 模块有 src/main 且无 src/test/java 目录 = zero-test**；仅 test 资源无 java 亦计入并标注）、@Disabled 57 文件清单、反模式抽样表（按写死抽样框）
+- [x] zero-test 清单子 agent A：~120 模块逐模块裁定（**分批预案：按顶层模块组分 3-4 批派发**）+ 点名 6 模块深裁（biz-auth-api 2 test 内容核实）
+- [x] @Disabled 标定子 agent B：57 文件逐个标定（理由/环境门控/应否恢复）——与 A 分离避免单会话超载
+- [x] 反模式抽查子 agent：完整阅读 unit-test-antipatterns.md 后按**写死抽样框**执行——模块组=roadmap 顶层组排除已多轮深审域（nop-stream/nop-ai-agent/nop-auth/nop-credential/nop-wf/nop-task/nop-batch/nop-report/nop-sys/nop-rule/nop-dyn/nop-metadata/nop-code——撞车对照即可）与非 Java 测试组；major 组=矩阵 §1 S/A 级组；每 major 组 ≥3 测试类逐方法检查；变异推演样本量 ≥10（优先命中 P-1/P-3 的测试）+ 历次深审撞车对照（精确锚点见 baseline）
+- [x] 深挖迭代：有发现的子 agent 派第 2 轮，至无新发现或 10 轮上限（A/B 面均第 2 轮收敛）
+- [x] 产物 `_tmp/fcr-4.2-{zero,anti}.md`
 
 Exit Criteria:
 
-- [ ] 两份初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] zero-test 全量清单 + @Disabled 全清单标定落盘
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 两份初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] zero-test 全量清单（120）+ @Disabled 全清单（57）标定落盘
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实（10-05/10-06 跨日）
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 清单口径重放
-- [ ] 主 agent 汇总：判级统一（维度 21 补充判级）、撞车去重终裁
-- [ ] 清单收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 清单口径重放（A 面 SET-MATCH-EXACT + 台账抽 15 全保留 + top 10 全核；B 面升格 5 条全保留且 21-17/21-22 证据加强）
+- [x] 主 agent 汇总：判级统一（维度 21 补充判级）、撞车去重终裁（5 锚点零 duplicated）
+- [x] 清单收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-4.2-{zero,anti}-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-4.2-{zero,anti}-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `4.2-test-effectiveness-audit.md`；index 登记 4.2 行（如有 P2 走「P2 裁决台账」通道）；**No owner-doc update required（只读）**
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：zero-test/@Disabled 清单口径重放由复核员独立执行；doc-links exit 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；通过后 roadmap 4.2 翻 `done`；plan 关闭（双 --strict）；commit
+- [x] 编制 `4.2-test-effectiveness-audit.md`；index 登记 4.2 行 + P1 汇总 6 行（无 P2 裁决例外——本项 P2 均 P2 级明确发现直接进 R1.0 输入池）；**No owner-doc update required（只读）**
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 定向验证锚点：zero-test 口径重放由 A 面复核独立执行 SET-MATCH-EXACT + closure auditor 独立重放 120 一致；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——七项实质全 PASS）；通过后 roadmap 4.2 翻 `done`；plan 关闭（双 --strict）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 清单口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 清单口径可复现（复核员重放一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且 zero-test 清单/@Disabled 全清单/反模式抽查全覆盖
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀+维度 21 补充；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 4.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 zero-test 清单/@Disabled 全清单/反模式抽查全覆盖
+- [x] 每条发现 file:line 可复现；判级依据共享前缀+维度 21 补充；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 4.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -125,14 +125,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待 closure audit 后填写）
-Completed: （待填）
+Status Note: 测试有效性审计计划收口。报告 `4.2-test-effectiveness-audit.md` 落盘：通过附 P1×6/P2×9（净 15 条，零驳回零降级零改判）。**zero-test 120 模块（32%）口径重放 SET-MATCH-EXACT**（93 合理/25 缺口/2 移交 R1.0）；@Disabled 57→真禁用 53 + 升格 2 + 误报 2；反模式抽检 28 行仅 2 命中、变异推演 14 个发现侧全「改错仍绿」；**biz-auth-api 2 test 有效约束移出 roadmap 点名清单**。复核加强 13 处透明记载（21-17 证据低估扩充/21-22 双语义并存/top10-02 无 e2e）。closure audit 七项实质全 PASS（处方 2 条机械项已落实：摘要 12→13、10-06.md log 新建）。
+Completed: 2026-10-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立子 agent 填写）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent agent_4721626e-7742-4bfd-a16c-cb4293448239（fresh session，只读 closure auditor；一次 PASS 附 2 处方）
+- Evidence:
+  - 计数勾稽：P0=0/P1=6/P2=9/P3=0=15 ↔ 报告实点 ↔ index 4.2 行（0/6/9/0）↔ 映射表 15 行 ↔ index P1 汇总 6 行 ↔ 复核净账（A top10 + B 5）守恒；120 行台账 auditor 独立 grep 计数 93+25+2 吻合
+  - P1 台账：6 行在案一致；「P0 发现追踪」无 4.2 新增正确
+  - 关键判定亲读 4/4：spring-web-starter 零 src/test + 418 LOC + e2e grep spring 零命中/TestStringHelper 51 @Test 中 5 不触 SUT+1 零断言精确/reconciler 禁用注记逐字+唯一 live 用例常量检查/isWhitespace 6 字符集双向分歧 + 零测试锚定
+  - zero-test 口径独立重放 120 一致（[仅test资源] 2 处亲验）
+  - 格式：抽 4 条 10 要素完整
+  - biz-auth-api 移出清单裁定记载完整（B6 逐类深裁 + 重新评定触发条件）
+  - 验证：doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员独立重放 + closure auditor 独立重放为锚
+  - Deferred 项分类检查：无 deferred；P1×6+P2×9 经 index 进 R1.0；zero-test 缺口 25 模块补测建议移交 R1.0 排期，无 in-scope live defect 被静默降级
 
 Follow-up:
 
-- （待填）
+- no remaining plan-owned work（P1×6+P2×9 修复归属 R1.0 分族；zero-test 缺口 25 模块补测移交 R1.0 排期；@Disabled 台账 51 合理禁用留档；U 备注无）

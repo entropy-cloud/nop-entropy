@@ -40,7 +40,7 @@
 | 3.10 | `3.10-auth-credential-incremental-audit.md` | 0 | **1** | 1 | 4 | done（裁决：通过附 P1×2 进 R1.0——①P1-3.10-001 CRED-01 no-finding 全称假命题与 live 矛盾〔安全台账链虚假保证，已实际误导一轮 :172 零处置，复核升格〕②P1-check-mcc-172 主密钥 passphrase 泄漏标定维持〔双文件域 9 throw 点亲读在位，修复与 P1-check2-nosql-67 同批〕；**29 条 auth 标定全覆盖零冲突**（check2 9 AF+6 deferred 维持/check 13 AF+1 partially——复核勘误）+:44/:19 两 P1 already-fixed 零漂移 + check :23 P0 already-fixed 双确认（P0 不变量在拆分 diff 逐字保持）；MFA codec 消费点侧取证闭环（Redis 后端功能性失效 fail-closed）；diff 四 commit 全部通过；CRED ledger 一致态零漂移；净 6 条新发现（A 面 1 驳回〔13-04 前提不成立〕、B 面 1 升格）；A 面 2 轮/B 面轻量 2 轮） | 独立子 agent（见 plan 2337 Closure 段） |
 | 3.11 | `3.11-security-crosscut-recheck.md` | 0 | 0 | **1** | 1 | done（裁决：通过无 P0/P1 新发现附 P2×1/P3×1——**item 14 全 14 条标定完成：0 已修/12 仍 live/2 缓解生效**（复核 14/14 亲读确认、判级抽验 P2 全成立、零驳回零改判）；F-F2-1 升 P1 合并 3.8 P1-3.8-001/002 族 + F-WF-02-1 带修复裁定直入 R1.0；**P2 裁决例外 12 条转 R1.0**（P2 裁决台账登记）；grep 复扫三模式 123 处全量核实、口径重放全一致、撞车去重 7 项；新发现 P2-3.11-001 JWT 主密钥族 22 文件（含 nop-batch-app 键漂移死配置）+ P3-3.11-001 SSO client-secret 第 4 实例；A/B 面各 2 轮） | 独立子 agent（见 plan 2338 Closure 段） |
 | 4.1 | `4.1-error-handling-audit.md` | 0 | 0 | **3** | 3 | done（裁决：通过无 P0/P1 附 P2×3 进 R1.0 输入池——**bare RT 全仓仅 5-6 处仅 1 违规 P3**、BizModel 面 ErrorCode 为主合规率 84.3%（复核修正后口径）+ .param() 91.3%、api 面校准后零违规、3348 catch 合规留证+rethrow 64.0% 正结论；P2×3：错误码字符串伪装系统族 65 处/40 文件/14 模块组 + RangeSplitUtils 中文消息 + ToolSchemaConverter 吞异常降级无参工具（复核加重：null 系全部真实工具常态路径；升级触发=agent 切原生 tool-calling）；复核修正透明记载（合规率 88.7→84.3 口径修正、09-04 处数 9→28）；P3×3 watch；零驳回；6.2 移交 catches.tsv 清单已备；A/B 面各 2 轮 + 复核） | 独立子 agent（见 plan 2339 Closure 段） |
-| 4.2 | — | | | | | todo | |
+| 4.2 | `4.2-test-effectiveness-audit.md` | 0 | **6** | 9 | 0 | done（裁决：通过附 P1×6/P2×9 进 R1.0——**zero-test 120 模块（占 374 的 32%）口径重放 SET-MATCH-EXACT**：93 合理/25 缺口/2 移交〔quarkus-web/spring-web-starter 两大 HTTP 适配层零测试 P1，spring 形态无 e2e 缓解〕；**@Disabled 57→真禁用 53**（51 合理+2 OS 门控）+升格 2（reconciler 唯一收敛测试被禁 8 周无 successor/TestXplTask 裸禁 9 个月）+误报 2；反模式抽检 28 行仅 2 命中、变异推演 14 个发现侧全「改错仍绿」（TestStringHelper 复核扩充至 5 不触 SUT+1 零断言 P1/StringHelper.isWhitespace 双语义并存 P2）；**biz-auth-api 2 test 有效约束移出清单**（roadmap 点名模块裁定）；零驳回；A/B 两面各 2 轮 + 独立复核） | 独立子 agent（见 plan 2340 Closure 段） |
 | 4.3 | — | | | | | todo | |
 | 4.4 | — | | | | | todo | |
 | 4.5 | — | | | | | todo | |
@@ -137,6 +137,12 @@
 | P1-check-gw-86 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :86 标定确认） | R1.0（OAuth code+redirect 分支不下发 auth cookie/不初始化用户上下文——SSO 回调登录循环；与 auth-core 登录链同批） | open |
 | P1-3.10-001 | `3.10-auth-credential-incremental-audit.md` | R1.0（CRED-01 no-finding 勘误注 + consolidation ledger 补 :172 行——安全台账链虚假保证修正） | open |
 | P1-check-mcc-172 | `3.10-auth-credential-incremental-audit.md`（check/msg-cluster-cred.md :172 标定维持） | R1.0（主密钥 passphrase 异常 param 泄漏——keyId-only param 改造〔样板 Vault:268-269〕，Default+Vault 双 provider 7 泄漏点；与 P1-check2-nosql-67 codec 修复同批） | open |
+| P1-4.2-001 | `4.2-test-effectiveness-audit.md` | R1.0（nop-quarkus-web vertx HTTP 上下文适配层零测试补齐；e2e quarkus:dev 粗粒度缓解在案） | open |
+| P1-4.2-002 | `4.2-test-effectiveness-audit.md` | R1.0（nop-spring-web-starter servlet HTTP 上下文适配层零测试补齐——无任何 e2e 缓解，P1 最强） | open |
+| P1-4.2-003 | `4.2-test-effectiveness-audit.md` | R1.0（nop-batch-orm ORM 批处理 upsert 语义测试补齐） | open |
+| P1-4.2-004 | `4.2-test-effectiveness-audit.md` | R1.0（nop-cluster-sentinel 限流 entry/exit 配对与降级映射测试补齐） | open |
+| P1-4.2-005 | `4.2-test-effectiveness-audit.md` | R1.0（nop-fsm 状态机引擎转移语义直接测试补齐） | open |
+| P1-4.2-006 | `4.2-test-effectiveness-audit.md` | R1.0（TestStringHelper 重写：删/改 5 个不触 SUT 方法+testUUID 补断言+isWhitespace pinning——与 P2-4.2-009 合并执行） | open |
 
 
 ## P2 裁决台账（例外通道）
