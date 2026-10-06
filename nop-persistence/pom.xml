@@ -28,6 +28,7 @@
         <module>nop-orm-drivers</module>
         <module>nop-orm-eql</module>
         <module>nop-orm-geo</module>
+        <module>nop-orm-migration</module>
         <module>nop-orm-model</module>
         <module>nop-orm-pdm</module>
         <module>nop-orm-rpc</module>
