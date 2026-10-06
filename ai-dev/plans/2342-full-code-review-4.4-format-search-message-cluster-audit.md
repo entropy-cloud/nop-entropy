@@ -49,12 +49,12 @@
 
 ### Phase 1 - 深挖（三 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 四组 in-scope 模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净按 4.1 口径处理）
 - [ ] 机械基线：四组手写文件清单、check 标定输入盘点（format-misc 16 带处置块 + msg-cluster 域内 15 无处置 + nop-search 19 无处置）、**git log 2026-09-22 后四组产品代码变更登记**（重点 nop-mermaid plan 2306 修复）、测试资产 find 实测
 - [ ] format+chart 子 agent（维度 09+16）：check/format-misc.md 16 条标定（mermaid 三 P1 重点验证 plan 2306 修复）+ converter 转换链/mermaid 往返/markdown 管道/chart-export 深审 + TODO 债务清点
 - [ ] search+message 子 agent（维度 14+09）：check/nop-search.md 19 条全量标定 + LuceneSearchEngine 裁定 + kafka 三条标定与消费生命周期 + debezium/codec/core 深审（**不对称 kafka 侧在本项裁决、结论移交 7.7 作输入**）
