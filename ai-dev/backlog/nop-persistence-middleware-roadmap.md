@@ -40,7 +40,7 @@
 
 - [x] WI0 plan 2318 独立复审并转 active：按 AGENTS.md Protected Area（ORM 模型语义扩展 plan-first）完成独立 plan audit（不复用起草 session），确认扩展属性路线、Phase 结构与 bulk-update 裁定记录完备；audit 发现的问题回 plan 修订后重审（Deliverable: audit 证据写入 plan 2318 + Plan Status 转 active；deps: 无；Item Type: Decision）——2026-10-05 完成：独立 auditor APPROVE（30 项 baseline 事实全 PASS、4 Minor 已修正入 plan），Plan Status 已转 active，证据见 plan 2318 头部 Draft Review Evidence
 - [x] WI1 读写分离执行 plan 起草：承载 `ai-dev/design/nop-dao-readwrite-splitting-design.md`，按 plan guide 走对抗审查（含想象性分析：openConnection 路径、statementKind 传播、主从分流在单测环境的测试形态）；ORM 侧改动边界（只读意图传播、无路由逻辑）写入 Non-Goals（Deliverable: 新 plan（编号顺延）过 draft review；deps: 无；Item Type: Decision）——2026-10-05 完成：ai-dev/plans/2319-dao-readwrite-splitting.md 两轮独立审查（第 1 轮 REJECT 修复 1 Blocker+2 Major，第 2 轮 APPROVE），Plan Status 已转 active
-- [ ] WI2 分片策略配置执行 plan 起草：承载 `ai-dev/design/nop-orm-sharding-strategy-design.md`，含 selectShards 死面删除与缺分片键 fail-fast 的行为变更项、DDL N 表展开对 auto-upgrade 的回归面、TestOrmShardTable 既有测试的迁移（Deliverable: 新 plan 过 draft review；deps: 无；Item Type: Decision）
+- [x] WI2 分片策略配置执行 plan 起草：承载 `ai-dev/design/nop-orm-sharding-strategy-design.md`，含 selectShards 死面删除与缺分片键 fail-fast 的行为变更项、DDL N 表展开对 auto-upgrade 的回归面、TestOrmShardTable 既有测试的迁移（Deliverable: 新 plan 过 draft review；deps: 无；Item Type: Decision）——2026-10-06 完成：ai-dev/plans/2320-orm-sharding-strategy.md 两轮审查（第 1 轮 REJECT 2 Blocker+5 Major 修复；第 2 轮唯一残留 N1 修复后 active），Plan Status 已转 active
 
 ### M1 — 独立能力落地（三条线模块面不重叠，可并行）
 
@@ -50,7 +50,7 @@
 
 ### M2 — 分片单分片路由
 
-- [ ] WI6 分片策略配置实施：策略注册表 + 5 内置算法（mod/hash-mod/range/interval/inline-XScript）+ ShardSelection 两级路由（分表/分库/组合）+ 绑定表同策略隐式 + 缺分片键 fail-fast（missing-shard-policy）+ selectShards 死面删除 + DdlSqlCreator/OrmDbDiffer N 表展开；若 WI4 已落，含分片×读写分离组合 E2E（Deliverable: 代码 + 测试 + owner doc；deps: WI2；Item Type: Feature）
+- [x] WI6 分片策略配置实施：策略注册表 + 5 内置算法（mod/hash-mod/range/interval/inline-XScript）+ ShardSelection 两级路由（分表/分库/组合）+ 绑定表同策略隐式 + 缺分片键 fail-fast（missing-shard-policy）+ selectShards 死面删除 + DdlSqlCreator/OrmDbDiffer N 表展开；若 WI4 已落，含分片×读写分离组合 E2E（Deliverable: 代码 + 测试 + owner doc；deps: WI2；Item Type: Feature）——2026-10-06 完成：commit 60d65915（42 新测试；5 模块回归绿 + 全仓 453 模块编译门禁绿），独立 closure audit APPROVE，plan 标 completed
 
 ### M3 — 分片执行引擎（分片域收口）
 
@@ -59,7 +59,7 @@
 
 ### M4 — 数据搬迁管道
 
-- [ ] WI9 搬迁编排设计与实施：全量+增量+一致性校验作业编排（底座：nop-stream-connector-debezium 源 + nop-stream-connector-jdbc exactly-once sink + nop-batch chunk/断点续传）；分片扩容语义（N→M 片）依赖 WI6 策略模型，机房迁移场景无该依赖（Deliverable: 设计落 design + 作业实现 + 幂等/一致性测试；deps: WI6（扩容场景）；Item Type: Feature）
+- [x] WI9 搬迁编排设计与实施：全量+增量+一致性校验作业编排（底座：nop-stream-connector-debezium 源 + nop-stream-connector-jdbc exactly-once sink + nop-batch chunk/断点续传）；分片扩容语义（N→M 片）依赖 WI6 策略模型，机房迁移场景无该依赖（Deliverable: 设计落 design + 作业实现 + 幂等/一致性测试；deps: WI6（扩容场景）；Item Type: Feature）——2026-10-06 完成：设计 nop-orm-data-migration-pipeline-design.md（首轮评审 REJECT B1+4Major 修订后 active）；实施 plan 2322 + 新子模块 nop-orm-migration（五状态机编排器 18 类 + 50 测试绿），独立 closure audit 复核后 3 处接管遗漏当日修复，plan 标 completed
 
 ### M5 — 按需与收口
 
