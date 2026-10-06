@@ -57,7 +57,7 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 
 ## Source API 冻结政策（plan 369 Phase 5）
 
-`SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），原则上**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。**已裁定例外**：`debezium-cdc` 的 B 层表路由并行（`SubtaskShardedSourceFunction`，2026-10-02 用户裁定）在 legacy 代上落并行能力。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
+`SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），原则上**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。**已裁定例外**：`debezium-cdc` 的 B 层表路由并行（`SubtaskShardedSourceFunction`，2026-10-02 用户裁定）在 legacy 代上落并行能力。**例外撤销裁定（WI0，2026-10-07，裁定记录见平台内部 ai-dev 设计目录，按 docs-for-ai 边界规则不直接链接）**：三个 legacy source 全量迁移 FLIP-27 的波次由五引擎对比缺口 roadmap 的 WI2 承载——B 层表路由例外随迁移完成撤销（新代 split 机制自然承接表路由），迁移完成前例外维持有效。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
 
 ## 提交前探测能力（dry-run，item 20 / P-REQ-13）
 

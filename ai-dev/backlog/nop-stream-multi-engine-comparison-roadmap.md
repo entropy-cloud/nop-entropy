@@ -1,6 +1,6 @@
 # nop-stream 五引擎对比缺口收敛 Roadmap（Flink / TDengine / Hazelcast / SeaTunnel 对标）
 
-> Last updated: 2026-10-06（v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
+> Last updated: 2026-10-07（v3：WI0 裁定门完成——P0×6/P1×9/P2×5 逐条三态 + 不跟进三类清单写死 + 六项下游范围裁定（R1 Kafka EO 边界/R2 B 层例外随 WI2 迁移撤销/R3 三 legacy source 全迁 FLIP-27/R4 WI7 落 StreamRecord 引擎级可选变更元数据/R5 WI11 复用既有 lookup 路径+本地物化+后台刷新、vision Non-Goal 零解除/R6 WI15 cdc-design defer 维持、本周期显式延期），裁定全文见 `ai-dev/design/nop-stream/multi-engine-gap-adjudication.md`；vision §七裁决记录新增 #WI0 条目（边界零变更确认）。v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-06a-nop-stream-vs-flink-tdengine-hazelcast-seatunnel-comparison.md`（缺口核定 primary；P0/P1/P2 分级与不跟进清单）
@@ -46,7 +46,7 @@
 
 ### M0 — 裁定门（无前置，最先开工）
 
-- [ ] WI0 五引擎对比缺口裁定（owner 人审门）：把对比分析的 P0/P1/P2 与不跟进清单逐条 go/defer/exclude 分类确认——(a) vision §四/#G36 相关（lookup 异步模式是否范围收窄解除、broadcast state go/defer/exclude）须经 owner 确认并按 §六/#G36 先例回写 `ai-dev/design/nop-stream/00-vision.md` 裁决记录；(b) productization D-GAP 处置与 cdc-design defer 维持或撤销（含 Kafka EO 与 nop-message-kafka 的边界划分、debezium B 层例外迁移范围、连接器两代归一迁移范围）（Deliverable: 裁定记录回写 `ai-dev/design/nop-stream/00-vision.md` 与对应设计文档 + 不跟进三类清单写死；deps: 无；Item Type: Decision）
+- [x] WI0 五引擎对比缺口裁定（owner 人审门）：把对比分析的 P0/P1/P2 与不跟进清单逐条 go/defer/exclude 分类确认——(a) vision §四/#G36 相关（lookup 异步模式是否范围收窄解除、broadcast state go/defer/exclude）须经 owner 确认并按 §六/#G36 先例回写 `ai-dev/design/nop-stream/00-vision.md` 裁决记录；(b) productization D-GAP 处置与 cdc-design defer 维持或撤销（含 Kafka EO 与 nop-message-kafka 的边界划分、debezium B 层例外迁移范围、连接器两代归一迁移范围）（Deliverable: 裁定记录回写 `ai-dev/design/nop-stream/00-vision.md` 与对应设计文档 + 不跟进三类清单写死；deps: 无；Item Type: Decision）
 
 ### M1 — 生产化与连接器 P0 主线（各 WI 模块面不重叠，可并行）
 
