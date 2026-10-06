@@ -943,7 +943,7 @@ select o, o.extFldA, o.extFldB*2 + 3
 <column name="emailLike" tagSet="enc-like" stdSqlType="VARCHAR" precision="2048"/>
 ```
 
-- `emailAssisted` 存 `HMAC-SHA256` 十六进制摘要（定长 64，密钥 `nop.crypt.enc-assisted-key`，空则回落 `nop.crypt.default-enc-key`），承载等值/IN/不等值检索。
+- `emailAssisted` 存 `HMAC-SHA256` 十六进制摘要（定长 64，密钥 `nop.orm.enc-assisted-key`，空则回落 `nop.crypt.default-enc-key`），承载等值/IN/不等值检索。
 - `emailLike` 存逐字符定宽摘要拼接（宽度 `nop.orm.enc-like-digest-width` 缺省 8），承载 `LIKE / NOT LIKE / ILIKE` 检索；列长与明文长度成正比（已知泄露面，不接受则只用 assisted）。
 - 两个辅助列都可以只声明其一；辅助列值由框架在保存时自动派生，业务代码对辅助列赋值会报错。
 

@@ -58,6 +58,12 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         if (shardSelector != null)
             factoryBean.setShardSelector(shardSelector);
 
+        // WI11：组合E2E的模型注入钩子。返回null（缺省）时保持缺省合并模型装载（各模块orm/app.orm.xml），
+        // 既有测试零行为变更；非null时以显式资源装载的模型替换缺省装载
+        io.nop.orm.factory.IOrmModelProvider ormModelProvider = ormModelProvider();
+        if (ormModelProvider != null)
+            factoryBean.setOrmModelHolder(ormModelProvider);
+
         factoryBean.init();
 
         this.sessionFactoryBean = factoryBean;
@@ -99,6 +105,14 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
      * （保持SessionFactoryConfig的EmptyShardSelector缺省）。
      */
     protected io.nop.dao.shard.IShardSelector shardSelector() {
+        return null;
+    }
+
+    /**
+     * WI11：需要共享模型之外的额外实体（独立orm文件）的测试可覆盖此钩子提供显式模型装载。
+     * 缺省返回null（保持缺省合并模型装载，零行为变更）。
+     */
+    protected io.nop.orm.factory.IOrmModelProvider ormModelProvider() {
         return null;
     }
 

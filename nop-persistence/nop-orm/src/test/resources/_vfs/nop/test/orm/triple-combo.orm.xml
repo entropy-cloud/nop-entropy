@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+    WI11 收口：分片 × 读写分离 × 可检索加密三能力叠加的组合 E2E 专用测试模型。
+
+    独立文件、不进入缺省合并模型装载（缺省装载只取各模块 orm/app.orm.xml）：
+    本文件声明的 useShard 实体只在显式装载本文件的测试（TestTripleComboShardReadwriteEnc）
+    的会话工厂中出现，避免共享模型新增 useShard 实体打破既有分片测试的
+    ShardBindingValidator 绑定断言面（存在全局分片配置时全部 useShard 实体须显式绑定策略）。
+-->
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <!-- useShard 实体（路由键 nopShard 自动注入）+ enc 主列同时声明 assisted/like 辅助列。
+             动态实体（无需生成 Java 类），经 session.newEntity/orm_propValue 访问 -->
+        <entity name="test.entity.TestTripleComboEntity" tableName="TEST_TRIPLE_COMBO_ENTITY"
+                className="io.nop.orm.support.DynamicOrmEntity" useShard="true" useTenant="false">
+            <columns>
+                <column name="sid" code="SID" stdSqlType="VARCHAR" primary="true" precision="100"
+                        propId="1" mandatory="true"/>
+                <column name="examName" code="EXAM_NAME" stdSqlType="VARCHAR" precision="100" propId="2"
+                        tagSet="enc" ext:enc-assisted="nameAssisted" ext:enc-like="nameLike"/>
+                <!-- 可检索加密辅助列：等值检索（确定性 HMAC 摘要，定长 64） -->
+                <column name="nameAssisted" code="NAME_ASSISTED" stdSqlType="VARCHAR" precision="64"
+                        propId="3" tagSet="enc-assisted"/>
+                <!-- 可检索加密辅助列：模糊检索（逐字符定宽摘要） -->
+                <column name="nameLike" code="NAME_LIKE" stdSqlType="VARCHAR" precision="2048"
+                        propId="4" tagSet="enc-like"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

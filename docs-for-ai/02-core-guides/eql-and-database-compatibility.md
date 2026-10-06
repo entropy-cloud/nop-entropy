@@ -1004,7 +1004,7 @@ EQL 语法层**不做** `MERGE` 语句语法（与「明确不做的事」UPSERT
 - **bulk UPDATE SET 不维护辅助列**（2026-10-05 用户裁定归业务层校验）：`update ... set examName = ?` 直接写主列（加密 binder 照常），辅助列不重算；WHERE 子句中的改写照常生效。框架侧义务 = 本限制清单声明。
 - **集合操作符路径（`_some`/`_all`）触达 enc 列**：宽松检测命中时显式报错；CollectionOperatorTransformer 深克隆条件与 marker builder 兼容（clone 携带 builder），但「enc 过滤 + 集合操作符合并」同谓词树的组合未纳入 Phase 3 测试面。
 - **投影（select x）放行**：读取 enc 列是行加载语义，解密在 transformRow 完成，不受改写影响。
-- 摘要函数与密钥来源见 `EncAssistedHelper`（`nop.crypt.enc-assisted-key` → `nop.crypt.default-enc-key` → 内建缺省一次性告警）。
+- 摘要函数与密钥来源见 `EncAssistedHelper`（`nop.orm.enc-assisted-key` → `nop.crypt.default-enc-key` → 内建缺省一次性告警）。
 
 测试载体：`TestEncAssistedEqlRewrite`（25 例：等值/!=/IN 编译级改写、LIKE/NOT LIKE/ILIKE、不可检索谓词逐类报错、H2 端到端命中+解密回归、缓存交互、QueryBean 继承、非 enc 零影响、删除 WHERE 改写、bulk SET 边界）、`TestEqlAstTransformerWiring`（transformer 注入与缓存绕过既有契约，回归通过）。
 
