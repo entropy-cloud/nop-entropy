@@ -245,7 +245,11 @@ class TestFingerprintAndTerminationMode {
     // ==================== DRAIN Mode Tests ====================
 
     @Test
-    void testDrainModeTriggersTerminalSavepoint() throws Exception {
+    void drainConfiguredCoordinatorAcceptsTerminalSavepointTriggerSelfDriven() throws Exception {
+        // R6 TE-02 honest rename (plan 2325): the TEST triggers
+        // tryTriggerPendingCheckpoint directly — the production DRAIN dispatch
+        // (handleJobTermination) is covered by
+        // TestGraphModelCheckpointExecutor#drainModeTerminationWritesTerminalSavepointToDurableStorage.
         CheckpointConfig config = new CheckpointConfig();
         config.setJobTerminationMode(JobTerminationMode.DRAIN);
         config.setCheckpointInterval(60000L);
@@ -280,7 +284,10 @@ class TestFingerprintAndTerminationMode {
     // ==================== SUSPEND Mode Tests ====================
 
     @Test
-    void testSuspendModeTriggersSavepoint() throws Exception {
+    void suspendConfiguredCoordinatorAcceptsSavepointTriggerSelfDriven() throws Exception {
+        // R6 TE-02 honest rename (plan 2325): self-driven coordinator trigger;
+        // the production SUSPEND dispatch is covered by
+        // TestGraphModelCheckpointExecutor#suspendModeTerminationWritesTerminalSavepointToDurableStorage.
         CheckpointConfig config = new CheckpointConfig();
         config.setJobTerminationMode(JobTerminationMode.SUSPEND);
         config.setCheckpointInterval(60000L);

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.file;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
@@ -27,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -206,12 +208,15 @@ public class TestFileTwoPhaseCommitSink {
         sink.saveState(1L);
         sink.commit(1L);
 
-        // Simulate recover-safe re-commit: put the pending back and commit again
+        // Simulate recover-safe re-commit: restore the pending through the HONEST
+        // restore entry (R6 plan 2325 — a bare put would mark the entry as
+        // this-run-created and the provenance guard would fail loud instead).
         Path finalPath = sink.finalPath(1L);
         long sizeBefore = Files.size(finalPath);
         assertTrue(sink.isEpochCommitted(1L));
 
-        sink.getPendingCommits().put(1L, new FilePendingCommit(sink.tempPath(1L).toString(), 1));
+        sink.setPendingCommits(java.util.Map.of(1L,
+                new FilePendingCommit(sink.tempPath(1L).toString(), 1)));
         sink.commit(1L); // idempotent skip (manifest already records epoch 1)
 
         long sizeAfter = Files.size(finalPath);
@@ -231,9 +236,10 @@ public class TestFileTwoPhaseCommitSink {
                 java.nio.file.StandardCopyOption.ATOMIC_MOVE);
         assertFalse(sink.isEpochCommitted(1L), "manifest should not yet record epoch 1");
 
-        // commit should repair the manifest rather than throw
-        sink.getPendingCommits().put(1L, new FilePendingCommit(
-                sink.tempPath(1L).toString(), 1));
+        // commit should repair the manifest rather than throw — the pending is
+        // restored through the honest entry (R6 plan 2325 provenance marking)
+        sink.setPendingCommits(java.util.Map.of(1L,
+                new FilePendingCommit(sink.tempPath(1L).toString(), 1)));
         assertDoesNotThrow(() -> sink.commit(1L));
 
         assertTrue(sink.isEpochCommitted(1L),
@@ -307,7 +313,10 @@ public class TestFileTwoPhaseCommitSink {
         FileTwoPhaseCommitSink<String> recovered =
                 new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
         recovered.beginTransaction();
-        recovered.getPendingCommits().put(2L, epoch2Pending);
+        // R6 plan 2325 (closure audit M1): restore through the HONEST entry so the
+        // provenance guard marks epoch 2 recover-safe (a bare put would make a
+        // future collision look like a this-run fresh-run collision).
+        recovered.setPendingCommits(java.util.Map.of(2L, epoch2Pending));
         recovered.restoreFromEpoch(2L, null);
 
         // Assertions: no dupes, no loss
@@ -496,5 +505,51 @@ public class TestFileTwoPhaseCommitSink {
         assertEquals(1, readLines(sink.finalPath(2L)).size());
         assertTrue(sink.getPendingCommits().isEmpty(),
                 "all pending must be cleared after finishCommit");
+    }
+
+    // ------------------------------------------------------------------
+    // R6 CON-01 (plan 2325): fresh-run manifest/final collisions must fail
+    // loud instead of silently dropping this run's data. Reverting the
+    // provenance discrimination in doCommitLocked turns these tests red
+    // (the collision degrades back to a WARN + data loss).
+    // ------------------------------------------------------------------
+
+    @Test
+    void freshRunManifestCollisionFailsLoud() throws Exception {
+        sink.consume("run-one");
+        sink.saveState(1L);
+        sink.commit(1L);
+        assertTrue(sink.isEpochCommitted(1L));
+
+        // a FRESH run (new sink, same output directory, no restore) produces a
+        // new pending epoch that collides with the previous run's manifest entry
+        FileTwoPhaseCommitSink<String> fresh = new FileTwoPhaseCommitSink<>(
+                outputDir.toString(), StandardCharsets.UTF_8);
+        fresh.consume("run-two");
+        fresh.saveState(1L);
+
+        StreamException e = assertThrows(StreamException.class, () -> fresh.commit(1L));
+        assertTrue(String.valueOf(e.getParam("detail")).contains("fresh-run manifest collision"),
+                () -> "fresh-run collision must fail loud: " + e.getParam("detail"));
+        // this run's data must NOT be silently dropped: the temp file survives
+        assertTrue(Files.exists(fresh.tempPath(1L)), "temp data must be preserved for diagnosis");
+    }
+
+    @Test
+    void freshRunFinalFileCollisionFailsLoud() throws Exception {
+        sink.consume("run-one");
+        sink.saveState(1L);
+        // crash after rename, before manifest write
+        Files.move(sink.tempPath(1L), sink.finalPath(1L),
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+
+        FileTwoPhaseCommitSink<String> fresh = new FileTwoPhaseCommitSink<>(
+                outputDir.toString(), StandardCharsets.UTF_8);
+        fresh.consume("run-two");
+        fresh.saveState(1L);
+
+        StreamException e = assertThrows(StreamException.class, () -> fresh.commit(1L));
+        assertTrue(String.valueOf(e.getParam("detail")).contains("fresh-run final-file collision"),
+                () -> "fresh-run final-file collision must fail loud: " + e.getParam("detail"));
     }
 }

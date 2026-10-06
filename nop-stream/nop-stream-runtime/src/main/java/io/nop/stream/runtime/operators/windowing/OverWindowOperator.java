@@ -54,7 +54,10 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
 
     private static final long serialVersionUID = 1L;
 
-    private static final String BUFFER_STATE = "over-window-buffer";
+    // R6 plan 2324: the literal lives in TimerStateKeys (core) so the rescale
+    // guard and the operator cannot drift apart.
+    private static final String BUFFER_STATE =
+            io.nop.stream.core.operators.TimerStateKeys.OVER_WINDOW_BUFFER;
 
     /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
     private transient PerKeyOrderedBuffer<String, String> restoredBuffer;

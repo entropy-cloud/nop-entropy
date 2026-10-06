@@ -134,15 +134,22 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
             }
         }
         if (snapshotCallback != null) {
-            if (snapshotResult != null) {
-                snapshotCallback.accept(snapshotResult);
-            } else if (snapshotError != null) {
+            // R6 AR-01 (plan 2325): error priority FIRST. A saveState/prepareCommit
+            // failure AFTER a successful snapshotState must route the TAGGED
+            // FAILURE, never a success ACK. Previously the null-check on
+            // snapshotResult won the race, so the coordinator durably recorded a
+            // checkpoint whose sink-side pending commits never existed — on
+            // restore, records past the restored cursor were neither committed
+            // nor pending (silent exactly-once loss, "两头落空").
+            if (snapshotError != null) {
                 OperatorSnapshotResult failureResult = new OperatorSnapshotResult();
                 // Stage 45: tag the failure result so the tracker routes the abort
                 // to the correct epoch (design §2.8.1 D2).
                 failureResult.setCheckpointId(barrier.getId());
                 failureResult.setError(snapshotError);
                 snapshotCallback.accept(failureResult);
+            } else if (snapshotResult != null) {
+                snapshotCallback.accept(snapshotResult);
             }
         }
     }

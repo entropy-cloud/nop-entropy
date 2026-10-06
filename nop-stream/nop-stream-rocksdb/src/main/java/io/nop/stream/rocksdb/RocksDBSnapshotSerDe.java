@@ -89,6 +89,14 @@ final class RocksDBSnapshotSerDe {
 
         Map<String, Object> stateData = new LinkedHashMap<>();
         stateData.put("keyType", backend.getKeyType().getName());
+        // R6 ST-03 (plan 2325, closure audit M2): write-side class validation —
+        // same allowlist the restore side enforces
+        // (StateKeyRematerializer.loadKeyType rejects the same set), applied to
+        // the keyType header too. Fail fast at snapshot time instead of
+        // producing a checkpoint that can never be restored. (ST-07 adjacency:
+        // the restore side ALSO has a raw Class.forName fallback for this
+        // header; the write gate here does not close ST-07.)
+        io.nop.stream.core.util.ClassNameValidator.validateClassName(backend.getKeyType().getName());
         // Stage 34: stamp the binary key-layout version for observability and
         // so the restore path can detect (and reject) incompatible legacy
         // RocksDB snapshots. The full snapshot stores raw user keys, so an
@@ -181,6 +189,11 @@ final class RocksDBSnapshotSerDe {
         info.put("stateType", "MapState");
         info.put("valueType", state.descriptor.getValueType().getName());
         info.put("mapKeyType", state.descriptor.getKeyClass().getName());
+        // R6 ST-03 (plan 2325): write-side class validation (restore-side mirror).
+        io.nop.stream.core.util.ClassNameValidator.validateClassName(
+                state.descriptor.getValueType().getName());
+        io.nop.stream.core.util.ClassNameValidator.validateClassName(
+                state.descriptor.getKeyClass().getName());
         embedSchemaFingerprint(info, StateSchemaResolver.STATE_TYPE_MAP, state.descriptor, backend.getShardCount());
 
         List<Map<String, Object>> entries = new ArrayList<>();
@@ -280,6 +293,16 @@ final class RocksDBSnapshotSerDe {
         info.put("valueType", descriptor.getValueType().getName());
         if (extraHeaders != null) {
             info.putAll(extraHeaders);
+        }
+        // R6 ST-03 (plan 2325): write-side class validation (restore-side mirror)
+        // for the generic keyed-state funnel (valueType + accumulator headers).
+        io.nop.stream.core.util.ClassNameValidator.validateClassName(
+                descriptor.getValueType().getName());
+        for (Map.Entry<String, Object> h : info.entrySet()) {
+            if ((h.getKey().startsWith("accumulatorType") || h.getKey().startsWith("aggregateFunctionType"))
+                    && h.getValue() instanceof String) {
+                io.nop.stream.core.util.ClassNameValidator.validateAccumulatorClass((String) h.getValue());
+            }
         }
         embedSchemaFingerprint(info, stateType, descriptor, backend.getShardCount());
 

@@ -104,6 +104,16 @@ class MemoryStateSerDe {
     //  snapshot (single generic implementation + per-family payload writer)
     // ------------------------------------------------------------------
 
+    /**
+     * R6 ST-03 (plan 2325): snapshot headers whose values are CLASS NAMES and are
+     * therefore validated against {@link ClassNameValidator} on the write side
+     * (mirror of the restore side's loadClass calls). stateType is NOT a class
+     * name and is excluded.
+     */
+    private static final java.util.List<String> CLASS_NAME_HEADERS = java.util.Arrays.asList(
+            "valueType", "mapKeyType", "keyType", "keyTypeName", "valueTypeName",
+            "accumulatorTypeName", "mapKeyTypeName");
+
     /** Writes the per-entry payload (the "value"/"listValue"/"mapValue" field). */
     @FunctionalInterface
     interface EntryWriter {
@@ -119,6 +129,15 @@ class MemoryStateSerDe {
         // R5 ST-02: record the effective key type (first-key capture for
         // Object-declared backends) so restore can re-materialize real keys.
         stateData.put("keyType", effectiveKeyType.getName());
+        // R6 ST-03 (plan 2325): write-side class validation — the SAME allowlist
+        // the restore side enforces via loadClass/loadAccumulatorClass, applied
+        // when the header is WRITTEN. Without this, a checkpoint carrying a
+        // user class outside the allowlist succeeds at snapshot time and then
+        // fails loudly on every restore attempt (unrecoverable durable asset).
+        // Adjacency note: the restore side ALSO reads this header through the
+        // raw Class.forName fallback (ST-07, P2) — tightening the write side
+        // here does not close ST-07 and must not be counted as its fix.
+        ClassNameValidator.validateClassName(effectiveKeyType.getName());
 
         Map<String, Object> statesMap = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : states.entrySet()) {
@@ -285,6 +304,20 @@ class MemoryStateSerDe {
         info.put("valueType", descriptor.getValueType().getName());
         if (extraHeaders != null) {
             info.putAll(extraHeaders);
+        }
+        // R6 ST-03 (plan 2325): write-side class validation, same allowlist as the
+        // restore side (loadClass/loadAccumulatorClass), applied to every class-name
+        // header this snapshot writes. Fail-fast at snapshot time instead of
+        // manufacturing a checkpoint that can never be restored.
+        for (Map.Entry<String, Object> h : info.entrySet()) {
+            if (!(h.getValue() instanceof String)) {
+                continue;
+            }
+            if ("accumulatorType".equals(h.getKey()) || "aggregateFunctionType".equals(h.getKey())) {
+                ClassNameValidator.validateAccumulatorClass((String) h.getValue());
+            } else if (CLASS_NAME_HEADERS.contains(h.getKey())) {
+                ClassNameValidator.validateClassName((String) h.getValue());
+            }
         }
         embedSchemaFingerprint(info, stateType, descriptor);
         if (shardCount > 1) {

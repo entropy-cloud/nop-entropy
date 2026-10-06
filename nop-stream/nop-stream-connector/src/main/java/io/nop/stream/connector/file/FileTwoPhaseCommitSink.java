@@ -42,6 +42,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -105,6 +106,16 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * by {@link #charset()}.
      */
     private final String charsetName;
+    /**
+     * R6 CON-01 (plan 2325): manifest entry keys that were RESTORED via
+     * {@link #setPendingCommits} — the recover-safe population. A commit whose
+     * manifest key is in this set re-commits a durable-but-uncommitted epoch of
+     * a PREVIOUS run (idempotent skip); a commit whose key is NOT in this set
+     * was created by THIS run and colliding with an existing manifest entry
+     * means a fresh run restarted into a stale output directory — committing
+     * would silently drop this run's data, so the guard fails loud instead.
+     */
+    private final transient java.util.Set<String> recoveredEntryKeys = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private transient volatile Charset charset;
     private transient Path outputDirPath;
     /**
@@ -291,22 +302,45 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         String manifestEntryKey = manifestKey(ownerSubtask, checkpointId);
         Properties manifest = loadManifest();
 
-        // Idempotent guard: manifest already records this epoch → skip (recover-safe re-commit)
+        // Idempotent guard: manifest already records this epoch.
+        // R6 CON-01 (plan 2325): discriminate by pending-entry PROVENANCE — an
+        // entry restored via setPendingCommits belongs to the previous run and
+        // its re-commit is recover-safe (skip); an entry created by THIS run
+        // colliding with an existing manifest entry means a fresh run restarted
+        // into a stale output directory. The old WARN-and-drop swallowed this
+        // run's data (temp never renamed, consumer never sees it) — fail loud.
         if (manifest.containsKey(manifestEntryKey)) {
-            // R5 CON-08: the guard hit is normal for recover-safe re-commits but
-            // silent swallowing is how cross-run collisions hid — log it.
-            LOG.warn("File 2PC commit skipped: manifest already records epoch {} at key {} (recover-safe re-commit or run collision)",
-                    checkpointId, manifestEntryKey);
-            getPendingCommits().remove(checkpointId);
-            return;
+            if (recoveredEntryKeys.contains(manifestEntryKey)) {
+                LOG.warn("File 2PC commit skipped: manifest already records epoch {} at key {} (recover-safe re-commit of a restored epoch)",
+                        checkpointId, manifestEntryKey);
+                getPendingCommits().remove(checkpointId);
+                return;
+            }
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_EPOCH_ID, checkpointId)
+                    .param(ARG_DETAIL, "File 2PC fresh-run manifest collision: this run's pending epoch "
+                            + checkpointId + " collides with manifest key " + manifestEntryKey
+                            + " written by a previous run in the same output directory. "
+                            + "The uncommitted temp data is preserved at " + tempPath
+                            + ". Use a fresh output directory or restore from the checkpoint "
+                            + "instead of restarting a new run into a used directory (R6 CON-01)");
         }
 
         if (Files.exists(finalPath)) {
             // Edge case: rename succeeded on a prior attempt but manifest write did not.
             // Repair the manifest (add entry, skip rename) — data is already durable.
-            // R5 CON-08: logged loudly — if another run wrote this file the repair
-            // would adopt foreign data as our own.
-            LOG.warn("File 2PC final file already exists for epoch {} at {} — repairing manifest entry {} (recover-safe or run collision)",
+            // R6 CON-01 (plan 2325): the repair may only adopt the file when the
+            // pending entry was RESTORED (it references the previous run's own
+            // durable output); a this-run entry colliding with an existing final
+            // file is the same fresh-run reuse hazard as the manifest guard.
+            if (!recoveredEntryKeys.contains(manifestEntryKey)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_EPOCH_ID, checkpointId)
+                        .param(ARG_DETAIL, "File 2PC fresh-run final-file collision: this run's pending epoch "
+                                + checkpointId + " collides with existing final file " + finalPath
+                                + " from a previous run in the same output directory (R6 CON-01)");
+            }
+            LOG.warn("File 2PC final file already exists for epoch {} at {} — repairing manifest entry {} (recover-safe re-commit)",
                     checkpointId, finalPath, manifestEntryKey);
             manifest.setProperty(manifestEntryKey, finalPath.toString());
             updateManifestAtomically(manifest);
@@ -403,7 +437,12 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             } else {
                 epochId = Long.parseLong(String.valueOf(key));
             }
-            converted.put(epochId, toFilePendingCommit(entry.getValue()));
+            Object convertedEntry = toFilePendingCommit(entry.getValue());
+            converted.put(epochId, convertedEntry);
+            if (convertedEntry instanceof FilePendingCommit) {
+                recoveredEntryKeys.add(manifestKey(
+                        ((FilePendingCommit) convertedEntry).getSubtaskIndex(), epochId));
+            }
         }
         super.setPendingCommits(converted);
     }
