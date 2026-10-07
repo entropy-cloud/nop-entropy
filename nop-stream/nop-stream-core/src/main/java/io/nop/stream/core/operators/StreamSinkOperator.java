@@ -17,11 +17,17 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.common.functions.sink.CdcChangeAwareSink;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ROW_KIND;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SINK_NOT_CHANGE_AWARE;
 
 /**
  * A stream operator that wraps a {@link SinkFunction} and consumes elements from the stream.
@@ -93,6 +99,15 @@ public class StreamSinkOperator<IN> extends AbstractUdfStreamOperator<Void, Sink
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // WI7 (plan 2336): a record carrying non-INSERT change semantics may only reach
+        // a sink that declares itself able to handle (or reject) changes — anything else
+        // would silently treat a DELETE as an append (No-Silent-No-Op).
+        io.nop.api.core.stream.RowKind rowKind = element.getRowKind();
+        if (rowKind != null && !rowKind.isInsertOnly() && !(userFunction instanceof CdcChangeAwareSink)) {
+            throw new StreamException(ERR_STREAM_SINK_NOT_CHANGE_AWARE)
+                    .param(ARG_TYPE_NAME, userFunction.getClass().getName())
+                    .param(ARG_ROW_KIND, rowKind.name());
+        }
         userFunction.consume(element.getValue());
     }
 

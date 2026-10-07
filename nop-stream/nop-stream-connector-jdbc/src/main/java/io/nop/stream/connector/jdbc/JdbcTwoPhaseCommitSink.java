@@ -28,6 +28,7 @@ import io.nop.message.debezium.ChangeEvent;
 
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.common.functions.sink.CdcChangeAwareSink;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.connector.ConnectivityCheckable;
@@ -77,7 +78,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
  * @param <IN> the type of input records
  */
 public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
-        implements ConnectivityCheckable {
+        implements ConnectivityCheckable, CdcChangeAwareSink {
 
     private static final long serialVersionUID = 1L;
 

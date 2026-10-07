@@ -90,9 +90,16 @@ public class StreamElementCodec {
             Object serializedPayload = record.getValue() != null ? JsonTool.stringify(record.getValue()) : null;
             String effectiveType = valueType != null ? valueType
                     : (record.getValue() != null ? record.getValue().getClass().getName() : null);
-            return new StreamMessageEnvelope(epochId,
+            StreamMessageEnvelope envelope = new StreamMessageEnvelope(epochId,
                     StreamMessageEnvelope.TYPE_STREAM_RECORD, effectiveType, serializedPayload,
                     record.getTimestamp(), record.hasTimestamp());
+            // WI7 (plan 2336): optional change metadata rides the envelope so the R4
+            // sink guard stays effective across cross-process edges
+            if (record.getRowKind() != null) {
+                envelope.setRowKind(record.getRowKind().name());
+            }
+            envelope.setTableId(record.getTableId());
+            return envelope;
         }
 
         if (element.isSideOutput()) {
@@ -153,11 +160,15 @@ public class StreamElementCodec {
                 if (payload instanceof String && envelope.getValueType() != null) {
                     value = JsonTool.parseBeanFromText((String) payload, resolveValueType(envelope.getValueType()));
                 }
-                if (envelope.isHasTimestamp()) {
-                    return new StreamRecord<>(value, envelope.getTimestamp());
-                } else {
-                    return new StreamRecord<>(value);
+                StreamRecord<Object> record = envelope.isHasTimestamp()
+                        ? new StreamRecord<>(value, envelope.getTimestamp())
+                        : new StreamRecord<>(value);
+                if (envelope.getRowKind() != null) {
+                    record.withChangeMetadata(
+                            io.nop.api.core.stream.RowKind.valueOf(envelope.getRowKind()),
+                            envelope.getTableId());
                 }
+                return record;
             }
 
             case StreamMessageEnvelope.TYPE_CHECKPOINT_BARRIER: {

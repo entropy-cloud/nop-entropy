@@ -317,7 +317,8 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(new StreamRecord<>(next.get()));
+                output.collect(StreamSourceOperator.applyChangeMetadata(
+                        new StreamRecord<>(next.get()), next.get()));
             } else {
                 // No record available right now. Drain mailbox (may carry trigger-checkpoint
                 // or cancel). If the reader signals termination, exit.

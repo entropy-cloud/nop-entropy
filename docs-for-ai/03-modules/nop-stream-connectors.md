@@ -28,7 +28,7 @@
 | sink | `jdbc-2pc` | `JdbcTwoPhaseCommitSink` | `io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSinkConnectorFactory` | `connector-jdbc.beans.xml` |
 | sink | `batch-consumer` | `BatchConsumerSinkFunction` | `io.nop.stream.connector.batch.BatchConsumerSinkConnectorFactory` | `connector-batch.beans.xml` |
 | source | `kafka` | `KafkaSourceFunction` | `io.nop.stream.connector.kafka.KafkaSourceConnectorFactory` | `connector-kafka.beans.xml` |
-| sink | `kafka-2pc` | `KafkaTwoPhaseCommitSink` | `io.nop.stream.connector.kafka.KafkaTwoPhaseCommitSinkConnectorFactory` | `connector-kafka.beans.xml` |
+| sink | `kafka-2pc` | `KafkaTwoPhaseCommitSink` | `io.nop.stream.connector.kafka.KafkaTwoPhaseCommitSinkConnectorFactory` | `connector-kafka.beans.xml`（透传语义 sink：不实现 `CdcChangeAwareSink`——WI7 起，携带非 INSERT 变更元数据的记录在本 sink typed fail-fast；如需 CDC 落 kafka 请在管道内先展开 value） |
 
 **限速与倾斜感知分配（WI5，2026-10-07，plan 2330）**：`file` source 参数面新增 `rateLimitRowsPerSecond` / `rateLimitBytesPerSecond`（INT optional，缺省 = 0 = 不限速；显式 <= 0 工厂期 typed 拒绝——descriptor INT kind 只管可解析性，正性是构造契约）与 `splitAssignmentPolicy`（`round-robin` 默认 / `size-aware`）。限速经 core `SourceRateLimiter`（token bucket，起始空桶，monitor 外有界分片睡眠响应中断）在 reader 发射路径消费——限速即背压（poll 阻塞），**代价 = checkpoint/cancel 时延随速率退化**（能力边界，接受）。size-aware 语义裁定（plan 2330 F1）：分配函数 = f(剩余未分配集, policy, parallelism) 纯函数，已分配 split 不归因负载（State 无归属字段，零 wire 变更）——投递结果随事件序列变化；倾斜场景下大文件归先注册 reader、剩余集在后续事件间均衡。单写入者/无速率契约的 source（batch-loader/message）描述符**无线速参数**：经校验面配置 = unknown-param typed 错误（程序化构造面不校验未知参数 = WI4 既有边界，如实声明）；Kafka source 限速已由 WI3 落地（plan 2335 消费 core `SourceRateLimiter`：`rateLimitRowsPerSecond`/`rateLimitBytesPerSecond` poll 批节流，负值 typed 拒绝，限速即背压，随分片拷贝携带——兑现 plan 2330 的 deferred 承接）。
 
