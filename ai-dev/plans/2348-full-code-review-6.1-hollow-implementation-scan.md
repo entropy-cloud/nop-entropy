@@ -4,7 +4,8 @@
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.1（MA6）；Skill=`ai-dev/skills/deep-audit-prompts.md` + `ai-dev/tools/scan-hollow-implementations.mjs`
 > Related: Roadmap Details：「全仓空壳扫描 + 抽样确认（区分在建模块的合法空壳如 nop-lint-nop 与违规空壳；nop-jq 已于 2026-09-28 建成并独立成组，不再是空壳例证）」；关联 6.2（静默跳过/吞异常——空 catch 域归 6.2，本项不重扫）。
-> 机械基线（主 agent 实测，2026-10-07，scanner JSON `_tmp/fcr-6.1-hollow-full.json` 全量 6118 findings/9 模式键，按「`/src/main/java/` 且排除 `_tmp/ai-dev/deepwiki/_dump/target`」产品过滤——经 Draft Review agent_e853381a 逐项复算勘正）：**high/critical 产品命中 13 条**（P1:high UnsupportedOperationException ×8：`DynCountArrayBinaryCodec.java:42/:65`、`TdMessageService.java:21/:26`、`GeometryTypeHandler.java:91`、`ChunkFileUploadHandler.java:19/:23/:30`；P6b:high 注释命中 ×5：`ReActAgentExecutor.java:1327/:1456`、`PlanReplanner.java:273`、`NoOpProviderFailoverQueue.java:34`、`JavaEmailSender.java:216`——草审预判 5/5 为"placeholder"字样注释误命中，待裁定确认）；**P1:medium UOE 产品 47 条**（76 为未过滤全量——29 条 `_tmp/snap/t2023..t2025b` 快照重复噪声）；**P1:low 产品 29 条**（guard-style "does not support"/"is disabled" 倾向，预裁合法快裁）；P2b:medium 单行 return 2424 条；P6:medium 未用公共方法 645 条；P8:medium stub/placeholder 命名 1151 条；P4:low TODO/FIXME 产品 44 条（format 31 + dev-tools 10 + 其他 3）；**P3b 产品 0**（5 条全为 `_tmp/snap` 噪声，归档）；P2a/P3 零命中。产品抽样命中大头：nop-kernel（P2b 697/P6 174/P8 194）/nop-ai/nop-format/nop-persistence/nop-stream。high 层非产品噪声 7 条（`_tmp/probe/stub-src` ×2 + `HollowControlFixture` ×3 + `_tmp` ×2）；全量非产品命中 1765 条（绝大多数为 `_tmp/snap` 快照重复）。**scanner 口径注记**：默认 src-only（JSON `scope:"src/main"`），codeClass 字段区分 main/unknown 非 main/test——测试面零命中是口径边界不是零空壳。
+> 机械基线（主 agent 实测，2026-10-07，scanner JSON `_tmp/fcr-6.1-hollow-full.json` 全量 6118 findings/9 模式键，按「`/src/main/java/` 且排除 `_tmp/ai-dev/deepwiki/_dump/target`」产品过滤——经 Draft Review agent_e853381a 逐项复算勘正）：**high/critical 产品命中 13 条**（P1:high UnsupportedOperationException ×8：`DynCountArrayBinaryCodec.java:42/:65`、`TdMessageService.java:21/:26`、`GeometryTypeHandler.java:91`、`ChunkFileUploadHandler.java:19/:23/:30`；P6b:high 注释命中 ×5：`ReActAgentExecutor.java:1327/:1456`、`PlanReplanner.java:273`、`NoOpProviderFailoverQueue.java:34`、`JavaEmailSender.java:216`——草审预判 5/5 为"placeholder"字样注释误命中，待裁定确认）；**P1:medium UOE 产品 47 条**（76 为未过滤全量——29 条 `_tmp/snap/t2023..t2025b` 快照重复噪声）；**P1:low 产品 29 条**（guard-style "does not support"/"is disabled" 倾向，预裁合法快裁）；P2b:medium 单行 return 2424 条；P6:medium 645 条；P8:medium 1151 条；P4:low TODO/FIXME 产品 44 条（format 31 + dev-tools 10 + 其他 3）；**P3b 产品 0**（5 条全为 `_tmp/snap` 噪声，归档）；P2a/P3 零命中。产品抽样命中大头：nop-kernel（P2b 697/P6 174/P8 194）/nop-ai/nop-format/nop-persistence/nop-stream。high 层非产品噪声 7 条（`_tmp/probe/stub-src` ×2 + `HollowControlFixture` ×3 + `_tmp` ×2）；全量非产品命中 1765 条（绝大多数为 `_tmp/snap` 快照重复）。**scanner 口径注记**：默认 src-only（JSON `scope:"src/main"`），codeClass 字段区分 main/unknown 非 main/test——测试面零命中是口径边界不是零空壳。
+> **Phase 2 勘误注记（复核员 agent_0a0753ae 坐实，2026-10-07）**：本头部及 plan 早期草稿沿用的 scanner 模式语义描述有两处不准——P6 实际模式为 **stub/mock/dummy/temp/placeholder/template 名称子串匹配**（非"未用公共方法"，抽样 60 条中 47 条为子串误命中如 `temperature`/`TemplateExpression`）；P8 实际模式为 **continue 跳过循环体（疑似静默 no-op）**（非"stub/placeholder 命名"）。Agent 2/3 已按冻结 JSON 实际定义裁定并登记偏差，Phase 1 数字与裁定不受影响；scanner 模式改名/加词边界建议作工具改进项移交（watch，不立案）。
 > 合法在建空壳基线：`nop-lint/nop-lint-nop`（main 1 java=package-info.java + test 11 个测试类，roadmap 点名合法在建；其 package-info:3 因注释含 "templates" 被 P6 误命中 1 条——预登记）；nop-jq 已建成独立成组（1.9 已深审，非空壳例证）。
 > 历史撞车面（Phase 2 必查，草审 B4 补全）：**3.8**（ChunkFileUploadHandler 三 UOE 已裁"纯 stub 零发现"）+ **3.9**（check2 :331/:386 同位点标定 already-fixed——UOE 化即修复态，Agent 1 必读对照防翻案）；**4.4**（nop-format TODO 35 处三类评定台账——P4 format 31 条对照）；**4.5**（nop-dev-tools 域——P4 dev-tools 10 条对照）；**nop-ai arm 台账**（NoOpProviderFailoverQueue 类注释自带 arm plan 设计裁定引用）；1.2/1.3/1.4（nop-kernel 抽样大头域）；4.1/4.2/4.3/5.2（各自闭包域）。
 > 只读审计（P0 走异步注入）。**判级锚**：deep-audit 共享前缀 P0–P3（:329-333）；scanner 自带模式严重级仅作初筛，最终判级以共享前缀为准。**方法学裁定**：① scanner 模式语义锚 = 工具头注释（P1 UOE stub-style 违规 vs guard-style 合法 fail-fast；P2b 单行返回逐条判断）；② **裁定四分法**：a.stub-style 违规空壳 / b.guard-style 合法 fail-fast / c.Rule #24 合法显式失败占位（判据：公共 API 无文档化暂缓声明且调用方期待完整功能 = 违规 a；有设计裁定/owner doc/注释声明的暂缓 = 合法 c 登记）/ d.注释误命中；③ **测试面覆盖**：scanner 不产 test 命中（口径边界），测试面核对 = Agent 1 按涉事类名对 `src/test` 批量 grep 生成触达表（每条违规发现必附：该路径是否有测试触达 + 测试断言什么）；④ 「排除自身模块 vs 含自身测试面」零引用口径显式声明（E7 教训——plan 2347 closure audit）。
@@ -73,24 +74,24 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: in progress
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：违规发现逐条 保留/降级/驳回 + 裁定台账抽验（≥15% 跨四层）+ 抽样脚本重放比对 + 撞车核对（3.8/3.9/4.4/4.5/nop-ai arm/1.2-1.4/4.1/4.2/4.3/5.2——按抽样命中模块定向）
-- [ ] 主 agent 汇总：判级统一（P0–P3 共享前缀）、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：5 条违规发现 100% 亲读全部保留（0 驳回 0 升降级，P0=0 终裁）+ 台账抽验 56/373≈15% 跨层全证实（防 c 误判 b/真违规误判 d 专项无漏）+ 抽样重放（三 CSV SHA-256 逐字节一致 + 产品计数八值精确吻合）+ 撞车史补全（A3-01 在案 2026-05-20 pulsar 审查发现 7 附注 residual + 矩阵 :47 + roadmap :213 + 7.7 工作项——首次独立判级挂接 7.7/R1.0，不与 4.4 撞车）+ plan 头部 P6/P8 模式语义勘误坐实（已回写）+ a2 两条移交线索降级不立案
+- [x] 主 agent 汇总：判级统一（P2-6.1-001 / P3-6.1-002..005）、撞车去重终裁（A3-04 路径勘误 nop-ai/nop-spring-mcp-server）
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.1-hollow-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.1-hollow-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
