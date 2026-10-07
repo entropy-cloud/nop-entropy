@@ -48,6 +48,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
     <windowingStrategies xdef:key-attr="strategyId" xdef:body-type="list">
         <strategy strategyId="!string" windowFnId="!string" duration="string" triggerId="string"
                   allowedLateness="!long=0"
+                  maxDelay="long"
                   accumulationMode="!enum:io.nop.stream.core.windowing.AccumulationMode=DISCARDING"
                   xdef:name="WindowingStrategyModel" xdef:unique-attr="strategyId">
             <description>string</description>
@@ -246,6 +247,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
         <edge id="!string" from="!string" to="!string"
               partition="!enum:io.nop.stream.core.execution.plan.PartitionPolicy=FORWARD"
               keyExpr="expr"
+              outputTag="string"
               flowControlPolicy="enum:io.nop.stream.core.execution.flow.FlowControlPolicy"
               queueCapacity="int" receiveWindow="int" packetSize="int"
               xdef:name="StreamEdgeModel">

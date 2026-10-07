@@ -103,4 +103,39 @@ public interface WindowedStream<T, K, W extends Window> extends DataStream<T> {
      * @return This windowed stream.
      */
     WindowedStream<T, K, W> sideOutputLateData(OutputTag<T> outputTag);
+
+    /**
+     * WI8 (plan 2332): enables the window lifecycle event surface. The operator then
+     * emits {@link io.nop.stream.core.windowing.WindowLifecycleEvent}s (OPEN/CLOSE/
+     * IDLE/RESUME) on a dedicated side-output tag (id {@code <operatorUid>:window-events});
+     * the main output stream is untouched. Default is OFF — nothing is emitted unless
+     * this is called.
+     *
+     * <p>The tagged events can be retrieved from the {@link SingleOutputStreamOperator}
+     * produced by the window operation via
+     * {@link SingleOutputStreamOperator#getSideOutput(OutputTag)} with an
+     * {@code OutputTag<WindowLifecycleEvent>} carrying the same id.
+     *
+     * <p>Must be called before {@link #apply}, {@link #aggregate}, {@link #reduce} or
+     * {@link #process} so the switch reaches the created window operator.
+     *
+     * @return This windowed stream.
+     */
+    WindowedStream<T, K, W> emitWindowEvents();
+
+    /**
+     * WI8 (plan 2332): max-delay fallback emission window in ms past window end,
+     * measured on the PROCESSING-time clock. When the event-time watermark has not
+     * reached the window end by the deadline, the operator forces one emission of the
+     * window contents (without invoking the user trigger). 0 = disabled (default).
+     * Requires an event-time window assigner — a processing-time assigner combined
+     * with maxDelay &gt; 0 is rejected when the window operator is constructed.
+     *
+     * <p>Must be called before {@link #apply}, {@link #aggregate}, {@link #reduce} or
+     * {@link #process} so the value reaches the created window operator.
+     *
+     * @param maxDelay the fallback delay in ms (0 disables the fallback)
+     * @return This windowed stream.
+     */
+    WindowedStream<T, K, W> maxDelay(long maxDelay);
 }

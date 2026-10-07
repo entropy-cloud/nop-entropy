@@ -21,8 +21,11 @@ package io.nop.stream.runtime.operators.windowing;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 
 import io.nop.api.core.annotations.core.Internal;
@@ -41,11 +44,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DESCRIPTOR_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_MAX_DELAY;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_PROCESSING_TIME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_WATERMARK;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_WINDOW;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_WINDOW_MAX_DELAY_UNSUPPORTED_PROCESSING_TIME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TYPE_MISMATCH;
@@ -87,9 +92,11 @@ import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.operators.Triggerable;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.PaneInfo;
+import io.nop.stream.core.windowing.WindowLifecycleEvent;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -218,6 +225,78 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     private transient Map<String, PaneTrackingInfo> paneTracking;
 
+    /**
+     * WI8 (plan 2332): max-delay fallback window in ms past window end, measured on the
+     * PROCESSING-time clock. 0 = disabled. Event-time windows only — a processing-time
+     * window's cleanup timer fires at window end, strictly before any maxDelay deadline,
+     * so the combination is rejected at construction (no-silent-skip).
+     */
+    protected final long maxDelay;
+
+    /**
+     * WI8 (plan 2332): opt-in window lifecycle event surface (OPEN/CLOSE/IDLE/RESUME).
+     * Default off — no side output is ever produced unless the caller enabled events via
+     * {@code WindowedStream#emitWindowEvents()}.
+     */
+    protected final boolean emitWindowEvents;
+
+    /**
+     * Dedicated side-output channel for {@link WindowLifecycleEvent}s. Non-null iff
+     * {@link #emitWindowEvents} is true (constructor-guarded). The tag id is derived
+     * from the owning operator's uid ({@code <operatorUid>:window-events}) so two
+     * window operators never clobber each other's side-output registration.
+     */
+    protected final OutputTag<WindowLifecycleEvent> windowEventsOutputTag;
+
+    /** WI8: configured max-delay fallback (ms past window end; 0 = disabled). */
+    public long getMaxDelay() {
+        return maxDelay;
+    }
+
+    /** WI8: whether lifecycle events (OPEN/CLOSE/IDLE/RESUME) are emitted. */
+    public boolean isEmitWindowEvents() {
+        return emitWindowEvents;
+    }
+
+    /** WI8: the dedicated window-events side-output tag (null when events are off). */
+    public OutputTag<WindowLifecycleEvent> getWindowEventsOutputTag() {
+        return windowEventsOutputTag;
+    }
+
+    /**
+     * R-registry (plan 2332 B1): active-window registry — paneKey-keyed operator-state
+     * map (NOT keyed state: keyed state cannot enumerate across keys, and IDLE must be
+     * enumerable over the whole operator). Each entry carries the actual window plus its
+     * key so lifecycle events can name both. OPEN = first insertion of the window;
+     * entries survive window-content clears (DISCARDING fires do not re-OPEN) and are
+     * removed by purge/FIRE_AND_PURGE, cleanup (CLOSE) and merges. Participates in
+     * checkpoint/restore (TimeWindow-scoped entries only — same restriction as
+     * {@link #paneTracking}).
+     */
+    private transient Map<String, Set<ActiveWindow<K, W>>> activeWindows;
+
+    /**
+     * True between an IDLE status arrival and the matching resume (ACTIVE status or
+     * first record). Drives the one-shot IDLE/RESUME event emission.
+     */
+    private transient boolean watermarkIdle;
+
+    /**
+     * WI8 R-maxdelay: keyed flag marking windows whose maxDelay timer has not fired yet.
+     * The timer callback consults the flag FIRST: a hit means the firing is the
+     * max-delay fallback (the user trigger is deliberately not invoked); a miss means an
+     * ordinary processing-time timer (user trigger or cleanup). Keyed state with the
+     * window namespace — participates in checkpoint via the state backend like every
+     * other keyed state.
+     */
+    private transient ValueState<Boolean> pendingMaxDelayState;
+
+    /**
+     * Snapshot captured by {@link #restoreState} (runs before {@link #open()}).
+     * Applied deferredly in {@link #open()} after {@code activeWindows} is initialized.
+     */
+    private transient ActiveWindowSnapshot restoredActiveWindowSnapshot;
+
     // ------------------------------------------------------------------------
     // State that is not checkpointed
     // ------------------------------------------------------------------------
@@ -341,10 +420,62 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             BiFunction<ACC, ACC, ACC> mergeFunction,
             Evictor<IN, W> evictor,
             AccumulationMode accumulationMode) {
+        this(windowAssigner, windowSerializer, keySelector, keySerializer, keyClass,
+                windowFunction, trigger, allowedLateness, lateDataOutputTag,
+                accClass, windowStateDescriptor, mergeFunction, evictor, accumulationMode,
+                0L, false, null);
+    }
+
+    /**
+     * WI8 (plan 2332): full constructor carrying the max-delay fallback configuration
+     * and the window lifecycle event surface.
+     *
+     * @param maxDelay               processing-time fallback window in ms past window end
+     *                               (0 = disabled); requires an event-time assigner
+     * @param emitWindowEvents       when true, lifecycle events (OPEN/CLOSE/IDLE/RESUME)
+     *                               are emitted to {@code windowEventsOutputTag}
+     * @param windowEventsOutputTag  the dedicated side-output tag for lifecycle events;
+     *                               must be non-null when {@code emitWindowEvents} is true
+     */
+    WindowOperator(
+            WindowAssigner<? super IN, W> windowAssigner,
+            TypeSerializer<W> windowSerializer,
+            KeySelector<IN, K> keySelector,
+            TypeSerializer<K> keySerializer,
+            Class<K> keyClass,
+            InternalWindowFunction<ACC, OUT, K, W> windowFunction,
+            Trigger<? super IN, ? super W> trigger,
+            long allowedLateness,
+            OutputTag<IN> lateDataOutputTag,
+            Class<ACC> accClass,
+            StateDescriptor<?> windowStateDescriptor,
+            BiFunction<ACC, ACC, ACC> mergeFunction,
+            Evictor<IN, W> evictor,
+            AccumulationMode accumulationMode,
+            long maxDelay,
+            boolean emitWindowEvents,
+            OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
 
         super(windowFunction);
 
         checkArgument(allowedLateness >= 0);
+        checkArgument(maxDelay >= 0, "maxDelay must be >= 0 (0 = disabled)");
+
+        // WI8 R-maxdelay (M3): maxDelay is defined only for event-time windows — a
+        // processing-time window's cleanup timer fires at window end (cleanupTime =
+        // window.maxTimestamp()), strictly before any maxDelay deadline, so the
+        // combination can never fire and is a construction error. Rejected here so
+        // every construction path (builder, hand-built, factory) fails identically.
+        if (maxDelay > 0 && !windowAssigner.isEventTime()) {
+            throw new StreamException(ERR_STREAM_WINDOW_MAX_DELAY_UNSUPPORTED_PROCESSING_TIME)
+                    .param(ARG_MAX_DELAY, maxDelay);
+        }
+        if (emitWindowEvents && windowEventsOutputTag == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG)
+                    .param(ARG_ARG_NAME, "windowEventsOutputTag")
+                    .param(ARG_DETAIL, "emitWindowEvents=true requires the window-events "
+                            + "OutputTag; without it lifecycle events would be silently dropped");
+        }
 
         this.windowAssigner = notNull(windowAssigner, "windowAssigner");
         this.windowSerializer = notNull(windowSerializer, "windowSerializer");
@@ -359,6 +490,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.mergeFunction = mergeFunction;
         this.evictor = evictor;
         this.accumulationMode = accumulationMode != null ? accumulationMode : AccumulationMode.ACCUMULATING;
+        this.maxDelay = maxDelay;
+        this.emitWindowEvents = emitWindowEvents;
+        this.windowEventsOutputTag = windowEventsOutputTag;
     }
 
     /**
@@ -388,6 +522,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         this.mergeFunction = other.mergeFunction;
         this.evictor = other.evictor;
         this.accumulationMode = other.accumulationMode;
+        // WI8 (plan 2332): these MUST be carried over — missing them here would fork
+        // behavior per subtask (events emitted by one subtask only, maxDelay fallback
+        // active on some subtasks but not others).
+        this.maxDelay = other.maxDelay;
+        this.emitWindowEvents = other.emitWindowEvents;
+        this.windowEventsOutputTag = other.windowEventsOutputTag;
     }
 
     /**
@@ -462,6 +602,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         if (this.paneTracking == null) {
             this.paneTracking = new HashMap<>();
         }
+        if (this.activeWindows == null) {
+            this.activeWindows = new HashMap<>();
+        }
+
+        // Apply any active-window registry snapshot captured by restoreState() (called
+        // before open()). Restores the in-flight window set so post-recovery lifecycle
+        // events do not re-announce windows that were already open (R-registry:
+        // restore never re-emits OPEN). Only TimeWindow-scoped entries are snapshotted.
+        if (restoredActiveWindowSnapshot != null) {
+            applyRestoredActiveWindowSnapshot();
+        }
 
         // W-M1: register the drop counter under an operator/subtask scope — the
         // previously shared JVM-level counter accumulated every instance's drops
@@ -490,6 +641,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             this.stateBackend = new MemoryStateBackend();
         }
         this.keyedStateBackend = this.stateBackend.createKeyedStateBackend(keyClass);
+
+        // WI8 R-maxdelay: the pending-max-delay flag lives in keyed state so it
+        // participates in checkpoint/restore through the state backend exactly like
+        // the window contents state. Initialized AFTER the backend creation above.
+        this.pendingMaxDelayState = this.<K>getKeyedStateBackend()
+                .getState(new ValueStateDescriptor<>("window-pending-max-delay", Boolean.class));
 
         // Register the live
         // descriptor's aggregate function BEFORE the deferred keyed-state
@@ -605,10 +762,50 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private void applyRestoredActiveWindowSnapshot() {
+        for (ActiveWindowSnapshot.ActiveWindowEntry entry : restoredActiveWindowSnapshot.getEntries()) {
+            W window = (W) new TimeWindow(entry.getWindowStart(), entry.getWindowEnd());
+            ActiveWindow<K, W> active = new ActiveWindow<>((K) entry.getKey(), window);
+            this.activeWindows
+                    .computeIfAbsent(entry.getPaneKey(), k -> new LinkedHashSet<>())
+                    .add(active);
+        }
+        restoredActiveWindowSnapshot = null;
+    }
+
     @Override
     public void processWatermark(Watermark mark) throws Exception {
         internalTimerService.advanceWatermark(mark.getTimestamp());
         super.processWatermark(mark);
+    }
+
+    /**
+     * WI8 R-status (plan 2332 M1): IDLE/RESUME window lifecycle events ride the
+     * watermark-status channel. The received status is ALWAYS forwarded downstream
+     * first-order — cutting the {@code output.emitWatermarkStatus} propagation would
+     * break downstream idleness tracking (same contract as the
+     * {@code OverWindowOperator} override).
+     *
+     * <p>IDLE arrival emits IDLE for every active window in the registry; the matching
+     * RESUME is emitted either on an ACTIVE status arrival or on the first record
+     * processed while idle (see {@link #processElement}).
+     */
+    @Override
+    public void processWatermarkStatus(WatermarkStatus status) throws Exception {
+        output.emitWatermarkStatus(status);
+        if (!emitWindowEvents) {
+            return;
+        }
+        if (status.isIdle()) {
+            if (!watermarkIdle) {
+                watermarkIdle = true;
+                emitLifecycleEventToAllActive(WindowLifecycleEvent.Type.IDLE);
+            }
+        } else if (watermarkIdle) {
+            watermarkIdle = false;
+            emitLifecycleEventToAllActive(WindowLifecycleEvent.Type.RESUME);
+        }
     }
 
     @Override
@@ -622,6 +819,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         elementTimestampsState = null;
         triggerAccumulators = null;
         paneTracking = null;
+        activeWindows = null;
+        pendingMaxDelayState = null;
     }
 
     @Override
@@ -651,6 +850,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // because their windowNamespace is irreversible.
         if (paneTracking != null && !paneTracking.isEmpty()) {
             result.putOperatorState("pane-tracking", snapshotPaneTracking());
+        }
+        // WI8 R-registry: persist the active-window set so post-recovery lifecycle
+        // events continue from the restored window set (restore never re-emits OPEN).
+        // Only TimeWindow-scoped entries participate (isTimeWindowPaneKey).
+        if (activeWindows != null && !activeWindows.isEmpty()) {
+            ActiveWindowSnapshot snapshot = snapshotActiveWindows();
+            if (snapshot != null) {
+                result.putOperatorState("active-windows", snapshot);
+            }
         }
         return result;
     }
@@ -687,6 +895,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             if (paneSnapshot instanceof PaneTrackingSnapshot) {
                 this.restoredPaneTrackingSnapshot = (PaneTrackingSnapshot) paneSnapshot;
             }
+            // Capture active-window registry snapshot for deferred application in open().
+            Object activeWindowSnapshot = snapshotResult.getOperatorState("active-windows");
+            if (activeWindowSnapshot instanceof ActiveWindowSnapshot) {
+                this.restoredActiveWindowSnapshot = (ActiveWindowSnapshot) activeWindowSnapshot;
+            }
         }
     }
 
@@ -711,6 +924,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // WI8 R-status: a record arriving while the watermark was declared idle is the
+        // resume signal — announce RESUME for the active windows before processing it.
+        if (watermarkIdle) {
+            watermarkIdle = false;
+            if (emitWindowEvents) {
+                emitLifecycleEventToAllActive(WindowLifecycleEvent.Type.RESUME);
+            }
+        }
+
         final Collection<W> elementWindows =
                 windowAssigner.assignWindows(
                         element.getValue(), element.getTimestamp(), windowAssignerContext);
@@ -798,6 +1020,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         if (paneTracking != null) {
                                             paneTracking.remove(paneKey(key, m));
                                         }
+                                        // WI8 R-registry: the merged-away window's registry
+                                        // entry dies with the merge; its pending max-delay
+                                        // marker and timer are dropped with it.
+                                        removeActiveWindow(key, m);
+                                        clearPendingMaxDelay(key, m);
+                                        deleteMaxDelayTimer(m);
                                         // G-3: per-window user state (ctx.windowState()) of a
                                         // merged-away ACTUAL window dies with the merge. Required
                                         // IN ADDITION to the mergeWindowContents wiring below:
@@ -808,6 +1036,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         clearUserWindowState(m);
                                         deleteCleanupTimer(m);
                                     }
+
+                                    // WI8 R-registry: transfer the surviving window's registry
+                                    // entry to the new actual window. Merging never re-announces
+                                    // the window — no OPEN is emitted on a merge.
+                                    transferActiveWindow(key, mergeResult);
+                                    // WI8 R-maxdelay: the merged window's deadline moved with
+                                    // its new end — re-register exactly like the cleanup timer
+                                    // is re-registered by the element path, and (re-)mark the
+                                    // pending flag under the merged window's namespace.
+                                    registerMaxDelayTimer(key, mergeResult);
 
                                     mergeWindowContents(key, stateWindowResult, mergedStateWindows);
                                 }
@@ -840,6 +1078,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     private void processWindowElement(K key, W actualWindow, W stateWindow,
                                       StreamRecord<IN> element, long elementTimestamp) throws Exception {
+        // WI8 R-registry: OPEN fires when the window is FIRST registered in the
+        // active-window registry. Entries survive content clears (a DISCARDING fire
+        // must not re-announce the window), so a later element in the same window is
+        // a no-op here.
+        if (registerActiveWindow(key, actualWindow)) {
+            emitLifecycleEvent(WindowLifecycleEvent.Type.OPEN, key, actualWindow);
+        }
+
         addWindowElement(key, stateWindow, element.getValue(), elementTimestamp);
 
         triggerContext.key = key;
@@ -866,8 +1112,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             // G-3: per-window user state (ctx.windowState()) must be released
             // with the window (Flink clearAllState → processContext.clear()).
             clearUserWindowState(actualWindow);
+            // WI8 R-registry: FIRE_AND_PURGE ends the window instance — drop the
+            // registry entry (without a CLOSE event) so a later record in the same
+            // range is a NEW window instance and re-announces OPEN.
+            removeActiveWindow(key, actualWindow);
         }
         registerCleanupTimer(actualWindow);
+        registerMaxDelayTimer(key, actualWindow);
     }
 
     private boolean processElementForRegularWindow(
@@ -938,6 +1189,28 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             mergingWindows = null;
         }
 
+        // WI8 R-maxdelay: consult the pending flag FIRST. A hit means this timer is the
+        // max-delay fallback deadline — force one emission WITHOUT invoking the user
+        // trigger (its state/timers must not observe a synthetic firing, so a user
+        // processing-time trigger is never fed by the fallback). FIRE, no purge — the
+        // allowedLateness window stays intact.
+        if (!isEventTime && maxDelay > 0
+                && clearPendingMaxDelayIfMarked(triggerContext.key, triggerContext.window)) {
+            W stateWindow = mergingWindows != null
+                    ? mergingWindows.getStateWindow(triggerContext.window)
+                    : triggerContext.window;
+            if (stateWindow != null) {
+                ACC contents = getWindowContents(triggerContext.key, stateWindow);
+                if (contents != null) {
+                    emitWindowContents(triggerContext.key, triggerContext.window, stateWindow, contents);
+                }
+            }
+            if (mergingWindows != null) {
+                mergingWindows.persist();
+            }
+            return;
+        }
+
         TriggerResult triggerResult = isEventTime
                 ? triggerContext.onEventTime(timer.getTimestamp())
                 : triggerContext.onProcessingTime(timer.getTimestamp());
@@ -964,6 +1237,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
             removeTriggerAccumulators(triggerContext.key, triggerContext.window);
             // G-3: release per-window user state together with the window.
             clearUserWindowState(triggerContext.window);
+            // WI8 R-registry: FIRE_AND_PURGE ends the window instance (no CLOSE
+            // event) — a later record in the same range is a new window instance.
+            removeActiveWindow(triggerContext.key, triggerContext.window);
         }
 
         if (windowAssigner.isEventTime() == isEventTime
@@ -972,6 +1248,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     ? mergingWindows.getStateWindow(triggerContext.window)
                     : triggerContext.window;
             if (stateWindow != null) {
+                // WI8 R-registry: the window's lifetime ends here — announce CLOSE
+                // while the entry is still registered, then drop it.
+                emitLifecycleEvent(WindowLifecycleEvent.Type.CLOSE,
+                        triggerContext.key, triggerContext.window);
+                removeActiveWindow(triggerContext.key, triggerContext.window);
+                // WI8 R-maxdelay: a surviving maxDelay deadline must never fire for a
+                // cleaned-up window.
+                clearPendingMaxDelay(triggerContext.key, triggerContext.window);
+                deleteMaxDelayTimer(triggerContext.window);
                 clearWindowContents(triggerContext.key, triggerContext.window, stateWindow);
                 triggerContext.clear();
                 // Delete after the last clear (the clear may rebuild).
@@ -1319,6 +1604,181 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     }
 
     /**
+     * WI8 R-registry: one active window in the registry — the actual window plus the
+     * key it belongs to, so lifecycle events (IDLE enumeration in particular) can name
+     * both. Equality is (key, window) value equality (TimeWindow compares start/end).
+     */
+    static final class ActiveWindow<K, W extends Window> implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+
+        final K key;
+        final W window;
+
+        ActiveWindow(K key, W window) {
+            this.key = key;
+            this.window = window;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof ActiveWindow)) {
+                return false;
+            }
+            ActiveWindow<?, ?> other = (ActiveWindow<?, ?>) o;
+            return java.util.Objects.equals(key, other.key)
+                    && java.util.Objects.equals(window, other.window);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hashCode(key) * 31 + java.util.Objects.hashCode(window);
+        }
+
+        @Override
+        public String toString() {
+            return "ActiveWindow{key=" + key + ", window=" + window + "}";
+        }
+    }
+
+    /**
+     * Serializable snapshot DTO of the active-window registry. Only TimeWindow-scoped
+     * entries are stored (see {@link #isTimeWindowPaneKey}) — same restriction as the
+     * pane-tracking snapshot.
+     *
+     * <p>The JSON checkpoint persist path converts this DTO to a plain JSON-safe map
+     * form via {@link #toSerializableForm()} / {@link #fromSerializableForm(Map)}.
+     */
+    public static final class ActiveWindowSnapshot implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private static final String FORM_TYPE_ACTIVE_WINDOWS = "ActiveWindowSnapshot";
+
+        private final List<ActiveWindowEntry> entries;
+
+        public ActiveWindowSnapshot(List<ActiveWindowEntry> entries) {
+            this.entries = entries != null ? entries : new ArrayList<>();
+        }
+
+        public List<ActiveWindowEntry> getEntries() {
+            return entries;
+        }
+
+        /**
+         * JSON-safe map form used by the checkpoint persist path. Self-describing via
+         * {@code "@type"}.
+         */
+        public Map<String, Object> toSerializableForm() {
+            java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+            form.put("@type", FORM_TYPE_ACTIVE_WINDOWS);
+            List<Object> entryForms = new ArrayList<>();
+            for (ActiveWindowEntry entry : entries) {
+                entryForms.add(entry.toSerializableForm());
+            }
+            form.put("entries", entryForms);
+            return form;
+        }
+
+        /**
+         * Rebuilds an {@link ActiveWindowSnapshot} from the JSON-safe form produced by
+         * {@link #toSerializableForm()}. Returns {@code null} for non-registry maps.
+         */
+        @SuppressWarnings("unchecked")
+        public static ActiveWindowSnapshot fromSerializableForm(Map<String, Object> form) {
+            if (form == null || !FORM_TYPE_ACTIVE_WINDOWS.equals(form.get("@type"))) {
+                return null;
+            }
+            List<ActiveWindowEntry> result = new ArrayList<>();
+            List<Object> entryForms = (List<Object>) form.get("entries");
+            if (entryForms != null) {
+                for (Object f : entryForms) {
+                    if (f instanceof Map) {
+                        result.add(ActiveWindowEntry.fromSerializableForm((Map<String, Object>) f));
+                    }
+                }
+            }
+            return new ActiveWindowSnapshot(result);
+        }
+
+        public static final class ActiveWindowEntry implements java.io.Serializable {
+            private static final long serialVersionUID = 1L;
+
+            private final String paneKey;
+            private final Object key;
+            private final long windowStart;
+            private final long windowEnd;
+
+            public ActiveWindowEntry(String paneKey, Object key, long windowStart, long windowEnd) {
+                this.paneKey = paneKey;
+                this.key = key;
+                this.windowStart = windowStart;
+                this.windowEnd = windowEnd;
+            }
+
+            public String getPaneKey() {
+                return paneKey;
+            }
+
+            public Object getKey() {
+                return key;
+            }
+
+            public long getWindowStart() {
+                return windowStart;
+            }
+
+            public long getWindowEnd() {
+                return windowEnd;
+            }
+
+            public Map<String, Object> toSerializableForm() {
+                java.util.LinkedHashMap<String, Object> form = new java.util.LinkedHashMap<>();
+                form.put("paneKey", paneKey);
+                form.put("key", key);
+                form.put("windowStart", windowStart);
+                form.put("windowEnd", windowEnd);
+                return form;
+            }
+
+            public static ActiveWindowEntry fromSerializableForm(Map<String, Object> form) {
+                long start = form.get("windowStart") instanceof Number
+                        ? ((Number) form.get("windowStart")).longValue() : 0L;
+                long end = form.get("windowEnd") instanceof Number
+                        ? ((Number) form.get("windowEnd")).longValue() : 0L;
+                return new ActiveWindowEntry(
+                        (String) form.get("paneKey"),
+                        form.get("key"),
+                        start,
+                        end);
+            }
+        }
+    }
+
+    /**
+     * Snapshots the TimeWindow-scoped active-window registry entries into a
+     * serializable DTO. Returns {@code null} when nothing participates.
+     */
+    private ActiveWindowSnapshot snapshotActiveWindows() {
+        List<ActiveWindowSnapshot.ActiveWindowEntry> entries = new ArrayList<>();
+        for (Map.Entry<String, Set<ActiveWindow<K, W>>> e : activeWindows.entrySet()) {
+            if (!isTimeWindowPaneKey(e.getKey())) {
+                continue;
+            }
+            for (ActiveWindow<K, W> active : e.getValue()) {
+                entries.add(new ActiveWindowSnapshot.ActiveWindowEntry(
+                        e.getKey(), active.key,
+                        windowStart(active.window), windowEnd(active.window)));
+            }
+        }
+        if (entries.isEmpty()) {
+            return null;
+        }
+        return new ActiveWindowSnapshot(entries);
+    }
+
+    /**
      * Write skipped late arriving element to SideOutput.
      *
      * @param element skipped late arriving element to side output
@@ -1421,6 +1881,189 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     protected final boolean isCleanupTime(W window, long time) {
         return time == cleanupTime(window);
+    }
+
+    // ------------------------------------------------------------------------
+    // WI8 (plan 2332): active-window registry, lifecycle events, maxDelay fallback
+    // ------------------------------------------------------------------------
+
+    /**
+     * Registers the window in the active-window registry.
+     *
+     * @return {@code true} if the window was newly inserted (the OPEN signal);
+     * {@code false} when the window was already active (no re-announcement).
+     */
+    private boolean registerActiveWindow(K key, W window) {
+        return activeWindows.computeIfAbsent(paneKey(key, window), k -> new LinkedHashSet<>())
+                .add(new ActiveWindow<>(key, window));
+    }
+
+    /**
+     * R-registry merge semantics: moves the surviving window's registry entry to the
+     * new actual window WITHOUT emitting OPEN — a merge continues an existing window
+     * instance, it does not create one.
+     */
+    private void transferActiveWindow(K key, W newActualWindow) {
+        activeWindows.computeIfAbsent(paneKey(key, newActualWindow), k -> new LinkedHashSet<>())
+                .add(new ActiveWindow<>(key, newActualWindow));
+    }
+
+    private void removeActiveWindow(K key, W window) {
+        if (activeWindows == null) {
+            return;
+        }
+        Set<ActiveWindow<K, W>> set = activeWindows.get(paneKey(key, window));
+        if (set != null) {
+            set.remove(new ActiveWindow<>(key, window));
+            if (set.isEmpty()) {
+                activeWindows.remove(paneKey(key, window));
+            }
+        }
+    }
+
+    /** Test accessor for the active-window registry (read-only use). */
+    Map<String, Set<ActiveWindow<K, W>>> activeWindowsForTest() {
+        return activeWindows;
+    }
+
+    // ----------------------------------------------------------------
+    // WI8: lifecycle event emission (default OFF — every helper is a no-op
+    // unless emitWindowEvents was enabled and the tag configured)
+    // ----------------------------------------------------------------
+
+    private void emitLifecycleEvent(WindowLifecycleEvent.Type type, K key, W window) {
+        if (!emitWindowEvents || windowEventsOutputTag == null) {
+            return;
+        }
+        // WindowContext.output reads window.maxTimestamp() — the context window must
+        // point at the event's window BEFORE emitting (same discipline as the
+        // late-data side-output path).
+        processContext.window = window;
+        processContext.output(windowEventsOutputTag,
+                new WindowLifecycleEvent(type, key, windowStart(window), windowEnd(window)));
+    }
+
+    private void emitLifecycleEventToAllActive(WindowLifecycleEvent.Type type) {
+        if (activeWindows == null || activeWindows.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Set<ActiveWindow<K, W>>> entry : activeWindows.entrySet()) {
+            for (ActiveWindow<K, W> active : entry.getValue()) {
+                emitLifecycleEvent(type, active.key, active.window);
+            }
+        }
+    }
+
+    private static long windowStart(Window window) {
+        return window instanceof TimeWindow ? ((TimeWindow) window).getStart() : 0L;
+    }
+
+    private static long windowEnd(Window window) {
+        return window instanceof TimeWindow ? ((TimeWindow) window).getEnd() : window.maxTimestamp();
+    }
+
+    // ----------------------------------------------------------------
+    // WI8 R-maxdelay: fallback emission driven by a processing-time timer at
+    // window.maxTimestamp() + 1 + maxDelay
+    // ----------------------------------------------------------------
+
+    /**
+     * The processing-time deadline of the max-delay fallback for the given window:
+     * {@code window.maxTimestamp() + 1 + maxDelay} (window end + maxDelay; the +1
+     * converts the inclusive maxTimestamp to the exclusive end, mirroring the cleanup
+     * timer's {@code maxTimestamp + allowedLateness} offset style). Negative on
+     * overflow — the caller then skips registration (mirrors {@link #cleanupTime}).
+     */
+    private long maxDelayDeadline(W window) {
+        long deadline = window.maxTimestamp() + 1 + maxDelay;
+        return deadline >= window.maxTimestamp() ? deadline : -1L;
+    }
+
+    /**
+     * Ensures the window carries a pending maxDelay marker and a processing-time
+     * timer at its deadline. Idempotent per window: the timer set deduplicates
+     * identical (namespace, timestamp) entries and the marker is only written when
+     * absent (per-element calls stay cheap).
+     */
+    protected void registerMaxDelayTimer(K key, W window) {
+        if (maxDelay <= 0) {
+            return;
+        }
+        long deadline = maxDelayDeadline(window);
+        if (deadline < 0) {
+            return;
+        }
+        triggerContext.key = key;
+        triggerContext.window = window;
+        if (!hasPendingMaxDelay(key, window)) {
+            markPendingMaxDelay(key, window);
+        }
+        triggerContext.registerProcessingTimeTimer(deadline);
+    }
+
+    protected void deleteMaxDelayTimer(W window) {
+        if (maxDelay <= 0) {
+            return;
+        }
+        long deadline = maxDelayDeadline(window);
+        if (deadline < 0) {
+            return;
+        }
+        triggerContext.window = window;
+        triggerContext.deleteProcessingTimeTimer(deadline);
+    }
+
+    private boolean hasPendingMaxDelay(K key, W window) {
+        if (pendingMaxDelayState == null || keyedStateBackend == null) {
+            return false;
+        }
+        try {
+            IKeyedStateBackend<K> typedBackend = this.<K>getKeyedStateBackend();
+            typedBackend.setCurrentKey(key);
+            typedBackend.setCurrentNamespace(windowNamespace(window));
+            return Boolean.TRUE.equals(pendingMaxDelayState.value());
+        } catch (java.io.IOException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to read the pending maxDelay marker");
+        }
+    }
+
+    private void markPendingMaxDelay(K key, W window) {
+        IKeyedStateBackend<K> typedBackend = this.<K>getKeyedStateBackend();
+        try {
+            typedBackend.setCurrentKey(key);
+            typedBackend.setCurrentNamespace(windowNamespace(window));
+            pendingMaxDelayState.update(Boolean.TRUE);
+        } catch (java.io.IOException e) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to write the pending maxDelay marker");
+        }
+    }
+
+    private void clearPendingMaxDelay(K key, W window) {
+        if (pendingMaxDelayState == null || keyedStateBackend == null) {
+            return;
+        }
+        // ValueState.clear() does not throw — no IO failure path to wrap.
+        IKeyedStateBackend<K> typedBackend = this.<K>getKeyedStateBackend();
+        typedBackend.setCurrentKey(key);
+        typedBackend.setCurrentNamespace(windowNamespace(window));
+        pendingMaxDelayState.clear();
+    }
+
+    /**
+     * Test-and-clear of the pending maxDelay marker.
+     *
+     * @return {@code true} when the marker was set (this timer IS the maxDelay
+     * fallback for the window); the marker is cleared as a side effect so the
+     * fallback fires exactly once per marking.
+     */
+    private boolean clearPendingMaxDelayIfMarked(K key, W window) {
+        if (!hasPendingMaxDelay(key, window)) {
+            return false;
+        }
+        clearPendingMaxDelay(key, window);
+        return true;
     }
 
     @SuppressWarnings("unchecked")
@@ -2127,5 +2770,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
      */
     MapState<String, List<Long>> elementTimestampsStateForTest() {
         return elementTimestampsState;
+    }
+
+    /** WI8 test accessors: configuration transparency across {@code copyForSubtask}. */
+    long maxDelayForTest() {
+        return maxDelay;
+    }
+
+    boolean emitWindowEventsForTest() {
+        return emitWindowEvents;
+    }
+
+    OutputTag<WindowLifecycleEvent> windowEventsOutputTagForTest() {
+        return windowEventsOutputTag;
     }
 }

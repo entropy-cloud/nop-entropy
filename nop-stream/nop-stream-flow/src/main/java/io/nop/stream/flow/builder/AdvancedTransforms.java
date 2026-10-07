@@ -97,7 +97,9 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
  * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
  * at build time when they differ from the xdef defaults. allowedLateness was released by
- * D9: consumed by buildWindow and passed to the operator.
+ * D9: consumed by buildWindow and passed to the operator. maxDelay was released by WI8
+ * (plan 2332): consumed by buildWindow and passed to the operator (event-time assigners
+ * only — the operator constructor rejects the processing-time combination).
  */
 final class AdvancedTransforms {
 
@@ -208,6 +210,14 @@ final class AdvancedTransforms {
                 : strategy.getAllowedLateness();
         if (lateness > 0) {
             windowed.allowedLateness(lateness);
+        }
+        // WI8 (plan 2332): consume the strategy-level maxDelay fallback (null/0 =
+        // disabled). Flows through the WindowedStream API into the window operator;
+        // the operator constructor rejects a processing-time assigner combined with
+        // maxDelay > 0 (typed build-time failure — no silent skip).
+        Long maxDelay = strategy.getMaxDelay();
+        if (maxDelay != null && maxDelay > 0) {
+            windowed.maxDelay(maxDelay);
         }
         return windowed;
     }
