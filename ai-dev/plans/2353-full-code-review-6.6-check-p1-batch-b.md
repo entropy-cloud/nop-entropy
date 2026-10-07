@@ -68,14 +68,12 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + already-fixed 抽验 ≥30% 含实跑 + 撞车复验 + 净账
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——still-live 2 条 100% 亲读+自跑证实；canonical 计数 **AF 16 / dup 11 / still-live 2 / FP 0**（A 份 prose AF7/dup3 与其表 6+4 矛盾已统一收敛——Major 登记项）；dup 归并锚点 9/11 亲验成立（P1-3.6-001 三重闭合：立项锚+静态读码+探针独立复跑 STILL-LIVE 逐字一致）；AF 抽验 6 条含 4 实跑全绿；承接 5/11 成立（gw-49/86 位点在位+index open 各恰一次无双登记）；B-1/B-2 旁发现改记已知项承载（3.5 :21 工单/P2-3.6-004）
 
 Exit Criteria:
 
@@ -85,7 +83,7 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
