@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--任务ID-->
-                <col id="jobTaskId" mandatory="true" sortable="true"/>
-
                 <!--批次ID-->
                 <col id="jobFireId" mandatory="true" sortable="true"/>
 
@@ -100,30 +97,29 @@
     <forms>
         <form id="view" editMode="view" title="查看-执行任务" i18n-en:title="View Job Task">
             <layout>
- jobTaskId[任务ID] jobFireId[批次ID]
- shardingIndex[分片索引] shardingTotal[总分片数]
- costCpu[CPU开销(毫核)] costMemory[内存开销(MB)]
- partitionRange[分片范围] priority[优先级]
- taskStatus[任务状态] workerInstanceId[执行节点ID]
- startTime[开始时间] endTime[结束时间]
- durationMs[执行时长(毫秒)] resultPayload[执行结果]
- errorCode[错误码] errorMessage[错误消息]
- taskPayload[投递参数] taskNo[任务序号]
- partitionIndex[分区索引] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
- targetHost[目标节点地址] 
+ jobFireId[批次ID] shardingIndex[分片索引]
+ shardingTotal[总分片数] costCpu[CPU开销(毫核)]
+ costMemory[内存开销(MB)] partitionRange[分片范围]
+ priority[优先级] taskStatus[任务状态]
+ workerInstanceId[执行节点ID] startTime[开始时间]
+ endTime[结束时间] durationMs[执行时长(毫秒)]
+ resultPayload[执行结果] errorCode[错误码]
+ errorMessage[错误消息] taskPayload[投递参数]
+ taskNo[任务序号] partitionIndex[分区索引]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] targetHost[目标节点地址]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行任务" i18n-en:title="Add Job Task" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-执行任务" i18n-en:title="Edit Job Task">
             <layout>
- jobTaskId[任务ID] jobFireId[批次ID]
- shardingIndex[分片索引] shardingTotal[总分片数]
- costCpu[CPU开销(毫核)] costMemory[内存开销(MB)]
- partitionRange[分片范围] priority[优先级]
- taskPayload[投递参数] taskNo[任务序号]
- partitionIndex[分区索引] remark[备注]
+ jobFireId[批次ID] shardingIndex[分片索引]
+ shardingTotal[总分片数] costCpu[CPU开销(毫核)]
+ costMemory[内存开销(MB)] partitionRange[分片范围]
+ priority[优先级] taskPayload[投递参数]
+ taskNo[任务序号] partitionIndex[分区索引]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

@@ -4,6 +4,7 @@ package io.nop.job.service.entity;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
@@ -109,7 +110,8 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
 
     @Override
     @BizMutation
-    public void triggerNow(@Name("id") String id, @Name("overrideParams") Map<String, Object> overrideParams,
+    public void triggerNow(@Name("id") String id,
+                           @Name("overrideParams") @Optional Map<String, Object> overrideParams,
                            IServiceContext context) {
         NopJobSchedule schedule = requireEntity(id, "triggerNow", context);
         validateManualTriggerSchedule(schedule, "triggerNow");

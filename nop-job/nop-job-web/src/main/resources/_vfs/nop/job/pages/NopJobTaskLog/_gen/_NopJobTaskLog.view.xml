@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--日志ID-->
-                <col id="jobTaskLogId" mandatory="true" sortable="true"/>
-
                 <!--任务ID-->
                 <col id="jobTaskId" mandatory="true" sortable="true"/>
 
@@ -70,25 +67,23 @@
     <forms>
         <form id="view" editMode="view" title="查看-执行日志" i18n-en:title="View Job Task Log">
             <layout>
- jobTaskLogId[日志ID] jobTaskId[任务ID]
- jobFireId[批次ID] jobScheduleId[调度ID]
- jobName[作业名] groupId[分组]
- logTime[日志时间] logLevel[日志级别]
- logMessage[日志内容] logPayload[日志扩展信息]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ jobTaskId[任务ID] jobFireId[批次ID]
+ jobScheduleId[调度ID] jobName[作业名]
+ groupId[分组] logTime[日志时间]
+ logLevel[日志级别] logMessage[日志内容]
+ logPayload[日志扩展信息] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-执行日志" i18n-en:title="Add Job Task Log" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-执行日志" i18n-en:title="Edit Job Task Log">
             <layout>
- jobTaskLogId[日志ID] jobTaskId[任务ID]
- jobFireId[批次ID] jobScheduleId[调度ID]
- jobName[作业名] groupId[分组]
- logTime[日志时间] logLevel[日志级别]
- logMessage[日志内容] logPayload[日志扩展信息]
- remark[备注] 
+ jobTaskId[任务ID] jobFireId[批次ID]
+ jobScheduleId[调度ID] jobName[作业名]
+ groupId[分组] logTime[日志时间]
+ logLevel[日志级别] logMessage[日志内容]
+ logPayload[日志扩展信息] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
