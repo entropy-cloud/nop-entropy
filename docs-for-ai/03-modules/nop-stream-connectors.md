@@ -67,6 +67,19 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 
 `SourceFunction`（`MessageSourceFunction`/`DebeziumCdcSourceFunction`/`BatchLoaderSourceFunction`）为 **legacy 冻结代**：维持现状运行与维护（缺陷照修），原则上**不新增能力**；新连接器一律实现新一代 Source API（`Source`/`SplitEnumerator`/`SourceReader` 形态，`SourceEnumeratorSnapshot` checkpoint 面已就绪）。**已裁定例外**：`debezium-cdc` 的 B 层表路由并行（`SubtaskShardedSourceFunction`，2026-10-02 用户裁定）在 legacy 代上落并行能力。**例外撤销裁定（WI0，2026-10-07，裁定记录见平台内部 ai-dev 设计目录，按 docs-for-ai 边界规则不直接链接）**：三个 legacy source 全量迁移 FLIP-27 的波次由五引擎对比缺口 roadmap 的 WI2 承载——B 层表路由例外随迁移完成撤销（新代 split 机制自然承接表路由），迁移完成前例外维持有效。SourceFunction → Source 的存量迁移属平台内部规划波次，不在 connectors 使用文档范围内。
 
+## 维表本地物化缓存层（WI11/plan 2338）
+
+`io.nop.stream.core.connector.lookup.CachingTableLookup`（实现 `ITableLookup` + AutoCloseable）是既有维表 lookup 桥接（WI14 基线）之上的本地物化层——per-record 处理保持同步（裁定 R5：不新增异步算子），异步性收敛在物化刷新层的函数内部后台资源：
+
+- **per-record 路径**：TTL 内命中直接返回（零 DB IO）；miss/过期同步委派 delegate 并装载；null 结果同样缓存（防穿透，与正条目同 TTL 语义）。
+- **后台刷新（扫描/执行分离）**：懒启动单线程 daemon 调度器（fixed-delay 不重叠扫描）+ 大小 = `refreshMaxConcurrency` 的 worker 池承接刷新 job——delegate 调用并发度真实 >1 且以池大小为硬上界。**刷新失败语义**：保留旧值 + WARN + 下轮重试（TTL 到期回落同步重查为自愈出口；移除条目会把 DB 抖动转化为同步查库风暴，已拒绝）。刷新续期 loadTime（刷新过的条目按新加载时间参与淘汰排序）。
+- **失效策略**：TTL（age > `ttlMs` 访问时判 miss）+ `maxEntries` 最旧加载条目淘汰（可观测 victim：顺序加载 maxEntries+1 key → 最早加载者被逐出重委派）。
+- **序列化边界**：cache/pool/scheduler 全 transient——反序列化后由同步 lookup 首次调用懒重建（线程安全防御）。
+- **close 契约**：幂等（重复调用安全）；close 后 lookup typed 拒绝（`ERR_STREAM_INVALID_STATE`）而非静默回落 DB 查询。**生产调用落点** = 宿主函数 close() override（WI17 lookup SQL 接线时落地）或 bean destroy-method——本类只提供能力。
+- **delegate 线程安全契约**：刷新池与任务线程会并发调用 delegate 的 lookup——既有只在任务线程调用的适配器接入本层前须确认并发安全。
+- 配置：`ttlMs` / `refreshIntervalMs` / `refreshMaxConcurrency`（≥1）/ `maxEntries`（≥1），负值/越下界 typed 拒绝。
+- 测试锚点：`TestCachingTableLookup`（9 用例：TTL/后台刷新/**并发双断言 ≥2 与 ≤池上界**/close 幂等+typed/淘汰 victim/null 防穿透/配置校验/序列化懒重建/刷新失败保留旧值）。
+
 ## Kafka 原生连接器与平台消息通道边界（WI3 R1，2026-10-07）
 
 `nop-stream-connector-kafka`（`kafka` source / `kafka-2pc` sink，kafka-clients 4.3.1，与 nop-message-kafka 同版本线）与 `nop-message-kafka` 平台消息通道（`IMessageService` 的 Kafka 后端）是**双模块清晰边界**，替代方案（在 nop-message-kafka 上叠加 EO）已被裁定拒绝（语义边界混淆，双语义单实现面维护成本高于双模块）：
