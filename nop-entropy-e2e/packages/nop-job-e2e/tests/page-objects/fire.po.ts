@@ -8,7 +8,7 @@ export class FirePO extends CrudListPage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto(`#/NopJobFire-main`);
+    await super.goto('NopJobFire-main');
     await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }

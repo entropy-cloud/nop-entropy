@@ -19,7 +19,7 @@ export class RolePO extends CrudListPage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto(`#/NopAuthRole-main`);
+    await super.goto('NopAuthRole-main');
     await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }

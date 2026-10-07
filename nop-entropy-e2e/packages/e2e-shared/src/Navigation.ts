@@ -141,8 +141,19 @@ async function waitForMenuLoaded(page: PlaywrightPage, timeoutMs = 15_000): Prom
 }
 
 export async function navigateTo(page: PlaywrightPage, hashRoute: string): Promise<void> {
-  await page.goto(`#/${hashRoute}`);
-  await page.waitForLoadState('networkidle');
+  // location.hash 赋值 + 生效校验（同 Page.goto：page.goto(hash) 会被壳层自身导航踩掉）
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate((h) => {
+      window.location.hash = `/${h}`;
+    }, hashRoute);
+    const applied = await page
+      .waitForFunction((h) => window.location.hash === `/${h}`, hashRoute, { timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (applied) break;
+    await page.waitForTimeout(600);
+  }
+  await page.waitForLoadState('networkidle').catch(() => {});
 }
 
 /**
