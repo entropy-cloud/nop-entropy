@@ -1,13 +1,14 @@
 # 2348 full-code-review 6.1 空壳实现全仓扫描
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.1（MA6）；Skill=`ai-dev/skills/deep-audit-prompts.md` + `ai-dev/tools/scan-hollow-implementations.mjs`
 > Related: Roadmap Details：「全仓空壳扫描 + 抽样确认（区分在建模块的合法空壳如 nop-lint-nop 与违规空壳；nop-jq 已于 2026-09-28 建成并独立成组，不再是空壳例证）」；关联 6.2（静默跳过/吞异常——空 catch 域归 6.2，本项不重扫）。
-> 机械基线（主 agent 实测，2026-10-07，scanner JSON `_tmp/fcr-6.1-hollow-full.json` 全量 6118 findings/9 模式，按「产品 src/main/java 且排除 _tmp/ai-dev/deepwiki/_dump/target」过滤）：**high/critical 产品命中 13 条**（P1:high UnsupportedOperationException ×8：`DynCountArrayBinaryCodec.java:42/:65`、`TdMessageService.java:21/:26`、`GeometryTypeHandler.java:91`、`ChunkFileUploadHandler.java:19/:23/:30`；P6b:high "not yet implemented"/placeholder 注释 ×5：`ReActAgentExecutor.java:1327/:1456`、`PlanReplanner.java:273`、`NoOpProviderFailoverQueue.java:34`、`JavaEmailSender.java:216`）；P1:medium UOE 76 条；P2b:medium 单行 return null/0/false 2424 条；P6:medium 未用公共方法 645 条；P8:medium stub/placeholder 命名 1151 条；P4:low TODO/FIXME 44 条（产品域）。scanner 全量口径含 `_tmp` 探针文件与审计 control fixtures（`HollowControlFixture`、`_tmp/probe/stub-src` 等 7 条为非产品噪音，过滤规则固化于 Phase 1）。
-> 合法在建空壳基线：`nop-lint/nop-lint-nop`（1 java，roadmap 点名合法在建）；nop-jq 已建成独立成组（1.9 已深审，非空壳例证）。历史撞车面：4.3 巨型文件审计（拆分裁定域）、4.2 测试有效性（TestStringHelper 等零断言域）、3.2/3.3（nop-batch/task 深审已裁定的死代码/恢复族）、5.2（草稿态文档域）。
-> 只读审计（P0 走异步注入）。**判级锚**：deep-audit 共享前缀 P0–P3（:329-333）；scanner 自带 P1/P2/P3/P4/P6/P6b/P8 模式严重级仅作初筛，最终判级以共享前缀为准。**方法学裁定**：① scanner 模式语义锚 = 工具头注释（P1 UOE stub-style 违规 vs guard-style 合法 fail-fast；P2b 单行返回需逐条判断）；② 「排除自身模块 vs 含自身测试面」零引用口径必须显式声明（E7 教训——plan 2347 closure audit）；③ E7 结构性盲区借鉴：本项 scanner 口径天然含自身测试面（codeClass 字段区分 main/test），抽样裁定覆盖两侧。
-> Draft Review: （待独立子 agent 对抗审查）
+> 机械基线（主 agent 实测，2026-10-07，scanner JSON `_tmp/fcr-6.1-hollow-full.json` 全量 6118 findings/9 模式键，按「`/src/main/java/` 且排除 `_tmp/ai-dev/deepwiki/_dump/target`」产品过滤——经 Draft Review agent_e853381a 逐项复算勘正）：**high/critical 产品命中 13 条**（P1:high UnsupportedOperationException ×8：`DynCountArrayBinaryCodec.java:42/:65`、`TdMessageService.java:21/:26`、`GeometryTypeHandler.java:91`、`ChunkFileUploadHandler.java:19/:23/:30`；P6b:high 注释命中 ×5：`ReActAgentExecutor.java:1327/:1456`、`PlanReplanner.java:273`、`NoOpProviderFailoverQueue.java:34`、`JavaEmailSender.java:216`——草审预判 5/5 为"placeholder"字样注释误命中，待裁定确认）；**P1:medium UOE 产品 47 条**（76 为未过滤全量——29 条 `_tmp/snap/t2023..t2025b` 快照重复噪声）；**P1:low 产品 29 条**（guard-style "does not support"/"is disabled" 倾向，预裁合法快裁）；P2b:medium 单行 return 2424 条；P6:medium 未用公共方法 645 条；P8:medium stub/placeholder 命名 1151 条；P4:low TODO/FIXME 产品 44 条（format 31 + dev-tools 10 + 其他 3）；**P3b 产品 0**（5 条全为 `_tmp/snap` 噪声，归档）；P2a/P3 零命中。产品抽样命中大头：nop-kernel（P2b 697/P6 174/P8 194）/nop-ai/nop-format/nop-persistence/nop-stream。high 层非产品噪声 7 条（`_tmp/probe/stub-src` ×2 + `HollowControlFixture` ×3 + `_tmp` ×2）；全量非产品命中 1765 条（绝大多数为 `_tmp/snap` 快照重复）。**scanner 口径注记**：默认 src-only（JSON `scope:"src/main"`），codeClass 字段区分 main/unknown 非 main/test——测试面零命中是口径边界不是零空壳。
+> 合法在建空壳基线：`nop-lint/nop-lint-nop`（main 1 java=package-info.java + test 11 个测试类，roadmap 点名合法在建；其 package-info:3 因注释含 "templates" 被 P6 误命中 1 条——预登记）；nop-jq 已建成独立成组（1.9 已深审，非空壳例证）。
+> 历史撞车面（Phase 2 必查，草审 B4 补全）：**3.8**（ChunkFileUploadHandler 三 UOE 已裁"纯 stub 零发现"）+ **3.9**（check2 :331/:386 同位点标定 already-fixed——UOE 化即修复态，Agent 1 必读对照防翻案）；**4.4**（nop-format TODO 35 处三类评定台账——P4 format 31 条对照）；**4.5**（nop-dev-tools 域——P4 dev-tools 10 条对照）；**nop-ai arm 台账**（NoOpProviderFailoverQueue 类注释自带 arm plan 设计裁定引用）；1.2/1.3/1.4（nop-kernel 抽样大头域）；4.1/4.2/4.3/5.2（各自闭包域）。
+> 只读审计（P0 走异步注入）。**判级锚**：deep-audit 共享前缀 P0–P3（:329-333）；scanner 自带模式严重级仅作初筛，最终判级以共享前缀为准。**方法学裁定**：① scanner 模式语义锚 = 工具头注释（P1 UOE stub-style 违规 vs guard-style 合法 fail-fast；P2b 单行返回逐条判断）；② **裁定四分法**：a.stub-style 违规空壳 / b.guard-style 合法 fail-fast / c.Rule #24 合法显式失败占位（判据：公共 API 无文档化暂缓声明且调用方期待完整功能 = 违规 a；有设计裁定/owner doc/注释声明的暂缓 = 合法 c 登记）/ d.注释误命中；③ **测试面覆盖**：scanner 不产 test 命中（口径边界），测试面核对 = Agent 1 按涉事类名对 `src/test` 批量 grep 生成触达表（每条违规发现必附：该路径是否有测试触达 + 测试断言什么）；④ 「排除自身模块 vs 含自身测试面」零引用口径显式声明（E7 教训——plan 2347 closure audit）。
+> Draft Review: agent_e853381a-05dc-437c-ac67-c2c16ad5bdba 首轮 1 Blocker（B1 P1:medium 产品 76→47——原数含 `_tmp/snap` 快照重复，Closure Gates 89→60 连带）+ 6 Major（B2 scanner codeClass=main/unknown 非 main/test——裁定③与 Scope Out 重写/B3 P1:low 29+P3b 0 未分配——显式处置补齐/B4 撞车清单漏 3.8/3.9/4.4/4.5/nop-ai arm/1.x 域/B5 抽样可复现要素全缺——草法固化六要素/B6 裁定缺 Rule #24 第四类及判据）+ 3 Minor（B7 重跑绑定+噪声措辞/B8 盘点判据+nop-lint-nop 口径/B9 测试面核对批量法）——本轮全部修复，待聚焦复核。
 
 ## Purpose
 
@@ -15,7 +16,7 @@
 
 ## Current Baseline
 
-- 机械基线见头部注记（13 high / 76 P1:medium / 2424 P2b / 645 P6 / 1151 P8 / 44 P4，产品域口径）。
+- 机械基线见头部注记（13 high / 47 P1:medium / 29 P1:low / 2424 P2b / 645 P6 / 1151 P8 / 44 P4 / P3b 0，产品域口径；扫描口径边界：src-only，测试面由 Agent 1 手工 grep 覆盖）。
 - 合法空壳先例：nop-lint-nop（在建）；nop-jq 已建成；guard-style UOE（"not supported"/"only available on"）为平台认可的 fail-fast 模式非空壳。
 - 绿色基线：编制期全仓 BUILD SUCCESS（2026-09-22）；本项只读；工作树在 5.3 收口 commit（7546b4b8ea）后干净。
 - 撞车面（Phase 2 必查）：3.2/3.3/3.4（batch/task 深审已裁定项）、4.2（测试反模式）、4.3（巨型文件）、4.1（错误处理——NoOpProviderFailoverQueue 吞异常面若涉 catch 归 6.2）、5.2（文档草稿态）。
@@ -23,10 +24,11 @@
 ## Goals
 
 - 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.1-hollow-implementation-scan.md`：摘要 + scanner 口径台账 + 裁定台账 + P0–P3 发现（`P<级别>-6.1-<序号>`）+ 合法空壳清单 + 驳回台账 + 裁决。
-- **裁定覆盖（三层）**：
-  1. **high 13 条 + P1:medium UOE 76 条 = 100% 全裁**（每条：stub-style 违规空壳 / guard-style 合法 fail-fast / 注释误命中三分裁定；违规者按共享前缀判级）。
-  2. **P2b 2424 + P6 645 + P8 1151 = 分层抽样 ≥240 条**（按模块组分层，高优模块〔nop-ai/nop-biz/nop-wf/nop-orm/nop-stream/nop-report〕加密；每条同三分裁定；抽样表在报告中固化可复现）。
-  3. **合法在建空壳清单核定**：nop-lint-nop 全读 + 全仓在建/占位模块盘点（Roadmap 8 边界：功能开发类空壳归各自 roadmap，本项仅登记不判缺陷）。
+- **裁定覆盖（四层，四分法见方法学裁定②）**：
+  1. **high 13 条 + P1:medium 47 条 = 100% 全裁**（60 条逐条亲读：a 违规/b 合法 fail-fast/c Rule #24 合法占位/d 注释误命中；违规者按共享前缀判级，每条附测试触达表结果）；**P1:low 29 条按模式语义快裁**（guard-style 预裁 b 合法，抽验 ≥10 条确认无误判后登记台账，不逐条全裁）；**P3b 产品 0**（5 条 `_tmp/snap` 噪声归档记录）。
+  2. **P2b 2424 + P6 645 = 分层抽样 ≥180 条**（P2b ≥120 + P6 ≥60，抽样草法见 Phase 1 固化脚本），逐条四分裁定。
+  3. **P8 1151 抽样 ≥60 + P4 44 全量速裁**（P4 format 31 条对照 4.4 台账、dev-tools 10 条对照 4.5 域，不翻案重裁）。
+  4. **合法在建空壳清单核定**：nop-lint-nop 全读 + 全仓在建/占位模块盘点（机械判据：`find` main java ≤2 的模块清单 × roadmap 规则 8 边界逐个核对——功能开发类空壳归各自 roadmap，本项仅登记不判缺陷）。
 - P0 即时通道；index 登记 + 独立 closure audit + roadmap 6.1 翻 done。
 
 ## Non-Goals
@@ -42,7 +44,7 @@
 
 ### Out Of Scope
 
-- 测试代码空壳（scanner test 命中仅登记中性台账，归 4.2 域）；`_tmp/ai-dev/deepwiki/_dump/target` 非产品路径；修复执行。
+- 测试代码空壳整域（scanner src-only 口径无 test 命中；测试侧仅按 Agent 1 触达表核对违规位点，整域归 4.2 域）；`_tmp/ai-dev/deepwiki/_dump/target` 非产品路径；修复执行。
 
 ## Execution Plan
 
@@ -54,18 +56,18 @@ Targets: 产品 src/main/java 全仓
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 口径固化：scanner 重跑（`--severity low --format json`）+ 产品过滤规则写死（`/src/main/java/` + 排除前缀清单）+ 分层抽样表生成（可复现：seed 固定）
-- [ ] Agent 1「high+P1 全裁」：13 high + 76 P1:medium 逐条亲读裁定（含测试面核对：该路径是否有测试触达）
-- [ ] Agent 2「P2b+P6 抽样」：分层抽样 ≥180 条（P2b ≥120 + P6 ≥60），高优模块加密，逐条三分裁定
-- [ ] Agent 3「P8+P4+合法空壳」：P8 抽样 ≥60 + P4 44 全量速裁 + nop-lint-nop 全读 + 在建模块盘点
-- [ ] 主 agent 抽查质量：裁定抽验 ≥10 条独立复判 + 抽样表口径重放 ≥3 组
+- [ ] 口径固化：scanner 重跑（`--severity low --format json`，输出绑定 `_tmp/fcr-6.1-hollow-full2.json`）+ 与修正后基线核对（13/47/29/2424/645/1151/44/0），不一致时更新注记 + 产品过滤规则写死 + **抽样脚本落盘 `_tmp/fcr-6.1-sample.py`**（六要素：RNG=python3 `random.Random(seed=2348)`；seed=2348；抽样单位=唯一 file:line；分层键=路径片段匹配（高优配额模块：nop-kernel/nop-ai/nop-format/nop-persistence/nop-stream——配额 ×2；其余模块〔含 biz/orm 等嵌套路径模块，命中归入其所在顶层分层〕1 倍；不设零配额碎片层）；产出=冻结抽样表 csv）
+- [ ] Agent 1「high+P1:medium 全裁 + P1:low 快裁」：13 high + 47 P1:medium 逐条亲读四分裁定（**必读对照 3.8 :772 与 3.9 :53/:101 的 ChunkFileUploadHandler 在先裁定防翻案**；测试触达表=按涉事类名对 src/test 批量 grep 一次生成）；P1:low 29 条快裁 + 抽验 ≥10
+- [ ] Agent 2「P2b+P6 抽样」：按冻结抽样表执行 ≥180 条（P2b ≥120 + P6 ≥60），逐条四分裁定；抽样表执行偏差（文件消失/行漂移）如实登记
+- [ ] Agent 3「P8+P4+合法空壳」：P8 按抽样表 ≥60 + P4 44 全量速裁（format 31 对照 4.4 台账/dev-tools 10 对照 4.5 域）+ nop-lint-nop 全读 + 在建模块盘点（机械判据见 Goals 第 4 层）
+- [ ] 主 agent 抽查质量：裁定抽验 ≥10 条独立复判 + 抽样脚本重放 1 次比对冻结表
 - [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-6.1-hollow-audit.md`（三 agent 分节）
+- [ ] 产物 `_tmp/fcr-6.1-hollow-audit.md`（三 agent 分节）+ `_tmp/fcr-6.1-sample.py` + 冻结抽样表
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账每条含三分归属与理由
-- [ ] 抽样表固化（模块分布 + 抽样数 + 选取规则可复现）
+- [ ] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账每条含四分归属与理由
+- [ ] 冻结抽样表落盘（脚本可重放：复核员重跑 `_tmp/fcr-6.1-sample.py` 比对一致）
 - [ ] No owner-doc update required（只读——修复归 R1.0）
 - [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
@@ -76,7 +78,7 @@ Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：违规发现逐条 保留/降级/驳回 + 裁定台账抽验（≥15% 跨三层）+ 抽样口径重放（≥3 组）+ 撞车核对（3.2/3.3/3.4/4.1/4.2/4.3）
+- [ ] 独立复核子 agent（fresh session）：违规发现逐条 保留/降级/驳回 + 裁定台账抽验（≥15% 跨四层）+ 抽样脚本重放比对 + 撞车核对（3.8/3.9/4.4/4.5/nop-ai arm/1.2-1.4/4.1/4.2/4.3/5.2——按抽样命中模块定向）
 - [ ] 主 agent 汇总：判级统一（P0–P3 共享前缀）、撞车去重终裁
 - [ ] 台账收敛
 
@@ -109,7 +111,7 @@ Exit Criteria:
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且三层裁定全覆盖——覆盖度量：high+P1 100%（89 条）+ 抽样 ≥240 条 + 合法空壳清单
+- [ ] 报告落盘且四层裁定全覆盖——覆盖度量：high+P1:medium 100%（60 条）+ P1:low 29 快裁 + 抽样 ≥240 条 + 合法空壳清单
 - [ ] 每条违规发现 file:line 可复现；判级依据共享前缀；误报校准留痕
 - [ ] index 计数与报告发现清单一一对应
 - [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
