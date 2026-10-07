@@ -21,6 +21,7 @@
         <module>nop-stream-connector-jdbc</module>
         <module>nop-stream-connector-debezium</module>
         <module>nop-stream-connector-kafka</module>
+        <module>nop-stream-format-avro</module>
         <module>nop-stream-runtime</module>
         <module>nop-stream-rocksdb</module>
         <module>nop-stream-sql</module>
