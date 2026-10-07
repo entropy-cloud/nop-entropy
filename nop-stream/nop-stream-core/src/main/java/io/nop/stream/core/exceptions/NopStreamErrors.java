@@ -581,6 +581,21 @@ public interface NopStreamErrors {
                             + "(checkpoint-design.md 8.5.2).",
                     ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
+    /**
+     * WI9 (plan 2333): {@code suspendDataPolicy=SKIP_GAP} requires each
+     * replayable source to expose a deterministic "latest available position"
+     * to seek to after restore. Currently only
+     * {@code CollectionReplayableSource} has one (its in-memory size()); any
+     * other {@code ReplayableSourceFunction} is rejected typed at restore time —
+     * a loud failure beats a wrong guess about what "latest" means for that
+     * source (silently skipping an unknown gap window would be data loss
+     * presented as a feature).
+     */
+    ErrorCode ERR_STREAM_SKIP_GAP_UNSUPPORTED_SOURCE =
+            define("nop.err.stream.skip-gap-unsupported-source",
+                    "suspendDataPolicy=SKIP_GAP cannot advance source type {className} to its latest position: {detail}",
+                    ARG_CLASS_NAME, ARG_DETAIL);
+
     // ------------------------------------------------------------------
     // nop-stream-flow DSL contract error codes
     // ------------------------------------------------------------------

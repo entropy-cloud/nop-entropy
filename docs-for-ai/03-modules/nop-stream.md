@@ -126,7 +126,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 |---|---|---|
 | `GET /jobs` | 运行中作业列表（本进程受理的全部作业 + 状态） | `{jobs: [{jobId, jobStatus, running, restartCount, fencingEpoch}]}` |
 | `POST /jobs` | 提交作业（body = `JobSubmissionSpec` JSON：`{jobId, pipelineFactoryClass, params?}`）。工厂引用语义：coordinator 进程受理，经与 launch 完全一致的路径构建并启动（工厂失败 fail-fast，无 trivial 管线回落） | 201 + 作业摘要 |
-| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN` | 停止作业（四态终止模式的 CANCEL/DRAIN 入口；SUSPEND/EXPORT_SAVEPOINT 走 coordinator RPC，REST 传参即 400；`RECOVERING` 窗口内返回 409 `JOB_STATE_CONFLICT`，恢复完成后重试） | 200 + 作业摘要 |
+| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN\|SUSPEND` | 停止作业（四态终止模式的 CANCEL/DRAIN/SUSPEND 入口——SUSPEND 自 WI9/plan 2333 起放行，terminal savepoint 后作业 FINISHED；EXPORT_SAVEPOINT 仍走 coordinator RPC，REST 传参即 400；`RECOVERING` 窗口内返回 409 `JOB_STATE_CONFLICT`，恢复完成后重试） | 200 + 作业摘要 |
 | `GET /jobs/{jobId}` | 作业详情：逻辑健康状态（`health`，见下节）、jobStatus、failureCause、restartCount、checkpointOverview（计数/最新时长） | 200 + 详情 JSON |
 | `GET /jobs/{jobId}/checkpoints` | checkpoint 观测（见上节） | 200 + overview/history |
 | `GET /jobs/{jobId}/threaddump` | 线程诊断：coordinator 进程全线程栈文本 | 200 `text/plain` |
@@ -277,6 +277,15 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **观测**：`nop.stream.io.db.backlog` gauge（topic 标签；门控启用时注册；区别于 `nop.stream.io.channel.queue.size` 的消费侧本地队列口径）。
 - **注意**：启用门控时应先起消费者或接受部署窗口内下游未订阅导致的门控失败重试（nop_sys 裁定：无订阅者 topic 的事件永不被扫描，WAITING 行全数计入积压）。
 - 测试锚点：`TestRemoteResultPartitionBackpressureGate`（fake probe 五路径 + 锁外契约，共 6 用例）、`TestDataPlaneSysDaoBackendE2E.gatedProducerBoundsTableDepthWhileConsumerLags`（真后端端到端：深度受控 + 消费收敛 + 精确一次）。
+
+### SUSPEND 数据语义（WI9/plan 2333）
+
+- **两策略契约**：SUSPEND = terminal savepoint + 作业 FINISHED（可恢复）。恢复（同 jobId 重提交，显式 storage path）后的停机期数据处理由重提交时 CheckpointConfig 的 `suspendDataPolicy` 决定：`REPLAY_GAP`（缺省 = 现状补算——REPLAYABLE source 从 savepoint offset 重放停机期数据）与 `SKIP_GAP`（跳过——恢复后 source seek 到 latest，停机期数据不重放）。
+- **逐源支持矩阵**：SKIP_GAP 当前仅支持 `CollectionReplayableSource`（seek(size())）；其余 REPLAYABLE source（batch-loader/debezium/目录文件）恢复即 typed 拒绝 `nop.err.stream.skip-gap-unsupported-source`（无 latest 语义——响亮失败优于错误跳过）。REPLAY_GAP 对全部 REPLAYABLE source 可用。
+- **策略不进 manifest**：策略随重提交的 CheckpointConfig 携带（缺省 REPLAY_GAP），不持久化——每次重提交须显式设置，否则回落补算。
+- **REST resume 边界**：REST submit 对已存在 jobId（含 FINISHED）返回 409 且无 remove 端点——REST SUSPEND 后**无法经 REST 重提交恢复**；恢复走嵌入式 `env.execute(jobName, savepointPath)` 或 `JobCoordinatorMain` 同 jobId 重启（自动恢复 latest durable）。REST 作业（OpsJobManager 自建 config）当前无法表达 SKIP_GAP（不对称，如实声明）。
+- **非 REPLAYABLE source**：无 offset 可 seek/replay，SUSPEND 恢复行为由各 source 自身恢复语义决定（方向实测前不作契约承诺）。
+- 测试锚点：`TestSuspendDataPolicy`（补算/跳过/typed 拒绝三路径）、`TestOpsRestLifecycleE2E`（SUSPEND 放行 + EXPORT_SAVEPOINT 400 钉子）。
 
 ### 指标采集与告警配置速查
 
