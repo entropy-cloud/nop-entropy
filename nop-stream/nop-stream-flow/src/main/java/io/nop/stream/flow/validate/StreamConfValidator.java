@@ -15,6 +15,8 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.ConnectivityProbeOutcome;
 import io.nop.stream.core.connector.StreamConnectivityProber;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
+import io.nop.stream.core.connector.registry.ConnectorParamKind;
 import io.nop.stream.core.connector.registry.ConnectorDirection;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.IStreamConnectorFactory;
@@ -35,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Core of the conf-validate / dry-run command (item 20 / P-REQ-13/14,
@@ -215,7 +218,17 @@ public final class StreamConfValidator {
 
         IStreamConnectorFactory factory = resolveFactory(direction, typeName, catalog, target, report);
         if (factory != null) {
-            validateParamsFieldLevel(factory.describeCapabilities(), params, target, report);
+            ConnectorCapabilityDescriptor descriptor = factory.describeCapabilities();
+            if (descriptor.getMaturity() == ConnectorMaturity.EXPERIMENTAL) {
+                // WI4 (plan 2329): non-blocking advisory — an EXPERIMENTAL endpoint's
+                // declared semantics are backend-carried or recovery-less; surfaced so
+                // production configs make the downgrade visible without failing the run.
+                report.add(ValidationIssue.warning(LAYER_CONSTRUCTION, target,
+                        "nop.err.stream.connector-maturity-experimental",
+                        "connector '" + typeName + "' is declared EXPERIMENTAL (recovery semantics "
+                                + descriptor.getRecoverySemantic() + "); review before production use"));
+            }
+            validateParamsFieldLevel(descriptor, params, target, report);
             constructViaCatalog(catalog, direction, typeName, params, report);
         }
         if (connect && report.isPassed()) {
@@ -286,6 +299,66 @@ public final class StreamConfValidator {
                 ex.param(NopStreamErrors.ARG_PARAM_KIND, p.getKind().name());
                 report.add(toIssue(LAYER_CONSTRUCTION, target, ex));
             }
+        }
+        // WI4 (plan 2329): OptionRule-style value rules. A rule left unset means "no
+        // such check" (explicit semantics); sensitive values are masked before any
+        // text reaches the report.
+        for (ConnectorParamDescriptor p : descriptor.getParams()) {
+            if (!params.containsKey(p.getName())) {
+                continue;
+            }
+            Object value = params.get(p.getName());
+            if (value == null) {
+                continue;
+            }
+            String rendered = p.isSensitive() ? MASK : String.valueOf(value);
+            ConnectorParamKind kind = p.getKind();
+            if (kind == ConnectorParamKind.INT && !(value instanceof Number)
+                    && !isIntegerLiteral(String.valueOf(value))) {
+                StreamException ex = new StreamException(
+                        NopStreamErrors.ERR_STREAM_CONNECTOR_PARAM_TYPE_MISMATCH);
+                ex.param(NopStreamErrors.ARG_TYPE_NAME, descriptor.getTypeName());
+                ex.param(NopStreamErrors.ARG_PARAM_NAME, p.getName());
+                ex.param(NopStreamErrors.ARG_PARAM_KIND, kind.name());
+                report.add(toIssue(LAYER_CONSTRUCTION, target, ex));
+                continue;
+            }
+            if (p.getAllowedValues() != null && !p.getAllowedValues().contains(String.valueOf(value))) {
+                StreamException ex = new StreamException(
+                        NopStreamErrors.ERR_STREAM_CONNECTOR_PARAM_VALUE_DISALLOWED);
+                ex.param(NopStreamErrors.ARG_TYPE_NAME, descriptor.getTypeName());
+                ex.param(NopStreamErrors.ARG_PARAM_NAME, p.getName());
+                ex.param(NopStreamErrors.ARG_DECLARED_PARAMS, p.getAllowedValues());
+                if (p.isSensitive()) {
+                    // the offending value is sensitive: never interpolate it
+                    ex.param(NopStreamErrors.ARG_DETAIL, "provided value withheld (sensitive)");
+                }
+                report.add(toIssue(LAYER_CONSTRUCTION, target, ex));
+                continue;
+            }
+            if (p.getPattern() != null && !Pattern.matches(p.getPattern(), String.valueOf(value))) {
+                StreamException ex = new StreamException(
+                        NopStreamErrors.ERR_STREAM_CONNECTOR_PARAM_PATTERN_MISMATCH);
+                ex.param(NopStreamErrors.ARG_TYPE_NAME, descriptor.getTypeName());
+                ex.param(NopStreamErrors.ARG_PARAM_NAME, p.getName());
+                if (p.isSensitive()) {
+                    ex.param(NopStreamErrors.ARG_DETAIL, "provided value withheld (sensitive)");
+                } else {
+                    ex.param(NopStreamErrors.ARG_DETAIL, "value: " + rendered);
+                }
+                report.add(toIssue(LAYER_CONSTRUCTION, target, ex));
+            }
+        }
+    }
+
+    private static final String MASK = "***";
+
+    private static boolean isIntegerLiteral(String raw) {
+        try {
+            Integer.parseInt(raw);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 

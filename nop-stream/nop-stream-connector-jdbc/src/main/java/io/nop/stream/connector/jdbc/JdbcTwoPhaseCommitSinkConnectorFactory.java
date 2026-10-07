@@ -10,6 +10,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -52,7 +53,8 @@ public final class JdbcTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                                     + "supplied programmatically (required for dmlMode=insert; omit"
                                     + " for keyed modes fed with nop ChangeEvent records)"),
                     ConnectorParamDescriptor.optional("dmlMode", STRING,
-                            "insert (default) | upsert | upsert_delete (cdc-design.md §3.5)"),
+                            "insert (default) | upsert | upsert_delete (cdc-design.md §3.5)",
+                            false, List.of("insert", "upsert", "upsert_delete"), null),
                     ConnectorParamDescriptor.optional("keyColumns", STRING_LIST,
                             "key columns for the keyed modes (required for upsert/upsert_delete)"),
                     ConnectorParamDescriptor.optional("opMapper", OBJECT,
@@ -67,6 +69,7 @@ public final class JdbcTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                             "epoch ledger table name, defaults to stream_epoch_ledger_v2 (v2 adds "
                                     + "the sink_namespace column; the pre-v2 3-column table is "
                                     + "neither migrated nor read)")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

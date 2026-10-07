@@ -103,12 +103,14 @@ public final class StreamConnectorCatalog {
             sb.append(" -> ").append(d.getComponentClass()).append('\n');
             sb.append("      delivery=").append(d.consistencyValue())
                     .append(", parallelism=").append(d.getParallelism())
-                    .append(", recovery=").append(d.getRecoverySemantic()).append('\n');
+                    .append(", recovery=").append(d.getRecoverySemantic())
+                    .append(", maturity=").append(d.getMaturity()).append('\n');
             if (!d.getParams().isEmpty()) {
                 sb.append("      params: ");
                 for (ConnectorParamDescriptor p : d.getParams()) {
                     sb.append(p.getName()).append(':').append(p.getKind().name())
-                            .append(p.isRequired() ? "(required)" : "(optional)").append(' ');
+                            .append(p.isRequired() ? "(required)" : "(optional)")
+                            .append(p.isSensitive() ? "[sensitive]" : "").append(' ');
                 }
                 sb.append('\n');
             }

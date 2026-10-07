@@ -18,6 +18,7 @@ import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorDirection;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
 import io.nop.stream.core.connector.registry.IStreamSinkFactory;
@@ -170,8 +171,7 @@ public class TestStreamConfValidator {
                 ConnectorDirection.SINK, "fake-sink",
                 Map.of("target", "t1", "unknownOption", "x"), catalog(), false);
         assertEquals(1, report.getExitCode());
-        ValidationIssue issue = report.getIssues().get(0);
-        assertEquals("nop.err.stream.connector-param-unknown", issue.getErrorCode());
+        ValidationIssue issue = findByCode(report, "nop.err.stream.connector-param-unknown");
         assertEquals("unknownOption", issue.getParamName());
         assertTrue(issue.getMessage().contains("unknownOption"),
                 "message must name the offending param: " + issue.getMessage());
@@ -186,8 +186,7 @@ public class TestStreamConfValidator {
         StreamConfValidationReport report = new StreamConfValidator().validateConnector(
                 ConnectorDirection.SINK, "fake-sink", Map.of(), catalog(), false);
         assertEquals(1, report.getExitCode());
-        ValidationIssue issue = report.getIssues().get(0);
-        assertEquals("nop.err.stream.connector-param-required", issue.getErrorCode());
+        ValidationIssue issue = findByCode(report, "nop.err.stream.connector-param-required");
         assertEquals("target", issue.getParamName());
     }
 
@@ -208,11 +207,93 @@ public class TestStreamConfValidator {
                 ConnectorDirection.SINK, "fake-sink", Map.of("target", "t1"), catalog(), true);
         assertTrue(report.isPassed(), () -> report.render());
         assertEquals(0, report.getExitCode());
-        assertEquals(1, report.getIssues().size());
-        ValidationIssue issue = report.getIssues().get(0);
-        assertEquals(StreamConfValidator.LAYER_CONNECTIVITY, issue.getLayer());
+        List<ValidationIssue> connectivity = report.getIssues().stream()
+                .filter(i -> i.getLayer() == StreamConfValidator.LAYER_CONNECTIVITY).toList();
+        assertEquals(1, connectivity.size());
+        ValidationIssue issue = connectivity.get(0);
         assertEquals("nop.err.stream.connectivity-not-supported", issue.getErrorCode());
         assertEquals(ValidationIssue.Severity.SKIP, issue.getSeverity());
+    }
+
+    // ------------------------------------------------------------------
+    // WI4 (plan 2329): OptionRule-style value rules + maturity warning
+    // ------------------------------------------------------------------
+
+    @Test
+    public void connectorModeIntKindMismatchIsReported() {
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SOURCE, "fake-source",
+                Map.of("target", "t1", "retries", "not-a-number"), catalogWithRules(), false);
+        assertEquals(1, report.getExitCode());
+        assertTrue(report.getIssues().stream().anyMatch(
+                        i -> "nop.err.stream.connector-param-type-mismatch".equals(i.getErrorCode())
+                                && "retries".equals(i.getParamName())),
+                () -> report.render());
+    }
+
+    @Test
+    public void connectorModeAllowedValuesViolationIsReported() {
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SOURCE, "fake-source",
+                Map.of("target", "t1", "mode", "bogus"), catalogWithRules(), false);
+        assertEquals(1, report.getExitCode());
+        assertTrue(report.getIssues().stream().anyMatch(
+                        i -> "nop.err.stream.connector-param-value-disallowed".equals(i.getErrorCode())
+                                && "mode".equals(i.getParamName())),
+                () -> report.render());
+    }
+
+    @Test
+    public void connectorModeSensitiveValueIsMaskedEverywhere() {
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SOURCE, "fake-source",
+                Map.of("target", "t1", "secret", "lowercase-violation"), catalogWithRules(), false);
+        assertEquals(1, report.getExitCode());
+        String rendered = report.render();
+        assertTrue(report.getIssues().stream().anyMatch(
+                        i -> "nop.err.stream.connector-param-pattern-mismatch".equals(i.getErrorCode())
+                                && "secret".equals(i.getParamName())),
+                () -> report.render());
+        assertFalse(rendered.contains("lowercase-violation"),
+                "sensitive value must never reach the report text: " + rendered);
+        assertTrue(rendered.contains("withheld (sensitive)"),
+                "the mask note must be present: " + rendered);
+    }
+
+    @Test
+    public void connectorModeLegalRuleValuesPass() {
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SOURCE, "fake-source",
+                Map.of("target", "t1", "retries", "3", "mode", "a", "secret", "ABCDEF"),
+                catalogWithRules(), false);
+        assertTrue(report.isPassed(), () -> report.render());
+    }
+
+    @Test
+    public void connectorModeExperimentalMaturityWarnsWithoutFailing() {
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SOURCE, "fake-source", Map.of("target", "t1"),
+                catalogWithRules(), false);
+        assertTrue(report.isPassed(), () -> report.render());
+        assertTrue(report.getIssues().stream().anyMatch(
+                        i -> i.getSeverity() == ValidationIssue.Severity.WARNING
+                                && "nop.err.stream.connector-maturity-experimental".equals(i.getErrorCode())),
+                () -> "EXPERIMENTAL endpoint must produce a warning: " + report.render());
+    }
+
+    @Test
+    public void connectorModeProductionMaturityProducesNoWarning() {
+        // Mechanism check: a factory explicitly declaring PRODUCTION gets no warning
+        // (the fake sink is a test double — its PRODUCTION declaration here exercises
+        // the builder path; real-factory grading against the semantic-strength
+        // criterion is pinned by the runtime discovery test).
+        StreamConfValidationReport report = new StreamConfValidator().validateConnector(
+                ConnectorDirection.SINK, "fake-sink-prod", Map.of("target", "t1"),
+                catalogWithProdSink(), false);
+        assertTrue(report.isPassed(), () -> report.render());
+        assertTrue(report.getIssues().stream().noneMatch(
+                        i -> i.getSeverity() == ValidationIssue.Severity.WARNING),
+                () -> "PRODUCTION endpoint must not warn: " + report.render());
     }
 
     // ------------------------------------------------------------------
@@ -234,6 +315,138 @@ public class TestStreamConfValidator {
 
     private static StreamConnectorCatalog catalog() {
         return StreamConnectorCatalog.of(StreamConnectorRegistry.of(List.of(new FakeSinkConnectorFactory())));
+    }
+
+    private static ValidationIssue findByCode(StreamConfValidationReport report, String errorCode) {
+        return report.getIssues().stream()
+                .filter(i -> errorCode.equals(i.getErrorCode()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "missing issue " + errorCode + " in: " + report.render()));
+    }
+
+    private static StreamConnectorCatalog catalogWithProdSink() {
+        return StreamConnectorCatalog.of(StreamConnectorRegistry.of(List.of(new ProdSinkConnectorFactory())));
+    }
+
+    /** Same shape as {@link FakeSinkConnectorFactory} but explicitly PRODUCTION. */
+    private static final class ProdSinkConnectorFactory implements IStreamSinkFactory {
+        private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
+                .sink("fake-sink-prod", RecordingSinkFunction.class.getName())
+                .sinkConsistency(io.nop.stream.core.common.functions.sink.SinkConsistencyCapability.AT_LEAST_ONCE)
+                .parallelism(ConnectorParallelism.PARALLEL)
+                .recoverySemantic(ConnectorRecoverySemantic.NONE)
+                .params(List.of(ConnectorParamDescriptor.required("target",
+                        io.nop.stream.core.connector.registry.ConnectorParamKind.STRING, "target name")))
+                .maturity(ConnectorMaturity.PRODUCTION)
+                .build();
+
+        @Override
+        public String getTypeName() {
+            return "fake-sink-prod";
+        }
+
+        @Override
+        public ConnectorCapabilityDescriptor describeCapabilities() {
+            return DESCRIPTOR;
+        }
+
+        @Override
+        public io.nop.stream.core.common.functions.SinkFunction<?> createSink(StreamConnectorConfig config) {
+            return new RecordingSinkFunction();
+        }
+    }
+
+    private static StreamConnectorCatalog catalogWithRules() {
+        return StreamConnectorCatalog.of(StreamConnectorRegistry.of(
+                List.of(new FakeSinkConnectorFactory(), new FakeSourceConnectorFactory())));
+    }
+
+    /**
+     * WI4: source factory exercising the value rules (INT kind / allowedValues /
+     * sensitive+pattern) and the EXPERIMENTAL maturity default surface.
+     */
+    private static final class FakeSourceConnectorFactory implements io.nop.stream.core.connector.registry.IStreamSplitSourceFactory {
+
+        static final String TYPE = "fake-source";
+
+        private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
+                .source(TYPE, RecordingSource.class.getName())
+                .sourceConsistency(io.nop.stream.core.common.functions.source.SourceConsistencyCapability.AT_LEAST_ONCE)
+                .parallelism(ConnectorParallelism.PARALLEL)
+                .recoverySemantic(ConnectorRecoverySemantic.SPLIT_CURSOR_CHECKPOINT)
+                .params(List.of(
+                        ConnectorParamDescriptor.required("target",
+                                io.nop.stream.core.connector.registry.ConnectorParamKind.STRING, "target name"),
+                        ConnectorParamDescriptor.optional("retries",
+                                io.nop.stream.core.connector.registry.ConnectorParamKind.INT, "retry count"),
+                        ConnectorParamDescriptor.optional("mode",
+                                io.nop.stream.core.connector.registry.ConnectorParamKind.STRING, "mode",
+                                false, List.of("a", "b"), null),
+                        ConnectorParamDescriptor.optional("secret",
+                                io.nop.stream.core.connector.registry.ConnectorParamKind.STRING, "token",
+                                true, null, "^[A-Z]+$")))
+                // maturity not declared: exercises the EXPERIMENTAL default
+                .build();
+
+        @Override
+        public String getTypeName() {
+            return TYPE;
+        }
+
+        @Override
+        public ConnectorCapabilityDescriptor describeCapabilities() {
+            return DESCRIPTOR;
+        }
+
+        @Override
+        public io.nop.stream.core.source.Source<?, ?, ?> createSource(StreamConnectorConfig config) {
+            return new RecordingSource();
+        }
+    }
+
+    /** Marker split for the fake source. */
+    private static final class FakeSplit implements io.nop.stream.core.source.SourceSplit {
+        @Override
+        public String splitId() {
+            return "fake-0";
+        }
+    }
+
+    /** Minimal bounded FLIP-27 source standing in for the fake factory. */
+    private static final class RecordingSource
+            implements io.nop.stream.core.source.Source<Object, FakeSplit, Object> {
+        @Override
+        public io.nop.stream.core.source.Boundedness getBoundedness() {
+            return io.nop.stream.core.source.Boundedness.BOUNDED;
+        }
+
+        @Override
+        public io.nop.stream.core.source.SplitEnumerator<FakeSplit, Object> createEnumerator() {
+            throw new UnsupportedOperationException("never enumerated in validation tests");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SplitEnumerator<FakeSplit, Object> restoreEnumerator(
+                Object checkpointState) {
+            throw new UnsupportedOperationException("never restored in validation tests");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SourceReader<Object, FakeSplit> createReader(
+                io.nop.stream.core.source.SourceReaderContext context) {
+            throw new UnsupportedOperationException("never read in validation tests");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SimpleVersionedSerializer<FakeSplit> getSplitSerializer() {
+            throw new UnsupportedOperationException("never serialized in validation tests");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SimpleVersionedSerializer<Object> getEnumeratorStateSerializer() {
+            throw new UnsupportedOperationException("never serialized in validation tests");
+        }
     }
 
     /** Minimal sink for bean resolution and registry construction probing. */

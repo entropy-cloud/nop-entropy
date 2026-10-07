@@ -10,6 +10,7 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -45,6 +46,7 @@ public final class BatchLoaderSourceConnectorFactory implements IStreamSourceFun
                             "IBatchLoaderProvider<S> supplied programmatically"),
                     ConnectorParamDescriptor.optional("batchSize", INT,
                             "records per load batch, defaults to 1")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

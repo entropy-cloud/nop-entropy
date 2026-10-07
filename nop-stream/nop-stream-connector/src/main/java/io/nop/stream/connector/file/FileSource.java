@@ -6,16 +6,24 @@
  */
 package io.nop.stream.connector.file;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
+import io.nop.stream.core.connector.SampleableSource;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.source.Boundedness;
 import io.nop.stream.core.source.SimpleVersionedSerializer;
 import io.nop.stream.core.source.Source;
 import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
 import io.nop.stream.core.source.SplitEnumerator;
-import io.nop.stream.core.exceptions.StreamException;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -44,7 +52,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * <p>The source is serializable (carries only the directory path); the live enumerator /
  * reader instances are created per-execution by the runtime.
  */
-public final class FileSource implements Source<String, FileSplit, FileSplitEnumeratorState> {
+public final class FileSource implements Source<String, FileSplit, FileSplitEnumeratorState>, SampleableSource {
 
     private static final long serialVersionUID = 1L;
 
@@ -310,4 +318,54 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
             return VERSION;
         }
     }
+    /**
+     * WI4 (plan 2329): read-only data sampling (SampleableSource). Walks the directory
+     * with the same discovery rule as {@link FileSplitEnumerator} (Files.walk, regular
+     * files, discovery order — no cross-file ordering promise) and reads up to
+     * {@code limit} lines. No split is assigned and no cursor state is touched: the
+     * sampling path is fully outside the checkpointed reader lifecycle, honoring the
+     * H-1 side-effect budget ("read-only scan, no split assignment"). The per-line
+     * byte bound matches the reader contract so a sample also surfaces lines that
+     * would fail a real job.
+     */
+    @Override
+    public List<Object> sample(int limit) {
+        if (limit <= 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "limit")
+                    .param(ARG_DETAIL, "sample limit must be positive: " + limit);
+        }
+        Path dir = Paths.get(directoryPath);
+        if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
+                    .param(ARG_DETAIL, "Source directory not found or not a directory: " + directoryPath);
+        }
+        List<Object> records = new ArrayList<>();
+        List<Path> files;
+        try {
+            files = Files.walk(dir).filter(Files::isRegularFile).collect(Collectors.toList());
+            for (Path file : files) {
+                if (records.size() >= limit) {
+                    break;
+                }
+                try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    String line;
+                    while (records.size() < limit && (line = reader.readLine()) != null) {
+                        if (line.getBytes(StandardCharsets.UTF_8).length > maxLineBytes) {
+                            throw new StreamException(ERR_STREAM_NULL_ARG)
+                                    .param(ARG_ARG_NAME, "maxLineBytes")
+                                    .param(ARG_DETAIL, "sampled line exceeds maxLineBytes ("
+                                            + maxLineBytes + ") in " + file
+                                            + " — the same line would fail a real job");
+                        }
+                        records.add(line);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
+                    .param(ARG_DETAIL, "Failed to sample files under " + directoryPath + ": " + e);
+        }
+        return records;
+    }
+
 }

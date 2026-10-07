@@ -8,6 +8,7 @@ package io.nop.stream.connector.file;
 
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -39,6 +40,7 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                             "output directory for per-epoch committed files and manifest"),
                     ConnectorParamDescriptor.optional("charset", STRING,
                             "text charset name, defaults to UTF-8")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

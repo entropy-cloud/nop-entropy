@@ -10,6 +10,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -43,6 +44,7 @@ public final class MessageSourceConnectorFactory implements IStreamSourceFunctio
                             "IMessageService backend (Local/Pulsar/Kafka) supplied programmatically"),
                     ConnectorParamDescriptor.optional("valueTypeClass", OBJECT,
                             "optional Class<T> value type for payload decoding")))
+            .maturity(ConnectorMaturity.EXPERIMENTAL)
             .build();
 
     @Override
