@@ -1,6 +1,6 @@
 # 2351 full-code-review 6.4 check 系列 P0×36 逐项复核标定
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.4（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: Owner=`ai-dev/audits/check/SUMMARY.md`（36 P0 清单，安全类 9 + 数据正确性 16 + 流处理/状态类 4 + 功能完全失效类 7；**非绝对权威——草审 F1 坐实 SUMMARY 自身条目身份缺陷**：其 #6 行文字〔indexDir 任意路径〕在源报告 check/nop-search.md 定级为 P1，该单元真 P0 = 数值/path filter〔:19，批次3 `0b7fc8f903` 修复〕——Phase 1 对账必须逐行核对 SUMMARY↔源报告定级）；Roadmap Details：「check 系列 36 个 P0 逐项标定：still-live / already-fixed / false-positive / duplicated；check/SUMMARY 记录部分 P0 曾在 fix-ai-check 分支处置——标定时以该处置记录为输入、**以 master 当前代码为准**复核 live-ness；仍 live 的全部进入 R1.0 输入」。
@@ -81,39 +81,39 @@ Targets: Phase 1 产物
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.4-checkp0-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.4-checkp0-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: in progress
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
 - [ ] 编制 `6.4-check-p0-verification.md`；index 登记 6.4 行（替换占位行）+ still-live 清单并入「P0 发现追踪」表（标定性质登记）或 P1 汇总（降级者）
-- [ ] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——36 行台账 ↔ 报告 ↔ index 对应）；**通过后** roadmap 6.4 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 定向验证锚点：标定抽验由复核员独立执行（11+补盲 6）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项：计数勾稽六方闭合/关键判定亲读 5 处/引用 14 处全命中/覆盖算术 95 tests 精确/文本一致/流程合规——首轮 FAIL 附处方 R1-R3 纯文本级，落实后轻量复核 PASS）；**通过后** roadmap 6.4 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码（6.1 已覆盖空壳面）
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码（6.1 已覆盖空壳面）
 
 ## Closure Gates
 
 > 只读审计计划；live-ness 验证含只读测试运行（SECURITY 9 条 + 抽验/净新条目强制实跑处置记录点名测试类），免除全量构建。
 
-- [ ] 报告落盘且 36 条全量标定——覆盖度量：36/36 行（SECURITY 9 全亲读 + 净新 100% + 轮内抽验 ≥30%）
-- [ ] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；误报校准留痕
-- [ ] index 计数与报告标定台账一一对应；仍 live 清单完整移交 R1.0
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.4 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 36 条全量标定——覆盖度量：37 单元（36+#6 拆目）；实跑覆盖 36/36 闭环（17 次实跑 95 tests 全绿）
+- [x] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；误报校准留痕（E1 tests 笔误勘误/FP-as-P0 拆目/复核收窄透明记载）
+- [x] index 计数与报告标定台账一一对应（P2-6.4-001 台账行字段完整）；仍 live 清单完整移交（P2 台账+4.4 承载）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done——FAIL→R1-R3→轻量复核 PASS）
+- [x] roadmap 6.4 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -125,14 +125,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 6.4 check 系列 P0×36 逐项标定收口。**无 P0 级仍 live**——fix-ai-check 四批次修复全部 master 实证（already-fixed 35 单元，实跑覆盖 36/36 闭环 95 tests 全绿）；唯一 still-live 实体 P2-6.4-001（#3 ai-rest residual，P0→P2 降档且残余复核收窄）；#6a FP-as-P0 勘误拆目（缺陷本体 P1 live 纯引用 4.4 S-06）；#6b SUMMARY 遗漏真 P0 补录 already-fixed。closure audit（agent_a51bf7e4）首轮 FAIL 附处方 R1-R3（纯文本级实体零返工）：R1=实跑 tests 合计笔误 58→68 勘误；R2=Phase 2 三箱补勾；R3=抽查 7<8 缺口裁定注记（Phase 2 合并计满足）——落实后轻量复核 PASS。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_a51bf7e4-295c-45dd-b682-b8bef5218e90（fresh session，只读 closure auditor；VERDICT: FAIL（处方 R1-R3 纯文本级；实体判定与报告结论全部维持）→ 处方落实后轻量复核 PASS）
 - Evidence:
+  - 计数勾稽：37 单元六方闭合（报告 §二 36 行逐行清点/index 0-0-1-0/复核 §五.3/初审映射）；P2-6.4-001 台账行五字段完整（F7 首用归属正确）；P0 发现追踪零新增正确；#6a 不双登记核实
+  - 关键判定亲读 5 处：P2-6.4-001 三残余逐项实证（javadoc :65-67 原文/93d47833f0 ancestor 双分支/无限流 grep）/#6a checkAllowAccess :135-137 + 4.4 :80 零漂移/#6b 测试实存/#30 safeClose :257/:328/#22 11 consumer 勘误实证
+  - 引用路径 14 处抽验全命中零悬空（六 commit is-ancestor 实测）
+  - 覆盖度量：37=36+1；实跑覆盖 36/36（复核 17 次实跑表求和=95 精确）；SECURITY 9 全量/净新 16 全量/抽验 5/15
+  - 验证：doc-links exit 0；check-plan-checklist --strict exit 0
+  - Anti-Hollow：只读审计无新增组件；验证锚 = 36/36 实跑闭环 + closure auditor 亲读
+  - Deferred 项分类检查：无 deferred；P2-6.4-001 经 P2 裁决例外台账（显式通道非静默降级）；#6a 归 4.4 承载（防双登记）
+  - 流程合规：audit 先行于 roadmap 翻 done
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- no remaining plan-owned work（P2-6.4-001 归 R1.0 裁决；#6a 归 4.4 S-06 承载；相邻未决 2 项已在案〔SUMMARY 超审计节/3.5 R1.x〕）
