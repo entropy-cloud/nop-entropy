@@ -52,7 +52,7 @@
 | 6.2 | `6.2-silent-skip-swallow-scan.md` | 0 | 0 | **4** | **25** | done（裁决：通过——**宇宙 1111 行全量裁定净违规 29 案/34 位点 = P2×4 案 6 位点〔ArgumentCleanupStage:93+ArgumentValueCoercionStage:88 同源对 schema 解析合流/JqBuiltins:1683 recurse(f) 吞输出上限守卫/AiFileTool:178+:195 canonical IOException 误报 ERR_MCP_PATH_ESCAPE 安全码/FileHelper:486 双丢 cause〕+ P3×25 案 28 位点**；B2B 734 行仅 1 违规验证 4.1 边界转换预判；U 承接终裁修复 3/维持 2/升级 1〔U-6→P3-6.2-025〕；归并 4.1 [维度09-20] ×1 + SocketClient:150 归属 P3-3.9-014；复核 16 发现 100% 亲读+QA 锚 41 处零漏检+台账抽验 96 行零误判+宇宙对账精确；closure audit 一次 PASS 六项全过〔O1-O4 非阻塞观察已处理：O4 占位行清理〕） | 独立子 agent（agent_1b77fa59 复核 PASS；closure audit agent_56138042 一次 PASS，见 plan 2349 Closure 段） |
 | 6.3 | `6.3-wiring-integrity-audit.md` | 0 | 0 | 0 | **3** | done（裁决：通过——**四链主链全连通零 P0/P1/P2**，42 机制边全量台账 + 复核 8/8 边独立追踪全通 + E3 四链达标 E1 零依赖；P3×3 进 R1.0（nop-dao exec 绑定护栏缺失/exec-maven-plugin 死属性/db-migration beans 双注册表零消费）；dup×3 复核纠正撞车漏检归并 P2-1.2-008/P3-2.3-034/P3-2.6-008；勘误 6 项含 A3-04 幻影类名；closure audit 处方 R1-R2（plan 头部勘误注记补记/四项勾选补齐）已落实） | 独立子 agent（agent_1fb93037 复核 PASS；closure audit agent_010b3bc3，FAIL→处方 R1-R2 落实后轻量复核 PASS，见 plan 2350 Closure 段） |
 | 6.4 | `6.4-check-p0-verification.md` | 0 | 0 | **1** | 0 | done（裁决：通过——**check 36 P0 在 master 无一条保持 P0 级 live**：already-fixed 35 单元〔实跑覆盖 36/36 闭环，17 次实跑 95 tests 全绿〕+ still-live 1 单元 **P2-6.4-001**〔#3 ai-rest residual P0→P2 降档，残余复核收窄——OAuth 服务端换取已在 93d47833f0 实施〕+ #6a FP-as-P0 勘误拆目〔SUMMARY 定级错挂；缺陷本体 P1 live 纯引用 4.4 S-06 不双登记〕+ #6b SUMMARY 遗漏真 P0 补录 already-fixed；closure audit 处方 R1-R3 纯文本级已落实〔tests 58→68 勘误/补勾/抽查缺口裁定注记〕） | 独立子 agent（agent_966d1623 复核 PASS；closure audit agent_a51bf7e4，FAIL→处方 R1-R3 落实后轻量复核 PASS，见 plan 2351 Closure 段） |
-| 6.5 | — | | | | | todo | |
+| 6.5 | `6.5-check-p1-batch-a.md` | 0 | 0 | **1** | 0 | 报告落盘，closure audit 进行中（裁决待复核确认：批次 a 48 条 P1 对账闭合〔12/12 单元 diff+统计核对〕+ 冻结抽样 44/48=91.7% 标定——**AF 43 / still-live 1 / dup 0 / FP 0**；P2-6.5-001 nosql-cdc ZERO 半分支 GETEX PX 0 配置陷阱〔P1→P2 终裁：显式配置触发+0 生产调用方+失败响亮〕；db-migration#P1-6 判 AF〔check2 fb3f860729 闭环〕；撞车零 dup 符号级全量 grep；复核 120 tests 全绿零翻案） | 独立子 agent（agent_7b8e911e 复核 PASS；closure audit 待启动） |
 | 6.6 | — | | | | | todo | |
 | 6.7 | — | | | | | todo | |
 | 6.8 | — | | | | | todo | |
@@ -174,6 +174,7 @@
 | P2-4.3-004 | `4.3-giant-files-audit.md` | GraphModelCheckpointExecutor 恢复/状态重组族 ~640 行混载（1591 行；静态无互锁+委托桩在位） | 待 R1.0 裁决（**队首**——成本最低） | R1.0 |
 | P2-5.2-001 | `5.2-design-drift-audit.md` | 草稿态违规整体立案 39 处/29 篇（实现已落地仍标草案/Draft——nop-lint 13 篇族/nop-wf extensions/nop-refactor/nop-graph/usage-and-billing/metadata 03-04-12 等） | 待 R1.0 裁决（Rule #14 重写波次 + 索引同步） | R1.0 |
 | P2-6.4-001 | `6.4-check-p0-verification.md` | check #3 ai-rest 扫码登录 residual（P0→P2 降档）：事件签名验证缺失+回调端点无限流+ChannelLoginApiBizModel:56-67 javadoc 陈旧（主向量已闭合；OAuth 服务端换取已在 93d47833f0 实施——复核收窄） | 待 R1.0 裁决（残余三项修复；ai-rest owner doc 同步） | R1.0 |
+| P2-6.5-001 | `6.5-check-p1-batch-a.md` | check 溯源 nosql-cdc#P1-1 ZERO 半分支：NosqlCache.getAsync 仅 null 守卫，Duration.ZERO 透传 GETEX PX 0 被 Redis 拒绝（null 半分支已由 check2 fc2b9347f6 修；P1→P2 终裁：显式配置触发+0 生产调用方+失败响亮） | 待 R1.0 裁决（CacheConfig 归一化+TestNosqlCache 补 ZERO 用例；与 fc2b9347f6 同文件同批） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 
