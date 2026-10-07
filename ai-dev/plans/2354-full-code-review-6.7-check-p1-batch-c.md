@@ -1,0 +1,134 @@
+# 2354 full-code-review 6.7 check 系列 P1 抽样标定 c（ai/stream/code/graph/credential/datav/metadata）
+
+> Plan Status: draft
+> Last Reviewed: 2026-10-07
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.7（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
+> Related: 批次权威定义=矩阵 §6：批次 c 成员 = **nop-ai、nop-stream、nop-code、nop-graph、nop-credential、nop-datav、nop-metadata**（metadata 唯一归属批次 c）。同族先例=plan 2352/2353（修复后形态照抄：独立枚举 diff/维度派生/冻结三要素/dup 方向/符号匹配键/分支口径/强制实跑/处置面实测先验）。
+> 机械基线（主 agent 实测，2026-10-07；经 Draft Review agent_254ef0f5 逐份实测勘正）：批次 c 候选单元 **12 份**（ai 族 4/stream 族 4/code/graph/datav/metadata）+ **msg-cluster-cred 单元的 credential 份额 1 条**（该单元 P1=8＝cluster 4+message 3+credential 1〔DefaultCredentialKeyProvider passphrase 入 param :172〕；矩阵 §6 为唯一权威——credential→批次 c、message/cluster→批次 d；Phase 1 对账执行该裁定并记录）。**批次 c 对账池 = 46 条 P1**（ai 20〔ai-core-api 3/ai-rest 7/ai-toolkit-skills 6/nop-ai-agent 4〕+ stream 14〔core 4/cep 1/flow-conn 3/runtime 6〕+ code 5 + graph 4 + datav 1 + metadata 1 + mcc-cred 1；SUMMARY Phase 4 的 49 含批次 d 的 search 5 条已扣除）。**处置面先验（草审 B2 实测翻转）**：批次 c **46 条 P1 零处置标注**（8 单元共 9 处 fix-ai-check 标注全部挂 P0 条目——P0 已由 6.4 闭环；SUMMARY :101「P1 尚未处置」对本批成立）——净池从零标定，实跑三分支全走第三分支（域内测试）。**轮内已终判承接（草审 M1）**：mcc-cred :172 已被 3.10 终判 **still-live 并登记 `P1-check-mcc-172` 进 R1.0 台账**——直接承接（计入对账台账、归并 P1-check-mcc-172 保留 check 溯源，不重复抽样）；**净抽样池 = 46−1 = 45 条，≥50% 下限 = 23**（双轨口径：净池 %/严格基线 46 %）。
+> 上游标定富集面（撞车承载，草审 M2 勘正后）：ai arm 台账（`ai-dev/backlog/audit-remediation-roadmap.md` v16 + `ai-dev/audits/arm-index.md` + 30+ 份 arm-MA*.nop-ai-*——对应 7.1 域）/metadata 台账（`arm-unclosed-findings-nop-metadata.md`——其 P1×1 live=OrmModelImporter currentTimeMillis 与 check nop-metadata P1〔MetaTableProfiler :331-346〕非同条，7.3 域）/2.8（stream-sql 首审——四 stream 单元非其范围；其 :83 登记 2 处预存测试失败为实跑红先对照锚）/6.4（stream P0×4 already-fixed :53 + graph Edge P0 #25 处置块——graph 先例载体）/6.5（nosql P2-6.5-001 同域邻接）/3.10（mcc-cred 终判）/3.7（rule 属批次 b 噪音项不引）/7.3/7.4/7.6 为 todo 勿引声明。
+> 只读审计。**执行分支口径**：live-ness 以当前工作树（audit/full-code-review）为读、以 master 可达性为锚。
+> **方法学裁定**（照抄 2353 修复后形态 + 草审 m2/m3/m4 补全）：① 四态 + partially-fixed 映射规则 + dup 归并方向写死（mcc-cred 承接 P1-check-mcc-172；同根→并入轮内发现 ID 保留 check #溯源）；② 抽样 ≥50% 双轨口径（净池 45 的 ≥50%=23 / 严格基线 46）+ D5/D1 全抽 + 其余 seed 抽样；**D1 量级预估 Phase 1 落盘**（stream/code/graph 面 D1 重仓，全抽规模可能 30±——3 agent 分配弹性预留）；冻结协议三要素（seed=2354+宇宙快照哈希+冻结表 `_tmp/fcr-6.7-frozen.csv`）落盘，脚本 `_tmp/fcr-6.7-sample.py`，报告附录记 SHA-256；③ live-ness 双锚=代码亲读+实跑三分支（本批 P1 零标注→全走第三分支域内测试；**实跑红先对照 2.8 :83 预存失败登记〔TestStreamConnectorRegistryDiscovery 等〕与 6.4 台账，不得径判 still-live**）；④ 撞车检索面=相邻工作项发现清单全量 grep，匹配键=归一化文件路径+类/方法符号；⑤ 执行分支口径见上。
+> Draft Review: agent_254ef0f5-a359-4eda-abcd-d8cdc602791a 首轮 2 Blocker（B1 机械基线五分量全错+49 含批次 d search 5 条——实测池 46=ai 20/stream 14/code 5/graph 4/datav 1/metadata 1/mcc-cred 1/B2 处置面先验倒置——批次 c P1 零标注〔9 处标注全挂 P0〕）+ 4 Major（M1 漏 3.10 撞车/承接——mcc-cred :172 已终判 P1-check-mcc-172，净池 45/下限 23/M2 撞车面五处归属勘正〔6.5→6.4/删 2.2/6.6 改 6.4 载体/3.10 域注记/3.7 删〕）+ 5 Minor 全修（m1 双轨口径/m2 D1 量级预估/m3 closure audit 抽样覆盖率核验/m4 预存失败参照锚/m5 ai arm 台账路径写实）——本轮全部修复，待聚焦复核。
+
+## Purpose
+
+执行 roadmap 工作项 6.7：check 系列 P1 批次 c 抽样标定 ≥50%，产出报告 `6.7-check-p1-batch-c.md`，仍 live 者进 R1.0 输入。
+
+## Current Baseline
+
+- 批次 c 定义与候选单元见头部注记；精确分母与处置面 Phase 1 对账落盘（独立枚举 diff 防漏单元）。
+- 绿色基线：编制期全仓 BUILD SUCCESS；本项只读（测试实跑为验证副作用）；工作树在前序收口 commit 后干净。
+- 撞车面（Phase 2 必查，草审 M2 勘正后）：ai arm 台账（路径见头部）/2.8（stream-sql——四 stream 单元非其范围；预存失败锚 :83）/6.4（stream P0×4+graph Edge 处置块）/6.5（nosql P2-6.5-001 邻接）/**3.10（mcc-cred 终判 P1-check-mcc-172 承接）**/metadata 台账（非同条声明）/4.4（search 邻接）/6.2/6.3/6.2；7.1/7.2/7.3/7.4/7.6 todo 勿引。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.7-check-p1-batch-c.md`：摘要 + 对账台账 + 冻结抽样表 + 标定台账 + 仍 live 清单 + 驳回台账 + 裁决。
+- **抽样标定 ≥50%**（净池，D5/D1 全抽 + 其余 seed 抽样；冻结三要素落盘）；仍 live 者 `P1-6.7-<序号>` 编号进 R1.0 输入（dup 并入轮内 ID 保留溯源）。
+- index 登记 + 独立 closure audit + roadmap 6.7 翻 done（closure audit 先于翻 done）。
+
+## Non-Goals
+
+- 批次 a/b/d；P0（6.4 已闭）；P2/P3（6.9 归档——批次 c 单元报告内 P2/P3 不在本项范围）；修复执行；ai/stream 域的全量深审（7.1/7.2 另行）。
+
+## Scope
+
+### In Scope
+
+- 批次 c 七成员组 check P1 全量对账 + ≥50% 抽样标定
+- 只读输入：check/ 单元报告、轮内深审报告、ai arm 台账、metadata 台账、git 历史
+
+### Out Of Scope
+
+- 批次 a/b/d；P0；P2/P3（6.9）；修复执行；7.1/7.2 全量增量面。
+
+## Execution Plan
+
+### Phase 1 - 对账、抽样与标定（3 agent 并行）
+
+Status: planned
+Targets: 批次 c check 单元报告 P1 清单
+
+- Item Types: `Proof`
+
+- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [ ] 主 agent 对账落盘（委派对账 agent 执行）：① 独立枚举 ROADMAP 单元表 diff 候选 12 份 + **msg-cluster-cred 拆分裁定执行**（credential 1 条入池、cluster/message 7 条归批次 d——落盘记录）② 批次 c 对账池 46 条全量清单（维度派生 D5/D1 量级预估落盘+处置标注实测核对〔先验=零标注〕+轮内已终判承接标记〔mcc-cred :172→P1-check-mcc-172〕）③ 统计表机械核对（12 份+SUMMARY Phase 4 49−search 5=44+metadata 1+mcc 1=46 账平）④ 冻结协议三要素（seed=2354；净池 45 抽 ≥23；`_tmp/fcr-6.7-sample.py`；`_tmp/fcr-6.7-frozen.csv`）
+- [ ] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+域内测试实跑〔全走第三分支；实跑红先对照 2.8 :83 预存登记〕+撞车比对）
+- [ ] 主 agent 抽查质量：冻结表重放 + 标定抽验（含实跑）
+- [ ] 产物 `_tmp/fcr-6.7-checkp1-a/b/c.md` + 冻结表
+- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+
+Exit Criteria:
+
+- [ ] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据
+- [ ] 抽样 ≥50% 达成；抽样表可重放（SHA-256 记录）
+- [ ] No owner-doc update required（只读）
+- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核与判级收敛
+
+Status: planned
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + already-fixed 抽验 ≥30% 含实跑 + 撞车复验 + 净账
+- [ ] 主 agent 汇总：四态统一、撞车去重终裁
+- [ ] 台账收敛
+
+Exit Criteria:
+
+- [ ] 复核结论落盘 `_tmp/fcr-6.7-checkp1-review.md`
+- [ ] No owner-doc update required（只读）
+- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: planned
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- Item Types: `Proof`
+
+- [ ] 编制 `6.7-check-p1-batch-c.md`（附录记冻结协议 SHA-256）；index 登记 6.7 行（替换占位行）+ 仍 live 进 P1 汇总或 P2 台账
+- [ ] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——**抽样覆盖率核验**）；**通过后** roadmap 6.7 翻 `done`；plan 关闭（双 `--strict`）；commit
+
+Exit Criteria:
+
+- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [ ] 标定口径可复现（复核员抽验一致）
+- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+
+## Closure Gates
+
+> 只读审计计划；live-ness 验证含只读测试实跑（处置指名测试强制），免除全量构建。
+
+- [ ] 报告落盘且批次 c 对账 + ≥50% 抽样标定全覆盖
+- [ ] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；撞车全量比对留痕
+- [ ] index 计数与报告标定台账一一对应；仍 live 清单完整移交
+- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [ ] roadmap 6.7 回填 `done`；log 收口记录已写
+- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [ ] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（无预设；still-live 修复归 R1.x；未抽样余量按抽样制设计为可接受残留。）
+
+## Closure
+
+Status Note: （收口时填写）
+Completed:
+
+Closure Audit Evidence:
+
+- Reviewer / Agent:
+- Evidence:
+
+Follow-up:
+
+- （收口时填写，或明确写 no remaining plan-owned work）
