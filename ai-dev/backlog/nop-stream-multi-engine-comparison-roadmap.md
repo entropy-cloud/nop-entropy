@@ -79,7 +79,7 @@
 ### M5 — SQL 与序列化补强
 
 - [ ] WI17 SQL 窄补强（单一连贯面，子交付物：a. DISTINCT/HAVING——**显式 supersede** `ai-dev/design/nop-stream/sql-subset-and-semantics.md` 既有 DISTINCT fail-fast 钉码与 sql roadmap WI16 不支持清单；b. lookup join 接入 WI11 异步增量（同步静态 lookup 已 done，仅接增量）；c. changelog/retract 维持不做的复审裁定与终值语义文档化）——不扩完整 SQL 栈（Deliverable: SQL 能力矩阵更新 + supersession 声明 + 裁定记录；deps: WI11；Item Type: Feature + Decision）
-- [ ] WI18 Avro/Schema Registry 格式层：format 层接入外部 Schema Registry + Avro 序列化（不内置 registry 服务）（Deliverable: format 插件 + 兼容测试 + 文档；deps: 无；Item Type: Feature）
+- [x] WI18 Avro/Schema Registry 格式层：format 层接入外部 Schema Registry + Avro 序列化（不内置 registry 服务）（Deliverable: format 插件 + 兼容测试 + 文档；deps: 无；Item Type: Feature）
 
 ### M6 — 收口
 
