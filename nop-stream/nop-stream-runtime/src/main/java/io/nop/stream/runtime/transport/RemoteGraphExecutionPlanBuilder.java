@@ -59,6 +59,10 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_A
  */
 public class RemoteGraphExecutionPlanBuilder {
 
+    /** WI6: one-shot honesty log when a limit is configured without a capable backend. */
+    private transient boolean backlogUnavailableLogged;
+
+
     private static final Logger LOG = LoggerFactory.getLogger(RemoteGraphExecutionPlanBuilder.class);
 
     /** Items 28+31 (D1): consumer-channel queue capacity (unchanged default). */
@@ -212,10 +216,28 @@ public class RemoteGraphExecutionPlanBuilder {
             for (int s = 0; s < srcP; s++) {
                 for (int t = 0; t < tgtP; t++) {
                     String topic = StreamTopicNaming.buildTopic(jobId, edgeId, s, t);
-                    // Producer side: RemoteResultPartition
-                    matrix[s][t] = new RemoteResultPartition(
+                    // Producer side: RemoteResultPartition. WI6 (plan 2331): DB-channel
+                    // producer backpressure — unwrap the codec adapter, probe the raw
+                    // backend, and gate only when both the capability and a positive
+                    // job-level limit are present. A configured limit without a
+                    // capable backend is announced ONCE (honest no-op, not silent).
+                    io.nop.message.core.channel.ChannelBacklogProbe probe = resolveBacklogProbe();
+                    long backlogLimit = resolveDbBacklogLimit();
+                    if (backlogLimit > 0 && probe == null && !backlogUnavailableLogged) {
+                        LOG.info("nop.stream.data.db.backlog.limit={} configured but the message "
+                                + "service exposes no ChannelBacklogProbe capability (Kafka/Pulsar/"
+                                + "in-memory channels carry their own backpressure) - DB gate disabled",
+                                backlogLimit);
+                        backlogUnavailableLogged = true;
+                    }
+                    RemoteResultPartition partition = new RemoteResultPartition(
                             messageService, topic, typeRegistry, edgeId,
-                            epochId);
+                            epochId, backlogLimit > 0 ? probe : null,
+                            backlogLimit > 0 ? backlogLimit : 0L);
+                    if (backlogLimit > 0 && probe != null) {
+                        DbBacklogGauges.bind(partition, topic);
+                    }
+                    matrix[s][t] = partition;
 
                     // Consumer side: RemoteInputChannel (created per target subtask per source).
                     // Subscription scope — the channel is always
@@ -590,5 +612,29 @@ public class RemoteGraphExecutionPlanBuilder {
         }
 
         return sorted;
+    }
+    /**
+     * WI6: capability lookup — unwrap the codec adapter and probe the raw backend
+     * (checking the adapter itself would always miss on the embedded/rpc main paths).
+     */
+    io.nop.message.core.channel.ChannelBacklogProbe resolveBacklogProbe() {
+        IMessageService raw = messageService;
+        if (raw instanceof DataPlaneMessageServiceAdapter) {
+            raw = ((DataPlaneMessageServiceAdapter) raw).getDelegate();
+        }
+        return raw instanceof io.nop.message.core.channel.ChannelBacklogProbe
+                ? (io.nop.message.core.channel.ChannelBacklogProbe) raw
+                : null;
+    }
+
+    /**
+     * WI6: job-level gate limit; 0/unset = gate off. Read from the system property
+     * (same tuning-knob mechanism as {@code nop-stream.checkpoint.storage.dir}); set
+     * per launch: {@code java -Dnop.stream.data.db.backlog.limit=5000 ...} or via
+     * {@code NOP_STREAM_JAVA_OPTS} in the launch script environment.
+     */
+    long resolveDbBacklogLimit() {
+        Long value = Long.getLong("nop.stream.data.db.backlog.limit");
+        return value == null ? 0L : value;
     }
 }

@@ -751,6 +751,17 @@ public interface NopStreamErrors {
                             + "declared pattern rule: {detail}",
                     ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DETAIL);
 
+    // WI6 (plan 2331): producer-side DB channel backpressure gate.
+    String ARG_BACKLOG_LIMIT = "backlogLimit";
+    String ARG_CURRENT_BACKLOG = "currentBacklog";
+
+    ErrorCode ERR_STREAM_SEND_GATE_TIMEOUT =
+            define("nop.err.stream.send-gate-timeout",
+                    "Stream producer on topic '{topic}' gated by DB backlog limit {backlogLimit}: "
+                            + "backlog still {currentBacklog} after the bounded wait — failing typed so "
+                            + "the task restarts instead of growing the channel table unboundedly",
+                    ARG_TOPIC, ARG_BACKLOG_LIMIT, ARG_CURRENT_BACKLOG);
+
     ErrorCode ERR_STREAM_SAMPLE_NOT_SUPPORTED =
             define("nop.err.stream.sample-not-supported",
                     "Stream connector endpoint '{connectorEndpoint}' implements no "

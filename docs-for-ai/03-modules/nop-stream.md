@@ -269,6 +269,15 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **SUSPEND 恢复**：`terminate(SUSPEND)` 产生终态 savepoint；以同 jobId + 同 checkpointBaseDir 重启即从 savepoint 恢复（等价 savepoint-恢复入口）。
 - **离线 reshard**：`StreamMaintenanceMain reshard oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>`。
 
+### DB 数据面生产者背压（WI6，2026-10-07）
+
+- **启用**：launch 参数 `-Dnop.stream.data.db.backlog.limit=<n>`（job 级；0/缺省 = 关闭，零侵入）。仅对 DB（SysDao）数据面通道生效——`DataPlaneMessageServiceAdapter` 解包后探测裸后端的 `ChannelBacklogProbe` 能力（`SysDaoMessageService` 已实现：按数据 topic 的 WAITING+CLAIMED 行数）；Kafka/Pulsar/内存通道无该能力，配了 limit 会在启动日志声明一次后禁用（诚实 no-op，非静默）。
+- **语义**：生产者发送前检查该 topic 未消费积压深度，达到上限则**锁外有界等待**（100ms 分片，可中断；不持 sendLock——close/EOS 不被阻塞放大）；等待 10s（D2 同款缺省）仍超限 = typed 失败 `nop.err.stream.send-gate-timeout` → task 失败重启（持续过载的显式语义，非静默丢弃）。barrier/watermark 与数据同门（in-band，对齐屏障语义下排队属预期背压）。
+- **积压记账**：生产者侧本地计数器随每次发送自增（突发精确受限），DB COUNT 仅用于观察消费进度（TTL 200ms 缓存 + 达限时逐片强刷）。
+- **观测**：`nop.stream.io.db.backlog` gauge（topic 标签；门控启用时注册；区别于 `nop.stream.io.channel.queue.size` 的消费侧本地队列口径）。
+- **注意**：启用门控时应先起消费者或接受部署窗口内下游未订阅导致的门控失败重试（nop_sys 裁定：无订阅者 topic 的事件永不被扫描，WAITING 行全数计入积压）。
+- 测试锚点：`TestRemoteResultPartitionBackpressureGate`（fake probe 五路径 + 锁外契约，共 6 用例）、`TestDataPlaneSysDaoBackendE2E.gatedProducerBoundsTableDepthWhileConsumerLags`（真后端端到端：深度受控 + 消费收敛 + 精确一次）。
+
 ### 指标采集与告警配置速查
 
 - Prometheus：`nop.stream.ops.http.enabled=true` + `port`（默认 8901）→ `GET /metrics`（TextFormat 0.0.4 / OpenMetrics 协商）；配置模板 `nop-stream-runtime/src/main/resources/_vfs/nop/stream/conf/metrics.properties.template`。多 JVM 模式：JC 端点 + 各 TM 端点（`TaskManagerMain opsHttpPort=<port>`——main-scope 生产入口；每 TM 一个 scrape target；端口避开 JC 的 8901/8931，演练装置自 8941 起分配）。
