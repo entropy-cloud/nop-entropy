@@ -1,6 +1,6 @@
 # 2352 full-code-review 6.5 check 系列 P1 抽样标定 a（kernel/core-framework/persistence）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.5（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: Owner=`ai-dev/audits/check/SUMMARY.md`；**批次权威定义**=矩阵 §6（`00-scope-and-dimension-matrix.md` :171-176）：批次 a 成员 = **nop-kernel、nop-core-framework、nop-persistence** 三行（矩阵 §2 行名）；check 报告按模块名映射到批次成员；四批并集=§2 全部 18 基线行。Roadmap Details：「按矩阵 §6 的批次成员表分批抽样标定（每批 ≥50%，优先安全与数据正确性类；仍 live 的进入 R1.0 输入）」。
