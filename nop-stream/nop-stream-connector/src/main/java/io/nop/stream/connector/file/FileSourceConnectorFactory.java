@@ -36,7 +36,20 @@ public final class FileSourceConnectorFactory implements IStreamSplitSourceFacto
             .recoverySemantic(ConnectorRecoverySemantic.SPLIT_CURSOR_CHECKPOINT)
             .params(List.of(
                     ConnectorParamDescriptor.required("directoryPath", STRING,
-                            "input directory enumerated into file splits")))
+                            "input directory enumerated into file splits"),
+                    // WI5 (plan 2330): optional production tuning. Descriptor INT kind
+                    // checks parseability only — positivity is the construction contract
+                    // (unset = 0 = channel off; explicit <= 0 rejected at the factory).
+                    ConnectorParamDescriptor.optional("rateLimitRowsPerSecond",
+                            io.nop.stream.core.connector.registry.ConnectorParamKind.INT,
+                            "max records per second (0/unset = unlimited; WI5)"),
+                    ConnectorParamDescriptor.optional("rateLimitBytesPerSecond",
+                            io.nop.stream.core.connector.registry.ConnectorParamKind.INT,
+                            "max bytes per second (0/unset = unlimited; WI5)"),
+                    ConnectorParamDescriptor.optional("splitAssignmentPolicy", STRING,
+                            "split assignment policy (WI5)",
+                            false, List.of(FileSplitEnumerator.POLICY_ROUND_ROBIN,
+                                    FileSplitEnumerator.POLICY_SIZE_AWARE), null)))
             .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
@@ -52,6 +65,29 @@ public final class FileSourceConnectorFactory implements IStreamSplitSourceFacto
 
     @Override
     public Source<?, ?, ?> createSource(StreamConnectorConfig config) {
-        return new FileSource(config.requireString("directoryPath"));
+        // WI5: unset optional params -> 0 (channel off); explicitly non-positive values
+        // are rejected HERE (the factory can distinguish unset from explicit via the
+        // null config value; FileSource cannot).
+        long rows = readPositiveOrZero(config, "rateLimitRowsPerSecond");
+        long bytes = readPositiveOrZero(config, "rateLimitBytesPerSecond");
+        String policy = config.getString("splitAssignmentPolicy");
+        return new FileSource(config.requireString("directoryPath"),
+                FileSourceReader.DEFAULT_MAX_LINE_BYTES, rows, bytes,
+                policy == null ? FileSplitEnumerator.POLICY_ROUND_ROBIN : policy);
+    }
+
+    private static long readPositiveOrZero(StreamConnectorConfig config, String name) {
+        Integer value = config.getInt(name);
+        if (value == null) {
+            return 0L;
+        }
+        if (value <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            name + " must be positive when set (got " + value
+                                    + "); leave it unset for unlimited");
+        }
+        return value;
     }
 }

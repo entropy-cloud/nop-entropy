@@ -54,7 +54,7 @@
 - [ ] WI2 连接器 API 两代归一迁移波次：按 WI0 裁定范围把存量 legacy source（message/debezium-cdc/batch-loader）迁 FLIP-27 `Source/SplitEnumerator/SourceReader`；debezium B 层表路由已裁定例外的撤销或迁移由 WI0 裁定（Deliverable: 迁移完成或显式剩余冻结清单 + 能力矩阵回归；deps: WI0；Item Type: Feature）
 - [ ] WI3 Kafka 原生 exactly-once 连接器：source offset 入 checkpoint（REPLAYABLE）+ 事务/幂等 sink（复用 epoch 2PC 或 ledger 幂等），与 nop-message-kafka at-least-once 通道的适用边界写入 owner doc（Deliverable: 新连接器模块 + SPI 工厂 + kill-recover E2E 零重复；deps: WI0；Item Type: Feature）
 - [x] WI4 连接器工程化增强：registry 成熟度分级（实验/生产）+ OptionRule 式参数声明（类型/必填/敏感/校验规则进 XDSL 配置校验）+ conf-validate 增 dry-run sample 数据采样档（Deliverable: 分级与参数规则落 registry 描述符 + 校验器 + 文档；deps: 无；Item Type: Feature）
-- [ ] WI5 Source 限速与倾斜感知 split 分配：rows/bytes 限速配置 + enumerator 倾斜感知分配策略（对 file/Kafka 等 split 型 source 生效，单写入者 source 如实 typed 标注不支持）（Deliverable: 限速与分配策略 + 倾斜场景测试；deps: 无；Item Type: Feature）
+- [x] WI5 Source 限速与倾斜感知 split 分配（Kafka 限速由 WI3 消费 core SourceRateLimiter 接入，plan 2330 Deferred 裁定）：rows/bytes 限速配置 + enumerator 倾斜感知分配策略（对 file/Kafka 等 split 型 source 生效，单写入者 source 如实 typed 标注不支持）（Deliverable: 限速与分配策略 + 倾斜场景测试；deps: 无；Item Type: Feature）
 - [ ] WI6 DB 数据面生产者背压：DB 传输通道按 credit 式分片限流生产者（对比分析 P0-6 范围），替代无界写入——范围限定 DB 通道整形，不涉及 vision §四「复制 Flink Runtime 结构/Netty 网络栈」禁入面（Deliverable: 背压协议 + 满载测试；deps: 无；Item Type: Feature）
 
 ### M2 — 结构前置与流语义增强（P1，对齐 TDengine/Flink 子集）
