@@ -43,7 +43,12 @@ export class CrudListPage extends BasePage {
     const cells = row.locator('td, [data-slot="table-cell"]');
     const count = await cells.count();
     for (let i = 0; i < count && i < effective.length; i++) {
-      const val = ((await cells.nth(i).textContent()) ?? '').trim();
+      const cell = cells.nth(i);
+      const val = ((await cell.textContent()) ?? '').trim();
+      // 优先读单元格自身 data-field（flux/amis 行均渲染）——索引映射在
+      // 行首存在选择列/序号列时会整体错位，只能对无 data-field 的行兜底
+      const ownField = await cell.getAttribute('data-field');
+      if (ownField) this._lastViewRowData[ownField] = val;
       if (effective[i]) this._lastViewRowData[effective[i]] = val;
       if (headerTexts[i]) this._lastViewRowData[headerTexts[i]] = val;
     }

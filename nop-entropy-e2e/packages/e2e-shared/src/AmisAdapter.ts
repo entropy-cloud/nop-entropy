@@ -16,8 +16,16 @@ export class AmisAdapter implements EngineAdapter {
     return page.locator('tr, .cxd-Table-row');
   }
 
-  async cellValue(row: Locator, fieldName: string, _columnHeaders: string[]): Promise<string> {
-    const index = _columnHeaders.indexOf(fieldName);
+  async cellValue(row: Locator, fieldName: string, columnHeaders: string[]): Promise<string> {
+    // 优先按 data-field 契约定位（flux 行与 amis 新版行都渲染 td[data-field]）。
+    // nth-child 索引兜底依赖 columnHeaders 与实际行结构的逐列对齐，而行首是否存在
+    // 选择列/序号列随引擎与页面配置变化（实测 flux 用户表行首为 checkbox+序号双前导列），
+    // 错位会把相邻列值当目标列读出——所以只作兜底。
+    const byField = row.locator(`td[data-field="${fieldName}"]`).first();
+    if ((await byField.count()) > 0) {
+      return (await byField.textContent()) ?? '';
+    }
+    const index = columnHeaders.indexOf(fieldName);
     if (index === -1) return '';
     const cell = row.locator(`> td:nth-child(${index + 1})`);
     return (await cell.textContent()) ?? '';

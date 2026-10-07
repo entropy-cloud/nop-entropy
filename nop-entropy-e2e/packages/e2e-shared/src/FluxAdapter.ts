@@ -52,8 +52,12 @@ export class FluxAdapter extends AmisAdapter {
   }
 
   formField(dialog: Locator, fieldName: string): Locator {
+    // 必须落到真实输入控件：字段根本身是 label[data-field]，fill/inputValue 对 label
+    // 无效；先找字段根内的 input/textarea，再按 name 兜底
     return dialog
-      .locator(`[data-field="${fieldName}"], input[name="${fieldName}"], textarea[name="${fieldName}"]`)
+      .locator(
+        `[data-field="${fieldName}"] input, [data-field="${fieldName}"] textarea, input[name="${fieldName}"], textarea[name="${fieldName}"]`,
+      )
       .first();
   }
 
@@ -71,18 +75,42 @@ export class FluxAdapter extends AmisAdapter {
     if (!(await trigger.count().then((c) => c > 0))) return false;
 
     const page = root.page();
-    await trigger.click();
-    const item = page.locator('[data-slot="combobox-item"]')
-      .filter({ hasText: optionText })
-      .first();
-    try {
-      await item.waitFor({ state: 'visible', timeout: 5_000 });
-      await item.click();
-      return true;
-    } catch {
-      await page.keyboard.press('Escape').catch(() => {});
-      return false;
+    // 已关闭字段的弹层 DOM 会残留（不可见但仍在文档中）——必须限定可见弹层内的选项，
+    // 否则 first() 命中前一个字段的隐藏选项，点击静默失败（字段留空、提交时必填校验报错）
+    const visibleItems = page.locator('[data-slot="combobox-item"]:visible');
+    const esc = optionText.replace(/"/g, '\\"');
+    const displayInput = root.locator('input').first();
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await trigger.click();
+      // 等待弹层真正打开：连续填多个组合框时，前一弹层的关闭清理可能吞掉首次 toggle
+      const opened = await visibleItems
+        .first()
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (!opened) continue;
+
+      const byValue = page
+        .locator(`[data-slot="combobox-item"][data-value="${esc}"]:visible`)
+        .first();
+      const item = (await byValue.isVisible().catch(() => false))
+        ? byValue
+        : visibleItems.filter({ hasText: optionText }).first();
+      try {
+        await item.click({ timeout: 3_000 });
+      } catch {
+        await page.keyboard.press('Escape').catch(() => {});
+        continue;
+      }
+      // 校验选中已登记（显示输入框出现值），未登记视为本次点击被吞，重试
+      const registered = await displayInput
+        .evaluate((el) => !!(el as HTMLInputElement).value)
+        .catch(() => false);
+      if (registered) return true;
     }
+    await page.keyboard.press('Escape').catch(() => {});
+    return false;
   }
 
   override async selectOption(dialog: Locator, fieldLabels: string[], optionTexts: string[]): Promise<void> {
@@ -98,7 +126,12 @@ export class FluxAdapter extends AmisAdapter {
     const root = this.fluxFieldRoot(dialog, fieldName);
     const renderer = await root.getAttribute('data-renderer').catch(() => null);
     if (renderer === 'select' || renderer === 'combobox') {
-      await this.fluxComboboxSelect(root, String(value));
+      // 带 data-renderer 根的字段是 flux 渲染——组合框选择失败时不能回落 amis 的
+      // input fill（会把裸值写进显示框产生脏表单状态），显式失败
+      const ok = await this.fluxComboboxSelect(root, String(value));
+      if (!ok) {
+        throw new Error(`flux 组合框选择失败: ${fieldName}="${value}"（弹层未打开或选项未命中）`);
+      }
       return;
     }
     await super.setFieldValue(dialog, fieldName, value);
@@ -146,18 +179,44 @@ export class FluxAdapter extends AmisAdapter {
   }
 
   async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
-    // flux：行内操作区 / dropdown-menu-item；amis：更多下拉 + cxd 菜单项——双模
-    const fluxItem = row.page().locator('[data-slot="dropdown-menu-item"], [role="menuitem"]')
-      .filter({ hasText: actionNamePattern }).first();
+    const page = row.page();
+    // 上一行操作遗留的 amis PopOver 遮罩会拦截后续所有行点击——点击遮罩本身
+    // 即 amis 的 outside-click 关闭机制，先清理再继续
+    const popoverOverlay = page.locator('.cxd-PopOver-overlay').first();
+    const dismissPopovers = async () => {
+      if (await popoverOverlay.isVisible().catch(() => false)) {
+        await popoverOverlay.click({ force: true }).catch(() => {});
+        await popoverOverlay.waitFor({ state: 'hidden', timeout: 2_000 }).catch(() => {});
+      }
+    };
+    await dismissPopovers();
+
+    // 行内直接按钮（无需下拉）
+    const directButton = row.locator('button').filter({ hasText: actionNamePattern }).first();
+    if ((await directButton.count().then((c) => c > 0)) && (await directButton.isVisible().catch(() => false))) {
+      await directButton.click();
+      return;
+    }
+
+    // 更多下拉：只点一次「更多」，菜单项用 flux + amis 联合选择器匹配——
+    // 先点开后回落 super 再点一次「更多」会把下拉 toggle 关闭并遗留遮罩
     const more = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
     if (await more.count().then((c) => c > 0)) {
       await more.click();
+      const menuItem = page
+        .locator(
+          '[data-slot="dropdown-menu-item"], [role="menuitem"], .cxd-DropDown-menuItem, .cxd-DropDown-menu > li',
+        )
+        .filter({ hasText: actionNamePattern })
+        .first();
       try {
-        await fluxItem.waitFor({ state: 'visible', timeout: 4_000 });
-        await fluxItem.click();
+        await menuItem.waitFor({ state: 'visible', timeout: 4_000 });
+        await menuItem.click();
         return;
       } catch {
-        await row.page().keyboard.press('Escape').catch(() => {});
+        // amis 弹层不响应 Escape——用遮罩 outside-click 关闭，避免拦截后续操作
+        await page.keyboard.press('Escape').catch(() => {});
+        await dismissPopovers();
       }
     }
     await super.rowAction(row, actionNamePattern);

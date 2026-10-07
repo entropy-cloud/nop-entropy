@@ -80,6 +80,7 @@ export async function rpc<T>(
   request: APIRequestContext | RpcRequest,
   operation: string,
   params?: Record<string, unknown>,
+  timeoutMs?: number,
 ): Promise<RpcResponse<T>> {
   if (isPlaywrightRequest(request)) {
     const headers: Record<string, string> = {};
@@ -89,6 +90,8 @@ export async function rpc<T>(
     const resp = await request.post(`/r/${operation}`, {
       headers,
       data: params ?? {},
+      // Playwright apiRequestContext 缺省 10s 超时——长耗时同步 RPC（如全量索引）必须显式放宽
+      ...(timeoutMs ? { timeout: timeoutMs } : {}),
     });
     const text = await resp.text();
     let json: Record<string, unknown>;
@@ -113,6 +116,7 @@ export async function rpc<T>(
     method: 'POST',
     headers,
     body: JSON.stringify(params ?? {}),
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
   });
 
   const json = (await res.json()) as Record<string, unknown>;

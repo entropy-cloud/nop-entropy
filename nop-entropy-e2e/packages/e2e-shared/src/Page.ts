@@ -20,10 +20,22 @@ export abstract class BasePage {
         .waitForFunction((h) => window.location.hash === h, target, { timeout: 3_000 })
         .then(() => true)
         .catch(() => false);
-      if (applied) return;
-      await this.page.waitForTimeout(600);
+      if (!applied) {
+        await this.page.waitForTimeout(600);
+        continue;
+      }
+      // 防回弹：壳层登录重定向链（/auth/login → / → homePath）未走完时赋 hash
+      // 会被 catch-all 路由弹回 homePath——静置后复读一次，被弹回则重试
+      await this.page.waitForTimeout(800);
+      const stillThere = await this.page.evaluate(
+        (h) => window.location.hash === h,
+        target,
+      );
+      if (stillThere) {
+        await this.page.waitForLoadState('networkidle').catch(() => {});
+        return;
+      }
     }
     throw new Error(`hash 导航未生效: ${target}（当前 ${this.page.url()}）`);
-    await this.page.waitForLoadState('networkidle');
   }
 }

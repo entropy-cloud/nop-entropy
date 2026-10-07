@@ -5,7 +5,9 @@ import { login, rpc, loginRpc } from '@nop-entropy/e2e-shared';
 import { TypeHierarchyPO } from './page-objects/type-hierarchy.po.js';
 
 const INDEX_ID = 'nop-code-e2e';
-const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../../nop-code/nop-code-service');
+// 仓库根为 nop-entropy-e2e 的上两级（tests → 包 → packages → 仓根），不要多上一级——
+// 多上一级会解析到不存在的路径，triggerFullIndex 静默索引 0 文件、就绪轮询永远为 0
+const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../nop-code/nop-code-service');
 
 // dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
 async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
@@ -14,16 +16,17 @@ async function ensureIndexPrepared(request: import('@playwright/test').APIReques
   });
   if (existing.ok && (existing.data?.total ?? 0) > 0) return;
 
+  // triggerFullIndex 是同步全量构建（非异步），nop-code-service 目录实测 >10s——
+  // 必须放宽 rpc 超时，否则请求被 10s 缺省超时打断、索引半途而废
   const build = await rpc(request, 'NopCodeIndex__triggerFullIndex', {
     indexId: INDEX_ID,
     projectPath: TEST_PROJECT_DIR,
-  });
+  }, 300_000);
   if (!build.ok) {
     throw new Error(`triggerFullIndex failed: ${JSON.stringify(build.errors)}`);
   }
 
-  // 全量索引为异步构建，轮询等待首个符号可见（nop-code-service 全量约需数十秒；
-  // 冷启动首建可能更久，上限 150s）
+  // 构建完成后轮询符号可见（orm 提交与查询可见性存在亚秒级延迟，上限 150s）
   for (let i = 0; i < 50; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {

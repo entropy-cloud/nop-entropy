@@ -22,6 +22,8 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   timeout: 120_000,
+  // beforeAll 里自举全量索引（冷启动实测 >120s）：hook 预算须覆盖 150s 轮询
+  hookTimeout: 240_000,
   expect: { timeout: 15_000 },
 
   use: {
