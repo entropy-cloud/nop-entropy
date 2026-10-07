@@ -918,13 +918,17 @@ public class GraphModelCheckpointExecutor {
                 snap.getTotalStateSize());
     }
 
-    static ICheckpointStorage createStorage(CheckpointConfig config) {
+    public static ICheckpointStorage createStorage(CheckpointConfig config) {
         String storageType = config.getStorageType();
         if ("jdbc".equalsIgnoreCase(storageType)) {
             throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
                     .param(ARG_DETAIL,
                             "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
                             "Use storageType='local' or provide JDBC configuration.");
+        }
+        if ("s3".equalsIgnoreCase(storageType)) {
+            // WI13 (plan 2339): S3-compatible object storage
+            return io.nop.stream.runtime.checkpoint.storage.S3CheckpointStorage.fromConfig(config);
         }
         if (storageType == null || !"local".equalsIgnoreCase(storageType)) {
             throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
@@ -959,7 +963,15 @@ public class GraphModelCheckpointExecutor {
      * (CompletedCheckpoint rows carry no fingerprint), so restoring from them would be
      * a silent-inheritance vector. Fresh start + WARN instead.
      */
-    static boolean hasExplicitStoragePath(CheckpointConfig config) {
+    public static boolean hasExplicitStoragePath(CheckpointConfig config) {
+        // WI13 (plan 2339): for object storage, an explicitly configured bucket is the
+        // recovery-intent marker (mirroring local's explicit-path ruling) — leftovers in
+        // a shared bucket can never be identity-proven either, but bucket+jobId+pipeline
+        // scoping is the deployment's explicit choice, same as an explicit local path.
+        if ("s3".equalsIgnoreCase(config.getStorageType())) {
+            String bucket = config.getStorageProperty("s3.bucket");
+            return bucket != null && !bucket.isEmpty();
+        }
         String basePath = config.getStorageProperty("path");
         return basePath != null && !basePath.isEmpty();
     }
