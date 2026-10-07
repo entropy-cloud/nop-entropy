@@ -22,15 +22,17 @@ async function ensureIndexPrepared(request: import('@playwright/test').APIReques
     throw new Error(`triggerFullIndex failed: ${JSON.stringify(build.errors)}`);
   }
 
-  // 全量索引为异步构建，轮询等待首个符号可见（nop-code-service 全量约需数十秒）
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
+  // 全量索引为异步构建，轮询等待首个符号可见（nop-code-service 全量约需数十秒；
+  // 冷启动首建可能更久，上限 150s）
+  for (let i = 0; i < 50; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
     const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
       indexId: INDEX_ID, offset: 0, limit: 1,
     });
     if (prepared.ok && (prepared.data?.total ?? 0) > 0) return;
+    if (i % 10 === 9) console.log(`index warming: ${((i + 1) * 3)}s, total=${prepared.data?.total}`);
   }
-  throw new Error('Index still empty 60s after triggerFullIndex');
+  throw new Error('Index still empty 150s after triggerFullIndex');
 }
 
 test.describe('符号搜索', () => {

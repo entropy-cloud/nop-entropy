@@ -21,7 +21,7 @@ export class RolePO extends CrudListPage {
   async goto(): Promise<void> {
     await this.page.goto(`#/NopAuthRole-main`);
     await this.page.waitForLoadState('networkidle');
-    await this.waitForList();
+    await this.waitForListWithReload();
   }
 
   async searchRole(roleName: string): Promise<void> {

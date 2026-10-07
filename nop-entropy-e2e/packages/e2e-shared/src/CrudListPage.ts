@@ -55,7 +55,9 @@ export class CrudListPage extends BasePage {
     await this.waitForList();
   }
 
-  async waitForList(timeoutMs = 30_000): Promise<void> {
+  // 60s：flux/amis 渲染管线下，页面模型首次编译（per-page 冷缓存）可能超过 30s，
+  // 编译结果有缓存，同页后续导航不再耗时
+  async waitForList(timeoutMs = 90_000): Promise<void> {
     await this.engine.crudContainer(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
     await this.engine.table(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
     // 表格容器可见时数据行可能尚未加载（CRUD 在 mount 后才发起查询，期间表格显示
@@ -67,6 +69,21 @@ export class CrudListPage extends BasePage {
       .first()
       .waitFor({ state: 'attached', timeout: 3_000 })
       .catch(() => {});
+  }
+
+  /**
+   * 冷启动兜底：后端刚启动时，SPA 首次挂载 CRUD 页面偶发失败（页面 schema 已正常
+   * 返回但前端渲染未挂载）。先短等一轮，失败则整页 reload 重挂载后再长等——
+   * reload 会重新发起页面 schema 与数据查询，绕过首次挂载的竞态。
+   */
+  async waitForListWithReload(timeoutMs = 90_000): Promise<void> {
+    try {
+      await this.waitForList(Math.min(timeoutMs, 30_000));
+      return;
+    } catch {
+      await this.page.reload();
+      await this.waitForList(timeoutMs);
+    }
   }
 
   async getAddButton(): Promise<Locator> {
@@ -121,6 +138,65 @@ export class CrudListPage extends BasePage {
     const dialog = new FormDialog(this.page, this.engine);
     await dialog.waitForVisible();
     return dialog;
+  }
+
+  /**
+   * 点击行操作确认框的确认按钮（通用）：flux 壳层 alert-dialog（data-slot 结构，
+   * 历史 portal 残留 DOM 取最新）与 amis 自绘确认框（role=alertdialog 文本匹配）
+   * 双兼容。确认框未出现返回 false；点击后未关闭抛错——残留 overlay 会拦截
+   * 后续所有行操作，宁可显式失败。
+   */
+  async tryClickConfirm(): Promise<boolean> {
+    // flux 壳层：portal 内可见且文本恰为 确认/确定 的按钮，取最新挂载的
+    const fluxBtn = this.page
+      .locator('[data-slot="alert-dialog-portal"] button:visible')
+      .filter({ hasText: /^(确认|确定)$/ })
+      .last();
+    // amis：role=alertdialog 内的确认按钮
+    const amisBtn = this.page
+      .locator('[role="alertdialog"] button:visible')
+      .filter({ hasText: /^(确认|确定|删除)$/ })
+      .last();
+
+    const fluxAppeared = await fluxBtn.waitFor({ state: 'visible', timeout: 4_000 })
+      .then(() => true).catch(() => false);
+    const btn = fluxAppeared ? fluxBtn : (await amisBtn.isVisible().catch(() => false) ? amisBtn : null);
+    if (!btn) return false;
+
+    // 首次点击可能落在渲染器重渲染窗口期被吞掉——点击后验证框已消失，未消失则重试
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await btn.click();
+      const closed = await this.page
+        .locator('[data-slot="alert-dialog-portal"] button:visible, [role="alertdialog"] button:visible')
+        .first()
+        .waitFor({ state: 'hidden', timeout: 5_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (closed) return true;
+      await this.page.waitForTimeout(500);
+    }
+    throw new Error('行操作确认框点击后未关闭');
+  }
+
+  /**
+   * 行操作 + 确认框的整体封装（通用）。下拉菜单项点击偶发落空（菜单关闭时指针下
+   * 元素已更替）导致确认框不出现——整体重试行操作而不是静默放行，否则状态迁移没有
+   * 发生，后续断言/轮询只会收到难以定位的超时。
+   */
+  async rowActionWithConfirm(rowIdentifier: string, actionNamePattern: RegExp): Promise<void> {
+    const row = await this.findRowDeep(rowIdentifier);
+    if (!row) {
+      throw new Error('未找到行: ' + rowIdentifier);
+    }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await this.engine.rowAction(row, actionNamePattern);
+      if (await this.tryClickConfirm()) {
+        await this.waitForList();
+        return;
+      }
+      await this.page.waitForTimeout(800);
+    }
+    throw new Error('行操作未能触发确认框: ' + actionNamePattern);
   }
 
   async deleteRow(row: Locator): Promise<void> {
@@ -256,61 +332,37 @@ export class CrudListPage extends BasePage {
   }
 
   /**
-   * 跨页定位目标行：刷新强制重查 → 每页条数调到最大 → （可选）点击排序表头切换
-   * 升降序 → 逐页向后翻。 amis CRUD 无业务字段过滤表单且默认升序分页时，新建行
-   * 通常落在末页。找不到返回 null（由调用方决定报错或重试）。
+   * 跨页定位目标行（引擎驱动）：刷新强制重查 → 每页条数调最大 → （可选）点击排序
+   * 表头切换升降序 → 逐页向后翻。amis/flux 的分页与排序 DOM 差异由引擎适配层封装。
+   * 找不到返回 null（由调用方决定报错或重试）。
    */
   async findRowDeep(text: string, sortHeaderText?: string): Promise<Locator | null> {
     // 建单后列表可能停留在旧查询结果——先点刷新强制重查
-    const refreshBtn = this.page.locator('[class*="fa-sync"]').first();
+    const refreshBtn = this.engine.refreshButton(this.page);
     if (await refreshBtn.isVisible().catch(() => false)) {
       await refreshBtn.click({ force: true });
       await this.page.waitForLoadState('networkidle').catch(() => {});
     }
 
-    const sizeSelect = this.page.locator('.cxd-Page-select, .cxd-Crud-toolbar .cxd-Select').first();
-    if (await sizeSelect.isVisible().catch(() => false)) {
-      await sizeSelect.click();
-      const opt100 = this.page.locator('.cxd-Select-option:visible').filter({ hasText: /^100$/ }).first();
-      const opt50 = this.page.locator('.cxd-Select-option:visible').filter({ hasText: /^50$/ }).first();
-      const opt = (await opt100.isVisible().catch(() => false)) ? opt100 : opt50;
-      if (await opt.isVisible().catch(() => false)) {
-        await opt.click();
-        await this.page.waitForLoadState('networkidle').catch(() => {});
-      } else {
-        await this.page.keyboard.press('Escape').catch(() => {});
-      }
-    }
-
-    const sortBtn = sortHeaderText
-      ? this.page
-          .locator('th', { hasText: sortHeaderText })
-          .locator('.cxd-Table-sortBtn, [class*="sort"]')
-          .first()
-      : null;
-    const next = this.page.locator('.cxd-Pagination-next').first();
+    await this.engine.setPageSize(this.page, 100);
 
     for (let i = 0; i < 4; i++) {
       const row = await this.findRowByText(text);
       if (row) return row;
 
-      if (sortBtn && i < 2 && (await sortBtn.isVisible().catch(() => false))) {
-        await sortBtn.click();
-        await this.page.waitForLoadState('networkidle').catch(() => {});
-        await this.page.waitForTimeout(600);
-        continue;
+      // 升序分页下新建行常在末页：先切降序（前两轮），再逐页向后翻
+      if (sortHeaderText && i < 2) {
+        await this.engine.sortByColumn(this.page, sortHeaderText);
+        const rowAfterSort = await this.findRowByText(text);
+        if (rowAfterSort) return rowAfterSort;
       }
 
-      if (await next.isVisible().catch(() => false)) {
-        const disabled = await next.getAttribute('class').then((c) => /disabled/.test(c ?? ''));
-        if (!disabled) {
-          await next.click();
-          await this.page.waitForLoadState('networkidle').catch(() => {});
-          await this.page.waitForTimeout(500);
-          continue;
-        }
+      const nextPage = i + 2;
+      if (!(await this.engine.goToPage(this.page, nextPage).catch(() => false))) {
+        // 无第 nextPage 页：已到末页，排序若还没试完则继续，否则终止
+        if (!sortHeaderText || i >= 2) break;
       }
-      await this.page.waitForTimeout(600);
+      await this.page.waitForTimeout(400);
     }
     return this.findRowByText(text);
   }

@@ -23,6 +23,13 @@ export interface EngineAdapter {
   searchButton(page: Page): Locator;
   refreshButton(page: Page): Locator;
 
+  /** 把每页条数设为指定值（amis 下拉 / flux 原生 select 由引擎实现分派） */
+  setPageSize(page: Page, size: number): Promise<void>;
+  /** 点击列头排序触发器（每次点击切换升/降序） */
+  sortByColumn(page: Page, headerText: string): Promise<void>;
+  /** 跳到第 n 页（1-based）；目标页不存在或控件不可用时返回 false */
+  goToPage(page: Page, n: number): Promise<boolean>;
+
   // 对话框 / 表单
   dialog(page: Page): Locator;
   drawer(page: Page): Locator;

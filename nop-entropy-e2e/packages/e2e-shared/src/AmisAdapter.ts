@@ -238,6 +238,45 @@ export class AmisAdapter implements EngineAdapter {
     return '';
   }
 
+  // ── 分页/排序（amis CRUD 结构，已在 job e2e 调试中实证） ──
+
+  async setPageSize(page: Page, size: number): Promise<void> {
+    const sizeSelect = page.locator('.cxd-Page-select, .cxd-Crud-toolbar .cxd-Select').first();
+    if (!(await sizeSelect.isVisible().catch(() => false))) return;
+    await sizeSelect.click();
+    const opt = page.locator('.cxd-Select-option:visible').filter({ hasText: new RegExp(`^${size}$`) }).first();
+    if (await opt.isVisible().catch(() => false)) {
+      await opt.click();
+      await page.waitForLoadState('networkidle').catch(() => {});
+    } else {
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+  }
+
+  async sortByColumn(page: Page, headerText: string): Promise<void> {
+    const sortBtn = page
+      .locator('th', { hasText: headerText })
+      .locator('.cxd-Table-sortBtn, [class*="sort"]')
+      .first();
+    if (await sortBtn.isVisible().catch(() => false)) {
+      await sortBtn.click();
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(600);
+    }
+  }
+
+  async goToPage(page: Page, n: number): Promise<boolean> {
+    const target = page.locator('.cxd-Pagination li, .cxd-Pagination button, .cxd-Pagination-item')
+      .filter({ hasText: new RegExp(`^${n}$`) }).first();
+    if (!(await target.isVisible().catch(() => false))) return false;
+    const cls = (await target.getAttribute('class')) ?? '';
+    if (/active|disabled/.test(cls)) return false;
+    await target.click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(500);
+    return true;
+  }
+
   // ── Tab 支持 ──
 
   async switchToTab(scope: Page | Locator, tabLabel: string): Promise<Locator> {
