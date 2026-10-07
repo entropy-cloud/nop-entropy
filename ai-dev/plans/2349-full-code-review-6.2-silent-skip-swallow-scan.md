@@ -48,20 +48,20 @@
 
 ### Phase 1 - 口径固化与四层裁定（4 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: `_tmp/fcr-4.1-catches.tsv` 裁定宇宙 + U-1～U-6 位点
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始；**前置门已满足：plan 2348 completed（2026-10-07）+ roadmap 6.1 done**
 - [x] 口径固化：①宇宙公式实算落盘 `_tmp/fcr-6.2-universe.json`（主 agent 脚本 `_tmp/fcr-6.2-freeze.py`：94 清单从 swallow.md §3 按 file:line 精确 join + 2 条粗体立案行显式并入 = 93 行认领〔欠覆盖安全方向〕；close-ignore 8 位点 TSV 行号折算后 5 ∈ 94、余 3；U-6 四行 B2A 全 free）——**终态宇宙：B1_free 76 + B2A_free 169（Agent 1a/1b）+ B2B 734（Agent 2）+ B2C 43 + C1 82 + close-ignore 3（Agent 3 =128）+ U-6 4 = 1111 行 + U-1～U-5 位点** ②裁定表模板落盘 ③QA 锚抽样脚本 `_tmp/fcr-6.2-qa-sample.py`（seed 2349，各层 min(40, 行数)，207 锚冻结 csv 确定性验证）④4.1 已立案 2 处（ToolSchemaConverter:19/ChatBiTypeConverter:88）防重裁标记（在 sampled94_rows 内）
-- [ ] Agent 1a「B1 全裁」：B1_EMPTY 未抽样余量逐处亲读（合法忽略需带注释或留证）
-- [ ] Agent 1b「B2A 全裁」：B2A_IGNORE 未抽样余量逐处亲读（扣除 U-6 四行与 close-ignore 交集后清单）
-- [ ] Agent 2「B2B 734 全量批读」：261 文件聚类按批亲读 catch 体 ±5 行逐行裁定（分批落盘防截断；SocketClient:150 带 P3-3.9-014 防重复标记；4 处 duplicated-adjacent 域命中标"已裁定归属"）
-- [ ] Agent 3「130 速裁 + U×6 承接」：B2C 43 + C1 82 + close-ignore 5 全量速裁 + U-1～U-6 位点现状核验（4.1 建议三选一终裁建议；U-6 四行本层终裁）
-- [ ] 主 agent 抽查质量：裁定抽验 ≥12 条独立复判 + 层间边界抽验（宇宙清单 vs 各 agent 实裁行数对账）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-6.2-swallow-audit.md`（四 agent 分节）+ 宇宙清单 + QA 锚冻结表
+- [x] Agent 1a「B1 全裁」：B1_EMPTY 余量 76 行逐处亲读（63 合法/13 违规全 P3——形式缺口一行注释级；A1a-01 XLangDebuggerRunner:128〔nop-idea-plugin〕吞 ProcessCanceledException 为唯一真实行为偏离）→ `_tmp/fcr-6.2-swallow-a1a.md`
+- [x] Agent 1b「B2A 全裁」：B2A_IGNORE 余量 169 行逐处亲读（164 合法/5 违规——A1b-01 P2 ArgumentCleanupStage:93+ArgumentValueCoercionStage:88 同源对〔4.1 维度09-20 同族〕/A1b-03 P2 JqBuiltins:1683〔nop-jq〕recurse(f) 吞输出上限守卫/A1b-02 P3 ShellCommandExecutor:630；1 条 ToolSchemaConverterInline:29 归并 4.1 已立案）→ `_tmp/fcr-6.2-swallow-a1b.md`
+- [x] Agent 2「B2B 734 全量批读」：261 文件 734 位点全量亲读（**732 合法/1 违规 P3 SetActiveTagsExecutor:79 设置标签静默反转清空/1 撞车归属 SocketClient:150→P3-3.9-014**；验证 4.1 边界转换预判；XLangParser 119+EqlParser 110 位点 ANTLR 标准恢复 0 异常；覆盖自检缺失=0；5 个 dump 分批留档）→ `_tmp/fcr-6.2-swallow-a2.md`
+- [x] Agent 3「128 速裁 + U×6 承接」：B2C 43（34 合法/9 违规 P3）+ C1 82（**3 P2——AiFileTool:178/:195 canonical IOException 误报 ERR_MCP_PATH_ESCAPE 安全码、FileHelper:486 双重丢 cause**；7 scanner 误报/无实质损失；72 P3）+ close-ignore 3 合法（IoHelper 批量替换可行登记 R1.0）+ U×6 终裁（修复 3〔U-1/U-2/U-5——U-1 与 3.1 撞车核对为无〕/维持 2〔U-3 fail-closed 实证/U-4 契约保证〕/升级 1〔U-6 升 P3〕）→ `_tmp/fcr-6.2-swallow-a3.md`
+- [x] 主 agent 抽查质量：关键发现亲读 5/5 证实（A1a-01/A1b-01/A1b-03/A2-001/AiFileTool:178）+ 模块归属勘误 2 处（XLangDebuggerRunner 实为 nop-idea-plugin、JqBuiltins 实为 nop-jq）+ 宇宙对账（a1a 76/76 零差；a1b 169/169 全覆盖、10 行额外为证据上下文引用合法；a2 覆盖自检缺失=0）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项初判零 P0）
+- [x] 产物 `_tmp/fcr-6.2-swallow-a1a/a1b/a2/a3.md`（四 agent 分报告）+ 宇宙清单 `_tmp/fcr-6.2-universe.json` + QA 锚冻结表 `_tmp/fcr-6.2-qa-anchors.csv`
 
 Exit Criteria:
 
