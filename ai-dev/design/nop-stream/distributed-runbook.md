@@ -32,6 +32,7 @@
 1. **预置共享存储**：创建共享 H2 库（首次自动建表）；若场景含 JDBC 2PC sink，先在共享库上预建数据表 + per-chain ledger 表（DDL 来自 sink 的 `getLedgerTableDDL()`/`initializeLedgerTable()`）。
 2. **先启 TM，后启 JC**：JC 启动时会等待 `expectedNodeIds` 内全部 TM 注册（超时 fail-fast）。每 TM：`TaskManagerMain nodeId=<id> jdbcUrl=<url> topicNamespace=<ns> ...`。
 3. **JC 启动**：`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1[,tm-2] [pipelineFactoryClass=<fqcn>] [fencingEpoch=<n>]`。
+   - **生产启动方式（WI1，plan 2328 起）**：入口类在 runtime main sources——直接 `java -cp <classpath> ...` 或用启动脚本 `nop-stream-runtime/src/main/scripts/nop-stream-cluster.sh taskmanager|coordinator ...`（classpath 自动装配，`NOP_STREAM_EXTRA_CLASSPATH` 追加 JDBC 驱动 jar，`jdbcDriver=` 指定驱动类；详见 `docs-for-ai/03-modules/nop-stream.md` 运维手册首注）。测试演练经 `MiniStreamCluster` spawn（classpath = surefire 测试类路径，带 `-Dnop.core.initialize.max-initialize-level=4500` cap；脚本生产启动为满级初始化——该路径由 plan 2328 的 compile-classpath 冒烟验证）。
    - `pipelineFactoryClass`（item 14 起支持）：场景管线工厂——供给真实管线（XDSL 声明 + 可序列化 bean + checkpoint 调优 + `RemotePipelineSpec`）。**不设置时保持 Stage 42 trivial 空管线基线**（能力测试用途）。工厂构建失败即 fail-fast，**不会回落到 trivial 管线**（防止静默部署错误管线）。
    - 恢复语义：JC 启动时若 checkpoint 目录已有 durable checkpoint，自动恢复最新视图并把 checkpoint id counter 推进到其后（防止重启后发放低位 epoch id——shadow-window 问题 P0-03）。
    - 周期 checkpoint：工厂给了正 interval 时，launch 路径启动 `JobCoordinator.startPeriodicCheckpoints(interval)`（触发 + barrier 全节点扇出一体；周期触发的唯一生产驱动就是该循环——CheckpointCoordinator 自身不自带周期调度）。

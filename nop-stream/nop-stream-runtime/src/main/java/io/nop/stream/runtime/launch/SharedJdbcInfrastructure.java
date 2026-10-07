@@ -18,11 +18,14 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
  * Stage 42 Phase 1: builds the shared JDBC infrastructure (one
  * {@link DataSource} + one {@link IJdbcTemplate}) from a {@link ClusterLaunchConfig}.
  * Both {@link TaskManagerMain} and {@link JobCoordinatorMain} use this so they
- * connect to the same H2 {@code AUTO_SERVER=TRUE} database.
+ * connect to the same backing database.
  *
- * <p>The {@code AUTO_SERVER=TRUE} H2 feature lets multiple JVMs on the same machine
- * share one file-based DB without a separate TCP server process — exactly what the
- * Stage 42 same-machine multi-JVM test needs.
+ * <p>The historical default driver is H2 in {@code AUTO_SERVER=TRUE} mode (file-based,
+ * multi-process accessible on the same machine), which lets multiple JVMs on one
+ * machine share a file-based DB without a separate TCP server process. WI1 (plan
+ * 2328) made the driver configurable via {@code jdbcDriver} for production launches
+ * against MySQL/PostgreSQL — the driver class is loaded by Hikari at pool start and
+ * fails fast when the driver jar is absent from the process classpath.
  */
 public final class SharedJdbcInfrastructure implements AutoCloseable {
 
@@ -30,15 +33,26 @@ public final class SharedJdbcInfrastructure implements AutoCloseable {
     private final IJdbcTemplate jdbcTemplate;
 
     public SharedJdbcInfrastructure(ClusterLaunchConfig config) {
-        this.dataSource = new HikariDataSource();
-        this.dataSource.setDriverClassName("org.h2.Driver");
-        this.dataSource.setJdbcUrl(config.require(ClusterLaunchConfig.KEY_JDBC_URL));
-        this.dataSource.setUsername(config.get(ClusterLaunchConfig.KEY_JDBC_USER, "sa"));
-        this.dataSource.setPassword(config.get(ClusterLaunchConfig.KEY_JDBC_PASSWORD, ""));
-        this.dataSource.setMaximumPoolSize(4);
+        this.dataSource = buildDataSource(config);
 
         JdbcFactory factory = new JdbcFactory();
         this.jdbcTemplate = factory.newJdbcTemplate(factory.newTransactionTemplate(dataSource));
+    }
+
+    /**
+     * Builds the Hikari pool configuration from the launch config. Package-private
+     * static so the wiring test can pin the {@code jdbcDriver} forwarding without
+     * starting a pool (which would probe a connection and drag in dialect
+     * resolution — unavailable in a capped-initialization test JVM).
+     */
+    static HikariDataSource buildDataSource(ClusterLaunchConfig config) {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setDriverClassName(config.get(ClusterLaunchConfig.KEY_JDBC_DRIVER, "org.h2.Driver"));
+        ds.setJdbcUrl(config.require(ClusterLaunchConfig.KEY_JDBC_URL));
+        ds.setUsername(config.get(ClusterLaunchConfig.KEY_JDBC_USER, "sa"));
+        ds.setPassword(config.get(ClusterLaunchConfig.KEY_JDBC_PASSWORD, ""));
+        ds.setMaximumPoolSize(4);
+        return ds;
     }
 
     public SharedJdbcInfrastructure(HikariDataSource dataSource, IJdbcTemplate jdbcTemplate) {

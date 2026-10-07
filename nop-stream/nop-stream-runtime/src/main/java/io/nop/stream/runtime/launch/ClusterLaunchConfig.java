@@ -31,6 +31,14 @@ public final class ClusterLaunchConfig {
     public static final String KEY_JDBC_URL = "jdbcUrl";
     public static final String KEY_JDBC_USER = "jdbcUser";
     public static final String KEY_JDBC_PASSWORD = "jdbcPassword";
+    /**
+     * WI1 (plan 2328): JDBC driver class name handed to the Hikari pool by
+     * {@link SharedJdbcInfrastructure}. Default {@code org.h2.Driver} preserves the
+     * historical single-machine behaviour; production launches against MySQL/PG set
+     * this to their driver class (the driver jar itself must be on the process
+     * classpath — the runtime compile classpath ships no JDBC driver).
+     */
+    public static final String KEY_JDBC_DRIVER = "jdbcDriver";
     public static final String KEY_TOPIC_NAMESPACE = "topicNamespace";
     public static final String KEY_CAPACITY = "capacity";
     public static final String KEY_CHECKPOINT_BASE_DIR = "checkpointBaseDir";

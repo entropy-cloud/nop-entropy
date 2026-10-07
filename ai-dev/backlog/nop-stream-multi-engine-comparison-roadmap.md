@@ -50,7 +50,7 @@
 
 ### M1 — 生产化与连接器 P0 主线（各 WI 模块面不重叠，可并行）
 
-- [ ] WI1 生产进程入口 main-scope 化：`JobCoordinatorMain`/`TaskManagerMain` 从 src/test 迁 main sources + 打包/启动脚本 + runtime pom 注释矛盾（productization F-26，F-12 provided 作用域关注点随迁核对；closure 时回写 productization F 表销号）（Deliverable: main-scope 入口可独立启动集群 + 启动文档；deps: 无；Item Type: Feature + Proof）
+- [x] WI1 生产进程入口 main-scope 化：`JobCoordinatorMain`/`TaskManagerMain` 从 src/test 迁 main sources + 打包/启动脚本 + runtime pom 注释矛盾（productization F-26，F-12 provided 作用域关注点随迁核对；closure 时回写 productization F 表销号）（Deliverable: main-scope 入口可独立启动集群 + 启动文档；deps: 无；Item Type: Feature + Proof）
 - [ ] WI2 连接器 API 两代归一迁移波次：按 WI0 裁定范围把存量 legacy source（message/debezium-cdc/batch-loader）迁 FLIP-27 `Source/SplitEnumerator/SourceReader`；debezium B 层表路由已裁定例外的撤销或迁移由 WI0 裁定（Deliverable: 迁移完成或显式剩余冻结清单 + 能力矩阵回归；deps: WI0；Item Type: Feature）
 - [ ] WI3 Kafka 原生 exactly-once 连接器：source offset 入 checkpoint（REPLAYABLE）+ 事务/幂等 sink（复用 epoch 2PC 或 ledger 幂等），与 nop-message-kafka at-least-once 通道的适用边界写入 owner doc（Deliverable: 新连接器模块 + SPI 工厂 + kill-recover E2E 零重复；deps: WI0；Item Type: Feature）
 - [ ] WI4 连接器工程化增强：registry 成熟度分级（实验/生产）+ OptionRule 式参数声明（类型/必填/敏感/校验规则进 XDSL 配置校验）+ conf-validate 增 dry-run sample 数据采样档（Deliverable: 分级与参数规则落 registry 描述符 + 校验器 + 文档；deps: 无；Item Type: Feature）
