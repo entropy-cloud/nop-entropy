@@ -10,7 +10,7 @@ export class TaskPO extends CrudListPage {
   async goto(): Promise<void> {
     await this.page.goto(`#/NopJobTask-main`);
     await this.page.waitForLoadState('networkidle');
-    await this.waitForList();
+    await this.waitForListWithReload();
   }
 
   async clickSave(): Promise<void> {

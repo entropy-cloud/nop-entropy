@@ -32,7 +32,7 @@ export class SchedulePO extends CrudListPage {
   async goto(): Promise<void> {
     await this.page.goto(`#/NopJobSchedule-main`);
     await this.page.waitForLoadState('networkidle');
-    await this.waitForList();
+    await this.waitForListWithReload();
   }
 
   async clickSave(): Promise<void> {
@@ -117,56 +117,6 @@ export class SchedulePO extends CrudListPage {
     return dialog.getField(fieldName);
   }
 
-
-  /**
-   * 尝试点击行操作确认框的确认按钮。确认框由宿主 shell 的 alert-dialog 渲染（按钮为
-   * 取消/确认），portal 无状态标记且历史 portal 会残留 DOM——定位 portal 内"可见且
-   * 文本恰为确认/确定"的按钮；点击后未随框消失则报错。
-   * @returns 确认框是否出现过（未出现 = 行操作没有生效，由调用方决定重试）
-   */
-  private async tryClickConfirm(): Promise<boolean> {
-    // 历史确认框 portal 会残留 DOM 且 DOM 顺序在前——取最后一个（最新挂载）的确认按钮
-    const btn = this.page
-      .locator('[data-slot="alert-dialog-portal"] button:visible')
-      .filter({ hasText: /^(确认|确定)$/ })
-      .last();
-    const appeared = await btn.waitFor({ state: 'visible', timeout: 5_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!appeared) return false;
-
-    // 首次点击可能落在 amis 重渲染窗口期被吞掉——点击后验证框已消失，未消失则重试
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await btn.click();
-      const closed = await btn.waitFor({ state: 'hidden', timeout: 5_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (closed) return true;
-      await this.page.waitForTimeout(500);
-    }
-    throw new Error('行操作确认框点击后未关闭');
-  }
-
-  /**
-   * 行操作 + 确认框的整体封装。下拉菜单项点击偶发落空（菜单关闭时指针下的元素已
-   * 更替），此时确认框不会出现——整体重试行操作而不是静默放行，否则状态迁移没有
-   * 发生，后续断言/轮询只会收到难以定位的超时。
-   */
-  private async rowActionWithConfirm(rowIdentifier: string, actionNamePattern: RegExp): Promise<void> {
-    const row = await this.findRowByText(rowIdentifier);
-    if (!row) {
-      throw new Error('未找到行: ' + rowIdentifier);
-    }
-    for (let attempt = 0; attempt < 2; attempt++) {
-      await this.engine.rowAction(row, actionNamePattern);
-      if (await this.tryClickConfirm()) {
-        await this.waitForList();
-        return;
-      }
-      await this.page.waitForTimeout(800);
-    }
-    throw new Error('行操作未能触发确认框: ' + actionNamePattern);
-  }
 
   async triggerNow(rowIdentifier: string): Promise<void> {
     await this.rowActionWithConfirm(rowIdentifier, /立即触发/);

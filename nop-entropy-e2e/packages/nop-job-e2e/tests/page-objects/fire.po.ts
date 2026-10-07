@@ -10,7 +10,7 @@ export class FirePO extends CrudListPage {
   async goto(): Promise<void> {
     await this.page.goto(`#/NopJobFire-main`);
     await this.page.waitForLoadState('networkidle');
-    await this.waitForList();
+    await this.waitForListWithReload();
   }
 
   async clickSave(): Promise<void> {
@@ -58,23 +58,11 @@ export class FirePO extends CrudListPage {
   }
 
   async cancelFire(rowIdentifier: string): Promise<void> {
-    const row = await this.findRowByText(rowIdentifier);
-    if (row) {
-      await this.engine.rowAction(row, /取消触发/);
-    }
-    const confirmBtn = this.page.locator('button:has-text("确定"), button:has-text("确认")').first();
-    await confirmBtn.click();
-    await this.waitForList();
+    await this.rowActionWithConfirm(rowIdentifier, /取消触发/);
   }
 
   async rerunFire(rowIdentifier: string): Promise<void> {
-    const row = await this.findRowByText(rowIdentifier);
-    if (row) {
-      await this.engine.rowAction(row, /重跑触发/);
-    }
-    const confirmBtn = this.page.locator('button:has-text("确定"), button:has-text("确认")').first();
-    await confirmBtn.click();
-    await this.waitForList();
+    await this.rowActionWithConfirm(rowIdentifier, /重跑触发/);
   }
 
   async getRowCount(): Promise<number> {

@@ -30,7 +30,7 @@ export class UserPO extends CrudListPage {
   async goto(): Promise<void> {
     await this.page.goto(`#/NopAuthUser-main`);
     await this.page.waitForLoadState('networkidle');
-    await this.waitForList();
+    await this.waitForListWithReload();
   }
 
   async searchUser(userName: string): Promise<void> {
