@@ -34,16 +34,16 @@ export class SymbolSearchPO extends BasePage {
     const responsePromise = this.page
       .waitForResponse(
         (resp) =>
-          !!resp.request().postData()?.includes('findPage_symbols') ||
-          resp.url().includes('findPage_symbols'),
+          !!resp.request().postData()?.includes('searchSymbols') ||
+          resp.url().includes('searchSymbols'),
         { timeout: 15_000 },
       )
       .catch(async () => {
         // 首次提交（按钮点击）可能未触发查询——回车兜底重提交一次
         const retry = this.page.waitForResponse(
           (resp) =>
-            !!resp.request().postData()?.includes('findPage_symbols') ||
-            resp.url().includes('findPage_symbols'),
+            !!resp.request().postData()?.includes('searchSymbols') ||
+            resp.url().includes('searchSymbols'),
           { timeout: 15_000 },
         );
         await queryInput.press('Enter');
@@ -53,7 +53,8 @@ export class SymbolSearchPO extends BasePage {
     const response = await responsePromise;
 
     const json = await response.json();
-    return json?.data?.NopCodeSymbol__findPage_symbols;
+    // /r/ REST 信封 {status, code, msg, data: PageBean}——data 即分页结果本体
+    return json?.data;
   }
 
   /** 搜索按钮按引擎契约定位（flux 过滤表单按钮文本为「搜索」，限定主内容区），兜底回车提交 */

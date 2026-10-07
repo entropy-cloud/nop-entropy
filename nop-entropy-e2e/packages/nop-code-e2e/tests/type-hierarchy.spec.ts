@@ -11,7 +11,7 @@ const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../nop-code
 
 // dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
 async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
-  const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+  const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
     indexId: INDEX_ID, offset: 0, limit: 1,
   });
   if (existing.ok && (existing.data?.total ?? 0) > 0) return;
@@ -29,7 +29,7 @@ async function ensureIndexPrepared(request: import('@playwright/test').APIReques
   // 构建完成后轮询符号可见（orm 提交与查询可见性存在亚秒级延迟，上限 150s）
   for (let i = 0; i < 50; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+    const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
       indexId: INDEX_ID, offset: 0, limit: 1,
     });
     if (prepared.ok && (prepared.data?.total ?? 0) > 0) return;

@@ -11,7 +11,7 @@ const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../nop-code
 
 // dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
 async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
-  const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+  const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
     indexId: INDEX_ID, offset: 0, limit: 1,
   });
   if (existing.ok && (existing.data?.total ?? 0) > 0) return;
@@ -29,7 +29,7 @@ async function ensureIndexPrepared(request: import('@playwright/test').APIReques
   // 构建完成后轮询符号可见（orm 提交与查询可见性存在亚秒级延迟，上限 150s）
   for (let i = 0; i < 50; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+    const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
       indexId: INDEX_ID, offset: 0, limit: 1,
     });
     if (prepared.ok && (prepared.data?.total ?? 0) > 0) return;
@@ -48,7 +48,7 @@ test.describe('符号搜索', () => {
     const resp = await rpc<{
       total: number;
       items: { name: string; kind: string }[];
-    }>(request, 'NopCodeSymbol__findPage_symbols', {
+    }>(request, 'NopCodeSymbol__searchSymbols', {
       indexId: INDEX_ID,
       query: 'CodeIndex',
       offset: 0,
@@ -64,7 +64,7 @@ test.describe('符号搜索', () => {
     const resp = await rpc<{
       total: number;
       items: { name: string }[];
-    }>(request, 'NopCodeSymbol__findPage_symbols', {
+    }>(request, 'NopCodeSymbol__searchSymbols', {
       indexId: INDEX_ID,
       offset: 1,
       limit: 1,
@@ -83,15 +83,7 @@ test.describe('符号搜索', () => {
     await expect(page.locator('text=名称关键词').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  // 产品契约缺口（fixme，非测试缺陷）：
-  // flux/amis 通用 CRUD 管线当前无法驱动自定义 findPage_symbols 方法——
-  // ① resolver/amis graphqlArgs 的 stdOp 提取用 lastIndexOf('_') 把 NopCodeSymbol__findPage_symbols
-  //    误取为 "symbols"，注册表不中后透传/猜测壳层作用域键（pagination 等），后端报 unknown-operation-arg；
-  // ② 关键字是 String 型 biz 参数（@Name("query")），通用管线只能产出 QueryBean.filter 方言；
-  // ③ URL 上的 indexId 绑定在 /r/ 直发路径下不进参数。
-  // 两种渲染模式同样失败（amis getOperationName 同逻辑）。完整修复需前端 stdOp 前缀匹配 + 后端
-  // 方法改 QueryBean 方言（涉及壳层重建与 API 签名变更），待产品决策——届时去掉 .fixme 即恢复全部断言。
-  test.fixme('浏览器: 输入关键词搜索并验证表格结果', async ({ page, engine }) => {
+  test('浏览器: 输入关键词搜索并验证表格结果', async ({ page, engine }) => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
@@ -104,7 +96,7 @@ test.describe('符号搜索', () => {
     await symbolPO.assertTableHasData();
   });
 
-  test.fixme('浏览器: 查看符号详情', async ({ page, engine }) => {
+  test('浏览器: 查看符号详情', async ({ page, engine }) => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
