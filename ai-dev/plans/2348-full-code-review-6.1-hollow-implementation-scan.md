@@ -1,6 +1,6 @@
 # 2348 full-code-review 6.1 空壳实现全仓扫描
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.1（MA6）；Skill=`ai-dev/skills/deep-audit-prompts.md` + `ai-dev/tools/scan-hollow-implementations.mjs`
 > Related: Roadmap Details：「全仓空壳扫描 + 抽样确认（区分在建模块的合法空壳如 nop-lint-nop 与违规空壳；nop-jq 已于 2026-09-28 建成并独立成组，不再是空壳例证）」；关联 6.2（静默跳过/吞异常——空 catch 域归 6.2，本项不重扫）。
@@ -60,7 +60,7 @@ Targets: 产品 src/main/java 全仓
 - [x] 口径固化：scanner 重跑（`--severity low --format json`，输出绑定 `_tmp/fcr-6.1-hollow-full2.json`）+ 与修正后基线核对（13/47/29/2424/645/1151/44/0 精确吻合）+ 产品过滤规则写死 + **抽样脚本落盘 `_tmp/fcr-6.1-sample.py`**（六要素齐备：RNG=python3 `random.Random(seed=2348)`；seed=2348；单位=唯一 file:line；分层=路径片段匹配；比率=五模块 ×2 其余 ×1 无零配额碎片层；产出=冻结抽样表 csv 三份 240 条，确定性重放验证通过）
 - [x] Agent 1「high+P1:medium 全裁 + P1:low 快裁」：60 条全裁（b×47/c×9/d×4——**a 类违规 0 条**）+ P1:low 29 条快裁（29/29 亲读全 b）→ `_tmp/fcr-6.1-hollow-a1.md`；防翻案对照 3.8/3.9/nop-ai arm 全部一致
 - [x] Agent 2「P2b+P6 抽样」：180/180 逐条裁定（a×1〔P3 ParseTreeFormatter 空壳类〕/b×120/c×12/d×47），零执行偏差 → `_tmp/fcr-6.1-hollow-a2.md`；口径校准：P6 实为 stub/mock/dummy/temp/placeholder/template 名称子串模式（78% 误命中）登记 scanner 改进建议
-- [x] Agent 3「P8+P4+合法空壳」：P8 60/60（0 违规；口径偏差登记——P8 冻结定义实为 continue 跳过循环体）+ P4 44 全量速裁（format 30 对 4.4 台账 + 1 口径差新裁 + 5 条 4.4 在案未被扫描器收录；dev-tools 8 c + 2 新裁；散项 3 新裁）+ 在建空壳盘点（66 个 main java ≤2 模块全数合法定位，既有终裁 3 件对上）→ `_tmp/fcr-6.1-hollow-a3.md`，新登记 [A3-01] P2 Pulsar seekToPosition 空方法体静默忽略 seek 配置 / [A3-02][A3-03][A3-04] P3
+- [x] Agent 3「P8+P4+合法空壳」：P8 60/60（0 违规；口径偏差登记——P8 冻结定义实为 continue 跳过循环体）+ P4 44 全量速裁（format 30 对 4.4 台账 + 1 口径差新裁 + 5 条 4.4 在案未被扫描器收录；dev-tools 8 c + 2 新裁；散项 3 新裁）+ 在建空壳盘点（66 个 main java ≤2 模块全数合法定位，既有终裁 3 件对上）→ `_tmp/fcr-6.1-hollow-a3.md`，新登记 [A3-01] P2 Pulsar seekToPosition 空方法体静默忽略 seek 配置 / [A3-02][A3-03][A3-04] P3 **〔closure audit R3 勘误：盘点计数 66→69（48×1+21×2；a3 自身分组枚举 19+9+29+11+1 逐模块实为 69，初稿"66/19+10+29+8"与其枚举不符）——定性结论不变，正式面数字以 69 为准〕**
 - [x] 主 agent 抽查质量：裁定抽验 10 条独立复判全部证实（A3-01 空方法体+TODO 亲读/A2-01 整类 null 亲读/TdMessageService·GeometryTypeHandler·DynCountArrayBinaryCodec c 类注解亲读/credential UOE 族 javadoc+英文声明亲读/ILoginService No-Silent-No-Op javadoc 亲读/ProxyCell cloneInstance 亲读/P6 temperature 子串误命中实证/P8 continue 误命中实证）+ 抽样脚本确定性重放（run2≡run3）
 - [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
 - [x] 产物 `_tmp/fcr-6.1-hollow-audit.md`（三 agent 分节：a1/a2/a3）+ `_tmp/fcr-6.1-sample.py` + 冻结抽样表
@@ -91,34 +91,34 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: in progress
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.1-hollow-implementation-scan.md`；index 登记 6.1 行 + P1 汇总行（如有）+ P2 裁决台账行（如开辟例外）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：抽样口径重放由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——**报告判定完成前不预设 roadmap 翻 done，杜绝 5.3 顺序偏差复发**）；通过后 roadmap 6.1 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `6.1-hollow-implementation-scan.md`；index 登记 6.1 行 + P1 汇总行（如有）+ P2 裁决台账行（如开辟例外）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0——closure audit 终裁确认）
+- [x] 定向验证锚点：抽样口径重放由复核员独立执行（SHA-256 逐字节一致 + 产品计数八值吻合）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——首轮 FAIL 附处方 R1-R3〔覆盖度量 389→373 算术/§三 台账行级归属错行/盘点计数 66→69〕，处方落实后轻量复核转 PASS）；通过后 roadmap 6.1 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 抽样口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：本项即该工具的全仓审计执行本身，无新增产品代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 抽样口径可复现（复核员重放一致——SHA-256 逐字节）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：本项即该工具的全仓审计执行本身，无新增产品代码
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且四层裁定全覆盖——覆盖度量：high+P1:medium 100%（60 条）+ P1:low 29 快裁 + 抽样 ≥240 条 + 合法空壳清单
-- [ ] 每条违规发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.1 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且四层裁定全覆盖——覆盖度量：high+P1:medium 100%（60 条）+ P1:low 29 快裁 + 抽样 240 条 + P4 44 全量（=373）+ 盘点附带观察 1 + 69 模块在建空壳盘点（closure audit R3 勘正后口径）
+- [x] 每条违规发现 file:line 可复现；判级依据共享前缀；误报校准留痕（closure audit R1-R3 勘误 3 处透明落实）
+- [x] index 计数与报告发现清单一一对应（5 条 = 0/0/1/4；P0/P1/P2 三台账节零新增正确）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done——5.3 教训修正落实；FAIL→处方 R1-R3 落实→轻量复核）
+- [x] roadmap 6.1 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项（scanner 口径校准三条 watch 不立案为显式裁定）
 
 ## Deferred But Adjudicated
 
@@ -130,14 +130,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 6.1 空壳实现全仓扫描收口。净发现 P2×1（Pulsar seekToPosition 配置静默失效，挂接 7.7/R1.0 与 4.4 M-03 同批）+ P3×4 + 线索 4 条；373 裁定样本扫描行违规仅 4 条、69 个在建空壳模块全数合法定位零意外——**平台空壳卫生度高正结论**。closure audit（agent_bc940723）首轮 FAIL 附处方 R1-R3（纯文本勘正：覆盖度量 389→373 算术、§三 台账行级归属错行〔P2b a=1/P6 a=0/P4 a=3〕、盘点计数 66→69〔a3 自身枚举逐模块实数〕）——实体裁定、判级、撞车处理、抽样确定性全部经受住审计（关键判定 4/4 亲读成立、15+ 路径全命中、九值计数精确吻合、SHA-256 一致）；处方落实后轻量复核 PASS。流程合规：本 audit 先于 roadmap 翻 done（5.3 教训修正落实）。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_bc940723-9301-4a39-8c1f-36f3c4b43ea8（fresh session，只读 closure auditor；VERDICT: FAIL（处方 R1-R3）→ 处方落实后轻量复核 PASS）
 - Evidence:
+  - 计数勾稽：5 条发现（0/0/1/4）↔ index 6.1 行 ↔ 复核净账 ↔ A3-01→P2-6.1-001/A2-01→P3-6.1-002/A3-02..04→P3-6.1-003..005 编号映射零漂移；P0 发现追踪/P1 汇总/P2 裁决台账三节零新增正确；线索 CL-1..4 来源可溯
+  - 关键判定亲读 4/4：P2-6.1-001（空方法体+seek 三字段公开面+KafkaConsumeTask:45 javadoc 逐字点名 Pulsar stub + :106-135 完整实现亲读）/P3-6.1-002（全仓七类文件 grep 仅声明自身）/P3-6.1-004（wc -l=699）/P3-6.1-005（servrer 包名实证+nop-ai 路径勘误成立）
+  - 引用路径 15+ 全命中（含 4.4 M-03 :103、2026-05-20 pulsar 审查 :174 发现 7 附注、1.2 P3-1.2-011、scanner P6/P8 正则源码行——口径校准记载双重证实）
+  - 覆盖度量算术：产品九值独立复算精确吻合、三 CSV SHA-256 一致、373=89+180+104 闭合；FAIL 三处（389/台账错行/66 vs 69）全部为文本勘正——R1/R2/R3 落实
+  - 验证：doc-links exit 0；check-plan-checklist --strict exit 0（见 commit 前 double --strict 记录）
+  - Anti-Hollow：本项即 hollow 扫描工具的全仓审计执行本身；验证锚 = 复核员 SHA-256 重放 + closure auditor 九值复算 + 亲读
+  - Deferred 项分类检查：无 deferred；P2×1+P3×4 进 R1.0 输入池（P2-6.1-001 挂接 7.7 对账；P3-6.1-002 归并 1.2 域 slice；003/004/005 watch）；线索 4 条登记去向；scanner 三模式校准为显式 watch 裁定非静默降级
+  - 流程合规：closure audit 先于 roadmap 翻 done——5.3 顺序偏差修正在本轮实际执行中落实（index 先标"closure audit 进行中"，PASS 后翻 done）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- no remaining plan-owned work（P2×1 挂接 7.7/R1.0 与 4.4 M-03 同批；P3-6.1-002 归并 1.2 域 P3-1.2-011 slice；线索 CL-2/CL-3 归 R1.0 微项、CL-4 scanner 改进归工具维护方；P3-6.1-003/004/005 watch）
