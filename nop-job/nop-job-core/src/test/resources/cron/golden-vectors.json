@@ -1,0 +1,781 @@
+{
+  "meta": {
+    "version": 1,
+    "created": "2026-10-07",
+    "authoritative": "nop-chaos-flux @ docs/components/cron-editor/golden-vectors.json",
+    "dialectAuthority": "nop-entropy io.nop.job.core.utils.CronExpression（TS 侧为移植，冲突时以 Java 为准修 TS）",
+    "consumers": {
+      "java": "nop-entropy nop-job-core src/test/resources/cron/golden-vectors.json（本文件副本，C2 落地；C7 哈希对账）",
+      "ts": "@nop-chaos/flux-renderers-form src/cron（相对路径直接 import 本文件，C4 落地）"
+    },
+    "conventions": {
+      "timezone": "全部 nextRun/repeat/range 用例固定 UTC；ISO-8601 形如 YYYY-MM-DDTHH:mm:ssZ",
+      "expectNext": "自 after 起迭代 nextRun/getTimeAfter 恰好 expectNext.length 次，结果必须逐条相等且严格递增；种子命中时引擎取严格晚于种子的下一时刻（+1s 语义）",
+      "exhausted": "向量节可选 expectExhaustedAfter：自该时刻再迭代一次必须返回终止（Java -1 / TS null）；expectNext 为空数组 = 种子后立即终止",
+      "countEpoch": "range.count 计数窗口自 range.start 起算（绝对语义，不随 after 重置）；start 缺省回退引擎纪元 1970-01-01T00:00:00Z",
+      "repeatAnchor": "repeat 过滤以引擎时区日历日计：fire 当地日期 >= anchor 且 (day 单位：整日差 mod every == 0；week 单位：floor(整日差/7) mod every == 0)；anchor 缺省回退 range.start",
+      "wRule": "W 就近工作日不跨月回退/前进（8 月 1 日周六 → 8 月 3 日周一）；周位单独 L = 周六（Quartz 语义）",
+      "asymmetry": "tsCode=impossible 且 javaValid=true 的条目：Java 构造期 BitSet 解析通过、运行期 runaway 异常；编辑器前置拦截（design §2.1），Java 端行为不变",
+      "fieldCountRule": "5 段输入主判码 fieldCount（5 段 Unix 方言整体不支持，见 design §2.1「不支持」节）"
+    }
+  },
+  "diagnosticCoverage": {
+    "fieldCount": ["DG-001", "DG-002", "DG-003", "DG-004"],
+    "badToken": ["DG-020", "DG-021", "DG-031", "VD-04"],
+    "outOfRange": [
+      "DG-005",
+      "DG-006",
+      "DG-007",
+      "DG-008",
+      "DG-009",
+      "DG-010",
+      "DG-022",
+      "DG-023",
+      "DG-029",
+      "VD-03",
+      "VD-06"
+    ],
+    "invertedRange": ["DG-011", "DG-012", "VD-05"],
+    "stepInvalid": ["DG-013", "DG-014"],
+    "questionMark": ["DG-015", "DG-016"],
+    "unsupportedToken": ["DG-017", "DG-018", "DG-019", "DG-030"],
+    "impossible": ["DG-024", "DG-025", "DG-026", "DG-027", "DG-028"],
+    "repeatAnchorMissing": ["VD-01"],
+    "rangeConflict": ["VD-02"]
+  },
+  "nextRun": [
+    {
+      "id": "NR-B01",
+      "category": "baseline-6",
+      "expr": "0 0 9 ? * MON-FRI",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": [
+        "2026-01-01T09:00:00Z",
+        "2026-01-02T09:00:00Z",
+        "2026-01-05T09:00:00Z",
+        "2026-01-06T09:00:00Z"
+      ]
+    },
+    {
+      "id": "NR-B02",
+      "category": "baseline-6",
+      "expr": "*/10 * * * * *",
+      "tz": "UTC",
+      "after": "2026-01-01T12:00:07Z",
+      "expectNext": ["2026-01-01T12:00:10Z", "2026-01-01T12:00:20Z", "2026-01-01T12:00:30Z"]
+    },
+    {
+      "id": "NR-B03",
+      "category": "baseline-6",
+      "expr": "*/10 * * * * *",
+      "tz": "UTC",
+      "after": "2026-01-01T12:00:00Z",
+      "expectNext": ["2026-01-01T12:00:10Z"]
+    },
+    {
+      "id": "NR-B04",
+      "category": "baseline-6",
+      "expr": "0 0/30 8-10 * * *",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-01T08:00:00Z", "2026-01-01T08:30:00Z", "2026-01-01T09:00:00Z"]
+    },
+    {
+      "id": "NR-B05",
+      "category": "baseline-6",
+      "expr": "0 0 6,19 * * *",
+      "tz": "UTC",
+      "after": "2026-01-01T07:00:00Z",
+      "expectNext": ["2026-01-01T19:00:00Z", "2026-01-02T06:00:00Z", "2026-01-02T19:00:00Z"]
+    },
+    {
+      "id": "NR-B06",
+      "category": "baseline-6",
+      "expr": "0 0 0 1 1 *",
+      "tz": "UTC",
+      "after": "2026-06-01T00:00:00Z",
+      "expectNext": ["2027-01-01T00:00:00Z", "2028-01-01T00:00:00Z"]
+    },
+    {
+      "id": "NR-B07",
+      "category": "baseline-6",
+      "expr": "0 0 0 29 2 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2028-02-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-B08",
+      "category": "baseline-6",
+      "expr": "0 0 0 29 2 ?",
+      "tz": "UTC",
+      "after": "2028-03-01T00:00:00Z",
+      "expectNext": ["2032-02-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-B09",
+      "category": "baseline-6",
+      "expr": "0 0 0 * * 0",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-04T00:00:00Z", "2026-01-11T00:00:00Z"]
+    },
+    {
+      "id": "NR-B10",
+      "category": "baseline-6",
+      "expr": "0 0 0 * * 7",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-04T00:00:00Z", "2026-01-11T00:00:00Z"]
+    },
+    {
+      "id": "NR-B11",
+      "category": "baseline-6",
+      "expr": "0 0 0 1 jan,mar *",
+      "tz": "UTC",
+      "after": "2026-01-15T00:00:00Z",
+      "expectNext": ["2026-03-01T00:00:00Z", "2027-01-01T00:00:00Z"]
+    },
+    {
+      "id": "NR-B12",
+      "category": "baseline-6",
+      "expr": "0 0 12 ? * sun",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-04T12:00:00Z", "2026-01-11T12:00:00Z"]
+    },
+    {
+      "id": "NR-B13",
+      "category": "baseline-6",
+      "expr": "0 30 9 15 3 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-03-15T09:30:00Z", "2027-03-15T09:30:00Z"]
+    },
+    {
+      "id": "NR-B14",
+      "category": "baseline-6",
+      "expr": "0 0 2/6 * * *",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-01T02:00:00Z", "2026-01-01T08:00:00Z", "2026-01-01T14:00:00Z"]
+    },
+    {
+      "id": "NR-B15",
+      "category": "baseline-6",
+      "expr": "0 0 23 28-31 * *",
+      "tz": "UTC",
+      "after": "2026-02-20T00:00:00Z",
+      "expectNext": ["2026-02-28T23:00:00Z", "2026-03-28T23:00:00Z", "2026-03-29T23:00:00Z"]
+    },
+    {
+      "id": "NR-B16",
+      "category": "baseline-6",
+      "expr": "0 0 0 13 * FRI",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-02-13T00:00:00Z", "2026-03-13T00:00:00Z", "2026-11-13T00:00:00Z"]
+    },
+    {
+      "id": "NR-B17",
+      "category": "baseline-6",
+      "expr": "0  0  9  *  * *",
+      "tz": "UTC",
+      "after": "2026-01-02T00:00:00Z",
+      "expectNext": ["2026-01-02T09:00:00Z", "2026-01-03T09:00:00Z"]
+    },
+
+    {
+      "id": "NR-D01",
+      "category": "dynamic-day",
+      "expr": "0 0 0 L * ?",
+      "tz": "UTC",
+      "after": "2026-01-15T00:00:00Z",
+      "expectNext": ["2026-01-31T00:00:00Z", "2026-02-28T00:00:00Z", "2026-03-31T00:00:00Z"]
+    },
+    {
+      "id": "NR-D02",
+      "category": "dynamic-day",
+      "expr": "0 0 0 L 2 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-02-28T00:00:00Z"]
+    },
+    {
+      "id": "NR-D03",
+      "category": "dynamic-day",
+      "expr": "0 0 0 L 2 ?",
+      "tz": "UTC",
+      "after": "2028-01-01T00:00:00Z",
+      "expectNext": ["2028-02-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-D04",
+      "category": "dynamic-day",
+      "expr": "0 0 0 L-3 2 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-02-25T00:00:00Z"]
+    },
+    {
+      "id": "NR-D05",
+      "category": "dynamic-day",
+      "expr": "0 0 0 L-3 2 ?",
+      "tz": "UTC",
+      "after": "2028-01-01T00:00:00Z",
+      "expectNext": ["2028-02-26T00:00:00Z"]
+    },
+    {
+      "id": "NR-D06",
+      "category": "dynamic-day",
+      "expr": "0 0 0 1W 8 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-08-03T00:00:00Z"]
+    },
+    {
+      "id": "NR-D07",
+      "category": "dynamic-day",
+      "expr": "0 0 0 31W 5 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-05-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-D08",
+      "category": "dynamic-day",
+      "expr": "0 0 0 LW 2 ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-02-27T00:00:00Z"]
+    },
+    {
+      "id": "NR-D09",
+      "category": "dynamic-day",
+      "expr": "0 0 0 LW 2 ?",
+      "tz": "UTC",
+      "after": "2028-01-01T00:00:00Z",
+      "expectNext": ["2028-02-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-D10",
+      "category": "dynamic-day",
+      "expr": "0 0 0 LW 3 ?",
+      "tz": "UTC",
+      "after": "2029-01-01T00:00:00Z",
+      "expectNext": ["2029-03-30T00:00:00Z"]
+    },
+    {
+      "id": "NR-D11",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? * MON#1",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-05T00:00:00Z", "2026-02-02T00:00:00Z", "2026-03-02T00:00:00Z"]
+    },
+    {
+      "id": "NR-D12",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? * MON#3",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-19T00:00:00Z", "2026-02-16T00:00:00Z", "2026-03-16T00:00:00Z"]
+    },
+    {
+      "id": "NR-D13",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? * FRIL",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-30T00:00:00Z", "2026-02-27T00:00:00Z", "2026-03-27T00:00:00Z"]
+    },
+    {
+      "id": "NR-D14",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? 12 MONL",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-12-28T00:00:00Z"]
+    },
+    {
+      "id": "NR-D15",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? * L",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-03T00:00:00Z", "2026-01-10T00:00:00Z"]
+    },
+    {
+      "id": "NR-D16",
+      "category": "dynamic-day",
+      "expr": "0 0 0 ? * MON#5",
+      "tz": "UTC",
+      "after": "2026-02-01T00:00:00Z",
+      "expectNext": ["2026-03-30T00:00:00Z"]
+    },
+    {
+      "id": "NR-D17",
+      "category": "dynamic-day",
+      "expr": "0 0 12 L 12 ?",
+      "tz": "UTC",
+      "after": "2026-11-01T00:00:00Z",
+      "expectNext": ["2026-12-31T12:00:00Z"]
+    },
+    {
+      "id": "NR-D18",
+      "category": "dynamic-day",
+      "expr": "0 0 23 LW * ?",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-30T23:00:00Z", "2026-02-27T23:00:00Z", "2026-03-31T23:00:00Z"]
+    },
+
+    {
+      "id": "NR-Y01",
+      "category": "year-field",
+      "expr": "0 0 0 1 1 ? 2027",
+      "tz": "UTC",
+      "after": "2026-06-01T00:00:00Z",
+      "expectNext": ["2027-01-01T00:00:00Z"]
+    },
+    {
+      "id": "NR-Y02",
+      "category": "year-field",
+      "expr": "0 0 0 1 1 ? 2026-2030",
+      "tz": "UTC",
+      "after": "2026-06-01T00:00:00Z",
+      "expectNext": ["2027-01-01T00:00:00Z", "2028-01-01T00:00:00Z", "2029-01-01T00:00:00Z"]
+    },
+    {
+      "id": "NR-Y03",
+      "category": "year-field",
+      "expr": "0 0 0 1 1 ? 2026/2",
+      "tz": "UTC",
+      "after": "2026-06-01T00:00:00Z",
+      "expectNext": ["2028-01-01T00:00:00Z", "2030-01-01T00:00:00Z"]
+    },
+    {
+      "id": "NR-Y04",
+      "category": "year-field",
+      "expr": "0 0 0 29 2 ? 2028",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2028-02-29T00:00:00Z"]
+    },
+    {
+      "id": "NR-Y05",
+      "category": "year-field",
+      "expr": "0 0 0 LW 2 ? 2028",
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2028-02-29T00:00:00Z"]
+    }
+  ],
+  "diagnostics": [
+    {
+      "id": "DG-001",
+      "category": "fieldCount",
+      "expr": "0 0 12 * *",
+      "tsCode": "fieldCount",
+      "javaValid": false
+    },
+    {
+      "id": "DG-002",
+      "category": "fieldCount",
+      "expr": "0 0 12",
+      "tsCode": "fieldCount",
+      "javaValid": false
+    },
+    {
+      "id": "DG-003",
+      "category": "fieldCount",
+      "expr": "0 0 12 * * * * *",
+      "tsCode": "fieldCount",
+      "javaValid": false
+    },
+    {
+      "id": "DG-004",
+      "category": "fieldCount",
+      "expr": "",
+      "tsCode": "fieldCount",
+      "javaValid": false
+    },
+    {
+      "id": "DG-005",
+      "category": "outOfRange",
+      "expr": "61 0 0 * * *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-006",
+      "category": "outOfRange",
+      "expr": "0 60 0 * * *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-007",
+      "category": "outOfRange",
+      "expr": "0 0 24 * * *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-008",
+      "category": "outOfRange",
+      "expr": "0 0 0 0 * *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-009",
+      "category": "outOfRange",
+      "expr": "0 0 0 * 13 *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-010",
+      "category": "outOfRange",
+      "expr": "0 0 0 * * 8",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-011",
+      "category": "invertedRange",
+      "expr": "0 0 0 10-5 * *",
+      "tsCode": "invertedRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-012",
+      "category": "invertedRange",
+      "expr": "0 0 10-8 * * *",
+      "tsCode": "invertedRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-013",
+      "category": "stepInvalid",
+      "expr": "0 0 0 * * */0",
+      "tsCode": "stepInvalid",
+      "javaValid": false
+    },
+    {
+      "id": "DG-014",
+      "category": "stepInvalid",
+      "expr": "*/-5 * * * * *",
+      "tsCode": "stepInvalid",
+      "javaValid": false
+    },
+    {
+      "id": "DG-015",
+      "category": "questionMark",
+      "expr": "? 0 0 * * *",
+      "tsCode": "questionMark",
+      "javaValid": false
+    },
+    {
+      "id": "DG-016",
+      "category": "questionMark",
+      "expr": "0 0 0 * ? *",
+      "tsCode": "questionMark",
+      "javaValid": false
+    },
+    {
+      "id": "DG-017",
+      "category": "unsupportedToken",
+      "expr": "L 0 0 * * *",
+      "tsCode": "unsupportedToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-018",
+      "category": "unsupportedToken",
+      "expr": "0 0 0 1#2 * *",
+      "tsCode": "unsupportedToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-019",
+      "category": "unsupportedToken",
+      "expr": "@daily",
+      "tsCode": "unsupportedToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-020",
+      "category": "badToken",
+      "expr": "0 0 0 1 1 XZY *",
+      "tsCode": "badToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-021",
+      "category": "badToken",
+      "expr": "0 0 0 1 1 ? ABC",
+      "tsCode": "badToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-022",
+      "category": "outOfRange",
+      "expr": "0 0 0 1 1 ? 1899",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-023",
+      "category": "outOfRange",
+      "expr": "0 0 0 1 1 ? 2100",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-024",
+      "category": "impossible",
+      "expr": "0 0 0 30 2 ?",
+      "tsCode": "impossible",
+      "javaValid": true,
+      "javaNextRun": "runaway-error"
+    },
+    {
+      "id": "DG-025",
+      "category": "impossible",
+      "expr": "0 0 0 31 4 ?",
+      "tsCode": "impossible",
+      "javaValid": true,
+      "javaNextRun": "runaway-error"
+    },
+    {
+      "id": "DG-026",
+      "category": "impossible",
+      "expr": "0 0 0 ? * MON#6",
+      "tsCode": "impossible",
+      "javaValid": false
+    },
+    {
+      "id": "DG-027",
+      "category": "impossible",
+      "expr": "0 0 0 L-30 2 ?",
+      "tsCode": "impossible",
+      "javaValid": false
+    },
+    {
+      "id": "DG-028",
+      "category": "impossible",
+      "expr": "0 0 0 L-31 * ?",
+      "tsCode": "impossible",
+      "javaValid": false
+    },
+    {
+      "id": "DG-029",
+      "category": "outOfRange",
+      "expr": "0 0 0 32W * *",
+      "tsCode": "outOfRange",
+      "javaValid": false
+    },
+    {
+      "id": "DG-030",
+      "category": "unsupportedToken",
+      "expr": "0 0 0 15-20W * *",
+      "tsCode": "unsupportedToken",
+      "javaValid": false
+    },
+    {
+      "id": "DG-031",
+      "category": "badToken",
+      "expr": "0 0 0 1 XZY *",
+      "tsCode": "badToken",
+      "javaValid": false
+    }
+  ],
+  "valueDiagnostics": [
+    {
+      "id": "VD-01",
+      "category": "repeatAnchorMissing",
+      "value": { "cron": "0 0 9 * * ?", "repeat": { "every": 2, "unit": "day" } },
+      "tsCode": "repeatAnchorMissing",
+      "javaValidNote": "值对象级诊断，Java 侧不适用（cron 串本身合法）"
+    },
+    {
+      "id": "VD-02",
+      "category": "rangeConflict",
+      "value": {
+        "cron": "0 0 9 * * ?",
+        "range": { "start": "2026-01-01", "end": "2026-01-05", "count": 3 }
+      },
+      "tsCode": "rangeConflict",
+      "javaValidNote": "值对象级诊断，Java 侧不适用（cron 串本身合法）"
+    },
+    {
+      "id": "VD-03",
+      "category": "outOfRange",
+      "value": {
+        "cron": "0 0 9 * * ?",
+        "repeat": { "every": 0, "unit": "day", "anchor": "2026-01-01" }
+      },
+      "tsCode": "outOfRange"
+    },
+    {
+      "id": "VD-04",
+      "category": "badToken",
+      "value": {
+        "cron": "0 0 9 * * ?",
+        "repeat": { "every": 2, "unit": "month", "anchor": "2026-01-01" }
+      },
+      "tsCode": "badToken"
+    },
+    {
+      "id": "VD-05",
+      "category": "invertedRange",
+      "value": { "cron": "0 0 9 * * ?", "range": { "start": "2026-01-05", "end": "2026-01-01" } },
+      "tsCode": "invertedRange"
+    },
+    {
+      "id": "VD-06",
+      "category": "outOfRange",
+      "value": { "cron": "0 0 9 * * ?", "range": { "count": 0 } },
+      "tsCode": "outOfRange"
+    }
+  ],
+  "repeat": [
+    {
+      "id": "RP-01",
+      "category": "repeat-anchor",
+      "cron": "0 0 9 * * ?",
+      "repeat": { "every": 2, "unit": "day", "anchor": "2026-01-01" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-01T09:00:00Z", "2026-01-03T09:00:00Z", "2026-01-05T09:00:00Z"]
+    },
+    {
+      "id": "RP-02",
+      "category": "repeat-anchor",
+      "cron": "0 0 10 ? * MON",
+      "repeat": { "every": 2, "unit": "week", "anchor": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-05T00:00:00Z",
+      "expectNext": ["2026-01-05T10:00:00Z", "2026-01-19T10:00:00Z", "2026-02-02T10:00:00Z"]
+    },
+    {
+      "id": "RP-03",
+      "category": "repeat-anchor",
+      "cron": "0 0 8 * * ?",
+      "repeat": { "every": 3, "unit": "day", "anchor": "2026-06-01" },
+      "tz": "UTC",
+      "after": "2026-05-30T00:00:00Z",
+      "expectNext": ["2026-06-01T08:00:00Z", "2026-06-04T08:00:00Z"]
+    },
+    {
+      "id": "RP-04",
+      "category": "repeat-anchor",
+      "cron": "0 0 9 ? * WED",
+      "repeat": { "every": 2, "unit": "week", "anchor": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-07T09:00:00Z", "2026-01-21T09:00:00Z", "2026-02-04T09:00:00Z"]
+    },
+    {
+      "id": "RP-05",
+      "category": "repeat-anchor",
+      "cron": "0 0 9 * * ?",
+      "repeat": { "every": 2, "unit": "day", "anchor": "2026-01-30" },
+      "tz": "UTC",
+      "after": "2026-01-30T00:00:00Z",
+      "expectNext": ["2026-01-30T09:00:00Z", "2026-02-01T09:00:00Z", "2026-02-03T09:00:00Z"]
+    },
+    {
+      "id": "RP-06",
+      "category": "repeat-anchor",
+      "cron": "0 0 9 * * ?",
+      "repeat": { "every": 2, "unit": "day" },
+      "range": { "start": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-05T09:00:00Z", "2026-01-07T09:00:00Z", "2026-01-09T09:00:00Z"]
+    },
+    {
+      "id": "RP-07",
+      "category": "repeat-anchor",
+      "cron": "0 0 9 * * ?",
+      "repeat": { "every": 1, "unit": "week", "anchor": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-05T09:00:00Z", "2026-01-06T09:00:00Z", "2026-01-07T09:00:00Z"]
+    }
+  ],
+  "range": [
+    {
+      "id": "RG-01",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "start": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-05T09:00:00Z", "2026-01-06T09:00:00Z", "2026-01-07T09:00:00Z"]
+    },
+    {
+      "id": "RG-02",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "end": "2026-01-03" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-01T09:00:00Z", "2026-01-02T09:00:00Z", "2026-01-03T09:00:00Z"],
+      "expectExhaustedAfter": "2026-01-03T09:00:00Z"
+    },
+    {
+      "id": "RG-03",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "end": "2025-12-31" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": []
+    },
+    {
+      "id": "RG-04",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "start": "2026-01-01", "count": 3 },
+      "tz": "UTC",
+      "after": "2026-01-02T00:00:00Z",
+      "expectNext": ["2026-01-02T09:00:00Z", "2026-01-03T09:00:00Z"],
+      "expectExhaustedAfter": "2026-01-03T09:00:00Z"
+    },
+    {
+      "id": "RG-05",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "start": "2026-01-05", "end": "2026-01-05" },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": ["2026-01-05T09:00:00Z"],
+      "expectExhaustedAfter": "2026-01-05T09:00:00Z"
+    },
+    {
+      "id": "RG-06",
+      "category": "range-truncate",
+      "cron": "0 0 10 ? * MON",
+      "repeat": { "every": 2, "unit": "week", "anchor": "2026-01-05" },
+      "range": { "count": 2 },
+      "tz": "UTC",
+      "after": "2026-01-05T00:00:00Z",
+      "expectNext": ["2026-01-05T10:00:00Z", "2026-01-19T10:00:00Z"],
+      "expectExhaustedAfter": "2026-01-19T10:00:00Z"
+    },
+    {
+      "id": "RG-07",
+      "category": "range-truncate",
+      "cron": "0 0 9 * * ?",
+      "range": { "count": 3 },
+      "tz": "UTC",
+      "after": "2026-01-01T00:00:00Z",
+      "expectNext": []
+    }
+  ]
+}
