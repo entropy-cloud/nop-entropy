@@ -92,7 +92,7 @@ Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.4-check-p0-verification.md`；index 登记 6.4 行（替换占位行）+ still-live 清单并入「P0 发现追踪」表（标定性质登记）或 P1 汇总（降级者）
+- [x] 编制 `6.4-check-p0-verification.md`；index 登记 6.4 行（替换占位行）+ still-live #3 降 P2 → P2 裁决例外台账 P2-6.4-001（F7 首用）+ #6a 纯引用 4.4 S-06 不双登记
 - [x] 定向验证锚点：标定抽验由复核员独立执行（11+补盲 6）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [x] 独立子 agent closure audit（六项：计数勾稽六方闭合/关键判定亲读 5 处/引用 14 处全命中/覆盖算术 95 tests 精确/文本一致/流程合规——首轮 FAIL 附处方 R1-R3 纯文本级，落实后轻量复核 PASS）；**通过后** roadmap 6.4 翻 `done`；plan 关闭（双 `--strict`）；commit
 
