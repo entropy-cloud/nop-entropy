@@ -54,30 +54,30 @@
 
 ### Phase 1 - 机械全量与深审抽样（3+1 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 26 个 `-api` 模块 + git 历史 + CHANGELOG.md
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
-- [ ] 机械全量 agent：四口径脚本化扫描（破坏性变更↔CHANGELOG 对照/幻影接口/版本健康/消费者声明卫生），26 模块台账落盘（允许分批产出，批次边界=口径）
-- [ ] Agent A：Tier A 5 模块深审（每模块 ≥3 条核对声明）
-- [ ] Agent B：Tier B 5 模块深审（含 rule/wf api.xml 与 live model 对照）
-- [ ] Agent C：Tier C 6 模块深审（含 datav 空壳裁决、plugin CHANGELOG 对照、http @Deprecated 面）
-- [ ] 主 agent 抽查质量：口径重放 ≥5 条（机械数字复算 + 深审声明抽验）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-5.3-api.md`
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
+- [x] 机械全量 agent：四口径脚本化扫描（破坏性变更↔CHANGELOG 对照/幻影接口/版本健康/消费者声明卫生），26 模块台账落盘（允许分批产出，批次边界=口径）
+- [x] Agent A：Tier A 5 模块深审（每模块 ≥3 条核对声明）
+- [x] Agent B：Tier B 5 模块深审（含 rule/wf api.xml 与 live model 对照）
+- [x] Agent C：Tier C 6 模块深审（含 datav 空壳裁决、plugin CHANGELOG 对照、http @Deprecated 面）
+- [x] 主 agent 抽查质量：口径重放 5/5 独立复算吻合（nop-code 1.0.0-SNAPSHOT 8 pom/WfChangeActorRequestBean propId=6 亲读/SessionFileReader 路径/IRpcStatusReporter 零引用/bom 幻影 5 条目行号）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-5.3-api.md`（拆分为 4 份：`fcr-5.3-api-mech.md` + `fcr-5.3-api-a/b/c.md`）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
-- [ ] 机械全量台账（26 模块 × 4 口径）+ 深审抽样台账（16 模块）落盘
-- [ ] No owner-doc update required（只读——发现归 R1.0 修复）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] 机械全量台账（26 模块 × 4 口径）+ 深审抽样台账（16 模块）落盘
+- [x] No owner-doc update required（只读——发现归 R1.0 修复）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: in progress
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
