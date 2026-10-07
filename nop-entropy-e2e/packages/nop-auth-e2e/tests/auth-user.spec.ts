@@ -114,7 +114,8 @@ test.describe('用户管理 - RPC', () => {
   });
 
   test('RPC: 读取用户详情', async ({ request }) => {
-    const data = makeUserData('getdetail', { email: 'test@example.com', phone: '13800000001' });
+    // 不经通用 CRUD 写 email/phone：W12 联系方式写拦截仅放行 admin（ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED）
+    const data = makeUserData('getdetail');
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
@@ -215,7 +216,8 @@ test.describe('用户管理 - 浏览器', () => {
 
   test('浏览器: 查看用户详情', async ({ request, page, engine }) => {
     await loginRpc(request);
-    const data = makeUserData('uiview', { email: 'view@test.com', phone: '13900000001' });
+    // 不经通用 CRUD 写 email/phone：W12 联系方式写拦截仅放行 admin（ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED）
+    const data = makeUserData('uiview');
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 

@@ -6,8 +6,8 @@ let cachedEngine: EngineAdapter | null = null;
 
 export function getEngineType(): EngineType {
   const raw = process.env.E2E_ENGINE;
-  if (raw === 'flux') return 'flux';
-  return 'amis';
+  if (raw === 'amis') return 'amis';
+  return 'flux';
 }
 
 export function createEngine(type?: EngineType): EngineAdapter {

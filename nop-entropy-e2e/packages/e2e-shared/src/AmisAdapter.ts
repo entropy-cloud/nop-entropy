@@ -44,12 +44,21 @@ export class AmisAdapter implements EngineAdapter {
     const moreButton = row.locator('button').filter({ hasText: /更多|More/ }).first();
     if (await moreButton.count().then((c) => c > 0)) {
       await moreButton.click();
-      await page.waitForTimeout(300);
-      // Menu items appear in a portal overlay outside the row
+      // 菜单项在 portal overlay 中异步渲染，固定等待会在菜单出现前点到空处静默失败
       const menuItem = page
         .locator('.cxd-DropDown-menuItem, .cxd-DropDown-menu > *')
         .filter({ hasText: actionNamePattern })
         .first();
+      try {
+        await menuItem.waitFor({ state: 'visible', timeout: 5_000 });
+      } catch {
+        // 菜单未弹出（点击被 overlay 吞掉）——Escape 收起可能残留的下拉后重开；
+        // 直接再点 moreButton 会把已展开的菜单切换为关闭
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(300);
+        await moreButton.click();
+        await menuItem.waitFor({ state: 'visible', timeout: 5_000 });
+      }
       await menuItem.click();
       return;
     }
@@ -105,10 +114,7 @@ export class AmisAdapter implements EngineAdapter {
     if (await formItem.count().then((c) => c > 0)) {
       const selectTrigger = formItem.locator('.cxd-Select').first();
       if (await selectTrigger.count().then((c) => c > 0)) {
-        await selectTrigger.click();
-        await page.waitForTimeout(300);
-        const option = page.locator('.cxd-Select-option').filter({ hasText: strValue }).first();
-        await option.click();
+        await this.selectAmisOption(page, selectTrigger, formItem, strValue);
         return;
       }
       // Native <select> inside form item
@@ -152,10 +158,7 @@ export class AmisAdapter implements EngineAdapter {
     if (await formItem.count().then((c) => c > 0)) {
       const selectTrigger = formItem.locator('.cxd-Select').first();
       if (await selectTrigger.count().then((c) => c > 0)) {
-        await selectTrigger.click();
-        await page.waitForTimeout(300);
-        const option = page.locator('.cxd-Select-option').filter({ hasText: optionText }).first();
-        await option.click();
+        await this.selectAmisOption(page, selectTrigger, formItem, optionText);
         return;
       }
       // Could be a native <select> inside the form item
@@ -170,6 +173,31 @@ export class AmisAdapter implements EngineAdapter {
     const nativeSelect = dialog.locator(`select[name="${fieldKey}"]`).first();
     if (await nativeSelect.count().then((c) => c > 0)) {
       await nativeSelect.selectOption({ label: optionText });
+    }
+  }
+
+  /**
+   * AMIS 下拉选择的健壮实现：字典选项经 GraphQL 异步加载，固定等待会在选项渲染前
+   * 点到空弹层、静默不选中，最终被必填校验挡住（对话框无法提交）。
+   * 这里等弹层真正出现、点选后校验 Select 值生效，未生效则重试一次。
+   */
+  private async selectAmisOption(page: Page, selectTrigger: Locator, formItem: Locator, optionText: string): Promise<void> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await selectTrigger.click();
+      const option = page.locator('.cxd-Select-option').filter({ hasText: optionText }).first();
+      try {
+        await option.waitFor({ state: 'visible', timeout: 5_000 });
+        await option.click();
+      } catch {
+        // 弹层未出现（选项加载慢或点击被 overlay 吞掉）——关闭后重试
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(300);
+        continue;
+      }
+      // 校验选中生效：Select 触发器文本应包含所选选项
+      const triggerText = (await selectTrigger.textContent()) ?? '';
+      if (triggerText.includes(optionText)) return;
+      await page.waitForTimeout(300);
     }
   }
 

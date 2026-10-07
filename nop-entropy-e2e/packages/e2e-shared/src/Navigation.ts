@@ -15,7 +15,8 @@ export interface LoginOptions {
  * 2. E2E_BASE_URL / BASE_URL / PLAYWRIGHT_BASE_URL env var
  *    （与 playwright.config 的 baseURL 解析一致，保证与测试 baseURL 同 origin，
  *      避免 localhost/127.0.0.1 差异导致 sessionStorage 认证状态隔离丢失）
- * 3. Default fallback
+ * 3. Default fallback '/' —— 相对路径按 playwright.config 的 use.baseURL 解析
+ *    （FRONTEND_DEV_MODE=true 时是 vite 4173，默认部署形态是后端托管的 SPA 静态资源）
  */
 function resolveBaseUrl(_page: PlaywrightPage, explicit?: string): string {
   if (explicit) return explicit;
@@ -23,7 +24,7 @@ function resolveBaseUrl(_page: PlaywrightPage, explicit?: string): string {
     process.env.E2E_BASE_URL ??
     process.env.BASE_URL ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    'http://localhost:4173'
+    '/'
   );
 }
 
@@ -48,12 +49,15 @@ export async function login(
   const password = opts.password ?? process.env.E2E_PASSWORD ?? '123';
 
   await page.goto(baseUrl);
+  // locale 持久化到 localStorage 但不在登录前 reload——reload 会重新引导应用，
+  // 引导完成前填写的登录表单会被随后的重渲染清空（提交空值、必填校验报错）。
+  // 壳层缺省语言即 zh-CN，本次会话文本断言不受影响；持久化值在后续整页加载时生效。
   await page.evaluate((key) => localStorage.setItem(key, 'zh-CN'), LOCALE_KEY);
-  await page.reload();
-  await page.waitForLoadState('networkidle');
 
   if (process.env.E2E_AUTH_MODE === 'rpc') {
-    const token = await loginRpc({ url: baseUrl }, username, password);
+    // baseUrl 可能是相对路径 '/'，loginRpc 在 Node 侧 fetch，需要绝对 origin
+    const origin = new URL(page.url()).origin;
+    const token = await loginRpc({ url: origin }, username, password);
     await page.evaluate((t) => localStorage.setItem('accessToken', t), token);
     await page.reload();
     await page.waitForLoadState('networkidle');
@@ -66,9 +70,34 @@ export async function login(
   const passwordInput = page.locator('input[name="password"], input[type="password"]').first();
 
   if (await usernameInput.isVisible()) {
-    await usernameInput.fill(username);
-    await passwordInput.fill(password);
-    await page.locator('button[type="submit"], button:has-text("登录")').click();
+    // 提交按钮必须与输入框同表单：页面可能存在多套（移动端/桌面端）登录表单，
+    // 裸 first() 会填 A 表单点 B 表单，B 的空值校验直接报错
+    const loginForm = page
+      .locator('form:has(input[name="username"]), form:has(input[type="password"])')
+      .first();
+    const submitBtn = loginForm
+      .locator('button[type="submit"], button:has-text("登录")')
+      .first();
+
+    // 表单可能在水合完成前被填写（受控组件重渲染会清空值）——填后校验、整体重试
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await usernameInput.fill(username);
+      await passwordInput.fill(password);
+      const filled =
+        (await usernameInput.inputValue()) === username &&
+        (await passwordInput.inputValue()) === password;
+      if (!filled) {
+        await page.waitForTimeout(800);
+        continue;
+      }
+      await submitBtn.click();
+      const ok = await waitForAuthenticated(page, 15_000).then(() => true).catch(() => false);
+      if (ok) {
+        await waitForMenuLoaded(page);
+        return;
+      }
+      await page.waitForTimeout(800);
+    }
     await waitForAuthenticated(page);
     await waitForMenuLoaded(page);
   }
@@ -83,7 +112,8 @@ async function waitForAuthenticated(page: PlaywrightPage, timeoutMs = 30_000): P
   await page.waitForFunction(
     () => {
       try {
-        const raw = sessionStorage.getItem('auth:v2');
+        // 壳层可能把会话写在 sessionStorage 或 localStorage（不同版本/渲染路径）
+        const raw = sessionStorage.getItem('auth:v2') ?? localStorage.getItem('auth:v2');
         if (!raw) return false;
         const parsed = JSON.parse(raw);
         return parsed?.state?.isAuthenticated === true;

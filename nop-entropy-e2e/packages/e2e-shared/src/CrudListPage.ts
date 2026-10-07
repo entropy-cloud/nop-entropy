@@ -107,7 +107,8 @@ export class CrudListPage extends BasePage {
       const refreshBtn = this.engine.refreshButton(this.page);
       const refreshVisible = await refreshBtn.isVisible().catch(() => false);
       if (refreshVisible) {
-        await refreshBtn.click();
+        // force：行操作下拉的 PopOver overlay 可能残留在 DOM 中拦截指针事件
+        await refreshBtn.click({ force: true });
       }
     }
     await this.page.waitForLoadState('networkidle').catch(() => {});
@@ -252,6 +253,66 @@ export class CrudListPage extends BasePage {
       if (text.trim() === value) return row;
     }
     return null;
+  }
+
+  /**
+   * 跨页定位目标行：刷新强制重查 → 每页条数调到最大 → （可选）点击排序表头切换
+   * 升降序 → 逐页向后翻。 amis CRUD 无业务字段过滤表单且默认升序分页时，新建行
+   * 通常落在末页。找不到返回 null（由调用方决定报错或重试）。
+   */
+  async findRowDeep(text: string, sortHeaderText?: string): Promise<Locator | null> {
+    // 建单后列表可能停留在旧查询结果——先点刷新强制重查
+    const refreshBtn = this.page.locator('[class*="fa-sync"]').first();
+    if (await refreshBtn.isVisible().catch(() => false)) {
+      await refreshBtn.click({ force: true });
+      await this.page.waitForLoadState('networkidle').catch(() => {});
+    }
+
+    const sizeSelect = this.page.locator('.cxd-Page-select, .cxd-Crud-toolbar .cxd-Select').first();
+    if (await sizeSelect.isVisible().catch(() => false)) {
+      await sizeSelect.click();
+      const opt100 = this.page.locator('.cxd-Select-option:visible').filter({ hasText: /^100$/ }).first();
+      const opt50 = this.page.locator('.cxd-Select-option:visible').filter({ hasText: /^50$/ }).first();
+      const opt = (await opt100.isVisible().catch(() => false)) ? opt100 : opt50;
+      if (await opt.isVisible().catch(() => false)) {
+        await opt.click();
+        await this.page.waitForLoadState('networkidle').catch(() => {});
+      } else {
+        await this.page.keyboard.press('Escape').catch(() => {});
+      }
+    }
+
+    const sortBtn = sortHeaderText
+      ? this.page
+          .locator('th', { hasText: sortHeaderText })
+          .locator('.cxd-Table-sortBtn, [class*="sort"]')
+          .first()
+      : null;
+    const next = this.page.locator('.cxd-Pagination-next').first();
+
+    for (let i = 0; i < 4; i++) {
+      const row = await this.findRowByText(text);
+      if (row) return row;
+
+      if (sortBtn && i < 2 && (await sortBtn.isVisible().catch(() => false))) {
+        await sortBtn.click();
+        await this.page.waitForLoadState('networkidle').catch(() => {});
+        await this.page.waitForTimeout(600);
+        continue;
+      }
+
+      if (await next.isVisible().catch(() => false)) {
+        const disabled = await next.getAttribute('class').then((c) => /disabled/.test(c ?? ''));
+        if (!disabled) {
+          await next.click();
+          await this.page.waitForLoadState('networkidle').catch(() => {});
+          await this.page.waitForTimeout(500);
+          continue;
+        }
+      }
+      await this.page.waitForTimeout(600);
+    }
+    return this.findRowByText(text);
   }
 
   async findRowByText(text: string): Promise<Locator | null> {

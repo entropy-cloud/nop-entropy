@@ -20,10 +20,21 @@ export class TaskPO extends CrudListPage {
   }
 
   async clickView(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /查看/);
+    // 触发批次/任务列表默认升序分页，新记录常在末页——跨页定位
+    const row = (await this.findRowByText(rowId)) ?? (await this.findRowDeep(rowId, '作业名'));
+    if (!row) {
+      throw new Error('未找到行: ' + rowId);
     }
+    await this.engine.rowAction(row, /查看/);
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  async clickViewByText(text: string): Promise<void> {
+    const row = (await this.findRowByText(text)) ?? (await this.findRowDeep(text, '作业名'));
+    if (!row) {
+      throw new Error('未找到行: ' + text);
+    }
+    await this.engine.rowAction(row, /查看/);
     await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
@@ -44,14 +55,11 @@ export class TaskPO extends CrudListPage {
   }
 
   async searchTask(jobFireId: string): Promise<void> {
-    const filterInput = this.page.locator('input[name^="filter_jobFireId"]').first();
-    const visible = await filterInput.isVisible().catch(() => false);
-    if (visible) {
-      await filterInput.clear();
-      await filterInput.fill(jobFireId);
+    // 任务表无过滤表单，且按 jobScheduleId 升序分页——跨页定位目标批次ID的行
+    const row = (await this.findRowByText(jobFireId)) ?? (await this.findRowDeep(jobFireId));
+    if (!row) {
+      throw new Error('搜索后未找到行: ' + jobFireId);
     }
-    await this.engine.addButton(this.page).click();
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async readField(fieldName: string): Promise<string> {

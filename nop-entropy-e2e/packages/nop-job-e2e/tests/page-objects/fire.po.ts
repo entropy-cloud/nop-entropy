@@ -20,10 +20,12 @@ export class FirePO extends CrudListPage {
   }
 
   async clickView(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /查看/);
+    // 触发批次/任务列表默认升序分页，新记录常在末页——跨页定位
+    const row = (await this.findRowByText(rowId)) ?? (await this.findRowDeep(rowId, '作业名'));
+    if (!row) {
+      throw new Error('未找到行: ' + rowId);
     }
+    await this.engine.rowAction(row, /查看/);
     await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
@@ -44,14 +46,10 @@ export class FirePO extends CrudListPage {
   }
 
   async searchFire(jobName: string): Promise<void> {
-    const filterInput = this.page.locator('input[name^="filter_jobName"]').first();
-    const visible = await filterInput.isVisible().catch(() => false);
-    if (visible) {
-      await filterInput.clear();
-      await filterInput.fill(jobName);
+    const row = await this.findRowDeep(jobName, '作业名');
+    if (!row) {
+      throw new Error('搜索后未找到行: ' + jobName);
     }
-    await this.engine.addButton(this.page).click();
-    await this.engine.table(this.page).waitFor({ state: 'visible' });
   }
 
   async readField(fieldName: string): Promise<string> {
