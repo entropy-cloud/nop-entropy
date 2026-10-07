@@ -1,6 +1,6 @@
 # 2331 WI6 DB 数据面生产者背压（credit 式分片限流）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI6（M1 P0 主线）+ 对比分析 P0-6/Hazelcast 对照行 + WI0 裁定记录 P0-6（DB 通道整形，非 A 类禁入面）
 > Related: `ai-dev/design/nop-stream/dataplane-transport-design.md`（D2 有界等待语义、send 侧表行数缺口留给本 WI）；WI16（DB backlog gauge 归属）
@@ -101,30 +101,30 @@ Exit Criteria:
 
 ### Phase 3 - closure audit 与提交
 
-Status: planned
+Status: completed
 Targets: roadmap WI6、plan 2331
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit；roadmap WI6 勾选；git commit
-- [ ] No owner-doc update required（Phase 2 已更新）
+- [x] 独立子 agent closure audit；roadmap WI6 勾选；git commit
+- [x] No owner-doc update required（Phase 2 已更新）
 
 Exit Criteria:
 
-- [ ] 独立 closure audit 通过且证据写入本 plan Closure 节
-- [ ] roadmap WI6 已勾选、提交完成
+- [x] 独立 closure audit 通过且证据写入本 plan Closure 节
+- [x] roadmap WI6 已勾选、提交完成
 
 ## Closure Gates
 
-- [ ] 门控语义齐备（锁外等待/typed 超时/关闭显式/同门 barrier 裁定）且 SysDao E2E 证明表深度受控
-- [ ] 默认关闭零回归（未配置 limit 的既有测试全绿）+ 构造兼容（benchmark 编译）
-- [ ] 模块边界不破坏（接口落 message-core；sys-dao/runtime 零新增依赖方向）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-sys/nop-sys-dao,nop-message/nop-message-core -am` 全绿
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-import-order.mjs` 受影响模块无新增违规
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-runtime --severity high` 与 `--module nop-sys/nop-sys-dao --severity high` 均退出码 0
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 门控语义齐备（锁外等待/typed 超时/关闭显式/同门 barrier 裁定）且 SysDao E2E 证明表深度受控
+- [x] 默认关闭零回归（未配置 limit 的既有测试全绿）+ 构造兼容（benchmark 编译）
+- [x] 模块边界不破坏（接口落 message-core；sys-dao/runtime 零新增依赖方向）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-sys/nop-sys-dao,nop-message/nop-message-core -am` 全绿
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-import-order.mjs` 受影响模块无新增违规
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-runtime --severity high` 与 `--module nop-sys/nop-sys-dao --severity high` 均退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -142,13 +142,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed:
+Status Note: WI6 完成：`ChannelBacklogProbe`（message-core，零新增依赖方向）+ SysDao COUNT 实现 + `RemoteResultPartition` 门控（锁外等待/本地自增记账/typed 超时/barrier 同门）+ builder 装配链（adapter 解包 + 系统 property + 诚实 no-op 日志 + backlog gauge）+ gated E2E 真后端端到端证明；默认关闭零回归，benchmark 构造兼容。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（closure 时填写）
+- Reviewer / Agent: 独立子 agent（fresh session，agent_b89aa99b-01e2-4135-9467-f3b8b57b681d）
+- Audit Session: agent_b89aa99b-01e2-4135-9467-f3b8b57b681d（REJECTED 轻度 4 项：M1 装配链证据（方案 a 补 TestBackpressureGateWiring 3/3 绿）/M2 悬空 javadoc 归还/L1 docs 用词/L2 提交卫生——修复后按审计员裁定免复审闭卷）
+- Evidence:
+  - A/B 全 PASS：接口归属零新增依赖（两 pom diff 空）、probe COUNT 实现（索引覆盖）、7 参重载 + 5 参保留（benchmark 用 5 参）、锁外等待（单测断言 close <2s）、typed 超时带三参、builder 解包、gauge holder 模式、E2E 实质断言（精确一次/落表计数/深度 ≤ limit+slack）
+  - C 工具：doc-links --strict exit 0；hollow 扫描 runtime+sys-dao 双 0；import-order 触及文件 0 违规（builder 2 条为 HEAD 既有）；TestRemoteResultPartitionBackpressureGate 审计独立重跑 6/6；TestBackpressureGateWiring 3/3
+  - D Anti-Hollow PASS：write → gateOnBacklog → probe.backlog → SysDao COUNT 全连通；E2E 数字断言非空跑
+  - E/F PASS：三裁定三处口径一致；FlowControlPolicy/EdgeConfig/xdef 零 diff
+  - 已知 flake（既有 watch-only）：TestBatchTaskCheckpoint（nop-batch-core，非 WI6 改动面）在本轮并行/顺序构建各触发一次，隔离 8/8 绿
+- Deferred 项分类检查：per-edge 配置（生成管线 plan-first）与心跳位点回传均为裁定性 Deferred，非缺陷降级
 
 Follow-up:
 
-- （closure 时填写）
+- per-edge 背压配置（xdef 声明面）——需求出现时另立 plan（Deferred 已裁定）
+- 消费位点心跳回传省查询（optimization candidate）
+- RemoteGraphExecutionPlanBuilder 的行内 FQN 与既有 import 乱序（HEAD 既有）——随下次触碰该文件时顺手收
