@@ -128,6 +128,26 @@ public class TaskManager implements IStreamTaskRpcService {
     static final int MAX_COMPLETED_TASKS = 1000;
     final ConcurrentHashMap<String, TaskResult> completedTasks;
 
+    /**
+     * WI14 (plan 2340): read-only keyed-state snapshot for one running subtask —
+     * the queryable-state-lite surface (no write-back, no cross-process read-RPC:
+     * the TM-hosted ops server reads in-process).
+     *
+     * @return the keyed state snapshot, or an empty snapshot when the task exists but
+     *         holds no keyed backend; typed error when the task is not running here
+     */
+    public io.nop.stream.core.common.state.backend.StateSnapshot keyedStateSnapshot(
+            String jobId, String vertexId, int subtaskIndex) {
+        String taskKey = taskKey(jobId, vertexId, subtaskIndex);
+        RunningTask task = runningTasks.get(taskKey);
+        if (task == null || task.invokable == null) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_NOT_FOUND)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME, taskKey);
+        }
+        return task.invokable.keyedStateSnapshot();
+    }
+
     /** The currently active fencing epoch for this node (updated on global recovery). */
     final AtomicLong currentFencingEpoch;
 

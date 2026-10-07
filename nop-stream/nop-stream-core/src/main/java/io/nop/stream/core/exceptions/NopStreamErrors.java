@@ -602,6 +602,15 @@ public interface NopStreamErrors {
      * that does not implement {@code CdcChangeAwareSink} — silently appending a
      * DELETE/UPDATE would corrupt the target. Fail fast with the sink type and kind.
      */
+    /**
+     * WI14 (plan 2340): a keyed-state query targeted a task that is not running on
+     * this node (the queryable-state-lite REST surface).
+     */
+    ErrorCode ERR_STREAM_TASK_NOT_FOUND =
+            define("nop.err.stream.task-not-found",
+                    "no running task {typeName} on this node",
+                    "typeName");
+
     ErrorCode ERR_STREAM_SINK_NOT_CHANGE_AWARE =
             define("nop.err.stream.sink-not-change-aware",
                     "sink type {typeName} cannot consume records with change kind {rowKind}: "
