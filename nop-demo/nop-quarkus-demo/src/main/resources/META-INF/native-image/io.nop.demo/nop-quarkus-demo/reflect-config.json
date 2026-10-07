@@ -89,6 +89,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.search.AiModelTextEmbedding"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "aggregateStreamToResponse",
@@ -382,6 +392,24 @@
       }
     ],
     "name": "io.nop.ai.core.service.DefaultChatLogger"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "scheduleRetry",
+        "parameterTypes": [
+          "long",
+          "java.lang.Runnable"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.service.EmbeddingServiceImpl"
   },
   {
     "allDeclaredConstructors": true,
@@ -949,6 +977,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.service.agent.OrmModelSwitchedMessageWriter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -1186,6 +1224,25 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.ai.service.entity.NopAiTodoBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "credentialProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.ai.service.infra.AiModelCredentialResolverImpl"
   },
   {
     "allDeclaredConstructors": true,
@@ -2220,6 +2277,10 @@
       },
       {
         "allowWrite": true,
+        "name": "loginAttemptStore"
+      },
+      {
+        "allowWrite": true,
         "name": "loginFailCache"
       },
       {
@@ -2246,7 +2307,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.core.login.ILoginAttemptStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.core.login.ILoginService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.LocalLoginAttemptStore"
   },
   {
     "allDeclaredConstructors": true,
@@ -2550,6 +2631,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthLoginAttempt"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthMfaChallenge"
   },
   {
@@ -2611,6 +2702,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthPosition"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthRateLimitCounter"
   },
   {
     "allDeclaredConstructors": true,
@@ -2835,6 +2936,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthLoginAttempt"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthMfaChallenge"
   },
   {
@@ -2926,6 +3042,21 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthPosition"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthRateLimitCounter"
   },
   {
     "allDeclaredConstructors": true,
@@ -3429,6 +3560,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthLoginAttemptBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthMfaChallengeBizModel"
   },
   {
@@ -3495,6 +3636,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthPositionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthRateLimitCounterBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -3738,6 +3889,10 @@
       },
       {
         "allowWrite": true,
+        "name": "sendCodeRateLimiter"
+      },
+      {
+        "allowWrite": true,
         "name": "smsCodeStore"
       },
       {
@@ -3775,6 +3930,14 @@
           "io.nop.biz.crud.EntityData",
           "io.nop.core.context.IServiceContext"
         ]
+      },
+      {
+        "name": "rateLimiter",
+        "parameterTypes": []
+      },
+      {
+        "name": "selfService",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.auth.service.entity.NopAuthUserBizModel"
@@ -3866,6 +4029,39 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "config"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.login.DbLoginAttemptStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.login.LoginAttemptStoreProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
         "name": "auditService"
       },
       {
@@ -3883,6 +4079,10 @@
       {
         "allowWrite": true,
         "name": "emailSender"
+      },
+      {
+        "allowWrite": true,
+        "name": "loginAttemptStore"
       },
       {
         "allowWrite": true,
@@ -3906,6 +4106,10 @@
       },
       {
         "allowWrite": true,
+        "name": "sendCodeRateLimiter"
+      },
+      {
+        "allowWrite": true,
         "name": "smsCodeStore"
       },
       {
@@ -3926,6 +4130,10 @@
       }
     ],
     "methods": [
+      {
+        "name": "attemptStore",
+        "parameterTypes": []
+      },
       {
         "name": "auditLogFail",
         "parameterTypes": [
@@ -3994,6 +4202,17 @@
         ]
       },
       {
+        "name": "completeLoginPort",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "io.nop.auth.api.messages.LoginRequest",
+          "java.util.Map",
+          "boolean",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
         "name": "completeMfaLogin",
         "parameterTypes": [
           "io.nop.auth.dao.entity.NopAuthUser",
@@ -4050,10 +4269,28 @@
         ]
       },
       {
+        "name": "incrementLoginFailCount",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "loadMfaSetting",
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "mfaCodeSender",
+        "parameterTypes": []
+      },
+      {
+        "name": "mfaFlow",
+        "parameterTypes": []
+      },
+      {
+        "name": "rateLimiter",
+        "parameterTypes": []
       },
       {
         "name": "saveSession",
@@ -4349,6 +4586,55 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.DbSendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.ISendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.SendCodeRateLimiterProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.service.sitemap.SiteCacheData"
@@ -4462,6 +4748,13 @@
         ]
       },
       {
+        "name": "checkByQueryNotExceedLimit",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkChildrenNotExistsWhenDelete",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -4497,6 +4790,13 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "checkMaxBatchSize",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection"
         ]
       },
       {
@@ -4724,6 +5024,12 @@
         "name": "getTreeEntityList",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
+        ]
+      },
+      {
+        "name": "getTreeEntityModel",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       },
       {
@@ -5025,6 +5331,14 @@
         "name": "buildBizObject",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "newBizObject",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.biz.model.BizModel",
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       }
     ],
@@ -6966,6 +7280,37 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "buildErrorCode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCause",
+        "parameterTypes": [
+          "java.sql.SQLException"
+        ]
+      },
+      {
+        "name": "translateByVendorCode",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SQL",
+          "java.lang.String",
+          "java.sql.SQLException"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.dialect.impl.DialectSQLExceptionTranslator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.dao.dialect.json.DefaultJsonTypeHandler"
   },
@@ -7359,6 +7704,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.jdbc.datasource.ReadWriteDataSourceInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "runWithConnection",
@@ -7391,6 +7746,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dao.metrics.DaoMetricsImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.shard.ConfigShardSelector"
   },
   {
     "allDeclaredConstructors": true,
@@ -9603,7 +9968,12 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "actionAuthNoCheckerWarned"
+      }
+    ],
     "methods": [
       {
         "name": "getExecutionInvoker",
@@ -10751,7 +11121,12 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "redeliveryExecutor"
+      }
+    ],
     "methods": [
       {
         "name": "handleMessageResult",
@@ -11005,6 +11380,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.dao.OrmDaoProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.eql.compile.OracleEqlAstTransformer"
   },
   {
     "allDeclaredConstructors": true,
@@ -14281,8 +14666,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "compactExtFieldHelper"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysCompactExtField",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
   },
   {

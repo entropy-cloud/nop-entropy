@@ -76,6 +76,43 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "appendHeaders",
+        "parameterTypes": [
+          "java.lang.StringBuilder"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.ApiMessage"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.ApiRequest"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.ApiResponse"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.api.core.beans.DictBean"
   },
@@ -156,6 +193,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.beans.TreeBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.beans.WebContentBean"
   },
   {
@@ -216,6 +263,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.beans.graphql.GraphQLNode"
   },
   {
@@ -227,6 +284,26 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.beans.graphql.GraphQLPageInfo"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.graphql.GraphQLRequestBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.graphql.GraphQLResponseBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -344,6 +421,16 @@
       }
     ],
     "name": "io.nop.api.core.exceptions.NopException"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.exceptions.NopScriptError"
   },
   {
     "allDeclaredConstructors": true,
@@ -483,6 +570,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.api.beans.NopAuthMfaCredentialOutputBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.api.messages.AccessCodeRequest"
   },
   {
@@ -543,6 +640,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.api.messages.MfaVerifyOperationRequest"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.api.messages.MfaVerifyRequest"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.api.messages.RefreshTokenRequest"
   },
   {
@@ -583,6 +700,46 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.api.messages.WebAuthnAssertion"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.api.messages.WebAuthnAttestation"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.api.messages.WebAuthnCreationOptions"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.api.messages.WebAuthnRequestOptions"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.core.filter.AuthFilterConfig"
   },
   {
@@ -600,6 +757,10 @@
           "java.lang.String",
           "io.nop.http.api.server.IHttpServerContext"
         ]
+      },
+      {
+        "name": "authCookieName",
+        "parameterTypes": []
       },
       {
         "name": "buildLoginUrlWithState",
@@ -733,6 +894,16 @@
     "fields": [],
     "methods": [
       {
+        "name": "ensureKeys",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getSignKey",
         "parameterTypes": []
       }
@@ -801,6 +972,10 @@
       },
       {
         "allowWrite": true,
+        "name": "loginAttemptStore"
+      },
+      {
+        "allowWrite": true,
         "name": "loginFailCache"
       },
       {
@@ -827,7 +1002,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.core.login.ILoginAttemptStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.core.login.ILoginService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.LocalLoginAttemptStore"
   },
   {
     "allDeclaredConstructors": true,
@@ -858,6 +1053,96 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.core.login.UserContextConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.EmailCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.EmailCodeStoreConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.LocalEmailCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.LocalMfaChallengeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.LocalSmsCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.MfaChallengeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.MfaChallengeStoreConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.SmsCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.mfa.store.SmsCodeStoreConfig"
   },
   {
     "allDeclaredConstructors": true,
@@ -944,7 +1229,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.core.totp.TOTPAuthenticator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthDept"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthEmailCode"
   },
   {
     "allDeclaredConstructors": true,
@@ -994,6 +1299,66 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthLoginAttempt"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthMfaChallenge"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthMfaCredential"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthMfaRecoveryCode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthMfaSetting"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthMfaTrustedDevice"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthOpLog"
   },
   {
@@ -1005,6 +1370,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthPosition"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthRateLimitCounter"
   },
   {
     "allDeclaredConstructors": true,
@@ -1044,6 +1419,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthRoleMfaPolicy"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthRoleResource"
   },
   {
@@ -1065,6 +1450,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthSite"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthSmsCode"
   },
   {
     "allDeclaredConstructors": true,
@@ -1120,6 +1515,21 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthDept"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthEmailCode"
   },
   {
     "allDeclaredConstructors": true,
@@ -1194,6 +1604,96 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthLoginAttempt"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthMfaChallenge"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthMfaCredential"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthMfaRecoveryCode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthMfaSetting"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthMfaTrustedDevice"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthOpLog"
   },
   {
@@ -1210,6 +1710,21 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthPosition"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthRateLimitCounter"
   },
   {
     "allDeclaredConstructors": true,
@@ -1269,6 +1784,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthRoleMfaPolicy"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthRoleResource"
   },
   {
@@ -1300,6 +1830,21 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthSite"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthSmsCode"
   },
   {
     "allDeclaredConstructors": true,
@@ -1458,7 +2003,35 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "emailCodeStore"
+      },
+      {
+        "allowWrite": true,
         "name": "loginService"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaChallengeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaFactorVerifier"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "webAuthnAuthenticator"
       }
     ],
     "methods": [
@@ -1466,6 +2039,12 @@
         "name": "buildLoginResult",
         "parameterTypes": [
           "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
+        "name": "extractClientIp",
+        "parameterTypes": [
+          "io.nop.core.context.IServiceContext"
         ]
       }
     ],
@@ -1502,7 +2081,104 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.biz.dto.MfaBindResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.biz.dto.MfaStatusResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.biz.dto.MfaWebauthnAddKeyBeginResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.biz.dto.MfaWebauthnBeginResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.biz.dto.TrustedDeviceInfo"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.ChannelBindServiceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.channel.UserChannelResolverImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "crudWriteDisabled",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.service.entity.MfaSensitiveTableBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthDeptBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthEmailCodeBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -1552,6 +2228,71 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthLoginAttemptBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthMfaChallengeBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthMfaCredentialBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthMfaRecoveryCodeBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthMfaSettingBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "trustedDeviceManager"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthMfaTrustedDeviceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthOpLogBizModel"
   },
   {
@@ -1563,6 +2304,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthPositionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthRateLimitCounterBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -1594,7 +2345,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "siteMapProvider"
+      }
+    ],
     "methods": [
       {
         "name": "checkAllowAssignRole",
@@ -1641,8 +2401,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "dataAuthChecker"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleDataAuth",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel"
   },
   {
@@ -1653,6 +2427,30 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthRoleMfaPolicyBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "siteMapProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRoleResource",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.auth.service.entity.NopAuthRoleResourceBizModel"
   },
   {
@@ -1683,6 +2481,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthSmsCodeBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthTenantBizModel"
   },
   {
@@ -1694,6 +2502,34 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "emailCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "emailSender"
+      },
+      {
+        "allowWrite": true,
+        "name": "loginService"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaChallengeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaFactorVerifier"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      },
+      {
+        "allowWrite": true,
         "name": "passwordEncoder"
       },
       {
@@ -1702,7 +2538,35 @@
       },
       {
         "allowWrite": true,
+        "name": "roleMfaPolicyEvaluator"
+      },
+      {
+        "allowWrite": true,
+        "name": "sendCodeRateLimiter"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsSender"
+      },
+      {
+        "allowWrite": true,
+        "name": "totpAuthenticator"
+      },
+      {
+        "allowWrite": true,
+        "name": "trustedDeviceManager"
+      },
+      {
+        "allowWrite": true,
         "name": "userIdGenerator"
+      },
+      {
+        "allowWrite": true,
+        "name": "webAuthnAuthenticator"
       }
     ],
     "methods": [
@@ -1712,6 +2576,21 @@
           "io.nop.biz.crud.EntityData",
           "io.nop.core.context.IServiceContext"
         ]
+      },
+      {
+        "name": "defaultPrepareUpdate",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "rateLimiter",
+        "parameterTypes": []
+      },
+      {
+        "name": "selfService",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.auth.service.entity.NopAuthUserBizModel"
@@ -1771,6 +2650,39 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "config"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.login.DbLoginAttemptStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.login.LoginAttemptStoreProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
         "name": "auditService"
       },
       {
@@ -1783,7 +2695,55 @@
       },
       {
         "allowWrite": true,
+        "name": "emailCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "emailSender"
+      },
+      {
+        "allowWrite": true,
+        "name": "loginAttemptStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaChallengeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaFactorVerifier"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      },
+      {
+        "allowWrite": true,
         "name": "passwordEncoder"
+      },
+      {
+        "allowWrite": true,
+        "name": "roleMfaPolicyEvaluator"
+      },
+      {
+        "allowWrite": true,
+        "name": "sendCodeRateLimiter"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsSender"
+      },
+      {
+        "allowWrite": true,
+        "name": "totpAuthenticator"
+      },
+      {
+        "allowWrite": true,
+        "name": "trustedDeviceManager"
       },
       {
         "allowWrite": true,
@@ -1791,6 +2751,10 @@
       }
     ],
     "methods": [
+      {
+        "name": "attemptStore",
+        "parameterTypes": []
+      },
       {
         "name": "auditLogFail",
         "parameterTypes": [
@@ -1813,6 +2777,46 @@
         "parameterTypes": [
           "io.nop.auth.dao.entity.NopAuthUser",
           "io.nop.auth.api.messages.LoginRequest"
+        ]
+      },
+      {
+        "name": "checkMfaRequired",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "int",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "completeLogin",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "io.nop.auth.api.messages.LoginRequest",
+          "java.util.Map",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
+        "name": "completeLogin",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "io.nop.auth.api.messages.LoginRequest",
+          "java.util.Map",
+          "boolean",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
+        "name": "completeLoginPort",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser",
+          "io.nop.auth.api.messages.LoginRequest",
+          "java.util.Map",
+          "boolean",
+          "boolean",
+          "boolean"
         ]
       },
       {
@@ -1859,15 +2863,311 @@
         ]
       },
       {
+        "name": "incrementLoginFailCount",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "mfaCodeSender",
+        "parameterTypes": []
+      },
+      {
+        "name": "mfaFlow",
+        "parameterTypes": []
+      },
+      {
+        "name": "rateLimiter",
+        "parameterTypes": []
+      },
+      {
         "name": "saveSession",
         "parameterTypes": [
           "io.nop.auth.core.login.UserContextImpl",
           "io.nop.auth.api.messages.LoginRequest",
           "java.util.Map"
         ]
+      },
+      {
+        "name": "syntheticRequest",
+        "parameterTypes": [
+          "int"
+        ]
       }
     ],
     "name": "io.nop.auth.service.login.LoginServiceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "emailCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      },
+      {
+        "allowWrite": true,
+        "name": "smsCodeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "totpAuthenticator"
+      },
+      {
+        "allowWrite": true,
+        "name": "webAuthnAuthenticator"
+      }
+    ],
+    "methods": [
+      {
+        "name": "findEnabledCredential",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "verifyWebauthn",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthMfaSetting",
+          "io.nop.auth.api.messages.WebAuthnAssertion",
+          "io.nop.auth.core.mfa.store.MfaChallenge"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.service.mfa.MfaFactorVerifier"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaChallengeStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "roleMfaPolicyEvaluator"
+      },
+      {
+        "allowWrite": true,
+        "name": "userContextCache"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.MfaLoginPolicyServiceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.MfaStoreProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.MfaTrustedDeviceManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "auditService"
+      },
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "mfaChallengeStore"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.OperationMfaCheckerImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "collectRoleIds",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.service.mfa.RoleMfaPolicyEvaluator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.WebAuthnAuthenticator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.store.DbEmailCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.store.DbMfaChallengeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.mfa.store.DbSmsCodeStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.DbSendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.ISendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.LocalSendCodeRateLimiter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.ratelimit.SendCodeRateLimiterProvider"
   },
   {
     "allDeclaredConstructors": true,
@@ -1946,6 +3246,15 @@
         ]
       },
       {
+        "name": "buildEntityDataForSave",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext",
+          "boolean"
+        ]
+      },
+      {
         "name": "buildEntityDataForUpdate",
         "parameterTypes": [
           "java.util.Map",
@@ -1958,6 +3267,13 @@
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
           "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "checkByQueryNotExceedLimit",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -1996,6 +3312,13 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "checkMaxBatchSize",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection"
         ]
       },
       {
@@ -2207,6 +3530,12 @@
         "name": "getTreeEntityList",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean"
+        ]
+      },
+      {
+        "name": "getTreeEntityModel",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       },
       {
@@ -2480,6 +3809,14 @@
         "name": "buildBizObject",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "newBizObject",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.biz.model.BizModel",
+          "io.nop.xlang.xmeta.IObjMeta"
         ]
       }
     ],
@@ -2802,6 +4139,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.cluster.naming.EmptyNamingService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.cluster.naming.PartitionResolver"
   },
   {
     "allDeclaredConstructors": true,
@@ -3848,6 +5195,37 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "buildErrorCode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCause",
+        "parameterTypes": [
+          "java.sql.SQLException"
+        ]
+      },
+      {
+        "name": "translateByVendorCode",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SQL",
+          "java.lang.String",
+          "java.sql.SQLException"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.dialect.impl.DialectSQLExceptionTranslator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.dao.dialect.json.DefaultJsonTypeHandler"
   },
@@ -4224,6 +5602,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.jdbc.datasource.ReadWriteDataSourceInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "runWithConnection",
@@ -4256,6 +5644,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dao.metrics.DaoMetricsImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.shard.ConfigShardSelector"
   },
   {
     "allDeclaredConstructors": true,
@@ -4543,7 +5941,12 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "actionAuthNoCheckerWarned"
+      }
+    ],
     "methods": [
       {
         "name": "getExecutionInvoker",
@@ -5514,7 +6917,51 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.job.api.log.TaskLogEntry"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.job.coordinator.alarm.LoggingJobAlarmHandler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "daoProvider",
+        "parameterTypes": []
+      },
+      {
+        "name": "newTask",
+        "parameterTypes": [
+          "io.nop.job.dao.entity.NopJobFire",
+          "int"
+        ]
+      },
+      {
+        "name": "requireServiceName",
+        "parameterTypes": [
+          "io.nop.job.dao.entity.NopJobFire"
+        ]
+      },
+      {
+        "name": "resolveHealthyInstances",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.job.coordinator.engine.AbstractServiceTaskBuilder"
   },
   {
     "allDeclaredConstructors": true,
@@ -5554,6 +7001,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.job.coordinator.engine.DefaultRpcPollTaskClient"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.job.coordinator.engine.DefaultWorkerLoadProvider"
   },
   {
@@ -5563,7 +7020,23 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.job.coordinator.engine.IJobTaskBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
+      {
+        "name": "completeSingleFire",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "doScan",
         "parameterTypes": []
@@ -5723,6 +7196,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "scanBatch",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.job.coordinator.engine.JobScheduleCounterReconciler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "doScan",
         "parameterTypes": []
       },
@@ -5785,7 +7273,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.job.coordinator.engine.RemoteJobInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.job.coordinator.engine.RpcBroadcastTaskBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.coordinator.engine.RpcPollTaskManager"
   },
   {
     "allDeclaredConstructors": true,
@@ -5837,11 +7345,47 @@
     ],
     "methods": [
       {
+        "name": "applyBatchSize",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "applyMaxScanLoops",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "applyScanIntervalMs",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "doScan",
         "parameterTypes": []
       },
       {
+        "name": "drainBatch",
+        "parameterTypes": [
+          "io.nop.job.core.AbstractBatchScanner$Cursor",
+          "java.util.function.BiFunction",
+          "java.util.function.Consumer",
+          "java.util.function.Function",
+          "java.util.function.Function"
+        ]
+      },
+      {
         "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "newCursor",
+        "parameterTypes": []
+      },
+      {
+        "name": "onCycleStart",
         "parameterTypes": []
       },
       {
@@ -5849,6 +7393,10 @@
         "parameterTypes": [
           "java.lang.Exception"
         ]
+      },
+      {
+        "name": "resolvePartitions",
+        "parameterTypes": []
       },
       {
         "name": "scanBatch",
@@ -5868,13 +7416,8 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [
-      {
-        "name": "currentTime",
-        "parameterTypes": []
-      }
-    ],
-    "name": "io.nop.job.local.LocalJobScheduler"
+    "methods": [],
+    "name": "io.nop.job.core.partition.JobPartitionResolver"
   },
   {
     "allDeclaredConstructors": true,
@@ -5905,6 +7448,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.job.dao.entity.NopJobTask"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.job.dao.entity.NopJobTaskLog"
   },
   {
     "allDeclaredConstructors": true,
@@ -5950,6 +7503,21 @@
       }
     ],
     "name": "io.nop.job.dao.entity._gen._NopJobTask"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.job.dao.entity._gen._NopJobTaskLog"
   },
   {
     "allDeclaredConstructors": true,
@@ -6028,6 +7596,21 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "currentTime",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.job.local.LocalJobScheduler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.job.local.config.BeanContainerInvokerResolver"
   },
@@ -6060,11 +7643,19 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "cancelHandler"
+      },
+      {
+        "allowWrite": true,
         "name": "fireStore"
       },
       {
         "allowWrite": true,
         "name": "scheduleStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "taskStore"
       }
     ],
     "methods": [],
@@ -6094,6 +7685,25 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.job.service.entity.NopJobTaskBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "fireStore"
+      },
+      {
+        "allowWrite": true,
+        "name": "taskStore"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.job.service.entity.NopJobTaskLogBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -6223,7 +7833,12 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "redeliveryExecutor"
+      }
+    ],
     "methods": [
       {
         "name": "handleMessageResult",
@@ -6384,6 +7999,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.dao.OrmDaoProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.eql.compile.OracleEqlAstTransformer"
   },
   {
     "allDeclaredConstructors": true,
@@ -8469,8 +10094,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "codeRuleGenerator"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysCodeRule",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysCodeRuleBizModel"
   },
   {
@@ -8479,8 +10118,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "compactExtFieldHelper"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysCompactExtField",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysCompactExtFieldBizModel"
   },
   {
@@ -8569,8 +10222,22 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "sequenceGenerator"
+      }
+    ],
+    "methods": [
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysSequence",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
   },
   {
@@ -10195,6 +11862,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.util.Collections$UnmodifiableMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.util.HashMap"
   },
   {
@@ -10206,6 +11883,26 @@
     "fields": [],
     "methods": [],
     "name": "java.util.HashSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$AbstractImmutableMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$Map1"
   },
   {
     "allDeclaredConstructors": true,

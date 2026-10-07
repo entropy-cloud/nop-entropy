@@ -1,6 +1,18 @@
 [
   [
+    "io.nop.auth.dao.mapper.NopAuthMfaCredentialMapper"
+  ],
+  [
+    "io.nop.auth.dao.mapper.NopAuthMfaSettingMapper"
+  ],
+  [
+    "io.nop.auth.dao.mapper.NopAuthMfaTrustedDeviceMapper"
+  ],
+  [
     "io.nop.auth.dao.mapper.NopAuthRoleMapper"
+  ],
+  [
+    "io.nop.auth.dao.mapper.NopAuthRoleMfaPolicyMapper"
   ],
   [
     "io.nop.auth.dao.mapper.NopAuthUserMapper"
