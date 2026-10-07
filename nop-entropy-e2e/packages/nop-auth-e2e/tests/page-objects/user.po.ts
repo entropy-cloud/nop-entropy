@@ -28,7 +28,7 @@ export class UserPO extends CrudListPage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto(`#/NopAuthUser-main`);
+    await super.goto('NopAuthUser-main');
     await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }

@@ -46,7 +46,7 @@ export class ResourcePO extends CrudListPage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto(`#/NopAuthResource-main`);
+    await super.goto('NopAuthResource-main');
     await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }

@@ -30,7 +30,7 @@ export class SchedulePO extends CrudListPage {
   }
 
   async goto(): Promise<void> {
-    await this.page.goto(`#/NopJobSchedule-main`);
+    await super.goto('NopJobSchedule-main');
     await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }
