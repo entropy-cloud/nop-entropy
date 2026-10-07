@@ -69,7 +69,7 @@
 ### M3 — 数据面与生产化外围
 
 - [ ] WI13 checkpoint 对象存储后端：S3 兼容对象存储 checkpoint storage（对齐 `LocalFileCheckpointStorage`/`JdbcCheckpointStorage` 既有 SPI 形态）（Deliverable: 存储实现 + 恢复 E2E + 文档；deps: 无；Item Type: Feature）
-- [ ] WI14 可查询状态轻量版：结果即状态官方模式（窗口/聚合结果落键控可查存储）+ ops REST keyed state 只读接口——不追通用 queryable state（Deliverable: 模式文档 + 查询接口 + 测试；deps: 无；Item Type: Feature + Proof）
+- [x] WI14 可查询状态轻量版：结果即状态官方模式（窗口/聚合结果落键控可查存储）+ ops REST keyed state 只读接口——不追通用 queryable state（Deliverable: 模式文档 + 查询接口 + 测试；deps: 无；Item Type: Feature + Proof）
 - [ ] WI15 CDC schema evolution 协调：**前置闸门 = WI0 按"首个真实需求"触发条件撤销 cdc-design 既有 defer（owner 确认）**；协调形态（checkpoint 阻塞 vs fail-fast 二选一）随 WI0 裁定 + sink 侧 DDL 应用或显式拒绝（Deliverable: 协调协议 + DDL/拒绝路径测试 + cookbook 更新；deps: WI0 + WI7（表标识依赖）；Item Type: Feature）
 
 ### M4 — 观测与运维契约

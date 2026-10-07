@@ -601,6 +601,42 @@ public class StreamTaskInvokable implements Invokable<Void> {
         return operatorChain;
     }
 
+    /**
+     * WI14 (plan 2340): read-only keyed-state snapshot for the queryable-state-lite
+     * REST surface. Traverses the operator chain for the first operator holding a
+     * keyed state backend and returns its {@code snapshotState()} — the same
+     * JSON-native {@code StateSnapshot} the checkpoint path persists.
+     *
+     * <p>Returns an empty snapshot when no operator in this chain holds a keyed
+     * backend (stateless/parallel-only roles) — an explicit empty, not an error.
+     */
+    public io.nop.stream.core.common.state.backend.StateSnapshot keyedStateSnapshot() {
+        for (io.nop.stream.core.operators.StreamOperator<?> op : operatorChain.getOperators()) {
+            if (op instanceof io.nop.stream.core.operators.AbstractStreamOperator) {
+                io.nop.stream.core.common.state.backend.IKeyedStateBackend<?> backend =
+                        ((io.nop.stream.core.operators.AbstractStreamOperator<?>) op).getKeyedStateBackend();
+                if (backend != null) {
+                    try {
+                        // MemoryStateSerDe returns null for a backend with zero
+                        // registered states — normalize to an explicit empty snapshot
+                        io.nop.stream.core.common.state.backend.StateSnapshot snap =
+                                backend.snapshotState();
+                        return snap != null ? snap
+                                : new io.nop.stream.core.common.state.backend.StateSnapshot(
+                                        java.util.Collections.emptyMap());
+                    } catch (Exception e) {
+                        throw new io.nop.stream.core.exceptions.StreamException(
+                                io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE)
+                                .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                        "keyed state snapshot failed: " + e.getMessage());
+                    }
+                }
+            }
+        }
+        return new io.nop.stream.core.common.state.backend.StateSnapshot(
+                java.util.Collections.emptyMap());
+    }
+
     public RecordWriter<Object> getOutputWriter() {
         return outputWriter;
     }

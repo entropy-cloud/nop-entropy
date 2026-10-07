@@ -68,18 +68,33 @@ public class StreamOpsHttpServer {
     /** Optional lifecycle manager — present in multi-job coordinator processes. */
     private final OpsJobManager jobManager;
 
+    /**
+     * WI14 (plan 2340): optional task-manager reference for the keyed-state-lite
+     * read endpoint ({@code GET /jobs/{jobId}/vertices/{vertexId}/subtasks/{idx}/state}).
+     * Null on a JC-only server — that process has no keyed state and the endpoint
+     * answers 503, mirroring the /jobs family semantics.
+     */
+    private final io.nop.stream.runtime.taskmanager.TaskManager taskManager;
+
     private HttpServer httpServer;
     private PrometheusMeterRegistry prometheusRegistry;
 
     public StreamOpsHttpServer(StreamOpsConfig config, IOpsJobRegistry jobRegistry) {
-        this(config, jobRegistry, null);
+        this(config, jobRegistry, null, null);
     }
 
     public StreamOpsHttpServer(StreamOpsConfig config, IOpsJobRegistry jobRegistry,
                                OpsJobManager jobManager) {
+        this(config, jobRegistry, jobManager, null);
+    }
+
+    public StreamOpsHttpServer(StreamOpsConfig config, IOpsJobRegistry jobRegistry,
+                               OpsJobManager jobManager,
+                               io.nop.stream.runtime.taskmanager.TaskManager taskManager) {
         this.config = config;
         this.jobRegistry = jobRegistry;
         this.jobManager = jobManager;
+        this.taskManager = taskManager;
     }
 
     public synchronized void start() throws IOException {
@@ -132,7 +147,7 @@ public class StreamOpsHttpServer {
             sendError(ex, 404, "NOT_FOUND",
                     "Unknown ops path: " + ex.getRequestURI().getPath()
                             + " (served paths: /metrics, /jobs, /jobs/{jobId}, "
-                            + "/jobs/{jobId}/stop, /jobs/{jobId}/checkpoints, /jobs/{jobId}/threaddump)");
+                            + "/jobs/{jobId}/stop, /jobs/{jobId}/checkpoints, /jobs/{jobId}/threaddump, /jobs/{jobId}/vertices/{vertexId}/subtasks/{idx}/state)");
         });
         httpServer.start();
     }
@@ -213,6 +228,47 @@ public class StreamOpsHttpServer {
         }
     }
 
+    // WI14 (plan 2340): keyed-state-lite read path
+    static final java.util.regex.Pattern STATE_PATH_PATTERN = java.util.regex.Pattern.compile(
+            "([^/]+)/vertices/([^/]+)/subtasks/(\\d+)/state");
+
+    /**
+     * WI14 (plan 2340): read-only keyed-state snapshot for one running subtask. Only
+     * meaningful on a TM-hosted server (the keyed state lives in the TM's operator
+     * chain); a JC-only server answers 503, mirroring the /jobs family semantics.
+     * No write-back (queryable-state-lite ruling).
+     */
+    private void handleKeyedStateQuery(HttpExchange exchange, String jobId, String vertexId,
+                                       int subtaskIndex, String stateName) throws IOException {
+        if (taskManager == null) {
+            sendError(exchange, 503, "TASK_MANAGER_UNAVAILABLE",
+                    "No task manager hosted in this process — keyed state is only queryable "
+                            + "on a TM-hosted ops server");
+            return;
+        }
+        Map<String, Object> stateData;
+        try {
+            io.nop.stream.core.common.state.backend.StateSnapshot snapshot =
+                    taskManager.keyedStateSnapshot(jobId, vertexId, subtaskIndex);
+            stateData = snapshot.getStateData();
+        } catch (StreamException e) {
+            // task-not-running is a 404; any other read failure is a 500
+            sendError(exchange, 404, "TASK_NOT_FOUND", String.valueOf(e));
+            return;
+        }
+        if (stateName != null && stateData.containsKey(stateName)) {
+            Map<String, Object> single = new java.util.LinkedHashMap<>();
+            single.put(stateName, stateData.get(stateName));
+            stateData = single;
+        }
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("jobId", jobId);
+        out.put("vertexId", vertexId);
+        out.put("subtaskIndex", subtaskIndex);
+        out.put("keyedState", stateData);
+        sendJson(exchange, 200, out);
+    }
+
     // ==================== /jobs ====================
 
     private void handleJobs(HttpExchange exchange) throws IOException {
@@ -264,6 +320,21 @@ public class StreamOpsHttpServer {
                         return;
                     }
                     handleCheckpointQuery(exchange, rest.substring(0, rest.length() - "/checkpoints".length()));
+                    return;
+                }
+
+                // WI14 (plan 2340): GET /jobs/{jobId}/vertices/{vertexId}/subtasks/{idx}/state
+                java.util.regex.Matcher stateMatcher = STATE_PATH_PATTERN.matcher(rest);
+                if (stateMatcher.matches()) {
+                    if (!"GET".equals(method)) {
+                        sendError(exchange, 405, "METHOD_NOT_ALLOWED", "Only GET is supported on state");
+                        return;
+                    }
+                    Map<String, java.util.List<String>> query = parseQuery(exchange.getRequestURI().getRawQuery());
+                    java.util.List<String> stateNames = query.get("stateName");
+                    String stateName = stateNames == null || stateNames.isEmpty() ? null : stateNames.get(0);
+                    handleKeyedStateQuery(exchange, stateMatcher.group(1),
+                            stateMatcher.group(2), Integer.parseInt(stateMatcher.group(3)), stateName);
                     return;
                 }
 

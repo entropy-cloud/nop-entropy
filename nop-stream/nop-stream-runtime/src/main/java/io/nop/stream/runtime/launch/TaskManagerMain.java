@@ -155,7 +155,7 @@ public final class TaskManagerMain {
             opsConfig.setEnabled(true);
             opsConfig.setPort(opsHttpPort);
             opsConfig.setBindAddress(config.get("opsHttpBind", "127.0.0.1"));
-            opsServer = new io.nop.stream.runtime.ops.StreamOpsHttpServer(opsConfig, null);
+            opsServer = new io.nop.stream.runtime.ops.StreamOpsHttpServer(opsConfig, null, null, taskManager);
             try {
                 opsServer.start();
             } catch (java.io.IOException e) {
