@@ -200,9 +200,9 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 3. 作业拓扑经 `pipelineFactoryClass`（`ClusterPipelineFactory`）在 coordinator 进程重建——XDSL 管线经 `RemotePipelineResolver` 用与本地完全相同的 `DslModelParser → StreamModelDslBuilder → buildJobGraph` 链在 TM 侧重建，fingerprint 跨 JVM 一致。
 4. TM 失败自动 global recovery（fencing epoch 轮转 + 从最近 durable checkpoint 恢复）；健康状态机与告警见 owner doc。
 
-### 入口类现状（如实标注）
+### 入口类现状（WI1 后：main-scope 生产入口）
 
-独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 目前位于 `nop-stream-runtime` 的 **test scope**（`src/test/java/.../launch/`），经 runtime **test-jar** 导出供 fraud-example 的多 JVM gated 测试消费（依赖方向保持 main 单向）。生产部署如需独立进程入口，当前需消费该 test-jar 或自建 launch 类；「产品级 main-scope 启动入口」已登记为 Follow-up 候选。已实现的 main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）不受此限制。
+独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 及其支撑类（`SharedJdbcInfrastructure`/`PollingJdbcMessageService`）自 2026-10（plan 2328 / WI1）起位于 `nop-stream-runtime` 的 **main sources**（`io.nop.stream.runtime.launch` 包）——发布 runtime jar 直接含入口类。启动方式：① 启动脚本 `nop-stream/nop-stream-runtime/src/main/scripts/nop-stream-cluster.sh`（classpath 经 `dependency:build-classpath -DincludeScope=runtime` 自动装配；`NOP_STREAM_EXTRA_CLASSPATH` 追加 JDBC 驱动 jar，`jdbcDriver=` 指定驱动类）；② 手工 `java -cp <classpath>`（classpath = runtime jar + `dependency:build-classpath -DincludeScope=runtime` 输出 + 驱动 jar）。多 JVM gated 测试经 runtime test-jar 消费 harness（`MiniStreamCluster`，仍为 test-only）。main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）与入口类同面可用。
 
 ### 多 JVM gated 测试（手动启用）
 

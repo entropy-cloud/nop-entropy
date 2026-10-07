@@ -67,9 +67,11 @@
 
         <!-- Item 19 (connector SPI registry): the aggregate registration discovery test
              assembles all four connector modules' factory beans into one registry
-             container. connector / connector-jdbc are already main deps; debezium and
-             batch join as test deps (jars on classpath only — the surefire init cap
-             keeps their initializers inert). -->
+             container. ALL FOUR (connector, connector-jdbc, debezium, batch) are
+             test-scope deps (jars on classpath only — the surefire init cap keeps their
+             initializers inert). The F-26 note in the multi-audit F table flagged the
+             earlier "already main deps" wording as contradicting these test scopes;
+             this comment is the corrected form. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-stream-connector-debezium</artifactId>
@@ -83,10 +85,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- F-12 closure (plan 2328): compile scope. The runtime main sources hard-require
+             the nop-dao JDBC face at run time (JdbcClusterRegistry / JdbcCheckpointStorage /
+             JdbcLeaderElector and, since WI1, the main-scope launch entry points
+             JobCoordinatorMain / TaskManagerMain via SharedJdbcInfrastructure). The former
+             provided scope made standalone cluster launches fail with NoClassDefFoundError
+             unless the deployer knew to add nop-dao manually. -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dao</artifactId>
-            <scope>provided</scope>
+        </dependency>
+
+        <!-- WI1 (plan 2328): compile scope — SharedJdbcInfrastructure (launch entry
+             support, main sources) builds its Hikari pool directly. Version resolved
+             through the BOM chain (nop-dependencies imports). -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
         </dependency>
 
         <dependency>
@@ -107,12 +122,6 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -184,14 +193,17 @@
                 </configuration>
             </plugin>
             <!-- Item 14 (composite-scenario distributed): export the multi-JVM launch
-                 harness (MiniStreamCluster, JobCoordinatorMain, TaskManagerMain,
-                 PollingJdbcMessageService, ClusterLaunchConfig, ClusterPipelineFactory)
-                 as a test-jar so the scenario module's gated tests can spawn real
-                 cluster JVMs. Decision (plan Current Baseline, path ①): fraud-example
-                 depends on runtime main, so runtime test -> fraud-example would be a
-                 forbidden reverse test dependency; test-jar export keeps the direction
-                 one-way (fraud-example test -> runtime test-jar). Mirrors the existing
-                 nop-stream-core test-jar pattern. -->
+                 harness as a test-jar so the scenario module's gated tests can spawn real
+                 cluster JVMs. WI1 (plan 2328) moved the production entry points
+                 (JobCoordinatorMain / TaskManagerMain / SharedJdbcInfrastructure /
+                 PollingJdbcMessageService) to main sources — they ship in the runtime jar
+                 and no longer need the test-jar. What remains test-only is the harness
+                 itself (MiniStreamCluster + multijvm tests) plus ClusterLaunchConfig /
+                 ClusterPipelineFactory consumers in scenario tests. Decision (plan Current
+                 Baseline, path ①): fraud-example depends on runtime main, so runtime test
+                 -> fraud-example would be a forbidden reverse test dependency; test-jar
+                 export keeps the direction one-way. Mirrors the nop-stream-core test-jar
+                 pattern. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

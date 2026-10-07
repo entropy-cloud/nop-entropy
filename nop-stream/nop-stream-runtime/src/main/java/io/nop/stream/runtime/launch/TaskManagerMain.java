@@ -27,7 +27,7 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  *
  * <p>Launched by the {@code MiniStreamCluster} test harness (Phase 2) as:
  * <pre>
- *   java -cp &lt;test-classpath&gt; io.nop.stream.runtime.launch.TaskManagerMain
+ *   java -cp &lt;classpath&gt; io.nop.stream.runtime.launch.TaskManagerMain
  *        nodeId=tm-1
  *        jdbcUrl=jdbc:h2:file:/tmp/cluster.db;AUTO_SERVER=TRUE;MODE=MySQL
  *        topicNamespace=run-2026-08-03-001
@@ -54,7 +54,9 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  * its node, exposes its {@link io.nop.stream.runtime.rpc.IStreamTaskRpcService}
  * over the control-plane RPC, builds an RPC proxy to the coordinator, and waits
  * for task deployment via the {@code deployTask} RPC (Phase 0). SIGTERM/SIGINT
- * triggers graceful shutdown and exits with code 0. Missing required config
+ * triggers graceful shutdown; the OS-visible exit code for an external signal follows
+ * JVM signal semantics (143), while programmatic {@link #shutdown()} completion
+ * exits 0. Missing required config
  * fails fast with stderr message and non-zero exit code (plan guide #24).
  *
  * <p><strong>接线验证</strong>: this is a real {@code public static void main}
