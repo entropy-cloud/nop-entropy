@@ -24,7 +24,7 @@ import java.util.Objects;
  */
 public final class ValidationIssue {
 
-    public enum Severity {FAIL, SKIP}
+    public enum Severity {FAIL, SKIP, WARNING}
 
     private final int layer;
     private final String target;
@@ -64,6 +64,14 @@ public final class ValidationIssue {
     /** Explicit skip item (does not fail the run). */
     public static ValidationIssue skip(int layer, String target, String errorCode, String message) {
         return new ValidationIssue(layer, target, errorCode, null, message, null, Severity.SKIP);
+    }
+
+    /**
+     * WI4 (plan 2329): non-blocking advisory (e.g. an EXPERIMENTAL-maturity endpoint).
+     * Reported and counted separately — never fails the run and never counts as a skip.
+     */
+    public static ValidationIssue warning(int layer, String target, String errorCode, String message) {
+        return new ValidationIssue(layer, target, errorCode, null, message, null, Severity.WARNING);
     }
 
     /** Validation layer: 1 = model parse (stream.xdef), 2 = construction, 3 = connectivity probe. */

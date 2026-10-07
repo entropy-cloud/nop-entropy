@@ -10,6 +10,7 @@ import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -41,6 +42,7 @@ public final class BatchConsumerSinkConnectorFactory implements IStreamSinkFacto
                             "IBatchConsumerProvider<R> supplied programmatically"),
                     ConnectorParamDescriptor.optional("batchSize", INT,
                             "records per flush batch, defaults to 100")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

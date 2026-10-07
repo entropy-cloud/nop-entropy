@@ -730,6 +730,33 @@ public interface NopStreamErrors {
                             + "Declared params: {declaredParams}",
                     ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
 
+    // WI4 (plan 2329): OptionRule-style value-level rules on connector params.
+    String ARG_PARAM_VALUE = "paramValue";
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_TYPE_MISMATCH =
+            define("nop.err.stream.connector-param-type-mismatch",
+                    "Stream connector '{typeName}' param '{paramName}' expects kind {paramKind} "
+                            + "but the provided value cannot be interpreted as that kind",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_PARAM_KIND);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_VALUE_DISALLOWED =
+            define("nop.err.stream.connector-param-value-disallowed",
+                    "Stream connector '{typeName}' param '{paramName}' value is not one of the "
+                            + "allowed values {declaredParams}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_PATTERN_MISMATCH =
+            define("nop.err.stream.connector-param-pattern-mismatch",
+                    "Stream connector '{typeName}' param '{paramName}' value does not match the "
+                            + "declared pattern rule: {detail}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DETAIL);
+
+    ErrorCode ERR_STREAM_SAMPLE_NOT_SUPPORTED =
+            define("nop.err.stream.sample-not-supported",
+                    "Stream connector endpoint '{connectorEndpoint}' implements no "
+                            + "SampleableSource contract; data sampling is not supported",
+                    ARG_CONNECTOR_ENDPOINT);
+
     ErrorCode ERR_STREAM_CREDENTIAL_REF_INVALID =
             define("nop.err.stream.credential-ref-invalid",
                     "Invalid credential reference '{fieldValue}' on field '{fieldName}': expected syntax "

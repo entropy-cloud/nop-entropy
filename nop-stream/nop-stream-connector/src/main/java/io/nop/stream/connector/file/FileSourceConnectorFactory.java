@@ -7,6 +7,7 @@
 package io.nop.stream.connector.file;
 
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -36,6 +37,7 @@ public final class FileSourceConnectorFactory implements IStreamSplitSourceFacto
             .params(List.of(
                     ConnectorParamDescriptor.required("directoryPath", STRING,
                             "input directory enumerated into file splits")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

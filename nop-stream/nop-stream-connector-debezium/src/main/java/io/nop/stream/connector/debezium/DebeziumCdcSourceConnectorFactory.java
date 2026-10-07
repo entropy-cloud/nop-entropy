@@ -10,6 +10,7 @@ import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -45,6 +46,7 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFun
                             "ICredentialProvider for credential:{id}#{field} references on "
                                     + "databaseUser/databasePassword (item 20 / D4; optional — "
                                     + "fail-closed when references exist without it)")))
+            .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
     @Override

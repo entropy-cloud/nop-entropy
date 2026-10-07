@@ -180,6 +180,9 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | message source/sink | **显式 SKIP**（`IMessageService` 无平台 health-check API；可达性如实呈现为不可判定） | —（不探测） |
 | 其余/第三方 | 未实现探测契约 = 显式 SKIP 报告项（`connectivity-not-supported`），非静默通过 | — |
 
+
+**数据采样（WI4，2026-10-07）**：`sample type=<typeName> param=value... [limit=<n>]`（connector 校验模式）——registry 解析 SOURCE 工厂 → 参数规则校验（required/未知/INT/allowedValues/pattern，sensitive 值脱敏，EXPERIMENTAL 端点非阻断 warning）→ 只读采样。仅接受 SOURCE 类型（SINK 类型名 = typed direction-mismatch FAIL，exit 1）；SOURCE 族中实现 `SampleableSource` 的端点（当前内建 = `file`）返回真实记录，未实现者（message/debezium-cdc/batch-loader）显式 SKIP（`nop.err.stream.sample-not-supported`）。副作用红线与 dry-run 探测同族（只读，不分配 split/不订阅/不拉引擎/不消费批数据）。classpath 须含 nop-ioc（反射装配注册容器；缺失时 typed 报错）与目标连接器模块 jar。exit 契约：0 = 采样成功或显式 SKIP，1 = 校验失败，2 = 用法错误。
+
 ### 凭据引用与明文边界（P-REQ-14）
 
 - **引用语法**：`credential:{credentialId}#{field}`（如 `credential:mysql-prod#password`）——置于连接器配置字段值处（CDC 族必达点 = `DebeziumConfig.databaseUser/databasePassword`；SPI 工厂程序化参数 `credentialProvider`（OBJECT，optional）注入平台 provider）。语法解析与解密：`io.nop.stream.core.credentials.StreamCredentialSupport`，经 nop-credential 唯一解密点 `ICredentialProvider`（kms-vault 等后端经接口透明）。

@@ -16,6 +16,7 @@ import io.nop.ioc.loader.BeanContainerBuilder;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorDirection;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -163,6 +164,31 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.batch.BatchConsumerSinkFunction",
                 "IDEMPOTENT", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.BUFFERED_RETRY, "consumerProvider");
+    }
+
+    /**
+     * WI4 (plan 2329): maturity pinned per built-in factory. Criterion (semantic
+     * strength): engine-fulfilled recovery semantics (checkpoint cursor / offset /
+     * 2PC) = PRODUCTION; recovery=NONE or backend-carried semantics = EXPERIMENTAL.
+     */
+    @Test
+    public void testMaturityGradesMatchSemanticStrengthCriterion() {
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "file").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SOURCE, "message").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "debezium-cdc").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "batch-loader").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "file").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SINK, "message").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "jdbc-2pc").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "batch-consumer").getMaturity());
     }
 
     private void assertDescriptor(ConnectorDirection direction, String typeName, String componentClass,
