@@ -7,12 +7,20 @@
  */
 package io.nop.job.core.trigger;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.job.api.spec.ITriggerSpec;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.job.core.calendar.CalendarBuilder;
 import io.nop.job.core.utils.CronExpression;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
+import static io.nop.job.core.JobCoreErrors.ARG_CRON_EXPR;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG;
 
 /**
  * @author canonical_entropy@163.com
@@ -29,6 +37,16 @@ public class TriggerBuilder {
             onceScheduleTime = ((OnceTrigger) trigger).getScheduleTime();
         } else {
             trigger = new PeriodicTrigger(spec.getRepeatInterval(), spec.isRepeatFixedDelay());
+        }
+
+        // 锚点周期过滤（cron 轨道 C3，plan 537）：仅作用于 cron 触发器，置于 LimitCount 之前（向量 RG-06 的 repeat→count 序）
+        if (hasAnchorConfig(spec)) {
+            if (StringHelper.isEmpty(spec.getCronExpr())) {
+                throw anchorError(spec, "repeat anchor config is only supported for cron triggers");
+            }
+            validateAnchorConfig(spec);
+            trigger = new AnchorRepeatTrigger(trigger, spec.getRepeatAnchorEvery(), spec.getRepeatAnchorUnit(),
+                    spec.getRepeatAnchorDate());
         }
 
         trigger = new LimitCountTrigger(trigger);
@@ -51,5 +69,35 @@ public class TriggerBuilder {
         }
 
         return trigger;
+    }
+
+    private static boolean hasAnchorConfig(ITriggerSpec spec) {
+        return spec.getRepeatAnchorEvery() > 0 || !StringHelper.isEmpty(spec.getRepeatAnchorUnit())
+                || !StringHelper.isEmpty(spec.getRepeatAnchorDate());
+    }
+
+    private static void validateAnchorConfig(ITriggerSpec spec) {
+        if (spec.getRepeatAnchorEvery() <= 0) {
+            throw anchorError(spec, "repeatAnchorEvery must be >= 1 when anchor config is present");
+        }
+        String unit = spec.getRepeatAnchorUnit();
+        if (!"day".equals(unit) && !"week".equals(unit)) {
+            throw anchorError(spec, "repeatAnchorUnit must be 'day' or 'week', got: " + unit);
+        }
+        String date = spec.getRepeatAnchorDate();
+        if (StringHelper.isEmpty(date)) {
+            throw anchorError(spec, "repeatAnchorDate is required when anchor config is present");
+        }
+        try {
+            LocalDate.parse(date);
+        } catch (DateTimeParseException e) {
+            throw anchorError(spec, "repeatAnchorDate must be YYYY-MM-DD, got: " + date);
+        }
+    }
+
+    private static NopException anchorError(ITriggerSpec spec, String reason) {
+        return new NopException(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG)
+                .param(ARG_CRON_EXPR, spec.getCronExpr())
+                .param("reason", reason);
     }
 }
