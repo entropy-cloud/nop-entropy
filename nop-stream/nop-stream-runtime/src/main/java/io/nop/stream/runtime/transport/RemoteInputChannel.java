@@ -74,7 +74,7 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteInputChannel.class);
 
-    private static final int DEFAULT_QUEUE_CAPACITY = 1024;
+    // (the public WI16 DEFAULT_QUEUE_CAPACITY below is the single constant)
 
     /**
      * Default bounded enqueue wait. A full queue with ZERO
@@ -93,6 +93,11 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
     private static final StreamElement END_OF_STREAM = new StreamElement() {};
 
     private final LinkedBlockingQueue<StreamElement> queue;
+
+    /** WI16 (plan 2337): the configured queue capacity (fill-ratio denominator). */
+    public static final int DEFAULT_QUEUE_CAPACITY = 1024;
+
+    private final int queueCapacity;
     private final String topic;
     private final long expectedEpochId;
     private final IMessageSubscription subscription;
@@ -234,6 +239,9 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
         // Pass a dummy partition to the parent; we override all read methods
         super(new ResultPartition(1));
         this.queue = new LinkedBlockingQueue<>(queueCapacity);
+        // WI16 (plan 2337): recorded for the queue fill-ratio gauge (a field, not
+        // size()+remainingCapacity(), which can tear under concurrent enqueue)
+        this.queueCapacity = queueCapacity;
         this.topic = topic;
         this.expectedEpochId = expectedEpochId;
         this.finished = false;
@@ -532,6 +540,11 @@ public class RemoteInputChannel extends InputChannel implements WireDecodeFailur
             overflowError = new IllegalStateException(detail + " on topic=" + topic);
         }
         LOG.error("RemoteInputChannel overflow on topic={}: {}", topic, detail);
+    }
+
+    /** WI16 (plan 2337): the configured queue capacity (fill-ratio denominator). */
+    public int getCapacity() {
+        return queueCapacity;
     }
 
     /**
