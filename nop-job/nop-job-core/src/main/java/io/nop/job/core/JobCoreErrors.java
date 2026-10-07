@@ -39,6 +39,9 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL = define("nop.err.job.trigger.parse-cron-expr-fail",
             "Failed to parse cron expression:{cronExpr}", ARG_CRON_EXPR);
 
+    ErrorCode ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG = define("nop.err.job.trigger.invalid-anchor-config",
+            "Invalid repeat anchor config: {reason}, cronExpr={cronExpr}", "reason", ARG_CRON_EXPR);
+
     // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
     // Using the same string values for backward compatibility with stored data and test assertions.
 

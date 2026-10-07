@@ -56,6 +56,29 @@ public interface ITriggerSpec {
     long getMinScheduleTime();
 
     /**
+     * 锚点周期：自 repeatAnchorDate 起每 repeatAnchorEvery 个 repeatAnchorUnit 触发一次（cron 轨道 C3，plan 537）。
+     * 字段定名回写 nop-chaos-flux docs/components/cron-editor/design.md §9。
+     *
+     * @return 周期数，&gt;=1；&lt;=0 表示未启用锚点过滤
+     */
+    int getRepeatAnchorEvery();
+
+    /**
+     * 锚点周期单位："day" 或 "week"；仅在 repeatAnchorEvery &gt; 0 时有效
+     *
+     * @return
+     */
+    String getRepeatAnchorUnit();
+
+    /**
+     * 锚点日期，格式 YYYY-MM-DD（引擎默认时区的日历日）；仅在 repeatAnchorEvery &gt; 0 时有效
+     *
+     * @return
+     */
+    String getRepeatAnchorDate();
+
+
+    /**
      * 整个任务执行时间不超过此时间。如果小于等于0,则忽略此参数
      *
      * @return

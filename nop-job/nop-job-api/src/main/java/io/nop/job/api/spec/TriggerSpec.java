@@ -25,6 +25,10 @@ public class TriggerSpec implements ITriggerSpec {
     private int maxFailedCount;
     private List<CalendarSpec> pauseCalendars;
 
+    private int repeatAnchorEvery;
+    private String repeatAnchorUnit;
+    private String repeatAnchorDate;
+
     @Override
     public long getMisfireThreshold() {
         return misfireThreshold;
@@ -113,5 +117,32 @@ public class TriggerSpec implements ITriggerSpec {
 
     public void setMaxScheduleTime(long maxScheduleTime) {
         this.maxScheduleTime = maxScheduleTime;
+    }
+
+    @Override
+    public int getRepeatAnchorEvery() {
+        return repeatAnchorEvery;
+    }
+
+    public void setRepeatAnchorEvery(int repeatAnchorEvery) {
+        this.repeatAnchorEvery = repeatAnchorEvery;
+    }
+
+    @Override
+    public String getRepeatAnchorUnit() {
+        return repeatAnchorUnit;
+    }
+
+    public void setRepeatAnchorUnit(String repeatAnchorUnit) {
+        this.repeatAnchorUnit = repeatAnchorUnit;
+    }
+
+    @Override
+    public String getRepeatAnchorDate() {
+        return repeatAnchorDate;
+    }
+
+    public void setRepeatAnchorDate(String repeatAnchorDate) {
+        this.repeatAnchorDate = repeatAnchorDate;
     }
 }
