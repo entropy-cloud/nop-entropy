@@ -72,14 +72,12 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：发现逐条 保留/降级/驳回 + 每链抽 2 条边独立追踪复判 + E3 证据抽验 + E1 兜底签认审查 + 撞车核对（1.3/1.4/1.7/2.3/2.6/2.7 + 6.1/6.2 域引用）
-- [ ] 主 agent 汇总：判级统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT 通过**——四链连通维持 P0=0/P1=0/P2=0 终裁；8/8 边独立追踪全通（自行 grep 定位未复用证据行）；E3 4/4 亲验、E1 兜底零依赖；发现 100% 亲读；**撞车漏检 3 处纠正改记 dup**（A1-01≡P2-1.2-008〔1.2 已判 P2〕/A2-01≡P3-2.3-034〔P1 终裁 P3-dup，与 ILockService 先例三点区分〕/A4-01≡P3-2.6-008）+ 事实勘误 6 项（A3-05 零载体被证伪/A2-02 bean 计数 18→19/A1-04 消费面收窄/A4-02 新颖性夸大/A2-03 上游锚点校准/A3-04 幻影类名坐实）；教训入档：撞车检索面=相邻工作项发现清单全量 grep
 
 Exit Criteria:
 
@@ -89,7 +87,7 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
