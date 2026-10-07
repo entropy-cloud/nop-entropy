@@ -50,13 +50,13 @@
 
 ### Phase 1 - 对账与三分标定（3 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 36 P0 位点（master live code + check/ 处置记录）
 
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 主 agent 对账落盘：36 行宇宙表（编号/模块/SUMMARY 问题原文/**源报告定级核对**〔F1 硬步骤：SUMMARY↔check/<单元>.md 逐行，差异行登记勘误——预登记 #6 异常〕/轮内标定映射/四批次 commit 锚/分配）——**四批次 commit 锚写入宇宙表**（6410a6bfe0/e6010dc6eb/0b7fc8f903/2de622fb6a 全可达 master 已实测）
+- [x] 主 agent 对账落盘：36 行宇宙表 `_tmp/fcr-6.4-universe.md`（F1 列=源报告定级核对待 agent 填；#6 异常预登记；四批次 commit 锚在列；分配=Agent 1 SECURITY 9 / Agent 2 净新 9 / Agent 3 净新 7+抽验 5+#14 旁证）
 - [ ] Agent 1「SECURITY #1-9 全量亲读+实跑 + 净新均分份 A」：#1-9 逐条（含处置记录点名测试类实跑）；净新均分份 A
 - [ ] Agent 2「净新均分份 B」：逐条代码亲读 + **点名测试类强制实跑** + commit 可达验证
 - [ ] Agent 3「轮内已标定抽验 ≥30%（含实跑）+ 净新均分份 C」：抽验条目 live-ness 重验（防漂移，含测试实跑）+ 净新份 C
