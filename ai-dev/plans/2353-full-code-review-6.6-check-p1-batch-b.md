@@ -45,24 +45,26 @@
 
 ### Phase 1 - 对账、抽样与标定（3 agent 并行）
 
-Status: planned
+Status: completed
 Targets: 批次 b check 单元报告 P1 清单
 
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent 执行）：① 独立枚举 ROADMAP Phase 1-3 单元表 diff 候选 13 份（草审 B1 防再漏）② 批次 b 单元→P1 全量清单 46 条（维度派生 D5/D1〔量级预估 Phase 1 落盘〕+ 处置标注核对〔34/46 先验逐条复核〕+ 轮内已终判 11 条承接标记〔gateway 5/auth 1/task 5——不重复抽样〕）③ 统计表机械核对（13 份）④ 冻结协议三要素（seed=2353；脚本 `_tmp/fcr-6.6-sample.py`；冻结表 `_tmp/fcr-6.6-frozen.csv`；净抽样池 35 条抽 ≥23）
-- [ ] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+实跑三分支：标注指名测试/标注无指名→域内或模块测试/无标注→域内测试+撞车比对）
-- [ ] 主 agent 抽查质量：冻结表重放 + 标定抽验（含实跑）
-- [ ] 产物 `_tmp/fcr-6.6-checkp1-a/b/c.md` + 冻结表
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent 执行）：① **独立枚举 diff=一致（13/13 单元）** ② 46 条 P1 全量清单（处置面先验逐条实测=34/46 带标注与先验逐单元吻合〔日期档微差登记〕；轮内已终判 11 条承接标记全部锚点实测命中）③ **统计表机械核对 13/13 通过**（SUMMARY 三向账平）④ 冻结协议三要素：seed=2353 + 净池快照 `c9c0fffb…` + 冻结表 `_tmp/fcr-6.6-frozen.csv` SHA-256 `6669717f…`（29 条=D5×3+D1×26 全抽+其他 0，覆盖 82.9% 净池/63.0% 严格基线双达标；分配 A10/B10/C9；双跑逐字节 diff PASS）
+- [x] Agent 1「抽样标定份 A」：10 条 = AF 7 + dup 3（report×2→check2、batch×1→check2 plan344、fcc×1→3.8 :45 终判）；冻结表哈希逐字一致；撞车同根 4 异根 5 → `_tmp/fcr-6.6-checkp1-a.md`
+- [x] Agent 2「抽样标定份 B」：10 条 = AF 6 + dup 3（wf#P1-1→P1-3.1-002〔allowCallByUser 仍无系统身份旁路仍 live 由 3.1 承载〕/report#P1-3→P1-3.6-001〔执行探针证实 STILL-LIVE〕/report#P1-6→check2 :19 P0）+ still-live 2（**B1** graphql 订阅推送桥整体未接线〔autoconfig 0 命中〕/**B2** batch 续写 append 语义未落地——均附暂缓残余按 partially-fixed 规则立 still-live，严重性 Phase 2 终裁）；撞车 2.6/3.1/3.5/3.6/3.3/3.4/3.7/3.8+check2 全量比对 → `_tmp/fcr-6.6-checkp1-b.md`
+- [x] Agent 3「抽样标定份 C + 轮内已终判 11 条承接台账」：9 条 = AF 5 + dup 4（report×2/rule×1/dyn×1 均有轮内行级终判锚）；11 条承接台账完整（gateway :49/:86 still-live 维持+index 登记无双登记确认/auth :51 AF/task 5 条终判锚全对）；勘误 2 条（task 行号微漂/report commit 日期差）→ `_tmp/fcr-6.6-checkp1-c.md`
+- [x] 主 agent 抽查质量：冻结表重放 SHA-256 一致（6669717f…）+ 3 条亲验（B1 Registrar autoconfig 零命中/B2 ERR_BATCH_OUTPUT_FILE_EXISTS_ON_RECOVERY 守卫+测试在位/A1 CacheActionDecorator 存在）
+- [x] 产物 `_tmp/fcr-6.6-checkp1-a/b/c.md` + 冻结表 `_tmp/fcr-6.6-frozen.csv`
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项初判零 P0）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据
-- [ ] 抽样 ≥50% 达成；抽样表可重放（SHA-256 记录）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，still-live 2 条均 ≥9 行完整条目（附暂缓残余 residual 注记）；标定台账双锚证据
+- [x] 抽样 82.9% 净池（63.0% 严格基线）双达标；抽样表可重放（SHA-256 三次一致）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
