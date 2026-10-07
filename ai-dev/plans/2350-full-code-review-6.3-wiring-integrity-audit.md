@@ -49,7 +49,7 @@
 
 ### Phase 1 - 四链并行接线追踪（4 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 四链模块
 
 - Item Types: `Proof`
