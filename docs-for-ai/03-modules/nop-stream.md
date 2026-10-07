@@ -54,6 +54,13 @@
 | `nop.stream.operator.records.in.total` | counter | jobId/vertexId/subtask | 从输入通道分发进算子链的记录数（MIDDLE/SINK 角色） |
 | `nop.stream.operator.records.out.total` | counter | jobId/vertexId/subtask | 经本任务 RecordWriter 发射的记录数 |
 | `nop.stream.operator.processing.time` | timer | jobId/vertexId/subtask | 单记录算子链处理时长（输入分发计时） |
+| `nop.stream.operator.time.busy.ratio` | gauge | jobId/vertexId/subtask | **忙占比（WI16）**：=(processingTime.sum − emitTime.sum)/elapsed.sum——emit 嵌套于 processing，减法严格；elapsed=0 时 NaN；任务结束（holder 释放）后 NaN |
+| `nop.stream.operator.time.backpressured.ratio` | gauge | jobId/vertexId/subtask | **背压占比（WI16）**：=emitTime.sum/elapsed.sum（emit 即「生产侧背压代理」） |
+| `nop.stream.operator.time.idle.ratio` | gauge | jobId/vertexId/subtask | **空闲占比（WI16）**：=idleTime.sum/elapsed.sum（idle = read 返回空的迭代切片） |
+| `nop.stream.operator.time.idle.nanos` | counter | jobId/vertexId/subtask | idle 切片累计（纳秒；WI16） |
+| `nop.stream.operator.time.elapsed.nanos` | counter | jobId/vertexId/subtask | 主循环迭代切片累计（纳秒，占比分母；WI16）。**残差口径**：busy+backpressured+idle 可小于 1——watermark 处理/side-output 发射/barrier 写出等段不计入任何态（other 残差） |
+| `nop.stream.operator.watermark` | gauge | jobId/vertexId/subtask | 输入 gate 合并 watermark 当前值（WI16；**首 watermark 前/任务结束后 = NaN** 哨兵，不用 MIN_VALUE 以免毒化聚合） |
+| `nop.stream.operator.watermark.channel.lag` | gauge | jobId/vertexId/subtask | **级联滞后（WI16）**：max(非 idle 通道 wm) − merged wm（两侧同剔除 idle 语义）；滞后上升 = 有通道领先而另一通道钉住 min |
 | `numLateRecordsDropped` | counter | —（进程级聚合） | 迟到丢弃记录数：WindowOperator（跳过窗口且超 allowedLateness、无迟到侧输出）与 CepOperator（事件时间戳 ≤ 当前 watermark、无迟到侧输出）的丢弃路径递增（plan 366 Phase 3 接线）。命名例外：保留 Flink 兼容的算子级指标名，未套 `nop.stream.*` 前缀 |
 
 **io 层（输入输出）** — 更新点：source 发射点 + 跨任务 writer 发射点
@@ -63,6 +70,7 @@
 | `nop.stream.io.records.consumed.total` | counter | jobId/vertexId/subtask | source 侧喂入管线的记录数（SOURCE/SELF_CONTAINED 角色） |
 | `nop.stream.io.records.emitted.total` | counter | jobId/vertexId/subtask | 发往下游任务的记录数（跨任务发射） |
 | `nop.stream.io.emit.time` | timer | jobId/vertexId/subtask | 跨任务发射（writer.emit）本身耗时——**生产侧背压代理**：下游交换队列满时 emit 阻塞，该 timer 抬升即量化输出侧背压 |
+| `nop.stream.io.channel.queue.fill.ratio` | gauge | jobId/edgeId/sourceSubtask/targetSubtask | **队列填充比（WI16）**：size/capacity clamp [0,1]——`queue.size` 同一 holder 上的派生读数（非第二探针；scrape 侧免硬编码容量），同 bind/close 生命周期；local 路径由 `ResultPartition.size()/getTotalCapacity()` 推导（不建直测面） |
 | `nop.stream.io.channel.queue.size` | gauge | jobId/edgeId/sourceSubtask/targetSubtask | 跨任务通道（`RemoteInputChannel`）本地消费队列当前深度——数据面通道水位**直测**（item 32；Prometheus wire 名 `nop_stream_io_channel_queue_size`）。**注册范围（D2b）**：仅对激活订阅的通道注册（协调器零订阅形态与 construct-only 镜像通道不注册，避免整面恒 0 噪声）；**重注册/关闭语义（D2c）**：恢复重建经可变 holder 重绑既有 meter（无 micrometer 静默丢弃/冻结值），通道关闭释放绑定置 0；**聚合口径**：per-edge/max 为采集侧关注口径（最差通道即背压信号，sum 随通道矩阵规模缩放）；无独立溢出 gauge（溢出经 `ERR_STREAM_CHANNEL_OVERFLOW` typed 失败可观察，指标面保持最小） |
 
 **state 层（状态后端，P-REQ-8）** — 更新点：RocksDBKeyedStateBackend 打开路径（RocksDB aggregated properties 直读；个别属性在特定 RocksDB 构建下不可用时该 gauge 值为 NaN 并告警一次）

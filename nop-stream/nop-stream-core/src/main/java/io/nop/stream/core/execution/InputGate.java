@@ -553,6 +553,46 @@ public class InputGate {
     }
 
     /**
+     * WI16 (plan 2337): the watermark of one channel (cascading-skew observability).
+     *
+     * @param channelIdx the channel index
+     * @return the channel's current watermark ({@link Long#MIN_VALUE} before the first)
+     */
+    public long getChannelWatermark(int channelIdx) {
+        return currentWatermarks[channelIdx];
+    }
+
+    /**
+     * WI16 (plan 2337): the maximum watermark over NON-idle channels — together with
+     * {@link #getCurrentWatermark()} (min over the same set) this yields the
+     * intra-gate cascading lag: max − merged. Both sides share the idle-exclusion
+     * semantics so the lag is a pure "fastest active channel vs gate progress" gauge.
+     *
+     * @return the max active-channel watermark ({@link Long#MIN_VALUE} before the first)
+     */
+    public long getMaxActiveChannelWatermark() {
+        long max = Long.MIN_VALUE;
+        boolean anyActive = false;
+        for (int i = 0; i < currentWatermarks.length; i++) {
+            if (channelIdle[i]) {
+                continue;
+            }
+            anyActive = true;
+            if (currentWatermarks[i] > max) {
+                max = currentWatermarks[i];
+            }
+        }
+        if (!anyActive) {
+            for (long wm : currentWatermarks) {
+                if (wm > max) {
+                    max = wm;
+                }
+            }
+        }
+        return max;
+    }
+
+    /**
      * Returns whether every channel is currently idle.
      */
     public boolean isAllChannelsIdle() {

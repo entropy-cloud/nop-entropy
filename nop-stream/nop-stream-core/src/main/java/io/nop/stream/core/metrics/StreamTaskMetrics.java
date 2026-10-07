@@ -50,6 +50,14 @@ public interface StreamTaskMetrics {
         @Override
         public void processingTime(long nanos) {
         }
+
+        @Override
+        public void idleTime(long nanos) {
+        }
+
+        @Override
+        public void elapsedTime(long nanos) {
+        }
     };
 
     /**
@@ -89,4 +97,23 @@ public interface StreamTaskMetrics {
      * (around the input-gate record dispatch), in nanoseconds.
      */
     void processingTime(long nanos);
+
+    /**
+     * WI16 (plan 2337): accumulates one idle slice — the duration of an input-gate
+     * read that returned empty (momentary idle, non-EOS). Sliced per main-loop
+     * iteration, so it sums consistently with {@link #elapsedTime(long)}.
+     *
+     * @param nanos the idle slice duration
+     */
+    void idleTime(long nanos);
+
+    /**
+     * WI16 (plan 2337): accumulates one main-loop iteration slice. The denominator of
+     * the busy/backpressured/idle ratios (busy = processingTime.sum − emitTime.sum,
+     * backpressured = emitTime.sum, both divided by elapsed sum — emitTime is nested
+     * inside processingTime, so the subtraction is exact in sum terms).
+     *
+     * @param nanos the iteration slice duration
+     */
+    void elapsedTime(long nanos);
 }

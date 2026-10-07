@@ -460,6 +460,14 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     public void setTaskMetrics(io.nop.stream.core.metrics.StreamTaskMetrics metrics) {
         this.taskMetrics.setDelegate(metrics);
+        // WI16 (plan 2337): bind the watermark cascading gauges to this task's input
+        // gate (holder rebind — recovery rebuilds rebind the same meter ids). SOURCE /
+        // SELF_CONTAINED roles have no gate and skip.
+        if (metrics instanceof io.nop.stream.core.metrics.MicrometerStreamTaskMetrics
+                && inputGate != null) {
+            ((io.nop.stream.core.metrics.MicrometerStreamTaskMetrics) metrics)
+                    .bindWatermarkGauges(inputGate);
+        }
     }
 
     public io.nop.stream.core.metrics.TaskMetricsHandle getTaskMetricsHandle() {
@@ -773,6 +781,12 @@ public class StreamTaskInvokable implements Invokable<Void> {
             }
         } finally {
             stopProcessingTimeDriver();
+            // WI16: detach the time-share/watermark gauges' static holder so an ended
+            // task stops reporting its last ratios (the meters keep reading NaN).
+            io.nop.stream.core.metrics.StreamTaskMetrics delegate = taskMetrics.getDelegate();
+            if (delegate instanceof io.nop.stream.core.metrics.MicrometerStreamTaskMetrics) {
+                ((io.nop.stream.core.metrics.MicrometerStreamTaskMetrics) delegate).releaseHolder();
+            }
         }
     }
 
@@ -1043,6 +1057,11 @@ public class StreamTaskInvokable implements Invokable<Void> {
 
     @SuppressWarnings("unchecked")
     private InputLoopExitReason processInputGate(Input<Object> headInput) throws Exception {
+        // WI16 (plan 2337): time-share accumulation. Idle slices = read calls that
+        // return empty (momentary idle); elapsed slices = main-loop iterations. The
+        // busy/backpressured shares are derived from the processingTime/emitTime
+        // timers (emit nested in processing — see the authoritative name table).
+        long iterationStart = System.nanoTime();
         while (true) {
             // Task-thread aliveness tick at the top of every loop
             // iteration, INCLUDING idle iterations (the idle-return path
@@ -1061,8 +1080,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
                 return InputLoopExitReason.CANCELLED;
             }
 
+            long readStart = System.nanoTime();
             Optional<StreamElement> elementOpt = inputGate.read();
             if (!elementOpt.isPresent()) {
+                taskMetrics.idleTime(System.nanoTime() - readStart);
                 // InputGate returns empty for BOTH end-of-stream
                 // and momentary idle (idle-return threshold, see
                 // InputGate.IDLE_RETURN_THRESHOLD_MS). Only a true EOS — all
@@ -1090,6 +1111,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
             markProgress();
 
             classifyAndDispatch(headInput, elementOpt.get());
+            long now = System.nanoTime();
+            taskMetrics.elapsedTime(now - iterationStart);
+            iterationStart = now;
         }
     }
 
