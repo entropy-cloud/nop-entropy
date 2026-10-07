@@ -1,6 +1,6 @@
 # 2347 full-code-review 5.3 跨模块公共 API（nop-*-api）契约一致性与版本健康审计
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 5.3（MA5）；Skill=`ai-dev/skills/cross-module-dependency-audit-prompt.md` + `ai-dev/skills/deep-audit-prompts.md`（维度 20）
 > Related: owner doc `docs-for-ai/01-repo-map/module-groups.md`；Roadmap Details：「nop-*-api 模块表面（api/xmeta/api.xml）与实现一致性、破坏性变更记录、版本健康」；`CHANGELOG.md`（破坏性变更记录载体）。
@@ -66,7 +66,7 @@ Targets: 26 个 `-api` 模块 + git 历史 + CHANGELOG.md
 - [x] Agent C：Tier C 6 模块深审（含 datav 空壳裁决、plugin CHANGELOG 对照、http @Deprecated 面）
 - [x] 主 agent 抽查质量：口径重放 5/5 独立复算吻合（nop-code 1.0.0-SNAPSHOT 8 pom/WfChangeActorRequestBean propId=6 亲读/SessionFileReader 路径/IRpcStatusReporter 零引用/bom 幻影 5 条目行号）
 - [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
-- [x] 产物 `_tmp/fcr-5.3-api.md`（拆分为 4 份：`fcr-5.3-api-mech.md` + `fcr-5.3-api-a/b/c.md`）
+- [x] 产物 `_tmp/fcr-5.3-api.md`（拆分为 4 份：`_tmp/fcr-5.3-api-mech.md` + Tier A/B/C 三份 `_tmp/fcr-5.3-api-{a,b,c}.md`）
 
 Exit Criteria:
 
@@ -77,51 +77,51 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: in progress
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 机械口径重放（≥5 条独立复算）+ 撞车核对（1.1/2.7/3.10/4.2/5.1 报告对照）
-- [ ] 主 agent 汇总：判级统一（P0–P3 共享前缀）、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 机械口径重放（10/10 组独立复算吻合；P2 条目 100% 亲读、P3 条目 100% 重放/亲读；净账 P0=0/P1=0/P2=4/P3=11——22 条原始条目零整条驳回、3 处中性化/降级透明记载、7 组撞车终裁、6 项勘误、漏报补扫新发现 P3-5.3-014、P0 终裁零异步注入）
+- [x] 主 agent 汇总：判级统一（A-01 维持 P2 升 P1 触发条件登记/MECH-03 降 P3/MECH-05 收窄/MECH-06 降线索）、撞车去重终裁（7 组）
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-5.3-api-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-5.3-api-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `5.3-api-contract-version-health-audit.md`；index 登记 5.3 行（P0/P1/P2/P3 计数）+ P1 汇总行（如有）+ P2 裁决台账行（如开辟例外）+ 清理 5.1/5.2 残留占位行（index 文本一致性缺陷顺手修复）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：机械口径重放由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/index 计数与报告发现清单一一对应）；通过后 roadmap 5.3 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `5.3-api-contract-version-health-audit.md`；index 登记 5.3 行（P0/P1/P2/P3 计数）+ P1 汇总行（如有）+ P2 裁决台账行（如开辟例外）+ 清理 5.1/5.2 残留占位行（index 文本一致性缺陷顺手修复）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0——closure audit 终裁确认）
+- [x] 定向验证锚点：机械口径重放由复核员独立执行（10/10 组吻合）；doc-links exit 0（0 errors）
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——首轮 FAIL 附处方 R1-R3〔P3-5.3-014 证据句不实：TestApiTypes 模块自有测试引用漏计〕，处方落实后轻量复核转 PASS）；通过后 roadmap 5.3 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 机械口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 机械口径可复现（复核员重放一致——10/10 组）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且机械全量/深审抽样全覆盖——覆盖度量：26 模块机械台账 + 16 模块深审（3+1 agent）
-- [ ] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕
-- [ ] roadmap 5.3 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且机械全量/深审抽样全覆盖——覆盖度量：26 模块机械台账 + 16 模块深审（3+1 agent）（closure auditor 逐行清点 26 模块行 + 16 模块节确认）
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕（勘误 7 项透明记载）
+- [x] index 计数与报告发现清单一一对应（15 条 = 0/0/4/11 六处闭合；P0/P1/P2 三台账节零新增正确）
+- [x] 独立 closure audit PASS 并留痕（首轮 FAIL→处方 R1-R3 落实→轻量复核 PASS）
+- [x] roadmap 5.3 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项（3 处中性化/降级透明记载 + 判级改判 4 处留痕）
 
 ## Deferred But Adjudicated
 
@@ -133,14 +133,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 5.3 api 契约一致性与版本健康审计收口。净发现 P0=0/P1=0/P2=4/P3=11 + 线索 8 条 + 复核补扫新发现 P3-5.3-014；机械 10/10 组口径独立重放吻合；22 条原始条目零整条驳回；7 组撞车终裁；勘误 7 项（E7 为 closure audit 发现）；正结论三件套（26 pom 零 impl 反向依赖/api.xml 资源面零漂移/唯一真幻影 IRpcStatusReporter）。closure audit 首轮 FAIL（P3-5.3-014 证据句"无任何测试引用"不实——TestApiTypes.java:123/:133-135 模块自有构造级冒烟引用漏计，复核补扫 grep 排除自身模块的结构性盲区；结论存活 P3 维持，roadmap/index 按纪律先行回退 todo）→ 处方 R1（条目证据句改写+修复方向补测试同步）/R2（勘误表 E7+§3.4 口径注记）/R3（回退恢复+勾选补齐+本段留痕）全部落实后轻量复核 PASS。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_c657239e-41b0-4c5d-947f-afbf6159710f（fresh session，只读 closure auditor；首轮 VERDICT: FAIL 附处方 R1-R3 → 处方落实后轻量复核 PASS）
 - Evidence:
+  - 计数勾稽：报告 15 条（0/0/4/11）↔ index 5.3 行 ↔ roadmap 行 ↔ `_tmp/fcr-5.3-api-review.md` 净账 ↔ 22 原始→15 终态+8 线索合并关系——六处闭合零漏登零多登；P0 发现追踪/P1 汇总/P2 裁决台账三节零新增正确
+  - 关键判定亲读 4 处：P2-5.3-001（bom 5 条目活跃态+tests 死依赖行号亲读）/P2-5.3-004（propId=6 双重复+跳号 8 亲读）/P2-5.3-003（ChatMessage.java:25+三处 stale 注释亲读）均 PASS；P3-5.3-014 FAIL（TestApiTypes 测试引用漏计）→ 处方落实
+  - 引用路径真实性 13 处抽验全命中（含 `617a80d881` git cat-file fatal 确证悬空、E1/E2/E3 复算成立、`465d39f2d3` 实存）
+  - 格式：15 条终态条目逐条含 文件:行号+严重程度+修复方向（+信心水平+误报排除）；初审条目 ≥9 行抽验 3 条全过
+  - Anti-Hollow：覆盖度量属实（机械台账 26 模块行逐行清点+深审 16 模块节=A5+B5+C6）；无空壳面——摘要正结论全部独立复算可复现
+  - 验证：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors）；`node ai-dev/tools/check-plan-checklist.mjs` 退出码 0（见下）
+  - Anti-Hollow 扫描豁免：只读审计无新增代码（roadmap 6.1 全仓扫描覆盖此面）
+  - Deferred 项分类检查：无 deferred；P2×4+P3×11 进 R1.0 输入池（P3-5.3-015 watch-only）；线索 8 条登记去向；无 in-scope live defect 被静默降级
+  - 流程备注：roadmap 翻 done 先于 closure audit 派发（顺序偏差）——audit FAIL 后已按纪律回退 todo，处方落实后恢复 done，偏差闭环留痕于本段
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- no remaining plan-owned work（P2×4+P3×11 修复归属 R1.0 分族；线索 CL-1→R1.0 模块边界治理批次、CL-4→lessons/退役 runbook；P3-5.3-015 watch-only；E7 结构性盲区〔补扫排除自身模块〕供 6.1 空壳扫描口径借鉴）
