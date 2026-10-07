@@ -17,6 +17,7 @@
 
 package io.nop.stream.core.streamrecord;
 
+import io.nop.api.core.stream.RowKind;
 import io.nop.stream.core.exceptions.StreamException;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ACTUAL_TYPE;
@@ -46,6 +47,17 @@ public final class StreamRecord<T> extends StreamElement implements java.io.Seri
      * Flag whether the timestamp is actually set.
      */
     private boolean hasTimestamp;
+
+    /**
+     * WI7 (plan 2336): optional engine-level change metadata. {@code null} rowKind =
+     * INSERT-only append semantics (the historic default — zero behavior change).
+     * Carried by {@link #copy(Object)}/{@link #copyTo}; preserved by in-place
+     * {@link #replace} (same contract as the timestamp side-band).
+     */
+    private RowKind rowKind;
+
+    /** WI7: optional table identity; null = unidentified. */
+    private String tableId;
 
     /**
      * Creates a new StreamRecord. The record does not have a timestamp.
@@ -157,6 +169,30 @@ public final class StreamRecord<T> extends StreamElement implements java.io.Seri
         this.hasTimestamp = false;
     }
 
+    /**
+     * WI7: the optional change kind, or null for plain append semantics.
+     */
+    public RowKind getRowKind() {
+        return rowKind;
+    }
+
+    /**
+     * WI7: the optional table identity, or null when unidentified.
+     */
+    public String getTableId() {
+        return tableId;
+    }
+
+    /**
+     * WI7: attach optional change metadata. Values come from the
+     * {@code io.nop.api.core.stream.ChangeSemanticView} bridge at source emission.
+     */
+    public StreamRecord<T> withChangeMetadata(RowKind rowKind, String tableId) {
+        this.rowKind = rowKind;
+        this.tableId = tableId;
+        return this;
+    }
+
     // ------------------------------------------------------------------------
     //  Copying
     // ------------------------------------------------------------------------
@@ -169,6 +205,8 @@ public final class StreamRecord<T> extends StreamElement implements java.io.Seri
         StreamRecord<T> copy = new StreamRecord<>(valueCopy);
         copy.timestamp = this.timestamp;
         copy.hasTimestamp = this.hasTimestamp;
+        copy.rowKind = this.rowKind;
+        copy.tableId = this.tableId;
         return copy;
     }
 
@@ -180,6 +218,8 @@ public final class StreamRecord<T> extends StreamElement implements java.io.Seri
         target.value = valueCopy;
         target.timestamp = this.timestamp;
         target.hasTimestamp = this.hasTimestamp;
+        target.rowKind = this.rowKind;
+        target.tableId = this.tableId;
     }
 
     // ------------------------------------------------------------------------
@@ -208,6 +248,10 @@ public final class StreamRecord<T> extends StreamElement implements java.io.Seri
 
     @Override
     public String toString() {
-        return "Record @ " + (hasTimestamp ? timestamp : "(undef)") + " : " + value;
+        String str = "Record @ " + (hasTimestamp ? timestamp : "(undef)") + " : " + value;
+        if (rowKind != null || tableId != null) {
+            str += " [rowKind=" + rowKind + ", tableId=" + tableId + "]";
+        }
+        return str;
     }
 }

@@ -278,6 +278,14 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **注意**：启用门控时应先起消费者或接受部署窗口内下游未订阅导致的门控失败重试（nop_sys 裁定：无订阅者 topic 的事件永不被扫描，WAITING 行全数计入积压）。
 - 测试锚点：`TestRemoteResultPartitionBackpressureGate`（fake probe 五路径 + 锁外契约，共 6 用例）、`TestDataPlaneSysDaoBackendE2E.gatedProducerBoundsTableDepthWhileConsumerLags`（真后端端到端：深度受控 + 消费收敛 + 精确一次）。
 
+### 引擎级变更元数据（WI7/plan 2336）
+
+- **载体与缺省语义**：`StreamRecord` 携带可选 `rowKind`（`io.nop.api.core.stream.RowKind`：INSERT/UPDATE_BEFORE/UPDATE_AFTER/DELETE）与 `tableId`；**null rowKind = INSERT-only append（历史缺省，全链路零行为变化）**。copy/copyTo 携带元数据；`replace()` 原地变异保留元数据（与 timestamp 同侧带契约——清除方向才是静默降级；当前无任何算子在复用型记录上设置元数据）。equals/hashCode 不纳入元数据。
+- **桥接面（源发射点）**：value 实现 `io.nop.api.core.stream.ChangeSemanticView`（api-core 共享内核接口）即被自动盖到构建的记录上——`StreamSourceOperator`（collect/collectWithTimestamp）与 `SourceReaderOperator`（Source API 路径）两个桥接点。`ChangeEvent`（nop-message-debezium）已实现该视图：c/r→INSERT、u→UPDATE_AFTER、d→DELETE、null/未知→INSERT（防御；原 operation 仍随 value 供 sink 自行拒绝）、tableId=metadata 表名。ChangeEvent wire JSON 新增两可选属性（后向兼容）。
+- **守卫面（sink 入口）**：`StreamSinkOperator.processElement` 对带非 INSERT rowKind 的记录检查 `CdcChangeAwareSink` 标记——未实现 = typed fail-fast（`nop.err.stream.sink-not-change-aware`，含 sink 类名与 rowKind），不静默降级为 append。jdbc-2pc 全模式实现该标记（keyed 模式从 value 推导操作；INSERT 模式对 ChangeEvent u/d 自有 typed 拒绝）；file/message/batch-consumer/kafka-2pc 不实现（透传语义 sink——对带非 INSERT 元数据的记录 fail-fast = R4 预期行为；kafka 透传 CDC 流为 WI7 起的新增失败面，如实声明）。
+- **存活边界（如实声明）**：元数据存活 = 源桥接点 + 前向传递（copy/原记录前向）+ 跨进程 envelope 与 checkpoint 在途恢复（`StreamMessageEnvelope.rowKind/tableId` 可选字段，null 缺省后向兼容）；**新建记录型算子（map/flatMap/reduce/join/window/cep）丢弃元数据**（逐算子桥接归后续）；side-output sink 经 SideOutputRegistry 直连，不在守卫面。
+- 测试锚点：`TestStreamRecordChangeMetadata`、`TestChangeMetadataBridgeAndGuard`、`TestStreamElementCodecChangeMetadata`、`TestChannelStateChangeMetadata`、`TestChangeEventSemanticView`。
+
 ### SUSPEND 数据语义（WI9/plan 2333）
 
 - **两策略契约**：SUSPEND = terminal savepoint + 作业 FINISHED（可恢复）。恢复（同 jobId 重提交，显式 storage path）后的停机期数据处理由重提交时 CheckpointConfig 的 `suspendDataPolicy` 决定：`REPLAY_GAP`（缺省 = 现状补算——REPLAYABLE source 从 savepoint offset 重放停机期数据）与 `SKIP_GAP`（跳过——恢复后 source seek 到 latest，停机期数据不重放）。

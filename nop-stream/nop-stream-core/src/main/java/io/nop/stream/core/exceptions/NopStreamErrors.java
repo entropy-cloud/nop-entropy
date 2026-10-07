@@ -17,6 +17,7 @@ public interface NopStreamErrors {
     String ARG_OPERATOR_NAME = "operatorName";
     String ARG_STATE_NAME = "stateName";
     String ARG_CLASS_NAME = "className";
+    String ARG_ROW_KIND = "rowKind";
     String ARG_CONFIG_KEY = "configKey";
     String ARG_OPERATION = "operation";
     String ARG_VERTEX_ID = "vertexId";
@@ -595,6 +596,17 @@ public interface NopStreamErrors {
             define("nop.err.stream.skip-gap-unsupported-source",
                     "suspendDataPolicy=SKIP_GAP cannot advance source type {className} to its latest position: {detail}",
                     ARG_CLASS_NAME, ARG_DETAIL);
+
+    /**
+     * WI7 (plan 2336): a record carrying non-INSERT change semantics reached a sink
+     * that does not implement {@code CdcChangeAwareSink} — silently appending a
+     * DELETE/UPDATE would corrupt the target. Fail fast with the sink type and kind.
+     */
+    ErrorCode ERR_STREAM_SINK_NOT_CHANGE_AWARE =
+            define("nop.err.stream.sink-not-change-aware",
+                    "sink type {typeName} cannot consume records with change kind {rowKind}: "
+                            + "implement CdcChangeAwareSink to declare change handling",
+                            "typeName", "rowKind");
 
     // ------------------------------------------------------------------
     // nop-stream-flow DSL contract error codes
