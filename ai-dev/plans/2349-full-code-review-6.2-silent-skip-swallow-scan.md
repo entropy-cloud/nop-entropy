@@ -72,24 +72,24 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：违规发现逐条 保留/降级/驳回 + 裁定台账抽验（≥15% 跨四层）+ B2B QA 锚独立复判 ≥40（重放 `_tmp/fcr-6.2-qa-sample.py` 冻结表）+ 撞车核对（4.1/3.1/3.2/3.9/3.11）+ 宇宙对账复算
-- [ ] 主 agent 汇总：判级统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——16 发现 100% 亲读全保留（0 驳回 0 升降级）；B2B QA 锚 41 处复判（冻结表 40 全覆盖）零「违规判合法」漏检；台账跨层抽验 96 行（a1a 19/a1b 17/a2 41/a3 19）零漏检零误判；宇宙对账复算精确（1111=76+169+734+43+82+3+4 跨层零重叠）；改判 1 处（A1b-03 判级锚引用勘正——P2 维持，DoS 防线未破）；A1a-11/12 升级条件核验不成立维持 P3；P0 终裁零 P0；撞车 3 处全部正确
+- [x] 主 agent 汇总：判级统一（P2-6.2-001..004 / P3-6.2-001..025 终编号）、撞车去重终裁
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.2-swallow-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.2-swallow-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
