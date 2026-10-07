@@ -16,6 +16,8 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.StringHelper;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
+
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
@@ -41,6 +43,23 @@ public class AbstractUserContextCache implements IUserContextCache, IConfigRefre
     @Inject
     public void setUserContextConfig(UserContextConfig config) {
         this.config = config;
+    }
+
+    /**
+     * 允许同一用户名并存多个登录会话（与 LoginServiceImpl 的同名配置同键）。
+     * false（缺省）：新登录覆盖 userName→sessionId 索引，旧会话按"非当前会话"拒绝；
+     * true：索引仅记录最新会话，旧 token 的有效性不受后续登录影响——否则该配置
+     * 只关闭了 autoLogout，缓存层仍会互踢，文档承诺的"允许多会话"语义无法成立。
+     */
+    private boolean allowMultipleSessionsSameUser;
+
+    @InjectValue("@cfg:nop.auth.login.allow-multiple-sessions-same-user|false")
+    public void setAllowMultipleSessionsSameUser(boolean allowMultipleSessionsSameUser) {
+        this.allowMultipleSessionsSameUser = allowMultipleSessionsSameUser;
+    }
+
+    public boolean isAllowMultipleSessionsSameUser() {
+        return allowMultipleSessionsSameUser;
     }
 
     /** 容器/测试显式替换验证码缓存（须满足 design §3.3 TTL 保持契约：写入带 verifyCodeTimeout TTL）。 */
@@ -86,7 +105,7 @@ public class AbstractUserContextCache implements IUserContextCache, IConfigRefre
             return FutureHelper.success(null);
 
         return userContextCache.getAsync(sessionId).thenApply(userContext -> {
-            if (userContext != null) {
+            if (userContext != null && !allowMultipleSessionsSameUser) {
                 String currentSessionId = userSessionCache.get(userContext.getUserName());
                 // 如果已经超时
                 if (StringHelper.isEmpty(currentSessionId))

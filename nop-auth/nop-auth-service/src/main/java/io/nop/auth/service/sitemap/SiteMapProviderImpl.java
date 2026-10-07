@@ -121,6 +121,9 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
         if (AppConfig.isDebugMode()) {
             IResource resource = VirtualFileSystem.instance().getResource("/nop/main/site/" + locale + "-menu.yaml");
             ResourceHelper.dumpResource(resource, JsonTool.serializeToYaml(data.getSiteMaps()));
+            IResource permResource = VirtualFileSystem.instance()
+                    .getResource("/nop/main/site/" + locale + "-permission-roles.yaml");
+            ResourceHelper.dumpResource(permResource, JsonTool.serializeToYaml(data.getPermissionToRoles()));
         }
 
         return data;
