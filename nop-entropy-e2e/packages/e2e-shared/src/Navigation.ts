@@ -69,7 +69,16 @@ export async function login(
   const usernameInput = page.locator('input[name="username"], input[type="text"]').first();
   const passwordInput = page.locator('input[name="password"], input[type="password"]').first();
 
-  if (await usernameInput.isVisible()) {
+  // 必须等待表单渲染：壳层 bootstrapPending 阶段渲染空白占位 div，
+  // isVisible() 是瞬时快照——在空白窗口检查会得到 false，导致整个登录块被静默跳过
+  const formVisible = await usernameInput
+    .waitFor({ state: 'visible', timeout: 20_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!formVisible) {
+    throw new Error(`登录表单未渲染（当前 ${page.url()}）——应用引导未完成或登录路由异常`);
+  }
+  {
     // 提交按钮必须与输入框同表单：页面可能存在多套（移动端/桌面端）登录表单，
     // 裸 first() 会填 A 表单点 B 表单，B 的空值校验直接报错
     const loginForm = page

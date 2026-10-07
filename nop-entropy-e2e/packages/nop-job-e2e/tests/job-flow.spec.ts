@@ -184,6 +184,8 @@ test.describe('Schedule 状态转换 - UI', () => {
   });
 
   test('状态切换: DISABLED → ENABLED → PAUSED → ENABLED → DISABLED', async ({ page, request, engine }) => {
+    // 建单 + 4 次状态转换，每次转换含确认框与 fire 状态轮询，实测逼近默认 60s
+    test.setTimeout(120_000);
     const jobName = `${TEST_ID}_status`;
 
     await login(page);
