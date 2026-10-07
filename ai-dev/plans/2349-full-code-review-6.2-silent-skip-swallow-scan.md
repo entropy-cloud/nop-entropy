@@ -65,10 +65,10 @@ Targets: `_tmp/fcr-4.1-catches.tsv` 裁定宇宙 + U-1～U-6 位点
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账逐行含二分归属与理由
-- [ ] 宇宙清单落盘（各层行数 + 单一所有权对账：Σ各层 = 宇宙总数，零重叠零遗漏）
-- [ ] No owner-doc update required（只读——修复归 R1.0）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账逐行含二分归属与理由
+- [x] 宇宙清单落盘（各层行数 + 单一所有权对账：Σ=1111，closure auditor 复算精确零重叠零遗漏）
+- [x] No owner-doc update required（只读——修复归 R1.0）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
