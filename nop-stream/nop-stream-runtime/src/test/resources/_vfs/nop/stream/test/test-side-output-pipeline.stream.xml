@@ -1,0 +1,38 @@
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        name="test-side-output-pipeline" version="1" parallelism="1">
+
+    <!-- WI8 Phase 2 (plan 2332) end-to-end fixture: <sideOutput tag condition> tap +
+         <edge outputTag> tag channel feeding a downstream transform, alongside the
+         untouched main path. -->
+
+    <transforms>
+        <source id="src" name="IntSource"
+                bean="sideOutputIntSource"
+                parallelism="1"/>
+
+        <sideOutput id="so" name="BigTap"
+                    tag="big"
+                    condition="event &gt; 1"/>
+
+        <map id="tagMap" name="TagIdentity">
+            <source>event</source>
+        </map>
+
+        <sink id="mainSink" name="MainSink"
+              bean="soMainSink"
+              parallelism="1"/>
+
+        <sink id="tagSink" name="TagSink"
+              bean="soTagSink"
+              parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <!-- main path: every record flows through the tap unchanged -->
+        <edge id="e0" from="src" to="so" partition="FORWARD"/>
+        <edge id="e1" from="so" to="mainSink" partition="FORWARD"/>
+        <!-- tag channel: only condition-matching records cross this edge -->
+        <edge id="e2" from="so" to="tagMap" outputTag="big"/>
+        <edge id="e3" from="tagMap" to="tagSink" partition="FORWARD"/>
+    </edges>
+</stream>

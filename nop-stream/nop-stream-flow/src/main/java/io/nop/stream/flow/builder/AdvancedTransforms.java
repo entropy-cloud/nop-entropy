@@ -59,6 +59,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.join.EquiJoinOperator;
 import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.flow.builder.functions.JoinSideKeySelector;
@@ -87,12 +88,10 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * <p>Every branch is either a real DataStream-API call or fails fast with a
  * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. The
  * {@code <union>} transform (WI6) builds a real multi-input merge over the declared
- * edges. {@code <sideOutput>} still fails fast: the side-output extraction API
- * ({@code SingleOutputStreamOperator.getSideOutput} / {@code SideOutputDataStream})
- * already exists in {@code nop-stream-core}, but an XDSL {@code <sideOutput>} node would
- * need a graph-level side-output edge, and side-output edges have no routing in the
- * execution graph yet — side-output views are consumable only via
- * {@code sink/print/collect}.
+ * edges. {@code <sideOutput>} (WI8 Phase 2, plan 2332) builds a pass-through tap vertex
+ * that copies condition-matching records into the declared tag channel; the tag
+ * channel's graph-level consumer is the target of the declared
+ * {@code <edge ... outputTag>} edge.
  *
  * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
  * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
@@ -139,7 +138,7 @@ final class AdvancedTransforms {
             return buildCep(owner, t, upstreamIds, streamRegistry, (StreamCepModel) t);
         }
         if (t instanceof StreamSideOutputModel) {
-            return buildSideOutput((StreamSideOutputModel) t);
+            return buildSideOutput(owner, t, upstreamIds, streamRegistry, (StreamSideOutputModel) t);
         }
         if (t instanceof StreamTimestampsAndWatermarksModel) {
             return buildTimestampsAndWatermarks(owner, t, upstreamIds, streamRegistry,
@@ -811,22 +810,46 @@ final class AdvancedTransforms {
     }
 
     // ----------------------------------------------------------------
-    // sideOutput — XDSL <sideOutput> nodes are not buildable: the core
-    // extraction API (SingleOutputStreamOperator.getSideOutput) exists,
-    // but a side-output edge has no graph-level routing yet, so the
-    // declared transform cannot become a deployable downstream vertex
+    // sideOutput — WI8 Phase 2 (plan 2332): a <sideOutput tag condition> node is a
+    // pass-through tap vertex. Its declared upstream transform's records flow through
+    // the main output unchanged; records matching the condition are COPIED into the
+    // tag channel. The tag channel's consumer is the target of the declared
+    // <edge from="<sideOutput node>" to="<transform>" outputTag="<tag>"> edge —
+    // validated by StreamModelDslBuilder.validateSideOutputDeclarations and routed by
+    // the graph/deployment layers (StreamEdge.outputTag → JobEdge.outputTagId →
+    // registered tag-edge consumer feeding the target operator chain).
     // ----------------------------------------------------------------
 
-    private static Object buildSideOutput(StreamSideOutputModel m) {
-        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                .param(ARG_DETAIL, "Stream DSL <sideOutput id='" + m.getId() + "' tag='" + m.getTag()
-                        + "'> is not supported yet: the side-output extraction API "
-                        + "(SingleOutputStreamOperator.getSideOutput) is already available in "
-                        + "nop-stream-core, but a side-output edge has no graph-level routing, "
-                        + "so the <sideOutput> transform cannot be deployed as a downstream "
-                        + "vertex. Consume side outputs from Java API views via "
-                        + "sink(...)/print()/collect(...) instead.")
-                .loc(m.getLocation());
+    /**
+     * Builds the {@code <sideOutput>} node as a {@link SideOutputTapOperator} vertex:
+     * main output = the upstream stream unchanged, plus a copy of every
+     * condition-matching record emitted into the declared tag channel. The returned
+     * stream object stays the node's main output — downstream main-path consumers wire
+     * to it like any transform; tag consumers wire via their {@code outputTag} edge
+     * (wired by {@code StreamModelDslBuilder.applyTagEdgeDeclaration}, never as a
+     * regular upstream — a regular wire would double-deliver records).
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildSideOutput(StreamModelDslBuilder owner, StreamTransformModel t,
+                                          Set<String> upstreamIds, Map<String, Object> streamRegistry,
+                                          StreamSideOutputModel m) {
+        Object in = requireSingleInput(upstreamIds, streamRegistry, owner, t);
+        if (in instanceof WindowedStream) {
+            // WindowedStream exposes no single-input transform entry point for the tap;
+            // the tap's WindowingStrategy-free main output would silently drop the
+            // windowing context if accepted.
+            throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_EXPECTED_STREAM_TYPE, "DataStream or KeyedStream")
+                    .param(ARG_ACTUAL_STREAM_TYPE, WindowedStream.class.getName())
+                    .loc(t.getLocation());
+        }
+        DataStream dataStream = (DataStream) in;
+        OutputTag tag = new OutputTag(m.getTag(), UnknownTypeInformation.INSTANCE);
+        SideOutputTapOperator<?> tap = new SideOutputTapOperator<>(tag, m.getCondition());
+        return StreamModelDslBuilder.applyDeclaredParallelism(
+                dataStream.transform("SideOutput:" + m.getId(),
+                        dataStream.getType(), (OneInputStreamOperator) tap), t);
     }
 
     // ----------------------------------------------------------------

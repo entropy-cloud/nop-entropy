@@ -318,17 +318,15 @@ public class RemoteGraphExecutionPlanBuilder {
                         inEdges, taskIndex, parallelismMap, transport.inputChannels(),
                         deploymentPlan, barrierAlignment);
 
-                StreamTaskInvokable invokable;
-                if (writers.fanOutWriters() != null && !writers.fanOutWriters().isEmpty()) {
-                    if (inputGate != null) {
-                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters(), inputGate);
-                    } else {
-                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters());
+                StreamTaskInvokable invokable = createInvokable(chain, writers, inputGate);
+
+                // WI8 Phase 2 (plan 2332): a vertex fed from a side-output tag edge
+                // registers the tag consumer that feeds its operator chain input —
+                // records arriving over the tag channel route through it.
+                for (JobEdge edge : inEdges) {
+                    if (edge.getOutputTagId() != null) {
+                        invokable.registerTagEdgeConsumer(edge.getOutputTagId());
                     }
-                } else if (writers.singleWriter() != null || inputGate != null) {
-                    invokable = new StreamTaskInvokable(chain, writers.singleWriter(), inputGate);
-                } else {
-                    invokable = new StreamTaskInvokable(chain);
                 }
 
                 Subtask subtask = new Subtask(vertexId, taskIndex, taskLocation, invokable);
@@ -382,7 +380,40 @@ public class RemoteGraphExecutionPlanBuilder {
 
     /** Per-subtask output writers: either a single writer or a per-edge fan-out list. */
     private record RemoteWriters(RecordWriter<Object> singleWriter,
-                                 List<RecordWriter<Object>> fanOutWriters) {
+                                 String singleWriterTagId,
+                                 List<RecordWriter<Object>> fanOutWriters,
+                                 List<String> fanOutWriterTagIds) {
+    }
+
+    /**
+     * Creates the invokable with WI8 Phase 2 (plan 2332) tag-aware routing: when any
+     * outgoing edge carries a side-output tag id, the tag-aware constructor routes
+     * tagged emissions to their tag edge and keeps main records off tag edges. Vertices
+     * without tag edges keep the legacy constructors (zero regression).
+     */
+    private static StreamTaskInvokable createInvokable(OperatorChain chain,
+                                                       RemoteWriters writers,
+                                                       InputGate inputGate) {
+        boolean fanOutHasTagEdge = writers.fanOutWriterTagIds() != null
+                && writers.fanOutWriterTagIds().stream().anyMatch(java.util.Objects::nonNull);
+        if (writers.fanOutWriters() != null && !writers.fanOutWriters().isEmpty()) {
+            if (fanOutHasTagEdge) {
+                return new StreamTaskInvokable(chain, writers.fanOutWriters(),
+                        writers.fanOutWriterTagIds(), inputGate);
+            }
+            if (inputGate != null) {
+                return new StreamTaskInvokable(chain, writers.fanOutWriters(), inputGate);
+            }
+            return new StreamTaskInvokable(chain, writers.fanOutWriters());
+        }
+        if (writers.singleWriterTagId() != null && writers.singleWriter() != null) {
+            return new StreamTaskInvokable(chain, writers.singleWriter(),
+                    writers.singleWriterTagId(), inputGate);
+        }
+        if (writers.singleWriter() != null || inputGate != null) {
+            return new StreamTaskInvokable(chain, writers.singleWriter(), inputGate);
+        }
+        return new StreamTaskInvokable(chain);
     }
 
     /**
@@ -406,6 +437,11 @@ public class RemoteGraphExecutionPlanBuilder {
                                                           DeploymentPlan deploymentPlan) {
         RecordWriter<Object> recordWriter = null;
         List<RecordWriter<Object>> fanOutWriters = null;
+        // WI8 Phase 2 (plan 2332): per-edge side-output tag ids, index-aligned with the
+        // writer lists (null entries = main edges). Built inside the loops so a dropped
+        // null writer cannot misalign the tag list.
+        String singleWriterTagId = null;
+        List<String> fanOutWriterTagIds = null;
 
         if (!outEdges.isEmpty()) {
             if (outEdges.size() == 1) {
@@ -413,20 +449,23 @@ public class RemoteGraphExecutionPlanBuilder {
                 recordWriter = EdgeAssembly.createWriterForEdge(edge,
                         edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                         RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
+                singleWriterTagId = edge.getOutputTagId();
             } else {
                 fanOutWriters = new ArrayList<>();
+                fanOutWriterTagIds = new ArrayList<>();
                 for (JobEdge edge : outEdges) {
                     RecordWriter<Object> writer = EdgeAssembly.createWriterForEdge(edge,
                             edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                             RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
                     if (writer != null) {
                         fanOutWriters.add(writer);
+                        fanOutWriterTagIds.add(edge.getOutputTagId());
                     }
                 }
             }
         }
 
-        return new RemoteWriters(recordWriter, fanOutWriters);
+        return new RemoteWriters(recordWriter, singleWriterTagId, fanOutWriters, fanOutWriterTagIds);
     }
 
     private static InputGate buildRemoteInputGate(List<JobEdge> inEdges,

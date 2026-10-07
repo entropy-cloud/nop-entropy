@@ -341,6 +341,14 @@ public class JobGraphGenerator implements Serializable {
      * @return true if the nodes can be chained, false otherwise
      */
     private boolean canChain(StreamNode node1, StreamNode node2, StreamEdge edge, StreamGraph streamGraph) {
+        // 0. WI8 Phase 2 (plan 2332): a side-output tag edge is never chained — its
+        // target consumes the tag channel through the cross-task side-output routing
+        // (JobEdge outputTagId → registered side-output consumer), and chaining would
+        // bypass that routing and double-deliver records into the target operator.
+        if (edge.getOutputTag() != null) {
+            return false;
+        }
+
         // 1. Check parallelism - both nodes must have the same parallelism
         if (node1.getParallelism() != node2.getParallelism()) {
             return false;
@@ -588,11 +596,22 @@ public class JobGraphGenerator implements Serializable {
                     // chain fan-in (two chained upstream nodes feeding one target),
                     // where per-edge JobEdges would double-write every element.
                     boolean unionTarget = streamGraph.isUnionNode(targetNodeId);
-                    if (unionTarget || createdEdges.add(edgeKey)) {
-                        ResultPartitionType partitionType = determinePartitionType(streamEdge);
-                        IPartitioner<?> partitioner = resolveJobEdgePartitioner(streamEdge, streamGraph);
+                    if (unionTarget || createdEdges.add(edgeKey(streamEdge, edgeKey))) {
+                        boolean tagEdge = streamEdge.getOutputTag() != null;
+                        // WI8 Phase 2 (plan 2332): a tag edge follows the producer's
+                        // partitioning — it never carries a custom partitioner and its
+                        // partition type stays PIPELINED (forward).
+                        ResultPartitionType partitionType = tagEdge
+                                ? ResultPartitionType.PIPELINED
+                                : determinePartitionType(streamEdge);
+                        IPartitioner<?> partitioner = tagEdge
+                                ? null
+                                : resolveJobEdgePartitioner(streamEdge, streamGraph);
 
                         JobEdge jobEdge = new JobEdge(sourceVertexId, targetVertexId, partitionType, partitioner);
+                        if (tagEdge) {
+                            jobEdge.setOutputTagId(streamEdge.getOutputTag().getId());
+                        }
 
                         // Set EdgeConfig from DeploymentPlan if available. The plan's
                         // edgeConfigs map is keyed by the vertex pair form; parallel edges
@@ -701,6 +720,19 @@ public class JobGraphGenerator implements Serializable {
             }
         }
         return null;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): dedup key for a cross-vertex JobEdge. A tag edge and a
+     * main edge between the same vertex pair are distinct dataflows (the tag pair is a
+     * different channel), so the tag id participates in the key — without it a main
+     * edge would suppress the tag edge (or vice versa) in the per-pair dedup.
+     */
+    private static String edgeKey(StreamEdge streamEdge, String pairKey) {
+        if (streamEdge.getOutputTag() == null) {
+            return pairKey;
+        }
+        return pairKey + "|tag=" + streamEdge.getOutputTag().getId();
     }
 
     /**
