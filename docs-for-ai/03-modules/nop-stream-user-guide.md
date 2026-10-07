@@ -105,6 +105,31 @@ StreamExecutionResult result = env.execute("simple-pipeline");
 - 运行链路：`StreamEdge.outputTag`（激活既有字段）→ `JobEdge.outputTagId` → 本地 `GraphExecutionPlan` / 远程 `RemoteGraphExecutionPlanBuilder` 双路径为 tag 边目标注册消费方、为生产者接线 tag 感知 writer（主记录不过 tag 边、tag 记录不过主边——无双投递）；tag 边不参与算子链化（始终跨顶点边）。
 - 锚点：`TestAdvancedTransforms`（builder/tag 边图断言 + 配对校验矩阵）、`TestSideOutputTapOperator`（tap 复制语义/condition 消费）、`TestSideOutputPipelineE2E`（XDSL → execute → 分流/主流不变全链）、`TestRemoteSideOutputTagWiring`（远程部署路径注册）、`TestSideOutputChainingE2E`（HG-01 跨任务通道）。
 
+### 范围重算与回补作业形态（WI10/plan 2334）
+
+TDengine RECALCULATE/FILL_HISTORY 对标的两个重算作业形态。二者都是**独立有界作业**，复用 savepoint/restore 与 upsert sink 幂等，不引入新引擎机制。
+
+**RECALCULATE（时间范围重放）**：`io.nop.stream.runtime.source.TimeRangeReplayableSource` 包装既有 REPLAYABLE source，按事件时间范围 [from, to)（含头不含尾）过滤重放，下游接 jdbc-2pc `dmlMode=UPSERT` sink 幂等回写。构造契约：`(SourceFunction delegate, TimestampAssigner<T> assigner, long from, long to)`——非 `ReplayableSourceFunction` 的 delegate 构造期 typed 拒绝（该 source 无 seek/offset 语义，不可范围重放）；`to <= from` typed 拒绝。发射语义：`collect` 分支范围内记录经 `collectWithTimestamp(e, 提取时间戳)` 再发射（下游事件时间窗口开箱可用）；`collectWithTimestamp` 分支范围内原样透传；范围外丢弃。offset 语义保留内层（`seek`/`getCurrentOffset`/`snapshotState`/`initializeState` 全套转发）；capability faces 转发（`getSourceConsistency` 逐字转发、`ParallelismCheckable`/`ConnectivityCheckable` 在内层实现时转发——包装 batch-loader 不丢 parallelism=1 防线与连通性探针；内层无探针契约时 `checkConnection` typed 拒绝而非假通过）。
+
+RECALCULATE 作业配方（每条都是硬契约，锚点 `TestRecalculateBackfillE2E`）：
+
+1. **独立提交**：每次重算用**新 jobId + 新 checkpoint storage 目录**——同 jobId 重提交会 auto-restore 已 seek 的 offset，重放为空。
+2. **有界 source 提交契约**：只经「作业终结 MAX_WATERMARK 触发窗口出数」进入 2PC sink 的记录**不会被提交**（终结出数后无 checkpoint barrier，开放 epoch 永不 preCommit——`pendingCommits` 保持空）。有界 source 必须 (a) 数据发完后**显式 emitWatermark(≥ 最末窗口 end)** 让窗口在运行中出数，(b) **驻留 ≥ 一个 checkpoint interval**（如 800ms > 200ms）让周期 barrier 完成 preCommit+commit。wrapper 对 watermark 仅透传——终结 watermark 是内层 source 的责任。
+3. **幂等回写**：sink 用 `dmlMode=UPSERT` + `keyColumns`（如 `k,win_end`）；泛型（非 ChangeEvent）结果行必须给 `opMapper`（纯重算回写用 `"c"`，重算只重写当前态、无删除）。同 key 重放 = 覆盖同值，表态不变即幂等成立。
+
+**FILL_HISTORY（历史回补）**：`BatchLoaderSourceFunction`（批量装载）+ UPSERT sink 的独立作业；loader 返回空批即自然 EOS 终态（无需 DRAIN/cancel）。重跑回补作业重放全部装载行，UPSERT 同 key 覆盖，无重复行（锚点同 `TestRecalculateBackfillE2E`）。
+
+逐源边界矩阵：
+
+| 内层 source | 范围重放 | 说明 |
+|---|---|---|
+| `CollectionReplayableSource` | 支持 | offset = 下标；测试/cookbook 基准源 |
+| `BatchLoaderSourceFunction` | 支持 | offset = 已发射计数（确定性遍历前提不变）；包装后 parallelism=1 防线经 capability 转发保持 |
+| debezium-cdc | 不适用 | offset 是 binlog 位点**无时间语义**——按事件时间 seek 需位点↔时间戳映射表（Deferred）；范围重放请走 collection/batch-loader 路径 |
+| 非 REPLAYABLE source（如 fraud demo 的 `DirectoryFileSourceFunction`） | typed 拒绝 | 构造期 `ERR_STREAM_INVALID_ARG`，错误含源类名——无 seek 语义不可范围重放 |
+
+与 WI9 SKIP_GAP 的交互：SKIP_GAP 按**具体 source 类型**分派（仅 `CollectionReplayableSource` 支持），wrapper 包装后一律 typed 拒绝。RECALCULATE 是全新有界作业，正常不触发该路径。
+
 ### 状态与计时器心智模型
 
 - **Keyed state**：在 keyed 算子（`KeyedProcessFunction` / 窗口函数）内经 `getRuntimeContext().getKeyedStateStore()` 获取；非 keyed 上下文调用 fail-fast（"Keyed state is only available on a keyed stream"）。
