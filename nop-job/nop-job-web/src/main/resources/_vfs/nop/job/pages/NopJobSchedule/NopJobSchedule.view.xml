@@ -53,7 +53,7 @@
                         </dialog>
                     </action>
                     <action id="trigger-now-button" label="@i18n:common.triggerNow" xui:permissions="NopJobSchedule:triggerNow">
-                        <api url="@mutation:NopJobSchedule__triggerNow">
+                        <api url="/r/NopJobSchedule__triggerNow">
                             <data>
                                 <id>${id}</id>
                             </data>
@@ -62,7 +62,7 @@
                         <visibleOn>${scheduleStatus != 30 &amp;&amp; scheduleStatus != 40}</visibleOn>
                     </action>
                     <action id="enable-schedule-button" label="@i18n:common.enableSchedule" xui:permissions="NopJobSchedule:enableSchedule">
-                        <api url="@mutation:NopJobSchedule__enableSchedule">
+                        <api url="/r/NopJobSchedule__enableSchedule">
                             <data>
                                 <id>${id}</id>
                             </data>
@@ -71,7 +71,7 @@
                         <visibleOn>${scheduleStatus == 0}</visibleOn>
                     </action>
                     <action id="disable-schedule-button" label="@i18n:common.disableSchedule" xui:permissions="NopJobSchedule:disableSchedule">
-                        <api url="@mutation:NopJobSchedule__disableSchedule">
+                        <api url="/r/NopJobSchedule__disableSchedule">
                             <data>
                                 <id>${id}</id>
                             </data>
@@ -80,7 +80,7 @@
                         <visibleOn>${scheduleStatus == 10 || scheduleStatus == 20}</visibleOn>
                     </action>
                     <action id="pause-schedule-button" label="@i18n:common.pauseSchedule" xui:permissions="NopJobSchedule:pauseSchedule">
-                        <api url="@mutation:NopJobSchedule__pauseSchedule">
+                        <api url="/r/NopJobSchedule__pauseSchedule">
                             <data>
                                 <id>${id}</id>
                             </data>
@@ -89,7 +89,7 @@
                         <visibleOn>${scheduleStatus == 10}</visibleOn>
                     </action>
                     <action id="resume-schedule-button" label="@i18n:common.resumeSchedule" xui:permissions="NopJobSchedule:resumeSchedule">
-                        <api url="@mutation:NopJobSchedule__resumeSchedule">
+                        <api url="/r/NopJobSchedule__resumeSchedule">
                             <data>
                                 <id>${id}</id>
                             </data>
@@ -98,7 +98,7 @@
                         <visibleOn>${scheduleStatus == 20}</visibleOn>
                     </action>
                     <action id="archive-schedule-button" label="@i18n:common.archiveSchedule" xui:permissions="NopJobSchedule:archiveSchedule">
-                        <api url="@mutation:NopJobSchedule__archiveSchedule">
+                        <api url="/r/NopJobSchedule__archiveSchedule">
                             <data>
                                 <id>${id}</id>
                             </data>

@@ -41,11 +41,14 @@ public class NopCodeFileBizModel extends CrudBizModel<NopCodeFile> implements IN
 
     @BizQuery
     @Auth(permissions = "NopCodeFile:query")
-    public PageBean<CodeFileAnalysisResult> findPage_files(
+    public PageBean<CodeFileAnalysisResult> searchFiles(
             @Name("indexId") String indexId,
             @Name("packageName") @Optional String packageName,
             @Name("offset") @Optional long offset,
             @Name("limit") @Optional int limit) {
+        // /r/ 直发链路下空表单会产生空串——归一化为 null，避免按空条件过滤
+        if (packageName != null && packageName.isEmpty())
+            packageName = null;
         return codeIndexService.findFilesPage(indexId, packageName, offset, limit > 0 ? limit : 20);
     }
 

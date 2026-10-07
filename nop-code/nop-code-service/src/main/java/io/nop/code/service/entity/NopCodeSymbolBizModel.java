@@ -65,13 +65,16 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
 
     @BizQuery
     @Auth(permissions = "NopCodeSymbol:query")
-    public PageBean<SymbolDTO> findPage_symbols(
+    public PageBean<SymbolDTO> searchSymbols(
             @Name("query") @Optional String query,
             @Name("kinds") @Optional List<String> kinds,
             @Name("packageName") @Optional String packageName,
             @Name("indexId") String indexId,
             @Name("offset") @Optional long offset,
             @Name("limit") @Optional int limit) {
+        // 前端 /r/ 直发链路下空表单会产生空串/空集合——归一化为 null，避免按空条件过滤
+        if (query != null && query.isEmpty())
+            query = null;
         List<CodeSymbolKind> kindList = null;
         if (kinds != null) {
             kindList = kinds.stream()
@@ -84,7 +87,11 @@ public class NopCodeSymbolBizModel extends CrudBizModel<NopCodeSymbol> implement
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+            if (kindList.isEmpty())
+                kindList = null;
         }
+        if (packageName != null && packageName.isEmpty())
+            packageName = null;
         PageBean<CodeSymbol> page = codeIndexService.findSymbolsPage(indexId, query, kindList, packageName,
                 offset, limit > 0 ? limit : 20);
 

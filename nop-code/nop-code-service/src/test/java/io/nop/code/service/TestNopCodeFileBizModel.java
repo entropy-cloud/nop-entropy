@@ -85,7 +85,7 @@ public class TestNopCodeFileBizModel extends JunitAutoTestCase {
         data.put("packageName", "com.example.domain");
         data.put("offset", 0L);
         data.put("limit", 10);
-        ApiResponse<?> response = rpcQuery("NopCodeFile__findPage_files", data);
+        ApiResponse<?> response = rpcQuery("NopCodeFile__searchFiles", data);
         assertTrue(response.isOk());
         assertNotNull(response.getData());
 
