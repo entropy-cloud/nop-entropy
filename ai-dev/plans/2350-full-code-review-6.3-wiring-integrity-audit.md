@@ -54,7 +54,7 @@ Targets: 四链模块
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（f011d05dfd）、`git status` 干净后开始
 - [x] Agent 1「codegen 全链」：9 条机制边全部实证闭合（含 3 条 1.4 未覆盖边：第二 mainClass XlangJavaTask phase=none 抑制/离线再生清单 CodeGen.java 27/27 有效/CLI 双入口）；E3 双证据（TestXCodeGenerator 四用例真实断言 + 三对 model/产物同 commit 配对 efbf363a7b 等）；P3×3 + watch×1（A1-01 xdef.register-model.xml 死配置漂移陷阱/A1-02 nop-dao 有意移除 exec 绑定靠手动再生〔bootstrap 豁免族〕/A1-03 exec 版本 1.6.0 双定义零引用实际硬编码 3.0.0）；53 个"有绑定无模板"模块空目录跳过=韧性正结论 → `_tmp/fcr-6.3-wiring-a1.md`
 - [x] Agent 2「db-migration 执行链」：E1-E10 机制边全通；16 执行器四方核对零遗漏（implements/注册/回填/beans）；E3 四组（TestMigrationFileScanner H2 端到端/TestMigrationEngine 未知 type fail-loud live/TestChangeExecutors 26 @Test/TestMigrationXdefContract 17 tag 契约）；P3×2 新增（A2-01 generateRollbackSql 全实现但 rollback 零调用——xdef 契约漂移/A2-02 beans.xml 18 bean 零消费者双注册表）+ A2-03 上游锚点校准（引擎实走 MigrationEngine.executeChange:293-307，MigrationExecutor.execute 为休眠副本）+ A2-04 executeMark 与 2.3 check2 ② 一致不重立 → `_tmp/fcr-6.3-wiring-a2.md`
 - [x] Agent 3「IoC 启动链（重心）」：10 机制边全量追踪闭环**无断链零 P0/P1/P2**；资源发现双主分支机理（autoconfig _module 无关 + module 扫描 _module 强依赖；merged-file 短路/显式 files//main/beans 三辅助入口）；private 排除机制根因 ClassModelBuilder:404-405；P2-2.7-002 三点连线复现 + live 复核 2/5 消解 4/5 残留（job-worker delta 形态新记录）；E3 双证据（TestDemoBizModel 全链含 NopJunitExtension→CoreInitialization→IocCoreInitializer→restart+injectTo 调用栈）；A3-01 上游残留状态更新（引用不立案）/A3-02 merged-file 短路零触发 P3 watch/A3-03 plugin 子容器零生产调用方 P3 watch/**A3-04 清单勘误（预置节点 IContainerStartUp、XmlBeanElementParser 本仓不存在——报告须替换）**/A3-05 /main/beans 零载体（部署扩展点登记）→ `_tmp/fcr-6.3-wiring-a3.md`
