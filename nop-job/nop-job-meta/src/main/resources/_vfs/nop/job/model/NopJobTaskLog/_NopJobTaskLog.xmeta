@@ -20,7 +20,8 @@
 
     <props>
         <prop name="jobTaskLogId" displayName="日志ID" propId="1" i18n-en:displayName="Job Task Log Id" tagSet="seq"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="jobTaskId" displayName="任务ID" propId="2" i18n-en:displayName="Job Task Id" mandatory="true"

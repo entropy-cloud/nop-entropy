@@ -24,7 +24,8 @@
 
     <props>
         <prop name="jobScheduleId" displayName="调度ID" propId="1" i18n-en:displayName="Job Schedule Id" tagSet="seq"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false">
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="namespaceId" displayName="命名空间" propId="2" i18n-en:displayName="Namespace Id" queryable="true"

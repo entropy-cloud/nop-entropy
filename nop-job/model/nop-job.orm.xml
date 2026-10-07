@@ -87,7 +87,7 @@
             <columns>
                 <!-- 标识与隔离 -->
                 <column code="JOB_SCHEDULE_ID" displayName="调度ID" mandatory="true" name="jobScheduleId" precision="32"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
                         i18n-en:displayName="Job Schedule Id"/>
                 <column code="NAMESPACE_ID" displayName="命名空间" name="namespaceId" precision="50" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Namespace Id"/>
@@ -229,7 +229,7 @@
             <columns>
                 <!-- 标识与快照 -->
                 <column code="JOB_FIRE_ID" displayName="触发批次ID" mandatory="true" name="jobFireId" precision="32"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
                         i18n-en:displayName="Job Fire Id"/>
                 <column code="JOB_SCHEDULE_ID" displayName="调度ID" mandatory="true" name="jobScheduleId"
                         precision="32" propId="2" stdDataType="string" stdSqlType="VARCHAR"
@@ -361,7 +361,7 @@
             <columns>
                 <!-- 标识与关联 -->
                 <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
                         i18n-en:displayName="Job Task Id"/>
                 <column code="JOB_FIRE_ID" displayName="批次ID" mandatory="true" name="jobFireId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Fire Id"/>
@@ -484,7 +484,7 @@
                 ext:icon="file-lines" i18n-en:displayName="Job Task Log">
             <columns>
                 <column code="JOB_TASK_LOG_ID" displayName="日志ID" mandatory="true" name="jobTaskLogId" precision="32"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"
                         i18n-en:displayName="Job Task Log Id"/>
                 <column code="JOB_TASK_ID" displayName="任务ID" mandatory="true" name="jobTaskId" precision="32"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Job Task Id"/>
