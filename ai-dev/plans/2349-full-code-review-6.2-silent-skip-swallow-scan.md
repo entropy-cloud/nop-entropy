@@ -48,13 +48,13 @@
 
 ### Phase 1 - 口径固化与四层裁定（4 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: `_tmp/fcr-4.1-catches.tsv` 裁定宇宙 + U-1～U-6 位点
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始；**前置门：plan 2348 已 completed 且 roadmap 6.1 行 done**
-- [ ] 口径固化：①宇宙公式实算落盘（94 清单从 swallow.md §3 按 file:line join TSV 提取；close-ignore 8 位点按 swallow.md:96 派生规则 + 4.1 窗口重放落盘清单〔聚焦复核重放：8 产品位点，其中 3 ∈ 94，余 5 归本层〕；U-6 四行、各层归属清单）②裁定表模板落盘 ③QA 锚抽样脚本 `_tmp/fcr-6.2-qa-sample.py`（六要素：python3 random.Random(seed=2349)/seed 2349/单位 file:line/分层=层归属/各层锚样本数 = min(40, 层行数)〔close-ignore 层 5、U 层 6 全量作锚〕/冻结 csv）④4.1 已立案 2 处（ToolSchemaConverter:19/ChatBiTypeConverter:88）防重裁标记
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始；**前置门已满足：plan 2348 completed（2026-10-07）+ roadmap 6.1 done**
+- [x] 口径固化：①宇宙公式实算落盘 `_tmp/fcr-6.2-universe.json`（主 agent 脚本 `_tmp/fcr-6.2-freeze.py`：94 清单从 swallow.md §3 按 file:line 精确 join + 2 条粗体立案行显式并入 = 93 行认领〔欠覆盖安全方向〕；close-ignore 8 位点 TSV 行号折算后 5 ∈ 94、余 3；U-6 四行 B2A 全 free）——**终态宇宙：B1_free 76 + B2A_free 169（Agent 1a/1b）+ B2B 734（Agent 2）+ B2C 43 + C1 82 + close-ignore 3（Agent 3 =128）+ U-6 4 = 1111 行 + U-1～U-5 位点** ②裁定表模板落盘 ③QA 锚抽样脚本 `_tmp/fcr-6.2-qa-sample.py`（seed 2349，各层 min(40, 行数)，207 锚冻结 csv 确定性验证）④4.1 已立案 2 处（ToolSchemaConverter:19/ChatBiTypeConverter:88）防重裁标记（在 sampled94_rows 内）
 - [ ] Agent 1a「B1 全裁」：B1_EMPTY 未抽样余量逐处亲读（合法忽略需带注释或留证）
 - [ ] Agent 1b「B2A 全裁」：B2A_IGNORE 未抽样余量逐处亲读（扣除 U-6 四行与 close-ignore 交集后清单）
 - [ ] Agent 2「B2B 734 全量批读」：261 文件聚类按批亲读 catch 体 ±5 行逐行裁定（分批落盘防截断；SocketClient:150 带 P3-3.9-014 防重复标记；4 处 duplicated-adjacent 域命中标"已裁定归属"）
