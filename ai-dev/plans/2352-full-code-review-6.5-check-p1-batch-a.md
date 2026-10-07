@@ -1,6 +1,6 @@
 # 2352 full-code-review 6.5 check 系列 P1 抽样标定 a（kernel/core-framework/persistence）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.5（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: Owner=`ai-dev/audits/check/SUMMARY.md`；**批次权威定义**=矩阵 §6（`00-scope-and-dimension-matrix.md` :171-176）：批次 a 成员 = **nop-kernel、nop-core-framework、nop-persistence** 三行（矩阵 §2 行名）；check 报告按模块名映射到批次成员；四批并集=§2 全部 18 基线行。Roadmap Details：「按矩阵 §6 的批次成员表分批抽样标定（每批 ≥50%，优先安全与数据正确性类；仍 live 的进入 R1.0 输入）」。
@@ -50,8 +50,8 @@ Targets: 批次 a check 单元报告 P1 清单
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 主 agent 对账落盘：① **独立枚举 ROADMAP Phase 1 单元表 diff 候选清单**（草审 B1 防再漏——diff 结果落盘）② 批次 a 单元→P1 全量清单 48 条（逐条：#ID/模块/摘要/维度 D1-D8/类别派生〔D5=安全、D1=数据正确性、其余其他〕/fix-ai-check 处置〔47/48 已标注：~43 已修复/1 部分修复/3 暂缓——逐条复核标注与 live 一致性〕/轮内撞车候选）③ **各报告统计表 P1 数 = P1 小节数机械核对**（草审 m5）④ 抽样表冻结脚本 `_tmp/fcr-6.5-sample.py`（D5/D1 全抽 + 其余 seed 抽样至总覆盖 ≥50%〔预期 ~42 条 ≈87%〕）——冻结三要素落盘：seed 值 + 宇宙快照哈希 + 冻结表
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 主 agent 对账落盘：① **独立枚举 ROADMAP Phase 1 单元表 diff 候选清单**（草审 B1 防再漏——diff 结果落盘）② 批次 a 单元→P1 全量清单 48 条（逐条：#ID/模块/摘要/维度 D1-D8/类别派生〔D5=安全、D1=数据正确性、其余其他〕/fix-ai-check 处置〔47/48 已标注：~43 已修复/1 部分修复/3 暂缓——逐条复核标注与 live 一致性〕/轮内撞车候选）③ **各报告统计表 P1 数 = P1 小节数机械核对**（草审 m5）④ 抽样表冻结脚本 `_tmp/fcr-6.5-sample.py`（D5/D1 全抽 + 其余 seed 抽样至总覆盖 ≥50%〔预期 ~42 条 ≈87%〕）——冻结三要素落盘：seed 值 + 宇宙快照哈希 + 冻结表
 - [x] Agent 1「抽样标定份 A」：15/15 全部 already-fixed（12 次模块级实跑全绿零降级；撞车 15/15 无同根；db-migration#P1-6 部分+暂缓条判 already-fixed——暂缓残余已由 check2 fb3f860729 DdlSyntax 方言族闭环，同根溯源留痕不 dup）→ `_tmp/fcr-6.5-checkp1-a.md`
 - [x] Agent 2「抽样标定份 B」：14 already-fixed + 1 still-live（**P1-6.5-B1** nosql-cdc ZERO 半分支：Duration.ZERO 透传 GETEX PX 0 被 Redis 拒绝——null 半分支已由 check2 fc2b9347f6 修复；TestNosqlCache 无 ZERO 用例；按 partially-fixed 规则立 still-live 附 residual）；撞车 18 符号全量比对 4 命中全部异根、0 duplicated → `_tmp/fcr-6.5-checkp1-b.md`
 - [x] Agent 3「抽样标定份 C + 轮内撞车候选全量比对」：14/14 全部 already-fixed（10 模块 10 次实跑 127 tests 全绿；撞车 29 符号零同根；1 邻接注记 nop-orm-eql#P1-3 修复后残余缺口归 2.2 台账承接）→ `_tmp/fcr-6.5-checkp1-c.md`
@@ -67,50 +67,50 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读 + already-fixed 抽验 ≥30%（含实跑）+ 撞车全量比对复验 + 判级复核（降级提议汇总主 agent 终裁）
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS**——B1 100% 亲读+自跑证实（TestNosqlCache 2/2 无 ZERO 用例）；严重性终裁 **P2-6.5-001**（P1→P2 独立论证：显式非默认配置触发+全仓 0 生产调用方+失败响亮=导出门面配置陷阱档；P1-6.5-NNN 消耗 0 个）；already-fixed 抽验 14/43=32.6% 零翻案 + 9 次实跑 120 tests 全绿；A 份 db-migration#P1-6 闭环依据双实测（check2 :104-146 + fb3f860729 双侧可达）；撞车 dup=0 维持；冻结协议重放机械精确
+- [x] 主 agent 汇总：四态统一、撞车去重终裁
+- [x] 台账收敛
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.5-checkp1-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.5-checkp1-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: in progress
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.5-check-p1-batch-a.md`（附录记冻结协议：seed 值+宇宙快照+冻结表 SHA-256——`_tmp/` gitignored 持久可见性靠报告附录，沿 6.1 先例）；index 登记 6.5 行（替换占位行）+ 仍 live 条目进 P1 汇总（dup 者并入轮内发现 ID 不另立编号）
-- [ ] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——抽样覆盖率核验）；**通过后** roadmap 6.5 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `6.5-check-p1-batch-a.md`（附录记冻结协议：seed 值+宇宙快照+冻结表 SHA-256——`_tmp/` gitignored 持久可见性靠报告附录，沿 6.1 先例）；index 登记 6.5 行（替换占位行）+ P2-6.5-001 进 P2 裁决台账 + P1 汇总零新增（dup 者并入轮内发现 ID 不另立编号——dup=0 故 P1-6.5-NNN 消耗 0 个）
+- [x] 定向验证锚点：标定抽验由复核员独立执行（14 目含实跑）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项：计数勾稽六方闭合/关键判定亲读 4 处/引用 12 处全命中/覆盖度量/文本一致/流程合规——首轮 FAIL 附处方 R1〔Phase 2 状态漏更纯文本〕，落实后轻量复核 PASS）；**通过后** roadmap 6.5 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划；live-ness 验证含只读测试实跑（抽验条目强制），免除全量构建。
 
-- [ ] 报告落盘且批次 a 对账 + ≥50% 抽样标定全覆盖
-- [ ] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；撞车全量比对留痕
-- [ ] index 计数与报告标定台账一一对应；仍 live 清单完整进 P1 汇总
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.5 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且批次 a 对账 + ≥50% 抽样标定全覆盖（44/48=91.7%）
+- [x] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；撞车全量比对留痕（零 dup）
+- [x] index 计数与报告标定台账一一对应；仍 live P2-6.5-001 完整进 P2 裁决台账（P1 汇总零新增正确）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done——FAIL→R1→轻量复核 PASS）
+- [x] roadmap 6.5 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -122,14 +122,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 6.5 check P1 批次 a 抽样标定收口。批次 a 48 条 P1 对账闭合（12/12 单元 diff+统计核对），冻结抽样 44/48=91.7% 标定：**AF 43 / still-live 1 / dup 0 / FP 0**；唯一 still-live 终裁 **P2-6.5-001**（nosql-cdc ZERO 半分支 GETEX PX 0 配置陷阱，P1→P2 复核独立论证），入 P2 裁决例外台账（沿 6.4 F7 通道）；db-migration#P1-6 判 AF（check2 fb3f860729 闭环双实测）。closure audit（agent_bf8fb954）首轮 FAIL 附处方 R1（纯文本：plan Phase 2 状态/勾选漏更——「replace 未命中静默失败」同型第三次）——落实后轻量复核 PASS。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_bf8fb954-9273-4716-a044-38337b8e750b（fresh session，只读 closure auditor；VERDICT: FAIL（处方 R1 纯文本级；实质标定全部经独立亲读/重放证实无一处失实）→ 处方落实后轻量复核 PASS）
 - Evidence:
+  - 计数勾稽：44=A15/B15/C14 与冻结 CSV assigned-agent 列逐一精确吻合；AF43/live1/FP0/dup0 三方一致；P0=0/P1=0/P2=1/P3=0 ↔ index 0/0/1/0；P2-6.5-001 台账行五字段完整；P0 追踪/P1 汇总零新增正确（P1-6.5-NNN 消耗 0 个）；未抽样余量 4 条「其他」重放实测核实
+  - 关键判定亲读 4 处：P2-6.5-001（NosqlCache getAsync ZERO 透传/LettuceMessageService `<0` 守卫/TestNosqlCache 恰 2 方法无 ZERO 用例）/db-migration#P1-6（check2 :104-146 处置注记 + fb3f860729 is-ancestor master+HEAD 双 YES）/C 份邻接（2.2 :60 P1-2.2-010 + AstToSqlGenerator resolveIgnoredOwner 在位）/A 份安全条（StringHelper :2491-2493 三重拒绝）
+  - 引用路径 12 处抽验全命中；冻结表 SHA-256 自算精确一致（a939cbfa…）；宇宙快照哈希语义（canonical 内容哈希）核实无失实
+  - 覆盖度量：48=12 单元分母账平（58−10）；类别派生 security 2/data 42/other 4 重放实测；91.67% ≥50% 门禁达成
+  - 验证：doc-links exit 0；check-plan-checklist --strict exit 0（R1 落实后）
+  - Anti-Hollow：只读审计无新增组件；验证锚 = 复核 120 tests 全绿 + closure auditor 重放与亲读
+  - Deferred 项分类检查：无 deferred；P2-6.5-001 经 P2 裁决例外台账显式通道；未抽样 4 条为抽样制设计内残留
+  - 流程合规：audit 先行于 roadmap 翻 done
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- no remaining plan-owned work（P2-6.5-001 归 R1.0 裁决；CL-1 归 2.2 台账；CL-2 构建域观察；CL-3 流程教训 lessons 候选）
