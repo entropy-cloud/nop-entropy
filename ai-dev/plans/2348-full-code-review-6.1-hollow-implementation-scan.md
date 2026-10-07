@@ -50,7 +50,7 @@
 
 ### Phase 1 - 全量口径固化与三层裁定（3 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 产品 src/main/java 全仓
 
 - Item Types: `Proof`
