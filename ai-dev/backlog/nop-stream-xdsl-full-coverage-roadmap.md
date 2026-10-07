@@ -4,7 +4,7 @@ audit-rounds: 0
 
 # nop-stream XDSL 声明面全功能补全与 12 场景验收 Roadmap
 
-> Last updated: 2026-10-07（v3：二轮独立审查 APPROVE WITH CONDITIONS 的 2 Major + 8 Minor + 5 Nit 全修——WI15 落地 WI0(e) 裁定（deps 补 WI0、Item Type 去 Decision）、收口 WI deps 补齐释放面 WI12–WI15、WI12 按 guide「一次 delivery pass」拆分（五注册表族 / 三生命周期回调）、门禁 WI 增 4 条释放面 fixture 钉子、baseline 存量命中补登 R10/R11/R12、外部前置与 baseline 的跨 roadmap WI id 一律加 `multi-engine` 前缀（消歧）、Rule 3 只列 WI0 实际裁定的触点、Rule 8 归属改指 roadmap guide、R11 目标 severity 附白名单可达条件、外部前置 WI8 行改引子项 a+b；另修 v2 表述残留：header 场景归属、M2 标题、E3 基线判定记法、trigger 族计数）
+> Last updated: 2026-10-07（v3：二轮独立审查 APPROVE WITH CONDITIONS 的 2 Major + 8 Minor + 5 Nit 全修，三轮独立审查终裁 APPROVE 后按 N1–N7 做定点 tidy——transform 级 SQL WI 落地 WI0(e) 裁定（deps 补 WI0、Item Type 去 Decision）、收口 WI deps 补齐释放面 WI12–WI15、WI12 按「一次 delivery pass」拆分（五注册表族 / 三生命周期回调）、门禁 WI 增 4 条释放面 fixture 钉子、WI3 接办 R12/R13 的模型感知半边、E5 钉死默认分支并把「水位一等对象声明面」登记 Follow-up、WI20 补 WI0 逐场景目标形态引用、外部前置 WI8 行去 WI26、R5 存量基线按实测改为 1 处并注明另一策略面样例不计入、R10 注明 description 维度不进本轮 warning 面、锚点行号校正（回调 :446-450 / source :932-958 / sink :1037-1063）、WI5 补非 DISCARDING accumulationMode 放行、M3/M5 标题与 Cross-Cutting 端到端范围校正、矩阵列名改「基线（能力档）」以免与 WI 状态混淆；另修 v2 表述残留：header 场景归属、M2 标题、E3 基线判定记法、trigger 族计数）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-06b-nop-stream-xdsl-vs-oss-stream-examples-portability.md`（缺口核定 primary：DSL 已实现面 / fail-fast 面 / 20 例三档映射）
@@ -45,9 +45,9 @@ audit-rounds: 0
 | `windowFnId` 白名单外取值（sliding/session 等须 bean） | `AdvancedTransforms.java:295-299` | WI7 |
 | `HASH` 边指向 keyBy/union/join 与 `REBALANCE`/`BROADCAST` 分区 | `StreamModelDslBuilder.java:686/694/704/712` | 保持拒绝（Rule 9 只做静态诊断） |
 | `<streams>`/`<environments>`/`<requirements>`/`<checkpointParticipants>`/`<coders>` 五注册表 | `StreamModelDslBuilder.java:419-460` | WI12 |
-| `onStart`/`onEnd`/`onError` 生命周期回调 | `StreamModelDslBuilder.java:441-448` | WI13 |
-| source 的 `params`/`maxParallelism`/`outputType`/`consistencyCapability` | `StreamModelDslBuilder.java:933-960` | WI15 |
-| sink 的 `params`/`maxParallelism`/`inputType`/`consistencyCapability` | `StreamModelDslBuilder.java:1038-1060` | WI15 |
+| `onStart`/`onEnd`/`onError` 生命周期回调 | `StreamModelDslBuilder.java:446-450` | WI13 |
+| source 的 `params`/`maxParallelism`/`outputType`/`consistencyCapability` | `StreamModelDslBuilder.java:932-958` | WI15 |
+| sink 的 `params`/`maxParallelism`/`inputType`/`consistencyCapability` | `StreamModelDslBuilder.java:1037-1063` | WI15 |
 | `<custom>` 的 `params` 与 `<source>` 体 | `AdvancedTransforms.java:707-727` | WI15 |
 
 全部为构建期 typed fail-fast（`ERR_STREAM_NOT_IMPLEMENTED`/`ERR_STREAM_WINDOW_ATTR_UNSUPPORTED`/`ERR_STREAM_EDGE_*` 等），无静默降级。WI1 负责把本清单固化为 owner doc 支持矩阵 + 每类钉子测试，作为后续放行的唯一底账。
@@ -56,25 +56,25 @@ audit-rounds: 0
 
 **检查门禁现状**：`ai-dev/tools/` 24 个 `check-*.mjs`（+ 生成器与辅助脚本；README Tool Index 登记 12 个）；`nop-lint` 平台规则 70 条（65 Java + 5 XML，XML 侧已有 `nop-bean-naming` 作用于 `beans.xml`、`nop-orm-*` 作用于模型 XML），规则目录 `nop-lint/docs/rule-catalog.md` 由 `ai-dev/tools/gen-lint-rule-catalog.mjs` 确定性生成并有 `--check` 门禁（新增规则必须登记并再生成），规则条数另有两处硬编码 census 断言（`TestProductionRuleCount`、`TestNopRuleSuites.EXPECTED_RULE_IDS`）。`.stream.xml` 已被 nop-lint 目标扫描覆盖（按末段扩展名归入 xml），但无任何 XDSL 专属规则；模型感知检查只有 `conf-validate`/`dry-run`（构建期校验/连通性探测，不含最佳实践预检）。
 
-**检查规则存量命中基线（2026-10-06 实扫 37 份仓内 `.stream.xml`，全部 warning 级，不阻塞）**：R5 = 2（`wi21-registry-wiring.stream.xml`、`test-param-agg.stream.xml` 用 `<window>`/`<cep>` 无水位节点）；R7 = 0；R8 = 0；R9 = 0；R10 = 16（8 个非 kebab-case id：`deltaFilter`/`deltaLayerMap`/`intSrc`/`sL`/`sR`/`srcL`/`srcR`/`wi19DropB` + 8 处未命名 `<source>`/`<sink>`）；R11 = 5（by-design 负控夹具：`test-loc-bad-edge`、`test-loc-parse-error`、`test-loc-bad-source-config`、`test-delta-failfast-extends`、`fraud-conf-validate-bad-edge`）；R12 = 2（同负控夹具）。WI4 消号台账以本基线为起点。
+**检查规则存量命中基线（2026-10-06 实扫 37 份仓内 `.stream.xml`，全部 warning 级，不阻塞）**：R5 = 1（`test-param-agg.stream.xml` 用 `<window>` 无水位节点；另一份 `wi21-registry-wiring.stream.xml` 只声明 `windowingStrategies` 注册表而无 `<window>`/`<cep>` 节点，按现行信号不计入）；R7 = 0；R8 = 0；R9 = 0；R10 = 16（8 个非 kebab-case id：`deltaFilter`/`deltaLayerMap`/`intSrc`/`sL`/`sR`/`srcL`/`srcR`/`wi19DropB` + 8 处未命名 `<source>`/`<sink>`；`description` 维度本轮不进 warning 面——仓内 141 个 transform 元素 0 命中，全部转正后再分档）；R11 = 5（by-design 负控夹具：`test-loc-bad-edge`、`test-loc-parse-error`、`test-loc-bad-source-config`、`test-delta-failfast-extends`、`fraud-conf-validate-bad-edge`）；R12 = 2（同负控夹具）。WI4 消号台账以本基线为起点。
 
 **外部前置（不在本 roadmap 内实现，见「外部前置」节）**：限速（multi-engine WI5）、连接器参数规则化（multi-engine WI4）、CatalogTable/RowKind（multi-engine WI7）、窗口事件模型 + sideOutput 路由协议 + 兜底出数（multi-engine WI8 子项 a/b/c）、重算/FILL_HISTORY 引擎语义（multi-engine WI10）、维表 lookup 异步增量（multi-engine WI11）、CDC schema evolution（multi-engine WI15）、Avro/coders（multi-engine WI18）、SQL DISTINCT·HAVING 精确面（multi-engine WI17 子项 a）、生产进程入口（multi-engine WI1）；静态维表 lookup 与 DISTINCT 钉码（sql roadmap WI14/WI16 done）。
 
 ## 12 场景验收矩阵（E1–E12）
 
-> 验收唯一口径。来源列为 `2026-10-06b` 报告的样例编号（覆盖其全部 20 个条目）。「接受降级」列只在 WI0 裁定后回填；未裁定前一律 `待裁定`，禁止实现期自行降级。
+> 验收唯一口径。来源列为 `2026-10-06b` 报告的样例编号（覆盖其全部 20 个条目）；「基线（能力档）」列是能力档记法（✅/⚠️/❌），非工作项状态面。「接受降级」列只在 WI0 裁定后回填；未裁定前一律 `待裁定`，禁止实现期自行降级。
 
-| 场景 | 来源 | 核心语义 | 需要的声明面 | 验收测试（fixture + 单测） | 基线判定 | 接受降级（WI0 裁定） |
+| 场景 | 来源 | 核心语义 | 需要的声明面 | 验收测试（fixture + 单测） | 基线（能力档） | 接受降级（WI0 裁定） |
 |---|---|---|---|---|---|---|
 | **E1** | Flink StateMachineExample | per-key DFA + keyed state + checkpoint + 双 sink + 源限速 | 既有 `<process>` bean 承载状态；`<checkpoint>` 已有；限速属外部前置（multi-engine WI5） | xdsl-e1-statemachine.stream.xml + TestXdslScenarioE1：DFA 状态转移/告警分支/双 sink 输出/checkpoint 恢复断言 | ⚠️ 可移植（限速降级为 bean 内自限速） | 待裁定 |
 | **E2** | Flink TopSpeedWindowing | GlobalWindows + DeltaTrigger + TimeEvictor + maxBy | **WI5** trigger 面 + **WI6** evictor 面 + **WI7** global 参数化 + **WI9** topN/maxBy 聚合 | xdsl-e2-topspeed.stream.xml + TestXdslScenarioE2：跨 50m delta 的发射序列逐条断言 + evictor 物理驱逐断言 | ⚠️ 核心被 trigger/evictor 硬门挡住 | 待裁定 |
 | **E3** | Flink SideOutputExample | 分流侧输出 + 5s 滚动窗口 sum + 双 sink | **WI10** sideOutput 声明面接线（路由协议外部前置 multi-engine WI8 子项 b） | xdsl-e3-sideoutput.stream.xml + TestXdslScenarioE3：长词进侧输出下游顶点、短词进窗口聚合的分区归属断言 | ❌→⚠️ sideOutput 恒 fail-fast | 待裁定 |
 | **E4** | Flink WindowJoin | 双流事件时间窗口等值 join | 既有 `<joins>` + 参数化 window join + `timeout` | xdsl-e4-windowjoin.stream.xml + TestXdslScenarioE4：匹配对即时发射 + outer 补齐在 watermark + 边界寿命 | ✅ 已可移植（补 fixture + 测试固化） | 无需降级 |
-| **E5** | Flink CountNewsClicks + CountSales | keyed state + 事件时间 timer + 迟到缓冲 + 水位一等对象处理 | `process` bean 承载 state/timer；水位策略 bean；显式水位处理属 Java 面（声明降级） | xdsl-e5-newstimer.stream.xml + TestXdslScenarioE5：预发布点击缓冲、publishTime+1h 定时器 flush、idleness 恢复 | ⚠️ 可移植（逻辑落 bean） | 待裁定（水位一等对象是否补声明面） |
+| **E5** | Flink CountNewsClicks + CountSales | keyed state + 事件时间 timer + 迟到缓冲 + 水位一等对象处理 | `process` bean 承载 state/timer；水位策略 bean；显式水位处理属 Java 面（声明降级） | xdsl-e5-newstimer.stream.xml + TestXdslScenarioE5：预发布点击缓冲、publishTime+1h 定时器 flush、idleness 恢复 | ⚠️ 可移植（逻辑落 bean） | 默认分支（逻辑落 bean，E5 fixture 钉死）；水位一等对象声明面登记 Follow-up，WI0 不另设触点 |
 | **E6** | Flink AsyncIOExample | 异步 I/O ordered/unordered + capacity + timeout | **WI17**（默认分支：同步替代声明形态 + 容量/超时契约；解除分支：async 声明面） | xdsl-e6-async.stream.xml + TestXdslScenarioE6：capacity 排队上界 + timeout 语义 + 顺序/乱序完成断言 | ❌ 两端缺（vision §四异步算子） | 待裁定 |
 | **E7** | Flink Table API 集（UpdatingTopCity / TemporalJoin / StreamWindowSQL） | retraction 物化 + LATERAL LIMIT TopN + `FOR SYSTEM_TIME` 时态 join + `COUNT(DISTINCT)` | **WI9** 聚合目录（DISTINCT 近似口径）；精确 SQL 面归外部前置 multi-engine WI17 子项 a；时态 join 属 vision §四排除项 | xdsl-e7-tablesql.stream.xml + TestXdslScenarioE7：TUMBLE 聚合终值断言 + DISTINCT 近似口径断言 + 不支持项 typed fail-fast 断言 | ❌→⚠️ 子集可移植（retraction 受 D1 终值语义约束 / 时态 join 不做） | 待裁定 |
 | **E8** | SeaTunnel 三例（多表 SQL transform / 四路 embedding fan-out / 多表多 sink 断言） | 多表路由 + transform 级 SQL + 四路并行分支 + 多 sink | **WI20** 多表面 + **WI16** transform 级 SQL 形态 + 既有 fan-out/multi-sink | xdsl-e8-seatunnel-multi.stream.xml + TestXdslScenarioE8：1 源 4 分支 4 sink 断言 + 多表降级形态断言 | ⚠️ 多表需 CatalogTable 外部前置 | 待裁定 |
-| **E9** | TDengine avg_current_stream + 触发词表 | sliding + MAX_DELAY 早出 + PARTITION BY 分区 + FILL_HISTORY 回补 + STREAM_OPTIONS 族 | **WI7** sliding 参数化 + **WI8** 早出结果 + **WI20** 分区多表 + **WI19** 回补 | xdsl-e9-tdengine-window.stream.xml + TestXdslScenarioE9：滑窗重叠发射序列 + MAX_DELAY 早出时刻 + 回补重算幂等断言 | ⚠️ 四要素拆解后分层可移植 | 待裁定（STREAM_OPTIONS 17 项按早出/窗口/迟到丢弃取子集，其余 IGNORE_DISORDER/DELETE_RECALC/ROLLUP BY/NOTIFY 等由 WI0 裁定） |
+| **E9** | TDengine avg_current_stream + 触发词表 | sliding + MAX_DELAY 早出 + PARTITION BY 分区 + FILL_HISTORY 回补 + STREAM_OPTIONS 族 | **WI7** sliding 参数化 + **WI8** 早出结果 + **WI20** 分区多表 + **WI19** 回补 | xdsl-e9-tdengine-window.stream.xml + TestXdslScenarioE9：滑窗重叠发射序列 + MAX_DELAY 早出时刻 + 回补重算幂等断言 | ⚠️ 四要素拆解后分层可移植 | 待裁定（STREAM_OPTIONS 17 项按早出/窗口/迟到丢弃取子集，其余 IGNORE_DISORDER/DELETE_RECALC/ROLLUP BY/NOTIFY 等由 WI0 逐场景目标形态条款裁定） |
 | **E10** | Hazelcast TopNStocks + SessionWindow | 两级窗口（sliding→tumbling）+ 复合 topN 聚合 + session 窗口合并 | **WI7** 参数化 + session 合并 + **WI9** 复合聚合/topN | xdsl-e10-hazelcast-window.stream.xml + TestXdslScenarioE10：两级窗口滑移对齐约束 + 复合聚合多指标断言 + session 合并断言 | ⚠️ 可移植（复合聚合仍需 bean 或目录化） | 待裁定 |
 | **E11** | Hazelcast TransactionTracking + Enrichment | CEP TTL 超时 + 维表 lookup ×3 策略 + N 路批源 hashJoin + 异步 gRPC | 既有 CEP `<patterns>`（`within` 覆盖超时）+ **WI11** 有限维表注入 + **WI18** 多源聚合变通 + **WI17** 异步 | xdsl-e11-enrichment.stream.xml + TestXdslScenarioE11：START/END 配对与超时分支 + 维表富化等价性 + N 路变通形态断言 | ⚠️/❌ 混合（N 路 hashJoin 与异步缺） | 待裁定 |
 | **E12** | Hazelcast TradingVolumeOverTime + AccessLogStreamAnalyzer + SQL streaming | 早出部分结果 + tail 文件源 + `IMPOSE_ORDER`/`HOP`/时序 `BETWEEN` join | **WI8** 早出 + **WI19** 持续源与回补（按裁定）+ **WI18** 区间谓词（默认不做，变通） | xdsl-e12-early-tail.stream.xml + TestXdslScenarioE12：early-results 周期发射 + 乱序下部分结果断言 + tail 裁定形态断言 | ❌→⚠️ 早出缺、tail 与区间 join 缺；`CREATE JOB`/`SINK INTO` 生命周期与物化视图不属 XDSL 范围（见 Follow-up） | 待裁定 |
@@ -89,7 +89,7 @@ audit-rounds: 0
 | R2 | 声明式优先：能用声明面表达的逻辑不得退化为 bean；bean 只允许承载状态/定时器/外部 IO | L2 | warning | 可声明面（窗口/join/CEP/聚合/限速等）与 bean 使用点交叉比对 |
 | R3 | 状态归属：有状态逻辑必须落 `<process>` bean 或 CEP；声明面不得隐式持有状态；bean 状态读写须有 checkpoint 断言（Anti-Hollow） | L2 | warning → error | 声明面无状态 API（结构性满足）+ 测试侧断言存在性（CI 校验） |
 | R4 | 类型声明：使用 `<window>`/`<aggregate>`/`<join>` 且未声明 `<schemas>` 即违规；解析后 out-type 为 `UnknownTypeInformation` 亦违规（join/custom/cep 现状默认落该形态，属存量命中） | L2 | warning | 静态面：`<schemas>` 缺失；运行面：out-type 类型解析结果 |
-| R5 | 事件时间：使用 `<window>`/`<cep>` 必须声明 `timestampsAndWatermarks`（CEP 缺水位由构建期 WARN 升 error）；水位策略须显式声明乱序容忍/idleness | L1+L2 | warning → error | 模型含 `<window>`/`<cep>` 且无 `timestampsAndWatermarks` 节点（存量 2 处） |
+| R5 | 事件时间：使用 `<window>`/`<cep>` 必须声明 `timestampsAndWatermarks`（CEP 缺水位由构建期 WARN 升 error）；水位策略须显式声明乱序容忍/idleness | L1+L2 | warning → error | 模型含 `<window>`/`<cep>` 且无 `timestampsAndWatermarks` 节点（存量 1 处） |
 | R6 | 幂等组合：声明 `STRICT_EXACTLY_ONCE` 时静态预检 REPLAYABLE source + 2PC sink 组合（引擎侧 validator 保留为最终关卡） | L2 | warning → error | 端点 capability 声明 vs `<checkpoint processingGuarantee>` |
 | R7 | 凭据与敏感：连接器配置中的口令/密钥必须 `credential:{id}#{field}` 引用，禁止明文 | L1 | warning → error | 属性值匹配明文口令模式（存量 0） |
 | R8 | Delta 化：变体作业须 `x:extends` 派生而非复制拓扑；派生文件不得整体重写父拓扑 | L1 | warning | 与父模型 fingerprint/拓扑重复度比对（存量 0） |
@@ -112,18 +112,18 @@ audit-rounds: 0
 
 - [ ] WI1 声明面-消费方契约清单与 fail-fast 钉子基线：把 Current Baseline 的 fail-fast 锚点表与已实现面固化为 owner doc 清单（XDSL 章节新增「声明面支持矩阵」），每类 fail-fast 补一个构建期钉子测试，作为后续逐项放行的唯一底账（Deliverable: 清单落 `docs-for-ai/03-modules/nop-stream-user-guide.md` + 钉子测试套件；deps: 无；Item Type: Proof）
 - [ ] WI2 XDSL 最佳实践检查第一层（nop-lint XML 规则集：R5 水位声明 / R7 凭据明文 / R8 Delta 化 / R9 并行度与边 / R10 命名与描述 / R12 无声明无消费 / R13 测试接线静态面）：`nop/xdsl-*` 规则 + 规则单测 + **两处硬编码 census 断言同步**（TestProductionRuleCount 条数、TestNopRuleSuites.EXPECTED_RULE_IDS）+ `gen-lint-rule-catalog.mjs` 再生成过 `--check` 门禁；确认规则能匹配 XDSL 节点族（`<window>`/`<edge>`/`<joinSpec>` 等，`.stream.xml` 已按末段扩展名归入 xml 扫描）（Deliverable: 规则集 + 单测 + census 同步 + 目录再生成；deps: WI1；Item Type: Feature + Proof）
-- [ ] WI3 XDSL 最佳实践检查第二层（模型感知 lint 子命令：R1 模型层一致性 / R2 声明式优先退化提示 / R3 状态归属 / R4 类型声明 / R5 水位供给 / R6 幂等组合预检 / R11 串联 conf-validate+dry-run / R14 平台复用）：`StreamMaintenanceMain lint` 子命令（沿用既有子命令形态与退出码 0/1/2），复用构建期 StreamModel 解析链，错误面复用既有 `nop.err.stream.*` 码（零新增码，对齐 sql roadmap §4d 纪律）（Deliverable: 子命令 + 规则实现 + 单测 + 运维文档；deps: WI1；Item Type: Feature）
+- [ ] WI3 XDSL 最佳实践检查第二层（模型感知 lint 子命令：R1 模型层一致性 / R2 声明式优先退化提示 / R3 状态归属 / R4 类型声明 / R5 水位供给 / R6 幂等组合预检 / R11 串联 conf-validate+dry-run / R14 平台复用 / R12 与 R13 的模型感知半边（fail-fast 面同源比对 + 场景注册表双向比对））：`StreamMaintenanceMain lint` 子命令（沿用既有子命令形态与退出码 0/1/2），复用构建期 StreamModel 解析链，错误面复用既有 `nop.err.stream.*` 码（零新增码，对齐 sql roadmap §4d 纪律）（Deliverable: 子命令 + 规则实现 + 单测 + 运维文档；deps: WI1；Item Type: Feature）
 - [ ] WI4 检查门禁接线与存量基线梯度：CI 接线（lint 子命令 + nop-lint 规则两道）+ 存量 `.stream.xml` 全量扫描 + warn→error 两阶段基线登记（以 Current Baseline 基线行为起点，负控夹具白名单化归本 WI）（Deliverable: CI 配置 + 存量违规清单（含负控白名单）+ 消号台账；deps: WI2 + WI3；Item Type: Feature + Proof）
 
 ### M2 — 窗口控制面声明化（E2/E9/E10 的核心硬门）
 
-- [ ] WI5 trigger 声明面放行：strategy 与 window 节点的 `triggerId` 接线（放行即删对应 fail-fast 钉子测试改放行断言）+ trigger 目录解析（9 个具体 trigger 族 × 适用域）+ 与 CEP/allowedLateness/accumulationMode/evictor 的组合合法性矩阵（Deliverable: 声明面 + 目录 + 组合校验 + 时序测试；deps: WI1；Item Type: Feature）
+- [ ] WI5 trigger 声明面放行：strategy 与 window 节点的 `triggerId` 接线 + 非 DISCARDING `accumulationMode` 放行（放行即删对应 fail-fast 钉子测试改放行断言）+ trigger 目录解析（9 个具体 trigger 族 × 适用域）+ 与 CEP/allowedLateness/accumulationMode/evictor 的组合合法性矩阵（Deliverable: 声明面 + 目录 + 组合校验 + 时序测试；deps: WI1；Item Type: Feature）
 - [ ] WI6 evictor 声明面：evictorId 声明 + evictor 目录（Count/Time/Delta）+ 既有 SPI 时序契约（`evictBefore`/`evictAfter` 参数语义、元素时间戳按元素自身事件时间、`GlobalWindows` 下窗口状态有界）在声明面上的显式化（不新增 SPI 参数）+ 与 allowedLateness/accumulationMode 组合校验（Deliverable: 声明面 + 目录 + 驱逐生命周期断言（照抄 TestEvictorStateLifecycle 钉定面）；deps: WI5；Item Type: Feature）
 - [ ] WI7 窗口类型参数化与 session 合并接线：参数化 id 扩容到 sliding/session/global（duration 语义对齐外部 HOP/SESSION 口径）+ `MergingWindowAssigner` 消费（合并回调契约 + 合并与 allowedLateness 交互）+ legacy 白名单 id 兼容面显式化（Deliverable: 参数化目录 + 合并接线 + 滑窗重叠/会话合并测试；deps: WI1；Item Type: Feature）
 - [ ] WI8 早出结果与连续触发参数化：`earlyResultsPeriod` 声明 + Continuous 触发族参数化（事件时间/处理时间两轴）+ 早出与迟到/allowedLateness 的交互契约（兜底出数引擎语义外部前置 multi-engine WI8 子项 c；本 WI 只做声明面与参数校验）（Deliverable: 声明面 + 周期发射时序测试；deps: WI5；Item Type: Feature）
 - [ ] WI9 内建聚合目录扩充：topN/maxBy + 复合聚合（多指标）+ distinct 计数近似口径（精确 SQL 面归 multi-engine WI17 子项 a；近似口径按 WI0(d) 裁定文档化），复合累加器经 `aggregators` 声明面接线（Deliverable: 聚合目录 + 复合累加器 + DISTINCT 口径落地；deps: WI0 + WI1；Item Type: Feature）
 
-### M3 — 拓扑与旁路声明面（E3/E8/E11）
+### M3 — 拓扑/旁路/注册表/端点放行面（E3/E8/E11）
 
 - [ ] WI10 `<sideOutput>` 声明面接线：schema 面 + builder 消费方接线（tag/condition → 侧输出下游顶点）+ 迟到数据侧输出（lateData tag，与 allowedLateness 联动）+ 与 CEP/窗口组合（**图级路由协议外部前置 multi-engine WI8 子项 b**，本 WI 不重写路由协议）；放行即删 fail-fast 钉子（Deliverable: 声明面与接线 + 双下游场景测试 + Anti-Hollow 接线断言；deps: WI1；Item Type: Feature）
 - [ ] WI11 `<sideInputs>` 有限维表注入声明面：sideInput 消费方接线 + 语义钉死为「构建期或低频更新的有限维表快照注入」（静态维表必须走 `IJdbcTemplate`/`IBatchLoader`）；与 sql roadmap WI14 已交付的 `keyBy`+`process`+`ITableLookup` 形态差异化——本 WI 的判定标准是「多维表/大维表/构建期注入/共享只读快照」四类场景下优于 process bean 形态，否则保留既有形态（**broadcast 属性语义重定义由 WI0(c) 裁定**）（Deliverable: 声明面 + 差异化判定记录 + 富化等价性测试；deps: WI0 + WI1；Item Type: Feature）
@@ -138,9 +138,9 @@ audit-rounds: 0
 - [ ] WI17 异步算子面（分叉交付）：**默认分支**（WI0(a) 维持 vision §四异步算子 Non-Goal）交付同步替代声明形态（`process` bean 承载外部调用 + 有界容量与超时的行为契约 + 显式串行语义标注）+ E6 降级验收；**解除分支**（WI0 裁定 go 并回写 vision）补 async 声明面（capacity/timeout/ordered·unordered 声明）（Deliverable: 分支二选一落地 + E6 验收；deps: WI0 + WI1；Item Type: Feature + Decision）
 - [ ] WI18 多源聚合与区间谓词的声明式表达（分叉交付）：**默认分支**（区间/非等值 join 属 vision §四排除项）交付变通形态——`<union>` + 多次两路等值 join + `<process>` 聚合，配合事件时间过滤实现 `BETWEEN` 语义并固化为 E11/E12 验收用例；**解除分支**（WI0(b) 裁定 go）补区间谓词声明面（Deliverable: 分支二选一落地 + 变通形态正确性测试；deps: WI0；Item Type: Feature + Decision）
 - [ ] WI19 持续源与回补作业声明面（分叉交付）：file tailing 持续源按 WI0 裁定（不做则交付 bounded 重放 + DRAIN 变通形态并登记触发条件）；FILL_HISTORY/RECALCULATE 作业形态声明面接线（引擎语义外部前置 multi-engine WI10）+ `jobTerminationMode`/DRAIN 语义与回补幂等契约（Deliverable: 分支落地 + 回补重算幂等断言；deps: WI0；Item Type: Feature + Decision）
-- [ ] WI20 多表与分区键流声明面：多表/tableId 声明面接线 + 分区键传播形态（引擎语义外部前置 multi-engine WI7 CatalogTable/RowKind）；不可用时的声明式降级形态（单表 + 表标识字段）固化并登记（Deliverable: 声明面 + 降级形态 + 多表路由测试；deps: WI0；Item Type: Feature + Decision）
+- [ ] WI20 多表与分区键流声明面：多表/tableId 声明面接线 + 分区键传播形态（目标形态按 WI0 逐场景条款裁定——E8 多表形态；引擎语义外部前置 multi-engine WI7 CatalogTable/RowKind）；不可用时的声明式降级形态（单表 + 表标识字段）固化并登记（Deliverable: 声明面 + 降级形态 + 多表路由测试；deps: WI0；Item Type: Feature + Decision）
 
-### M5 — 12 场景验收套件（每 WI 2 场景：1 份 fixture + 1 个单测类 + 接线与语义断言）
+### M5 — 12 场景验收套件与门禁（套件 WI 每 WI 2 场景：1 份 fixture + 1 个单测类 + 接线与语义断言）
 
 - [ ] WI21 E1–E2 验收套件：StateMachine（DFA/checkpoint/双 sink，限速走外部前置降级形态）与 TopSpeedWindowing（delta 发射序列 + evictor 物理驱逐）（Deliverable: 2 fixture + TestXdslScenarioE1/E2 + 场景注册表条目；deps: WI5 + WI6 + WI7 + WI9；Item Type: Proof）
 - [ ] WI22 E3–E4 验收套件：SideOutputExample（侧输出分区归属）与 WindowJoin（匹配对发射 + outer 补齐 + 边界寿命）（Deliverable: 2 fixture + TestXdslScenarioE3/E4 + 场景注册表条目；deps: WI10；Item Type: Proof）
@@ -244,7 +244,7 @@ flowchart TD
 | 生产进程入口（test-scope 现状） | multi-engine WI1 | 无场景依赖（R1 已限定为模型层） | owner doc 如实标注 |
 | 连接器参数规则化（类型/必填/敏感/校验进 XDSL 配置校验） | multi-engine WI4 | WI15 | 端点属性接线 + 能力矩阵校验 |
 | CatalogTable/RowKind 多表语义 | multi-engine WI7 | E8/E9、WI20 | 单表 + 表标识字段 |
-| 窗口事件模型（子项 a）+ sideOutput 图级路由协议（子项 b） | multi-engine WI8 | WI10、WI26 | 无（协议前置，未落则 WI10 阻塞） |
+| 窗口事件模型（子项 a）+ sideOutput 图级路由协议（子项 b） | multi-engine WI8 | WI10 | 无（协议前置，未落则 WI10 阻塞） |
 | 兜底出数（maxDelay）引擎语义（子项 c） | multi-engine WI8 | WI8、WI25 | 无（语义前置，未落则 WI8 阻塞） |
 | 重算/FILL_HISTORY 引擎语义 | multi-engine WI10 | E9/E12、WI19 | savepoint 恢复 + upsert sink 幂等手工重放 |
 | 维表 lookup 异步增量 | multi-engine WI11 | E11 | 同步富化 bean |
@@ -268,7 +268,7 @@ flowchart TD
 
 1. **独立 closure audit**：不同 task_id 的独立子 agent 审计通过后才勾选 Work Item Status，证据写入承载 plan（plan guide Closure Audit Rule）。
 2. **WI0 人审证据**：五项触点的裁定必须附 owner 确认记录与 vision/设计文档回写 diff，且 12 场景矩阵「接受降级」列逐行回填，方可勾选。
-3. **端到端验证**（plan guide #22）：WI5–WI8 从声明落图到窗口实际发射/驱逐/合并；WI10 从侧输出路由到下游顶点收到数据；WI21–WI26 每场景端到端断言（12 场景矩阵逐行勾验）。
+3. **端到端验证**（plan guide #22）：WI5–WI9 从声明落图到窗口实际发射/驱逐/合并与聚合目录求值；WI10 从侧输出路由到下游顶点收到数据；WI21–WI26 每场景端到端断言（12 场景矩阵逐行勾验）。
 4. **接线验证**（plan guide #23）：新增声明面、路由、检查规则必须断言被运行链路或检查器真实调用，防空壳（照抄 `TestStreamConnectorRegistryE2E` 与检查器 positive control 模式）。
 5. **无静默跳过**（plan guide #24）：放行面不得留下「声明了但静默忽略」路径；能力不支持的配置一律 typed fail-fast；检查器规则必须有「已知坏样例必须被拒」的正控自测（对齐 `check-lint-coverage-manifest.mjs self-test` 惯例）。
 6. **放行三步法**：每个声明面放行必须同时完成「接线 + 删除对应 fail-fast 钉子测试并改为放行行为断言 + owner doc 更新」，三者缺一不得勾选（防双状态面）。
