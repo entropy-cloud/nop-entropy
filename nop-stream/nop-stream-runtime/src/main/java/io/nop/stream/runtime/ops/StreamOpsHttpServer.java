@@ -357,7 +357,7 @@ public class StreamOpsHttpServer {
             mode = io.nop.stream.core.checkpoint.JobTerminationMode.valueOf(modeStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             sendError(exchange, 400, "BAD_STOP_MODE",
-                    "Unknown stop mode '" + modeStr + "' (supported: CANCEL, DRAIN)");
+                    "Unknown stop mode '" + modeStr + "' (supported: CANCEL, DRAIN, SUSPEND)");
             return;
         }
         try {

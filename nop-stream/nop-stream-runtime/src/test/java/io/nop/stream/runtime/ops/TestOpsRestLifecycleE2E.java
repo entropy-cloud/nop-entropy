@@ -45,6 +45,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -220,9 +222,24 @@ class TestOpsRestLifecycleE2E {
         // unsupported stop mode → 400
         HttpResponse<String> submitted = post("/jobs", submitBody("err-job", FACTORY_FQCN));
         assertEquals(201, submitted.statusCode());
-        assertEquals(400, post("/jobs/err-job/stop?mode=SUSPEND", "").statusCode());
+        // Deployment-level TM→coordinator control wiring: every production path
+        // (TaskManagerMain / EmbeddedDistributedExecutor / RpcDistributedExecutor)
+        // sets the coordinator RPC on the TaskManager. Without it the remotely
+        // deployed tasks cannot ACK checkpoints and the SUSPEND terminal
+        // savepoint below would time out (job FAILED).
+        taskManager.setCoordinatorRpcService(jobManager.coordinator("err-job"));
 
-        // duplicate submit → 409
+        // WI9 (plan 2333): SUSPEND is now ALLOWED over REST — terminal savepoint
+        // then a recoverable finish (health FINISHED, record kept, running=false)
+        HttpResponse<String> suspend = post("/jobs/err-job/stop?mode=SUSPEND", "");
+        assertEquals(200, suspend.statusCode(), "stop body: " + suspend.body());
+        assertTrue(suspend.body().contains("\"health\":\"FINISHED\""), suspend.body());
+        assertTrue(suspend.body().contains("\"running\":false"), suspend.body());
+
+        // EXPORT_SAVEPOINT remains rejected (keeps the job running; coordinator-RPC only)
+        assertEquals(400, post("/jobs/err-job/stop?mode=EXPORT_SAVEPOINT", "").statusCode());
+
+        // duplicate submit → 409 (the suspended job record is still hosted)
         assertEquals(409, post("/jobs", submitBody("err-job", FACTORY_FQCN)).statusCode());
 
         // malformed submit body → 400
@@ -237,6 +254,32 @@ class TestOpsRestLifecycleE2E {
 
         // unknown job detail → 404
         assertEquals(404, get("/jobs/ghost-job").statusCode());
+    }
+
+    /**
+     * WI9 (plan 2333): manager-level stop whitelist — SUSPEND passes (returns
+     * the coordinator, no unsupported-mode rejection), EXPORT_SAVEPOINT is
+     * still rejected typed with the updated message naming the supported set.
+     */
+    @Test
+    void stopWhitelistAllowsSuspendRejectsExportSavepoint() {
+        submitViaManager(jobManager, "wl-job");
+        // TM→coordinator control wiring (see endpointErrorSemantics) so the
+        // SUSPEND terminal savepoint can be ACKed by the deployed tasks.
+        taskManager.setCoordinatorRpcService(jobManager.coordinator("wl-job"));
+
+        io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                io.nop.stream.core.exceptions.StreamException.class,
+                () -> jobManager.stop("wl-job",
+                        io.nop.stream.core.checkpoint.JobTerminationMode.EXPORT_SAVEPOINT));
+        assertEquals(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG.getErrorCode(),
+                ex.getErrorCode(), "EXPORT_SAVEPOINT rejection must stay typed");
+        assertTrue(String.valueOf(ex).contains("CANCEL, DRAIN and SUSPEND"),
+                "rejection message must name the supported set: " + ex);
+
+        io.nop.stream.runtime.coordinator.JobCoordinator coordinator =
+                jobManager.stop("wl-job", io.nop.stream.core.checkpoint.JobTerminationMode.SUSPEND);
+        assertNotNull(coordinator, "SUSPEND must pass the whitelist and terminate the job");
     }
 
     @Test

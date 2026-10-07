@@ -35,6 +35,7 @@ import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.OperatorStateMapping;
+import io.nop.stream.core.checkpoint.SuspendDataPolicy;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
@@ -50,6 +51,7 @@ import io.nop.stream.core.model.StreamRequirement;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CHECKPOINT_VERTEX_IDS;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CLASS_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_CURRENT_VERTEX_IDS;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
@@ -71,6 +73,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOIN
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_EXECUTOR_SAVEPOINT_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SAVEPOINT_VERTEX_DIFFERENTIAL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SKIP_GAP_UNSUPPORTED_SOURCE;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.CheckpointFailureListener;
 import io.nop.stream.core.execution.GraphExecutionPlan;
@@ -93,12 +96,16 @@ import io.nop.stream.core.common.state.shard.KeyGroupRange;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
+import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
+import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
+import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.source.CollectionReplayableSource;
 
 @Internal
 public class GraphModelCheckpointExecutor {
@@ -255,6 +262,13 @@ public class GraphModelCheckpointExecutor {
                     + " fresh. Configure checkpointConfig storageProperty('path', ...) to"
                     + " enable cross-run recovery.", jobId);
         }
+
+        // WI9 (plan 2333): apply the SUSPEND downtime-gap policy AFTER restore
+        // completes and BEFORE any task starts consuming — the only window where
+        // a post-restore seek can still reposition sources. REPLAY_GAP (the
+        // default) returns immediately inside the gate: zero change to the
+        // pre-contract restore path.
+        applySuspendDataPolicy(allInvokables, checkpointConfig);
 
         Map<String, SubtaskTask> tasks = buildTasks(execPlan);
         TaskExecutor executor = new TaskExecutor();
@@ -948,6 +962,81 @@ public class GraphModelCheckpointExecutor {
     static boolean hasExplicitStoragePath(CheckpointConfig config) {
         String basePath = config.getStorageProperty("path");
         return basePath != null && !basePath.isEmpty();
+    }
+
+    /**
+     * WI9 (plan 2333): applies the {@link SuspendDataPolicy} carried by the
+     * resubmitted {@link CheckpointConfig}, after restore completes and before
+     * any task starts consuming data.
+     *
+     * <p>Dispatch by source capability:
+     * <ul>
+     *   <li>{@link SuspendDataPolicy#REPLAY_GAP} (default) — returns
+     *       immediately: the restore path has already seeked every replayable
+     *       source to its checkpointed offset and the downtime gap WILL be
+     *       replayed (the pre-contract behavior, byte-for-byte unchanged).</li>
+     *   <li>{@link SuspendDataPolicy#SKIP_GAP} — every replayable source is
+     *       advanced past the downtime gap:
+     *       <ul>
+     *         <li>{@code CollectionReplayableSource} — the only source with a
+     *             deterministic "latest" position (its in-memory size()) — is
+     *             seeked to {@code size()}, so data appended while the job was
+     *             stopped is not re-emitted. Data appended AFTER this seek is
+     *             consumed normally by the running job.</li>
+     *         <li>Any other {@code ReplayableSourceFunction} — rejected with
+     *             {@code ERR_STREAM_SKIP_GAP_UNSUPPORTED_SOURCE} (typed,
+     *             fail-fast; the error names the source class). The engine does
+     *             not guess what "latest" means for an unknown source.</li>
+     *         <li>A source that is not replayable at all has no offset to
+     *             seek — SKIP_GAP has no effect on it (its own recovery
+     *             semantics apply). This boundary is declared, not silently
+     *             swallowed: it is logged per source.</li>
+     *       </ul></li>
+     * </ul>
+     *
+     * <p>The policy is read from THIS submission's config and is not persisted
+     * in the EpochManifest: every resubmission that wants skip semantics must
+     * carry {@code suspendDataPolicy(SKIP_GAP)} explicitly. The seek runs on
+     * every SKIP_GAP submission (not only when durable state was found): a
+     * SKIP_GAP resubmission declares "start from the source's latest", which is
+     * well-defined even when no checkpoint was restored.
+     */
+    private static void applySuspendDataPolicy(
+            List<StreamTaskInvokable> allInvokables, CheckpointConfig checkpointConfig) {
+        if (checkpointConfig.getSuspendDataPolicy() != SuspendDataPolicy.SKIP_GAP) {
+            return;
+        }
+        for (StreamTaskInvokable invokable : allInvokables) {
+            if (invokable == null || invokable.getOperatorChain() == null) {
+                continue;
+            }
+            for (StreamOperator<?> op : invokable.getOperatorChain().getOperators()) {
+                if (!(op instanceof StreamSourceOperator)) {
+                    continue;
+                }
+                SourceFunction<?> sourceFunction = ((StreamSourceOperator<?>) op).getSourceFunction();
+                if (sourceFunction instanceof CollectionReplayableSource) {
+                    CollectionReplayableSource<?> collection =
+                            (CollectionReplayableSource<?>) sourceFunction;
+                    long latest = collection.size();
+                    ((ReplayableSourceFunction<?>) sourceFunction).seek(latest);
+                    LOG.info("SuspendDataPolicy SKIP_GAP: collection source seeked to latest position {} "
+                            + "(downtime data before this position will not be replayed)", latest);
+                } else if (sourceFunction instanceof ReplayableSourceFunction) {
+                    throw new StreamException(ERR_STREAM_SKIP_GAP_UNSUPPORTED_SOURCE)
+                            .param(ARG_CLASS_NAME, sourceFunction.getClass().getName())
+                            .param(ARG_DETAIL, "suspendDataPolicy=SKIP_GAP requires a source with a "
+                                    + "deterministic latest position; only CollectionReplayableSource is "
+                                    + "supported — this source has no 'latest' semantics, so the engine "
+                                    + "refuses to guess what to skip. Use suspendDataPolicy=REPLAY_GAP "
+                                    + "for this source.");
+                } else {
+                    LOG.info("SuspendDataPolicy SKIP_GAP: source {} is not replayable — no offset to "
+                                    + "seek, policy has no effect on it (its own recovery semantics apply)",
+                            sourceFunction == null ? "null" : sourceFunction.getClass().getName());
+                }
+            }
+        }
     }
 
     private static void restoreFromCheckpoint(

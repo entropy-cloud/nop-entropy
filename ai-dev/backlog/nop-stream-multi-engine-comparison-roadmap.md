@@ -61,7 +61,7 @@
 
 - [ ] WI7 CatalogTable/RowKind 元数据抽象：含 tableId 多表标识与 INSERT/UPDATE/DELETE 变更语义的引擎级记录元数据（WI0 裁定落点：`StreamRecord` 升级 vs CDC 层消息信封），为 schema evolution 与生态 sink 前置（Deliverable: 抽象落地 + CDC 变更语义迁移 + 文档；deps: WI0；Item Type: Feature + Decision）
 - [x] WI8 窗口事件化与兜底出数（单一连贯面，子交付物：a. OPEN/CLOSE/IDLE/RESUME 窗口事件模型与外发；b. XDSL sideOutput 图级路由打通；c. maxDelay 超时强制关闭出数）（Deliverable: 三子项 + 事件时序测试；deps: 无；Item Type: Feature）
-- [ ] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
+- [x] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
 - [ ] WI10 范围重算与回补：时间范围 RECALCULATE 重放 + FILL_HISTORY 回补作业形态（复用 savepoint/restore 与 upsert sink 幂等）（Deliverable: 重算路径 E2E + 作业形态文档；deps: 无；Item Type: Feature）
 - [ ] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
 - [ ] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
