@@ -87,10 +87,12 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testDiscoversAllFiveConnectorBeansFiles() {
+    public void testDiscoversAllConnectorBeansFiles() {
         List<String> names = discoveredBeansFiles.stream().map(IResource::getName).sorted().toList();
+        // WI3 (plan 2335) adds connector-kafka.beans.xml to the discovered set
         assertEquals(List.of("connector-batch.beans.xml", "connector-debezium.beans.xml",
-                "connector-file.beans.xml", "connector-jdbc.beans.xml", "connector-message.beans.xml"), names);
+                "connector-file.beans.xml", "connector-jdbc.beans.xml", "connector-kafka.beans.xml",
+                "connector-message.beans.xml"), names);
     }
 
     // ------------------------------------------------------------------
@@ -98,17 +100,18 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testRegistryEnumeratesAllEightEndpointComponents() {
+    public void testRegistryEnumeratesAllEndpointComponents() {
         StreamConnectorRegistry registry = catalog.getRegistry();
-        assertEquals(List.of("batch-loader", "debezium-cdc", "file", "message"),
+        // WI3 (plan 2335) adds the native kafka source and kafka-2pc sink
+        assertEquals(List.of("batch-loader", "debezium-cdc", "file", "kafka", "message"),
                 registry.getRegisteredSourceTypeNames());
-        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "message"),
+        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "kafka-2pc", "message"),
                 registry.getRegisteredSinkTypeNames());
-        assertEquals(8, catalog.listConnectors().size());
+        assertEquals(10, catalog.listConnectors().size());
     }
 
     @Test
-    public void testAllEightBuiltInFactoriesDeclareNoAliases() {
+    public void testAllBuiltInFactoriesDeclareNoAliases() {
         for (ConnectorCapabilityDescriptor d : catalog.listConnectors()) {
             assertEquals(List.of(), d.getAliases(), d.getTypeName() + " must declare no aliases");
         }
@@ -135,6 +138,18 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.debezium.DebeziumCdcSourceFunction",
                 "REPLAYABLE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "config");
+        // WI3 (plan 2335): native kafka source — offset map in the checkpoint
+        // (REPLAYABLE), partition round-robin sharding over the deployment parallelism
+        assertDescriptor(ConnectorDirection.SOURCE, "kafka",
+                "io.nop.stream.connector.kafka.KafkaSourceFunction",
+                "REPLAYABLE", ConnectorParallelism.PARALLEL,
+                ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "bootstrapServers", "topic");
+        // WI3 (plan 2335): native kafka-2pc sink — commit-at-barrier epoch transactions
+        assertDescriptor(ConnectorDirection.SINK, "kafka-2pc",
+                "io.nop.stream.connector.kafka.KafkaTwoPhaseCommitSink",
+                "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
+                ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
+                "bootstrapServers", "topic", "transactionalIdPrefix");
         // R5 CON-06: batch-loader is a single-writer source (ParallelismCheckable
         // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL
         assertDescriptor(ConnectorDirection.SOURCE, "batch-loader",
@@ -189,6 +204,13 @@ public class TestStreamConnectorRegistryDiscovery {
                 find(ConnectorDirection.SINK, "jdbc-2pc").getMaturity());
         assertEquals(ConnectorMaturity.PRODUCTION,
                 find(ConnectorDirection.SINK, "batch-consumer").getMaturity());
+        // WI3 (plan 2335): kafka source = offset-in-checkpoint (engine-backed) → PRODUCTION;
+        // kafka-2pc sink = commit-at-barrier with the documented residual duplicate window
+        // (guarantee not yet fully engine-backed) → EXPERIMENTAL
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "kafka").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SINK, "kafka-2pc").getMaturity());
     }
 
     private void assertDescriptor(ConnectorDirection direction, String typeName, String componentClass,
@@ -218,7 +240,7 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testCatalogProbesAllEightEndpoints(@TempDir Path tempDir) {
+    public void testCatalogProbesAllTenEndpoints(@TempDir Path tempDir) {
         IMessageService messageService = new LocalMessageService();
 
         // split sources have no instance-level consistency accessor (§8.1): descriptor
@@ -242,6 +264,15 @@ public class TestStreamConnectorRegistryDiscovery {
                 config("jdbc-2pc", jdbcParams())), true);
         assertProbe(catalog.probe(ConnectorDirection.SINK, "batch-consumer",
                 config("batch-consumer", Map.of("consumerProvider", consumerProvider()))), true);
+
+        // WI3 (plan 2335): the kafka family factories' create path must be consumed too
+        // (construction-only probe — no broker I/O: source construction is config-only,
+        // sink construction is builder-only)
+        assertProbe(catalog.probe(ConnectorDirection.SOURCE, "kafka",
+                config("kafka", Map.of("bootstrapServers", "localhost:9092", "topic", "t"))), true);
+        assertProbe(catalog.probe(ConnectorDirection.SINK, "kafka-2pc",
+                config("kafka-2pc", Map.of("bootstrapServers", "localhost:9092", "topic", "out",
+                        "transactionalIdPrefix", "probe-tx"))), true);
     }
 
     private void assertProbe(io.nop.stream.core.connector.registry.ConnectorProbeResult result,
@@ -293,7 +324,8 @@ public class TestStreamConnectorRegistryDiscovery {
         assertEquals(ERR_STREAM_CONNECTOR_TYPE_NOT_FOUND.getErrorCode(), ex.getErrorCode());
         assertEquals("clickhouse", ex.getParam("typeName"));
         assertEquals("SINK", ex.getParam("direction"));
-        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "message"), ex.getParam("registeredTypes"));
+        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "kafka-2pc", "message"),
+                ex.getParam("registeredTypes"));
     }
 
     @Test
