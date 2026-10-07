@@ -44,6 +44,8 @@ remote-deploy 数据面存在一个停摆缺陷族（演练 runId 证据见 Sour
 
 **producer 侧不变式**：producer 向全部 target topic 的发送能力保持（发送侧从不订阅）；send 侧消息表行数是后端行为，不在本设计收敛范围（演练报告已修正归因：表行由 send 侧 INSERT，订阅收敛消除的是无人消费通道的**投递面**）。
 
+> **WI6 收口注记（2026-10-07，plan 2331）**：上句预留的 send 侧缺口已闭合——DB（SysDao）通道生产者背压经 `ChannelBacklogProbe`（nop-message-core 能力接口）+ `RemoteResultPartition` 门控（sendLock 外有界等待 / typed 超时 / job 级 `-Dnop.stream.data.db.backlog.limit`，缺省关闭）落地；积压记账 = 生产者本地自增 + DB COUNT 观察消费进度（TTL 缓存）。语义、配置与测试锚点见 `docs-for-ai/03-modules/nop-stream.md`「DB 数据面生产者背压」节。
+
 ## 三、D2 裁定：队列满语义（有界等待 + typed 可恢复失败）
 
 **决策：采用候选①（有界等待，超时转通道内 typed 可观测失败），拒绝非阻塞投递 + 重投协议（候选②）。**

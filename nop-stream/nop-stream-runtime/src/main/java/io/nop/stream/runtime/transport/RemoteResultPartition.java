@@ -8,8 +8,14 @@
 package io.nop.stream.runtime.transport;
 
 import io.nop.api.core.message.IMessageService;
+import io.nop.message.core.channel.ChannelBacklogProbe;
+import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.ResultPartition;
+import io.nop.stream.core.execution.transport.StreamElementCodec;
+import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
+import io.nop.stream.core.execution.transport.TypeRegistry;
+import io.nop.stream.core.streamrecord.StreamElement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +26,6 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TOPIC;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
-import io.nop.stream.core.execution.transport.StreamElementCodec;
-import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
-import io.nop.stream.core.execution.transport.TypeRegistry;
-import io.nop.stream.core.streamrecord.StreamElement;
 
 /**
  * A {@link ResultPartition} that sends data across TaskManager boundaries via
@@ -73,6 +75,24 @@ public class RemoteResultPartition extends ResultPartition {
     private final String edgeId;
     private final long epochId;
 
+    // ---- WI6 (plan 2331): DB channel producer backpressure gate ----
+    /** null = gating not available/not configured (explicit off). */
+    private final ChannelBacklogProbe backlogProbe;
+    /** > 0 only when gating is enabled. */
+    private final long backlogLimit;
+    /** Bounded wait before the gate fails typed (mirrors the D2 consume-side default). */
+    private final long gateWaitMillis;
+    /**
+     * Backlog cache TTL for the PASS-THROUGH path. Producer-side growth is accounted
+     * locally (each admitted send increments the cached counter — exact under bursts);
+     * the DB refresh only observes consumer-side progress. Without the local increment
+     * a fast producer would outrun the TTL window and defeat the limit entirely (found
+     * by the gated E2E, plan 2331).
+     */
+    static final long BACKLOG_CACHE_TTL_MILLIS = 200L;
+    private long backlogCacheAt;
+    private long backlogCacheValue;
+
     /**
      * Captured when the end-of-stream control message could not be delivered in
      * {@link #close()}. {@code null} until a failed EOS send; observable via
@@ -95,6 +115,24 @@ public class RemoteResultPartition extends ResultPartition {
                                  TypeRegistry typeRegistry,
                                  String edgeId,
                                  long epochId) {
+        this(messageService, topic, typeRegistry, edgeId, epochId, null, 0L);
+    }
+
+    /**
+     * WI6 (plan 2331): gating constructor. {@code backlogProbe == null} or
+     * {@code backlogLimit <= 0} disables the gate (explicit off — other channels such
+     * as Kafka/Pulsar carry their own backpressure and are out of WI6 scope).
+     *
+     * @param backlogProbe   persistence-backed backlog reader, or null to disable
+     * @param backlogLimit   max unconsumed messages per topic before the producer waits
+     */
+    public RemoteResultPartition(IMessageService messageService,
+                                 String topic,
+                                 TypeRegistry typeRegistry,
+                                 String edgeId,
+                                 long epochId,
+                                 ChannelBacklogProbe backlogProbe,
+                                 long backlogLimit) {
         // Pass capacity 1 to parent; the queue is never actually used
         super(1);
         this.messageService = messageService;
@@ -102,7 +140,91 @@ public class RemoteResultPartition extends ResultPartition {
         this.typeRegistry = typeRegistry;
         this.edgeId = edgeId;
         this.epochId = epochId;
+        this.backlogProbe = backlogProbe;
+        this.backlogLimit = backlogLimit;
+        this.gateWaitMillis = 10_000L;
     }
+
+    public ChannelBacklogProbe getBacklogProbe() {
+        return backlogProbe;
+    }
+
+    /** WI6: TTL-cached backlog read for the ops gauge (gate off = zero queries, reads 0). */
+    public long readBacklogCached() {
+        return (backlogProbe == null || backlogLimit <= 0) ? 0L : currentBacklog();
+    }
+
+    public long getBacklogLimit() {
+        return backlogLimit;
+    }
+
+    /**
+     * WI6: gated send — waits OUTSIDE the send lock (a waiting producer must never pin
+     * the monitor that close() needs for EOS, nor serialize other producer threads
+     * behind a DB roundtrip). Barriers go through the same gate in-band: sustained
+     * overload fails the write typed so the task restarts, instead of growing the
+     * channel table unboundedly (explicit plan 2331 ruling).
+     *
+     * <p>Accounting: well under the limit the TTL-cached counter is bumped locally per
+     * admitted send (exact burst bound — a fast producer can never outrun the TTL
+     * window); at the limit the gate force-refreshes from the DB each wait slice, so
+     * reopening tracks actual consumption within one slice.
+     */
+    private void gateOnBacklog() throws InterruptedException {
+        if (backlogProbe == null || backlogLimit <= 0) {
+            return;
+        }
+        long cached = peekBacklogCached();
+        if (cached < backlogLimit) {
+            bumpBacklogCached();
+            return;
+        }
+        long deadline = System.currentTimeMillis() + gateWaitMillis;
+        while (true) {
+            long fresh = forceBacklog();
+            if (fresh < backlogLimit) {
+                bumpBacklogCached();
+                return;
+            }
+            if (System.currentTimeMillis() >= deadline) {
+                throw new StreamException(NopStreamErrors.ERR_STREAM_SEND_GATE_TIMEOUT)
+                        .param(NopStreamErrors.ARG_TOPIC, topic)
+                        .param(NopStreamErrors.ARG_BACKLOG_LIMIT, backlogLimit)
+                        .param(NopStreamErrors.ARG_CURRENT_BACKLOG, fresh);
+            }
+            Thread.sleep(100L);
+        }
+    }
+
+    private synchronized long peekBacklogCached() {
+        long now = System.currentTimeMillis();
+        if (now - backlogCacheAt >= BACKLOG_CACHE_TTL_MILLIS) {
+            backlogCacheValue = backlogProbe.backlog(topic);
+            backlogCacheAt = now;
+        }
+        return backlogCacheValue;
+    }
+
+    private synchronized void bumpBacklogCached() {
+        backlogCacheValue++;
+    }
+
+    private synchronized long forceBacklog() {
+        backlogCacheValue = backlogProbe.backlog(topic);
+        backlogCacheAt = System.currentTimeMillis();
+        return backlogCacheValue;
+    }
+
+    /** TTL-cached backlog read (pass-through path must not COUNT per message). */
+    private synchronized long currentBacklog() {
+        long now = System.currentTimeMillis();
+        if (now - backlogCacheAt >= BACKLOG_CACHE_TTL_MILLIS) {
+            backlogCacheValue = backlogProbe.backlog(topic);
+            backlogCacheAt = now;
+        }
+        return backlogCacheValue;
+    }
+
 
     /**
      * Encodes the element and sends it via IMessageService. The encode runs outside
@@ -127,6 +249,7 @@ public class RemoteResultPartition extends ResultPartition {
         String valueType = typeRegistry != null ? typeRegistry.getOutputTypeClassName(edgeId) : null;
         StreamMessageEnvelope envelope = StreamElementCodec.encode(
                 element, valueType, epochId);
+        gateOnBacklog();
         sendUnderLock(envelope);
     }
 
