@@ -100,7 +100,7 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | 6.1 | 空壳实现全仓扫描（scan-hollow-implementations.mjs + 人工抽样确认） | done（2026-10-07，plan 2348，closure audit FAIL→处方 R1-R3 落实后轻量复核 PASS——见 plan Closure 段——通过附 P2×1 进 R1.0（Pulsar seekToPosition 空实现配置静默失效，挂接 7.7 对账与 4.4 M-03 同批）+ P3×4 + 线索×4；**373 裁定样本扫描行违规仅 4 条**、69 个在建空壳模块全数合法定位零意外、抽样 SHA-256 重放一致；scanner 口径校准三条 watch；**平台空壳卫生度高正结论**） | — | 0.3, 0.4 | `deep-audit-prompts.md` + `ai-dev/tools/scan-hollow-implementations.mjs` |
-| 6.2 | 静默跳过/吞异常全仓扫描（空 catch、catch-ignore、no-op 返回值） | todo | — | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09） |
+| 6.2 | 静默跳过/吞异常全仓扫描（空 catch、catch-ignore、no-op 返回值） | done（2026-10-07，plan 2349，closure audit 一次 PASS 六项全过——见 plan Closure 段——通过无 P0/P1 附 P2×4 案 6 位点 + P3×25 案 28 位点全部移交 R1.0（ArgumentCleanupStage 同源对/JqBuiltins recurse 吞输出上限守卫/AiFileTool 安全码误归因/FileHelper 双丢 cause 等）；**宇宙 1111 行全量裁定零遗漏**（B2B 734 行仅 1 违规验证边界转换预判）；U 承接终裁修复 3/维持 2/升级 1；U-6 升级 P3-6.2-025；复核 QA 锚 41 处零漏检；no-op 返回值域由 6.1 承接） | — | 0.3, 0.4 | `deep-audit-prompts.md`（维度 09） |
 | 6.3 | 接线完整性抽样审计（入口→出口：codegen 全链、db-migration 执行链、IoC 启动链、GraphQL 请求链） | todo | — | 0.3, 0.4 | `deep-audit-prompts.md`（接线/端到端路径方法） |
 | 6.4 | check 系列 P0×36 逐项复核与状态标定（still-live / already-fixed / false-positive / duplicated），仍 live 的转入 R1.0 输入 | todo | `ai-dev/audits/check/SUMMARY.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |
 | 6.5 | check 系列 P1 抽样标定 a（≥50%）：成员 = 矩阵 §6 批次 a（kernel/core-framework/persistence） | todo | `ai-dev/audits/check/SUMMARY.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |

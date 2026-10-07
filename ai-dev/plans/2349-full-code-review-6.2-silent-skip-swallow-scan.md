@@ -1,6 +1,6 @@
 # 2349 full-code-review 6.2 静默跳过/吞异常全仓扫描
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.2（MA6）；Skill=`ai-dev/skills/deep-audit-prompts.md`（维度 09）
 > Related: Roadmap Details：「空 catch/吞异常/no-op 全仓清单，逐个裁定『合法忽略（带注释）』或『静默跳过违规』」；**上游移交**：4.1 报告（`4.1-error-handling-audit.md` :33/:240/:255-273/:492）——①`_tmp/fcr-4.1-catches.tsv` 3348 行全量分类 ②94 处抽样裁定全量清单在 `_tmp/fcr-4.1-swallow.md` §3（13 张表逐处 file:line+裁定；TSV 无已抽样标记列，join 按 file:line 不按 class——TaskDispatchCoordinator 在 swallow.md 记 B2A、TSV 记 B1_EMPTY）③close-ignore 36 处派生规则在 `_tmp/fcr-4.1-swallow.md:96`（rg 多行模式；**聚焦复核重放勘误：实为 8 个产品位点〔"36"系 rg 输出行数 9×4〕，其中 3 ∈ 94，层余数 5**）④U-1～U-6 逐项裁定建议（U-2 位点 TaskDispatchCoordinator.java:157-166 完整在案 4.1 :269）。字节级复核副本 `_tmp/fcr-4.1-catches.initial-reviewer-backup.tsv`（cmp 实测与主 TSV 一致）。关联 6.1（plan 2348）：no-op 返回值域由 6.1 承接，本项不重扫。
@@ -89,34 +89,34 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: in progress
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.2-silent-skip-swallow-scan.md`；index 登记 6.2 行 + P1 汇总行（如有）+ P2 裁决台账行（如开辟例外）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 定向验证锚点：宇宙对账与 QA 锚重放由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应）；**通过后** roadmap 6.2 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `6.2-silent-skip-swallow-scan.md`；index 登记 6.2 行 + P1 汇总行（如有——P1=0 零新增）+ P2 裁决台账行（如开辟例外——未开辟零新增）+ O4 处方顺手执行（6.1/6.2 残留占位行清理）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0——closure audit 终裁确认）
+- [x] 定向验证锚点：宇宙对账与 QA 锚重放由复核员独立执行（41 处复判+宇宙 1111 精确）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项全 PASS 一次通过：计数勾稽六处闭合/关键判定 5 处亲读/引用 13 处全命中/覆盖算术含 C1 7+3+72=82 深度核验/文本一致/流程合规）；**通过后** roadmap 6.2 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 裁定口径可复现（复核员重放一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码（P3b 空 catch 产品 0 已由 6.1 口径覆盖）
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 裁定口径可复现（复核员重放一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码（P3b 空 catch 产品 0 已由 6.1 口径覆盖）
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
 
-- [ ] 报告落盘且四层裁定全覆盖——覆盖度量：宇宙清单全量（B1/B2A 余量全裁 + B2B 734 全量批读 + B2C/C1/close-ignore 全量 + U×6），Σ各层 = 宇宙总数零重叠
-- [ ] 每条违规发现 file:line 可复现；判级依据共享前缀；误报校准留痕
-- [ ] index 计数与报告发现清单一一对应
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且四层裁定全覆盖——覆盖度量：宇宙 1111 行全量（closure auditor 独立复算 Σ=1111 各层 len 实测精确、C1 7+3+72=82 深度核验、74 位点零越界 join）
+- [x] 每条违规发现 file:line 可复现；判级依据共享前缀；误报校准留痕（复核勘误 2 条透明记载不改判级）
+- [x] index 计数与报告发现清单一一对应（29 案=4+25、34 位点=6+28；P0/P1/P2 台账三节零新增正确）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done——一次 PASS 六项全过 + O1-O4 非阻塞观察处理）
+- [x] roadmap 6.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项（C1 72 处 P3 低档为显式线索级备案非静默降级）
 
 ## Deferred But Adjudicated
 
@@ -128,14 +128,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 6.2 静默跳过/吞异常全仓扫描收口。宇宙 1111 行全量裁定净违规 **29 案/34 位点（P2×4 + P3×25）**全部移交 R1.0；U 承接终裁修复 3/维持 2/升级 1（U-6→P3-6.2-025）；归并 4.1 [维度09-20] ×1、SocketClient:150 归属 P3-3.9-014；no-op 返回值域由 6.1 承接（前置门落实）。closure audit（agent_56138042）**一次 PASS 六项全过**——计数勾稽六处闭合、关键判定 5 处亲读（含 P2-6.2-004 加验）、引用 13 处全命中、覆盖算术深度核验（C1 显式 P3 位点恰 72 收口分布自洽）、三处状态文本一致、流程合规（audit 先行于翻 done）；非阻塞观察 O1-O4 已处理（O4 index 占位行清理在本轮执行）。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent agent_56138042-4958-4a03-9ab8-f9c57ed3440d（fresh session，只读 closure auditor；VERDICT: PASS 一次通过）
 - Evidence:
+  - 计数勾稽：报告 29 案（0/0/4/25）↔ index 6.2 行 ↔ 复核 §6.1 终编号表 ↔ 四份初审原编号映射（A1a→P3-6.2-001..013 等）零漂移；P0 发现追踪/P1 汇总/P2 裁决台账三节零新增正确
+  - 关键判定亲读 5 处（超 ≥4）：P2-6.2-001（catch(Exception)→emptyMap 合流坐实）/P2-6.2-002（JqBuiltins:1681-1685 + JqEnvironment:108-113 同型守卫信号坐实）/P2-6.2-003（IOException→ERR_MCP_PATH_ESCAPE 误归因坐实）/P2-6.2-004 加验（双重丢 cause）/P3-6.2-025（四位点无日志坐实）
+  - 引用路径 13 处全命中（含 a2 五个 dump 分批 15151 行实存、3.9 P3-3.9-014 :723、4.1 维度09-20 :344-349 含 ToolSchemaConverterInline:29 同源复制原案点名）
+  - 覆盖算术：Σ=1111 与 universe.json TOTAL_EXCL_SAMPLED 精确一致；各层 len 实测 76/169/734/43/82/3/4；B2B 261 唯一文件 ✓；C1 82=7 FP+3 P2+72 P3 且 74 位点 100% ∈ C1 层零越界
+  - 验证：doc-links exit 0；check-plan-checklist --strict exit 0
+  - Anti-Hollow：只读审计无新增组件/代码路径；验证锚 = 复核 QA 锚 41 处 + closure auditor 亲读与复算
+  - Deferred 项分类检查：无 deferred；C1 72 处 P3 低档为显式线索级备案（线索 #4）非静默降级；29 案全移交 R1.0
+  - 流程合规：closure audit 先行于 roadmap 翻 done（一次通过，无 5.3 式回退）；前置门（6.1 done）满足
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- no remaining plan-owned work（29 案 + U 修复 3 项归 R1.0 分族——P2-6.2-001 与 4.1 [维度09-20] 同批、P2-6.2-003 安全码语义需 nop-mcp owner doc 同步；线索 7 条登记去向；a3 草稿 O1/O2 为 _tmp 历史产物不回改）
