@@ -50,30 +50,30 @@
 
 ### Phase 1 - 全量口径固化与三层裁定（3 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 产品 src/main/java 全仓
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 口径固化：scanner 重跑（`--severity low --format json`，输出绑定 `_tmp/fcr-6.1-hollow-full2.json`）+ 与修正后基线核对（13/47/29/2424/645/1151/44/0），不一致时更新注记 + 产品过滤规则写死 + **抽样脚本落盘 `_tmp/fcr-6.1-sample.py`**（六要素：RNG=python3 `random.Random(seed=2348)`；seed=2348；抽样单位=唯一 file:line；分层键=路径片段匹配（高优配额模块：nop-kernel/nop-ai/nop-format/nop-persistence/nop-stream——配额 ×2；其余模块〔含 biz/orm 等嵌套路径模块，命中归入其所在顶层分层〕1 倍；不设零配额碎片层）；产出=冻结抽样表 csv）
-- [ ] Agent 1「high+P1:medium 全裁 + P1:low 快裁」：13 high + 47 P1:medium 逐条亲读四分裁定（**必读对照 3.8 :772 与 3.9 :53/:101 的 ChunkFileUploadHandler 在先裁定防翻案**；测试触达表=按涉事类名对 src/test 批量 grep 一次生成）；P1:low 29 条快裁 + 抽验 ≥10
-- [ ] Agent 2「P2b+P6 抽样」：按冻结抽样表执行 ≥180 条（P2b ≥120 + P6 ≥60），逐条四分裁定；抽样表执行偏差（文件消失/行漂移）如实登记
-- [ ] Agent 3「P8+P4+合法空壳」：P8 按抽样表 ≥60 + P4 44 全量速裁（format 31 对照 4.4 台账/dev-tools 10 对照 4.5 域）+ nop-lint-nop 全读 + 在建模块盘点（机械判据见 Goals 第 4 层）
-- [ ] 主 agent 抽查质量：裁定抽验 ≥10 条独立复判 + 抽样脚本重放 1 次比对冻结表
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
-- [ ] 产物 `_tmp/fcr-6.1-hollow-audit.md`（三 agent 分节）+ `_tmp/fcr-6.1-sample.py` + 冻结抽样表
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 口径固化：scanner 重跑（`--severity low --format json`，输出绑定 `_tmp/fcr-6.1-hollow-full2.json`）+ 与修正后基线核对（13/47/29/2424/645/1151/44/0 精确吻合）+ 产品过滤规则写死 + **抽样脚本落盘 `_tmp/fcr-6.1-sample.py`**（六要素齐备：RNG=python3 `random.Random(seed=2348)`；seed=2348；单位=唯一 file:line；分层=路径片段匹配；比率=五模块 ×2 其余 ×1 无零配额碎片层；产出=冻结抽样表 csv 三份 240 条，确定性重放验证通过）
+- [x] Agent 1「high+P1:medium 全裁 + P1:low 快裁」：60 条全裁（b×47/c×9/d×4——**a 类违规 0 条**）+ P1:low 29 条快裁（29/29 亲读全 b）→ `_tmp/fcr-6.1-hollow-a1.md`；防翻案对照 3.8/3.9/nop-ai arm 全部一致
+- [x] Agent 2「P2b+P6 抽样」：180/180 逐条裁定（a×1〔P3 ParseTreeFormatter 空壳类〕/b×120/c×12/d×47），零执行偏差 → `_tmp/fcr-6.1-hollow-a2.md`；口径校准：P6 实为 stub/mock/dummy/temp/placeholder/template 名称子串模式（78% 误命中）登记 scanner 改进建议
+- [x] Agent 3「P8+P4+合法空壳」：P8 60/60（0 违规；口径偏差登记——P8 冻结定义实为 continue 跳过循环体）+ P4 44 全量速裁（format 30 对 4.4 台账 + 1 口径差新裁 + 5 条 4.4 在案未被扫描器收录；dev-tools 8 c + 2 新裁；散项 3 新裁）+ 在建空壳盘点（66 个 main java ≤2 模块全数合法定位，既有终裁 3 件对上）→ `_tmp/fcr-6.1-hollow-a3.md`，新登记 [A3-01] P2 Pulsar seekToPosition 空方法体静默忽略 seek 配置 / [A3-02][A3-03][A3-04] P3
+- [x] 主 agent 抽查质量：裁定抽验 10 条独立复判全部证实（A3-01 空方法体+TODO 亲读/A2-01 整类 null 亲读/TdMessageService·GeometryTypeHandler·DynCountArrayBinaryCodec c 类注解亲读/credential UOE 族 javadoc+英文声明亲读/ILoginService No-Silent-No-Op javadoc 亲读/ProxyCell cloneInstance 亲读/P6 temperature 子串误命中实证/P8 continue 误命中实证）+ 抽样脚本确定性重放（run2≡run3）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-6.1-hollow-audit.md`（三 agent 分节：a1/a2/a3）+ `_tmp/fcr-6.1-sample.py` + 冻结抽样表
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账每条含四分归属与理由
-- [ ] 冻结抽样表落盘（脚本可重放：复核员重跑 `_tmp/fcr-6.1-sample.py` 比对一致）
-- [ ] No owner-doc update required（只读——修复归 R1.0）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条违规发现 ≥9 行含 file:line 与修复方向；裁定台账每条含四分归属与理由
+- [x] 冻结抽样表落盘（脚本可重放：确定性验证通过）
+- [x] No owner-doc update required（只读——修复归 R1.0）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: in progress
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
