@@ -114,6 +114,20 @@ public interface NopStreamErrors {
     ErrorCode ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED =
             define("nop.err.stream.window-trigger-state-accumulator-failed", "Failed to create trigger state accumulator: {detail}", ARG_DETAIL);
 
+    String ARG_MAX_DELAY = "maxDelay";
+
+    /**
+     * WI8 (plan 2332): maxDelay is defined only for event-time windows — a
+     * processing-time window's cleanup timer fires at window end, strictly before any
+     * maxDelay deadline, so combining the two is a construction error (no-silent-skip).
+     */
+    ErrorCode ERR_STREAM_WINDOW_MAX_DELAY_UNSUPPORTED_PROCESSING_TIME =
+            define("nop.err.stream.window-max-delay-unsupported-processing-time",
+                    "maxDelay fallback requires an event-time window assigner; the configured "
+                            + "assigner uses processing-time semantics and its cleanup timer fires "
+                            + "at window end (maxDelay={maxDelay})",
+                    ARG_MAX_DELAY);
+
     ErrorCode ERR_STREAM_CLASS_NOT_ALLOWED =
             define("nop.err.stream.class-not-allowed", "Class not allowed: {className}", ARG_CLASS_NAME);
 

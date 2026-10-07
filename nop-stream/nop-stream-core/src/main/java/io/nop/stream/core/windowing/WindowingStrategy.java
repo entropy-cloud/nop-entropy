@@ -24,20 +24,37 @@ public class WindowingStrategy implements Serializable {
     private final String triggerId;
     private final long allowedLateness;
     private final AccumulationMode accumulationMode;
+    /**
+     * WI8 (plan 2332): max-delay fallback window (ms, past window end, PROCESSING
+     * time). 0 = disabled. Event-time windows only — a processing-time window's
+     * cleanup timer fires at window end, strictly before any maxDelay deadline, so
+     * combining the two is a construction error.
+     */
+    private final long maxDelay;
 
     public WindowingStrategy(String strategyId, String windowFnId, String triggerId,
                              long allowedLateness, AccumulationMode accumulationMode) {
-        // S-11 (2026-09-01 core audit): negative allowed lateness is never meaningful
-        // (it would purge windows before they open) — fail fast.
+        this(strategyId, windowFnId, triggerId, allowedLateness, accumulationMode, 0L);
+    }
+
+    public WindowingStrategy(String strategyId, String windowFnId, String triggerId,
+                             long allowedLateness, AccumulationMode accumulationMode, long maxDelay) {
         if (allowedLateness < 0) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "allowedLateness must be >= 0, but was: " + allowedLateness);
+        }
+        if (maxDelay < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "maxDelay must be >= 0 (0 = disabled), but was: " + maxDelay);
         }
         this.strategyId = strategyId;
         this.windowFnId = windowFnId;
         this.triggerId = triggerId;
         this.allowedLateness = allowedLateness;
         this.accumulationMode = accumulationMode != null ? accumulationMode : AccumulationMode.DISCARDING;
+        this.maxDelay = maxDelay;
     }
+
+    /** WI8: max-delay fallback window in ms past window end (0 = disabled). */
+    public long getMaxDelay() { return maxDelay; }
 
     public WindowingStrategy() {
         this(null, null, null, 0, AccumulationMode.DISCARDING);

@@ -844,7 +844,8 @@ public class CheckpointSerDe {
      * Converts operator-state values that are not JSON-safe (not Nop {@code @DataBean}s)
      * into plain JSON-safe map forms, so the checkpoint JSON persist path can store them.
      * Currently handled: {@code HeapInternalTimerService.TimerSnapshot},
-     * {@code WindowOperator.PaneTrackingSnapshot}, and {@code SimpleAccumulator} values
+     * {@code WindowOperator.PaneTrackingSnapshot},
+     * {@code WindowOperator.ActiveWindowSnapshot}, and {@code SimpleAccumulator} values
      * (trigger-accumulators map). Everything else passes through unchanged.
      */
     @SuppressWarnings("unchecked")
@@ -859,6 +860,14 @@ public class CheckpointSerDe {
             } else if (value instanceof io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) {
                 result.put(entry.getKey(),
                         ((io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) value)
+                                .toSerializableForm());
+            } else if (value instanceof io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot) {
+                // WI8 R-registry (plan 2332): the active-window registry rides the
+                // operator-state transport as a self-describing form; without this
+                // branch the JSON persist path cannot round-trip the registry and a
+                // restored operator would re-announce OPEN for in-flight windows.
+                result.put(entry.getKey(),
+                        ((io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot) value)
                                 .toSerializableForm());
             } else if (value instanceof io.nop.stream.core.common.buffer.PerKeyOrderedBuffer) {
                 // R5 KR-7: the join/over-window working views ride the
@@ -915,6 +924,10 @@ public class CheckpointSerDe {
         }
         if ("PaneTrackingSnapshot".equals(type)) {
             return io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot.fromSerializableForm(form);
+        }
+        if ("ActiveWindowSnapshot".equals(type)) {
+            return io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot
+                    .fromSerializableForm(form);
         }
         if ("PerKeyOrderedBuffer".equals(type)) {
             return io.nop.stream.core.common.buffer.PerKeyOrderedBuffer.fromSerializableForm(form);

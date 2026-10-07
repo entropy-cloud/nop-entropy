@@ -46,6 +46,13 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: maxDelay
+     * 
+     */
+    private java.lang.Long _maxDelay ;
+    
+    /**
+     *  
      * xml name: strategyId
      * 
      */
@@ -143,6 +150,25 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: maxDelay
+     *  
+     */
+    
+    public java.lang.Long getMaxDelay(){
+      return _maxDelay;
+    }
+
+    
+    public void setMaxDelay(java.lang.Long value){
+        checkAllowChange();
+        
+        this._maxDelay = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: strategyId
      *  
      */
@@ -217,6 +243,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("duration",this.getDuration());
+        out.putNotNull("maxDelay",this.getMaxDelay());
         out.putNotNull("strategyId",this.getStrategyId());
         out.putNotNull("triggerId",this.getTriggerId());
         out.putNotNull("windowFnId",this.getWindowFnId());
@@ -235,6 +262,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setDescription(this.getDescription());
         instance.setDuration(this.getDuration());
+        instance.setMaxDelay(this.getMaxDelay());
         instance.setStrategyId(this.getStrategyId());
         instance.setTriggerId(this.getTriggerId());
         instance.setWindowFnId(this.getWindowFnId());
