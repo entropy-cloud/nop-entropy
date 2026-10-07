@@ -45,6 +45,7 @@ import jakarta.inject.Inject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -208,10 +209,16 @@ public class PageProvider extends ResourceWithHistoryProvider {
 
     protected Object transformPermissions(Object value) {
         // 将xui:permissions判断转换为xui:roles判断，这样转换的结果是可以被缓存的，前端不同的用户执行不同的roles过滤即可。
+        // 写时复制：PageModel 是全局缓存模型，此处不得原地修改（remove xui:permissions）——
+        // 否则首个请求（如启动期页面校验）会把当时的角色快照永久冻结进缓存模型，
+        // 后续请求的 hasXuiAuth 判空短路，角色变化（授权调整、启动早于种子数据）不再生效。
         Map<String, Object> map = (Map<String, Object>) value;
-        Object perms = map.remove(WebConstants.ATTR_XUI_PERMISSIONS);
+        Object perms = map.get(WebConstants.ATTR_XUI_PERMISSIONS);
         if (perms == null)
             return value;
+
+        Map<String, Object> ret = new HashMap<>(map);
+        ret.remove(WebConstants.ATTR_XUI_PERMISSIONS);
 
         Set<String> permissions = ConvertHelper.toCsvSet(perms);
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
@@ -223,8 +230,8 @@ public class PageProvider extends ResourceWithHistoryProvider {
         if (!CollectionHelper.isEmpty(merged)) {
             mergedRoles = StringHelper.join(merged, ",");
         }
-        map.put(WebConstants.ATTR_XUI_ROLES, mergedRoles);
-        return map;
+        ret.put(WebConstants.ATTR_XUI_ROLES, mergedRoles);
+        return ret;
     }
 
     boolean hasXuiAuth(Object value) {

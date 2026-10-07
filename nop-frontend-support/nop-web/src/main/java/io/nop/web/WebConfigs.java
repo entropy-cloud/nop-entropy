@@ -51,8 +51,8 @@ public interface WebConfigs {
     IConfigReference<Integer> CFG_WEB_PAGE_VALIDATION_THREAD_COUNT = varRef(s_loc,
             "nop.web.page-validation-thread-count", Integer.class, 1);
 
-    @Description("前端渲染模式：amis（默认）或 flux。设为 flux 时强制使用 flux-web 渲染管线。")
+    @Description("前端渲染模式：flux（默认）或 amis。缺省 flux：加载 page.yaml 时优先使用同目录 flux.yaml，无 flux 变体的页面回退标准管线。")
     IConfigReference<String> CFG_WEB_RENDER_MODE = varRef(s_loc,
-            "nop.web.render-mode", String.class, "amis");
+            "nop.web.render-mode", String.class, "flux");
 
 }
