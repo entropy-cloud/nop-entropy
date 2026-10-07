@@ -4,6 +4,7 @@ nop:
   auth:
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
+      allow-multiple-sessions-same-user: true # e2e：浏览器会话与 RPC 请求上下文各自登录，单会话策略会互踢 # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 
     site-map:
       static-config-path: /nop/job/auth/app.action-auth.xml
