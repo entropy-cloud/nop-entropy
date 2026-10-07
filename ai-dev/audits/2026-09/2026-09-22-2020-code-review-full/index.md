@@ -51,7 +51,7 @@
 | 6.1 | `6.1-hollow-implementation-scan.md` | 0 | 0 | **1** | **4** | done（裁决：通过——**373 裁定样本〔60 全裁+29 快裁+240 冻结抽样+44 P4〕扫描行 a 类违规仅 4 条 + 盘点附带观察 1 = 5 条**（P2×1 Pulsar seekToPosition 空实现配置静默失效〔撞车史：2026-05-20 pulsar 审查发现 7 附注 residual，挂接 7.7/R1.0，修复须与 4.4 M-03 Kafka seek 统一语义〕+ P3×4 ParseTreeFormatter 空壳类归并 1.2 域 slice/dev-tools 安全悬置族/NopMetaModuleBizModel 699>600 阈值过期/spring-mcp-server 包名 servrer）；high+P1:medium 全裁零违规、P1:low 29/29 合法；**69 个在建空壳模块〔48×1+21×2〕全数合法定位零意外**；抽样 SHA-256 重放逐字节一致、台账抽验 56/373≈15% 全证实；scanner 口径校准三条（P6 子串/P8 continue/P6b 注释）watch 不立案；closure audit 处方 R1-R3（覆盖度量 389→373/台账行级归属/盘点 66→69）已落实） | 独立子 agent（agent_0a0753ae 复核 PASS；closure audit agent_bc940723，FAIL→处方 R1-R3 落实后轻量复核 PASS，见 plan 2348 Closure 段） |
 | 6.2 | `6.2-silent-skip-swallow-scan.md` | 0 | 0 | **4** | **25** | done（裁决：通过——**宇宙 1111 行全量裁定净违规 29 案/34 位点 = P2×4 案 6 位点〔ArgumentCleanupStage:93+ArgumentValueCoercionStage:88 同源对 schema 解析合流/JqBuiltins:1683 recurse(f) 吞输出上限守卫/AiFileTool:178+:195 canonical IOException 误报 ERR_MCP_PATH_ESCAPE 安全码/FileHelper:486 双丢 cause〕+ P3×25 案 28 位点**；B2B 734 行仅 1 违规验证 4.1 边界转换预判；U 承接终裁修复 3/维持 2/升级 1〔U-6→P3-6.2-025〕；归并 4.1 [维度09-20] ×1 + SocketClient:150 归属 P3-3.9-014；复核 16 发现 100% 亲读+QA 锚 41 处零漏检+台账抽验 96 行零误判+宇宙对账精确；closure audit 一次 PASS 六项全过〔O1-O4 非阻塞观察已处理：O4 占位行清理〕） | 独立子 agent（agent_1b77fa59 复核 PASS；closure audit agent_56138042 一次 PASS，见 plan 2349 Closure 段） |
 | 6.3 | `6.3-wiring-integrity-audit.md` | 0 | 0 | 0 | **3** | done（裁决：通过——**四链主链全连通零 P0/P1/P2**，42 机制边全量台账 + 复核 8/8 边独立追踪全通 + E3 四链达标 E1 零依赖；P3×3 进 R1.0（nop-dao exec 绑定护栏缺失/exec-maven-plugin 死属性/db-migration beans 双注册表零消费）；dup×3 复核纠正撞车漏检归并 P2-1.2-008/P3-2.3-034/P3-2.6-008；勘误 6 项含 A3-04 幻影类名；closure audit 处方 R1-R2（plan 头部勘误注记补记/四项勾选补齐）已落实） | 独立子 agent（agent_1fb93037 复核 PASS；closure audit agent_010b3bc3，FAIL→处方 R1-R2 落实后轻量复核 PASS，见 plan 2350 Closure 段） |
-| 6.4 | — | | | | | todo | |
+| 6.4 | `6.4-check-p0-verification.md` | 0 | 0 | **1** | 0 | 报告落盘，closure audit 进行中（裁决待复核确认：**check 36 P0 在 master 无一条保持 P0 级 live**——already-fixed 35 单元〔实跑覆盖 36/36 闭环 95 tests 全绿〕+ still-live 1 单元 P2-6.4-001〔#3 ai-rest residual P0→P2 降档且残余复核收窄：OAuth 服务端换取已在 93d47833f0 实施〕+ #6a FP-as-P0 勘误拆目〔缺陷本体 P1 live 纯引用 4.4 S-06 不双登记〕+ #6b SUMMARY 遗漏真 P0 补录 already-fixed） | 独立子 agent（agent_966d1623 复核 PASS；closure audit 待启动） |
 | 6.5 | — | | | | | todo | |
 | 6.6 | — | | | | | todo | |
 | 6.7 | — | | | | | todo | |
@@ -173,6 +173,7 @@
 | P2-4.3-003 | `4.3-giant-files-audit.md` | ReActAgentExecutor 心跳/steering 块 ~410 行未随抽取波走完（1935 行） | 待 R1.0 裁决（与既有 *Coordinator 抽取波同构，中成本） | R1.0 |
 | P2-4.3-004 | `4.3-giant-files-audit.md` | GraphModelCheckpointExecutor 恢复/状态重组族 ~640 行混载（1591 行；静态无互锁+委托桩在位） | 待 R1.0 裁决（**队首**——成本最低） | R1.0 |
 | P2-5.2-001 | `5.2-design-drift-audit.md` | 草稿态违规整体立案 39 处/29 篇（实现已落地仍标草案/Draft——nop-lint 13 篇族/nop-wf extensions/nop-refactor/nop-graph/usage-and-billing/metadata 03-04-12 等） | 待 R1.0 裁决（Rule #14 重写波次 + 索引同步） | R1.0 |
+| P2-6.4-001 | `6.4-check-p0-verification.md` | check #3 ai-rest 扫码登录 residual（P0→P2 降档）：事件签名验证缺失+回调端点无限流+ChannelLoginApiBizModel:56-67 javadoc 陈旧（主向量已闭合；OAuth 服务端换取已在 93d47833f0 实施——复核收窄） | 待 R1.0 裁决（残余三项修复；ai-rest owner doc 同步） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 

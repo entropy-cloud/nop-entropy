@@ -72,14 +72,12 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 条目 100% 亲读复核 + already-fixed 抽验 ≥30%（防「修复不在 master 误判已修」——含测试实跑抽验）+ 撞车核对（修正后映射逐条对 + 3.1/3.10/3.11/4.4 承载面）+ 判级复核（「修复待验证」中间态全部收敛为四态之一；降级提议汇总主 agent 终裁〔F7〕）
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零判级改判**——still-live 2 目 100% 亲读（#6a 与 4.4 S-06 行号零漂移）；already-fixed 抽验 11 目（≥30%）+ 补盲 6 目 → **实跑覆盖 36/36 闭环**（17 次实跑 95 tests 全绿）；F1 对账 6 行抽验全一致；撞车 9 组全对；「修复待验证」中间态清零。**核心发现：#3 残余收窄**（初判 OAuth code 服务端换取缺失被证伪——commit 93d47833f0 已实施；真实残余=签名验证/回调限流/javadoc 陈旧）；P2-6.4-001 独立判 P2 维持；#6a 处置=纯引用 4.4 S-06 不新编编号（防双登记）；引用勘误 3 项（checkAllowAccess 行号/调用点/#22 证实）
 
 Exit Criteria:
 
@@ -89,7 +87,7 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: in progress
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
