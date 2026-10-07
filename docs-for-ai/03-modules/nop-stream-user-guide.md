@@ -70,7 +70,40 @@ StreamExecutionResult result = env.execute("simple-pipeline");
 
 `WindowedStream<T,K,W>`：`apply(WindowFunction)` / `aggregate(AggregateFunction)` / `reduce(ReduceFunction)` / `process(ProcessWindowFunction)` / `trigger(Trigger)` / `evictor(Evictor)`。**窗口算子执行需要 `nop-stream-runtime` 在 classpath**（缺失时 fail-fast 报 "WindowOperator requires nop-stream-runtime on classpath"，由**固定 FQCN 反射**发现的 `WindowOperatorFactoryImpl` 接线——写死类名的 `Class.forName` 反射而非 ServiceLoader，无 services 文件；第三方不能以 services 文件替换默认实现，需经 `setDefaultFactory` 显式注入。上文 checkpoint 执行器工厂才是真 `ServiceLoader` 发现，两者机制不同）。
 
-能力边界（build 期 fail-fast，不静默降级）——三分口径：① `union` 全支持：Java API `DataStream.union(DataStream...)`（WI6，`UnionTransformation` 进执行图）与 XDSL `<union>` 元素均已落地（锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`）；② 侧输出**提取 API** 已支持：`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 视图，经 `sink(...)`/`print()`/`collect(...)` 消费；③ 残余边界：XDSL `<sideOutput>` 变换与 side-output 视图上的下游 graph 级 transform（`map`/`filter`/`keyBy` 等）仍在 build 期 fail-fast（`ERR_STREAM_UNSUPPORTED`——side-output 边暂无图级路由；锚点 `TestAdvancedTransforms.sideOutputTransformThrowsWithRuntimeGapMessage` 与 `SideOutputDataStream` javadoc）。
+能力边界（build 期 fail-fast，不静默降级）——三分口径：① `union` 全支持：Java API `DataStream.union(DataStream...)`（WI6，`UnionTransformation` 进执行图）与 XDSL `<union>` 元素均已落地（锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`）；② 侧输出全支持：**提取 API**（`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 视图，经 `sink(...)`/`print()`/`collect(...)` 消费）与 **XDSL 图级路由**（`<sideOutput tag condition>` tap 节点 + `<edge outputTag>` tag 边，WI8/plan 2332，见下节）均已落地；③ 残余边界：side-output 视图上的下游 graph 级 transform（`map`/`filter`/`keyBy` 等）仍 fail-fast（`ERR_STREAM_UNSUPPORTED`——Java 视图仅限 sink/print/collect 消费；XDSL 图级消费请用 `<edge outputTag>`）。锚点：`TestAdvancedTransforms` sideOutput 用例族、`TestSideOutputTapOperator`、`TestSideOutputPipelineE2E`、`SideOutputDataStream` javadoc。
+
+### 窗口生命周期事件与 maxDelay 兜底出数（WI8/plan 2332）
+
+- **生命周期事件**：`windowed.emitWindowEvents()` 启用后，窗口 OPEN/CLOSE/IDLE/RESUME 事件经专用 side-output tag（`<operatorUid>:window-events`）外发（`WindowLifecycleEvent`：type + key + windowStart/End）。OPEN = 首条记录入窗；CLOSE = 清理时间到达（GlobalWindows 无清理时间——仅 OPEN/IDLE、无 CLOSE）；IDLE = 上游水印转 idle；RESUME = 水印恢复或此后首条数据。消费方式：`singleOutputStreamOperator.getSideOutput(tag)`（Java API）。XDSL 声明面暂未开放（Deferred）。
+- **maxDelay 兜底出数**：`windowed.maxDelay(ms)` 为 event-time 窗口挂 processing-time 兜底定时器（windowEnd + maxDelay）——watermark 停滞时到点强制出数（timing=EARLY、不清理，allowedLateness 语义兼容；processing-time 窗口配 maxDelay = 构造期 typed 拒绝）。TDengine MAX_DELAY 对标。**注意**：无数据不触发兜底（定时器随窗口创建注册）——watermark 永不推进时 maxDelay 是唯一出数路径（`maxDelayWithoutDataDoesNotFire` 钉定的是「无窗口数据则无兜底出数」）。
+- **merge 语义**：session 等合并窗口的 maxDelay 定时器随合并删除/重注册；活动窗口 registry 随 checkpoint 持久化，恢复不重发 OPEN。
+
+### XDSL sideOutput 图级路由（WI8/plan 2332）
+
+`<sideOutput tag condition>` 声明在 transform 节点上，语义是**复制 tap**：该节点上游 transform 的输出记录**原样通过主输出**（tap 不过滤主流），其中匹配 condition 的记录**额外复制**进 tag 通道。tag 通道的消费方是声明了 `outputTag` 的边：
+
+```xml
+<transforms>
+  <source id="src" bean="mySource"/>
+  <sideOutput id="tap" tag="late" condition="event.score &lt; 60"/>
+  <map id="tagMap"><source>enrich(event)</source></map>
+  <sink id="mainSink" bean="mySink"/>
+  <sink id="lateSink" bean="myLateSink"/>
+</transforms>
+<edges>
+  <edge id="e0" from="src" to="tap"/>
+  <edge id="e1" from="tap" to="mainSink"/>                        <!-- 主路径：全量记录 -->
+  <edge id="e2" from="tap" to="tagMap" outputTag="late"/>          <!-- tag 通道：仅匹配记录 -->
+  <edge id="e3" from="tagMap" to="lateSink"/>
+</edges>
+```
+
+- **condition**：xpl expr，`event` 绑定到记录值（与 `<keyBy keyExpr>` 同绑定），按 truthy 解释（null/0/空 = false）；省略 condition = 全量复制（纯 tap）。求值经统一 expr 求值器（`IEvalAction`），无「不支持的 expr 形态」——非法表达式在 XDSL 解析期即被 xdef 拒绝。
+- **tag 目标面**：tag 边的目标 transform 仅支持单输入一进一出形态（`map`/`filter`/`flatMap`/`process`/`custom`）；tag 边进 `sink` 被 typed 拒绝（sink 消费侧输出请走 Java API `getSideOutput(tag)` 视图）。tag 记录经部署期注册的 tag 消费方喂进目标算子链头（`StreamTaskInvokable.registerTagEdgeConsumer`），目标算子无感知。
+- **分区语义**：tag 边跟随生产者分区（不携带 partitioner）；声明 `partition`（非 FORWARD）或 `keyExpr` 在 tag 边上一律 build 期 typed 拒绝（`ERR_STREAM_EDGE_ATTR_UNSUPPORTED`）。
+- **配对校验（`validateDag`，build 期 typed 拒绝）**：tag id 是全局身份（注册为按 id 替换语义），因此 ① 声明了 tag 但无消费边、② 消费边引用未声明的 tag（from 非声明节点或 tag 不存在，`ERR_STREAM_REF_UNKNOWN`）、③ 同 tag 多条消费边、④ 两个 `<sideOutput>` 节点声明同 tag（`ERR_STREAM_DUPLICATE_ID`）——全部 fail-fast，不静默顶替。
+- 运行链路：`StreamEdge.outputTag`（激活既有字段）→ `JobEdge.outputTagId` → 本地 `GraphExecutionPlan` / 远程 `RemoteGraphExecutionPlanBuilder` 双路径为 tag 边目标注册消费方、为生产者接线 tag 感知 writer（主记录不过 tag 边、tag 记录不过主边——无双投递）；tag 边不参与算子链化（始终跨顶点边）。
+- 锚点：`TestAdvancedTransforms`（builder/tag 边图断言 + 配对校验矩阵）、`TestSideOutputTapOperator`（tap 复制语义/condition 消费）、`TestSideOutputPipelineE2E`（XDSL → execute → 分流/主流不变全链）、`TestRemoteSideOutputTagWiring`（远程部署路径注册）、`TestSideOutputChainingE2E`（HG-01 跨任务通道）。
 
 ### 状态与计时器心智模型
 
@@ -114,7 +147,7 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
 
-可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
+可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）、`sideOutput`（`tag` + 可选 `condition`，复制 tap 语义，见上节）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）、`outputTag`（tag 通道消费边，配对规则见上节）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
 
 ### bean / xpl 双函数形态
 

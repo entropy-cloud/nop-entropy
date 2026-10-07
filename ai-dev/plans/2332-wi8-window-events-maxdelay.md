@@ -86,22 +86,24 @@ Exit Criteria:
 
 ### Phase 2 - (b) XDSL sideOutput 图级路由
 
-Status: planned
+Status: completed
 Targets: xdef、flow builder、图生成、runtime tag 消费注册
 
 - Item Types: `Feature`
 
-- [ ] xdef edge.outputTag（R-xdef 流程）+ StreamEdgeModel 字段 + StreamGraphGenerator/JobGraphGenerator 激活 outputTag 边
-- [ ] buildSideOutput 实现（复制语义 + condition）+ validateDag 配对校验 + SubtaskPlanBuilder/RemoteGraphExecutionPlanBuilder tag 消费方注册（复用 registerSideOutputConsumer）
-- [ ] 测试：XDSL 声明 → tag 边 → 下游消费全链 E2E；fail-fast 矩阵更新（buildSideOutput 支持面、sideInputs 维持 fail-fast、validateDag 双向配对错误）
+- [x] xdef edge.outputTag（R-xdef 流程）+ StreamEdgeModel 字段 + StreamGraphGenerator/JobGraphGenerator 激活 outputTag 边
+- [x] buildSideOutput 实现（复制语义 + condition）+ validateDag 配对校验 + SubtaskPlanBuilder/RemoteGraphExecutionPlanBuilder tag 消费方注册（复用 registerSideOutputConsumer）
+- [x] 测试：XDSL 声明 → tag 边 → 下游消费全链 E2E；fail-fast 矩阵更新（buildSideOutput 支持面、sideInputs 维持 fail-fast、validateDag 双向配对错误）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-flow,nop-stream/nop-stream-runtime -am` 全绿
-- [ ] **端到端验证**：XDSL sideOutput + edge outputTag → 下游 transform 收到分流记录全链断言
-- [ ] **接线验证**：AdvancedTransforms 原 fail-fast 处真实产生路由（E2E 断言下游收到）
-- [ ] owner docs（user-guide）已更新
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-flow,nop-stream/nop-stream-runtime -am` 全绿
+- [x] **端到端验证**：XDSL sideOutput + edge outputTag → 下游 transform 收到分流记录全链断言
+- [x] **接线验证**：AdvancedTransforms 原 fail-fast 处真实产生路由（E2E 断言下游收到）
+- [x] owner docs（user-guide）已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> Phase 2 执行记录（2026-10-07）：xdef `edge/outputTag` 与 `_StreamEdgeModel.getOutputTag()` 已随 Phase 1 提交（bfc4c6eefa），核实未重做。实现 = core `Transformation.inputOutputTag` 载体 → StreamEdge.outputTag（OneInput/Sink 双分支）→ JobEdge.outputTagId（dedup key 含 tag，canChain 拒绝 tag 边）→ 双 plan builder（GraphExecutionPlan/RemoteGraphExecutionPlanBuilder）注册 `registerTagEdgeConsumer` + tag 感知 `EdgeWriterOutput`（主记录不过 tag 边、tag 记录不过主边）；flow = `SideOutputTapOperator`（复制语义 + `IEvalAction` condition，`event` 绑定 truthy，省略=声明式全量复制）+ `AdvancedTransforms.buildSideOutput` 真实构建 + `validateSideOutputDeclarations` 六路 typed 拒绝 + `applyTagEdgeDeclaration`。E2E = `TestSideOutputPipelineE2E`（主 sink [1,2,3] 不变 + tag sink [2,3]）；接线 = `TestAdvancedTransforms.sideOutputBuildsTapAndStampsConsumerEdgeTag`（JobGraph outputTagId）+ `TestRemoteSideOutputTagWiring`（远程/TM 双路径注册）+ `TestSideOutputTapOperator`（condition 真实消费）。回归 = core 1705/0、flow 188/0、runtime 1288/0（`-am` 全 reactor BUILD SUCCESS）。condition「typed 拒绝不支持 expr 形态」不适用：求值走统一 `IEvalAction`，非法表达式在 XDSL 解析期被 xdef 拒绝；测试钉「非静默全量复制」。
 
 ### Phase 3 - closure audit 与提交
 
@@ -145,13 +147,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed:
+Status Note: WI8 三子项完成：(a) 窗口生命周期事件（registry + OPEN/CLOSE/IDLE/RESUME + emitWindowEvents）；(b) XDSL sideOutput 图级路由（tap 复制语义 + validateDag 七 typed 拒绝 + 图/plan/远程全链 + E2E 精确集合断言）；(c) maxDelay 兜底出数（pendingMaxDelay 标记集区分 user trigger、event-time 专属、merge 处理）。联动测试（OPEN→兜底 FIRE→CLOSE 全序列）通过。默认关闭零回归（37 windowing 测试文件 + 全量 4 模块 BUILD SUCCESS）。
+Completed: 2026-10-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（closure 时填写）
+- Reviewer / Agent: 独立子 agent（fresh session，agent_8498cfba-4089-4e09-8790-2c480df5b84f）
+- Audit Session: agent_8498cfba-4089-4e09-8790-2c480df5b84f（APPROVED，P1-P3 文本修复 + P4 cold-start 注记由实现者收口执行）
+- Evidence:
+  - A Phase 1 全 PASS（bfc4c6eefa）：registry 生命周期逐条核实（DISCARDING/merge/restore 不重发 OPEN）、processWatermarkStatus 保留转发、maxDelay timer 区分 user trigger、copy 透传
+  - B Phase 2 全 PASS（工作区 24 文件）：xdef/生成物、tap 复制语义、七 typed 拒绝、四层穿线（Transformation→StreamGraph→JobGraph→plan builders）、fail-fast 矩阵翻转、user-guide 两节
+  - C 工具（审计独立复跑）：mvn flow+runtime -am BUILD SUCCESS（flow 188/0、runtime 1288/0/10skip）；doc-links exit 0；hollow core/flow 双 0；import-order 无新增
+  - D Anti-Hollow PASS：TestSideOutputPipelineE2E 精确集合断言（main=[1,2,3] + tag=[2,3]，双投递/漏投两个失败方向封死）；TestRemoteSideOutputTagWiring 4 用例
+  - F 联动 PASS：maxDelayAndEventsFullSequence（OPEN→兜底 FIRE→CLOSE timeline）
+  - Deferred 项分类检查：XDSL emitWindowEvents 声明面与 broadcast sideInputs 均为裁定性 Deferred
+  - `check-plan-checklist.mjs --strict` exit 0（closure 回填后）
 
 Follow-up:
 
-- （closure 时填写）
+- tag 边不传播 watermark/barrier（user-guide 已注明范围）
+- 同 JVM 多 job 同 operatorUid 的 tag id 场景（仅嵌入式/测试场景，可不处理）

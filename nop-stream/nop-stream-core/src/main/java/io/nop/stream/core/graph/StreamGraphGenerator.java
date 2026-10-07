@@ -302,7 +302,13 @@ public class StreamGraphGenerator {
 
         // 3. Create the StreamEdge connecting input to this node
         // Use null partitioner for forward partitioning (same parallel instance)
-        addUpstreamEdge(transformation, node);
+        StreamEdge edge = addUpstreamEdge(transformation, node);
+        // WI8 Phase 2 (plan 2332): a transformation fed from a <sideOutput> tag
+        // channel carries the tag on its incoming edge — the edge routes only
+        // SideOutputElement traffic (never main-path records).
+        if (transformation.getInputOutputTag() != null) {
+            edge.setOutputTag(transformation.getInputOutputTag());
+        }
     }
     
     /**
@@ -373,7 +379,12 @@ public class StreamGraphGenerator {
 
         // Create the stream node for this sink and register it
         StreamNode node = addOperatorNode(transformation, operatorFactory, effectiveParallelism);
-        addUpstreamEdge(transformation, node);
+        StreamEdge edge = addUpstreamEdge(transformation, node);
+        // WI8 Phase 2 (plan 2332): a sink fed from a <sideOutput> tag channel — same
+        // tag propagation as the OneInput branch above.
+        if (transformation.getInputOutputTag() != null) {
+            edge.setOutputTag(transformation.getInputOutputTag());
+        }
         streamGraph.addSinkID(node.getId());
     }
     

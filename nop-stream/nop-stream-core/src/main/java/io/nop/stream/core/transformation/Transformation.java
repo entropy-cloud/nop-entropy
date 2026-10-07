@@ -14,6 +14,7 @@ import java.util.List;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.util.OutputTag;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -48,6 +49,21 @@ public abstract class Transformation<T> implements Serializable {
      * point ({@code CEP.pattern}) which requires a single global NFA.
      */
     private boolean parallelismLocked;
+
+    /**
+     * WI8 Phase 2 (plan 2332): the side-output tag carried by this transformation's
+     * single INCOMING edge, or {@code null} when the edge is a regular main-path edge.
+     *
+     * <p>Set by the XDSL builder ({@code StreamModelDslBuilder}) on a consumer
+     * transformation whose declared {@code <edge ... outputTag="...">} feeds it from a
+     * {@code <sideOutput>} tag channel. {@code StreamGraphGenerator} copies the tag onto
+     * the corresponding {@code StreamEdge}, and {@code JobGraphGenerator} carries it onto
+     * the {@code JobEdge} so the deployment plan routes the tag channel to this vertex
+     * and registers the side-output consumer feeding the operator chain input. A tag edge
+     * is never chained (see {@code JobGraphGenerator#canChain}) and never carries a
+     * custom partitioner — it follows the producer's partitioning.
+     */
+    private OutputTag<?> inputOutputTag;
     
     /**
      * Creates a new transformation with the specified name and output type.
@@ -156,14 +172,30 @@ public abstract class Transformation<T> implements Serializable {
 
     /**
      * Locks this transformation to parallelism = 1. Once locked, the
-     * corresponding execution vertex is forced to parallel-1 regardless of
-     * the environment parallelism or any downstream DeploymentPlan override.
+     * corresponding execution vertex is forced to parallel-1 regardless
+     * of the environment parallelism or any downstream DeploymentPlan override.
      *
      * <p>This is intended for operators that require a single global instance
      * (e.g. CEP's non-keyed entry point with a single global NFA).
      */
     public void lockParallelismToOne() {
         this.parallelismLocked = true;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): the side-output tag of this transformation's incoming
+     * edge, or {@code null} for a regular main-path edge.
+     */
+    public OutputTag<?> getInputOutputTag() {
+        return inputOutputTag;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): declares that this transformation consumes its input
+     * from the given side-output tag channel. {@code null} clears the declaration.
+     */
+    public void setInputOutputTag(OutputTag<?> inputOutputTag) {
+        this.inputOutputTag = inputOutputTag;
     }
     
     /**

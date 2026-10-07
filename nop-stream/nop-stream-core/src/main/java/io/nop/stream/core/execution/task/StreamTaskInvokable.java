@@ -54,6 +54,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_CLOSE_FAILED;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHAINING_OUTPUT_EXCEPTION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER;
 
@@ -88,6 +90,21 @@ public class StreamTaskInvokable implements Invokable<Void> {
     private final List<RecordWriter<Object>> fanOutWriters;
 
     private final InputGate inputGate;
+
+    /**
+     * WI8 Phase 2 (plan 2332): per-edge side-output tag ids aligned with
+     * {@link #fanOutWriters} (index-for-index; {@code null} entries = main edges,
+     * non-null = tag edges carrying only their own tag id). {@code null} list = no
+     * tag information (legacy constructors) — the tail output keeps the historical
+     * HG-01 broadcast semantics exactly.
+     */
+    private final List<String> fanOutWriterTagIds;
+
+    /**
+     * WI8 Phase 2 (plan 2332): the tag id of the single-writer edge when that edge is
+     * a tag edge; {@code null} for legacy single-writer tasks (main edge semantics).
+     */
+    private final String singleWriterTagId;
 
     /**
      * Per-task mailbox executor: the control-plane anchor for this task thread.
@@ -183,27 +200,71 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = null;
         this.fanOutWriters = null;
         this.inputGate = null;
+        this.fanOutWriterTagIds = null;
+        this.singleWriterTagId = null;
         wireOperators();
         wireMailboxToHeadSource();
         setupProcessingTimeServices();
     }
 
     public StreamTaskInvokable(OperatorChain operatorChain, List<RecordWriter<Object>> fanOutWriters) {
-        if (operatorChain == null) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
-        }
-        this.operatorChain = operatorChain;
-        this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
-        this.fanOutWriters = fanOutWriters;
-        this.inputGate = null;
-        wireOperators(fanOutWriters);
-        wireMailboxToHeadSource();
-        setupProcessingTimeServices();
+        this(operatorChain, fanOutWriters, null, null);
     }
 
     @SuppressWarnings("unchecked")
     public StreamTaskInvokable(OperatorChain operatorChain,
                                RecordWriter<?> outputWriter,
+                               InputGate inputGate) {
+        this(operatorChain, outputWriter, null, inputGate);
+    }
+
+    public StreamTaskInvokable(OperatorChain operatorChain,
+                               List<RecordWriter<Object>> fanOutWriters,
+                               InputGate inputGate) {
+        this(operatorChain, fanOutWriters, null, inputGate);
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): tag-aware fan-out constructor. {@code writerTagIds} is
+     * index-aligned with {@code fanOutWriters}: {@code null} entries are main edges,
+     * non-null entries are side-output tag edges carrying only their own tag id. When
+     * the vertex has at least one tag edge, tagged emissions route ONLY to the matching
+     * tag edge (never to main edges) and main records never cross a tag edge — without
+     * this discrimination a tag-fed consumer would receive each record twice.
+     */
+    public StreamTaskInvokable(OperatorChain operatorChain,
+                               List<RecordWriter<Object>> fanOutWriters,
+                               List<String> writerTagIds,
+                               InputGate inputGate) {
+        if (operatorChain == null) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
+        }
+        if (writerTagIds != null && writerTagIds.size() != fanOutWriters.size()) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "writerTagIds")
+                    .param(ARG_DETAIL, "writerTagIds must be index-aligned with fanOutWriters: writers="
+                            + fanOutWriters.size() + " tagIds=" + writerTagIds.size());
+        }
+        this.operatorChain = operatorChain;
+        this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
+        this.fanOutWriters = fanOutWriters;
+        this.inputGate = inputGate;
+        this.fanOutWriterTagIds = writerTagIds;
+        this.singleWriterTagId = null;
+        wireOperators(fanOutWriters);
+        wireMailboxToHeadSource();
+        setupProcessingTimeServices();
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): tag-aware single-writer constructor. A non-null
+     * {@code writerTagId} marks the edge as a side-output tag edge (carries only
+     * {@code SideOutputElement} traffic of that tag id); {@code null} keeps the legacy
+     * main-edge semantics.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public StreamTaskInvokable(OperatorChain operatorChain,
+                               RecordWriter<?> outputWriter,
+                               String writerTagId,
                                InputGate inputGate) {
         if (operatorChain == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
@@ -212,22 +273,9 @@ public class StreamTaskInvokable implements Invokable<Void> {
         this.outputWriter = (RecordWriter<Object>) outputWriter;
         this.fanOutWriters = null;
         this.inputGate = inputGate;
+        this.fanOutWriterTagIds = null;
+        this.singleWriterTagId = writerTagId;
         wireOperators();
-        wireMailboxToHeadSource();
-        setupProcessingTimeServices();
-    }
-
-    public StreamTaskInvokable(OperatorChain operatorChain,
-                               List<RecordWriter<Object>> fanOutWriters,
-                               InputGate inputGate) {
-        if (operatorChain == null) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
-        }
-        this.operatorChain = operatorChain;
-        this.outputWriter = !fanOutWriters.isEmpty() ? fanOutWriters.get(0) : null;
-        this.fanOutWriters = fanOutWriters;
-        this.inputGate = inputGate;
-        wireOperators(fanOutWriters);
         wireMailboxToHeadSource();
         setupProcessingTimeServices();
     }
@@ -248,30 +296,66 @@ public class StreamTaskInvokable implements Invokable<Void> {
         chainInnerOperators();
         wireHeadInput();
         if (outputWriter != null) {
-            wireTailToRecordWriter(operatorChain.getOperators(), operatorChain.getOperators().size() - 1);
+            if (singleWriterTagId != null) {
+                // WI8 Phase 2 (plan 2332): the only outgoing edge is a side-output tag
+                // edge — main records never cross it, only SideOutputElement traffic
+                // of the edge's tag id does.
+                wireTailOperatorOutput(
+                        new EdgeWriterOutput(outputWriter, singleWriterTagId, true, taskMetrics));
+            } else {
+                wireTailToRecordWriter(operatorChain.getOperators(), operatorChain.getOperators().size() - 1);
+            }
         }
     }
 
+    /** WI8 Phase 2: single tail-output wiring step shared by the tag-aware paths. */
+    private void wireTailOperatorOutput(Output<StreamRecord<Object>> output) {
+        List<StreamOperator<?>> operators = operatorChain.getOperators();
+        if (!operators.isEmpty()) {
+            StreamOperator<?> tail = operators.get(operators.size() - 1);
+            if (tail instanceof AbstractStreamOperator) {
+                ((AbstractStreamOperator) tail).setOutput(output);
+            }
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void wireOperators(List<RecordWriter<Object>> fanOutWriters) {
         List<StreamOperator<?>> operators = operatorChain.getOperators();
         chainInnerOperators();
         wireHeadInput();
 
-        if (!operators.isEmpty() && operators.size() - 1 >= 0) {
-            StreamOperator<?> tail = operators.get(operators.size() - 1);
-            if (tail instanceof AbstractStreamOperator) {
-                @SuppressWarnings("unchecked")
-                AbstractStreamOperator<Object> op = (AbstractStreamOperator<Object>) tail;
-                if (fanOutWriters.size() == 1) {
-                    op.setOutput(new RecordWriterOutput(fanOutWriters.get(0), taskMetrics));
-                } else {
-                    List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
-                    for (RecordWriter<Object> writer : fanOutWriters) {
-                        outputs.add(new RecordWriterOutput(writer, taskMetrics));
-                    }
-                    op.setOutput(new BroadcastingRecordWriterOutput(outputs));
-                }
+        if (operators.isEmpty() || !(operators.get(operators.size() - 1) instanceof AbstractStreamOperator)) {
+            return;
+        }
+        AbstractStreamOperator<Object> op =
+                (AbstractStreamOperator<Object>) operators.get(operators.size() - 1);
+        if (fanOutWriterTagIds != null) {
+            // WI8 Phase 2 (plan 2332): per-edge tag-aware outputs. When the vertex has
+            // at least one tag edge, tagged emissions route ONLY to the matching tag
+            // edge and main records never cross a tag edge — otherwise a tag-fed
+            // consumer would double-deliver every record (main copy + tagged copy).
+            boolean hasTagEdges = fanOutWriterTagIds.stream().anyMatch(java.util.Objects::nonNull);
+            List<Output<StreamRecord<Object>>> edgeOutputs = new ArrayList<>(fanOutWriters.size());
+            for (int i = 0; i < fanOutWriters.size(); i++) {
+                String tagId = i < fanOutWriterTagIds.size() ? fanOutWriterTagIds.get(i) : null;
+                edgeOutputs.add(new EdgeWriterOutput(fanOutWriters.get(i), tagId, hasTagEdges, taskMetrics));
             }
+            if (edgeOutputs.size() == 1) {
+                op.setOutput(edgeOutputs.get(0));
+            } else {
+                op.setOutput(new BroadcastingRecordWriterOutput(edgeOutputs));
+            }
+            return;
+        }
+        if (fanOutWriters.size() == 1) {
+            op.setOutput(new RecordWriterOutput(fanOutWriters.get(0), taskMetrics));
+        } else {
+            List<Output<StreamRecord<Object>>> outputs = new ArrayList<>();
+            for (RecordWriter<Object> writer : fanOutWriters) {
+                outputs.add(new RecordWriterOutput(writer, taskMetrics));
+            }
+            op.setOutput(new BroadcastingRecordWriterOutput(outputs));
         }
     }
 
@@ -418,6 +502,49 @@ public class StreamTaskInvokable implements Invokable<Void> {
     public <X> void registerSideOutputConsumer(OutputTag<X> outputTag,
                                                Consumer<StreamRecord<X>> consumer) {
         sideOutputConsumers.put(outputTag, (Consumer<StreamRecord<?>>) (Consumer<?>) consumer);
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): registers this task as the consumer of an incoming
+     * side-output tag edge. Records arriving over a tag edge surface on the input gate
+     * as {@code SideOutputElement}s and {@code classifyAndDispatch} routes them to the
+     * consumer registered here by tag id — feeding them into the operator chain's head
+     * input exactly like a main-path record, so the target operator is unaware it is
+     * being fed from a tag channel.
+     *
+     * <p>Called by the deployment plan builders for every incoming
+     * {@code JobEdge#getOutputTagId() != null} edge. Idempotent per tag id (replacing
+     * registration is the map's contract).
+     */
+    public void registerTagEdgeConsumer(String tagId) {
+        if (tagId == null || tagId.isEmpty()) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "tagId");
+        }
+        Input<Object> input = this.headInput;
+        if (input == null) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_DETAIL, "cannot register tag-edge consumer for '" + tagId
+                            + "': this task's operator chain head is not an Input");
+        }
+        registerSideOutputConsumer(new OutputTag<>(tagId, UnknownTypeInformation.INSTANCE), record -> {
+            try {
+                input.processElement((StreamRecord<Object>) record);
+            } catch (Exception e) {
+                throw new StreamRuntimeException(ERR_STREAM_CHAINING_OUTPUT_EXCEPTION, e)
+                        .param(ARG_DETAIL, "tag-edge consumer for '" + tagId
+                                + "' failed feeding the operator chain");
+            }
+        });
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): wiring assertion helper — resolves this task's
+     * side-output consumer for the given tag id exactly like the runtime routing
+     * points do (task-local map first, then the plan-time
+     * {@code SideOutputRegistry} fallback).
+     */
+    public boolean hasSideOutputConsumer(String tagId) {
+        return sideOutputConsumerFor(tagId) != null;
     }
 
     /**
@@ -1134,6 +1261,99 @@ public class StreamTaskInvokable implements Invokable<Void> {
         @Override
         public void emitBarrier(CheckpointBarrier barrier) {
             writer.emitBarrier(barrier);
+        }
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): one cross-vertex edge's output with tag-edge routing.
+     *
+     * <ul>
+     *   <li>{@code edgeTagId == null} (main edge): carries main records, and also
+     *       forwards tagged records — the legacy HG-01 broadcast semantics, so a
+     *       WindowOperator late-data emission still reaches its registry-registered
+     *       consumer across a plain main edge. When the vertex has tag edges, tagged
+     *       records are NOT forwarded here (they route via their tag edge only —
+     *       forwarding them would double-deliver or fail-fast on main consumers).</li>
+     *   <li>{@code edgeTagId != null} (tag edge): carries ONLY
+     *       {@code SideOutputElement} traffic matching its tag id; main records never
+     *       cross it and foreign tagged records never cross it.</li>
+     * </ul>
+     *
+     * Watermarks / watermark statuses / barriers forward on both edge kinds — the
+     * tag-fed consumer needs event-time progress, checkpoint alignment and EOS exactly
+     * like a main-path consumer.
+     */
+    private static class EdgeWriterOutput implements Output<StreamRecord<Object>> {
+
+        private final RecordWriter<Object> writer;
+        private final String edgeTagId;
+        private final boolean vertexHasTagEdges;
+        private final io.nop.stream.core.metrics.TaskMetricsHandle taskMetrics;
+
+        EdgeWriterOutput(RecordWriter<Object> writer, String edgeTagId,
+                         boolean vertexHasTagEdges,
+                         io.nop.stream.core.metrics.TaskMetricsHandle taskMetrics) {
+            this.writer = writer;
+            this.edgeTagId = edgeTagId;
+            this.vertexHasTagEdges = vertexHasTagEdges;
+            this.taskMetrics = taskMetrics;
+        }
+
+        @Override
+        public void collect(StreamRecord<Object> record) {
+            if (edgeTagId != null) {
+                // A tag edge carries no main-path records.
+                return;
+            }
+            taskMetrics.recordsOut(1);
+            taskMetrics.recordsEmitted(1);
+            long emitStart = CoreMetrics.nanoTime();
+            writer.emit(record.copy(record.getValue()));
+            taskMetrics.emitTime(CoreMetrics.nanoTime() - emitStart);
+        }
+
+        @Override
+        public <X> void collect(io.nop.stream.core.util.OutputTag<X> outputTag, StreamRecord<X> record) {
+            if (vertexHasTagEdges) {
+                if (edgeTagId == null || !edgeTagId.equals(outputTag.getId())) {
+                    // On a tap vertex, tagged records route via their own tag edge only.
+                    return;
+                }
+            } else if (edgeTagId != null) {
+                // A standalone tag edge carries only its own tag id.
+                if (!edgeTagId.equals(outputTag.getId())) {
+                    return;
+                }
+            }
+            // The inner record is copied so the producer's reused StreamRecord
+            // instance is never aliased by the exchange queue (same as RecordWriterOutput).
+            writer.emitElement(new SideOutputElement(outputTag.getId(),
+                    record.copy(record.getValue())));
+        }
+
+        @Override
+        public void emitWatermark(Watermark mark) {
+            writer.emitWatermark(mark);
+        }
+
+        @Override
+        public void emitWatermarkStatus(io.nop.stream.core.streamrecord.watermark.WatermarkStatus status) {
+            writer.emitWatermarkStatus(status);
+        }
+
+        @Override
+        public void emitLatencyMarker(io.nop.stream.core.streamrecord.LatencyMarker latencyMarker) {
+            // Latency markers not forwarded across task boundaries (same as RecordWriterOutput)
+        }
+
+        @Override
+        public void emitBarrier(CheckpointBarrier barrier) {
+            writer.emitBarrier(barrier);
+        }
+
+        @Override
+        public void close() {
+            // RecordWriter lifecycle is managed by invoke() (same as RecordWriterOutput)
         }
     }
 
