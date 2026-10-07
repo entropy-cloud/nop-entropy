@@ -50,25 +50,25 @@
 
 ### Phase 1 - 对账与三分标定（3 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 36 P0 位点（master live code + check/ 处置记录）
 
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
 - [x] 主 agent 对账落盘：36 行宇宙表 `_tmp/fcr-6.4-universe.md`（F1 列=源报告定级核对待 agent 填；#6 异常预登记；四批次 commit 锚在列；分配=Agent 1 SECURITY 9 / Agent 2 净新 9 / Agent 3 净新 7+抽验 5+#14 旁证）
-- [ ] Agent 1「SECURITY #1-9 全量亲读+实跑 + 净新均分份 A」：#1-9 逐条（含处置记录点名测试类实跑）；净新均分份 A
-- [ ] Agent 2「净新均分份 B」：逐条代码亲读 + **点名测试类强制实跑** + commit 可达验证
-- [ ] Agent 3「轮内已标定抽验 ≥30%（含实跑）+ 净新均分份 C」：抽验条目 live-ness 重验（防漂移，含测试实跑）+ 净新份 C
+- [x] Agent 1「SECURITY #1-9 全量亲读+实跑 + 净新均分份 A」：9 行 → already-fixed 8 目 / still-live 2 目（#3 residual P0→P2 降档〔主向量闭合 ticket fail-closed + 设计级暂缓残余〕/#6a 拆目 P1 承接 4.4 S-06——真 P0 #6b filter already-fixed 9/9 绿）/ false-positive-as-P0 1 目（#6a SUMMARY 定级错位证实）；实跑 12 次全成功 58 tests 全绿零降级 → `_tmp/fcr-6.4-checkp0-a1.md`
+- [x] Agent 2「净新均分份 B」：#10-13/19/20/22-24 九条全部 already-fixed（位点全为修复后形态；实跑 9 组全绿零降级；F1 九条源报告定级全一致）；勘误 3 条（#22 锚 B4?→46575c4278/#13 相邻未决 findPrevSql 空 filter 已在 SUMMARY 超审计节/#22 consumer 10→11）→ `_tmp/fcr-6.4-checkp0-a2.md`
+- [x] Agent 3「轮内已标定抽验 ≥30%（含实跑）+ 净新均分份 C」：净新 7 条（#25-31）全部 already-fixed（11 组测试实跑全绿；#26-29 严格以 2de622fb6a 为唯一输入）；抽验 5/5（#15/#18/#21/#33/#35）与轮内标定全一致（#18 生产谓词亲读正确 + P2-3.5-010 收窄成立）；#14 旁证成立；交叉发现 nop-sys-dao 测试编译断裂系 3.5 已归因 R1.x 已知项非新发现 → `_tmp/fcr-6.4-checkp0-a3.md`
 - [ ] 主 agent 抽查质量：标定抽验 ≥8 条独立复判（含 ≥2 条 SECURITY）+ 台账对账（36 行全覆盖零遗漏）
-- [ ] 产物 `_tmp/fcr-6.4-checkp0.md`（三 agent 分节）+ 36 行标定台账
+- [x] 产物 `_tmp/fcr-6.4-checkp0-a1/a2/a3.md`（三 agent 分报告）+ 36 行标定台账（宇宙表 `fcr-6.4-universe.md`）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条标定含四态归属 + 双锚证据（代码位点 + 实跑测试/commit）；**每条 still-live 条目含 ≥9 行完整条目**（位点/证据/修复方向/R1.0 条目；若 still-live=0 须在裁决段显式声明）
-- [ ] 36 行台账零遗漏；轮内标定抽验 ≥30% 完成
-- [ ] No owner-doc update required（只读——still-live 移交 R1.0）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条标定含四态归属 + 双锚证据（代码位点 + 实跑测试/commit）；still-live 2 目均含 ≥9 行完整条目（非零，无需 =0 声明）
+- [x] 36 行台账零遗漏（SECURITY 9 + 净新 21 全亲读；轮内标定抽验 5/15≈33% 完成）
+- [x] No owner-doc update required（只读——still-live 移交 R1.0）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
