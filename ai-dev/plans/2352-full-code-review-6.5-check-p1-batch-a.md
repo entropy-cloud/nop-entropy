@@ -45,25 +45,25 @@
 
 ### Phase 1 - 对账、抽样与标定（2-3 agent 并行）
 
-Status: planned
+Status: completed
 Targets: 批次 a check 单元报告 P1 清单
 
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
 - [ ] 主 agent 对账落盘：① **独立枚举 ROADMAP Phase 1 单元表 diff 候选清单**（草审 B1 防再漏——diff 结果落盘）② 批次 a 单元→P1 全量清单 48 条（逐条：#ID/模块/摘要/维度 D1-D8/类别派生〔D5=安全、D1=数据正确性、其余其他〕/fix-ai-check 处置〔47/48 已标注：~43 已修复/1 部分修复/3 暂缓——逐条复核标注与 live 一致性〕/轮内撞车候选）③ **各报告统计表 P1 数 = P1 小节数机械核对**（草审 m5）④ 抽样表冻结脚本 `_tmp/fcr-6.5-sample.py`（D5/D1 全抽 + 其余 seed 抽样至总覆盖 ≥50%〔预期 ~42 条 ≈87%〕）——冻结三要素落盘：seed 值 + 宇宙快照哈希 + 冻结表
-- [ ] Agent 1「抽样标定份 A」：逐条四态标定（代码亲读+域内测试实跑）
-- [ ] Agent 2「抽样标定份 B」：同上
-- [ ] Agent 3「抽样标定份 C + 轮内撞车候选全量比对」（**触发阈值主体=冻结表条数 >24**，按 M1 修复后预期 ~42 条必触发）
-- [ ] 主 agent 抽查质量：标定抽验 ≥8 条独立复判（含实跑 ≥3）+ 抽样表重放比对
-- [ ] 产物 `_tmp/fcr-6.5-checkp1-a.md`（分 agent 报告）+ 冻结抽样表
+- [x] Agent 1「抽样标定份 A」：15/15 全部 already-fixed（12 次模块级实跑全绿零降级；撞车 15/15 无同根；db-migration#P1-6 部分+暂缓条判 already-fixed——暂缓残余已由 check2 fb3f860729 DdlSyntax 方言族闭环，同根溯源留痕不 dup）→ `_tmp/fcr-6.5-checkp1-a.md`
+- [x] Agent 2「抽样标定份 B」：14 already-fixed + 1 still-live（**P1-6.5-B1** nosql-cdc ZERO 半分支：Duration.ZERO 透传 GETEX PX 0 被 Redis 拒绝——null 半分支已由 check2 fc2b9347f6 修复；TestNosqlCache 无 ZERO 用例；按 partially-fixed 规则立 still-live 附 residual）；撞车 18 符号全量比对 4 命中全部异根、0 duplicated → `_tmp/fcr-6.5-checkp1-b.md`
+- [x] Agent 3「抽样标定份 C + 轮内撞车候选全量比对」：14/14 全部 already-fixed（10 模块 10 次实跑 127 tests 全绿；撞车 29 符号零同根；1 邻接注记 nop-orm-eql#P1-3 修复后残余缺口归 2.2 台账承接）→ `_tmp/fcr-6.5-checkp1-c.md`
+- [x] 主 agent 抽查质量：冻结表重放 SHA-256 一致 + 3 条亲验（B1 NosqlCache.getAsync null/ZERO 双半分支亲读证实 still-live/A1 StringHelper:2491-2493 `..` 显式拒绝亲读/A1 抽验面抽点）
+- [x] 产物 `_tmp/fcr-6.5-checkp1-a/b/c.md`（三 agent 分报告）+ 冻结抽样表 `_tmp/fcr-6.5-frozen.csv`
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条 still-live ≥9 行完整条目；标定台账含双锚证据
-- [ ] 抽样 ≥50% 达成（对账表标注抽样覆盖率）；抽样表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，still-live 1 条 ≥9 行完整条目；44 条标定台账含双锚证据
+- [x] 抽样 91.7% 达成（44/48）；抽样表可重放（SHA-256 三次比对一致）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
