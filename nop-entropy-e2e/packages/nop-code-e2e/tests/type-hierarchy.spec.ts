@@ -22,12 +22,15 @@ async function ensureIndexPrepared(request: import('@playwright/test').APIReques
     throw new Error(`triggerFullIndex failed: ${JSON.stringify(build.errors)}`);
   }
 
-  const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
-    indexId: INDEX_ID, offset: 0, limit: 1,
-  });
-  if (!prepared.ok || (prepared.data?.total ?? 0) === 0) {
-    throw new Error(`Index still empty after triggerFullIndex: ${JSON.stringify(prepared.errors)}`);
+  // 全量索引为异步构建，轮询等待首个符号可见（nop-code-service 全量约需数十秒）
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const prepared = await rpc<{ total: number }>(request, 'NopCodeSymbol__findPage_symbols', {
+      indexId: INDEX_ID, offset: 0, limit: 1,
+    });
+    if (prepared.ok && (prepared.data?.total ?? 0) > 0) return;
   }
+  throw new Error('Index still empty 60s after triggerFullIndex');
 }
 
 test.describe('类型层级查询', () => {

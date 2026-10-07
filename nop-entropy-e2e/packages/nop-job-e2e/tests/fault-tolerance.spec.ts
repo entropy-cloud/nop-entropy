@@ -67,8 +67,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       data: {
         jobName,
         displayName: 'E2E Partition Test',
-        executorRef: 'nopE2eTestInvoker',
-        executorKind: 1,
+        executorKind: 'test',
         triggerType: 4,
         scheduleStatus: SCHEDULE_STATUS_DISABLED,
         blockStrategy: 1,
@@ -76,7 +75,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       },
     });
 
-    expect(createResp.ok).toBeTruthy();
+    expect(createResp.ok, `save failed: ${JSON.stringify(createResp.errors)}`).toBeTruthy();
     const scheduleId = createResp.data?.id;
     expect(scheduleId).toBeTruthy();
     createdScheduleIds.push(scheduleId!);
@@ -101,8 +100,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       data: {
         jobName,
         displayName: 'E2E Retry Policy Test',
-        executorRef: 'nopE2eTestInvoker',
-        executorKind: 1,
+        executorKind: 'test',
         triggerType: 4,
         scheduleStatus: SCHEDULE_STATUS_DISABLED,
         blockStrategy: 1,
@@ -111,7 +109,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       },
     });
 
-    expect(createResp.ok).toBeTruthy();
+    expect(createResp.ok, `save failed: ${JSON.stringify(createResp.errors)}`).toBeTruthy();
     const scheduleId = createResp.data?.id;
     expect(scheduleId).toBeTruthy();
     createdScheduleIds.push(scheduleId!);
@@ -136,8 +134,9 @@ test.describe('Plan 18 容错改进集成测试', () => {
       data: {
         jobName,
         displayName: 'E2E Alarm Test',
-        executorRef: 'nonExistentInvoker',
-        executorKind: 1,
+        // rpc invoker 缺 jobParams.serviceName → fire 期 ERR_RPC_INVOKER_MISSING_PARAM，
+        // 制造失败 fire 以验证告警字段（模型按 executorKind 解析 invoker，无 executorRef 属性）
+        executorKind: 'rpc',
         triggerType: 4,
         scheduleStatus: SCHEDULE_STATUS_ENABLED,
         blockStrategy: 1,
@@ -146,14 +145,14 @@ test.describe('Plan 18 容错改进集成测试', () => {
       },
     });
 
-    expect(createResp.ok).toBeTruthy();
+    expect(createResp.ok, `save failed: ${JSON.stringify(createResp.errors)}`).toBeTruthy();
     const scheduleId = createResp.data?.id;
     expect(scheduleId).toBeTruthy();
     createdScheduleIds.push(scheduleId!);
 
-    await rpc(request, 'NopJobSchedule__triggerNow', { id: scheduleId });
+    await rpc(request, 'NopJobSchedule__triggerNow', { id: scheduleId, overrideParams: {} });
 
-    const fire = await pollUntilFireNotWaiting(request, createResp.data!.jobScheduleId, 60, 2000);
+    const fire = await pollUntilFireTerminal(request, createResp.data!.jobScheduleId);
     expect(fire).not.toBeNull();
 
     if (fire && (fire.fireStatus === FIRE_STATUS_FAILED || fire.fireStatus === FIRE_STATUS_TIMEOUT)) {
@@ -170,8 +169,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       data: {
         jobName,
         displayName: 'E2E Full Lifecycle',
-        executorRef: 'nopE2eTestInvoker',
-        executorKind: 1,
+        executorKind: 'test',
         triggerType: 4,
         scheduleStatus: SCHEDULE_STATUS_ENABLED,
         blockStrategy: 1,
@@ -182,7 +180,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
       },
     });
 
-    expect(createResp.ok).toBeTruthy();
+    expect(createResp.ok, `save failed: ${JSON.stringify(createResp.errors)}`).toBeTruthy();
     const scheduleId = createResp.data?.id;
     expect(scheduleId).toBeTruthy();
     createdScheduleIds.push(scheduleId!);
@@ -191,9 +189,9 @@ test.describe('Plan 18 容错改进集成测试', () => {
     expect(schedule.namespaceId).toBe('default');
     expect(schedule.groupId).toBe('e2e-test');
 
-    await rpc(request, 'NopJobSchedule__triggerNow', { id: scheduleId });
+    await rpc(request, 'NopJobSchedule__triggerNow', { id: scheduleId, overrideParams: {} });
 
-    const fire = await pollUntilFireNotWaiting(request, schedule.jobScheduleId, 30, 2000);
+    const fire = await pollUntilFireTerminal(request, schedule.jobScheduleId);
     expect(fire).not.toBeNull();
     expect([FIRE_STATUS_SUCCESS, FIRE_STATUS_FAILED]).toContain(fire!.fireStatus);
 
@@ -220,11 +218,13 @@ test.describe('Plan 18 容错改进集成测试', () => {
   });
 });
 
-async function pollUntilFireNotWaiting(
+// 轮询到 fire 进入终态（>= SUCCESS：30/40/50/60）。"非 0 即返回"是错的——
+// RUNNING(20) 阶段 invoker 已返回但完成处理器要等下个扫描周期才落终态（dev 环境 ~15-20s）
+async function pollUntilFireTerminal(
   request: import('@playwright/test').APIRequestContext,
   jobScheduleId: string,
   maxAttempts = 30,
-  intervalMs = 2000,
+  intervalMs = 1500,
 ): Promise<FireItem | null> {
   for (let i = 0; i < maxAttempts; i++) {
     const resp = await rpc<FindPageResult<FireItem>>(request, 'NopJobFire__findPage', {
@@ -235,7 +235,7 @@ async function pollUntilFireNotWaiting(
     });
     if (resp.ok && resp.data.total > 0) {
       const fire = resp.data.items[0];
-      if (fire.fireStatus !== 0) return fire;
+      if (fire.fireStatus >= FIRE_STATUS_SUCCESS) return fire;
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }

@@ -64,10 +64,14 @@ export async function loginRpc(
       'Content-Type': 'application/json',
       ...(request.headers ?? {}),
     },
-    body: JSON.stringify({ username: user, password: pass }),
+    // 与上方 Playwright request 分支同构：LoginApi__login 的参数是 principalId/principalSecret/loginType
+    body: JSON.stringify({ principalId: user, principalSecret: pass, loginType: 1 }),
   });
 
-  const body = (await res.json()) as RpcResponse<{ accessToken: string }>;
+  const body = (await res.json()) as { status: number; data?: { accessToken: string } };
+  if (body?.status !== 0 || !body.data?.accessToken) {
+    throw new Error(`Login failed: ${JSON.stringify(body).slice(0, 300)}`);
+  }
   _authToken = body.data.accessToken;
   return _authToken;
 }

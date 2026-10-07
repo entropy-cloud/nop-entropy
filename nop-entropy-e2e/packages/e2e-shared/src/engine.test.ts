@@ -15,9 +15,9 @@ afterEach(() => {
 });
 
 describe('getEngineType', () => {
-  it('returns "amis" when E2E_ENGINE is not set', () => {
+  it('returns "flux" when E2E_ENGINE is not set', () => {
     delete process.env.E2E_ENGINE;
-    expect(getEngineType()).toBe('amis');
+    expect(getEngineType()).toBe('flux');
   });
 
   it('returns "amis" when E2E_ENGINE is "amis"', () => {
@@ -30,9 +30,9 @@ describe('getEngineType', () => {
     expect(getEngineType()).toBe('flux');
   });
 
-  it('returns "amis" for unknown engine values', () => {
+  it('returns "flux" for unknown engine values', () => {
     process.env.E2E_ENGINE = 'unknown';
-    expect(getEngineType()).toBe('amis');
+    expect(getEngineType()).toBe('flux');
   });
 });
 
