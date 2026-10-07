@@ -7,6 +7,7 @@ const moduleRef = getSharedModule("react-dom");
 
 export default moduleRef.default ?? moduleRef;
 export const __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = moduleRef["__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE"];
+export const browser = moduleRef["browser"];
 export const createPortal = moduleRef["createPortal"];
 export const flushSync = moduleRef["flushSync"];
 export const preconnect = moduleRef["preconnect"];
