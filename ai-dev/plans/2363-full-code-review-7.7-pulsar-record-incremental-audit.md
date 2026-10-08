@@ -47,19 +47,19 @@
 
 ### Phase 1 - 现状复核（3 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: pulsar 17 发现 + plan-203 23 条 + kafka 移交
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（062a68369f）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① pulsar 17 发现清单核验（round1 全文逐条；发现 17 在册）② plan-203 审查 23 条清单核验（R1 16+R2 7；P0-2 在册）③ 与 6.8 标定撞车预对账（_tmp 载体+ID 空间对照机制落盘）④ 冻结协议三要素 ⑤ 三 agent 分工
-- [ ] Agent 1「pulsar 面」：17 发现逐条现状复核（28359021e5 diff 主证据+当前代码亲读；发现 7 附注+P2-6.1-001/6.9 #:192 专节）→ `_tmp/fcr-7.7-audit-a.md`
-- [ ] Agent 2「plan-203 R1 面」：R1 16 条逐条现状复核（归档 plan completed 锚+当前代码亲读；撞车对照 6.8）→ `_tmp/fcr-7.7-audit-b.md`
-- [ ] Agent 3「plan-203 R2 面+kafka 移交」：R2 7 条逐条现状复核+kafka 5 点移交逐点整理（4.4 :677 ①..⑤ 现状+裁决建议）→ `_tmp/fcr-7.7-audit-c.md`
-- [ ] 主 agent 抽查质量：冻结表重放+复核抽验（含实跑 ≥1）
-- [ ] 产物 `_tmp/fcr-7.7-audit-a/b/c.md` + 清单
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent）：① **pulsar 17/17 全量在册**（F01~F17 逐条；发现 17 在册——B1 勘正成立）② **plan-203 23/23 全量在册**（R1 16+R2 7；P0-2 在册——B2 勘正成立；归档锚三点互证）③ **6.8 撞车预对账**（format-record P1×6 全 labeled-fixed；**0 条同缺陷撞车，3 处同文件异面**；时序自洽 plan-203 08-16→6.8 08-21/22）④ 提交登记（pulsar 1/nop-record 7 逐行）⑤ 冻结协议（seed=2363+净池 40 条 canonical `77628d4f…`+冻结表 9 样本 `7067d0aa…` 双跑 replay identical；**偏差 8 条登记**含 F10 中间提交 2a0a081761/master 分支不可达注记/6.9 #:192 行锚精化）
+- [x] Agent 1「pulsar 面」：**already-fixed 14/still-live 3**（F14 P3 收窄〔kafka 子项 b29d2db717 重建消亡〕/F16 P3〔KafkaMessageService:240-244 warn+ignore 在案行为新证〕/F17 P3〔PulsarMessageService:177-178 thenAccept 空——MessageId 丢弃，修复涉 nop-api-core plan-first〕）；**seek 专节：PulsarConsumeTask.seekToPosition :70-73 仍 TODO 空方法体——P2-6.1-001 residual 未闭合维持**，三处同点位整理=条目唯一承载 P2-6.1-001 不新立编号；实跑 13/13 绿；master 分支 pulsar 系列不可达注记 → `_tmp/fcr-7.7-audit-a.md`
+- [x] Agent 2「plan-203 R1 面」：**fixed-by-later-plan 15/still-live 1**——**派生新发现 P1-7.7-001**（readCollection fixed 分支 subStart 在 subInput 后捕获→急切 reader 双重跳过；e530b5c0cc 引入零修复；触发需非流式+急切+fixed 集合零启用场景→P1 非 P0，R1.0 从严升级依据已附）；6.8 异面 3 处逐处亲验；nop-record 31 测试类 0 失败；NO_PROGRESS 守卫语义演进注记 → `_tmp/fcr-7.7-audit-b.md`
+- [x] Agent 3「plan-203 R2 面+kafka 移交」：R2 7 条 **closed 5/closed-late 1〔R2-6 watch residual 窗内被 cfc8f70f0b 修复——正向发现〕/partial 1**（R2-4 后半 repeatCountFieldName 显式抛错未实现→S-7.7-C1 Minor 须与归档 plan :263 同族合并）；**kafka 5 点逐点整理**（①M-01 未修 live 维持 ②M-03 未修+INIT/ALWAYS case 体逐字相同+裁决建议 ③非 ApiMessage 编码 live 采纳 4.4 收口方案 ④P3-4.4-008 live 低成本收口建议 ⑤停机观察两处原样维持）→ `_tmp/fcr-7.7-audit-c.md`
+- [x] 主 agent 抽查质量：P1-7.7-001 锚亲读成立（subStart 在 subInput 后捕获）+ F17 锚亲读成立（thenAccept 空）+ 冻结表重放交 Phase 2 按附录 canonical 规则精确执行（clusters.csv 系提交台账非冻结表载体——载体重建说明登记）
+- [x] 产物 `_tmp/fcr-7.7-audit-a/b/c.md` + 清单
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（三 agent 一致零 P0——P1-7.7-001 触达面受限定 P1 附升级依据）
 
 Exit Criteria:
 
