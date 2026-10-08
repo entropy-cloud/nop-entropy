@@ -63,6 +63,18 @@ public class CheckpointConfig implements Serializable {
     private JobTerminationMode jobTerminationMode = JobTerminationMode.CANCEL;
 
     /**
+     * WI9 (plan 2333): how a SUSPEND → resubmit cycle treats the data that
+     * arrived while the job was stopped. Default {@link SuspendDataPolicy#REPLAY_GAP}
+     * is the pre-contract behavior (replay from the restored offset).
+     *
+     * <p>The policy is read from the CheckpointConfig of the RESUBMITTED
+     * execution and is deliberately NOT persisted in the EpochManifest — it is
+     * a recovery-time decision, so every resubmission must carry it
+     * explicitly.
+     */
+    private SuspendDataPolicy suspendDataPolicy = SuspendDataPolicy.REPLAY_GAP;
+
+    /**
      * C4 (plan 369): transport persistence declaration tier. See
      * {@link TransportPersistence}. Default {@link TransportPersistence#DURABLE}
      * is the conservative choice: an undeclared transport must never silently
@@ -362,6 +374,18 @@ public class CheckpointConfig implements Serializable {
     }
 
     /**
+     * WI9 (plan 2333): the SUSPEND downtime-gap policy in effect for this
+     * submission (see {@link SuspendDataPolicy}). Never null.
+     */
+    public SuspendDataPolicy getSuspendDataPolicy() {
+        return suspendDataPolicy;
+    }
+
+    public void setSuspendDataPolicy(SuspendDataPolicy suspendDataPolicy) {
+        this.suspendDataPolicy = suspendDataPolicy != null ? suspendDataPolicy : SuspendDataPolicy.REPLAY_GAP;
+    }
+
+    /**
      * C4 (plan 369): the declared persistence tier of the data-plane transport
      * that carries this job's in-flight records (see {@link TransportPersistence}).
      */
@@ -516,6 +540,15 @@ public class CheckpointConfig implements Serializable {
 
         public Builder jobTerminationMode(JobTerminationMode mode) {
             config.setJobTerminationMode(mode);
+            return this;
+        }
+
+        /**
+         * WI9 (plan 2333): SUSPEND downtime-gap policy (see
+         * {@link SuspendDataPolicy}).
+         */
+        public Builder suspendDataPolicy(SuspendDataPolicy policy) {
+            config.setSuspendDataPolicy(policy);
             return this;
         }
 

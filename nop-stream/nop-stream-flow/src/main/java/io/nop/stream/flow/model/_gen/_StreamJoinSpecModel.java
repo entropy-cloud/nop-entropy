@@ -46,10 +46,24 @@ public abstract class _StreamJoinSpecModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: leftTimeout
+     * 
+     */
+    private java.lang.String _leftTimeout ;
+    
+    /**
+     *  
      * xml name: rightKeyExprs
      * 
      */
     private java.lang.String _rightKeyExprs ;
+    
+    /**
+     *  
+     * xml name: rightTimeout
+     * 
+     */
+    private java.lang.String _rightTimeout ;
     
     /**
      *  
@@ -143,6 +157,25 @@ public abstract class _StreamJoinSpecModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: leftTimeout
+     *  
+     */
+    
+    public java.lang.String getLeftTimeout(){
+      return _leftTimeout;
+    }
+
+    
+    public void setLeftTimeout(java.lang.String value){
+        checkAllowChange();
+        
+        this._leftTimeout = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: rightKeyExprs
      *  
      */
@@ -156,6 +189,25 @@ public abstract class _StreamJoinSpecModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._rightKeyExprs = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: rightTimeout
+     *  
+     */
+    
+    public java.lang.String getRightTimeout(){
+      return _rightTimeout;
+    }
+
+    
+    public void setRightTimeout(java.lang.String value){
+        checkAllowChange();
+        
+        this._rightTimeout = value;
            
     }
 
@@ -217,7 +269,9 @@ public abstract class _StreamJoinSpecModel extends io.nop.core.resource.componen
         out.putNotNull("joinId",this.getJoinId());
         out.putNotNull("joinType",this.getJoinType());
         out.putNotNull("leftKeyExprs",this.getLeftKeyExprs());
+        out.putNotNull("leftTimeout",this.getLeftTimeout());
         out.putNotNull("rightKeyExprs",this.getRightKeyExprs());
+        out.putNotNull("rightTimeout",this.getRightTimeout());
         out.putNotNull("timeout",this.getTimeout());
         out.putNotNull("windowStrategyRef",this.getWindowStrategyRef());
     }
@@ -235,7 +289,9 @@ public abstract class _StreamJoinSpecModel extends io.nop.core.resource.componen
         instance.setJoinId(this.getJoinId());
         instance.setJoinType(this.getJoinType());
         instance.setLeftKeyExprs(this.getLeftKeyExprs());
+        instance.setLeftTimeout(this.getLeftTimeout());
         instance.setRightKeyExprs(this.getRightKeyExprs());
+        instance.setRightTimeout(this.getRightTimeout());
         instance.setTimeout(this.getTimeout());
         instance.setWindowStrategyRef(this.getWindowStrategyRef());
     }

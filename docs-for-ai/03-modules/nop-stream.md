@@ -54,6 +54,13 @@
 | `nop.stream.operator.records.in.total` | counter | jobId/vertexId/subtask | 从输入通道分发进算子链的记录数（MIDDLE/SINK 角色） |
 | `nop.stream.operator.records.out.total` | counter | jobId/vertexId/subtask | 经本任务 RecordWriter 发射的记录数 |
 | `nop.stream.operator.processing.time` | timer | jobId/vertexId/subtask | 单记录算子链处理时长（输入分发计时） |
+| `nop.stream.operator.time.busy.ratio` | gauge | jobId/vertexId/subtask | **忙占比（WI16）**：=(processingTime.sum − emitTime.sum)/elapsed.sum——emit 嵌套于 processing，减法严格；elapsed=0 时 NaN；任务结束（holder 释放）后 NaN |
+| `nop.stream.operator.time.backpressured.ratio` | gauge | jobId/vertexId/subtask | **背压占比（WI16）**：=emitTime.sum/elapsed.sum（emit 即「生产侧背压代理」） |
+| `nop.stream.operator.time.idle.ratio` | gauge | jobId/vertexId/subtask | **空闲占比（WI16）**：=idleTime.sum/elapsed.sum（idle = read 返回空的迭代切片） |
+| `nop.stream.operator.time.idle.nanos` | counter | jobId/vertexId/subtask | idle 切片累计（纳秒；WI16） |
+| `nop.stream.operator.time.elapsed.nanos` | counter | jobId/vertexId/subtask | 主循环迭代切片累计（纳秒，占比分母；WI16）。**残差口径**：busy+backpressured+idle 可小于 1——watermark 处理/side-output 发射/barrier 写出等段不计入任何态（other 残差） |
+| `nop.stream.operator.watermark` | gauge | jobId/vertexId/subtask | 输入 gate 合并 watermark 当前值（WI16；**首 watermark 前/任务结束后 = NaN** 哨兵，不用 MIN_VALUE 以免毒化聚合） |
+| `nop.stream.operator.watermark.channel.lag` | gauge | jobId/vertexId/subtask | **级联滞后（WI16）**：max(非 idle 通道 wm) − merged wm（两侧同剔除 idle 语义）；滞后上升 = 有通道领先而另一通道钉住 min |
 | `numLateRecordsDropped` | counter | —（进程级聚合） | 迟到丢弃记录数：WindowOperator（跳过窗口且超 allowedLateness、无迟到侧输出）与 CepOperator（事件时间戳 ≤ 当前 watermark、无迟到侧输出）的丢弃路径递增（plan 366 Phase 3 接线）。命名例外：保留 Flink 兼容的算子级指标名，未套 `nop.stream.*` 前缀 |
 
 **io 层（输入输出）** — 更新点：source 发射点 + 跨任务 writer 发射点
@@ -63,6 +70,7 @@
 | `nop.stream.io.records.consumed.total` | counter | jobId/vertexId/subtask | source 侧喂入管线的记录数（SOURCE/SELF_CONTAINED 角色） |
 | `nop.stream.io.records.emitted.total` | counter | jobId/vertexId/subtask | 发往下游任务的记录数（跨任务发射） |
 | `nop.stream.io.emit.time` | timer | jobId/vertexId/subtask | 跨任务发射（writer.emit）本身耗时——**生产侧背压代理**：下游交换队列满时 emit 阻塞，该 timer 抬升即量化输出侧背压 |
+| `nop.stream.io.channel.queue.fill.ratio` | gauge | jobId/edgeId/sourceSubtask/targetSubtask | **队列填充比（WI16）**：size/capacity clamp [0,1]——`queue.size` 同一 holder 上的派生读数（非第二探针；scrape 侧免硬编码容量），同 bind/close 生命周期；local 路径由 `ResultPartition.size()/getTotalCapacity()` 推导（不建直测面） |
 | `nop.stream.io.channel.queue.size` | gauge | jobId/edgeId/sourceSubtask/targetSubtask | 跨任务通道（`RemoteInputChannel`）本地消费队列当前深度——数据面通道水位**直测**（item 32；Prometheus wire 名 `nop_stream_io_channel_queue_size`）。**注册范围（D2b）**：仅对激活订阅的通道注册（协调器零订阅形态与 construct-only 镜像通道不注册，避免整面恒 0 噪声）；**重注册/关闭语义（D2c）**：恢复重建经可变 holder 重绑既有 meter（无 micrometer 静默丢弃/冻结值），通道关闭释放绑定置 0；**聚合口径**：per-edge/max 为采集侧关注口径（最差通道即背压信号，sum 随通道矩阵规模缩放）；无独立溢出 gauge（溢出经 `ERR_STREAM_CHANNEL_OVERFLOW` typed 失败可观察，指标面保持最小） |
 
 **state 层（状态后端，P-REQ-8）** — 更新点：RocksDBKeyedStateBackend 打开路径（RocksDB aggregated properties 直读；个别属性在特定 RocksDB 构建下不可用时该 gauge 值为 NaN 并告警一次）
@@ -92,8 +100,8 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
   - `GET /metrics`：全部 `nop.stream.*` meter 的 Prometheus 抓取端点。默认输出 **TextFormat 0.0.4**（`text/plain; version=0.0.4`）；请求头 `Accept: application/openmetrics-text` 协商输出 **OpenMetrics** 格式（`application/openmetrics-text; version=1.0.0`，以 `# EOF` 结尾）。
   - `GET /jobs/{jobId}/checkpoints`：checkpoint 观测查询（见下节；JC 形态）。
   - 指标族覆盖 job（`jobId` 标签维度）/ cluster（`nop.stream.engine.nodes.active` 等）/ node（`nodeId` 标签维度）三级。
-- **JC 侧启用**：配置键 `nop.stream.ops.http.*`（见下）或 launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（`JobCoordinatorMain`，默认关闭；**test-scope 入口**——作用域限制与 workaround 见「运维手册」首注）。
-- **TM 侧启用（item 32，多 JVM 观察面）**：`TaskManagerMain` launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（默认 0 = 关闭，显式开启语义与 JC 一致；**test-scope 入口**——见「运维手册」首注）。task/operator/io 层指标与通道队列水位 gauge（`nop.stream.io.channel.queue.size`）可从 TM 进程直接刮取——多 JVM 背压量化不再依赖 JC 面代理。TM 进程不承载作业注册表：`/jobs` 族维持既有结构化错误语义（list/submit/stop → 503 `REGISTRY_UNAVAILABLE`/`SUBMIT_UNAVAILABLE`/`STOP_UNAVAILABLE`，detail/checkpoints → 404 `JOB_NOT_FOUND`），非统一 404 毯盖。端口须避开 JC 端口（JC 默认 8901；分布式演练 JC 用 8931，演练装置自独立基址 8941 起为 TM 分配 base+i）。
+- **JC 侧启用**：配置键 `nop.stream.ops.http.*`（见下）或 launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（`JobCoordinatorMain`，默认关闭；**main-scope 生产入口**——classpath 装配见「运维手册」首注）。
+- **TM 侧启用（item 32，多 JVM 观察面）**：`TaskManagerMain` launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（默认 0 = 关闭，显式开启语义与 JC 一致；**main-scope 生产入口**——classpath 装配见「运维手册」首注）。task/operator/io 层指标与通道队列水位 gauge（`nop.stream.io.channel.queue.size`）可从 TM 进程直接刮取——多 JVM 背压量化不再依赖 JC 面代理。TM 进程不承载作业注册表：`/jobs` 族维持既有结构化错误语义（list/submit/stop → 503 `REGISTRY_UNAVAILABLE`/`SUBMIT_UNAVAILABLE`/`STOP_UNAVAILABLE`，detail/checkpoints → 404 `JOB_NOT_FOUND`），非统一 404 毯盖。端口须避开 JC 端口（JC 默认 8901；分布式演练 JC 用 8931，演练装置自独立基址 8941 起为 TM 分配 base+i）。
 - **暴露形态裁定（item 32 D1）**：TM 指标暴露采用**每 TM 进程本地 pull 端点**，拒绝 TM→JC push transport。理由：pull 模型与 Prometheus 架构一致（每进程一个 scrape target）、零 RPC 契约面扩张（不动 `IStreamCoordinatorRpcService`）、同机分布式演练可直接刮取、与 JC 端点行为对称；push 需新增 RPC 契约 + JC 侧跨进程聚合/基数管理，收益不抵复杂度。跨机 TM 场景的联邦/远程写入属部署侧配置（Prometheus federation / remote write），非引擎职责。
 - **配置键**（JC 配置键默认关闭，未启用时无任何 HTTP 监听——显式关闭语义；TM 侧同一配置语义经 launch 参数承载）：
   - `nop.stream.ops.http.enabled`（默认 `false`）
@@ -118,7 +126,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 ### REST 运维 API（P-REQ-5）
 
-生命周期端点宿主于同一运维 HTTP 端点（`StreamOpsHttpServer`；单作业 launch 模式经 `JobCoordinatorMain` 的 `opsHttpPort` 启用——**test-scope 入口**，见「运维手册」首注；多作业模式由 main-scope `OpsJobManager` 提供 submit/stop）。错误返回结构化 body（`{"error": <CODE>, "message": ..., "status": <http>}`），未知作业 404 / 非法参数 400 / 重复提交 409——无静默空响应。
+生命周期端点宿主于同一运维 HTTP 端点（`StreamOpsHttpServer`；单作业 launch 模式经 `JobCoordinatorMain` 的 `opsHttpPort` 启用——**main-scope 生产入口**，classpath 装配见「运维手册」首注；多作业模式由 main-scope `OpsJobManager` 提供 submit/stop）。错误返回结构化 body（`{"error": <CODE>, "message": ..., "status": <http>}`），未知作业 404 / 非法参数 400 / 重复提交 409——无静默空响应。
 
 **最小认证（F-09b，plan 2026-09-04-1326-3）**：配置了 `nop.stream.ops.http.token` 时全端点（`/metrics`、`/jobs` 族、catch-all）校验 `Authorization: Bearer <token>`——缺失/错误凭据 → 结构化 401 `UNAUTHORIZED`，无静默放行路径。**bind 非 loopback 时 token 为硬性要求**：`nop.stream.ops.http.bind` 非 `127.0.0.1`/`localhost`/`::1` 且未配 token → server 拒绝启动（fail-fast，跨机暴露不允许无认证）。loopback 默认保持零认证（back-compat）。
 
@@ -126,7 +134,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 |---|---|---|
 | `GET /jobs` | 运行中作业列表（本进程受理的全部作业 + 状态） | `{jobs: [{jobId, jobStatus, running, restartCount, fencingEpoch}]}` |
 | `POST /jobs` | 提交作业（body = `JobSubmissionSpec` JSON：`{jobId, pipelineFactoryClass, params?}`）。工厂引用语义：coordinator 进程受理，经与 launch 完全一致的路径构建并启动（工厂失败 fail-fast，无 trivial 管线回落） | 201 + 作业摘要 |
-| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN` | 停止作业（四态终止模式的 CANCEL/DRAIN 入口；SUSPEND/EXPORT_SAVEPOINT 走 coordinator RPC，REST 传参即 400；`RECOVERING` 窗口内返回 409 `JOB_STATE_CONFLICT`，恢复完成后重试） | 200 + 作业摘要 |
+| `POST /jobs/{jobId}/stop?mode=CANCEL\|DRAIN\|SUSPEND` | 停止作业（四态终止模式的 CANCEL/DRAIN/SUSPEND 入口——SUSPEND 自 WI9/plan 2333 起放行，terminal savepoint 后作业 FINISHED；EXPORT_SAVEPOINT 仍走 coordinator RPC，REST 传参即 400；`RECOVERING` 窗口内返回 409 `JOB_STATE_CONFLICT`，恢复完成后重试） | 200 + 作业摘要 |
 | `GET /jobs/{jobId}` | 作业详情：逻辑健康状态（`health`，见下节）、jobStatus、failureCause、restartCount、checkpointOverview（计数/最新时长） | 200 + 详情 JSON |
 | `GET /jobs/{jobId}/checkpoints` | checkpoint 观测（见上节） | 200 + overview/history |
 | `GET /jobs/{jobId}/threaddump` | 线程诊断：coordinator 进程全线程栈文本 | 200 `text/plain` |
@@ -179,6 +187,9 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | debezium-cdc source | 参数级（connector name typed 校验）+ 凭据引用解密可达；**不拉引擎、不连库** | 无 offset 写入、无订阅 |
 | message source/sink | **显式 SKIP**（`IMessageService` 无平台 health-check API；可达性如实呈现为不可判定） | —（不探测） |
 | 其余/第三方 | 未实现探测契约 = 显式 SKIP 报告项（`connectivity-not-supported`），非静默通过 | — |
+
+
+**数据采样（WI4，2026-10-07）**：`sample type=<typeName> param=value... [limit=<n>]`（connector 校验模式）——registry 解析 SOURCE 工厂 → 参数规则校验（required/未知/INT/allowedValues/pattern，sensitive 值脱敏，EXPERIMENTAL 端点非阻断 warning）→ 只读采样。仅接受 SOURCE 类型（SINK 类型名 = typed direction-mismatch FAIL，exit 1）；SOURCE 族中实现 `SampleableSource` 的端点（当前内建 = `file`）返回真实记录，未实现者（message/debezium-cdc/batch-loader）显式 SKIP（`nop.err.stream.sample-not-supported`）。副作用红线与 dry-run 探测同族（只读，不分配 split/不订阅/不拉引擎/不消费批数据）。classpath 须含 nop-ioc（反射装配注册容器；缺失时 typed 报错）与目标连接器模块 jar。exit 契约：0 = 采样成功或显式 SKIP，1 = 校验失败，2 = 用法错误。
 
 ### 凭据引用与明文边界（P-REQ-14）
 
@@ -240,12 +251,12 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 > 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。
 >
-> **⚠ 入口类作用域限制（F-11 诚实化）**：`JobCoordinatorMain` / `TaskManagerMain` 位于 `nop-stream-runtime` 的 **test scope**（`src/test/java/.../launch/`，经 test-jar 导出）——**发布 runtime jar 的类路径上没有这两个入口类**，按本节命令直接 `java io.nop.stream.runtime.launch.JobCoordinatorMain ...` 会 `ClassNotFoundException`。可用的运行方式：① 消费 runtime **test-jar**（`org.apache.maven.plugins:maven-dependency-plugin` copy 或 classifier `tests` 依赖）并把 test-jar + runtime jar 一并放上类路径；② 自建 main-scope launch 类（调用同一 main-scope 运维面：`OpsJobManager`/`StreamOpsHttpServer`/`StreamMaintenanceMain` 均不受此限制）；③ `StreamMaintenanceMain`（reset-state/reshard/conf-validate）与 `OpsJobManager`+REST 多作业模式是 main-scope 入口，可直接从发布 jar 使用。「产品级 main-scope 启动入口」为 Follow-up 候选。与 `nop-stream-user-guide.md`「入口类现状」一致。
+> **入口类与 classpath 装配（WI1 后现状，plan 2328）**：`JobCoordinatorMain` / `TaskManagerMain` 及其支撑类（`SharedJdbcInfrastructure`/`PollingJdbcMessageService`）自 2026-10 起**在 `nop-stream-runtime` main sources**（`io.nop.stream.runtime.launch` 包）——发布 runtime jar 直接含入口，`java -cp <classpath> io.nop.stream.runtime.launch.JobCoordinatorMain ...` 即可启动。classpath 装配两种方式：① 启动脚本 `nop-stream/nop-stream-runtime/src/main/scripts/nop-stream-cluster.sh`（`coordinator|taskmanager|classpath` 子命令；`dependency:build-classpath -DincludeScope=runtime` 装配发布依赖面并缓存，`NOP_STREAM_CLASSPATH` 可整体覆盖，`NOP_STREAM_EXTRA_CLASSPATH` 追加 JDBC 驱动 jar——发布依赖面不含驱动，生产数据库驱动须自带，`jdbcDriver=<驱动类名>` 指定驱动）；② 手工 `mvn -pl nop-stream/nop-stream-runtime dependency:build-classpath -DincludeScope=runtime` 后拼 runtime jar。`StreamMaintenanceMain`（reset-state/reshard/conf-validate）与 `OpsJobManager`+REST 多作业模式同属 main-scope 入口。SIGTERM 优雅关闭经 shutdown hook（外部信号退出码 143 = JVM 信号默认处置；程序内 shutdown 完成退出 0）。与 `nop-stream-user-guide.md`「入口类现状」一致。
 
 ### 启动作业
 
 1. 预置共享存储（H2 AUTO_SERVER 库或等价 JDBC；JDBC 2PC sink 需预建数据表 + ledger 表）。
-2. 先启 TM 后启 JC（**`<java>` = 类路径含 runtime test-jar 的 java 启动，见本节首注的作用域限制**）：`TaskManagerMain nodeId=<id> jdbcUrl=<url> topicNamespace=<ns> [opsHttpPort=<port> opsHttpBind=<addr>]`；`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1 [pipelineFactoryClass=<fqcn>] [opsHttpPort=<port>] [alertWebhookUrl=<url>]`。TM 侧 `opsHttpPort` 启用进程本地指标端点（item 32；须避开 JC 端口）。
+2. 先启 TM 后启 JC（`<java>` = `java -cp <classpath>`，classpath 装配见本节首注；或直接用启动脚本 `nop-stream-cluster.sh taskmanager|coordinator`）：`TaskManagerMain nodeId=<id> jdbcUrl=<url> topicNamespace=<ns> [opsHttpPort=<port> opsHttpBind=<addr>]`；`JobCoordinatorMain jobId=<id> jdbcUrl=<url> topicNamespace=<ns> checkpointBaseDir=<dir> expectedNodeIds=tm-0,tm-1 [pipelineFactoryClass=<fqcn>] [opsHttpPort=<port>] [alertWebhookUrl=<url>]`。TM 侧 `opsHttpPort` 启用进程本地指标端点（item 32；须避开 JC 端口）。
 3. 恢复语义：JC 启动时自动恢复最新 durable checkpoint 并推进 id counter（防 shadow-window）；`pipelineFactoryClass` 构建失败 fail-fast 不回落 trivial 管线。**存储身份与默认目录（AR-1）**：存储 jobId = 消毒后的作业名（`StorageJobIds.sanitizeJobId`，非 `[a-zA-Z0-9_-]` 字符替换 + 稳定 hash 后缀）；默认基目录 `${java.io.tmpdir}/nop-stream-checkpoints`（embedded/RPC/本地同约定，系统属性 `nop-stream.checkpoint.storage.dir` 可覆写）——**默认目录禁用自动恢复**（防跨作业污染），kill/restart 恢复必须显式传 `checkpointBaseDir`/`storageProperty("path")`。裁定与机制详见 平台内部 checkpoint 设计文档（ai-dev/design/nop-stream/ 目录，按 docs-for-ai 边界规则不直接链接） §8.1.4（ai-dev/design/nop-stream/ 目录，平台内部文档，按 docs-for-ai 边界规则不直接链接）。
 4. 多作业模式（可选）：coordinator 进程内 `OpsJobManager` + REST `POST /jobs` 提交（工厂引用语义，见 REST 契约）。
 
@@ -266,9 +277,35 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **SUSPEND 恢复**：`terminate(SUSPEND)` 产生终态 savepoint；以同 jobId + 同 checkpointBaseDir 重启即从 savepoint 恢复（等价 savepoint-恢复入口）。
 - **离线 reshard**：`StreamMaintenanceMain reshard oldSavepointPath=<path> oldMaxParallelism=<n> newMaxParallelism=<m> outputBaseDir=<dir>`。
 
+### DB 数据面生产者背压（WI6，2026-10-07）
+
+- **启用**：launch 参数 `-Dnop.stream.data.db.backlog.limit=<n>`（job 级；0/缺省 = 关闭，零侵入）。仅对 DB（SysDao）数据面通道生效——`DataPlaneMessageServiceAdapter` 解包后探测裸后端的 `ChannelBacklogProbe` 能力（`SysDaoMessageService` 已实现：按数据 topic 的 WAITING+CLAIMED 行数）；Kafka/Pulsar/内存通道无该能力，配了 limit 会在启动日志声明一次后禁用（诚实 no-op，非静默）。
+- **语义**：生产者发送前检查该 topic 未消费积压深度，达到上限则**锁外有界等待**（100ms 分片，可中断；不持 sendLock——close/EOS 不被阻塞放大）；等待 10s（D2 同款缺省）仍超限 = typed 失败 `nop.err.stream.send-gate-timeout` → task 失败重启（持续过载的显式语义，非静默丢弃）。barrier/watermark 与数据同门（in-band，对齐屏障语义下排队属预期背压）。
+- **积压记账**：生产者侧本地计数器随每次发送自增（突发精确受限），DB COUNT 仅用于观察消费进度（TTL 200ms 缓存 + 达限时逐片强刷）。
+- **观测**：`nop.stream.io.db.backlog` gauge（topic 标签；门控启用时注册；区别于 `nop.stream.io.channel.queue.size` 的消费侧本地队列口径）。
+- **注意**：启用门控时应先起消费者或接受部署窗口内下游未订阅导致的门控失败重试（nop_sys 裁定：无订阅者 topic 的事件永不被扫描，WAITING 行全数计入积压）。
+- 测试锚点：`TestRemoteResultPartitionBackpressureGate`（fake probe 五路径 + 锁外契约，共 6 用例）、`TestDataPlaneSysDaoBackendE2E.gatedProducerBoundsTableDepthWhileConsumerLags`（真后端端到端：深度受控 + 消费收敛 + 精确一次）。
+
+### 引擎级变更元数据（WI7/plan 2336）
+
+- **载体与缺省语义**：`StreamRecord` 携带可选 `rowKind`（`io.nop.api.core.stream.RowKind`：INSERT/UPDATE_BEFORE/UPDATE_AFTER/DELETE）与 `tableId`；**null rowKind = INSERT-only append（历史缺省，全链路零行为变化）**。copy/copyTo 携带元数据；`replace()` 原地变异保留元数据（与 timestamp 同侧带契约——清除方向才是静默降级；当前无任何算子在复用型记录上设置元数据）。equals/hashCode 不纳入元数据。
+- **桥接面（源发射点）**：value 实现 `io.nop.api.core.stream.ChangeSemanticView`（api-core 共享内核接口）即被自动盖到构建的记录上——`StreamSourceOperator`（collect/collectWithTimestamp）与 `SourceReaderOperator`（Source API 路径）两个桥接点。`ChangeEvent`（nop-message-debezium）已实现该视图：c/r→INSERT、u→UPDATE_AFTER、d→DELETE、null/未知→INSERT（防御；原 operation 仍随 value 供 sink 自行拒绝）、tableId=metadata 表名。ChangeEvent wire JSON 新增两可选属性（后向兼容）。
+- **守卫面（sink 入口）**：`StreamSinkOperator.processElement` 对带非 INSERT rowKind 的记录检查 `CdcChangeAwareSink` 标记——未实现 = typed fail-fast（`nop.err.stream.sink-not-change-aware`，含 sink 类名与 rowKind），不静默降级为 append。jdbc-2pc 全模式实现该标记（keyed 模式从 value 推导操作；INSERT 模式对 ChangeEvent u/d 自有 typed 拒绝）；file/message/batch-consumer/kafka-2pc 不实现（透传语义 sink——对带非 INSERT 元数据的记录 fail-fast = R4 预期行为；kafka 透传 CDC 流为 WI7 起的新增失败面，如实声明）。
+- **存活边界（如实声明）**：元数据存活 = 源桥接点 + 前向传递（copy/原记录前向）+ 跨进程 envelope 与 checkpoint 在途恢复（`StreamMessageEnvelope.rowKind/tableId` 可选字段，null 缺省后向兼容）；**新建记录型算子（map/flatMap/reduce/join/window/cep）丢弃元数据**（逐算子桥接归后续）；side-output sink 经 SideOutputRegistry 直连，不在守卫面。
+- 测试锚点：`TestStreamRecordChangeMetadata`、`TestChangeMetadataBridgeAndGuard`、`TestStreamElementCodecChangeMetadata`、`TestChannelStateChangeMetadata`、`TestChangeEventSemanticView`。
+
+### SUSPEND 数据语义（WI9/plan 2333）
+
+- **两策略契约**：SUSPEND = terminal savepoint + 作业 FINISHED（可恢复）。恢复（同 jobId 重提交，显式 storage path）后的停机期数据处理由重提交时 CheckpointConfig 的 `suspendDataPolicy` 决定：`REPLAY_GAP`（缺省 = 现状补算——REPLAYABLE source 从 savepoint offset 重放停机期数据）与 `SKIP_GAP`（跳过——恢复后 source seek 到 latest，停机期数据不重放）。
+- **逐源支持矩阵**：SKIP_GAP 当前仅支持 `CollectionReplayableSource`（seek(size())）；其余 REPLAYABLE source（batch-loader/debezium/目录文件）恢复即 typed 拒绝 `nop.err.stream.skip-gap-unsupported-source`（无 latest 语义——响亮失败优于错误跳过）。REPLAY_GAP 对全部 REPLAYABLE source 可用。
+- **策略不进 manifest**：策略随重提交的 CheckpointConfig 携带（缺省 REPLAY_GAP），不持久化——每次重提交须显式设置，否则回落补算。
+- **REST resume 边界**：REST submit 对已存在 jobId（含 FINISHED）返回 409 且无 remove 端点——REST SUSPEND 后**无法经 REST 重提交恢复**；恢复走嵌入式 `env.execute(jobName, savepointPath)` 或 `JobCoordinatorMain` 同 jobId 重启（自动恢复 latest durable）。REST 作业（OpsJobManager 自建 config）当前无法表达 SKIP_GAP（不对称，如实声明）。
+- **非 REPLAYABLE source**：无 offset 可 seek/replay，SUSPEND 恢复行为由各 source 自身恢复语义决定（方向实测前不作契约承诺）。
+- 测试锚点：`TestSuspendDataPolicy`（补算/跳过/typed 拒绝三路径）、`TestOpsRestLifecycleE2E`（SUSPEND 放行 + EXPORT_SAVEPOINT 400 钉子）。
+
 ### 指标采集与告警配置速查
 
-- Prometheus：`nop.stream.ops.http.enabled=true` + `port`（默认 8901）→ `GET /metrics`（TextFormat 0.0.4 / OpenMetrics 协商）；配置模板 `nop-stream-runtime/src/main/resources/_vfs/nop/stream/conf/metrics.properties.template`。多 JVM 模式：JC 端点 + 各 TM 端点（`TaskManagerMain opsHttpPort=<port>`——**test-scope 入口**，见「运维手册」首注；每 TM 一个 scrape target；端口避开 JC 的 8901/8931，演练装置自 8941 起分配）。
+- Prometheus：`nop.stream.ops.http.enabled=true` + `port`（默认 8901）→ `GET /metrics`（TextFormat 0.0.4 / OpenMetrics 协商）；配置模板 `nop-stream-runtime/src/main/resources/_vfs/nop/stream/conf/metrics.properties.template`。多 JVM 模式：JC 端点 + 各 TM 端点（`TaskManagerMain opsHttpPort=<port>`——main-scope 生产入口；每 TM 一个 scrape target；端口避开 JC 的 8901/8931，演练装置自 8941 起分配）。
 - 数据面背压观察：TM 面直读 `nop_stream_io_channel_queue_size`（通道水位 gauge，per-edge max 为关注口径）与 `nop_stream_io_emit_time_seconds_*`；`nop_stream_msg_queue` 表 COUNT 仅作 INSERT-only 后端的对照代理（见 runbook 演练观察面章节）。
 - 周期 sink：`nop.stream.metrics.log.*`（stdout/file）。
 - 告警：`nop.stream.alert.*`（见「告警与事件外发」节）；coordinator 进程日志检索锚点：`nop-stream job event:`（事件）、`job health transition:`（健康迁移）、`nop-stream alert:`（告警外发）。

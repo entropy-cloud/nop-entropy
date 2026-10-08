@@ -571,6 +571,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             // WI17: TUMBLE 伪表函数是 stream-only 表源（D4/T1 裁定），ORM 编译通道
             // 不支持——显式 fail-fast 而非静默跳过作用域注册
             throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
+        } else if (table instanceof io.nop.orm.eql.ast.SqlHopTableSource
+                || table instanceof io.nop.orm.eql.ast.SqlSessionTableSource) {
+            // WI26: HOP/SESSION 伪表函数同 TUMBLE 为 stream-only 表源——fail-fast 同码
+            throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).loc(table.getLocation());
         } else if (table instanceof SqlValuesTableSource) {
             // WI12 交付⑤：VALUES 表源按别名注册作用域（SqlSubqueryTableSource 分支同形；
             // 文法层 alias 必填 = 注册锚点，裁定 §4）

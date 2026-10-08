@@ -41,9 +41,11 @@ import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindo
  *   <tr><td>keySelector</td><td>keySelector（同一实例）</td></tr>
  *   <tr><td>keyClass</td><td>keyClass（同一 Class）</td></tr>
  * </table>
- * 构造器本身 14 参（windowAssigner/windowSerializer/keySelector/keySerializer/keyClass/
+ * 构造器本身 17 参（windowAssigner/windowSerializer/keySelector/keySerializer/keyClass/
  * windowFunction/trigger/allowedLateness/lateDataOutputTag/accClass/stateDesc/mergeFn/evictor/
- * accumulationMode），本组件只断言 call-site 8 实参的传输完备性。
+ * accumulationMode/maxDelay/emitWindowEvents/windowEventsOutputTag），本组件只断言 call-site 8 实参的
+ * 传输完备性；accumulationMode 的第四代（WI8 感知 + mode）传输由
+ * TestWindowOperatorFactoryAccumulationModeWiring 单独钉（WI38）。
  */
 public class WindowRoundTripAssertions {
 

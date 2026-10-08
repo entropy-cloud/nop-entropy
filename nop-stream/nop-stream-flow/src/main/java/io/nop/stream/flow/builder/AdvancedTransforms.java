@@ -59,7 +59,10 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.join.EquiJoinOperator;
 import io.nop.stream.core.util.Collector;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.AccumulationMode;
+import io.nop.stream.core.windowing.StreamEmitMode;
+import io.nop.stream.core.windowing.triggers.EmitUpdateTrigger;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.flow.builder.functions.JoinSideKeySelector;
 import io.nop.stream.flow.builder.functions.JoinSideTagFunction;
@@ -87,17 +90,19 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * <p>Every branch is either a real DataStream-API call or fails fast with a
  * {@link StreamException} carrying an {@code ERR_STREAM_*} code — no silent no-ops. The
  * {@code <union>} transform (WI6) builds a real multi-input merge over the declared
- * edges. {@code <sideOutput>} still fails fast: the side-output extraction API
- * ({@code SingleOutputStreamOperator.getSideOutput} / {@code SideOutputDataStream})
- * already exists in {@code nop-stream-core}, but an XDSL {@code <sideOutput>} node would
- * need a graph-level side-output edge, and side-output edges have no routing in the
- * execution graph yet — side-output views are consumable only via
- * {@code sink/print/collect}.
+ * edges. {@code <sideOutput>} (WI8 Phase 2, plan 2332) builds a pass-through tap vertex
+ * that copies condition-matching records into the declared tag channel; the tag
+ * channel's graph-level consumer is the target of the declared
+ * {@code <edge ... outputTag>} edge.
  *
- * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
- * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
- * at build time when they differ from the xdef defaults. allowedLateness was released by
- * D9: consumed by buildWindow and passed to the operator.
+ * <p>P1-XDSL-6 (updated WI38/D10): the window strategy {@code accumulationMode}
+ * declaration is released — consumed by buildWindow and passed to the operator
+ * (D10 2026-10-08 revision; {@code ACCUMULATING_AND_RETRACTING} stays rejected as
+ * spec-only). {@code triggerId} (strategy- and node-level) remains rejected at
+ * build time (D11: no free-form trigger surface). allowedLateness was released by
+ * D9: consumed by buildWindow and passed to the operator. maxDelay was released by WI8
+ * (plan 2332): consumed by buildWindow and passed to the operator (event-time assigners
+ * only — the operator constructor rejects the processing-time combination).
  */
 final class AdvancedTransforms {
 
@@ -137,7 +142,7 @@ final class AdvancedTransforms {
             return buildCep(owner, t, upstreamIds, streamRegistry, (StreamCepModel) t);
         }
         if (t instanceof StreamSideOutputModel) {
-            return buildSideOutput((StreamSideOutputModel) t);
+            return buildSideOutput(owner, t, upstreamIds, streamRegistry, (StreamSideOutputModel) t);
         }
         if (t instanceof StreamTimestampsAndWatermarksModel) {
             return buildTimestampsAndWatermarks(owner, t, upstreamIds, streamRegistry,
@@ -209,6 +214,34 @@ final class AdvancedTransforms {
         if (lateness > 0) {
             windowed.allowedLateness(lateness);
         }
+        // WI8 (plan 2332): consume the strategy-level maxDelay fallback (null/0 =
+        // disabled). Flows through the WindowedStream API into the window operator;
+        // the operator constructor rejects a processing-time assigner combined with
+        // maxDelay > 0 (typed build-time failure — no silent skip).
+        Long maxDelay = strategy.getMaxDelay();
+        if (maxDelay != null && maxDelay > 0) {
+            windowed.maxDelay(maxDelay);
+        }
+        // WI38 (plan 03, FU-8 fix / D10 release): consume the strategy-level
+        // accumulationMode so the declared value reaches the window operator
+        // (previously the declaration never left this builder — every model-built
+        // window ran the operator default ACCUMULATING). Null (programmatically
+        // built strategy without the xdef default injected) normalizes to
+        // DISCARDING so the declaration default does not depend on parser behavior.
+        AccumulationMode mode = strategy.getAccumulationMode() != null
+                ? strategy.getAccumulationMode()
+                : AccumulationMode.DISCARDING;
+        windowed.accumulationMode(mode);
+        // WI37 (D11 release): consume the two-tier emit declaration. UPDATE fires the
+        // window on every element and unconditionally forces ACCUMULATING (the xdef
+        // default back-fill makes an explicit DISCARDING indistinguishable from the
+        // omitted declaration, so "update" overrides the accumulation mode rather than
+        // conflicting with it); CLOSE keeps the legacy default trigger and the declared
+        // accumulation mode.
+        if (strategy.getEmit() == StreamEmitMode.UPDATE) {
+            windowed.trigger(new EmitUpdateTrigger<>());
+            windowed.accumulationMode(AccumulationMode.ACCUMULATING);
+        }
         return windowed;
     }
 
@@ -229,8 +262,9 @@ final class AdvancedTransforms {
         }
         // WI10/D9: allowedLateness is now released — consumed by buildWindow.
 
-        if (strategy.getAccumulationMode() != null
-                && strategy.getAccumulationMode() != AccumulationMode.DISCARDING) {
+        // WI38/D10 (2026-10-08 revision): ACCUMULATING is released and wired through
+        // buildWindow; only the spec-only ACCUMULATING_AND_RETRACTING stays rejected.
+        if (strategy.getAccumulationMode() == AccumulationMode.ACCUMULATING_AND_RETRACTING) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
                     .param(ARG_ATTR_NAME, "accumulationMode")
@@ -282,6 +316,39 @@ final class AdvancedTransforms {
                         .loc(t.getLocation());
             long millis = parseDurationMillis(strategy.getDuration());
             return io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows.of(millis);
+        }
+        // WI26: HOP — parameterized sliding window (duration=size, slide=slide; the
+        // repository ruling slide<=size is enforced here for the raw-DSL face too;
+        // the engine's validateSliding only checks positivity/ratio).
+        if (windowFnId.equals("sliding-event-time")) {
+            if (strategy.getDuration() == null || strategy.getSlide() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "slide")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires duration (size) and slide declarations")
+                        .loc(t.getLocation());
+            long size = parseDurationMillis(strategy.getDuration());
+            long slide = parseDurationMillis(strategy.getSlide());
+            if (slide <= 0 || slide > size) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "slide")
+                        .param(ARG_DETAIL, "windowingStrategies: slide (" + slide
+                                + "ms) must be positive and not exceed the window size ("
+                                + size + "ms)")
+                        .loc(t.getLocation());
+            }
+            return io.nop.stream.core.windowing.assigners.SlidingEventTimeWindows.of(size, slide);
+        }
+        // WI26: SESSION — parameterized session window (duration=gap).
+        if (windowFnId.equals("session-event-time")) {
+            if (strategy.getDuration() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires a gap duration declaration")
+                        .loc(t.getLocation());
+            long gap = parseDurationMillis(strategy.getDuration());
+            return io.nop.stream.core.windowing.assigners.EventTimeSessionWindows.withGap(gap);
         }
         // A small builtin catalog for backward compatibility (legacy ids without duration).
         switch (windowFnId) {
@@ -526,6 +593,8 @@ final class AdvancedTransforms {
 
         Long windowDuration = null;
         long timeout = 0L;
+        long leftTimeout = 0L;
+        long rightTimeout = 0L;
         if (spec.getWindowStrategyRef() != null) {
             // window join: duration is mandatory (parameterized tumbling), timeout
             // reuses the WI10 duration parser (D9-released lateness grace)
@@ -543,13 +612,36 @@ final class AdvancedTransforms {
             if (spec.getTimeout() != null) {
                 timeout = parseDurationMillis(spec.getTimeout());
             }
+            // WI27: per-side asymmetric grace (mutually exclusive with the symmetric
+            // timeout — validated); the undeclared side defaults to 0 (complete at
+            // window end). The symmetric timeout form maps both sides to the same
+            // value.
+            leftTimeout = timeout;
+            rightTimeout = timeout;
+            if (spec.getLeftTimeout() != null) {
+                leftTimeout = parseDurationMillis(spec.getLeftTimeout());
+            }
+            if (spec.getRightTimeout() != null) {
+                rightTimeout = parseDurationMillis(spec.getRightTimeout());
+            }
+            // WI37 (D11 release): the join window path does not consume the emit tier —
+            // an emit=update strategy referenced by a window join is a typed rejection,
+            // never a silent ignore.
+            if (strategy.getEmit() == StreamEmitMode.UPDATE) {
+                throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_ATTR_NAME, "emit")
+                        .param(ARG_ATTR_VALUE, "update")
+                        .loc(m.getLocation());
+            }
         }
 
         DataStream<JoinSideRecord<Object>> tagged = left
                 .map(new JoinSideTagFunction(true, leftKeys))
                 .union(right.map(new JoinSideTagFunction(false, rightKeys)));
         KeyedStream<JoinSideRecord<Object>, Object> keyed = tagged.keyBy(JoinSideKeySelector.INSTANCE);
-        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration, timeout);
+        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration,
+                leftTimeout, rightTimeout);
         return StreamModelDslBuilder.applyDeclaredParallelism(
                 (SingleOutputStreamOperator) keyed.transform("Join:" + m.getId(),
                         UnknownTypeInformation.INSTANCE, joinOp), t);
@@ -801,22 +893,46 @@ final class AdvancedTransforms {
     }
 
     // ----------------------------------------------------------------
-    // sideOutput — XDSL <sideOutput> nodes are not buildable: the core
-    // extraction API (SingleOutputStreamOperator.getSideOutput) exists,
-    // but a side-output edge has no graph-level routing yet, so the
-    // declared transform cannot become a deployable downstream vertex
+    // sideOutput — WI8 Phase 2 (plan 2332): a <sideOutput tag condition> node is a
+    // pass-through tap vertex. Its declared upstream transform's records flow through
+    // the main output unchanged; records matching the condition are COPIED into the
+    // tag channel. The tag channel's consumer is the target of the declared
+    // <edge from="<sideOutput node>" to="<transform>" outputTag="<tag>"> edge —
+    // validated by StreamModelDslBuilder.validateSideOutputDeclarations and routed by
+    // the graph/deployment layers (StreamEdge.outputTag → JobEdge.outputTagId →
+    // registered tag-edge consumer feeding the target operator chain).
     // ----------------------------------------------------------------
 
-    private static Object buildSideOutput(StreamSideOutputModel m) {
-        throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                .param(ARG_DETAIL, "Stream DSL <sideOutput id='" + m.getId() + "' tag='" + m.getTag()
-                        + "'> is not supported yet: the side-output extraction API "
-                        + "(SingleOutputStreamOperator.getSideOutput) is already available in "
-                        + "nop-stream-core, but a side-output edge has no graph-level routing, "
-                        + "so the <sideOutput> transform cannot be deployed as a downstream "
-                        + "vertex. Consume side outputs from Java API views via "
-                        + "sink(...)/print()/collect(...) instead.")
-                .loc(m.getLocation());
+    /**
+     * Builds the {@code <sideOutput>} node as a {@link SideOutputTapOperator} vertex:
+     * main output = the upstream stream unchanged, plus a copy of every
+     * condition-matching record emitted into the declared tag channel. The returned
+     * stream object stays the node's main output — downstream main-path consumers wire
+     * to it like any transform; tag consumers wire via their {@code outputTag} edge
+     * (wired by {@code StreamModelDslBuilder.applyTagEdgeDeclaration}, never as a
+     * regular upstream — a regular wire would double-deliver records).
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object buildSideOutput(StreamModelDslBuilder owner, StreamTransformModel t,
+                                          Set<String> upstreamIds, Map<String, Object> streamRegistry,
+                                          StreamSideOutputModel m) {
+        Object in = requireSingleInput(upstreamIds, streamRegistry, owner, t);
+        if (in instanceof WindowedStream) {
+            // WindowedStream exposes no single-input transform entry point for the tap;
+            // the tap's WindowingStrategy-free main output would silently drop the
+            // windowing context if accepted.
+            throw new StreamException(ERR_STREAM_UPSTREAM_TYPE)
+                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                    .param(ARG_EXPECTED_STREAM_TYPE, "DataStream or KeyedStream")
+                    .param(ARG_ACTUAL_STREAM_TYPE, WindowedStream.class.getName())
+                    .loc(t.getLocation());
+        }
+        DataStream dataStream = (DataStream) in;
+        OutputTag tag = new OutputTag(m.getTag(), UnknownTypeInformation.INSTANCE);
+        SideOutputTapOperator<?> tap = new SideOutputTapOperator<>(tag, m.getCondition());
+        return StreamModelDslBuilder.applyDeclaredParallelism(
+                dataStream.transform("SideOutput:" + m.getId(),
+                        dataStream.getType(), (OneInputStreamOperator) tap), t);
     }
 
     // ----------------------------------------------------------------

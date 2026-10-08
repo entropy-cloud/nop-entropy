@@ -53,7 +53,7 @@ import io.nop.stream.runtime.source.CollectionReplayableSource;
  *
  * <p>Launched by the {@code MiniStreamCluster} test harness (Phase 2) as:
  * <pre>
- *   java -cp &lt;test-classpath&gt; io.nop.stream.runtime.launch.JobCoordinatorMain
+ *   java -cp &lt;classpath&gt; io.nop.stream.runtime.launch.JobCoordinatorMain
  *        jobId=job-1
  *        jdbcUrl=jdbc:h2:file:/tmp/cluster.db;AUTO_SERVER=TRUE;MODE=MySQL
  *        topicNamespace=run-2026-08-03-001
@@ -66,7 +66,9 @@ import io.nop.stream.runtime.source.CollectionReplayableSource;
  * {@link io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService} over the
  * control-plane RPC, starts in remote-deploy mode (Phase 0), and assigns the
  * trivial source→sink job via {@code deployTask} RPC. SIGTERM/SIGINT triggers
- * graceful shutdown and exits with code 0. Missing required config fails fast
+ * graceful shutdown; the OS-visible exit code for an external signal follows
+ * JVM signal semantics (143), while programmatic {@link #shutdown()} completion
+ * exits 0. Missing required config fails fast
  * with stderr message and non-zero exit code (plan guide #24).
  *
  * <p><strong>Trivial job contract</strong>: by default the coordinator builds a

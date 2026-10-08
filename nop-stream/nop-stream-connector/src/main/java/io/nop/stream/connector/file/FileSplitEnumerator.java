@@ -58,8 +58,31 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
     private transient Map<String, FileSplit> splitById = new ConcurrentHashMap<>();
     private transient SplitEnumeratorContext<FileSplit> context;
 
+    /** WI5 (plan 2330): default policy — discovery-index round-robin (historical behavior). */
+    public static final String POLICY_ROUND_ROBIN = "round-robin";
+    /** WI5 (plan 2330): size-aware greedy policy, see the class comment on determinism. */
+    public static final String POLICY_SIZE_AWARE = "size-aware";
+
+    private final String assignmentPolicy;
+
     public FileSplitEnumerator(String directoryPath) {
+        this(directoryPath, POLICY_ROUND_ROBIN);
+    }
+
+    /**
+     * WI5: policy-carrying constructor. Unknown policy = typed error, never a silent
+     * round-robin fallback (no-silent-no-op).
+     */
+    public FileSplitEnumerator(String directoryPath, String assignmentPolicy) {
+        if (!isValidPolicy(assignmentPolicy)) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "unknown split assignment policy: " + assignmentPolicy
+                                    + " (expected " + POLICY_ROUND_ROBIN + " or " + POLICY_SIZE_AWARE + ")");
+        }
         this.directoryPath = directoryPath;
+        this.assignmentPolicy = assignmentPolicy;
     }
 
     @Override
@@ -70,6 +93,50 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
         }
         LOG.info("FileSplitEnumerator started: {} files discovered under {}",
                 discoveredFiles.size(), directoryPath);
+    }
+
+    /** WI5: policy whitelist shared with {@code FileSource} construction validation. */
+    public static boolean isValidPolicy(String policy) {
+        return POLICY_ROUND_ROBIN.equals(policy) || POLICY_SIZE_AWARE.equals(policy);
+    }
+
+    /**
+     * WI5 size-aware plan (pure function per plan 2330 ruling): greedy over the
+     * CURRENT remaining (unassigned, unfinished) set — size desc, then path asc; each
+     * split goes to the reader index with the least accumulated bytes (tie: lowest
+     * index). Already-assigned splits are NOT attributed (the state carries no reader
+     * ownership); delivery results therefore depend on the event sequence while the
+     * function itself stays deterministic for a given remaining set.
+     */
+    private Map<String, Integer> computeSizeAwarePlan() {
+        List<String> remaining = new ArrayList<>();
+        for (String filePath : discoveredFiles) {
+            if (!assignedFiles.contains(filePath) && !finishedFiles.contains(filePath)) {
+                remaining.add(filePath);
+            }
+        }
+        remaining.sort((a, b) -> {
+            long sa = splitById.get(a) == null ? 0L : splitById.get(a).getEndOffset();
+            long sb = splitById.get(b) == null ? 0L : splitById.get(b).getEndOffset();
+            if (sa != sb) {
+                return sa > sb ? -1 : 1;
+            }
+            return a.compareTo(b);
+        });
+        int parallelism = Math.max(1, context == null ? 1 : context.getTotalParallelism());
+        long[] accumulated = new long[parallelism];
+        Map<String, Integer> plan = new java.util.LinkedHashMap<>();
+        for (String filePath : remaining) {
+            int target = 0;
+            for (int i = 1; i < parallelism; i++) {
+                if (accumulated[i] < accumulated[target]) {
+                    target = i;
+                }
+            }
+            accumulated[target] += splitById.get(filePath) == null ? 0L : splitById.get(filePath).getEndOffset();
+            plan.put(filePath, target);
+        }
+        return plan;
     }
 
     private void discoverSplits() throws IOException {
@@ -104,6 +171,29 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
 
     private void assignAvailableSplitsTo(int subtaskIndex) {
         if (context == null || context.getDeliveryService() == null) {
+            return;
+        }
+        if (POLICY_SIZE_AWARE.equals(assignmentPolicy)) {
+            // WI5: deterministic greedy over the current remaining set (see
+            // computeSizeAwarePlan). Only the calling subtask's share is delivered and
+            // marked; later callers re-plan over what remains.
+            Map<String, Integer> plan = computeSizeAwarePlan();
+            List<FileSplit> toAssign = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : plan.entrySet()) {
+                if (entry.getValue() != subtaskIndex) {
+                    continue;
+                }
+                FileSplit split = splitById.get(entry.getKey());
+                if (split != null) {
+                    toAssign.add(split);
+                    assignedFiles.add(entry.getKey());
+                }
+            }
+            if (!toAssign.isEmpty()) {
+                context.getDeliveryService().assignSplits(subtaskIndex, toAssign);
+                LOG.debug("FileSplitEnumerator size-aware assigned {} splits to subtask {}",
+                        toAssign.size(), subtaskIndex);
+            }
             return;
         }
         // Stable per-split round-robin: split at discovery-index i is assigned to

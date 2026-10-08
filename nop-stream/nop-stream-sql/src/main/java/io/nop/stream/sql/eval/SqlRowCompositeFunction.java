@@ -59,12 +59,14 @@ public final class SqlRowCompositeFunction
 
     @Override
     public Object add(Object record, Object accumulator) {
-        Object[] acc = (Object[]) accumulator;
-        Object[] keys = (Object[]) acc[0];
+        Object[] acc = SqlAccShapeUtil.asArray(accumulator);
+        Object[] keys = SqlAccShapeUtil.asArray(acc[0]);
+        acc[0] = keys;
+        Object[] subAccs = SqlAccShapeUtil.asArray(acc[1]);
+        acc[1] = subAccs;
         for (int i = 0; i < keyEvals.length; i++) {
             keys[i] = keyEvals[i].eval(record);
         }
-        Object[] subAccs = (Object[]) acc[1];
         for (int i = 0; i < subFns.length; i++) {
             subAccs[i] = subFns[i].add(record, subAccs[i]);
         }
@@ -73,9 +75,9 @@ public final class SqlRowCompositeFunction
 
     @Override
     public Object getResult(Object accumulator) {
-        Object[] acc = (Object[]) accumulator;
-        Object[] keys = (Object[]) acc[0];
-        Object[] subAccs = (Object[]) acc[1];
+        Object[] acc = SqlAccShapeUtil.asArray(accumulator);
+        Object[] keys = SqlAccShapeUtil.asArray(acc[0]);
+        Object[] subAccs = SqlAccShapeUtil.asArray(acc[1]);
         List<Object> row = new ArrayList<>(keys.length + subAccs.length);
         for (Object key : keys) {
             row.add(key);
@@ -88,17 +90,19 @@ public final class SqlRowCompositeFunction
 
     @Override
     public Object merge(Object a, Object b) {
-        Object[] x = (Object[]) a;
-        Object[] y = (Object[]) b;
-        Object[] xKeys = (Object[]) x[0];
-        Object[] yKeys = (Object[]) y[0];
+        Object[] x = SqlAccShapeUtil.asArray(a);
+        Object[] y = SqlAccShapeUtil.asArray(b);
+        Object[] xKeys = SqlAccShapeUtil.asArray(x[0]);
+        Object[] yKeys = SqlAccShapeUtil.asArray(y[0]);
+        x[0] = xKeys;
         // first-seen keys win: within a keyed partition both sides carry the same key
         for (int i = 0; i < xKeys.length; i++) {
             if (xKeys[i] == null && yKeys[i] != null)
                 xKeys[i] = yKeys[i];
         }
-        Object[] xSub = (Object[]) x[1];
-        Object[] ySub = (Object[]) y[1];
+        Object[] xSub = SqlAccShapeUtil.asArray(x[1]);
+        Object[] ySub = SqlAccShapeUtil.asArray(y[1]);
+        x[1] = xSub;
         for (int i = 0; i < subFns.length; i++) {
             xSub[i] = subFns[i].merge(xSub[i], ySub[i]);
         }

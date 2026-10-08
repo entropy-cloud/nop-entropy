@@ -33,6 +33,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.AccumulationMode;
+import io.nop.stream.core.windowing.WindowLifecycleEvent;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
@@ -57,6 +58,9 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
     private TypeSerializer<W> windowSerializer;
     private OutputTag<IN> lateDataOutputTag;
     private AccumulationMode accumulationMode;
+    private long maxDelay;
+    private boolean emitWindowEvents;
+    private OutputTag<WindowLifecycleEvent> windowEventsOutputTag;
 
     public WindowOperatorBuilder<IN, K, W> windowAssigner(WindowAssigner<? super IN, W> windowAssigner) {
         this.windowAssigner = windowAssigner;
@@ -105,6 +109,29 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
 
     public WindowOperatorBuilder<IN, K, W> accumulationMode(AccumulationMode accumulationMode) {
         this.accumulationMode = accumulationMode;
+        return this;
+    }
+
+    /**
+     * WI8 (plan 2332): max-delay fallback window in ms past window end, measured on
+     * the processing-time clock. 0 = disabled. Event-time assigners only — a
+     * processing-time assigner combined with maxDelay &gt; 0 is rejected when the
+     * operator is constructed.
+     */
+    public WindowOperatorBuilder<IN, K, W> maxDelay(long maxDelay) {
+        this.maxDelay = maxDelay;
+        return this;
+    }
+
+    /**
+     * WI8 (plan 2332): enables the window lifecycle event surface (OPEN/CLOSE/
+     * IDLE/RESUME) on the dedicated side-output tag. Without a tag the flag is
+     * rejected at operator construction (no-silent-skip).
+     */
+    public WindowOperatorBuilder<IN, K, W> emitWindowEvents(
+            boolean emitWindowEvents, OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
+        this.emitWindowEvents = emitWindowEvents;
+        this.windowEventsOutputTag = windowEventsOutputTag;
         return this;
     }
 
@@ -211,7 +238,10 @@ public class WindowOperatorBuilder<IN, K, W extends Window> {
                 stateDesc,
                 mergeFn,
                 evictor,
-                accumulationMode);
+                accumulationMode,
+                maxDelay,
+                emitWindowEvents,
+                windowEventsOutputTag);
     }
 
     private static <T> AggregateFunction<T, T, T> reduceFunctionAsAggregate(ReduceFunction<T> reduceFunction) {

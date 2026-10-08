@@ -72,6 +72,15 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
     private final Source<OUT, ? extends SourceSplit, ?> source;
 
     /**
+     * WI2 plan 2343 Phase 1 (G5): accessor for the deployment-time parallelism gate —
+     * the plan builders check sources implementing {@code ParallelismCheckable} on the
+     * FLIP-27 path exactly like the legacy {@code StreamSourceOperator} path.
+     */
+    public Source<OUT, ? extends SourceSplit, ?> getSource() {
+        return source;
+    }
+
+    /**
      * Source vertex id from the transformation DAG. Used to look up the
      * {@link LocalSourceCoordinator} via {@link SourceCoordinatorRegistry} at open() time.
      */
@@ -97,6 +106,16 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     private final java.util.List<SourceSplit> preOpenSplits =
             java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+    /**
+     * WI2 plan 2343 Phase 0 (B-1): per-split state restored from a checkpoint BEFORE
+     * {@link #open()} creates the reader (the runtime restore path runs during task
+     * deployment, ahead of operator open). The restore snapshot is buffered here and
+     * replayed via {@code reader.restoreState} in {@link #open()} — consume-once, so a
+     * later run on the same operator copy can never inherit a previous restore.
+     */
+    private final java.util.List<SourceSplit> restoredSplits =
+            new java.util.ArrayList<>();
 
     private volatile boolean isRunning = true;
     private volatile boolean finished = false;
@@ -240,11 +259,35 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
         if (assignmentProxy instanceof LocalSourceCoordinator.ReaderChannel) {
             bridgeChannelToReader((LocalSourceCoordinator.ReaderChannel<?>) assignmentProxy);
         }
+        flushRestoredSplits();
         flushPreOpenSplits();
 
         this.reader.start();
         LOG.debug("SourceReaderOperator opened: source={}, vertex={}, subtask={}/{}",
                 source.getClass().getSimpleName(), vertexId, subtaskIndex, totalParallelism);
+    }
+
+    /**
+     * WI2 plan 2343 Phase 0 (B-1): replays the checkpoint-restored split state (buffered
+     * by {@link #restoreState(OperatorSnapshotResult)} before open()) into the now-non-null
+     * reader — BEFORE {@link #flushPreOpenSplits()} so checkpoint truth is in place before
+     * any fresh coordinator assignment, and BEFORE {@link #reader}{@code .start()}. The
+     * buffer is cleared on replay (consume-once). A replay failure surfaces typed instead
+     * of silently dropping the restored state.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void flushRestoredSplits() throws Exception {
+        List<SourceSplit> toRestore;
+        synchronized (restoredSplits) {
+            if (restoredSplits.isEmpty()) {
+                return;
+            }
+            toRestore = new ArrayList<>(restoredSplits);
+            restoredSplits.clear();
+        }
+        if (reader != null && !toRestore.isEmpty()) {
+            ((SourceReader) reader).restoreState((List) toRestore);
+        }
     }
 
     /**
@@ -317,7 +360,8 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(new StreamRecord<>(next.get()));
+                output.collect(StreamSourceOperator.applyChangeMetadata(
+                        new StreamRecord<>(next.get()), next.get()));
             } else {
                 // No record available right now. Drain mailbox (may carry trigger-checkpoint
                 // or cancel). If the reader signals termination, exit.
@@ -378,36 +422,94 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
      * The split list is serialized into the operator state keyed by {@link #READER_SPLITS_KEY}.
      */
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public OperatorSnapshotResult snapshotState(StateSnapshotContext context) throws Exception {
         OperatorSnapshotResult result = super.snapshotState(context);
         if (reader != null) {
             java.util.List<? extends SourceSplit> splits = reader.snapshotState(context.getCheckpointId());
             if (splits != null && !splits.isEmpty()) {
-                // Store the per-split cursor list; the actual split serializer is invoked
-                // by the runtime storage layer. For v1 LOCAL mode we store the in-memory
-                // list (JSON-serialized downstream by CheckpointSerDe via JsonTool).
-                // R5 ST-13: container-level freeze — the reader keeps mutating its
-                // live split list after the barrier; split impls carry final fields,
-                // so a shallow container copy gives a point-in-time view.
-                result.putOperatorState(READER_SPLITS_KEY, new ArrayList<>(splits));
+                // WI2 plan 2343 Phase 0: splits are encoded through the source's OWN
+                // split serializer (the FLIP-27 contract) into a JSON-safe envelope
+                // {version, base64 splits}. The pre-fix raw-list form failed the
+                // checkpoint persist gate (non-DataBean JSON) AND would have restored
+                // as degraded maps. R5 ST-13 container freeze still applies upstream.
+                io.nop.stream.core.source.SimpleVersionedSerializer serializer =
+                        source.getSplitSerializer();
+                java.util.List<String> encoded = new ArrayList<>(splits.size());
+                for (SourceSplit split : splits) {
+                    encoded.add(java.util.Base64.getEncoder()
+                            .encodeToString(serializer.serialize(split)));
+                }
+                java.util.Map<String, Object> envelope = new java.util.LinkedHashMap<>();
+                envelope.put("serializerVersion", serializer.getVersion());
+                envelope.put("encodedSplits", encoded);
+                result.putOperatorState(READER_SPLITS_KEY, envelope);
             }
         }
         return result;
+    }
+
+    /**
+     * Decodes the split envelope written by {@link #snapshotState} through the source's
+     * own split serializer. A raw {@link java.util.List} payload (pre-envelope in-memory
+     * form, used by operator-level unit tests that bypass JSON persistence) passes
+     * through unchanged — the runtime JSON persistence path only ever produces the
+     * envelope form.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private List<SourceSplit> decodeRestoredSplits(Object stored) throws Exception {
+        if (stored instanceof java.util.Map) {
+            Object versionObj = ((java.util.Map) stored).get("serializerVersion");
+            Object encodedObj = ((java.util.Map) stored).get("encodedSplits");
+            if (!(encodedObj instanceof java.util.List)) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_DETAIL, "restored source-reader split envelope has no encodedSplits list: "
+                                + stored.getClass().getName());
+            }
+            int version = versionObj instanceof Number ? ((Number) versionObj).intValue() : 0;
+            io.nop.stream.core.source.SimpleVersionedSerializer serializer =
+                    source.getSplitSerializer();
+            List<SourceSplit> splits = new ArrayList<>();
+            for (Object encoded : (java.util.List) encodedObj) {
+                byte[] bytes = java.util.Base64.getDecoder()
+                        .decode(String.valueOf(encoded));
+                splits.add((SourceSplit) serializer.deserialize(version, bytes));
+            }
+            return splits;
+        }
+        if (stored instanceof java.util.List) {
+            return (java.util.List<SourceSplit>) stored;
+        }
+        return null;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
-        if (reader != null && snapshotResult != null) {
-            Object stored = snapshotResult.getOperatorState(READER_SPLITS_KEY);
-            if (stored instanceof java.util.List) {
-                java.util.List<? extends SourceSplit> splits =
-                        (java.util.List<? extends SourceSplit>) stored;
-                // Raw cast: SourceReader's generics capture can't be satisfied across the
-                // serializable operator-state boundary. The reader's own split serializer
-                // is responsible for the runtime type check.
-                ((SourceReader) reader).restoreState((java.util.List) splits);
+        if (snapshotResult == null) {
+            return;
+        }
+        Object stored = snapshotResult.getOperatorState(READER_SPLITS_KEY);
+        if (stored == null) {
+            return;
+        }
+        List<SourceSplit> splits = decodeRestoredSplits(stored);
+        if (splits == null || splits.isEmpty()) {
+            return;
+        }
+        // Raw cast: SourceReader's generics capture can't be satisfied across the
+        // serializable operator-state boundary. The source's own split serializer
+        // (envelope form) is responsible for the runtime type check.
+        if (reader != null) {
+            ((SourceReader) reader).restoreState((java.util.List) splits);
+        } else {
+            // B-1: the runtime restore path runs BEFORE open() created the reader —
+            // buffer (consume-once) so open() can replay it via flushRestoredSplits()
+            // instead of silently dropping the restored split state.
+            synchronized (restoredSplits) {
+                restoredSplits.clear();
+                restoredSplits.addAll(splits);
             }
         }
     }

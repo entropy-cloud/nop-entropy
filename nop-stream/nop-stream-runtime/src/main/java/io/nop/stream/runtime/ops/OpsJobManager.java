@@ -273,20 +273,30 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
     }
 
     /**
-     * Stops a hosted job with CANCEL or DRAIN (explicit validation — other
-     * modes are rejected with a clear error instead of being silently
+     * Stops a hosted job with CANCEL, DRAIN or SUSPEND (explicit validation —
+     * other modes are rejected with a clear error instead of being silently
      * accepted).
+     *
+     * <p>WI9 (plan 2333): SUSPEND is allowed over REST — it takes a terminal
+     * savepoint and finishes the job in a recoverable state. Recovery from a
+     * REST SUSPEND re-submits the same factory with the same jobId against the
+     * same checkpoint storage (the REST submit path 409s on a hosted jobId, so
+     * recovery after a REST SUSPEND goes through the embedded/launch path or a
+     * coordinator restart with an explicit storage path). EXPORT_SAVEPOINT
+     * remains rejected: it keeps the job running and is only available via the
+     * coordinator RPC.
      */
     public synchronized JobCoordinator stop(String jobId, JobTerminationMode mode) {
         JobCoordinator coordinator = jobs.get(jobId);
         if (coordinator == null) {
             return null;
         }
-        if (mode != JobTerminationMode.CANCEL && mode != JobTerminationMode.DRAIN) {
+        if (mode != JobTerminationMode.CANCEL && mode != JobTerminationMode.DRAIN
+                && mode != JobTerminationMode.SUSPEND) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "Unsupported stop mode '" + mode
-                    + "' (REST stop supports CANCEL and DRAIN; use "
-                    + JobTerminationMode.SUSPEND + "/" + JobTerminationMode.EXPORT_SAVEPOINT
-                    + " via the coordinator RPC)");
+                    + "' (REST stop supports CANCEL, DRAIN and SUSPEND; "
+                    + JobTerminationMode.EXPORT_SAVEPOINT
+                    + " keeps the job running and is only available via the coordinator RPC)");
         }
         coordinator.terminate(mode);
         terminalAt.put(jobId, CoreMetrics.currentTimeMillis());

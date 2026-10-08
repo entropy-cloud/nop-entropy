@@ -18,6 +18,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ELEMENT;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_STREAM_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EXPECTED_TYPE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ID;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OUTPUT_TAG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_PARTITION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REF_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_REF_TYPE;
@@ -72,6 +73,9 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.model.StreamComponentEntry;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
+import io.nop.stream.core.transformation.OneInputTransformation;
+import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.flow.builder.functions.XplFilterFunction;
 import io.nop.stream.flow.builder.functions.XplFlatMapFunction;
 import io.nop.stream.flow.builder.functions.XplMapFunction;
@@ -79,6 +83,7 @@ import io.nop.stream.flow.builder.functions.XplSinkFunction;
 import io.nop.stream.flow.builder.functions.XplSourceFunction;
 import io.nop.stream.flow.model.CheckpointConfigModel;
 import io.nop.stream.flow.model.StorageConfigEntryModel;
+import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamFilterModel;
 import io.nop.stream.flow.model.StreamFlatMapModel;
@@ -89,6 +94,8 @@ import io.nop.stream.flow.model.StreamKeyByModel;
 import io.nop.stream.flow.model.WindowingStrategyModel;
 import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
+import io.nop.stream.flow.model.StreamProcessModel;
+import io.nop.stream.flow.model.StreamSideOutputModel;
 import io.nop.stream.flow.model.StreamSinkModel;
 import io.nop.stream.flow.model.StreamSourceModel;
 import io.nop.stream.flow.model.StreamUnionModel;
@@ -310,12 +317,22 @@ public final class StreamModelDslBuilder {
             throw noSqlProvider(sql);
         }
         Map<String, String> schema = new LinkedHashMap<>();
+        Map<String, Long> fieldLateness = new LinkedHashMap<>();
         if (sql.getSchemas() != null) {
             for (io.nop.stream.flow.model.StreamSqlFieldModel f : sql.getSchemas()) {
                 schema.put(f.getName(), f.getType());
+                // WI25/Q1: time-column lateness annotation (millis); null/<=0 means no
+                // declaration — the compiler fails fast on non-time-column declarations.
+                java.lang.Long lateness = f.getLateness();
+                if (lateness != null && lateness > 0) {
+                    fieldLateness.put(f.getName(), lateness);
+                }
             }
         }
-        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean());
+        // WI37 (D11 release): carry the declared two-tier emit mode into the product.
+        // Default-provider compatibility: the no-emit overload delegates to CLOSE.
+        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean(),
+                sql.getEmit(), fieldLateness);
         io.nop.core.lang.xml.XNode node;
         try {
             node = io.nop.core.lang.xml.XNode.parse(xml);
@@ -490,6 +507,9 @@ public final class StreamModelDslBuilder {
         for (StreamTransformModel t : ordered) {
             Object built = buildTransform(env, t, upstreams.get(t.getId()));
             streamRegistry.put(t.getId(), built);
+            // WI8 Phase 2 (plan 2332): stamp a declared <edge outputTag> onto the built
+            // transformation so the graph layer marks its incoming edge as a tag edge.
+            applyTagEdgeDeclaration(t, built);
         }
     }
 
@@ -543,9 +563,198 @@ public final class StreamModelDslBuilder {
             upstreams.get(e.getTo()).add(e.getFrom());
         }
         validateEdgeDeclarations(edges, byId);
+        validateSideOutputDeclarations(edges, byId);
         validateJoinDeclarations(edges, upstreams);
         validateSinkReachability(edges, byId);
         return edges;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): build-time pairing validation between {@code <sideOutput>}
+     * declarations and their consuming {@code <edge ... outputTag>} edges. A tag id is a
+     * GLOBAL identity (OutputTag equality is id-based) and its runtime registration is
+     * replace-by-id semantics — so every failure mode here is a typed reject, never a
+     * silent topology change:
+     * <ol>
+     *   <li>a tag id declared by two {@code <sideOutput>} nodes (ambiguous producer),</li>
+     *   <li>a consuming edge whose outputTag has no declared sideOutput node at its
+     *       {@code from} id (consumes an undeclared tag),</li>
+     *   <li>a declared tag with NO consuming edge (the tap would emit into the void —
+     *       the consumption side fails fast at runtime instead, but the pairing error
+     *       is a declaration typo and belongs at build time),</li>
+     *   <li>the same tag consumed by multiple edges (second registration would silently
+     *       take over the first),</li>
+     *   <li>{@code partition} (other than the FORWARD default) or {@code keyExpr} on a
+     *       tag edge — a tag edge follows the producer's partitioning,</li>
+     *   <li>a tag-edge target that is not a single-input one-input transform
+     *       (map/filter/flatmap/process/custom): keyed/windowed/union/join targets
+     *       cannot take a side-output input, and sink targets consume side outputs via
+     *       the Java API {@code getSideOutput(tag)} view instead.</li>
+     * </ol>
+     */
+    private void validateSideOutputDeclarations(List<StreamEdgeModel> edges,
+                                                Map<String, StreamTransformModel> byId) {
+        Map<String, StreamSideOutputModel> nodeByTag = new LinkedHashMap<>();
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (!(t instanceof StreamSideOutputModel)) {
+                continue;
+            }
+            StreamSideOutputModel so = (StreamSideOutputModel) t;
+            StreamSideOutputModel prev = nodeByTag.put(so.getTag(), so);
+            if (prev != null) {
+                throw new StreamException(ERR_STREAM_DUPLICATE_ID)
+                        .param(ARG_ELEMENT, "sideOutput tag")
+                        .param(ARG_ID, so.getTag())
+                        .param(ARG_DETAIL, "sideOutput tag '" + so.getTag() + "' is declared by two"
+                                + " transforms ('" + prev.getId() + "' and '" + so.getId()
+                                + "'); a tag id is a global identity — split the producers"
+                                + " onto distinct tags")
+                        .loc(so.getLocation());
+            }
+        }
+
+        Map<String, List<StreamEdgeModel>> consumerEdgesByTag = new LinkedHashMap<>();
+        for (StreamEdgeModel e : edges) {
+            if (e.getOutputTag() == null) {
+                continue;
+            }
+            StreamSideOutputModel producer = nodeByTag.get(e.getOutputTag());
+            if (producer == null || !producer.getId().equals(e.getFrom())) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, "edge '" + e.getId() + "'")
+                        .param(ARG_REF_TYPE, "<sideOutput> declaration")
+                        .param(ARG_REF_NAME, e.getOutputTag())
+                        .param(ARG_OUTPUT_TAG, e.getOutputTag())
+                        .param(ARG_DETAIL, "edge '" + e.getId() + "' consumes outputTag '"
+                                + e.getOutputTag() + "' but its from transform '" + e.getFrom()
+                                + "' does not declare a <sideOutput> node with that tag; a tag"
+                                + " edge must start at the declaring <sideOutput> node")
+                        .loc(e.getLocation());
+            }
+            if (!isTagTargetSupported(byId.get(e.getTo()))) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "edge '" + e.getId() + "'")
+                        .param(ARG_OUTPUT_TAG, e.getOutputTag())
+                        .param(ARG_DETAIL, "tag edge '" + e.getId() + "' targets transform '"
+                                + e.getTo() + "' of type "
+                                + byId.get(e.getTo()).getClass().getSimpleName()
+                                + "; a tag channel can only feed a single-input transform"
+                                + " (map/filter/flatMap/process/custom) — sinks consume side"
+                                + " outputs via the Java API getSideOutput(tag) view")
+                        .loc(e.getLocation());
+            }
+            if (e.getPartition() != null && e.getPartition() != PartitionPolicy.FORWARD) {
+                throw new StreamException(ERR_STREAM_EDGE_ATTR_UNSUPPORTED)
+                        .param(ARG_EDGE_ID, e.getId())
+                        .param(ARG_ATTR_NAME, "partition")
+                        .param(ARG_DETAIL, "tag edge '" + e.getId() + "' declares partition="
+                                + e.getPartition() + "; a tag edge follows the producer's"
+                                + " partitioning and cannot re-partition the tag channel")
+                        .loc(e.getLocation());
+            }
+            if (e.getKeyExpr() != null) {
+                throw new StreamException(ERR_STREAM_EDGE_ATTR_UNSUPPORTED)
+                        .param(ARG_EDGE_ID, e.getId())
+                        .param(ARG_ATTR_NAME, "keyExpr")
+                        .param(ARG_DETAIL, "tag edge '" + e.getId() + "' declares keyExpr; a tag"
+                                + " edge follows the producer's partitioning and cannot"
+                                + " re-key the tag channel")
+                        .loc(e.getLocation());
+            }
+            consumerEdgesByTag.computeIfAbsent(e.getOutputTag(), k -> new ArrayList<>()).add(e);
+        }
+
+        for (Map.Entry<String, StreamSideOutputModel> entry : nodeByTag.entrySet()) {
+            List<StreamEdgeModel> consumers = consumerEdgesByTag.get(entry.getKey());
+            StreamSideOutputModel so = entry.getValue();
+            if (consumers == null || consumers.isEmpty()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(so))
+                        .param(ARG_OUTPUT_TAG, so.getTag())
+                        .param(ARG_DETAIL, "sideOutput '" + so.getId() + "' declares tag '"
+                                + so.getTag() + "' but no consuming tag edge exists; declare"
+                                + " <edge id=\"...\" from=\"" + so.getId() + "\" to=\"<transform>\""
+                                + " outputTag=\"" + so.getTag() + "\"/>")
+                        .loc(so.getLocation());
+            }
+            if (consumers.size() > 1) {
+                List<String> consumerEdgeIds = new ArrayList<>();
+                for (StreamEdgeModel e : consumers) {
+                    consumerEdgeIds.add(e.getId());
+                }
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(so))
+                        .param(ARG_OUTPUT_TAG, so.getTag())
+                        .param(ARG_DETAIL, "tag '" + so.getTag() + "' is consumed by multiple"
+                                + " edges " + consumerEdgeIds + "; the tag registration is"
+                                + " replace-by-id semantics — multiple consumers would"
+                                + " silently take each other over. Route additional consumers"
+                                + " behind the first tag-fed transform instead")
+                        .loc(consumers.get(1).getLocation());
+            }
+        }
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): the transform types that can be fed from a side-output
+     * tag channel — single-input, unkeyed-input one-input transforms.
+     */
+    private static boolean isTagTargetSupported(StreamTransformModel t) {
+        return t instanceof StreamMapModel || t instanceof StreamFilterModel
+                || t instanceof StreamFlatMapModel || t instanceof StreamProcessModel
+                || t instanceof StreamCustomModel;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): when the transform's declared incoming edge carries an
+     * {@code outputTag}, stamps the tag onto the built transformation so the graph
+     * layer marks the incoming StreamEdge/JobEdge as a tag edge. The target keeps its
+     * regular build wiring (its operator is built on the tap's stream object) — the TAG
+     * on the edge is what stops the main-path double delivery and what makes the
+     * deployment register the tag consumer feeding this operator.
+     */
+    private void applyTagEdgeDeclaration(StreamTransformModel t, Object built) {
+        StreamEdgeModel tagEdge = null;
+        for (StreamEdgeModel e : model.getEdges()) {
+            if (!t.getId().equals(e.getTo()) || e.getOutputTag() == null) {
+                continue;
+            }
+            if (tagEdge != null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(t))
+                        .param(ARG_DETAIL, "transform '" + t.getId() + "' is the target of"
+                                + " multiple outputTag edges ('" + tagEdge.getId() + "', '"
+                                + e.getId() + "'); a single-input transform consumes exactly"
+                                + " one tag channel")
+                        .loc(e.getLocation());
+            }
+            tagEdge = e;
+        }
+        if (tagEdge == null) {
+            return;
+        }
+        if (!(built instanceof DataStreamImpl)) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_ELEMENT, elementDesc(t))
+                    .param(ARG_DETAIL, "tag-fed transform '" + t.getId()
+                            + "' did not produce a stream object; cannot stamp outputTag '"
+                            + tagEdge.getOutputTag() + "' onto its input edge")
+                    .loc(t.getLocation());
+        }
+        io.nop.stream.core.transformation.Transformation<?> transformation =
+                ((DataStreamImpl<?>) built).getTransformation();
+        if (!(transformation instanceof OneInputTransformation)) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE)
+                    .param(ARG_ELEMENT, elementDesc(t))
+                    .param(ARG_DETAIL, "tag-fed transform '" + t.getId()
+                            + "' produced transformation "
+                            + transformation.getClass().getSimpleName()
+                            + " which cannot carry an input outputTag")
+                    .loc(t.getLocation());
+        }
+        ((OneInputTransformation<?, ?>) transformation)
+                .setInputOutputTag(new OutputTag<>(tagEdge.getOutputTag(),
+                        UnknownTypeInformation.INSTANCE));
     }
 
     /**
@@ -812,15 +1021,39 @@ public final class StreamModelDslBuilder {
                                     + " window completion is a WI13 evaluation item")
                             .loc(t.getLocation());
                 }
-                if (spec.getTimeout() != null) {
+                // WI27: the symmetric timeout and the per-side leftTimeout/rightTimeout
+                // are mutually exclusive (dual-source precedence would complicate the
+                // validation contract); 0/1/2 per-side declarations are all legal —
+                // "exactly one or both" is the defaulting semantics (undeclared side
+                // defaults to 0 = complete at window end), not a counting rule.
+                boolean symmetric = spec.getTimeout() != null;
+                boolean asymmetric = spec.getLeftTimeout() != null
+                        || spec.getRightTimeout() != null;
+                if (symmetric && asymmetric) {
+                    throw new StreamException(ERR_STREAM_INVALID_ARG)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                    + "' declares timeout together with leftTimeout/"
+                                    + "rightTimeout; use the symmetric timeout or the "
+                                    + "per-side pair, not both")
+                            .loc(t.getLocation());
+                }
+                if (symmetric) {
                     AdvancedTransforms.parseDurationMillis(spec.getTimeout());
                 }
-            } else if (spec.getTimeout() != null) {
+                if (spec.getLeftTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getLeftTimeout());
+                }
+                if (spec.getRightTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getRightTimeout());
+                }
+            } else if (spec.getTimeout() != null || spec.getLeftTimeout() != null
+                    || spec.getRightTimeout() != null) {
                 throw new StreamException(ERR_STREAM_INVALID_ARG)
                         .param(ARG_ELEMENT, elementDesc(t))
                         .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
-                                + "' declares timeout but no windowStrategyRef; timeout only "
-                                + "applies to window joins")
+                                + "' declares a timeout but no windowStrategyRef; timeouts "
+                                + "only apply to window joins")
                         .loc(t.getLocation());
             }
         }

@@ -60,6 +60,10 @@ public final class StreamMaintenanceMain {
                 case "dry-run":
                     runConfValidate(java.util.Arrays.asList(args).subList(1, args.length), true);
                     break;
+                case "sample":
+                    System.exit(StreamSampleCommand.run(
+                            java.util.Arrays.asList(args).subList(1, args.length)));
+                    break;
                 default:
                     System.err.println("Unknown subcommand: " + args[0]);
                     System.err.println(usage());
@@ -153,6 +157,12 @@ public final class StreamMaintenanceMain {
                 + "      Exit code: 0 = passed, 1 = validation failed, 2 = usage error.\n"
                 + "  dry-run file=<path>\n"
                 + "      Pre-submit connectivity dry-run: conf-validate --connect (P-REQ-13).\n"
+                + "  sample type=<typeName> param=value... [limit=<n>]\n"
+                + "      Connector-mode read-only data sampling (WI4): registry-resolved\n"
+                + "      SOURCE endpoint; SampleableSource endpoints return real records,\n"
+                + "      others answer an explicit SKIP. Param rules validated first;\n"
+                + "      sensitive values masked. Exit code: 0 = sampled or SKIP,\n"
+                + "      1 = validation failed, 2 = usage error.\n"
                 + "      Probes each source/sink endpoint per connector family and reports\n"
                 + "      per-family results; families without a probe contract are reported\n"
                 + "      as explicit skip items (never silently passed).";

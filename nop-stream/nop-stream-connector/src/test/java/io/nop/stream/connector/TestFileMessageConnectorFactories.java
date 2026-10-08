@@ -113,18 +113,22 @@ public class TestFileMessageConnectorFactories {
     // message source
     // ------------------------------------------------------------------
 
+    // WI2 plan 2343 Phase 2: the factory surface produces the FLIP-27 MessageSource
+    // (the legacy MessageSourceFunction keeps its programmatic API only). Split sources
+    // have no instance-level consistency accessor — AT_LEAST_ONCE is pinned on the
+    // descriptor (single source of truth).
     @Test
     public void testMessageSourceFactoryConstructsEndpointWithAlignment() {
         MessageSourceConnectorFactory factory = new MessageSourceConnectorFactory();
         IMessageService service = new LocalMessageService();
-        MessageSourceFunction<?> source = assertInstanceOf(MessageSourceFunction.class,
-                factory.createSourceFunction(new StreamConnectorConfig("message",
+        MessageSource<?> source = assertInstanceOf(MessageSource.class,
+                factory.createSource(new StreamConnectorConfig("message",
                         Map.of("topic", "t1", "messageService", service))));
-        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE, source.getSourceConsistency());
+        assertEquals("t1", source.getTopicForTest());
 
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("message", d.getTypeName());
-        assertEquals(d.getSourceConsistency(), source.getSourceConsistency());
+        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE, d.getSourceConsistency());
         assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.NONE, d.getRecoverySemantic());
     }
@@ -133,7 +137,7 @@ public class TestFileMessageConnectorFactories {
     public void testMessageSourceFactoryRequiresMessageService() {
         MessageSourceConnectorFactory factory = new MessageSourceConnectorFactory();
         StreamException ex = assertThrows(StreamException.class,
-                () -> factory.createSourceFunction(new StreamConnectorConfig("message",
+                () -> factory.createSource(new StreamConnectorConfig("message",
                         Map.of("topic", "t1"))));
         assertEquals(ERR_STREAM_CONNECTOR_PARAM_REQUIRED.getErrorCode(), ex.getErrorCode());
         assertEquals("messageService", ex.getParam("paramName"));
@@ -143,7 +147,7 @@ public class TestFileMessageConnectorFactories {
     public void testMessageSourceFactoryRequiresTopic() {
         MessageSourceConnectorFactory factory = new MessageSourceConnectorFactory();
         StreamException ex = assertThrows(StreamException.class,
-                () -> factory.createSourceFunction(new StreamConnectorConfig("message",
+                () -> factory.createSource(new StreamConnectorConfig("message",
                         Map.of("messageService", new LocalMessageService()))));
         assertEquals(ERR_STREAM_CONNECTOR_PARAM_REQUIRED.getErrorCode(), ex.getErrorCode());
         assertEquals("topic", ex.getParam("paramName"));

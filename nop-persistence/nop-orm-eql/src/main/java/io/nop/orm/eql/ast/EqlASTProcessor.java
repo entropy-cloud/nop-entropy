@@ -102,6 +102,12 @@ public class EqlASTProcessor<T,C>{
             case SqlTumbleTableSource:
                 return processSqlTumbleTableSource((SqlTumbleTableSource)node,context);
         
+            case SqlHopTableSource:
+                return processSqlHopTableSource((SqlHopTableSource)node,context);
+        
+            case SqlSessionTableSource:
+                return processSqlSessionTableSource((SqlSessionTableSource)node,context);
+        
             case SqlNotExpr:
                 return processSqlNotExpr((SqlNotExpr)node,context);
         
@@ -340,6 +346,14 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlTumbleTableSource(SqlTumbleTableSource node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlHopTableSource(SqlHopTableSource node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlSessionTableSource(SqlSessionTableSource node, C context){
         return defaultProcess(node, context);
 	}
     

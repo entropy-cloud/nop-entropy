@@ -46,6 +46,27 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: emit
+     * 
+     */
+    private io.nop.stream.core.windowing.StreamEmitMode _emit ;
+    
+    /**
+     *  
+     * xml name: maxDelay
+     * 
+     */
+    private java.lang.Long _maxDelay ;
+    
+    /**
+     *  
+     * xml name: slide
+     * 
+     */
+    private java.lang.String _slide ;
+    
+    /**
+     *  
      * xml name: strategyId
      * 
      */
@@ -143,6 +164,63 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: emit
+     *  
+     */
+    
+    public io.nop.stream.core.windowing.StreamEmitMode getEmit(){
+      return _emit;
+    }
+
+    
+    public void setEmit(io.nop.stream.core.windowing.StreamEmitMode value){
+        checkAllowChange();
+        
+        this._emit = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: maxDelay
+     *  
+     */
+    
+    public java.lang.Long getMaxDelay(){
+      return _maxDelay;
+    }
+
+    
+    public void setMaxDelay(java.lang.Long value){
+        checkAllowChange();
+        
+        this._maxDelay = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: slide
+     *  
+     */
+    
+    public java.lang.String getSlide(){
+      return _slide;
+    }
+
+    
+    public void setSlide(java.lang.String value){
+        checkAllowChange();
+        
+        this._slide = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: strategyId
      *  
      */
@@ -217,6 +295,9 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("duration",this.getDuration());
+        out.putNotNull("emit",this.getEmit());
+        out.putNotNull("maxDelay",this.getMaxDelay());
+        out.putNotNull("slide",this.getSlide());
         out.putNotNull("strategyId",this.getStrategyId());
         out.putNotNull("triggerId",this.getTriggerId());
         out.putNotNull("windowFnId",this.getWindowFnId());
@@ -235,6 +316,9 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setDescription(this.getDescription());
         instance.setDuration(this.getDuration());
+        instance.setEmit(this.getEmit());
+        instance.setMaxDelay(this.getMaxDelay());
+        instance.setSlide(this.getSlide());
         instance.setStrategyId(this.getStrategyId());
         instance.setTriggerId(this.getTriggerId());
         instance.setWindowFnId(this.getWindowFnId());

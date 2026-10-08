@@ -104,6 +104,28 @@ class TestObservabilityWiringE2E {
         assertNotNull(recordsIn, "operator records.in meter must be registered on the LOCAL path");
         assertEquals((double) recordCount, recordsIn, 0.0,
                 "sink-task input-gate dispatch must equal the record count");
+
+        // ---- WI16 (plan 2337): the three new observability surfaces are registered by
+        // the real execution path (Anti-Hollow — not island registrations) ----
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BUSY_RATIO, jobId);
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BACKPRESSURED_RATIO, jobId);
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_RATIO, jobId);
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_NANOS, jobId);
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_ELAPSED_NANOS, jobId);
+        // the sink task has an input gate → the watermark gauges must be bound too
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK, jobId);
+        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK_CHANNEL_LAG, jobId);
+    }
+
+    /** Asserts at least one meter with the name (and jobId tag) exists in the registry. */
+    private static void assertGaugePresent(String name, String jobId) {
+        boolean[] found = {false};
+        StreamMetricsRegistries.registry().find(name).meters().forEach(m -> {
+            if (jobId.equals(m.getId().getTag("jobId"))) {
+                found[0] = true;
+            }
+        });
+        assertTrue(found[0], "WI16 meter must be registered on the LOCAL path: " + name);
     }
 
     private static Double counter(String name, String jobId) {

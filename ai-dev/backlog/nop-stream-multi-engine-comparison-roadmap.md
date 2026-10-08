@@ -1,6 +1,6 @@
 # nop-stream 五引擎对比缺口收敛 Roadmap（Flink / TDengine / Hazelcast / SeaTunnel 对标）
 
-> Last updated: 2026-10-06（v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
+> Last updated: 2026-10-08（v4 收口：WI0-WI19 全部闭环——WI15 显式延期（R6）、WI12 双裁定（水位节流 NO-GO / 滑窗 frame/deduct GO 登记 Follow-up）、WI2 三源工厂面迁 FLIP-27 + B 层例外撤销、WI19 组合 E2E 三链路真跑绿 + F 表销号 + 独立收口审计（含 WI18 补 audit）。**roadmap 宣告收口**：勾选项 18 项、显式延期 1 项（WI15）、Follow-up Backlog 登记为合法非分母状态。v3：WI0 裁定门完成——P0×6/P1×9/P2×5 逐条三态 + 不跟进三类清单写死 + 六项下游范围裁定（R1 Kafka EO 边界/R2 B 层例外随 WI2 迁移撤销/R3 三 legacy source 全迁 FLIP-27/R4 WI7 落 StreamRecord 引擎级可选变更元数据/R5 WI11 复用既有 lookup 路径+本地物化+后台刷新、vision Non-Goal 零解除/R6 WI15 cdc-design defer 维持、本周期显式延期），裁定全文见 `ai-dev/design/nop-stream/multi-engine-gap-adjudication.md`；vision §七裁决记录新增 #WI0 条目（边界零变更确认）。v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-06a-nop-stream-vs-flink-tdengine-hazelcast-seatunnel-comparison.md`（缺口核定 primary；P0/P1/P2 分级与不跟进清单）
@@ -46,49 +46,51 @@
 
 ### M0 — 裁定门（无前置，最先开工）
 
-- [ ] WI0 五引擎对比缺口裁定（owner 人审门）：把对比分析的 P0/P1/P2 与不跟进清单逐条 go/defer/exclude 分类确认——(a) vision §四/#G36 相关（lookup 异步模式是否范围收窄解除、broadcast state go/defer/exclude）须经 owner 确认并按 §六/#G36 先例回写 `ai-dev/design/nop-stream/00-vision.md` 裁决记录；(b) productization D-GAP 处置与 cdc-design defer 维持或撤销（含 Kafka EO 与 nop-message-kafka 的边界划分、debezium B 层例外迁移范围、连接器两代归一迁移范围）（Deliverable: 裁定记录回写 `ai-dev/design/nop-stream/00-vision.md` 与对应设计文档 + 不跟进三类清单写死；deps: 无；Item Type: Decision）
+- [x] WI0 五引擎对比缺口裁定（owner 人审门）：把对比分析的 P0/P1/P2 与不跟进清单逐条 go/defer/exclude 分类确认——(a) vision §四/#G36 相关（lookup 异步模式是否范围收窄解除、broadcast state go/defer/exclude）须经 owner 确认并按 §六/#G36 先例回写 `ai-dev/design/nop-stream/00-vision.md` 裁决记录；(b) productization D-GAP 处置与 cdc-design defer 维持或撤销（含 Kafka EO 与 nop-message-kafka 的边界划分、debezium B 层例外迁移范围、连接器两代归一迁移范围）（Deliverable: 裁定记录回写 `ai-dev/design/nop-stream/00-vision.md` 与对应设计文档 + 不跟进三类清单写死；deps: 无；Item Type: Decision）
 
 ### M1 — 生产化与连接器 P0 主线（各 WI 模块面不重叠，可并行）
 
-- [ ] WI1 生产进程入口 main-scope 化：`JobCoordinatorMain`/`TaskManagerMain` 从 src/test 迁 main sources + 打包/启动脚本 + runtime pom 注释矛盾（productization F-26，F-12 provided 作用域关注点随迁核对；closure 时回写 productization F 表销号）（Deliverable: main-scope 入口可独立启动集群 + 启动文档；deps: 无；Item Type: Feature + Proof）
-- [ ] WI2 连接器 API 两代归一迁移波次：按 WI0 裁定范围把存量 legacy source（message/debezium-cdc/batch-loader）迁 FLIP-27 `Source/SplitEnumerator/SourceReader`；debezium B 层表路由已裁定例外的撤销或迁移由 WI0 裁定（Deliverable: 迁移完成或显式剩余冻结清单 + 能力矩阵回归；deps: WI0；Item Type: Feature）
-- [ ] WI3 Kafka 原生 exactly-once 连接器：source offset 入 checkpoint（REPLAYABLE）+ 事务/幂等 sink（复用 epoch 2PC 或 ledger 幂等），与 nop-message-kafka at-least-once 通道的适用边界写入 owner doc（Deliverable: 新连接器模块 + SPI 工厂 + kill-recover E2E 零重复；deps: WI0；Item Type: Feature）
-- [ ] WI4 连接器工程化增强：registry 成熟度分级（实验/生产）+ OptionRule 式参数声明（类型/必填/敏感/校验规则进 XDSL 配置校验）+ conf-validate 增 dry-run sample 数据采样档（Deliverable: 分级与参数规则落 registry 描述符 + 校验器 + 文档；deps: 无；Item Type: Feature）
-- [ ] WI5 Source 限速与倾斜感知 split 分配：rows/bytes 限速配置 + enumerator 倾斜感知分配策略（对 file/Kafka 等 split 型 source 生效，单写入者 source 如实 typed 标注不支持）（Deliverable: 限速与分配策略 + 倾斜场景测试；deps: 无；Item Type: Feature）
-- [ ] WI6 DB 数据面生产者背压：DB 传输通道按 credit 式分片限流生产者（对比分析 P0-6 范围），替代无界写入——范围限定 DB 通道整形，不涉及 vision §四「复制 Flink Runtime 结构/Netty 网络栈」禁入面（Deliverable: 背压协议 + 满载测试；deps: 无；Item Type: Feature）
+- [x] WI1 生产进程入口 main-scope 化：`JobCoordinatorMain`/`TaskManagerMain` 从 src/test 迁 main sources + 打包/启动脚本 + runtime pom 注释矛盾（productization F-26，F-12 provided 作用域关注点随迁核对；closure 时回写 productization F 表销号）（Deliverable: main-scope 入口可独立启动集群 + 启动文档；deps: 无；Item Type: Feature + Proof）
+- [x] WI2 连接器 API 两代归一迁移波次：按 WI0 裁定范围把存量 legacy source（message/debezium-cdc/batch-loader）迁 FLIP-27 `Source/SplitEnumerator/SourceReader`；debezium B 层表路由已裁定例外的撤销或迁移由 WI0 裁定（Deliverable: 迁移完成或显式剩余冻结清单 + 能力矩阵回归；deps: WI0；Item Type: Feature）
+- [x] WI3 Kafka 原生 exactly-once 连接器：source offset 入 checkpoint（REPLAYABLE）+ 事务/幂等 sink（复用 epoch 2PC 或 ledger 幂等），与 nop-message-kafka at-least-once 通道的适用边界写入 owner doc（Deliverable: 新连接器模块 + SPI 工厂 + kill-recover E2E 零重复；deps: WI0；Item Type: Feature）
+- [x] WI4 连接器工程化增强：registry 成熟度分级（实验/生产）+ OptionRule 式参数声明（类型/必填/敏感/校验规则进 XDSL 配置校验）+ conf-validate 增 dry-run sample 数据采样档（Deliverable: 分级与参数规则落 registry 描述符 + 校验器 + 文档；deps: 无；Item Type: Feature）
+- [x] WI5 Source 限速与倾斜感知 split 分配（Kafka 限速由 WI3 消费 core SourceRateLimiter 接入，plan 2330 Deferred 裁定）：rows/bytes 限速配置 + enumerator 倾斜感知分配策略（对 file/Kafka 等 split 型 source 生效，单写入者 source 如实 typed 标注不支持）（Deliverable: 限速与分配策略 + 倾斜场景测试；deps: 无；Item Type: Feature）
+- [x] WI6 DB 数据面生产者背压：DB 传输通道按 credit 式分片限流生产者（对比分析 P0-6 范围），替代无界写入——范围限定 DB 通道整形，不涉及 vision §四「复制 Flink Runtime 结构/Netty 网络栈」禁入面（Deliverable: 背压协议 + 满载测试；deps: 无；Item Type: Feature）
 
 ### M2 — 结构前置与流语义增强（P1，对齐 TDengine/Flink 子集）
 
-- [ ] WI7 CatalogTable/RowKind 元数据抽象：含 tableId 多表标识与 INSERT/UPDATE/DELETE 变更语义的引擎级记录元数据（WI0 裁定落点：`StreamRecord` 升级 vs CDC 层消息信封），为 schema evolution 与生态 sink 前置（Deliverable: 抽象落地 + CDC 变更语义迁移 + 文档；deps: WI0；Item Type: Feature + Decision）
-- [ ] WI8 窗口事件化与兜底出数（单一连贯面，子交付物：a. OPEN/CLOSE/IDLE/RESUME 窗口事件模型与外发；b. XDSL sideOutput 图级路由打通；c. maxDelay 超时强制关闭出数）（Deliverable: 三子项 + 事件时序测试；deps: 无；Item Type: Feature）
-- [ ] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
-- [ ] WI10 范围重算与回补：时间范围 RECALCULATE 重放 + FILL_HISTORY 回补作业形态（复用 savepoint/restore 与 upsert sink 幂等）（Deliverable: 重算路径 E2E + 作业形态文档；deps: 无；Item Type: Feature）
-- [ ] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
-- [ ] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
+- [x] WI7 CatalogTable/RowKind 元数据抽象：含 tableId 多表标识与 INSERT/UPDATE/DELETE 变更语义的引擎级记录元数据（WI0 裁定落点：`StreamRecord` 升级 vs CDC 层消息信封），为 schema evolution 与生态 sink 前置（Deliverable: 抽象落地 + CDC 变更语义迁移 + 文档；deps: WI0；Item Type: Feature + Decision）
+- [x] WI8 窗口事件化与兜底出数（单一连贯面，子交付物：a. OPEN/CLOSE/IDLE/RESUME 窗口事件模型与外发；b. XDSL sideOutput 图级路由打通；c. maxDelay 超时强制关闭出数）（Deliverable: 三子项 + 事件时序测试；deps: 无；Item Type: Feature）
+- [x] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
+- [x] WI10 范围重算与回补：时间范围 RECALCULATE 重放 + FILL_HISTORY 回补作业形态（复用 savepoint/restore 与 upsert sink 幂等）（Deliverable: 重算路径 E2E + 作业形态文档；deps: 无；Item Type: Feature）
+- [x] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
+- [x] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
 
 ### M3 — 数据面与生产化外围
 
-- [ ] WI13 checkpoint 对象存储后端：S3 兼容对象存储 checkpoint storage（对齐 `LocalFileCheckpointStorage`/`JdbcCheckpointStorage` 既有 SPI 形态）（Deliverable: 存储实现 + 恢复 E2E + 文档；deps: 无；Item Type: Feature）
-- [ ] WI14 可查询状态轻量版：结果即状态官方模式（窗口/聚合结果落键控可查存储）+ ops REST keyed state 只读接口——不追通用 queryable state（Deliverable: 模式文档 + 查询接口 + 测试；deps: 无；Item Type: Feature + Proof）
-- [ ] WI15 CDC schema evolution 协调：**前置闸门 = WI0 按"首个真实需求"触发条件撤销 cdc-design 既有 defer（owner 确认）**；协调形态（checkpoint 阻塞 vs fail-fast 二选一）随 WI0 裁定 + sink 侧 DDL 应用或显式拒绝（Deliverable: 协调协议 + DDL/拒绝路径测试 + cookbook 更新；deps: WI0 + WI7（表标识依赖）；Item Type: Feature）
+- [x] WI13 checkpoint 对象存储后端：S3 兼容对象存储 checkpoint storage（对齐 `LocalFileCheckpointStorage`/`JdbcCheckpointStorage` 既有 SPI 形态）（Deliverable: 存储实现 + 恢复 E2E + 文档；deps: 无；Item Type: Feature）
+- [x] WI14 可查询状态轻量版：结果即状态官方模式（窗口/聚合结果落键控可查存储）+ ops REST keyed state 只读接口——不追通用 queryable state（Deliverable: 模式文档 + 查询接口 + 测试；deps: 无；Item Type: Feature + Proof）
+- [ ] WI15 CDC schema evolution 协调（**本周期显式延期——WI0 裁定 R6：cdc-design 既有 defer 维持（触发条件=首个真实需求未出现，roadmap 立项属缺口登记不构成真实用户需求），本周期不实施、协调形态不预裁**）：前置闸门 = 首个真实需求出现后按"首个真实需求"触发条件撤销 cdc-design 既有 defer（owner 确认）；协调形态（checkpoint 阻塞 vs fail-fast 二选一）届时随裁定 + sink 侧 DDL 应用或显式拒绝（Deliverable: 协调协议 + DDL/拒绝路径测试 + cookbook 更新；deps: WI0 + WI7（表标识依赖，WI7 已交付）；Item Type: Feature）
 
 ### M4 — 观测与运维契约
 
-- [ ] WI16 观测三件套：busy/backpressured/idle 时间占比指标 + watermark 级联 skew 指标 + 边级队列填充比与实时曲线——队列填充比复用既有 `nop.stream.io.channel.queue.size` gauge（productization item 32 已 done，fill% = depth/capacity 推导），不重复建设直测面（Deliverable: 指标族 + 级联 skew 测试 + owner doc 指标表更新；deps: 无；Item Type: Feature）
+- [x] WI16 观测三件套：busy/backpressured/idle 时间占比指标 + watermark 级联 skew 指标 + 边级队列填充比与实时曲线——队列填充比复用既有 `nop.stream.io.channel.queue.size` gauge（productization item 32 已 done，fill% = depth/capacity 推导），不重复建设直测面（Deliverable: 指标族 + 级联 skew 测试 + owner doc 指标表更新；deps: 无；Item Type: Feature）
 
 ### M5 — SQL 与序列化补强
 
-- [ ] WI17 SQL 窄补强（单一连贯面，子交付物：a. DISTINCT/HAVING——**显式 supersede** `ai-dev/design/nop-stream/sql-subset-and-semantics.md` 既有 DISTINCT fail-fast 钉码与 sql roadmap WI16 不支持清单；b. lookup join 接入 WI11 异步增量（同步静态 lookup 已 done，仅接增量）；c. changelog/retract 维持不做的复审裁定与终值语义文档化）——不扩完整 SQL 栈（Deliverable: SQL 能力矩阵更新 + supersession 声明 + 裁定记录；deps: WI11；Item Type: Feature + Decision）
-- [ ] WI18 Avro/Schema Registry 格式层：format 层接入外部 Schema Registry + Avro 序列化（不内置 registry 服务）（Deliverable: format 插件 + 兼容测试 + 文档；deps: 无；Item Type: Feature）
+- [x] WI17 SQL 窄补强（单一连贯面，子交付物：a. DISTINCT/HAVING——**显式 supersede** `ai-dev/design/nop-stream/sql-subset-and-semantics.md` 既有 DISTINCT fail-fast 钉码与 sql roadmap WI16 不支持清单；b. lookup join 接入 WI11 异步增量（同步静态 lookup 已 done，仅接增量）；c. changelog/retract 维持不做的复审裁定与终值语义文档化）——不扩完整 SQL 栈（Deliverable: SQL 能力矩阵更新 + supersession 声明 + 裁定记录；deps: WI11；Item Type: Feature + Decision）
+- [x] WI18 Avro/Schema Registry 格式层：format 层接入外部 Schema Registry + Avro 序列化（不内置 registry 服务）（Deliverable: format 插件 + 兼容测试 + 文档；deps: 无；Item Type: Feature）
 
 ### M6 — 收口
 
-- [ ] WI19 roadmap 收口：组合 E2E（Kafka exactly-once + 窗口事件 sideOutput；lookup 异步链路如 WI11 已落地则纳入）、docs-for-ai 全面一致性核对（`docs-for-ai/03-modules/nop-stream-connectors.md` 能力矩阵 / `docs-for-ai/03-modules/nop-stream-user-guide.md` / `docs-for-ai/03-modules/nop-stream.md` 指标表——吸收 F-30/F-33/F-34/F-36 行并回写 productization F 表销号）、不跟进三类清单与 vision/D-GAP/cdc-design 裁定一致性终核、独立 closure audit（Deliverable: 收口证据 + 文档核对 + F 表销号；deps: WI0 + WI1 + WI3 + WI6 + WI8 + WI16（其余 WI 完成或显式按需/延期裁定）；Item Type: Proof）
+- [x] WI19 roadmap 收口：组合 E2E（Kafka exactly-once + 窗口事件 sideOutput；lookup 异步链路如 WI11 已落地则纳入）、docs-for-ai 全面一致性核对（`docs-for-ai/03-modules/nop-stream-connectors.md` 能力矩阵 / `docs-for-ai/03-modules/nop-stream-user-guide.md` / `docs-for-ai/03-modules/nop-stream.md` 指标表——吸收 F-30/F-33/F-34/F-36 行并回写 productization F 表销号）、不跟进三类清单与 vision/D-GAP/cdc-design 裁定一致性终核、独立 closure audit（Deliverable: 收口证据 + 文档核对 + F 表销号；deps: WI0 + WI1 + WI3 + WI6 + WI8 + WI16（其余 WI 完成或显式按需/延期裁定）；Item Type: Proof）
 
 ## Follow-up Backlog
 
 > 次级事项登记，不计入进度分母，不参与完成判定。晋级为正式 WI 时从 WI20 起顺延取号。
 
+- **滑窗 frame/deduct（或两阶段聚合）设计+实施（WI12 G2 GO 裁定，2026-10-08）**：JMH 实测 ACCUMULATING 滑窗每元素 add 成本随重叠窗口数 N 超线性放大（N=1→152ns、N=6→1047ns、N=12→2342ns（15.4×）、N=36→7802ns（51×）——`SlidingWindowFanoutBench`，avgt ns/op）；双判据（≥6×、≥1µs/元素 @N=12）满足。successor = 窗格化 frame/deduct 或两阶段聚合的设计+实施（现模型为 per-window 增量、瓶颈在 N 份 add/N 份状态访问；收益上界 = 压到 1 份 add + fire 期少量 deduct）。**显式 successor ownership**（WI12 基准与裁定已交付，实施另立 plan 从 WI20+ 取号）。
+- **水位 punctuation 节流——不做裁定（WI12 G1 NO-GO，2026-10-08）**：JMH 实测非触发水印纯控制面成本恒 ~1.7ns（keys 无关，`WatermarkEmitBench`）= 元素成本 0.1-1.2%——节流节省上限 ≤1.2% 且推迟下游水位推进。**不做**；触发条件 = 出现水印路径成为实测瓶颈的现网证据（届时重新基准）。AR-06（xpl watermark 生成器）仍由 r5-successors 承载，与本裁定互不阻塞。
 - **CEP × RocksDB 可用化**：现限 Memory 后端（`nop-stream/README.md:22` 自曝）；晋级条件 = 生产场景出现 CEP + 大状态诉求（Deliverable: 待触发时另立 plan；deps: 无；Item Type: Feature）。Why Not Blocking Closure：CEP 现网用例均为中小状态，Memory 后端 + checkpoint 可覆盖；晋级不随时间增加成本（状态序列化面与 r5-successors ST-05/ST-12 同域，届时一并考虑）。Successor Required: no。
 - **broadcast state（对比分析 P2-19）**：vision §七 #G36 永久排除现行有效；WI0 若裁定重启，须按 #G36 先例走 owner 裁决回写 vision 后从 WI20 晋级，defer 则登记触发条件 = 出现配置分发/规则热更业务诉求。
 - **message sink checkpoint 参与**：IMessageService sink 纳入 exactly-once 边界；触发条件 = 用户对平台消息通道提出丢弃零容忍诉求（现状 at-least-once 由后端承载）。

@@ -80,6 +80,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
      * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
      * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     * WI27: leftTimeout/rightTimeout 为非对称宽限（duration 格式，恰一或双声明，
+     * 与 timeout 互斥；未声明侧缺省 0=窗口末即完成）。
      */
     private KeyedList<io.nop.stream.flow.model.StreamJoinSpecModel> _joins = KeyedList.emptyList();
     
@@ -149,12 +151,10 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: sql
-     * WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
-     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
-     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
-     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
-     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
-     * 追加 sink 声明与边（产物自洽可执行）。
+     * WI37/D11: emit 两档 emit="UPDATE|CLOSE"（表面为枚举常量名大写——xdef 枚举字典校验按常量名
+     * 精确匹配，与 accumulationMode 同一约定；2026-10-08 WI37 执行修正 F-1，原小写表述废止）——
+     * UPDATE 逐记录发射窗口更新（隐含 ACCUMULATING），CLOSE 维持窗口末单次发射；
+     * 挂 <sql> 顶层属性，编译产物落 <strategy emit>（UPDATE 仅窗口聚合查询合法）
      */
     private io.nop.stream.flow.model.StreamSqlModel _sql ;
     
@@ -421,6 +421,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
      * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
      * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     * WI27: leftTimeout/rightTimeout 为非对称宽限（duration 格式，恰一或双声明，
+     * 与 timeout 互斥；未声明侧缺省 0=窗口末即完成）。
      */
     
     public java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> getJoins(){
@@ -714,12 +716,10 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: sql
-     *  WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
-     * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
-     * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
-     * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
-     * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
-     * 追加 sink 声明与边（产物自洽可执行）。
+     *  WI37/D11: emit 两档 emit="UPDATE|CLOSE"（表面为枚举常量名大写——xdef 枚举字典校验按常量名
+     * 精确匹配，与 accumulationMode 同一约定；2026-10-08 WI37 执行修正 F-1，原小写表述废止）——
+     * UPDATE 逐记录发射窗口更新（隐含 ACCUMULATING），CLOSE 维持窗口末单次发射；
+     * 挂 <sql> 顶层属性，编译产物落 <strategy emit>（UPDATE 仅窗口聚合查询合法）
      */
     
     public io.nop.stream.flow.model.StreamSqlModel getSql(){

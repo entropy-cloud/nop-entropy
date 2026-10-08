@@ -167,9 +167,13 @@ public class StreamReduceOperator<T>
                     key = rematerializeIfNeeded(key, (String) entry.get("keyTypeName"));
                     String expectedType = (String) entry.get("valueTypeName");
                     if (expectedType != null && !expectedType.equals(value.getClass().getName())) {
-                        throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
-                                .param(ARG_EXPECTED_TYPE, expectedType)
-                                .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+                        // WI17 (plan 2342) M-3 finding: the JSON round trip also degrades
+                        // VALUE containers (nested Object[] -> List, Long -> Integer), so
+                        // a recorded [Ljava.lang.Object; accumulator row arrives as an
+                        // ArrayList. Rebuild the recorded type (same contract as the key
+                        // side) instead of failing — a genuinely incompatible shape still
+                        // surfaces as ERR_STREAM_TYPE_MISMATCH with both type names.
+                        value = (T) rematerializeValue(value, expectedType);
                     }
                     values.put(key, (T) value);
                 }
@@ -189,5 +193,23 @@ public class StreamReduceOperator<T>
         ClassNameValidator.validateClassName(typeName);
         Class<?> clazz = Class.forName(typeName);
         return JsonTool.parseBeanFromText(JsonTool.serialize(value, false), clazz);
+    }
+
+    /**
+     * WI17 (plan 2342): value-side twin of {@link #rematerializeIfNeeded} — a rebuild
+     * failure is reported as the pinned ERR_STREAM_TYPE_MISMATCH (expected/actual type
+     * params), so corrupted snapshots fail typed exactly as before the rebuild path
+     * existed.
+     */
+    private static Object rematerializeValue(Object value, String typeName) throws Exception {
+        try {
+            return rematerializeIfNeeded(value, typeName);
+        } catch (StreamException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                    .param(ARG_EXPECTED_TYPE, typeName)
+                    .param(ARG_ACTUAL_TYPE, value.getClass().getName());
+        }
     }
 }

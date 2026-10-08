@@ -84,6 +84,9 @@ public final class StreamSqlAggregations {
             if (call.isStar() && desc.allowsNoArg()) {
                 arg = null;
             }
+            if (call.isDistinct()) {
+                desc = desc.withDistinct(true);
+            }
             subFns[i] = desc.create(arg);
         }
         return new SqlRowCompositeFunction(spec, keyEvals, subFns);

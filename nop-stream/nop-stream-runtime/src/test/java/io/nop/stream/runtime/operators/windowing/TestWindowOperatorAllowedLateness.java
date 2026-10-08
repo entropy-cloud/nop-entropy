@@ -116,8 +116,10 @@ public class TestWindowOperatorAllowedLateness {
      * the re-fire emits the late value. The purge deferral in WindowOperator
      * (skip DISCARDING clear when allowedLateness > 0 && event-time) is
      * structurally correct but cannot be discriminated at this test level
-     * because the TestableWindowOperator always uses ACCUMULATING (the
-     * accumulationMode wiring gap is a pre-existing issue registered as FU).
+     * because the TestableWindowOperator always uses ACCUMULATING (a deliberate
+     * choice: with allowedLateness > 0 the purge is skipped for event-time
+     * regardless of the mode; the WI38 (plan 03) wiring of the declared mode is
+     * pinned by TestWindowOperatorFactoryAccumulationModeWiring).
      * The full-aggregate proof (early + late elements) is covered by
      * TestE2EWindowAllowedLatenessFullAggregate with a real AggregateFunction.
      */

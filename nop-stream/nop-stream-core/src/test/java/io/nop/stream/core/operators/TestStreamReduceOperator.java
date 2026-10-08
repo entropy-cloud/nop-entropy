@@ -288,6 +288,48 @@ public class TestStreamReduceOperator {
     }
 
     @Test
+    void testReduceOperatorRestoreRematerializesDegradedContainers() throws Exception {
+        // WI17 (plan 2342) M-3: a JSON persist/restore round trip degrades value
+        // containers and integral scalars (Long -> Integer). restoreState must rebuild
+        // the recorded type instead of failing, and the restored accumulator must keep
+        // reducing.
+        ReduceFunction<Long> sum = (a, b) -> a + b;
+        StreamReduceOperator<Long> source = new StreamReduceOperator<>(sum);
+        TestOutput<Long> sourceOutput = new TestOutput<>();
+        source.setOutput((Output) sourceOutput);
+        source.open();
+        source.setCurrentKey(1L);
+        source.processElement(new StreamRecord<>(10L, System.currentTimeMillis()));
+
+        OperatorSnapshotResult snapshot = source.snapshotState(
+                new StateSnapshotContext(1L, System.currentTimeMillis()));
+
+        // simulate the persisted decode: values arrive in JSON-native shape
+        List<Map<String, Object>> degraded = new ArrayList<>();
+        for (Object item : (List<?>) snapshot.getOperatorState("reduce-state")) {
+            Map<String, Object> entry = new LinkedHashMap<>((Map<String, Object>) item);
+            Object value = entry.get("value");
+            entry.put("value", JsonTool.parseBeanFromText(
+                    JsonTool.serialize(value, false), value.getClass()));
+            degraded.add(entry);
+        }
+        // Long 10 -> JSON 10 -> Integer 10: class no longer matches valueTypeName
+        OperatorSnapshotResult decoded = new OperatorSnapshotResult();
+        decoded.putOperatorState("reduce-state", degraded);
+
+        StreamReduceOperator<Long> restored = new StreamReduceOperator<>(sum);
+        TestOutput<Long> restoredOutput = new TestOutput<>();
+        restored.setOutput((Output) restoredOutput);
+        restored.open();
+        restored.restoreState(decoded);
+
+        restored.setCurrentKey(1L);
+        restored.processElement(new StreamRecord<>(5L, System.currentTimeMillis()));
+        assertEquals(1, restoredOutput.getRecords().size());
+        assertEquals(15L, restoredOutput.getRecords().get(0).getValue());
+    }
+
+    @Test
     void testSnapshotIsolatesPostSnapshotMutation() throws Exception {
         ReduceFunction<MutableSum> mergeInPlace = (a, b) -> {
             a.setV(a.getV() + b.getV());

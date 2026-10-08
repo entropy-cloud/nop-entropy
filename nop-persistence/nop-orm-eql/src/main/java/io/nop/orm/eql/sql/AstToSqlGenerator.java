@@ -404,6 +404,41 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         printAlias(node.getAlias());
     }
 
+    // WI26: HOP 伪表函数渲染——与 TUMBLE 同为逐字回显（W2/T1 stream-only，SQL 通道
+    // 执行即失败，边界见 sql-subset-and-semantics §4c）
+    @Override
+    public void visitSqlHopTableSource(io.nop.orm.eql.ast.SqlHopTableSource node) {
+        print("HOP(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getSlideInterval().getExpr());
+        print(" ");
+        print(node.getSlideInterval().getIntervalUnit().name());
+        print(", INTERVAL ");
+        visit(node.getSizeInterval().getExpr());
+        print(" ");
+        print(node.getSizeInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
+    // WI26: SESSION 伪表函数渲染——逐字回显同上
+    @Override
+    public void visitSqlSessionTableSource(io.nop.orm.eql.ast.SqlSessionTableSource node) {
+        print("SESSION(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getGapInterval().getExpr());
+        print(" ");
+        print(node.getGapInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
     /**
      * WI7b Phase 1（plan 37；roadmap EC ③，BUG-5 的另一半）：执行 SQL 的 interval 字面量按方言
      * 模板 `sqlIntervalLiteral` 渲染。修复前所有方言都经基类裸输出 ` interval <expr> <UNIT>`，

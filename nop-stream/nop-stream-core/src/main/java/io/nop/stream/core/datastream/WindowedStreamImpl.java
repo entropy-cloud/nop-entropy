@@ -17,6 +17,7 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
+import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
@@ -30,12 +31,17 @@ import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.model.StreamComponents;
+import io.nop.stream.core.windowing.AccumulationMode;
+import io.nop.stream.core.windowing.WindowLifecycleEvent;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
 
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 
 public class WindowedStreamImpl<T, K, W extends Window>
@@ -52,12 +58,37 @@ public class WindowedStreamImpl<T, K, W extends Window>
     private long allowedLateness = 0L;
 
     /**
+     * WI38 (plan 03, FU-8 fix): accumulation mode declared by the model's windowing
+     * strategy. Null = pure Java API path without a declaration — the created
+     * operator keeps its legacy default (ACCUMULATING). The model path
+     * (AdvancedTransforms.buildWindow) always passes a value (null normalized to
+     * DISCARDING, the xdef default) so the declaration is what the operator runs.
+     */
+    private AccumulationMode accumulationMode;
+
+    /**
      * G-2+09e① (plan 369 Phase 2): tag for the late-data side output configured via
      * {@link #sideOutputLateData(OutputTag)}. Reaches the created window operator
      * through the {@code IWindowOperatorFactory} tag-aware variants; late records are
      * retrievable via {@link SingleOutputStreamOperator#getSideOutput(OutputTag)}.
      */
     private OutputTag<T> lateDataOutputTag;
+
+    /**
+     * WI8 (plan 2332): max-delay fallback emission window (ms past window end,
+     * processing-time clock). 0 = disabled. Flows to the created window operator
+     * through the factory's WI8-aware variants.
+     */
+    private long maxDelay = 0L;
+
+    /**
+     * WI8 (plan 2332): lifecycle event switch configured via {@link #emitWindowEvents()}
+     * together with its dedicated side-output tag. The tag id is derived from the
+     * operator uid ({@code <uid>:window-events}, R-events-tag m2) so two window
+     * operators never clobber each other's side-output registration.
+     */
+    private boolean emitWindowEvents = false;
+    private OutputTag<WindowLifecycleEvent> windowEventsOutputTag;
 
     private String windowingStrategyId;
     private StreamComponents components;
@@ -151,6 +182,46 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return lateDataOutputTag;
     }
 
+    @Override
+    public WindowedStreamImpl<T, K, W> emitWindowEvents() {
+        this.emitWindowEvents = true;
+        // R-events-tag (plan 2332 m2): the tag id is derived from the operator uid —
+        // the upstream transformation id is stable within a build and unique per
+        // chain position, so two window operators do not share a side-output tag.
+        String operatorUid = transformation != null
+                ? String.valueOf(transformation.getId())
+                : "window";
+        this.windowEventsOutputTag = new OutputTag<>(operatorUid + ":window-events",
+                BasicTypeInfo.of(WindowLifecycleEvent.class));
+        return this;
+    }
+
+    /** Whether lifecycle events were enabled via {@link #emitWindowEvents()}. */
+    public boolean isEmitWindowEvents() {
+        return emitWindowEvents;
+    }
+
+    /** The dedicated lifecycle-event side-output tag (non-null once enabled). */
+    public OutputTag<WindowLifecycleEvent> getWindowEventsOutputTag() {
+        return windowEventsOutputTag;
+    }
+
+    @Override
+    public WindowedStreamImpl<T, K, W> maxDelay(long maxDelay) {
+        if (maxDelay < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxDelay")
+                    .param(ARG_DETAIL, "maxDelay must be >= 0 (0 = disabled), but was: " + maxDelay);
+        }
+        this.maxDelay = maxDelay;
+        return this;
+    }
+
+    /** Max-delay fallback window configured via {@link #maxDelay(long)}. */
+    public long getMaxDelay() {
+        return maxDelay;
+    }
+
     public WindowedStreamImpl<T, K, W> allowedLateness(long allowedLateness) {
         this.allowedLateness = allowedLateness;
         return this;
@@ -158,6 +229,16 @@ public class WindowedStreamImpl<T, K, W extends Window>
 
     public long getAllowedLateness() {
         return allowedLateness;
+    }
+
+    /** WI38 (plan 03): declares the accumulation mode (null = operator legacy default). */
+    public WindowedStreamImpl<T, K, W> accumulationMode(AccumulationMode accumulationMode) {
+        this.accumulationMode = accumulationMode;
+        return this;
+    }
+
+    public AccumulationMode getAccumulationMode() {
+        return accumulationMode;
     }
 
     public KeyedStream<T, K> getKeyedStream() {
@@ -238,7 +319,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -258,7 +340,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 (Class<ACC>) (Class<?>) Object.class,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -275,7 +358,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -292,7 +376,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 

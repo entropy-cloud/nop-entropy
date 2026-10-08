@@ -278,7 +278,9 @@ public class TestStreamCheckpointAndWindowContract {
         return Stream.of(
                 Arguments.of("triggerId=\"t\"", "", "triggerId"),
                 // WI10/D9: allowedLateness released — no longer fail-fast
-                Arguments.of("accumulationMode=\"ACCUMULATING\"", "", "accumulationMode"),
+                // WI38/D10 (2026-10-08): ACCUMULATING released — only the spec-only
+                // A&R value stays rejected at build time.
+                Arguments.of("accumulationMode=\"ACCUMULATING_AND_RETRACTING\"", "", "accumulationMode"),
                 Arguments.of("", "<triggerId>t</triggerId>", "triggerId"));
     }
 

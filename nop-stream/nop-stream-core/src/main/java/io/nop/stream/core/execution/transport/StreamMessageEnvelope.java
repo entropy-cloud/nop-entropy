@@ -80,6 +80,16 @@ public class StreamMessageEnvelope implements Serializable {
      */
     private String outputTagId;
 
+    /**
+     * WI7 (plan 2336): optional change kind of the carried record, as the enum name
+     * (null = insert-only append default). Keeps the R4 guard effective across
+     * cross-process edges and checkpoint in-flight recovery.
+     */
+    private String rowKind;
+
+    /** WI7: optional table identity of the carried record (null = unidentified). */
+    private String tableId;
+
     public StreamMessageEnvelope() {
     }
 
@@ -151,6 +161,22 @@ public class StreamMessageEnvelope implements Serializable {
 
     public void setOutputTagId(String outputTagId) {
         this.outputTagId = outputTagId;
+    }
+
+    public String getRowKind() {
+        return rowKind;
+    }
+
+    public void setRowKind(String rowKind) {
+        this.rowKind = rowKind;
+    }
+
+    public String getTableId() {
+        return tableId;
+    }
+
+    public void setTableId(String tableId) {
+        this.tableId = tableId;
     }
 
     @Override

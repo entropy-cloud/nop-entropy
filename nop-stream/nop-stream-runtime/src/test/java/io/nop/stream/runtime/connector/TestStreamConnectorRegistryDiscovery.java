@@ -16,6 +16,7 @@ import io.nop.ioc.loader.BeanContainerBuilder;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorDirection;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -86,10 +87,12 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testDiscoversAllFiveConnectorBeansFiles() {
+    public void testDiscoversAllConnectorBeansFiles() {
         List<String> names = discoveredBeansFiles.stream().map(IResource::getName).sorted().toList();
+        // WI3 (plan 2335) adds connector-kafka.beans.xml to the discovered set
         assertEquals(List.of("connector-batch.beans.xml", "connector-debezium.beans.xml",
-                "connector-file.beans.xml", "connector-jdbc.beans.xml", "connector-message.beans.xml"), names);
+                "connector-file.beans.xml", "connector-jdbc.beans.xml", "connector-kafka.beans.xml",
+                "connector-message.beans.xml"), names);
     }
 
     // ------------------------------------------------------------------
@@ -97,17 +100,18 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testRegistryEnumeratesAllEightEndpointComponents() {
+    public void testRegistryEnumeratesAllEndpointComponents() {
         StreamConnectorRegistry registry = catalog.getRegistry();
-        assertEquals(List.of("batch-loader", "debezium-cdc", "file", "message"),
+        // WI3 (plan 2335) adds the native kafka source and kafka-2pc sink
+        assertEquals(List.of("batch-loader", "debezium-cdc", "file", "kafka", "message"),
                 registry.getRegisteredSourceTypeNames());
-        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "message"),
+        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "kafka-2pc", "message"),
                 registry.getRegisteredSinkTypeNames());
-        assertEquals(8, catalog.listConnectors().size());
+        assertEquals(10, catalog.listConnectors().size());
     }
 
     @Test
-    public void testAllEightBuiltInFactoriesDeclareNoAliases() {
+    public void testAllBuiltInFactoriesDeclareNoAliases() {
         for (ConnectorCapabilityDescriptor d : catalog.listConnectors()) {
             assertEquals(List.of(), d.getAliases(), d.getTypeName() + " must declare no aliases");
         }
@@ -123,21 +127,36 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.file.FileSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.SPLIT_CURSOR_CHECKPOINT, "directoryPath");
+        // WI2 plan 2343 Phase 2: the factory surface produces the FLIP-27 MessageSource.
         assertDescriptor(ConnectorDirection.SOURCE, "message",
-                "io.nop.stream.connector.MessageSourceFunction",
+                "io.nop.stream.connector.MessageSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
-        // debezium-cdc PARALLEL：2026-10-02 用户裁定（WI4 B 层确定性表路由，
-        // SubtaskShardedSourceFunction），owner doc connectors.md「已裁定例外」节；
-        // 描述符能力值翻转时必须同步更新本钉定断言
+        // debezium-cdc PARALLEL：WI2 plan 2343 起由 FLIP-27 split 机制承接表路由
+        // （一表一 split，enumerator 分配即路由；B 层 SubtaskShardedSourceFunction
+        // 例外已随迁移撤销——见 connectors.md 冻结政策节）；能力值不变
         assertDescriptor(ConnectorDirection.SOURCE, "debezium-cdc",
-                "io.nop.stream.connector.debezium.DebeziumCdcSourceFunction",
+                "io.nop.stream.connector.debezium.DebeziumCdcSource",
                 "REPLAYABLE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "config");
+        // WI3 (plan 2335): native kafka source — offset map in the checkpoint
+        // (REPLAYABLE), partition round-robin sharding over the deployment parallelism
+        assertDescriptor(ConnectorDirection.SOURCE, "kafka",
+                "io.nop.stream.connector.kafka.KafkaSourceFunction",
+                "REPLAYABLE", ConnectorParallelism.PARALLEL,
+                ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "bootstrapServers", "topic");
+        // WI3 (plan 2335): native kafka-2pc sink — commit-at-barrier epoch transactions
+        assertDescriptor(ConnectorDirection.SINK, "kafka-2pc",
+                "io.nop.stream.connector.kafka.KafkaTwoPhaseCommitSink",
+                "TWO_PHASE_COMMIT", ConnectorParallelism.PARALLEL,
+                ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
+                "bootstrapServers", "topic", "transactionalIdPrefix");
         // R5 CON-06: batch-loader is a single-writer source (ParallelismCheckable
-        // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL
+        // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL.
+        // WI2 plan 2343 Phase 1: the factory surface produces the FLIP-27
+        // BatchLoaderSource (the legacy function keeps its programmatic API only).
         assertDescriptor(ConnectorDirection.SOURCE, "batch-loader",
-                "io.nop.stream.connector.batch.BatchLoaderSourceFunction",
+                "io.nop.stream.connector.batch.BatchLoaderSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "loaderProvider");
         assertDescriptor(ConnectorDirection.SINK, "file",
@@ -163,6 +182,38 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.batch.BatchConsumerSinkFunction",
                 "IDEMPOTENT", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.BUFFERED_RETRY, "consumerProvider");
+    }
+
+    /**
+     * WI4 (plan 2329): maturity pinned per built-in factory. Criterion (semantic
+     * strength): engine-fulfilled recovery semantics (checkpoint cursor / offset /
+     * 2PC) = PRODUCTION; recovery=NONE or backend-carried semantics = EXPERIMENTAL.
+     */
+    @Test
+    public void testMaturityGradesMatchSemanticStrengthCriterion() {
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "file").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SOURCE, "message").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "debezium-cdc").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "batch-loader").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "file").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SINK, "message").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "jdbc-2pc").getMaturity());
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SINK, "batch-consumer").getMaturity());
+        // WI3 (plan 2335): kafka source = offset-in-checkpoint (engine-backed) → PRODUCTION;
+        // kafka-2pc sink = commit-at-barrier with the documented residual duplicate window
+        // (guarantee not yet fully engine-backed) → EXPERIMENTAL
+        assertEquals(ConnectorMaturity.PRODUCTION,
+                find(ConnectorDirection.SOURCE, "kafka").getMaturity());
+        assertEquals(ConnectorMaturity.EXPERIMENTAL,
+                find(ConnectorDirection.SINK, "kafka-2pc").getMaturity());
     }
 
     private void assertDescriptor(ConnectorDirection direction, String typeName, String componentClass,
@@ -192,21 +243,27 @@ public class TestStreamConnectorRegistryDiscovery {
     // ------------------------------------------------------------------
 
     @Test
-    public void testCatalogProbesAllEightEndpoints(@TempDir Path tempDir) {
+    public void testCatalogProbesAllTenEndpoints(@TempDir Path tempDir) {
         IMessageService messageService = new LocalMessageService();
 
         // split sources have no instance-level consistency accessor (§8.1): descriptor
         // pinned to the matrix + behavior tests; probe reports alignment=false for them
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "file",
                 config("file", Map.of("directoryPath", tempDir.toString()))), false);
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "message",
-                config("message", Map.of("topic", "t", "messageService", messageService))), true);
+                config("message", Map.of("topic", "t", "messageService", messageService))), false);
         DebeziumConfig debeziumConfig = new DebeziumConfig();
         debeziumConfig.setName("discovery-probe");
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "debezium-cdc",
-                config("debezium-cdc", Map.of("config", debeziumConfig))), true);
+                config("debezium-cdc", Map.of("config", debeziumConfig))), false);
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "batch-loader",
-                config("batch-loader", Map.of("loaderProvider", loaderProvider()))), true);
+                config("batch-loader", Map.of("loaderProvider", loaderProvider()))), false);
 
         assertProbe(catalog.probe(ConnectorDirection.SINK, "file",
                 config("file", Map.of("outputDir", tempDir.resolve("out").toString()))), true);
@@ -216,6 +273,15 @@ public class TestStreamConnectorRegistryDiscovery {
                 config("jdbc-2pc", jdbcParams())), true);
         assertProbe(catalog.probe(ConnectorDirection.SINK, "batch-consumer",
                 config("batch-consumer", Map.of("consumerProvider", consumerProvider()))), true);
+
+        // WI3 (plan 2335): the kafka family factories' create path must be consumed too
+        // (construction-only probe — no broker I/O: source construction is config-only,
+        // sink construction is builder-only)
+        assertProbe(catalog.probe(ConnectorDirection.SOURCE, "kafka",
+                config("kafka", Map.of("bootstrapServers", "localhost:9092", "topic", "t"))), true);
+        assertProbe(catalog.probe(ConnectorDirection.SINK, "kafka-2pc",
+                config("kafka-2pc", Map.of("bootstrapServers", "localhost:9092", "topic", "out",
+                        "transactionalIdPrefix", "probe-tx"))), true);
     }
 
     private void assertProbe(io.nop.stream.core.connector.registry.ConnectorProbeResult result,
@@ -267,7 +333,8 @@ public class TestStreamConnectorRegistryDiscovery {
         assertEquals(ERR_STREAM_CONNECTOR_TYPE_NOT_FOUND.getErrorCode(), ex.getErrorCode());
         assertEquals("clickhouse", ex.getParam("typeName"));
         assertEquals("SINK", ex.getParam("direction"));
-        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "message"), ex.getParam("registeredTypes"));
+        assertEquals(List.of("batch-consumer", "file", "jdbc-2pc", "kafka-2pc", "message"),
+                ex.getParam("registeredTypes"));
     }
 
     @Test
@@ -291,5 +358,27 @@ public class TestStreamConnectorRegistryDiscovery {
         assertTrue(listing.contains(
                 "delivery=TWO_PHASE_COMMIT, parallelism=PARALLEL, recovery=TWO_PHASE_PENDING_COMMITS"),
                 listing);
+    }
+
+    /**
+     * WI2 plan 2343 Phase 3 (G4, R2 撤销钉)：没有任何 source 工厂再生产
+     * {@code SubtaskShardedSourceFunction}——B 层表路由例外已随 FLIP-27 迁移撤销，
+     * 表路由由 split 机制承接。回退工厂代际（componentClass 或工厂接口）即红。
+     */
+    @Test
+    public void testSubtaskShardedFactoryPathIsZero() {
+        io.nop.stream.core.connector.registry.StreamConnectorRegistry registry = catalog.getRegistry();
+        for (String typeName : List.of("file", "message", "debezium-cdc", "batch-loader", "kafka")) {
+            io.nop.stream.core.connector.registry.IStreamConnectorFactory factory =
+                    registry.resolveSourceFactory(typeName);
+            assertTrue(factory != null, "source factory must resolve: " + typeName);
+            if (factory instanceof io.nop.stream.core.connector.registry.IStreamSourceFunctionFactory) {
+                // only the kafka source is still allowed on the legacy factory surface
+                // (the explicit freeze-list entry, WI2 plan 2343 G6)
+                assertEquals("kafka", typeName,
+                        "SubtaskShardedSourceFunction-era legacy factory surface must be zero "
+                                + "outside the kafka freeze-list entry: " + typeName);
+            }
+        }
     }
 }

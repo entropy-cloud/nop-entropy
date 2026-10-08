@@ -70,7 +70,65 @@ StreamExecutionResult result = env.execute("simple-pipeline");
 
 `WindowedStream<T,K,W>`：`apply(WindowFunction)` / `aggregate(AggregateFunction)` / `reduce(ReduceFunction)` / `process(ProcessWindowFunction)` / `trigger(Trigger)` / `evictor(Evictor)`。**窗口算子执行需要 `nop-stream-runtime` 在 classpath**（缺失时 fail-fast 报 "WindowOperator requires nop-stream-runtime on classpath"，由**固定 FQCN 反射**发现的 `WindowOperatorFactoryImpl` 接线——写死类名的 `Class.forName` 反射而非 ServiceLoader，无 services 文件；第三方不能以 services 文件替换默认实现，需经 `setDefaultFactory` 显式注入。上文 checkpoint 执行器工厂才是真 `ServiceLoader` 发现，两者机制不同）。
 
-能力边界（build 期 fail-fast，不静默降级）——三分口径：① `union` 全支持：Java API `DataStream.union(DataStream...)`（WI6，`UnionTransformation` 进执行图）与 XDSL `<union>` 元素均已落地（锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`）；② 侧输出**提取 API** 已支持：`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 视图，经 `sink(...)`/`print()`/`collect(...)` 消费；③ 残余边界：XDSL `<sideOutput>` 变换与 side-output 视图上的下游 graph 级 transform（`map`/`filter`/`keyBy` 等）仍在 build 期 fail-fast（`ERR_STREAM_UNSUPPORTED`——side-output 边暂无图级路由；锚点 `TestAdvancedTransforms.sideOutputTransformThrowsWithRuntimeGapMessage` 与 `SideOutputDataStream` javadoc）。
+能力边界（build 期 fail-fast，不静默降级）——三分口径：① `union` 全支持：Java API `DataStream.union(DataStream...)`（WI6，`UnionTransformation` 进执行图）与 XDSL `<union>` 元素均已落地（锚点 `TestUnionPipelineE2E` / `TestSelfUnionPipelineE2E`）；② 侧输出全支持：**提取 API**（`SingleOutputStreamOperator.getSideOutput(OutputTag)` 返回 `SideOutputDataStream` 视图，经 `sink(...)`/`print()`/`collect(...)` 消费）与 **XDSL 图级路由**（`<sideOutput tag condition>` tap 节点 + `<edge outputTag>` tag 边，WI8/plan 2332，见下节）均已落地；③ 残余边界：side-output 视图上的下游 graph 级 transform（`map`/`filter`/`keyBy` 等）仍 fail-fast（`ERR_STREAM_UNSUPPORTED`——Java 视图仅限 sink/print/collect 消费；XDSL 图级消费请用 `<edge outputTag>`）。锚点：`TestAdvancedTransforms` sideOutput 用例族、`TestSideOutputTapOperator`、`TestSideOutputPipelineE2E`、`SideOutputDataStream` javadoc。
+
+### 窗口生命周期事件与 maxDelay 兜底出数（WI8/plan 2332）
+
+- **生命周期事件**：`windowed.emitWindowEvents()` 启用后，窗口 OPEN/CLOSE/IDLE/RESUME 事件经专用 side-output tag（`<operatorUid>:window-events`）外发（`WindowLifecycleEvent`：type + key + windowStart/End）。OPEN = 首条记录入窗；CLOSE = 清理时间到达（GlobalWindows 无清理时间——仅 OPEN/IDLE、无 CLOSE）；IDLE = 上游水印转 idle；RESUME = 水印恢复或此后首条数据。消费方式：`singleOutputStreamOperator.getSideOutput(tag)`（Java API）。XDSL 声明面暂未开放（Deferred）。
+- **maxDelay 兜底出数**：`windowed.maxDelay(ms)` 为 event-time 窗口挂 processing-time 兜底定时器（windowEnd + maxDelay）——watermark 停滞时到点强制出数（timing=EARLY、不清理，allowedLateness 语义兼容；processing-time 窗口配 maxDelay = 构造期 typed 拒绝）。TDengine MAX_DELAY 对标。**注意**：无数据不触发兜底（定时器随窗口创建注册）——watermark 永不推进时 maxDelay 是唯一出数路径（`maxDelayWithoutDataDoesNotFire` 钉定的是「无窗口数据则无兜底出数」）。
+- **merge 语义**：session 等合并窗口的 maxDelay 定时器随合并删除/重注册；活动窗口 registry 随 checkpoint 持久化，恢复不重发 OPEN。
+
+### XDSL sideOutput 图级路由（WI8/plan 2332）
+
+`<sideOutput tag condition>` 声明在 transform 节点上，语义是**复制 tap**：该节点上游 transform 的输出记录**原样通过主输出**（tap 不过滤主流），其中匹配 condition 的记录**额外复制**进 tag 通道。tag 通道的消费方是声明了 `outputTag` 的边：
+
+```xml
+<transforms>
+  <source id="src" bean="mySource"/>
+  <sideOutput id="tap" tag="late" condition="event.score &lt; 60"/>
+  <map id="tagMap"><source>enrich(event)</source></map>
+  <sink id="mainSink" bean="mySink"/>
+  <sink id="lateSink" bean="myLateSink"/>
+</transforms>
+<edges>
+  <edge id="e0" from="src" to="tap"/>
+  <edge id="e1" from="tap" to="mainSink"/>                        <!-- 主路径：全量记录 -->
+  <edge id="e2" from="tap" to="tagMap" outputTag="late"/>          <!-- tag 通道：仅匹配记录 -->
+  <edge id="e3" from="tagMap" to="lateSink"/>
+</edges>
+```
+
+- **condition**：xpl expr，`event` 绑定到记录值（与 `<keyBy keyExpr>` 同绑定），按 truthy 解释（null/0/空 = false）；省略 condition = 全量复制（纯 tap）。求值经统一 expr 求值器（`IEvalAction`），无「不支持的 expr 形态」——非法表达式在 XDSL 解析期即被 xdef 拒绝。
+- **tag 目标面**：tag 边的目标 transform 仅支持单输入一进一出形态（`map`/`filter`/`flatMap`/`process`/`custom`）；tag 边进 `sink` 被 typed 拒绝（sink 消费侧输出请走 Java API `getSideOutput(tag)` 视图）。tag 记录经部署期注册的 tag 消费方喂进目标算子链头（`StreamTaskInvokable.registerTagEdgeConsumer`），目标算子无感知。
+- **分区语义**：tag 边跟随生产者分区（不携带 partitioner）；声明 `partition`（非 FORWARD）或 `keyExpr` 在 tag 边上一律 build 期 typed 拒绝（`ERR_STREAM_EDGE_ATTR_UNSUPPORTED`）。
+- **配对校验（`validateDag`，build 期 typed 拒绝）**：tag id 是全局身份（注册为按 id 替换语义），因此 ① 声明了 tag 但无消费边、② 消费边引用未声明的 tag（from 非声明节点或 tag 不存在，`ERR_STREAM_REF_UNKNOWN`）、③ 同 tag 多条消费边、④ 两个 `<sideOutput>` 节点声明同 tag（`ERR_STREAM_DUPLICATE_ID`）——全部 fail-fast，不静默顶替。
+- 运行链路：`StreamEdge.outputTag`（激活既有字段）→ `JobEdge.outputTagId` → 本地 `GraphExecutionPlan` / 远程 `RemoteGraphExecutionPlanBuilder` 双路径为 tag 边目标注册消费方、为生产者接线 tag 感知 writer（主记录不过 tag 边、tag 记录不过主边——无双投递）；tag 边不参与算子链化（始终跨顶点边）。
+- 锚点：`TestAdvancedTransforms`（builder/tag 边图断言 + 配对校验矩阵）、`TestSideOutputTapOperator`（tap 复制语义/condition 消费）、`TestSideOutputPipelineE2E`（XDSL → execute → 分流/主流不变全链）、`TestRemoteSideOutputTagWiring`（远程部署路径注册）、`TestSideOutputChainingE2E`（HG-01 跨任务通道）。
+
+### 范围重算与回补作业形态（WI10/plan 2334）
+
+TDengine RECALCULATE/FILL_HISTORY 对标的两个重算作业形态。二者都是**独立有界作业**，复用 savepoint/restore 与 upsert sink 幂等，不引入新引擎机制。
+
+**RECALCULATE（时间范围重放）**：`io.nop.stream.runtime.source.TimeRangeReplayableSource` 包装既有 REPLAYABLE source，按事件时间范围 [from, to)（含头不含尾）过滤重放，下游接 jdbc-2pc `dmlMode=UPSERT` sink 幂等回写。构造契约：`(SourceFunction delegate, TimestampAssigner<T> assigner, long from, long to)`——非 `ReplayableSourceFunction` 的 delegate 构造期 typed 拒绝（该 source 无 seek/offset 语义，不可范围重放）；`to <= from` typed 拒绝。发射语义：`collect` 分支范围内记录经 `collectWithTimestamp(e, 提取时间戳)` 再发射（下游事件时间窗口开箱可用）；`collectWithTimestamp` 分支范围内原样透传；范围外丢弃。offset 语义保留内层（`seek`/`getCurrentOffset`/`snapshotState`/`initializeState` 全套转发）；capability faces 转发（`getSourceConsistency` 逐字转发、`ParallelismCheckable`/`ConnectivityCheckable` 在内层实现时转发——包装 batch-loader 不丢 parallelism=1 防线与连通性探针；内层无探针契约时 `checkConnection` typed 拒绝而非假通过）。
+
+RECALCULATE 作业配方（每条都是硬契约，锚点 `TestRecalculateBackfillE2E`）：
+
+1. **独立提交**：每次重算用**新 jobId + 新 checkpoint storage 目录**——同 jobId 重提交会 auto-restore 已 seek 的 offset，重放为空。
+2. **有界 source 提交契约**：只经「作业终结 MAX_WATERMARK 触发窗口出数」进入 2PC sink 的记录**不会被提交**（终结出数后无 checkpoint barrier，开放 epoch 永不 preCommit——`pendingCommits` 保持空）。有界 source 必须 (a) 数据发完后**显式 emitWatermark(≥ 最末窗口 end)** 让窗口在运行中出数，(b) **驻留 ≥ 一个 checkpoint interval**（如 800ms > 200ms）让周期 barrier 完成 preCommit+commit。wrapper 对 watermark 仅透传——终结 watermark 是内层 source 的责任。
+3. **幂等回写**：sink 用 `dmlMode=UPSERT` + `keyColumns`（如 `k,win_end`）；泛型（非 ChangeEvent）结果行必须给 `opMapper`（纯重算回写用 `"c"`，重算只重写当前态、无删除）。同 key 重放 = 覆盖同值，表态不变即幂等成立。
+
+**FILL_HISTORY（历史回补）**：`BatchLoaderSourceFunction`（批量装载）+ UPSERT sink 的独立作业；loader 返回空批即自然 EOS 终态（无需 DRAIN/cancel）。重跑回补作业重放全部装载行，UPSERT 同 key 覆盖，无重复行（锚点同 `TestRecalculateBackfillE2E`）。
+
+逐源边界矩阵：
+
+| 内层 source | 范围重放 | 说明 |
+|---|---|---|
+| `CollectionReplayableSource` | 支持 | offset = 下标；测试/cookbook 基准源 |
+| `BatchLoaderSourceFunction` | 支持 | offset = 已发射计数（确定性遍历前提不变）；包装后 parallelism=1 防线经 capability 转发保持 |
+| debezium-cdc | 不适用 | offset 是 binlog 位点**无时间语义**——按事件时间 seek 需位点↔时间戳映射表（Deferred）；范围重放请走 collection/batch-loader 路径 |
+| 非 REPLAYABLE source（如 fraud demo 的 `DirectoryFileSourceFunction`） | typed 拒绝 | 构造期 `ERR_STREAM_INVALID_ARG`，错误含源类名——无 seek 语义不可范围重放 |
+
+与 WI9 SKIP_GAP 的交互：SKIP_GAP 按**具体 source 类型**分派（仅 `CollectionReplayableSource` 支持），wrapper 包装后一律 typed 拒绝。RECALCULATE 是全新有界作业，正常不触发该路径。
 
 ### 状态与计时器心智模型
 
@@ -114,7 +172,9 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
 
-可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
+可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）、`sideOutput`（`tag` + 可选 `condition`，复制 tap 语义，见上节）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）、`outputTag`（tag 通道消费边，配对规则见上节）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
+
+   **WI27 非对称窗口 join timeout（2026-10-08）**：`<joins>/<joinSpec>` 支持对称 `timeout` 或非对称 `leftTimeout`/`rightTimeout`（duration 格式，恰一或双声明，与 timeout 互斥，未声明侧缺省 0=窗口末即完成）。语义边界：配对在记录到达时按窗口内叉积 eager 完成，配对集合恒等于对称 min(leftTimeout, rightTimeout) 的配对集合（ksql WITHIN(before,after) 窗偏移语义的 narrowing 转译）；非对称的真实效果是 LEFT 未匹配左的 (L,null) 完成时点解耦到 leftTimeout、长侧缓冲保留至自身 fire 点。窗口 join 仅 INNER/LEFT。
 
 ### bean / xpl 双函数形态
 
@@ -200,9 +260,9 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 3. 作业拓扑经 `pipelineFactoryClass`（`ClusterPipelineFactory`）在 coordinator 进程重建——XDSL 管线经 `RemotePipelineResolver` 用与本地完全相同的 `DslModelParser → StreamModelDslBuilder → buildJobGraph` 链在 TM 侧重建，fingerprint 跨 JVM 一致。
 4. TM 失败自动 global recovery（fencing epoch 轮转 + 从最近 durable checkpoint 恢复）；健康状态机与告警见 owner doc。
 
-### 入口类现状（如实标注）
+### 入口类现状（WI1 后：main-scope 生产入口）
 
-独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 目前位于 `nop-stream-runtime` 的 **test scope**（`src/test/java/.../launch/`），经 runtime **test-jar** 导出供 fraud-example 的多 JVM gated 测试消费（依赖方向保持 main 单向）。生产部署如需独立进程入口，当前需消费该 test-jar 或自建 launch 类；「产品级 main-scope 启动入口」已登记为 Follow-up 候选。已实现的 main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）不受此限制。
+独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 及其支撑类（`SharedJdbcInfrastructure`/`PollingJdbcMessageService`）自 2026-10（plan 2328 / WI1）起位于 `nop-stream-runtime` 的 **main sources**（`io.nop.stream.runtime.launch` 包）——发布 runtime jar 直接含入口类。启动方式：① 启动脚本 `nop-stream/nop-stream-runtime/src/main/scripts/nop-stream-cluster.sh`（classpath 经 `dependency:build-classpath -DincludeScope=runtime` 自动装配；`NOP_STREAM_EXTRA_CLASSPATH` 追加 JDBC 驱动 jar，`jdbcDriver=` 指定驱动类）；② 手工 `java -cp <classpath>`（classpath = runtime jar + `dependency:build-classpath -DincludeScope=runtime` 输出 + 驱动 jar）。多 JVM gated 测试经 runtime test-jar 消费 harness（`MiniStreamCluster`，仍为 test-only）。main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）与入口类同面可用。
 
 ### 多 JVM gated 测试（手动启用）
 
@@ -267,7 +327,8 @@ runtime 集成：`WindowOperator` 对 `CountTrigger`/`ContinuousProcessingTimeTr
 
 | nop-stream 机制 | 语义 | 配置/锚点 |
 |---|---|---|
-| `CheckpointConfig` 配置项族 | 周期状态持久化（= 「autocheckpoint 间隔」等价物）：`checkpointInterval`（默认 60000ms）、`checkpointTimeout`（600000）、`barrierAlignmentTimeout`（30000）、`minPause`（500）、`maxConcurrentCheckpoints`（1）、`maxRetainedCheckpoints`（5）、`maxConsecutiveCheckpointFailures`（3）、`asyncSnapshotEnabled/ThreadPoolSize`、`unalignedCheckpointEnabled`（默认 true）+ `unalignedThreshold`（1000）、`maxRestartsPerRegion`（3）、`processingGuarantee`、`storageType`/`storageConfig`、`jobId`/`pipelineId`/`jobTerminationMode` | `CheckpointConfig.java`（core checkpoint 包）（XDSL 面经 `<checkpoint>` 暴露其中的 interval/timeout/processingGuarantee 等子集） |
+| keyed state 只读端点（WI14/plan 2340） | TM 自托管 ops server 可用：`GET /jobs/{jobId}/vertices/{vertexId}/subtasks/{idx}/state` 返回该 subtask 的 keyed stateData 快照（只读，零写回；JC-only 进程 503 `TASK_MANAGER_UNAVAILABLE`；任务未运行 404 `TASK_NOT_FOUND`；无 keyed backend = 空快照）。queryable-state-lite 裁定：不做写回/通用注册表/JC→TM read-RPC | `TaskManager.keyedStateSnapshot` + `StreamOpsHttpServer.handleKeyedStateQuery` |
+| `CheckpointConfig` 配置项族 | 周期状态持久化（= 「autocheckpoint 间隔」等价物）：`checkpointInterval`（默认 60000ms）、`checkpointTimeout`（600000）、`barrierAlignmentTimeout`（30000）、`minPause`（500）、`maxConcurrentCheckpoints`（1）、`maxRetainedCheckpoints`（5）、`maxConsecutiveCheckpointFailures`（3）、`asyncSnapshotEnabled/ThreadPoolSize`、`unalignedCheckpointEnabled`（默认 true）+ `unalignedThreshold`（1000）、`maxRestartsPerRegion`（3）、`processingGuarantee`、`storageType`/`storageConfig`、`jobId`/`pipelineId`/`jobTerminationMode`。**storageType=s3（WI13/plan 2339）**：S3 兼容对象存储 checkpoint 后端（`S3CheckpointStorage`），storageConfig 键 `s3.endpoint`/`s3.bucket`（均必填——bucket 同时是 auto-restore 恢复意图标记）/`s3.accessKey`/`s3.secretKey`（secretKey 不回显；credentialId 集成为 follow-up）/`s3.region`/`s3.pathStyleAccess`（默认 true，MinIO 形态）/`s3.basePrefix`（默认 nop-stream-checkpoints）；MinIO 需先建桶；**边界**：s3 覆盖 createStorage 直连入口（嵌入式/单进程），分布式执行器与 savepoint override 仍落 local（Deferred）；gated E2E 锚点 `TestS3CheckpointStorageMinioE2E` | `CheckpointConfig.java`（core checkpoint 包）（XDSL 面经 `<checkpoint>` 暴露其中的 interval/timeout/processingGuarantee 等子集） |
 | processing-time timer | `TimerService.registerProcessingTimeTimer` —— key 粒度定时回调（延迟逻辑/超告警），随 keyed state checkpoint | `TimerService.java`（core time 包） + `HeapInternalTimerService` |
 | DRAIN 截断 | `jobTerminationMode=DRAIN` / REST `stop?mode=DRAIN`：终态 checkpoint 后停机，完整处理存量数据（一次性消费全部已有数据后停止） | owner doc「停止作业」节 |
 

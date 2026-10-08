@@ -283,14 +283,47 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void havingFailsFast() {
-        assertInvalidArg("SELECT item, sum(amount) AS t FROM orders GROUP BY item "
-                + "HAVING sum(amount) > 0");
+    // WI17 (plan 2342): HAVING is now supported — flip from havingFailsFast
+    public void havingFilterShapeWindowed() {
+        String result = compile("SELECT item, sum(amount) AS t FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) "
+                + "GROUP BY item HAVING sum(amount) > 0");
+        assertTrue(result.contains("having"), "windowed HAVING must insert a having filter node");
+        assertTrue(result.contains("sum"), "HAVING expr must reference aggregate");
     }
 
     @Test
-    public void cteFailsFast() {
-        assertInvalidArg("WITH c AS (SELECT item FROM orders) SELECT item FROM c");
+    public void havingFilterShapeContinuous() {
+        String result = compile("SELECT item, count(amount) AS c FROM orders "
+                + "GROUP BY item HAVING count(amount) > 1");
+        assertTrue(result.contains("having"), "continuous HAVING must insert a having filter node");
+    }
+
+    @Test
+    public void havingOnJoinFailsFast() {
+        assertInvalidArg("SELECT o.item FROM orders o JOIN orders u ON o.item = u.item "
+                + "HAVING count(*) > 1");
+    }
+
+    @Test
+    public void havingWithoutGroupByFailsFast() {
+        assertInvalidArg("SELECT sum(amount) FROM orders HAVING sum(amount) > 0");
+    }
+
+    @Test
+    // WI17 (plan 2342): canonical HAVING form — the aggregate appears only in HAVING,
+    // not in SELECT; the compiler must still allocate its slot (B-1).
+    public void havingOnlyAggregateCanonicalShape() {
+        String result = compile("SELECT item FROM orders GROUP BY item HAVING count(amount) > 1");
+        assertTrue(result.contains("having"), "canonical HAVING must insert a having filter node");
+        assertTrue(result.contains("count"), "HAVING-only aggregate must be compiled into the spec");
+    }
+
+    @Test
+        public void cteQueryFailsFastWithDocAnchor() {
+        // WI32: CTE requires inline expansion design — removing the fail-fast alone
+        // produces a product referencing the CTE alias instead of the underlying table
+        assertInvalidArg("WITH t AS (SELECT item, amount FROM orders) "
+                + "SELECT item FROM t WHERE amount > 0");
     }
 
     @Test
@@ -317,8 +350,35 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void globalAggregationFailsFast() {
-        assertInvalidArg("SELECT sum(amount) AS t FROM orders");
+    public void globalAggregationCompilesWithSyntheticSingleKey() {
+        // WI28: global aggregation (no GROUP BY) — single synthetic key routes every
+        // record through one keyed reduce instance (single-parallelism reduction).
+        XNode n = compileNode("SELECT sum(amount) AS t FROM orders");
+        XNode keyBy = transform(n, "skey");
+        assertEquals("event[0][0]", keyBy.attrText("keyExpr"),
+                "the synthetic single key is the accumulator row head");
+        // continuous path embeds the spec in the begin/merge/toRow xpl (no registry node)
+        String beginBody = transform(n, "sbeg").childByTag("source").contentText();
+        assertTrue(beginBody.contains("SqlRowAggregateOps.begin")
+                        && beginBody.contains("\\\"fn\\\":\\\"sum\\\""),
+                () -> "begin body: " + beginBody);
+    }
+
+    @Test
+    public void globalAggregationWithHavingFailsFast() {
+        // §4b: 全局聚合 + HAVING 维持排除
+        assertInvalidArg("SELECT sum(amount) AS t FROM orders HAVING sum(amount) > 0");
+    }
+
+    @Test
+    public void windowedGlobalAggregationFailsFast() {
+        // WI28 audit B1: window TVF + global aggregation（无 GROUP BY）维持 typed 拒绝
+        // （修复前该输入在 buildGroupedAggregate 裸 NPE）
+        for (String fn : new String[]{"TUMBLE(orders.ts, INTERVAL 5 SECOND)",
+                "HOP(orders.ts, INTERVAL 2 SECOND, INTERVAL 4 SECOND)",
+                "SESSION(orders.ts, INTERVAL 5 SECOND)"}) {
+            assertInvalidArg("SELECT sum(amount) AS t FROM " + fn);
+        }
     }
 
     @Test
@@ -332,8 +392,11 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void distinctAggregateFailsFast() {
-        assertInvalidArg("SELECT item, count(DISTINCT amount) AS c FROM orders GROUP BY item");
+    // WI17 (plan 2342): DISTINCT aggregates are now supported — flip from distinctAggregateFailsFast
+    public void distinctAggregateShape() {
+        String result = compile("SELECT item, count(DISTINCT amount) AS c "
+                + "FROM orders GROUP BY item");
+        assertTrue(result.contains("distinct"), "spec JSON must carry the distinct flag");
     }
 
     @Test
@@ -402,9 +465,21 @@ public class TestStreamSqlCompiler {
 
     @Test
     public void outOfSubsetExpressionFailsFastWithStreamCode() {
-        // CASE 在 WI9 标量子集外——编译期走 default-reject（零 EQL 错误码泄漏）
-        assertInvalidArg("SELECT case when amount > 0 then 1 else 2 end AS x FROM orders");
-        assertInvalidArg("SELECT cast(amount as bigint) AS x FROM orders");
+        // WI29/WI30 放行 CASE/CAST/UDF 后，仍维持排除的标量面——FOR UPDATE typed 拒绝
+        assertInvalidArg("SELECT amount FROM orders FOR UPDATE");
+    }
+
+    @Test
+    public void caseCastProduceProjectedOutput() {
+        // WI29: CASE/CAST 产物投影——CASE 三元链 + CAST 经 SqlCastHelper import + 静态调用
+        XNode n = compileNode(
+                "SELECT case when amount > 0 then 'p' else 'n' end AS sign, "
+                        + "cast(amount as bigint) AS amt FROM orders");
+        String proj = transform(n, "sproj").childByTag("source").contentText();
+        assertTrue(proj.contains("SqlCastHelper.cast") && proj.contains("import"),
+                () -> "projection body: " + proj);
+        assertTrue(proj.contains("\"p\"") && proj.contains("\"n\""),
+                () -> "CASE ternary chain: " + proj);
     }
 
     // ----------------------------------------------------------------
