@@ -4,11 +4,11 @@
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.5（MA7，Owner Doc=—）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/14 巡检侧重）
 > Related: **`ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（R10 发现清单：5 P1+8 P2=13 条 open，summary 表 :440）**——R10=nop-job 第 10 轮 adversarial review（2026-06-19）；既有审计区（2026-05/06 deep+adversarial 多轮）不重审。
-> 机械基线（主 agent 实测，2026-10-08）：R10 清单 451 行（5 P1：资源双重计算/null-cost NPE/所有权丢失后仍执行/批处理 fail-vs-defer/死错误码静默兜底 + 8 P2）；nop-job/ 2026-08-01..HEAD **50 提交**（增量巡检面）。**13 条的修复状态台账在何处登记（是否有承接 plan）Phase 1 对账落盘**。
-> **范围裁定**：① R10 13 条逐条四态标定（already-fixed/still-live/duplicated/false-positive；发现准入与双锚沿 2357 形态；R10 报告自带「审查者亲读复核」声明仍须独立亲验——以当前代码为准）；② 增量巡检=50 提交 diff triage（维度 04/09/14 为主）；③ 撞车检索面=既有 nop-job 审计区（2026-05/06 各轮）/6.x（6.5 批次 a nop-job 面？无——6.5 批次 a 无 job；6.9 nop-job 域升级候选若有）/arm 台账（nop-job arm 若存在）。
+> 机械基线（主 agent 实测 2026-10-08；**对抗审查 agent_eed12f8e 勘正 M1——R10 实为 17 条**）：R10（AR-83~AR-99）= **5 P1（AR-83~87：资源双重计算/null-cost NPE/所有权丢失后仍执行/批处理 fail-vs-defer/死错误码静默兜底）+8 P2（AR-88~95）+4 P3（AR-96~99）=17 条**（报告 ：441/:442/:443 与 ：451 自述「新增 17 项」；权威矩阵 :30/:138 把 17 条全路由给 7.5——**初稿「13 条」静默排除 P3×4 系口径缺陷**）；summary 表锚=P1 :441/P2 :442（m1 勘正）。修复窗口证据：2026-06-19..HEAD 108 提交（承接 plan 339 completed 修复 AR-86/87/98、plan 344 引 AR-86 等）。**nop-job/ 2026-08-01 后 50 提交**（增量巡检面；确定性超集口径沿 2357〔m3/m4 勘正：显式零点窗口+偏差登记；域内域外标记〕）。**header 冻结标定对象（m7）**：AR-83~AR-95（P1+P2 层）+AR-96~99（P3 层批量归 watch-only——规则 #3）。
+> **范围裁定**：① R10 13 条逐条四态标定（already-fixed/still-live/duplicated/false-positive；发现准入与双锚沿 2357 形态；R10 报告自带「审查者亲读复核」声明仍须独立亲验——以当前代码为准）；② 增量巡检=50 提交 diff triage（维度 04/09/14 为主）；③ 撞车检索面（对抗审查 M3/m5 勘正）：**6.6 批次 b（nop-job 唯一 check 归属批次——plan 2353 已标定 nop-job P1=3，对照 `ai-dev/audits/check/nop-job.md` 与 R10 同 coordinator/worker/dao 面）**/既有 nop-job 审计区 11 目录（2026-05-18~06-19）/6.9（nop-job P2/P3 全量处置对照——54 单元全覆盖）/arm 台账（nop-job 无 arm——对冲写法保留）。
 > **方法学裁定**：① 标定+巡检双 agent（R10 13 条标定 / 50 提交增量巡检）；② 发现编号 `P1-7.5-NNN`/`P2-7.5-NNN`（R10 条目标定结果沿用 R10 ID 承载，仍 live 的 P1 进 R1.0 输入）；③ P0 即时通道；④ 验证协议：双锚；Phase 2 still-live 100% 亲读+标定抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 实跑；冻结协议三要素（seed=2361+清单哈希）落盘。
-> **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红按 2331 :93 先例归因登记。
-> Draft Review:（待对抗审查）
+> **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红按 plan 2331 **:92** 先例归因登记（m6 勘正）；**增量面确定性口径沿 2357**（裸 --since 时区敏感→显式零点窗口实测+偏差登记，覆盖账容差 ±2 并登记）。
+> Draft Review: agent_eed12f8e 首轮 **4 Major（M1 R10 实为 17 条〔AR-83~99 含 P3×4〕被静默排除——权威矩阵 :30/:138 全路由 7.5/M2 Exit Criteria 预设 still-live 结果〔抽验 AR-83/84/87 已修证伪〕/M3 撞车面漏 6.6 批次 b 唯一归属/M4 缺时区确定性口径）+ 7 Minor（m1–m7）**——本轮全部修复（详见各节勘正注记），待聚焦复核。
 
 ## Purpose
 
@@ -16,24 +16,24 @@
 
 ## Current Baseline
 
-- R10 清单 13 条 open（2026-06-19 审查者亲读复核声明）；其后 nop-job/ 50 提交（可能已修复部分）。
+- R10 清单 17 条 open（2026-06-19 审查者亲读复核声明）；其后 nop-job/ 108 提交（2026-06-19..HEAD——修复窗口；其中 2026-08-01 后 50 为本项增量巡检面〔m2 勘正〕）。
 - 绿色基线：编制期全仓 BUILD SUCCESS；工作树在前序收口 commit 后干净。
 
 ## Goals
 
-- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/7.5-nop-job-r10-incremental-audit.md`：摘要 + R13 条标定台账 + 增量巡检台账 + 发现列表（双锚）+ 裁决（附录记冻结协议）。
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/7.5-nop-job-r10-incremental-audit.md`：摘要 + R10 17 条标定台账 + 增量巡检台账 + 发现列表（双锚）+ 裁决（附录记冻结协议）。
 - 仍 live 者编号进 R1.0 输入；P0 即时通道。
 - index 登记 7.5 行 + 独立 closure audit + roadmap 7.5 翻 done（closure audit 先于翻 done）。
 
 ## Non-Goals
 
-- 既有审计区重审；修复执行；非 R10 清单与增量面的发现。
+- 既有审计区重审；修复执行；非 R10 清单（17 条外）与增量面的发现；P3×4 深标定（批量归 watch-only——规则 #3）。
 
 ## Scope
 
 ### In Scope
 
-- R10 13 条四态标定（以当前代码为准独立亲验）
+- R10 17 条标定（P1+P2 13 条四态独立亲验+P3×4 批量归 watch-only）
 - nop-job/ 2026-08-01..HEAD 50 提交 diff 巡检
 - 只读输入：git 历史、R10 报告、既有审计区对照
 
@@ -51,17 +51,17 @@ Targets: R10 清单 + 增量面
 - Item Types: `Proof`
 
 - [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① R10 13 条清单核验（与报告 :440 summary 表 diff）② 修复状态台账对账（承接 plan 检索）③ 50 提交聚类 ④ 冻结协议三要素 ⑤ 双 agent 分工
-- [ ] Agent 1「R10 标定」：13 条逐条四态标定（独立亲验+实跑〔可运行类〕+撞车比对）→ `_tmp/fcr-7.5-audit-a.md`
-- [ ] Agent 2「增量巡检」：50 提交逐簇 diff triage（发现准入沿 2357 规则）→ `_tmp/fcr-7.5-audit-b.md`
+- [x] 主 agent 对账落盘（委派对账 agent）：① R10 **17 条**清单核验（5 P1+8 P2+4 P3；与报告 :441/:442/:443 diff；**P3×4 批量归 watch-only**——规则 #3，不静默排除）② 修复状态台账对账（承接 plan 检索：339/344 等）③ 50 提交聚类（确定性口径；逐提交 hash/日期/域内域外标记〔m4〕）④ 冻结协议三要素 ⑤ 双 agent 分工
+- [ ] Agent 1「R10 标定」：17 条逐条四态标定（P1+P2 13 条独立亲验+实跑〔可运行类〕+撞车比对〔含 6.6 对照〕；P3×4 批量归 watch-only）→ `_tmp/fcr-7.5-audit-a.md`
+- [ ] Agent 2「增量巡检」：50 提交逐簇 diff triage（域内域外标记；发现准入沿 2357 规则）→ `_tmp/fcr-7.5-audit-b.md`
 - [ ] 主 agent 抽查质量：冻结表重放+标定/发现抽验（含实跑）
 - [ ] 产物 `_tmp/fcr-7.5-audit-a/b.md` + 清单
 - [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；still-live ≥9 行条目；双锚证据
-- [ ] 13 条全量标定+50 提交全覆盖；样本表可重放
+- [x] 审计产物落盘；still-live 条目各 ≥9 行（**按实际计数落盘，不预设结果**——M2 勘正）；双锚证据
+- [x] 17 条全量标定+增量面全覆盖（确定性口径±容差登记）；样本表可重放
 - [ ] No owner-doc update required（只读）
 - [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
@@ -101,9 +101,9 @@ Exit Criteria:
 
 > 只读审计计划（实跑为验证副作用），免除全量构建。
 
-- [ ] 报告落盘且 13 条全量标定+50 提交全覆盖
+- [x] 报告落盘且 17 条全量标定+增量面全覆盖（确定性口径）
 - [ ] 每条双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
 - [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
 - [ ] roadmap 7.5 回填 `done`；log 收口记录已写
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
