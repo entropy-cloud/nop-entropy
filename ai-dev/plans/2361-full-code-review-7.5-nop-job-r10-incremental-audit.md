@@ -45,25 +45,25 @@
 
 ### Phase 1 - 标定与巡检（2 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: R10 清单 + 增量面
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（6d0cd51142）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① R10 **17 条**清单核验（5 P1+8 P2+4 P3；与报告 :441/:442/:443 diff；**P3×4 批量归 watch-only**——规则 #3，不静默排除）② 修复状态台账对账（承接 plan 检索：339/344 等）③ 50 提交聚类（确定性口径；逐提交 hash/日期/域内域外标记〔m4〕）④ 冻结协议三要素 ⑤ 双 agent 分工
-- [ ] Agent 1「R10 标定」：17 条逐条四态标定（P1+P2 13 条独立亲验+实跑〔可运行类〕+撞车比对〔含 6.6 对照〕；P3×4 批量归 watch-only）→ `_tmp/fcr-7.5-audit-a.md`
-- [ ] Agent 2「增量巡检」：50 提交逐簇 diff triage（域内域外标记；发现准入沿 2357 规则）→ `_tmp/fcr-7.5-audit-b.md`
-- [ ] 主 agent 抽查质量：冻结表重放+标定/发现抽验（含实跑）
-- [ ] 产物 `_tmp/fcr-7.5-audit-a/b.md` + 清单
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent）：① **17/17 全量登记**（AR-83~87=P1×5/88~95=P2×8/96~99=P3×4 与 summary 锚逐条 diff 一致；P3×4 按规则 #3 批量归 watch-only 在册无静默排除；审查者亲读声明标记不采信终局须独立亲验）② **承接对账 17/17 全覆盖**——plan 267/268/269（全 completed）+保持性 325/338/339/344；残留声明 2 处（AR-92 filesort watch-only/AR-93 deferred）交 Agent 1 复核；防撞车（2026-08-13 invariant 系 AR-9x 系 nop-code 另一套 ID 空间不计入）③ **50 提交零偏差**（域内 30/域外 20；波次 W1~W10；author-date 口径 49 已登记；`--` 后置选项伪影警告登记）④ 冻结协议（clusters `1dc048c2…`；seed=SHA(plan:csv) 推导细节登记——采样 AR-94/84/87/93/92+巡检 seq 18/43/28/3/49 已由 Agent 1 实算重放一致）⑤ 双 agent 分工确认
+- [x] Agent 1「R10 标定」：**四态分布 already-fixed 17 / still-live 0 / dup 0 / FP 0**——P1×5 全亲读锚点+回归测试在库（AR-87 较 R10 建议更强：executorKind 完全退出路由）；P2×8 全 fixed（AR-92 filesort=watch-only residual 声明属实/AR-93 deferred 前提亲验已修）；P3×4 快速核验全成立；样本 5 条实跑/深验（TestJobWorkerScanner 16/16+TestJobDispatcherScannerRouting 8/8+TestJobCoordinatorScanner 27/27 全绿）；撞车零冲突（6.6 check 16 条与 R10 0 同缺陷；3 处同面项为组合性强化非重复）→ `_tmp/fcr-7.5-audit-a.md`
+- [x] Agent 2「增量巡检」：**编号发现 0 条**（零 P0/P1/P2/P3 立条）+Watch 注记 3 条（W-1 固定排序窗口尾部饥饿 P3-watch/W-2 raced 分支静默丢弃/W-3 dim-21 测试污染）；域外 20 登记逐行；样本 5 深检全净（REQUIRES_NEW 自调用生效性亲验等）；窗内 5 项自消解链登记防误立 → `_tmp/fcr-7.5-audit-b.md`
+- [x] 主 agent 抽查质量：冻结 clusters 重放一致（1dc048c2…）+ AR-87 显式抛错锚亲读成立 + W-1 固定窗口亲读成立（seed 推导细节差异登记——采样已实算重放一致）
+- [x] 产物 `_tmp/fcr-7.5-audit-a/b.md` + 清单
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（两 agent 一致零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；still-live 条目按实际计数落盘不预设结果（M2 勘正——每条 still-live ≥9 行完整条目）；双锚证据
-- [ ] 17 条全量标定+增量面全覆盖（确定性口径±容差登记）；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；still-live 0 条（按实际计数落盘）；双锚证据
+- [x] 17 条全量标定+增量面全覆盖（50 零偏差）；样本表可重放
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核
 
