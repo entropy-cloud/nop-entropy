@@ -1,6 +1,6 @@
 # 2359 full-code-review 7.3 nop-metadata P1×1 终验 + P2 台账巡检
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.3（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: `ai-dev/audits/arm-unclosed-findings-nop-metadata.md`（Owner Doc，137 行 v3——**只读不动**：roadmap 规则 #2「既有非本目录审计文件一律不动」）；`ai-dev/audits/arm-index-nop-metadata.md`（P1 汇总镜像 :240 已记维度20-01 fixed）。
@@ -80,31 +80,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.3-nop-metadata-incremental-audit.md`；index 登记 7.3 行 + still-open 归 P2 台账通道（P1 无 R1.0 新输入——终验 fixed）
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项）；**通过后** roadmap 7.3 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.3-nop-metadata-incremental-audit.md`；index 登记 7.3 行 + still-open 归 P2 台账通道（P1 无 R1.0 新输入——终验 fixed）
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（四项）；**通过后** roadmap 7.3 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建。
 
-- [ ] 报告落盘且 P1 终验+16 行全量标定+状态分叉登记
-- [ ] 每条双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；still-open 清单完整归 P2 台账通道
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.3 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 P1 终验+16 行全量标定+状态分叉登记
+- [x] 每条双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；still-open 清单完整归 P2 台账通道
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.3 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -116,14 +116,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.3 收口——**重定基**后 P1×1 fixed 终验 PASS 四锚一致（7478eeffe0），台账↔arm-index 状态分叉缺陷登记；P2×16 三分类 fixed 8/still-open 5/watch 3（16/16 行全量独立核验零翻案）；落账缺口登记（维度16-01）；still-open 5 归 P2 台账通道。独立 closure audit（agent_aa2bb7c7）首轮 **FAIL 附 1 Major**（报告 §二 8/16 行偏离 canonical 链——2 处类级翻转+2 幻影 ID+2 行缺失+1 证据误挂，与 2353 M-1 同型的报告转写级缺陷），处方 R1（8 行 canonical 收敛+附录措辞）落实后轻量复检 **PASS**（逐行对拍一致+冻结链未扰动+doc-links exit 0）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_aa2bb7c7-3c91-4a22-931f-d8fbb9760703（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性：首轮 FAIL（M-1 报告 §二 转写缺陷）→ R1 落实后复检 PASS（8 行逐行对拍 canonical 一致+计数与身份双收敛+未改动 8 行原样）
+  - 核验 B 计数对应 PASS：SHA 重放 ff3afd8e…（重放件 diff 为空+复核员独立推导串接双验证）；16 行逐行数 8+5+3；报告=index 7.3 行=still-open×5 行逐 ID 一致
+  - 核验 C 引用路径真实性 PASS：4/4 抽验+7478eeffe0 diff 抽验+附加三锚（反向证伪被污染行，canonical 为真）
+  - 核验 D 流程状态 PASS：roadmap 翻 done 前 todo；规则 #2 合规（台账未被回写——git status 三文件干净）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2359-full-code-review-7.3-nop-metadata-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；still-open 5 走 P2 台账通道（roadmap 规则 #3 允许通道）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- still-open 5 → R1.0 批量裁决（P2 台账承载）；状态分叉+落账缺口登记供台账 owner 维护参考——无本 plan 自有剩余工作
