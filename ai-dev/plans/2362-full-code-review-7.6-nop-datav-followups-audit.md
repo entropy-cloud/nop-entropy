@@ -45,25 +45,25 @@
 
 ### Phase 1 - 抽样标定与增量巡检（2 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: followups open P2 + 增量面
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（34806b36c8）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① open P2 精确枚举（52+裁定项预期；逐条 ID/标题/文件锚；**#69〔AR-7〕特殊状态注记**——已被 plan 1 Phase 4 Exit Criteria 强制裁定项承接，防误判 fixed/still-open〔m-03〕）② 45 提交聚类（确定性口径；域内域外标记）③ 冻结协议三要素（seed=2362+抽样表）④ 双 agent 分工
-- [ ] Agent 1「抽样标定」：≥25 条三分类标定（代码亲读+锚点核对；fixed-by-later-plan 须修复证据）→ `_tmp/fcr-7.6-audit-a.md`
-- [ ] Agent 2「增量巡检」：45 提交逐簇 diff triage（域内为主）→ `_tmp/fcr-7.6-audit-b.md`
-- [ ] 主 agent 抽查质量：冻结表重放+标定/发现抽验（含实跑 ≥1）
-- [ ] 产物 `_tmp/fcr-7.6-audit-a/b.md` + 清单
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent）：① **open 枚举 52+裁定项 #72 精确一致零出入**（#28/#31 已✅/:37-38 nit ✅/:39 未编号 nit 显式排除/#69 特殊状态注记落 CSV special_note）② **45 提交零偏差**（域内 38/域外 7；波次 W1~W7；**工具事故登记**：`--` 后置选项曾得 613——参数顺序纠正防下游复蹈）③ 冻结协议（seed=2362+backlog `8f378493…`+clusters `5a5f868d…`+样本 25 条 48.08%≥45% 且未抽样余量 27 与 Deferred 吻合；#69 在样本内）④ 双 agent 分工确认
+- [x] Agent 1「抽样标定」：25 条三分类 **fixed 2/watch 2/still-open 21**（覆盖率 48.1%≥45%；行号漂移逐条标注；低成本快赢 5 处打包建议）；**#72 独立评估**（sid 暴露面真实但属元数据泄露、AR-1 P0 修复后数据面已闭——中低紧急宜随 R1.0 ACL 收口顺带收敛）；撞车三面 clean（6.7 #50 同文件不同缺陷面无双登记/6.9 enc-key 锚亲证/2.6 零覆盖成立）→ `_tmp/fcr-7.6-audit-a.md`
+- [x] Agent 2「增量巡检」：**编号发现 1 条 P2-7.6-001**（NopDatavDashboardBizModel:552 残留裸 ISE——W4 引入+台账 P2-19 四处枚举外+W7 同链修复漏此位点双重遗漏链完整，可达性窄 P2 恰当）；域外 7 提交/288 事件登记移交；撞车四面全量（**fc5b390ae↔6.7 datav#P1-1 同面非修复关系核验**——P1-1 仍 live 所有权维持 6.7；19 项预存撞车归并清单含 4 项修复证据）→ `_tmp/fcr-7.6-audit-b.md`
+- [x] 主 agent 抽查质量：冻结双哈希重放一致（8f378493/5a5f868d）+ P2-7.6-001 锚亲读成立（裸 ISE 在位；路径 entity/ 微注记）
+- [x] 产物 `_tmp/fcr-7.6-audit-a/b.md` + 清单
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（两 agent 一致零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；still-live 条目各 ≥9 行；双锚证据
-- [ ] 抽样 ≥45% 达成+45 提交全覆盖；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；still-live 条目各 ≥9 行；双锚证据
+- [x] 抽样 48.1%≥45% 达成+45 提交全覆盖；样本表可重放（双哈希一致）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核
 
