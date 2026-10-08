@@ -188,6 +188,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+        public io.nop.orm.eql.ast.SqlHopTableSource visitSqlHopTableSource_ex(SqlHopTableSource_exContext ctx){
+           SqlHopTableSourceContext node = ctx.sqlHopTableSource();
+           return node == null ? null : visitSqlHopTableSource(node);
+        }
+      
       public io.nop.orm.eql.ast.SqlInQueryExpr visitSqlInQueryExpr(SqlInQueryExprContext ctx){
           io.nop.orm.eql.ast.SqlInQueryExpr ret = new io.nop.orm.eql.ast.SqlInQueryExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -477,6 +482,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
         public io.nop.orm.eql.ast.SqlSelect visitSqlSelect_ex(SqlSelect_exContext ctx){
            SqlSelectContext node = ctx.sqlSelect();
            return node == null ? null : visitSqlSelect(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlSessionTableSource visitSqlSessionTableSource_ex(SqlSessionTableSource_exContext ctx){
+           SqlSessionTableSourceContext node = ctx.sqlSessionTableSource();
+           return node == null ? null : visitSqlSessionTableSource(node);
         }
       
         public io.nop.orm.eql.ast.SqlSingleTableSource visitSqlSingleTableSource_ex(SqlSingleTableSource_exContext ctx){
@@ -1012,6 +1022,36 @@ public java.util.List<io.nop.orm.eql.ast.SqlGroupByItem> buildSqlGroupByItems_(S
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlHopTableSource visitSqlHopTableSource(SqlHopTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlHopTableSource ret = new io.nop.orm.eql.ast.SqlHopTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.tableName != null){
+               ret.setTableName((SqlHopTableSource_tableName(ctx.tableName)));
+            }
+            if(ctx.timeColumn != null){
+               ret.setTimeColumn((SqlHopTableSource_timeColumn(ctx.timeColumn)));
+            }
+            if(ctx.slideInterval != null){
+               ret.setSlideInterval((visitSqlIntervalExpr(ctx.slideInterval)));
+            }
+            if(ctx.sizeInterval != null){
+               ret.setSizeInterval((visitSqlIntervalExpr(ctx.sizeInterval)));
+            }
+            if(ctx.alias != null){
+               ret.setAlias((visitSqlAlias(ctx.alias)));
+            }
+            if(ctx.decorators != null){
+               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
+            }else{
+               ret.setDecorators(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
 public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_Context ctx){
     java.util.List<io.nop.orm.eql.ast.SqlExpr> list = new ArrayList<>();
     List<SqlExprContext> elms = ctx.sqlExpr();
@@ -1353,6 +1393,33 @@ public java.util.List<io.nop.orm.eql.ast.SqlMultiValueExpr> buildSqlRowList_(Sql
             if(ctx.select != null){
                ret.setSelect((visitSqlSelect(ctx.select)));
             }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+      public io.nop.orm.eql.ast.SqlSessionTableSource visitSqlSessionTableSource(SqlSessionTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlSessionTableSource ret = new io.nop.orm.eql.ast.SqlSessionTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.tableName != null){
+               ret.setTableName((SqlSessionTableSource_tableName(ctx.tableName)));
+            }
+            if(ctx.timeColumn != null){
+               ret.setTimeColumn((SqlSessionTableSource_timeColumn(ctx.timeColumn)));
+            }
+            if(ctx.gapInterval != null){
+               ret.setGapInterval((visitSqlIntervalExpr(ctx.gapInterval)));
+            }
+            if(ctx.alias != null){
+               ret.setAlias((visitSqlAlias(ctx.alias)));
+            }
+            if(ctx.decorators != null){
+               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
+            }else{
+               ret.setDecorators(Collections.emptyList());
+            }
+            
             ret.normalize();
             ret.validate();
           return ret;
@@ -1953,6 +2020,16 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract java.lang.String SqlHexadecimalLiteral_value(org.antlr.v4.runtime.Token token);
 
   /**
+   * rules: sqlHopTableSource
+   */
+  public abstract java.lang.String SqlHopTableSource_tableName(ParseTree node);
+
+  /**
+   * rules: sqlHopTableSource
+   */
+  public abstract java.lang.String SqlHopTableSource_timeColumn(ParseTree node);
+
+  /**
    * rules: sqlNumberLiteral
    */
   public abstract java.lang.String SqlNumberLiteral_value(org.antlr.v4.runtime.Token token);
@@ -1966,6 +2043,16 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: sqlRegularFunction
    */
   public abstract java.lang.String SqlRegularFunction_name(ParseTree node);
+
+  /**
+   * rules: sqlSessionTableSource
+   */
+  public abstract java.lang.String SqlSessionTableSource_tableName(ParseTree node);
+
+  /**
+   * rules: sqlSessionTableSource
+   */
+  public abstract java.lang.String SqlSessionTableSource_timeColumn(ParseTree node);
 
   /**
    * rules: sqlStringLiteral

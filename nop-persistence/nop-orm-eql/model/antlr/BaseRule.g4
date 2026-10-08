@@ -100,6 +100,7 @@ unreservedWord_:
     | BEGIN|END | CROSS
     | RANGE | WINDOW | GROUPS | ROW | PRECEDING | FOLLOWING | UNBOUNDED
     | TUMBLE
+    | HOP
     // WI7 Phase 3: NULLS 无保留 token（词法落 IDENTIFIER_），经 unreservedWord_ 进入
     // NULLS FIRST/LAST 子句位置与标识符位置（plan 26 Phase 3）
     | NULLS

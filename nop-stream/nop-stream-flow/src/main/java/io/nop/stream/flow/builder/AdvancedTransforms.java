@@ -317,6 +317,39 @@ final class AdvancedTransforms {
             long millis = parseDurationMillis(strategy.getDuration());
             return io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows.of(millis);
         }
+        // WI26: HOP — parameterized sliding window (duration=size, slide=slide; the
+        // repository ruling slide<=size is enforced here for the raw-DSL face too;
+        // the engine's validateSliding only checks positivity/ratio).
+        if (windowFnId.equals("sliding-event-time")) {
+            if (strategy.getDuration() == null || strategy.getSlide() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "slide")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires duration (size) and slide declarations")
+                        .loc(t.getLocation());
+            long size = parseDurationMillis(strategy.getDuration());
+            long slide = parseDurationMillis(strategy.getSlide());
+            if (slide <= 0 || slide > size) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "slide")
+                        .param(ARG_DETAIL, "windowingStrategies: slide (" + slide
+                                + "ms) must be positive and not exceed the window size ("
+                                + size + "ms)")
+                        .loc(t.getLocation());
+            }
+            return io.nop.stream.core.windowing.assigners.SlidingEventTimeWindows.of(size, slide);
+        }
+        // WI26: SESSION — parameterized session window (duration=gap).
+        if (windowFnId.equals("session-event-time")) {
+            if (strategy.getDuration() == null)
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "duration")
+                        .param(ARG_DETAIL, "windowingStrategies: parameterized windowFnId="
+                                + windowFnId + " requires a gap duration declaration")
+                        .loc(t.getLocation());
+            long gap = parseDurationMillis(strategy.getDuration());
+            return io.nop.stream.core.windowing.assigners.EventTimeSessionWindows.withGap(gap);
+        }
         // A small builtin catalog for backward compatibility (legacy ids without duration).
         switch (windowFnId) {
             case "tumbling-global":

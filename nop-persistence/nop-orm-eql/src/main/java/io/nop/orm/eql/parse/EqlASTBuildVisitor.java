@@ -884,6 +884,27 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
         return text(node);
     }
 
+    // WI26: HOP/SESSION 伪表函数表源——同 TUMBLE，t 的限定形式 表名.列名 拆为两个裸标识符
+    @Override
+    public String SqlHopTableSource_tableName(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public String SqlHopTableSource_timeColumn(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public String SqlSessionTableSource_tableName(ParseTree node) {
+        return text(node);
+    }
+
+    @Override
+    public String SqlSessionTableSource_timeColumn(ParseTree node) {
+        return text(node);
+    }
+
     /**
      * WI12 Phase 4（plan 38，裁定
      * ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md §4）：

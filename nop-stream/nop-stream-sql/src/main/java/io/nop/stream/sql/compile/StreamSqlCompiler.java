@@ -33,6 +33,8 @@ import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlHopTableSource;
+import io.nop.orm.eql.ast.SqlSessionTableSource;
 import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnaryExpr;
 import io.nop.orm.eql.ast.SqlOrExpr;
@@ -300,7 +302,9 @@ public final class StreamSqlCompiler {
                     + "outside the stream SQL v1 subset");
         }
         if (!(table instanceof SqlSingleTableSource)
-                && !(table instanceof SqlTumbleTableSource)) {
+                && !(table instanceof SqlTumbleTableSource)
+                && !(table instanceof SqlHopTableSource)
+                && !(table instanceof SqlSessionTableSource)) {
             throw CompileErrors.invalidArg("table source type " + table.getClass().getSimpleName()
                     + " is outside the stream SQL v1 subset");
         }
@@ -318,13 +322,19 @@ public final class StreamSqlCompiler {
         }
 
         AggregateScan scan = scanProjections(select);
-        boolean hasTumble = table instanceof SqlTumbleTableSource;
+        WindowSpec window = windowSpecOf(table);
 
         if (scan.aggregates.isEmpty()) {
             if (select.getGroupBy() != null) {
                 // GROUP BY without any aggregate would need dedup — not expressible in v1
                 throw CompileErrors.invalidArg("GROUP BY requires at least one aggregate "
                         + "in the stream SQL v1 subset");
+            }
+            // WI26: HOP/SESSION have no plain-pipeline carrier (no window strategy, no
+            // aggregate) — reject instead of silently ignoring the window declaration.
+            if (window != null && !"tumbling".equals(window.kind)) {
+                throw CompileErrors.invalidArg(window.kind + " window table source is only "
+                        + "supported for windowed aggregate (GROUP BY) queries");
             }
             return compilePlainPipeline(select, table, filterId, scan, ctx, transforms, edges,
                     idPrefix);
@@ -335,12 +345,79 @@ public final class StreamSqlCompiler {
             throw CompileErrors.invalidArg("global aggregation (aggregate without GROUP BY) "
                     + "is outside the stream SQL v1 subset");
         }
-        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, hasTumble);
-        return hasTumble
-                ? compileWindowedAggregate(select, (SqlTumbleTableSource) table, filterId,
-                        grouped, ctx, transforms, edges, idPrefix)
+        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, window);
+        return window != null
+                ? compileWindowedAggregate(select, window, filterId, grouped, ctx, transforms,
+                        edges, idPrefix)
                 : compileContinuousAggregate(select, (SqlSingleTableSource) table, filterId,
                         grouped, ctx, transforms, edges, idPrefix);
+    }
+
+    /**
+     * WI26: unified pseudo-table window spec (tumbling/sliding/session). Null for a
+     * plain single-table source. Applies the WI25 lateness carrier rule and the
+     * repository ruling slide &lt;= size (aligned with the Flink SQL HOP convention —
+     * the engine's validateSliding does not enforce it).
+     */
+    static WindowSpec windowSpecOf(SqlTableSource table) {
+        if (table instanceof SqlTumbleTableSource) {
+            SqlTumbleTableSource t = (SqlTumbleTableSource) table;
+            return new WindowSpec("tumbling", t.getTableName(), t.getTimeColumn(),
+                    EqlParseHelper.intervalDurationMillis(t.getInterval()), 0L, 0L, t);
+        }
+        if (table instanceof SqlHopTableSource) {
+            SqlHopTableSource h = (SqlHopTableSource) table;
+            long size = EqlParseHelper.intervalDurationMillis(h.getSizeInterval());
+            long slide = EqlParseHelper.intervalDurationMillis(h.getSlideInterval());
+            if (slide > size) {
+                throw CompileErrors.invalidArg("HOP slide (" + slide + "ms) must not exceed "
+                        + "the window size (" + size + "ms)");
+            }
+            return new WindowSpec("sliding", h.getTableName(), h.getTimeColumn(), size, slide,
+                    0L, h);
+        }
+        if (table instanceof SqlSessionTableSource) {
+            SqlSessionTableSource sess = (SqlSessionTableSource) table;
+            long gap = EqlParseHelper.intervalDurationMillis(sess.getGapInterval());
+            return new WindowSpec("session", sess.getTableName(), sess.getTimeColumn(),
+                    0L, 0L, gap, sess);
+        }
+        return null;
+    }
+
+    /** WI26: unified window declaration carried from the pseudo-table source. */
+    static class WindowSpec {
+        final String kind;
+        final String tableName;
+        final String timeColumn;
+        final long sizeMillis;
+        final long slideMillis;
+        final long gapMillis;
+        final SqlTableSource source;
+
+        WindowSpec(String kind, String tableName, String timeColumn, long sizeMillis,
+                   long slideMillis, long gapMillis, SqlTableSource source) {
+            this.kind = kind;
+            this.tableName = tableName;
+            this.timeColumn = timeColumn;
+            this.sizeMillis = sizeMillis;
+            this.slideMillis = slideMillis;
+            this.gapMillis = gapMillis;
+            this.source = source;
+        }
+
+        String windowFnId() {
+            switch (kind) {
+                case "tumbling":
+                    return "tumbling-event-time";
+                case "sliding":
+                    return "sliding-event-time";
+                case "session":
+                    return "session-event-time";
+                default:
+                    throw CompileErrors.invalidArg("unknown window kind " + kind);
+            }
+        }
     }
 
     // ----------------------------------------------------------------
@@ -389,16 +466,15 @@ public final class StreamSqlCompiler {
     // windowed aggregate (TUMBLE)
     // ----------------------------------------------------------------
 
-    private static String compileWindowedAggregate(SqlQuerySelect select,
-                                                   SqlTumbleTableSource tumble,
+    private static String compileWindowedAggregate(SqlQuerySelect select, WindowSpec window,
                                                    String filterId, GroupedAggregate grouped,
                                                    CompileContext ctx, List<XNode> transforms,
                                                    List<XNode> edges, String idPrefix) {
         String srcId = idPrefix + "src";
-        transforms.add(sourceNode(loc(tumble), srcId, tumble.getTableName()));
+        transforms.add(sourceNode(loc(window.source), srcId, window.tableName));
         String tswId = idPrefix + "tsw";
-        transforms.add(timestampsNode(tumble, tswId));
-        edges.add(edge(loc(tumble), idPrefix + "e0", srcId, tswId));
+        transforms.add(timestampsNode(loc(window.source), tswId, window.timeColumn));
+        edges.add(edge(loc(window.source), idPrefix + "e0", srcId, tswId));
 
         String prev = tswId;
         if (filterId != null) {
@@ -413,14 +489,14 @@ public final class StreamSqlCompiler {
         // WI25/Q1: honor the time column's lateness (mapped to the product strategy's
         // allowedLateness — the D9 pipeline consumes it); non-time-column declarations
         // fail fast instead of silently changing nothing.
-        Long timeColumnLateness = ctx.fieldLateness.get(tumble.getTimeColumn());
+        Long timeColumnLateness = ctx.fieldLateness.get(window.timeColumn);
         if (timeColumnLateness == null && !ctx.fieldLateness.isEmpty()) {
-            throw CompileErrors.invalidArg("lateness is only supported on the TUMBLE time "
-                    + "column '" + tumble.getTimeColumn() + "', declared on: "
+            throw CompileErrors.invalidArg("lateness is only supported on the pseudo-table "
+                    + "time column '" + window.timeColumn + "', declared on: "
                     + ctx.fieldLateness.keySet());
         }
-        String strategyId = ctx.nextStrategy(STRATEGY_ID, grouped.durationMillis,
-                timeColumnLateness == null ? 0L : timeColumnLateness);
+        String strategyId = ctx.nextStrategy(STRATEGY_ID, window, timeColumnLateness == null
+                ? 0L : timeColumnLateness);
         String winId = idPrefix + "win";
         transforms.add(mk(loc(select), "window", "id", winId, "strategyRef", strategyId));
         edges.add(edge(loc(select), idPrefix + "e3", keyId, winId));
@@ -821,7 +897,7 @@ public final class StreamSqlCompiler {
     private static GroupedAggregate buildGroupedAggregate(SqlQuerySelect select,
                                                           AggregateScan scan,
                                                           SqlTableSource table,
-                                                          boolean hasTumble) {
+                                                          WindowSpec window) {
         GroupedAggregate grouped = new GroupedAggregate(scan);
         SqlGroupBy groupBy = select.getGroupBy();
         if (groupBy.getItems() == null || groupBy.getItems().isEmpty()) {
@@ -829,13 +905,25 @@ public final class StreamSqlCompiler {
         }
         for (SqlGroupByItem item : groupBy.getItems()) {
             String text = item.getExpr().toSqlString().trim();
+            // WI26: window column naming contract holds in GROUP BY too (see the
+            // aggregatedRowResolver counterpart)
+            String lastSeg = item.getExpr() instanceof SqlColumnName
+                    ? lastSegment((SqlColumnName) item.getExpr()) : null;
+            if ((lastSeg != null && "window_start".equalsIgnoreCase(lastSeg))
+                    || "window_end".equalsIgnoreCase(lastSeg)) {
+                throw CompileErrors.invalidArg("window column '" + text
+                        + "' is not yet exposed in the aggregate output (planned as FU-E2; "
+                        + "the reserved names are window_start/window_end)");
+            }
             grouped.keySqlTexts.add(text);
             grouped.keyXplExprs.add(new SqlScalarXplPrinter(singleInputResolver(), null)
                     .print(item.getExpr()));
         }
-        if (hasTumble) {
-            grouped.durationMillis = EqlParseHelper.intervalDurationMillis(
-                    ((SqlTumbleTableSource) table).getInterval());
+        if (window != null) {
+            // WI26: unified pseudo-table window spec (size for tumbling/hop, gap for
+            // session — the durationMillis field carries the strategy duration)
+            grouped.durationMillis = "session".equals(window.kind) ? window.gapMillis
+                    : window.sizeMillis;
         }
 
         List<SqlRowAggregateSpec.AggCall> calls = new ArrayList<>();
@@ -880,6 +968,16 @@ public final class StreamSqlCompiler {
             GroupedAggregate grouped) {
         return col -> {
             String text = col.toSqlString().trim();
+            // WI26: the window column naming contract (window_start/window_end, aligned
+            // with Feldera/Flink) — the aggregate row does not carry them yet; any
+            // clause referencing them gets a typed pointer to FU-E2, never a silent
+            // unknown-column error.
+            String last = lastSegment(col);
+            if ("window_start".equalsIgnoreCase(last) || "window_end".equalsIgnoreCase(last)) {
+                throw CompileErrors.invalidArg("window column '" + text
+                        + "' is not yet exposed in the aggregate output (planned as FU-E2; "
+                        + "the reserved names are window_start/window_end)");
+            }
             for (int i = 0; i < grouped.keySqlTexts.size(); i++) {
                 if (grouped.keySqlTexts.get(i).equalsIgnoreCase(text)) {
                     return "event[" + i + "]";
@@ -972,10 +1070,16 @@ public final class StreamSqlCompiler {
     }
 
     private static XNode timestampsNode(SqlTumbleTableSource tumble, String id) {
-        XNode node = mk(loc(tumble), "timestampsAndWatermarks", "id", id);
-        node.appendChild(textNode(loc(tumble), "timestampAssigner",
-                "return event['" + tumble.getTimeColumn() + "'];"));
-        node.appendChild(textNode(loc(tumble), "watermarkGenerator",
+        return timestampsNode(loc(tumble), id, tumble.getTimeColumn());
+    }
+
+    /** WI26: generic pseudo-table timestamps node (per-event watermark on the time column). */
+    private static XNode timestampsNode(io.nop.api.core.util.SourceLocation loc, String id,
+                                        String timeColumn) {
+        XNode node = mk(loc, "timestampsAndWatermarks", "id", id);
+        node.appendChild(textNode(loc, "timestampAssigner",
+                "return event['" + timeColumn + "'];"));
+        node.appendChild(textNode(loc, "watermarkGenerator",
                 "import io.nop.stream.core.streamrecord.watermark.Watermark;"
                         + " output.emitWatermark(new Watermark(eventTimestamp));"));
         return node;
@@ -1119,7 +1223,7 @@ public final class StreamSqlCompiler {
         void failFastOnFieldLateness(SourceLocation loc, String path) {
             if (!fieldLateness.isEmpty()) {
                 throw CompileErrors.invalidArg("lateness is only supported for windowed "
-                        + "aggregate (TUMBLE GROUP BY) queries, not for the " + path + " path");
+                        + "aggregate (pseudo-table GROUP BY) queries, not for the " + path + " path");
             }
         }
 
@@ -1127,9 +1231,16 @@ public final class StreamSqlCompiler {
             this.schemaFields = schemaFields == null ? new LinkedHashMap<>() : schemaFields;
         }
 
-        String nextStrategy(String base, long durationMillis, long allowedLateness) {
+        String nextStrategy(String base, WindowSpec window, long allowedLateness) {
             String id = base + (strategySeq++);
-            XNode strategy = mk(null, "strategy", "strategyId", id, "windowFnId", "tumbling-event-time", "duration", durationMillis + "ms");
+            long duration = "session".equals(window.kind) ? window.gapMillis
+                    : window.sizeMillis;
+            XNode strategy = mk(null, "strategy", "strategyId", id,
+                    "windowFnId", window.windowFnId(), "duration", duration + "ms");
+            if (window.slideMillis > 0) {
+                // WI26: HOP slide — consumed by the sliding-event-time assigner branch
+                strategy.setAttr("slide", window.slideMillis + "ms");
+            }
             if (emit == StreamEmitMode.UPDATE) {
                 // WI37/D11: only reached from the windowed-aggregate path — the other
                 // paths fail fast on UPDATE before a strategy would be produced.
@@ -1152,7 +1263,7 @@ public final class StreamSqlCompiler {
         void failFastOnEmitUpdate(SourceLocation loc, String path) {
             if (emit == StreamEmitMode.UPDATE) {
                 throw CompileErrors.invalidArg("emit=update is only supported for windowed "
-                        + "aggregate (TUMBLE GROUP BY) queries, not for the " + path + " path");
+                        + "aggregate (pseudo-table GROUP BY) queries, not for the " + path + " path");
             }
         }
 
