@@ -19,10 +19,15 @@ public class FakeSqlStreamCompiler implements io.nop.stream.flow.spi.ISqlStreamC
     /** WI37: records the emit mode passed by expandSqlModel (CLOSE when absent). */
     public io.nop.stream.core.windowing.StreamEmitMode lastEmit;
 
+    /** WI25: records the field-lateness map passed by expandSqlModel (empty = none). */
+    public Map<String, Long> lastFieldLateness;
+
     @Override
     public String compileSql(String sql, Map<String, String> schema, String sinkBean,
-                             io.nop.stream.core.windowing.StreamEmitMode emit) {
+                             io.nop.stream.core.windowing.StreamEmitMode emit,
+                             Map<String, Long> fieldLateness) {
         this.lastEmit = emit;
+        this.lastFieldLateness = fieldLateness;
         return "<stream x:schema=\"/nop/schema/stream/stream.xdef\" "
                 + "xmlns:x=\"/nop/schema/xdsl.xdef\" name=\"fake-compiled\" version=\"1\">"
                 + "<transforms>"

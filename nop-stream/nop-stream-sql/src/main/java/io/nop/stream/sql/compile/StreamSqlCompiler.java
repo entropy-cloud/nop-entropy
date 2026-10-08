@@ -126,6 +126,19 @@ public final class StreamSqlCompiler {
      */
     public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
                                  String sinkBean, StreamEmitMode emit) {
+        return compile(loc, sql, schema, sinkBean, emit, java.util.Collections.emptyMap());
+    }
+
+    /**
+     * WI25/Q1: compiles with the declared per-field lateness. Only the TUMBLE time
+     * column's lateness is honored (it maps to the product strategy's allowedLateness
+     * — the D9 pipeline consumes it with zero runtime change); a lateness on any other
+     * column, a negative value, or a lateness declared on a path that produces no
+     * window strategy fails fast.
+     */
+    public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
+                                 String sinkBean, StreamEmitMode emit,
+                                 Map<String, Long> fieldLateness) {
         if (sql == null || sql.trim().isEmpty()) {
             throw CompileErrors.invalidArg("SQL text is blank");
         }
@@ -151,6 +164,13 @@ public final class StreamSqlCompiler {
 
         CompileContext ctx = new CompileContext(schema);
         ctx.emit = emit == null ? StreamEmitMode.CLOSE : emit;
+        ctx.fieldLateness = fieldLateness == null ? java.util.Collections.emptyMap() : fieldLateness;
+        for (Map.Entry<String, Long> e : ctx.fieldLateness.entrySet()) {
+            if (e.getValue() == null || e.getValue() < 0) {
+                throw CompileErrors.invalidArg("lateness must be a non-negative millisecond "
+                        + "value, but field '" + e.getKey() + "' declared: " + e.getValue());
+            }
+        }
         List<XNode> transforms = new ArrayList<>();
         List<XNode> edges = new ArrayList<>();
         String lastId = compileStatement(program.getStatements().get(0),
@@ -334,6 +354,8 @@ public final class StreamSqlCompiler {
         // WI37: plain pipelines (with or without a TUMBLE source) produce no window
         // strategy, so an emit declaration would be silently dropped — reject it.
         ctx.failFastOnEmitUpdate(loc(select), "plain pipeline");
+        // WI25: same no-silent rule for lateness declarations.
+        ctx.failFastOnFieldLateness(loc(select), "plain pipeline");
         SqlTumbleTableSource tumble = table instanceof SqlTumbleTableSource
                 ? (SqlTumbleTableSource) table : null;
         String tableName = tumble != null ? tumble.getTableName()
@@ -388,7 +410,17 @@ public final class StreamSqlCompiler {
                 keyExprText(grouped.keyXplExprs)));
         edges.add(edge(loc(select), idPrefix + "e2", prev, keyId));
 
-        String strategyId = ctx.nextStrategy(STRATEGY_ID, grouped.durationMillis);
+        // WI25/Q1: honor the time column's lateness (mapped to the product strategy's
+        // allowedLateness — the D9 pipeline consumes it); non-time-column declarations
+        // fail fast instead of silently changing nothing.
+        Long timeColumnLateness = ctx.fieldLateness.get(tumble.getTimeColumn());
+        if (timeColumnLateness == null && !ctx.fieldLateness.isEmpty()) {
+            throw CompileErrors.invalidArg("lateness is only supported on the TUMBLE time "
+                    + "column '" + tumble.getTimeColumn() + "', declared on: "
+                    + ctx.fieldLateness.keySet());
+        }
+        String strategyId = ctx.nextStrategy(STRATEGY_ID, grouped.durationMillis,
+                timeColumnLateness == null ? 0L : timeColumnLateness);
         String winId = idPrefix + "win";
         transforms.add(mk(loc(select), "window", "id", winId, "strategyRef", strategyId));
         edges.add(edge(loc(select), idPrefix + "e3", keyId, winId));
@@ -419,6 +451,7 @@ public final class StreamSqlCompiler {
         // WI37: continuous aggregates emit on every record already; the emit tier has
         // no close semantic here — reject UPDATE instead of silently ignoring it.
         ctx.failFastOnEmitUpdate(loc(select), "continuous aggregate");
+        ctx.failFastOnFieldLateness(loc(select), "continuous aggregate");
         String srcId = idPrefix + "src";
         transforms.add(sourceNode(loc(base), srcId, base.getTableName().getName()));
         String prev = srcId;
@@ -479,6 +512,7 @@ public final class StreamSqlCompiler {
         // WI37: join products carry a joinSpec, not a windowing strategy — an emit
         // declaration has no carrier and would be silently dropped — reject it.
         ctx.failFastOnEmitUpdate(loc(select), "join");
+        ctx.failFastOnFieldLateness(loc(select), "join");
         if (hasAggregate(select.getProjections())) {
             throw CompileErrors.invalidArg("aggregate over a join is outside the stream SQL v1 subset");
         }
@@ -1072,17 +1106,39 @@ public final class StreamSqlCompiler {
          */
         StreamEmitMode emit = StreamEmitMode.CLOSE;
 
+        /**
+         * WI25/Q1: declared field lateness (millis) by column name; empty = no
+         * declaration. Only the TUMBLE time column's value reaches the product.
+         */
+        Map<String, Long> fieldLateness = java.util.Collections.emptyMap();
+
+        /**
+         * WI25 no-silent guard: lateness has no carrier on paths that produce no
+         * window strategy — reject the declaration instead of dropping it.
+         */
+        void failFastOnFieldLateness(SourceLocation loc, String path) {
+            if (!fieldLateness.isEmpty()) {
+                throw CompileErrors.invalidArg("lateness is only supported for windowed "
+                        + "aggregate (TUMBLE GROUP BY) queries, not for the " + path + " path");
+            }
+        }
+
         CompileContext(Map<String, String> schemaFields) {
             this.schemaFields = schemaFields == null ? new LinkedHashMap<>() : schemaFields;
         }
 
-        String nextStrategy(String base, long durationMillis) {
+        String nextStrategy(String base, long durationMillis, long allowedLateness) {
             String id = base + (strategySeq++);
             XNode strategy = mk(null, "strategy", "strategyId", id, "windowFnId", "tumbling-event-time", "duration", durationMillis + "ms");
             if (emit == StreamEmitMode.UPDATE) {
                 // WI37/D11: only reached from the windowed-aggregate path — the other
                 // paths fail fast on UPDATE before a strategy would be produced.
                 strategy.setAttr("emit", "UPDATE");
+            }
+            if (allowedLateness > 0) {
+                // WI25/Q1: only reached from the windowed-aggregate path — the time
+                // column's lateness maps onto the D9 released allowedLateness pipeline.
+                strategy.setAttr("allowedLateness", allowedLateness);
             }
             strategies.add(strategy);
             return id;

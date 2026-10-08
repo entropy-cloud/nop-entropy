@@ -11,6 +11,8 @@
 
     <bean id="items" class="io.nop.stream.sql.compile.testing.ItemsSourceFunction"/>
 
+    <bean id="lateOrders" class="io.nop.stream.sql.compile.testing.LateOrdersSourceFunction"/>
+
     <bean id="testSink" class="io.nop.stream.sql.compile.testing.SqlTestSink"/>
 
 </beans>

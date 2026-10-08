@@ -79,11 +79,11 @@
 - WI0a D10 与 D11 放行裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D11 放行 emit 两档：EmitStrategy ON_WINDOW_UPDATE 与 ON_WINDOW_CLOSE 形态锁定、trigger 注册表前置作废、triggerId fail-fast 保留、挂点即 `<sql>` 顶层属性；D10 放行 ACCUMULATING 声明：生效前提 WI38 done、A&R 维持 spec-only；落档 window-failfast-decisions §2 与 §3 的 2026-10-08 修订节；承载 plan 01-wi0a-d10-d11-emit-decisions.md）
 - WI0b D5 与 D7 与 ASOF 与字段扩展授权四条边界裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D5 部分重裁：keyed TopN 放行、全局 ORDER BY 与 LIMIT 维持排除、语法载体归 WI40 plan 实测；D7 维持查询内聚：重开触发条件 cdc-design defer 撤销且 WI15 启动后 sink 侧 DDL 路径；ASOF 维持排除：引用 vision §四排除行、FU-E4 承接；字段扩展授权补记通过：StreamJoinSpecModel timeout 参数化为 leftTimeout 与 rightTimeout、WI27 可实施；落档 sql-subset-and-semantics §4 与 §4a#1 与 §4e、sql-compiler-contract §1.1a、vision §六裁决记录；承载 plan 02-wi0b-boundary-decisions.md）
 - WI37 D11 emit 两档实施: `done`（deps WI0a；Item Type Feature；2026-10-08 交付——WI0a 放行分支实施：StreamEmitMode 枚举 UPDATE 与 CLOSE 声明面挂 <sql> 顶层属性并落 <strategy emit> 产物、EmitUpdateTrigger 逐元素 FIRE + ACCUMULATING 无条件强制、SPI 加参贯通、plain-TUMBLE 与连续聚合与 join 三路径显式拒绝门；表面格式修正 F-1：小写 update close 系 WI0a 自选格式细节，xdef 枚举字典按常量名精确匹配故表面为 UPDATE 与 CLOSE 大写、D11 落档已回改注记且两档语义零变化；判别性 E2E emit=UPDATE 12 发射对 close 档 4；triggerId 双层门保持；承载 plan 04-wi37-emit-two-tier.md）
-- ★ **里程碑：M0 裁定门**（解锁条件 WI0a 与 WI0b 与 WI37 全部 done）：`未达成`
+- ★ **里程碑：M0 裁定门**（解锁条件 WI0a 与 WI0b 与 WI37 全部 done；2026-10-08 达成，WI0a/WI0b 两裁定门落档 + WI37 emit 两档实施 done）：`done`
 
 ### Phase 1 — 声明面与窗口（除 WI27 受 WI0b 约束外不触门）
 
-- WI25 watermark 与 lateness 上浮 sql 声明面: `todo`（deps 无；Item Type Feature；schema 列级 lateness 属性或查询级水位声明，产物映射既有 timestampsAndWatermarks 与 allowedLateness 管线——D9 已放行故零运行时改动；参考 survey arroyo 与 feldera 与 risingwave 篇；修订 §4b 纳入面表；P0 首选）
+- WI25 watermark 与 lateness 上浮 sql 声明面: `done`（deps 无；Item Type Feature；2026-10-08 交付——Q1 裁定=列级 lateness 形态：`<field lateness>` 仅 TUMBLE 时间列生效映射产物 strategy allowedLateness、D9 管线零运行时改动兑现；非时间列与负值与无 strategy 路径声明 fail-fast；与 emit=UPDATE 正交组合 shape 钉码；判别性 E2E 双档——lateness 界内迟到更新重发可见 vs 无声明时丢弃；查询级水位延迟声明按 Q1 裁定转出 FU-E6，watermark 半边交付范围见括注；承载 plan 05-wi25-lateness-declaration.md）
 - WI26 HOP 与 SESSION 伪表函数: `todo`（deps 无；Item Type Feature；D4 已裁伪表函数形态——grammar 增 hop 与 session 表源变体及 AST 类一一对应；间隔校验按 short-interval 与常量与正值三原则 fail-fast；产物窗口列命名对齐 window_start 与 window_end；修订 §4b W2 行；参考 survey feldera 与 flink-sql 篇）
 - WI27 非对称窗口 join timeout: `todo`（deps WI0b；Item Type Feature；joins 声明面由单一 timeout 扩展为 leftTimeout 与 rightTimeout，构建期校验非负与恰一或双声明规则；实施前提 = WI0b 字段扩展授权补记通过，否则按裁定销号 done 并记日期；参考 survey ksql 篇 WITHIN 形态）
 - WI28 全局聚合放行: `todo`（deps 无；Item Type Feature；无 GROUP BY 的五聚合以单并行度归约实现；修订 §4b 流时间窗口行的全局聚合 fail-fast 表述并同步钉码测试，必要时增补 §4a 条目）
@@ -146,6 +146,7 @@
 - FU-E3 D7 放行后的 DDL 分层实施（依赖 multi-engine WI7 落地）: `todo`
 - FU-E4 ASOF 放行后的实施（依赖 WI0b 裁定分支）: `todo`
 - FU-E5 pull query 式可查询结果对接 multi-engine WI14 可查询状态轻量版: `todo`
+- FU-E6 查询级水位延迟声明（WI25/Q1 裁定转出——arroyo/risingwave WATERFORM FOR col AS col - INTERVAL 形态的子集化；触发条件=真实乱序场景诉求，实施归后续 roadmap 或本 backlog 晋级）: `todo`
 
 ---
 

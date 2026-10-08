@@ -111,6 +111,30 @@ public class TestSqlModelExpansion {
     }
 
     @Test
+    public void sqlFieldLatenessFlowsToCompiler() {
+        // WI25: the <field lateness> annotation must reach the SPI (empty map when
+        // no field declares lateness)
+        StreamModel model = parseInline(
+                "<sql sinkBean=\"fakeSinkFn\" emit=\"CLOSE\">"
+                        + "<schemas><field name=\"ts\" type=\"bigint\" lateness=\"20000\"/></schemas>"
+                        + "<source>ANY SQL TEXT</source>"
+                        + "</sql>");
+        StreamModelDslBuilder.of(model).build();
+
+        FakeSqlStreamCompiler fake =
+                (FakeSqlStreamCompiler) BeanContainer.instance().getBean("fakeSqlCompiler");
+        assertEquals(java.util.Collections.singletonMap("ts", 20000L), fake.lastFieldLateness,
+                "the declared <field lateness> must be passed to the SPI compiler");
+
+        // the no-declaration path passes an empty map (never null)
+        StreamModel plain = parseInline(
+                "<sql sinkBean=\"fakeSinkFn\"><source>ANY SQL TEXT</source></sql>");
+        StreamModelDslBuilder.of(plain).build();
+        assertEquals(java.util.Collections.emptyMap(), fake.lastFieldLateness,
+                "no lateness declaration means an empty map reaches the compiler");
+    }
+
+    @Test
     public void sqlCoexistingWithOtherContentFailsFast() {
         StreamModel model = parseInline(
                 "<sql sinkBean=\"fakeSinkFn\"><source>SELECT 1</source></sql>"
