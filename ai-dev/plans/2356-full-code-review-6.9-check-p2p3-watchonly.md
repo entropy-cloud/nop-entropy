@@ -72,19 +72,19 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：三分类边界抽验（①②③ 归类错误抽验 ≥30 条——对抗审查 M4 分类标记独立复核面）+ 升级候选终裁复核（维持/降 watch-only 理由化+漏候选兜底）+ 计数收敛
-- [ ] 主 agent 汇总：分类统一、升级候选清单定稿
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——三分类边界抽验 **33/33=100% 正确**（①13/②10/③10，覆盖 gateway-bizauth/format-misc/net 族/search/msg-cluster/4.5 面；防虚假承接/防 check2 行号串配/判别式=台账行承载列有无 finding-ID）；候选终裁复核维持 16/16+降级 6/6+新增 4/4 全部代码事实成立（含 #:192 与 P2-6.1-001 同一缺陷双立标记——R1.0 合并裁定注记）；①路由「未在 index 登记」前提 5/5 grep 证实；计数收敛 694=148+315+231、130=109+17+4、SHA-256 四件套重放一致
+- [x] 主 agent 汇总：分类统一（零改判）、升级候选清单定稿（130 行冻结维持，5 条 Minor 口径注记吸收进 Phase 3 报告）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.9-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.9-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
