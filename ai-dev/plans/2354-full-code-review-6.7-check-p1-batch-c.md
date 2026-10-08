@@ -45,24 +45,24 @@
 
 ### Phase 1 - 对账、抽样与标定（3 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 批次 c check 单元报告 P1 清单
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（7134697080）、`git status` 干净后开始（65e9e4b163 后工作树干净佐证）
-- [ ] 主 agent 对账落盘（委派对账 agent 执行）：① 独立枚举 ROADMAP 单元表 diff 候选 12 份 + **msg-cluster-cred 拆分裁定执行**（credential 1 条入池、cluster/message 7 条归批次 d——落盘记录）② 批次 c 对账池 46 条全量清单（维度派生 D5/D1 量级预估落盘+处置标注实测核对〔先验=零标注〕+轮内已终判承接标记〔mcc-cred :172→P1-check-mcc-172〕）③ 统计表机械核对（12 份+SUMMARY Phase 4 49−search 5=44+metadata 1+mcc 1=46 账平）④ 冻结协议三要素（seed=2354；净池 45 抽 ≥23；`_tmp/fcr-6.7-sample.py`；`_tmp/fcr-6.7-frozen.csv`）
-- [ ] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+域内测试实跑〔全走第三分支；实跑红先对照 2.8 :83 预存登记〕+撞车比对）
-- [ ] 主 agent 抽查质量：冻结表重放 + 标定抽验（含实跑）
-- [ ] 产物 `_tmp/fcr-6.7-checkp1-a/b/c.md` + 冻结表
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent 执行）：① **独立枚举 diff=一致零出入**（Phase 4 12 单元→11 份+Phase 3 metadata 1 份+Phase 5 msg-cluster-cred credential 份额；拆分裁定落盘：credential 1 入池/cluster 4+message 3 归批次 d）② 46 条 P1 全量清单（维度全部取自条目内「维度」字段原标注零派生；处置面实测=46 条零标注与先验吻合〔9 处标注全挂 P0〕；mcc-cred :172 承接标记 carry=P1-check-mcc-172，3.10 :93/:475 锚点实测命中）③ **统计表机械核对 12/12 通过**（SUMMARY Phase 4 49−search 5=44+metadata 1+mcc 1=46 三向账平）④ 冻结协议三要素：seed=2354 + 净池快照 `0e819cc0…` + 冻结表 `_tmp/fcr-6.7-frozen.csv` SHA-256 `6b175321…`（**33 条=D5×5+D1×28 全抽+其他 0**，覆盖净池 73.3%/严格基线 71.7% 双达标；分配 A11/B11/C11 标准轮转〔弹性阈值 >33 未触发〕；双跑逐字节 diff PASS）
+- [x] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+域内测试实跑〔全走第三分支；实跑红对照 2.8 :83 预存登记——三份零触发〕+撞车比对）——**粗账 A=AF 4/live 7、B=AF 5/live 6、C=AF 5/live 6，合计 AF 14 / still-live 19 / dup 0 / FP 0**；零 P0 疑似；B 份惯例注记：ai-rest#P1-3 同根 ai-toolkit-skills#P0-1（6.4 已 AF 终态）按「同根已修不并组」记 AF 保留 check 溯源（dup 口径 Phase 2 canonical）
+- [x] 主 agent 抽查质量：冻结表重放 SHA-256 一致（6b175321…）+ 标定抽验——A#1 AnthropicDialect assistant→"model" :750-751 亲读在位 / B#11 PageRank weight÷outDegree 未归一化亲读在位 / A#2 AF 提交 3772408e1f（plan 350）可达 / 独立复跑 TestAlgorithms 21/21 绿与 B 份声明一致
+- [x] 产物 `_tmp/fcr-6.7-checkp1-a/b/c.md` + 冻结表 `_tmp/fcr-6.7-frozen.csv`
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（三份初判零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据
-- [ ] 抽样 ≥50% 达成；抽样表可重放（SHA-256 记录）
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据
+- [x] 抽样 ≥50% 达成（净池 33/45=73.3%、严格基线 33/46=71.7%）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
