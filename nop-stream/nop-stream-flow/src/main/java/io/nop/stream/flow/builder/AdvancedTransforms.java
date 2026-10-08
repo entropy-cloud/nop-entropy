@@ -93,9 +93,11 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * channel's graph-level consumer is the target of the declared
  * {@code <edge ... outputTag>} edge.
  *
- * <p>P1-XDSL-6 (updated WI10/D9): window strategy declarations ({@code triggerId}/
- * {@code accumulationMode}) and window node-level {@code triggerId} children are rejected
- * at build time when they differ from the xdef defaults. allowedLateness was released by
+ * <p>P1-XDSL-6 (updated WI38/D10): the window strategy {@code accumulationMode}
+ * declaration is released — consumed by buildWindow and passed to the operator
+ * (D10 2026-10-08 revision; {@code ACCUMULATING_AND_RETRACTING} stays rejected as
+ * spec-only). {@code triggerId} (strategy- and node-level) remains rejected at
+ * build time (D11: no free-form trigger surface). allowedLateness was released by
  * D9: consumed by buildWindow and passed to the operator. maxDelay was released by WI8
  * (plan 2332): consumed by buildWindow and passed to the operator (event-time assigners
  * only — the operator constructor rejects the processing-time combination).
@@ -218,6 +220,16 @@ final class AdvancedTransforms {
         if (maxDelay != null && maxDelay > 0) {
             windowed.maxDelay(maxDelay);
         }
+        // WI38 (plan 03, FU-8 fix / D10 release): consume the strategy-level
+        // accumulationMode so the declared value reaches the window operator
+        // (previously the declaration never left this builder — every model-built
+        // window ran the operator default ACCUMULATING). Null (programmatically
+        // built strategy without the xdef default injected) normalizes to
+        // DISCARDING so the declaration default does not depend on parser behavior.
+        AccumulationMode mode = strategy.getAccumulationMode() != null
+                ? strategy.getAccumulationMode()
+                : AccumulationMode.DISCARDING;
+        windowed.accumulationMode(mode);
         return windowed;
     }
 
@@ -238,8 +250,9 @@ final class AdvancedTransforms {
         }
         // WI10/D9: allowedLateness is now released — consumed by buildWindow.
 
-        if (strategy.getAccumulationMode() != null
-                && strategy.getAccumulationMode() != AccumulationMode.DISCARDING) {
+        // WI38/D10 (2026-10-08 revision): ACCUMULATING is released and wired through
+        // buildWindow; only the spec-only ACCUMULATING_AND_RETRACTING stays rejected.
+        if (strategy.getAccumulationMode() == AccumulationMode.ACCUMULATING_AND_RETRACTING) {
             throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
                     .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
                     .param(ARG_ATTR_NAME, "accumulationMode")

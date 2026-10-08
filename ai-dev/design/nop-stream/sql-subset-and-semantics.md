@@ -105,7 +105,7 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 | 双流等值 join | WI8d 声明面（joins/joinRef，恰两条上游边）+ WI13 运行时；HASH 边禁入 | validateJoinDeclarations；join-operator.md |
 | 静态维表 lookup | process 桥接形态：ITableLookup 注入（应用实现包 IJdbcTemplate/IBatchLoader） | ITableLookup；WI14 |
 | union 多流 | DataStream.union（WI6）；重复声明边=重复合流 | multi-input-model.md |
-| 窗口声明 | windowingStrategies（WI10 duration 参数化 + D9 allowedLateness 放行） | window-failfast-decisions |
+| 窗口声明 | windowingStrategies（WI10 duration 参数化 + D9 allowedLateness 放行 + WI38 accumulationMode 接线——D10 2026-10-08 放行 ACCUMULATING 声明，DISCARDING/ACCUMULATING 双档声明即所得，A&R 双层拒绝） | window-failfast-decisions |
 
 ## 4c. W2 三档确认（D4 落点复核）
 

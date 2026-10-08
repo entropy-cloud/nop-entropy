@@ -87,7 +87,7 @@
 - WI26 HOP 与 SESSION 伪表函数: `todo`（deps 无；Item Type Feature；D4 已裁伪表函数形态——grammar 增 hop 与 session 表源变体及 AST 类一一对应；间隔校验按 short-interval 与常量与正值三原则 fail-fast；产物窗口列命名对齐 window_start 与 window_end；修订 §4b W2 行；参考 survey feldera 与 flink-sql 篇）
 - WI27 非对称窗口 join timeout: `todo`（deps WI0b；Item Type Feature；joins 声明面由单一 timeout 扩展为 leftTimeout 与 rightTimeout，构建期校验非负与恰一或双声明规则；实施前提 = WI0b 字段扩展授权补记通过，否则按裁定销号 done 并记日期；参考 survey ksql 篇 WITHIN 形态）
 - WI28 全局聚合放行: `todo`（deps 无；Item Type Feature；无 GROUP BY 的五聚合以单并行度归约实现；修订 §4b 流时间窗口行的全局聚合 fail-fast 表述并同步钉码测试，必要时增补 §4a 条目）
-- WI38 FU-8 accumulationMode 接线修复: `todo`（deps WI0a；Item Type Fix；继承 sql roadmap FU-8——configureBuilder 从不传递 accumulationMode 致 DISCARDING 声明恒为 ACCUMULATING；修复接线并补判别性测试；若 WI0a 放行 ACCUMULATING 则同步放开 build 期门并修订裁定文档，否则保持 DISCARDING-only 门并钉测试）
+- WI38 FU-8 accumulationMode 接线修复: `done`（deps WI0a；Item Type Fix；2026-10-08 交付——接线五环闭合：IWindowOperatorFactory 第四代 default 重载→WindowedStreamImpl fluent 字段→四 call-site→WindowOperatorFactoryImpl 覆写+configureBuilder→WindowOperatorBuilder→WindowOperator 字段；build 门改判仅拒 A&R、D10 放行生效即 window-failfast-decisions §2 生效前提达成注记；null 归一 DISCARDING 使缺省档不依赖 parser 回填；三层判别测试 flow 环1→2/core 环2→3/runtime 环3→5 共 21 例；四模块回归全绿 core 138/runtime 1336/flow 103/sql 91；承载 plan 03-wi38-accumulation-mode-wiring-fix.md）
 - ★ **里程碑：M1 声明面与窗口**（解锁条件 WI25 与 WI26 与 WI27 与 WI28 与 WI38 全部 done）：`未达成`
 
 ### Phase 2 — 表达式与求值（不触门）
