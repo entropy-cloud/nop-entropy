@@ -55,7 +55,7 @@
 | 6.5 | `6.5-check-p1-batch-a.md` | 0 | 0 | **1** | 0 | done（裁决：通过——批次 a 48 条 P1 对账闭合 + 冻结抽样 44/48=91.7% 标定：**AF 43 / still-live 1 / dup 0 / FP 0**；P2-6.5-001 nosql-cdc ZERO 半分支 GETEX PX 0 配置陷阱〔P1→P2 终裁：显式配置触发+0 生产调用方+失败响亮〕入 P2 裁决台账；db-migration#P1-6 判 AF〔check2 fb3f860729 闭环双实测〕；撞车零 dup；复核 120 tests 全绿零翻案 + 冻结协议重放机械精确；closure audit 处方 R1 纯文本〔plan Phase 2 状态漏更〕已落实） | 独立子 agent（agent_7b8e911e 复核 PASS；closure audit agent_bf8fb954，FAIL→处方 R1 落实后轻量复核 PASS，见 plan 2352 Closure 段） |
 | 6.6 | `6.6-check-p1-batch-b.md` | 0 | 0 | **2** | 0 | done（裁决：通过——批次 b 46 条 P1 对账闭合〔13/13 diff+统计核对+三向账平〕+ 冻结抽样 29/46=63.0% 标定零翻案——canonical **AF 16 / dup 11〔9 归并 AF 目标+2 归并轮内 still-live 承载 P1-3.1-002/P1-3.6-001〕/ still-live 2 / FP 0**；P2-6.6-001 graphql 订阅推送桥未接线〔GraphQLSubscriptionManager+subscription-defaults.beans.xml〕+ P2-6.6-002 batch 续写语义缺失〔均复核终裁 P2〕；承接 11 条轮内终判锚点全实测成立；复核 dup 锚点 9/11 亲验+AF 实跑 4 全绿；closure audit 处方 R1/R2 纯文本〔§二 表格 canonical 收敛+P2-6.6-001 主体类名勘正〕已落实） | 独立子 agent（agent_25c5fd59 复核 PASS；closure audit agent_15646630，FAIL→处方 R1/R2 落实后轻量复核 PASS，见 plan 2353 Closure 段） |
 | 6.7 | `6.7-check-p1-batch-c.md` | 0 | **11** | **8** | 0 | done（裁决：通过——批次 c 46 条 P1 对账闭合〔枚举 diff 一致+统计核对 12/12+三向账平〕+ 冻结抽样 33/46=71.7% 标定零翻案——canonical **AF 13 / dup 1〔归并 6.4 #5 修复目标〕/ still-live 19 / FP 0**，复核终裁 **P1×11〔方言 role/伪影/工具 DSL/agent 循环×2/stream 定时器与 restore 位点/CodeIndexService×3〕/ P2×8〔复核降档：桩不可达/未接线/输入不触发/残余窄化〕**；承接 1 条 P1-check-mcc-172 维持；dup 锚 1/1 亲验+33 锚全量 grep 零新增同根+16 修复提交 master 全可达；closure audit 一次 PASS 四项全过〔3 Minor 形式差：空台账标题/SHA 位置/个别 1-2 行级锚点偏移，符号级准确不阻塞〕） | 独立子 agent（agent_f5709e50 聚焦复核 PASS；Phase 2 复核 agent_037068a3 PASS 零翻案；closure audit agent_01452dcb 一次 PASS，见 plan 2354 Closure 段） |
-| 6.8 | — | | | | | todo | |
+| 6.8 | `6.8-check-p1-batch-d.md` | 0 | **6** | **2** | 0 | 报告落盘，closure audit 进行中（批次 d 69 条 P1 对账闭合〔枚举 diff 一致+统计核对 17/17+SUMMARY 分相账平〕+ **承接实测 C=43**〔4.4/4.5/3.9 行级锚回读零错配：AF 22+partially 2+adj-deferred 1+still-live 18〕+ 冻结抽样 22 条标定零翻案——canonical **AF 14 / dup 0 / still-live 8 / FP 0**，终裁 **P1×6〔spring removeCookie NPE/Yunpian areaCode/splitter 布局颠倒/Feishu 零 ACK/variant 双约定/saver 误删基础表〕/ P2×2〔JavaScriptService nop-js 出 reactor+DemoBizModel 匿名 NPE〕**；双轨 84.6% 净池+65≥35 严格两 MET；SftpClient residual=AF 附 adjudicated-deferred〔plan 2283 承载〕；**承接 still-live 18 条沿在先行标识补登记 P1 汇总**〔含勿双立注记〕） | 独立子 agent（agent_d2cf04c9 聚焦复核 PASS；Phase 2 复核 agent_23db8c13 PASS 零翻案；closure audit 待启动） |
 | 6.9 | — | | | | | todo | |
 | 7.1 | — | | | | | todo | |
 | 7.2 | — | | | | | todo | |
@@ -159,6 +159,30 @@
 | P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.0（CodeIndexService.analyzeChanges `file:` rootPath 建 git 必败且异常折叠为无变更；rootPath 规范化+异常不折叠 truncated=true） | open |
 | P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
 | P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
+| P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.0（ServletHttpServerContext.removeCookie 无 null 守卫登出链 NPE；补 cookies==null 守卫对齐 getCookie 形态；zero-test 证据弱化登记） | open |
+| P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.0（YunpianSmsSender null areaCode 拼接——6.4 #8 同根未修残腿；null 守卫+两腿 parity 回归与 6.4 #8 同批） | open |
+| P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.0（TestCaseJsonDataSplitter 产物目录布局与消费方契约颠倒静默不可加载；输出路径对齐+splitter→loader 往返测试） | open |
+| P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.0（FeishuClient DATA 帧零 ACK 回发+headers 丢失；按协议回 ACK+恢复 headers 透传+wire 契约测试） | open |
+| P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseData variant 双约定——输出表永不校验框架假绿；统一 variant 路径约定+录制→校验往返测试） | open |
+| P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseDataSaver.removeInputTable 无 variant 守卫静默删除 default 基础表；补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | open |
+| P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.0（check/net-http-rpc.md#P1-1 JdkHttpClient :320-323 错误路径 still-live——沿 3.9 §2.5#1 行修复方向；3.9 仅登记 gw-49/86 本条独立） | open |
+| P1-4.4-A5 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.1 A面 条目5 标定维持） | R1.0（check/format-misc.md#P1-5 生成器-文法对齐探针 0/13 still-live；**与 P2-4.4-001/002 合并的是修复立项通道**——P1 登记位单点保留） | open |
+| P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-1 空 query 构造空 BooleanQuery 恒空；LuceneSearchEngine 先修 5 条 P1〔S-02..06〕再动拆分——4.4 执行顺序约束） | open |
+| P1-4.4-S-03 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-2 visitNot 纯 MUST_NOT 匹配空集；同 S-02..06 先修批次） | open |
+| P1-4.4-S-04 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-3 rollback 后缓存 map 残留单条坏文档打死 topic；同 S-02..06 先修批次） | open |
+| P1-4.4-S-05 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-4 getDoc 忽略 topic 跨 topic 串读；**修复触 nop-search-api 签名属 plan-first 区**） | open |
+| P1-4.4-S-06 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-5 indexDir 任意路径+checkAllowAccess 空实现；**安全面**；S-06 注 6.4 #6a 纯引用裁定勿双立） | open |
+| P1-4.4-C1 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-1 选主注解 @cfg; 笔误装配即启动失败；修笔误+装配冒烟） | open |
+| P1-4.4-C2 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-2 LeastActive 未取模下标越界；取模+TestLoadBalance 补 LeastActive 用例） | open |
+| P1-4.4-C3 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-3 SentinelFlowControl runAsync Context 泄漏；finally 无条件 exit；**与 P1-4.2-004 sentinel 补测同批**） | open |
+| P1-4.4-C4 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-4 NacosNamingService @@ 无防护；pos 守卫对齐 getNormalizedServiceName；**与 P2-4.2-001 nacos 补测互补**） | open |
+| P1-4.4-M01 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-5 suspend/resume 调用线程直操 consumer+rebalance 后静默失效；pause 语义迁移+rebalance listener） | open |
+| P1-4.4-M02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-6 cancel 先 close 后等线程退出 CME 吞掉泄漏；close/await 顺序重排） | open |
+| P1-4.4-M03 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-7 seekToPosition 分区分配前执行全 no-op；迁移 ConsumerRebalanceListener+区分 ALWAYS/INIT 语义+**重写掩盖测试 TestKafkaConsumeTask**；P2-6.1-001 邻接非同条，7.7 移交①②） | open |
+| P1-4.5-R1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.0（check/runner-cli.md#P1-1 jdk11 入口 mapper/destroy 缺失；**抽 nop-cli-core 共享引导统一装配**——4.5 修法裁定，不做逐项补丁） | open |
+| P1-4.5-R2 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.0（check/runner-cli.md#P1-2 CDI factory 不可用 @Inject null；同 R1 共享引导批次，pom exclude 在位未修复） | open |
+| P1-4.5-D1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.5 标定维持） | R1.0（check/demo-migration.md#P1-2 addCatalog off-by-one；**修复时同步删 runner 死副本 GenOrmHelper**——4.5 撞车去重表指令） | open |
+| P1-4.5-B1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.4 抽查表标定维持） | R1.0（check/frontend-benchmark.md#P1-2 PageProvider transformPermissions 竞态原地删键可变共享缓存；copy-on-write 或防御性拷贝；复核勘正补入清单第 18 条） | open |
 
 
 ## P2 裁决台账（例外通道）
@@ -196,6 +220,8 @@
 | P2-6.7-006 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-2：Bfs.traverseFiltered visited 语义反转（无条件 add+返回集含被拒节点；复核终裁 P2：唯一调用方 PathQueryExecutor 自身未接线） | 待 R1.0 裁决（独立 result 集合/改名+2 跳 edgeType 用例） | R1.0 |
 | P2-6.7-007 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-3：PageRank 权重未按 Σw_out 归一化（复核终裁 P2：生产输入均匀权重=1 不触发） | 待 R1.0 裁决（归一化；接入加权图前须修） | R1.0 |
 | P2-6.7-008 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-4：LeidenDetector 双向边对权重加倍（复核终裁 P2：指标质量偏置无功能失效；归一化键从未落地 git log -S 零命中） | 待 R1.0 裁决（min/max 归一化键+edgeWeights 传递+守恒用例） | R1.0 |
+| P2-6.8-001 | `6.8-check-p1-batch-d.md` | check 溯源 frontend-benchmark#P1-1：JavaScriptService.refreshConfig AIOOBE+工厂绕过双缺陷面（复核终裁 P2：**nop-js 已注释出 reactor**〔pom.xml:22 亲读〕——P2-6.6-001 未接线同判例） | 待 R1.0 裁决（复活 nop-js 时先修+Truffle/JDK 兼容〔CL-3〕，或显式休眠声明+移除 web-defaults 装配引用；**升级触发=nop-js 复活入 reactor**） | R1.0 |
+| P2-6.8-002 | `6.8-check-p1-batch-d.md` | check 溯源 demo-migration#P1-1：DemoBizModel 匿名调用 IUserContext.get() 裸取 token NPE 无 @Auth（复核终裁 P2：demo 单端点响亮 500 零契约受累，P2-6.5-001 同判例） | 待 R1.0 裁决（demo 波次补 @Auth 或匿名守卫+owner-doc 坏模式注记） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 
