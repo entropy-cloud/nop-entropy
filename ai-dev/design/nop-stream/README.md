@@ -497,6 +497,9 @@ JobCoordinator / CheckpointCoordinator
   - 开发方法（审计-规划-执行循环）
   - 已知技术债
 
+- `../../analysis/streaming-sql-survey/`（2026-10-07）
+  - streaming SQL 开源调研（14 项目）：[架构对比](../../analysis/streaming-sql-survey/2026-10-07-streaming-sql-architectures-comparison.md) 与 [nop-stream-sql gap 分级建议](../../analysis/streaming-sql-survey/2026-10-07-nop-stream-sql-gap-and-recommendations.md)（Tier A/B/C，含去重结论）
+
 ---
 
 ## 阅读顺序
