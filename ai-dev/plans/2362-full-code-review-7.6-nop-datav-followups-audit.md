@@ -3,8 +3,8 @@
 > Plan Status: draft
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.6（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/12 巡检侧重）
-> Related: **`ai-dev/backlog/nop-datav-audit-followups.md`（Owner Doc，152 行 P2-only backlog）**——#1-17 已 resolved（plan `2026-08-14-0950-1` completed 2026-08-14）；**open P2×52+裁定项×1（对抗审查 M-01 勘正：#18-65 中 #28/#31 已✅消化〔plan 2146-3〕故 multi=open 46/open #66-69=4/#70-72=2+裁定项 #72 快照序列化 sid 暴露评估；roadmap「P2×~55」高估记口径缺陷不改文本；另未编号 open nit×1〔nop-datav-api 空模块，台账 :39〕不入抽样池维持 backlog〔m-01 显式排除〕）；2.6（biz/graphql 深审——datav 域零覆盖声明？Phase 1 对账核对）/6.9（datav 域升级候选：6.7 未抽样 datav#P1-1〔D3〕已在 6.9 未抽样 12 条全「其他」类登记）。
-> 机械基线（主 agent 实测，2026-10-08）：followups 台账 152 行；nop-datav/ **2026-08-01..HEAD = 45 提交**（增量巡检面；确定性口径沿 2357）。**台账 open P2 精确枚举 Phase 1 落盘（预期 ~55）**。
+> Related: **`ai-dev/backlog/nop-datav-audit-followups.md`（Owner Doc，152 行 P2-only backlog）**——#1-17 已 resolved（plan `2026-08-14-0950-1` completed 2026-08-14）；**open P2×52+裁定项×1（对抗审查 M-01 勘正：#18-65 中 #28/#31 已✅消化〔plan 2146-3〕故 multi=open 46/open #66-69=4/#70-72=2+裁定项 #72 快照序列化 sid 暴露评估；roadmap「P2×~55」高估记口径缺陷不改文本；另未编号 open nit×1〔nop-datav-api 空模块，台账 :39〕不入抽样池维持 backlog〔m-01 显式排除〕）；2.6（biz/graphql 深审——datav 域零覆盖声明？Phase 1 对账核对）/6.7 复核 §5（12 条未抽样余量逐条指认含 datav#P1-1〔D3〕——登记在 6.7 非 6.9）+6.9（datav 域唯一相关=升级候选 V2/N3 JWT 默认密钥族扩展锚 nop-datav-app enc-key）。
+> 机械基线（主 agent 实测，2026-10-08）：followups 台账 152 行；nop-datav/ **2026-08-01..HEAD = 45 提交**（增量巡检面；确定性口径沿 2357）。**台账 open P2 精确枚举 Phase 1 落盘（预期 52+裁定项——M-01 勘正）**。
 > **范围裁定**：① **抽样巡检**（roadmap 7.6 明文「抽样巡检」非全量标定）：open P2 按确定性抽样抽 ≥45%（≥25 条）逐条标定三分类（fixed-by-later-plan/still-open/watch-only——2358 形态），未抽样余量为抽样制设计内残留；② 增量巡检=45 提交 diff triage（域内域外标记沿 2357）；③ 撞车检索面（对抗审查 M-02 勘正）：**6.7 复核 §5（12 条未抽样余量逐条指认含 datav#P1-1〔D3〕——登记在 6.7 非 6.9）**/6.9（datav 域唯一相关=升级候选 V2/N3 JWT 默认密钥族扩展锚 nop-datav-app enc-key）/2.6（biz/graphql 域交界核对）/既有 nop-datav 审计目录（5 份 source audits）。
 > **方法学裁定**：① 发现编号 `P1-7.6-NNN`/`P2-7.6-NNN`；P0 即时通道；② 验证协议：双锚；Phase 2 still-live 100% 亲读+标定抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 实跑；冻结协议三要素（seed=2362+清单哈希+样本表）落盘。
 > **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红按 plan 2331 :92 先例归因登记。
@@ -35,7 +35,7 @@
 
 - followups open P2 抽样 ≥45%（≥25 条，对 52 基数即 ~48%）三分类标定
 - nop-datav/ 2026-08-01 后 45 提交 diff 巡检
-- 只读输入：git 历史、followups 台账、6.9 datav 域登记
+- 只读输入：git 历史、followups 台账、6.7 未抽样登记（复核 §5）+6.9 升级候选 V2/N3
 
 ### Out Of Scope
 
