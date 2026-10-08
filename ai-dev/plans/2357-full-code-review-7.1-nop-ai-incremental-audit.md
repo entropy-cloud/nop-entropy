@@ -69,20 +69,20 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + 其余发现抽验 ≥30% 含代码亲读 + 撞车复验（6.4/6.2/6.7/6.9/4.1 ai 域+arm-index+映射表）+ 净账
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——10 条全部亲读成立判级全维持，终裁 **P0×0/P1×2/P2×6/P3×2**；专项亲读：A1-01 消费方全量枚举（污染需首败+重投成功合取，测试仅 COMPLETED 源且钉死污染行为→P1 维持）/B201 生产装配逐字亲证+消费链三环/A3-01/02 默认 toolTimeoutMs=300s>0 缓解面注记（P2 维持）；撞车抽验 12 笔全成立；维度 12 抽验 9 项全带测试；H-A3-SEC-01 移交三要素合规（机械复现独立复跑逐字符成立）；冻结重放 clusters/sample/148 分配机械复核
+- [x] 主 agent 汇总：四态统一（零改判）、撞车去重终裁（12/12 抽验成立）
+- [x] 台账收敛（Q1 裸 IAE/ISE 11 处非 12——Phase 3 按复核口径落笔；Q3 移交笔数去重算式报告载明）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-7.1-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-7.1-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
