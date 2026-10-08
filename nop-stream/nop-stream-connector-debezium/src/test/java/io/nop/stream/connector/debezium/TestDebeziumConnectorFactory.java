@@ -34,15 +34,14 @@ public class TestDebeziumConnectorFactory {
         DebeziumConfig config = new DebeziumConfig();
         config.setName("factory-test");
 
-        DebeziumCdcSourceFunction source = assertInstanceOf(DebeziumCdcSourceFunction.class,
-                factory.createSourceFunction(new StreamConnectorConfig("debezium-cdc",
+        DebeziumCdcSource source = assertInstanceOf(DebeziumCdcSource.class,
+                factory.createSource(new StreamConnectorConfig("debezium-cdc",
                         Map.of("config", config))));
-        assertEquals(SourceConsistencyCapability.REPLAYABLE, source.getSourceConsistency());
+        assertEquals(SourceConsistencyCapability.REPLAYABLE, factory.describeCapabilities().getSourceConsistency());
 
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("debezium-cdc", d.getTypeName());
-        assertEquals(d.getSourceConsistency(), source.getSourceConsistency());
-        assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
+                assertEquals(ConnectorParallelism.PARALLEL, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.OFFSET_CHECKPOINT, d.getRecoverySemantic());
     }
 
@@ -50,7 +49,7 @@ public class TestDebeziumConnectorFactory {
     public void testConfigParamRequired() {
         DebeziumCdcSourceConnectorFactory factory = new DebeziumCdcSourceConnectorFactory();
         StreamException ex = assertThrows(StreamException.class,
-                () -> factory.createSourceFunction(new StreamConnectorConfig("debezium-cdc")));
+                () -> factory.createSource(new StreamConnectorConfig("debezium-cdc")));
         assertEquals(ERR_STREAM_CONNECTOR_PARAM_REQUIRED.getErrorCode(), ex.getErrorCode());
         assertEquals("config", ex.getParam("paramName"));
         assertEquals("OBJECT", ex.getParam("paramKind"));
@@ -59,7 +58,7 @@ public class TestDebeziumConnectorFactory {
     @Test
     public void testWrongObjectTypeFailsFast() {
         DebeziumCdcSourceConnectorFactory factory = new DebeziumCdcSourceConnectorFactory();
-        assertThrows(StreamException.class, () -> factory.createSourceFunction(
+        assertThrows(StreamException.class, () -> factory.createSource(
                 new StreamConnectorConfig("debezium-cdc", Map.of("config", "not-a-debezium-config"))));
     }
 }

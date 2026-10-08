@@ -535,31 +535,15 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * negative-safe.
      */
     static int shardOf(String tableEntry, int totalParallelism) {
-        return Math.floorMod(tableEntry.hashCode(), totalParallelism);
+        return DebeziumSourceSupport.shardOf(tableEntry, totalParallelism);
     }
 
     private List<String> includeListEntries(String includeList) {
-        if (includeList == null || includeList.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String> entries = new java.util.ArrayList<>();
-        for (String entry : includeList.split(",")) {
-            String trimmed = entry.trim();
-            if (!trimmed.isEmpty()) {
-                entries.add(trimmed);
-            }
-        }
-        return entries;
+        return DebeziumSourceSupport.includeListEntries(includeList);
     }
 
     static List<String> route(List<String> tables, int totalParallelism, int subtaskIndex) {
-        List<String> routed = new java.util.ArrayList<>();
-        for (String table : tables) {
-            if (shardOf(table, totalParallelism) == subtaskIndex) {
-                routed.add(table);
-            }
-        }
-        return routed;
+        return DebeziumSourceSupport.route(tables, totalParallelism, subtaskIndex);
     }
 
     /**
@@ -582,7 +566,7 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * per instance name).
      */
     private String instanceName(String baseName) {
-        return totalParallelism > 1 ? baseName + "-" + subtaskIndex : baseName;
+        return DebeziumSourceSupport.instanceName(baseName, subtaskIndex, totalParallelism);
     }
 
     int getSubtaskIndexForTest() {
@@ -621,23 +605,15 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "config");
         }
         resolveConnectorName();
-        verifyCredentialReferences();
+        DebeziumSourceSupport.verifyCredentialReferences(config, credentialProvider);
     }
 
     // ------------------------------------------------------------------
     // Credential reference handling (D4: reference persists, transient decrypt)
     // ------------------------------------------------------------------
 
-    private static final String FIELD_DATABASE_USER = "databaseUser";
-    private static final String FIELD_DATABASE_PASSWORD = "databasePassword";
-    private static final String FIELD_SCHEMA_HISTORY_USER = "schemaHistoryJdbcUser";
-    private static final String FIELD_SCHEMA_HISTORY_PASSWORD = "schemaHistoryJdbcPassword";
-
     private boolean hasCredentialReferences() {
-        return StreamCredentialSupport.isCredentialReference(config.getDatabaseUser())
-                || StreamCredentialSupport.isCredentialReference(config.getDatabasePassword())
-                || StreamCredentialSupport.isCredentialReference(config.getSchemaHistoryJdbcUser())
-                || StreamCredentialSupport.isCredentialReference(config.getSchemaHistoryJdbcPassword());
+        return DebeziumSourceSupport.hasCredentialReferences(config);
     }
 
     /**
@@ -646,18 +622,8 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * stub always returns {@code success=false}; depending on it would produce a
      * systematic false negative). Plaintext is never logged or reported.
      */
-    private void verifyCredentialReferences() {
-        resolveIfReference(config.getDatabaseUser(), FIELD_DATABASE_USER);
-        resolveIfReference(config.getDatabasePassword(), FIELD_DATABASE_PASSWORD);
-        resolveIfReference(config.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER);
-        resolveIfReference(config.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD);
-    }
-
     private String resolveIfReference(String value, String field) {
-        if (StreamCredentialSupport.isCredentialReference(value)) {
-            return StreamCredentialSupport.resolve(value, field, credentialProvider);
-        }
-        return value;
+        return DebeziumSourceSupport.resolveIfReference(value, field, credentialProvider);
     }
 
     /**
@@ -675,12 +641,7 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         if (!hasCredentialReferences()) {
             result = cfg;
         } else {
-            result = serializationRoundTripCopy(cfg);
-            result.setDatabaseUser(resolveIfReference(cfg.getDatabaseUser(), FIELD_DATABASE_USER));
-            result.setDatabasePassword(resolveIfReference(cfg.getDatabasePassword(), FIELD_DATABASE_PASSWORD));
-            result.setSchemaHistoryJdbcUser(resolveIfReference(cfg.getSchemaHistoryJdbcUser(), FIELD_SCHEMA_HISTORY_USER));
-            result.setSchemaHistoryJdbcPassword(
-                    resolveIfReference(cfg.getSchemaHistoryJdbcPassword(), FIELD_SCHEMA_HISTORY_PASSWORD));
+            result = DebeziumSourceSupport.decryptedCopyIfReferenced(cfg, credentialProvider);
         }
         if (totalParallelism > 1) {
             // B-layer routing: the engine of THIS instance only sees its own identity and
@@ -708,25 +669,7 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * name under the same directory; JDBC history gets an instance-suffixed table name.
      */
     private static void qualifySchemaHistoryPerInstance(DebeziumConfig config, String instance) {
-        String path = config.getSchemaHistoryPath();
-        if (path != null && !path.isEmpty()) {
-            java.nio.file.Path p = java.nio.file.Path.of(path);
-            java.nio.file.Path parent = p.getParent();
-            config.setSchemaHistoryPath((parent == null ? "" : parent + "/")
-                    + instance + "-" + p.getFileName());
-        }
-        String table = config.getSchemaHistoryJdbcTable();
-        // R5 REG-3: suffix with the FULL sanitized instance name — the previous
-        // lastSegment(instance) collapsed "cdcA-2" and "cdcB-2" to the same "2",
-        // so two connectors sharing one database collided on the same history
-        // table and recovery dead-locked.
-        config.setSchemaHistoryJdbcTable(
-                (table == null || table.isEmpty() ? "nop_cdc_schema_history" : table)
-                        + "_" + sanitizeIdentifier(instance));
-    }
-
-    private static String sanitizeIdentifier(String instance) {
-        return instance.replaceAll("[^A-Za-z0-9]", "_");
+        DebeziumSourceSupport.qualifySchemaHistoryPerInstance(config, instance);
     }
 
     private String resolveBaseName() {
@@ -739,20 +682,6 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
     }
 
     private static <X> X serializationRoundTripCopy(X obj) {
-        try {
-            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos)) {
-                oos.writeObject(obj);
-            }
-            try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
-                    new java.io.ByteArrayInputStream(bos.toByteArray()))) {
-                @SuppressWarnings("unchecked")
-                X copy = (X) ois.readObject();
-                return copy;
-            }
-        } catch (Exception e) {
-            throw new StreamException(ERR_STREAM_CONFIG_ERROR, e)
-                    .param(ARG_DETAIL, "failed to build the serialization round-trip copy");
-        }
+        return DebeziumSourceSupport.serializationRoundTripCopy(obj);
     }
 }
