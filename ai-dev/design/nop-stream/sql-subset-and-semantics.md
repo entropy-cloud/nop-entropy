@@ -42,15 +42,18 @@
 | RDBMS 目标 | T1/T2/T3 三档：T1 直通（仅流目标，产物标注 stream-only）；T2 近似（**全部语义不等价，产物必须标注**；仓库内唯一可证映射 `oracle.dialect.xml:184-186` date→trunc；PG date_trunc / TimescaleDB time_bucket 可用性属外部事实，**未在本仓库验证**，各方言映射写法以 WI3 实跑产出为准）；T3 拒绝并给替代建议 |
 | 受影响 WI | WI1（若伪表函数语法随窗口 grammar 一并直增）、WI2/WI3（方言映射）、WI10/WI17（流映射）、WI16（三档策略确认） |
 
-## 4. D5 全局 ORDER BY 与 LIMIT = 首版排除
+## 4. D5 全局 ORDER BY 与 LIMIT = keyed TopN 放行（2026-10-08 修订）、全局排序维持排除
 
 | 项 | 内容 |
 |---|---|
 | 选项 | 排除 / keyed 缓冲近似 |
-| 结论 | **首版排除**，进不支持清单 |
-| 理由 | 引擎无 sort / TopN 设施（roadmap §3.1「全局 ORDER BY / LIMIT：无 sort / TopN 设施 ❌ D5 排除」）；keyed 缓冲近似引入全量状态与正确性边界问题，首版不做 |
-| 不支持清单草案（定稿归 WI16） | 全局 ORDER BY / LIMIT；非等值 / 范围 join；CDC retract 全链路；Flink SQL 方言兼容；DATE/TIMESTAMP/DECIMAL 列绑定（见 D7 §5）；CEP 级复杂编排 |
-| 受影响 WI | WI16（清单定稿）、WI17（编译器 fail-fast 错误面） |
+| 结论（首裁 2026-10-02） | **首版排除**，进不支持清单 |
+| 结论（修订 2026-10-08） | **keyed TopN 放行，全局排序维持排除**。放行的语义形态 = 每键分组内取前 N（keyed TopN 近似）；语法载体归 WI40 承载 plan 实测裁定（survey 参考形态 `WHERE rn <= N` 基于 OVER ROW_NUMBER 构件，非锁定语法；已知边界两处由 WI40 处置——子查询表源现 fail-fast，同层 WHERE 引用窗口输出的 QUALIFY 类语义未核实）。无 GROUP BY 键的全局 ORDER BY / 全局 LIMIT 维持排除。实施归本 roadmap WI40 |
+| 首裁理由两支的修订处置 | (1) 「引擎无 sort/TopN 设施」：全局分支仍成立（维持排除）；keyed 分支已失效——sql roadmap WI12 已构件级交付 PerKeyOrderedBuffer 每键有序缓冲 + ROW_NUMBER frame（OverWindowOperator，现仅测试实例化、尚无生产接线）。(2) 「keyed 缓冲近似引入全量状态与正确性边界问题」：keyed 形态下状态有界——每键缓冲受 watermark 推进清理，状态规模 O(每键窗口内元素数) 而非全局全量；正确性边界由 WI40 实施钉语义测试（乱序/迟到/键内并列秩）承担 |
+| 边界注记 | 本裁定不预授实施所需的模型级结构变更：若 WI40 落地所需声明结构构成注册表结构变更/新条目类型/条目集变更，须另走 vision §六#1 补记；由既有已授权模型类型承载的声明形态不在此列。**放行≠已实施**：全局 ORDER BY / LIMIT 编译期 fail-fast（StreamSqlCompiler compileQuery，现 :248-253，pin 码 `nop.err.eql.dialect-not-support-feature`）维持现状，直至 WI40 交付 |
+| 负责人 / 日期 | 仓库 owner（委托链：2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成……」）；2026-10-08 |
+| 不支持清单草案（首裁原件，保留） | 全局 ORDER BY / LIMIT；非等值 / 范围 join；CDC retract 全链路；Flink SQL 方言兼容；DATE/TIMESTAMP/DECIMAL 列绑定（见 D7 §5）；CEP 级复杂编排 |
+| 受影响 WI | WI40（keyed TopN 实施 + §4a#1 修订兑现）、WI16（清单行交叉注记归其承载 plan 维护） |
 
 ## 5. D6 分析窗口流上执行语义 = 事件时间
 
@@ -78,7 +81,7 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 
 | # | 不支持项 | 当前 fail-fast 形态 | 指认 |
 |---|---|---|---|
-| 1 | 全局 ORDER BY / LIMIT（D5） | 编译器不支持清单（WI17 落地时对 SQL 文本报 `nop.err.eql.dialect-not-support-feature` 或对应 stream 码）；引擎无 sort/TopN 设施 | roadmap §3.1 |
+| 1 | 全局 ORDER BY / LIMIT（D5；**keyed TopN 已放行 2026-10-08，实施归 WI40——放行≠已实施**） | 全局排序（无 GROUP BY 键）维持排除：编译器不支持清单对 SQL 文本报 `nop.err.eql.dialect-not-support-feature`（StreamSqlCompiler compileQuery，现 :248-253）；引擎无全局 sort/TopN 设施。keyed TopN（每键取前 N）经 D5 2026-10-08 修订放行，实施与 §4a#1 本行最终形态归 WI40 交付 | sql-subset-and-semantics §4（2026-10-08 修订）；roadmap §3.1 |
 | 2 | 非等值 / 范围 join（FU-1） | join 声明面仅等值键集（leftKeyExprs/rightKeyExprs 数量相等校验，`nop.err.stream.invalid-arg`） | StreamModelDslBuilder.validateJoinDeclarations；TestParameterizedJoinModel.keyCountMismatchFailsFast |
 | 3 | retract / CDC 全链路（D1=(a) 终值语义降级） | 模型语义标注 last-value-wins，非 append-only 非 retract；`<reduce>` 逐条 emit 当前归约值 | sql-subset-and-semantics §1；StreamReduceOperator |
 | 4 | Flink SQL 方言兼容 | 非目标（roadmap Non-Goals），编译器不解析 Flink 方言 | roadmap Purpose |
@@ -138,6 +141,17 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 |---|---|---|
 | nop.err.eql.dialect-not-support-feature | 方言未启用窗口能力位（既有消费点） | TestEqlCompileSql（既有断言） |
 | nop.err.stream.invalid-state / job-execute-failed 等 | 既有执行期错误面（不在 SQL 子集新增范围） | 既有测试 |
+
+## 4e. ASOF 时间就近 join 维持排除裁定（WI0b，2026-10-08）
+
+| 项 | 内容 |
+|---|---|
+| 选项 | 认定「时间就近匹配」单列于非等值 join 排除之外 / 维持排除 |
+| 结论 | **维持排除**。「时间就近匹配」（ASOF join）仍归入非等值/范围 join 排除，不单列放行 |
+| 引用边界母条款 | vision §四 Non-Goals「双流 Join」排除行——「非等值/范围/广播 join」；本档 §4a#2（非等值 / 范围 join，FU-1）为其流侧清单条目 |
+| 理由 | 放行需新增第二 join 类型（`EquiJoinOperator` 之外的时间就近匹配算子形态）与有序状态设施；真实需求未出现——比照 multi-engine roadmap WI0 裁定 R6 判例「roadmap 立项属缺口登记不构成真实用户需求」。survey B7（Feldera LEFT ASOF + MATCH_CONDITION 仅 `>=` 的限制式 fail-fast 模板）保留为未来放行时的形态素材 |
+| 重开触发条件 | 真实用户需求出现，且 owner 认定「就近匹配≠范围 join」单列放行；届时实施另立（Follow-up Backlog FU-E4 承接，不预设 WI） |
+| 负责人 / 日期 | 仓库 owner（委托链：2026-10-08 执行指令，同 §4 D5 修订行）；2026-10-08 |
 
 ## 7. 裁定一致性备注
 
