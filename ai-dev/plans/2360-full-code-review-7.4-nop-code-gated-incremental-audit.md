@@ -47,22 +47,22 @@
 
 ### Phase 1 - gated 复核与增量巡检（1 agent）
 
-Status: in progress
+Status: completed
 Targets: gated 项+增量面+新扩展
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（17c58c78d2）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派审计 agent）：① Phase 9 @Auth gated 现状核对（gated 原因/successor path 登记落点/人工确认状态——只核对不实施）+Phase 4 cascadeDelete successor 落地验证（`2026-08-14-0707-1` closure 证据）② 6 提交 diff triage（发现准入沿 2357 规则）③ 三新扩展结构巡检（pom/模块定位/lang-java 形态对照/测试面+**`scan-hollow-implementations.mjs` 机械锚**〔m2〕）④ 撞车比对 ⑤ 冻结协议三要素 → `_tmp/fcr-7.4-audit-a.md`
-- [ ] 主 agent 抽查质量：冻结表重放+发现抽验（含亲读）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派审计 agent）：① **gated 三点核对完成**（gated 原因=AR-146/155/170 @Auth Protected Area ask-first 合规 gate〔i6 :206/:210 实证〕/人工确认状态=roadmap 五处一致「阻塞待人工确认」+**张力注记**〔successor 0707-1 记 CRUD 面已由 auto-derive 覆盖但非 CRUD 面+AR-155(r10)/AR-170 仍待确认，roadmap 未更新〕/successor path 三点登记完备）② **Phase 4 cascadeDelete successor 验证 PASS**（plan completed+CLOSURE_APPROVED+orm.xml 三处 cascadeDelete="true" 双锚+测试在盘）③ **6 提交 diff triage 发现 P1×3/P2×3 全 still-live 双锚**——P1-7.4-001 N7.1 LlmSemanticEdgeExtractor 生产不可达（CodeIndexService:285-291 硬编码 3 提取器，LLM 提取器零接线零 bean，plan G1-b 接线项静默缺失）/P1-7.4-002 N8.1 评测自证空转（corpus/评分器/ground-truth 全测试内自定义，MRR=1.0/F1=1.0 不可作质量证据）/P1-7.4-003 N9.1 证据链断裂（plan 31 `[x]`「JUnit 调用 indexDirectory」载体从未运行+@Disabled，closure 自审非独立）/P2×3 ④ **三新扩展结构巡检零缺陷**（hollow 扫描 go/rust/csharp 全 EXIT=0 零发现；pom :27-29 注册/beans 同构/tree-sitter 实质实现 539-630 行/模块）⑤ 撞车维持 8 面+新增移交注记 1（ar-status-matrix AR-149/150/155(r8)/158 stale 未回写）⑥ 冻结协议（seed=2360+clusters SHA `259dee33…`，复放命令在产物）→ `_tmp/fcr-7.4-audit-a.md`
+- [x] 主 agent 抽查质量：冻结哈希重放 **MATCH**（newline+trailing=printf %s\n 行为）+ P1-7.4-001 锚点亲读成立（discoverSemanticExtractors 硬编码 3 提取器零 LLM 接线）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（零 P0——三条 P1 均为交付完整性/评测有效性缺陷无即时暴露面）
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；发现双锚证据
-- [ ] gated 复核+增量面+三扩展全覆盖；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；发现双锚证据
+- [x] gated 复核+增量面+三扩展全覆盖；冻结哈希重放 MATCH
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核
 
