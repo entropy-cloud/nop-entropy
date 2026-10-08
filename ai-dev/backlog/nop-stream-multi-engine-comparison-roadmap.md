@@ -64,7 +64,7 @@
 - [x] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
 - [x] WI10 范围重算与回补：时间范围 RECALCULATE 重放 + FILL_HISTORY 回补作业形态（复用 savepoint/restore 与 upsert sink 幂等）（Deliverable: 重算路径 E2E + 作业形态文档；deps: 无；Item Type: Feature）
 - [x] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
-- [ ] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
+- [x] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
 
 ### M3 — 数据面与生产化外围
 
@@ -89,6 +89,8 @@
 
 > 次级事项登记，不计入进度分母，不参与完成判定。晋级为正式 WI 时从 WI20 起顺延取号。
 
+- **滑窗 frame/deduct（或两阶段聚合）设计+实施（WI12 G2 GO 裁定，2026-10-08）**：JMH 实测 ACCUMULATING 滑窗每元素 add 成本随重叠窗口数 N 超线性放大（N=1→152ns、N=6→1047ns、N=12→2342ns（15.4×）、N=36→7802ns（51×）——`SlidingWindowFanoutBench`，avgt ns/op）；双判据（≥6×、≥1µs/元素 @N=12）满足。successor = 窗格化 frame/deduct 或两阶段聚合的设计+实施（现模型为 per-window 增量、瓶颈在 N 份 add/N 份状态访问；收益上界 = 压到 1 份 add + fire 期少量 deduct）。**显式 successor ownership**（WI12 基准与裁定已交付，实施另立 plan 从 WI20+ 取号）。
+- **水位 punctuation 节流——不做裁定（WI12 G1 NO-GO，2026-10-08）**：JMH 实测非触发水印纯控制面成本恒 ~1.7ns（keys 无关，`WatermarkEmitBench`）= 元素成本 0.1-1.2%——节流节省上限 ≤1.2% 且推迟下游水位推进。**不做**；触发条件 = 出现水印路径成为实测瓶颈的现网证据（届时重新基准）。AR-06（xpl watermark 生成器）仍由 r5-successors 承载，与本裁定互不阻塞。
 - **CEP × RocksDB 可用化**：现限 Memory 后端（`nop-stream/README.md:22` 自曝）；晋级条件 = 生产场景出现 CEP + 大状态诉求（Deliverable: 待触发时另立 plan；deps: 无；Item Type: Feature）。Why Not Blocking Closure：CEP 现网用例均为中小状态，Memory 后端 + checkpoint 可覆盖；晋级不随时间增加成本（状态序列化面与 r5-successors ST-05/ST-12 同域，届时一并考虑）。Successor Required: no。
 - **broadcast state（对比分析 P2-19）**：vision §七 #G36 永久排除现行有效；WI0 若裁定重启，须按 #G36 先例走 owner 裁决回写 vision 后从 WI20 晋级，defer 则登记触发条件 = 出现配置分发/规则热更业务诉求。
 - **message sink checkpoint 参与**：IMessageService sink 纳入 exactly-once 边界；触发条件 = 用户对平台消息通道提出丢弃零容忍诉求（现状 at-least-once 由后端承载）。
