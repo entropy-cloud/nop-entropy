@@ -1,6 +1,6 @@
 # 2356 full-code-review 6.9 check 系列 P2/P3 批量状态标定（watch-only 归档）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.9（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: 承接 6.4（P0 全标定——fix-ai-check 分支处置以 master 为准的方法学先例）与 6.5–6.8（P1 四批全闭）。同族先例=plan 2352–2355（独立枚举 diff/冻结三要素/处置面实测/承接路由/双轨校验形态照抄；本项为批量归档而非逐条深标定——性质对齐 6.4 的「批量状态标定」）。
@@ -14,7 +14,7 @@
 > **升级候选的 index 挂载（对抗审查 m6）**：沿「R1.0 输入池」先例——index 6.9 行裁决摘要列载升级候选计数，清单本体在报告 §升级候选（每条附疑似理由+在先锚）；R1.0 以报告全集对账规则读取；不占 P1 汇总/P2 台账（裁决权在 R1.0）。
 > 上游承接源（仅限①类清单，对抗审查 M2 勘正）：3.9/4.4/4.5 三份 check-条目级台账（详见分类规则）；6.5–6.8 的 P1 标定不重复（已闭批次不在本宇宙）；6.5–6.8 各报告 Non-Goals 移交的「P2/P3 处置残余」即本项②③类输入。
 > 只读审计。**执行分支口径**：以当前工作树（audit/full-code-review）为读、以 master 可达性为锚；实跑红按 plan 2331 :93 先例归因预存并登记。
-> Draft Review: agent_877eef9f-f622-4ea3-92d8-76a32c03430f 首轮 **1 Blocker（B1 单元数 52 实为 54+Phase 1 缺独立枚举 diff）** + 4 Major（M1 SUMMARY 三口径并存未调和/:101 过时/M2 ①类承接源清单失真——净新发现计数冒充标定计数+check2 行号误配风险+无覆盖矩阵/M3 ①类 still-live 承接条目无路由——2355 M1 同型复发/M4 对账单 agent 超载 694 条×16 源）+ 6 Minor（m5 ②类下限缺实测校验/m6 升级候选 index 挂载点未指明/m7 ③类措辞与处置块形态不符/m8 升级候选清单无冻结/m9 513 vs 514 口径/m10 缺 dup 溯源规则）——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_877eef9f-f622-4ea3-92d8-76a32c03430f 首轮 **1 Blocker（B1 单元数 52 实为 54+Phase 1 缺独立枚举 diff）** + 4 Major（M1 SUMMARY 三口径并存未调和/:101 过时/M2 ①类承接源清单失真——净新发现计数冒充标定计数+check2 行号误配风险+无覆盖矩阵/M3 ①类 still-live 承接条目无路由——2355 M1 同型复发/M4 对账单 agent 超载 694 条×16 源）+ 6 Minor（m5–m10）——本轮全部修复（详见各节勘正注记）；聚焦复核（同一审查员）10 项全 PASS 但新发现 **N1 Major（承接面归属「甲管 3.9/乙管 4.4+4.5」与单元分组矛盾——net 族 3.9 面跨组漏认领）**+3 Minor，修复（承接面改按单元归属对照三源/分组候选文件避竞态/计数注记 71 行/措辞）后二次核认 **PASS 零问题**（commits `905f1d8edd`/`ac5cc845ae`）——转 active。
 
 ## Purpose
 
@@ -51,12 +51,12 @@
 
 ### Phase 1 - 对账、分类与抽验（2 对账 agent 分组 + 2 验证 agent）
 
-Status: planned
+Status: in progress
 Targets: check 系列 P2/P3 全量清单
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（ac5cc845ae）、`git status` 干净后开始
 - [ ] **对账 agent 甲（Phase 1–3 单元组 31 份）+ 对账 agent 乙（Phase 4–6 单元组 23 份）**（对抗审查 M4 拆分）：各自对账落盘：① 独立枚举 diff（ROADMAP 单元表 vs 报告全集 54 份——2352 B1 教训防漏单元）② 所辖单元 694 条中份额的全量清单（条目号/处置标注实测/「单元×承接源」覆盖矩阵登记——**各 agent 对所辖单元逐一对照三源（3.9/4.4/4.5）登记覆盖矩阵**〔聚焦复核 N1 勘正：承接面按单元归属而非按源归属——3.9 面跨甲乙两组（gateway-bizauth 在甲/net-http-rpc+net-misc 在乙）、4.4 面亦跨（format-misc 在甲/search+msg-cluster 在乙）〕，覆盖矩阵汇总落盘）③ 三分类机械划分（规则见头部；①类承接台账逐条在先行标识；**①类 still-live 未登记者并入升级候选**）④ 升级筛查（所辖②③类 P2 全部标题+现状段过读，候选附 ≥3 行疑似理由，写分组文件 `_tmp/fcr-6.9-escalation-a.csv`/`-b.csv`——聚焦复核 N2 避免同名并行写竞态；主 agent 合并后统一冻结 `_tmp/fcr-6.9-escalation.csv`）⑤ 所辖统计核对（逐份+三分类账平）
 - [ ] Agent 1「抽验」：②类处置块采信抽验 max(≥35, 10%)（代码亲读+实跑 ≥10——6.4 F4 教训）+ ①类承接锚回读 ≥15 条 → `_tmp/fcr-6.9-verify-a.md`
 - [ ] Agent 2「升级候选复核」：两对账 agent 的升级候选清单逐条独立复核（亲读代码锚，独立判断疑似量级成立性）+ ②③类 P2 全量快扫兜底（防漏候选）→ `_tmp/fcr-6.9-verify-b.md`
