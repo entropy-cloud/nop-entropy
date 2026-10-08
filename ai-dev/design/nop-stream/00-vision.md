@@ -87,6 +87,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 > 执行注记（WI21，2026-10-03）：授权 (b) 已落地——`StreamComponents.declarativeRegistries` 以 flow-free 载体 `StreamComponentEntry` 收录 aggregators/joins 条目；**schemas 条目为授权原文之外的实施延伸**（schemas 声明面本身经 WI8b 授权，其注册条目是该授权的注册实现），在此显式补记。条目为描述性规范化载体，不含可执行语义，未改 §八 15 条不变量的被验证对象地位。
 
+> 执行注记（WI0b，2026-10-08）：**joins 既有条目的字段级扩展授权补记**——`StreamJoinSpecModel` 条目内单一 `timeout` 字段参数化为 `leftTimeout`/`rightTimeout` 双字段声明（非对称窗口 join timeout，`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI27 实施），属授权原文之外的实施延伸（授权 (b) 列举的三类注册表条目不含既有条目内字段参数化），在此显式补记，比照上条 WI21 先例格式。**本补记的实质理由（与 WI21 不同，不可平移其理由）**：条目集与条目类型不变（joins 仍是授权 (b) 已覆盖的条目），仅将既有 timeout 字段参数化并扩展构建期校验面，不触碰授权 (a) 的 Transformation 类型；leftTimeout/rightTimeout 为可执行语义参数（非 WI21 的描述性载体），其语义由 WI27 构建期校验与判别性测试钉死。**边界**：本补记不改变 2026-10-02 授权 (a)(b) 的既有范围——新增注册表条目类型仍限授权原文所列，范围之外的新条目类型或条目集变更仍属本决策点人审门。授权依据：`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI0b（2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成……」委托 ZCode 代理按 roadmap 建议裁定）。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）

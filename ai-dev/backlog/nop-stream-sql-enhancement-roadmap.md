@@ -68,7 +68,7 @@
 | 裁定 | 状态 | 负责 | 选项 | 结论 / 依据 |
 |---|---|---|---|---|
 | WI0a 覆盖的 D10/D11 | **已裁定 owner（委托链）2026-10-08** | owner | D11：放行 emit 两档——形态锁死 Kafka Streams EmitStrategy 的 ON_WINDOW_UPDATE/ON_WINDOW_CLOSE 两档（survey kafka-streams 篇）/ 维持 fail-fast；随裁三项——trigger 注册表前置的存废（D11 原文前置）、triggerId fail-fast 是否保留、emit 挂点即 `<sql>` 属性或窗口与聚合节点。D10：随 WI38 修复一并开放 ACCUMULATING 声明——放行结论以 WI38 done 为生效前提 / 维持 DISCARDING-only | **结论**：D11=放行 emit 两档——trigger 注册表前置作废、triggerId fail-fast 保留、挂点即 `<sql>` 顶层属性；D10=放行 ACCUMULATING 声明——生效前提 WI38 done，A&R 维持 spec-only。落档 `ai-dev/design/nop-stream/window-failfast-decisions.md` §2/§3 2026-10-08 修订节；承载 plan ai-dev/plans/nop-stream-sql-enhancement/01-wi0a-d10-d11-emit-decisions.md |
-| WI0b 覆盖的 D5/D7/ASOF/字段扩展授权 | **未裁**（本 roadmap 裁定门） | owner | D5：重裁为 keyed TopN 近似（基于 OVER ROW_NUMBER 构件）/ 维持排除。D7：DDL 分层随 multi-engine WI7 重开 / 维持查询内聚。ASOF：认定「时间就近匹配」单列于非等值 join 排除之外 / 维持排除。字段扩展：joins 既有条目字段级扩展的 §六#1 授权补记与否 / WI27 改道裁定后实施 | 裁定落档按对象拆分——D5 与 ASOF 落 `ai-dev/design/nop-stream/sql-subset-and-semantics.md` 修订或新附档；D7 落 `ai-dev/design/nop-stream/sql-compiler-contract.md` 修订；字段扩展补记落 vision §六#1 裁决记录追加（比照 WI21 先例）；ASOF 的裁定记录须引用 §四排除行 |
+| WI0b 覆盖的 D5/D7/ASOF/字段扩展授权 | **已裁定 owner（委托链）2026-10-08** | owner | D5：重裁为 keyed TopN 近似（基于 OVER ROW_NUMBER 构件）/ 维持排除。D7：DDL 分层随 multi-engine WI7 重开 / 维持查询内聚。ASOF：认定「时间就近匹配」单列于非等值 join 排除之外 / 维持排除。字段扩展：joins 既有条目字段级扩展的 §六#1 授权补记与否 / WI27 改道裁定后实施 | **结论**：D5=部分重裁——keyed TopN 放行（语义形态每键取前 N，语法载体归 WI40 plan 实测，全局排序维持排除，落 `ai-dev/design/nop-stream/sql-subset-and-semantics.md` §4 修订+§4a#1 行）；D7=维持查询内聚（重开触发条件=cdc-design defer 撤销且 WI15 启动后 sink 侧 DDL 路径，落 `ai-dev/design/nop-stream/sql-compiler-contract.md` §1.1a）；ASOF=维持排除（引用 vision §四排除行，落 sql-subset-and-semantics §4e）；字段扩展=补记通过（落 `ai-dev/design/nop-stream/00-vision.md` §六裁决记录 2026-10-08 注记，WI27 可实施）；承载 plan ai-dev/plans/nop-stream-sql-enhancement/02-wi0b-boundary-decisions.md |
 
 ## Work Item Status
 
@@ -77,7 +77,7 @@
 ### Phase 0 — 裁定门与随裁实施
 
 - WI0a D10 与 D11 放行裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D11 放行 emit 两档：EmitStrategy ON_WINDOW_UPDATE 与 ON_WINDOW_CLOSE 形态锁定、trigger 注册表前置作废、triggerId fail-fast 保留、挂点即 `<sql>` 顶层属性；D10 放行 ACCUMULATING 声明：生效前提 WI38 done、A&R 维持 spec-only；落档 window-failfast-decisions §2 与 §3 的 2026-10-08 修订节；承载 plan 01-wi0a-d10-d11-emit-decisions.md）
-- WI0b D5 与 D7 与 ASOF 与字段扩展授权四条边界裁定: `todo`（deps 无；Item Type Decision；D5 keyed TopN 重裁与否、D7 DDL 分层是否随 multi-engine WI7 重开、ASOF 是否单列于非等值 join 排除之外、joins 既有条目字段级扩展的 §六#1 授权补记与否；结论落档按对象拆分——D5 与 ASOF 落 sql-subset-and-semantics 修订或新附档，D7 落 sql-compiler-contract 修订，字段扩展补记落 vision §六#1 裁决记录追加；放行项的实施按动态规划另立或进 Follow-up Backlog；含负责人与日期）
+- WI0b D5 与 D7 与 ASOF 与字段扩展授权四条边界裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D5 部分重裁：keyed TopN 放行、全局 ORDER BY 与 LIMIT 维持排除、语法载体归 WI40 plan 实测；D7 维持查询内聚：重开触发条件 cdc-design defer 撤销且 WI15 启动后 sink 侧 DDL 路径；ASOF 维持排除：引用 vision §四排除行、FU-E4 承接；字段扩展授权补记通过：StreamJoinSpecModel timeout 参数化为 leftTimeout 与 rightTimeout、WI27 可实施；落档 sql-subset-and-semantics §4 与 §4a#1 与 §4e、sql-compiler-contract §1.1a、vision §六裁决记录；承载 plan 02-wi0b-boundary-decisions.md）
 - WI37 D11 emit 两档实施: `todo`（deps WI0a；Item Type Feature；若 WI0a 放行——按裁定形态实施 emit update 与 close 两档并钉判别性测试；若 WI0a 维持 fail-fast——无实施面，本项以 done 销号并在括注记 WI0a=维持与日期）
 - ★ **里程碑：M0 裁定门**（解锁条件 WI0a 与 WI0b 与 WI37 全部 done）：`未达成`
 
