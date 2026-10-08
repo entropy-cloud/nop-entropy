@@ -1,6 +1,6 @@
 # 2358 full-code-review 7.2 nop-stream 增量巡检（CDC WI1–WI8/Debezium 换代/dmlMode 面 + invariant-loop backlog P2 批量标定）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.2（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/10/14）
 > Related: **`ai-dev/backlog/nop-stream-cdc-roadmap.md`（CDC WI1–WI8 权威出处——对抗审查 M1 钉定）**；`ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`（闭环飞轮 377 行，Owner Doc——**backlog P2 清单在 Follow-up Backlog 各批次 Status 字段，非 Work Item Status 区**〔对抗审查 m1 指位勘正〕）；`ai-dev/backlog/nop-stream-production-roadmap.md`（40/43 done；Debezium 2.4 基线 item 53）；2.8 报告（stream-sql 首审+预存失败锚 :83）/6.7 批次 c stream 四单元 P1 标定/6.4（stream P0×4 :53）。
@@ -85,31 +85,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.2-nop-stream-incremental-audit.md`；index 登记 7.2 行 + 仍 live 进 P1 汇总或 P2 台账（backlog still-open P1 级升级上报形态）
-- [ ] 定向验证锚点：受影响模块测试绿（或引用绿色基线+在窗回归对照）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（六项：证据完整性/严重性标定/引用路径真实性/计数对应——覆盖账+backlog 全量/已审域标记合规——无违规重审无静默跳过/流程状态）；**通过后** roadmap 7.2 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.2-nop-stream-incremental-audit.md`；index 登记 7.2 行 + P1-7.2-001 进 P1 汇总 + P2-7.2-001/AR-06/backlog×35 进 P2 台账
+- [x] 定向验证锚点：在窗回归实跑对照在案；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项）；**通过后** roadmap 7.2 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 巡检口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 巡检口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划（实跑为验证副作用），免除全量构建。
 
-- [ ] 报告落盘且在审增量面全覆盖（覆盖账 62=N+M）+ backlog P2 全量三分类
-- [ ] 每条发现/标定双锚证据可复现；撞车全量比对留痕（含在窗回归对照）
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（backlog still-open P1 级升级上报）
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.2 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且在审增量面全覆盖（覆盖账 62=35+27）+ backlog P2 全量三分类
+- [x] 每条发现/标定双锚证据可复现；撞车全量比对留痕（含在窗回归对照）
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（P1-7.2-001；升级上报定稿 0 条 P1 级——AR-06 复核撤销）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -121,14 +121,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.2 收口——覆盖账 62=在审 35+已审域 27 账平，backlog 98 行三分类 35/35/28 深抽零翻案，发现 P1-7.2-001（在窗回归，实跑复现）+P2-7.2-001（升档），AR-06 升级复核撤销改 P2 残余收敛，升级上报定稿 0 条 P1 级。独立 closure audit（agent_ff01000b）**一次 PASS 六项全过**，3 Minor 不阻塞（backlog 行数简写 102=98+4 留痕/残余收敛子类基数注记/台账压缩头部块）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_ff01000b-6832-46e3-a111-2eed2c532d59（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告齐备；双锚亲证；产物八件在盘吻合（testrun.log 实测含在窗回归红）
+  - 核验 B 计数对应 PASS（csv 模块亲手重算）：62 行/98 行/20 行三 SHA 逐字重合；覆盖账 62=35+27；三分类 35/35/28 逐行重算；抽样公式重放逐位 MATCH；报告=index=P1 汇总 1 行=P2 台账 3 行一一对应；AR-06 撤销+触发在案
+  - 核验 C 引用路径真实性 PASS：4+3 抽验全中（失配断言 :132 唯一性七 connector 核对/keyTuple 双锚/吞异常/文档 :87 PARALLEL）
+  - 核验 D 严重性标定 PASS：P1 维持（全域触发+双实跑）与 P2 升档判例恰当；AR-06 撤销亲证（e20b7cef1b+R5-CON-02/03 护栏 HEAD 在位）
+  - 核验 E 已审域标记合规 PASS：27 M 提交零重审；35 N 全覆盖如实登记分级深度；无静默跳过（偏差全部留痕）
+  - 核验 F 流程状态 PASS：roadmap 翻 done 前 todo；doc-links exit 0 实测
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2358-full-code-review-7.2-nop-stream-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；backlog still-open 35 走 P2 台账通道（roadmap 规则 #3 允许通道）；watch-only 28 规则 #3 终态
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-7.2-001 修复归 R1.0；P2-7.2-001+AR-06+backlog still-open 35 → R1.0 批量裁决（P2 台账承载）；TestBatchTaskCheckpoint 红归 3.3 台账；飞轮继续归其 mission——无本 plan 自有剩余工作
