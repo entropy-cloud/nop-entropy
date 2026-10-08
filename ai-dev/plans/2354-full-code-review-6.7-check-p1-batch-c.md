@@ -1,14 +1,14 @@
 # 2354 full-code-review 6.7 check 系列 P1 抽样标定 c（ai/stream/code/graph/credential/datav/metadata）
 
-> Plan Status: draft
-> Last Reviewed: 2026-10-07
+> Plan Status: active
+> Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.7（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: 批次权威定义=矩阵 §6：批次 c 成员 = **nop-ai、nop-stream、nop-code、nop-graph、nop-credential、nop-datav、nop-metadata**（metadata 唯一归属批次 c）。同族先例=plan 2352/2353（修复后形态照抄：独立枚举 diff/维度派生/冻结三要素/dup 方向/符号匹配键/分支口径/强制实跑/处置面实测先验）。
 > 机械基线（主 agent 实测，2026-10-07；经 Draft Review agent_254ef0f5 逐份实测勘正）：批次 c 候选单元 **12 份**（ai 族 4/stream 族 4/code/graph/datav/metadata）+ **msg-cluster-cred 单元的 credential 份额 1 条**（该单元 P1=8＝cluster 4+message 3+credential 1〔DefaultCredentialKeyProvider passphrase 入 param :172〕；矩阵 §6 为唯一权威——credential→批次 c、message/cluster→批次 d；Phase 1 对账执行该裁定并记录）。**批次 c 对账池 = 46 条 P1**（ai 20〔ai-core-api 3/ai-rest 7/ai-toolkit-skills 6/nop-ai-agent 4〕+ stream 14〔core 4/cep 1/flow-conn 3/runtime 6〕+ code 5 + graph 4 + datav 1 + metadata 1 + mcc-cred 1；SUMMARY Phase 4 的 49 含批次 d 的 search 5 条已扣除）。**处置面先验（草审 B2 实测翻转）**：批次 c **46 条 P1 零处置标注**（8 单元共 9 处 fix-ai-check 标注全部挂 P0 条目——P0 已由 6.4 闭环；SUMMARY :101「P1 尚未处置」对本批成立）——净池从零标定，实跑三分支全走第三分支（域内测试）。**轮内已终判承接（草审 M1）**：mcc-cred :172 已被 3.10 终判 **still-live 并登记 `P1-check-mcc-172` 进 R1.0 台账**——直接承接（计入对账台账、归并 P1-check-mcc-172 保留 check 溯源，不重复抽样）；**净抽样池 = 46−1 = 45 条，≥50% 下限 = 23**（双轨口径：净池 %/严格基线 46 %）。
 > 上游标定富集面（撞车承载，草审 M2 勘正后）：ai arm 台账（`ai-dev/backlog/audit-remediation-roadmap.md` v16 + `ai-dev/audits/arm-index.md` + 30+ 份 arm-MA*.nop-ai-*——对应 7.1 域）/metadata 台账（`arm-unclosed-findings-nop-metadata.md`——其 P1×1 live=OrmModelImporter currentTimeMillis 与 check nop-metadata P1〔MetaTableProfiler :331-346〕非同条，7.3 域）/2.8（stream-sql 首审——四 stream 单元非其范围；其 :83 登记 2 处预存测试失败为实跑红先对照锚）/6.4（stream P0×4 already-fixed :53 + graph Edge P0 #25 处置块——graph 先例载体）/6.5（nosql P2-6.5-001 同域邻接）/3.10（mcc-cred 终判）/3.7（rule 属批次 b 噪音项不引）/7.3/7.4/7.6 为 todo 勿引声明。
 > 只读审计。**执行分支口径**：live-ness 以当前工作树（audit/full-code-review）为读、以 master 可达性为锚。
 > **方法学裁定**（照抄 2353 修复后形态 + 草审 m2/m3/m4 补全）：① 四态 + partially-fixed 映射规则 + dup 归并方向写死（mcc-cred 承接 P1-check-mcc-172；同根→并入轮内发现 ID 保留 check #溯源）；② 抽样 ≥50% 双轨口径（净池 45 的 ≥50%=23 / 严格基线 46）+ D5/D1 全抽 + 其余 seed 抽样；**D1 量级预估 Phase 1 落盘**（stream/code/graph 面 D1 重仓，全抽规模可能 30±——3 agent 分配弹性预留）；冻结协议三要素（seed=2354+宇宙快照哈希+冻结表 `_tmp/fcr-6.7-frozen.csv`）落盘，脚本 `_tmp/fcr-6.7-sample.py`，报告附录记 SHA-256；③ live-ness 双锚=代码亲读+实跑三分支（本批 P1 零标注→全走第三分支域内测试；**实跑红先对照 2.8 :83 预存失败登记〔TestStreamConnectorRegistryDiscovery 等〕与 6.4 台账，不得径判 still-live**）；④ 撞车检索面=相邻工作项发现清单全量 grep，匹配键=归一化文件路径+类/方法符号；⑤ 执行分支口径见上。
-> Draft Review: agent_254ef0f5-a359-4eda-abcd-d8cdc602791a 首轮 2 Blocker（B1 机械基线五分量全错+49 含批次 d search 5 条——实测池 46=ai 20/stream 14/code 5/graph 4/datav 1/metadata 1/mcc-cred 1/B2 处置面先验倒置——批次 c P1 零标注〔9 处标注全挂 P0〕）+ 4 Major（M1 漏 3.10 撞车/承接——mcc-cred :172 已终判 P1-check-mcc-172，净池 45/下限 23/M2 撞车面五处归属勘正〔6.5→6.4/删 2.2/6.6 改 6.4 载体/3.10 域注记/3.7 删〕）+ 5 Minor 全修（m1 双轨口径/m2 D1 量级预估/m3 closure audit 抽样覆盖率核验/m4 预存失败参照锚/m5 ai arm 台账路径写实）——本轮全部修复，待聚焦复核。
+> Draft Review: agent_254ef0f5-a359-4eda-abcd-d8cdc602791a 首轮 2 Blocker（B1 机械基线五分量全错+49 含批次 d search 5 条——实测池 46=ai 20/stream 14/code 5/graph 4/datav 1/metadata 1/mcc-cred 1/B2 处置面先验倒置——批次 c P1 零标注〔9 处标注全挂 P0〕）+ 4 Major（M1 漏 3.10 撞车/承接——mcc-cred :172 已终判 P1-check-mcc-172，净池 45/下限 23/M2 撞车面五处归属勘正〔6.5→6.4/删 2.2/6.6 改 6.4 载体/3.10 域注记/3.7 删〕）+ 5 Minor 全修（m1 双轨口径/m2 D1 量级预估/m3 closure audit 抽样覆盖率核验/m4 预存失败参照锚/m5 ai arm 台账路径写实）——本轮全部修复；聚焦复核（agent_f5709e50，2026-10-08）逐项独立实测 **PASS 零问题**（五分量逐单元亲数/9 标注全挂 P0 逐处回溯/P1-check-mcc-172 同一发现实锤/撞车面五处归属全吻合/想象性分析无卡死点）——转 active。
 
 ## Purpose
 
@@ -45,12 +45,12 @@
 
 ### Phase 1 - 对账、抽样与标定（3 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: 批次 c check 单元报告 P1 清单
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（7134697080）、`git status` 干净后开始（65e9e4b163 后工作树干净佐证）
 - [ ] 主 agent 对账落盘（委派对账 agent 执行）：① 独立枚举 ROADMAP 单元表 diff 候选 12 份 + **msg-cluster-cred 拆分裁定执行**（credential 1 条入池、cluster/message 7 条归批次 d——落盘记录）② 批次 c 对账池 46 条全量清单（维度派生 D5/D1 量级预估落盘+处置标注实测核对〔先验=零标注〕+轮内已终判承接标记〔mcc-cred :172→P1-check-mcc-172〕）③ 统计表机械核对（12 份+SUMMARY Phase 4 49−search 5=44+metadata 1+mcc 1=46 账平）④ 冻结协议三要素（seed=2354；净池 45 抽 ≥23；`_tmp/fcr-6.7-sample.py`；`_tmp/fcr-6.7-frozen.csv`）
 - [ ] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+域内测试实跑〔全走第三分支；实跑红先对照 2.8 :83 预存登记〕+撞车比对）
 - [ ] 主 agent 抽查质量：冻结表重放 + 标定抽验（含实跑）
