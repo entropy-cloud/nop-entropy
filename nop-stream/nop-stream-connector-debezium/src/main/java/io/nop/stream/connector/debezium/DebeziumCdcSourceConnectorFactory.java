@@ -8,14 +8,14 @@ package io.nop.stream.connector.debezium;
 
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
-import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
-import io.nop.stream.core.connector.registry.IStreamSourceFunctionFactory;
+import io.nop.stream.core.connector.registry.IStreamSplitSourceFactory;
 import io.nop.stream.core.connector.registry.StreamConnectorConfig;
+import io.nop.stream.core.source.Source;
 
 import java.util.List;
 
@@ -27,12 +27,12 @@ import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
  * configuration is a programmatic OBJECT param ({@code DebeziumConfig}). Registered in
  * {@code _vfs/nop/stream/beans/connector-debezium.beans.xml}.
  */
-public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFunctionFactory {
+public final class DebeziumCdcSourceConnectorFactory implements IStreamSplitSourceFactory {
 
     public static final String TYPE_NAME = "debezium-cdc";
 
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
-            .source(TYPE_NAME, DebeziumCdcSourceFunction.class.getName())
+            .source(TYPE_NAME, DebeziumCdcSource.class.getName())
             .sourceConsistency(SourceConsistencyCapability.REPLAYABLE)
             // B 层确定性表路由（cdc-design.md §3.3）：parallelism > 1 时按表名 hash 分片，
             // 每实例独立 connector name 与 offset；validateParallelism 在部署期 fail-fast。
@@ -60,13 +60,10 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSourceFun
     }
 
     @Override
-    public SourceFunction<?> createSourceFunction(StreamConnectorConfig config) {
+    public Source<?, ?, ?> createSource(StreamConnectorConfig config) {
         DebeziumConfig debeziumConfig = config.requireObject("config", DebeziumConfig.class);
         io.nop.credential.api.ICredentialProvider provider =
                 config.getObject("credentialProvider", io.nop.credential.api.ICredentialProvider.class);
-        if (provider != null) {
-            return new DebeziumCdcSourceFunction(debeziumConfig, provider);
-        }
-        return new DebeziumCdcSourceFunction(debeziumConfig);
+        return new DebeziumCdcSource(debeziumConfig, provider);
     }
 }

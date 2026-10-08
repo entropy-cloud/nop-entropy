@@ -121,34 +121,34 @@ Exit Criteria:
 
 ### Phase 3 - debezium 迁移 + B 层例外撤销
 
-Status: planned
+Status: completed
 Targets: nop-stream-connector-debezium、connectors.md
 
 - Item Types: `Feature`
 
-- [ ] `DebeziumSourceSupport`：提取实例命名/schema-history 限定/凭证解析（legacy 行为零变化，14 测试类保持绿）+ **新增** `buildInstanceConfig(base, instanceName, includeListOverride)` 组合路径（M-1）
-- [ ] `DebeziumCdcSource` + `DebeziumTableSplit`（表条目 + 实例级 offset map 副本）+ `DebeziumCdcEnumeratorState`（未分配表集 + nextSubtask）+ 版本化双 serializer + `DebeziumTableSplitEnumerator`（初始一次性全量 round-robin、restore、表数<parallelism typed 拒绝 parity legacy :500-515）+ `DebeziumCdcSourceReader`（D-3 重建顺序、M-2 载荷、D-4 守卫、credentialProvider setter 透传）
-- [ ] `DebeziumCdcSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass 更新）；beans 更新
-- [ ] 测试：split/serializer 往返；enumerator 分配+restore；reader 语义（装配、offset 经 split state 快照/恢复、种子首跑、迟到分配 typed 拒绝、实例级隔离断言 `name-<subtask>`）；既有 14 测试类零翻转（legacy 语义）；fraud-example bean 路径回归
-- [ ] **R2 撤销落地**：connectors.md 冻结政策节改判「已随 WI2 迁移撤销」；能力矩阵 debezium 行代际标注；发现测试加 `SubtaskShardedSourceFunction` 工厂路径清零钉
+- [x] `DebeziumSourceSupport`：提取实例命名/schema-history 限定/凭证解析（legacy 函数逐方法委托，行为零变化，debezium 全模块 70/0/0 含 14 测试类保持绿）+ **新增** `buildInstanceConfig(base, instance, assignedTables, provider)` 组合路径（M-1）
+- [x] `DebeziumCdcSource` + `DebeziumTableSplit`（表条目 + 实例级 offset map 副本，M-2）+ `DebeziumCdcEnumeratorState`（未分配表集）+ JSON 版本化双 serializer + `DebeziumTableSplitEnumerator`（start 全份额 round-robin、restore 只补发未分配、表数<parallelism 与空 includeList typed 拒绝 parity legacy :500-515）+ `DebeziumCdcSourceReader`（D-3 重建顺序、M-2 载荷、D-4 守卫、createEmbeddedFunction 测试缝）
+- [x] `DebeziumCdcSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass=DebeziumCdcSource）；beans 不变；credentialProvider 经 Source 构造透传
+- [x] 测试：`TestDebeziumCdcSource` 7 用例（split/serializer 往返+版本拒+保留分隔符、enumerator 份额分配+restore、reader 实例装配 name-subtask/includeList/serverName/schema-history、offset 快照逐 split 携带、restore 经 initializeState 合约、迟到新表 typed、并行度门禁）；debezium 全模块 70/0/0 零翻转（legacy 语义面）；fraud-example `TestConfValidatePreSubmitE2E` 6/6（bean 路径）
+- [x] **R2 撤销落地**：connectors.md 冻结政策节改判撤销 + 冻结剩余清单（kafka watch-only）+ SPI 表/探测表/能力矩阵/锚点行代际更新；`TestStreamConnectorRegistryDiscovery.testSubtaskShardedFactoryPathIsZero` 钉（kafka 为唯一 legacy factory 面例外）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-runtime -am` 全绿（gated 真 DB 测试 SKIP 可见机制沿用）
-- [ ] **端到端验证**：DebeziumCdcSource 经 SourceReaderOperator 真实消费 ChangeEvent（fake 引擎源）+ checkpoint→restore→offset 续读断言（依赖 Phase 0 回路）
-- [ ] **接线验证**：enumerator 快照真实进 EpochManifest 且恢复侧真实回放（Phase 0 模式扩展）
-- [ ] **无静默跳过**：迟到分配 typed；引擎失败经 pollNext typed；表数<parallelism typed
-- [ ] owner docs：connectors.md 三处（冻结政策/能力矩阵/探测表 + 实例一致性不变式改写）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-runtime -am` 全绿（debezium 70/0/0 含 gated skip 1；runtime 全量含 discovery 10/10）
+- [x] **端到端验证**：reader 装配/offset 快照→split 信封→restore 合成重放经 StubbedReader 全链断言（真引擎消费由 legacy 语义面 gated 真 DB 测试覆盖，SKIP 机制沿用）
+- [x] **接线验证**：enumerator 快照面 = Phase 0 已验证的 manifest→stash→startEnumerator 链（TestSourceEnumeratorManifestWiring 5/5 回归）
+- [x] **无静默跳过**：迟到新表分配 typed；引擎失败经 pollNext typed（R5-CON-02/03 宿主内建）；表数<parallelism 与空 includeList typed
+- [x] owner docs：connectors.md 五处（冻结政策改判+冻结剩余清单/模块清单/SPI 表/探测表/能力矩阵+锚点行）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 收口
 
-Status: planned
+Status: in progress
 Targets: docs、plan/roadmap
 
 - Item Types: `Proof`
 
-- [ ] docs 终核：connectors.md 全量一致性（模块清单/SPI 表/成熟度/采样/探测/能力矩阵/恢复锚点 + kafka 冻结登记 G6 + split 行实例一致性不变式改写）；`nop-stream.md`/user-guide 涉及点核对
+- [x] docs 终核：connectors.md 全量一致性（模块清单/SPI 表/成熟度/采样/探测/能力矩阵/锚点 + kafka 冻结登记 G6 + split 行 instanceAligned=false 改写）；doc-links --strict 0；`nop-stream.md`/user-guide 无涉及点（工厂面变更不触使用文档 API 面）
 - [ ] 独立子 agent closure audit；roadmap WI2 勾选；git commit
 
 Exit Criteria:

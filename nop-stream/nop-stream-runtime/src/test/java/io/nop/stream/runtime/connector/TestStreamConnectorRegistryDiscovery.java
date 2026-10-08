@@ -132,11 +132,11 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.MessageSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
-        // debezium-cdc PARALLEL：2026-10-02 用户裁定（WI4 B 层确定性表路由，
-        // SubtaskShardedSourceFunction），owner doc connectors.md「已裁定例外」节；
-        // 描述符能力值翻转时必须同步更新本钉定断言
+        // debezium-cdc PARALLEL：WI2 plan 2343 起由 FLIP-27 split 机制承接表路由
+        // （一表一 split，enumerator 分配即路由；B 层 SubtaskShardedSourceFunction
+        // 例外已随迁移撤销——见 connectors.md 冻结政策节）；能力值不变
         assertDescriptor(ConnectorDirection.SOURCE, "debezium-cdc",
-                "io.nop.stream.connector.debezium.DebeziumCdcSourceFunction",
+                "io.nop.stream.connector.debezium.DebeziumCdcSource",
                 "REPLAYABLE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "config");
         // WI3 (plan 2335): native kafka source — offset map in the checkpoint
@@ -256,8 +256,10 @@ public class TestStreamConnectorRegistryDiscovery {
                 config("message", Map.of("topic", "t", "messageService", messageService))), false);
         DebeziumConfig debeziumConfig = new DebeziumConfig();
         debeziumConfig.setName("discovery-probe");
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "debezium-cdc",
-                config("debezium-cdc", Map.of("config", debeziumConfig))), true);
+                config("debezium-cdc", Map.of("config", debeziumConfig))), false);
         // WI2: split sources carry no instance-level consistency accessor —
         // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "batch-loader",
@@ -356,5 +358,27 @@ public class TestStreamConnectorRegistryDiscovery {
         assertTrue(listing.contains(
                 "delivery=TWO_PHASE_COMMIT, parallelism=PARALLEL, recovery=TWO_PHASE_PENDING_COMMITS"),
                 listing);
+    }
+
+    /**
+     * WI2 plan 2343 Phase 3 (G4, R2 撤销钉)：没有任何 source 工厂再生产
+     * {@code SubtaskShardedSourceFunction}——B 层表路由例外已随 FLIP-27 迁移撤销，
+     * 表路由由 split 机制承接。回退工厂代际（componentClass 或工厂接口）即红。
+     */
+    @Test
+    public void testSubtaskShardedFactoryPathIsZero() {
+        io.nop.stream.core.connector.registry.StreamConnectorRegistry registry = catalog.getRegistry();
+        for (String typeName : List.of("file", "message", "debezium-cdc", "batch-loader", "kafka")) {
+            io.nop.stream.core.connector.registry.IStreamConnectorFactory factory =
+                    registry.resolveSourceFactory(typeName);
+            assertTrue(factory != null, "source factory must resolve: " + typeName);
+            if (factory instanceof io.nop.stream.core.connector.registry.IStreamSourceFunctionFactory) {
+                // only the kafka source is still allowed on the legacy factory surface
+                // (the explicit freeze-list entry, WI2 plan 2343 G6)
+                assertEquals("kafka", typeName,
+                        "SubtaskShardedSourceFunction-era legacy factory surface must be zero "
+                                + "outside the kafka freeze-list entry: " + typeName);
+            }
+        }
     }
 }
