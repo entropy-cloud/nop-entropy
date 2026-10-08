@@ -65,78 +65,82 @@ public enum EqlASTKind{
         
             SqlTumbleTableSource, // ordinal: 30
         
-            SqlNotExpr, // ordinal: 31
+            SqlHopTableSource, // ordinal: 31
         
-            SqlAndExpr, // ordinal: 32
+            SqlSessionTableSource, // ordinal: 32
         
-            SqlOrExpr, // ordinal: 33
+            SqlNotExpr, // ordinal: 33
         
-            SqlStringLiteral, // ordinal: 34
+            SqlAndExpr, // ordinal: 34
         
-            SqlNumberLiteral, // ordinal: 35
+            SqlOrExpr, // ordinal: 35
         
-            SqlDateTimeLiteral, // ordinal: 36
+            SqlStringLiteral, // ordinal: 36
         
-            SqlHexadecimalLiteral, // ordinal: 37
+            SqlNumberLiteral, // ordinal: 37
         
-            SqlBitValueLiteral, // ordinal: 38
+            SqlDateTimeLiteral, // ordinal: 38
         
-            SqlBooleanLiteral, // ordinal: 39
+            SqlHexadecimalLiteral, // ordinal: 39
         
-            SqlNullLiteral, // ordinal: 40
+            SqlBitValueLiteral, // ordinal: 40
         
-            SqlBinaryExpr, // ordinal: 41
+            SqlBooleanLiteral, // ordinal: 41
         
-            SqlIsNullExpr, // ordinal: 42
+            SqlNullLiteral, // ordinal: 42
         
-            SqlCompareWithQueryExpr, // ordinal: 43
+            SqlBinaryExpr, // ordinal: 43
         
-            SqlSubQueryExpr, // ordinal: 44
+            SqlIsNullExpr, // ordinal: 44
         
-            SqlInQueryExpr, // ordinal: 45
+            SqlCompareWithQueryExpr, // ordinal: 45
         
-            SqlInValuesExpr, // ordinal: 46
+            SqlSubQueryExpr, // ordinal: 46
         
-            SqlBetweenExpr, // ordinal: 47
+            SqlInQueryExpr, // ordinal: 47
         
-            SqlLikeExpr, // ordinal: 48
+            SqlInValuesExpr, // ordinal: 48
         
-            SqlUnaryExpr, // ordinal: 49
+            SqlBetweenExpr, // ordinal: 49
         
-            SqlAggregateFunction, // ordinal: 50
+            SqlLikeExpr, // ordinal: 50
         
-            SqlRegularFunction, // ordinal: 51
+            SqlUnaryExpr, // ordinal: 51
         
-            SqlWindowExpr, // ordinal: 52
+            SqlAggregateFunction, // ordinal: 52
         
-            SqlWindowFrame, // ordinal: 53
+            SqlRegularFunction, // ordinal: 53
         
-            SqlWindowFrameBound, // ordinal: 54
+            SqlWindowExpr, // ordinal: 54
         
-            SqlWindowDecl, // ordinal: 55
+            SqlWindowFrame, // ordinal: 55
         
-            SqlWindowClause, // ordinal: 56
+            SqlWindowFrameBound, // ordinal: 56
         
-            SqlMultiValueExpr, // ordinal: 57
+            SqlWindowDecl, // ordinal: 57
         
-            SqlExistsExpr, // ordinal: 58
+            SqlWindowClause, // ordinal: 58
         
-            SqlIntervalExpr, // ordinal: 59
+            SqlMultiValueExpr, // ordinal: 59
         
-            SqlCaseExpr, // ordinal: 60
+            SqlExistsExpr, // ordinal: 60
         
-            SqlCaseWhenItem, // ordinal: 61
+            SqlIntervalExpr, // ordinal: 61
         
-            SqlCastExpr, // ordinal: 62
+            SqlCaseExpr, // ordinal: 62
         
-            SqlTypeExpr, // ordinal: 63
+            SqlCaseWhenItem, // ordinal: 63
         
-            SqlCommit, // ordinal: 64
+            SqlCastExpr, // ordinal: 64
         
-            SqlRollback, // ordinal: 65
+            SqlTypeExpr, // ordinal: 65
         
-            SqlGroupingOp, // ordinal: 66
+            SqlCommit, // ordinal: 66
         
-            SqlValuesTableSource, // ordinal: 67
+            SqlRollback, // ordinal: 67
+        
+            SqlGroupingOp, // ordinal: 68
+        
+            SqlValuesTableSource, // ordinal: 69
         
 }

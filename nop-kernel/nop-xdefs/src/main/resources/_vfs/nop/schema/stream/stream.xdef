@@ -51,6 +51,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
                   maxDelay="long"
                   accumulationMode="!enum:io.nop.stream.core.windowing.AccumulationMode=DISCARDING"
                   emit="!enum:io.nop.stream.core.windowing.StreamEmitMode=CLOSE"
+                  slide="string"
                   xdef:name="WindowingStrategyModel" xdef:unique-attr="strategyId">
             <description>string</description>
         </strategy>

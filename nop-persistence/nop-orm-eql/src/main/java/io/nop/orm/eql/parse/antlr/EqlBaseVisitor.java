@@ -229,6 +229,13 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -264,6 +271,13 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -272,6 +286,20 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

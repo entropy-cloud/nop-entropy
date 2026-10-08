@@ -194,6 +194,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTableSources_(EqlParser.TableSources_Context ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlHopTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code SqlJoinTableSource}
 	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
@@ -229,6 +236,13 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code SqlSessionTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -240,6 +254,18 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlHopTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlSessionTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSubqueryTableSource}.
 	 * @param ctx the parse tree

@@ -103,6 +103,12 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlTumbleTableSource:
                 return optimizeSqlTumbleTableSource((SqlTumbleTableSource)node,context);
             
+                case SqlHopTableSource:
+                return optimizeSqlHopTableSource((SqlHopTableSource)node,context);
+            
+                case SqlSessionTableSource:
+                return optimizeSqlSessionTableSource((SqlSessionTableSource)node,context);
+            
                 case SqlNotExpr:
                 return optimizeSqlNotExpr((SqlNotExpr)node,context);
             
@@ -1156,6 +1162,97 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { intervalOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInterval(intervalOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getAlias() != null){
+                    
+                            io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
+                            if(aliasOpt != node.getAlias()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setAlias(aliasOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlHopTableSource(SqlHopTableSource node, C context){
+        SqlHopTableSource ret = node;
+
+        
+                    if(node.getDecorators() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
+                            if(decoratorsOpt != node.getDecorators()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
+                                ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getSlideInterval() != null){
+                    
+                            io.nop.orm.eql.ast.SqlIntervalExpr slideIntervalOpt = (io.nop.orm.eql.ast.SqlIntervalExpr)optimize(node.getSlideInterval(),context);
+                            if(slideIntervalOpt != node.getSlideInterval()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { slideIntervalOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setSlideInterval(slideIntervalOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getSizeInterval() != null){
+                    
+                            io.nop.orm.eql.ast.SqlIntervalExpr sizeIntervalOpt = (io.nop.orm.eql.ast.SqlIntervalExpr)optimize(node.getSizeInterval(),context);
+                            if(sizeIntervalOpt != node.getSizeInterval()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { sizeIntervalOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setSizeInterval(sizeIntervalOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getAlias() != null){
+                    
+                            io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
+                            if(aliasOpt != node.getAlias()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setAlias(aliasOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlSessionTableSource(SqlSessionTableSource node, C context){
+        SqlSessionTableSource ret = node;
+
+        
+                    if(node.getDecorators() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
+                            if(decoratorsOpt != node.getDecorators()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
+                                ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getGapInterval() != null){
+                    
+                            io.nop.orm.eql.ast.SqlIntervalExpr gapIntervalOpt = (io.nop.orm.eql.ast.SqlIntervalExpr)optimize(node.getGapInterval(),context);
+                            if(gapIntervalOpt != node.getGapInterval()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { gapIntervalOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setGapInterval(gapIntervalOpt);
                             }
                         
                     }

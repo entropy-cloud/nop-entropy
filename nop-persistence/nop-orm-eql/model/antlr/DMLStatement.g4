@@ -146,6 +146,8 @@ sqlTableSource:
     sqlSingleTableSource  #SqlSingleTableSource_ex
     | sqlSubqueryTableSource #SqlSubqueryTableSource_ex
     | sqlTumbleTableSource #SqlTumbleTableSource_ex
+    | sqlHopTableSource #SqlHopTableSource_ex
+    | sqlSessionTableSource #SqlSessionTableSource_ex
     | sqlValuesTableSource #SqlValuesTableSource_ex
     | left=sqlTableSource  joinType=joinType_ right=sqlTableSource_joinRight  (ON condition=sqlExpr)? #SqlJoinTableSource
     ;
@@ -159,6 +161,20 @@ sqlSingleTableSource:
 sqlTumbleTableSource:
     TUMBLE LP_ tableName=sqlIdentifier_ DOT_ timeColumn=sqlIdentifier_ COMMA_
     interval=sqlIntervalExpr RP_ AS? alias=sqlAlias? decorators=sqlDecorators_?
+    ;
+
+// WI26: HOP(t, slide, size) 滑动窗口伪表函数（Flink TVF 参数序）。prop label 与
+// AST prop 名恒等（slideInterval/sizeInterval，antlr 再生成模板按 label 查 prop）。
+sqlHopTableSource:
+    HOP LP_ tableName=sqlIdentifier_ DOT_ timeColumn=sqlIdentifier_ COMMA_
+    slideInterval=sqlIntervalExpr COMMA_ sizeInterval=sqlIntervalExpr RP_
+    AS? alias=sqlAlias? decorators=sqlDecorators_?
+    ;
+
+// WI26: SESSION(t, gap) 会话窗口伪表函数。SESSION token 既有（SQL92Keyword），无需新增。
+sqlSessionTableSource:
+    SESSION LP_ tableName=sqlIdentifier_ DOT_ timeColumn=sqlIdentifier_ COMMA_
+    gapInterval=sqlIntervalExpr RP_ AS? alias=sqlAlias? decorators=sqlDecorators_?
     ;
 
 sqlSubqueryTableSource:

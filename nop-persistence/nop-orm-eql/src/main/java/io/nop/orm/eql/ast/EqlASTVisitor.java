@@ -134,6 +134,14 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlTumbleTableSource((SqlTumbleTableSource)node);
                     return;
             
+                case SqlHopTableSource:
+                    visitSqlHopTableSource((SqlHopTableSource)node);
+                    return;
+            
+                case SqlSessionTableSource:
+                    visitSqlSessionTableSource((SqlSessionTableSource)node);
+                    return;
+            
                 case SqlNotExpr:
                     visitSqlNotExpr((SqlNotExpr)node);
                     return;
@@ -476,6 +484,21 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
             
                     this.visitChildren(node.getDecorators());         
                     this.visitChild(node.getInterval());
+                    this.visitChild(node.getAlias());
+            }
+        
+            public void visitSqlHopTableSource(SqlHopTableSource node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChild(node.getSlideInterval());
+                    this.visitChild(node.getSizeInterval());
+                    this.visitChild(node.getAlias());
+            }
+        
+            public void visitSqlSessionTableSource(SqlSessionTableSource node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChild(node.getGapInterval());
                     this.visitChild(node.getAlias());
             }
         

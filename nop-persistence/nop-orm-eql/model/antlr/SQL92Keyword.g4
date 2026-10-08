@@ -659,6 +659,12 @@ TUMBLE
     : T U M B L E
     ;
 
+// WI26: HOP(t, slide, size) 滑动窗口伪表函数（D4 形态补全）。同 TUMBLE 登记
+// unreservedWord_ 保持既有标识符兼容（列/表名可用 hop）。
+HOP
+    : H O P
+    ;
+
 TIMEZONE_HOUR
     : T I M E Z O N E UL_ H O U R
     ;

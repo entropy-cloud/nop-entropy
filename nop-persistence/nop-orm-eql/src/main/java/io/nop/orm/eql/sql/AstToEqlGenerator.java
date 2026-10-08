@@ -714,6 +714,40 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         printAlias(node.getAlias());
     }
 
+    // WI26: HOP 伪表函数 EQL 回显——与 TUMBLE 同为逐字输出
+    @Override
+    public void visitSqlHopTableSource(io.nop.orm.eql.ast.SqlHopTableSource node) {
+        print("HOP(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getSlideInterval().getExpr());
+        print(" ");
+        print(node.getSlideInterval().getIntervalUnit().name());
+        print(", INTERVAL ");
+        visit(node.getSizeInterval().getExpr());
+        print(" ");
+        print(node.getSizeInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
+    // WI26: SESSION 伪表函数 EQL 回显——逐字输出同上
+    @Override
+    public void visitSqlSessionTableSource(io.nop.orm.eql.ast.SqlSessionTableSource node) {
+        print("SESSION(");
+        print(node.getTableName());
+        print(".");
+        print(node.getTimeColumn());
+        print(", INTERVAL ");
+        visit(node.getGapInterval().getExpr());
+        print(" ");
+        print(node.getGapInterval().getIntervalUnit().name());
+        print(")");
+        printAlias(node.getAlias());
+    }
+
     /**
      * WI12 交付⑤（plan 38）：VALUES 表源回显路径——逐字打印（无方言门，
      * 方言门在子类 AstToSqlGenerator；WI1 BUG-2 lateral 回显同款分层）。
