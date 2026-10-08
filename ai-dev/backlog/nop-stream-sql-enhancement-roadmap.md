@@ -88,13 +88,13 @@
 - WI27 非对称窗口 join timeout: `done`（deps WI0b；Item Type Feature；2026-10-08 交付——WI0b 字段扩展授权补记通过后实施：joinSpec 增 leftTimeout 与 rightTimeout、与对称 timeout 互斥、恰一或双为缺省语义裁定——未声明侧缺省 0；EquiJoinOperator per-side fire/cleanup，twin 无条件双清删除；语义边界披露：per-side timeout 为 ksql WITHIN 引文的 narrowing 转译——配对面恒等于对称 min、INNER 发射面零变化、LEFT 完成时点解耦、长侧保留量变化；执行发现叉积配对语义如实记录；换序盲区以构建产物算子字段反射断言封堵；承载 plan 07-wi27-asymmetric-join-timeout.md）
 - WI28 全局聚合放行: `done`（deps 无；Item Type Feature；2026-10-08 交付——无 GROUP BY 的五聚合经合成单键 keyBy 路由全部记录到单一 keyed reduce 实例——即单并行度归约，复用持续聚合全链；D1 last-value-wins 逐条发射运行值；全局聚合+HAVING 维持排除；窗口伪表源+全局聚合 typed 拒绝——audit B1 NPE 回归修复并三型钉码；E2E 运行总和序列真跑；§4b HAVING 行与流时间窗口行表述修订；承载 plan 08-wi28-global-aggregation.md）
 - WI38 FU-8 accumulationMode 接线修复: `done`（deps WI0a；Item Type Fix；2026-10-08 交付——接线五环闭合：IWindowOperatorFactory 第四代 default 重载→WindowedStreamImpl fluent 字段→四 call-site→WindowOperatorFactoryImpl 覆写+configureBuilder→WindowOperatorBuilder→WindowOperator 字段；build 门改判仅拒 A&R、D10 放行生效即 window-failfast-decisions §2 生效前提达成注记；null 归一 DISCARDING 使缺省档不依赖 parser 回填；三层判别测试 flow 环1→2/core 环2→3/runtime 环3→5 共 21 例；四模块回归全绿 core 138/runtime 1336/flow 103/sql 91；承载 plan 03-wi38-accumulation-mode-wiring-fix.md）
-- ★ **里程碑：M1 声明面与窗口**（解锁条件 WI25 与 WI26 与 WI27 与 WI28 与 WI38 全部 done）：`未达成`
+- ★ **里程碑：M1 声明面与窗口**（解锁条件 WI25 与 WI26 与 WI27 与 WI28 与 WI38 全部 done；2026-10-08 达成——五项独立 closure audit 通过）：`done`
 
 ### Phase 2 — 表达式与求值（不触门）
 
-- WI29 CASE 与 CAST 求值器放行: `todo`（deps 无；Item Type Feature；第一步在 StreamSqlExprCompiler 内放行 EQL 已解析的表达式形态——与 eql-cross-db WI9a 协调，ORM 侧先行流侧消费；修订 §4a#7 与钉码；DECIMAL 列绑定若放宽须同步修订 §4a#5 与 §4b SELECT 投影行及 sql-compiler-contract §1.3 与 §1.4，并由 owner 落档含负责人与日期；第二步引擎 SPI 形态进 Follow-up Backlog 不预设）
-- WI30 标量 UDF SPI: `todo`（deps 无；Item Type Feature；ServiceLoader 加 open 与 close 生命周期，与 IAggregatorFunctionResolver 同构；用户文档进 `docs-for-ai/03-modules/nop-stream-sql.md`；参考 survey seatunnel 篇）
-- WI31 不支持清单规则表化: `todo`（deps 无；Item Type Fix；把 §4a 九项做成条件-错误文案-文档锚点-建议开关的结构化规则表，fail-fast 文案带文档锚点；错误码零新增；参考 survey ksql 与 feldera 篇）
+- WI29 CASE 与 CAST 求值器放行: `done`（deps 无；Item Type Feature；2026-10-08 交付——求值/打印双通道：compileScalar 增 CASE 简单与搜索两形态——数值感知相等——与 SqlCastExpr——EQL StdSqlType 名映射九受管闭集，DECIMAL 等维持排除；SqlScalarXplPrinter 嵌套三元链 + SqlCastHelper import 前置；§4a#7 修订 CASE/CAST 移出；引擎 SPI 形态维持 FU-E1；closure audit R1 REJECTED——CASE 打印空心 java.util.Objects 裸 FQN——补救后复核 APPROVED——E2E TestCaseCastE2E 真跑 7 行精确断言；DECIMAL 列绑定未放宽故 §4a#5 与 §1.3/§1.4 不触及；承载 plan 09-wi29-case-cast-eval.md）
+- WI30 标量 UDF SPI: `done`（deps 无；Item Type Feature；2026-10-08 交付——IScalarFunctionResolver SPI——flow/spi 接口 + StreamScalarFunctionResolver 实现——静态持有者模式+ compileScalar/打印器双通道；ServiceLoader 字面表述实为 IoC/静态持有同构如实披露；EQL 函数名小写归一执行发现记录；E2E UDF 查询真跑；用户文档 §3a UDF 小节新撰；承载 plan 10-wi30-scalar-udf-spi.md）
+- WI31 不支持清单规则表化: `done`（deps 无；Item Type Fix；2026-10-08 交付——§4a 九项不支持清单升级为四维规则表——条件/fail-fast 形态/文档锚点/建议开关四维；ORDER BY/LIMIT 与 CAST 闭集两处关键 fail-fast 文案追加 sql-subset §4a#N 文档锚点；错误码零新增；outOfSubset 钉码更新为 FOR UPDATE——CASE/CAST/UDF 已放行后维持排除面变化；承载 plan 11-wi31-rule-table.md）
 - ★ **里程碑：M2 表达式与求值**（解锁条件 WI29 与 WI30 与 WI31 全部 done）：`未达成`
 
 ### Phase 3 — 编译器与产物质量（不触门；WI40 受 WI0b 约束）

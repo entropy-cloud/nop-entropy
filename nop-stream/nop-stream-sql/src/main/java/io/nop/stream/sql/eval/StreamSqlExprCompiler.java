@@ -15,7 +15,11 @@ import io.nop.orm.eql.ast.SqlAndExpr;
 import io.nop.orm.eql.ast.SqlBetweenExpr;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlBooleanLiteral;
+import io.nop.orm.eql.ast.SqlCaseExpr;
+import io.nop.orm.eql.ast.SqlCaseWhenItem;
+import io.nop.orm.eql.ast.SqlCastExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
+import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlInValuesExpr;
 import io.nop.orm.eql.ast.SqlIsNullExpr;
@@ -27,6 +31,9 @@ import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlUnaryExpr;
 import io.nop.orm.eql.enums.SqlOperator;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -87,6 +94,12 @@ public final class StreamSqlExprCompiler {
                 return compileBetween((SqlBetweenExpr) expr);
             case SqlInValuesExpr:
                 return compileIn((SqlInValuesExpr) expr);
+            case SqlCastExpr:
+                return compileCast((SqlCastExpr) expr);
+            case SqlCaseExpr:
+                return compileCase((SqlCaseExpr) expr);
+            case SqlRegularFunction:
+                return compileFunction((SqlRegularFunction) expr);
             default:
                 throw RecordColumnAccess.unsupported(expr);
         }
@@ -115,6 +128,134 @@ public final class StreamSqlExprCompiler {
      * @param columnTypes column key → BasicTypeInfo bridge (from the schema registry)
      * @return the resolved type, or {@link UnknownTypeInformation} when not inferable
      */
+    /**
+     * WI29: CAST(expr AS type) — the target type name must be one of the nine managed
+     * types (§4a#5 closed set; NOT widened). Null propagates as null.
+     */
+    private static StreamRecordEvaluator compileCast(SqlCastExpr expr) {
+        String typeName = expr.getDataType().getName();
+        StreamRecordEvaluator inner = compileScalar(expr.getExpr());
+        return r -> SqlCastHelper.cast(inner.eval(r), typeName);
+    }
+
+    /**
+     * WI29: CASE — simple form (test expr compared to each when value) and searched
+     * form (no test; each when evaluated as a boolean predicate). No match returns
+     * the else expression or null (explicit three-valued semantics, never a silent
+     * skip).
+     */
+    private static StreamRecordEvaluator compileCase(SqlCaseExpr expr) {
+        List<SqlCaseWhenItem> whens = expr.getCaseWhens();
+        StreamRecordEvaluator elseEval = expr.getElseExpr() == null
+                ? r -> null : compileScalar(expr.getElseExpr());
+        StreamRecordEvaluator testEval = expr.getTest() == null
+                ? null : compileScalar(expr.getTest());
+        List<StreamRecordEvaluator> whenEvals = new ArrayList<>(whens.size());
+        List<StreamRecordEvaluator> thenEvals = new ArrayList<>(whens.size());
+        for (SqlCaseWhenItem item : whens) {
+            whenEvals.add(compileScalar(item.getWhen()));
+            thenEvals.add(item.getThen() == null ? r -> null : compileScalar(item.getThen()));
+        }
+        if (testEval != null) {
+            StreamRecordEvaluator t = testEval;
+            return r -> {
+                Object test = t.eval(r);
+                for (int i = 0; i < whenEvals.size(); i++) {
+                    Object when = whenEvals.get(i).eval(r);
+                    // numeric-aware equality: number literals evaluate to long/double
+                    // while record values may be Integer/BigDecimal (MinMaxAgg precedent)
+                    if (valuesMatch(test, when)) {
+                        return thenEvals.get(i).eval(r);
+                    }
+                }
+                return elseEval.eval(r);
+            };
+        }
+        return r -> {
+            for (int i = 0; i < whenEvals.size(); i++) {
+                Object when = whenEvals.get(i).eval(r);
+                if (Boolean.TRUE.equals(when)) {
+                    return thenEvals.get(i).eval(r);
+                }
+            }
+            return elseEval.eval(r);
+        };
+    }
+
+    /** numeric-aware value match (Integer vs Long vs Double across literal/record types). */
+    private static boolean valuesMatch(Object a, Object b) {
+        if (a == null || b == null)
+            return false;
+        if (a instanceof Number && b instanceof Number) {
+            return ((Number) a).doubleValue() == ((Number) b).doubleValue();
+        }
+        return a.equals(b);
+    }
+
+    /**
+     * WI29: managed-type closed set by declaration name (§4a#5) — the CAST target
+     * resolution set. NOT widened to DATE/TIMESTAMP/DECIMAL.
+     */
+    public static final Map<String, BasicTypeInfo<?>> MANAGED_TYPE_BY_NAME = buildManagedTypes();
+
+    private static Map<String, BasicTypeInfo<?>> buildManagedTypes() {
+        Map<String, BasicTypeInfo<?>> m = new java.util.LinkedHashMap<>();
+        // case-insensitive lookup — normalize to lowercase before the map hit
+        m.put("string", BasicTypeInfo.STRING);
+        m.put("int", BasicTypeInfo.INT);
+        m.put("bigint", BasicTypeInfo.LONG);
+        m.put("smallint", BasicTypeInfo.SHORT);
+        m.put("tinyint", BasicTypeInfo.BYTE);
+        m.put("float", BasicTypeInfo.FLOAT);
+        m.put("double", BasicTypeInfo.DOUBLE);
+        m.put("boolean", BasicTypeInfo.BOOLEAN);
+        m.put("bytes", BasicTypeInfo.BYTE_ARRAY);
+        return java.util.Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * WI30: a UDF call — resolves the function through the
+     * {@code IScalarFunctionResolver} SPI at compile time (one lookup, not
+     * per-record); the arguments are compiled as scalar sub-evaluators. Unknown
+     * function names fail fast listing the registered names.
+     */
+    private static StreamRecordEvaluator compileFunction(SqlRegularFunction expr) {
+        io.nop.stream.flow.spi.IScalarFunctionResolver resolver =
+                io.nop.stream.sql.eval.StreamScalarFunctionResolver.getDefault();
+        String fnName = expr.getName();
+        if (resolver == null || !resolver.contains(fnName)) {
+            String known = resolver == null ? "<no IScalarFunctionResolver provider>"
+                    : String.valueOf(namesOf(resolver));
+            throw RecordColumnAccess.unsupported("unknown scalar function '" + fnName
+                    + "' (register it via IScalarFunctionResolver); registered: " + known);
+        }
+        List<StreamRecordEvaluator> argEvals = new ArrayList<>();
+        if (expr.getArgs() != null) {
+            for (SqlExpr arg : expr.getArgs()) {
+                argEvals.add(compileScalar(arg));
+            }
+        }
+        int argc = argEvals.size();
+        Function<Object[], Object> fn = resolver.resolve(fnName, new TypeInformation<?>[0]);
+        if (fn == null) {
+            throw RecordColumnAccess.unsupported(
+                    "resolver returned no function for '" + fnName + "'");
+        }
+        return r -> {
+            Object[] args = new Object[argc];
+            for (int i = 0; i < argc; i++) {
+                args[i] = argEvals.get(i).eval(r);
+            }
+            return fn.apply(args);
+        };
+    }
+
+    private static List<String> namesOf(io.nop.stream.flow.spi.IScalarFunctionResolver resolver) {
+        List<String> names = new ArrayList<>();
+        resolver.registeredNames().forEach(names::add);
+        return names;
+    }
+
     public static TypeInformation<?> resolveType(SqlExpr expr, Function<String, BasicTypeInfo<?>> columnTypes) {
         if (expr == null) {
             return UnknownTypeInformation.INSTANCE;
@@ -152,6 +293,47 @@ public final class StreamSqlExprCompiler {
                 return BasicTypeInfo.BOOLEAN;
             case SqlUnaryExpr:
                 return resolveType(((SqlUnaryExpr) expr).getExpr(), columnTypes);
+            case SqlCastExpr: {
+                // EQL target names are StdSqlType-style (VARCHAR/INT/BIGINT...) —
+                // map onto the managed closed set via SqlCastHelper's ruling; out-of-set
+                // names resolve Unknown at type level and fail fast at eval level
+                String typeName = ((SqlCastExpr) expr).getDataType().getName();
+                if (typeName == null)
+                    return UnknownTypeInformation.INSTANCE;
+                switch (typeName.toUpperCase()) {
+                    case "VARCHAR": case "CHAR": case "TEXT":
+                        return BasicTypeInfo.STRING;
+                    case "INT": case "INTEGER": case "TINYINT": case "SMALLINT":
+                        return BasicTypeInfo.INT;
+                    case "BIGINT":
+                        return BasicTypeInfo.LONG;
+                    case "FLOAT": case "REAL":
+                        return BasicTypeInfo.FLOAT;
+                    case "DOUBLE":
+                        return BasicTypeInfo.DOUBLE;
+                    case "BOOLEAN": case "BOOL":
+                        return BasicTypeInfo.BOOLEAN;
+                    case "VARBINARY": case "BLOB": case "BINARY":
+                        return BasicTypeInfo.BYTE_ARRAY;
+                    default:
+                        return UnknownTypeInformation.INSTANCE;
+                }
+            }
+            case SqlCaseExpr: {
+                SqlCaseExpr caseExpr = (SqlCaseExpr) expr;
+                if (caseExpr.getCaseWhens() != null && !caseExpr.getCaseWhens().isEmpty()
+                        && caseExpr.getCaseWhens().get(0).getThen() != null) {
+                    return resolveType(caseExpr.getCaseWhens().get(0).getThen(), columnTypes);
+                }
+                if (caseExpr.getElseExpr() != null) {
+                    return resolveType(caseExpr.getElseExpr(), columnTypes);
+                }
+                return UnknownTypeInformation.INSTANCE;
+            }
+            case SqlRegularFunction:
+                // result type is unknown until the function runs — the registry API
+                // is untyped (Function<Object[], Object>)
+                return UnknownTypeInformation.INSTANCE;
             case SqlAggregateFunction: {
                 io.nop.orm.eql.ast.SqlAggregateFunction agg = (io.nop.orm.eql.ast.SqlAggregateFunction) expr;
                 if (agg.getArgs() == null || agg.getArgs().isEmpty()) {

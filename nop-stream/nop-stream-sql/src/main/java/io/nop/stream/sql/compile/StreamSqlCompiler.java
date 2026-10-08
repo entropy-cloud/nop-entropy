@@ -282,10 +282,10 @@ public final class StreamSqlCompiler {
             throw CompileErrors.invalidArg("FOR UPDATE is outside the stream SQL v1 subset");
         }
         if (select.getOrderBy() != null) {
-            throw CompileErrors.dialectNotSupport("ORDER BY");
+            throw CompileErrors.dialectNotSupport("ORDER BY (see sql-subset-and-semantics.md §4a#1)");
         }
         if (select.getLimit() != null) {
-            throw CompileErrors.dialectNotSupport("LIMIT");
+            throw CompileErrors.dialectNotSupport("LIMIT (see sql-subset-and-semantics.md §4a#1)");
         }
         SqlFrom from = select.getFrom();
         if (from == null || from.getTableSources() == null
@@ -1028,7 +1028,8 @@ public final class StreamSqlCompiler {
     private static String printHaving(SqlExpr having, GroupedAggregate grouped) {
         SqlScalarXplPrinter printer = new SqlScalarXplPrinter(
                 aggregatedRowResolver(grouped), aggregateRef(grouped));
-        return printer.print(having);
+        String body = printer.print(having);
+        return prependImports(printer, body);
     }
 
     /**
@@ -1053,7 +1054,21 @@ public final class StreamSqlCompiler {
     }
 
     private static String printWhere(SqlExpr where) {
-        return new SqlScalarXplPrinter(singleInputResolver(), null).print(where);
+        SqlScalarXplPrinter printer = new SqlScalarXplPrinter(singleInputResolver(), null);
+        String body = printer.print(where);
+        return prependImports(printer, body);
+    }
+
+    /** WI29: hoists printer-required imports to the top of the xpl body. */
+    private static String prependImports(SqlScalarXplPrinter printer, String body) {
+        if (printer.getRequiredImports().isEmpty())
+            return body;
+        StringBuilder sb = new StringBuilder();
+        for (String imp : printer.getRequiredImports()) {
+            sb.append("import ").append(imp).append(";\n");
+        }
+        sb.append(body);
+        return sb.toString();
     }
 
     private static XNode projectionNode(SqlQuerySelect select, AggregateScan scan,
@@ -1061,15 +1076,23 @@ public final class StreamSqlCompiler {
                                         SqlScalarXplPrinter.ColumnResolver columns) {
         SqlScalarXplPrinter printer = new SqlScalarXplPrinter(columns,
                 grouped == null ? null : aggregateRef(grouped));
-        StringBuilder body = new StringBuilder(128);
-        body.append("let __r = {");
+        // print first — CAST branches collect requiredImports during printing; the
+        // xpl import statements must be hoisted to the top of the body (R: 静态调用
+        // 需 import 前置，SqlRowAggregateOps 先例)
+        StringBuilder letPart = new StringBuilder(128);
+        letPart.append("let __r = {");
         for (int i = 0; i < scan.outputExprs.size(); i++) {
             if (i > 0)
-                body.append(", ");
-            body.append(xlangString(scan.outputNames.get(i))).append(": ")
+                letPart.append(", ");
+            letPart.append(xlangString(scan.outputNames.get(i))).append(": ")
                     .append(printer.print(scan.outputExprs.get(i)));
         }
-        body.append("}; return __r;");
+        letPart.append("}; return __r;");
+        StringBuilder body = new StringBuilder(128);
+        for (String imp : printer.getRequiredImports()) {
+            body.append("import ").append(imp).append(";\n");
+        }
+        body.append(letPart);
         XNode map = mk(loc(select), "map", "id", projId);
         map.appendChild(textNode(loc(select), "source", body.toString()));
         return map;

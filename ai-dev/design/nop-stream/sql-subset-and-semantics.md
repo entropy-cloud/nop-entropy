@@ -79,23 +79,23 @@
 
 WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fast 形态与代码指认——清单不是愿望列表，每一项都有当前的显式失败路径：
 
-| # | 不支持项 | 当前 fail-fast 形态 | 指认 |
+| # | 不支持项 | 当前 fail-fast 形态 | 指认 | 文档锚点 | 建议开关 |
 |---|---|---|---|
 | 1 | 全局 ORDER BY / LIMIT（D5；**keyed TopN 已放行 2026-10-08，实施归 WI40——放行≠已实施**） | 全局排序（无 GROUP BY 键）维持排除：编译器不支持清单对 SQL 文本报 `nop.err.eql.dialect-not-support-feature`（StreamSqlCompiler compileQuery，现 :248-253）；引擎无全局 sort/TopN 设施。keyed TopN（每键取前 N）经 D5 2026-10-08 修订放行，实施与 §4a#1 本行最终形态归 WI40 交付 | sql-subset-and-semantics §4（2026-10-08 修订）；roadmap §3.1 |
-| 2 | 非等值 / 范围 join（FU-1） | join 声明面仅等值键集（leftKeyExprs/rightKeyExprs 数量相等校验，`nop.err.stream.invalid-arg`） | StreamModelDslBuilder.validateJoinDeclarations；TestParameterizedJoinModel.keyCountMismatchFailsFast |
-| 3 | retract / CDC 全链路（D1=(a) 终值语义降级） | 模型语义标注 last-value-wins，非 append-only 非 retract；`<reduce>` 逐条 emit 当前归约值 | sql-subset-and-semantics §1；StreamReduceOperator |
-| 4 | Flink SQL 方言兼容 | 非目标（roadmap Non-Goals），编译器不解析 Flink 方言 | roadmap Purpose |
-| 5 | DATE / TIMESTAMP / DECIMAL 列绑定（D7） | 九受管类型闭集严格解析，集合外类型名 `nop.err.stream.invalid-arg` | StreamSchemaRegistry.resolveManagedType；TestStreamSchemaConsumer |
-| 6 | ~~DISTINCT 聚合~~（**WI17 supersede，2026-10-08**：DISTINCT 聚合已支持——`DistinctAggregateWrapper` 按求值后参数值去重，merge 重放对侧未见过的新值保证恰一次计数；restore 经 `SqlAccShapeUtil` 形状归一化。仍排除：SELECT DISTINCT 非聚合 dedup、UNION DISTINCT） | 原 `withDistinct(true).create` fail-fast 钉码已移除 | TestStreamSqlAggregations.distinctFiltersDuplicates / distinctMergeReplaysOnlyUnseenValues / distinctCompositeAccumulatorSurvivesSnapshotCopyAndContinues、TestStreamSqlCompiler.distinctAggregateShape |
-| 7 | 标量子集外表达式（正则函数调用 / CASE / CAST / IN 子查询 / 参数标记 / null AST） | StreamSqlExprCompiler 分派默认分支抛 `nop.err.stream.invalid-arg`（含 AST 节点类型） | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode |
-| 8 | FULL 窗口 join（窗口补齐语义） | join 声明面校验：窗口 join 的 joinType 限 INNER/LEFT，`nop.err.stream.invalid-arg`（FULL 非 window 补齐属 WI13 评估项，非窗口 FULL join 不受限） | TestParameterizedJoinModel.fullWindowJoinFailsFast |
-| 9 | CEP 级复杂编排 | 不在本 roadmap（productization roadmap 边界） | roadmap Rules |
+| 2 | 非等值 / 范围 join（FU-1） | join 声明面仅等值键集（leftKeyExprs/rightKeyExprs 数量相等校验，`nop.err.stream.invalid-arg`） | StreamModelDslBuilder.validateJoinDeclarations；TestParameterizedJoinModel.keyCountMismatchFailsFast | sql-subset §4a#2 / join-operator.md | 无（排序设施缺） |
+| 3 | retract / CDC 全链路（D1=(a) 终值语义降级） | 模型语义标注 last-value-wins，非 append-only 非 retract；`<reduce>` 逐条 emit 当前归约值 | sql-subset-and-semantics §1；StreamReduceOperator | sql-subset §4a#3 / sql-subset §1 | D1 裁定重开 |
+| 4 | Flink SQL 方言兼容 | 非目标（roadmap Non-Goals），编译器不解析 Flink 方言 | roadmap Purpose | sql-subset §4a#4 / nop-stream-sql.md #2 | 无（非目标） |
+| 5 | DATE / TIMESTAMP / DECIMAL 列绑定（D7） | 九受管类型闭集严格解析，集合外类型名 `nop.err.stream.invalid-arg` | StreamSchemaRegistry.resolveManagedType；TestStreamSchemaConsumer | sql-subset §4a#5 / sql-compiler-contract §1.3 | CAST 闭集已覆盖字面转换 |
+| 6 | ~~DISTINCT 聚合~~（**WI17 supersede，2026-10-08**：DISTINCT 聚合已支持——`DistinctAggregateWrapper` 按求值后参数值去重，merge 重放对侧未见过的新值保证恰一次计数；restore 经 `SqlAccShapeUtil` 形状归一化。仍排除：SELECT DISTINCT 非聚合 dedup、UNION DISTINCT） | 原 `withDistinct(true).create` fail-fast 钉码已移除 | TestStreamSqlAggregations.distinctFiltersDuplicates / distinctMergeReplaysOnlyUnseenValues / distinctCompositeAccumulatorSurvivesSnapshotCopyAndContinues、TestStreamSqlCompiler.distinctAggregateShape | sql-subset §4a#6 | WI17 supersede |
+| 7 | 标量子集外表达式（~~CASE/CAST~~ WI29 放行 / 正则函数调用 / IN 子查询 / 参数标记 / null AST；CAST 目标限九受管闭集——DECIMAL/NUMBER/DATE/TIMESTAMP 仍排除） | StreamSqlExprCompiler 分派默认分支抛 `nop.err.stream.invalid-arg`（含 AST 节点类型）；CAST 闭集外经 SqlCastHelper typed fail-fast | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode / castOutsideClosedSetFailsFast | sql-subset §4a#7 / nop-stream-sql.md #2 | CASE/CAST WI29 放行 / UDF WI30 |
+| 8 | FULL 窗口 join（窗口补齐语义） | join 声明面校验：窗口 join 的 joinType 限 INNER/LEFT，`nop.err.stream.invalid-arg`（FULL 非 window 补齐属 WI13 评估项，非窗口 FULL join 不受限） | TestParameterizedJoinModel.fullWindowJoinFailsFast | sql-subset §4a#8 / join-operator.md | WI13 评估项 |
+| 9 | CEP 级复杂编排 | 不在本 roadmap（productization roadmap 边界） | roadmap Rules | sql-subset §4a#9 / nop-stream-cep | 需真实需求+owner 裁定 |
 
 ## 4b. 纳入面总表（WI16 定稿）
 
 | 能力 | 纳入形态 | 依据 |
 |---|---|---|
-| SELECT 投影 | WI9 标量子集：列引用（含限定名）/字面量/算术（+ - * / %，除法恒 double）/比较/AND-OR-NOT/IS NULL/BETWEEN/IN 值列表 | StreamSqlExprCompiler；TestStreamSqlExprCompiler |
+| SELECT 投影 | WI9 标量子集：列引用（含限定名）/字面量/算术（+ - * / %，除法恒 double）/比较/AND-OR-NOT/IS NULL/BETWEEN/IN 值列表 + WI29 CASE（简单/搜索）与 CAST（目标限九受管闭集——EQL StdSqlType 名映射） | StreamSqlExprCompiler；TestStreamSqlExprCompiler |
 | WHERE | 既有 filter 通路（xpl-fn 内联）+ WI9 编译器形态（同标量子集） | stream.xdef filter；WI9 |
 | 聚合 | sum/count/avg/min/max 五 id（与 BaseRule.g4 五关键字对齐）；COUNT(*) 无参形态；DISTINCT 聚合支持（WI17 supersede 4a#6——参数值域去重，COUNT(*) DISTINCT 以整记录为去重域）；精确去重的内存代价 = 每组去重值数量（窗口聚合随窗清除，持续聚合随作业生命周期） | StreamSqlAggregations.builtinIds 钉子；DistinctAggregateWrapper |
 | HAVING | GROUP BY + 聚合路径编译为 aggregate 后 filter（windowed + continuous 两路径，AggregateRef 解析 `event[N]` 槽位）；canonical 形态（聚合仅出现在 HAVING 不在 SELECT）支持；无 GROUP BY 的 HAVING 与 join + HAVING typed 拒绝；全局聚合 + HAVING 维持排除（WI28 起无 GROUP BY 聚合已放行——合成单键单归约，仅 HAVING 组合维持排除） | StreamSqlCompiler.insertHavingFilter；TestStreamSqlCompiler.havingFilterShapeWindowed / havingOnlyAggregateCanonicalShape / havingOnJoinFailsFast / havingWithoutGroupByFailsFast |

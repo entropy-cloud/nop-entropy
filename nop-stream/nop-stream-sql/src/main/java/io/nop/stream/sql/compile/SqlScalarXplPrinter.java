@@ -81,6 +81,18 @@ public final class SqlScalarXplPrinter {
         return sb.toString();
     }
 
+    /**
+     * WI29: imports hoisted by CAST branches — the body assembler (projectionNode /
+     * filter builders) must prepend these as xpl import statements before the body
+     * (XLang 静态调用需 import 前置，SqlRowAggregateOps 先例).
+     */
+    private final java.util.Set<String> requiredImports = new java.util.LinkedHashSet<>();
+
+    /** xpl import statements that must be prepended to the enclosing body. */
+    public java.util.Set<String> getRequiredImports() {
+        return requiredImports;
+    }
+
     public void printTo(SqlExpr expr, StringBuilder sb) {
         if (expr == null) {
             throw CompileErrors.invalidArg("expression is blank");
@@ -156,9 +168,77 @@ public final class SqlScalarXplPrinter {
                 sb.append(ref);
                 break;
             }
+            case SqlCastExpr: {
+                io.nop.orm.eql.ast.SqlCastExpr cast = (io.nop.orm.eql.ast.SqlCastExpr) expr;
+                String inner = print(cast.getExpr());
+                // WI29: static helper call (SqlRowAggregateOps precedent — XLang 裸
+                // FQN 调用不可用，import + 静态调用)；null 透传在 helper 内
+                requiredImports.add(io.nop.stream.sql.eval.SqlCastHelper.class.getName());
+                sb.append("SqlCastHelper.cast((").append(inner).append("), \"")
+                        .append(cast.getDataType().getName()).append("\")");
+                break;
+            }
+            case SqlCaseExpr: {
+                io.nop.orm.eql.ast.SqlCaseExpr caseExpr = (io.nop.orm.eql.ast.SqlCaseExpr) expr;
+                printCase(caseExpr, sb);
+                break;
+            }
+            case SqlRegularFunction: {
+                // WI30: UDF call — static helper call with import hoisting
+                // (SqlCastHelper/SqlRowAggregateOps precedent: XLang 裸 FQN 不可用)
+                io.nop.orm.eql.ast.SqlRegularFunction fn = (io.nop.orm.eql.ast.SqlRegularFunction) expr;
+                requiredImports.add("io.nop.stream.sql.eval.StreamScalarFunctionResolver");
+                sb.append("StreamScalarFunctionResolver.call('").append(fn.getName()).append("'");
+                if (fn.getArgs() != null) {
+                    for (io.nop.orm.eql.ast.SqlExpr arg : fn.getArgs()) {
+                        sb.append(", ").append(print(arg));
+                    }
+                }
+                sb.append(")");
+                break;
+            }
             default:
                 throw CompileErrors.unsupported(expr);
         }
+    }
+
+    /**
+     * WI29: CASE — printed as a nested ternary chain with explicit null guards
+     * (three-valued semantics preserved through the generated xpl, mirroring the
+     * printBinary pattern). Simple form: test equals when. Searched form: when is a
+     * boolean predicate.
+     */
+    private void printCase(io.nop.orm.eql.ast.SqlCaseExpr expr, StringBuilder sb) {
+        String elseText = expr.getElseExpr() == null ? "null" : print(expr.getElseExpr());
+        String body = elseText;
+        // build from the last branch backwards so each ternary nests the next
+        java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> whens = expr.getCaseWhens();
+        boolean simple = expr.getTest() != null;
+        String testText = simple ? print(expr.getTest()) : null;
+        // Objects.equals is the non-numeric fallback and the searched-form boolean
+        // comparison; the import is hoisted like SqlCastHelper's
+        requiredImports.add("java.util.Objects");
+        for (int i = whens.size() - 1; i >= 0; i--) {
+            io.nop.orm.eql.ast.SqlCaseWhenItem item = whens.get(i);
+            String thenText = item.getThen() == null ? "null" : print(item.getThen());
+            String whenText = print(item.getWhen());
+            String cond;
+            if (simple) {
+                // numeric-aware equality matching the eval channel's valuesMatch:
+                // number literals eval to long/double while record values may be
+                // Integer; strings fall back to Objects.equals; null never matches
+                cond = "(((" + testText + ") == null || (" + whenText
+                        + ") == null) ? false : ((((" + testText + ") instanceof Number) && (("
+                        + whenText + ") instanceof Number)) ? (((Number)(" + testText
+                        + ")).doubleValue() == ((Number)(" + whenText
+                        + ")).doubleValue()) : Objects.equals((" + testText + "), ("
+                        + whenText + "))))";
+            } else {
+                cond = "Objects.equals(true, (" + whenText + "))";
+            }
+            body = "((" + cond + ") ? (" + thenText + ") : (" + body + "))";
+        }
+        sb.append(body);
     }
 
     private void printBinary(SqlBinaryExpr expr, StringBuilder sb) {

@@ -129,10 +129,10 @@ public class TestStreamSqlExprCompiler {
         // regular function call
         StreamException e1 = assertThrows(StreamException.class, () -> eval("concat(a, b)", rec("a", 1, "b", 2)));
         assertEquals("nop.err.stream.invalid-arg", e1.getErrorCode());
-        // CASE expression
-        assertThrows(StreamException.class, () -> eval("case when a > 1 then 1 else 2 end", rec("a", 2)));
-        // CAST expression
-        assertThrows(StreamException.class, () -> eval("cast(a as varchar)", rec("a", 2)));
+        // WI29: CASE/CAST released — managed closed set enforced (DECIMAL/DATE stay excluded)
+        StreamException castErr = assertThrows(StreamException.class,
+                () -> eval("cast(a as decimal)", rec("a", 2)));
+        assertEquals("nop.err.stream.invalid-arg", castErr.getErrorCode());
         // aggregate in scalar position
         assertThrows(StreamException.class, () -> eval("sum(a) + 1", rec("a", 2)));
         // null AST
@@ -182,5 +182,68 @@ public class TestStreamSqlExprCompiler {
         public void setName(String name) {
             this.name = name;
         }
+    }
+
+    // ---- WI29: CASE/CAST ----
+
+    @Test
+    public void simpleCaseEvaluatesByEquality() {
+        assertEquals("low", eval("case a when 1 then 'low' when 2 then 'mid' else 'high' end", rec("a", 1)));
+        assertEquals("mid", eval("case a when 1 then 'low' when 2 then 'mid' else 'high' end", rec("a", 2)));
+        assertEquals("high", eval("case a when 1 then 'low' when 2 then 'mid' else 'high' end", rec("a", 3)));
+    }
+
+    @Test
+    public void searchedCaseEvaluatesPredicates() {
+        assertEquals("pos", eval("case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end", rec("a", 5)));
+        assertEquals("neg", eval("case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end", rec("a", -5)));
+        assertEquals("zero", eval("case when a > 0 then 'pos' when a < 0 then 'neg' else 'zero' end", rec("a", 0)));
+    }
+
+    @Test
+    public void caseWithoutMatchReturnsNull() {
+        // explicit three-valued semantics: no match, no else → null (not a silent skip)
+        assertNull(eval("case when a > 100 then 'x' end", rec("a", 1)));
+    }
+
+    @Test
+    public void caseNullTestNeverMatches() {
+        // SQL semantics: null test value matches nothing, else applies
+        assertEquals("other", eval("case a when 1 then 'one' else 'other' end", rec("a", null)));
+    }
+
+    @Test
+    public void castConvertsAcrossManagedTypes() {
+        assertEquals(2, eval("cast(a as int)", rec("a", "2")));
+        assertEquals(3L, eval("cast(a as bigint)", rec("a", 3)));
+        assertEquals("42", eval("cast(a as varchar)", rec("a", 42)));
+        assertEquals(2.5f, eval("cast(a as real)", rec("a", "2.5")));
+        assertEquals(Boolean.TRUE, eval("cast(a as boolean)", rec("a", "true")));
+    }
+
+    @Test
+    public void castNullPropagatesAsNull() {
+        assertNull(eval("cast(a as int)", rec("a", null)));
+    }
+
+    @Test
+    public void castOutsideClosedSetFailsFast() {
+        // §4a#5 not widened: DECIMAL/NUMBER/DATE/TIMESTAMP targets stay excluded
+        StreamException e = assertThrows(StreamException.class,
+                () -> eval("cast(a as decimal)", rec("a", "1")));
+        assertEquals("nop.err.stream.invalid-arg", e.getErrorCode());
+        StreamException e2 = assertThrows(StreamException.class,
+                () -> eval("cast(a as timestamp)", rec("a", "1")));
+        assertEquals("nop.err.stream.invalid-arg", e2.getErrorCode());
+    }
+
+    @Test
+    public void resolveTypeForCastAndCase() {
+        var types = new java.util.HashMap<String, io.nop.stream.core.common.typeinfo.BasicTypeInfo<?>>();
+        types.put("a", io.nop.stream.core.common.typeinfo.BasicTypeInfo.STRING);
+        var t = io.nop.stream.sql.eval.StreamSqlExprCompiler.resolveType(
+                io.nop.stream.sql.parse.EqlExprSupport.parseExpr("cast(a as bigint)"),
+                types::get);
+        assertEquals(io.nop.stream.core.common.typeinfo.BasicTypeInfo.LONG, t);
     }
 }

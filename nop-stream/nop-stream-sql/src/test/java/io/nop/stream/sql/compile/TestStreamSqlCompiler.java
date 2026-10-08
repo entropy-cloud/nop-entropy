@@ -462,9 +462,21 @@ public class TestStreamSqlCompiler {
 
     @Test
     public void outOfSubsetExpressionFailsFastWithStreamCode() {
-        // CASE 在 WI9 标量子集外——编译期走 default-reject（零 EQL 错误码泄漏）
-        assertInvalidArg("SELECT case when amount > 0 then 1 else 2 end AS x FROM orders");
-        assertInvalidArg("SELECT cast(amount as bigint) AS x FROM orders");
+        // WI29/WI30 放行 CASE/CAST/UDF 后，仍维持排除的标量面——FOR UPDATE typed 拒绝
+        assertInvalidArg("SELECT amount FROM orders FOR UPDATE");
+    }
+
+    @Test
+    public void caseCastProduceProjectedOutput() {
+        // WI29: CASE/CAST 产物投影——CASE 三元链 + CAST 经 SqlCastHelper import + 静态调用
+        XNode n = compileNode(
+                "SELECT case when amount > 0 then 'p' else 'n' end AS sign, "
+                        + "cast(amount as bigint) AS amt FROM orders");
+        String proj = transform(n, "sproj").childByTag("source").contentText();
+        assertTrue(proj.contains("SqlCastHelper.cast") && proj.contains("import"),
+                () -> "projection body: " + proj);
+        assertTrue(proj.contains("\"p\"") && proj.contains("\"n\""),
+                () -> "CASE ternary chain: " + proj);
     }
 
     // ----------------------------------------------------------------
