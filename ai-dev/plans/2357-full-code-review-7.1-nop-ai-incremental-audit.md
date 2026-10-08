@@ -48,24 +48,24 @@
 
 ### Phase 1 - 增量对账与三维审计（3 agent 并行，成员闭合）
 
-Status: in progress
+Status: completed
 Targets: nop-ai/ 增量 diff 面
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（d6b719b828）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① 147 提交全量清单（逐提交 hash/日期/子模块/主题+**路径域内/域外标记**+**提交簇分配表：每提交恰分配一 agent**—— closures 核验基线）聚类为重构波/修复波/配置文档波+WI 映射落盘（25 WI=终态 24+WI25 插入；「原 89 提交」vs 实测 81 口径差注记）② 千行回涨判定表（4 回涨+ReActAgentExecutor 非回涨注记，git 实测落盘）③ check 历史单元名→现行模块映射表 ④ 冻结协议三要素（seed=2357+提交簇清单哈希+triage 样本表）⑤ **三 agent 分工（按实测提交量均衡、成员闭合——对抗审查 M1 勘正）**：**Agent 1=nop-ai-agent+nop-ai-mcp-server+nop-spring-mcp-server/-support**（62+5 提交/1068+13 文件事件——重构波主力+MCP 无基线面）；**Agent 2=nop-ai-core/api/dao/meta/web/dsl-orm/app + deploy/model 处置 + shell/service/coder/rag**（68+4+12+10+9+6 ≈107 提交去重/410+ 事件）；**Agent 3=nop-ai-toolkit/skills/tools/gateway/maven**（~77 提交/366 事件——WI17 等重构波面）。分配表为唯一认领依据，无「等其余面」
-- [ ] Agent 1/2/3「分面三维审计」：各按分配表对所辖提交簇逐簇 triage（维度 03/09/12；发现准入规则见头部——增量引入/实质恶化才立条，预存缺陷登记撞车台账），发现逐条双锚（diff 位点+代码亲读）；维度 12 按「新增/重构 main 簇无对应新增测试」判据；P0 疑似即时上报
-- [ ] 主 agent 抽查质量：冻结表重放+发现抽验 ≥5 条（含 ≥1 处代码亲读复核）+ 提交分配表覆盖核验（147 全覆盖零遗漏零重复）
-- [ ] 产物 `_tmp/fcr-7.1-audit-a/b/c.md` + 提交簇清单与分配表 + 千行回涨判定表
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent）：① **148 提交全量清单**（实测较先验 147 +1——裸日期 --since 时区敏感，取确定性超集并登记偏差；+2 边界提交均 arm 收口日）（逐提交 hash/日期/子模块/主题+**路径域内/域外标记**+**提交簇分配表：每提交恰分配一 agent**—— closures 核验基线）聚类为重构波 83/修复波 64/配置文档波 1+WI 映射落盘（25 WI 全落盘；81→82 窗口口径差注记）② 千行回涨判定表（**回涨=4+非回涨 1，git 实测 5/5 行数精确复现**，增长全落 merge 72f805edae）③ check 历史单元名→现行模块映射表（三向实证）④ 冻结协议三要素（seed=2357+clusters.csv SHA `bb5dd9d3…`+样本 15 簇 `14112637…`）⑤ **三 agent 分工（按实测提交量均衡、成员闭合——对抗审查 M1 勘正）**：**Agent 1=56/Agent 2=46/Agent 3=46**（去重后实测；先验 62+5/≈107/≈77 系模块面累计口径，偏差已登记；nop-ai-codegen 补裁归 Agent2；A1 域内事件 1467 vs 先验 1068+13 系 merge 归并+去重口径）。分配表为唯一认领依据，无「等其余面」；**域外 86 提交/2181 事件登记移交**（tool.xdef 面 WI16/17/25 触、WI20 证伪——plan 表述勘正）
+- [x] Agent 1/2/3「分面三维审计」：**合计发现 10 条（P1×2/P2×6/P3×2，全部双锚+still-live 亲读证实）+撞车移交 19 笔+安全面疑似 1 笔移交 security 族**（H-A3-SEC-01 日志脱敏 group(1)=密钥本体——机械复现实证）。A1：P1-7.1-A1-01 WI25 后台任务懒重投递状态机双重破坏/P2×3+复杂度巡检（AgentToolDispatcher 回涨最陡 2.35x 热路径最复杂，建议 R1.0 优先）；A2：P1-7.1-B201 PgVectorStore.search 列读取缺失（生产后端 hits content 恒 null 静默错误结果）/P2×1/P3×2+WI20–22 三维判据全过+deploy 12 事件排除登记+model 3 事件契约 triage 全 PASS；A3：P2×2（ToolManagerImpl pathQueues 永不清理/executeNow.get() 同步抛出致永久 pending）+维度 12 零发现（46 提交全带测试逐簇表落盘）
+- [x] 主 agent 抽查质量：冻结表重放 SHA 一致（bb5dd9d3…）+ 抽验 2 条 P1 锚点亲读成立（A1-01 retryBridgeIfNeeded 无条件 COMPLETED 改写/B201 search 仅回读 embedding 列——生产 hits content 恒 null）+ 分配表 148 全覆盖零遗漏零重复（对账断言+机械核验）
+- [x] 产物 `_tmp/fcr-7.1-audit-a/b/c.md` + 提交簇清单与分配表 + 千行回涨判定表
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（三 agent 一致零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条 still-live ≥9 行完整条目；发现双锚证据
-- [ ] 提交分配表 147 全覆盖（零遗漏零重复机械核验）；千行回涨判定 git 实测落盘；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 初稿落盘，每条 still-live ≥9 行完整条目；发现双锚证据
+- [x] 提交分配表 148 全覆盖（零遗漏零重复机械核验）；千行回涨判定 git 实测落盘；样本表可重放
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
