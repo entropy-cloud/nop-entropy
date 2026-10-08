@@ -133,6 +133,10 @@ Java 常量使用 `UPPER_SNAKE_CASE`，DSL event 属性匹配使用 `snake_case`
 | Plan | 结构化执行计划（`agent-plan.xdef`），项目级实体 |
 | Task | Plan 内的子单元 |
 | Todo | 轻量任务补充（`constraints.todos`） |
+| 受保护分支（protected branch） | 构建产物可发布到共享构建仓库的分支集合（默认主干，可配置列表）。硬约束：全局可见的构建产物只能来自受保护分支构建（nop-ai-agent-build-scheduling.md §3.2） |
+| 共享构建仓库（shared build repo） | 节点级共享本地 Maven 仓库，仅受保护分支构建可发布；worktree 本地仓库从其播种（克隆/硬链接），非受保护分支构建对其只读（nop-ai-agent-build-scheduling.md §3.2） |
+| 交付界面（delivery surface） | 产出物的权威载体：代码工件以 git 分支为交付界面；任务元数据与非代码工件以 DB + GraphQL 为界面。git 不是唯一交换总线（nop-ai-agent-remote-service-platform.md §3.2） |
+| 密钥三层不可见边界 | L1 LLM 不可见（不进 prompt/工具结果/日志）→ L2 agent 执行环境不可见（沙箱/git 子进程环境清洗 `GIT_*`）→ L3 服务进程不持明文（解密与注入收敛到独立网关进程）（nop-ai-agent-remote-service-platform.md §3.3） |
 
 ## 命名约定
 

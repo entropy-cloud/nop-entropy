@@ -100,6 +100,8 @@ Layer 1: Core Interfaces (核心接口层)
   - 错误分类、压缩、超时、回退、恢复、崩溃恢复模型
 - `nop-ai-agent-branch-affinity-scheduling.md`
   - 分支亲和调度、工作空间隔离、子 Agent worktree、提交与合并模型、双环境共存
+- `nop-ai-agent-build-scheduling.md`
+  - 构建调度与 Maven 仓库隔离：不定制 mvnd（外层排队 + mvnd 仅作 daemon 执行器）、ResourceGuard 构建并发配额、per-worktree 构建锁、受保护分支决定发布目标（共享仓库 vs worktree 本地仓库）、播种策略、Java/Node 工具链边界
 - `nop-ai-shell-design.md`
    - nop-ai-shell 模块设计：与 nop-ai-toolkit 接口对齐、命令分层、混合执行模式
 - `nop-ai-tool-filesystem-design.md`
@@ -111,6 +113,8 @@ Layer 1: Core Interfaces (核心接口层)
 
 ## 集成层（Gateway / 应用层）
 
+- `nop-ai-agent-remote-service-platform.md`
+  - 远程多用户异步任务调度平台层：服务面（ORM 实体 + BizModel 任务提交/进度查询）、git 分支与 DB 元数据双轨交付边界、密钥三层不可见边界（LLM → agent 执行环境 → 服务进程）、模型共享语义（凭证归属 + RBAC）、定时入口（nop-job）、资源配额一等公民纪律
 - `nop-ai-agent-channel-connector.md`
   - 外部信道连接器设计：飞书/钉钉/企微/Webhook 等通用连接抽象
   - IChannelAdapter 接口、信道会话映射、消息流转、与 IMessageService 的关系
