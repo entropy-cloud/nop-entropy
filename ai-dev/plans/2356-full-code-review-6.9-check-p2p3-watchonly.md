@@ -1,6 +1,6 @@
 # 2356 full-code-review 6.9 check 系列 P2/P3 批量状态标定（watch-only 归档）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.9（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: 承接 6.4（P0 全标定——fix-ai-check 分支处置以 master 为准的方法学先例）与 6.5–6.8（P1 四批全闭）。同族先例=plan 2352–2355（独立枚举 diff/冻结三要素/处置面实测/承接路由/双轨校验形态照抄；本项为批量归档而非逐条深标定——性质对齐 6.4 的「批量状态标定」）。
@@ -88,31 +88,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `6.9-check-p2p3-watchonly-archive.md`（附录记冻结协议 SHA-256 四件套）；index 登记 6.9 行（替换占位行，裁决摘要列载升级候选计数——沿 R1.0 输入池先例，不占 P1 汇总/P2 台账）
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（六项：证据完整性/分类正确性/引用路径真实性/计数对应——三分类账平+抽验覆盖率/升级候选完整性与冻结重放/流程状态）；**通过后** roadmap 6.9 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `6.9-check-p2p3-watchonly-archive.md`（附录记冻结协议 SHA-256 四件套）；index 登记 6.9 行（替换占位行，裁决摘要列载升级候选计数——沿 R1.0 输入池先例，不占 P1 汇总/P2 台账）
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项）；**通过后** roadmap 6.9 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 分类口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 分类口径可复现（复核员抽验一致——sample.py 补落后重放逐字节一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划；抽验含只读测试实跑，免除全量构建。
 
-- [ ] 报告落盘且 694 条三分类全覆盖（①+②+③=694 账平，54 单元枚举 diff 一致）
-- [ ] 抽验达标（②类实测下限落盘+含实跑 ≥10、①类 ≥15）；升级筛查 ②③类 P2 100% 覆盖
-- [ ] index 计数与报告分类台账一一对应；升级候选清单完整且冻结可重放
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.9 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 694 条三分类全覆盖（①+②+③=694 账平，54 单元枚举 diff 一致）
+- [x] 抽验达标（②类实测下限落盘+含实跑 ≥10、①类 ≥15）；升级筛查 ②③类 P2 100% 覆盖
+- [x] index 计数与报告分类台账一一对应；升级候选清单完整且冻结可重放
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 6.9 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -124,14 +124,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 6.9 收口——check P2/P3 宇宙 694 条三分类账平闭合（①148+②315+③231；694=400+294 分合精确），抽验真实率 94.3%（33/35）、三分类边界抽验 100%（33/33）、承接锚回读零虚假承接（19/19），升级候选定稿冻结 130 行（维持 109+降级留痕 17+新增 4）上报 R1.0 裁决通道。**check 系列四层（P0/P1/P2/P3）全部收口**。独立 closure audit（agent_9bccf11e）**一次 PASS 六项全过**，4 Minor 不阻塞（sample.py 缺载体→补落后重放逐字节一致；哈希笔误 5f301a139b 勘正；91 vs 90 口径注记；勾选补齐）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_9bccf11e-083b-40cc-b65c-e48af772a654（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告六节+附录齐备；证据链 8 件在盘互相印证
+  - 核验 B 计数对应 PASS（Python csv 精确解析亲手重算）：universe 694 行三分类账平；escalation-final 130=109+17+4；SHA-256 四件套逐字节重放一致；抽验覆盖率 ②11.1%/①19/②③P2 281 精确账平；130 构成逐单元与报告 §三 吻合
+  - 核验 C 引用路径真实性 PASS：三分类 6 条抽验全中；4 条新增候选亲读（V1 回退态 git show 对照+N1 空 TODO+N2 stage 吞异常+N3 三 app 密钥面）；F1–F4 与事实一致（505/40 处置块亲数命中）
+  - 核验 D 分类与升级通道正确性 PASS：三原则两处一致；无越权登记（index 6.9 行四列全 0）；#:192 双立标记三处在案且与 6.1 行 P2-6.1-001 在池互证
+  - 核验 E 抽验结论一致性 PASS：94.3%/100%/19/19/126→130 与产物逐一相符
+  - 核验 F 流程状态 PASS：roadmap 翻 done 前 todo 前置正确；doc-links exit 0 实测
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2356-full-code-review-6.9-check-p2p3-watchonly.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；升级候选走 R1.0 裁决通道（roadmap 6.9 Details 明文通道，非静默降级）；watch-only 231 条为规则 #3 终态归档
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- 升级候选 130 行 → R1.0 裁决（含 #:192/P2-6.1-001 合并裁定、N3 全仓默认配置密钥面统一裁定、V1 回归性复发修复）；watch-only 归档无后续义务——无本 plan 自有剩余工作
