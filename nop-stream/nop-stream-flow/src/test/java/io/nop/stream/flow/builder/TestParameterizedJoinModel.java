@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -248,5 +249,125 @@ public class TestParameterizedJoinModel {
         assertEquals("nop.err.stream.ref-unknown", ex.getErrorCode().toString());
         assertInstanceOf(StreamJoinModel.class,
                 model.getTransforms().stream().filter(t -> t instanceof StreamJoinModel).findFirst().orElseThrow());
+    }
+
+    // ---- WI27: per-side asymmetric timeout ----
+
+    @Test
+    public void leftTimeoutOnlyRoundTripsAndDefaultsOtherSideToZero() {
+        StreamModel model = parseWithJoins(
+                TWO_SOURCES + "<join id=\"j\" joinRef=\"wj\"/>",
+                "<joins><joinSpec joinId=\"wj\" joinType=\"INNER\""
+                        + " leftKeyExprs=\"a\" rightKeyExprs=\"b\""
+                        + " windowStrategyRef=\"ws1\" leftTimeout=\"20s\"/></joins>"
+                        + "<windowingStrategies>"
+                        + "<strategy strategyId=\"ws1\" windowFnId=\"tumbling-event-time\" duration=\"30s\"/>"
+                        + "</windowingStrategies>",
+                JOIN_EDGES);
+        StreamJoinSpecModel spec = model.getJoinSpec("wj");
+        assertEquals("20s", spec.getLeftTimeout());
+        assertNull(spec.getRightTimeout());
+        assertNull(spec.getTimeout());
+        // legal declaration builds through the real builder (defaults applied in buildJoin)
+        StreamModelDslBuilder.of(model, resolverWithSrc()).build();
+    }
+
+    @Test
+    public void bothSideTimeoutsRoundTrip() throws Exception {
+        StreamModel model = parseWithJoins(
+                TWO_SOURCES + "<join id=\"j\" joinRef=\"wj\"/>",
+                "<joins><joinSpec joinId=\"wj\" joinType=\"LEFT\""
+                        + " leftKeyExprs=\"a\" rightKeyExprs=\"b\""
+                        + " windowStrategyRef=\"ws1\" leftTimeout=\"20s\" rightTimeout=\"5s\"/></joins>"
+                        + "<windowingStrategies>"
+                        + "<strategy strategyId=\"ws1\" windowFnId=\"tumbling-event-time\" duration=\"30s\"/>"
+                        + "</windowingStrategies>",
+                JOIN_EDGES);
+        StreamJoinSpecModel spec = model.getJoinSpec("wj");
+        assertEquals("20s", spec.getLeftTimeout());
+        assertEquals("5s", spec.getRightTimeout());
+        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolverWithSrc()).build();
+        // WI27 换序盲区封堵：EOS-only 水位下 env 发射集对非对称不判别——直接断言
+        // buildJoin 4 参构造把 leftTimeout/rightTimeout 传入算子的正确槽位
+        io.nop.stream.core.operators.join.EquiJoinOperator<?, ?> op = findJoinOperator(env);
+        assertEquals(20000L, readLong(op, "leftTimeout"), "leftTimeout slot");
+        assertEquals(5000L, readLong(op, "rightTimeout"), "rightTimeout slot");
+    }
+
+    private static io.nop.stream.core.operators.join.EquiJoinOperator<?, ?> findJoinOperator(
+            StreamExecutionEnvironment env) throws Exception {
+        java.lang.reflect.Field tf = StreamExecutionEnvironment.class
+                .getDeclaredField("transformations");
+        tf.setAccessible(true);
+        for (Object t : (java.util.List<?>) tf.get(env)) {
+            io.nop.stream.core.transformation.Transformation<?> tr =
+                    (io.nop.stream.core.transformation.Transformation<?>) t;
+            if (tr.getName() != null && tr.getName().startsWith("Join:")) {
+                io.nop.stream.core.operators.StreamOperatorFactory<?> factory =
+                        ((io.nop.stream.core.transformation.OneInputTransformation<?, ?>) tr)
+                                .getOperatorFactory();
+                if (factory instanceof io.nop.stream.core.operators.SimpleStreamOperatorFactory) {
+                    io.nop.stream.core.operators.StreamOperator<?> op =
+                            ((io.nop.stream.core.operators.SimpleStreamOperatorFactory<?>) factory)
+                                    .getRawOperator();
+                    if (op instanceof io.nop.stream.core.operators.join.EquiJoinOperator) {
+                        return (io.nop.stream.core.operators.join.EquiJoinOperator<?, ?>) op;
+                    }
+                }
+            }
+        }
+        throw new AssertionError("join operator not found in built transformations");
+    }
+
+    private static long readLong(Object target, String field) throws Exception {
+        Class<?> c = target.getClass();
+        while (c != null) {
+            try {
+                java.lang.reflect.Field f = c.getDeclaredField(field);
+                f.setAccessible(true);
+                return f.getLong(target);
+            } catch (NoSuchFieldException e) {
+                c = c.getSuperclass();
+            }
+        }
+        throw new AssertionError("no field " + field);
+    }
+
+    @Test
+    public void symmetricTimeoutWithPerSideFailsFast() {
+        StreamModel model = parseWithJoins(
+                TWO_SOURCES + "<join id=\"j\" joinRef=\"wj\"/>",
+                "<joins><joinSpec joinId=\"wj\" joinType=\"INNER\""
+                        + " leftKeyExprs=\"a\" rightKeyExprs=\"b\""
+                        + " windowStrategyRef=\"ws1\" timeout=\"10s\" leftTimeout=\"20s\"/></joins>"
+                        + "<windowingStrategies>"
+                        + "<strategy strategyId=\"ws1\" windowFnId=\"tumbling-event-time\" duration=\"30s\"/>"
+                        + "</windowingStrategies>",
+                JOIN_EDGES);
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, resolverWithSrc()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("not both"),
+                () -> "expected the mutual-exclusion gate, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void sideTimeoutWithoutWindowStrategyRefFailsFast() {
+        StreamModel model = parseWithJoins(
+                TWO_SOURCES + "<join id=\"j\" joinRef=\"wj\"/>",
+                "<joins><joinSpec joinId=\"wj\" joinType=\"INNER\""
+                        + " leftKeyExprs=\"a\" rightKeyExprs=\"b\""
+                        + " leftTimeout=\"20s\"/></joins>",
+                JOIN_EDGES);
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, resolverWithSrc()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("windowStrategyRef"));
+    }
+
+    private InMemoryBeanFunctionResolver resolverWithSrc() {
+        InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver();
+        resolver.register("srcFn", new io.nop.stream.flow.testing.TestSourceFunction());
+        return resolver;
     }
 }

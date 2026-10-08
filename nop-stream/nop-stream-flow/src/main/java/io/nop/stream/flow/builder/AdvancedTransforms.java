@@ -593,6 +593,8 @@ final class AdvancedTransforms {
 
         Long windowDuration = null;
         long timeout = 0L;
+        long leftTimeout = 0L;
+        long rightTimeout = 0L;
         if (spec.getWindowStrategyRef() != null) {
             // window join: duration is mandatory (parameterized tumbling), timeout
             // reuses the WI10 duration parser (D9-released lateness grace)
@@ -610,6 +612,18 @@ final class AdvancedTransforms {
             if (spec.getTimeout() != null) {
                 timeout = parseDurationMillis(spec.getTimeout());
             }
+            // WI27: per-side asymmetric grace (mutually exclusive with the symmetric
+            // timeout — validated); the undeclared side defaults to 0 (complete at
+            // window end). The symmetric timeout form maps both sides to the same
+            // value.
+            leftTimeout = timeout;
+            rightTimeout = timeout;
+            if (spec.getLeftTimeout() != null) {
+                leftTimeout = parseDurationMillis(spec.getLeftTimeout());
+            }
+            if (spec.getRightTimeout() != null) {
+                rightTimeout = parseDurationMillis(spec.getRightTimeout());
+            }
             // WI37 (D11 release): the join window path does not consume the emit tier —
             // an emit=update strategy referenced by a window join is a typed rejection,
             // never a silent ignore.
@@ -626,7 +640,8 @@ final class AdvancedTransforms {
                 .map(new JoinSideTagFunction(true, leftKeys))
                 .union(right.map(new JoinSideTagFunction(false, rightKeys)));
         KeyedStream<JoinSideRecord<Object>, Object> keyed = tagged.keyBy(JoinSideKeySelector.INSTANCE);
-        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration, timeout);
+        EquiJoinOperator joinOp = new EquiJoinOperator(spec.getJoinType(), windowDuration,
+                leftTimeout, rightTimeout);
         return StreamModelDslBuilder.applyDeclaredParallelism(
                 (SingleOutputStreamOperator) keyed.transform("Join:" + m.getId(),
                         UnknownTypeInformation.INSTANCE, joinOp), t);

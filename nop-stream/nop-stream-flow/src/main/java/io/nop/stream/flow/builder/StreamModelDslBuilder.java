@@ -1021,15 +1021,39 @@ public final class StreamModelDslBuilder {
                                     + " window completion is a WI13 evaluation item")
                             .loc(t.getLocation());
                 }
-                if (spec.getTimeout() != null) {
+                // WI27: the symmetric timeout and the per-side leftTimeout/rightTimeout
+                // are mutually exclusive (dual-source precedence would complicate the
+                // validation contract); 0/1/2 per-side declarations are all legal —
+                // "exactly one or both" is the defaulting semantics (undeclared side
+                // defaults to 0 = complete at window end), not a counting rule.
+                boolean symmetric = spec.getTimeout() != null;
+                boolean asymmetric = spec.getLeftTimeout() != null
+                        || spec.getRightTimeout() != null;
+                if (symmetric && asymmetric) {
+                    throw new StreamException(ERR_STREAM_INVALID_ARG)
+                            .param(ARG_ELEMENT, elementDesc(t))
+                            .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
+                                    + "' declares timeout together with leftTimeout/"
+                                    + "rightTimeout; use the symmetric timeout or the "
+                                    + "per-side pair, not both")
+                            .loc(t.getLocation());
+                }
+                if (symmetric) {
                     AdvancedTransforms.parseDurationMillis(spec.getTimeout());
                 }
-            } else if (spec.getTimeout() != null) {
+                if (spec.getLeftTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getLeftTimeout());
+                }
+                if (spec.getRightTimeout() != null) {
+                    AdvancedTransforms.parseDurationMillis(spec.getRightTimeout());
+                }
+            } else if (spec.getTimeout() != null || spec.getLeftTimeout() != null
+                    || spec.getRightTimeout() != null) {
                 throw new StreamException(ERR_STREAM_INVALID_ARG)
                         .param(ARG_ELEMENT, elementDesc(t))
                         .param(ARG_DETAIL, "join spec '" + spec.getJoinId()
-                                + "' declares timeout but no windowStrategyRef; timeout only "
-                                + "applies to window joins")
+                                + "' declares a timeout but no windowStrategyRef; timeouts "
+                                + "only apply to window joins")
                         .loc(t.getLocation());
             }
         }
