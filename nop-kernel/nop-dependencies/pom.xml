@@ -59,6 +59,10 @@
              等内部字段曾在 3.5.0 客户端上致引擎启动即 NoSuchFieldError——客户端版本必须
              ≥ Debezium 构建版本，降级前须核对。 -->
         <kafka.version>4.3.1</kafka.version>
+        <!-- WI18 plan 2341：nop-stream-format-avro 的 avro 单点版本。pin = 1.12.1
+             （quarkus-bom 传递管理的既有解析版本，实测基线）；升版须同步核对
+             AvroWireFormat wire/演进测试。 -->
+        <avro.version>1.12.1</avro.version>
 
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 
@@ -310,6 +314,12 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
             </dependency>
 
             <dependency>

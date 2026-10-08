@@ -104,6 +104,18 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 
 错误配置（目录不存在/连接不可达/凭据不可解析）返回显式错误码 `nop.err.stream.connectivity-check-failed`（含端点与根因），绝不静默通过。命令用法与 exit code 契约见 owner doc `03-modules/nop-stream.md`「提交前校验」节；凭据引用语法见同页「凭据引用与明文边界」。探测行为级测试锚点：connector `TestPreSubmitConnectivityProbe`、jdbc `TestJdbcPreSubmitConnectivityProbe`、batch `TestBatchPreSubmitConnectivityProbe`、debezium `TestDebeziumPreSubmitConnectivityProbe` / `TestDebeziumCredentialIntegration`、flow `TestStreamConnectivityDryRun`、E2E `nop-stream-fraud-example` `TestConfValidatePreSubmitE2E`。
 
+## 格式层（Avro / Schema Registry，WI18）
+
+`nop-stream-format-avro` 提供跨连接器的 payload 格式层（当前主要消费面 = Kafka 连接器的
+`valueDeserializer`/`valueSerializer` 注入点）：
+
+- **`AvroSchemaRegistryClient`**：JDK HttpClient 最小 REST 客户端——`POST /subjects/{subject}/versions`（注册）、`GET .../versions/latest`、`GET /schemas/ids/{id}`；per-schema-id 与 per-subject 双缓存（同 subject 换 schema 后 encoder 侧不自动拾取新版本——已知边界，见下）。
+- **`AvroWireFormat`**：Confluent wire format（magic `0x0` + 4B BE schemaId + Avro binary）。`encode` 注册 schema 后写 wire；`decode` 按 header schemaId 取 writer schema、以 registry latest 为 reader schema 做演进读取；`readerSchemaFor` 兜底指定 reader schema。工厂 `avroDeserializer(subject)` / `avroSerializer(subject)` 直接可注入 `KafkaSourceFunction` / `KafkaTwoPhaseCommitSink`。
+- **失败面全 typed**：registry 不可达、magic byte 不符、schema 解析失败均抛 `StreamAvroException`（不静默降级）。
+- **依赖**：avro 版本单点在 `nop-kernel/nop-dependencies`（`avro.version`，当前 1.12.1 = 实测基线）；无 Confluent 客户端依赖。
+- **已知边界**：同 subject 多 schema 演进时 encoder 侧 schemaId 缓存不感知换版（首版边界；真实多 schema 写入诉求出现时升级缓存策略）。
+- 锚点：`TestAvroWireFormat`（fake registry 真 HttpServer 6 用例：round trip / v1→v2 演进 / schemaId 缓存 / magic typed 拒绝 / registry 不可达 typed / 工厂注入）。
+
 ## 能力矩阵
 
 | 组件 | 方向 | 交付语义（含依据） | 并行度 | 恢复语义（cursor/offset checkpoint 路径） |
@@ -145,6 +157,6 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 | FileTwoPhaseCommitSink | `TestFileTwoPhaseCommitSink`（kill-recover exactly-once、幂等 commit、manifest 修复、abort、coordinator 驱动 commit） |
 | JdbcTwoPhaseCommitSink | `TestJdbcTwoPhaseCommitSinkDeep`（saveState 捕获本 epoch、幂等、durable/未 durable 恢复、subsuming commit、独立事务）、`TestJdbcTwoPhaseCommitSinkSkeleton`、`TestJdbcTwoPhaseCommitSinkParallelIsolation` |
 | MessageSource/Sink | `TestMessageAdapters`、`TestMessageSourceFunctionRestart`、`TestMessageSourceFunctionThreadSafety`、`TestConnectorResourceManagement` |
-| DebeziumCdcSource（FLIP-27） | `TestDebeziumCdcSource`（split/serializer round-trip、份额分配、实例装配、offset 快照/恢复、迟到分配 typed）+ legacy 语义面回归：`TestDebeziumCdcCheckpoint`（offset round-trip ×3、注入链、kill-recover 零重复、首启不吃陈旧 offset）、`TestDebeziumCdcSourceFunction`、`TestDebeziumCdcSourceCompletion`、`TestDebeziumResourceManagement` |
+| DebeziumCdcSource（FLIP-27） | `TestDebeziumCdcSource`（split/serializer round-trip、份额分配、实例装配、offset 快照/恢复、迟到分配 typed）+ legacy 语义面回归：`TestDebeziumCdcCheckpoint`（offset round-trip ×3、注入链、kill-recover 零重复、首启不吃陈旧 offset）、`TestDebeziumCdcSourceFunction`、`TestDebeziumResourceManagement`；`TestDebeziumCdcSourceCompletion` 为永久 `@Disabled`（run() 无界源契约失配钉注）不作为回归锚点——F-36 |
 | BatchLoader/BatchConsumer | `TestBatchLoaderSourceFunction`（offset/seek/算子 round-trip）、`TestBatchConsumerSinkFunction*`（缓冲/flush/close/失败保留重试）、`TestConnectorConsistencyCapability`（声明矩阵 + STRICT 校验） |
 | **SPI 注册中心** | `nop-stream-core` `TestStreamConnectorRegistry`（注册机制：枚举/别名优先级/重复/描述符校验/未知类型/方向错配/必填参数）；各连接器模块 `Test*ConnectorFactor*`（工厂构造 + 实例级单一事实源对齐）；`nop-stream-runtime` `TestStreamConnectorRegistryDiscovery`（**全量注册发现 + 能力矩阵逐项断言——本页矩阵的代码级单一事实源**）、`TestStreamConnectorRegistryE2E`（registry 构造端点 → `env.execute()` → 输出，Anti-Hollow 接线证明） |

@@ -1,6 +1,6 @@
 # 2332 WI8 窗口事件化与兜底出数（OPEN/CLOSE/IDLE/RESUME + sideOutput 图级路由 + maxDelay）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-07
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI8（M2，单一连贯面三子项）+ 对比分析 P1-7（TDengine 对标）+ 10-06 XDSL 可移植性分析
 > Related: WI17（SQL 窄补强引用本 WI 事件面——XDSL 声明面见 Deferred m1）；plan 2329（OutputTag 先例）
@@ -9,7 +9,7 @@
 
 把窗口生命周期事件化（OPEN/CLOSE/IDLE/RESUME 外发）、XDSL sideOutput 图级路由打通、maxDelay 超时兜底出数作为一个连贯面落地（TDengine 对标）：窗口状态变化可观测可路由，慢数据有兜底出数保障。
 
-## Current Baseline（研究 + audit 双重核实）
+## Current Baseline
 
 - WindowOperator（runtime operators/windowing/WindowOperator.java）：窗口**隐式**存在于 keyed-state 命名空间（`addWindowElement:1427` 纯状态追加，无存在性检查/枚举 API）；FIRE = `emitWindowContents:1037`（PaneInfo timing 分类 EARLY/ON_TIME/LATE——只分类无幂等）；清理 = onTimer `isCleanupTime` 分支（cleanupTime = maxTimestamp + allowedLateness；processing-time 窗口 cleanup = windowEnd；GlobalWindows cleanupTime = Long.MAX_VALUE 即永不清理）。
 - 侧输出设施（比预想完整）：core `OutputTag`、`WindowContext.output(tag,v)`（用前须 set window 否则 NPE）、迟到数据 `sideOutputLateData(OutputTag)` 已在用；**HG-01 跨任务传输已建成**——`StreamMessageEnvelope.outputTagId`/`TYPE_SIDE_OUTPUT_RECORD`、`SideOutputElement`、`StreamElementCodec` 双向编解码、`StreamTaskInvokable:990-1037` 收端按 tagId 分派 + `registerSideOutputConsumer:418`、链内 `ChainingOutput:111-129` 分派（无消费方 fail-fast）；core `StreamEdge:85` 已有 outputTag 字段但 StreamGraphGenerator/JobGraphGenerator **零消费**。
@@ -65,24 +65,24 @@
 
 ### Phase 1 - (a)+(c) 引擎面（core + runtime + XDSL 接线）
 
-Status: planned
+Status: completed
 Targets: core WindowOperator/WindowingStrategy、runtime、flow XDSL 接线
 
 - Item Types: `Feature`
 
-- [ ] R-registry：checkpointed 活动窗口 registry + OPEN/CLOSE 事件点
-- [ ] R-status：processWatermarkStatus 覆写（保留转发）+ IDLE/RESUME
-- [ ] R-maxdelay：xdef strategy.maxDelay（R-xdef 流程）+ core 字段 + 全链接线（M6 清单）+ pendingMaxDelay 标记集 + timer + merge 处理 + processing-time 拒绝
-- [ ] `WindowedStream.emitWindowEvents()` + 测试：事件时序（含 DISCARDING 再来数据不重发 OPEN）、IDLE→RESUME、maxDelay 兜底/merge/拒绝/user-trigger 不误喂、默认关闭零回归
+- [x] R-registry：checkpointed 活动窗口 registry + OPEN/CLOSE 事件点
+- [x] R-status：processWatermarkStatus 覆写（保留转发）+ IDLE/RESUME
+- [x] R-maxdelay：xdef strategy.maxDelay（R-xdef 流程）+ core 字段 + 全链接线（M6 清单）+ pendingMaxDelay 标记集 + timer + merge 处理 + processing-time 拒绝
+- [x] `WindowedStream.emitWindowEvents()` + 测试：事件时序（含 DISCARDING 再来数据不重发 OPEN）、IDLE→RESUME、maxDelay 兜底/merge/拒绝/user-trigger 不误喂、默认关闭零回归
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-flow,nop-kernel/nop-xdefs -am` 全绿（R-xdef 顺序：先装 nop-xdefs）
-- [ ] **端到端验证**：OPEN→数据→FIRE→CLOSE 时序断言；maxDelay 不依赖主 trigger 的兜底出数断言
-- [ ] **接线验证**：XDSL maxDelay 声明 → operator 生效（builder 消费断言）；copyForSubtask 透传断言
-- [ ] **无静默跳过**：processing-time 窗口 + maxDelay = build 期 typed 拒绝；事件未启用零外发
-- [ ] user-guide 新增最小段落（emitWindowEvents/maxDelay 公共 API 是本 Phase 新增面——rule 17 要求）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-flow,nop-kernel/nop-xdefs -am` 全绿（R-xdef 顺序：先装 nop-xdefs）
+- [x] **端到端验证**：OPEN→数据→FIRE→CLOSE 时序断言；maxDelay 不依赖主 trigger 的兜底出数断言
+- [x] **接线验证**：XDSL maxDelay 声明 → operator 生效（builder 消费断言）；copyForSubtask 透传断言
+- [x] **无静默跳过**：processing-time 窗口 + maxDelay = build 期 typed 拒绝；事件未启用零外发
+- [x] user-guide 新增最小段落（emitWindowEvents/maxDelay 公共 API 是本 Phase 新增面——rule 17 要求）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - (b) XDSL sideOutput 图级路由
 
@@ -107,29 +107,32 @@ Exit Criteria:
 
 ### Phase 3 - closure audit 与提交
 
-Status: planned
+Status: completed
 Targets: roadmap WI8、plan 2332
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit；roadmap WI8 勾选；git commit
-- [ ] No owner-doc update required（Phase 2 已更新）
+- [x] 独立子 agent closure audit；roadmap WI8 勾选；git commit（audit APPROVED agent_8498cfba；**2026-10-08 WI19 终核回填状态文本**——audit 当时已通过，仅本 plan 状态/gates 未回写）
+- [x] No owner-doc update required（Phase 2 已更新）
 
 Exit Criteria:
 
-- [ ] 独立 closure audit 通过且证据写入本 plan Closure 节
-- [ ] roadmap WI8 已勾选、提交完成
+- [x] 独立 closure audit 通过且证据写入本 plan Closure 节
+- [x] roadmap WI8 已勾选、提交完成
+
+
+> **2026-10-08 WI19 终核回填说明**：本 plan 实施与 closure audit（APPROVED agent_8498cfba）均已于 2026-10-07 完成，但 Phase 状态与 checklist 未回写（WI19 终核 M2 发现）。以下剩余项按已完成交付逐项回填勾选；回填依据 = Closure Audit Evidence + Phase 2 执行记录 + daily log 10-07/10-08。
 
 ## Closure Gates
 
-- [ ] 三子项落地且联动（maxDelay 出数路径发窗口事件流）
-- [ ] 默认关闭零回归（37 个 windowing 测试文件全绿）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-core,nop-stream/nop-stream-flow,nop-kernel/nop-xdefs -am` 全绿
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-import-order.mjs` 受影响模块无新增违规
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-core --severity high` 与 `--module nop-stream/nop-stream-flow --severity high` 均退出码 0
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 三子项落地且联动（maxDelay 出数路径发窗口事件流）
+- [x] 默认关闭零回归（37 个 windowing 测试文件全绿）
+- [x] `./mvnw test -pl nop-stream/nop-stream-runtime,nop-stream/nop-stream-core,nop-stream/nop-stream-flow,nop-kernel/nop-xdefs -am` 全绿
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-import-order.mjs` 受影响模块无新增违规
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-core --severity high` 与 `--module nop-stream/nop-stream-flow --severity high` 均退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据（APPROVED agent_8498cfba；2026-10-08 WI19 终核回填状态文本）
 
 ## Deferred But Adjudicated
 
