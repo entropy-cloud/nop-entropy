@@ -1,6 +1,6 @@
 # 2360 full-code-review 7.4 nop-code gated 项复核 + 增量巡检（lang-go/rust/csharp 新扩展）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.4（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 03/09/12 巡检侧重）
 > Related: `ai-dev/backlog/nop-code-invariant-loop-roadmap.md`（Owner Doc，91 行——Cycle 1 关闭稳态暂停分支 A；**Phase 9 @Auth gated 阻塞待人工确认**〔Protected Area，successor path 已登记〕；Phase 4 cascadeDelete successor 已落地 `2026-08-14-0707-1`）；5.3 报告（nop-code 组版本漂移 P2 邻接）；6.7 批次 c nop-code 5 条 P1 标定（撞车面）。
@@ -82,31 +82,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.4-nop-code-gated-incremental-audit.md`；index 登记 7.4 行 + 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项）；**通过后** roadmap 7.4 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.4-nop-code-gated-incremental-audit.md`；index 登记 7.4 行 + P1-7.4-001..003 进 P1 汇总 + P2-7.4-001..003 进 P2 台账
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（四项）；**通过后** roadmap 7.4 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 巡检口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 巡检口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码（注：Phase 1 对三扩展的扫描为结构巡检证据用途，非豁免口径）
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建。
 
-- [ ] 报告落盘且 gated 复核+增量面+三扩展全覆盖
-- [ ] 每条发现双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.4 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 gated 复核+增量面+三扩展全覆盖
+- [x] 每条发现双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.4 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -118,14 +118,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.4 收口——gated 三点核对登记完备（张力注记归 invariant-loop 维护），Phase 4 successor 验证 PASS，发现 6 条零翻案（终裁 P0×0/P1×3/P2×3），三新扩展 hollow 全 EXIT=0 零缺陷。独立 closure audit（agent_69c001b7）**一次 PASS 四项全过**（SHA 亲手重放 MATCH+Protected Area 合规零实施实证），3 Minor 不阻塞（P2 台账合并行先例/triage 表 _tmp 留痕/时态表述）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_69c001b7-7206-4f1a-9412-2124d19e5e79（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告齐备；双锚亲证；复核 5 条 Minor 全部吸收进报告；冻结协议附录在案
+  - 核验 B 计数对应 PASS（亲手重算）：SHA 亲手重放 MATCH；6 提交全 REACHABLE+审计冻结后零漂移；发现 6=3+3；报告=index=P1 汇总 3 行=P2 台账（合并行，finding 级一一对应）
+  - 核验 C 引用路径真实性 PASS：4/4 抽验命中（CodeIndexService 硬编码/eval import 未用/plan 31 @Disabled 矛盾在盘/pom 三扩展注册）+3/3 修复方向一致+Phase 4 双锚顺带复核
+  - 核验 D 流程状态 PASS：roadmap 翻 done 前 todo；**Protected Area 合规**（@Auth 零实施，冻结后 3 提交全 ai-dev/_tmp 面零产品代码）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2360-full-code-review-7.4-nop-code-gated-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项无新增产品代码（三扩展扫描为结构巡检证据用途）
+  - Deferred 项分类检查：无 deferred 项；P2×3 走 P2 裁决例外台账（roadmap 规则 #3 通道）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-7.4-001..003 → R1.0；P2-7.4-001..003 → R1.0 裁决（P2-7.4-003 流程缺陷族建议统一裁定）；Phase 9 @Auth 实施归 successor plan（人工确认后）；ar-status-matrix stale 行归 invariant-loop 维护——无本 plan 自有剩余工作
