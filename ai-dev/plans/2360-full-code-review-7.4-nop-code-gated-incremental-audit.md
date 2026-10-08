@@ -17,7 +17,7 @@
 ## Current Baseline
 
 - invariant-loop Cycle 1 关闭（稳态暂停）；Phase 9 @Auth gated 待人工确认（successor path 已登记）；Phase 4 cascadeDelete successor 已落地。
-- 5.3 已登记 nop-code 版本漂移 P2；6.7 已标定 nop-code 5 条 P1（AF 2/live 3→P1×2/P2×1——见 index）。
+- 5.3 已登记 nop-code 版本漂移 P2（P2-5.3-002）；6.7 已标定 nop-code 5 条 P1（AF 1〔validateLocalPath，锚 0a5ac880cf/890159ce66〕/live P1×3=P1-6.7-009/010/011 open〔index :160-162〕+P2-6.7-004 partially-fixed 残余——聚焦复核 M1 勘正，与撞车面注记对齐）。
 - 绿色基线：编制期全仓 BUILD SUCCESS；工作树在前序收口 commit 后干净。
 
 ## Goals
