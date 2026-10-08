@@ -75,7 +75,7 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 - **后台刷新（扫描/执行分离）**：懒启动单线程 daemon 调度器（fixed-delay 不重叠扫描）+ 大小 = `refreshMaxConcurrency` 的 worker 池承接刷新 job——delegate 调用并发度真实 >1 且以池大小为硬上界。**刷新失败语义**：保留旧值 + WARN + 下轮重试（TTL 到期回落同步重查为自愈出口；移除条目会把 DB 抖动转化为同步查库风暴，已拒绝）。刷新续期 loadTime（刷新过的条目按新加载时间参与淘汰排序）。
 - **失效策略**：TTL（age > `ttlMs` 访问时判 miss）+ `maxEntries` 最旧加载条目淘汰（可观测 victim：顺序加载 maxEntries+1 key → 最早加载者被逐出重委派）。
 - **序列化边界**：cache/pool/scheduler 全 transient——反序列化后由同步 lookup 首次调用懒重建（线程安全防御）。
-- **close 契约**：幂等（重复调用安全）；close 后 lookup typed 拒绝（`ERR_STREAM_INVALID_STATE`）而非静默回落 DB 查询。**生产调用落点** = 宿主函数 close() override（WI17 lookup SQL 接线时落地）或 bean destroy-method——本类只提供能力。
+- **close 契约**：幂等（重复调用安全）；close 后 lookup typed 拒绝（`ERR_STREAM_INVALID_STATE`）而非静默回落 DB 查询。**生产调用落点** = 宿主函数 close() override——WI17 已在 `DimLookupEnrichFunction` 样例接线（per-key ValueState 快路径 + 本物化层生命周期，close 后 cache-miss lookup typed 拒绝，见 TestE2EDimLookupWithCheckpoint.closePropagatesToCachingLayerAndPostCloseMissFailsTyped）——或 bean destroy-method；本类只提供能力。
 - **delegate 线程安全契约**：刷新池与任务线程会并发调用 delegate 的 lookup——既有只在任务线程调用的适配器接入本层前须确认并发安全。
 - 配置：`ttlMs` / `refreshIntervalMs` / `refreshMaxConcurrency`（≥1）/ `maxEntries`（≥1），负值/越下界 typed 拒绝。
 - 测试锚点：`TestCachingTableLookup`（9 用例：TTL/后台刷新/**并发双断言 ≥2 与 ≤池上界**/close 幂等+typed/淘汰 victim/null 防穿透/配置校验/序列化懒重建/刷新失败保留旧值）。

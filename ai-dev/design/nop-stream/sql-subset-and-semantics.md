@@ -83,7 +83,7 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 | 3 | retract / CDC 全链路（D1=(a) 终值语义降级） | 模型语义标注 last-value-wins，非 append-only 非 retract；`<reduce>` 逐条 emit 当前归约值 | sql-subset-and-semantics §1；StreamReduceOperator |
 | 4 | Flink SQL 方言兼容 | 非目标（roadmap Non-Goals），编译器不解析 Flink 方言 | roadmap Purpose |
 | 5 | DATE / TIMESTAMP / DECIMAL 列绑定（D7） | 九受管类型闭集严格解析，集合外类型名 `nop.err.stream.invalid-arg` | StreamSchemaRegistry.resolveManagedType；TestStreamSchemaConsumer |
-| 6 | DISTINCT 聚合 | `StreamSqlAggregation.withDistinct(true).create` 抛 `nop.err.stream.invalid-arg` | TestStreamSqlAggregations.distinctFailsFast |
+| 6 | ~~DISTINCT 聚合~~（**WI17 supersede，2026-10-08**：DISTINCT 聚合已支持——`DistinctAggregateWrapper` 按求值后参数值去重，merge 重放对侧未见过的新值保证恰一次计数；restore 经 `SqlAccShapeUtil` 形状归一化。仍排除：SELECT DISTINCT 非聚合 dedup、UNION DISTINCT） | 原 `withDistinct(true).create` fail-fast 钉码已移除 | TestStreamSqlAggregations.distinctFiltersDuplicates / distinctMergeReplaysOnlyUnseenValues / distinctCompositeAccumulatorSurvivesSnapshotCopyAndContinues、TestStreamSqlCompiler.distinctAggregateShape |
 | 7 | 标量子集外表达式（正则函数调用 / CASE / CAST / IN 子查询 / 参数标记 / null AST） | StreamSqlExprCompiler 分派默认分支抛 `nop.err.stream.invalid-arg`（含 AST 节点类型） | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode |
 | 8 | FULL 窗口 join（窗口补齐语义） | join 声明面校验：窗口 join 的 joinType 限 INNER/LEFT，`nop.err.stream.invalid-arg`（FULL 非 window 补齐属 WI13 评估项，非窗口 FULL join 不受限） | TestParameterizedJoinModel.fullWindowJoinFailsFast |
 | 9 | CEP 级复杂编排 | 不在本 roadmap（productization roadmap 边界） | roadmap Rules |
@@ -94,7 +94,8 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 |---|---|---|
 | SELECT 投影 | WI9 标量子集：列引用（含限定名）/字面量/算术（+ - * / %，除法恒 double）/比较/AND-OR-NOT/IS NULL/BETWEEN/IN 值列表 | StreamSqlExprCompiler；TestStreamSqlExprCompiler |
 | WHERE | 既有 filter 通路（xpl-fn 内联）+ WI9 编译器形态（同标量子集） | stream.xdef filter；WI9 |
-| 聚合 | sum/count/avg/min/max 五 id（与 BaseRule.g4 五关键字对齐）；COUNT(*) 无参形态；DISTINCT 排除（4a#6） | StreamSqlAggregations.builtinIds 钉子 |
+| 聚合 | sum/count/avg/min/max 五 id（与 BaseRule.g4 五关键字对齐）；COUNT(*) 无参形态；DISTINCT 聚合支持（WI17 supersede 4a#6——参数值域去重，COUNT(*) DISTINCT 以整记录为去重域）；精确去重的内存代价 = 每组去重值数量（窗口聚合随窗清除，持续聚合随作业生命周期） | StreamSqlAggregations.builtinIds 钉子；DistinctAggregateWrapper |
+| HAVING | GROUP BY + 聚合路径编译为 aggregate 后 filter（windowed + continuous 两路径，AggregateRef 解析 `event[N]` 槽位）；canonical 形态（聚合仅出现在 HAVING 不在 SELECT）支持；无 GROUP BY 的 HAVING 与 join + HAVING typed 拒绝；全局聚合 + HAVING 维持排除 | StreamSqlCompiler.insertHavingFilter；TestStreamSqlCompiler.havingFilterShapeWindowed / havingOnlyAggregateCanonicalShape / havingOnJoinFailsFast / havingWithoutGroupByFailsFast |
 | GROUP BY | keyBy（keyExpr）+ 窗口聚合（WI8c aggregatorRef）或持续聚合（keyBy + reduce，D1=(a) last-value-wins 终值语义——非 append-only 非 retract，中间归约值逐条 emit；标注见 StreamReduceOperator/AdvancedTransforms.buildReduce javadoc） | stream.xdef；TestContinuousGroupBy |
 | 流时间窗口 | TUMBLE(t, INTERVAL) 伪表函数——**grammar 已落地（WI17，2026-10-03）**：`sqlTumbleTableSource` 规则 ↔ `SqlTumbleTableSource` AST 类一一对应（语法 `TUMBLE(表名.时间列, INTERVAL n 单位)`，固定单位 SECOND/MINUTE/HOUR/DAY/WEEK + MICROSECOND 整毫秒限定，日历单位 fail-fast `nop.err.eql.invalid-interval-value`）；流目标映射：TUMBLE→keyBy+window(duration)+aggregate(复合聚合器)/无 TUMBLE 有 GROUP BY→keyBy+reduce 持续聚合（D1 last-value-wins）/全局聚合 fail-fast；ORM 通道 resolve fail-fast `nop.err.eql.table-source-not-resolved`（stream-only，T1 直通），toSQL 渲染归 WI20；RDBMS 目标 T1/T2/T3 三档（见 4c） | sql-subset-and-semantics §3；TestEqlTumbleGrammarParse；TestStreamSqlCompiler |
 | `<sql>` 声明面 | 顶层 `<sql sinkBean>` 元素（sql 文本 + 内嵌 schema + sinkBean）——模型级生成器而非 transform：builder.build() 前经 ISqlStreamCompiler SPI（flow 定义 / nop-stream-sql 实现）编译为完整流模型 XML 回读替换；`<sql>` 必须是模型唯一内容（并存 fail-fast）；无 provider fail-fast 点名 nop-stream-sql | stream.xdef；TestSqlModelExpansion（flow fake 展开/无 provider）；TestSqlModelDeclarationE2E（sql 真实接线反空壳） |
@@ -129,7 +130,7 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 
 | 码 | 触发 | 钉码测试 |
 |---|---|---|
-| nop.err.stream.invalid-arg | 标量子集外表达式（含 null AST）；聚合 fnId 未知；expr 编译失败；参数个数/类型不符；DISTINCT；schema 受管类型名未知；多入边 gate 配置冲突；无 resolver provider | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode、TestStreamSqlAggregations、TestStreamSchemaConsumer、TestMultiEdgeGateConfigConsistency、TestAdvancedTransforms.aggregateRefWithoutProviderFailsFastNamingDependency、TestStreamAggregatorFunctionResolver（unknownFnIdFailsFast/exprCompileFailureFailsFast/missingArgumentOnNonCountFailsFast/sumOfNonNumericColumnFailsFastWithSchema） |
+| nop.err.stream.invalid-arg | 标量子集外表达式（含 null AST）；聚合 fnId 未知；expr 编译失败；参数个数/类型不符；SELECT DISTINCT / UNION DISTINCT（WI17 supersede 后 DISTINCT 聚合不再触发本码）；HAVING 无 GROUP BY 或 join + HAVING（WI17 新增守卫）；schema 受管类型名未知；多入边 gate 配置冲突；无 resolver provider | TestStreamSqlExprCompiler.outOfSubsetFailsFastWithStreamSideCode、TestStreamSqlAggregations、TestStreamSchemaConsumer、TestMultiEdgeGateConfigConsistency、TestAdvancedTransforms.aggregateRefWithoutProviderFailsFastNamingDependency、TestStreamAggregatorFunctionResolver（unknownFnIdFailsFast/exprCompileFailureFailsFast/missingArgumentOnNonCountFailsFast/sumOfNonNumericColumnFailsFastWithSchema）、TestStreamSqlCompiler（distinctSelectFailsFast/unionDistinctFailsFastBagUnionOnly/havingOnJoinFailsFast/havingWithoutGroupByFailsFast） |
 
 **运行期（方言能力与执行）**
 
