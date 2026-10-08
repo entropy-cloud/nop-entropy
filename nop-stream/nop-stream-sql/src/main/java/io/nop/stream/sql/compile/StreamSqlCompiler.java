@@ -340,12 +340,25 @@ public final class StreamSqlCompiler {
                     idPrefix);
         }
 
-        // aggregation path (single table source only)
+        // aggregation path (single table source only). WI28: global aggregation
+        // (no GROUP BY) compiles through the continuous-aggregate path with a single
+        // synthetic key — keyBy(constant) routes every record to one reduce instance,
+        // which IS the single-parallelism reduction (D1 last-value-wins terminal
+        // semantics, emitted per record).
         if (select.getGroupBy() == null) {
-            throw CompileErrors.invalidArg("global aggregation (aggregate without GROUP BY) "
-                    + "is outside the stream SQL v1 subset");
+            if (window != null) {
+                // WI28 audit B1: window TVF + global aggregation stays a typed
+                // rejection (the HEAD behavior); falling through would NPE on the
+                // null GROUP BY inside buildGroupedAggregate.
+                throw CompileErrors.invalidArg("global aggregation over a window table "
+                        + "source requires GROUP BY (windowed global aggregation is "
+                        + "outside the stream SQL v1 subset)");
+            }
+            GroupedAggregate global = buildGroupedAggregate(select, scan, table, null, true);
+            return compileContinuousAggregate(select, (SqlSingleTableSource) table, filterId,
+                    global, ctx, transforms, edges, idPrefix);
         }
-        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, window);
+        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, window, false);
         return window != null
                 ? compileWindowedAggregate(select, window, filterId, grouped, ctx, transforms,
                         edges, idPrefix)
@@ -897,13 +910,23 @@ public final class StreamSqlCompiler {
     private static GroupedAggregate buildGroupedAggregate(SqlQuerySelect select,
                                                           AggregateScan scan,
                                                           SqlTableSource table,
-                                                          WindowSpec window) {
+                                                          WindowSpec window, boolean globalAgg) {
         GroupedAggregate grouped = new GroupedAggregate(scan);
+        // WI28: global aggregation — a single synthetic key (constant true) routes
+        // every record through one keyed reduce instance; HAVING stays excluded (§4b).
+        if (globalAgg) {
+            if (select.getHaving() != null) {
+                throw CompileErrors.invalidArg("HAVING over a global aggregation (no "
+                        + "GROUP BY) is outside the stream SQL v1 subset");
+            }
+            grouped.keySqlTexts.add("true");
+            grouped.keyXplExprs.add("return true;");
+        }
         SqlGroupBy groupBy = select.getGroupBy();
-        if (groupBy.getItems() == null || groupBy.getItems().isEmpty()) {
+        if (!globalAgg && (groupBy.getItems() == null || groupBy.getItems().isEmpty())) {
             throw CompileErrors.invalidArg("GROUP BY requires at least one key expression");
         }
-        for (SqlGroupByItem item : groupBy.getItems()) {
+        if (!globalAgg) for (SqlGroupByItem item : groupBy.getItems()) {
             String text = item.getExpr().toSqlString().trim();
             // WI26: window column naming contract holds in GROUP BY too (see the
             // aggregatedRowResolver counterpart)

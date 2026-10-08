@@ -347,8 +347,35 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void globalAggregationFailsFast() {
-        assertInvalidArg("SELECT sum(amount) AS t FROM orders");
+    public void globalAggregationCompilesWithSyntheticSingleKey() {
+        // WI28: global aggregation (no GROUP BY) — single synthetic key routes every
+        // record through one keyed reduce instance (single-parallelism reduction).
+        XNode n = compileNode("SELECT sum(amount) AS t FROM orders");
+        XNode keyBy = transform(n, "skey");
+        assertEquals("event[0][0]", keyBy.attrText("keyExpr"),
+                "the synthetic single key is the accumulator row head");
+        // continuous path embeds the spec in the begin/merge/toRow xpl (no registry node)
+        String beginBody = transform(n, "sbeg").childByTag("source").contentText();
+        assertTrue(beginBody.contains("SqlRowAggregateOps.begin")
+                        && beginBody.contains("\\\"fn\\\":\\\"sum\\\""),
+                () -> "begin body: " + beginBody);
+    }
+
+    @Test
+    public void globalAggregationWithHavingFailsFast() {
+        // §4b: 全局聚合 + HAVING 维持排除
+        assertInvalidArg("SELECT sum(amount) AS t FROM orders HAVING sum(amount) > 0");
+    }
+
+    @Test
+    public void windowedGlobalAggregationFailsFast() {
+        // WI28 audit B1: window TVF + global aggregation（无 GROUP BY）维持 typed 拒绝
+        // （修复前该输入在 buildGroupedAggregate 裸 NPE）
+        for (String fn : new String[]{"TUMBLE(orders.ts, INTERVAL 5 SECOND)",
+                "HOP(orders.ts, INTERVAL 2 SECOND, INTERVAL 4 SECOND)",
+                "SESSION(orders.ts, INTERVAL 5 SECOND)"}) {
+            assertInvalidArg("SELECT sum(amount) AS t FROM " + fn);
+        }
     }
 
     @Test
