@@ -481,4 +481,4 @@ Phase 1 和 Phase 4 可并行开发。Phase 3 依赖 Phase 2 完成。各 Phase 
 - [ ] 子 Actor 的权限派生是否复用 AgentModel 的 permissions 字段，还是需要独立的 permissions override？（倾向：复用 + override 合并）
 - [ ] 团队模式中的共享任务表，是用独立实体还是复用 nop-task 的 ITaskRuntime？（倾向：独立实体，更轻量）
 - [ ] RecoveryManager 的恢复粒度：是恢复到最近 ReAct 步骤，还是恢复到最近 LLM 调用？（倾向：最近 ReAct 步骤，工具调用结果可重放）
-- [ ] 多租户场景下，LLM API Key 是租户级还是全局级？（倾向：租户级，通过 `LlmModel` 的 Delta 定制实现）
+- [x] ~~多租户场景下，LLM API Key 是租户级还是全局级？~~（已裁定 2026-10-08：账号/凭证级——不做租户级隔离。模型/账号行经 `credentialId` 绑定凭证，可见性由凭证归属 scope=`system`\|`user`（团队共享/用户专属）+ 凭证级 RBAC 授权表达，与 nop-credential 二期裁定一致。远程平台目标形态下密钥进一步收敛到独立网关进程（服务进程零明文）。详见 nop-ai-agent-remote-service-platform.md §3.3）

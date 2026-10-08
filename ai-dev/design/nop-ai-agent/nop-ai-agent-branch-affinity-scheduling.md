@@ -1,6 +1,6 @@
 # Nop AI Agent 分支亲和调度、工作空间隔离与文件快照
 
-**日期**：2026-06-08（更新于 2026-06-08，审计修订 v2）
+**日期**：2026-06-08（更新于 2026-10-08：§5.8b 统一 git CLI 修订）
 **范围**：`nop-ai-agent` 调度模型、工作空间管理、子 Agent 隔离、文件快照
 **状态**：active
 **审计**：2026-06-08 三轮独立审计（JGit 可行性、交叉比对、Edge Case），交叉比对无异议，其余问题已修订
@@ -13,9 +13,9 @@
 2. **Agent 是分布式开发者**：多个 Agent 可操作同一项目的不同分支，提交时做冲突合并，与人类的 feature branch 工作流一致
 3. **双环境共存**：单个 Agent session 可同时操作 Java 和 Node.js 两种工具链（同项目前后端）
 4. **子 Agent 按需隔离**：默认共享父 Agent 工作目录；探索性任务可选择 git worktree 隔离，生命周期与任务绑定
-5. **独立外部 git 文件快照**：基于 JGit 的独立 git 目录（separated git dir）快照（零侵入、增量去重、选择性恢复），与项目 git 完全隔离
+5. **独立外部 git 文件快照**：基于系统 git CLI 的独立 git 目录（separated git dir）快照（零侵入、增量去重、选择性恢复），与项目 git 完全隔离
 6. **Worktree 用隔离，Snapshot 用保护**：两个机制解决不同问题——worktree 解决并行隔离，snapshot 解决 undo/回滚
-7. **混合实现策略**：Snapshot 用 JGit（纯 Java），Worktree 用 git CLI（JGit 不支持 worktree 操作）
+7. **统一 git CLI 实现**：Snapshot 与 Worktree 均通过系统 git CLI 实现，不引入 JGit 依赖（§5.8b 修订，2026-10-08）
 
 ---
 
@@ -191,15 +191,15 @@ workspace 探测
     └── exclude                  ← 从项目的 .gitignore 复制
 ```
 
-**实现方式**：基于 JGit（纯 Java git 实现），不依赖系统 git CLI。
+**实现方式**：基于系统 git CLI（ProcessBuilder），不引入 JGit 依赖（§5.8b）。
 
-**初始化方式**：使用 `Git.init().setGitDir(snapshotDir).setDirectory(workDir)` 创建 non-bare repo with separated git dir（不是 bare repo + worktree）。初始化时设置关键配置：`core.autocrlf=false`、`core.longpaths=true`、`core.symlinks=true`、`core.fsmonitor=false`。
+**初始化方式**：使用 `git init --separate-git-dir={snapshotDir} {workDir}` 创建 non-bare repo with separated git dir（不是 bare repo + worktree）。初始化时设置关键配置：`core.autocrlf=false`、`core.longpaths=true`、`core.symlinks=true`、`core.fsmonitor=false`。
 
-**Symlink 安全**：Snapshot 的 `git add` 操作必须**不跟随 symlink**（JGit `FollowSymlinks=false`），防止 symlink 的大目录（target/、node_modules/ 等）被 snapshot 跟踪导致体积暴涨和 restore 误破坏主工作目录文件。
+**Symlink 安全**：Snapshot 的 `git add` 操作必须**不跟随 symlink**（git 对 symlink 缺省只记录链接本身、不进入目标目录），防止 symlink 的大目录（target/、node_modules/ 等）被 snapshot 跟踪导致体积暴涨和 restore 误破坏主工作目录文件。
 
 #### 3.3.3 快照操作
 
-> 以下用 git CLI 语法描述概念性操作，实际通过 JGit API 实现。
+> 以下用 git CLI 语法描述操作，实际通过 git CLI（ProcessBuilder）执行（§5.8b）。
 
 | 操作 | 说明 |
 |------|------|
@@ -215,10 +215,10 @@ workspace 探测
 |------|------|------|
 | tree hash vs commit | **tree hash**（write-tree，无 commit） | opencode 验证：避免 commit 元数据开销，每次 track 只产生 tree + blob 对象 |
 | 存储位置 | `{data_dir}/ai-snapshot/{project_id}/{hash}/` | 独立于项目目录，不影响用户 git |
-| 文件大小限制 | 无限制（与 opencode 的 2MB 限制不同） | Nop 是企业平台，不应跳过大文件；JGit + 增量存储可控制体积 |
+| 文件大小限制 | 无限制（与 opencode 的 2MB 限制不同） | Nop 是企业平台，不应跳过大文件；git 对象库增量存储可控制体积 |
 | 并发控制 | 每个 snapshot 仓库一个 `ReentrantLock`（支持 tryLock 超时防死锁） | 防止并发 track/diff/restore 操作冲突 |
 | 排除规则 | 复用**当前工作目录**（主工作空间或 worktree）的 `.gitignore` | 尊重用户配置，不纳入 `target/`、`node_modules/` 等 |
-| Symlink 处理 | 不跟随 symlink（`FollowSymlinks=false`） | 避免 symlink 的大目录被跟踪导致体积暴涨 |
+| Symlink 处理 | 不跟随 symlink（git 缺省行为：只记录链接本身） | 避免 symlink 的大目录被跟踪导致体积暴涨 |
 | 快照触发时机 | 每次 agent turn 开始前自动 track | 与 opencode 一致，保证每步都有回滚点 |
 | 启动时清理 | 清理残留的 `index.lock` 文件 | 防止 JVM 崩溃后遗留的锁文件阻塞后续操作 |
 
@@ -234,7 +234,7 @@ workspace 探测
 | `snapshotStats` | JSON：文件数、变更文件列表、总大小 |
 | `createdAt` | 快照时间 |
 
-数据库记录用于 UI 展示和查询。实际文件内容存储在 JGit 对象库中，不在数据库中存 blob。
+数据库记录用于 UI 展示和查询。实际文件内容存储在快照仓库的 git 对象库中，不在数据库中存 blob。
 
 ### 3.4 子 Agent 隔离模型
 
@@ -272,7 +272,7 @@ workspace 探测
 
 #### 3.4.3 Worktree 创建流程
 
-> **实现方式**：worktree 的创建/删除/列表操作通过 `ProcessBuilder` 调用系统 `git` CLI 实现（JGit 不支持 `git worktree add/remove`，见 §5.8a）。Snapshot 操作仍使用 JGit。
+> **实现方式**：worktree 的创建/删除/列表操作通过 `ProcessBuilder` 调用系统 `git` CLI 实现（JGit 不支持 `git worktree add/remove`，见 §5.8a）。Snapshot 操作同样通过 git CLI 实现（§5.8b 修订）。
 
 > 以下用 git CLI 语法描述概念性操作。
 
@@ -300,7 +300,7 @@ workspace 探测
 ├── 5. Symlink 大目录
 │   ├── 检测源目录中的 {target, node_modules, .m2, .gradle, .venv, __pycache__}
 │   ├── Linux/macOS：ln -s {source}/{dir} {worktree_path}/{dir}
-│   ├── Windows：mklink /J（junction）替代 symlink（JGit 默认 core.symlinks=false）
+│   ├── Windows：mklink /J（junction）替代 symlink
 │   └── symlink 在 worktree 删除前先清理
 │
 ├── 6. 环境适配
@@ -543,7 +543,7 @@ Agent 不可访问以下路径（不可被 Delta 定制覆盖）：
 | `call-agent` 增加 `workspace` 参数 | `shared`（默认）或 `worktree`。shared 模式下子 Agent 共享父 Agent 的 `FileOperationLock` |
 | 工具执行增加工作空间上下文 | 每个工具调用可感知当前工作目录 |
 | 环境探测作为 session 初始化步骤 | 自动检测 Java/Node.js 工具链 |
-| **新增 `IFileSnapshotService`** | 独立外部 git 快照服务，基于 **JGit**（纯 Java）。track/diff/restore/revert 操作。每次 agent turn 自动 track。不跟随 symlink |
+| **新增 `IFileSnapshotService`** | 独立外部 git 快照服务，基于**系统 git CLI**（§5.8b）。track/diff/restore/revert 操作。每次 agent turn 自动 track。不跟随 symlink |
 | **新增快照元数据存储** | `ai_session_message` 增加 `type=snapshot` 记录 |
 
 ### 4.3 Layer 3 (Reliability)
@@ -634,7 +634,7 @@ Agent 不可访问以下路径（不可被 Delta 定制覆盖）：
 - Nop 的 worktree 是自动管理的，需要更好的可追溯性
 - OpenHarness 也选择了命名分支（`-B worktree-{slug}`），验证了此方案的可行性
 
-### 5.8 拒绝：全部依赖系统 git CLI
+### 5.8 拒绝：全部依赖系统 git CLI（已被 §5.8b 撤销）
 
 **方案**：所有 git 操作（快照 + worktree）都通过 `ProcessBuilder` 调用系统 `git` 命令实现。
 
@@ -660,7 +660,31 @@ Agent 不可访问以下路径（不可被 Delta 定制覆盖）：
 - opencode（TypeScript）：全部使用 git CLI
 - cline（TypeScript）：全部使用 git CLI（simple-git 库封装）
 - OpenHarness（Python）：全部使用 git CLI
-- **Nop（Java）**：Snapshot 用 JGit，Worktree 用 git CLI ← 最优：核心快照不依赖外部工具
+- **Nop（Java）**：Snapshot 用 JGit，Worktree 用 git CLI ← 最优：核心快照不依赖外部工具（该结论已被 §5.8b 撤销）
+
+### 5.8b 采用：统一 git CLI，不引入 JGit（修订，2026-10-08）
+
+**决策修订**：撤销 §5.8 的拒绝结论与 §5.8a 的混合策略。Snapshot 与 Worktree **全部**通过系统 git CLI（ProcessBuilder）实现，`nop-ai` 模块组不引入 `org.eclipse.jgit` 依赖。
+
+| 子系统 | 实现方式 | 理由 |
+|--------|---------|------|
+| `IFileSnapshotService`（快照） | **git CLI**（ProcessBuilder） | 快照在平台场景是低频操作（agent turn 边界 / session 起止），进程 spawn 开销（毫秒级）相对 LLM 调用（秒到分钟级）可忽略 |
+| `IWorktreeManager`（worktree 生命周期） | **git CLI**（ProcessBuilder） | 不变（§5.8a：JGit 不支持 worktree 操作） |
+
+**理由**：
+1. worktree 是本设计的核心原语且 JGit 不支持——git CLI 本来就是必选依赖，混合策略下「纯 Java 快照」的收益只剩节省少量进程 spawn；
+2. 统一 CLI 消除 JGit 与系统 git 的行为差异风险（symlink 语义、配置继承、传输协议特性均以系统 git 为准），只维护一条 git 抽象与一套锁约定；
+3. 依赖卫生：少一个约 4MB 依赖及其对象图的堆占用——这是次要因素（JGit 内存压力主要在大仓库对象图 / pack 扫描，对快照级小操作影响有限），不作为主要论据；
+4. JGit 的真正优势场景是进程内高频 status/diff 轮询（编辑器集成类需求），本平台不存在该场景。
+
+**工程约束**（CLI 实现必须满足，完整清单见 nop-ai-agent-build-scheduling.md §3.5）：
+- 机器可读输出：`--porcelain` / `-z`；locale 固定（`LC_ALL=C`）
+- 环境清洗：子进程环境显式剔除 `GIT_ASKPASS` / `GIT_SSH_COMMAND` / `GIT_CONFIG_*` 等宿主凭证与代理配置——认证由平台注入的凭据通道提供
+- 超时 + 进程树销毁；`index.lock` 冲突按 §3.4.8 锁约定重试
+- git ≥ 2.17 预检要求不变（§5.8a 代价条款继续有效）
+- 沙箱内 git 操作按部署策略收敛 `safe.directory` 等安全配置，不全局放开
+
+**与其他框架的对比更新**：opencode / cline / OpenHarness 全部使用 git CLI；Nop 加入同列——快照与 worktree 统一 CLI，部署前提同为预装系统 git。
 
 ---
 
@@ -712,7 +736,7 @@ Agent 不可访问以下路径（不可被 Delta 定制覆盖）：
 |------|------|
 | `sessionId` | 所属 session |
 | `type` | `snapshot` |
-| `snapshotHash` | JGit tree hash（快照 ID） |
+| `snapshotHash` | git tree hash（快照 ID，内容寻址，与实现方式无关） |
 | `snapshotStats` | JSON：`{fileCount, changedFiles[], totalSize}` |
 | `createdAt` | 快照时间 |
 
