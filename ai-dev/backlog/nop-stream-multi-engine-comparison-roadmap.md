@@ -1,6 +1,6 @@
 # nop-stream 五引擎对比缺口收敛 Roadmap（Flink / TDengine / Hazelcast / SeaTunnel 对标）
 
-> Last updated: 2026-10-07（v3：WI0 裁定门完成——P0×6/P1×9/P2×5 逐条三态 + 不跟进三类清单写死 + 六项下游范围裁定（R1 Kafka EO 边界/R2 B 层例外随 WI2 迁移撤销/R3 三 legacy source 全迁 FLIP-27/R4 WI7 落 StreamRecord 引擎级可选变更元数据/R5 WI11 复用既有 lookup 路径+本地物化+后台刷新、vision Non-Goal 零解除/R6 WI15 cdc-design defer 维持、本周期显式延期），裁定全文见 `ai-dev/design/nop-stream/multi-engine-gap-adjudication.md`；vision §七裁决记录新增 #WI0 条目（边界零变更确认）。v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
+> Last updated: 2026-10-08（v4 收口：WI0-WI19 全部闭环——WI15 显式延期（R6）、WI12 双裁定（水位节流 NO-GO / 滑窗 frame/deduct GO 登记 Follow-up）、WI2 三源工厂面迁 FLIP-27 + B 层例外撤销、WI19 组合 E2E 三链路真跑绿 + F 表销号 + 独立收口审计（含 WI18 补 audit）。**roadmap 宣告收口**：勾选项 18 项、显式延期 1 项（WI15）、Follow-up Backlog 登记为合法非分母状态。v3：WI0 裁定门完成——P0×6/P1×9/P2×5 逐条三态 + 不跟进三类清单写死 + 六项下游范围裁定（R1 Kafka EO 边界/R2 B 层例外随 WI2 迁移撤销/R3 三 legacy source 全迁 FLIP-27/R4 WI7 落 StreamRecord 引擎级可选变更元数据/R5 WI11 复用既有 lookup 路径+本地物化+后台刷新、vision Non-Goal 零解除/R6 WI15 cdc-design defer 维持、本周期显式延期），裁定全文见 `ai-dev/design/nop-stream/multi-engine-gap-adjudication.md`；vision §七裁决记录新增 #WI0 条目（边界零变更确认）。v1：立项。基于当日五方对比分析核定 P0/P1/P2 缺口与不跟进清单，吸收 `2026-10-02` SeaTunnel gap analysis 的 G1-G5 分级遗留，按价值/成本与依赖深度组织为开发序列。v2 同日：首轮独立审查 1 Blocker + 8 Major 全部修复——vision 引用改真实锚点、WI0 增 owner 人审门、WI15 挂 cdc-design defer 撤销条件、lookup join 改增量口径、F 表/H 编号去冲突、WI8 拆分、依赖图与 deps 对齐）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-06a-nop-stream-vs-flink-tdengine-hazelcast-seatunnel-comparison.md`（缺口核定 primary；P0/P1/P2 分级与不跟进清单）
@@ -83,7 +83,7 @@
 
 ### M6 — 收口
 
-- [ ] WI19 roadmap 收口：组合 E2E（Kafka exactly-once + 窗口事件 sideOutput；lookup 异步链路如 WI11 已落地则纳入）、docs-for-ai 全面一致性核对（`docs-for-ai/03-modules/nop-stream-connectors.md` 能力矩阵 / `docs-for-ai/03-modules/nop-stream-user-guide.md` / `docs-for-ai/03-modules/nop-stream.md` 指标表——吸收 F-30/F-33/F-34/F-36 行并回写 productization F 表销号）、不跟进三类清单与 vision/D-GAP/cdc-design 裁定一致性终核、独立 closure audit（Deliverable: 收口证据 + 文档核对 + F 表销号；deps: WI0 + WI1 + WI3 + WI6 + WI8 + WI16（其余 WI 完成或显式按需/延期裁定）；Item Type: Proof）
+- [x] WI19 roadmap 收口：组合 E2E（Kafka exactly-once + 窗口事件 sideOutput；lookup 异步链路如 WI11 已落地则纳入）、docs-for-ai 全面一致性核对（`docs-for-ai/03-modules/nop-stream-connectors.md` 能力矩阵 / `docs-for-ai/03-modules/nop-stream-user-guide.md` / `docs-for-ai/03-modules/nop-stream.md` 指标表——吸收 F-30/F-33/F-34/F-36 行并回写 productization F 表销号）、不跟进三类清单与 vision/D-GAP/cdc-design 裁定一致性终核、独立 closure audit（Deliverable: 收口证据 + 文档核对 + F 表销号；deps: WI0 + WI1 + WI3 + WI6 + WI8 + WI16（其余 WI 完成或显式按需/延期裁定）；Item Type: Proof）
 
 ## Follow-up Backlog
 

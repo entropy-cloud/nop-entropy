@@ -1,6 +1,6 @@
 # 2341 WI18 Avro/Schema Registry 格式层（Confluent wire format，registry 外置）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI18（M5）+ 裁定 §一 P2 #17（format 层接入外部 Schema Registry + Avro 序列化，不内置 registry 服务）
 > Related: plan 2335（connector-kafka 的 Function<byte[],T>/Function<T,byte[]> 注入面）
@@ -79,13 +79,13 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] wire format 往返 + 演进解析全绿
-- [x] `./mvnw test -pl nop-stream/nop-stream-format-avro -am` 全绿（6/6）
+- [x] wire format 往返 + 演进解析全绿（补审计复跑 6/6）
+- [x] `./mvnw test -pl nop-stream/nop-stream-format-avro -am` 全绿（6/6；avro pin 后复跑绿）
 - [x] **Anti-Hollow Check**：registry REST 调用被 fake server 真实消费（非 stub 内存短路）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-format-avro --severity high` 退出码 0
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-format-avro --severity high` 退出码 0（补审计复跑 0 findings）
+- [x] 独立子 agent closure-audit 已完成并记录证据（agent_57190ab9，2026-10-08 补做——见 Closure 节修订）
 
 ## Deferred But Adjudicated
 
@@ -97,16 +97,18 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- （closure 时填写）
+- 同 subject 多 schema 演进时 encoder 侧 schemaId 缓存不自动拾取新版本（补审计 M3 已知边界，README/docs 声明在位）——真实多 schema 写入诉求出现时升级缓存策略
+- kafka-clients provided/optional 依赖未引入（补审计 M2 无害偏差——工厂面零 kafka 类型）
 
 ## Closure
 
-Status Note: WI18 Avro/Schema Registry 格式层落地：新模块 nop-stream-format-avro（avro 1.11.3 版本单点；零 Confluent 依赖——JDK HttpClient 最小 REST 客户端 + Confluent wire format codec）；encode→decode round trip / schema 演进 v1→v2 backward-compat / schemaId 缓存 / magic byte 与 registry 不可达 typed 拒绝 / 工厂注入面全部测试覆盖（6/6 绿）。
+Status Note: WI18 Avro/Schema Registry 格式层落地：新模块 nop-stream-format-avro（avro 版本单点在 nop-dependencies `avro.version`=1.12.1——原计划 1.11.3，补审计 B2 修正为实测基线 pin；零 Confluent 依赖——JDK HttpClient 最小 REST 客户端 + Confluent wire format codec）；encode→decode round trip / schema 演进 v1→v2 backward-compat / schemaId 缓存 / magic byte 与 registry 不可达 typed 拒绝 / 工厂注入面全部测试覆盖（6/6 绿）。**2026-10-08 补审计修订**（agent_57190ab9 发现 B1/B2）：B2 版本 pin 原落在错误工作区未提交——本分支补 pin（1.12.1 实测基线）；B1 格式层文档补落 connectors.md「格式层」节。
 Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 独立 closure audit 由后续独立会话复核（本轮以 6/6 测试全绿 + wire format 断言 + typed 错误面 + E2E 工厂注入面测试交付）
+- Reviewer / Agent: 独立子 agent（fresh session，task agent_57190ab9-bbfa-452f-836c-2a88aa38c2d8，2026-10-08 补做）
+- 补审计发现与处置：B1 格式层文档未落 docs-for-ai → connectors.md「格式层（Avro / Schema Registry，WI18）」节补齐；B2 avro 版本单点 pin 落错工作区且宣称 1.11.3 失实 → 本分支 nop-dependencies 补 pin（avro.version=1.12.1 实测基线，javadoc 注明升版核对项）；M1 先勾后做流程瑕疵 → 本节回写理顺；M2 kafka-clients 依赖偏差 → 无害偏差记 Follow-up；M3 同 subject 换 schema 的 schemaId 缓存边界 → README/docs 已知边界声明 + Follow-up
 - Evidence:
   - wire format PASS：TestAvroWireFormat 6/6（round trip / 演进 / 缓存 / typed 错误 / 工厂）
   - build PASS：`./mvnw test -pl nop-stream/nop-stream-format-avro -am` BUILD SUCCESS

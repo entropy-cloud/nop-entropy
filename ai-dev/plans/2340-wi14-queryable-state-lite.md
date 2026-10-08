@@ -1,6 +1,6 @@
 # 2340 WI14 可查询状态轻量版（TM 进程内 keyed state 只读 REST + 窗口活跃累积值导出）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI14（M3）+ 裁定 §一 P1 #14（结果即状态官方模式 + ops REST keyed state 只读接口；不追通用 queryable state）
 > Related: plan 2337（ops metrics 暴露先例）；`nop-stream.md` 观测节
@@ -9,7 +9,7 @@
 
 交付可查询状态轻量版：TM 进程内 keyed state 只读 REST 端点（枚举键 + 按 key 取值 + 活跃窗口累积值导出），不加写回、不做通用 queryable state 注册表、不新增 JC→TM read-RPC（跨进程同步读会破坏既有 one-way RPC 超时/重试契约——TM 自托管 ops server 是既有能力）。
 
-## Current Baseline（2026-10-08 研究核实 + 方案钉定）
+## Current Baseline
 
 - **状态访问面**：`IKeyedStateBackend`（setCurrentKey/setCurrentNamespace/snapshotState/restoreState）；`MemoryKeyedStateBackend.snapshotState()` 产出 `StateSnapshot`（`stateData: Map<String,Object>`）——**算子外零现有暴露**（grep queryable 仅注释）。
 - **窗口结果**：WindowOperator 内 keyed state（fallback `window-contents` MapState，WINDOW_VALUE_KEY=`__window_value__`；namespace 形如 `TW:start,end`）；FIRE 后 clear——活跃窗口累积值从 `activeWindows` registry 可枚举（paneKey = key + \0 + namespace）。
@@ -77,15 +77,17 @@ Exit Criteria:
 - [x] 独立 closure audit 通过且证据写入本 plan Closure 节
 - [x] roadmap WI14 已勾选、提交完成
 
+
+> **2026-10-08 WI19 终核回填说明**：本 plan 实施与独立 closure audit（APPROVED agent_c0576a62）均已完成，但 Plan Status 与 Closure Gates 未回写（WI19 终核 M2 发现）。剩余项按已完成交付回填勾选。
 ## Closure Gates
 
-- [ ] 访问器 + 端点落地且被 E2E 真实消费
+- [x] 访问器 + 端点落地且被 E2E 真实消费
 - [x] `./mvnw test -pl nop-stream/nop-stream-runtime -am` 全绿（全量链 EXIT=0，既有 flake 隔离复跑排除）
 - [x] **Anti-Hollow Check**：无 keyed backend 返回空快照语义被测试钉定
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-runtime --severity high` 退出码 0
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream/nop-stream-runtime --severity high` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
