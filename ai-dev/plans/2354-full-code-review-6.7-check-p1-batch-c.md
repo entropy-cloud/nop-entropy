@@ -1,6 +1,6 @@
 # 2354 full-code-review 6.7 check 系列 P1 抽样标定 c（ai/stream/code/graph/credential/datav/metadata）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.7（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: 批次权威定义=矩阵 §6：批次 c 成员 = **nop-ai、nop-stream、nop-code、nop-graph、nop-credential、nop-datav、nop-metadata**（metadata 唯一归属批次 c）。同族先例=plan 2352/2353（修复后形态照抄：独立枚举 diff/维度派生/冻结三要素/dup 方向/符号匹配键/分支口径/强制实跑/处置面实测先验）。
@@ -90,26 +90,26 @@ Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - [x] 编制 `6.7-check-p1-batch-c.md`（附录记冻结协议 SHA-256）；index 登记 6.7 行（替换占位行）+ 仍 live 进 P1 汇总或 P2 台账（P1 汇总 11 行 + P2 台账 8 行）
 - [x] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——**抽样覆盖率核验**）；**通过后** roadmap 6.7 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——**抽样覆盖率核验**）；**通过后** roadmap 6.7 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划；live-ness 验证含只读测试实跑（处置指名测试强制），免除全量构建。
 
-- [ ] 报告落盘且批次 c 对账 + ≥50% 抽样标定全覆盖
-- [ ] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；撞车全量比对留痕
-- [ ] index 计数与报告标定台账一一对应；仍 live 清单完整移交
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.7 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且批次 c 对账 + ≥50% 抽样标定全覆盖
+- [x] 每条标定双锚证据可复现；四态归属依据 roadmap 定义；撞车全量比对留痕
+- [x] index 计数与报告标定台账一一对应；仍 live 清单完整移交
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 6.7 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -121,14 +121,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 6.7 收口——批次 c 46 条 P1 对账闭合 + 冻结抽样 33/46=71.7%（净池 73.3%）双下限达标，canonical **AF 13 / dup 1 / still-live 19 / FP 0** 零事实翻案；复核终裁 P1×11（P1-6.7-001..011 进 R1.0）+ P2×8（P2-6.7-001..008 进 P2 裁决台账）；承接 1 条（P1-check-mcc-172）维持 3.10 终判。独立 closure audit（agent_01452dcb）**一次 PASS 四项全过**：证据完整性/计数对应（SHA-256 重放+canonical 复算+index 三处对应）/引用路径真实性（16 锚点亲读全在位）/严重性标定（3 条降档论证抽验全部成立）；3 Minor 形式差（报告无显式「驳回台账」标题〔FP=0 空台账实质成立〕/冻结 SHA 记于头部与 §五 而非独立附录〔内容在场〕/个别锚点 1-2 行级偏移〔符号级准确〕）——均不阻塞。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_01452dcb-03ed-4911-9c45-62e1d418d1b3（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告六节齐备；三份标定产物+复核产物与报告引用一致；四态双锚（亲读+实跑 A 11 轮/B 292/292/C 3 批全绿）逐条在位；AF 13 条 plan+commit 双锚
+  - 核验 B 计数对应 PASS（亲手复算）：冻结表 wc=34（表头+33）、SHA-256 重放 `6b175321…bc30b6` 四处一致；canonical 13+1+19+0=33 按产物亲数；46=33+1+12 账平；未抽样 12/12 全「其他」类亲手枚举吻合；报告 0/11/8/0=index 6.7 行=P1 汇总恰 11 行=P2 台账恰 8 行一一对应；11 P1/8 P2 清单与复核 §5 逐条一致；dup 唯一条=ai-rest#P1-3→6.4 #5
+  - 核验 C 引用路径真实性 PASS：16 锚点亲读/grep 全在位（AnthropicDialect :750/TimerServiceManager :45-63/SourceReaderOperator :399/CodeIndexService :2366 对照 :2385/PageRank :65/Bfs :128 等）；AF 提交 8/8 merge-base ancestor YES；修复方向抽 4 条与产物建议逐字一致
+  - 核验 D 严重性标定 PASS：3 条降档抽验（执行桩恒抛亲读/未接线 grep 实证/均匀权重唯一喂入亲读）论证全部成立；零 P0 遗漏嫌疑；报告 §五与复核结论一致
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2354-full-code-review-6.7-check-p1-batch-c.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；8 条 P2 系 Phase 2 复核终裁（终裁权范围内份量裁定，附逐条理由+升级触发登记），走 P2 裁决例外台账（roadmap 规则 #3 允许通道，非静默降级）；未抽样余量 12 条为抽样制设计内残留（roadmap 6.5–6.8「每批 ≥50%」约定内）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-6.7-001..011 + P2-6.7-001..008 修复归 R1.0 裁决（P1 汇总/P2 台账承载）；dup 归并目标已闭；CL-1/CL-2/CL-3 各有去向登记——无本 plan 自有剩余工作
