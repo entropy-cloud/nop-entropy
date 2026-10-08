@@ -63,18 +63,18 @@
 - [x] WI8 窗口事件化与兜底出数（单一连贯面，子交付物：a. OPEN/CLOSE/IDLE/RESUME 窗口事件模型与外发；b. XDSL sideOutput 图级路由打通；c. maxDelay 超时强制关闭出数）（Deliverable: 三子项 + 事件时序测试；deps: 无；Item Type: Feature）
 - [x] WI9 SUSPEND/停机语义显式化：SUSPEND 期间后续数据处理选项显式化（补算 vs 跳过，IGNORE UNTREATED 类契约）并落 owner doc（Deliverable: 语义契约 + 状态机测试 + 文档；deps: 无；Item Type: Feature）
 - [x] WI10 范围重算与回补：时间范围 RECALCULATE 重放 + FILL_HISTORY 回补作业形态（复用 savepoint/restore 与 upsert sink 幂等）（Deliverable: 重算路径 E2E + 作业形态文档；deps: 无；Item Type: Feature）
-- [ ] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
+- [x] WI11 维表 lookup 异步增量：基线 = sql roadmap WI14 已 done（`ITableLookup` 桥接 + `IJdbcTemplate` 适配 + DSL 全链 + restore 缓存命中证据）；本 WI 只交付 delta——有界并发异步模式（范围以 WI0 裁定为界）+ 物化刷新策略（TTL/失效；含对比分析 P2-18 维表本地物化/lookup 缓存分层）+ 是否新增专用算子 vs 复用既有路径的形态裁定（Deliverable: 异步模式 + 刷新策略 + 形态裁定记录；deps: WI0；Item Type: Feature + Decision）
 - [ ] WI12 性能组（JMH 基准先行，未达标即 exit 不实施）：水位 punctuation 节流间隔（关联 r5-successors AR-06 xpl watermark 生成器恒空——AR-06 由 r5 登记承载，本 WI 节流配置不阻塞其核销）+ 滑动窗口 frame/deduct 增量维护（或两阶段聚合）（Deliverable: 基准报告 + 达标项实现 + 收益数据；deps: 无；Item Type: Feature + Proof）
 
 ### M3 — 数据面与生产化外围
 
-- [ ] WI13 checkpoint 对象存储后端：S3 兼容对象存储 checkpoint storage（对齐 `LocalFileCheckpointStorage`/`JdbcCheckpointStorage` 既有 SPI 形态）（Deliverable: 存储实现 + 恢复 E2E + 文档；deps: 无；Item Type: Feature）
+- [x] WI13 checkpoint 对象存储后端：S3 兼容对象存储 checkpoint storage（对齐 `LocalFileCheckpointStorage`/`JdbcCheckpointStorage` 既有 SPI 形态）（Deliverable: 存储实现 + 恢复 E2E + 文档；deps: 无；Item Type: Feature）
 - [x] WI14 可查询状态轻量版：结果即状态官方模式（窗口/聚合结果落键控可查存储）+ ops REST keyed state 只读接口——不追通用 queryable state（Deliverable: 模式文档 + 查询接口 + 测试；deps: 无；Item Type: Feature + Proof）
 - [ ] WI15 CDC schema evolution 协调：**前置闸门 = WI0 按"首个真实需求"触发条件撤销 cdc-design 既有 defer（owner 确认）**；协调形态（checkpoint 阻塞 vs fail-fast 二选一）随 WI0 裁定 + sink 侧 DDL 应用或显式拒绝（Deliverable: 协调协议 + DDL/拒绝路径测试 + cookbook 更新；deps: WI0 + WI7（表标识依赖）；Item Type: Feature）
 
 ### M4 — 观测与运维契约
 
-- [ ] WI16 观测三件套：busy/backpressured/idle 时间占比指标 + watermark 级联 skew 指标 + 边级队列填充比与实时曲线——队列填充比复用既有 `nop.stream.io.channel.queue.size` gauge（productization item 32 已 done，fill% = depth/capacity 推导），不重复建设直测面（Deliverable: 指标族 + 级联 skew 测试 + owner doc 指标表更新；deps: 无；Item Type: Feature）
+- [x] WI16 观测三件套：busy/backpressured/idle 时间占比指标 + watermark 级联 skew 指标 + 边级队列填充比与实时曲线——队列填充比复用既有 `nop.stream.io.channel.queue.size` gauge（productization item 32 已 done，fill% = depth/capacity 推导），不重复建设直测面（Deliverable: 指标族 + 级联 skew 测试 + owner doc 指标表更新；deps: 无；Item Type: Feature）
 
 ### M5 — SQL 与序列化补强
 
