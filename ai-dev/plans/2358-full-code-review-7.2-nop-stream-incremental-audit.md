@@ -1,6 +1,6 @@
 # 2358 full-code-review 7.2 nop-stream 增量巡检（CDC WI1–WI8/Debezium 换代/dmlMode 面 + invariant-loop backlog P2 批量标定）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.2（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/10/14）
 > Related: **`ai-dev/backlog/nop-stream-cdc-roadmap.md`（CDC WI1–WI8 权威出处——对抗审查 M1 钉定）**；`ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`（闭环飞轮 377 行，Owner Doc——**backlog P2 清单在 Follow-up Backlog 各批次 Status 字段，非 Work Item Status 区**〔对抗审查 m1 指位勘正〕）；`ai-dev/backlog/nop-stream-production-roadmap.md`（40/43 done；Debezium 2.4 基线 item 53）；2.8 报告（stream-sql 首审+预存失败锚 :83）/6.7 批次 c stream 四单元 P1 标定/6.4（stream P0×4 :53）。
@@ -9,7 +9,7 @@
 > **范围裁定（对抗审查 M2/M3/M4 勘正）**：① **提交级已审域标记**：2.8 收口（plan 2326/2327 修复验证，2026-10-05）前合入的 stream-sql 波提交=已审域登记不重审；其后提交=在审（覆盖账 62=在审 N+已审域登记 M 双记，机械核验）；② **域外触碰登记移交**（2357 M4 规则继承）：nop-dependencies kafka 版本面→平台 BOM 责任面登记、nop-dao UpsertDialect 迁入面登记；③ 巡检维度=**04/10/14**（m2 勘正：2PC/checkpoint/offset 为状态机维度 10 高发面）；④ **发现准入规则（2357 形态）**：增量引入/实质恶化才立条，预存缺陷登记撞车台账；⑤ **预存锚精确归属（对抗审查 M4 勘正）**：TestBatchTaskCheckpoint 实位 nop-batch-core（2.8 自判归 3.4 域）——红测试归因 3.3 台账非本批；**TestStreamConnectorRegistryDiscovery 红为窗内 WI4 引入且 HEAD 仍红（SINGLE_INSTANCE 断言 vs PARALLEL 工厂）=本批最确定在窗发现，必须审计而非豁免**。
 > **方法学裁定**：① 巡检两跳：聚类→逐簇 diff triage；② 发现编号 `P1-7.2-NNN`/`P2-7.2-NNN`；P0 即时通道；③ 撞车检索面=2.8/6.4/6.7/6.9/invariant 各轮 AR 台账/cdc-roadmap；④ 验证协议：发现双锚；Phase 2 still-live 100% 亲读+其余抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 实跑；冻结协议三要素（seed=2358+提交簇哈希+backlog 样本表）落盘。
 > **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红先对照 2.8 :83 的 TestStreamConnectorRegistryDiscovery（在窗回归，见上）与 6.4 台账，其余红按 2331 :93 先例归因登记。
-> Draft Review: agent_c66ea00b 首轮 **1 Blocker（B1 backlog open P2 实测 ~96 条〔展开 >120 单元〕vs 主张 ~15——6 倍低报且与自测「P2- 89 行」矛盾未调和）** + 4 Major（M1 CDC WI 权威出处未钉+WI 跨三 roadmap/M2 stream-sql 波 45% 无提交级排除规则与全覆盖 gate 矛盾/M3 域外触碰无登记移交/M4 预存锚归属错误+在窗回归被预先豁免）+ 4 Minor（m1 指位/m2 维度 10/m3 时区口径/m4 措辞）——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_c66ea00b 首轮 **1 Blocker（B1 backlog open P2 实测 ~96 条〔展开 >120 单元〕vs 主张 ~15——6 倍低报，记 roadmap 口径缺陷）** + 4 Major（M1–M4）+ 4 Minor（m1–m4）——本轮全部修复（详见各节勘正注记）；聚焦复核 9 项 PASS 但发现 M1 修复引入新张冠李戴（production WI11 实为 eql-cross-db-compat WI11；窗内编号实为四套体系），一行修正后二次核认 **PASS 零问题**（commits `4f5ff5c8ce`/`ba822d061a`；跨 worktree plan 文件注记为非阻塞观察）——转 active。
 
 ## Purpose
 
@@ -47,12 +47,12 @@
 
 ### Phase 1 - 增量对账、巡检与 backlog 标定（2 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: nop-stream/ 在审增量面 + invariant backlog
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（ba822d061a）、`git status` 干净后开始
 - [ ] 主 agent 对账落盘（委派对账 agent）：① 62 提交全量清单（确定性超集口径；聚类+**三 roadmap WI 映射表**+**提交级已审域标记**〔2.8 收口前 stream-sql 波=登记不重审〕+**域外触碰登记移交**）② invariant backlog open P2 全量清单（Follow-up Backlog 区枚举 ~96 条展开计数）③ 冻结协议三要素 ④ 覆盖账 62=在审 N+已审域 M 落盘
 - [ ] Agent 1「增量面巡检」：在审提交逐簇 diff triage（维度 04/10/14；发现准入沿 2357 规则；**TestStreamConnectorRegistryDiscovery 在窗回归必审**）→ `_tmp/fcr-7.2-audit-a.md`
 - [ ] Agent 2「backlog 批量标定」：open P2 三分类（fixed-by-subsequent-plan/still-open/watch-only；代码亲读+抽验实跑 ≥5；撞车比对 2.8/6.7/6.9/AR 台账）→ `_tmp/fcr-7.2-audit-b.md`
