@@ -57,7 +57,7 @@
 | 6.7 | `6.7-check-p1-batch-c.md` | 0 | **11** | **8** | 0 | done（裁决：通过——批次 c 46 条 P1 对账闭合〔枚举 diff 一致+统计核对 12/12+三向账平〕+ 冻结抽样 33/46=71.7% 标定零翻案——canonical **AF 13 / dup 1〔归并 6.4 #5 修复目标〕/ still-live 19 / FP 0**，复核终裁 **P1×11〔方言 role/伪影/工具 DSL/agent 循环×2/stream 定时器与 restore 位点/CodeIndexService×3〕/ P2×8〔复核降档：桩不可达/未接线/输入不触发/残余窄化〕**；承接 1 条 P1-check-mcc-172 维持；dup 锚 1/1 亲验+33 锚全量 grep 零新增同根+16 修复提交 master 全可达；closure audit 一次 PASS 四项全过〔3 Minor 形式差：空台账标题/SHA 位置/个别 1-2 行级锚点偏移，符号级准确不阻塞〕） | 独立子 agent（agent_f5709e50 聚焦复核 PASS；Phase 2 复核 agent_037068a3 PASS 零翻案；closure audit agent_01452dcb 一次 PASS，见 plan 2354 Closure 段） |
 | 6.8 | `6.8-check-p1-batch-d.md` | 0 | **6** | **2** | 0 | done（裁决：通过——批次 d 69 条 P1 对账闭合〔枚举 diff 一致+统计核对 17/17+SUMMARY 分相账平〕+ **承接实测 C=43**〔4.4/4.5/3.9 行级锚回读零错配：AF 22+partially 2+adj-deferred 1+still-live 18〕+ 冻结抽样 22 条标定零翻案——canonical **AF 14 / dup 0 / still-live 8 / FP 0**，终裁 **P1×6〔spring removeCookie NPE/Yunpian areaCode/splitter 布局颠倒/Feishu 零 ACK/variant 双约定/saver 误删基础表〕/ P2×2〔JavaScriptService nop-js 出 reactor+DemoBizModel 匿名 NPE〕**；双轨 84.6% 净池+65≥35 严格两 MET；SftpClient residual=AF 附 adjudicated-deferred〔plan 2283 承载〕；**承接 still-live 18 条沿在先行标识补登记 P1 汇总**〔含勿双立注记〕；closure audit 处方 R1 纯文本〔index P1-4.5-R1 行缺陷主体勘正〕+顺手拆 :118 遗留合并行已落实） | 独立子 agent（agent_d2cf04c9 聚焦复核 PASS；Phase 2 复核 agent_23db8c13 PASS 零翻案；closure audit agent_55f0b61c，FAIL→处方 R1 落实后轻量复核 PASS，见 plan 2355 Closure 段） |
 | 6.9 | `6.9-check-p2p3-watchonly-archive.md` | 0 | 0 | 0 | 0 | done（裁决：通过——check P2/P3 宇宙 694 条〔P2 359+P3 335×54 单元〕三分类账平闭合：**①轮内已标定 148〔still-live 未登记 77→升级候选〕+②处置块已标 315〔抽验 33/35=94.3% 真实率+实跑 19 条〕+③watch-only 231**；升级候选定稿冻结 **130 行=维持 109+降级留痕 17+新增 4**〔含 nop-core-framework#P2-L108 修复被 plan-2309 重构静默回退发现〕上报 R1.0 裁决通道；三分类边界抽验 33/33=100% 零翻案；**check 系列四层〔P0/P1/P2/P3〕全部收口**；流程缺陷 F1–F4 勘正表登记〔SUMMARY 三口径/4.5 台账缺口等〕） | 独立子 agent（agent_877eef9f 聚焦复核 10 项+N1–N4 核认 PASS；Phase 2 复核 agent_a76fcb85 PASS 零翻案；closure audit agent_9bccf11e 一次 PASS 六项全过〔4 Minor 不阻塞：sample.py 补落重放一致/哈希笔误 5f301a139b 勘正/91 vs 90 口径注记/勾选补齐〕，见 plan 2356 Closure 段） |
-| 7.1 | — | | | | | todo | |
+| 7.1 | `7.1-nop-ai-incremental-audit.md` | 0 | **2** | **6** | **2** | 报告落盘，closure audit 进行中（nop-ai 148 提交增量面三维审计全覆盖〔分配表零遗漏零重复；域外 86 提交登记移交；deploy/model 处置；MCP 无基线面全量〕——发现 **10 条全部 still-live 亲读证实零翻案：P0=0/P1×2〔WI25 懒重投递状态机破坏/PgVectorStore search 列缺失〕/P2×6/P3×2**；撞车移交 19 笔抽验 12/12+安全面 H-A3-SEC-01 移交 security 族合规；维度 12 零独立发现；千行回涨 git 实测=4〔AgentToolDispatcher 2.35x 最陡〕；重构波 WI20–22 三维判据全过） | 独立子 agent（agent_16ad4c5c 聚焦复核 PASS；Phase 2 复核 agent_d28b3267 PASS 零翻案；closure audit 待启动） |
 | 7.2 | — | | | | | todo | |
 | 7.3 | — | | | | | todo | |
 | 7.4 | — | | | | | todo | |
@@ -166,6 +166,8 @@
 | P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.0（FeishuClient DATA 帧零 ACK 回发+headers 丢失；按协议回 ACK+恢复 headers 透传+wire 契约测试） | open |
 | P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseData variant 双约定——输出表永不校验框架假绿；统一 variant 路径约定+录制→校验往返测试） | open |
 | P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseDataSaver.removeInputTable 无 variant 守卫静默删除 default 基础表；补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | open |
+| P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.0（WI25 DefaultBackgroundTaskRegistry 懒重投递状态机双重破坏——失败/超时任务被永久误报 COMPLETED；重投区分源状态+补 FAILED/TIMEOUT 源用例） | open |
+| P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.0（PgVectorStore.search 列读取缺失——生产后端 hits content 恒 null 静默错误结果；回读 content/metadata+pgvector 路径内容断言测试） | open |
 | P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.0（check/net-http-rpc.md#P1-1 JdkHttpClient :320-323 错误路径 still-live——沿 3.9 §2.5#1 行修复方向；3.9 仅登记 gw-49/86 本条独立） | open |
 | P1-4.4-A5 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.1 A面 条目5 标定维持） | R1.0（check/format-misc.md#P1-5 生成器-文法对齐探针 0/13 still-live；**与 P2-4.4-001/002 合并的是修复立项通道**——P1 登记位单点保留） | open |
 | P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-1 空 query 构造空 BooleanQuery 恒空；LuceneSearchEngine 先修 5 条 P1〔S-02..06〕再动拆分——4.4 执行顺序约束） | open |
@@ -223,6 +225,12 @@
 | P2-6.7-008 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-4：LeidenDetector 双向边对权重加倍（复核终裁 P2：指标质量偏置无功能失效；归一化键从未落地 git log -S 零命中） | 待 R1.0 裁决（min/max 归一化键+edgeWeights 传递+守恒用例） | R1.0 |
 | P2-6.8-001 | `6.8-check-p1-batch-d.md` | check 溯源 frontend-benchmark#P1-1：JavaScriptService.refreshConfig AIOOBE+工厂绕过双缺陷面（复核终裁 P2：**nop-js 已注释出 reactor**〔pom.xml:22 亲读〕——P2-6.6-001 未接线同判例） | 待 R1.0 裁决（复活 nop-js 时先修+Truffle/JDK 兼容〔CL-3〕，或显式休眠声明+移除 web-defaults 装配引用；**升级触发=nop-js 复活入 reactor**） | R1.0 |
 | P2-6.8-002 | `6.8-check-p1-batch-d.md` | check 溯源 demo-migration#P1-1：DemoBizModel 匿名调用 IUserContext.get() 裸取 token NPE 无 @Auth（复核终裁 P2：demo 单端点响亮 500 零契约受累，P2-6.5-001 同判例） | 待 R1.0 裁决（demo 波次补 @Auth 或匿名守卫+owner-doc 坏模式注记） | R1.0 |
+| P2-7.1-001 | `7.1-nop-ai-incremental-audit.md` | WI25 AgentSessionLifecycle 离线注入 staging 语义解析失败静默无日志升级为 STEER（诊断信息丢失面） | 待 R1.0 裁决（解析失败 LOG.warn+显式分支注记） | R1.0 |
+| P2-7.1-002 | `7.1-nop-ai-incremental-audit.md` | ReActAgentExecutor.canPublishExecutionCompleted 排除面缺 blocked+javadoc 失真（当前潜伏——blocked 全仓唯一写入在 plan 局部状态） | 待 R1.0 裁决（排除面补 blocked+javadoc 同步；升级触发=blocked 态接入 ctx） | R1.0 |
+| P2-7.1-003 | `7.1-nop-ai-incremental-audit.md` | WI25 三新文件 11 处裸 IAE/ISE（plan 356 裸异常归零三周后增量回潮；复核勘正 11 非 12） | 待 R1.0 裁决（换 NopException+ErrorCode；归 4.1 族同批） | R1.0 |
+| P2-7.1-004 | `7.1-nop-ai-incremental-audit.md` | nop-ai-core toMetadataJson 手工拼 JSON 无转义（合法 metadata 含引号/换行即入库失败） | 待 R1.0 裁决（JSON 序列化器替代手工拼接） | R1.0 |
+| P2-7.1-005 | `7.1-nop-ai-incremental-audit.md` | WI17 ToolManagerImpl.pathQueues 条目永不清理（每路径键永久留存 tail future 无界慢增长） | 待 R1.0 裁决（完成态清理或弱引用化） | R1.0 |
+| P2-7.1-006 | `7.1-nop-ai-incremental-audit.md` | WI17 排队路径 executeNow.get() 同步抛出致 result future 永久 pending（默认 toolTimeoutMs=300s 钳为 5min 超时；显式关闭 timeout 时永久 pending） | 待 R1.0 裁决（同步抛转 future 异常完成+兜底文档化） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 
