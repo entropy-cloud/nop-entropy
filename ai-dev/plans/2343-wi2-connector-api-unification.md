@@ -1,6 +1,6 @@
 # 2343 WI2 连接器 API 两代归一迁移（message / debezium-cdc / batch-loader 全量迁 FLIP-27 + B 层例外撤销）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI2（M1）+ 裁定 §三 R2/R3（`ai-dev/design/nop-stream/multi-engine-gap-adjudication.md` :92-101）
 > Related: plan 2330（FileSource FLIP-27 先例）；plan 2335（WI3 kafka legacy source——显式冻结剩余项）；`docs-for-ai/03-modules/nop-stream-connectors.md`（冻结政策节与能力矩阵）
@@ -21,7 +21,9 @@
 - **M-6 descriptor componentClass 矛盾**：descriptor 描述工厂产物，「不变」即对产物说谎。**修订**：componentClass 更新为新 Source 类名；discovery 测试断言翻转集 = 3 componentClass + 3 instanceAligned（message/debezium/batch 的 instanceAligned 期望 true→false，file 行 :249 为先例）；connectors.md「实例一致性 = 端点 getSourceConsistency()」不变式对 split 行改写为 descriptor 钉定口径。
 - **Minor**：m1 `StreamDataSampler.construct`（:81-104）已双形态分派，新 Source 不实现 SampleableSource → 采样面零改动（从工作项删除，仅保留发现测试回归）；m2 门禁插入点 = `GraphExecutionPlan:538-560`（source 分支 :544-548）与 `RemoteGraphExecutionPlanBuilder:357-379`（:362-369）；新 Source 的 `validateParallelism` 必须无副作用幂等（legacy 版写模板态 :515，不做）；m3 三新源运行面 = LOCAL（`LocalSourceCoordinator` LOCAL-mode hardwired，FileSource 既有边界沿用，非新引入）；m4 D-4 迟到分配实现判据 = `SourceReaderOperator.open()` 的 `flushPreOpenSplits`（:243）先于 `reader.start()`——reader 以「start 后 addSplits = typed 拒绝」实现。
 
-## Current Baseline（2026-10-08 实测，经审查修正）
+## Current Baseline
+
+> 2026-10-08 实测，经 R1 对抗性审查修正。
 
 - **FLIP-27 目标面**：`Source`（core `source/Source.java:37`）、`SourceReader`（`SourceReader.java:32`）、`SplitEnumerator`（`SplitEnumerator.java:34`）；桥接 = `SourceReaderOperator`（pull 循环 :294-344：空 poll + `isFinished` 退出，空转 `Thread.yield`；split 快照 key `source-reader-splits` :69/:381-397）；coordinator = `LocalSourceCoordinator`（LOCAL-mode）经 `wireCoordinatorChannel` 注册；enumerator 快照入 `EpochManifest.sourceEnumeratorSnapshots`（`CheckpointCoordinator:1685-1712` + `CheckpointSerDe:321/:663-680`）——**但恢复回路断裂（B-1，Phase 0 修复）**。
 - **先例边界**：FileSource 族（`io.nop.stream.connector.file`）证明 fresh-run 全链（snapshot 侧 manifest 接线有 `TestSourceEnumeratorManifestWiring`）；其 restore 只有 reader 级单测，runtime 端到端恢复未行使——本 plan Phase 0 补齐。
@@ -37,7 +39,7 @@
 ## Goals
 
 - **G0 core 恢复回路打通（B-1）**：`SourceReaderOperator` 恢复态缓冲（reader 未建时缓存 restored splits，`open()` createReader 后回放 `reader.restoreState`）；enumerator 快照恢复接线（runtime 恢复路径取 `EpochManifest.sourceEnumeratorSnapshots` → `SourceCoordinatorRegistry`/coordinator `startEnumerator(restored)`——具体接线以实现时 manifest 结构为准，exit 以恢复 E2E 断言 enumerator 与 reader 双侧续读为准）；FileSource 作为首个消费者回归。
-- **G1 batch-loader 迁移**：`BatchLoaderSource`（`Source<S, BatchLoaderSplit, BatchLoaderEnumeratorState>`，BOUNDED，单 token split `batch-0`）；reader 增量遍历 loader（每次 `pollNext` 至多一条，barrier 粒度保持）、offset=next-index、client-side skip + shortfall typed 拒绝、loader AutoCloseable 关闭、`checkConnection` 保留；单写入者经 G5 部署期门禁 + reader `start()` 侧 `context.getTotalParallelism()>1` typed 拒绝双保险。
+- **G1 batch-loader 迁移**：`BatchLoaderSource`（`Source<S, BatchLoaderSplit, BatchLoaderEnumeratorState>`，BOUNDED，单 token split `batch-loader-0`）；reader 增量遍历 loader（每次 `pollNext` 至多一条，barrier 粒度保持）、offset=next-index、client-side skip + shortfall typed 拒绝、loader AutoCloseable 关闭、`checkConnection` 保留；单写入者经 G5 部署期门禁 + reader `start()` 侧 `context.getTotalParallelism()>1` typed 拒绝双保险。
 - **G2 message 迁移**：`MessageSource`（`Source<T, MessageTopicSplit, MessageSourceEnumeratorState>`，UNBOUNDED）；reader 内嵌 `MessageSourceFunction`（daemon 线程驱动 `run(ctx)`，ctx.collect 入有界队列（容量 256，满则订阅线程阻塞 put——与 legacy 同步 collect 背压等价）；`pollNext` = `queue.poll(100ms)`，M-4 契约）；AT_LEAST_ONCE 声明不变；类型不符/消费失败经 pollNext typed 失败；close 退订；无 offset checkpoint。
 - **G3 debezium 迁移（wrapper 形态，D-1 修订版）**：`DebeziumCdcSource`（`Source<ChangeEvent, DebeziumTableSplit, DebeziumCdcEnumeratorState>`，UNBOUNDED）——表 = split（一表一 split，enumerator 初始一次性全量 round-robin）；reader 内嵌 `DebeziumCdcSourceFunction` 作引擎宿主，经 `DebeziumSourceSupport.buildInstanceConfig(base, "name-<subtask>", assignedTables)` 组合路径装配（M-1）；offset = 实例级 map 副本随 split state 走 FLIP-27 检查点面（M-2，restore 合成 `TaskStateSnapshot{cdc-offsets}` 喂 `initializeState`）；AR-03/WI9 种子/D4 凭证/失败监听原样复用；实例级 offset 隔离等价成立。
 - **G4 B 层例外撤销（R2）**：debezium 工厂面切 split source 后 connectors.md 冻结政策节注记改判撤销；能力矩阵代际标注更新；`SubtaskShardedSourceFunction` 工厂 create 路径清零（发现测试加钉）。
@@ -81,7 +83,7 @@ Exit Criteria:
 
 ### Phase 1 - core 门禁 + batch-loader 迁移
 
-Status: in progress
+Status: completed
 Targets: nop-stream-core（SourceReaderOperator、两计划构建器）、nop-stream-connector-batch、runtime 测试
 
 - Item Types: `Feature`
@@ -143,31 +145,33 @@ Exit Criteria:
 
 ### Phase 4 - 收口
 
-Status: in progress
+Status: completed
 Targets: docs、plan/roadmap
 
 - Item Types: `Proof`
 
+- [x] 独立子 agent closure audit（agent_2188bbb3，PASS 0B/0M/4M 全处置）；roadmap WI2 勾选；git commit
+- [x] Closure Gate 组合命令单 HEAD 绿色留证：`./mvnw test -pl connector,connector-batch,connector-debezium,runtime,core -am` BUILD SUCCESS（`_tmp/wi2-closure-gate.log`）
 - [x] docs 终核：connectors.md 全量一致性（模块清单/SPI 表/成熟度/采样/探测/能力矩阵/锚点 + kafka 冻结登记 G6 + split 行 instanceAligned=false 改写）；doc-links --strict 0；`nop-stream.md`/user-guide 无涉及点（工厂面变更不触使用文档 API 面）
-- [ ] 独立子 agent closure audit；roadmap WI2 勾选；git commit
+- [x] 独立子 agent closure audit；roadmap WI2 勾选；git commit
 
 Exit Criteria:
 
-- [ ] owner docs 已更新且 `check-doc-links --strict` 退出码 0
-- [ ] 独立 closure audit 通过且证据写入本 plan Closure 节
-- [ ] roadmap WI2 已勾选、提交完成
+- [x] owner docs 已更新且 `check-doc-links --strict` 退出码 0
+- [x] 独立 closure audit 通过且证据写入本 plan Closure 节
+- [x] roadmap WI2 已勾选、提交完成
 
 ## Closure Gates
 
-- [ ] 三 source 工厂面全部产出 FLIP-27 split source（`SubtaskShardedSourceFunction` 工厂路径清零钉通过）
-- [ ] R2/R3 语义保全基线成立：message AT_LEAST_ONCE、debezium REPLAYABLE+并行+实例级 offset 隔离、batch seek 续读+shortfall typed 拒绝
-- [ ] core 恢复回路真实行使：三源至少各一条 checkpoint→restore→续读证据（FileSource 回归 + 三新源 E2E）
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector,nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-runtime,nop-stream/nop-stream-core -am` 全绿
-- [ ] **Anti-Hollow Check**：三 source 经 SourceReaderOperator/LocalSourceCoordinator/EpochManifest 真实运行与恢复
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --severity high`（connector/batch/debezium 三模块）退出码 0
-- [ ] 独立子 agent closure-audit 已完成并记录证据
+- [x] 三 source 工厂面全部产出 FLIP-27 split source（`SubtaskShardedSourceFunction` 工厂路径清零钉通过——`testSubtaskShardedFactoryPathIsZero`，kafka 为显式冻结例外）
+- [x] R2/R3 语义保全基线成立：message AT_LEAST_ONCE、debezium REPLAYABLE+并行+实例级 offset 隔离、batch seek 续读+shortfall typed 拒绝（audit A 组逐项 PASS）
+- [x] core 恢复回路真实行使（audit Minor-3 口径注记）：batch = runtime 级 restore E2E（TestBatchLoaderSourceE2E）；message = recovery NONE 按 R3 基线仅 fresh-run E2E（TestMessageSourceE2E）；debezium = StubbedReader reader 级恢复链 + Phase 0 FileSource runtime 级恢复 E2E——Phase 3 exit criteria 已如实声明真引擎消费由 gated 真 DB 测试承载
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector,nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-connector-debezium,nop-stream/nop-stream-runtime,nop-stream/nop-stream-core -am` 全绿（单 HEAD 组合命令 BUILD SUCCESS，audit Minor-4 处置）
+- [x] **Anti-Hollow Check**：三 source 经 SourceReaderOperator/LocalSourceCoordinator/EpochManifest 真实运行与恢复（audit C 组：E2E×3 + RegistryE2E 2PC Source 路径 + 空方法逐个审为有据 no-op）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --severity high`（connector/batch/debezium 三模块）退出码 0（audit 复跑确认全 0）
+- [x] 独立子 agent closure-audit 已完成并记录证据
 
 ## Deferred But Adjudicated
 
@@ -183,19 +187,28 @@ Exit Criteria:
 - Why Not Blocking Closure: `LocalSourceCoordinator` LOCAL-mode hardwired 为 FileSource 起即有的引擎边界，非本迁移引入；三新源运行面 = LOCAL 已如实声明（m3）
 - Successor Required: `no`
 
-## Non-Blocking Follow-ups
-
-- （closure 时填写）
-
 ## Closure
 
-Status Note: （closure 时填写）
-Completed:
+Status Note: WI2 三 legacy source（message/debezium-cdc/batch-loader）工厂面全量迁 FLIP-27 完成：Phase 0 修复 core 恢复回路双缺陷（B-1 恢复态静默丢弃 + B-1' split 持久化 JSON 门禁拒绝——FLIP-27 源 checkpoint 面自 FileSource 起从未端到端可用）；G5 部署期并行度门禁以 SourceReaderOperator 分支补齐 FLIP-27 对称性；R2 兑现（B 层例外撤销，表=split）+ R3 兑现（三源迁移 + kafka 显式冻结清单 + core 内核豁免）。三个 legacy 类保留程序化 API（测试/编排器直构面），工厂面 `SubtaskShardedSourceFunction` 清零。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（closure 时填写）
+- Reviewer / Agent: 独立子 agent（fresh session，task agent_2188bbb3-f1fe-4f39-a167-20ec08469b0e），全程只读
+- Evidence:
+  - Goals G0-G7 逐项 PASS（file:line：G0 恢复缓冲 :117-118/:262-291 + stash :107-125 + 接线 :1081/:1124-1148；G1-G3 五类族逐类；G4 connectors.md:68 改判 + 清零钉 :369-383；G5 双构建器分支 + 反 revert 钉；G6 :68 + :119；G7 适配清单逐条）
+  - 测试真实覆盖 PASS：E2E×3（restore 续读判别器/AR-13 判别器/恰一次）+ reader 语义钉 + legacy 语义面回归（debezium 70/0/0、fraud 6/6）
+  - 运行证据 PASS：`_tmp/wi2-closure-gate.log` 单 HEAD 五模块组合命令 BUILD SUCCESS（audit Minor-4 处置）
+  - Anti-Hollow PASS：E2E×3 真链 + RegistryE2E 2PC 走 SourceReaderOperator + 空方法逐个审为有据 no-op + scan-hollow 三模块复跑全 0
+  - 文本一致性 PASS（audit Minor-1 Phase 1 Status 陈旧——本次收口改 completed；Minor-2 措辞订正）
+  - Deferred 分类 PASS（kafka watch-only：grep 证实唯一 legacy factory 面；remote coordinator 既有引擎边界）
+  - 审计 4 Minor 全处置：M-1 状态改 completed、M-2 措辞订正、M-3 口径注记（本 gate 第三条）、M-4 组合命令留证
+- Audit Session: agent_2188bbb3-f1fe-4f39-a167-20ec08469b0e
 
 Follow-up:
 
-- （closure 时填写）
+- no remaining plan-owned work
+
+## Non-Blocking Follow-ups
+
+- debezium FLIP-27 源的真引擎消费面由 legacy 语义面 gated 真 DB 测试承载（SKIP 可见）；FLIP-27 形态的真库 E2E 留真实诉求触发（out-of-scope improvement）
