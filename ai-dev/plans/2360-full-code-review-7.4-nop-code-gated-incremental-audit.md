@@ -66,19 +66,19 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁+其余抽验 ≥30%+gated 复核结论核实+净账
-- [ ] 主 agent 汇总：台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——6 条 100% 亲读全维持（终裁 **P0×0/P1×3/P2×3**）；P1-7.4-001 特别审视 **P1 维持**（P2-6.6-001 判例可区分——本案 roadmap `done` 误导面+G1-b in-scope 静默缺失构成复合缺陷，落「误导后续开发」P1 锚；加强证据 ProjectAnalyzer :290/:307 requiresLqm 双重不可达；条件判读登记供 R1.0 拆面）+P1-7.4-003 两项加强证据（测试索引目录不符/Closure Gate `[x]` 与自审矛盾）；gated 三点逐字吻合+张力两面亲读属实；hollow 复扫 3/3 EXIT=0；SHA 重放 MATCH；撞车抽验 3/3
+- [x] 主 agent 汇总：台账收敛（5 条 Minor 注记吸收进报告）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-7.4-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-7.4-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
