@@ -81,43 +81,43 @@ Exit Criteria:
 
 ### Phase 1 - core 门禁 + batch-loader 迁移
 
-Status: planned
+Status: in progress
 Targets: nop-stream-core（SourceReaderOperator、两计划构建器）、nop-stream-connector-batch、runtime 测试
 
 - Item Types: `Feature`
 
-- [ ] `SourceReaderOperator.getSource()` 访问器；`GraphExecutionPlan:538-560` 与 `RemoteGraphExecutionPlanBuilder:357-379` 对 `Source instanceof ParallelismCheckable` 增部署期校验（对称 legacy :544-548/:362-369）
-- [ ] `BatchLoaderSource` + `BatchLoaderSplit` + `BatchLoaderEnumeratorState` + 版本化双 serializer（split 载荷含 offset）+ `BatchLoaderSplitEnumerator`（单 split 赋值）+ `BatchLoaderSourceReader`（增量遍历/每次 poll 一条/skip/shortfall/offset，语义镜像 legacy :97-149；start() 侧 parallelism>1 typed 拒绝）
-- [ ] `BatchLoaderSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass 更新为 BatchLoaderSource）；beans 更新
-- [ ] 测试：split/serializer 往返；reader 遍历+skip+shortfall+seek（移植 legacy 关键用例）；parallelism 门禁（两构建器 + reader 侧）；factory→Source 组合 E2E（**新增承载**：`factory.createSource → env.addSource(Source) → loader 空批 EOS`，M-3）；工厂/探测/发现适配（M-5/M-6 清单 batch 部分）
+- [x] `SourceReaderOperator.getSource()` 访问器；`GraphExecutionPlan:538-560` 与 `RemoteGraphExecutionPlanBuilder:357-379` 对 `Source instanceof ParallelismCheckable` 增部署期校验（对称 legacy :544-548/:362-369）
+- [x] `BatchLoaderSource` + `BatchLoaderSplit` + `BatchLoaderEnumeratorState` + 版本化双 serializer（split 载荷含 offset）+ `BatchLoaderSplitEnumerator`（单 split 赋值，assigned 恢复不重派）+ `BatchLoaderSourceReader`（增量遍历/每次 poll 一条/skip/shortfall/offset，语义镜像 legacy :97-149；start() 侧 parallelism>1 typed 拒绝；restore 路由 pendingSplit 让 start() 完成 loader 装配；pollNext 兜底 adopt 防顺序漂移）
+- [x] `BatchLoaderSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass 更新为 BatchLoaderSource）；beans 不变（同 bean id 换实现类）
+- [x] 测试：`TestBatchLoaderSource`（split/serializer 往返+版本拒、enumerator assign-once+restore 不重派、reader 遍历/skip/shortfall/seek、post-start assignment/restore typed、并行度双层门禁、checkConnection null-loader typed）；`TestBatchConnectorFactories` 适配（工厂产物断言 + descriptor 一致性 + validateParallelism）；`TestStreamConnectorRegistryDiscovery` 适配（componentClass + instanceAligned false——split 源无实例一致性访问器）；`TestGraphExecutionPlanParallelismGate` 增 FLIP-27 门禁钉（SourceReaderOperator 分支反 revert）；**factory→Source 组合 E2E**（`TestBatchLoaderSourceE2E`：工厂 createSource → env.addSource → 300 行限速 loader → run1 在 row-50 注入失败 → 同 jobId 重提交 → run2 从恢复 offset 续读非全量重读、跨 run 全覆盖）
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-runtime -am` 全绿
-- [ ] **端到端验证**：factory→Source 组合 E2E 真实走通（含 checkpoint→restore→offset 续读，依赖 Phase 0 回路）
-- [ ] **接线验证**：门禁在两构建器被真实调用（部署期 typed 拒绝测试）
-- [ ] **无静默跳过**：并行度>1 部署与 start 双层 typed 拒绝；skip-shortfall typed；seek 负值 typed
-- [ ] owner docs：connectors.md batch-loader 行代际更新（行内容本阶段冻结，Phase 4 终核）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector-batch,nop-stream/nop-stream-runtime -am` 全绿
+- [x] **端到端验证**：factory→Source 组合 E2E 真实走通（含 checkpoint→restore→offset 续读，依赖 Phase 0 回路）
+- [x] **接线验证**：门禁在两构建器被真实调用（部署期 typed 拒绝测试——embedded builder 有反 revert 钉；remote builder 同一 validateSourceParallelism 静态方法族）
+- [x] **无静默跳过**：并行度>1 部署与 start 双层 typed 拒绝；skip-shortfall typed；seek 负值 typed；post-start assignment/restore typed
+- [x] owner docs：connectors.md batch-loader 行代际更新（模块清单/SPI 表/能力矩阵行 + 冻结政策节 trio 措辞预更新，Phase 3 终核收口）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - message 迁移
 
-Status: planned
+Status: completed
 Targets: nop-stream-connector
 
 - Item Types: `Feature`
 
-- [ ] `MessageSource` + `MessageTopicSplit` + `MessageSourceEnumeratorState` + serializer + `MessageTopicSplitEnumerator`（N token 一对一分配）+ `MessageSourceReader`（内嵌 `MessageSourceFunction` daemon 驱动 + 有界队列 256 + `poll(100ms)` + pendingError 经 poll 抛出 + close 次序 M-4）
-- [ ] `MessageSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass 更新）；beans 更新
-- [ ] 测试：token 分配唯一性；push→poll 转换与背压（队列满阻塞）；类型不符 typed 失败（P1-9 等价）；close 退订 + daemon join（R5-CON-04 等价）；restart 复位；start 后 addSplits typed 拒绝（D-4）；工厂/发现/探测适配（M-5/M-6 清单 message 部分）
+- [x] `MessageSource` + `MessageTopicSplit` + `MessageSourceEnumeratorState` + serializer + `MessageTopicSplitEnumerator`（N token 一对一分配，token=`topic#subtask`）+ `MessageSourceReader`（内嵌 `MessageSourceFunction` daemon 驱动 + 有界队列 256 + `poll(100ms)` + runner 失败经 poll typed 抛出 + close 退订 join(5s typed)）
+- [x] `MessageSourceConnectorFactory` 切 `IStreamSplitSourceFactory`（componentClass 更新）；beans 不变（同 bean id 换实现类）
+- [x] 测试：`TestMessageSource`（serializer 往返+保留分隔符拒绝；per-reader token 分配；push→pull 转换 + idle 阻塞钉；类型不符 typed 失败——P1-9 passthrough；同 token 幂等/异 token typed；close 退订 + join）；`TestFileMessageConnectorFactories` 适配（工厂产物 + descriptor 一致性）；`TestStreamConnectorRegistryDiscovery` 适配（componentClass + instanceAligned false）；registry 2PC E2E 的 batch-loader 助手切 Source 路径
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-connector,nop-stream/nop-stream-runtime -am` 全绿
-- [ ] **端到端验证**：message source → sink E2E（LocalMessageService，discovery 测试先例）真实收发
-- [ ] **无静默跳过**：消费异常经 pollNext typed 失败；后端不可达 typed 失败
-- [ ] owner docs：connectors.md message 行代际更新（本阶段冻结行内容）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-connector,nop-stream/nop-stream-runtime -am` 全绿（connector 101/0/0 + runtime 1323/0/0 BUILD SUCCESS）
+- [x] **端到端验证**：`TestMessageSourceE2E`（工厂 MessageSource → SourceReaderOperator → LocalMessageService 真实收发 20 条恰一次；执行发现：`enableCheckpointing` 才有监督循环，UNBOUNDED 任务失败不终止作业；发布循环须容忍 LocalMessageService 无订阅者丢弃语义）
+- [x] **无静默跳过**：类型不符/collect 失败经 pollNext typed 失败（P1-9 passthrough）；异 token typed 拒绝；close join 超时 typed
+- [x] owner docs：connectors.md message 行代际更新（模块清单/SPI 表/探测表/能力矩阵）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - debezium 迁移 + B 层例外撤销
 

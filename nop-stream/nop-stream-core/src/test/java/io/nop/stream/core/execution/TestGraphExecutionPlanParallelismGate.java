@@ -133,4 +133,79 @@ class TestGraphExecutionPlanParallelismGate {
         GraphExecutionPlan plan = GraphExecutionPlan.build(graph);
         assertEquals(1, plan.getSubtasks("src").size());
     }
+
+    /**
+     * WI2 plan 2343 Phase 1 (G5): the gate extends to the FLIP-27 path — a split source
+     * implementing {@link ParallelismCheckable} (the batch-loader shape) is consulted
+     * through {@code SourceReaderOperator.getSource()} at plan build. Reverting the
+     * SourceReaderOperator branch in {@code validateSourceParallelism} turns this red.
+     */
+    static class SingleWriterSplitSource implements io.nop.stream.core.source.Source<
+            String, io.nop.stream.core.source.SimpleSourceSplit, Void>, ParallelismCheckable {
+        private static final long serialVersionUID = 1L;
+
+        int reportedParallelism = -1;
+
+        @Override
+        public io.nop.stream.core.source.SplitEnumerator<
+                io.nop.stream.core.source.SimpleSourceSplit, Void> createEnumerator() {
+            throw new UnsupportedOperationException("not needed for the gate pin");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SplitEnumerator<
+                io.nop.stream.core.source.SimpleSourceSplit, Void> restoreEnumerator(Void state) {
+            throw new UnsupportedOperationException("not needed for the gate pin");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SourceReader<String, io.nop.stream.core.source.SimpleSourceSplit>
+                createReader(io.nop.stream.core.source.SourceReaderContext ctx) {
+            throw new UnsupportedOperationException("not needed for the gate pin");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SimpleVersionedSerializer<Void> getEnumeratorStateSerializer() {
+            throw new UnsupportedOperationException("not needed for the gate pin");
+        }
+
+        @Override
+        public io.nop.stream.core.source.SimpleVersionedSerializer<io.nop.stream.core.source.SimpleSourceSplit>
+                getSplitSerializer() {
+            throw new UnsupportedOperationException("not needed for the gate pin");
+        }
+
+        @Override
+        public io.nop.stream.core.source.Boundedness getBoundedness() {
+            return io.nop.stream.core.source.Boundedness.BOUNDED;
+        }
+
+        @Override
+        public void validateParallelism(int parallelism) {
+            reportedParallelism = parallelism;
+            if (parallelism > 1) {
+                throw new StreamException("single-writer split source does not support parallelism "
+                        + parallelism);
+            }
+        }
+    }
+
+    @Test
+    void testPlanBuildConsultsFlip27SourceParallelismGate() {
+        SingleWriterSplitSource source = new SingleWriterSplitSource();
+        OperatorChain chain = new OperatorChain(Collections.singletonList(
+                new io.nop.stream.core.operators.SourceReaderOperator<>(source, 7)));
+        JobVertex vertex = new JobVertex("split-src", "split-src", 2,
+                Collections.singletonList(chain), (Invokable<Void>) () -> {
+                });
+        JobGraph graph = new JobGraph("parallelism-gate-flip27-test");
+        graph.addVertex(vertex);
+
+        StreamException e = assertThrows(StreamException.class, () -> GraphExecutionPlan.build(graph),
+                "plan build must fail fast for a split source that rejects parallelism > 1");
+        assertTrue(String.valueOf(e.getMessage()).contains("single-writer split source"),
+                "failure must name the offending source constraint");
+        assertEquals(2, source.reportedParallelism,
+                "the gate must be consulted with the vertex's effective parallelism");
+    }
 }

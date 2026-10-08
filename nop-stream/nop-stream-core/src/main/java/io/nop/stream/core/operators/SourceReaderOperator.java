@@ -72,6 +72,15 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
     private final Source<OUT, ? extends SourceSplit, ?> source;
 
     /**
+     * WI2 plan 2343 Phase 1 (G5): accessor for the deployment-time parallelism gate —
+     * the plan builders check sources implementing {@code ParallelismCheckable} on the
+     * FLIP-27 path exactly like the legacy {@code StreamSourceOperator} path.
+     */
+    public Source<OUT, ? extends SourceSplit, ?> getSource() {
+        return source;
+    }
+
+    /**
      * Source vertex id from the transformation DAG. Used to look up the
      * {@link LocalSourceCoordinator} via {@link SourceCoordinatorRegistry} at open() time.
      */

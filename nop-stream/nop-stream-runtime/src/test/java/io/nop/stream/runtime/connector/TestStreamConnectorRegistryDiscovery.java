@@ -127,8 +127,9 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.file.FileSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.SPLIT_CURSOR_CHECKPOINT, "directoryPath");
+        // WI2 plan 2343 Phase 2: the factory surface produces the FLIP-27 MessageSource.
         assertDescriptor(ConnectorDirection.SOURCE, "message",
-                "io.nop.stream.connector.MessageSourceFunction",
+                "io.nop.stream.connector.MessageSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
         // debezium-cdc PARALLEL：2026-10-02 用户裁定（WI4 B 层确定性表路由，
@@ -151,9 +152,11 @@ public class TestStreamConnectorRegistryDiscovery {
                 ConnectorRecoverySemantic.TWO_PHASE_PENDING_COMMITS,
                 "bootstrapServers", "topic", "transactionalIdPrefix");
         // R5 CON-06: batch-loader is a single-writer source (ParallelismCheckable
-        // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL
+        // gate + owner-doc 单写入者裁定) — descriptor aligned from PARALLEL.
+        // WI2 plan 2343 Phase 1: the factory surface produces the FLIP-27
+        // BatchLoaderSource (the legacy function keeps its programmatic API only).
         assertDescriptor(ConnectorDirection.SOURCE, "batch-loader",
-                "io.nop.stream.connector.batch.BatchLoaderSourceFunction",
+                "io.nop.stream.connector.batch.BatchLoaderSource",
                 "AT_LEAST_ONCE", ConnectorParallelism.SINGLE_INSTANCE,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "loaderProvider");
         assertDescriptor(ConnectorDirection.SINK, "file",
@@ -247,14 +250,18 @@ public class TestStreamConnectorRegistryDiscovery {
         // pinned to the matrix + behavior tests; probe reports alignment=false for them
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "file",
                 config("file", Map.of("directoryPath", tempDir.toString()))), false);
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "message",
-                config("message", Map.of("topic", "t", "messageService", messageService))), true);
+                config("message", Map.of("topic", "t", "messageService", messageService))), false);
         DebeziumConfig debeziumConfig = new DebeziumConfig();
         debeziumConfig.setName("discovery-probe");
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "debezium-cdc",
                 config("debezium-cdc", Map.of("config", debeziumConfig))), true);
+        // WI2: split sources carry no instance-level consistency accessor —
+        // instanceAligned flips to descriptor-pinned false (file-row precedent).
         assertProbe(catalog.probe(ConnectorDirection.SOURCE, "batch-loader",
-                config("batch-loader", Map.of("loaderProvider", loaderProvider()))), true);
+                config("batch-loader", Map.of("loaderProvider", loaderProvider()))), false);
 
         assertProbe(catalog.probe(ConnectorDirection.SINK, "file",
                 config("file", Map.of("outputDir", tempDir.resolve("out").toString()))), true);

@@ -546,6 +546,16 @@ public class GraphExecutionPlan {
                     ((ParallelismCheckable) sourceFunction).validateParallelism(parallelism);
                 }
             }
+            // WI2 plan 2343 Phase 1 (G5): FLIP-27 parity — a split source implementing
+            // ParallelismCheckable (e.g. the single-writer batch-loader) rejects
+            // unsupported parallelism at deployment, exactly like the legacy path.
+            else if (op instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                io.nop.stream.core.source.Source<?, ? extends io.nop.stream.core.source.SourceSplit, ?> splitSource =
+                        ((io.nop.stream.core.operators.SourceReaderOperator<?>) op).getSource();
+                if (splitSource instanceof ParallelismCheckable) {
+                    ((ParallelismCheckable) splitSource).validateParallelism(parallelism);
+                }
+            }
             // R6 CON-03 (plan 2326): sink-side gate — a sink function that cannot
             // run multi-subtask (e.g. the batch-consumer shared in-memory buffer)
             // rejects PARALLEL deployment here instead of corrupting data at

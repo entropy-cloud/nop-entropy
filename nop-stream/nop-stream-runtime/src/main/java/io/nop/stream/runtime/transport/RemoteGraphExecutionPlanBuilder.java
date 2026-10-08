@@ -367,6 +367,15 @@ public class RemoteGraphExecutionPlanBuilder {
                             .validateParallelism(parallelism);
                 }
             }
+            // WI2 plan 2343 Phase 1 (G5): FLIP-27 parity with the embedded builder.
+            else if (op instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                io.nop.stream.core.source.Source<?, ?, ?> splitSource =
+                        ((io.nop.stream.core.operators.SourceReaderOperator<?>) op).getSource();
+                if (splitSource instanceof io.nop.stream.core.common.functions.source.ParallelismCheckable) {
+                    ((io.nop.stream.core.common.functions.source.ParallelismCheckable) splitSource)
+                            .validateParallelism(parallelism);
+                }
+            }
             // R6 CON-03 (plan 2326): sink-side gate — mirrors the embedded builder.
             else if (op instanceof io.nop.stream.core.operators.AbstractUdfStreamOperator) {
                 Object udf = ((io.nop.stream.core.operators.AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
