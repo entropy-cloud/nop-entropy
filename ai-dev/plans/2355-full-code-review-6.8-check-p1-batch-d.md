@@ -71,20 +71,20 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: in progress
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + already-fixed 抽验 ≥30% 含实跑 + 撞车复验（含全量 grep）+ **承接台账复核（在先锚回读+index 登记状态核对）** + canonical 净账（dup 口径沿 2354 B-2 裁定）
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 四态零翻案**——still-live 8/8 亲读（全部零 diff vs origin/master）+ 严重性终裁 **P1×6 / P2×2**（A#8 JavaScriptService→P2-6.8-001〔nop-js 已注释出 reactor pom.xml:22 亲读，P2-6.6-001 同判例，升级触发=模块复活〕/B-3 DemoBizModel→P2-6.8-002〔demo 单端点响亮 500，P2-6.5-001 同判例〕）；AF 抽验 10 条亲读+4 实跑批次全绿，5 修复提交 master 祖先实测；SftpClient residual canonical=AF 附 adjudicated-deferred（沿 3.9 §2.5#4 OkHttp 先例，plan 2283 承载）；22 锚×11 撞车面全量 grep 零新增同根；承接台账回读 41/43 在先锚全部吻合；**index missing 勘正 17→18**（universe 汇总算术滑漏漏列 PageProvider——台账行标记在场，C 分解 22+2+1+18=43 时账平）；**canonical AF 14 / dup 0 / still-live 8 / FP 0=22**；69=43+26、26=22+4（未抽样 4 条全「其他」类）账平；双轨 84.6%/65≥35 两 MET
+- [x] 主 agent 汇总：四态统一（dup=0 维持）、撞车去重终裁（零新增同根）、承接 18 条 index 补登记清单采纳
+- [x] 台账收敛（复核 §5 canonical + §4b 补登记清单为 Phase 3 输入）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.8-checkp1-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.8-checkp1-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
