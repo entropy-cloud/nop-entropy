@@ -1,6 +1,6 @@
 # 2355 full-code-review 6.8 check 系列 P1 抽样标定 d（集成运行时/外围/工具/格式/其他）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.8（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: 批次权威定义=矩阵 §6：批次 d 成员 = **集成运行时（spring/quarkus/network/integration）、runner/autotest/demo、nop-entropy-e2e、nop-rg、nop-lint + nop-treesitter、其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark）**（metadata 唯一归批次 c〔6.7 已闭〕、search 唯一归批次 d）。同族先例=plan 2352/2353/2354（修复后形态照抄：独立枚举 diff/维度派生/冻结三要素/dup 方向/符号匹配键/分支口径/强制实跑/处置面实测先验/承接规则/双轨口径）。
@@ -50,7 +50,7 @@
 
 ### Phase 1 - 对账、承接实测、抽样与标定（3 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: 批次 d check 单元报告 P1 清单
 
 - Item Types: `Proof`
@@ -66,7 +66,7 @@ Exit Criteria:
 
 - [x] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据（zero-test 退化逐条登记）
 - [x] 双轨抽样达标（净池轨 84.6% + 严格基线轨 65≥35，实测 N=26/C=43 落盘）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
-- [ ] No owner-doc update required（只读）
+- [x] No owner-doc update required（只读）
 - [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
@@ -88,33 +88,33 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.8-check-p1-batch-d.md`（附录记冻结协议 SHA-256）；index 登记 6.8 行（替换占位行）+ 净池仍 live 进 P1 汇总（P1-6.8-NNN）+ **承接仍 live 条目核对 index 登记状态、缺失者补登记** + P2 裁决台账
-- [ ] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（五项：证据完整性/严重性标定/引用路径真实性/计数对应——**抽样覆盖率双轨核验+承接台账核验**）；**通过后** roadmap 6.8 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `6.8-check-p1-batch-d.md`（附录记冻结协议 SHA-256）；index 登记 6.8 行（替换占位行）+ 净池仍 live 进 P1 汇总（P1-6.8-001..006）+ **承接仍 live 18 条沿在先行标识补登记**（P1-check-netrpc-24/P1-4.4-A5/S-02..06/C1..C4/M01..03/P1-4.5-R1/R2/D1/B1，含勿双立注记）+ P2 裁决台账 2 行
+- [x] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（五项）；**通过后** roadmap 6.8 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划；live-ness 验证含只读测试实跑（处置指名测试强制），免除全量构建。
 
-- [ ] 报告落盘且批次 d 对账 + 双轨抽样标定全覆盖（含承接台账）
-- [ ] 每条标定双锚证据可复现（zero-test 模块按退化规则登记）；四态归属依据 roadmap 定义；撞车全量比对留痕
-- [ ] index 计数与报告标定台账一一对应；净池仍 live 清单完整进 P1 汇总；承接仍 live 条目 index 登记状态全部核对（缺失补登）
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 6.8 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且批次 d 对账 + 双轨抽样标定全覆盖（含承接台账）
+- [x] 每条标定双锚证据可复现（zero-test 模块按退化规则登记）；四态归属依据 roadmap 定义；撞车全量比对留痕
+- [x] index 计数与报告标定台账一一对应；净池仍 live 清单完整进 P1 汇总；承接仍 live 条目 index 登记状态全部核对（缺失 18 条补登）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 6.8 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -126,14 +126,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 6.8 收口——批次 d 69 条 P1 对账闭合 + 承接实测 C=43（4.4/4.5/3.9 行级锚回读零错配，still-live 18）+ 冻结抽样 22 条标定零翻案，canonical **AF 14 / dup 0 / still-live 8 / FP 0**；复核终裁 P1×6（P1-6.8-001..006 进 R1.0）+ P2×2（P2-6.8-001/002 进 P2 裁决台账）；双轨抽样 84.6% 净池 / 65≥35 严格两 MET；承接 still-live 18 条沿在先行标识补登记 index P1 汇总（plan M1 路由规则落地）。独立 closure audit（agent_55f0b61c）首轮 **FAIL 附 1 Major 纯文本处方**（M-1 index P1-4.5-R1 行缺陷主体错记——误挂同报告 P3 条目），处方 R1 落实 + 顺手修 m-1（index :118 遗留合并行拆分）/m-2（报告 P1-6.8-001 修复方向对齐 A 份产物建议）后轻量复核 **PASS**。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_55f0b61c-3669-49ea-af29-450d11198eee（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告六节+附录齐备；FP=0/dup=0 显式宣告；三份标定产物逐条双锚（A 零测试退化登记/B 57/57/C 69 用例 0F0E）；产物与引用逐项吻合
+  - 核验 B 计数对应 PASS（亲手重算）：冻结表 SHA-256 重放 `8f367c53…` 四处一致；canonical 14+0+8+0=22 按产物亲数；69=43+22+4、C 分解 22+2+1+18=43、26=22+4 逐行重算；未抽样 4 条亲手枚举全「其他」类；报告 0/6/2/0=index 6.8 行=P1 汇总 6 行=P2 台账 2 行一一对应；**承接核验：index 恰 18 行与报告 §二 一一对应，8 条回读在先报告原文全部吻合（超抽 5 要求），勿双立注记三处在场**；双轨 84.6%/65≥35 两 MET
+  - 核验 C 引用路径真实性 PASS：6 条 file:line 亲读在位（含 pom.xml :22 nop-js 注释出 reactor 逐行）；4 条修复方向与产物一致（m-2 对齐后）
+  - 核验 D 严重性标定 PASS：6 条 P1 维持依据成立；2 条 P2 降档论证抽验成立（判例 P2-6.6-001/P2-6.5-001 真实在场+升级触发登记）；SftpClient residual canonical 三处如实记载；零 P0 遗漏嫌疑
+  - 核验 E 流程状态 PASS：roadmap 6.8 翻 done 前 todo（前置正确）；plan Phase 3 未勾状态与本审计时点对应
+  - 轻量复核 PASS：R1（P1-4.5-R1 行改写逐字一致+相邻行未损）+ m-1（:118 拆行结构完好）+ m-2（修复方向与 A 份精确一致）；check-doc-links EXIT=0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2355-full-code-review-6.8-check-p1-batch-d.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；2 条 P2 系 Phase 2 复核终裁（附升级触发登记）走 P2 裁决例外台账（roadmap 规则 #3 允许通道，非静默降级）；未抽样余量 4 条为抽样制设计内残留（双轨协议内）
+  - Minor m-3（不阻塞）：报告 001 引 getCookie 守卫锚 :119-123 实测 :120-123（1 行偏移，6.7 先例不阻塞）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-6.8-001..006 + P2-6.8-001/002 修复归 R1.0 裁决；承接 still-live 18 条已沿在先行标识进 P1 汇总（R1.0 对账防漏单）；CL-2 SftpClient residual 归 R1.0 对 plan 2283 Deferred 统一裁决——无本 plan 自有剩余工作
