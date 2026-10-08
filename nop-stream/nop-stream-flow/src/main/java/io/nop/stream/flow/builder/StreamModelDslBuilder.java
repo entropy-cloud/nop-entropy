@@ -317,15 +317,22 @@ public final class StreamModelDslBuilder {
             throw noSqlProvider(sql);
         }
         Map<String, String> schema = new LinkedHashMap<>();
+        Map<String, Long> fieldLateness = new LinkedHashMap<>();
         if (sql.getSchemas() != null) {
             for (io.nop.stream.flow.model.StreamSqlFieldModel f : sql.getSchemas()) {
                 schema.put(f.getName(), f.getType());
+                // WI25/Q1: time-column lateness annotation (millis); null/<=0 means no
+                // declaration — the compiler fails fast on non-time-column declarations.
+                java.lang.Long lateness = f.getLateness();
+                if (lateness != null && lateness > 0) {
+                    fieldLateness.put(f.getName(), lateness);
+                }
             }
         }
-                // WI37 (D11 release): carry the declared two-tier emit mode into the product.
+        // WI37 (D11 release): carry the declared two-tier emit mode into the product.
         // Default-provider compatibility: the no-emit overload delegates to CLOSE.
         String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean(),
-                sql.getEmit());
+                sql.getEmit(), fieldLateness);
         io.nop.core.lang.xml.XNode node;
         try {
             node = io.nop.core.lang.xml.XNode.parse(xml);

@@ -111,7 +111,10 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
          挂 <sql> 顶层属性，编译产物落 <strategy emit>（UPDATE 仅窗口聚合查询合法） -->
     <sql sinkBean="!string" emit="!enum:io.nop.stream.core.windowing.StreamEmitMode=CLOSE" xdef:name="StreamSqlModel">
         <schemas xdef:key-attr="name" xdef:body-type="list">
-            <field name="!string" type="!string" xdef:name="StreamSqlFieldModel"/>
+            <!-- WI25/Q1 裁定：lateness 为时间列注解（Feldera LATENESS 形态子集化）——毫秒，仅 TUMBLE
+             时间列生效（映射产物 strategy allowedLateness，D9 管线零运行时改动）；非时间列声明
+             与无 strategy 路径声明构建期 fail-fast -->
+    <field name="!string" type="!string" lateness="long" xdef:name="StreamSqlFieldModel"/>
         </schemas>
         <source>string</source>
     </sql>

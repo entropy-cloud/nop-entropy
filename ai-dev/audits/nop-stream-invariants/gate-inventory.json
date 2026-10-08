@@ -47,6 +47,7 @@
     "nop-stream-core": {
       "io.nop.stream.core.datastream.WindowedStreamImpl": {
         "methods": [
+          "accumulationMode",
           "aggregate",
           "allowedLateness",
           "apply",

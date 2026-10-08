@@ -39,18 +39,30 @@ public interface ISqlStreamCompiler {
      * @param emit     the declared {@code <sql emit>} attribute (WI37/D11 two-tier
      *                 emit); never null after the xdef default (CLOSE) is applied —
      *                 {@code UPDATE} is only legal for windowed aggregate queries
+     * @param fieldLateness the declared {@code <field lateness>} values in millis
+     *                      (WI25/Q1: time-column lateness annotation); empty when no
+     *                      field declares lateness — only the TUMBLE time column's
+     *                      value is honored, other columns fail fast
      * @return the model XML text
      * @throws io.nop.stream.core.exceptions.StreamException on any compile failure
      *                                                        (unsupported construct,
      *                                                        schema violation, ...)
      */
-    String compileSql(String sql, Map<String, String> schema, String sinkBean, StreamEmitMode emit);
+    String compileSql(String sql, Map<String, String> schema, String sinkBean, StreamEmitMode emit,
+                      Map<String, Long> fieldLateness);
 
     /**
      * WI37 compatibility overload: providers that only know the legacy CLOSE behavior
      * may keep implementing the three-argument form; the emitted mode is then CLOSE.
      */
     default String compileSql(String sql, Map<String, String> schema, String sinkBean) {
-        return compileSql(sql, schema, sinkBean, StreamEmitMode.CLOSE);
+        return compileSql(sql, schema, sinkBean, StreamEmitMode.CLOSE, java.util.Collections.emptyMap());
+    }
+
+    /**
+     * WI37 compatibility overload: emit without per-field lateness.
+     */
+    default String compileSql(String sql, Map<String, String> schema, String sinkBean, StreamEmitMode emit) {
+        return compileSql(sql, schema, sinkBean, emit, java.util.Collections.emptyMap());
     }
 }
