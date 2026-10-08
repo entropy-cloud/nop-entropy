@@ -217,7 +217,13 @@ public final class StreamSqlCompiler {
                                            List<XNode> transforms, List<XNode> edges,
                                            String idPrefix) {
         if (stmt instanceof SqlSelectWithCte) {
-            throw CompileErrors.invalidArg("WITH/CTE is outside the stream SQL v1 subset");
+            // WI32: CTE requires proper inline expansion (substituting the CTE body's
+            // table source for the CTE reference) — removing the fail-fast alone
+            // produces a product that references the CTE alias instead of the
+            // underlying table, failing at runtime. Reverting to fail-fast with
+            // doc anchor; proper expansion design needed before re-release.
+            throw CompileErrors.invalidArg("WITH/CTE requires inline expansion design "
+                    + "(see sql-subset-and-semantics.md §4a#7) — outside the stream SQL v1 subset");
         }
         if (stmt instanceof SqlUnionSelect) {
             return compileUnion((SqlUnionSelect) stmt, ctx, transforms, edges, idPrefix);
