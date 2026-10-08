@@ -47,25 +47,25 @@
 
 ### Phase 1 - 增量对账、巡检与 backlog 标定（2 agent 并行）
 
-Status: in progress
+Status: completed
 Targets: nop-stream/ 在审增量面 + invariant backlog
 
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（ba822d061a）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① 62 提交全量清单（确定性超集口径；聚类+**三 roadmap WI 映射表**+**提交级已审域标记**〔2.8 收口前 stream-sql 波=登记不重审〕+**域外触碰登记移交**）② invariant backlog open P2 全量清单（Follow-up Backlog 区枚举 ~96 条展开计数）③ 冻结协议三要素 ④ 覆盖账 62=在审 N+已审域 M 落盘
-- [ ] Agent 1「增量面巡检」：在审提交逐簇 diff triage（维度 04/10/14；发现准入沿 2357 规则；**TestStreamConnectorRegistryDiscovery 在窗回归必审**）→ `_tmp/fcr-7.2-audit-a.md`
-- [ ] Agent 2「backlog 批量标定」：open P2 三分类（fixed-by-subsequent-plan/still-open/watch-only；代码亲读+抽验实跑 ≥5；撞车比对 2.8/6.7/6.9/AR 台账）→ `_tmp/fcr-7.2-audit-b.md`
-- [ ] 主 agent 抽查质量：冻结表重放+发现/标定抽验（含实跑 ≥1）
-- [ ] 产物 `_tmp/fcr-7.2-audit-a/b.md` + 聚类清单 + backlog 清单
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent）：① **62 提交全量清单**（确定性口径零偏差——最早窗内提交距边界 4 天；聚类+**四套 WI 映射表**落盘〔eql WI11 不在 HEAD 窗/multi-engine WI8 在分支——按 subject+commit tree 钉死〕+**提交级已审域标记**〔**覆盖账 62=在审 35+已审域 27 账平**；M=stream-sql 波 26+2.8 收口锚 816a394d12〕+**域外触碰 20/62 登记移交**〔kafka 面仅 3c542f7046〕）② invariant backlog open P2 **98 todo 行=96 P2+2 P3 与先验精确一致**（捆绑展开 ~135 单元；3 个批次头注计数失真登记）③ 冻结协议三要素（seed=2358；clusters `f5d32ea6…`/backlog `a1cd1d0c…`/sample `6452b489…`）④ **分支口径边界登记**：master 侧窗内另有 ≈20 提交不在 HEAD 62 覆盖账（互不为祖先 393/167 分叉）
+- [x] Agent 1「增量面巡检」：在审 35 提交巡检完成——**新发现 2 条**：P1-7.2-001 在窗回归（WI4 工厂 PARALLEL vs 测试 SINGLE_INSTANCE 断言失配，实跑终判红，模块测试门禁恒红；修复方向=同步测试断言禁止回退工厂语义）+P3-7.2-001（JdbcTwoPhaseCommitSink.keyTuple 无类型标定/无 NUL 转义——异键静默折叠丢 op）+7 条 watch-only 观察；**撞车移交 6 项**（含 6.7 P1-6.7-007/008 still-live HEAD 亲读零触碰确认）；CDC 5 提交全量亲读+R 波高危 hunk 逐点核验零 P0 → `_tmp/fcr-7.2-audit-a.md`（覆盖局限如实登记：82d287b9e9 64 文件为逻辑行扫描抽读）
+- [x] Agent 2「backlog 批量标定」：98 行三分类 **fixed-by-subsequent-plan 35 / still-open 35（全 P2 级）/watch-only 28**（含 P3 2 条按规则不深标）；**P1 级升级上报 1 条：AR-06**（DebeziumMessageSource.dispatchEvent 逐 consumer 吞 collect 异常且 offset 前移=静默 CDC 数据丢失，与已修 P1-9 同族；实体在 nop-message-debezium 域外面，归属注记）；深抽 20 条判定分布 fixed 5/open 11/watch 4 零翻案+实跑 5 次 44 用例（43 绿+1 红=在窗回归移交 Agent 1）；open 行内同根归并 4 组 → `_tmp/fcr-7.2-audit-b.md`（R0 误定位偏差登记在案）
+- [x] 主 agent 抽查质量：冻结三件套重放一致（f5d32ea6/a1cd1d0c/6452b489）+ P1-7.2-001 断言失配亲读成立 + AR-06 吞异常模式亲读成立
+- [x] 产物 `_tmp/fcr-7.2-audit-a/b.md` + 聚类清单 + backlog 清单
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（两 agent 一致零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；still-live ≥9 行条目；双锚证据
-- [ ] 覆盖账 62=N+M 账平；backlog P2 全量三分类；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；still-live ≥9 行条目；双锚证据
+- [x] 覆盖账 62=35+27 账平；backlog P2 全量三分类（96 条）；样本表可重放
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
