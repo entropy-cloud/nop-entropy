@@ -1,14 +1,14 @@
 # 2363 full-code-review 7.7 nop-message-pulsar + nop-record 单轮审计残留复核
 
-> Plan Status: draft
-> Last Reviewed: 2026-10-08
+> Plan Status: active
+> Last Reviewed: 2026-10-09
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.7（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/14 巡检侧重）
 > Related: **`ai-dev/audits/2026-05-20-adversarial-review-nop-message-pulsar/adversarial-review-round1.md`（Owner Doc 1，422 行——发现 1~17，空壳原型时代产物；发现 17 sendAsync 丢弃 MessageId :381-399）**；**`ai-dev/audits/2026-08-16-1447-adversarial-review-nop-record-plan-203.md`（Owner Doc 2，144 行——**R1 16 条〔P0×2+P1×6+P2×8〕+R2 7 条=23 条**；含 P0-2 公式双重跳过主 Blocker）**；**plan-203 本体已 completed 并归档 `ai-dev/archived/2026-08/203-nop-record-record-file-defect-fixes-tests-first.md`（执行提交 e530b5c0cc 2026-08-16）**——对抗审查发现的修复在 HEAD 是否仍在位为本项核心复核面〔M3 锚〕；6.1（**P2-6.1-001 Pulsar seekToPosition 空实现**——发现 7 附注挂接 7.7/R1.0；6.9 escalation-final #:192〔msg-cluster-cred 行 192〕与 P2-6.1-001 同一缺陷双立标记——R1.0 合并裁定注记）；**4.4→7.7 kafka 生命周期 5 点移交（4.4 报告 :677 ①..⑤；index :189 P1-4.4-M03「7.7 移交①②」；M-03 seek 语义统一联动 6.1 :18）**〔M2——本项显式承接面〕；6.8（format-record 单元 P1×6 标定——**对照载体=`_tmp/fcr-6.8-universe.md`/`frozen.csv` 非 6.8 报告正文〔M4〕；两套 ID 空间〔plan-203 审查条目 vs check format-record#P1-N〕对照机制=文件+符号键匹配，Phase 1 落盘**）。
 > 机械基线（主 agent 实测 2026-10-08；**对抗审查 agent_fb56b1fa 勘正 B1/B2**）：pulsar round1 **发现 17 条**（非 16——发现 17 :381-399；对账范围=round1 全文非 :11-356 截断）；**建设提交 28359021e5 为 2026-05-21（round1 审计次日，窗口内）——round1→现状主证据=该提交 diff**〔m1 勘正，非「更早窗口」〕；nop-record plan-203 审查 **23 条**（非 10）；nop-record 近窗 **2026-08-16..HEAD 7 提交**（plan-203 执行+回归风险面〔m2 钉定〕）。
 > **范围裁定**：① pulsar 17 发现逐条现状复核（round1→28359021e5 diff 为主证据+当前代码亲读；仍 live 者立条）；② **P2-6.1-001/6.9 #:192 seekToPosition 现状复核 + kafka 5 点移交整理**（M2 显式承接：①suspended/poll 脱钩已并入 M-01 ②ALWAYS vs INIT 语义区分 ③非 ApiMessage 载荷编码裁决 ④runTask onException 保护〔P3-4.4-008〕⑤停机观察——逐点现状+裁决建议，7.7 以 4.4 报告为输入不必重读 Kafka 源码〔4.4 :677 原文〕）；③ nop-record plan-203 审查 23 条现状复核（撞车对照 6.8 format-record 标定——同源归并/异面立条）；④ 增量巡检=pulsar 1 提交（即主证据）+nop-record 7 提交 diff triage。
 > **方法学裁定**：① **三 agent**（Agent 1=pulsar 17 条+seek 整理/Agent 2=plan-203 R1 16 条/Agent 3=plan-203 R2 7 条+kafka 5 点移交——40 条+移交面均衡分工）；② 发现编号 `P1-7.7-NNN`/`P2-7.7-NNN`（历史发现复核沿用原 ID 承载）；P0 即时通道；③ **撞车检索面（M1 勘正）**：6.1/6.9/4.4/6.8（_tmp 载体）/**4.1（format-record#P1-5↔4.1 :258 异根裁定在案；:90 ModelBasedResourceRecordIO 触点）**/1.5（:18 分工结论）/3.9（:699 record-netty 依赖）/4.2（:521-522 record 测试面）；**2.2 移除**（orm-eql 零 record 命中——M1 勘正）；④ 验证协议：双锚；Phase 2 still-live 100% 亲读+复核抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 实跑；**冻结协议三要素（m5 勘正）**：seed=2363+净池快照哈希+冻结表哈希落盘。
 > **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红按 plan 2331 :92 先例归因登记。
-> Draft Review: agent_fb56b1fa 首轮 **2 Blocker（B1 pulsar 实为 17 条非 16——漏发现 17 且对账范围截断/B2 plan-203 审查实为 23 条非 10——漏 P0-2 与 R2 全部）+ 4 Major（M2 kafka 5 点移交未接/M1 撞车面列错漏列/M3 plan-203 归档锚缺失/M4 6.8 对照载体机制未写）+ 3 Minor（m1/m2/m5）**——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_fb56b1fa 首轮 **2 Blocker（B1 pulsar 实为 17 条/B2 plan-203 审查实为 23 条）+ 4 Major（M2 kafka 移交未接/M1 撞车面列错漏列/M3 归档锚缺失/M4 对照机制未写）+ 3 Minor（m1/m2/m5）**——本轮全部修复（详见各节勘正注记）；聚焦复核逐项 PASS（17+23=40 计数链+三 agent 分工覆盖无缺口；1 nano 元数据日期注记收口随手更新）——转 active。
 
 ## Purpose
 
@@ -47,12 +47,12 @@
 
 ### Phase 1 - 现状复核（3 agent 并行）
 
-Status: planned
+Status: in progress
 Targets: pulsar 17 发现 + plan-203 23 条 + kafka 移交
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（062a68369f）、`git status` 干净后开始
 - [ ] 主 agent 对账落盘（委派对账 agent）：① pulsar 17 发现清单核验（round1 全文逐条；发现 17 在册）② plan-203 审查 23 条清单核验（R1 16+R2 7；P0-2 在册）③ 与 6.8 标定撞车预对账（_tmp 载体+ID 空间对照机制落盘）④ 冻结协议三要素 ⑤ 三 agent 分工
 - [ ] Agent 1「pulsar 面」：17 发现逐条现状复核（28359021e5 diff 主证据+当前代码亲读；发现 7 附注+P2-6.1-001/6.9 #:192 专节）→ `_tmp/fcr-7.7-audit-a.md`
 - [ ] Agent 2「plan-203 R1 面」：R1 16 条逐条现状复核（归档 plan completed 锚+当前代码亲读；撞车对照 6.8）→ `_tmp/fcr-7.7-audit-b.md`
