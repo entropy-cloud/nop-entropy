@@ -1,6 +1,6 @@
 # 2362 full-code-review 7.6 nop-datav followups P2 抽样巡检
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.6（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/12 巡检侧重）
 > Related: **`ai-dev/backlog/nop-datav-audit-followups.md`（Owner Doc，152 行 P2-only backlog）**——#1-17 已 resolved（plan `2026-08-14-0950-1` completed 2026-08-14）；**open P2×52+裁定项×1（对抗审查 M-01 勘正：#18-65 中 #28/#31 已✅消化〔plan 2146-3〕故 multi=open 46/open #66-69=4/#70-72=2+裁定项 #72 快照序列化 sid 暴露评估；roadmap「P2×~55」高估记口径缺陷不改文本；另未编号 open nit×1〔nop-datav-api 空模块，台账 :39〕不入抽样池维持 backlog〔m-01 显式排除〕）；2.6（biz/graphql 深审——datav 域零覆盖声明？Phase 1 对账核对）/6.7 复核 §5（12 条未抽样余量逐条指认含 datav#P1-1〔D3〕——登记在 6.7 非 6.9）+6.9（datav 域唯一相关=升级候选 V2/N3 JWT 默认密钥族扩展锚 nop-datav-app enc-key）。
@@ -83,31 +83,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.6-nop-datav-followups-audit.md`；index 登记 7.6 行 + 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（五项：证据完整性/严重性标定/引用路径真实性/计数对应/抽样覆盖率）；**通过后** roadmap 7.6 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.6-nop-datav-followups-audit.md`；index 登记 7.6 行 + P2-7.6-001 进 P2 台账 + still-open×21 归 P2 台账通道
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（五项）；**通过后** roadmap 7.6 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 巡检口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 巡检口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建。
 
-- [ ] 报告落盘且抽样 ≥45% 达成+45 提交全覆盖
-- [ ] 每条双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.6 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且抽样 ≥45% 达成+45 提交全覆盖
+- [x] 每条双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（P2-7.6-001+still-open×21）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.6 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -124,14 +124,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.6 收口——**重定基后** open P2×52+裁定项×1 精确枚举，抽样 25 条（48.1%≥45%）三分类 fixed 2/watch 2/still-open 21 零翻案，增量巡检 P2-7.6-001（双重遗漏链复核新证强化）。独立 closure audit（agent_ccb3b4fc）**一次 PASS 五项全过**（SHA 双重放+抽样重放逐字节+4+2 抽验全中），3 Minor 不阻塞（_tmp 日期注记/标题沿用注记/Q1-Q2 已吸收）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_ccb3b4fc-a9cc-49a2-8be1-08245186d5db（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告五段齐备；双锚在位（audit-a 25 条逐条收尾行+audit-b diff/HEAD 双锚）；产物引用一致；工具事故登记在案
+  - 核验 B 计数对应 PASS（亲手重算非转录）：backlog 53 行 Counter 解析+SHA 重放一致；clusters 45 行+OUT 7 哈希逐一吻合+SHA 一致；抽样 random.Random(2362).sample 实跑逐项一致 48.08%≥45%；三分类 2/2/21；45 提交 git 重算；报告=index=P2 台账逐项一致；Deferred 四字段齐备
+  - 核验 C 引用路径真实性 PASS：4+2 抽验全中（:552 裸 ISE 唯一性 grep/da7444bdf9 diff 4 处/:537-539 直建/application.yaml:6 enc-key）+修复方向三方一致
+  - 核验 D 流程状态 PASS：roadmap 翻 done 前 todo；Phase 3 未勾时序正确
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2362-full-code-review-7.6-nop-datav-followups-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：未抽样余量 27 条为 sampling-by-design 残留（结构化四字段裁定在 plan，非静默降级）
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P2-7.6-001 修复归 R1.x（与 W7 同批）；still-open 21 → R1.0 批量裁决（P2 台账承载）；#72 评估 → R1.0 ACL 收口参考；低成本快赢 5 处 → R1.x 打包批建议——无本 plan 自有剩余工作
