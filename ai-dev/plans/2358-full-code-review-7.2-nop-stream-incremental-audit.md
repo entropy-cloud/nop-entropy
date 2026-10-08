@@ -69,19 +69,19 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + backlog 标定抽验 ≥20% + 撞车复验 + 净账
-- [ ] 主 agent 汇总：四态统一、台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零事实翻案**——P1-7.2-001 **P1 维持**（三路独立重证：静态失配/在窗历史〔05e81257e6 曾观测该红误归因兄弟 worktree〕/独立实跑复现 `Tests run: 8, Failures: 1` EXIT=1；降档判例不适用——模块门禁恒红全域触发）；**P3-7.2-001 升 P2**（keyTuple 三类碰撞机理双锚+测试盲区互证——P2-6.5-001/6.8-001 判例，触发面窄只挡 P1 不挡 P2）；**AR-06 升级撤销→P2 残余收敛**（机制成立但升级文本在 HEAD 为事实错误——窗内 e20b7cef1b plan 368 R5-CON-02/03 已按 AR-06 建议同形态闭合生产链路，P2-6.6-001 无可达生产路径判例；升级触发=绕过 DebeziumCdcSourceFunction 直接订阅）；backlog 三分类 35/35/28 维持（AR-06 子类残余收敛 9→10）；**升级上报定稿 0 条 P1 级**；抽验 13 条+同根归并 2/2+机械重放全过
+- [x] 主 agent 汇总：四态统一（P3→P2 升档+AR-06 撤销）、台账收敛（报告按终裁落笔）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-7.2-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-7.2-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
