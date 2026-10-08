@@ -10,7 +10,7 @@
 > **方法学裁定**：① 审计维度=03/09/12+复杂度巡检；判级锚 deep-audit 共享前缀；② 增量审计两跳：git log 聚类（重构波/修复波/配置文档波）→ 逐簇 diff triage；③ **P0 即时通道**；④ still-live 发现编号 `P1-7.1-NNN`/`P2-7.1-NNN` 进 R1.0 输入；⑤ **撞车检索面（对抗审查 M5 勘正）**：6.4（P2-6.4-001 ai-rest residual live——gateway login 面被 0b7fc8f903 窗口内触碰）/6.5–6.9 各批次 ai 域发现（6.7 批次 c ai 域 20 条 P1 标定+6.9 升级候选 ai 域条目）/6.2（P2-6.2-003 AiFileTool:178/:195——被 c9a6cd0e56 触碰）/4.1（ToolSchemaConverter 吞异常同维先例）/arm-index（arm 已修不复报）；**check 历史单元名→现行模块映射表**（ai-core-api→nop-ai-core+nop-ai-api、ai-rest→gateway/shell/coder/dao/service/maven/mcp 等、ai-toolkit-skills→toolkit+skills+tools——Phase 1 落盘）；4.2（报告 :497 明文排除 nop-ai 组）/3.11（安全维度排除）/5.2（design drift 非三维度）注记 N/A。
 > **验证协议（对抗审查 m2/M6 下限）**：报告内每条发现双锚（diff 位点+代码亲读）；主 agent 抽查 ≥5 条发现（含 ≥1 处代码亲读复核）；Phase 2 独立复核 still-live 100% 亲读+其余发现抽验 ≥30% 含代码亲读；冻结协议三要素（seed=2357+提交簇清单哈希+triage 样本表）落盘；结束跑受影响模块 `./mvnw test -pl nop-ai/<受影响模块> -am` 或引用当前绿色基线。
 > **执行分支口径**：以当前工作树（audit/full-code-review）为读、以 master 可达性为锚；实跑红按 plan 2331 :93 先例归因预存并登记。
-> Draft Review: agent_16ad4c5c 首轮 **6 Major（M1 三 agent 分工失衡+幻影 rest+「等其余面」成员不闭合/M2 模块计数 22≠pom 21+MCP 无基线面未登记+deploy/model 处置缺失/M3 安全排除层级未写明+3.10 覆盖表述失准/M4 跨模块路径规则缺失——86/147 提交域外触碰/M5 撞车面缺 6.4/6.2/4.1 ai 域+check 单元名映射/M6 发现准入与维度 12 判据不操作化+抽验无下限）+ 4 Minor**——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_16ad4c5c 首轮 **6 Major（M1 分工失衡+幻影 rest/M2 模块计数+MCP 无基线+deploy/model 处置/M3 安全排除层级+3.10 失准/M4 跨模块路径规则/M5 撞车面缺 6.4/6.2/4.1+映射表/M6 发现准入+维度 12 判据+抽验下限）+ 4 Minor（m1–m4）**——本轮全部修复（详见各节勘正注记）；聚焦复核（同一审查员）逐项 PASS（分配表三重验证链可操作/实测数字逐字吻合），2 处指示性数字 nit 顺手勘正（Agent3 事件 366/Agent2 明细 4）——转 active。
 
 ## Purpose
 
@@ -36,7 +36,7 @@
 
 ### In Scope
 
-- nop-ai/ 21 模块（pom 口径）+ nop-spring-mcp-server/-support 的 2026-08-01..HEAD diff（仅 nop-ai/ 路径内）三维审计
+- nop-ai/ 21 模块（pom 口径，含 nop-spring-mcp-server/-support）的 2026-08-01..HEAD diff（仅 nop-ai/ 路径内）三维审计
 - 千行手写文件复杂度巡检（现势 5 文件）
 - 只读输入：git 历史、arm 台账、refactor-roadmap、6.4/6.2/6.7/6.9/4.1 ai 域发现
 
@@ -48,13 +48,13 @@
 
 ### Phase 1 - 增量对账与三维审计（3 agent 并行，成员闭合）
 
-Status: planned
+Status: in progress
 Targets: nop-ai/ 增量 diff 面
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent）：① 147 提交全量清单（逐提交 hash/日期/子模块/主题+**路径域内/域外标记**+**提交簇分配表：每提交恰分配一 agent**—— closures 核验基线）聚类为重构波/修复波/配置文档波+WI 映射落盘（25 WI=终态 24+WI25 插入；「原 89 提交」vs 实测 81 口径差注记）② 千行回涨判定表（4 回涨+ReActAgentExecutor 非回涨注记，git 实测落盘）③ check 历史单元名→现行模块映射表 ④ 冻结协议三要素（seed=2357+提交簇清单哈希+triage 样本表）⑤ **三 agent 分工（按实测提交量均衡、成员闭合——对抗审查 M1 勘正）**：**Agent 1=nop-ai-agent+nop-ai-mcp-server+nop-spring-mcp-server/-support**（62+5 提交/1068+13 文件事件——重构波主力+MCP 无基线面）；**Agent 2=nop-ai-core/api/dao/meta/web/dsl-orm/app + deploy/model 处置 + shell/service/coder/rag**（68+~2+12+10+9+6 ≈107 提交/410+ 事件）；**Agent 3=nop-ai-toolkit/skills/tools/gateway/maven**（~71 提交/379 事件——WI17 等重构波面）。分配表为唯一认领依据，无「等其余面」
+- [x] 动手前基线确认：本 plan 已提交（d6b719b828）、`git status` 干净后开始
+- [ ] 主 agent 对账落盘（委派对账 agent）：① 147 提交全量清单（逐提交 hash/日期/子模块/主题+**路径域内/域外标记**+**提交簇分配表：每提交恰分配一 agent**—— closures 核验基线）聚类为重构波/修复波/配置文档波+WI 映射落盘（25 WI=终态 24+WI25 插入；「原 89 提交」vs 实测 81 口径差注记）② 千行回涨判定表（4 回涨+ReActAgentExecutor 非回涨注记，git 实测落盘）③ check 历史单元名→现行模块映射表 ④ 冻结协议三要素（seed=2357+提交簇清单哈希+triage 样本表）⑤ **三 agent 分工（按实测提交量均衡、成员闭合——对抗审查 M1 勘正）**：**Agent 1=nop-ai-agent+nop-ai-mcp-server+nop-spring-mcp-server/-support**（62+5 提交/1068+13 文件事件——重构波主力+MCP 无基线面）；**Agent 2=nop-ai-core/api/dao/meta/web/dsl-orm/app + deploy/model 处置 + shell/service/coder/rag**（68+4+12+10+9+6 ≈107 提交去重/410+ 事件）；**Agent 3=nop-ai-toolkit/skills/tools/gateway/maven**（~77 提交/366 事件——WI17 等重构波面）。分配表为唯一认领依据，无「等其余面」
 - [ ] Agent 1/2/3「分面三维审计」：各按分配表对所辖提交簇逐簇 triage（维度 03/09/12；发现准入规则见头部——增量引入/实质恶化才立条，预存缺陷登记撞车台账），发现逐条双锚（diff 位点+代码亲读）；维度 12 按「新增/重构 main 簇无对应新增测试」判据；P0 疑似即时上报
 - [ ] 主 agent 抽查质量：冻结表重放+发现抽验 ≥5 条（含 ≥1 处代码亲读复核）+ 提交分配表覆盖核验（147 全覆盖零遗漏零重复）
 - [ ] 产物 `_tmp/fcr-7.1-audit-a/b/c.md` + 提交簇清单与分配表 + 千行回涨判定表
