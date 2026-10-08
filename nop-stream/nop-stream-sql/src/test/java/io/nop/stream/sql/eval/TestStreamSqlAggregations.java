@@ -115,13 +115,134 @@ public class TestStreamSqlAggregations {
         assertEquals(3L, sum.getResult(sum.merge(left, right)));
     }
 
+    // WI17 (plan 2342): DISTINCT is now supported via DistinctAggregateWrapper
     @Test
-    public void distinctFailsFast() {
-        StreamSqlAggregation spec = StreamSqlAggregations.resolve("sum");
-        StreamRecordEvaluator arg = StreamSqlExprCompiler.compileScalar(EqlExprSupport.parseExpr("amount"));
-        StreamException e = assertThrows(StreamException.class, () -> spec.withDistinct(true).create(arg),
-                "DISTINCT aggregates are outside the v1 subset — fail fast, no silent approximation");
-        assertEquals("nop.err.stream.invalid-arg", e.getErrorCode());
+    void distinctFiltersDuplicates() {
+        StreamSqlAggregation agg = StreamSqlAggregations.resolve("count").withDistinct(true);
+        io.nop.stream.core.common.functions.AggregateFunction<Object, Object, Object> fn =
+                agg.create(null);
+
+        Object acc = fn.createAccumulator();
+        acc = fn.add("a", acc);
+        acc = fn.add("a", acc); // duplicate — must be filtered
+        acc = fn.add("b", acc);
+        assertEquals(2L, fn.getResult(acc), "COUNT(DISTINCT) must deduplicate values");
+    }
+
+    @Test
+    void distinctNullValuesNotCounted() {
+        StreamSqlAggregation agg = StreamSqlAggregations.resolve("count").withDistinct(true);
+        io.nop.stream.core.common.functions.AggregateFunction<Object, Object, Object> fn =
+                agg.create(null);
+
+        Object acc = fn.createAccumulator();
+        acc = fn.add(null, acc);
+        acc = fn.add(null, acc);
+        assertEquals(0L, fn.getResult(acc), "null values must not be counted");
+    }
+
+    /** DISTINCT aggregate over an evaluated argument (the COUNT(DISTINCT v) shape). */
+    private static AggregateFunction<Object, Object, Object> distinctAgg(String fnId, String argExpr) {
+        StreamRecordEvaluator arg = argExpr == null ? null
+                : StreamSqlExprCompiler.compileScalar(EqlExprSupport.parseExpr(argExpr));
+        return StreamSqlAggregations.resolve(fnId).withDistinct(true).create(arg);
+    }
+
+    private static Map<String, Object> row2(String k1, Object v1, String k2, Object v2) {
+        Map<String, Object> m = new HashMap<>();
+        m.put(k1, v1);
+        m.put(k2, v2);
+        return m;
+    }
+
+    /**
+     * WI17 (plan 2342): the continuous reduce path merges a state accumulator with a
+     * fresh single-record accumulator (SqlRowAggregateOps.merge) — a value both sides
+     * have seen must count once. merge replays only the unseen records; a plain inner
+     * merge would double-count.
+     */
+    @Test
+    void distinctMergeReplaysOnlyUnseenValues() {
+        AggregateFunction<Object, Object, Object> count = distinctAgg("count", "v");
+        Object state = count.createAccumulator();
+        state = count.add(row("v", 1), state);
+        state = count.add(row("v", 2), state);
+
+        Object fresh = count.createAccumulator();
+        fresh = count.add(row("v", 2), fresh); // duplicate across sides
+        fresh = count.add(row("v", 3), fresh);
+
+        assertEquals(3L, count.getResult(count.merge(state, fresh)),
+                "COUNT(DISTINCT) over {1,2} ⊕ {2,3} must be 3, not 4");
+
+        AggregateFunction<Object, Object, Object> sum = distinctAgg("sum", "v");
+        Object sumState = sum.createAccumulator();
+        sumState = sum.add(row("v", 1), sumState);
+        sumState = sum.add(row("v", 2), sumState);
+        Object sumFresh = sum.createAccumulator();
+        sumFresh = sum.add(row("v", 2), sumFresh); // duplicate across sides
+        sumFresh = sum.add(row("v", 3), sumFresh);
+        assertEquals(6L, sum.getResult(sum.merge(sumState, sumFresh)),
+                "SUM(DISTINCT) over {1,2} ⊕ {2,3} must be 6, not 8");
+    }
+
+    /**
+     * WI17 (plan 2342) audit pin: min/max DISTINCT is semantically identical to the
+     * non-distinct form (dedup is idempotent for extremum aggregation) — through both
+     * the sequential add path and the reduce-path merge (state ⊕ fresh replays only
+     * unseen records, so the result equals aggregating all values once).
+     */
+    @Test
+    void distinctMinMaxMatchesNonDistinct() {
+        for (String fnId : new String[]{"min", "max"}) {
+            Map<String, Object> r1 = row2("item", "a", "v", 3);
+            Map<String, Object> r2 = row2("item", "a", "v", 1);
+            Map<String, Object> r3 = row2("item", "a", "v", 1);
+            Map<String, Object> r4 = row2("item", "a", "v", 2);
+
+            assertEquals(run(agg(fnId, "v"), r1, r2, r3, r4),
+                    run(distinctAgg(fnId, "v"), r1, r2, r3, r4),
+                    fnId + "(DISTINCT) must equal " + fnId + "() on add path");
+
+            AggregateFunction<Object, Object, Object> distinctFn = distinctAgg(fnId, "v");
+            Object left = distinctFn.createAccumulator();
+            left = distinctFn.add(r1, left);
+            left = distinctFn.add(r2, left);
+            Object right = distinctFn.createAccumulator();
+            right = distinctFn.add(r3, right);
+            right = distinctFn.add(r4, right);
+            assertEquals(run(agg(fnId, "v"), r1, r2, r3, r4),
+                    distinctFn.getResult(distinctFn.merge(left, right)),
+                    fnId + "(DISTINCT) must equal " + fnId + "() on merge-replay path");
+        }
+    }
+
+    /**
+     * WI17 (plan 2342, M-3): continuous accumulator rows round-trip through
+     * SnapshotCopyUtil.typedCopy on checkpoint snapshot — the DISTINCT seen-map must
+     * survive the JSON round trip and keep deduplicating after restore.
+     */
+    @Test
+    void distinctCompositeAccumulatorSurvivesSnapshotCopyAndContinues() {
+        SqlRowAggregateSpec spec = new SqlRowAggregateSpec(
+                Arrays.asList("item"),
+                Arrays.asList(new SqlRowAggregateSpec.AggCall("count", "v", false, true)));
+        AggregateFunction<Object, Object, Object> composite = StreamSqlAggregations.buildComposite(spec);
+
+        Object acc = composite.createAccumulator();
+        Map<String, Object> r1 = row2("item", "a", "v", 1);
+        acc = composite.add(r1, acc);
+        acc = composite.add(r1, acc); // same record twice pre-snapshot
+        acc = composite.add(row2("item", "a", "v", 2), acc);
+        assertEquals(2L, ((java.util.List<?>) composite.getResult(acc)).get(1),
+                "pre-snapshot COUNT(DISTINCT v) = {1,2}");
+
+        Object restored = io.nop.stream.core.util.SnapshotCopyUtil.typedCopy(acc);
+
+        restored = composite.add(r1, restored); // duplicate after restore — dedup must hold
+        restored = composite.add(row2("item", "a", "v", 3), restored);
+        assertEquals(3L, ((java.util.List<?>) composite.getResult(restored)).get(1),
+                "post-restore COUNT(DISTINCT v) = {1,2,3} — seen-map survived the JSON round trip");
     }
 
     @Test

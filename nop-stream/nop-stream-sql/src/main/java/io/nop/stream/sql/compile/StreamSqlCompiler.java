@@ -72,14 +72,17 @@ import java.util.Set;
  *   <li>Global aggregation (no GROUP BY) → fail-fast.</li>
  * </ul>
  *
- * <h3>Fail-fast matrix (r2 M4)</h3>
+ * <h3>Fail-fast matrix (r2 M4; HAVING + DISTINCT aggregates superseded by WI17,
+ * plan 2342)</h3>
  * Every unsupported construct fails fast — default-reject with
- * {@code nop.err.stream.invalid-arg} (HAVING, CTE/WITH, DISTINCT, INTERSECT/EXCEPT,
+ * {@code nop.err.stream.invalid-arg} (CTE/WITH, SELECT DISTINCT, INTERSECT/EXCEPT,
  * parenthesized/LATERAL selects, SELECT * , global aggregation, non-equi join,
  * GROUP BY without aggregate, TUMBLE+join, aggregate+join, multi-statement,
- * non-managed schema types), ORDER BY / LIMIT with the pinned
- * {@code nop.err.eql.dialect-not-support-feature}. UNION is bag union (no dedup);
- * UNION DISTINCT fails fast. No AST walk branch silently drops a construct.
+ * non-managed schema types, HAVING without GROUP BY or on a join), ORDER BY / LIMIT
+ * with the pinned {@code nop.err.eql.dialect-not-support-feature}. HAVING and
+ * DISTINCT aggregates are supported since WI17 (aggregate-then-filter paths and the
+ * DistinctAggregateWrapper). UNION is bag union (no dedup); UNION DISTINCT fails
+ * fast. No AST walk branch silently drops a construct.
  */
 public final class StreamSqlCompiler {
 
@@ -218,8 +221,22 @@ public final class StreamSqlCompiler {
         if (select.getDistinct()) {
             throw CompileErrors.invalidArg("SELECT DISTINCT is outside the stream SQL v1 subset");
         }
+        // WI17 (plan 2342): HAVING is supported on the GROUP BY + aggregate path only.
+        // Join and plain (no GROUP BY) paths would silently drop HAVING (violating the
+        // "no AST walk branch silently drops a construct" contract), so they fail fast
+        // here before dispatch.
         if (select.getHaving() != null) {
-            throw CompileErrors.invalidArg("HAVING is outside the stream SQL v1 subset");
+            SqlTableSource src = select.getFrom() != null
+                    && !select.getFrom().getTableSources().isEmpty()
+                    ? select.getFrom().getTableSources().get(0) : null;
+            if (src instanceof SqlJoinTableSource) {
+                throw CompileErrors.invalidArg("HAVING on a join query is outside the "
+                        + "stream SQL v1 subset (join + aggregate + HAVING)");
+            }
+            if (select.getGroupBy() == null || select.getGroupBy().getItems().isEmpty()) {
+                throw CompileErrors.invalidArg("HAVING requires GROUP BY in the stream "
+                        + "SQL v1 subset (global aggregation + HAVING is excluded)");
+            }
         }
         if (select.getWindowClause() != null) {
             throw CompileErrors.invalidArg("WINDOW clause (analysis window) is outside the "
@@ -365,10 +382,11 @@ public final class StreamSqlCompiler {
         transforms.add(mk(loc(select), "aggregate", "id", aggId, "aggregatorRef", aggregatorId));
         edges.add(edge(loc(select), idPrefix + "e4", winId, aggId));
 
+        String havingId = insertHavingFilter(select, grouped, aggId, transforms, edges, idPrefix);
         String projId = idPrefix + "proj";
         transforms.add(projectionNode(select, grouped.scan, grouped, idPrefix + "e5", projId,
                 aggregatedRowResolver(grouped)));
-        edges.add(edge(loc(select), idPrefix + "e6", aggId, projId));
+        edges.add(edge(loc(select), idPrefix + "e6", havingId, projId));
         return projId;
     }
 
@@ -423,10 +441,11 @@ public final class StreamSqlCompiler {
         transforms.add(row);
         edges.add(edge(loc(select), idPrefix + "e5", redId, rowId));
 
+        String havingId = insertHavingFilter(select, grouped, rowId, transforms, edges, idPrefix);
         String projId = idPrefix + "proj";
         transforms.add(projectionNode(select, grouped.scan, grouped, idPrefix + "e6", projId,
                 aggregatedRowResolver(grouped)));
-        edges.add(edge(loc(select), idPrefix + "e7", rowId, projId));
+        edges.add(edge(loc(select), idPrefix + "e7", havingId, projId));
         return projId;
     }
 
@@ -647,14 +666,11 @@ public final class StreamSqlCompiler {
     private static AggregateScan scanProjections(SqlQuerySelect select) {
         AggregateScan scan = new AggregateScan();
         collectProjections(select, scan);
-        // DISTINCT aggregates fail fast (4a#6). Slot indices come from collectAggregates'
-        // putIfAbsent (SELECT discovery order) — never re-assigned from the (unordered)
-        // IdentityHashMap iteration, so "聚合按 SELECT 序" holds.
-        for (SqlAggregateFunction agg : new ArrayList<>(scan.aggregates.keySet())) {
-            if (agg.getDistinct()) {
-                throw CompileErrors.invalidArg("DISTINCT aggregate is outside the stream SQL "
-                        + "v1 subset (4a#6)");
-            }
+        // WI17 (plan 2342): DISTINCT aggregates are now supported (supersede 4a#6).
+        // HAVING-only aggregates must also get slots so the printer's aggregateRef
+        // resolves them — canonical HAVING form references aggregates not in SELECT.
+        if (select.getHaving() != null && select.getHaving().getExpr() != null) {
+            collectAggregates(select.getHaving().getExpr(), scan.aggregates);
         }
         return scan;
     }
@@ -773,7 +789,7 @@ public final class StreamSqlCompiler {
             String argText = (agg.getArgs() == null || agg.getArgs().isEmpty())
                     ? null : agg.getArgs().get(0).toSqlString().trim();
             calls.add(new SqlRowAggregateSpec.AggCall(agg.getName().toLowerCase(), argText,
-                    agg.getSelectAll()));
+                    agg.getSelectAll(), agg.getDistinct()));
         }
         grouped.spec = new SqlRowAggregateSpec(new ArrayList<>(grouped.keySqlTexts), calls);
         return grouped;
@@ -824,6 +840,38 @@ public final class StreamSqlCompiler {
                 return null;
             return "event[" + (grouped.keyCount() + slot) + "]";
         };
+    }
+
+    /**
+     * WI17 (plan 2342): prints the HAVING condition against the aggregate result row.
+     * Uses the aggregateRef resolver so aggregate function calls map to their
+     * event[N] slot references (unlike WHERE which has no aggregate resolver).
+     */
+    private static String printHaving(SqlExpr having, GroupedAggregate grouped) {
+        SqlScalarXplPrinter printer = new SqlScalarXplPrinter(
+                aggregatedRowResolver(grouped), aggregateRef(grouped));
+        return printer.print(having);
+    }
+
+    /**
+     * WI17: inserts a HAVING filter node (after the aggregate) and returns the new
+     * "previous" node id for edge wiring. The filter evaluates the HAVING condition
+     * against the aggregate result row (event[N] references).
+     */
+    private static String insertHavingFilter(SqlQuerySelect select, GroupedAggregate grouped,
+                                             String aggId, List<XNode> transforms,
+                                             List<XNode> edges, String idPrefix) {
+        if (select.getHaving() == null) {
+            return aggId;
+        }
+        String havingExpr = printHaving(select.getHaving().getExpr(), grouped);
+        String havingId = idPrefix + "having";
+        XNode havingNode = mk(loc(select.getHaving()), "filter", "id", havingId);
+        havingNode.appendChild(textNode(loc(select.getHaving()), "source",
+                "return " + havingExpr + ";"));
+        transforms.add(havingNode);
+        edges.add(edge(loc(select), idPrefix + "eh", aggId, havingId));
+        return havingId;
     }
 
     private static String printWhere(SqlExpr where) {

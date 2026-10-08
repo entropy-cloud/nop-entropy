@@ -31,9 +31,9 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 ## 2. 纳入面与不支持清单
 
-**纳入**：SELECT 投影、WHERE、五聚合（sum/count/avg/min/max，COUNT(*) 无参形态）、GROUP BY、`TUMBLE(t, INTERVAL)` 流时间窗口、双流等值 join（INNER/LEFT/RIGHT/FULL）、UNION ALL。
+**纳入**：SELECT 投影、WHERE、五聚合（sum/count/avg/min/max，COUNT(*) 无参形态）、DISTINCT 聚合（WI17：参数值域精确去重，merge 重放保证恰一次；COUNT(*) DISTINCT 以整记录为去重域；精确去重内存代价 = 每组去重值数量——窗口聚合随窗清除，持续聚合随作业生命周期）、HAVING（WI17：GROUP BY + 聚合路径编译为 aggregate 后 filter，windowed + continuous 两路径；聚合仅出现在 HAVING 的 canonical 形态支持）、GROUP BY、`TUMBLE(t, INTERVAL)` 流时间窗口、双流等值 join（INNER/LEFT/RIGHT/FULL）、UNION ALL。
 
-**不支持**——多数项构建期显式 fail-fast：全局 ORDER BY/LIMIT（`nop.err.eql.dialect-not-support-feature`）；非等值/范围 join；DATE/TIMESTAMP/DECIMAL 列绑定；DISTINCT 聚合；子集外表达式（CASE/CAST/正则/IN 子查询等）；FULL 窗口 join；HAVING/CTE/INTERSECT/EXCEPT（default-reject）；全局聚合（无 GROUP BY 的聚合）。两项性质不同：retract/CDC 为 D1 裁定的语义降级（last-value-wins 终值语义，非 fail-fast 项）；Flink SQL 方言为非目标（编译器不解析）。语义边界：UNION 为 bag union 不去重（UNION DISTINCT fail-fast）；TUMBLE 为流目标专用（W2/T1：SQL 通道按原样回显 TUMBLE 语法——该文本在真实 RDBMS 上解析即失败，属预期边界而非缺陷；双目标一致性仅对非 TUMBLE 查询承诺精确集相等，聚合查询仅终态可比——D1 last-value-wins，流目标发射运行值）。
+**不支持**——多数项构建期显式 fail-fast：全局 ORDER BY/LIMIT（`nop.err.eql.dialect-not-support-feature`）；非等值/范围 join；DATE/TIMESTAMP/DECIMAL 列绑定；SELECT DISTINCT 非聚合 dedup 与 UNION DISTINCT；子集外表达式（CASE/CAST/正则/IN 子查询等）；FULL 窗口 join；无 GROUP BY 的 HAVING 与 join + HAVING（WI17 typed 守卫）；CTE/INTERSECT/EXCEPT（default-reject）；全局聚合（无 GROUP BY 的聚合，含全局聚合 + HAVING）。两项性质不同：retract/CDC 为 D1 裁定的语义降级（last-value-wins 终值语义，非 fail-fast 项）；Flink SQL 方言为非目标（编译器不解析）。语义边界：UNION 为 bag union 不去重；TUMBLE 为流目标专用（W2/T1：SQL 通道按原样回显 TUMBLE 语法——该文本在真实 RDBMS 上解析即失败，属预期边界而非缺陷；双目标一致性仅对非 TUMBLE 查询承诺精确集相等，聚合查询仅终态可比——D1 last-value-wins，流目标发射运行值）。
 
 ## 3. 执行语义标注（D1/D6）
 
@@ -43,7 +43,7 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 ## 4. 错误码
 
-全部复用既有 `nop.err.*` 码（§4d 零新增码）：编译期 `nop.err.stream.invalid-arg`（子集外/未知类型/DISTINCT/全局聚合/default-reject）；ORDER BY/LIMIT `nop.err.eql.dialect-not-support-feature`；TUMBLE 间隔 `nop.err.eql.invalid-interval-value`；声明面 ref/边错误 `nop.err.stream.ref-unknown`/`invalid-arg`；SPI 缺失 `nop.err.stream.invalid-arg`（文案点名 nop-stream-sql 模块）。
+全部复用既有 `nop.err.*` 码（§4d 零新增码）：编译期 `nop.err.stream.invalid-arg`（子集外/未知类型/SELECT DISTINCT 与 UNION DISTINCT/无 GROUP BY 的 HAVING 与 join + HAVING/全局聚合/default-reject）；ORDER BY/LIMIT `nop.err.eql.dialect-not-support-feature`；TUMBLE 间隔 `nop.err.eql.invalid-interval-value`；声明面 ref/边错误 `nop.err.stream.ref-unknown`/`invalid-arg`；SPI 缺失 `nop.err.stream.invalid-arg`（文案点名 nop-stream-sql 模块）。
 
 ## 5. 兼容与迁移
 
@@ -57,3 +57,11 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 - `io.nop.stream.sql.compile.StreamSqlCompiler.compile(loc, sql, schema, sinkBean)`（四参：源位置/SQL 文本/schema 字段面/sink bean 名——sql 与 sinkBean 必填，schema 可为 null/empty 表示未声明 schema）：SQL 文本 → 流模型 XML（`<sql>` SPI 的底层实现）；产物可经 `DslModelParser` 回读后 `StreamModelDslBuilder` 构建。
 - 求值原语（WI9）：`io.nop.stream.sql.eval.StreamSqlExprCompiler`（标量子集 → StreamRecordEvaluator）、`StreamSqlAggregations`（五聚合 id 目录）。
+
+## 7. WI17 SQL 窄补强（plan 2342，2026-10-08 supersede）
+
+- **HAVING 支持**（supersede 原 default-reject 钉码）：GROUP BY + 聚合路径编译为 aggregate 后 filter（windowed + continuous 两路径，AggregateRef 解析 `event[N]` 槽位）；canonical 形态（聚合仅出现在 HAVING）支持；无 GROUP BY 的 HAVING 与 join + HAVING typed 拒绝（`nop.err.stream.invalid-arg`）；全局聚合 + HAVING 维持排除。
+- **DISTINCT 聚合支持**（supersede 4a#6 排除与 `distinctFailsFast` 钉子）：`DistinctAggregateWrapper` 按求值后参数值去重（null 不入集）；reduce 路径 merge 重放对侧未见过的新值，恰一次计数；`AggCall` spec 增 `distinct` 字段（JSON 向后兼容，缺省 false）；snapshot/restore 经 `SqlAccShapeUtil` 形状归一化。COUNT(*) DISTINCT 以整记录为去重域。
+- **continuous 聚合 restore 修复**（M-3 测试暴露的既有缺陷）：JSON 往返把嵌套数组退化为 List、Long 标量退化为 Integer——五聚合 + composite 行全部经 `SqlAccShapeUtil` 归一化；`StreamReduceOperator` restore 对值按记录类型重建（失败仍 typed `nop.err.stream.type-mismatch`）。
+- **lookup 缓存接线**（WI11 交接口径）：`DimLookupEnrichFunction` 样例持有 `CachingTableLookup`（per-key ValueState 快路径之上叠加跨 key TTL/后台刷新物化层），`close()` override 传播——close 后 cache-miss lookup typed 拒绝。
+- SELECT DISTINCT 非聚合 dedup 维持排除（需 keyBy+keyed 去重执行语义，见承载 plan Deferred 记录）。

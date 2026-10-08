@@ -283,9 +283,39 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void havingFailsFast() {
-        assertInvalidArg("SELECT item, sum(amount) AS t FROM orders GROUP BY item "
-                + "HAVING sum(amount) > 0");
+    // WI17 (plan 2342): HAVING is now supported — flip from havingFailsFast
+    public void havingFilterShapeWindowed() {
+        String result = compile("SELECT item, sum(amount) AS t FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) "
+                + "GROUP BY item HAVING sum(amount) > 0");
+        assertTrue(result.contains("having"), "windowed HAVING must insert a having filter node");
+        assertTrue(result.contains("sum"), "HAVING expr must reference aggregate");
+    }
+
+    @Test
+    public void havingFilterShapeContinuous() {
+        String result = compile("SELECT item, count(amount) AS c FROM orders "
+                + "GROUP BY item HAVING count(amount) > 1");
+        assertTrue(result.contains("having"), "continuous HAVING must insert a having filter node");
+    }
+
+    @Test
+    public void havingOnJoinFailsFast() {
+        assertInvalidArg("SELECT o.item FROM orders o JOIN orders u ON o.item = u.item "
+                + "HAVING count(*) > 1");
+    }
+
+    @Test
+    public void havingWithoutGroupByFailsFast() {
+        assertInvalidArg("SELECT sum(amount) FROM orders HAVING sum(amount) > 0");
+    }
+
+    @Test
+    // WI17 (plan 2342): canonical HAVING form — the aggregate appears only in HAVING,
+    // not in SELECT; the compiler must still allocate its slot (B-1).
+    public void havingOnlyAggregateCanonicalShape() {
+        String result = compile("SELECT item FROM orders GROUP BY item HAVING count(amount) > 1");
+        assertTrue(result.contains("having"), "canonical HAVING must insert a having filter node");
+        assertTrue(result.contains("count"), "HAVING-only aggregate must be compiled into the spec");
     }
 
     @Test
@@ -332,8 +362,11 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void distinctAggregateFailsFast() {
-        assertInvalidArg("SELECT item, count(DISTINCT amount) AS c FROM orders GROUP BY item");
+    // WI17 (plan 2342): DISTINCT aggregates are now supported — flip from distinctAggregateFailsFast
+    public void distinctAggregateShape() {
+        String result = compile("SELECT item, count(DISTINCT amount) AS c "
+                + "FROM orders GROUP BY item");
+        assertTrue(result.contains("distinct"), "spec JSON must carry the distinct flag");
     }
 
     @Test

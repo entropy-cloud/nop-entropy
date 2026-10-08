@@ -12,6 +12,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.Output;
 import io.nop.stream.core.operators.ProcessOperator;
 import io.nop.stream.core.streamrecord.LatencyMarker;
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * WI14 process-path evidence: the dimension-table lookup join on a keyed
@@ -137,5 +139,46 @@ public class TestE2EDimLookupWithCheckpoint {
         op2.processElement(DimLookupEnrichFunction.record("k2"));
         assertEquals("merchant-b@v2", lastDimValue(out2), "miss must reload from the table");
         assertEquals(2, loadCount.get(), "fresh key reloads exactly once");
+
+        // WI17 wiring hygiene: host close() shuts the WI11 wrapper's refresh threads
+        fn1.close();
+        fn2.close();
+    }
+
+    /**
+     * WI17 (plan 2342) wiring evidence: the host function's {@code close()} override
+     * must reach the WI11 {@code CachingTableLookup} — after close, a cache-MISS
+     * lookup fails typed instead of silently hitting the delegate; close is idempotent.
+     */
+    @Test
+    void closePropagatesToCachingLayerAndPostCloseMissFailsTyped() throws Exception {
+        IStateBackend stateBackend = new MemoryStateBackend();
+        Map<String, String> rows = new HashMap<>();
+        rows.put("k1", "merchant-a");
+        AtomicInteger loadCount = new AtomicInteger();
+
+        DimLookupEnrichFunction fn = new DimLookupEnrichFunction();
+        fn.setTableLookup(new DimLookupEnrichFunction.VersionedTableLookup(rows, "v1", loadCount));
+        ProcessOperator<Map<String, Object>, Map<String, Object>> op = new ProcessOperator<>(fn);
+        op.setStateBackend(stateBackend);
+        CollectingOutput out = new CollectingOutput();
+        op.setOutput(out);
+        op.open();
+
+        op.setCurrentKey("k1");
+        op.processElement(DimLookupEnrichFunction.record("k1"));
+        assertEquals(1, loadCount.get(), "first lookup loads from the table");
+
+        fn.close();
+
+        // k2 is a ValueState MISS, so the post-close rejection surfaces from the
+        // wrapper (a cached key would legitimately still be served from keyed state)
+        op.setCurrentKey("k2");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> op.processElement(DimLookupEnrichFunction.record("k2")));
+        assertEquals("nop.err.stream.invalid-state", ex.getErrorCode(),
+                "post-close miss must fail typed, not fall back to the DB");
+
+        fn.close(); // idempotent
     }
 }
