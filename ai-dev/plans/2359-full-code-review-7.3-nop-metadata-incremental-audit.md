@@ -51,16 +51,16 @@ Targets: 台账 P1×1+P2×16
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（00bc7d0e0d）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派审计 agent）：① P1×1 fixed 终验（7478eeffe0 diff 亲读+OrmModelImporter :55/:65 合规形态+arm-index :240 镜像+**台账↔index 状态分叉缺陷登记**）② P2×16 行三分类标定（条=行；行 4 逐 ID；行 16 沿既有裁决；每条判定依据+锚）③ watch-only P1 落账缺口核对（维度16-01 两点）④ 撞车比对 ⑤ 冻结协议三要素 → `_tmp/fcr-7.3-audit-a.md`
-- [ ] 主 agent 抽查质量：冻结表重放+标定抽验 ≥3 条（含代码亲读）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派审计 agent）：① **P1×1 fixed 终验 PASS 四锚一致**（7478eeffe0 diff 亲读+HEAD 祖先验证+现状 :55/:65 合规形态+主代码 grep=0+arm-index :240 逐字吻合）；**状态分叉缺陷登记**（台账 open vs arm-index fixed——v3 漏更 owner 行非产品缺陷）② P2×16 三分类 **fixed 8/still-open 5/watch 3**（行 4 七位点 7/7 全 fixed/消亡——含 MetaTableProfiler 整类被 plan 2261 删除；行 16 沿 R2.15 收口且后继 plan 已落地，残余=null-schema 族 watch-only）③ **落账缺口登记成立**（维度16-01 两点；MISSING-AUTH 无缺口）；**超预期勘正 3 条**（MetaTableProfiler 消亡/行 10 共享状态断言 6b00d6022d 已引入——台账 v3 滞后/行 16 R2.15 deferred 被后继 plan 落地取代）④ 撞车零冲突（6.7 非同条独立复核为真/6.9 三条候选零 ID 重叠且 #P2-L119 互证）⑤ 冻结（seed=2359+台账行清单 `ff3afd8e…`+样本 5 行）→ `_tmp/fcr-7.3-audit-a.md`
+- [x] 主 agent 抽查质量：冻结表重放一致（ff3afd8e…）+ 终验锚亲读（:55/:65 CoreMetrics 合规形态在位）+ still-open 锚亲读（queryAggregation :349 真实——路径 entity/ 非 biz/ 微漂移登记）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；标定双锚证据
-- [ ] P1 终验+16 行全量标定；样本表可重放
-- [ ] No owner-doc update required（只读——不回写既有台账；终态登记于本项报告+轮次 index）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；标定双锚证据
+- [x] P1 终验+16 行全量标定；样本表可重放（SHA 重放一致）
+- [x] No owner-doc update required（只读——不回写既有台账；终态登记于本项报告+轮次 index）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核
 
