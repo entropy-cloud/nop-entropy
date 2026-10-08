@@ -1,13 +1,13 @@
 # 2359 full-code-review 7.3 nop-metadata P1×1 终验 + P2 台账巡检
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.3（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
 > Related: `ai-dev/audits/arm-unclosed-findings-nop-metadata.md`（Owner Doc，137 行 v3——**只读不动**：roadmap 规则 #2「既有非本目录审计文件一律不动」）；`ai-dev/audits/arm-index-nop-metadata.md`（P1 汇总镜像 :240 已记维度20-01 fixed）。
 > 机械基线（**对抗审查 agent_9621ec45 重定基勘正——初稿「P1×1 live」系虚假基线**）：台账维度20-01（OrmModelImporter currentTimeMillis 残余）**已由 MR2 修复**——commit 7478eeffe0（2026-08-05，plan-2026-08-04-1543-3 R2.5，diff=两处 System→CoreMetrics+TestCoreMetricsUsage 扫描扩展至 dao）；现状 `OrmModelImporter.java:55/:65` 为 DDD-006 合规形态（:58/:68 锚漂移为空行）；nop-metadata 主代码 `System.currentTimeMillis`=**0 处**；**台账行「open」与 arm-index「fixed」状态分叉**（流程缺陷，本项登记不回写台账）。roadmap 7.3 行「P1×1 live 复核」措辞记口径缺陷注记（沿 7.2「记不改文本」先例）。**重定基范围 = P1×1 fixed 终验（修复亲读+git 锚）+ P2×16 台账巡检 + 台账↔index 状态对账**。P2×16 计数精确（对抗审查实测：48 行=3 P1+11 登记+3 P0+16 P2+15 P3；4 行已裁定 watch-only/optimization）。
 > **方法学裁定**：① P1×1 fixed 终验=修复 commit 亲读+当前代码合规形态核对+arm-index :240 镜像核对；② **P2 三分类标定（m1 勘正——沿 2358 实为三分类）**：fixed-by-later-plan/still-open/watch-only-维持；**条=行**（16 行；行 4 捆 3 ID/7 位点逐 ID 标定〔m2〕；行 16 内嵌 P2-MA3-03 已 arm R2.15 终裁 deferred——沿既有裁决收口不另开题）；③ 每条判定依据一句+代码/台账锚（15/16 行带锚，16-03 可重推导）；④ 撞车检索面=6.7（check nop-metadata P1=MetaTableProfiler 非同条声明核对）/6.9（nop-metadata 3 条升级候选：#P2-L119 维持/#P2-L80、#P2-L98 降级）；⑤ **watch-only P1 落账核对显式对准（m3）**：维度16-01 台账行无完成复核注记+仍题「19/40」vs MA4.4 :165-173 终判「收敛为 8/40 维持 watch-only」——落账缺口登记于报告；⑥ 裁决落账（M1 勘正）：**本项不回写既有台账文件（规则 #2）**——状态分叉与标定终态登记于本项报告+轮次 index；⑦ 验证协议：双锚；Phase 2 抽验 ≥30%；冻结协议三要素（seed=2359+台账行清单哈希）落盘。
 > **执行分支口径**：以当前工作树为读、以 master 可达性为锚。
-> Draft Review: agent_9621ec45 首轮 **1 Blocker（B1 机械基线虚假实测——P1 已被 MR2 修复 62 天，台账 open 与 arm-index fixed 分叉，:58/:68 锚漂移空行）** + 2 Major（M1 「只读不动」绝对化与裁决落账矛盾——改「登记于本项报告+index，不回写既有台账」/M2 MR2 归属未限定 mission 且时态错误——已 done 并正是闭掉该 P1 的批次）+ 4 Minor（m1 三分类/m2 条=行+内嵌发现/m3 维度16-01 落账缺口显式对准/m4 Non-Goals 显式排除 P3×15+deferred 5 行+08-05 fixed 段）——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_9621ec45 首轮 **1 Blocker（B1 机械基线虚假实测——P1 已被 MR2 修复 62 天，台账 open 与 arm-index fixed 分叉，:58/:68 锚漂移空行）** + 2 Major（M1/M2）+ 4 Minor（m1–m4）——本轮全部修复（详见各节勘正注记）；聚焦复核（同一审查员）逐项 PASS 全锚亲读为真（1 cosmetic：Phase 2 EC 措辞未展开——语义由方法学⑥全局定义零矛盾）——转 active。
 
 ## Purpose
 
@@ -45,12 +45,12 @@
 
 ### Phase 1 - 终验与标定（1 agent）
 
-Status: planned
+Status: in progress
 Targets: 台账 P1×1+P2×16
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（00bc7d0e0d）、`git status` 干净后开始
 - [ ] 主 agent 对账落盘（委派审计 agent）：① P1×1 fixed 终验（7478eeffe0 diff 亲读+OrmModelImporter :55/:65 合规形态+arm-index :240 镜像+**台账↔index 状态分叉缺陷登记**）② P2×16 行三分类标定（条=行；行 4 逐 ID；行 16 沿既有裁决；每条判定依据+锚）③ watch-only P1 落账缺口核对（维度16-01 两点）④ 撞车比对 ⑤ 冻结协议三要素 → `_tmp/fcr-7.3-audit-a.md`
 - [ ] 主 agent 抽查质量：冻结表重放+标定抽验 ≥3 条（含代码亲读）
 - [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
