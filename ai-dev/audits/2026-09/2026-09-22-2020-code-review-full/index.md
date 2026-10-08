@@ -54,7 +54,7 @@
 | 6.4 | `6.4-check-p0-verification.md` | 0 | 0 | **1** | 0 | done（裁决：通过——**check 36 P0 在 master 无一条保持 P0 级 live**：already-fixed 35 单元〔实跑覆盖 36/36 闭环，17 次实跑 95 tests 全绿〕+ still-live 1 单元 **P2-6.4-001**〔#3 ai-rest residual P0→P2 降档，残余复核收窄——OAuth 服务端换取已在 93d47833f0 实施〕+ #6a FP-as-P0 勘误拆目〔SUMMARY 定级错挂；缺陷本体 P1 live 纯引用 4.4 S-06 不双登记〕+ #6b SUMMARY 遗漏真 P0 补录 already-fixed；closure audit 处方 R1-R3 纯文本级已落实〔tests 58→68 勘误/补勾/抽查缺口裁定注记〕） | 独立子 agent（agent_966d1623 复核 PASS；closure audit agent_a51bf7e4，FAIL→处方 R1-R3 落实后轻量复核 PASS，见 plan 2351 Closure 段） |
 | 6.5 | `6.5-check-p1-batch-a.md` | 0 | 0 | **1** | 0 | done（裁决：通过——批次 a 48 条 P1 对账闭合 + 冻结抽样 44/48=91.7% 标定：**AF 43 / still-live 1 / dup 0 / FP 0**；P2-6.5-001 nosql-cdc ZERO 半分支 GETEX PX 0 配置陷阱〔P1→P2 终裁：显式配置触发+0 生产调用方+失败响亮〕入 P2 裁决台账；db-migration#P1-6 判 AF〔check2 fb3f860729 闭环双实测〕；撞车零 dup；复核 120 tests 全绿零翻案 + 冻结协议重放机械精确；closure audit 处方 R1 纯文本〔plan Phase 2 状态漏更〕已落实） | 独立子 agent（agent_7b8e911e 复核 PASS；closure audit agent_bf8fb954，FAIL→处方 R1 落实后轻量复核 PASS，见 plan 2352 Closure 段） |
 | 6.6 | `6.6-check-p1-batch-b.md` | 0 | 0 | **2** | 0 | done（裁决：通过——批次 b 46 条 P1 对账闭合〔13/13 diff+统计核对+三向账平〕+ 冻结抽样 29/46=63.0% 标定零翻案——canonical **AF 16 / dup 11〔9 归并 AF 目标+2 归并轮内 still-live 承载 P1-3.1-002/P1-3.6-001〕/ still-live 2 / FP 0**；P2-6.6-001 graphql 订阅推送桥未接线〔GraphQLSubscriptionManager+subscription-defaults.beans.xml〕+ P2-6.6-002 batch 续写语义缺失〔均复核终裁 P2〕；承接 11 条轮内终判锚点全实测成立；复核 dup 锚点 9/11 亲验+AF 实跑 4 全绿；closure audit 处方 R1/R2 纯文本〔§二 表格 canonical 收敛+P2-6.6-001 主体类名勘正〕已落实） | 独立子 agent（agent_25c5fd59 复核 PASS；closure audit agent_15646630，FAIL→处方 R1/R2 落实后轻量复核 PASS，见 plan 2353 Closure 段） |
-| 6.7 | — | | | | | todo | |
+| 6.7 | `6.7-check-p1-batch-c.md` | 0 | **11** | **8** | 0 | 报告落盘，closure audit 进行中（批次 c 46 条 P1 对账闭合〔枚举 diff 一致+统计核对 12/12+三向账平〕+ 冻结抽样 33/46=71.7% 标定零翻案——canonical **AF 13 / dup 1〔归并 6.4 #5 修复目标〕/ still-live 19 / FP 0**，终裁 **P1×11〔方言 role/伪影/工具 DSL/agent 循环×2/stream 定时器与 restore 位点/CodeIndexService×3〕/ P2×8〔复核降档：桩不可达/未接线/输入不触发/残余窄化〕**；承接 1 条 P1-check-mcc-172 维持；dup 锚 1/1 亲验+33 锚全量 grep 零新增同根+16 修复提交 master 全可达） | 独立子 agent（agent_f5709e50 聚焦复核 PASS；Phase 2 复核 agent_037068a3 PASS 零翻案；closure audit 待启动） |
 | 6.8 | — | | | | | todo | |
 | 6.9 | — | | | | | todo | |
 | 7.1 | — | | | | | todo | |
@@ -148,6 +148,17 @@
 | P1-5.1-002 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——INDEX:38 + transaction-boundaries.md + nop-task.md×3 + TXN-001；文档修复不受代码修复阻塞） | open |
 | P1-5.1-003 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-3.5-001 同批互引——nop-job.md:246-262 @IocBean 幻影改 beans.xml 注册教程） | open |
 | P1-5.2-001 | `5.2-design-drift-audit.md` | R1.0（maker-checker/03 头部与各节「目标架构（未落地）」标注+删现在时机制陈述；与 P2-2.7-001 同批互引；文档修复不受代码修复阻塞） | open |
+| P1-6.7-001 | `6.7-check-p1-batch-c.md` | R1.0（AnthropicDialect.getRole assistant→"model" 多轮必 400；role 改回+TestAnthropicDialect :394 断言同步+thinking signature 残余〔CL-1〕同批） | open |
+| P1-6.7-002 | `6.7-check-p1-batch-c.md` | R1.0（OpenAi/Gemini/Ollama 工具轮 content=arguments JSON 污染+四方言 reasoning 双发；跳过置入/不双发+roundtrip 等价测试，ResponsesDialect 为范本） | open |
+| P1-6.7-003 | `6.7-check-p1-batch-c.md` | R1.0（LocalToolFileSystem.readLines totalLines 填请求值假总行数；countLines 或置 null） | open |
+| P1-6.7-004 | `6.7-check-p1-batch-c.md` | R1.0（LocalToolFileSystem.grep 文件路径静默空假阴性；文件时 grepInFile 或显式错误+单文件用例） | open |
+| P1-6.7-005 | `6.7-check-p1-batch-c.md` | R1.0（ReActAgentExecutor POST_REASONING BAIL 不移除已持久化 assistant/tool_call 会话复挂；bail 前 remove 或补 error response） | open |
+| P1-6.7-006 | `6.7-check-p1-batch-c.md` | R1.0（AgentCompactionCoordinator maxTokens 误作上下文窗口；独立 maxContextTokens 配置+改写钉死断言） | open |
+| P1-6.7-007 | `6.7-check-p1-batch-c.md` | R1.0（TimerServiceManager 吞定时器异常静默丢水印发射；不吞异常 addSuppressed+改固化缺陷契约的测试） | open |
+| P1-6.7-008 | `6.7-check-p1-batch-c.md` | R1.0（SourceReaderOperator.restoreState restore-先于-open 静默丢 split 位点；preOpenSplits 式暂存+restore→open→run 回归） | open |
+| P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.0（CodeIndexService.analyzeChanges `file:` rootPath 建 git 必败且异常折叠为无变更；rootPath 规范化+异常不折叠 truncated=true） | open |
+| P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
+| P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
 
 
 ## P2 裁决台账（例外通道）
@@ -177,6 +188,14 @@
 | P2-6.5-001 | `6.5-check-p1-batch-a.md` | check 溯源 nosql-cdc#P1-1 ZERO 半分支：NosqlCache.getAsync 仅 null 守卫，Duration.ZERO 透传 GETEX PX 0 被 Redis 拒绝（null 半分支已由 check2 fc2b9347f6 修；P1→P2 终裁：显式配置触发+0 生产调用方+失败响亮） | 待 R1.0 裁决（CacheConfig 归一化+TestNosqlCache 补 ZERO 用例；与 fc2b9347f6 同文件同批） | R1.0 |
 | P2-6.6-001 | `6.6-check-p1-batch-b.md` | check 溯源 nop-graphql#P1-3：订阅推送桥整体未接线（GraphQLSubscriptionManager+subscription-defaults.beans.xml:10-15——bean 永不加载+registerSubscription/unregisterSubscription 生产零调用方；已修两面〔死属性删除+@PostConstruct+装配守卫测试 2/2〕验证；复核终裁 P2：非回归无公开契约，2.6 相邻订阅面 P2 先例） | 待 R1.0 裁决三选一（接线设计后补 autoconfig 装配+测试/显式休眠声明/删除） | R1.0 |
 | P2-6.6-002 | `6.6-check-p1-batch-b.md` | check 溯源 nop-batch#P1-2：续写 append 语义未落地（IResourceRecordIO 仅 openOutput；防截断护栏 fail-fast 已闭数据丢失面；复核终裁 P2：跨模块公共接口设计项） | 待 R1.0 裁决（IResourceRecordIO 增 append 形态或显式声明不支持） | R1.0 |
+| P2-6.7-001 | `6.7-check-p1-batch-c.md` | check 溯源 ai-rest#P1-5：ShellCommandChecker 引号绕过（命令名/redirect target 不剥引号+解释器仅拦无参形态；复核终裁 P2：ExternalCommandAdapter 执行桩不可达，6.6 订阅桥同型） | 待 R1.0 裁决（unquote+解释器 `-c` 形态拒绝/白名单；**接入真实执行时升回安全 P1 优先**） | R1.0 |
+| P2-6.7-002 | `6.7-check-p1-batch-c.md` | check 溯源 ai-toolkit-skills#P1-1：BashExecutor.parseEnv XML schema 通路断（直子节点 vs `<envs><env/>` 孙节点；复核终裁 P2：JSON 通路已覆盖+仓内 fromNode 无 main 调用方；注 4be11f2eba 仅 audit 分支——master 面只大不小） | 待 R1.0 裁决（childByTag("envs") 孙节点遍历+schema 回归） | R1.0 |
+| P2-6.7-003 | `6.7-check-p1-batch-c.md` | check 溯源 ai-toolkit-skills#P1-5：DockerBashSandbox 特征串误判残余（partially-fixed——主体已修 9a495d728c+测试钉住；复核终裁 P2：触发窄化+诊断截断非全丢） | 待 R1.0 裁决（特征串限定 docker stderr 前缀/退出码 125 组合） | R1.0 |
+| P2-6.7-004 | `6.7-check-p1-batch-c.md` | check 溯源 nop-code#P1-2：继承/使用边删除不重建残余（partially-fixed——call 族已修 3760af93a9+回归 8/8；复核终裁 P2：残余 2/3 边族+派生数据可重建） | 待 R1.0 裁决（N3.1-s 模式推广两边族/符号 ID 确定性派生） | R1.0 |
+| P2-6.7-005 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-1：PathQueryExecutor 多跳 edgeType 仅扫 start 出边（复核终裁 P2：查询 API 无生产调用方，6.6 同型降档） | 待 R1.0 裁决（与 P2-6.7-006 Bfs 边谓词重载打包；接线前修） | R1.0 |
+| P2-6.7-006 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-2：Bfs.traverseFiltered visited 语义反转（无条件 add+返回集含被拒节点；复核终裁 P2：唯一调用方 PathQueryExecutor 自身未接线） | 待 R1.0 裁决（独立 result 集合/改名+2 跳 edgeType 用例） | R1.0 |
+| P2-6.7-007 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-3：PageRank 权重未按 Σw_out 归一化（复核终裁 P2：生产输入均匀权重=1 不触发） | 待 R1.0 裁决（归一化；接入加权图前须修） | R1.0 |
+| P2-6.7-008 | `6.7-check-p1-batch-c.md` | check 溯源 nop-graph#P1-4：LeidenDetector 双向边对权重加倍（复核终裁 P2：指标质量偏置无功能失效；归一化键从未落地 git log -S 零命中） | 待 R1.0 裁决（min/max 归一化键+edgeWeights 传递+守恒用例） | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
 

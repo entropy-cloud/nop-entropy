@@ -66,20 +66,20 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：still-live 100% 亲读+严重性终裁 + already-fixed 抽验 ≥30% 含实跑 + 撞车复验 + 净账
-- [ ] 主 agent 汇总：四态统一、撞车去重终裁
-- [ ] 台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零事实翻案**——still-live 19/19 逐条亲读（符号重定位）+ 严重性终裁 **P1×11 / P2×8**；AF 抽验 9/14=64% 锚内容核验+7/14=50% 实跑全绿（16 提交 merge-base 亲证）；撞车定向 7 条复验+33 锚全量 grep 零新增同根；B-2 canonical 裁定 ai-rest#P1-3 记 dup 非 AF（6.6 先例——dup 11 含 9 归并 AF 目标同型）；**canonical AF 13 / dup 1 / still-live 19 / FP 0=33**；46=33+1（P1-check-mcc-172）+12（未抽样全「其他」类）账平；终态 P0=0/P1=11/P2=8/P3=0
+- [x] 主 agent 汇总：四态统一（B-2 列间转移 AF→dup）、撞车去重终裁（零新增同根维持）
+- [x] 台账收敛（复核 §5 canonical + 三份产物净账按 canonical 对齐）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-6.7-checkp1-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-6.7-checkp1-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
@@ -88,8 +88,8 @@ Targets: 轮次目录报告 + index + roadmap + 本 plan
 
 - Item Types: `Proof`
 
-- [ ] 编制 `6.7-check-p1-batch-c.md`（附录记冻结协议 SHA-256）；index 登记 6.7 行（替换占位行）+ 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 编制 `6.7-check-p1-batch-c.md`（附录记冻结协议 SHA-256）；index 登记 6.7 行（替换占位行）+ 仍 live 进 P1 汇总或 P2 台账（P1 汇总 11 行 + P2 台账 8 行）
+- [x] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [ ] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——**抽样覆盖率核验**）；**通过后** roadmap 6.7 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
