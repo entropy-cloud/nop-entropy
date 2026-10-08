@@ -1,6 +1,6 @@
 # 2361 full-code-review 7.5 nop-job R10 发现标定 + 增量巡检
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.5（MA7，Owner Doc=—）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/14 巡检侧重）
 > Related: **`ai-dev/audits/2026-06-19-0931-adversarial-review-nop-job/01-open-findings.md`（R10 发现清单：17 条 open〔AR-83~99〕，summary 表 P1 :441/P2 :442/P3 :443）**——R10=nop-job 第 10 轮 adversarial review（2026-06-19）；既有审计区（2026-05/06 deep+adversarial 多轮）不重审。
@@ -83,31 +83,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.5-nop-job-r10-incremental-audit.md`；index 登记 7.5 行 + 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（四项）；**通过后** roadmap 7.5 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.5-nop-job-r10-incremental-audit.md`；index 登记 7.5 行（R10 全闭环无 R1.0 新输入）
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（四项）；**通过后** roadmap 7.5 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 标定口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划（实跑为验证副作用），免除全量构建。
 
-- [ ] 报告落盘且 17 条全量标定+增量面全覆盖（确定性口径）
-- [ ] 每条双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.5 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项
+- [x] 报告落盘且 17 条全量标定+增量面全覆盖（确定性口径）
+- [x] 每条双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（零新输入）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.5 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
 
 ## Deferred But Adjudicated
 
@@ -119,14 +119,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.5 收口——R10 17 条全量标定 **already-fixed 17/17 零翻案**（承接对账 17/17 全覆盖；抽验 11/17=65% 含 P1×5 全覆盖+独立实跑 51 tests 双复现），增量巡检零编号发现（Watch 3 条低于门槛），残留 2 条 non-blocking 声明属实。独立 closure audit（agent_aff4dff4）**一次 PASS 四项全过**（抽样双链 node 实算重放 10/10+零虚假 [x] 核验），3 Minor 不阻塞（R10 summary 行锚 +1 偏移勘正/W-1 锚 1 行偏移/台账标题合并口径——随本收口注记落实）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_aff4dff4-f27b-490e-bc3e-df337d66f171（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告齐备；产物五件套在盘引用一致；冻结协议三要素+双链语义+伪影警告在案
+  - 核验 B 计数对应 PASS（亲手重算）：clusters 51 行=header+50；SHA 重放 MATCH 五处一致；17=17+0+0+0；抽样双链 node 实算重放 10/10；报告=index 0/0/0/0
+  - 核验 C 引用路径真实性 PASS：4/4 锚全中（AR-87 :221/AR-83 :181-198/AR-92 orm :454-472/W-1 固定窗口）+承接 plan 339/344 存在+锚点时效零漂移双查
+  - 核验 D 流程状态 PASS：roadmap 翻 done 前 todo；零虚假 [x]（draft 期误勾回退与现状一致）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2361-full-code-review-7.5-nop-job-r10-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；P3×4 watch-only 归档（规则 #3）；残留 2 条 non-blocking 声明与现状一致
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- 无 R1.0 新输入（R10 全闭环）；Watch 注记 3 条供 R1.0 参考——无本 plan 自有剩余工作
