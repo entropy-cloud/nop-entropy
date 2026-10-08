@@ -100,7 +100,27 @@ class TestSourceReaderOperatorSnapshotIsolation {
 
         @Override
         public SimpleVersionedSerializer<SimpleTestSplit> getSplitSerializer() {
-            throw new UnsupportedOperationException("not needed for this pin");
+            // WI2 plan 2343 Phase 0: the operator encodes split snapshots through this
+            // serializer (the FLIP-27 contract) into the JSON-safe envelope.
+            return new SimpleVersionedSerializer<SimpleTestSplit>() {
+                @Override
+                public int getVersion() {
+                    return 1;
+                }
+
+                @Override
+                public byte[] serialize(SimpleTestSplit split) {
+                    return split.splitId().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                }
+
+                @Override
+                public SimpleTestSplit deserialize(int version, byte[] bytes) throws java.io.IOException {
+                    if (version != 1) {
+                        throw new java.io.IOException("Unsupported SimpleTestSplit version: " + version);
+                    }
+                    return new SimpleTestSplit(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                }
+            };
         }
 
         @Override
@@ -133,18 +153,26 @@ class TestSourceReaderOperatorSnapshotIsolation {
         OperatorSnapshotResult snapshot =
                 operator.snapshotState(new StateSnapshotContext(1L, System.currentTimeMillis()));
 
-        List<?> frozen = (List<?>) snapshot.getOperatorState("source-reader-splits");
-        assertNotNull(frozen);
-        assertEquals(1, frozen.size());
+        // WI2 Phase 0 envelope: {serializerVersion, encodedSplits(base64)} — the split
+        // payload travels through the source's own serializer (JSON-safe).
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> envelope =
+                (java.util.Map<String, Object>) snapshot.getOperatorState("source-reader-splits");
+        assertNotNull(envelope);
+        assertEquals(1, envelope.get("serializerVersion"));
+        @SuppressWarnings("unchecked")
+        List<String> encoded = (List<String>) envelope.get("encodedSplits");
+        assertNotNull(encoded);
+        assertEquals(1, encoded.size());
         // The snapshot must carry its own container, not the reader's live list
-        // (split impls carry final fields and are not JSON beans by contract,
-        // so the freeze point is the container copy).
+        // (split impls carry final fields; the freeze point is the encoded copy).
 
         // Post-barrier: reader restructures its live split list
         reader.splits.clear();
         reader.splits.add(new SimpleTestSplit("s2"));
 
-        assertEquals(1, frozen.size(), "post-snapshot split list restructure leaked into the snapshot");
-        assertEquals("s1", ((SimpleTestSplit) frozen.get(0)).splitId());
+        assertEquals(1, encoded.size(), "post-snapshot split list restructure leaked into the snapshot");
+        assertEquals("s1", new String(java.util.Base64.getDecoder().decode(encoded.get(0)),
+                java.nio.charset.StandardCharsets.UTF_8));
     }
 }

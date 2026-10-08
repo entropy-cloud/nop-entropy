@@ -1072,6 +1072,14 @@ public class GraphModelCheckpointExecutor {
 
             validateFingerprintCompatibility(epochManifest, streamModel, coordinator);
 
+            // WI2 plan 2343 Phase 0 (B-1): hand the manifest's per-source-vertex
+            // enumerator snapshots to the coordinator registry BEFORE any task deploys —
+            // the coordinators are created lazily by the first subtask's open(), and the
+            // pre-fix boot path ignored the restored snapshot entirely (write-only
+            // manifest field). Consume-once: the coordinator removes its entry at
+            // enumerator boot, and SourceCoordinatorRegistry.unregister drops leftovers.
+            stashEnumeratorRestores(epochManifest);
+
             // Pass the checkpoint's TaskLocation set so the shared restore
             // path can perform the reverse-direction vertex differential check.
             Set<TaskLocation> checkpointLocations = epochManifest.getTaskSnapshots().keySet();
@@ -1102,6 +1110,41 @@ public class GraphModelCheckpointExecutor {
                 latestCheckpoint.getCheckpointId(), latestCheckpoint.getJobId());
 
         restoreTaskStatesFromCheckpoint(execPlan, checkpointPlan, latestCheckpoint, configuredMaxParallelism);
+    }
+
+    /**
+     * WI2 plan 2343 Phase 0 (B-1): stashes every manifest enumerator snapshot into the
+     * {@link io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry} so the
+     * lazily-created {@code LocalSourceCoordinator} boots its enumerator from the
+     * checkpointed state instead of a fresh start. Keys are the string form of the
+     * source vertex id (the manifest's own keying); malformed keys are skipped with a
+     * warning — the source then rediscovers splits from scratch, which is the
+     * documented recovery degradation, not a silent state drop.
+     */
+    private static void stashEnumeratorRestores(EpochManifest epochManifest) {
+        Map<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> snapshots =
+                epochManifest.getSourceEnumeratorSnapshots();
+        if (snapshots == null || snapshots.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot> entry
+                : snapshots.entrySet()) {
+            int vertexId;
+            try {
+                vertexId = Integer.parseInt(entry.getKey());
+            } catch (NumberFormatException e) {
+                LOG.warn("Skipping non-numeric source enumerator snapshot key '{}' (epoch {})",
+                        entry.getKey(), epochManifest.getEpochId());
+                continue;
+            }
+            io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry
+                    .stashEnumeratorRestore(vertexId, entry.getValue());
+            LOG.info("Stashed restored enumerator snapshot for source vertex {} "
+                            + "(epoch {}, version {}, {} bytes)", vertexId, epochManifest.getEpochId(),
+                    entry.getValue().getVersion(),
+                    entry.getValue().getStateBytes() == null ? 0
+                            : entry.getValue().getStateBytes().length);
+        }
     }
 
     /**

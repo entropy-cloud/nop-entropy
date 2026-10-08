@@ -1,10 +1,10 @@
 # 2343 WI2 连接器 API 两代归一迁移（message / debezium-cdc / batch-loader 全量迁 FLIP-27 + B 层例外撤销）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI2（M1）+ 裁定 §三 R2/R3（`ai-dev/design/nop-stream/multi-engine-gap-adjudication.md` :92-101）
 > Related: plan 2330（FileSource FLIP-27 先例）；plan 2335（WI3 kafka legacy source——显式冻结剩余项）；`docs-for-ai/03-modules/nop-stream-connectors.md`（冻结政策节与能力矩阵）
-> 审查记录：独立子 agent 对抗性审查（agent_1e35a3c6-0027-40ad-aa12-a0fcd5fd4e94 方向修正见审查记录节）——1 Blocker + 6 Major 全部落本 plan 后置 active
+> 审查记录：R1 对抗性审查（fresh session）1 Blocker + 6 Major 全部落本 plan（见下节）；R2 复审（fresh session，task agent_79545e7c-6a13-4761-9c59-2de5138e2cd8）7 项修订全落实、无新 Blocker/Major，**结论：可置 active**——其实施建议已钉入 Phase 0（N-1 stash consume-once + unregister 清理）。
 
 ## Purpose
 
@@ -60,22 +60,24 @@
 
 ### Phase 0 - core 恢复回路打通（B-1）
 
-Status: planned
+Status: completed
 Targets: nop-stream-core（SourceReaderOperator、SourceCoordinatorRegistry/LocalSourceCoordinator）、nop-stream-runtime（恢复接线）、nop-stream-connector（FileSource 回归）
 
 - Item Types: `Fix`（已确认 live defect：恢复链路静默丢状态）
 
-- [ ] `SourceReaderOperator`：restoreState 在 reader 未建时缓冲恢复 splits，`open()` createReader 后回放 `reader.restoreState`（含 open() 异常路径不吞）
-- [ ] enumerator 快照恢复接线：runtime 恢复路径把 manifest 的 `sourceEnumeratorSnapshots` 喂回对应顶点的 coordinator `startEnumerator(restored)`（接线点以 `CheckpointSerDe:663-680` 结构实测为准）；快照缺失时维持现状（fresh enumerator）
-- [ ] 恢复 E2E：FileSource（BOUNDED）checkpoint → restore → split 游标续读不重不丢（真实走 SourceReaderOperator + LocalSourceCoordinator 全链，非 reader 级单测）
+- [x] `SourceReaderOperator`：restoreState 在 reader 未建时缓冲恢复 splits（stash **consume-once**——回放即删，防同 JVM 后续 job 误恢复），`open()` createReader 后回放 `reader.restoreState`（含 open() 异常路径不吞）
+- [x] enumerator 快照恢复接线：runtime 恢复路径把 manifest 的 `sourceEnumeratorSnapshots` 喂回对应顶点的 coordinator `startEnumerator(restored)`（接线点以 `CheckpointSerDe:663-680` 结构实测为准；`StreamExecutionEnvironment` unregister 钩子 :602 一并清理 stash）；快照缺失时维持现状（fresh enumerator）
+- [x] 恢复 E2E：FileSource（BOUNDED）checkpoint → restore → split 游标续读不重不丢（真实走 SourceReaderOperator + LocalSourceCoordinator 全链，非 reader 级单测）
+- [x] **执行发现（B-1'，姊妹缺陷）**：split 持久化双缺陷——(a) 原始 `List<FileSplit>` 直接进 operator state，持久化线程的 JSON only-DataBean 门禁拒绝（`nop.err.core.json.only-data-bean-is-serializable`）→ **FLIP-27 源的 checkpoint 持久化从未成功过**；(b) 即使可写，JSON 解码退化为 Map、restore 侧裸转型必 CCE。修复：snapshotState 经 **source 自身的 `getSplitSerializer()`**（FLIP-27 契约）编码为 JSON 安全信封 `{serializerVersion, base64 encodedSplits}`；restoreState 解码还原类型（裸 List 形态保留为算子级单测的内存通路）。E2E 首红实证（4 次 Failed checkpoint + 恢复后 run2 从 line-1 重读），修复后全绿。
+- [x] **执行发现（E2E 前置）**：`env.execute` 走 checkpoint 引擎的前提是 `enableCheckpointing()`（`checkpointingDeclared` 门 :406-408）——仅 set interval 不生效；FILL_HISTORY 测试即未启用（自然 EOS 无需恢复）。E2E 已按 `enableCheckpointing(100L)` 修正。
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-connector,nop-stream/nop-stream-runtime -am` 全绿
-- [ ] **端到端验证**：恢复 E2E 断言 reader splits 与 enumerator state 双侧真实续读（反 B-1 静默丢弃）
-- [ ] **无静默跳过**：恢复态缓冲在 open 失败时 typed 暴露，非吞掉
-- [ ] owner docs：`nop-stream.md` 或 connectors.md 中 FLIP-27 恢复语义一句话校正（如适用；否则显式声明 No owner-doc update required）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-stream/nop-stream-core,nop-stream/nop-stream-connector,nop-stream/nop-stream-runtime -am` 全绿
+- [x] **端到端验证**：恢复 E2E 断言 reader splits 与 enumerator state 双侧真实续读（反 B-1 静默丢弃）——`TestSourceApiRestoreE2E`（run1 注入失败于 line-50 + 同 jobId 重提交 → run2 从恢复游标续读、非 line-1 重启、跨 run 全覆盖）
+- [x] **无静默跳过**：恢复态缓冲在 open 失败时 typed 暴露，非吞掉；split 信封解码失败 typed 拒绝
+- [x] owner docs：`nop-stream.md` 或 connectors.md 中 FLIP-27 恢复语义一句话校正（如适用；否则显式声明 No owner-doc update required）——FLIP-27 检查点面此前从未可用，属修复而非契约变更；connectors.md 恢复锚点索引行随 Phase 4 终核
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 1 - core 门禁 + batch-loader 迁移
 
