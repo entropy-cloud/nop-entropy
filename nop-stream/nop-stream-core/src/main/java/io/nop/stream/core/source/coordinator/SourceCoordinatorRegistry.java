@@ -118,6 +118,9 @@ public final class SourceCoordinatorRegistry {
      */
     public static io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot consumeEnumeratorRestore(
             Integer vertexId) {
+        if (vertexId == null) {
+            return null;
+        }
         return PENDING_ENUMERATOR_RESTORES.remove(vertexId);
     }
 

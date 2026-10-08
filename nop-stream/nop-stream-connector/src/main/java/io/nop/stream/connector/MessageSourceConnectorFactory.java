@@ -14,7 +14,8 @@ import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
-import io.nop.stream.core.connector.registry.IStreamSourceFunctionFactory;
+import io.nop.stream.core.connector.registry.IStreamSplitSourceFactory;
+import io.nop.stream.core.source.Source;
 import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 
 import java.util.List;
@@ -23,17 +24,19 @@ import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.STRING;
 
 /**
- * SPI factory for the {@code message} source type: constructs {@link MessageSourceFunction}
- * (item 19 / P-REQ-28). The message backend is a programmatic OBJECT param
+ * SPI factory for the {@code message} source type: constructs the FLIP-27
+ * {@link MessageSource} (item 19 / P-REQ-28; WI2 plan 2343 Phase 2 moved the factory
+ * surface from the legacy {@link MessageSourceFunction}, which keeps its programmatic
+ * API only). The message backend is a programmatic OBJECT param
  * ({@code IMessageService}) — the factory is stateless and binds no default backend.
  * Registered in {@code _vfs/nop/stream/beans/connector-message.beans.xml}.
  */
-public final class MessageSourceConnectorFactory implements IStreamSourceFunctionFactory {
+public final class MessageSourceConnectorFactory implements IStreamSplitSourceFactory {
 
     public static final String TYPE_NAME = "message";
 
     private static final ConnectorCapabilityDescriptor DESCRIPTOR = ConnectorCapabilityDescriptor
-            .source(TYPE_NAME, MessageSourceFunction.class.getName())
+            .source(TYPE_NAME, MessageSource.class.getName())
             .sourceConsistency(SourceConsistencyCapability.AT_LEAST_ONCE)
             .parallelism(ConnectorParallelism.PARALLEL)
             .recoverySemantic(ConnectorRecoverySemantic.NONE)
@@ -58,14 +61,13 @@ public final class MessageSourceConnectorFactory implements IStreamSourceFunctio
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public SourceFunction<?> createSourceFunction(StreamConnectorConfig config) {
+    public Source<?, ?, ?> createSource(StreamConnectorConfig config) {
         IMessageService messageService = config.requireObject("messageService", IMessageService.class);
         String topic = config.requireString("topic");
         Class<?> valueTypeClass = config.getObject("valueTypeClass", Class.class);
         if (valueTypeClass != null) {
-            return new MessageSourceFunction<>(messageService, topic, (Class) valueTypeClass);
+            return new MessageSource<Object>(messageService, topic, valueTypeClass);
         }
-        return new MessageSourceFunction<>(messageService, topic);
+        return new MessageSource<Object>(messageService, topic);
     }
 }
