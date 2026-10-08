@@ -38,7 +38,7 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 ## 3. 执行语义标注（D1/D6）
 
 - 聚合结果为 **last-value-wins 终值语义**：非 append-only、非 retract；持续聚合逐条 emit 当前归约值，窗口聚合按窗 fire。
-- `TUMBLE(t, INTERVAL)` 的时间列 t 用 **bigint epoch-millis** 承载（产物自动补 timestampsAndWatermarks + per-event assigner）；间隔单位为 SECOND/MINUTE/HOUR/DAY/WEEK 与 MICROSECOND（整毫秒倍数），非正时长、非字面量与日历单位（MONTH/QUARTER/YEAR）fail-fast（`nop.err.eql.invalid-interval-value`）。
+- **流时间窗口伪表函数（D4 形态全集，WI26 补全）**：`TUMBLE(t, INTERVAL)`（尺寸窗口）/ `HOP(t, slide, size)`（Flink TVF 参数序的滑动窗口）/ `SESSION(t, gap)`（会话窗口，引擎 merge 管线）。时间列 t 用 **bigint epoch-millis** 承载（产物自动补 timestampsAndWatermarks + per-event assigner）；间隔单位为 SECOND/MINUTE/HOUR/DAY/WEEK 与 MICROSECOND（整毫秒倍数），非正时长、非字面量与日历单位（MONTH/QUARTER/YEAR）fail-fast（`nop.err.eql.invalid-interval-value`）——三原则对 HOP 的 slide 与 size 分别适用；本仓裁定 slide<=size（sql 层与 DSL 层双守卫，引擎 validateSliding 不校验）。HOP/SESSION 仅窗口聚合（GROUP BY）查询可用，plain 管道声明即 fail-fast。窗口列命名契约：window_start/window_end 为保留名，聚合输出暂未暴露（引用即 typed 拒绝并指向 FU-E2）。
 - join 为事件时间 hash join：匹配对即时发射、outer 补齐在 watermark；匹配寿命止于 watermark 边界（有界状态）。
 
 ## 4. 错误码
@@ -49,7 +49,10 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 - **既有 .stream.xml 模型**：`<sql>` 为纯增量顶层元素——不含 `<sql>` 的既有模型零影响；新增 `<sql>` 时模型必须以 `<sql>` 为唯一内容（不得与既有 transforms/edges 混写），且运行期 classpath 需含 nop-stream-sql（缺失时构建期 `nop.err.stream.invalid-arg` fail-fast，文案点名模块）。
 - **schema 声明**：九受管类型名闭集（见 §1）；DATE/TIMESTAMP/DECIMAL 列绑定构建期 fail-fast（不静默近似）。
-- **D9 allowedLateness 放行**（WI10）：`<window>` 与 `<strategy>` 的 allowedLateness 自本 roadmap 起按语义消费（窗口关闭点推迟至 watermark 越过 lateness 界）；accumulationMode/triggerId/窗口级 parallelism 仍保持 fail-fast。
+- **D11 emit 两档**（WI0a 裁定 + WI37 实施，2026-10-08）：`<sql emit="UPDATE|CLOSE">` 顶层属性——UPDATE 逐记录发射窗口当前聚合值（Kafka Streams ON_WINDOW_UPDATE 语义，隐含强制 ACCUMULATING；无 GROUP BY 的纯管道/连续聚合/join 查询声明 UPDATE 构建期 fail-fast）；CLOSE（缺省）维持窗口末单次发射。产物落 `<strategy emit>`，raw DSL 面亦可直接声明（join 引用的窗口 strategy 声明 UPDATE 时构建期 fail-fast）；triggerId 声明面保持 fail-fast（封闭枚举非自由 trigger）。
+- **WI25 时间列 lateness**（Q1 裁定=列级形态，2026-10-08）：`<schemas><field name="ts" type="bigint" lateness="20000"/>` ——仅伪表函数（TUMBLE/HOP/SESSION）时间列生效（非时间列声明、负值、无窗口聚合路径声明均构建期 fail-fast；WI26 推广），产物映射 strategy allowedLateness（D9 管线零运行时改动）：迟到记录在窗口 end+lateness 界内更新已 fire 窗口并重发更新值；与 emit=UPDATE 正交可组合。查询级水位延迟声明未纳入（Follow-up FU-E6）。
+- **D9 allowedLateness 放行**（WI10）：`<window>` 与 `<strategy>` 的 allowedLateness 自本 roadmap 起按语义消费（窗口关闭点推迟至 watermark 越过 lateness 界）。
+- **D10 accumulationMode 接线放行**（WI0a 裁定 + WI38 修复，2026-10-08）：`<strategy accumulationMode="DISCARDING|ACCUMULATING">` 声明值真实到达窗口算子——DISCARDING 在窗口 fire 后清空内容（event-time + allowedLateness>0 时推迟清空以保迟到更新全量重发），ACCUMULATING 保留内容（迟到更新在既有归约上重发）；不声明时按 xdef 默认 DISCARDING。`ACCUMULATING_AND_RETRACTING` 构建期与运行期双层 fail-fast（spec-only）；triggerId 与窗口级 parallelism 仍保持 fail-fast（D11/D12）。
 - **聚合语义（D1）**：SQL 聚合输出为 last-value-wins 终值语义——非 append-only、非 retract；持续聚合逐条 emit 运行值。
 - **W2/T1 边界（WI20）**：`TUMBLE` 查询仅流目标可执行；SQL 通道按原样回显 `TUMBLE(...)` 语法（该文本在真实 RDBMS 解析即失败——预期边界而非缺陷）。
 

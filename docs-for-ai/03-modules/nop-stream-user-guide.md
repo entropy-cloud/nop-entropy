@@ -174,6 +174,8 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）、`sideOutput`（`tag` + 可选 `condition`，复制 tap 语义，见上节）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）、`outputTag`（tag 通道消费边，配对规则见上节）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
 
+   **WI27 非对称窗口 join timeout（2026-10-08）**：`<joins>/<joinSpec>` 支持对称 `timeout` 或非对称 `leftTimeout`/`rightTimeout`（duration 格式，恰一或双声明，与 timeout 互斥，未声明侧缺省 0=窗口末即完成）。语义边界：配对在记录到达时按窗口内叉积 eager 完成，配对集合恒等于对称 min(leftTimeout, rightTimeout) 的配对集合（ksql WITHIN(before,after) 窗偏移语义的 narrowing 转译）；非对称的真实效果是 LEFT 未匹配左的 (L,null) 完成时点解耦到 leftTimeout、长侧缓冲保留至自身 fire 点。窗口 join 仅 INNER/LEFT。
+
 ### bean / xpl 双函数形态
 
 transform 的函数体两种形态（`StreamModelDslBuilder`，`StreamModelDslBuilder.java`（flow builder 包））：

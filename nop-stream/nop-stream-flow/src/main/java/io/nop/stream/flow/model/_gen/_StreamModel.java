@@ -80,6 +80,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
      * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
      * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     * WI27: leftTimeout/rightTimeout 为非对称宽限（duration 格式，恰一或双声明，
+     * 与 timeout 互斥；未声明侧缺省 0=窗口末即完成）。
      */
     private KeyedList<io.nop.stream.flow.model.StreamJoinSpecModel> _joins = KeyedList.emptyList();
     
@@ -419,6 +421,8 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
      * 可选窗口策略），稳定 ID 供 <join joinRef> 引用；运行时求值由 WI13 的
      * buildJoin 承接，本声明面只承载构建期校验。多 key 用逗号分隔。timeout
      * 为窗口 join 的超时窗口（duration 格式），仅与 windowStrategyRef 同用。
+     * WI27: leftTimeout/rightTimeout 为非对称宽限（duration 格式，恰一或双声明，
+     * 与 timeout 互斥；未声明侧缺省 0=窗口末即完成）。
      */
     
     public java.util.List<io.nop.stream.flow.model.StreamJoinSpecModel> getJoins(){
