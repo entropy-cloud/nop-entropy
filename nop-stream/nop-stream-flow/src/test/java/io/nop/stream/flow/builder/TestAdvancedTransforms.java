@@ -23,6 +23,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.flow.model.StreamModel;
+import io.nop.stream.flow.testing.CollectingSinkFunction;
 import io.nop.stream.flow.testing.FirstMatchPatternProcessFunction;
 import io.nop.stream.flow.testing.IdentityProcessFunction;
 import io.nop.stream.flow.testing.SumAggregateFunction;
@@ -520,18 +521,185 @@ public class TestAdvancedTransforms {
     }
 
     @Test
-    public void sideOutputTransformThrowsWithRuntimeGapMessage() {
-        StreamModel model = parseInline(
+    public void sideOutputBuildsTapAndStampsConsumerEdgeTag() {
+        // WI8 Phase 2 (plan 2332): <sideOutput> no longer fails fast — it builds a
+        // pass-through tap vertex, and the declared <edge outputTag> stamps the tag on
+        // the consumer's incoming edge (StreamEdge.outputTag → JobEdge.outputTagId) so
+        // the deployment layer routes the tag channel and registers the target's
+        // side-output consumer.
+        StreamModel model = parseWithEdges(
                 "<source id=\"src\" bean=\"srcFn\"/>"
-                        + "<sideOutput id=\"so\" tag=\"late\"/>",
-                "");
+                        + "<sideOutput id=\"so\" tag=\"late\"/>"
+                        + "<map id=\"m2\"><source>event</source></map>"
+                        + "<sink id=\"mainOut\" bean=\"mainSink\"/>"
+                        + "<sink id=\"tagOut\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"so\"/>"
+                        + "<edge id=\"e1\" from=\"so\" to=\"m2\" outputTag=\"late\"/>"
+                        + "<edge id=\"e2\" from=\"m2\" to=\"tagOut\"/>"
+                        + "<edge id=\"e3\" from=\"so\" to=\"mainOut\"/>"
+                        + "</edges>");
 
-        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver());
-        StreamException ex = assertThrows(StreamException.class,
-                builder::build);
-        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
-        assertTrue(ex.getMessage().contains("sideOutput"),
-                () -> "Expected sideOutput in error, got: " + ex.getMessage());
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("mainSink", new CollectingSinkFunction<String>());
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamExecutionEnvironment env = assertDoesNotThrow(builder::build,
+                () -> "a paired <sideOutput>/<edge outputTag> declaration must build");
+
+        io.nop.stream.core.jobgraph.JobGraph jobGraph = env.buildJobGraph("side-output-wiring");
+        io.nop.stream.core.jobgraph.JobEdge tagEdge = jobGraph.getEdges().stream()
+                .filter(e -> e.getOutputTagId() != null)
+                .findFirst().orElse(null);
+        assertTrue(tagEdge != null,
+                () -> "the JobGraph must carry the tag edge, edges=" + jobGraph.getEdges());
+        assertEquals("late", tagEdge.getOutputTagId(),
+                "the tag edge must carry the declared outputTag id");
+    }
+
+    /**
+     * validateDag pairing path 1: a declared sideOutput tag with NO consuming tag edge
+     * fails fast with ERR_STREAM_INVALID_ARG (the former NOT_IMPLEMENTED gap is now a
+     * declaration-typo diagnosis).
+     */
+    @Test
+    public void sideOutputWithoutConsumerEdgeFailsFast() {
+        StreamModel model = parseWithEdges(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<sideOutput id=\"so\" tag=\"late\"/>"
+                        + "<map id=\"m2\"><source>event</source></map>"
+                        + "<sink id=\"out\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"so\"/>"
+                        + "<edge id=\"e1\" from=\"m2\" to=\"out\"/>"
+                        + "</edges>");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("no consuming tag edge"),
+                () -> "expected the no-consumer pairing error, got: " + ex.getMessage());
+    }
+
+    /**
+     * validateDag pairing path 2: a tag edge consuming an UNDECLARED tag (from is not
+     * the declaring sideOutput node) fails fast with ERR_STREAM_REF_UNKNOWN.
+     */
+    @Test
+    public void tagEdgeConsumingUndeclaredTagFailsFast() {
+        StreamModel model = parseWithEdges(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<map id=\"m1\"><source>event</source></map>"
+                        + "<map id=\"m2\"><source>event</source></map>"
+                        + "<sink id=\"out\" bean=\"tagSink\"/>"
+                        + "<sink id=\"tagOut\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"m1\"/>"
+                        + "<edge id=\"e1\" from=\"m1\" to=\"m2\" outputTag=\"late\"/>"
+                        + "<edge id=\"e2\" from=\"m2\" to=\"tagOut\"/>"
+                        + "<edge id=\"e3\" from=\"m1\" to=\"out\"/>"
+                        + "</edges>");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.ref-unknown", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("does not declare a <sideOutput> node"),
+                () -> "expected the undeclared-tag error, got: " + ex.getMessage());
+    }
+
+    /**
+     * validateDag pairing path 3: the same tag consumed by multiple edges fails fast —
+     * the runtime tag registration is replace-by-id semantics, so a second consumer
+     * would silently take over the first.
+     */
+    @Test
+    public void sameTagConsumedByMultipleEdgesFailsFast() {
+        StreamModel model = parseWithEdges(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<sideOutput id=\"so\" tag=\"late\"/>"
+                        + "<map id=\"m2\"><source>event</source></map>"
+                        + "<map id=\"m3\"><source>event</source></map>"
+                        + "<sink id=\"tagOut2\" bean=\"tagSink\"/>"
+                        + "<sink id=\"tagOut3\" bean=\"tagSink\"/>"
+                        + "<sink id=\"mainOut\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"so\"/>"
+                        + "<edge id=\"e1\" from=\"so\" to=\"m2\" outputTag=\"late\"/>"
+                        + "<edge id=\"e2\" from=\"m2\" to=\"tagOut2\"/>"
+                        + "<edge id=\"e3\" from=\"so\" to=\"m3\" outputTag=\"late\"/>"
+                        + "<edge id=\"e4\" from=\"m3\" to=\"tagOut3\"/>"
+                        + "<edge id=\"e5\" from=\"so\" to=\"mainOut\"/>"
+                        + "</edges>");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("consumed by multiple"),
+                () -> "expected the multi-consumer pairing error, got: " + ex.getMessage());
+    }
+
+    /**
+     * validateDag pairing path 4: a tag edge declaring partition="HASH" (+ keyExpr)
+     * fails fast — a tag edge follows the producer's partitioning.
+     */
+    @Test
+    public void tagEdgeWithHashPartitionFailsFast() {
+        StreamModel model = parseWithEdges(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<sideOutput id=\"so\" tag=\"late\"/>"
+                        + "<map id=\"m2\"><source>event</source></map>"
+                        + "<sink id=\"tagOut\" bean=\"tagSink\"/>"
+                        + "<sink id=\"mainOut\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"so\"/>"
+                        + "<edge id=\"e1\" from=\"so\" to=\"m2\" outputTag=\"late\""
+                        + " partition=\"HASH\" keyExpr=\"event\"/>"
+                        + "<edge id=\"e2\" from=\"m2\" to=\"tagOut\"/>"
+                        + "<edge id=\"e3\" from=\"so\" to=\"mainOut\"/>"
+                        + "</edges>");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.edge-attr-unsupported", ex.getErrorCode().toString(),
+                () -> "expected ERR_STREAM_EDGE_ATTR_UNSUPPORTED, got: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("partition"),
+                () -> "error must name the partition attribute, got: " + ex.getMessage());
+    }
+
+    /**
+     * A tag edge into a sink is rejected: the supported tag consumption surface is
+     * single-input one-input transforms; sinks consume side outputs via the Java API
+     * getSideOutput(tag) view.
+     */
+    @Test
+    public void tagEdgeIntoSinkFailsFast() {
+        StreamModel model = parseWithEdges(
+                "<source id=\"src\" bean=\"srcFn\"/>"
+                        + "<sideOutput id=\"so\" tag=\"late\"/>"
+                        + "<sink id=\"tagOut\" bean=\"tagSink\"/>"
+                        + "<sink id=\"mainOut\" bean=\"tagSink\"/>",
+                "<edges>"
+                        + "<edge id=\"e0\" from=\"src\" to=\"so\"/>"
+                        + "<edge id=\"e1\" from=\"so\" to=\"tagOut\" outputTag=\"late\"/>"
+                        + "<edge id=\"e2\" from=\"so\" to=\"mainOut\"/>"
+                        + "</edges>");
+
+        InMemoryBeanFunctionResolver resolver = resolver();
+        resolver.register("tagSink", new CollectingSinkFunction<String>());
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
+        StreamException ex = assertThrows(StreamException.class, builder::build);
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("single-input transform"),
+                () -> "expected the unsupported-target error, got: " + ex.getMessage());
     }
 
     // ----------------------------------------------------------------

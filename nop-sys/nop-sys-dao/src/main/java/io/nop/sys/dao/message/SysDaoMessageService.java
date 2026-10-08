@@ -60,7 +60,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class SysDaoMessageService extends LifeCycleSupport implements IMessageService {
+public class SysDaoMessageService extends LifeCycleSupport
+        implements IMessageService, io.nop.message.core.channel.ChannelBacklogProbe {
     private static final Set<MessageCapability> CAPABILITIES = EnumSet.of(
             MessageCapability.SEND, MessageCapability.SUBSCRIBE, MessageCapability.DELAYED_SEND,
             MessageCapability.ACK_REPLY);
@@ -227,6 +228,22 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             cleanupFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::cleanupExpiredEvents,
                     cleanupInterval.toMillis(), cleanupInterval.toMillis(), TimeUnit.MILLISECONDS);
         }
+    }
+
+    /**
+     * WI6 (plan 2331): producer-side backpressure probe — the number of unconsumed
+     * messages retained for the topic (WAITING + CLAIMED rows on the indexed
+     * (eventTopic, eventStatus) pair). Consumed rows stay until retention cleanup, so
+     * only the status filter separates backlog from history.
+     */
+    @Override
+    public long backlog(String topic) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_eventTopic, topic));
+        query.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventStatus,
+                List.of(NopSysDaoConstants.SYS_EVENT_STATUS_WAITING,
+                        NopSysDaoConstants.SYS_EVENT_STATUS_CLAIMED)));
+        return dao().countByQuery(query);
     }
 
     /**

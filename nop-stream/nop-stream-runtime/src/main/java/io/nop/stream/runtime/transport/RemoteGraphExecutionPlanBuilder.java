@@ -59,6 +59,10 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_A
  */
 public class RemoteGraphExecutionPlanBuilder {
 
+    /** WI6: one-shot honesty log when a limit is configured without a capable backend. */
+    private transient boolean backlogUnavailableLogged;
+
+
     private static final Logger LOG = LoggerFactory.getLogger(RemoteGraphExecutionPlanBuilder.class);
 
     /** Items 28+31 (D1): consumer-channel queue capacity (unchanged default). */
@@ -212,10 +216,28 @@ public class RemoteGraphExecutionPlanBuilder {
             for (int s = 0; s < srcP; s++) {
                 for (int t = 0; t < tgtP; t++) {
                     String topic = StreamTopicNaming.buildTopic(jobId, edgeId, s, t);
-                    // Producer side: RemoteResultPartition
-                    matrix[s][t] = new RemoteResultPartition(
+                    // Producer side: RemoteResultPartition. WI6 (plan 2331): DB-channel
+                    // producer backpressure — unwrap the codec adapter, probe the raw
+                    // backend, and gate only when both the capability and a positive
+                    // job-level limit are present. A configured limit without a
+                    // capable backend is announced ONCE (honest no-op, not silent).
+                    io.nop.message.core.channel.ChannelBacklogProbe probe = resolveBacklogProbe();
+                    long backlogLimit = resolveDbBacklogLimit();
+                    if (backlogLimit > 0 && probe == null && !backlogUnavailableLogged) {
+                        LOG.info("nop.stream.data.db.backlog.limit={} configured but the message "
+                                + "service exposes no ChannelBacklogProbe capability (Kafka/Pulsar/"
+                                + "in-memory channels carry their own backpressure) - DB gate disabled",
+                                backlogLimit);
+                        backlogUnavailableLogged = true;
+                    }
+                    RemoteResultPartition partition = new RemoteResultPartition(
                             messageService, topic, typeRegistry, edgeId,
-                            epochId);
+                            epochId, backlogLimit > 0 ? probe : null,
+                            backlogLimit > 0 ? backlogLimit : 0L);
+                    if (backlogLimit > 0 && probe != null) {
+                        DbBacklogGauges.bind(partition, topic);
+                    }
+                    matrix[s][t] = partition;
 
                     // Consumer side: RemoteInputChannel (created per target subtask per source).
                     // Subscription scope — the channel is always
@@ -296,17 +318,15 @@ public class RemoteGraphExecutionPlanBuilder {
                         inEdges, taskIndex, parallelismMap, transport.inputChannels(),
                         deploymentPlan, barrierAlignment);
 
-                StreamTaskInvokable invokable;
-                if (writers.fanOutWriters() != null && !writers.fanOutWriters().isEmpty()) {
-                    if (inputGate != null) {
-                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters(), inputGate);
-                    } else {
-                        invokable = new StreamTaskInvokable(chain, writers.fanOutWriters());
+                StreamTaskInvokable invokable = createInvokable(chain, writers, inputGate);
+
+                // WI8 Phase 2 (plan 2332): a vertex fed from a side-output tag edge
+                // registers the tag consumer that feeds its operator chain input —
+                // records arriving over the tag channel route through it.
+                for (JobEdge edge : inEdges) {
+                    if (edge.getOutputTagId() != null) {
+                        invokable.registerTagEdgeConsumer(edge.getOutputTagId());
                     }
-                } else if (writers.singleWriter() != null || inputGate != null) {
-                    invokable = new StreamTaskInvokable(chain, writers.singleWriter(), inputGate);
-                } else {
-                    invokable = new StreamTaskInvokable(chain);
                 }
 
                 Subtask subtask = new Subtask(vertexId, taskIndex, taskLocation, invokable);
@@ -347,6 +367,15 @@ public class RemoteGraphExecutionPlanBuilder {
                             .validateParallelism(parallelism);
                 }
             }
+            // WI2 plan 2343 Phase 1 (G5): FLIP-27 parity with the embedded builder.
+            else if (op instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                io.nop.stream.core.source.Source<?, ?, ?> splitSource =
+                        ((io.nop.stream.core.operators.SourceReaderOperator<?>) op).getSource();
+                if (splitSource instanceof io.nop.stream.core.common.functions.source.ParallelismCheckable) {
+                    ((io.nop.stream.core.common.functions.source.ParallelismCheckable) splitSource)
+                            .validateParallelism(parallelism);
+                }
+            }
             // R6 CON-03 (plan 2326): sink-side gate — mirrors the embedded builder.
             else if (op instanceof io.nop.stream.core.operators.AbstractUdfStreamOperator) {
                 Object udf = ((io.nop.stream.core.operators.AbstractUdfStreamOperator<?, ?>) op).getUserFunction();
@@ -360,7 +389,40 @@ public class RemoteGraphExecutionPlanBuilder {
 
     /** Per-subtask output writers: either a single writer or a per-edge fan-out list. */
     private record RemoteWriters(RecordWriter<Object> singleWriter,
-                                 List<RecordWriter<Object>> fanOutWriters) {
+                                 String singleWriterTagId,
+                                 List<RecordWriter<Object>> fanOutWriters,
+                                 List<String> fanOutWriterTagIds) {
+    }
+
+    /**
+     * Creates the invokable with WI8 Phase 2 (plan 2332) tag-aware routing: when any
+     * outgoing edge carries a side-output tag id, the tag-aware constructor routes
+     * tagged emissions to their tag edge and keeps main records off tag edges. Vertices
+     * without tag edges keep the legacy constructors (zero regression).
+     */
+    private static StreamTaskInvokable createInvokable(OperatorChain chain,
+                                                       RemoteWriters writers,
+                                                       InputGate inputGate) {
+        boolean fanOutHasTagEdge = writers.fanOutWriterTagIds() != null
+                && writers.fanOutWriterTagIds().stream().anyMatch(java.util.Objects::nonNull);
+        if (writers.fanOutWriters() != null && !writers.fanOutWriters().isEmpty()) {
+            if (fanOutHasTagEdge) {
+                return new StreamTaskInvokable(chain, writers.fanOutWriters(),
+                        writers.fanOutWriterTagIds(), inputGate);
+            }
+            if (inputGate != null) {
+                return new StreamTaskInvokable(chain, writers.fanOutWriters(), inputGate);
+            }
+            return new StreamTaskInvokable(chain, writers.fanOutWriters());
+        }
+        if (writers.singleWriterTagId() != null && writers.singleWriter() != null) {
+            return new StreamTaskInvokable(chain, writers.singleWriter(),
+                    writers.singleWriterTagId(), inputGate);
+        }
+        if (writers.singleWriter() != null || inputGate != null) {
+            return new StreamTaskInvokable(chain, writers.singleWriter(), inputGate);
+        }
+        return new StreamTaskInvokable(chain);
     }
 
     /**
@@ -384,6 +446,11 @@ public class RemoteGraphExecutionPlanBuilder {
                                                           DeploymentPlan deploymentPlan) {
         RecordWriter<Object> recordWriter = null;
         List<RecordWriter<Object>> fanOutWriters = null;
+        // WI8 Phase 2 (plan 2332): per-edge side-output tag ids, index-aligned with the
+        // writer lists (null entries = main edges). Built inside the loops so a dropped
+        // null writer cannot misalign the tag list.
+        String singleWriterTagId = null;
+        List<String> fanOutWriterTagIds = null;
 
         if (!outEdges.isEmpty()) {
             if (outEdges.size() == 1) {
@@ -391,20 +458,23 @@ public class RemoteGraphExecutionPlanBuilder {
                 recordWriter = EdgeAssembly.createWriterForEdge(edge,
                         edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                         RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
+                singleWriterTagId = edge.getOutputTagId();
             } else {
                 fanOutWriters = new ArrayList<>();
+                fanOutWriterTagIds = new ArrayList<>();
                 for (JobEdge edge : outEdges) {
                     RecordWriter<Object> writer = EdgeAssembly.createWriterForEdge(edge,
                             edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                             RemoteGraphExecutionPlanBuilder::resolvePartitionPolicy);
                     if (writer != null) {
                         fanOutWriters.add(writer);
+                        fanOutWriterTagIds.add(edge.getOutputTagId());
                     }
                 }
             }
         }
 
-        return new RemoteWriters(recordWriter, fanOutWriters);
+        return new RemoteWriters(recordWriter, singleWriterTagId, fanOutWriters, fanOutWriterTagIds);
     }
 
     private static InputGate buildRemoteInputGate(List<JobEdge> inEdges,
@@ -590,5 +660,29 @@ public class RemoteGraphExecutionPlanBuilder {
         }
 
         return sorted;
+    }
+    /**
+     * WI6: capability lookup — unwrap the codec adapter and probe the raw backend
+     * (checking the adapter itself would always miss on the embedded/rpc main paths).
+     */
+    io.nop.message.core.channel.ChannelBacklogProbe resolveBacklogProbe() {
+        IMessageService raw = messageService;
+        if (raw instanceof DataPlaneMessageServiceAdapter) {
+            raw = ((DataPlaneMessageServiceAdapter) raw).getDelegate();
+        }
+        return raw instanceof io.nop.message.core.channel.ChannelBacklogProbe
+                ? (io.nop.message.core.channel.ChannelBacklogProbe) raw
+                : null;
+    }
+
+    /**
+     * WI6: job-level gate limit; 0/unset = gate off. Read from the system property
+     * (same tuning-knob mechanism as {@code nop-stream.checkpoint.storage.dir}); set
+     * per launch: {@code java -Dnop.stream.data.db.backlog.limit=5000 ...} or via
+     * {@code NOP_STREAM_JAVA_OPTS} in the launch script environment.
+     */
+    long resolveDbBacklogLimit() {
+        Long value = Long.getLong("nop.stream.data.db.backlog.limit");
+        return value == null ? 0L : value;
     }
 }

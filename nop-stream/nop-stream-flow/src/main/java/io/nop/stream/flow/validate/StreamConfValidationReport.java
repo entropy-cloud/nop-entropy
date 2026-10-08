@@ -58,15 +58,20 @@ public final class StreamConfValidationReport {
     public String render() {
         StringBuilder sb = new StringBuilder();
         long failCount = issues.stream().filter(i -> i.getSeverity() == ValidationIssue.Severity.FAIL).count();
-        long skipCount = issues.size() - failCount;
+        long warningCount = issues.stream().filter(i -> i.getSeverity() == ValidationIssue.Severity.WARNING).count();
+        long skipCount = issues.size() - failCount - warningCount;
         if (failCount == 0) {
             sb.append("conf-validate: OK (0 failed");
             if (skipCount > 0) {
                 sb.append(", ").append(skipCount).append(" explicit skip item(s)");
             }
+            if (warningCount > 0) {
+                sb.append(", ").append(warningCount).append(" warning(s)");
+            }
             sb.append(")\n");
         } else {
             sb.append("conf-validate: FAILED (").append(failCount).append(" failed, ")
+                    .append(warningCount).append(" warning(s), ")
                     .append(skipCount).append(" skipped)\n");
         }
         for (ValidationIssue issue : issues) {

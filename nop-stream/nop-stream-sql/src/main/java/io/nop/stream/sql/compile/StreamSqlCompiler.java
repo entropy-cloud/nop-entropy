@@ -33,6 +33,8 @@ import io.nop.orm.eql.ast.SqlSelectWithCte;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlSubqueryTableSource;
 import io.nop.orm.eql.ast.SqlTableSource;
+import io.nop.orm.eql.ast.SqlHopTableSource;
+import io.nop.orm.eql.ast.SqlSessionTableSource;
 import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnaryExpr;
 import io.nop.orm.eql.ast.SqlOrExpr;
@@ -45,6 +47,8 @@ import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.orm.eql.parse.EqlParseHelper;
 import io.nop.stream.sql.eval.SqlRowAggregateOps;
 import io.nop.stream.sql.eval.SqlRowAggregateSpec;
+
+import io.nop.stream.core.windowing.StreamEmitMode;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -72,14 +76,17 @@ import java.util.Set;
  *   <li>Global aggregation (no GROUP BY) → fail-fast.</li>
  * </ul>
  *
- * <h3>Fail-fast matrix (r2 M4)</h3>
+ * <h3>Fail-fast matrix (r2 M4; HAVING + DISTINCT aggregates superseded by WI17,
+ * plan 2342)</h3>
  * Every unsupported construct fails fast — default-reject with
- * {@code nop.err.stream.invalid-arg} (HAVING, CTE/WITH, DISTINCT, INTERSECT/EXCEPT,
+ * {@code nop.err.stream.invalid-arg} (CTE/WITH, SELECT DISTINCT, INTERSECT/EXCEPT,
  * parenthesized/LATERAL selects, SELECT * , global aggregation, non-equi join,
  * GROUP BY without aggregate, TUMBLE+join, aggregate+join, multi-statement,
- * non-managed schema types), ORDER BY / LIMIT with the pinned
- * {@code nop.err.eql.dialect-not-support-feature}. UNION is bag union (no dedup);
- * UNION DISTINCT fails fast. No AST walk branch silently drops a construct.
+ * non-managed schema types, HAVING without GROUP BY or on a join), ORDER BY / LIMIT
+ * with the pinned {@code nop.err.eql.dialect-not-support-feature}. HAVING and
+ * DISTINCT aggregates are supported since WI17 (aggregate-then-filter paths and the
+ * DistinctAggregateWrapper). UNION is bag union (no dedup); UNION DISTINCT fails
+ * fast. No AST walk branch silently drops a construct.
  */
 public final class StreamSqlCompiler {
 
@@ -110,6 +117,30 @@ public final class StreamSqlCompiler {
      */
     public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
                                  String sinkBean) {
+        return compile(loc, sql, schema, sinkBean, StreamEmitMode.CLOSE);
+    }
+
+    /**
+     * WI37 (D11 release): compiles with the declared two-tier emit mode.
+     * {@code UPDATE} is only legal on the windowed-aggregate (TUMBLE) path — the
+     * plain-pipeline (including plain-TUMBLE), continuous-aggregate and join paths
+     * fail fast instead of silently dropping the declaration.
+     */
+    public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
+                                 String sinkBean, StreamEmitMode emit) {
+        return compile(loc, sql, schema, sinkBean, emit, java.util.Collections.emptyMap());
+    }
+
+    /**
+     * WI25/Q1: compiles with the declared per-field lateness. Only the TUMBLE time
+     * column's lateness is honored (it maps to the product strategy's allowedLateness
+     * — the D9 pipeline consumes it with zero runtime change); a lateness on any other
+     * column, a negative value, or a lateness declared on a path that produces no
+     * window strategy fails fast.
+     */
+    public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
+                                 String sinkBean, StreamEmitMode emit,
+                                 Map<String, Long> fieldLateness) {
         if (sql == null || sql.trim().isEmpty()) {
             throw CompileErrors.invalidArg("SQL text is blank");
         }
@@ -134,6 +165,14 @@ public final class StreamSqlCompiler {
         stream.setAttr("version", 1);
 
         CompileContext ctx = new CompileContext(schema);
+        ctx.emit = emit == null ? StreamEmitMode.CLOSE : emit;
+        ctx.fieldLateness = fieldLateness == null ? java.util.Collections.emptyMap() : fieldLateness;
+        for (Map.Entry<String, Long> e : ctx.fieldLateness.entrySet()) {
+            if (e.getValue() == null || e.getValue() < 0) {
+                throw CompileErrors.invalidArg("lateness must be a non-negative millisecond "
+                        + "value, but field '" + e.getKey() + "' declared: " + e.getValue());
+            }
+        }
         List<XNode> transforms = new ArrayList<>();
         List<XNode> edges = new ArrayList<>();
         String lastId = compileStatement(program.getStatements().get(0),
@@ -178,7 +217,13 @@ public final class StreamSqlCompiler {
                                            List<XNode> transforms, List<XNode> edges,
                                            String idPrefix) {
         if (stmt instanceof SqlSelectWithCte) {
-            throw CompileErrors.invalidArg("WITH/CTE is outside the stream SQL v1 subset");
+            // WI32: CTE requires proper inline expansion (substituting the CTE body's
+            // table source for the CTE reference) — removing the fail-fast alone
+            // produces a product that references the CTE alias instead of the
+            // underlying table, failing at runtime. Reverting to fail-fast with
+            // doc anchor; proper expansion design needed before re-release.
+            throw CompileErrors.invalidArg("WITH/CTE requires inline expansion design "
+                    + "(see sql-subset-and-semantics.md §4a#7) — outside the stream SQL v1 subset");
         }
         if (stmt instanceof SqlUnionSelect) {
             return compileUnion((SqlUnionSelect) stmt, ctx, transforms, edges, idPrefix);
@@ -218,8 +263,22 @@ public final class StreamSqlCompiler {
         if (select.getDistinct()) {
             throw CompileErrors.invalidArg("SELECT DISTINCT is outside the stream SQL v1 subset");
         }
+        // WI17 (plan 2342): HAVING is supported on the GROUP BY + aggregate path only.
+        // Join and plain (no GROUP BY) paths would silently drop HAVING (violating the
+        // "no AST walk branch silently drops a construct" contract), so they fail fast
+        // here before dispatch.
         if (select.getHaving() != null) {
-            throw CompileErrors.invalidArg("HAVING is outside the stream SQL v1 subset");
+            SqlTableSource src = select.getFrom() != null
+                    && !select.getFrom().getTableSources().isEmpty()
+                    ? select.getFrom().getTableSources().get(0) : null;
+            if (src instanceof SqlJoinTableSource) {
+                throw CompileErrors.invalidArg("HAVING on a join query is outside the "
+                        + "stream SQL v1 subset (join + aggregate + HAVING)");
+            }
+            if (select.getGroupBy() == null || select.getGroupBy().getItems().isEmpty()) {
+                throw CompileErrors.invalidArg("HAVING requires GROUP BY in the stream "
+                        + "SQL v1 subset (global aggregation + HAVING is excluded)");
+            }
         }
         if (select.getWindowClause() != null) {
             throw CompileErrors.invalidArg("WINDOW clause (analysis window) is outside the "
@@ -229,10 +288,10 @@ public final class StreamSqlCompiler {
             throw CompileErrors.invalidArg("FOR UPDATE is outside the stream SQL v1 subset");
         }
         if (select.getOrderBy() != null) {
-            throw CompileErrors.dialectNotSupport("ORDER BY");
+            throw CompileErrors.dialectNotSupport("ORDER BY (see sql-subset-and-semantics.md §4a#1)");
         }
         if (select.getLimit() != null) {
-            throw CompileErrors.dialectNotSupport("LIMIT");
+            throw CompileErrors.dialectNotSupport("LIMIT (see sql-subset-and-semantics.md §4a#1)");
         }
         SqlFrom from = select.getFrom();
         if (from == null || from.getTableSources() == null
@@ -249,7 +308,9 @@ public final class StreamSqlCompiler {
                     + "outside the stream SQL v1 subset");
         }
         if (!(table instanceof SqlSingleTableSource)
-                && !(table instanceof SqlTumbleTableSource)) {
+                && !(table instanceof SqlTumbleTableSource)
+                && !(table instanceof SqlHopTableSource)
+                && !(table instanceof SqlSessionTableSource)) {
             throw CompileErrors.invalidArg("table source type " + table.getClass().getSimpleName()
                     + " is outside the stream SQL v1 subset");
         }
@@ -267,7 +328,7 @@ public final class StreamSqlCompiler {
         }
 
         AggregateScan scan = scanProjections(select);
-        boolean hasTumble = table instanceof SqlTumbleTableSource;
+        WindowSpec window = windowSpecOf(table);
 
         if (scan.aggregates.isEmpty()) {
             if (select.getGroupBy() != null) {
@@ -275,21 +336,107 @@ public final class StreamSqlCompiler {
                 throw CompileErrors.invalidArg("GROUP BY requires at least one aggregate "
                         + "in the stream SQL v1 subset");
             }
+            // WI26: HOP/SESSION have no plain-pipeline carrier (no window strategy, no
+            // aggregate) — reject instead of silently ignoring the window declaration.
+            if (window != null && !"tumbling".equals(window.kind)) {
+                throw CompileErrors.invalidArg(window.kind + " window table source is only "
+                        + "supported for windowed aggregate (GROUP BY) queries");
+            }
             return compilePlainPipeline(select, table, filterId, scan, ctx, transforms, edges,
                     idPrefix);
         }
 
-        // aggregation path (single table source only)
+        // aggregation path (single table source only). WI28: global aggregation
+        // (no GROUP BY) compiles through the continuous-aggregate path with a single
+        // synthetic key — keyBy(constant) routes every record to one reduce instance,
+        // which IS the single-parallelism reduction (D1 last-value-wins terminal
+        // semantics, emitted per record).
         if (select.getGroupBy() == null) {
-            throw CompileErrors.invalidArg("global aggregation (aggregate without GROUP BY) "
-                    + "is outside the stream SQL v1 subset");
+            if (window != null) {
+                // WI28 audit B1: window TVF + global aggregation stays a typed
+                // rejection (the HEAD behavior); falling through would NPE on the
+                // null GROUP BY inside buildGroupedAggregate.
+                throw CompileErrors.invalidArg("global aggregation over a window table "
+                        + "source requires GROUP BY (windowed global aggregation is "
+                        + "outside the stream SQL v1 subset)");
+            }
+            GroupedAggregate global = buildGroupedAggregate(select, scan, table, null, true);
+            return compileContinuousAggregate(select, (SqlSingleTableSource) table, filterId,
+                    global, ctx, transforms, edges, idPrefix);
         }
-        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, hasTumble);
-        return hasTumble
-                ? compileWindowedAggregate(select, (SqlTumbleTableSource) table, filterId,
-                        grouped, ctx, transforms, edges, idPrefix)
+        GroupedAggregate grouped = buildGroupedAggregate(select, scan, table, window, false);
+        return window != null
+                ? compileWindowedAggregate(select, window, filterId, grouped, ctx, transforms,
+                        edges, idPrefix)
                 : compileContinuousAggregate(select, (SqlSingleTableSource) table, filterId,
                         grouped, ctx, transforms, edges, idPrefix);
+    }
+
+    /**
+     * WI26: unified pseudo-table window spec (tumbling/sliding/session). Null for a
+     * plain single-table source. Applies the WI25 lateness carrier rule and the
+     * repository ruling slide &lt;= size (aligned with the Flink SQL HOP convention —
+     * the engine's validateSliding does not enforce it).
+     */
+    static WindowSpec windowSpecOf(SqlTableSource table) {
+        if (table instanceof SqlTumbleTableSource) {
+            SqlTumbleTableSource t = (SqlTumbleTableSource) table;
+            return new WindowSpec("tumbling", t.getTableName(), t.getTimeColumn(),
+                    EqlParseHelper.intervalDurationMillis(t.getInterval()), 0L, 0L, t);
+        }
+        if (table instanceof SqlHopTableSource) {
+            SqlHopTableSource h = (SqlHopTableSource) table;
+            long size = EqlParseHelper.intervalDurationMillis(h.getSizeInterval());
+            long slide = EqlParseHelper.intervalDurationMillis(h.getSlideInterval());
+            if (slide > size) {
+                throw CompileErrors.invalidArg("HOP slide (" + slide + "ms) must not exceed "
+                        + "the window size (" + size + "ms)");
+            }
+            return new WindowSpec("sliding", h.getTableName(), h.getTimeColumn(), size, slide,
+                    0L, h);
+        }
+        if (table instanceof SqlSessionTableSource) {
+            SqlSessionTableSource sess = (SqlSessionTableSource) table;
+            long gap = EqlParseHelper.intervalDurationMillis(sess.getGapInterval());
+            return new WindowSpec("session", sess.getTableName(), sess.getTimeColumn(),
+                    0L, 0L, gap, sess);
+        }
+        return null;
+    }
+
+    /** WI26: unified window declaration carried from the pseudo-table source. */
+    static class WindowSpec {
+        final String kind;
+        final String tableName;
+        final String timeColumn;
+        final long sizeMillis;
+        final long slideMillis;
+        final long gapMillis;
+        final SqlTableSource source;
+
+        WindowSpec(String kind, String tableName, String timeColumn, long sizeMillis,
+                   long slideMillis, long gapMillis, SqlTableSource source) {
+            this.kind = kind;
+            this.tableName = tableName;
+            this.timeColumn = timeColumn;
+            this.sizeMillis = sizeMillis;
+            this.slideMillis = slideMillis;
+            this.gapMillis = gapMillis;
+            this.source = source;
+        }
+
+        String windowFnId() {
+            switch (kind) {
+                case "tumbling":
+                    return "tumbling-event-time";
+                case "sliding":
+                    return "sliding-event-time";
+                case "session":
+                    return "session-event-time";
+                default:
+                    throw CompileErrors.invalidArg("unknown window kind " + kind);
+            }
+        }
     }
 
     // ----------------------------------------------------------------
@@ -300,6 +447,11 @@ public final class StreamSqlCompiler {
                                                String filterId, AggregateScan scan,
                                                CompileContext ctx, List<XNode> transforms,
                                                List<XNode> edges, String idPrefix) {
+        // WI37: plain pipelines (with or without a TUMBLE source) produce no window
+        // strategy, so an emit declaration would be silently dropped — reject it.
+        ctx.failFastOnEmitUpdate(loc(select), "plain pipeline");
+        // WI25: same no-silent rule for lateness declarations.
+        ctx.failFastOnFieldLateness(loc(select), "plain pipeline");
         SqlTumbleTableSource tumble = table instanceof SqlTumbleTableSource
                 ? (SqlTumbleTableSource) table : null;
         String tableName = tumble != null ? tumble.getTableName()
@@ -333,16 +485,15 @@ public final class StreamSqlCompiler {
     // windowed aggregate (TUMBLE)
     // ----------------------------------------------------------------
 
-    private static String compileWindowedAggregate(SqlQuerySelect select,
-                                                   SqlTumbleTableSource tumble,
+    private static String compileWindowedAggregate(SqlQuerySelect select, WindowSpec window,
                                                    String filterId, GroupedAggregate grouped,
                                                    CompileContext ctx, List<XNode> transforms,
                                                    List<XNode> edges, String idPrefix) {
         String srcId = idPrefix + "src";
-        transforms.add(sourceNode(loc(tumble), srcId, tumble.getTableName()));
+        transforms.add(sourceNode(loc(window.source), srcId, window.tableName));
         String tswId = idPrefix + "tsw";
-        transforms.add(timestampsNode(tumble, tswId));
-        edges.add(edge(loc(tumble), idPrefix + "e0", srcId, tswId));
+        transforms.add(timestampsNode(loc(window.source), tswId, window.timeColumn));
+        edges.add(edge(loc(window.source), idPrefix + "e0", srcId, tswId));
 
         String prev = tswId;
         if (filterId != null) {
@@ -354,7 +505,17 @@ public final class StreamSqlCompiler {
                 keyExprText(grouped.keyXplExprs)));
         edges.add(edge(loc(select), idPrefix + "e2", prev, keyId));
 
-        String strategyId = ctx.nextStrategy(STRATEGY_ID, grouped.durationMillis);
+        // WI25/Q1: honor the time column's lateness (mapped to the product strategy's
+        // allowedLateness — the D9 pipeline consumes it); non-time-column declarations
+        // fail fast instead of silently changing nothing.
+        Long timeColumnLateness = ctx.fieldLateness.get(window.timeColumn);
+        if (timeColumnLateness == null && !ctx.fieldLateness.isEmpty()) {
+            throw CompileErrors.invalidArg("lateness is only supported on the pseudo-table "
+                    + "time column '" + window.timeColumn + "', declared on: "
+                    + ctx.fieldLateness.keySet());
+        }
+        String strategyId = ctx.nextStrategy(STRATEGY_ID, window, timeColumnLateness == null
+                ? 0L : timeColumnLateness);
         String winId = idPrefix + "win";
         transforms.add(mk(loc(select), "window", "id", winId, "strategyRef", strategyId));
         edges.add(edge(loc(select), idPrefix + "e3", keyId, winId));
@@ -365,10 +526,11 @@ public final class StreamSqlCompiler {
         transforms.add(mk(loc(select), "aggregate", "id", aggId, "aggregatorRef", aggregatorId));
         edges.add(edge(loc(select), idPrefix + "e4", winId, aggId));
 
+        String havingId = insertHavingFilter(select, grouped, aggId, transforms, edges, idPrefix);
         String projId = idPrefix + "proj";
         transforms.add(projectionNode(select, grouped.scan, grouped, idPrefix + "e5", projId,
                 aggregatedRowResolver(grouped)));
-        edges.add(edge(loc(select), idPrefix + "e6", aggId, projId));
+        edges.add(edge(loc(select), idPrefix + "e6", havingId, projId));
         return projId;
     }
 
@@ -381,6 +543,10 @@ public final class StreamSqlCompiler {
                                                      String filterId, GroupedAggregate grouped,
                                                      CompileContext ctx, List<XNode> transforms,
                                                      List<XNode> edges, String idPrefix) {
+        // WI37: continuous aggregates emit on every record already; the emit tier has
+        // no close semantic here — reject UPDATE instead of silently ignoring it.
+        ctx.failFastOnEmitUpdate(loc(select), "continuous aggregate");
+        ctx.failFastOnFieldLateness(loc(select), "continuous aggregate");
         String srcId = idPrefix + "src";
         transforms.add(sourceNode(loc(base), srcId, base.getTableName().getName()));
         String prev = srcId;
@@ -423,10 +589,11 @@ public final class StreamSqlCompiler {
         transforms.add(row);
         edges.add(edge(loc(select), idPrefix + "e5", redId, rowId));
 
+        String havingId = insertHavingFilter(select, grouped, rowId, transforms, edges, idPrefix);
         String projId = idPrefix + "proj";
         transforms.add(projectionNode(select, grouped.scan, grouped, idPrefix + "e6", projId,
                 aggregatedRowResolver(grouped)));
-        edges.add(edge(loc(select), idPrefix + "e7", rowId, projId));
+        edges.add(edge(loc(select), idPrefix + "e7", havingId, projId));
         return projId;
     }
 
@@ -437,6 +604,10 @@ public final class StreamSqlCompiler {
     private static String compileJoinQuery(SqlQuerySelect select, SqlJoinTableSource join,
                                            CompileContext ctx, List<XNode> transforms,
                                            List<XNode> edges, String idPrefix) {
+        // WI37: join products carry a joinSpec, not a windowing strategy — an emit
+        // declaration has no carrier and would be silently dropped — reject it.
+        ctx.failFastOnEmitUpdate(loc(select), "join");
+        ctx.failFastOnFieldLateness(loc(select), "join");
         if (hasAggregate(select.getProjections())) {
             throw CompileErrors.invalidArg("aggregate over a join is outside the stream SQL v1 subset");
         }
@@ -647,14 +818,11 @@ public final class StreamSqlCompiler {
     private static AggregateScan scanProjections(SqlQuerySelect select) {
         AggregateScan scan = new AggregateScan();
         collectProjections(select, scan);
-        // DISTINCT aggregates fail fast (4a#6). Slot indices come from collectAggregates'
-        // putIfAbsent (SELECT discovery order) — never re-assigned from the (unordered)
-        // IdentityHashMap iteration, so "聚合按 SELECT 序" holds.
-        for (SqlAggregateFunction agg : new ArrayList<>(scan.aggregates.keySet())) {
-            if (agg.getDistinct()) {
-                throw CompileErrors.invalidArg("DISTINCT aggregate is outside the stream SQL "
-                        + "v1 subset (4a#6)");
-            }
+        // WI17 (plan 2342): DISTINCT aggregates are now supported (supersede 4a#6).
+        // HAVING-only aggregates must also get slots so the printer's aggregateRef
+        // resolves them — canonical HAVING form references aggregates not in SELECT.
+        if (select.getHaving() != null && select.getHaving().getExpr() != null) {
+            collectAggregates(select.getHaving().getExpr(), scan.aggregates);
         }
         return scan;
     }
@@ -748,21 +916,43 @@ public final class StreamSqlCompiler {
     private static GroupedAggregate buildGroupedAggregate(SqlQuerySelect select,
                                                           AggregateScan scan,
                                                           SqlTableSource table,
-                                                          boolean hasTumble) {
+                                                          WindowSpec window, boolean globalAgg) {
         GroupedAggregate grouped = new GroupedAggregate(scan);
+        // WI28: global aggregation — a single synthetic key (constant true) routes
+        // every record through one keyed reduce instance; HAVING stays excluded (§4b).
+        if (globalAgg) {
+            if (select.getHaving() != null) {
+                throw CompileErrors.invalidArg("HAVING over a global aggregation (no "
+                        + "GROUP BY) is outside the stream SQL v1 subset");
+            }
+            grouped.keySqlTexts.add("true");
+            grouped.keyXplExprs.add("return true;");
+        }
         SqlGroupBy groupBy = select.getGroupBy();
-        if (groupBy.getItems() == null || groupBy.getItems().isEmpty()) {
+        if (!globalAgg && (groupBy.getItems() == null || groupBy.getItems().isEmpty())) {
             throw CompileErrors.invalidArg("GROUP BY requires at least one key expression");
         }
-        for (SqlGroupByItem item : groupBy.getItems()) {
+        if (!globalAgg) for (SqlGroupByItem item : groupBy.getItems()) {
             String text = item.getExpr().toSqlString().trim();
+            // WI26: window column naming contract holds in GROUP BY too (see the
+            // aggregatedRowResolver counterpart)
+            String lastSeg = item.getExpr() instanceof SqlColumnName
+                    ? lastSegment((SqlColumnName) item.getExpr()) : null;
+            if ((lastSeg != null && "window_start".equalsIgnoreCase(lastSeg))
+                    || "window_end".equalsIgnoreCase(lastSeg)) {
+                throw CompileErrors.invalidArg("window column '" + text
+                        + "' is not yet exposed in the aggregate output (planned as FU-E2; "
+                        + "the reserved names are window_start/window_end)");
+            }
             grouped.keySqlTexts.add(text);
             grouped.keyXplExprs.add(new SqlScalarXplPrinter(singleInputResolver(), null)
                     .print(item.getExpr()));
         }
-        if (hasTumble) {
-            grouped.durationMillis = EqlParseHelper.intervalDurationMillis(
-                    ((SqlTumbleTableSource) table).getInterval());
+        if (window != null) {
+            // WI26: unified pseudo-table window spec (size for tumbling/hop, gap for
+            // session — the durationMillis field carries the strategy duration)
+            grouped.durationMillis = "session".equals(window.kind) ? window.gapMillis
+                    : window.sizeMillis;
         }
 
         List<SqlRowAggregateSpec.AggCall> calls = new ArrayList<>();
@@ -773,7 +963,7 @@ public final class StreamSqlCompiler {
             String argText = (agg.getArgs() == null || agg.getArgs().isEmpty())
                     ? null : agg.getArgs().get(0).toSqlString().trim();
             calls.add(new SqlRowAggregateSpec.AggCall(agg.getName().toLowerCase(), argText,
-                    agg.getSelectAll()));
+                    agg.getSelectAll(), agg.getDistinct()));
         }
         grouped.spec = new SqlRowAggregateSpec(new ArrayList<>(grouped.keySqlTexts), calls);
         return grouped;
@@ -807,6 +997,16 @@ public final class StreamSqlCompiler {
             GroupedAggregate grouped) {
         return col -> {
             String text = col.toSqlString().trim();
+            // WI26: the window column naming contract (window_start/window_end, aligned
+            // with Feldera/Flink) — the aggregate row does not carry them yet; any
+            // clause referencing them gets a typed pointer to FU-E2, never a silent
+            // unknown-column error.
+            String last = lastSegment(col);
+            if ("window_start".equalsIgnoreCase(last) || "window_end".equalsIgnoreCase(last)) {
+                throw CompileErrors.invalidArg("window column '" + text
+                        + "' is not yet exposed in the aggregate output (planned as FU-E2; "
+                        + "the reserved names are window_start/window_end)");
+            }
             for (int i = 0; i < grouped.keySqlTexts.size(); i++) {
                 if (grouped.keySqlTexts.get(i).equalsIgnoreCase(text)) {
                     return "event[" + i + "]";
@@ -826,8 +1026,55 @@ public final class StreamSqlCompiler {
         };
     }
 
+    /**
+     * WI17 (plan 2342): prints the HAVING condition against the aggregate result row.
+     * Uses the aggregateRef resolver so aggregate function calls map to their
+     * event[N] slot references (unlike WHERE which has no aggregate resolver).
+     */
+    private static String printHaving(SqlExpr having, GroupedAggregate grouped) {
+        SqlScalarXplPrinter printer = new SqlScalarXplPrinter(
+                aggregatedRowResolver(grouped), aggregateRef(grouped));
+        String body = printer.print(having);
+        return prependImports(printer, body);
+    }
+
+    /**
+     * WI17: inserts a HAVING filter node (after the aggregate) and returns the new
+     * "previous" node id for edge wiring. The filter evaluates the HAVING condition
+     * against the aggregate result row (event[N] references).
+     */
+    private static String insertHavingFilter(SqlQuerySelect select, GroupedAggregate grouped,
+                                             String aggId, List<XNode> transforms,
+                                             List<XNode> edges, String idPrefix) {
+        if (select.getHaving() == null) {
+            return aggId;
+        }
+        String havingExpr = printHaving(select.getHaving().getExpr(), grouped);
+        String havingId = idPrefix + "having";
+        XNode havingNode = mk(loc(select.getHaving()), "filter", "id", havingId);
+        havingNode.appendChild(textNode(loc(select.getHaving()), "source",
+                "return " + havingExpr + ";"));
+        transforms.add(havingNode);
+        edges.add(edge(loc(select), idPrefix + "eh", aggId, havingId));
+        return havingId;
+    }
+
     private static String printWhere(SqlExpr where) {
-        return new SqlScalarXplPrinter(singleInputResolver(), null).print(where);
+        SqlScalarXplPrinter printer = new SqlScalarXplPrinter(singleInputResolver(), null);
+        String body = printer.print(where);
+        return prependImports(printer, body);
+    }
+
+    /** WI29: hoists printer-required imports to the top of the xpl body. */
+    private static String prependImports(SqlScalarXplPrinter printer, String body) {
+        if (printer.getRequiredImports().isEmpty())
+            return body;
+        StringBuilder sb = new StringBuilder();
+        for (String imp : printer.getRequiredImports()) {
+            sb.append("import ").append(imp).append(";\n");
+        }
+        sb.append(body);
+        return sb.toString();
     }
 
     private static XNode projectionNode(SqlQuerySelect select, AggregateScan scan,
@@ -835,15 +1082,23 @@ public final class StreamSqlCompiler {
                                         SqlScalarXplPrinter.ColumnResolver columns) {
         SqlScalarXplPrinter printer = new SqlScalarXplPrinter(columns,
                 grouped == null ? null : aggregateRef(grouped));
-        StringBuilder body = new StringBuilder(128);
-        body.append("let __r = {");
+        // print first — CAST branches collect requiredImports during printing; the
+        // xpl import statements must be hoisted to the top of the body (R: 静态调用
+        // 需 import 前置，SqlRowAggregateOps 先例)
+        StringBuilder letPart = new StringBuilder(128);
+        letPart.append("let __r = {");
         for (int i = 0; i < scan.outputExprs.size(); i++) {
             if (i > 0)
-                body.append(", ");
-            body.append(xlangString(scan.outputNames.get(i))).append(": ")
+                letPart.append(", ");
+            letPart.append(xlangString(scan.outputNames.get(i))).append(": ")
                     .append(printer.print(scan.outputExprs.get(i)));
         }
-        body.append("}; return __r;");
+        letPart.append("}; return __r;");
+        StringBuilder body = new StringBuilder(128);
+        for (String imp : printer.getRequiredImports()) {
+            body.append("import ").append(imp).append(";\n");
+        }
+        body.append(letPart);
         XNode map = mk(loc(select), "map", "id", projId);
         map.appendChild(textNode(loc(select), "source", body.toString()));
         return map;
@@ -867,10 +1122,16 @@ public final class StreamSqlCompiler {
     }
 
     private static XNode timestampsNode(SqlTumbleTableSource tumble, String id) {
-        XNode node = mk(loc(tumble), "timestampsAndWatermarks", "id", id);
-        node.appendChild(textNode(loc(tumble), "timestampAssigner",
-                "return event['" + tumble.getTimeColumn() + "'];"));
-        node.appendChild(textNode(loc(tumble), "watermarkGenerator",
+        return timestampsNode(loc(tumble), id, tumble.getTimeColumn());
+    }
+
+    /** WI26: generic pseudo-table timestamps node (per-event watermark on the time column). */
+    private static XNode timestampsNode(io.nop.api.core.util.SourceLocation loc, String id,
+                                        String timeColumn) {
+        XNode node = mk(loc, "timestampsAndWatermarks", "id", id);
+        node.appendChild(textNode(loc, "timestampAssigner",
+                "return event['" + timeColumn + "'];"));
+        node.appendChild(textNode(loc, "watermarkGenerator",
                 "import io.nop.stream.core.streamrecord.watermark.Watermark;"
                         + " output.emitWatermark(new Watermark(eventTimestamp));"));
         return node;
@@ -995,14 +1256,67 @@ public final class StreamSqlCompiler {
         int aggregatorSeq;
         int joinSpecSeq;
 
+        /**
+         * WI37 (D11 release): the declared two-tier emit mode; UPDATE is written to
+         * the product strategy on the windowed-aggregate path only.
+         */
+        StreamEmitMode emit = StreamEmitMode.CLOSE;
+
+        /**
+         * WI25/Q1: declared field lateness (millis) by column name; empty = no
+         * declaration. Only the TUMBLE time column's value reaches the product.
+         */
+        Map<String, Long> fieldLateness = java.util.Collections.emptyMap();
+
+        /**
+         * WI25 no-silent guard: lateness has no carrier on paths that produce no
+         * window strategy — reject the declaration instead of dropping it.
+         */
+        void failFastOnFieldLateness(SourceLocation loc, String path) {
+            if (!fieldLateness.isEmpty()) {
+                throw CompileErrors.invalidArg("lateness is only supported for windowed "
+                        + "aggregate (pseudo-table GROUP BY) queries, not for the " + path + " path");
+            }
+        }
+
         CompileContext(Map<String, String> schemaFields) {
             this.schemaFields = schemaFields == null ? new LinkedHashMap<>() : schemaFields;
         }
 
-        String nextStrategy(String base, long durationMillis) {
+        String nextStrategy(String base, WindowSpec window, long allowedLateness) {
             String id = base + (strategySeq++);
-            strategies.add(mk(null, "strategy", "strategyId", id, "windowFnId", "tumbling-event-time", "duration", durationMillis + "ms"));
+            long duration = "session".equals(window.kind) ? window.gapMillis
+                    : window.sizeMillis;
+            XNode strategy = mk(null, "strategy", "strategyId", id,
+                    "windowFnId", window.windowFnId(), "duration", duration + "ms");
+            if (window.slideMillis > 0) {
+                // WI26: HOP slide — consumed by the sliding-event-time assigner branch
+                strategy.setAttr("slide", window.slideMillis + "ms");
+            }
+            if (emit == StreamEmitMode.UPDATE) {
+                // WI37/D11: only reached from the windowed-aggregate path — the other
+                // paths fail fast on UPDATE before a strategy would be produced.
+                strategy.setAttr("emit", "UPDATE");
+            }
+            if (allowedLateness > 0) {
+                // WI25/Q1: only reached from the windowed-aggregate path — the time
+                // column's lateness maps onto the D9 released allowedLateness pipeline.
+                strategy.setAttr("allowedLateness", allowedLateness);
+            }
+            strategies.add(strategy);
             return id;
+        }
+
+        /**
+         * WI37 no-silent guard: UPDATE is only legal on the windowed-aggregate path;
+         * every other path (plain pipeline incl. plain-TUMBLE, continuous aggregate,
+         * join) must reject the declaration instead of dropping it.
+         */
+        void failFastOnEmitUpdate(SourceLocation loc, String path) {
+            if (emit == StreamEmitMode.UPDATE) {
+                throw CompileErrors.invalidArg("emit=update is only supported for windowed "
+                        + "aggregate (pseudo-table GROUP BY) queries, not for the " + path + " path");
+            }
         }
 
         String nextAggregator(String base, SqlRowAggregateSpec spec, boolean withSchema) {

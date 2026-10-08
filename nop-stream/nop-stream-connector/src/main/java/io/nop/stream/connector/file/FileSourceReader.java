@@ -106,6 +106,17 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
     /** Whether the reader has asked the enumerator for more splits (avoid re-request storms). */
     private transient boolean requestedMoreSplits;
 
+    /** WI5 (plan 2330): rate caps handed over by the source (0 = channel off). */
+    private final long rateLimitRowsPerSecond;
+    private final long rateLimitBytesPerSecond;
+
+    /**
+     * WI5: lazily rebuilt from the two long caps above — plain-long config fields stay
+     * serialization-safe (the readBuf javadoc documents the no-field-initializers trap
+     * for deserialized readers).
+     */
+    private transient volatile io.nop.stream.core.source.SourceRateLimiter rateLimiter;
+
     public FileSourceReader(SourceReaderContext context) {
         this(context, null, DEFAULT_MAX_LINE_BYTES);
     }
@@ -117,9 +128,34 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
      * constructor; the single-arg variant stays for existing tests.
      */
     public FileSourceReader(SourceReaderContext context, String sourceDirectory, long maxLineBytes) {
+        this(context, sourceDirectory, maxLineBytes, 0L, 0L);
+    }
+
+    /** WI5: full constructor with emission rate caps (0 = channel off). */
+    public FileSourceReader(SourceReaderContext context, String sourceDirectory, long maxLineBytes,
+                            long rateLimitRowsPerSecond, long rateLimitBytesPerSecond) {
         this.context = context;
         this.sourceDirectory = sourceDirectory;
         this.maxLineBytes = maxLineBytes;
+        this.rateLimitRowsPerSecond = rateLimitRowsPerSecond;
+        this.rateLimitBytesPerSecond = rateLimitBytesPerSecond;
+    }
+
+    /**
+     * WI5: throttles OUTSIDE the cursor monitor (the sleep must never hold the
+     * snapshotState lock), in bounded slices so cancel/interrupt stays responsive.
+     * Rate limiting necessarily delays checkpoint/cancel by the wait time — that is
+     * the documented capability boundary (plan 2330).
+     */
+    private void acquireRate(long rows, long bytes) throws InterruptedException {
+        if (rateLimiter == null) {
+            if (rateLimitRowsPerSecond <= 0 && rateLimitBytesPerSecond <= 0) {
+                return;
+            }
+            rateLimiter = new io.nop.stream.core.source.SourceRateLimiter(
+                    rateLimitRowsPerSecond, rateLimitBytesPerSecond);
+        }
+        rateLimiter.acquire(rows, bytes);
     }
 
     @Override
@@ -195,6 +231,9 @@ public final class FileSourceReader implements SourceReader<String, FileSplit> {
             }
 
             if (line != null) {
+                // WI5: throttled outside the monitor — the line is already reflected in
+                // the cursor snapshot; the sleep only delays its delivery downstream.
+                acquireRate(1, line.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
                 return Optional.of(line);
             }
 

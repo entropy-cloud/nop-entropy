@@ -140,7 +140,8 @@ public class TestStreamConnectorRegistryE2E {
             lines.add("line-" + i);
         }
 
-        SourceFunction<String> source = batchLoaderSource(lines);
+        Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?> source =
+                batchLoaderSource(lines);
         SinkFunction<String> sink = fileTwoPhaseCommitSink(outputDir.toString());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
@@ -189,9 +190,11 @@ public class TestStreamConnectorRegistryE2E {
         return typed;
     }
 
+    // WI2 plan 2343 Phase 1: the batch-loader factory produces the FLIP-27 source; the
+    // E2E pipeline consumes it through env.addSource(Source) (SourceReaderOperator path).
     @SuppressWarnings("unchecked")
-    private SourceFunction<String> batchLoaderSource(List<String> lines) {
-        IStreamSourceFunctionFactory factory = assertInstanceOf(IStreamSourceFunctionFactory.class,
+    private Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?> batchLoaderSource(List<String> lines) {
+        IStreamSplitSourceFactory factory = assertInstanceOf(IStreamSplitSourceFactory.class,
                 catalog.getRegistry().resolveSourceFactory("batch-loader"));
         IBatchLoaderProvider<String> provider = context -> {
             List<String> remaining = new ArrayList<>(lines);
@@ -205,8 +208,9 @@ public class TestStreamConnectorRegistryE2E {
                 return result;
             };
         };
-        return (SourceFunction<String>) factory.createSourceFunction(new StreamConnectorConfig("batch-loader",
-                Map.of("loaderProvider", provider, "batchSize", 4)));
+        return (Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?>) factory
+                .createSource(new StreamConnectorConfig("batch-loader",
+                        Map.of("loaderProvider", provider, "batchSize", 4)));
     }
 
     @SuppressWarnings("unchecked")

@@ -42,12 +42,22 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
     private final ConnectorParallelism parallelism;
     private final ConnectorRecoverySemantic recoverySemantic;
     private final List<ConnectorParamDescriptor> params;
+    private final ConnectorMaturity maturity;
 
     private ConnectorCapabilityDescriptor(String typeName, List<String> aliases, ConnectorDirection direction,
                                           String componentClass, SourceConsistencyCapability sourceConsistency,
                                           SinkConsistencyCapability sinkConsistency, ConnectorParallelism parallelism,
                                           ConnectorRecoverySemantic recoverySemantic,
                                           List<ConnectorParamDescriptor> params) {
+        this(typeName, aliases, direction, componentClass, sourceConsistency, sinkConsistency,
+                parallelism, recoverySemantic, params, null);
+    }
+
+    private ConnectorCapabilityDescriptor(String typeName, List<String> aliases, ConnectorDirection direction,
+                                          String componentClass, SourceConsistencyCapability sourceConsistency,
+                                          SinkConsistencyCapability sinkConsistency, ConnectorParallelism parallelism,
+                                          ConnectorRecoverySemantic recoverySemantic,
+                                          List<ConnectorParamDescriptor> params, ConnectorMaturity maturity) {
         if (typeName == null || typeName.isEmpty()) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL, "typeName must not be null or empty");
         }
@@ -84,6 +94,7 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
         this.parallelism = parallelism;
         this.recoverySemantic = recoverySemantic;
         this.params = params == null ? Collections.emptyList() : List.copyOf(params);
+        this.maturity = maturity == null ? ConnectorMaturity.EXPERIMENTAL : maturity;
     }
 
     public static Builder source(String typeName, String componentClass) {
@@ -136,6 +147,15 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
         return params;
     }
 
+    /**
+     * Maturity grade; defaults to {@link ConnectorMaturity#EXPERIMENTAL} when the
+     * factory does not declare one (PRODUCTION is explicit opt-in, see
+     * {@link ConnectorMaturity} for the grading criterion).
+     */
+    public ConnectorMaturity getMaturity() {
+        return maturity;
+    }
+
     /** Delivery semantic formatted for diagnostics; direction decides which field is read. */
     public String consistencyValue() {
         return direction == ConnectorDirection.SOURCE
@@ -153,6 +173,7 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
         private ConnectorParallelism parallelism;
         private ConnectorRecoverySemantic recoverySemantic;
         private List<ConnectorParamDescriptor> params;
+        private ConnectorMaturity maturity;
 
         private Builder(String typeName, ConnectorDirection direction, String componentClass) {
             this.typeName = typeName;
@@ -190,9 +211,14 @@ public final class ConnectorCapabilityDescriptor implements Serializable {
             return this;
         }
 
+        public Builder maturity(ConnectorMaturity maturity) {
+            this.maturity = maturity;
+            return this;
+        }
+
         public ConnectorCapabilityDescriptor build() {
             return new ConnectorCapabilityDescriptor(typeName, aliases, direction, componentClass,
-                    sourceConsistency, sinkConsistency, parallelism, recoverySemantic, params);
+                    sourceConsistency, sinkConsistency, parallelism, recoverySemantic, params, maturity);
         }
     }
 }

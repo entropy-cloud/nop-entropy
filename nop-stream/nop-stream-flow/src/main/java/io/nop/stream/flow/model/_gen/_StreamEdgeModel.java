@@ -53,6 +53,13 @@ public abstract class _StreamEdgeModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: outputTag
+     * 
+     */
+    private java.lang.String _outputTag ;
+    
+    /**
+     *  
      * xml name: packetSize
      * 
      */
@@ -183,6 +190,25 @@ public abstract class _StreamEdgeModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: outputTag
+     *  
+     */
+    
+    public java.lang.String getOutputTag(){
+      return _outputTag;
+    }
+
+    
+    public void setOutputTag(java.lang.String value){
+        checkAllowChange();
+        
+        this._outputTag = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: packetSize
      *  
      */
@@ -296,6 +322,7 @@ public abstract class _StreamEdgeModel extends io.nop.core.resource.component.Ab
         out.putNotNull("id",this.getId());
         out.putNotNull("keyExpr",this.getKeyExpr());
         out.putNotNull("name",this.getName());
+        out.putNotNull("outputTag",this.getOutputTag());
         out.putNotNull("packetSize",this.getPacketSize());
         out.putNotNull("partition",this.getPartition());
         out.putNotNull("queueCapacity",this.getQueueCapacity());
@@ -317,6 +344,7 @@ public abstract class _StreamEdgeModel extends io.nop.core.resource.component.Ab
         instance.setId(this.getId());
         instance.setKeyExpr(this.getKeyExpr());
         instance.setName(this.getName());
+        instance.setOutputTag(this.getOutputTag());
         instance.setPacketSize(this.getPacketSize());
         instance.setPartition(this.getPartition());
         instance.setQueueCapacity(this.getQueueCapacity());

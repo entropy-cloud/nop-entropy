@@ -8,6 +8,8 @@
 package io.nop.message.debezium;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.stream.ChangeSemanticView;
+import io.nop.api.core.stream.RowKind;
 
 import java.util.Map;
 
@@ -15,7 +17,7 @@ import java.util.Map;
  * 表示一个 CDC 变更事件
  */
 @DataBean
-public class ChangeEvent {
+public class ChangeEvent implements ChangeSemanticView {
 
     /**
      * 事件元数据
@@ -119,4 +121,29 @@ public class ChangeEvent {
                 ", timestamp=" + timestamp +
                 '}';
     }
+    /**
+     * WI7 (plan 2336): engine-level change-semantics view. The stream engine stamps
+     * the built StreamRecord with this metadata at source emission, making the change
+     * kind and table identity visible to the engine and its sinks without
+     * connector-specific coupling. c/r map to INSERT, u to UPDATE_AFTER, d to DELETE;
+     * a null/unknown operation maps to INSERT (the original operation still rides the
+     * value for sinks to reject on their own contract).
+     */
+    @Override
+    public RowKind getRowKind() {
+        if ("u".equals(operation)) {
+            return RowKind.UPDATE_AFTER;
+        }
+        if ("d".equals(operation)) {
+            return RowKind.DELETE;
+        }
+        // c / r / null / unknown -> insert-only append
+        return RowKind.INSERT;
+    }
+
+    @Override
+    public String getTableId() {
+        return metadata == null ? null : metadata.getTable();
+    }
+
 }

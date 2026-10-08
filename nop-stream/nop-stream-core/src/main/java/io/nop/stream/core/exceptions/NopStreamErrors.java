@@ -17,6 +17,7 @@ public interface NopStreamErrors {
     String ARG_OPERATOR_NAME = "operatorName";
     String ARG_STATE_NAME = "stateName";
     String ARG_CLASS_NAME = "className";
+    String ARG_ROW_KIND = "rowKind";
     String ARG_CONFIG_KEY = "configKey";
     String ARG_OPERATION = "operation";
     String ARG_VERTEX_ID = "vertexId";
@@ -113,6 +114,20 @@ public interface NopStreamErrors {
 
     ErrorCode ERR_STREAM_WINDOW_TRIGGER_STATE_ACCUMULATOR_FAILED =
             define("nop.err.stream.window-trigger-state-accumulator-failed", "Failed to create trigger state accumulator: {detail}", ARG_DETAIL);
+
+    String ARG_MAX_DELAY = "maxDelay";
+
+    /**
+     * WI8 (plan 2332): maxDelay is defined only for event-time windows — a
+     * processing-time window's cleanup timer fires at window end, strictly before any
+     * maxDelay deadline, so combining the two is a construction error (no-silent-skip).
+     */
+    ErrorCode ERR_STREAM_WINDOW_MAX_DELAY_UNSUPPORTED_PROCESSING_TIME =
+            define("nop.err.stream.window-max-delay-unsupported-processing-time",
+                    "maxDelay fallback requires an event-time window assigner; the configured "
+                            + "assigner uses processing-time semantics and its cleanup timer fires "
+                            + "at window end (maxDelay={maxDelay})",
+                    ARG_MAX_DELAY);
 
     ErrorCode ERR_STREAM_CLASS_NOT_ALLOWED =
             define("nop.err.stream.class-not-allowed", "Class not allowed: {className}", ARG_CLASS_NAME);
@@ -567,6 +582,41 @@ public interface NopStreamErrors {
                             + "(checkpoint-design.md 8.5.2).",
                     ARG_VERTEX_ID, ARG_OLD_PARALLELISM, ARG_NEW_PARALLELISM);
 
+    /**
+     * WI9 (plan 2333): {@code suspendDataPolicy=SKIP_GAP} requires each
+     * replayable source to expose a deterministic "latest available position"
+     * to seek to after restore. Currently only
+     * {@code CollectionReplayableSource} has one (its in-memory size()); any
+     * other {@code ReplayableSourceFunction} is rejected typed at restore time —
+     * a loud failure beats a wrong guess about what "latest" means for that
+     * source (silently skipping an unknown gap window would be data loss
+     * presented as a feature).
+     */
+    ErrorCode ERR_STREAM_SKIP_GAP_UNSUPPORTED_SOURCE =
+            define("nop.err.stream.skip-gap-unsupported-source",
+                    "suspendDataPolicy=SKIP_GAP cannot advance source type {className} to its latest position: {detail}",
+                    ARG_CLASS_NAME, ARG_DETAIL);
+
+    /**
+     * WI7 (plan 2336): a record carrying non-INSERT change semantics reached a sink
+     * that does not implement {@code CdcChangeAwareSink} — silently appending a
+     * DELETE/UPDATE would corrupt the target. Fail fast with the sink type and kind.
+     */
+    /**
+     * WI14 (plan 2340): a keyed-state query targeted a task that is not running on
+     * this node (the queryable-state-lite REST surface).
+     */
+    ErrorCode ERR_STREAM_TASK_NOT_FOUND =
+            define("nop.err.stream.task-not-found",
+                    "no running task {typeName} on this node",
+                    "typeName");
+
+    ErrorCode ERR_STREAM_SINK_NOT_CHANGE_AWARE =
+            define("nop.err.stream.sink-not-change-aware",
+                    "sink type {typeName} cannot consume records with change kind {rowKind}: "
+                            + "implement CdcChangeAwareSink to declare change handling",
+                            "typeName", "rowKind");
+
     // ------------------------------------------------------------------
     // nop-stream-flow DSL contract error codes
     // ------------------------------------------------------------------
@@ -729,6 +779,44 @@ public interface NopStreamErrors {
                     "Stream connector '{typeName}' does not declare config param '{paramName}'. "
                             + "Declared params: {declaredParams}",
                     ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
+
+    // WI4 (plan 2329): OptionRule-style value-level rules on connector params.
+    String ARG_PARAM_VALUE = "paramValue";
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_TYPE_MISMATCH =
+            define("nop.err.stream.connector-param-type-mismatch",
+                    "Stream connector '{typeName}' param '{paramName}' expects kind {paramKind} "
+                            + "but the provided value cannot be interpreted as that kind",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_PARAM_KIND);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_VALUE_DISALLOWED =
+            define("nop.err.stream.connector-param-value-disallowed",
+                    "Stream connector '{typeName}' param '{paramName}' value is not one of the "
+                            + "allowed values {declaredParams}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DECLARED_PARAMS);
+
+    ErrorCode ERR_STREAM_CONNECTOR_PARAM_PATTERN_MISMATCH =
+            define("nop.err.stream.connector-param-pattern-mismatch",
+                    "Stream connector '{typeName}' param '{paramName}' value does not match the "
+                            + "declared pattern rule: {detail}",
+                    ARG_TYPE_NAME, ARG_PARAM_NAME, ARG_DETAIL);
+
+    // WI6 (plan 2331): producer-side DB channel backpressure gate.
+    String ARG_BACKLOG_LIMIT = "backlogLimit";
+    String ARG_CURRENT_BACKLOG = "currentBacklog";
+
+    ErrorCode ERR_STREAM_SEND_GATE_TIMEOUT =
+            define("nop.err.stream.send-gate-timeout",
+                    "Stream producer on topic '{topic}' gated by DB backlog limit {backlogLimit}: "
+                            + "backlog still {currentBacklog} after the bounded wait — failing typed so "
+                            + "the task restarts instead of growing the channel table unboundedly",
+                    ARG_TOPIC, ARG_BACKLOG_LIMIT, ARG_CURRENT_BACKLOG);
+
+    ErrorCode ERR_STREAM_SAMPLE_NOT_SUPPORTED =
+            define("nop.err.stream.sample-not-supported",
+                    "Stream connector endpoint '{connectorEndpoint}' implements no "
+                            + "SampleableSource contract; data sampling is not supported",
+                    ARG_CONNECTOR_ENDPOINT);
 
     ErrorCode ERR_STREAM_CREDENTIAL_REF_INVALID =
             define("nop.err.stream.credential-ref-invalid",

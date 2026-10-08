@@ -223,7 +223,16 @@ public class ChannelState implements Serializable {
         return state;
     }
 
-    @SuppressWarnings("unchecked")
+    /** Module-test bridge for the private envelope-map serializer (WI7 metadata round-trip). */
+    static Map<String, Object> envelopeToMapViaReflection(StreamMessageEnvelope env) {
+        return envelopeToMap(env);
+    }
+
+    /** Module-test bridge for the private envelope-map deserializer. */
+    static StreamMessageEnvelope envelopeFromMapViaReflection(Map<String, Object> m) {
+        return mapToEnvelope(m);
+    }
+
     private static Map<String, Object> envelopeToMap(StreamMessageEnvelope env) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("epochId", env.getEpochId());
@@ -235,6 +244,9 @@ public class ChannelState implements Serializable {
         // HG-01 (2026-08-14): side-output tag id must survive the checkpoint snapshot
         // round-trip (the field-enumeration layer below ChannelState's codec call sites).
         m.put("outputTagId", env.getOutputTagId());
+        // WI7 (plan 2336): optional change metadata survives checkpoint in-flight recovery
+        m.put("rowKind", env.getRowKind());
+        m.put("tableId", env.getTableId());
         return m;
     }
 
@@ -251,6 +263,11 @@ public class ChannelState implements Serializable {
         env.setHasTimestamp(Boolean.TRUE.equals(ht));
         Object tagId = m.get("outputTagId");
         env.setOutputTagId(tagId instanceof String ? (String) tagId : null);
+        // WI7 (plan 2336): restore optional change metadata (absent = null, backward compat)
+        Object rk = m.get("rowKind");
+        env.setRowKind(rk instanceof String ? (String) rk : null);
+        Object tid = m.get("tableId");
+        env.setTableId(tid instanceof String ? (String) tid : null);
         return env;
     }
 }

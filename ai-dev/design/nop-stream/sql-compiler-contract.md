@@ -35,6 +35,12 @@ SQL 窄范围接口的全部设计文档与覆盖面（WI17 起草时按此路�
 | xdef `schemas` 声明面 | 拒绝作编译期主来源，保留为模型级补充 | WI8b 将使其落地为模型级 typed schema（受管类型名→BasicTypeInfo）；编译期列绑定以 SQL 面自带 schema 为主，双来源并存时的优先级细节归 WI8b/WI17 plan 裁定 |
 | **SQL 面自带 schema** | **胜出** | 与 D8 `<sql>` 元素天然配对（roadmap 明示该档必须参选）；schema 内聚在查询声明处，构造期经 WI8b 同一解析通路落为 BasicTypeInfo，无新机制 |
 
+### 1.1a D7 复审注记（WI0b，2026-10-08）——维持查询内聚
+
+survey B5 建议的复审触发条件「multi-engine WI7 CatalogTable 落地后一并裁」已满足（`ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI7 行已 done：RowKind+tableId 引擎级变更元数据，plan 2336）。复审结论：**维持 1.1 原裁定——`.sql` DDL 文件拒绝、schema 内聚查询声明处**。理由：WI7 落地交付的是记录级变更元数据抽象，非表级 DDL 声明消费者；DDL 分层当前无首个真实消费者——其潜在首消费者是 CDC schema evolution 的 sink 侧 DDL 应用路径，而该路径所属 multi-engine WI15（及其 cdc-design defer）显式延期中。**重开触发条件**：cdc-design defer 撤销且 WI15 启动后其 sink 侧 DDL 应用路径成为首个真实消费者时，或真实用户诉求出现时；届时实施另立（`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` Follow-up Backlog FU-E3 承接，不预设 WI）。
+
+负责人：仓库 owner（委托链：2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成……」）；日期 2026-10-08；承载 plan：ai-dev/plans/nop-stream-sql-enhancement/02-wi0b-boundary-decisions.md。
+
 ### 1.2 解析入口
 
 **`EqlASTParser`**（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/EqlASTParser.java`，完整 SqlProgram；ORM 外复用先例 `nop-metadata/.../SqlSourceEntityExtractor.java:40`）。`EqlExprASTParser` 仅表达式级场景使用，不作为 SQL 编译器入口。

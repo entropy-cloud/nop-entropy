@@ -87,6 +87,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 > 执行注记（WI21，2026-10-03）：授权 (b) 已落地——`StreamComponents.declarativeRegistries` 以 flow-free 载体 `StreamComponentEntry` 收录 aggregators/joins 条目；**schemas 条目为授权原文之外的实施延伸**（schemas 声明面本身经 WI8b 授权，其注册条目是该授权的注册实现），在此显式补记。条目为描述性规范化载体，不含可执行语义，未改 §八 15 条不变量的被验证对象地位。
 
+> 执行注记（WI0b，2026-10-08）：**joins 既有条目的字段级扩展授权补记**——`StreamJoinSpecModel` 条目内单一 `timeout` 字段参数化为 `leftTimeout`/`rightTimeout` 双字段声明（非对称窗口 join timeout，`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI27 实施），属授权原文之外的实施延伸（授权 (b) 列举的三类注册表条目不含既有条目内字段参数化），在此显式补记，比照上条 WI21 先例格式。**本补记的实质理由（与 WI21 不同，不可平移其理由）**：条目集与条目类型不变（joins 仍是授权 (b) 已覆盖的条目），仅将既有 timeout 字段参数化并扩展构建期校验面，不触碰授权 (a) 的 Transformation 类型；leftTimeout/rightTimeout 为可执行语义参数（非 WI21 的描述性载体），其语义由 WI27 构建期校验与判别性测试钉死。**边界**：本补记不改变 2026-10-02 授权 (a)(b) 的既有范围——新增注册表条目类型仍限授权原文所列，范围之外的新条目类型或条目集变更仍属本决策点人审门。授权依据：`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI0b（2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成……」委托 ZCode 代理按 roadmap 建议裁定）。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
@@ -109,6 +111,10 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 替代路径：配置/规则分发 → operator state `BROADCAST` 重分布 + `ICheckpointedFunction`；复杂模式匹配 → CEP 引擎；外部维表 → `IBatchLoader` lookup。
 
 如未来出现 demonstrated production user need（broadcast state 特有能力无法被上述替代覆盖），可重启 vision 决策流程（Stage 37 先例）。裁定证据见 plan `ai-dev/plans/nop-stream-production/2026-08-04-2200-2-final-gap-adjudication-g36-g66-g67.md`。
+
+**#WI0 — 五引擎对比缺口裁定（WI0 门，2026-10-07）**
+
+裁定：**§四 Non-Goals 六行与 #G36 边界维持不变、零解除。** 五引擎对比（Flink/TDengine/Hazelcast/SeaTunnel）核定的缺口经逐条 go/defer/exclude 裁定后，由 `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md` WI1..WI19 承载；其中两条涉及本 vision 边界的事项裁定如下：(a) per-record 异步 lookup 算子**维持排除**（§四「异步算子」不变）——维表 lookup 增量以「复用既有同步 lookup join 路径 + 本地物化 + 后台有界并发刷新」形态落地，异步性收敛在物化刷新层，不进入算子线程模型；(b) broadcast state **维持 #G36 永久排除**。cdc-design schema evolution defer 与 productization K8s defer 均维持。全部裁定方向与 roadmap 既有文本预设方向一致，零推翻、零解禁、零 defer 撤销。裁定全文见 `multi-engine-gap-adjudication.md`。
 
 ## 八、设计不变量
 

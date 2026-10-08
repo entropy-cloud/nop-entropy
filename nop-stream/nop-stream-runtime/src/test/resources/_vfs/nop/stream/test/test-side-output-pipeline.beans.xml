@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Test beans for the WI8 Phase 2 side-output pipeline end-to-end test.
+  Provides:
+    * sideOutputIntSource — emits the fixed sequence [1, 2, 3]
+    * soMainSink — collects the tap's MAIN output (must be every record, unchanged)
+    * soTagSink — collects the tag channel's records (must be only event > 1)
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="sideOutputIntSource"
+          class="io.nop.stream.runtime.integration.SideOutputIntSourceFunction"/>
+
+    <bean id="soMainSink"
+          class="io.nop.stream.runtime.integration.SideOutputMainSink"/>
+
+    <bean id="soTagSink"
+          class="io.nop.stream.runtime.integration.SideOutputTagSink"/>
+
+</beans>

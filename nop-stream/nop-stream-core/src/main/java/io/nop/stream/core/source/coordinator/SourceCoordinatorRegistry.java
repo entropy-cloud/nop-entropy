@@ -69,7 +69,9 @@ public final class SourceCoordinatorRegistry {
 
     /**
      * Unregisters (and closes) the coordinator for {@code vertexId}. Safe to call after
-     * job completion; idempotent.
+     * job completion; idempotent. Also drops any pending enumerator-restore stash entry
+     * (plan 2343 Phase 0: a stash left behind by a job that never opened its source
+     * vertex must not leak into a later run on the same JVM).
      */
     public static void unregister(Integer vertexId) {
         LocalSourceCoordinator<?, ?> removed = COORDINATORS.remove(vertexId);
@@ -80,11 +82,52 @@ public final class SourceCoordinatorRegistry {
                 // close() already logs internally; ignore here
             }
         }
+        PENDING_ENUMERATOR_RESTORES.remove(vertexId);
+    }
+
+    // ------------------------------------------------------------------
+    // WI2 plan 2343 Phase 0 (B-1): pending enumerator-restore stash.
+    //
+    // The restore path reads EpochManifest.sourceEnumeratorSnapshots BEFORE any task
+    // starts, but the coordinator is only created lazily by the first subtask's
+    // wireCoordinatorChannel — and boots its enumerator with startEnumerator(null)
+    // (B-1: the restored snapshot was write-only). The stash hands the manifest entry
+    // to that lazy boot. Consume-once: startEnumerator removes the entry, so a later
+    // job on the same JVM can never inherit a previous run's enumerator state.
+    // ------------------------------------------------------------------
+
+    private static final ConcurrentMap<Integer, io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot>
+            PENDING_ENUMERATOR_RESTORES = new ConcurrentHashMap<>();
+
+    /**
+     * Stashes a restored enumerator snapshot for {@code vertexId} (from
+     * {@code EpochManifest.sourceEnumeratorSnapshots}). Consumed once by the
+     * coordinator's enumerator boot; also dropped by {@link #unregister(Integer)}.
+     */
+    public static void stashEnumeratorRestore(Integer vertexId,
+                                              io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot snapshot) {
+        if (snapshot == null) {
+            return;
+        }
+        PENDING_ENUMERATOR_RESTORES.put(vertexId, snapshot);
+    }
+
+    /**
+     * Consume-once read of the pending enumerator restore entry for {@code vertexId}
+     * (removed on read). Returns {@code null} when absent (fresh-start path).
+     */
+    public static io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot consumeEnumeratorRestore(
+            Integer vertexId) {
+        if (vertexId == null) {
+            return null;
+        }
+        return PENDING_ENUMERATOR_RESTORES.remove(vertexId);
     }
 
     /** Test helper: clears all registered coordinators without closing (test sweep). */
     public static void clearForTest() {
         COORDINATORS.clear();
+        PENDING_ENUMERATOR_RESTORES.clear();
     }
 
     /** Test helper: returns true if a coordinator is registered for {@code vertexId}. */

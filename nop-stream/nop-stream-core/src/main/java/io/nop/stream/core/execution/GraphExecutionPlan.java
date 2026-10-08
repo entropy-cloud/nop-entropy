@@ -456,6 +456,11 @@ public class GraphExecutionPlan {
 
                 RecordWriter<Object> recordWriter = null;
                 List<RecordWriter<Object>> fanOutWriters = null;
+                // WI8 Phase 2 (plan 2332): per-edge side-output tag ids, index-aligned
+                // with the writer lists below (null entries = main edges). Non-null
+                // anywhere switches the invokable to tag-aware routing.
+                String singleWriterTagId = null;
+                List<String> fanOutWriterTagIds = null;
 
                 // Build RecordWriter: for each outgoing edge, collect the partitions
                 // that this source subtask writes to (one per target subtask per edge)
@@ -465,14 +470,17 @@ public class GraphExecutionPlan {
                         recordWriter = EdgeAssembly.createWriterForEdge(edge,
                                 edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                                 GraphExecutionPlan::resolvePartitionPolicy);
+                        singleWriterTagId = edge.getOutputTagId();
                     } else {
                         fanOutWriters = new ArrayList<>();
+                        fanOutWriterTagIds = new ArrayList<>();
                         for (JobEdge edge : outEdges) {
                             RecordWriter<Object> writer = EdgeAssembly.createWriterForEdge(edge,
                                     edgePartitionMatrix.get(edge), taskIndex, deploymentPlan,
                                     GraphExecutionPlan::resolvePartitionPolicy);
                             if (writer != null) {
                                 fanOutWriters.add(writer);
+                                fanOutWriterTagIds.add(edge.getOutputTagId());
                             }
                         }
                     }
@@ -485,7 +493,17 @@ public class GraphExecutionPlan {
                         unalignedCheckpointEnabled, unalignedThreshold);
 
                 StreamTaskInvokable invokable =
-                        createInvokable(chain, recordWriter, fanOutWriters, inputGate);
+                        createInvokable(chain, recordWriter, singleWriterTagId,
+                                fanOutWriters, fanOutWriterTagIds, inputGate);
+
+                // WI8 Phase 2 (plan 2332): a vertex fed from a side-output tag edge
+                // registers the tag consumer that feeds its operator chain input —
+                // records arriving over the tag channel route through it.
+                for (JobEdge edge : inEdges) {
+                    if (edge.getOutputTagId() != null) {
+                        invokable.registerTagEdgeConsumer(edge.getOutputTagId());
+                    }
+                }
 
                 // Stage 44 successor 2: propagate the vertex's region ID into the
                 // subtask so the full chain JobGraph → GraphExecutionPlan → Subtask
@@ -526,6 +544,16 @@ public class GraphExecutionPlan {
                 SourceFunction<?> sourceFunction = ((StreamSourceOperator<?>) op).getSourceFunction();
                 if (sourceFunction instanceof ParallelismCheckable) {
                     ((ParallelismCheckable) sourceFunction).validateParallelism(parallelism);
+                }
+            }
+            // WI2 plan 2343 Phase 1 (G5): FLIP-27 parity — a split source implementing
+            // ParallelismCheckable (e.g. the single-writer batch-loader) rejects
+            // unsupported parallelism at deployment, exactly like the legacy path.
+            else if (op instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+                io.nop.stream.core.source.Source<?, ? extends io.nop.stream.core.source.SourceSplit, ?> splitSource =
+                        ((io.nop.stream.core.operators.SourceReaderOperator<?>) op).getSource();
+                if (splitSource instanceof ParallelismCheckable) {
+                    ((ParallelismCheckable) splitSource).validateParallelism(parallelism);
                 }
             }
             // R6 CON-03 (plan 2326): sink-side gate — a sink function that cannot
@@ -634,16 +662,33 @@ public class GraphExecutionPlan {
      * Selects the StreamTaskInvokable constructor matching the subtask's wiring:
      * fan-out writers take precedence (with or without a gate), then the single
      * writer/gate pair, then the bare chain (self-contained source/sink).
+     *
+     * <p>WI8 Phase 2 (plan 2332): when any outgoing edge carries a side-output tag id
+     * ({@code singleWriterTagId != null} or a non-null entry in
+     * {@code fanOutWriterTagIds}), the tag-aware constructor routes tagged emissions to
+     * their tag edge and keeps main records off tag edges. Vertices without tag edges
+     * keep the legacy constructors (zero regression on the historical HG-01 broadcast
+     * semantics).
      */
     private static StreamTaskInvokable createInvokable(OperatorChain chain,
                                                        RecordWriter<Object> recordWriter,
+                                                       String singleWriterTagId,
                                                        List<RecordWriter<Object>> fanOutWriters,
+                                                       List<String> fanOutWriterTagIds,
                                                        InputGate inputGate) {
+        boolean fanOutHasTagEdge = fanOutWriterTagIds != null
+                && fanOutWriterTagIds.stream().anyMatch(java.util.Objects::nonNull);
         if (fanOutWriters != null && !fanOutWriters.isEmpty()) {
+            if (fanOutHasTagEdge) {
+                return new StreamTaskInvokable(chain, fanOutWriters, fanOutWriterTagIds, inputGate);
+            }
             if (inputGate != null) {
                 return new StreamTaskInvokable(chain, fanOutWriters, inputGate);
             }
             return new StreamTaskInvokable(chain, fanOutWriters);
+        }
+        if (singleWriterTagId != null && recordWriter != null) {
+            return new StreamTaskInvokable(chain, recordWriter, singleWriterTagId, inputGate);
         }
         if (recordWriter != null || inputGate != null) {
             return new StreamTaskInvokable(chain, recordWriter, inputGate);

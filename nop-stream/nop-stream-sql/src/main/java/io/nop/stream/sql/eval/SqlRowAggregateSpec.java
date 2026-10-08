@@ -56,11 +56,18 @@ public final class SqlRowAggregateSpec {
         private final String fnId;
         private final String expr;
         private final boolean star;
+        /** WI17 (plan 2342): DISTINCT qualifier; JSON round-trip backward-compatible. */
+        private final boolean distinct;
 
         public AggCall(String fnId, String expr, boolean star) {
+            this(fnId, expr, star, false);
+        }
+
+        public AggCall(String fnId, String expr, boolean star, boolean distinct) {
             this.fnId = fnId;
             this.expr = expr;
             this.star = star;
+            this.distinct = distinct;
         }
 
         public String getFnId() {
@@ -76,6 +83,10 @@ public final class SqlRowAggregateSpec {
 
         public boolean isStar() {
             return star;
+        }
+
+        public boolean isDistinct() {
+            return distinct;
         }
     }
 
@@ -97,6 +108,8 @@ public final class SqlRowAggregateSpec {
                 sb.append(",\"expr\":\"").append(escape(a.getExpr())).append('"');
             if (a.isStar())
                 sb.append(",\"star\":true");
+            if (a.isDistinct())
+                sb.append(",\"distinct\":true");
             sb.append('}');
         }
         sb.append("]}");
@@ -149,7 +162,8 @@ public final class SqlRowAggregateSpec {
                     throw invalid("composite spec agg entry requires a string 'fn'");
                 Object expr = m.get("expr");
                 boolean star = Boolean.TRUE.equals(m.get("star"));
-                aggs.add(new AggCall((String) fn, expr == null ? null : expr.toString(), star));
+                boolean distinct = Boolean.TRUE.equals(m.get("distinct"));
+                aggs.add(new AggCall((String) fn, expr == null ? null : expr.toString(), star, distinct));
             }
         } else {
             throw invalid("composite spec requires an 'aggs' array");

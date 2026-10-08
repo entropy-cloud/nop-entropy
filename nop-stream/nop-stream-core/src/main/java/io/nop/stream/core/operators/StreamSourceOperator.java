@@ -244,7 +244,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(new StreamRecord<>(element));
+                output.collect(applyChangeMetadata(new StreamRecord<>(element), element));
             }
 
             @Override
@@ -254,7 +254,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(new StreamRecord<>(element, timestamp));
+                output.collect(applyChangeMetadata(new StreamRecord<>(element, timestamp), element));
             }
 
             @Override
@@ -314,6 +314,18 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                         .param(ARG_REASON, "source cancelled via mailbox (cooperative abort)");
             }
         }
+    }
+
+    /**
+     * WI7 (plan 2336): stamp engine-level change metadata from an optional
+     * {@code ChangeSemanticView} value. No-op for plain values (the historic default).
+     */
+    static <T> StreamRecord<T> applyChangeMetadata(StreamRecord<T> record, Object value) {
+        if (value instanceof io.nop.api.core.stream.ChangeSemanticView) {
+            io.nop.api.core.stream.ChangeSemanticView view = (io.nop.api.core.stream.ChangeSemanticView) value;
+            record.withChangeMetadata(view.getRowKind(), view.getTableId());
+        }
+        return record;
     }
 
     /**

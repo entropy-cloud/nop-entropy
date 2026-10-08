@@ -69,6 +69,18 @@ public class JobEdge implements Serializable {
      */
     private boolean materializationEnabled = false;
 
+    /**
+     * WI8 Phase 2 (plan 2332): side-output tag id when this edge is a tag edge
+     * (fed from a {@code <sideOutput>} tag channel), {@code null} for a regular
+     * main-path edge. A tag edge carries ONLY
+     * {@code io.nop.stream.core.streamrecord.SideOutputElement} traffic matching
+     * this id — main-path records never cross it, and it never carries a custom
+     * partitioner (tag edges follow the producer's partitioning). The deployment
+     * plan builders register the consuming vertex's side-output consumer for this
+     * id ({@code StreamTaskInvokable#registerTagEdgeConsumer}).
+     */
+    private String outputTagId;
+
     public JobEdge(String sourceVertex, String targetVertex, ResultPartitionType partitionType) {
         this(sourceVertex, targetVertex, partitionType, null);
     }
@@ -112,6 +124,23 @@ public class JobEdge implements Serializable {
      */
     public void setEdgeConfig(EdgeConfig edgeConfig) {
         this.edgeConfig = edgeConfig;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): the side-output tag id of a tag edge, or {@code null}
+     * for a regular main-path edge.
+     */
+    public String getOutputTagId() {
+        return outputTagId;
+    }
+
+    /**
+     * WI8 Phase 2 (plan 2332): marks this edge as a tag edge carrying only
+     * {@code SideOutputElement} traffic of the given tag id. {@code null} restores
+     * the main-edge default.
+     */
+    public void setOutputTagId(String outputTagId) {
+        this.outputTagId = outputTagId;
     }
 
     /**
@@ -201,6 +230,7 @@ public class JobEdge implements Serializable {
                 ", partitioner=" + partitioner +
                 ", edgeConfig=" + edgeConfig +
                 ", materializationEnabled=" + materializationEnabled +
+                ", outputTagId='" + outputTagId + '\'' +
                 '}';
     }
 }

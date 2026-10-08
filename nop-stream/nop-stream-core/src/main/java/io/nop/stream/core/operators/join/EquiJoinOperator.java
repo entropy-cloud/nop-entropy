@@ -88,6 +88,17 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private final Long windowDuration;
     private final long timeout;
 
+    /**
+     * WI27: per-side grace beyond the window end. Non-negative; the symmetric
+     * {@code timeout} form maps both sides to the same value. The pairing set is
+     * invariant under asymmetry (a record is accepted iff it arrives before its own
+     * side's fire point, so pairing ≡ symmetric min(leftTimeout, rightTimeout)) —
+     * the asymmetry decouples the LEFT completion instant and the long-side state
+     * retention only.
+     */
+    private final long leftTimeout;
+    private final long rightTimeout;
+
     /** working view: bufferKey → ordered entries (restored through the operator-state transport). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
     /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
@@ -109,16 +120,29 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private long currentWatermark;
 
     public EquiJoinOperator(JoinType joinType, Long windowDuration, long timeout) {
+        this(joinType, windowDuration, timeout, timeout);
+    }
+
+    /**
+     * WI27: per-side asymmetric grace. {@code leftTimeout}/{@code rightTimeout} are
+     * each side's fire point offset past the window end; the twin-side unconditional
+     * purge of the symmetric form is gone — each side's window is fired and dropped
+     * at its own fire point by {@link #fireReachedWindows()}.
+     */
+    public EquiJoinOperator(JoinType joinType, Long windowDuration, long leftTimeout,
+                            long rightTimeout) {
         this.joinType = joinType;
         this.windowDuration = windowDuration;
-        this.timeout = timeout;
+        this.timeout = leftTimeout;
+        this.leftTimeout = leftTimeout;
+        this.rightTimeout = rightTimeout;
     }
 
     @Override
     public EquiJoinOperator<L, R> copyForSubtask() {
         // fresh instance per subtask — the keyed backend is provisioned per task in
         // open(), so parallel subtasks never share state (WI12 audit B-2 pattern)
-        return new EquiJoinOperator<>(joinType, windowDuration, timeout);
+        return new EquiJoinOperator<>(joinType, windowDuration, leftTimeout, rightTimeout);
     }
 
     @Override
@@ -196,7 +220,7 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
         JoinSideRecord<Object> rec = element.getValue();
         long ts = element.hasTimestamp() ? element.getTimestamp() : 0L;
         setCurrentKey(rec.getEquiKey());
-        if (windowDuration != null && isLateForWindow(ts)) {
+        if (windowDuration != null && isLateForWindow(ts, rec.isLeft())) {
             // the window already fired and dropped: late records are dropped on
             // sight (fire-and-update semantics — no completion, no state growth)
             return;
@@ -257,8 +281,13 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     // window form
     // ----------------------------------------------------------------
 
-    private boolean isLateForWindow(long ts) {
-        return currentWatermark >= windowStart(ts) + windowDuration + timeout;
+    private boolean isLateForWindow(long ts, boolean left) {
+        return currentWatermark >= windowStart(ts) + windowDuration + timeoutOf(left);
+    }
+
+    /** WI27: this side's grace past the window end. */
+    private long timeoutOf(boolean left) {
+        return left ? leftTimeout : rightTimeout;
     }
 
     private long windowStart(long ts) {
@@ -268,23 +297,28 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private void fireReachedWindows() throws Exception {
         for (String key : snapshotKeys()) {
             long winStart = windowStartOf(key);
-            if (currentWatermark >= winStart + windowDuration + timeout) {
+            boolean left = LEFT_TAG.equals(sideOf(key));
+            // WI27: each side's window fires at its own fire point (winStart +
+            // windowDuration + side timeout) — the symmetric form's twin-side
+            // unconditional purge is gone, so the longer side retains its buffered
+            // records until its own fire point.
+            if (currentWatermark >= winStart + windowDuration + timeoutOf(left)) {
                 scopeToEquiKey(key);
                 fireWindow(key, winStart);
             }
         }
     }
 
-    /** fires one window: completes unmatched records on the completion side, drops the window's entries on both sides. */
+    /**
+     * Fires one side's window: completes unmatched records when the completion side
+     * fires, then drops that side's entries. The twin side keeps its entries for its
+     * own fire point.
+     */
     private void fireWindow(String key, long winStart) throws Exception {
         if (isCompletionSide(sideOf(key))) {
             completeUnmatched(key);
         }
         dropAll(key);
-        String twin = twinWindowKey(key, winStart);
-        if (twin != null && buffer.size(twin) > 0) {
-            dropAll(twin);
-        }
     }
 
     // ----------------------------------------------------------------

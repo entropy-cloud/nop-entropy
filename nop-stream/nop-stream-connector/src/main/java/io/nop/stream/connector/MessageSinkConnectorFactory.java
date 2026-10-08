@@ -10,6 +10,7 @@ import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.connector.registry.ConnectorCapabilityDescriptor;
+import io.nop.stream.core.connector.registry.ConnectorMaturity;
 import io.nop.stream.core.connector.registry.ConnectorParallelism;
 import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
@@ -39,6 +40,7 @@ public final class MessageSinkConnectorFactory implements IStreamSinkFactory {
                             "topic name to send records to"),
                     ConnectorParamDescriptor.required("messageService", OBJECT,
                             "IMessageService backend (Local/Pulsar/Kafka) supplied programmatically")))
+            .maturity(ConnectorMaturity.EXPERIMENTAL)
             .build();
 
     @Override

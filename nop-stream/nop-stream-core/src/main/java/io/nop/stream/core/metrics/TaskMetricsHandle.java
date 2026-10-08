@@ -70,4 +70,14 @@ public final class TaskMetricsHandle implements StreamTaskMetrics, Serializable 
     public void processingTime(long nanos) {
         delegate.processingTime(nanos);
     }
+
+    @Override
+    public void idleTime(long nanos) {
+        delegate.idleTime(nanos);
+    }
+
+    @Override
+    public void elapsedTime(long nanos) {
+        delegate.elapsedTime(nanos);
+    }
 }

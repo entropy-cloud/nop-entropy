@@ -32,9 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * top-level registries. Phase 2 implemented the remaining transform types
  * (window/aggregate/reduce/process/cep/timestampsAndWatermarks/custom) — their
  * wiring is covered by {@link TestAdvancedTransforms}. This class retains the
- * two transforms that still fail-fast due to missing core runtime APIs
- * ({@code <union>}, {@code <sideOutput>}) plus all top-level registry / callback
- * fail-fast checks.
+ * transform that still fails-fast due to missing core runtime APIs
+ * ({@code <union>} orphan shape) plus all top-level registry / callback fail-fast
+ * checks. The {@code <sideOutput>} NOT_IMPLEMENTED gap was released by WI8 Phase 2
+ * (plan 2332): its remaining fail-fast is the tag pairing diagnosis, asserted below.
  *
  * <p>Each test uses an inline {@code .stream.xml} snippet that exercises one unbuilt
  * branch. They parse via the real XDSL parser (so the snippet is verified against
@@ -67,8 +68,17 @@ public class TestStreamModelDslBuilderFailFast {
     }
 
     @Test
-    public void sideOutputTransformThrowsUnsupportedOperationException() {
-        assertFailFast("<sideOutput id=\"so\" tag=\"late\"/>", "sideOutput");
+    public void sideOutputWithoutConsumerEdgeFailsFast() {
+        // WI8 Phase 2 (plan 2332): <sideOutput> is now buildable, but a declared tag
+        // without a consuming <edge outputTag> still fails fast — with the pairing
+        // error (ERR_STREAM_INVALID_ARG), not the former NOT_IMPLEMENTED code.
+        StreamModel model = parseInline("<sideOutput id=\"so\" tag=\"late\"/>", "");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString(),
+                () -> "Unpaired sideOutput must fail with ERR_STREAM_INVALID_ARG: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("no consuming tag edge"),
+                "Exception should name the missing consumer edge: " + ex.getMessage());
     }
 
     @Test

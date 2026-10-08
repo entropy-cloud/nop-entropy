@@ -314,6 +314,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitTableSources_(EqlParser.TableSources_Context ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlHopTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlHopTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code SqlJoinTableSource}
 	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
@@ -374,6 +386,18 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlValuesTableSource_ex(EqlParser.SqlValuesTableSource_exContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code SqlSessionTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlSessionTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
 	 */
@@ -393,6 +417,26 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlHopTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlHopTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlSessionTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlSessionTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSubqueryTableSource}.
 	 * @param ctx the parse tree

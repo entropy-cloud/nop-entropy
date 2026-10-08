@@ -42,32 +42,39 @@ public class TestBatchConnectorFactories {
     // batch-loader source
     // ------------------------------------------------------------------
 
+    // WI2 plan 2343 Phase 1: the factory surface produces the FLIP-27 BatchLoaderSource
+    // (the legacy BatchLoaderSourceFunction keeps its programmatic API only). Split
+    // sources have no instance-level consistency accessor — the AT_LEAST_ONCE
+    // declaration is pinned on the descriptor (single source of truth).
     @Test
     public void testBatchLoaderFactoryConstructsWithAlignment() {
         BatchLoaderSourceConnectorFactory factory = new BatchLoaderSourceConnectorFactory();
-        BatchLoaderSourceFunction<?> source = assertInstanceOf(BatchLoaderSourceFunction.class,
-                factory.createSourceFunction(new StreamConnectorConfig("batch-loader",
+        BatchLoaderSource<?> source = assertInstanceOf(BatchLoaderSource.class,
+                factory.createSource(new StreamConnectorConfig("batch-loader",
                         Map.of("loaderProvider", loaderProvider))));
-        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE, source.getSourceConsistency());
 
         // optional batchSize threads through the two-arg constructor
-        assertInstanceOf(BatchLoaderSourceFunction.class, factory.createSourceFunction(
+        assertInstanceOf(BatchLoaderSource.class, factory.createSource(
                 new StreamConnectorConfig("batch-loader",
                         Map.of("loaderProvider", loaderProvider, "batchSize", 16))));
 
         ConnectorCapabilityDescriptor d = factory.describeCapabilities();
         assertEquals("batch-loader", d.getTypeName());
-        assertEquals(d.getSourceConsistency(), source.getSourceConsistency());
+        assertEquals(SourceConsistencyCapability.AT_LEAST_ONCE, d.getSourceConsistency());
         // R5 CON-06: aligned with the runtime single-writer gate + owner-doc 单写入者裁定
         assertEquals(ConnectorParallelism.SINGLE_INSTANCE, d.getParallelism());
         assertEquals(ConnectorRecoverySemantic.OFFSET_CHECKPOINT, d.getRecoverySemantic());
+
+        // the single-writer deployment gate rides the FLIP-27 source itself
+        assertThrows(StreamException.class, () -> source.validateParallelism(2));
+        source.validateParallelism(1); // idempotent no-op at the supported value
     }
 
     @Test
     public void testBatchLoaderRequiresLoaderProvider() {
         BatchLoaderSourceConnectorFactory factory = new BatchLoaderSourceConnectorFactory();
         StreamException ex = assertThrows(StreamException.class,
-                () -> factory.createSourceFunction(new StreamConnectorConfig("batch-loader",
+                () -> factory.createSource(new StreamConnectorConfig("batch-loader",
                         Map.of("batchSize", 4))));
         assertEquals(ERR_STREAM_CONNECTOR_PARAM_REQUIRED.getErrorCode(), ex.getErrorCode());
         assertEquals("loaderProvider", ex.getParam("paramName"));

@@ -59,6 +59,14 @@ public final class ChannelQueueGauges {
     /** D2: io-layer gauge name (Prometheus wire: nop_stream_io_channel_queue_size). */
     public static final String METRIC_NAME = "nop.stream.io.channel.queue.size";
 
+    /**
+     * WI16 (plan 2337): the edge-level queue fill ratio (size/capacity, clamped to
+     * [0,1]) — a DERIVED readout on the same holder as {@link #METRIC_NAME} (review
+     * F4: not a second direct-measurement probe; it exists so the scrape side does
+     * not hard-code the capacity constant).
+     */
+    public static final String METRIC_FILL_RATIO = "nop.stream.io.channel.queue.fill.ratio";
+
     public static final String TAG_JOB_ID = "jobId";
     public static final String TAG_EDGE_ID = "edgeId";
     public static final String TAG_SOURCE_SUBTASK = "sourceSubtask";
@@ -95,6 +103,14 @@ public final class ChannelQueueGauges {
                     .tag(TAG_SOURCE_SUBTASK, String.valueOf(sourceSubtask))
                     .tag(TAG_TARGET_SUBTASK, String.valueOf(targetSubtask))
                     .register(StreamMetricsRegistries.registry());
+            // WI16: the fill ratio is a derived readout on the SAME holder — one probe,
+            // two views (review F4 reconciliation with adjudication P1 #12)
+            Gauge.builder(METRIC_FILL_RATIO, ref, ChannelQueueGauges::fillRatioOf)
+                    .tag(TAG_JOB_ID, jobId)
+                    .tag(TAG_EDGE_ID, edgeId)
+                    .tag(TAG_SOURCE_SUBTASK, String.valueOf(sourceSubtask))
+                    .tag(TAG_TARGET_SUBTASK, String.valueOf(targetSubtask))
+                    .register(StreamMetricsRegistries.registry());
             return ref;
         });
         // Re-registration (recovery rebuild): the SAME meter now follows the new
@@ -115,6 +131,15 @@ public final class ChannelQueueGauges {
     private static double queueSizeOf(AtomicReference<RemoteInputChannel> holder) {
         RemoteInputChannel channel = holder.get();
         return channel == null ? 0.0 : channel.queueSize();
+    }
+
+    private static double fillRatioOf(AtomicReference<RemoteInputChannel> holder) {
+        RemoteInputChannel channel = holder.get();
+        if (channel == null || channel.getCapacity() <= 0) {
+            return 0.0;
+        }
+        double ratio = (double) channel.queueSize() / channel.getCapacity();
+        return Math.min(1.0, Math.max(0.0, ratio));
     }
 
     private static String gaugeKey(String jobId, String edgeId, int sourceSubtask, int targetSubtask) {

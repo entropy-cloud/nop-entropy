@@ -97,9 +97,9 @@ public class TestStreamAggregatorFunctionResolver {
     @Test
     public void exprCompileFailureFailsFast() {
         IAggregatorFunctionResolver resolver = resolver();
-        // CASE is outside the v1 scalar subset
+        // WI29: CASE is now in the scalar subset — a regular function call stays outside
         StreamException e = assertThrows(StreamException.class,
-                () -> resolver.resolve("sum", "case when a then 1 else 2 end", NO_SCHEMA));
+                () -> resolver.resolve("sum", "concat(a, b)", NO_SCHEMA));
         assertEquals("nop.err.stream.invalid-arg", e.getErrorCode());
     }
 

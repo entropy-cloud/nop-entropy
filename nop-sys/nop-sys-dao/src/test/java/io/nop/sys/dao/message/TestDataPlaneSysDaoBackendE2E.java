@@ -10,12 +10,15 @@ package io.nop.sys.dao.message;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.message.IMessageService;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -245,6 +248,76 @@ public class TestDataPlaneSysDaoBackendE2E extends JunitBaseTestCase {
      * Drains {@code expectedEvents} envelopes through the DB-poll path. Each call to
      * {@code processNonBroadcastEvent()} processes the head of each subscribed partition;
      * for a single topic (one partition) that is one event per call.
+     */
+    /**
+     * WI6 (plan 2331): producer-side gate end-to-end — a RemoteResultPartition wired
+     * with the backend's own ChannelBacklogProbe (via the codec adapter, exercising the
+     * unwrap path) and a limit of 2 bounds the unconsumed table depth while a slow
+     * consumer drains; when the consumer keeps up everything flows through. Also
+     * proves the adapter→delegate capability resolution (builder unwrap ruling).
+     */
+    @Test
+    public void gatedProducerBoundsTableDepthWhileConsumerLags() throws Exception {
+        String topic = StreamTopicNaming.buildTopic(JOB_ID, EDGE_ID, 0, 0);
+        TypeRegistry typeRegistry = new TypeRegistry();
+        typeRegistry.register(EDGE_ID, String.class.getName());
+
+        // gate wired through the codec adapter (exercises the builder unwrap ruling:
+        // adapter -> getDelegate -> backend implements ChannelBacklogProbe)
+        RemoteResultPartition producer = new RemoteResultPartition(
+                dataPlane, topic, typeRegistry, EDGE_ID, EPOCH, backend, 2L);
+        // a registered consumer subscription is REQUIRED for the poller to scan the
+        // topic's events (nop_sys ruling: subscriber-less topics are never scanned —
+        // without this the drain is a no-op and the gate times out, by design).
+        RemoteInputChannel consumer = new RemoteInputChannel(dataPlane, topic, EPOCH);
+        List<String> received = new ArrayList<>();
+
+        AtomicReference<Throwable> writerError = new AtomicReference<>();
+        Thread writer = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    producer.write(new io.nop.stream.core.streamrecord.StreamRecord<>("r-" + i));
+                }
+                producer.close();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                writerError.set(e);
+            }
+        });
+        writer.start();
+
+        // slow consumer: one event per drain round; the gate must bound the table and
+        // reopen as consumption (PROCESSED marking) advances.
+        long deadline = System.currentTimeMillis() + 120_000;
+        int maxObservedDepth = 0;
+        while ((received.size() < 10 || !producer.isFinished()) && System.currentTimeMillis() < deadline) {
+            maxObservedDepth = (int) Math.max(maxObservedDepth, backend.backlog(topic));
+            drainBackend(1);
+            StreamElement elem;
+            while ((elem = consumer.read(0, TimeUnit.MILLISECONDS)) != null) {
+                if (elem.isRecord()) {
+                    received.add((String) elem.asRecord().getValue());
+                }
+            }
+        }
+        int observedDepth = maxObservedDepth;
+        writer.join(5_000);
+        if (writerError.get() != null) {
+            throw new AssertionError("writer failed", writerError.get());
+        }
+        // 10 data records delivered exactly once + EOS deposited
+        assertEquals(List.of("r-0", "r-1", "r-2", "r-3", "r-4", "r-5", "r-6", "r-7", "r-8", "r-9"),
+                received, "all records must flow once the consumer drains");
+        QueryBean deposited = new QueryBean();
+        deposited.addFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_eventTopic, topic));
+        assertEquals(11, daoProvider.daoFor(NopSysEvent.class).countByQuery(deposited));
+        // the gate bounded the unconsumed depth near the limit (TTL cache admits slack)
+        assertTrue(observedDepth <= 6, () -> "gated depth exceeded limit+slack: " + observedDepth);
+    }
+
+    /**
+     * Drives {@code processNonBroadcastEvent()} deterministically: one event per call
+     * for a single partition, {@code expectedEvents + 5} iterations of headroom.
      */
     private void drainBackend(int expectedEvents) {
         int maxIters = expectedEvents + 5;

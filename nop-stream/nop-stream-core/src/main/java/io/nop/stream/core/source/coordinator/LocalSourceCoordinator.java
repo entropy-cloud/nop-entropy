@@ -85,13 +85,48 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
     }
 
     /**
+     * The engine creates coordinators keyed by {@code String.valueOf(numericVertexId)};
+     * a non-numeric name (programmatic construction) simply never matches a stash entry.
+     */
+    private Integer parseVertexKey() {
+        try {
+            return Integer.valueOf(vertexId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
      * Boots the enumerator if not yet booted. Called when the first reader registers.
      * If a checkpoint state is supplied (restore path), the enumerator is restored from it.
+     * With a {@code null} state the WI2 plan 2343 Phase 0 stash is consulted first
+     * (B-1: the runtime restore path stashes {@code EpochManifest.sourceEnumeratorSnapshots}
+     * before any task starts, because the coordinator is only created lazily by the first
+     * subtask's open()) — a stashed snapshot is deserialized via the source's own
+     * enumerator-state serializer and consumed once; its absence keeps the fresh-start path.
      */
+    @SuppressWarnings("unchecked")
     public void startEnumerator(StateT restoredState) {
         synchronized (enumeratorLock) {
             if (started) {
                 return;
+            }
+            if (restoredState == null) {
+                io.nop.stream.core.checkpoint.SourceEnumeratorSnapshot stashed =
+                        SourceCoordinatorRegistry.consumeEnumeratorRestore(parseVertexKey());
+                if (stashed != null && stashed.getStateBytes() != null) {
+                    try {
+                        restoredState = (StateT) source.getEnumeratorStateSerializer()
+                                .deserialize(stashed.getVersion(), stashed.getStateBytes());
+                        LOG.info("Source enumerator restoring from manifest snapshot "
+                                        + "(vertex={}, version={}, bytes={})", vertexId, stashed.getVersion(),
+                                stashed.getStateBytes().length);
+                    } catch (Exception e) {
+                        throw new StreamException(ERR_STREAM_INVALID_STATE, e)
+                                .param(ARG_DETAIL, "Failed to deserialize the restored enumerator "
+                                        + "snapshot for vertex " + vertexId);
+                    }
+                }
             }
             if (restoredState != null) {
                 enumerator = source.restoreEnumerator(restoredState);

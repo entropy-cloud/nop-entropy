@@ -378,6 +378,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlHopTableSource_ex(EqlParser.SqlHopTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -438,6 +450,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlSessionTableSource_ex(EqlParser.SqlSessionTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlSingleTableSource(EqlParser.SqlSingleTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -457,6 +481,30 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlTumbleTableSource(EqlParser.SqlTumbleTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlHopTableSource(EqlParser.SqlHopTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlSessionTableSource(EqlParser.SqlSessionTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

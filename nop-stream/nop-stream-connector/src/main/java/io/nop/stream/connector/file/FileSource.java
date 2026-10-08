@@ -6,16 +6,24 @@
  */
 package io.nop.stream.connector.file;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
+import io.nop.stream.core.connector.SampleableSource;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.source.Boundedness;
 import io.nop.stream.core.source.SimpleVersionedSerializer;
 import io.nop.stream.core.source.Source;
 import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
 import io.nop.stream.core.source.SplitEnumerator;
-import io.nop.stream.core.exceptions.StreamException;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -44,7 +52,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
  * <p>The source is serializable (carries only the directory path); the live enumerator /
  * reader instances are created per-execution by the runtime.
  */
-public final class FileSource implements Source<String, FileSplit, FileSplitEnumeratorState> {
+public final class FileSource implements Source<String, FileSplit, FileSplitEnumeratorState>, SampleableSource {
 
     private static final long serialVersionUID = 1L;
 
@@ -56,8 +64,25 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
      */
     private final long maxLineBytes;
 
+    /**
+     * WI5 (plan 2330): emission rate caps (records/second, bytes/second). 0 = channel
+     * off (unlimited) — the UNSET config value normalizes to 0 at the factory; an
+     * explicitly negative value never reaches this constructor (the factory rejects
+     * it, since unset vs explicit-zero is indistinguishable here).
+     */
+    private final long rateLimitRowsPerSecond;
+    private final long rateLimitBytesPerSecond;
+
+    /**
+     * WI5 (plan 2330): split assignment policy — {@code round-robin} (default) or
+     * {@code size-aware} (see {@link FileSplitEnumerator}); any other value is a typed
+     * construction error, never a silent fallback.
+     */
+    private final String splitAssignmentPolicy;
+
     public FileSource(String directoryPath) {
-        this(directoryPath, FileSourceReader.DEFAULT_MAX_LINE_BYTES);
+        this(directoryPath, FileSourceReader.DEFAULT_MAX_LINE_BYTES, 0L, 0L,
+                FileSplitEnumerator.POLICY_ROUND_ROBIN);
     }
 
     /**
@@ -65,6 +90,16 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
      *                     (R5-CON-07); must be &gt; 0.
      */
     public FileSource(String directoryPath, long maxLineBytes) {
+        this(directoryPath, maxLineBytes, 0L, 0L, FileSplitEnumerator.POLICY_ROUND_ROBIN);
+    }
+
+    /**
+     * WI5 full constructor: rate caps + split assignment policy. Both enumerator
+     * construction paths (fresh and restore) receive the policy, so the behavior
+     * survives checkpoint/restore.
+     */
+    public FileSource(String directoryPath, long maxLineBytes, long rateLimitRowsPerSecond,
+                      long rateLimitBytesPerSecond, String splitAssignmentPolicy) {
         if (directoryPath == null || directoryPath.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
                     .param(ARG_DETAIL, "directory path must not be null or empty");
@@ -73,8 +108,27 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxLineBytes")
                     .param(ARG_DETAIL, "maxLineBytes must be positive: " + maxLineBytes);
         }
+        if (rateLimitRowsPerSecond < 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "rateLimitRowsPerSecond")
+                    .param(ARG_DETAIL, "rateLimitRowsPerSecond must not be negative (0 = unlimited): "
+                            + rateLimitRowsPerSecond);
+        }
+        if (rateLimitBytesPerSecond < 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "rateLimitBytesPerSecond")
+                    .param(ARG_DETAIL, "rateLimitBytesPerSecond must not be negative (0 = unlimited): "
+                            + rateLimitBytesPerSecond);
+        }
+        if (!FileSplitEnumerator.isValidPolicy(splitAssignmentPolicy)) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "splitAssignmentPolicy")
+                    .param(ARG_DETAIL, "unknown split assignment policy: " + splitAssignmentPolicy
+                            + " (expected " + FileSplitEnumerator.POLICY_ROUND_ROBIN + " or "
+                            + FileSplitEnumerator.POLICY_SIZE_AWARE + ")");
+        }
         this.directoryPath = directoryPath;
         this.maxLineBytes = maxLineBytes;
+        this.rateLimitRowsPerSecond = rateLimitRowsPerSecond;
+        this.rateLimitBytesPerSecond = rateLimitBytesPerSecond;
+        this.splitAssignmentPolicy = splitAssignmentPolicy;
     }
 
     public String getDirectoryPath() {
@@ -87,23 +141,39 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
 
     @Override
     public SplitEnumerator<FileSplit, FileSplitEnumeratorState> createEnumerator() {
-        return new FileSplitEnumerator(directoryPath);
+        return new FileSplitEnumerator(directoryPath, splitAssignmentPolicy);
     }
 
     @Override
     public SplitEnumerator<FileSplit, FileSplitEnumeratorState> restoreEnumerator(
             FileSplitEnumeratorState checkpointState) {
-        FileSplitEnumerator enumerator = new FileSplitEnumerator(directoryPath);
+        FileSplitEnumerator enumerator = new FileSplitEnumerator(directoryPath, splitAssignmentPolicy);
         // The actual state restore happens via SplitEnumerator.restoreState() at start();
         // the runtime calls start() after restoreState().
         return enumerator;
+    }
+
+    /** WI5: configured rows/second rate cap (0 = unlimited). */
+    public long getRateLimitRowsPerSecond() {
+        return rateLimitRowsPerSecond;
+    }
+
+    /** WI5: configured bytes/second rate cap (0 = unlimited). */
+    public long getRateLimitBytesPerSecond() {
+        return rateLimitBytesPerSecond;
+    }
+
+    /** WI5: split assignment policy ({@code round-robin} | {@code size-aware}). */
+    public String getSplitAssignmentPolicy() {
+        return splitAssignmentPolicy;
     }
 
     @Override
     public SourceReader<String, FileSplit> createReader(SourceReaderContext readerContext) {
         // R5-CON-10: the source directory flows into the reader so openSplit can
         // enforce split-path containment (legacy checkpoints carry no checksum).
-        return new FileSourceReader(readerContext, directoryPath, maxLineBytes);
+        return new FileSourceReader(readerContext, directoryPath, maxLineBytes,
+                rateLimitRowsPerSecond, rateLimitBytesPerSecond);
     }
 
     @Override
@@ -310,4 +380,54 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
             return VERSION;
         }
     }
+    /**
+     * WI4 (plan 2329): read-only data sampling (SampleableSource). Walks the directory
+     * with the same discovery rule as {@link FileSplitEnumerator} (Files.walk, regular
+     * files, discovery order — no cross-file ordering promise) and reads up to
+     * {@code limit} lines. No split is assigned and no cursor state is touched: the
+     * sampling path is fully outside the checkpointed reader lifecycle, honoring the
+     * H-1 side-effect budget ("read-only scan, no split assignment"). The per-line
+     * byte bound matches the reader contract so a sample also surfaces lines that
+     * would fail a real job.
+     */
+    @Override
+    public List<Object> sample(int limit) {
+        if (limit <= 0) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "limit")
+                    .param(ARG_DETAIL, "sample limit must be positive: " + limit);
+        }
+        Path dir = Paths.get(directoryPath);
+        if (!Files.exists(dir) || !Files.isDirectory(dir)) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
+                    .param(ARG_DETAIL, "Source directory not found or not a directory: " + directoryPath);
+        }
+        List<Object> records = new ArrayList<>();
+        List<Path> files;
+        try {
+            files = Files.walk(dir).filter(Files::isRegularFile).collect(Collectors.toList());
+            for (Path file : files) {
+                if (records.size() >= limit) {
+                    break;
+                }
+                try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    String line;
+                    while (records.size() < limit && (line = reader.readLine()) != null) {
+                        if (line.getBytes(StandardCharsets.UTF_8).length > maxLineBytes) {
+                            throw new StreamException(ERR_STREAM_NULL_ARG)
+                                    .param(ARG_ARG_NAME, "maxLineBytes")
+                                    .param(ARG_DETAIL, "sampled line exceeds maxLineBytes ("
+                                            + maxLineBytes + ") in " + file
+                                            + " — the same line would fail a real job");
+                        }
+                        records.add(line);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "directoryPath")
+                    .param(ARG_DETAIL, "Failed to sample files under " + directoryPath + ": " + e);
+        }
+        return records;
+    }
+
 }
