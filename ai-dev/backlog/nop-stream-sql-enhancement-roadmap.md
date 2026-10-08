@@ -78,7 +78,7 @@
 
 - WI0a D10 与 D11 放行裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D11 放行 emit 两档：EmitStrategy ON_WINDOW_UPDATE 与 ON_WINDOW_CLOSE 形态锁定、trigger 注册表前置作废、triggerId fail-fast 保留、挂点即 `<sql>` 顶层属性；D10 放行 ACCUMULATING 声明：生效前提 WI38 done、A&R 维持 spec-only；落档 window-failfast-decisions §2 与 §3 的 2026-10-08 修订节；承载 plan 01-wi0a-d10-d11-emit-decisions.md）
 - WI0b D5 与 D7 与 ASOF 与字段扩展授权四条边界裁定: `done`（deps 无；Item Type Decision；2026-10-08 已裁定 owner 委托链——D5 部分重裁：keyed TopN 放行、全局 ORDER BY 与 LIMIT 维持排除、语法载体归 WI40 plan 实测；D7 维持查询内聚：重开触发条件 cdc-design defer 撤销且 WI15 启动后 sink 侧 DDL 路径；ASOF 维持排除：引用 vision §四排除行、FU-E4 承接；字段扩展授权补记通过：StreamJoinSpecModel timeout 参数化为 leftTimeout 与 rightTimeout、WI27 可实施；落档 sql-subset-and-semantics §4 与 §4a#1 与 §4e、sql-compiler-contract §1.1a、vision §六裁决记录；承载 plan 02-wi0b-boundary-decisions.md）
-- WI37 D11 emit 两档实施: `todo`（deps WI0a；Item Type Feature；若 WI0a 放行——按裁定形态实施 emit update 与 close 两档并钉判别性测试；若 WI0a 维持 fail-fast——无实施面，本项以 done 销号并在括注记 WI0a=维持与日期）
+- WI37 D11 emit 两档实施: `done`（deps WI0a；Item Type Feature；2026-10-08 交付——WI0a 放行分支实施：StreamEmitMode 枚举 UPDATE 与 CLOSE 声明面挂 <sql> 顶层属性并落 <strategy emit> 产物、EmitUpdateTrigger 逐元素 FIRE + ACCUMULATING 无条件强制、SPI 加参贯通、plain-TUMBLE 与连续聚合与 join 三路径显式拒绝门；表面格式修正 F-1：小写 update close 系 WI0a 自选格式细节，xdef 枚举字典按常量名精确匹配故表面为 UPDATE 与 CLOSE 大写、D11 落档已回改注记且两档语义零变化；判别性 E2E emit=UPDATE 12 发射对 close 档 4；triggerId 双层门保持；承载 plan 04-wi37-emit-two-tier.md）
 - ★ **里程碑：M0 裁定门**（解锁条件 WI0a 与 WI0b 与 WI37 全部 done）：`未达成`
 
 ### Phase 1 — 声明面与窗口（除 WI27 受 WI0b 约束外不触门）

@@ -46,6 +46,13 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: emit
+     * 
+     */
+    private io.nop.stream.core.windowing.StreamEmitMode _emit ;
+    
+    /**
+     *  
      * xml name: maxDelay
      * 
      */
@@ -150,6 +157,25 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: emit
+     *  
+     */
+    
+    public io.nop.stream.core.windowing.StreamEmitMode getEmit(){
+      return _emit;
+    }
+
+    
+    public void setEmit(io.nop.stream.core.windowing.StreamEmitMode value){
+        checkAllowChange();
+        
+        this._emit = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: maxDelay
      *  
      */
@@ -243,6 +269,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("duration",this.getDuration());
+        out.putNotNull("emit",this.getEmit());
         out.putNotNull("maxDelay",this.getMaxDelay());
         out.putNotNull("strategyId",this.getStrategyId());
         out.putNotNull("triggerId",this.getTriggerId());
@@ -262,6 +289,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setDescription(this.getDescription());
         instance.setDuration(this.getDuration());
+        instance.setEmit(this.getEmit());
         instance.setMaxDelay(this.getMaxDelay());
         instance.setStrategyId(this.getStrategyId());
         instance.setTriggerId(this.getTriggerId());

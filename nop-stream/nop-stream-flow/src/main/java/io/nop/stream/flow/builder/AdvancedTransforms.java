@@ -61,6 +61,8 @@ import io.nop.stream.core.operators.join.EquiJoinOperator;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.AccumulationMode;
+import io.nop.stream.core.windowing.StreamEmitMode;
+import io.nop.stream.core.windowing.triggers.EmitUpdateTrigger;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.flow.builder.functions.JoinSideKeySelector;
 import io.nop.stream.flow.builder.functions.JoinSideTagFunction;
@@ -230,6 +232,16 @@ final class AdvancedTransforms {
                 ? strategy.getAccumulationMode()
                 : AccumulationMode.DISCARDING;
         windowed.accumulationMode(mode);
+        // WI37 (D11 release): consume the two-tier emit declaration. UPDATE fires the
+        // window on every element and unconditionally forces ACCUMULATING (the xdef
+        // default back-fill makes an explicit DISCARDING indistinguishable from the
+        // omitted declaration, so "update" overrides the accumulation mode rather than
+        // conflicting with it); CLOSE keeps the legacy default trigger and the declared
+        // accumulation mode.
+        if (strategy.getEmit() == StreamEmitMode.UPDATE) {
+            windowed.trigger(new EmitUpdateTrigger<>());
+            windowed.accumulationMode(AccumulationMode.ACCUMULATING);
+        }
         return windowed;
     }
 
@@ -564,6 +576,16 @@ final class AdvancedTransforms {
             windowDuration = parseDurationMillis(strategy.getDuration());
             if (spec.getTimeout() != null) {
                 timeout = parseDurationMillis(spec.getTimeout());
+            }
+            // WI37 (D11 release): the join window path does not consume the emit tier —
+            // an emit=update strategy referenced by a window join is a typed rejection,
+            // never a silent ignore.
+            if (strategy.getEmit() == StreamEmitMode.UPDATE) {
+                throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
+                        .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                        .param(ARG_ATTR_NAME, "emit")
+                        .param(ARG_ATTR_VALUE, "update")
+                        .loc(m.getLocation());
             }
         }
 

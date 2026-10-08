@@ -10,16 +10,21 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/stream/stream.xdef <p>
- * WI17 (plan 25 r2 B4): <sql> 是模型级生成器而非 transform——顶层元素，编译发生在
- * builder.build() 的 buildTransforms 之前：SPI（ISqlStreamCompiler，nop-stream-flow
- * 定义，nop-stream-sql 提供实现）把 SQL 文本编译为完整流模型 XML，builder 解析回读并
- * 替换父模型内容。<sql> 必须是模型唯一内容（与其他 transforms/edges/registries 并存
- * → fail-fast）。schema 为 SQL 面自带声明（D7 受管类型名九名闭集）；sinkBean 由编译器
- * 追加 sink 声明与边（产物自洽可执行）。
+ * WI37/D11: emit 两档 emit="UPDATE|CLOSE"（表面为枚举常量名大写——xdef 枚举字典校验按常量名
+ * 精确匹配，与 accumulationMode 同一约定；2026-10-08 WI37 执行修正 F-1，原小写表述废止）——
+ * UPDATE 逐记录发射窗口更新（隐含 ACCUMULATING），CLOSE 维持窗口末单次发射；
+ * 挂 <sql> 顶层属性，编译产物落 <strategy emit>（UPDATE 仅窗口聚合查询合法）
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _StreamSqlModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: emit
+     * 
+     */
+    private io.nop.stream.core.windowing.StreamEmitMode _emit ;
     
     /**
      *  
@@ -41,6 +46,25 @@ public abstract class _StreamSqlModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _source ;
+    
+    /**
+     * 
+     * xml name: emit
+     *  
+     */
+    
+    public io.nop.stream.core.windowing.StreamEmitMode getEmit(){
+      return _emit;
+    }
+
+    
+    public void setEmit(io.nop.stream.core.windowing.StreamEmitMode value){
+        checkAllowChange();
+        
+        this._emit = value;
+           
+    }
+
     
     /**
      * 
@@ -142,6 +166,7 @@ public abstract class _StreamSqlModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("emit",this.getEmit());
         out.putNotNull("schemas",this.getSchemas());
         out.putNotNull("sinkBean",this.getSinkBean());
         out.putNotNull("source",this.getSource());
@@ -156,6 +181,7 @@ public abstract class _StreamSqlModel extends io.nop.core.resource.component.Abs
     protected void copyTo(StreamSqlModel instance){
         super.copyTo(instance);
         
+        instance.setEmit(this.getEmit());
         instance.setSchemas(this.getSchemas());
         instance.setSinkBean(this.getSinkBean());
         instance.setSource(this.getSource());

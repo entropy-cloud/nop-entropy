@@ -43,6 +43,8 @@
 | 修订理由 | survey kafka-streams 篇 EmitStrategy 两档即范围锁定、ksql 篇 EMIT CHANGES/FINAL 同构；引擎 trigger 机制现状（triggers 包 Trigger/TriggerResult FIRE 等 11 类、WindowedStream.trigger 接口点、WindowOperator per-trigger accumulator）已具备承载，缺的只是逐元素 FIRE 档位与声明面；D1=(a) 终值语义下 update 档逐次发射经下游 last-value-wins 覆盖，无 retract 一致性问题 |
 | 首裁记录（保留） | 理由：triggers 需要专用注册表（首裁时 AdvancedTransforms.java:190-192 注释自述）；自定义 trigger 引入部分发射语义，与首版 DISCARDING-only 结果一致性承诺不一致——部分发射经 last-value-wins 会被后续终值覆盖，但部分值本身未经验证；放行推迟至有 retract/触发器语义验证面后另行裁定（首裁时行号，现已漂移）。闸门位置（首裁时 :198-203 与 :234-239，现 :233-238 与 :258-263）原样保留——triggerId 门不废 |
 | 受影响 WI | WI37：emit 两档实施（声明面 `<sql>`/xdef + 编译产物 + trigger/accumulationMode 形态 + 判别性测试）；WI0a 括注销号 |
+| **WI37 交付达成（2026-10-08）** | done——`<sql emit>`/`<strategy emit>` 声明面（xdef 枚举 StreamEmitMode，缺省 CLOSE）、EmitUpdateTrigger（逐元素 FIRE + 窗口末 FIRE）、buildWindow 消费（UPDATE 强制 ACCUMULATING + 装配 trigger；join 引用 fail-fast）、编译器贯通（SPI 加参；UPDATE 仅窗口聚合路径写产物，plain-TUMBLE/连续聚合/join 三路径显式拒绝）；判别性 E2E：emit=UPDATE 12 发射（逐记录+窗口末）vs close 档单次发射。表面格式修正见下行 |
+| **表面格式修正（WI37 执行 F-1，2026-10-08）** | 本节与本档修订记录的 emit 取值表面 `update\|close`（小写）修正为 `UPDATE\|CLOSE`——xdef 枚举字典校验（EnumStdDomainHandler.parseProp）按枚举常量名精确匹配，与 stream.xdef 既有枚举属性（accumulationMode="DISCARDING"）同一表面约定；小写表述系 WI0a 落档时的格式自选细节，非 survey 形态要求（Kafka Streams EmitStrategy 枚举名亦为大写约定）。两档语义、挂点、triggerId fail-fast 保留等裁定实质零变化 |
 
 ## 4. D12 窗口级 parallelism = 保持 fail-fast
 
