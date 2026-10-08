@@ -64,19 +64,19 @@ Exit Criteria:
 
 ### Phase 2 - 独立复核
 
-Status: planned
+Status: completed
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
 
-- [ ] 独立复核子 agent（fresh session）：P1 终验复核+P2 标定抽验 ≥30%+状态分叉缺陷核实+净账
-- [ ] 主 agent 汇总：台账收敛
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——P1 终验四锚独立复现全 PASS（双 HEAD 祖先验证）；P2 标定 **16/16 行全量独立核验**（超 ≥30% 配额：7 行深验+9 行锚位亲读）8/5/3 全维持；行 4 抽 3/7 位点全 fixed；行 16 内嵌收口成立（R2.15→d15c0de884 落地+D4 watch-only 残余）；落账缺口两点核实；SHA 双重验证（文件哈希+台账独立推导串接哈希同值）
+- [x] 主 agent 汇总：台账收敛（3 cosmetic 微漂移注记随报告）
 
 Exit Criteria:
 
-- [ ] 复核结论落盘 `_tmp/fcr-7.3-review.md`
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+- [x] 复核结论落盘 `_tmp/fcr-7.3-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
