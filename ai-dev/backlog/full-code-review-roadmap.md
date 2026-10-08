@@ -113,7 +113,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 7.1 | nop-ai 增量审计（2026-08-01 后全部非安全维度增量：原 89 提交 + 2026-09-25 起 nop-ai-agent 重构 25 WI、nop-ai-core WI20–22、nop-ai-toolkit WI17 + 3 个回涨千行文件巡检） | todo | `ai-dev/backlog/audit-remediation-roadmap.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |
+| 7.1 | nop-ai 增量审计（2026-08-01 后全部非安全维度增量：原 89 提交 + 2026-09-25 起 nop-ai-agent 重构 25 WI、nop-ai-core WI20–22、nop-ai-toolkit WI17 + 3 个回涨千行文件巡检） | done（2026-10-08，plan 2357，closure audit 一次 PASS 五项全过——见 plan Closure 段——148 提交〔确定性超集，147 系时区口径〕三维审计全覆盖：分配表零遗漏零重复+域外 86 提交登记移交+MCP 无基线面全量；发现 **10 条零翻案：P0=0/P1×2〔WI25 懒重投递状态机破坏/PgVectorStore search 列缺失〕进 R1.0+P2×6 进 P2 台账+P3×2 watch-only**；撞车移交 19 笔抽验 12/12+安全面 H-A3-SEC-01 移交 security 族；维度 12 零独立发现；千行回涨 git 实测=4〔roadmap「3」口径勘误〕；重构波 WI20–22 三维判据全过） | `ai-dev/backlog/audit-remediation-roadmap.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` | `ai-dev/backlog/audit-remediation-roadmap.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |
 | 7.2 | nop-stream 增量巡检（含 2026-09-22 后 CDC WI1–WI8/Debezium 2.4→3.7 换代与 jdbc-2pc dmlMode 面）+ invariant-loop backlog P2×~15 标定 | todo | `ai-dev/backlog/nop-stream-invariant-loop-roadmap.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |
 | 7.3 | nop-metadata P1×1 live 复核 + P2 open/watch 台账巡检 | todo | `ai-dev/audits/arm-unclosed-findings-nop-metadata.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |
 | 7.4 | nop-code gated 项（Phase 9 @Auth）复核 + 增量巡检（含 nop-code-lang-go/rust/csharp 三个 2026-09-29 新语言扩展） | todo | `ai-dev/backlog/nop-code-invariant-loop-roadmap.md` | 0.3, 0.4 | `audit-remediation-verification-prompt.md` |

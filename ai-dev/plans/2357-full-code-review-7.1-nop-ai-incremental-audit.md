@@ -86,19 +86,19 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.1-nop-ai-incremental-audit.md`；index 登记 7.1 行 + 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：受影响模块测试绿（或引用绿色基线）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（五项：证据完整性/严重性标定/引用路径真实性/计数对应——**提交分配表 147 覆盖核验**/发现准入合规——预存缺陷未误立条）；**通过后** roadmap 7.1 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.1-nop-ai-incremental-audit.md`；index 登记 7.1 行 + 仍 live 进 P1 汇总（P1-7.1-001/002）+ P2 台账（P2-7.1-001..006）
+- [x] 定向验证锚点：受影响模块测试绿（或引用绿色基线——WI25 窗内 3793+295 全绿记录）；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（五项）；**通过后** roadmap 7.1 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 审计口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 审计口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
@@ -122,14 +122,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.1 收口——nop-ai 148 提交增量面三维审计全覆盖（分配表 A1=56/A2=46/A3=46 零遗漏零重复；域外 86 提交登记移交；MCP 无基线面全量），发现 10 条零翻案（终裁 P0×0/P1×2/P2×6/P3×2），撞车移交 19 笔抽验 12/12 成立，安全面 H-A3-SEC-01 移交合规。独立 closure audit（agent_330eae76）**一次 PASS 五项全过**，5 Minor 不阻塞（P2-7.1-004 模块归属勘正 nop-ai-rag 已落实/P1-002+P2-004 补 diff 锚 97be7d367a/audit-c 行号漂移无需回改/映射表 recon §3 承载/index 措辞随翻 done 更新）。
+Completed: 2026-10-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_330eae76-d6e0-4ad2-a85a-72fb314b2cd4（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 PASS：报告六节齐备；10 条双锚（P1-002/P2-004 补 diff 提交锚后完整）；七件产物在盘逐项吻合
+  - 核验 B 计数对应 PASS（亲手重算）：SHA-256 双重放一致；148 行零遗漏零重复双向唯一匹配；分配 56/46/46 机械核验；发现 10=2+6+2；报告=index=P1 汇总 2 行=P2 台账 6 行一一对应；回涨 4+1 与 regression.md 一致；撞车 19 笔算式自洽（29→19 去重规则重算）
+  - 核验 C 引用路径真实性 PASS：6 锚逐行命中+佐证锚点命中（桥装配 DefaultAgentEngine:753/injectInput 抛错/BashExecutor 三终态/300_000L/rag-defaults.beans.xml 逐字）
+  - 核验 D 严重性标定 PASS：三条抽验论证成立；零 P0 遗漏嫌疑；H-A3-SEC-01 移交三要素合规（独立亲读 DefaultChatLogger 双路径分叉证实）
+  - 核验 E 流程状态 PASS：roadmap 翻 done 前 todo；doc-links exit 0 实测
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2357-full-code-review-7.1-nop-ai-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；P2×6 复核终裁维持走 P2 裁决例外台账（roadmap 规则 #3 通道）；P3×2 watch-only 规则 #3 终态
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-7.1-001/002 修复归 R1.0；P2-7.1-001..006 → R1.0 裁决（P2 台账承载）；P3×2 watch-only；H-A3-SEC-01 → security-audit 族；复杂度巡检结论 → R1.0；tool.xdef 域外契约面 → 7.4 注记——无本 plan 自有剩余工作
