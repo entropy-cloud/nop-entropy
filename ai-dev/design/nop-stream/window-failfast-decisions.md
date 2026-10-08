@@ -29,6 +29,7 @@
 | 修订理由 | 首裁自证「ACCUMULATING 运行时已支持」（WindowOperator.java:492 缺省即 ACCUMULATING；:590-596 错误文案明示可用 DISCARDING 或 ACCUMULATING），保持 fail-fast 的唯一理由是 scope 最小化而非语义不相容。现 scope 依据具备：survey B3（kafka-streams/ksql 形态）与本批 roadmap WI0a 立项；且 FU-8 实测暴露两层缺省相反（core WindowingStrategy.java:52/:60 缺省 DISCARDING vs WindowOperator.java:492 缺省 ACCUMULATING），放行 + WI38 接线修复使声明语义可验证。D1=(a) 输入约束 1 只消灭 retract 路线下的放行**必要性**，不禁止无 retract 诉求下的增量放行 |
 | 首裁记录（保留） | 理由两层：(i) A&R spec-only，WindowOperator.java（首裁时 :449，现 :590-596）门禁；(ii) ACCUMULATING 运行时已支持，首版收敛为 DISCARDING-only 属 scope 最小化；「后续若放行 ACCUMULATING 须先修订本裁定」——**该前置条款已由本 2026-10-08 修订触发并完成** |
 | 受影响 WI | WI38：修复接线（WindowedStreamImpl/factory/configureBuilder 链路传递声明值）+ 放开 build 期 strategy 级 accumulationMode 门（唯一 build 门；window 节点无该属性）+ DISCARDING 与 ACCUMULATING 双档判别性测试 + 本档边界三条不回退 |
+| **生效前提达成（WI38，2026-10-08）** | **done**——接线五环闭合（WindowingStrategyModel → AdvancedTransforms.buildWindow → WindowedStreamImpl.accumulationMode → IWindowOperatorFactory 第四代 → WindowOperatorFactoryImpl.configureBuilder → WindowOperatorBuilder → WindowOperator 字段），build 门改判为仅拒 A&R；判别性测试钉于三层（flow 声明消费 TestWindowAccumulationModeDeclaration 含缺省档、core 四 call-site 传输 TestWindowedStreamAccumulationModeWiring、runtime 四方法算子字段 TestWindowOperatorFactoryAccumulationModeWiring）；Java API 无声明路径保持算子缺省 ACCUMULATING 不变。本节放行结论自即日起生效 |
 
 ## 3. D11 trigger = 放行 emit 两档（2026-10-08 修订；triggerId fail-fast 保留）
 

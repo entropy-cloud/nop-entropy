@@ -3,7 +3,7 @@
 > Plan Status: completed
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md`（WI0a 行、前置裁定表 WI0a 行、门控判据表 D10/D11 两行）；`ai-dev/design/nop-stream/window-failfast-decisions.md`（修订对象）；`ai-dev/analysis/streaming-sql-survey/2026-10-07-kafka-streams-analysis.md` 与 `ai-dev/analysis/streaming-sql-survey/2026-10-07-ksql-analysis.md`（B2/B3 参考形态，转引口径）
-> Related: `ai-dev/plans/nop-stream-sql/05-wi0d-window-failfast-decisions.md`（2026-10-02 首裁）；ai-dev/plans/nop-stream-sql-enhancement/04-wi38-accumulation-mode-wiring-fix.md（D10 生效前提，未来交付物）、ai-dev/plans/nop-stream-sql-enhancement/03-wi37-emit-two-tier.md（D11 实施，未来交付物）
+> Related: `ai-dev/plans/nop-stream-sql/05-wi0d-window-failfast-decisions.md`（2026-10-02 首裁）；ai-dev/plans/nop-stream-sql-enhancement/03-wi38-accumulation-mode-wiring-fix.md（D10 生效前提，未来交付物）、04-wi37-emit-two-tier.md（D11 实施，未来交付物）——2026-10-08 事实性更正：WI38 先于 WI37 执行，plan 编号按起草序 03/04
 > Owner: 仓库 owner（委托链：2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成，每工作项按 plan guide 拟制计划，每完成一个计划提交一次」委托 ZCode 代理按 roadmap 建议项与 survey 结论执行；与 2026-10-02 首裁同一委托模式）
 
 ## Purpose

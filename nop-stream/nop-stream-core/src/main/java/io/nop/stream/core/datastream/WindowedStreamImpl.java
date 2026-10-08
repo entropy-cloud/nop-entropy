@@ -31,6 +31,7 @@ import io.nop.stream.core.operators.StreamOperatorFactory;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.model.StreamComponents;
+import io.nop.stream.core.windowing.AccumulationMode;
 import io.nop.stream.core.windowing.WindowLifecycleEvent;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
@@ -55,6 +56,15 @@ public class WindowedStreamImpl<T, K, W extends Window>
     private Trigger<? super T, W> trigger;
     private Evictor<? super T, W> evictor;
     private long allowedLateness = 0L;
+
+    /**
+     * WI38 (plan 03, FU-8 fix): accumulation mode declared by the model's windowing
+     * strategy. Null = pure Java API path without a declaration — the created
+     * operator keeps its legacy default (ACCUMULATING). The model path
+     * (AdvancedTransforms.buildWindow) always passes a value (null normalized to
+     * DISCARDING, the xdef default) so the declaration is what the operator runs.
+     */
+    private AccumulationMode accumulationMode;
 
     /**
      * G-2+09e① (plan 369 Phase 2): tag for the late-data side output configured via
@@ -221,6 +231,16 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return allowedLateness;
     }
 
+    /** WI38 (plan 03): declares the accumulation mode (null = operator legacy default). */
+    public WindowedStreamImpl<T, K, W> accumulationMode(AccumulationMode accumulationMode) {
+        this.accumulationMode = accumulationMode;
+        return this;
+    }
+
+    public AccumulationMode getAccumulationMode() {
+        return accumulationMode;
+    }
+
     public KeyedStream<T, K> getKeyedStream() {
         return keyedStream;
     }
@@ -299,7 +319,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -319,7 +340,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 (Class<ACC>) (Class<?>) Object.class,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -336,7 +358,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -353,7 +376,8 @@ public class WindowedStreamImpl<T, K, W extends Window>
                 assigner, trigger, evictor, allowedLateness, function,
                 (Class<T>) (Class<?>) inferElementClass(getType()),
                 keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
+                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
+                accumulationMode);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
