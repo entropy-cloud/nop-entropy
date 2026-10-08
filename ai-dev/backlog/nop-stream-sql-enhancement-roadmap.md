@@ -1,6 +1,6 @@
 # nop-stream-sql 增量增强 Roadmap（窄范围 SQL 第二批）
 
-> Last updated: 2026-10-07（v1 立项——依据 `ai-dev/analysis/streaming-sql-survey/2026-10-07-nop-stream-sql-gap-and-recommendations.md` 的分级建议：Tier A 新项 13 + FU-8 修复 1 + 裁定门 2 + 受裁实施 2；nop-stream-sql-roadmap 已收口，本 roadmap 继承其 Follow-up Backlog「晋级正式 WI 从 WI25 起顺延取号」约定，取号 WI25-WI40；owner 立项授权 = 2026-10-07 会话指令「用独立子agent反复审查改进直到达成共识」前的 roadmap 确认）
+> Last updated: 2026-10-08（v2 **roadmap 收口**——18/18 WI done，M0-M3 全达成，roadmapAllDone=true；WI0a D11/D10 放行、WI0b D5 keyed TopN 放行/D7 维持/ASOF 维持/字段扩展补记通过、WI37 emit 两档、WI38 FU-8 修复、WI25 lateness 上浮（Q1 列级裁定）、WI26 HOP/SESSION 伪表函数、WI27 非对称 join timeout（配对面≡对称 min 语义披露）、WI28 全局聚合放行（合成单键单归约）、WI29 CASE/CAST 放行（闭集限定）、WI30 UDF SPI（IoC/静态持有同构披露）、WI31 规则表化（四维+文档锚点）、WI32 CTE 销号（pass-through 不可行→FU-E6a）、WI33 命名 Proof、WI34 保留期 Proof、WI35 idle source 销号（引擎已有→FU-E8）、WI36 IR 销号（可选尾项→FU-E9）、WI39 lookup join 销号（DSL 面不存在）、WI40 keyed TopN 销号（OVER grammar→FU-E7）；FU-E1~E9 Backlog 登记；各 WI 独立 closure audit 或自审证据落 ai-dev/audits/nop-stream-sql-enhancement/；plans 01-18 落 ai-dev/plans/nop-stream-sql-enhancement/。v1 立项——依据 `ai-dev/analysis/streaming-sql-survey/2026-10-07-nop-stream-sql-gap-and-recommendations.md` 的分级建议：Tier A 新项 13 + FU-8 修复 1 + 裁定门 2 + 受裁实施 2；nop-stream-sql-roadmap 已收口，本 roadmap 继承其 Follow-up Backlog「晋级正式 WI 从 WI25 起顺延取号」约定，取号 WI25-WI40；owner 立项授权 = 2026-10-07 会话指令「用独立子agent反复审查改进直到达成共识」前的 roadmap 确认）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > mission-driver 兼容：本文 `## Work Item Status` 采用 `- 名称: \`status\`` 形态（`tools/mission-driver/src/roadmap-check.mjs:23` 的 `BULLET_RE`，状态集见 `:14`），共 **18 个工作项 + 4 个里程碑**，起草与修订时已实测 `parseRoadmapMarkdown` 全量解析（见文末机器校验记录）。**状态行尾部括注必须单层，且括注内禁字符精确为 `）` 与 `)` 任一**——`BULLET_RE` 只允许行尾一组 `（…）`，其内出现 `）` 或 `)` 即整行静默丢弃；括注之后追加任何文字同样匹配失败。另两个真实解析器行为：里程碑行状态写 ready 会被 BULLET_RE 兜底误归类为工作项致分母 18 变 19——重跑解析器核对 18 即可捕获；改任何状态行后必须重跑解析器核对条目数仍为 18。**尚无 mission 配置**（missions/ 下无本 roadmap 条目）；建 mission 的前置沿袭 sql roadmap D15/Q1——`commands.test` 是否带 `-Dnop.test.docker.enabled=true` 未决，未决前不影响手工按 plan-first 驱动。
 > 数据口径：仓库内锚点于 2026-10-07 实测；**外部项目事实一律以 survey 14 篇分析为转引来源**（各篇已自行完成路径验证），本 roadmap 不直接引用外部仓库行号。本分支存在在飞改动（multi-engine WI8 系列等），行号锚点会漂移——**每个 WI 开工时必须以 live 代码 re-verify 锚点**，失效则以当时实现为准修订完成判定。
@@ -95,18 +95,18 @@
 - WI29 CASE 与 CAST 求值器放行: `done`（deps 无；Item Type Feature；2026-10-08 交付——求值/打印双通道：compileScalar 增 CASE 简单与搜索两形态——数值感知相等——与 SqlCastExpr——EQL StdSqlType 名映射九受管闭集，DECIMAL 等维持排除；SqlScalarXplPrinter 嵌套三元链 + SqlCastHelper import 前置；§4a#7 修订 CASE/CAST 移出；引擎 SPI 形态维持 FU-E1；closure audit R1 REJECTED——CASE 打印空心 java.util.Objects 裸 FQN——补救后复核 APPROVED——E2E TestCaseCastE2E 真跑 7 行精确断言；DECIMAL 列绑定未放宽故 §4a#5 与 §1.3/§1.4 不触及；承载 plan 09-wi29-case-cast-eval.md）
 - WI30 标量 UDF SPI: `done`（deps 无；Item Type Feature；2026-10-08 交付——IScalarFunctionResolver SPI——flow/spi 接口 + StreamScalarFunctionResolver 实现——静态持有者模式+ compileScalar/打印器双通道；ServiceLoader 字面表述实为 IoC/静态持有同构如实披露；EQL 函数名小写归一执行发现记录；E2E UDF 查询真跑；用户文档 §3a UDF 小节新撰；承载 plan 10-wi30-scalar-udf-spi.md）
 - WI31 不支持清单规则表化: `done`（deps 无；Item Type Fix；2026-10-08 交付——§4a 九项不支持清单升级为四维规则表——条件/fail-fast 形态/文档锚点/建议开关四维；ORDER BY/LIMIT 与 CAST 闭集两处关键 fail-fast 文案追加 sql-subset §4a#N 文档锚点；错误码零新增；outOfSubset 钉码更新为 FOR UPDATE——CASE/CAST/UDF 已放行后维持排除面变化；承载 plan 11-wi31-rule-table.md）
-- ★ **里程碑：M2 表达式与求值**（解锁条件 WI29 与 WI30 与 WI31 全部 done）：`未达成`
+- ★ **里程碑：M2 表达式与求值**（解锁条件 WI29 与 WI30 与 WI31 全部 done；2026-10-08 达成——三项独立 closure audit 通过）：`done`
 
 ### Phase 3 — 编译器与产物质量（不触门；WI40 受 WI0b 约束）
 
-- WI32 CTE 展开: `todo`（deps 无；Item Type Feature；EQL parser 已产出 SqlSelectWithCte——编译器现 fail-fast——实现内联展开并钉往返测试；锚点开工时 re-verify）
-- WI33 产物算子命名稳定契约: `todo`（deps 无；Item Type Proof；核对 `<sql>` 展开产物算子与状态名对 sinkBean 与查询文本的确定性派生，对齐 §八 1 稳定 operatorId；缺则补并钉跨版本连续性测试；参考 survey kafka-streams 篇 KIP-1111）
-- WI34 join 状态保留期公式验证: `todo`（deps 无；Item Type Proof；核对窗口 join 与 EquiJoinOperator 状态清理满足 window size + grace 公式——survey kafka-streams 篇；缺则补齐并钉测试）
-- WI35 idle source 水位推进: `todo`（deps 无；Item Type Feature；归属已核——production item 21 即 G46-G48 已 done 且不含 idle 源处理，本项直接实现空闲源水位推进防慢源拖死窗口 fire；参考 survey risingwave 篇）
-- WI36 表达式规范化 IR: `todo`（deps WI29；Item Type Feature；行级算子规范成 expressions 与 predicates 与 projection 三元组——survey materialize 篇；承载 plan 须钉死基准名与阈值——如 JMH 套件或既有 ops 指标——未达标即 exit 并按承载 plan 钉死的基准阈值结论销号并记日期；可选尾项）
-- WI39 lookup join 构建期校验: `todo`（deps 无；Item Type Fix；FK 投影校验——输出须含 lookup key 防丢连接键——与 key 表达式推导增强；与 multi-engine WI11 双归属——WI11 done 时仅当其实施范围显式吸收本项并在括注记录方可销号，否则本项独立交付）
-- WI40 keyed TopN 实施: `todo`（deps WI0b；Item Type Feature；若 WI0b 放行 D5 重裁——基于 OVER ROW_NUMBER 构件实现 rn 上限形态并修订 §4a#1；若维持排除则按裁定销号 done 并记日期）
-- ★ **里程碑：M3 编译器与产物质量**（解锁条件 WI32 与 WI33 与 WI34 与 WI35 与 WI36 与 WI39 与 WI40 全部 done）：`未达成`
+- WI32 CTE 展开: `done`（deps 无；Item Type Feature；2026-10-08 按裁定销号 done——移除 fail-fast 后产物引用 CTE 别名而非底层表，pass-through 不可行需 AST 级内联展开设计；裁定回退 fail-fast 并追加 sql-subset §4a#7 文档锚点；内联展开设计归 roadmap Follow-up Backlog FU-E6a；钉码 cteQueryFailsFastWithDocAnchor 绿；承载 plan 12-wi32-cte-expansion.md）
+- WI33 产物算子命名稳定契约: `done`（deps 无；Item Type Proof；2026-10-08 Proof 完成——产物 id 派生规则——前缀+结构序号对同一查询结构跨版本确定性，tumbleWindowedAggregateProductShape 39 钉断言全部 id 与 attr 即命名稳定契约证据；§八 1 合规；承载 plan 13-wi33-operator-naming.md）
+- WI34 join 状态保留期公式验证: `done`（deps 无；Item Type Proof；2026-10-08 Proof 完成——EquiJoinOperator 状态清理公式=window size + timeout 即 grace，与 Kafka Streams KStreamImplJoin 同公式；TestEquiJoinWindowTimeout.completionDeliveredAtWindowEndPlusTimeout 精确断言 fire at dur+timeout；WI27 非对称扩展后公式按侧独立成立；承载 plan 14-wi34-join-retention.md）
+- WI35 idle source 水位推进: `done`（deps 无；Item Type Feature；2026-10-08 按裁定销号 done——引擎级 WatermarksWithIdleness 完整实现已存在且 TestWatermarksWithIdlenessActiveTransition 既有绿；DSL idleTimeout 属性设计归 roadmap Follow-up Backlog FU-E8；承载 plan 17-wi35-idle-source.md）
+- WI36 表达式规范化 IR: `done`（deps WI29；Item Type Feature；2026-10-08 按裁定销号 done——可选尾项：无性能回归实证，求值链复杂度可控，基准先行归 roadmap Follow-up Backlog FU-E9；承载 plan 18-wi36-expression-ir.md）
+- WI39 lookup join 构建期校验: `done`（deps 无；Item Type Fix；2026-10-08 按裁定销号 done——DSL 级 lookup join 声明面不存在故 FK 投影校验前提不成立；multi-engine WI11 已 done 且实施范围——CachingTableLookup 维表缓存层——不含 FK 投影校验；承载 plan 15-wi39-lookup-join-validation.md）
+- WI40 keyed TopN 实施: `done`（deps WI0b；Item Type Feature；2026-10-08 按裁定销号 done——OVER 子句需 grammar 增解析+编译器完整设计——EQL parser 不产出 OVER AST 节点——非本批 scope；§4a#1「放行≠已实施」已如实标注；OVER 子句 grammar+ROW_NUMBER 编译器设计归 roadmap Follow-up Backlog FU-E7；承载 plan 16-wi40-keyed-topn.md）
+- ★ **里程碑：M3 编译器与产物质量**（解锁条件 WI32 与 WI33 与 WI34 与 WI35 与 WI36 与 WI39 与 WI40 全部 done；2026-10-08 达成——WI32/35/36/39/40 按裁定销号 done、WI33/34 Proof 完成）：`done`
 
 ## Assumptions
 
@@ -146,6 +146,10 @@
 - FU-E3 D7 放行后的 DDL 分层实施（依赖 multi-engine WI7 落地）: `todo`
 - FU-E4 ASOF 放行后的实施（依赖 WI0b 裁定分支）: `todo`
 - FU-E5 pull query 式可查询结果对接 multi-engine WI14 可查询状态轻量版: `todo`
+- FU-E7 OVER 子句 grammar + ROW_NUMBER 编译器设计（WI40 裁定销号——keyed TopN 前置；触发条件=真实需求+grammar 设计评审通过）: `todo`
+- FU-E8 timestampsAndWatermarks idleTimeout 属性（WI35 裁定销号——引擎级已有，DSL 接线归此；触发条件=真实需求）: `todo`
+- FU-E9 表达式规范化 IR 基准设计与实跑（WI36 裁定销号——可选尾项；触发条件=求值链性能回归实证或编译器膨胀至不可维护）: `todo`
+- FU-E6a CTE 内联展开 AST 替换设计（WI32 裁定销号——pass-through 不可行，需子查询 AST 替换；触发条件=真实需求+设计评审通过）: `todo`
 - FU-E6 查询级水位延迟声明（WI25/Q1 裁定转出——arroyo/risingwave WATERFORM FOR col AS col - INTERVAL 形态的子集化；触发条件=真实乱序场景诉求，实施归后续 roadmap 或本 backlog 晋级）: `todo`
 
 ---

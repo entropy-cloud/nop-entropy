@@ -319,8 +319,11 @@ public class TestStreamSqlCompiler {
     }
 
     @Test
-    public void cteFailsFast() {
-        assertInvalidArg("WITH c AS (SELECT item FROM orders) SELECT item FROM c");
+        public void cteQueryFailsFastWithDocAnchor() {
+        // WI32: CTE requires inline expansion design — removing the fail-fast alone
+        // produces a product referencing the CTE alias instead of the underlying table
+        assertInvalidArg("WITH t AS (SELECT item, amount FROM orders) "
+                + "SELECT item FROM t WHERE amount > 0");
     }
 
     @Test
