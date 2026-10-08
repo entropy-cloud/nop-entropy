@@ -7,6 +7,8 @@
  */
 package io.nop.stream.flow.spi;
 
+import io.nop.stream.core.windowing.StreamEmitMode;
+
 import java.util.Map;
 
 /**
@@ -34,10 +36,21 @@ public interface ISqlStreamCompiler {
      *                 name); never null, may be empty
      * @param sinkBean the declared {@code sinkBean} attribute — the compiler appends
      *                 the sink declaration and edge so the product is executable
+     * @param emit     the declared {@code <sql emit>} attribute (WI37/D11 two-tier
+     *                 emit); never null after the xdef default (CLOSE) is applied —
+     *                 {@code UPDATE} is only legal for windowed aggregate queries
      * @return the model XML text
      * @throws io.nop.stream.core.exceptions.StreamException on any compile failure
      *                                                        (unsupported construct,
      *                                                        schema violation, ...)
      */
-    String compileSql(String sql, Map<String, String> schema, String sinkBean);
+    String compileSql(String sql, Map<String, String> schema, String sinkBean, StreamEmitMode emit);
+
+    /**
+     * WI37 compatibility overload: providers that only know the legacy CLOSE behavior
+     * may keep implementing the three-argument form; the emitted mode is then CLOSE.
+     */
+    default String compileSql(String sql, Map<String, String> schema, String sinkBean) {
+        return compileSql(sql, schema, sinkBean, StreamEmitMode.CLOSE);
+    }
 }

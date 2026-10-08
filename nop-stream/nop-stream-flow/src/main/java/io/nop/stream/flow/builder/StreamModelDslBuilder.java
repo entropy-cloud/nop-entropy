@@ -322,7 +322,10 @@ public final class StreamModelDslBuilder {
                 schema.put(f.getName(), f.getType());
             }
         }
-        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean());
+                // WI37 (D11 release): carry the declared two-tier emit mode into the product.
+        // Default-provider compatibility: the no-emit overload delegates to CLOSE.
+        String xml = compiler.compileSql(sql.getSource(), schema, sql.getSinkBean(),
+                sql.getEmit());
         io.nop.core.lang.xml.XNode node;
         try {
             node = io.nop.core.lang.xml.XNode.parse(xml);

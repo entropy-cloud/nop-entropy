@@ -95,6 +95,22 @@ public class TestSqlModelExpansion {
     }
 
     @Test
+    public void sqlEmitAttributeFlowsToCompiler() {
+        // WI37 (closure audit M-3): the <sql emit> attribute must reach the SPI —
+        // a null regression would be silently normalized to CLOSE at compile time
+        StreamModel model = parseInline(
+                "<sql sinkBean=\"fakeSinkFn\" emit=\"UPDATE\">"
+                        + "<source>ANY SQL TEXT — the fake compiler ignores it</source>"
+                        + "</sql>");
+        StreamModelDslBuilder.of(model).build();
+
+        FakeSqlStreamCompiler fake =
+                (FakeSqlStreamCompiler) BeanContainer.instance().getBean("fakeSqlCompiler");
+        assertEquals(io.nop.stream.core.windowing.StreamEmitMode.UPDATE, fake.lastEmit,
+                "the declared <sql emit> must be passed to the SPI compiler");
+    }
+
+    @Test
     public void sqlCoexistingWithOtherContentFailsFast() {
         StreamModel model = parseInline(
                 "<sql sinkBean=\"fakeSinkFn\"><source>SELECT 1</source></sql>"

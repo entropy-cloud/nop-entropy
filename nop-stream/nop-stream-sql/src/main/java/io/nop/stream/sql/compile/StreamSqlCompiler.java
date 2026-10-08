@@ -46,6 +46,8 @@ import io.nop.orm.eql.parse.EqlParseHelper;
 import io.nop.stream.sql.eval.SqlRowAggregateOps;
 import io.nop.stream.sql.eval.SqlRowAggregateSpec;
 
+import io.nop.stream.core.windowing.StreamEmitMode;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -113,6 +115,17 @@ public final class StreamSqlCompiler {
      */
     public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
                                  String sinkBean) {
+        return compile(loc, sql, schema, sinkBean, StreamEmitMode.CLOSE);
+    }
+
+    /**
+     * WI37 (D11 release): compiles with the declared two-tier emit mode.
+     * {@code UPDATE} is only legal on the windowed-aggregate (TUMBLE) path — the
+     * plain-pipeline (including plain-TUMBLE), continuous-aggregate and join paths
+     * fail fast instead of silently dropping the declaration.
+     */
+    public static String compile(SourceLocation loc, String sql, Map<String, String> schema,
+                                 String sinkBean, StreamEmitMode emit) {
         if (sql == null || sql.trim().isEmpty()) {
             throw CompileErrors.invalidArg("SQL text is blank");
         }
@@ -137,6 +150,7 @@ public final class StreamSqlCompiler {
         stream.setAttr("version", 1);
 
         CompileContext ctx = new CompileContext(schema);
+        ctx.emit = emit == null ? StreamEmitMode.CLOSE : emit;
         List<XNode> transforms = new ArrayList<>();
         List<XNode> edges = new ArrayList<>();
         String lastId = compileStatement(program.getStatements().get(0),
@@ -317,6 +331,9 @@ public final class StreamSqlCompiler {
                                                String filterId, AggregateScan scan,
                                                CompileContext ctx, List<XNode> transforms,
                                                List<XNode> edges, String idPrefix) {
+        // WI37: plain pipelines (with or without a TUMBLE source) produce no window
+        // strategy, so an emit declaration would be silently dropped — reject it.
+        ctx.failFastOnEmitUpdate(loc(select), "plain pipeline");
         SqlTumbleTableSource tumble = table instanceof SqlTumbleTableSource
                 ? (SqlTumbleTableSource) table : null;
         String tableName = tumble != null ? tumble.getTableName()
@@ -399,6 +416,9 @@ public final class StreamSqlCompiler {
                                                      String filterId, GroupedAggregate grouped,
                                                      CompileContext ctx, List<XNode> transforms,
                                                      List<XNode> edges, String idPrefix) {
+        // WI37: continuous aggregates emit on every record already; the emit tier has
+        // no close semantic here — reject UPDATE instead of silently ignoring it.
+        ctx.failFastOnEmitUpdate(loc(select), "continuous aggregate");
         String srcId = idPrefix + "src";
         transforms.add(sourceNode(loc(base), srcId, base.getTableName().getName()));
         String prev = srcId;
@@ -456,6 +476,9 @@ public final class StreamSqlCompiler {
     private static String compileJoinQuery(SqlQuerySelect select, SqlJoinTableSource join,
                                            CompileContext ctx, List<XNode> transforms,
                                            List<XNode> edges, String idPrefix) {
+        // WI37: join products carry a joinSpec, not a windowing strategy — an emit
+        // declaration has no carrier and would be silently dropped — reject it.
+        ctx.failFastOnEmitUpdate(loc(select), "join");
         if (hasAggregate(select.getProjections())) {
             throw CompileErrors.invalidArg("aggregate over a join is outside the stream SQL v1 subset");
         }
@@ -1043,14 +1066,38 @@ public final class StreamSqlCompiler {
         int aggregatorSeq;
         int joinSpecSeq;
 
+        /**
+         * WI37 (D11 release): the declared two-tier emit mode; UPDATE is written to
+         * the product strategy on the windowed-aggregate path only.
+         */
+        StreamEmitMode emit = StreamEmitMode.CLOSE;
+
         CompileContext(Map<String, String> schemaFields) {
             this.schemaFields = schemaFields == null ? new LinkedHashMap<>() : schemaFields;
         }
 
         String nextStrategy(String base, long durationMillis) {
             String id = base + (strategySeq++);
-            strategies.add(mk(null, "strategy", "strategyId", id, "windowFnId", "tumbling-event-time", "duration", durationMillis + "ms"));
+            XNode strategy = mk(null, "strategy", "strategyId", id, "windowFnId", "tumbling-event-time", "duration", durationMillis + "ms");
+            if (emit == StreamEmitMode.UPDATE) {
+                // WI37/D11: only reached from the windowed-aggregate path — the other
+                // paths fail fast on UPDATE before a strategy would be produced.
+                strategy.setAttr("emit", "UPDATE");
+            }
+            strategies.add(strategy);
             return id;
+        }
+
+        /**
+         * WI37 no-silent guard: UPDATE is only legal on the windowed-aggregate path;
+         * every other path (plain pipeline incl. plain-TUMBLE, continuous aggregate,
+         * join) must reject the declaration instead of dropping it.
+         */
+        void failFastOnEmitUpdate(SourceLocation loc, String path) {
+            if (emit == StreamEmitMode.UPDATE) {
+                throw CompileErrors.invalidArg("emit=update is only supported for windowed "
+                        + "aggregate (TUMBLE GROUP BY) queries, not for the " + path + " path");
+            }
         }
 
         String nextAggregator(String base, SqlRowAggregateSpec spec, boolean withSchema) {
