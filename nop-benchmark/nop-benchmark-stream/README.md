@@ -20,6 +20,8 @@ nop-stream 热路径 JMH 基准（plan 360 建；plan 2279 补传输/算子路�
 | BufferPoolPermitBench | BufferPool acquire/release（`poolCapacity`=1 强制乒乓/64 近畅通；真实 ResultPartition/InputChannel 路径） |
 | ProcessingTimeDriverLatencyBench | ProcessingTimeServiceDriver 处理时间定时器触发延迟（`tickMs`=100/20；SampleTime，fire 延迟 = op − 50ms 提前量） |
 | ConnectorInvokeBench | connector 数据面逐记录路径（plan 366 Phase 1）：file source 逐行读取（`lineChars`=64/512）、file 2PC sink invoke Map.toString 物化（`mapEntries`=4/16）、jdbc 2PC sink invoke Map 拷贝（10 列；IJdbcTemplate 反射桩，invoke 仅内存缓冲不触 JDBC） |
+| WatermarkEmitBench | 水位 punctuation 路径三形态拆分（WI12 plan 2344）：watermarkOnly=非触发纯控制面（恒 ~1.7ns，keys 无关）、elementOnly 纯元素、elementPlusFiringWatermark 融合（对照既有 WindowOperatorProcessElementBench）——水位节流 go/no-go 依据（裁定 NO-GO：节省上限 ≤1.2%） |
+| SlidingWindowFanoutBench | ACCUMULATING 滑窗每元素重叠窗口 fan-out（WI12 plan 2344）：窗长 60s 固定、slideCount 1/6/12/36（N=重叠窗口数），ns/op 随 N 超线性（N=12→15.4×/2.3µs）——frame/deduct successor GO 依据 |
 
 ## 运行
 
