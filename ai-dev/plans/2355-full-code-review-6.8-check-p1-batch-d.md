@@ -56,16 +56,16 @@ Targets: 批次 d check 单元报告 P1 清单
 - Item Types: `Proof`
 
 - [x] 动手前基线确认：本 plan 已提交（bacd41a56e）、`git status` 干净后开始
-- [ ] 主 agent 对账落盘（委派对账 agent 执行）：① **独立枚举 diff**（ROADMAP Phase 3/4/5/6 单元表 vs plan 候选 17 份；msg-cluster-cred 拆分裁定执行：cluster 4+message 3 入池、credential 1 归 6.7 已承接；e2e/nop-rg/nop-lint 零报告声明落盘）② 批次 d 对账池 69 条全量清单（维度派生 D5/D1 量级在净池上落盘+处置标注逐条实测+**承接实测逐单元表：每条 P1 核对 4.4/4.5/3.9 行级锚，得 C 与净池 N=69−C**，frontend-benchmark JavaScriptService 条目按严格口径裁定承接/入池并留痕）③ 统计表机械核对（17 份逐份+SUMMARY 分相账平）④ 冻结协议三要素（seed=2355 + **宇宙快照哈希** + `_tmp/fcr-6.8-frozen.csv`；`_tmp/fcr-6.8-sample.py`；双轨下限按实测 N 落盘；A/B/C 分配规则写死）
-- [ ] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定（代码亲读+实跑三分支〔零测试退化规则登记〕+撞车比对）
-- [ ] 主 agent 抽查质量：冻结表重放 + 承接台账抽验（在先锚回读）+ 标定抽验（含实跑）
-- [ ] 产物 `_tmp/fcr-6.8-checkp1-a/b/c.md` + 冻结表 + 承接台账（universe.md ⑤节）
-- [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
+- [x] 主 agent 对账落盘（委派对账 agent 执行）：① **独立枚举 diff=一致零出入**（ROADMAP Phase 3/4/5/6 单元表 vs plan 候选 17 份吻合；msg-cluster-cred 拆分裁定执行：cluster 4+message 3 入池、credential 1 归 6.7 已承接；e2e/nop-rg/nop-lint 零报告声明落盘；net-http-rpc in-progress 如实登记）② 批次 d 对账池 69 条全量清单（处置标注逐条实测+**承接实测 C=43/净池 N=26——43 条全部在 4.4/4.5/3.9 行级锚逐条回读：终判 AF 22/partially 2/adjudicated-deferred 1/still-live 17**；frontend-benchmark JavaScriptService 按严格口径入池留痕、PageProvider 承接；D5/D1 净池量级落盘）③ **统计表机械核对 17/17+SUMMARY 分相账平** ④ 冻结协议三要素落盘：seed=2355 + 净池快照 `1d150e72…` + 冻结表 `_tmp/fcr-6.8-frozen.csv` SHA-256 `8f367c53…`（**22 条=D5+D1 全抽**，双轨达标：净池轨 22/26=84.6%≥⌈26/2⌉=13、严格基线轨 22+43=65≥35；分配 A8/B7/C7；双跑逐字节 PASS）
+- [x] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定——**粗账 A=AF 4/live 4、B=AF 4/live 3、C=AF 6/live 1，合计 AF 14 / still-live 8 / dup 0 / FP 0**；零 P0 疑似；实跑全绿（B 7 批 57/57、C 六模块 69 用例）零红测试；A 份零测试退化规则启用 1 条（spring-quarkus，登记证据弱化）；**方法学勘正留痕**：A 份 8 条中 3 条实带 labeled-fixed 处置块（任务书「全部无标注」表述不准，冻结表 disposal 列如实，实跑按分支①②③正确归属）
+- [x] 主 agent 抽查质量：冻结表重放 SHA-256 一致（8f367c53…）+ 标定抽验——A#1 removeCookie 无 null 守卫亲读在位 / B#3 DemoBizModel :107 裸取 token 亲读在位 / AF 提交 52705d9bc8（nop-excel 四条修复）可达且描述吻合 / 独立复跑 TestSftpHostKeyChecking 5/5 绿与 C 份一致
+- [x] 产物 `_tmp/fcr-6.8-checkp1-a/b/c.md` + 冻结表 + 承接台账（universe ⑤节，含 still-live missing 清单 17 条）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（三份初判零 P0 疑似）
 
 Exit Criteria:
 
-- [ ] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据（zero-test 退化逐条登记）
-- [ ] 双轨抽样达标（净池轨+严格基线轨，实测 N 与 C 落盘）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
+- [x] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据（zero-test 退化逐条登记）
+- [x] 双轨抽样达标（净池轨 84.6% + 严格基线轨 65≥35，实测 N=26/C=43 落盘）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
 - [ ] No owner-doc update required（只读）
 - [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
