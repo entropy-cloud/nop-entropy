@@ -67,11 +67,11 @@ Exit Criteria:
 - [x] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据（zero-test 退化逐条登记）
 - [x] 双轨抽样达标（净池轨 84.6% + 严格基线轨 65≥35，实测 N=26/C=43 落盘）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
 - [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核与判级收敛
 
-Status: planned
+Status: in progress
 Targets: Phase 1 产物
 
 - Item Types: `Proof` + `Decision`
