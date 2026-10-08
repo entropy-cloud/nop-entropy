@@ -1,6 +1,6 @@
 # 2360 full-code-review 7.4 nop-code gated 项复核 + 增量巡检（lang-go/rust/csharp 新扩展）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-10-08
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.4（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 03/09/12 巡检侧重）
 > Related: `ai-dev/backlog/nop-code-invariant-loop-roadmap.md`（Owner Doc，91 行——Cycle 1 关闭稳态暂停分支 A；**Phase 9 @Auth gated 阻塞待人工确认**〔Protected Area，successor path 已登记〕；Phase 4 cascadeDelete successor 已落地 `2026-08-14-0707-1`）；5.3 报告（nop-code 组版本漂移 P2 邻接）；6.7 批次 c nop-code 5 条 P1 标定（撞车面）。
@@ -8,7 +8,7 @@
 > **范围裁定**：① gated 复核=Phase 9 @Auth 现状核对（gated 原因/人工确认状态/successor path 落点——**本项只核对登记，不实施 @Auth 实现**〔Protected Area ask-first〕）+ Phase 4 cascadeDelete successor 落地验证；② 增量巡检=6 提交 diff triage（沿 2357 准入规则）+ 三新语言扩展结构巡检（模块定位/pom 合规/与 lang-java 的形态一致性/测试面——发现按判级锚立条）；③ 撞车检索面（对抗审查 M1/M2/M3 勘正）：**6.7（check nop-code 5 条 P1 → AF 1〔validateLocalPath，锚 0a5ac880cf/890159ce66 未入 6.7 编号面〕/live P1×3=P1-6.7-009/010/011 全 open〔index :160-162〕+P2-6.7-004 partially-fixed 残余）**/**6.9（nop-code 14 条全部 ③ watch-only 终态归档+2 条升级候选维持上报 R1.0：#:214 跨文件调用边解析缺口疑似 P1/#:237 ProjectAnalyzer readText 无界——#:274 注 AR-41 同型残留）**/5.3（P2-5.3-002 parent 链版本漂移）/**4.3（P2-4.3-001 CodeIndexService 六域拆分——index P2 台账在案）**/**6.2（:85 CodeIndexService ERR_CODE_REBUILD_NOT_GIT_REPO 错误码语义随 C1）**/invariant-loop AR 台账；4.2（nop-code-api/dao 零测试已裁定合理非缺口 B1/B2——m3 注记）。
 > **方法学裁定**：① 巡检两跳：聚类→逐簇 diff triage+新模块结构面；② 发现编号 `P1-7.4-NNN`/`P2-7.4-NNN`；P0 即时通道；③ 验证协议：发现双锚；Phase 2 still-live 100% 亲读+其余抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 亲读；冻结协议三要素（seed=2360+提交簇哈希）落盘。
 > **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红按 2331 :93 先例归因登记。
-> Draft Review: agent_1d1262e3 首轮 **3 Major（M1 6.7 标定数字与 index 矛盾——P1×3 open 非 P1×2/M2 6.9 nop-code 3 条 still-open 系误引——实为 14 watch-only 终态+2 升级候选维持/M3 撞车面漏 4.3 P2-4.3-001 与 6.2:85 CodeIndexService 同热点）+ 3 Minor（m1 窗口钉哈希/m2 hollow 扫描锚/m3 4.2 注记）**——本轮全部修复（详见各节勘正注记），待聚焦复核。
+> Draft Review: agent_1d1262e3 首轮 **3 Major（M1 6.7 标定数字与 index 矛盾/M2 6.9 误引/M3 撞车面漏同热点）+ 3 Minor（m1–m3）**——本轮全部修复；聚焦复核发现 M1 残留（Current Baseline 行未同步——原处方两处只改一处），补齐后二次核认 **PASS 零问题**（commits `a5b0cf7943`/`17c58c78d2`）——转 active。
 
 ## Purpose
 
@@ -47,12 +47,12 @@
 
 ### Phase 1 - gated 复核与增量巡检（1 agent）
 
-Status: planned
+Status: in progress
 Targets: gated 项+增量面+新扩展
 
 - Item Types: `Proof`
 
-- [ ] 动手前基线确认：本 plan 已提交、`git status` 干净后开始
+- [x] 动手前基线确认：本 plan 已提交（17c58c78d2）、`git status` 干净后开始
 - [ ] 主 agent 对账落盘（委派审计 agent）：① Phase 9 @Auth gated 现状核对（gated 原因/successor path 登记落点/人工确认状态——只核对不实施）+Phase 4 cascadeDelete successor 落地验证（`2026-08-14-0707-1` closure 证据）② 6 提交 diff triage（发现准入沿 2357 规则）③ 三新扩展结构巡检（pom/模块定位/lang-java 形态对照/测试面+**`scan-hollow-implementations.mjs` 机械锚**〔m2〕）④ 撞车比对 ⑤ 冻结协议三要素 → `_tmp/fcr-7.4-audit-a.md`
 - [ ] 主 agent 抽查质量：冻结表重放+发现抽验（含亲读）
 - [ ] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记
