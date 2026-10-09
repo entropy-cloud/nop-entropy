@@ -140,9 +140,13 @@ public class TestStreamFlowAuditFixes {
         model.setTransforms(Arrays.asList(src, sink("out", "sinkBean")));
         model.setEdges(Arrays.asList(edge("e0", "src", "out")));
 
+        // WI15 (plan 2361): the capability face moved from NOT_IMPLEMENTED to the
+        // declared-fidelity check (REPLAYABLE declaration vs the plain bean's
+        // BEST_EFFORT = false declaration → ERR_STREAM_INVALID_ARG).
         StreamException ex = buildFailsFast(model);
-        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("consistencyCapability"), () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("BEST_EFFORT"), () -> ex.getMessage());
     }
 
     @Test
@@ -223,9 +227,12 @@ public class TestStreamFlowAuditFixes {
         model.setTransforms(Arrays.asList(source("src", "srcBean"), out));
         model.setEdges(Arrays.asList(edge("e0", "src", "out")));
 
+        // WI15 (plan 2361): capability face → declared-fidelity check (IDEMPOTENT
+        // declaration vs the plain sink's AT_LEAST_ONCE → ERR_STREAM_INVALID_ARG).
         StreamException ex = buildFailsFast(model);
-        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString());
         assertTrue(ex.getMessage().contains("consistencyCapability"), () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("AT_LEAST_ONCE"), () -> ex.getMessage());
     }
 
     /**
