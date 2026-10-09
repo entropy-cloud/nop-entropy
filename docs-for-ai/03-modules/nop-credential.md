@@ -228,7 +228,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 
 ### Web 授权编辑（凭证详情页最小面）
 
-`NopCredential.view.xml` 详情页（view）afterForm 挂"取用授权（RBAC 收紧）"子表：`@query:NopCredentialAuth__findPage?filter_credentialId=...` 列表 + revoke 撤销（确认文案提示收紧语义）+ grant 新增对话框（角色选择器 source `@query:NopAuthRole__findList/value:roleId,label:roleName` + 手工输入兜底）。**共部署语义**：standalone `nop-credential-app` 无 NopAuthRole GraphQL 服务时选择器为空源、手工输入 roleId 为主通道（后端仅校验非空）；详情页同屏展示 usage 引用子表（收紧前核对）。
+`NopCredential.view.xml` 详情页（view）afterForm 挂"取用授权（RBAC 收紧）"子表：`@query:NopCredentialAuth__findPage?filter_credentialId=...` 列表 + revoke 撤销（确认文案提示收紧语义）+ grant 新增对话框（角色选择器 source `@query:NopAuthRole__findList/value:roleId,label:roleName` + 手工输入兜底）。**共部署语义**：standalone `nop-credential-app` 无 NopAuthRole GraphQL 服务时选择器为空源、手工输入 roleId 为主通道（后端仅校验非空）；详情页同屏展示 usage 引用子表（收紧前核对）。**休眠勘注（R1.2 / plan 2365，2026-10-09）**：`nop-credential-app` 当前为休眠态装配壳（不是可部署 HTTP 服务）；本段页面/编辑器语义面向嵌入宿主或复活后的 app——复活路径见模块内 `NopCredentialApplication` 注记。
 
 ## 子模块
 

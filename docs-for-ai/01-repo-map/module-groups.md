@@ -13,7 +13,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 持久化 | `nop-persistence/` | DAO、ORM、DB Migration、DBTool |
 | 服务框架 | `nop-service-framework/` | BizModel、GraphQL、Gateway |
 | 典型业务模块 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` | 最标准的业务骨架样板 |
-| 可复用业务模块 | `nop-sys/`、`nop-report/`、`nop-rule/`、`nop-batch/`、`nop-dyn/`、`nop-file/`、`nop-retry/`、`nop-tcc/`、`nop-metadata/` | 系统管理、报表、规则、批处理、动态表单、文件、重试、分布式事务、联邦式元数据。详见 `03-modules/` |
+| 可复用业务模块 | `nop-sys/`、`nop-report/`、`nop-rule/`、`nop-batch/`、`nop-dyn/`、`nop-file/`、`nop-credential/`、`nop-retry/`、`nop-tcc/`、`nop-metadata/` | 系统管理、报表、规则、批处理、动态表单、文件、凭证、重试、分布式事务、联邦式元数据。详见 `03-modules/` |
 | AI 子系统 | `nop-ai/` | AI 相关的 model/codegen/dao/meta/service/web/app 以及 agent、skills、toolkit、tools。分层：`nop-ai-api`（公开 API 契约，`IChatService`/`ChatOptions` 等）、`nop-ai-core`（LLM 调用 + `ILlmDialect` Provider 适配）、`nop-ai-agent`（执行引擎）、`nop-ai-toolkit`（工具执行层：抽象契约 + 具体执行器）、`nop-ai-tools`（具体工具实现）。其余模块：`nop-ai-coder`（AI 编程助手）、`nop-ai-maven`（VFS 集成）、`nop-ai-dsl-orm`（ORM DSL 集成）、`nop-ai-rag`、`nop-ai-shell`、`nop-ai-gateway`、`nop-ai-codegen`。废弃 chat API（`IAiChatService` 等，nop-ai-core）已标 `@Deprecated(forRemoval=true)`，迁移目标为 `IChatService`（nop-ai-api，bean `nopChatService`）。`nop-ai-agent` 的 `nop-dao`/`nop-message-core` 为 test scope（仅测试需要，不泄漏给下游消费者）；MCP 集成模块（`nop-ai-mcp-server`、`nop-spring-mcp-server*`）独立发布周期 |
 | Runner / CLI | `nop-runner/`、`scripts/` | CLI、runner、命令入口 |
 | 集成与运行时外围 | `nop-spring/`、`nop-quarkus/`、`nop-network/`、`nop-integration/` | 宿主集成与运行环境支持 |
@@ -59,7 +59,8 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | `nop-rule/` | 规则引擎（决策树/决策矩阵） |
 | `nop-batch/` | 批处理引擎（chunk 处理、断点续传） |
 | `nop-dyn/` | 动态表单/实体（运行时定义） |
-| `nop-file/` | 文件管理（上传/下载/去重） |
+| `nop-file/` | 文件管理（上传/下载/去重）。`nop-file-app` 为休眠态装配壳（不是可部署 HTTP 服务），复活路径见模块内注记 |
+| `nop-credential/` | 凭证管理（存储/取用授权/OAuth 凭证流程）。`nop-credential-app` 为休眠态装配壳（不是可部署 HTTP 服务），复活路径见模块内注记 |
 | `nop-retry/` | 分布式重试引擎 |
 | `nop-tcc/` | TCC 分布式事务 |
 | `nop-metadata/` | 联邦式元数据 / BI 语义层 / 血缘 / 质量 / 对账（跨数据源逻辑表抽象 + 聚合查询 + 自动血缘 + 质量检查点 cron 调度 + 数据对账） |
