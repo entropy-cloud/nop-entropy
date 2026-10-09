@@ -27,6 +27,8 @@
 **安全与授权边界（plan 364 裁定）**：
 - `NopTaskDefinitionAuth`（任务定义权限）**当前仅为登记用途，不参与执行鉴权**——引擎加载与执行路径不消费 definitionAuths，配置它不产生任何强制效果（管理页已同文标注）；接入执行入口鉴权为独立后续计划。
 - 任务实例/步骤表的错误诊断列（errCode/errMsg/errorStack/errorBeanData）持久化是既定设计（plan 265/266），读出面经通用 CRUD `query` 权限可见、**无字段级裁剪**——裁定为 residual-risk-only：内部类名/XPL 栈可辅助框架测绘、异常 params 可能含业务值，部署时应将 `NopTaskInstance:query` 授予可信角色。
+- **持久化明文 residual-risk 全列清单（F-WF-02-1 脱敏契约，plan 2380）**：除错误诊断列外，以下列同样以结构化明文落库且读出面无字段级裁剪——`taskInputs`（任务输入 request）、`remark`（终态 resultValue）、`stateBeanData`（resultValue/stateBean/outputs/nextStepName/persistVars 版本化 wrapper）、`errorBeanData`（ErrorBean 含 params + cause chain）。DB 泄露即暴露结构化明文，部署时应将实例/步骤表的 `query` 权限收敛到可信角色。
+- **`secret` 标记脱敏契约（plan 2380）**：task 模型的 `<input>`/`<output>` 属性支持 `secret="true"`——`DaoTaskStateStore` 序列化落库（taskInputs/remark/stateBeanData/errorBeanData 五锚点）时按声明名集递归排除同名键（任意层级、宁过滤勿漏）。语义要点：①无 secret 声明的任务落库行为字节级零变化；②**secret 属性不持久化 → 中断恢复（resume）时该属性不可用**（输出可由步骤体重算的才适合标记）；③过滤失败的异常路径 fail-open 返回原文（resume 数据完整性优先，warn 可见）；④落库加密（encrypted-at-rest）为正交补充手段，平台不翻 persist 缺省、不内置加密。
 - 任务实例表族**无租户列**（tenantId/namespaceId）：多租户场景的行级隔离需应用层自行过滤（数据权限按租户过滤对本模块不可下推）。
 - `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）；注册表为强引用、按配置容量阈值告警（plan 364 [05-04]，在用实例永不驱逐）。
 

@@ -267,6 +267,7 @@
 | R1.11 | done | plan 2377（2026-10-09）：fragment 变量校验三位点一次闭合（collectDocVars 文档级并集+spread 指令 vars 传递，位点 3 随传播闭合）；stash 判别 4 正向用例 FAIL 错误码逐字 `nop.err.graphql.unknown-var` 吻合审计探针；7 用例+fixture+loader 变体；graphql-core 141 全绿；owner doc 能力边界小节（P3-2.6-007 伴随）；并集宽松度裁定登记；closure audit 见 plan 2377 Closure 段 |
 | R1.12 | done | plan 2378（2026-10-09）：16 项 auth 声明+五侧合并终值断言（含 tenant 继承）+loader 两路径装配（xbiz.xdef 再生成）+双配置键 fail-open 三处+ObjMetaBasedValidator 收敛（新错误码+空安全化）+全链 enforcement 2/2；附带来料：nop-sys-dao import 一行修正（R1.17 附带工单提前消化）+metadata 四快照重录（nop-graphql-orm prepend id 字段=平台预期行为，沿 datav 先例）；closure audit 见 plan 2378 Closure 段 |
 | R1.13 | done | plan 2379（2026-10-09）：P1-3.1-002 dueAction 系统触发标记通道（allowCallByUser 入口放行+双锚测试）+P1-3.1-001 审批 gate（ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK+绑定 flowId 活跃判定+approve/reject 标记放行+withdraw/reverse 无条件+submit 重提交守卫+metadata 两本地覆盖同步+3 listener 标记窗口）；E2E 8/8+wf 195+metadata 1345 全绿；执行裁定：XScript 闭包不过 xpl 解析→listener 内联 try/finally 标记窗口（机制等价）；owner doc 两小节；closure audit 见 plan 2379 Closure 段 |
+| R1.14 | done | plan 2380（2026-10-09）：task.xdef secret 属性（nop-task-core 再生成）+DaoTaskStateStore 五锚点过滤（模型直取规避 bean 环+空集字节级短路+fail-open 例外）+判别测试 6/6+owner doc residual-risk 全列清单；task-core 163/dao 6/service 1 全绿；closure audit 见 plan 2380 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
