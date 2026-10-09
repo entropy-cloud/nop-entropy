@@ -27,6 +27,7 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 - **schema（D7）**：`<schemas>/<field name type>` 声明查询的列面。受管类型名九个闭集：`string/int/bigint/smallint/tinyint/float/double/boolean/bytes`；集合外类型（DATE/TIMESTAMP/DECIMAL 等）构建期 `nop.err.stream.invalid-arg` fail-fast（不静默近似）。
 - **sql 文本**：EQL 语法（与 ORM 同一 parser，单一口径）；CDATA 内嵌。
 - **sinkBean**：产物 sink 绑定的 `SinkFunction` bean 名——应用需在 beans 中注册该 bean。`<sql>` 必须是模型的唯一内容（与其他 transforms/edges 并存即 fail-fast）；查询的 FROM 表名即 source 的 **bean 名**（应用以表名注册数据源 bean）。
+- **顶层唯一约束裁定（WI0(e)，2026-10-09）**：transform 级 SQL **不放宽** `<sql>` 顶层唯一约束——`<sql>` 顶层生成器是唯一 SQL 编译入口的单一事实源，模型内嵌 SQL 片段的第二编译路径被裁定排除（vision §六 #WI0-XDSL）。Java DataStream API 挂接 EQL/`<sql>` 编译产物是唯一的合法组合形态；重启裁定触发条件 = 真实多段 SQL 管线声明诉求出现。
 - **展开机制**：`StreamModelDslBuilder.build()` 首步经 `ISqlStreamCompiler` SPI（`nop-stream-sql` 模块 app-beans 自动注册）把 `<sql>` 编译为完整流模型并替换父模型内容；classpath 无 nop-stream-sql 时 fail-fast（`nop.err.stream.invalid-arg`，错误文案点名 nop-stream-sql 模块）。
 
 ## 2. 纳入面与不支持清单
