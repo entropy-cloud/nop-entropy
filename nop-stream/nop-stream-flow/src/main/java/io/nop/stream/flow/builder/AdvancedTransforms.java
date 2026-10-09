@@ -240,18 +240,32 @@ final class AdvancedTransforms {
         // omitted declaration, so "update" overrides the accumulation mode rather than
         // conflicting with it); CLOSE keeps the legacy default trigger and the declared
         // accumulation mode.
-        // WI5 (plan 2351): the declared trigger. An explicit emit=UPDATE declaration
-        // owns the trigger slot (EmitUpdateTrigger) — an explicit triggerId on either
-        // level is a conflict, checked BEFORE resolution so the error precedence is
-        // stable and no throwaway trigger is built.
+        // WI5 (plan 2351) + WI8 (plan 2354): the trigger slot ownership contract.
+        // Three faces own the SAME slot — an explicit triggerId (either level), an
+        // explicit emit=UPDATE (EmitUpdateTrigger), and an explicit
+        // earlyResultsPeriod (either level, ContinuousEventTimeTrigger). Any two of
+        // the three on the same window conflict, checked BEFORE any resolution so the
+        // error precedence is stable and no throwaway trigger is built. evictorId is
+        // orthogonal (fire-path pane pruning, not a trigger).
         String nodeTriggerId = m.getTriggerId();
         String strategyTriggerId = strategy.getTriggerId();
-        if (strategy.getEmit() == StreamEmitMode.UPDATE
-                && (nodeTriggerId != null || strategyTriggerId != null)) {
+        String nodeEarly = m.getEarlyResultsPeriod();
+        String strategyEarly = strategy.getEarlyResultsPeriod();
+        // count FACES, not declarations: the node level overrides the strategy level
+        // within one face (allowedLateness/triggerId precedent), so both levels of a
+        // single face co-ex legally.
+        int triggerSlotFaces = 0;
+        if (nodeTriggerId != null || strategyTriggerId != null) triggerSlotFaces++;
+        if (strategy.getEmit() == StreamEmitMode.UPDATE) triggerSlotFaces++;
+        if (nodeEarly != null || strategyEarly != null) triggerSlotFaces++;
+        if (triggerSlotFaces > 1) {
             throw new StreamException(ERR_STREAM_INVALID_ARG)
                     .param(ARG_ARG_NAME, "triggerId")
-                    .param(ARG_DETAIL, "emit=\"UPDATE\" owns the window trigger (EmitUpdateTrigger); "
-                            + "an explicit triggerId on the same window is a conflict — drop one of the two")
+                    .param(ARG_DETAIL, "the window trigger slot is owned by ONE of: triggerId, "
+                            + "emit=\"UPDATE\", earlyResultsPeriod — found " + triggerSlotFaces
+                            + " competing declarations (triggerId=[" + strategyTriggerId + "/" + nodeTriggerId
+                            + "], emit=" + strategy.getEmit() + ", earlyResultsPeriod=["
+                            + strategyEarly + "/" + nodeEarly + "])")
                     .loc(t.getLocation());
         }
         String nodeEvictorId = m.getEvictorId();
@@ -284,6 +298,31 @@ final class AdvancedTransforms {
                         .loc(t.getLocation());
             }
             windowed.trigger((io.nop.stream.core.windowing.triggers.Trigger) trigger);
+        }
+        // WI8 (plan 2354): earlyResultsPeriod — periodic pre-window-end fires on the
+        // event-time axis (the processing-time axis stays with the triggerId catalog's
+        // continuous-processing-time:<dur>). The mutual-exclusion block above
+        // guarantees this is the only trigger-slot face present.
+        String earlyPeriod = nodeEarly != null ? nodeEarly : strategyEarly;
+        if (earlyPeriod != null) {
+            long periodMillis = parseDurationMillis(earlyPeriod);
+            io.nop.stream.core.windowing.triggers.Trigger<?, ?> earlyTrigger =
+                    io.nop.stream.core.windowing.triggers.ContinuousEventTimeTrigger.of(
+                            java.time.Duration.ofMillis(periodMillis));
+            // same canMerge-merging guard as the triggerId face (CETT canMerge=true —
+            // always passes; unified path)
+            WindowAssigner<?, ?> declaredAssigner =
+                    (WindowAssigner<?, ?>) windowed.getWindowAssigner();
+            if (declaredAssigner instanceof io.nop.stream.core.windowing.assigners.MergingWindowAssigner
+                    && !earlyTrigger.canMerge()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "earlyResultsPeriod")
+                        .param(ARG_DETAIL, "early-results trigger cannot merge and is not usable "
+                                + "on a merging window assigner ("
+                                + declaredAssigner.getClass().getSimpleName() + ")")
+                        .loc(t.getLocation());
+            }
+            windowed.trigger((io.nop.stream.core.windowing.triggers.Trigger) earlyTrigger);
         }
         if (strategy.getEmit() == StreamEmitMode.UPDATE) {
             windowed.trigger(new EmitUpdateTrigger<>());

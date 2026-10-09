@@ -25,6 +25,13 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
     
     /**
      *  
+     * xml name: earlyResultsPeriod
+     * 
+     */
+    private java.lang.String _earlyResultsPeriod ;
+    
+    /**
+     *  
      * xml name: evictorId
      * 
      */
@@ -66,6 +73,25 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         checkAllowChange();
         
         this._allowedLateness = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: earlyResultsPeriod
+     *  
+     */
+    
+    public java.lang.String getEarlyResultsPeriod(){
+      return _earlyResultsPeriod;
+    }
+
+    
+    public void setEarlyResultsPeriod(java.lang.String value){
+        checkAllowChange();
+        
+        this._earlyResultsPeriod = value;
            
     }
 
@@ -162,6 +188,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         super.outputJson(out);
         
         out.putNotNull("allowedLateness",this.getAllowedLateness());
+        out.putNotNull("earlyResultsPeriod",this.getEarlyResultsPeriod());
         out.putNotNull("evictorId",this.getEvictorId());
         out.putNotNull("strategyRef",this.getStrategyRef());
         out.putNotNull("triggerId",this.getTriggerId());
@@ -178,6 +205,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         super.copyTo(instance);
         
         instance.setAllowedLateness(this.getAllowedLateness());
+        instance.setEarlyResultsPeriod(this.getEarlyResultsPeriod());
         instance.setEvictorId(this.getEvictorId());
         instance.setStrategyRef(this.getStrategyRef());
         instance.setTriggerId(this.getTriggerId());

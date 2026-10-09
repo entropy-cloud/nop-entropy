@@ -167,9 +167,10 @@ public class TestWindowEmitDeclaration {
         Exception ex = assertThrows(Exception.class,
                 () -> StreamModelDslBuilder.of(model, resolver).build(),
                 "emit=UPDATE and an explicit triggerId must conflict");
-        assertTrue(String.valueOf(ex.getMessage()).contains("conflict")
+        assertTrue(String.valueOf(ex.getMessage()).contains("competing declarations")
                         || ex.getCause() != null
-                                && String.valueOf(ex.getCause().getMessage()).contains("conflict"),
+                                && String.valueOf(ex.getCause().getMessage())
+                                        .contains("competing declarations"),
                 () -> "expected the mutual-exclusion gate, got: " + ex.getMessage());
     }
 
