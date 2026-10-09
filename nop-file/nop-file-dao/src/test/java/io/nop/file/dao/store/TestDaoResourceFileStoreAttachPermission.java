@@ -64,7 +64,6 @@ public class TestDaoResourceFileStoreAttachPermission extends JunitAutoTestCase 
     }
 
     private NopFileRecord newRecord(String creator) {
-        System.out.println("[DEBUG-TEST] fileStore=" + fileStore + " daoProvider=" + daoProvider);
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord record = dao.newEntity();
         record.setFileId("attach-perm-" + StringHelper.generateUUID());
@@ -93,12 +92,6 @@ public class TestDaoResourceFileStoreAttachPermission extends JunitAutoTestCase 
             return null;
         });
         return reloaded;
-    }
-
-    @Test
-    public void testTempInjectionCheck() {
-        org.junit.jupiter.api.Assertions.assertNotNull(fileStore, "fileStore injected");
-        org.junit.jupiter.api.Assertions.assertNotNull(daoProvider, "daoProvider injected");
     }
 
     @Test
