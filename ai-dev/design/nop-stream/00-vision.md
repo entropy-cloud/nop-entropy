@@ -89,6 +89,18 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 > 执行注记（WI0b，2026-10-08）：**joins 既有条目的字段级扩展授权补记**——`StreamJoinSpecModel` 条目内单一 `timeout` 字段参数化为 `leftTimeout`/`rightTimeout` 双字段声明（非对称窗口 join timeout，`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI27 实施），属授权原文之外的实施延伸（授权 (b) 列举的三类注册表条目不含既有条目内字段参数化），在此显式补记，比照上条 WI21 先例格式。**本补记的实质理由（与 WI21 不同，不可平移其理由）**：条目集与条目类型不变（joins 仍是授权 (b) 已覆盖的条目），仅将既有 timeout 字段参数化并扩展构建期校验面，不触碰授权 (a) 的 Transformation 类型；leftTimeout/rightTimeout 为可执行语义参数（非 WI21 的描述性载体），其语义由 WI27 构建期校验与判别性测试钉死。**边界**：本补记不改变 2026-10-02 授权 (a)(b) 的既有范围——新增注册表条目类型仍限授权原文所列，范围之外的新条目类型或条目集变更仍属本决策点人审门。授权依据：`ai-dev/backlog/nop-stream-sql-enhancement-roadmap.md` WI0b（2026-10-08 执行指令「在 nop-entropy-stream-roadmap worktree 中执行 nop-stream-sql-enhancement-roadmap.md 直到彻底完成……」委托 ZCode 代理按 roadmap 建议裁定）。
 
+**#WI0-XDSL — xdsl-full-coverage 五项触点裁定（WI0 门，2026-10-09）**
+
+委托依据：2026-10-09 owner 执行指令「/goal 执行 nop-stream-xdsl-full-coverage-roadmap.md直到彻底完成。每个工作项按照plan guide拟制计划执行。每个计划执行完毕自动提交一次。」——与 WI0b（2026-10-08）先例同构，委托 ZCode 代理按 roadmap 预设默认方向裁定（零解禁、零 Non-Goal 推翻）。裁定全文与逐场景回填见 `ai-dev/plans/2346-wi0-xdsl-touchpoint-adjudication.md`，矩阵回填落 `ai-dev/backlog/nop-stream-xdsl-full-coverage-roadmap.md` 12 场景矩阵「接受降级（WI0 裁定）」列。五项裁定：
+
+- **(a) 通用异步算子：维持 §四 Non-Goal，不解除。** 2026-10-07 #WI0 五引擎对比裁定已维持 per-record 异步 lookup 排除（异步性收敛在物化刷新层）；通用异步算子属 §六决策点人审面，无新增 owner 诉求不改判。E6/E11 的异步 I/O 走同步替代声明形态（roadmap WI17 默认分支：process bean 承载外部调用 + 有界容量与超时行为契约 + 显式串行语义标注）。
+- **(b) 非等值/区间 join：维持 §四排除项，不解除。** D2 收窄（2026-10-02）仅纳入等值 join；区间谓词声明面无 demonstrated user need。E11/E12 的 `BETWEEN` 区间语义走声明式变通形态（roadmap WI18 默认分支：`<union>` + 多次两路等值 join + `<process>` 聚合 + 事件时间过滤），变通形态进 owner doc。
+- **(c) `<sideInputs broadcast>` 属性语义重定义：go。** 语义钉死为「有限维表注入方式」标记——构建期或低频更新的有限维表只读快照，声明该 sideInput 复制到所有并行实例；不引入流式广播状态、不引入 BroadcastState 类型，守 §七 #G36。roadmap WI11 按此语义落地。
+- **(d) DISTINCT SQL 口径：精确口径归 `<sql>` 面**（已由 multi-engine roadmap WI17a 交付并显式 supersede sql roadmap WI16 不支持清单）；**roadmap WI9 声明面聚合目录交付 distinct 计数的近似口径**（dedup 集合语义 + 内存上界说明）并文档化两口径边界。
+- **(e) transform 级 SQL：维持 `<sql>` 顶层唯一约束，不放宽。** `<sql>` 顶层生成器是唯一 SQL 编译入口的单一事实源；放宽将引入「模型内嵌 SQL 片段」的第二编译路径，与 §三 #1「图模型为核、运行时只执行模型」的收敛路径相悖。roadmap WI16 交付 Java-only 记录 + owner doc 指针；E8 的 transform 级 SQL 以「Java DataStream API 挂接 EQL/`<sql>` 编译产物」形态验收。重启触发条件 = 真实多段 SQL 管线声明诉求出现。
+
+影响面：WI9（(d) 近似口径落地）、WI11（(c) 语义落地）、WI16（(e) Java-only 记录）、WI17（(a) 默认分支）、WI18（(b) 默认分支）、WI19（tail 源裁定不做 → bounded 重放 + DRAIN 变通落地）、WI20（E8 多表目标形态 = WI20 声明面，CatalogTable 前置已交付）。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）
