@@ -56,9 +56,12 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_COLLECTION_PREFIX_MISMATCH;
  */
 public class CollectionOperatorTransformer {
     private final IAliasGenerator aliasGenerator;
+    /** R1.6b / P1-2.2-006：与 EqlTransformVisitor 共享的用户/已分配别名集合（引用语义）。 */
+    private final Set<String> assignedAliases;
 
-    public CollectionOperatorTransformer(IAliasGenerator aliasGenerator) {
+    public CollectionOperatorTransformer(IAliasGenerator aliasGenerator, Set<String> assignedAliases) {
         this.aliasGenerator = aliasGenerator;
+        this.assignedAliases = assignedAliases;
     }
 
     public void transform(SqlWhere where) {
@@ -151,7 +154,10 @@ public class CollectionOperatorTransformer {
                 } else if (canMergeScope(scope, scope2)) {
                     removedScopes.add(scope2);
                     it.remove();
-                    scope.setLogicUnitNode(findLogicUnitNode(scope2.getLogicUnitNode().getASTParent()));
+                    // R1.6b / P1-2.2-007：logicUnitNode 的设置已下沉到 canMergeSomeScopes/
+                    // canMergeAllScopes 各分支（共享父提升）；原无条件覆盖行会把跨分支合并的
+                    // commonAnd 覆盖回 scope2 自己的分支，产生悬空引用（unknown-alias[t1]）
+                    // 与静默篡改，故删除。
 
                     // Only re-add if not already merged in this round
                     if (!alreadyMerged.contains(scope)) {
@@ -231,6 +237,9 @@ public class CollectionOperatorTransformer {
                 if (parent1.getASTKind() == EqlASTKind.SqlAndExpr ||
                     parent1.getASTKind() == EqlASTKind.SqlOrExpr) {
                     scope1.merge(scope2);
+                    // R1.6b / P1-2.2-007：共享父提升下沉到本分支（原 mergeConditions :154 的
+                    // 无条件覆盖对跨分支 commonAnd 形态是破坏性的）；本路径的共享父即 parent1
+                    scope1.setLogicUnitNode(findLogicUnitNode(parent1));
                     return true;
                 }
                 return false;
@@ -260,6 +269,8 @@ public class CollectionOperatorTransformer {
             }
 
         scope1.merge(scope2);
+        // R1.6b / P1-2.2-007：共享父提升下沉到本分支（同上）
+        scope1.setLogicUnitNode(findLogicUnitNode(parent1));
         return true;
     }
 
@@ -488,8 +499,13 @@ public class CollectionOperatorTransformer {
     private String makeAlias(CollectionScope scope) {
         String alias = scope.getAlias();
         if (alias == null) {
-            alias = aliasGenerator.genTableAlias();
+            // R1.6b / P1-2.2-006：与 EqlTransformVisitor.makeTableAlias 同纪律——
+            // 跳过用户别名/已分配别名并回登记，否则 EXISTS 子查询同名遮蔽外层别名
+            do {
+                alias = aliasGenerator.genTableAlias();
+            } while (assignedAliases.contains(alias));
             scope.setAlias(alias);
+            assignedAliases.add(alias);
         }
         return alias;
     }

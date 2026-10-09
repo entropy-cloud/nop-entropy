@@ -188,7 +188,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     public EqlTransformVisitor(ISqlCompileContext context) {
         this.context = context;
         this.aliasGenerator = context.getAliasGenerator();
-        this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator);
+        this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator, assignedAliases);
     }
 
     public List<String> getReadEntityModels() {
@@ -1198,6 +1198,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     alias = new SqlAlias();
                     alias.setGenerated(true);
                     alias.setAlias(newName);
+                    // R1.6b / P1-2.2-006：回登记，使 FROM/join 自动生成别名对后续
+                    // CollectionOperatorTransformer 的别名分配可见（闭合残余碰撞面）
+                    assignedAliases.add(newName);
                     return alias;
                 }
             } while (true);
