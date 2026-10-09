@@ -171,7 +171,7 @@ BizModel 方法通过返回 `WebContentBean` 或包含 `contentType` + `content`
 - `requireEntity()` / `save()` / `updateEntity()`
 - 必要时 `txn().afterCommit(...)`
 
-注意：`txn().afterCommit(...)` 依赖当前已有事务。普通 `@BizMutation` 默认有事务；query 场景不要把它当作无条件可用模板。
+注意：`txn().afterCommit(...)` 依赖当前已有事务。普通 `@BizMutation` 默认有事务（R1.10 起 action 级装饰器默认化，后台直调写动作亦生效）；query 场景不要把它当作无条件可用模板。
 
 ## 返回值建议
 

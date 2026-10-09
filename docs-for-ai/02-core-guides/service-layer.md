@@ -63,7 +63,7 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 如果修改入口最终走 `CrudBizModel.copyToEntity()` / `OrmEntityCopier`，则 xmeta 中的 `autoExpr` 会在实体拷贝阶段执行。
 对 inline 主子表关系，子实体的 `autoExpr` 可以依赖已绑定的主实体反向 relation（例如 `refPropName` 对应的 owner 属性）；不要假设必须等到整棵对象图挂载完成后才可读取主表字段。
 
-注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提；`@BizQuery` 和其他无事务场景下不要直接套用。
+注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提（R1.10 起 mutation 默认事务装饰器对后台直调亦生效）；`@BizQuery` 和其他无事务场景下不要直接套用。
 
 ### 参数与返回值
 
@@ -274,7 +274,7 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 | `dao().getEntityById(id)` 作为默认模板 | 绕过 `CrudBizModel` 的统一流程 |
 | `dao().findAllByQuery(query)` 作为默认模板 | 绕过 query 预处理与权限过滤 |
 | `dao().saveEntity(entity)` 作为默认模板 | 绕过上层封装与默认行为 |
-| `@BizMutation @Transactional`，或在 BizModel 方法上叠 `@SingleSession` | BizModel 管道已自动包事务并提供 ORM Session：`@Transactional` 是重复事务包裹，`@SingleSession` 是 **non-BizModel** 场景注解（定时任务、独立 service bean，见 `../03-runbooks/non-bizmodel-orm-access.md`），BizModel 上不需要 |
+| `@BizMutation @Transactional`，或在 BizModel 方法上叠 `@SingleSession` | BizModel 管道已自动包事务并提供 ORM Session（R1.10 起 mutation **默认**包事务——含无 `<txn>` 声明与后台直调路径）：`@Transactional` 是重复事务包裹（冗余非禁止，由 dao 层 AOP 切点消费），`@SingleSession` 是 **non-BizModel** 场景注解（定时任务、独立 service bean，见 `../03-runbooks/non-bizmodel-orm-access.md`），BizModel 上不需要 |
 | BizModel/`I*Biz` 自定义方法签名缺 `IServiceContext context` 末参 | 对齐基类 `ICrudBiz` 契约（其所有方法末参均为 `IServiceContext context`）。`context` 承载 `IUserContext`（用户身份/数据权限）、缓存与事务上下文；跨服务调用（A 域注入并调用 B 域 `I*Biz`）必须把 `context` 透传给下游，否则下游拿不到身份、静默跳过数据权限、丢失缓存。查询带 `FieldSelectionBean` 时，`context` 仍是最后参数。在 xbiz `<source>` 脚本中，该上下文以内置变量 `svcCtx` 提供（详见 `./xlang-and-xpl-basics.md` 的"xbiz action source 内置变量"章节） |
 | 直接注入其他 BizModel 实现类 | 降低跨模块可替换性 |
 | 创建无 xmeta 的伪 BizModel | GraphQL 无法识别，浏览器页面报"未定义的对象" |
