@@ -1,7 +1,7 @@
 # 2363 full-code-review 7.7 nop-message-pulsar + nop-record 单轮审计残留复核
 
-> Plan Status: active
-> Last Reviewed: 2026-10-09
+> Plan Status: completed
+> Last Reviewed: 2026-10-09（报告/plan 日期采用提交时点 2026-10-09；Phase 1-3 事实登记于 10-08.md log 文件——本会话追加式 log 惯例，日期口径统一注记）
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.7（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/09/14 巡检侧重）
 > Related: **`ai-dev/audits/2026-05-20-adversarial-review-nop-message-pulsar/adversarial-review-round1.md`（Owner Doc 1，422 行——发现 1~17，空壳原型时代产物；发现 17 sendAsync 丢弃 MessageId :381-399）**；**`ai-dev/audits/2026-08-16-1447-adversarial-review-nop-record-plan-203.md`（Owner Doc 2，144 行——**R1 16 条〔P0×2+P1×6+P2×8〕+R2 7 条=23 条**；含 P0-2 公式双重跳过主 Blocker）**；**plan-203 本体已 completed 并归档 `ai-dev/archived/2026-08/203-nop-record-record-file-defect-fixes-tests-first.md`（执行提交 e530b5c0cc 2026-08-16）**——对抗审查发现的修复在 HEAD 是否仍在位为本项核心复核面〔M3 锚〕；6.1（**P2-6.1-001 Pulsar seekToPosition 空实现**——发现 7 附注挂接 7.7/R1.0；6.9 escalation-final #:192〔msg-cluster-cred 行 192〕与 P2-6.1-001 同一缺陷双立标记——R1.0 合并裁定注记）；**4.4→7.7 kafka 生命周期 5 点移交（4.4 报告 :677 ①..⑤；index :189 P1-4.4-M03「7.7 移交①②」；M-03 seek 语义统一联动 6.1 :18）**〔M2——本项显式承接面〕；6.8（format-record 单元 P1×6 标定——**对照载体=`_tmp/fcr-6.8-universe.md`/`frozen.csv` 非 6.8 报告正文〔M4〕；两套 ID 空间〔plan-203 审查条目 vs check format-record#P1-N〕对照机制=文件+符号键匹配，Phase 1 落盘**）。
 > 机械基线（主 agent 实测 2026-10-08；**对抗审查 agent_fb56b1fa 勘正 B1/B2**）：pulsar round1 **发现 17 条**（非 16——发现 17 :381-399；对账范围=round1 全文非 :11-356 截断）；**建设提交 28359021e5 为 2026-05-21（round1 审计次日，窗口内）——round1→现状主证据=该提交 diff**〔m1 勘正，非「更早窗口」〕；nop-record plan-203 审查 **23 条**（非 10）；nop-record 近窗 **2026-08-16..HEAD 7 提交**（plan-203 执行+回归风险面〔m2 钉定〕）。
@@ -63,10 +63,10 @@ Targets: pulsar 17 发现 + plan-203 23 条 + kafka 移交
 
 Exit Criteria:
 
-- [ ] 审计产物落盘；still-live 条目各 ≥9 行；双锚证据
-- [ ] 17+23 条全覆盖+kafka 5 点整理；样本表可重放
-- [ ] No owner-doc update required（只读）
-- [ ] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+- [x] 审计产物落盘；still-live 条目各 ≥9 行；双锚证据
+- [x] 17+23 条全覆盖+kafka 5 点整理；样本表可重放
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
 
 ### Phase 2 - 独立复核
 
@@ -86,31 +86,31 @@ Exit Criteria:
 
 ### Phase 3 - 报告编制、index、closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: 轮次目录报告 + index + roadmap + 本 plan
 
-- [ ] 编制 `7.7-pulsar-record-residual-audit.md`；index 登记 7.7 行 + 仍 live 进 P1 汇总或 P2 台账
-- [ ] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 独立子 agent closure audit（五项：证据完整性/严重性标定/引用路径真实性/计数对应——40 条全覆盖+kafka 5 点/移交义务闭环——无静默搁浅）；**通过后** roadmap 7.7 翻 `done`；plan 关闭（双 `--strict`）；commit
+- [x] 编制 `7.7-pulsar-record-residual-audit.md`；index 登记 7.7 行 + 仍 live 进 P1 汇总（P1-7.7-001）或 P2 台账
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（五项：证据完整性/严重性标定/引用路径真实性/计数对应——40 条全覆盖+kafka 5 点/移交义务闭环——无静默搁浅）；**通过后** roadmap 7.7 翻 `done`；plan 关闭（双 `--strict`）；commit
 
 Exit Criteria:
 
-- [ ] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
-- [ ] 复核口径可复现（复核员抽验一致）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 复核口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
 
 ## Closure Gates
 
 > 只读审计计划，免除全量构建。
 
-- [ ] 报告落盘且 17+23 条全覆盖复核+kafka 5 点整理
-- [ ] 每条双锚证据可复现；撞车比对留痕
-- [ ] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入
-- [ ] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
-- [ ] roadmap 7.7 回填 `done`；log 收口记录已写
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 不存在被静默降级的 in-scope 项（**kafka 移交义务闭环**——M2 专项核验）
+- [x] 报告落盘且 17+23 条全覆盖复核+kafka 5 点整理
+- [x] 每条双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（P1-7.7-001 归位 P1 汇总）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.7 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项（**kafka 移交义务闭环**——M2 专项核验）
 
 ## Deferred But Adjudicated
 
@@ -122,14 +122,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 工作项 7.7 收口——40 条全量现状复核零翻案（pulsar AF 14/still-live 3 全 P3；R1 fixed 15/still-live 1→派生 P1-7.7-001；R2 closed 5/closed-late 1/partial 1），kafka 5 点移交整理闭环，seek 三处同点位整理=P2-6.1-001 唯一承载。独立 closure audit（agent_e8c16727）首轮 **FAIL 附 1 Blocker**（index P1-7.7-001 行错插 P2 裁决台账——P1 汇总缺失，注册脚本锚点错误），处方落实〔行归位 P1 汇总+**同类错位行 P2-7.3-still-open×5 一并勘正**〔7.3 注册同型错误，超出处方的同类修复〕+勾选滞后补齐+日期口径统一注记〕后轻量复检 **PASS**（md5 逐字节一致+两表 110/46 行格式完整+无其他错位行）。
+Completed: 2026-10-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: agent_e8c16727-d388-4db0-b2fb-437d7db2dc4f（独立子 agent，fresh session，只读）
 - Evidence:
+  - 核验 A 证据完整性 通过：报告齐备；still-live 5 条历史锚↔HEAD 现状锚双锚各 ≥9 行；产物引用一致；git 证据链 7 commit 抽验全中
+  - 核验 B 计数对应：40=17+23 全过；pulsar 17=14+3/R1 16=15+1/R2 7=5+1+1 全过；报告=index 0/1/0/3 全过；**P1 汇总恰 1 行子项首轮 FAIL（:243 错插）→ 行归位后复检 PASS（:193 md5 逐字节一致）**；冻结双 SHA 独立重算 MATCH（净池 77628d4f…/冻结表 7067d0aa…+RNG 三连 3/3）
+  - 核验 C 引用路径真实性 通过：6/6 亲读（subStart 错序/空 lambda/SubscriptionType/seek TODO/M-03 case 体/P3-4.4-008）
+  - 核验 D 流程状态 通过（附 2 项轻微→已落实）：kafka 移交义务闭环 PASS；勾选滞后补齐；日期口径统一注记
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2363-full-code-review-7.7-pulsar-record-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；F14/F16/F17 watch-only（规则 #3）；kafka 5 点裁决建议供 R1.0
 
 Follow-up:
 
-- （收口时填写，或明确写 no remaining plan-owned work）
+- P1-7.7-001 → R1.0；P2-6.1-001 → R1.0（合并裁定承载，修复输入含 M-03 联动）；kafka 5 点裁决建议 → R1.0；S-7.7-C1 → 与归档 plan :263 同族合并；F14/F16/F17 watch-only——无本 plan 自有剩余工作

@@ -63,7 +63,7 @@
 | 7.4 | `7.4-nop-code-gated-incremental-audit.md` | 0 | **3** | **3** | 0 | done（裁决：通过——gated 三点核对登记完备〔张力注记：CRUD 面已覆盖但非 CRUD 面+AR-155/170 待确认，roadmap 未更新〕+Phase 4 successor 验证 PASS+6 提交巡检+三新扩展结构巡检 hollow 全 EXIT=0 零缺陷——发现 **6 条零翻案：P0=0/P1×3〔LlmSemanticEdgeExtractor 生产不可达 roadmap done 误导面+评测自证空转 MRR=1.0+证据链断裂〕进 R1.0/P2×3〔含 roadmap-done+plan-draft 系统性脱钩流程缺陷族〕**；冻结哈希重放 MATCH；closure audit 一次 PASS 四项全过〔3 Minor 不阻塞：P2 台账合并行先例/triage 表 _tmp 留痕/时态表述〕） | 独立子 agent（agent_1d1262e3 聚焦复核 M1 残留核认 PASS；Phase 2 复核 agent_9231c882 PASS 零翻案；closure audit agent_69c001b7 一次 PASS，见 plan 2360 Closure 段） |
 | 7.5 | `7.5-nop-job-r10-incremental-audit.md` | 0 | 0 | 0 | 0 | done（裁决：通过——R10 **17 条全量标定 already-fixed 17/17 零翻案**——承接对账 17/17 全覆盖〔plan 267/268/269 全 completed+保持性 325/338/339/344〕+抽验 11/17=65% 含 P1×5 全覆盖+独立实跑 51 tests 全绿；**增量巡检零编号发现**〔50 提交零偏差+域外 20 登记+样本 5 深检全净〕+Watch 注记 3 条低于门槛；残留 2 条 non-blocking 声明属实；零 P0；6.6 零同缺陷+ID 空间防撞登记；closure audit 一次 PASS 四项全过〔3 Minor 不阻塞：R10 summary 行锚 +1 偏移勘正/W-1 锚 1 行偏移/台账标题合并口径注记〕） | 独立子 agent（agent_eed12f8e 聚焦复核二次核认 PASS；Phase 2 复核 agent_6edac754 PASS 零翻案；closure audit agent_aff4dff4 一次 PASS，见 plan 2361 Closure 段） |
 | 7.6 | `7.6-nop-datav-followups-audit.md` | 0 | 0 | **1** | 0 | done（裁决：通过——followups open **P2×52+裁定项 #72 精确枚举**+抽样 **25 条=48.1%≥45%** 三分类 **fixed 2/watch 2/still-open 21** 零翻案〔复核抽验 10/25=40% 全维持〕+45 提交增量巡检 **P2-7.6-001 残留裸 ISE 双重遗漏链**〔W4 引入+P2-19 枚举漏+W7 修复漏；复核新证 W3 时点 ISE=0〕+撞车四面全量〔fc5b390ae↔6.7 datav#P1-1 同面非修复关系核验〕+#72 评估〔中低紧急宜随 R1.0 ACL 收口〕；零 P0；closure audit 一次 PASS 五项全过〔3 Minor 不阻塞：_tmp 日期/标题沿用注记/Q1-Q2 已吸收〕） | 独立子 agent（agent_036d5ac9 聚焦复核残留核认 PASS；Phase 2 复核 agent_2d6f637d PASS 零翻案；closure audit agent_ccb3b4fc 一次 PASS，见 plan 2362 Closure 段） |
-| 7.7 | `7.7-pulsar-record-residual-audit.md` | 0 | **1** | 0 | **3** | 报告落盘，closure audit 进行中（40 条全量现状复核零翻案：pulsar 17〔AF 14/still-live 3 全 P3〕+plan-203 审查 23〔R1 fixed 15/still-live 1→**派生 P1-7.7-001 readCollection fixed 分支 subStart 错序双重跳过**〔零启用场景 P1 附 R1.0 升级依据〕/R2 closed 5+late 1〔R2-6 窗内被修复正向发现〕+partial 1〕+**kafka 5 点移交整理**〔M-01/M-03 维持+INIT/ALWAYS 区分裁决+非 ApiMessage 统一 JSON 方案+P3-4.4-008 低成本收口〕+seek 三处同点位整理=**P2-6.1-001 唯一承载**；冻结双 SHA 重放 MATCH；零 P0） | 独立子 agent（agent_fb56b1fa 聚焦复核 PASS；Phase 2 复核 agent_53d13f18 PASS 零翻案；closure audit 待启动） |
+| 7.7 | `7.7-pulsar-record-residual-audit.md` | 0 | **1** | 0 | **3** | done（裁决：通过——40 条全量现状复核零翻案：pulsar 17〔AF 14/still-live 3 全 P3〕+plan-203 审查 23〔R1 fixed 15/still-live 1→**派生 P1-7.7-001 readCollection fixed 分支 subStart 错序双重跳过**〔零启用场景 P1 附 R1.0 升级依据〕/R2 closed 5+late 1〔R2-6 窗内被修复正向发现〕+partial 1〕+**kafka 5 点移交整理**〔M-01/M-03 维持+INIT/ALWAYS 区分裁决+非 ApiMessage 统一 JSON 方案+P3-4.4-008 低成本收口〕+seek 三处同点位整理=**P2-6.1-001 唯一承载**；冻结双 SHA 重放 MATCH；零 P0；closure audit FAIL→处方落实〔P1-7.7-001 行归位 P1 汇总+同类错位行 P2-7.3 勘正+勾选/日期口径〕后轻量复检 PASS） | 独立子 agent（agent_fb56b1fa 聚焦复核 PASS；Phase 2 复核 agent_53d13f18 PASS 零翻案；closure audit agent_e8c16727，FAIL→处方落实后轻量复检 PASS，见 plan 2363 Closure 段） |
 
 ## P0 发现追踪（即时通道）
 
@@ -172,7 +172,6 @@
 | P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（LlmSemanticEdgeExtractor 生产不可达——CodeIndexService:285-291 硬编码 3 提取器零接线+roadmap done 误导面+G1-b 静默缺失复合缺陷；补接线或双向状态勘正；**条件判读登记供拆面**） | open |
 | P1-7.4-002 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（SearchQualityEvalTest 评测自证空转——零生产参与 MRR=1.0/F1=1.0 不可作质量证据；接真实链路或显式标注 smoke） | open |
 | P1-7.4-003 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（plan 31 证据链断裂——`[x]` 载体从未运行+@Disabled+closure 自审非独立；状态勘正+indexDirectory 验证补做或条目移除） | open |
-| P2-7.3-still-open×5 | `7.3-nop-metadata-incremental-audit.md`（arm-unclosed-findings-nop-metadata.md 承载） | nop-metadata 台账 P2 still-open 5 行（维度07-004 DTO List<Map> 未类型化/维度16-01 AutoTest 快照覆盖/维度16-03 重复 CRUD 反模式/维度16-07 data-auth 测试只验 XML/维度07-03 queryAggregation 11 参数无 @RequestBean——MR3/MR4 归属） | 待 R1.0 批量裁决（沿 P2 台账通道；fixed 8/watch 3 终态不进） | R1.0 |
 | P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.0（check/net-http-rpc.md#P1-1 JdkHttpClient :320-323 错误路径 still-live——沿 3.9 §2.5#1 行修复方向；3.9 仅登记 gw-49/86 本条独立） | open |
 | P1-4.4-A5 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.1 A面 条目5 标定维持） | R1.0（check/format-misc.md#P1-5 生成器-文法对齐探针 0/13 still-live；**与 P2-4.4-001/002 合并的是修复立项通道**——P1 登记位单点保留） | open |
 | P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-1 空 query 构造空 BooleanQuery 恒空；LuceneSearchEngine 先修 5 条 P1〔S-02..06〕再动拆分——4.4 执行顺序约束） | open |
@@ -191,6 +190,7 @@
 | P1-4.5-R2 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.0（check/runner-cli.md#P1-2 CDI factory 不可用 @Inject null；同 R1 共享引导批次，pom exclude 在位未修复） | open |
 | P1-4.5-D1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.5 标定维持） | R1.0（check/demo-migration.md#P1-2 addCatalog off-by-one；**修复时同步删 runner 死副本 GenOrmHelper**——4.5 撞车去重表指令） | open |
 | P1-4.5-B1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.4 抽查表标定维持） | R1.0（check/frontend-benchmark.md#P1-2 PageProvider transformPermissions 竞态原地删键可变共享缓存；copy-on-write 或防御性拷贝；复核勘正补入清单第 18 条） | open |
+| P1-7.7-001 | `7.7-pulsar-record-residual-audit.md` | R1.0（nop-record readCollection fixed 分支 subStart 在 subInput 后捕获——急切 reader 双重跳过；捕获点前移+补「急切+非流式+fixed 集合」回归测试；R1.0 可从严升 P0 依据已附） | open |
 
 
 ## P2 裁决台账（例外通道）
@@ -240,8 +240,8 @@
 | AR-06〔backlog〕 | `7.2-nop-stream-incremental-audit.md`（invariant-loop 承载） | DebeziumMessageSource.dispatchEvent 逐 consumer 吞 collect 异常+offset 前移（复核撤销 P1 级升级：窗内 e20b7cef1b plan 368 R5-CON-02/03 已同形态闭合生产链路——P2 残余收敛） | 待 R1.0 裁决（**升级触发=绕过 DebeziumCdcSourceFunction 直接订阅**） | R1.0 |
 | P2-7.6-001 | `7.6-nop-datav-followups-audit.md` | NopDatavDashboardBizModel.java:552 并行聚合层残留裸 ISE（W4 引入+源审计 P2-19 枚举漏+W7 修复漏双重遗漏链；复核新证 W3 时点 ISE=0） | 待 R1.0 裁决（typed 化与 W7 已修 4 处同批） | R1.0 |
 | P2-7.6-still-open×21 | `7.6-nop-datav-followups-audit.md`（nop-datav-audit-followups.md 承载） | nop-datav followups open P2 still-open 21（抽样 25 条中标定；全清单 `_tmp/fcr-7.6-audit-a.md` §1；低成本快赢 5 处打包建议） | 待 R1.0 批量裁决（沿 P2 台账通道；未抽样余量 27 维持 backlog） | R1.0 |
-| P1-7.7-001 | `7.7-pulsar-record-residual-audit.md` | R1.0（nop-record readCollection fixed 分支 subStart 在 subInput 后捕获——急切 reader 双重跳过；捕获点前移+补「急切+非流式+fixed 集合」回归测试；R1.0 可从严升 P0 依据已附） | open |
 | backlog still-open ×35 | `7.2-nop-stream-incremental-audit.md`（invariant-loop 承载） | invariant-loop Follow-up Backlog still-open P2×35（含残余收敛 10；近缘留痕 4 条）——全清单 `_tmp/fcr-7.2-backlog.csv`+标定台账 §二 | 待 R1.0 批量裁决（沿 P2 台账通道；watch-only 28 条终态不进） | R1.0 |
+| P2-7.3-still-open×5 | `7.3-nop-metadata-incremental-audit.md`（arm-unclosed-findings-nop-metadata.md 承载） | nop-metadata 台账 P2 still-open 5 行（维度07-004 DTO List<Map> 未类型化/维度16-01 AutoTest 快照覆盖/维度16-03 重复 CRUD 反模式/维度16-07 data-auth 测试只验 XML/维度07-03 queryAggregation 11 参数无 @RequestBean——MR3/MR4 归属） | 待 R1.0 批量裁决（沿 P2 台账通道；fixed 8/watch 3 终态不进） | R1.0 |
 | P2-7.4-001..003 | `7.4-nop-code-gated-incremental-audit.md` | nop-ai-rag compile 依赖零使用/LlmEdgeBudget 失败消费不回滚+竞态（措辞已收紧）/**roadmap done+plan draft 三例系统性脱钩流程缺陷族**（建议 R1.0 统一裁定状态对账机制） | 待 R1.0 裁决 | R1.0 |
 
 ## MR/MV/MG 状态与收口证据
